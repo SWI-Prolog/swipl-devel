@@ -134,7 +134,7 @@ pl_rc_open(term_t rc_h,
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_io_mode, how);
   }
 
-  if ( PL_get_chars_ex(name, &n, CVT_ALL) )
+  if ( PL_get_chars(name, &n, CVT_ALL|CVT_EXCEPTION) )
   { RcObject o;
 
     if ( !PL_get_chars(class, &c, CVT_ALL) )
@@ -236,14 +236,14 @@ pl_rc_append_file(term_t rc_h,
 
   if ( !get_rc(rc_h, &rc) )
     return FALSE;
-  if ( !PL_get_chars_ex(name, &n, CVT_ALL) ||
-       !PL_get_chars_ex(file, &f, CVT_ALL) )
+  if ( !PL_get_chars(name, &n, CVT_ALL|CVT_EXCEPTION) ||
+       !PL_get_chars(file, &f, CVT_ALL|CVT_EXCEPTION) )
     fail;
 
-  if ( !PL_get_chars_ex(class, &c, CVT_ALL) &&
+  if ( !PL_get_chars(class, &c, CVT_ALL|CVT_EXCEPTION) &&
        !PL_unify_atom_chars(class, c) )
     fail;
-  if ( !PL_get_chars_ex(encoding, &enc, CVT_ALL) &&
+  if ( !PL_get_chars(encoding, &enc, CVT_ALL|CVT_EXCEPTION) &&
        !PL_unify_atom_chars(encoding, enc) )
     fail;
 

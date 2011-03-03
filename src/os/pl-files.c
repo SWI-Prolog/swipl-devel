@@ -674,7 +674,7 @@ static
 PRED_IMPL("file_base_name", 2, file_base_name, 0)
 { char *n;
 
-  if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
+  if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return FALSE;
 
   return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, BaseName(n));
@@ -686,7 +686,7 @@ PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
 { char *n;
   char tmp[MAXPATHLEN];
 
-  if ( !PL_get_chars_ex(A1, &n, CVT_ALL|REP_FN) )
+  if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return FALSE;
 
   return PL_unify_chars(A2, PL_ATOM|REP_FN, -1, DirName(n, tmp));
@@ -957,8 +957,8 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
     PL_fail;
   }
 
-  if ( PL_get_chars_ex(base, &b, CVT_ALL|BUF_RING|REP_FN) &&
-       PL_get_chars_ex(ext, &e, CVT_ALL|REP_FN) )
+  if ( PL_get_chars(base, &b, CVT_ALL|BUF_RING|REP_FN|CVT_EXCEPTION) &&
+       PL_get_chars(ext, &e, CVT_ALL|REP_FN|CVT_EXCEPTION) )
   { char *s;
 
     if ( e[0] == '.' )		/* +Base, +Extension, -full */
@@ -992,7 +992,7 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
   { char *n;
     wchar_t buf[MAXPATHLEN];
 
-    if ( PL_get_chars_ex(pl, &n, CVT_ALL|REP_UTF8) )
+    if ( PL_get_chars(pl, &n, CVT_ALL|REP_UTF8|CVT_EXCEPTION) )
     { if ( !_xos_os_filenameW(n, buf, MAXPATHLEN) )
 	return name_too_long();
 

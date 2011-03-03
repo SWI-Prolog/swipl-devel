@@ -263,7 +263,7 @@ pl_tty_put(term_t a, term_t affcnt)
 { char *s;
   int n;
 
-  if ( PL_get_chars_ex(a, &s, CVT_ALL) &&
+  if ( PL_get_chars(a, &s, CVT_ALL|CVT_EXCEPTION) &&
        PL_get_integer_ex(affcnt, &n) )
   { tputs(s, n, tputc);
     succeed;

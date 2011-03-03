@@ -326,8 +326,8 @@ PRED_IMPL("wildcard_match", 2, wildcard_match, 0)
 { char *p, *s;
   compiled_pattern buf;
 
-  if ( !PL_get_chars_ex(A1, &p, CVT_ALL) ||
-       !PL_get_chars_ex(A2,  &s, CVT_ALL) )
+  if ( !PL_get_chars(A1, &p, CVT_ALL|CVT_EXCEPTION) ||
+       !PL_get_chars(A2,  &s, CVT_ALL|CVT_EXCEPTION) )
     fail;
 
   if ( compilePattern(p, &buf) )
@@ -579,7 +579,7 @@ PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
   term_t head = PL_new_term_ref();
   int i;
 
-  if ( !PL_get_chars_ex(A1, &s, CVT_ALL|REP_FN) )
+  if ( !PL_get_chars(A1, &s, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     fail;
   if ( strlen(s) > sizeof(spec)-1 )
     return PL_error(NULL, 0, "File name too intptr_t",

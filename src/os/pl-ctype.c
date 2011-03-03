@@ -452,7 +452,7 @@ PRED_IMPL("iswctype", 2, iswctype, 0)
   wctype_t t;
 
   if ( !PL_get_char_ex(A1, &chr, FALSE) ||
-       !PL_get_chars_ex(A2, &s, CVT_ATOM) )
+       !PL_get_chars(A2, &s, CVT_ATOM|CVT_EXCEPTION) )
     return FALSE;
 
   if ( !(t=wctype(s)) )
@@ -726,11 +726,11 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
   const lccat *lcp;
 
 
-  if ( !PL_get_chars_ex(A1, &what, CVT_ATOM) )
+  if ( !PL_get_chars(A1, &what, CVT_ATOM|CVT_EXCEPTION) )
     fail;
   if ( PL_is_variable(A3) )
     locale = NULL;
-  else if ( !PL_get_chars_ex(A3, &locale, CVT_ATOM) )
+  else if ( !PL_get_chars(A3, &locale, CVT_ATOM|CVT_EXCEPTION) )
     fail;
 
   for ( lcp = lccats; lcp->name; lcp++ )

@@ -1112,7 +1112,7 @@ pl_complete_atom(term_t prefix, term_t common, term_t unique)
   char buf[LINESIZ];
   char cmm[LINESIZ];
 
-  if ( !PL_get_chars_ex(prefix, &p, CVT_ALL) )
+  if ( !PL_get_chars(prefix, &p, CVT_ALL|CVT_EXCEPTION) )
     fail;
   strcpy(buf, p);
 
@@ -1178,7 +1178,7 @@ pl_atom_completions(term_t prefix, term_t alternatives)
   term_t alts = PL_copy_term_ref(alternatives);
   term_t head = PL_new_term_ref();
 
-  if ( !PL_get_chars_ex(prefix, &p, CVT_ALL) )
+  if ( !PL_get_chars(prefix, &p, CVT_ALL|CVT_EXCEPTION) )
     fail;
   strcpy(buf, p);
 
