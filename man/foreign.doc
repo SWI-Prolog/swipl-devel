@@ -1580,6 +1580,37 @@ As PL_unify_bool(), but raises a type error if \arg{t} is not a
 variable, or a boolean.
 \end{description}
 
+The second family of functions in this section simplifies the generation
+of ISO compatible error terms. Any foreign function that calls this
+function must return to Prolog with the return code of the error
+function or the constant \const{FALSE}. If available, these error
+functions add the name of the calling predicate to the error context.
+See also PL_raise_exception().
+
+\begin{description}
+    \cfunction{int}{PL_instantiation_error}{term_t culprit}
+Raise \const{instantiation_error}.  \arg{Culprit} is ignored, but
+should be bound to the term that is not a variable.  See
+instantiation_error/1.
+
+    \cfunction{int}{PL_representation_error}{const char *resource}
+Raise \exam{representation_error(resource)}. See representation_error/1.
+
+    \cfunction{int}{PL_type_error}{const char *expected, term_t culprit}
+Raise \exam{type_error(expected, culprit)}.  See type_error/2.
+
+    \cfunction{int}{PL_domain_error}{const char *expected, term_t culprit}
+Raise \exam{domain_error(expected, culprit)}.  See domain_error/2.
+
+    \cfunction{int}{PL_existence_error}{const char *type, term_t culprit}
+Raise \exam{existence_error(type, culprit)}.  See type_error/2.
+
+    \cfunction{int}{PL_permission_error}{const char *operation,
+					 const char *type, term_t culprit}
+Raise \exam{permission_error(operation, type, culprit)}. See
+permission_error/3.
+\end{description}
+
 
 \subsection{BLOBS: Using atoms to store arbitrary binary data}
 \label{sec:blob}

@@ -1807,7 +1807,7 @@ PRED_IMPL("set_end_of_stream", 1, set_end_of_stream, 0)
 		      A1);
     } else
     { rc = PL_error(NULL, 0, "not a file", ERR_PERMISSION,
-		    ATOM_set_end_of_stream);
+		    ATOM_set_end_of_stream, ATOM_stream, A1);
     }
 #else
     rc = notImplemented("set_end_of_stream", 1);

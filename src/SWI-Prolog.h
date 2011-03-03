@@ -537,6 +537,13 @@ PL_EXPORT(int) 		PL_unify_nil_ex(term_t l);
 PL_EXPORT(int) 		PL_get_list_ex(term_t l, term_t h, term_t t);
 PL_EXPORT(int) 		PL_get_nil_ex(term_t l);
 
+PL_EXPORT(int)		PL_instantiation_error(term_t culprit);
+PL_EXPORT(int)		PL_representation_error(const char *resource);
+PL_EXPORT(int)		PL_type_error(const char *expected, term_t culprit);
+PL_EXPORT(int)		PL_domain_error(const char *expected, term_t culprit);
+PL_EXPORT(int)		PL_existence_error(const char *type, term_t culprit);
+PL_EXPORT(int)		PL_permission_error(const char *operation,
+					    const char *type, term_t culprit);
 
 		 /*******************************
 		 *	       BLOBS		*

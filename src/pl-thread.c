@@ -704,7 +704,7 @@ aliasThread(int tid, atom_t name)
     UNLOCK();
     PL_put_atom(obj, name);
     return PL_error("thread_create", 1, "Alias name already taken",
-		    ERR_PERMISSION, ATOM_thread, ATOM_create, obj);
+		    ERR_PERMISSION, ATOM_create, ATOM_thread, obj);
   }
 
   addHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
@@ -2714,7 +2714,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
   { if ( (s = lookupHTable(queueTable, (void *)name)) ||
 	 (s = lookupHTable(threadTable, (void *)name)) )
     { PL_error("message_queue_create", 1, NULL, ERR_PERMISSION,
-	       ATOM_message_queue, ATOM_create, queue);
+	       ATOM_create, ATOM_message_queue, queue);
       return NULL;
     }
     id = name;
@@ -2893,7 +2893,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 
   if ( q->type == QTYPE_THREAD )
   { PL_error(NULL, 0, "is a thread-queue", ERR_PERMISSION,
-	     ATOM_message_queue, ATOM_destroy, A1);
+	     ATOM_destroy, ATOM_message_queue, A1);
     UNLOCK();
     fail;
   }
@@ -3427,7 +3427,7 @@ unlocked_pl_mutex_create(term_t mutex)
   if ( PL_get_atom(mutex, &name) )
   { if ( (s = lookupHTable(GD->thread.mutexTable, (void *)name)) )
     { PL_error("mutex_create", 1, NULL, ERR_PERMISSION,
-	       ATOM_mutex, ATOM_create, mutex);
+	       ATOM_create, ATOM_mutex, mutex);
       return NULL;
     }
     id = name;
@@ -3622,7 +3622,7 @@ pl_mutex_unlock(term_t mutex)
   { char *msg = m->owner ? "not owner" : "not locked";
 
     return PL_error("mutex_unlock", 1, msg, ERR_PERMISSION,
-		    ATOM_mutex, ATOM_unlock, mutex);
+		    ATOM_unlock, ATOM_mutex, mutex);
   }
 
   succeed;
@@ -3667,7 +3667,7 @@ pl_mutex_destroy(term_t mutex)
     UNLOCK();
     Ssprintf(msg, "Owned by thread %d", m->owner); /* TBD: named threads */
     return PL_error("mutex_destroy", 1, msg,
-		    ERR_PERMISSION, ATOM_mutex, ATOM_destroy, mutex);
+		    ERR_PERMISSION, ATOM_destroy, ATOM_mutex, mutex);
   }
 
   if ( isAtom(m->id) )

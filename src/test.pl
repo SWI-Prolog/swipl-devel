@@ -2476,7 +2476,7 @@ mutex(unlock-1) :-
 	mutex_lock(Mutex),
 	mutex_unlock(Mutex),
 	catch(mutex_unlock(Mutex), E, true),
-	E == error(permission_error(mutex, unlock, Mutex),
+	E == error(permission_error(unlock, mutex, Mutex),
 		   context(mutex_unlock/1, 'not locked')),
 	mutex_destroy(Mutex).
 mutex(destroy-1) :-
