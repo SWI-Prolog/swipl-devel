@@ -151,6 +151,15 @@ undefined_proc_msg(_:(^)/2) --> !,
 	undefined_proc_msg((^)/2).
 undefined_proc_msg((^)/2) --> !,
 	[nl, '  ^/2 can only appear as the 2nd argument of setof/3 and bagof/3'].
+undefined_proc_msg((:-)/2) --> !,
+	[nl, '  Rules must be loaded from a file'],
+	faq('ToplevelMode').
+undefined_proc_msg((:-)/1) --> !,
+	[nl, '  Directives must be loaded from a file'],
+	faq('ToplevelMode').
+undefined_proc_msg((?-)/1) --> !,
+	[nl, '  ?- is the Prolog prompt'],
+	faq('ToplevelMode').
 undefined_proc_msg(Proc) -->
 	{ dwim_predicates(Proc, Dwims) },
 	(   {Dwims \== []}
@@ -158,6 +167,10 @@ undefined_proc_msg(Proc) -->
 	    dwim_message(Dwims)
 	;   []
 	).
+
+faq(Page) -->
+	[nl, '  See FAQ at http://www.swi-prolog.org/FAQ/', Page, '.txt' ].
+
 
 syntax_error(end_of_clause) -->
 	[ 'Unexpected end of clause' ].

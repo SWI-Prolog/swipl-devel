@@ -96,12 +96,26 @@ dwim_existence_error(fail, _) :- !.
 dwim_existence_error(Unknown, PredSpec) :-
 	'$module'(TypeIn, TypeIn),
 	unqualify_if_context(TypeIn, PredSpec, Spec),
-	Error = error(existence_error(procedure, Spec),
-		     context(toplevel, 'DWIM could not correct goal')),
+	(   no_context(Spec)
+	->  true
+	;   Context = context(toplevel, 'DWIM could not correct goal')
+	),
+	Error = error(existence_error(procedure, Spec), Context),
 	(   Unknown == error
 	->  throw(Error)
 	;   print_message(warning, Error)
 	).
+
+%%	no_context(+PI) is semidet.
+%
+%	True if we should omit the DWIM message because messages.pl
+%	gives an additional explanation.
+
+no_context((^)/2).
+no_context((:-)/2).
+no_context((:-)/1).
+no_context((?-)/1).
+
 
 %%	correct_meta_arguments(:Goal, +Module, +Bindings, -Final) is det.
 %
