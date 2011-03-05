@@ -448,10 +448,10 @@ restore_import(To, From, PI) :-
 
 save_prolog_flags :-
 	feedback('~nPROLOG FLAGS~n~n', []),
-	'$current_prolog_flag'(Feature, Value, _Scope, write, _Type),
-	\+ no_save_flag(Feature),
-	feedback('~t~8|~w: ~w~n', [Feature, Value]),
-	'$add_directive_wic'(qsave:restore_prolog_flag(Feature, Value)),
+	'$current_prolog_flag'(Flag, Value, _Scope, write, Type),
+	\+ no_save_flag(Flag),
+	feedback('~t~8|~w: ~w (type ~q)~n', [Flag, Value, Type]),
+	'$add_directive_wic'(qsave:restore_prolog_flag(Flag, Value, Type)),
 	fail.
 save_prolog_flags.
 
@@ -461,11 +461,18 @@ no_save_flag(associated_file).
 no_save_flag(hwnd).			% should be read-only, but comes
 					% from user-code
 
-%	Deal with possibly protected flags (debug_on_error and
+%%	restore_prolog_flag(+Name, +Value, +Type)
+%
+%	Deal  with  possibly   protected    flags   (debug_on_error  and
 %	report_error are protected flags for the runtime kernel).
 
-restore_prolog_flag(Flag, Value) :-
+restore_prolog_flag(Flag, Value, _Type) :-
+	current_prolog_flag(Flag, Value), !.
+restore_prolog_flag(Flag, Value, _Type) :-
+	current_prolog_flag(Flag, _), !,
 	catch(set_prolog_flag(Flag, Value), _, true).
+restore_prolog_flag(Flag, Value, Type) :-
+	create_prolog_flag(Flag, Value, [type(Type)]).
 
 
 		 /*******************************
