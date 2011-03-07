@@ -121,18 +121,18 @@ test(shared, fail) :-
 	v(A), v(B),
 	X = x(A), Y = x(B),
 	s(X,Y,X) =@= s(X,Y,Y).
-test(cycle, [sto(rational_trees), fail]) :- % Ulrich
+test(cycle, [sto(rational_trees), fail, fixme(variant)]) :- % Ulrich
 	A=[_V1,_V2|A], D=[_V3|A],
 	A =@= D.
-test(symmetry, fail) :-			% Ulrich
+test(symmetry, [fail, fixme(variant)]) :-		    % Ulrich
 	A=[B|C], D=[C|B],
 	B=[X|_Y], C=[_Z|X],
 	A =@= D.
-test(symmetry, fail) :-			% Ulrich
+test(symmetry, [fail, fixme(variant)]) :-		    % Ulrich
 	X=s(_Xi), Y=s(_Yi), Z=s(_Zi),
 	A=v(X,Y,X), D=v(Z,X,Y),
 	A =@= D.
-test(ground, [sto(rational_trees), fail]) :- % Ulrich
+test(ground, [sto(rational_trees), fail, fixme(variant)]) :- % Ulrich
 	A=[A|B], B=[A], D=[[A|B]|A],
 	A = [_,_], D = [_,_,_],
 	A =@= D.
