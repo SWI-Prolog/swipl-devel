@@ -213,6 +213,8 @@ PutOpenToken() inserts a space in the output stream if the last-written
 and given character require a space to ensure a token-break.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define isquote(c) ((c) == '\'' || (c) == '"')
+
 static bool
 needSpace(int c, IOSTREAM *s)
 { if ( c == EOF )
@@ -222,7 +224,8 @@ needSpace(int c, IOSTREAM *s)
 	      ((isAlphaW(s->lastc) && isAlphaW(c)) ||
 	       (isSymbolW(s->lastc) && isSymbolW(c)) ||
 	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
-	       (c == '\'' && isDigit(s->lastc))) )
+	       (c == '\'' && (isDigit(s->lastc))) ||
+	       (isquote(c) && s->lastc == c)) )
   { return TRUE;
   }
 
@@ -539,7 +542,7 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
   if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(s, len, fd) )
   { pl_wchar_t quote = L'\'';
 
-    TRY(Putc(quote, fd));
+    TRY(PutOpenToken(quote, fd));
 
     while(s < e)
     { TRY(putQuoted(*s++, quote, flags, fd));
