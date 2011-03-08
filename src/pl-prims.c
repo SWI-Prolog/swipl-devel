@@ -179,7 +179,7 @@ static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
 
 #define HAVE_VISITED
 #define AC_TERM_WALK_LR 1
-#define AC_TERM_WALK_VARIANT 1
+#define AC_TERM_WALK_LRS 1
 #include "pl-termwalk.c"
 
 		/********************************
@@ -1766,8 +1766,10 @@ typedef struct v_var
   Word	r;				/* rigth label */
 } v_var;
 
+
 #define consVar(n) (((word)(n)<<LMASK_BITS) | TAG_VAR | FIRST_MASK)
 #define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
+#define FMPLAIN(w) ((intptr_t)(w) & ~(FIRST_MASK|MARK_MASK))
 
 static inline v_var *
 get_v_entry(Word p, TmpBuffer buf)
@@ -1780,78 +1782,23 @@ get_v_entry(Word p, TmpBuffer buf)
   return NULL;
 }
 
-static int
-number_common_subterm(Word p, TmpBuffer buf ARG_LD)
-{ term_agenda agenda;
-  int rc = TRUE;
 
-  initvisited(PASS_LD1);
-  initTermAgenda(&agenda, p);
+static void
+pop_variant_mark(Functor l, Functor r, void *data)
+{ uintptr_t d = (uintptr_t)data;
 
-  while( (p=nextTermAgenda(&agenda)) )
-  { attvar:
-
-    switch(tag(*p))
-    { case TAG_VAR:
-      { v_var *entry = get_v_entry(p, buf);
-
-	if ( entry )
-	{ if ( entry->l != entry->v || entry->r != entry->v )
-	  { rc = FALSE;
-	    goto out;
-	  }
-	} else
-	{ v_var new;
-	  size_t id = entriesBuffer(buf, v_var);
-
-	  new.v = p;
-	  new.l = p;
-	  new.r = p;
-
-	  addBuffer(buf, new, v_var);
-	  *p = consVar(id);
-	}
-
-	break;
-      }
-      case TAG_ATTVAR:
-      { p = valPAttVar(*p);
-	goto attvar;
-      }
-      case TAG_COMPOUND:		/* see pushTermAgendaIfNotVisited() */
-      { Functor f = valueTerm(*p);	/* but ... must deal with cycle-links */
-	int arity;
-
-	if ( visited(f PASS_LD) )
-	  continue;
-	if ( isRef(f->definition) )
-	{ Functor f2 = f;
-
-	  while(isRef(f2->definition))
-	    f2 = (Functor)unRef(f2->definition & ~MARK_MASK);
-	  arity = arityFunctor(f2->definition);
-	} else
-	{ arity = arityFunctor(f->definition);
-	}
-
-	pushWorkAgenda(&agenda, arity, f->arguments);
-      }
-    }
-  }
-
-out:
-  clearTermAgenda(&agenda);
-  unvisit(PASS_LD1);
-
-  return rc;
+  if ( !(d & FIRST_MASK) )
+    l->definition &= ~FIRST_MASK;
+  if ( !(d & MARK_MASK) )
+    r->definition &= ~MARK_MASK;
 }
 
 
 static bool
-variant(term_agendaVARIANT *agenda, TmpBuffer buf ARG_LD)
-{ Word l, r, cl, cr;
+variant(term_agendaLRS *agenda, TmpBuffer buf ARG_LD)
+{ Word l, r;
 
-  while( nextTermAgendaVARIANT(agenda, &l, &r, &cl, &cr) )
+  while( nextTermAgendaLRS(agenda, &l, &r) )
   { word wl, wr;
 
   attvar:
@@ -1913,8 +1860,8 @@ variant(term_agendaVARIANT *agenda, TmpBuffer buf ARG_LD)
     { case TAG_ATOM:
 	fail;
       case TAG_ATTVAR:
-      { cl = l = valPAttVar(wl);
-	cr = r = valPAttVar(wr);
+      { l = valPAttVar(wl);
+	r = valPAttVar(wr);
 
 	goto attvar;
       }
@@ -1928,42 +1875,22 @@ variant(term_agendaVARIANT *agenda, TmpBuffer buf ARG_LD)
 	  continue;
         return FALSE;
       case TAG_COMPOUND:
-      { Functor fcl = valueTerm(*cl);
-	Functor fcr = valueTerm(*cr);
-	word fcld = fcl->definition;
-	word fcrd = fcr->definition;
-	int arity;
+      { Functor fl = valueTerm(wl);
+	Functor fr = valueTerm(wr);
+	intptr_t d;
 
-	while ( isRef(fcld) )
-	{ fcl = (Functor)unRef(fcld);
-	  fcld = fcl->definition;
-	}
-	while ( isRef(fcrd) )
-	{ fcr = (Functor)unRef(fcrd);
-	  fcrd = fcr->definition;
-	}
-	if ( fcl == fcr )		/* cycle or common subterm */
-	{ if ( valueTerm(wl) == valueTerm(wr) )
-	  { if ( !number_common_subterm(l, buf PASS_LD) )
-	      return FALSE;
-	  }
+	if ( FMPLAIN(fl->definition) != FMPLAIN(fr->definition) )
+	  return FALSE;
+	if ( (fl->definition & FIRST_MASK) &&
+	     (fr->definition & MARK_MASK) )
 	  continue;
-	}
 
-	if ( fcld == fcrd )
-	{ Functor fl = valueTerm(wl);
-	  Functor fr = valueTerm(wr);
+	d = (fl->definition & FIRST_MASK) | (fr->definition & MARK_MASK);
+	fl->definition |= FIRST_MASK;
+	fr->definition |= MARK_MASK;
 
-	  arity = arityFunctor(fcld);
-	  linkTermsCyclic(fcl, fcr PASS_LD);
-
-	  pushWorkAgendaVARIANT(agenda, arity,
-				fl->arguments, fr->arguments,
-				fcl->arguments, fcr->arguments);
-	  continue;
-	} else
-	{ return FALSE;
-	}
+	pushWorkAgendaLRS(agenda, fl, fr, (void*)d);
+	continue;
       }
     }
   }
@@ -1975,12 +1902,13 @@ variant(term_agendaVARIANT *agenda, TmpBuffer buf ARG_LD)
 static
 PRED_IMPL("=@=", 2, variant, 0)
 { GET_LD
-  term_agendaVARIANT agenda;
+  term_agendaLRS agenda;
   bool rval;
   tmp_buffer buf;
   v_var *r;
   Word p1 = valTermRef(A1);
   Word p2 = valTermRef(A2);
+  Functor t1, t2;
 
   deRef(p1);
   deRef(p2);
@@ -1989,9 +1917,14 @@ PRED_IMPL("=@=", 2, variant, 0)
     succeed;
   if ( tag(*p1) != tag(*p2) )		/* different type */
     fail;
+again:
   switch(tag(*p1))			/* quick tests */
   { case TAG_VAR:
       succeed;
+    case TAG_ATTVAR:
+      p1 = valPAttVar(*p1);
+      p2 = valPAttVar(*p2);
+      goto again;
     case TAG_ATOM:
       fail;
     case TAG_INTEGER:
@@ -2002,17 +1935,21 @@ PRED_IMPL("=@=", 2, variant, 0)
     case TAG_STRING:
       return equalIndirect(*p1, *p2);
     case TAG_COMPOUND:
-      if ( functorTerm(*p1) != functorTerm(*p2) )
+      t1 = valueTerm(*p1);
+      t2 = valueTerm(*p2);
+      if ( t1->definition != t2->definition )
 	fail;
+      break;
+    default:
+      assert(0);
+      fail;
   }
 
   startCritical;
   initBuffer(&buf);			/* can be faster! */
-  initCyclic(PASS_LD1);
-  initTermAgendaVARIANT(&agenda, p1, p2);
+  initTermAgendaLRS(&agenda, t1, t2, pop_variant_mark, NULL);
   rval = variant(&agenda, &buf PASS_LD);
-  clearTermAgendaVARIANT(&agenda);
-  exitCyclic(PASS_LD1);
+  clearTermAgendaLRS(&agenda);
   for(r = baseBuffer(&buf, v_var); r < topBuffer(&buf, v_var); r++)
   { setVar(*r->v);
   }

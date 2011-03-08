@@ -1249,9 +1249,10 @@ A =@= B :-
 \end{code}
 
 The SWI-Prolog implementation is cycle-safe and can deal with variables
-that are shared between the left and right argument.  Its performance is
-comparable to \predref{==}{2}, both on success and (early)
-failure.\footnote{The current implementation is based on ideas from
+that are shared between the left and right argument. Its performance is
+comparable to \predref{==}{2}, both on success and (early) failure.
+Unlike ==, the variant implementation does not benefit from sharing
+subterms.\footnote{The current implementation is based on ideas from
 Kuniaki Mukai.}
 
 This predicate is known by the name \predref{variant}{2} in some other

@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -278,6 +279,92 @@ pushWorkAgendaLR(term_agendaLR *a, size_t amount, Word left, Word right)
 }
 
 #endif /*AC_TERM_WALK_LR*/
+
+#if AC_TERM_WALK_LRS
+
+		 /*******************************
+		 *       TWO TERMS WITH POP	*
+		 *******************************/
+
+typedef struct aNodeLRS
+{ Functor	left;			/* left term */
+  Functor	right;			/* right term */
+  int		arg;
+  int	 	arity;
+  void	       *data;
+} aNodeLRS;
+
+typedef void (*popLRS)(Functor left, Functor right, void *data);
+
+typedef struct term_agendaLRS
+{ aNodeLRS	work;			/* current work */
+  popLRS 	pop;
+  segstack	stack;
+  char		first_chunk[sizeof(aNodeLRS)*25];
+} term_agendaLRS;
+
+
+static void
+initTermAgendaLRS(term_agendaLRS *a,
+		  Functor left, Functor right,
+		  popLRS pop, void *data)
+{ initSegStack(&a->stack, sizeof(aNodeLRS),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->pop	= pop;
+  a->work.data  = data;
+  a->work.left  = left;
+  a->work.right = right;
+  a->work.arg   = 0;
+  a->work.arity = arityFunctor(left->definition);
+}
+
+
+static void
+clearTermAgendaLRS(term_agendaLRS *a)
+{ do
+  { if ( a->work.arg != -1 )
+      (*a->pop)(a->work.left, a->work.right, a->work.data);
+  } while(popSegStack(&a->stack, &a->work));
+}
+
+
+#define nextTermAgendaLRS(a, lp, rp) \
+	nextTermAgendaLRS__LD(a, lp, rp PASS_LD)
+
+static int
+nextTermAgendaLRS__LD(term_agendaLRS *a, Word *lp, Word *rp ARG_LD)
+{ Word p;
+
+  while ( a->work.arg == a->work.arity )
+  { (*a->pop)(a->work.left, a->work.right, a->work.data);
+    a->work.arg = -1;
+    if ( !popSegStack(&a->stack, &a->work) )
+      return FALSE;
+  }
+
+  deRef2(&a->work.left->arguments[a->work.arg], p); *lp = p;
+  deRef2(&a->work.right->arguments[a->work.arg],p); *rp = p;
+  a->work.arg++;
+
+  return TRUE;
+}
+
+
+static int
+pushWorkAgendaLRS(term_agendaLRS *a, Functor left, Functor right, void *data)
+{ if ( !pushSegStack(&a->stack, &a->work) )
+    return FALSE;
+
+  a->work.data  = data;
+  a->work.left  = left;
+  a->work.right = right;
+  a->work.arg   = 0;
+  a->work.arity = arityFunctor(left->definition);
+
+  return TRUE;
+}
+
+#endif /*AC_TERM_WALK_LRS*/
 
 #if AC_TERM_WALK_VARIANT
 
