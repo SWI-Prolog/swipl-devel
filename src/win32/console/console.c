@@ -1616,6 +1616,8 @@ rlc_word_selection(RlcData b, int x, int y)
 static void
 rlc_extend_selection(RlcData b, int x, int y)
 { int l, c;
+  int el = b->sel_org_line;
+  int ec = b->sel_org_char;
 
   rlc_translate_mouse(b, x, y, &l, &c);
   if ( SelLT(l, c, b->sel_org_line, b->sel_org_char) )
@@ -1627,9 +1629,16 @@ rlc_extend_selection(RlcData b, int x, int y)
 	  for(; c > 0 && rlc_is_word_char(tl->text[c-1]); c--)
 	    ;
       }
+      if ( rlc_between(b, b->first, b->last, el) )
+      { TextLine tl = &b->lines[el];
+
+	if ( ec < tl->size && rlc_is_word_char(tl->text[ec]) )
+	  for(; ec < tl->size && rlc_is_word_char(tl->text[ec]); ec++)
+	    ;
+      }
     } else if ( b->sel_unit == SEL_LINE )
       c = 0;
-    rlc_set_selection(b, l, c, b->sel_end_line, b->sel_end_char);
+    rlc_set_selection(b, l, c, el, ec);
   } else if ( SelLT(b->sel_org_line, b->sel_org_char, l, c) )
   { if ( b->sel_unit == SEL_WORD )
     { if ( rlc_between(b, b->first, b->last, l) )
@@ -1639,9 +1648,16 @@ rlc_extend_selection(RlcData b, int x, int y)
 	  for(; c < tl->size && rlc_is_word_char(tl->text[c]); c++)
 	    ;
       }
+      if ( rlc_between(b, b->first, b->last, el) )
+      { TextLine tl = &b->lines[el];
+
+	if ( ec < tl->size && rlc_is_word_char(tl->text[ec]) )
+	  for(; ec > 0 && rlc_is_word_char(tl->text[ec-1]); ec--)
+	    ;
+      }
     } else if ( b->sel_unit == SEL_LINE )
       c = b->width;
-    rlc_set_selection(b, b->sel_start_line, b->sel_start_char, l, c);
+    rlc_set_selection(b, el, ec, l, c);
   }
 }
 
