@@ -84,14 +84,14 @@ format_to_chars(Format, Args, Codes, Tail) :-
 %	Codes is a list of character codes produced by write/1 on Term.
 
 write_to_chars(Term, Codes) :-
-	format(codes(Codes), '~w', Term).
+	format(codes(Codes), '~w', [Term]).
 
 %%	write_to_chars(+Term, -Codes, ?Tail)
 %
 %	Codes is a difference-list of character codes produced by write/1 on Term.
 
 write_to_chars(Term, Codes, Tail) :-
-	format(codes(Codes, Tail), '~w', Term).
+	format(codes(Codes, Tail), '~w', [Term]).
 
 %%	atom_to_chars(+Atom, -Codes) is det.
 %
