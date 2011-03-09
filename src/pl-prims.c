@@ -3200,12 +3200,10 @@ do_copy_term() returns TRUE if the term can   be shared and FALSE if not
 copying routine copied a shareable term it   discards the copy and links
 the original.
 
-NOTE: when using the stack-shifter, we cannot   affort  the stacks to be
-shifted during the execution of copy_term/2. I think the proper solution
-is to try and copy. If the copy   fails  we use exitCyclic() to undo the
-damage, reset gTop, get more space   and try again. allocGlobalNoShift()
-is a version of allocGlobal() that returns NULL if the stack needs to be
-shifted rather than doing it.
+We cannot affort the stacks  to  be   shifted  during  the  execution of
+copy_term/2. If the copy  fails  due   to  lack  of space do_copy_term()
+returns with *_OVERFLOW. We then use   exitCyclic()  to undo the damage,
+reset gTop, get more space and try again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define VAR_MARK (0x1<<LMASK_BITS|TAG_VAR)
