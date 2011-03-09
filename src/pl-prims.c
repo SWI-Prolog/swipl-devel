@@ -3240,6 +3240,8 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
       } else
       { *p = *p2;			/* cyclic terms */
       }
+    } else if ( is_first(p) )		/* shared ground term */
+    { clear_first(p);
     } else
     { Word old;
 
@@ -3344,6 +3346,9 @@ again:
       if ( isRef(f1->definition) )
       { *to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
         return FALSE;			/* Cyclic */
+      } else if ( f1->definition & FIRST_MASK )
+      { *to = *from;
+	return TRUE;
       } else
       { int arity = arityFunctor(f1->definition);
 	Word oldtop = gTop;
@@ -3381,6 +3386,8 @@ again:
 	  { exitCyclicCopy(count, flags PASS_LD);
 	    gTop = oldtop;
 	    *to0 = *from0;
+	    f1->definition |= FIRST_MASK;
+	    TrailCyclic(&f1->definition PASS_LD);
 	    DEBUG(2, Sdprintf("Shared\n"));
 	    return TRUE;
 	  } else
