@@ -542,7 +542,8 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
   if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(s, len, fd) )
   { pl_wchar_t quote = L'\'';
 
-    TRY(PutOpenToken(quote, fd));
+    TRY(PutOpenToken(quote, fd) &&
+	Putc(quote, fd));
 
     while(s < e)
     { TRY(putQuoted(*s++, quote, flags, fd));
