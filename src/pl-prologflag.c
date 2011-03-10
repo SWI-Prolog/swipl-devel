@@ -781,7 +781,7 @@ unify_prolog_flag_type(prolog_flag *f, term_t type)
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
-      a = ATOM_bool;
+      a = ATOM_boolean;
       break;
     case FT_ATOM:
       a = ATOM_atom;
