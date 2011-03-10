@@ -469,6 +469,7 @@ initBuildIns(void)
   LOOKUPPROC(equals2);
   LOOKUPPROC(is2);
   LOOKUPPROC(strict_equal2);
+  LOOKUPPROC(not_strict_equal2);
   LOOKUPPROC(print_message2);
   LOOKUPPROC(dcall1);
   LOOKUPPROC(setup_call_catcher_cleanup4);

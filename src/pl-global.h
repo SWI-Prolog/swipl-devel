@@ -245,6 +245,7 @@ struct PL_global_data
     Procedure	equals2;		/* =/2 */
     Procedure	is2;			/* is/2 */
     Procedure	strict_equal2;		/* ==/2 */
+    Procedure	not_strict_equal2;	/* \==/2 */
     Procedure	event_hook1;
     Procedure	exception_hook4;
     Procedure	print_message2;

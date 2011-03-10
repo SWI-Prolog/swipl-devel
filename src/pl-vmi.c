@@ -1272,6 +1272,62 @@ VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+B_NEQ_VV: translation of Var1 \== Var2
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(B_NEQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  Word v2 = varFrameP(FR, (int)*PC++);
+  int rc;
+
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkVal(v1);
+    *ARGP++ = linkVal(v2);
+  debug_neq_vv:
+    NFR = lTop;
+    DEF = GD->procedures.not_strict_equal2->definition;
+    setNextFrameFlags(NFR, FR);
+    goto normal_call;
+  }
+#endif
+
+  if ( (rc=compareStandard(v1, v2, TRUE PASS_LD)) == 0 )
+    BODY_FAILED;
+  if ( rc == CMP_ERROR )
+    THROW_EXCEPTION;
+
+  NEXT_INSTRUCTION;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+B_NEQ_VC Var == constant
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  word c  = (word)*PC++;
+
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkVal(v1);
+    *ARGP++ = c;
+    goto debug_neq_vv;
+  }
+#endif
+
+  deRef(v1);
+  if ( *v1 != c )
+    NEXT_INSTRUCTION;
+
+  BODY_FAILED;
+}
+
+
 #endif /*O_COMPILE_IS*/
 
 
