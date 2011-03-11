@@ -6826,7 +6826,11 @@ program		& [ heap, 0 ] \\
 global_stack	& [ global use, global free ] \\
 local_stack	& [ local use, local free ] \\
 trail		& [ trail use, 0 ] \\
-garbage_collection & [ number of GC, bytes gained, time spent ] \\
+garbage_collection & [ number of GC, bytes gained, time spent, bytes left ]
+		  The last column is a SWI-Prolog extension.  It contains the
+		  sum of the memory left after each collection, which can be
+		  divided by the count to find the average working set size
+		  after GC.  Use \exam{[Count, Gained, Time|_]} for compatiblity. \\
 stack_shifts    & [ global shifts, local shifts, time spent ]
 		  (fails if no shifter in this version) \\
 atoms		& [ number, memory use, 0 ] \\
