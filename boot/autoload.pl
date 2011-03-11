@@ -51,7 +51,7 @@
 	index_checked_at/1.
 
 
-%%	'$find_library'(+Module, +Name, +Arity, -LoadModule, -Library)
+%%	'$find_library'(+Module, +Name, +Arity, -LoadModule, -Library) is semidet.
 %
 %	Locate a predicate in the library.  Name and arity are the name
 %	and arity of the predicate searched for.  `Module' is the
@@ -169,10 +169,13 @@ load_library_index(Name, Arity) :-
 	functor(Head, Name, Arity),
 	library_index(Head, _, _), !.
 load_library_index(_, _) :-
+	with_mutex('$autoload', load_library_index_p).
+
+load_library_index_p :-
 	index_checked_at(Time),
 	get_time(Now),
 	Now-Time < 60, !.
-load_library_index(_, _) :-
+load_library_index_p :-
 	findall(Index, index_file_name(Index, [access(read)]), List0),
 	list_set(List0, List),
 	retractall(index_checked_at(_)),
@@ -212,11 +215,14 @@ read_index([H|T]) :- !,
 read_index(Index) :-
 	print_message(silent, autoload(read_index(Dir))),
 	file_directory_name(Index, Dir),
-	seeing(Old), see(Index),
+	setup_call_cleanup(open(Index, read, In),
+			   read_index_from_stream(Dir, In),
+			   close(In)).
+
+read_index_from_stream(Dir, In) :-
 	repeat,
-	    read(Term),
-	    assert_index(Term, Dir), !,
-	seen, see(Old).
+	    read(In, Term),
+	    assert_index(Term, Dir), !.
 
 assert_index(end_of_file, _) :- !.
 assert_index(index(Name, Arity, Module, File), Dir) :- !,
