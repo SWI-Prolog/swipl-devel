@@ -165,6 +165,7 @@ struct PL_global_data
     size_t	non_garbage;		/* # atoms for after last AGC */
     int		gc;			/* # atom garbage collections */
     int64_t	collected;		/* # collected atoms */
+    size_t	unregistered;		/* # candidate GC atoms */
     double	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif

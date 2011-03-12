@@ -1642,17 +1642,18 @@ gc(gc-6) :-
 	catch(1.25,_,garbage_collect).
 gc(agc-1) :-
 	garbage_collect_atoms.
-gc(agc-2) :-				% not if concurrent: this is too simple.  There
-					% are enough tests for AGC in the rest of the suite.
+gc(agc-2) :-		% not if concurrent: this is too simple.  There
+			% are enough tests for AGC in the rest of the suite.
 	(   current_prolog_flag(agc_margin, Margin),
 	    Margin > 0,
 	    \+ current_prolog_flag(test_concurrent, true)
-	->  UpTo is Margin*2,
+	->  garbage_collect_atoms,
+	    UpTo is Margin*2+10,
 	    statistics(agc_gained, Gained0),
 	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
 	    statistics(agc_gained, Gained1),
 	    Gained is Gained1 - Gained0,
-	    Gained > UpTo - 10		% might be some junk
+	    Gained > UpTo - 20		% might be some junk
 	;   true			% no atom-gc
 	).
 

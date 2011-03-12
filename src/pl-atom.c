@@ -370,7 +370,9 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	{
 #ifdef O_ATOMGC
 	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
-	    a->references++;
+	  { if ( a->references++ == 0 )
+	      GD->atoms.unregistered--;
+	  }
 #endif
           UNLOCK();
 	  *new = FALSE;
@@ -386,7 +388,8 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	     s == a->name )
 	{
 #ifdef O_ATOMGC
-	  a->references++;
+	  if ( a->references++ == 0 )
+	    GD->atoms.unregistered--;
 #endif
           UNLOCK();
 	  *new = FALSE;
@@ -422,8 +425,8 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
 #ifdef O_ATOMGC
   if ( GD->atoms.margin != 0 &&
-       GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin )
-  { intptr_t x = GD->statistics.atoms - (GD->atoms.non_garbage + GD->atoms.margin);
+       GD->atoms.unregistered >= GD->atoms.non_garbage + GD->atoms.margin )
+  { intptr_t x = GD->atoms.unregistered - (GD->atoms.non_garbage + GD->atoms.margin);
 
     if ( x % 128 == 0 )			/* see (*) above */
       PL_raise(SIG_ATOM_GC);
@@ -552,8 +555,8 @@ atoms each pass.
 
 void
 lockAtoms()
-{ GD->atoms.builtin     = GD->atoms.count;
-  GD->atoms.non_garbage = GD->atoms.builtin;
+{ GD->atoms.builtin      = GD->atoms.count;
+  GD->atoms.unregistered = 0;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -590,17 +593,17 @@ atoms that should *not* be subject to AGC.   If we find one collected we
 know we trapped a bug.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
 { Atom a = *ap;
   Atom *ap2 = &atomTable[a->hash_value & mask];
 
   if ( a->type->release )
   { if ( !(*a->type->release)(a->atom) )
-      return;
+      return FALSE;
   } else if ( GD->atoms.gc_hook )
   { if ( !(*GD->atoms.gc_hook)(a->atom) )
-      return;				/* foreign hooks says `no' */
+      return FALSE;				/* foreign hooks says `no' */
   }
 
 #if 0
@@ -627,16 +630,15 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
   }
 
   *ap = NULL;			/* delete from index array */
-  GD->atoms.collected++;
-  GD->statistics.atoms--;
-
   if ( false(a->type, PL_BLOB_NOCOPY) )
     freeHeap(a->name, a->length+1);
   freeHeap(a, sizeof(*a));
+
+  return TRUE;
 }
 
 
-static void
+static size_t
 collectAtoms(void)
 { GET_LD
   Atom *ap0 = GD->atoms.array;
@@ -644,6 +646,7 @@ collectAtoms(void)
   Atom *ep  = ap0 + GD->atoms.count;
   int hole_seen = FALSE;
   uintptr_t mask = atom_buckets-1;
+  size_t reclaimed = 0;
 
   ap--;
   while(++ap < ep)
@@ -658,15 +661,19 @@ collectAtoms(void)
     }
 
     if ( a->references == 0 )
-    { destroyAtom(ap, mask PASS_LD);
-      if ( !hole_seen && *ap == NULL )
-      { hole_seen = TRUE;
-	GD->atoms.no_hole_before = ap-ap0;
+    { if ( destroyAtom(ap, mask PASS_LD) )
+      { reclaimed++;
+	if ( !hole_seen && *ap == NULL )
+	{ hole_seen = TRUE;
+	  GD->atoms.no_hole_before = ap-ap0;
+	}
       }
     } else
     { a->references &= ~ATOM_MARKED_REFERENCE;
     }
   }
+
+  return reclaimed;
 }
 
 
@@ -684,6 +691,7 @@ pl_garbage_collect_atoms()
   int verbose;
   double t;
   sigset_t set;
+  size_t reclaimed;
 
   PL_LOCK(L_GC);
   if ( gc_status.blocked )		/* Tricky things; avoid problems. */
@@ -729,8 +737,11 @@ pl_garbage_collect_atoms()
 #endif
   oldcollected = GD->atoms.collected;
   oldheap = GD->statistics.heap;
-  collectAtoms();
-  GD->atoms.non_garbage = GD->statistics.atoms;
+  reclaimed = collectAtoms();
+  GD->atoms.collected += reclaimed;
+  GD->statistics.atoms -= reclaimed;
+  GD->atoms.unregistered -= reclaimed;
+  GD->atoms.non_garbage = GD->atoms.unregistered;
   t = CpuTime(CPU_USER) - t;
   GD->atoms.gc_time += t;
   GD->atoms.gc++;
@@ -787,7 +798,8 @@ PL_register_atom(atom_t a)
 
     LOCK();
     p = GD->atoms.array[index];
-    p->references++;
+    if ( p->references++ == 0 )
+      GD->atoms.unregistered--;
     UNLOCK();
   }
 #endif
@@ -804,7 +816,8 @@ PL_unregister_atom(atom_t a)
 
     LOCK();
     p = GD->atoms.array[index];
-    p->references--;
+    if ( --p->references == 0 )
+      GD->atoms.unregistered++;
     if ( p->references == (unsigned)-1 )
     { Sdprintf("OOPS: -1 references to '%s'\n", p->name);
       trap_gdb();
