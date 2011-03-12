@@ -353,9 +353,9 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
   if ( !type->registered )		/* avoid deadlock */
     PL_register_blob_type(type);
+  v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
 
   LOCK();
-  v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
   v  = v0 & (atom_buckets-1);
   DEBUG(0, lookups++);
 
