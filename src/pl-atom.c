@@ -354,7 +354,6 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   if ( !type->registered )		/* avoid deadlock */
     PL_register_blob_type(type);
 
-  startCritical;
   LOCK();
   v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
   v  = v0 & (atom_buckets-1);
@@ -373,7 +372,6 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	    a->references++;
 #endif
           UNLOCK();
-	  endCritical;
 	  *new = FALSE;
 	  return a->atom;
 	}
@@ -390,7 +388,6 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	  a->references++;
 #endif
           UNLOCK();
-	  endCritical;
 	  *new = FALSE;
 	  return a->atom;
 	}
@@ -442,7 +439,6 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   *new = TRUE;
   if ( type->acquire )
     (*type->acquire)(a->atom);
-  endCritical;
 
   return a->atom;
 }
