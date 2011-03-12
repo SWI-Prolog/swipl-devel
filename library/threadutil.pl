@@ -44,6 +44,7 @@
 	    tnodebug/1,			% +ThreadId
 	    tprofile/1			% +ThreadId
 	  ]).
+:- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
 	tspy/1,

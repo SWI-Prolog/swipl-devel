@@ -169,7 +169,7 @@ load_library_index(Name, Arity) :-
 	functor(Head, Name, Arity),
 	library_index(Head, _, _), !.
 load_library_index(_, _) :-
-	with_mutex('$autoload', load_library_index_p).
+	notrace(with_mutex('$autoload', load_library_index_p)).
 
 load_library_index_p :-
 	index_checked_at(Time),
