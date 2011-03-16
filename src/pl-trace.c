@@ -28,6 +28,9 @@
 #include "pl-inline.h"
 #include "pl-dbref.h"
 
+#define SKIP_VERY_DEEP	  1000000000L	/* deep skiplevel */
+#define SKIP_REDO_IN_SKIP (SKIP_VERY_DEEP-1)
+
 #define WFG_TRACE	0x01000
 #define WFG_TRACING	0x02000
 #define WFG_BACKTRACE	0x04000
@@ -404,11 +407,11 @@ Give a trace on the skipped goal for a redo.
 
   { Code pc2 = NULL;
 
-    if ( port == REDO_PORT && debugstatus.skiplevel == VERY_DEEP &&
+    if ( port == REDO_PORT && debugstatus.skiplevel == SKIP_VERY_DEEP &&
 	 (fr = redoFrame(frame, &pc2)) != NULL )
     { int rc;
 
-      debugstatus.skiplevel--;		/* avoid a loop */
+      debugstatus.skiplevel = SKIP_REDO_IN_SKIP;
       SAVE_PTRS();
       rc = tracePort(frame, bfr, REDO_PORT, pc2 PASS_LD);
       RESTORE_PTRS();
@@ -477,7 +480,7 @@ again:
   if (debugstatus.leashing & port)
   { char buf[LINESIZ];
 
-    debugstatus.skiplevel = VERY_DEEP;
+    debugstatus.skiplevel = SKIP_VERY_DEEP;
     debugstatus.tracing   = TRUE;
 
     Sfputs(" ? ", Sdout);
@@ -1571,7 +1574,7 @@ tracemode(int doit, int *old)
 		   PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
   if ( doit )				/* make sure trace works inside skip */
-  { debugstatus.skiplevel = VERY_DEEP;
+  { debugstatus.skiplevel = SKIP_VERY_DEEP;
     if ( LD->trace.find )
       LD->trace.find->searching = FALSE;
   }
@@ -1642,7 +1645,7 @@ debugmode(debug_type doit, debug_type *old)
 
   if ( debugstatus.debugging != doit )
   { if ( doit )
-    { debugstatus.skiplevel = VERY_DEEP;
+    { debugstatus.skiplevel = SKIP_VERY_DEEP;
       clearPrologFlagMask(PLFLAG_LASTCALL);
       if ( doit == DBG_ALL )
       { LocalFrame fr = environment_frame;
@@ -1707,29 +1710,55 @@ pl_tracing()
   return debugstatus.tracing;
 }
 
-word
-pl_skip_level(term_t old, term_t new)
+static
+PRED_IMPL("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
 { GET_LD
+  term_t old = A1;
+  term_t new = A2;
   atom_t a;
-  long sl;
+  size_t sl;
 
-  if ( debugstatus.skiplevel == VERY_DEEP )
+  if ( debugstatus.skiplevel == SKIP_VERY_DEEP )
   { TRY(PL_unify_atom(old, ATOM_very_deep));
+  } else if ( debugstatus.skiplevel == SKIP_REDO_IN_SKIP )
+  { TRY(PL_unify_atom(old, ATOM_redo_in_skip));
   } else
   { TRY(PL_unify_integer(old, debugstatus.skiplevel));
   }
 
-  if ( PL_get_long(new, &sl) )
-  { debugstatus.skiplevel = sl;
-    succeed;
+  if ( PL_get_atom(new, &a) )
+  { if ( a == ATOM_very_deep )
+    { debugstatus.skiplevel = SKIP_VERY_DEEP;
+      succeed;
+    } else if ( a == ATOM_redo_in_skip )
+    { debugstatus.skiplevel = SKIP_REDO_IN_SKIP;
+      succeed;
+    }
   }
-  if ( PL_get_atom(new, &a) && a == ATOM_very_deep)
-  { debugstatus.skiplevel = VERY_DEEP;
+
+  if ( PL_get_size_ex(new, &sl) )
+  { debugstatus.skiplevel = sl;
     succeed;
   }
 
   fail;
 }
+
+
+static
+PRED_IMPL("prolog_skip_frame", 1, prolog_skip_frame, PL_FA_NOTRACE)
+{ PRED_LD
+  LocalFrame fr;
+
+  if ( !PL_get_frame(A1, &fr) || !fr )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_frame_reference, A1);
+
+  debugstatus.skiplevel = levelFrame(fr);
+  set(fr, FR_SKIPPED);
+
+  return TRUE;
+}
+
 
 word
 pl_spy(term_t p)
@@ -2210,4 +2239,6 @@ callEventHook(int ev, ...)
 BeginPredDefs(trace)
   PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
   PRED_DEF("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
+  PRED_DEF("prolog_skip_frame", 1, prolog_skip_frame, PL_FA_NOTRACE)
+  PRED_DEF("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
 EndPredDefs

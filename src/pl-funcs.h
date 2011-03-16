@@ -652,7 +652,6 @@ COMMON(int)		trace_if_space(void);
 COMMON(word) 		pl_trace(void);
 COMMON(word) 		pl_notrace(void);
 COMMON(word) 		pl_tracing(void);
-COMMON(word) 		pl_skip_level(term_t old, term_t new);
 COMMON(word) 		pl_spy(term_t p);
 COMMON(word) 		pl_nospy(term_t p);
 COMMON(word) 		pl_leash(term_t old, term_t new);

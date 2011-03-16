@@ -206,15 +206,21 @@ given:
 ?- trace, go, notrace.
 \end{code}
 
+    \predicate{prolog_skip_frame}{1}{-Frame}
+Indicate \arg{Frame} as a skipped frame and set the `skip level' (see
+prolog_skip_level/2 to the recursion depth of \arg{Frame}.  The effect
+of the skipped flag is that a redo on a child of this frame is handled
+differently.  First, a \const{redo} trace is called for the child, where
+the skip-level is set to \const{redo_in_skip}.  Next, the skip level is
+set to skip-level of the skipped frame.
+
     \predicate{prolog_skip_level}{2}{-Old, +New}
 Unify \arg{Old} with the old value of `skip level' and than set this
-level according to \arg{New}.  New is an integer, or the special atom
-\const{very_deep} (meaning don't skip).  The `skip level' is a global
-variable of the Prolog system that disables the debugger on all
-recursion levels deeper than the level of the variable.  Used to
-implement the trace options `skip' (sets skip level to the level of the
-frame) and `up' (sets skip level to the level of the parent frame (i.e.,
-the level of this frame minus 1).
+level according to \arg{New}. \arg{New} is an integer, the atom
+\const{very_deep} (meaning don't skip) or the atom \const{skip_in_redo}
+(see prolog_skip_frame/1). The `skip level' is a setting of each
+Prolog thread that disables the debugger on all recursion levels deeper
+than the level of the variable.  See also prolog_skip_frame/1.
 \end{description}
 
 

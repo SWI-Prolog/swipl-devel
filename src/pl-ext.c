@@ -157,7 +157,6 @@ static const PL_extension foreigns[] = {
 #endif /* COUNTING */
 
   FRG("prolog_current_frame",	1, pl_prolog_current_frame,	0),
-  FRG("prolog_skip_level",	2, pl_skip_level,	  NOTRACE),
 
   FRG("dwim_match",		3, pl_dwim_match,		0),
   FRG("$dwim_predicate",	2, pl_dwim_predicate,	     NDET),

@@ -430,6 +430,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_load_context}{2}{Context information for directives}
 \predicatesummary{prolog_load_file}{2}{\hook{user} Program load_files/2}
 \predicatesummary{prolog_skip_level}{2}{Indicate deepest recursion to trace}
+\predicatesummary{prolog_skip_frame}{1}{Perform `skip' on a frame}
 \predicatesummary{prolog_stack_property}{2}{Query properties of the stacks}
 \predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and OS filenames}
 \predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept the Prolog tracer}

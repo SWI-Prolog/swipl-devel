@@ -1938,7 +1938,6 @@ Tracer communication declarations.
 #define EXCEPTION_PORT	0x100
 #define CUT_PORT	(CUT_CALL_PORT|CUT_EXIT_PORT)
 #define PORT_MASK	0x1ff
-#define VERY_DEEP	1000000000L	/* deep skiplevel */
 
 #define LONGATOM_CHECK	    0x01	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x02	/* read/1: check singleton vars */
@@ -1950,7 +1949,7 @@ Tracer communication declarations.
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
 typedef struct debuginfo
-{ uintptr_t	skiplevel;		/* current skip level */
+{ size_t	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
   debug_type	debugging;		/* are we debugging? */
   int		leashing;		/* ports we are leashing */
