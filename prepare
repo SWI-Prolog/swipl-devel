@@ -96,9 +96,17 @@ if findexe gtar; then tar=gtar; fi;
 # Sub-modules
 ################################################################
 
+notemptydir()
+{ if [ -z "`find $1 -type f`" ]; then
+    return 1
+  fi
+
+  return 0
+}
+
 notamodule=
 for d in $COREMODULES; do
-  if [ -d $d -a ! -d $d/.git ]; then
+  if [ -d $d -a ! -d $d/.git ] && notemptydir $d ; then
     notamodule+=" $d"
   fi
 done
@@ -106,11 +114,6 @@ if [ ! -z "$notamodule" ]; then
   if confirm "Directories $notamodule are not git submodules.  Remove? "; then
     rm -rf $notamodule
     rm -f man/Manual/index.html	# re-fetch the manual
-  fi
-fi
-
-if grep '\.\./chr.git' .gitmodules 2>&1 > /dev/null; then
-  if confirm "Submodule paths seem out of data. Update? "; then
     git submodule sync
   fi
 fi
