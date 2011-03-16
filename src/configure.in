@@ -1534,10 +1534,10 @@ if test "$MKSHARED" = yes; then
 	LNLIBS="$USEPLLIB"
 	;;
   esac
-  CHRPATH=":"
   AC_DEFINE(O_SHARED_KERNEL, 1,
   	    "Define if Prolog kernel is in shared object")
 else
+  CHRPATH=":"
   LNLIBS="$LIBS"
 fi dnl MKSHARED
 
