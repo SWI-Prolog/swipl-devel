@@ -1,2 +1,0 @@
-[element(oma, [foo=foo], [element(obo, [bar=bar], [element(p, [], ['Hello world.']), element(p, [], ['Where did the attributes go?'])])])].
-[].

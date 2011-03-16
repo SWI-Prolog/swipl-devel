@@ -79,7 +79,7 @@ rewrite_callable(atom_t *expected, term_t actual)
 
 
 int
-PL_error(const char *pred, int arity, const char *msg, int id, ...)
+PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 { GET_LD
   Definition caller;
   term_t except, formal, swi;
@@ -316,14 +316,14 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       break;
     }
     case ERR_PERMISSION:
-    { atom_t type = va_arg(args, atom_t);
-      atom_t op   = va_arg(args, atom_t);
+    { atom_t op   = va_arg(args, atom_t);
+      atom_t type = va_arg(args, atom_t);
       term_t obj  = va_arg(args, term_t);
 
       rc = PL_unify_term(formal,
 			 PL_FUNCTOR, FUNCTOR_permission_error3,
-			   PL_ATOM, type,
 			   PL_ATOM, op,
+			   PL_ATOM, type,
 			   PL_TERM, obj);
 
       break;
@@ -610,6 +610,64 @@ tostr(char *buf, const char *fmt, ...)
 
 
 		 /*******************************
+		 *	  TYPICAL ERRORS	*
+		 *******************************/
+
+int
+PL_instantiation_error(term_t actual)
+{ return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+}
+
+int
+PL_representation_error(const char *resource)
+{ atom_t r = PL_new_atom(resource);
+  int rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, r);
+  PL_unregister_atom(r);
+
+  return rc;
+}
+
+
+int
+PL_type_error(const char *expected, term_t actual)
+{ return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, expected, actual);
+}
+
+
+int
+PL_domain_error(const char *expected, term_t actual)
+{ atom_t a = PL_new_atom(expected);
+  int rc = PL_error(NULL, 0, NULL, ERR_DOMAIN, a, actual);
+  PL_unregister_atom(a);
+
+  return rc;
+}
+
+
+int
+PL_existence_error(const char *type, term_t actual)
+{ atom_t a = PL_new_atom(type);
+  int rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, a, actual);
+  PL_unregister_atom(a);
+
+  return rc;
+}
+
+
+int
+PL_permission_error(const char *op, const char *type, term_t obj)
+{ atom_t t = PL_new_atom(type);
+  atom_t o = PL_new_atom(op);
+  int rc = PL_error(NULL, 0, NULL, ERR_PERMISSION, o, t, obj);
+
+  PL_unregister_atom(t);
+  PL_unregister_atom(o);
+
+  return rc;
+}
+
+
+		 /*******************************
 		 *	PRINTING MESSAGES	*
 		 *******************************/
 
@@ -668,18 +726,6 @@ printMessage(atom_t severity, ...)
 		 /*******************************
 		 *    ERROR-CHECKING *_get()	*
 		 *******************************/
-
-int
-PL_get_nchars_ex(term_t t, size_t *len, char **s, unsigned int flags)
-{ return PL_get_nchars(t, len, s, flags|CVT_EXCEPTION);
-}
-
-
-int
-PL_get_chars_ex(term_t t, char **s, unsigned int flags)
-{ return PL_get_nchars(t, NULL, s, flags|CVT_EXCEPTION);
-}
-
 
 int
 PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD)
@@ -853,7 +899,7 @@ PL_get_nil_ex(term_t l)
 }
 
 int
-PL_unify_bool_ex(term_t t, bool val)
+PL_unify_bool_ex(term_t t, int val)
 { GET_LD
   bool v;
 

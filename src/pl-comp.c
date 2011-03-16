@@ -596,6 +596,7 @@ forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
 #if O_COMPILE_IS
 forwards int	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
 forwards int	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
+forwards int	compileBodyNEQ(Word arg, code call, compileInfo *ci ARG_LD);
 #endif
 forwards int	compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD);
 forwards int	compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD);
@@ -1870,6 +1871,11 @@ compile, but they are related to meta-calling anyway.
 
 	if ( (rc=compileBodyEQ(arg, call, ci PASS_LD)) != FALSE )
 	  return rc;
+      } else if ( functor == FUNCTOR_not_strict_equal2 ) /* \==/2 */
+      { int rc;
+
+	if ( (rc=compileBodyNEQ(arg, call, ci PASS_LD)) != FALSE )
+	  return rc;
       } else if ( functor == FUNCTOR_var1 )
       { int rc;
 
@@ -2435,6 +2441,84 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
 
   return FALSE;
 }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Compile \==/2. Note that if either  side   is  a firstvar, the test will
+always succeed. When doing  optimized   compilation  we  simply generate
+true/0. otherwise we generate a  balancing   instruction  and the normal
+equivalence test. Likewise, an \== on a singleton succeeds.
+
+Returns TRUE if compiled; FALSE if not compiled. Reserved *_OVERFLOW for
+errors.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+compileBodyNEQ(Word arg, code call, compileInfo *ci ARG_LD)
+{ Word a1, a2;
+  int i1, i2;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton == ?: always true */
+  {
+  eq_always_false:
+    if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { Output_0(ci, I_TRUE);
+      return TRUE;
+    }
+
+    return FALSE;			/* debugging: compile as normal code */
+  }
+
+  a2 = argTermP(*arg, 1);
+  deRef(a2);
+  if ( isVar(*a2) )			/* ? = Singleton: no need to compile */
+    goto eq_always_false;
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  i2 = isIndexedVarTerm(*a2 PASS_LD);
+
+  if ( i1 >=0 && i2 >= 0 )		/* Var1 == Var2 */
+  { int f1 = isFirstVar(ci->used_var, i1);
+    int f2 = isFirstVar(ci->used_var, i2);
+
+    if ( f1 || f2 )
+    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+      {	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
+	return TRUE;
+      }
+    } else
+    { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+      if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    }
+
+    Output_2(ci, B_NEQ_VV, VAROFFSET(i1), VAROFFSET(i2));
+
+    return TRUE;
+  }
+
+  if ( i1 >= 0 && isConst(*a2) )	/* Var == const */
+  { int f1 = isFirstVar(ci->used_var, i1);
+
+    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    Output_2(ci, B_NEQ_VC, VAROFFSET(i1), *a2);
+    if ( isAtom(*a2) )
+      PL_register_atom(*a2);
+    return TRUE;
+  }
+  if ( i2 >= 0 && isConst(*a1) )	/* const == Var */
+  { int f2 = isFirstVar(ci->used_var, i2);
+
+    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    Output_2(ci, B_NEQ_VC, VAROFFSET(i2), *a1);
+    if ( isAtom(*a1) )
+      PL_register_atom(*a1);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 #endif /*O_COMPILE_IS*/
 
 
@@ -3176,11 +3260,16 @@ unifyVar(Word var, term_t vars, size_t i ARG_LD)
   v = valTermRef(vars+i);
   deRef(v);
   deRef(var);
-  assert(isVar(*v) && isVar(*var));	/* is this true? */
-  if ( v < var )
-  { Trail(var, makeRef(v));
+  if ( isVar(*v) && isVar(*var) )
+  { if ( v < var )
+    { Trail(var, makeRef(v));
+    } else
+    { Trail(v, makeRef(var));
+    }
+  } else if ( isVar(*var) )		/* retract called with bounded var */
+  { Trail(var, *v);
   } else
-  { Trail(v, makeRef(var));
+  { assert(0);
   }
 
   return TRUE;
@@ -3682,11 +3771,22 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = (word)*PC++;
       			    goto b_eq_vv_cont;
+      case B_NEQ_VC:
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    *ARGP++ = (word)*PC++;
+      			    goto b_neq_vv_cont;
       case B_EQ_VV:
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = makeVarRef((int)*PC++);
       			  b_eq_vv_cont:
 			    BUILD_TERM(FUNCTOR_strict_equal2);
+			    pushed++;
+			    continue;
+      case B_NEQ_VV:
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    *ARGP++ = makeVarRef((int)*PC++);
+      			  b_neq_vv_cont:
+			    BUILD_TERM(FUNCTOR_not_strict_equal2);
 			    pushed++;
 			    continue;
       case H_VOID:
@@ -4262,6 +4362,11 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     }
 
     PL_rewind_foreign_frame(fid);
+    if ( argv )
+    { argv = valTermRef(head);		/* argv may be corrupted in GC */
+      deRef(argv);
+      argv = argTermP(*argv, 0);
+    }
     cref = findClause(next, argv, fr, def, &next PASS_LD);
   }
 

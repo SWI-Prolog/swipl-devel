@@ -233,15 +233,30 @@ scanSegStack(segstack *stack, void (*func)(void *cell))
 
 void
 clearSegStack(segstack *s)
-{ segchunk *c, *n;
+{ segchunk *c;
 
-  c = s->first;
+  if ( (c = s->first) )
+  { segchunk *n;
 
-  for(; c; c = n)
-  { n = c->next;
-    if ( c->allocated )
-      PL_free(c);
+    if ( !c->allocated )		/* statically allocated first chunk */
+    { n = c->next;
+
+      c->next = NULL;
+      s->last = c;
+      s->base = s->top = c->top;
+      s->last = addPointer(c, c->size);
+      s->count = 0;
+
+      for(c=n; c; c = n)
+      { n = c->next;
+	PL_free(c);
+      }
+    } else				/* all dynamic chunks */
+    { for(; c; c = n)
+      { n = c->next;
+	PL_free(c);
+      }
+      memset(s, 0, sizeof(*s));
+    }
   }
-
-  memset(s, 0, sizeof(*s));
 }

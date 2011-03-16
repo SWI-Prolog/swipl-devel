@@ -53,7 +53,6 @@
 	  genarg/3,
 
 	  (mode)/1,
-	  (public)/1,
 	  no_style_check/1,
 	  otherwise/0,
 	  simple/1,
@@ -254,10 +253,9 @@ no_style_check(QOption) :-
 		*         DIRECTIVES            *
 		*********************************/
 
-% :- op(1150, fx, [(mode), (public)]).
+% :- op(1150, fx, [(mode)]).
 
 mode(_).
-public(_).
 
 
 		 /*******************************

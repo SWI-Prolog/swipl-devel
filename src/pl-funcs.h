@@ -61,8 +61,6 @@ COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 COMMON(int) 		equalIndirect(word r1, word r2);
 COMMON(size_t)		gsizeIndirectFromCode(Code PC);
 COMMON(word) 		globalIndirectFromCode(Code *PC);
-COMMON(char *) 		store_string(const char *s);
-COMMON(void) 		remove_string(char *s);
 #ifndef xmalloc
 COMMON(void *) 		xmalloc(size_t size);
 COMMON(void *) 		xrealloc(void *mem, size_t size);
@@ -87,6 +85,8 @@ COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition__LD(Definition def ARG_LD);
 COMMON(void)		destroyLocalDefinition(Definition def, unsigned int tid);
 COMMON(void) 		fix_term_ref_count(void);
+COMMON(fid_t) 		PL_open_foreign_frame__LD(ARG1_LD);
+COMMON(void) 		PL_close_foreign_frame__LD(fid_t id ARG_LD);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(int sync);
 COMMON(int)		foreignWakeup(term_t *ex ARG_LD);
 COMMON(void)		updateAlerted(PL_local_data_t *ld);
@@ -228,34 +228,6 @@ COMMON(void) 		cleanupExtensions(void);
 COMMON(void)            rememberExtensions(const char *module,
 					   const PL_extension *e);
 
-/* pl-error.c */
-
-COMMON(int) 		PL_error(const char *pred, int arity, const char *msg,
-			 int id, ...);
-COMMON(char *) 		tostr(char *buf, const char *fmt, ...);
-COMMON(int) 		printMessage(atom_t severity, ...);
-COMMON(int) 		PL_get_nchars_ex(term_t t, size_t *len, char **s,
-					 unsigned int flags);
-COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
-COMMON(int) 		PL_get_atom_ex(term_t t, atom_t *a);
-COMMON(int) 		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
-COMMON(int) 		PL_get_integer_ex(term_t t, int *i);
-COMMON(int) 		PL_get_long_ex(term_t t, long *i);
-COMMON(int) 		PL_get_int64_ex(term_t t, int64_t *i);
-COMMON(int) 		PL_get_intptr_ex(term_t t, intptr_t *i);
-COMMON(int) 		PL_get_size_ex(term_t t, size_t *i);
-COMMON(int) 		PL_get_bool_ex(term_t t, int *i);
-COMMON(int) 		PL_get_float_ex(term_t t, double *f);
-COMMON(int) 		PL_get_char_ex(term_t t, int *p, int eof);
-COMMON(int) 		PL_get_pointer_ex(term_t t, void **addrp);
-COMMON(int) 		PL_unify_list_ex(term_t l, term_t h, term_t t);
-COMMON(int) 		PL_unify_nil_ex(term_t l);
-COMMON(int) 		PL_get_list_ex(term_t l, term_t h, term_t t);
-COMMON(int) 		PL_get_nil_ex(term_t l);
-COMMON(int) 		PL_unify_bool_ex(term_t t, bool val);
-COMMON(int) 		PL_get_arg_ex(int n, term_t term, term_t arg);
-COMMON(int) 		PL_get_module_ex(term_t name, Module *m);
-
 
 /* pl-file.c */
 COMMON(void) 		initIO(void);
@@ -311,7 +283,6 @@ COMMON(predicate_t) 	_PL_predicate(const char *name, int arity,
 				      const char *module, predicate_t *bin);
 COMMON(void) 		initialiseForeign(int argc, char **argv);
 COMMON(void) 		cleanupInitialiseHooks(void);
-COMMON(char *) 		buffer_string(const char *s, int flags);
 COMMON(atom_t) 		codeToAtom(int code);
 COMMON(extern)  	record_t PL_duplicate_record(record_t r);
 COMMON(int) 		PL_unify_termv(term_t t, va_list args);
@@ -350,10 +321,7 @@ COMMON(int)		PL_is_inf(term_t t);
 COMMON(int)		PL_same_term__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int)		isUCSAtom(Atom a);
 COMMON(atom_t)		lookupUCSAtom(const pl_wchar_t *s, size_t len);
-COMMON(Buffer)		codes_or_chars_to_buffer(term_t l, unsigned int flags,
-						 int wide, CVT_result *status);
-COMMON(Buffer)		findBuffer(int flags);
-COMMON(int)		unfindBuffer(int flags);
+COMMON(int)		charCode(word w);
 
 COMMON(void) 		registerForeignLicenses(void);
 COMMON(void)            bindExtensions(const char *module,
@@ -399,7 +367,7 @@ COMMON(word) 		check_foreign(void);	/* O_SECURE stuff */
 COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);
 COMMON(void) 		markPredicatesInEnvironments(PL_local_data_t *ld);
 COMMON(QueryFrame)	queryOfFrame(LocalFrame fr);
-#if defined(O_SECURE) || defined(SECURE_GC)
+#if defined(O_SECURE) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 word	 		checkStacks(void *vm_state);
 COMMON(bool)		scan_global(int marked);
 #endif
@@ -598,6 +566,8 @@ COMMON(void)		profSetHandle(struct call_node *node, void *handle);
 /* pl-read.c */
 COMMON(void) 		resetRead(void);
 COMMON(int)		unicode_separator(pl_wchar_t c);
+COMMON(int)		unquoted_atomW(const pl_wchar_t *s, size_t len,
+				       IOSTREAM *fd);
 COMMON(strnumstat)	str_number(const unsigned char *string,
 				   unsigned char **end,
 				   Number value, bool escape);
@@ -682,7 +652,6 @@ COMMON(int)		trace_if_space(void);
 COMMON(word) 		pl_trace(void);
 COMMON(word) 		pl_notrace(void);
 COMMON(word) 		pl_tracing(void);
-COMMON(word) 		pl_skip_level(term_t old, term_t new);
 COMMON(word) 		pl_spy(term_t p);
 COMMON(word) 		pl_nospy(term_t p);
 COMMON(word) 		pl_leash(term_t old, term_t new);
@@ -693,31 +662,13 @@ COMMON(int) 		callEventHook(int ev, ...);
 COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
 
 /* pl-util.c */
-COMMON(char) 		digitName(int n, bool small);
-COMMON(int) 		digitValue(int b, int c);
 COMMON(char *) 		procedureName(Procedure proc);
 COMMON(char *) 		predicateName(Definition def);
 COMMON(int) 		clauseNo(Definition def, Clause clause);
 COMMON(word) 		notImplemented(char *name, int arity);
 COMMON(word) 		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word) 		setInteger(int *val, term_t old, term_t new);
-COMMON(bool) 		strprefix(const char *string, const char *prefix);
-COMMON(bool) 		strpostfix(const char *string, const char *postfix);
-COMMON(bool) 		stripostfix(const char *string, const char *postfix);
 COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);
-#ifndef HAVE_STRCASECMP
-COMMON(int) 		strcasecmp(const char *s1, const char *s2);
-#endif
-#ifndef HAVE_STRLWR
-COMMON(char *) 		strlwr(char *s);
-#endif
-#ifndef HAVE_MBSCOLL
-COMMON(int)		mbscoll(const char *s1, const char *s2);
-#endif
-#ifndef HAVE_MBSCASECOLL
-COMMON(int)		mbscasecoll(const char *s1, const char *s2);
-#endif
-
 
 /* pl-wic.c */
 COMMON(bool) 		loadWicFromStream(IOSTREAM *fd);

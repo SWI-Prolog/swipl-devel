@@ -424,6 +424,7 @@ PL_EXPORT(int)		PL_is_compound(term_t t);
 PL_EXPORT(int)		PL_is_callable(term_t t);
 PL_EXPORT(int)		PL_is_functor(term_t t, functor_t f);
 PL_EXPORT(int)		PL_is_list(term_t t);
+PL_EXPORT(int)		PL_is_pair(term_t t);
 PL_EXPORT(int)		PL_is_atomic(term_t t);
 PL_EXPORT(int)		PL_is_number(term_t t);
 PL_EXPORT(int)		PL_is_acyclic(term_t t);
@@ -515,6 +516,34 @@ PL_EXPORT(int)		PL_put_int64(term_t t, int64_t i) WUNUSED;
 PL_EXPORT(int)		PL_is_attvar(term_t t);
 PL_EXPORT(int)		PL_get_attr(term_t v, term_t a);
 
+
+		 /*******************************
+		 *	      ERRORS		*
+		 *******************************/
+
+PL_EXPORT(int) 		PL_get_atom_ex(term_t t, atom_t *a);
+PL_EXPORT(int) 		PL_get_integer_ex(term_t t, int *i);
+PL_EXPORT(int) 		PL_get_long_ex(term_t t, long *i);
+PL_EXPORT(int) 		PL_get_int64_ex(term_t t, int64_t *i);
+PL_EXPORT(int) 		PL_get_intptr_ex(term_t t, intptr_t *i);
+PL_EXPORT(int) 		PL_get_size_ex(term_t t, size_t *i);
+PL_EXPORT(int) 		PL_get_bool_ex(term_t t, int *i);
+PL_EXPORT(int) 		PL_get_float_ex(term_t t, double *f);
+PL_EXPORT(int) 		PL_get_char_ex(term_t t, int *p, int eof);
+PL_EXPORT(int) 		PL_unify_bool_ex(term_t t, int val);
+PL_EXPORT(int) 		PL_get_pointer_ex(term_t t, void **addrp);
+PL_EXPORT(int) 		PL_unify_list_ex(term_t l, term_t h, term_t t);
+PL_EXPORT(int) 		PL_unify_nil_ex(term_t l);
+PL_EXPORT(int) 		PL_get_list_ex(term_t l, term_t h, term_t t);
+PL_EXPORT(int) 		PL_get_nil_ex(term_t l);
+
+PL_EXPORT(int)		PL_instantiation_error(term_t culprit);
+PL_EXPORT(int)		PL_representation_error(const char *resource);
+PL_EXPORT(int)		PL_type_error(const char *expected, term_t culprit);
+PL_EXPORT(int)		PL_domain_error(const char *expected, term_t culprit);
+PL_EXPORT(int)		PL_existence_error(const char *type, term_t culprit);
+PL_EXPORT(int)		PL_permission_error(const char *operation,
+					    const char *type, term_t culprit);
 
 		 /*******************************
 		 *	       BLOBS		*

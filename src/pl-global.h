@@ -165,6 +165,7 @@ struct PL_global_data
     size_t	non_garbage;		/* # atoms for after last AGC */
     int		gc;			/* # atom garbage collections */
     int64_t	collected;		/* # collected atoms */
+    size_t	unregistered;		/* # candidate GC atoms */
     double	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif
@@ -245,6 +246,7 @@ struct PL_global_data
     Procedure	equals2;		/* =/2 */
     Procedure	is2;			/* is/2 */
     Procedure	strict_equal2;		/* ==/2 */
+    Procedure	not_strict_equal2;	/* \==/2 */
     Procedure	event_hook1;
     Procedure	exception_hook4;
     Procedure	print_message2;
@@ -470,7 +472,8 @@ struct PL_local_data
 
 #if O_CYCLIC
   struct
-  { segstack stack;			/* stack to find cycles */
+  { segstack lstack;			/* Stack for cycle-links */
+    segstack vstack;			/* Stack for visited marks */
   } cycle;
 #endif
 

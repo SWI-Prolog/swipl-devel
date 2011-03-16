@@ -252,7 +252,7 @@ PRED_IMPL("call_shared_object_function", 2, call_shared_object_function,
   dl_funcptr ef;
 
   if ( !e || !e->dlhandle ||
-       !PL_get_chars_ex(A2, &fname, CVT_ALL) )
+       !PL_get_chars(A2, &fname, CVT_ALL|CVT_EXCEPTION) )
     fail;
 
 #ifdef LD_SYMBOL_PREFIX			/* first try plain anyway */

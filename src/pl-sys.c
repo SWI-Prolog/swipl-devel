@@ -38,7 +38,7 @@ PRED_IMPL("shell", 2, shell, 0)
 { GET_LD
   char *cmd;
 
-  if ( PL_get_chars_ex(A1, &cmd, CVT_ALL|REP_FN) )
+  if ( PL_get_chars(A1, &cmd, CVT_ALL|REP_FN|CVT_EXCEPTION) )
   { int rval = System(cmd);
 
     return PL_unify_integer(A2, rval);
@@ -52,7 +52,7 @@ word
 pl_getenv(term_t var, term_t value)
 { char *n;
 
-  if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN) )
+  if ( PL_get_chars(var, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
   { char buf[1024];
     size_t size;
 
@@ -85,8 +85,8 @@ word
 pl_setenv(term_t var, term_t value)
 { char *n, *v;
 
-  if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN|BUF_RING) &&
-       PL_get_chars_ex(value, &v, CVT_ALL|REP_FN) )
+  if ( PL_get_chars(var, &n, CVT_ALL|REP_FN|BUF_RING|CVT_EXCEPTION) &&
+       PL_get_chars(value, &v, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return Setenv(n, v);
 
   fail;
@@ -97,7 +97,7 @@ word
 pl_unsetenv(term_t var)
 { char *n;
 
-  if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN) )
+  if ( PL_get_chars(var, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return Unsetenv(n);
 
   fail;

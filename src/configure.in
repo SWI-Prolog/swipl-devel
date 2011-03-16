@@ -385,37 +385,15 @@ fi
 if test "$PLSHARED" = "yes"; then
 
 dnl Some versions of (g)cc need to export the symbols from the main program
-dnl using -export-dynamic or (older versions) -rdynamic.  See whether
-dnl this gcc understands this flag.
+dnl using -rdynamic.  See whether this gcc understands this flag.
 
 case "$ARCH" in
   *darwin*)
-	exportdynamic=done
+	rdynamic=done
 	;;
 esac
 
-if test "$exportdynamic" != "done"; then
-AC_MSG_CHECKING(whether LDFLAGS need -export-dynamic)
-  old_ldflags="$LDFLAGS"
-  LDFLAGS="-export-dynamic $LDFLAGS"
-  AC_TRY_RUN(
-main()
-{ exit(0);
-},
-     if grep 'unrecognized option `-export-dynamic'"'" config.log >/dev/null; then
-       AC_MSG_RESULT(no)
-       LDFLAGS="$old_ldflags"
-     else
-       AC_MSG_RESULT(yes)
-       exportdynamic=done
-     fi,
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags",
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags")
-fi	dnl test for -exportdynamic
-
-if test "$exportdynamic" != "done"; then
+if test "$rdynamic" != "done"; then
 AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
   old_ldflags="$LDFLAGS"
   LDFLAGS="-rdynamic $LDFLAGS"
@@ -433,7 +411,7 @@ main()
      LDFLAGS="$old_ldflags",
      AC_MSG_RESULT(no)
      LDFLAGS="$old_ldflags")
-fi	dnl test for -rdynamic
+fi
 
 dnl Some specific OS stuff
 
@@ -788,7 +766,7 @@ AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
 AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
-AC_CHECK_HEADERS(mach-o/rld.h locale.h)
+AC_CHECK_HEADERS(mach-o/rld.h mach/thread_act.h locale.h)
 AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
@@ -1571,11 +1549,6 @@ echo "	LIBS=$LIBS"
 
 OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
-dnl autoconf 2.5.3 doesn't handle relative srcdir properly.  We'll hack
-dnl around making this variable global.
-
-srcdir=`cd $srcdir && pwd`
-
 # Prepare the package configuration if present
 
 if test -r ../packages/Makefile.in; then
@@ -1583,7 +1556,7 @@ if test -r ../packages/Makefile.in; then
 fi
 
 if test -r ../packages/configure.in; then
-  OutputFiles="$OutputFiles ../packages/configure"
+  OutputFiles="$OutputFiles ../packages/configure ../packages/Makefile.defs ../packages/Dialect.defs"
 fi
 
 AC_CONFIG_COMMANDS([exe],

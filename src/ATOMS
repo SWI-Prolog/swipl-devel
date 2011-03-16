@@ -86,6 +86,7 @@ A callpred		"$callpred"
 A canceled		"canceled"
 A case_sensitive_file_names "case_sensitive_file_names"
 A catch			"catch"
+A category		"category"
 A ceil			"ceil"
 A ceiling		"ceiling"
 A char_type		"char_type"
@@ -393,7 +394,7 @@ A not_implemented	"not_implemented"
 A not_less_than_one	"not_less_than_one"
 A not_less_than_zero	"not_less_than_zero"
 A not_provable		"\\+"
-A not_strickt_equals	"\\=="
+A not_strict_equal	"\\=="
 A not_unique		"not_unique"
 A number		"number"
 A number_of_clauses	"number_of_clauses"
@@ -420,6 +421,7 @@ A past			"past"
 A past_end_of_stream	"past_end_of_stream"
 A pattern		"pattern"
 A pc			"pc"
+A peek			"peek"
 A period		"period"
 A permission_error	"permission_error"
 A pi			"pi"
@@ -477,6 +479,7 @@ A record		"record"
 A record_position	"record_position"
 A redefine		"redefine"
 A redo			"redo"
+A redo_in_skip		"redo_in_skip"
 A references		"references"
 A rem			"rem"
 A rename		"rename"
@@ -798,6 +801,7 @@ F nlink			1
 F nonvar		1
 F not_implemented	2
 F not_provable		1
+F not_strict_equal	2
 F occurs_check		2
 F or			1
 F output		0

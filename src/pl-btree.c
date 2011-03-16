@@ -68,14 +68,16 @@ PRED_IMPL("$btree_find_node", 4, btree_find_node, 0)
     int d = compareStandard(k, a, FALSE PASS_LD);
     int arg;
 
-    if ( d == 0 )
+    if ( d == CMP_ERROR )
+      return FALSE;
+    if ( d == CMP_EQUAL )
     { if ( unify_ptrs(t, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
 	   PL_unify_integer(A4, 1) )
 	succeed;
       fail;
     }
 
-    arg = d < 0 ? 1 : 2;
+    arg = (d == CMP_LESS ? 1 : 2);
     n = a+arg;
     deRef(n);
     DEBUG(1, Sdprintf("Taking %s\n", arg == 1 ? "left" : "right"));

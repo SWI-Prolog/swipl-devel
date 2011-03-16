@@ -1,0 +1,46 @@
+################################################################
+# Shared makefile for packages.
+################################################################
+
+# This file must provide the following macros:
+#
+#   * PLLIBDIR
+#   Base directory holding the Prolog library.  Some packages
+#   may create subdirectories.
+#   * SOLIBDIR
+#   Directory holding shared objects/DLLs for the target architecture.
+#   * PKGDOCDIR
+#   Directory for storing the documentation.  Packages typically
+#   create subdirectories
+#   * PKGEXDIR
+#   Directory where a package stores example code.  Packages typically
+#   create subdirectories
+#   * SO
+#   Extension used for shared objects.  E.g., .so, .dylib, .dll, ...
+
+PL=../swipl.sh
+PLBASE=@libdir@/@PLLIBDIR@
+PLARCH=@ARCH@
+PLINCL=$(PLBASE)/include
+PLLIBDIR=$(PLBASE)/library
+SOLIBDIR=$(PLBASE)/lib/$(PLARCH)
+PKGDOCDIR=$(PLBASE)/doc/packages
+PKGEXDIR=$(PLBASE)/doc/packages/examples
+
+CC=../swipl-ld.sh
+CXX=../swipl-ld.sh
+LD=$(CC)
+SO=@SO_EXT@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=-fPIC
+CIFLAGS=
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) $(PKGCFLAGS) @DEFS@
+
+LDSOFLAGS=-shared $(PKGLDFLAGS)
+LDFLAGS=$(PKGLDFLAGS)
+
+MKINDEX=$(PL) -f none -g make -t halt
+
+PUBLICPL=swipl
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --

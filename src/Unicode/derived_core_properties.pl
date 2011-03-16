@@ -50,9 +50,9 @@ unicode_derived_core_property(Code, Prop) :-
 
 unicode_property(File, Code, Prop) :-
 	loaded(File), !,
-	derived_property(File, Code, Prop).
+	derived_property(Code, Prop, File).
 unicode_property(File, Code, Prop) :-
-	retractall(derived_property(File, _,_)),
+	retractall(derived_property(_, _,File)),
 	process_file(File),
 	assert(loaded(File)),
 	unicode_property(File, Code, Prop).
@@ -72,16 +72,19 @@ process_stream(In, File) :-
 
 process_line(Line, File) :-
 	debug(unicode_data, 'Line "~s"', [Line]),
-	phrase(line(Codes, Class), Line),
-	forall(member(C, Codes),
-	       assert(derived_property(File, C, Class))).
+	(   phrase(line(Codes, Class), Line)
+	->  forall(member(C, Codes),
+		   assert(derived_property(C, Class, File)))
+	;   format('ERROR: Could not parse "~s"~n', [Line]),
+	    abort
+	).
 
 
 
 line([], -) -->
 	ws, "#", skip_rest, !.
 line([], -) -->
-	ws, !.
+	ws.
 line(Codes, Class) -->
 	ucc(First),
 	(   ".."

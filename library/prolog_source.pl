@@ -139,8 +139,8 @@ expand(Term, _, Expanded) :-
 
 no_expand((:- if(_))).
 no_expand((:- elif(_))).
-no_expand((:- else(_))).
-no_expand((:- endif(_))).
+no_expand((:- else)).
+no_expand((:- endif)).
 no_expand((:- require(_))).
 
 chr_expandable((:- chr_constraint(_)), In) :-
@@ -258,9 +258,15 @@ prolog_open_source(Src, Fd) :-
 %%	prolog_close_source(+In:stream) is det.
 %
 %	Close  a  stream  opened  using  prolog_open_source/2.  Restores
-%	operator and style options.
+%	operator and style options. If the stream   has not been read to
+%	the end, we call expand_term(end_of_file,  _) to allow expansion
+%	modules to clean-up.
 
 prolog_close_source(In) :-
+	(   at_end_of_stream(In)
+	->  true
+	;   ignore(catch(expand(end_of_file, In, _), _, true))
+	),
 	pop_operators,
 	retractall(mode(In, _)),
 	(   retract(open_source(In, state(LexState, SM)))

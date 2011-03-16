@@ -651,7 +651,10 @@ This test is equivalent to PL_get_functor(), followed by testing the
 functor, but easier to write and faster.
 \cfunction{int}{PL_is_list}{term_t}
 Returns non-zero if \arg{term} is a compound term with functor ./2 or
-the atom \const{[]}.
+the atom \const{[]}.  See also PL_is_pair() and PL_skip_list().
+\cfunction{int}{PL_is_pair}{term_t}
+Returns non-zero if \arg{term} is a compound term with functor ./2.  See
+also PL_is_list() and PL_skip_list().
 \cfunction{int}{PL_is_atomic}{term_t}
 Returns non-zero if \arg{term} is atomic (not variable or compound).
 \cfunction{int}{PL_is_number}{term_t}
@@ -972,7 +975,6 @@ return-value indicates the status of the list:
 It is allowed to pass 0 for \arg{tail} and \const{NULL} for \arg{len}.
 \end{description}
 
-
 \subsubsection{An example: defining write/1 in C}
 
 \Figref{pl-display} shows a simplified definition of write/1 to
@@ -1140,12 +1142,13 @@ new value is set.
 
 The functions of this sections \jargon{unify} terms with other terms or
 translated C-data structures. Except for PL_unify(), the functions of
-this section are specific to SWI-Prolog. They have been introduced to
-make translation of old code easier, but also because they provide for
-a faster mechanism for returning data to Prolog that requires less
-term-references.  Consider the case where we want a foreign function
-to return the host name of the machine Prolog is running on.  Using
-the {\tt PL_get_*()} and {\tt PL_put_*()} functions, the code becomes:
+this section are specific to SWI-Prolog. They have been introduced
+because they shorten the code for returning data to Prolog and at the
+same time make this more efficient by avoiding the need to allocate
+temporary term-references and reduce the number of calls to the Prolog
+API. Consider the case where we want a foreign function to return the
+host name of the machine Prolog is running on. Using the {\tt
+PL_get_*()} and {\tt PL_put_*()} functions, the code becomes:
 
 \begin{code}
 foreign_t
@@ -1177,10 +1180,44 @@ pl_hostname(term_t name)
 }
 \end{code}
 
+Note that unification functions that perform multiple bindings may leave
+part of the bindings in case of failure. See PL_unify() for details.
+
 
 \begin{description}
     \cfunction{int}{PL_unify}{term_t ?t1, term_t ?t2}
-Unify two Prolog terms and return non-zero on success.
+Unify two Prolog terms and return \const{TRUE} on success.
+
+Care is needed if PL_unify() returns \const{FAIL} and the foreign
+function does not \emph{immediately} return to Prolog with \const{FAIL}.
+Unification may perform multiple changes to either \arg{t1} or \arg{t2}.
+A failing unification may have created bindings before failure is
+detected. \emph{Already created bindings are not undone}. For
+example, calling PL_unify() on \term{a}{X, a} and \term{a}{c,b} binds
+\arg{X} to \const{c} and fails when trying to unify \const{a} to
+\const{b}. If control remains in C or even if we want to return success
+to Prolog, we \emph{must} undo such bindings. This is achieved using
+PL_open_foreign_frame() and PL_rewind_foreign_frame(), as show in the
+snippid below.
+
+\begin{code}
+    { fid_t fid = PL_open_foreign_frame();
+
+      ...
+      if ( !PL_unify(t1, t2) )
+        PL_rewind_foreign_frame(fid);
+      ...
+
+      PL_close_foreign_frame(fid);
+    }
+\end{code}
+
+In addition, PL_unify() may have failed on an \textbf{exception},
+typically a resource (stack) overflow. This can be tested using
+PL_exception(), passing 0 (zero) for the query-id argument. Foreign
+functions that encounter an exception must return \const{FAIL} to
+Prolog as soon as possible or call PL_clear_exception() if they wish
+to ignore the exception.
 
     \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
 Unify \arg{t} with the atom \arg{a} and return non-zero on success.
@@ -1442,6 +1479,136 @@ call_chars(const char *goal)
     \arg{chr} and any occurrence of \arg{chr} is doubled.  In the
     future the behaviour will depend on the
     \prologflag{character_escapes} Prolog flag.
+\end{description}
+
+
+\subsection{Convience functions to generate Prolog exceptions}
+\label{sec:cerror}
+
+The typical implementation of a foreign predicate first uses the
+PL_get_*() functions to extract C datatypes from the Prolog terms.
+Failure of any of these functions is normally because the Prolog
+term is of the wrong type.  The *_ex() family of functions are
+wrappers around (mostly) the PL_get_*() functions, such that we
+can write code in the style below and get proper exceptions if
+an argument is uninstantiated or of the wrong type.
+
+\begin{code}
+/** set_size(+Name:atom, +Width:int, +Height:int) is det.
+
+static foreign_t
+set_size(term_t name, term_t width, term_t height)
+{ char *n;
+  int w, h;
+
+  if ( !PL_get_chars(name, &n, CVT_ATOM|CVT_EXCEPTION) ||
+       !PL_get_integer_ex(with, &w) ||
+       !PL_get_integer_ex(height, &h) )
+    return FALSE;
+
+  ...
+
+}
+\end{code}
+
+\begin{description}
+    \cfunction{int}{PL_get_atom_ex}{term_t t, atom_t *a};
+As PL_get_atom(), but raises a type or instantiation error if
+\arg{t} is not an atom.
+
+    \cfunction{int}{PL_get_integer_ex}{term_t t, int *i};
+As PL_get_integer(), but raises a type or instantiation error if
+\arg{t} is not an integer or a representation error if the Prolog
+integer does not fit in a C \ctype{int}.
+
+    \cfunction{int}{PL_get_long_ex}{term_t t, long *i};
+As PL_get_long(), but raises a type or instantiation error if
+\arg{t} is not an atom or a representation error if the Prolog
+integer does not fit in a C \ctype{long}.
+
+    \cfunction{int}{PL_get_int64_ex}{term_t t, int64_t *i};
+As PL_get_int64(), but raises a type or instantiation error if
+\arg{t} is not an atom or a representation error if the Prolog
+integer does not fit in a C \ctype{int64_t}.
+
+    \cfunction{int}{PL_get_intptr_ex}{term_t t, intptr_t *i};
+As PL_get_intptr(), but raises a type or instantiation error if
+\arg{t} is not an atom or a representation error if the Prolog
+integer does not fit in a C \ctype{intptr_t}.
+
+    \cfunction{int}{PL_get_size_ex}{term_t t, size_t *i};
+As PL_get_size(), but raises a type or instantiation error if
+\arg{t} is not an atom or a representation error if the Prolog
+integer does not fit in a C \ctype{size_t}.
+
+    \cfunction{int}{PL_get_bool_ex}{term_t t, int *i};
+As PL_get_atom_ex(), but raises a type or instantiation error if
+\arg{t} is not an atom.
+
+    \cfunction{int}{PL_get_float_ex}{term_t t, double *f};
+As PL_get_atom_ex(), but raises a type or instantiation error if
+\arg{t} is not an atom.
+
+    \cfunction{int}{PL_get_char_ex}{term_t t, int *p, int eof};
+Get a character code from \arg{t}, where \arg{t} is either an
+integer or an atom with length one.  If \arg{eof} is \const{TRUE}
+and \arg{t} is -1, \arg{p} is filled with -1.  Raises an appropriate
+error if the conversion is not possible.
+
+    \cfunction{int}{PL_get_pointer_ex}{term_t t, void **addrp};
+As PL_get_pointer(), but raises a type or instantiation error if
+\arg{t} is not a pointer.
+
+    \cfunction{int}{PL_get_list_ex}{term_t l, term_t h, term_t t};
+As PL_get_list(), but raises a type or instantiation error if
+\arg{t} is not a list.
+
+    \cfunction{int}{PL_get_nil_ex}{term_t l};
+As PL_get_nil(), but raises a type or instantiation error if
+\arg{t} is not the empty list.
+
+    \cfunction{int}{PL_unify_list_ex}{term_t l, term_t h, term_t t};
+As PL_unify_list(), but raises a type error if \arg{t} is not a
+variable, list-cell or the empty list.
+
+    \cfunction{int}{PL_unify_nil_ex}{term_t l};
+As PL_unify_nil(), but raises a type error if \arg{t} is not a
+variable, list-cell or the empty list.
+
+    \cfunction{int}{PL_unify_bool_ex}{term_t t, int val};
+As PL_unify_bool(), but raises a type error if \arg{t} is not a
+variable, or a boolean.
+\end{description}
+
+The second family of functions in this section simplifies the generation
+of ISO compatible error terms. Any foreign function that calls this
+function must return to Prolog with the return code of the error
+function or the constant \const{FALSE}. If available, these error
+functions add the name of the calling predicate to the error context.
+See also PL_raise_exception().
+
+\begin{description}
+    \cfunction{int}{PL_instantiation_error}{term_t culprit}
+Raise \const{instantiation_error}.  \arg{Culprit} is ignored, but
+should be bound to the term that is not a variable.  See
+instantiation_error/1.
+
+    \cfunction{int}{PL_representation_error}{const char *resource}
+Raise \exam{representation_error(resource)}. See representation_error/1.
+
+    \cfunction{int}{PL_type_error}{const char *expected, term_t culprit}
+Raise \exam{type_error(expected, culprit)}.  See type_error/2.
+
+    \cfunction{int}{PL_domain_error}{const char *expected, term_t culprit}
+Raise \exam{domain_error(expected, culprit)}.  See domain_error/2.
+
+    \cfunction{int}{PL_existence_error}{const char *type, term_t culprit}
+Raise \exam{existence_error(type, culprit)}.  See type_error/2.
+
+    \cfunction{int}{PL_permission_error}{const char *operation,
+					 const char *type, term_t culprit}
+Raise \exam{permission_error(operation, type, culprit)}. See
+permission_error/3.
 \end{description}
 
 
@@ -1725,12 +1892,13 @@ the C-programmer.
 
     \cfunction{void}{PL_predicate_info}{predicate_t p, atom_t *n,
 					int *a, module_t *m}
-Return information on the predicate \arg{p}.  The name is stored
-over \arg{n}, the arity over \arg{a}, while \arg{m} receives the
-definition module.  Note that the latter need not be the same as
-specified with PL_predicate().  If the predicate is imported into
-the module given to PL_predicate(), this function will return the
-module where the predicate is defined.
+Return information on the predicate \arg{p}. The name is stored over
+\arg{n}, the arity over \arg{a}, while \arg{m} receives the definition
+module. Note that the latter need not be the same as specified with
+PL_predicate(). If the predicate is imported into the module given to
+PL_predicate(), this function will return the module where the predicate
+is defined. Any of the arguments \arg{n}, \arg{a} and \arg{m} can be
+\const{NULL}.
 \end{description}
 
 
@@ -2055,6 +2223,14 @@ Additionally, \verb$PL_exception(0)$ returns the pending exception in
 the current query or 0 if no exception is pending. This can be used to
 check the error-status after a failing call to e.g., one of the
 unification functions.
+
+    \cfunction{PL_clear_exception}{void}
+Tells Prolog that the encountered exception must be ignored. This
+function must be called if control remains in C after an previous API
+calls fails with an exception.\footnote{This feature is non-portable.
+Other Prolog systems (e.g., YAP) has no facilities to ignore raised
+exceptions and the design of YAP's exception handling does not support
+such a facility}.
 \end{description}
 
 

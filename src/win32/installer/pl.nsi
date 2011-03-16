@@ -329,6 +329,7 @@ Section "Base system (required)"
   File pl\library\main.pl
   File pl\library\csv.pl
   File pl\library\persistency.pl
+  File pl\library\ansi_term.pl
 
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
@@ -603,10 +604,12 @@ Section "NLP package"
   File pl\bin\porter_stem.dll
   File pl\bin\snowball.dll
   File pl\bin\double_metaphone.dll
+  File pl\bin\isub.dll
   SetOutPath $INSTDIR\library
   File pl\library\porter_stem.pl
   File pl\library\snowball.pl
   File pl\library\double_metaphone.pl
+  File pl\library\isub.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\nlp.html
 SectionEnd
@@ -683,6 +686,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\http_stream.pdb
   File pl\bin\json.pdb
   File pl\bin\snowball.pdb
+  File pl\bin\isub.pdb
   File pl\bin\protobufs.pdb
 SectionEnd
 

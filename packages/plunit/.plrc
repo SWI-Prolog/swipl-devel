@@ -1,6 +1,0 @@
-:- ['~/.plrc'].
-
-:- doc_server(4003).
-
-:- [test_wizard].
-:- set_prolog_flag(log_query_file, 'Queries.pl').

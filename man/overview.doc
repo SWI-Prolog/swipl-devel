@@ -1344,6 +1344,31 @@ If \const{true}, top-level variables starting with an underscore
 (\chr{_}) are printed normally.  If \const{false} they are hidden.
 This may be used to hide bindings in complex queries from the top-level.
 
+    \prologflagitem{toplevel_print_factorized}{bool}{rw}
+If \const{true} (default \const{false}) show the internal sharing of
+subterms in the answer substution.  The example below reveals internal
+sharing of leaf-nodes in \jargon{red-black trees} as implemented by the
+\pllib{rbtrees} predicate rb_new/1:
+
+\begin{code}
+?- set_prolog_flag(toplevel_print_factorized, true).
+?- rb_new(X).
+X = t(_S1, _S1), % where
+    _S1 = black('', _G387, _G388, '').
+\end{code}
+
+If this flag is \const{false}, the \verb!% where! notation is still used
+to indicate cycles as illustrated below. This example also shows that
+the implementation reveals the internal cycle length, and \emph{not} the
+minimal cycle length. Cycles of different length are indistinguishable
+in Prolog (as illustrated by \verb!S == R!).
+
+\begin{code}
+?- S = s(S), R = s(s(R)), S == R.
+S = s(S),
+R = s(s(R)).
+\end{code}
+
     \prologflagitem{toplevel_print_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing results
 of queries. Default is \exam{[quoted(true), portray(true),
@@ -1806,9 +1831,9 @@ This section describes the implication for the source files, while
 writing international source files is described in \secref{intsrcfile}.
 
 The SWI-Prolog Unicode character classification is based on version
-4.1.0 of the Unicode standard. Please note that char_type/2 and friends,
-intended to be used with all text except Prolog source code is based on
-the C-library locale-based classification routines.
+6.0.0 of the Unicode standard. Please note that char_type/2 and
+friends, intended to be used with all text except Prolog source code is
+based on the C-library locale-based classification routines.
 
 
 \begin{itemlist}
@@ -1831,15 +1856,21 @@ character-case.  In such languages variables \emph{must} be written as
 \verb$_name$.
 
     \item [White space]
-All characters marked as separators in the Unicode tables are handled
-as layout characters.
+All characters marked as separators (Z*) in the Unicode tables are
+handled as layout characters.
+
+    \item [Control and unassigned characters]
+Control and unassigned (C*) characters produce a syntax error if
+encountered outside quoted atoms/strings and outside comments.
 
     \item [Other characters]
-The first 128 characters follow the ISO Prolog standard. All other
-characters not covered by the rules above are considered `solo'
-characters: they form single-character atoms. We would like to have a
-more appropriate distinction between what is known to Prolog as `solo'
-characters and `symbol' characters.
+The first 128 characters follow the ISO Prolog standard.  Unicode symbol
+and punctuation characters (general category S* and P*) act as glueing
+symbol characters (i.e., just like \const{==}: an unquoted sequence of
+symbol characters are combined into an atom).
+
+Other characters (this is mainly \const{No}: \textit{a numeric character
+of other type}) are currently handled as `solo'.
 \end{itemlist}
 
 

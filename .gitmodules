@@ -12,13 +12,73 @@
 	url = ../packages/inclpr.git
 [submodule "packages/space"]
 	path = packages/space
-	url = ../space.git
+	url = ../contrib/space.git
 [submodule "bench"]
 	path = bench
 	url = ../bench.git
 [submodule "packages/utf8proc"]
 	path = packages/utf8proc
-	url = ../utf8proc.git
+	url = ../packages/utf8proc.git
 [submodule "packages/protobufs"]
 	path = packages/protobufs
 	url = ../contrib/protobufs.git
+[submodule "packages/xpce"]
+	path = packages/xpce
+	url = ../packages/xpce.git
+[submodule "packages/odbc"]
+	path = packages/odbc
+	url = ../packages/odbc.git
+[submodule "packages/sgml"]
+	path = packages/sgml
+	url = ../packages/sgml.git
+[submodule "packages/clib"]
+	path = packages/clib
+	url = ../packages/clib.git
+[submodule "packages/http"]
+	path = packages/http
+	url = ../packages/http.git
+[submodule "packages/plunit"]
+	path = packages/plunit
+	url = ../packages/plunit.git
+[submodule "packages/pldoc"]
+	path = packages/pldoc
+	url = ../packages/pldoc.git
+[submodule "packages/RDF"]
+	path = packages/RDF
+	url = ../packages/RDF.git
+[submodule "packages/semweb"]
+	path = packages/semweb
+	url = ../packages/semweb.git
+[submodule "packages/ssl"]
+	path = packages/ssl
+	url = ../packages/ssl.git
+[submodule "packages/R"]
+	path = packages/R
+	url = ../packages/R.git
+[submodule "packages/zlib"]
+	path = packages/zlib
+	url = ../packages/zlib.git
+[submodule "packages/tipc"]
+	path = packages/tipc
+	url = ../contrib/tipc.git
+[submodule "packages/table"]
+	path = packages/table
+	url = ../packages/table.git
+[submodule "packages/nlp"]
+	path = packages/nlp
+	url = ../packages/nlp.git
+[submodule "packages/db"]
+	path = packages/db
+	url = ../packages/db.git
+[submodule "packages/jasmine"]
+	path = packages/jasmine
+	url = ../packages/jasmine.git
+[submodule "packages/cpp"]
+	path = packages/cpp
+	url = ../packages/cpp.git
+[submodule "packages/cppproxy"]
+	path = packages/cppproxy
+	url = ../packages/cppproxy.git
+[submodule "packages/ltx2htm"]
+	path = packages/ltx2htm
+	url = ../packages/ltx2htm.git

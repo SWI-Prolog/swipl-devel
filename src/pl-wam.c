@@ -349,8 +349,8 @@ open_foreign_frame(ARG1_LD)
 }
 
 
-static void
-close_foreign_frame(fid_t id ARG_LD)
+void
+PL_close_foreign_frame__LD(fid_t id ARG_LD)
 { FliFrame fr = (FliFrame) valTermRef(id);
 
   if ( !id || fr->magic != FLI_MAGIC )
@@ -363,9 +363,8 @@ close_foreign_frame(fid_t id ARG_LD)
 
 
 fid_t
-PL_open_foreign_frame()
-{ GET_LD
-  size_t lneeded = sizeof(struct fliFrame) + MINFOREIGNSIZE*sizeof(word);
+PL_open_foreign_frame__LD(ARG1_LD)
+{ size_t lneeded = sizeof(struct fliFrame) + MINFOREIGNSIZE*sizeof(word);
 
   if ( (char*)lTop + lneeded > (char*)lMax )
   { int rc;
@@ -378,6 +377,17 @@ PL_open_foreign_frame()
 
   return open_foreign_frame(PASS_LD1);
 }
+
+
+#undef PL_open_foreign_frame
+fid_t
+PL_open_foreign_frame(void)
+{ GET_LD
+
+  return PL_open_foreign_frame__LD(PASS_LD1);
+}
+				/* This local definition was here before */
+#define PL_open_foreign_frame() open_foreign_frame(PASS_LD1)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -422,15 +432,15 @@ PL_open_signal_foreign_frame(int sync)
 }
 
 
+#undef PL_close_foreign_frame
 void
 PL_close_foreign_frame(fid_t id)
 { GET_LD
 
-  close_foreign_frame(id PASS_LD);
+  PL_close_foreign_frame__LD(id PASS_LD);
 }
+#define PL_close_foreign_frame(id) PL_close_foreign_frame__LD(id PASS_LD)
 
-#define PL_open_foreign_frame()    open_foreign_frame(PASS_LD1)
-#define PL_close_foreign_frame(id) close_foreign_frame((id) PASS_LD)
 
 void
 PL_rewind_foreign_frame(fid_t id)

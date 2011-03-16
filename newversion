@@ -66,3 +66,14 @@ gittag="V${major}.${minor}.${patch}"
 if confirm "Tag the GIT repository with $gittag? "; then
     git tag -s -f -m "Release tag for ${major}.${minor}.${patch}" $gittag
 fi
+
+
+if confirm "Tag all packages with $gittag? "; then
+    tmp=/tmp/msg$$
+    echo "Release tag for ${major}.${minor}.${patch}" > $tmp
+
+    git submodule foreach git tag -s -f -F $tmp  $gittag
+
+    rm -f $tmp
+fi
+

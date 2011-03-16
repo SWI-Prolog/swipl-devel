@@ -24,7 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#include "pl-ctype.h"
+#include "os/pl-ctype.h"
 #include "pl-inline.h"
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
@@ -71,8 +71,20 @@ terms are the same.
 
 Of course functor_t must be different from ref. Overwritten functors are
 collected in a stack and  reset   regardless  of whether the unification
-succeeded or failed. In SWI-Prolog we use   the  argument stack for this
-purpose.
+succeeded or failed.
+
+Note that we need to  dereference  the   functors  both  left and right.
+References at the right are rare, but possible. The trick is to use both
+sharing and cycles, where the cycles at the left are shorter:
+
+t :-
+	X = s(X),       Y = y(X,X),
+	A = s(s(s(A))), B = y(A,A),
+	Y = B.
+
+While unifying the first argument of y/2, the left-walker crosses to the
+right after the first cycle  and  creates   references  in  A, which are
+processed by the right-walker when entering the second argumet of y/2.
 
 Initial measurements show a performance degradation for deep unification
 of approx. 30%. On the other hand,  if subterms appear multiple times in
@@ -83,13 +95,13 @@ deep unification the overall impact of performance is small (< 3%).
 
 static void
 initvisited(ARG1_LD)
-{ LD->cycle.stack.unit_size = sizeof(Word);
+{ LD->cycle.vstack.unit_size = sizeof(Word);
 }
 
 
 static int
 empty_visited(ARG1_LD)
-{ return LD->cycle.stack.count == 0;
+{ return LD->cycle.vstack.count == 0;
 }
 
 
@@ -98,7 +110,7 @@ visitedWord(Word p ARG_LD)
 { if ( is_marked(p) )
     succeed;
   set_marked(p);
-  pushSegStack(&LD->cycle.stack, &p);
+  pushSegStack(&LD->cycle.vstack, &p);
   fail;
 }
 
@@ -115,7 +127,7 @@ static void
 unvisit(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.stack, &p) )
+  while( popSegStack(&LD->cycle.vstack, &p) )
   { clear_marked(p);
   }
 }
@@ -125,14 +137,14 @@ static void
 popVisited(ARG1_LD)
 { Word p;
 
-  popSegStack(&LD->cycle.stack, &p);
+  popSegStack(&LD->cycle.vstack, &p);
   clear_marked(p);
 }
 
 
 static inline void
 initCyclic(ARG1_LD)
-{ LD->cycle.stack.unit_size = sizeof(Word);
+{ LD->cycle.lstack.unit_size = sizeof(Word);
 }
 
 
@@ -142,7 +154,7 @@ linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
   Word p2 = (Word)&f2->definition;
 
   *p1 = makeRefG(p2);
-  pushSegStack(&LD->cycle.stack, &p1);
+  pushSegStack(&LD->cycle.lstack, &p1);
 }
 
 
@@ -150,7 +162,7 @@ static inline void
 exitCyclic(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.stack, &p) )
+  while( popSegStack(&LD->cycle.lstack, &p) )
   { *p = *unRef(*p);
   }
 }
@@ -166,6 +178,8 @@ static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
 #endif /*O_CYCLIC*/
 
 #define HAVE_VISITED
+#define AC_TERM_WALK_LR 1
+#define AC_TERM_WALK_LRS 1
 #include "pl-termwalk.c"
 
 		/********************************
@@ -374,24 +388,14 @@ we must undo carefully to preserve the exception term.
 bool
 unify_ptrs(Word t1, Word t2, int flags ARG_LD)
 { for(;;)
-  { mark m;
-    int rc;
+  { int rc;
 
-    Mark(m);
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
-    if ( rc == TRUE )			/* Terms unified */
-    { DiscardMark(m);
-      return rc;
-    } else if ( likely(rc == FALSE) )	/* Terms did not unify */
-    { if ( unlikely(!exception_term) )	/* Check for occurs error */
-	Undo(m);
-      DiscardMark(m);
-      return rc;
+    if ( rc >= 0 )
+    { return rc;
     } else				/* Stack overflow */
     { int rc2;
 
-      Undo(m);
-      DiscardMark(m);
       PushPtr(t1); PushPtr(t2);
       rc2 = makeMoreStackSpace(rc, flags);
       PopPtr(t2); PopPtr(t1);
@@ -971,6 +975,236 @@ PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 
 
 		 /*******************************
+		 *	     FACTORIZE		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Factorizing a term  based  on  the   internal  sharing.  This  takes the
+following steps:
+
+  1. scan_shared() walks the term and
+     a. Set MARK_MASK on all visited terms and FIRST_MASK on those find
+        twice.
+     b. Create a list Var=Term for all terms found twice.
+     c. Returns the count of places that must be shared.
+  2. reverse_factor_pointers() walks through the created list, placing
+     the functor in Var and creating a reference from the location of
+     the original functor.
+  3. link_shared() walks the term and
+     a. If the functor is a reference, follow the reference-chain to
+        find the functor.  Link the term into the reference-chain.
+     b. If the functor is marked, unmark it.
+  4. restore_shared_functors() finishes the job by following the
+     variable-list and putting all functors from the variable back
+     into the term and setting the variable to be a real variable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+scan_shared(Word t, Word vart, size_t *count ARG_LD)
+{ term_agenda agenda;
+  size_t shared = 0;
+  Word p;
+
+  initTermAgenda(&agenda, t);
+  while( (p=nextTermAgenda(&agenda)) )
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      Word d = &f->definition;
+
+      if ( is_marked(d) )
+      { if ( !is_first(d) )
+	{ Word v;
+
+	  if ( !(v=allocGlobalNoShift(6)) )
+	    return GLOBAL_OVERFLOW;
+
+	  v[0] = FUNCTOR_dot2;
+	  v[1] = consPtr(&v[3], TAG_COMPOUND|STG_GLOBAL);
+	  v[2] = ATOM_nil;
+	  v[3] = FUNCTOR_equals2;
+	  v[4] = 0;			/* For now */
+	  v[5] = consPtr(d, TAG_COMPOUND|STG_GLOBAL);
+
+	  *vart = consPtr(&v[0], TAG_COMPOUND|STG_GLOBAL);
+	  vart = &v[2];
+
+	  set_first(d);
+	}
+	shared++;
+      } else
+      { int arity = arityFunctor(f->definition);
+
+	pushWorkAgenda(&agenda, arity, f->arguments);
+	set_marked(d);
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
+  *count = shared;
+
+  return TRUE;
+}
+
+
+/* Needed to restore if we run out of stack
+*/
+
+static int
+unscan_shared(Word t ARG_LD)
+{ term_agenda agenda;
+  Word p;
+
+  initTermAgenda(&agenda, t);
+  while( (p=nextTermAgenda(&agenda)) )
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      Word d = &f->definition;
+
+      if ( is_marked(d) )
+      { int arity;
+
+	clear_marked(d);
+	clear_first(d);
+	arity = arityFunctor(f->definition);
+	pushWorkAgenda(&agenda, arity, f->arguments);
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
+
+  return TRUE;
+}
+
+
+static void
+reverse_factor_pointers(Word vars ARG_LD)
+{ while(*vars != ATOM_nil)
+  { Word v = (Word)valueTerm(*vars);
+    Functor t = valueTerm(v[5]);
+
+    v[4] = t->definition & ~(MARK_MASK|FIRST_MASK); /* v[4] is the variable */
+    t->definition = makeRefG(&v[4])|MARK_MASK|FIRST_MASK;
+
+    vars = &v[2];
+  }
+}
+
+
+static void
+restore_shared_functors(Word vars ARG_LD)
+{ while(*vars != ATOM_nil)
+  { Word v = (Word)valueTerm(*vars);
+    Functor t = valueTerm(v[5]);
+    Word p = &v[4];
+
+    deRef(p);
+    t->definition = *p;
+    setVar(*p);
+
+    vars = &v[2];
+  }
+}
+
+
+static int
+link_shared(Word t, Word vars ARG_LD)
+{ term_agenda agenda;
+  Word p;
+
+  initTermAgenda(&agenda, t);
+  while( (p=nextTermAgenda(&agenda)) )
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      Word d = &f->definition;
+
+      if ( isRef(*d) )			/* shared term */
+      { Word v;
+
+	v = unRef(*d & ~(FIRST_MASK|MARK_MASK));
+	deRef(v);
+
+	if ( is_marked(d) )
+	{ int arity = arityFunctor(*v);
+	  pushWorkAgenda(&agenda, arity, f->arguments);
+	}
+
+	if ( v < p )
+	{ TrailAssignment(p);
+	  *p = makeRefG(v);
+	} else
+	{ TrailAssignment(p);
+	  *p = *v;
+	  *v = makeRefG(p);
+	}
+      } else if ( is_marked(d) )
+      { int arity;
+	word fun = f->definition & ~(FIRST_MASK|MARK_MASK);
+
+	clear_marked(d);
+	arity = arityFunctor(fun);
+	pushWorkAgenda(&agenda, arity, f->arguments);
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("$factorize_term", 2, factorize_term, 0)
+{ PRED_LD
+  fid_t fid;
+  term_t vars;
+  Word t;
+  size_t count;
+  int rc;
+
+  for(;;)
+  { fid = PL_open_foreign_frame();
+
+    vars = PL_new_term_ref();
+    PL_put_nil(vars);
+    t = valTermRef(A1);
+
+    SECURE(checkStacks(NULL));
+    startCritical;
+    switch( (rc=scan_shared(t, valTermRef(vars), &count PASS_LD)) )
+    { case TRUE:
+	if ( tTop + 2*count > tMax )
+	  rc = TRAIL_OVERFLOW;
+        else if ( gTop + count > gMax )
+	  rc = GLOBAL_OVERFLOW;
+        else
+	  break;
+	/*FALLTHROUGH*/
+      default:
+	unscan_shared(t PASS_LD);
+	PL_discard_foreign_frame(fid);
+	if ( !endCritical ||
+	     !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	  return FALSE;
+	continue;
+    }
+
+    break;
+  }
+
+  reverse_factor_pointers(valTermRef(vars) PASS_LD);
+  link_shared(t, valTermRef(vars) PASS_LD);
+  restore_shared_functors(valTermRef(vars) PASS_LD);
+  PL_close_foreign_frame(fid);
+  SECURE(checkStacks(NULL));
+
+  if ( !endCritical )
+    return FALSE;
+
+  return PL_unify(A2, vars);
+}
+
+
+		 /*******************************
 		 *	 META-CALL SUPPORT	*
 		 *******************************/
 
@@ -1170,13 +1404,13 @@ compareAtoms(atom_t w1, atom_t w2)
   { if ( a1->type->compare )
     { return (*a1->type->compare)(w1, w2);
     } else
-    { size_t l   = (a1->length <= a2->length ? a1->length : a2->length);
+    { size_t l = (a1->length <= a2->length ? a1->length : a2->length);
       int v;
 
       if ( (v=memcmp(a1->name, a2->name, l)) != 0 )
-	return v;
-      return a1->length == a2->length ? 0 :
-	     a1->length < a2->length ? -1 : 1;
+	return v < 0 ? CMP_LESS : CMP_GREATER;
+      return a1->length == a2->length ? CMP_EQUAL :
+	     a1->length < a2->length ? CMP_LESS : CMP_GREATER;
     }
   } else if ( true(a1->type, PL_BLOB_TEXT) &&
 	      true(a2->type, PL_BLOB_TEXT) )
@@ -1189,7 +1423,8 @@ compareAtoms(atom_t w1, atom_t w2)
 
     return PL_cmp_text(&t1, 0, &t2, 0, len);
   } else
-  { return a1->type->rank - a2->type->rank;
+  { return a1->type->rank == a2->type->rank ? CMP_EQUAL :
+           a1->type->rank < a2->type->rank ? CMP_LESS : CMP_GREATER;
   }
 }
 
@@ -1224,131 +1459,141 @@ If eq == TRUE, only test for equality. In this case expensive inequality
 tests (alphabetical order) are skipped and the call returns NOTEQ.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LESS    -1
-#define EQUAL    0
-#define GREATER  1
-#define NOTEQ    2
-
 static int
-do_compare(Word p1, Word p2, int eq ARG_LD)
-{ word w1, w2;
-  word t1, t2;
+do_compare(term_agendaLR *agenda, int eq ARG_LD)
+{ Word p1, p2;
 
-tail_recursion:
-  deRef(p1);
-  deRef(p2);
-  w1 = *p1;
-  w2 = *p2;
+  while( nextTermAgendaLR(agenda, &p1, &p2) )
+  { word t1, t2;
+    word w1 = *p1;
+    word w2 = *p2;
 
-  if ( w1 == w2 )
-  { if ( isVar(w1) )
-      goto cmpvars;
-    return EQUAL;
-  }
+    if ( w1 == w2 )
+    { if ( isVar(w1) )
+	goto cmpvars;
+      continue;
+    }
 
-  t1 = tag(w1);
-  t2 = tag(w2);
+    t1 = tag(w1);
+    t2 = tag(w2);
 
-  if ( t1 != t2 )
-  { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
-    { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
-	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
-      { number left, right;
+    if ( t1 != t2 )
+    { if ( !truePrologFlag(PLFLAG_ISO) && !eq )
+      { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
+	     (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
+	{ number left, right;
+	  int rc;
+
+	  get_number(w1, &left PASS_LD);
+	  get_number(w2, &right PASS_LD);
+	  rc = cmpNumbers(&left, &right);
+	  clearNumber(&left);
+	  clearNumber(&right);
+
+	  if ( rc == CMP_EQUAL )
+	    return (t1 == TAG_FLOAT) ? CMP_LESS : CMP_GREATER;
+	  return rc;
+	}
+      }
+
+      if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
+	return t1 < t2 ? CMP_LESS : CMP_GREATER;
+    }
+
+    switch(t1)
+    { case TAG_VAR:
+      case TAG_ATTVAR:
+      cmpvars:
+	if ( p1 == p2 )
+	  continue;
+	return p1 < p2 ? CMP_LESS : CMP_GREATER;
+      case TAG_INTEGER:
+      { number n1, n2;
 	int rc;
 
-	get_number(w1, &left PASS_LD);
-	get_number(w2, &right PASS_LD);
-	rc = cmpNumbers(&left, &right);
-	clearNumber(&left);
-	clearNumber(&right);
+	get_integer(w1, &n1);
+	get_integer(w2, &n2);
+	if ( eq && (n1.type != n2.type) )
+	  return CMP_NOTEQ;
+	rc = cmpNumbers(&n1, &n2);
+	clearNumber(&n1);
+	clearNumber(&n2);
 
-	if ( rc == EQUAL )
-	  return (t1 == TAG_FLOAT) ? LESS : GREATER;
+	if ( rc == CMP_EQUAL )
+	  continue;
 	return rc;
       }
-    }
+      case TAG_FLOAT:
+      { double f1 = valFloat(w1);
+	double f2 = valFloat(w2);
 
-    if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
-      return t1 < t2 ? LESS : GREATER;
-  }
-
-  switch(t1)
-  { case TAG_VAR:
-    case TAG_ATTVAR:
-    cmpvars:
-      return p1 < p2 ? LESS : p1 == p2 ? EQUAL : GREATER;
-    case TAG_INTEGER:
-    { number n1, n2;
-      int rc;
-
-      get_integer(w1, &n1);
-      get_integer(w2, &n2);
-      if ( eq && !(n1.type == n2.type) )
-	return NOTEQ;
-      rc = cmpNumbers(&n1, &n2);
-      clearNumber(&n1);
-      clearNumber(&n2);
-
-      return rc;
-    }
-    case TAG_FLOAT:
-    { double f1 = valFloat(w1);
-      double f2 = valFloat(w2);
-
-      return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
-    }
-    case TAG_ATOM:
-      return eq ? NOTEQ : compareAtoms(w1, w2);
-    case TAG_STRING:
-      return compareStrings(w1, w2 PASS_LD);
-    case TAG_COMPOUND:
-    { Functor f1 = (Functor)valPtr(w1);
-      Functor f2 = (Functor)valPtr(w2);
-
-#if O_CYCLIC
-      while ( isRef(f1->definition) )
-	f1 = (Functor)unRef(f1->definition);
-      while ( isRef(f2->definition) )
-	f2 = (Functor)unRef(f2->definition);
-      if ( f1 == f2 )
-	return EQUAL;
-#endif
-
-      if ( f1->definition != f2->definition )
-      { FunctorDef fd1 = valueFunctor(f1->definition);
-	FunctorDef fd2 = valueFunctor(f2->definition);
-
-	if ( fd1->arity != fd2->arity )
-	  return fd1->arity > fd2->arity ? GREATER : LESS;
-
-	return eq ? NOTEQ : compareAtoms(fd1->name, fd2->name);
-      } else
-      { int arity = arityFunctor(f1->definition);
-	int rval;
-
-	p1 = f1->arguments;
-	p2 = f2->arguments;
-	linkTermsCyclic(f1, f2 PASS_LD);
-	for( ; --arity > 0; p1++, p2++ )
-	{ if ((rval = do_compare(p1, p2, eq PASS_LD)) != EQUAL)
-	    return rval;
-	}
-        goto tail_recursion;
+	if ( f1 == f2 )
+	  continue;
+	return f1 < f2 ? CMP_LESS : CMP_GREATER;
       }
+      case TAG_ATOM:
+	return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
+      case TAG_STRING:
+      { int rc = compareStrings(w1, w2 PASS_LD);
+
+	if ( rc == CMP_EQUAL )
+	  continue;
+	return rc;
+      }
+      case TAG_COMPOUND:
+      { Functor f1 = (Functor)valPtr(w1);
+	Functor f2 = (Functor)valPtr(w2);
+
+  #if O_CYCLIC
+	while ( isRef(f1->definition) )
+	  f1 = (Functor)unRef(f1->definition);
+	while ( isRef(f2->definition) )
+	  f2 = (Functor)unRef(f2->definition);
+	if ( f1 == f2 )
+	  continue;
+  #endif
+
+	if ( f1->definition != f2->definition )
+	{ FunctorDef fd1 = valueFunctor(f1->definition);
+	  FunctorDef fd2 = valueFunctor(f2->definition);
+
+	  if ( eq )
+	    return CMP_NOTEQ;
+
+	  if ( fd1->arity != fd2->arity )
+	    return fd1->arity > fd2->arity ? CMP_GREATER : CMP_LESS;
+
+	  return compareAtoms(fd1->name, fd2->name);
+	} else
+	{ int arity = arityFunctor(f1->definition);
+
+	  linkTermsCyclic(f1, f2 PASS_LD);
+	  if ( !pushWorkAgendaLR(agenda, arity, f1->arguments, f2->arguments) )
+	  { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	    return CMP_ERROR;
+	  }
+	  continue;
+	}
+      }
+      default:
+	assert(0);
+	return CMP_ERROR;
     }
-    default:
-      assert(0);
-      return EQUAL;
   }
+
+  return CMP_EQUAL;
 }
 
 
 int
 compareStandard(Word p1, Word p2, int eq ARG_LD)
-{ int rc;
+{ term_agendaLR agenda;
+  int rc;
 
   initCyclic(PASS_LD1);
-  rc = do_compare(p1, p2, eq PASS_LD);
+  initTermAgendaLR(&agenda, p1, p2);
+  rc = do_compare(&agenda, eq PASS_LD);
+  clearTermAgendaLR(&agenda);
   exitCyclic(PASS_LD1);
 
   return rc;
@@ -1370,7 +1615,7 @@ PRED_IMPL("compare", 3, compare, 0)
       fail;
 
     if ( a == ATOM_equals )
-      return compareStandard(p1, p2, TRUE PASS_LD) == EQUAL ? TRUE : FALSE;
+      return compareStandard(p1, p2, TRUE PASS_LD) == CMP_EQUAL ? TRUE : FALSE;
 
     if ( a != ATOM_smaller && a != ATOM_larger )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_order, A1);
@@ -1378,7 +1623,9 @@ PRED_IMPL("compare", 3, compare, 0)
   { a = 0;
   }
 
-  val = compareStandard(p1, p2, FALSE PASS_LD);
+  if ( (val = compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+    return FALSE;
+
   if ( a )
   { if ( a == ATOM_smaller )
       return val < 0;
@@ -1397,8 +1644,12 @@ PRED_IMPL("@<", 2, std_lt, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
+  int rc;
 
-  return compareStandard(p1, p2, FALSE PASS_LD) < 0 ? TRUE : FALSE;
+  if ( (rc=compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+    return FALSE;
+
+  return rc < 0 ? TRUE : FALSE;
 }
 
 
@@ -1407,8 +1658,12 @@ PRED_IMPL("@=<", 2, std_leq, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
+  int rc;
 
-  return compareStandard(p1, p2, FALSE PASS_LD) <= 0 ? TRUE : FALSE;
+  if ( (rc=compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+    return FALSE;
+
+  return rc <= 0 ? TRUE : FALSE;
 }
 
 
@@ -1417,8 +1672,12 @@ PRED_IMPL("@>", 2, std_gt, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
+  int rc;
 
-  return compareStandard(p1, p2, FALSE PASS_LD) > 0 ? TRUE : FALSE;
+  if ( (rc=compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+    return FALSE;
+
+  return rc > 0 ? TRUE : FALSE;
 }
 
 
@@ -1427,8 +1686,12 @@ PRED_IMPL("@>=", 2, std_geq, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
+  int rc;
 
-  return compareStandard(p1, p2, FALSE PASS_LD) >= 0 ? TRUE : FALSE;
+  if ( (rc=compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+    return FALSE;
+
+  return rc >= 0 ? TRUE : FALSE;
 }
 
 		/********************************
@@ -1440,8 +1703,12 @@ PRED_IMPL("==", 2, equal, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
+  int rc;
 
-  return compareStandard(p1, p2, TRUE PASS_LD) == EQUAL ? TRUE : FALSE;
+  if ( (rc=compareStandard(p1, p2, TRUE PASS_LD)) == CMP_ERROR )
+    return FALSE;
+
+  return rc == CMP_EQUAL ? TRUE : FALSE;
 }
 
 
@@ -1450,222 +1717,254 @@ PRED_IMPL("\\==", 2, nonequal, 0)
 { PRED_LD
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
+  int rc;
 
-  return compareStandard(p1, p2, TRUE PASS_LD) == EQUAL ? FALSE : TRUE;
+  if ( (rc=compareStandard(p1, p2, TRUE PASS_LD)) == CMP_ERROR )
+    return FALSE;
+
+  return rc == CMP_EQUAL ? FALSE : TRUE;
 }
 
 
 		/********************************
-		*     STRUCTURAL EQUIVALENCE    *
+		*	     VARIANT	        *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The  idea  for  this  predicate  is  taken  from  the  usenet   network.
-Unfortunately I can't recall the author of the note.
+Variant(A,B) is true iff there exists a  renaming of variables in A that
+is (==) equivalent to B  and  a  renaming   of  variables  in  B that is
+equivalent to A.
 
-Structural equivalency is stronger then unifiable (=), but  weaker  then
-pure equivalence (==). Two terms are structural equivalent if their tree
-representation is equivalent. Examples:
+The implementation went through quite a few cycles. The current one uses
+the following:
 
-  a =@= A			--> false
-  A =@= B			--> true
-  foo(A, B) =@= foo(C, D)	--> true
-  foo(A, A) =@= foo(B, C)	--> false
-
-The approach is to walk both terms   while  numbering variables. If both
-terms get out-of-sync or the variable  labeling   gets  out  of sync, we
-fail. One problem is variables tht are shared between the terms. We deal
-with this as follows:
-
-    * If we find two unmarked variables
-	- If not shared, number left -2,-4,-6,... and right 2,4,6,...
-	- If shared, number both 3,5,7,...
-    * If we find two marked variables
-	- If Left == -Right, we are fine
-	- If Shared and equal, we are fine.
-
+    * Term-walking and cycle-detection follows structure pointers as
+      = and ==.
+    * In addition, there are two pointers that walk A and B and do not
+      follow the links created by the cycle detection.
+    * For each variable pair encountered, we use the labeling mechanism
+      described by Kuniaki Mukai:
+	- We use a triple.  The variable is set to refer to the
+	  triple.  The triple contains =v=, pointing to the variable for
+	  reset, =l=, containing the labeling seen from the left and =r=
+	  containing the labeling seen from the right.  The labeling is
+	  a pointer to the variable at the other side.
+	- For each pair of variables:
+	    - Left is ok if no =l= label or =l= points to right
+	    - Right is ok if no =r= label or =r= points to left
+	    - If ok, ensure there is a triple and assign the label
+	      if not already present.
+    * If a shared subterm is found, we call number_common_subterm().
+      Each variable encountered must either be labeled with itself
+      from left and right or be unlabeled.  Unlabeled variables are
+      labeled to itself.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct
-{ Word	v1;
-  Word  v2;
-} reset, *Reset;
+typedef struct v_var
+{ Word  v;				/* The variable */
+  Word	l;				/* left label */
+  Word	r;				/* rigth label */
+} v_var;
 
-typedef struct uchoice *UChoice;
 
-struct uchoice
-{ Word		alist1;
-  Word		alist2;
-  int		size;
-  UChoice	next;
-};
-
-#define consVar(n) (((word)(n)<<LMASK_BITS) | TAG_VAR)
+#define consVar(n) (((word)(n)<<LMASK_BITS) | TAG_VAR | FIRST_MASK)
 #define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
+#define FMPLAIN(w) ((intptr_t)(w) & ~(FIRST_MASK|MARK_MASK))
+
+static inline v_var *
+get_v_entry(Word p, TmpBuffer buf)
+{ if ( *p )
+  { int id = valVar(*p);
+
+    return &fetchBuffer(buf, id, v_var);
+  }
+
+  return NULL;
+}
+
+
+static void
+pop_variant_mark(Functor l, Functor r, void *data)
+{ uintptr_t d = (uintptr_t)data;
+
+  if ( !(d & FIRST_MASK) )
+    l->definition &= ~FIRST_MASK;
+  if ( !(d & MARK_MASK) )
+    r->definition &= ~MARK_MASK;
+}
+
 
 static bool
-structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
-{ int todo = 1;
-  int vcount = 0;			/* Variable count */
-  UChoice nextch = NULL, tailch = NULL;
-  int arity;
+variant(term_agendaLRS *agenda, TmpBuffer buf ARG_LD)
+{ Word l, r;
 
-  for(;;)
-  { Word p1, p2;
-    word w1, w2;
+  while( nextTermAgendaLRS(agenda, &l, &r) )
+  { word wl, wr;
 
-    if ( !todo )
-    { if ( nextch )
-      { t1 = nextch->alist1;
-	t2 = nextch->alist2;
-	todo = nextch->size;
-	nextch = nextch->next;
-      } else
-	succeed;
-    }
+  attvar:
+    wl = *l;
+    wr = *r;
 
-    deRef2(t1, p1);
-    deRef2(t2, p2);
-    w1 = *p1;
-    w2 = *p2;
-
-    todo--;
-    t1++; t2++;
-
-    if ( tag(w1) != tag(w2) )
+    if ( tag(wl) != tag(wr) )
       fail;
-    if ( tag(w1) == TAG_VAR )
-    { if ( (w1&MARK_MASK) == (w2&MARK_MASK) )
-      { if ( (w1&MARK_MASK) )
-	{ if ( valVar(w1) == -valVar(w2) )
-	    continue;
-	  if ( p1 == p2 && valVar(w1)%2 )
-	    continue;
-	  fail;
+    if ( tag(wl) == TAG_VAR )
+    { v_var *vl = get_v_entry(l, buf);
+      v_var *vr = get_v_entry(r, buf);
+
+      if ( vl && vl->r && vl->r != r )
+	fail;
+      if ( vr && vr->l && vr->l != l )
+	fail;
+
+      if ( !vl )
+      { v_var new;
+	size_t id = entriesBuffer(buf, v_var);
+
+	new.v = l;
+	new.r = r;
+	if ( l != r )
+	{ new.l = NULL;
+	  addBuffer(buf, new, v_var);
+	  *l = consVar(id);
 	} else
-	{ reset r;
-
-	  r.v1 = p1;
-	  r.v2 = p2;
-	  addBuffer(buf, r, reset);
-
-	  vcount += 2;
-
-	  if ( p1 == p2 )
-	  { *p1 = consVar(vcount+1)|MARK_MASK;
-	  } else
-	  { *p1 = consVar(-vcount)|MARK_MASK;
-	    *p2 = consVar(vcount)|MARK_MASK;
-	  }
+	{ new.l = l;
+	  addBuffer(buf, new, v_var);
+	  *l = consVar(id);
 
 	  continue;
 	}
+      } else if ( !vl->r )
+      { vl->r = r;
       }
-      fail;
+
+      if ( !vr )
+      { v_var new;
+	size_t id = entriesBuffer(buf, v_var);
+
+	new.v = r;
+	new.l = l;
+	new.r = NULL;
+	addBuffer(buf, new, v_var);
+	*r = consVar(id);
+      } else if ( !vr->l )
+      { vr->l = l;
+      }
+
+      continue;
     }
 
-    if ( w1 == w2 )
+    if ( wl == wr && !isTerm(wl) )
       continue;
 
-    switch(tag(w1))
+    switch(tag(wl))
     { case TAG_ATOM:
 	fail;
       case TAG_ATTVAR:
-      { p1 = valPAttVar(w1);
-	p2 = valPAttVar(w2);
-	arity = 1;
+      { l = valPAttVar(wl);
+	r = valPAttVar(wr);
 
-	goto compound;
+	goto attvar;
       }
       case TAG_INTEGER:
-	if ( storage(w1) == STG_INLINE ||
-	     storage(w2) == STG_INLINE )
-	  fail;
+	if ( storage(wl) == STG_INLINE ||
+	     storage(wr) == STG_INLINE )
+	  return FALSE;
       case TAG_STRING:
       case TAG_FLOAT:
-	if ( equalIndirect(w1, w2) )
+	if ( equalIndirect(wl, wr) )
 	  continue;
-        fail;
+        return FALSE;
       case TAG_COMPOUND:
-      { Functor f1 = (Functor)valPtr(w1);
-	Functor f2 = (Functor)valPtr(w2);
+      { Functor fl = valueTerm(wl);
+	Functor fr = valueTerm(wr);
+	intptr_t d;
 
-#if O_CYCLIC
-        while ( isRef(f1->definition) )
-	  f1 = (Functor)unRef(f1->definition);
-	while ( isRef(f2->definition) )
-	  f2 = (Functor)unRef(f2->definition);
-	if ( f1 == f2 )
+	if ( FMPLAIN(fl->definition) != FMPLAIN(fr->definition) )
+	  return FALSE;
+	if ( (fl->definition & FIRST_MASK) &&
+	     (fr->definition & MARK_MASK) )
 	  continue;
-#endif
 
-	if ( f1->definition == f2->definition )
-	{ arity = arityFunctor(f1->definition);
+	d = (fl->definition & FIRST_MASK) | (fr->definition & MARK_MASK);
+	fl->definition |= FIRST_MASK;
+	fr->definition |= MARK_MASK;
 
-	  p1 = f1->arguments;
-	  p2 = f2->arguments;
-	  linkTermsCyclic(f1, f2 PASS_LD);
-
-	compound:
-	  if ( todo == 0 )		/* right-most argument recursion */
-	  { todo = arity;
-	    t1 = p1;
-	    t2 = p2;
-	  } else if ( arity > 0 )
-	  { UChoice next = alloca(sizeof(*next));
-
-	    next->size   = arity;
-	    next->alist1 = p1;
-	    next->alist2 = p2;
-	    next->next   = NULL;
-	    if ( !nextch )
-	      nextch = tailch = next;
-	    else
-	    { tailch->next = next;
-	      tailch = next;
-	    }
-	  }
-	} else
-	{ fail;
-	}
+	pushWorkAgendaLRS(agenda, fl, fr, (void*)d);
+	continue;
       }
     }
   }
+
+  return TRUE;
 }
 
 
 static
-PRED_IMPL("=@=", 2, structural_eq, 0)
+PRED_IMPL("=@=", 2, variant, 0)
 { GET_LD
+  term_agendaLRS agenda;
   bool rval;
   tmp_buffer buf;
-  Reset r;
+  v_var *r;
   Word p1 = valTermRef(A1);
-  Word p2 = p1+1;
+  Word p2 = valTermRef(A2);
+  Functor t1, t2;
 
   deRef(p1);
   deRef(p2);
 
-  if ( *p1 == *p2 )
+  if ( *p1 == *p2 )			/* same term */
     succeed;
+  if ( tag(*p1) != tag(*p2) )		/* different type */
+    fail;
+again:
+  switch(tag(*p1))			/* quick tests */
+  { case TAG_VAR:
+      succeed;
+    case TAG_ATTVAR:
+      p1 = valPAttVar(*p1);
+      p2 = valPAttVar(*p2);
+      goto again;
+    case TAG_ATOM:
+      fail;
+    case TAG_INTEGER:
+      if ( !(isIndirect(*p1) && isIndirect(*p2)) )
+	fail;
+      /*FALLTHROUGH*/
+    case TAG_FLOAT:
+    case TAG_STRING:
+      return equalIndirect(*p1, *p2);
+    case TAG_COMPOUND:
+      t1 = valueTerm(*p1);
+      t2 = valueTerm(*p2);
+      if ( t1->definition != t2->definition )
+	fail;
+      break;
+    default:
+      assert(0);
+      fail;
+  }
 
-  initCyclic(PASS_LD1);
+  startCritical;
   initBuffer(&buf);			/* can be faster! */
-  rval = structeql(p1, p2, &buf PASS_LD);
-  for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
-  { setVar(*r->v1);
-    setVar(*r->v2);
+  initTermAgendaLRS(&agenda, t1, t2, pop_variant_mark, NULL);
+  rval = variant(&agenda, &buf PASS_LD);
+  clearTermAgendaLRS(&agenda);
+  for(r = baseBuffer(&buf, v_var); r < topBuffer(&buf, v_var); r++)
+  { setVar(*r->v);
   }
   discardBuffer(&buf);
-  exitCyclic(PASS_LD1);
+  SECURE(checkStacks(NULL));
+  if ( !endCritical )
+    return FALSE;
 
   return rval;
 }
 
 
 static
-PRED_IMPL("\\=@=", 2, structural_neq, 0)
-{ return pl_structural_eq2_va(PL__t0, PL__ac, PL__ctx) ? FALSE : TRUE;
+PRED_IMPL("\\=@=", 2, not_variant, 0)
+{ return pl_variant2_va(PL__t0, PL__ac, PL__ctx) ? FALSE : TRUE;
 }
 
 
@@ -2901,12 +3200,10 @@ do_copy_term() returns TRUE if the term can   be shared and FALSE if not
 copying routine copied a shareable term it   discards the copy and links
 the original.
 
-NOTE: when using the stack-shifter, we cannot   affort  the stacks to be
-shifted during the execution of copy_term/2. I think the proper solution
-is to try and copy. If the copy   fails  we use exitCyclic() to undo the
-damage, reset gTop, get more space   and try again. allocGlobalNoShift()
-is a version of allocGlobal() that returns NULL if the stack needs to be
-shifted rather than doing it.
+We cannot affort the stacks  to  be   shifted  during  the  execution of
+copy_term/2. If the copy  fails  due   to  lack  of space do_copy_term()
+returns with *_OVERFLOW. We then use   exitCyclic()  to undo the damage,
+reset gTop, get more space and try again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define VAR_MARK (0x1<<LMASK_BITS|TAG_VAR)
@@ -2917,22 +3214,22 @@ shifted rather than doing it.
 
 static inline void
 initCyclicCopy(ARG1_LD)
-{ LD->cycle.stack.unit_size = sizeof(Word);
+{ LD->cycle.lstack.unit_size = sizeof(Word);
 }
 
 
 static inline void
 TrailCyclic(Word p ARG_LD)
-{ pushSegStack(&LD->cycle.stack, &p);
+{ pushSegStack(&LD->cycle.lstack, &p);
 }
 
 
 static inline void
 exitCyclicCopy(size_t count, int flags ARG_LD)
-{ while(LD->cycle.stack.count > count)
+{ while(LD->cycle.lstack.count > count)
   { Word p;
 
-    popSegStack(&LD->cycle.stack, &p);
+    popSegStack(&LD->cycle.lstack, &p);
 
     if ( isRef(*p) )
     { Word p2 = unRef(*p);
@@ -2943,10 +3240,12 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
       } else
       { *p = *p2;			/* cyclic terms */
       }
+    } else if ( is_first(p) )		/* shared ground term */
+    { clear_first(p);
     } else
     { Word old;
 
-      popSegStack(&LD->cycle.stack, &old);
+      popSegStack(&LD->cycle.lstack, &old);
 
       if ( !(flags&COPY_ATTRS) )
       { Word p2 = valPAttVar(*p);
@@ -3047,6 +3346,9 @@ again:
       if ( isRef(f1->definition) )
       { *to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
         return FALSE;			/* Cyclic */
+      } else if ( f1->definition & FIRST_MASK )
+      { *to = *from;
+	return TRUE;
       } else
       { int arity = arityFunctor(f1->definition);
 	Word oldtop = gTop;
@@ -3054,7 +3356,7 @@ again:
 	Word from0 = from;
 	Functor f2;
 	int ground = TRUE;
-	size_t count = LD->cycle.stack.count;
+	size_t count = LD->cycle.lstack.count;
 
 	if ( !(f2 = (Functor)allocGlobalNoShift(arity+1)) )
 	  return GLOBAL_OVERFLOW;
@@ -3084,6 +3386,8 @@ again:
 	  { exitCyclicCopy(count, flags PASS_LD);
 	    gTop = oldtop;
 	    *to0 = *from0;
+	    f1->definition |= FIRST_MASK;
+	    TrailCyclic(&f1->definition PASS_LD);
 	    DEBUG(2, Sdprintf("Shared\n"));
 	    return TRUE;
 	  } else
@@ -3278,6 +3582,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
     }
     default:
       assert(0);
+      return FALSE;
   }
 }
 
@@ -5013,6 +5318,7 @@ BeginPredDefs(prims)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
   PRED_DEF("acyclic_term", 1, acyclic_term, 0)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
+  PRED_DEF("$factorize_term", 2, factorize_term, 0)
   PRED_DEF("compound", 1, compound, PL_FA_ISO)
   PRED_DEF("callable", 1, callable, PL_FA_ISO)
   PRED_DEF("==", 2, equal, PL_FA_ISO)
@@ -5022,8 +5328,8 @@ BeginPredDefs(prims)
   PRED_DEF("@=<", 2, std_leq, PL_FA_ISO)
   PRED_DEF("@>", 2, std_gt, PL_FA_ISO)
   PRED_DEF("@>=", 2, std_geq, PL_FA_ISO)
-  PRED_DEF("=@=", 2, structural_eq, 0)
-  PRED_DEF("\\=@=", 2, structural_neq, 0)
+  PRED_DEF("=@=", 2, variant, 0)
+  PRED_DEF("\\=@=", 2, not_variant, 0)
   PRED_DEF("?=", 2, can_compare, 0)
   PRED_DEF("same_term", 2, same_term, 0)
   PRED_DEF("functor", 3, functor, PL_FA_ISO)

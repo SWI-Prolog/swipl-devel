@@ -108,6 +108,8 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
 	  return PL_raise_exception(ex);
 	PL_rewind_foreign_frame(fid);
       }
+    } else
+    { PL_rewind_foreign_frame(fid);
     }
   }
 }
@@ -174,6 +176,7 @@ typedef struct
   Word key;
 } ITEM;
 
+					/* TBD: handle CMP_ERROR */
 #ifndef COMPARE
 #define COMPARE(x,y) compareStandard((x)->term, (y)->term, FALSE PASS_LD)
 #endif

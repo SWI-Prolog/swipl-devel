@@ -93,9 +93,49 @@ test(shared, fail) :-
 test(shared, fail) :-
 	v(A),
 	a(A, B) =@= a(B, B).
+test(dubious, true) :-
+	v(X), v(Z),
+	a(X, Y) =@= a(Y, Z).
+test(common, true) :-			% Bug #464
+	A=x(_),
+	s(A, A) =@= s(x(B), x(B)).
+test(common, fail) :-
+	X = x(A), v(B),
+	a(X,A) =@= a(X,B).
+test(common, fail) :-
+	X = x(A), v(B),
+	a(A,X) =@= a(B,X).
 test(cyclic, [sto(rational_trees)]) :-
 	A = f(A),
 	A =@= f(A).
+test(cyclic, [fail, sto(rational_trees)]) :-
+	S = s(S),
+	S =@= s(s(s(s(1)))).
+test(cyclic, [sto(rational_trees)]) :-
+	S = s(s(S)), X = s(s(s(X))),
+	S =@= X.
+test(cyclic, [sto(rational_trees)]) :-
+	S = s(x(S)), X = s(x(s(x(X)))),
+	S =@= X.
+test(shared, fail) :-
+	v(A), v(B),
+	X = x(A), Y = x(B),
+	s(X,Y,X) =@= s(X,Y,Y).
+test(cycle, [sto(rational_trees), fail]) :- % Ulrich
+	A=[_V1,_V2|A], D=[_V3|A],
+	A =@= D.
+test(symmetry, [fail]) :-		    % Ulrich
+	A=[B|C], D=[C|B],
+	B=[X|_Y], C=[_Z|X],
+	A =@= D.
+test(symmetry, [fail]) :-		    % Ulrich
+	X=s(_Xi), Y=s(_Yi), Z=s(_Zi),
+	A=v(X,Y,X), D=v(Z,X,Y),
+	A =@= D.
+test(ground, [sto(rational_trees), fail]) :- % Ulrich
+	A=[A|B], B=[A], D=[[A|B]|A],
+	A = [_,_], D = [_,_,_],
+	A =@= D.
 
 v(_).
 

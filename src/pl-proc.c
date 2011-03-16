@@ -79,7 +79,7 @@ lookupProcedure(functor_t f, Module m)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Add (import) a defintion to a  module.   Used  by  loadImport(). Must be
+Add (import) a definition to a  module.   Used  by loadImport(). Must be
 merged with pl_import().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -2304,8 +2304,7 @@ setDynamicProcedure(Procedure proc, bool isdyn)
   LOCKDEF(def);
 
   if ( isdyn )				/* static --> dynamic */
-  { GET_LD
-    char *msg;
+  { char *msg;
 
     if ( def->definition.clauses )
     { UNLOCKDEF(def);
@@ -2331,8 +2330,6 @@ setDynamicProcedure(Procedure proc, bool isdyn)
   ok:
     freeCodesDefinition(def);		/* reset to S_VIRGIN */
     set(def, DYNAMIC);
-    if ( SYSTEM_MODE )
-      set(def, SYSTEM|HIDE_CHILDS);
 
     UNLOCKDEF(def);
   } else				/* dynamic --> static */

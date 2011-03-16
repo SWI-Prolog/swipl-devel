@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Make the SWI-Prolog source archives by running this script. Before
 # you start:
@@ -9,11 +9,17 @@
 #
 # This script requires GNU-tar!
 
+COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
+COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
+COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
+COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
+COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
+COREMODULES+=" packages/nlp packages/cpp"
+
 if [ -r modules ]; then
   SUBMODULES="`cat modules`"
 else
-  SUBMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
-  SUBMODULES="$SUBMODULES packages/protobufs"
+  SUBMODULES="$COREMODULES"
 fi
 
 version=`cat VERSION`

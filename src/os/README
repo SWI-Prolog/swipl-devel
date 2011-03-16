@@ -1,0 +1,98 @@
+---+ The SWI-Prolog operating-system and basic operation layer
+
+This directory contains parts of  SWI-Prolog   that  deal with operating
+system and file access as well as core functionality to support this.
+
+---++ Deploying this code
+
+Although this code is repacked  to   make  deployment outside SWI-Prolog
+possible, this is not a trivial process. You need to do the following:
+
+  * Provide a SWI-Prolog compatible implementation of the required bits
+  of the foreign language interface.  These functions are called PL_*
+  and described in the SWI-Prolog manual.
+
+  * Provide an emulation for pl-codelist.[ch], pl-privitf.[ch] and
+  pl-builtin.h. These files provide macros and functions that access
+  (SWI-)Prolog internals directly. Hopefully your Prolog system can do
+  something similar.
+
+  * Provide an emulation for pl-incl.h.
+  TBD: We must move those parts of pl-incl.h that are really neaded into
+  pl-builtin.h, so the dependencies on pl-incl.h disappear.
+
+  * The constants ATOM_* are SWI-Prolog macros that define objects of
+  type atom_t refering to a specific string.  The script atoms.sh in
+  this directory can be used to extract the atoms that are used in this
+  directory. This only works if the atom-definition file ATOMS of
+  SWI-Prolog is available as ../ATOMS.
+
+---++ Content
+
+  * atoms.sh
+  Extract used ATOM_ constants
+
+  * dtoa.c and pl-dtoa.[ch]
+  Lossless conversion of doubles to strings.
+
+  * pl-buffer.[ch]
+  Buffer data in a dynamically resizing array.
+
+  * pl-ctype.[ch]
+  Character classification primitives.  Predicates:
+    - char_type/2, code_type/2, setlocale/3, downcase_atom/2,
+      upcase_atom/2, normalize_space/2.
+
+  * pl-error.[ch]
+  Throw exceptions from C.  Provides PL_error()
+
+  * pl-file.c
+  Binding IOSTREAM to Prolog.  Open files, Prolog I/O, etc.  Many
+  predicates.
+
+  * pl-files.[ch]
+  Operations on files as a whole.  Many predicates.
+
+  * pl-fmt.c
+  Definition for format/3 and friends.
+
+  * pl-glob.c
+  File-pattern expansion.  Predicates:
+    - expand_file_name/2, wildcard_match/2, directory_files/2.
+
+  * pl-mswchar.cpp, pl-mswchar.h
+  Hack around Microsoft runtime bugs.
+
+  * pl-os.[ch]
+  Misc operating system access.
+
+  * pl-stream.c, SWI-Stream.h
+  Low-level access to I/O streams.  Public stream access from C.
+
+  * pl-string.[ch]
+  Char* operations.  Mostly dealing with platforms that do not define
+  all of them.
+
+  * pl-table.[ch]
+  Hash-tables.
+
+  * pl-text.[ch]
+  Higher level string manipulation.  Deals with hybrid ISO-Latin-1,
+  wide-character representation, pointer+size representation, character
+  conversions, etc.
+
+  * pl-utf8.[ch]
+  Our local UTF-8 encoding/decoding macros
+
+  * popen.c
+  popen() for Windows.
+
+  * windows
+  More Windows portability stuff
+
+---++ License
+
+This code is licenced under the LGPL.
+
+@tbd	Move all Windows hacks to os/windows.  At the moment, there are
+	definitions in pl-nt.c pl-ntcon.c pl-ntconsole.c, pl-main.c

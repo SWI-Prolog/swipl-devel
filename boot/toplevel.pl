@@ -351,6 +351,7 @@ initialise_prolog :-
 	create_prolog_flag(toplevel_print_options, PrintOptions, []),
 	create_prolog_flag(prompt_alternatives_on, determinism, []),
 	create_prolog_flag(toplevel_extra_white_line, true, []),
+	create_prolog_flag(toplevel_print_factorized, false, []),
 	'$set_debugger_print_options'(print),
 	'$run_initialization',
 	'$load_system_init_file',
@@ -638,13 +639,17 @@ write_bindings(Bindings, Det) :-
 	copy_term(Bindings, Bindings1, Residuals0),
 	'$module'(TypeIn, TypeIn),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
-	bind_vars(Bindings1),
-	filter_bindings(Bindings1, Bindings2),
-	write_bindings2(Bindings2, Residuals, Det).
+	join_same_bindings(Bindings1, Bindings2),
+	factorize_bindings(Bindings2, Bindings3),
+	bind_vars(Bindings3, Bindings4),
+	filter_bindings(Bindings4, Bindings5),
+	write_bindings2(Bindings5, Residuals, Det).
 write_bindings(Bindings, Det) :-
-	bind_vars(Bindings),
-	filter_bindings(Bindings, Bindings1),
-	write_bindings2(Bindings1, [], Det).
+	join_same_bindings(Bindings, Bindings1),
+	factorize_bindings(Bindings1, Bindings2),
+	bind_vars(Bindings2, Bindings3),
+	filter_bindings(Bindings3, Bindings4),
+	write_bindings2(Bindings4, [], Det).
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
@@ -663,6 +668,26 @@ write_bindings2(Bindings, Residuals, _Det) :-
 	;   !,
 	    print_message(query, query(done))
 	).
+
+
+%%	join_same_bindings(Bindings0, Bindings)
+%
+%	Join variables that are bound to the   same  value. Note that we
+%	return the _last_ value. This is   because the factorization may
+%	be different and ultimately the names will   be  printed as V1 =
+%	V2, ... VN = Value. Using the  last, Value has the factorization
+%	of VN.
+
+join_same_bindings([], []).
+join_same_bindings([Name=Val|T0], [[Name|Names]=V|T]) :-
+	take_same_bindings(Val, V, T0, Names, T1),
+	join_same_bindings(T1, T).
+
+take_same_bindings(Val, V, [Name=V1|T0], L, T) :-
+	V1 == Val, !,
+	L = [Name|Names],
+	take_same_bindings(V1, V, T0, Names, T).
+take_same_bindings(V, V, L, [], L).
 
 
 %%	omit_qualifiers(+QGoals, +TypeIn, -Goals) is det.
@@ -707,36 +732,141 @@ omit_meta_qualifiers(when(Cond, QGoal), TypeIn, when(Cond, Goal)) :-
 omit_meta_qualifiers(G, _, G).
 
 
-%%	bind_vars(+Bindings)
+%%	bind_vars(+BindingsIn, -Bindings)
 %
 %	Bind variables to '$VAR'(Name), so they are printed by the names
 %	used in the query. Note that by   binding  in the reverse order,
 %	variables bound to one another come out in the natural order.
 
-bind_vars([]).
-bind_vars([Name=Var|T]) :-
-	bind_vars(T),
-	(   var(Var), \+ attvar(Var)
-	->  Var = '$VAR'(Name)
-	;   true
+bind_vars(Bindings0, Bindings) :-
+	bind_query_vars(Bindings0, Bindings, SNames),
+	bind_skel_vars(Bindings, Bindings, SNames, 1, _).
+
+bind_query_vars([], [], []).
+bind_query_vars([binding(Names,Var,[Var2=Cycle])|T0],
+		[binding(Names,Cycle,[])|T], [Name|SNames]) :-
+	Var == Var2, !,			% also implies var(Var)
+	'$last'(Names, Name),
+	Var = '$VAR'(Name),
+	bind_query_vars(T0, T, SNames).
+bind_query_vars([B|T0], [B|T], AllNames) :-
+	B = binding(Names,Var,Skel),
+	bind_query_vars(T0, T, SNames),
+	(   var(Var), \+ attvar(Var), Skel == []
+	->  AllNames = [Name|SNames],
+	    '$last'(Names, Name),
+	    Var = '$VAR'(Name)
+	;   AllNames = SNames
 	).
+
+
+
+bind_skel_vars([], _, _, N, N).
+bind_skel_vars([binding(_,_,Skel)|T], Bindings, SNames, N0, N) :-
+	bind_one_skel_vars(Skel, Bindings, SNames, N0, N1),
+	bind_skel_vars(T, Bindings, SNames, N1, N).
+
+%%	bind_one_skel_vars(+Subst, +Bindings, +VarName, +N0, -N)
+%
+%	Give names to the factorized variables that   do not have a name
+%	yet. This introduces names  _S<N>,   avoiding  duplicates.  If a
+%	factorized variable shares with another binding, use the name of
+%	that variable.
+%
+%	@tbd	Consider the call below. We could remove either of the
+%		A = x(1).  Which is best?
+%
+%		==
+%		?- A = x(1), B = a(A,A).
+%		A = x(1),
+%		B = a(A, A), % where
+%		    A = x(1).
+%		==
+
+bind_one_skel_vars([], _, _, N, N).
+bind_one_skel_vars([Var=Value|T], Bindings, Names, N0, N) :-
+	(   var(Var)
+	->  (	'$member'(binding(Names, VVal, []), Bindings),
+	        same_term(Value, VVal)
+	    ->	'$last'(Names, VName),
+		Var = '$VAR'(VName),
+		N2 = N0
+	    ;	between(N0, infinite, N1),
+	        atom_concat('_S', N1, Name),
+		\+ memberchk(Name, Names), !,
+		Var = '$VAR'(Name),
+		N2 is N1 + 1
+	    )
+	;   N2 = N0
+	),
+	bind_one_skel_vars(T, Bindings, Names, N2, N).
+
+
+%%	factorize_bindings(+Bindings0, -Factorized)
+%
+%	Factorize cycles and sharing in the bindings.
+
+factorize_bindings([], []).
+factorize_bindings([Name=Value|T0], [binding(Name, Skel, Subst)|T]) :-
+	F = f(Value),
+	'$factorize_term'(F, Subst0),
+	(   current_prolog_flag(toplevel_print_factorized, true)
+	->  Subst = Subst0
+	;   only_cycles(Subst0, Subst)
+	),
+	arg(1, F, Skel),
+	factorize_bindings(T0, T).
+
+
+only_cycles([], []).
+only_cycles([B|T0], List) :-
+	(   B = (Var=Value),
+	    Var = Value,
+	    acyclic_term(Var)
+	->  only_cycles(T0, List)
+	;   List = [B|T],
+	    only_cycles(T0, T)
+	).
+
 
 %%	filter_bindings(+Bindings0, -Bindings)
 %
-%	Remove bindings that must not be printed.
+%	Remove bindings that must not be printed. There are two of them:
+%	Variables whose name start with '_'  and variables that are only
+%	bound to themselves (or, unbound).
 
 filter_bindings([], []).
-filter_bindings([H|T0], T) :-
-	hidden_binding(H), !,
-	filter_bindings(T0, T).
-filter_bindings([H|T0], [H|T]) :-
-	filter_bindings(T0, T).
+filter_bindings([H0|T0], T) :-
+	hide_vars(H0, H),
+	(   (   arg(1, H, [])
+	    ;   self_bounded(H)
+	    )
+	->  filter_bindings(T0, T)
+	;   T = [H|T1],
+	    filter_bindings(T0, T1)
+	).
 
-hidden_binding(Name = _) :-
-	sub_atom(Name, 0, _, _, '_'),
-	current_prolog_flag(toplevel_print_anon, false).
-hidden_binding(Name = Value) :-
+hide_vars(binding(Names0, Skel, Subst), binding(Names, Skel, Subst)) :-
+	hide_names(Names0, Skel, Subst, Names).
+
+hide_names([], _, _, []).
+hide_names([Name|T0], Skel, Subst, T) :-
+	(   sub_atom(Name, 0, _, _, '_'),
+	    current_prolog_flag(toplevel_print_anon, false)
+	->  true
+	;   Subst == [],
+	    Skel == '$VAR'(Name)
+	), !,
+	hide_names(T0, Skel, Subst, T).
+hide_names([Name|T0], Skel, Subst, [Name|T]) :-
+	hide_names(T0, Skel, Subst, T).
+
+self_bounded(binding([Name], Value, [])) :-
 	Value == '$VAR'(Name).
+
+%%	get_respons(-Action)
+%
+%	Read the continuation entered by the user.
 
 get_respons(Action) :-
 	repeat,

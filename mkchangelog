@@ -5,6 +5,11 @@
 
 footer=false
 printdate=true
+directory=.
+since=
+modules=true
+quiet=false;
+moduleoptions=
 
 done=false
 while [ $done = false ]; do
@@ -16,31 +21,83 @@ while [ $done = false ]; do
 	--nodate)
 		printdate=false
 		shift
+		moduleoptions+="--nodate"
+		;;
+	--quiet)
+		quiet=true
+		shift
+		;;
+	--nomodules)
+		modules=false
+		shift
+		;;
+	--dir=*)
+		directory="`echo $1 | sed 's/--dir=//'`"
+		shift
+		modules=false
+		;;
+	--since=*)
+		since="`echo $1 | sed 's/--since=//'`"
+		shift
 		;;
 	*)	done=true
 		;;
     esac
 done
 
-since="$1"
+tag="$1"
 
-if [ -z "$since" ]; then
-   echo "Usage: `basename $0` [--footer] [--nodate] version [path ...]"
+if [ -z "$tag" -a -z "$since" ]; then
+   echo "Usage: `basename $0` option ... [version] [path ...]"
+   echo "Options:"
+   echo "    --footer"
+   echo "    --nodate"
+   echo "    --nomodules"
+   echo "    --since=<date>"
+   echo "    --dir=<dir>"
    exit 1
 fi
-
-shift;
 
 # Ensure case-sensitive matching
 LANG=C
 
-case "$since" in
+case "$tag" in
    [0-9].[0-9]*.[0-9]*)
-	since=V${since}
+	tag=V${tag}
 	;;
 esac
 
-git log ${since}.. --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
+if [ ! -z "$since" ]; then
+  opt="--since=$since"
+else
+  shift
+  opt="$tag.."
+fi
+
+cd $directory
+
+if [ "$quiet" = true ]; then
+  git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | grep -q '^[A-Z][A-Z]*:'
+  exit $?
+fi
+
+header ()
+{ hdr="$*"
+  eq=`echo $hdr | sed 's/./=/g'`
+  echo $eq
+  echo $hdr
+  echo $eq
+  echo
+}
+
+(
+if [ "$directory" = "." ]; then
+  header "SWI-Prolog Changelog since $tag"
+else
+  header "Package `basename $directory`"
+fi
+
+git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
 BEGIN		{ doprint="false";
 		  dateprinted="";
 		}
@@ -48,8 +105,10 @@ BEGIN		{ doprint="false";
 		  doprint="false";
 		  next;
 	        }
-/^[A-Z][A-Z]+:/	{ if ( dateprinted != date && "'$printdate'" == "true" )
-		  { printf("%s\n\n", date);
+/^[A-Z][A-Z]*:/	{ if ( dateprinted != date )
+		  { if ( "'$printdate'" == "true" )
+		    { printf("%s\n\n", date);
+		    }
 		    dateprinted = date;
 		  }
 		  printf(" * %s\n", $0);
@@ -65,10 +124,29 @@ BEGIN		{ doprint="false";
 		  }
 		  next;
 		}
-' | fmt -ut
+' ) | fmt -ut
+
+# Include submodules
+
+if [ "$modules" = true ]; then
+  if [ -z "$since" ]; then
+    since=`git show --quiet --pretty=format:%cd "$tag^{commit}"`
+  fi
+
+  echo
+
+  for d in `git submodule -q foreach pwd`; do
+    if $0 --dir="$d" --since="$since" --quiet; then
+      echo
+      $0 --dir="$d" --since="$since" $moduleoptions
+#   else
+#     echo "Package `basename $d`: no changes"
+    fi
+  done
+fi
 
 if [ "$footer" = true ]; then
    echo ==============
-   echo VERSION $since
+   echo VERSION $tag
    echo ==============
 fi

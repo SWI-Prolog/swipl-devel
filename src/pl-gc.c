@@ -1206,7 +1206,7 @@ stack to avoid allocation issues on the argument stack.
 #if O_DESTRUCTIVE_ASSIGNMENT
 static inline void
 push_marked(Word p ARG_LD)
-{ pushSegStack(&LD->cycle.stack, &p);
+{ pushSegStack(&LD->cycle.vstack, &p);
 }
 
 
@@ -1214,7 +1214,7 @@ static void
 popall_marked(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.stack, &p) )
+  while( popSegStack(&LD->cycle.vstack, &p) )
   { unmark_first(p);
   }
 }
@@ -1224,7 +1224,7 @@ static void
 mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 			int assignments ARG_LD)
 { GCTrailEntry te;
-  LD->cycle.stack.unit_size = sizeof(Word);
+  LD->cycle.vstack.unit_size = sizeof(Word);
 
   DEBUG(2, Sdprintf("Scanning %d trailed assignments\n", assignments));
 
@@ -1281,6 +1281,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 { GCTrailEntry tm = (GCTrailEntry)m->trailtop;
   GCTrailEntry te0 = te;
   int assignments = 0;
+  Word gKeep = (LD->frozen_bar > m->globaltop ? LD->frozen_bar : m->globaltop);
 
   for( ; te >= tm; te-- )		/* early reset of vars */
   {
@@ -1288,7 +1289,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
     if ( isTrailVal(te->address) )
     { Word tard = val_ptr(te[-1].address);
 
-      if ( tard >= top )
+      if ( tard >= top || (tard >= gKeep && tard < gMax) )
       { te->address = 0;
 	te--;
 	te->address = 0;
@@ -1338,6 +1339,9 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       if ( tard >= top )		/* above local stack */
       { SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
 	te->address = 0;
+	trailcells_deleted++;
+      } else if ( tard > gKeep && tard < gMax )
+      { te->address = 0;
 	trailcells_deleted++;
       } else if ( !is_marked(tard) )
       { DEBUG(3,
@@ -3630,9 +3634,13 @@ gcEnsureSpace(vm_state *state ARG_LD)
     }
   }
   if ( gTop+1 > gMax )
+  { assert(LD->stacks.global.spare);
     enableSpareStack((Stack)&LD->stacks.global);
+  }
   if ( tTop+1 > tMax )
+  { assert(LD->stacks.trail.spare);
     enableSpareStack((Stack)&LD->stacks.trail);
+  }
 
   return rc;
 }
@@ -4689,7 +4697,7 @@ growStacks(size_t l, size_t g, size_t t)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-(*) Some programs have a log of global and hardly any trail requirement.
+(*) Some programs have a lot of global and hardly any trail requirement.
 This means we gets lots of GCs for trail, which works fine, but they are
 expensive due to the size of the global stack. As long as we do not have
 generational GC, we make the trail free space proportional to the global

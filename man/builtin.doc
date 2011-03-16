@@ -56,8 +56,7 @@ In traditional (Edinburgh-) Prolog, characters are represented using
 a specific character set.  Traditionally the character set was 7-bits
 US-ASCII. 8-bit character sets have been allowed for a long time, providing
 support for national character sets, of which iso-latin-1 (ISO 8859-1)
-is applicable to many western languages.  Text-files are supposed to
-represent a sequence of character-codes.
+is applicable to many western languages.
 
 ISO Prolog introduces three types, two of which are used for characters
 and one for accessing binary streams (see open/4).  These types are:
@@ -70,23 +69,24 @@ sets (\idx{utf-8} encoding for example), reading a code from a text-file
 is in general not the same as reading a byte.
     \item [char]
 Alternatively, characters may be represented as
-\jargon{one-character-atoms}.  This is a very natural representation,
+\jargon{one-character-atoms}.  This is a natural representation,
 hiding encoding problems from the programmer as well as providing much
 easier debugging.
     \item [byte]
 Bytes are used for accessing binary-streams.
 \end{itemlist}
 
-The current version of SWI-Prolog does not provide support for
-multi-byte character encoding. This implies for example that it is not
-capable of breaking a multi-byte encoded atom into characters.  For
-SWI-Prolog, bytes and codes are the same and one-character-atoms are
-simple atoms containing one byte.
+In SWI-Prolog, character-codes are \emph{always} the Unicode equivalent
+of the encoding. I.e., if get_code/1 reads from a stream encoded as
+\const{KOI8-R} (used for the Cyrillic alphabet), it returns the
+corresponding Unicode code-points. Similar, assembling or deassembling
+atoms using atom_codes/2 interprets the codes as Unicode points.  See
+\secref{encoding} for details.
 
-To ease the pain of these multiple representations, SWI-Prolog's
-built-in predicates dealing with character-data work as flexible as
-possible: they accept data in any of these formats as long as the
-interpretation is unambiguous.  In addition, for output arguments
+To ease the pain of the two character representations (code and char),
+SWI-Prolog's built-in predicates dealing with character-data work as
+flexible as possible: they accept data in any of these formats as long
+as the interpretation is unambiguous. In addition, for output arguments
 that are instantiated, the character is extracted before unification.
 This implies that the following two calls are identical, both testing
 whether the next input characters is an \const{a}.
@@ -96,15 +96,15 @@ peek_code(Stream, a).
 peek_code(Stream, 97).
 \end{code}
 
-These multiple-representations are handled by a large number of built-in
-predicates, all of which are ISO-compatible. For converting between code
-and character there is char_code/2. For breaking atoms and numbers into
-characters are are atom_chars/2, atom_codes/2, number_codes/2 and
-number_chars/2. For character I/O on streams there is get_char/[1,2],
-get_code/[1,2], get_byte/[1,2], peek_char/[1,2], peek_code/[1,2],
-peek_byte/[1,2], put_code/[1,2], put_char/[1,2] and put_byte/[1,2]. The
-Prolog flag \prologflag{double_quotes} controls how text between
-double-quotes is interpreted.
+The two character representations are handled by a large number of
+built-in predicates, all of which are ISO-compatible. For converting
+between code and character there is char_code/2. For breaking atoms and
+numbers into characters are are atom_chars/2, atom_codes/2,
+number_codes/2 and number_chars/2. For character I/O on streams there is
+get_char/[1,2], get_code/[1,2], get_byte/[1,2], peek_char/[1,2],
+peek_code/[1,2], peek_byte/[1,2], put_code/[1,2], put_char/[1,2] and
+put_byte/[1,2]. The Prolog flag \prologflag{double_quotes} controls how
+text between double-quotes is interpreted.
 
 
 \section{Loading Prolog source files}	\label{sec:consulting}
@@ -1204,46 +1204,65 @@ thus fails. Note that the behaviour of unification through
 changed using the Prolog flag \prologflag{occurs_check}.
 
     \infixop{=@=}{+Term1}{+Term2}
-True if \arg{Term1} is `structurally equal' to \arg{Term2}.
-Structural equivalence is weaker than equivalence (\predref{==}{2}), but
-stronger than unification (\predref{=}{2}). Two terms are structurally
-equal if their tree representation is identical and they have the same
-`pattern' of variables. Examples:
+\index{variant}%
+
+True if \arg{Term1} is a \jargon{variant} of (or \jargon{structurally
+equivalent} to) \arg{Term2}. Testing for a variant is weaker than
+equivalence (\predref{==}{2}), but stronger than unification
+(\predref{=}{2}). Two terms $A$ and $B$ are variants iff there exists a
+renaming of the variables in $A$ that makes $A$ equivalent (==) to $B$
+and visa-versa.\footnote{Row~7 and 8 of this table may come as a
+surprise, but row~8 is satisfied by (left-to-right) $A\rightarrow C$,
+$B\rightarrow A$ and (right-to-left) $C\rightarrow A$, $A\rightarrow B$.
+If the same variable appears in different locations in the left and
+right term, the variant-relation can be broken by consistent binding of
+both terms. E.g., after binding the first argument in row~8 to a value
+both terms are no longer variant.} Examples:
 
 \begin{quote}
-\begin{tabular}{rclc}
-\tt a           & \tt =@= & \tt A       & false \\
-\tt A           & \tt =@= & \tt B       & true \\
-\tt x(A,A)      & \tt =@= & \tt x(B,C)  & false \\
-\tt x(A,A)      & \tt =@= & \tt x(B,B)  & true \\
-\tt x(A,B)      & \tt =@= & \tt x(C,D)  & true \\
+\begin{tabular}{rcc}
+1 & \tt	    a  =@= A       & false \\
+2 & \tt     A  =@= B       & true \\
+3 & \tt x(A,A) =@= x(B,C)  & false \\
+4 & \tt x(A,A) =@= x(B,B)  & true \\
+5 & \tt x(A,A) =@= x(A,B)  & false \\
+6 & \tt x(A,B) =@= x(C,D)  & true \\
+7 & \tt x(A,B) =@= x(B,A)  & true \\
+8 & \tt x(A,B) =@= x(C,A)  & true \\
 \end{tabular}
 \end{quote}
 
-Note that a term is always structurally equivalent to a copy of it. Term
-copying takes place in e.g., copy_term/2, findall/3 or proving a clause
-added with assert/1.  In the pure Prolog world (i,e,, without attributed
-variables), \predref{=@=}{2} behaves as if defined by the code below.
-With attributed variables, structural equivalence of the attributes is
-tested rather than trying to satisfy the constraints.
+A term is always a variant of a copy of itself. Term copying takes place
+in e.g., copy_term/2, findall/3 or proving a clause added with
+asserta/1. In the pure Prolog world (i.e., without attributed
+variables), \predref{=@=}{2} behaves as if defined below. With
+attributed variables, variant of the attributes is tested rather than
+trying to satisfy the constraints.
 
 \begin{code}
 A =@= B :-
-	subsumes_chk(A, B),
-	subsumes_chk(B, A).
+	copy_term(A, Ac),
+	copy_term(B, Bc),
+	numbervars(Ac, 0, N),
+	numbervars(Bc, 0, N),
+	Ac == Bc.
 \end{code}
 
-This predicate safely handles cyclic terms. A cyclic term is
-structurally equivalent to itself.
+The SWI-Prolog implementation is cycle-safe and can deal with variables
+that are shared between the left and right argument. Its performance is
+comparable to \predref{==}{2}, both on success and (early) failure.
+Unlike ==, the variant implementation does not benefit from sharing
+subterms.\footnote{The current implementation is based on ideas from
+Kuniaki Mukai.}
 
-\index{variant, term comparison}%
-The predicates \predref{=@=}{2} and \predref{\=@=}{2} are cycle-safe.
-Attributed variables are considered structurally equal iff their
-attributes are structurally equal.  This predicate is known by the
-name \predref{variant}{2} in some other Prolog systems.
+This predicate is known by the name \predref{variant}{2} in some other
+Prolog systems. Be aware of possible differences in semantics if the
+arguments contain attributed variables or share variables.\footnote{In
+many systems variant is implemented using two calls to subsumes_term/2.}
 
     \infixop{\=@=}{+Term1}{+Term2}
-Equivalent to \exam{`\Snot Term1 =@= Term2'}.
+Equivalent to \exam{`\Snot Term1 =@= Term2'}.  See \predref{=@=}{2} for
+details.
 
     \predicate[ISO]{subsumes_term}{2}{{@}Generic, {@}Specific}
 True if \arg{Generic} can be made equivalent to \arg{Specific} by only
@@ -3431,25 +3450,22 @@ with \arg{Char}. \arg{Char} is unified with -1 on end of file.
 Read the next non-blank character from \arg{Stream}.
 
     \predicate[ISO]{peek_byte}{1}{-Byte}
-Reads the next input byte like get_byte/1, but does not remove it
-from the input stream.
-
-    \predicate[ISO]{peek_byte}{2}{+Stream, -Byte} Reads the next input byte
-like get_byte/2, but does not remove it from the stream.
-
+    \nodescription
+    \predicate[ISO]{peek_byte}{2}{+Stream, -Byte}
+    \nodescription
     \predicate[ISO]{peek_code}{1}{-Code}
-Reads the next input code like get_code/1, but does not remove it
-from the input stream.
-
-    \predicate[ISO]{peek_code}{2}{+Stream, -Code} Reads the next input code
-like get_code/2, but does not remove it from the stream.
-
+    \nodescription
+    \predicate[ISO]{peek_code}{2}{+Stream, -Code}
+    \nodescription
     \predicate[ISO]{peek_char}{1}{-Char}
-Reads the next input character like get_char/1, but does not remove it
-from the input stream.
-
-    \predicate[ISO]{peek_char}{2}{+Stream, -Char} Reads the next input
-character like get_char/2, but does not remove it from the stream.
+    \nodescription
+    \predicate[ISO]{peek_char}{2}{+Stream, -Char}
+Read the next byte/code/char from the input without removing it.
+These predicates do not modify the stream's position or end-of-file
+status. These predicates require a buffered stream (see set_stream/2)
+and raise a permission_error if the stream is unbuffered or the buffer
+is too small to hold the longest multibyte sequence that might need to
+be buffered.
 
     \predicate{skip}{1}{+Code}
 Read the input until \arg{Char} or the end of the file is encountered.
@@ -3980,10 +3996,14 @@ is undone if backtracking brings the state back into a position before
 the setarg/3 call.  See also nb_setarg/3.
 
 This predicate may be used for destructive assignment to terms, using
-them as an extra-logical storage bin.  Always try hard to avoid the
-use of setarg/3 as it is not supported by many Prolog systems and one
-has to be very careful about unexpected copying as well as unexpected
-not copying of terms.
+them as an extra-logical storage bin. Always try hard to avoid the use
+of setarg/3 as it is not supported by many Prolog systems and one has to
+be very careful about unexpected copying as well as unexpected not
+copying of terms. A good practice to improve somewhat on this situation
+is to make sure that terms whose arguments are subject to setarg/3 have
+one unused and unshared variable in addition to the used arguments. This
+variable avoids unwanted sharing in e.g., copy_term/2 and causes the
+term to be considered as non-ground.
 
     \predicate{nb_setarg}{3}{+Arg, +Term, +Value}
 Assigns the \arg{Arg}-th argument of the compound term \arg{Term} with
@@ -4113,8 +4133,13 @@ with_output_to/2 to reduce the number of expensive intermediate atoms.
 as \arg{Atom}. Each of the arguments may be a variable, but not both.
 When \arg{String} is bound to an character code list describing an
 integer and \arg{Atom} is a variable \arg{Atom} will be unified with the
-integer value described by \arg{String} (e.g. `\exam{name(N, "300"), 400
-is N + 100}' succeeds).
+integer value described by \arg{String} (e.g., `\exam{name(N, "300"),
+400 is N + 100}' succeeds).  New code should consider using the ISO
+predicates atom_codes/2 or number_codes/2.\footnote{Unfortunately, the
+ISO predicates provide no neat way to check that a string can be
+interpreted as a number.  The most sensible way is to use catch/3 to
+catch the exception from number_codes/2, however this is both slow and
+cumbersome.}
 
     \predicate{term_to_atom}{2}{?Term, ?Atom}
 True if \arg{Atom} describes a term that unifies with \arg{Term}. When
@@ -4654,14 +4679,9 @@ True if expression \arg{Expr1} evaluates to a number equal to \arg{
 Expr2}.
 
 \infixop[ISO]{is}{-Number}{+Expr}
-True if \arg{Number} has successfully been unified with the number
-\arg{Expr} evaluates to.  If \arg{Expr} evaluates to a float that can be
-represented using an integer (i.e, the value is integer and within the
-range that can be described by Prolog's integer representation), \arg{
-Expr} is unified with the integer value.
-
-Note that normally, is/2 should be used with unbound left operand.  If
-equality is to be tested, =:=/2 should be used.  For example:
+True when \arg{Number} is the value to which \arg{Expr} evaluates.
+Typically, is/2 should be used with unbound left operand. If equality is
+to be tested, =:=/2 should be used. For example:
 
 \begin{center}\begin{tabular}{lp{2.5in}}
 \exam{?- 1 is sin({pi}/2).}        & Fails!.  sin({pi}/2) evaluates to the
@@ -4718,12 +4738,11 @@ On most today platforms these are 64-bit IEEE floating point numbers.
 \end{itemlist}
 
 Arithmetic functions that require integer arguments accept, in addition
-to integers, rational numbers with denominator `1' and floating point
-numbers that can be accurately converted to integers.  If the required
-argument is a float the argument is converted to float.  Note that
-conversion of integers to floating point numbers may raise an overflow
-exception.  In all other cases, arguments are converted to the same
-type using the order below.
+to integers, rational numbers with (canonical) denominator `1'. If the
+required argument is a float the argument is converted to float. Note
+that conversion of integers to floating point numbers may raise an
+overflow exception. In all other cases, arguments are converted to the
+same type using the order below.
 
 \begin{quote}
 integer $\rightarrow$ rational number $\rightarrow$ floating point number
@@ -4770,14 +4789,8 @@ A = 17 rdiv 6
 \subsubsection{Arithmetic Functions}	\label{sec:functions}
 
 Arithmetic functions are terms which are evaluated by the arithmetic
-predicates described in \secref{arithpreds}. SWI-Prolog tries to hide
-the difference between integer arithmetic and floating point arithmetic
-from the Prolog user. Arithmetic is done as integer arithmetic as long
-as possible and converted to floating point arithmetic whenever one of
-the arguments or the combination of them requires it. If a function
-returns a floating point value which is whole it is automatically
-transformed into an integer. There are four types of arguments to
-functions:
+predicates described in \secref{arithpreds}. There are four types of
+arguments to functions:
 
 \begin{center}\begin{tabular}{lp{4in}}
 \arg{Expr}	& Arbitrary expression, returning either a floating
@@ -5139,13 +5152,23 @@ true.
 \begin{description}
     \predicate{set_random}{1}{+Option}
 Controls the random number generator that accessible through the
-function random.
+\emph{function} \nopredref{random}{1}. Note that the library
+\pllib{random} provides distinct support for random numbers that is not
+affected by set_random/1.
 
     \begin{description}
 	\termitem{seed}{+Seed}
 Set the seed of the random generator for this thread.  \arg{Seed} is
 an integer or the atom \const{random}.  If \const{random}, repeat the
-initialization procedure described with the function random/1.
+initialization procedure described with the function random/1.  Here
+is an example:
+
+\begin{code}
+?- set_random(seed(111)), A is random(6).
+A = 5.
+?- set_random(seed(111)), A is random(6).
+A = 5.
+\end{code}
     \end{description}
 \end{description}
 
@@ -5183,10 +5206,16 @@ is_list([_|T]) :-
 \end{code}
 
     \predicate{memberchk}{2}{?Elem, +List}
-Same as \exam{once(member(\arg{Elem}, \arg{List}))}.
+Same as \exam{once(member(\arg{Elem}, \arg{List}))}.  See member/2.
 
     \predicate{length}{2}{?List, ?Int}
-True if \arg{Int} represents the number of elements of list \arg{List}. Can be used to create a list holding only variables.
+True if \arg{Int} represents the number of elements of list \arg{List}.
+This predicate is a true relation and can be used to find the length of
+a list or produce a list (holding variables) of length \arg{Int}.  The
+predicate is non-deterministic, producing lists of increasing length if
+\arg{List} is a \jargon{partial list} and \arg{Int} is unbound. It
+raises errors if \arg{List} is not a list or partial list or \arg{Int}
+is not an integer or unbound.
 
     \predicate{sort}{2}{+List, -Sorted}
 True if \arg{Sorted} can be unified with a list holding the
@@ -5198,8 +5227,8 @@ The sort/2 predicate can sort a cyclic list, returning a non-cyclic
 version with the same elements.
 
     \predicate{msort}{2}{+List, -Sorted}
-Equivalent to sort/2, but does not remove duplicates.  Fails with
-a \except{type_error} if \arg{List} is a cyclic list or not a list.
+Equivalent to sort/2, but does not remove duplicates. Raises a
+\except{type_error} if \arg{List} is a cyclic list or not a list.
 
     \predicate{keysort}{2}{+List, -Sorted}
 List is a proper list whose elements are \exam{\arg{Key}-\arg{Value}},
@@ -6797,7 +6826,11 @@ program		& [ heap, 0 ] \\
 global_stack	& [ global use, global free ] \\
 local_stack	& [ local use, local free ] \\
 trail		& [ trail use, 0 ] \\
-garbage_collection & [ number of GC, bytes gained, time spent ] \\
+garbage_collection & [ number of GC, bytes gained, time spent, bytes left ]
+		  The last column is a SWI-Prolog extension.  It contains the
+		  sum of the memory left after each collection, which can be
+		  divided by the count to find the average working set size
+		  after GC.  Use \exam{[Count, Gained, Time|_]} for compatiblity. \\
 stack_shifts    & [ global shifts, local shifts, time spent ]
 		  (fails if no shifter in this version) \\
 atoms		& [ number, memory use, 0 ] \\

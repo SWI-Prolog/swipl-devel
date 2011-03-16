@@ -123,7 +123,7 @@ Apple Darwin (6.6) only contains the sem_init()   function as a stub. It
 only provides named semaphores  through   sem_open().  These defines and
 my_sem_open() try to hide the details of   this as much as possible from
 the rest of the code. Note  that   we  unlink  the semaphore right after
-creating it, using the common Unix trick to keep access to it as intptr_t as
+creating it, using the common Unix trick to keep access to it as long as
 we do not close it. We assume  the   OS  will close the semaphore as the
 application terminates. All this is highly   undesirable, but it will do
 for now. The USE_SEM_OPEN define  is  set   by  configure  based  on the
@@ -704,7 +704,7 @@ aliasThread(int tid, atom_t name)
     UNLOCK();
     PL_put_atom(obj, name);
     return PL_error("thread_create", 1, "Alias name already taken",
-		    ERR_PERMISSION, ATOM_thread, ATOM_create, obj);
+		    ERR_PERMISSION, ATOM_create, ATOM_thread, obj);
   }
 
   addHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
@@ -2714,7 +2714,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
   { if ( (s = lookupHTable(queueTable, (void *)name)) ||
 	 (s = lookupHTable(threadTable, (void *)name)) )
     { PL_error("message_queue_create", 1, NULL, ERR_PERMISSION,
-	       ATOM_message_queue, ATOM_create, queue);
+	       ATOM_create, ATOM_message_queue, queue);
       return NULL;
     }
     id = name;
@@ -2893,7 +2893,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 
   if ( q->type == QTYPE_THREAD )
   { PL_error(NULL, 0, "is a thread-queue", ERR_PERMISSION,
-	     ATOM_message_queue, ATOM_destroy, A1);
+	     ATOM_destroy, ATOM_message_queue, A1);
     UNLOCK();
     fail;
   }
@@ -3427,7 +3427,7 @@ unlocked_pl_mutex_create(term_t mutex)
   if ( PL_get_atom(mutex, &name) )
   { if ( (s = lookupHTable(GD->thread.mutexTable, (void *)name)) )
     { PL_error("mutex_create", 1, NULL, ERR_PERMISSION,
-	       ATOM_mutex, ATOM_create, mutex);
+	       ATOM_create, ATOM_mutex, mutex);
       return NULL;
     }
     id = name;
@@ -3622,7 +3622,7 @@ pl_mutex_unlock(term_t mutex)
   { char *msg = m->owner ? "not owner" : "not locked";
 
     return PL_error("mutex_unlock", 1, msg, ERR_PERMISSION,
-		    ATOM_mutex, ATOM_unlock, mutex);
+		    ATOM_unlock, ATOM_mutex, mutex);
   }
 
   succeed;
@@ -3667,7 +3667,7 @@ pl_mutex_destroy(term_t mutex)
     UNLOCK();
     Ssprintf(msg, "Owned by thread %d", m->owner); /* TBD: named threads */
     return PL_error("mutex_destroy", 1, msg,
-		    ERR_PERMISSION, ATOM_mutex, ATOM_destroy, mutex);
+		    ERR_PERMISSION, ATOM_destroy, ATOM_mutex, mutex);
   }
 
   if ( isAtom(m->id) )
@@ -3980,7 +3980,8 @@ PL_thread_destroy_engine()
 
 int
 attachConsole()
-{ fid_t fid = PL_open_foreign_frame();
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
   int rval;
   predicate_t pred = PL_predicate("attach_console", 0, "user");
 
@@ -4225,6 +4226,36 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 }
 
 #else /*PTHREAD_CPUCLOCKS*/
+
+#ifdef HAVE_MACH_THREAD_ACT_H	/* MacOS and other Mach based systems */
+
+#include <mach/thread_act.h>
+
+static double
+ThreadCPUTime(PL_thread_info_t *info, int which)
+{ if ( info->has_tid )
+  { kern_return_t error;
+    struct thread_basic_info th_info;
+    mach_msg_type_number_t th_info_count = THREAD_BASIC_INFO_COUNT;
+    thread_t thread = pthread_mach_thread_np(info->tid);
+
+    if ((error = thread_info(thread, THREAD_BASIC_INFO,
+			     (thread_info_t)&th_info, &th_info_count))
+	!= KERN_SUCCESS)
+      return 0.0;
+
+    if ( which == CPU_SYSTEM )
+      return ( th_info.system_time.seconds +
+	       th_info.system_time.microseconds / 1e6 );
+    else
+      return ( th_info.user_time.seconds +
+	       th_info.user_time.microseconds / 1e6 );
+  }
+
+  return 0.0;
+}
+
+#else /*HAVE_MACH_THREAD_ACT_H*/
 
 #ifdef LINUX_PROCFS
 
@@ -4492,6 +4523,7 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 }
 
 #endif /*LINUX_PROCFS*/
+#endif /*HAVE_MACH_THREAD_ACT_H*/
 #endif /*PTHREAD_CPUCLOCKS*/
 #endif /*__WINDOWS__*/
 

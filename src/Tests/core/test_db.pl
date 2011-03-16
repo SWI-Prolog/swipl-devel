@@ -32,6 +32,7 @@
 
 test_db :-
 	run_tests([ assert,
+		    retract,
 		    retractall,
 		    dynamic,
 		    res_compiler
@@ -60,6 +61,21 @@ test(cyclic_body, [ sto(rational_trees),
 	assert((f(a) :- X)).
 
 :- end_tests(assert).
+
+:- begin_tests(retract).
+
+:- dynamic foo/1.
+
+test(theorist) :-
+	(   assert((foo(A) :- bar(A))),
+	    retract(foo(1) :- B)
+	->  B == bar(1)
+	).
+test(theorist, [cleanup(retractall(foo(_)))]) :-
+	assert((foo(A) :- bar(A))),
+	\+ retract(foo(1) :- bar(2)).
+
+:- end_tests(retract).
 
 :- begin_tests(retractall).
 

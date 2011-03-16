@@ -1,5 +1,0 @@
-#chapter Predefined Global Objects
-
-#end chapter
-
-#call message(@prolog, texinfo_global_objects)

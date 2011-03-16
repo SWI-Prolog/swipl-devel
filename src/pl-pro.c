@@ -259,7 +259,8 @@ abortProlog(abort_type type)
 
     if ( (fid = PL_open_foreign_frame()) &&
 	 (ex = PL_new_term_ref()) )
-    { clearSegStack(&LD->cycle.stack);	/* can do no harm */
+    { clearSegStack(&LD->cycle.lstack);	/* can do no harm */
+      clearSegStack(&LD->cycle.vstack);
 
       PL_put_atom(ex, ATOM_aborted);
       if ( type == ABORT_RAISE )
@@ -373,6 +374,21 @@ prologToplevel(volatile atom_t goal)
 
   return rval;
 }
+
+
+bool
+systemMode(bool accept)
+{ GET_LD
+  bool old = SYSTEM_MODE ? TRUE : FALSE;
+
+  if ( accept )
+    debugstatus.styleCheck |= DOLLAR_STYLE;
+  else
+    debugstatus.styleCheck &= ~DOLLAR_STYLE;
+
+  return old;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Cut (!) as called via the  meta-call  mechanism has no effect.

@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2010 Markus Triska
+    Copyright (C): 2007-2011 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -46,7 +46,7 @@
    No artificial limits (using GMP)
    ---------------------------------
 
-   ?- N is 2^66, X #\= N.
+   ?- N #= 2^66, X #\= N.
    %@ N = 73786976294838206464,
    %@ X in inf..73786976294838206463\/73786976294838206465..sup.
 
@@ -159,9 +159,10 @@ become finite. A finite domain _expression_ is one of:
     | Expr + Expr        | Addition                      |
     | Expr * Expr        | Multiplication                |
     | Expr - Expr        | Subtraction                   |
+    | Expr ^ Expr        | Exponentiation                |
     | min(Expr,Expr)     | Minimum of two expressions    |
     | max(Expr,Expr)     | Maximum of two expressions    |
-    | Expr mod Expr      | Remainder of integer division |
+    | Expr mod Expr      | Modulo                        |
     | abs(Expr)          | Absolute value                |
     | Expr / Expr        | Integer division              |
 
@@ -562,7 +563,7 @@ cis_slash_(sup, _, n(0)).
 cis_slash_(inf, _, n(0)).
 cis_slash_(n(B), A, n(S)) :- S is A // B.
 
-
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A domain is a finite set of disjoint intervals. Internally, domains
    are represented as trees. Each node is one of:
@@ -650,19 +651,11 @@ domain_direction_element(split(_, D1, D2), Dir, E) :-
    Test whether domain contains a given integer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_contains(from_to(From,To), I) :-
-        domain_contains_from(From, I),
-        domain_contains_to(To, I).
+domain_contains(from_to(From,To), I) :- From cis_leq n(I), n(I) cis_leq To.
 domain_contains(split(S, Left, Right), I) :-
         (   I < S -> domain_contains(Left, I)
         ;   I > S -> domain_contains(Right, I)
         ).
-
-domain_contains_from(inf, _).
-domain_contains_from(n(L), I) :- L =< I.
-
-domain_contains_to(sup, _).
-domain_contains_to(n(U), I) :- I =< U.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Test whether a domain contains another domain.
@@ -1042,7 +1035,7 @@ intervals_to_domain(Is, D) :-
         D = split(Hole, Left, Right).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 
 %% ?Var in +Domain
 %
@@ -1282,11 +1275,11 @@ choice_order_variable(bisect, Order, Var, _, Vars0, Selection, Consistency) :-
         domain_supremum(Dom, n(S)),
         Mid0 is (I + S) // 2,
         (   Mid0 =:= S -> Mid is Mid0 - 1 ; Mid = Mid0 ),
-        (   Var #=< Mid,
-            label(Vars0, Selection, Order, bisect, Consistency)
-        ;   Var #> Mid,
-            label(Vars0, Selection, Order, bisect, Consistency)
-        ).
+        (   Order == up -> ( Var #=< Mid ; Var #> Mid )
+        ;   Order == down -> ( Var #> Mid ; Var #=< Mid )
+        ;   domain_error(bisect_up_or_down, Order)
+        ),
+        label(Vars0, Selection, Order, bisect, Consistency).
 
 override(What, Prev, Value, Options, Result) :-
         call(What, Value),
@@ -1537,8 +1530,8 @@ all_different([X|Right], Left, Orig) :-
 
 %% sum(+Vars, +Rel, ?Expr)
 %
-% The sum of elements of the list Vars is in relation Rel to Expr. For
-% example:
+% The sum of elements of the list Vars is in relation Rel to Expr,
+% where Rel is #=, #\=, #<, #>, #=< or #>=. For example:
 %
 % ==
 % ?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
@@ -1561,7 +1554,8 @@ vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C*V), T).
 %% scalar_product(+Cs, +Vs, +Rel, ?Expr)
 %
 % Cs is a list of integers, Vs is a list of variables and integers.
-% True if the scalar product of Cs and Vs is in relation Rel to Expr.
+% True if the scalar product of Cs and Vs is in relation Rel to Expr,
+% where Rel is #=, #\=, #<, #>, #=< or #>=.
 
 scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
@@ -1583,8 +1577,38 @@ sum([C|Cs], [X|Xs], Acc, Op, Value) :-
         NAcc #= Acc + C*X,
         sum(Cs, Xs, NAcc, Op, Value).
 
-scalar_product_(#=, Cs, Vs, C) :-
-        propagator_init_trigger(Vs, scalar_product_eq(Cs, Vs, C)).
+multiples([], [], _).
+multiples([C|Cs], [V|Vs], Left) :-
+        (   (   Cs = [N|_] ; Left = [N|_] ) ->
+            (   N =\= 1, gcd(C,N) =:= 1 ->
+                gcd(Cs, N, GCD0),
+                gcd(Left, GCD0, GCD),
+                (   GCD > 1 -> V #= GCD*_
+                ;   true
+                )
+            ;   true
+            )
+        ;   true
+        ),
+        multiples(Cs, Vs, [C|Left]).
+
+abs(N, A) :- A is abs(N).
+
+divide(D, N, R) :- R is N // D.
+
+scalar_product_(#=, Cs0, Vs, S0) :-
+        (   Cs0 = [C|Rest] ->
+            gcd(Rest, C, GCD),
+            S0 mod GCD =:= 0,
+            maplist(divide(GCD), [S0|Cs0], [S|Cs])
+        ;   S0 =:= 0, S = S0, Cs = Cs0
+        ),
+        (   S0 =:= 0 ->
+            maplist(abs, Cs, As),
+            multiples(As, Vs, [])
+        ;   true
+        ),
+        propagator_init_trigger(Vs, scalar_product_eq(Cs, Vs, S)).
 scalar_product_(#\=, Cs, Vs, C) :-
         propagator_init_trigger(Vs, scalar_product_neq(Cs, Vs, C)).
 scalar_product_(#=<, Cs, Vs, C) :-
@@ -1755,7 +1779,7 @@ remove_lower([C*X|CXs], Min) :-
         remove_lower(CXs, Min).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Constraint propagation proceeds as follows: Each CLP(FD) variable
    has an attribute that stores its associated domain and constraints.
@@ -1842,6 +1866,7 @@ parse_clpfd(E, R,
              m(max(A,B))       => [g(A #=< R), g(B #=< R), p(pmax(A, B, R))],
              m(min(A,B))       => [g(A #>= R), g(B #>= R), p(pmin(A, B, R))],
              m(mod(A,B))       => [g(B #\= 0), p(pmod(A, B, R))],
+             m(rem(A,B))       => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(R #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
@@ -2010,12 +2035,7 @@ matches([
          m(var(X) #= var(Y)*var(Z)) => [p(ptimes(Y,Z,X))],
          m(var(X) #= -var(Z))       => [p(ptimes(-1, Z, X))],
          m_c(any(X) #= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) =>
-            [g((   Cs = [] -> S =:= 0
-               ;   Cs = [C|CsRest],
-                   gcd(CsRest, C, GCD),
-                   S mod GCD =:= 0,
-                   scalar_product_(#=, Cs, Vs, S)
-               ))],
+            [g(scalar_product_(#=, Cs, Vs, S))],
          m(var(X) #= any(Y))       => [d(Y,X)],
          m(any(X) #= any(Y))       => [d(X, RX), d(Y, RX)],
 
@@ -2697,7 +2717,7 @@ skeleton(Vs, Vs-Prop) :-
    A drep is a user-accessible and visible domain representation. N,
    N..M, and D1 \/ D2 are dreps, if D1 and D2 are dreps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
+
 is_drep(V)      :- var(V), !, instantiation_error(V).
 is_drep(N)      :- integer(N), !.
 is_drep(N..M)   :- !, drep_bound(N), drep_bound(M), N \== sup, M \== inf.
@@ -3096,7 +3116,7 @@ lex_le([V1|V1s], [V2|V2s]) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 
 %% tuples_in(+Tuples, +Relation).
 %
@@ -3199,7 +3219,7 @@ all_in_domain([A|As], [T|Ts]) :-
         all_in_domain(As, Ts).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 % trivial propagator, used only to remember pending constraints
 run_propagator(presidual(_), _).
 
@@ -3715,7 +3735,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 NXL = XL, NXU = XU
             ),
             update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
-        ;   (   X == Y -> Z = 1
+        ;   (   X == Y -> kill(MState), Z = 1
             ;   fd_get(X, _, XL, XU, _),
                 fd_get(Y, _, YL, YU, _),
                 fd_get(Z, ZD, ZPs),
@@ -3770,7 +3790,6 @@ run_propagator(pmod(X,M,K), MState) :-
             (   abs(M) =:= 1 -> kill(MState), K = 0
             ;   fd_get(K, KD, KPs) ->
                 MP is abs(M) - 1,
-                fd_get(K, KD, KPs),
                 (   M > 0 -> KDN = from_to(n(0), n(MP))
                 ;   MN is -MP, KDN = from_to(n(MN), n(0))
                 ),
@@ -3792,19 +3811,102 @@ run_propagator(pmod(X,M,K), MState) :-
                 )
             ;   fd_get(X, XD, _),
                 % if possible, propagate at the boundaries
-                (   nonvar(K), domain_infimum(XD, n(Min)) ->
+                (   domain_infimum(XD, n(Min)) ->
                     (   Min mod M =:= K -> true
                     ;   neq_num(X, Min)
                     )
                 ;   true
                 ),
-                (   nonvar(K), domain_supremum(XD, n(Max)) ->
+                (   domain_supremum(XD, n(Max)) ->
                     (   Max mod M =:= K -> true
                     ;   neq_num(X, Max)
                     )
                 ;   true
                 )
             )
+        ;   X == M -> kill(MState), K = 0
+        ;   true % TODO: propagate more
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Z = X rem Y
+
+run_propagator(prem(X,Y,Z), MState) :-
+        (   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X rem Y
+            ;   true
+            )
+        ;   nonvar(Y) ->
+            Y =\= 0,
+            (   abs(Y) =:= 1 -> kill(MState), Z = 0
+            ;   fd_get(Z, ZD, ZPs) ->
+                YP is abs(Y) - 1,
+                YN is -YP,
+                domains_intersection(ZD, from_to(n(YN), n(YP)), ZD1),
+                fd_put(Z, ZD1, ZPs),
+                (   fd_get(X, XD, _), domain_infimum(XD, n(Min)) ->
+                    Z1 is Min rem Y,
+                    (   domain_contains(ZD1, Z1) -> true
+                    ;   neq_num(X, Min)
+                    )
+                ;   true
+                ),
+                (   fd_get(X, XD1, _), domain_supremum(XD1, n(Max)) ->
+                    Z2 is Max rem Y,
+                    (   domain_contains(ZD1, Z2) -> true
+                    ;   neq_num(X, Max)
+                    )
+                ;   true
+                )
+            ;   fd_get(X, XD1, XPs1),
+                % if possible, propagate at the boundaries
+                (   Z > 0, Y > 0, domain_infimum(XD1, n(Min)), Min > 0, Min rem Y =\= Z ->
+                    Dist1 is Z - (Min rem Y),
+                    (   Dist1 > 0 -> Next is Min + Dist1
+                    ;   Next is (Min//Y + 1)*Y + Z
+                    ),
+                    domain_remove_smaller_than(XD1, Next, XD2),
+                    fd_put(X, XD2, XPs1)
+                ;   % TODO: bigger steps in other cases as well
+                    domain_infimum(XD1, n(Min)) ->
+                    (   Min rem Y =:= Z -> true
+                    ;   neq_num(X, Min)
+                    )
+                ;   true
+                ),
+                (   fd_get(X, XD3, XPs3) ->
+                    (   Z > 0, Y > 0, domain_supremum(XD3, n(Max)), Max > 0, Max rem Y =\= Z ->
+                        Dist2 is Z - (Max rem Y),
+                        (   Dist2 > 0 -> Prev is (Max//Y - 1)*Y + Z
+                        ;   Prev is Max + Dist2
+                        ),
+                        domain_remove_greater_than(XD3, Prev, XD4),
+                        fd_put(X, XD4, XPs3)
+                    ;   % TODO: bigger steps in other cases as well
+                        domain_supremum(XD3, n(Max)) ->
+                        (   Max rem Y =:= Z -> true
+                        ;   neq_num(X, Max)
+                        )
+                    ;   true
+                    )
+                ;   true
+                )
+            )
+        ;   X == Y -> kill(MState), Z = 0
+        ;   fd_get(Z, ZD, ZPs) ->
+            fd_get(Y, _, YInf, YSup, _),
+            fd_get(X, _, XInf, XSup, _),
+            M cis max(abs(YInf),YSup),
+            (   XInf cis_geq n(0) -> Inf0 = n(0)
+            ;   Inf0 = XInf
+            ),
+            (   XSup cis_leq n(0) -> Sup0 = n(0)
+            ;   Sup0 = XSup
+            ),
+            NInf cis max(max(Inf0, -M + n(1)), min(XInf,-XSup)),
+            NSup cis min(min(Sup0, M - n(1)), max(abs(XInf),XSup)),
+            domains_intersection(ZD, from_to(NInf,NSup), ZD1),
+            fd_put(Z, ZD1, ZPs)
         ;   true % TODO: propagate more
         ).
 
@@ -3980,7 +4082,7 @@ run_propagator(pzcompare(Order, A, B), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 % reified constraints
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4132,12 +4234,11 @@ run_propagator(reified_neq(DX,X,DY,Y,Ps,B), MState) :-
                         (   X =\= Y -> B = 1 ; B = 0)
                     ;   fd_get(Y, YD, _),
                         (   domain_contains(YD, X) -> true
-                        ;   kill(MState, Ps),
-                            B = 1
+                        ;   kill(MState, Ps), B = 1
                         )
                     )
                 ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,Ps,B), MState)
-                ;   X == Y -> B = 0
+                ;   X == Y -> kill(MState), B = 0
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
                     (   XL cis_gt YU -> kill(MState, Ps), B = 1
@@ -4842,13 +4943,7 @@ integers_remaining([V|Vs], N0, Dom, D0, D) :-
 
 %%    global_cardinality(+Vs, +Pairs)
 %
-%     Vs is a list of finite domain variables, Pairs is a list of
-%     Key-Num pairs, where Key is an integer and Num is a finite
-%     domain variable. The constraint holds iff each V in Vs is equal
-%     to some key, and for each Key-Num pair in Pairs, the number of
-%     occurrences of Key in Vs is Num.
-%
-%     Example:
+%     Equivalent to global_cardinality(Vs, Pairs, []). Example:
 %
 %     ==
 %     ?- Vs = [_,_,_], global_cardinality(Vs, [1-2,3-_]), label(Vs).
@@ -4857,10 +4952,30 @@ integers_remaining([V|Vs], N0, Dom, D0, D) :-
 %     Vs = [3, 1, 1].
 %     ==
 
-global_cardinality(Xs, Pairs) :-
-        must_be(list, Xs),
+global_cardinality(Xs, Pairs) :- global_cardinality(Xs, Pairs, []).
+
+%%    global_cardinality(+Vs, +Pairs, +Options)
+%
+%     Vs is a list of finite domain variables, Pairs is a list of
+%     Key-Num pairs, where Key is an integer and Num is a finite
+%     domain variable. The constraint holds iff each V in Vs is equal
+%     to some key, and for each Key-Num pair in Pairs, the number of
+%     occurrences of Key in Vs is Num. Options is a list of options.
+%     Supported options are:
+%
+%     * consistency(value)
+%     A weaker form of consistency is used.
+%
+%     * cost(Cost, Matrix)
+%     Matrix is a list of rows, one for each variable, in the order
+%     they occur in Vs. Each of these rows is a list of integers, one
+%     for each key, in the order these keys occur in Pairs. When
+%     variable v_i is assigned the value of key k_j, then the
+%     associated cost is Matrix_{ij}. Cost is the sum of all costs.
+
+global_cardinality(Xs, Pairs, Options) :-
+        must_be(list(list), [Xs,Pairs,Options]),
         maplist(fd_variable, Xs),
-        must_be(list, Pairs),
         maplist(gcc_pair, Pairs),
         pairs_keys_values(Pairs, Keys, Nums),
         (   sort(Keys, Keys1), length(Keys, LK), length(Keys1, LK) -> true
@@ -4875,9 +4990,29 @@ global_cardinality(Xs, Pairs) :-
         % pgcc_check must be installed before triggering other
         % propagators
         propagator_init_trigger(Xs, pgcc_check(Pairs1)),
-        propagator_init_trigger(Nums, pgcc_single(Xs, Pairs1)),
         propagator_init_trigger(Nums, pgcc_check_single(Pairs1)),
-        propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
+        (   member(OD, Options), OD == consistency(value) -> true
+        ;   propagator_init_trigger(Nums, pgcc_single(Xs, Pairs1)),
+            propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1))
+        ),
+        (   member(OC, Options), functor(OC, cost, 2) ->
+            OC = cost(Cost, Matrix),
+            must_be(list(list(integer)), Matrix),
+            maplist(keys_costs(Keys), Xs, Matrix, Costs),
+            sum(Costs, #=, Cost)
+        ;   true
+        ).
+
+keys_costs(Keys, X, Row, C) :-
+        element(N, Keys, X),
+        element(N, Row, C).
+
+gcc_pair(Pair) :-
+        (   Pair = Key-Val ->
+            must_be(integer, Key),
+            fd_variable(Val)
+        ;   domain_error(gcc_pair, Pair)
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    For each Key-Num0 pair, we introduce an auxiliary variable Num and
@@ -5117,8 +5252,7 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
    Importantly, it removes all ground values from clpfd_gcc_vs.
 
    The pgcc_check/1 propagator in itself suffices to ensure
-   consistency and could be used in a faster and weaker propagation
-   option for global_cardinality/3.
+   consistency.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_check(Pairs) :-
@@ -5186,38 +5320,6 @@ all_neq([], _).
 all_neq([X|Xs], C) :-
         neq_num(X, C),
         all_neq(Xs, C).
-
-gcc_pair(Pair) :-
-        (   Pair = Key-Val ->
-            must_be(integer, Key),
-            fd_variable(Val)
-        ;   domain_error(gcc_pair, Pair)
-        ).
-
-%%    global_cardinality(+Vs, +Pairs, +Options)
-%
-%     Like global_cardinality/2, with Options a list of options.
-%     Currently, the only supported option is
-%
-%     * cost(Cost, Matrix)
-%     Matrix is a list of rows, one for each variable, in the order
-%     they occur in Vs. Each of these rows is a list of integers, one
-%     for each key, in the order these keys occur in Pairs. When
-%     variable v_i is assigned the value of key k_j, then the
-%     associated cost is Matrix_{ij}. Cost is the sum of all costs.
-
-
-global_cardinality(Xs, Pairs, Options) :-
-        global_cardinality(Xs, Pairs),
-        Options = [cost(Cost, Matrix)],
-        must_be(list(list(integer)), Matrix),
-        pairs_keys(Pairs, Keys),
-        maplist(keys_costs(Keys), Xs, Matrix, Costs),
-        sum(Costs, #=, Cost).
-
-keys_costs(Keys, X, Row, C) :-
-        element(N, Keys, X),
-        element(N, Row, C).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5832,6 +5934,7 @@ attribute_goal_(pdiv(X,Y,Z))           --> [X/Y #= Z].
 attribute_goal_(pexp(X,Y,Z))           --> [X^Y #= Z].
 attribute_goal_(pabs(X,Y))             --> [Y #= abs(X)].
 attribute_goal_(pmod(X,M,K))           --> [X mod M #= K].
+attribute_goal_(prem(X,Y,Z))           --> [X rem Y #= Z].
 attribute_goal_(pmax(X,Y,Z))           --> [Z #= max(X,Y)].
 attribute_goal_(pmin(X,Y,Z))           --> [Z #= min(X,Y)].
 attribute_goal_(scalar_product_neq([FC|Cs],[FV|Vs],C)) -->

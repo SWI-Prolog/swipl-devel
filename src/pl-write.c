@@ -25,8 +25,8 @@
 
 #include <math.h>
 #include "pl-incl.h"
-#include "pl-dtoa.h"
-#include "pl-ctype.h"
+#include "os/pl-dtoa.h"
+#include "os/pl-ctype.h"
 #include <stdio.h>			/* sprintf() */
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -57,9 +57,12 @@ typedef struct
   visited *visited;			/* visited (attributed-) variables */
 } write_options;
 
-static bool	writeTerm2(term_t term, int prec, write_options *options, bool arg);
-static bool	writeTerm(term_t t, int prec, write_options *options);
-static bool	writeArgTerm(term_t t, int prec, write_options *options, bool arg);
+static bool	writeTerm2(term_t term, int prec,
+			   write_options *options, bool arg) WUNUSED;
+static bool	writeTerm(term_t t, int prec,
+			  write_options *options) WUNUSED;
+static bool	writeArgTerm(term_t t, int prec,
+			     write_options *options, bool arg) WUNUSED;
 
 static Word
 address_of(term_t t)
@@ -210,6 +213,8 @@ PutOpenToken() inserts a space in the output stream if the last-written
 and given character require a space to ensure a token-break.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define isquote(c) ((c) == '\'' || (c) == '"')
+
 static bool
 needSpace(int c, IOSTREAM *s)
 { if ( c == EOF )
@@ -219,7 +224,8 @@ needSpace(int c, IOSTREAM *s)
 	      ((isAlphaW(s->lastc) && isAlphaW(c)) ||
 	       (isSymbolW(s->lastc) && isSymbolW(c)) ||
 	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
-	       (c == '\'' && isDigit(s->lastc))) )
+	       (c == '\'' && (isDigit(s->lastc))) ||
+	       (isquote(c) && s->lastc == c)) )
   { return TRUE;
   }
 
@@ -296,7 +302,8 @@ PutCloseBrace(IOSTREAM *s)
 static bool
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 { if ( (flags & PL_WRT_CHARESCAPES) )
-  { if ( !(c < 0xff && isControl(c)) && c != quote && c != '\\' )
+  { if ( c == ' ' ||
+	 (!(c < 0xff && !isGraph(c)) && c != quote && c != '\\') )
     { TRY(Putc(c, stream));
     } else
     { char esc[8];
@@ -532,33 +539,19 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
   size_t len = a->length/sizeof(pl_wchar_t);
   pl_wchar_t *e = &s[len];
 
-  if ( flags & PL_WRT_QUOTED )
+  if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(s, len, fd) )
   { pl_wchar_t quote = L'\'';
-    int rc;
 
-    if ( isLowerW(*s) )
-    { pl_wchar_t *q;
-
-      for(q=s; q<e; q++)
-      { if ( !isAlphaW(*q) || Scanrepresent(*q, fd) < 0 )
-	  break;
-      }
-      if ( q == e )
-        goto unquoted;
-    }
-
-    TRY(Putc(quote, fd));
+    TRY(PutOpenToken(quote, fd) &&
+	Putc(quote, fd));
 
     while(s < e)
     { TRY(putQuoted(*s++, quote, flags, fd));
     }
 
-    rc = Putc(quote, fd);
-
-    return rc;
+    return Putc(quote, fd);
   }
 
-unquoted:
   if ( s < e && !PutOpenToken(s[0], fd) )
     return FALSE;
   for( ; s<e; s++)
@@ -681,13 +674,13 @@ format_float(double f, char *buf)
     o[end-s-decpt] = 0;
   } else				/* decimal dot after */
   { int i;
-    int trailing = decpt-(end-s);
+    int trailing = decpt-(int)(end-s);
 
     if ( decpt > 15 )			/* over precision: use eE */
     { *o++ = s[0];
       *o++ = '.';
       if ( end-s > 1 )
-      { trailing += end-s-1;
+      { trailing += (int)(end-s)-1;
 	memcpy(o, s+1, end-s-1);
 	o += end-s-1;
       } else
@@ -697,7 +690,7 @@ format_float(double f, char *buf)
     { memcpy(o, s, end-s);
       o += end-s;
 
-      for(i=end-s; i<decpt; i++)
+      for(i=(int)(end-s); i<decpt; i++)
 	*o++ = '0';
       *o++ = '.';
       *o++ = '0';
@@ -886,7 +879,7 @@ pl_nl()
 Call user:portray/1 if defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 callPortray(term_t arg, write_options *options)
 { predicate_t portray;
 
@@ -904,7 +897,10 @@ callPortray(term_t arg, write_options *options)
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
       return FALSE;
     Scurout = options->out;
-    rval = PL_call_predicate(NULL, PL_Q_NODEBUG, portray, arg);
+    rval = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
+			     portray, arg);
+    if ( !rval && PL_exception(0) )
+      rval = -1;
     Scurout = old;
     restoreWakeup(&wstate PASS_LD);
 
@@ -917,7 +913,8 @@ callPortray(term_t arg, write_options *options)
 
 static bool
 writeArgTerm(term_t t, int prec, write_options *options, bool arg)
-{ int rval;
+{ GET_LD
+  int rval;
   int levelSave = options->depth;
   fid_t fid;
 
@@ -1027,9 +1024,16 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
   IOSTREAM *out = options->out;
 
   if ( !PL_is_variable(t) &&
-       true(options, PL_WRT_PORTRAY) &&
-       callPortray(t, options) )
-    succeed;
+       true(options, PL_WRT_PORTRAY) )
+  { switch( callPortray(t, options) )
+    { case TRUE:
+	return TRUE;
+      case FALSE:
+	break;
+      default:
+	return FALSE;
+    }
+  }
 
   if ( PL_get_atom(t, &a) )
   { if ( !arg && prec < 1200 && priorityOperator(NULL, a) > 0 )
@@ -1252,6 +1256,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool partial    = FALSE;
   IOSTREAM *s;
   write_options options;
+  int rc;
 
   memset(&options, 0, sizeof(options));
   options.spacing = ATOM_standard;
@@ -1320,13 +1325,13 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     PutOpenToken(EOF, s);		/* reset this */
   if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&SIO_REPPL) )
   { s->flags |= SIO_REPPL;
-    writeTerm(term, priority, &options);
+    rc = writeTerm(term, priority, &options);
     s->flags &= ~SIO_REPPL;
   } else
-  { writeTerm(term, priority, &options);
+  { rc = writeTerm(term, priority, &options);
   }
 
-  return streamStatus(s);
+  return streamStatus(s) && rc;
 }
 
 
@@ -1357,6 +1362,7 @@ do_write2(term_t stream, term_t term, int flags)
 
   if ( getOutputStream(stream, &s) )
   { write_options options;
+    int rc;
 
     memset(&options, 0, sizeof(options));
     options.flags     = flags;
@@ -1368,12 +1374,12 @@ do_write2(term_t stream, term_t term, int flags)
       options.flags |= PL_WRT_BACKQUOTED_STRING;
 
     PutOpenToken(EOF, s);		/* reset this */
-    writeTerm(term, 1200, &options);
+    rc = writeTerm(term, 1200, &options);
 
-    return streamStatus(s);
+    return streamStatus(s) && rc;
   }
 
-  fail;
+  return FALSE;
 }
 
 

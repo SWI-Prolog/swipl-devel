@@ -1,7 +1,7 @@
 			Installing SWI-Prolog
 			=====================
 
-Last updated: Aug 12, 2008
+Last updated: Jan 27, 2011
 
 Configuration, compilation and installation is based on the GNU autoconf
 package and consists of two steps:  builting the basic SWI-Prolog system
@@ -28,12 +28,13 @@ Prerequisites
 -------------
 
 SWI-Prolog depends on a lot of other   (open source) tools and libraries
-that  is  not  bundled  and  must  be  installed  seperately.  The  file
-README.debian contains the package requirements for  Debian Linux and is
-probably a good start for any  Unix system. README.MacOSX contains notes
-for Apples' MacOSX and README.windows   contains pointers for MS-Windows
-that requires a totally different  approach   (stop  reading this if you
-want to compile on Windows). Notably, one needs:
+that are not  bundled  and  must   be  installed  seperately.  The  file
+README.linux  contains  the  package   requirements    for   some  Linux
+distributions and is  probably  a  good   start  for  any  Unix  system.
+README.MacOSX contains notes  for  Apples'   MacOSX  and  README.windows
+contains pointers for  MS-Windows  that   requires  a  totally different
+approach (stop reading this if you want to compile on Windows). Notably,
+one needs:
 
 Tools:
     * gcc (with some effort, other C compilers may work as well)
@@ -44,20 +45,22 @@ Tools:
 
 Libraries (core system):
     * gmp (http://gmplib.org/)
-    Provides unbounded integers and rational numbers.  Optional,
-    but especially some of the constraint libraries demand it.
+    Provides unbounded integers and rational numbers.  Although
+    the system compiles without it we strongly encourage you do
+    use GMP.  Libraries and other software written for SWI-Prolog
+    may fail to work properly without GMP.
     * GNU readline library
     Optional, provides commandline editing and completion.  You
     really want this!
 
 Libraries (packages):
-    * UNIXodbc (http://www.unixodbc.org/)
+    * unixODBC (http://www.unixodbc.org/)
     Optional for building package odbc, providing database access.
     * OpenSSL (www.openssl.org/)
     Optional for building package ssl (Secure Socket layer)
     * zlib
     Optional for building package zlib (compressed streams)
-    * SUN Java SDK
+    * SUN Java SDK or OpenSDK
     Optional for building JPL (Java interface).  Note that auto-detection
     of JPL prerequisites often fails.  See DISABLE_PKGS in build.templ
     * libXt, X11 core libraries, libjpeg and libxpm

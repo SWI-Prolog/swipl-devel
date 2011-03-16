@@ -297,8 +297,8 @@ cfragment(_) -->
 %	    * port(Port)
 %	    Integer port-number to access on   the \arg{Host}. This only
 %	    appears if the port is  explicitly   specified  in  the URL.
-%	    Implicit default ports (e.g.  80   for  HTTP)  do \emph{not}
-%	    appear in the part-list.
+%	    Implicit default ports (e.g., 80 for   HTTP) do _not_ appear
+%	    in the part-list.
 %
 %	    * path(Path)
 %	    (File-) path addressed by the URL. This is supported for the

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # ./prepare
 #
@@ -20,7 +20,11 @@
 # desired modules one-per-line
 
 COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
-COREMODULES="$COREMODULES packages/protobufs"
+COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
+COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
+COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
+COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
+COREMODULES+=" packages/nlp packages/cpp"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"
@@ -91,6 +95,25 @@ if findexe gtar; then tar=gtar; fi;
 ################################################################
 # Sub-modules
 ################################################################
+
+notamodule=
+for d in $COREMODULES; do
+  if [ -d $d -a ! -d $d/.git ]; then
+    notamodule+=" $d"
+  fi
+done
+if [ ! -z "$notamodule" ]; then
+  if confirm "Directories $notamodule are not git submodules.  Remove? "; then
+    rm -rf $notamodule
+    rm -f man/Manual/index.html	# re-fetch the manual
+  fi
+fi
+
+if grep '\.\./chr.git' .gitmodules 2>&1 > /dev/null; then
+  if confirm "Submodule paths seem out of data. Update? "; then
+    git submodule sync
+  fi
+fi
 
 nothere=`git submodule status $COREMODULES | awk '/^[-]/ {print $2}'`
 if [ ! -z "$nothere" ]; then

@@ -18,7 +18,7 @@ export MAKE
 # objects of Prolog
 
 BUILDDIR=@BUILDDIR@
-srcdir=`echo @srcdir@ | sed 's=/../packages=='`
+srcdir=`echo @abs_srcdir@ | sed 's=/../packages$=='`
 ARCH=@ARCH@
 PL=@PL@
 bdir=$srcdir/../$BUILDDIR

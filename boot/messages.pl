@@ -38,7 +38,8 @@
 :- multifile
 	prolog:message/3,		% entire message
 	prolog:error_message/3,		% 1-st argument of error term
-	prolog:message_context/3.	% Context of error messages
+	prolog:message_context/3,	% Context of error messages
+	prolog:message_line_element/2.	% Extend printing
 :- discontiguous
 	prolog_message/3.
 
@@ -150,6 +151,15 @@ undefined_proc_msg(_:(^)/2) --> !,
 	undefined_proc_msg((^)/2).
 undefined_proc_msg((^)/2) --> !,
 	[nl, '  ^/2 can only appear as the 2nd argument of setof/3 and bagof/3'].
+undefined_proc_msg((:-)/2) --> !,
+	[nl, '  Rules must be loaded from a file'],
+	faq('ToplevelMode').
+undefined_proc_msg((:-)/1) --> !,
+	[nl, '  Directives must be loaded from a file'],
+	faq('ToplevelMode').
+undefined_proc_msg((?-)/1) --> !,
+	[nl, '  ?- is the Prolog prompt'],
+	faq('ToplevelMode').
 undefined_proc_msg(Proc) -->
 	{ dwim_predicates(Proc, Dwims) },
 	(   {Dwims \== []}
@@ -157,6 +167,10 @@ undefined_proc_msg(Proc) -->
 	    dwim_message(Dwims)
 	;   []
 	).
+
+faq(Page) -->
+	[nl, '  See FAQ at http://www.swi-prolog.org/FAQ/', Page, '.txt' ].
+
 
 syntax_error(end_of_clause) -->
 	[ 'Unexpected end of clause' ].
@@ -554,7 +568,7 @@ prolog_message(threads) -->
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
-	[ 'Copyright (c) 1990-2010 University of Amsterdam, VU Amsterdam', nl,
+	[ 'Copyright (c) 1990-2011 University of Amsterdam, VU Amsterdam', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
@@ -656,12 +670,41 @@ result(Bindings, Residuals) -->
 
 bindings([], _) -->
 	[].
-bindings([Name = Value|T], Options) -->
+bindings([binding(Names,Skel,Subst)|T], Options) -->
+	{ '$last'(Names, Name) },
+	var_names(Names), value(Name, Skel, Subst, Options),
 	(   { T \== [] }
-	->  [ '~w = ~W,'-[Name, Value, Options], nl ],
+	->  [ ','-[], nl ],
 	    bindings(T, Options)
-	;   [ '~w = ~W'-[Name, Value, Options] ]
+	;   []
 	).
+
+var_names([Name]) --> !,
+	[ '~w = '-[Name] ].
+var_names([Name1,Name2|T]) --> !,
+	[ '~w = ~w, '-[Name1, Name2] ],
+	var_names([Name2|T]).
+
+
+value(Name, Skel, Subst, Options) -->
+	(   { var(Skel), Subst = [Skel=S] }
+	->  { Skel = '$VAR'(Name) },
+	    [ '~W'-[S, Options] ]
+	;   [ '~W'-[Skel, Options] ],
+	    substitution(Subst, Options)
+	).
+
+substitution([], _) --> !.
+substitution([N=V|T], Options) -->
+	[ ', ', ansi(fg(green), '% where', []), nl,
+	  '    ~w = ~W'-[N,V,Options] ],
+	substitutions(T, Options).
+
+substitutions([], _) --> [].
+substitutions([N=V|T], Options) -->
+	[ ','-[], nl, '    ~w = ~W'-[N,V,Options] ],
+	substitutions(T, Options).
+
 
 residuals([], _) -->
 	[].
@@ -986,14 +1029,21 @@ print_message_line(S, [], []) :- !,
 	nl(S).
 print_message_line(S, [nl|T], T) :- !,
 	nl(S).
-print_message_line(S, [full_stop|T], T) :- !,
+print_message_line(S, [H|T0], T) :- !,
+	line_element(S, H),
+	print_message_line(S, T0, T).
+
+line_element(S, full_stop) :- !,
 	'$put_token'(S, '.').		% insert space if needed.
-print_message_line(S, [Fmt-Args|T0], T) :- !,
-	format(S, Fmt, Args),
-	print_message_line(S, T0, T).
-print_message_line(S, [Fmt|T0], T) :-
-	format(S, Fmt, []),
-	print_message_line(S, T0, T).
+line_element(S, Fmt-Args) :- !,
+	format(S, Fmt, Args).
+line_element(S, E) :-
+	prolog:message_line_element(S, E), !.
+line_element(S, ansi(_, Fmt, Args)) :- !,
+	format(S, Fmt, Args).
+line_element(S, Fmt) :-
+	format(S, Fmt, []).
+
 
 %	message_to_string(+Term, -String)
 %

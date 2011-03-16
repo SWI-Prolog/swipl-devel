@@ -24,7 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#include "pl-ctype.h"
+#include "os/pl-ctype.h"
 #include <ctype.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -781,7 +781,7 @@ unify_prolog_flag_type(prolog_flag *f, term_t type)
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
-      a = ATOM_bool;
+      a = ATOM_boolean;
       break;
     case FT_ATOM:
       a = ATOM_atom;

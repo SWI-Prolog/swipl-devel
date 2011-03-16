@@ -96,12 +96,26 @@ dwim_existence_error(fail, _) :- !.
 dwim_existence_error(Unknown, PredSpec) :-
 	'$module'(TypeIn, TypeIn),
 	unqualify_if_context(TypeIn, PredSpec, Spec),
-	Error = error(existence_error(procedure, Spec),
-		     context(toplevel, 'DWIM could not correct goal')),
+	(   no_context(Spec)
+	->  true
+	;   Context = context(toplevel, 'DWIM could not correct goal')
+	),
+	Error = error(existence_error(procedure, Spec), Context),
 	(   Unknown == error
 	->  throw(Error)
 	;   print_message(warning, Error)
 	).
+
+%%	no_context(+PI) is semidet.
+%
+%	True if we should omit the DWIM message because messages.pl
+%	gives an additional explanation.
+
+no_context((^)/2).
+no_context((:-)/2).
+no_context((:-)/1).
+no_context((?-)/1).
+
 
 %%	correct_meta_arguments(:Goal, +Module, +Bindings, -Final) is det.
 %
@@ -137,20 +151,21 @@ correct_margs(A, Arity, MHead, GoalIn, GoalOut, M, Bindings) :-
 %	replace the head in Goal.
 
 correct_literal(Goal, Bindings, [Dwim], DwimGoal) :-
-	strip_module(Goal, _, G1),
+	strip_module(Goal, CM, G1),
 	strip_module(Dwim, DM, G2),
 	functor(G1, _, Arity),
 	functor(G2, Name, Arity), !,	% same arity: we can replace arguments
 	G1 =.. [_|Arguments],
 	G2 =.. [Name|Arguments],
-	'$module'(TypeIn, TypeIn),
-	(   (   current_predicate(TypeIn:Name/Arity)
-	    ->	ConfirmGoal = G2
-	    ;	'$prefix_module'(DM, TypeIn, G2, ConfirmGoal)
+	(   (   current_predicate(CM:Name/Arity)
+	    ->	ConfirmGoal = G2,
+		DwimGoal = CM:G2
+	    ;	'$prefix_module'(DM, CM, G2, ConfirmGoal),
+		DwimGoal = ConfirmGoal
 	    ),
 	    goal_name(ConfirmGoal, Bindings, String),
 	    '$confirm'(dwim_correct(String))
-	->  DwimGoal = DM:G2
+	->  true
 	;   DwimGoal = Goal
 	).
 correct_literal(Goal, Bindings, Dwims, NewGoal) :-

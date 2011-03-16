@@ -342,6 +342,8 @@ attrib_name(transparent,   transparent,	  1).
 attrib_name(discontiguous, discontiguous, 1).
 attrib_name(notrace,	   trace,	  0).
 attrib_name(show_childs,   hide_childs,	  0).
+attrib_name(built_in,      system,	  1).
+attrib_name(nodebug,       hide_childs,	  1).
 
 
 save_attribute(P, Attribute) :-
@@ -350,6 +352,11 @@ save_attribute(P, Attribute) :-
 	->  \+(( arg(1, Term, 1),
 	         functor(Term, _, Arity),
 		 forall(between(2, Arity, N), arg(N, Term, 0))))
+	;   Attribute == built_in	% no need if there are clauses
+	->  (   predicate_property(P, number_of_clauses(0))
+	    ->	true
+	    ;	predicate_property(P, volatile)
+	    )
 	;   true
 	),
 	'$add_directive_wic'(D),
@@ -445,10 +452,10 @@ restore_import(To, From, PI) :-
 
 save_prolog_flags :-
 	feedback('~nPROLOG FLAGS~n~n', []),
-	'$current_prolog_flag'(Feature, Value, _Scope, write, _Type),
-	\+ no_save_flag(Feature),
-	feedback('~t~8|~w: ~w~n', [Feature, Value]),
-	'$add_directive_wic'(qsave:restore_prolog_flag(Feature, Value)),
+	'$current_prolog_flag'(Flag, Value, _Scope, write, Type),
+	\+ no_save_flag(Flag),
+	feedback('~t~8|~w: ~w (type ~q)~n', [Flag, Value, Type]),
+	'$add_directive_wic'(qsave:restore_prolog_flag(Flag, Value, Type)),
 	fail.
 save_prolog_flags.
 
@@ -458,11 +465,18 @@ no_save_flag(associated_file).
 no_save_flag(hwnd).			% should be read-only, but comes
 					% from user-code
 
-%	Deal with possibly protected flags (debug_on_error and
+%%	restore_prolog_flag(+Name, +Value, +Type)
+%
+%	Deal  with  possibly   protected    flags   (debug_on_error  and
 %	report_error are protected flags for the runtime kernel).
 
-restore_prolog_flag(Flag, Value) :-
+restore_prolog_flag(Flag, Value, _Type) :-
+	current_prolog_flag(Flag, Value), !.
+restore_prolog_flag(Flag, Value, _Type) :-
+	current_prolog_flag(Flag, _), !,
 	catch(set_prolog_flag(Flag, Value), _, true).
+restore_prolog_flag(Flag, Value, Type) :-
+	create_prolog_flag(Flag, Value, [type(Type)]).
 
 
 		 /*******************************

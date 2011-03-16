@@ -446,7 +446,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 #define ARITHHASHSIZE		64	/* arithmetic function table */
 
-#include "pl-table.h"
+#include "os/pl-table.h"
 
 /* Definition->indexPattern is set to NEED_REINDEX if the definition's index
    pattern needs to be recomputed */
@@ -1624,6 +1624,18 @@ typedef struct
 #define PL_EV_THREADFINISHED 8		/* A thread has finished */
 
 
+		 /*******************************
+		 *	       COMPARE		*
+		 *******************************/
+
+/* Results from comparison operations.  Mostly used by compareStandard() */
+
+#define CMP_ERROR  -2			/* Error (out of memory) */
+#define CMP_LESS   -1			/* < */
+#define CMP_EQUAL   0			/* == */
+#define CMP_GREATER 1			/* > */
+#define CMP_NOTEQ   2			/* \== */
+
 		/********************************
 		*             STACKS            *
 		*********************************/
@@ -1926,7 +1938,6 @@ Tracer communication declarations.
 #define EXCEPTION_PORT	0x100
 #define CUT_PORT	(CUT_CALL_PORT|CUT_EXIT_PORT)
 #define PORT_MASK	0x1ff
-#define VERY_DEEP	1000000000L	/* deep skiplevel */
 
 #define LONGATOM_CHECK	    0x01	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x02	/* read/1: check singleton vars */
@@ -1938,7 +1949,7 @@ Tracer communication declarations.
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
 typedef struct debuginfo
-{ uintptr_t	skiplevel;		/* current skip level */
+{ size_t	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
   debug_type	debugging;		/* are we debugging? */
   int		leashing;		/* ports we are leashing */
@@ -2033,11 +2044,11 @@ decrease).
 
 #define REL(a)		((Word)(a) - (Word)(lBase))
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && !defined(O_MAINTENANCE)
 #define O_MAINTENANCE
 #endif
 
-#include "pl-os.h"			/* OS dependencies */
+#include "os/pl-os.h"			/* OS dependencies */
 
 #ifdef SYSLIB_H
 #include SYSLIB_H
@@ -2059,10 +2070,11 @@ decrease).
 #include "pl-ldpass.h"			/* Wrap __LD functions */
 #include "pl-inline.h"			/* Inline facilities */
 #include "pl-privitf.h"			/* private foreign interface */
-#include "pl-text.h"			/* text manipulation */
+#include "os/pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
-#include "pl-option.h"			/* Option processing */
-#include "pl-files.h"			/* File management */
+#include "os/pl-option.h"		/* Option processing */
+#include "os/pl-files.h"		/* File management */
+#include "os/pl-string.h"		/* Basic string functions */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave

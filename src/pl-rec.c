@@ -470,7 +470,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 
 	  mark.term = f;
 	  mark.fdef = f->definition;
-	  pushSegStack(&LD->cycle.stack, &mark);
+	  pushSegStack(&LD->cycle.lstack, &mark);
 	  f->definition = (functor_t)consInt(info->size);
 					  /* overflow test */
 	  assert(valInt(f->definition) == (intptr_t)info->size);
@@ -499,7 +499,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 
 static void
 init_cycle(ARG1_LD)
-{ LD->cycle.stack.unit_size = sizeof(cycle_mark);
+{ LD->cycle.lstack.unit_size = sizeof(cycle_mark);
 }
 
 
@@ -507,7 +507,7 @@ static void
 unvisit(ARG1_LD)
 { cycle_mark mark;
 
-  while( popSegStack(&LD->cycle.stack, &mark) )
+  while( popSegStack(&LD->cycle.lstack, &mark) )
   { mark.term->definition = mark.fdef;
   }
 }
@@ -1689,6 +1689,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       { if ( !(rl = GD->recorded_db.head) )
 	  fail;
 	varkey = TRUE;
+      } else
+      { fail;
       }
       LOCK();
       rl->references++;

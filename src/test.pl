@@ -133,7 +133,7 @@ syntax(number-2) :-
 	catch(atom_to_term('2\'', _, _), E, true),
 	E = error(syntax_error(end_of_file), _).
 syntax(zero-1) :-
-	term_to_atom(T, 'hello(\000\"\000\x")'),
+	term_to_atom(T, 'hello("\000\x")'),
 	T == hello([0, 120]).
 syntax(latin-1) :-
 	atom_codes(A, [247]),
@@ -1642,17 +1642,18 @@ gc(gc-6) :-
 	catch(1.25,_,garbage_collect).
 gc(agc-1) :-
 	garbage_collect_atoms.
-gc(agc-2) :-				% not if concurrent: this is too simple.  There
-					% are enough tests for AGC in the rest of the suite.
+gc(agc-2) :-		% not if concurrent: this is too simple.  There
+			% are enough tests for AGC in the rest of the suite.
 	(   current_prolog_flag(agc_margin, Margin),
 	    Margin > 0,
 	    \+ current_prolog_flag(test_concurrent, true)
-	->  UpTo is Margin*2,
+	->  garbage_collect_atoms,
+	    UpTo is Margin*2+10,
 	    statistics(agc_gained, Gained0),
 	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
 	    statistics(agc_gained, Gained1),
 	    Gained is Gained1 - Gained0,
-	    Gained > UpTo - 10		% might be some junk
+	    Gained > UpTo - 20		% might be some junk
 	;   true			% no atom-gc
 	).
 
@@ -2476,7 +2477,7 @@ mutex(unlock-1) :-
 	mutex_lock(Mutex),
 	mutex_unlock(Mutex),
 	catch(mutex_unlock(Mutex), E, true),
-	E == error(permission_error(mutex, unlock, Mutex),
+	E == error(permission_error(unlock, mutex, Mutex),
 		   context(mutex_unlock/1, 'not locked')),
 	mutex_destroy(Mutex).
 mutex(destroy-1) :-

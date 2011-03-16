@@ -1,0 +1,63 @@
+################################################################
+# Share Prolog-independent bits of the package makefiles.
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+# This is to have a simple 'make' build `all' instead of the local
+# targets.
+top:	all
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+srcdir=@abs_srcdir@/$(PACKAGE)
+bindir=@bindir@
+libdir=@libdir@
+mandir=@mandir@
+
+SHELL=@SHELL@
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+INSTALL_SCRIPT=@INSTALL_SCRIPT@
+
+################################################################
+# Documentation
+################################################################
+
+LATEX=latex
+RUNTEX=../../man/runtex
+DOC2TEX=../../man/doc2tex
+TEX=$(DOC).tex $(SUBTEX)
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+HTML=$(DOC).html
+
+ifneq ($(DOC),)
+doc:		pdf html
+pdf:		$(PDF)
+html:		$(HTML)
+else
+doc::
+		echo "No documentation provided"
+pdf::
+		echo "No documentation provided"
+html::
+		echo "No documentation provided"
+endif
+
+$(HTML):	$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $@
+
+$(PDF):		$(TEX)
+		../../man/runtex --pdf $(DOC)
+
+$(TEX):		$(DOC2TEX)
+
+.doc.tex:
+		$(DOC2TEX) $*.doc > $*.tex
+
+# Get the Prolog dialect specific part of the Makefiles
+
+include ../Dialect.defs

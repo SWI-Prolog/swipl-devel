@@ -33,10 +33,10 @@
 #endif
 
 #include "pl-incl.h"
-#include "pl-utf8.h"
+#include "os/pl-utf8.h"
 #include <crtdbg.h>
 #include <process.h>
-#include "pl-ctype.h"
+#include "os/pl-ctype.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include "SWI-Stream.h"
@@ -361,7 +361,7 @@ get_showCmd(term_t show, int *cmd)
     succeed;
   }
 
-  if ( !PL_get_chars_ex(show, &s, CVT_ATOM) )
+  if ( !PL_get_chars(show, &s, CVT_ATOM|CVT_EXCEPTION) )
     fail;
   for(st=types; st->name; st++)
   { if ( streq(st->name, s) )
@@ -568,7 +568,7 @@ pl_win_module_file(term_t module, term_t file)
   char *m;
   char *f;
 
-  if ( !PL_get_chars_ex(module, &m, CVT_ALL) )
+  if ( !PL_get_chars(module, &m, CVT_ALL|CVT_EXCEPTION) )
     fail;
   if ( (f = findExecutable(m, buf)) )
     return PL_unify_atom_chars(file, f);

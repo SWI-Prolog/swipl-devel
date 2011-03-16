@@ -74,7 +74,7 @@ action(Data, Attributes) :-
 
 @tbd	We should consider putting many options in an assoc or record
 	with appropriate preprocessing to achieve better performance.
-@tbd	We should provide some standard to to automatic type-checking
+@tbd	We should provide some standard to do automatic type-checking
 	on option lists.
 @see	library(record)
 */
@@ -88,7 +88,7 @@ action(Data, Attributes) :-
 
 option(Opt, Options, Default) :-	% make option processing stead-fast
 	arg(1, Opt, OptVal),
-	ground(OptVal), !,
+	nonvar(OptVal), !,
 	functor(Opt, OptName, 1),
 	functor(Gen, OptName, 1),
 	option(Gen, Options, Default),

@@ -31,6 +31,7 @@ STACK=4000000
 
 PLHOME=..
 !include rules.mk
+!include common.mk
 
 PL=pl
 PLCON=$(PLHOME)\bin\swipl.exe
@@ -50,20 +51,7 @@ STREAMH=$(INCLUDEDIR)\SWI-Stream.h
 STARTUPPATH=$(PLHOME)\$(PLBOOTFILE)
 LIBRARYDIR=$(PLBASE)\library
 
-OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
-	pl-bag.obj pl-comp.obj pl-rc.obj pl-dwim.obj pl-ext.obj \
-	pl-file.obj pl-flag.obj pl-fmt.obj pl-funct.obj pl-gc.obj \
-	pl-glob.obj pl-privitf.obj pl-list.obj pl-load.obj pl-modul.obj \
-	pl-op.obj pl-os.obj pl-prims.obj pl-pro.obj pl-proc.obj \
-	pl-prof.obj pl-read.obj pl-rec.obj pl-rl.obj pl-setup.obj \
-	pl-sys.obj pl-table.obj pl-trace.obj pl-util.obj pl-wic.obj \
-	pl-write.obj pl-term.obj pl-buffer.obj pl-thread.obj \
-	pl-xterm.obj pl-prologflag.obj pl-ctype.obj pl-main.obj \
-	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
-	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj pl-tai.obj \
-	pl-segstack.obj pl-hash.obj pl-version.obj pl-codetable.obj \
-	pl-supervisor.obj pl-option.obj pl-files.obj pl-ntconsole.obj \
-	pl-dbref.obj pl-termhash.obj pl-dtoa.obj
+OBJ=	$(OBJ:.o=.obj) $(OSOBJ:.o=.obj) pl-nt.obj pl-ntconsole.obj pl-dde.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -72,8 +60,6 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
 VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
-
-!include common.mk
 
 PLSRC=$(PLSRC) ../boot/menu.pl
 PLWINLIBS= wise.pl dde.pl progman.pl registry.pl win_menu.pl
@@ -136,7 +122,7 @@ $(OUTDIRS):
 		if not exist "$@/$(NULL)" $(MKDIR) "$@"
 
 subdirs:	$(OUTDIRS)
-		chdir win32\uxnt & $(MAKE)
+		chdir os\windows & $(MAKE)
 		chdir win32\console & $(MAKE)
 		chdir rc & $(MAKE)
 		chdir libtai & $(MAKE)
@@ -150,8 +136,8 @@ index:
 $(CINCLUDE):	$(OUTDIRS) SWI-Prolog.h
 		copy SWI-Prolog.h $@
 
-$(STREAMH):	SWI-Stream.h $(INCLUDEDIR)
-		copy SWI-Stream.h $@
+$(STREAMH):	os\SWI-Stream.h $(INCLUDEDIR)
+		copy os\SWI-Stream.h $@
 
 $(OBJ):		pl-vmi.h
 pl-funct.obj:	pl-funct.ih
@@ -195,8 +181,7 @@ check:
 		$(PLCON) -f test.pl -F none -g test,halt -t halt(1)
 
 ################################################################
-# Installation.  The default target is dv-install to install the
-# normal development version
+# Installation.
 ################################################################
 
 install:	embed-manifests \
@@ -354,7 +339,7 @@ dlldemos::
 packages:
 		@for %p in ($(PKGS)) do \
 		   @if exist "$(PKGDIR)\%p" \
-		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE)"
+		      $(CMD) /c "echo PACKAGE %p ... & chdir $(PKGDIR)\%p & $(MAKE)"
 
 install_packages:
 		@for %p in ($(PKGS)) do \
@@ -423,10 +408,10 @@ reqs$(BITS)::
 clean:		clean_packages
 		chdir rc & $(MAKE) clean
 		chdir libtai & $(MAKE) clean
-		chdir win32\uxnt & $(MAKE) clean
+		chdir os\windows & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
 		chdir win32\foreign & $(MAKE) clean
-		-del *.manifest *.obj *~ pl.res vmi 2>nul
+		-del *.manifest *.obj os\*.obj *~ pl.res vmi 2>nul
 
 distclean:	clean distclean_packages
 		@chdir rc & $(MAKE) distclean

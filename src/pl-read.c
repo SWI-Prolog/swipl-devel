@@ -25,10 +25,10 @@
 #include <math.h>
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#include "pl-ctype.h"
-#include "pl-utf8.h"
+#include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
+#include "os/pl-dtoa.h"
 #include "pl-umap.c"			/* Unicode map */
-#include "pl-dtoa.h"
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
@@ -48,21 +48,46 @@ static strnumstat scan_decimal(cucharp *sp, Number n);
 
 #define CharTypeW(c, t, w) \
 	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned)(c)] t) \
-			       : (uflagsW(c) & w))
+			       : (uflagsW(c) & (w)))
 
-#define PlBlankW(c)	CharTypeW(c, <= SP, U_SEPARATOR)
+#define PlBlankW(c)	CharTypeW(c, == SP, U_SEPARATOR)
 #define PlUpperW(c)	CharTypeW(c, == UC, U_UPPERCASE)
 #define PlIdStartW(c)	(c <= 0xff ? (isLower(c)||isUpper(c)||c=='_') \
 				   : uflagsW(c) & U_ID_START)
 #define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
-#define PlSymbolW(c)	CharTypeW(c, == SY, 0)
+#define PlSymbolW(c)	CharTypeW(c, == SY, U_SYMBOL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
-#define PlSoloW(c)	CharTypeW(c, == SO, 0)
+#define PlSoloW(c)	CharTypeW(c, == SO, U_OTHER)
+#define PlInvalidW(c)   (uflagsW(c) == 0)
 
 int
 unicode_separator(pl_wchar_t c)
 { return PlBlankW(c);
 }
+
+/* unquoted_atomW() returns TRUE if text can be written to s as unquoted atom
+*/
+
+int
+unquoted_atomW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
+{ const pl_wchar_t *e = &s[len];
+
+  if ( len == 0 )
+    return FALSE;
+
+  if ( !PlIdStartW(*s) || PlUpperW(*s) )
+    return FALSE;
+
+  for(s++; s<e; )
+  { int c = *s++;
+
+    if ( !(PlIdContW(c) && (!fd || Scanrepresent(c, fd) == 0)) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
 
 
 		 /*******************************
@@ -948,26 +973,19 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addToBuffer(' ', _PL_rd);
 		    }
 		    if ( c == '\n' )
-		    { IOPOS p = {0};	/* silence the compiler */
-		      IOPOS *pp;
-		      if ( (pp=rb.stream->position) )
-			p = *pp;
+		    { int c2 = Speekcode(rb.stream);
 
-		      c = getchr();
-		      if ( c == '%' )
+		      if ( c2 == '%' )
 		      { if ( something_read )
-			{ addToBuffer('\n', _PL_rd);
+			{ addToBuffer(c, _PL_rd);
 			  addToBuffer(' ', _PL_rd);
 			}
-			addUTF8Buffer(cbuf, '\n');
-			addUTF8Buffer(cbuf, '%');
+			addUTF8Buffer(cbuf, c);
+			c = Sgetcode(rb.stream);
+			assert(c==c2);
+			addUTF8Buffer(cbuf, c);
 			continue;
 		      }
-		      if ( c != EOF )
-			Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
-		      if ( pp )
-			*pp = p;
-		      c = '\n';
 		    }
 		    break;
 		  }
@@ -1020,16 +1038,16 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  rawSyntaxError("end_of_file");
 			}
 		      } else
-		      { int c2;
+		      { int c2 = Speekcode(rb.stream);
 
-			if ( (c2=getchr()) != EOF )
+			if ( c2 != EOF )
 			{ if ( digitValue(base, c2) >= 0 )
 			  { addToBuffer(c, _PL_rd);
-			    addToBuffer(c2, _PL_rd);
+			    c = Sgetcode(rb.stream);
+			    addToBuffer(c, _PL_rd);
 			    dotseen = FALSE;
 			    break;
 			  }
-			  Sungetcode(c2, rb.stream);
 			  goto sqatom;
 			}
 			rawSyntaxError("end_of_file");
@@ -1073,7 +1091,6 @@ raw_read2(ReadData _PL_rd ARG_LD)
       default:	if ( c < 0xff )
 		{ switch(_PL_char_types[c])
 		  { case SP:
-		    case CT:
 		    blank:
 		      if ( dotseen )
 		      { if ( rb.here - rb.base == 1 )
@@ -1402,7 +1419,7 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
   for( ; *in; in=s)
   { s = (unsigned char*)utf8_get_char((char*)in, &chr);
 
-    if ( !isSymbolW(chr) )
+    if ( !PlSymbolW(chr) )
       return in;
     if ( chr == '`' && _PL_rd->backquoted_string )
       return in;
@@ -1592,7 +1609,7 @@ again:
       }
       OK('\n');
     case 'e':
-      OK('\e');
+      OK(27);				/* 27 is ESC (\e is a gcc extension) */
     case 'f':
       OK('\f');
     case '\\':
@@ -1618,14 +1635,18 @@ again:
 	if ( (dv=digitValue(16, c)) >= 0 )
 	{ chr = (chr<<4)+dv;
 	} else
-	{ last_token_start = (unsigned char*)errpos;
-	  errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
+	{ if ( _PL_rd )
+	  { last_token_start = (unsigned char*)errpos;
+	    errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
+	  }
 	  return ESC_ERROR;
 	}
       }
       if ( chr > PLMAXWCHAR )
-      { last_token_start = (unsigned char*)errpos;
-	errorWarning("Illegal character code", 0, _PL_rd);
+      { if ( _PL_rd )
+	{ last_token_start = (unsigned char*)errpos;
+	  errorWarning("Illegal character code", 0, _PL_rd);
+	}
 	return ESC_ERROR;
       }
       OK(chr);
@@ -1654,8 +1675,10 @@ again:
 	{ chr = chr * base + dv;
 	  c = *in++;
 	  if ( chr > PLMAXWCHAR )
-	  { last_token_start = (unsigned char*)errpos;
-	    errorWarning("Illegal character code", 0, _PL_rd);
+	  { if ( _PL_rd )
+	    { last_token_start = (unsigned char*)errpos;
+	      errorWarning("Illegal character code", 0, _PL_rd);
+	    }
 	    return ESC_ERROR;
 	  }
 	}
@@ -1884,8 +1907,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     value->value.f = strtod((char*)start, &e);
     if ( e != (char*)in )
       return NUM_ERROR;
-    if ( errno == ERANGE )		/* can be non-0, but inaccurate */
-      return (abs(value->value.f) < 1.0 ? NUM_FUNDERFLOW : NUM_FOVERFLOW);
+    if ( errno == ERANGE && abs(value->value.f) > 1.0 )
+      return NUM_FOVERFLOW;
 
     *end = (ucharp)in;
 
@@ -1961,7 +1984,11 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 	goto upper;
       goto lower;
     }
-    goto case_solo;			/* TBD: Need foreign symbols */
+    if ( PlSymbolW(c) )
+      goto case_symbol;
+    if ( PlInvalidW(c) )
+      syntaxError("illegal_character", _PL_rd);
+    goto case_solo;
   }
 
   switch(_PL_char_types[c])
@@ -2036,6 +2063,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		  break;
 		}
+    case_symbol:
     case SY:	if ( c == '`' && _PL_rd->backquoted_string )
 		  goto case_bq;
 
@@ -2046,7 +2074,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		       isDigit(*rdhere) )
 		  { goto case_digit;
 		  }
-		  if ( c == '.' && isBlank(*rdhere) )	/* .<blank> */
+		  if ( c == '.' && PlBlankW(*rdhere) )	/* .<blank> */
 		  { cur_token.type = T_FULLSTOP;
 		    break;
 		  }
@@ -2151,6 +2179,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
 #endif
+    case CT:
+		syntaxError("illegal_character", _PL_rd);
     default:
     		{ sysError("read/1: tokeniser internal error");
     		  break;		/* make lint happy */
@@ -3461,6 +3491,71 @@ PL_chars_to_term(const char *s, term_t t)
 }
 
 		 /*******************************
+		 *	     CODE TYPE		*
+		 *******************************/
+
+/* '$code_class'(+Code, +Category) is semidet.
+
+True if Code is a member of Category.   This predicate is added to allow
+for inspection of the chararacter categories   used for parsing. Defined
+categories are:
+
+    * layout
+    * graphic
+    These are the glueing symbol characters
+    * solo
+    These are the non-glueing symbol characters
+    * punct
+    These are the Prolog characters with reserved meaning
+    * id_start
+    Start of an unquoted atom or variable
+    * id_continue
+    Continue an unquoted atom or variable
+    * upper
+    If the id_start char fits, this is a variable.
+    * invalid
+    Character may not appear outside comments or quoted strings
+*/
+
+static
+PRED_IMPL("$code_class", 2, code_class, 0)
+{ PRED_LD
+  int code, rc;
+  atom_t class;
+  const char *c;
+
+  if ( !PL_get_char_ex(A1, &code, FALSE) ||
+       !PL_get_atom_ex(A2, &class) )
+    return FALSE;
+
+  if ( code > 0x10ffff )
+    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, A1);
+
+  c = PL_atom_chars(class);
+  if ( streq(c, "layout") )
+    rc = PlBlankW(code);
+  else if ( streq(c, "graphic") )
+    rc = PlSymbolW(code);
+  else if ( streq(c, "solo") )
+    rc = PlSoloW(code);
+  else if ( streq(c, "punct") )
+    rc = PlPunctW(code);
+  else if ( streq(c, "upper") )
+    rc = PlUpperW(code);
+  else if ( streq(c, "id_start") )
+    rc = PlIdStartW(code);
+  else if ( streq(c, "id_continue") )
+    rc = PlIdContW(code);
+  else if ( streq(c, "invalid") )
+    rc = PlInvalidW(code);
+  else
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_category, A2);
+
+  return rc ? TRUE : FALSE;
+}
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
@@ -3469,4 +3564,5 @@ BeginPredDefs(read)
   PRED_DEF("read_clause", 2, read_clause, 0)
   PRED_DEF("atom_to_term", 3, atom_to_term, 0)
   PRED_DEF("term_to_atom", 2, term_to_atom, 0)
+  PRED_DEF("$code_class", 2, code_class, 0)
 EndPredDefs
