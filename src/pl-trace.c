@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -171,7 +172,7 @@ isDebugFrame(LocalFrame FR)
     {					/* not last-call optimized */
       if ( false(parent->predicate, HIDE_CHILDS) )
 	return TRUE;			/* user calls system */
-      return FALSE;			/* system cals system */
+      return FALSE;			/* system calls system */
     } else
     { if ( false(parent, FR_HIDE_CHILDS) )
 	return TRUE;
@@ -407,10 +408,12 @@ Give a trace on the skipped goal for a redo.
 	 (fr = redoFrame(frame, &pc2)) != NULL )
     { int rc;
 
-      debugstatus.skiplevel--;				   /* avoid a loop */
+      debugstatus.skiplevel--;		/* avoid a loop */
       SAVE_PTRS();
-      rc = tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD);
+      rc = tracePort(frame, bfr, REDO_PORT, pc2 PASS_LD);
       RESTORE_PTRS();
+      debugstatus.skiplevel = levelFrame(fr);
+      set(fr, FR_SKIPPED);		/* cleared by "case 'c'" */
 
       switch( rc )
       { case ACTION_CONTINUE:
@@ -671,7 +674,6 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
     case '\n':
     case '\r':
     case 'c':	FeedBack("creep\n");
-		clear(frame, FR_SKIPPED);
 		if ( !(port & EXIT_PORT) )
 		  clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;
@@ -969,7 +971,9 @@ alternatives(Choice ch)
 { GET_LD
 
   for(; ch; ch = ch->parent)
-  { if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
+  { if ( ch->type == CHP_DEBUG )
+      continue;
+    if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
       writeFrameGoal(ch->frame, NULL, WFG_CHOICE);
   }
 }
