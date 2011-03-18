@@ -132,6 +132,13 @@ export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 # EXTRACFG+=" --enable-shared"
 export EXTRACFG
 
+# One possiblity to make relocatable executables   on  Linux is by using
+# the RPATH mechanism. See  ld.so(1)   and  chrpath(1). However, chrpath
+# cannot enlarge the path. Uncommenting the   line below adds :xxx... to
+# the RPATH, where the given count is the number of x-s.
+#
+# export RPATH_RESERVE=70
+
 ################################################################
 # No edit should be needed below this line
 ################################################################
