@@ -1,8 +1,6 @@
 #!/bin/sh -f
 #
-# Start script for SWI-Prolog that can  start the appropriate executable
-# and make sure that the name of $argv[0]   is  not changed and thus the
-# xpce binding through swipl.rc remains working.
+# Start script for SWI-Prolog's swipl-ld utility
 #
 # Of course it is possible to start the desired executable directly.
 
@@ -21,9 +19,9 @@ if [ ! -d $medir/$arch ]; then
       fi
       ;;
     *)
-      echo "ERROR: swipl: Cannot find a matching executable"
+      echo "ERROR: swipl-ld: Cannot find a matching executable"
       exit 1
   esac
 fi
 
-exec $medir/$arch/swipl "$@"
+exec $medir/$arch/swipl-ld "$@"

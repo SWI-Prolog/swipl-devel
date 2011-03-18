@@ -82,3 +82,6 @@ install-ln-world::
 	else \
 	    echo "WARNING: No documentation.  See README.doc"; \
 	fi
+
+export::
+	@cd $(BUILDARCH) && $(MAKE) $@

@@ -7,15 +7,25 @@
 #
 # This script is highly specific to Linux  and intended to create fairly
 # cross-distribution portable binary installations of SWI-Prolog.
+#
+# Usage:
+#
+# 	make-export [target dir]
 
 os=`uname | tr A-Z a-z`
 arch=`uname -m`-$os
 archlib=lib/$arch
 archsys=$archlib/OS
-here=`pwd`
 xpcelib=xpce/lib/$arch/pl2xpce.so
 
 swipl=bin/$arch/swipl
+
+if [ -z "$1" ]; then
+  here=`pwd`
+else
+  here=`readlink -f $1`
+  cd $here
+fi
 
 if [ ! -f $swipl ]; then
   echo "ERROR: Cannot find $swipl"
@@ -57,11 +67,16 @@ docopy()
 	return 1
 	;;
     */libgmp*)				# These seem to make sense
+	return 0
+	;;
     */libreadline*)
-    */libjpeg*)
-    */libXpm*)
+	return 0
+	;;
     */libncurses*)
 	return 0
+	;;
+    */libjpeg*|*/libXpm*)
+        return 0
 	;;
     *)					# By default, do not copy
 	return 1
@@ -101,6 +116,6 @@ for lib in $archlib/*.so; do
 done
 fix_rpath_xpce $xpcelib
 
-rm -r $archsys
+[ ! -d $archsys ] || rm -r $archsys
 mkdir -p $archsys
 copy_system_objects
