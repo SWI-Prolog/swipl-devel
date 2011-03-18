@@ -4724,11 +4724,14 @@ unify_vmi(term_t t, Clause clause, Code bp)
 	  break;
 	}
 	case CA1_FLOAT:
-	{ double d;
-	  Word dp = (Word)&d;
+	{ union
+	  { double d;
+	    word   w[WORDS_PER_DOUBLE];
+	  } v;
+	  Word f = v.w;
 
-	  cpDoubleData(dp, bp);
-	  rc = PL_put_float(av+an, d);
+	  cpDoubleData(f, bp);
+	  rc = PL_put_float(av+an, v.d);
 	  break;
 	}
 	case CA1_INT64:
