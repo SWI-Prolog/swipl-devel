@@ -117,9 +117,19 @@ export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 # at a nice stable place, so external foreign objects linked against the
 # binary need not be updated with a Prolog update.
 #
+# --enable-shared
+# Use this to create a shared object  for the Prolog kernel. The default
+# depends on the platform. Creating a shared   object  is the default on
+# most platforms, either because it is  needed   or  because  it does no
+# harm. The only exception to this rule  is Linux on x86 (Intel 32-bit).
+# It is not needed on this platform  and Linux shared object model costs
+# a CPU register. Given the limited number   of CPU registers on the x86
+# platform, this results in a performance degradation of about 10%.
+#
 # EXTRACFG+=" --link"
 # EXTRACFG+=" --enable-useprofile"
 # EXTRACFG+=" --disable-libdirversion"
+# EXTRACFG+=" --enable-shared"
 export EXTRACFG
 
 ################################################################
