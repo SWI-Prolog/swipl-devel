@@ -1,0 +1,121 @@
+#!/bin/bash
+#
+# This script copies shared  objects  needed   by  the  system  into the
+# hierarchy, making the tree less  dependent   on  the  operating system
+# version. It use chrpath(1) to make  the search-path for shared objects
+# relative to the executable.
+#
+# This script is highly specific to Linux  and intended to create fairly
+# cross-distribution portable binary installations of SWI-Prolog.
+#
+# Usage:
+#
+# 	make-export [target dir]
+
+os=`uname | tr A-Z a-z`
+arch=`uname -m`-$os
+archlib=lib/$arch
+archsys=$archlib/OS
+xpcelib=xpce/lib/$arch/pl2xpce.so
+
+swipl=bin/$arch/swipl
+
+if [ -z "$1" ]; then
+  here=`pwd`
+else
+  here=`readlink -f $1`
+  cd $here
+fi
+
+if [ ! -f $swipl ]; then
+  echo "ERROR: Cannot find $swipl"
+  exit 1
+fi
+
+################################################################
+# The functions
+################################################################
+
+used_shared_objects()
+{ find $1 -name '*.so' | xargs ldd | awk '/=> *\// { print $3; }' | sort -u
+}
+
+# copy_shared_object file dir
+
+copy_shared_object()
+{ file="$1";
+  dest="$2";
+
+  sofile=`readlink -f "$file"`
+  if [ $? = 0 ]; then
+    cp -av $sofile $dest
+    (cd $dest && ln -s `basename $sofile` `basename $1`)
+  else
+    cp -av $file $dest
+  fi
+}
+
+
+# docopy decides on the shared objects that are copied.
+
+docopy()
+{ case "$1" in
+    *java*|*odbc*)			# We definitely do not want these
+	return 1
+	;;
+    $here*)				# These are already ours
+	return 1
+	;;
+    */libgmp*)				# These seem to make sense
+	return 0
+	;;
+    */libreadline*)
+	return 0
+	;;
+    */libncurses*)
+	return 0
+	;;
+    */libjpeg*|*/libXpm*)
+        return 0
+	;;
+    *)					# By default, do not copy
+	return 1
+	;;
+  esac
+}
+
+
+copy_system_objects()
+{ for so in `used_shared_objects .`; do
+    if docopy $so; then
+      copy_shared_object $so $archsys
+    fi
+  done
+}
+
+
+fix_rpath_bin()
+{ chrpath -r "\${ORIGIN}/../../$archlib:\$ORIGIN/../../$archsys" $1
+}
+
+fix_rpath_lib()
+{ chrpath -r "\${ORIGIN}/OS" $1
+}
+
+fix_rpath_xpce()
+{ chrpath -r "\${ORIGIN}/../../../$archlib:\$ORIGIN/../../../$archsys" $1
+}
+
+################################################################
+# Toplevel
+################################################################
+
+fix_rpath_bin $swipl
+for lib in $archlib/*.so; do
+  fix_rpath_lib $lib
+done
+fix_rpath_xpce $xpcelib
+
+[ ! -d $archsys ] || rm -r $archsys
+mkdir -p $archsys
+copy_system_objects

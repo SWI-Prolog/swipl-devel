@@ -1,0 +1,72 @@
+SWI-Prolog binary distribution for Linux
+========================================
+
+This directory holds the SWI-Prolog binary   distribution for Linux. The
+current version supports the following architectures:
+
+  * x86-linux (aka i?86-linux)
+  * x86_64-linux
+
+This  directory  may  be  installed  anywhere  in  the  filesystem.  The
+executables are in the  directory  "bin".   The  executables  there  are
+shell-scripts that start the most appropriate executable.
+
+To make the executables publicably available do one of the following:
+
+  1. Add the bin-directory to $PATH
+  2. Create a symbolic link for each program from a directory in $PATH
+     to the corresponding script or native executable.
+
+The Unix manpages are in  the  directory   man.  These  may  be added to
+$MANPATH or copied to another manual   directory. They belong in section
+1.
+
+
+Additional remarks
+==================
+
+  * Should I use the version of swi-prolog that comes with my distro?
+
+    Many Linux distributions come with a package for SWI-Prolog, but
+    many of them are old and some are broken, notably the graphics
+    subsystem that is used for the development tools often does not
+    work.  With this distribution we hope to provide a simple way
+    for you to evaluate SWI-Prolog.  If you like this version and
+    do not like the one that came with your distro, please contact
+    the distro packager.
+
+  * Why is this not an RPM/DEB/...?
+
+  Because this is less dependent on a specific distribution.
+
+  * Does this work on every Linux version?
+
+    Unfortunately, no. Of course your CPU and kernel must be compatible.
+    Still, different shared object versions may prevent this
+    distribution from running. We distribute the most troublesome shared
+    objects in lib/$arch/OS.
+
+  * How to I quickly test this version?
+
+    Try running "swipl".  If it gives you a prompt, you are half-way.
+    If you have X11, try running (?- is the prompt, do not type that)
+
+      ?- manpce.
+
+    If this opens a small window and you can interact with it, your
+    installation is probably ok.
+
+  * What if this binary doesn't run?
+
+    You may contact the mailinglist to see whether someone knows a way
+    around. If that fails too, your best option is to grab the source
+    and compile it yourself. On most systems this works flawlessly.
+
+Further information
+===================
+
+Please visit http://www.swi-prolog.org for further information.
+
+
+
+

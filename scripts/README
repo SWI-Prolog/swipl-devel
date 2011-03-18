@@ -1,0 +1,17 @@
+SWI-Prolog maintenance scripts
+==============================
+
+  * make-export
+  Used to copy system shared objects to the installation directory
+
+  * swipl.sh swipl-ld.sh swipl-rc.sh
+  Startup scripts for Linux binary distribution
+
+  * make-src-tape
+  Create a tar archive from the current GIT checkout
+
+  * mkchangelog
+  Generate a ChangeLog from the GIT logs
+
+  * newversion
+  Update version numbers from VERSION and set a GIT tag.

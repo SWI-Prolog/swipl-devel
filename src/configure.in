@@ -415,12 +415,22 @@ fi
 
 dnl Some specific OS stuff
 
+RPATH_EXTRA=
+if test "x$RPATH_RESERVE" != "x"; then
+  RPATH_EXTRA=":"
+  n=$RPATH_RESERVE
+  while test $n -gt 0; do
+    RPATH_EXTRA="${RPATH_EXTRA}x"
+    n=$(($n-1))
+  done
+fi
+
 SO_LDFLAGS="-shared"
 SO_pic="-fpic"
 SO_PIC="-fPIC"
 SO_LD="$CC"
 SO_EXT="so"
-SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH"
+SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH$RPATH_EXTRA"
 DLLIBVAR=LD_LIBRARY_PATH
 
 case "$ARCH" in

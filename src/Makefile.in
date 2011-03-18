@@ -485,6 +485,17 @@ html-install::
 		fi
 
 #
+# Export (Linux binary distribution
+#
+
+export: install-lman
+	../scripts/make-export $(DESTDIR)$(PLBASE)
+	$(INSTALL_SCRIPT) ../scripts/swipl.sh $(DESTDIR)$(PLBASE)/bin/swipl
+	$(INSTALL_SCRIPT) ../scripts/swipl-ld.sh $(DESTDIR)$(PLBASE)/bin/swipl-ld
+	$(INSTALL_SCRIPT) ../scripts/swipl-rc.sh $(DESTDIR)$(PLBASE)/bin/swipl-rc
+	$(INSTALL_DATA) ../scripts/README.LinuxBin $(DESTDIR)$(PLBASE)/README
+
+#
 # Cleanup
 #
 
