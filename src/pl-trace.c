@@ -2103,6 +2103,10 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
     };
 
     return PL_unify_atom(A3, types[ch->type]);
+  } else if ( key == ATOM_pc )
+  { if ( ch->type == CHP_JUMP && ch->frame->clause )
+      return PL_unify_int64(A3, ch->value.PC - ch->frame->clause->clause->codes);
+    return FALSE;
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, A2);
 
