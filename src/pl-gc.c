@@ -910,13 +910,13 @@ gvars_to_term_refs(Word **saved_bar_at)
     Symbol s;
 
     while( (s=advanceTableEnum(e)) )
-    { Word p = (Word)&s->value;
+    { word w = (word)s->value;
 
-      if ( isGlobalRef(*p) )
+      if ( isGlobalRef(w) )
       { term_t t = PL_new_term_ref_noshift();
 
 	assert(t);
-	*valTermRef(t) = *p;
+	*valTermRef(t) = w;
 	found++;
       }
     }
