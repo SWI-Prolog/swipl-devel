@@ -320,6 +320,12 @@ A common basis for C keywords.
 #define NORETURN
 #endif
 
+#if defined(__GNUC__) && !defined(MAY_ALIAS)
+#define MAY_ALIAS __attribute__ ((__may_alias__))
+#else
+#define MAY_ALIAS
+#endif
+
 #ifdef HAVE___BUILTIN_EXPECT
 #define likely(x)       __builtin_expect((x), 1)
 #define unlikely(x)     __builtin_expect((x), 0)
