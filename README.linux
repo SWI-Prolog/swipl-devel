@@ -2,9 +2,11 @@ Please search the section for your Linux distribution
 
 ################################################################
 # Debian dependency list as compiled by Nicolas Pelletier
+# Updated for Squeeze by Jan Wielemaker
 ################################################################
 
-List of packages needed to compile SWI Prolog on Debian 4.0 stable (Etch):
+List of packages needed to compile SWI Prolog on Debian 6.0 stable
+(Squeeze):
 
 binutils
 coreutils
@@ -21,7 +23,7 @@ curl
 chrpath
 
 List of packages needed to compile additional SWI Prolog packages on
-Debian 4.0 stable (Etch):
+Debian 6.0 stable (Squeeze):
 
 For clib: no other package required
 For cpp: no other package required
@@ -36,19 +38,17 @@ For http: no other package required
 For chr: no other package required
 For clpqr: no other package required
 For nlp: no other package required
+For odbc: unixodbc-dev
 For ssl: libssl-dev
 For pldoc: no other package required
 For plunit: no other package required
-For jpl: sun-java5-bin sun-java5-fonts sun-java5-jdk
+For jpl: openjdk-6-jdk
 For zlib: zlib1g-dev
 
 Note 1: installing these packages triggers the automatic installation
 of other needed (dependent) packages.
-Note 2: Debian includes other Java implementations; however, the
-configure script found in jpl tests for a directory structure that can
-only match Sun's Java. I also do not know if the jpl package works
-with these other implementations. Now that Sun has open-sourced Java,
-this should be less of a concern.
+Note 2: JPL works with several Java implementations.  OpenJDK and SUN
+Java are both fine.
 
 ------------------------
 And now simple commands:
@@ -69,6 +69,7 @@ sudo apt-get install \
 	libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev \
 	libxpm-dev libxt-dev pkg-config \
 	libssl-dev \
+	unixodbc-dev \
 	openjdk-6-jdk \
 	zlib1g-dev
 
