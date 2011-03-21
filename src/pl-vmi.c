@@ -1669,6 +1669,10 @@ retry_continue:
       { case ACTION_FAIL:   FRAME_FAILED;
 	case ACTION_IGNORE: VMI_GOTO(I_EXIT);
 	case ACTION_ABORT:  THROW_EXCEPTION;
+	case ACTION_RETRY:
+	  if ( debugstatus.retryFrame )
+	    goto retry;			/* otherwise retrying the call-port */
+					/* is a no-op */
       }
     }
 #endif /*O_DEBUGGER*/

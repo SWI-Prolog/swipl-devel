@@ -370,8 +370,8 @@ typedef void *			caddress;
 #endif
 				/* n is 2^m !!! */
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
-#define addPointer(p, n)	((void *) ((char *)(p) + (intptr_t)(n)))
-#define diffPointers(p1, p2)	((char *)(p1) - (char *)(p2))
+#define addPointer(p, n)	((void *) ((intptr_t)(p) + (intptr_t)(n)))
+#define diffPointers(p1, p2)	((intptr_t)(p1) - (intptr_t)(p2))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			     LIMITS
