@@ -494,6 +494,18 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
     if ( offset > text->length || offset + len > text->length )
       return FALSE;
 
+    if ( len == 1 )
+    { GET_LD
+      int c;
+
+      if ( text->encoding == ENC_ISO_LATIN_1 )
+	c = text->text.t[offset];
+      else
+	c = text->text.w[offset];
+
+      return PL_unify_atom(term, codeToAtom(c));
+    }
+
     sub.length = len;
     sub.storage = PL_CHARS_HEAP;
     if ( text->encoding == ENC_ISO_LATIN_1 )
