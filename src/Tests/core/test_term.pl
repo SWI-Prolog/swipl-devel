@@ -136,6 +136,9 @@ test(ground, [sto(rational_trees), fail]) :- % Ulrich
 	A=[A|B], B=[A], D=[[A|B]|A],
 	A = [_,_], D = [_,_,_],
 	A =@= D.
+test(sharing_cycles, [sto(rational_trees), fail, fixme(sharing_cycles)]) :-
+	A=[A|B], C=[A|D], B=[A|E], F=[A|F], D=[F|E],
+	A =@= C.
 
 v(_).
 
