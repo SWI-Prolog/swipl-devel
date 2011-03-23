@@ -168,14 +168,14 @@ has_command(Command) :-
 :- multifile
 	user:url_path/2.
 
-user:url_path(swipl,	   'http://www.swi-prolog.org').
+user:url_path(swipl,	      'http://www.swi-prolog.org').
 
-user:url_path(pl_faq,	   swipl('FAQ')).
-user:url_path(pl_man,	   swipl('pldoc/index.html')).
-user:url_path(pl_mail,	   swipl('Mailinglist.html')).
-user:url_path(pl_download, swipl('Download.html')).
-user:url_path(pl_bugs,	   swipl('bugzilla')).
-user:url_path(pl_quick,	   swipl('man/quickstart.html')).
+user:url_path(swipl_faq,      swipl('FAQ')).
+user:url_path(swipl_man,      swipl('pldoc/index.html')).
+user:url_path(swipl_mail,     swipl('Mailinglist.html')).
+user:url_path(swipl_download, swipl('Download.html')).
+user:url_path(swipl_bugs,     swipl('bugzilla')).
+user:url_path(swipl_quick,    swipl('man/quickstart.html')).
 
 %%	expand_url_path(+Spec, -URL)
 %
