@@ -317,6 +317,7 @@ Section "Base system (required)"
   File pl\library\www_browser.pl
   File pl\library\url.pl
   File pl\library\utf8.pl
+  File pl\library\base32.pl
   File pl\library\base64.pl
 
 ; MISC
