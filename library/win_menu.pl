@@ -78,18 +78,18 @@ menu('&Debug',
      ]).
 menu('&Help',
      [ '&About ...' 				= about,
-       '&Online manual ...' 			= help,
+       '&Help ...' 				= help,
+       'SWI-Prolog &Manual (on www) ...'	= www_open(swipl_man),
        --,
        'SWI-Prolog &WWW home (on www) ...'	= www_open(swipl),
        'SWI-Prolog &FAQ (on www) ...'		= www_open(swipl_faq),
        'SWI-Prolog &Quick Start (on www) ...'	= www_open(swipl_quick),
-       'SWI-Prolog &Manual (on www) ...'	= www_open(swipl_man),
        'SWI-Prolog Mailing &List (on www) ...'	= www_open(swipl_mail),
        'SWI-Prolog &Download (on www) ...'	= www_open(swipl_download),
        --,
        '&XPCE (GUI) Manual ...' 		= manpce,
        --,
-       'Submit &Bug report (on www) ...'  	= www_open(pl_bugs)
+       'Submit &Bug report (on www) ...'  	= www_open(swipl_bugs)
      ],
      [ before_menu(-)
      ]).
