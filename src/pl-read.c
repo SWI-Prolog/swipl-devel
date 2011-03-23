@@ -1015,8 +1015,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 
 		    if ( isSign(bs[0]) )
 		      bs++;
+		    rb.here[0] = EOS;
 		    base = atoi((char*)bs);
-
 		    if ( base <= 36 )
 		    { if ( base == 0 )			/* 0'<c> */
 		      { addToBuffer(c, _PL_rd);
