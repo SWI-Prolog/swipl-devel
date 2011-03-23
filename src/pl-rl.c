@@ -590,10 +590,13 @@ PL_install_readline()
   Soutput->functions = &GD->os.rl_functions;
   Serror->functions  = &GD->os.rl_functions;
 
-  PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
-  PL_register_foreign("rl_add_history",    1, pl_rl_add_history, PL_FA_NOTRACE);
-  PL_register_foreign("rl_write_history",  1, pl_rl_write_history, 0);
-  PL_register_foreign("rl_read_history",   1, pl_rl_read_history, 0);
+#define PRED(name, arity, func, attr) \
+	PL_register_foreign_in_module("system", name, arity, func, attr)
+
+  PRED("rl_read_init_file", 1, pl_rl_read_init_file, 0);
+  PRED("rl_add_history",    1, pl_rl_add_history,    PL_FA_NOTRACE);
+  PRED("rl_write_history",  1, pl_rl_write_history,  0);
+  PRED("rl_read_history",   1, pl_rl_read_history,   0);
   PL_set_prolog_flag("readline",    PL_BOOL, TRUE);
   PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
   PL_license("gpl", "GNU Readline library");
