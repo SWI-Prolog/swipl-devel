@@ -2000,17 +2000,19 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    *fp++ = '%';
 	    if ( modified )
 	      *fp++ = '#';
-	    *fp++ = 'l';
 	    if ( islong < 2 )
-	    { *fp++ = *fm;
+	    { *fp++ = 'l';
+	      *fp++ = *fm;
 	      *fp   = '\0';
 	      SNPRINTF3(fmbuf, v);
 	    } else
 	    {
 #ifdef __WINDOWS__
-	      strcat(fp-1, "I64");	/* Synchronise with INT64_FORMAT! */
-	      fp += strlen(fp);
+	      *fp++ = 'I';		/* Synchronise with INT64_FORMAT! */
+	      *fp++ = '6';
+	      *fp++ = '4';
 #else
+	      *fp++ = 'l';
 	      *fp++ = 'l';
 #endif
 	      *fp++ = *fm;
