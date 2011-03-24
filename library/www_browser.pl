@@ -168,21 +168,14 @@ has_command(Command) :-
 :- multifile
 	user:url_path/2.
 
-user:url_path(swi,	   'http://hcs.science.uva.nl').
-user:url_path(pl,	   'http://www.swi-prolog.org').
-user:url_path(pl_twiki,	   'http://gollem.science.uva.nl/twiki/pl/bin/view').
+user:url_path(swipl,	      'http://www.swi-prolog.org').
 
-user:url_path(pl_at_swi,   swi('projects/SWI-Prolog')).
-user:url_path(pl_faq,	   pl_twiki('FAQ/WebHome')).
-user:url_path(pl_man,	   pl_at_swi('Manual')).
-user:url_path(pl_mail,	   pl('mailinglist.html')).
-user:url_path(pl_download, pl('download.html')).
-user:url_path(pl_bugs,	   pl('bugreport.html')).
-user:url_path(pl_quick,	   pl_man('quickstart.html')).
-user:url_path(pl_donate,   pl('donate.html')).
-
-user:url_path(xpce,	   pl('packages/xpce')).
-user:url_path(xpce_man,	   swi('projects/xpce/UserGuide')).
+user:url_path(swipl_faq,      swipl('FAQ')).
+user:url_path(swipl_man,      swipl('pldoc/index.html')).
+user:url_path(swipl_mail,     swipl('Mailinglist.html')).
+user:url_path(swipl_download, swipl('Download.html')).
+user:url_path(swipl_bugs,     swipl('bugzilla')).
+user:url_path(swipl_quick,    swipl('man/quickstart.html')).
 
 %%	expand_url_path(+Spec, -URL)
 %

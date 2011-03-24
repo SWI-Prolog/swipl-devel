@@ -60,7 +60,7 @@ static inline void
 Trail__LD(Word p, word v ARG_LD)
 { SECURE(assert(tTop+1 <= tMax));
 
-  if ( p >= (Word)lBase || p < LD->mark_bar )
+  if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
   *p = v;
 }
@@ -73,14 +73,14 @@ bindConst__LD(Word p, word c ARG_LD)
 #ifdef O_ATTVAR
   if ( isVar(*p) )
   { *p = (c);
-    if ( p >= (Word)lBase || p < LD->mark_bar )
+    if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
       (tTop++)->address = p;
   } else
   { assignAttVar(p, &(c) PASS_LD);
   }
 #else
   *p = (c);
-  if ( p >= (Word)lBase || p < LD->mark_bar )
+  if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
 #endif
 }

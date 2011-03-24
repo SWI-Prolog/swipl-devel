@@ -254,6 +254,7 @@ Section "Base system (required)"
   File pl\library\prolog_clause.pl
   File pl\library\prolog_xref.pl
   File pl\library\prolog_source.pl
+  File pl\library\prolog_history.pl
 
 ; COMPATIBILITY
   File pl\library\backcomp.pl
@@ -317,6 +318,7 @@ Section "Base system (required)"
   File pl\library\www_browser.pl
   File pl\library\url.pl
   File pl\library\utf8.pl
+  File pl\library\base32.pl
   File pl\library\base64.pl
 
 ; MISC

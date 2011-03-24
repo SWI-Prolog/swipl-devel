@@ -320,6 +320,12 @@ A common basis for C keywords.
 #define NORETURN
 #endif
 
+#if defined(__GNUC__) && !defined(MAY_ALIAS)
+#define MAY_ALIAS __attribute__ ((__may_alias__))
+#else
+#define MAY_ALIAS
+#endif
+
 #ifdef HAVE___BUILTIN_EXPECT
 #define likely(x)       __builtin_expect((x), 1)
 #define unlikely(x)     __builtin_expect((x), 0)
@@ -370,8 +376,8 @@ typedef void *			caddress;
 #endif
 				/* n is 2^m !!! */
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
-#define addPointer(p, n)	((void *) ((char *)(p) + (intptr_t)(n)))
-#define diffPointers(p1, p2)	((char *)(p1) - (char *)(p2))
+#define addPointer(p, n)	((void *) ((intptr_t)(p) + (intptr_t)(n)))
+#define diffPointers(p1, p2)	((intptr_t)(p1) - (intptr_t)(p2))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			     LIMITS

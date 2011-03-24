@@ -910,13 +910,13 @@ gvars_to_term_refs(Word **saved_bar_at)
     Symbol s;
 
     while( (s=advanceTableEnum(e)) )
-    { Word p = (Word)&s->value;
+    { word w = (word)s->value;
 
-      if ( isGlobalRef(*p) )
+      if ( isGlobalRef(w) )
       { term_t t = PL_new_term_ref_noshift();
 
 	assert(t);
-	*valTermRef(t) = *p;
+	*valTermRef(t) = w;
 	found++;
       }
     }
@@ -4049,13 +4049,8 @@ Memory management description.
 extern char *chp_chars(Choice ch);
 #endif
 
-static inline void
-update_pointer(void *p, intptr_t offset)
-{ char **ptr = (char **)p;
-
-  if ( *ptr )
-    *ptr += offset;
-}
+#define update_pointer(p, offset) \
+	do { if ( *p ) *p = addPointer(*p,offset); } while(0)
 
 
 		 /*******************************
@@ -4079,24 +4074,21 @@ update_mark(mark *m, intptr_t gs, intptr_t ts)
 */
 
 static inline void
-update_local_pointer(void *p, intptr_t ls)
+update_local_pointer(Code *p, intptr_t ls)
 { GET_LD
-  char **ptr = (char **)p;
 
-  if ( onStackArea(local, *ptr) )
-  { DEBUG(2, Sdprintf(" (local ptr %p)", *ptr));
+  if ( onStackArea(local, *p) )
+  { DEBUG(2, Sdprintf(" (local ptr %p)", *p));
     update_pointer(p, ls);
   }
 }
 
 
 static inline void
-update_lg_pointer(void *p, intptr_t ls, intptr_t gs ARG_LD)
-{ char **ptr = (char **)p;
-
-  if ( onStackArea(local, *ptr) )
+update_lg_pointer(Word *p, intptr_t ls, intptr_t gs ARG_LD)
+{ if ( onStackArea(local, *p) )
   { update_pointer(p, ls);
-  } else if ( onGlobalArea(*ptr) )
+  } else if ( onGlobalArea(*p) )
   { update_pointer(p, gs);
   }
 }

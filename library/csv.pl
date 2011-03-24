@@ -273,7 +273,7 @@ emit_fields([H|T], Options) -->
 	).
 
 emit_field(H, Options) -->
-	{ atom(H),
+	{ atom(H), !,
 	  atom_codes(H, Codes)
 	},
 	(   { needs_quotes(H, Options) }

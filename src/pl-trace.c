@@ -135,6 +135,16 @@ PL_unify_choice(term_t t, Choice ch)
 }
 
 
+static inline int
+valid_choice(Choice ch ARG_LD)
+{ if ( (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG &&
+       onStack(local, ch->frame) )
+    return TRUE;
+
+  return FALSE;
+}
+
+
 static int
 PL_get_choice(term_t r, Choice *chp)
 { GET_LD
@@ -143,7 +153,9 @@ PL_get_choice(term_t r, Choice *chp)
   if ( PL_get_long(r, &i) )
   { Choice ch = ((Choice)((Word)lBase + i));
 
-    assert(ch >= (Choice)lBase && ch < (Choice)lTop);
+    if ( !(ch >= (Choice)lBase && ch < (Choice)lTop) ||
+	 !valid_choice(ch PASS_LD) )
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, r);
     *chp = ch;
 
     succeed;

@@ -318,7 +318,7 @@ $(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
 defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
-swipl-ld:	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h
+swipl-ld:	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c
 
 tags::

@@ -10,7 +10,7 @@ preferences.
 
 Installation:
 
-	Unix:		~/.plrc
+	Unix/MacOS:	~/.plrc
 	Windows:	<appdata>/pl.ini (see win_folder(appdata, AppData))
 
 More hints on useful things you  can  put   into  this  file  are in the
@@ -39,17 +39,31 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 	).
 
 		 /*******************************
+		 *	       IDE		*
+		 *******************************/
+
+%	Use this if you want to run  the development tools in a separate
+%	thread. Doing allows you to use   the editor, thread monitor and
+%	other tools while you  are  running   a  (long)  query  from the
+%	toplevel.
+%
+%	HIGHLY EXPERIMENTAL
+
+% :- set_prolog_flag(xpce_threaded, true).
+
+
+		 /*******************************
 		 *	      EDITOR		*
 		 *******************************/
 
 %	Define the editor to use.  Note that more advanced manipulation
 %	of this is defined in the SWI-Prolog reference manual, section
 %	"Listing and Editor Interface"
-%	
+%
 %	The value pce_emacs (or built_in) causes the system to use the
 %	built-in editor PceEmacs if the environment provides for a GUI.
 %	pce_emacs is the default if XPCE is available.
-%	
+%
 %	The second entry defines an arbitrary editor and how to tell
 %	SWI-Prolog to open a file with it on a specified line-number.
 
@@ -99,6 +113,9 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 		 *******************************/
 
 %	If you want to access the command-history like a Unix shell,
-%	set this to the number of commands to remember.
+%	set this to the number of commands to remember.  Systems that
+%	use GNU readline (Unix) can enable saving the history on a
+%	per-directory bases using the call to prolog_history/1.
 
 % :- set_prolog_flag(history, 50).
+% :- prolog_history(enable).

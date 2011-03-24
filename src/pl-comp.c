@@ -4724,11 +4724,14 @@ unify_vmi(term_t t, Clause clause, Code bp)
 	  break;
 	}
 	case CA1_FLOAT:
-	{ double d;
-	  Word dp = (Word)&d;
+	{ union
+	  { double d;
+	    word   w[WORDS_PER_DOUBLE];
+	  } v;
+	  Word f = v.w;
 
-	  cpDoubleData(dp, bp);
-	  rc = PL_put_float(av+an, d);
+	  cpDoubleData(f, bp);
+	  rc = PL_put_float(av+an, v.d);
 	  break;
 	}
 	case CA1_INT64:
@@ -5236,7 +5239,7 @@ add_node(term_t tail, int n ARG_LD)
 
 static void
 add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
-{ while(PC < end && fetchop(PC) == C_VAR )
+{ while(PC < end && (fetchop(PC) == C_VAR || fetchop(PC) == C_VAR_N) )
     PC = stepPC(PC);
 
   if ( PC != end )
@@ -5348,18 +5351,27 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	PC = endloc;
 	continue;
       }
-      case C_NOT:		/* C_NOT <var> <jmp> <A> C_CUT <var>, C_FAIL */
-      { endloc = nextpc+PC[2];
+      case C_NOT:	/* C_NOT <var> <jmp> <A> C_CUT <var>, C_FAIL, */
+      { Code endnot;	/* [C_JUMP <N>, C_VAR*] */
+	endloc = nextpc+PC[2];
 	PC = nextpc;
 
-	DEBUG(1, Sdprintf("not: PC= %d, endloc = %d\n",
-			  PC - clause->codes, endloc - clause->codes));
+	endnot = endloc-3;
+	if ( endnot[0] != encode(C_CUT) )
+	{ endnot -= 2;
+	  assert(endnot[0] == encode(C_CUT));
+	}
 
-	if ( loc <= endloc-3 )		/* in the \+ argument */
+	DEBUG(1, Sdprintf("not: PC=%d, endnot=%d, endloc=%d\n",
+			  PC - clause->codes,
+			  endnot - clause->codes,
+			  endloc - clause->codes));
+
+	if ( loc <= endnot )		/* in the \+ argument */
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  add_node(tail, 1 PASS_LD);
-	  end = endloc-3;		/* C_CUT <var>, C_FAIL */
+	  end = endnot;			/* C_CUT <var>, C_FAIL */
 	  DEBUG(1, Sdprintf("Inside not: PC=%d, end = %d\n",
 			    PC - clause->codes, end - clause->codes));
 	  continue;

@@ -39,7 +39,7 @@ typedef struct
   char *	top;			/* pointer to top */
   char *	max;			/* current location */
   char		static_buffer[sizeof(char *)];
-} buffer, *Buffer;
+} MAY_ALIAS buffer, *Buffer;
 
 void	growBuffer(Buffer b, size_t minfree);
 
