@@ -148,7 +148,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       { size_t sz = mpz_sizeinbase(n.value.mpz, 10) + 2;
 	Buffer b  = findBuffer(BUF_RING);
 
-	growBuffer(b, sz);
+	if ( !growBuffer(b, sz) )
+	  outOfCore();
 	mpz_get_str(b->base, 10, n.value.mpz);
 	b->top = b->base + strlen(b->base);
 	text->text.t  = baseBuffer(b, char);

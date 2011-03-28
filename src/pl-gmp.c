@@ -300,7 +300,8 @@ addMPZToBuffer(Buffer b, mpz_t mpz)
   long hdrsize;
   size_t count;
 
-  growBuffer(b, size+4);
+  if ( !growBuffer(b, size+4) )
+    outOfCore();
   if ( mpz_sgn(mpz) < 0 )
     hdrsize = -(long)size;
   else
