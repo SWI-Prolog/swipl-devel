@@ -166,7 +166,9 @@ typedef struct
 #define addUnalignedBuf(b, ptr, type) \
 	do \
 	{ if ( (b)->top + sizeof(type) > (b)->max ) \
-	    growBuffer((Buffer)b, sizeof(type)); \
+	  { if ( !growBuffer((Buffer)b, sizeof(type)) ) \
+	      outOfCore(); \
+	  } \
 	  memcpy((b)->top, ptr, sizeof(type)); \
 	  (b)->top += sizeof(type); \
 	} while(0)

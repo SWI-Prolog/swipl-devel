@@ -3318,7 +3318,8 @@ registerBuiltinFunctions()
   const ar_funcdef *d;
 
 					/* grow to desired size immediately */
-  growBuffer(function_array, size * sizeof(ArithFunction));
+  if ( !growBuffer(function_array, size * sizeof(ArithFunction)) )
+    outOfCore();
   memset(f, 0, size * sizeof(struct arithFunction));
 
   for(d = ar_funcdefs, n=0; n<size; n++, f++, d++)

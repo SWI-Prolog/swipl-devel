@@ -736,6 +736,16 @@ PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD)
 }
 
 
+#undef PL_get_atom_ex
+int
+PL_get_atom_ex(term_t t, atom_t *a)
+{ GET_LD
+
+  return PL_get_atom_ex__LD(t, a PASS_LD);
+}
+#define PL_get_atom_ex(t, a)	PL_get_atom_ex__LD(t, a PASS_LD)
+
+
 int
 PL_get_integer_ex(term_t t, int *i)
 { GET_LD

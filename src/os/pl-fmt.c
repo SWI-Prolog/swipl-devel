@@ -1008,7 +1008,8 @@ formatFloat(int how, int arg, Number f, Buffer out)
       while(written >= size)
       { size = written+1;
 
-	growBuffer(out, size);		/* reserve for -.e<null> */
+	if ( !growBuffer(out, size) )	/* reserve for -.e<null> */
+	  outOfCore();
 	written = gmp_snprintf(baseBuffer(out, char), size, tmp, mpf);
       }
       mpf_clear(mpf);
@@ -1029,7 +1030,8 @@ formatFloat(int how, int arg, Number f, Buffer out)
       while(written >= size)
       { size = written+1;
 
-	growBuffer(out, size);
+	if ( !growBuffer(out, size) )
+	  outOfCore();
 	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
       }
       out->top = out->base + written;

@@ -22,6 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #define AC_TERM_WALK 1
 #include "pl-termwalk.c"
@@ -29,6 +30,283 @@
 #ifdef __WINDOWS__
 typedef unsigned int uint32_t;
 #endif
+
+
+		 /*******************************
+		 *	    TERM_HASH/2		*
+		 *******************************/
+
+#define CYCLE_CONST 123456
+#define nodeID(ptr, b) ((ptr)-baseBuffer(b, th_data))
+#define nodePTR(id, b) (baseBuffer(b, th_data) + (id))
+
+
+typedef struct th_data
+{ size_t	parent_offset;		/* My parent */
+  Functor	term;			/* Term being processed */
+  functor_t	functor;		/* Functor of the term */
+  unsigned int	hash;			/* Hash collected sofar */
+  unsigned	arg : 31;		/* Current argument */
+  unsigned	in_cycle : 1;		/* We are part of a cycle */
+} th_data;
+
+
+static void *
+allocBuffer(Buffer b, size_t size)
+{ void *ptr;
+
+  if ( b->top + size > b->max )
+  { if ( !growBuffer(b, size) )
+      return NULL;
+  }
+  ptr = b->top;
+  b->top += size;
+
+  return ptr;
+}
+
+
+static int
+primitiveHashValue(word term, unsigned int *hval ARG_LD)
+{ switch(tag(term))
+  { case TAG_VAR:
+    case TAG_ATTVAR:
+      return FALSE;
+    case TAG_ATOM:
+    { *hval = MurmurHashAligned2(&atomValue(term)->hash_value,
+				 sizeof(unsigned int), *hval);
+      return TRUE;
+    }
+    case TAG_STRING:
+    { size_t len;
+      char *s;
+
+      s = getCharsString(term, &len);
+      *hval = MurmurHashAligned2(s, len, *hval);
+
+      return TRUE;
+    }
+    case TAG_INTEGER:
+      if ( storage(term) == STG_INLINE )
+      { int64_t v = valInt(term);
+
+	*hval = MurmurHashAligned2(&v, sizeof(v), *hval);
+
+	return TRUE;
+      }
+    /*FALLTHROUGH*/
+    case TAG_FLOAT:
+      { Word p = addressIndirect(term);
+	size_t n = wsizeofInd(*p);
+
+	*hval = MurmurHashAligned2(p+1, n*sizeof(word), *hval);
+
+	return TRUE;
+      }
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+
+static void
+start_term(th_data *work, Buffer b, word w ARG_LD)
+{ atom_t name;
+
+  work->term     = valueTerm(w);
+  work->functor  = work->term->definition;
+  work->hash     = MURMUR_SEED;
+  work->arg      = 0;
+  work->in_cycle = 0;
+
+  name = nameFunctor(work->functor);
+  work->hash = MurmurHashAligned2(&atomValue(name)->hash_value,
+				  sizeof(unsigned int), work->hash);
+
+  DEBUG(1, Sdprintf("Added node %ld, %s/%d, hash=%d\n",
+		    nodeID(work, b),
+		    stringAtom(name), arityFunctor(work->functor),
+		    work->hash));
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) This deals with A = s(A), hash_term(s(s(A)), Hash)
+This is not enough.  Consider:
+
+	Term = [X=s(Y),Y=Y], %where
+	X = s(Y),
+	Y = [X|X].
+
+Making every parent a cycle works, but might loose a bit too much :-(
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Word
+next_arg(th_data **workp, Buffer b ARG_LD)
+{ th_data *work = *workp;
+
+  for(;;)
+  { if ( work->arg < arityFunctor(work->functor) )
+    { Word p = &work->term->arguments[work->arg];
+
+      DEBUG(1, Sdprintf("-> arg %d from node %ld\n",
+			work->arg, nodeID(work, b)));
+
+      deRef(p);
+      return p;
+    } else if ( work->parent_offset != (size_t)-1 )
+    { th_data *parent = nodePTR(work->parent_offset, b);
+      unsigned int myhash;
+
+      myhash = work->in_cycle ? CYCLE_CONST : work->hash;
+      parent->hash = MurmurHashAligned2(&myhash, sizeof(myhash),
+					parent->hash);
+      if ( work->in_cycle /*&& parent->functor == work->functor*/ ) /* (*) */
+      { DEBUG(1, Sdprintf("Mark parent %ld as cycle\n",
+			  nodeID(parent, b)));
+	parent->in_cycle = TRUE;
+      }
+      DEBUG(1, Sdprintf("Updated hash in node %ld%s to %d\n",
+			work->parent_offset,
+			work->in_cycle ? " (cycle)" : "",
+			parent->hash));
+
+      work = *workp = parent;
+      work->arg++;
+    } else
+    { return NULL;
+    }
+  }
+}
+
+
+static void
+update_cycle(th_data *here, th_data *start, Buffer b)
+{ unsigned int myhash = CYCLE_CONST;
+
+  here->hash = MurmurHashAligned2(&myhash, sizeof(myhash),
+				  here->hash);
+  DEBUG(1, Sdprintf("here = %ld, hash -> %d\n",
+		    nodeID(here, b), here->hash));
+
+  for(;;)
+  { DEBUG(1, Sdprintf("Marking cycle for node %ld\n",
+		      nodeID(here, b)));
+    here->in_cycle = TRUE;
+    if ( here == start )
+      break;
+    here = nodePTR(here->parent_offset, b);
+  }
+}
+
+
+static int
+termHashValue(Word p, unsigned int *hval ARG_LD)
+{ deRef(p);
+  if ( !isTerm(*p) )
+  { *hval = MURMUR_SEED;
+    return primitiveHashValue(*p, hval PASS_LD);
+  } else
+  { tmp_buffer tmp;
+    Buffer b = (Buffer)&tmp;
+    th_data *work;
+    int rc = TRUE;
+    Functor t = valueTerm(*p);
+
+    initBuffer(&tmp);
+    work = allocBuffer(b, sizeof(*work));
+    start_term(work, b, *p PASS_LD);
+    work->parent_offset = (size_t)-1;
+    t->definition = consInt(0);
+
+    while ( (p = next_arg(&work, b PASS_LD)) )
+    { if ( !isTerm(*p) )
+      { if ( primitiveHashValue(*p, &work->hash PASS_LD) )
+	{ work->arg++;
+	} else
+	{ rc = FALSE;
+	  goto out;
+	}
+      } else
+      { Functor t = valueTerm(*p);
+
+	if ( isInteger(t->definition) )
+	{ th_data *seen = nodePTR(valInt(t->definition), b);
+
+	  if ( seen->arg < arityFunctor(seen->functor) )
+	  { DEBUG(1, Sdprintf("cycle to %ld\n", valInt(t->definition)));
+	    update_cycle(work, seen, b);
+	  } else
+	  { unsigned int shash = seen->in_cycle ? CYCLE_CONST : seen->hash;
+
+	    work->hash = MurmurHashAligned2(&shash, sizeof(shash), work->hash);
+	    DEBUG(1, Sdprintf("shared with %ld, reusing hash %d node %ld -> %d\n",
+			      valInt(t->definition), seen->hash,
+			      nodeID(work, b), work->hash));
+	    if ( seen->in_cycle /*&& seen->functor == work->functor*/ )
+	      work->in_cycle = TRUE;
+	  }
+	  work->arg++;
+	} else
+	{ size_t parent = nodeID(work, b);
+
+	  if ( !(work = allocBuffer(b, sizeof(*work))) )
+	  { rc = -1;			/* out of memory */
+	    goto out;
+	  }
+	  start_term(work, b, *p PASS_LD);
+	  work->parent_offset = parent;
+	  t->definition = consInt(nodeID(work, b));
+	}
+      }
+    }
+					/* restore */
+  out:;
+    th_data *d	 = baseBuffer(b, th_data);
+    th_data *end = d + entriesBuffer(b, th_data);
+
+    if ( rc == TRUE )
+      *hval = d->hash;
+
+    for(; d<end; d++)
+    { d->term->definition = d->functor;
+    }
+
+    discardBuffer(b);
+
+    if ( rc < 0 )
+      rc = PL_error(NULL, 0, NULL, ERR_NOMEM);
+
+    return rc;
+  }
+}
+
+
+/* term_hash(+Term, -HashKey) */
+
+static
+PRED_IMPL("term_hash", 2, term_hash, 0)
+{ GET_LD
+  Word p = valTermRef(A1);
+  unsigned int hraw;
+  int rc;
+
+  rc = termHashValue(p, &hraw PASS_LD);
+
+  if ( rc )
+  { hraw = hraw & PLMAXTAGGEDINT32;	/* ensure tagged (portable) */
+
+    return PL_unify_integer(A2, hraw);
+  }
+
+  return TRUE;
+}
+
+
+		 /*******************************
+		 *	    VARIANT SHA1	*
+		 *******************************/
 
 /* type to hold the SHA256 context  */
 
@@ -223,6 +501,7 @@ PRED_IMPL("variant_sha1", 2, variant_sha1, 0)
 
 BeginPredDefs(termhash)
   PRED_DEF("variant_sha1", 2, variant_sha1, 0)
+  PRED_DEF("term_hash",    2, term_hash,    0)
 EndPredDefs
 
 		 /*******************************

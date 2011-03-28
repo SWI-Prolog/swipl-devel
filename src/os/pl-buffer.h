@@ -41,12 +41,14 @@ typedef struct
   char		static_buffer[sizeof(char *)];
 } MAY_ALIAS buffer, *Buffer;
 
-void	growBuffer(Buffer b, size_t minfree);
+int	growBuffer(Buffer b, size_t minfree);
 
 #define addBuffer(b, obj, type) \
 	do \
 	{ if ( (b)->top + sizeof(type) > (b)->max ) \
-	    growBuffer((Buffer)b, sizeof(type)); \
+	  { if ( !growBuffer((Buffer)b, sizeof(type)) ) \
+	      outOfCore(); \
+	  } \
  	  *((type *)(b)->top) = obj; \
           (b)->top += sizeof(type); \
 	} while(0)
@@ -57,7 +59,9 @@ void	growBuffer(Buffer b, size_t minfree);
           size_t _len = _tms * sizeof(type); \
           type *_d, *_s = (type *)ptr; \
 	  if ( (b)->top + _len > (b)->max ) \
-	    growBuffer((Buffer)b, _len); \
+	  { if ( !growBuffer((Buffer)b, _len) ) \
+	      outOfCore(); \
+	  } \
           _d = (type *)(b)->top; \
           while ( _tms-- ) \
 	    *_d++ = *_s++; \

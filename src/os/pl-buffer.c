@@ -24,13 +24,13 @@
 
 #include "pl-incl.h"
 
-void
+int
 growBuffer(Buffer b, size_t minfree)
 { size_t osz = b->max - b->base, sz = osz;
   size_t top = b->top - b->base;
 
   if ( b->max - b->top >= (int)minfree )
-    return;
+    return TRUE;
 
   if ( sz < 512 )
     sz = 512;				/* minimum reasonable size */
@@ -40,12 +40,12 @@ growBuffer(Buffer b, size_t minfree)
   if ( b->base != b->static_buffer )
   { b->base = realloc(b->base, sz);
     if ( !b->base )
-      outOfCore();
+      return FALSE;
   } else			/* from static buffer */
   { char *new;
 
     if ( !(new = malloc(sz)) )
-      outOfCore();
+      return FALSE;
 
     memcpy(new, b->static_buffer, osz);
     b->base = new;
@@ -53,6 +53,8 @@ growBuffer(Buffer b, size_t minfree)
 
   b->top = b->base + top;
   b->max = b->base + sz;
+
+  return TRUE;
 }
 
 
