@@ -263,14 +263,15 @@ termHashValue(Word p, unsigned int *hval ARG_LD)
     }
 					/* restore */
   out:;
-    th_data *d	 = baseBuffer(b, th_data);
-    th_data *end = d + entriesBuffer(b, th_data);
+    { th_data *d   = baseBuffer(b, th_data);
+      th_data *end = d + entriesBuffer(b, th_data);
 
-    if ( rc == TRUE )
-      *hval = d->hash;
+      if ( rc == TRUE )
+	*hval = d->hash;
 
-    for(; d<end; d++)
-    { d->term->definition = d->functor;
+      for(; d<end; d++)
+      { d->term->definition = d->functor;
+      }
     }
 
     discardBuffer(b);
