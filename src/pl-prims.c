@@ -1325,28 +1325,6 @@ termHashValue(word term, long depth, unsigned int *hval ARG_LD)
 }
 
 
-/* term_hash(+Term, -HashKey) */
-
-static
-PRED_IMPL("term_hash", 2, term_hash, 0)
-{ PRED_LD
-  Word p = valTermRef(A1);
-  unsigned int hraw = MURMUR_SEED;
-  int rc;
-
-  initvisited(PASS_LD1);
-  rc = termHashValue(*p, -1, &hraw PASS_LD);
-  assert(empty_visited(PASS_LD1));
-
-  if ( rc )
-  { hraw = hraw & PLMAXTAGGEDINT32;	/* ensure tagged (portable) */
-
-    return PL_unify_integer(A2, hraw);
-  }
-
-  succeed;
-}
-
 /* term_hash(+Term, +Depth, +Range, -HashKey) */
 
 static
@@ -5341,7 +5319,6 @@ BeginPredDefs(prims)
   PRED_DEF("$e_free_variables", 2, e_free_variables, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_TERMHASH
-  PRED_DEF("term_hash", 2, term_hash, 0)
   PRED_DEF("term_hash", 4, term_hash4, 0)
 #endif
   PRED_DEF("copy_term", 2, copy_term, PL_FA_ISO)
