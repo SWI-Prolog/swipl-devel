@@ -1,4 +1,4 @@
-#!/home/jan/bin/pl -q -g true -t main -s
+#!/home/jan/bin/swipl -q -g true -t main -s
 
 :- use_module(library(debug)).
 :- use_module(safe).

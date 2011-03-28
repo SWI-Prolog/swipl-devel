@@ -19,9 +19,6 @@ function basesource
     pl-read.c)
 	echo $1 pl-umap.c
 	;;
-    pl-gc.c)
-	echo $1 pl-lifegc.c
-	;;
     *)
 	echo $1
 	;;

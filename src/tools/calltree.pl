@@ -1,4 +1,4 @@
-#!/home/jan/bin/pl -q -g true -t main -G4g -T4g -s
+#!/home/jan/bin/swipl -q -g true -t main -G4g -T4g -s
 
 :- use_module(sexp).
 :- use_module(library(debug)).
@@ -28,7 +28,7 @@ terms([_|T], Function, Out) :-
 function_comment(Comment, Function) :-
 	atomic_list_concat(['Function',Function|_], ' ', Comment).
 
-calls([_, _, _, Where|Rest], File, Line, Callee) :-
+calls([_, _, _, _, Where|Rest], File, Line, Callee) :-
 	atom(Where),
 	atomic_list_concat([File,LineTxt], ':', Where),
 	atom_number(LineTxt, Line),
