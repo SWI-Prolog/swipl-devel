@@ -7,12 +7,10 @@
 # On some machines LD_LIBRARY_PATH is called different.  The configure
 # variable DLLIBVAR holds its name.
 
-BUILDDIR=@BUILDDIR@
-srcdir=`echo @abs_srcdir@ | sed 's=/../packages$=='`
+bdir=@abs_top_builddir@
 ARCH=@ARCH@
 PL=@PL@
-bdir=$srcdir/../$BUILDDIR
-ldir=$srcdir/../lib/$ARCH
+ldir=$bdir/../lib/$ARCH
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$ldir
