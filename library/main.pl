@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -68,16 +69,10 @@ echo([H|T]) :-
 %	Call main/1 using the passed command-line arguments.
 
 main :-
-	on_signal(int, _, prolog_main:interrupt),
 	context_module(M),
-	current_prolog_flag(argv, Argv),
-	(   append(_, [--|Av], Argv)
-	->  run_main(M, Av)
-	;   current_prolog_flag(windows, true)
-	->  Argv = [_Prog|Av],
-	    run_main(M, Av)
-	;   run_main(M, [])
-	).
+	set_signals,
+	argv(Av),
+	run_main(M, Av).
 
 %%	run_main(+Module, +Args)
 %
@@ -94,6 +89,18 @@ run_main(Module, Av) :-
 	;   print_message(error, goal_failed(main(Av))),
 	    halt(1)
 	).
+
+argv(Av) :-
+	current_prolog_flag(argv, Argv),
+	(   append(_, [--|Av], Argv)
+	->  true
+	;   current_prolog_flag(windows, true)
+	->  Argv = [_Prog|Av]
+	;   Av = []
+	).
+
+set_signals :-
+	on_signal(int, _, interrupt).
 
 %%	interrupt(+Signal)
 %
