@@ -182,7 +182,7 @@ meta_predicate/1 for details.
 %	successive pairs of elements from List1 and List2.
 
 maplist(Goal, L1, L2) :-
-	maplist_(L1, L2, G).
+	maplist_(L1, L2, Goal).
 
 maplist_([], [], _).
 maplist_([H0|T0], [H|T], Goal) :-
