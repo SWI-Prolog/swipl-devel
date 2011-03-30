@@ -36,7 +36,7 @@ function source
 }
 
 
-function update
+update()
 { base=`echo $1 | sed 's/\.c.*/.c/'`
   tout="$base.tree"
   fout="$base.functions"
@@ -65,11 +65,20 @@ function update
   fi
 }
 
+ext_builtins()
+{ funcs=`nm pl-ext.o | grep 'U pl_' | awk '{ print $2 }'`
+  for f in $funcs; do
+    grep -w $f pl-ext.c | sed 's/.*"\(.*\)",[ 	]*\([0-9]*\).*/predicate('"'"'\1'"'"', \2, '$f')./'
+  done
+}
+
 if [ -z "$1" ]; then
    files="*.expand"
 else
    files="$*"
 fi
+
+ext_builtins > buildin-predicates
 
 for f in $files; do
    if ! update $f; then

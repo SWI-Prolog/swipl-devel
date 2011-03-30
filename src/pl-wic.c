@@ -756,7 +756,7 @@ getBlob(wic_state *state ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Returns FALSE while leavind a resource exception   if the term cannot be
+Returns FALSE while leaving a resource exception if the term cannot be
 allocated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
