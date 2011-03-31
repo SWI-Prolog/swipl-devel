@@ -435,6 +435,8 @@ can_unify(Word t1, Word t2, term_t *ex)
       return TRUE;
     }
 
+    if ( !*ex && exception_term )	/* overflow exceptions from unify() */
+      *ex = exception_term;
     PL_discard_foreign_frame(fid);
   }
 
