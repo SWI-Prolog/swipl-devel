@@ -3160,24 +3160,6 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
   return unifiable(A1, A2, A3 PASS_LD);
 }
 
-#if O_CYCLIC
-
-		 /*******************************
-		 *	       CYCLES		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-term_cycles(+Term, -Cycles)
-is_cycle(+SubTerm, +Cycles)
-
-term_cycles(+Term, -Cycles) returns a binary tree  holding the cycles of
-Term sorted by address. The tree   is  represented as cycle(Cycle, Left,
-Right) where [] represents terminals.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-
-#endif /*O_CYCLIC*/
 
 		 /*******************************
 		 *	    COPY TERM		*
