@@ -218,11 +218,13 @@ Returns one of:
 static int
 do_unify(Word t1, Word t2 ARG_LD)
 { term_agendaLR agenda;
+  int compound = FALSE;
   int rc = FALSE;
 
-  initTermAgendaLR(&agenda, t1, t2);
+  deRef(t1);
+  deRef(t2);
 
-  while(nextTermAgendaLR(&agenda, &t1, &t2))
+  do
   { word w1 = *t1;
     word w2 = *t2;
 
@@ -318,19 +320,33 @@ do_unify(Word t1, Word t2 ARG_LD)
 	if ( f1->definition != f2->definition )
 	  goto out_fail;
 	arity = arityFunctor(f1->definition);
+
+	if ( !compound )
+	{ compound = TRUE;
+	  initCyclic(PASS_LD1);
+	  initTermAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
+	} else
+	{ pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
+	}
+
 	linkTermsCyclic(f1, f2 PASS_LD);
 
-	pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
 	continue;
       }
     }
-  }
+  } while(compound && nextTermAgendaLR(&agenda, &t1, &t2));
 
-  clearTermAgendaLR(&agenda);
+  if ( compound )
+  { clearTermAgendaLR(&agenda);
+    exitCyclic(PASS_LD1);
+  }
   return TRUE;
 
 out_fail:
-  clearTermAgendaLR(&agenda);
+  if ( compound )
+  { clearTermAgendaLR(&agenda);
+    exitCyclic(PASS_LD1);
+  }
   return rc;
 }
 
@@ -339,14 +355,7 @@ static int
 raw_unify_ptrs(Word t1, Word t2 ARG_LD)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
-    { int rc;
-
-      initCyclic(PASS_LD1);
-      rc = do_unify(t1, t2 PASS_LD);
-      exitCyclic(PASS_LD1);
-
-      return rc;
-    }
+      return do_unify(t1, t2 PASS_LD);
     case OCCURS_CHECK_TRUE:
       return unify_with_occurs_check(t1, t2, OCCURS_CHECK_TRUE PASS_LD);
     case OCCURS_CHECK_ERROR:
@@ -1570,7 +1579,7 @@ compareStandard(Word p1, Word p2, int eq ARG_LD)
   int rc;
 
   initCyclic(PASS_LD1);
-  initTermAgendaLR(&agenda, p1, p2);
+  initTermAgendaLR(&agenda, 1, p1, p2);
   rc = do_compare(&agenda, eq PASS_LD);
   clearTermAgendaLR(&agenda);
   exitCyclic(PASS_LD1);

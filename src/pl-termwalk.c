@@ -230,12 +230,12 @@ typedef struct term_agendaLR
 
 
 static void
-initTermAgendaLR(term_agendaLR *a, Word left, Word right)
+initTermAgendaLR(term_agendaLR *a, size_t count, Word left, Word right)
 { initSegStack(&a->stack, sizeof(aNodeLR),
 	       sizeof(a->first_chunk), a->first_chunk);
   a->work.left  = left;
   a->work.right = right;
-  a->work.size  = 1;
+  a->work.size  = count;
 }
 
 
