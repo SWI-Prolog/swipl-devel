@@ -326,7 +326,10 @@ do_unify(Word t1, Word t2 ARG_LD)
 	  initCyclic(PASS_LD1);
 	  initTermAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
 	} else
-	{ pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
+	{ if ( !pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto out_fail;
+	  }
 	}
 
 	linkTermsCyclic(f1, f2 PASS_LD);
@@ -390,9 +393,7 @@ PRED_IMPL("\\=", 2, not_unify, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Public unification procedure for `raw' data.   See also PL_unify(). Note
-that we can have an exception due   to occurs-check errors. In this case
-we must undo carefully to preserve the exception term.
+Public unification procedure for `raw' data.   See also PL_unify().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
@@ -403,6 +404,8 @@ unify_ptrs(Word t1, Word t2, int flags ARG_LD)
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc >= 0 )
     { return rc;
+    } else if ( rc == MEMORY_OVERFLOW )
+    { return PL_error(NULL, 0, NULL, ERR_NOMEM);
     } else				/* Stack overflow */
     { int rc2;
 

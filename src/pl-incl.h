@@ -1735,6 +1735,7 @@ typedef struct
 #define	GLOBAL_OVERFLOW	  (-2)
 #define	TRAIL_OVERFLOW	  (-3)
 #define	ARGUMENT_OVERFLOW (-4)
+#define	MEMORY_OVERFLOW   (-5)		/* out of malloc()-heap */
 
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1
