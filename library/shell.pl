@@ -155,7 +155,8 @@ ls__([]) :- !,
 	fail.
 ls__(Files) :-
 	maplist(tag_file, Files, Tagged),
-	list_atoms(Tagged, 72).
+	tty_size(_, Width),
+	list_atoms(Tagged, Width).
 
 tag_file(File, Dir) :-
 	exists_directory(File),	!,
@@ -207,7 +208,7 @@ list_atoms(List, W) :-
 	length(List, L),
 	Term =.. [l|List],
 	longest(List, Longest),
-	Columns is W // (Longest + 3),
+	Columns is max(1, W // (Longest + 3)),
 	Rows is integer(L / Columns + 0.49999),	% should be ceil/1
 	ColumnWidth is W // Columns,
 	Max is Columns * Rows - 1,
