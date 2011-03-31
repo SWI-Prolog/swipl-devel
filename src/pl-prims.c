@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -216,121 +217,121 @@ Returns one of:
 
 static int
 do_unify(Word t1, Word t2 ARG_LD)
-{
-  word w1;
-  word w2;
+{ term_agendaLR agenda;
+  int rc = FALSE;
 
-right_recursion:
-  w1 = *t1;
-  w2 = *t2;
+  initTermAgendaLR(&agenda, t1, t2);
 
-  while(isRef(w1))			/* this is deRef() */
-  { t1 = unRef(w1);
-    w1 = *t1;
-  }
-  while(isRef(w2))
-  { t2 = unRef(w2);
-    w2 = *t2;
-  }
+  while(nextTermAgendaLR(&agenda, &t1, &t2))
+  { word w1 = *t1;
+    word w2 = *t2;
 
-  SECURE(assert(w1 != ATOM_garbage_collected);
-	 assert(w2 != ATOM_garbage_collected));
+    SECURE(assert(w1 != ATOM_garbage_collected);
+	   assert(w2 != ATOM_garbage_collected));
 
-  if ( isVar(w1) )
-  { if ( unlikely(tTop+1 >= tMax) )
-      return TRAIL_OVERFLOW;
-
-    if ( isVar(w2) )
-    { if ( t1 < t2 )			/* always point downwards */
-      { Trail(t2, makeRef(t1));
-	return TRUE;
+    if ( isVar(w1) )
+    { if ( unlikely(tTop+1 >= tMax) )
+      { rc = TRAIL_OVERFLOW;
+	goto out_fail;
       }
-      if ( t1 == t2 )
-	succeed;
-      Trail(t1, makeRef(t2));
-      return TRUE;
+
+      if ( isVar(w2) )
+      { if ( t1 < t2 )			/* always point downwards */
+	{ Trail(t2, makeRef(t1));
+	  continue;
+	}
+	if ( t1 == t2 )
+	  continue;
+	Trail(t1, makeRef(t2));
+	continue;
+      }
+  #ifdef O_ATTVAR
+      if ( isAttVar(w2 ) )
+	w2 = makeRef(t2);
+  #endif
+      Trail(t1, w2);
+      continue;
     }
-#ifdef O_ATTVAR
-    if ( isAttVar(w2 ) )
-      w2 = makeRef(t2);
-#endif
-    Trail(t1, w2);
-    return TRUE;
-  }
-  if ( isVar(w2) )
-  { if ( unlikely(tTop+1 >= tMax) )
-      return TRAIL_OVERFLOW;
-#ifdef O_ATTVAR
+    if ( isVar(w2) )
+    { if ( unlikely(tTop+1 >= tMax) )
+      { rc = TRAIL_OVERFLOW;
+	goto out_fail;
+      }
+  #ifdef O_ATTVAR
+      if ( isAttVar(w1) )
+	w1 = makeRef(t1);
+  #endif
+      Trail(t2, w1);
+      continue;
+    }
+
+  #ifdef O_ATTVAR
     if ( isAttVar(w1) )
-      w1 = makeRef(t1);
-#endif
-    Trail(t2, w1);
-    return TRUE;
-  }
+    { if ( !hasGlobalSpace(0) )
+      { rc = overflowCode(0);
+	goto out_fail;
+      }
+      assignAttVar(t1, t2 PASS_LD);
+      continue;
+    }
+    if ( isAttVar(w2) )
+    { if ( !hasGlobalSpace(0) )
+      { rc = overflowCode(0);
+	goto out_fail;
+      }
+      assignAttVar(t2, t1 PASS_LD);
+      continue;
+    }
+  #endif
 
-#ifdef O_ATTVAR
-  if ( isAttVar(w1) )
-  { if ( !hasGlobalSpace(0) )
-      return overflowCode(0);
-    assignAttVar(t1, t2 PASS_LD);
-    return TRUE;
-  }
-  if ( isAttVar(w2) )
-  { if ( !hasGlobalSpace(0) )
-      return overflowCode(0);
-    assignAttVar(t2, t1 PASS_LD);
-    return TRUE;
-  }
-#endif
+    if ( w1 == w2 )
+      continue;
+    if ( tag(w1) != tag(w2) )
+      goto out_fail;
 
-  if ( w1 == w2 )
-    succeed;
-  if ( tag(w1) != tag(w2) )
-    fail;
-
-  switch(tag(w1))
-  { case TAG_ATOM:
-      fail;
-    case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE ||
-	   storage(w2) == STG_INLINE )
-	fail;
-    case TAG_STRING:
-    case TAG_FLOAT:
-      return equalIndirect(w1, w2);
-    case TAG_COMPOUND:
-    { Functor f1 = valueTerm(w1);
-      Functor f2 = valueTerm(w2);
-      Word e;
+    switch(tag(w1))
+    { case TAG_ATOM:
+	goto out_fail;
+      case TAG_INTEGER:
+	if ( storage(w1) == STG_INLINE ||
+	     storage(w2) == STG_INLINE )
+	  goto out_fail;;
+      case TAG_STRING:
+      case TAG_FLOAT:
+	if ( equalIndirect(w1, w2) )
+	  continue;
+        goto out_fail;
+      case TAG_COMPOUND:
+      { Functor f1 = valueTerm(w1);
+	Functor f2 = valueTerm(w2);
+	int arity;
 
 #if O_CYCLIC
-      while ( isRef(f1->definition) )
-	f1 = (Functor)unRef(f1->definition);
-      while ( isRef(f2->definition) )
-	f2 = (Functor)unRef(f2->definition);
-      if ( f1 == f2 )
-	succeed;
+	while ( isRef(f1->definition) )
+	  f1 = (Functor)unRef(f1->definition);
+	while ( isRef(f2->definition) )
+	  f2 = (Functor)unRef(f2->definition);
+	if ( f1 == f2 )
+	  continue;
 #endif
 
-      if ( f1->definition != f2->definition )
-	fail;
+	if ( f1->definition != f2->definition )
+	  goto out_fail;
+	arity = arityFunctor(f1->definition);
+	linkTermsCyclic(f1, f2 PASS_LD);
 
-      t1 = f1->arguments;
-      t2 = f2->arguments;
-      e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
-      linkTermsCyclic(f1, f2 PASS_LD);
-
-      for(; t1 < e; t1++, t2++)
-      { int rc;
-
-	if ( (rc=do_unify(t1, t2 PASS_LD)) <= 0 )
-	  return rc;
+	pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
+	continue;
       }
-      goto right_recursion;
     }
   }
 
-  succeed;
+  clearTermAgendaLR(&agenda);
+  return TRUE;
+
+out_fail:
+  clearTermAgendaLR(&agenda);
+  return rc;
 }
 
 
