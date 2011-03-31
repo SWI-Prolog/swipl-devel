@@ -72,7 +72,7 @@ nextTermAgenda__LD(term_agenda *a ARG_LD)
 { Word p;
 
   while ( a->work.size == 0 )
-  { if ( !popSegStack(&a->stack, &a->work) )
+  { if ( !popSegStack(&a->stack, &a->work, aNode) )
       return NULL;
   }
   a->work.size--;
@@ -162,7 +162,7 @@ ac_clearTermAgenda(ac_term_agenda *a)
 { do
   { if ( a->work.term )
       clear_marked((Word)&a->work.term->definition);
-  } while(popSegStack(&a->stack, &a->work));
+  } while(popSegStack(&a->stack, &a->work, acNode));
 }
 
 
@@ -176,7 +176,7 @@ ac_nextTermAgenda__LD(ac_term_agenda *a ARG_LD)
   while ( a->work.size == 0 )
   { if ( a->work.term )
       clear_marked((Word)&a->work.term->definition);
-    if ( !popSegStack(&a->stack, &a->work) )
+    if ( !popSegStack(&a->stack, &a->work, acNode) )
       return NULL;
   }
   a->work.size--;
@@ -253,7 +253,7 @@ nextTermAgendaLR__LD(term_agendaLR *a, Word *lp, Word *rp ARG_LD)
 { Word p;
 
   while ( a->work.size == 0 )
-  { if ( !popSegStack(&a->stack, &a->work) )
+  { if ( !popSegStack(&a->stack, &a->work, aNodeLR) )
       return FALSE;
   }
   a->work.size--;
@@ -324,7 +324,7 @@ clearTermAgendaLRS(term_agendaLRS *a)
 { do
   { if ( a->work.arg != -1 )
       (*a->pop)(a->work.left, a->work.right, a->work.data);
-  } while(popSegStack(&a->stack, &a->work));
+  } while(popSegStack(&a->stack, &a->work, aNodeLRS));
 }
 
 
@@ -338,7 +338,7 @@ nextTermAgendaLRS__LD(term_agendaLRS *a, Word *lp, Word *rp ARG_LD)
   while ( a->work.arg == a->work.arity )
   { (*a->pop)(a->work.left, a->work.right, a->work.data);
     a->work.arg = -1;
-    if ( !popSegStack(&a->stack, &a->work) )
+    if ( !popSegStack(&a->stack, &a->work, aNodeLRS) )
       return FALSE;
   }
 

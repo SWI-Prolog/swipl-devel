@@ -129,7 +129,7 @@ to speedup frequent small usage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-popSegStack(segstack *stack, void *data)
+popSegStack_(segstack *stack, void *data)
 { again:
 
   if ( stack->top >= stack->base + stack->unit_size )

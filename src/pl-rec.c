@@ -509,7 +509,7 @@ static void
 unvisit(ARG1_LD)
 { cycle_mark mark;
 
-  while( popSegStack(&LD->cycle.lstack, &mark) )
+  while( popSegStack(&LD->cycle.lstack, &mark, cycle_mark) )
   { mark.term->definition = mark.fdef;
   }
 }

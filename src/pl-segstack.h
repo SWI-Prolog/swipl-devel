@@ -47,11 +47,21 @@ typedef struct
 } segstack;
 
 
+#define popSegStack(stack, to, type) \
+	( ((stack)->top >= (stack)->base + sizeof(type))	\
+		? ( (stack)->top -= sizeof(type),		\
+		    *to = *(type*)(stack)->top,			\
+		    (stack)->count--,				\
+		    TRUE					\
+		  )						\
+		: popSegStack_((stack), to)			\
+	)
+
 COMMON(void)	initSegStack(segstack *stack, size_t unit_size,
 			     size_t len, void *data);
 COMMON(int)	pushSegStack(segstack *stack, void* data);
 COMMON(int)	pushRecordSegStack(segstack *stack, Record r);
-COMMON(int)	popSegStack(segstack *stack, void *data);
+COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
 COMMON(void)	popTopOfSegStack(segstack *stack);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));

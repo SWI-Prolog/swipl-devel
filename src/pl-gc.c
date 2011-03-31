@@ -1214,7 +1214,7 @@ static void
 popall_marked(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.vstack, &p) )
+  while( popSegStack(&LD->cycle.vstack, &p, Word) )
   { unmark_first(p);
   }
 }

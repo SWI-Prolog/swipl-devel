@@ -128,7 +128,7 @@ static void
 unvisit(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.vstack, &p) )
+  while( popSegStack(&LD->cycle.vstack, &p, Word) )
   { clear_marked(p);
   }
 }
@@ -138,7 +138,7 @@ static void
 popVisited(ARG1_LD)
 { Word p;
 
-  popSegStack(&LD->cycle.vstack, &p);
+  popSegStack(&LD->cycle.vstack, &p, Word);
   clear_marked(p);
 }
 
@@ -163,7 +163,7 @@ static inline void
 exitCyclic(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.lstack, &p) )
+  while( popSegStack(&LD->cycle.lstack, &p, Word) )
   { *p = *unRef(*p);
   }
 }
@@ -3217,7 +3217,7 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
 { while(LD->cycle.lstack.count > count)
   { Word p;
 
-    popSegStack(&LD->cycle.lstack, &p);
+    popSegStack(&LD->cycle.lstack, &p, Word);
 
     if ( isRef(*p) )
     { Word p2 = unRef(*p);
@@ -3233,7 +3233,7 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
     } else
     { Word old;
 
-      popSegStack(&LD->cycle.lstack, &old);
+      popSegStack(&LD->cycle.lstack, &old, Word);
 
       if ( !(flags&COPY_ATTRS) )
       { Word p2 = valPAttVar(*p);
