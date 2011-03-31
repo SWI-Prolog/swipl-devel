@@ -62,7 +62,7 @@ initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
 
 
 int
-pushSegStack(segstack *stack, void *data)
+pushSegStack_(segstack *stack, void *data)
 { if ( stack->top + stack->unit_size <= stack->max )
   { memcpy(stack->top, data, stack->unit_size);
     stack->top += stack->unit_size;
@@ -115,7 +115,7 @@ pushRecordSegStack(segstack *stack, Record r)
   { int rc;
 
     PL_LOCK(L_AGC);
-    rc = pushSegStack(stack, &r);
+    rc = pushSegStack(stack, r, Record);
     PL_UNLOCK(L_AGC);
 
     return rc;

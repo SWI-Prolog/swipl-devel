@@ -91,7 +91,7 @@ nextTermAgenda__LD(term_agenda *a ARG_LD)
 static int
 pushWorkAgenda(term_agenda *a, size_t amount, Word start)
 { if ( a->work.size > 0 )
-  { if ( !pushSegStack(&a->stack, &a->work) )
+  { if ( !pushSegStack(&a->stack, a->work, aNode) )
       return FALSE;
   }
   a->work.location = start;
@@ -196,7 +196,7 @@ ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
 
   if ( is_marked((Word)&term->definition) )
     return FALSE;			/* hit cycle */
-  if ( !pushSegStack(&a->stack, &a->work) )
+  if ( !pushSegStack(&a->stack, a->work, acNode) )
     return -1;				/* no memory */
   a->work.term     = term;
   a->work.location = term->arguments;
@@ -268,7 +268,7 @@ nextTermAgendaLR__LD(term_agendaLR *a, Word *lp, Word *rp ARG_LD)
 static int
 pushWorkAgendaLR(term_agendaLR *a, size_t amount, Word left, Word right)
 { if ( a->work.size > 0 )
-  { if ( !pushSegStack(&a->stack, &a->work) )
+  { if ( !pushSegStack(&a->stack, a->work, aNodeLR) )
       return FALSE;
   }
   a->work.left  = left;
@@ -352,7 +352,7 @@ nextTermAgendaLRS__LD(term_agendaLRS *a, Word *lp, Word *rp ARG_LD)
 
 static int
 pushWorkAgendaLRS(term_agendaLRS *a, Functor left, Functor right, void *data)
-{ if ( !pushSegStack(&a->stack, &a->work) )
+{ if ( !pushSegStack(&a->stack, a->work, aNodeLRS) )
     return FALSE;
 
   a->work.data  = data;

@@ -1206,7 +1206,7 @@ stack to avoid allocation issues on the argument stack.
 #if O_DESTRUCTIVE_ASSIGNMENT
 static inline void
 push_marked(Word p ARG_LD)
-{ pushSegStack(&LD->cycle.vstack, &p);
+{ pushSegStack(&LD->cycle.vstack, p, Word);
 }
 
 

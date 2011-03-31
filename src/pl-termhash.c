@@ -351,7 +351,7 @@ typedef enum
 
 static int
 push_var(Word p, sha1_state *state)
-{ return pushSegStack(&state->vars, &p);
+{ return pushSegStack(&state->vars, p, Word);
 }
 
 

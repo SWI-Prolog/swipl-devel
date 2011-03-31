@@ -57,9 +57,19 @@ typedef struct
 		: popSegStack_((stack), to)			\
 	)
 
+#define pushSegStack(stack, data, type) \
+	( ((stack)->top + (stack)->unit_size <= (stack)->max)	\
+		? ( *(type*)(stack)->top = data,			\
+		    (stack)->top += sizeof(type),		\
+		    (stack)->count++,				\
+		    TRUE					\
+		  )						\
+		: pushSegStack_((stack), &data)			\
+	)
+
 COMMON(void)	initSegStack(segstack *stack, size_t unit_size,
 			     size_t len, void *data);
-COMMON(int)	pushSegStack(segstack *stack, void* data);
+COMMON(int)	pushSegStack_(segstack *stack, void* data);
 COMMON(int)	pushRecordSegStack(segstack *stack, Record r);
 COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);

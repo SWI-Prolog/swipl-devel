@@ -111,7 +111,7 @@ visitedWord(Word p ARG_LD)
 { if ( is_marked(p) )
     succeed;
   set_marked(p);
-  pushSegStack(&LD->cycle.vstack, &p);
+  pushSegStack(&LD->cycle.vstack, p, Word);
   fail;
 }
 
@@ -155,7 +155,7 @@ linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
   Word p2 = (Word)&f2->definition;
 
   *p1 = makeRefG(p2);
-  pushSegStack(&LD->cycle.lstack, &p1);
+  pushSegStack(&LD->cycle.lstack, p1, Word);
 }
 
 
@@ -3208,7 +3208,7 @@ initCyclicCopy(ARG1_LD)
 
 static inline void
 TrailCyclic(Word p ARG_LD)
-{ pushSegStack(&LD->cycle.lstack, &p);
+{ pushSegStack(&LD->cycle.lstack, p, Word);
 }
 
 
