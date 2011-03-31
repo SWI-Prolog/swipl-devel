@@ -624,25 +624,17 @@ PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 { PRED_LD
 
   for(;;)
-  { mark m;
-    int rc;
+  { int rc;
     Word p1 = valTermRef(A1);
     Word p2 = valTermRef(A2);
 
-    Mark(m);
     rc = unify_with_occurs_check(p1, p2, OCCURS_CHECK_TRUE PASS_LD);
-    if ( rc == TRUE )			/* Terms unified */
-    { DiscardMark(m);
-      return rc;
-    } else if ( rc == FALSE )		/* Terms did not unify */
-    { if ( !exception_term )		/* Check for occurs error */
-	Undo(m);
-      DiscardMark(m);
-      return rc;
+    if ( rc >= 0 )			/* Terms unified */
+    { return rc;
+    } else if ( rc == MEMORY_OVERFLOW )	/* out of malloc()-space */
+    { return PL_error(NULL, 0, NULL, ERR_NOMEM);
     } else				/* Stack overflow */
-    { Undo(m);
-      DiscardMark(m);
-      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+    { if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	return FALSE;
     }
   }
