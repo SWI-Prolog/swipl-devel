@@ -339,11 +339,7 @@ do_unify(Word t1, Word t2 ARG_LD)
     }
   } while(compound && nextTermAgendaLR(&agenda, &t1, &t2));
 
-  if ( compound )
-  { clearTermAgendaLR(&agenda);
-    exitCyclic(PASS_LD1);
-  }
-  return TRUE;
+  rc = TRUE;
 
 out_fail:
   if ( compound )
