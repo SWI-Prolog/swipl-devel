@@ -556,7 +556,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   info.external = (flags & R_EXTERNAL);
   info.lock = !(info.external || (flags&R_NOLOCK));
 
-  initTermAgenda(&agenda, valTermRef(t));
+  initTermAgenda(&agenda, 1, valTermRef(t));
   compile_term_to_heap(&agenda, &info PASS_LD);
   clearTermAgenda(&agenda);
   restoreVars(&info);
@@ -657,7 +657,7 @@ PL_record_external(term_t t, size_t *len)
   info.external = TRUE;
   info.lock = FALSE;
 
-  initTermAgenda(&agenda, p);
+  initTermAgenda(&agenda, 1, p);
   compile_term_to_heap(&agenda, &info PASS_LD);
   clearTermAgenda(&agenda);
   if ( info.nvars == 0 )

@@ -455,27 +455,35 @@ int var_occurs_in(Word v, Word t)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-var_occurs_in(Word v, Word t)
-{ GET_LD
+var_occurs_in(Word v, Word t ARG_LD)
+{ term_agenda agenda;
+  int compound = FALSE;
+  int rc = FALSE;
 
-right_recursion:
   deRef(t);
-  if ( v == t )
-    succeed;
 
-  if ( isTerm(*t) )
-  { Functor f = valueTerm(*t);
-    int arity = arityFunctor(f->definition);
-
-    t = f->arguments;
-    for( ; --arity > 0; t++)
-    { if ( var_occurs_in(v, t) )
-	succeed;
+  do
+  { if ( v == t )
+    { rc = TRUE;
+      break;
     }
-    goto right_recursion;
-  }
 
-  fail;
+    if ( isTerm(*t) )
+    { Functor f = valueTerm(*t);
+
+      if ( !compound )
+      { compound = TRUE;
+	initTermAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      } else
+      { pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      }
+    }
+  } while( compound && (t=nextTermAgenda(&agenda)) );
+
+  if ( compound )
+    clearTermAgenda(&agenda);
+
+  return rc;
 }
 
 
@@ -527,7 +535,7 @@ right_recursion:
       Trail(t1, makeRef(t2));
       return TRUE;
     }
-    if ( onStack(global, t1) && var_occurs_in(t1, t2) )
+    if ( onStack(global, t1) && var_occurs_in(t1, t2 PASS_LD) )
       return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
 #ifdef O_ATTVAR
     if ( isAttVar(w2) )
@@ -540,7 +548,7 @@ right_recursion:
   { if ( tTop+1 > tMax )
       return TRAIL_OVERFLOW;
 
-    if ( onStack(global, t2) && var_occurs_in(t2, t1) )
+    if ( onStack(global, t2) && var_occurs_in(t2, t1 PASS_LD) )
       return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
 
 #ifdef O_ATTVAR
@@ -553,7 +561,7 @@ right_recursion:
 
 #ifdef O_ATTVAR
   if ( isAttVar(w1) )
-  { if ( var_occurs_in(t1, t2) )
+  { if ( var_occurs_in(t1, t2 PASS_LD) )
       return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
     if ( !hasGlobalSpace(0) )
       return GLOBAL_OVERFLOW;
@@ -561,7 +569,7 @@ right_recursion:
     return TRUE;
   }
   if ( isAttVar(w2) )
-  { if ( var_occurs_in(t2, t1) )
+  { if ( var_occurs_in(t2, t1 PASS_LD) )
       return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
     if ( !hasGlobalSpace(0) )
       return GLOBAL_OVERFLOW;
@@ -1016,7 +1024,7 @@ scan_shared(Word t, Word vart, size_t *count ARG_LD)
   size_t shared = 0;
   Word p;
 
-  initTermAgenda(&agenda, t);
+  initTermAgenda(&agenda, 1, t);
   while( (p=nextTermAgenda(&agenda)) )
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -1065,7 +1073,7 @@ unscan_shared(Word t ARG_LD)
 { term_agenda agenda;
   Word p;
 
-  initTermAgenda(&agenda, t);
+  initTermAgenda(&agenda, 1, t);
   while( (p=nextTermAgenda(&agenda)) )
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -1122,7 +1130,7 @@ link_shared(Word t, Word vars ARG_LD)
 { term_agenda agenda;
   Word p;
 
-  initTermAgenda(&agenda, t);
+  initTermAgenda(&agenda, 1, t);
   while( (p=nextTermAgenda(&agenda)) )
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -2657,7 +2665,7 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
 
   startCritical;
   initvisited(PASS_LD1);
-  initTermAgenda(&agenda, valTermRef(t));
+  initTermAgenda(&agenda, 1, valTermRef(t));
   count = term_variables_loop(&agenda, maxcount, flags PASS_LD);
   clearTermAgenda(&agenda);
   unvisit(PASS_LD1);
@@ -2955,7 +2963,7 @@ unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
       Word p2 = valTermRef(t2);
 
       deRef(p1);
-      if ( !var_occurs_in(p1, p2) )
+      if ( !var_occurs_in(p1, p2 PASS_LD) )
 	return TRUE;
 
       return failed_unify_with_occurs_check(p1, p2,

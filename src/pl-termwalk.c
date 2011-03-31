@@ -51,11 +51,11 @@ typedef struct term_agenda
 
 
 static void
-initTermAgenda(term_agenda *a, Word p)
+initTermAgenda(term_agenda *a, size_t size, Word p)
 { initSegStack(&a->stack, sizeof(aNode),
 	       sizeof(a->first_chunk), a->first_chunk);
   a->work.location = p;
-  a->work.size = 1;
+  a->work.size = size;
 }
 
 
