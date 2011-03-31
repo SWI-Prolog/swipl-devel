@@ -34,7 +34,7 @@
 #undef LD
 #define LD LOCAL_LD
 
-static bool	unify_with_occurs_check(Word t1, Word t2,
+static int	unify_with_occurs_check(Word t1, Word t2,
 					occurs_check_t mode ARG_LD);
 
 
@@ -504,118 +504,141 @@ failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 
 static int
 unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
-{ word w1;
-  word w2;
+{ term_agendaLR agenda;
+  int compound = FALSE;
+  int rc = FALSE;
 
-right_recursion:
-  w1 = *t1;
-  w2 = *t2;
+  deRef(t1);
+  deRef(t2);
 
-  while(isRef(w1))			/* this is deRef() */
-  { t1 = unRef(w1);
-    w1 = *t1;
-  }
-  while(isRef(w2))
-  { t2 = unRef(w2);
-    w2 = *t2;
-  }
+  do
+  { word w1 = *t1;
+    word w2 = *t2;
 
-  if ( t1 == t2 )
-    succeed;
+    if ( t1 == t2 )
+      continue;
 
-  if ( isVar(w1) )
-  { if ( tTop+1 > tMax )
-      return TRAIL_OVERFLOW;
-
-    if ( isVar(w2) )
-    { if ( t1 < t2 )			/* always point downwards */
-      { Trail(t2, makeRef(t1));
-	return TRUE;
+    if ( isVar(w1) )
+    { if ( unlikely(tTop+1 >= tMax) )
+      { rc = TRAIL_OVERFLOW;
+	goto out_fail;
       }
-      Trail(t1, makeRef(t2));
-      return TRUE;
-    }
-    if ( onStack(global, t1) && var_occurs_in(t1, t2 PASS_LD) )
-      return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
-#ifdef O_ATTVAR
-    if ( isAttVar(w2) )
-      w2 = makeRef(t2);
-#endif
-    Trail(t1, w2);
-    return TRUE;
-  }
-  if ( isVar(w2) )
-  { if ( tTop+1 > tMax )
-      return TRAIL_OVERFLOW;
 
-    if ( onStack(global, t2) && var_occurs_in(t2, t1 PASS_LD) )
-      return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
+      if ( isVar(w2) )
+      { if ( t1 < t2 )			/* always point downwards */
+	{ Trail(t2, makeRef(t1));
+	  continue;
+	}
+	Trail(t1, makeRef(t2));
+	continue;
+      }
+      if ( onStack(global, t1) && var_occurs_in(t1, t2 PASS_LD) )
+      { rc = failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
+	goto out_fail;
+      }
+#ifdef O_ATTVAR
+      if ( isAttVar(w2) )
+	w2 = makeRef(t2);
+#endif
+      Trail(t1, w2);
+      continue;
+    }
+    if ( isVar(w2) )
+    { if ( unlikely(tTop+1 >= tMax) )
+      { rc = TRAIL_OVERFLOW;
+	goto out_fail;
+      }
+
+      if ( onStack(global, t2) && var_occurs_in(t2, t1 PASS_LD) )
+      { rc = failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
+	goto out_fail;
+      }
+
+#ifdef O_ATTVAR
+      if ( isAttVar(w1) )
+	w1 = makeRef(t1);
+#endif
+      Trail(t2, w1);
+      continue;
+    }
 
 #ifdef O_ATTVAR
     if ( isAttVar(w1) )
-      w1 = makeRef(t1);
-#endif
-    Trail(t2, w1);
-    return TRUE;
-  }
-
-#ifdef O_ATTVAR
-  if ( isAttVar(w1) )
-  { if ( var_occurs_in(t1, t2 PASS_LD) )
-      return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
-    if ( !hasGlobalSpace(0) )
-      return GLOBAL_OVERFLOW;
-    assignAttVar(t1, t2 PASS_LD);
-    return TRUE;
-  }
-  if ( isAttVar(w2) )
-  { if ( var_occurs_in(t2, t1 PASS_LD) )
-      return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
-    if ( !hasGlobalSpace(0) )
-      return GLOBAL_OVERFLOW;
-    assignAttVar(t2, t1 PASS_LD);
-    return TRUE;
-  }
-#endif
-
-  if ( w1 == w2 )
-    succeed;
-  if ( tag(w1) != tag(w2) )
-    fail;
-
-  switch(tag(w1))
-  { case TAG_ATOM:
-      fail;
-    case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE ||
-	   storage(w2) == STG_INLINE )
-	fail;
-    case TAG_STRING:
-    case TAG_FLOAT:
-      return equalIndirect(w1, w2);
-    case TAG_COMPOUND:
-    { int arity;
-      Functor f1 = valueTerm(w1);
-      Functor f2 = valueTerm(w2);
-
-      if ( f1->definition != f2->definition )
-	fail;
-
-      arity = arityFunctor(f1->definition);
-      t1 = f1->arguments;
-      t2 = f2->arguments;
-
-      for(; --arity > 0; t1++, t2++)
-      { int rc;
-
-	if ( (rc=unify_with_occurs_check(t1, t2, mode PASS_LD)) <= 0 )
-	  return rc;
+    { if ( var_occurs_in(t1, t2 PASS_LD) )
+      { rc = failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
+	goto out_fail;
       }
-      goto right_recursion;
+      if ( !hasGlobalSpace(0) )
+      { rc = GLOBAL_OVERFLOW;
+	goto out_fail;
+      }
+      assignAttVar(t1, t2 PASS_LD);
+      continue;
     }
-  }
+    if ( isAttVar(w2) )
+    { if ( var_occurs_in(t2, t1 PASS_LD) )
+      { rc = failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
+	goto out_fail;
+      }
+      if ( !hasGlobalSpace(0) )
+      { rc = GLOBAL_OVERFLOW;
+	goto out_fail;
+      }
+      assignAttVar(t2, t1 PASS_LD);
+      continue;
+    }
+#endif
 
-  succeed;
+    if ( w1 == w2 )
+      continue;
+    if ( tag(w1) != tag(w2) )
+      goto out_fail;
+
+    switch(tag(w1))
+    { case TAG_ATOM:
+	goto out_fail;
+      case TAG_INTEGER:
+	if ( storage(w1) == STG_INLINE ||
+	     storage(w2) == STG_INLINE )
+	  goto out_fail;
+      case TAG_STRING:
+      case TAG_FLOAT:
+	if ( equalIndirect(w1, w2) )
+	  continue;
+        goto out_fail;
+      case TAG_COMPOUND:
+      { int arity;
+	Functor f1 = valueTerm(w1);
+	Functor f2 = valueTerm(w2);
+
+	if ( f1->definition != f2->definition )
+	  fail;
+
+	arity = arityFunctor(f1->definition);
+	t1 = f1->arguments;
+	t2 = f2->arguments;
+
+	if ( !compound )
+	{ compound = TRUE;
+	  initTermAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
+	} else
+	{ if ( !pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto out_fail;
+	  }
+	}
+
+	continue;
+      }
+    }
+  } while(compound && nextTermAgendaLR(&agenda, &t1, &t2));
+
+  rc = TRUE;
+
+out_fail:
+  if ( compound )
+    clearTermAgendaLR(&agenda);
+  return rc;
 }
 
 
