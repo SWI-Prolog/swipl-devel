@@ -67,20 +67,23 @@ clearTermAgenda(term_agenda *a)
 #define nextTermAgenda(a) \
 	nextTermAgenda__LD(a PASS_LD)
 
-static Word
+static inline Word
 nextTermAgenda__LD(term_agenda *a ARG_LD)
 { Word p;
 
-  while ( a->work.size == 0 )
-  { if ( !popSegStack(&a->stack, &a->work, aNode) )
-      return NULL;
+  if ( a->work.size > 0 )
+  { ok:
+    a->work.size--;
+    p = a->work.location++;
+    deRef(p);
+
+    return p;
   }
-  a->work.size--;
 
-  p = a->work.location++;
-  deRef(p);
+  if ( popSegStack(&a->stack, &a->work, aNode) )
+    goto ok;
 
-  return p;
+  return NULL;
 }
 
 
@@ -88,7 +91,7 @@ nextTermAgenda__LD(term_agenda *a ARG_LD)
 		 *	  PUSH VARIATIONS	*
 		 *******************************/
 
-static int
+static inline int
 pushWorkAgenda(term_agenda *a, size_t amount, Word start)
 { if ( a->work.size > 0 )
   { if ( !pushSegStack(&a->stack, a->work, aNode) )
@@ -250,22 +253,25 @@ clearTermAgendaLR(term_agendaLR *a)
 
 static int
 nextTermAgendaLR__LD(term_agendaLR *a, Word *lp, Word *rp ARG_LD)
-{ Word p;
+{ if ( a->work.size > 0 )
+  { Word p;
 
-  while ( a->work.size == 0 )
-  { if ( !popSegStack(&a->stack, &a->work, aNodeLR) )
-      return FALSE;
+  ok:
+    a->work.size--;
+    deRef2(a->work.left++, p); *lp = p;
+    deRef2(a->work.right++,p); *rp = p;
+
+    return TRUE;
   }
-  a->work.size--;
 
-  deRef2(a->work.left++, p); *lp = p;
-  deRef2(a->work.right++,p); *rp = p;
+  if ( popSegStack(&a->stack, &a->work, aNodeLR) )
+    goto ok;
 
-  return TRUE;
+  return FALSE;
 }
 
 
-static int
+static inline int
 pushWorkAgendaLR(term_agendaLR *a, size_t amount, Word left, Word right)
 { if ( a->work.size > 0 )
   { if ( !pushSegStack(&a->stack, a->work, aNodeLR) )

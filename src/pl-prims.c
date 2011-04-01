@@ -778,7 +778,9 @@ ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
   initTermAgenda(&agenda, 1, p);
   while((p=nextTermAgenda(&agenda)))
   { if ( canBind(*p) )
+    { clearTermAgenda(&agenda);
       return FALSE;
+    }
     if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
 
