@@ -852,6 +852,7 @@ Section "Uninstall"
 
   Done:
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog"
+    DeleteRegKey HKLM ${REGKEY}
 SectionEnd
 
 ################################################################
