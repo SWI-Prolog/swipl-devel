@@ -134,8 +134,8 @@ func1(int arg ARG_LD)
 
   func1(42 PASS_LD)
 
-Note there is *NO* , before  ARG_LD   and  PASS_LD, because these macros
-expand to nothing of there is just  one engine. The versions ARG1_LD and
+Note there is *NO* "," before ARG_LD   and PASS_LD, because these macros
+expand to nothing if there is just  one engine. The versions ARG1_LD and
 PASS_LD1 are used if there is no other argument.
 
 On some frequently used functions,   writing PASS_LD everywhere clutters
