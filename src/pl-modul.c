@@ -1122,7 +1122,7 @@ pl_import(term_t pred)
   }
 
   if ( !isPublicModule(source, proc) )
-  { warning("import/1: %s is not declared public (still imported)",
+  { warning("import/1: %s is not exported (still imported)",
 	    procedureName(proc));
   }
 
