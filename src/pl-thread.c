@@ -462,7 +462,7 @@ free_prolog_thread(void *data)
     return;				/* Post-mortem */
 
   info = ld->thread.info;
-  DEBUG(1, Sdprintf("Freeing prolog thread %d (status = %d)\n",
+  DEBUG(2, Sdprintf("Freeing prolog thread %d (status = %d)\n",
 		    info->pl_tid, info->status));
 
   LOCK();
