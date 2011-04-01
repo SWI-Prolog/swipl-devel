@@ -1636,6 +1636,8 @@ again:
       OK('\r');
     case 't':
       OK('\t');
+    case 's':				/* \s is space (NU-Prolog, Quintus) */
+      OK(' ');
     case 'v':
       OK(11);				/* 11 is ASCII Vertical Tab */
     case 'u':				/* \uXXXX */
