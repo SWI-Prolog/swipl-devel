@@ -770,44 +770,37 @@ ph_visited(Functor f, phase ph ARG_LD)
   return ph_visitedWord(p, ph PASS_LD);
 }
 
-/* missing optimisations:
-
-   i  recurse only when at least another nontrivial case is open
-
-   ii programmed stack
-*/
 
 static int
 ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
-{ int arity;
-  Functor f;
+{ term_agenda agenda;
 
-last:
-  deRef(p);
+  initTermAgenda(&agenda, 1, p);
+  while((p=nextTermAgenda(&agenda)))
+  { if ( canBind(*p) )
+      return FALSE;
+    if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
 
-  if ( canBind(*p) )		/* attributed variables are not ground */
-    fail;
-  if ( !isTerm(*p) )
-    succeed;
-
-  f = valueTerm(*p);
-  arity = arityFunctor(f->definition);
-  p = f->arguments;
-  if ( ph_visited(f, ph PASS_LD) )	/* already been here, so it must be ground */
-    succeed;
-
-  for(; --arity > 0; p++)
-  { if ( !ph_ground(p, ph PASS_LD) )
-      fail;
+      if ( !ph_visited(f, ph PASS_LD) )
+      { pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      }
+    }
   }
 
-  goto last;
+  return TRUE;
 }
 
 
 int
 ground__LD(Word p ARG_LD)
 { int rc1, rc2;
+
+  deRef(p);
+  if ( canBind(*p) )
+    return FALSE;
+  if ( !isTerm(*p) )
+    return TRUE;
 
   startCritical;
   rc1 = ph_ground(p, ph_mark PASS_LD);  /* mark functors */
@@ -1013,6 +1006,7 @@ ph2_is_acyclic(Word p ARG_LD)
 static int
 is_acyclic(Word p ARG_LD)
 { deRef(p);
+
   if ( isTerm(*p) )
   { int rc1;
 
@@ -1024,7 +1018,7 @@ is_acyclic(Word p ARG_LD)
     return rc1;
   }
 
-  return FALSE;
+  return TRUE;
 }
 
 
