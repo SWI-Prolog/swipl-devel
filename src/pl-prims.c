@@ -450,13 +450,16 @@ can_unify(Word t1, Word t2, term_t *ex)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int var_occurs_in(Word v, Word t)
-    Succeeds of the term `v' occurs in `t'.  v must be dereferenced on
-    entry.
+
+Succeeds of the term `v' occurs in `t'.  v must be dereferenced on
+entry.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
 var_occurs_in(Word v, Word t ARG_LD)
-{ term_agenda agenda;
+{ segstack visited;
+  void *tmp[256];
+  term_agenda agenda;
   int compound = FALSE;
   int rc = FALSE;
 
@@ -472,16 +475,30 @@ var_occurs_in(Word v, Word t ARG_LD)
     { Functor f = valueTerm(*t);
 
       if ( !compound )
-      { compound = TRUE;
-	initTermAgenda(&agenda, arityFunctor(f->definition), f->arguments);
-      } else
-      { pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      { int arity = arityFunctor(f->definition);
+
+	compound = TRUE;
+	initSegStack(&visited, sizeof(Functor), sizeof(tmp), tmp);
+	f->definition |= FIRST_MASK;
+	pushSegStack(&visited, f, Functor);
+	initTermAgenda(&agenda, arity, f->arguments);
+      } else if ( !(f->definition & FIRST_MASK) )
+      { int arity = arityFunctor(f->definition);
+
+	f->definition |= FIRST_MASK;
+	pushSegStack(&visited, f, Functor);
+	pushWorkAgenda(&agenda, arity, f->arguments);
       }
     }
   } while( compound && (t=nextTermAgenda(&agenda)) );
 
   if ( compound )
+  { Functor f;
+
+    while( popSegStack(&visited, &f, Functor) )
+      f->definition &= ~FIRST_MASK;
     clearTermAgenda(&agenda);
+  }
 
   return rc;
 }
