@@ -895,6 +895,29 @@ ph1_firstvisited(Functor f ARG_LD)
   return ph1_firstvisitedWord(p PASS_LD);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Finding cyclic terms is a bit more   complicated than one may think. The
+native way is to walk the structure  depth-first while setting marks and
+if you find a mark you have a   cycle. However, when you backup from the
+recursion you must remove your marks because otherwise you find marks if
+the same subterm appears multiple times in   the tree (sharing). This is
+undesirable for two reasons:  it   kills  last-argument optimization and
+processes the shared subterms multiple times.
+
+Ulrich Neumerkel came with the following two enhancements:
+
+  1. Instead of removing the marks while backing up, put a new type of
+  mark that indicates there is no cycle there. Now, whenever we
+  encounter this second mark we know we visited this tree and it is
+  free of cycles.  This exploits sharing.
+
+  2. Instead of making a recursive call for the last argument so that
+  we can set the second mark after this call returns, jump to the
+  beginning and remember the number of last arguments processed.  Now
+  we can simply mark all the last arguments.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 ph1_is_acyclic(Word firstp ARG_LD)
 { Functor f;
