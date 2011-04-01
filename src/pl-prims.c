@@ -989,15 +989,19 @@ ph2_is_acyclic(Word p ARG_LD)
 
 static int
 is_acyclic(Word p ARG_LD)
-{ int rc1;
+{ deRef(p);
+  if ( isTerm(*p) )
+  { int rc1;
 
-  startCritical;
-  rc1 = ph1_is_acyclic(p PASS_LD);
-  ph2_is_acyclic(p PASS_LD);
-  if ( !endCritical )
-    return FALSE;
+    startCritical;
+    rc1 = ph1_is_acyclic(p PASS_LD);
+    ph2_is_acyclic(p PASS_LD);
+    if ( !endCritical )
+      return FALSE;
+    return rc1;
+  }
 
-  return rc1;
+  return FALSE;
 }
 
 
