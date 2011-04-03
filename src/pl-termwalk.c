@@ -103,31 +103,6 @@ pushWorkAgenda(term_agenda *a, size_t amount, Word start)
   return TRUE;
 }
 
-
-#ifdef HAVE_VISITED
-/* pushTermAgendaIfNotVisited(agenda, term)
-
-Pushes a term if it has  not  yet   been  visited.  This version of this
-function cooperates with the visited functions   and  ensure that common
-subterms are visited only once.
-*/
-
-#define pushTermAgendaIfNotVisited(a, w) \
-	pushTermAgendaIfNotVisited__LD(a, w PASS_LD)
-
-static int
-pushTermAgendaIfNotVisited__LD(term_agenda *a, word w ARG_LD)
-{ Functor f;
-
-  SECURE(assert(isTerm(w)));
-  f = valueTerm(w);
-  if ( visited(f PASS_LD) )
-    return FALSE;
-
-  return pushWorkAgenda(a, arityFunctor(f->definition), f->arguments);
-}
-#endif /*HAVE_VISITED*/
-
 #endif /*!AC_TERM_WALK*/
 
 

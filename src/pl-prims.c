@@ -2736,7 +2736,12 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
 	*valTermRef(v) = makeRef(p);
       }
     } else if ( isTerm(w) )
-    { pushTermAgendaIfNotVisited(agenda, w);
+    { Functor f = valueTerm(w);
+
+      if ( visited(f PASS_LD) )
+	continue;
+      if ( !pushWorkAgenda(agenda, arityFunctor(f->definition), f->arguments) )
+	return TV_NOMEM;
     }
   }
 
@@ -2785,6 +2790,8 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
 	return FALSE;			/* GC doesn't help */
       continue;
     }
+    if ( count == TV_NOMEM )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
     if ( count > maxcount )
       return FALSE;
     break;
@@ -2969,12 +2976,14 @@ free_variables_loop(Word t ARG_LD)
 	continue;
 
       if ( fd == FUNCTOR_hat2 && existential == FALSE )
-      { pushWorkAgenda(&agenda, 1, &f->arguments[1]);
-	pushWorkAgenda(&agenda, 1, &mark);
-	pushWorkAgenda(&agenda, 1, &f->arguments[0]);
+      { if ( !pushWorkAgenda(&agenda, 1, &f->arguments[1]) ||
+	     !pushWorkAgenda(&agenda, 1, &mark) ||
+	     !pushWorkAgenda(&agenda, 1, &f->arguments[0]) )
+	  return TV_NOMEM;
 	existential = TRUE;
       } else
-      { pushWorkAgenda(&agenda, arityFunctor(fd), f->arguments);
+      { if ( !pushWorkAgenda(&agenda, arityFunctor(fd), f->arguments) )
+	  return TV_NOMEM;
       }
 
       continue;
@@ -3008,6 +3017,8 @@ PRED_IMPL("$e_free_variables", 2, e_free_variables, 0)
 	return FALSE;
       continue;
     }
+    if ( n == TV_NOMEM )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
 
     if ( PL_unify_functor(A2, PL_new_functor(ATOM_v, (int)n)) )
     { for(i=0; i<n; i++)
