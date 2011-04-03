@@ -2696,6 +2696,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 #define TV_ATTVAR 0x1
 #define TV_EXCEPTION ((size_t)-1)
 #define TV_NOSPACE   ((size_t)-2)
+#define TV_NOMEM     ((size_t)-3)
 
 static size_t
 term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
@@ -2922,56 +2923,66 @@ PRED_IMPL("subsumes_term", 2, subsumes_term, 0)
 }
 
 
-/** '$e_free_variables'(V0^V1^Term, Vars)
+/** free_variable_set(+Template, +GoalIn, -GoalOut, -VarTemplate)
 
-Used by setof/3 and bagof/3 to determine  the free variables in the goal
-that have not been existentially bound. The implementation is very close
-to term_variables/2, but  while  traversing  the   lefthand  of  ^,  the
-variable is marked but not added to the list.
+This implements _|free variable set|_ as   defined the ISO core standard
+(sec. 7.1.1.4) for setof/3 and  bagof/3. This demands ^/2-quantification
+to be on the outside (except for M:) and removes ^/2 from the goal-term.
+The latter implies that we no longer need ^/2 as a predicate.
 */
 
 static size_t
-free_variables_loop(Word t, term_t l, size_t n, int existential ARG_LD)
-{
-right_recursion:
-  deRef(t);
+free_variables_loop(Word t ARG_LD)
+{ term_agenda agenda;
+  int existential = FALSE;		/* TRUE for processing left of ^ */
+  size_t n = 0;
+  word mark = 0;
 
-  if ( canBind(*t) )
-  { term_t v;
-
-    if ( !visitedWord(t PASS_LD) && !existential )
-    { if ( !(v = PL_new_term_ref_noshift()) )
-	return TV_NOSPACE;
-      *valTermRef(v) = makeRef(t);
-
-      n++;
+  initTermAgenda(&agenda, 1, t);
+  while((t=nextTermAgenda(&agenda)))
+  { if ( t == &mark )
+    { existential = FALSE;
+      continue;
     }
 
-    return n;
-  }
-  if ( isTerm(*t) )
-  { int arity;
-    Functor f = valueTerm(*t);
-    word fd = f->definition;
+    if ( canBind(*t) )
+    { term_t v;
 
-    if ( visited(f PASS_LD) )
-      return n;
+      if ( !visitedWord(t PASS_LD) && !existential )
+      { if ( !(v = PL_new_term_ref_noshift()) )
+	{ n = TV_NOSPACE;
+	  goto out;
+	}
+	*valTermRef(v) = makeRef(t);
 
-    t = f->arguments;
-    if ( fd == FUNCTOR_hat2 )
-    { n = free_variables_loop(t, l, n, TRUE PASS_LD); /* cannot overflow */
-      t++;
-    } else
-    { arity = arityFunctor(f->definition);
-      for(; --arity > 0; t++)
-      { n = free_variables_loop(t, l, n, existential PASS_LD);
-	if ( n == TV_NOSPACE )
-	  return n;
+	n++;
       }
+
+      continue;
     }
 
-    goto right_recursion;
+    if ( isTerm(*t) )
+    { Functor f = valueTerm(*t);
+      functor_t fd = f->definition;	/* modified by visited */
+
+      if ( visited(f PASS_LD) )
+	continue;
+
+      if ( fd == FUNCTOR_hat2 && existential == FALSE )
+      { pushWorkAgenda(&agenda, 1, &f->arguments[1]);
+	pushWorkAgenda(&agenda, 1, &mark);
+	pushWorkAgenda(&agenda, 1, &f->arguments[0]);
+	existential = TRUE;
+      } else
+      { pushWorkAgenda(&agenda, arityFunctor(fd), f->arguments);
+      }
+
+      continue;
+    }
   }
+
+out:
+  clearTermAgenda(&agenda);
 
   return n;
 }
@@ -2982,13 +2993,12 @@ PRED_IMPL("$e_free_variables", 2, e_free_variables, 0)
 { GET_LD
 
   for(;;)
-  { Word t2 = valTermRef(A1);
-    term_t v0 = PL_new_term_refs(0);
+  { term_t v0 = PL_new_term_refs(0);
     size_t i, n;
 
     startCritical;
     initvisited(PASS_LD1);
-    n = free_variables_loop(t2, v0, 0, FALSE PASS_LD);
+    n = free_variables_loop(valTermRef(A1) PASS_LD);
     unvisit(PASS_LD1);
     if ( !endCritical )
       return FALSE;
