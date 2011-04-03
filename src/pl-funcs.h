@@ -568,6 +568,7 @@ COMMON(void) 		resetRead(void);
 COMMON(int)		unicode_separator(pl_wchar_t c);
 COMMON(int)		unquoted_atomW(const pl_wchar_t *s, size_t len,
 				       IOSTREAM *fd);
+COMMON(int)		atom_varnameW(const pl_wchar_t *s, size_t len);
 COMMON(strnumstat)	str_number(const unsigned char *string,
 				   unsigned char **end,
 				   Number value, bool escape);
