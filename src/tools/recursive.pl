@@ -95,7 +95,6 @@ stop_show('do_copy_term',	     no_lao).
 stop_show('find_if_then_end',	     no_lao).
 stop_show('ar_func_n',		     no_lao).
 stop_show('termHashValue',	     no_lao).
-stop_show('free_variables_loop',     lao).
 stop_show('complex_term',	     no_lao).
 stop_show('writeTerm',		     no_lao).
 stop_show('decompileBody',	     no_lao).
