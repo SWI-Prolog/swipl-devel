@@ -2502,6 +2502,14 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 Returns	>= 0: Number for next variable variable
 	  -1: Error
 	< -1: Out of stack error
+
+TBD: when using the `singletons' mode, the   predicate is not cycle safe
+(this is an error) and does not exploit sharing. We could fix this using
+both flags:
+
+    - Not marked: go in there
+    - Marked, but not alt-mark: map vars in there _-->n
+    - both-marked: done
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
