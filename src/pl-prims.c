@@ -452,10 +452,14 @@ can_unify(Word t1, Word t2, term_t *ex)
 int var_occurs_in(Word v, Word t)
 
 Succeeds of the term `v' occurs in `t'.  v must be dereferenced on
-entry.
+entry.  Returns one of
+
+	- FALSE if v does not occur in t
+	- TRUE if v occurs in t
+	- MEMORY_OVERFLOW if the malloc() fails.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 var_occurs_in(Word v, Word t ARG_LD)
 { segstack visited;
   void *tmp[256];
@@ -486,8 +490,9 @@ var_occurs_in(Word v, Word t ARG_LD)
       { int arity = arityFunctor(f->definition);
 
 	f->definition |= FIRST_MASK;
-	pushSegStack(&visited, f, Functor);
-	pushWorkAgenda(&agenda, arity, f->arguments);
+	if ( !pushSegStack(&visited, f, Functor) ||
+	     !pushWorkAgenda(&agenda, arity, f->arguments) )
+	  return MEMORY_OVERFLOW;
       }
     }
   } while( compound && (t=nextTermAgenda(&agenda)) );
@@ -532,6 +537,9 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
   { word w1 = *t1;
     word w2 = *t2;
 
+    SECURE(assert(w1 != ATOM_garbage_collected);
+	   assert(w2 != ATOM_garbage_collected));
+
     if ( t1 == t2 )
       continue;
 
@@ -549,12 +557,13 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 	Trail(t1, makeRef(t2));
 	continue;
       }
-      if ( onStack(global, t1) && var_occurs_in(t1, t2 PASS_LD) )
-      { rc = failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
+      if ( onStack(global, t1) && (rc=var_occurs_in(t1, t2 PASS_LD)) )
+      { if ( rc == TRUE )
+	  rc = failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
 	goto out_fail;
       }
 #ifdef O_ATTVAR
-      if ( isAttVar(w2) )
+      if ( isAttVar(w2 ) )
 	w2 = makeRef(t2);
 #endif
       Trail(t1, w2);
@@ -565,12 +574,11 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
       { rc = TRAIL_OVERFLOW;
 	goto out_fail;
       }
-
-      if ( onStack(global, t2) && var_occurs_in(t2, t1 PASS_LD) )
-      { rc = failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
+      if ( onStack(global, t2) && (rc=var_occurs_in(t2, t1 PASS_LD)) )
+      { if ( rc == TRUE )
+	  rc = failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
 	goto out_fail;
       }
-
 #ifdef O_ATTVAR
       if ( isAttVar(w1) )
 	w1 = makeRef(t1);
@@ -581,24 +589,26 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 
 #ifdef O_ATTVAR
     if ( isAttVar(w1) )
-    { if ( var_occurs_in(t1, t2 PASS_LD) )
-      { rc = failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
+    { if ( (rc=var_occurs_in(t1, t2 PASS_LD)) )
+      { if ( rc == TRUE )
+	  rc = failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
 	goto out_fail;
       }
       if ( !hasGlobalSpace(0) )
-      { rc = GLOBAL_OVERFLOW;
+      { rc = overflowCode(0);
 	goto out_fail;
       }
       assignAttVar(t1, t2 PASS_LD);
       continue;
     }
     if ( isAttVar(w2) )
-    { if ( var_occurs_in(t2, t1 PASS_LD) )
-      { rc = failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
+    { if ( (rc=var_occurs_in(t2, t1 PASS_LD)) )
+      { if ( rc == TRUE )
+	  rc = failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
 	goto out_fail;
       }
       if ( !hasGlobalSpace(0) )
-      { rc = GLOBAL_OVERFLOW;
+      { rc = overflowCode(0);
 	goto out_fail;
       }
       assignAttVar(t2, t1 PASS_LD);
@@ -617,26 +627,33 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
       case TAG_INTEGER:
 	if ( storage(w1) == STG_INLINE ||
 	     storage(w2) == STG_INLINE )
-	  goto out_fail;
+	  goto out_fail;;
       case TAG_STRING:
       case TAG_FLOAT:
 	if ( equalIndirect(w1, w2) )
 	  continue;
         goto out_fail;
       case TAG_COMPOUND:
-      { int arity;
-	Functor f1 = valueTerm(w1);
+      { Functor f1 = valueTerm(w1);
 	Functor f2 = valueTerm(w2);
+	int arity;
+
+#if O_CYCLIC
+	while ( isRef(f1->definition) )
+	  f1 = (Functor)unRef(f1->definition);
+	while ( isRef(f2->definition) )
+	  f2 = (Functor)unRef(f2->definition);
+	if ( f1 == f2 )
+	  continue;
+#endif
 
 	if ( f1->definition != f2->definition )
-	  fail;
-
+	  goto out_fail;
 	arity = arityFunctor(f1->definition);
-	t1 = f1->arguments;
-	t2 = f2->arguments;
 
 	if ( !compound )
 	{ compound = TRUE;
+	  initCyclic(PASS_LD1);
 	  initTermAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
 	} else
 	{ if ( !pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments) )
@@ -644,6 +661,8 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 	    goto out_fail;
 	  }
 	}
+
+	linkTermsCyclic(f1, f2 PASS_LD);
 
 	continue;
       }
@@ -654,7 +673,9 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 
 out_fail:
   if ( compound )
-    clearTermAgendaLR(&agenda);
+  { clearTermAgendaLR(&agenda);
+    exitCyclic(PASS_LD1);
+  }
   return rc;
 }
 
