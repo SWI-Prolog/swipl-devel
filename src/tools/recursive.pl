@@ -83,11 +83,8 @@ stop('sumProfile').
 stop('freeProfileNode').
 stop('getUnknownModule').
 					% real problems
-stop_show('unify_with_occurs_check', lao).
-stop_show('var_occurs_in',	     lao).
 stop_show('ph1_is_acyclic',	     lao).
 stop_show('ph2_is_acyclic',	     lao).
-stop_show('ph_ground',		     lao).
 stop_show('eval_expression',	     no_lao).
 stop_show('copy_record',	     lao).
 stop_show('scanAtomsRecord',	     lao).
@@ -98,9 +95,7 @@ stop_show('do_copy_term',	     no_lao).
 stop_show('find_if_then_end',	     no_lao).
 stop_show('ar_func_n',		     no_lao).
 stop_show('termHashValue',	     no_lao).
-stop_show('do_number_vars',	     lao).
 stop_show('free_variables_loop',     lao).
-stop_show('do_unify',		     lao).
 stop_show('complex_term',	     no_lao).
 stop_show('writeTerm',		     no_lao).
 stop_show('decompileBody',	     no_lao).
