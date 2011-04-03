@@ -1184,28 +1184,45 @@ reasoners.
     \predicate[ISO]{unify_with_occurs_check}{2}{+Term1, +Term2}
 As \predref{=}{2}, but using \jargon{sound-unification}. That is, a
 variable only unifies to a term if this term does not contain the
-variable itself.  To illustrate this, consider the two goals below:
+variable itself.  To illustrate this, consider the two queries below.
 
 \begin{code}
 1 ?- A = f(A).
-
-A = f(f(f(f(f(f(f(f(f(f(...))))))))))
+A = f(A).
 2 ?- unify_with_occurs_check(A, f(A)).
-
-No
+false.
 \end{code}
 
 \index{occurs_check}%
-I.e.\ the first creates a \jargon{cyclic-term}, which is printed as an
-infinitely nested \functor{f}{1} term (see the \const{max_depth} option
-of write_term/2). The second executes logically sound unification and
-thus fails. Note that the behaviour of unification through
+The first creates a \jargon{cyclic-term}, also called a
+\jargon{rational tree}. The second executes logically sound unification
+and thus fails. Note that the behaviour of unification through
 \predref{=}{2} as well as implicit unification in the head can be
 changed using the Prolog flag \prologflag{occurs_check}.
 
+The SWI-Prolog implementation of unify_with_occurs_check/2 is cycle-safe
+and only guards against \emph{creating} cycles, not against cycles that
+may already be present in one of the arguments.  This is illustrated in
+the following two queries:
+
+\begin{code}
+?- X = f(X), Y = X, unify_with_occurs_check(X, Y).
+X = Y, Y = f(Y).
+?- X = f(X), Y = f(Y), unify_with_occurs_check(X, Y).
+X = Y, Y = f(Y).
+\end{code}
+
+Some other Prolog systems interpret unify_with_occurs_check/2 as if
+defined by the clause below, causing failure on the above two queries.
+Direct use of acyclic_term/1 is portable and more appropriate for such
+applications.
+
+\begin{code}
+unify_with_occurs_check(X,X) :- acyclic_term(X).
+\end{code}
+
     \infixop{=@=}{+Term1}{+Term2}
 \index{variant}%
-
 True if \arg{Term1} is a \jargon{variant} of (or \jargon{structurally
 equivalent} to) \arg{Term2}. Testing for a variant is weaker than
 equivalence (\predref{==}{2}), but stronger than unification
