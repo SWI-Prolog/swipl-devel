@@ -2930,7 +2930,7 @@ PRED_IMPL("subsumes_term", 2, subsumes_term, 0)
 }
 
 
-/** free_variable_set(+Template, +GoalIn, -GoalOut, -VarTemplate)
+/** free_variable_set(+Template^GoalIn, -GoalOut, -VarTemplate)
 
 This implements _|free variable set|_ as   defined the ISO core standard
 (sec. 7.1.1.4) for setof/3 and  bagof/3. This demands ^/2-quantification
@@ -2939,11 +2939,12 @@ The latter implies that we no longer need ^/2 as a predicate.
 */
 
 static size_t
-free_variables_loop(Word t ARG_LD)
+free_variables_loop(Word t, atom_t *mname, term_t goal ARG_LD)
 { term_agenda agenda;
-  int existential = FALSE;		/* TRUE for processing left of ^ */
+  int in_goal = FALSE;
+  int existential = FALSE;		/* TRUE when processing left of ^ */
   size_t n = 0;
-  word mark = 0;
+  word mark = 0;			/* mark that tells us we completed vars */
 
   initTermAgenda(&agenda, 1, t);
   while((t=nextTermAgenda(&agenda)))
@@ -2952,6 +2953,7 @@ free_variables_loop(Word t ARG_LD)
       continue;
     }
 
+  again:
     if ( canBind(*t) )
     { term_t v;
 
@@ -2975,18 +2977,36 @@ free_variables_loop(Word t ARG_LD)
       if ( visited(f PASS_LD) )
 	continue;
 
-      if ( fd == FUNCTOR_hat2 && existential == FALSE )
-      { if ( !pushWorkAgenda(&agenda, 1, &f->arguments[1]) ||
-	     !pushWorkAgenda(&agenda, 1, &mark) ||
-	     !pushWorkAgenda(&agenda, 1, &f->arguments[0]) )
-	  return TV_NOMEM;
-	existential = TRUE;
-      } else
-      { if ( !pushWorkAgenda(&agenda, arityFunctor(fd), f->arguments) )
-	  return TV_NOMEM;
+      if ( !in_goal )
+      { if ( fd == FUNCTOR_hat2 && existential == FALSE )
+	{ if ( !pushWorkAgenda(&agenda, 1, &f->arguments[1]) ||
+	       !pushWorkAgenda(&agenda, 1, &mark) ||
+	       !pushWorkAgenda(&agenda, 1, &f->arguments[0]) )
+	    return TV_NOMEM;
+	  existential = TRUE;
+	  continue;
+	}
+	if ( fd == FUNCTOR_colon2 && !existential )
+	{ Word a1;
+
+	  deRef2(&f->arguments[0], a1);
+	  if ( isAtom(*a1) )
+	    *mname = *a1;
+	  t = &f->arguments[1];
+	  goto again;
+	} else if ( !existential )
+	{ *valTermRef(goal) = needsRef(*t) ? makeRef(t) : *t;
+	  in_goal = TRUE;
+	}
       }
 
+      if ( !pushWorkAgenda(&agenda, arityFunctor(fd), f->arguments) )
+	return TV_NOMEM;
+
       continue;
+    } else if ( !in_goal && !existential) /* non-term goal (atom or invalid) */
+    { *valTermRef(goal) = needsRef(*t) ? makeRef(t) : *t;
+      in_goal = TRUE;
     }
   }
 
@@ -2998,21 +3018,23 @@ out:
 
 
 static
-PRED_IMPL("$e_free_variables", 2, e_free_variables, 0)
+PRED_IMPL("$free_variable_set", 3, free_variable_set, 0)
 { GET_LD
 
   for(;;)
-  { term_t v0 = PL_new_term_refs(0);
-    size_t i, n;
+  { term_t goal = PL_new_term_ref();
+    term_t v0 = PL_new_term_refs(0);
+    size_t n;
+    atom_t mname = (atom_t)0;
 
     startCritical;
     initvisited(PASS_LD1);
-    n = free_variables_loop(valTermRef(A1) PASS_LD);
+    n = free_variables_loop(valTermRef(A1), &mname, goal PASS_LD);
     unvisit(PASS_LD1);
     if ( !endCritical )
       return FALSE;
     if ( n == TV_NOSPACE )
-    { PL_reset_term_refs(v0);
+    { PL_reset_term_refs(goal);
       if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )
 	return FALSE;
       continue;
@@ -3020,13 +3042,23 @@ PRED_IMPL("$e_free_variables", 2, e_free_variables, 0)
     if ( n == TV_NOMEM )
       return PL_error(NULL, 0, NULL, ERR_NOMEM);
 
-    if ( PL_unify_functor(A2, PL_new_functor(ATOM_v, (int)n)) )
-    { for(i=0; i<n; i++)
-      { if ( !PL_unify_arg((int)i+1, A2, v0+i) )
+    if ( PL_unify_functor(A3, PL_new_functor(ATOM_v, (int)n)) )
+    { int i, m = (int)n;
+
+      for(i=0; i<m; i++)
+      { if ( !PL_unify_arg(i+1, A3, v0+i) )
 	  return FALSE;
       }
 
-      return TRUE;
+      if ( mname )
+      { term_t m = PL_new_term_ref();
+
+	PL_put_atom(m, mname);
+	if ( !PL_cons_functor(goal, FUNCTOR_colon2, m, goal) )
+	  return FALSE;
+      }
+
+      return PL_unify(A2, goal);
     }
     return FALSE;
   }
@@ -5424,7 +5456,7 @@ BeginPredDefs(prims)
   PRED_DEF("term_variables", 2, term_variables2, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)
-  PRED_DEF("$e_free_variables", 2, e_free_variables, 0)
+  PRED_DEF("$free_variable_set", 3, free_variable_set, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_TERMHASH
   PRED_DEF("term_hash", 4, term_hash4, 0)

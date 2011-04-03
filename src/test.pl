@@ -1081,14 +1081,9 @@ sets(setof-2) :-
 		   compound(_A1, _B1)-[1, 2]]
 	).
 sets(vars-1) :-
-	'$e_free_variables'(A^satisfy(B^C^(setof(D:E,
-						 (country(E), area(E, D)),
-						 C),
-					   aggregate(max, C, B),
-					   in(B, A),
-					   {place(A)})),
-			    Free),
-	Free == v(D, E).
+	'$free_variable_set'(X^(m:Y^hello(X,Y)), G, V),
+	G == m:hello(X,Y),
+	V == v.
 sets(bagof-1) :-
 	List = [_,_,_],
 	bagof(X, member(X, List), Xs),
