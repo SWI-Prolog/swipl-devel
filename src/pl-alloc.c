@@ -716,6 +716,8 @@ raiseStackOverflow(int overflow)
     case GLOBAL_OVERFLOW:   s = (Stack)&LD->stacks.global;   break;
     case TRAIL_OVERFLOW:    s = (Stack)&LD->stacks.trail;    break;
     case ARGUMENT_OVERFLOW: s = (Stack)&LD->stacks.argument; break;
+    case MEMORY_OVERFLOW:
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
     case FALSE:				/* some other error is pending */
       return FALSE;
     default:
