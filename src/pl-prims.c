@@ -2506,70 +2506,70 @@ Returns	>= 0: Number for next variable variable
 
 static int
 do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
-{
-start:
-  if ( n < 0 )
-    return n;				/* error */
+{ term_agenda agenda;
 
-  deRef(p);
+  initTermAgenda(&agenda, 1, p);
+  while((p=nextTermAgenda(&agenda)))
+  { if ( canBind(*p) )
+    { Word a;
+      word v;
 
-  if ( canBind(*p) )
-  { Word a;
-    word v;
+      if ( isAttVar(*p) )
+      { switch(options->on_attvar)
+	{ case AV_SKIP:
+	    continue;
+	  case AV_ERROR:
+	    n = -1;
+	    goto out;
+	  case AV_BIND:
+	    break;
+	}
+      }
 
-    if ( isAttVar(*p) )
-    { switch(options->on_attvar)
-      { case AV_SKIP:
-	  return n;
-	case AV_ERROR:
-	  return -1;
-	case AV_BIND:
-	  break;
+      if ( !hasGlobalSpace(2) )
+      { n = overflowCode(2);
+	goto out;
+      }
+
+      a = gTop;
+      a[0] = options->functor;
+      if ( options->singletons )
+      { a[1] = ATOM_anonvar;
+      } else
+      { a[1] = consInt(n);
+	assert(valInt(a[1]) == n);
+	n++;
+      }
+      gTop += 2;
+
+      v = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+      bindConst(p, v);
+    } else if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+
+      if ( options->singletons &&
+	   f->definition == options->functor &&
+	   (Word)f >= m->globaltop )	/* new one we created ourselves */
+      { Word p = &f->arguments[0];
+
+	if ( *p == ATOM_anonvar )
+	{ *p = consInt(n);		/* stack can't hold enough vars */
+	  n++;				/* to averflow this */
+	}
+      }
+
+      if ( !options->singletons && visited(f PASS_LD) )
+	continue;
+
+      if ( !pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments) )
+      { n = MEMORY_OVERFLOW;
+	goto out;
       }
     }
-
-    if ( !hasGlobalSpace(2) )
-      return overflowCode(2);
-
-    a = gTop;
-    a[0] = options->functor;
-    if ( options->singletons )
-    { a[1] = ATOM_anonvar;
-    } else
-    { a[1] = consInt(n);
-      assert(valInt(a[1]) == n);
-      n++;
-    }
-    gTop += 2;
-
-    v = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-    bindConst(p, v);
-  } else if ( isTerm(*p) )
-  { Functor f = valueTerm(*p);
-    int arity;
-
-    if ( options->singletons &&
-	 f->definition == options->functor &&
-	 (Word)f >= m->globaltop )	/* new one we created ourselves */
-    { Word p = &f->arguments[0];
-
-      if ( *p == ATOM_anonvar )
-      { *p = consInt(n);		/* stack can't hold enough vars */
-        n++;				/* to averflow this */
-      }
-    }
-
-    if ( !options->singletons && visited(f PASS_LD) )
-      return n;
-
-    arity = arityFunctor(f->definition);
-
-    for(p=argTermP(*p, 0); --arity > 0; p++)
-    { if ( (n=do_number_vars(p, options, n, m PASS_LD)) < 0 )
-	return n;
-    }
-    goto start;				/* right-argument recursion */
   }
+
+out:
+  clearTermAgenda(&agenda);
 
   return n;				/* anything else */
 }
@@ -2597,6 +2597,8 @@ numberVars(term_t t, nv_options *options, int n ARG_LD)
     } else if ( rc == -1 )		/* error */
     { DiscardMark(m);
       return rc;
+    } else if ( rc == MEMORY_OVERFLOW )
+    { return rc;
     } else				/* stack overflow */
     { int rc2;
 
