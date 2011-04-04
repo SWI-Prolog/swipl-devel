@@ -3126,27 +3126,25 @@ also needs support in garbageCollect() and growStacks().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-unify_all_trail_ptrs(Word t1, Word t2 ARG_LD)
+unify_all_trail_ptrs(Word t1, Word t2, mark *m ARG_LD)
 { for(;;)
-  { mark m;
-    int rc;
+  { int rc;
 
-    Mark(m);
+    Mark(*m);
     LD->mark_bar = NO_MARK_BAR;
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc == TRUE )			/* Terms unified */
-    { DiscardMark(m);
-      return rc;
+    { return rc;
     } else if ( rc == FALSE )		/* Terms did not unify */
     { if ( !exception_term )		/* Check for occurs error */
-	Undo(m);
-      DiscardMark(m);
+	Undo(*m);
+      DiscardMark(*m);
       return rc;
     } else				/* Stack overflow */
     { int rc2;
 
-      Undo(m);
-      DiscardMark(m);
+      Undo(*m);
+      DiscardMark(*m);
       PushPtr(t1); PushPtr(t2);
       rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
       PopPtr(t2); PopPtr(t1);
@@ -3159,7 +3157,7 @@ unify_all_trail_ptrs(Word t1, Word t2 ARG_LD)
 
 static ssize_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
-{ fid_t fid;
+{ mark m;
 
   if ( PL_is_variable(t1) )
   { if ( PL_compare(t1, t2) == 0 )
@@ -3188,15 +3186,11 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 			   PL_ATOM, ATOM_nil);
   }
 
-  if ( !(fid = PL_open_foreign_frame()) )
-    return FALSE;
-
 retry:
   if ( unify_all_trail_ptrs(valTermRef(t1),	/* can do shift/gc */
-			    valTermRef(t2) PASS_LD) )
-  { FliFrame fr = (FliFrame)valTermRef(fid);
-    TrailEntry tt = tTop;
-    TrailEntry mt = fr->mark.trailtop;
+			    valTermRef(t2), &m PASS_LD) )
+  { TrailEntry tt = tTop;
+    TrailEntry mt = m.trailtop;
 
     if ( tt > mt )
     { ssize_t needed = (tt-mt)*6+1;
@@ -3205,13 +3199,15 @@ retry:
       if ( !hasGlobalSpace(needed) )	/* See (*) */
       { int rc = overflowCode(needed);
 
-	PL_rewind_foreign_frame(fid);
+	Undo(m);
+	DiscardMark(m);
 	rc = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
 	if ( rc )
 	  goto retry;
 	return FALSE;
       }
 
+      DiscardMark(m);
       tail = list = gTop;
       gp = list+1;
 
@@ -3265,17 +3261,15 @@ retry:
 	}
       }
       gTop = gp;			/* may not have used all space */
-      tTop = fr->mark.trailtop;
+      tTop = m.trailtop;
 
-      PL_close_foreign_frame(fid);
       return PL_unify(wordToTermRef(list), subst);
     } else
-    { PL_close_foreign_frame(fid);
+    { DiscardMark(m);
       return PL_unify_atom(subst, ATOM_nil);
     }
   } else
-  { PL_close_foreign_frame(fid);
-    return FALSE;
+  { return FALSE;
   }
 }
 
