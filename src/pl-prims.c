@@ -686,22 +686,14 @@ out_fail:
 static
 PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 { PRED_LD
+  occurs_check_t old = LD->prolog_flag.occurs_check;
+  int rc;
 
-  for(;;)
-  { int rc;
-    Word p1 = valTermRef(A1);
-    Word p2 = valTermRef(A2);
+  LD->prolog_flag.occurs_check = OCCURS_CHECK_TRUE;
+  rc = PL_unify(A1, A2);
+  LD->prolog_flag.occurs_check = old;
 
-    rc = unify_with_occurs_check(p1, p2, OCCURS_CHECK_TRUE PASS_LD);
-    if ( rc >= 0 )			/* Terms unified */
-    { return rc;
-    } else if ( rc == MEMORY_OVERFLOW )	/* out of malloc()-space */
-    { return PL_error(NULL, 0, NULL, ERR_NOMEM);
-    } else				/* Stack overflow */
-    { if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	return FALSE;
-    }
-  }
+  return rc;
 }
 
 
