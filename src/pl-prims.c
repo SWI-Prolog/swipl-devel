@@ -478,6 +478,9 @@ var_occurs_in(Word v, Word t ARG_LD)
     if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
 
+      while(isRef(f->definition))	/* cycle links from unification */
+	f = (Functor)unRef(f->definition);
+
       if ( !compound )
       { int arity = arityFunctor(f->definition);
 
