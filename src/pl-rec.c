@@ -1057,79 +1057,78 @@ skipLong(CopyInfo b)
 
 static void
 scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
-{
-right_recursion:
+{ size_t work = 0;
 
-  switch( fetchOpCode(b) )
-  { case PL_TYPE_VARIABLE:
-    case PL_REC_CYCLE:
-    { skipSizeInt(b);
-      return;
-    }
-    case PL_REC_ALLOCVAR:
-      goto right_recursion;
+  do
+  { switch( fetchOpCode(b) )
+    { case PL_TYPE_VARIABLE:
+      case PL_REC_CYCLE:
+      { skipSizeInt(b);
+	continue;
+      }
+      case PL_REC_ALLOCVAR:
+	work++;
+	continue;
 #ifdef O_ATTVAR
-    case PL_TYPE_ATTVAR:
-    { skipSizeInt(b);
-      goto right_recursion;
-    }
+      case PL_TYPE_ATTVAR:
+      { skipSizeInt(b);
+	work++;
+	continue;
+      }
 #endif
-    case PL_TYPE_ATOM:
-    { atom_t a = fetchWord(b);
+      case PL_TYPE_ATOM:
+      { atom_t a = fetchWord(b);
 
-      (*func)(a);
-      return;
-    }
-    case PL_TYPE_EXT_ATOM:
-    { skipAtom(b);
-      return;
-    }
-    case PL_TYPE_TAGGED_INTEGER:
-    case PL_TYPE_INTEGER:
-    { skipLong(b);
-      return;
-    }
+	(*func)(a);
+	continue;
+      }
+      case PL_TYPE_EXT_ATOM:
+      { skipAtom(b);
+	continue;
+      }
+      case PL_TYPE_TAGGED_INTEGER:
+      case PL_TYPE_INTEGER:
+      { skipLong(b);
+	continue;
+      }
 #ifdef O_GMP
-    case PL_REC_MPZ:
-      b->data = skipMPZOnCharp(b->data);
-      return;
+      case PL_REC_MPZ:
+	b->data = skipMPZOnCharp(b->data);
+	continue;
 #endif
-    case PL_TYPE_FLOAT:
-    case PL_TYPE_EXT_FLOAT:
-    { skipBuf(b, double);
-      return;
-    }
-    case PL_TYPE_STRING:
-    { uint len = fetchSizeInt(b);
+      case PL_TYPE_FLOAT:
+      case PL_TYPE_EXT_FLOAT:
+      { skipBuf(b, double);
+	continue;
+      }
+      case PL_TYPE_STRING:
+      { uint len = fetchSizeInt(b);
+	b->data += len;
+	continue;
+      }
+      case PL_TYPE_COMPOUND:
+      { word fdef = fetchWord(b);
+	int arity;
 
-      b->data += len;
+	arity = arityFunctor(fdef);
+	work += arity;
+	continue;
+      }
+      case PL_TYPE_EXT_COMPOUND:
+      { intptr_t arity = fetchSizeInt(b);
 
-      return;
+	skipAtom(b);
+	work += arity;
+	continue;
+      }
+      case PL_TYPE_CONS:
+      { work += 2;
+	continue;
+      }
+      default:
+	assert(0);
     }
-    case PL_TYPE_COMPOUND:
-    { word fdef = fetchWord(b);
-      int arity;
-
-      arity = arityFunctor(fdef);
-      while(--arity > 0)
-	scanAtomsRecord(b, func);
-      goto right_recursion;
-    }
-    case PL_TYPE_EXT_COMPOUND:
-    { intptr_t arity = fetchSizeInt(b);
-
-      skipAtom(b);
-      while(--arity > 0)
-	scanAtomsRecord(b, func);
-      goto right_recursion;
-    }
-    case PL_TYPE_CONS:
-    { scanAtomsRecord(b, func);
-      goto right_recursion;
-    }
-    default:
-      assert(0);
-  }
+  } while ( work-- );
 }
 
 #endif /*O_ATOMGC*/
