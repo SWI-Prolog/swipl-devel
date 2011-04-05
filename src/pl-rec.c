@@ -835,163 +835,171 @@ fetchChars(CopyInfo b, unsigned len, Word to)
 }
 
 
-static void
+static int
 copy_record(Word p, CopyInfo b ARG_LD)
-{ intptr_t tag;
+{ term_agenda agenda;
+  int is_compound = FALSE;
+  int tag;
 
-right_recursion:
-  switch( (tag = fetchOpCode(b)) )
-  { case PL_TYPE_VARIABLE:
-    { intptr_t n = fetchSizeInt(b);
+  do
+  {
+  right_recursion:
+    switch( (tag = fetchOpCode(b)) )
+    { case PL_TYPE_VARIABLE:
+      { intptr_t n = fetchSizeInt(b);
 
-      if ( b->vars[n] )
-      { if ( p > b->vars[n] )		/* ensure the reference is in the */
-	  *p = makeRef(b->vars[n]);	/* right direction! */
-	else
-	{ *p = *b->vars[n];		/* wrong way.  make sure b->vars[n] */
-	  *b->vars[n] = makeRef(p);	/* stays at the real variable */
-	  b->vars[n] = p;		/* NOTE: also links attvars! */
+	if ( b->vars[n] )
+	{ if ( p > b->vars[n] )		/* ensure the reference is in the */
+	    *p = makeRef(b->vars[n]);	/* right direction! */
+	  else
+	  { *p = *b->vars[n];		/* wrong way.  make sure b->vars[n] */
+	    *b->vars[n] = makeRef(p);	/* stays at the real variable */
+	    b->vars[n] = p;		/* NOTE: also links attvars! */
+	  }
+	} else
+	{ setVar(*p);
+	  b->vars[n] = p;
 	}
-      } else
-      {	setVar(*p);
-	b->vars[n] = p;
+
+	continue;
       }
-
-      return;
-    }
-    case PL_REC_ALLOCVAR:
-    { setVar(*b->gstore);
-      *p = makeRefG(b->gstore);
-      p = b->gstore++;
-      goto right_recursion;
-    }
+      case PL_REC_ALLOCVAR:
+      { setVar(*b->gstore);
+	*p = makeRefG(b->gstore);
+	p = b->gstore++;
+	goto right_recursion;
+      }
 #if O_ATTVAR
-    case PL_TYPE_ATTVAR:
-    { intptr_t n = fetchSizeInt(b);
+      case PL_TYPE_ATTVAR:
+      { intptr_t n = fetchSizeInt(b);
 
-      *p = consPtr(b->gstore, TAG_ATTVAR|STG_GLOBAL);
-      b->vars[n] = p;
-      p = b->gstore++;
-      goto right_recursion;
-    }
+	*p = consPtr(b->gstore, TAG_ATTVAR|STG_GLOBAL);
+	b->vars[n] = p;
+	p = b->gstore++;
+	goto right_recursion;
+      }
 #endif
-    case PL_TYPE_ATOM:
-    { *p = fetchWord(b);
+      case PL_TYPE_ATOM:
+      { *p = fetchWord(b);
+	continue;
+      }
+      case PL_TYPE_EXT_ATOM:
+      { fetchAtom(b, p);
+	PL_unregister_atom(*p);
+	continue;
+      }
+      case PL_TYPE_TAGGED_INTEGER:
+      { int64_t val = fetchInt64(b);
+	*p = consInt(val);
+	continue;
+      }
+      case PL_TYPE_INTEGER:
+      { size_t i;
+	union
+	{ int64_t i64;
+	  word    w[WORDS_PER_PLINT];
+	} val;
 
-      return;
-    }
-    case PL_TYPE_EXT_ATOM:
-    { fetchAtom(b, p);
-      PL_unregister_atom(*p);
-      return;
-    }
-    case PL_TYPE_TAGGED_INTEGER:
-    { int64_t val = fetchInt64(b);
+	val.i64 = fetchInt64(b);
 
-      *p = consInt(val);
-
-      return;
-    }
-    case PL_TYPE_INTEGER:
-    { size_t i;
-      union
-      { int64_t i64;
-	word    w[WORDS_PER_PLINT];
-      } val;
-
-      val.i64 = fetchInt64(b);
-
-      *p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
-      *b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
-      for(i=0; i<WORDS_PER_PLINT; i++)
-	*b->gstore++ = val.w[i];
-      *b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
-
-      return;
-    }
+	*p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
+	*b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
+	for(i=0; i<WORDS_PER_PLINT; i++)
+	  *b->gstore++ = val.w[i];
+	*b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
+	continue;
+      }
 #ifdef O_GMP
-    case PL_REC_MPZ:
-    { b->data = loadMPZFromCharp(b->data, p, &b->gstore);
-
-      return;
-    }
+      case PL_REC_MPZ:
+      { b->data = loadMPZFromCharp(b->data, p, &b->gstore);
+	continue;
+      }
 #endif
-    case PL_TYPE_FLOAT:
-    case PL_TYPE_EXT_FLOAT:
-    { *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
-      *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-      if ( tag == PL_TYPE_FLOAT )
-	fetchFloat(b, b->gstore);
-      else
-	fetchExtFloat(b, b->gstore);
-      b->gstore += WORDS_PER_DOUBLE;
-      *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+      case PL_TYPE_FLOAT:
+      case PL_TYPE_EXT_FLOAT:
+      { *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
+	*b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	if ( tag == PL_TYPE_FLOAT )
+	  fetchFloat(b, b->gstore);
+	else
+	  fetchExtFloat(b, b->gstore);
+	b->gstore += WORDS_PER_DOUBLE;
+	*b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	continue;
+      }
+      case PL_TYPE_STRING:
+      { unsigned len = fetchSizeInt(b);
+	int lw, pad;
+	word hdr;
 
-      return;
-    }
-    case PL_TYPE_STRING:
-    { unsigned len = fetchSizeInt(b);
-      int lw, pad;
-      word hdr;
-
-      lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
-      pad = (lw*sizeof(word) - len);
-      *p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
-      *b->gstore++ = hdr = mkStrHdr(lw, pad);
-      b->gstore[lw-1] = 0L;		/* zero-padding */
-      fetchChars(b, len, b->gstore);
-      b->gstore += lw;
-      *b->gstore++ = hdr;
-
-      return;
-    }
+	lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
+	pad = (lw*sizeof(word) - len);
+	*p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
+	*b->gstore++ = hdr = mkStrHdr(lw, pad);
+	b->gstore[lw-1] = 0L;		/* zero-padding */
+	fetchChars(b, len, b->gstore);
+	b->gstore += lw;
+	*b->gstore++ = hdr;
+	continue;
+      }
 #ifdef O_CYCLIC
-    case PL_REC_CYCLE:
-    { unsigned offset = fetchSizeInt(b);
-      Word ct = b->gbase+offset;
+      case PL_REC_CYCLE:
+      { unsigned offset = fetchSizeInt(b);
+	Word ct = b->gbase+offset;
 
-      *p = consPtr(ct, TAG_COMPOUND|STG_GLOBAL);
-
-      return;
-    }
+	*p = consPtr(ct, TAG_COMPOUND|STG_GLOBAL);
+	continue;
+      }
 #endif
-  { word fdef;
-    int arity;
-    case PL_TYPE_COMPOUND:
+    { word fdef;
+      int arity;
+      case PL_TYPE_COMPOUND:
 
-      fdef = fetchWord(b);
-      arity = arityFunctor(fdef);
+	fdef = fetchWord(b);
+	arity = arityFunctor(fdef);
 
-    compound:
-      *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
-      *b->gstore++ = fdef;
-      p = b->gstore;
-      b->gstore += arity;
-      for(; --arity > 0; p++)
-	copy_record(p, b PASS_LD);
-      goto right_recursion;
-    case PL_TYPE_EXT_COMPOUND:
-    { atom_t name;
+      compound:
+	*p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
+	*b->gstore++ = fdef;
+	p = b->gstore;
+	b->gstore += arity;
+	if ( !is_compound )
+	{ is_compound = TRUE;
+	  initTermAgenda(&agenda, arity, p);
+	} else
+	{ if ( !pushWorkAgenda(&agenda, arity, p) )
+	    return MEMORY_OVERFLOW;
+	}
+	continue;
+      case PL_TYPE_EXT_COMPOUND:
+      { atom_t name;
 
-      arity = (int)fetchSizeInt(b);
-      fetchAtom(b, &name);
-      fdef = lookupFunctorDef(name, arity);
-
-      goto compound;
+	arity = (int)fetchSizeInt(b);
+	fetchAtom(b, &name);
+	fdef = lookupFunctorDef(name, arity);
+	goto compound;
+      }
     }
-  }
-    case PL_TYPE_CONS:
-    { *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
-      *b->gstore++ = FUNCTOR_dot2;
-      p = b->gstore;
-      b->gstore += 2;
-      copy_record(p, b PASS_LD);
-      p++;
-      goto right_recursion;
+      case PL_TYPE_CONS:
+      { *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
+	*b->gstore++ = FUNCTOR_dot2;
+	p = b->gstore;
+	b->gstore += 2;
+	if ( !is_compound )
+	{ is_compound = TRUE;
+	  initTermAgenda(&agenda, 2, p);
+	} else
+	{ if ( !pushWorkAgenda(&agenda, 2, p) )
+	    return MEMORY_OVERFLOW;
+	}
+	continue;
+      }
+      default:
+	assert(0);
     }
-    default:
-      assert(0);
-  }
+  } while ( is_compound && (p=nextTermAgendaNoDeRef(&agenda)) );
+
+  return TRUE;
 }
 
 
@@ -1014,8 +1022,10 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
   gTop += r->gsize;
 
   INITCOPYVARS(b, r->nvars);
-  copy_record(valTermRef(copy), &b PASS_LD);
+  rc = copy_record(valTermRef(copy), &b PASS_LD);
   FREECOPYVARS(b, r->nvars);
+  if ( rc != TRUE )
+    return rc;
 
   assert(b.gstore == gTop);
   SECURE(checkData(valTermRef(copy)));

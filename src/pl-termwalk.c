@@ -87,6 +87,30 @@ nextTermAgenda__LD(term_agenda *a ARG_LD)
 }
 
 
+#define nextTermAgendaNoDeRef(a) \
+	nextTermAgendaNoDeRef__LD(a PASS_LD)
+
+static inline Word
+nextTermAgendaNoDeRef__LD(term_agenda *a ARG_LD)
+{ Word p;
+
+  if ( a->work.size > 0 )
+  { ok:
+    a->work.size--;
+    p = a->work.location++;
+
+    return p;
+  }
+
+  if ( popSegStack(&a->stack, &a->work, aNode) )
+    goto ok;
+
+  return NULL;
+}
+
+
+
+
 		 /*******************************
 		 *	  PUSH VARIATIONS	*
 		 *******************************/
