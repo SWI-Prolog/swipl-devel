@@ -3304,11 +3304,15 @@ Recursion issues:
 	- Safe/restore of COPY_SHARE when copying an attvar
 	- When doing a shared copy of a compound, we need to
 	    - Preserve to, from, old gTop and cycle-stack
+
+More issues:
+
+	- Cyclic terms are never shared.  Can we fix this?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 do_copy_term(Word from, Word to, int flags ARG_LD)
-{
+{ int ground = TRUE;
 
 again:
   switch(tag(*from))
@@ -3317,7 +3321,8 @@ again:
 
       if ( *p2 == VAR_MARK )
       { *to = makeRef(p2);
-        return FALSE;
+        ground = FALSE;
+        return ground;
       } else
       { from = p2;
 	goto again;
@@ -3327,26 +3332,30 @@ again:
       *to = VAR_MARK;
       *from = makeRef(to);
       TrailCyclic(from PASS_LD);
-      return FALSE;
+      ground = FALSE;
+      return ground;
     case TAG_ATTVAR:
     { Word p = valPAttVar(*from);
 
       if ( !(flags & COPY_ATTRS) )
       { if ( *p == VAR_MARK )
 	{ *to = makeRef(p);
-	  return FALSE;
+	  ground = FALSE;
+	  return ground;
 	} else
 	{ *to = VAR_MARK;
 	  *from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
 	  TrailCyclic(p PASS_LD);
 	  TrailCyclic(from PASS_LD);
-	  return FALSE;
+	  ground = FALSE;
+	  return ground;
 	}
       }
 
       if ( isAttVar(*p) )		/* already copied */
       { *to = makeRefG(p);
-        return FALSE;
+        ground = FALSE;
+        return ground;
       } else
       { Word attr;			/* the new attributes */
 	int rc;
@@ -3371,7 +3380,8 @@ again:
 	flags &= ~COPY_SHARE;
 	if ( (rc=do_copy_term(p, attr, flags PASS_LD)) < 0 )
 	  return rc;
-	return FALSE;
+	ground = FALSE;
+	return ground;
       }
     }
     case TAG_ATOM:
@@ -3379,23 +3389,23 @@ again:
     case TAG_INTEGER:
     case TAG_STRING:
       *to = *from;
-      return TRUE;
+      return ground;
     case TAG_COMPOUND:
     { Functor f1 = valueTerm(*from);
 
       if ( isRef(f1->definition) )
       { *to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
-        return FALSE;			/* Cyclic */
+        ground = FALSE;			/* TBD: Needed? */
+        return ground;			/* Cyclic */
       } else if ( f1->definition & FIRST_MASK )
-      { *to = *from;
-	return TRUE;
+      { *to = *from;			/* shared ground term */
+	return ground;
       } else
       { int arity = arityFunctor(f1->definition);
 	Word oldtop = gTop;
 	Word to0 = to;
 	Word from0 = from;
 	Functor f2;
-	int ground = TRUE;
 	size_t count = LD->cycle.lstack.count;
 
 	if ( !(f2 = (Functor)allocGlobalNoShift(arity+1)) )
@@ -3415,7 +3425,7 @@ again:
 	  ground &= rc;
 	}
 
-	if ( (flags & COPY_SHARE) )
+	if ( (flags & COPY_SHARE) && ground )
 	{ int rc = do_copy_term(from, to, flags PASS_LD);
 
 	  if ( rc < 0 )
@@ -3429,16 +3439,16 @@ again:
 	    f1->definition |= FIRST_MASK;
 	    TrailCyclic(&f1->definition PASS_LD);
 	    DEBUG(2, Sdprintf("Shared\n"));
-	    return TRUE;
-	  } else
-	    return FALSE;
+	  }
+
+	  return ground;
 	} else
 	  goto again;
       }
     }
     default:
       assert(0);
-      return FALSE;
+      return ground;
   }
 }
 
