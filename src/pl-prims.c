@@ -3285,9 +3285,25 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FALSE: term cannot be shared
-TRUE:  term can be shared (ground)
-*_OVERFLOW: not enough space on the stack
+do_copy_term()
+
+Flags is a bitwise-or of
+
+	- COPY_ATTRS copy the attributes or turn attvar --> var
+	- COPY_SHARE try to share ground terms. When using COPY_ATTRS
+	  this is always enabled while copying the attributes.
+
+Return values:
+
+	- FALSE: term cannot be shared
+	- TRUE:  term can be shared (ground)
+	- *_OVERFLOW: not enough space on the stack
+
+Recursion issues:
+
+	- Safe/restore of COPY_SHARE when copying an attvar
+	- When doing a shared copy of a compound, we need to
+	    - Preserve to, from, old gTop and cycle-stack
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
