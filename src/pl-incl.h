@@ -43,9 +43,9 @@
 #endif
 #define C_LDFLAGS    ""
 #if defined(_DEBUG)
-#define C_PLLIB	    "libswiplD.lib"
+#define C_PLLIB	    "swiplD.lib"
 #else
-#define C_PLLIB	    "libswipl.lib"
+#define C_PLLIB	    "swipl.lib"
 #endif
 #else
 #include <parms.h>			/* pick from the working dir */
