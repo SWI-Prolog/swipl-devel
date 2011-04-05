@@ -3304,10 +3304,6 @@ Recursion issues:
 	- Safe/restore of COPY_SHARE when copying an attvar
 	- When doing a shared copy of a compound, we need to
 	    - Preserve to, from, old gTop and cycle-stack
-
-More issues:
-
-	- Cyclic terms are never shared.  Can we fix this?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -3395,7 +3391,6 @@ again:
 
       if ( isRef(f1->definition) )
       { *to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
-        ground = FALSE;			/* TBD: Needed? */
         return ground;			/* Cyclic */
       } else if ( f1->definition & FIRST_MASK )
       { *to = *from;			/* shared ground term */

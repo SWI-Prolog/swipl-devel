@@ -1954,6 +1954,14 @@ copy_term(nat-2) :-			% cyclic term
 	var(B), \+ attvar(B),
 	arg(2, T, X2),
 	get_attr(X2, foo, x).
+copy_term(share_cycle-1) :-
+	A = a(A), T = b(A,A),
+	copy_term(T, X),
+	same_term(T, X).
+copy_term(share_cycle-2) :-
+	A = a(A,_), T = b(A,A),
+	copy_term(T, X),
+	\+ same_term(T, X).
 
 
 		 /*******************************
