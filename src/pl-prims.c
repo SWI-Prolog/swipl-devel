@@ -3409,7 +3409,7 @@ again:
 	f2->definition = f1->definition;
 	f1->definition = makeRefG((Word)f2);
 	TrailCyclic(&f1->definition PASS_LD);
-	*to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
+	*to = consPtr(f2, TAG_COMPOUND|STG_GLOBAL);
 
 	from = &f1->arguments[0];
 	to   = &f2->arguments[0];
