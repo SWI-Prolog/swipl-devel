@@ -3356,15 +3356,6 @@ again:
       { Word attr;			/* the new attributes */
 	int rc;
 
-	if ( !onGlobalArea(to) )
-	{ Word t;
-
-	  if ( !(t = allocGlobalNoShift(1)) )
-	    return GLOBAL_OVERFLOW;
-
-	  *to = makeRefG(t);
-	  to = t;
-	}
 	if ( !(attr = allocGlobalNoShift(1)) )
 	  return GLOBAL_OVERFLOW;
 	TrailCyclic(p PASS_LD);
@@ -3469,7 +3460,7 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
 
     if ( rc < 0 )			/* no space for copy */
     { PL_discard_foreign_frame(fid);
-      PL_put_variable(to);
+      PL_put_variable(to);		/* gc consistency */
       if ( !makeMoreStackSpace(rc, ALLOW_SHIFT|ALLOW_GC) )
 	return FALSE;
     } else
