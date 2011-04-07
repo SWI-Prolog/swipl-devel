@@ -2120,7 +2120,10 @@ writeWicTrailer(wic_state *state)
   Sputc('T', fd);
 
   state->wicFd = NULL;
-  state->wicFile = NULL;
+  if ( state->wicFile )
+  { remove_string(state->wicFile);
+    state->wicFile = NULL;
+  }
 
   succeed;
 }
@@ -2346,8 +2349,8 @@ qlfOpen(term_t file)
 
   state = allocHeap(sizeof(*state));
   memset(state, 0, sizeof(*state));
-  state->wicFile = name;
-  state->mkWicFile = name;
+  state->wicFile = store_string(name);
+  state->mkWicFile = store_string(name);
   state->wicFd = out;
   initXR(state);
   initSourceMarks(state);
@@ -2371,7 +2374,10 @@ qlfClose(wic_state *state ARG_LD)
   writeSourceMarks(state PASS_LD);
   rc = Sclose(state->wicFd);
   state->wicFd = NULL;
-  state->mkWicFile = NULL;
+  if ( state->mkWicFile )
+  { remove_string(state->mkWicFile);
+    state->mkWicFile = NULL;
+  }
   destroyXR(state);
 
   current_state = state->parent;
@@ -3052,6 +3058,7 @@ qlfCleanup()
 		     PL_FUNCTOR_CHARS, "removed_after_error", 1,
 		       PL_CHARS, state->mkWicFile);
       RemoveFile(state->mkWicFile);
+      remove_string(state->mkWicFile);
       state->mkWicFile = NULL;
     }
 
