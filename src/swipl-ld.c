@@ -70,7 +70,7 @@ typedef unsigned long uintptr_t;
 #define PROG_CXX "cl.exe /MD /GX"
 #define PROG_OUT "plout.exe"
 #define PROG_CPP "cl.exe -P"
-#define LIB_PL_DEBUG "libswiplD.lib"
+#define LIB_PL_DEBUG "swiplD.lib"
 #define EXT_OBJ "obj"
 #define OPT_DEBUG "/DEBUG"
 #else /*__WINDOWS__*/
@@ -183,7 +183,7 @@ static arglist lastlibs;		/* libs that must be at the end */
 static arglist libdirs;			/* -L library directories */
 static arglist includedirs;		/* -I include directories */
 
-static char *pllib;    			/* -lswipl, libswipl.lib, ... */
+static char *pllib;    			/* -lswipl, swipl.lib, ... */
 
 static char *pl;			/* Prolog executable */
 static char *cc;			/* CC executable */

@@ -160,6 +160,35 @@ atomType(atom_t a, IOSTREAM *fd)
 }
 
 
+static int
+atomIsVarName(atom_t a)
+{ Atom atom = atomValue(a);
+
+  if ( false(atom->type, PL_BLOB_TEXT) || atom->length == 0 )
+    fail;
+  if ( isUCSAtom(atom) )
+  { pl_wchar_t *w = (pl_wchar_t*)atom->name;
+    size_t len = atom->length / sizeof(pl_wchar_t);
+
+    return atom_varnameW(w, len);
+  } else
+  { const char *s = atom->name;
+    size_t len = atom->length;
+
+    if ( isUpper(*s) || *s == '_' )
+    { for(s++; --len > 0; s++)
+      { if ( !isAlpha(*s) )
+	  return FALSE;
+      }
+
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+}
+
+
 		 /*******************************
 		 *	 PRIMITIVE WRITES	*
 		 *******************************/
@@ -1070,7 +1099,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
 	return PutToken(buf, out);
       }
-      if ( PL_get_atom(arg, &a) )
+      if ( PL_get_atom(arg, &a) && atomIsVarName(a) )
       { write_options o2 = *options;
 	clear(&o2, PL_WRT_QUOTED);
 

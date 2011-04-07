@@ -89,6 +89,22 @@ unquoted_atomW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
 }
 
 
+int
+atom_varnameW(const pl_wchar_t *s, size_t len)
+{ if ( PlUpperW(*s) || *s == '_' )
+  { for(s++; --len > 0; s++)
+    { int c = *s++;
+
+      if ( !PlIdContW(c) )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 		 /*******************************
 		 *	   CHAR-CONVERSION	*
@@ -1620,6 +1636,8 @@ again:
       OK('\r');
     case 't':
       OK('\t');
+    case 's':				/* \s is space (NU-Prolog, Quintus) */
+      OK(' ');
     case 'v':
       OK(11);				/* 11 is ASCII Vertical Tab */
     case 'u':				/* \uXXXX */
