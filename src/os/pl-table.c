@@ -41,26 +41,28 @@ create, advance over and destroy enumerator   objects. These objects are
 used to enumerate the symbols of these   tables,  used primarily for the
 pl_current_* predicates.
 
-The  enumerators  cause  two  things:  (1)    as  intptr_t  enumerators  are
+The enumerators cause  two  things:  (1)   as  long  as  enumerators are
 associated, the table will not  be  rehashed   and  (2)  if  symbols are
 deleted  that  are  referenced  by  an  enumerator,  the  enumerator  is
-automatically advanced to the next free symbol.  This, in general, makes
+automatically advanced to the next free  symbol. This, in general, makes
 the enumeration of hash-tables safe.
 
-TODO: abort should delete  any  pending   enumerators.  This  should  be
-thread-local, as thread_exit/1 should do the same.
+TBD: Resizing hash-tables causes major  headaches for concurrent access.
+We can avoid this by using a dynamic array for the list of hash-entries.
+Ongoing work in  the  RDF  store   shows  hash-tables  that  can  handle
+concurrent lock-free access.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
-allocHTableEntries(Table ht)
+static Symbol *
+allocHTableEntries(Table ht, int buckets)
 { GET_LD
-  int n;
+  size_t bytes = buckets * sizeof(Symbol);
   Symbol *p;
 
-  ht->entries = allocHeap(ht->buckets * sizeof(Symbol));
+  p = allocHeap(bytes);
+  memset(p, 0, bytes);
 
-  for(n=0, p = &ht->entries[0]; n < ht->buckets; n++, p++)
-    *p = NULL;
+  return p;
 }
 
 
@@ -84,7 +86,7 @@ newHTable(int buckets)
   }
 #endif
 
-  allocHTableEntries(ht);
+  ht->entries = allocHTableEntries(ht, ht->buckets);
   return ht;
 }
 
@@ -173,30 +175,47 @@ checkHTable(Table ht)
 static void
 rehashHTable(Table ht)
 { GET_LD
-  Symbol *oldtab;
-  int    oldbucks;
-  int    i;
+  Symbol *newentries, *oldentries;
+  int     newbuckets, oldbuckets;
+  int     i;
 
-  oldtab   = ht->entries;
-  oldbucks = ht->buckets;
-  ht->buckets *= 2;
-  allocHTableEntries(ht);
+  newbuckets = ht->buckets*2;
+  newentries = allocHTableEntries(ht, newbuckets);
 
   DEBUG(1, Sdprintf("Rehashing table %p to %d entries\n", ht, ht->buckets));
 
-  for(i=0; i<oldbucks; i++)
+  for(i=0; i<ht->buckets; i++)
   { Symbol s, n;
 
-    for(s=oldtab[i]; s; s = n)
-    { int v = (int)pointerHashValue(s->name, ht->buckets);
+    for(s=ht->entries[i]; s; s = n)
+    { Symbol s2 = allocHeap(sizeof(*s2));
+      int v = (int)pointerHashValue(s->name, newbuckets);
 
+      *s2 = *s;
       n = s->next;
-      s->next = ht->entries[v];
-      ht->entries[v] = s;
+      s2->next = newentries[v];
+      newentries[v] = s2;
     }
   }
 
-  freeHeap(oldtab, oldbucks * sizeof(Symbol));
+  oldentries  = ht->entries;
+  oldbuckets  = ht->buckets;
+  ht->entries = newentries;
+  ht->buckets = newbuckets;
+					/* Here we should be waiting until */
+					/* active lookup are finished */
+  for(i=0; i<oldbuckets; i++)
+  { Symbol s, n;
+
+    for(s=oldentries[i]; s; s = n)
+    { n = s->next;
+
+      s->next = NULL;			/* that causes old readers to stop */
+      freeHeap(s, sizeof(*s));
+    }
+  }
+
+  freeHeap(oldentries, oldbuckets * sizeof(Symbol));
   DEBUG(0, checkHTable(ht));
 }
 
@@ -319,7 +338,7 @@ copyHTable(Table org)
 #ifdef O_PLMT
   ht->mutex = NULL;
 #endif
-  allocHTableEntries(ht);
+  ht->entries = allocHTableEntries(ht, ht->buckets);
 
   for(n=0; n < ht->buckets; n++)
   { Symbol s, *q;
