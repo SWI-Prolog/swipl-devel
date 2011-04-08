@@ -172,12 +172,13 @@ checkHTable(Table ht)
 /* MT: Locked by calling addHTable()
 */
 
-static void
-rehashHTable(Table ht)
+static Symbol
+rehashHTable(Table ht, Symbol map)
 { GET_LD
   Symbol *newentries, *oldentries;
   int     newbuckets, oldbuckets;
   int     i;
+  int     safe_copy = (ht->mutex != NULL);
 
   newbuckets = ht->buckets*2;
   newentries = allocHTableEntries(ht, newbuckets);
@@ -187,14 +188,26 @@ rehashHTable(Table ht)
   for(i=0; i<ht->buckets; i++)
   { Symbol s, n;
 
-    for(s=ht->entries[i]; s; s = n)
-    { Symbol s2 = allocHeap(sizeof(*s2));
-      int v = (int)pointerHashValue(s->name, newbuckets);
+    if ( safe_copy )
+    { for(s=ht->entries[i]; s; s = n)
+      { int v = (int)pointerHashValue(s->name, newbuckets);
+	Symbol s2 = allocHeap(sizeof(*s2));
 
-      *s2 = *s;
-      n = s->next;
-      s2->next = newentries[v];
-      newentries[v] = s2;
+	n = s->next;
+	if ( s == map )
+	  map = s2;
+	*s2 = *s;
+	s2->next = newentries[v];
+	newentries[v] = s2;
+      }
+    } else
+    { for(s=ht->entries[i]; s; s = n)
+      { int v = (int)pointerHashValue(s->name, newbuckets);
+
+	n = s->next;
+	s->next = newentries[v];
+	newentries[v] = s;
+      }
     }
   }
 
@@ -202,21 +215,26 @@ rehashHTable(Table ht)
   oldbuckets  = ht->buckets;
   ht->entries = newentries;
   ht->buckets = newbuckets;
-					/* Here we should be waiting until */
+
+  if ( safe_copy )
+  {					/* Here we should be waiting until */
 					/* active lookup are finished */
-  for(i=0; i<oldbuckets; i++)
-  { Symbol s, n;
+    for(i=0; i<oldbuckets; i++)
+    { Symbol s, n;
 
-    for(s=oldentries[i]; s; s = n)
-    { n = s->next;
+      for(s=oldentries[i]; s; s = n)
+      { n = s->next;
 
-      s->next = NULL;			/* that causes old readers to stop */
-      freeHeap(s, sizeof(*s));
+	s->next = NULL;			/* that causes old readers to stop */
+	freeHeap(s, sizeof(*s));
+      }
     }
   }
 
   freeHeap(oldentries, oldbuckets * sizeof(Symbol));
   DEBUG(0, checkHTable(ht));
+
+  return map;
 }
 
 
@@ -242,7 +260,7 @@ addHTable(Table ht, void *name, void *value)
 		    ht, name, value, ht->size));
 
   if ( ht->buckets * 2 < ht->size && !ht->enumerators )
-    rehashHTable(ht);
+    s = rehashHTable(ht, s);
   UNLOCK_TABLE(ht);
 
   DEBUG(1, checkHTable(ht));
