@@ -74,7 +74,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	debug(clause_info, 'read ...', []),
 	unify_clause(Clause, DecompiledClause, Module, TermPos0, TermPos),
 	debug(clause_info, 'unified ...', []),
-	make_varnames(Clause, VarOffset, VarNames, NameOffset),
+	make_varnames(Clause, DecompiledClause, VarOffset, VarNames, NameOffset),
 	debug(clause_info, 'got names~n', []), !.
 
 %%	unify_term(+T1, +T2)
@@ -181,18 +181,32 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 	).
 
 
-%%	make_varnames(+ReadClause, +Offsets, +Names, -Term) is det.
+%%	make_varnames(+ReadClause, +DecompiledClause,
+%%		      +Offsets, +Names, -Term) is det.
 %
 %	Create a Term varnames(...) where each argument contains the name
 %	of the variable at that offset.  If the read Clause is a DCG rule,
 %	name the two last arguments <DCG_list> and <DCG_tail>
+%
+%	This    predicate    calles     the      multifile     predicate
+%	make_varnames_hook/5 with the same arguments   to allow for user
+%	extensions. Extending this predicate  is   needed  if a compiler
+%	adds additional arguments to the clause   head that must be made
+%	visible in the GUI tracer.
 %
 %	@param Offsets	List of Offset=Var
 %	@param Names	List of Name=Var
 %
 %	@bug Called directly from library(trace/clause) for the GUI tracer.
 
-make_varnames((Head --> _Body), Offsets, Names, Bindings) :- !,
+:- multifile make_varnames_hook/5.
+:- public
+	make_varnames/5,
+	do_make_varnames/3.		% allow usage from the hook.
+
+make_varnames(ReadClause, DecompiledClause, Offsets, Names, Term) :-
+	make_varnames_hook(ReadClause, DecompiledClause, Offsets, Names, Term), !.
+make_varnames((Head --> _Body), _, Offsets, Names, Bindings) :- !,
 	functor(Head, _, Arity),
 	In is Arity,
 	memberchk(In=IVar, Offsets),
@@ -200,8 +214,8 @@ make_varnames((Head --> _Body), Offsets, Names, Bindings) :- !,
 	Out is Arity + 1,
 	memberchk(Out=OVar, Offsets),
 	Names2 = ['<DCG_tail>'=OVar|Names1],
-	make_varnames(xx, Offsets, Names2, Bindings).
-make_varnames(_, Offsets, Names, Bindings) :-
+	make_varnames(xx, xx, Offsets, Names2, Bindings).
+make_varnames(_, _, Offsets, Names, Bindings) :-
 	length(Offsets, L),
 	functor(Bindings, varnames, L),
 	do_make_varnames(Offsets, Names, Bindings).
@@ -228,12 +242,20 @@ find_varname(Var, [_|T], Name) :-
 %	of this predicate is to establish  the relation between the term
 %	read from the file and the result from decompiling the clause.
 %
-%	This really must be  more  flexible,   dealing  with  much  more
-%	complex source-translations, falling back to  a heuristic method
-%	locating as much as possible.
+%	This predicate calls the multifile predicate unify_clause_hook/5
+%	with the same arguments to support user extensions.
+%
+%	@tbd	This really must be  more   flexible,  dealing with much
+%		more complex source-translations,  falling   back  to  a
+%		heuristic method locating as much as possible.
+
+:- multifile
+	unify_clause_hook/5.
 
 unify_clause(Read, Read, _, TermPos, TermPos) :- !.
 					% XPCE send-methods
+unify_clause(Read, Decompiled, Module, TermPoso, TermPos) :-
+	unify_clause_hook(Read, Decompiled, Module, TermPoso, TermPos), !.
 unify_clause(:->(Head, Body), (PlHead :- PlBody), _, TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
 					% XPCE get-methods
