@@ -125,7 +125,7 @@
                  ]).
 
 
-:- use_module(library(apply)).
+:- use_module(library(apply_macros)).
 :- use_module(library(assoc)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
@@ -3008,6 +3008,9 @@ kill_entailed(a(X,Y,B)) :-
         ).
 
 no_reactivation(rel_tuple(_,_)).
+no_reactivation(pdistinct(_)).
+no_reactivation(pgcc(_,_,_)).
+no_reactivation(pgcc_single(_,_)).
 %no_reactivation(scalar_product(_,_,_,_)).
 
 activate_propagator(propagator(P,State)) :-
