@@ -153,18 +153,19 @@ This library also provides _enumeration_ _predicates_, which let you
 systematically search for solutions on variables whose domains have
 become finite. A finite domain _expression_ is one of:
 
-    | an integer         | Given value                   |
-    | a variable         | Unknown value                 |
-    | -Expr              | Unary minus                   |
-    | Expr + Expr        | Addition                      |
-    | Expr * Expr        | Multiplication                |
-    | Expr - Expr        | Subtraction                   |
-    | Expr ^ Expr        | Exponentiation                |
-    | min(Expr,Expr)     | Minimum of two expressions    |
-    | max(Expr,Expr)     | Maximum of two expressions    |
-    | Expr mod Expr      | Modulo                        |
-    | abs(Expr)          | Absolute value                |
-    | Expr / Expr        | Integer division              |
+    | an integer         | Given value                          |
+    | a variable         | Unknown value                        |
+    | -Expr              | Unary minus                          |
+    | Expr + Expr        | Addition                             |
+    | Expr * Expr        | Multiplication                       |
+    | Expr - Expr        | Subtraction                          |
+    | Expr ^ Expr        | Exponentiation                       |
+    | min(Expr,Expr)     | Minimum of two expressions           |
+    | max(Expr,Expr)     | Maximum of two expressions           |
+    | Expr mod Expr      | Modulo induced by floored division   |
+    | Expr rem Expr      | Modulo induced by truncated division |
+    | abs(Expr)          | Absolute value                       |
+    | Expr / Expr        | Truncated integer division           |
 
 The most important finite domain constraints are:
 
