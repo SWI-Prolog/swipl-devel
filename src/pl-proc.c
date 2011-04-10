@@ -2849,7 +2849,8 @@ pl_source_file(term_t descr, term_t file, control_t h)
     { if ( !proc->definition ||
 	   true(proc->definition, FOREIGN|P_THREAD_LOCAL) ||
 	   !(cref = proc->definition->definition.clauses) ||
-	   !(sf = indexToSourceFile(cref->clause->source_no)) )
+	   !(sf = indexToSourceFile(cref->clause->source_no)) ||
+	   sf->count == 0 )
 	fail;
 
       return PL_unify_atom(file, sf->name);
@@ -2863,7 +2864,8 @@ pl_source_file(term_t descr, term_t file, control_t h)
     succeed;
 
   if ( !PL_get_atom_ex(file, &name) ||
-       !(sf = lookupSourceFile(name, FALSE)) )
+       !(sf = lookupSourceFile(name, FALSE)) ||
+       sf->count == 0 )
     fail;
 
   switch( ForeignControl(h) )
@@ -2923,6 +2925,9 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   fid = PL_open_foreign_frame();
   for(; index < mx; index++)
   { SourceFile f = fetchBuffer(&GD->files.source_files, index, SourceFile);
+
+    if ( f->count == 0 )
+      continue;
 
     if ( PL_unify_atom(file, f->name) &&
 	 unifyTime(time, f->time) &&
