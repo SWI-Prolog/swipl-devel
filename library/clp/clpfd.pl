@@ -2524,15 +2524,15 @@ parse_reified(E, R, D,
                m(abs(A))     => [g(R#>=0), d(D), p(pabs(A, R)), a(A,R)],
                m(A/B)        =>
                   [d(D1), l(p(P)), g(make_propagator(pdiv(X,Y,Z), P)),
-                   p([A,B,D2,R], reified_div(A,B,D2,[X,Y,Z]-P,R)),
+                   p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,A/B #= R)),
                    p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
                m(A mod B)    =>
                   [d(D1), l(p(P)), g(make_propagator(pmod(X,Y,Z), P)),
-                   p([A,B,D2,R], reified_mod(A,B,D2,[X,Y,Z]-P,R)),
+                   p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,A mod B #= R)),
                    p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
                m(A rem B)        =>
                   [d(D1), l(p(P)), g(make_propagator(prem(X,Y,Z), P)),
-                   p([A,B,D2,R], reified_rem(A,B,D2,[X,Y,Z]-P,R)),
+                   p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,A rem B #= R)),
                    p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
                g(true)       => [g(domain_error(clpfd_expression, E))]]
@@ -4141,27 +4141,7 @@ run_propagator(reified_fd(V,B), MState) :-
 
 % The result of X/Y, X mod Y, and X rem Y is undefined iff Y is 0.
 
-run_propagator(reified_div(X,Y,D,Skel,Z), MState) :-
-        (   Y == 0 -> kill(MState), D = 0
-        ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
-        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
-        ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
-            kill(MState),
-            D = 1, skeleton([X,Y,Z], Skel)
-        ;   true
-        ).
-
-run_propagator(reified_mod(X,Y,D,Skel,Z), MState) :-
-        (   Y == 0 -> kill(MState), D = 0
-        ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
-        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
-        ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
-            kill(MState),
-            D = 1, skeleton([X,Y,Z], Skel)
-        ;   true
-        ).
-
-run_propagator(reified_rem(X,Y,D,Skel,Z), MState) :-
+run_propagator(pskeleton(X,Y,D,Skel,Z,_), MState) :-
         (   Y == 0 -> kill(MState), D = 0
         ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
         ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
@@ -5987,15 +5967,11 @@ attribute_goal_(reified_tuple_in(Tuple, R, B)) -->
         { get_attr(R, clpfd_relation, Rel) },
         [tuples_in([Tuple], Rel) #<==> B].
 attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> B].
+attribute_goal_(pskeleton(_,Y,D,_,_,Goal)) -->
+        [D #= 1 #==> Goal, Y #\= 0 #==> D #= 1].
 attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X#\=Y, B).
 attribute_goal_(reified_eq(DX,X,DY,Y,_,B))  --> conjunction(DX, DY, X #= Y, B).
 attribute_goal_(reified_geq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X #>= Y, B).
-attribute_goal_(reified_div(X,Y,D,_,Z)) -->
-        [D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1].
-attribute_goal_(reified_mod(X,Y,D,_,Z)) -->
-        [D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1].
-attribute_goal_(reified_rem(X,Y,D,_,Z)) -->
-        [D #= 1 #==> X rem Y #= Z, Y #\= 0 #==> D #= 1].
 attribute_goal_(reified_and(X,_,Y,_,B))    --> [X #/\ Y #<==> B].
 attribute_goal_(reified_or(X, _, Y, _, B)) --> [X #\/ Y #<==> B].
 attribute_goal_(reified_not(X, Y))         --> [#\ X #<==> Y].
