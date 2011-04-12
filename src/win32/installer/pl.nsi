@@ -6,6 +6,7 @@
 !define GRP    $5 ; Startmenu group
 !define SHCTX  $6 ; Shell context (current/all)
 !define ARCH   $7 ; Architecture (x86, ia64 or amd64)
+!define SXSLEN $8 ; The length of the string of the location of the SideBySide directory
 
 !ifdef WIN64
 !define REGKEY SOFTWARE\SWI\Prolog64
@@ -68,6 +69,8 @@ Section "Microsoft VC runtime libraries"
   ; Only checking the Windows Side-by-Side folder for occurences of mcvcr90.dll
   ; Change msvcr90.dll into something non-existen to force download for testing
   ; purposes.
+  ; Set length of the windows side by side string length.
+  StrLen ${SXSLEN} "$WINDIR\WinSxS\"
   !insertmacro CallFindFiles "$WINDIR\WinSxS" msvcr90.dll FindVCRT
   ; have to check again, now to deteremine to launch the downloader (or not)...
   StrCmp $0 ${MACHTYPE} found not_found
@@ -129,8 +132,7 @@ Function FindVCRT
 
   ; Checking for the first 3 characters of the WinSxS sub-dirs, they start with
   ; either amd64_ or x86_, so first get those 3 characters:
-  StrCpy $0 $0 -12 18
-  StrCpy $0 $0 3
+  StrCpy $0 $0 3 ${SXSLEN}
   ; and then compare
   StrCmp $0 ${MACHTYPE} found not_found
 
