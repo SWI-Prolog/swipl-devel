@@ -1088,6 +1088,10 @@ sets(bagof-1) :-
 	List = [_,_,_],
 	bagof(X, member(X, List), Xs),
 	Xs == List.
+sets(bagof-2) :-
+	Goal = member(_, [1,2]),
+	bagof(Goal, Goal, Xs),
+	Xs == [member(1, [1,2]), member(2, [1,2])].
 sets(setof-3001) :-
 	List = [_,_,_],
 	setof(X, member(X, List), Xs),

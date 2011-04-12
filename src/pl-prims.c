@@ -2887,7 +2887,12 @@ free_variables_loop(Word t, atom_t *mname, term_t goal ARG_LD)
       functor_t fd = f->definition;	/* modified by visited */
 
       if ( visited(f PASS_LD) )
+      { if ( !in_goal && !existential )
+	{ *valTermRef(goal) = *t;
+	  in_goal = TRUE;
+	}
 	continue;
+      }
 
       if ( !in_goal )
       { if ( fd == FUNCTOR_hat2 && existential == FALSE )
@@ -2907,7 +2912,7 @@ free_variables_loop(Word t, atom_t *mname, term_t goal ARG_LD)
 	  t = &f->arguments[1];
 	  goto again;
 	} else if ( !existential )
-	{ *valTermRef(goal) = needsRef(*t) ? makeRef(t) : *t;
+	{ *valTermRef(goal) = *t;
 	  in_goal = TRUE;
 	}
       }
