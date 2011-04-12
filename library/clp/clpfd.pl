@@ -2507,8 +2507,8 @@ L #\/ R :-
    "clpfd" attribute is removed from auxiliary variables.
 
    For (/)/2, mod/2 and rem/2, we create a skeleton propagator and
-   remember it as an auxiliary constraint. The corresponding reified
-   propagators can use the skeleton when the constraint is defined.
+   remember it as an auxiliary constraint. The pskeleton propagator
+   can use the skeleton when the constraint is defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 parse_reified(E, R, D,
@@ -2522,18 +2522,9 @@ parse_reified(E, R, D,
                m(max(A,B))   => [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(abs(A))     => [g(R#>=0), d(D), p(pabs(A, R)), a(A,R)],
-               m(A/B)        =>
-                  [d(D1), l(p(P)), g(make_propagator(pdiv(X,Y,Z), P)),
-                   p([A,B,D2,R], reified_div(A,B,D2,[X,Y,Z]-P,R)),
-                   p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
-               m(A mod B)    =>
-                  [d(D1), l(p(P)), g(make_propagator(pmod(X,Y,Z), P)),
-                   p([A,B,D2,R], reified_mod(A,B,D2,[X,Y,Z]-P,R)),
-                   p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
-               m(A rem B)        =>
-                  [d(D1), l(p(P)), g(make_propagator(prem(X,Y,Z), P)),
-                   p([A,B,D2,R], reified_rem(A,B,D2,[X,Y,Z]-P,R)),
-                   p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
+               m(A/B)        => [skeleton(A,B,D,R,pdiv,A/B #= R)],
+               m(A mod B)    => [skeleton(A,B,D,R,pmod,A mod B #= R)],
+               m(A rem B)    => [skeleton(A,B,D,R,prem,A rem B #= R)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
                g(true)       => [g(domain_error(clpfd_expression, E))]]
              ).
@@ -2596,6 +2587,14 @@ reified_goal(p(Vs, Prop), _) -->
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
+reified_goal(skeleton(A,B,D,R,Functor,G), Ds) -->
+        { Prop =.. [Functor,X,Y,Z],
+          phrase(reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
+                                p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,G)),
+                                p(reified_and(D1,[],D2,[],D)),a(D2),a(A,B,R)],
+                               Ds), Goals),
+          list_goal(Goals, Goal) },
+        [Goal].
 reified_goal(a(V), _)     --> [a(V)].
 reified_goal(a(X,V), _)   --> [a(X,V)].
 reified_goal(a(X,Y,V), _) --> [a(X,Y,V)].
@@ -4141,27 +4140,7 @@ run_propagator(reified_fd(V,B), MState) :-
 
 % The result of X/Y, X mod Y, and X rem Y is undefined iff Y is 0.
 
-run_propagator(reified_div(X,Y,D,Skel,Z), MState) :-
-        (   Y == 0 -> kill(MState), D = 0
-        ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
-        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
-        ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
-            kill(MState),
-            D = 1, skeleton([X,Y,Z], Skel)
-        ;   true
-        ).
-
-run_propagator(reified_mod(X,Y,D,Skel,Z), MState) :-
-        (   Y == 0 -> kill(MState), D = 0
-        ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
-        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
-        ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
-            kill(MState),
-            D = 1, skeleton([X,Y,Z], Skel)
-        ;   true
-        ).
-
-run_propagator(reified_rem(X,Y,D,Skel,Z), MState) :-
+run_propagator(pskeleton(X,Y,D,Skel,Z,_), MState) :-
         (   Y == 0 -> kill(MState), D = 0
         ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
         ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
@@ -5987,15 +5966,11 @@ attribute_goal_(reified_tuple_in(Tuple, R, B)) -->
         { get_attr(R, clpfd_relation, Rel) },
         [tuples_in([Tuple], Rel) #<==> B].
 attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> B].
+attribute_goal_(pskeleton(_,Y,D,_,_,Goal)) -->
+        [D #= 1 #==> Goal, Y #\= 0 #==> D #= 1].
 attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X#\=Y, B).
 attribute_goal_(reified_eq(DX,X,DY,Y,_,B))  --> conjunction(DX, DY, X #= Y, B).
 attribute_goal_(reified_geq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X #>= Y, B).
-attribute_goal_(reified_div(X,Y,D,_,Z)) -->
-        [D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1].
-attribute_goal_(reified_mod(X,Y,D,_,Z)) -->
-        [D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1].
-attribute_goal_(reified_rem(X,Y,D,_,Z)) -->
-        [D #= 1 #==> X rem Y #= Z, Y #\= 0 #==> D #= 1].
 attribute_goal_(reified_and(X,_,Y,_,B))    --> [X #/\ Y #<==> B].
 attribute_goal_(reified_or(X, _, Y, _, B)) --> [X #\/ Y #<==> B].
 attribute_goal_(reified_not(X, Y))         --> [#\ X #<==> Y].
