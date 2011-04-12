@@ -2579,7 +2579,7 @@ is
 BEGIN_SHAREDVARS
 ClauseRef cref;
 
-VMI(S_ALLCLAUSES, 0, 0, ())
+VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
 { cref = DEF->definition.clauses;
 
 next_clause:

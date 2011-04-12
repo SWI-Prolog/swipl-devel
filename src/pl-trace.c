@@ -2087,6 +2087,22 @@ PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
 
 */
 
+static size_t
+in_clause_jump(Choice ch)
+{ Clause cl;
+
+  if ( ch->type == CHP_JUMP &&
+       false(ch->frame->predicate, FOREIGN) &&
+       ch->frame->clause &&
+       (cl=ch->frame->clause->clause) &&
+       ch->value.PC >= cl->codes &&
+       ch->value.PC < &cl->codes[cl->code_size] )
+    return ch->value.PC - cl->codes;
+
+  return (size_t)-1;
+}
+
+
 static
 PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 { PRED_LD
@@ -2107,17 +2123,26 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
   { static const atom_t types[] =
     { ATOM_jump,
       ATOM_clause,
-      ATOM_foreign,
       ATOM_top,
       ATOM_catch,
-      ATOM_debug,
-      ATOM_none
+      ATOM_debug
     };
 
-    return PL_unify_atom(A3, types[ch->type]);
+    if ( ch->type == CHP_JUMP &&
+	 in_clause_jump(ch) == (size_t)-1 )
+    { if ( ch->value.PC == SUPERVISOR(next_clause) )
+	return PL_unify_atom(A3, ATOM_clause);
+      if ( decode(ch->value.PC[0]) == I_FREDO )
+	return PL_unify_atom(A3, ATOM_foreign);
+      assert(0);
+      return FALSE;
+    } else
+      return PL_unify_atom(A3, types[ch->type]);
   } else if ( key == ATOM_pc )
-  { if ( ch->type == CHP_JUMP && ch->frame->clause )
-      return PL_unify_int64(A3, ch->value.PC - ch->frame->clause->clause->codes);
+  { size_t offset = in_clause_jump(ch);
+
+    if ( offset != (size_t)-1 )
+      return PL_unify_int64(A3, offset);
     return FALSE;
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, A2);
