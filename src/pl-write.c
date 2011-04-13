@@ -254,7 +254,8 @@ needSpace(int c, IOSTREAM *s)
 	       (isSymbolW(s->lastc) && isSymbolW(c)) ||
 	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
 	       (c == '\'' && (isDigit(s->lastc))) ||
-	       (isquote(c) && s->lastc == c)) )
+	       (isquote(c) && s->lastc == c) ||
+	       ((s->lastc == '-' || s->lastc == '+') && isDigit(c))) )
   { return TRUE;
   }
 
