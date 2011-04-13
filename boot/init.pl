@@ -1219,6 +1219,8 @@ load_files(Module:Files, Options) :-
 %	=|$load|=
 
 '$do_load_file'(File, FullFile, Module, Options) :-
+	'$get_option'(derived_from(DerivedFrom), Options, -),
+	'$register_derived_source'(FullFile, DerivedFrom),
 	'$qlf_file'(File, FullFile, Absolute, Mode, Options),
 	(   Mode == qcompile
 	->  qcompile(Module:File, Options)
@@ -1231,7 +1233,6 @@ load_files(Module:Files, Options) :-
 
 	'$set_verbose_load'(Options, OldVerbose),
 	'$update_autoload_level'(Options, OldAutoLevel),
-	'$get_option'(derived_from(DerivedFrom), Options, -),
 
 	current_prolog_flag(generate_debug_info, DebugInfo),
 
@@ -1269,8 +1270,6 @@ load_files(Module:Files, Options) :-
 	->  garbage_collect_clauses
 	;   true
 	),
-
-	'$register_derived_source'(Absolute, DerivedFrom),
 
 	statistics(heapused, Heap),
 	statistics(cputime, Time),
