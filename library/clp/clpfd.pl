@@ -1529,6 +1529,24 @@ all_different([X|Right], Left, Orig) :-
         ),
         all_different(Right, [X|Left], Orig).
 
+%% all_distinct(+Ls).
+%
+%  Like all_different/1, with stronger propagation. For example,
+%  all_distinct/1 can detect that not all variables can assume distinct
+%  values given the following domains:
+%
+%  ==
+%  ?- maplist(in, Vs, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]), all_distinct(Vs).
+%  false.
+%  ==
+
+all_distinct(Ls) :-
+        must_be(list, Ls),
+        maplist(fd_variable, Ls),
+        make_propagator(pdistinct(Ls), Prop),
+        distinct_attach(Ls, Prop, []),
+        trigger_once(Prop).
+
 %% sum(+Vars, +Rel, ?Expr)
 %
 % The sum of elements of the list Vars is in relation Rel to Expr,
@@ -4699,24 +4717,6 @@ state(S), [S] --> [S].
 state(S0, S), [S] --> [S0].
 
 v_in_stack(V) --> { get_attr(V, in_stack, true) }.
-
-%% all_distinct(+Ls).
-%
-%  Like all_different/1, with stronger propagation. For example,
-%  all_distinct/1 can detect that not all variables can assume distinct
-%  values given the following domains:
-%
-%  ==
-%  ?- maplist(in, Vs, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]), all_distinct(Vs).
-%  false.
-%  ==
-
-all_distinct(Ls) :-
-        must_be(list, Ls),
-        maplist(fd_variable, Ls),
-        make_propagator(pdistinct(Ls), Prop),
-        distinct_attach(Ls, Prop, []),
-        trigger_once(Prop).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent constraint of difference, currently only
