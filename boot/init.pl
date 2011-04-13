@@ -1372,9 +1372,13 @@ load_files(Module:Files, Options) :-
 	'$set_source_module'(_, OldModule).
 
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
-	'$set_source_module'(OldModule, Module),	% Inform C we start loading
+	'$set_source_module'(OldModule, Module),% Inform C we start loading
 	'$load_id'(Absolute, Id),
 	'$start_consult'(Id),
+	(   '$derived_source'(Absolute, DerivedFrom, _)
+	->  '$start_consult'(DerivedFrom)
+	;   true
+	),
 	'$compile_type'(What),
 	(   flag('$compiling', wic, wic)	% TBD
 	->  '$add_directive_wic'('$assert_load_context_module'(Id, OldModule))
