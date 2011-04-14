@@ -805,7 +805,7 @@ PL_signal(int sigandflags, handler_t func)
     SigHandler sh;
     int sig = (sigandflags & 0xffff);
 
-    if ( sig > MAXSIGNAL )
+    if ( sig >= MAXSIGNAL )
     { warning("PL_signal(): illegal signal number: %d", sig);
       return SIG_DFL;
     }
