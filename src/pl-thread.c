@@ -2731,6 +2731,8 @@ unlocked_message_queue_create(term_t queue, long max_size)
   q->type = QTYPE_QUEUE;
   q->id = id;
   addHTable(queueTable, (void *)id, q);
+  if ( isAtom(id) )
+    PL_register_atom(id);
 
   if ( unify_queue(queue, q) )
     return q;
@@ -2901,6 +2903,8 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   s = lookupHTable(queueTable, (void *)q->id);
   assert(s);
   deleteSymbolHTable(queueTable, s);
+  if ( isAtom(q->id) )
+    PL_unregister_atom(q->id);
   simpleMutexLock(&q->mutex);
   UNLOCK();
 
