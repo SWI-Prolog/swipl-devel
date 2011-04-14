@@ -81,6 +81,7 @@ rewrite_callable(atom_t *expected, term_t actual)
 int
 PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 { GET_LD
+  char msgbuf[50];
   Definition caller;
   term_t except, formal, swi;
   va_list args;
@@ -122,12 +123,11 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     case ERR_UNINSTANTIATION:
     { int argn = va_arg(args, int);
       term_t bound = va_arg(args, term_t);
-      char buf[50];
 
       if ( !msg && argn > 0 )
-      { Ssprintf(buf, "%d-%s argument",
+      { Ssprintf(msgbuf, "%d-%s argument",
 		 argn, argn == 1 ? "st" : argn == 2 ? "nd" : "th");
-	msg = buf;
+	msg = msgbuf;
       }
 
       rc = PL_unify_term(formal,
