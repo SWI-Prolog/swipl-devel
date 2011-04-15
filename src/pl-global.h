@@ -556,6 +556,7 @@ struct PL_local_data
 #ifdef O_CALL_RESIDUE
     int			marked_attvars;	/* do not GC attvars */
 #endif
+    int active;				/* GC is running in this thread */
   } gc;
 
   pl_shift_status_t shift_status;	/* Stack shifter status */

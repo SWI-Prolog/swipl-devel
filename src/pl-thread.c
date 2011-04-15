@@ -4567,6 +4567,18 @@ asynchronous signals. Fortunately we  can   suspend  and resume threads.
 This makes the code a lot easier as   you can see below. Problem is that
 only one processor is doing the  job,   where  atom-gc  is a distributed
 activity in the POSIX based code.
+
+(*)    ld->gc.active    can    be     true      when     called     from
+pl_garbage_collect_clauses().  While  the  atom-garbage    collector  is
+cancelled and rescheduled if it is blocked  by a running GC, this cannot
+be used for pl_garbage_collect_clauses()  because   this  call must have
+done its job before returning. As  the   caller  holds L_GC, threads can
+finish GC/shift, but cannot start it.  We   currently  use a simple busy
+waiting loop (Sleep(0) does a shed_yield()). There are two alternatives.
+One is to skip these threads and put them  on a list, after which we can
+process the list until we have seen all  threads and the other is to use
+condition variables. Both seem to be an   overkill  because this code is
+only used or reconsult.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __WINDOWS__
@@ -4582,9 +4594,13 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
     if ( info && info->thread_data && i != me &&
 	 info->status == PL_THREAD_RUNNING )
     { HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
+      PL_local_data_t *ld = info->thread_data;
+
+      while ( ld->gc.active )
+	Sleep(0);			/* (*) */
 
       if ( SuspendThread(win_thread) != -1L )
-      { (*func)(info->thread_data);
+      { (*func)(ld);
         if ( (flags & PL_THREAD_SUSPEND_AFTER_WORK) )
 	  info->status = PL_THREAD_SUSPENDED;
 	else

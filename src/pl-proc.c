@@ -1469,6 +1469,7 @@ pl_garbage_collect_clauses(void)
     DEBUG(1, Sdprintf("pl_garbage_collect_clauses()\n"));
 
     LOCK();
+    PL_LOCK(L_GC);
     PL_LOCK(L_THREAD);
     blockSignals(&set);
 
@@ -1521,6 +1522,7 @@ pl_garbage_collect_clauses(void)
 
     unblockSignals(&set);
     PL_UNLOCK(L_THREAD);
+    PL_UNLOCK(L_GC);
     UNLOCK();
 
     if ( garbage )

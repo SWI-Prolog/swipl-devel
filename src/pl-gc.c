@@ -3566,8 +3566,6 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
 
 #endif /*O_SECURE || O_DEBUG*/
 
-#ifdef O_PLMT
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 About synchronisation with atom-gc (AGC). GC can run fully concurrent in
 different threads as it only  affects   the  runtime stacks. AGC however
@@ -3583,28 +3581,29 @@ system wants to do AGC it raised a request for AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-enterGC()
-{ PL_LOCK(L_GC);
+enterGC(ARG1_LD)
+{
+#ifdef O_PLMT
+  PL_LOCK(L_GC);
   GD->gc.active++;
   PL_UNLOCK(L_GC);
+  LD->gc.active = TRUE;
+#endif
 }
 
 static void
-leaveGC()
-{ PL_LOCK(L_GC);
+leaveGC(ARG1_LD)
+{
+#ifdef O_PLMT
+  LD->gc.active = FALSE;
+  PL_LOCK(L_GC);
   if ( --GD->gc.active == 0 && GD->gc.agc_waiting )
   { GD->gc.agc_waiting = FALSE;
     PL_raise(SIG_ATOM_GC);
   }
   PL_UNLOCK(L_GC);
+#endif
 }
-
-#else
-
-#define enterGC() (void)0
-#define leaveGC() (void)0
-
-#endif /*O_PLMT*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns: < 0: (local) overflow; TRUE: ok; FALSE: shifted;
@@ -3689,7 +3688,7 @@ garbageCollect(void)
   { get_vmi_state(LD->query, &state);
   }
 
-  enterGC();
+  enterGC(PASS_LD1);
 #ifndef UNBLOCKED_GC
   blockSignals(&LD->gc.saved_sigmask);
 #endif
@@ -3810,7 +3809,7 @@ garbageCollect(void)
   unblockSignals(&LD->gc.saved_sigmask);
 #endif
   LD->gc.inferences = LD->statistics.inferences;
-  leaveGC();
+  leaveGC(PASS_LD1);
 
   assert(!LD->query ||
 	 !LD->query->registers.fr ||
@@ -4503,7 +4502,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   if ( LD->shift_status.blocked )
     return FALSE;
 
-  enterGC();				/* atom-gc synchronisation */
+  enterGC(PASS_LD1);			/* atom-gc synchronisation */
   blockSignals(&mask);
   blockGC(0 PASS_LD);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
@@ -4637,7 +4636,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   restore_vmi_state(&state);
   unblockGC(0 PASS_LD);
   unblockSignals(&mask);
-  leaveGC();
+  leaveGC(PASS_LD1);
 
   if ( fatal )
     return fatal->overflow_id;
