@@ -4596,11 +4596,17 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
     { HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
       PL_local_data_t *ld = info->thread_data;
 
+    again:
       while ( ld->gc.active )
 	Sleep(0);			/* (*) */
 
       if ( SuspendThread(win_thread) != -1L )
-      { (*func)(ld);
+      { if ( ld->gc.active )		/* oops, just started */
+	{ ResumeThread(win_thread);
+	  goto again;
+	}
+
+	(*func)(ld);
         if ( (flags & PL_THREAD_SUSPEND_AFTER_WORK) )
 	  info->status = PL_THREAD_SUSPENDED;
 	else
