@@ -1347,8 +1347,8 @@ assert_import(Src, op(P,T,N), _, _, _) :-
 in_export_list(_Head, Export) :-
 	var(Export), !.
 in_export_list(Head, Export) :-
-	member(Export, Export),
-	pi_to_head(Export, Head).
+	member(PI, Export),
+	pi_to_head(PI, Head).
 
 assert_reexport(false, _, _) :- !.
 assert_reexport(true, Src, Term) :-
