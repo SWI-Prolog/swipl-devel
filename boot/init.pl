@@ -2042,7 +2042,7 @@ saved state.
 	current_prolog_flag(argv, Argv),
 	'$get_files_argv'(Argv, Files),
 	'$translate_options'(Argv, Options),
-	'$option'(compileout, Out, Out),
+	'$option'(compileout, Out),
         user:consult(Files),
 	user:qsave_program(Out, Options).
 

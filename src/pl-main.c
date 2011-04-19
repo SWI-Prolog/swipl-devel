@@ -66,6 +66,13 @@ static bool	vsysError(const char *fm, va_list args);
 			  { return -1; \
 			  } \
 			}
+#define	optionList(l)   { if (argc > 1) \
+			  { opt_append(l, store_string(argv[1])); \
+			    argc--; argv++; \
+			  } else \
+			  { return -1; \
+			  } \
+			}
 #define K * 1024L
 
 #define EXECVARMAGIC "$EXECVARS="
@@ -105,6 +112,22 @@ longopt(const char *opt, int argc, const char **argv)
   }
 
   return NULL;
+}
+
+
+static int
+opt_append(opt_list **l, char *s)
+{ GET_LD
+  opt_list *n = allocHeap(sizeof(*n));
+
+  n->opt_val = s;
+  n->next = NULL;
+
+  while(*l)
+    l = &(*l)->next;
+  *l = n;
+
+  return TRUE;
 }
 
 
@@ -411,7 +434,7 @@ initDefaultOptions()
   GD->options.goal	    = store_string(systemDefaults.goal);
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
   GD->options.initFile      = store_string(systemDefaults.startup);
-  GD->options.scriptFile    = store_string("");
+  GD->options.scriptFiles   = NULL;
   GD->options.saveclass	    = store_string("none");
 
   if ( !GD->bootsession && GD->resourceDB )
@@ -496,7 +519,8 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 			break;
 	case 'F':	optionString(GD->options.systemInitFile);
 			break;
-	case 's':	optionString(GD->options.scriptFile);
+	case 'l':
+	case 's':	optionList(&GD->options.scriptFiles);
 			break;
 	case 'g':	optionString(GD->options.goal);
 			break;
@@ -991,6 +1015,7 @@ usage()
     "    -g goal          Initialisation goal\n",
     "    -f file          User initialisation file\n",
     "    -F file          System initialisation file\n",
+    "    -l file          Script source file\n",
     "    -s file          Script source file\n",
     "    [+/-]tty         Allow tty control\n",
     "    -O               Optimised compilation\n",

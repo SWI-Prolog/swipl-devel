@@ -212,6 +212,17 @@ systems using the following first line
 .BR #!@prefix@/bin/@PL@ " option ... " \-s
 .RE
 .TP
+.BI \-l " file"
+Load
+.I file
+as a script.  This is a synonym for
+.I \-s
+that is compatible with several other Prolog implementations.  If
+multiple
+.IR \-s " or " \-l
+arguments are provided, all specified files are loaded in the order
+in which they appear on the argument list.
+.TP
 .B \-\-quiet \-q
 Operate silently.  This option suppresses all
 .I informational

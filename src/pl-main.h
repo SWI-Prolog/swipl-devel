@@ -39,6 +39,11 @@ typedef struct
   char *home;				/* systems home directory */
 } pl_defaults_t;
 
+typedef struct opt_list
+{ struct opt_list *next;
+  char *opt_val;
+} opt_list;
+
 typedef struct
 { size_t	localSize;		/* size of local stack */
   size_t	globalSize;		/* size of global stack */
@@ -47,7 +52,7 @@ typedef struct
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
   char *	systemInitFile;		/* -F initialisation file */
-  char *	scriptFile;		/* -s script file */
+  opt_list     *scriptFiles;
   char *	compileOut;		/* file to store compiler output */
   char *	saveclass;		/* Type of saved state */
   bool		silent;			/* -q: quiet operation */

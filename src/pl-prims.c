@@ -5160,6 +5160,7 @@ typedef struct
 
 #define CMDOPT_LONG   0
 #define CMDOPT_STRING 1
+#define CMDOPT_LIST   2
 
 static const optdef optdefs[] =
 { { "local",		CMDOPT_LONG,	&GD->options.localSize },
@@ -5170,7 +5171,7 @@ static const optdef optdefs[] =
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },
   { "init_file",	CMDOPT_STRING,	&GD->options.initFile },
   { "system_init_file",	CMDOPT_STRING,	&GD->options.systemInitFile },
-  { "script_file",	CMDOPT_STRING,	&GD->options.scriptFile },
+  { "script_file",	CMDOPT_LIST,	&GD->options.scriptFiles },
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
   { "home",		CMDOPT_STRING,	&GD->defaults.home },
@@ -5180,53 +5181,12 @@ static const optdef optdefs[] =
 
 
 static
-PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$option", 2, option, 0)
 { PRED_LD
   char *k;
 
   term_t key = A1;
-  term_t old = A2;
-  term_t new = A3;
-
-  switch( CTX_CNTRL )
-  { int index;
-
-    case FRG_FIRST_CALL:
-      if ( PL_is_variable(key) )
-      { index = 0;
-
-      next:
-	for( ; optdefs[index].name; index++ )
-	{ switch( optdefs[index].type )
-	  { case CMDOPT_LONG:
-	    { intptr_t *val = optdefs[index].address;
-
-	      if ( !PL_unify_integer(old, *val) )
-		continue;
-	      break;
-	    }
-	    case CMDOPT_STRING:
-	    { char **val = optdefs[index].address;
-
-	      if ( !PL_unify_atom_chars(old, *val) )
-		continue;
-	      break;
-	    }
-	  }
-	  if ( !PL_unify_atom_chars(key, optdefs[index].name) )
-	    return FALSE;
-	  ForeignRedoInt(index+1);
-	}
-
-	fail;
-      }
-      break;
-    case FRG_REDO:
-      index = (int)CTX_INT;
-      goto next;
-    case FRG_CUTTED:
-      succeed;
-  }
+  term_t val = A2;
 
   if ( PL_get_atom_chars(key, &k) )
   { OptDef d = (OptDef)optdefs;
@@ -5235,30 +5195,28 @@ PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
     { if ( streq(k, d->name) )
       { switch(d->type)
 	{ case CMDOPT_LONG:
-	  { long *val = d->address;
-	    long newval;
+	  { long *lp = d->address;
 
-	    if ( !PL_unify_integer(old, *val) ||
-		 !PL_get_long(new, &newval) )
-	      fail;
-	    *val = newval;
-
-	    succeed;
+	    return PL_unify_integer(val, *lp);
 	  }
 	  case CMDOPT_STRING:
-	  { char **val = d->address;
-	    char *newval;
+	  { char **sp = d->address;
 
-	    if ( !PL_unify_atom_chars(old, *val) ||
-		 !PL_get_atom_chars(new, &newval) )
-	      fail;
+	    return PL_unify_atom_chars(val, *sp);
+	  }
+	  case CMDOPT_LIST:
+	  { opt_list **list = d->address;
+	    opt_list *l;
+	    term_t tail = PL_copy_term_ref(val);
+	    term_t head = PL_new_term_ref();
 
-	    if ( !streq(*val, newval) )
-	    { remove_string(*val);
-	      *val = store_string(newval);
+	    for( l=*list; l; l = l->next)
+	    { if ( !PL_unify_list(tail, head, tail) ||
+		   !PL_unify_atom_chars(head, l->opt_val) )
+		return FALSE;
 	    }
 
-	    succeed;
+            return PL_unify_nil(tail);
 	  }
 	}
       }
@@ -5416,7 +5374,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_to_atom", 2, string_to_atom, 0)
   PRED_DEF("string_to_list", 2, string_to_list, 0)
   PRED_DEF("statistics", 2, statistics, 0)
-  PRED_DEF("$option", 3, option, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$option", 2, option, 0)
   PRED_DEF("$style_check", 2, style_check, 0)
   PRED_DEF("deterministic", 1, deterministic, 0)
   PRED_DEF("setarg", 3, setarg, 0)

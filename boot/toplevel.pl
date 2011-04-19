@@ -75,7 +75,7 @@
 '$load_system_init_file' :-
 	loaded_init_file(system, _), !.
 '$load_system_init_file' :-
-	'$option'(system_init_file, Base, Base),
+	'$option'(system_init_file, Base),
 	Base \== none,
 	current_prolog_flag(home, Home),
 	file_name_extension(Base, rc, Name),
@@ -92,8 +92,11 @@
 '$load_script_file' :-
 	loaded_init_file(script, _), !.
 '$load_script_file' :-
-	'$option'(script_file, OsFile, OsFile),
-	OsFile \== '',
+	'$option'(script_file, OsFiles),
+	load_script_files(OsFiles).
+
+load_script_files([]).
+load_script_files([OsFile|More]) :-
 	prolog_to_os_filename(File, OsFile),
 	(   absolute_file_name(File, Path,
 			       [ file_type(prolog),
@@ -101,10 +104,10 @@
 				 file_errors(fail)
 			       ])
 	->  asserta(loaded_init_file(script, Path)),
-	    load_files(user:Path, [])
+	    load_files(user:Path, []),
+	    load_files(More)
 	;   throw(error(existence_error(script_file, File), _))
 	).
-'$load_script_file'.
 
 '$load_gnu_emacs_interface' :-
 	(   getenv('EMACS', t),
@@ -356,13 +359,13 @@ initialise_prolog :-
 	'$run_initialization',
 	'$load_system_init_file',
 	'$load_gnu_emacs_interface',
-	'$option'(init_file, OsFile, OsFile),
+	'$option'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
 	start_pldoc,
 	'$load_script_file',
 	load_associated_file,
-	'$option'(goal, GoalAtom, GoalAtom),
+	'$option'(goal, GoalAtom),
 	term_to_atom(Goal, GoalAtom),
 	(   Goal == '$welcome'
 	->  flag('$banner_goal', TheGoal, TheGoal)
@@ -401,7 +404,7 @@ initialise_prolog :-
 %	crashing in a loop?
 
 '$runtoplevel' :-
-	'$option'(toplevel, TopLevelAtom, TopLevelAtom),
+	'$option'(toplevel, TopLevelAtom),
 	catch(term_to_atom(TopLevel, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),
