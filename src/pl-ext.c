@@ -386,6 +386,7 @@ DECL_PLIST(flag);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(variant);
 DECL_PLIST(prologflag);
 DECL_PLIST(trace);
 DECL_PLIST(pro);
@@ -426,6 +427,7 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(variant);
   REG_PLIST(prologflag);
   REG_PLIST(trace);
   REG_PLIST(pro);
