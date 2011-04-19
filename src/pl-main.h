@@ -62,7 +62,7 @@ typedef struct
 #define DEFSTARTUP ".plrc"
 #endif
 #ifndef SYSTEMHOME
-#define SYSTEMHOME "/usr/local/lib/pl"
+#define SYSTEMHOME "/usr/lib/swipl"
 #endif
 #ifndef NOTTYCONTROL
 #define NOTTYCONTROL FALSE
