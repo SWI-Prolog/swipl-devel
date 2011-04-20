@@ -2432,10 +2432,14 @@ next_choice:
 	{ SAVE_REGISTERS(qid);
 	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
 	  LOAD_REGISTERS(qid);
+	} else
+	{ set(ch->frame, FR_CATCHED);
 	}
 	ch = BFR;			/* can be shifted */
 	if ( exception_term )
 	  THROW_EXCEPTION;
+      } else
+      { set(ch->frame, FR_CATCHED);
       }
       /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */

@@ -3814,6 +3814,7 @@ VMI(I_EXITCATCH, VIF_BREAK, 0, ())
   { assert(BFR->type == CHP_CATCH);
     BFR = BFR->parent;
   }
+  set(FR, FR_CATCHED);
 
   VMI_GOTO(I_EXIT);
 }
