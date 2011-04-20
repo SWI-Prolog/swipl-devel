@@ -80,7 +80,7 @@ edit(Spec) :-
 
 edit :-
 	'$option'(script_file, OsFiles),
-	OsFiles = [OsFile],
+	OsFiles = [OsFile], !,
 	prolog_to_os_filename(File, OsFile),
 	edit(file(File)).
 edit :-
