@@ -238,11 +238,12 @@ do_portray_clause(Out, Var) :-
 do_portray_clause(Out, (Head :- true)) :- !,
 	pprint(Out, Head, 1200),
 	full_stop(Out).
-do_portray_clause(Out, (Head :- Body)) :- !,
+do_portray_clause(Out, Term) :-
+	clause_term(Term, Head, Neck, Body), !,
 	inc_indent(0, 1, Indent),
-	infix_op((:-), LeftPri, RightPri),
+	infix_op(Neck, RightPri, LeftPri),
 	pprint(Out, Head, LeftPri),
-	write(Out, ' :-'),
+	format(Out, ' ~w', [Neck]),
 	(   nonvar(Body),
 	    Body = Module:LocalBody,
 	    \+ primitive(LocalBody)
@@ -276,6 +277,9 @@ do_portray_clause(Out, (:-Directive)) :- !,
 do_portray_clause(Out, Fact) :-
 	portray_body(Fact, 0, noindent, 1200, Out),
 	full_stop(Out).
+
+clause_term((Head:-Body), Head, :-, Body).
+clause_term((Head-->Body), Head, -->, Body).
 
 full_stop(Out) :-
 	'$put_token'(Out, '.'),
