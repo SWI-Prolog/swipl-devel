@@ -372,8 +372,8 @@ portray_body(Or, Indent, _, _, Out) :-
 	write(Out, ')').
 portray_body(Term, Indent, _, Pri, Out) :-
 	term_needs_braces(Term, Pri), !,
-	write(Out, '(   '),
-	ArgIndent is Indent + 4,
+	write(Out, '( '),
+	ArgIndent is Indent + 2,
 	portray_body(Term, ArgIndent, noindent, 1200, Out),
 	nlindent(Out, Indent),
 	write(Out, ')').
@@ -387,9 +387,9 @@ portray_body(\+(Goal), Indent, _, _Pri, Out) :- !,
 	prefix_op(\+, ArgPri),
 	ArgIndent is Indent+3,
 	portray_body(Goal, ArgIndent, noindent, ArgPri, Out).
-portray_body(Meta, Indent, _, Pri, Out) :-
-	meta_call(Meta, N), !,
-	portray_meta(Out, Meta, N, Indent, Pri).
+portray_body(Call, _, _, _, Out) :-	% requires knowledged on the module!
+	predicate_property(Call, meta_predicate(Meta)), !,
+	portray_meta(Out, Call, Meta).
 portray_body(Clause, _, _, Pri, Out) :-
 	pprint(Out, Clause, Pri).
 
@@ -510,31 +510,46 @@ primitive(G) :-
 primitive((_,_)) :- !, fail.
 primitive(_).
 
-%%	meta_call(+Goal, -Arg) is semidet.
-%
-%	True if Goal is a meta-predicate for which we wish to format the
-%	arguments.
-%
-%	@tbd	This really must be  synchronised with meta_predicate
-%		to fix this.
 
-meta_call(call(_), 1).
-meta_call(once(_), 1).
-meta_call(not(_), 1).
-meta_call(ignore(_), 1).
+%%	portray_meta(+Out, +Call, +MetaDecl)
+%
+%	Portray a meta-call. If Call   contains non-primitive meta-calls
+%	we put each argument on a line and layout the body. Otherwise we
+%	simply print the goal.
 
-portray_meta(Out, Term, N, Indent, _Pri) :-
-	arg(N, Term, Arg),
-	or_layout(Arg), !,
-	functor(Term, Name, _),
-	format(Out, '~q((   ', [Name]),
-	atom_length(Name, Alen),
-	BraceIndent is Indent+Alen+1,
-	portray_or(Arg, BraceIndent, Out),
-	nlindent(Out, BraceIndent),
-	write(Out, '))').
-portray_meta(Out, Term, _, _, Pri) :-
-	pprint(Out, Term, Pri).
+portray_meta(Out, Call, Meta) :-
+	contains_non_primitive_meta_arg(Call, Meta), !,
+	Call =.. [Name|Args],
+	Meta =.. [_|Decls],
+	format(Out, '~q(', [Name]),
+	line_position(Out, Indent),
+	portray_meta_args(Decls, Args, Indent, Out),
+	format(Out, ')', []).
+portray_meta(Out, Call, _) :-
+	pprint(Out, Call, 999).
+
+contains_non_primitive_meta_arg(Call, Decl) :-
+	arg(I, Call, CA),
+	arg(I, Decl, DA),
+	integer(DA),
+	\+ primitive(CA), !.
+
+portray_meta_args([], [], _, _).
+portray_meta_args([D|DT], [A|AT], Indent, Out) :-
+	portray_meta_arg(D, A, Out),
+	(   DT == []
+	->  true
+	;   format(Out, ',', []),
+	    nlindent(Out, Indent),
+	    portray_meta_args(DT, AT, Indent, Out)
+	).
+
+portray_meta_arg(I, A, Out) :-
+	integer(I), !,
+	line_position(Out, Indent),
+	portray_body(A, Indent, noindent, 999, Out).
+portray_meta_arg(_, A, Out) :-
+	pprint(Out, A, 999).
 
 %%	portray_list(+List, +Indent, +Out)
 %
