@@ -308,7 +308,8 @@ portray_body(Or, Indent, _, _, Out) :-
 portray_body(Term, Indent, _, Pri, Out) :-
 	term_needs_braces(Term, Pri), !,
 	write(Out, '(   '),
-	portray_body(Term, Indent, noindent, 1200, Out),
+	ArgIndent is Indent + 4,
+	portray_body(Term, ArgIndent, noindent, 1200, Out),
 	nlindent(Out, Indent),
 	write(Out, ')').
 portray_body((A,B), Indent, _, _Pri, Out) :- !,
@@ -472,7 +473,7 @@ portray_meta(Out, Term, _, _, Pri) :-
 
 %%	portray_list(+List, +Indent, +Out)
 %
-%	Portray a list list this.  Right side for improper lists
+%	Portray a list like this.  Right side for improper lists
 %
 %		[ element1,		[ element1
 %		  element2,	OR	| tail
