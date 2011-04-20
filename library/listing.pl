@@ -58,7 +58,8 @@ a human readable format.
     * portray_clause/2 pretty-prints a clause-term
 
 Layout can be customized using library(settings). The effective settings
-can be listed using list_settings/1:
+can be listed using list_settings/1 as   illustrated below. Settings can
+be changed using set_setting/2.
 
     ==
     ?- list_settings(listing).
@@ -69,12 +70,20 @@ can be listed using list_settings/1:
     listing:tab_distance      8              Distance between tab-stops.
     ...
     ==
+
+@tbd	More settings, support _|Coding Guidelines for Prolog|_ and make
+	the suggestions there the default.
+@tbd	Layout of meta-predicates based meta_predicate properties
+@tbd	Provide a line-width setting and wrap long terms
+@tbd	Provide persistent user customization
 */
 
 :- setting(listing:body_indentation, nonneg, 8,
 	   'Indentation used goals in the body').
 :- setting(listing:tab_distance, nonneg, 8,
-	   'Distance between tab-stops.  0 uses only spaces.').
+	   'Distance between tab-stops.  0 uses only spaces').
+:- setting(listing:cut_on_same_line, boolean, true,
+	   'Place cuts (!) on the same line').
 
 
 %%	listing
@@ -344,9 +353,11 @@ full_stop(Out) :-
 portray_body(Var, _, _, Pri, Out) :-
 	var(Var), !,
 	pprint(Out, Var, Pri).
-portray_body(!, _, _, _, Out) :- !,
+portray_body(!, _, _, _, Out) :-
+	setting(listing:cut_on_same_line, true), !,
 	write(Out, ' !').
 portray_body((!, Clause), Indent, _, Pri, Out) :-
+	setting(listing:cut_on_same_line, true), !,
 	\+ term_needs_braces((_,_), Pri), !,
 	write(Out, ' !,'),
 	portray_body(Clause, Indent, indent, 1000, Out).
