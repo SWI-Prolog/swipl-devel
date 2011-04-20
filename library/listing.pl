@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,7 +36,8 @@
 	  portray_clause/1,		% +Clause
 	  portray_clause/2		% +Stream, +Clause
 	]).
-:- use_module(library(lists), [member/2]).
+:- use_module(library(lists)).
+:- use_module(library(settings)).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
@@ -46,10 +48,44 @@
 :- multifile
 	prolog:locate_clauses/2.	% +Spec, -ClauseRefList
 
+/** <module> List programs and pretty print clauses
+
+This module implements listing code from  the internal representation in
+a human readable format.
+
+    * listing/0 lists a module.
+    * listing/1 lists a predicate or matching clause
+    * portray_clause/2 pretty-prints a clause-term
+
+Layout can be customized using library(settings). The effective settings
+can be listed using list_settings/1:
+
+    ==
+    ?- list_settings(listing).
+    ========================================================================
+    Name                      Value (*=modified) Comment
+    ========================================================================
+    listing:body_indentation  8              Indentation used goals in the body
+    listing:tab_distance      8              Distance between tab-stops.
+    ...
+    ==
+*/
+
+:- setting(listing:body_indentation, nonneg, 8,
+	   'Indentation used goals in the body').
+:- setting(listing:tab_distance, nonneg, 8,
+	   'Distance between tab-stops.  0 uses only spaces.').
+
+
 %%	listing
 %
-%	Lists all predicates defined in the calling module. Imported
-%	predicates are not listed.
+%	Lists all predicates defined  in   the  calling module. Imported
+%	predicates are not listed. To  list   the  content of the module
+%	=mymodule=, use:
+%
+%	  ==
+%	  ?- mymodule:listing.
+%	  ==
 
 listing :-
 	context_module(Context),
@@ -69,9 +105,23 @@ listing :-
 listing.
 
 
-%%	listing(+PredIndicators)
+%%	listing(+What)
 %
-%	List the given predicates
+%	List matching clauses. What is either a plain specification or a
+%	list of specifications. Plain specifications are:
+%
+%	  * Predicate indicator (Name/Arity or Name//Arity)
+%	  Lists the indicated predicate.  This also outputs relevant
+%	  _declarations_, such as multifile/1 or dynamic/1.
+%
+%	  * A _Head_ term.  In this case, only clauses whose head
+%	  unify with _Head_ are listed.  This is illustrated in the
+%	  query below that only lists the first clause of append/3.
+%
+%	    ==
+%	    ?- listing(append([], _, _)).
+%	    lists:append([], A, A).
+%	    ==
 
 listing(V) :-
 	var(V), !,       % ignore variables
@@ -256,7 +306,7 @@ do_portray_clause(Out, Term) :-
 	    portray_body(LocalBody, BodyIndent, noindent, 1200, Out),
 	    nlindent(Out, Indent),
 	    write(Out, ')')
-	;   inc_indent(0, 2, BodyIndent),
+	;   setting(listing:body_indentation, BodyIndent),
 	    portray_body(Body, BodyIndent, indent, RightPri, Out)
 	),
 	full_stop(Out).
@@ -513,10 +563,14 @@ portray_list_elements([H|T], EIndent, Out) :-
 
 nlindent(Out, N) :-
 	nl(Out),
-	Tab is N // 8,
-	Space is N mod 8,
-	put_tabs(Out, Tab),
-	tab(Out, Space).
+	setting(listing:tab_distance, D),
+	(   D =:= 0
+	->  tab(Out, N)
+	;   Tab is N // D,
+	    Space is N mod D,
+	    put_tabs(Out, Tab),
+	    tab(Out, Space)
+	).
 
 put_tabs(Out, N) :-
 	N > 0, !,
