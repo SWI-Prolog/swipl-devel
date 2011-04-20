@@ -116,7 +116,7 @@ exe_file(Exe, Exe).
 
 default_init_file(runtime, none) :- !.
 default_init_file(_,       InitFile) :-
-	'$option'(init_file, InitFile, InitFile).
+	'$option'(init_file, InitFile).
 
 
 		 /*******************************
@@ -159,7 +159,6 @@ make_header(_, _, _).
 min_stack(local,    32).
 min_stack(global,   16).
 min_stack(trail,    16).
-min_stack(argument, 16).
 
 convert_option(Stack, Val, NewVal) :-	% stack-sizes are in K-bytes
 	min_stack(Stack, Min), !,
@@ -168,6 +167,14 @@ convert_option(Stack, Val, NewVal) :-	% stack-sizes are in K-bytes
 	;   NewVal is max(Min, Val*1024)
 	).
 convert_option(_, Val, Val).
+
+doption(Name) :- min_stack(Name, _).
+doption(goal).
+doption(toplevel).
+doption(init_file).
+doption(system_init_file).
+doption(class).
+doption(home).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Save the options in the '$options' resource.   The home directory is saved
@@ -179,12 +186,12 @@ avoid a save-script loading itself.
 
 save_options(RC, Options) :-
 	'$rc_open'(RC, '$options', '$prolog', write, Fd),
-	(   '$option'(OptionName, OptionVal0, _),
+	(   doption(OptionName),
+	    '$option'(OptionName, OptionVal0),
 	        (   OptionName == home	% save home if not runtime
 		->  \+ memberchk(class(runtime), Options)
 		;   true
 		),
-	        \+ OptionName == script_file,
 	        option(Options, OptionName/_, OptionVal1, _),
 	        (   var(OptionVal1)	% used the default
 		->  OptionVal = OptionVal0
