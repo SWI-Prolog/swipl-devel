@@ -73,8 +73,6 @@ be changed using set_setting/2.
 
 @tbd	More settings, support _|Coding Guidelines for Prolog|_ and make
 	the suggestions there the default.
-@tbd	Layout of meta-predicates based meta_predicate properties
-@tbd	Provide a line-width setting and wrap long terms
 @tbd	Provide persistent user customization
 */
 
@@ -84,6 +82,8 @@ be changed using set_setting/2.
 	   'Distance between tab-stops.  0 uses only spaces').
 :- setting(listing:cut_on_same_line, boolean, true,
 	   'Place cuts (!) on the same line').
+:- setting(listing:line_width, nonneg, 78,
+	   'Width of a line.  0 is infinite').
 
 
 %%	listing
@@ -583,9 +583,93 @@ portray_list_elements([H|T], EIndent, Out) :-
 	    pprint(Out, T, 999)
 	).
 
+%%	pprint(+Out, +Term, +Priority)
+%
+%	Print  Term  at  Priority.  This  also  takes  care  of  several
+%	formatting options, in particular:
+%
+%	  * {}(Arg) terms are printed with aligned arguments, assuming
+%	  that the term is a body-term.
+%	  * Terms that do not fit on the line are wrapped using
+%	  pprint_wrapped/3.
+
+pprint(Out, Term, _) :-
+	nonvar(Term),
+	Term = {}(Arg),
+	line_position(Out, Indent),
+	ArgIndent is Indent + 2,
+	format(Out, '{ ', []),
+	portray_body(Arg, ArgIndent, noident, 1000, Out),
+	nlindent(Out, Indent),
+	format(Out, '}', []).
+pprint(Out, Term, Pri) :-
+	compound(Term),
+	setting(listing:line_width, Width),
+	Width > 0,
+	listing_write_options(Pri, Options),
+	print_length(Term, Options, Len),
+	line_position(Out, Indent),
+	Indent + Len > Width, !,
+	pprint_wrapped(Out, Term, Pri).
+pprint(Out, Term, Pri) :-
+	listing_write_options(Pri, Options),
+	write_term(Out, Term, Options).
+
+pprint_wrapped(Out, Term, _) :-
+	Term = [_|_],
+	line_position(Out, Indent),
+	portray_list(Term, Indent, Out).
+pprint_wrapped(Out, Term, _) :-
+	Term =.. [Name|Args],
+	format(Out, '~q(', Name),
+	line_position(Out, Indent),
+	pprint_args(Args, Indent, Out),
+	format(Out, ')', []).
+
+pprint_args([], _, _).
+pprint_args([H|T], Indent, Out) :-
+	pprint(Out, H, 999),
+	(   T == []
+	->  true
+	;   format(Out, ',', []),
+	    nlindent(Out, Indent),
+	    pprint_args(T, Indent, Out)
+	).
+
+
+%%	print_length(+Term, +WriteOptions, -Len) is det.
+%
+%	Determine the number of characters emitted for writing Term with
+%	the given WriteOptions.
+%
+%	@tbd	Set a maximum and fail early. Maybe we can add an option
+%		to open_null_stream/1 to limit the length and throw some
+%		error if the length is exceeded.
+
+print_length(Term, Options, Len) :-
+	setup_call_cleanup(open_null_stream(Out),
+			   (   write_term(Out, Term, Options),
+			       character_count(Out, Len)
+			   ),
+			   close(Out)).
+
+%%	listing_write_options(+Priority, -WriteOptions) is det.
+%
+%	WriteOptions are write_term/3 options for writing a term at
+%	priority Priority.
+
+listing_write_options(Pri,
+		      [ quoted(true),
+			numbervars(true),
+			priority(Pri),
+			spacing(next_argument)
+		      ]).
+
 %%	nlindent(+Out, +Indent)
 %
-%	Write newline and indent to column Indent.
+%	Write newline and indent to  column   Indent.  Uses  the setting
+%	listing:tab_distance to determine the mapping   between tabs and
+%	spaces.
 
 nlindent(Out, N) :-
 	nl(Out),
@@ -613,14 +697,3 @@ put_tabs(_, _).
 inc_indent(Indent0, Inc, Indent) :-
 	Indent is Indent0 + Inc*4.
 
-%%	pprint(+Out, +Term, +Priority)
-%
-%	Print Term such that it can be read.
-
-pprint(Out, Term, Pri) :-
-	write_term(Out, Term,
-		   [ quoted(true),
-		     numbervars(true),
-		     priority(Pri),
-		     spacing(next_argument)
-		   ]).
