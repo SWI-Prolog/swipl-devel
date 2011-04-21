@@ -6,7 +6,7 @@
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2010, University of Amsterdam
-			      Vu University Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -55,6 +55,7 @@ typedef struct
   Module module;			/* Module for operators */
   IOSTREAM *out;			/* stream to write to */
   visited *visited;			/* visited (attributed-) variables */
+  term_t portray_goal;			/* call/2 activated portray hook */
 } write_options;
 
 static bool	writeTerm2(term_t term, int prec,
@@ -437,7 +438,7 @@ writeAttVar(term_t av, write_options *options)
     if ( !writeTerm(a, 1200, options) )
       goto error;
     Sputcode('}', options->out);
-    PL_discard_foreign_frame(fid);
+    PL_close_foreign_frame(fid);
 
     options->visited = v.next;
     succeed;
@@ -462,7 +463,7 @@ writeAttVar(term_t av, write_options *options)
     PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
     Scurout = old;
 
-    PL_discard_foreign_frame(fid);
+    PL_close_foreign_frame(fid);
   }
 
   succeed;
@@ -515,7 +516,7 @@ writeAtom(atom_t a, write_options *options)
     rc = PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
     Scurout = old;
 
-    PL_discard_foreign_frame(fid);
+    PL_close_foreign_frame(fid);
     if ( rc == TRUE )
       return TRUE;
   }
@@ -911,24 +912,38 @@ Call user:portray/1 if defined.
 
 static int
 callPortray(term_t arg, write_options *options)
-{ predicate_t portray;
+{ predicate_t pred;
 
   if ( GD->cleaning > CLN_PROLOG )
     fail;				/* avoid dangerous callbacks */
 
-  portray = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
+  if ( options->portray_goal )
+  { pred = _PL_predicate("call", 2, "user", &GD->procedures.call2);
+  } else
+  { pred = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
+    if ( !pred->definition->definition.clauses )
+      return FALSE;
+  }
 
-  if ( portray->definition->definition.clauses )
   { GET_LD
     wakeup_state wstate;
     IOSTREAM *old = Scurout;
     int rval;
+    term_t av;
 
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
       return FALSE;
     Scurout = options->out;
+    if ( options->portray_goal )
+    { av = PL_new_term_refs(2);
+
+      PL_put_term(av+0, options->portray_goal);
+      PL_put_term(av+1, arg);
+    } else
+    { av = arg;
+    }
     rval = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
-			     portray, arg);
+			     pred, av);
     if ( !rval && PL_exception(0) )
       rval = -1;
     Scurout = old;
@@ -1258,6 +1273,7 @@ static const opt_spec write_term_options[] =
   { ATOM_ignore_ops,	    OPT_BOOL },
   { ATOM_numbervars,        OPT_BOOL },
   { ATOM_portray,           OPT_BOOL },
+  { ATOM_portray_goal,      OPT_TERM },
   { ATOM_character_escapes, OPT_BOOL },
   { ATOM_max_depth,	    OPT_INT  },
   { ATOM_module,	    OPT_ATOM },
@@ -1277,6 +1293,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool ignore_ops = FALSE;
   bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
+  term_t gportray = 0;
   bool bqstring   = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
   bool charescape = -1;			/* not set */
   atom_t mname    = ATOM_user;
@@ -1292,7 +1309,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   options.spacing = ATOM_standard;
 
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
-		     &quoted, &ignore_ops, &numbervars, &portray,
+		     &quoted, &ignore_ops, &numbervars, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
 		     &bqstring, &attr, &priority, &partial, &options.spacing,
 		     &blobs) )
@@ -1334,13 +1351,16 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     }
   }
 
-  if ( !getOutputStream(stream, &s) )
-    fail;
-
   options.module = lookupModule(mname);
   if ( charescape == TRUE ||
        (charescape == -1 && true(options.module, CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
+  if ( gportray )
+  { options.portray_goal = gportray;
+    if ( !PL_qualify(options.portray_goal, options.portray_goal) )
+      return FALSE;
+    portray = TRUE;
+  }
   if ( numbervars == -1 )
     numbervars = (portray ? TRUE : FALSE);
 
@@ -1350,6 +1370,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
   if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
 
+  if ( !getOutputStream(stream, &s) )
+    fail;
   options.out = s;
   if ( !partial )
     PutOpenToken(EOF, s);		/* reset this */

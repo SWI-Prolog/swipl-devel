@@ -3301,6 +3301,21 @@ PL_new_module(atom_t name)
 { return lookupModule(name);
 }
 
+int
+PL_qualify(term_t raw, term_t qualified)
+{ GET_LD
+  Module m = NULL;
+  term_t mname;
+
+  if ( !(mname = PL_new_term_ref()) ||
+       !PL_strip_module(raw, &m, qualified) )
+    return FALSE;
+
+  setHandle(mname, m->name);
+
+  return PL_cons_functor(qualified, FUNCTOR_colon2, mname, qualified);
+}
+
 
 		 /*******************************
 		 *	    PREDICATES		*

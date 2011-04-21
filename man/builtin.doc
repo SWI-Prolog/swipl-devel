@@ -3648,6 +3648,12 @@ that is not a variable.  If portray/1 succeeds, the term is considered
 printed.  See also print/1.  The default is \const{false}.  This option
 is an extension to the ISO write_term options.
 
+    \termitem{portray_goal}{:Goal}
+Implies \term{portray}{true}, but calls \arg{Goal} rather than the
+predefined hook portray/1.  \arg{Goal} is called through call/2, where
+the first argument is \arg{Goal} and the second is the term to be
+printed.
+
     \termitem{priority}{Integer}
 An integer between 0 and 1200 representing the `context priority'.
 Default is 1200.  Can be used to write partial terms appearing as

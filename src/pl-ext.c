@@ -87,8 +87,8 @@ static const PL_extension foreigns[] = {
   FRG("notrace",		1, pl_notrace1,		     META),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
-  FRG("write_term",		2, pl_write_term,	      ISO),
-  FRG("write_term",		3, pl_write_term3,	      ISO),
+  FRG("write_term",		2, pl_write_term,	 META|ISO),
+  FRG("write_term",		3, pl_write_term3,	 META|ISO),
   FRG("write",			1, pl_write,		      ISO),
   FRG("writeq",			1, pl_writeq,		      ISO),
   FRG("print",			1, pl_print,			0),

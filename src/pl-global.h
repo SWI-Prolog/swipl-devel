@@ -255,6 +255,7 @@ struct PL_global_data
     Procedure	prolog_trace_interception4;
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
+    Procedure   call2;			/* call/2 */
     Procedure	setup_call_catcher_cleanup4; /* setup_call_catcher_cleanup/4 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
