@@ -617,6 +617,7 @@ pprint(Out, Term, _, Options) :-
 	nlindent(Out, Indent),
 	format(Out, '}', []).
 pprint(Out, Term, Pri, Options) :-
+fail,					% TBD: breaks CHR compilation?
 	compound(Term),
 	setting(listing:line_width, Width),
 	Width > 0,
