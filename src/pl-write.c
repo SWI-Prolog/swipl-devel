@@ -56,6 +56,8 @@ typedef struct
   IOSTREAM *out;			/* stream to write to */
   visited *visited;			/* visited (attributed-) variables */
   term_t portray_goal;			/* call/2 activated portray hook */
+  term_t write_options;			/* original write options */
+  term_t prec_opt;			/* term in write options with prec */
 } write_options;
 
 static bool	writeTerm2(term_t term, int prec,
@@ -911,14 +913,50 @@ Call user:portray/1 if defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-callPortray(term_t arg, write_options *options)
+put_write_options(term_t opts_in, write_options *options)
+{ GET_LD
+  term_t newlist = PL_new_term_ref();
+  term_t precopt = PL_new_term_ref();
+  fid_t fid = PL_open_foreign_frame();
+  term_t head = PL_new_term_ref();
+  term_t tail = PL_copy_term_ref(opts_in);
+  term_t newhead = PL_new_term_ref();
+  term_t newtail = PL_copy_term_ref(newlist);
+  int rc = TRUE;
+
+  while(rc && PL_get_list(tail, head, tail))
+  { if ( !PL_is_functor(head, FUNCTOR_priority1) )
+      rc = ( PL_unify_list(newtail, newhead, newtail) &&
+	     PL_unify(newhead, head) );
+  }
+
+  if ( rc )
+  { rc = ( PL_unify_list(newtail, head, newtail) &&
+	   PL_unify_functor(head, FUNCTOR_priority1) &&
+	   PL_get_arg(1, head, precopt) &&
+	   PL_unify_nil(newtail) );
+  }
+  if ( rc )
+  { options->write_options = newlist;
+    options->prec_opt = precopt;
+  }
+
+  PL_close_foreign_frame(fid);
+  return rc;
+}
+
+
+
+
+static int
+callPortray(term_t arg, int prec, write_options *options)
 { predicate_t pred;
 
   if ( GD->cleaning > CLN_PROLOG )
     fail;				/* avoid dangerous callbacks */
 
   if ( options->portray_goal )
-  { pred = _PL_predicate("call", 2, "user", &GD->procedures.call2);
+  { pred = _PL_predicate("call", 3, "user", &GD->procedures.call3);
   } else
   { pred = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
     if ( !pred->definition->definition.clauses )
@@ -935,10 +973,12 @@ callPortray(term_t arg, write_options *options)
       return FALSE;
     Scurout = options->out;
     if ( options->portray_goal )
-    { av = PL_new_term_refs(2);
+    { av = PL_new_term_refs(3);
 
       PL_put_term(av+0, options->portray_goal);
       PL_put_term(av+1, arg);
+      PL_unify_integer(options->prec_opt, prec);
+      PL_put_term(av+2, options->write_options);
     } else
     { av = arg;
     }
@@ -1070,7 +1110,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
   if ( !PL_is_variable(t) &&
        true(options, PL_WRT_PORTRAY) )
-  { switch( callPortray(t, options) )
+  { switch( callPortray(t, prec, options) )
     { case TRUE:
 	return TRUE;
       case FALSE:
@@ -1357,7 +1397,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     options.flags |= PL_WRT_CHARESCAPES;
   if ( gportray )
   { options.portray_goal = gportray;
-    if ( !PL_qualify(options.portray_goal, options.portray_goal) )
+    if ( !put_write_options(opts, &options) ||
+	 !PL_qualify(options.portray_goal, options.portray_goal) )
       return FALSE;
     portray = TRUE;
   }

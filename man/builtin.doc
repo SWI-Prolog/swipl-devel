@@ -3650,9 +3650,12 @@ is an extension to the ISO write_term options.
 
     \termitem{portray_goal}{:Goal}
 Implies \term{portray}{true}, but calls \arg{Goal} rather than the
-predefined hook portray/1.  \arg{Goal} is called through call/2, where
-the first argument is \arg{Goal} and the second is the term to be
-printed.
+predefined hook portray/1.  \arg{Goal} is called through call/3, where
+the first argument is \arg{Goal}, the second is the term to be
+printed and the 3th argument is the current write-option list.  The
+write option list is copied from the write_term call, but the list
+is guaranteed how hold an option \const{proprity} that reflects the
+current priority.
 
     \termitem{priority}{Integer}
 An integer between 0 and 1200 representing the `context priority'.
