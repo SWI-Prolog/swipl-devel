@@ -1096,7 +1096,7 @@ reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static term_t
-findCatcher(LocalFrame fr, term_t ex ARG_LD)
+findCatcher(LocalFrame fr, Choice ch, term_t ex ARG_LD)
 { Definition catch3  = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
@@ -1106,7 +1106,9 @@ findCatcher(LocalFrame fr, term_t ex ARG_LD)
     if ( fr->predicate != catch3 )
       continue;
     if ( true(fr, FR_CATCHED) )
-      continue;
+      continue;				/* thrown from recover */
+    if ( (void*)fr > (void*)ch )
+      continue;				/* call-port of catch/3 */
 
     tref = consTermRef(fr);
     rc = PL_unify(consTermRef(argFrameP(fr, 1)), ex);

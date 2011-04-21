@@ -3857,7 +3857,7 @@ b_throw:
 	   });
 
   SAVE_REGISTERS(qid);
-  catchfr_ref = findCatcher(FR, exception_term PASS_LD);
+  catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term PASS_LD);
   LOAD_REGISTERS(qid);
   DEBUG(1, { if ( catchfr_ref )
 	     { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
