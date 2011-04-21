@@ -606,6 +606,8 @@ portray_list_elements([H|T], EIndent, Out, Options) :-
 %	  that the term is a body-term.
 %	  * Terms that do not fit on the line are wrapped using
 %	  pprint_wrapped/3.
+%
+%	@tbd	Decide when and how to wrap long terms.
 
 pprint(Out, Term, _, Options) :-
 	nonvar(Term),
@@ -617,21 +619,22 @@ pprint(Out, Term, _, Options) :-
 	nlindent(Out, Indent),
 	format(Out, '}', []).
 pprint(Out, Term, Pri, Options) :-
-fail,					% TBD: breaks CHR compilation?
 	compound(Term),
+	Term \= '$VAR'(_),
 	setting(listing:line_width, Width),
 	Width > 0,
 	listing_write_options(Pri, WrtOptions, Options),
 	print_length(Term, WrtOptions, Len),
 	line_position(Out, Indent),
-	Indent + Len > Width, !,
+	Indent + Len > Width,
+	Len > Width/4, !,		% ad-hoc rule for deeply nested goals
 	pprint_wrapped(Out, Term, Pri, Options).
 pprint(Out, Term, Pri, Options) :-
 	listing_write_options(Pri, WrtOptions, Options),
 	write_term(Out, Term, WrtOptions).
 
 pprint_wrapped(Out, Term, _, Options) :-
-	Term = [_|_],
+	Term = [_|_], !,
 	line_position(Out, Indent),
 	portray_list(Term, Indent, Out, Options).
 pprint_wrapped(Out, Term, _, Options) :-
