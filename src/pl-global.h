@@ -68,6 +68,7 @@ typedef struct
   int	  	line;			/* current line */
   int		linepos;		/* position in the line */
   int64_t	character;		/* current character location */
+  int64_t	byte;			/* byte offset of location */
 } source_location;
 
 		 /*******************************
@@ -608,6 +609,7 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define source_line_no		(LD->read_source.line)
 #define source_line_pos		(LD->read_source.linepos)
 #define source_char_no		(LD->read_source.character)
+#define source_byte_no		(LD->read_source.byte)
 #define exception_term		(LD->exception.term)
 #define exception_bin		(LD->exception.bin)
 #define exception_printed	(LD->exception.printed)

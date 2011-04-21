@@ -237,6 +237,7 @@ struct read_buffer
   unsigned char *here;		/* current position in read buffer */
   unsigned char *end;		/* end of the valid buffer */
   IOSTREAM *stream;		/* stream we are reading from */
+  int64_t byte_pos_last_char;		/* Byte location of last char */
   unsigned char fast[FASTBUFFERSIZE];	/* Quick internal buffer */
 };
 
@@ -662,17 +663,20 @@ addToBuffer(int c, ReadData _PL_rd)
 
 
 static void
-setCurrentSourceLocation(IOSTREAM *s ARG_LD)
+setCurrentSourceLocation(ReadData _PL_rd ARG_LD)
 { atom_t a;
+  IOSTREAM *s = rb.stream;
 
   if ( s->position )
   { source_line_no  = s->position->lineno;
     source_line_pos = s->position->linepos - 1;	/* char just read! */
     source_char_no  = s->position->charno - 1;	/* char just read! */
+    source_byte_no  = rb.byte_pos_last_char;
   } else
   { source_line_no  = -1;
     source_line_pos = -1;
     source_char_no  = 0;
+    source_byte_no  = 0;
   }
 
   if ( (a = fileNameStream(s)) )
@@ -684,8 +688,11 @@ setCurrentSourceLocation(IOSTREAM *s ARG_LD)
 
 static inline int
 getchr__(ReadData _PL_rd)
-{ int c = Sgetcode(rb.stream);
+{ int c;
 
+  if ( rb.stream->position )
+    rb.byte_pos_last_char = rb.stream->position->byteno;
+  c = Sgetcode(rb.stream);
   if ( !_PL_rd->char_conversion_table || c < 0 || c >= 256 )
     return c;
 
@@ -701,7 +708,7 @@ getchr__(ReadData _PL_rd)
 			   addToBuffer(c, _PL_rd); \
 		        }
 #define set_start_line { if ( !something_read ) \
-			 { setCurrentSourceLocation(rb.stream PASS_LD); \
+			 { setCurrentSourceLocation(_PL_rd PASS_LD); \
 			   something_read++; \
 			 } \
 		       }
@@ -3390,7 +3397,7 @@ retry:
 			   PL_INT64, source_char_no,
 			   PL_INT, source_line_no,
 			   PL_INT, source_line_pos,
-			   PL_INT, 0);			/* should be byteno */
+			   PL_INT64, source_byte_no);
     if ( tcomments )
     { if ( !PL_unify_nil(rd.comments) )
 	return FALSE;
