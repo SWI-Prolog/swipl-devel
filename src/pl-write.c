@@ -1520,6 +1520,37 @@ PRED_IMPL("$put_token", 2, put_token, 0)
   fail;
 }
 
+/** '$put_quoted_codes'(+Stream, +Quote, +Codes, +Options)
+
+Emit Codes using the escaped character  syntax,   but  does not emit the
+start and end-code itself. Options is  currently ignored. It is intended
+to provide additional preferences, so as using \uXXXX, \UXXXXXXXX, etc.
+*/
+
+static
+PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
+{ IOSTREAM *out;
+  pl_wchar_t *w;
+  size_t i, len;
+  int quote;
+  int flags = PL_WRT_CHARESCAPES;
+  int rc = TRUE;
+
+  if ( !PL_get_stream_handle(A1, &out) ||
+       !PL_get_char_ex(A2, &quote, FALSE) ||
+       !PL_get_wchars(A3, &len, &w, CVT_LIST|CVT_STRING|CVT_EXCEPTION) )
+    return FALSE;
+
+  for(i=0; rc && i<len; i++)
+    rc = putQuoted(w[i], quote, flags, out);
+
+  if ( rc )
+    rc = PL_release_stream(out);
+
+  return rc;
+}
+
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -1527,5 +1558,6 @@ PRED_IMPL("$put_token", 2, put_token, 0)
 
 BeginPredDefs(write)
   PRED_DEF("$put_token", 2, put_token, 0)
+  PRED_DEF("$put_quoted", 4, put_quoted_codes, 0)
 EndPredDefs
 
