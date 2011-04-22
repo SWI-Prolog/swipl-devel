@@ -2486,7 +2486,35 @@ L #<== R   :- R #==> L.
 %
 % P and Q hold.
 
-L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
+L #/\ R    :-
+        (   conjunctive_neqs_var_drep(L #/\ R, V, D) -> V in D
+        ;   reify(L, 1),
+            reify(R, 1),
+            do_queue
+        ).
+
+conjunctive_neqs_var_drep(Eqs, Var, Drep) :-
+        conjunctive_neqs_var(Eqs, Var),
+        phrase(conjunctive_neqs_vals(Eqs), Vals),
+        list_to_domain(Vals, Dom),
+        domain_complement(Dom, C),
+        domain_to_drep(C, Drep).
+
+conjunctive_neqs_var(V, _) :- var(V), !, false.
+conjunctive_neqs_var(L #\= R, Var) :-
+        (   var(L), integer(R) -> Var = L
+        ;   integer(L), var(R) -> Var = R
+        ;   false
+        ).
+conjunctive_neqs_var(A #/\ B, VA) :-
+        conjunctive_neqs_var(A, VA),
+        conjunctive_neqs_var(B, VB),
+        VA == VB.
+
+conjunctive_neqs_vals(L #\= R) --> ( { integer(L) } -> [L] ; [R] ).
+conjunctive_neqs_vals(A #/\ B) -->
+        conjunctive_neqs_vals(A),
+        conjunctive_neqs_vals(B).
 
 %% ?P #\/ ?Q
 %
@@ -2703,11 +2731,13 @@ reify_(L #==> R, B)  --> !, reify_((#\ L) #\/ R, B).
 reify_(L #<== R, B)  --> !, reify_(R #==> L, B).
 reify_(L #<==> R, B) --> !, reify_((L #==> R) #/\ (R #==> L), B).
 reify_(L #/\ R, B)   --> !,
-        { reify(L, LR, Ps1),
-          reify(R, RR, Ps2) },
-        list(Ps1), list(Ps2),
-        propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
-        a(LR, RR, B).
+        (   { conjunctive_neqs_var_drep(L #/\ R, V, D) } -> reify_(V in D, B)
+        ;   { reify(L, LR, Ps1),
+              reify(R, RR, Ps2) },
+            list(Ps1), list(Ps2),
+            propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
+            a(LR, RR, B)
+        ).
 reify_(L #\/ R, B) --> !,
         (   { disjunctive_eqs_var_drep(L #\/ R, V, D) } -> reify_(V in D, B)
         ;   { reify(L, LR, Ps1),
