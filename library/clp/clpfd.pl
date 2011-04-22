@@ -2486,12 +2486,7 @@ L #<== R   :- R #==> L.
 %
 % P and Q hold.
 
-L #/\ R    :-
-        (   conjunctive_neqs_var_drep(L #/\ R, V, D) -> V in D
-        ;   reify(L, 1),
-            reify(R, 1),
-            do_queue
-        ).
+L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 
 conjunctive_neqs_var_drep(Eqs, Var, Drep) :-
         conjunctive_neqs_var(Eqs, Var),
