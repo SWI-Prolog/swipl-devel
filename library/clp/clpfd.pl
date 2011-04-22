@@ -2500,9 +2500,32 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 % ==
 
 L #\/ R :-
-        reify(L, X, Ps1),
-        reify(R, Y, Ps2),
-        propagator_init_trigger([X,Y], reified_or(X,Ps1,Y,Ps2,1)).
+        (   disjunctive_eqs_var_drep(L #\/ R, Var, Drep) -> Var in Drep
+        ;   reify(L, X, Ps1),
+            reify(R, Y, Ps2),
+            propagator_init_trigger([X,Y], reified_or(X,Ps1,Y,Ps2,1))
+        ).
+
+disjunctive_eqs_var_drep(Eqs, Var, Drep) :-
+        disjunctive_eqs_var(Eqs, Var),
+        phrase(disjunctive_eqs_vals(Eqs), Vals),
+        list_to_drep(Vals, Drep).
+
+disjunctive_eqs_var(V, _) :- var(V), !, false.
+disjunctive_eqs_var(L #= R, Var) :-
+        (   var(L), integer(R) -> Var = L
+        ;   integer(L), var(R) -> Var = R
+        ;   false
+        ).
+disjunctive_eqs_var(A #\/ B, VA) :-
+        disjunctive_eqs_var(A, VA),
+        disjunctive_eqs_var(B, VB),
+        VA == VB.
+
+disjunctive_eqs_vals(L #= R)  --> ( { integer(L) } -> [L] ; [R] ).
+disjunctive_eqs_vals(A #\/ B) -->
+        disjunctive_eqs_vals(A),
+        disjunctive_eqs_vals(B).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
@@ -2686,11 +2709,13 @@ reify_(L #/\ R, B)   --> !,
         propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
         a(LR, RR, B).
 reify_(L #\/ R, B) --> !,
-        { reify(L, LR, Ps1),
-          reify(R, RR, Ps2) },
-        list(Ps1), list(Ps2),
-        propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
-        a(LR, RR, B).
+        (   { disjunctive_eqs_var_drep(L #\/ R, V, D) } -> reify_(V in D, B)
+        ;   { reify(L, LR, Ps1),
+              reify(R, RR, Ps2) },
+            list(Ps1), list(Ps2),
+            propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
+            a(LR, RR, B)
+        ).
 reify_(#\ Q, B) --> !,
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)),
@@ -4980,8 +5005,7 @@ global_cardinality(Xs, Pairs, Options) :-
         ),
         length(Xs, L),
         Nums ins 0..L,
-        list_to_domain(Keys, Dom),
-        domain_to_drep(Dom, Drep),
+        list_to_drep(Keys, Drep),
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
         % pgcc_check must be installed before triggering other
@@ -5515,8 +5539,7 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
                [s([]-0, Exprs0)], [s(_,Exprs1)]),
         maplist(expr0_expr, Exprs1, Exprs),
         phrase(transitions(Seqs, Template, Sigs, Start, End, Exprs, Cs, Is, Fs), Tuples),
-        list_to_domain(SinkNums0, SinkDom),
-        domain_to_drep(SinkDom, SinkDrep),
+        list_to_drep(SinkNums0, SinkDrep),
         tuples_in(Tuples, Relation),
         End in SinkDrep.
 
@@ -5857,6 +5880,10 @@ append_propagators(fd_props(Gs0,Bs0,Os0), fd_props(Gs1,Bs1,Os1), fd_props(Gs,Bs,
 bound_portray(inf, inf).
 bound_portray(sup, sup).
 bound_portray(n(N), N).
+
+list_to_drep(List, Drep) :-
+        list_to_domain(List, Dom),
+        domain_to_drep(Dom, Drep).
 
 domain_to_drep(Dom, Drep) :-
         domain_intervals(Dom, [A0-B0|Rest]),
