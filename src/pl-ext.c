@@ -123,7 +123,6 @@ static const PL_extension foreigns[] = {
   FRG("$check_procedure",	1, pl_check_procedure,	     META),
 #endif
 
-  FRG("$term_complexity",	3, pl_term_complexity,		0),
   FRG("redefine_system_predicate", 1, pl_redefine_system_predicate,
 							     META),
 

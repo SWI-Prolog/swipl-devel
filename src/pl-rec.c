@@ -1969,10 +1969,18 @@ right_recursion:
 #define INT_MIN     (-(INT_MIN)-1)
 #endif
 
-word
-pl_term_complexity(term_t t, term_t mx, term_t count)
-{ GET_LD
+/** $term_complexity(+Term, +Max, -Complexity)
+
+Complexity represents the total size of Term
+*/
+
+static
+PRED_IMPL("$term_complexity", 3, term_complexity, 0)
+{ PRED_LD
   int c, m;
+  term_t t = A1;
+  term_t mx = A2;
+  term_t count = A3;
 
   if ( !PL_get_integer(mx, &m) )
     m = INT_MAX;
@@ -1998,4 +2006,5 @@ BeginPredDefs(rec)
   PRED_DEF("erase", 1, erase, 0)
   PRED_DEF("instance", 2, instance, 0)
   PRED_DEF("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$term_complexity", 3, term_complexity, 0)
 EndPredDefs
