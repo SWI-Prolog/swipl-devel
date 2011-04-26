@@ -114,7 +114,7 @@ assert_bindings([Binding|Tail]) :-
 	(   nonvar(Value)
 	->  forall(recorded('$topvar', Var = _, Ref), erase(Ref)),
 	    (   (   current_prolog_flag(toplevel_var_size, Count)
-		->  '$term_complexity'(Value, Count, _)
+		->  '$term_size'(Value, Count, _)
 		;   true
 		)
 	    ->  recorda('$topvar', Binding, _)

@@ -775,6 +775,78 @@ PRED_IMPL("callable", 1, callable, 0)
 
 
 		 /*******************************
+		 *	     COMPLEXITY		*
+		 *******************************/
+
+static size_t
+term_size(term_agenda *agenda, size_t max ARG_LD)
+{ size_t count = 0;
+  Word t;
+
+  while((t=nextTermAgenda(agenda)))
+  { if ( ++count > max )
+      return count;
+
+    if ( isAttVar(*t) )
+    { Word p = valPAttVar(*t);
+
+      assert(onGlobalArea(p));
+      pushWorkAgenda(agenda, 1, p);
+    } else if ( isIndirect(*t) )
+    { count += wsizeofInd(*t);
+
+      if ( count > max )
+	return count;
+    } else if ( isTerm(*t) )
+    { Functor f = valueTerm(*t);
+      int arity = arityFunctor(f->definition);
+
+      if ( visited(f PASS_LD) )
+	continue;
+
+      if ( ++count > max )
+	return count;
+
+      pushWorkAgenda(agenda, arity, f->arguments);
+    }
+  }
+
+  return count;
+}
+
+
+/** $term_size(+Term, +Max, -Size)
+
+Size represents the total size of Term on the stack, counted in cells.
+*/
+
+static
+PRED_IMPL("$term_size", 3, term_complexity, 0)
+{ PRED_LD
+  size_t c, m;
+  term_t t = A1;
+  term_t mx = A2;
+  term_t count = A3;
+  term_agenda agenda;
+
+  if ( PL_is_variable(mx) )
+    m = (size_t)-1;
+  else if ( !PL_get_size_ex(mx, &m) )
+    return FALSE;
+
+  initvisited(PASS_LD1);
+  initTermAgenda(&agenda, 1, valTermRef(t));
+  c = term_size(&agenda, m PASS_LD);
+  clearTermAgenda(&agenda);
+  unvisit(PASS_LD1);
+  if ( c > m )
+    return FALSE;
+
+  return PL_unify_integer(count, c);
+}
+
+
+		 /*******************************
 		 *	     CYCLIC		*
 		 *******************************/
 
@@ -5077,6 +5149,7 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
+  PRED_DEF("$term_complexity", 3, term_complexity, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, 0)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
   PRED_DEF("$factorize_term", 2, factorize_term, 0)

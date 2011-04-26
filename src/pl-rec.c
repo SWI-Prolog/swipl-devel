@@ -1923,76 +1923,6 @@ PRED_IMPL("erase", 1, erase, 0)
 }
 
 		 /*******************************
-		 *	     COMPLEXITY		*
-		 *******************************/
-
-static int
-count_term(Word t, int left ARG_LD)
-{ int count = 0;
-
-right_recursion:
-  deRef(t);
-
-  if ( --left < 0 )
-    return -1;
-  count++;
-
-  if ( isAttVar(*t) )
-  { Word p = valPAttVar(*t);
-
-    assert(onGlobalArea(p));
-    t = p;
-    goto right_recursion;
-  } else if ( isTerm(*t) )
-  { int arity = arityTerm(*t);
-    int me;
-
-    for(t = argTermP(*t, 0); arity-- > 0; count += me, t++ )
-    { if ( arity == 0 )
-	goto right_recursion;
-
-      me = count_term(t, left PASS_LD);
-      if ( me < 0 )
-	return me;
-      left -= me;
-      if ( left < 0 )
-	return -1;
-    }
-  }
-
-  return count+1;
-}
-
-
-#ifndef INT_MAX
-#define INT_MAX	    ((int)(((unsigned int)1<<(sizeof(int)*8-1))-1))
-#define INT_MIN     (-(INT_MIN)-1)
-#endif
-
-/** $term_complexity(+Term, +Max, -Complexity)
-
-Complexity represents the total size of Term
-*/
-
-static
-PRED_IMPL("$term_complexity", 3, term_complexity, 0)
-{ PRED_LD
-  int c, m;
-  term_t t = A1;
-  term_t mx = A2;
-  term_t count = A3;
-
-  if ( !PL_get_integer(mx, &m) )
-    m = INT_MAX;
-
-  c = count_term(valTermRef(t), m PASS_LD);
-  if ( c < 0 || c > m )
-    fail;
-
-  return PL_unify_integer(count, c);
-}
-
-		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
@@ -2006,5 +1936,4 @@ BeginPredDefs(rec)
   PRED_DEF("erase", 1, erase, 0)
   PRED_DEF("instance", 2, instance, 0)
   PRED_DEF("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$term_complexity", 3, term_complexity, 0)
 EndPredDefs
