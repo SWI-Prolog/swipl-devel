@@ -821,7 +821,7 @@ Size represents the total size of Term on the stack, counted in cells.
 */
 
 static
-PRED_IMPL("$term_size", 3, term_complexity, 0)
+PRED_IMPL("$term_size", 3, term_size, 0)
 { PRED_LD
   size_t c, m;
   term_t t = A1;
@@ -5149,7 +5149,7 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
-  PRED_DEF("$term_complexity", 3, term_complexity, 0)
+  PRED_DEF("$term_size", 3, term_size, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, 0)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
   PRED_DEF("$factorize_term", 2, factorize_term, 0)
