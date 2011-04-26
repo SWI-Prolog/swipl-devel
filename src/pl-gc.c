@@ -1705,6 +1705,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       case B_UNIFY_VV:
       case B_EQ_VV:
+      case B_NEQ_VV:
 	mark_frame_var(state, PC[0] PASS_LD);
         mark_frame_var(state, PC[1] PASS_LD);
 	break;

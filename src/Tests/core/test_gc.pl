@@ -171,6 +171,14 @@ test(c_ifthen, true) :-			% Scanning C_NOT should not end due
 		   A == {null}
 		 )
 	   ).
+test(b_neq_vv, true) :-
+	numlist(1, 100, X),
+	numlist(1, 100, Y),
+	garbage_collect,
+	\+ (X \== Y),
+	a(Y).
+
+a(Y) :- length(Y,_).
 
 :- end_tests(gc_mark).
 
