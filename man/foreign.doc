@@ -1609,6 +1609,8 @@ Raise \exam{existence_error(type, culprit)}.  See type_error/2.
 					 const char *type, term_t culprit}
 Raise \exam{permission_error(operation, type, culprit)}. See
 permission_error/3.
+    \cfunction{int}{PL_resource_error}{const char *resource}
+Raise \exam{resource_error(resource)}. See resource_error/1.
 \end{description}
 
 

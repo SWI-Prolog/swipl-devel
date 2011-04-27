@@ -667,6 +667,17 @@ PL_permission_error(const char *op, const char *type, term_t obj)
 }
 
 
+int
+PL_resource_error(const char *resource)
+{ atom_t r = PL_new_atom(resource);
+  int rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, r);
+
+  PL_unregister_atom(r);
+
+  return rc;
+}
+
+
 		 /*******************************
 		 *	PRINTING MESSAGES	*
 		 *******************************/

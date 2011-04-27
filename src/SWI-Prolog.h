@@ -544,6 +544,8 @@ PL_EXPORT(int)		PL_domain_error(const char *expected, term_t culprit);
 PL_EXPORT(int)		PL_existence_error(const char *type, term_t culprit);
 PL_EXPORT(int)		PL_permission_error(const char *operation,
 					    const char *type, term_t culprit);
+PL_EXPORT(int)		PL_resource_error(const char *resource);
+
 
 		 /*******************************
 		 *	       BLOBS		*
