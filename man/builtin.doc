@@ -2508,7 +2508,10 @@ module \arg{Module}.
 
     \termitem{file}{FileName}
 Unify \arg{FileName} with the name of the source file in which the
-predicate is defined.  See also source_file/2.
+predicate is defined.  See also source_file/2 and the propery
+\const{line_count}.  Note that this reports the file of the
+first clause of a predicate.  A more robust interface can be
+achieved using nth_clause/3 and clause_property/2.
 
     \termitem{foreign}{}
 Is true if the predicate is defined in the C language.
@@ -2530,10 +2533,11 @@ Is true if the predicate is covered by the ISO standard (ISO/IEC
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the first clause of the
 predicate.  Fails if the predicate is not associated with a file.  See
-also source_file/2.
+also source_file/2.  See also the \const{file} property above, notably
+the reference to clause_property/2.
 
     \termitem{multifile}{}
-Is true there may be multiple (or no) file providing clauses for the
+Is true there may be multiple (or no) files providing clauses for the
 predicate.  This property is set using multifile/1.
 
     \termitem{meta_predicate}{Head}
