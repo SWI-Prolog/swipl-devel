@@ -348,6 +348,8 @@ control_ansi(void *handle, int op, void *data)
       return -1;			/* We cannot change the encoding! */
     case SIO_LASTERROR:
       return 0;				/* TBD */
+    case SIO_GETFILENO:
+      return as->saved_handle;
     default:
       return -1;
   }
@@ -413,6 +415,7 @@ wrap_console(HANDLE h, IOSTREAM *s, IOFUNCTIONS *funcs)
   s->handle    = as;
   s->encoding  = ENC_WCHAR;
   s->functions = funcs;
+  s->flags &= ~SIO_FILE;
 
   return TRUE;
 }
