@@ -134,7 +134,19 @@ public(Spec)		 :- '$set_pattr'(Spec, (public)).
 	setup_call_cleanup(0,0,0),
 	setup_call_catcher_cleanup(0,0,?,0),
 	call_cleanup(0,0),
-	call_cleanup(0,?,0).
+	call_cleanup(0,?,0),
+	with_output_to(+,0),
+	with_mutex(+,0),
+	notrace(0).
+
+'$cond_meta_predicate'(Head) :-
+	functor(Head, Name, Arity),
+	(   current_predicate(Name/Arity)
+	->  meta_predicate(Head)
+	;   true
+	).
+
+:- '$cond_meta_predicate'(thread_at_exit(0)).
 
 /* Currently, meta_predicate is only supported upto arity 8
 */

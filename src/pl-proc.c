@@ -1294,11 +1294,10 @@ resetReferences(void)
 
 /** meta_predicate :HeadList is det.
 
-Quintus compatible declaration  for   meta-predicates.  The  declaration
-fills the meta_info field of a  definition   as  well  as the P_META and
-P_TRANSPARENT  flags.  P_META  indicates  that    meta_info   is  valid.
-P_TRANSPARENT indicates that  the  declaration   contains  at  least one
-meta-argument (: or 0..9).
+Declaration for meta-predicates. The  declaration   fills  the meta_info
+field of a definition as well  as   the  P_META and P_TRANSPARENT flags.
+P_META indicates that meta_info is   valid. P_TRANSPARENT indicates that
+the declaration contains at least one meta-argument (: or 0..9).
 
 @param HeadList	Comma separated list of predicates heads, where each
 		predicate head has arguments 0..9, :,+,-,?
