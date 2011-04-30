@@ -230,10 +230,10 @@ isomorphic(argPairs *a, int i, int j, Buffer buf ARG_LD)
     wr = *r;
 
     if ( tag(wl) != tag(wr) )
-      fail;
+      return FALSE;
 
     if ( tag(wl) == TAG_VAR )
-    { if ( wl != wr )
+    { if ( l != r )		/* identity test on variables */
 	return FALSE;
       continue;
     }
@@ -342,7 +342,6 @@ variant(argPairs *agenda, Buffer buf ARG_LD)
      { if ( (m == j) && (n == i) )
 	 continue;
      }
-
      return FALSE;
     }
 
