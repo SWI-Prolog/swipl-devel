@@ -130,9 +130,9 @@ var_id(Word p, Buffer buf)
 { word w = *p;
 
   if ( w )
-  { return valVar(w);
-  } else
-  { int n = entriesBuffer(buf, node);
+  { return (int)valVar(w);		/* node id truncated to int: */
+  } else				/* < 2^31 nodes */
+  { int n = (int)entriesBuffer(buf, node);
     node new = {p, w, 0, 0};
 
     if ( !add_node_buffer((Buffer)buf, &new) )
@@ -150,7 +150,7 @@ term_id(Word p, Buffer buf)
   if ( isCompound_x(w) )
   { return (int)valCompound_x(w);
   } else
-  { int n = entriesBuffer(buf, node);
+  { int n = (int)entriesBuffer(buf, node);
     node new = {p, w, 0, 0};
 
     if ( !add_node_buffer((Buffer)buf, &new) )
@@ -417,6 +417,7 @@ PRED_IMPL("=@=", 2, variant, 0)
   node *r;
   Word p1 = valTermRef(A1);
   Word p2 = valTermRef(A2);
+  node new = {NULL, 0, 0, 0};   /* dummy node as 0-th element*/
 
   deRef(p1);
   deRef(p2);
@@ -457,7 +458,6 @@ again:
 
   startCritical;
   initBuffer(&buf);	/* can be faster! */
-  node new = {NULL, 0, 0, 0};   /* dummy node as 0-th element*/
   init_agenda(&agenda);
 
   if ( (add_node_buffer(VARIANT_BUFFER, &new) >= 0) &&
