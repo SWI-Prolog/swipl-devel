@@ -430,14 +430,14 @@ extract the handle from the extra argument using the
 {\tt PL_foreign_context*()} macro.
 
 \begin{description}
-    \cmacro{(return) foreign_t}{PL_retry}{long}
+    \cmacro{(return) foreign_t}{PL_retry}{intptr_t value}
 The foreign function succeeds while leaving a choice point. On
 backtracking over this goal the foreign function will be called again,
 but the control argument now indicates it is a `Redo' call and the
 macro PL_foreign_context() returns the handle passed via
-PL_retry(). This handle is a 30 bits signed value (two bits are used
-for status indication).  Defined as \exam{return _PL_retry(n)}.
-See also PL_succeed().
+PL_retry(). This handle is a two bits smaller than a pointer
+(30 or 62 bits) signed value (two bits are used for status indication).
+Defined as \exam{return _PL_retry(n)}. See also PL_succeed().
 
     \cmacro{(return) foreign_t}{PL_retry_address}{void *}
 As PL_retry(), but ensures an address as returned by malloc() is
@@ -451,7 +451,7 @@ are described above.  Note that the function should be prepared to
 handle the \const{PL_PRUNED} case and should be aware that the other
 arguments are not valid in this case.
 
-    \cmacro{long}{PL_foreign_context}{control_t}
+    \cmacro{intptr_t}{PL_foreign_context}{control_t}
 Extracts the context from the context argument.  In the call type is
 \const{PL_FIRST_CALL} the context value is 0L.  Otherwise it is the value
 returned by the last PL_retry() associated with this goal (both if the
