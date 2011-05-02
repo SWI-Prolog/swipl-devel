@@ -1992,18 +1992,18 @@ term_hash(simple-5) :-
 term_hash(compound-1) :-
 	term_hash(hello(world), X),
 	memberchk(X, [ 2512014,		% little endian
-		       13811310		% big endian	FIXME: Incorrect
+		       4285241		% big endian
 		     ]).
 term_hash(compound-2) :-
 	A = x(a),
 	term_hash(hello(A, A), X),
 	memberchk(X, [ 6171734,		% little endian
-		       13137004		% big endian	FIXME: Incorrect
+		       13034251		% big endian
 		     ]).
 term_hash(compound-3) :-
 	term_hash(hello(x(a), x(a)), X),
 	memberchk(X, [ 6171734,		% little endian
-		       13137004		% big endian	FIXME: Incorrect
+		       13034251		% big endian
 		     ]).
 
 
