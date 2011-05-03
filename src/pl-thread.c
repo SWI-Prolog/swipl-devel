@@ -4579,14 +4579,57 @@ One is to skip these threads and put them  on a list, after which we can
 process the list until we have seen all  threads and the other is to use
 condition variables. Both seem to be an   overkill  because this code is
 only used or reconsult.
+
+(**) SuspendThread()  returning  success  does not mean  that the thread
+has  been  suspended.  Instead  it  means  that  the  thread  _will  be_
+suspended  when  it  finishes its  quantum. To  ensure  that  stacks are
+marked  only  when  the  thread is  indeed  suspended  we  pin both  the
+stack-marking-thread  and to-be-suspended-thread  to the same  CPU core,
+call  SuspendThread()  then  yield.  When  the  stack-marking-thread  is
+rescheduled we unpin both threads.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __WINDOWS__
+
+static void
+pin_threads(HANDLE process, HANDLE me, HANDLE target, int pin)
+{ DWORD_PTR process_affinity_mask, system_affinity_mask;
+
+  if ( GetProcessAffinityMask(process,
+			      &process_affinity_mask,
+			      &system_affinity_mask) )
+  { DWORD_PTR pin_to_core;
+
+    if ( pin )
+      pin_to_core = process_affinity_mask & (0 - process_affinity_mask);
+    else
+      pin_to_core = process_affinity_mask;
+
+    SetThreadAffinityMask(me, pin_to_core);
+    SetThreadAffinityMask(target, pin_to_core);
+  }
+}
+
+
+static int
+set_priority_threads(HANDLE me, HANDLE target, int new)
+{ int p;
+
+  if ((p = GetThreadPriority(me)) != THREAD_PRIORITY_ERROR_RETURN)
+  { SetThreadPriority(me, new);
+    SetThreadPriority(target, new);
+  }
+
+  return p;
+}
+
 
 void					/* For comments, see above */
 forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 { int i;
   int me = PL_thread_self();
+  HANDLE me_win_thread = GetCurrentThread();
+  HANDLE process = GetCurrentProcess();
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
@@ -4595,22 +4638,37 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 	 info->status == PL_THREAD_RUNNING )
     { HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
       PL_local_data_t *ld = info->thread_data;
+      int old_p;
+
+      pin_threads(process, me_win_thread, win_thread, TRUE);
+      old_p = set_priority_threads(me_win_thread, win_thread,
+				   THREAD_PRIORITY_HIGHEST);
 
     again:
       while ( ld->gc.active )
 	Sleep(0);			/* (*) */
 
       if ( SuspendThread(win_thread) != -1L )
-      { if ( ld->gc.active )		/* oops, just started */
+      { Sleep(0);			/* (**) */
+        if ( ld->gc.active )		/* oops, just started */
 	{ ResumeThread(win_thread);
 	  goto again;
 	}
 
+        if ( old_p != THREAD_PRIORITY_ERROR_RETURN)
+	  set_priority_threads(me_win_thread, win_thread, old_p);
+	pin_threads(process, me_win_thread, win_thread, FALSE);
+
 	(*func)(ld);
+
         if ( (flags & PL_THREAD_SUSPEND_AFTER_WORK) )
 	  info->status = PL_THREAD_SUSPENDED;
 	else
 	  ResumeThread(win_thread);
+      } else
+      { if ( old_p != THREAD_PRIORITY_ERROR_RETURN)
+	  set_priority_threads(me_win_thread, win_thread, old_p);
+	pin_threads(process, me_win_thread, win_thread, FALSE);
       }
     }
   }
