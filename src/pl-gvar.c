@@ -130,21 +130,21 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     PL_unregister_atom(old);
 
   if ( backtrackable )
-  { if ( isRef(old) )
-    { Word p = unRef(old);
+  { Word p;
 
-      TrailAssignment(p);
-      *p = w;
+    if ( isRef(old) )
+    { p = unRef(old);
     } else
-    { Word p = allocGlobal(1);
+    { p = allocGlobal(1);
       *p = old;
-      freezeGlobal(PASS_LD1);		/* Why is this? */
-      if ( storage(old) != STG_GLOBAL )
+      freezeGlobal(PASS_LD1);		/* The value location must be */
+      if ( storage(old) != STG_GLOBAL )	/* preserved */
 	LD->gvar.grefs++;
       s->value = (void*)makeRefG(p);
-      TrailAssignment(p);
-      *p = w;
     }
+
+    TrailAssignment(p);
+    *p = w;
   } else
   { if ( storage(old) == STG_GLOBAL )
       LD->gvar.grefs--;
