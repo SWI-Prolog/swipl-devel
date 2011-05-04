@@ -619,13 +619,13 @@ clearBuffer(ReadData _PL_rd)
 
 static void
 growToBuffer(int c, ReadData _PL_rd)
-{ if ( rb.base == rb.fast )		/* intptr_t clause: jump to use malloc() */
+{ if ( rb.base == rb.fast )		/* long clause: jump to use malloc() */
   { rb.base = PL_malloc(FASTBUFFERSIZE * 2);
     memcpy(rb.base, rb.fast, FASTBUFFERSIZE);
   } else
     rb.base = PL_realloc(rb.base, rb.size*2);
 
-  DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (intptr_t) rb.base));
+  DEBUG(8, Sdprintf("Reallocated read buffer at %p\n", rb.base));
   _PL_rd->posp = rdbase = rb.base;
   rb.here = rb.base + rb.size;
   rb.size *= 2;
