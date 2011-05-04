@@ -1835,8 +1835,8 @@ pop_queue(E, Queues, Which) :-
 	arg(Which, Queues, H-T),
 	H = [E|NH],
 	(   var(NH)
-	->  setarg(1, Queues, [])
-	;   setarg(1, Queues, NH-T)
+	->  setarg(Which, Queues, [])
+	;   setarg(Which, Queues, NH-T)
 	).
 
 fetch_propagator(Prop) :-
