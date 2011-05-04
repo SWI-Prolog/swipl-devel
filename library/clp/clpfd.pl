@@ -1810,26 +1810,34 @@ remove_lower([C*X|CXs], Min) :-
 
 % FIFO queue
 
-make_queue :- nb_setval('$clpfd_queue', fast_slow(Q-Q, L-L)).
+make_queue :- nb_setval('$clpfd_queue', fast_slow([], [])).
 
-push_fast_queue(E) :-
-        b_getval('$clpfd_queue', fast_slow(H-[E|T], L)),
-        b_setval('$clpfd_queue', fast_slow(H-T, L)).
+push_fast_queue(E) :- push_queue(E, 1).
+push_slow_queue(E) :- push_queue(E, 2).
 
-push_slow_queue(E) :-
-        b_getval('$clpfd_queue', fast_slow(L, H-[E|T])),
-        b_setval('$clpfd_queue', fast_slow(L, H-T)).
+push_queue(E, Which) :-
+	nb_getval('$clpfd_queue', Queues),
+	arg(Which, Queues, Fast),
+	(   Fast == []
+	->  setarg(Which, Queues, [E|T]-T)
+	;   Fast = H-[E|T],
+	    setarg(Which, Queues, H-T)
+	).
 
 pop_queue(E) :-
-        b_getval('$clpfd_queue', fast_slow(H-T, I-U)),
-        (   nonvar(H) ->
-            H = [E|NH],
-            b_setval('$clpfd_queue', fast_slow(NH-T, I-U))
-        ;   nonvar(I) ->
-            I = [E|NI],
-            b_setval('$clpfd_queue', fast_slow(H-T, NI-U))
-        ;   false
-        ).
+        nb_getval('$clpfd_queue', Queues),
+	(   pop_queue(V, Queues, 1)
+	->  E = V
+	;   pop_queue(E, Queues, 2)
+	).
+
+pop_queue(E, Queues, Which) :-
+	arg(Which, Queues, H-T),
+	H = [E|NH],
+	(   var(NH)
+	->  setarg(1, Queues, [])
+	;   setarg(1, Queues, NH-T)
+	).
 
 fetch_propagator(Prop) :-
         pop_queue(P),
