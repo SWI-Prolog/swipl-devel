@@ -1812,32 +1812,27 @@ remove_lower([C*X|CXs], Min) :-
 
 make_queue :- nb_setval('$clpfd_queue', fast_slow([], [])).
 
-push_fast_queue(E) :- push_queue(E, 1).
-push_slow_queue(E) :- push_queue(E, 2).
-
 push_queue(E, Which) :-
-	nb_getval('$clpfd_queue', Queues),
-	arg(Which, Queues, Fast),
-	(   Fast == []
-	->  setarg(Which, Queues, [E|T]-T)
-	;   Fast = H-[E|T],
-	    setarg(Which, Queues, H-T)
-	).
+        nb_getval('$clpfd_queue', Qs),
+        arg(Which, Qs, Q),
+        (   Q == [] ->
+            setarg(Which, Qs, [E|T]-T)
+        ;   Q = H-[E|T],
+            setarg(Which, Qs, H-T)
+        ).
 
 pop_queue(E) :-
-        nb_getval('$clpfd_queue', Queues),
-	(   pop_queue(V, Queues, 1)
-	->  E = V
-	;   pop_queue(E, Queues, 2)
-	).
+        nb_getval('$clpfd_queue', Qs),
+        (   pop_queue(E, Qs, 1) ->  true
+        ;   pop_queue(E, Qs, 2)
+        ).
 
-pop_queue(E, Queues, Which) :-
-	arg(Which, Queues, H-T),
-	H = [E|NH],
-	(   var(NH)
-	->  setarg(Which, Queues, [])
-	;   setarg(Which, Queues, NH-T)
-	).
+pop_queue(E, Qs, Which) :-
+        arg(Which, Qs, [E|NH]-T),
+        (   var(NH) ->
+            setarg(Which, Qs, [])
+        ;   setarg(Which, Qs, NH-T)
+        ).
 
 fetch_propagator(Prop) :-
         pop_queue(P),
@@ -3061,8 +3056,8 @@ trigger_prop(Propagator) :-
             % format("triggering: ~w\n", [Propagator]),
             put_attr(State, clpfd_aux, queued),
             (   arg(1, Propagator, C), functor(C, F, _), global_constraint(F) ->
-                push_slow_queue(Propagator)
-            ;   push_fast_queue(Propagator)
+                push_queue(Propagator, 2)
+            ;   push_queue(Propagator, 1)
             )
         ).
 
