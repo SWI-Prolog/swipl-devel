@@ -1892,7 +1892,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
        value->type == V_INTEGER &&
        value->value.i <= 36 &&
        value->value.i > 1 &&
-       digitValue(value->value.i, in[1]) >= 0 )
+       digitValue((int)value->value.i, in[1]) >= 0 )
   { in++;
 
     if ( !(rc=scan_number(&in, (int)value->value.i, value)) )
