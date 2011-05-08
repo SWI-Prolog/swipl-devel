@@ -349,7 +349,7 @@ control_ansi(void *handle, int op, void *data)
     case SIO_LASTERROR:
       return 0;				/* TBD */
     case SIO_GETFILENO:
-      return as->saved_handle;
+      return (int)(intptr_t)as->saved_handle; /* is one of 0,1,2 */
     default:
       return -1;
   }
