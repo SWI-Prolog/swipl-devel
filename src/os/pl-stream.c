@@ -1070,7 +1070,9 @@ returns \n, but it returns the same for a single \n.
 
 Often, we could keep track of bufp and reset this, but we must deal with
 the case where we fetch a new buffer. In this case, we must copy the few
-remaining bytes to the `unbuffer' area.
+remaining bytes to the `unbuffer' area. If SIO_USERBUF is set, we do not
+have this spare buffer space. This  is   used  for reading from strings,
+which cannot fetch a new buffer anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -1092,7 +1094,7 @@ Speekcode(IOSTREAM *s)
   if ( (s->flags & SIO_FEOF) )
     return -1;
 
-  if ( s->bufp + UNDO_SIZE > s->limitp )
+  if ( s->bufp + UNDO_SIZE > s->limitp && !(s->flags&SIO_USERBUF) )
   { safe = s->limitp - s->bufp;
     memcpy(s->buffer-safe, s->bufp, safe);
   }
