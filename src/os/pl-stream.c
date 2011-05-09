@@ -1110,7 +1110,7 @@ Speekcode(IOSTREAM *s)
 
   if ( s->bufp > start )
   { s->bufp = start;
-  } else
+  } else if ( c != -1 )
   { assert(safe != (size_t)-1);
     s->bufp = s->buffer-safe;
   }
