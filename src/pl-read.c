@@ -1038,7 +1038,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 
 		    if ( isSign(bs[0]) )
 		      bs++;
-		    rb.here[0] = EOS;
+		    addToBuffer(0, _PL_rd); /* temp add trailing 0 */
+		    rb.here--;
 		    base = atoi((char*)bs);
 		    if ( base <= 36 )
 		    { if ( base == 0 )			/* 0'<c> */
