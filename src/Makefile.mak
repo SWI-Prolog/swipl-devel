@@ -184,7 +184,7 @@ check:
 # Installation.
 ################################################################
 
-install:	embed-manifests \
+install::
 		install-arch install-libs install-readme install_packages \
 		xpce_packages install-dotfiles install-demo html-install
 
@@ -199,7 +199,7 @@ install-arch:	idirs iprog
 		$(INSTALL_DATA) $(PLLIB) "$(LIBDIR)"
 		$(INSTALL_DATA) $(TERMLIB) "$(LIBDIR)"
 
-iprog::
+iprog:		embed-manifests
 		$(INSTALL_PROGRAM) $(PLWIN) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(PLCON) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(PLDLL) "$(BINDIR)"
