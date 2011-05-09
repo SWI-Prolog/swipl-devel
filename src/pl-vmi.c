@@ -3982,6 +3982,7 @@ b_throw:
     for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
     { Choice ch;
 
+      environment_frame = FR;
       SAVE_REGISTERS(qid);
       ch = dbg_discardChoicesAfter(FR PASS_LD);
       LOAD_REGISTERS(qid);

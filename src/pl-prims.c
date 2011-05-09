@@ -779,24 +779,28 @@ PRED_IMPL("callable", 1, callable, 0)
 		 *******************************/
 
 static size_t
-term_size(term_agenda *agenda, size_t max ARG_LD)
+term_size(Word p, size_t max ARG_LD)
 { size_t count = 0;
+  term_agenda agenda;
   Word t;
 
-  while((t=nextTermAgenda(agenda)))
+  initvisited(PASS_LD1);
+  initTermAgenda(&agenda, 1, p);
+
+  while((t=nextTermAgenda(&agenda)))
   { if ( ++count > max )
-      return count;
+      break;
 
     if ( isAttVar(*t) )
     { Word p = valPAttVar(*t);
 
       assert(onGlobalArea(p));
-      pushWorkAgenda(agenda, 1, p);
+      pushWorkAgenda(&agenda, 1, p);
     } else if ( isIndirect(*t) )
     { count += wsizeofInd(*t);
 
       if ( count > max )
-	return count;
+	break;
     } else if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
       int arity = arityFunctor(f->definition);
@@ -805,11 +809,14 @@ term_size(term_agenda *agenda, size_t max ARG_LD)
 	continue;
 
       if ( ++count > max )
-	return count;
+	break;
 
-      pushWorkAgenda(agenda, arity, f->arguments);
+      pushWorkAgenda(&agenda, arity, f->arguments);
     }
   }
+
+  clearTermAgenda(&agenda);
+  unvisit(PASS_LD1);
 
   return count;
 }
@@ -827,18 +834,13 @@ PRED_IMPL("$term_size", 3, term_size, 0)
   term_t t = A1;
   term_t mx = A2;
   term_t count = A3;
-  term_agenda agenda;
 
   if ( PL_is_variable(mx) )
     m = (size_t)-1;
   else if ( !PL_get_size_ex(mx, &m) )
     return FALSE;
 
-  initvisited(PASS_LD1);
-  initTermAgenda(&agenda, 1, valTermRef(t));
-  c = term_size(&agenda, m PASS_LD);
-  clearTermAgenda(&agenda);
-  unvisit(PASS_LD1);
+  c = term_size(valTermRef(t), m PASS_LD);
   if ( c > m )
     return FALSE;
 
