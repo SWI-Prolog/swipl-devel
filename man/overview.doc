@@ -1647,6 +1647,20 @@ the following search schema is followed:
 \end{enumerate}
 
 \begin{description}
+    \predicate{autoload_path}{1}{+DirAlias}
+Add DirAlias to the libraries that are  used by the autoloader. This
+extends the search  path  \const{autoload}   and  reloads  the library
+index.  For example:
+
+\begin{code}
+:- autoload_path(library(http)).
+\end{code}
+
+If this call appears as a directive, it is term-expanded into a clause
+for user:file_search_path/2 and a directive calling
+reload_library_index/0. This keeps source information and allows for
+removing this directive.
+
     \predicate{make_library_index}{1}{+Directory}
 Create an index for this directory.  The index is written to the file
 'INDEX.pl' in the specified directory.  Fails with a warning if the

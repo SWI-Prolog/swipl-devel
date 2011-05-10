@@ -38,6 +38,7 @@
 	    make_library_index/1,
 	    make_library_index/2,
 	    reload_library_index/0,
+	    autoload_path/1,
 	    autoload/0,
 	    autoload/1
 	  ]).
@@ -156,6 +157,9 @@ indexed_directory(Dir) :-
 %	Reload the index on the next call
 
 reload_library_index :-
+	with_mutex('$autoload', clear_library_index).
+
+clear_library_index :-
 	retractall(library_index(_, _, _)),
 	retractall(autoload_directories(_)),
 	retractall(index_checked_at(_)).
@@ -385,6 +389,39 @@ index_header(Fd):-
 	format(Fd, '    Creator: make/0~n~n', []),
 	format(Fd, '    Purpose: Provide index for autoload~n', []),
 	format(Fd, '*/~n~n', []).
+
+
+		 /*******************************
+		 *	      EXTENDING		*
+		 *******************************/
+
+%%	autoload_path(+Path) is det.
+%
+%	Add Path to the libraries that are  used by the autoloader. This
+%	extends the search  path  =autoload=   and  reloads  the library
+%	index.  For example:
+%
+%	  ==
+%	  :- autoload_path(library(http)).
+%	  ==
+%
+%	If this call appears as a directive,  it is term-expanded into a
+%	clause  for  user:file_search_path/2  and  a  directive  calling
+%	reload_library_index/0. This keeps source information and allows
+%	for removing this directive.
+
+autoload_path(Alias) :-
+	(   user:file_search_path(autoload, Alias)
+	->  true
+	;   assertz(user:file_search_path(autoload, Alias)),
+	    reload_library_index
+	).
+
+system:term_expansion((:- autoload_path(Alias)),
+		      [ user:file_search_path(autoload, Alias),
+			(:- reload_library_index)
+		      ]).
+
 
 		 /*******************************
 		 *	   DO AUTOLOAD		*
