@@ -6351,7 +6351,7 @@ absolute file names to register source files independent of the current
 working directory. See also absolute_file_name/3. See also
 absolute_file_name/3 and expand_file_name/2.
 
-    \predicate{absolute_file_name}{3}{+Spec, +Options, -Absolute}
+    \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
 Converts the given file specification into an absolute path.
 \arg{Option} is a list of options to guide the conversion:
 
@@ -6372,7 +6372,8 @@ in a directive, it uses the current source-file as reference.
 
     \termitem{access}{Mode}
 Imposes the condition access_file(\arg{File}, \arg{Mode}).  \arg{Mode}
-is on of \const{read}, \const{write}, \const{append}, \const{exist} or \const{none}.  See also access_file/2.
+is on of \const{read}, \const{write}, \const{append},
+\const{execute}, \const{exist} or \const{none}. See also access_file/2.
 
     \termitem{file_type}{Type}
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
@@ -6402,11 +6403,10 @@ proceeding.  This is a SWI-Prolog extension.
 The Prolog flag \prologflag{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
-Compatibility considerations with common argument-order in ISO as well as
-SICStus absolute_file_name/3 forced us to be flexible here.  If the last
-argument is a list and the 2nd not, the arguments are swapped, making
-the call \term{absolute_file_name}{+Spec, -Path, +Options} valid as
-well.
+This predicate is derived from Quintus Prolog. In Quintus Prolog, the
+argument order was \term{absolute_file_name}{+Spec, +Options, -Path}.
+The argument order has been changed for compatibility with ISO and
+SICStus.  The Quintus argument order is still accepted.
 
     \predicate{is_absolute_file_name}{1}{+File}
 True if \arg{File} specifies and absolute path-name.  On Unix systems,

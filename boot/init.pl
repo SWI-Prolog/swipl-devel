@@ -542,22 +542,20 @@ expand_file_search_path(Spec, Expanded) :-
 		*         FILE CHECKING         *
 		*********************************/
 
-%%	absolute_file_name(+Term, +Args, -AbsoluteFile) is nondet.
-%%	absolute_file_name(+Term, -AbsoluteFile, +Args) is nondet.
+%%	absolute_file_name(+Term, -AbsoluteFile, +Options) is nondet.
 %
 %	Translate path-specifier into a full   path-name. This predicate
 %	originates from Quintus was introduced  in SWI-Prolog very early
 %	and  has  re-appeared  in  SICStus  3.9.0,  where  they  changed
-%	argument order and  added  some   options.  As  arguments aren't
-%	really ambiguous we swap the arguments if we find the new order.
-%	The  SICStus  options  file_type(source)   and  relative_to  are
-%	supported as well.
+%	argument order and added some options.   We addopted the SICStus
+%	argument order, but still accept the original argument order for
+%	compatibility reasons.
 
 absolute_file_name(Spec, Args, Path) :-
-	is_list(Path),
-	\+ is_list(Args), !,
+	is_list(Args),
+	\+ is_list(Path), !,
 	absolute_file_name(Spec, Path, Args).
-absolute_file_name(Spec, Args, Path) :-
+absolute_file_name(Spec, Path, Args) :-
 	(   is_list(Args)
 	->  true
 	;   throw(error(type_error(list, Args), _))
