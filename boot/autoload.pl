@@ -239,23 +239,47 @@ assert_index(Term, Dir) :-
 		*       CREATE INDEX.pl		*
 		********************************/
 
+%%	make_library_index(+Dir) is det.
+%
+%	Create an index for autoloading  from   the  directory  Dir. The
+%	index  file  is  called  INDEX.pl.  In    Dir  contains  a  file
+%	MKINDEX.pl, this file is loaded and we  assume that the index is
+%	created by directives that appearin   this  file. Otherwise, all
+%	source  files  are  scanned  for  their  module-header  and  all
+%	exported predicates are added to the autoload index.
+%
+%	@see make_library_index/2
+
 make_library_index(Dir0) :-
 	absolute_file_name(Dir0, Dir),
 	make_library_index2(Dir).
-
-make_library_index(Dir0, Patterns) :-
-	absolute_file_name(Dir0, Dir),
-	make_library_index2(Dir, Patterns).
 
 make_library_index2(Dir) :-
 	plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
 	access_file(AbsMkIndex, read), !,
 	working_directory(OldDir, Dir),
-	call_cleanup(load_files(user:MkIndex, [silent(true)]),
-		     working_directory(_, OldDir)).
+	setup_call_cleanup(working_directory(OldDir, Dir),
+			   load_files(user:MkIndex, [silent(true)]),
+			   working_directory(_, OldDir)).
 make_library_index2(Dir) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
 	make_library_index2(Dir, PatternList).
+
+%%	make_library_index(+Dir, +Patterns:list(atom)) is det.
+%
+%	Create an autoload index INDEX.pl for  Dir by scanning all files
+%	that match any of the file-patterns in Patterns. Typically, this
+%	appears as a directive in MKINDEX.pl.  For example:
+%
+%	  ==
+%	  :- make_library_index(., ['*.pl']).
+%	  ==
+%
+%	@see make_library_index/1.
+
+make_library_index(Dir0, Patterns) :-
+	absolute_file_name(Dir0, Dir),
+	make_library_index2(Dir, Patterns).
 
 make_library_index2(Dir, Patterns) :-
 	plfile_in_dir(Dir, 'INDEX', Index, AbsIndex),
