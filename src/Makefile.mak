@@ -184,8 +184,7 @@ check:
 # Installation.
 ################################################################
 
-install::
-		install-arch install-libs install-readme install_packages \
+install::	install-arch install-libs install-readme install_packages \
 		xpce_packages install-dotfiles install-demo html-install
 
 embed-manifests::
