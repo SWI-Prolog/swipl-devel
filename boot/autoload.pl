@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -49,6 +50,8 @@
 	library_index/3,
 	autoload_directories/1,
 	index_checked_at/1.
+
+user:file_search_path(autoload, library(.)).
 
 
 %%	'$find_library'(+Module, +Name, +Arity, -LoadModule, -Library) is semidet.
@@ -200,13 +203,22 @@ closel([_|T]) :-
 	closel(T).
 
 
+%%	index_file_name(-IndexFile, +Options) is nondet.
+%
+%	True if IndexFile is an autoload   index file. Options is passed
+%	to  absolute_file_name/3.  This  predicate   searches  the  path
+%	=autoload=.
+%
+%	@see file_search_path/2.
+
 index_file_name(IndexFile, Options) :-
-	absolute_file_name(library('INDEX'),
+	absolute_file_name(autoload('INDEX'),
+			   IndexFile,
 			   [ file_type(prolog),
 			     solutions(all),
 			     file_errors(fail)
 			   | Options
-			   ], IndexFile).
+			   ]).
 
 read_index([]) :- !.
 read_index([H|T]) :- !,
