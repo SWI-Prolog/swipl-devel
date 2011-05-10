@@ -761,7 +761,7 @@ fragment_char(0']) --> "]", !.
 %
 %	Performs UTF-8 decoding of percent encoded strings.
 
-pchar(0' ) --> "+", !.			%' ?
+pchar(0'\s) --> "+", !.
 pchar(C) -->
 	[C],
 	{   unreserved(C)

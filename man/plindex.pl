@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1995-2007, University of Amsterdam
+    Copyright (C): 1995-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -91,10 +92,12 @@ online_index :-
 online_index(In, Out) :-
 	load_urldefs,
 	parse_summaries('summary.doc'),
-	open(In, read, InFd),
-	call_cleanup(read_index(InFd), close(InFd)),
-	open(Out, write, OutFd),
-	call_cleanup(write_manual(OutFd), close(OutFd)).
+	setup_call_cleanup(open(In, read, InFd),
+			   read_index(InFd),
+			   close(InFd)),
+	setup_call_cleanup(open(Out, write, OutFd),
+			   write_manual(OutFd),
+			   close(OutFd)).
 
 %%	write_manual(+Out:stream)
 %
@@ -105,17 +108,17 @@ write_manual(Out) :-
 	format(Out, '    Purpose: Index to file online_manual~n', []),
 	format(Out, '*/~n~n', []),
 	format(Out, ':- module(help_index,~n', []),
-	format(Out, '	[ predicate/5~n', []),
-	format(Out, '	, section/4~n', []),
-	format(Out, '	, function/3~n', []),
-	format(Out, '	]).~n~n', []),
+	format(Out, '\t[ predicate/5,~n', []),
+	format(Out, '\t  section/4,~n', []),
+	format(Out, '\t  function/3~n', []),
+	format(Out, '\t]).~n~n', []),
 	list(Out, predicate, 5),
 	list(Out, section, 4),
 	list(Out, function, 3).
 
 list(Out, Name, Arity) :-
 	functor(Head, Name, Arity),
-	format(Out, '%   Predicate ~w/~w~n~n', [Name, Arity]),
+	format(Out, '% Predicate ~w/~w~n~n', [Name, Arity]),
 	Head,
 	    format(Out, '~q.~n', Head),
 	fail.

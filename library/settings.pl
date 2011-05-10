@@ -526,7 +526,7 @@ save_setting(Out, Module:Name) :-
 		 debug(setting, '~w <-> ~w~n', [DefValue, Value]),
 	         DefValue =@= Value
 	       )
-	->  format(Out, '~n%	~w~n', [Comment]),
+	->  format(Out, '~n%\t~w~n', [Comment]),
 	    format(Out, 'setting(~q:~q, ~q).~n', [Module, Name, Value])
 	;   true
 	).
