@@ -43,7 +43,8 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	thread.pl dialect.pl apply_macros.pl apply.pl nb_rbtrees.pl \
 	aggregate.pl pure_input.pl pio.pl thread_pool.pl terms.pl \
 	charsio.pl portray_text.pl csv.pl persistency.pl fastrw.pl \
-	coinduction.pl ansi_term.pl base32.pl prolog_history.pl
+	coinduction.pl ansi_term.pl base32.pl prolog_history.pl \
+	optparse.pl
 
 # Dialect library files
 

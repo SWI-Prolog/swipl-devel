@@ -41,6 +41,7 @@ documented at all.
 \input{nbset}
 \input{wwwbrowser}
 \input{option}
+\input{optparse}
 \input{ordsets}
 \input{pairs}
 \input{pio}
