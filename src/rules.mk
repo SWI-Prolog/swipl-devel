@@ -155,7 +155,7 @@ GMPLIB=
 	@$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
 
 ################################################################
-# Used to update the library INDEX.pl after adding or deleing
+# Used to update the library INDEX.pl after adding or deleting
 # packages
 ################################################################
 
