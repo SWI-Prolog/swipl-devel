@@ -725,6 +725,7 @@ hook(pce_principal:pce_lazy_send_method(_,_,_)).
 hook(pce_principal:pce_uses_template(_,_)).
 hook(prolog:locate_clauses(_,_)).
 hook(prolog:message(_,_,_)).
+hook(prolog:error_message(_,_,_)).
 hook(prolog:message_context(_,_,_)).
 hook(prolog:debug_control_hook(_)).
 hook(prolog:help_hook(_)).
