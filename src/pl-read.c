@@ -973,7 +973,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		}
       case '%': if ( something_read )
 		  addToBuffer(' ', _PL_rd);
-      		if ( _PL_rd->comments )
+		if ( _PL_rd->comments )
 		{ tmp_buffer ctmpbuf;
 		  Buffer cbuf;
 
@@ -1046,10 +1046,10 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      { addToBuffer(c, _PL_rd);
 			{ if ( (c=getchr()) != EOF )
 			  { addToBuffer(c, _PL_rd);
-			    if ( c == '\\' ) 		/* 0'\<c> */
+			    if ( c == '\\' )		/* 0'\<c> */
 			    { if ( (c=getchr()) != EOF )
 				addToBuffer(c, _PL_rd);
-			    } else if ( c == '\'' ) 	/* 0'' */
+			    } else if ( c == '\'' )	/* 0'' */
 			    { if ( (c=getchr()) != EOF )
 			      { if ( c == '\'' )
 				  addToBuffer(c, _PL_rd);
@@ -1081,8 +1081,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		}
 
 	      sqatom:
-     		set_start_line;
-     		if ( !raw_read_quoted(c, _PL_rd) )
+		set_start_line;
+		if ( !raw_read_quoted(c, _PL_rd) )
 		  fail;
 		dotseen = FALSE;
 		break;
@@ -1111,7 +1111,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  dotseen = FALSE;
 		  break;
 		}
-      	        /*FALLTHROUGH*/
+	        /*FALLTHROUGH*/
       default:	if ( c < 0xff )
 		{ switch(_PL_char_types[c])
 		  { case SP:
@@ -2093,7 +2093,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case SY:	if ( c == '`' && _PL_rd->backquoted_string )
 		  goto case_bq;
 
-    	        rdhere = SkipSymbol(rdhere, _PL_rd);
+	        rdhere = SkipSymbol(rdhere, _PL_rd);
 		if ( rdhere == start+1 )
 		{ if ( (c == '+' || c == '-') &&	/* +- number */
 		       !must_be_op &&
@@ -2159,7 +2159,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = FALSE;
 #if O_STRING
- 		  if ( true(_PL_rd, DBLQ_STRING) )
+		  if ( true(_PL_rd, DBLQ_STRING) )
 		    type = PL_STRING;
 		  else
 #endif
@@ -2175,7 +2175,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    return FALSE;
 		  }
 		  PL_free_text(&txt);
-  		  cur_token.value.term = t;
+		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
 		  discardBuffer(&b);
 		  break;
@@ -2199,7 +2199,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    return FALSE;
 		  }
 		  PL_free_text(&txt);
-  		  cur_token.value.term = t;
+		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
 		  discardBuffer(&b);
 		  break;
@@ -2208,8 +2208,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case CT:
 		syntaxError("illegal_character", _PL_rd);
     default:
-    		{ sysError("read/1: tokeniser internal error");
-    		  break;		/* make lint happy */
+		{ sysError("read/1: tokeniser internal error");
+		  break;		/* make lint happy */
 		}
   }
 
@@ -2485,7 +2485,7 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 			  PL_LONG, fs,
 			  PL_LONG, fe,
 			  PL_LIST, 2, PL_TERM, args[0].tpos,
-		    		      PL_TERM, args[1].tpos) )
+				      PL_TERM, args[1].tpos) )
 	return (term_t)0;
     } else
     { long s, e;
@@ -3028,22 +3028,14 @@ term is to be written.
 	  case ']':
 	    syntaxError("cannot_start_term", _PL_rd);
 	  case '|':
-	    if ( !must_be_op  && _PL_rd->strictness == 0 )
-	    { term_t ex;
-
-	      ex = makeErrorTerm("quoted_punctuation", 0, _PL_rd);
-	      if ( ex )
-	      { printMessage(ATOM_warning, PL_TERM, ex);
-	      } else			/* no space for warning */
-	      { PL_put_term(_PL_rd->exception, exception_term);
-		return FALSE;
-	      }
-
-	    }
+	    if ( !must_be_op )
+	      syntaxError("quoted_punctuation", _PL_rd);
+	    goto name;
 	  case ',':
 	    if ( !must_be_op && _PL_rd->strictness > 0 )
 	      syntaxError("quoted_punctuation", _PL_rd);
 	  default:
+	  name:
 	    *name = TRUE;
 	    PL_put_atom(term, codeToAtom(token->value.character));
 	    goto atomic_out;
@@ -3325,7 +3317,7 @@ static const opt_spec read_term_options[] =
   { ATOM_syntax_errors,     OPT_ATOM },
   { ATOM_backquoted_string, OPT_BOOL },
   { ATOM_comments,	    OPT_TERM },
-  { NULL_ATOM,	     	    0 }
+  { NULL_ATOM,		    0 }
 };
 
 word

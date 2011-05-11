@@ -273,7 +273,6 @@ make_library_index(Dir0) :-
 make_library_index2(Dir) :-
 	plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
 	access_file(AbsMkIndex, read), !,
-	working_directory(OldDir, Dir),
 	setup_call_cleanup(working_directory(OldDir, Dir),
 			   load_files(user:MkIndex, [silent(true)]),
 			   working_directory(_, OldDir)).
