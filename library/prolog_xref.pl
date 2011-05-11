@@ -779,6 +779,10 @@ process_body(load_foreign_library(File), _Origin, Src) :-
 	process_foreign(File, Src).
 process_body(load_foreign_library(File, _Init), _Origin, Src) :-
 	process_foreign(File, Src).
+process_body(use_foreign_library(File), _Origin, Src) :-
+	process_foreign(File, Src).
+process_body(use_foreign_library(File, _Init), _Origin, Src) :-
+	process_foreign(File, Src).
 process_body(Goal, Origin, Src) :-
 	xref_meta(Goal, Metas), !,
 	assert_called(Src, Origin, Goal),
