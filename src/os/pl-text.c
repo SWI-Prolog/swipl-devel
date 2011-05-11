@@ -500,7 +500,7 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
       int c;
 
       if ( text->encoding == ENC_ISO_LATIN_1 )
-	c = text->text.t[offset];
+	c = text->text.t[offset]&0xff;
       else
 	c = text->text.w[offset];
 
