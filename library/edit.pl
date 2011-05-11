@@ -485,6 +485,7 @@ short_filename(Path, Path).
 aliased_path(Path, Len-Spec) :-
 	setof(Alias, file_alias_path(Alias), Aliases),
 	member(Alias, Aliases),
+	Alias \== autoload,		% confusing and covered by something else
 	Term =.. [Alias, '.'],
 	absolute_file_name(Term,
 			   [ file_type(directory),
