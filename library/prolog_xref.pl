@@ -97,7 +97,7 @@ This code is used in two places:
     goals and predicates depending on their references.
 
 @bug	meta_predicate/1 declarations take the module into consideration.
-	Predicates that are both avalaible as meta-predicate and normal
+	Predicates that are both available as meta-predicate and normal
 	(in different modules) are handled as meta-predicate in all
 	places.
 */
