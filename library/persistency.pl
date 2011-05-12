@@ -39,6 +39,7 @@
 	  ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
+:- use_module(library(aggregate)).
 
 /** <module> Provide persistent dynamic predicates
 
