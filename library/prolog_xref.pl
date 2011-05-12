@@ -571,7 +571,7 @@ process_meta_head(Decl) :-
 
 meta_args(I, Arity, _, _, []) :-
 	I > Arity, !.
-meta_args(I, Arity, Decl, Head, [H|T]) :- 		% 0
+meta_args(I, Arity, Decl, Head, [H|T]) :-		% 0
 	arg(I, Decl, 0), !,
 	arg(I, Head, H),
 	I2 is I + 1,
@@ -591,9 +591,9 @@ meta_args(I, Arity, Decl, Head, Meta) :-
 	      *             BODY	      *
 	      ********************************/
 
-xref_meta((A, B), 		[A, B]).
-xref_meta((A; B), 		[A, B]).
-xref_meta((A| B), 		[A, B]).
+xref_meta((A, B),		[A, B]).
+xref_meta((A; B),		[A, B]).
+xref_meta((A| B),		[A, B]).
 xref_meta((A -> B),		[A, B]).
 xref_meta((A *-> B),		[A, B]).
 xref_meta(findall(_V,G,_L),	[G]).
@@ -760,38 +760,47 @@ arith_callable(Name/Arity, Goal) :-
 	PredArity is Arity + 1,
 	functor(Goal, Name, PredArity).
 
-
-%%	process_body(+Body, +Origin, +Src)
+%%	process_body(+Body, +Origin, +Src) is det.
 %
-%	Process a callable body (body of a clause or directive). Origin
-%	describes the origin of the call.
+%	Process a callable body (body of  a clause or directive). Origin
+%	describes the origin of the call. Partial evaluation may lead to
+%	non-determinism, which is why we backtrack over process_goal/3.
 
-process_body(Var, _, _) :-
+process_body(Body, Origin, Src) :-
+	forall(process_goal(Body, Origin, Src),
+	       true).
+
+process_goal(Var, _, _) :-
 	var(Var), !.
-process_body(Goal, Origin, Src) :-
+process_goal((A;B), Origin, Src) :- !,
+	(   process_goal(A, Origin, Src)
+	;   process_goal(B, Origin, Src)
+	).
+process_goal(Goal, Origin, Src) :-
 	called_by(Goal, Called), !,
 	must_be(list, Called),
 	assert_called(Src, Origin, Goal),
 	process_called_list(Called, Origin, Src).
-process_body(Goal, Origin, Src) :-
+process_goal(Goal, Origin, Src) :-
 	process_xpce_goal(Goal, Origin, Src), !.
-process_body(load_foreign_library(File), _Origin, Src) :-
+process_goal(load_foreign_library(File), _Origin, Src) :-
 	process_foreign(File, Src).
-process_body(load_foreign_library(File, _Init), _Origin, Src) :-
+process_goal(load_foreign_library(File, _Init), _Origin, Src) :-
 	process_foreign(File, Src).
-process_body(use_foreign_library(File), _Origin, Src) :-
+process_goal(use_foreign_library(File), _Origin, Src) :-
 	process_foreign(File, Src).
-process_body(use_foreign_library(File, _Init), _Origin, Src) :-
+process_goal(use_foreign_library(File, _Init), _Origin, Src) :-
 	process_foreign(File, Src).
-process_body(Goal, Origin, Src) :-
+process_goal(Goal, Origin, Src) :-
 	xref_meta(Goal, Metas), !,
 	assert_called(Src, Origin, Goal),
 	process_called_list(Metas, Origin, Src).
-process_body(Goal, Origin, Src) :-
+process_goal(Goal, Origin, Src) :-
 	asserting_goal(Goal, Rule), !,
 	assert_called(Src, Origin, Goal),
 	process_assert(Rule, Origin, Src).
-process_body(Goal, Origin, Src) :-
+process_goal(Goal, Origin, Src) :-
+	partial_evaluate(Goal),
 	assert_called(Src, Origin, Goal).
 
 process_called_list([], _, _).
@@ -801,11 +810,11 @@ process_called_list([H|T], Origin, Src) :-
 
 process_meta(A+N, Origin, Src) :- !,
 	(   extend(A, N, AX)
-	->  process_body(AX, Origin, Src)
+	->  process_goal(AX, Origin, Src)
 	;   true
 	).
 process_meta(G, Origin, Src) :-
-	process_body(G, Origin, Src).
+	process_goal(G, Origin, Src).
 
 extend(Var, _, _) :-
 	var(Var), !, fail.
@@ -830,6 +839,26 @@ process_assert(0, _, _) :- !.		% catch variables
 process_assert((_:-Body), Origin, Src) :- !,
 	process_body(Body, Origin, Src).
 process_assert(_, _, _).
+
+%%	partial_evaluate(Goal) is det.
+%
+%	Perform partial evaluation on Goal to trap cases such as below.
+%
+%	  ==
+%		T = hello(X),
+%		findall(T, T, List),
+%	  ==
+%
+%	@tbd	Make this user extensible? What about non-deterministic
+%		bindings?
+
+partial_evaluate(Goal) :-
+	eval(Goal), !.
+partial_evaluate(_).
+
+eval(X = Y) :-
+	X = Y,
+	acyclic_term(X).
 
 
 		 /*******************************
@@ -946,7 +975,7 @@ process_pce_import(Name/Arity, Src, Path, Reexport) :-
 	integer(Arity), !,
 	functor(Term, Name, Arity),
 	(   \+ system_predicate(Term),
-	    \+ Term = pce_error(_) 	% hack!?
+	    \+ Term = pce_error(_)	% hack!?
 	->  assert_import(Src, [Name/Arity], _, Path, Reexport)
 	;   true
 	).
@@ -1477,7 +1506,7 @@ assert_used_class(Src, Name) :-
 
 assert_defined_class(Src, Name, _Meta, _Super, _) :-
 	defined_class(Name, _, _, Src, _), !.
-assert_defined_class(_, _, _, -, _) :- !. 		% :- pce_extend_class
+assert_defined_class(_, _, _, -, _) :- !.		% :- pce_extend_class
 assert_defined_class(Src, Name, Meta, Super, Summary) :-
 	flag(xref_src_line, Line, Line),
 	(   Summary == @(default)
