@@ -1188,12 +1188,14 @@ read_clauses(Term, In, [Term|T]) :-
 %	Process a load_foreign_library/1 call.
 
 process_foreign(Spec, Src) :-
-	current_foreign_library(Spec, Defined),
+	ground(Spec),
+	current_foreign_library(Spec, Defined), !,
 	(   xmodule(Module, Src)
 	->  true
 	;   Module = user
 	),
 	process_foreign_defined(Defined, Module, Src).
+process_foreign(_, _).
 
 process_foreign_defined([], _, _).
 process_foreign_defined([H|T], M, Src) :-
