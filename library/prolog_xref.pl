@@ -126,7 +126,11 @@ This code is used in two places:
 :- multifile
 	prolog:called_by/2,		% +Goal, -Called
 	prolog:meta_goal/2,		% +Goal, -Pattern
-	prolog:hook/1.			% +Callable
+	prolog:hook/1,			% +Callable
+	prolog:generated_predicate/1.	% :PI
+
+:- meta_predicate
+	prolog:generated_predicate(:).
 
 :- dynamic
 	meta_goal/2.

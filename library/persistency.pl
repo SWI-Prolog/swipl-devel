@@ -29,6 +29,7 @@
 
 :- module(persistency,
 	  [ (persistent)/1,		% +Declarations
+	    current_persistent_predicate/1, % :PI
 
 	    db_attach/2,		% :File, +Options
 
@@ -103,7 +104,8 @@ set_user_role(Name, Role) :-
 
 :- meta_predicate
 	db_attach(:, +),
-	db_sync(:).
+	db_sync(:),
+	current_persistent_predicate(:).
 
 
 		 /*******************************
@@ -120,7 +122,8 @@ set_user_role(Name, Role) :-
 	db_stream/2.
 
 :- multifile
-	(persistent)/3.			% Module, Generic, Term
+	(persistent)/3,			% Module, Generic, Term
+	prolog:generated_predicate/1.
 
 
 		 /*******************************
@@ -217,6 +220,24 @@ retractall_clause(Term, Module) -->
 user:term_expansion((:- persistent(Spec)), Clauses) :-
 	prolog_load_context(module, Module),
 	phrase(compile_persistent(Spec, Module), Clauses).
+
+
+%%	current_persistent_predicate(:PI) is nondet.
+%
+%	True if PI is a predicate that provides access to the persistent
+%	database DB.
+
+current_persistent_predicate(M:PName/Arity) :-
+	persistency:persistent(M, Generic, _),
+	functor(Generic, Name, Arity),
+	(   Name = PName
+	;   atom_concat(assert_, Name, PName)
+	;   atom_concat(retract_, Name, PName)
+	;   atom_concat(retractall_, Name, PName)
+	).
+
+prolog:generated_predicate(PI) :-
+	current_persistent_predicate(PI).
 
 
 		 /*******************************

@@ -60,7 +60,8 @@ _directive_.  Here is a simple example declaration and some calls.
 */
 
 :- multifile
-	error:has_type/2.
+	error:has_type/2,
+	prolog:generated_predicate/1.
 
 error:has_type(record(M:Name), X) :-
 	current_record(Name, M, _, X, IsX), !,
@@ -208,6 +209,8 @@ field_record_pred(Record, Field, _:Name/A) :-
 field_record_pred(Record, Field, _:Name/2) :-
 	atomic_list_concat([nb_set_, Field, '_of_', Record], Name).
 
+prolog:generated_predicate(P) :-
+	current_record_predicate(_, P).
 
 %%	make_predicate(+Constructor)// is det.
 %
