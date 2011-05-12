@@ -32,6 +32,7 @@
 :- module(prolog_xref,
 	  [ xref_source/1,		% +Source
 	    xref_called/3,		% ?Source, ?Callable, ?By
+	    xref_called/4,		% ?Source, ?Callable, ?By, ?Cond
 	    xref_defined/3,		% ?Source. ?Callable, -How
 	    xref_definition_line/2,	% +How, -Line
 	    xref_exported/2,		% ?Source, ?Callable
@@ -65,7 +66,7 @@
 :- use_module(library(debug)).
 
 :- dynamic
-	called/3,			% Head, Src, From
+	called/4,			% Head, Src, From, Cond
 	(dynamic)/3,			% Head, Src, Line
 	(thread_local)/3,		% Head, Src, Line
 	(multifile)/3,			% Head, Src, Line
@@ -247,7 +248,7 @@ xref_push_op(Src, P, T, N0) :- !,
 
 xref_clean(Source) :-
 	prolog_canonical_source(Source, Src),
-	retractall(called(_, Src, _Origin)),
+	retractall(called(_, Src, _Origin, _Cond)),
 	retractall(dynamic(_, Src, Line)),
 	retractall(multifile(_, Src, Line)),
 	retractall(public(_, Src, Line)),
@@ -287,16 +288,20 @@ xref_done(Source, Time) :-
 
 
 %%	xref_called(?Source, ?Called, ?By) is nondet.
+%%	xref_called(?Source, ?Called, ?By, ?Cond) is nondet.
 %
 %	Enumerate the predicate-call relations. Predicate called by
 %	directives have a By '<directive>'.
 
 xref_called(Source, Called, By) :-
+	xref_called(Source, Called, By, _).
+
+xref_called(Source, Called, By, Cond) :-
 	(   ground(Source)
 	->  prolog_canonical_source(Source, Src)
 	;   Source = Src
 	),
-	called(Called, Src, By).
+	called(Called, Src, By, Cond).
 
 
 %%	xref_defined(?Source, +Goal, ?How) is nondet.
@@ -409,13 +414,17 @@ xref_defined_class(Source, Class, file(File)) :-
 	prolog_canonical_source(Source, Src),
 	defined_class(Class, _, _, Src, file(File)).
 
+:- thread_local
+	current_cond/1.
+
 collect(Src, In) :-
 	repeat,
-	    catch(prolog_read_source_term(In, _Term, Expanded,
+	    catch(prolog_read_source_term(In, Term, Expanded,
 					  [ process_comment(true),
 					    term_position(TermPos)
 					  ]),
 		  E, report_syntax_error(E)),
+	    update_condition(Term),
 	    (	is_list(Expanded)
 	    ->	member(T, Expanded)
 	    ;	T = Expanded
@@ -434,6 +443,44 @@ report_syntax_error(E) :-
 	;   true
 	),
 	fail.
+
+
+%%	update_condition(+Term) is det.
+%
+%	Update the condition under which the current code is compiled.
+
+update_condition((:-Directive)) :- !,
+	update_cond(Directive).
+update_condition(_).
+
+update_cond(if(Cond)) :- !,
+	asserta(current_cond(Cond)).
+update_cond(else) :-
+	retract(current_cond(C0)), !,
+	assert(current_cond(\+C0)).
+update_cond(elif(Cond)) :-
+	retract(current_cond(C0)), !,
+	assert(current_cond((\+C0,Cond))).
+update_cond(endif) :-
+	retract(current_cond(_)), !.
+update_cond(_).
+
+%%	current_condition(-Condition) is det.
+%
+%	Condition is the current compilation condition as defined by the
+%	:- if/1 directive and friends.
+
+current_condition(Condition) :-
+	\+ current_cond(_), !,
+	Condition = true.
+current_condition(Condition) :-
+	findall(C, current_cond(C), List),
+	list_to_conj(List, Condition).
+
+list_to_conj([], true).
+list_to_conj([C], C) :- !.
+list_to_conj([H|T], (H,C)) :-
+	list_to_conj(T, C).
 
 
 		 /*******************************
@@ -1282,7 +1329,7 @@ assert_constraint(Src, Head) :-
 		*       PHASE 1 ASSERTIONS	*
 		********************************/
 
-%%	assert_called(+Src, +From, +Head)
+%%	assert_called(+Src, +From, +Head) is det.
 %
 %	Assert the fact that Head is called by From in Src. We do not
 %	assert called system predicates.
@@ -1297,28 +1344,34 @@ assert_called(_, _, Goal) :-
 assert_called(Src, Origin, M:G) :- !,
 	(   atom(M),
 	    callable(G)
-	->  (   xmodule(M, Src)
+	->  current_condition(Cond),
+	    (   xmodule(M, Src)		% explicit call to own module
 	    ->  assert_called(Src, Origin, G)
-	    ;   called(M:G, Src, Origin)
+	    ;   called(M:G, Src, Origin, Cond) % already registered
 	    ->  true
-	    ;	system_predicate(G)
+	    ;	system_predicate(G)	% not interesting (now)
 	    ->	true
 	    ;   generalise(Origin, OTerm),
-		generalise(G, GTerm),
-		assert(called(M:GTerm, Src, OTerm))
+		generalise(G, GTerm)
+	    ->	assert(called(M:GTerm, Src, OTerm, Cond))
+	    ;	true
 	    )
 	;   true                        % call to variable module
 	).
 assert_called(_, _, Goal) :-
 	system_predicate(Goal), !.
 assert_called(Src, Origin, Goal) :-
-	called(Goal, Src, Origin), !.
-assert_called(Src, Origin, Goal) :-
-	generalise(Origin, OTerm),
-	generalise(Goal, Term),
-	assert(called(Term, Src, OTerm)).
+	current_condition(Cond),
+	(   called(Goal, Src, Origin, Cond)
+	->  true
+	;   generalise(Origin, OTerm),
+	    generalise(Goal, Term)
+	->  assert(called(Term, Src, OTerm, Cond))
+	;   true
+	).
 
-%%	hide_called(:Callable)
+
+%%	hide_called(:Callable) is semidet.
 %
 %	Goals that should not turn up as being called. Hack. Eventually
 %	we should deal with that using an XPCE plugin.
