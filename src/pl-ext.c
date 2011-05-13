@@ -69,7 +69,6 @@ static const PL_extension foreigns[] = {
 #if O_DEBUG
   FRG("crash",			0, pl_crash,			0),
 #endif
-  FRG("nl",			0, pl_nl,			ISO),
 #ifdef __WINDOWS__
   FRG("win_exec",		2, pl_win_exec,			0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
@@ -203,7 +202,6 @@ static const PL_extension foreigns[] = {
 #endif
   FRG("current_flag",		1, pl_current_flag,	     NDET),
 
-  FRG("nl",			1, pl_nl1,		      ISO),
   FRG("read",			2, pl_read2,		      ISO),
   FRG("write",			2, pl_write2,		      ISO),
   FRG("writeq",			2, pl_writeq2,		      ISO),

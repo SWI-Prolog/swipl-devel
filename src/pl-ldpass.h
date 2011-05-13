@@ -35,9 +35,12 @@
 #define freeHeap(p, n)		freeHeap__LD(p, n PASS_LD)
 #endif
 #define freeRecord(r)		freeRecord__LD(r PASS_LD)
-#define getInputStream(t, k, s)	getInputStream__LD(t, k, s PASS_LD)
+#define getInputStream(t, k, s)		getInputStream__LD(t, k, s PASS_LD)
 #define getTextInputStream(t, s)	getTextInputStream__LD(t, s PASS_LD)
 #define getBinaryInputStream(t, s)	getBinaryInputStream__LD(t, s PASS_LD)
+#define getOutputStream(t, k, s)	getOutputStream__LD(t, k, s PASS_LD)
+#define getTextOutputStream(t, s)	getTextOutputStream__LD(t, s PASS_LD)
+#define getBinaryOutputStream(t, s)	getBinaryOutputStream__LD(t, s PASS_LD)
 #define valFloat(w)		valFloat__LD(w PASS_LD)
 #define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
 #define getCharsWString(s, l)	getCharsWString__LD(s, l PASS_LD)

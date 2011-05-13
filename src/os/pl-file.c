@@ -733,9 +733,8 @@ checkStreamType(s_type text, IOSTREAM *s, atom_t *error ARG_LD)
 
 
 static int
-getOutputStream(term_t t, s_type text, IOSTREAM **stream)
-{ GET_LD
-  atom_t a;
+getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
+{ atom_t a;
   IOSTREAM *s;
   atom_t tp;
 
@@ -772,13 +771,13 @@ ok:
 
 
 int
-getTextOutputStream(term_t t, IOSTREAM **stream)
+getTextOutputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
 { return getOutputStream(t, S_TEXT, stream);
 }
 
 
 int
-getBinaryOutputStream(term_t t, IOSTREAM **stream)
+getBinaryOutputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
 { return getOutputStream(t, S_BINARY, stream);
 }
 
@@ -2781,7 +2780,7 @@ PrologPrompt()
 
 
 static int
-tab(term_t out, term_t spaces)
+tab(term_t out, term_t spaces ARG_LD)
 { int64_t count;
   IOSTREAM *s;
 
@@ -2801,12 +2800,16 @@ tab(term_t out, term_t spaces)
 
 static
 PRED_IMPL("tab", 2, tab2, 0)
-{ return tab(A1, A2);
+{ PRED_LD
+
+  return tab(A1, A2 PASS_LD);
 }
 
 static
 PRED_IMPL("tab", 1, tab1, 0)
-{ return tab(0, A1);
+{ PRED_LD
+
+  return tab(0, A1 PASS_LD);
 }
 
 
@@ -4013,7 +4016,7 @@ PRED_IMPL("is_stream", 1, is_stream, 0)
 
 
 static int
-flush_output(term_t out)
+flush_output(term_t out ARG_LD)
 { IOSTREAM *s;
 
   if ( getOutputStream(out, S_DONTCARE, &s) )
@@ -4026,12 +4029,16 @@ flush_output(term_t out)
 
 static
 PRED_IMPL("flush_output", 0, flush_output, PL_FA_ISO)
-{ return flush_output(0);
+{ PRED_LD
+
+  return flush_output(0 PASS_LD);
 }
 
 static
 PRED_IMPL("flush_output", 1, flush_output1, PL_FA_ISO)
-{ return flush_output(A1);
+{ PRED_LD
+
+  return flush_output(A1 PASS_LD);
 }
 
 

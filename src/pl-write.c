@@ -891,8 +891,8 @@ writePrimitive(term_t t, write_options *options)
 }
 
 
-word
-pl_nl1(term_t stream)
+static int
+pl_nl__LD(term_t stream ARG_LD)
 { IOSTREAM *s;
 
   if ( getTextOutputStream(stream, &s) )
@@ -900,12 +900,22 @@ pl_nl1(term_t stream)
     return streamStatus(s);
   }
 
-  fail;
+  return FALSE;
 }
 
-word
-pl_nl()
-{ return pl_nl1(0);
+
+static
+PRED_IMPL("nl", 1, nl, 0)
+{ PRED_LD
+
+  return pl_nl__LD(A1 PASS_LD);
+}
+
+static
+PRED_IMPL("nl", 0, nl, 0)
+{ PRED_LD
+
+  return pl_nl__LD(0 PASS_LD);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1598,6 +1608,8 @@ PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
 		 *******************************/
 
 BeginPredDefs(write)
+  PRED_DEF("nl", 0, nl, 0)
+  PRED_DEF("nl", 1, nl, 0)
   PRED_DEF("$put_token", 2, put_token, 0)
   PRED_DEF("$put_quoted", 4, put_quoted_codes, 0)
 EndPredDefs

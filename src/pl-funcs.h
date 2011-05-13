@@ -642,8 +642,6 @@ COMMON(pl_wchar_t*)	wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 
 /* pl-write.c */
 COMMON(char *)		varName(term_t var, char *buf);
-COMMON(word)		pl_nl(void);
-COMMON(word)		pl_nl1(term_t stream);
 COMMON(word)		pl_write_canonical(term_t term);
 COMMON(word)		pl_write_canonical2(term_t stream, term_t term);
 COMMON(word)		pl_write_term(term_t term, term_t options);
