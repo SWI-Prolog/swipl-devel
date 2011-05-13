@@ -740,8 +740,8 @@ getOutputStream(term_t t, s_type text, IOSTREAM **stream)
   atom_t tp;
 
   if ( t == 0 )
-  { if ( (*stream = getStream(Scurout)) )
-      return TRUE;
+  { if ( (s = getStream(Scurout)) )
+      goto ok;
     return no_stream(t);
   }
 
@@ -749,14 +749,15 @@ getOutputStream(term_t t, s_type text, IOSTREAM **stream)
     return not_a_stream(t);
 
   if ( a == ATOM_user )
-  { if ( (*stream = getStream(Suser_output)) )
-      return TRUE;
+  { if ( (s = getStream(Suser_output)) )
+      goto ok;
     return no_stream(t);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_OUTPUT) )
     return FALSE;
 
+ok:
   if ( !(s->flags&SIO_OUTPUT) )
   { tp = ATOM_stream;
   } else if ( checkStreamType(text, s, &tp PASS_LD) )
@@ -789,8 +790,8 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   atom_t tp;
 
   if ( t == 0 )
-  { if ( (*stream = getStream(Scurin)) )
-      return TRUE;
+  { if ( (s = getStream(Scurin)) )
+      goto ok;
     return no_stream(t);
   }
 
@@ -798,14 +799,15 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
     return not_a_stream(t);
 
   if ( a == ATOM_user )
-  { if ( (*stream = getStream(Suser_input)) )
-      return TRUE;
+  { if ( (s = getStream(Suser_input)) )
+      goto ok;
     return no_stream(t);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
     return FALSE;
 
+ok:
   if ( !(s->flags&SIO_INPUT) )
   { tp = ATOM_stream;
   } else if ( checkStreamType(text, s, &tp PASS_LD) )
