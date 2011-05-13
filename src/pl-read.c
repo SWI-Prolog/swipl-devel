@@ -593,6 +593,26 @@ reportReadError(ReadData rd)
 		*           RAW READING         *
 		*********************************/
 
+static unsigned char *
+backSkipUTF8(unsigned const char *start, unsigned const char *end, int *chr)
+{ const unsigned char *s;
+
+  for(s=end-1 ; s>start && *s&0x80; s--)
+    ;
+  utf8_get_char((char*)s, chr);
+
+  return (unsigned char *)s;
+}
+
+
+static int
+prev_code(unsigned const char *start, unsigned const char *s)
+{ int c;
+
+  backSkipUTF8(start, s, &c);
+  return c;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Scan the input, give prompts when necessary and return a char *  holding
@@ -1033,7 +1053,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  if ( bs > rb.base && isSign(bs[-1]) )
 		    bs--;
 
-		  if ( bs == rb.base || !PlIdContW(bs[-1]) )
+		  if ( bs == rb.base || !PlIdContW(prev_code(rb.base, bs)) )
 		  { int base;
 
 		    if ( isSign(bs[0]) )
@@ -3131,18 +3151,6 @@ out:
 		/********************************
 		*       PROLOG CONNECTION       *
 		*********************************/
-
-static unsigned char *
-backSkipUTF8(unsigned const char *start, unsigned const char *end, int *chr)
-{ const unsigned char *s;
-
-  for(s=end-1 ; s>start && *s&0x80; s--)
-    ;
-  utf8_get_char((char*)s, chr);
-
-  return (unsigned char *)s;
-}
-
 
 static unsigned char *
 backSkipBlanks(const unsigned char *start, const unsigned char *end)
