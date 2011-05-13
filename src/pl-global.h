@@ -520,6 +520,7 @@ struct PL_local_data
   { IOSTREAM *streams[6];		/* handles for standard streams */
     struct input_context *input_stack;	/* maintain input stream info */
     struct output_context *output_stack; /* maintain output stream info */
+    st_check stream_type_check;		/* Check bin/text streams? */
   } IO;
 
 #ifdef O_LIMIT_DEPTH

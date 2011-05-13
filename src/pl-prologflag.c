@@ -349,6 +349,30 @@ setEncoding(atom_t a)
 }
 
 
+static int
+setStreamTypeCheck(atom_t a)
+{ GET_LD
+  st_check check;
+
+  if ( a == ATOM_false )
+    check = ST_FALSE;
+  else if ( a == ATOM_loose )
+    check = ST_LOOSE;
+  else if ( a == ATOM_true )
+    check = ST_TRUE;
+  else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_type_check, value);
+  }
+
+  LD->IO.stream_type_check = check;
+  return TRUE;
+}
+
+
+
 static word
 set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 { GET_LD
@@ -546,6 +570,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setOccursCheck(a);
       } else if ( k == ATOM_encoding )
       { rval = setEncoding(a);
+      } else if ( k == ATOM_stream_type_check )
+      { rval = setStreamTypeCheck(a);
       }
       if ( !rval )
 	fail;
@@ -1048,6 +1074,7 @@ initPrologFlags()
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
   setPrologFlag("backquoted_string", FT_BOOL, FALSE, PLFLAG_BACKQUOTED_STRING);
   setPrologFlag("write_attributes", FT_ATOM, "ignore");
+  setPrologFlag("stream_type_check", FT_ATOM, "loose");
   setPrologFlag("occurs_check", FT_ATOM, "false");
   setPrologFlag("double_quotes", FT_ATOM, "codes");
   setPrologFlag("unknown", FT_ATOM, "error");

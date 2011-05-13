@@ -25,6 +25,12 @@
 #ifndef PL_FILE_H_INCLUDED
 #define PL_FILE_H_INCLUDED
 
+typedef enum
+{ ST_FALSE = -1,			/* Do not check stream types */
+  ST_LOOSE = 0,				/* Default: accept latin-1 for binary */
+  ST_TRUE  = 1				/* Strict checking */
+} st_check;
+
 /* pl-file.c */
 COMMON(void)		initIO(void);
 COMMON(void)		dieIO(void);

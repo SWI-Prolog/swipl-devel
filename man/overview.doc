@@ -1322,6 +1322,14 @@ flag is \const{false} if the hosting OS does not support signal handling
 or the command-line option \cmdlineoption{-nosignals} is active.  See
 \secref{sigembedded} for details.
 
+    \prologflagitem{stream_type_check}{atom}{rw}
+Defines whether and how strictly the system validates that byte IO
+should not be applied to text-streams and text IO should not be applied
+to binary streams. Values are \const{false} (no checking), \const{true}
+(full checking) and \const{loose}.  Using checking mode \const{loose}
+(default), the system accepts byte I/O from text stream that use ISO
+Latin-1 encoding and accepts writing text to binary streams.
+
     \prologflagitem{system_thread_id}{int}{r}
 Available in multi-threaded version (see \secref{threads}) where the
 operating system provides system-wide integer thread identifiers. The
