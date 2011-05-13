@@ -709,6 +709,30 @@ typedef enum
 
 
 static int
+checkStreamType(s_type text, IOSTREAM *s, atom_t *error ARG_LD)
+{ if ( text == S_DONTCARE || LD->IO.stream_type_check == ST_FALSE )
+    return TRUE;			/* no checking */
+
+					/* ok? */
+  if ( text == S_TEXT && (s->flags&SIO_TEXT) )
+    return TRUE;
+  if ( text == S_BINARY && !(s->flags&SIO_TEXT) )
+    return TRUE;
+					/* no */
+  if ( LD->IO.stream_type_check == ST_LOOSE )
+  { if ( text == S_TEXT )
+      return TRUE;
+    if ( s->encoding == ENC_ISO_LATIN_1 ||
+	 s->encoding == ENC_OCTET )
+      return TRUE;
+  }
+
+  *error = (text == S_TEXT ? ATOM_binary_stream : ATOM_text_stream);
+  return FALSE;
+}
+
+
+static int
 getOutputStream(term_t t, s_type text, IOSTREAM **stream)
 { GET_LD
   atom_t a;
@@ -734,12 +758,8 @@ getOutputStream(term_t t, s_type text, IOSTREAM **stream)
     return FALSE;
 
   if ( !(s->flags&SIO_OUTPUT) )
-    tp = ATOM_stream;
-  else if ( text == S_TEXT && !(s->flags&SIO_TEXT) )
-    tp = ATOM_binary_stream;
-  else if ( text == S_BINARY && (s->flags&SIO_TEXT) )
-    tp = ATOM_text_stream;
-  else
+  { tp = ATOM_stream;
+  } else if ( checkStreamType(text, s, &tp PASS_LD) )
   { *stream = s;
     return TRUE;
   }
