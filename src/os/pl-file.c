@@ -782,10 +782,11 @@ getBinaryOutputStream(term_t t, IOSTREAM **stream)
 }
 
 
-int
-getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+static int
+getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
 { atom_t a;
   IOSTREAM *s;
+  atom_t tp;
 
   if ( t == 0 )
   { if ( (*stream = getStream(Scurin)) )
@@ -805,14 +806,26 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
     return FALSE;
 
-  if ( !(s->flags &SIO_INPUT) )
-  { releaseStream(s);
-    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		    ATOM_input, ATOM_stream, t);
+  if ( !(s->flags&SIO_INPUT) )
+  { tp = ATOM_stream;
+  } else if ( checkStreamType(text, s, &tp PASS_LD) )
+  { *stream = s;
+    return TRUE;
   }
 
-  *stream = s;
-  return TRUE;
+  releaseStream(s);
+  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		  ATOM_input, tp, t);
+}
+
+int
+getTextInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+{ return getInputStream__LD(t, S_TEXT, stream PASS_LD);
+}
+
+int
+getBinaryInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+{ return getInputStream__LD(t, S_BINARY, stream PASS_LD);
 }
 
 
@@ -842,7 +855,7 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
 	     PL_unify_stream_or_alias(A3, ref->write) );
   }
 
-  if ( getInputStream(A2, &in) &&
+  if ( getInputStream(A2, S_DONTCARE, &in) &&
        getOutputStream(A3, S_DONTCARE, &out) )
   { stream_ref ref;
 
@@ -2153,7 +2166,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 { PRED_LD
   IOSTREAM *s;
 
-  if ( getInputStream(A1, &s) )
+  if ( getInputStream(A1, S_DONTCARE, &s) )
   { char buf[MAX_PENDING];
     ssize_t n;
     int64_t off0 = Stell64(s);
@@ -2446,7 +2459,7 @@ static foreign_t
 get_nonblank(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(in, &s) )
+  if ( getTextInputStream(in, &s) )
   { int c;
 
     for(;;)
@@ -2492,7 +2505,7 @@ skip(term_t in, term_t chr ARG_LD)
 
   if ( !PL_get_char(chr, &c, FALSE) )
     return FALSE;
-  if ( !getInputStream(in, &s) )
+  if ( !getTextInputStream(in, &s) )
     return FALSE;
 
   while((r=Sgetcode(s)) != c && r != EOF )
@@ -2548,7 +2561,7 @@ static foreign_t
 get_byte2(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(in, &s) )
+  if ( getBinaryInputStream(in, &s) )
   { int c = Sgetc(s);
 
     if ( PL_unify_integer(chr, c) )
@@ -2584,7 +2597,7 @@ static foreign_t
 get_code2(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(in, &s) )
+  if ( getTextInputStream(in, &s) )
   { int c = Sgetcode(s);
 
     if ( PL_unify_integer(chr, c) )
@@ -2619,7 +2632,7 @@ static foreign_t
 get_char2(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(in, &s) )
+  if ( getTextInputStream(in, &s) )
   { int c = Sgetcode(s);
 
     if ( PL_unify_atom(chr, c == -1 ? ATOM_end_of_file : codeToAtom(c)) )
@@ -4168,7 +4181,7 @@ PRED_IMPL("set_input", 1, set_input, PL_FA_ISO)
 { PRED_LD
   IOSTREAM *s;
 
-  if ( getInputStream(A1, &s) )
+  if ( getInputStream(A1, S_DONTCARE, &s) )
   { Scurin = s;
     releaseStream(s);
     return TRUE;
@@ -4285,7 +4298,7 @@ static int
 at_end_of_stream(term_t stream ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(stream, &s) )
+  if ( getInputStream(stream, S_DONTCARE, &s) )
   { int rval = Sfeof(s);
 
     if ( rval < 0 )
@@ -4323,7 +4336,7 @@ peek(term_t stream, term_t chr, int how ARG_LD)
 { IOSTREAM *s;
   int c;
 
-  if ( !getInputStream(stream, &s) )
+  if ( !getInputStream(stream, how == PL_BYTE ? S_BINARY : S_TEXT, &s) )
     return FALSE;
   if ( true(s, SIO_NBUF) || (s->bufsize && s->bufsize < MB_LEN_MAX) )
   { releaseStream(s);
@@ -4553,7 +4566,7 @@ copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
   int c;
   int count = 0;
 
-  if ( !getInputStream(in, &i) )
+  if ( !getInputStream(in, S_DONTCARE, &i) )
     return FALSE;
   if ( !getOutputStream(out, S_DONTCARE, &o) )
   { releaseStream(i);

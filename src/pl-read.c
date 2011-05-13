@@ -3182,7 +3182,7 @@ pl_raw_read2(term_t from, term_t term)
   int chr;
   PL_chars_t txt;
 
-  if ( !getInputStream(from, &in) )
+  if ( !getTextInputStream(from, &in) )
     fail;
 
   init_read_data(&rd, in PASS_LD);
@@ -3234,7 +3234,7 @@ pl_read2(term_t from, term_t term)
   int rval;
   IOSTREAM *s;
 
-  if ( !getInputStream(from, &s) )
+  if ( !getTextInputStream(from, &s) )
     fail;
 
   init_read_data(&rd, s PASS_LD);
@@ -3291,7 +3291,7 @@ read_clause_pred(term_t from, term_t term ARG_LD)
 { int rval;
   IOSTREAM *s;
 
-  if ( !getInputStream(from, &s) )
+  if ( !getTextInputStream(from, &s) )
     fail;
   rval = read_clause(s, term PASS_LD);
   if ( Sferror(s) )
@@ -3348,7 +3348,7 @@ pl_read_term3(term_t from, term_t term, term_t options)
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( !getInputStream(from, &s) )
+  if ( !getTextInputStream(from, &s) )
     fail;
   init_read_data(&rd, s PASS_LD);
 
