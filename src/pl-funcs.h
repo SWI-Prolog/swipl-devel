@@ -228,51 +228,6 @@ COMMON(void)		cleanupExtensions(void);
 COMMON(void)            rememberExtensions(const char *module,
 					   const PL_extension *e);
 
-
-/* pl-file.c */
-COMMON(void)		initIO(void);
-COMMON(void)		dieIO(void);
-COMMON(void)		closeFiles(int all);
-COMMON(int)		openFileDescriptors(unsigned char *buf, int size);
-COMMON(void)		protocol(const char *s, size_t n);
-COMMON(int)		getInputStream__LD(term_t t, IOSTREAM **s ARG_LD);
-COMMON(int)		getTextOutputStream(term_t t, IOSTREAM **s);
-COMMON(int)		getBinaryOutputStream(term_t t, IOSTREAM **s);
-COMMON(int)	        reportStreamError(IOSTREAM *s);
-COMMON(int)		streamStatus(IOSTREAM *s);
-COMMON(atom_t)		fileNameStream(IOSTREAM *s);
-COMMON(int)		getSingleChar(IOSTREAM *s, int signals);
-COMMON(int)		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);
-COMMON(int)		LockStream(void);
-COMMON(int)		UnlockStream(void);
-COMMON(IOSTREAM *)	PL_current_input(void);
-COMMON(IOSTREAM *)	PL_current_output(void);
-COMMON(int)		pl_see(term_t f);
-COMMON(int)		pl_seen(void);
-COMMON(int)		seeString(const char *s);
-COMMON(int)		seeingString(void);
-COMMON(int)		seenString(void);
-COMMON(int)		tellString(char **s, size_t *size, IOENC enc);
-COMMON(int)		toldString(void);
-COMMON(void)		prompt1(atom_t prompt);
-COMMON(atom_t)		PrologPrompt(void);
-COMMON(int)		streamNo(term_t spec, int mode);
-COMMON(void)		release_stream_handle(term_t spec);
-COMMON(int)		unifyTime(term_t t, time_t time);
-#ifdef __WINDOWS__
-COMMON(word)		pl_make_fat_filemap(term_t dir);
-#endif
-COMMON(int)		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
-COMMON(void)		pushOutputContext(void);
-COMMON(void)		popOutputContext(void);
-COMMON(IOENC)		atom_to_encoding(atom_t a);
-COMMON(atom_t)		encoding_to_atom(IOENC enc);
-COMMON(int)		setupOutputRedirect(term_t to,
-					    redir_context *ctx,
-					    int redir);
-COMMON(int)		closeOutputRedirect(redir_context *ctx);
-COMMON(void)		discardOutputRedirect(redir_context *ctx);
-
 /* pl-flag.c */
 COMMON(void)		initFlags(void);
 COMMON(word)		pl_current_flag(term_t k, control_t h);

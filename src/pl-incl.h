@@ -2080,6 +2080,7 @@ decrease).
 #include "os/pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
 #include "os/pl-option.h"		/* Option processing */
+#include "os/pl-file.h"			/* Stream management */
 #include "os/pl-files.h"		/* File management */
 #include "os/pl-string.h"		/* Basic string functions */
 
