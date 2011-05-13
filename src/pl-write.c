@@ -895,7 +895,7 @@ word
 pl_nl1(term_t stream)
 { IOSTREAM *s;
 
-  if ( getOutputStream(stream, &s) )
+  if ( getTextOutputStream(stream, &s) )
   { Sputcode('\n', s);
     return streamStatus(s);
   }
@@ -1323,7 +1323,7 @@ static const opt_spec write_term_options[] =
   { ATOM_partial,	    OPT_BOOL },
   { ATOM_spacing,	    OPT_ATOM },
   { ATOM_blobs,		    OPT_ATOM },
-  { NULL_ATOM,	     	    0 }
+  { NULL_ATOM,		    0 }
 };
 
 word
@@ -1411,7 +1411,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
   if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
 
-  if ( !getOutputStream(stream, &s) )
+  if ( !getTextOutputStream(stream, &s) )
     fail;
   options.out = s;
   if ( !partial )
@@ -1453,7 +1453,7 @@ do_write2(term_t stream, term_t term, int flags)
 { GET_LD
   IOSTREAM *s;
 
-  if ( getOutputStream(stream, &s) )
+  if ( getTextOutputStream(stream, &s) )
   { write_options options;
     int rc;
 

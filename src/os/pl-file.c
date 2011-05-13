@@ -701,11 +701,19 @@ getOutputStream(term_t t, IOSTREAM **s)
     using releaseStream() or streamStatus().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-getOutputStream(term_t t, IOSTREAM **stream)
+typedef enum
+{ S_DONTCARE = 0,
+  S_TEXT,
+  S_BINARY
+} s_type;
+
+
+static int
+getOutputStream(term_t t, s_type text, IOSTREAM **stream)
 { GET_LD
   atom_t a;
   IOSTREAM *s;
+  atom_t tp;
 
   if ( t == 0 )
   { if ( (*stream = getStream(Scurout)) )
@@ -726,13 +734,33 @@ getOutputStream(term_t t, IOSTREAM **stream)
     return FALSE;
 
   if ( !(s->flags&SIO_OUTPUT) )
-  { releaseStream(s);
-    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		    ATOM_output, ATOM_stream, t);
+    tp = ATOM_stream;
+/*
+  else if ( text == S_TEXT && !(s->flags&SIO_TEXT) )
+    tp = ATOM_binary_stream;
+  else if ( text == S_BINARY && (s->flags&SIO_TEXT) )
+    tp = ATOM_text_stream;
+*/
+  else
+  { *stream = s;
+    return TRUE;
   }
 
-  *stream = s;
-  return TRUE;
+  releaseStream(s);
+  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		  ATOM_output, tp, t);
+}
+
+
+int
+getTextOutputStream(term_t t, IOSTREAM **stream)
+{ return getOutputStream(t, S_TEXT, stream);
+}
+
+
+int
+getBinaryOutputStream(term_t t, IOSTREAM **stream)
+{ return getOutputStream(t, S_BINARY, stream);
 }
 
 
@@ -797,7 +825,7 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
   }
 
   if ( getInputStream(A2, &in) &&
-       getOutputStream(A3, &out) )
+       getOutputStream(A3, S_DONTCARE, &out) )
   { stream_ref ref;
 
     ref.read = in;
@@ -2187,7 +2215,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  us += mbrtowc(&c, us, es-us, s->mbstate);
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
-    	  if ( s->position )
+	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
 	  addSmallIntList(&ctx, c);
@@ -2225,7 +2253,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  us = utf8_get_char(us, &c);
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
-    	  if ( s->position )
+	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
 	  addSmallIntList(&ctx, c);
@@ -2323,7 +2351,7 @@ put_byte(term_t stream, term_t byte ARG_LD)
 
   if ( !PL_get_integer(byte, &c) || c < 0 || c > 255 )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_byte, byte);
-  if ( !getOutputStream(stream, &s) )
+  if ( !getBinaryOutputStream(stream, &s) )
     return FALSE;
 
   Sputc(c, s);
@@ -2355,7 +2383,7 @@ put_code(term_t stream, term_t chr ARG_LD)
 
   if ( !PL_get_char(chr, &c, FALSE) )
     return FALSE;
-  if ( !getOutputStream(stream, &s) )
+  if ( !getTextOutputStream(stream, &s) )
     return FALSE;
 
   Sputcode(c, s);
@@ -2724,7 +2752,7 @@ tab(term_t out, term_t spaces)
 { int64_t count;
   IOSTREAM *s;
 
-  if ( !getOutputStream(out, &s) )
+  if ( !getTextOutputStream(out, &s) )
     return FALSE;
   if ( !PL_eval_expression_to_int64_ex(spaces, &count) )
     return FALSE;
@@ -2839,7 +2867,7 @@ static const opt_spec open4_options[] =
   { ATOM_lock,		 OPT_ATOM },
   { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
-  { ATOM_bom,	 	 OPT_BOOL },
+  { ATOM_bom,		 OPT_BOOL },
   { NULL_ATOM,	         0 }
 };
 
@@ -3697,7 +3725,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_end_of_stream1, stream_end_of_stream_prop },
   { FUNCTOR_eof_action1,    stream_eof_action_prop },
   { FUNCTOR_reposition1,    stream_reposition_prop },
-  { FUNCTOR_type1,    	    stream_type_prop },
+  { FUNCTOR_type1,	    stream_type_prop },
   { FUNCTOR_file_no1,	    stream_file_no_prop },
   { FUNCTOR_buffer1,	    stream_buffer_prop },
   { FUNCTOR_buffer_size1,   stream_buffer_size_prop },
@@ -3955,7 +3983,7 @@ static int
 flush_output(term_t out)
 { IOSTREAM *s;
 
-  if ( getOutputStream(out, &s) )
+  if ( getOutputStream(out, S_DONTCARE, &s) )
   { Sflush(s);
     return streamStatus(s);
   }
@@ -4137,7 +4165,7 @@ PRED_IMPL("set_output", 1, set_output, PL_FA_ISO)
 { PRED_LD
   IOSTREAM *s;
 
-  if ( getOutputStream(A1, &s) )
+  if ( getOutputStream(A1, S_DONTCARE, &s) )
   { Scurout = s;
     releaseStream(s);
     return TRUE;
@@ -4509,7 +4537,7 @@ copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
 
   if ( !getInputStream(in, &i) )
     return FALSE;
-  if ( !getOutputStream(out, &o) )
+  if ( !getOutputStream(out, S_DONTCARE, &o) )
   { releaseStream(i);
     return FALSE;
   }

@@ -145,7 +145,7 @@ typedef intptr_t term_t;
 typedef intptr_t atom_t;
 #include "pl-error.h"
 
-extern int 			fatalError(const char *fm, ...);
+extern int			fatalError(const char *fm, ...);
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
 extern int			reportStreamError(IOSTREAM *s);
@@ -1440,6 +1440,11 @@ Ssetenc(IOSTREAM *s, IOENC enc, IOENC *old)
   }
 
   s->encoding = enc;
+  if ( enc == ENC_OCTET )
+    s->flags &= ~SIO_TEXT;
+  else
+    s->flags |= SIO_TEXT;
+
   return 0;
 }
 
@@ -3317,7 +3322,7 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY|SIO_TEXT)
 #define STDIO_STREAMS \
   STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
-  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL), 	/* Soutput */ \
+  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL),	/* Soutput */ \
   STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPL)	/* Serror */
 
 
