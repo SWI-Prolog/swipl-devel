@@ -735,12 +735,10 @@ getOutputStream(term_t t, s_type text, IOSTREAM **stream)
 
   if ( !(s->flags&SIO_OUTPUT) )
     tp = ATOM_stream;
-/*
   else if ( text == S_TEXT && !(s->flags&SIO_TEXT) )
     tp = ATOM_binary_stream;
   else if ( text == S_BINARY && (s->flags&SIO_TEXT) )
     tp = ATOM_text_stream;
-*/
   else
   { *stream = s;
     return TRUE;
@@ -3297,7 +3295,7 @@ static const IOFUNCTIONS nullFunctions =
 
 static
 PRED_IMPL("open_null_stream", 1, open_null_stream, 0)
-{ int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT;
+{ int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT|SIO_TEXT;
   IOSTREAM *s = Snew((void *)NULL, sflags, (IOFUNCTIONS *)&nullFunctions);
 
   if ( s )
