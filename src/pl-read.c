@@ -2100,9 +2100,14 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		       isDigit(*rdhere) )
 		  { goto case_digit;
 		  }
-		  if ( c == '.' && PlBlankW(*rdhere) )	/* .<blank> */
-		  { cur_token.type = T_FULLSTOP;
-		    break;
+		  if ( c == '.' && *rdhere )
+		  { int c2;
+
+		    utf8_get_uchar(rdhere, &c2);
+		    if ( PlBlankW(c2) )			/* .<blank> */
+		    { cur_token.type = T_FULLSTOP;
+		      break;
+		    }
 		  }
 		}
 
