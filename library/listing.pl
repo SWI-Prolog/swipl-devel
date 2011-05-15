@@ -371,7 +371,7 @@ portray_body(!, _, _, _, Out, _) :-
 	setting(listing:cut_on_same_line, true), !,
 	write(Out, ' !').
 portray_body((!, Clause), Indent, _, Pri, Out, Options) :-
-	setting(listing:cut_on_same_line, true), !,
+	setting(listing:cut_on_same_line, true),
 	\+ term_needs_braces((_,_), Pri), !,
 	write(Out, ' !,'),
 	portray_body(Clause, Indent, indent, 1000, Out, Options).
