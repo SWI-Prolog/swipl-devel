@@ -4036,7 +4036,7 @@ term to be considered as non-ground.
     \predicate{nb_setarg}{3}{+Arg, +Term, +Value}
 Assigns the \arg{Arg}-th argument of the compound term \arg{Term} with
 the given \arg{Value} as setarg/3, but on backtracking the assignment
-is \emph{not} reversed.  If \arg{Term} is not atomic, it is duplicated
+is \emph{not} reversed.  If \arg{Value} is not atomic, it is duplicated
 using duplicate_term/2. This predicate uses the same technique as
 nb_setval/2.  We therefore refer to the description of nb_setval/2
 for details on non-backtrackable assignment of terms.  This predicate
@@ -4557,7 +4557,7 @@ subtle and difficult to track errors.
     \item The bar (\verb$|$) can only be (re-)defined as infix
           operator with priority not less than 1001.
     \item It is not allowed to define the empty list (\verb$[]$) or the
-    	  curly-bracket-pair (\verb${}$) as operators.
+	  curly-bracket-pair (\verb${}$) as operators.
 \end{itemize}
 
 In SWI-Prolog, operators are \emph{local} to a module (see also
