@@ -523,6 +523,10 @@ struct PL_local_data
     st_check stream_type_check;		/* Check bin/text streams? */
   } IO;
 
+  struct
+  { fid_t	numbervars_frame;	/* Numbervars choice-point */
+  } var_names;
+
 #ifdef O_LIMIT_DEPTH
   struct
   { uintptr_t limit;

@@ -66,6 +66,8 @@ static bool	writeTerm(term_t t, int prec,
 			  write_options *options) WUNUSED;
 static bool	writeArgTerm(term_t t, int prec,
 			     write_options *options, bool arg) WUNUSED;
+static int	PutToken(const char *s, IOSTREAM *stream);
+static int	writeAtom(atom_t a, write_options *options);
 
 static Word
 address_of(term_t t)
@@ -108,6 +110,94 @@ varName(term_t t, char *name)
     Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
 
   return name;
+}
+
+
+static int
+atomIsVarName(atom_t a)
+{ Atom atom = atomValue(a);
+
+  if ( false(atom->type, PL_BLOB_TEXT) || atom->length == 0 )
+    fail;
+  if ( isUCSAtom(atom) )
+  { pl_wchar_t *w = (pl_wchar_t*)atom->name;
+    size_t len = atom->length / sizeof(pl_wchar_t);
+
+    return atom_varnameW(w, len);
+  } else
+  { const char *s = atom->name;
+    size_t len = atom->length;
+
+    if ( isUpper(*s) || *s == '_' )
+    { for(s++; --len > 0; s++)
+      { if ( !isAlpha(*s) )
+	  return FALSE;
+      }
+
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return:	TRUE:  processes
+	FALSE: not processed
+	-1:    error
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+writeNumberVar(term_t t, write_options *options ARG_LD)
+{ Word p = valTermRef(t);
+  Functor f;
+
+  deRef(p);
+  if ( !isTerm(*p) )
+    return FALSE;
+  f = valueTerm(*p);
+
+  if ( f->definition != FUNCTOR_isovar1 )
+    return FALSE;
+
+  if ( LD->var_names.numbervars_frame )
+  { FliFrame fr = (FliFrame)valTermRef(LD->var_names.numbervars_frame);
+
+    assert(fr->magic == FLI_MAGIC);
+    if ( fr->mark.globaltop > (Word)f )
+      return FALSE;			/* older $VAR term */
+  }
+
+  p = &f->arguments[0];
+  deRef(p);
+  if ( isInteger(*p) )
+  { intptr_t n = valInteger(*p);
+
+    if ( n >= 0 && n <= INT_MAX )
+    { int i = (int)n % 26;
+      int j = (int)n / 26;
+      char buf[16];
+
+      if ( j == 0 )
+      { buf[0] = i+'A';
+	buf[1] = EOS;
+      } else
+      { sprintf(buf, "%c%d", i+'A', j);
+      }
+
+      return PutToken(buf, options->out) ? TRUE : -1;
+    }
+  }
+
+  if ( isAtom(*p) && atomIsVarName(*p) )
+  { write_options o2 = *options;
+    clear(&o2, PL_WRT_QUOTED);
+
+    return writeAtom(*p, &o2) ? TRUE : -1;
+  }
+
+  return FALSE;
 }
 
 
@@ -160,35 +250,6 @@ atomType(atom_t a, IOSTREAM *fd)
     return AT_SPECIAL;
 
   return AT_QUOTE;
-}
-
-
-static int
-atomIsVarName(atom_t a)
-{ Atom atom = atomValue(a);
-
-  if ( false(atom->type, PL_BLOB_TEXT) || atom->length == 0 )
-    fail;
-  if ( isUCSAtom(atom) )
-  { pl_wchar_t *w = (pl_wchar_t*)atom->name;
-    size_t len = atom->length / sizeof(pl_wchar_t);
-
-    return atom_varnameW(w, len);
-  } else
-  { const char *s = atom->name;
-    size_t len = atom->length;
-
-    if ( isUpper(*s) || *s == '_' )
-    { for(s++; --len > 0; s++)
-      { if ( !isAlpha(*s) )
-	  return FALSE;
-      }
-
-      return TRUE;
-    }
-
-    return FALSE;
-  }
 }
 
 
@@ -1143,36 +1204,14 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
   if ( !PL_get_name_arity(t, &functor, &arity) )
   { return writePrimitive(t, options);
   } else
-  { if ( arity == 1 &&
-	 functor == ATOM_isovar &&			/* $VAR/1 */
-	 true(options, PL_WRT_NUMBERVARS) )
-    { int n;
-      atom_t a;
-      term_t arg = PL_new_term_ref();
-
-      _PL_get_arg(1, t, arg);
-      if ( PL_get_integer(arg, &n) && n >= 0 )
-      { int i = n % 26;
-	int j = n / 26;
-	char buf[16];
-
-	if ( j == 0 )
-	{ buf[0] = i+'A';
-	  buf[1] = EOS;
-	} else
-	{ sprintf(buf, "%c%d", i+'A', j);
-	}
-
-	return PutToken(buf, out);
-      }
-      if ( PL_get_atom(arg, &a) && atomIsVarName(a) )
-      { write_options o2 = *options;
-	clear(&o2, PL_WRT_QUOTED);
-
-	return writeAtom(a, &o2);
+  { if ( true(options, PL_WRT_NUMBERVARS) )
+    { switch( writeNumberVar(t, options PASS_LD) )
+      { case -1:
+	  return FALSE;
+	case TRUE:
+	  return TRUE;
       }
     }
-
 
     if ( false(options, PL_WRT_IGNOREOPS) )
     { term_t arg = PL_new_term_ref();
