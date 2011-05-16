@@ -89,7 +89,7 @@
 '$map_bits'(Pred, +Name, Old, New) :- !,	% set a bit
 	call(Pred, Name, Bits), !,
 	New is Old \/ Bits.
-'$map_bits'(Pred, -Name, Old, New) :- !, 	% clear a bit
+'$map_bits'(Pred, -Name, Old, New) :- !,	% clear a bit
 	call(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
 '$map_bits'(Pred, ?(Name), Old, Old) :-		% ask a bit
@@ -120,9 +120,9 @@ visible(Ports) :-
 	'$map_bits'('$port_bit', Ports, Old, New),
 	'$visible'(_, New).
 
-'$map_style_check'(atom,     	    2'0000001).
-'$map_style_check'(singleton, 	    2'0000010).
-'$map_style_check'(dollar,   	    2'0000100).
+'$map_style_check'(atom,	    2'0000001).
+'$map_style_check'(singleton,	    2'0000010).
+'$map_style_check'(dollar,	    2'0000100).
 '$map_style_check'((discontiguous),   2'0001000).
 '$map_style_check'(dynamic,	    2'0010000).
 '$map_style_check'(charset,	    2'0100000).
@@ -364,7 +364,7 @@ atom_prefix(Atom, Prefix) :-
 
 source_file(File) :-
 	(   ground(File)
-	->  ( 	'$time_source_file'(File, Time, user)
+	->  (	'$time_source_file'(File, Time, user)
 	    ;	absolute_file_name(File, Abs),
 		'$time_source_file'(Abs, Time, user)
 	    ), !
@@ -991,7 +991,7 @@ length3([_|List], N, N0) :-
 
 :- '$iso'((numbervars/3)).
 
-%	numbervars(+Term, +StartIndex, -EndIndex)
+%%	numbervars(+Term, +StartIndex, -EndIndex) is det.
 %
 %	Number all unbound variables in Term   using  '$VAR'(N), where the
 %	first N is StartIndex and EndIndex is  unified to the index that
@@ -1005,7 +1005,7 @@ numbervars(Term, From, To) :-
 		 *	       GVAR		*
 		 *******************************/
 
-%	nb_setval(+Name, +Value)
+%%	nb_setval(+Name, +Value) is det.
 %
 %	Bind the non-backtrackable variable Name with a copy of Value
 
