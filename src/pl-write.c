@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -306,6 +306,9 @@ PutOpenToken() inserts a space in the output stream if the last-written
 and given character require a space to ensure a token-break.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define LAST_C_RESERVED		0x110000 /* Above Unicode range */
+#define PREFIX_SIGN		(LAST_C_RESERVED+1)
+
 #define isquote(c) ((c) == '\'' || (c) == '"')
 
 static bool
@@ -313,15 +316,22 @@ needSpace(int c, IOSTREAM *s)
 { if ( c == EOF )
   { s->lastc = EOF;
     return FALSE;
-  } else if ( s->lastc != EOF &&
-	      ((isAlphaW(s->lastc) && isAlphaW(c)) ||
-	       (isSymbolW(s->lastc) && isSymbolW(c)) ||
-	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
-	       (c == '\'' && (isDigit(s->lastc))) ||
-	       (isquote(c) && s->lastc == c) ||
-	       ((s->lastc == '-' || s->lastc == '+') && isDigit(c))) )
-  { return TRUE;
   }
+
+  if ( s->lastc == PREFIX_SIGN )	/* avoid passing to is*W() functions */
+  { if ( isDigit(c) || isSymbolW(c) )
+      return TRUE;
+    return FALSE;
+  }
+
+  if ( s->lastc != EOF &&
+       ((isAlphaW(s->lastc) && isAlphaW(c)) ||
+	(isSymbolW(s->lastc) && isSymbolW(c)) ||
+	(s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
+	(c == '\'' && (isDigit(s->lastc))) ||
+	(isquote(c) && s->lastc == c)
+       ) )
+    return TRUE;
 
   return FALSE;
 }
@@ -1236,24 +1246,19 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
 	  _PL_get_arg(1, t, arg);
 	  if ( embrace )
-	  { TRY(PutOpenBrace(out));
-	  }
+	    TRY(PutOpenBrace(out));
 	  TRY(writeAtom(functor, options));
 
 				/* +/-(Number) : avoid parsing as number */
-	  if ( (functor == ATOM_minus || functor == ATOM_plus) &&
-	       PL_is_number(arg) )
-	  { TRY(Putc('(', out));
-	    TRY(writeTerm(arg, 999, options));
-	    TRY(Putc(')', out));
-	  } else
-	  { TRY(writeTerm(arg,
-			  op_type == OP_FX ? op_pri-1 : op_pri,
-			  options));
-	  }
+	  if ( functor == ATOM_minus || functor == ATOM_plus )
+	    options->out->lastc = PREFIX_SIGN;
+
+	  TRY(writeTerm(arg,
+			op_type == OP_FX ? op_pri-1 : op_pri,
+			options));
+
 	  if ( embrace )
-	  { TRY(PutCloseBrace(out));
-	  }
+	   TRY(PutCloseBrace(out));
 
 	  succeed;
 	}

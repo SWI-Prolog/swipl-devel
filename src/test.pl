@@ -148,9 +148,15 @@ syntax(latin-1) :-
 		 *******************************/
 
 write_test(q-1) :-
-	term_to_atom(-(0), X), X == '-(0)'.
+	T = -(0),
+	term_to_atom(T, X),
+	term_to_atom(T2, X),
+	T == T2.
 write_test(q-2) :-
-	term_to_atom(+(0), X), X == '+(0)'.
+	T = +(0),
+	term_to_atom(T, X),
+	term_to_atom(T2, X),
+	T == T2.
 write_test(q-3) :-
 	term_to_atom(+(a), X), X == '+a'.
 write_test(q-4) :-
@@ -2265,7 +2271,7 @@ file(absfile-2) :-			% canoniseDir() caching issues
 	delete_directory(Y),
 	atom_concat(_, YF, Abs2).
 file(ext-2) :-
-	\+ file_name_extension(foo, _, 'bar.pl'). 	% Bug#69
+	\+ file_name_extension(foo, _, 'bar.pl').	% Bug#69
 file(open-1) :-
 	catch(open(foobar, read, _, [lock(qqq)]), E, true),
 	E =@= error(domain_error(lock, qqq), context(system:open/4, _)).
