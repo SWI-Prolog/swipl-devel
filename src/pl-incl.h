@@ -360,7 +360,7 @@ typedef int			bool;
 #endif
 #define succeed			return TRUE
 #define fail			return FALSE
-#define TRY(goal)		if ((goal) == FALSE) fail
+#define TRY(goal)		do { if (!(goal)) return FALSE; } while(0)
 
 #define CL_START		0	/* asserta */
 #define CL_END			1	/* assertz */
