@@ -174,16 +174,16 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
   if ( isInteger(*p) )
   { intptr_t n = valInteger(*p);
 
-    if ( n >= 0 && n <= INT_MAX )
-    { int i = (int)n % 26;
-      int j = (int)n / 26;
-      char buf[16];
+    if ( n >= 0 )
+    { int i = (int)(n % 26);
+      int64_t j = n / 26;
+      char buf[24];			/* Max is H354745078340568300 */
 
       if ( j == 0 )
       { buf[0] = i+'A';
 	buf[1] = EOS;
       } else
-      { sprintf(buf, "%c%d", i+'A', j);
+      { sprintf(buf, "%c" INT64_FORMAT, i+'A', j);
       }
 
       return PutToken(buf, options->out) ? TRUE : -1;
