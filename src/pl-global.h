@@ -65,7 +65,7 @@ typedef struct
 
 typedef struct
 { atom_t	file;			/* current source file */
-  int	  	line;			/* current line */
+  int		line;			/* current line */
   int		linepos;		/* position in the line */
   int64_t	character;		/* current character location */
   int64_t	byte;			/* byte offset of location */
@@ -235,7 +235,7 @@ struct PL_global_data
     int			halting;	/* process is shutting down */
     int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
-    IOFUNCTIONS 	org_terminal;	/* IO+Prolog terminal functions */
+    IOFUNCTIONS		org_terminal;	/* IO+Prolog terminal functions */
     IOFUNCTIONS		rl_functions;	/* IO+Terminal+Readline functions */
   } os;
 
@@ -298,12 +298,12 @@ struct PL_global_data
 
   struct
   { struct _at_exit_goal *exit_goals;	/* Global thread_at_exit/1 goals */
-    int		    	enabled;	/* threads are enabled */
+    int			enabled;	/* threads are enabled */
     Table		mutexTable;	/* Name --> mutex table */
     int			mutex_next_id;	/* next id for anonymous mutexes */
     struct pl_mutex*	MUTEX_load;	/* The $load mutex */
 #ifdef __WINDOWS__
-    HINSTANCE	    	instance;	/* Win32 process instance */
+    HINSTANCE		instance;	/* Win32 process instance */
 #endif
     counting_mutex     *mutexes;	/* Registered mutexes */
     int			thread_max;	/* Maximum # threads */
@@ -445,7 +445,7 @@ struct PL_local_data
   } modules;
 
   struct
-  { intptr_t 	generator;		/* See PL_atom_generator() */
+  { intptr_t	generator;		/* See PL_atom_generator() */
   } atoms;
 
   struct
@@ -605,8 +605,8 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define functor_array		(GD->functors.array)
 #define systemDefaults		(GD->defaults)
 
-#define environment_frame 	(LD->environment)
-#define fli_context	  	(LD->foreign_environment)
+#define environment_frame	(LD->environment)
+#define fli_context		(LD->foreign_environment)
 #define source_file_name	(LD->read_source.file)
 #define source_line_no		(LD->read_source.line)
 #define source_line_pos		(LD->read_source.linepos)
@@ -626,7 +626,7 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define Scurin			(LD->IO.streams[3])
 #define Scurout			(LD->IO.streams[4])
 #define Sprotocol		(LD->IO.streams[5])
-#define Sdin			Suser_input 		/* not used for now */
+#define Sdin			Suser_input		/* not used for now */
 #define Sdout			Suser_output
 
 #ifdef VMCODE_IS_ADDRESS
