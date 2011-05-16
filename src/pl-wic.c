@@ -91,7 +91,7 @@ Below is an informal description of the format of a `.qlf' file:
 <magic code>	::=	<string>			% normally #!<path>
 <version number>::=	<num>
 <statement>	::=	'W' <string>			% include wic file
-		      | 'P' <XR/functor> 		% predicate
+		      | 'P' <XR/functor>		% predicate
 			    <flags>
 			    {<clause>} <pattern>
 		      |	'O' <XR/modulename>		% pred out of module
@@ -111,7 +111,7 @@ Below is an informal description of the format of a `.qlf' file:
 <clause>	::=	'C' <#codes>
 			    <line_no> <# var>
 			    <#n subclause> <codes>
-		      | 'X' 				% end of list
+		      | 'X'				% end of list
 <XR>		::=	XR_REF     <num>		% XR id from table
 			XR_ATOM    <len><chars>		% atom
 			XR_BLOB	   <blob><private>	% typed atom (blob)
@@ -183,7 +183,7 @@ typedef struct source_mark
 typedef struct xr_table
 { int		id;			/* next id to give out */
   Word	       *table;			/* main table */
-  int   	tablesize;		/* # sub-arrays */
+  int		tablesize;		/* # sub-arrays */
   struct xr_table* previous;		/* stack */
 } xr_table, *XrTable;
 
@@ -970,7 +970,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 	int     oln = source_line_no;
 
 	source_file_name = (state->currentSource ? state->currentSource->name
-			    			 : NULL_ATOM);
+						 : NULL_ATOM);
 	source_line_no   = getInt(fd);
 
 	if ( !loadQlfTerm(state, goal PASS_LD) )
@@ -1651,7 +1651,7 @@ initXR(wic_state *state)
   state->currentSource		   = NULL;
   state->savedXRTable		   = newHTable(256);
   state->savedXRTable->free_symbol = freeXRSymbol;
-  state->savedXRTableId	    	   = 0;
+  state->savedXRTableId		   = 0;
 }
 
 
@@ -1876,10 +1876,10 @@ do_save_qlf_term(wic_state *state, Word t ARG_LD)
 }
 
 
-static void
+static int
 saveQlfTerm(wic_state *state, term_t t ARG_LD)
 { IOSTREAM *fd = state->wicFd;
-  int nvars;
+  int nvars, rc=TRUE;
   fid_t cid;
   nv_options options;
 
@@ -1889,15 +1889,23 @@ saveQlfTerm(wic_state *state, term_t t ARG_LD)
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
 	Sdprintf(" from %d ... ", Stell(fd)));
+
   options.functor = FUNCTOR_dvard1;
   options.on_attvar = AV_SKIP;
   options.singletons = FALSE;		/* TBD: TRUE may be better! */
-  nvars = numberVars(t, &options, 0 PASS_LD);
-  putNum(nvars, fd);
-  do_save_qlf_term(state, valTermRef(t) PASS_LD);	/* TBD */
-  DEBUG(3, Sdprintf("to %d\n", Stell(fd)));
+  options.numbered_check = TRUE;	/* otherwise may be wrong */
+
+  if ( (nvars = numberVars(t, &options, 0 PASS_LD)) >= 0 )
+  { putNum(nvars, fd);
+    do_save_qlf_term(state, valTermRef(t) PASS_LD);	/* TBD */
+    DEBUG(3, Sdprintf("to %d\n", Stell(fd)));
+  } else
+  { rc = FALSE;
+  }
 
   PL_discard_foreign_frame(cid);
+
+  return rc;
 }
 
 
@@ -2154,9 +2162,8 @@ addDirectiveWic(wic_state *state, term_t term ARG_LD)
   closeProcedureWic(state);
   Sputc('D', fd);
   putNum(source_line_no, fd);
-  saveQlfTerm(state, term PASS_LD);
 
-  succeed;
+  return saveQlfTerm(state, term PASS_LD);
 }
 
 

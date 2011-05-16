@@ -1511,12 +1511,17 @@ pl_write_canonical2(term_t stream, term_t term)
 
   if ( !(fid = PL_open_foreign_frame()) )
     return FALSE;
+
   options.functor = FUNCTOR_isovar1;
   options.on_attvar = AV_SKIP;
   options.singletons = TRUE;
-  numberVars(term, &options, 0 PASS_LD);
-  rc = do_write2(stream, term,
-		 PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS);
+  options.numbered_check = FALSE;
+
+  rc = ( numberVars(term, &options, 0 PASS_LD) &&
+	 do_write2(stream, term,
+		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS)
+       );
+
   PL_discard_foreign_frame(fid);
 
   return rc;

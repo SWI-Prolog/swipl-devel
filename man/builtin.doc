@@ -3936,10 +3936,9 @@ to the next variable. Example:
 
 \begin{code}
 ?- numbervars(foo(A, B, A), 0, End).
-
-A = '$VAR'(0)
-B = '$VAR'(1)
-End = 2
+A = '$VAR'(0),
+B = '$VAR'(1),
+End = 2.
 \end{code}
 
 See also the \const{numbervars} option to write_term/3 and numbervars/4.
@@ -3969,6 +3968,13 @@ numbervars option.  This option is exploited by portray_clause/2
 and write_canonical/2.%
 	\bug{Currently this option is ignored for cyclic terms.}
     \end{description}
+
+    \predicate{var_number}{2}{@Term, -VarNumber}
+True if \arg{Term} is numbered by numbervars/3 and \arg{VarNumber} is
+the number given to this variable.  This predicate avoids the need for
+unification with \verb!'$VAR'(X)! and opens the path for replacing this
+valid Prolog term by an internal representation that has no textual
+equivalent.
 
     \predicate{term_variables}{2}{+Term, -List}
 Unify \arg{List} with a list of variables, each sharing with a unique variable

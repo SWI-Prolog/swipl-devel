@@ -2244,7 +2244,7 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns	>= 0: Number for next variable variable
 	  -1: Error
-	< -1: Out of stack error
+	< -1: Out of stack error or ALREADY_NUMBERED or CONTAINS_ATTVAR
 
 TBD: when using the `singletons' mode, the   predicate is not cycle safe
 (this is an error) and does not exploit sharing. We could fix this using
@@ -2255,9 +2255,13 @@ both flags:
     - both-marked: done
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define ALREADY_NUMBERED (-10)
+#define CONTAINS_ATTVAR  (-11)
+
 static int
 do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 { term_agenda agenda;
+  int start = n;
 
   initTermAgenda(&agenda, 1, p);
   while((p=nextTermAgenda(&agenda)))
@@ -2270,7 +2274,7 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 	{ case AV_SKIP:
 	    continue;
 	  case AV_ERROR:
-	    n = -1;
+	    n = CONTAINS_ATTVAR;
 	    goto out;
 	  case AV_BIND:
 	    break;
@@ -2298,14 +2302,28 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
     } else if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
 
-      if ( options->singletons &&
-	   f->definition == options->functor &&
-	   (Word)f >= m->globaltop )	/* new one we created ourselves */
-      { Word p = &f->arguments[0];
+      if ( f->definition == options->functor )
+      { if ( (Word)f >= m->globaltop )	/* new one we created ourselves */
+	{ if ( options->singletons )
+	  { Word p = &f->arguments[0];
 
-	if ( *p == ATOM_anonvar )
-	{ *p = consInt(n);		/* stack can't hold enough vars */
-	  n++;				/* to averflow this */
+	    if ( *p == ATOM_anonvar )
+	    { *p = consInt(n);		/* stack cannot hold enough vars */
+	      n++;			/* to averflow this */
+	    }
+	  }
+	} else if ( options->numbered_check )
+	{ Word p = &f->arguments[0];
+
+	  deRef(p);
+	  if ( isInteger(*p) )
+	  { intptr_t i = valInteger(*p);
+
+	    if ( i >= (intptr_t)start )
+	    { n = ALREADY_NUMBERED;
+	      goto out;
+	    }
+	  }
 	}
       }
 
@@ -2328,8 +2346,7 @@ out:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns	>= 0: Number for next variable variable
-	  -1: Error
-	< -1: Out of stack error
+	  -1: Error.  Exception is left in the environment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -2345,18 +2362,23 @@ numberVars(term_t t, nv_options *options, int n ARG_LD)
     if ( rc >= 0 )			/* all ok */
     { DiscardMark(m);
       return rc;
-    } else if ( rc == -1 )		/* error */
+    } else if ( rc == CONTAINS_ATTVAR )
     { DiscardMark(m);
-      return rc;
-    } else if ( rc == MEMORY_OVERFLOW )
-    { return rc;
-    } else				/* stack overflow */
-    { int rc2;
 
-      Undo(m);
+      PL_error(NULL, 0, NULL,
+	       ERR_TYPE, ATOM_free_of_attvar, t);
+      return -1;
+    } else if ( rc == ALREADY_NUMBERED )
+    { DiscardMark(m);
+
+      PL_error(NULL, 0, "already numbered",
+	       ERR_PERMISSION, ATOM_numbervars, ATOM_term, t);
+      return -1;
+    } else				/* stack overflow */
+    { Undo(m);
       DiscardMark(m);
-      if ( !(rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT)) )
-	return rc;
+      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	return -1;
     }
   }
 }
@@ -2385,6 +2407,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
   nv_options opts;
 
   opts.singletons = FALSE;
+  opts.numbered_check = FALSE;
 
   t = PL_copy_term_ref(A1);
 
@@ -2422,13 +2445,33 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   opts.functor = PL_new_functor(name, 1);
   n = numberVars(t, &opts, n PASS_LD);
-  if ( n == -1 )
-    return PL_error(NULL, 0, NULL,
-		    ERR_TYPE, ATOM_free_of_attvar, A1);
-  else if ( n < 0 )
-    return raiseStackOverflow(n);
+  if ( n >= 0 )
+    return PL_unify_integer(end, n);
 
-  return PL_unify_integer(end, n);
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("var_number", 2, var_number, 0)
+{ PRED_LD
+  term_t t = A1;
+  Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isTerm(*p) )
+  { Functor f = valueTerm(*p);
+
+    if ( f->definition == FUNCTOR_isovar1 )
+    { Word a = &f->arguments[0];
+
+      deRef(a);
+      if ( isAtom(*a) || isInteger(*a) )
+	return _PL_unify_atomic(A2, *a);
+    }
+  }
+
+  return FALSE;
 }
 
 
@@ -5169,6 +5212,7 @@ BeginPredDefs(prims)
   PRED_DEF("functor", 3, functor, PL_FA_ISO)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
   PRED_DEF("numbervars", 4, numbervars, 0)
+  PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)
