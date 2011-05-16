@@ -1544,24 +1544,22 @@ pl_print2(term_t stream, term_t term)
 word
 pl_write_canonical2(term_t stream, term_t term)
 { GET_LD
-  fid_t fid;
   nv_options options;
   word rc;
 
-  if ( !(fid = PL_open_foreign_frame()) )
-    return FALSE;
+  BEGIN_NUMBERVARS();
 
   options.functor = FUNCTOR_isovar1;
   options.on_attvar = AV_SKIP;
   options.singletons = TRUE;
   options.numbered_check = FALSE;
 
-  rc = ( numberVars(term, &options, 0 PASS_LD) &&
+  rc = ( numberVars(term, &options, 0 PASS_LD) >= 0 &&
 	 do_write2(stream, term,
 		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS)
        );
 
-  PL_discard_foreign_frame(fid);
+  END_NUMBERVARS();
 
   return rc;
 }

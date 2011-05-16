@@ -1787,6 +1787,14 @@ typedef struct
   int	    numbered_check;		/* Check for already numbered */
 } nv_options;
 
+#define BEGIN_NUMBERVARS() \
+	{ fid_t _savedf = LD->var_names.numbervars_frame; \
+	  LD->var_names.numbervars_frame = PL_open_foreign_frame();
+#define END_NUMBERVARS() \
+	  PL_discard_foreign_frame(LD->var_names.numbervars_frame); \
+	  LD->var_names.numbervars_frame = _savedf; \
+	}
+
 
 		 /*******************************
 		 *	      WAKEUP		*
