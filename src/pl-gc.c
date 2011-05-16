@@ -794,7 +794,7 @@ forward:				/* Go into the tree */
   }
   BACKWARD;
 
-backward:  				/* reversing backwards */
+backward:				/* reversing backwards */
   while( !is_first(current) )
   { word w = get_value(current);
     int t = (int)tag(w);
@@ -2123,7 +2123,7 @@ pointer.  The following types are identified:
 
     source	types
     local	address values (gTop references)
-    		term, reference and indirect pointers
+		term, reference and indirect pointers
     trail	address values (reset addresses)
     global	term, reference and indirect pointers
 
@@ -3355,7 +3355,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
 		      predicateName(fr->predicate),
 		      (false(fr->predicate, FOREIGN) && PC)
 		        ? (PC-fr->clause->clause->codes)
-		      	: 0));
+			: 0));
 
     slots = slotsInFrame(fr, PC);
     sp = argFrameP(fr, 0);
@@ -3870,6 +3870,9 @@ stack-shifts.  Returns TRUE or FALSE and raises an exception.
 int
 makeMoreStackSpace(int overflow, int flags)
 { GET_LD
+
+  if ( overflow == MEMORY_OVERFLOW )
+    return raiseStackOverflow(overflow);
 
   if ( LD->exception.processing )
   { if ( overflow == GLOBAL_OVERFLOW &&
