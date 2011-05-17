@@ -2359,6 +2359,8 @@ sweep_global_mark(Word *m ARG_LD)
 
   SECURE(assert(onStack(local, m)));
   gm = *m;
+  if ( is_marked_or_first(gm-1) )
+    goto done;				/* quit common easy case */
 
   for(;;)
   { Word prev = gm-1;
