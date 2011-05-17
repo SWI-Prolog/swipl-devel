@@ -2766,7 +2766,7 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
       } else if ( is_first(current) )
       { update_relocation_chain(current, dest PASS_LD);
       } else if ( storage(*current) == STG_LOCAL ) /* large cell */
-      { size_t offset = offset_cell(current);
+      { size_t offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
 
 	assert(offset > 0);
 	current -= offset;		/* start large cell */
