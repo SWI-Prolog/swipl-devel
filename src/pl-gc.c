@@ -2392,8 +2392,8 @@ sweep_global_mark(Word *m ARG_LD)
       check_relocation((Word)m);
       alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
       return;
-    } else if ( storage(*prev) == STG_LOCAL )
-    { size_t offset = offset_cell(prev);
+    } else if ( storage(*prev) == STG_LOCAL )	/* a large cell */
+    { size_t offset = wsizeofInd(*prev)+1;	/* = offset for a large cell */
       prev -= offset;
       if ( is_marked_or_first(prev) )
 	goto found;
