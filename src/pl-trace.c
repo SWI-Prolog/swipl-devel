@@ -663,20 +663,20 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 
   switch( *s )
   { case 'a':	FeedBack("abort\n");
-    		return ACTION_ABORT;
+		return ACTION_ABORT;
     case 'b':	FeedBack("break\n");
 		pl_break();
 		return ACTION_AGAIN;
-    case '/': 	FeedBack("/");
-    		Sflush(Suser_output);
-    		if ( setupFind(&s[1]) )
+    case '/':	FeedBack("/");
+		Sflush(Suser_output);
+		if ( setupFind(&s[1]) )
 		{ clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
 		}
 		return ACTION_AGAIN;
     case '.':   if ( LD->trace.find &&
 		     LD->trace.find->type != TRACE_FIND_NONE )
-      	        { FeedBack("repeat search\n");
+	        { FeedBack("repeat search\n");
 		  LD->trace.find->searching = TRUE;
 		  clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
@@ -727,11 +727,11 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		setPrintOptions(ATOM_print);
 		return ACTION_AGAIN;
     case 'l':	FeedBack("leap\n");
-    		tracemode(FALSE, NULL);
+		tracemode(FALSE, NULL);
 		return ACTION_CONTINUE;
     case 'n':	FeedBack("no debug\n");
 		tracemode(FALSE, NULL);
-    		debugmode(DBG_OFF, NULL);
+		debugmode(DBG_OFF, NULL);
 		return ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
 		backTrace(frame, num_arg == Default ? 5 : num_arg);
@@ -747,7 +747,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		}
 		return ACTION_AGAIN;
     case 'm':	FeedBack("Exception details");
-    	        if ( port & EXCEPTION_PORT )
+	        if ( port & EXCEPTION_PORT )
 		{ exceptionDetails();
 		} else
 		   Warn("No exception\n");
@@ -1274,6 +1274,7 @@ PL_walk_prolog_stack(void* ref, char* buf, size_t len, void** nextref)
     return 0;
 
   if ( fr->programPointer &&
+       fr->predicate &&
        false(fr->predicate, FOREIGN) &&
        fr->parent &&
        fr->parent->clause &&
@@ -1286,8 +1287,10 @@ PL_walk_prolog_stack(void* ref, char* buf, size_t len, void** nextref)
 		    predicateName(fr->predicate),
 		    (long)pc,
 		    clauseNo(fr->predicate, fr->clause->clause));
-  } else
+  } else if ( fr->predicate )
   { return snprintf(buf, len, "%s <foreign>", predicateName(fr->predicate));
+  } else
+  { return snprintf(buf, len, "invalid <predicate>");
   }
 }
 
@@ -2174,7 +2177,7 @@ callEventHook(int ev, ...)
     va_start(args, ev);
     switch(ev)
     { case PLEV_ERASED_CLAUSE:
-      {	Clause cl = va_arg(args, Clause); 	/* object erased */
+      {	Clause cl = va_arg(args, Clause);	/* object erased */
 	term_t dbref = PL_new_term_ref();
 
 	rc = (  PL_unify_clref(dbref, cl) &&
@@ -2185,7 +2188,7 @@ callEventHook(int ev, ...)
 	break;
       }
       case PLEV_ERASED_RECORD:
-      {	RecordRef r = va_arg(args, RecordRef); 	/* object erased */
+      {	RecordRef r = va_arg(args, RecordRef);	/* object erased */
 	term_t dbref = PL_new_term_ref();
 
 	rc = (  PL_unify_recref(dbref, r) &&
