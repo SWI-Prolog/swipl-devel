@@ -2340,13 +2340,18 @@ data.
 
 Note that initPrologStacks writes a dummy   marked cell below the global
 stack, so this routine needs not to check   for the bottom of the global
-stack.  This almost doubles the performance of this critical routine.
+stack. This almost doubles the performance of this critical routine.
 
-NOTE: making a hole using make_gc_hole() doubles  the speed when we have
-mostly empty stacks. Unfortunately other marks can point in the hole and
-react wrong. Possibly  we  can  fix   that  using  a  different  marking
-technique for the hole?
+(*) This function does a check for  the first non-garbage cell, which is
+a linear scan. If the are many   marks (choice-points and foreign marks)
+and a lot  of  garbage,  this   becomes  very  costly.  Therefore, after
+skipping a region the region  is  filled   with  variables  that cary as
+offset the location of the  target   non-garbage  location.  If scanning
+finds one of these cells, we simply fetch the value and go to `done'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define consVar(w) (((intptr_t)(w)<<LMASK_BITS) | TAG_VAR)
+#define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
 
 static void
 sweep_global_mark(Word *m ARG_LD)
@@ -2359,15 +2364,26 @@ sweep_global_mark(Word *m ARG_LD)
   { Word prev = gm-1;
 
     while( !(*prev & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
+    { if ( tag(*prev) == TAG_VAR && *prev != 0 )
+      { gm = gBase + valVar(*prev);
+	goto done;			/* (*) */
+      }
       prev--;
+    }
     gm = prev+1;
 
     if ( is_marked_or_first(prev) )
     {
     found:
-/*    if ( *m - gm > 5 )		See NOTE */
-/*	make_gc_hole(gm, *m - 1);		 */
+      { size_t off = gm-gBase;
+	word w = consVar(off);
+	Word p;
 
+	for(p = gm; p<(*m)-1; p++)
+	  *p = w;			/* (*) */
+      }
+
+    done:
       *m = gm;
       DEBUG(3, Sdprintf("gTop mark from choice point: "));
       needsRelocation(m);
