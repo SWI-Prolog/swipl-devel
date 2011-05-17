@@ -3477,7 +3477,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 
 	if ( how == X_NUMBER )
 	{ if ( s )				/* ISO: number_codes(X, "  42") */
-	  { while(*s && isBlankW(*s))
+	  { while(*s && isBlank(*s))
 	      s++;
 	  }
 	}
