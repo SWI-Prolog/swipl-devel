@@ -182,7 +182,7 @@ provide very few.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static struct signame
-{ int 	      sig;
+{ int	      sig;
   const char *name;
   int	      flags;
 } signames[] =
@@ -708,10 +708,26 @@ resetSignals()
 
 void
 allSignalMask(sigset_t *set)
-{ sigfillset(set);
+{ static sigset_t allmask;
+  static int done = FALSE;
+
+  if ( !done )
+  { sigset_t tmp;
+
+    sigfillset(&tmp);
+    sigdelset(&tmp, SIGSTOP);
+    sigdelset(&tmp, SIGCONT);
+    sigdelset(&tmp, SIGQUIT);
+    sigdelset(&tmp, SIGSEGV);
+    sigdelset(&tmp, SIGBUS);
 #ifdef O_PROFILE
-  sigdelset(set, SIGPROF);
+    sigdelset(&tmp, SIGPROF);
 #endif
+    allmask = tmp;
+    done = TRUE;
+  }
+
+  *set = allmask;
 }
 
 
@@ -1146,7 +1162,7 @@ emptyStacks()
 
 
 		/********************************
-		*    	STACK ALLOCATION        *
+		*	STACK ALLOCATION        *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1158,7 +1174,7 @@ init_stack(Stack s, char *name,
 	   size_t size, size_t limit, size_t minfree, size_t spare)
 { GET_LD
 
-  s->name 	= name;
+  s->name	= name;
   s->top	= s->base;
   s->size_limit	= limit;
   s->spare      = spare;
