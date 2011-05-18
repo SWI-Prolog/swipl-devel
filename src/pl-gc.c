@@ -2756,6 +2756,13 @@ quickly.
 
 Note that below the bottom of the stack   there  is a dummy marked cell.
 See also sweep_global_mark().
+
+It looks tempting to use the  down-references   in  GC-ed  areas left by
+sweep_global_mark(), but this does not work   because these cells can be
+inserted into new relocation chains while  sweeping the remainder of the
+data-areas :-( I tried, but this caused  a crash in Back52. After adding
+a check in into_relocation_chain() I discovered   that the above was the
+reason for the failure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Word
