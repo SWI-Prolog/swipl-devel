@@ -36,7 +36,7 @@
 	    '$break'/0,			% live in a break
 	    '$compile'/0,		% `-c' toplevel
 	    '$welcome'/0,		% banner
-	    prolog/0, 			% user toplevel predicate
+	    prolog/0,			% user toplevel predicate
 	    '$set_prompt'/1,		% set the main prompt
 	    (initialization)/1,		% initialization goal (directive)
 	    '$thread_init'/0,		% initialise thread
@@ -265,7 +265,9 @@ set_associated_file :-
 	current_prolog_flag(argv, Argv),
 	'$append'(Pre, [OsFile], Argv),
 	\+ memberchk(--, Pre),
-	\+ '$append'(_, ['-f'], Pre),	% Avoid loading twice
+	\+ ( '$append'(_, [LOpt], Pre),
+	     load_option(LOpt)		% Avoid loading twice
+	   ),
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
 	access_file(File, read), !,
@@ -278,6 +280,10 @@ set_associated_file :-
 	;   true
 	).
 set_associated_file.
+
+load_option('-s').
+load_option('-l').
+load_option('-f').
 
 
 %%	start_pldoc
