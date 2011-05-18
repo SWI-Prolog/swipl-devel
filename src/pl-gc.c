@@ -2391,9 +2391,13 @@ sweep_global_mark(Word *m ARG_LD)
       needsRelocation(m);
       check_relocation((Word)m);
       alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
+
       return;
-    } else if ( storage(*prev) == STG_LOCAL )	/* a large cell */
-    { size_t offset = wsizeofInd(*prev)+1;	/* = offset for a large cell */
+    } else				/* a large cell */
+    { size_t offset;
+
+      SECURE(assert(storage(*prev) == STG_LOCAL));
+      offset = wsizeofInd(*prev)+1;	/* = offset for a large cell */
       prev -= offset;
       if ( is_marked_or_first(prev) )
 	goto found;
@@ -2765,11 +2769,12 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
 	return make_gc_hole(current+1, top_gc);
       } else if ( is_first(current) )
       { update_relocation_chain(current, dest PASS_LD);
-      } else if ( storage(*current) == STG_LOCAL ) /* large cell */
-      { size_t offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
+      } else					/* large cell */
+      { size_t offset;
 
-	assert(offset > 0);
-	current -= offset;		/* start large cell */
+	SECURE(assert(storage(*current) == STG_LOCAL));
+	offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
+	current -= offset;			/* start large cell */
 	if ( is_marked(current) )
 	{ DEBUG(3, Sdprintf("Large-non-GC cell at %p, size %d\n",
 			    current, offset+1));
