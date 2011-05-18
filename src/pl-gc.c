@@ -2381,7 +2381,7 @@ sweep_global_mark(Word *m ARG_LD)
 	word w = consVar(off);
 	Word p;
 
-	for(p = gm; p<(*m)-1; p++)
+	for(p = gm+1; p<(*m); p++)
 	  *p = w;			/* (*) */
       }
 
