@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -427,6 +428,9 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
     return PL_error(NULL, 0, "file name contains a 0-code",
 		    ERR_DOMAIN, ATOM_file_name, n);
   }
+  if ( len+1 >= MAXPATHLEN )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+		    ATOM_max_path_length);
 
   if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(name = ExpandOneFile(name, tmp)) )
