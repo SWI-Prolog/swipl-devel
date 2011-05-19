@@ -433,7 +433,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
 		    ATOM_max_path_length);
 
   if ( truePrologFlag(PLFLAG_FILEVARS) )
-  { if ( !(name = ExpandOneFile(name, tmp)) )
+  { if ( !(name = expandVars(name, tmp, MAXPATHLEN)) )
       return FALSE;
   }
 
