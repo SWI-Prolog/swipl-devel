@@ -2836,11 +2836,11 @@ seed_from_dev(const char *dev ARG_LD)
 
       if ( rd >= MIN_RAND_SEED_LEN )
       { DEBUG(1, Sdprintf("Seed random using %ld bytes from %s\n",
-			  (long)n, dev));
+			  (long)rd, dev));
 
 	LD->gmp.persistent++;
 	mpz_init(seed);
-	mpz_import(seed, n, 1, sizeof(char), 0, 0, seedarray);
+	mpz_import(seed, rd, 1, sizeof(char), 0, 0, seedarray);
 	gmp_randseed(LD->arith.random.state, seed);
 	mpz_clear(seed);
 	LD->gmp.persistent--;
