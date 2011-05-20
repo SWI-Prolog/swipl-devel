@@ -334,7 +334,7 @@ Section "Base system (required)"
   File pl\library\csv.pl
   File pl\library\persistency.pl
   File pl\library\ansi_term.pl
-  File pl\library\optarse.pl
+  File pl\library\optparse.pl
 
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
