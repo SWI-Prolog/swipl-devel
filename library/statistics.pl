@@ -81,7 +81,7 @@ report(t(OldWall, OldTime, OldInferences), Sub) :-
 	->  Lips = 'Infinite'
 	;   Lips is integer(UsedInf / UsedTime)
 	),
-	print_message(informational, time(UsedInf, UsedTime, Wall, Lips)).
+	print_message(query, time(UsedInf, UsedTime, Wall, Lips)).
 
 time_state(t(Wall, Time, Inferences)) :-
 	get_time(Wall),
@@ -299,7 +299,7 @@ predicate_name(H, Name) :-
 	prolog:message/3.
 
 prolog:message(time(UsedInf, UsedTime, Wall, Lips)) -->
-	[ '~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
+	[ '% ~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
 	  [UsedInf, UsedTime, Wall, Perc, Lips] ],
 	{   Wall > 0
 	->  Perc is round(100*UsedTime/Wall)
