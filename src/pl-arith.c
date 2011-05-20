@@ -2432,7 +2432,7 @@ ar_u_minus(Number n1, Number r)
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
-  	if ( !promoteToFloatNumber(n1) )
+	if ( !promoteToFloatNumber(n1) )
 	  return FALSE;
 	r->type = V_FLOAT;
 #endif
@@ -2858,6 +2858,7 @@ seed_from_dev(const char *dev ARG_LD)
 
 
 #ifdef __WINDOWS__
+
 static void
 seed_random(ARG1_LD)
 { HCRYPTPROV hCryptProv;
@@ -2866,18 +2867,22 @@ seed_random(ARG1_LD)
 
   LD->gmp.persistent++;
 
-  if(CryptAcquireContext(&hCryptProv, user_name, NULL, PROV_RSA_FULL, 0))
-    CryptGenRandom(hCryptProv, sizeof(unsigned long), (BYTE*)&seed);
-  else if ((GetLastError() == NTE_BAD_KEYSET)
-           && CryptAcquireContext(&hCryptProv, user_name, NULL, PROV_RSA_FULL, CRYPT_NEWKEYSET))
-    CryptGenRandom(hCryptProv, sizeof(unsigned long), (BYTE*)&seed);
-  else
-    seed = (unsigned long)time(NULL);
+  if ( CryptAcquireContext(&hCryptProv, user_name, NULL, PROV_RSA_FULL, 0) )
+  { CryptGenRandom(hCryptProv, sizeof(unsigned long), (BYTE*)&seed);
+  } else if ( (GetLastError() == NTE_BAD_KEYSET) &&
+	      CryptAcquireContext(&hCryptProv, user_name, NULL,
+				  PROV_RSA_FULL, CRYPT_NEWKEYSET) )
+  { CryptGenRandom(hCryptProv, sizeof(unsigned long), (BYTE*)&seed);
+  } else
+  { seed = (unsigned long)time(NULL);
+  }
 
   gmp_randseed_ui(LD->arith.random.state, seed);
   LD->gmp.persistent--;
 }
+
 #else
+
 static void
 seed_random(ARG1_LD)
 { if ( !seed_from_dev("/dev/urandom" PASS_LD) &&
@@ -2888,6 +2893,7 @@ seed_random(ARG1_LD)
     LD->gmp.persistent--;
   }
 }
+
 #endif /* __WINDOWS__ */
 
 #else /* O_GMP */
