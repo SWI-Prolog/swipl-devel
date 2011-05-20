@@ -2818,7 +2818,7 @@ seed_from_dev(const char *dev ARG_LD)
 #ifdef S_ISCHR
   int fd;
 
-  if ( (fd=open("/dev/urandom", O_RDONLY)) )
+  if ( (fd=open(dev, O_RDONLY)) )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 && S_ISCHR(buf.st_mode) )
@@ -2835,8 +2835,8 @@ seed_from_dev(const char *dev ARG_LD)
       }
 
       if ( rd >= MIN_RAND_SEED_LEN )
-      { DEBUG(1, Sdprintf("Seed random using %ld bytes from /dev/random\n",
-			  (long)n));
+      { DEBUG(1, Sdprintf("Seed random using %ld bytes from %s\n",
+			  (long)n, dev));
 
 	LD->gmp.persistent++;
 	mpz_init(seed);
@@ -2857,6 +2857,27 @@ seed_from_dev(const char *dev ARG_LD)
 }
 
 
+#ifdef __WINDOWS__
+static void
+seed_random(ARG1_LD)
+{ HCRYPTPROV hCryptProv;
+  char *user_name = "seed_random";
+  unsigned long seed;
+
+  LD->gmp.persistent++;
+
+  if(CryptAcquireContext(&hCryptProv, user_name, NULL, PROV_RSA_FULL, 0))
+    CryptGenRandom(hCryptProv, sizeof(unsigned long), (BYTE*)&seed);
+  else if ((GetLastError() == NTE_BAD_KEYSET)
+           && CryptAcquireContext(&hCryptProv, user_name, NULL, PROV_RSA_FULL, CRYPT_NEWKEYSET))
+    CryptGenRandom(hCryptProv, sizeof(unsigned long), (BYTE*)&seed);
+  else
+    seed = (unsigned long)time(NULL);
+
+  gmp_randseed_ui(LD->arith.random.state, seed);
+  LD->gmp.persistent--;
+}
+#else
 static void
 seed_random(ARG1_LD)
 { if ( !seed_from_dev("/dev/urandom" PASS_LD) &&
@@ -2867,6 +2888,8 @@ seed_random(ARG1_LD)
     LD->gmp.persistent--;
   }
 }
+#endif /* __WINDOWS__ */
+
 #else /* O_GMP */
 
 static void
