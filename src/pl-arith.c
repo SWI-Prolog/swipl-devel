@@ -2857,44 +2857,59 @@ seed_from_dev(const char *dev ARG_LD)
 }
 
 
+
+static int
+seed_from_crypt_context(ARG1_LD)
+{
 #ifdef __WINDOWS__
-
-static void
-seed_random(ARG1_LD)
-{ HCRYPTPROV hCryptProv;
+  HCRYPTPROV hCryptProv;
   char *user_name = "seed_random";
-  unsigned long seed;
+  BYTE seedarray[RAND_SEED_LEN];
+  mpz_t seed;
 
-  LD->gmp.persistent++;
 
   if ( CryptAcquireContext(&hCryptProv, user_name, NULL, PROV_RSA_FULL, 0) )
-  { CryptGenRandom(hCryptProv, sizeof(unsigned long), (BYTE*)&seed);
+  { CryptGenRandom(hCryptProv, sizeof(seedarray), seedarray);
   } else if ( (GetLastError() == NTE_BAD_KEYSET) &&
 	      CryptAcquireContext(&hCryptProv, user_name, NULL,
 				  PROV_RSA_FULL, CRYPT_NEWKEYSET) )
-  { CryptGenRandom(hCryptProv, sizeof(unsigned long), (BYTE*)&seed);
+  { CryptGenRandom(hCryptProv, sizeof(seedarray), seedarray);
   } else
-  { seed = (unsigned long)time(NULL);
+  { return FALSE;
   }
 
-  gmp_randseed_ui(LD->arith.random.state, seed);
+  LD->gmp.persistent++;
+  mpz_init(seed);
+  mpz_import(seed, RAND_SEED_LEN, 1, sizeof(BYTE), 0, 0, seedarray);
+  gmp_randseed(LD->arith.random.state, seed);
+  mpz_clear(seed);
   LD->gmp.persistent--;
+
+  return TRUE;
+#else
+  return FALSE;
+#endif
 }
 
-#else
 
 static void
 seed_random(ARG1_LD)
 { if ( !seed_from_dev("/dev/urandom" PASS_LD) &&
-       !seed_from_dev("/dev/random" PASS_LD) )
-  { LD->gmp.persistent++;
-    gmp_randseed_ui(LD->arith.random.state,
-		    (unsigned long)time(NULL));
+       !seed_from_dev("/dev/random" PASS_LD) &&
+       !seed_from_crypt_context(PASS_LD1) )
+  { double t[1] = { WallTime() };
+    unsigned long key = 0;
+    unsigned long *p = (unsigned long*)t;
+    unsigned long *e = (unsigned long*)&t[1];
+
+    for(; p<e; p++)
+      key ^= *p;
+
+    LD->gmp.persistent++;
+    gmp_randseed_ui(LD->arith.random.state, key);
     LD->gmp.persistent--;
   }
 }
-
-#endif /* __WINDOWS__ */
 
 #else /* O_GMP */
 
