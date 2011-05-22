@@ -1934,7 +1934,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
- 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
+	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( debugstatus.debugging ) \
 	  newChoice(CHP_DEBUG, FR PASS_LD); \
 	PC    = cref->clause->codes; \
@@ -1946,7 +1946,7 @@ typedef enum
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
- 	  ch->value.PC = altpc; \
+	  ch->value.PC = altpc; \
 	} else if ( debugstatus.debugging ) \
 	{ newChoice(CHP_DEBUG, FR PASS_LD); \
 	} \
@@ -2100,9 +2100,7 @@ registers  should  hold  valid  data  and  the  machine stacks should be
 initialised properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if VMCODE_IS_ADDRESS
-  NEXT_INSTRUCTION;
-#else
+#if !VMCODE_IS_ADDRESS			/* no goto *ptr; use a switch */
 next_instruction:
   thiscode = *PC++;
 #ifdef O_DEBUGGER
