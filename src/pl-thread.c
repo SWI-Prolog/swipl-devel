@@ -618,6 +618,7 @@ exitPrologThreads()
   int canceled = 0;
 
   DEBUG(1, Sdprintf("exitPrologThreads(): me = %d\n", me));
+  GD->thread.enabled = FALSE;			/* we do not want new threads */
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
@@ -1560,7 +1561,7 @@ static const tprop tprop_list [] =
 
 
 typedef struct
-{ int 		tid;
+{ int		tid;
   const tprop  *p;
   int		enum_threads;
   int		enum_properties;
@@ -2203,8 +2204,8 @@ win32_cond_broadcast(win32_cond_t *cv)	/* must be holding associated mutex */
   return 0;
 }
 
-#define cv_broadcast 	win32_cond_broadcast
-#define cv_signal    	win32_cond_signal
+#define cv_broadcast	win32_cond_broadcast
+#define cv_signal	win32_cond_signal
 #define cv_init(cv,p)	win32_cond_init(cv)
 #define cv_destroy	win32_cond_destroy
 #else /*__WINDOWS__*/
@@ -2334,7 +2335,7 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 static int
 dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
 { return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var
-			  			  : &queue->drain_var),
+						  : &queue->drain_var),
 			 &queue->mutex);
 }
 
@@ -3413,7 +3414,7 @@ mutexCreate(atom_t name)
   m->owner = 0;
   m->id    = name;
   addHTable(GD->thread.mutexTable, (void *)name, m);
-  if ( isAtom(m->id) && GD->atoms.builtin ) 		/* (*) */
+  if ( isAtom(m->id) && GD->atoms.builtin )		/* (*) */
     PL_register_atom(m->id);
 
   return m;
