@@ -17,7 +17,8 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
 	pl-main.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
-	pl-dbref.o pl-termhash.o pl-codelist.o pl-variant.o
+	pl-dbref.o pl-termhash.o pl-codelist.o pl-variant.o \
+	pl-copyterm.o
 
 # Prolog library
 
