@@ -6,10 +6,12 @@ main program is update-deps. It is used as follows:
     This causes GCC to generate RTL-dumps of the compiler in addition
     to its normal output.
 
-    * Run ./update-deps *.expand. This generates file.c.tree, which
-    represents the call-tree (in Prolog format) and file.c.functions,
-    which represents the line-range for functions, including virtual
-    machine instruction implementations (VMI(...)) and predicates
-    (PRED_IMPL(...)).
+    * Run tools/update-deps *.expand. This generates file.c.tree,
+    which represents the call-tree (in Prolog format) and
+    file.c.functions, which represents the line-range for functions,
+    including virtual machine instruction implementations (VMI(...)) and
+    predicates (PRED_IMPL(...)).
+
+    * For problems with C-recursion, run tools/recursive.pl
 
     * Use analysis.pl to find problematic code fragments.
