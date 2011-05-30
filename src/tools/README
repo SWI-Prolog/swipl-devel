@@ -4,7 +4,7 @@ main program is update-deps. It is used as follows:
 
     * Add  -fdump-rtl-expand to COFLAGS and the Makefile and recompile.
     This causes GCC to generate RTL-dumps of the compiler in addition
-    to its normal output.
+    to its normal output.  Make sure to drop optimization (O*).
 
     * Run tools/update-deps *.expand. This generates file.c.tree,
     which represents the call-tree (in Prolog format) and
