@@ -2621,11 +2621,12 @@ the references of all clauses of the predicate.  The following example
 finds the 2nd clause of member/2:
 
 \begin{code}
-?- nth_clause(member(_,_), 2, Ref), clause(Head, Body, Ref).
-
-Ref = 160088
-Head = system : member(G575, [G578|G579])
-Body = member(G575, G579)
+?- use_module(library(lists)).
+...
+?- nth_clause(append(_,_,_), 2, Ref), clause(Head, Body, Ref).
+Ref = <clause>(0x994290),
+Head = lists:append([_G23|_G24], _G21, [_G23|_G27]),
+Body = append(_G24, _G21, _G27).
 \end{code}
     \predicate{clause_property}{2}{+ClauseRef, -Property}
 Queries properties of a clause.  \arg{ClauseRef} is a reference to a
