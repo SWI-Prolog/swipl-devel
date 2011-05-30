@@ -58,8 +58,8 @@ menu('&File',
      ]).
 menu('&Settings',
      [ --,
-       '&User init file ...' = prolog_edit_preferences(prolog),
-       '&Stack sizes ...'    = prolog_edit_preferences(stack_sizes)
+       '&User init file ...'  = prolog_edit_preferences(prolog),
+       '&GUI preferences ...' = prolog_edit_preferences(xpce)
      ],
      []).
 menu('&Debug',
@@ -77,8 +77,8 @@ menu('&Debug',
      [ before_menu(-)
      ]).
 menu('&Help',
-     [ '&About ...' 				= about,
-       '&Help ...' 				= help,
+     [ '&About ...'				= about,
+       '&Help ...'				= help,
        'SWI-Prolog &Manual (on www) ...'	= www_open(swipl_man),
        --,
        'SWI-Prolog &WWW home (on www) ...'	= www_open(swipl),
@@ -87,9 +87,9 @@ menu('&Help',
        'SWI-Prolog Mailing &List (on www) ...'	= www_open(swipl_mail),
        'SWI-Prolog &Download (on www) ...'	= www_open(swipl_download),
        --,
-       '&XPCE (GUI) Manual ...' 		= manpce,
+       '&XPCE (GUI) Manual ...'			= manpce,
        --,
-       'Submit &Bug report (on www) ...'  	= www_open(swipl_bugs)
+       'Submit &Bug report (on www) ...'	= www_open(swipl_bugs)
      ],
      [ before_menu(-)
      ]).
@@ -181,7 +181,7 @@ gather_arg(file(Mode, Title), File) :-
 	Filter =.. [chain|AllTuples],
 	current_prolog_flag(hwnd, HWND),
 	working_directory(CWD, CWD),
-	call(get(@display, win_file_name, 	% avoid autoloading
+	call(get(@display, win_file_name,	% avoid autoloading
 		 Mode, Filter, Title,
 		 directory := CWD,
 		 owner := HWND,
