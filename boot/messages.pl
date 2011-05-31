@@ -285,8 +285,11 @@ swi_context(file(Path, Line, -1, _CharNo)) --> !,
 	[ '~w:~d: '-[Path, Line] ].
 swi_context(file(Path, Line, LinePos, _CharNo)) -->
 	[ '~w:~d:~d: '-[Path, Line, LinePos] ].
-swi_context(stream(Stream, Line, LinePos, _CharNo)) -->
-	[ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ].
+swi_context(stream(Stream, Line, LinePos, CharNo)) -->
+	(   { stream_property(Stream, file_name(File)) }
+	->  swi_context(file(File, Line, LinePos, CharNo))
+        ;   [ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ]
+	).
 swi_context(_) -->
 	[].
 
