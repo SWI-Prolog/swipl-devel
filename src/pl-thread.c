@@ -350,7 +350,6 @@ static int	get_message_queue__LD(term_t t, message_queue **queue ARG_LD);
 static void	release_message_queue(message_queue *queue);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
-static double   ThreadCPUTime(PL_thread_info_t *info, int which);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
@@ -497,7 +496,7 @@ free_prolog_thread(void *data)
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
-  time = ThreadCPUTime(info, CPU_USER);
+  time = ThreadCPUTime(ld, CPU_USER);
 
   LOCK();
   destroy_message_queue(&ld->thread.messages);
@@ -4146,9 +4145,9 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
   if ( k == ATOM_heapused )
     ld = LD;
   else if ( k == ATOM_cputime || k == ATOM_runtime )
-    ld->statistics.user_cputime = ThreadCPUTime(info, CPU_USER);
+    ld->statistics.user_cputime = ThreadCPUTime(ld, CPU_USER);
   else if ( k == ATOM_system_time )
-    ld->statistics.system_cputime = ThreadCPUTime(info, CPU_SYSTEM);
+    ld->statistics.system_cputime = ThreadCPUTime(ld, CPU_SYSTEM);
 
   if ( LD == ld )		/* self: unlock first to avoid deadlock */
   { UNLOCK();
@@ -4171,9 +4170,10 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 #define nano * 0.0000001
 #define ntick 1.0			/* manual says 100.0 ??? */
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{ double t;
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
+{ PL_thread_info_t info = ld->thread.info;
+  double t;
   FILETIME created, exited, kerneltime, usertime;
   HANDLE win_thread;
 
@@ -4209,9 +4209,11 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 #ifdef PTHREAD_CPUCLOCKS
 #define NO_THREAD_SYSTEM_TIME 1
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{ if ( which == CPU_SYSTEM )
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
+{ PL_thread_info_t *info = ld->thread.info;
+
+  if ( which == CPU_SYSTEM )
     return 0.0;
 
   if ( info->has_tid )
@@ -4236,9 +4238,11 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 
 #include <mach/thread_act.h>
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{ if ( info->has_tid )
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
+{ PL_thread_info_t info = ld->thread.info;
+
+  if ( info->has_tid )
   { kern_return_t error;
     struct thread_basic_info th_info;
     mach_msg_type_number_t th_info_count = THREAD_BASIC_INFO_COUNT;
@@ -4377,9 +4381,10 @@ get_procps_entry(int tid)
 }
 
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{ procps_entry *e;
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
+{ PL_thread_info_t info = ld->thread.info;
+  procps_entry *e;
 
   if ( (e=get_procps_entry(info->pid)) )
   { char buffer[1000];
@@ -4475,9 +4480,10 @@ SyncSystemCPU(int sig)
 
 #endif  /*LINUX_CPUCLOCKS*/
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
 { GET_LD
+  PL_thread_info_t *info = ld->thread.info;
 
 #ifdef NO_THREAD_SYSTEM_TIME
   if ( which == CPU_SYSTEM )

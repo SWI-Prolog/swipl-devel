@@ -123,6 +123,8 @@ struct PL_global_data
     int		modules;		/* No. of modules in the system */
     intptr_t	codes;			/* No. of byte codes generated */
     double	start_time;		/* When Prolog was started */
+    double	user_cputime;		/* User CPU time (whole process) */
+    double	system_cputime;		/* Kernel CPU time (whole process) */
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */

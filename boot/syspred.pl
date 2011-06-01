@@ -710,7 +710,7 @@ statistics(Out) :-
 	statistics(localused, LocalUsed),
 	statistics(global, Global),
 	statistics(globalused, GlobalUsed),
-	statistics(cputime, Cputime),
+	statistics(process_cputime, Cputime),
 	statistics(inferences, Inferences),
 	statistics(heapused, Heapused),
 	statistics(atoms, Atoms),

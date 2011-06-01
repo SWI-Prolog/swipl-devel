@@ -324,7 +324,8 @@ int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);
 void			cleanupThreads();
-intptr_t			system_thread_id(PL_thread_info_t *info);
+intptr_t		system_thread_id(PL_thread_info_t *info);
+COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*

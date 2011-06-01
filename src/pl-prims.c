@@ -4436,6 +4436,9 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   if      (key == ATOM_cputime)				/* time */
   { v->type = V_FLOAT;
     v->value.f = LD->statistics.user_cputime;
+  } else if (key == ATOM_process_cputime)		/* time */
+  { v->type = V_FLOAT;
+    v->value.f = GD->statistics.user_cputime;
   } else if (key == ATOM_inferences)			/* inferences */
     v->value.i = LD->statistics.inferences;
   else if (key == ATOM_stack)
@@ -4573,10 +4576,12 @@ PRED_IMPL("statistics", 2, statistics, 0)
   atom_t k;
 
   if ( PL_get_atom(A1, &k) )
-  { if ( k == ATOM_cputime || k == ATOM_runtime )
-      LD->statistics.user_cputime = CpuTime(CPU_USER);
+  { if ( k == ATOM_process_cputime )
+      GD->statistics.user_cputime = CpuTime(CPU_USER);
+    if ( k == ATOM_cputime || k == ATOM_runtime )
+      LD->statistics.user_cputime = ThreadCPUTime(LD, CPU_USER);
     else if ( k == ATOM_system_time )
-      LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
+      LD->statistics.system_cputime = ThreadCPUTime(LD, CPU_SYSTEM);
   }
 
   return pl_statistics_ld(A1, A2, LD PASS_LD);

@@ -6813,7 +6813,8 @@ Quintus compatibility keys express times in milliseconds.
 agc		& Number of atom garbage-collections performed \\
 agc_gained	& Number of atoms removed \\
 agc_time	& Time spent in atom garbage-collections \\
-cputime         & (User) {\sc cpu} time since Prolog was started in seconds \\
+process_cputime & (User) {\sc cpu} time since Prolog was started in seconds \\
+cputime         & (User) {\sc cpu} time since thread was started in seconds \\
 inferences      & Total number of passes via the call and redo ports
                   since Prolog was started. \\
 heap		& Estimated total size of the heap (see \secref{heap}) \\
