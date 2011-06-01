@@ -861,7 +861,10 @@ Sputcode(int c, IOSTREAM *s)
   if ( s->tee && s->tee->magic == SIO_MAGIC )
     Sputcode(c, s->tee);
 
-  if ( c == '\n' && (s->flags&SIO_TEXT) && s->newline == SIO_NL_DOS )
+  if ( c == '\n' &&
+       (s->flags&SIO_TEXT) &&
+       s->newline == SIO_NL_DOS &&
+       s->lastc != '\r' )
   { if ( put_code('\r', s) < 0 )
       return -1;
   }
