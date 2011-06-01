@@ -4172,7 +4172,7 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 
 double
 ThreadCPUTime(PL_local_data_t *ld, int which)
-{ PL_thread_info_t info = ld->thread.info;
+{ PL_thread_info_t *info = ld->thread.info;
   double t;
   FILETIME created, exited, kerneltime, usertime;
   HANDLE win_thread;
