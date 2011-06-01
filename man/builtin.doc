@@ -6832,8 +6832,8 @@ trailused       & Number of bytes in use on the trail stack. \\
 traillimit      & Size to which the trail stack is allowed to grow \\
 atoms           & Total number of defined atoms. \\
 functors        & Total number of defined name/arity pairs. \\
-predicates      & Total number of predicate definitions. \\
-modules         & Total number of module definitions. \\
+predicates      & Total number of defined predicates. \\
+modules         & Total number of defined modules. \\
 codes           & Total amount of byte codes in all clauses. \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
@@ -6866,8 +6866,7 @@ garbage_collection & [ number of GC, bytes gained, time spent, bytes left ]
 		  sum of the memory left after each collection, which can be
 		  divided by the count to find the average working set size
 		  after GC.  Use \exam{[Count, Gained, Time|_]} for compatiblity. \\
-stack_shifts    & [ global shifts, local shifts, time spent ]
-		  (fails if no shifter in this version) \\
+stack_shifts    & [ global shifts, local shifts, time spent ] \\
 atoms		& [ number, memory use, 0 ] \\
 atom_garbage_collection &
 		  [ number of AGC, bytes gained, time spent ] \\
