@@ -296,35 +296,35 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 		 *	    FUNCTIONS		*
 		 *******************************/
 
-extern int		exitPrologThreads(void);
-extern bool		aliasThread(int tid, atom_t name);
-extern word		pl_thread_create(term_t goal, term_t id,
+COMMON(int)		exitPrologThreads(void);
+COMMON(bool)		aliasThread(int tid, atom_t name);
+COMMON(word)		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
-extern word		pl_thread_join(term_t thread, term_t retcode);
-extern word		pl_thread_exit(term_t retcode);
-extern foreign_t	pl_thread_signal(term_t thread, term_t goal);
+COMMON(word)		pl_thread_join(term_t thread, term_t retcode);
+COMMON(word)		pl_thread_exit(term_t retcode);
+COMMON(foreign_t)	pl_thread_signal(term_t thread, term_t goal);
 
-extern foreign_t	pl_thread_at_exit(term_t goal);
+COMMON(foreign_t)	pl_thread_at_exit(term_t goal);
 extern int		PL_thread_self(void);
 
-extern foreign_t	pl_mutex_destroy(term_t mutex);
-extern foreign_t	pl_mutex_lock(term_t mutex);
-extern foreign_t	pl_mutex_trylock(term_t mutex);
-extern foreign_t	pl_mutex_unlock(term_t mutex);
-extern foreign_t	pl_mutex_unlock_all(void);
+COMMON(foreign_t)	pl_mutex_destroy(term_t mutex);
+COMMON(foreign_t)	pl_mutex_lock(term_t mutex);
+COMMON(foreign_t)	pl_mutex_trylock(term_t mutex);
+COMMON(foreign_t)	pl_mutex_unlock(term_t mutex);
+COMMON(foreign_t)	pl_mutex_unlock_all(void);
 
-const char *		threadName(int id);
-void			executeThreadSignals(int sig);
-foreign_t		pl_attach_xterm(term_t in, term_t out);
-size_t			threadLocalHeapUsed(void);
-int			attachConsole(void);
-Definition		localiseDefinition(Definition def);
-LocalDefinitions	new_ldef_vector(void);
+COMMON(const char *)	threadName(int id);
+COMMON(void)		executeThreadSignals(int sig);
+COMMON(foreign_t)	pl_attach_xterm(term_t in, term_t out);
+COMMON(size_t)		threadLocalHeapUsed(void);
+COMMON(int)		attachConsole(void);
+COMMON(Definition)	localiseDefinition(Definition def);
+COMMON(LocalDefinitions) new_ldef_vector(void);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);
-void			cleanupThreads();
-intptr_t		system_thread_id(PL_thread_info_t *info);
+COMMON(void)		cleanupThreads();
+COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
 		 /*******************************
