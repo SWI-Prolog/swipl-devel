@@ -593,16 +593,6 @@ GLOBAL PL_local_data_t  PL_local_data;
 GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #endif
 
-#if !defined(O_PLMT) && !defined(O_MULTIPLE_ENGINES)
-#define GET_LD
-#define ARG_LD
-#define ARG1_LD void
-#define PASS_LD
-#define PASS_LD1
-#define LOCAL_LD  (&PL_local_data)
-#define GLOBAL_LD (&PL_local_data)
-#define LD	  GLOBAL_LD
-#endif /*O_PLMT && O_MULTIPLE_ENGINES*/
 #define GD (&PL_global_data)
 #define CD (&PL_code_data)
 

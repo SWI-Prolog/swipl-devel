@@ -169,8 +169,13 @@ typedef struct PL_global_data PL_global_data_t;
 #else
 
 #define GET_LD
-#define PRED_LD
-#define LOCAL_LD  GLOBAL_LD
+#define ARG_LD
+#define ARG1_LD void
+#define PASS_LD
+#define PASS_LD1
+#define LOCAL_LD  (&PL_local_data)
+#define GLOBAL_LD (&PL_local_data)
+#define LD	  GLOBAL_LD
 
 #endif
 
@@ -309,7 +314,7 @@ engine. The calls can be  nested,  but   the  program  must  ensure each
 blockGC() is matched by an unblockGC().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-COMMON(void) 	blockGC(int flags ARG_LD);	/* disallow garbage collect */
-COMMON(void) 	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
+COMMON(void)	blockGC(int flags ARG_LD);	/* disallow garbage collect */
+COMMON(void)	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
 
 #endif /*PL_BUILTIN_H_INCLUDED*/

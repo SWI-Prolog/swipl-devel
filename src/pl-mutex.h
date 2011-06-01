@@ -134,5 +134,11 @@ typedef struct counting_mutex
 extern counting_mutex  *allocSimpleMutex(const char *name);
 extern void		freeSimpleMutex(counting_mutex *m);
 
+#else /*O_PLMT*/
+
+#define simpleMutexLock(p)	(void)0
+#define simpleMutexUnlock(p)	(void)0
+
 #endif /*O_PLMT*/
+
 #endif /*PL_MUTEX_H_DEFINED*/
