@@ -4240,7 +4240,7 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 
 double
 ThreadCPUTime(PL_local_data_t *ld, int which)
-{ PL_thread_info_t info = ld->thread.info;
+{ PL_thread_info_t *info = ld->thread.info;
 
   if ( info->has_tid )
   { kern_return_t error;
@@ -4383,7 +4383,7 @@ get_procps_entry(int tid)
 
 double
 ThreadCPUTime(PL_local_data_t *ld, int which)
-{ PL_thread_info_t info = ld->thread.info;
+{ PL_thread_info_t *info = ld->thread.info;
   procps_entry *e;
 
   if ( (e=get_procps_entry(info->pid)) )
