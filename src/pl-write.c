@@ -172,7 +172,7 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
   p = &f->arguments[0];
   deRef(p);
   if ( isInteger(*p) )
-  { intptr_t n = valInteger(*p);
+  { int64_t n = valInteger(*p);
 
     if ( n >= 0 )
     { int i = (int)(n % 26);
