@@ -8,9 +8,9 @@
 # variable DLLIBVAR holds its name.
 
 bdir=@abs_top_builddir@
-ARCH=@ARCH@
+PLARCH=@PLARCH@
 PL=@PL@
-ldir=$bdir/../lib/$ARCH
+ldir=$bdir/../lib/$PLARCH
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$ldir

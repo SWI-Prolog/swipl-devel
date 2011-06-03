@@ -73,8 +73,8 @@ typedef struct
 #define NOTTYCONTROL FALSE
 #endif
 
-#ifndef ARCH
-#define ARCH "unknown"
+#ifndef PLARCH
+#define PLARCH "unknown"
 #endif
 #ifndef OS
 #define OS "unknown"

@@ -86,7 +86,7 @@ headers:	$(CINCLUDE) $(STREAMH)
 
 banner:
 		@echo ****************
-		@echo Making SWI-Prolog $(PLVERSION) for $(ARCH)
+		@echo Making SWI-Prolog $(PLVERSION) for $(PLARCH)
 		@echo To be installed in $(PLBASE)
 !IF "$(DBG)" == "true"
 		@echo *** Compiling version for DEBUGGING

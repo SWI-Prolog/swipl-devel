@@ -987,7 +987,7 @@ void
 initPrologFlags()
 { GET_LD
   setPrologFlag("iso",  FT_BOOL, FALSE, PLFLAG_ISO);
-  setPrologFlag("arch", FT_ATOM|FF_READONLY, ARCH);
+  setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
 #if __WINDOWS__
   setPrologFlag("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif

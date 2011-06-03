@@ -62,7 +62,7 @@ CHRPATH=@CHRPATH@
 ETAGS=@ETAGS@
 AR=@AR@
 RANLIB=@RANLIB@
-ARCH=@ARCH@
+PLARCH=@PLARCH@
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_SCRIPT=@INSTALL_SCRIPT@
@@ -91,7 +91,7 @@ CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).prc
-RUNTIMEDIR=../lib/$(ARCH)
+RUNTIMEDIR=../lib/$(PLARCH)
 PLLIB=@PLLIB@
 LNLIBS=@LNLIBS@
 USEPLLIB=@USEPLLIB@
@@ -107,7 +107,7 @@ DEVPL=./swipl.sh
 include $(srcdir)/common.mk
 
 # MacOS
-LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(ARCH)/$(SHARED)
+LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(PLARCH)/$(SHARED)
 
 OBJ+=	$(OSOBJ)
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
@@ -132,7 +132,7 @@ CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
-builddirs=../lib ../lib/$(ARCH) os
+builddirs=../lib ../lib/$(PLARCH) os
 
 # OPTIMISE=noprof: normal build; prof: build twice, using profiling
 # information to optimise branches.  Normally set through
@@ -166,7 +166,7 @@ index:		../library/INDEX.pl
 
 banner::
 		@echo "****************"
-		@echo "Making SWI-Prolog $(PLVERSION) for $(ARCH)"
+		@echo "Making SWI-Prolog $(PLVERSION) for $(PLARCH)"
 		@echo "To be installed in $(bindir)/$(PL)"
 		@echo "Home (libraries) in $(PLBASE)"
 		@echo "****************"
@@ -177,7 +177,7 @@ banner::
 # to run our local copy of SWI-Prolog.
 
 $(PL):		$(MKLIBS) $(PLOBJ)
-		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lswipl $(LNLIBS)
+		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(PLARCH) -lswipl $(LNLIBS)
 		$(CHRPATH) -c $(PL) || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
@@ -211,7 +211,7 @@ $(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
-		( cd ../lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
+		( cd ../lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
 endif
 endif
 
@@ -270,7 +270,7 @@ parms.h:	Makefile
 		@echo "#define DEFSTARTUP   \"$(DEFSTARTUP)\"" >> $@%
 		@echo $(PLVERSION) | \
 		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> $@%
-		@echo "#define ARCH	    \"$(ARCH)\""       >> $@%
+		@echo "#define PLARCH	    \"$(PLARCH)\""     >> $@%
 		@echo "#define C_LIBS	    \"$(LNLIBS)\""     >> $@%
 		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
 		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
@@ -340,12 +340,12 @@ dv-install:	install-arch install-libs install-bins html-install
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
 		for f in $(PL) swipl-ld swipl-rc; do \
-		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
+		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
 install-arch:	idirs iruntime
 		for f in $(PL) swipl-ld rc/swipl-rc; do \
-		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(ARCH); \
+		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(PLARCH); \
 		done
 
 install-libs:	idirs iboot ilib iruntime iinclude ipkgconfig iman idot install-demo
@@ -360,35 +360,35 @@ install-demo:	idirs
 		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
 		$(INSTALL_DATA) ../demo/README $(DESTDIR)$(PLBASE)/demo
 
-installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man demo boot library \
+installdirs=	bin bin/$(PLARCH) lib lib/$(PLARCH) man demo boot library \
 		library/clp library/unicode include include/sicstus dotfiles \
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/ciao library/dialect/ciao/engine \
 		library/dialect/sicstus
 
 iruntime:	idirs
-		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
-		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(ARCH)/$(PLLIB)
+		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)/$(PLLIB)
 ifeq ($(SOEXT),dylib)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
 		fi
 else
 ifeq ($(SOEXT),dll)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
-		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(ARCH) ; \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
+		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(PLARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
-		( cd $(DESTDIR)$(PLBASE)/lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
+		( cd $(DESTDIR)$(PLBASE)/lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
 		fi
 endif
 endif
 
 install-implib:	idirs
-		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(ARCH)
+		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 
 idirs::
 		if [ ! -d $(DESTDIR)$(libdir)  ]; then $(MKDIR) $(DESTDIR)$(libdir); fi

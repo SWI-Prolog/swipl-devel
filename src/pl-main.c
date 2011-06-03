@@ -348,7 +348,7 @@ static void
 initDefaults()
 { GET_LD
 
-  systemDefaults.arch	     = ARCH;
+  systemDefaults.arch	     = PLARCH;
   systemDefaults.local       = DEFLOCAL;
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
@@ -1045,7 +1045,7 @@ version()
 	  PLVERSION / 10000,
 	  (PLVERSION / 100) % 100,
 	  PLVERSION % 100,
-	  ARCH);
+	  PLARCH);
 
   return TRUE;
 }
@@ -1053,7 +1053,7 @@ version()
 
 static int
 arch()
-{ Sprintf("%s\n", ARCH);
+{ Sprintf("%s\n", PLARCH);
 
   return TRUE;
 }
@@ -1103,7 +1103,7 @@ runtime_vars(int format)
 
   printvar("CC",	C_CC, format);
   printvar("PLBASE",	home, format);
-  printvar("PLARCH",	ARCH, format);
+  printvar("PLARCH",	PLARCH, format);
   printvar("PLLIBS",	C_LIBS, format);
   printvar("PLLIB",	C_PLLIB, format);
   printvar("PLCFLAGS",  C_CFLAGS, format);

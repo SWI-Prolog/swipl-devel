@@ -13,7 +13,7 @@ AC_SUBST(MKDIR)
 AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(PROGLDFLAGS)
-AC_SUBST(ARCH)
+AC_SUBST(PLARCH)
 AC_SUBST(PLSHARED)
 AC_SUBST(PLTHREADS)
 AC_SUBST(PL)
@@ -86,16 +86,16 @@ LDEXE="$CC"
 AC_PROG_RANLIB
 AC_CANONICAL_HOST
 changequote(,)dnl
-if test "x$ARCH" = "x"; then
+if test "x$PLARCH" = "x"; then
   case "$host" in
     *linux*)
-      ARCH=`echo $host | sed 's/-.*/-linux/'`
+      PLARCH=`echo $host | sed 's/-.*/-linux/'`
       ;;
     *-gnu)
-      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
+      PLARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
       ;;
     *)
-      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+      PLARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
       ;;
   esac
 fi
@@ -234,7 +234,7 @@ if test "x$custom_flags" = "xyes" ; then
 	else
 		COFLAGS="${COFLAGS--O}"
 
-		case "$ARCH" in
+		case "$PLARCH" in
 			*mips-irix*)
 				COFLAGS="${COFLAGS--O -OPT:Olimit_opt=on}"
 			;;
@@ -256,7 +256,7 @@ dnl On Alpha machines we need to enable IEEE float arithmetic to avoid
 dnl FPE signals on float underflow/overflow
 dnl ****************************************************************
 
-case "$ARCH" in
+case "$PLARCH" in
     *sco*|*SCO*)
 	AC_MSG_CHECKING("SCO-Unix.  See if we need -belf")
 	old_cflags="$CFLAGS"
@@ -309,7 +309,7 @@ EOF
   fi
 fi
 
-case "$ARCH" in
+case "$PLARCH" in
     *cygwin*)
 	EXTRAHDR=def
         ;;
@@ -387,7 +387,7 @@ if test "$PLSHARED" = "yes"; then
 dnl Some versions of (g)cc need to export the symbols from the main program
 dnl using -rdynamic.  See whether this gcc understands this flag.
 
-case "$ARCH" in
+case "$PLARCH" in
   *darwin*)
 	rdynamic=done
 	;;
@@ -430,10 +430,10 @@ SO_pic="-fpic"
 SO_PIC="-fPIC"
 SO_LD="$CC"
 SO_EXT="so"
-SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH$RPATH_EXTRA"
+SO_PATH="-Wl,-rpath=$PLBASE/lib/$PLARCH$RPATH_EXTRA"
 DLLIBVAR=LD_LIBRARY_PATH
 
-case "$ARCH" in
+case "$PLARCH" in
   *solaris* | *sunos*)
 	SO_LDFLAGS="-G"
 	if test "$GCC" != "yes"; then
@@ -518,7 +518,7 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
 		   [Name of the SWI-Prolog executable (normally pl)])
-case "$ARCH" in
+case "$PLARCH" in
   *cygwin*)
 	PLSO=cygpl.$SO_EXT
 	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libswipl.dll.a $(DEF)'
@@ -544,7 +544,7 @@ PLTHREADS=no
 if test "$MT" = "yes"; then
 pthread_ok=false
 
-case "$ARCH" in
+case "$PLARCH" in
     *freebsd*)
 	AC_DEFINE(_THREAD_SAFE, 1,
 		  [Required in FreeBSD for compiling thread-safe code])
@@ -672,7 +672,7 @@ dnl Hacks for MacOS handling of libreadline.  We want to prefer the MacOS X
 dnl libraries, but we need to get libreadline from Macports, as the BSD
 dnl version is severely limited.
 
-case "$ARCH" in
+case "$PLARCH" in
   *darwin*)
 	if test -z "$RLPREFIX"; then
 	  RLPREFIX=/opt/local
@@ -1536,7 +1536,7 @@ if test "$MKSHARED" = yes; then
   MKLIBS="$MKLIBS sharedlib"
   CMFLAGS="$CMFLAGS $SO_PIC"
   LDFLAGS="$LDFLAGS $SO_PATH"
-  case "$ARCH" in
+  case "$PLARCH" in
     *cygwin*)
 	LNLIBS="$LIBS"
 	;;

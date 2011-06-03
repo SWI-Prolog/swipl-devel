@@ -16,7 +16,7 @@ LIBZLIB=zlib1
 NSIS=C:\Program Files\NSIS\MakeNSIS.exe
 
 # Architecture ID
-ARCH=i386-win32
+PLARCH=i386-win32
 
 # Extra libraries to load
 EXTRALIBS=
