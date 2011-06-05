@@ -1617,11 +1617,12 @@ load_files(Module:Files, Options) :-
 	var(Var), !,
 	throw(error(instantitation_error, _)).
 '$import_list'(Target, Source, all, Reexport) :- !,
-	'$module_property'(Source, exports(Import)),
-	'$import_ops'(Target, Source, _All),
+	'$exported_ops'(Source, Import, Predicates),
+	'$module_property'(Source, exports(Predicates)),
 	'$import_list'(Target, Source, Import, Reexport).
 '$import_list'(Target, Source, except(Spec), Reexport) :- !,
-	'$module_property'(Source, exports(Export)),
+	'$exported_ops'(Source, Export, Predicates),
+	'$module_property'(Source, exports(Predicates)),
 	(   is_list(Spec)
 	->  true
 	;   throw(error(type_error(list, Spec), _))
@@ -1636,28 +1637,47 @@ load_files(Module:Files, Options) :-
 
 
 '$import_except'([], List, List).
-'$import_except'([H as N|T], List0, List) :- !,
-	'$import_as'(H, N, List0, List1),
-	'$import_except'(T, List1, List).
 '$import_except'([H|T], List0, List) :-
-	'$select'(P, List0, List1),
-	'$same_pi'(H, P), !,
+	'$import_except_1'(H, List0, List1),
 	'$import_except'(T, List1, List).
 
-'$import_as'(PI, N, [PI2|T], [PI as N|T]) :-
-	'$same_pi'(PI, PI2), !.
+'$import_except_1'(Var, _, _) :-
+	var(Var), !,
+	throw(error(instantitation_error, _)).
+'$import_except_1'(PI as N, List0, List) :-
+	'$pi'(PI), atom(N), !,
+	'$canonical_pi'(PI, CPI),
+	'$import_as'(CPI, N, List0, List).
+'$import_except_1'(op(P,A,N), List0, List) :- !,
+	'$remove_ops'(List0, op(P,A,N), List).
+'$import_except_1'(PI, List0, List) :-
+	'$pi'(PI), !,
+	'$canonical_pi'(PI, CPI),
+	'$select'(P, List0, List),
+	'$canonical_pi'(CPI, P), !.
+'$import_except_1'(Except, _, _) :-
+	throw(error(type_error(import_specifier, Except), _)).
+
+'$import_as'(CPI, N, [PI2|T], [CPI as N|T]) :-
+	'$canonical_pi'(PI2, CPI), !.
 '$import_as'(PI, N, [H|T0], [H|T]) :- !,
 	'$import_as'(PI, N, T0, T).
 '$import_as'(PI, _, _, _) :-
 	throw(error(existence_error(export, PI), _)).
 
-'$same_pi'(PI1, PI2) :-
-	'$canonical_pi'(PI1, PI),
-	'$canonical_pi'(PI2, PI).
+'$pi'(N/A) :- atom(N), integer(A), !.
+'$pi'(N//A) :- atom(N), integer(A).
 
-'$canonical_pi'(N//A0, N/A) :- !,
+'$canonical_pi'(N//A0, N/A) :-
 	A is A0 + 2.
 '$canonical_pi'(PI, PI).
+
+'$remove_ops'([], _, []).
+'$remove_ops'([Op|T0], Pattern, T) :-
+	subsumes_term(Pattern, Op), !,
+	'$remove_ops'(T0, Pattern, T).
+'$remove_ops'([H|T0], Pattern, [H|T]) :-
+	'$remove_ops'(T0, Pattern, T).
 
 
 '$import_all'(Import, Context, Source, Reexport) :-
@@ -1698,13 +1718,33 @@ load_files(Module:Files, Options) :-
 '$list_to_conj'([H|T], (H,Rest)) :-
 	'$list_to_conj'(T, Rest).
 
+%%	'$exported_ops'(+Module, -Ops, ?Tail) is det.
+%
+%	Ops is a list of op(P,A,N) terms representing the operators
+%	exported from Module.
+
+'$exported_ops'(Module, Ops, Tail) :-
+	current_predicate(Module:'$exported_op'/3), !,
+	findall(op(P,A,N), Module:'$exported_op'(P,A,N), Ops, Tail).
+'$exported_ops'(_, Ops, Ops).
+
+
 %%	'$import_ops'(+Target, +Source, +Pattern)
 %
 %	Import the operators export from Source into the module table of
 %	Target.  We only import operators that unify with Pattern.
 
 '$import_ops'(To, From, Pattern) :-
-	(   '$c_current_predicate'(_, From:'$exported_op'(_, _, _)),
+	ground(Pattern), !,
+	Pattern = op(P,A,N),
+	op(P,A,To:N),
+	(   current_predicate(From:'$exported_op'/3),
+	    From:'$exported_op'(P, A, N)
+	->  true
+	;   print_message(warning, no_exported_op(From, Pattern))
+	).
+'$import_ops'(To, From, Pattern) :-
+	(   current_predicate(From:'$exported_op'/3),
 	    From:'$exported_op'(Pri, Assoc, Name),
 	    Pattern = op(Pri, Assoc, To:Name),
 	    op(Pri, Assoc, To:Name),
