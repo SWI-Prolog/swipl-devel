@@ -861,7 +861,7 @@ The file-extension of this file is \fileext{qlf}. The base name of the
 Quick Load File is the same as the input file.
 
 If the file contains `\exam{:- consult(\arg{+File})}', `\exam{:-
-[\arg{+File}]}' or \exam{:- load_files(\arg{+File}, [qcompile(true),
+[\arg{+File}]}' or \exam{:- load_files(\arg{+File}, [qcompile(part),
 ...])} statements, the referred files are compiled into the
 same \fileext{qlf} file. Other directives will be stored in the
 \fileext{qlf} file and executed in the same fashion as when loading the
