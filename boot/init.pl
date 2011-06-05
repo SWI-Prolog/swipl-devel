@@ -601,7 +601,7 @@ absolute_file_name(Spec, Path, Args) :-
 	;   '$chk_file'(Spec1, Extensions, C3, false, Path)
 	).
 
-'$file_type_extensions'(source, Exts) :- !, 	% SICStus 3.9 compatibility
+'$file_type_extensions'(source, Exts) :- !,	% SICStus 3.9 compatibility
 	'$file_type_extensions'(prolog, Exts).
 '$file_type_extensions'(Type, Exts) :-
 	'$current_module'('$bags', _File), !,
@@ -800,10 +800,10 @@ extensions to .ext
 		*********************************/
 
 :- user:(dynamic
-	 	library_directory/1,
+		library_directory/1,
 	        prolog_load_file/2).
 :- user:(multifile
-	 	library_directory/1,
+		library_directory/1,
 	        prolog_load_file/2).
 
 
@@ -1300,7 +1300,7 @@ load_files(Module:Files, Options) :-
 
 %%	'$import_from_loaded_module'(LoadedModule, Module, Options) is det.
 %
-% 	Import public predicates from LoadedModule into Module
+%	Import public predicates from LoadedModule into Module
 
 '$import_from_loaded_module'(LoadedModule, Module, Options) :-
 	LoadedModule \== Module,
@@ -1489,7 +1489,7 @@ load_files(Module:Files, Options) :-
 '$load_file'(_, _, _, File, _, Options) :-
 	'$get_option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, _, File, Module, _) :- !, 	% empty file
+'$load_file'(end_of_file, _, _, File, Module, _) :- !,	% empty file
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
 	'$ifcompiling'('$qlf_end_part').
@@ -1676,12 +1676,14 @@ load_files(Module:Files, Options) :-
 	length(Args, Arity),
 	Head =.. [Name|Args],
 	NewHead =.. [NewName|Args],
-	source_location(File, _Line),
 	(   '$get_predicate_attribute'(Source:Head, transparent, 1)
 	->  '$set_predicate_attribute'(Context:NewHead, transparent, 1)
 	;   true
 	),
-	'$store_clause'((NewHead :- Source:Head), File),
+	(   source_location(File, _Line)
+	->  '$store_clause'((NewHead :- Source:Head), File)
+	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
+	),					 % duplicate load
 	'$import_all2'(Rest, Context, Source, Imported).
 '$import_all2'([op(P,A,N)|Rest], Context, Source, Imported) :- !,
 	'$import_ops'(Context, Source, op(P,A,N)),
