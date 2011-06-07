@@ -181,10 +181,29 @@ A cut has been executed.  See \term{cut_call}{PC} for more information.
 \arg{Frame} is a reference to the current local stack frame, which can
 be examined using prolog_frame_attribute/3. \arg{Choice} is a reference
 to the last choice-point and can be examined using
-prolog_choice_attribute/3. \arg{Action} should be unified with one of
-the atoms \const{continue} (just continue execution), \const{retry}
-(retry the current goal) or \const{fail} (force the current goal to
-fail). Leaving it a variable is identical to \const{continue}.
+prolog_choice_attribute/3. \arg{Action} must be unified with a term that
+specifies how execution must continue. The following actions are
+defined:
+
+\begin{description}
+    \termitem{abort}{}
+Abort execution.  See abort/0.
+    \termitem{continue}{}
+Continue (i.e., \jargon{creep} in the commandline debugger).
+    \termitem{fail}{}
+Make the current goal fail.
+    \termitem{ignore}{}
+Step over the current goal without executing it.
+    \termitem{nodebug}{}
+Continue execution in normal nodebugging mode.  See nodebug/0.
+    \termitem{retry}{}
+Retry the current frame.
+    \termitem{retry}{Frame}
+Retry the given frame.  This must be a parent of the current
+frame.
+    \termitem{skip}{}
+Skip over the current goal (i.e., \jargon{skip} in the commandline debugger).
+\end{description}
 
 Together with the predicates described in \secref{debugger}
 and the other predicates of this chapter this predicate enables the

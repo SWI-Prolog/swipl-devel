@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -58,16 +59,19 @@
 
 /** <module> Ordered set manipulation
 
-Very incomplete implementation  of   Quintus/SICStus  compatible  ordset
-library, partially based on the   contributed  SWI-Prolog library(oset).
-Please complete the implementation and contribute   it to the SWI-Prolog
-community.
+Ordered sets are lists with unique elements sorted to the standard order
+of terms (see sort/2). Exploiting ordering,   many of the set operations
+can be expressed in order N rather  than N^2 when dealing with unordered
+sets that may contain duplicates. The library(ordsets) is available in a
+number of Prolog implementations. Our  predicates   are  designed  to be
+compatible  with  common  practice   in    the   Prolog  community.  The
+implementation is incomplete and  relies   partly  on  library(oset), an
+older ordered set library distributed  with SWI-Prolog. New applications
+are advices to use library(ordsets).
 
-This library was implemented to run the threetap theorem prover.  It was
-extended to satisfy requirements by CHR.
-
-@compat	De-facto standard.
-@bug	Incomplete
+Some  of  these  predicates  match    directly   to  corresponding  list
+operations. It is adviced to use the  versions from this library to make
+clear you are operating on ordered sets.
 */
 
 %%	is_ordset(@Term) is semidet.
@@ -92,9 +96,10 @@ is_ordset3([H2|T], H) :-
 	is_ordset3(T, H2).
 
 
-%%	ord_empty(List)
+%%	ord_empty(?List) is semidet.
 %
-%	True if List is the empty ordered set.  Not part of Quintus
+%	True when List is the  empty   ordered  set. Simply unifies list
+%	with the empty list. Not part of Quintus.
 
 ord_empty([]).
 
@@ -110,7 +115,7 @@ ord_seteq(Set1, Set2) :-
 	Set1 == Set2.
 
 
-%%	list_to_ord_set(+List, -OrdSet)
+%%	list_to_ord_set(+List, -OrdSet) is det.
 %
 %	Transform a list into an ordered set.  This is the same as
 %	sorting the list.
@@ -119,9 +124,9 @@ list_to_ord_set(List, Set) :-
 	sort(List, Set).
 
 
-%%	ord_intersect(+Set1, +Set2)
+%%	ord_intersect(+Set1, +Set2) is semidet.
 %
-%	Succeed if both ordered sets have a non-empty intersection
+%	True if both ordered sets have a non-empty intersection.
 
 ord_intersect([H1|T1], L2) :-
 	ord_intersect_(L2, H1, T1).
@@ -137,9 +142,10 @@ ord_intersect__(>, H1, T1,  _H2, T2) :-
 	ord_intersect_(T2, H1, T1).
 
 
-%%	ord_disjoint(+Set1, +Set2)
+%%	ord_disjoint(+Set1, +Set2) is semidet.
 %
-%	True if Set1 and Set2 have no common elements
+%	True if Set1 and Set2  have  no   common  elements.  This is the
+%	negation of ord_intersect/2.
 
 ord_disjoint(Set1, Set2) :-
 	\+ ord_intersect(Set1, Set2).
@@ -157,7 +163,7 @@ ord_intersect(Set1, Set2, Intersection) :-
 
 %%	ord_intersection(+PowerSet, -Intersection)
 %
-%	True if Intersection is an ordered set holding all elements
+%	True if Intersection is an  ordered   set  holding  all elements
 %	common to all sets in PowerSet.
 %
 %	@compat sicstus
@@ -178,7 +184,7 @@ l_int([_-H|T], S0, S) :-
 	l_int(T, S1, S).
 
 
-%%	ord_intersection(+Set1, +Set2, -Intersection)
+%%	ord_intersection(+Set1, +Set2, -Intersection) is det.
 %
 %	Intersection holds the common elements of Set1 and Set2.
 
@@ -190,7 +196,7 @@ ord_intersection(Set1, Set2, Intersection) :-
 %
 %	Intersection  and  difference   between    two   ordered   sets.
 %	Intersection is the intersection between   Set1  and Set2, while
-%	Difference is Set2\Set1.
+%	Difference is defined by ord_subtract(Set2, Set1, Difference).
 %
 %	@see ord_intersection/3 and ord_subtract/3.
 
@@ -208,23 +214,25 @@ ord_intersection2(>, H1, T1, H2, T2, Intersection, [H2|HDiff]) :-
 	ord_intersection([H1|T1], T2, Intersection, HDiff).
 
 
-%%	ord_add_element(+Set1, +Element, ?Set2)
+%%	ord_add_element(+Set1, +Element, ?Set2) is det.
 %
-%	Insert an element into the set
+%	Insert  an  element  into  the  set.    This   is  the  same  as
+%	ord_union(Set1, [Element], Set2).
 
 ord_add_element(Set1, Element, Set2) :-
 	oset_addel(Set1, Element, Set2).
 
 
-%%	ord_del_element(+Set, +Element, -NewSet)
+%%	ord_del_element(+Set, +Element, -NewSet) is det.
 %
-%	Delete an element from an ordered set
+%	Delete an element from an  ordered  set.   This  is  the same as
+%	ord_subtract(Set, [Element], NewSet).
 
 ord_del_element(Set, Element, NewSet) :-
 	oset_delel(Set, Element, NewSet).
 
 
-%%	ord_memberchk(+Element, +Set)
+%%	ord_memberchk(+Element, +Set) is semidet.
 %
 %	Check membership. This could stop comparing   we have passed the
 %	right value, saving scanning  (on  average)   half  the  list if
@@ -236,7 +244,7 @@ ord_del_element(Set, Element, NewSet) :-
 ord_memberchk(Element, Set) :-
 	memberchk(Element, Set).
 
-%%	ord_member(?Element, +Set)
+%%	ord_member(?Element, +Set) is nondet.
 %
 %	True if Element is a member of   Set.  Stops if further elements
 %	are behind Element in the standard order of terms.
@@ -251,7 +259,7 @@ ord_member(Element, [H|T]) :-
 	).
 
 
-%%	ord_subset(+Sub, +Super)
+%%	ord_subset(+Sub, +Super) is semidet.
 %
 %	Is true if all element of Sub are in Super
 
@@ -267,7 +275,7 @@ ord_subset_(=, _, T1, T2) :-
 	ord_subset(T1, T2).
 
 
-%%	ord_subtract(+InOSet, +NotInOSet, -Diff)
+%%	ord_subtract(+InOSet, +NotInOSet, -Diff) is det.
 %
 %	Diff is the set holding all elements of InOSet that are not in
 %	NotInOSet.
@@ -303,7 +311,7 @@ ord_union_all(N, Sets0, Union, Sets) :-
 	).
 
 
-%%	ord_union(+Set1, +Set2, ?Union)
+%%	ord_union(+Set1, +Set2, ?Union) is det.
 %
 %	Union is the union of Set1 and Set2
 
@@ -311,7 +319,7 @@ ord_union(Set1, Set2, Union) :-
 	oset_union(Set1, Set2, Union).
 
 
-%%	ord_union(+Set1, +Set2, -Union,	-New)
+%%	ord_union(+Set1, +Set2, -Union,	-New) is det.
 %
 %	True if Union iff ord_union(Set1, Set2, Union) and
 %	ord_subtract(Set2, Set1, New).
@@ -338,9 +346,26 @@ ord_union_2([H|T], H2, T2, Union, New) :-
 	ord_union(Order, H, T, H2, T2, Union, New).
 
 
-%%      ord_symdiff(+Set1, +Set2, ?Difference)
+%%      ord_symdiff(+Set1, +Set2, ?Difference) is det.
 %
-%       is true when Difference is the symmetric difference of Set1 and Set2.
+%	Is true when Difference is the  symmetric difference of Set1 and
+%	Set2. I.e., Difference contains all elements that are not in the
+%	intersection of Set1 and Set2. The semantics  is the same as the
+%	sequence below (but the actual   implementation  requires only a
+%	single scan).
+%
+%	  ==
+%		ord_union(Set1, Set2, Union),
+%		ord_intersection(Set1, Set2, Intersection),
+%		ord_subtract(Union, Intersection, Difference).
+%	  ==
+%
+%	For example:
+%
+%	  ==
+%	  ?- ord_symdiff([1,2], [2,3], X).
+%	  X = [1,3].
+%	  ==
 
 ord_symdiff([], Set2, Set2).
 ord_symdiff([H1|T1], Set2, Difference) :-
