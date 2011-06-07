@@ -88,10 +88,10 @@ PL_put_frame(term_t t, LocalFrame fr)
 static int
 PL_get_frame(term_t r, LocalFrame *fr)
 { GET_LD
-  long i;
+  intptr_t i;
   atom_t a;
 
-  if ( PL_get_long(r, &i) )
+  if ( PL_get_intptr(r, &i) )
   { LocalFrame f = ((LocalFrame)((Word)lBase + i));
 
     if ( !(f >= lBase && f < lTop) )
@@ -1203,19 +1203,29 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
       if ( PL_get_atom(rarg, &a) )
       { if ( a == ATOM_continue )
-	  rval = ACTION_CONTINUE;
-	else if ( a == ATOM_nodebug )
+	{ rval = ACTION_CONTINUE;
+	} else if ( a == ATOM_nodebug )
 	{ rval = ACTION_CONTINUE;
 	  nodebug = TRUE;
 	} else if ( a == ATOM_fail )
-	  rval = ACTION_FAIL;
-	else if ( a == ATOM_retry )
-	  rval = ACTION_RETRY;
-	else if ( a == ATOM_ignore )
-	  rval = ACTION_IGNORE;
-	else if ( a == ATOM_abort )
-	  rval = ACTION_ABORT;
-	else
+	{ rval = ACTION_FAIL;
+	} else if ( a == ATOM_skip )
+	{ if ( !(port & CUT_PORT) )
+	  { LocalFrame fr;
+
+	    if ( PL_get_frame(argv+1, &fr) )
+	      debugstatus.skiplevel = levelFrame(fr);
+	    else
+	      assert(0);
+	  }
+	  rval = ACTION_CONTINUE;
+	} else if ( a == ATOM_retry )
+	{ rval = ACTION_RETRY;
+	} else if ( a == ATOM_ignore )
+	{ rval = ACTION_IGNORE;
+	} else if ( a == ATOM_abort )
+	{ rval = ACTION_ABORT;
+	} else
 	  PL_warning("Unknown trace action: %s", stringAtom(a));
       } else if ( PL_is_functor(rarg, FUNCTOR_retry1) )
       { LocalFrame fr;
