@@ -2122,13 +2122,10 @@ popen(cat-2) :-
 	->  Cmd = 'cmd /c rem true'
 	;   Cmd = true
 	),
-	absolute_file_name(swi('library/MANUAL'), Manual),
-	open(Manual, read, Fd),
 	open(pipe(Cmd), write, Pipe),
-	catch(copy_stream_data(Fd, Pipe),
+	catch(forall(between(1, 10000, _), format(Pipe, '0123456789~n', [])),
 	      E,
 	      true),
-	close(Fd),
 	catch(close(Pipe), _, true),	% ???
 	(   var(E)
 	->  format(user_error, 'No exception?~n', []),
