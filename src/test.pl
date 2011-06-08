@@ -1385,11 +1385,6 @@ flag(arith-1) :-
 	flag(f, V, V+1),
 	flag(f, NV, Old),
 	NV == 1.
-flag(arith-2) :-
-	flag(f, Old, 100),
-	flag(f, V, mean(V, 0)),
-	flag(f, NV, Old),
-	NV == 50.
 
 
 		 /*******************************

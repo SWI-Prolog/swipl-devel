@@ -60,6 +60,10 @@ test(except, throw(error(foobar))) :-
 	_ is except.
 test(depth_limit, throw(depth_limit_exceeded)) :-
 	_A is fac(10).
+test(flag, NV == 50) :-
+	flag(f, Old, 100),
+	flag(f, V, mean(V, 0)),
+	flag(f, NV, Old).
 
 :- if(current_prolog_flag(bounded, false)). % GMP implies rational
 
