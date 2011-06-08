@@ -31,6 +31,7 @@
 	  [ arithmetic_function/1,
 	    eval_arithmetic_expression/2  % -Result, :Expression
 	  ]).
+:- use_module(library(error)).
 
 /** <module> Extensible arithmetic
 
@@ -122,8 +123,120 @@ visible(M, Super) :-
 
 
 		 /*******************************
+		 *	   COMPILE-TIME		*
+		 *******************************/
+
+math_goal_expansion(A is Expr, Goal) :-
+	expand_function(Expr, Native, Pre),
+	tidy((Pre, A is Native), Goal).
+math_goal_expansion(ExprA =:= ExprB, Goal) :-
+	expand_function(ExprA, NativeA, PreA),
+	expand_function(ExprB, NativeB, PreB),
+	tidy((PreA, PreB, NativeA =:= NativeB), Goal).
+math_goal_expansion(ExprA =\= ExprB, Goal) :-
+	expand_function(ExprA, NativeA, PreA),
+	expand_function(ExprB, NativeB, PreB),
+	tidy((PreA, PreB, NativeA =\= NativeB), Goal).
+math_goal_expansion(ExprA > ExprB, Goal) :-
+	expand_function(ExprA, NativeA, PreA),
+	expand_function(ExprB, NativeB, PreB),
+	tidy((PreA, PreB, NativeA > NativeB), Goal).
+math_goal_expansion(ExprA < ExprB, Goal) :-
+	expand_function(ExprA, NativeA, PreA),
+	expand_function(ExprB, NativeB, PreB),
+	tidy((PreA, PreB, NativeA < NativeB), Goal).
+math_goal_expansion(ExprA >= ExprB, Goal) :-
+	expand_function(ExprA, NativeA, PreA),
+	expand_function(ExprB, NativeB, PreB),
+	tidy((PreA, PreB, NativeA >= NativeB), Goal).
+math_goal_expansion(ExprA =< ExprB, Goal) :-
+	expand_function(ExprA, NativeA, PreA),
+	expand_function(ExprB, NativeB, PreB),
+	tidy((PreA, PreB, NativeA =< NativeB), Goal).
+
+expand_function(Expression, NativeExpression, Goal) :-
+	do_expand_function(Expression, NativeExpression, Goal0),
+	tidy(Goal0, Goal).
+
+do_expand_function(X, X, true) :-
+	evaluable(X), !.
+do_expand_function(Function, Result, ArgCode) :-
+	current_arithmetic_function(Function), !,
+	Function =.. [Name|Args],
+	expand_function_arguments(Args, ArgResults, ArgCode),
+	Result =.. [Name|ArgResults].
+do_expand_function(Function, Result, (ArgCode, Pred)) :-
+	prolog_load_context(module, M),
+	evaluable(Function, M2),
+	visible(M, M2), !,
+	Function =.. [Name|Args],
+	expand_predicate_arguments(Args, ArgResults, ArgCode),
+	append(ArgResults, [Result], PredArgs),
+	Pred =.. [Name|PredArgs].
+do_expand_function(Function, _, _) :-
+	existence_error(evaluable, Function).
+
+
+expand_function_arguments([], [], true).
+expand_function_arguments([H0|T0], [H|T], (A,B)) :-
+	do_expand_function(H0, H, A),
+	expand_function_arguments(T0, T, B).
+
+expand_predicate_arguments([], [], true).
+expand_predicate_arguments([H0|T0], [H|T], (A,B)) :-
+	do_expand_function(H0, H1, A0),
+	(   nonvar(H1),
+	    current_arithmetic_function(H1)
+	->  A = (A0, H is H1)
+	;   A = A0,
+	    H = H1
+	),
+	expand_predicate_arguments(T0, T, B).
+
+%%	evaluable(F) is semidet.
+%
+%	True if F and all its subterms are evaluable terms or variables.
+
+evaluable(F) :-
+	var(F), !.
+evaluable(F) :-
+	number(F), !.
+evaluable(F) :-
+	current_arithmetic_function(F),
+	forall(arg(_,F,A), evaluable(A)).
+
+%%	tidy(+GoalIn, -GoalOut)
+%
+%	Cleanup the output from expand_function/3.
+
+tidy(A, A) :-
+	var(A), !.
+tidy(((A,B),C), R) :- !,
+     tidy((A,B,C), R).
+tidy((true,A), R) :- !,
+	tidy(A, R).
+tidy((A,true), R) :- !,
+	tidy(A, R).
+tidy((A, X is Y), R) :-
+	var(X), var(Y), !,
+	tidy(A, R),
+	X = Y.
+tidy((A,B), (TA,TB)) :- !,
+	tidy(A, TA),
+	tidy(B, TB).
+tidy(A, A).
+
+
+		 /*******************************
 		 *	  EXPANSION HOOK	*
 		 *******************************/
 
+:- multifile
+	system:term_expansion/2,
+	system:goal_expansion/2.
+
 system:term_expansion((:- arithmetic_function(Term)), Clauses) :-
 	arith_decl_clauses(Term, Clauses).
+
+system:goal_expansion(Math, MathGoal) :-
+	math_goal_expansion(Math, MathGoal).
