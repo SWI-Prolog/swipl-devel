@@ -177,6 +177,30 @@ topOfSegStack(segstack *stack)
 
 
 void
+topsOfSegStack(segstack *stack, int count, void **tops)
+{ void *p = stack->top - stack->unit_size;
+  void *base = stack->base;
+
+  assert(stack->count >= count);
+
+  for(;;)
+  { while(count-->0 && p >= base)
+    { *tops++ = p;
+      p -= stack->unit_size;
+    }
+
+    if ( count > 0 )
+    { segchunk *chunk = stack->last->previous;
+
+      p = chunk->top - stack->unit_size;
+      base = chunk->data;
+    } else
+      break;
+  }
+}
+
+
+void
 popTopOfSegStack(segstack *stack)
 { again:
 

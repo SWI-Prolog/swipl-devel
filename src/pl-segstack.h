@@ -73,6 +73,7 @@ COMMON(int)	pushSegStack_(segstack *stack, void* data);
 COMMON(int)	pushRecordSegStack(segstack *stack, Record r);
 COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
+COMMON(void)	topsOfSegStack(segstack *stack, int count, void **ptrs);
 COMMON(void)	popTopOfSegStack(segstack *stack);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));
 COMMON(void)	clearSegStack(segstack *s);
