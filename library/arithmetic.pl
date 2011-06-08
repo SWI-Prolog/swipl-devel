@@ -45,7 +45,7 @@ terms.
 
 :- meta_predicate
 	arithmetic_function(:),
-	arithmetic_function(-, :).
+	eval_arithmetic_expression(-, :).
 :- multifile
 	evaluable/2.				% Term, Module
 
@@ -61,10 +61,10 @@ terms.
 arithmetic_function(Term) :-
 	throw(error(context_error(nodirective, arithmetic_function(Term)), _)).
 
-arith_decl_clauses(Term,
+arith_decl_clauses(NameArity,
 		   arithmetic:evaluable(Term, Q)) :-
 	prolog_load_context(module, M),
-	strip_module(M:Term, Q, Spec),
+	strip_module(M:NameArity, Q, Spec),
 	(   Spec = Name/Arity
 	->  functor(Term, Name, Arity)
 	;   type_error(predicate_indicator, Term)
