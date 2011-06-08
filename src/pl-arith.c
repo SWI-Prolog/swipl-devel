@@ -694,6 +694,7 @@ valueExpression(term_t expr, number *result ARG_LD)
   int walk_ref = FALSE;
   Word p = valTermRef(expr);
   Word start;
+  int known_acyclic = FALSE;
 
   deRef(p);
   start = p;
@@ -752,11 +753,12 @@ valueExpression(term_t expr, number *result ARG_LD)
 	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
 	  goto error;
 	}
-	if ( term_stack.count == 100 )
-	{ if ( !is_acyclic(p PASS_LD) )
+	if ( term_stack.count > 100 && !known_acyclic )
+	{ if ( !is_acyclic(start PASS_LD) )
 	  { PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, expr);
 	    goto error;
 	  }
+	  known_acyclic = TRUE;
 	}
 	walk_ref = FALSE;
 	n = &n_tmp;
