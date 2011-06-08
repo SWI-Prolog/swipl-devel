@@ -2724,7 +2724,7 @@ thus `add1(X, Y) :- Y is X + 1' translates to:
   A_VAR0	% evaluate X and push numeric result
   A_INTEGER 1	% Push 1 as numeric value
   A_FUNC2 0	% Add top-two of the stack and push result
-  A_IS 		% unify Y with numeric result
+  A_IS		% unify Y with numeric result
   I_EXIT	% leave the clause
 
   a_func0:	% executes arithmic function without arguments, pushing
@@ -3751,7 +3751,7 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 
   newChoice(CHP_CATCH, FR PASS_LD);
   set(FR, FR_WATCHED);
-  				/* = B_VAR1 */
+				/* = B_VAR1 */
   *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
 
   VMI_GOTO(I_USERCALL0);
@@ -3895,10 +3895,12 @@ b_throw:
 
     if ( !rc )
     { SAVE_REGISTERS(qid);
+      LD->critical++;				/* do not handle signals */
       printMessage(ATOM_error, PL_TERM, exception_term);
       start_tracer = TRUE;
       debugmode(TRUE, NULL);
       trace_if_space();
+       LD->critical--;
       LOAD_REGISTERS(qid);
     }
   }
@@ -4191,7 +4193,7 @@ atom is referenced by the goal-term anyway.
 	VMI_GOTO(I_USERCALL0);
       }
 
-      DEF 		  = NFR->predicate;
+      DEF		  = NFR->predicate;
       SECURE(assert(DEF == PROCEDURE_dcall1->definition));
       NFR->parent	  = FR;
       NFR->programPointer = PC;
