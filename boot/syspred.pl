@@ -66,7 +66,6 @@
 	    garbage_collect/0,
 	    set_prolog_stack/2,
 	    prolog_stack_property/2,
-	    arithmetic_function/1,
 	    absolute_file_name/2,
 	    require/1,
 	    call_with_depth_limit/3,
@@ -935,26 +934,6 @@ stack_property(limit).
 stack_property(spare).
 stack_property(min_free).
 
-
-		 /*******************************
-		 *	     ARITHMETIC		*
-		 *******************************/
-
-%%	arithmetic_function(:Spec)
-%
-%	Register a predicate as an arithmetic function.  Takes Name/Arity
-%	and a term as argument.
-
-:- meta_predicate
-	arithmetic_function(1).
-
-arithmetic_function(Module:Term) :-
-	(   Term = Name/Arity
-	;   functor(Term, Name, Arity)
-	), !,
-	PredArity is Arity + 1,
-	functor(Head, Name, PredArity),
-	'$arithmetic_function'(Module:Head, 0).
 
 		 /*******************************
 		 *	 LIST MANIPULATION	*

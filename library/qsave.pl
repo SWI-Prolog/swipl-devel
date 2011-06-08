@@ -100,7 +100,6 @@ qsave_program(FileSpec, Options0) :-
 	save_prolog_flags,
 	save_operators(SaveOps),
 	save_format_predicates,
-	save_functions,
 	system_mode(off),
 	'$close_wic',
 	close(StateFd),
@@ -529,24 +528,6 @@ qualify_head(T, user:T).
 
 
 		 /*******************************
-		 *	     FUNCTIONS		*
-		 *******************************/
-
-save_functions :-
-	feedback('~nFUNCTIONS~n', []),
-	'$prolog_arithmetic_function'(M:Head, Index),
-	functor(Head, Name, Arity),
-	PredArity is Arity + 1,
-	functor(PredHead, Name, PredArity),
-	D = '$arithmetic_function'(M:PredHead, Index),
-	feedback('~n~t~8|~w ', [D]),
-	'$add_directive_wic'(D),
-	fail.
-save_functions.
-
-
-
-		 /*******************************
 		 *	       UTIL		*
 		 *******************************/
 
@@ -584,10 +565,10 @@ option_type(autoload,	 bool).
 option_type(map,	 atom).
 option_type(op,		 atom([save, standard])).
 option_type(stand_alone, bool).
-option_type(goal, 	 callable).
-option_type(toplevel, 	 callable).
-option_type(init_file, 	 atom).
-option_type(emulator, 	 ground).
+option_type(goal,	 callable).
+option_type(toplevel,	 callable).
+option_type(init_file,	 atom).
+option_type(emulator,	 ground).
 
 check_options([]) :- !.
 check_options([Var|_]) :-
