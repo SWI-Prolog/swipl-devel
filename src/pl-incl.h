@@ -447,7 +447,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define MODULEHASHSIZE		16	/* global module table */
 #define PUBLICHASHSIZE		8	/* Module export table */
 #define FLAGHASHSIZE		16	/* global flag/3 table */
-#define ARITHHASHSIZE		64	/* arithmetic function table */
 
 #include "os/pl-table.h"
 
@@ -601,6 +600,7 @@ typedef uintptr_t		code WORD_ALIGNED; /* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef word			(*Func)();	/* foreign functions */
+typedef int			(*ArithF)();	/* arithmetic function */
 
 typedef struct atom *		Atom;		/* atom */
 typedef struct functor *	Functor;	/* complex term */
@@ -629,7 +629,6 @@ typedef struct gc_trail_entry *	GCTrailEntry;	/* Entry of trail stack (GC) */
 typedef struct mark		mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
-typedef struct arithFunction *	ArithFunction;  /* arithmetic function */
 typedef struct _varDef *	VarDef;		/* pl-comp.c */
 typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
 typedef struct abort_handle *	AbortHandle;	/* PL_abort_hook() */

@@ -103,38 +103,6 @@ problem.
 #endif
 #endif
 
-typedef int (*ArithF)();
-
-#define TABLE_REF_MASK		0x1UL
-#define isTableRef(p)		((uintptr_t)(p) & TABLE_REF_MASK)
-#define makeTableRef(p)		((void*)((uintptr_t)(p) | TABLE_REF_MASK))
-#define unTableRef(s, p)	(*((s*)((uintptr_t)(p) & ~TABLE_REF_MASK)))
-
-#define return_next_table(t, v, clean) \
-	{ for((v) = (v)->next; isTableRef(v) && (v); (v) = unTableRef(t, v)) \
-	  if ( (v) == (t)NULL ) \
-	  { clean; \
-	    succeed; \
-	  } \
-	  ForeignRedoPtr(v); \
-	}
-
-
-struct arithFunction
-{ ArithFunction next;		/* Next of chain */
-  functor_t	functor;	/* Functor defined */
-  ArithF	function;	/* Implementing function */
-#if O_COMPILE_ARITH
-  code		index;		/* Index of function */
-#endif
-};
-
-#define arithFunctionTable	(GD->arith.table)
-#define function_array		(&GD->arith.functions)
-#define FunctionFromIndex(n)	fetchBuffer(function_array, n, ArithFunction)
-
-static ArithFunction	isCurrentArithFunction(functor_t);
-static int		registerFunction(ArithFunction f, int index);
 static int		getCharExpression(Word p, Number r ARG_LD);
 static int		ar_minus(Number n1, Number n2, Number r);
 
@@ -578,15 +546,12 @@ isCurrentArithFunction(functor_t f)
     Find existing arithmetic function definition for f.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-static ArithFunction
+static inline ArithF
 isCurrentArithFunction(functor_t f)
-{ ArithFunction a;
+{ size_t index = indexFunctor(f);
 
-  for(a = arithFunctionTable[functorHashValue(f, ARITHHASHSIZE)];
-      !isTableRef(a) && a; a = a->next)
-  { if ( a->functor == f )
-      return a;
+  if ( index < GD->arith.functions_allocated )
+  { return GD->arith.functions[index];
   }
 
   return NULL;
@@ -723,10 +688,10 @@ valueExpression(term_t expr, number *result ARG_LD)
       }
       case TAG_ATOM:
       { functor_t functor = lookupFunctorDef(*p, 0);
-	ArithFunction f;
+	ArithF f;
 
         if ( (f = isCurrentArithFunction(functor)) )
-	{ if ( (*f->function)(n) != TRUE )
+	{ if ( (*f)(n) != TRUE )
 	    goto error;
 	} else
 	{ PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
@@ -793,7 +758,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 
     while ( tagex(*--p) == (TAG_ATOM|STG_GLOBAL) )
     { functor_t functor = *p;
-      ArithFunction f;
+      ArithF f;
 
       DEBUG(1, Sdprintf("Eval %s/%d\n",
 			stringAtom(nameFunctor(functor)),
@@ -807,7 +772,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	  { int rc;
 	    number *a0 = topOfSegStack(&arg_stack);
 
-	    rc = (*f->function)(a0, n);
+	    rc = (*f)(a0, n);
 	    clearNumber(a0);
 	    if ( rc == TRUE )
 	    { *a0 = *n;
@@ -823,7 +788,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	    void *a[2];
 
 	    topsOfSegStack(&arg_stack, 2, a);
-	    rc = (*f->function)((number*)a[0], (number*)a[1], n);
+	    rc = (*f)((number*)a[0], (number*)a[1], n);
 	    clearNumber((number*)a[0]);
 	    clearNumber((number*)a[1]);
 	    popTopOfSegStack(&arg_stack);
@@ -843,7 +808,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	    void *a[3];
 
 	    topsOfSegStack(&arg_stack, 3, a);
-	    rc = (*f->function)((number*)a[0], (number*)a[1], (number*)a[2], n);
+	    rc = (*f)((number*)a[0], (number*)a[1], (number*)a[2], n);
 	    clearNumber((number*)a[0]);
 	    clearNumber((number*)a[1]);
 	    clearNumber((number*)a[2]);
@@ -3083,7 +3048,7 @@ static
 PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
 	  PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  ArithFunction a;
+  intptr_t i;
   term_t head = A1;
 
   switch( CTX_CNTRL )
@@ -3091,7 +3056,7 @@ PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
     { functor_t fd;
 
       if ( PL_is_variable(head) )
-      { a = arithFunctionTable[0];
+      { i = 0;
         break;
       } else if ( PL_get_functor(head, &fd) )
       {	return isCurrentArithFunction(fd) ? TRUE : FALSE;
@@ -3100,22 +3065,20 @@ PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
 			ERR_TYPE, ATOM_callable, head);
     }
     case FRG_REDO:
-      a = CTX_PTR;
+      i = CTX_INT;
       break;
     case FRG_CUTTED:
     default:
       succeed;
   }
 
-  for( ; a; a = a->next )
-  { while( isTableRef(a) )
-    { a = unTableRef(ArithFunction, a);
-      if ( !a )
-        fail;
-    }
+  for(; i<GD->arith.functions_allocated; i++)
+  { if ( GD->arith.functions[i] )
+    { functor_t f = functorArithFunction(i);
 
-    if ( PL_unify_functor(head, a->functor) )
-      return_next_table(ArithFunction, a, ;);
+      if ( PL_unify_functor(head, f) )
+	ForeignRedoInt(i+1);
+    }
   }
 
   fail;
@@ -3201,65 +3164,55 @@ static const ar_funcdef ar_funcdefs[] = {
 #undef ADD
 
 static int
-registerFunction(ArithFunction f, int index)
-{ int i = (int)entriesBuffer(function_array, ArithFunction);
+registerFunction(functor_t f, ArithF func)
+{ size_t index = indexFunctor(f);
 
-  if ( index )
-  { if ( index != i )
-    { fatalError("Mismatch in arithmetic function index (%d != %d)",
-		 index, i);
-      fail;				/* NOTREACHED */
+  DEBUG(1, Sdprintf("Register functor %ld\n", (long)index));
+
+  while ( index >= GD->arith.functions_allocated )
+  { GET_LD
+
+    if ( GD->arith.functions_allocated == 0 )
+    { size_t size = 256;
+
+      GD->arith.functions = allocHeap(size*sizeof(ArithF));
+      memset(GD->arith.functions, 0, size*sizeof(ArithF));
+      GD->arith.functions_allocated = size;
+    } else
+    { size_t size = GD->arith.functions_allocated*2;
+      ArithF *new = allocHeap(size*sizeof(ArithF));
+      size_t half = GD->arith.functions_allocated*sizeof(ArithF);
+      ArithF *old = GD->arith.functions;
+
+      DEBUG(0, Sdprintf("Re-sized function-table to %ld\n", (long)size));
+
+      memcpy(new, old, half);
+      memset(addPointer(new,half), 0, half);
+      GD->arith.functions = new;
+      GD->arith.functions_allocated = size;
+      freeHeap(old, half);
     }
   }
 
-  f->index = i;
-  addBuffer(function_array, f, ArithFunction);
+  GD->arith.functions[index] = func;
 
-  succeed;
+  return index;
 }
 
 
 static void
 registerBuiltinFunctions()
-{ GET_LD
-  int n, size = sizeof(ar_funcdefs)/sizeof(ar_funcdef);
-  ArithFunction f = allocHeap(size * sizeof(struct arithFunction));
+{ int n, size = sizeof(ar_funcdefs)/sizeof(ar_funcdef);
   const ar_funcdef *d;
 
-					/* grow to desired size immediately */
-  if ( !growBuffer(function_array, size * sizeof(ArithFunction)) )
-    outOfCore();
-  memset(f, 0, size * sizeof(struct arithFunction));
-
-  for(d = ar_funcdefs, n=0; n<size; n++, f++, d++)
-  { int v = (int)functorHashValue(d->functor, ARITHHASHSIZE);
-
-    f->functor  = d->functor;
-    f->function = d->function;
-    f->next     = arithFunctionTable[v];
-    arithFunctionTable[v] = f;
-    registerFunction(f, 0);
-    DEBUG(1, Sdprintf("Registered %s/%d at %d, index=%d\n",
-		      stringAtom(nameFunctor(f->functor)),
-		      arityFunctor(f->functor),
-		      v,
-		      f->index));
-  }
+  for(d = ar_funcdefs, n=0; n<size; n++, d++)
+    registerFunction(d->functor, d->function);
 }
 
 
 void
 initArith(void)
-{ initBuffer(function_array);
-					/* link the table to enumerate */
-  { ArithFunction *f;
-    int n;
-
-    for(n=0, f = arithFunctionTable; n < (ARITHHASHSIZE-1); n++, f++)
-      *f = makeTableRef(f+1);
-  }
-
-  registerBuiltinFunctions();
+{ registerBuiltinFunctions();
 
 #ifdef O_INHIBIT_FP_SIGNALS
   fpsetmask(fpgetmask() & ~(FP_X_DZ|FP_X_INV|FP_X_OFL));
@@ -3269,8 +3222,7 @@ initArith(void)
 
 void
 cleanupArith(void)
-{ discardBuffer(function_array);
-
+{
 #ifdef O_INHIBIT_FP_SIGNALS
   fpresetsticky(FP_X_DZ|FP_X_INV|FP_X_OFL);
   fpsetmask(FP_X_DZ|FP_X_INV|FP_X_OFL);
@@ -3285,19 +3237,29 @@ cleanupArith(void)
 		*********************************/
 
 int
-indexArithFunction(functor_t fdef)
-{ ArithFunction f;
+indexArithFunction(functor_t f)
+{ size_t index = indexFunctor(f);
 
-  if ( !(f = isCurrentArithFunction(fdef)) )
-    return -1;
+  if ( index < GD->arith.functions_allocated )
+  { if ( GD->arith.functions[index] )
+      return (int)index;
+  }
 
-  return (int)f->index;
+  return -1;
 }
 
 
 functor_t
-functorArithFunction(int n)
-{ return FunctionFromIndex(n)->functor;
+functorArithFunction(int i)
+{ FunctorDef fd = fetchBuffer(&functor_array, i, FunctorDef);
+
+  return fd->functor;
+}
+
+
+static ArithF
+FunctionFromIndex(int index)
+{ return GD->arith.functions[index];
 }
 
 
@@ -3311,21 +3273,21 @@ bool
 ar_func_n(int findex, int argc ARG_LD)
 { number result;
   int rval;
-  ArithFunction f = FunctionFromIndex(findex);
+  ArithF f = FunctionFromIndex(findex);
   Number argv = argvArithStack(argc PASS_LD);
 
   switch(argc)
   { case 0:
-      rval = (*f->function)(&result);
+      rval = (*f)(&result);
       break;
     case 1:
-      rval = (*f->function)(argv, &result);
+      rval = (*f)(argv, &result);
       break;
     case 2:
-      rval = (*f->function)(argv, argv+1, &result);
+      rval = (*f)(argv, argv+1, &result);
       break;
     case 3:
-      rval = (*f->function)(argv, argv+1, argv+2, &result);
+      rval = (*f)(argv, argv+1, argv+2, &result);
       break;
     default:
       rval = FALSE;

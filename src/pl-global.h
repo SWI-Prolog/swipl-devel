@@ -148,8 +148,8 @@ struct PL_global_data
   } recorded_db;
 
   struct
-  { buffer	functions;		/* index --> function */
-    ArithFunction table[ARITHHASHSIZE];	/* functor --> function table */
+  { ArithF     *functions;		/* index --> function */
+    size_t	functions_allocated;	/* Size of above array */
   } arith;
 
   struct
