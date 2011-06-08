@@ -1010,7 +1010,7 @@ ph2_is_acyclic(Word p ARG_LD)
 }
 
 
-static int
+int
 is_acyclic(Word p ARG_LD)
 { deRef(p);
 

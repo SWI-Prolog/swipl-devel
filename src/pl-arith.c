@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -143,7 +144,7 @@ struct arithFunction
 
 static ArithFunction	isCurrentArithFunction(functor_t, Module);
 static int		registerFunction(ArithFunction f, int index);
-static int		getCharExpression(term_t t, Number r ARG_LD);
+static int		getCharExpression(Word p, Number r ARG_LD);
 static int		ar_minus(Number n1, Number n2, Number r);
 
 
@@ -728,178 +729,235 @@ check_float(double f)
 }
 
 
+		 /*******************************
+		 *	     EVALULATE		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Implementation
+	* Number: push
+	* Term:
+	    - Start at last argument
+	    - When at functor: eval and pop
+
+Register the arithmetic functors first?  That would allow for an array!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+pushForMark(segstack *stack, Word p, int wr)
+{ word w = ((word)p)|wr;
+
+  return pushSegStack(stack, w, word);
+}
+
+static void
+popForMark(segstack *stack, Word *pp, int *wr)
+{ word w;
+
+  popSegStack(stack, &w, word);
+  *wr = w & (word)0x1;
+  *pp = (Word)(w & ~(word)0x1);
+}
+
+
 int
-eval_expression(term_t t, Number r, int recursion ARG_LD)
-{ ArithFunction f;
-  functor_t functor;
-  Word p = valTermRef(t);
-  word w;
+eval_expression(term_t expr, number *result, int recursion ARG_LD)
+{ segstack term_stack;
+  segstack arg_stack;
+  Word term_buf[16];
+  number arg_buf[16];
+  number *n = result;
+  number n_tmp;
+  int walk_ref = FALSE;
+  Word p = valTermRef(expr);
+  Word start;
 
   deRef(p);
-  w = *p;
+  start = p;
+  LD->in_arithmetic++;
 
-  switch(tag(w))
-  { case TAG_INTEGER:
-      get_integer(w, r);
-      succeed;
-    case TAG_FLOAT:
-      r->value.f = valFloat(w);
-      r->type = V_FLOAT;
-      succeed;
-    case TAG_VAR:
-      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
-    case TAG_ATOM:
-      functor = lookupFunctorDef(w, 0);
-      break;
-    case TAG_COMPOUND:
-      functor = functorTerm(w);
-      break;
-    default:
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, t);
-  }
-
-  if ( !(f = isCurrentArithFunction(functor,
-				    contextModule(environment_frame))))
-  { if ( functor == FUNCTOR_dot2 )	/* handle "a" (make function) */
-      return getCharExpression(t, r PASS_LD);
-    else
-      return PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
-  }
-
-  if ( recursion == 100 && !PL_is_acyclic(t) )
-    return PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, t);
-
-#if O_PROLOG_FUNCTIONS
-  if ( f->proc )
-  { fid_t fid;
-
-    if ( (fid=PL_open_foreign_frame()) )
-    { int rval, n, arity = arityFunctor(functor);
-      term_t h0 = PL_new_term_refs(arity+1); /* one extra for the result */
-
-      if ( !h0 )
-	return FALSE;
-
-      for(n=0; n<arity; n++)
-      { number n1;
-
-	_PL_get_arg(n+1, t, h0+n);
-	if ( eval_expression(h0+n, &n1, recursion+1 PASS_LD) )
-	{ _PL_put_number(h0+n, &n1);
-	  clearNumber(&n1);
-	} else
-	{ PL_close_foreign_frame(fid);
-	  fail;
-	}
-      }
-
-      rval = prologFunction(f, h0, r PASS_LD);
-      PL_close_foreign_frame(fid);
-
-      return rval;
-    }
-
-    return FALSE;
-  }
-#endif
-
-  DEBUG(3, Sdprintf("Starting __try ...\n"));
-
-  { int rval;
-
-#ifdef HAVE___TRY
-#ifndef EXCEPTION_EXECUTE_HANDLER	/* lcc */
-#define EXCEPTION_EXECUTE_HANDLER 1
-#endif
-    __try
-    {
-#else
-    LD->in_arithmetic++;
-#endif
-    switch(arityFunctor(functor))
-    { case 0:
-	rval = (*f->function)(r);
+  for(;;)
+  { switch(tag(*p))
+    { case TAG_INTEGER:
+	get_integer(*p, n);
         break;
-      case 1:
-      { term_t a = PL_new_term_ref();
-	number n1;
+      case TAG_FLOAT:
+	n->value.f = valFloat(*p);
+        n->type = V_FLOAT;
+	break;
+      case TAG_VAR:
+	PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+        goto error;
+      case TAG_REFERENCE:
+      { if ( !pushForMark(&term_stack, p, walk_ref) )
+	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	  goto error;
+	}
+	walk_ref = TRUE;
+	deRef(p);
+	continue;
+      }
+      case TAG_ATOM:
+      { functor_t functor = lookupFunctorDef(*p, 0);
+	ArithFunction f;
 
-	_PL_get_arg(1, t, a);
-	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
-	{ rval = (*f->function)(&n1, r);
-	  clearNumber(&n1);
+        if ( (f = isCurrentArithFunction(functor,
+					 contextModule(environment_frame))) )
+	{ if ( (*f->function)(n) != TRUE )
+	    goto error;
 	} else
-	  rval = FALSE;
-
-	PL_reset_term_refs(a);
+	{ PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
+	  goto error;
+	}
 	break;
       }
-      case 2:
-      { term_t a = PL_new_term_ref();
-	number n1, n2;
+      case TAG_COMPOUND:
+      { Functor term = valueTerm(*p);
+	int arity;
 
-	_PL_get_arg(1, t, a);
-	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
-	{ _PL_get_arg(2, t, a);
-	  if ( eval_expression(a, &n2, recursion+1 PASS_LD) )
-	  { rval = (*f->function)(&n1, &n2, r);
-	    clearNumber(&n2);
-	  } else
-	  { rval = FALSE;
+	if ( term->definition == FUNCTOR_dot2 )
+	{ if ( getCharExpression(p, n PASS_LD) != TRUE )
+	    goto error;
+	  break;
+	}
+
+	if ( p == start )
+	{ initSegStack(&term_stack, sizeof(Word), sizeof(term_buf), term_buf);
+	  initSegStack(&arg_stack, sizeof(number), sizeof(arg_buf), arg_buf);
+	}
+
+	if ( !pushSegStack(&term_stack, p, Word) )
+	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	  goto error;
+	}
+	if ( term_stack.count == 100 )
+	{ if ( !is_acyclic(p PASS_LD) )
+	  { PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, expr);
+	    goto error;
 	  }
-	  clearNumber(&n1);
-	} else
-	  rval = FALSE;
-
-	PL_reset_term_refs(a);
-	break;
-      }
-      case 3:
-      { term_t a = PL_new_term_ref();
-	number n1, n2, n3;
-
-	_PL_get_arg(1, t, a);
-	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
-	{ _PL_get_arg(2, t, a);
-	  if ( eval_expression(a, &n2, recursion+1 PASS_LD) )
-	  { _PL_get_arg(3, t, a);
-	    if ( eval_expression(a, &n3, recursion+1 PASS_LD) )
-	    { rval = (*f->function)(&n1, &n2, &n3, r);
-	      clearNumber(&n3);
-	    } else
-	    { rval = FALSE;
-	    }
-	    clearNumber(&n2);
-	  } else
-	  { rval = FALSE;
-	  }
-	  clearNumber(&n1);
-	} else
-	  rval = FALSE;
-
-	PL_reset_term_refs(a);
-	break;
+	}
+	walk_ref = FALSE;
+	n = &n_tmp;
+	arity = arityFunctor(term->definition);
+	p = &term->arguments[arity-1];
+	continue;
       }
       default:
-	sysError("Illegal arity for arithmic function");
-        rval = FALSE;
+	PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, expr);
+        goto error;
     }
-#if defined(HAVE___TRY)
-    } __except(EXCEPTION_EXECUTE_HANDLER)
-    { warning("Floating point exception");
-#ifndef O_RUNTIME
-      Sfprintf(Serror, "[PROLOG STACK:\n");
-      backTrace(NULL, 10);
-      Sfprintf(Serror, "]\n");
-#endif
-      rval = abortProlog(ABORT_RAISE);
-    }
-#else /*HAVE___TRY*/
-    LD->in_arithmetic--;
-#endif /*HAVE___TRY*/
 
-    return rval;
+    if ( p == start )
+    { LD->in_arithmetic--;
+      assert(n == result);
+
+      return TRUE;
+    }
+
+    while ( walk_ref )
+    { popForMark(&term_stack, &p, &walk_ref);
+    }
+
+    if ( !pushSegStack(&arg_stack, n_tmp, number) )
+    { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+      goto error;
+    }
+    p--;
+    if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
+    { functor_t functor = *p;
+      ArithFunction f;
+
+      if ( (f = isCurrentArithFunction(functor,
+				       contextModule(environment_frame))) )
+      { int arity = arityFunctor(functor);
+
+	switch(arity)
+	{ case 1:
+	  { int rc;
+	    number *a0 = topOfSegStack(&arg_stack);
+
+	    rc = (*f->function)(a0, n);
+	    clearNumber(a0);
+	    if ( rc == TRUE )
+	    { *a0 = *n;
+	    } else
+	    { popTopOfSegStack(&arg_stack);
+	      goto error;
+	    }
+
+	    break;
+	  }
+	  case 2:
+	  { int rc;
+	    void *a[2];
+
+	    topsOfSegStack(&arg_stack, 2, a);
+	    rc = (*f->function)((number*)a[0], (number*)a[1], n);
+	    clearNumber((number*)a[0]);
+	    clearNumber((number*)a[1]);
+	    popTopOfSegStack(&arg_stack);
+
+	    if ( rc == TRUE )
+	    { number *n0 = a[0];
+	      *n0 = *n;
+	    } else
+	    { popTopOfSegStack(&arg_stack);
+	      goto error;
+	    }
+
+	    break;
+	  }
+	  case 3:
+	  { int rc;
+	    void *a[3];
+
+	    topsOfSegStack(&arg_stack, 3, a);
+	    rc = (*f->function)((number*)a[0], (number*)a[1], (number*)a[2], n);
+	    clearNumber((number*)a[0]);
+	    clearNumber((number*)a[1]);
+	    clearNumber((number*)a[2]);
+	    popTopOfSegStack(&arg_stack);
+	    popTopOfSegStack(&arg_stack);
+
+	    if ( rc == TRUE )
+	    { number *n0 = a[0];
+	      *n0 = *n;
+	    } else
+	    { popTopOfSegStack(&arg_stack);
+	      goto error;
+	    }
+
+	    break;
+	  }
+	  default:
+	    assert(0);
+	}
+
+	popForMark(&term_stack, &p, &walk_ref);
+	if ( p == start )
+	{ LD->in_arithmetic--;
+	  *result = *n;
+
+	  return TRUE;
+	}
+      } else
+      { PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
+	goto error;
+      }
+    }
   }
+
+error:
+  if ( p != start )
+  { number n;
+
+    clearSegStack(&term_stack);
+    while( popSegStack(&arg_stack, &n, number) )
+      clearNumber(&n);
+  }
+  LD->in_arithmetic--;
+
+  return FALSE;
 }
 
 
@@ -943,8 +1001,8 @@ arithChar(Word p ARG_LD)
 
 
 static int
-getCharExpression(term_t t, Number r ARG_LD)
-{ Word a, p = valTermRef(t);
+getCharExpression(Word p, Number r ARG_LD)
+{ Word a;
   int chr;
 
   deRef(p);
