@@ -483,13 +483,6 @@ ratp(Count, In, Out) :-
         T is In + (In rdiv 2),
 	ratp(Count0, T, Out).
 
-:- arithmetic_function(idiv/2).
-
-idiv(Dd,Dr,Iq):-
-        Q is Dd/Dr,
-        rational(Q,Qt,Qn),
-        Iq is Qt//Qn.
-
 dec(X, Y) :-
 	Y is X - 1.
 
@@ -693,9 +686,6 @@ gmp(fmtf-1) :-
 	ratp(999, 1, X),
 	format(atom(S), '~5f', [X]),
 	sub_atom(S, _, _, 0, '935376.65824').
-gmp(idiv-1) :-
-	Qi is idiv(3 rdiv 2,2 rdiv 5),
-	Qi == 3.
 gmp(random) :-
 	A is random((1<<200)-((1<<200)-20)),
 	A < 20.
@@ -890,8 +880,6 @@ dl_fail(N) :-
 	NN is N - 1,
 	dl_fail(NN).
 
-:- arithmetic_function(fac/1).
-
 depth_limit(depth-1) :-
 	call_with_depth_limit(dl_det(1), 10, 1),
 	deterministic(true).
@@ -906,8 +894,6 @@ depth_limit(ndet-1) :-
 	L = [5, depth_limit_exceeded].
 depth_limit(fail-1) :-
 	\+ call_with_depth_limit(dl_fail(2), 10, _).
-depth_limit(arith-1) :-
-	call_with_depth_limit(_A is fac(10), 8, depth_limit_exceeded).
 
 
 		 /*******************************
