@@ -161,24 +161,34 @@ popSegStack_(segstack *stack, void *data)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-At this moment, this function is used only for the findall-bags. We must
-lock for AGC if we discard a chunk.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 void *
 topOfSegStack(segstack *stack)
-{
-again:
+{ segchunk *chunk;
+
   if ( stack->top >= stack->base + stack->unit_size )
   { return stack->top - stack->unit_size;
+  } else if ( stack->last && (chunk=stack->last->previous) )
+  { assert(chunk->top - stack->unit_size >= chunk->data);
+    return chunk->top - stack->unit_size;
+  }
+
+  return NULL;
+}
+
+
+void
+popTopOfSegStack(segstack *stack)
+{ again:
+
+  if ( stack->top >= stack->base + stack->unit_size )
+  { stack->top -= stack->unit_size;
+    stack->count--;
   } else
   { segchunk *chunk = stack->last;
 
     if ( chunk )
     { if ( chunk->previous )
-      { PL_LOCK(L_AGC);			/* See comment */
-	stack->last = chunk->previous;
+      { stack->last = chunk->previous;
 	stack->last->next = NULL;
 	if ( chunk->allocated )
 	  PL_free(chunk);
@@ -187,20 +197,12 @@ again:
 	stack->base = chunk->data;
 	stack->max  = addPointer(chunk, chunk->size);
 	stack->top  = chunk->top;
-	PL_UNLOCK(L_AGC);
 	goto again;
       }
     }
 
-    return NULL;
+    assert(0);
   }
-}
-
-
-void
-popTopOfSegStack(segstack *stack)
-{ stack->top -= stack->unit_size;
-  stack->count--;
 }
 
 
