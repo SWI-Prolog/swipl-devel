@@ -765,8 +765,12 @@ valueExpression(term_t expr, number *result ARG_LD)
 	continue;
       }
       default:
-	PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, expr);
+      { term_t t = PL_new_term_ref();
+
+	*valTermRef(t) = *p;
+	PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, t);
         goto error;
+      }
     }
 
     if ( p == start )
