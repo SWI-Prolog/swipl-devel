@@ -292,7 +292,7 @@ pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c \
 pl-prims.o:	pl-termwalk.c
 pl-rec.o:	pl-termwalk.c
 pl-copyterm.o:	pl-termwalk.c
-pl-arith.o:	pl-segstack.h
+pl-arith.o:	$(srcdir)/pl-segstack.h
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
