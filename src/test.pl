@@ -97,6 +97,8 @@ syntax(char-2) :-
 	52 == 0'\x34.
 syntax(char-3) :-
 	"\\" =:= 0'\\.
+syntax(char-4) :-
+	1-48 == 1-0'0.
 
 :- op(100, yf, af).
 

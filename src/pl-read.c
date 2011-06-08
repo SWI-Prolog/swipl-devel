@@ -1050,14 +1050,10 @@ raw_read2(ReadData _PL_rd ARG_LD)
 
 		  if ( bs > rb.base && isDigit(bs[-1]) )
 		    bs--;
-		  if ( bs > rb.base && isSign(bs[-1]) )
-		    bs--;
 
 		  if ( bs == rb.base || !PlIdContW(prev_code(rb.base, bs)) )
 		  { int base;
 
-		    if ( isSign(bs[0]) )
-		      bs++;
 		    addToBuffer(0, _PL_rd); /* temp add trailing 0 */
 		    rb.here--;
 		    base = atoi((char*)bs);
