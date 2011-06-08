@@ -3280,6 +3280,9 @@ ar_func_n(int findex, int argc ARG_LD)
   ArithF f = FunctionFromIndex(findex);
   Number argv = argvArithStack(argc PASS_LD);
 
+  DEBUG(0, if ( !f )
+	     fatalError("No function at index %d", findex));
+
   switch(argc)
   { case 0:
       rval = (*f)(&result);
