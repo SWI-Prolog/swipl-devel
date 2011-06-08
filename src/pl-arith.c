@@ -37,6 +37,7 @@ These  functions are addressed by the WAM instructions using their index
 in this array.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #undef abs			/* avoid abs() problem with MSVC++ */
 #include <math.h>
@@ -783,10 +784,14 @@ eval_expression(term_t expr, number *result, int recursion ARG_LD)
     { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
       goto error;
     }
-    p--;
-    if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
+
+    while ( tagex(*--p) == (TAG_ATOM|STG_GLOBAL) )
     { functor_t functor = *p;
       ArithFunction f;
+
+      DEBUG(1, Sdprintf("Eval %s/%d\n",
+			stringAtom(nameFunctor(functor)),
+			arityFunctor(functor)));
 
       if ( (f = isCurrentArithFunction(functor)) )
       { int arity = arityFunctor(functor);
@@ -860,7 +865,6 @@ eval_expression(term_t expr, number *result, int recursion ARG_LD)
 
 	  return TRUE;
 	}
-	p--;
       } else
       { PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
 	goto error;
