@@ -34,8 +34,8 @@
 %
 % Simple integer solver that keeps track of upper and lower bounds
 %
-% Author: 	Tom Schrijvers
-% E-mail: 	tom.schrijvers@cs.kuleuven.ac.be
+% Author:	Tom Schrijvers
+% E-mail:	tom.schrijvers@cs.kuleuven.ac.be
 % Copyright:	2004, K.U.Leuven
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -650,7 +650,6 @@ myplus(X,Y,Z,New) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % X * Y = Z
 
-:- arithmetic_function(div/2).
 div(X,Y,Z) :-
 	( max_inf(X) ->
 		( Y >= 0 ->
@@ -777,14 +776,20 @@ min_times(L1,U1,L2,U2,Min) :-
 max_divide(L1,U1,L2,U2,Max) :-
 	( L2 =< 0 , U2 >= 0 ->
 		max_inf(Max)
-	;
-		Max is max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
+	;	div(L1,L2,DLL),
+		div(L1,U2,DLU),
+	        div(U1,L2,DUL),
+		div(U1,U2,DUU),
+		Max is max(max(DLL,DLU),max(DUL,DUU))
 	).
 min_divide(L1,U1,L2,U2,Min) :-
 	( L2 =< 0 , U2 >= 0 ->
 		min_inf(Min)
-	;
-		Min is min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
+	;	div(L1,L2,DLL),
+		div(L1,U2,DLU),
+	        div(U1,L2,DUL),
+		div(U1,U2,DUU),
+		Min is min(min(DLL,DLU),min(DUL,DUU))
 	).
 
 
@@ -941,7 +946,7 @@ mymax(X,Y,Z,New) :-
 			Y = Z
 		; % XU >= Z ->
 		  YU < Z ->
-		  	X = Z
+			X = Z
 		; % YU >= Z
 		  XL > YU ->
 			Z = X
@@ -1055,7 +1060,7 @@ mymin(X,Y,Z,New) :-
 			Y = Z
 		; % XL =< Z ->
 		  YL > Z ->
-		  	X = Z
+			X = Z
 		; % YL =< Z
 		  XU =< YL ->
 			Z = X
@@ -1376,7 +1381,7 @@ reified_geq(X,Y,B) :-
 				B = 0
 			; member(geq(Z,_State),XExpr),
 			  Z == Y ->
-			  	B = 1
+				B = 1
 			;
 				put(X,XL,XU,[reified_geq(Y,B)|XExpr]),
 				put(Y,YL,YU,[reified_leq(X,B)|YExpr]),
@@ -1465,7 +1470,7 @@ reified_eq(X,Y,B) :-
 				B = 0
 			; member(neq(Z,_),XExpr),
 			  Z == Y ->
-			  	B = 0
+				B = 0
 			;
 				put(X,XL,XU,[reified_eq(Y,B)|XExpr]),
 				put(Y,YL,YU,[reified_eq(X,B)|YExpr]),
