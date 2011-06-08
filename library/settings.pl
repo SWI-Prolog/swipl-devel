@@ -50,6 +50,7 @@
 :- use_module(library(broadcast)).
 :- use_module(library(debug)).
 :- use_module(library(option)).
+:- use_module(library(arithmetic)).
 
 /** <module> Setting management
 
@@ -236,7 +237,7 @@ eval_default(setting(Name), Module, Type, Value) :- !,
 	must_be(Type, Value).
 eval_default(Expr, _, Type, Value) :-
 	numeric_type(Type, Basic), !,
-	Val0 is Expr,
+	eval_arithmetic_expression(Val0, Expr),
 	(   Basic == float
 	->  Val is float(Val0)
 	;   Basic = integer
@@ -588,7 +589,8 @@ list_settings(Spec) :-
 	TS1 = 25,
 	TS2 = 40,
 	format('~`=t~72|~n'),
-	format('~w~t~*| ~w~w~t~*| ~w~n', ['Name', TS1, 'Value (*=modified)', '', TS2, 'Comment']),
+	format('~w~t~*| ~w~w~t~*| ~w~n',
+	       ['Name', TS1, 'Value (*=modified)', '', TS2, 'Comment']),
 	format('~`=t~72|~n'),
 	forall(current_setting(Term),
 	       list_setting(Term, TS1, TS2)).
