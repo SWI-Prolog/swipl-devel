@@ -85,7 +85,6 @@ stop('getUnknownModule').
 					% real problems
 stop_show('ph1_is_acyclic',	     lao).
 stop_show('ph2_is_acyclic',	     lao).
-stop_show('eval_expression',	     no_lao).
 stop_show('analyseVariables2',	     lao).
 stop_show('compileArgument',	     lao).
 stop_show('compileBody',	     no_lao).
