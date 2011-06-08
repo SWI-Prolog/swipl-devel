@@ -818,8 +818,8 @@ eval_expression(term_t expr, number *result, int recursion ARG_LD)
 	    popTopOfSegStack(&arg_stack);
 
 	    if ( rc == TRUE )
-	    { number *n0 = a[0];
-	      *n0 = *n;
+	    { number *n1 = a[1];
+	      *n1 = *n;
 	    } else
 	    { popTopOfSegStack(&arg_stack);
 	      goto error;
@@ -840,8 +840,8 @@ eval_expression(term_t expr, number *result, int recursion ARG_LD)
 	    popTopOfSegStack(&arg_stack);
 
 	    if ( rc == TRUE )
-	    { number *n0 = a[0];
-	      *n0 = *n;
+	    { number *n2 = a[2];
+	      *n2 = *n;
 	    } else
 	    { popTopOfSegStack(&arg_stack);
 	      goto error;
@@ -860,6 +860,7 @@ eval_expression(term_t expr, number *result, int recursion ARG_LD)
 
 	  return TRUE;
 	}
+	p--;
       } else
       { PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
 	goto error;
