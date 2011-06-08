@@ -684,7 +684,7 @@ popForMark(segstack *stack, Word *pp, int *wr)
 
 
 int
-eval_expression(term_t expr, number *result, int recursion ARG_LD)
+valueExpression(term_t expr, number *result ARG_LD)
 { segstack term_stack;
   segstack arg_stack;
   Word term_buf[16];
@@ -883,12 +883,6 @@ error:
   LD->in_arithmetic--;
 
   return FALSE;
-}
-
-
-int
-valueExpression(term_t t, Number r ARG_LD)
-{ return eval_expression(t, r, 0 PASS_LD);
 }
 
 
