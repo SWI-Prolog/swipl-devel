@@ -63,6 +63,7 @@
 :- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
+:- use_module(library(arithmetic)).
 
 
 /** <module> SICStus compatibility library
@@ -464,8 +465,11 @@ version(Message) :-
 :- op(500, yfx, #).
 
 :- arithmetic_function(user:(#)/2).
+:- arithmetic_function(user:(\)/2).
 
-user:(#(X,Y,R)) :-
+user:(#(X,Y,R)) :-				% SICStus 3
+	R is xor(X,Y).
+user:(\(X,Y,R)) :-				% SICStus 4
 	R is xor(X,Y).
 
 
