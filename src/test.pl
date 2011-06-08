@@ -747,6 +747,8 @@ wchars(cmp-2) :-
 
 foo:hello(world).
 
+ten(10).
+
 meta(call-1) :-
 	call(ten(X)),
 	X == 10.
