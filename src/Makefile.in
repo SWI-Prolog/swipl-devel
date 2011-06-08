@@ -5,7 +5,7 @@
 # Author:	Jan Wielemaker
 #		J.Wielemake@cs.vu.nl
 #		VU University Amsterdam
-#    		De Boelelaan 1081a
+#		De Boelelaan 1081a
 #		1081 HV  Amsterdam
 #		The Netherlands
 #
@@ -238,8 +238,8 @@ def:		$(DEF)
 $(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $@
 		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
-		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
-			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
+		    $(SED) -e 's/.*[	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
+			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
 		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
 		    sort -u >> $@
@@ -250,8 +250,8 @@ $(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 $(DEF):		$(srcdir)/SWI-Prolog.h
 		echo EXPORTS > $@
 		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
-		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
-			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
+		    $(SED) -e 's/.*[	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
+			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
 		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
 		    sort -u >> $@
@@ -292,6 +292,7 @@ pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c \
 pl-prims.o:	pl-termwalk.c
 pl-rec.o:	pl-termwalk.c
 pl-copyterm.o:	pl-termwalk.c
+pl-arith.o:	pl-segstack.h
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c

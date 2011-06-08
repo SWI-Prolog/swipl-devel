@@ -73,10 +73,36 @@ COMMON(int)	pushSegStack_(segstack *stack, void* data);
 COMMON(int)	pushRecordSegStack(segstack *stack, Record r);
 COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
-COMMON(void)	topsOfSegStack(segstack *stack, int count, void **ptrs);
 COMMON(void)	popTopOfSegStack(segstack *stack);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));
 COMMON(void)	clearSegStack(segstack *s);
+
+		 /*******************************
+		 *	       INLINE		*
+		 *******************************/
+
+static inline void
+topsOfSegStack(segstack *stack, int count, void **tops)
+{ void *p = stack->top - stack->unit_size;
+  void *base = stack->base;
+
+  SECURE(assert(stack->count >= count));
+
+  for(;;)
+  { while(count-->0 && p >= base)
+    { *tops++ = p;
+      p -= stack->unit_size;
+    }
+
+    if ( count > 0 )
+    { segchunk *chunk = stack->last->previous;
+
+      p = chunk->top - stack->unit_size;
+      base = chunk->data;
+    } else
+      break;
+  }
+}
 
 
 #endif /*PL_SEGSTACK_H_INCLUDED*/
