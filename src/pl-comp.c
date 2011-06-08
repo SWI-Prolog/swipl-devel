@@ -925,7 +925,7 @@ mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c)
 			 codeTable[c].name));
 	  seekBuffer(&ci->codes, ci->mstate.merge_pos, code);
 	  ci->mstate.candidates = NULL;
-    	  Output_n(ci, m->merge_op, m->merge_av, m->merge_ac);
+	  Output_n(ci, m->merge_op, m->merge_av, m->merge_ac);
 	  return TRUE;
 	}
 	case VMI_STEP_ARGUMENT:
@@ -1013,7 +1013,7 @@ compileClause(Clause *cp, Word head, Word body,
   Clause cl;
   int rc;
 
-  					/* See declaration of struct clause */
+					/* See declaration of struct clause */
   DEBUG(0, assert(sizeof(clause) % sizeof(word) == 0));
 
   if ( head )
@@ -1383,7 +1383,7 @@ right_argument:
 	Output_0(ci, C_END);
 
 	succeed;
-      } else if ( fd == FUNCTOR_softcut2 ) 		/* A *-> B */
+      } else if ( fd == FUNCTOR_softcut2 )		/* A *-> B */
       { int rv;						/* compile as A,B */
 
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
@@ -2069,7 +2069,7 @@ compileArith(Word arg, compileInfo *ci ARG_LD)
 
   if      ( fdef == FUNCTOR_ar_equals2 )	a_func = A_EQ;	/* =:= */
   else if ( fdef == FUNCTOR_ar_not_equal2 )	a_func = A_NE;	/* =\= */
-  else if ( fdef == FUNCTOR_smaller2 )	 	a_func = A_LT;	/* < */
+  else if ( fdef == FUNCTOR_smaller2 )		a_func = A_LT;	/* < */
   else if ( fdef == FUNCTOR_larger2 )		a_func = A_GT;	/* > */
   else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE;	/* =< */
   else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
@@ -2225,7 +2225,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 			ERR_INSTANTIATION);
     }
 
-    if ( (index = indexArithFunction(fdef, ci->module)) < 0 )
+    if ( (index = indexArithFunction(fdef)) < 0 )
     { return PL_error(NULL, 0, "No such arithmetic function",
 		      ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
     }
@@ -3302,7 +3302,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
     for(n=0; n<clause->prolog_vars; n++)
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
-			  	    PL_INT, n,
+				    PL_INT, n,
 			            PL_TERM, di->variables+n) )
 	fail;
     }
@@ -3702,7 +3702,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case H_FLOAT:
 	case B_FLOAT:
 	case A_DOUBLE:
-		  	  { Word p;
+			  { Word p;
 
 			    if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
 			      return GLOBAL_OVERFLOW;
@@ -3726,7 +3726,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    if ( !hasGlobalSpace(sz) )
 			      return GLOBAL_OVERFLOW;
 
-	  		    *ARGP++ = globalIndirectFromCode(&PC);
+			    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
 			  }
       { size_t index;
@@ -3770,22 +3770,22 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case B_EQ_VC:
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = (word)*PC++;
-      			    goto b_eq_vv_cont;
+			    goto b_eq_vv_cont;
       case B_NEQ_VC:
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = (word)*PC++;
-      			    goto b_neq_vv_cont;
+			    goto b_neq_vv_cont;
       case B_EQ_VV:
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = makeVarRef((int)*PC++);
-      			  b_eq_vv_cont:
+			  b_eq_vv_cont:
 			    BUILD_TERM(FUNCTOR_strict_equal2);
 			    pushed++;
 			    continue;
       case B_NEQ_VV:
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = makeVarRef((int)*PC++);
-      			  b_neq_vv_cont:
+			  b_neq_vv_cont:
 			    BUILD_TERM(FUNCTOR_not_strict_equal2);
 			    pushed++;
 			    continue;
@@ -3885,8 +3885,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    BUILD_TERM(functorArithFunction((int)*PC++));
 			    continue;
       case A_FUNC:
-      			    BUILD_TERM(functorArithFunction((int)*PC++));
-      			    PC++;
+			    BUILD_TERM(functorArithFunction((int)*PC++));
+			    PC++;
 			    continue;
       case A_ADD_FC:
       { int rvar = (int)*PC++;
@@ -3957,8 +3957,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			      PC++;
 			    continue;
       case I_CONTEXT:	    PC++;
-      			    assert(0);	/* should never happen */
-      			    continue;
+			    assert(0);	/* should never happen */
+			    continue;
       case I_DEPART:
       case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
 			    BUILD_TERM(proc->definition->functor->functor);
@@ -3990,7 +3990,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
       case C_VAR_N:
 			    PC += 2;
-      			    continue;
+			    continue;
       case C_OR:				/* A ; B */
 			    DECOMPILETOJUMP;	/* A */
 			    PC--;		/* get C_JMP argument */

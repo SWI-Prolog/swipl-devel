@@ -113,9 +113,9 @@ static const PL_extension foreigns[] = {
   FRG("$rc_save_archive",	2, pl_rc_save_archive,		0),
   FRG("$rc_append_file",	5, pl_rc_append_file,		0),
 
-  FRG("abolish",    		1, pl_abolish1,		     META|ISO),
-  FRG("abolish",    		2, pl_abolish,		     META),
-  FRG("nth_clause", 		3, pl_nth_clause,       NDET|META|CREF),
+  FRG("abolish",		1, pl_abolish1,		     META|ISO),
+  FRG("abolish",		2, pl_abolish,		     META),
+  FRG("nth_clause",		3, pl_nth_clause,       NDET|META|CREF),
   FRG("retractall",		1, pl_retractall,	 META|ISO),
 #ifdef O_MAINTENANCE
   FRG("$list_generations",	1, pl_list_generations,	     META),
@@ -217,10 +217,6 @@ static const PL_extension foreigns[] = {
   FRG("current_format_predicate", 2, pl_current_format_predicate,
 						        META|NDET),
   FRG("get_time",		1, pl_get_time,			0),
-#if O_PROLOG_FUNCTIONS
-  FRG("current_arithmetic_function", 1, pl_current_arithmetic_function,
-							NDET|META),
-#endif
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),

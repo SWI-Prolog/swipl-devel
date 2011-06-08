@@ -81,8 +81,6 @@ handy for it someone wants to add a data type to the system.
       Include arithmetic compiler (compiles is/2, >/2, etc. into WAM).
   O_COMPILE_IS
       Compile Var = Value in the body.
-  O_PROLOG_FUNCTIONS
-      Include evaluable Prolog functions into the arithmetic module.
   O_LABEL_ADDRESSES
       Means we can pick up the address of a label in  a function using
       the var  = `&&label' construct  and jump to  it using goto *var;
@@ -120,7 +118,6 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_ARITH		1
 #define O_COMPILE_IS		1
 #define O_STRING		1
-#define O_PROLOG_FUNCTIONS	1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1

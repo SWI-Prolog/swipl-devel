@@ -35,11 +35,6 @@ For compiled arithmetic, the compiler generates WAM codes that execute a
 stack machine.  This module maintains an array of arithmetic  functions.
 These  functions are addressed by the WAM instructions using their index
 in this array.
-
-The  current  version  of  this  module  also  supports  Prolog  defined
-arithmetic  functions.   In  the  current  version these can only return
-numbers.  This should be changed to return arbitrary Prolog  terms  some
-day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-incl.h"
@@ -128,11 +123,6 @@ struct arithFunction
 { ArithFunction next;		/* Next of chain */
   functor_t	functor;	/* Functor defined */
   ArithF	function;	/* Implementing function */
-  Module	module;		/* Module visibility module */
-  int		level;		/* Level of the module */
-#if O_PROLOG_FUNCTIONS
-  Procedure	proc;		/* Prolog defined functions */
-#endif
 #if O_COMPILE_ARITH
   code		index;		/* Index of function */
 #endif
@@ -142,7 +132,7 @@ struct arithFunction
 #define function_array		(&GD->arith.functions)
 #define FunctionFromIndex(n)	fetchBuffer(function_array, n, ArithFunction)
 
-static ArithFunction	isCurrentArithFunction(functor_t, Module);
+static ArithFunction	isCurrentArithFunction(functor_t);
 static int		registerFunction(ArithFunction f, int index);
 static int		getCharExpression(Word p, Number r ARG_LD);
 static int		ar_minus(Number n1, Number n2, Number r);
@@ -458,37 +448,37 @@ compareNumbers(term_t n1, term_t n2, int what ARG_LD)
 }
 
 static
-PRED_IMPL("<", 2, lt, PL_FA_TRANSPARENT)
+PRED_IMPL("<", 2, lt, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, LT PASS_LD);
 }
 
 static
-PRED_IMPL(">", 2, gt, PL_FA_TRANSPARENT)
+PRED_IMPL(">", 2, gt, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, GT PASS_LD);
 }
 
 static
-PRED_IMPL("=<", 2, leq, PL_FA_TRANSPARENT)
+PRED_IMPL("=<", 2, leq, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, LE PASS_LD);
 }
 
 static
-PRED_IMPL(">=", 2, geq, PL_FA_TRANSPARENT)
+PRED_IMPL(">=", 2, geq, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, GE PASS_LD);
 }
 
 static
-PRED_IMPL("=\\=", 2, neq, PL_FA_TRANSPARENT)
+PRED_IMPL("=\\=", 2, neq, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, NE PASS_LD);
 }
 
 static
-PRED_IMPL("=:=", 2, eq, PL_FA_TRANSPARENT)
+PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, EQ PASS_LD);
 }
@@ -583,92 +573,24 @@ freeArithLocalData(PL_local_data_t *ld)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-isCurrentArithFunction(functor_t f, Module m)
-    Find existing arithmetic function definition for f using m as
-    context.
-
-    The one we are looking for is the function that is in the most
-    local module.  As the entries are sorted such that more specific
-    functions are before global functions, we can pick the first
-    one that is in our module path.
+isCurrentArithFunction(functor_t f)
+    Find existing arithmetic function definition for f.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 static ArithFunction
-isCurrentArithFunction(functor_t f, Module m)
+isCurrentArithFunction(functor_t f)
 { ArithFunction a;
 
   for(a = arithFunctionTable[functorHashValue(f, ARITHHASHSIZE)];
       !isTableRef(a) && a; a = a->next)
   { if ( a->functor == f )
-    { if ( isSuperModule(a->module, m) )
-	return a;
-    }
+      return a;
   }
 
   return NULL;
 }
 
-#if O_PROLOG_FUNCTIONS
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Activating a Prolog predicate as function below the arithmetic functions
-is/0, >, etc. `f' is the arithmetic function   to  be called. `t' is the
-base term-reference of an array holding  the proper number of arguments.
-`r' is the result of the evaluation.
-
-This calling convention is somewhat  unnatural,   but  fits  best in the
-calling convention required by ar_func_n() below.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
-{ Definition def = getProcDefinition(f->proc);
-  int arity = def->functor->arity;
-  fid_t fid;
-  qid_t qid;
-  int rval;
-
-  if ( !(fid=PL_open_foreign_frame()) ||
-       !(qid=PL_open_query(NULL, PL_Q_PASS_EXCEPTION, f->proc, av)) )
-    return FALSE;
-
-  if ( PL_next_solution(qid) )
-  { rval = valueExpression(av+arity-1, r PASS_LD);
-    PL_close_query(qid);
-    PL_discard_foreign_frame(fid);
-  } else
-  { term_t except;
-
-    if ( (except = PL_exception(qid)) )
-    { rval = FALSE;
-      PL_close_query(qid);
-    } else
-    { PL_close_query(qid);
-
-#ifdef O_LIMIT_DEPTH
-      if ( depth_reached > depth_limit )
-      { rval = FALSE;
-      } else
-#endif
-      { term_t goal;
-
-	rval = ( (goal = PL_new_term_ref()) &&
-		 PL_cons_functor_v(goal, def->functor->functor, av) &&
-		 PL_error(NULL, 0,
-			  "Aritmetic function must succeed or throw exception",
-			  ERR_FAILED, goal)
-	       );
-      }
-    }
-
-    PL_close_foreign_frame(fid);
-  }
-
-  return rval;
-}
-
-#endif /* O_PROLOG_FUNCTIONS */
 
 int
 check_float(double f)
@@ -801,8 +723,7 @@ eval_expression(term_t expr, number *result, int recursion ARG_LD)
       { functor_t functor = lookupFunctorDef(*p, 0);
 	ArithFunction f;
 
-        if ( (f = isCurrentArithFunction(functor,
-					 contextModule(environment_frame))) )
+        if ( (f = isCurrentArithFunction(functor)) )
 	{ if ( (*f->function)(n) != TRUE )
 	    goto error;
 	} else
@@ -867,8 +788,7 @@ eval_expression(term_t expr, number *result, int recursion ARG_LD)
     { functor_t functor = *p;
       ArithFunction f;
 
-      if ( (f = isCurrentArithFunction(functor,
-				       contextModule(environment_frame))) )
+      if ( (f = isCurrentArithFunction(functor)) )
       { int arity = arityFunctor(functor);
 
 	switch(arity)
@@ -3130,7 +3050,7 @@ ar_cputime(Number r)
 		*********************************/
 
 static
-PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
+PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
 { PRED_LD
   AR_CTX
   number arg;
@@ -3149,89 +3069,33 @@ PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
 }
 
 
-#if O_PROLOG_FUNCTIONS
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Functions are module-sensitive. We has the arithmetic functions on their
-functor and keep them sorted in   the chain, most-specific module first.
-See also isCurrentArithFunction()
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/** current_arithmetic_function(?Term) is nondet.
+
+True if Term is evaluable.
+*/
 
 static
-PRED_IMPL("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
-{ GET_LD
-  Procedure proc;
-  functor_t fd;
-  FunctorDef fdef;
-  ArithFunction f, a, *ap;
-  Module m = NULL;
-  term_t head = PL_new_term_ref();
-  size_t v;
-  int index, rc;
-
-  PL_strip_module(A1, &m, head);
-  if ( !PL_get_functor(head, &fd) )
-    return PL_error(NULL, 0, NULL,
-		    ERR_TYPE, ATOM_callable, head);
-  fdef = valueFunctor(fd);
-  if ( fdef->arity < 1 )
-    return PL_error(NULL, 0, NULL,
-		    ERR_DOMAIN, ATOM_not_less_than_one, head);
-  if ( !PL_get_integer_ex(A2, &index) )
-    fail;
-
-  proc = lookupProcedure(fd, m);
-  fd = lookupFunctorDef(fdef->name, fdef->arity - 1);
-  if ( (f = isCurrentArithFunction(fd, m)) && f->module == m )
-    succeed;				/* already registered */
-
-  v = functorHashValue(fd, ARITHHASHSIZE);
-  f = allocHeap(sizeof(struct arithFunction));
-  f->functor  = fd;
-  f->function = NULL;
-  f->module   = m;
-  f->level    = m->level;
-  f->proc     = proc;
-
-  startCritical;
-  for(ap = &arithFunctionTable[v], a=*ap; ; ap = &a->next, a = *ap)
-  { if ( !a || isTableRef(a) || f->level >= a->level )
-    { f->next = a;
-      *ap = f;
-      break;
-    }
-  }
-  rc = registerFunction(f, index);
-  if ( !endCritical ) rc = FALSE;
-
-  return rc;
-}
-
-word
-pl_current_arithmetic_function(term_t f, control_t h)
-{ GET_LD
+PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
+	  PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   ArithFunction a;
-  Module m = NULL;
-  term_t head = PL_new_term_ref();
+  term_t head = A1;
 
-  switch( ForeignControl(h) )
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { functor_t fd;
-
-      PL_strip_module(f, &m, head);
 
       if ( PL_is_variable(head) )
       { a = arithFunctionTable[0];
         break;
       } else if ( PL_get_functor(head, &fd) )
-      {	return isCurrentArithFunction(fd, m) ? TRUE : FALSE;
+      {	return isCurrentArithFunction(fd) ? TRUE : FALSE;
       } else
         return PL_error(NULL, 0, NULL,
-			ERR_TYPE, ATOM_callable, f);
+			ERR_TYPE, ATOM_callable, head);
     }
     case FRG_REDO:
-      PL_strip_module(f, &m, head);
-
-      a = ForeignContextPtr(h);
+      a = CTX_PTR;
       break;
     case FRG_CUTTED:
     default:
@@ -3239,81 +3103,19 @@ pl_current_arithmetic_function(term_t f, control_t h)
   }
 
   for( ; a; a = a->next )
-  { Module m2;
-
-    while( isTableRef(a) )
+  { while( isTableRef(a) )
     { a = unTableRef(ArithFunction, a);
       if ( !a )
         fail;
     }
 
-    for(m2 = m; m2; )
-    { if ( m2 == a->module && a == isCurrentArithFunction(a->functor, m) )
-      { if ( PL_unify_functor(f, a->functor) )
-	  return_next_table(ArithFunction, a, ;);
-      }
-      if ( m2->supers )			/* TBD: multiple supers! */
-      { m2 = m2->supers->value;
-      } else
-	fail;
-    }
+    if ( PL_unify_functor(head, a->functor) )
+      return_next_table(ArithFunction, a, ;);
   }
 
   fail;
 }
 
-
-static
-PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
-	  PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
-{ PRED_LD
-  int i, mx;
-  term_t tmp;
-  fid_t fid;
-
-  switch( CTX_CNTRL )
-  { case FRG_FIRST_CALL:
-      i = 0;
-      break;
-    case FRG_REDO:
-      i = (int)CTX_INT;
-      break;
-    case FRG_CUTTED:
-    default:
-      succeed;
-  }
-
-  tmp = PL_new_term_ref();
-  mx = (int)entriesBuffer(function_array, ArithFunction);
-
-  if ( !(fid = PL_open_foreign_frame()) )
-    return FALSE;
-
-  for( ; i<mx; i++ )
-  { ArithFunction f = FunctionFromIndex(i);
-
-    if ( PL_put_functor(tmp, f->functor) &&
-	 f->proc &&
-	 PL_unify_term(A1,
-		       PL_FUNCTOR, FUNCTOR_colon2,
-		         PL_ATOM, f->module->name,
-		         PL_TERM, tmp) &&
-	 PL_unify_integer(A2, (intptr_t)f->index) )
-    { if ( ++i == mx )
-	succeed;
-      ForeignRedoInt(i);
-    }
-
-    if ( exception_term )
-      return FALSE;
-
-    PL_rewind_foreign_frame(fid);
-  }
-
-  fail;
-}
-
-#endif /* O_PROLOG_FUNCTIONS */
 
 typedef struct
 { functor_t	functor;
@@ -3429,8 +3231,6 @@ registerBuiltinFunctions()
 
     f->functor  = d->functor;
     f->function = d->function;
-    f->module   = MODULE_system;
-    f->level    = 0;			/* level of system module */
     f->next     = arithFunctionTable[v];
     arithFunctionTable[v] = f;
     registerFunction(f, 0);
@@ -3480,10 +3280,10 @@ cleanupArith(void)
 		*********************************/
 
 int
-indexArithFunction(functor_t fdef, Module m)
+indexArithFunction(functor_t fdef)
 { ArithFunction f;
 
-  if ( !(f = isCurrentArithFunction(fdef, m)) )
+  if ( !(f = isCurrentArithFunction(fdef)) )
     return -1;
 
   return (int)f->index;
@@ -3509,39 +3309,22 @@ ar_func_n(int findex, int argc ARG_LD)
   ArithFunction f = FunctionFromIndex(findex);
   Number argv = argvArithStack(argc PASS_LD);
 
-  if ( f->proc )			/* Prolog implementation */
-  { intptr_t lsafe = (char*)lTop - (char*)lBase;
-
-    lTop = (LocalFrame)argFrameP(lTop, 1); /* needed for is/2.  See A_IS */
-    { fid_t fid = PL_open_foreign_frame();
-      term_t h0 = PL_new_term_refs(argc+1);
-      int n;
-
-      for(n=0; n<argc; n++)
-	_PL_put_number(h0+n, argv+n);
-
-      rval = prologFunction(f, h0, &result PASS_LD);
-      PL_close_foreign_frame(fid);
-    }
-    lTop = addPointer(lBase, lsafe);
-  } else
-  { switch(argc)
-    { case 0:
-	rval = (*f->function)(&result);
-        break;
-      case 1:
-	rval = (*f->function)(argv, &result);
-        break;
-      case 2:
-	rval = (*f->function)(argv, argv+1, &result);
-	break;
-      case 3:
-	rval = (*f->function)(argv, argv+1, argv+2, &result);
-        break;
-      default:
-	rval = FALSE;
-        sysError("Too many arguments to arithmetic function");
-    }
+  switch(argc)
+  { case 0:
+      rval = (*f->function)(&result);
+      break;
+    case 1:
+      rval = (*f->function)(argv, &result);
+      break;
+    case 2:
+      rval = (*f->function)(argv, argv+1, &result);
+      break;
+    case 3:
+      rval = (*f->function)(argv, argv+1, argv+2, &result);
+      break;
+    default:
+      rval = FALSE;
+      sysError("Too many arguments to arithmetic function");
   }
 
   popArgvArithStack(argc PASS_LD);
@@ -3603,16 +3386,15 @@ PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
 		 *******************************/
 
 BeginPredDefs(arith)
-  PRED_DEF("is",   2, is,  PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("<",	   2, lt,  PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF(">",	   2, gt,  PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("=<",   2, leq, PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF(">=",   2, geq, PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("=\\=", 2, neq, PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("=:=",  2, eq,  PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
-	   PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
-  PRED_DEF("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
+  PRED_DEF("is",   2, is,  PL_FA_ISO)
+  PRED_DEF("<",	   2, lt,  PL_FA_ISO)
+  PRED_DEF(">",	   2, gt,  PL_FA_ISO)
+  PRED_DEF("=<",   2, leq, PL_FA_ISO)
+  PRED_DEF(">=",   2, geq, PL_FA_ISO)
+  PRED_DEF("=\\=", 2, neq, PL_FA_ISO)
+  PRED_DEF("=:=",  2, eq,  PL_FA_ISO)
+  PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,
+	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("succ", 2, succ, 0)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)

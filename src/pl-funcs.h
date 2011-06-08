@@ -140,7 +140,7 @@ COMMON(int)		ar_mul(Number n1, Number n2, Number r);
 COMMON(word)		pl_current_arithmetic_function(term_t f, control_t h);
 COMMON(void)		initArith(void);
 COMMON(void)		cleanupArith(void);
-COMMON(int)		indexArithFunction(functor_t fdef, Module m);
+COMMON(int)		indexArithFunction(functor_t fdef);
 COMMON(functor_t)	functorArithFunction(int n);
 COMMON(bool)		ar_func_n(int findex, int argc ARG_LD);
 COMMON(int)		ar_add_ui(Number n, intptr_t add);
