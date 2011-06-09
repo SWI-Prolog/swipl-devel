@@ -202,6 +202,7 @@ evaluable(F) :-
 	var(F), !.
 evaluable(F) :-
 	number(F), !.
+evaluable([_Code]) :- !.
 evaluable(F) :-
 	current_arithmetic_function(F),
 	forall(arg(_,F,A), evaluable(A)).
