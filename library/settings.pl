@@ -237,7 +237,7 @@ eval_default(setting(Name), Module, Type, Value) :- !,
 	must_be(Type, Value).
 eval_default(Expr, _, Type, Value) :-
 	numeric_type(Type, Basic), !,
-	eval_arithmetic_expression(Val0, Expr),
+	arithmetic_expression_value(Val0, Expr),
 	(   Basic == float
 	->  Val is float(Val0)
 	;   Basic = integer

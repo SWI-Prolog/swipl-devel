@@ -28,8 +28,8 @@
 */
 
 :- module(arithmetic,
-	  [ arithmetic_function/1,
-	    eval_arithmetic_expression/2  % -Result, :Expression
+	  [ arithmetic_function/1,		% +Name/Arity
+	    arithmetic_expression_value/2	% :Expression, -Value
 	  ]).
 :- use_module(library(error)).
 
@@ -45,7 +45,7 @@ terms.
 
 :- meta_predicate
 	arithmetic_function(:),
-	eval_arithmetic_expression(-, :).
+	arithmetic_expression_value(:, -).
 :- multifile
 	evaluable/2.				% Term, Module
 
@@ -99,11 +99,12 @@ term_expansion(eval('$builtin', _, _), Clauses) :-
 	findall(Clause, eval_clause(Clause), Clauses).
 
 
-%%	eval_arithmetic_expression(-Result, :Expression) is det.
+%%	arithmetic_expression_value(:Expression, -Result) is det.
 %
-%	Result is the arithmetic result of evaluating Expression.
+%	True  when  Result  unifies  with    the  arithmetic  result  of
+%	evaluating Expression.
 
-eval_arithmetic_expression(Result, M:Expression) :-
+arithmetic_expression_value(M:Expression, Result) :-
 	eval(Expression, M, Result).
 
 eval(Number, _, Result) :-
