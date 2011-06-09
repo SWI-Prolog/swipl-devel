@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -44,6 +44,7 @@
 	  nth0/3,
 	  nth1/3,
 	  last/2,			% +List, -Element
+	  same_length/2,		% ?List1, ?List2
 	  reverse/2,			% +List, -Reversed
 	  permutation/2,		% ?List, ?Permutation
 	  flatten/2,			% +Nested, -Flat
@@ -82,7 +83,7 @@ and the YAP lists library.
 %	element.  E.g. this is deterministic:
 %
 %	    ==
-%	    	member(X, [One]).
+%		member(X, [One]).
 %	    ==
 %
 %	@author Gertjan van Noord
@@ -268,6 +269,23 @@ last_([X|Xs], _, Last) :-
     last_(Xs, X, Last).
 
 
+%%	same_length(?List1, ?List2)
+%
+%	Is true when List1 and List2 are   lists with the same number of
+%	elements. The predicate is deterministic if  at least one of the
+%	arguments is a proper list.  It   is  non-deterministic  if both
+%	arguments are partial lists.
+%
+%	@see length/2
+
+same_length([], []).
+same_length([_|T1], [_|T2]) :-
+	(   T2 == []			% determinism in mode (-,+)
+	->  T1 = []
+	;   same_length(T1, T2)
+	).
+
+
 %%	reverse(?List1, ?List2)
 %
 %	Is true when the elements of List2 are in reverse order compared to
@@ -390,13 +408,10 @@ numlist_(L, U, [L|Ns]) :-
 %	resource-error. There are no other error conditions.
 
 is_set(Set) :-
-	is_list(Set),
+	'$skip_list'(Len, Set, Tail),
+	Tail == [],				% Proper list
 	sort(Set, Sorted),
-	same_length(Set, Sorted).
-
-same_length([], []).
-same_length([_|T1], [_|T2]) :-
-	same_length(T1, T2).
+	length(Sorted, Len).
 
 
 %%	list_to_set(+List, ?Set) is det.
