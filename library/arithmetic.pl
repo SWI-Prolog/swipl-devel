@@ -186,7 +186,7 @@ expand_function_arguments([H0|T0], [H|T], (A,B)) :-
 expand_predicate_arguments([], [], true).
 expand_predicate_arguments([H0|T0], [H|T], (A,B)) :-
 	do_expand_function(H0, H1, A0),
-	(   nonvar(H1),
+	(   callable(H1),
 	    current_arithmetic_function(H1)
 	->  A = (A0, H is H1)
 	;   A = A0,
