@@ -209,17 +209,21 @@ delete([Head|Tail], Elem, [Head|Rest]) :-
 
 %%	nth0(?Index, ?List, ?Elem)
 %
-%	True if Elem is the Index'th element of List. Counting starts at
-%	0.  This  is  a  faster  version   of  the  original  SWI-Prolog
-%	predicate.
+%	True when Elem is the Index-th  element of List. Counting starts
+%	at 0.
+%
+%	@error	type_error(integer, Index) if Index is not an integer or
+%		unbound.
+%	@see nth1/3.
 
 nth0(Index, List, Elem) :-
-        integer(Index), !,
-        Index >= 0,
-        nth0_det(Index, List, Elem).    % take nth deterministically
-nth0(Index, List, Elem) :-
-        var(Index), !,
-        nth_gen(List, Elem, 0, Index).  % match
+        (   integer(Index)
+	->  nth0_det(Index, List, Elem)		% take nth deterministically
+	;   var(Index)
+	->  List = [H|T],
+	    nth_gen(T, Elem, H, 0, Index)	% match
+	;   must_be(integer, Index)
+	).
 
 nth0_det(0, [Elem|_], Elem) :- !.
 nth0_det(1, [_,Elem|_], Elem) :- !.
@@ -232,26 +236,28 @@ nth0_det(N, [_,_,_,_,_,_   |Tail], Elem) :-
 	M >= 0,
         nth0_det(M, Tail, Elem).
 
-nth_gen([Elem|_], Elem, Base, Base).
-nth_gen([_|Tail], Elem, N, Base) :-
+nth_gen(_, Elem, Elem, Base, Base).
+nth_gen([H|Tail], Elem, _, N, Base) :-
         succ(N, M),
-        nth_gen(Tail, Elem, M, Base).
+        nth_gen(Tail, Elem, H, M, Base).
 
 
 %%	nth1(?Index, ?List, ?Elem)
 %
 %	Is true when Elem is  the   Index'th  element  of List. Counting
-%	starts at 1. This is a faster version of the original SWI-Prolog
-%	predicate.
+%	starts at 1.
+%
+%	@see nth0/3.
 
-nth1(Index1, List, Elem) :-
-        integer(Index1), !,
-        Index0 is Index1 - 1,
-        nth0_det(Index0, List, Elem).   % take nth deterministically
 nth1(Index, List, Elem) :-
-        var(Index), !,
-        nth_gen(List, Elem, 1, Index).  % match
-
+	(   integer(Index)
+	->  Index0 is Index - 1,
+	    nth0_det(Index0, List, Elem)	% take nth deterministically
+	;   var(Index)
+	->  List = [H|T],
+	    nth_gen(T, Elem, H, 1, Index)	% match
+	;   must_be(integer, Index)
+	).
 
 %%	last(?List, ?Last)
 %
