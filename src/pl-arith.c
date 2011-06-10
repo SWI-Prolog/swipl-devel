@@ -751,9 +751,8 @@ valueExpression(term_t expr, number *result ARG_LD)
       return TRUE;
     }
 
-    while ( walk_ref )
-    { popForMark(&term_stack, &p, &walk_ref);
-    }
+    if ( walk_ref )
+      popForMark(&term_stack, &p, &walk_ref);
 
     if ( !pushSegStack(&arg_stack, n_tmp, number) )
     { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
@@ -840,6 +839,8 @@ valueExpression(term_t expr, number *result ARG_LD)
 
 	  return TRUE;
 	}
+	if ( walk_ref )
+	  popForMark(&term_stack, &p, &walk_ref);
       } else
       { PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
 	goto error;
