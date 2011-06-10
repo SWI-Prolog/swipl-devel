@@ -2082,6 +2082,12 @@ PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
 }
 
 
+/*  Cycle detection uses Brent's algorithm.
+See http://en.wikipedia.org/wiki/Cycle_detection#Brent.27s_algorithm
+
+Author: Ulrich Neumerkel.
+*/
+
 intptr_t
 skip_list(Word l, Word *tailp ARG_LD)
 { intptr_t length = 0;
