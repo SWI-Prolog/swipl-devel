@@ -246,7 +246,7 @@ clearSegStack(segstack *s)
       c->next = NULL;
       s->last = c;
       s->base = s->top = c->top;
-      s->last = addPointer(c, c->size);
+      s->max  = addPointer(c, c->size);
       s->count = 0;
 
       for(c=n; c; c = n)
