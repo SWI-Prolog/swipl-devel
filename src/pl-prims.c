@@ -4455,10 +4455,6 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = usedStack(local);
   else if (key == ATOM_locallimit)
     v->value.i = limitStack(local);
-  else if (key == ATOM_heaplimit)			/* heap */
-    fail;
-  else if (key == ATOM_heap)
-    fail;
   else if (key == ATOM_heapused)			/* heap usage */
     v->value.i = heapUsed();
   else if (key == ATOM_trail)				/* trail */

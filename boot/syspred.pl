@@ -726,13 +726,6 @@ statistics(Out) :-
 	format(Out, '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
 				    [Atoms, Functors, Predicates, Modules, Codes]),
 	format(Out, '                       Limit    Allocated       In use~n', []),
-	(   statistics(heap, Heap),
-	    statistics(heaplimit, HeapLimit)
-	->  format(Out, 'Heap         :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
-		   [HeapLimit, Heap, Heapused])
-	;   format(Out, 'Heap         :                  ~t~D~54| Bytes~n',
-		   [Heapused])
-	),
 	format(Out, 'Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 	       [LocalLimit, Local, LocalUsed]),
 	format(Out, 'Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
