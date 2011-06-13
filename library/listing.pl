@@ -496,7 +496,6 @@ infix_op(Op, Left, Right) :-
 infix_assoc(xfx, 1, 1).
 infix_assoc(xfy, 1, 0).
 infix_assoc(yfx, 0, 1).
-infix_assoc(yfy, 0, 0).
 
 prefix_op(Op, ArgPri) :-
 	current_op(Pri, Assoc, Op),
@@ -505,6 +504,14 @@ prefix_op(Op, ArgPri) :-
 
 pre_assoc(fx, 1).
 pre_assoc(fy, 0).
+
+postfix_op(Op, ArgPri) :-
+	current_op(Pri, Assoc, Op),
+	post_assoc(Assoc, ArgMin), !,
+	ArgPri is Pri - ArgMin.
+
+post_assoc(xf, 1).
+post_assoc(yf, 0).
 
 %%	or_layout(@Term) is semidet.
 %
@@ -620,7 +627,7 @@ pprint(Out, Term, _, Options) :-
 	format(Out, '}', []).
 pprint(Out, Term, Pri, Options) :-
 	compound(Term),
-	Term \= '$VAR'(_),
+	\+ nowrap_term(Term),
 	setting(listing:line_width, Width),
 	Width > 0,
 	listing_write_options(Pri, WrtOptions, Options),
@@ -632,6 +639,20 @@ pprint(Out, Term, Pri, Options) :-
 pprint(Out, Term, Pri, Options) :-
 	listing_write_options(Pri, WrtOptions, Options),
 	write_term(Out, Term, WrtOptions).
+
+nowrap_term('$VAR'(_)) :- !.
+nowrap_term(Term) :-
+	functor(Term, Name, Arity),
+	current_op(_, _, Name),
+	(   Arity == 2
+	->  infix_op(Name, _, _)
+	;   Arity == 1
+	->  (   prefix_op(Name, _)
+	    ->	true
+	    ;	postfix_op(Name, _)
+	    )
+	).
+
 
 pprint_wrapped(Out, Term, _, Options) :-
 	Term = [_|_], !,
