@@ -1433,6 +1433,45 @@ unify_meta_pattern(Procedure proc, term_t head)
 }
 
 
+int
+PL_meta_predicate(predicate_t proc, ...)
+{ va_list args;
+  Definition def = proc->definition;
+  int arity = def->functor->arity;
+  int i;
+  int mask = 0;
+  int transparent = FALSE;
+
+  va_start(args, proc);
+  for(i=0; i<arity; i++)
+  { int spec = va_arg(args, int);
+
+    if ( (mask >= 0 && mask <= 9) ||
+	 mask == MA_NONVAR ||
+	 mask == MA_VAR ||
+	 mask == MA_ANY ||
+	 mask == MA_META )
+    { mask |= spec<<(i*4);
+      if ( spec < 10 || spec == ATOM_colon )
+	transparent = TRUE;
+    } else
+    { fatalError("Invalid meta-argument\n");
+      return FALSE;
+    }
+  }
+  va_end(args);
+
+  def->meta_info = mask;
+  if ( transparent )
+    set(def, P_TRANSPARENT);
+  else
+    clear(def, P_TRANSPARENT);
+  set(def, P_META);
+
+  return TRUE;
+}
+
+
 #ifdef O_CLAUSEGC
 		 /*******************************
 		 *	     CLAUSE-GC		*
@@ -2160,8 +2199,8 @@ attribute_mask(atom_t key)
   if (key == ATOM_volatile)	 return VOLATILE;
   if (key == ATOM_thread_local)  return P_THREAD_LOCAL;
   if (key == ATOM_noprofile)     return P_NOPROFILE;
-  if (key == ATOM_iso)      	 return P_ISO;
-  if (key == ATOM_public)      	 return P_PUBLIC;
+  if (key == ATOM_iso)		 return P_ISO;
+  if (key == ATOM_public)	 return P_PUBLIC;
 
   return 0;
 }
@@ -2644,7 +2683,7 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
   } else if ( a == ATOM_fact )
   { return PL_unify_atom(value,
 			 true(clause, UNIT_CLAUSE) ? ATOM_true
-			 			   : ATOM_false);
+						   : ATOM_false);
   } else if ( a == ATOM_erased )
   { atom_t erased;
 

@@ -484,6 +484,13 @@ initBuildIns(void)
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
   set(PROCEDURE_dcall1->definition, DYNAMIC|SYSTEM);
 
+  PL_meta_predicate(PL_predicate("notrace",        1, "system"), 0);
+  PL_meta_predicate(PL_predicate("with_mutex",     2, "system"), MA_NONVAR, 0);
+  PL_meta_predicate(PL_predicate("with_output_to", 2, "system"), MA_NONVAR, 0);
+#ifdef O_PLMT
+  PL_meta_predicate(PL_predicate("thread_at_exit", 1, "system"), 0);
+#endif
+
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);
 
