@@ -40,6 +40,7 @@
 :- use_module(library(lists)).
 :- use_module(library(settings)).
 :- use_module(library(option)).
+:- use_module(library(error)).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
@@ -294,8 +295,9 @@ portray_clause(Term) :-
 portray_clause(Stream, Term) :-
 	portray_clause(Stream, Term, []).
 
-portray_clause(Stream, Term, Options) :-
-	meta_options(is_meta, Options, QOptions),
+portray_clause(Stream, Term, M:Options) :-
+	must_be(list, Options),
+	meta_options(is_meta, M:Options, QOptions),
 	\+ \+ ( copy_term_nat(Term, Copy),
 		numbervars(Copy, 0, _,
 			   [ singletons(true)
