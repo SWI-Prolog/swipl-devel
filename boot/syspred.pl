@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -711,7 +712,6 @@ statistics(Out) :-
 	statistics(globalused, GlobalUsed),
 	statistics(process_cputime, Cputime),
 	statistics(inferences, Inferences),
-	statistics(heapused, Heapused),
 	statistics(atoms, Atoms),
 	statistics(functors, Functors),
 	statistics(predicates, Predicates),
