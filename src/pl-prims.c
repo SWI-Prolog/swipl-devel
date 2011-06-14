@@ -928,28 +928,36 @@ ph1_is_acyclic(Word firstp ARG_LD)
   p = firstp;
 
   for(;;)
-  { int arity, i;
+  { int arity;
+
     if ( !isTerm(*p) )
       break;
+
     f = valueTerm(*p);
-    arity = arityFunctor(f->definition);
-    p = f->arguments;
     if ( ph1_marked(f PASS_LD) ) /* already acyclic */
       break;
     if ( ph1_firstvisited(f PASS_LD) )	/* Got a cycle! */
       fail;
 
-    for(i = 0; i < arity-1; i++)
-    { if ( !ph1_is_acyclic((p+i) PASS_LD) )
-	fail;
+    arity = arityFunctor(f->definition);
+    if ( arity >= 2 )
+    { p = &f->arguments[arity-2];
+      do
+      { if ( !ph1_is_acyclic(p PASS_LD) )
+	  return FALSE;
+	p--;
+      } while ( tagex(*p) != (TAG_ATOM|STG_GLOBAL) );
+      p += arityFunctor(*p);
+    } else
+    { p = &f->arguments[0];
     }
-    l++; /* remember to mark later */
-    p = p + arity-1;
+
+    l++;				/* remember to mark later */
     deRef(p);
   }
   /* mark all last arguments as ph1_visited */
 
-  if (l > 0) /* there are l structures to mark */
+  if ( l > 0 ) /* there are l structures to mark */
   { Word p = firstp;
     int arity;
 
@@ -1017,11 +1025,8 @@ is_acyclic(Word p ARG_LD)
   if ( isTerm(*p) )
   { int rc1;
 
-    startCritical;
     rc1 = ph1_is_acyclic(p PASS_LD);
     ph2_is_acyclic(p PASS_LD);
-    if ( !endCritical )
-      return FALSE;
     return rc1;
   }
 
