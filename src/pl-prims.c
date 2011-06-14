@@ -938,29 +938,20 @@ ph1_is_acyclic(Word firstp ARG_LD)
 
 static void
 ph2_is_acyclic(Word p ARG_LD)
-{ int arity, i;
-  Functor f;
+{ term_agenda agenda;
 
- top:
-  deRef(p);
-  if ( !isTerm(*p) )
-    return;
+  initTermAgenda(&agenda, 1, p);
+  while( (p=nextTermAgenda(&agenda)) )
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
 
-  f = valueTerm(*p);
-
-  if ( f->definition & FIRST_MASK )
-    f->definition &= ~(FIRST_MASK|MARK_MASK);
-  else
-    return;
-
-  arity = arityFunctor(f->definition);
-  p = f->arguments;
-
-  for(i = 0; i < arity-1; i++)
-    ph2_is_acyclic((p+i) PASS_LD);
-
-  p = p+i;
-  goto top;
+      if ( f->definition & FIRST_MASK )
+      { f->definition &= ~(FIRST_MASK|MARK_MASK);
+	pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
 }
 
 
