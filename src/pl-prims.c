@@ -2332,6 +2332,7 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 	    }
 	  }
 	}
+	continue;
       }
 
       if ( !options->singletons && visited(f PASS_LD) )
