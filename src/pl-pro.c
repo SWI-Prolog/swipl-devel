@@ -630,6 +630,10 @@ last_arg:
     if ( tag(f->definition) != TAG_ATOM ||
          storage(f->definition) != STG_GLOBAL )
       printk("Illegal term: 0x%x", *p);
+    if ( f->definition & MARK_MASK )
+      printk("Term with mark: 0x%x", *p);
+    if ( f->definition & FIRST_MASK )
+      printk("Term with first: 0x%x", *p);
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk("Illegal arity (%d)", arity);
