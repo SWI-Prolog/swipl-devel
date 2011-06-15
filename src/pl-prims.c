@@ -874,57 +874,17 @@ Ulrich Neumerkel came with the following two enhancements:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-ph1_is_acyclic(Word firstp ARG_LD)
-{ Functor f;
-  int l = 0 ; /* number of last arguments to process */
-  Word p;
-
-  deRef(firstp);
-  p = firstp;
-
-  for(;;)
+mark_last_args(Word p, size_t count ARG_LD)
+{ if ( count > 0 )
   { int arity;
 
-    if ( !isTerm(*p) )
-      break;
-
-    f = valueTerm(*p);
-    if ( f->definition & (FIRST_MASK|MARK_MASK) )
-    { if ( f->definition & MARK_MASK )
-	break;					/* MARK_MASK:  already acyclic */
-      return FALSE;				/* FIRST_MASK: got a cycle */
-    }
-    f->definition |= FIRST_MASK;
-
-    arity = arityFunctor(f->definition);
-    if ( arity >= 2 )
-    { p = &f->arguments[arity-2];
-      do
-      { if ( !ph1_is_acyclic(p PASS_LD) )
-	  return FALSE;
-	p--;
-      } while ( tagex(*p) != (TAG_ATOM|STG_GLOBAL) );
-      p += arityFunctor(*p);
-    } else
-    { p = &f->arguments[0];
-    }
-
-    l++;					/* remember to mark later */
-    deRef(p);
-  }
-  /* mark all last arguments as ph1_visited */
-
-  if ( l > 0 )				/* there are l structures to mark */
-  { Word p = firstp;
-    int arity;
-
     for(;;)
-    { SECURE(assert(isTerm(*p)));
-      f = valueTerm(*p);
+    { Functor f = valueTerm(*p);
+
       f->definition |= MARK_MASK;
 
-      if ( --l == 0 )
-	break;
+      if ( --count == 0 )
+	return TRUE;
 
       arity = arityFunctor(f->definition);
       p = f->arguments + arity-1;		/* next last argument */
@@ -932,7 +892,48 @@ ph1_is_acyclic(Word firstp ARG_LD)
     }
   }
 
-  succeed;
+  return TRUE;
+}
+
+
+static int
+ph1_is_acyclic(Word firstp ARG_LD)
+{ int l = 0 ; /* number of last arguments to process */
+  Word p;
+
+  deRef(firstp);
+  p = firstp;
+
+  for(;;)
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      int arity;
+
+      if ( f->definition & (FIRST_MASK|MARK_MASK) )
+      { if ( f->definition & MARK_MASK )	/* MARK_MASK:  already acyclic */
+	  return mark_last_args(firstp, l PASS_LD);
+	return FALSE;				/* FIRST_MASK: got a cycle */
+      }
+      f->definition |= FIRST_MASK;
+
+      arity = arityFunctor(f->definition);
+      if ( arity >= 2 )
+      { p = &f->arguments[arity-2];
+	do
+	{ if ( !ph1_is_acyclic(p PASS_LD) )
+	    return FALSE;
+	  p--;
+	} while ( tagex(*p) != (TAG_ATOM|STG_GLOBAL) );
+	p += arityFunctor(*p);
+      } else
+      { p = &f->arguments[0];
+      }
+
+      l++;					/* remember to mark later */
+      deRef(p);
+    } else
+      return mark_last_args(firstp, l PASS_LD);
+  }
 }
 
 
