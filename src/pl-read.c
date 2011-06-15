@@ -1249,6 +1249,8 @@ Not sure whether it is worth the trouble to use a hash-table here.
 	  for( ; v < _ev; v++ ) { code; } \
 	}
 
+#define isAnonVarName(n)   ((n)[0] == '_' && (n)[1] == EOS)
+
 static char *
 save_var_name(const char *name, size_t len, ReadData _PL_rd)
 { char *nb, *ob = baseBuffer(&var_name_buffer, char);
@@ -1282,7 +1284,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
   Variable var;
   size_t nv;
 
-  if ( name[0] != '_' || name[1] != EOS ) /* anonymous: always add */
+  if ( !isAnonVarName(name) )			/* always add _ */
   { for_vars(v,
 	     if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
 	     { v->times++;
@@ -1377,7 +1379,7 @@ bind_variable_names(ReadData _PL_rd ARG_LD)
   term_t a    = PL_new_term_ref();
 
   for_vars(var,
-	   if ( !(var->name[0] == '_' && !var->name[1]) )
+	   if ( !isAnonVarName(var->name) )
 	   { PL_chars_t txt;
 
 	     txt.text.t    = var->name;
