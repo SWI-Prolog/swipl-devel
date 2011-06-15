@@ -723,11 +723,17 @@ valueExpression(term_t expr, number *result ARG_LD)
 	  goto error;
 	}
 	if ( term_stack.count > 100 && !known_acyclic )
-	{ if ( !is_acyclic(start PASS_LD) )
-	  { PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, expr);
+	{ int rc;
+
+	  if ( (rc=is_acyclic(start PASS_LD)) == TRUE )
+	  { known_acyclic = TRUE;
+	  } else
+	  { if ( rc == MEMORY_OVERFLOW )
+	      PL_error(NULL, 0, NULL, ERR_NOMEM);
+	    else
+	      PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, expr);
 	    goto error;
 	  }
-	  known_acyclic = TRUE;
 	}
 	walk_ref = FALSE;
 	n = &n_tmp;
