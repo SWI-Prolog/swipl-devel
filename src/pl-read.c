@@ -204,18 +204,15 @@ This module is considerably faster when compiled  with  GCC,  using  the
 -finline-functions option.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct token * Token;
-
-typedef struct
+typedef struct variable
 { char *	name;		/* Name of the variable */
   size_t	namelen;	/* length of the name */
   term_t	variable;	/* Term-reference to the variable */
   int		times;		/* Number of occurences */
   word		signature;	/* Pseudo atom */
-} variable, *Variable;
+} *Variable;
 
-
-struct token
+typedef struct token
 { int type;			/* type of token */
   intptr_t start;		/* start-position */
   intptr_t end;			/* end-position */
@@ -226,7 +223,7 @@ struct token
     int		character;	/* a punctuation character (T_PUNCTUATION) */
     Variable	variable;	/* a variable record (T_VARIABLE) */
   } value;			/* value of token */
-};
+} *Token;
 
 
 #define FASTBUFFERSIZE	256	/* read quickly upto this size */
@@ -1247,8 +1244,8 @@ Not sure whether it is worth the trouble to use a hash-table here.
 #define MAX_SINGLETONS 256		/* max singletons _reported_ */
 
 #define for_vars(v, code) \
-	{ Variable v   = baseBuffer(&var_buffer, variable); \
-	  Variable _ev = topBuffer(&var_buffer, variable); \
+	{ Variable v   = baseBuffer(&var_buffer, struct variable); \
+	  Variable _ev = topBuffer(&var_buffer, struct variable); \
 	  for( ; v < _ev; v++ ) { code; } \
 	}
 
@@ -1273,7 +1270,7 @@ save_var_name(const char *name, size_t len, ReadData _PL_rd)
 static Variable
 varInfo(word w, ReadData _PL_rd)
 { if ( tagex(w) == (TAG_VAR|STG_RESERVED) )
-    return &baseBuffer(&var_buffer, variable)[w>>LMASK_BITS];
+    return &baseBuffer(&var_buffer, struct variable)[w>>LMASK_BITS];
 
   return NULL;
 }
@@ -1281,7 +1278,7 @@ varInfo(word w, ReadData _PL_rd)
 
 static Variable
 lookupVariable(const char *name, size_t len, ReadData _PL_rd)
-{ variable next;
+{ struct variable next;
   Variable var;
   size_t nv;
 
@@ -1293,14 +1290,14 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 	     })
   }
 
-  nv = entriesBuffer(&var_buffer, variable);
+  nv = entriesBuffer(&var_buffer, struct variable);
   next.name      = save_var_name(name, len, _PL_rd);
   next.namelen   = len;
   next.times     = 1;
   next.variable  = 0;
   next.signature = (nv<<LMASK_BITS)|TAG_VAR|STG_RESERVED;
-  addBuffer(&var_buffer, next, variable);
-  var = topBuffer(&var_buffer, variable);
+  addBuffer(&var_buffer, next, struct variable);
+  var = topBuffer(&var_buffer, struct variable);
 
   return var-1;
 }
