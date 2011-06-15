@@ -851,51 +851,6 @@ PRED_IMPL("$term_size", 3, term_size, 0)
 		 *	     CYCLIC		*
 		 *******************************/
 
-static inline int
-ph1_markedWord(Word p ARG_LD)
-{ if ( is_marked(p) )
-    succeed;
-  fail;
-}
-
-static inline int
-ph1_marked(Functor f ARG_LD)
-{ Word p = &f->definition;
-
-  return ph1_markedWord(p PASS_LD);
-}
-
-static inline int
-ph1_visitedWord(Word p ARG_LD)
-{ if ( is_marked(p) )
-    succeed;
-  set_marked(p);
-  fail;
-}
-
-static inline int
-ph1_visited(Functor f ARG_LD)
-{ Word p = &f->definition;
-
-  return ph1_visitedWord(p PASS_LD);
-}
-
-static inline int
-ph1_firstvisitedWord(Word p ARG_LD)
-{ if ( is_first(p) )
-    succeed;
-  set_first(p);
-  fail;
-}
-
-static inline int
-ph1_firstvisited(Functor f ARG_LD)
-{ Word p = &f->definition;
-
-  return ph1_firstvisitedWord(p PASS_LD);
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finding cyclic terms is a bit more   complicated than one may think. The
 native way is to walk the structure  depth-first while setting marks and
@@ -934,10 +889,12 @@ ph1_is_acyclic(Word firstp ARG_LD)
       break;
 
     f = valueTerm(*p);
-    if ( ph1_marked(f PASS_LD) ) /* already acyclic */
-      break;
-    if ( ph1_firstvisited(f PASS_LD) )	/* Got a cycle! */
-      fail;
+    if ( f->definition & (FIRST_MASK|MARK_MASK) )
+    { if ( f->definition & MARK_MASK )
+	break;					/* MARK_MASK:  already acyclic */
+      return FALSE;				/* FIRST_MASK: got a cycle */
+    }
+    f->definition |= FIRST_MASK;
 
     arity = arityFunctor(f->definition);
     if ( arity >= 2 )
@@ -952,45 +909,30 @@ ph1_is_acyclic(Word firstp ARG_LD)
     { p = &f->arguments[0];
     }
 
-    l++;				/* remember to mark later */
+    l++;					/* remember to mark later */
     deRef(p);
   }
   /* mark all last arguments as ph1_visited */
 
-  if ( l > 0 ) /* there are l structures to mark */
+  if ( l > 0 )				/* there are l structures to mark */
   { Word p = firstp;
     int arity;
 
     for(;;)
     { SECURE(assert(isTerm(*p)));
       f = valueTerm(*p);
-      if (ph1_visited(f PASS_LD) )
-	{assert(0);} /* Impossible: someone else did it */
-      if (--l==0)
+      f->definition |= MARK_MASK;
+
+      if ( --l == 0 )
 	break;
+
       arity = arityFunctor(f->definition);
-      p = f-> arguments + arity -1; /* next last argument */
+      p = f->arguments + arity-1;		/* next last argument */
       deRef(p);
     }
   }
+
   succeed;
-}
-
-
-static inline int
-ph2_avisitedWord(Word p ARG_LD)
-{ if ( !is_first(p) )
-    succeed;
-  clear_both(p);
-  fail;
-}
-
-
-static inline int
-ph2_avisited(Functor f ARG_LD)
-{ Word p = &f->definition;
-
-  return ph2_avisitedWord(p PASS_LD);
 }
 
 
@@ -1005,10 +947,14 @@ ph2_is_acyclic(Word p ARG_LD)
     return;
 
   f = valueTerm(*p);
+
+  if ( f->definition & FIRST_MASK )
+    f->definition &= ~(FIRST_MASK|MARK_MASK);
+  else
+    return;
+
   arity = arityFunctor(f->definition);
   p = f->arguments;
-  if ( ph2_avisited(f PASS_LD) )	/* Got a cycle! */
-    return;
 
   for(i = 0; i < arity-1; i++)
     ph2_is_acyclic((p+i) PASS_LD);
