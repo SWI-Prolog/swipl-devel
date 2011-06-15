@@ -378,8 +378,9 @@ AVARS_MAX
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAX_VARIABLES 1000000000	/* stay safely under signed int */
-#define AVARS_CYCLIC -1
-#define AVARS_MAX    -12
+#define AVARS_CYCLIC    -1
+/*	MEMORY_OVERFLOW -5 */
+#define AVARS_MAX      -12
 
 static int
 analyseVariables2(Word head, int nvars, int argn,
@@ -424,12 +425,13 @@ right_recursion:
   if ( isTerm(*head) )
   { Functor f = valueTerm(*head);
     FunctorDef fd = valueFunctor(f->definition);
+    int rc;
 
-    if ( ++depth == 10000 && !PL_is_acyclic(wordToTermRef(head)) )
+    if ( ++depth == 10000 && (rc=is_acyclic(head PASS_LD)) != TRUE )
     { LD->comp.filledVars = ci->arity+nvars;
       resetVars(PASS_LD1);
 
-      return AVARS_CYCLIC;
+      return rc == FALSE ? AVARS_CYCLIC : rc;
     }
 
     if ( ci->islocal )
@@ -483,9 +485,10 @@ Returns TRUE on success and CYCLIC_* or *_OVERFLOW on errors (*_OVERFLOW
 has not been implemented yet)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define CYCLIC_HEAD -10
-#define CYCLIC_BODY -11
-/*	AVARS_MAX   -12 */
+/*	MEMORY_OVERFLOW -5 */
+#define CYCLIC_HEAD    -10
+#define CYCLIC_BODY    -11
+/*	AVARS_MAX      -12 */
 
 static int
 analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
@@ -499,11 +502,11 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
 
   if ( head )
   { if ( (nvars = analyseVariables2(head, 0, -1, ci, 0 PASS_LD)) < 0 )
-      return nvars == AVARS_CYCLIC ? CYCLIC_HEAD : AVARS_MAX;
+      return nvars == AVARS_CYCLIC ? CYCLIC_HEAD : nvars;
   }
   if ( body )
   { if ( (nvars = analyseVariables2(body, nvars, arity, ci, 0 PASS_LD)) < 0 )
-      return nvars == AVARS_CYCLIC ? CYCLIC_BODY : AVARS_MAX;
+      return nvars == AVARS_CYCLIC ? CYCLIC_BODY : nvars;
   }
 
   for(n=0; n<arity+nvars; n++)
@@ -1050,6 +1053,8 @@ compileClause(Clause *cp, Word head, Word body,
       case AVARS_MAX:
 	return PL_error(NULL, 0, NULL,
 			ERR_REPRESENTATION, ATOM_max_frame_size);
+      case MEMORY_OVERFLOW:
+	return PL_error(NULL, 0, NULL, ERR_NOMEM);
       default:
 	assert(0);
     }
