@@ -1271,7 +1271,7 @@ save_var_name(const char *name, size_t len, ReadData _PL_rd)
 static Variable
 isVarAtom(word w, ReadData _PL_rd)
 { if ( tagex(w) == (TAG_VAR|STG_RESERVED) )
-    return &baseBuffer(&var_buffer, variable)[w>>7];
+    return &baseBuffer(&var_buffer, variable)[w>>LMASK_BITS];
 
   return NULL;
 }
@@ -1296,7 +1296,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
   next.namelen   = len;
   next.times     = 1;
   next.variable  = 0;
-  next.signature = (nv<<7)|TAG_VAR|STG_RESERVED;
+  next.signature = (nv<<LMASK_BITS)|TAG_VAR|STG_RESERVED;
   addBuffer(&var_buffer, next, variable);
   var = topBuffer(&var_buffer, variable);
 
