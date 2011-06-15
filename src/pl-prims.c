@@ -871,17 +871,35 @@ Ulrich Neumerkel came with the following two enhancements:
   we can set the second mark after this call returns, jump to the
   beginning and remember the number of last arguments processed.  Now
   we can simply mark all the last arguments.
+
+Later, the function is rearranged to avoid the C-stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+typedef struct acyclic_state
+{ Word		start;				/* start-term */
+  Word		argp;				/* argument pointer */
+  size_t	last_count;
+} acyclic_state;
+
+
 static int
-mark_last_args(Word p, size_t count ARG_LD)
-{ if ( count > 0 )
-  { int arity;
+mark_last_args(acyclic_state *state ARG_LD)
+{ size_t count;
+
+  DEBUG(3, Sdprintf("mark_last_args(%d)\n", (int)state->last_count));
+
+  if ( (count=state->last_count) > 0 )
+  { Word p = state->start;
+    int arity;
 
     for(;;)
     { Functor f = valueTerm(*p);
 
       f->definition |= MARK_MASK;
+      DEBUG(4, Sdprintf("\tmark %s/%d at %p as acyclic\n",
+			stringAtom(nameFunctor(f->definition)),
+			arityFunctor(f->definition),
+			f));
 
       if ( --count == 0 )
 	return TRUE;
@@ -897,42 +915,77 @@ mark_last_args(Word p, size_t count ARG_LD)
 
 
 static int
-ph1_is_acyclic(Word firstp ARG_LD)
-{ int l = 0 ; /* number of last arguments to process */
-  Word p;
+ph1_is_acyclic(Word p ARG_LD)
+{ segstack stack;
+  acyclic_state buf[64];
+  acyclic_state state;
 
-  deRef(firstp);
-  p = firstp;
+  initSegStack(&stack, sizeof(acyclic_state), sizeof(buf), buf);
+
+  state.start      = NULL;
+  state.last_count = 0;
+  state.argp       = NULL;
 
   for(;;)
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
       int arity;
 
+      DEBUG(3, Sdprintf("Term %s/%d at %p (%s)\n",
+			stringAtom(nameFunctor(f->definition)),
+			arityFunctor(f->definition), f,
+			(f->definition & (FIRST_MASK|MARK_MASK)) ? "seen"
+							         : "new"));
+
       if ( f->definition & (FIRST_MASK|MARK_MASK) )
       { if ( f->definition & MARK_MASK )	/* MARK_MASK:  already acyclic */
-	  return mark_last_args(firstp, l PASS_LD);
+	  goto next;
+	clearSegStack(&stack);
 	return FALSE;				/* FIRST_MASK: got a cycle */
       }
       f->definition |= FIRST_MASK;
 
       arity = arityFunctor(f->definition);
       if ( arity >= 2 )
-      { p = &f->arguments[arity-2];
-	do
-	{ if ( !ph1_is_acyclic(p PASS_LD) )
-	    return FALSE;
-	  p--;
-	} while ( tagex(*p) != (TAG_ATOM|STG_GLOBAL) );
-	p += arityFunctor(*p);
+      { pushSegStack(&stack, state, acyclic_state);
+	state.last_count = 0;
+	p = state.argp   = &f->arguments[arity-2];
+	deRef(p);
+	state.start      = p;
       } else
       { p = &f->arguments[0];
+	deRef(p);
+	state.last_count++;
       }
-
-      l++;					/* remember to mark later */
-      deRef(p);
     } else
-      return mark_last_args(firstp, l PASS_LD);
+    { DEBUG(3, { if ( isAtom(*p) )
+		   Sdprintf("Atom %s\n", stringAtom(*p));
+		 else if ( isVar(*p) )
+		   Sdprintf("Var at %p\n", p);
+	       });
+    next:
+      if ( state.start )
+      { mark_last_args(&state PASS_LD);
+	p = --state.argp;
+	if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
+	{ popSegStack(&stack, &state, acyclic_state);
+	  DEBUG(3, Sdprintf("Last arg of %s/%d at %p\n",
+			    stringAtom(nameFunctor(*p)),
+			    arityFunctor(*p),
+			    p));
+	  p += arityFunctor(*p);
+	  deRef(p);
+	  state.last_count++;
+	} else
+	{ deRef(p);
+	  state.start = p;
+	  state.last_count = 0;
+	}
+      } else
+      { clearSegStack(&stack);
+	return TRUE;
+      }
+    }
   }
 }
 
@@ -956,6 +1009,10 @@ ph2_is_acyclic(Word p ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns TRUE, FALSE or MEMORY_OVERFLOW
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 is_acyclic(Word p ARG_LD)
 { deRef(p);
@@ -972,11 +1029,25 @@ is_acyclic(Word p ARG_LD)
 }
 
 
+static int
+PL_is_acyclic__LD(term_t t ARG_LD)
+{ int rc;
+
+  if ( (rc=is_acyclic(valTermRef(t) PASS_LD)) == TRUE )
+    return TRUE;
+
+  if ( rc == MEMORY_OVERFLOW )
+    rc = PL_error(NULL, 0, NULL, ERR_NOMEM);
+
+  return rc;
+}
+
+
 int
 PL_is_acyclic(term_t t)
 { GET_LD
 
-  return is_acyclic(valTermRef(t) PASS_LD);
+  return PL_is_acyclic__LD(t PASS_LD);
 }
 
 
@@ -984,15 +1055,21 @@ static
 PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
 { PRED_LD
 
-  return is_acyclic(valTermRef(A1) PASS_LD);
+  return PL_is_acyclic__LD(A1 PASS_LD);
 }
 
 
 static
 PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 { PRED_LD
+  int rc;
 
-  return is_acyclic(valTermRef(A1) PASS_LD) ? FALSE : TRUE;
+  if ( (rc=is_acyclic(valTermRef(A1) PASS_LD)) == TRUE )
+    return FALSE;
+  if ( rc == FALSE )
+    return TRUE;
+
+  return PL_error(NULL, 0, NULL, ERR_NOMEM);
 }
 
 
