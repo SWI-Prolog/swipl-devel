@@ -605,11 +605,7 @@ last_arg:
     return key + *p;
   }
   if ( tagex(*p) == (TAG_VAR|STG_RESERVED) )
-  { if ( LD->read.active )
-      return key + *p;
-    else
-      printk("read() variable reference at %p", p);
-  }
+    return key + *p;			/* Used by read_term/2,3 and compiler */
 
 					/* now it should be a term */
   if ( tag(*p) != TAG_COMPOUND ||

@@ -3091,7 +3091,6 @@ read_term(term_t term, ReadData rd ARG_LD)
 
   result = PL_new_term_ref();
   rd->here = rd->base;
-  LD->read.active++;
   rd->strictness = truePrologFlag(PLFLAG_ISO);
   if ( (rc2=complex_term(NULL, OP_MAXPRIORITY+1, result, rd->subtpos, rd PASS_LD)) != TRUE )
   { rc = raiseStackOverflow(rc2);
@@ -3127,7 +3126,6 @@ read_term(term_t term, ReadData rd ARG_LD)
 
 out:
   PL_close_foreign_frame(fid);
-  LD->read.active--;
 
   return rc;
 }

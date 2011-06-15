@@ -190,11 +190,12 @@ First of all the clause is scanned and all  variables  are  instantiated
 with  a  structure  that  mimics  a term, but isn't one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* We use STG_GLOBAL here to make sure that the value is not 0
+/* We use STG_RESERVED here to make sure that the value is not 0.
+   This value is also used by read_term/2,3 and friends.
 */
 
-#define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_GLOBAL) && (w) != 0)
-#define setVarInfo(w,i)	(w = (((word)(i))<<LMASK_BITS)|TAG_VAR|STG_GLOBAL)
+#define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_RESERVED) && (w) != 0)
+#define setVarInfo(w,i)	(w = (((word)(i))<<LMASK_BITS)|TAG_VAR|STG_RESERVED)
 #define varInfo(w)	(LD->comp.vardefs[(w)>>LMASK_BITS])
 
 
