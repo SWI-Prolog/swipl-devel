@@ -1229,10 +1229,8 @@ raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 These functions manipulate the  variable-name  base   for  a  term. When
-building the term on the global stack, variables are represented using a
-reference to a `struct variable'. The first  part of this structure is a
-struct atom, so if a garbage   collection happens, the garbage collector
-will simply assume an atom.
+building the term on the global stack,  variables are represented a term
+with tagex() TAG_VAR|STG_RESERVED, which is handled properly by GC.
 
 The buffer `var_buffer' is a  list  of   pointers  to  a  stock of these
 variable structures. This list is dynamically expanded if necessary. The
@@ -1240,9 +1238,13 @@ buffer var_name_buffer contains the  actual   strings.  They  are packed
 together to avoid memory fragmentation. This   buffer too is reallocated
 if necessary. In this  case,  the   pointers  of  the  existing variable
 structures are relocated.
+
+Note that the variables are kept  in   a  simple  array. This means that
+reading terms with many named variables   result in quadratic behaviour.
+Not sure whether it is worth the trouble to use a hash-table here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAX_SINGLETONS 256
+#define MAX_SINGLETONS 256		/* max singletons _reported_ */
 
 #define for_vars(v, code) \
 	{ Variable v   = baseBuffer(&var_buffer, variable); \
@@ -1269,7 +1271,7 @@ save_var_name(const char *name, size_t len, ReadData _PL_rd)
 					/* use hash-key? */
 
 static Variable
-isVarAtom(word w, ReadData _PL_rd)
+varInfo(word w, ReadData _PL_rd)
 { if ( tagex(w) == (TAG_VAR|STG_RESERVED) )
     return &baseBuffer(&var_buffer, variable)[w>>LMASK_BITS];
 
@@ -2262,7 +2264,7 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
 { word w = *valTermRef(term);
   Variable var;
 
-  if ( (var = isVarAtom(w, _PL_rd)) )
+  if ( (var = varInfo(w, _PL_rd)) )
   { DEBUG(9, Sdprintf("readValHandle(): var at 0x%x\n", var));
 
     if ( !var->variable )		/* new variable */
@@ -2397,7 +2399,7 @@ build_op_term(term_t term,
 { term_t av[2];
 
   av[0] = argv[0].term;
-  av[1] = argv[1].term;
+  av[1] = argv[1].term;				/* harmless if not used */
   return build_term(term, atom, arity, av, _PL_rd PASS_LD);
 }
 
@@ -3097,7 +3099,7 @@ read_term(term_t term, ReadData rd ARG_LD)
     goto out;
   }
   p = valTermRef(result);
-  if ( isVarAtom(*p, rd) )		/* reading a single variable */
+  if ( varInfo(*p, rd) )		/* reading a single variable */
   { if ( (rc2=ensureSpaceForTermRefs(1 PASS_LD)) != TRUE )
     { rc = raiseStackOverflow(rc2);
       goto out;
