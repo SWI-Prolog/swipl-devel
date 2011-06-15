@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -188,6 +189,14 @@ really into an array of variables.
 First of all the clause is scanned and all  variables  are  instantiated
 with  a  structure  that  mimics  a term, but isn't one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* We use STG_GLOBAL here to make sure that the value is not 0
+*/
+
+#define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_GLOBAL) && (w) != 0)
+#define setVarInfo(w,i)	(w = (((word)(i))<<LMASK_BITS)|TAG_VAR|STG_GLOBAL)
+#define varInfo(w)	(LD->comp.vardefs[(w)>>LMASK_BITS])
+
 
 typedef struct _varDef
 { word		functor;		/* mimic a functor (FUNCTOR_dvard1) */
@@ -410,13 +419,13 @@ right_recursion:
     vd->saved = *head;
     vd->address = head;
     vd->times = 1;
-    *head = (((word)index)<<LMASK_BITS)|TAG_ATOM|STG_GLOBAL; /* special mark */
+    setVarInfo(*head, index);
 
     return nvars;
   }
 
-  if ( tagex(*head) == (TAG_ATOM|STG_GLOBAL) )
-  { VarDef vd = LD->comp.vardefs[(*head) >> LMASK_BITS];
+  if ( isVarInfo(*head) )
+  { VarDef vd = varInfo(*head);
 
     vd->times++;
     return nvars;
@@ -609,8 +618,8 @@ static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
 
 static inline int
 isIndexedVarTerm(word w ARG_LD)
-{ if ( tagex(w) == (TAG_ATOM|STG_GLOBAL) )
-  { VarDef v = LD->comp.vardefs[w>>LMASK_BITS];
+{ if ( isVarInfo(w) )
+  { VarDef v = varInfo(w);
     return v->offset;
   }
 
@@ -1503,6 +1512,8 @@ A void.  Generate either B_VOID or H_VOID.
 
   switch(tag(*arg))
   { case TAG_VAR:
+      if ( isVarInfo(*arg) )
+	goto isvar;
     var:
       if (where & A_BODY)
       { Output_0(ci, B_VOID);
@@ -1557,8 +1568,6 @@ A void.  Generate either B_VOID or H_VOID.
       Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
       return TRUE;
     case TAG_ATOM:
-      if ( tagex(*arg) == (TAG_ATOM|STG_GLOBAL) )
-	goto isvar;
       if ( isNil(*arg) )
       {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
       } else
@@ -1726,7 +1735,7 @@ isvar:
     where |= A_RIGHT;
     deRef(arg);
 
-    if ( tag(*arg) == TAG_VAR && !(where & (A_BODY|A_ARG)) )
+    if ( isVar(*arg) && !(where & (A_BODY|A_ARG)) )
     { if ( !isright )
 	Output_0(ci, H_POP);
       return TRUE;
