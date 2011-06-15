@@ -882,7 +882,7 @@ typedef struct acyclic_state
 } acyclic_state;
 
 
-static int
+static void
 mark_last_args(acyclic_state *state ARG_LD)
 { size_t count;
 
@@ -902,15 +902,13 @@ mark_last_args(acyclic_state *state ARG_LD)
 			f));
 
       if ( --count == 0 )
-	return TRUE;
+	return;
 
       arity = arityFunctor(f->definition);
       p = f->arguments + arity-1;		/* next last argument */
       deRef(p);
     }
   }
-
-  return TRUE;
 }
 
 
