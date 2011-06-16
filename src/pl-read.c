@@ -245,11 +245,37 @@ struct var_table
   tmp_buffer _var_buffer;	/* array of struct variables */
 };
 
+
 typedef struct term_stack
 { tmp_buffer terms;		/* Term handles */
   size_t     allocated;		/* #valid terms allocated */
   size_t     top;		/* #valid terms on the stack */
 } term_stack;
+
+
+typedef struct
+{ atom_t op;			/* Name of the operator */
+  short	kind;			/* kind (prefix/postfix/infix) */
+  short	left_pri;		/* priority at left-hand */
+  short	right_pri;		/* priority at right hand */
+  short	op_pri;			/* priority of operator */
+  term_t tpos;			/* term-position */
+  unsigned char *token_start;	/* start of the token for message */
+} op_entry;
+
+
+typedef struct
+{ term_t term;			/* the term */
+  term_t tpos;			/* its term-position */
+  int	 pri;			/* priority of the term */
+} out_entry;
+
+
+typedef struct
+{ tmp_buffer	out_queue;	/* Queued `out' terms */
+  tmp_buffer	side_queue;	/* Operators pushed `aside' */
+} op_queues;
+
 
 #define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
 #define T_NAME		1	/* ordinary name */
@@ -304,6 +330,7 @@ typedef struct
   struct read_buffer	_rb;		/* keep read characters here */
   struct var_table	vt;		/* Data about variables */
   struct term_stack	term_stack;	/* Stack for creating output term */
+  op_queues		op;		/* Operator handling */
 } read_data, *ReadData;
 
 #define	rdhere		  (_PL_rd->here)
@@ -331,6 +358,8 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
 
   initBuffer(&var_name_buffer);
   initBuffer(&var_buffer);
+  initBuffer(&_PL_rd->op.out_queue);
+  initBuffer(&_PL_rd->op.side_queue);
   init_term_stack(_PL_rd);
   _PL_rd->exception = PL_new_term_ref();
   rb.stream = in;
@@ -356,6 +385,8 @@ free_read_data(ReadData _PL_rd)
 
   discardBuffer(&var_name_buffer);
   discardBuffer(&var_buffer);
+  discardBuffer(&_PL_rd->op.out_queue);
+  discardBuffer(&_PL_rd->op.side_queue);
   clear_term_stack(_PL_rd);
 }
 
@@ -2391,6 +2422,31 @@ PL_assign_term(term_t to, term_t from ARG_LD)
 }
 
 
+		 /*******************************
+		 *	  OPERATOR QUEUES	*
+		 *******************************/
+
+static inline void
+queue_side_op(op_entry *new, ReadData _PL_rd)
+{ addBuffer(&_PL_rd->op.side_queue, *new, op_entry);
+}
+
+static inline op_entry *
+side_op(int i, ReadData _PL_rd)
+{ return &baseBuffer(&_PL_rd->op.side_queue, op_entry)[i];
+}
+
+static inline void
+pop_side_op(ReadData _PL_rd)
+{ _PL_rd->op.side_queue.top -= sizeof(op_entry);
+}
+
+static inline int
+side_p0(ReadData _PL_rd)
+{ return entriesBuffer(&_PL_rd->op.side_queue, op_entry) - 1;
+}
+
+
 		/********************************
 		*             PARSER            *
 		*********************************/
@@ -2409,23 +2465,6 @@ static int
 simple_term(bool must_be_op, term_t term, bool *name,
 	    term_t positions,
 	    ReadData _PL_rd ARG_LD);
-
-typedef struct
-{ atom_t op;				/* Name of the operator */
-  short	kind;				/* kind (prefix/postfix/infix) */
-  short	left_pri;			/* priority at left-hand */
-  short	right_pri;			/* priority at right hand */
-  short	op_pri;				/* priority of operator */
-  term_t tpos;				/* term-position */
-  unsigned char *token_start;		/* start of the token for message */
-} op_entry;
-
-
-typedef struct
-{ term_t term;				/* the term */
-  term_t tpos;				/* its term-position */
-  int	 pri;				/* priority of the term */
-} out_entry;
 
 
 static bool
@@ -2501,41 +2540,43 @@ remainder of the values.
 	}
 
 #define PushOp() \
-	realloca(side, sizeof(*side), side_n+1); \
-	side[side_n++] = in_op; \
-	side_p = (side_n == 1 ? 0 : side_p+1);
+	queue_side_op(&in_op, _PL_rd); \
+	side_n++, side_p++;
+#define PopOp() \
+	pop_side_op(_PL_rd); \
+	side_n--, side_p--;
+#define SideOp(i) \
+	side_op(i, _PL_rd)
 
 #define Modify(cpri) \
-	if ( side_p >= 0 && cpri > side[side_p].right_pri ) \
+	if ( side_n > 0 && cpri > SideOp(side_p)->right_pri ) \
 	{ term_t tmp; \
-	  if ( side[side_p].kind == OP_PREFIX && rmo == 0 ) \
+	  if ( SideOp(side_p)->kind == OP_PREFIX && rmo == 0 ) \
 	  { DEBUG(9, Sdprintf("Prefix %s to atom\n", \
-			      stringAtom(side[side_p].op))); \
+			      stringAtom(SideOp(side_p)->op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    PL_put_atom(tmp, side[side_p].op); \
+	    PL_put_atom(tmp, SideOp(side_p)->op); \
 	    realloca(out, sizeof(*out), out_n+1); \
 	    out[out_n].term = tmp; \
-	    out[out_n].tpos = side[side_p].tpos; \
+	    out[out_n].tpos = SideOp(side_p)->tpos; \
 	    out[out_n].pri = 0; \
 	    out_n++; \
-	    side_n--; \
-	    side_p = (side_n == 0 ? -1 : side_p-1); \
-	  } else if ( side[side_p].kind == OP_INFIX && out_n > 0 && rmo == 0 && \
-		      isOp(side[side_p].op, OP_POSTFIX, &side[side_p], _PL_rd) ) \
+	    PopOp(); \
+	  } else if ( SideOp(side_p)->kind == OP_INFIX && out_n > 0 && rmo == 0 && \
+		      isOp(SideOp(side_p)->op, OP_POSTFIX, SideOp(side_p), _PL_rd) ) \
 	  { int rc; \
 	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
-			      stringAtom(side[side_p].op))); \
+			      stringAtom(SideOp(side_p)->op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    rc = build_op_term(tmp, side[side_p].op, 1, &out[out_n-1], _PL_rd PASS_LD); \
+	    rc = build_op_term(tmp, SideOp(side_p)->op, 1, &out[out_n-1], _PL_rd PASS_LD); \
 	    if ( rc != TRUE ) return rc; \
-	    out[out_n-1].pri  = side[side_p].op_pri; \
+	    out[out_n-1].pri  = SideOp(side_p)->op_pri; \
 	    out[out_n-1].term = tmp; \
-	    side[side_p].kind = OP_POSTFIX; \
-	    out[out_n-1].tpos = opPos(&side[side_p], &out[out_n-1] PASS_LD); \
-	    side_n--; \
-	    side_p = (side_n == 0 ? -1 : side_p-1); \
+	    SideOp(side_p)->kind = OP_POSTFIX; \
+	    out[out_n-1].tpos = opPos(SideOp(side_p), &out[out_n-1] PASS_LD); \
+	    PopOp(); \
 	  } \
 	}
 
@@ -2657,28 +2698,27 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 }
 
 #define Reduce(cpri) \
-	while( out_n > 0 && side_p >= 0 && (cpri) >= side[side_p].op_pri ) \
+	while( out_n > 0 && side_n > 0 && (cpri) >= SideOp(side_p)->op_pri ) \
 	{ int rc; \
-	  int arity = (side[side_p].kind == OP_INFIX ? 2 : 1); \
+	  int arity = (SideOp(side_p)->kind == OP_INFIX ? 2 : 1); \
 	  term_t tmp; \
 	  if ( arity > out_n ) break; \
-	  if ( !can_reduce(&out[out_n-arity], &side[side_p]) ) \
+	  if ( !can_reduce(&out[out_n-arity], SideOp(side_p)) ) \
           { if ( (cpri) == (OP_MAXPRIORITY+1) ) \
-              return bad_operator(&out[out_n-arity], &side[side_p], _PL_rd); \
+              return bad_operator(&out[out_n-arity], SideOp(side_p), _PL_rd); \
 	    break; \
 	  } \
 	  DEBUG(9, Sdprintf("Reducing %s/%d\n", \
-			    stringAtom(side[side_p].op), arity));\
+			    stringAtom(SideOp(side_p)->op), arity));\
 	  tmp = PL_new_term_ref(); \
 	  out_n -= arity; \
-	  rc = build_op_term(tmp, side[side_p].op, arity, &out[out_n], _PL_rd PASS_LD); \
+	  rc = build_op_term(tmp, SideOp(side_p)->op, arity, &out[out_n], _PL_rd PASS_LD); \
 	  if ( rc != TRUE ) return rc; \
-	  out[out_n].pri  = side[side_p].op_pri; \
+	  out[out_n].pri  = SideOp(side_p)->op_pri; \
 	  out[out_n].term = tmp; \
-	  out[out_n].tpos = opPos(&side[side_p], &out[out_n] PASS_LD); \
+	  out[out_n].tpos = opPos(SideOp(side_p), &out[out_n] PASS_LD); \
 	  out_n ++; \
-	  side_n--; \
-	  side_p = (side_n == 0 ? -1 : side_p-1); \
+	  PopOp(); \
 	}
 
 
@@ -2686,11 +2726,10 @@ static int
 complex_term(const char *stop, short maxpri, term_t term, term_t positions,
 	     ReadData _PL_rd ARG_LD)
 { out_entry *out  = NULL;
-  op_entry  *side = NULL;
   op_entry  in_op;
   int out_n = 0, side_n = 0;
   int rmo = 0;				/* Rands more than operators */
-  int side_p = -1;
+  int side_p = side_p0(_PL_rd);
   term_t pin;
   int thestop;				/* encountered stop-character */
 
@@ -2799,15 +2838,15 @@ exit:
   }
 
   if ( out_n == 0 && side_n == 1 )	/* single operator */
-  { PL_put_atom(term, side[0].op);
+  { PL_put_atom(term, SideOp(side_p)->op);
     if ( positions )
-      return PL_unify(positions, side[0].tpos);
+      return PL_unify(positions, SideOp(side_p)->tpos);
     succeed;
   }
 
   if ( side_n == 1 &&
-       ( side[0].op == ATOM_comma ||
-	 side[0].op == ATOM_semicolon
+       ( SideOp(0)->op == ATOM_comma ||
+	 SideOp(0)->op == ATOM_semicolon
        ))
   { term_t ex;
     char tmp[2];
@@ -2820,7 +2859,7 @@ exit:
     if ( (ex = PL_new_term_ref()) &&
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
-		         PL_ATOM, side[0].op,
+		         PL_ATOM, SideOp(side_p)->op,
 		         PL_CHARS, tmp) )
       return errorWarning(NULL, ex, _PL_rd);
 
