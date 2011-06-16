@@ -2426,6 +2426,10 @@ PL_assign_term(term_t to, term_t from ARG_LD)
 		 *	  OPERATOR QUEUES	*
 		 *******************************/
 
+/* The side-queue is for pushing operators to the side the cannot yet
+   be reduced
+*/
+
 static inline void
 queue_side_op(op_entry *new, ReadData _PL_rd)
 { addBuffer(&_PL_rd->op.side_queue, *new, op_entry);
@@ -2444,6 +2448,129 @@ pop_side_op(ReadData _PL_rd)
 static inline int
 side_p0(ReadData _PL_rd)
 { return entriesBuffer(&_PL_rd->op.side_queue, op_entry) - 1;
+}
+
+/* The out-queue is used for pushing operands.  If an operator can be
+   reduced, it pops 1 or 2 arguments from the out-queue and pushes the
+   resulting term.
+*/
+
+static void
+queue_out_op(term_t t, short pri, term_t tpos, ReadData _PL_rd)
+{ out_entry e;
+
+  e.term = t;
+  e.tpos = tpos;
+  e.pri  = pri;
+
+  addBuffer(&_PL_rd->op.out_queue, e, out_entry);
+}
+
+static inline out_entry *
+out_op(int i, ReadData _PL_rd)
+{ return &((out_entry*)_PL_rd->op.out_queue.top)[i];
+}
+
+static inline void
+pop_out_op(ReadData _PL_rd)
+{ _PL_rd->op.out_queue.top -= sizeof(out_entry);
+}
+
+#define PopOut() \
+	pop_out_op(_PL_rd); \
+        out_n--;
+
+static intptr_t
+get_int_arg(term_t t, int n ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+
+  return valInt(argTerm(*p, n-1));
+}
+
+
+static term_t
+opPos(op_entry *op, out_entry *args ARG_LD)
+{ if ( op->tpos )
+  { intptr_t fs = get_int_arg(op->tpos, 1 PASS_LD);
+    intptr_t fe = get_int_arg(op->tpos, 2 PASS_LD);
+    term_t r;
+
+    if ( !(r=PL_new_term_ref()) )
+      return 0;
+
+    if ( op->kind == OP_INFIX )
+    { intptr_t s = get_int_arg(args[0].tpos, 1 PASS_LD);
+      intptr_t e = get_int_arg(args[1].tpos, 2 PASS_LD);
+
+      if ( !PL_unify_term(r,
+			  PL_FUNCTOR,	FUNCTOR_term_position5,
+			  PL_INTPTR, s,
+			  PL_INTPTR, e,
+			  PL_INTPTR, fs,
+			  PL_INTPTR, fe,
+			  PL_LIST, 2, PL_TERM, args[0].tpos,
+				      PL_TERM, args[1].tpos) )
+	return (term_t)0;
+    } else
+    { intptr_t s, e;
+
+      if ( op->kind == OP_PREFIX )
+      { s = fs;
+	e = get_int_arg(args[0].tpos, 2 PASS_LD);
+      } else
+      { s = get_int_arg(args[0].tpos, 1 PASS_LD);
+	e = fe;
+      }
+
+      if ( !PL_unify_term(r,
+			  PL_FUNCTOR,	FUNCTOR_term_position5,
+			  PL_INTPTR, s,
+			  PL_INTPTR, e,
+			  PL_INTPTR, fs,
+			  PL_INTPTR, fe,
+			    PL_LIST, 1, PL_TERM, args[0].tpos) )
+	return (term_t)0;
+    }
+
+    return r;
+  }
+
+  return 0;
+}
+
+
+static int
+build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
+{ term_t tmp;
+  out_entry *e;
+  int rc;
+
+  if ( !(tmp = PL_new_term_ref()) )
+    return FALSE;
+
+  if ( op->kind == OP_INFIX )
+  { e = out_op(-2, _PL_rd);
+    term_t av[2];
+    av[0] = e[0].term;
+    av[1] = e[1].term;
+    rc = build_term(tmp, op->op, 2, av, _PL_rd PASS_LD);
+  } else
+  { e = out_op(-1, _PL_rd);
+    rc = build_term(tmp, op->op, 1, &e->term, _PL_rd PASS_LD);
+  }
+
+  if ( rc != TRUE )
+    return rc;
+
+  e->pri  = op->op_pri;
+  e->term = tmp;
+  e->tpos = opPos(op, e PASS_LD);
+
+  _PL_rd->op.out_queue.top = (char*)(e+1);
+
+  return rc;
 }
 
 
@@ -2491,53 +2618,6 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
   succeed;
 }
 
-static int
-build_op_term(term_t term,
-	      atom_t atom, int arity, out_entry *argv,
-	      ReadData _PL_rd ARG_LD)
-{ term_t av[2];
-
-  av[0] = argv[0].term;
-  av[1] = argv[1].term;				/* harmless if not used */
-  return build_term(term, atom, arity, av, _PL_rd PASS_LD);
-}
-
-
-static bool
-outOfCStack(ReadData _PL_rd)
-{ GET_LD
-  term_t ex;
-
-  LD->exception.processing = TRUE;
-  if ( (ex = PL_new_term_ref()) &&
-       PL_unify_term(ex,
-		     PL_FUNCTOR, FUNCTOR_resource_error1,
-		     PL_CHARS, "c_stack") )
-    return errorWarning(NULL, ex, _PL_rd);
-
-  return FALSE;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-realloca() maintains a buffer using  alloca()   that  has  the requested
-size. The current size is  maintained  in   a  intptr_t  just  below the
-returned area. This is a intptr_t, to   ensure  proper allignment of the
-remainder of the values.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define realloca(p, unit, n) \
-	{ intptr_t *ip = (intptr_t *)(p); \
-	  if ( ip == NULL || ip[-1] < (n) ) \
-	  { intptr_t nsize = (((n)+(n)/2) + 3) & ~3; \
-	    intptr_t *np = alloca(nsize * unit + sizeof(intptr_t)); \
-	    if ( !np ) return outOfCStack(_PL_rd); \
-	    *np++ = nsize; \
-	    if ( ip ) \
-	      memcpy(np, ip, ip[-1] * unit); \
-	    p = (void *)np; \
-	  } \
-	}
 
 #define PushOp() \
 	queue_side_op(&in_op, _PL_rd); \
@@ -2557,10 +2637,7 @@ remainder of the values.
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
 	    PL_put_atom(tmp, SideOp(side_p)->op); \
-	    realloca(out, sizeof(*out), out_n+1); \
-	    out[out_n].term = tmp; \
-	    out[out_n].tpos = SideOp(side_p)->tpos; \
-	    out[out_n].pri = 0; \
+	    queue_out_op(tmp, 0, SideOp(side_p)->tpos, _PL_rd); \
 	    out_n++; \
 	    PopOp(); \
 	  } else if ( SideOp(side_p)->kind == OP_INFIX && out_n > 0 && rmo == 0 && \
@@ -2569,98 +2646,12 @@ remainder of the values.
 	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
 			      stringAtom(SideOp(side_p)->op))); \
 	    rmo++; \
-	    tmp = PL_new_term_ref(); \
-	    rc = build_op_term(tmp, SideOp(side_p)->op, 1, &out[out_n-1], _PL_rd PASS_LD); \
+	    rc = build_op_term(SideOp(side_p), _PL_rd PASS_LD); \
 	    if ( rc != TRUE ) return rc; \
-	    out[out_n-1].pri  = SideOp(side_p)->op_pri; \
-	    out[out_n-1].term = tmp; \
-	    SideOp(side_p)->kind = OP_POSTFIX; \
-	    out[out_n-1].tpos = opPos(SideOp(side_p), &out[out_n-1] PASS_LD); \
 	    PopOp(); \
 	  } \
 	}
 
-
-static long
-get_int_arg(term_t t, int n ARG_LD)
-{ Word p = valTermRef(t);
-
-  deRef(p);
-
-  return (long)valInt(argTerm(*p, n-1));
-}
-
-
-static term_t
-opPos(op_entry *op, out_entry *args ARG_LD)
-{ if ( op->tpos )
-  { long fs = get_int_arg(op->tpos, 1 PASS_LD);
-    long fe = get_int_arg(op->tpos, 2 PASS_LD);
-    term_t r = PL_new_term_ref();
-
-    if ( op->kind == OP_INFIX )
-    { long s = get_int_arg(args[0].tpos, 1 PASS_LD);
-      long e = get_int_arg(args[1].tpos, 2 PASS_LD);
-
-      if ( !PL_unify_term(r,
-			  PL_FUNCTOR,	FUNCTOR_term_position5,
-			  PL_LONG, s,
-			  PL_LONG, e,
-			  PL_LONG, fs,
-			  PL_LONG, fe,
-			  PL_LIST, 2, PL_TERM, args[0].tpos,
-				      PL_TERM, args[1].tpos) )
-	return (term_t)0;
-    } else
-    { long s, e;
-
-      if ( op->kind == OP_PREFIX )
-      { s = fs;
-	e = get_int_arg(args[0].tpos, 2 PASS_LD);
-      } else
-      { s = get_int_arg(args[0].tpos, 1 PASS_LD);
-	e = fe;
-      }
-
-      if ( !PL_unify_term(r,
-			  PL_FUNCTOR,	FUNCTOR_term_position5,
-			  PL_LONG, s,
-			  PL_LONG, e,
-			  PL_LONG, fs,
-			  PL_LONG, fe,
-			    PL_LIST, 1, PL_TERM, args[0].tpos) )
-	return (term_t)0;
-    }
-
-    return r;
-  }
-
-  return 0;
-}
-
-
-static int
-can_reduce(out_entry *out, op_entry *op)
-{ int rval;
-
-  switch(op->kind)
-  { case OP_PREFIX:
-      rval = op->right_pri >= out[0].pri;
-      break;
-    case OP_POSTFIX:
-      rval = op->left_pri >= out[0].pri;
-      break;
-    case OP_INFIX:
-      rval = op->left_pri >= out[0].pri &&
-	     op->right_pri >= out[1].pri;
-      break;
-    default:
-      assert(0);
-      rval = FALSE;
-  }
-
-  return rval;
-}
 
 static int
 bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
@@ -2697,27 +2688,60 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
   syntaxError("operator_clash", _PL_rd);
 }
 
+
+/* can_reduce() returns
+
+	TRUE  if operator can be reduced;
+        FALSE if operator can not be reduced;
+        -1    if attempting is a syntax error
+*/
+
+static int
+can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
+{ int rc;
+  int arity = op->kind == OP_INFIX ? 2 : 1;
+  out_entry *e = out_op(-arity, _PL_rd);
+
+  if ( arity <= out_n )
+  { switch(op->kind)
+    { case OP_PREFIX:
+	rc = op->right_pri >= e[0].pri;
+        break;
+      case OP_POSTFIX:
+	rc = op->left_pri >= e[0].pri;
+	break;
+      case OP_INFIX:
+	rc = op->left_pri  >= e[0].pri &&
+	     op->right_pri >= e[1].pri;
+	break;
+      default:
+	assert(0);
+	rc = FALSE;
+    }
+  } else
+    return FALSE;
+
+  if ( rc == FALSE && (cpri) == (OP_MAXPRIORITY+1) )
+  { bad_operator(e, op, _PL_rd);
+    return -1;
+  }
+
+  DEBUG(9, if ( rc ) Sdprintf("Reducing %s/%d\n",
+			      stringAtom(SideOp(side_p)->op), arity));
+
+  return rc;
+}
+
+
 #define Reduce(cpri) \
 	while( out_n > 0 && side_n > 0 && (cpri) >= SideOp(side_p)->op_pri ) \
 	{ int rc; \
-	  int arity = (SideOp(side_p)->kind == OP_INFIX ? 2 : 1); \
-	  term_t tmp; \
-	  if ( arity > out_n ) break; \
-	  if ( !can_reduce(&out[out_n-arity], SideOp(side_p)) ) \
-          { if ( (cpri) == (OP_MAXPRIORITY+1) ) \
-              return bad_operator(&out[out_n-arity], SideOp(side_p), _PL_rd); \
-	    break; \
-	  } \
-	  DEBUG(9, Sdprintf("Reducing %s/%d\n", \
-			    stringAtom(SideOp(side_p)->op), arity));\
-	  tmp = PL_new_term_ref(); \
-	  out_n -= arity; \
-	  rc = build_op_term(tmp, SideOp(side_p)->op, arity, &out[out_n], _PL_rd PASS_LD); \
+	  rc = can_reduce(SideOp(side_p), cpri, out_n, _PL_rd); \
+	  if ( rc == FALSE ) break; \
+	  if ( rc < 0 ) return FALSE; \
+	  rc = build_op_term(SideOp(side_p), _PL_rd PASS_LD); \
 	  if ( rc != TRUE ) return rc; \
-	  out[out_n].pri  = SideOp(side_p)->op_pri; \
-	  out[out_n].term = tmp; \
-	  out[out_n].tpos = opPos(SideOp(side_p), &out[out_n] PASS_LD); \
-	  out_n ++; \
+	  if ( SideOp(side_p)->kind == OP_INFIX ) out_n--; \
 	  PopOp(); \
 	}
 
@@ -2725,8 +2749,7 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 static int
 complex_term(const char *stop, short maxpri, term_t term, term_t positions,
 	     ReadData _PL_rd ARG_LD)
-{ out_entry *out  = NULL;
-  op_entry  in_op;
+{ op_entry  in_op;
   int out_n = 0, side_n = 0;
   int rmo = 0;				/* Rands more than operators */
   int side_p = side_p0(_PL_rd);
@@ -2820,10 +2843,8 @@ complex_term(const char *stop, short maxpri, term_t term, term_t positions,
     if ( rmo != 0 )
       syntaxError("operator_expected", _PL_rd);
     rmo++;
-    realloca(out, sizeof(*out), out_n+1);
-    out[out_n].pri = 0;
-    out[out_n].term = in;
-    out[out_n++].tpos = pin;
+    queue_out_op(in, 0, pin, _PL_rd);
+    out_n++;
   }
 
 exit:
@@ -2831,17 +2852,27 @@ exit:
   Reduce(maxpri);
 
   if ( out_n == 1 && side_n == 0 )	/* simple term */
-  { PL_assign_term(term, out[0].term PASS_LD);
-    if ( positions )
-      return PL_unify(positions, out[0].tpos);
-    succeed;
+  { out_entry *e = out_op(-1, _PL_rd);
+    int rc;
+
+    PL_assign_term(term, e->term PASS_LD);
+    if ( positions && (rc=PL_unify(positions, e->tpos)) != TRUE )
+      return rc;
+    PopOut();
+
+    return TRUE;
   }
 
   if ( out_n == 0 && side_n == 1 )	/* single operator */
-  { PL_put_atom(term, SideOp(side_p)->op);
-    if ( positions )
-      return PL_unify(positions, SideOp(side_p)->tpos);
-    succeed;
+  { op_entry *op = SideOp(side_p);
+    int rc;
+
+    PL_put_atom(term, op->op);
+    if ( positions && (rc=PL_unify(positions, op->tpos)) != TRUE )
+      return rc;
+    PopOp();
+
+    return TRUE;
   }
 
   if ( side_n == 1 &&
