@@ -2629,24 +2629,25 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
 	side_op(i, _PL_rd)
 
 #define Modify(cpri) \
-	if ( side_n > 0 && cpri > SideOp(side_p)->right_pri ) \
-	{ term_t tmp; \
-	  if ( SideOp(side_p)->kind == OP_PREFIX && rmo == 0 ) \
+	if ( side_n > 0 && rmo == 0 && cpri > SideOp(side_p)->right_pri ) \
+	{ op_entry *op = SideOp(side_p); \
+	  term_t tmp; \
+	  if ( op->kind == OP_PREFIX ) \
 	  { DEBUG(9, Sdprintf("Prefix %s to atom\n", \
-			      stringAtom(SideOp(side_p)->op))); \
+			      stringAtom(op->op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    PL_put_atom(tmp, SideOp(side_p)->op); \
-	    queue_out_op(tmp, 0, SideOp(side_p)->tpos, _PL_rd); \
+	    PL_put_atom(tmp, op->op); \
+	    queue_out_op(tmp, 0, op->tpos, _PL_rd); \
 	    out_n++; \
 	    PopOp(); \
-	  } else if ( SideOp(side_p)->kind == OP_INFIX && out_n > 0 && rmo == 0 && \
-		      isOp(SideOp(side_p)->op, OP_POSTFIX, SideOp(side_p), _PL_rd) ) \
+	  } else if ( op->kind == OP_INFIX && out_n > 0 && \
+		      isOp(op->op, OP_POSTFIX, op, _PL_rd) ) \
 	  { int rc; \
 	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
-			      stringAtom(SideOp(side_p)->op))); \
+			      stringAtom(op->op))); \
 	    rmo++; \
-	    rc = build_op_term(SideOp(side_p), _PL_rd PASS_LD); \
+	    rc = build_op_term(op, _PL_rd PASS_LD); \
 	    if ( rc != TRUE ) return rc; \
 	    PopOp(); \
 	  } \
