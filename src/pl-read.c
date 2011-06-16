@@ -235,6 +235,7 @@ struct read_buffer
   unsigned char *end;		/* end of the valid buffer */
   IOSTREAM *stream;		/* stream we are reading from */
   int64_t byte_pos_last_char;		/* Byte location of last char */
+					/* Buffer its NOT cleared */
   unsigned char fast[FASTBUFFERSIZE];	/* Quick internal buffer */
 };
 
@@ -243,6 +244,12 @@ struct var_table
 { tmp_buffer _var_name_buffer;	/* stores the names */
   tmp_buffer _var_buffer;	/* array of struct variables */
 };
+
+typedef struct term_stack
+{ tmp_buffer terms;		/* Term handles */
+  size_t     allocated;		/* #valid terms allocated */
+  size_t     top;		/* #valid terms on the stack */
+} term_stack;
 
 #define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
 #define T_NAME		1	/* ordinary name */
@@ -293,8 +300,10 @@ typedef struct
   int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
-  struct var_table vt;			/* Data about variables */
-  struct read_buffer _rb;		/* keep read characters here */
+					/* NOT ZEROED BELOW HERE (_rb is first) */
+  struct read_buffer	_rb;		/* keep read characters here */
+  struct var_table	vt;		/* Data about variables */
+  struct term_stack	term_stack;	/* Stack for creating output term */
 } read_data, *ReadData;
 
 #define	rdhere		  (_PL_rd->here)
@@ -308,12 +317,21 @@ typedef struct
 #define var_name_buffer	  (_PL_rd->vt._var_name_buffer)
 #define var_buffer	  (_PL_rd->vt._var_buffer)
 
+#ifndef offsetof
+#define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
+#endif
+
+static void	init_term_stack(ReadData _PL_rd);
+static void	clear_term_stack(ReadData _PL_rd);
+
+
 static void
 init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
-{ memset(_PL_rd, 0, sizeof(*_PL_rd));	/* optimise! */
+{ memset(_PL_rd, 0, offsetof(read_data, _rb.fast));
 
   initBuffer(&var_name_buffer);
   initBuffer(&var_buffer);
+  init_term_stack(_PL_rd);
   _PL_rd->exception = PL_new_term_ref();
   rb.stream = in;
   _PL_rd->module = MODULE_parse;
@@ -338,6 +356,7 @@ free_read_data(ReadData _PL_rd)
 
   discardBuffer(&var_name_buffer);
   discardBuffer(&var_buffer);
+  clear_term_stack(_PL_rd);
 }
 
 
@@ -2242,6 +2261,48 @@ out:
 }
 
 #define get_token(must_be_op, rd) get_token__LD(must_be_op, rd PASS_LD)
+
+
+		 /*******************************
+		 *	     TERM STACK		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+alloc_term() allocates a new term in the
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+init_term_stack(ReadData _PL_rd)
+{ initBuffer(&_PL_rd->term_stack.terms);
+  _PL_rd->term_stack.allocated = 0;
+  _PL_rd->term_stack.top = 0;
+}
+
+
+static void
+clear_term_stack(ReadData _PL_rd)
+{ discardBuffer(&_PL_rd->term_stack.terms);
+}
+
+
+static term_t
+alloc_term(ReadData _PL_rd ARG_LD)
+{ term_stack *ts = &_PL_rd->term_stack;
+
+  if ( ts->top < ts->allocated )
+  { term_t t = baseBuffer(&ts->terms, term_t)[ts->top++];
+
+    PL_put_variable(t);
+    return t;
+  } else
+  { term_t t = PL_new_term_ref();
+
+    addBuffer(&ts->terms, t, term_t);
+    return t;
+  }
+}
+
 
 		 /*******************************
 		 *	   TERM-BUILDING	*
