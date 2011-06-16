@@ -240,8 +240,8 @@ struct read_buffer
 
 
 struct var_table
-{ buffer _var_name_buffer;	/* stores the names */
-  buffer _var_buffer;		/* array of struct variables */
+{ tmp_buffer _var_name_buffer;	/* stores the names */
+  tmp_buffer _var_buffer;	/* array of struct variables */
 };
 
 #define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
