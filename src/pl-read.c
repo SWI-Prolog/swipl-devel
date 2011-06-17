@@ -3014,7 +3014,6 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     { term_t term = alloc_term(_PL_rd PASS_LD);
 
       PL_put_term(term, token->value.term);
-    }
       if ( positions )
       { if ( !PL_unify_term(positions,
 			    PL_FUNCTOR, FUNCTOR_string_position2,
@@ -3023,6 +3022,7 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 	  return FALSE;
       }
       succeed;
+    }
     case T_FUNCTOR:
     { int arity = 0;
       atom_t functor;
