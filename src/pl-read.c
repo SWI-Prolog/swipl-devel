@@ -2831,12 +2831,11 @@ complex_term(const char *stop, short maxpri, term_t positions,
     else
       pin = 0;
 
-    if ( out_n != 0 || side_n != 0 )	/* Check for end of term */
-    { if ( !(token = get_token(rmo == 1, _PL_rd)) )
-	fail;
-      unget_token();			/* only look-ahead! */
+    if ( !(token = get_token(rmo == 1, _PL_rd)) )
+      return FALSE;
 
-      switch(token->type)
+    if ( out_n != 0 || side_n != 0 )	/* Check for end of term */
+    { switch(token->type)
       { case T_FULLSTOP:
 	  if ( stop == NULL )
 	    goto exit;			/* exit for-loop */
@@ -2847,9 +2846,6 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	}
       }
     }
-
-    if ( !(token = get_token(rmo == 1, _PL_rd)) )
-      return FALSE;
 
     if ( is_name_token(token, rmo == 1, _PL_rd) )
     { atom_t name = name_token(token, _PL_rd);
@@ -2910,6 +2906,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
   }
 
 exit:
+  unget_token();			/* the full-stop or punctuation */
   Modify(maxpri);
   Reduce(maxpri);
 
