@@ -2755,6 +2755,56 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
 
 
 static int
+is_name_token(Token token, int must_be_op, ReadData _PL_rd)
+{ switch(token->type)
+  { case T_NAME:
+      return TRUE;
+    case T_FUNCTOR:
+      return must_be_op;
+    case T_PUNCTUATION:
+    { switch(token->value.character)
+      { case '[':
+	case '{':
+	case '(':
+	  return FALSE;
+	case ')':
+	case '}':
+	case ']':
+	  errorWarning("cannot_start_term", 0, _PL_rd);
+	  return -1;
+	case '|':
+	  if ( !must_be_op )
+	  { errorWarning("quoted_punctuation", 0, _PL_rd);
+	    return -1;
+	  }
+	  return TRUE;
+	case ',':
+	  if ( !must_be_op && _PL_rd->strictness > 0 )
+	  { errorWarning("quoted_punctuation", 0, _PL_rd);
+	    return -1;
+	  }
+	default:
+	  return TRUE;
+      }
+    }
+    default:
+      return FALSE;
+  }
+}
+
+
+static inline atom_t
+name_token(Token token)
+{ switch(token->type)
+  { case T_PUNCTUATION:
+      return codeToAtom(token->value.character);
+    default:
+      return token->value.atom;
+  }
+}
+
+
+static int
 complex_term(const char *stop, short maxpri, term_t positions,
 	     ReadData _PL_rd ARG_LD)
 { op_entry  in_op;
@@ -2801,18 +2851,12 @@ complex_term(const char *stop, short maxpri, term_t positions,
       }
     }
 
-					/* Read `simple' term */
-    rc = simple_term(rmo == 1, &isname, pin, _PL_rd PASS_LD);
-    if ( rc != TRUE )
-      return rc;
+    if ( !(token = get_token(rmo == 1, _PL_rd)) )
+      return FALSE;
 
-    if ( isname )			/* Check for operators */
-    { atom_t name;
-      term_t *in = term_av(-1, _PL_rd);
-      term_t tmp;
+    if ( is_name_token(token, rmo == 1, _PL_rd) )
+    { atom_t name = name_token(token);
 
-      PL_get_atom(in[0], &name);
-      truncate_term_stack(in, _PL_rd);
       in_op.tpos = pin;
       in_op.token_start = last_token_start;
 
@@ -2848,10 +2892,13 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  continue;
 	}
       }
-      /* not processed; re-push.  TBD: optimise */
-      tmp = alloc_term(_PL_rd PASS_LD);
-      PL_put_atom(tmp, name);
     }
+    unget_token();
+
+					/* Read `simple' term */
+    rc = simple_term(rmo == 1, &isname, pin, _PL_rd PASS_LD);
+    if ( rc != TRUE )
+      return rc;
 
     if ( rmo != 0 )
       syntaxError("operator_expected", _PL_rd);
