@@ -2793,11 +2793,13 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 
 
 static inline atom_t
-name_token(Token token)
+name_token(Token token, ReadData _PL_rd)
 { switch(token->type)
   { case T_PUNCTUATION:
+      need_unlock(0, _PL_rd);
       return codeToAtom(token->value.character);
     case T_FULLSTOP:
+      need_unlock(0, _PL_rd);
       return ATOM_dot;
     default:
       return token->value.atom;
@@ -2850,7 +2852,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
       return FALSE;
 
     if ( is_name_token(token, rmo == 1, _PL_rd) )
-    { atom_t name = name_token(token);
+    { atom_t name = name_token(token, _PL_rd);
 
       in_op.tpos = pin;
       in_op.token_start = last_token_start;
@@ -2860,6 +2862,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
       if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op, _PL_rd) )
       { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
 
+	Unlock(name);			/* ok; part of an operator */
 	PushOp();
 
 	continue;
@@ -2870,6 +2873,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
 	{ Reduce(in_op.left_pri);
+	  Unlock(name);
 	  PushOp();
 	  rmo--;
 
@@ -2882,6 +2886,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
 	{ Reduce(in_op.left_pri);
+	  Unlock(name);
 	  PushOp();
 
 	  continue;
@@ -2944,7 +2949,7 @@ exit:
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
 		         PL_ATOM, SideOp(side_p)->op,
-		         PL_ATOM, name_token(token)) )
+		         PL_ATOM, name_token(token, _PL_rd)) )
       return errorWarning(NULL, ex, _PL_rd);
 
     return FALSE;
