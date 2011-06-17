@@ -2798,6 +2798,8 @@ name_token(Token token)
 { switch(token->type)
   { case T_PUNCTUATION:
       return codeToAtom(token->value.character);
+    case T_FULLSTOP:
+      return ATOM_dot;
     default:
       return token->value.atom;
   }
@@ -2812,7 +2814,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
   int rmo = 0;				/* Rands more than operators */
   int side_p = side_p0(_PL_rd);
   term_t pin;
-  int thestop;				/* encountered stop-character */
+  Token token;
 
   if ( _PL_rd->strictness == 0 )
     maxpri = OP_MAXPRIORITY+1;
@@ -2823,7 +2825,6 @@ complex_term(const char *stop, short maxpri, term_t positions,
   for(;;)
   { int rc;
     bool isname;
-    Token token;
 
     if ( positions )
       pin = PL_new_term_ref();
@@ -2838,15 +2839,11 @@ complex_term(const char *stop, short maxpri, term_t positions,
       switch(token->type)
       { case T_FULLSTOP:
 	  if ( stop == NULL )
-	  { thestop = '.';
-	    goto exit;
-	  }
+	    goto exit;			/* exit for-loop */
 	  break;
 	case T_PUNCTUATION:
 	{ if ( stop != NULL && strchr(stop, token->value.character) )
-	  { thestop = token->value.character;
 	    goto exit;
-	  }
 	}
       }
     }
@@ -2940,10 +2937,6 @@ exit:
 	 SideOp(0)->op == ATOM_semicolon
        ))
   { term_t ex;
-    char tmp[2];
-
-    tmp[0] = thestop;
-    tmp[1] = EOS;
 
     LD->exception.processing = TRUE;
 
@@ -2951,7 +2944,7 @@ exit:
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
 		         PL_ATOM, SideOp(side_p)->op,
-		         PL_CHARS, tmp) )
+		         PL_ATOM, name_token(token)) )
       return errorWarning(NULL, ex, _PL_rd);
 
     return FALSE;
