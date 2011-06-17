@@ -1093,13 +1093,15 @@ writeArgTerm(term_t t, int prec, write_options *options, bool arg)
   }
 
   if ( ++options->depth > options->max_depth && options->max_depth )
+  { PutOpenToken('.', options->out);
     rval = PutString("...", options->out);
-  else if ( PL_is_compound(t) )
+  } else if ( PL_is_compound(t) )
   { visited v;
 
     v.address = address_of(t);
     if ( has_visited(options->visited, v.address) )
-    { rval = PutString("**", options->out);
+    { PutOpenToken('*', options->out);
+      rval = PutString("**", options->out);
     } else
     { v.next = options->visited;
       options->visited = &v;
