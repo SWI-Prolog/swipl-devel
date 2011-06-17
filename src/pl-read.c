@@ -2335,6 +2335,24 @@ alloc_term(ReadData _PL_rd ARG_LD)
 }
 
 
+/* Called as e.g. term_av(-2, _PL_rd) to get the top-most 2 terms
+*/
+
+static inline term_t *
+term_av(int n, ReadData _PL_rd)
+{ return &((term_t*)_PL_rd->term_stack.terms.top)[n];
+}
+
+
+static inline void
+truncate_term_stack(term_t *top, ReadData _PL_rd)
+{ term_stack *ts = &_PL_rd->term_stack;
+
+  ts->terms.top = (char*)top;
+  ts->top       = entriesBuffer(&_PL_rd->term_stack.terms, term_t);
+}
+
+
 		 /*******************************
 		 *	   TERM-BUILDING	*
 		 *******************************/
