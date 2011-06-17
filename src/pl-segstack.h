@@ -83,8 +83,8 @@ COMMON(void)	clearSegStack(segstack *s);
 
 static inline void
 topsOfSegStack(segstack *stack, int count, void **tops)
-{ void *p = stack->top - stack->unit_size;
-  void *base = stack->base;
+{ char *p = stack->top - stack->unit_size;
+  char *base = stack->base;
 
   SECURE(assert(stack->count >= count));
 
