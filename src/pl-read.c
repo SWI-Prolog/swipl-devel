@@ -2597,8 +2597,7 @@ simple_term() which reads everything, except for operators.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-simple_term(bool must_be_op, bool *name, term_t positions,
-	    ReadData _PL_rd ARG_LD);
+simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD);
 
 
 static bool
@@ -2824,7 +2823,6 @@ complex_term(const char *stop, short maxpri, term_t positions,
 
   for(;;)
   { int rc;
-    bool isname;
 
     if ( positions )
       pin = PL_new_term_ref();
@@ -2890,10 +2888,12 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	}
       }
     }
-    unget_token();
+
+    if ( rmo == 1 )
+      syntaxError("operator_expected", _PL_rd);
 
 					/* Read `simple' term */
-    rc = simple_term(rmo == 1, &isname, pin, _PL_rd PASS_LD);
+    rc = simple_term(token, pin, _PL_rd PASS_LD);
     if ( rc != TRUE )
       return rc;
 
@@ -2955,56 +2955,40 @@ exit:
 
 
 /* simple_term() reads a term and leaves it on the top of the term-stack
+
+Token is the first token of the term.
+
 */
 
 static int
-simple_term(bool must_be_op, bool *name,
-	    term_t positions, ReadData _PL_rd ARG_LD)
-{ Token token;
-
-  *name = FALSE;
-
-  if ( !(token = get_token(must_be_op, _PL_rd)) )
-    fail;
-
-  switch(token->type)
+simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+{ switch(token->type)
   { case T_FULLSTOP:
       syntaxError("end_of_clause", _PL_rd);
     case T_VOID:
-      if ( must_be_op )
-      { not_an_op:
-	syntaxError("operator_expected", _PL_rd);
-      }
       alloc_term(_PL_rd PASS_LD);
       /* nothing to do; term is already a variable */
       goto atomic_out;
     case T_VARIABLE:
-      if ( must_be_op )
-      { goto not_an_op;
-      } else
-      { term_t term = alloc_term(_PL_rd PASS_LD);
+    { term_t term = alloc_term(_PL_rd PASS_LD);
 
-	setHandle(term, token->value.variable->signature);
-	DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
-	goto atomic_out;
-      }
+      setHandle(term, token->value.variable->signature);
+      DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
+      goto atomic_out;
+    }
     case T_NAME:
     { term_t term = alloc_term(_PL_rd PASS_LD);
 
-      *name = TRUE;
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
       goto atomic_out;
     }
     case T_NUMBER:
-      if ( must_be_op )
-      { goto not_an_op;
-      } else
-      { term_t term = alloc_term(_PL_rd PASS_LD);
-	if ( !_PL_put_number(term, &token->value.number) )
-	  return FALSE;
-	clearNumber(&token->value.number);
-      }
+    { term_t term = alloc_term(_PL_rd PASS_LD);
+      if ( !_PL_put_number(term, &token->value.number) )
+	return FALSE;
+      clearNumber(&token->value.number);
+    }
     atomic_out:
       if ( positions )
       { if ( !PL_unify_term(positions,
@@ -3015,13 +2999,10 @@ simple_term(bool must_be_op, bool *name,
       }
       succeed;
     case T_STRING:
-      if ( must_be_op )
-      { goto not_an_op;
-      } else
-      { term_t term = alloc_term(_PL_rd PASS_LD);
+    { term_t term = alloc_term(_PL_rd PASS_LD);
 
-	PL_put_term(term, token->value.term);
-      }
+      PL_put_term(term, token->value.term);
+    }
       if ( positions )
       { if ( !PL_unify_term(positions,
 			    PL_FUNCTOR, FUNCTOR_string_position2,
@@ -3031,142 +3012,129 @@ simple_term(bool must_be_op, bool *name,
       }
       succeed;
     case T_FUNCTOR:
-      { if ( must_be_op )
-	{ term_t term = alloc_term(_PL_rd PASS_LD);
+    { int arity = 0;
+      atom_t functor;
+      term_t pa;			/* argument */
+      term_t pe;			/* term-end */
+      term_t ph;
+      int unlock;
+      int rc;
 
-	  *name = TRUE;
-	  PL_put_atom(term, token->value.atom);
-	  Unlock(token->value.atom);
-	  goto atomic_out;
-	} else
-	{ int arity = 0;
-	  atom_t functor;
-	  term_t pa;			/* argument */
-	  term_t pe;			/* term-end */
-	  term_t ph;
-	  int unlock;
-	  int rc;
+      if ( positions )
+      { if ( !(pa = PL_new_term_ref()) ||
+	     !(pe = PL_new_term_ref()) ||
+	     !(ph = PL_new_term_ref()) ||
+	     !PL_unify_term(positions,
+			    PL_FUNCTOR, FUNCTOR_term_position5,
+			    PL_INTPTR, token->start,
+			    PL_TERM, pe,
+			    PL_INTPTR, token->start,
+			    PL_INTPTR, token->end,
+			    PL_TERM, pa) )
+	  return FALSE;
+      } else
+	pa = pe = ph = 0;
 
-	  if ( positions )
-	  { if ( !(pa = PL_new_term_ref()) ||
-		 !(pe = PL_new_term_ref()) ||
-		 !(ph = PL_new_term_ref()) ||
-		 !PL_unify_term(positions,
-				PL_FUNCTOR, FUNCTOR_term_position5,
-				PL_INTPTR, token->start,
-				PL_TERM, pe,
-				PL_INTPTR, token->start,
-				PL_INTPTR, token->end,
-				PL_TERM, pa) )
-	      return FALSE;
-	  } else
-	    pa = pe = ph = 0;
+      functor = token->value.atom;
+      unlock = (_PL_rd->locked == functor);
+      _PL_rd->locked = 0;
+      get_token(FALSE, _PL_rd);			/* skip '(' */
 
-	  functor = token->value.atom;
-	  unlock = (_PL_rd->locked == functor);
-	  _PL_rd->locked = 0;
-	  get_token(must_be_op, _PL_rd); /* skip '(' */
-
-	  do
-	  { if ( positions )
-	    { if ( !PL_unify_list(pa, ph, pa) )
-		return FALSE;
-	    }
-	    if ( (rc=complex_term(",)", 999, ph, _PL_rd PASS_LD)) != TRUE )
-	    { if ( unlock )
-		PL_unregister_atom(functor);
-	      return rc;
-	    }
-	    arity++;
-	    token = get_token(must_be_op, _PL_rd); /* `,' or `)' */
-	  } while(token->value.character == ',');
-
-	  if ( positions )
-	  { if ( !PL_unify_integer(pe, token->end) ||
-		 !PL_unify_nil(pa) )
-	      return FALSE;
-	  }
-
-	  rc = build_term(functor, arity, _PL_rd PASS_LD);
-	  if ( rc != TRUE )
-	    return rc;
-	  if ( unlock )
-	    PL_unregister_atom(functor);
+      do
+      { if ( positions )
+	{ if ( !PL_unify_list(pa, ph, pa) )
+	    return FALSE;
 	}
-	succeed;
+	if ( (rc=complex_term(",)", 999, ph, _PL_rd PASS_LD)) != TRUE )
+	{ if ( unlock )
+	    PL_unregister_atom(functor);
+	  return rc;
+	}
+	arity++;
+	token = get_token(FALSE, _PL_rd);	/* `,' or `)' */
+      } while(token->value.character == ',');
+
+      if ( positions )
+      { if ( !PL_unify_integer(pe, token->end) ||
+	     !PL_unify_nil(pa) )
+	  return FALSE;
       }
+
+      rc = build_term(functor, arity, _PL_rd PASS_LD);
+      if ( rc != TRUE )
+	return rc;
+      if ( unlock )
+	PL_unregister_atom(functor);
+
+      succeed;
+    }
     case T_PUNCTUATION:
-      { switch(token->value.character)
-	{ case '(':
-	    { int rc;
-	      size_t start = token->start;
+    { switch(token->value.character)
+      { case '(':
+	  { int rc;
+	    size_t start = token->start;
 
-	      if ( must_be_op ) goto not_an_op;
+	    rc = complex_term(")", OP_MAXPRIORITY+1, positions, _PL_rd PASS_LD);
+	    if ( rc != TRUE )
+	      return rc;
+	    token = get_token(FALSE, _PL_rd);	/* skip ')' */
 
-	      rc = complex_term(")", OP_MAXPRIORITY+1, positions, _PL_rd PASS_LD);
-	      if ( rc != TRUE )
-		return rc;
-	      token = get_token(must_be_op, _PL_rd);	/* skip ')' */
+	    if ( positions )
+	    { Word p = argTermP(*valTermRef(positions), 0);
 
-	      if ( positions )
-	      { Word p = argTermP(*valTermRef(positions), 0);
-
-		*p++ = consInt(start);
-		*p   = consInt(token->end);
-	      }
-
-	      succeed;
+	      *p++ = consInt(start);
+	      *p   = consInt(token->end);
 	    }
-	  case '{':
-	    { int rc;
-	      term_t pa, pe;
 
-	      if ( must_be_op ) goto not_an_op;
+	    succeed;
+	  }
+	case '{':
+	  { int rc;
+	    term_t pa, pe;
 
-	      if ( positions )
-	      { if ( !(pa = PL_new_term_ref()) ||
-		     !(pe = PL_new_term_ref()) ||
-		     !PL_unify_term(positions,
-				    PL_FUNCTOR, FUNCTOR_brace_term_position3,
-				    PL_INTPTR, token->start,
-				    PL_TERM, pe,
-				    PL_TERM, pa) )
-		  return FALSE;
-	      } else
-		pe = pa = 0;
-
-	      if ( (rc=complex_term("}", OP_MAXPRIORITY+1, pa, _PL_rd PASS_LD)) != TRUE )
-		return rc;
-	      token = get_token(must_be_op, _PL_rd);
-	      if ( positions )
-	      { if ( !PL_unify_integer(pe, token->end) )
-		  return FALSE;
-	      }
-
-	      return build_term(ATOM_curl, 1, _PL_rd PASS_LD);
-	    }
-	  case '[':
-	    { term_t term, tail, *tmp;
-	      term_t pa, pe, pt, p2;
-
-	      if ( must_be_op ) goto not_an_op;
-	      if ( !(tail = PL_new_term_ref()) )
+	    if ( positions )
+	    { if ( !(pa = PL_new_term_ref()) ||
+		   !(pe = PL_new_term_ref()) ||
+		   !PL_unify_term(positions,
+				  PL_FUNCTOR, FUNCTOR_brace_term_position3,
+				  PL_INTPTR, token->start,
+				  PL_TERM, pe,
+				  PL_TERM, pa) )
 		return FALSE;
+	    } else
+	      pe = pa = 0;
 
-	      if ( positions )
-	      { if ( !(pa = PL_new_term_ref()) ||
-		     !(pe = PL_new_term_ref()) ||
-		     !(pt = PL_new_term_ref()) ||
-		     !(p2 = PL_new_term_ref()) ||
-		     !PL_unify_term(positions,
-				    PL_FUNCTOR, FUNCTOR_list_position4,
-				    PL_INTPTR, token->start,
-				    PL_TERM, pe,
-				    PL_TERM, pa,
-				    PL_TERM, pt) )
-		  return FALSE;
-	      } else
-		pa = pe = p2 = pt = 0;
+	    if ( (rc=complex_term("}", OP_MAXPRIORITY+1, pa, _PL_rd PASS_LD)) != TRUE )
+	      return rc;
+	    token = get_token(FALSE, _PL_rd);
+	    if ( positions )
+	    { if ( !PL_unify_integer(pe, token->end) )
+		return FALSE;
+	    }
+
+	    return build_term(ATOM_curl, 1, _PL_rd PASS_LD);
+	  }
+	case '[':
+	  { term_t term, tail, *tmp;
+	    term_t pa, pe, pt, p2;
+
+	    if ( !(tail = PL_new_term_ref()) )
+	      return FALSE;
+
+	    if ( positions )
+	    { if ( !(pa = PL_new_term_ref()) ||
+		   !(pe = PL_new_term_ref()) ||
+		   !(pt = PL_new_term_ref()) ||
+		   !(p2 = PL_new_term_ref()) ||
+		   !PL_unify_term(positions,
+				  PL_FUNCTOR, FUNCTOR_list_position4,
+				  PL_INTPTR, token->start,
+				  PL_TERM, pe,
+				  PL_TERM, pa,
+				  PL_TERM, pt) )
+		return FALSE;
+	    } else
+	      pa = pe = p2 = pt = 0;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Reading a list. Tmp is used to  read   the  next element. Tail is a very
@@ -3174,93 +3142,80 @@ special term-ref. It is always a reference   to the place where the next
 term is to be written.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	      term = alloc_term(_PL_rd PASS_LD);
-	      PL_put_term(tail, term);
+	    term = alloc_term(_PL_rd PASS_LD);
+	    PL_put_term(tail, term);
 
-	      for(;;)
-	      { int rc;
-		Word argp;
+	    for(;;)
+	    { int rc;
+	      Word argp;
 
-		if ( positions )
-		{ if ( !PL_unify_list(pa, p2, pa) )
-		    return FALSE;
-		}
+	      if ( positions )
+	      { if ( !PL_unify_list(pa, p2, pa) )
+		  return FALSE;
+	      }
 
-		rc = complex_term(",|]", 999, p2, _PL_rd PASS_LD);
-		if ( rc != TRUE )
-		  return rc;
-		if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
-		  return rc;
-		argp = allocGlobal(3);
-		*unRef(*valTermRef(tail)) = consPtr(argp,
-						    TAG_COMPOUND|STG_GLOBAL);
-		*argp++ = FUNCTOR_dot2;
-		setVar(argp[0]);
-		setVar(argp[1]);
-		tmp = term_av(-1, _PL_rd);
-		readValHandle(tmp[0], argp++, _PL_rd PASS_LD);
-		truncate_term_stack(tmp, _PL_rd);
-		setHandle(tail, makeRef(argp));
+	      rc = complex_term(",|]", 999, p2, _PL_rd PASS_LD);
+	      if ( rc != TRUE )
+		return rc;
+	      if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
+		return rc;
+	      argp = allocGlobal(3);
+	      *unRef(*valTermRef(tail)) = consPtr(argp,
+						  TAG_COMPOUND|STG_GLOBAL);
+	      *argp++ = FUNCTOR_dot2;
+	      setVar(argp[0]);
+	      setVar(argp[1]);
+	      tmp = term_av(-1, _PL_rd);
+	      readValHandle(tmp[0], argp++, _PL_rd PASS_LD);
+	      truncate_term_stack(tmp, _PL_rd);
+	      setHandle(tail, makeRef(argp));
 
-		token = get_token(must_be_op, _PL_rd);
+	      token = get_token(FALSE, _PL_rd);
 
-		switch(token->value.character)
-		{ case ']':
-		    { if ( positions )
-		      { if ( !PL_unify_nil(pa) ||
-			     !PL_unify_atom(pt, ATOM_none) ||
-			     !PL_unify_integer(pe, token->end) )
-			  return FALSE;
-		      }
-		      return PL_unify_nil(tail);
+	      switch(token->value.character)
+	      { case ']':
+		  { if ( positions )
+		    { if ( !PL_unify_nil(pa) ||
+			   !PL_unify_atom(pt, ATOM_none) ||
+			   !PL_unify_integer(pe, token->end) )
+			return FALSE;
 		    }
-		  case '|':
-		    { int rc;
+		    return PL_unify_nil(tail);
+		  }
+		case '|':
+		  { int rc;
 
-		      if ( (rc=complex_term(",|]", 999, pt, _PL_rd PASS_LD)) != TRUE )
-			return rc;
-		      argp = unRef(*valTermRef(tail));
-		      tmp = term_av(-1, _PL_rd);
-		      readValHandle(tmp[0], argp, _PL_rd PASS_LD);
-		      truncate_term_stack(tmp, _PL_rd);
-		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
-		      switch(token->value.character)
-		      { case ',':
-			case '|':
-			  syntaxError("list_rest", _PL_rd);
-		      }
-		      if ( positions )
-		      { if ( !PL_unify_nil(pa) ||
-			     !PL_unify_integer(pe, token->end) )
-			  return FALSE;
-		      }
-		      succeed;
+		    if ( (rc=complex_term(",|]", 999, pt, _PL_rd PASS_LD)) != TRUE )
+		      return rc;
+		    argp = unRef(*valTermRef(tail));
+		    tmp = term_av(-1, _PL_rd);
+		    readValHandle(tmp[0], argp, _PL_rd PASS_LD);
+		    truncate_term_stack(tmp, _PL_rd);
+		    token = get_token(FALSE, _PL_rd); /* discard ']' */
+		    switch(token->value.character)
+		    { case ',':
+		      case '|':
+			syntaxError("list_rest", _PL_rd);
 		    }
-		  case ',':
-		      continue;
-		}
+		    if ( positions )
+		    { if ( !PL_unify_nil(pa) ||
+			   !PL_unify_integer(pe, token->end) )
+			return FALSE;
+		    }
+		    succeed;
+		  }
+		case ',':
+		    continue;
 	      }
 	    }
-	  case ')':
-	  case '}':
-	  case ']':
-	    syntaxError("cannot_start_term", _PL_rd);
-	  case '|':
-	    if ( !must_be_op )
-	      syntaxError("quoted_punctuation", _PL_rd);
-	    goto name;
-	  case ',':
-	    if ( !must_be_op && _PL_rd->strictness > 0 )
-	      syntaxError("quoted_punctuation", _PL_rd);
-	  default:
-	  name:
-	  { term_t term = alloc_term(_PL_rd PASS_LD);
-	    *name = TRUE;
-	    PL_put_atom(term, codeToAtom(token->value.character));
-	    goto atomic_out;
 	  }
+	default:
+	{ term_t term = alloc_term(_PL_rd PASS_LD);
+	  PL_put_atom(term, codeToAtom(token->value.character));
+	  goto atomic_out;
 	}
-      } /* case T_PUNCTUATION */
+      }
+    } /* case T_PUNCTUATION */
     default:;
       sysError("read/1: Illegal token type (%d)", token->type);
       /*NOTREACHED*/
