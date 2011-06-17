@@ -382,7 +382,7 @@ ifeq ($(SOEXT),dll)
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
+		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
 		( cd $(DESTDIR)$(PLBASE)/lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
 		fi
 endif
