@@ -2822,6 +2822,18 @@ unify_atomic_position(term_t positions, Token token)
 
 
 static int
+unify_string_position(term_t positions, Token token)
+{ if ( positions )
+  { return PL_unify_term(positions,
+			 PL_FUNCTOR, FUNCTOR_string_position2,
+			   PL_INTPTR, token->start,
+			   PL_INTPTR, token->end);
+  } else
+    return TRUE;
+}
+
+
+static int
 complex_term(const char *stop, short maxpri, term_t positions,
 	     ReadData _PL_rd ARG_LD)
 { op_entry  in_op;
@@ -2977,10 +2989,227 @@ set_range_position(term_t positions, intptr_t start, intptr_t end ARG_LD)
   if ( end   >= 0 ) p[1] = consInt(end);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+read_list(-positions)  reads  a  list  and  places    the  list  on  the
+term-stack. Token is the [-token. The idea was that moving this function
+out of simple_term() would reduce the  stack-usage of simple_term() when
+not reading a list, but  this   assumption  appears wrong: when inlined,
+simple_term() uses less stack. Why is that?  Nevertheless, this is a lot
+more readable and makes selecting between inlining and not trivial.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline int
+read_list(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+{ term_t term, tail, *tmp;
+  term_t pv;
+
+#define P_ELEM (pv+0)			/* pos of element */
+#define P_LIST (pv+1)			/* position list */
+#define P_TAIL (pv+2)			/* position of tail */
+
+  if ( !(tail = PL_new_term_ref()) )
+    return FALSE;
+
+  if ( positions )
+  { if ( !(pv = PL_new_term_refs(3)) ||
+	 !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_list_position4,
+			PL_INTPTR, token->start,
+			PL_VARIABLE,
+			PL_TERM, P_LIST,
+			PL_TERM, P_TAIL) )
+      return FALSE;
+  } else
+    pv = 0;
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Reading a list. Tmp is used to  read   the  next element. Tail is a very
+special term-ref. It is always a reference   to the place where the next
+term is to be written.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  term = alloc_term(_PL_rd PASS_LD);
+  PL_put_term(tail, term);
+
+  for(;;)
+  { int rc;
+    Word argp;
+
+    if ( positions )
+    { if ( !PL_unify_list(P_LIST, P_ELEM, P_LIST) )
+	return FALSE;
+    }
+
+    rc = complex_term(",|]", 999, P_ELEM, _PL_rd PASS_LD);
+    if ( rc != TRUE )
+      return rc;
+    if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
+      return rc;
+    argp = allocGlobal(3);
+    *unRef(*valTermRef(tail)) = consPtr(argp,
+					TAG_COMPOUND|STG_GLOBAL);
+    *argp++ = FUNCTOR_dot2;
+    setVar(argp[0]);
+    setVar(argp[1]);
+    tmp = term_av(-1, _PL_rd);
+    readValHandle(tmp[0], argp++, _PL_rd PASS_LD);
+    truncate_term_stack(tmp, _PL_rd);
+    setHandle(tail, makeRef(argp));
+
+    token = get_token(FALSE, _PL_rd);
+
+    switch(token->value.character)
+    { case ']':
+	{ if ( positions )
+	  { set_range_position(positions, -1, token->end PASS_LD);
+	    if ( !PL_unify_nil(P_LIST) ||
+		 !PL_unify_atom(P_TAIL, ATOM_none) )
+	      return FALSE;
+	  }
+	  return PL_unify_nil(tail);
+	}
+      case '|':
+	{ int rc;
+	  term_t pt = (pv ? P_TAIL : 0);
+
+	  if ( (rc=complex_term(",|]", 999, pt, _PL_rd PASS_LD)) != TRUE )
+	    return rc;
+	  argp = unRef(*valTermRef(tail));
+	  tmp = term_av(-1, _PL_rd);
+	  readValHandle(tmp[0], argp, _PL_rd PASS_LD);
+	  truncate_term_stack(tmp, _PL_rd);
+	  token = get_token(FALSE, _PL_rd); /* discard ']' */
+	  switch(token->value.character)
+	  { case ',':
+	    case '|':
+	      syntaxError("list_rest", _PL_rd);
+	  }
+	  if ( positions )
+	  { set_range_position(positions, -1, token->end PASS_LD);
+	    if ( !PL_unify_nil(P_LIST) )
+	      return FALSE;
+	  }
+	  succeed;
+	}
+      case ',':
+	continue;
+    }
+  }
+#undef P_ELEM
+#undef P_LIST
+#undef P_TAIL
+}
+
+
+static inline int				/* read {...} */
+read_brace_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+{ int rc;
+  term_t pa;
+
+  if ( positions )
+  { if ( !(pa = PL_new_term_ref()) ||
+	 !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_brace_term_position3,
+			PL_INTPTR, token->start,
+			PL_VARIABLE,
+			PL_TERM, pa) )
+      return FALSE;
+  } else
+    pa = 0;
+
+  if ( (rc=complex_term("}", OP_MAXPRIORITY+1, pa, _PL_rd PASS_LD)) != TRUE )
+    return rc;
+  token = get_token(FALSE, _PL_rd);
+  if ( positions )
+    set_range_position(positions, -1, token->end PASS_LD);
+
+  return build_term(ATOM_curl, 1, _PL_rd PASS_LD);
+}
+
+
+static inline int				/* read (...) */
+read_embraced_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+{ int rc;
+  size_t start = token->start;
+
+  rc = complex_term(")", OP_MAXPRIORITY+1, positions, _PL_rd PASS_LD);
+  if ( rc != TRUE )
+    return rc;
+  token = get_token(FALSE, _PL_rd);	/* skip ')' */
+
+  if ( positions )
+    set_range_position(positions, start, token->end PASS_LD);
+
+  succeed;
+}
+
+
+static inline int				/* read f(a1, ...) */
+read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+{ int arity = 0;
+  atom_t functor;
+  term_t pv;
+  int unlock;
+  int rc;
+
+#define P_HEAD (pv+0)
+#define P_ARG  (pv+1)
+
+  if ( positions )
+  { if ( !(pv = PL_new_term_refs(2)) ||
+	 !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_term_position5,
+			PL_INTPTR, token->start,
+			PL_VARIABLE,
+			PL_INTPTR, token->start,
+			PL_INTPTR, token->end,
+			PL_TERM, P_ARG) )
+      return FALSE;
+  } else
+    pv = 0;
+
+  functor = token->value.atom;
+  unlock = (_PL_rd->locked == functor);
+  _PL_rd->locked = 0;
+  get_token(FALSE, _PL_rd);			/* skip '(' */
+
+  do
+  { if ( positions )
+    { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
+	return FALSE;
+    }
+    if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
+    { if ( unlock )
+	PL_unregister_atom(functor);
+      return rc;
+    }
+    arity++;
+    token = get_token(FALSE, _PL_rd);	/* `,' or `)' */
+  } while(token->value.character == ',');
+
+  if ( positions )
+  { set_range_position(positions, -1, token->end PASS_LD);
+    if ( !PL_unify_nil(P_ARG) )
+      return FALSE;
+  }
+
+#undef P_HEAD
+#undef P_ARG
+
+  rc = build_term(functor, arity, _PL_rd PASS_LD);
+  if ( rc != TRUE )
+    return rc;
+  if ( unlock )
+    PL_unregister_atom(functor);
+
+  succeed;
+}
+
+
 /* simple_term() reads a term and leaves it on the top of the term-stack
 
 Token is the first token of the term.
-
 */
 
 static int
@@ -2994,14 +3223,12 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
       return unify_atomic_position(positions, token);
     case T_VARIABLE:
     { term_t term = alloc_term(_PL_rd PASS_LD);
-
       setHandle(term, token->value.variable->signature);
       DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
       return unify_atomic_position(positions, token);
     }
     case T_NAME:
     { term_t term = alloc_term(_PL_rd PASS_LD);
-
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
       return unify_atomic_position(positions, token);
@@ -3015,215 +3242,19 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     }
     case T_STRING:
     { term_t term = alloc_term(_PL_rd PASS_LD);
-
       PL_put_term(term, token->value.term);
-      if ( positions )
-      { if ( !PL_unify_term(positions,
-			    PL_FUNCTOR, FUNCTOR_string_position2,
-			    PL_INTPTR, token->start,
-			    PL_INTPTR, token->end) )
-	  return FALSE;
-      }
-      succeed;
+      return unify_string_position(positions, token);
     }
     case T_FUNCTOR:
-    { int arity = 0;
-      atom_t functor;
-      term_t pv;
-      int unlock;
-      int rc;
-
-#define P_HEAD (pv+0)
-#define P_ARG  (pv+1)
-
-      if ( positions )
-      { if ( !(pv = PL_new_term_refs(2)) ||
-	     !PL_unify_term(positions,
-			    PL_FUNCTOR, FUNCTOR_term_position5,
-			    PL_INTPTR, token->start,
-			    PL_VARIABLE,
-			    PL_INTPTR, token->start,
-			    PL_INTPTR, token->end,
-			    PL_TERM, P_ARG) )
-	  return FALSE;
-      } else
-	pv = 0;
-
-      functor = token->value.atom;
-      unlock = (_PL_rd->locked == functor);
-      _PL_rd->locked = 0;
-      get_token(FALSE, _PL_rd);			/* skip '(' */
-
-      do
-      { if ( positions )
-	{ if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
-	    return FALSE;
-	}
-	if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
-	{ if ( unlock )
-	    PL_unregister_atom(functor);
-	  return rc;
-	}
-	arity++;
-	token = get_token(FALSE, _PL_rd);	/* `,' or `)' */
-      } while(token->value.character == ',');
-
-      if ( positions )
-      { set_range_position(positions, -1, token->end PASS_LD);
-	if ( !PL_unify_nil(P_ARG) )
-	  return FALSE;
-      }
-
-#undef P_HEAD
-#undef P_ARG
-
-      rc = build_term(functor, arity, _PL_rd PASS_LD);
-      if ( rc != TRUE )
-	return rc;
-      if ( unlock )
-	PL_unregister_atom(functor);
-
-      succeed;
-    }
+      return read_compound(token, positions, _PL_rd PASS_LD);
     case T_PUNCTUATION:
     { switch(token->value.character)
       { case '(':
-	  { int rc;
-	    size_t start = token->start;
-
-	    rc = complex_term(")", OP_MAXPRIORITY+1, positions, _PL_rd PASS_LD);
-	    if ( rc != TRUE )
-	      return rc;
-	    token = get_token(FALSE, _PL_rd);	/* skip ')' */
-
-	    if ( positions )
-	      set_range_position(positions, start, token->end PASS_LD);
-
-	    succeed;
-	  }
+	  return read_embraced_term(token, positions, _PL_rd PASS_LD);
 	case '{':
-	  { int rc;
-	    term_t pa;
-
-	    if ( positions )
-	    { if ( !(pa = PL_new_term_ref()) ||
-		   !PL_unify_term(positions,
-				  PL_FUNCTOR, FUNCTOR_brace_term_position3,
-				  PL_INTPTR, token->start,
-				  PL_VARIABLE,
-				  PL_TERM, pa) )
-		return FALSE;
-	    } else
-	      pa = 0;
-
-	    if ( (rc=complex_term("}", OP_MAXPRIORITY+1, pa, _PL_rd PASS_LD)) != TRUE )
-	      return rc;
-	    token = get_token(FALSE, _PL_rd);
-	    if ( positions )
-	      set_range_position(positions, -1, token->end PASS_LD);
-
-	    return build_term(ATOM_curl, 1, _PL_rd PASS_LD);
-	  }
+	  return read_brace_term(token, positions, _PL_rd PASS_LD);
 	case '[':
-	  { term_t term, tail, *tmp;
-	    term_t pv;
-
-#define P_ELEM (pv+0)			/* pos of element */
-#define P_LIST (pv+1)			/* position list */
-#define P_TAIL (pv+2)			/* position of tail */
-
-	    if ( !(tail = PL_new_term_ref()) )
-	      return FALSE;
-
-	    if ( positions )
-	    { if ( !(pv = PL_new_term_refs(3)) ||
-		   !PL_unify_term(positions,
-				  PL_FUNCTOR, FUNCTOR_list_position4,
-				  PL_INTPTR, token->start,
-				  PL_VARIABLE,
-				  PL_TERM, P_LIST,
-				  PL_TERM, P_TAIL) )
-		return FALSE;
-	    } else
-	      pv = 0;
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Reading a list. Tmp is used to  read   the  next element. Tail is a very
-special term-ref. It is always a reference   to the place where the next
-term is to be written.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-	    term = alloc_term(_PL_rd PASS_LD);
-	    PL_put_term(tail, term);
-
-	    for(;;)
-	    { int rc;
-	      Word argp;
-
-	      if ( positions )
-	      { if ( !PL_unify_list(P_LIST, P_ELEM, P_LIST) )
-		  return FALSE;
-	      }
-
-	      rc = complex_term(",|]", 999, P_ELEM, _PL_rd PASS_LD);
-	      if ( rc != TRUE )
-		return rc;
-	      if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
-		return rc;
-	      argp = allocGlobal(3);
-	      *unRef(*valTermRef(tail)) = consPtr(argp,
-						  TAG_COMPOUND|STG_GLOBAL);
-	      *argp++ = FUNCTOR_dot2;
-	      setVar(argp[0]);
-	      setVar(argp[1]);
-	      tmp = term_av(-1, _PL_rd);
-	      readValHandle(tmp[0], argp++, _PL_rd PASS_LD);
-	      truncate_term_stack(tmp, _PL_rd);
-	      setHandle(tail, makeRef(argp));
-
-	      token = get_token(FALSE, _PL_rd);
-
-	      switch(token->value.character)
-	      { case ']':
-		  { if ( positions )
-		    { set_range_position(positions, -1, token->end PASS_LD);
-		      if ( !PL_unify_nil(P_LIST) ||
-			   !PL_unify_atom(P_TAIL, ATOM_none) )
-			return FALSE;
-		    }
-		    return PL_unify_nil(tail);
-		  }
-		case '|':
-		  { int rc;
-		    term_t pt = (pv ? P_TAIL : 0);
-
-		    if ( (rc=complex_term(",|]", 999, pt, _PL_rd PASS_LD)) != TRUE )
-		      return rc;
-		    argp = unRef(*valTermRef(tail));
-		    tmp = term_av(-1, _PL_rd);
-		    readValHandle(tmp[0], argp, _PL_rd PASS_LD);
-		    truncate_term_stack(tmp, _PL_rd);
-		    token = get_token(FALSE, _PL_rd); /* discard ']' */
-		    switch(token->value.character)
-		    { case ',':
-		      case '|':
-			syntaxError("list_rest", _PL_rd);
-		    }
-		    if ( positions )
-		    { set_range_position(positions, -1, token->end PASS_LD);
-		      if ( !PL_unify_nil(P_LIST) )
-			return FALSE;
-		    }
-		    succeed;
-		  }
-		case ',':
-		    continue;
-	      }
-	    }
-#undef P_ELEM
-#undef P_LIST
-#undef P_TAIL
-	  }
+	  return read_list(token, positions, _PL_rd PASS_LD);
 	default:
 	{ term_t term = alloc_term(_PL_rd PASS_LD);
 	  PL_put_atom(term, codeToAtom(token->value.character));
