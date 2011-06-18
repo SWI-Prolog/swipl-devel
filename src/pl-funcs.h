@@ -429,6 +429,7 @@ COMMON(word)		pl_novice(term_t old, term_t new);
 COMMON(int)		ground__LD(Word p ARG_LD);
 COMMON(int)		PL_factorize_term(term_t term,
 					  term_t template, term_t factors);
+COMMON(int)		PL_var_occurs_in(term_t var, term_t value);
 
 /* pl-prologflag.c */
 COMMON(void)		setPrologFlag(const char *name, int flags, ...);

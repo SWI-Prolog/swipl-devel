@@ -514,6 +514,17 @@ var_occurs_in(Word v, Word t ARG_LD)
 }
 
 
+int
+PL_var_occurs_in(term_t var, term_t value)
+{ GET_LD
+  Word v = valTermRef(var);
+
+  deRef(v);
+
+  return var_occurs_in(v, valTermRef(value) PASS_LD);
+}
+
+
 static int
 failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 { int rc;

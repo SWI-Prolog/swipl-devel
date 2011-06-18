@@ -1245,6 +1245,74 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 }
 
 
+		 /*******************************
+		 *	  CYCLE HANDLING	*
+		 *******************************/
+
+static int
+reunify_acyclic_substitutions(term_t substitutions, term_t cycles)
+{ GET_LD
+  term_t s_tail, c_tail, s_head, c_head, var, value;
+
+  if ( !(s_tail = PL_copy_term_ref(substitutions)) ||
+       !(c_tail = PL_copy_term_ref(cycles)) ||
+       !(s_head = PL_new_term_ref()) ||
+       !(c_head = PL_new_term_ref()) ||
+       !(var    = PL_new_term_ref()) ||
+       !(value  = PL_new_term_ref()) )
+    return FALSE;
+
+  while(PL_get_list(s_tail, s_head, s_tail))
+  { _PL_get_arg(1, s_head, var);
+    _PL_get_arg(2, s_head, value);
+    if ( PL_var_occurs_in(var, value) )
+    { if ( !PL_unify_list(c_tail, c_head, c_tail) ||
+	   !PL_unify(c_head, s_head) )
+	return FALSE;
+    } else
+    { if ( !PL_unify(var, value) )
+	return FALSE;
+    }
+  }
+
+  return PL_unify_nil(c_tail);
+}
+
+
+static int
+writeTopTerm(term_t term, int prec, write_options *options)
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
+  int rc;
+
+  if ( PL_is_acyclic(term) )
+  { rc = writeTerm(term, prec, options);
+  } else
+  { term_t template, substitutions, cycles, at_term;
+
+    if ( !(template = PL_new_term_ref()) ||
+	 !(substitutions = PL_new_term_ref()) ||
+	 !(cycles = PL_new_term_ref()) ||
+	 !(at_term = PL_new_term_ref()) ||
+	 !PL_factorize_term(term, template, substitutions) ||
+	 !reunify_acyclic_substitutions(substitutions, cycles) ||
+	 !PL_unify_term(at_term,
+			PL_FUNCTOR, FUNCTOR_xpceref2,
+			  PL_TERM, template,
+			  PL_TERM, cycles) )
+      return FALSE;
+    rc = writeTerm(at_term, prec, options);
+  }
+
+  PL_discard_foreign_frame(fid);
+  return rc;
+}
+
+
+		 /*******************************
+		 *	      TOPLEVEL		*
+		 *******************************/
+
 int
 writeAttributeMask(atom_t a)
 { if ( a == ATOM_ignore )
@@ -1381,10 +1449,10 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     PutOpenToken(EOF, s);		/* reset this */
   if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&SIO_REPPL) )
   { s->flags |= SIO_REPPL;
-    rc = writeTerm(term, priority, &options);
+    rc = writeTopTerm(term, priority, &options);
     s->flags &= ~SIO_REPPL;
   } else
-  { rc = writeTerm(term, priority, &options);
+  { rc = writeTopTerm(term, priority, &options);
   }
 
   return streamStatus(s) && rc;
@@ -1407,7 +1475,7 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   options.module    = MODULE_user;
 
   PutOpenToken(EOF, s);			/* reset this */
-  return writeTerm(term, precedence, &options);
+  return writeTopTerm(term, precedence, &options);
 }
 
 
@@ -1430,7 +1498,7 @@ do_write2(term_t stream, term_t term, int flags)
       options.flags |= PL_WRT_BACKQUOTED_STRING;
 
     PutOpenToken(EOF, s);		/* reset this */
-    rc = writeTerm(term, 1200, &options);
+    rc = writeTopTerm(term, 1200, &options);
 
     return streamStatus(s) && rc;
   }
