@@ -42,11 +42,6 @@
 #define HAVE_FPCLASSIFY 1
 #endif
 
-typedef struct visited
-{ Word address;				/* we have done this address */
-  struct visited *next;			/* next already visited */
-} visited;
-
 typedef struct
 { int   flags;				/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
@@ -54,7 +49,6 @@ typedef struct
   atom_t spacing;			/* Where to insert spaces */
   Module module;			/* Module for operators */
   IOSTREAM *out;			/* stream to write to */
-  visited *visited;			/* visited (attributed-) variables */
   term_t portray_goal;			/* call/2 activated portray hook */
   term_t write_options;			/* original write options */
   term_t prec_opt;			/* term in write options with prec */
@@ -69,34 +63,6 @@ static bool	writeArgTerm(term_t t, int prec,
 static int	PutToken(const char *s, IOSTREAM *stream);
 static int	writeAtom(atom_t a, write_options *options);
 static int	callPortray(term_t arg, int prec, write_options *options);
-
-static Word
-address_of(term_t t)
-{ GET_LD
-  Word adr = valTermRef(t);
-
-  deRef(adr);
-  switch(tag(*adr))
-  { case TAG_ATTVAR:
-      return adr;
-    case TAG_COMPOUND:
-      return valPtr(*adr);
-    default:
-      return NULL;			/* non-recursive structure */
-  }
-}
-
-
-static int
-has_visited(visited *v, Word addr)
-{ for( ; v; v=v->next )
-  { if ( v->address == addr )
-      succeed;
-  }
-
-  fail;
-}
-
 
 char *
 varName(term_t t, char *name)
@@ -496,30 +462,19 @@ writeAttVar(term_t av, write_options *options)
   } else if ( (options->flags & PL_WRT_ATTVAR_WRITE) )
   { fid_t fid;
     term_t a;
-    visited v;
 
     if ( !(fid = PL_open_foreign_frame()) )
       return FALSE;
 
-    v.address = address_of(av);
-    if ( has_visited(options->visited, v.address) )
-      succeed;
-    v.next = options->visited;
-    options->visited = &v;
     Sputcode('{', options->out);
     a = PL_new_term_ref();
     PL_get_attr__LD(av, a PASS_LD);
     if ( !writeTerm(a, 1200, options) )
-      goto error;
+      return FALSE;
     Sputcode('}', options->out);
     PL_close_foreign_frame(fid);
 
-    options->visited = v.next;
-    succeed;
-
-  error:
-    options->visited = v.next;
-    fail;
+    return TRUE;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
 	      GD->cleaning <= CLN_PROLOG )
   { predicate_t pred;
@@ -1089,19 +1044,6 @@ writeArgTerm(term_t t, int prec, write_options *options, bool arg)
   if ( ++options->depth > options->max_depth && options->max_depth )
   { PutOpenToken('.', options->out);
     rval = PutString("...", options->out);
-  } else if ( PL_is_compound(t) )
-  { visited v;
-
-    v.address = address_of(t);
-    if ( has_visited(options->visited, v.address) )
-    { PutOpenToken('*', options->out);
-      rval = PutString("**", options->out);
-    } else
-    { v.next = options->visited;
-      options->visited = &v;
-      rval = writeTerm2(t, prec, options, arg);
-      options->visited = v.next;
-    }
   } else
   { rval = writeTerm2(t, prec, options, arg);
   }
@@ -1120,7 +1062,7 @@ writeTerm(term_t t, int prec, write_options *options)
 }
 
 static bool
-writeList2(term_t list, write_options *options, int cyclic)
+writeList(term_t list, write_options *options)
 { GET_LD
   term_t head = PL_new_term_ref();
   term_t l    = PL_copy_term_ref(list);
@@ -1140,40 +1082,11 @@ writeList2(term_t list, write_options *options, int cyclic)
       break;
     }
 
-					/* cycle detection */
-    { Word addr =  address_of(l);
-
-      if ( has_visited(options->visited, addr) )
-      { return PutString("|**]", options->out);
-      } else if ( cyclic )
-      { visited *v = alloca(sizeof(*v));
-	v->address = addr;
-	v->next = options->visited;
-	options->visited = v;
-      }
-    }
-
     TRY(PutComma(options));
   }
 
   return Putc(']', options->out);
 }
-
-
-static bool
-writeList(term_t list, write_options *options)
-{ GET_LD
-  visited *v = options->visited;
-  Word tail;
-  int rc;
-
-  skip_list(valTermRef(list), &tail PASS_LD);
-  rc = writeList2(list, options, isList(*tail));
-  options->visited = v;
-
-  return rc;
-}
-
 
 
 static bool
