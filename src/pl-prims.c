@@ -1249,9 +1249,9 @@ link_shared(Word t, Word vars ARG_LD)
 }
 
 
-static
-PRED_IMPL("$factorize_term", 2, factorize_term, 0)
-{ PRED_LD
+int
+PL_factorize_term(term_t term, term_t factors)
+{ GET_LD
   fid_t fid;
   term_t vars;
   Word t;
@@ -1263,7 +1263,7 @@ PRED_IMPL("$factorize_term", 2, factorize_term, 0)
 
     vars = PL_new_term_ref();
     PL_put_nil(vars);
-    t = valTermRef(A1);
+    t = valTermRef(term);
 
     SECURE(checkStacks(NULL));
     startCritical;
@@ -1297,9 +1297,13 @@ PRED_IMPL("$factorize_term", 2, factorize_term, 0)
   if ( !endCritical )
     return FALSE;
 
-  return PL_unify(A2, vars);
+  return PL_unify(factors, vars);
 }
 
+static
+PRED_IMPL("$factorize_term", 2, factorize_term, 0)
+{ return PL_factorize_term(A1, A2);
+}
 
 		 /*******************************
 		 *	 META-CALL SUPPORT	*
