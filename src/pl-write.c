@@ -1228,6 +1228,10 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	}
       }
     }
+
+    if ( (options->flags&PL_WRT_LIST) && arity == 2 && functor == ATOM_dot )
+      return writeList(t, options);
+
 					/* functor(<args> ...) */
     { term_t a = PL_new_term_ref();
 
