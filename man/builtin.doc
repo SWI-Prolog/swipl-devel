@@ -3796,6 +3796,15 @@ containing the text including delimiters of a comment.  It returns all
 comments from where the read_term/2 call started up to the end of the
 term read.
 
+    \termitem{cycles}{Bool}
+If \const{true} (default \const{false}), re-instantiate templates as
+produced by the corresponding write_term/2 option. Note that the default
+is \const{false} to avoid mis-interpretation of \term{@}{Template,
+Substutions}, while the default of write_term/2 is \const{true} because
+emitting cyclic terms without using the template construct produces an
+infinitely large term (read: it will generate an error after producing
+a huge amount of output).
+
     \termitem{double_quotes}{Bool}
 Defines how to read "\ldots" strings. See the Prolog flag
 \prologflag{double_quotes}.  (SWI-Prolog).

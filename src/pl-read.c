@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -322,6 +323,7 @@ typedef struct
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
   term_t	comments;		/* Report comments */
+  bool		cycles;			/* Re-establish cycles */
   int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
@@ -3238,6 +3240,44 @@ term is to be written.
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+instantiate_template(-Term, +AtTerm)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+instantiate_template(term_t term, term_t at_term ARG_LD)
+{ term_t template, substitutions, head, var, value;
+
+  if ( !(template = PL_new_term_ref()) ||
+       !(substitutions = PL_new_term_ref()) ||
+       !(head = PL_new_term_ref()) ||
+       !(var = PL_new_term_ref()) ||
+       !(value = PL_new_term_ref()) )
+    return FALSE;
+
+  _PL_get_arg(1, at_term, template);
+  _PL_get_arg(2, at_term, substitutions);
+  if ( !PL_unify(term, template) )
+    return FALSE;
+  if ( !PL_is_list(substitutions) )
+    return PL_error(NULL, 0, "invalid template",
+		    ERR_TYPE, ATOM_list, substitutions);
+  while( PL_get_list(substitutions, head, substitutions) )
+  { if ( PL_is_functor(head, FUNCTOR_equals2) )
+    { _PL_get_arg(1, head, var);
+      _PL_get_arg(2, head, value);
+      if ( !PL_unify(var, value) )
+	return FALSE;
+    } else
+    { return PL_error(NULL, 0, "invalid template",
+		      ERR_TYPE, ATOM_equal, head);
+    }
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 read_term(?term, ReadData rd)
     Common part of all read variations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3281,7 +3321,11 @@ read_term(term_t term, ReadData rd ARG_LD)
     goto out;
   }
 
-  rc = PL_unify(term, result[0]);
+  if ( rd->cycles && PL_is_functor(result[0], FUNCTOR_xpceref2) )
+    rc = instantiate_template(term, result[0] PASS_LD);
+  else
+    rc = PL_unify(term, result[0]);
+
   truncate_term_stack(result, rd);
   if ( !rc )
     goto out;
@@ -3482,6 +3526,7 @@ static const opt_spec read_term_options[] =
   { ATOM_syntax_errors,     OPT_ATOM },
   { ATOM_backquoted_string, OPT_BOOL },
   { ATOM_comments,	    OPT_TERM },
+  { ATOM_cycles,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -3515,7 +3560,8 @@ retry:
 		     &mname,
 		     &rd.on_error,
 		     &rd.backquoted_string,
-		     &tcomments) )
+		     &tcomments,
+		     &rd.cycles) )
   { PL_release_stream(s);
     fail;
   }
@@ -3556,9 +3602,9 @@ retry:
 			   PL_INT, source_line_no,
 			   PL_INT, source_line_pos,
 			   PL_INT64, source_byte_no);
-    if ( tcomments )
+    if ( rval && tcomments )
     { if ( !PL_unify_nil(rd.comments) )
-	return FALSE;
+	rval = FALSE;
     }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
