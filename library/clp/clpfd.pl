@@ -2785,7 +2785,7 @@ kill_reified_tuples([B|Bs], Ps, All) -->
 relation_tuple_b_prop(Relation, Tuple, B, p(Prop)) :-
         put_attr(R, clpfd_relation, Relation),
         make_propagator(reified_tuple_in(Tuple, R, B), Prop),
-        tuple_freeze(Tuple, Tuple, Prop),
+        tuple_freeze_(Tuple, Prop),
         init_propagator(B, Prop).
 
 % Match variables to created skeleton.
@@ -3275,16 +3275,16 @@ tuple_domain([T|Ts], Relation0) :-
 tuple_freeze(Tuple, Relation) :-
         put_attr(R, clpfd_relation, Relation),
         make_propagator(rel_tuple(R, Tuple), Prop),
-        tuple_freeze(Tuple, Tuple, Prop).
+        tuple_freeze_(Tuple, Prop).
 
-tuple_freeze([],  _, _).
-tuple_freeze([T|Ts], Tuple, Prop) :-
+tuple_freeze_([], _).
+tuple_freeze_([T|Ts], Prop) :-
         (   var(T) ->
             init_propagator(T, Prop),
             trigger_prop(Prop)
         ;   true
         ),
-        tuple_freeze(Ts, Tuple, Prop).
+        tuple_freeze_(Ts, Prop).
 
 relation_unifiable([], _, [], Changed, Changed).
 relation_unifiable([R|Rs], Tuple, Us, Changed0, Changed) :-
