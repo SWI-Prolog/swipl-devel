@@ -1541,7 +1541,7 @@ pl_write_canonical2(term_t stream, term_t term)
 
   options.functor = FUNCTOR_isovar1;
   options.on_attvar = AV_SKIP;
-  options.singletons = TRUE;
+  options.singletons = PL_is_acyclic(term);
   options.numbered_check = FALSE;
 
   rc = ( numberVars(term, &options, 0 PASS_LD) >= 0 &&
