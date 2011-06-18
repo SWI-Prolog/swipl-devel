@@ -68,6 +68,7 @@ static bool	writeArgTerm(term_t t, int prec,
 			     write_options *options, bool arg) WUNUSED;
 static int	PutToken(const char *s, IOSTREAM *stream);
 static int	writeAtom(atom_t a, write_options *options);
+static int	callPortray(term_t arg, int prec, write_options *options);
 
 static Word
 address_of(term_t t)
@@ -575,23 +576,13 @@ writeAtom(atom_t a, write_options *options)
   { GET_LD
     int rc;
     fid_t fid;
-    predicate_t pred;
-    IOSTREAM *old;
     term_t av;
 
     if ( !(fid = PL_open_foreign_frame()) )
       return FALSE;
     av = PL_new_term_ref();
     PL_put_atom(av, a);
-
-    pred = _PL_predicate("portray", 1, "user",
-			 &GD->procedures.portray);
-
-    old = Scurout;
-    Scurout = options->out;
-    rc = PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
-    Scurout = old;
-
+    rc = callPortray(av, 1200, options);
     PL_close_foreign_frame(fid);
     if ( rc == TRUE )
       return TRUE;

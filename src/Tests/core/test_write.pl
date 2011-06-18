@@ -44,6 +44,17 @@ user:portray(ptray_test) :-
 
 test(exception, throws(nono)) :-
 	print(ptray_test).
+test(blob, Text == text) :-
+	open_null_stream(S),
+	with_output_to(atom(Text),
+		       write_term(S, [ blobs(portray),
+				       portray_goal(portray_stream)
+				     ])),
+	close(S).
+
+portray_stream(S, _) :-
+	stream_property(S, type(T)),
+	format('~w', [T]).
 
 :- end_tests(portray).
 
