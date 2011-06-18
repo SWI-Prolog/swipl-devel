@@ -2698,6 +2698,7 @@ reify_(tuples_in(Tuples, Relation), B) --> !,
               bs_and(Rest, B1, And),
               And #<==> B
           ) },
+        kill_reified_tuples(Bs, Ps, Bs),
         list(Ps),
         as([B|Bs]).
 reify_(finite_domain(V), B) --> !,
@@ -2775,6 +2776,11 @@ as([B|Bs]) --> a(B), as(Bs).
 bs_and([], A, A).
 bs_and([B|Bs], A0, A) :-
         bs_and(Bs, A0#/\B, A).
+
+kill_reified_tuples([], _, _) --> [].
+kill_reified_tuples([B|Bs], Ps, All) -->
+        propagator_init_trigger([B], kill_reified_tuples(B, Ps, All)),
+        kill_reified_tuples(Bs, Ps, All).
 
 relation_tuple_b_prop(Relation, Tuple, B, p(Prop)) :-
         put_attr(R, clpfd_relation, Relation),
@@ -4195,6 +4201,14 @@ run_propagator(reified_tuple_in(Tuple, R, B), MState) :-
                 ;   true
                 )
             )
+        ).
+
+run_propagator(kill_reified_tuples(B, Ps, Bs), _) :-
+        (   B == 0 ->
+            maplist(kill_entailed, Ps),
+            phrase(as(Bs), As),
+            maplist(kill_entailed, As)
+        ;   true
         ).
 
 run_propagator(reified_fd(V,B), MState) :-
@@ -6020,6 +6034,7 @@ attribute_goal_(reified_in(V, D, B)) -->
 attribute_goal_(reified_tuple_in(Tuple, R, B)) -->
         { get_attr(R, clpfd_relation, Rel) },
         [tuples_in([Tuple], Rel) #<==> B].
+attribute_goal_(kill_reified_tuples(_,_,_)) --> [].
 attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> B].
 attribute_goal_(pskeleton(_,Y,D,_,_,Goal)) -->
         [D #= 1 #==> Goal, Y #\= 0 #==> D #= 1].
