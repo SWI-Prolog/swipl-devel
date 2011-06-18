@@ -1284,7 +1284,8 @@ writeTopTerm(term_t term, int prec, write_options *options)
 { GET_LD
   int rc;
 
-  if ( PL_is_acyclic(term) )
+  if ( (!(options->flags&PL_WRT_NO_CYCLES) && options->max_depth) ||
+       PL_is_acyclic(term) )
   { rc = writeTerm(term, prec, options);
   } else
   { fid_t fid;
