@@ -1250,20 +1250,23 @@ link_shared(Word t, Word vars ARG_LD)
 
 
 int
-PL_factorize_term(term_t term, term_t factors)
+PL_factorize_term(term_t term, term_t template, term_t factors)
 { GET_LD
   fid_t fid;
-  term_t vars;
+  term_t vars, wrapped;
   Word t;
   size_t count;
   int rc;
 
   for(;;)
-  { fid = PL_open_foreign_frame();
+  { if ( !(fid = PL_open_foreign_frame()) ||
+	 !(wrapped = PL_new_term_ref()) ||
+	 !(vars = PL_new_term_ref()) ||
+	 !PL_unify_term(wrapped, PL_FUNCTOR, FUNCTOR_var1, PL_TERM, term) )
+      return FALSE;
 
-    vars = PL_new_term_ref();
     PL_put_nil(vars);
-    t = valTermRef(term);
+    t = valTermRef(wrapped);
 
     SECURE(checkStacks(NULL));
     startCritical;
@@ -1297,12 +1300,14 @@ PL_factorize_term(term_t term, term_t factors)
   if ( !endCritical )
     return FALSE;
 
-  return PL_unify(factors, vars);
+  _PL_get_arg(1, wrapped, wrapped);
+  return ( PL_unify(template, wrapped) &&
+	   PL_unify(factors, vars) );
 }
 
 static
-PRED_IMPL("$factorize_term", 2, factorize_term, 0)
-{ return PL_factorize_term(A1, A2);
+PRED_IMPL("$factorize_term", 3, factorize_term, 0)
+{ return PL_factorize_term(A1, A2, A3);
 }
 
 		 /*******************************
@@ -4898,7 +4903,7 @@ BeginPredDefs(prims)
   PRED_DEF("$term_size", 3, term_size, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, 0)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
-  PRED_DEF("$factorize_term", 2, factorize_term, 0)
+  PRED_DEF("$factorize_term", 3, factorize_term, 0)
   PRED_DEF("compound", 1, compound, PL_FA_ISO)
   PRED_DEF("callable", 1, callable, PL_FA_ISO)
   PRED_DEF("==", 2, equal, PL_FA_ISO)

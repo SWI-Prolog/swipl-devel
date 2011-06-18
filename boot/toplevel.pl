@@ -817,13 +817,11 @@ bind_one_skel_vars([Var=Value|T], Bindings, Names, N0, N) :-
 
 factorize_bindings([], []).
 factorize_bindings([Name=Value|T0], [binding(Name, Skel, Subst)|T]) :-
-	F = f(Value),
-	'$factorize_term'(F, Subst0),
+	'$factorize_term'(Value, Skel, Subst0),
 	(   current_prolog_flag(toplevel_print_factorized, true)
 	->  Subst = Subst0
 	;   only_cycles(Subst0, Subst)
 	),
-	arg(1, F, Skel),
 	factorize_bindings(T0, T).
 
 

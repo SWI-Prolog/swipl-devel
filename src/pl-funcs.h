@@ -427,7 +427,8 @@ COMMON(int)		pl_statistics_ld(term_t k, term_t value,
 COMMON(int)		set_pl_option(const char *name, const char *value);
 COMMON(word)		pl_novice(term_t old, term_t new);
 COMMON(int)		ground__LD(Word p ARG_LD);
-COMMON(int)		PL_factorize_term(term_t term, term_t factors);
+COMMON(int)		PL_factorize_term(term_t term,
+					  term_t template, term_t factors);
 
 /* pl-prologflag.c */
 COMMON(void)		setPrologFlag(const char *name, int flags, ...);
