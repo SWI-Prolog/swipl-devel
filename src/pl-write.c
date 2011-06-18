@@ -1282,15 +1282,19 @@ reunify_acyclic_substitutions(term_t substitutions, term_t cycles)
 static int
 writeTopTerm(term_t term, int prec, write_options *options)
 { GET_LD
-  fid_t fid = PL_open_foreign_frame();
   int rc;
 
   if ( PL_is_acyclic(term) )
   { rc = writeTerm(term, prec, options);
   } else
-  { term_t template, substitutions, cycles, at_term;
+  { fid_t fid;
+    term_t template, substitutions, cycles, at_term;
 
-    if ( !(template = PL_new_term_ref()) ||
+    if ( options->flags & PL_WRT_NO_CYCLES )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_cyclic_term, term);
+
+    if ( !(fid = PL_open_foreign_frame()) ||
+	 !(template = PL_new_term_ref()) ||
 	 !(substitutions = PL_new_term_ref()) ||
 	 !(cycles = PL_new_term_ref()) ||
 	 !(at_term = PL_new_term_ref()) ||
@@ -1302,9 +1306,9 @@ writeTopTerm(term_t term, int prec, write_options *options)
 			  PL_TERM, cycles) )
       return FALSE;
     rc = writeTerm(at_term, prec, options);
+    PL_discard_foreign_frame(fid);
   }
 
-  PL_discard_foreign_frame(fid);
   return rc;
 }
 
@@ -1354,6 +1358,7 @@ static const opt_spec write_term_options[] =
   { ATOM_partial,	    OPT_BOOL },
   { ATOM_spacing,	    OPT_ATOM },
   { ATOM_blobs,		    OPT_ATOM },
+  { ATOM_cycles,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -1372,6 +1377,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   atom_t blobs    = ATOM_nil;
   int  priority   = 1200;
   bool partial    = FALSE;
+  bool cycles     = TRUE;
   IOSTREAM *s;
   write_options options;
   int rc;
@@ -1383,7 +1389,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 		     &quoted, &ignore_ops, &numbervars, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
 		     &bqstring, &attr, &priority, &partial, &options.spacing,
-		     &blobs) )
+		     &blobs, &cycles) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1441,6 +1447,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
   if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
+  if ( !cycles )    options.flags |= PL_WRT_NO_CYCLES;
 
   if ( !getTextOutputStream(stream, &s) )
     fail;

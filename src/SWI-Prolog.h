@@ -88,21 +88,21 @@ duplicated this stuff.
 # ifdef PL_KERNEL
 #define PL_EXPORT(type)		__declspec(dllexport) type
 #define PL_EXPORT_DATA(type)	__declspec(dllexport) type
-#define install_t	 	void
+#define install_t		void
 # else
 #  ifdef __BORLANDC__
-#define PL_EXPORT(type)	 	type _stdcall
+#define PL_EXPORT(type)		type _stdcall
 #define PL_EXPORT_DATA(type)	extern type
 #  else
-#define PL_EXPORT(type)	 	extern type
+#define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllimport) type
 #  endif
-#define install_t	 	__declspec(dllexport) void
+#define install_t		__declspec(dllexport) void
 # endif
 #else /*HAVE_DECLSPEC*/
-#define PL_EXPORT(type)	 	extern type
+#define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	extern type
-#define install_t	 	void
+#define install_t		void
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
 
@@ -143,7 +143,7 @@ typedef uintptr_t	PL_atomic_t;	/* same a word */
 typedef uintptr_t	foreign_t;	/* return type of foreign functions */
 typedef wchar_t	        pl_wchar_t;	/* Prolog wide character */
 #ifdef __cplusplus
-typedef void * 		pl_function_t;	/* can only pass function as void * */
+typedef void *		pl_function_t;	/* can only pass function as void * */
 #else
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
@@ -256,7 +256,7 @@ typedef union
 
 PL_EXPORT(foreign_t)	_PL_retry(intptr_t);
 PL_EXPORT(foreign_t)	_PL_retry_address(void *);
-PL_EXPORT(int)	 	PL_foreign_control(control_t);
+PL_EXPORT(int)		PL_foreign_control(control_t);
 PL_EXPORT(intptr_t)	PL_foreign_context(control_t);
 PL_EXPORT(void *)	PL_foreign_context_address(control_t);
 
@@ -521,21 +521,21 @@ PL_EXPORT(int)		PL_get_attr(term_t v, term_t a);
 		 *	      ERRORS		*
 		 *******************************/
 
-PL_EXPORT(int) 		PL_get_atom_ex(term_t t, atom_t *a);
-PL_EXPORT(int) 		PL_get_integer_ex(term_t t, int *i);
-PL_EXPORT(int) 		PL_get_long_ex(term_t t, long *i);
-PL_EXPORT(int) 		PL_get_int64_ex(term_t t, int64_t *i);
-PL_EXPORT(int) 		PL_get_intptr_ex(term_t t, intptr_t *i);
-PL_EXPORT(int) 		PL_get_size_ex(term_t t, size_t *i);
-PL_EXPORT(int) 		PL_get_bool_ex(term_t t, int *i);
-PL_EXPORT(int) 		PL_get_float_ex(term_t t, double *f);
-PL_EXPORT(int) 		PL_get_char_ex(term_t t, int *p, int eof);
-PL_EXPORT(int) 		PL_unify_bool_ex(term_t t, int val);
-PL_EXPORT(int) 		PL_get_pointer_ex(term_t t, void **addrp);
-PL_EXPORT(int) 		PL_unify_list_ex(term_t l, term_t h, term_t t);
-PL_EXPORT(int) 		PL_unify_nil_ex(term_t l);
-PL_EXPORT(int) 		PL_get_list_ex(term_t l, term_t h, term_t t);
-PL_EXPORT(int) 		PL_get_nil_ex(term_t l);
+PL_EXPORT(int)		PL_get_atom_ex(term_t t, atom_t *a);
+PL_EXPORT(int)		PL_get_integer_ex(term_t t, int *i);
+PL_EXPORT(int)		PL_get_long_ex(term_t t, long *i);
+PL_EXPORT(int)		PL_get_int64_ex(term_t t, int64_t *i);
+PL_EXPORT(int)		PL_get_intptr_ex(term_t t, intptr_t *i);
+PL_EXPORT(int)		PL_get_size_ex(term_t t, size_t *i);
+PL_EXPORT(int)		PL_get_bool_ex(term_t t, int *i);
+PL_EXPORT(int)		PL_get_float_ex(term_t t, double *f);
+PL_EXPORT(int)		PL_get_char_ex(term_t t, int *p, int eof);
+PL_EXPORT(int)		PL_unify_bool_ex(term_t t, int val);
+PL_EXPORT(int)		PL_get_pointer_ex(term_t t, void **addrp);
+PL_EXPORT(int)		PL_unify_list_ex(term_t l, term_t h, term_t t);
+PL_EXPORT(int)		PL_unify_nil_ex(term_t l);
+PL_EXPORT(int)		PL_get_list_ex(term_t l, term_t h, term_t t);
+PL_EXPORT(int)		PL_get_nil_ex(term_t l);
 
 PL_EXPORT(int)		PL_instantiation_error(term_t culprit);
 PL_EXPORT(int)		PL_representation_error(const char *resource);
@@ -744,7 +744,7 @@ UNICODE file functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define REP_ISO_LATIN_1 0x0000		/* output representation */
-#define REP_UTF8 	0x1000
+#define REP_UTF8	0x1000
 #define REP_MB		0x2000
 #ifdef __WINDOWS__
 #define REP_FN		REP_UTF8
@@ -762,9 +762,9 @@ UNICODE file functions.
 
 					/* Make IOSTREAM known to Prolog */
 #define PL_open_stream  PL_unify_stream	/* compatibility */
-PL_EXPORT(int)  	PL_unify_stream(term_t t, IOSTREAM *s);
-PL_EXPORT(int)  	PL_get_stream_handle(term_t t, IOSTREAM **s);
-PL_EXPORT(int) 		PL_release_stream(IOSTREAM *s);
+PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
+PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
+PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
 					 const char *name,
 					 const char *rc_class,
@@ -794,6 +794,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 	 PL_WRT_ATTVAR_WRITE | \
 	 PL_WRT_ATTVAR_PORTRAY)
 #define PL_WRT_BLOB_PORTRAY	0x400	/* Use portray to emit non-text blobs */
+#define PL_WRT_NO_CYCLES	0x800	/* Never emit @(Template,Subst) */
 
 PL_EXPORT(int) PL_write_term(IOSTREAM *s,
 			     term_t term,
@@ -878,11 +879,11 @@ typedef void (*PL_abort_hook_t)(void);
 typedef void (*PL_initialise_hook_t)(int argc, char **argv);
 typedef int  (*PL_agc_hook_t)(atom_t a);
 
-PL_EXPORT(PL_dispatch_hook_t) 	PL_dispatch_hook(PL_dispatch_hook_t);
-PL_EXPORT(void)	       		PL_abort_hook(PL_abort_hook_t);
-PL_EXPORT(void)	       		PL_initialise_hook(PL_initialise_hook_t);
-PL_EXPORT(int)		      	PL_abort_unhook(PL_abort_hook_t);
-PL_EXPORT(PL_agc_hook_t)      	PL_agc_hook(PL_agc_hook_t);
+PL_EXPORT(PL_dispatch_hook_t)	PL_dispatch_hook(PL_dispatch_hook_t);
+PL_EXPORT(void)			PL_abort_hook(PL_abort_hook_t);
+PL_EXPORT(void)			PL_initialise_hook(PL_initialise_hook_t);
+PL_EXPORT(int)			PL_abort_unhook(PL_abort_hook_t);
+PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 
 
 		/********************************
@@ -896,7 +897,7 @@ PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
 PL_EXPORT(void) PL_interrupt(int sig);
 PL_EXPORT(int)  PL_raise(int sig);
 PL_EXPORT(int)  PL_handle_signals(void);
-PL_EXPORT(int) 	PL_get_signum_ex(term_t sig, int *n);
+PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 
 
 		/********************************
@@ -993,7 +994,7 @@ PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
 		 *******************************/
 
 typedef struct
-{ int	(*unify)(term_t t, void *handle); 	/* implementation --> Prolog */
+{ int	(*unify)(term_t t, void *handle);	/* implementation --> Prolog */
   int   (*get)(term_t t, void **handle);	/* Prolog --> implementation */
   void	(*activate)(int active);		/* (de)activate */
   intptr_t	magic;					/* PROFTYPE_MAGIC */

@@ -3599,6 +3599,17 @@ If \const{true}, and \term{quoted}{true} is active, special characters
 in quoted atoms and strings are emitted as ISO escape-sequences.
 Default is taken from the reference module (see below).
 
+    \termitem{cycles}{Bool}
+If \const{true} (default), cyclic terms are written as
+\term{@}{Template, Subsitutions}, where \arg{Subsitutions} is a list
+\mbox{\arg{Var} = \arg{Value}}. If \const{cycles} is \const{false} and
+\arg{Term} is cyclic, write_term/2 raises a
+\const{domain_error}.\footnote{The cycles option and the cyclic term
+representation using the @-term are copied from SICStus Prolog. However,
+the default in SICStus is set to \const{false} and SICStus writes an
+infinite term if not protected by e.g., the \const{depth_limit} option.}
+See also the \const{cycles} option in read_term/2.
+
     \termitem{ignore_ops}{Bool}
 If \const{true}, the generic term-representation (<functor>(<args>
 \ldots)) will be used for all terms,  Otherwise (default), operators,
