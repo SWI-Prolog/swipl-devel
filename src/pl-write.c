@@ -521,22 +521,25 @@ writeAttVar(term_t av, write_options *options)
     fail;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
 	      GD->cleaning <= CLN_PROLOG )
-  { fid_t fid;
-    predicate_t pred;
+  { predicate_t pred;
     IOSTREAM *old;
-
-    if ( !(fid = PL_open_foreign_frame()) )
-      return FALSE;
+    wakeup_state wstate;
+    int rc;
 
     pred = _PL_predicate("portray_attvar", 1, "$attvar",
 			 &GD->procedures.portray_attvar1);
 
+    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+      return FALSE;
     old = Scurout;
     Scurout = options->out;
-    PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+    rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, pred, av);
+    if ( rc != TRUE && !PL_exception(0) )
+      rc = TRUE;
     Scurout = old;
+    restoreWakeup(&wstate PASS_LD);
 
-    PL_close_foreign_frame(fid);
+    return rc;
   }
 
   succeed;
