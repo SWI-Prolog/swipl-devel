@@ -140,11 +140,13 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
   deRef(p);
   if ( isInteger(*p) )
   { int64_t n = valInteger(*p);
+    char buf[32];			/* Max is H354745078340568300 */
 
-    if ( n >= 0 )
+    if ( n < 0 )
+    { sprintf(buf, "S_" INT64_FORMAT, -n);
+    } else
     { int i = (int)(n % 26);
       int64_t j = n / 26;
-      char buf[24];			/* Max is H354745078340568300 */
 
       if ( j == 0 )
       { buf[0] = i+'A';
@@ -152,9 +154,9 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
       } else
       { sprintf(buf, "%c" INT64_FORMAT, i+'A', j);
       }
-
-      return PutToken(buf, options->out) ? TRUE : -1;
     }
+
+    return PutToken(buf, options->out) ? TRUE : -1;
   }
 
   if ( isAtom(*p) && atomIsVarName(*p) )
@@ -1254,9 +1256,11 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 		 *******************************/
 
 static int
-reunify_acyclic_substitutions(term_t substitutions, term_t cycles)
+reunify_acyclic_substitutions(term_t substitutions, term_t cycles,
+			      write_options *options)
 { GET_LD
   term_t s_tail, c_tail, s_head, c_head, var, value;
+  intptr_t count = 0;
 
   if ( !(s_tail = PL_copy_term_ref(substitutions)) ||
        !(c_tail = PL_copy_term_ref(cycles)) ||
@@ -1270,7 +1274,14 @@ reunify_acyclic_substitutions(term_t substitutions, term_t cycles)
   { _PL_get_arg(1, s_head, var);
     _PL_get_arg(2, s_head, value);
     if ( PL_var_occurs_in(var, value) )
-    { if ( !PL_unify_list(c_tail, c_head, c_tail) ||
+    { if ( (options->flags&PL_WRT_NUMBERVARS) )
+      { if ( !PL_unify_term(var,
+			    PL_FUNCTOR, FUNCTOR_isovar1,
+			      PL_INTPTR, --count) )
+	  return FALSE;
+      }
+
+      if ( !PL_unify_list(c_tail, c_head, c_tail) ||
 	   !PL_unify(c_head, s_head) )
 	return FALSE;
     } else
@@ -1304,7 +1315,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
 	 !(cycles = PL_new_term_ref()) ||
 	 !(at_term = PL_new_term_ref()) ||
 	 !PL_factorize_term(term, template, substitutions) ||
-	 !reunify_acyclic_substitutions(substitutions, cycles) ||
+	 !reunify_acyclic_substitutions(substitutions, cycles, options) ||
 	 !PL_unify_term(at_term,
 			PL_FUNCTOR, FUNCTOR_xpceref2,
 			  PL_TERM, template,
