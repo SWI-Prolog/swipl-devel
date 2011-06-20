@@ -487,12 +487,16 @@ cis_times_(inf, A, P)     :- cis_times(inf, n(A), P).
 cis_times_(sup, A, P)     :- cis_times(sup, n(A), P).
 cis_times_(n(B), A, n(P)) :- P is A * B.
 
-cis_exp(inf, Y, R) :-
+cis_exp(inf, n(Y), R) :-
         (   even(Y) -> R = sup
         ;   R = inf
         ).
 cis_exp(sup, _, sup).
-cis_exp(n(N), Y, n(R)) :- R is N^Y.
+cis_exp(n(N), Y, R) :- cis_exp_(Y, N, R).
+
+cis_exp_(n(Y), N, n(R)) :- R is N^Y.
+cis_exp_(sup, _, sup).
+cis_exp_(inf, _, inf).
 
 cis_goals(V, V)          --> { var(V) }, !.
 cis_goals(n(N), n(N))    --> [].
@@ -2334,6 +2338,14 @@ integer_kroot(L, U, N, K, R) :-
             )
         ).
 
+integer_log_b(N, B, Log0, Log) :-
+        T is B^Log0,
+        (   T =:= N -> Log = Log0
+        ;   T < N,
+            Log1 is Log0 + 1,
+            integer_log_b(N, B, Log1, Log)
+        ).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Largest R such that R^K =< N.
 
@@ -4071,10 +4083,27 @@ run_propagator(pexp(X,Y,Z), MState) :-
         ;   X == 0 -> kill(MState), Z #<==> Y #= 0
         ;   Y == 0 -> kill(MState), Z = 1
         ;   Y == 1 -> kill(MState), Z = X
-        ;   nonvar(X), nonvar(Y) ->
-            ( Y >= 0 -> true ; X =:= -1 ),
-            kill(MState),
-            Z is X^Y
+        ;   nonvar(X) ->
+            (   nonvar(Y) ->
+                (   Y >= 0 -> true ; X =:= -1 ),
+                kill(MState),
+                Z is X^Y
+            ;   (   nonvar(Z) ->
+                    (   Z > 1 ->
+                        integer_log_b(Z, X, 1, Y)
+                    ;   true
+                    )
+                ;   fd_get(Y, _, YL, YU, _),
+                    fd_get(Z, ZD, ZL, ZU, ZPs),
+                    (   X > 0 ->
+                        NZL cis n(X)^YL,
+                        NZU cis n(X)^YU,
+                        domains_intersection(ZD, from_to(NZL,NZU), NZD),
+                        fd_put(Z, NZD, ZPs)
+                    ;   true
+                    )
+                )
+            )
         ;   nonvar(Z), nonvar(Y) ->
             integer_kth_root(Z, Y, R),
             kill(MState),
@@ -4097,14 +4126,14 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 ),
                 (   even(Y) ->
                     (   XL cis_geq n(0) ->
-                        NZL cis XL^Y
+                        NZL cis XL^n(Y)
                     ;   NZL = n(0)
                     ),
-                    NZU cis max(abs(XL),abs(XU))^Y,
+                    NZU cis max(abs(XL),abs(XU))^n(Y),
                     domains_intersection(ZD1, from_to(NZL,NZU), ZD2)
                 ;   (   finite(XL) ->
-                        NZL cis XL^Y,
-                        NZU cis XU^Y,
+                        NZL cis XL^n(Y),
+                        NZU cis XU^n(Y),
                         domains_intersection(ZD1, from_to(NZL,NZU), ZD2)
                     ;   ZD2 = ZD1
                     )
