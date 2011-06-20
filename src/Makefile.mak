@@ -4,7 +4,7 @@
 # Author:			Jan Wielemaker
 #			     J.Wielemaker@cs.vu.nl
 #		University of Amsterdam  VU University Amsterdam
-#    		Kruislaan 419		 De Boelelaan 181a
+#		Kruislaan 419		 De Boelelaan 181a
 #		1098 VA  Amsterdam	 1081 HV Amsterdam
 #			       The Netherlands
 #
@@ -147,6 +147,7 @@ pl-prims.obj:	pl-termwalk.c
 pl-rec.obj:	pl-termwalk.c
 pl-stream.obj:	popen.c
 pl-dtoa.obj:	dtoa.c
+pl-arith.obj:	pl-segstack.h
 
 # this should be pl-vmi.h, but that causes a recompile of everything.
 # Seems NMAKE dependency computation is broken ...
