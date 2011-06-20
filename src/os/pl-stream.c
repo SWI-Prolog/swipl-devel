@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -367,6 +368,59 @@ Sunlock(IOSTREAM *s)
 
 
 		 /*******************************
+		 *		TIMEOUT		*
+		 *******************************/
+
+static int
+S__wait(IOSTREAM *s)
+{ int fd = Sfileno(s);
+  fd_set wait;
+  struct timeval time;
+  int rc;
+
+  if ( fd < 0 )
+  { errno = EPERM;			/* no permission to select */
+    s->flags |= SIO_FERR;
+    return -1;
+  }
+
+  time.tv_sec  = s->timeout / 1000;
+  time.tv_usec = (s->timeout % 1000) * 1000;
+  FD_ZERO(&wait);
+#ifdef __WINDOWS__
+  FD_SET((SOCKET)fd, &wait);
+#else
+  FD_SET(fd, &wait);
+#endif
+
+  for(;;)
+  { if ( (s->flags & SIO_INPUT) )
+      rc = select(fd+1, &wait, NULL, NULL, &time);
+    else
+      rc = select(fd+1, NULL, &wait, NULL, &time);
+
+    if ( rc < 0 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+
+      continue;
+    }
+
+    break;
+  }
+
+  if ( rc == 0 )
+  { s->flags |= (SIO_TIMEOUT|SIO_FERR);
+    return -1;
+  }
+
+  return 0;				/* ok, data available */
+}
+
+
+		 /*******************************
 		 *	     FLUSH/FILL		*
 		 *******************************/
 
@@ -383,7 +437,18 @@ S__flushbuf(IOSTREAM *s)
 
   while ( from < to )
   { size_t size = (size_t)(to - from);
-    ssize_t n = (*s->functions->write)(s->handle, from, size);
+    ssize_t n;
+
+#ifdef HAVE_SELECT
+    s->flags &= ~SIO_TIMEOUT;
+
+    if ( s->timeout >= 0 )
+    { if ( (rc=S__wait(s)) < 0 )
+	goto partial;
+    }
+#endif
+
+    n = (*s->functions->write)(s->handle, from, size);
 
     if ( n > 0 )			/* wrote some */
     { from += n;
@@ -396,6 +461,7 @@ S__flushbuf(IOSTREAM *s)
     }
   }
 
+partial:
   if ( to == from )			/* full flush */
   { rc = s->bufp - s->buffer;
     s->bufp = s->buffer;
@@ -440,52 +506,6 @@ S__flushbufc(int c, IOSTREAM *s)
 }
 
 
-static int
-Swait_for_data(IOSTREAM *s)
-{ int fd = Sfileno(s);
-  fd_set wait;
-  struct timeval time;
-  int rc;
-
-  if ( fd < 0 )
-  { errno = EPERM;			/* no permission to select */
-    s->flags |= SIO_FERR;
-    return -1;
-  }
-
-  time.tv_sec  = s->timeout / 1000;
-  time.tv_usec = (s->timeout % 1000) * 1000;
-  FD_ZERO(&wait);
-#ifdef __WINDOWS__
-  FD_SET((SOCKET)fd, &wait);
-#else
-  FD_SET(fd, &wait);
-#endif
-
-  for(;;)
-  { rc = select(fd+1, &wait, NULL, NULL, &time);
-
-    if ( rc < 0 && errno == EINTR )
-    { if ( PL_handle_signals() < 0 )
-      { errno = EPLEXCEPTION;
-	return -1;
-      }
-
-      continue;
-    }
-
-    break;
-  }
-
-  if ( rc == 0 )
-  { s->flags |= (SIO_TIMEOUT|SIO_FERR);
-    return -1;
-  }
-
-  return 0;				/* ok, data available */
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S__fillbuf() fills the read-buffer, returning the first character of it.
 It also realises the SWI-Prolog timeout facility.
@@ -506,7 +526,7 @@ S__fillbuf(IOSTREAM *s)
   if ( s->timeout >= 0 && !s->downstream )
   { int rc;
 
-    if ( (rc=Swait_for_data(s)) < 0 )
+    if ( (rc=S__wait(s)) < 0 )
       return rc;
   }
 #endif

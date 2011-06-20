@@ -939,7 +939,13 @@ reportStreamError(IOSTREAM *s)
 	} else
 	  op = ATOM_read;
       } else
-	op = ATOM_write;
+      { if ( (s->flags & SIO_TIMEOUT) )
+	{ PL_error(NULL, 0, NULL, ERR_TIMEOUT,
+		   ATOM_write, stream);
+	  return FALSE;
+	} else
+	  op = ATOM_write;
+      }
 
       if ( s->message )
       { msg = s->message;
