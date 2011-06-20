@@ -4088,20 +4088,20 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 (   Y >= 0 -> true ; X =:= -1 ),
                 kill(MState),
                 Z is X^Y
-            ;   (   nonvar(Z) ->
-                    (   Z > 1 ->
-                        integer_log_b(Z, X, 1, Y)
-                    ;   true
-                    )
-                ;   fd_get(Y, _, YL, YU, _),
-                    fd_get(Z, ZD, ZL, ZU, ZPs),
-                    (   X > 0, YL cis_gt n(0) ->
-                        NZL cis n(X)^YL,
-                        NZU cis n(X)^YU,
-                        domains_intersection(ZD, from_to(NZL,NZU), NZD),
-                        fd_put(Z, NZD, ZPs)
-                    ;   true
-                    )
+            ;   nonvar(Z) ->
+                (   Z > 1 ->
+                    kill(MState),
+                    integer_log_b(Z, X, 1, Y)
+                ;   true
+                )
+            ;   fd_get(Y, _, YL, YU, _),
+                fd_get(Z, ZD, ZL, ZU, ZPs),
+                (   X > 0, YL cis_gt n(0) ->
+                    NZL cis n(X)^YL,
+                    NZU cis n(X)^YU,
+                    domains_intersection(ZD, from_to(NZL,NZU), NZD),
+                    fd_put(Z, NZD, ZPs)
+                ;   true
                 )
             )
         ;   nonvar(Z), nonvar(Y) ->
