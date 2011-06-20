@@ -2901,12 +2901,10 @@ Sfileno(IOSTREAM *s)
   if ( s->flags & SIO_FILE )
   { intptr_t h = (intptr_t)s->handle;
     n = (int)h;
-  } else if ( s->flags & SIO_PIPE )
-  { n = fileno((FILE *)s->handle);
   } else if ( s->functions->control &&
 	      (*s->functions->control)(s->handle,
 				       SIO_GETFILENO,
-				       (void *)&n)  == 0 )
+				       (void *)&n) == 0 )
   { ;
   } else
   { errno = EINVAL;
@@ -2962,11 +2960,31 @@ Sclose_pipe(void *handle)
 }
 
 
+static int
+Scontrol_pipe(void *handle, int action, void *arg)
+{ FILE *fp = handle;
+
+  switch(action)
+  { case SIO_GETFILENO:
+    { int *ap = arg;
+      *ap = fileno(fp);
+      return 0;
+    }
+    case SIO_FLUSHOUTPUT:
+    case SIO_SETENCODING:
+      return 0;
+    default:
+      return -1;
+  }
+}
+
+
 IOFUNCTIONS Spipefunctions =
 { Sread_pipe,
   Swrite_pipe,
   (Sseek_function)0,
-  Sclose_pipe
+  Sclose_pipe,
+  Scontrol_pipe
 };
 
 
@@ -2987,9 +3005,9 @@ Sopen_pipe(const char *command, const char *type)
   { int flags;
 
     if ( *type == 'r' )
-      flags = SIO_PIPE|SIO_INPUT|SIO_FBUF;
+      flags = SIO_INPUT|SIO_FBUF;
     else
-      flags = SIO_PIPE|SIO_OUTPUT|SIO_FBUF;
+      flags = SIO_OUTPUT|SIO_FBUF;
 
     return Snew((void *)fd, flags, &Spipefunctions);
   }

@@ -75,21 +75,21 @@ stuff.
 # ifdef PL_KERNEL
 #define PL_EXPORT(type)		__declspec(dllexport) type
 #define PL_EXPORT_DATA(type)	__declspec(dllexport) type
-#define install_t	 	void
+#define install_t		void
 # else
 #  ifdef __BORLANDC__
-#define PL_EXPORT(type)	 	type _stdcall
+#define PL_EXPORT(type)		type _stdcall
 #define PL_EXPORT_DATA(type)	extern type
 #  else
-#define PL_EXPORT(type)	 	extern type
+#define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllimport) type
 #  endif
-#define install_t	 	__declspec(dllexport) void
+#define install_t		__declspec(dllexport) void
 # endif
 #else /*HAVE_DECLSPEC*/
-#define PL_EXPORT(type)	 	extern type
+#define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	extern type
-#define install_t	 	void
+#define install_t		void
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
 
@@ -172,7 +172,7 @@ typedef struct io_stream
   char		       *unbuffer;	/* Sungetc buffer */
   int			lastc;		/* last character written */
   int			magic;		/* magic number SIO_MAGIC */
-  int  			bufsize;	/* size of the buffer */
+  int			bufsize;	/* size of the buffer */
   int			flags;		/* Status flags */
   IOPOS			posbuf;		/* location in file */
   IOPOS *		position;	/* pointer to above */
@@ -216,7 +216,7 @@ typedef struct io_stream
 #define SIO_STATIC	SmakeFlag(11)	/* Stream in static memory */
 #define SIO_RECORDPOS	SmakeFlag(12)	/* Maintain position */
 #define SIO_FILE	SmakeFlag(13)	/* Stream refers to an OS file */
-#define SIO_PIPE	SmakeFlag(14)	/* Stream refers to an OS pipe */
+/*      SIO_PIPE	SmakeFlag(14)	   Unused */
 #define SIO_NOFEOF	SmakeFlag(15)	/* don't set SIO_FEOF flag */
 #define SIO_TEXT	SmakeFlag(16)	/* text-mode operation */
 #define SIO_FEOF2	SmakeFlag(17)	/* attempt to read past eof */
@@ -395,7 +395,7 @@ PL_EXPORT(int)		Sunlock(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	Snew(void *handle, int flags, IOFUNCTIONS *functions);
 PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
-PL_EXPORT(int)	   	Sfileno(IOSTREAM *s);
+PL_EXPORT(int)		Sfileno(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
 PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);
 PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, size_t sz, const char *m);
