@@ -27,6 +27,11 @@
 #define _GNU_SOURCE 1			/* get recursive mutex stuff to */
 					/* compile clean with glibc.  Can */
 					/* this do any harm? */
+
+#if defined(__MINGW32__)
+#define __SEH_NOOP 1
+#endif
+
 #include "pl-incl.h"
 #include <stdio.h>
 #ifdef O_PLMT

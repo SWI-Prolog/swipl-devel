@@ -30,14 +30,20 @@
 #define VC8 1				/* (aka Microsoft 2005 VC++ */
 #endif
 
+#ifndef __MINGW32__
 typedef unsigned long sigset_t;		/* we don't have this */
 typedef int mode_t;
+#endif
 #define HAVE_SIGSET_T 1			/* For the future */
 
-#define NOTTYCONTROL TRUE		/* default -tty */
-#define O_ASYNC_HOOK 1
-#define NO_SEGV_HANDLING 1		/* at least, when making a DLL */
-#define COPY_ATOMS_TO_HEAP 1		/* place in DLL isn't known */
+#define NOTTYCONTROL		TRUE	/* default -tty */
+#define O_ASYNC_HOOK		1
+#define NO_SEGV_HANDLING	1	/* at least, when making a DLL */
+#define COPY_ATOMS_TO_HEAP	1	/* place in DLL isn't known */
+#define O_GMP			1
+#define O_PLMT			1
+#define _REENTRANT		1
+
 
 #define OPEN_MAX 32
 

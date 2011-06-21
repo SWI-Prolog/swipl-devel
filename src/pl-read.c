@@ -2468,7 +2468,7 @@ pop_side_op(ReadData _PL_rd)
 
 static inline int
 side_p0(ReadData _PL_rd)
-{ return entriesBuffer(&_PL_rd->op.side_queue, op_entry) - 1;
+{ return (int)entriesBuffer(&_PL_rd->op.side_queue, op_entry) - 1;
 }
 
 /* The out-queue is used for pushing operands.  If an operator can be

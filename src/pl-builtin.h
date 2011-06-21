@@ -57,7 +57,7 @@ for -DMD="config/win64.h"
 #include <xos.h>			/* Windows POSIX enhancements */
 #endif
 #ifdef HAVE_UXNT_H
-#include <uxnt.h>			/* More Windows POSIX enhancements */
+#include "os/windows/uxnt.h"		/* More Windows POSIX enhancements */
 #endif
 
 #include "pl-mutex.h"

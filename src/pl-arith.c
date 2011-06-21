@@ -46,7 +46,7 @@ in this array.
 #include <limits.h>
 #ifdef HAVE_FLOAT_H
 #include <float.h>
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 #define isnan(x) _isnan(x)
 #endif
 #endif
@@ -68,7 +68,7 @@ in this array.
 #define M_E (2.7182818284590452354)
 #endif
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 #define LL(x) x ## i64
 #else
 #define LL(x) x ## LL
@@ -2820,7 +2820,7 @@ seed_from_dev(const char *dev ARG_LD)
 static int
 seed_from_crypt_context(ARG1_LD)
 {
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
   HCRYPTPROV hCryptProv;
   char *user_name = "seed_random";
   BYTE seedarray[RAND_SEED_LEN];
@@ -3059,7 +3059,7 @@ static
 PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
 	  PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  intptr_t i;
+  int i;
   term_t head = A1;
 
   switch( CTX_CNTRL )
@@ -3076,7 +3076,7 @@ PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
 			ERR_TYPE, ATOM_callable, head);
     }
     case FRG_REDO:
-      i = CTX_INT;
+      i = (int)CTX_INT;
       break;
     case FRG_CUTTED:
     default:
@@ -3174,7 +3174,7 @@ static const ar_funcdef ar_funcdefs[] = {
 
 #undef ADD
 
-static int
+static size_t
 registerFunction(functor_t f, ArithF func)
 { size_t index = indexFunctor(f);
 

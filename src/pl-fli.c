@@ -1420,7 +1420,7 @@ PL_get_float(term_t t, double *f)
 }
 
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 #define ULL(x) x ## ui64
 #else
 #define ULL(x) x ## ULL

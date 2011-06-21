@@ -1852,7 +1852,7 @@ error:
   return FALSE;
 }
 
-#ifdef __WINDOWS__			/* defined in pl-nt.c */
+#ifdef __MSC_VER			/* defined in pl-nt.c */
 extern int ftruncate(int fileno, int64_t length);
 #define HAVE_FTRUNCATE
 #endif

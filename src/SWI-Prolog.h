@@ -33,10 +33,14 @@
 #define __WINDOWS__ 1
 #endif
 
+#if defined(__MINGW32__) && !defined(__WINDOWS__)
+#define __WINDOWS__ 1
+#endif
+
 #include <stdarg.h>
 #include <stdlib.h>			/* get size_t */
 #include <stddef.h>
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 #if (_MSC_VER < 1300)
