@@ -371,14 +371,24 @@ Sunlock(IOSTREAM *s)
 		 *		TIMEOUT		*
 		 *******************************/
 
+#ifndef __WINDOWS__
+typedef int SOCKET;
+#define INVALID_SOCKET -1
+#define Swinsock(s) Sfileno(s)
+#define NFDS(n) (n+1)
+#else
+#define NFDS(n) (0)			/* 1st arg of select is ignored */
+#endif
+
+
 static int
 S__wait(IOSTREAM *s)
-{ int fd = Sfileno(s);
+{ SOCKET fd = Swinsock(s);
   fd_set wait;
   struct timeval time;
   int rc;
 
-  if ( fd < 0 )
+  if ( fd == INVALID_SOCKET )
   { errno = EPERM;			/* no permission to select */
     s->flags |= SIO_FERR;
     return -1;
@@ -387,17 +397,13 @@ S__wait(IOSTREAM *s)
   time.tv_sec  = s->timeout / 1000;
   time.tv_usec = (s->timeout % 1000) * 1000;
   FD_ZERO(&wait);
-#ifdef __WINDOWS__
-  FD_SET((SOCKET)fd, &wait);
-#else
   FD_SET(fd, &wait);
-#endif
 
   for(;;)
   { if ( (s->flags & SIO_INPUT) )
-      rc = select(fd+1, &wait, NULL, NULL, &time);
+      rc = select(NFDS(fd), &wait, NULL, NULL, &time);
     else
-      rc = select(fd+1, NULL, &wait, NULL, &time);
+      rc = select(NFDS(fd), NULL, &wait, NULL, &time);
 
     if ( rc < 0 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
@@ -2934,6 +2940,30 @@ Sfileno(IOSTREAM *s)
   return n;
 }
 
+
+#ifdef __WINDOWS__
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+On  Windows,  type  SOCKET  is   an    unsigned   int   and  all  values
+[0..INVALID_SOCKET) are valid. It is  also   not  allowed  to run normal
+file-functions on it or the application will crash. There seems to be no
+way out except for introducing an extra function at this level :-(
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+SOCKET
+Swinsock(IOSTREAM *s)
+{ SOCKET n;
+
+  if ( s->functions->control &&
+       (*s->functions->control)(s->handle,
+				SIO_GETWINSOCK,
+				(void *)&n) == 0 )
+  { return n;
+  }
+
+  errno = EINVAL;
+  return INVALID_SOCKET;
+}
+#endif
 
 		 /*******************************
 		 *	       PIPES		*

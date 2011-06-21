@@ -1939,22 +1939,29 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 
 #else
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Windows<->Unix note. This function uses the   Windows socket API for its
+implementation and defines the Unix API  in   terms  of the Windows API.
+This approach allows full support  of   the  restrictions of the Windows
+implementation. Because the Unix emulation is   more generic, this still
+supports  the  generic  facilities  of  Unix  select()  that  make  this
+predicate work on pipes, serial devices, etc.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifndef __WINDOWS__
+typedef int SOCKET;
+#define INVALID_SOCKET -1
+#define Swinsock(s) Sfileno(s)
+#define NFDS(max) (max+1)			/* see also S__wait() */
+#else
+#define NFDS(n) 0
+#endif
+
 typedef struct fdentry
-{ int fd;
+{ SOCKET fd;
   term_t stream;
   struct fdentry *next;
 } fdentry;
-
-
-static inline term_t
-findmap(fdentry *map, int fd)
-{ for( ; map; map = map->next )
-  { if ( map->fd == fd )
-      return map->stream;
-  }
-  assert(0);
-  return 0;
-}
 
 
 static
@@ -1963,7 +1970,10 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   fd_set fds;
   struct timeval t, *to;
   double time;
-  int n, max = 0, ret, min = 1 << (INTBITSIZE-2);
+  int rc;
+#ifndef __WINDOWS__
+  SOCKET max = 0, min = INT_MAX;
+#endif
   fdentry *map     = NULL;
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(A1);
@@ -1977,12 +1987,12 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   FD_ZERO(&fds);
   while( PL_get_list(streams, head, streams) )
   { IOSTREAM *s;
-    int fd;
+    SOCKET fd;
     fdentry *e;
 
     if ( !PL_get_stream_handle(head, &s) )
       return FALSE;
-    if ( (fd=Sfileno(s)) < 0 )
+    if ( (fd=Swinsock(s)) < 0 )
     { releaseStream(s);
       return PL_error("wait_for_input", 3, NULL, ERR_DOMAIN,
 		      PL_new_atom("file_stream"), head);
@@ -2002,16 +2012,13 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     e->next   = map;
     map       = e;
 
-#ifdef __WINDOWS__
-    FD_SET((SOCKET)fd, &fds);
-#else
     FD_SET(fd, &fds);
-#endif
-
+#ifndef __WINDOWS__
     if ( fd > max )
       max = fd;
     if( fd < min )
       min = fd;
+#endif
   }
   if ( !PL_get_nil(streams) )
     return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, A1);
@@ -2051,7 +2058,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     to = &t;
   }
 
-  while( (ret=select(max+1, &fds, NULL, NULL, to)) == -1 &&
+  while( (rc=select(NFDS(max), &fds, NULL, NULL, to)) == -1 &&
 	 errno == EINTR )
   { fdentry *e;
 
@@ -2060,16 +2067,10 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 
     FD_ZERO(&fds);			/* EINTR may leave fds undefined */
     for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
-    {
-#ifdef __WINDOWS__
-      FD_SET((SOCKET)e->fd, &fds);
-#else
       FD_SET(e->fd, &fds);
-#endif
-    }
   }
 
-  switch(ret)
+  switch(rc)
   { case -1:
       return PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
 		      ATOM_select, ATOM_stream, A1);
@@ -2078,14 +2079,17 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
       break;
 
     default: /* Something happend -> check fds */
-      for(n=min; n <= max; n++)
-      { if ( FD_ISSET(n, &fds) )
+    { fdentry *mp;
+
+      for(mp=map; mp; mp=mp->next)
+      { if ( FD_ISSET(mp->fd, &fds) )
 	{ if ( !PL_unify_list(available, ahead, available) ||
-	       !PL_unify(ahead, findmap(map, n)) )
+	       !PL_unify(ahead, mp->stream) )
 	    return FALSE;
 	}
       }
       break;
+    }
   }
 
   return PL_unify_nil(available);

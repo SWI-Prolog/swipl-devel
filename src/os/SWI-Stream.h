@@ -273,6 +273,9 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 #define SIO_SETENCODING	(3)		/* modify encoding of stream */
 #define SIO_FLUSHOUTPUT	(4)		/* flush output */
 #define SIO_LASTERROR	(5)		/* string holding last error */
+#ifdef __WINDOWS__
+#define SIO_GETWINSOCK  (6)		/* get underlying SOCKET object */
+#endif
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
@@ -396,6 +399,9 @@ PL_EXPORT(IOSTREAM *)	Snew(void *handle, int flags, IOFUNCTIONS *functions);
 PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)		Sfileno(IOSTREAM *s);
+#ifdef _WINSOCKAPI_	/* SOCKET is defined in <winsock.h> */
+PL_EXPORT(SOCKET)	Swinsock(IOSTREAM *s);
+#endif
 PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
 PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);
 PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, size_t sz, const char *m);
