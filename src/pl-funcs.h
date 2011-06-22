@@ -626,7 +626,7 @@ COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
 COMMON(char *)		procedureName(Procedure proc);
 COMMON(char *)		predicateName(Definition def);
 COMMON(int)		clauseNo(Definition def, Clause clause);
-COMMON(word)		notImplemented(char *name, int arity);
+COMMON(int)		notImplemented(char *name, int arity);
 COMMON(word)		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word)		setInteger(int *val, term_t old, term_t new);
 COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);

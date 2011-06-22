@@ -144,7 +144,7 @@ isUserSystemPredicate(Definition def)
 }
 
 
-word
+int
 notImplemented(char *name, int arity)
 { return PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED_PROC, name, arity);
 }
