@@ -273,6 +273,10 @@ rlc_bind_terminal(rlc_console c)
   Sinput->encoding  = ENC_WCHAR;
   Soutput->encoding = ENC_WCHAR;
   Serror->encoding  = ENC_WCHAR;
+
+  Sinput->flags  &= ~SIO_FILE;
+  Soutput->flags &= ~SIO_FILE;
+  Serror->flags  &= ~SIO_FILE;
 }
 
 
@@ -335,7 +339,7 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
   create_prolog_hidden_window(c);	/* for sending messages */
   registerConsole(c);
 
-#define STREAM_COMMON (SIO_TEXT|	/* text-stream */ 		\
+#define STREAM_COMMON (SIO_TEXT|	/* text-stream */		\
 		       SIO_NOCLOSE|	/* do no close on abort */	\
 		       SIO_ISATTY|	/* terminal */			\
 		       SIO_NOFEOF)	/* reset on end-of-file */
