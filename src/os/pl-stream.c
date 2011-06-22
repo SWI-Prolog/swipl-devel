@@ -2957,7 +2957,7 @@ way out except for introducing an extra function at this level :-(
 
 SOCKET
 Swinsock(IOSTREAM *s)
-{ SOCKET n;
+{ SOCKET n = INVALID_SOCKET;
 
   if ( s->functions->control &&
        (*s->functions->control)(s->handle,
