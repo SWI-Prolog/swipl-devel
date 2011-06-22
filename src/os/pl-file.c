@@ -3715,7 +3715,7 @@ static int
 stream_nlink_prop(IOSTREAM *s, term_t prop ARG_LD)
 { int fd;
 
-  if ( !(s->flags&SIO_ISATTY) && (fd = Sfileno(s)) >= 0 )
+  if ( (fd = Sfileno(s)) >= 0 )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 )

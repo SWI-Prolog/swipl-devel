@@ -3394,7 +3394,7 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
 		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
-		      ((void *)(n)), &Sttyfunctions, \
+		      (void *)(n), &Sttyfunctions, \
 		      0, NULL, \
 		      (void (*)(void *))0, NULL, \
 		      -1, \
@@ -3419,28 +3419,33 @@ static const IOSTREAM S__iob0[] =
 };
 
 
+static int S__initialised = FALSE;
+
 void
 SinitStreams()
-{ static int done;
-
-  if ( !done++ )
+{ if ( !S__initialised )
   { int i;
     IOENC enc = initEncoding();
 
+    S__initialised = TRUE;
+    enc = initEncoding();
+
     for(i=0; i<=2; i++)
-    { if ( !isatty(i) )
-      { S__iob[i].flags &= ~SIO_ISATTY;
-	S__iob[i].functions = &Sfilefunctions; /* Check for pipe? */
+    { IOSTREAM *s = &S__iob[i];
+
+      if ( !isatty(i) )
+      { s->flags &= ~SIO_ISATTY;
+	s->functions = &Sfilefunctions; /* Check for pipe? */
       }
-      if ( S__iob[i].encoding == ENC_ISO_LATIN_1 )
-	S__iob[i].encoding = enc;
+      if ( s->encoding == ENC_ISO_LATIN_1 )
+	s->encoding = enc;
 #ifdef O_PLMT
-      S__iob[i].mutex = malloc(sizeof(recursiveMutex));
-      recursiveMutexInit(S__iob[i].mutex);
+      s->mutex = malloc(sizeof(recursiveMutex));
+      recursiveMutexInit(s->mutex);
 #endif
 #if CRLF_MAPPING
       _setmode(i, O_BINARY);
-      S__iob[i].newline = SIO_NL_DOS;
+      s->newline = SIO_NL_DOS;
 #endif
     }
 
@@ -3548,4 +3553,6 @@ Scleanup(void)
 
     *s = S__iob0[i];			/* re-initialise */
   }
+
+  S__initialised = FALSE;
 }
