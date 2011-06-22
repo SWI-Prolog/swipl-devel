@@ -371,6 +371,8 @@ Sunlock(IOSTREAM *s)
 		 *		TIMEOUT		*
 		 *******************************/
 
+#ifdef HAVE_SELECT
+
 #ifndef __WINDOWS__
 typedef int SOCKET;
 #define INVALID_SOCKET -1
@@ -425,6 +427,8 @@ S__wait(IOSTREAM *s)
   return 0;				/* ok, data available */
 }
 
+#endif /*HAVE_SELECT*/
+
 
 		 /*******************************
 		 *	     FLUSH/FILL		*
@@ -467,7 +471,9 @@ S__flushbuf(IOSTREAM *s)
     }
   }
 
+#ifdef HAVE_SELECT
 partial:
+#endif
   if ( to == from )			/* full flush */
   { rc = s->bufp - s->buffer;
     s->bufp = s->buffer;

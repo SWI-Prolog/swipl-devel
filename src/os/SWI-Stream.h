@@ -43,9 +43,9 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 typedef __int64 int64_t;
-#if defined(_MSC_VER) && (_MSC_VER < 1300)
+#if (_MSC_VER < 1300)
 typedef long intptr_t;
 typedef unsigned long uintptr_t;
 #endif
