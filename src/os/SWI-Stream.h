@@ -32,12 +32,10 @@
 #include <sys/_mbstate_t.h>
 #endif
 
-#if defined(_MSC_VER) && !defined(__WINDOWS__)
+#ifndef __WINDOWS__
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define __WINDOWS__ 1
 #endif
-
-#if defined(__MINGW32__) && !defined(__WINDOWS__)
-#define __WINDOWS__ 1
 #endif
 
 #include <stdarg.h>
@@ -403,8 +401,10 @@ PL_EXPORT(IOSTREAM *)	Snew(void *handle, int flags, IOFUNCTIONS *functions);
 PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
 PL_EXPORT(int)		Sfileno(IOSTREAM *s);
-#if defined(_WINSOCKAPI_)			/* have SOCKED from <winsock.h> */
+#ifdef __WINDOWS__
+#if defined(_WINSOCKAPI_) || defined(NEEDS_SWINSOCK) /* have SOCKET */
 PL_EXPORT(SOCKET)	Swinsock(IOSTREAM *s);
+#endif
 #endif
 PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
 PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);

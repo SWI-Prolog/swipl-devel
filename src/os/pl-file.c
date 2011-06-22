@@ -37,6 +37,7 @@ handling times must be cleaned, but that not only holds for this module.
 /*#define O_DEBUG 1*/
 /*#define O_DEBUG_MT 1*/
 
+#define NEEDS_SWINSOCK
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
