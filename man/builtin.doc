@@ -5173,6 +5173,7 @@ A = 5.
 ?- set_random(seed(111)), A is random(6).
 A = 5.
 \end{code}
+    \end{description}
 
     \predicate{current_arithmetic_function}{1}{Head}
 True if \arg{Head} is an evaluable function.  For example:
