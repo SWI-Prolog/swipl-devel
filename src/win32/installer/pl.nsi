@@ -266,6 +266,7 @@ Section "Base system (required)"
   File pl\library\quintus.pl
   File pl\library\files.pl
   File pl\library\charsio.pl
+  File pl\library\arithmetic.pl
 
 ; `STANDARD LIBRARIES'
   File pl\library\ctypes.pl
@@ -779,7 +780,7 @@ Section "Start Menu shortcuts"
 		 0
   SetOutPath $INSTDIR
   CreateShortCut "$SMPROGRAMS\${GRP}\Readme.lnk" \
-  		  "$INSTDIR\doc\windows.html" "" \
+		  "$INSTDIR\doc\windows.html" "" \
 		  "$INSTDIR\doc\windows.html" 0 \
 		  "SW_SHOWNORMAL" "" "View readme"
   !insertmacro Create_Internet_Shorcut "SWI-Prolog website" \
@@ -902,7 +903,7 @@ FunctionEnd
 ################################################################
 # Handle customisation;  Settings are maintained in
 #
-# 	HKLM ${REGKEY}
+#	HKLM ${REGKEY}
 #
 # Using the following mapping:
 #
