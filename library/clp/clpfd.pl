@@ -111,6 +111,8 @@
                   global_cardinality/2,
                   global_cardinality/3,
                   circuit/1,
+                  cumulative/1,
+                  cumulative/2,
                   element/3,
                   automaton/3,
                   automaton/8,
@@ -5492,6 +5494,99 @@ circuit_edges([N|Ns], Ts) -->
 circuit_successors(V, Tos) :-
         get_attr(V, edges, Tos0),
         maplist(arg(1), Tos0, Tos).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% cumulative(+Tasks)
+%
+%  Equivalent to cumulative(Tasks, [limit(1)]).
+
+cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
+
+%% cumulative(+Tasks, +Options)
+%
+%  Tasks is a list of tasks, each of the form task(S_i, D_i, E_i, C_i,
+%  T_i). S_i denotes the start time, D_i the positive duration, E_i
+%  the end time, C_i the non-negative resource consumption, and T_i
+%  the task identifier. Each of these arguments must be a finite
+%  domain variable with bounded domain, or an integer. The constraint
+%  holds if at any time during the start and end of any task, the
+%  total resource consumption of all tasks running at that time does
+%  not exceed the global resource limit (which is 1 by default).
+%  Options is a list of options. Currently, the only supported option
+%  is:
+%
+%  * limit(L)
+%  The integer L is the global resource limit.
+
+cumulative(Tasks, Options) :-
+        must_be(list(list), [Tasks,Options]),
+        (   memberchk(limit(L), Options) -> must_be(integer, L)
+        ;   L = 1
+        ),
+        (   Tasks = [] -> true
+        ;   maplist(task_bs, Tasks, Bss),
+            maplist(arg(1), Tasks, Starts),
+            maplist(fd_inf, Starts, MinStarts),
+            maplist(arg(3), Tasks, Ends),
+            maplist(fd_sup, Ends, MaxEnds),
+            min_list(MinStarts, Start),
+            max_list(MaxEnds, End),
+            resource_limit(Start, End, Tasks, Bss, L)
+        ).
+
+resource_limit(T, T, _, _, _) :- !.
+resource_limit(T0, T, Tasks, Bss, L) :-
+        maplist(contribution_at(T0), Tasks, Bss, Cs),
+        sum(Cs, #=<, L),
+        T1 is T0 + 1,
+        resource_limit(T1, T, Tasks, Bss, L).
+
+task_bs(Task, InfStart-Bs) :-
+        Task = task(Start,D,End,_,_Id),
+        D #> 0,
+        End #= Start + D,
+        maplist(finite_domain, [End,Start,D]),
+        fd_inf(Start, InfStart),
+        fd_sup(End, SupEnd),
+        Start #= InfStart + Wait,
+        L is SupEnd - InfStart,
+        length(Bs, L),
+        set_start(Bs, Start, InfStart),
+        (   nonvar(D) ->
+            phrase(arcs(1, D), Arcs),
+            automaton(Bs, _, Bs, [source(start),sink(done),sink(s(D))],
+                      [arc(start,0,start,[W+1]),arc(start,1,s(1)),arc(done,0,done)|Arcs],
+                      [W], [0], [Wait])
+        ;   automaton(Bs, _, Bs, [source(start),sink(done),sink(task)],
+                      [arc(start,0,start,[W+1,T]),arc(start,1,task,[W,T+1]),
+                       arc(task,1,task,[W,T+1]),arc(task,0,done),arc(done,0,done)],
+                      [W,T], [0,0], [Wait,D])
+        ).
+
+set_start([], _, _).
+set_start([B|Bs], Start, T) :-
+        Start #= T #==> B #= 1,
+        T1 is T + 1,
+        set_start(Bs, Start, T1).
+
+contribution_at(T, Task, Offset-Bs, Contribution) :-
+        Task = task(Start,_,End,C,_),
+        C #>= 0,
+        fd_inf(Start, InfStart),
+        fd_sup(End, SupEnd),
+        (   T < InfStart -> Contribution = 0
+        ;   T >= SupEnd -> Contribution = 0
+        ;   Index is T - Offset,
+            nth0(Index, Bs, B),
+            Contribution #= B * C
+        ).
+
+arcs(N, N)  --> !, [arc(s(N),0,done)].
+arcs(N0, N) -->
+        { N1 is N0 + 1 },
+        [arc(s(N0),1,s(N1))],
+        arcs(N1, N).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
