@@ -5510,7 +5510,7 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 %  the end time, C_i the non-negative resource consumption, and T_i
 %  the task identifier. Each of these arguments must be a finite
 %  domain variable with bounded domain, or an integer. The constraint
-%  holds if at any time during the start and end of any task, the
+%  holds if at any time during the start and end of each task, the
 %  total resource consumption of all tasks running at that time does
 %  not exceed the global resource limit (which is 1 by default).
 %  Options is a list of options. Currently, the only supported option
