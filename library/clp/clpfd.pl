@@ -5552,7 +5552,7 @@ task_bs(Task, InfStart-Bs) :-
         Start #= InfStart + Wait,
         L is SupEnd - InfStart,
         length(Bs, L),
-        set_start(Bs, Start, InfStart),
+        task_running(Bs, Start, End, InfStart),
         (   nonvar(D) ->
             phrase(arcs(1, D), Arcs),
             automaton(Bs, _, Bs, [source(start),sink(done),sink(s(D))],
@@ -5564,11 +5564,11 @@ task_bs(Task, InfStart-Bs) :-
                       [W,T], [0,0], [Wait,D])
         ).
 
-set_start([], _, _).
-set_start([B|Bs], Start, T) :-
-        Start #= T #==> B #= 1,
+task_running([], _, _, _).
+task_running([B|Bs], Start, End, T) :-
+        ((T #>= Start) #/\ (T #< End)) #<==> B,
         T1 is T + 1,
-        set_start(Bs, Start, T1).
+        task_running(Bs, Start, End, T1).
 
 contribution_at(T, Task, Offset-Bs, Contribution) :-
         Task = task(Start,_,End,C,_),
