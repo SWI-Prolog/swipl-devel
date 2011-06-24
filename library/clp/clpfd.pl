@@ -5549,20 +5549,9 @@ task_bs(Task, InfStart-Bs) :-
         maplist(finite_domain, [End,Start,D]),
         fd_inf(Start, InfStart),
         fd_sup(End, SupEnd),
-        Start #= InfStart + Wait,
         L is SupEnd - InfStart,
         length(Bs, L),
-        task_running(Bs, Start, End, InfStart),
-        (   nonvar(D) ->
-            phrase(arcs(1, D), Arcs),
-            automaton(Bs, _, Bs, [source(start),sink(done),sink(s(D))],
-                      [arc(start,0,start,[W+1]),arc(start,1,s(1)),arc(done,0,done)|Arcs],
-                      [W], [0], [Wait])
-        ;   automaton(Bs, _, Bs, [source(start),sink(done),sink(task)],
-                      [arc(start,0,start,[W+1,T]),arc(start,1,task,[W,T+1]),
-                       arc(task,1,task,[W,T+1]),arc(task,0,done),arc(done,0,done)],
-                      [W,T], [0,0], [Wait,D])
-        ).
+        task_running(Bs, Start, End, InfStart).
 
 task_running([], _, _, _).
 task_running([B|Bs], Start, End, T) :-
