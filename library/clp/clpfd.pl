@@ -5571,12 +5571,6 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
             Contribution #= B * C
         ).
 
-arcs(N, N)  --> !, [arc(s(N),0,done)].
-arcs(N0, N) -->
-        { N1 is N0 + 1 },
-        [arc(s(N0),1,s(N1))],
-        arcs(N1, N).
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% automaton(+Signature, +Nodes, +Arcs)
