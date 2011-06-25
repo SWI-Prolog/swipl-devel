@@ -3813,8 +3813,8 @@ VMI(I_EXITCATCH, VIF_BREAK, 0, ())
 { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
   { assert(BFR->type == CHP_CATCH);
     BFR = BFR->parent;
+    set(FR, FR_CATCHED);
   }
-  set(FR, FR_CATCHED);
 
   VMI_GOTO(I_EXIT);
 }
