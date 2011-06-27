@@ -3166,8 +3166,14 @@ pl_start_consult(term_t file)
 
   if ( PL_get_atom(file, &name) )
   { SourceFile f = lookupSourceFile(name, TRUE);
+    char *fn;
 
-    f->time = LastModifiedFile(stringAtom(name));
+    if ( PL_get_file_name(file, &fn, 0) )
+    { f->time = LastModifiedFile(fn);
+    } else
+    { f->time = (time_t)0;
+    }
+
     startConsult(f);
     succeed;
   }
