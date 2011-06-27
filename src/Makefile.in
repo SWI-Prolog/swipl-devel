@@ -332,7 +332,9 @@ check::
 		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test,halt -t 'halt(1)'
 
 ln-install::
-		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install install
+		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install \
+			 INSTALL_PROGRAM=`pwd`/../packages/ln-install \
+			 install
 
 install:	@INSTALLTARGET@
 
