@@ -3688,7 +3688,7 @@ garbageCollect(void)
 { GET_LD
   vm_state state;
   intptr_t tgar, ggar;
-  double t = CpuTime(CPU_USER);
+  double t = ThreadCPUTime(LD, CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
   int no_mark_bar;
   int rc;
@@ -3804,7 +3804,7 @@ garbageCollect(void)
   free(mark_base);
 #endif
 
-  t = CpuTime(CPU_USER) - t;
+  t = ThreadCPUTime(LD, CPU_USER) - t;
   gc_status.time += t;
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
@@ -4474,7 +4474,7 @@ nextStackSize(Stack s, size_t minfree)
 			      minfree + s->min_free + s->def_spare);
 
     if ( size >= s->size_limit + s->size_limit/2 )
-      size = 0;				/* passed limit */
+      size = 0;			/* passed limit */
   }
 
   return size;
@@ -4547,7 +4547,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
-    double time = CpuTime(CPU_USER);
+    double time = ThreadCPUTime(LD, CPU_USER);
     int verbose = truePrologFlag(PLFLAG_TRACE_GC);
 
     DEBUG(1, verbose = TRUE);
@@ -4653,7 +4653,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
 
-    time = CpuTime(CPU_USER) - time;
+    time = ThreadCPUTime(LD, CPU_USER);
     LD->shift_status.time += time;
     SECURE({ gBase++;
 	     if ( checkStacks(&state) != key )
