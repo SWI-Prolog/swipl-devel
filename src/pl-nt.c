@@ -50,9 +50,8 @@
 #include "SWI-Stream.h"
 #include <process.h>
 #include <winbase.h>
-#ifndef __MINGW32__
-/* FIXME: what is this for? */
-#include <crtdbg.h> */
+#ifdef HAVE_CRTDBG_H
+#include <crtdbg.h>
 #endif
 
 
@@ -240,7 +239,8 @@ Pause(double t)
 		 *	  SET FILE SIZE		*
 		 *******************************/
 
-#ifndef __MINGW32__
+#ifndef HAVE_FTRUNCATE
+
 int
 ftruncate(int fileno, int64_t length)
 { errno_t e;
@@ -251,6 +251,7 @@ ftruncate(int fileno, int64_t length)
   errno = e;
   return -1;
 }
+
 #endif
 
 
@@ -352,12 +353,12 @@ get_showCmd(term_t show, int *cmd)
 { char *s;
   showtype *st;
   static showtype types[] =
-  { { "hide", 		 SW_HIDE },
-    { "maximize", 	 SW_MAXIMIZE },
-    { "minimize", 	 SW_MINIMIZE },
-    { "restore", 	 SW_RESTORE },
-    { "show", 		 SW_SHOW },
-    { "showdefault", 	 SW_SHOWDEFAULT },
+  { { "hide",		 SW_HIDE },
+    { "maximize",	 SW_MAXIMIZE },
+    { "minimize",	 SW_MINIMIZE },
+    { "restore",	 SW_RESTORE },
+    { "show",		 SW_SHOW },
+    { "showdefault",	 SW_SHOWDEFAULT },
     { "showmaximized",   SW_SHOWMAXIMIZED },
     { "showminimized",   SW_SHOWMINIMIZED },
     { "showminnoactive", SW_SHOWMINNOACTIVE },
@@ -365,8 +366,8 @@ get_showCmd(term_t show, int *cmd)
     { "shownoactive",    SW_SHOWNOACTIVATE },
     { "shownormal",      SW_SHOWNORMAL },
 					/* compatibility */
-    { "normal", 	 SW_SHOWNORMAL },
-    { "iconic", 	 SW_MINIMIZE },
+    { "normal",		 SW_SHOWNORMAL },
+    { "iconic",		 SW_MINIMIZE },
     { NULL, 0 },
   };
 
@@ -528,7 +529,7 @@ static const shell_error se_errors[] =
   { SE_ERR_DDETIMEOUT,	    "DDE request timed out" },
   { SE_ERR_DLLNOTFOUND,	    "DLL not found" },
   { SE_ERR_FNF,		    "File not found (FNF)" },
-  { SE_ERR_NOASSOC, 	    "No association" },
+  { SE_ERR_NOASSOC,	    "No association" },
   { SE_ERR_OOM,		    "Not enough memory" },
   { SE_ERR_PNF,		    "Path not found (PNF)" },
   { SE_ERR_SHARE,	    "Sharing violation" },
@@ -684,7 +685,7 @@ dlclose(void *handle)
 		 *	      FOLDERS		*
 		 *******************************/
 
-#ifndef __MINGW32__
+#ifdef HAVE_SHLOBJ_H
 #include <Shlobj.h>
 #endif
 

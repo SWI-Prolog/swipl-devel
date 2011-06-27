@@ -279,7 +279,7 @@ case "$PLARCH" in
 	  CMFLAGS="$CMFLAGS -ieee"
 	fi
         ;;
-    i586-mingw32msvc|i686-mingw32msvc)
+    i?86-mingw32msvc)
 	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN32"
 	;;
     x86_64-mingw32msvc)
@@ -641,7 +641,7 @@ dnl     }
 dnl   ],
 dnl   AC_MSG_RESULT(yes)
 dnl   AC_DEFINE(HAVE_ATOMIC_INC, 1,
-dnl 	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
+dnl	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
 dnl   AC_MSG_RESULT(no),
 dnl   AC_MSG_RESULT(assuming no))
 
@@ -786,6 +786,7 @@ AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h mach/thread_act.h locale.h)
 AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
+AC_CHECK_HEADERS(crtdbg.h Shlobj.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
@@ -1419,7 +1420,7 @@ AC_TRY_COMPILE(
 
   label3:
 	if ( x == 2 )
-  	  exit(0);
+	  exit(0);
 
         exit(1);
 ], AC_DEFINE(O_LABEL_ADDRESSES, 1,
@@ -1553,7 +1554,7 @@ if test "$MKSHARED" = yes; then
 	;;
   esac
   AC_DEFINE(O_SHARED_KERNEL, 1,
-  	    "Define if Prolog kernel is in shared object")
+	    "Define if Prolog kernel is in shared object")
 else
   CHRPATH=":"
   LNLIBS="$LIBS"

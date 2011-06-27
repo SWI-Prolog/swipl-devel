@@ -516,7 +516,7 @@ are in UTF-8 encoding!
 
 char *
 _xos_limited_os_filename(const char *spec, char *limited)
-{ const char *i = (const char*)spec;
+{ const char *i = spec;
   char *o = limited;
 
   while(*i)
