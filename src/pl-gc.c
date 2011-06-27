@@ -4474,7 +4474,11 @@ nextStackSize(Stack s, size_t minfree)
 			      minfree + s->min_free + s->def_spare);
 
     if ( size >= s->size_limit + s->size_limit/2 )
-      size = 0;			/* passed limit */
+    { if ( minfree == 1 && roomStackP(s) > minfree )
+	size = sizeStackP(s);		/* tight-stack request */
+      else
+	size = 0;			/* passed limit */
+    }
   }
 
   return size;
@@ -4740,7 +4744,9 @@ tight(Stack s ARG_LD)
   size_t spare_gap = s->def_spare - s->spare;
 
   if ( s == (Stack)&LD->stacks.trail )	/* See (*) */
-    min_room += sizeStack(global)/6;
+  { min_room += sizeStack(global)/6;
+    DEBUG(2, Sdprintf("Trail min_roomt = %ld\n", min_room));
+  }
 
   if ( min_room < s->min_free )
     min_room = s->min_free;
