@@ -32,9 +32,17 @@
 #include <winsock2.h>
 #endif
 
+#ifdef __MINGW32__
+#define _WIN32_IE 0x0400
+#include <shlobj.h>
+/* FIXME: these are copied from SWI-Prolog.h. */
+#define PL_MSG_EXCEPTION_RAISED -1
+#define PL_MSG_IGNORED 0
+#define PL_MSG_HANDLED 1
+#endif
+
 #include "pl-incl.h"
 #include "os/pl-utf8.h"
-#include <crtdbg.h>
 #include <process.h>
 #include "os/pl-ctype.h"
 #include <stdio.h>
@@ -42,6 +50,10 @@
 #include "SWI-Stream.h"
 #include <process.h>
 #include <winbase.h>
+#ifndef __MINGW32__
+/* FIXME: what is this for? */
+#include <crtdbg.h> */
+#endif
 
 
 		 /*******************************
@@ -228,6 +240,7 @@ Pause(double t)
 		 *	  SET FILE SIZE		*
 		 *******************************/
 
+#ifndef __MINGW32__
 int
 ftruncate(int fileno, int64_t length)
 { errno_t e;
@@ -238,6 +251,7 @@ ftruncate(int fileno, int64_t length)
   errno = e;
   return -1;
 }
+#endif
 
 
 		 /*******************************
@@ -670,7 +684,9 @@ dlclose(void *handle)
 		 *	      FOLDERS		*
 		 *******************************/
 
+#ifndef __MINGW32__
 #include <Shlobj.h>
+#endif
 
 typedef struct folderid
 { int csidl;

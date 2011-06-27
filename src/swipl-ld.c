@@ -35,7 +35,7 @@ embedded application.
 #define UNQUOTED_PREFIX "\1"
 
 #ifdef __WINDOWS__
-#if (_MSC_VER >= 1400)			/* VC8 */
+#if defined(__MINGW32__) || (_MSC_VER >= 1400)	/* MinGW || VC8 */
 #ifdef WIN64
 #include <config/win64.h>
 #else
@@ -43,7 +43,7 @@ embedded application.
 #endif
 #endif
 
-#if (_MSC_VER < 1300)			/* <= VC6 */
+#if defined(_MSC_VER) && (_MSC_VER < 1300)	/* <= VC6 */
 typedef long intptr_t;
 typedef unsigned long uintptr_t;
 #endif
@@ -634,7 +634,13 @@ usage()
 	  "       -Iincludedir     Include directory (C/C++)\n"
 	  "       -Llibdir         Library directory (C/C++ link)\n"
 	  "       -llib            library (C/C++)\n",
-	plld, plld, plld, plld);
+	plld,
+        plld,
+        plld,
+#ifdef __WINDOWS__
+        plld,
+#endif
+        plld);
 
   exit(1);
 }

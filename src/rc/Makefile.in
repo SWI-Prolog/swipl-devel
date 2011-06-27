@@ -37,17 +37,25 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
+MINGW=@MINGW@
+
 LIBOBJ=	html.o access.o build.o util.o
 
 all:	swipl-rc
 
-swipl-rc:	librc.a rc.o
-	$(CC) $(LDFLAGS) -o $@ rc.o -L. -lrc
+swipl-rc:	librc.a rc.o $(UXNTLIB)
+	$(CC) $(LDFLAGS) -o $@ rc.o $(UXNTLIB) -L. -lrc
 
 librc.a:	$(LIBOBJ)
 	rm -f $@
 	$(AR) cq $@ $(LIBOBJ)
 	$(RANLIB) $@
+
+ifeq ($(MINGW),true)
+UXNTLIB=	../../lib/uxnt.a
+else
+UXNTLIB=
+endif
 
 .c.o:
 	$(CC) -c -I.. $(CFLAGS) $< @COUTOPT@

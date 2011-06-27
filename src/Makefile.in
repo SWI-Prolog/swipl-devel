@@ -82,6 +82,8 @@ LDFLAGS=@LDFLAGS@ $(CPFLAGS)
 
 PLFOREIGN=@PLFOREIGN@
 
+MINGW=@MINGW@
+
 DEFSTARTUP=.plrc
 
 PB=../boot
@@ -120,6 +122,11 @@ TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
 LIBOBJ= $(RCOBJ) $(TAIOBJ)
 
 PLOBJ=	pl-extend.o
+
+ifeq ($(MINGW),true)
+PLOBJ+=	pl-nt.o pl-dde.o
+endif
+
 ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 
 PLINIT=	$(PB)/init.pl
@@ -144,7 +151,7 @@ PROFILE_GOAL=run(0.5)
 
 all:	banner gitversion dirs $(OPTIMISE) swipl-ld
 
-noprof:	rc-lib tai-lib $(MKLIBS) system headers startup index
+noprof:	uxnt-lib rc-lib tai-lib $(MKLIBS) system headers startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
@@ -178,7 +185,7 @@ banner::
 # to run our local copy of SWI-Prolog.
 
 $(PL):		$(MKLIBS) $(PLOBJ)
-		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(PLARCH) -lswipl $(LNLIBS)
+		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(PLARCH) -lswipl $(LNLIBS) $(OSLIB)
 		$(CHRPATH) -c $(PL) || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
@@ -214,6 +221,18 @@ $(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 		( cd ../lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
 endif
+endif
+
+ifeq ($(MINGW),true)
+UXNTOBJ=	os/windows/uxnt.o
+OSLIB=	../lib/uxnt.a -lshell32 -lwinmm -lwsock32
+
+uxnt-lib:	$(UXNTOBJ) $(INCLUDEDIR)
+		@(cd os/windows && $(MAKE) COFLAGS="$(COFLAGS)")
+else
+OSLIB=
+
+uxnt-lib:
 endif
 
 rc-lib:		$(RCOBJ)
@@ -311,6 +330,15 @@ mkvmi:		mkvmi.c
 ifdef RLPREFIX
 pl-rl.o:	pl-rl.c
 		$(CC) -c -I$(RLPREFIX)/include -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+endif
+
+ifeq ($(MINGW),true)
+os/pl-stream.o:	os/pl-stream.c
+		$(CC) -c -I../include -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+
+pl-nt.o:	pl-nt.c
+		$(CC) -c -I$(srcdir)/os -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+
 endif
 
 $(srcdir)/pl-funct.ih $(srcdir)/pl-atom.ih: $(srcdir)/.defatom-sentinel

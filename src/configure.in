@@ -38,6 +38,7 @@ AC_SUBST(CNFG)
 AC_SUBST(DLLIBVAR)
 AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
+AC_SUBST(MINGW)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -277,6 +278,12 @@ case "$PLARCH" in
 	else
 	  CMFLAGS="$CMFLAGS -ieee"
 	fi
+        ;;
+    i586-mingw32msvc|i686-mingw32msvc)
+	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN32"
+	;;
+    x86_64-mingw32msvc)
+	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN64"
 	;;
 esac
 
@@ -432,6 +439,7 @@ SO_LD="$CC"
 SO_EXT="so"
 SO_PATH="-Wl,-rpath=$PLBASE/lib/$PLARCH$RPATH_EXTRA"
 DLLIBVAR=LD_LIBRARY_PATH
+MINGW="false"
 
 case "$PLARCH" in
   *solaris* | *sunos*)
@@ -1558,6 +1566,13 @@ echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
 OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
+
+case "$PLARCH" in
+    *-mingw32msvc)
+        OutputFiles="$OutputFiles os/windows/Makefile"
+        MINGW="true"
+	;;
+esac
 
 # Prepare the package configuration if present
 

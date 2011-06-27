@@ -46,7 +46,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "morecore.c"
 #endif
 
-#if defined(_DEBUG) && defined(__WINDOWS__)
+#if defined(_DEBUG) && defined(__WINDOWS__) && !defined(__MINGW32__)
 #include <crtdbg.h>
 #endif
 

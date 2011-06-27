@@ -1,0 +1,24 @@
+case "$host" in
+i686-*) export CC="gcc -m32" ;;
+x86_64-*) export CC="gcc -m64" ;;
+esac
+
+cd $src
+wget -c ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-$pthreads_w32-release.tar.gz
+
+cd $build
+tar xzf $src/pthreads-w32-$pthreads_w32-release.tar.gz
+cd pthreads-w32-$pthreads_w32
+make -f GNUmakefile CROSS=i586-mingw32msvc- GC-static
+cp pthread.h semaphore.h sched.h /u/include/
+cp libpthreadGC2.a /u/lib/libpthread.a
+
+cd /usr/local/distrib/pl-devel
+patch -p1 < .../swipl-mingw32.patch
+cp .../Makefile.in os/windows
+export CIFLAGS="-I/uinclude -DPTW32_STATIC_LIB"
+export LDFLAGS="-L/u/lib"
+./configure --host=i586-mingw32msvc --prefix=/u --disable-readline --disable-libdirversion --disable-shared
+make
+
+

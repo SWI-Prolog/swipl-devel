@@ -535,6 +535,11 @@ initPrologThreads()
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
 
+#if defined(PTW32_STATIC_LIB)
+  initMutexes();
+  ptw32_processInitialize();
+#endif
+
   LOCK();
   if ( threads_ready )
   { UNLOCK();

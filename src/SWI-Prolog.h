@@ -29,12 +29,10 @@
 #define __SWI_PROLOG__	/* normally defined by the swipl-ld compiler driver */
 #endif
 
-#if defined(_MSC_VER) && !defined(__WINDOWS__)
+#ifndef __WINDOWS__
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define __WINDOWS__ 1
 #endif
-
-#if defined(__MINGW32__) && !defined(__WINDOWS__)
-#define __WINDOWS__ 1
 #endif
 
 #include <stdarg.h>

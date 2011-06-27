@@ -25,10 +25,6 @@
 #ifndef _PL_INCLUDE_H
 #define _PL_INCLUDE_H
 
-#if defined(__MINGW32__) && !defined(__WINDOWS__)
-#define __WINDOWS__ 1
-#endif
-
 #ifdef __WINDOWS__
 #ifdef WIN64
 #define MD	     "config/win64.h"

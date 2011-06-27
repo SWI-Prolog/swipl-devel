@@ -26,7 +26,7 @@
 #define _XNT_H_INCLUDED
 
 #undef _export
-#ifdef _UXNT_KERNEL
+#if defined(_UXNT_KERNEL) && !defined(__MINGW32__)
 #define _export _declspec(dllexport)
 #else
 #define _export extern
