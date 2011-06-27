@@ -65,6 +65,7 @@ RANLIB=@RANLIB@
 PLARCH=@PLARCH@
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_SHOBJ=@INSTALL_PROGRAM@
 INSTALL_SCRIPT=@INSTALL_SCRIPT@
 INSTALL_DATA=@INSTALL_DATA@
 MKDIR=@MKDIR@
@@ -333,7 +334,7 @@ check::
 
 ln-install::
 		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install \
-			 INSTALL_PROGRAM=`pwd`/../packages/ln-install \
+			 INSTALL_SHOBJ=`pwd`/../packages/ln-install \
 			 install
 
 install:	@INSTALLTARGET@
@@ -379,12 +380,12 @@ ifeq ($(SOEXT),dylib)
 else
 ifeq ($(SOEXT),dll)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
-		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(PLARCH) ; \
+		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
-		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
+		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
 		( cd $(DESTDIR)$(PLBASE)/lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
 		fi
 endif
