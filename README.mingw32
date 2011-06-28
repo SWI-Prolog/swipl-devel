@@ -1,3 +1,24 @@
+Compiling SWI-Prolog using MinGW
+--------------------------------
+
+Below are some notes from Roberto Bagnara to compile a static version of
+SWI-Prolog using the MinGW cross-compiler  on   a  Linux system. Roberto
+submitted patches to 5.11.22 and 5.11.23 to   get the core Prolog system
+compiled using MinGW.
+
+Ideally, it should be possible to compile  the entire suite using MinGW,
+either natively on Windows or cross-compile   it from e.g., Linux. Using
+MinGW would eliminate the need to  maintain   two  sets of Makefiles and
+achieves a much more lightweight and   truly  free development toolchain
+for SWI-Prolog on Windows.  There is a lot to do:
+
+    - Build a dll
+    - Make the packages portable.  Most of the work is similar as for
+      the kernel: identify the places where the __WINDOWS__ preprocessor
+      symbol is used for MSVC rather than Windows and replace this by
+      _MSC_VER and/or __MINGW32__.
+
+================================================================
 case "$host" in
 i686-*) export CC="gcc -m32" ;;
 x86_64-*) export CC="gcc -m64" ;;
@@ -14,9 +35,7 @@ cp pthread.h semaphore.h sched.h /u/include/
 cp libpthreadGC2.a /u/lib/libpthread.a
 
 cd /usr/local/distrib/pl-devel
-patch -p1 < .../swipl-mingw32.patch
-cp .../Makefile.in os/windows
-export CIFLAGS="-I/uinclude -DPTW32_STATIC_LIB"
+export CIFLAGS="-I/u/include -DPTW32_STATIC_LIB"
 export LDFLAGS="-L/u/lib"
 ./configure --host=i586-mingw32msvc --prefix=/u --disable-readline --disable-libdirversion --disable-shared
 make
