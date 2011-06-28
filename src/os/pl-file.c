@@ -1089,23 +1089,6 @@ closeFiles(int all)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_cleanup_fork() must be called between  fork()   and  exec() to remove
-traces of Prolog that are not  supposed   to  leak into the new process.
-Note that we must be careful  here.   Notably,  the  code cannot lock or
-unlock any mutex as the behaviour of mutexes is undefined over fork().
-
-Earlier versions used the file-table to  close file descriptors that are
-in use by Prolog. This can't work as   the  table is guarded by a mutex.
-Now we use the FD_CLOEXEC flag in Snew();
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-PL_cleanup_fork(void)
-{ stopItimer();
-}
-
-
 void
 protocol(const char *str, size_t n)
 { GET_LD

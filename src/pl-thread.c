@@ -182,6 +182,7 @@ static int thread_highest_id;		/* Highest handed thread-id */
 static int threads_ready = FALSE;	/* Prolog threads available */
 static Table queueTable;		/* name --> queue */
 static int queue_id;			/* next generated id */
+static int will_exec;			/* process will exec soon */
 
 TLD_KEY PL_ldata;			/* key for thread PL_local_data */
 
@@ -456,9 +457,8 @@ free_prolog_thread()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-free_prolog_thread(void *data)
-{ PL_local_data_t *ld = data;
-  PL_thread_info_t *info;
+freePrologThread(PL_local_data_t *ld, int after_fork)
+{ PL_thread_info_t *info;
   int acknowledge;
   double time;
 
@@ -469,16 +469,22 @@ free_prolog_thread(void *data)
   DEBUG(2, Sdprintf("Freeing prolog thread %d (status = %d)\n",
 		    info->pl_tid, info->status));
 
-  LOCK();
-  if ( info->status == PL_THREAD_RUNNING )
-    info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
-  acknowledge = info->thread_data->exit_requested;
-  UNLOCK();
+  if ( !after_fork )
+  { LOCK();
+    if ( info->status == PL_THREAD_RUNNING )
+      info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
+    acknowledge = info->thread_data->exit_requested;
+    UNLOCK();
 
 #if O_DEBUGGER
-  callEventHook(PL_EV_THREADFINISHED, info);
+    callEventHook(PL_EV_THREADFINISHED, info);
 #endif
-  run_thread_exit_hooks(ld);
+    run_thread_exit_hooks(ld);
+  } else
+  { acknowledge = FALSE;
+    info->detached = TRUE;		/* cleanup */
+  }
+
   cleanupLocalDefinitions(ld);
   if ( ld->freed_clauses )
   { GET_LD
@@ -503,16 +509,18 @@ free_prolog_thread(void *data)
   freeThreadSignals(ld);
   time = ThreadCPUTime(ld, CPU_USER);
 
-  LOCK();
+  if ( !after_fork )
+  { LOCK();
+    GD->statistics.threads_finished++;
+    assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
+    GD->statistics.thread_cputime += time;
+  }
   destroy_message_queue(&ld->thread.messages);
-  GD->statistics.threads_finished++;
-  assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
-  GD->statistics.thread_cputime += time;
-
   info->thread_data = NULL;
   info->has_tid = FALSE;		/* needed? */
   ld->thread.info = NULL;		/* avoid a loop */
-  UNLOCK();
+  if ( !after_fork )
+    UNLOCK();
 
   if ( info->detached )
     free_thread_info(info);
@@ -526,9 +534,119 @@ free_prolog_thread(void *data)
   }
 }
 
+
+static void
+free_prolog_thread(void *data)
+{ PL_local_data_t *ld = data;
+
+  freePrologThread(ld, FALSE);
+}
+
+
 #ifdef O_QUEUE_STATS
 static void msg_statistics(void);
 #endif
+
+#ifdef O_ATFORK					/* Not yet default */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+reinit_threads_after_fork() is called after a  fork   in  the child. Its
+task is to  restore  the  consistency   of  the  thread  information. It
+performs the following tasks:
+
+    * Reinitialize all mutexes we know of
+      Just calling simpleMutexInit() seems a bit dubious, but as we have
+      no clue about their locking status, what are the alternatives?
+    * Make the thread the main (=1) thread if this is not already the
+      case.  This is needed if another thread has initiated the fork.
+    * Reclaim stacks and other resources associated with other threads
+      that existed before the fork.
+
+There are several issues with the current implementation:
+
+    * If fork/1 is called while the calling thread holds a mutex (as in
+      with_mutex/2), the consistency of this mutex will be lost.
+    * I doubt we have all mutexes.  Certainly not of the packages.
+      We should check at least I/O, user-level mutexes and other mutexes
+      that are created locally.
+    * If another thread than the main thread forks, we still need to
+      properly reclaim the main-thread resources.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+reinit_threads_after_fork(void)
+{ GET_LD
+  counting_mutex *m;
+  PL_thread_info_t *info;
+  int i;
+
+  if ( will_exec ||
+       (GD->statistics.threads_created - GD->statistics.threads_finished) == 1)
+    return;					/* no point */
+
+  info = LD->thread.info;
+
+  for(m = GD->thread.mutexes; m; m = m->next)
+  { simpleMutexInit(&m->mutex);			/* Dubious */
+    m->count = 0L;
+    m->unlocked = 0L;
+#ifdef O_CONTENTION_STATISTICS
+    m->collisions = 0L;
+#endif
+  }
+
+  if ( info->pl_tid != 1 )
+  { DEBUG(1, Sdprintf("Forked thread %d\n", info->pl_tid));
+    *GD->thread.threads[1] = *info;
+    info->status = PL_THREAD_UNUSED;
+    info = GD->thread.threads[1];
+    LD->thread.info = info;
+    info->pl_tid = 1;
+    info->name = ATOM_main;
+  }
+  set_system_thread_id(info);
+
+  for(i=2; i<=thread_highest_id; i++)
+  { if ( (info=GD->thread.threads[i]) )
+    { if ( info->status != PL_THREAD_UNUSED )
+      { freePrologThread(info->thread_data, TRUE);
+	info->status = PL_THREAD_UNUSED;
+      }
+    }
+  }
+  thread_highest_id = 1;
+
+  simpleMutexInit(&LD->signal.sig_lock);
+  GD->statistics.thread_cputime = 0.0;
+  GD->statistics.threads_created = 1;
+  GD->statistics.threads_finished = 0;
+
+  assert(PL_thread_self() == 1);
+}
+
+#else
+
+#define pthread_atfork(prep, parent, child) (void)0
+
+#endif /*O_ATFORK*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_cleanup_fork() must be called between  fork()   and  exec() to remove
+traces of Prolog that are not  supposed   to  leak into the new process.
+Note that we must be careful  here.   Notably,  the  code cannot lock or
+unlock any mutex as the behaviour of mutexes is undefined over fork().
+
+Earlier versions used the file-table to  close file descriptors that are
+in use by Prolog. This can't work as   the  table is guarded by a mutex.
+Now we use the FD_CLOEXEC flag in Snew();
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+PL_cleanup_fork(void)
+{ will_exec = TRUE;
+  stopItimer();
+}
+
 
 void
 initPrologThreads()
@@ -582,6 +700,9 @@ initPrologThreads()
     link_mutexes();
     threads_ready = TRUE;
   }
+
+  pthread_atfork(NULL, NULL, reinit_threads_after_fork);
+
   UNLOCK();
 }
 
