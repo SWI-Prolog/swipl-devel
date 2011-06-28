@@ -395,7 +395,7 @@ dnl Some versions of (g)cc need to export the symbols from the main program
 dnl using -rdynamic.  See whether this gcc understands this flag.
 
 case "$PLARCH" in
-  *darwin*)
+  *darwin|mingw*)
 	rdynamic=done
 	;;
 esac
@@ -502,6 +502,10 @@ case "$PLARCH" in
 	SO_PIC=""
 	DLLIBVAR=PATH
 	;;
+  *mingw*)
+	SO_EXT="dll"
+	DLLIBVAR=PATH
+	;;
 # Seems we can simple add the executable add the end.  This is arranged
 # in swipl-ld.c based on the the __BEOS__ symbol.
 # *beos*)
@@ -556,6 +560,9 @@ case "$PLARCH" in
     *freebsd*)
 	AC_DEFINE(_THREAD_SAFE, 1,
 		  [Required in FreeBSD for compiling thread-safe code])
+	;;
+    *mingw32*)
+        pthread_ok=true
 	;;
 esac
 

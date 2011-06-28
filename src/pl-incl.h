@@ -25,7 +25,7 @@
 #ifndef _PL_INCLUDE_H
 #define _PL_INCLUDE_H
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER				/* MS toolchain */
 #ifdef WIN64
 #define MD	     "config/win64.h"
 #else
