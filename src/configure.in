@@ -1285,7 +1285,7 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(yes))
 
 AC_MSG_CHECKING("for symbolic links")
-if touch conftest.x && ln -s conftest.x conftest.lns && cmp conftest.x conftest.lns; then
+if test "$MINGW" = false && touch conftest.x && ln -s conftest.x conftest.lns && cmp conftest.x conftest.lns; then
     AC_DEFINE(HAVE_SYMLINKS, 1,
 	      [Define if the ln command supports -s])
     AC_MSG_RESULT(yes)
