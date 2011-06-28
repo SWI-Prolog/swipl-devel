@@ -39,6 +39,7 @@ AC_SUBST(DLLIBVAR)
 AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
 AC_SUBST(MINGW)
+AC_SUBST(DEFSTARTUP)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -57,6 +58,7 @@ PLLIB=libswipl.a
 MKLIBS=staticlib
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
+DEFSTARTUP=.plrc
 
 dnl ****************************************************************
 dnl Some systems don't appear to have true.  Hope all like this ...
@@ -395,7 +397,7 @@ dnl Some versions of (g)cc need to export the symbols from the main program
 dnl using -rdynamic.  See whether this gcc understands this flag.
 
 case "$PLARCH" in
-  *darwin|mingw*)
+  *darwin*|*mingw*)
 	rdynamic=done
 	;;
 esac
@@ -505,20 +507,16 @@ case "$PLARCH" in
   *mingw*)
 	SO_EXT="dll"
 	DLLIBVAR=PATH
+	DEFSTARTUP=swipl.ini
+	MINGW=true
 	;;
-# Seems we can simple add the executable add the end.  This is arranged
-# in swipl-ld.c based on the the __BEOS__ symbol.
-# *beos*)
-#	AC_DEFINE(SO_FORMAT_LDFLAGS,
-#		  ["-nostart -Xlinker -soname=\"%s\"", soout])
-#	;;
   *)
 	;;
 esac
 
 AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
 		   [Define to the extension of shared objects (often .so)])
-AC_DEFINE_UNQUOTED(SO_PATH,	"$DLLIBVAR",
+AC_DEFINE_UNQUOTED(SO_PATH,    "$DLLIBVAR",
 		   [Search path for shared objects (often LD_LIBRARY_PATH)])
 AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD",
 		   [Program to link shared objects])
@@ -552,6 +550,16 @@ changequote(,)dnl
 USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
 changequote([,])dnl
 
+case "$PLARCH" in
+    *mingw32*)
+	AC_CHECK_LIB(shell32, main)
+	AC_CHECK_LIB(winmm, main)
+	AC_CHECK_LIB(wsock32, main)
+	EXTRAOBJ="pl-nt.o pl-dde.o"
+	;;
+esac
+
+
 PLTHREADS=no
 if test "$MT" = "yes"; then
 pthread_ok=false
@@ -563,6 +571,7 @@ case "$PLARCH" in
 	;;
     *mingw32*)
         pthread_ok=true
+	AC_CHECK_LIB(pthreadGC2, pthread_create)
 	;;
 esac
 
@@ -1576,9 +1585,8 @@ echo "	LIBS=$LIBS"
 OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
-    *-mingw32msvc)
+    *mingw*)
         OutputFiles="$OutputFiles os/windows/Makefile"
-        MINGW="true"
 	;;
 esac
 

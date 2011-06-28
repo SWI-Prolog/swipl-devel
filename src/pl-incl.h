@@ -25,14 +25,19 @@
 #ifndef _PL_INCLUDE_H
 #define _PL_INCLUDE_H
 
-#ifdef _MSC_VER				/* MS toolchain */
+#ifdef __WINDOWS__
 #ifdef WIN64
-#define MD	     "config/win64.h"
+#include "config/win64.h"
 #else
-#define MD	     "config/win32.h"
+#include "config/win32.h"
 #endif
 #define PLHOME       "c:/Program Files/pl"
 #define DEFSTARTUP   "pl.ini"
+#else
+#include <config.h>
+#endif
+
+#ifdef _MSC_VER
 #define C_LIBS	     ""
 #define C_STATICLIBS ""
 #define C_CC	     "cl"

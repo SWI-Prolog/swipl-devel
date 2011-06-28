@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      Vu University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,12 +23,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/* config.h.  Generated automatically by configure.  */
-/* config.h.in.  Generated automatically from configure.in by autoheader.  */
-
 #define __WIN32__ 1
 #if !defined(VC8) && (_MSC_VER >= 1400)	/* Visual studio 8 */
 #define VC8 1				/* (aka Microsoft 2005 VC++ */
+#endif
+
+#ifdef __MINGW32__
+#include <config.h>
 #endif
 
 #ifndef __MINGW32__
@@ -216,7 +218,9 @@ typedef int mode_t;
 #define HAVE_PTHREAD_MUTEXATTR_SETTYPE 1
 
 /* Format for int64_t */
+#ifndef INT64_FORMAT
 #define INT64_FORMAT "%I64d"
+#endif
 
 /* Define to 1 if you have the <locale.h> header file. */
 #define HAVE_LOCALE_H 1

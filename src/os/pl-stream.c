@@ -24,15 +24,17 @@
 */
 
 #ifdef __WINDOWS__
-#include <uxnt.h>
+#include "windows/uxnt.h"
 #ifdef WIN64
-#define MD "config/win64.h"
+#include "config/win64.h"
 #else
-#define MD "config/win32.h"
+#include "config/win32.h"
 #endif
 #include <winsock2.h>
 #include "windows/mswchar.h"
 #define CRLF_MAPPING 1
+#else
+#include <config.h>
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -46,12 +48,6 @@ Multithreading is supported through  Slock()   and  Sunlock(). These are
 recursive locks. If a stream handle  might   be  known to another thread
 locking is required.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef MD
-#include MD
-#else
-#include <config.h>
-#endif
 
 #if _FILE_OFFSET_BITS == 64 || defined(_LARGE_FILES)
 #define O_LARGEFILES 1		/* use for conditional code in Prolog */

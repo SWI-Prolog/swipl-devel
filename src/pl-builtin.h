@@ -43,12 +43,6 @@ First, include config.h or, if MD is  specified, this file.  This allows
 for -DMD="config/win64.h"
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef MD
-#include MD
-#else
-#include <config.h>
-#endif
-
 #if defined(O_PLMT) && !defined(_REENTRANT)
 #define _REENTRANT 1
 #endif

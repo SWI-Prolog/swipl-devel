@@ -80,11 +80,8 @@ CPFLAGS=
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
 LDFLAGS=@LDFLAGS@ $(CPFLAGS)
 
-PLFOREIGN=@PLFOREIGN@
-
 MINGW=@MINGW@
-
-DEFSTARTUP=.plrc
+DEFSTARTUP=@DEFSTARTUP@
 
 PB=../boot
 INCLUDEDIR=../include
@@ -122,10 +119,6 @@ TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
 LIBOBJ= $(RCOBJ) $(TAIOBJ)
 
 PLOBJ=	pl-extend.o
-
-ifeq ($(MINGW),true)
-PLOBJ+=	pl-nt.o pl-dde.o
-endif
 
 ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 
@@ -225,7 +218,7 @@ endif
 
 ifeq ($(MINGW),true)
 UXNTOBJ=	os/windows/uxnt.o
-OSLIB=	../lib/uxnt.a -lshell32 -lwinmm -lwsock32
+OSLIB=	../lib/uxnt.a
 
 uxnt-lib:	$(UXNTOBJ) $(INCLUDEDIR)
 		@(cd os/windows && $(MAKE) COFLAGS="$(COFLAGS)")
@@ -286,11 +279,17 @@ $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
 		$(SED) 's/"SWI-Prolog.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
 
 parms.h:	Makefile
-		@echo "#define PLHOME       \"$(PLBASE)\""      > $@%
+		@echo "#ifndef PLHOME"				> $@%
+		@echo "#define PLHOME       \"$(PLBASE)\""     >> $@%
+		@echo "#endif"				       >> $@%
+		@echo "#ifndef DEFSTARTUP"		       >> $@%
 		@echo "#define DEFSTARTUP   \"$(DEFSTARTUP)\"" >> $@%
+		@echo "#endif"				       >> $@%
 		@echo $(PLVERSION) | \
 		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> $@%
+		@echo "#ifndef PLARCH"			       >> $@%
 		@echo "#define PLARCH	    \"$(PLARCH)\""     >> $@%
+		@echo "#endif"				       >> $@%
 		@echo "#define C_LIBS	    \"$(LNLIBS)\""     >> $@%
 		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
 		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
