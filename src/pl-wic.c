@@ -2980,7 +2980,8 @@ compileFile(wic_state *state, const char *file)
     if ( PL_get_atom(t, &eof) && eof == ATOM_end_of_file )
       break;
 
-    DEBUG(2, PL_write_term(Serror, t, 1200, PL_WRT_NUMBERVARS); pl_nl());
+    DEBUG(2, PL_write_term(Serror, t, 1200, PL_WRT_NUMBERVARS);
+	     Sdprintf("\n"));
 
     if ( directiveClause(directive, t, ":-") )
     { DEBUG(1,
