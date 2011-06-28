@@ -168,7 +168,7 @@ mkvmi.exe:	mkvmi.obj
 		$(LD) /out:$@ /subsystem:console mkvmi.obj $(LIBS)
 
 $(PLLD):	swipl-ld.obj
-		$(LD) /out:$@ /subsystem:console swipl-ld.obj $(LIBS)
+		$(LD) /out:$@ /subsystem:console swipl-ld.obj $(LIBS) $(UXLIB)
 
 tags:		TAGS
 
