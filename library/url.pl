@@ -32,7 +32,7 @@
 :- module(url,
 	  [ parse_url/2,		% +URL, -Parts | -URL +Parts
 	    parse_url/3,		% +URL|URI, +BaseURL, -Parts
-	    				% -URL, +BaseURL, +Parts
+					% -URL, +BaseURL, +Parts
 	    is_absolute_url/1,		% +URL
 	    global_url/3,		% +Local, +Base, -Global
 	    http_location/2,		% ?Parts, ?Location
@@ -65,7 +65,7 @@ of the standard encountered in practical use.
 @author	Jan Wielemaker
 @author Lukas Faulstich
 @deprecated New code should use library(uri), provided by the =clib=
- 	    package.
+	    package.
 */
 
 		 /*******************************
@@ -842,10 +842,16 @@ encoding used with the HTTP GET.
 %%	www_form_encode(+Value, -XWWWFormEncoded) is det.
 %%	www_form_encode(-Value, +XWWWFormEncoded) is det.
 %
-%	En/Decode        between        native          value        and
-%	application/x-www-form-encoded. Maps space to   +,  keeps alnum,
-%	maps anything else to =|%XX|= and   newlines to =|%OD%OA|=. When
-%	decoding, newlines appear as a single newline (10) character.
+%	En/decode   to/from   application/x-www-form-encoded.   Encoding
+%	encodes all characters  except  RFC   3986  _unreserved_  (ASCII
+%	=alnum= (see code_type/2)), and  one   of  "-._~"  using percent
+%	encoding.  Newline  is  mapped  to  =|%OD%OA|=.  When  decoding,
+%	newlines appear as a single newline (10) character.
+%
+%	Note that a space  is  encoded   as  =|%20|=  instead  of =|+|=.
+%	Decoding decodes both to a space.
+%
+%	@deprecated Use uri_encoded/3 for new code.
 
 www_form_encode(Value, Encoded) :-
 	atomic(Value), !,
