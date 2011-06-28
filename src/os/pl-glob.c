@@ -582,8 +582,8 @@ PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
   if ( !PL_get_chars(A1, &s, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     fail;
   if ( strlen(s) > sizeof(spec)-1 )
-    return PL_error(NULL, 0, "File name too intptr_t",
-		    ERR_DOMAIN, ATOM_pattern, A1);
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+		    ATOM_max_path_length);
 
   if ( !expandVars(s, spec, sizeof(spec)) )
     fail;
