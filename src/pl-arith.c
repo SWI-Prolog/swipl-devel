@@ -74,10 +74,6 @@ in this array.
 #define LL(x) x ## LL
 #endif
 
-#ifdef HAVE___TRY
-#include <excpt.h>
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On some machines, notably  FreeBSD  upto   version  3.x,  floating point
 operations raise signals rather then leaving an error condition and this

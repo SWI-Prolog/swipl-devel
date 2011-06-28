@@ -37,13 +37,9 @@ typedef int mode_t;
 #define HAVE_SIGSET_T 1			/* For the future */
 
 #define NOTTYCONTROL		TRUE	/* default -tty */
-#define O_ASYNC_HOOK		1
-#define NO_SEGV_HANDLING	1	/* at least, when making a DLL */
-#define COPY_ATOMS_TO_HEAP	1	/* place in DLL isn't known */
 #define O_GMP			1
 #define O_PLMT			1
 #define _REENTRANT		1
-
 
 #define OPEN_MAX 32
 
@@ -66,12 +62,7 @@ typedef int mode_t;
 
 #ifdef __LCC__
 #define NO_MS_EXTENSIONS 1
-#else
-#define HAVE___TRY 1
 #endif
-
-/* Define to enable life-data marking by scanning VM instructions */
-#define LIFE_GC 1
 
 /* Define for emulating dlopen(), etc. using LoadLibrary */
 #define EMULATE_DLOPEN 1
