@@ -349,7 +349,7 @@ defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
 swipl-ld:	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
-		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
 
 tags::
 		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
