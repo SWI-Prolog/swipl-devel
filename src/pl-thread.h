@@ -46,6 +46,19 @@ typedef enum
   LDATA_ANSWERED
 } ldata_status_t;
 
+typedef enum
+{ PL_THREAD_UNUSED = 0,			/* no thread on this slot */
+  PL_THREAD_RUNNING,			/* a normally running one */
+  PL_THREAD_EXITED,			/* died with thread_exit/1 */
+  PL_THREAD_SUCCEEDED,			/* finished with Yes */
+  PL_THREAD_FAILED,			/* finished with No */
+  PL_THREAD_EXCEPTION,			/* finished with exception */
+  PL_THREAD_NOMEM,			/* couldn't start due no-memory */
+  PL_THREAD_CREATED,			/* just created */
+  PL_THREAD_SUSPENDED,			/* suspended */
+  PL_THREAD_RESUMING			/* about to resume */
+} thread_status;
+
 #ifdef __WINDOWS__
 enum
 { SIGNAL     = 0,
@@ -68,7 +81,7 @@ typedef struct _PL_thread_info_t
   int		    (*cancel)(int id);	/* cancel function */
   int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */
-  int		    status;		/* PL_THREAD_* */
+  thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
   int		    has_tid;		/* TRUE: tid = valid */
 #ifdef __linux__
@@ -118,17 +131,6 @@ typedef struct pl_mutex
 } pl_mutex;
 
 #define PL_THREAD_MAGIC 0x2737234f
-
-#define PL_THREAD_UNUSED	0	/* no thread on this slot */
-#define PL_THREAD_RUNNING	1	/* a normally running one */
-#define PL_THREAD_EXITED	2	/* died with thread_exit/1 */
-#define PL_THREAD_SUCCEEDED	3	/* finished with Yes */
-#define PL_THREAD_FAILED	4	/* finished with No */
-#define PL_THREAD_EXCEPTION	5	/* finished with exception */
-#define PL_THREAD_NOMEM		6	/* couldn't start due no-memory */
-#define	PL_THREAD_CREATED	7	/* just created */
-#define	PL_THREAD_SUSPENDED	8	/* suspended */
-#define PL_THREAD_RESUMING      9	/* about to resume */
 
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 

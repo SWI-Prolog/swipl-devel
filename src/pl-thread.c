@@ -660,6 +660,8 @@ exitPrologThreads()
 
 	  break;
 	}
+	default:
+	  break;
       }
     }
   }
