@@ -35,6 +35,7 @@
 #ifndef __MINGW32__
 typedef unsigned long sigset_t;		/* we don't have this */
 typedef int mode_t;
+#define HAVE_SHLOBJ_H 1
 #endif
 #define HAVE_SIGSET_T 1			/* For the future */
 
@@ -47,7 +48,6 @@ typedef int mode_t;
 
 #define HAVE_UXNT_H 1
 #define HAVE_MALLOC_H 1
-#define HAVE_SHLOBJ_H 1
 #define HAVE_VIRTUALALLOC 1
 #define HAVE_CLOCK 1			/* clock() timing function */
 #define inline __inline
