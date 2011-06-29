@@ -1131,7 +1131,7 @@ emptyStack(Stack s)
 
 
 void
-emptyStacks()
+emptyStacks(void)
 { GET_LD
   int i;
 

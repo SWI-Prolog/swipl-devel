@@ -309,8 +309,8 @@ print_backtrace_named(const char *why)
 
 static void
 crashHandler(int sig)
-{ Sdprintf("\nSWI-Prolog: received fatal signal %d (%s)\n",
-	   sig, signal_name(sig));
+{ Sdprintf("\nSWI-Prolog [thread %d]: received fatal signal %d (%s)\n",
+	   PL_thread_self(), sig, signal_name(sig));
   save_backtrace("crash");
   print_backtrace_named("crash");
   abort();

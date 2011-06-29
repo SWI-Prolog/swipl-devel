@@ -513,7 +513,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'O':	GD->cmdline.optimise = TRUE; /* see initFeatures() */
 			break;
 	case 'x':
-  	case 'o':	optionString(GD->options.compileOut);
+	case 'o':	optionString(GD->options.compileOut);
 			break;
 	case 'f':	optionString(GD->options.initFile);
 			break;
@@ -1197,7 +1197,8 @@ PL_cleanup(int rval)
 
   LOCK();
   GD->cleaning = CLN_ACTIVE;
-
+  emptyStacks();			/* no need for this and we may be */
+					/* out of stack */
   pl_notrace();				/* avoid recursive tracing */
 #ifdef O_PROFILE
   resetProfiler();			/* don't do profiling anymore */
@@ -1335,8 +1336,12 @@ vsysError(const char *fm, va_list args)
 { GET_LD
   static int active = 0;
 
-  if ( active++ )
-    PL_halt(3);
+  switch ( active++ )
+  { case 1:
+      PL_halt(3);
+    case 2:
+      abort();
+  }
 
 #ifdef O_PLMT
   Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d\n\t",
@@ -1396,7 +1401,15 @@ action:
 
 void
 vfatalError(const char *fm, va_list args)
-{
+{ static int active = 0;
+
+  switch ( active++ )
+  { case 1:
+      exit(2);
+    case 2:
+      abort();
+  }
+
 #ifdef __WINDOWS__
   char msg[500];
   Ssprintf(msg, "[FATAL ERROR:\n\t");
@@ -1433,7 +1446,7 @@ vwarning(const char *fm, va_list args)
   { fid_t cid = 0;
 
     if ( !GD->bootsession && GD->initialised &&
-	 !LD->outofstack && 		/* cannot call Prolog */
+	 !LD->outofstack &&		/* cannot call Prolog */
 	 !fm[0] == '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
       char *s = message;

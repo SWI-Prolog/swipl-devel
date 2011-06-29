@@ -660,16 +660,18 @@ int
 outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
   Stack s = stack;
+  const char *msg = "unhandled stack overflow";
 
   if ( LD->outofstack )
-  { Sdprintf("Failed to recover from %s-overflow\n", s->name);
-    print_backtrace_named("out-of-stack");
+  { Sdprintf("[Thread %d]: failed to recover from %s-overflow\n",
+	     PL_thread_self(), s->name);
+    print_backtrace_named(msg);
     fatalError("Sorry, cannot continue");
 
     return FALSE;				/* NOTREACHED */
   }
 
-  save_backtrace("out-of-stack");
+  save_backtrace(msg);
 
   LD->trim_stack_requested = TRUE;
   LD->exception.processing = TRUE;
