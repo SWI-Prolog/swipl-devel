@@ -148,10 +148,10 @@ typedef struct
 
 #define	PL_TYPE_VARIABLE	(1)	/* variable */
 #define PL_TYPE_ATOM		(2)	/* atom */
-#define PL_TYPE_INTEGER	  	(3)	/* big integer */
+#define PL_TYPE_INTEGER		(3)	/* big integer */
 #define PL_TYPE_TAGGED_INTEGER  (4)	/* tagged integer */
-#define PL_TYPE_FLOAT	  	(5)	/* double */
-#define PL_TYPE_STRING	  	(6)	/* string */
+#define PL_TYPE_FLOAT		(5)	/* double */
+#define PL_TYPE_STRING		(6)	/* string */
 #define PL_TYPE_COMPOUND	(7)	/* compound term */
 #define PL_TYPE_CONS		(8)	/* list-cell */
 
@@ -370,7 +370,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	Word ap = valPAttVar(w);
 
 	if ( isEmptyBuffer(&info->code) )
-	{ addOpCode(info, PL_REC_ALLOCVAR); 	/* only an attributed var */
+	{ addOpCode(info, PL_REC_ALLOCVAR);	/* only an attributed var */
 	  info->size++;
 	}
 
@@ -696,10 +696,10 @@ typedef struct
   const char   *base;			/* start of data */
   Word	       *vars;
   Word		gbase;			/* base of term on global stack */
-  Word 		gstore;			/* current storage location */
+  Word		gstore;			/* current storage location */
 					/* for se_record() */
-  uint  	nvars;			/* Variables seen */
-  TmpBuffer 	avars;			/* Values stored for attvars */
+  uint		nvars;			/* Variables seen */
+  TmpBuffer	avars;			/* Values stored for attvars */
 } copy_info, *CopyInfo;
 
 
@@ -740,7 +740,7 @@ other stacks as scratch-area.
 #define fetchMultipleBuf(b, var, times, type) \
 		do \
 		{ memcpy(var, (b)->data, times*sizeof(type)); \
- 		  (b)->data +=  times*sizeof(type); \
+		  (b)->data +=  times*sizeof(type); \
 		} while(0)
 #define skipBuf(b, type) \
 		((b)->data += sizeof(type))
@@ -1692,16 +1692,16 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	}
 	return FALSE;
       }
-      if ( getKeyEx(key, &k PASS_LD) )
-      { if ( !(rl = isCurrentRecordList(k)) )
-	  fail;
-	varkey = FALSE;
-      } else if ( PL_is_variable(key) )
+      if ( PL_is_variable(key) )
       { if ( !(rl = GD->recorded_db.head) )
 	  fail;
 	varkey = TRUE;
+      } else if ( getKeyEx(key, &k PASS_LD) )
+      { if ( !(rl = isCurrentRecordList(k)) )
+	  fail;
+	varkey = FALSE;
       } else
-      { fail;
+      { return FALSE;
       }
       LOCK();
       rl->references++;
@@ -1757,7 +1757,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	   (!ref || PL_unify_recref(ref, record)) )
       { PL_close_foreign_frame(fid);
 
-	if ( varkey && !unifyKey(key, rl->key) ) 	/* stack overflow */
+	if ( varkey && !unifyKey(key, rl->key) )	/* stack overflow */
 	{ UNLOCK();
 	  fail;
 	}
