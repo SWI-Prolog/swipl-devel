@@ -23,6 +23,7 @@
 */
 
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 
 #ifndef O_MYALLOC
 #define O_MYALLOC 1
@@ -628,7 +629,7 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 
 void
 cleanupMemAlloc(void)
-{ 					/* TBD: Cleanup! */
+{					/* TBD: Cleanup! */
 }
 
 void
@@ -661,7 +662,14 @@ outOfStack(void *stack, stack_overflow_action how)
   Stack s = stack;
 
   if ( LD->outofstack )
-    fatalError("Sorry, failed to recover from %s-overflow", s->name);
+  { Sdprintf("Failed to recover from %s-overflow\n", s->name);
+    print_backtrace_named("out-of-stack");
+    fatalError("Sorry, cannot continue");
+
+    return FALSE;				/* NOTREACHED */
+  }
+
+  save_backtrace("out-of-stack");
 
   LD->trim_stack_requested = TRUE;
   LD->exception.processing = TRUE;
@@ -1297,7 +1305,7 @@ initAlloc(void)
 #if defined(_DEBUG) && defined(__WINDOWS__) && 0
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
 		 _CRTDBG_CHECK_CRT_DF|
-		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
+		 //_CRTDBG_CHECK_ALWAYS_DF|	/* very expensive */
 		 //_CRTDBG_DELAY_FREE_MEM_DF|   /* does not reuse freed mem */
 		 //_CRTDBG_LEAK_CHECK_DF|
 		 0);

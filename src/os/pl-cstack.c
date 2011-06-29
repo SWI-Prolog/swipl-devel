@@ -105,25 +105,59 @@ save_backtrace(const char *why)
 }
 
 
+static void
+print_trace(btrace *bt, int me)
+{ size_t i;
+
+  if ( bt->why[me] )
+  { Sdprintf("Stack trace labeled \"%s\":\n", bt->why[me]);
+
+    for(i=0; i<bt->sizes[me]; i++)
+      Sdprintf("  [%d] %s\n", i, bt->symbols[me][i]);
+  } else
+  { Sdprintf("No stack trace\n");
+  }
+}
+
+
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
 { btrace *bt = get_trace_store();
 
   if ( bt )
-  { int i;
-    int me = bt->current-last;
+  { int me = bt->current-last;
     if ( me < 0 )
       me += SAVE_TRACES;
 
-    if ( bt->why[me] )
-      Sdprintf("Stack trace labeled \"%s\":\n", bt->why[me]);
-
-    for(i=0; i<bt->sizes[me]; i++)
-      Sdprintf("  [%d] %s\n", i, bt->symbols[me][i]);
+    print_trace(bt, me);
   } else
   { Sdprintf("No backtrace store?\n");
   }
 }
+
+
+void
+print_backtrace_named(const char *why)
+{ btrace *bt = get_trace_store();
+
+  if ( bt )
+  { int me = bt->current-1;
+
+    for(;;)
+    { if ( bt->why[me] && strcmp(bt->why[me], why) == 0 )
+      { print_trace(bt, me);
+	return;
+      }
+      if ( --me < 0 )
+	me += SAVE_TRACES;
+      if ( me == bt->current-1 )
+	break;
+    }
+  }
+
+  Sdprintf("No backtrace named %s\n", why);
+}
+
 
 #endif /*HAVE_EXECINFO_H*/
 
@@ -146,6 +180,12 @@ btrace_destroy(struct btrace *bt)
 
 void
 print_backtrace(int last)
+{ Sdprintf("%s:%d C-stack dumps are not supported on this platform\n",
+	   __FILE__, __LINE__);
+}
+
+void
+print_named_backtrace(const char *why)
 { Sdprintf("%s:%d C-stack dumps are not supported on this platform\n",
 	   __FILE__, __LINE__);
 }
