@@ -26,6 +26,7 @@
 
 #define GLOBAL SO_LOCAL			/* allocate global variables here */
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 #include "pl-dbref.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
@@ -84,7 +85,9 @@ setupProlog(void)
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   if ( truePrologFlag(PLFLAG_SIGNALS) )
-    initSignals();
+  { initSignals();
+    initBackTrace();
+  }
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.localSize,
@@ -277,7 +280,7 @@ static struct signame
   { -1,		NULL,     0}
 };
 
-static const char *
+const char *
 signal_name(int sig)
 { struct signame *sn = signames;
 

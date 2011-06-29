@@ -302,6 +302,41 @@ print_backtrace_named(const char *why)
 
 
 		 /*******************************
+		 *	  ADD AS HANDLER	*
+		 *******************************/
+
+#ifdef BTRACE_DONE
+
+static void
+crashHandler(int sig)
+{ Sdprintf("\nSWI-Prolog: received fatal signal %d (%s)\n",
+	   sig, signal_name(sig));
+  save_backtrace("crash");
+  print_backtrace_named("crash");
+  abort();
+}
+
+void
+initBackTrace(void)
+{
+#ifdef SIGSEGV
+  PL_signal(SIGSEGV, crashHandler);
+#endif
+#ifdef SIGILL
+  PL_signal(SIGILL, crashHandler);
+#endif
+#ifdef SIGBUS
+  PL_signal(SIGBUS, crashHandler);
+#endif
+#ifdef SIGFPE
+  PL_signal(SIGFPE, crashHandler);
+#endif
+}
+
+#endif
+
+
+		 /*******************************
 		 *   FALLBACK IMPLEMENTATION	*
 		 *******************************/
 
@@ -327,6 +362,11 @@ void
 print_named_backtrace(const char *why)
 { Sdprintf("%s:%d C-stack dumps are not supported on this platform\n",
 	   __FILE__, __LINE__);
+}
+
+void
+initBackTrace(void)
+{
 }
 
 #endif /*BTRACE_DONE*/
