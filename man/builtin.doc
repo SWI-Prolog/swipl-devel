@@ -2162,7 +2162,7 @@ semi-deterministic. Otherwise, it must be considered non-deterministic.
 If neither \arg{Reference} nor \arg{Key} is given, the triples are
 generated as in the code snippet below.\footnote{Note that, without a
 given \arg{Key}, some implementations return triples in the order
-defined by recorda/2 and recordz/2.}
+defined by recorda/2 and recordz/2.}  See also current_key/1.
 
 \begin{code}
 	current_key(Key),
