@@ -985,6 +985,14 @@ else
 fi
 fi
 
+AC_CHECK_LIB(unwind, main,
+	     check_unwind_h=yes)
+if test "$check_unwind_h" = yes; then
+  AC_CHECK_HEADER(libunwind.h,
+		  AC_DEFINE(HAVE_LIBUNWIND, 1,
+			    [ Define if you have libunwind and libunwind.h ])
+		  LIBS="-lunwind $LIBS")
+fi
 
 AC_CHECK_SIZEOF(void*, 4)
 AC_CHECK_SIZEOF(long, 4)

@@ -33,9 +33,149 @@ critical event such as GC and retrieve it  later if it turns out that an
 error occurs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define SAVE_TRACES 10
+
+		 /*******************************
+		 *	      LIBUNWIND		*
+		 *******************************/
+
+#if !defined(BTRACE_DONE) && defined(HAVE_LIBUNWIND)
+#define BTRACE_DONE 1
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+
+#define MAX_DEPTH 10
+
+typedef struct
+{ char name[32];				/* function called */
+  unw_word_t offset;				/* offset in function */
+} frame_info;
+
+typedef struct
+{ const char *name;				/* label of the backtrace */
+  int depth;					/* # frames collectec */
+  frame_info frame[MAX_DEPTH];			/* per-frame info */
+} btrace_stack;
+
+typedef struct btrace
+{ btrace_stack dumps[SAVE_TRACES];		/* ring of buffers */
+  int current;					/* next to fill */
+} btrace;
 
 
-#if defined(HAVE_EXECINFO_H) && !defined(DMALLOC)
+void
+btrace_destroy(struct btrace *bt)
+{ free(bt);
+}
+
+
+static btrace *
+get_trace_store(void)
+{ GET_LD
+
+  if ( !LD->btrace_store )
+  { btrace *s = malloc(sizeof(*s));
+    if ( s )
+    { memset(s, 0, sizeof(*s));
+      LD->btrace_store = s;
+    }
+  }
+
+  return LD->btrace_store;
+}
+
+
+void
+save_backtrace(const char *why)
+{ btrace *bt = get_trace_store();
+
+  if ( bt )
+  { btrace_stack *s = &bt->dumps[bt->current];
+    unw_cursor_t cursor; unw_context_t uc;
+    int depth;
+
+    unw_getcontext(&uc);
+    unw_init_local(&cursor, &uc);
+    for(depth=0; unw_step(&cursor) > 0 && depth < MAX_DEPTH; depth++)
+    { unw_get_proc_name(&cursor,
+			s->frame[depth].name, sizeof(s->frame[depth].name),
+			&s->frame[depth].offset);
+    }
+    s->name = why;
+    s->depth = depth;
+
+    if ( ++bt->current == SAVE_TRACES )
+      bt->current = 0;
+  }
+
+}
+
+
+static void
+print_trace(btrace *bt, int me)
+{ btrace_stack *s = &bt->dumps[me];
+
+  if ( s->name )
+  { int depth;
+
+    Sdprintf("Stack trace labeled \"%s\":\n", s->name);
+    for(depth=0; depth<s->depth; depth++)
+    { Sdprintf("  [%d] %s+%p\n", depth,
+	       s->frame[depth].name,
+	       (void*)s->frame[depth].offset);
+    }
+  } else
+  { Sdprintf("No stack trace\n");
+  }
+}
+
+
+void
+print_backtrace(int last)		/* 1..SAVE_TRACES */
+{ btrace *bt = get_trace_store();
+
+  if ( bt )
+  { int me = bt->current-last;
+    if ( me < 0 )
+      me += SAVE_TRACES;
+
+    print_trace(bt, me);
+  } else
+  { Sdprintf("No backtrace store?\n");
+  }
+}
+
+
+void
+print_backtrace_named(const char *why)
+{ btrace *bt = get_trace_store();
+
+  if ( bt )
+  { int me = bt->current-1;
+
+    for(;;)
+    { if ( bt->dumps[me].name && strcmp(bt->dumps[me].name, why) == 0 )
+      { print_trace(bt, me);
+	return;
+      }
+      if ( --me < 0 )
+	me += SAVE_TRACES;
+      if ( me == bt->current-1 )
+	break;
+    }
+  }
+
+  Sdprintf("No backtrace named %s\n", why);
+}
+
+#endif /*HAVE_LIBUNWIND*/
+
+
+		 /*******************************
+		 *	       GLIBC		*
+		 *******************************/
+
+#if !defined(BTRACE_DONE) && defined(HAVE_EXECINFO_H) && !defined(DMALLOC)
 #define BTRACE_DONE 1
 #include <execinfo.h>
 #include <string.h>
@@ -47,7 +187,6 @@ Disabled of dmalloc is used because the  free of the memory allocated by
 backtrace_symbols() is considered an error by dmalloc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define SAVE_TRACES 10
 typedef struct btrace
 { char	      **symbols[SAVE_TRACES];
   const char   *why[SAVE_TRACES];
