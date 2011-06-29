@@ -27,6 +27,7 @@
 #define O_SECURE 1
 #endif
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 #include "pentium.h"
 #include "pl-inline.h"
 
@@ -324,109 +325,6 @@ print_val(word val, char *buf)
 
   return buf;
 }
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The BACKTRACE code below can only  be   compiled  on systems using glibc
-(the GNU C-library). It saves the  stack-trace   of  the  latest call to
-markAtomsOnStacks()  to  help  identifying  problems.    You   can  call
-print_backtrace() from GDB to find the last stack-trace.
-
-Disabled of dmalloc is used because the  free of the memory allocated by
-backtrace_symbols() is considered an error by dmalloc.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(HAVE_EXECINFO_H) && !defined(DMALLOC)
-#include <execinfo.h>
-#include <string.h>
-
-#define SAVE_TRACES 10
-typedef struct
-{ char **symbols[SAVE_TRACES];
-  size_t sizes[SAVE_TRACES];
-  int    current;
-} btrace;
-
-static pthread_key_t trace_key;
-static pthread_once_t trace_key_once = PTHREAD_ONCE_INIT;
-
-static void
-trace_destroy(void *buf)
-{ btrace *bt = buf;
-  int i;
-
-  for(i=0; i<SAVE_TRACES; i++)
-  { if ( bt->symbols[i] )
-      free(bt->symbols[i]);
-  }
-
-  free(bt);
-}
-
-static void
-trace_key_alloc(void)
-{ pthread_key_create(&trace_key, trace_destroy);
-}
-
-static btrace *
-get_trace_store(void)
-{ btrace *bt;
-
-  pthread_once(&trace_key_once, trace_key_alloc);
-  if ( (bt=(btrace*)pthread_getspecific(trace_key)) )
-    return bt;
-  if ( (bt = malloc(sizeof(btrace))) )
-    memset(bt, 0, sizeof(*bt));
-
-  pthread_setspecific(trace_key, bt);
-
-  return bt;
-}
-
-
-static void
-save_backtrace(void)
-{ btrace *bt = get_trace_store();
-
-  if ( bt )
-  { void *array[100];
-    size_t frames;
-
-    frames = backtrace(array, sizeof(array)/sizeof(void *));
-    bt->sizes[bt->current] = frames;
-    if ( bt->symbols[bt->current] )
-      free(bt->symbols[bt->current]);
-    bt->symbols[bt->current] = backtrace_symbols(array, frames);
-    if ( ++bt->current == SAVE_TRACES )
-      bt->current = 0;
-  }
-}
-
-void
-print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ btrace *bt = get_trace_store();
-
-  if ( bt )
-  { int i;
-    int me = bt->current-last;
-    if ( me < 0 )
-      me += SAVE_TRACES;
-
-    for(i=0; i<bt->sizes[me]; i++)
-      Sdprintf("[%d] %s\n", i, bt->symbols[me][i]);
-  } else
-  { Sdprintf("No backtrace store?\n");
-  }
-}
-
-#else
-
-#define save_backtrace()
-
-#endif /*HAVE_EXECINFO_H*/
-
-#else
-
-#define save_backtrace()
 
 #endif /*O_DEBUG*/
 
@@ -3710,7 +3608,7 @@ garbageCollect(void)
     return FALSE;
 
 #ifdef O_MAINTENANCE
-  save_backtrace();
+  save_backtrace("GC");
 #endif
 
   get_vmi_state(LD->query, &state);
@@ -4707,7 +4605,7 @@ growStacks(size_t l, size_t g, size_t t)
   int rc;
 
 #ifdef O_MAINTENANCE
-  save_backtrace();
+  save_backtrace("SHIFT");
 #endif
 
   gBase--;
@@ -4944,7 +4842,7 @@ void
 markAtomsOnStacks(PL_local_data_t *ld)
 { assert(!ld->gc.status.active);
 
-  DEBUG(0, save_backtrace());
+  DEBUG(0, save_backtrace("AGC"));
 
   markAtomsOnGlobalStack(ld);
   markAtomsInEnvironments(ld);

@@ -516,6 +516,10 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     GD->statistics.thread_cputime += time;
   }
   destroy_message_queue(&ld->thread.messages);
+  if ( ld->btrace_store )
+  { btrace_destroy(ld->btrace_store);
+    ld->btrace_store = NULL;
+  }
   info->thread_data = NULL;
   info->has_tid = FALSE;		/* needed? */
   ld->thread.info = NULL;		/* avoid a loop */
