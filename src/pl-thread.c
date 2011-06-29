@@ -33,6 +33,7 @@
 #endif
 
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 #include <stdio.h>
 #ifdef O_PLMT
 
