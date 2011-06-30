@@ -10,6 +10,7 @@
 bdir=@abs_top_builddir@
 PLARCH=@PLARCH@
 PL=@PL@
+EXEEXT_FOR_BUILD=@EXEEXT_FOR_BUILD@
 ldir=$bdir/../lib/$PLARCH
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
@@ -19,4 +20,4 @@ else
 fi
 export @DLLIBVAR@
 
-$bdir/swipl-ld-build -pl $bdir/$PL "$@"
+$bdir/swipl-ld-build$EXEEXT_FOR_BUILD -pl $bdir/$PL "$@"
