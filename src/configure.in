@@ -104,6 +104,11 @@ if test "x$PLARCH" = "x"; then
 fi
 changequote([,])dnl
 
+# Determine the C compiler and executable suffix on the build system.
+SWI_PROG_CC_FOR_BUILD
+SWI_PROG_EXEEXT_FOR_BUILD
+
+
 AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
 	      [case "$enableval" in
 		   yes) MKSHARED=yes
