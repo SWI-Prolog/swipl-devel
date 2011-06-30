@@ -359,7 +359,7 @@ print_backtrace(int last)
 }
 
 void
-print_named_backtrace(const char *why)
+print_backtrace_named(const char *why)
 { Sdprintf("%s:%d C-stack dumps are not supported on this platform\n",
 	   __FILE__, __LINE__);
 }
