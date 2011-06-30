@@ -83,6 +83,9 @@ LDFLAGS=@LDFLAGS@ $(CPFLAGS)
 MINGW=@MINGW@
 DEFSTARTUP=@DEFSTARTUP@
 
+CC_FOR_BUILD = @CC_FOR_BUILD@
+EXEEXT_FOR_BUILD = @EXEEXT_FOR_BUILD@
+
 PB=../boot
 INCLUDEDIR=../include
 EXPORTS=$(INCLUDEDIR)/SWI-Exports
@@ -142,7 +145,7 @@ OPTIMISE=@OPTIMISE@
 PROFILE_SRC=../bench/run.pl
 PROFILE_GOAL=run(0.5)
 
-all:	banner gitversion dirs $(OPTIMISE) swipl-ld
+all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
 
 noprof:	uxnt-lib rc-lib tai-lib $(MKLIBS) system headers startup index
 prof:
@@ -318,12 +321,12 @@ pl-prof.o:	pentium.c
 os/pl-dtoa.o:	os/dtoa.c
 pl-text.o:	$(srcdir)/pl-codelist.h
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
-$(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi
-		./mkvmi "$(srcdir)"
+$(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi$(EXEEXT_FOR_BUILD)
+		./mkvmi$(EXEEXT_FOR_BUILD) "$(srcdir)"
 		@touch $@
 
-mkvmi:		mkvmi.c
-		$(CC) $(CFLAGS) -o $@ $(srcdir)/mkvmi.c
+mkvmi$(EXEEXT_FOR_BUILD):	mkvmi.c
+		$(CC_FOR_BUILD) -g -O2 -o $@ $(srcdir)/mkvmi.c
 
 
 ifdef RLPREFIX
@@ -348,8 +351,11 @@ $(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
 defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
-swipl-ld:	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
+swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
+
+swipl-ld-build$(EXEEXT_FOR_BUILD):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
+		$(CC_FOR_BUILD) -I. -I$(srcdir) -g -O2 -o $@ $(srcdir)/swipl-ld.c
 
 tags::
 		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
@@ -370,12 +376,12 @@ dv-install:	install-arch install-libs install-bins html-install
 
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
-		for f in $(PL) swipl-ld swipl-rc; do \
+		for f in $(PL) swipl-ld$(EXEEXT) swipl-rc; do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
 install-arch:	idirs iruntime
-		for f in $(PL) swipl-ld rc/swipl-rc; do \
+		for f in $(PL) swipl-ld$(EXEEXT) rc/swipl-rc; do \
 		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(PLARCH); \
 		done
 
@@ -541,6 +547,7 @@ profclean:
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.gcda
 
+# FIXME: clean swipl-ld$(EXEEXT_FOR_BUILD)
 distclean:	clean profclean
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
@@ -552,7 +559,9 @@ distclean:	clean profclean
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h version.h
 		rm -f $(DEVPL) swipl.home swiplbin $(STARTUPPATH)
-		rm -f $(PL) swipl-ld swipl.1 $(PL).exe swipl-ld.exe libswiplimp.a $(DEF)
+		rm -f $(PL) $(PL).exe
+		rm .f  swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
+		rm -f  swipl.1 libswiplimp.a $(DEF)
 		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)
 

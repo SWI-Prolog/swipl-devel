@@ -19,4 +19,4 @@ else
 fi
 export @DLLIBVAR@
 
-$bdir/swipl-ld -pl $bdir/$PL "$@"
+$bdir/swipl-ld-build -pl $bdir/$PL "$@"
