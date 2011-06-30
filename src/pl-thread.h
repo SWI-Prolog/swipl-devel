@@ -169,9 +169,9 @@ compile-time
 #ifdef O_CONTENTION_STATISTICS
 #define countingMutexLock(cm) \
 	do \
-	{ if ( pthread_mutex_trylock(&(cm)->mutex) == EBUSY ) \
+	{ if ( !simpleMutexTryLock(&(cm)->mutex) ) \
 	  { (cm)->collisions++; \
-	    pthread_mutex_lock(&(cm)->mutex); \
+	    simpleMutexLock(&(cm)->mutex); \
 	  } \
 	  (cm)->count++; \
 	} while(0)
