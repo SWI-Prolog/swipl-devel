@@ -1836,7 +1836,7 @@ error:
   return FALSE;
 }
 
-#ifdef __MSC_VER			/* defined in pl-nt.c */
+#ifdef _MSC_VER					/* defined in pl-nt.c */
 extern int ftruncate(int fileno, int64_t length);
 #define HAVE_FTRUNCATE
 #endif
