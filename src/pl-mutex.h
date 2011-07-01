@@ -57,6 +57,9 @@ controlled using the following macros:
 
 #if defined(__WINDOWS__)
 #define USE_CRITICAL_SECTIONS 1
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0400		/* get TryEnterCriticalSection() */
+#endif
 #endif
 
 #include <pthread.h>
@@ -75,6 +78,9 @@ controlled using the following macros:
 #define simpleMutexInit(p)	InitializeCriticalSection(p)
 #define simpleMutexDelete(p)	DeleteCriticalSection(p)
 #define simpleMutexLock(p)	EnterCriticalSection(p)
+#if _WIN32_WINNT >= 0x0400
+#define simpleMutexTryLock(p)	TryEnterCriticalSection(p)
+#endif
 #define simpleMutexUnlock(p)	LeaveCriticalSection(p)
 
 #else /* USE_CRITICAL_SECTIONS */
@@ -84,6 +90,7 @@ typedef pthread_mutex_t simpleMutex;
 #define simpleMutexInit(p)	pthread_mutex_init(p, NULL)
 #define simpleMutexDelete(p)	pthread_mutex_destroy(p)
 #define simpleMutexLock(p)	pthread_mutex_lock(p)
+#define simpleMutexTryLock(p)	(pthread_mutex_trylock(p) == 0)
 #define simpleMutexUnlock(p)	pthread_mutex_unlock(p)
 
 #endif /*USE_CRITICAL_SECTIONS*/
@@ -116,9 +123,11 @@ extern int recursiveMutexUnlock(recursiveMutex *m);
 
 #endif /*RECURSIVE_MUTEXES*/
 
-#ifndef USE_CRITICAL_SECTIONS
+#ifdef simpleMutexTryLock
 #define O_CONTENTION_STATISTICS 1
+#ifndef USE_CRITICAL_SECTIONS
 #include <errno.h>
+#endif
 #endif
 
 typedef struct counting_mutex

@@ -1411,12 +1411,13 @@ vfatalError(const char *fm, va_list args)
   }
 
 #ifdef __WINDOWS__
-  char msg[500];
-  Ssprintf(msg, "[FATAL ERROR:\n\t");
-  Svsprintf(&msg[strlen(msg)], fm, args);
-  Ssprintf(&msg[strlen(msg)], "]");
+  { char msg[500];
+    Ssprintf(msg, "[FATAL ERROR:\n\t");
+    Svsprintf(&msg[strlen(msg)], fm, args);
+    Ssprintf(&msg[strlen(msg)], "]");
 
-  PlMessage(msg);
+    PlMessage(msg);
+  }
 #else
   Sfprintf(Serror, "[FATAL ERROR:\n\t");
   Svfprintf(Serror, fm, args);
