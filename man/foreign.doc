@@ -1263,7 +1263,7 @@ created from the \arg{len}/\arg{chars} pair. The data will be copied.
 This interface can deal with 0-bytes in the string. See also
 \secref{foreigndata}.
 
-    \cfunction{int}{PL_unify_integer}{term_t ?t, long n}
+    \cfunction{int}{PL_unify_integer}{term_t ?t, intptr_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
     \cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
@@ -2662,7 +2662,7 @@ The \ctype{PL_extension} type is defined as
 
 \begin{code}
 typedef struct PL_extension
-{ char 		*predicate_name;	/* Name of the predicate */
+{ char		*predicate_name;	/* Name of the predicate */
   short		arity;			/* Arity of the predicate */
   pl_function_t	function;		/* Implementing functions */
   short		flags;			/* Or of PL_FA_... */
