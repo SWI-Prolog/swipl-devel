@@ -58,4 +58,9 @@ export LDFLAGS="-L$install/lib"
 ./configure --host=i586-mingw32msvc --prefix=$install --disable-readline --disable-libdirversion --disable-shared
 make
 
+cd ../packages
+export CPPFLAGS=-I$install/include
+export PKGLDFLAGS=-I$install/lib
+./configure --host=$host --prefix=$prefix
+make $makeopts
 
