@@ -1573,13 +1573,10 @@ main(int argc, char **argv)
   }
 
   parseOptions(argc, argv);
+  defaultProgram(&pl, PROG_PL);
 
   if ( build_defaults )
-  {
-    defaultProgram(&pl, PROG_PL);
-    getPrologOptions();
-  } else
-  {
+  { nostate = TRUE;			/* not needed and Prolog won't run */
     defaultProgram(&cc, C_CC);
 #ifdef PLBASE
     defaultPath(&plbase, PLBASE);
@@ -1587,9 +1584,11 @@ main(int argc, char **argv)
     defaultPath(&plbase, PLHOME);
 #endif
     defaultPath(&plarch, PLARCH);
-    /* FIXME: what about PLLIBS? */
     defaultProgram(&pllib, C_PLLIB);
-    appendArgList(&ldoptions, C_LIBS);
+#ifdef __CYGWIN__
+    if ( !shared )
+#endif
+      addOptionString(C_LIBS);
     appendArgList(&coptions, C_CFLAGS);
     appendArgList(&cppoptions, C_CFLAGS);
 #ifdef SO_EXT
@@ -1603,6 +1602,8 @@ main(int argc, char **argv)
     ensureOption(&cppoptions, "-D_THREAD_SAFE");
 #endif
 #endif
+  } else
+  { getPrologOptions();
   }
 
   fillDefaultOptions();
