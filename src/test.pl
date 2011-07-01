@@ -99,6 +99,10 @@ syntax(char-3) :-
 	"\\" =:= 0'\\.
 syntax(char-4) :-
 	1-48 == 1-0'0.
+syntax(cannot_start_term-1) :-
+	catch(term_to_atom(_T, 'p(]'), E, true),
+	E = error(syntax_error(cannot_start_term), _).
+
 
 :- op(100, yf, af).
 
