@@ -355,7 +355,7 @@ swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
 
 swipl-ld-build$(EXEEXT_FOR_BUILD):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
-		$(CC_FOR_BUILD) -I. -I$(srcdir) -g -O2 -o $@ $(srcdir)/swipl-ld.c
+		$(CC_FOR_BUILD) -I. -I$(srcdir) -DPLBASE="\"@abs_top_builddir@/..\"" -g -O2 -o $@ $(srcdir)/swipl-ld.c
 
 tags::
 		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])

@@ -202,6 +202,8 @@ static char *pltmp;			/* base saved state */
 static char *out;			/* final output */
 static int  opt_o=FALSE;		/* -o out given */
 
+static int build_defaults = FALSE;	/* don't ask Prolog for parameters*/
+
 static int nostate = FALSE;		/* do not make a state */
 static int nolink = FALSE;		/* do not link */
 static int shared = FALSE;		/* -shared: make a shared-object/DLL */
@@ -602,6 +604,7 @@ usage()
 	  "       -c++ compiler    compiler for C++ source files\n"
 	  "\n"
 	  "       -c               only compile C/C++ files, do not link\n"
+          "       -build-defaults  use default parameters, don't ask Prolog\n"
 	  "       -nostate         just relink the kernel\n"
 	  "       -shared          create target for load_foreign_library/2\n"
 	  "       -embed-shared    embed Prolog in a shared object/DLL\n"
@@ -696,6 +699,8 @@ parseOptions(int argc, char **argv)
     } else if ( strprefix(opt, "-W") )		/* -W* */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
+    } else if ( streq(opt, "-build-defaults") )	/* -build-defaults */
+    { build_defaults = TRUE;
     } else if ( streq(opt, "-nostate") )	/* -nostate */
     { nostate = TRUE;
     } else if ( streq(opt, "-dll") ||		/* -dll */
@@ -1568,8 +1573,38 @@ main(int argc, char **argv)
   }
 
   parseOptions(argc, argv);
-  defaultProgram(&pl, PROG_PL);
-  getPrologOptions();
+
+  if ( build_defaults )
+  {
+    defaultProgram(&pl, PROG_PL);
+    getPrologOptions();
+  } else
+  {
+    defaultProgram(&cc, C_CC);
+#ifdef PLBASE
+    defaultPath(&plbase, PLBASE);
+#else
+    defaultPath(&plbase, PLHOME);
+#endif
+    defaultPath(&plarch, PLARCH);
+    /* FIXME: what about PLLIBS? */
+    defaultProgram(&pllib, C_PLLIB);
+    appendArgList(&ldoptions, C_LIBS);
+    appendArgList(&coptions, C_CFLAGS);
+    appendArgList(&cppoptions, C_CFLAGS);
+#ifdef SO_EXT
+    soext = strdup(SO_EXT);
+#endif
+#ifdef O_PLMT
+    ensureOption(&coptions, "-D_REENTRANT");
+    ensureOption(&cppoptions, "-D_REENTRANT");
+#ifdef _THREAD_SAFE			/* FreeBSD */
+    ensureOption(&coptions, "-D_THREAD_SAFE");
+    ensureOption(&cppoptions, "-D_THREAD_SAFE");
+#endif
+#endif
+  }
+
   fillDefaultOptions();
 
   if ( show_version )
