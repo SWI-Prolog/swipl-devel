@@ -1589,6 +1589,7 @@ main(int argc, char **argv)
     if ( !shared )
 #endif
       addOptionString(C_LIBS);
+    appendArgList(&ldoptions, C_LDFLAGS);
     appendArgList(&coptions, C_CFLAGS);
     appendArgList(&cppoptions, C_CFLAGS);
 #ifdef SO_EXT
