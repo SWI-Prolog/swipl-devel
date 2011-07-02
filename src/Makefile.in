@@ -55,6 +55,7 @@ BOOTFILE=@BOOTFILE@
 
 CC=@CC@
 LDEXE=@LDEXE@
+EXEEXT = @EXEEXT@
 LIBS=@LIBS@
 AWK=@AWK@
 SED=sed
@@ -220,10 +221,9 @@ endif
 endif
 
 ifeq ($(MINGW),true)
-UXNTOBJ=	os/windows/uxnt.o
-OSLIB=	../lib/uxnt.a
+OSLIB=	../lib/$(PLARCH)/libuxnt.a
 
-uxnt-lib:	$(UXNTOBJ) $(INCLUDEDIR)
+uxnt-lib:
 		@(cd os/windows && $(MAKE) COFLAGS="$(COFLAGS)")
 else
 OSLIB=

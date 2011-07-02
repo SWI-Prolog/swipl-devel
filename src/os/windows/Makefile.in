@@ -10,6 +10,7 @@ CC=@CC@
 LDEXE=@LDEXE@
 AR=@AR@
 RANLIB=@RANLIB@
+PLARCH=@PLARCH@
 
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
@@ -24,7 +25,7 @@ PLHOME=../../..
 include $(srcdir)/../../common.mk
 
 OBJ=	uxnt.o
-OUT=	$(PLHOME)/lib/uxnt.a
+OUT=	$(PLHOME)/lib/$(PLARCH)/libuxnt.a
 HDR=	$(PLHOME)/include/uxnt.h \
 	$(PLHOME)/include/dirent.h
 
@@ -46,4 +47,4 @@ clean:
 	rm -f *~
 
 distclean: clean
-	rm -f uxnt.a
+	rm -f libuxnt.a
