@@ -19,4 +19,4 @@ else
 fi
 export @DLLIBVAR@
 
-$bdir/swipl-ld-build$EXEEXT_FOR_BUILD --build-defaults "$@"
+$bdir/swipl-ld-build$EXEEXT_FOR_BUILD -build-defaults "$@"
