@@ -19,4 +19,10 @@ else
 fi
 export @DLLIBVAR@
 
-$bdir/swipl-ld-build$EXEEXT_FOR_BUILD -build-defaults "$@"
+case "$PLARCH" in
+    *mingw*)
+        LDFLAGS=-luxnt
+	;;
+esac
+
+$bdir/swipl-ld-build$EXEEXT_FOR_BUILD -build-defaults "$@" $LDFLAGS
