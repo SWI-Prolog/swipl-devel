@@ -340,7 +340,6 @@ os/pl-stream.o:	os/pl-stream.c
 
 pl-nt.o:	pl-nt.c
 		$(CC) -c -I$(srcdir)/os -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
-
 endif
 
 $(srcdir)/pl-funct.ih $(srcdir)/pl-atom.ih: $(srcdir)/.defatom-sentinel
@@ -351,11 +350,19 @@ $(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
 defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
+ifeq ($(MINGW),true)
+HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MSC
+HOST_OS_FLAG=-DHOST_OS_WINDOWS
+endif
+
 swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
-		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
+	$(CC) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
+		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
 
 swipl-ld-build$(EXEEXT_FOR_BUILD):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
-		$(CC_FOR_BUILD) -I. -I$(srcdir) -DPLBASE="\"@abs_top_builddir@/..\"" -g -O2 -o $@ $(srcdir)/swipl-ld.c
+	$(CC_FOR_BUILD) $(HOST_OS_FLAG) \
+		-DPLBASE="\"@abs_top_builddir@/..\"" \
+		-I. -I$(srcdir) -g -O2 -o $@ $(srcdir)/swipl-ld.c
 
 tags::
 		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
@@ -547,7 +554,6 @@ profclean:
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.gcda
 
-# FIXME: clean swipl-ld$(EXEEXT_FOR_BUILD)
 distclean:	clean profclean
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@

@@ -402,7 +402,7 @@ dnl Some versions of (g)cc need to export the symbols from the main program
 dnl using -rdynamic.  See whether this gcc understands this flag.
 
 case "$PLARCH" in
-  *darwin*|*mingw*)
+  *darwin*|*mingw32*)
 	rdynamic=done
 	;;
 esac
@@ -509,7 +509,7 @@ case "$PLARCH" in
 	SO_PIC=""
 	DLLIBVAR=PATH
 	;;
-  *mingw*)
+  *mingw32*)
 	SO_EXT="dll"
 	DLLIBVAR=PATH
 	DEFSTARTUP=swipl.ini
@@ -1598,7 +1598,7 @@ echo "	LIBS=$LIBS"
 OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
-    *mingw*)
+    *mingw32*)
         OutputFiles="$OutputFiles os/windows/Makefile"
 	;;
 esac

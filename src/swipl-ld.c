@@ -32,52 +32,97 @@ The    file    pl-extend.c,    copied    by    the    installation    to
 embedded application.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/*
+  Preprocessor symbols that may be defined during the compilation
+  of this file:
+
+  #ifdef __WINDOWS__
+    This file (swipl-ld.c) is being compiled by a Windows compiler
+    (either MSC or gcc/MinGW).  The resulting swipl-ld* executable
+    will thus run under Windows.
+  #endif
+
+  #ifdef HOST_TOOLCHAIN_MSC
+    The generated swipl-ld* executable will use the Microsoft C/C++
+    compiler to produce shared objects and executables.
+  #endif
+
+  #ifdef HOST_OS_WINDOWS
+    The generated swipl-ld* executable will produce shared objects
+    and executable that will run under Windows.
+  #endif
+ */
+
 #define UNQUOTED_PREFIX "\1"
 
 #include "pl-incl.h"
 
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__)
+
 #include <process.h>
 #include <io.h>
+
 #if (_MSC_VER < 1400)
 #define off_t intptr_t
-#endif
+
 #define popen _popen
 #define pclose _pclose
+
 #define O_WRONLY _O_WRONLY
 #define O_RDONLY _O_RDONLY
 #define O_CREAT _O_CREAT
 #define O_TRUNC _O_TRUNC
 #define O_BINARY _O_BINARY
+#endif
 
 #ifndef PROG_PL
 #define PROG_PL "swipl.exe"
 #endif
-#ifdef __MINGW32__
-#define PROG_CC C_CC
-#define PROG_CXX C_CC				/* TBD */
-#define PROG_LD C_CC
-#define EXT_OBJ "o"
-#define OPT_DEBUG "-g"
-#else
-#define PROG_LD "link.exe"
-#define SO_LD "link.exe"
-#define PROG_CC "cl.exe /MD"
-#define PROG_CXX "cl.exe /MD /GX"
-#define PROG_CPP "cl.exe -P"
-#define LIB_PL_DEBUG "swiplD.lib"
-#define EXT_OBJ "obj"
-#define OPT_DEBUG "/DEBUG"
-#endif /*__MINGW32__*/
+
 #define PROG_OUT "plout.exe"
-#else /*__WINDOWS__*/
+
+#else /* !defined(__WINDOWS__) */
 
 #ifndef PROG_PL
 #define PROG_PL "swipl"
 #endif
-#define PROG_CC "cc"
-#define PROG_CXX "c++"
+
 #define PROG_OUT "a.out"
+
+#endif /* !defined(__WINDOWS__) */
+
+
+#if defined(HOST_TOOLCHAIN_MSC)
+
+#define PROG_CC "cl.exe /MD"
+#define PROG_CXX "cl.exe /MD /GX"
+/* PROG_CPP is defined in config.h: we need to redefine it. */
+#undef PROG_CPP
+#define PROG_CPP "cl.exe -P"
+
+#define PROG_LD "link.exe"
+/* SO_LD is defined in config.h: we need to redefine it. */
+#undef SO_LD
+#define SO_LD "link.exe"
+
+#define EXT_OBJ "obj"
+
+#define LIB_PL_DEBUG "swiplD.lib"
+#define OPT_DEBUG "/DEBUG"
+
+#else /* !defined(HOST_TOOLCHAIN_MSC) */
+
+#define PROG_CC C_CC
+#define PROG_CXX C_CC "-x c++"
+/* PROG_CPP is defined in config.h */
+
+#define PROG_LD C_CC
+
+/* SO_LD is defined in config.h. */
+#ifndef PROG_LD
+#define PROG_LD C_CC
+#endif
+
 #define EXT_OBJ "o"
 #define OPT_DEBUG "-g"
 
@@ -85,7 +130,8 @@ embedded application.
 #define SO_LDFLAGS "-shared"
 #endif
 
-#endif /*__WINDOWS__*/
+#endif /* !defined(HOST_TOOLCHAIN_MSC) */
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,7 +176,7 @@ embedded application.
 #define streq(s, q)     (strcmp((s), (q)) == 0)
 #endif
 #define strprefix(s, p) (strncmp((s), (p), strlen(p)) == 0)
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__)
 #define strfeq(s, q)	(stricmp((s), (q)) == 0)
 #else
 #define strfeq(s, q)	streq(s, q)
@@ -520,7 +566,7 @@ typedef struct
 
 static extdef extdefs[] =
 { { EXT_OBJ,	&ofiles },
-#ifdef __WINDOWS__
+#if defined(HOST_TOOLCHAIN_MSC)
   { "lib",	&libs },
 #else
   { "a",	&libs },
@@ -585,7 +631,7 @@ usage()
 	  "usage: %s -help\n"
 	  "       %s [options] inputfile ...\n"
 	  "       %s -shared -o out inputfile ...\n"
-#ifdef __WINDOWS__
+#if defined(HOST_OS_WINDOWS)
 	  "       %s -dll -o out inputfile ...\n"
 #endif
 	  "       %s -E cppargument ...\n"
@@ -608,7 +654,7 @@ usage()
 	  "       -nostate         just relink the kernel\n"
 	  "       -shared          create target for load_foreign_library/2\n"
 	  "       -embed-shared    embed Prolog in a shared object/DLL\n"
-#ifdef __WINDOWS__
+#if defined(HOST_OS_WINDOWS)
 	  "       -dll             synonym for -embed-shared\n"
 #endif
 	  "       -fpic            compile small position-independent code\n"
@@ -636,7 +682,7 @@ usage()
 	plld,
         plld,
         plld,
-#ifdef __WINDOWS__
+#if defined(HOST_OS_WINDOWS)
         plld,
 #endif
         plld);
@@ -672,7 +718,7 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-g") )		/* -g */
     { appendArgList(&coptions, OPT_DEBUG);
       appendArgList(&cppoptions, OPT_DEBUG);
-#ifdef _MSC_VER					/* MSVC DEBUG OPTIONS */
+#if defined(HOST_TOOLCHAIN_MSC)			/* MSVC DEBUG OPTIONS */
       appendArgList(&coptions, "/ZI");
       appendArgList(&coptions, "/Od");
       appendArgList(&cppoptions, "/ZI");
@@ -706,7 +752,7 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-dll") ||		/* -dll */
 		streq(opt, "-embed-shared") )   /* -embed-shared */
     { embed_shared = TRUE;
-#ifdef _MSC_VER
+#if defined(HOST_TOOLCHAIN_MSC)
       appendArgList(&ldoptions, "/DLL");
 #else
 #ifdef SO_pic
@@ -872,13 +918,6 @@ tmpPath(char **store, const char *base)
 }
 
 
-#ifndef SO_LD
-#define SO_LD cc
-#endif
-#ifndef PROG_LD
-#define PROG_LD cc
-#endif
-
 static void
 fillDefaultOptions()
 { char tmp[1024];
@@ -896,7 +935,7 @@ fillDefaultOptions()
       ld = cxx;
   }
 
-#ifdef _MSC_VER
+#if defined(HOST_TOOLCHAIN_MSC)
   if ( strcmp(LIB_PL_DEBUG,pllib) == 0 )
     ensureOption(&coptions, "/MDd");
   else ensureOption(&coptions, "/MD");
@@ -913,7 +952,7 @@ fillDefaultOptions()
   free(ctmp);
   ctmp = strdup(tmp);
 #endif
-#if defined(__WINDOWS__) || defined(__CYGWIN__)
+#if defined(HOST_OS_WINDOWS) || /* FIXME: remove this */ defined(__CYGWIN__)
 /* Saved states have the .exe extension under Windows */
   replaceExtension(pltmp, embed_shared ? "dll" : "exe", tmp);
   free(pltmp);
@@ -938,7 +977,7 @@ fillDefaultOptions()
   defaultProgram(&plinitfile, "none");
   defaultProgram(&plsysinit,  "none");
 
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__) && defined(HOST_OS_WINDOWS)
   sprintf(tmp, "%s/lib", plbase);
 #else
   sprintf(tmp, "%s/lib/%s", plbase, plarch);
@@ -1020,7 +1059,7 @@ getPrologOptions()
 
     pclose(fd);
 
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__) && defined(HOST_OS_WINDOWS)
     sprintf(buf, "%s/bin/%s", plbase, PROG_PL);
 #else
     sprintf(buf, "%s/bin/%s/%s", plbase, plarch, PROG_PL);
@@ -1117,7 +1156,7 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
   }
 
   prependArgList(args, "-c");
-#ifdef __WINDOWS__
+#if defined(HOST_OS_WINDOWS)
   appendArgList(args, "-D__WINDOWS__");
   appendArgList(args, "-D_WINDOWS");
 #endif
@@ -1148,7 +1187,7 @@ compileObjectFiles()
     compileFile(cxx, &cppoptions, cppfiles.list[n]);
 }
 
-#ifdef __WINDOWS__
+#if defined(HOST_TOOLCHAIN_MSC)
 char *
 os_path(char *out, const char *in)
 { for(; *in; in++)
@@ -1189,14 +1228,14 @@ void
 linkBaseExecutable()
 { char *cout = out;
 
-#ifndef __WINDOWS__				/* bit of a hack ... */
+#if !defined(HOST_OS_WINDOWS)			/* bit of a hack ... */
   if ( embed_shared )
   { linkSharedObject();
     return;
   }
 #endif
 
-#ifdef __WINDOWS__
+#if defined(HOST_TOOLCHAIN_MSC)
 { char tmp[MAXPATHLEN];
   sprintf(tmp, "/out:%s", cout);
   prependArgList(&ldoptions, tmp);
@@ -1206,7 +1245,7 @@ linkBaseExecutable()
   appendArgList(&ldoptions, pllib);		/* -lpl */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
-#else /*__WINDOWS__*/
+#else /* !defined(HOST_TOOLCHAIN_MSC) */
   prependArgList(&ldoptions, cout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
@@ -1214,11 +1253,11 @@ linkBaseExecutable()
   appendArgList(&ldoptions, pllib);		/* -lpl */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
-#endif
+#endif /* !defined(HOST_TOOLCHAIN_MSC) */
 
   if ( !nostate )
   {
-#ifdef __WINDOWS__
+#if defined(HOST_TOOLCHAIN_MSC)
     if ( !embed_shared )
     { char buf[MAXPATHLEN];
       appendArgList(&tmpfiles, replaceExtension(cout, "exp", buf));
@@ -1245,7 +1284,7 @@ linkSharedObject()
   { soout = replaceExtension(out, soext, soname);
   }
 
-#ifdef __WINDOWS__
+#if defined(HOST_TOOLCHAIN_MSC)
   prependArgList(&ldoptions, "/dll");
 { char tmp[MAXPATHLEN];
   sprintf(tmp, "/out:%s", soout);
@@ -1256,7 +1295,7 @@ linkSharedObject()
   appendArgList(&ldoptions, pllib);		/* libpl.lib */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
-#else /*__WINDOWS__*/
+#else /* !defined(HOST_TOOLCHAIN_MSC) */
 #ifdef __CYGWIN__
   prependArgList(&ldoptions, SO_LDFLAGS);
   prependArgList(&ldoptions, soout);
@@ -1280,7 +1319,7 @@ linkSharedObject()
 #endif /*SO_FORMAT_LDFLAGS*/
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
-#ifndef O_SHARED_KERNEL
+#if !defined(HOST_OS_WINDOWS) && !defined(O_SHARED_KERNEL)
   if ( embed_shared )
 #endif
   { appendArgList(&ldoptions, pllib);		/* -lpl */
@@ -1291,7 +1330,7 @@ linkSharedObject()
   appendArgList(&ldoptions, plexe);		/* last is executable */
 #endif
 #endif /*__CYGWIN__*/
-#endif /*__WINDOWS__*/
+#endif /* !defined(HOST_TOOLCHAIN_MSC) */
 
   callprog(ld, &ldoptions);
 }
@@ -1410,7 +1449,7 @@ copy_fd(int i, int o)
 }
 
 
-#ifdef __WINDOWS__
+#if defined(HOST_TOOLCHAIN_MSC)
 void
 saveExportLib()
 { char ibuf[MAXPATHLEN];
@@ -1432,7 +1471,7 @@ saveExportLib()
     }
   }
 }
-#endif /*__WINDOWS__*/
+#endif /* defined(HOST_TOOLCHAIN_MSC) */
 
 
 void
@@ -1441,7 +1480,7 @@ createOutput()
 
   if ( verbose )
   {
-#ifdef __WINDOWS__
+#if defined(HOST_TOOLCHAIN_MSC)
     printf("\tcopy /b %s+%s %s\n", out, pltmp, out);
 #else
     printf("\tcat %s >> %s\n", pltmp, out);
