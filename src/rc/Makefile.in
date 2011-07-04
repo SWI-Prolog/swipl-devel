@@ -25,6 +25,7 @@ plmandir=$(PLBASE)/man
 CC=@CC@
 AR=@AR@
 RANLIB=@RANLIB@
+PLARCH=@PLARCH@
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CIFLAGS=@CIFLAGS@
@@ -39,7 +40,7 @@ INSTALL_DATA=@INSTALL_DATA@
 
 MINGW=@MINGW@
 ifeq ($(MINGW),true)
-UXNTLIB=../../lib/uxnt.a
+UXNTLIB=../../lib/$(PLARCH)/libuxnt.a
 else
 UXNTLIB=
 endif
