@@ -511,6 +511,8 @@ case "$PLARCH" in
 	;;
   *mingw32*)
 	SO_EXT="dll"
+	SO_pic=""
+	SO_PIC=""
 	DLLIBVAR=PATH
 	DEFSTARTUP=swipl.ini
 	MINGW=true
@@ -538,9 +540,13 @@ case "$PLARCH" in
 	PLSO=cygpl.$SO_EXT
 	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libswipl.dll.a $(DEF)'
 	;;
+  *mingw32*)
+	PLSO=libswipl.$SO_EXT
+	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a'
+	;;
   *)
 	PLSO=libswipl.$SO_EXT
-	SONAMEOPT=-Wl,-soname=$PLSO.$PLVERSION
+	SONAMEOPT='-Wl,-soname=$(SHAREDV)'
 	;;
 esac
 
