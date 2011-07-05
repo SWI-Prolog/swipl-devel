@@ -209,7 +209,7 @@ else
 ifeq ($(SOEXT),dll)
 $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
-			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(OSLIB) $(LIBS)
 else
 $(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
