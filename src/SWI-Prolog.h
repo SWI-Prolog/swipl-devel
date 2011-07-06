@@ -1054,7 +1054,7 @@ typedef void *Code;
 #endif
 
 typedef struct pl_context_t
-{ PL_engine_t  *ld;			/* Engine */
+{ PL_engine_t   ld;			/* Engine */
   QueryFrame	qf;			/* Current query */
   LocalFrame	fr;			/* Current localframe */
   Code		pc;			/* Code pointer */
