@@ -1412,6 +1412,10 @@ Return value is 0: if there are no more frames (in which case nextref
                    portray the frame
 
 Note that the text is returned as UTF-8, regardless of locale settings.
+
+DEPRECATED: Please use the PL_get_context()   family of functions above.
+This function is incorrect in its handling  of   PC,  but the API is too
+limited to fix it. This function will be removed shortly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
