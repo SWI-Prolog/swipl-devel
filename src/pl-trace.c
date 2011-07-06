@@ -1252,6 +1252,140 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
   return rval;
 }
 
+
+		 /*******************************
+		 *	 SAFE STACK TRACE	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_get_context(pl_context_t *ctx)
+PL_step_context(pl_context_t *ctx)
+PL_describe_context(pl_context_t *ctx, char *buf, size_t len)
+
+These functions provide a public API  to   obtain  a trace of the Prolog
+stack in a fairly safe manner.
+
+static void
+dump_stack(void)
+{ pl_context_t ctx;
+
+  if ( PL_get_context(&ctx) )
+  { int max = 5;
+
+    Sdprintf("Prolog stack:\n");
+
+    do
+    { char buf[256];
+
+      PL_describe_context(&ctx, buf, sizeof(buf));
+      Sdprintf("  %s\n", buf);
+    } while ( max-- > 0 && PL_step_context(&ctx) );
+  } else
+    Sdprintf("No stack??\n");
+}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_get_context(pl_context_t *c)
+{ GET_LD
+
+  if ( !LD )
+    return FALSE;
+
+  c->ld = LD;
+  c->qf = LD->query;
+  if ( c->qf && c->qf->registers.fr )
+    c->fr = c->qf->registers.fr;
+  else
+    c->fr = environment_frame;
+  if ( c->qf && c->qf->registers.pc )
+    c->pc = c->qf->registers.pc;
+  else
+    c->pc = NULL;
+
+  return TRUE;
+}
+
+
+int
+PL_step_context(pl_context_t *c)
+{ if ( c->fr )
+  { GET_LD
+
+    if ( !onStack(local, c->fr) )
+      return FALSE;
+
+    if ( c->fr->parent )
+    { c->pc = c->fr->programPointer;
+      c->fr = c->fr->parent;
+    } else
+    { c->pc = NULL;
+      c->qf = queryOfFrame(c->fr);
+      c->fr = parentFrame(c->fr);
+    }
+  }
+
+  return c->fr ? TRUE : FALSE;
+}
+
+
+int
+PL_describe_context(pl_context_t *c, char *buf, size_t len)
+{ LocalFrame fr;
+
+  buf[0] = 0;
+
+  if ( (fr=c->fr) )
+  { GET_LD
+    long level;
+    int printed;
+
+    if ( !onStack(local, fr) )
+      return snprintf(buf, len, "<invalid frame reference %p>", fr);
+
+    level = levelFrame(fr);
+    if ( !fr->predicate )
+      return snprintf(buf, len, "[%ld] <no predicate>", level);
+
+    printed = snprintf(buf, len, "[%ld] %s ", level, predicateName(fr->predicate));
+    len -= printed;
+    buf += printed;
+
+    if ( c->pc >= fr->predicate->codes &&
+	 c->pc < &fr->predicate->codes[fr->predicate->codes[-1]] )
+    { return printed+snprintf(buf, len, "[PC=%ld in supervisor]",
+			      (c->pc - fr->predicate->codes));
+    }
+
+    if ( false(fr->predicate, FOREIGN) )
+    { int clause_no = 0;
+      intptr_t pc = -1;
+
+      if ( fr->clause )
+      { Clause cl = fr->clause->clause;
+
+	if ( c->pc >= cl->codes && c->pc < &cl->codes[cl->code_size] )
+	  pc = c->pc - cl->codes;
+
+	if ( fr->predicate == PROCEDURE_dc_call_prolog->definition )
+	  return printed+snprintf(buf, len, "[PC=%ld in top query clause]",
+				  (long)pc);
+
+	clause_no = clauseNo(fr->predicate, cl);
+	return printed+snprintf(buf, len, "[PC=%ld in clause %d]",
+				(long)pc,
+				clause_no);
+      }
+      return printed+snprintf(buf, len, "<no clause>");
+    } else
+    { return printed+snprintf(buf, len, "<foreign>");
+    }
+  }
+
+  return 0;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Stores up to len bytes of a representation of the frame referenced by ref
 into buf. If ref is NULL, then the currently executing frame is used nextref
@@ -1259,7 +1393,7 @@ gets the value of the parent of the frame
 Return value is 0: if there are no more frames (in which case nextref
                    will be NULL)
                >0: The number of bytes which are required to completely
-                   protray the frame
+                   portray the frame
 
 Note that the text is returned as UTF-8, regardless of locale settings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

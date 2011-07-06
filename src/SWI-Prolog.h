@@ -1047,6 +1047,20 @@ PL_EXPORT(int) _PL_put_xpce_reference_a(term_t t, atom_t name);
 		 *         TRACE SUPPORT	*
 		 *******************************/
 
+typedef struct pl_context_t
+{ PL_local_data_t      *ld;		/* Engine */
+  QueryFrame		qf;		/* Current query */
+  LocalFrame		fr;		/* Current localframe */
+  Code			pc;		/* Code pointer */
+  void *		reserved[10];	/* Reserved for extensions */
+} pl_context_t;
+
+PL_EXPORT(int)	PL_get_context(pl_context_t *c);
+PL_EXPORT(int)	PL_step_context(pl_context_t *c);
+PL_EXPORT(int)	PL_describe_context(pl_context_t *c, char *buf, size_t len);
+
+/* Old, deprecated interface */
+
 PL_EXPORT(int) PL_walk_prolog_stack(void *ref, char* buf, size_t len, void** nextref);
 
 
