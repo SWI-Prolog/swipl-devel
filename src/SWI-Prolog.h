@@ -1054,11 +1054,11 @@ typedef void *Code;
 #endif
 
 typedef struct pl_context_t
-{ PL_local_data_t      *ld;		/* Engine */
-  QueryFrame		qf;		/* Current query */
-  LocalFrame		fr;		/* Current localframe */
-  Code			pc;		/* Code pointer */
-  void *		reserved[10];	/* Reserved for extensions */
+{ PL_engine_t  *ld;			/* Engine */
+  QueryFrame	qf;			/* Current query */
+  LocalFrame	fr;			/* Current localframe */
+  Code		pc;			/* Code pointer */
+  void *	reserved[10];		/* Reserved for extensions */
 } pl_context_t;
 
 PL_EXPORT(int)	PL_get_context(struct pl_context_t *c, int thead_id);
