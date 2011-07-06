@@ -1087,7 +1087,7 @@ void
 backTrace(LocalFrame frame, int depth)
 { pl_context_t ctx;
 
-  if ( PL_get_context(&ctx) )
+  if ( PL_get_context(&ctx, 0) )
   { GET_LD
     Definition def = NULL;
     int same_proc = 0;
@@ -1274,35 +1274,42 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_get_context(pl_context_t *ctx)
+PL_get_context(pl_context_t *ctx, int tid)
 PL_step_context(pl_context_t *ctx)
 PL_describe_context(pl_context_t *ctx, char *buf, size_t len)
 
 These functions provide a public API  to   obtain  a trace of the Prolog
 stack in a fairly safe manner.
 
-static void
-dump_stack(void)
-{ pl_context_t ctx;
+    static void
+    dump_stack(void)
+    { pl_context_t ctx;
 
-  if ( PL_get_context(&ctx) )
-  { int max = 5;
+      if ( PL_get_context(&ctx, 0) )
+      { int max = 5;
 
-    Sdprintf("Prolog stack:\n");
+	Sdprintf("Prolog stack:\n");
 
-    do
-    { char buf[256];
+	do
+	{ char buf[256];
 
-      PL_describe_context(&ctx, buf, sizeof(buf));
-      Sdprintf("  %s\n", buf);
-    } while ( max-- > 0 && PL_step_context(&ctx) );
-  } else
-    Sdprintf("No stack??\n");
-}
+	  PL_describe_context(&ctx, buf, sizeof(buf));
+	  Sdprintf("  %s\n", buf);
+	} while ( max-- > 0 && PL_step_context(&ctx) );
+      } else
+	Sdprintf("No stack??\n");
+    }
+
+The second argument of PL_get_context() is a Prolog thread-id. Passing 0
+gets the context of the calling   thread. The current implementation can
+only deal with extracting the stack for  the calling thread, but the API
+is prepared to generalise this.
+
+See also backTrace() and os/pl-cstack.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-PL_get_context(pl_context_t *c)
+PL_get_context(pl_context_t *c, int thread_id)
 { GET_LD
 
   if ( !LD )
