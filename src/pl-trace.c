@@ -1068,50 +1068,66 @@ listGoal(LocalFrame frame)
 }
 
 
-void
-backTrace(LocalFrame frame, int depth)
+static void
+writeContextFrame(pl_context_t *ctx)
 { GET_LD
-  LocalFrame same_proc_frame = NULL;
-  Definition def = NULL;
-  int same_proc = 0;
-  int alien = FALSE;
-  Code PC = NULL;
 
-  if ( frame == NULL )
-     frame = environment_frame;
+  if ( gc_status.active )
+  { char buf[256];
 
-  for(; depth > 0 && frame;
-        alien = (frame->parent == NULL),
-        PC = frame->programPointer,
-        frame = parentFrame(frame))
-  { if ( alien )
-      Sfputs("    <Alien goal>\n", Sdout);
-
-    if ( frame->predicate == def )
-    { if ( ++same_proc >= 10 )
-      { if ( same_proc == 10 )
-	  Sfputs("    ...\n    ...\n", Sdout);
-	same_proc_frame = frame;
-	continue;
-      }
-    } else
-    { if ( same_proc_frame != NULL )
-      { if ( isDebugFrame(same_proc_frame) || SYSTEM_MODE )
-        { writeFrameGoal(same_proc_frame, PC, WFG_BACKTRACE);
-	  depth--;
-	}
-	same_proc_frame = NULL;
-	same_proc = 0;
-      }
-      def = frame->predicate;
-    }
-
-    if ( isDebugFrame(frame) || SYSTEM_MODE)
-    { writeFrameGoal(frame, PC, WFG_BACKTRACE);
-      depth--;
-    }
+    PL_describe_context(ctx, buf, sizeof(buf));
+    Sdprintf("  %s\n", buf);
+  } else
+  { writeFrameGoal(ctx->fr, ctx->pc, WFG_BACKTRACE);
   }
 }
+
+
+void
+backTrace(LocalFrame frame, int depth)
+{ pl_context_t ctx;
+
+  if ( PL_get_context(&ctx) )
+  { GET_LD
+    Definition def = NULL;
+    int same_proc = 0;
+    pl_context_t rctx;			/* recursive context */
+    int show_all = (gc_status.active || SYSTEM_MODE);
+
+    for(; depth > 0; PL_step_context(&ctx))
+    { LocalFrame frame;
+
+      if ( !(frame=ctx.fr) )
+	return;
+
+      if ( frame->predicate == def )
+      { if ( ++same_proc >= 10 )
+	{ if ( same_proc == 10 )
+	    Sdprintf("    ...\n    ...\n", Sdout);
+	  rctx = ctx;
+	  continue;
+	}
+      } else
+      { if ( same_proc >= 10 )
+	{ if ( isDebugFrame(rctx.fr) || show_all )
+	  { writeContextFrame(&rctx);
+	    depth--;
+	  }
+	  same_proc = 0;
+	}
+	def = frame->predicate;
+      }
+
+      if ( isDebugFrame(frame) || show_all )
+      { writeContextFrame(&ctx);
+	depth--;
+      }
+    }
+  } else
+  { Sdprintf("No stack??\n");
+  }
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Trace interception mechanism.  Whenever the tracer wants to perform some
