@@ -97,6 +97,9 @@ predicateName(Definition def)
 { char tmp[650];
   char *e = tmp;
 
+  if ( !def )
+    return "(nil)";
+
   if ( def->module != MODULE_user && !isUserSystemPredicate(def) )
   { strcpy(e, atom_summary(def->module->name, 50));
     e += strlen(e);
