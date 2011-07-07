@@ -55,9 +55,8 @@ open_resource(Name, Class, Handle) :-
 	open_resource(Name, Class, read, Handle).
 
 open_resource(Module:RcName, Class, RW, Handle) :-
-	(   catch(Module:resource(RcName, Class, FileSpec),
-		  error(existence_error(procedure, Module:resource/3), _),
-		  user:resource(RcName, Class, FileSpec))
+	(   default_module(Module, RModule),
+	    current_resource(RModule:RcName, Class, FileSpec)
 	->  absolute_file_name(FileSpec, File),
 	    open(File, RW, Handle, [type(binary)])
 	;   '$rc_handle'(RC),
@@ -77,4 +76,5 @@ tag_rc_name(_, RcName, RcName).
 
 current_resource(M:Name, Class, File) :-
 	current_module(M),
-	catch(M:resource(Name, Class, File), _, fail).
+	current_predicate(M:resource/3),
+	M:resource(Name, Class, File).
