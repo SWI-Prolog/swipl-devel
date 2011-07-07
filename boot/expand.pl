@@ -340,9 +340,7 @@ compile_meta_call(CallIn, CallOut, Module, Term) :-
 	(   current_predicate(Module:Name/Arity)
 	->  true
 	;   '$set_source_module'(Module, Module)
-	->  compile_aux_clauses([ (:- module_transparent(Name/Arity)),
-				  Clause
-				])
+	->  compile_aux_clauses([Clause])
 	;   compile_aux_clauses([Head:-Module:Body])
 	).
 
