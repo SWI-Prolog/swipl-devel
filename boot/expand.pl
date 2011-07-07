@@ -316,6 +316,8 @@ eval_false(false).
 		 *	   META CALLING		*
 		 *******************************/
 
+:- create_prolog_flag(compile_meta_arguments, false, [type(atom)]).
+
 %%	compile_meta_call(+CallIn, -CallOut, +Module, +Term) is det.
 %
 %	Compile (complex) meta-calls into a clause.
@@ -324,6 +326,8 @@ compile_meta_call(CallIn, CallIn, _, Term) :-
 	var(Term), !.			% explicit call; no context
 compile_meta_call(CallIn, CallIn, _, _) :-
 	var(CallIn), !.
+compile_meta_call(CallIn, CallIn, _, _) :-
+	current_prolog_flag(compile_meta_arguments, false), !.
 compile_meta_call(M:CallIn, CallOut, _, Term) :- !,
 	(   atom(M), callable(CallIn)
 	->  compile_meta_call(CallIn, CallOut, M, Term)
@@ -334,6 +338,9 @@ compile_meta_call(CallIn, CallIn, _, _) :-
 compile_meta_call(CallIn, CallIn, _, _) :-
 	\+ control(CallIn),
 	'$c_current_predicate'(_, system:CallIn), !.
+compile_meta_call(CallIn, CallIn, _, _) :-
+	current_prolog_flag(compile_meta_arguments, control),
+	\+ control(CallIn), !.
 compile_meta_call(CallIn, CallOut, Module, Term) :-
 	compile_meta(CallIn, CallOut, Term, Clause),
 	Clause = (Head:-Body),
