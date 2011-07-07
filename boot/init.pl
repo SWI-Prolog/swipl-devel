@@ -2113,13 +2113,13 @@ saved state.
 		*       LIST PROCESSING         *
 		*********************************/
 
-'$member'(X, [X|T]) :-
-	(   T == []
-	->  !
-	;   true
-	).
-'$member'(X, [_|T]) :-
-	'$member'(X, T).
+'$member'(El, [H|T]) :-
+	'$member_'(T, El, H).
+
+'$member_'(_, El, El).
+'$member_'([H|T], El, _) :-
+	'$member_'(T, El, H).
+
 
 '$append'([], L, L).
 '$append'([H|T], L, [H|R]) :-
