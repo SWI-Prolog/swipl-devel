@@ -142,6 +142,7 @@ PL_new_term_refs__LD(int n ARG_LD)
   }
 
   t = (Word)lTop;
+  SECURE(assert(t == refFliP(fli_context, fli_context->size)));
   r = consTermRef(t);
 
   for(i=0; i<n; i++)
@@ -160,8 +161,8 @@ new_term_ref(ARG1_LD)
   FliFrame fr;
 
   t = (Word)lTop;
+  SECURE(assert(t == refFliP(fli_context, fli_context->size)));
   r = consTermRef(t);
-  SECURE(assert(*t != QID_MAGIC));
   setVar(*t);
 
   lTop = (LocalFrame)(t+1);
@@ -1965,7 +1966,7 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 
 
 		 /*******************************
-		 *             PUT-*  		*
+		 *             PUT-*		*
 		 *******************************/
 
 int
@@ -2902,7 +2903,7 @@ cont:
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_NUTF8_CHARS ? PL_ATOM :
 			   op == PL_NUTF8_CODES ? PL_CODE_LIST :
-			   			  PL_STRING);
+						  PL_STRING);
       PL_free_text(&txt);
 
       break;

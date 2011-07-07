@@ -1635,7 +1635,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	   });
   SECURE(checkStacks(NULL));
   assert((void*)fli_context > (void*)environment_frame);
-  assert((void*)lTop >= (void*)(fli_context+1));
+  assert((Word)lTop >= refFliP(fli_context, fli_context->size));
 
 					/* resolve can call-back */
   def = getProcDefinedDefinition(proc->definition PASS_LD);
