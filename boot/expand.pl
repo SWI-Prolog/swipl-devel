@@ -244,6 +244,8 @@ expand_setof_goal(Var, Var, _, _, _) :-
 	var(Var), !.
 expand_setof_goal(V^G, V^EG, M, MList, Term) :- !,
         expand_setof_goal(G, EG, M, MList, Term).
+expand_setof_goal(M0:G, M0:EG, M, MList, Term) :- !,
+        expand_setof_goal(G, EG, M, MList, Term).
 expand_setof_goal(G, EG, M, MList, Term) :- !,
         expand_goal(G, EG0, M, MList, Term),
 	compile_meta_call(EG0, EG, M, Term).
