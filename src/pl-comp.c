@@ -2999,13 +2999,15 @@ PRED_IMPL("$end_aux", 2, end_aux, 0)
 }
 
 
-word
-pl_redefine_system_predicate(term_t pred)
-{ GET_LD
+static
+PRED_IMPL("redefine_system_predicate",  1, redefine_system_predicate,
+	  PL_FA_TRANSPARENT)
+{ PRED_LD
   Procedure proc;
   Module m = NULL;
   functor_t fd;
   term_t head = PL_new_term_ref();
+  term_t pred = A1;
 
   PL_strip_module(pred, &m, head);
   if ( !PL_get_functor(head, &fd) )
@@ -5734,6 +5736,7 @@ BeginPredDefs(comp)
   PRED_DEF("assert",  2, assertz2, META)
   PRED_DEF("assertz", 2, assertz2, META)
   PRED_DEF("asserta", 2, asserta2, META)
+  PRED_DEF("redefine_system_predicate", 1, redefine_system_predicate, META)
   PRED_DEF("compile_predicates",  1, compile_predicates, META)
   PRED_SHARE("clause",  2, clause, META|NDET|PL_FA_CREF|PL_FA_ISO)
   PRED_SHARE("clause",  3, clause, META|NDET|PL_FA_CREF)

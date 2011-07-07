@@ -122,9 +122,6 @@ static const PL_extension foreigns[] = {
   FRG("$check_procedure",	1, pl_check_procedure,	     META),
 #endif
 
-  FRG("redefine_system_predicate", 1, pl_redefine_system_predicate,
-							     META),
-
   FRG("$c_current_predicate",	2, pl_current_predicate,  NDET|META),
   FRG("current_predicate",	1, pl_current_predicate1, NDET|META|ISO),
   FRG("$set_predicate_attribute", 3, pl_set_predicate_attribute,META),
