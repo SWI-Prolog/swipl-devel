@@ -175,6 +175,18 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			    PL_TERM, actual));
       break;
     }
+    case ERR_AR_DOMAIN:
+    { atom_t domain = va_arg(args, atom_t);
+      Number num    = va_arg(args, Number);
+      term_t actual = PL_new_term_ref();
+
+      rc = (_PL_put_number(actual, num) &&
+	    PL_unify_term(formal,
+			  PL_FUNCTOR, FUNCTOR_domain_error2,
+			    PL_ATOM, domain,
+			    PL_TERM, actual));
+      break;
+    }
     case ERR_AR_UNDEF:
     { rc = PL_unify_term(formal,
 			 PL_FUNCTOR, FUNCTOR_evaluation_error1,

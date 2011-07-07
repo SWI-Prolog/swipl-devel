@@ -58,6 +58,7 @@ typedef enum
 				/* Only used on SWI-Prolog itself */
   ERR_AR_OVERFLOW,		/* void */
   ERR_AR_TYPE,			/* atom_t expected, Number value */
+  ERR_AR_DOMAIN,		/* atom_t domain, Number value */
   ERR_AR_UNDEF,			/* void */
   ERR_AR_UNDERFLOW,		/* void */
   ERR_BUSY,			/* mutexes */
@@ -81,12 +82,12 @@ typedef enum
 
 #define MSG_ERRNO		((char *)(-1))
 
-COMMON(int) 		PL_error(const char *pred, int arity, const char *msg,
+COMMON(int)		PL_error(const char *pred, int arity, const char *msg,
 				 PL_error_code id, ...);
-COMMON(char *) 		tostr(char *buf, const char *fmt, ...);
-COMMON(int) 		printMessage(atom_t severity, ...);
+COMMON(char *)		tostr(char *buf, const char *fmt, ...);
+COMMON(int)		printMessage(atom_t severity, ...);
 #ifdef ARG_LD
-COMMON(int) 		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
+COMMON(int)		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
 #endif
-COMMON(int) 		PL_get_module_ex(term_t name, Module *m);
-COMMON(int) 		PL_get_arg_ex(int n, term_t term, term_t arg);
+COMMON(int)		PL_get_module_ex(term_t name, Module *m);
+COMMON(int)		PL_get_arg_ex(int n, term_t term, term_t arg);
