@@ -351,9 +351,10 @@ compile_meta_call(CallIn, CallOut, Module, Term) :-
 	compile_meta(CallIn, CallOut, Module, Term, Clause),
 	Clause = (Head:-Body),
 	functor(Head, Name, Arity),
-	(   current_predicate(Module:Name/Arity)
+	'$set_source_module'(SM, SM),
+	(   current_predicate(SM:Name/Arity)
 	->  true
-	;   '$set_source_module'(Module, Module)
+	;   SM == Module
 	->  compile_aux_clauses([Clause])
 	;   compile_aux_clauses([Head:-Module:Body])
 	).
