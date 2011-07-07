@@ -345,7 +345,7 @@ initialization(Goal, When) :-
 '$prefix_module'(Module, Module, Head, Head) :- !.
 '$prefix_module'(Module, _, Head, Module:Head).
 
-%%	default_module(+Me, -Super) is nondet.
+%%	default_module(+Me, -Super) is multi.
 %
 %	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
 
