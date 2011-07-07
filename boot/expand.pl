@@ -104,9 +104,7 @@ expand_term_2(Term0, Term) :-
 
 expand_bodies(Terms, Out) :-
 	'$def_modules'(goal_expansion/2, MList),
-	MList \== [], !,
 	expand_terms(expand_body(MList), Terms, Out).
-expand_bodies(Terms, Terms).
 
 expand_body(MList, (Head :- Body), (Head :- ExpandedBody)) :-
 	nonvar(Body), !,
@@ -149,7 +147,7 @@ expand_terms(C, Term0, Term) :-
 
 expand_goal(A, B) :-
 	'$def_modules'(goal_expansion/2, MList),
-	(   expand_goal(A, B, MList, -)
+	(   expand_goal(A, B, MList, _)
 	->  A \== B
 	), !.
 expand_goal(A, A).
@@ -230,7 +228,8 @@ expand_meta(I, Arity, Spec, G0, G, M, MList, Term) :-
 expand_meta(_, _, _, _, _, _, _, _).
 
 expand_meta_arg(0, A0, A, M, MList, Term) :- !,
-	expand_goal(A0, A, M, MList, Term).
+	expand_goal(A0, A1, M, MList, Term),
+	compile_meta_call(A1, A, M, Term).
 expand_meta_arg(_, A, A, _, _, _).
 
 has_meta_arg(Head) :-
@@ -242,7 +241,8 @@ expand_setof_goal(Var, Var, _, _, _) :-
 expand_setof_goal(V^G, V^EG, M, MList, Term) :- !,
         expand_setof_goal(G, EG, M, MList, Term).
 expand_setof_goal(G, EG, M, MList, Term) :- !,
-        expand_goal(G, EG, M, MList, Term).
+        expand_goal(G, EG0, M, MList, Term),
+	compile_meta_call(EG0, EG, M, Term).
 
 
 %%	call_goal_expansion(+ExpandModules, +Goal0, -Goal) is semidet.
@@ -309,6 +309,83 @@ eval_true(otherwise).
 
 eval_false(fail).
 eval_false(false).
+
+
+		 /*******************************
+		 *	   META CALLING		*
+		 *******************************/
+
+%%	compile_meta_call(+CallIn, -CallOut, +Module, +Term) is det.
+%
+%	Compile (complex) meta-calls into a clause.
+
+compile_meta_call(CallIn, CallIn, _, Term) :-
+	var(Term), !.			% explicit call; no context
+compile_meta_call(CallIn, CallIn, _, _) :-
+	var(CallIn), !.
+compile_meta_call(M:CallIn, CallOut, _, Term) :- !,
+	(   atom(M), callable(CallIn)
+	->  compile_meta_call(CallIn, CallOut, M, Term)
+	;   CallOut = M:CallIn
+	).
+compile_meta_call(CallIn, CallIn, _, _) :-
+	is_aux_meta(CallIn), !.
+compile_meta_call(CallIn, CallIn, _, _) :-
+	\+ control(CallIn),
+	'$c_current_predicate'(_, system:CallIn), !.
+compile_meta_call(CallIn, CallOut, Module, Term) :-
+	compile_meta(CallIn, CallOut, Term, Clause),
+	Clause = (Head:-Body),
+	functor(Head, Name, Arity),
+	(   current_predicate(Module:Name/Arity)
+	->  true
+	;   '$set_source_module'(Module, Module)
+	->  compile_aux_clauses([ (:- module_transparent(Name/Arity)),
+				  Clause
+				])
+	;   compile_aux_clauses([Head:-Module:Body])
+	).
+
+control((_,_)).
+control((_;_)).
+control((_->_)).
+control((_*->_)).
+control(\+(_)).
+
+is_aux_meta(Term) :-
+	callable(Term), !,
+	(   Term = _:Head
+	->  is_aux_meta(Head)
+	;   functor(Term, Name, _),
+	    sub_atom(Name, 0, _, _, '__aux_meta_call_')
+	).
+
+compile_meta(CallIn, CallOut, Term, (CallOut :- CallIn)) :-
+	term_variables(Term, AllVars),
+	term_variables(CallIn, InVars),
+	intersection_eq(InVars, AllVars, HeadVars),
+	variant_sha1(CallIn+HeadVars, Hash),
+	atom_concat('__aux_meta_call_', Hash, AuxName),
+	CallOut =.. [AuxName|HeadVars].
+
+%%	intersection_eq(+Small, +Big, -Shared) is det.
+%
+%	Shared are the variables in Small that   also appear in Big. The
+%	variables in Shared are in the same order as Shared.
+
+intersection_eq([], _, []).
+intersection_eq([H|T0], L, List) :-
+	(   member_eq(H, L)
+	->  List = [H|T],
+	    intersection_eq(T0, L, T)
+	;   intersection_eq(T0, L, List)
+	).
+
+member_eq(E, [H|T]) :-
+	(   E == H
+	->  true
+	;   member_eq(E, T)
+	).
 
 
 		 /*******************************
