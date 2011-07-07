@@ -1,127 +1,96 @@
-Compiling SWI-Prolog using MinGW
---------------------------------
+#!/bin/sh
 
-Below are some notes from Roberto Bagnara to compile a static version of
-SWI-Prolog using the MinGW cross-compiler  on   a  Linux system. Roberto
-submitted patches to 5.11.22 and 5.11.23 to   get the core Prolog system
-compiled using MinGW.
+# Compiling SWI-Prolog using MinGW
+# --------------------------------
+#
+# Below are some notes from Roberto Bagnara to compile a static version of
+# SWI-Prolog using the MinGW cross-compiler  on   a  Linux system. Roberto
+# submitted patches to 5.11.22 and 5.11.23 to   get the core Prolog system
+# compiled using MinGW.
+#
+# Ideally, it should be possible to compile  the entire suite using MinGW,
+# either natively on Windows or cross-compile   it from e.g., Linux. Using
+# MinGW would eliminate the need to  maintain   two  sets of Makefiles and
+# achieves a much more lightweight and   truly  free development toolchain
+# for SWI-Prolog on Windows.  What remains to be done is:
+#
+#     - Make more packages portable.  Most of the work is similar as for
+#       the kernel: identify the places where the __WINDOWS__ preprocessor
+#       symbol is used for MSVC rather than Windows and replace this by
+#       _MSC_VER and/or __MINGW32__.
 
-Ideally, it should be possible to compile  the entire suite using MinGW,
-either natively on Windows or cross-compile   it from e.g., Linux. Using
-MinGW would eliminate the need to  maintain   two  sets of Makefiles and
-achieves a much more lightweight and   truly  free development toolchain
-for SWI-Prolog on Windows.  There is a lot to do:
+set -e
+# Change the following paths as needed.
+install=/tmp/windows
+src=/tmp/sources
 
-    - Build a dll
-    - Make the packages portable.  Most of the work is similar as for
-      the kernel: identify the places where the __WINDOWS__ preprocessor
-      symbol is used for MSVC rather than Windows and replace this by
-      _MSC_VER and/or __MINGW32__.
+mkdir -p $src
+cd $src
 
-================================================================
-STATIC VERSION
-================================================================
+###########################
+# Download and install the GMP library.
 
-Download and install the Pthreads-win32 library.  Select a directory
-to hold its sources, call it $src, and then:
+[ -f gmp-5.0.2.tar.bz2 ] || wget ftp://ftp.gmplib.org/pub/gmp-5.0.2/gmp-5.0.2.tar.bz2
+tar jxf gmp-5.0.2.tar.bz2
+cd gmp-5.0.2
+./configure --host=i586-mingw32msvc --prefix=$install \
+    --enable-shared --disable-static
+make
+make install
+cd ..
 
-$ cd $src
-$ wget -c ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-8-0-release.tar.gz
-
-Select a build directory and an installation directory, call them $build
-and $install; then:
-
-$ cd $build
-$ tar xzf $src/pthreads-w32-2-8-0-release.tar.gz
-$ cd pthreads-w32-2-8-0
-$ make -f GNUmakefile CROSS=i586-mingw32msvc- GC-static
-$ mkdir -p $install/include
-$ mkdir -p $install/lib
-$ cp pthread.h semaphore.h sched.h $install/include/
-$ cp libpthreadGC2.a $install/lib/
-
-Download and install the GMP library.  Select a directory
-to hold its sources and one (possibly the same) to make the build;
-call them $src and $build.  Then:
-
-$ cd $src
-$ tar jxf gmp-5.0.2.tar.bz2
-$ cd $build
-$ $src/configure --host=i586-mingw32msvc --prefix=$install \
-    --disable-shared --enable-static
-$ make
-$ make check
-$ make install
-
-Download and unpack a SWI-Prolog source distribution.  Do a `cd' in
-the distribution's top directory and then:
-
-$ export CIFLAGS="-I$install/include -DPTW32_STATIC_LIB"
-$ export LDFLAGS="-L$install/lib"
-$ ./configure --host=i586-mingw32msvc --prefix=$install --disable-readline --disable-libdirversion --disable-shared
-$ make
-
-$ cd ../packages
-$ export CPPFLAGS=-I$install/include
-$ export PKGLDFLAGS=-I$install/lib
-$ ./configure --host=$host --prefix=$prefix
-$ make
-
-
-================================================================
-SHARED LIBRARY VERSION
-================================================================
-
-Download and install the Pthreads-win32 library.  Select a directory
-to hold its sources, call it $src, and then:
+###########################
+# Download and install the Pthreads-win32 library.
 
 cd $src
-wget -c ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-8-0-release.tar.gz
+[ -f pthreads-w32-2-8-0-release.tar.gz ] || wget ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-8-0-release.tar.gz
 
-Select a build directory and an installation directory, call them $build
-and $install; then:
-
-$ cd $build
-$ tar xzf $src/pthreads-w32-2-8-0-release.tar.gz
-$ cd pthreads-w32-2-8-0
-$ make -f GNUmakefile CROSS=i586-mingw32msvc- \
+tar xzf pthreads-w32-2-8-0-release.tar.gz
+cd pthreads-w32-2-8-0-release
+make -f GNUmakefile CROSS=i586-mingw32msvc- \
       LFLAGS="-lwsock32 -Wl,--out-implib=libpthreadGC2.dll.a" GC
-$ mkdir -p $install/include
-$ mkdir -p $install/bin
-$ cp pthread.h semaphore.h sched.h $install/include/
-$ cp pthreadGC2.dll $install/bin/
-$ cp libpthreadGC2.dll.a $install/lib/
+cp pthread.h semaphore.h sched.h $install/include/
+cp pthreadGC2.dll $install/bin/
+cp libpthreadGC2.dll.a $install/lib/
+cd ..
 
-Download and install the GMP library.  Select a directory
-to hold its sources and one (possibly the same) to make the build;
-call them $src and $build.  Then:
+###########################
+# Download and install zlib
 
-$ cd $src
-$ tar jxf gmp-5.0.2.tar.bz2
-$ cd $build
-$ $src/configure --host=i586-mingw32msvc --prefix=$install \
-    --enable-shared --disable-static
-$ make
-$ make check
-$ make install
+[ -f zlib-1.2.5.tar.bz2 ] || wget http://garr.dl.sourceforge.net/project/libpng/zlib/1.2.5/zlib-1.2.5.tar.bz2
+tar xjf zlib-1.2.5.tar.bz2
+cd zlib-1.2.5
+make -f win32/Makefile.gcc PREFIX=i586-mingw32msvc- BINARY_PATH=$install/bin INCLUDE_PATH=$install/include LIBRARY_PATH=$install/lib SHARED_MODE=1 install
+cd ..
 
-Download and unpack a SWI-Prolog source distribution.  Do a `cd' in
-the distribution's top directory and then:
+###########################
+# Download and unpack a SWI-Prolog source distribution.
 
-$ export CIFLAGS="-I$install/include"
-$ export LDFLAGS="-L$install/lib"
-$ ./configure --host=i586-mingw32msvc --prefix=$install \
+#git clone git://www.swi-prolog.org/home/pl/git/pl-devel.git
+#git checkout mingw
+cd pl-devel
+#cd packages
+#git clone git://www.swi-prolog.org/home/pl/git/packages/clib.git
+#cd clib
+#git checkout mingw
+#cd ../..
+#./prepare
+export CIFLAGS="-I$install/include"
+export LDFLAGS="-L$install/lib"
+./configure --host=i586-mingw32msvc --prefix=$install \
       --disable-readline --disable-libdirversion --enable-shared
-$ make
-# It will fail.  Do as follows:
-$ cp lib/i586-mingw32msvc/libswipl.dll src/
-$ cp $install/bin/libgmp-10.dll src/
-$ cp $install/bin/pthreadGC2.dll src/
-$ make
-# This time it will succeed.
+ln -sf ../lib/i586-mingw32msvc/libswipl.dll src/
+ln -sf $install/bin/libgmp-10.dll src/
+ln -sf $install/bin/pthreadGC2.dll src/
+ln -sf $install/bin/zlib1.dll src/
+mkdir -p include
+make
+make install
 
-$ cd ../packages
-$ export CPPFLAGS=-I$install/include
-$ export PKGLDFLAGS=-I$install/lib
-$ ./configure --host=$host --prefix=$prefix
-$ make
+cd packages
+export CPPFLAGS=-I$install/include
+export PKGLDFLAGS=-I$install/lib
+export PKG="clib zlib"
+./configure --host=i586-mingw32msvc --prefix=$install
+make
+make install
