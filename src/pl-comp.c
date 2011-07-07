@@ -1790,6 +1790,29 @@ mcall(code call)
   }
 }
 
+
+static Procedure
+lookupBodyProcedure(functor_t functor, Module tm ARG_LD)
+{ Procedure proc = lookupProcedure(functor, tm);
+
+  if ( !isDefinedProcedure(proc) &&
+       !true(proc->definition, P_REDEFINED) &&
+       !GD->bootsession )
+  { Procedure syspred;
+
+    if ( (tm != MODULE_system &&
+	  (syspred=isCurrentProcedure(functor, MODULE_system)) &&
+	  isDefinedProcedure(syspred)) )
+    { assert(false(proc->definition, P_DIRTYREG));
+      freeHeap(proc->definition, sizeof(struct definition));
+      proc->definition = syspred->definition;
+    }
+  }
+
+  return proc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of compileSubClause() is to  generate  code  for  a  subclause.
 First  it will call compileArgument for each argument to the call.  Then
@@ -1917,21 +1940,7 @@ re-definition.
     cont:
     { int ar = fdef->arity;
 
-      proc = lookupProcedure(functor, tm);
-
-      if ( !isDefinedProcedure(proc) &&
-	   !true(proc->definition, P_REDEFINED) &&
-	   !GD->bootsession )
-      { Procedure syspred;
-
-	if ( (tm != MODULE_system &&
-	      (syspred=isCurrentProcedure(functor, MODULE_system)) &&
-	      isDefinedProcedure(syspred)) )
-	{ assert(false(proc->definition, P_DIRTYREG));
-	  freeHeap(proc->definition, sizeof(struct definition));
-	  proc->definition = syspred->definition;
-	}
-      }
+      proc = lookupBodyProcedure(functor, tm PASS_LD);
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
       { int rc;
