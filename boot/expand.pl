@@ -189,6 +189,8 @@ expand_goal((A*->B), (EA*->EB), M, MList, Term) :- !,
         expand_goal(B, EB, M, MList, Term).
 expand_goal((\+A), (\+EA), M, MList, Term) :- !,
         expand_goal(A, EA, M, MList, Term).
+expand_goal(call(A), call(EA), M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term).
 expand_goal(M:G, M:EG, _M, _MList, Term) :-
 	atom(M), !,
 	'$def_modules'(M:goal_expansion/2, MList),
@@ -340,12 +342,13 @@ compile_meta_call(CallIn, CallIn, _, _) :-
 	is_aux_meta(CallIn), !.
 compile_meta_call(CallIn, CallIn, _, _) :-
 	\+ control(CallIn),
-	'$c_current_predicate'(_, system:CallIn), !.
+	'$c_current_predicate'(_, system:CallIn),
+	\+ current_prolog_flag(compile_meta_arguments, always), !.
 compile_meta_call(CallIn, CallIn, _, _) :-
 	current_prolog_flag(compile_meta_arguments, control),
 	\+ control(CallIn), !.
 compile_meta_call(CallIn, CallOut, Module, Term) :-
-	compile_meta(CallIn, CallOut, Term, Clause),
+	compile_meta(CallIn, CallOut, Module, Term, Clause),
 	Clause = (Head:-Body),
 	functor(Head, Name, Arity),
 	(   current_predicate(Module:Name/Arity)
@@ -369,12 +372,13 @@ is_aux_meta(Term) :-
 	    sub_atom(Name, 0, _, _, '__aux_meta_call_')
 	).
 
-compile_meta(CallIn, CallOut, Term, (CallOut :- CallIn)) :-
+compile_meta(CallIn, CallOut, M, Term, (CallOut :- Body)) :-
 	term_variables(Term, AllVars),
 	term_variables(CallIn, InVars),
 	intersection_eq(InVars, AllVars, HeadVars),
 	variant_sha1(CallIn+HeadVars, Hash),
 	atom_concat('__aux_meta_call_', Hash, AuxName),
+	expand_goal(CallIn, Body, M, [], (CallOut:-CallIn)),
 	length(HeadVars, Arity),
 	(   Arity > 256			% avoid 1024 arity limit
 	->  HeadArgs = [v(HeadVars)]

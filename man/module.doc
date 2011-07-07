@@ -216,7 +216,7 @@ on entry.
         \termitem{^}{}
 This extension is used to denote the possibly \verb$^$-annotated goal of
 setof/3, bagof/3, aggregate/3 and aggregate/4. It is processed similar
-to `0', but leaving the ^/2 intact.
+to `0', but leaving the \chr{^}/2 intact.
     \end{description}
 
 Each argument that is module-sensitive (i.e., marked 0..9 or \chr{:}) is
