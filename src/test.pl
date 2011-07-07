@@ -792,7 +792,8 @@ meta(call-11) :-
 	forall(A, true),
 	flag(a, 3, Old).
 meta(call-12) :-
-	catch(call(1), E, true),
+	G = 1,				% avoid in-line expansion
+	catch(call(G), E, true),
 	error(E, type_error(callable, _)).
 meta(apply-1) :-
 	apply(=, [a,a]).
@@ -892,15 +893,19 @@ dl_fail(N) :-
 	dl_fail(NN).
 
 depth_limit(depth-1) :-
-	call_with_depth_limit(dl_det(1), 10, 1),
+	G = dl_det(1),
+	call_with_depth_limit(G, 10, 1),
 	deterministic(true).
 depth_limit(depth-2) :-
-	call_with_depth_limit(dl_det(10), 10, 10).
+	G = dl_det(10),
+	call_with_depth_limit(G, 10, 10).
 depth_limit(depth-3) :-
-	call_with_depth_limit(dl_det(10), 9, depth_limit_exceeded).
+	G = dl_det(10),
+	call_with_depth_limit(G, 9, depth_limit_exceeded).
 depth_limit(ndet-1) :-
+	G = dl_ndet(5),
 	findall(X,
-		call_with_depth_limit(dl_ndet(5), 10, X),
+		call_with_depth_limit(G, 10, X),
 		L),
 	L = [5, depth_limit_exceeded].
 depth_limit(fail-1) :-
@@ -1591,9 +1596,11 @@ gc(gc-3) :-
 gc(gc-4) :-
 	catch(_,_,garbage_collect).
 gc(gc-5) :-
-	catch(25,_,garbage_collect).
+	G = 25,
+	catch(G,_,garbage_collect).
 gc(gc-6) :-
-	catch(1.25,_,garbage_collect).
+	G = 1.25,
+	catch(G,_,garbage_collect).
 gc(agc-1) :-
 	garbage_collect_atoms.
 gc(agc-2) :-		% not if concurrent: this is too simple.  There

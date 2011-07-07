@@ -41,6 +41,7 @@ a2b.					% chained expansion
 e_not :-
 	not(g_b).
 
+g_c.
 
 		 /*******************************
 		 *	       TESTS		*
@@ -54,7 +55,7 @@ test(make_dcg, B == true) :-
 	clause(a(_,_), B).
 test(chained_term_expansion, B == true) :-
 	clause(final_c, B).
-test(meta_arg, B == not(g_c)) :-
-	clause(e_not, B).
+test(meta_arg, [fail]) :-
+	e_not.
 
 :- end_tests(expand).
