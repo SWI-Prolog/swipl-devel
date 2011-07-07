@@ -1443,6 +1443,7 @@ struct gc_trail_entry
 #define MA_VAR		11		/* - */
 #define MA_ANY		12		/* ? */
 #define MA_NONVAR	13		/* + */
+#define MA_HAT		14		/* ^ */
 
 #define MA_INFO(def, n)		(((def)->meta_info >> ((n)*4)) & 0xf)
 #define MA_SETINFO(def, n, i)	((def)->meta_info &= ~(0xf << (n)*4), \

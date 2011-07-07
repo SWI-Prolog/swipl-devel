@@ -1343,10 +1343,11 @@ meta_declaration(term_t spec)
     } else if ( PL_get_atom(arg, &ma) )
     { int m;
 
-      if      ( ma == ATOM_plus ) m = MA_NONVAR;
-      else if ( ma == ATOM_minus ) m = MA_VAR;
+      if      ( ma == ATOM_plus )          m = MA_NONVAR;
+      else if ( ma == ATOM_minus )         m = MA_VAR;
       else if ( ma == ATOM_question_mark ) m = MA_ANY;
-      else if ( ma == ATOM_colon ) m = MA_META, transparent = TRUE;
+      else if ( ma == ATOM_colon )         m = MA_META, transparent = TRUE;
+      else if ( ma == ATOM_hat )           m = MA_HAT,  transparent = TRUE;
       else goto domain_error;
 
       mask |= m<<(i*4);
@@ -1405,6 +1406,7 @@ unify_meta_argument(term_t head, Definition def, int i)
       case MA_VAR:	a = ATOM_minus; break;
       case MA_ANY:	a = ATOM_question_mark; break;
       case MA_NONVAR:	a = ATOM_plus; break;
+      case MA_HAT:	a = ATOM_hat; break;
       default:		a = NULL_ATOM; assert(0);
     }
 

@@ -188,10 +188,6 @@ expand_goal((A*->B), (EA*->EB), M, MList, Term) :- !,
         expand_goal(B, EB, M, MList, Term).
 expand_goal((\+A), (\+EA), M, MList, Term) :- !,
         expand_goal(A, EA, M, MList, Term).
-expand_goal(setof(T,G,L), setof(T,EG,L), M, MList, Term) :- !,
-	expand_setof_goal(G, EG, M, MList, Term).
-expand_goal(bagof(T,G,L), bagof(T,EG,L), M, MList, Term) :- !,
-	expand_setof_goal(G, EG, M, MList, Term).
 expand_goal(M:G, M:EG, _M, _MList, Term) :-
 	atom(M), !,
 	'$def_modules'(M:goal_expansion/2, MList),
@@ -230,11 +226,16 @@ expand_meta(_, _, _, _, _, _, _, _).
 expand_meta_arg(0, A0, A, M, MList, Term) :- !,
 	expand_goal(A0, A1, M, MList, Term),
 	compile_meta_call(A1, A, M, Term).
+expand_meta_arg(^, A0, A, M, MList, Term) :- !,
+	expand_setof_goal(A0, A, M, MList, Term).
 expand_meta_arg(_, A, A, _, _, _).
 
 has_meta_arg(Head) :-
 	arg(_, Head, Arg),
-	Arg == 0, !.
+	meta_arg(Arg), !.
+
+meta_arg(0).
+meta_arg(^).
 
 expand_setof_goal(Var, Var, _, _, _) :-
 	var(Var), !.
@@ -364,7 +365,12 @@ compile_meta(CallIn, CallOut, Term, (CallOut :- CallIn)) :-
 	intersection_eq(InVars, AllVars, HeadVars),
 	variant_sha1(CallIn+HeadVars, Hash),
 	atom_concat('__aux_meta_call_', Hash, AuxName),
-	CallOut =.. [AuxName|HeadVars].
+	length(HeadVars, Arity),
+	(   Arity > 256			% avoid 1024 arity limit
+	->  HeadArgs = [v(HeadVars)]
+	;   HeadArgs = HeadVars
+	),
+	CallOut =.. [AuxName|HeadArgs].
 
 %%	intersection_eq(+Small, +Big, -Shared) is det.
 %

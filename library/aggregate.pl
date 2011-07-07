@@ -45,8 +45,8 @@
 
 :- meta_predicate
 	foreach(0,0),
-	aggregate(?,0,-),
-	aggregate(?,?,0,-),
+	aggregate(?,^,-),
+	aggregate(?,?,^,-),
 	aggregate_all(?,0,-),
 	aggregate_all(?,?,0,-).
 
@@ -225,7 +225,7 @@ clean_body(Goal, Goal).
 %		    added to the existential variables for bagof/3.
 %	@param Agregate defines the aggregation operation to execute.
 
-template_to_pattern(sum(X),	      X,	 true, 	  [],   sum) :- var(X), !.
+template_to_pattern(sum(X),	      X,	 true,	  [],   sum) :- var(X), !.
 template_to_pattern(sum(X0),	      X,	 X is X0, [X0], sum) :- !.
 template_to_pattern(count,	      1,	 true,    [],   count) :- !.
 template_to_pattern(min(X),	      X,	 true,    [],   min) :- var(X), !.
@@ -546,30 +546,4 @@ list_is_free_of([], _).
 
 %term_variables(Term, Vars0, Vars) :-
 %	term_variables(Term+Vars0, Vars).
-
-		 /*******************************
-		 *	     EXPANSION		*
-		 *******************************/
-
-:- multifile
-	user:goal_expansion/2.
-:- dynamic
-	user:goal_expansion/2.
-
-user:goal_expansion(aggregate(Templ, Goal0, Result),
-		    aggregate(Templ, Goal, Result)) :-
-	expand_goal(Goal0, Goal).
-user:goal_expansion(aggregate(Templ, Discrim, Goal0, Result),
-		    aggregate(Templ, Discrim, Goal, Result)) :-
-	expand_goal(Goal0, Goal).
-user:goal_expansion(aggregate_all(Templ, Goal0, Result),
-		    aggregate_all(Templ, Goal, Result)) :-
-	expand_goal(Goal0, Goal).
-user:goal_expansion(aggregate_all(Templ, Discrim, Goal0, Result),
-		    aggregate_all(Templ, Discrim, Goal, Result)) :-
-	expand_goal(Goal0, Goal).
-user:goal_expansion(foreach(Generator0, Goal0),
-		    foreach(Generator,  Goal)) :-
-	expand_goal(Generator0, Generator),
-	expand_goal(Goal0, Goal).
 

@@ -40,8 +40,8 @@
 :- meta_predicate
 	findall(?, 0, -),
 	findall(?, 0, -, ?),
-	bagof(?, 0, -),
-	setof(?, 0, -).
+	bagof(?, ^, -),
+	setof(?, ^, -).
 
 :- noprofile((
 	findall/4,
