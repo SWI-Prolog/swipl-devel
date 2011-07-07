@@ -349,7 +349,7 @@ compile_meta_call(CallIn, CallIn, _, _) :-
 compile_meta_call(CallIn, CallIn, _, _) :-
 	current_prolog_flag(compile_meta_arguments, control),
 	\+ control(CallIn), !.
-compile_meta_call(CallIn, CallOut, Module, Term) :-
+compile_meta_call(CallIn, SM:CallOut, Module, Term) :-
 	compile_meta(CallIn, CallOut, Module, Term, Clause),
 	Clause = (Head:-Body),
 	functor(Head, Name, Arity),

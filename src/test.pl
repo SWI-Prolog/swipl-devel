@@ -1891,8 +1891,10 @@ copy_term(av-3) :-
 	A = f(Z),
 	Y == Z.
 copy_term(av-4) :-
-	freeze(X, true),
-	freeze(X, Done = true),
+	G1 = true,
+	G2 = (Done = true),
+	freeze(X, G1),
+	freeze(X, G2),
 	copy_term(X, Y),
 	X = ok,
 	Done == true,
