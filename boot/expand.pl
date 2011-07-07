@@ -110,10 +110,10 @@ expand_bodies(Terms, Terms).
 
 expand_body(MList, (Head :- Body), (Head :- ExpandedBody)) :-
 	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody, MList).
+	expand_goal(Body, ExpandedBody, MList, (Head :- Body)).
 expand_body(MList, (:- Body), (:- ExpandedBody)) :-
 	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody, MList).
+	expand_goal(Body, ExpandedBody, MList, (:- Body)).
 expand_body(_, Head, Head).
 
 
@@ -149,52 +149,58 @@ expand_terms(C, Term0, Term) :-
 
 expand_goal(A, B) :-
 	'$def_modules'(goal_expansion/2, MList),
-	(   expand_goal(A, B, MList)
+	(   expand_goal(A, B, MList, -)
 	->  A \== B
 	), !.
 expand_goal(A, A).
 
-expand_goal(G0, G, MList) :-
+expand_goal(G0, G, MList, Term) :-
 	'$set_source_module'(M, M),
-	expand_goal(G0, G, M, MList).
+	expand_goal(G0, G, M, MList, Term).
 
-expand_goal(G, G, _, _) :-
+%%	expand_goal(+GoalIn, -GoalOut, +Module, -ModuleList, +Term) is det.
+%
+%	@param Module is the current module to consider
+%	@param ModuleList are the other expansion modules
+%	@param Term is the overall term that is being translated
+
+expand_goal(G, G, _, _, _) :-
         var(G), !.
-expand_goal(G0, G, M, MList) :-
+expand_goal(G0, G, M, MList, Term) :-
 	call_goal_expansion(MList, G0, G1), !,
-	expand_goal(G1, G, M, MList).
-expand_goal((A,B), Conj, M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList),
+	expand_goal(G1, G, M, MList, Term).
+expand_goal((A,B), Conj, M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term),
 	simplify((EA, EB), Conj).
-expand_goal((A;B), Or, M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList),
+expand_goal((A;B), Or, M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term),
 	simplify((EA;EB), Or).
-expand_goal((A->B;C), ITE, M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList),
-        expand_goal(C, EC, M, MList),
+expand_goal((A->B;C), ITE, M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term),
+        expand_goal(C, EC, M, MList, Term),
 	simplify((EA->EB;EC), ITE).
-expand_goal((A->B), (EA->EB), M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList).
-expand_goal((A*->B), (EA*->EB), M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList).
-expand_goal((\+A), (\+EA), M, MList) :- !,
-        expand_goal(A, EA, M, MList).
-expand_goal(setof(T,G,L), setof(T,EG,L), M, MList) :- !,
-	expand_setof_goal(G, EG, M, MList).
-expand_goal(bagof(T,G,L), bagof(T,EG,L), M, MList) :- !,
-	expand_setof_goal(G, EG, M, MList).
-expand_goal(M:G, M:EG, _M, _MList) :-
+expand_goal((A->B), (EA->EB), M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term).
+expand_goal((A*->B), (EA*->EB), M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term).
+expand_goal((\+A), (\+EA), M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term).
+expand_goal(setof(T,G,L), setof(T,EG,L), M, MList, Term) :- !,
+	expand_setof_goal(G, EG, M, MList, Term).
+expand_goal(bagof(T,G,L), bagof(T,EG,L), M, MList, Term) :- !,
+	expand_setof_goal(G, EG, M, MList, Term).
+expand_goal(M:G, M:EG, _M, _MList, Term) :-
 	atom(M), !,
 	'$def_modules'(M:goal_expansion/2, MList),
 	setup_call_cleanup('$set_source_module'(Old, M),
-			   '$expand':expand_goal(G, EG, M, MList),
+			   '$expand':expand_goal(G, EG, M, MList, Term),
 			   '$set_source_module'(_, Old)).
-expand_goal(G0, G, M, MList) :-
+expand_goal(G0, G, M, MList, Term) :-
 	callable(G0),
 	functor(G0, N, A),
 	(   default_module(M, M2),
@@ -203,40 +209,40 @@ expand_goal(G0, G, M, MList) :-
 	),
 	'$get_predicate_attribute'(M2:G0, meta_predicate, Head),
 	has_meta_arg(Head),
-	expand_meta(Head, G0, G, M, MList),
+	expand_meta(Head, G0, G, M, MList, Term),
 	G0 \== G, !.
-expand_goal(A, A, _, _).
+expand_goal(A, A, _, _, _).
 
-expand_meta(Spec, G0, G, M, MList) :-
+expand_meta(Spec, G0, G, M, MList, Term) :-
 	functor(Spec, _, Arity),
 	functor(G0, Name, Arity),
 	functor(G, Name, Arity),
-	expand_meta(1, Arity, Spec, G0, G, M, MList).
+	expand_meta(1, Arity, Spec, G0, G, M, MList, Term).
 
-expand_meta(I, Arity, Spec, G0, G, M, MList) :-
+expand_meta(I, Arity, Spec, G0, G, M, MList, Term) :-
 	I =< Arity, !,
 	arg(I, Spec, Meta),
 	arg(I, G0, A0),
 	arg(I, G, A),
-	expand_meta_arg(Meta, A0, A, M, MList),
+	expand_meta_arg(Meta, A0, A, M, MList, Term),
 	I2 is I + 1,
-	expand_meta(I2, Arity, Spec, G0, G, M, MList).
-expand_meta(_, _, _, _, _, _, _).
+	expand_meta(I2, Arity, Spec, G0, G, M, MList, Term).
+expand_meta(_, _, _, _, _, _, _, _).
 
-expand_meta_arg(0, A0, A, M, MList) :- !,
-	expand_goal(A0, A, M, MList).
-expand_meta_arg(_, A, A, _, _).
+expand_meta_arg(0, A0, A, M, MList, Term) :- !,
+	expand_goal(A0, A, M, MList, Term).
+expand_meta_arg(_, A, A, _, _, _).
 
 has_meta_arg(Head) :-
 	arg(_, Head, Arg),
 	Arg == 0, !.
 
-expand_setof_goal(Var, Var, _, _) :-
+expand_setof_goal(Var, Var, _, _, _) :-
 	var(Var), !.
-expand_setof_goal(V^G, V^EG, M, MList) :- !,
-        expand_setof_goal(G, EG, M, MList).
-expand_setof_goal(G, EG, M, MList) :- !,
-        expand_goal(G, EG, M, MList).
+expand_setof_goal(V^G, V^EG, M, MList, Term) :- !,
+        expand_setof_goal(G, EG, M, MList, Term).
+expand_setof_goal(G, EG, M, MList, Term) :- !,
+        expand_goal(G, EG, M, MList, Term).
 
 
 %%	call_goal_expansion(+ExpandModules, +Goal0, -Goal) is semidet.
