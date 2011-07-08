@@ -70,6 +70,9 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #define setHandle(h, w)		{ assert(*valTermRef(h) != QID_MAGIC); \
 				  (*valTermRef(h) = (w)); \
 				}
+#ifndef O_CHECK_TERM_REFS
+#define O_CHECK_TERM_REFS 1
+#endif
 #else
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #endif
@@ -131,6 +134,7 @@ PL_new_term_refs__LD(int n ARG_LD)
 { Word t;
   term_t r;
   int i;
+  FliFrame fr;
 
   if ( addPointer(lTop, n*sizeof(word)) > (void*) lMax )
   { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
@@ -142,13 +146,18 @@ PL_new_term_refs__LD(int n ARG_LD)
   }
 
   t = (Word)lTop;
-  SECURE(assert(t == refFliP(fli_context, fli_context->size)));
   r = consTermRef(t);
 
   for(i=0; i<n; i++)
     setVar(*t++);
   lTop = (LocalFrame)t;
-  fli_context->size += n;
+  fr = fli_context;
+  fr->size += n;
+#ifdef O_CHECK_TERM_REFS
+  { int s = (Word) lTop - (Word)(fr+1);
+    assert(s == fr->size);
+  }
+#endif
 
   return r;
 }
@@ -161,16 +170,17 @@ new_term_ref(ARG1_LD)
   FliFrame fr;
 
   t = (Word)lTop;
-  SECURE(assert(t == refFliP(fli_context, fli_context->size)));
   r = consTermRef(t);
-  setVar(*t);
+  setVar(*t++);
 
-  lTop = (LocalFrame)(t+1);
+  lTop = (LocalFrame)t;
   fr = fli_context;
   fr->size++;
-  SECURE({ int s = (Word) lTop - (Word)(fr+1);
-	   assert(s == fr->size);
-	 });
+#ifdef O_CHECK_TERM_REFS
+  { int s = (Word) lTop - (Word)(fr+1);
+    assert(s == fr->size);
+  }
+#endif
 
   return r;
 }
