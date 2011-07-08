@@ -1409,63 +1409,6 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Stores up to len bytes of a representation of the frame referenced by ref
-into buf. If ref is NULL, then the currently executing frame is used nextref
-gets the value of the parent of the frame
-Return value is 0: if there are no more frames (in which case nextref
-                   will be NULL)
-               >0: The number of bytes which are required to completely
-                   portray the frame
-
-Note that the text is returned as UTF-8, regardless of locale settings.
-
-DEPRECATED: Please use the PL_get_context()   family of functions above.
-This function is incorrect in its handling  of   PC,  but the API is too
-limited to fix it. This function will be removed shortly.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-PL_walk_prolog_stack(void* ref, char* buf, size_t len, void** nextref)
-{ GET_LD
-  LocalFrame fr;
-
-  if (ref == NULL) /* Start of the chain - use current frame */
-  { LocalFrame topfr = environment_frame;
-
-    if ( topfr->predicate->definition.function == pl_prolog_current_frame )
-      fr = parentFrame(topfr);
-    else
-      fr = topfr;
-  } else
-  { fr = (LocalFrame)ref;
-  }
-
-  if ( (*nextref = parentFrame(fr)) == NULL)
-    return 0;
-
-  if ( fr->programPointer &&
-       fr->predicate &&
-       false(fr->predicate, FOREIGN) &&
-       fr->parent &&
-       fr->parent->clause &&
-       fr->parent->predicate != PROCEDURE_dcall1->definition &&
-       fr->clause &&
-       fr->predicate != PROCEDURE_dc_call_prolog->definition)
-  { intptr_t pc = fr->programPointer - fr->parent->clause->clause->codes;
-
-    return snprintf(buf, len, "%s [PC=%ld] [Clause %d]",
-		    predicateName(fr->predicate),
-		    (long)pc,
-		    clauseNo(fr->predicate, fr->clause->clause));
-  } else if ( fr->predicate )
-  { return snprintf(buf, len, "%s <foreign>", predicateName(fr->predicate));
-  } else
-  { return snprintf(buf, len, "invalid <predicate>");
-  }
-}
-
-
 #endif /*O_DEBUGGER*/
 
 #ifndef offset

@@ -1066,11 +1066,6 @@ PL_EXPORT(int)	PL_step_context(struct pl_context_t *c);
 PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 				    char *buf, size_t len);
 
-/* Old, deprecated interface */
-
-PL_EXPORT(int) PL_walk_prolog_stack(void *ref, char* buf, size_t len, void** nextref);
-
-
 #ifdef __cplusplus
 }
 #endif
