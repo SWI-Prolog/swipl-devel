@@ -39,6 +39,7 @@ AC_SUBST(DLLIBVAR)
 AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
 AC_SUBST(MINGW)
+AC_SUBST(WINEPATHEXE)
 AC_SUBST(DEFSTARTUP)
 
 if test ! -z "$CIFLAGS"; then
@@ -513,13 +514,24 @@ case "$PLARCH" in
 	SO_EXT="dll"
 	SO_pic=""
 	SO_PIC=""
-	DLLIBVAR=PATH
+	case $(uname) in
+	    MINGW*)
+		DLLIBVAR=PATH
+		;;
+	    *)
+		DLLIBVAR=WINEPATH
+		;;
+	esac
+	AC_CHECK_PROG(WINEPATHEXE, winepath, winepath, ":")
 	DEFSTARTUP=swipl.ini
+	CHRPATH=:
 	MINGW=true
 	;;
   *)
 	;;
 esac
+
+if test "x$WINEPATHEXE" = "x"; then WINEPATHEXE=":"; fi
 
 AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
 		   [Define to the extension of shared objects (often .so)])

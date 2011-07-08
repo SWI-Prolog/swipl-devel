@@ -11,11 +11,17 @@ bdir=@abs_top_builddir@
 PLARCH=@PLARCH@
 PL=@PL@
 ldir=$bdir/../lib/$PLARCH
+sep=":"
+
+if [ "@WINEPATHEXE@" != ":" ]; then
+  lib="$(@WINEPATHEXE@ -w $lib)"
+  sep=";"
+fi
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$ldir
 else
-  @DLLIBVAR@="$ldir:$@DLLIBVAR@"
+  @DLLIBVAR@="$ldir$sep$@DLLIBVAR@"
 fi
 export @DLLIBVAR@
 

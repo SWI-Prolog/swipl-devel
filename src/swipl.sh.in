@@ -20,11 +20,17 @@ srcdir=@srcdir@
 lib=$srcdir/../lib/@PLARCH@
 bdir=$srcdir/../@BUILDDIR@
 libso=$lib/libswipl.@SO_EXT@
+sep=":"
+
+if [ "@WINEPATHEXE@" != ":" ]; then
+  lib="$(@WINEPATHEXE@ -w $lib)"
+  sep=";"
+fi
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
-  @DLLIBVAR@=$lib
+  @DLLIBVAR@="$lib"
 else
-  @DLLIBVAR@="$lib:$@DLLIBVAR@"
+  @DLLIBVAR@="$lib$sep$@DLLIBVAR@"
 fi
 
 export @DLLIBVAR@
