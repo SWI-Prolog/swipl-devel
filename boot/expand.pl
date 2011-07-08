@@ -335,21 +335,21 @@ compile_meta_call(CallIn, CallIn, _, _) :-
 	(   current_prolog_flag(compile_meta_arguments, false)
 	;   current_prolog_flag(xref, true)
 	), !.
+compile_meta_call(CallIn, CallIn, _, _) :-
+	strip_module(CallIn, _, Call),
+	(   is_aux_meta(Call)
+	;   \+ control(Call),
+	    (	'$c_current_predicate'(_, system:Call),
+		\+ current_prolog_flag(compile_meta_arguments, always)
+	    ;   current_prolog_flag(compile_meta_arguments, control)
+	    )
+	), !.
 compile_meta_call(M:CallIn, CallOut, _, Term) :- !,
 	(   atom(M), callable(CallIn)
 	->  compile_meta_call(CallIn, CallOut, M, Term)
 	;   CallOut = M:CallIn
 	).
-compile_meta_call(CallIn, CallIn, _, _) :-
-	is_aux_meta(CallIn), !.
-compile_meta_call(CallIn, CallIn, _, _) :-
-	\+ control(CallIn),
-	'$c_current_predicate'(_, system:CallIn),
-	\+ current_prolog_flag(compile_meta_arguments, always), !.
-compile_meta_call(CallIn, CallIn, _, _) :-
-	current_prolog_flag(compile_meta_arguments, control),
-	\+ control(CallIn), !.
-compile_meta_call(CallIn, SM:CallOut, Module, Term) :-
+compile_meta_call(CallIn, CallOut, Module, Term) :-
 	compile_meta(CallIn, CallOut, Module, Term, Clause),
 	Clause = (Head:-Body),
 	functor(Head, Name, Arity),
@@ -368,12 +368,9 @@ control((_*->_)).
 control(\+(_)).
 
 is_aux_meta(Term) :-
-	callable(Term), !,
-	(   Term = _:Head
-	->  is_aux_meta(Head)
-	;   functor(Term, Name, _),
-	    sub_atom(Name, 0, _, _, '__aux_meta_call_')
-	).
+	callable(Term),
+	functor(Term, Name, _),
+	sub_atom(Name, 0, _, _, '__aux_meta_call_').
 
 compile_meta(CallIn, CallOut, M, Term, (CallOut :- Body)) :-
 	term_variables(Term, AllVars),
