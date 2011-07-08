@@ -497,15 +497,13 @@ attach_archive(RcArchive rca)
 				 0L);	/* size (0=all) */
 
   if ( !rca->map_start )
-      goto errio;
+    goto errio;
 
   rca->data = rca->map_start;
   return scan_archive(rca);
 
 errio:
-  { int id = GetLastError();
-
-    if ( rca->hmap )
+  { if ( rca->hmap )
       CloseHandle(rca->hmap);
     if ( rca->hfile )
       CloseHandle(rca->hfile);

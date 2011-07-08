@@ -278,6 +278,9 @@ CpuTime(cputime_kind which)
       case CPU_SYSTEM:
 	p = &kerneltime;
         break;
+      default:
+	assert(0);
+        return 0.0;
     }
     t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
     t += (double)p->dwLowDateTime  * (ntick nano);
@@ -427,8 +430,9 @@ win_exec(size_t len, const wchar_t *cmd, UINT show)
   } else
   { term_t tmp = PL_new_term_ref();
 
-    PL_unify_wchars(tmp, PL_ATOM, len, cmd);
-    return PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp);
+    return ( PL_unify_wchars(tmp, PL_ATOM, len, cmd) &&
+	     PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp)
+	   );
   }
 }
 
