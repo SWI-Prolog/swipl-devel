@@ -39,7 +39,7 @@
 	    merge_heaps/3,		% +Heap0, +Heap1, -Heap
 	    min_of_heap/3,		% +Heap, ?Priority, ?Key
 	    min_of_heap/5,		% +Heap, ?Priority1, ?Key1,
-	    				%        ?Priority2, ?Key2
+					%        ?Priority2, ?Key2
 	    singleton_heap/3		% ?Heap, ?Priority, ?Key
           ]).
 
@@ -115,7 +115,7 @@ empty_heap(heap(nil,0)).
 %
 %	True if Heap is a heap with the single element Priority-Key.
 
-singleton_heap(heap(t(X,P,[]), 1), X, P).
+singleton_heap(heap(t(X,P,[]), 1), P, X).
 
 %%	get_from_heap(?Heap0, ?Priority, ?Key, -Heap) is semidet.
 %
