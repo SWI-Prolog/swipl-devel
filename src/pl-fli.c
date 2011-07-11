@@ -2828,7 +2828,8 @@ PL_unify_termv(term_t t, va_list args)
   int rval;
   int op;
 
-  t = PL_copy_term_ref(t);
+  if ( !(t = PL_copy_term_ref(t)) )
+    return FALSE;
   initBuffer(&buf);
 
 cont:
@@ -2979,7 +2980,8 @@ cont:
 	goto failout;
 
       w.type  = w_term;
-      w.value.term.term  = PL_copy_term_ref(t);
+      if ( !(w.value.term.term  = PL_copy_term_ref(t)) )
+	return FALSE;
       w.value.term.arg   = 0;
       w.value.term.arity = arity;
       addBuffer(&buf, w, work);
@@ -2993,7 +2995,8 @@ cont:
     { work w;
 
       w.type = w_list;
-      w.value.list.tail = PL_copy_term_ref(t);
+      if ( !(w.value.list.tail = PL_copy_term_ref(t)) )
+	return FALSE;
       w.value.list.len  = va_arg(args, int);
 
       addBuffer(&buf, w, work);
