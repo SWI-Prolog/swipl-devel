@@ -694,6 +694,9 @@ pprint_args([H|T], Indent, Out, Options) :-
 %		a normal process and requires dubious extensions to
 %		the stream implementation.
 
+:- public
+	print_length/4.
+
 print_length(Term, MaxLen, Len, Options) :-
 	current_prolog_flag(max_tagged_integer, MD),
 	option(max_depth(MaxDepth), Options, MD),
@@ -722,7 +725,8 @@ print_length('$VAR'(Name), _, _, Len0, Len) :- !,
 	Len is Len0+VL.
 print_length(List, MaxDepth, MaxLen, Len0, Len) :-
 	List = [_|_], !,
-	print_list_len(List, MaxDepth, MaxLen, Len0, Len).
+	Len1 is Len0+2,
+	print_list_len(List, MaxDepth, MaxLen, Len1, Len).
 print_length(Term, MaxDepth, MaxLen, Len0, Len) :-
 	compound(Term), !,
 	functor(Term, Name, Arity),
@@ -751,14 +755,14 @@ print_list_len(_, MaxDepth, _, Len0, Len) :-
 	Len is Len0 + 4.				% |...
 print_list_len(Var, _, _, Len0, Len) :-
 	var(Var), !,				% should not happen
-	Len is Len0 + 4.
-print_list_len([], _, _, Len0, Len) :- !,
 	Len is Len0 + 2.
+print_list_len([], _, _, Len0, Len) :- !,
+	Len is Len0.
 print_list_len([H|T], MaxDepth, MaxLen, Len0, Len) :- !,
 	MaxDepth1 is MaxDepth - 1,
 	print_length(H, MaxDepth, MaxLen, Len0, Len1),
 	(   T == []
-	->  Len is Len1+2
+	->  Len is Len1
 	;   Len2 is Len1+2,
 	    print_list_len(T, MaxDepth1, MaxLen, Len2, Len)
 	).
