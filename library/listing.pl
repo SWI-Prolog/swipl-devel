@@ -712,17 +712,25 @@ print_length(Term, _, _, Len0, Len) :-
 	atomic(Term), !,
 	atom_length(Term, AL),
 	Len is Len0+AL.
-print_length('$VAR'(Name), _, _, Len0, Len) :- !,
+print_length(Var, _, _, Len0, Len) :-
+	var(Var), !,			% Only to support print_term/2
+	Len is Len0 + 4.
+print_length('$VAR'(Name), MaxDepth, MaxLen, Len0, Len) :- !,
 	(   atom(Name)
-	->  atom_length(Name, VL)
-	;   I is Name//26,
+	->  atom_length(Name, VL),
+	    Len is Len0+VL
+	;   integer(Name)
+	->  I is Name//26,
 	    (	I == 0
 	    ->	VL = 1
 	    ;	atom_length(I, V0),
 		VL is V0+1
-	    )
-	),
-	Len is Len0+VL.
+	    ),
+	    Len is Len0+VL
+	;   Len1 is Len0+6+2,
+	    MaxDepth1 is MaxDepth - 1,
+	    print_args_len(1, 1, '$VAR'(Name), MaxDepth1, MaxLen, Len1, Len)
+	).
 print_length(List, MaxDepth, MaxLen, Len0, Len) :-
 	List = [_|_], !,
 	Len1 is Len0+2,
