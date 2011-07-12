@@ -61,10 +61,16 @@ else
     echo "Updated $f"
 fi
 
+if [ ! -z "$(git diff --stat)" ]; then
+  if confirm "Commit final changes? "; then
+    git commit -a -m "Preparing version ${major}.${minor}.${patch}"
+  fi
+fi
+
 gittag="V${major}.${minor}.${patch}"
 
 if confirm "Tag the GIT repository with $gittag? "; then
-    git tag -s -f -m "Release tag for ${major}.${minor}.${patch}" $gittag
+  git tag -s -f -m "Release tag for ${major}.${minor}.${patch}" $gittag
 fi
 
 
