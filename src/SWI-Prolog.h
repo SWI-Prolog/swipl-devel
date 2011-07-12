@@ -1047,8 +1047,24 @@ PL_EXPORT(int) _PL_put_xpce_reference_a(term_t t, atom_t name);
 		 *         TRACE SUPPORT	*
 		 *******************************/
 
-PL_EXPORT(int) PL_walk_prolog_stack(void *ref, char* buf, size_t len, void** nextref);
+#ifndef _PL_INCLUDE_H
+typedef void *QueryFrame;
+typedef void *LocalFrame;
+typedef void *Code;
+#endif
 
+typedef struct pl_context_t
+{ PL_engine_t   ld;			/* Engine */
+  QueryFrame	qf;			/* Current query */
+  LocalFrame	fr;			/* Current localframe */
+  Code		pc;			/* Code pointer */
+  void *	reserved[10];		/* Reserved for extensions */
+} pl_context_t;
+
+PL_EXPORT(int)	PL_get_context(struct pl_context_t *c, int thead_id);
+PL_EXPORT(int)	PL_step_context(struct pl_context_t *c);
+PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
+				    char *buf, size_t len);
 
 #ifdef __cplusplus
 }

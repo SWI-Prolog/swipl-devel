@@ -2933,7 +2933,7 @@ VMI(A_FUNC, 0, 2, (CA1_AFUNC, CA1_INTEGER))
   an = (int) *PC++;
 
 common_an:
-  SAVE_REGISTERS(qid);			/* may be Prolog function */
+  SAVE_REGISTERS(qid);
   rc = ar_func_n((int)fn, an PASS_LD);
   LOAD_REGISTERS(qid);
   if ( !rc )
@@ -3048,7 +3048,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
 
     if ( valInt(w) == r )
     { *rp = w;
-    } else				/* but their some might not fit */
+    } else				/* but their sum might not fit */
     { int rc;
 
       SAVE_REGISTERS(qid);

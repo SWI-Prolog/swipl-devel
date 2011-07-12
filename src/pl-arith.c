@@ -738,12 +738,8 @@ valueExpression(term_t expr, number *result ARG_LD)
 	continue;
       }
       default:
-      { term_t t = PL_new_term_ref();
-
-	*valTermRef(t) = *p;
-	PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, t);
+	PL_error(NULL, 0, NULL, ERR_PTR_TYPE, ATOM_number, p);
         goto error;
-      }
     }
 
     if ( p == start )
@@ -2232,24 +2228,14 @@ ar_negation(Number n1, Number r)
 
 
 static int
-domainErrorNumber(const char *f, int a, Number n, atom_t error)
-{ GET_LD
-  term_t t = PL_new_term_ref();
-
-  PL_unify_number(t, n);
-  return PL_error(f, a, NULL, ERR_DOMAIN, error, t);
-}
-
-
-static int
 notLessThanZero(const char *f, int a, Number n)
-{ return domainErrorNumber(f, a, n, ATOM_not_less_than_zero);
+{ return PL_error(f, a, NULL, ERR_AR_DOMAIN, ATOM_not_less_than_zero, n);
 }
 
 
 static int
 mustBePositive(const char *f, int a, Number n)
-{ return domainErrorNumber(f, a, n, ATOM_not_less_than_one);
+{ return PL_error(f, a, NULL, ERR_AR_DOMAIN, ATOM_not_less_than_one, n);
 }
 
 

@@ -666,6 +666,8 @@ outOfStack(void *stack, stack_overflow_action how)
   { Sdprintf("[Thread %d]: failed to recover from %s-overflow\n",
 	     PL_thread_self(), s->name);
     print_backtrace_named(msg);
+    save_backtrace("crash");
+    print_backtrace_named("crash");
     fatalError("Sorry, cannot continue");
 
     return FALSE;				/* NOTREACHED */

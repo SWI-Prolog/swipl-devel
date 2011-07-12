@@ -2873,7 +2873,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
       }
     }
 
-    if ( is_name_token(token, rmo == 1, _PL_rd) )
+    if ( (rc=is_name_token(token, rmo == 1, _PL_rd)) == TRUE )
     { atom_t name = name_token(token, _PL_rd);
 
       in_op.tpos = pin;
@@ -2911,7 +2911,8 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  goto push_op;
 	}
       }
-    }
+    } else if ( rc < 0 )
+      return FALSE;
 
     if ( rmo == 1 )
       syntaxError("operator_expected", _PL_rd);

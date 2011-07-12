@@ -139,6 +139,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     { atom_t expected = va_arg(args, atom_t);
       term_t actual   = va_arg(args, term_t);
 
+    case_type_error:
       if ( expected == ATOM_callable )
 	rewrite_callable(&expected, actual);
       if ( PL_is_variable(actual) && expected != ATOM_variable )
@@ -149,6 +150,16 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_ATOM, expected,
 			   PL_TERM, actual);
       break;
+    case ERR_PTR_TYPE:			/* atom_t, Word */
+      { Word ptr;
+
+	expected = va_arg(args, atom_t);
+	ptr      = va_arg(args, Word);
+	actual   = PL_new_term_ref();
+
+	*valTermRef(actual) = *ptr;
+	goto case_type_error;
+      }
     }
     case ERR_CHARS_TYPE:		/* ERR_INSTANTIATION if var(actual) */
     { const char *expected = va_arg(args, const char*);
@@ -172,6 +183,18 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 	    PL_unify_term(formal,
 			  PL_FUNCTOR, FUNCTOR_type_error2,
 			    PL_ATOM, expected,
+			    PL_TERM, actual));
+      break;
+    }
+    case ERR_AR_DOMAIN:
+    { atom_t domain = va_arg(args, atom_t);
+      Number num    = va_arg(args, Number);
+      term_t actual = PL_new_term_ref();
+
+      rc = (_PL_put_number(actual, num) &&
+	    PL_unify_term(formal,
+			  PL_FUNCTOR, FUNCTOR_domain_error2,
+			    PL_ATOM, domain,
 			    PL_TERM, actual));
       break;
     }

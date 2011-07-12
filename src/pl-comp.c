@@ -1790,6 +1790,29 @@ mcall(code call)
   }
 }
 
+
+static Procedure
+lookupBodyProcedure(functor_t functor, Module tm ARG_LD)
+{ Procedure proc = lookupProcedure(functor, tm);
+
+  if ( !isDefinedProcedure(proc) &&
+       !true(proc->definition, P_REDEFINED) &&
+       !GD->bootsession )
+  { Procedure syspred;
+
+    if ( (tm != MODULE_system &&
+	  (syspred=isCurrentProcedure(functor, MODULE_system)) &&
+	  isDefinedProcedure(syspred)) )
+    { assert(false(proc->definition, P_DIRTYREG));
+      freeHeap(proc->definition, sizeof(struct definition));
+      proc->definition = syspred->definition;
+    }
+  }
+
+  return proc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of compileSubClause() is to  generate  code  for  a  subclause.
 First  it will call compileArgument for each argument to the call.  Then
@@ -1917,21 +1940,7 @@ re-definition.
     cont:
     { int ar = fdef->arity;
 
-      proc = lookupProcedure(functor, tm);
-
-      if ( !isDefinedProcedure(proc) &&
-	   !true(proc->definition, P_REDEFINED) &&
-	   !GD->bootsession )
-      { Procedure syspred;
-
-	if ( (tm != MODULE_system &&
-	      (syspred=isCurrentProcedure(functor, MODULE_system)) &&
-	      isDefinedProcedure(syspred)) )
-	{ assert(false(proc->definition, P_DIRTYREG));
-	  freeHeap(proc->definition, sizeof(struct definition));
-	  proc->definition = syspred->definition;
-	}
-      }
+      proc = lookupBodyProcedure(functor, tm PASS_LD);
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
       { int rc;
@@ -2999,13 +3008,15 @@ PRED_IMPL("$end_aux", 2, end_aux, 0)
 }
 
 
-word
-pl_redefine_system_predicate(term_t pred)
-{ GET_LD
+static
+PRED_IMPL("redefine_system_predicate",  1, redefine_system_predicate,
+	  PL_FA_TRANSPARENT)
+{ PRED_LD
   Procedure proc;
   Module m = NULL;
   functor_t fd;
   term_t head = PL_new_term_ref();
+  term_t pred = A1;
 
   PL_strip_module(pred, &m, head);
   if ( !PL_get_functor(head, &fd) )
@@ -5734,6 +5745,7 @@ BeginPredDefs(comp)
   PRED_DEF("assert",  2, assertz2, META)
   PRED_DEF("assertz", 2, assertz2, META)
   PRED_DEF("asserta", 2, asserta2, META)
+  PRED_DEF("redefine_system_predicate", 1, redefine_system_predicate, META)
   PRED_DEF("compile_predicates",  1, compile_predicates, META)
   PRED_SHARE("clause",  2, clause, META|NDET|PL_FA_CREF|PL_FA_ISO)
   PRED_SHARE("clause",  3, clause, META|NDET|PL_FA_CREF)

@@ -575,10 +575,12 @@ unprepareSignal(int sig)
 }
 
 
+#ifdef SIGHUP
 static void
 hupHandler(int sig)
 { PL_halt(2);
 }
+#endif
 
 
 static void

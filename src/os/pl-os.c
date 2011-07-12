@@ -96,7 +96,6 @@ static double initial_time;
 static void	initExpand(void);
 static void	cleanupExpand(void);
 static void	initEnviron(void);
-static char *	Which(const char *program, char *fullname);
 
 #ifndef DEFAULT_PATH
 #define DEFAULT_PATH "/bin:/usr/bin"
@@ -445,9 +444,9 @@ UsedMemory(void)
 
 uintptr_t
 FreeMemory(void)
-{ uintptr_t used = UsedMemory();
-
+{
 #if defined(HAVE_GETRLIMIT) && defined(RLIMIT_DATA)
+  uintptr_t used = UsedMemory();
   struct rlimit limit;
 
   if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
@@ -2406,30 +2405,15 @@ char *command;
 
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-[candidate]
-
-exec(+Cmd, [+In, +Out, +Error], -Pid)
-
-The streams may be one of standard   stream,  std, null stream, null, or
-pipe(S), where S is a pipe stream
-
-Detach if none is std!
-
-TBD: Sort out status. The above is SICStus 3. YAP uses `Status' for last
-argument (strange). SICStus 4 appears to drop this altogether.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    char *Symbols(char *buf)
+    char *findExecutable(char *buf)
 
     Return the path name of the executable of SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef __WINDOWS__			/* Win32 version in pl-nt.c */
+static char *	Which(const char *program, char *fullname);
 
 char *
 findExecutable(const char *av0, char *buffer)
@@ -2473,8 +2457,6 @@ findExecutable(const char *av0, char *buffer)
 
   return strcpy(buffer, file ? file : buf);
 }
-#endif /*__WINDOWS__*/
-
 
 #ifdef __unix__
 static char *
@@ -2578,6 +2560,7 @@ Which(const char *program, char *fullname)
   return NULL;
 }
 
+#endif /*__WINDOWS__*/
 
 /** int Pause(double time)
 

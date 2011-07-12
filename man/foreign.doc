@@ -1263,7 +1263,7 @@ created from the \arg{len}/\arg{chars} pair. The data will be copied.
 This interface can deal with 0-bytes in the string. See also
 \secref{foreigndata}.
 
-    \cfunction{int}{PL_unify_integer}{term_t ?t, long n}
+    \cfunction{int}{PL_unify_integer}{term_t ?t, intptr_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
     \cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
@@ -1512,70 +1512,70 @@ set_size(term_t name, term_t width, term_t height)
 \end{code}
 
 \begin{description}
-    \cfunction{int}{PL_get_atom_ex}{term_t t, atom_t *a};
+    \cfunction{int}{PL_get_atom_ex}{term_t t, atom_t *a}
 As PL_get_atom(), but raises a type or instantiation error if
 \arg{t} is not an atom.
 
-    \cfunction{int}{PL_get_integer_ex}{term_t t, int *i};
+    \cfunction{int}{PL_get_integer_ex}{term_t t, int *i}
 As PL_get_integer(), but raises a type or instantiation error if
 \arg{t} is not an integer or a representation error if the Prolog
 integer does not fit in a C \ctype{int}.
 
-    \cfunction{int}{PL_get_long_ex}{term_t t, long *i};
+    \cfunction{int}{PL_get_long_ex}{term_t t, long *i}
 As PL_get_long(), but raises a type or instantiation error if
 \arg{t} is not an atom or a representation error if the Prolog
 integer does not fit in a C \ctype{long}.
 
-    \cfunction{int}{PL_get_int64_ex}{term_t t, int64_t *i};
+    \cfunction{int}{PL_get_int64_ex}{term_t t, int64_t *i}
 As PL_get_int64(), but raises a type or instantiation error if
 \arg{t} is not an atom or a representation error if the Prolog
 integer does not fit in a C \ctype{int64_t}.
 
-    \cfunction{int}{PL_get_intptr_ex}{term_t t, intptr_t *i};
+    \cfunction{int}{PL_get_intptr_ex}{term_t t, intptr_t *i}
 As PL_get_intptr(), but raises a type or instantiation error if
 \arg{t} is not an atom or a representation error if the Prolog
 integer does not fit in a C \ctype{intptr_t}.
 
-    \cfunction{int}{PL_get_size_ex}{term_t t, size_t *i};
+    \cfunction{int}{PL_get_size_ex}{term_t t, size_t *i}
 As PL_get_size(), but raises a type or instantiation error if
 \arg{t} is not an atom or a representation error if the Prolog
 integer does not fit in a C \ctype{size_t}.
 
-    \cfunction{int}{PL_get_bool_ex}{term_t t, int *i};
+    \cfunction{int}{PL_get_bool_ex}{term_t t, int *i}
 As PL_get_atom_ex(), but raises a type or instantiation error if
 \arg{t} is not an atom.
 
-    \cfunction{int}{PL_get_float_ex}{term_t t, double *f};
+    \cfunction{int}{PL_get_float_ex}{term_t t, double *f}
 As PL_get_atom_ex(), but raises a type or instantiation error if
 \arg{t} is not an atom.
 
-    \cfunction{int}{PL_get_char_ex}{term_t t, int *p, int eof};
+    \cfunction{int}{PL_get_char_ex}{term_t t, int *p, int eof}
 Get a character code from \arg{t}, where \arg{t} is either an
 integer or an atom with length one.  If \arg{eof} is \const{TRUE}
 and \arg{t} is -1, \arg{p} is filled with -1.  Raises an appropriate
 error if the conversion is not possible.
 
-    \cfunction{int}{PL_get_pointer_ex}{term_t t, void **addrp};
+    \cfunction{int}{PL_get_pointer_ex}{term_t t, void **addrp}
 As PL_get_pointer(), but raises a type or instantiation error if
 \arg{t} is not a pointer.
 
-    \cfunction{int}{PL_get_list_ex}{term_t l, term_t h, term_t t};
+    \cfunction{int}{PL_get_list_ex}{term_t l, term_t h, term_t t}
 As PL_get_list(), but raises a type or instantiation error if
 \arg{t} is not a list.
 
-    \cfunction{int}{PL_get_nil_ex}{term_t l};
+    \cfunction{int}{PL_get_nil_ex}{term_t l}
 As PL_get_nil(), but raises a type or instantiation error if
 \arg{t} is not the empty list.
 
-    \cfunction{int}{PL_unify_list_ex}{term_t l, term_t h, term_t t};
+    \cfunction{int}{PL_unify_list_ex}{term_t l, term_t h, term_t t}
 As PL_unify_list(), but raises a type error if \arg{t} is not a
 variable, list-cell or the empty list.
 
-    \cfunction{int}{PL_unify_nil_ex}{term_t l};
+    \cfunction{int}{PL_unify_nil_ex}{term_t l}
 As PL_unify_nil(), but raises a type error if \arg{t} is not a
 variable, list-cell or the empty list.
 
-    \cfunction{int}{PL_unify_bool_ex}{term_t t, int val};
+    \cfunction{int}{PL_unify_bool_ex}{term_t t, int val}
 As PL_unify_bool(), but raises a type error if \arg{t} is not a
 variable, or a boolean.
 \end{description}
@@ -2662,7 +2662,7 @@ The \ctype{PL_extension} type is defined as
 
 \begin{code}
 typedef struct PL_extension
-{ char 		*predicate_name;	/* Name of the predicate */
+{ char		*predicate_name;	/* Name of the predicate */
   short		arity;			/* Arity of the predicate */
   pl_function_t	function;		/* Implementing functions */
   short		flags;			/* Or of PL_FA_... */

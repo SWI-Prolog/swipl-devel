@@ -70,7 +70,6 @@
 	    absolute_file_name/2,
 	    require/1,
 	    call_with_depth_limit/3,
-	    length/2,			% ?List, ?Length
 	    numbervars/3,		% +Term, +Start, -End
 	    nb_setval/2			% +Var, +Value
 	  ]).
@@ -926,35 +925,6 @@ stack_name(trail).
 stack_property(limit).
 stack_property(spare).
 stack_property(min_free).
-
-
-		 /*******************************
-		 *	 LIST MANIPULATION	*
-		 *******************************/
-
-%%	length(?List, ?N)
-%
-%	Is true when N is the length of List.
-
-:- '$iso'((length/2)).
-
-length(List, Length) :-
-	(   nonvar(Length)
-	->  '$length'(List, Length)
-	;   '$skip_list'(Length0, List, Tail),
-	    (	Tail == []
-	    ->	Length = Length0
-	    ;	var(Tail)
-	    ->  length3(Tail, Length, Length0)
-	    ;	throw(error(type_error(list,Tail),
-			    context(length/2, _)))
-	    )
-	).
-
-length3([], N, N).
-length3([_|List], N, N0) :-
-        succ(N0, N1),
-        length3(List, N, N1).
 
 
 		 /*******************************

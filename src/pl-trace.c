@@ -1068,50 +1068,66 @@ listGoal(LocalFrame frame)
 }
 
 
-void
-backTrace(LocalFrame frame, int depth)
+static void
+writeContextFrame(pl_context_t *ctx)
 { GET_LD
-  LocalFrame same_proc_frame = NULL;
-  Definition def = NULL;
-  int same_proc = 0;
-  int alien = FALSE;
-  Code PC = NULL;
 
-  if ( frame == NULL )
-     frame = environment_frame;
+  if ( gc_status.active )
+  { char buf[256];
 
-  for(; depth > 0 && frame;
-        alien = (frame->parent == NULL),
-        PC = frame->programPointer,
-        frame = parentFrame(frame))
-  { if ( alien )
-      Sfputs("    <Alien goal>\n", Sdout);
-
-    if ( frame->predicate == def )
-    { if ( ++same_proc >= 10 )
-      { if ( same_proc == 10 )
-	  Sfputs("    ...\n    ...\n", Sdout);
-	same_proc_frame = frame;
-	continue;
-      }
-    } else
-    { if ( same_proc_frame != NULL )
-      { if ( isDebugFrame(same_proc_frame) || SYSTEM_MODE )
-        { writeFrameGoal(same_proc_frame, PC, WFG_BACKTRACE);
-	  depth--;
-	}
-	same_proc_frame = NULL;
-	same_proc = 0;
-      }
-      def = frame->predicate;
-    }
-
-    if ( isDebugFrame(frame) || SYSTEM_MODE)
-    { writeFrameGoal(frame, PC, WFG_BACKTRACE);
-      depth--;
-    }
+    PL_describe_context(ctx, buf, sizeof(buf));
+    Sdprintf("  %s\n", buf);
+  } else
+  { writeFrameGoal(ctx->fr, ctx->pc, WFG_BACKTRACE);
   }
 }
+
+
+void
+backTrace(LocalFrame frame, int depth)
+{ pl_context_t ctx;
+
+  if ( PL_get_context(&ctx, 0) )
+  { GET_LD
+    Definition def = NULL;
+    int same_proc = 0;
+    pl_context_t rctx;			/* recursive context */
+    int show_all = (gc_status.active || SYSTEM_MODE);
+
+    for(; depth > 0; PL_step_context(&ctx))
+    { LocalFrame frame;
+
+      if ( !(frame=ctx.fr) )
+	return;
+
+      if ( frame->predicate == def )
+      { if ( ++same_proc >= 10 )
+	{ if ( same_proc == 10 )
+	    Sdprintf("    ...\n    ...\n", Sdout);
+	  rctx = ctx;
+	  continue;
+	}
+      } else
+      { if ( same_proc >= 10 )
+	{ if ( isDebugFrame(rctx.fr) || show_all )
+	  { writeContextFrame(&rctx);
+	    depth--;
+	  }
+	  same_proc = 0;
+	}
+	def = frame->predicate;
+      }
+
+      if ( isDebugFrame(frame) || show_all )
+      { writeContextFrame(&ctx);
+	depth--;
+      }
+    }
+  } else
+  { Sdprintf("No stack??\n");
+  }
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Trace interception mechanism.  Whenever the tracer wants to perform some
@@ -1252,56 +1268,144 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
   return rval;
 }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Stores up to len bytes of a representation of the frame referenced by ref
-into buf. If ref is NULL, then the currently executing frame is used nextref
-gets the value of the parent of the frame
-Return value is 0: if there are no more frames (in which case nextref
-                   will be NULL)
-               >0: The number of bytes which are required to completely
-                   protray the frame
 
-Note that the text is returned as UTF-8, regardless of locale settings.
+		 /*******************************
+		 *	 SAFE STACK TRACE	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_get_context(pl_context_t *ctx, int tid)
+PL_step_context(pl_context_t *ctx)
+PL_describe_context(pl_context_t *ctx, char *buf, size_t len)
+
+These functions provide a public API  to   obtain  a trace of the Prolog
+stack in a fairly safe manner.
+
+    static void
+    dump_stack(void)
+    { pl_context_t ctx;
+
+      if ( PL_get_context(&ctx, 0) )
+      { int max = 5;
+
+	Sdprintf("Prolog stack:\n");
+
+	do
+	{ char buf[256];
+
+	  PL_describe_context(&ctx, buf, sizeof(buf));
+	  Sdprintf("  %s\n", buf);
+	} while ( max-- > 0 && PL_step_context(&ctx) );
+      } else
+	Sdprintf("No stack??\n");
+    }
+
+The second argument of PL_get_context() is a Prolog thread-id. Passing 0
+gets the context of the calling   thread. The current implementation can
+only deal with extracting the stack for  the calling thread, but the API
+is prepared to generalise this.
+
+See also backTrace() and os/pl-cstack.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-PL_walk_prolog_stack(void* ref, char* buf, size_t len, void** nextref)
+PL_get_context(pl_context_t *c, int thread_id)
 { GET_LD
-  LocalFrame fr;
 
-  if (ref == NULL) /* Start of the chain - use current frame */
-  { LocalFrame topfr = environment_frame;
+  if ( !LD )
+    return FALSE;
 
-    if ( topfr->predicate->definition.function == pl_prolog_current_frame )
-      fr = parentFrame(topfr);
-    else
-      fr = topfr;
-  } else
-  { fr = (LocalFrame)ref;
+  c->ld = LD;
+  c->qf = LD->query;
+  if ( c->qf && c->qf->registers.fr )
+    c->fr = c->qf->registers.fr;
+  else
+    c->fr = environment_frame;
+  if ( c->qf && c->qf->registers.pc )
+    c->pc = c->qf->registers.pc;
+  else
+    c->pc = NULL;
+
+  return TRUE;
+}
+
+
+int
+PL_step_context(pl_context_t *c)
+{ if ( c->fr )
+  { GET_LD
+
+    if ( !onStack(local, c->fr) )
+      return FALSE;
+
+    if ( c->fr->parent )
+    { c->pc = c->fr->programPointer;
+      c->fr = c->fr->parent;
+    } else
+    { c->pc = NULL;
+      c->qf = queryOfFrame(c->fr);
+      c->fr = parentFrame(c->fr);
+    }
   }
 
-  if ( (*nextref = parentFrame(fr)) == NULL)
-    return 0;
+  return c->fr ? TRUE : FALSE;
+}
 
-  if ( fr->programPointer &&
-       fr->predicate &&
-       false(fr->predicate, FOREIGN) &&
-       fr->parent &&
-       fr->parent->clause &&
-       fr->parent->predicate != PROCEDURE_dcall1->definition &&
-       fr->clause &&
-       fr->predicate != PROCEDURE_dc_call_prolog->definition)
-  { intptr_t pc = fr->programPointer - fr->parent->clause->clause->codes;
 
-    return snprintf(buf, len, "%s [PC=%ld] [Clause %d]",
-		    predicateName(fr->predicate),
-		    (long)pc,
-		    clauseNo(fr->predicate, fr->clause->clause));
-  } else if ( fr->predicate )
-  { return snprintf(buf, len, "%s <foreign>", predicateName(fr->predicate));
-  } else
-  { return snprintf(buf, len, "invalid <predicate>");
+int
+PL_describe_context(pl_context_t *c, char *buf, size_t len)
+{ LocalFrame fr;
+
+  buf[0] = 0;
+
+  if ( (fr=c->fr) )
+  { GET_LD
+    long level;
+    int printed;
+
+    if ( !onStack(local, fr) )
+      return snprintf(buf, len, "<invalid frame reference %p>", fr);
+
+    level = levelFrame(fr);
+    if ( !fr->predicate )
+      return snprintf(buf, len, "[%ld] <no predicate>", level);
+
+    printed = snprintf(buf, len, "[%ld] %s ", level, predicateName(fr->predicate));
+    len -= printed;
+    buf += printed;
+
+    if ( c->pc >= fr->predicate->codes &&
+	 c->pc < &fr->predicate->codes[fr->predicate->codes[-1]] )
+    { return printed+snprintf(buf, len, "[PC=%ld in supervisor]",
+			      (c->pc - fr->predicate->codes));
+    }
+
+    if ( false(fr->predicate, FOREIGN) )
+    { int clause_no = 0;
+      intptr_t pc = -1;
+
+      if ( fr->clause )
+      { Clause cl = fr->clause->clause;
+
+	if ( c->pc >= cl->codes && c->pc < &cl->codes[cl->code_size] )
+	  pc = c->pc - cl->codes;
+
+	if ( fr->predicate == PROCEDURE_dc_call_prolog->definition )
+	  return printed+snprintf(buf, len, "[PC=%ld in top query clause]",
+				  (long)pc);
+
+	clause_no = clauseNo(fr->predicate, cl);
+	return printed+snprintf(buf, len, "[PC=%ld in clause %d]",
+				(long)pc,
+				clause_no);
+      }
+      return printed+snprintf(buf, len, "<no clause>");
+    } else
+    { return printed+snprintf(buf, len, "<foreign>");
+    }
   }
+
+  return 0;
 }
 
 
