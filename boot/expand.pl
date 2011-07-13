@@ -163,11 +163,23 @@ expand_goal(G0, G, MList, Term) :-
 %	@param ModuleList are the other expansion modules
 %	@param Term is the overall term that is being translated
 
+% (*)	This is needed because call_goal_expansion may introduce extra
+%	context variables.  Consider the code below, where the variable
+%	E is introduced.  Is there a better representation for the
+%	context?
+%
+%	  ==
+%	  goal_expansion(catch_and_print(Goal), catch(Goal, E, print(E))).
+%
+%	  test :-
+%		catch_and_print(true).
+%	  ==
+
 expand_goal(G, G, _, _, _) :-
         var(G), !.
 expand_goal(G0, G, M, MList, Term) :-
 	call_goal_expansion(MList, G0, G1), !,
-	expand_goal(G1, G, M, MList, Term).
+	expand_goal(G1, G, M, MList, Term/G1).		% (*)
 expand_goal((A,B), Conj, M, MList, Term) :- !,
         expand_goal(A, EA, M, MList, Term),
         expand_goal(B, EB, M, MList, Term),
