@@ -3911,20 +3911,37 @@ run_propagator(pmod(X,M,K), MState) :-
                 % if possible, propagate at the boundaries
                 (   domain_infimum(XD, n(Min)) ->
                     (   Min mod M =:= K -> true
+                    ;   Min > 0, M > 0, K > 0 ->
+                        Dist1 is K - (Min mod M),
+                        (   Dist1 > 0 -> Next is Min + Dist1
+                        ;   Next is (Min//M + 1)*M + K
+                        ),
+                        domain_remove_smaller_than(XD, Next, XD1),
+                        fd_put(X, XD1, XPs)
+                    ;   Min < 0, M > 0, K > 0 ->
+                        Dist1 is K - (Min mod M),
+                        (   Dist1 > 0 -> Next is Min + Dist1
+                        ;   Next is (Min//M)*M + K
+                        ),
+                        domain_remove_smaller_than(XD, Next, XD1),
+                        fd_put(X, XD1, XPs)
                     ;   neq_num(X, Min)
                     )
                 ;   true
                 ),
-                (   domain_supremum(XD, n(Max)) ->
-                    (   Max mod M =:= K -> true
-                    ;   Max > 0, M > 0, K > 0 ->
-                        Dist2 is K - (Max mod M),
-                        (   Dist2 > 0 -> Prev is (Max//M - 1)*M + K
-                        ;   Prev is Max + Dist2
-                        ),
-                        domain_remove_greater_than(XD, Prev, XD1),
-                        fd_put(X, XD1, XPs)
-                    ;   neq_num(X, Max)
+                (   fd_get(X, XD2, XPs2) ->
+                    (   domain_supremum(XD2, n(Max)) ->
+                        (   Max mod M =:= K -> true
+                        ;   Max > 0, M > 0, K > 0 ->
+                            Dist2 is K - (Max mod M),
+                            (   Dist2 > 0 -> Prev is (Max//M - 1)*M + K
+                            ;   Prev is Max + Dist2
+                            ),
+                            domain_remove_greater_than(XD2, Prev, XD3),
+                            fd_put(X, XD3, XPs2)
+                        ;   neq_num(X, Max)
+                        )
+                    ;   true
                     )
                 ;   true
                 )
