@@ -3932,7 +3932,7 @@ run_propagator(pmod(X,M,K), MState) :-
                 (   fd_get(X, XD2, XPs2) ->
                     (   domain_supremum(XD2, n(Max)) ->
                         (   Max mod M =:= K -> true
-                        ;   Max > 0, M > 0 ->
+                        ;   M > 0 ->
                             Dist2 is K - (Max mod M),
                             (   Dist2 > 0 -> Prev is (Max//M - 1)*M + K
                             ;   Prev is Max + Dist2
