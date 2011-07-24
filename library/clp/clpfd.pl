@@ -3911,14 +3911,14 @@ run_propagator(pmod(X,M,K), MState) :-
                 % if possible, propagate at the boundaries
                 (   domain_infimum(XD, n(Min)) ->
                     (   Min mod M =:= K -> true
-                    ;   Min > 0, M > 0, K > 0 ->
+                    ;   Min > 0, M > 0 ->
                         Dist1 is K - (Min mod M),
                         (   Dist1 > 0 -> Next is Min + Dist1
                         ;   Next is (Min//M + 1)*M + K
                         ),
                         domain_remove_smaller_than(XD, Next, XD1),
                         fd_put(X, XD1, XPs)
-                    ;   Min < 0, M > 0, K > 0 ->
+                    ;   Min < 0, M > 0 ->
                         Dist1 is K - (Min mod M),
                         (   Dist1 > 0 -> Next is Min + Dist1
                         ;   Next is (Min//M)*M + K
@@ -3932,7 +3932,7 @@ run_propagator(pmod(X,M,K), MState) :-
                 (   fd_get(X, XD2, XPs2) ->
                     (   domain_supremum(XD2, n(Max)) ->
                         (   Max mod M =:= K -> true
-                        ;   Max > 0, M > 0, K > 0 ->
+                        ;   Max > 0, M > 0 ->
                             Dist2 is K - (Max mod M),
                             (   Dist2 > 0 -> Prev is (Max//M - 1)*M + K
                             ;   Prev is Max + Dist2
@@ -3984,7 +3984,7 @@ run_propagator(prem(X,Y,Z), MState) :-
                 % if possible, propagate at the boundaries
                 (   domain_infimum(XD1, n(Min)) ->
                     (   Min rem Y =:= Z -> true
-                    ;   Z > 0, Y > 0, Min > 0 ->
+                    ;   Y > 0, Min > 0 ->
                         Dist1 is Z - (Min rem Y),
                         (   Dist1 > 0 -> Next is Min + Dist1
                         ;   Next is (Min//Y + 1)*Y + Z
@@ -3999,7 +3999,7 @@ run_propagator(prem(X,Y,Z), MState) :-
                 (   fd_get(X, XD3, XPs3) ->
                     (   domain_supremum(XD3, n(Max)) ->
                         (   Max rem Y =:= Z -> true
-                        ;   Z > 0, Y > 0, Max > 0  ->
+                        ;   Y > 0, Max > 0  ->
                             Dist2 is Z - (Max rem Y),
                             (   Dist2 > 0 -> Prev is (Max//Y - 1)*Y + Z
                             ;   Prev is Max + Dist2
