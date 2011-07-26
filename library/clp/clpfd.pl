@@ -3876,30 +3876,30 @@ run_propagator(pabs(X,Y), MState) :-
             )
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% K = X mod Y
+% Z = X mod Y
 
-run_propagator(pmod(X,Y,K), MState) :-
+run_propagator(pmod(X,Y,Z), MState) :-
         (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Y =\= 0, K is X mod Y
+            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X mod Y
             ;   true
             )
         ;   nonvar(Y) ->
             Y =\= 0,
-            (   abs(Y) =:= 1 -> kill(MState), K = 0
-            ;   fd_get(K, KD, KPs) ->
+            (   abs(Y) =:= 1 -> kill(MState), Z = 0
+            ;   fd_get(Z, ZD, ZPs) ->
                 YP is abs(Y) - 1,
-                (   Y > 0 -> KDN = from_to(n(0), n(YP))
-                ;   YN is -YP, KDN = from_to(n(YN), n(0))
+                (   Y > 0 -> ZDN = from_to(n(0), n(YP))
+                ;   YN is -YP, ZDN = from_to(n(YN), n(0))
                 ),
-                domains_intersection(KD, KDN, KD1),
-                fd_put(K, KD1, KPs),
+                domains_intersection(ZD, ZDN, ZD1),
+                fd_put(Z, ZD1, ZPs),
                 (   fd_get(X, XD, XPs), domain_infimum(XD, n(XMin)) ->
-                    K1 is XMin mod Y,
-                    (   domain_contains(KD1, K1) -> true
-                    ;   Y > 0, XMin < 0, domain_supremum(KD1, n(KMax)),
-                        K1 > KMax ->
-                        domain_infimum(KD1, n(KMin)),
-                        Next is (XMin//Y)*Y + KMin,
+                    Z1 is XMin mod Y,
+                    (   domain_contains(ZD1, Z1) -> true
+                    ;   Y > 0, XMin < 0, domain_supremum(ZD1, n(ZMax)),
+                        Z1 > ZMax ->
+                        domain_infimum(ZD1, n(ZMin)),
+                        Next is (XMin//Y)*Y + ZMin,
                         domain_remove_smaller_than(XD, Next, XD1),
                         fd_put(X, XD1, XPs)
                     ;   neq_num(X, XMin)
@@ -3907,11 +3907,11 @@ run_propagator(pmod(X,Y,K), MState) :-
                 ;   true
                 ),
                 (   fd_get(X, XD2, XPs2), domain_supremum(XD2, n(XMax)) ->
-                    K2 is XMax mod Y,
-                    (   domain_contains(KD1, K2) -> true
-                    ;   Y > 0, XMax >= 0, domain_supremum(KD1, n(KMax1)),
-                        K2 > KMax1 ->
-                        Prev is (XMax//Y)*Y + KMax1,
+                    Z2 is XMax mod Y,
+                    (   domain_contains(ZD1, Z2) -> true
+                    ;   Y > 0, XMax >= 0, domain_supremum(ZD1, n(ZMax1)),
+                        Z2 > ZMax1 ->
+                        Prev is (XMax//Y)*Y + ZMax1,
                         domain_remove_greater_than(XD2, Prev, XD3),
                         fd_put(X, XD3, XPs2)
                     ;   neq_num(X, XMax)
@@ -3921,18 +3921,18 @@ run_propagator(pmod(X,Y,K), MState) :-
             ;   fd_get(X, XD, XPs),
                 % if possible, propagate at the boundaries
                 (   domain_infimum(XD, n(Min)) ->
-                    (   Min mod Y =:= K -> true
+                    (   Min mod Y =:= Z -> true
                     ;   Min > 0, Y > 0 ->
-                        Dist1 is K - (Min mod Y),
+                        Dist1 is Z - (Min mod Y),
                         (   Dist1 > 0 -> Next is Min + Dist1
-                        ;   Next is (Min//Y + 1)*Y + K
+                        ;   Next is (Min//Y + 1)*Y + Z
                         ),
                         domain_remove_smaller_than(XD, Next, XD1),
                         fd_put(X, XD1, XPs)
                     ;   Min < 0, Y > 0 ->
-                        Dist1 is K - (Min mod Y),
+                        Dist1 is Z - (Min mod Y),
                         (   Dist1 > 0 -> Next is Min + Dist1
-                        ;   Next is (Min//Y)*Y + K
+                        ;   Next is (Min//Y)*Y + Z
                         ),
                         domain_remove_smaller_than(XD, Next, XD1),
                         fd_put(X, XD1, XPs)
@@ -3942,10 +3942,10 @@ run_propagator(pmod(X,Y,K), MState) :-
                 ),
                 (   fd_get(X, XD2, XPs2) ->
                     (   domain_supremum(XD2, n(Max)) ->
-                        (   Max mod Y =:= K -> true
+                        (   Max mod Y =:= Z -> true
                         ;   Y > 0 ->
-                            Dist2 is K - (Max mod Y),
-                            (   Dist2 > 0 -> Prev is (Max//Y - 1)*Y + K
+                            Dist2 is Z - (Max mod Y),
+                            (   Dist2 > 0 -> Prev is (Max//Y - 1)*Y + Z
                             ;   Prev is Max + Dist2
                             ),
                             domain_remove_greater_than(XD2, Prev, XD3),
@@ -3957,7 +3957,7 @@ run_propagator(pmod(X,Y,K), MState) :-
                 ;   true
                 )
             )
-        ;   X == Y -> kill(MState), K = 0
+        ;   X == Y -> kill(MState), Z = 0
         ;   true % TODO: propagate more
         ).
 
