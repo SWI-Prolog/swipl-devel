@@ -3907,6 +3907,11 @@ run_propagator(pmod(X,Y,Z), MState) :-
                         Next is (XMin//Y)*Y + ZMin,
                         domain_remove_smaller_than(XD, Next, XD1),
                         fd_put(X, XD1, XPs)
+                    ;   Y > 0, XMin < 0, domain_infimum(ZD1, n(ZMin)),
+                        Z1 < ZMin ->
+                        Next is (XMin//Y - 1)*Y + ZMin,
+                        domain_remove_smaller_than(XD, Next, XD1),
+                        fd_put(X, XD1, XPs)
                     ;   neq_num(X, XMin)
                     )
                 ;   true
@@ -3917,6 +3922,12 @@ run_propagator(pmod(X,Y,Z), MState) :-
                     ;   Y > 0, XMax >= 0, domain_supremum(ZD1, n(ZMax1)),
                         Z2 > ZMax1 ->
                         Prev is (XMax//Y)*Y + ZMax1,
+                        domain_remove_greater_than(XD2, Prev, XD3),
+                        fd_put(X, XD3, XPs2)
+                    ;   Y > 0, XMax >= 0, domain_infimum(ZD1, n(ZMin1)),
+                        Z2 < ZMin1 ->
+                        domain_supremum(ZD1, n(ZMax)),
+                        Prev is (XMax//Y - 1)*Y + ZMax,
                         domain_remove_greater_than(XD2, Prev, XD3),
                         fd_put(X, XD3, XPs2)
                     ;   neq_num(X, XMax)
