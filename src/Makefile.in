@@ -162,7 +162,7 @@ prof:
 .c.i:
 	$(CC) -E -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
 
-system:		$(PL)
+system:		$(PL)$(EXEEXT)
 startup:	$(STARTUPPATH)
 headers:	parms.h $(CINCLUDE) $(STREAMH) $(STUBC) @EXTRAHDR@
 staticlib:	$(RUNTIME)
@@ -172,7 +172,7 @@ index:		../library/INDEX.pl
 banner::
 		@echo "****************"
 		@echo "Making SWI-Prolog $(PLVERSION) for $(PLARCH)"
-		@echo "To be installed in $(bindir)/$(PL)"
+		@echo "To be installed in $(bindir)/$(PL)$(EXEEXT)"
 		@echo "Home (libraries) in $(PLBASE)"
 		@echo "****************"
 
@@ -181,11 +181,11 @@ banner::
 # be overruled using LD_LIBRARY_PATH, which is what we need to be able
 # to run our local copy of SWI-Prolog.
 
-$(PL):		$(MKLIBS) $(PLOBJ)
-		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(PLARCH) -lswipl $(LNLIBS) $(OSLIB)
-		$(CHRPATH) -c $(PL) || true
+$(PL)$(EXEEXT):		$(MKLIBS) $(PLOBJ)
+		$(LDEXE) $(LDFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) -lswipl $(LNLIBS) $(OSLIB)
+		$(CHRPATH) -c $@ || true
 
-$(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
+$(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)
 		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
 
 
@@ -252,7 +252,7 @@ exports:	$(EXPORTS)
 def:		$(DEF)
 
 $(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
-		echo \#\!$(bindir)/$(PL) > $@
+		echo \#\!$(bindir)/$(PL)$(EXEEXT) > $@
 		grep '^PL_EXPORT' $(srcdir)/SWI-Prolog.h $(srcdir)/SWI-Stream.h | \
 		    $(SED) -e 's/.*[	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
@@ -383,12 +383,12 @@ dv-install:	install-arch install-libs install-bins html-install
 
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
-		for f in $(PL) swipl-ld$(EXEEXT) swipl-rc; do \
+		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
 install-arch:	idirs iruntime
-		for f in $(PL) swipl-ld$(EXEEXT) rc/swipl-rc; do \
+		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) rc/swipl-rc$(EXEEXT); do \
 		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(PLARCH); \
 		done
 
@@ -566,7 +566,7 @@ distclean:	clean profclean
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h version.h
 		rm -f $(DEVPL) swipl.home swiplbin $(STARTUPPATH)
-		rm -f $(PL) $(PL).exe
+		rm -f $(PL)$(EXEEXT)
 		rm .f  swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
 		rm -f  swipl.1 libswiplimp.a $(DEF)
 		rm -f config.log config.cache swipl.pc
@@ -575,5 +575,5 @@ distclean:	clean profclean
 realclean:	clean
 		rm -f $(STARTUPPATH)
 		rm -f config.log config.cache
-		rm -rf $(PL) ../startup ../include ../lib
+		rm -rf $(PL)$(EXEEXT) ../startup ../include ../lib
 
