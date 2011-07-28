@@ -279,6 +279,8 @@ deleteMutexes()
 }
 
 
+#ifdef O_SHARED_KERNEL
+
 BOOL WINAPI
 DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 { BOOL result = TRUE;
@@ -298,6 +300,8 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 
   return result;
 }
+
+#endif /*O_SHARED_KERNEL*/
 
 #endif /*USE_CRITICAL_SECTIONS*/
 
@@ -658,7 +662,7 @@ initPrologThreads()
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
 
-#if defined(PTW32_STATIC_LIB)
+#ifndef O_SHARED_KERNEL
   initMutexes();
   ptw32_processInitialize();
 #endif
