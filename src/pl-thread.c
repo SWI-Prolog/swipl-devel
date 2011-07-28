@@ -664,6 +664,9 @@ initPrologThreads()
 
 #ifndef O_SHARED_KERNEL
   initMutexes();
+#endif
+
+#ifdef PTW32_STATIC_LIB
   ptw32_processInitialize();
 #endif
 
