@@ -35,4 +35,4 @@ fi
 
 export @DLLIBVAR@
 
-$bdir/@PL@ "$@"
+$bdir/@PL@@EXEEXT@ "$@"
