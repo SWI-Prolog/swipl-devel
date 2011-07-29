@@ -383,9 +383,16 @@ dv-install:	install-arch install-libs install-bins html-install
 
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
+ifeq ($(MINGW),true)
+		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
+		  $(INSTALL_PROGRAM) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir);
+		done
+		$(INSTALL_PROGRAM) $(RUNTIMEDIR)/libswipl.dll $(DESTDIR)$(bindir); \
+else
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
+endif
 
 install-arch:	idirs iruntime
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) rc/swipl-rc$(EXEEXT); do \
@@ -422,7 +429,6 @@ ifeq ($(SOEXT),dll)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
-		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/libswipl.dll $(DESTDIR)$(PLBASE)/bin/$(PLARCH); \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
