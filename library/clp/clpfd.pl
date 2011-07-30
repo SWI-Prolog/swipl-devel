@@ -4643,7 +4643,7 @@ clear_parent(V) :- del_attr(V, parent).
 
 maximum_matching([]).
 maximum_matching([FL|FLs]) :-
-        augmenting_path_to(1, [[FL]], Levels, To),
+        augmenting_path_to([[FL]], Levels, To),
         phrase(augmenting_path(FL, To), Path),
         maplist(maplist(clear_parent), Levels),
         del_attr(To, free),
@@ -4676,15 +4676,14 @@ edge_reachable(flow_from(F,From), V) -->
         ;   []
         ).
 
-augmenting_path_to(Level, Levels0, Levels, Right) :-
+augmenting_path_to(Levels0, Levels, Right) :-
         Levels0 = [Vs|_],
         Levels1 = [Tos|Levels0],
         phrase(reachables(Vs), Tos),
         Tos = [_|_],
-        (   odd(Level), member(Free, Tos), get_attr(Free, free, true) ->
-            Right = Free, Levels = Levels1
-        ;   Level1 is Level + 1,
-            augmenting_path_to(Level1, Levels1, Levels, Right)
+        (   member(Right, Tos), get_attr(Right, free, true) ->
+            Levels = Levels1
+        ;   augmenting_path_to(Levels1, Levels, Right)
         ).
 
 augmenting_path(S, V) -->
