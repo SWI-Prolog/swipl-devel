@@ -10,6 +10,7 @@
 bdir=@abs_top_builddir@
 PLARCH=@PLARCH@
 PL=@PL@
+EXEEXT=@EXEEXT@
 ldir=$bdir/../lib/$PLARCH
 sep=":"
 
@@ -25,4 +26,4 @@ else
 fi
 export @DLLIBVAR@
 
-$bdir/$PL "$@"
+$bdir/$PL$EXEEXT "$@"
