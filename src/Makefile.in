@@ -385,9 +385,9 @@ install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
 ifeq ($(MINGW),true)
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
-		  $(INSTALL_PROGRAM) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir);
+		  $(INSTALL_PROGRAM) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
-		$(INSTALL_PROGRAM) $(RUNTIMEDIR)/libswipl.dll $(DESTDIR)$(bindir); \
+		$(INSTALL_PROGRAM) $(RUNTIMEDIR)/libswipl.dll $(DESTDIR)$(bindir)
 else
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir); \
