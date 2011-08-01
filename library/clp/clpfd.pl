@@ -3918,16 +3918,11 @@ run_propagator(pmod(X,Y,Z), MState) :-
                 ),
                 (   fd_get(X, XD2, XPs2), domain_supremum(XD2, n(XMax)) ->
                     Z2 is XMax mod Y,
-                    (   domain_contains(ZD1, Z2) -> true
-                    ;   Y > 0, XMax >= 0, domain_supremum(ZD1, n(ZMax1)),
-                        Z2 > ZMax1 ->
-                        Prev is (XMax//Y)*Y + ZMax1,
-                        domain_remove_greater_than(XD2, Prev, XD3),
-                        fd_put(X, XD3, XPs2)
-                    ;   Y > 0, XMax >= 0, domain_infimum(ZD1, n(ZMin1)),
-                        Z2 < ZMin1 ->
-                        domain_supremum(ZD1, n(ZMax)),
-                        Prev is (XMax//Y - 1)*Y + ZMax,
+                    domain_infimum(ZD1, n(ZMin1)),
+                    domain_supremum(ZD1, n(ZMax1)),
+                    (   between(ZMin1, ZMax1, Z2) -> true
+                    ;   Y > 0 ->
+                        Prev is ((XMax - ZMin1) div Y)*Y + ZMax1,
                         domain_remove_greater_than(XD2, Prev, XD3),
                         fd_put(X, XD3, XPs2)
                     ;   neq_num(X, XMax)
@@ -3960,10 +3955,7 @@ run_propagator(pmod(X,Y,Z), MState) :-
                     (   domain_supremum(XD2, n(Max)) ->
                         (   Max mod Y =:= Z -> true
                         ;   Y > 0 ->
-                            Dist2 is Z - (Max mod Y),
-                            (   Dist2 > 0 -> Prev is (Max//Y - 1)*Y + Z
-                            ;   Prev is Max + Dist2
-                            ),
+                            Prev is ((Max - Z) div Y)*Y + Z,
                             domain_remove_greater_than(XD2, Prev, XD3),
                             fd_put(X, XD3, XPs2)
                         ;   neq_num(X, Max)
