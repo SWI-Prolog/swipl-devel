@@ -245,7 +245,8 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
     q += 3;
   }
 
-  if ( q[0] == '/' || q[0] == '\\' )	/* deal with //host/share */
+  if ( (q[0] == '/' || q[0] == '\\') &&
+       (q[1] == '/' || q[1] == '\\') )	/* deal with //host/share */
   { if ( s+1 >= e )
     { errno = ENAMETOOLONG;
       return NULL;
