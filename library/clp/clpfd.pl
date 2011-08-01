@@ -3921,18 +3921,8 @@ run_propagator(pmod(X,Y,Z), MState) :-
                 % if possible, propagate at the boundaries
                 (   domain_infimum(XD, n(Min)) ->
                     (   Min mod Y =:= Z -> true
-                    ;   Min > 0, Y > 0 ->
-                        Dist1 is Z - (Min mod Y),
-                        (   Dist1 > 0 -> Next is Min + Dist1
-                        ;   Next is (Min//Y + 1)*Y + Z
-                        ),
-                        domain_remove_smaller_than(XD, Next, XD1),
-                        fd_put(X, XD1, XPs)
-                    ;   Min < 0, Y > 0 ->
-                        Dist1 is Z - (Min mod Y),
-                        (   Dist1 > 0 -> Next is Min + Dist1
-                        ;   Next is (Min//Y)*Y + Z
-                        ),
+                    ;   Y > 0 ->
+                        Next is ((Min - Z + Y - 1) div Y)*Y + Z,
                         domain_remove_smaller_than(XD, Next, XD1),
                         fd_put(X, XD1, XPs)
                     ;   neq_num(X, Min)
