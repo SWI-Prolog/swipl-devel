@@ -3982,10 +3982,7 @@ run_propagator(prem(X,Y,Z), MState) :-
                 (   domain_infimum(XD1, n(Min)) ->
                     (   Min rem Y =:= Z -> true
                     ;   Y > 0, Min > 0 ->
-                        Dist1 is Z - (Min rem Y),
-                        (   Dist1 > 0 -> Next is Min + Dist1
-                        ;   Next is (Min//Y + 1)*Y + Z
-                        ),
+                        Next is ((Min - Z + Y - 1) div Y)*Y + Z,
                         domain_remove_smaller_than(XD1, Next, XD2),
                         fd_put(X, XD2, XPs1)
                     ;   % TODO: bigger steps in other cases as well
@@ -3997,10 +3994,7 @@ run_propagator(prem(X,Y,Z), MState) :-
                     (   domain_supremum(XD3, n(Max)) ->
                         (   Max rem Y =:= Z -> true
                         ;   Y > 0, Max > 0  ->
-                            Dist2 is Z - (Max rem Y),
-                            (   Dist2 > 0 -> Prev is (Max//Y - 1)*Y + Z
-                            ;   Prev is Max + Dist2
-                            ),
+                            Prev is ((Max - Z) div Y)*Y + Z,
                             domain_remove_greater_than(XD3, Prev, XD4),
                             fd_put(X, XD4, XPs3)
                         ;   % TODO: bigger steps in other cases as well
