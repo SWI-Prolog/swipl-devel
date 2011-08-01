@@ -3893,23 +3893,13 @@ run_propagator(pmod(X,Y,Z), MState) :-
                 ),
                 domains_intersection(ZD, ZDN, ZD1),
                 fd_put(Z, ZD1, ZPs),
+                domain_infimum(ZD1, n(ZMin)),
+                domain_supremum(ZD1, n(ZMax)),
                 (   fd_get(X, XD, XPs), domain_infimum(XD, n(XMin)) ->
                     Z1 is XMin mod Y,
-                    (   domain_contains(ZD1, Z1) -> true
-                    ;   Y > 0, XMin < 0, domain_supremum(ZD1, n(ZMax)),
-                        Z1 > ZMax ->
-                        domain_infimum(ZD1, n(ZMin)),
-                        Next is (XMin//Y)*Y + ZMin,
-                        domain_remove_smaller_than(XD, Next, XD1),
-                        fd_put(X, XD1, XPs)
-                    ;   Y > 0, XMin >= 0, domain_infimum(ZD1, n(ZMin)),
-                        Z1 < ZMin ->
-                        Next is (XMin//Y)*Y + ZMin,
-                        domain_remove_smaller_than(XD, Next, XD1),
-                        fd_put(X, XD1, XPs)
-                    ;   Y > 0, XMin < 0, domain_infimum(ZD1, n(ZMin)),
-                        Z1 < ZMin ->
-                        Next is (XMin//Y - 1)*Y + ZMin,
+                    (   between(ZMin, ZMax, Z1) -> true
+                    ;   Y > 0 ->
+                        Next is ((XMin - ZMin + Y - 1) div Y)*Y + ZMin,
                         domain_remove_smaller_than(XD, Next, XD1),
                         fd_put(X, XD1, XPs)
                     ;   neq_num(X, XMin)
@@ -3918,11 +3908,9 @@ run_propagator(pmod(X,Y,Z), MState) :-
                 ),
                 (   fd_get(X, XD2, XPs2), domain_supremum(XD2, n(XMax)) ->
                     Z2 is XMax mod Y,
-                    domain_infimum(ZD1, n(ZMin1)),
-                    domain_supremum(ZD1, n(ZMax1)),
-                    (   between(ZMin1, ZMax1, Z2) -> true
+                    (   between(ZMin, ZMax, Z2) -> true
                     ;   Y > 0 ->
-                        Prev is ((XMax - ZMin1) div Y)*Y + ZMax1,
+                        Prev is ((XMax - ZMin) div Y)*Y + ZMax,
                         domain_remove_greater_than(XD2, Prev, XD3),
                         fd_put(X, XD3, XPs2)
                     ;   neq_num(X, XMax)
