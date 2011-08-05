@@ -287,10 +287,10 @@ case "$PLARCH" in
 	  CMFLAGS="$CMFLAGS -ieee"
 	fi
         ;;
-    i?86-mingw32msvc)
+    i?86-mingw32*)
 	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN32"
 	;;
-    x86_64-mingw32msvc)
+    x86_64-mingw32*)
 	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN64"
 	;;
 esac
