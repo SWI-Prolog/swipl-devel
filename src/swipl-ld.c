@@ -53,6 +53,12 @@ embedded application.
   #endif
  */
 
+#ifndef __WINDOWS__
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#define __WINDOWS__ 1
+#endif
+#endif
+
 #define UNQUOTED_PREFIX "\1"
 
 #include "pl-incl.h"
