@@ -427,16 +427,13 @@ save_flags :-
 		 *	     IMPORTS		*
 		 *******************************/
 
-default_import(system, _, _) :- !, fail.
-default_import(To, Head, _) :-
-	'$get_predicate_attribute'(To:Head, (dynamic), 1), !,
-	fail.
-default_import(user, Head, _) :- !,
-	'$default_predicate'(user:Head, system:Head).
-default_import(To, Head, _From) :-
-	'$default_predicate'(To:Head, user:Head).
-default_import(To, Head, _From) :-
-	'$default_predicate'(To:Head, system:Head).
+%%	save_imports
+%
+%	Save  import  relations.  An  import  relation  is  saved  if  a
+%	predicate is imported from a module that is not a default module
+%	for the destination module. If  the   predicate  is  dynamic, we
+%	always define the explicit import relation to make clear that an
+%	assert must assert on the imported predicate.
 
 save_imports :-
 	feedback('~nIMPORTS~n~n', []),
@@ -448,6 +445,13 @@ save_imports :-
 	    fail
 	;   true
 	).
+
+default_import(To, Head, From) :-
+	'$get_predicate_attribute'(To:Head, (dynamic), 1),
+	predicate_property(From:Head, exported), !,
+	fail.
+default_import(Into, _, From) :-
+	default_module(Into, From).
 
 %%	restore_import(+TargetModule, +SourceModule, +PI) is det.
 %
