@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,9 +36,18 @@
 	  ]).
 :- use_module(library(lists)).
 
-:- module_transparent
-	qsave_program/1,
-	qsave_program/2.
+/** <module> Save current program as a state or executable
+
+This library provides qsave_program/1  and   qsave_program/2,  which are
+also used by the commandline sequence below.
+
+  ==
+  swipl -o exe -c file.pl ...
+  ==
+*/
+
+:- meta_predicate
+	qsave_program(+, :).
 
 :- system_mode(on).
 
@@ -45,16 +55,15 @@
 :- volatile verbose/1.			% contains a stream-handle
 
 %%	qsave_program(+File) is det.
-%%	qsave_program(+File, +Options) is det.
+%%	qsave_program(+File, :Options) is det.
 %
 %	Make a saved state in file `File'.
 
 qsave_program(File) :-
 	qsave_program(File, []).
 
-qsave_program(FileSpec, Options0) :-
+qsave_program(FileBase, Module:Options0) :-
 	check_options(Options0),
-	strip_module(FileSpec, Module, FileBase),
 	exe_file(FileBase, File),
 	option(Options0, autoload/true,	    Autoload,  Options1),
 	option(Options1, map/[],	    Map,       Options2),
