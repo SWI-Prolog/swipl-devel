@@ -1448,13 +1448,13 @@ PL_meta_predicate(predicate_t proc, ...)
   for(i=0; i<arity; i++)
   { int spec = va_arg(args, int);
 
-    if ( (mask >= 0 && mask <= 9) ||
-	 mask == MA_NONVAR ||
-	 mask == MA_VAR ||
-	 mask == MA_ANY ||
-	 mask == MA_META )
+    if ( (spec >= 0 && spec <= 9) ||
+	 spec == MA_NONVAR ||
+	 spec == MA_VAR ||
+	 spec == MA_ANY ||
+	 spec == MA_META )
     { mask |= spec<<(i*4);
-      if ( spec < 10 || spec == ATOM_colon )
+      if ( spec < 10 || spec == MA_META || spec == MA_HAT )
 	transparent = TRUE;
     } else
     { fatalError("Invalid meta-argument\n");
