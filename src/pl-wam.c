@@ -1742,11 +1742,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 #endif
   Mark(qf->choice.mark);
 
-  if ( true(def, FOREIGN) )
-  { fr->clause = NULL;			/* initial context */
-  } else
-  { fr->clause = def->definition.clauses;
-  }
 #ifdef O_LOGICAL_UPDATE
   fr->generation = GD->generation;
 #endif
