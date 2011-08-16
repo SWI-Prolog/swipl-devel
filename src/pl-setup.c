@@ -1139,6 +1139,7 @@ emptyStacks(void)
 
   environment_frame = NULL;
   fli_context       = NULL;
+  LD->query         = NULL;
 
   emptyStack((Stack)&LD->stacks.local);
   emptyStack((Stack)&LD->stacks.global);
