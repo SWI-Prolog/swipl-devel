@@ -349,10 +349,21 @@ initialization(Goal, When) :-
 %
 %	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
 
-default_module(Me, Me).
 default_module(Me, Super) :-
+	(   atom(Me)
+	->  (   var(Super)
+	    ->  '$default_module'(Me, Super)
+	    ;   '$default_module'(Me, Super), !
+	    )
+	;   var(Me)
+	->  throw(error(instantiation_error, _))
+	;   throw(error(type_error(module, Me), _))
+	).
+
+'$default_module'(Me, Me).
+'$default_module'(Me, Super) :-
 	import_module(Me, S),
-	default_module(S, Super).
+	'$default_module'(S, Super).
 
 
 		/********************************
