@@ -1294,12 +1294,6 @@ stack_free(void *mem)
 }
 
 
-void
-resetStacks()
-{ emptyStacks();
-}
-
-
 int
 trim_stack(Stack s)
 { if ( s->spare < s->def_spare )
