@@ -298,26 +298,68 @@ same_length([_|T1], [_|T2]) :-
 %	List1.
 
 reverse(Xs, Ys) :-
-    reverse(Xs, [], Ys, Ys).
+	reverse(Xs, [], Ys, Ys).
 
 reverse([], Ys, Ys, []).
 reverse([X|Xs], Rs, Ys, [_|Bound]) :-
-    reverse(Xs, [X|Rs], Ys, Bound).
+	reverse(Xs, [X|Rs], Ys, Bound).
 
 
 %%	permutation(?Xs, ?Ys) is nondet.
 %
 %	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
-%	can solve for Ys given Xs or Xs given Ys, or even enumerate Xs
-%	and Ys together.
+%	can solve for Ys given Xs or Xs   given Ys, or even enumerate Xs
+%	and  Ys  together.  The  predicate  permutation/2  is  primarily
+%	intended to generate permutations. Note that  a list of length N
+%	has N! permutations and unbounded permutation generation becomes
+%	prohibitively expensive, even for  rather   short  lists  (10! =
+%	3,628,800).
+%
+%	If both Xs and Ys are provided  and both lists have equal length
+%	the order is |Xs|^2. Simply testing  whether Xs is a permutation
+%	of Ys can be  achieved  in   order  log(|Xs|)  using  msort/2 as
+%	illustrated below with the =semidet= predicate is_permutation/2:
+%
+%	  ==
+%	  is_permutation(Xs, Ys) :-
+%	    msort(Xs, Sorted),
+%	    msort(Ys, Sorted).
+%	  ==
+%
+%	The example below illustrate that Xs   and Ys being proper lists
+%	is not a sufficient condition to use the above replacement.
+%
+%	  ==
+%	  ?- permutation([1,2], [X,Y]).
+%	  X = 1, Y = 2 ;
+%	  X = 2, Y = 1 ;
+%	  false.
+%	  ==
+%
+%	@error	type_error(list, Arg) if either argument is not a proper
+%		or partial list.
 
 permutation(Xs, Ys) :-
-	permutation(Xs, Ys, Ys).
+	'$skip_list'(Xlen, Xs, XTail),
+	'$skip_list'(Ylen, Ys, YTail),
+	(   XTail == [], YTail == []		% both proper lists
+	->  Xlen == Ylen
+	;   var(XTail), YTail == []		% partial, proper
+	->  length(Xs, Ylen)
+	;   XTail == [], var(YTail)		% proper, partial
+	->  length(Ys, Xlen)
+	;   var(XTail), var(YTail)		% partial, partial
+	->  length(Xs, Len),
+	    length(Ys, Len)
+	;   must_be(list, Xs),			% either is not a list
+	    must_be(list, Ys)
+	),
+	perm(Xs, Ys).
 
-permutation([], [], []).
-permutation([X|Xs], Ys1, [_|Bound]) :-
-	permutation(Xs, Ys, Bound),
-	select(X, Ys1, Ys).
+perm([], []).
+perm(List, [First|Perm]) :-
+        select(First, List, Rest),
+        perm(Rest, Perm).
 
 %%	flatten(+List1, ?List2) is det.
 %
