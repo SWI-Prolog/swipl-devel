@@ -374,7 +374,7 @@ getUnknownModule(Module m)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 stripModule() takes an atom or term, possible embedded in the :/2 module
-term.  It will assing *module with the associated module and return  the
+term.  It will assign *module with the associated module and return  the
 remaining term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -395,7 +395,7 @@ stripModule(Word term, Module *module ARG_LD)
 
   if ( ! *module )
     *module = (environment_frame ? contextModule(environment_frame)
-	       			 : MODULE_user);
+				 : MODULE_user);
 
   return term;
 }

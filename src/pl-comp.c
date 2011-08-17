@@ -331,7 +331,7 @@ freeVarDefs(PL_local_data_t *ld)
 }
 
 
-void
+int
 get_head_and_body_clause(term_t clause,
 			 term_t head, term_t body, Module *m ARG_LD)
 { Module m0;
@@ -344,7 +344,8 @@ get_head_and_body_clause(term_t clause,
   if ( PL_is_functor(clause, FUNCTOR_prove2) )
   { _PL_get_arg(1, clause, head);
     _PL_get_arg(2, clause, body);
-    PL_strip_module(head, m, head);
+    if ( !PL_strip_module_ex(head, m, head) )
+      return FALSE;
   } else
   { PL_put_term(head, clause);		/* facts */
     PL_put_atom(body, ATOM_true);
@@ -353,6 +354,8 @@ get_head_and_body_clause(term_t clause,
   DEBUG(9, pl_write(clause); Sdprintf(" --->\n\t");
 	   Sdprintf("%s:", stringAtom(m0->name));
 	   pl_write(head); Sdprintf(" :- "); pl_write(body); Sdprintf("\n"));
+
+  return TRUE;
 }
 
 
@@ -2731,9 +2734,11 @@ assert_term(term_t term, int where, SourceLoc loc ARG_LD)
   Word h, b;
   functor_t fdef;
 
-  PL_strip_module(term, &module, tmp);
+  if ( !PL_strip_module_ex(term, &module, tmp) )
+    return NULL;
   mhead = module;
-  get_head_and_body_clause(tmp, head, body, &mhead PASS_LD);
+  if ( !get_head_and_body_clause(tmp, head, body, &mhead PASS_LD) )
+    return NULL;
   if ( !get_head_functor(head, &fdef, 0 PASS_LD) )
     return NULL;			/* not callable, arity too high */
   if ( !(proc = lookupProcedureToDefine(fdef, mhead)) )
@@ -4312,7 +4317,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	    if ( !unify_definition(contextModule(LD->environment), head, def, tmp, 0) )
 	      fail;
 	  }
-	  get_head_and_body_clause(term, h, b, NULL PASS_LD);
+	  if ( !get_head_and_body_clause(term, h, b, NULL PASS_LD) )
+	    return FALSE;
 	  if ( unify_head(tmp, h PASS_LD) && PL_unify(body, b) )
 	    succeed;
 	}
@@ -4371,7 +4377,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 
   while(cref)
   { if ( decompile(cref->clause, term, bindings) )
-    { get_head_and_body_clause(term, h, b, NULL PASS_LD);
+    { if ( !get_head_and_body_clause(term, h, b, NULL PASS_LD) )
+	break;
       if ( unify_head(head, h PASS_LD) &&
 	   PL_unify(b, body) &&
 	   (!ref || PL_unify_clref(ref, cref->clause)) )

@@ -1895,8 +1895,9 @@ PRED_IMPL("retract", 1, retract,
     atom_t b;
     fid_t fid;
 
-    PL_strip_module(term, &m, cl);
-    get_head_and_body_clause(cl, head, body, NULL PASS_LD);
+    if ( !PL_strip_module_ex(term, &m, cl) ||
+	 !get_head_and_body_clause(cl, head, body, NULL PASS_LD) )
+      return FALSE;
     if ( PL_get_atom(body, &b) && b == ATOM_true )
       PL_put_term(cl, head);
 
