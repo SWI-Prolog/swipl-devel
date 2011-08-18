@@ -211,6 +211,7 @@ decl(thread_local, thread_local).
 decl(dynamic,	   dynamic).
 decl(volatile,	   volatile).
 decl(multifile,	   multifile).
+decl(public,	   public).
 
 declaration(Pred, Source, Decl) :-
 	decl(Prop, Declname),
