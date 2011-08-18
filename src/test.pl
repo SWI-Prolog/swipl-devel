@@ -97,6 +97,12 @@ syntax(char-2) :-
 	52 == 0'\x34.
 syntax(char-3) :-
 	"\\" =:= 0'\\.
+syntax(char-4) :-
+	1-48 == 1-0'0.
+syntax(cannot_start_term-1) :-
+	catch(term_to_atom(_T, 'p(]'), E, true),
+	E = error(syntax_error(cannot_start_term), _).
+
 
 :- op(100, yf, af).
 
@@ -148,9 +154,15 @@ syntax(latin-1) :-
 		 *******************************/
 
 write_test(q-1) :-
-	term_to_atom(-(0), X), X == '-(0)'.
+	T = -(0),
+	term_to_atom(T, X),
+	term_to_atom(T2, X),
+	T == T2.
 write_test(q-2) :-
-	term_to_atom(+(0), X), X == '+(0)'.
+	T = +(0),
+	term_to_atom(T, X),
+	term_to_atom(T2, X),
+	T == T2.
 write_test(q-3) :-
 	term_to_atom(+(a), X), X == '+a'.
 write_test(q-4) :-
@@ -165,7 +177,10 @@ write_test(q-8) :-
 	term_to_atom(p((a|b)), X), X == 'p((a\'|\'b))'.
 write_test(c-1) :-
 	T = [a,b,c|T],
-	term_to_atom(T, X), X == '[a,b,c|**]'.
+	term_to_atom(T, X),
+	term_to_atom(@(T2,S2), X),
+	maplist(call, S2),
+	T2 =@= T.
 
 
 		 /*******************************
@@ -445,49 +460,6 @@ floattest(float-8) :-
 
 
 		 /*******************************
-		 *	 PROLOG FUNCTIONS	*
-		 *******************************/
-
-:- arithmetic_function(ten/0).
-:- arithmetic_function(twice/1).
-:- arithmetic_function(mean/2).
-:- arithmetic_function(euler/0).
-:- arithmetic_function(fail/0).
-:- arithmetic_function(except/0).
-
-ten(10).
-twice(X, R) :-
-	R is X * 2.
-mean(X1, X2, R) :-
-	R is (X1 + X2)/2.
-
-euler(2.71828).
-
-fail(_) :- fail.
-
-except(_) :-
-	throw(error(foobar)).
-
-arithmetic_functions(func-1) :-
-	A is ten, A =:= 10.
-arithmetic_functions(func-2) :-
-	A is twice(5), A =:= 10.
-arithmetic_functions(func-3) :-
-	A is mean(0, 20), A =:= 10.
-arithmetic_functions(func-4) :-
-        Exp = 6*euler*7*1,		% test functions corrupting stack
-        EE is Exp,
-	EE =:= 6*euler*7*1.
-arithmetic_functions(fail-1) :-
-	catch(_ is fail, E, true),
-	compound(E), E = error(E2, _),
-	compound(E2), E2 = failure_error(_).
-arithmetic_functions(except-1) :-
-	catch(_ is except, E, true),
-	E == error(foobar).
-
-
-		 /*******************************
 		 *     UNBOUNDED ARITHMETIC	*
 		 *******************************/
 
@@ -519,13 +491,6 @@ ratp(Count, In, Out) :-
         succ(Count0, Count),
         T is In + (In rdiv 2),
 	ratp(Count0, T, Out).
-
-:- arithmetic_function(idiv/2).
-
-idiv(Dd,Dr,Iq):-
-        Q is Dd/Dr,
-        rational(Q,Qt,Qn),
-        Iq is Qt//Qn.
 
 dec(X, Y) :-
 	Y is X - 1.
@@ -730,9 +695,6 @@ gmp(fmtf-1) :-
 	ratp(999, 1, X),
 	format(atom(S), '~5f', [X]),
 	sub_atom(S, _, _, 0, '935376.65824').
-gmp(idiv-1) :-
-	Qi is idiv(3 rdiv 2,2 rdiv 5),
-	Qi == 3.
 gmp(random) :-
 	A is random((1<<200)-((1<<200)-20)),
 	A < 20.
@@ -794,6 +756,8 @@ wchars(cmp-2) :-
 
 foo:hello(world).
 
+ten(10).
+
 meta(call-1) :-
 	call(ten(X)),
 	X == 10.
@@ -828,7 +792,8 @@ meta(call-11) :-
 	forall(A, true),
 	flag(a, 3, Old).
 meta(call-12) :-
-	catch(call(1), E, true),
+	G = 1,				% avoid in-line expansion
+	catch(call(G), E, true),
 	error(E, type_error(callable, _)).
 meta(apply-1) :-
 	apply(=, [a,a]).
@@ -927,24 +892,24 @@ dl_fail(N) :-
 	NN is N - 1,
 	dl_fail(NN).
 
-:- arithmetic_function(fac/1).
-
 depth_limit(depth-1) :-
-	call_with_depth_limit(dl_det(1), 10, 1),
+	G = dl_det(1),
+	call_with_depth_limit(G, 10, 1),
 	deterministic(true).
 depth_limit(depth-2) :-
-	call_with_depth_limit(dl_det(10), 10, 10).
+	G = dl_det(10),
+	call_with_depth_limit(G, 10, 10).
 depth_limit(depth-3) :-
-	call_with_depth_limit(dl_det(10), 9, depth_limit_exceeded).
+	G = dl_det(10),
+	call_with_depth_limit(G, 9, depth_limit_exceeded).
 depth_limit(ndet-1) :-
+	G = dl_ndet(5),
 	findall(X,
-		call_with_depth_limit(dl_ndet(5), 10, X),
+		call_with_depth_limit(G, 10, X),
 		L),
 	L = [5, depth_limit_exceeded].
 depth_limit(fail-1) :-
 	\+ call_with_depth_limit(dl_fail(2), 10, _).
-depth_limit(arith-1) :-
-	call_with_depth_limit(_A is fac(10), 8, depth_limit_exceeded).
 
 
 		 /*******************************
@@ -1081,18 +1046,17 @@ sets(setof-2) :-
 		   compound(_A1, _B1)-[1, 2]]
 	).
 sets(vars-1) :-
-	'$e_free_variables'(A^satisfy(B^C^(setof(D:E,
-						 (country(E), area(E, D)),
-						 C),
-					   aggregate(max, C, B),
-					   in(B, A),
-					   {place(A)})),
-			    Free),
-	Free == v(D, E).
+	'$free_variable_set'(X^(m:Y^hello(X,Y)), G, V),
+	G == m:hello(X,Y),
+	V == v.
 sets(bagof-1) :-
 	List = [_,_,_],
 	bagof(X, member(X, List), Xs),
 	Xs == List.
+sets(bagof-2) :-
+	Goal = member(_, [1,2]),
+	bagof(Goal, Goal, Xs),
+	Xs == [member(1, [1,2]), member(2, [1,2])].
 sets(setof-3001) :-
 	List = [_,_,_],
 	setof(X, member(X, List), Xs),
@@ -1437,11 +1401,6 @@ flag(arith-1) :-
 	flag(f, V, V+1),
 	flag(f, NV, Old),
 	NV == 1.
-flag(arith-2) :-
-	flag(f, Old, 100),
-	flag(f, V, mean(V, 0)),
-	flag(f, NV, Old),
-	NV == 50.
 
 
 		 /*******************************
@@ -1637,9 +1596,11 @@ gc(gc-3) :-
 gc(gc-4) :-
 	catch(_,_,garbage_collect).
 gc(gc-5) :-
-	catch(25,_,garbage_collect).
+	G = 25,
+	catch(G,_,garbage_collect).
 gc(gc-6) :-
-	catch(1.25,_,garbage_collect).
+	G = 1.25,
+	catch(G,_,garbage_collect).
 gc(agc-1) :-
 	garbage_collect_atoms.
 gc(agc-2) :-		% not if concurrent: this is too simple.  There
@@ -1930,8 +1891,10 @@ copy_term(av-3) :-
 	A = f(Z),
 	Y == Z.
 copy_term(av-4) :-
-	freeze(X, true),
-	freeze(X, Done = true),
+	G1 = true,
+	G2 = (Done = true),
+	freeze(X, G1),
+	freeze(X, G2),
 	copy_term(X, Y),
 	X = ok,
 	Done == true,
@@ -1993,18 +1956,18 @@ term_hash(simple-5) :-
 term_hash(compound-1) :-
 	term_hash(hello(world), X),
 	memberchk(X, [ 2512014,		% little endian
-		       13811310		% big endian	FIXME: Incorrect
+		       4285241		% big endian
 		     ]).
 term_hash(compound-2) :-
 	A = x(a),
 	term_hash(hello(A, A), X),
 	memberchk(X, [ 6171734,		% little endian
-		       13137004		% big endian	FIXME: Incorrect
+		       13034251		% big endian
 		     ]).
 term_hash(compound-3) :-
 	term_hash(hello(x(a), x(a)), X),
 	memberchk(X, [ 6171734,		% little endian
-		       13137004		% big endian	FIXME: Incorrect
+		       13034251		% big endian
 		     ]).
 
 
@@ -2117,13 +2080,10 @@ popen(cat-2) :-
 	->  Cmd = 'cmd /c rem true'
 	;   Cmd = true
 	),
-	absolute_file_name(swi('library/MANUAL'), Manual),
-	open(Manual, read, Fd),
 	open(pipe(Cmd), write, Pipe),
-	catch(copy_stream_data(Fd, Pipe),
+	catch(forall(between(1, 10000, _), format(Pipe, '0123456789~n', [])),
 	      E,
 	      true),
-	close(Fd),
 	catch(close(Pipe), _, true),	% ???
 	(   var(E)
 	->  format(user_error, 'No exception?~n', []),
@@ -2266,7 +2226,7 @@ file(absfile-2) :-			% canoniseDir() caching issues
 	delete_directory(Y),
 	atom_concat(_, YF, Abs2).
 file(ext-2) :-
-	\+ file_name_extension(foo, _, 'bar.pl'). 	% Bug#69
+	\+ file_name_extension(foo, _, 'bar.pl').	% Bug#69
 file(open-1) :-
 	catch(open(foobar, read, _, [lock(qqq)]), E, true),
 	E =@= error(domain_error(lock, qqq), context(system:open/4, _)).

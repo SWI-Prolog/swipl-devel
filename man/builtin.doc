@@ -861,7 +861,7 @@ The file-extension of this file is \fileext{qlf}. The base name of the
 Quick Load File is the same as the input file.
 
 If the file contains `\exam{:- consult(\arg{+File})}', `\exam{:-
-[\arg{+File}]}' or \exam{:- load_files(\arg{+File}, [qcompile(true),
+[\arg{+File}]}' or \exam{:- load_files(\arg{+File}, [qcompile(part),
 ...])} statements, the referred files are compiled into the
 same \fileext{qlf} file. Other directives will be stored in the
 \fileext{qlf} file and executed in the same fashion as when loading the
@@ -1184,28 +1184,45 @@ reasoners.
     \predicate[ISO]{unify_with_occurs_check}{2}{+Term1, +Term2}
 As \predref{=}{2}, but using \jargon{sound-unification}. That is, a
 variable only unifies to a term if this term does not contain the
-variable itself.  To illustrate this, consider the two goals below:
+variable itself.  To illustrate this, consider the two queries below.
 
 \begin{code}
 1 ?- A = f(A).
-
-A = f(f(f(f(f(f(f(f(f(f(...))))))))))
+A = f(A).
 2 ?- unify_with_occurs_check(A, f(A)).
-
-No
+false.
 \end{code}
 
 \index{occurs_check}%
-I.e.\ the first creates a \jargon{cyclic-term}, which is printed as an
-infinitely nested \functor{f}{1} term (see the \const{max_depth} option
-of write_term/2). The second executes logically sound unification and
-thus fails. Note that the behaviour of unification through
+The first creates a \jargon{cyclic-term}, also called a
+\jargon{rational tree}. The second executes logically sound unification
+and thus fails. Note that the behaviour of unification through
 \predref{=}{2} as well as implicit unification in the head can be
 changed using the Prolog flag \prologflag{occurs_check}.
 
+The SWI-Prolog implementation of unify_with_occurs_check/2 is cycle-safe
+and only guards against \emph{creating} cycles, not against cycles that
+may already be present in one of the arguments.  This is illustrated in
+the following two queries:
+
+\begin{code}
+?- X = f(X), Y = X, unify_with_occurs_check(X, Y).
+X = Y, Y = f(Y).
+?- X = f(X), Y = f(Y), unify_with_occurs_check(X, Y).
+X = Y, Y = f(Y).
+\end{code}
+
+Some other Prolog systems interpret unify_with_occurs_check/2 as if
+defined by the clause below, causing failure on the above two queries.
+Direct use of acyclic_term/1 is portable and more appropriate for such
+applications.
+
+\begin{code}
+unify_with_occurs_check(X,X) :- acyclic_term(X).
+\end{code}
+
     \infixop{=@=}{+Term1}{+Term2}
 \index{variant}%
-
 True if \arg{Term1} is a \jargon{variant} of (or \jargon{structurally
 equivalent} to) \arg{Term2}. Testing for a variant is weaker than
 equivalence (\predref{==}{2}), but stronger than unification
@@ -1249,12 +1266,9 @@ A =@= B :-
 \end{code}
 
 The SWI-Prolog implementation is cycle-safe and can deal with variables
-that are shared between the left and right argument.\bug{The combination
-of sharing and cycles may produce false possitives.} Its performance is
+that are shared between the left and right argument. Its performance is
 comparable to \predref{==}{2}, both on success and (early) failure.
-Unlike ==, the variant implementation does not benefit from sharing
-subterms.\footnote{The current implementation is based on ideas from
-Kuniaki Mukai.}
+\footnote{The current implementation is contributed by Kuniaki Mukai.}
 
 This predicate is known by the name \predref{variant}{2} in some other
 Prolog systems. Be aware of possible differences in semantics if the
@@ -2148,7 +2162,7 @@ semi-deterministic. Otherwise, it must be considered non-deterministic.
 If neither \arg{Reference} nor \arg{Key} is given, the triples are
 generated as in the code snippet below.\footnote{Note that, without a
 given \arg{Key}, some implementations return triples in the order
-defined by recorda/2 and recordz/2.}
+defined by recorda/2 and recordz/2.}  See also current_key/1.
 
 \begin{code}
 	current_key(Key),
@@ -2494,7 +2508,10 @@ module \arg{Module}.
 
     \termitem{file}{FileName}
 Unify \arg{FileName} with the name of the source file in which the
-predicate is defined.  See also source_file/2.
+predicate is defined.  See also source_file/2 and the propery
+\const{line_count}.  Note that this reports the file of the
+first clause of a predicate.  A more robust interface can be
+achieved using nth_clause/3 and clause_property/2.
 
     \termitem{foreign}{}
 Is true if the predicate is defined in the C language.
@@ -2516,10 +2533,11 @@ Is true if the predicate is covered by the ISO standard (ISO/IEC
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the first clause of the
 predicate.  Fails if the predicate is not associated with a file.  See
-also source_file/2.
+also source_file/2.  See also the \const{file} property above, notably
+the reference to clause_property/2.
 
     \termitem{multifile}{}
-Is true there may be multiple (or no) file providing clauses for the
+Is true there may be multiple (or no) files providing clauses for the
 predicate.  This property is set using multifile/1.
 
     \termitem{meta_predicate}{Head}
@@ -2603,11 +2621,12 @@ the references of all clauses of the predicate.  The following example
 finds the 2nd clause of member/2:
 
 \begin{code}
-?- nth_clause(member(_,_), 2, Ref), clause(Head, Body, Ref).
-
-Ref = 160088
-Head = system : member(G575, [G578|G579])
-Body = member(G575, G579)
+?- use_module(library(lists)).
+...
+?- nth_clause(append(_,_,_), 2, Ref), clause(Head, Body, Ref).
+Ref = <clause>(0x994290),
+Head = lists:append([_G23|_G24], _G21, [_G23|_G27]),
+Body = append(_G24, _G21, _G27).
 \end{code}
     \predicate{clause_property}{2}{+ClauseRef, -Property}
 Queries properties of a clause.  \arg{ClauseRef} is a reference to a
@@ -3580,6 +3599,18 @@ If \const{true}, and \term{quoted}{true} is active, special characters
 in quoted atoms and strings are emitted as ISO escape-sequences.
 Default is taken from the reference module (see below).
 
+    \termitem{cycles}{Bool}
+If \const{true} (default), cyclic terms are written as
+\term{@}{Template, Subsitutions}, where \arg{Subsitutions} is a list
+\mbox{\arg{Var} = \arg{Value}}. If \const{cycles} is \const{false},
+\const{max_depth} is not given and \arg{Term} is cyclic, write_term/2
+raises a \const{domain_error}.\footnote{The cycles option and the cyclic
+term representation using the @-term are copied from SICStus Prolog.
+However, the default in SICStus is set to \const{false} and SICStus
+writes an infinite term if not protected by e.g., the
+\const{depth_limit} option.} See also the \const{cycles} option in
+read_term/2.
+
     \termitem{ignore_ops}{Bool}
 If \const{true}, the generic term-representation (<functor>(<args>
 \ldots)) will be used for all terms,  Otherwise (default), operators,
@@ -3633,6 +3664,15 @@ If \const{true}, the hook portray/1 is called before printing a term
 that is not a variable.  If portray/1 succeeds, the term is considered
 printed.  See also print/1.  The default is \const{false}.  This option
 is an extension to the ISO write_term options.
+
+    \termitem{portray_goal}{:Goal}
+Implies \term{portray}{true}, but calls \arg{Goal} rather than the
+predefined hook portray/1.  \arg{Goal} is called through call/3, where
+the first argument is \arg{Goal}, the second is the term to be
+printed and the 3th argument is the current write-option list.  The
+write option list is copied from the write_term call, but the list
+is guaranteed how hold an option \const{proprity} that reflects the
+current priority.
 
     \termitem{priority}{Integer}
 An integer between 0 and 1200 representing the `context priority'.
@@ -3756,6 +3796,15 @@ indicating the start of a comment and \arg{Comment} is a string-object
 containing the text including delimiters of a comment.  It returns all
 comments from where the read_term/2 call started up to the end of the
 term read.
+
+    \termitem{cycles}{Bool}
+If \const{true} (default \const{false}), re-instantiate templates as
+produced by the corresponding write_term/2 option. Note that the default
+is \const{false} to avoid mis-interpretation of \term{@}{Template,
+Substutions}, while the default of write_term/2 is \const{true} because
+emitting cyclic terms without using the template construct produces an
+infinitely large term (read: it will generate an error after producing
+a huge amount of output).
 
     \termitem{double_quotes}{Bool}
 Defines how to read "\ldots" strings. See the Prolog flag
@@ -3909,10 +3958,9 @@ to the next variable. Example:
 
 \begin{code}
 ?- numbervars(foo(A, B, A), 0, End).
-
-A = '$VAR'(0)
-B = '$VAR'(1)
-End = 2
+A = '$VAR'(0),
+B = '$VAR'(1),
+End = 2.
 \end{code}
 
 See also the \const{numbervars} option to write_term/3 and numbervars/4.
@@ -3942,6 +3990,13 @@ numbervars option.  This option is exploited by portray_clause/2
 and write_canonical/2.%
 	\bug{Currently this option is ignored for cyclic terms.}
     \end{description}
+
+    \predicate{var_number}{2}{@Term, -VarNumber}
+True if \arg{Term} is numbered by numbervars/3 and \arg{VarNumber} is
+the number given to this variable.  This predicate avoids the need for
+unification with \verb!'$VAR'(X)! and opens the path for replacing this
+valid Prolog term by an internal representation that has no textual
+equivalent.
 
     \predicate{term_variables}{2}{+Term, -List}
 Unify \arg{List} with a list of variables, each sharing with a unique variable
@@ -4009,7 +4064,7 @@ term to be considered as non-ground.
     \predicate{nb_setarg}{3}{+Arg, +Term, +Value}
 Assigns the \arg{Arg}-th argument of the compound term \arg{Term} with
 the given \arg{Value} as setarg/3, but on backtracking the assignment
-is \emph{not} reversed.  If \arg{Term} is not atomic, it is duplicated
+is \emph{not} reversed.  If \arg{Value} is not atomic, it is duplicated
 using duplicate_term/2. This predicate uses the same technique as
 nb_setval/2.  We therefore refer to the description of nb_setval/2
 for details on non-backtrackable assignment of terms.  This predicate
@@ -4530,7 +4585,7 @@ subtle and difficult to track errors.
     \item The bar (\verb$|$) can only be (re-)defined as infix
           operator with priority not less than 1001.
     \item It is not allowed to define the empty list (\verb$[]$) or the
-    	  curly-bracket-pair (\verb${}$) as operators.
+	  curly-bracket-pair (\verb${}$) as operators.
 \end{itemize}
 
 In SWI-Prolog, operators are \emph{local} to a module (see also
@@ -5096,58 +5151,6 @@ non-negative integer \arg{IntExpr}.
 \end{description}
 
 
-\section{Adding Arithmetic Functions}	\label{sec:extendarith}
-
-Prolog predicates can be given the role of arithmetic function.  The
-last argument is used to return the result, the arguments before the
-last are the inputs.  Arithmetic functions are added using the
-predicate arithmetic_function/1, which takes the head as its argument.
-Arithmetic functions are module sensitive, that is they are only
-visible from the module in which the function is defined and declared.
-Global arithmetic functions should be defined and registered from
-module \const{user}.  Global definitions can be overruled locally in
-modules.  The built-in functions described above can be redefined as
-well.
-
-\begin{description}
-    \predicate{arithmetic_function}{1}{:Head}
-Register a Prolog predicate as an arithmetic function (see is/2,
-\predref{>}{2}, etc.). The Prolog predicate should have one more
-argument than specified by \arg{Head}, which it either a term
-\arg{Name/Arity}, an atom or a complex term. This last argument is an
-unbound variable at call time and should be instantiated to an integer
-or floating point number. The other arguments are the parameters. This
-predicate is module sensitive and will declare the arithmetic function
-only for the context module, unless declared from module \const{user}.
-Example:
-
-\begin{code}
-1 ?- [user].
-:- arithmetic_function(mean/2).
-
-mean(A, B, C) :-
-        C is (A+B)/2.
-user compiled, 0.07 sec, 440 bytes.
-
-Yes
-2 ?- A is mean(4, 5).
-
-A = 4.500000
-\end{code}
-
-    \predicate{current_arithmetic_function}{1}{:Head}
-True if \arg{Head} is a function that is visible from the current
-module.  Built-in functions are visible from all modules, while
-user-defined functions (see arithmetic_function/1) obey the module
-visibility rules. E.g.,
-
-\begin{code}
-?- current_arithmetic_function(sin(_)).
-true.
-\end{code}
-\end{description}
-
-
 \section{Misc arithmetic support predicates}   \label{sec:miscarith}
 
 \begin{description}
@@ -5171,6 +5174,14 @@ A = 5.
 A = 5.
 \end{code}
     \end{description}
+
+    \predicate{current_arithmetic_function}{1}{Head}
+True if \arg{Head} is an evaluable function.  For example:
+
+\begin{code}
+?- current_arithmetic_function(sin(_)).
+true.
+\end{code}
 \end{description}
 
 
@@ -6324,7 +6335,7 @@ absolute file names to register source files independent of the current
 working directory. See also absolute_file_name/3. See also
 absolute_file_name/3 and expand_file_name/2.
 
-    \predicate{absolute_file_name}{3}{+Spec, +Options, -Absolute}
+    \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
 Converts the given file specification into an absolute path.
 \arg{Option} is a list of options to guide the conversion:
 
@@ -6345,7 +6356,8 @@ in a directive, it uses the current source-file as reference.
 
     \termitem{access}{Mode}
 Imposes the condition access_file(\arg{File}, \arg{Mode}).  \arg{Mode}
-is on of \const{read}, \const{write}, \const{append}, \const{exist} or \const{none}.  See also access_file/2.
+is on of \const{read}, \const{write}, \const{append},
+\const{execute}, \const{exist} or \const{none}. See also access_file/2.
 
     \termitem{file_type}{Type}
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
@@ -6375,11 +6387,10 @@ proceeding.  This is a SWI-Prolog extension.
 The Prolog flag \prologflag{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
-Compatibility considerations with common argument-order in ISO as well as
-SICStus absolute_file_name/3 forced us to be flexible here.  If the last
-argument is a list and the 2nd not, the arguments are swapped, making
-the call \term{absolute_file_name}{+Spec, -Path, +Options} valid as
-well.
+This predicate is derived from Quintus Prolog. In Quintus Prolog, the
+argument order was \term{absolute_file_name}{+Spec, +Options, -Path}.
+The argument order has been changed for compatibility with ISO and
+SICStus.  The Quintus argument order is still accepted.
 
     \predicate{is_absolute_file_name}{1}{+File}
 True if \arg{File} specifies and absolute path-name.  On Unix systems,
@@ -6779,12 +6790,11 @@ Quintus compatibility keys express times in milliseconds.
 agc		& Number of atom garbage-collections performed \\
 agc_gained	& Number of atoms removed \\
 agc_time	& Time spent in atom garbage-collections \\
-cputime         & (User) {\sc cpu} time since Prolog was started in seconds \\
+process_cputime & (User) {\sc cpu} time since Prolog was started in seconds \\
+cputime         & (User) {\sc cpu} time since thread was started in seconds \\
 inferences      & Total number of passes via the call and redo ports
                   since Prolog was started. \\
-heap		& Estimated total size of the heap (see \secref{heap}) \\
 heapused        & Bytes heap in use by Prolog. \\
-heaplimit	& Maximum size of the heap (see \secref{heap}) \\
 c_stack		& System (C-) stack limit.  0 if not known. \\
 stack		& Total memory in use for stacks in all threads \\
 local           & Allocated size of the local stack in bytes. \\
@@ -6798,8 +6808,8 @@ trailused       & Number of bytes in use on the trail stack. \\
 traillimit      & Size to which the trail stack is allowed to grow \\
 atoms           & Total number of defined atoms. \\
 functors        & Total number of defined name/arity pairs. \\
-predicates      & Total number of predicate definitions. \\
-modules         & Total number of module definitions. \\
+predicates      & Total number of defined predicates. \\
+modules         & Total number of defined modules. \\
 codes           & Total amount of byte codes in all clauses. \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
@@ -6832,8 +6842,7 @@ garbage_collection & [ number of GC, bytes gained, time spent, bytes left ]
 		  sum of the memory left after each collection, which can be
 		  divided by the count to find the average working set size
 		  after GC.  Use \exam{[Count, Gained, Time|_]} for compatiblity. \\
-stack_shifts    & [ global shifts, local shifts, time spent ]
-		  (fails if no shifter in this version) \\
+stack_shifts    & [ global shifts, local shifts, time spent ] \\
 atoms		& [ number, memory use, 0 ] \\
 atom_garbage_collection &
 		  [ number of AGC, bytes gained, time spent ] \\

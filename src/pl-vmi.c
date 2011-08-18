@@ -2579,7 +2579,7 @@ is
 BEGIN_SHAREDVARS
 ClauseRef cref;
 
-VMI(S_ALLCLAUSES, 0, 0, ())
+VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
 { cref = DEF->definition.clauses;
 
 next_clause:
@@ -2724,7 +2724,7 @@ thus `add1(X, Y) :- Y is X + 1' translates to:
   A_VAR0	% evaluate X and push numeric result
   A_INTEGER 1	% Push 1 as numeric value
   A_FUNC2 0	% Add top-two of the stack and push result
-  A_IS 		% unify Y with numeric result
+  A_IS		% unify Y with numeric result
   I_EXIT	% leave the clause
 
   a_func0:	% executes arithmic function without arguments, pushing
@@ -2933,7 +2933,7 @@ VMI(A_FUNC, 0, 2, (CA1_AFUNC, CA1_INTEGER))
   an = (int) *PC++;
 
 common_an:
-  SAVE_REGISTERS(qid);			/* may be Prolog function */
+  SAVE_REGISTERS(qid);
   rc = ar_func_n((int)fn, an PASS_LD);
   LOAD_REGISTERS(qid);
   if ( !rc )
@@ -3048,7 +3048,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
 
     if ( valInt(w) == r )
     { *rp = w;
-    } else				/* but their some might not fit */
+    } else				/* but their sum might not fit */
     { int rc;
 
       SAVE_REGISTERS(qid);
@@ -3751,7 +3751,7 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 
   newChoice(CHP_CATCH, FR PASS_LD);
   set(FR, FR_WATCHED);
-  				/* = B_VAR1 */
+				/* = B_VAR1 */
   *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
 
   VMI_GOTO(I_USERCALL0);
@@ -3813,6 +3813,7 @@ VMI(I_EXITCATCH, VIF_BREAK, 0, ())
 { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
   { assert(BFR->type == CHP_CATCH);
     BFR = BFR->parent;
+    set(FR, FR_CATCHED);
   }
 
   VMI_GOTO(I_EXIT);
@@ -3856,7 +3857,7 @@ b_throw:
 	   });
 
   SAVE_REGISTERS(qid);
-  catchfr_ref = findCatcher(FR, exception_term PASS_LD);
+  catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term PASS_LD);
   LOAD_REGISTERS(qid);
   DEBUG(1, { if ( catchfr_ref )
 	     { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
@@ -3894,10 +3895,12 @@ b_throw:
 
     if ( !rc )
     { SAVE_REGISTERS(qid);
+      LD->critical++;				/* do not handle signals */
       printMessage(ATOM_error, PL_TERM, exception_term);
       start_tracer = TRUE;
       debugmode(TRUE, NULL);
       trace_if_space();
+       LD->critical--;
       LOAD_REGISTERS(qid);
     }
   }
@@ -3981,6 +3984,7 @@ b_throw:
     for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
     { Choice ch;
 
+      environment_frame = FR;
       SAVE_REGISTERS(qid);
       ch = dbg_discardChoicesAfter(FR PASS_LD);
       LOAD_REGISTERS(qid);
@@ -4168,7 +4172,7 @@ atom is referenced by the goal-term anyway.
       DEBUG(1, { term_t g = a - (Word)lBase;
 		 LocalFrame ot = lTop;
 		 lTop += 100;
-		 pl_write(g); pl_nl();
+		 pl_writeln(g);
 		 lTop = ot;
 	       });
       lTop = NFR;
@@ -4189,7 +4193,7 @@ atom is referenced by the goal-term anyway.
 	VMI_GOTO(I_USERCALL0);
       }
 
-      DEF 		  = NFR->predicate;
+      DEF		  = NFR->predicate;
       SECURE(assert(DEF == PROCEDURE_dcall1->definition));
       NFR->parent	  = FR;
       NFR->programPointer = PC;

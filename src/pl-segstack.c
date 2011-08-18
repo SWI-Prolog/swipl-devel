@@ -62,7 +62,7 @@ initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
 
 
 int
-pushSegStack(segstack *stack, void *data)
+pushSegStack_(segstack *stack, void *data)
 { if ( stack->top + stack->unit_size <= stack->max )
   { memcpy(stack->top, data, stack->unit_size);
     stack->top += stack->unit_size;
@@ -115,7 +115,7 @@ pushRecordSegStack(segstack *stack, Record r)
   { int rc;
 
     PL_LOCK(L_AGC);
-    rc = pushSegStack(stack, &r);
+    rc = pushSegStack(stack, r, Record);
     PL_UNLOCK(L_AGC);
 
     return rc;
@@ -129,7 +129,7 @@ to speedup frequent small usage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-popSegStack(segstack *stack, void *data)
+popSegStack_(segstack *stack, void *data)
 { again:
 
   if ( stack->top >= stack->base + stack->unit_size )
@@ -161,24 +161,34 @@ popSegStack(segstack *stack, void *data)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-At this moment, this function is used only for the findall-bags. We must
-lock for AGC if we discard a chunk.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 void *
 topOfSegStack(segstack *stack)
-{
-again:
+{ segchunk *chunk;
+
   if ( stack->top >= stack->base + stack->unit_size )
   { return stack->top - stack->unit_size;
+  } else if ( stack->last && (chunk=stack->last->previous) )
+  { assert(chunk->top - stack->unit_size >= chunk->data);
+    return chunk->top - stack->unit_size;
+  }
+
+  return NULL;
+}
+
+
+void
+popTopOfSegStack(segstack *stack)
+{ again:
+
+  if ( stack->top >= stack->base + stack->unit_size )
+  { stack->top -= stack->unit_size;
+    stack->count--;
   } else
   { segchunk *chunk = stack->last;
 
     if ( chunk )
     { if ( chunk->previous )
-      { PL_LOCK(L_AGC);			/* See comment */
-	stack->last = chunk->previous;
+      { stack->last = chunk->previous;
 	stack->last->next = NULL;
 	if ( chunk->allocated )
 	  PL_free(chunk);
@@ -187,20 +197,12 @@ again:
 	stack->base = chunk->data;
 	stack->max  = addPointer(chunk, chunk->size);
 	stack->top  = chunk->top;
-	PL_UNLOCK(L_AGC);
 	goto again;
       }
     }
 
-    return NULL;
+    assert(0);
   }
-}
-
-
-void
-popTopOfSegStack(segstack *stack)
-{ stack->top -= stack->unit_size;
-  stack->count--;
 }
 
 
@@ -244,7 +246,7 @@ clearSegStack(segstack *s)
       c->next = NULL;
       s->last = c;
       s->base = s->top = c->top;
-      s->last = addPointer(c, c->size);
+      s->max  = addPointer(c, c->size);
       s->count = 0;
 
       for(c=n; c; c = n)

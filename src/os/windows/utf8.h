@@ -52,7 +52,7 @@
 	((chr) < 0x80 ? out[0]=(char)(chr), out+1 \
 		      : _xos_utf8_put_char(out, (chr)))
 
-extern char *_xos_utf8_get_char(const char *in, int *chr);
-extern char *_xos_utf8_put_char(char *out, int chr);
+static char *_xos_utf8_get_char(const char *in, int *chr);
+static char *_xos_utf8_put_char(char *out, int chr);
 
 #endif /*UTF8_H_INCLUDED*/

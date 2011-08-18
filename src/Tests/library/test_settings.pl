@@ -44,7 +44,10 @@ test_settings :-
 
 :- begin_tests(settings).
 
-:- setting(test, atom, hello, 'Test setting').
+:- setenv('VNC_DISPLAY', '11').
+
+:- setting(test, atom,    hello, 'Test setting').
+:- setting(port, integer, 5900+env('VNC_DISPLAY'), 'Test user arithmetic').
 
 %%	reset
 %
@@ -78,6 +81,9 @@ test(restore_default, [ [X] == [hello_world],
 	set_setting(test, hello_universe),
 	restore_setting(test),
 	setting(test, X).
+
+test(arith, Port == 5911) :-
+	setting(port, Port).
 
 :- end_tests(settings).
 

@@ -39,7 +39,8 @@ test_text :-
 		    term_to_atom,
 		    atom_to_term,
 		    number_codes,
-		    number_chars
+		    number_chars,
+		    sub_atom
 		  ]).
 
 :- begin_tests(char_code).
@@ -197,3 +198,10 @@ test(iso2, error(type_error(list, [a|1]))) :-
 	number_chars(1, [a|1]).
 
 :- end_tests(number_chars).
+
+:- begin_tests(sub_atom).
+
+test(neg, C = '\235\') :-		% test signed char handling
+	sub_atom('Azi\235\', _, 1, 0, C).
+
+:- end_tests(sub_atom).

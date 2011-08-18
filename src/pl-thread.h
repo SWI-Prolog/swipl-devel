@@ -46,6 +46,19 @@ typedef enum
   LDATA_ANSWERED
 } ldata_status_t;
 
+typedef enum
+{ PL_THREAD_UNUSED = 0,			/* no thread on this slot */
+  PL_THREAD_RUNNING,			/* a normally running one */
+  PL_THREAD_EXITED,			/* died with thread_exit/1 */
+  PL_THREAD_SUCCEEDED,			/* finished with Yes */
+  PL_THREAD_FAILED,			/* finished with No */
+  PL_THREAD_EXCEPTION,			/* finished with exception */
+  PL_THREAD_NOMEM,			/* couldn't start due no-memory */
+  PL_THREAD_CREATED,			/* just created */
+  PL_THREAD_SUSPENDED,			/* suspended */
+  PL_THREAD_RESUMING			/* about to resume */
+} thread_status;
+
 #ifdef __WINDOWS__
 enum
 { SIGNAL     = 0,
@@ -68,7 +81,7 @@ typedef struct _PL_thread_info_t
   int		    (*cancel)(int id);	/* cancel function */
   int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */
-  int		    status;		/* PL_THREAD_* */
+  thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
   int		    has_tid;		/* TRUE: tid = valid */
 #ifdef __linux__
@@ -119,17 +132,6 @@ typedef struct pl_mutex
 
 #define PL_THREAD_MAGIC 0x2737234f
 
-#define PL_THREAD_UNUSED	0	/* no thread on this slot */
-#define PL_THREAD_RUNNING	1	/* a normally running one */
-#define PL_THREAD_EXITED	2	/* died with thread_exit/1 */
-#define PL_THREAD_SUCCEEDED	3	/* finished with Yes */
-#define PL_THREAD_FAILED	4	/* finished with No */
-#define PL_THREAD_EXCEPTION	5	/* finished with exception */
-#define PL_THREAD_NOMEM		6	/* couldn't start due no-memory */
-#define	PL_THREAD_CREATED	7	/* just created */
-#define	PL_THREAD_SUSPENDED	8	/* suspended */
-#define PL_THREAD_RESUMING      9	/* about to resume */
-
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 
 #define L_MISC		0
@@ -167,9 +169,9 @@ compile-time
 #ifdef O_CONTENTION_STATISTICS
 #define countingMutexLock(cm) \
 	do \
-	{ if ( pthread_mutex_trylock(&(cm)->mutex) == EBUSY ) \
+	{ if ( !simpleMutexTryLock(&(cm)->mutex) ) \
 	  { (cm)->collisions++; \
-	    pthread_mutex_lock(&(cm)->mutex); \
+	    simpleMutexLock(&(cm)->mutex); \
 	  } \
 	  (cm)->count++; \
 	} while(0)
@@ -296,35 +298,36 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 		 *	    FUNCTIONS		*
 		 *******************************/
 
-extern int		exitPrologThreads(void);
-extern bool		aliasThread(int tid, atom_t name);
-extern word		pl_thread_create(term_t goal, term_t id,
+COMMON(int)		exitPrologThreads(void);
+COMMON(bool)		aliasThread(int tid, atom_t name);
+COMMON(word)		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
-extern word		pl_thread_join(term_t thread, term_t retcode);
-extern word		pl_thread_exit(term_t retcode);
-extern foreign_t	pl_thread_signal(term_t thread, term_t goal);
+COMMON(word)		pl_thread_join(term_t thread, term_t retcode);
+COMMON(word)		pl_thread_exit(term_t retcode);
+COMMON(foreign_t)	pl_thread_signal(term_t thread, term_t goal);
 
-extern foreign_t	pl_thread_at_exit(term_t goal);
+COMMON(foreign_t)	pl_thread_at_exit(term_t goal);
 extern int		PL_thread_self(void);
 
-extern foreign_t	pl_mutex_destroy(term_t mutex);
-extern foreign_t	pl_mutex_lock(term_t mutex);
-extern foreign_t	pl_mutex_trylock(term_t mutex);
-extern foreign_t	pl_mutex_unlock(term_t mutex);
-extern foreign_t	pl_mutex_unlock_all(void);
+COMMON(foreign_t)	pl_mutex_destroy(term_t mutex);
+COMMON(foreign_t)	pl_mutex_lock(term_t mutex);
+COMMON(foreign_t)	pl_mutex_trylock(term_t mutex);
+COMMON(foreign_t)	pl_mutex_unlock(term_t mutex);
+COMMON(foreign_t)	pl_mutex_unlock_all(void);
 
-const char *		threadName(int id);
-void			executeThreadSignals(int sig);
-foreign_t		pl_attach_xterm(term_t in, term_t out);
-size_t			threadLocalHeapUsed(void);
-int			attachConsole(void);
-Definition		localiseDefinition(Definition def);
-LocalDefinitions	new_ldef_vector(void);
+COMMON(const char *)	threadName(int id);
+COMMON(void)		executeThreadSignals(int sig);
+COMMON(foreign_t)	pl_attach_xterm(term_t in, term_t out);
+COMMON(size_t)		threadLocalHeapUsed(void);
+COMMON(int)		attachConsole(void);
+COMMON(Definition)	localiseDefinition(Definition def);
+COMMON(LocalDefinitions) new_ldef_vector(void);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);
-void			cleanupThreads();
-intptr_t			system_thread_id(PL_thread_info_t *info);
+COMMON(void)		cleanupThreads();
+COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
+COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*

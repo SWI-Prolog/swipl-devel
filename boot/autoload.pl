@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,6 +38,7 @@
 	    make_library_index/1,
 	    make_library_index/2,
 	    reload_library_index/0,
+	    autoload_path/1,
 	    autoload/0,
 	    autoload/1
 	  ]).
@@ -49,6 +51,8 @@
 	library_index/3,
 	autoload_directories/1,
 	index_checked_at/1.
+
+user:file_search_path(autoload, library(.)).
 
 
 %%	'$find_library'(+Module, +Name, +Arity, -LoadModule, -Library) is semidet.
@@ -153,6 +157,9 @@ indexed_directory(Dir) :-
 %	Reload the index on the next call
 
 reload_library_index :-
+	with_mutex('$autoload', clear_library_index).
+
+clear_library_index :-
 	retractall(library_index(_, _, _)),
 	retractall(autoload_directories(_)),
 	retractall(index_checked_at(_)).
@@ -200,13 +207,22 @@ closel([_|T]) :-
 	closel(T).
 
 
+%%	index_file_name(-IndexFile, +Options) is nondet.
+%
+%	True if IndexFile is an autoload   index file. Options is passed
+%	to  absolute_file_name/3.  This  predicate   searches  the  path
+%	=autoload=.
+%
+%	@see file_search_path/2.
+
 index_file_name(IndexFile, Options) :-
-	absolute_file_name(library('INDEX'),
+	absolute_file_name(autoload('INDEX'),
+			   IndexFile,
 			   [ file_type(prolog),
 			     solutions(all),
 			     file_errors(fail)
 			   | Options
-			   ], IndexFile).
+			   ]).
 
 read_index([]) :- !.
 read_index([H|T]) :- !,
@@ -239,23 +255,46 @@ assert_index(Term, Dir) :-
 		*       CREATE INDEX.pl		*
 		********************************/
 
+%%	make_library_index(+Dir) is det.
+%
+%	Create an index for autoloading  from   the  directory  Dir. The
+%	index  file  is  called  INDEX.pl.  In    Dir  contains  a  file
+%	MKINDEX.pl, this file is loaded and we  assume that the index is
+%	created by directives that appearin   this  file. Otherwise, all
+%	source  files  are  scanned  for  their  module-header  and  all
+%	exported predicates are added to the autoload index.
+%
+%	@see make_library_index/2
+
 make_library_index(Dir0) :-
 	absolute_file_name(Dir0, Dir),
 	make_library_index2(Dir).
 
-make_library_index(Dir0, Patterns) :-
-	absolute_file_name(Dir0, Dir),
-	make_library_index2(Dir, Patterns).
-
 make_library_index2(Dir) :-
 	plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
 	access_file(AbsMkIndex, read), !,
-	working_directory(OldDir, Dir),
-	call_cleanup(load_files(user:MkIndex, [silent(true)]),
-		     working_directory(_, OldDir)).
+	setup_call_cleanup(working_directory(OldDir, Dir),
+			   load_files(user:MkIndex, [silent(true)]),
+			   working_directory(_, OldDir)).
 make_library_index2(Dir) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
 	make_library_index2(Dir, PatternList).
+
+%%	make_library_index(+Dir, +Patterns:list(atom)) is det.
+%
+%	Create an autoload index INDEX.pl for  Dir by scanning all files
+%	that match any of the file-patterns in Patterns. Typically, this
+%	appears as a directive in MKINDEX.pl.  For example:
+%
+%	  ==
+%	  :- make_library_index(., ['*.pl']).
+%	  ==
+%
+%	@see make_library_index/1.
+
+make_library_index(Dir0, Patterns) :-
+	absolute_file_name(Dir0, Dir),
+	make_library_index2(Dir, Patterns).
 
 make_library_index2(Dir, Patterns) :-
 	plfile_in_dir(Dir, 'INDEX', Index, AbsIndex),
@@ -349,6 +388,39 @@ index_header(Fd):-
 	format(Fd, '    Creator: make/0~n~n', []),
 	format(Fd, '    Purpose: Provide index for autoload~n', []),
 	format(Fd, '*/~n~n', []).
+
+
+		 /*******************************
+		 *	      EXTENDING		*
+		 *******************************/
+
+%%	autoload_path(+Path) is det.
+%
+%	Add Path to the libraries that are  used by the autoloader. This
+%	extends the search  path  =autoload=   and  reloads  the library
+%	index.  For example:
+%
+%	  ==
+%	  :- autoload_path(library(http)).
+%	  ==
+%
+%	If this call appears as a directive,  it is term-expanded into a
+%	clause  for  user:file_search_path/2  and  a  directive  calling
+%	reload_library_index/0. This keeps source information and allows
+%	for removing this directive.
+
+autoload_path(Alias) :-
+	(   user:file_search_path(autoload, Alias)
+	->  true
+	;   assertz(user:file_search_path(autoload, Alias)),
+	    reload_library_index
+	).
+
+system:term_expansion((:- autoload_path(Alias)),
+		      [ user:file_search_path(autoload, Alias),
+			(:- reload_library_index)
+		      ]).
+
 
 		 /*******************************
 		 *	   DO AUTOLOAD		*

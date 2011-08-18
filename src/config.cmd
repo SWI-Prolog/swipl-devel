@@ -155,7 +155,7 @@ set "EP!EXTRALIBDIR=%EP!HOME%\lib"
 set "EP!PLBOOTFILE=boot%BITS%.prc"
 if "%BITS%"=="32" (set "EP!LIBPTHREAD=pthreadVC") else (set "EP!LIBPTHREAD=pthreadVC2")
 if "%BITS%"=="32" (set "EP!LIBZLIB=zlib1") else (set "EP!LIBZLIB=zlibwapi")
-if "%BITS%"=="32" (set "EP!ARCH=i386-win32") else (set "EP!ARCH=x64-win64")
+if "%BITS%"=="32" (set "EP!PLARCH=i386-win32") else (set "EP!PLARCH=x64-win64")
 :set_extra_libs
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_64" (set "BUFFEROVERFLOW=bufferoverflowU.lib") else (set "BUFFEROVERFLOW=")
 set "EP!EXTRALIBS=%EP!GMP_LIB% %BUFFEROVERFLOW%"

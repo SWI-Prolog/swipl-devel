@@ -58,8 +58,7 @@
 %	@see statistics/2 for obtaining statistics in your program and
 %	     understanding the reported values.
 
-time(Goal0) :-
-	expand_goal(Goal0, Goal),
+time(Goal) :-
 	time_state(State0),
 	(   call_cleanup(catch(Goal, E, (report(State0,10), throw(E))),
 			 Det = true),
@@ -81,21 +80,19 @@ report(t(OldWall, OldTime, OldInferences), Sub) :-
 	->  Lips = 'Infinite'
 	;   Lips is integer(UsedInf / UsedTime)
 	),
-	print_message(informational, time(UsedInf, UsedTime, Wall, Lips)).
+	print_message(query, time(UsedInf, UsedTime, Wall, Lips)).
 
 time_state(t(Wall, Time, Inferences)) :-
 	get_time(Wall),
-	thread_self(Me),
-	thread_statistics(Me, cputime, Time),
-	thread_statistics(Me, inferences, Inferences).
+	statistics(cputime, Time),
+	statistics(inferences, Inferences).
 
 time_true(State0) :-
 	report(State0, 12).		% leave choice-point
 time_true(State) :-
 	get_time(Wall),
-	thread_self(Me),
-	thread_statistics(Me, cputime, Time),
-	thread_statistics(Me, inferences, Inferences0),
+	statistics(cputime, Time),
+	statistics(inferences, Inferences0),
 	plus(Inferences0, -3, Inferences),
 	nb_setarg(1, State, Wall),
 	nb_setarg(2, State, Time),
@@ -299,7 +296,7 @@ predicate_name(H, Name) :-
 	prolog:message/3.
 
 prolog:message(time(UsedInf, UsedTime, Wall, Lips)) -->
-	[ '~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
+	[ '% ~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
 	  [UsedInf, UsedTime, Wall, Perc, Lips] ],
 	{   Wall > 0
 	->  Perc is round(100*UsedTime/Wall)

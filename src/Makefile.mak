@@ -4,7 +4,7 @@
 # Author:			Jan Wielemaker
 #			     J.Wielemaker@cs.vu.nl
 #		University of Amsterdam  VU University Amsterdam
-#    		Kruislaan 419		 De Boelelaan 181a
+#		Kruislaan 419		 De Boelelaan 181a
 #		1098 VA  Amsterdam	 1081 HV Amsterdam
 #			       The Netherlands
 #
@@ -86,7 +86,7 @@ headers:	$(CINCLUDE) $(STREAMH)
 
 banner:
 		@echo ****************
-		@echo Making SWI-Prolog $(PLVERSION) for $(ARCH)
+		@echo Making SWI-Prolog $(PLVERSION) for $(PLARCH)
 		@echo To be installed in $(PLBASE)
 !IF "$(DBG)" == "true"
 		@echo *** Compiling version for DEBUGGING
@@ -147,6 +147,7 @@ pl-prims.obj:	pl-termwalk.c
 pl-rec.obj:	pl-termwalk.c
 pl-stream.obj:	popen.c
 pl-dtoa.obj:	dtoa.c
+pl-arith.obj:	pl-segstack.h
 
 # this should be pl-vmi.h, but that causes a recompile of everything.
 # Seems NMAKE dependency computation is broken ...
@@ -167,7 +168,7 @@ mkvmi.exe:	mkvmi.obj
 		$(LD) /out:$@ /subsystem:console mkvmi.obj $(LIBS)
 
 $(PLLD):	swipl-ld.obj
-		$(LD) /out:$@ /subsystem:console swipl-ld.obj $(LIBS)
+		$(LD) /out:$@ /subsystem:console swipl-ld.obj $(LIBS) $(UXLIB)
 
 tags:		TAGS
 
@@ -184,8 +185,7 @@ check:
 # Installation.
 ################################################################
 
-install:	embed-manifests \
-		install-arch install-libs install-readme install_packages \
+install::	install-arch install-libs install-readme install_packages \
 		xpce_packages install-dotfiles install-demo html-install
 
 embed-manifests::
@@ -199,7 +199,7 @@ install-arch:	idirs iprog
 		$(INSTALL_DATA) $(PLLIB) "$(LIBDIR)"
 		$(INSTALL_DATA) $(TERMLIB) "$(LIBDIR)"
 
-iprog::
+iprog:		embed-manifests
 		$(INSTALL_PROGRAM) $(PLWIN) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(PLCON) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(PLDLL) "$(BINDIR)"

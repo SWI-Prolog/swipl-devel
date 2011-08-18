@@ -34,20 +34,9 @@ embedded application.
 
 #define UNQUOTED_PREFIX "\1"
 
+#include "pl-incl.h"
+
 #ifdef __WINDOWS__
-#if (_MSC_VER >= 1400)			/* VC8 */
-#ifdef WIN64
-#include <config/win64.h>
-#else
-#include <config/win32.h>
-#endif
-#endif
-
-#if (_MSC_VER < 1300)			/* <= VC6 */
-typedef long intptr_t;
-typedef unsigned long uintptr_t;
-#endif
-
 #include <process.h>
 #include <io.h>
 #if (_MSC_VER < 1400)
@@ -64,17 +53,24 @@ typedef unsigned long uintptr_t;
 #ifndef PROG_PL
 #define PROG_PL "swipl.exe"
 #endif
+#ifdef __MINGW32__
+#define PROG_CC C_CC
+#define PROG_CXX C_CC				/* TBD */
+#define PROG_LD C_CC
+#define EXT_OBJ "o"
+#define OPT_DEBUG "-g"
+#else
 #define PROG_LD "link.exe"
 #define SO_LD "link.exe"
 #define PROG_CC "cl.exe /MD"
 #define PROG_CXX "cl.exe /MD /GX"
-#define PROG_OUT "plout.exe"
 #define PROG_CPP "cl.exe -P"
 #define LIB_PL_DEBUG "swiplD.lib"
 #define EXT_OBJ "obj"
 #define OPT_DEBUG "/DEBUG"
+#endif /*__MINGW32__*/
+#define PROG_OUT "plout.exe"
 #else /*__WINDOWS__*/
-#include "pl-incl.h"
 
 #ifndef PROG_PL
 #define PROG_PL "swipl"
@@ -183,7 +179,7 @@ static arglist lastlibs;		/* libs that must be at the end */
 static arglist libdirs;			/* -L library directories */
 static arglist includedirs;		/* -I include directories */
 
-static char *pllib;    			/* -lswipl, swipl.lib, ... */
+static char *pllib;			/* -lswipl, swipl.lib, ... */
 
 static char *pl;			/* Prolog executable */
 static char *cc;			/* CC executable */
@@ -634,7 +630,13 @@ usage()
 	  "       -Iincludedir     Include directory (C/C++)\n"
 	  "       -Llibdir         Library directory (C/C++ link)\n"
 	  "       -llib            library (C/C++)\n",
-	plld, plld, plld, plld);
+	plld,
+        plld,
+        plld,
+#ifdef __WINDOWS__
+        plld,
+#endif
+        plld);
 
   exit(1);
 }
@@ -667,14 +669,14 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-g") )		/* -g */
     { appendArgList(&coptions, OPT_DEBUG);
       appendArgList(&cppoptions, OPT_DEBUG);
-#ifdef __WINDOWS__					/* MSVC DEBUG OPTIONS */
+#ifdef _MSC_VER					/* MSVC DEBUG OPTIONS */
       appendArgList(&coptions, "/ZI");
       appendArgList(&coptions, "/Od");
       appendArgList(&cppoptions, "/ZI");
       appendArgList(&cppoptions, "/Od");
 #endif
       appendArgList(&ldoptions, OPT_DEBUG);
-#ifdef __WINDOWS__
+#ifdef LIB_PL_DEBUG
       pllib = LIB_PL_DEBUG;
 #endif
     } else if ( strprefix(opt, "-pg") )		/* -pg* */
@@ -683,7 +685,7 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-g3") )		/* -g3 */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
-    } else if ( strprefix(opt, "gdwarf-") ) 	/* -gdwarf-* */
+    } else if ( strprefix(opt, "gdwarf-") )	/* -gdwarf-* */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
     } else if ( strprefix(opt, "-O") )		/* -O* */
@@ -694,12 +696,12 @@ parseOptions(int argc, char **argv)
     } else if ( strprefix(opt, "-W") )		/* -W* */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
-    } else if ( streq(opt, "-nostate") ) 	/* -nostate */
+    } else if ( streq(opt, "-nostate") )	/* -nostate */
     { nostate = TRUE;
     } else if ( streq(opt, "-dll") ||		/* -dll */
 		streq(opt, "-embed-shared") )   /* -embed-shared */
     { embed_shared = TRUE;
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
       appendArgList(&ldoptions, "/DLL");
 #else
 #ifdef SO_pic
@@ -738,39 +740,39 @@ parseOptions(int argc, char **argv)
       appendArgList(&coptions, SO_PIC);
       appendArgList(&cppoptions, SO_PIC);
 #endif
-    } else if ( streq(opt, "-o") ) 		/* -o out */
+    } else if ( streq(opt, "-o") )		/* -o out */
     { if ( argc > 1 )
       { out = argv[1];
 	opt_o = TRUE;
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-goal") ) 		/* -goal goal */
+    } else if ( streq(opt, "-goal") )		/* -goal goal */
     { if ( argc > 1 )
       { plgoal = argv[1];
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-toplevel") ) 	/* -toplevel goal */
+    } else if ( streq(opt, "-toplevel") )	/* -toplevel goal */
     { if ( argc > 1 )
       { pltoplevel = argv[1];
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-initfile") ) 	/* -initfile goal */
+    } else if ( streq(opt, "-initfile") )	/* -initfile goal */
     { if ( argc > 1 )
       { plinitfile = argv[1];
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-F") ) 		/* -F base */
+    } else if ( streq(opt, "-F") )		/* -F base */
     { if ( argc > 1 )
       { plsysinit = argv[1];
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-class") ) 		/* -class runtime,kernel,
-    							  development */
+    } else if ( streq(opt, "-class") )		/* -class runtime,kernel,
+							  development */
     { if ( argc > 1 )
       { plclass = argv[1];
 	if ( !streq(plclass, "runtime") &&
@@ -781,25 +783,25 @@ parseOptions(int argc, char **argv)
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-pl") ) 		/* -pl prolog */
+    } else if ( streq(opt, "-pl") )		/* -pl prolog */
     { if ( argc > 1 )
       { pl = argv[1];
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-cc") ) 		/* -cc compiler */
+    } else if ( streq(opt, "-cc") )		/* -cc compiler */
     { if ( argc > 1 )
       { cc = argv[1];
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-c++") ) 		/* -c++ compiler */
+    } else if ( streq(opt, "-c++") )		/* -c++ compiler */
     { if ( argc > 1 )
       { cxx = argv[1];
 	argc--, argv++;
       } else
 	usage();
-    } else if ( streq(opt, "-ld") ) 		/* -ld linker */
+    } else if ( streq(opt, "-ld") )		/* -ld linker */
     { if ( argc > 1 )
       { ld = argv[1];
 	argc--, argv++;
@@ -878,7 +880,7 @@ fillDefaultOptions()
   char *defcxx = PROG_CXX;
 
   defaultProgram(&cc,  PROG_CC);
-  if ( streq(cc, "gcc") )
+  if ( streq(cc, "gcc") )			/* TBD: MINGW */
     defcxx = "g++";
   defaultProgram(&cxx, defcxx);
 
@@ -889,7 +891,7 @@ fillDefaultOptions()
       ld = cxx;
   }
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
   if ( strcmp(LIB_PL_DEBUG,pllib) == 0 )
     ensureOption(&coptions, "/MDd");
   else ensureOption(&coptions, "/MD");

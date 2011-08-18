@@ -212,6 +212,17 @@ systems using the following first line
 .BR #!@prefix@/bin/@PL@ " option ... " \-s
 .RE
 .TP
+.BI \-l " file"
+Load
+.I file
+as a script.  This is a synonym for
+.I \-s
+that is compatible with several other Prolog implementations.  If
+multiple
+.IR \-s " or " \-l
+arguments are provided, all specified files are loaded in the order
+in which they appear on the argument list.
+.TP
 .B \-\-quiet \-q
 Operate silently.  This option suppresses all
 .I informational
@@ -346,7 +357,7 @@ If both exist
 .I .plrc
 is used.
 .TP
-.I @prefix@/lib/@PL@-@PLVERSION@/bin/@ARCH@/
+.I @prefix@/lib/@PL@-@PLVERSION@/bin/@PLARCH@/
 Location for the executables.
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/include/
@@ -362,7 +373,7 @@ SWI-Prolog kernel parts written in Prolog.  The startup file
 the command from the directory @prefix@/lib/@PL@-@PLVERSION@:
 .RS
 .TP
-bin/@ARCH@/@PL@ \-O \-o boot32.prc \-b boot/init.pl
+bin/@PLARCH@/@PL@ \-O \-o boot32.prc \-b boot/init.pl
 .RE
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/doc/packages
@@ -374,7 +385,7 @@ precompiled code from the boot directory.  The
 .BI \-x bootfile
 option may be used to select a different file.
 .TP
-.I @prefix@/lib/@PL@-@PLVERSION@/runtime/@ARCH@/libpl.a
+.I @prefix@/lib/@PL@-@PLVERSION@/runtime/@PLARCH@/libpl.a
 SWI-Prolog library for embedding.  See also
 .I plld(1).
 .SH SEE ALSO

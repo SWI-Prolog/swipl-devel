@@ -27,7 +27,7 @@ void taia_now(struct taia *t)
 
   /* Convert to longtime_t form */
   cns = ((int64_t)ft.dwHighDateTime << 32) + ft.dwLowDateTime;
-  t->sec.x = cns/10000000 - 11644473600 + ULL(4611686018427387914);
+  t->sec.x = cns/10000000 - ULL(11644473600) + ULL(4611686018427387914);
   t->nano  = (long)((cns % 10000000))*100;
   t->atto  = 0;
 #else

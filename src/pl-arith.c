@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -34,13 +35,9 @@ For compiled arithmetic, the compiler generates WAM codes that execute a
 stack machine.  This module maintains an array of arithmetic  functions.
 These  functions are addressed by the WAM instructions using their index
 in this array.
-
-The  current  version  of  this  module  also  supports  Prolog  defined
-arithmetic  functions.   In  the  current  version these can only return
-numbers.  This should be changed to return arbitrary Prolog  terms  some
-day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #undef abs			/* avoid abs() problem with MSVC++ */
 #include <math.h>
@@ -49,7 +46,7 @@ day.
 #include <limits.h>
 #ifdef HAVE_FLOAT_H
 #include <float.h>
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 #define isnan(x) _isnan(x)
 #endif
 #endif
@@ -71,14 +68,10 @@ day.
 #define M_E (2.7182818284590452354)
 #endif
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 #define LL(x) x ## i64
 #else
 #define LL(x) x ## LL
-#endif
-
-#ifdef HAVE___TRY
-#include <excpt.h>
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -106,44 +99,7 @@ problem.
 #endif
 #endif
 
-typedef int (*ArithF)();
-
-#define TABLE_REF_MASK		0x1UL
-#define isTableRef(p)		((uintptr_t)(p) & TABLE_REF_MASK)
-#define makeTableRef(p)		((void*)((uintptr_t)(p) | TABLE_REF_MASK))
-#define unTableRef(s, p)	(*((s*)((uintptr_t)(p) & ~TABLE_REF_MASK)))
-
-#define return_next_table(t, v, clean) \
-	{ for((v) = (v)->next; isTableRef(v) && (v); (v) = unTableRef(t, v)) \
-	  if ( (v) == (t)NULL ) \
-	  { clean; \
-	    succeed; \
-	  } \
-	  ForeignRedoPtr(v); \
-	}
-
-
-struct arithFunction
-{ ArithFunction next;		/* Next of chain */
-  functor_t	functor;	/* Functor defined */
-  ArithF	function;	/* Implementing function */
-  Module	module;		/* Module visibility module */
-  int		level;		/* Level of the module */
-#if O_PROLOG_FUNCTIONS
-  Procedure	proc;		/* Prolog defined functions */
-#endif
-#if O_COMPILE_ARITH
-  code		index;		/* Index of function */
-#endif
-};
-
-#define arithFunctionTable	(GD->arith.table)
-#define function_array		(&GD->arith.functions)
-#define FunctionFromIndex(n)	fetchBuffer(function_array, n, ArithFunction)
-
-static ArithFunction	isCurrentArithFunction(functor_t, Module);
-static int		registerFunction(ArithFunction f, int index);
-static int		getCharExpression(term_t t, Number r ARG_LD);
+static int		getCharExpression(Word p, Number r ARG_LD);
 static int		ar_minus(Number n1, Number n2, Number r);
 
 
@@ -457,37 +413,37 @@ compareNumbers(term_t n1, term_t n2, int what ARG_LD)
 }
 
 static
-PRED_IMPL("<", 2, lt, PL_FA_TRANSPARENT)
+PRED_IMPL("<", 2, lt, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, LT PASS_LD);
 }
 
 static
-PRED_IMPL(">", 2, gt, PL_FA_TRANSPARENT)
+PRED_IMPL(">", 2, gt, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, GT PASS_LD);
 }
 
 static
-PRED_IMPL("=<", 2, leq, PL_FA_TRANSPARENT)
+PRED_IMPL("=<", 2, leq, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, LE PASS_LD);
 }
 
 static
-PRED_IMPL(">=", 2, geq, PL_FA_TRANSPARENT)
+PRED_IMPL(">=", 2, geq, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, GE PASS_LD);
 }
 
 static
-PRED_IMPL("=\\=", 2, neq, PL_FA_TRANSPARENT)
+PRED_IMPL("=\\=", 2, neq, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, NE PASS_LD);
 }
 
 static
-PRED_IMPL("=:=", 2, eq, PL_FA_TRANSPARENT)
+PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
 { PRED_LD
   return compareNumbers(A1, A2, EQ PASS_LD);
 }
@@ -582,92 +538,21 @@ freeArithLocalData(PL_local_data_t *ld)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-isCurrentArithFunction(functor_t f, Module m)
-    Find existing arithmetic function definition for f using m as
-    context.
-
-    The one we are looking for is the function that is in the most
-    local module.  As the entries are sorted such that more specific
-    functions are before global functions, we can pick the first
-    one that is in our module path.
+isCurrentArithFunction(functor_t f)
+    Find existing arithmetic function definition for f.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline ArithF
+isCurrentArithFunction(functor_t f)
+{ size_t index = indexFunctor(f);
 
-static ArithFunction
-isCurrentArithFunction(functor_t f, Module m)
-{ ArithFunction a;
-
-  for(a = arithFunctionTable[functorHashValue(f, ARITHHASHSIZE)];
-      !isTableRef(a) && a; a = a->next)
-  { if ( a->functor == f )
-    { if ( isSuperModule(a->module, m) )
-	return a;
-    }
+  if ( index < GD->arith.functions_allocated )
+  { return GD->arith.functions[index];
   }
 
   return NULL;
 }
 
-#if O_PROLOG_FUNCTIONS
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Activating a Prolog predicate as function below the arithmetic functions
-is/0, >, etc. `f' is the arithmetic function   to  be called. `t' is the
-base term-reference of an array holding  the proper number of arguments.
-`r' is the result of the evaluation.
-
-This calling convention is somewhat  unnatural,   but  fits  best in the
-calling convention required by ar_func_n() below.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
-{ Definition def = getProcDefinition(f->proc);
-  int arity = def->functor->arity;
-  fid_t fid;
-  qid_t qid;
-  int rval;
-
-  if ( !(fid=PL_open_foreign_frame()) ||
-       !(qid=PL_open_query(NULL, PL_Q_PASS_EXCEPTION, f->proc, av)) )
-    return FALSE;
-
-  if ( PL_next_solution(qid) )
-  { rval = valueExpression(av+arity-1, r PASS_LD);
-    PL_close_query(qid);
-    PL_discard_foreign_frame(fid);
-  } else
-  { term_t except;
-
-    if ( (except = PL_exception(qid)) )
-    { rval = FALSE;
-      PL_close_query(qid);
-    } else
-    { PL_close_query(qid);
-
-#ifdef O_LIMIT_DEPTH
-      if ( depth_reached > depth_limit )
-      { rval = FALSE;
-      } else
-#endif
-      { term_t goal;
-
-	rval = ( (goal = PL_new_term_ref()) &&
-		 PL_cons_functor_v(goal, def->functor->functor, av) &&
-		 PL_error(NULL, 0,
-			  "Aritmetic function must succeed or throw exception",
-			  ERR_FAILED, goal)
-	       );
-      }
-    }
-
-    PL_close_foreign_frame(fid);
-  }
-
-  return rval;
-}
-
-#endif /* O_PROLOG_FUNCTIONS */
 
 int
 check_float(double f)
@@ -728,184 +613,250 @@ check_float(double f)
 }
 
 
-int
-eval_expression(term_t t, Number r, int recursion ARG_LD)
-{ ArithFunction f;
-  functor_t functor;
-  Word p = valTermRef(t);
-  word w;
+		 /*******************************
+		 *	     EVALULATE		*
+		 *******************************/
 
-  deRef(p);
-  w = *p;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+valueExpression() evaluates an `evaluable term'.
 
-  switch(tag(w))
-  { case TAG_INTEGER:
-      get_integer(w, r);
-      succeed;
-    case TAG_FLOAT:
-      r->value.f = valFloat(w);
-      r->type = V_FLOAT;
-      succeed;
-    case TAG_VAR:
-      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
-    case TAG_ATOM:
-      functor = lookupFunctorDef(w, 0);
-      break;
-    case TAG_COMPOUND:
-      functor = functorTerm(w);
-      break;
-    default:
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, t);
-  }
+This new implementation avoids using the C-stack   to be able to process
+more deeply nested terms and to be able  to recover in the unlikely case
+that terms are still too deeply nested.
 
-  if ( !(f = isCurrentArithFunction(functor,
-				    contextModule(environment_frame))))
-  { if ( functor == FUNCTOR_dot2 )	/* handle "a" (make function) */
-      return getCharExpression(t, r PASS_LD);
-    else
-      return PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
-  }
+If finds a term, it starts processing at the last argument, working back
+to the start. It it finds  the   functor  itself it evaluates the pushed
+arguments. Using this technique we push as  few as possible arguments on
+terms that are nested on the left (as   in (1+2)+3, while we only push a
+single pointer for each recursion level in the evaluable term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( recursion == 100 && !PL_is_acyclic(t) )
-    return PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, t);
+static int
+pushForMark(segstack *stack, Word p, int wr)
+{ word w = ((word)p)|wr;
 
-#if O_PROLOG_FUNCTIONS
-  if ( f->proc )
-  { fid_t fid;
+  return pushSegStack(stack, w, word);
+}
 
-    if ( (fid=PL_open_foreign_frame()) )
-    { int rval, n, arity = arityFunctor(functor);
-      term_t h0 = PL_new_term_refs(arity+1); /* one extra for the result */
+static void
+popForMark(segstack *stack, Word *pp, int *wr)
+{ word w;
 
-      if ( !h0 )
-	return FALSE;
-
-      for(n=0; n<arity; n++)
-      { number n1;
-
-	_PL_get_arg(n+1, t, h0+n);
-	if ( eval_expression(h0+n, &n1, recursion+1 PASS_LD) )
-	{ _PL_put_number(h0+n, &n1);
-	  clearNumber(&n1);
-	} else
-	{ PL_close_foreign_frame(fid);
-	  fail;
-	}
-      }
-
-      rval = prologFunction(f, h0, r PASS_LD);
-      PL_close_foreign_frame(fid);
-
-      return rval;
-    }
-
-    return FALSE;
-  }
-#endif
-
-  DEBUG(3, Sdprintf("Starting __try ...\n"));
-
-  { int rval;
-
-#ifdef HAVE___TRY
-#ifndef EXCEPTION_EXECUTE_HANDLER	/* lcc */
-#define EXCEPTION_EXECUTE_HANDLER 1
-#endif
-    __try
-    {
-#else
-    LD->in_arithmetic++;
-#endif
-    switch(arityFunctor(functor))
-    { case 0:
-	rval = (*f->function)(r);
-        break;
-      case 1:
-      { term_t a = PL_new_term_ref();
-	number n1;
-
-	_PL_get_arg(1, t, a);
-	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
-	{ rval = (*f->function)(&n1, r);
-	  clearNumber(&n1);
-	} else
-	  rval = FALSE;
-
-	PL_reset_term_refs(a);
-	break;
-      }
-      case 2:
-      { term_t a = PL_new_term_ref();
-	number n1, n2;
-
-	_PL_get_arg(1, t, a);
-	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
-	{ _PL_get_arg(2, t, a);
-	  if ( eval_expression(a, &n2, recursion+1 PASS_LD) )
-	  { rval = (*f->function)(&n1, &n2, r);
-	    clearNumber(&n2);
-	  } else
-	  { rval = FALSE;
-	  }
-	  clearNumber(&n1);
-	} else
-	  rval = FALSE;
-
-	PL_reset_term_refs(a);
-	break;
-      }
-      case 3:
-      { term_t a = PL_new_term_ref();
-	number n1, n2, n3;
-
-	_PL_get_arg(1, t, a);
-	if ( eval_expression(a, &n1, recursion+1 PASS_LD) )
-	{ _PL_get_arg(2, t, a);
-	  if ( eval_expression(a, &n2, recursion+1 PASS_LD) )
-	  { _PL_get_arg(3, t, a);
-	    if ( eval_expression(a, &n3, recursion+1 PASS_LD) )
-	    { rval = (*f->function)(&n1, &n2, &n3, r);
-	      clearNumber(&n3);
-	    } else
-	    { rval = FALSE;
-	    }
-	    clearNumber(&n2);
-	  } else
-	  { rval = FALSE;
-	  }
-	  clearNumber(&n1);
-	} else
-	  rval = FALSE;
-
-	PL_reset_term_refs(a);
-	break;
-      }
-      default:
-	sysError("Illegal arity for arithmic function");
-        rval = FALSE;
-    }
-#if defined(HAVE___TRY)
-    } __except(EXCEPTION_EXECUTE_HANDLER)
-    { warning("Floating point exception");
-#ifndef O_RUNTIME
-      Sfprintf(Serror, "[PROLOG STACK:\n");
-      backTrace(NULL, 10);
-      Sfprintf(Serror, "]\n");
-#endif
-      rval = abortProlog(ABORT_RAISE);
-    }
-#else /*HAVE___TRY*/
-    LD->in_arithmetic--;
-#endif /*HAVE___TRY*/
-
-    return rval;
-  }
+  popSegStack(stack, &w, word);
+  *wr = w & (word)0x1;
+  *pp = (Word)(w & ~(word)0x1);
 }
 
 
 int
-valueExpression(term_t t, Number r ARG_LD)
-{ return eval_expression(t, r, 0 PASS_LD);
+valueExpression(term_t expr, number *result ARG_LD)
+{ segstack term_stack;
+  segstack arg_stack;
+  Word term_buf[16];
+  number arg_buf[16];
+  number *n = result;
+  number n_tmp;
+  int walk_ref = FALSE;
+  Word p = valTermRef(expr);
+  Word start;
+  int known_acyclic = FALSE;
+
+  deRef(p);
+  start = p;
+  LD->in_arithmetic++;
+
+  for(;;)
+  { switch(tag(*p))
+    { case TAG_INTEGER:
+	get_integer(*p, n);
+        break;
+      case TAG_FLOAT:
+	n->value.f = valFloat(*p);
+        n->type = V_FLOAT;
+	break;
+      case TAG_VAR:
+	PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+        goto error;
+      case TAG_REFERENCE:
+      { if ( !pushForMark(&term_stack, p, walk_ref) )
+	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	  goto error;
+	}
+	walk_ref = TRUE;
+	deRef(p);
+	continue;
+      }
+      case TAG_ATOM:
+      { functor_t functor = lookupFunctorDef(*p, 0);
+	ArithF f;
+
+        if ( (f = isCurrentArithFunction(functor)) )
+	{ if ( (*f)(n) != TRUE )
+	    goto error;
+	} else
+	{ PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
+	  goto error;
+	}
+	break;
+      }
+      case TAG_COMPOUND:
+      { Functor term = valueTerm(*p);
+	int arity;
+
+	if ( term->definition == FUNCTOR_dot2 )
+	{ if ( getCharExpression(p, n PASS_LD) != TRUE )
+	    goto error;
+	  break;
+	}
+
+	if ( p == start )
+	{ initSegStack(&term_stack, sizeof(Word), sizeof(term_buf), term_buf);
+	  initSegStack(&arg_stack, sizeof(number), sizeof(arg_buf), arg_buf);
+	}
+
+	if ( !pushSegStack(&term_stack, p, Word) )
+	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	  goto error;
+	}
+	if ( term_stack.count > 100 && !known_acyclic )
+	{ int rc;
+
+	  if ( (rc=is_acyclic(start PASS_LD)) == TRUE )
+	  { known_acyclic = TRUE;
+	  } else
+	  { if ( rc == MEMORY_OVERFLOW )
+	      PL_error(NULL, 0, NULL, ERR_NOMEM);
+	    else
+	      PL_error(NULL, 0, "cyclic term", ERR_TYPE, ATOM_expression, expr);
+	    goto error;
+	  }
+	}
+	walk_ref = FALSE;
+	n = &n_tmp;
+	arity = arityFunctor(term->definition);
+	p = &term->arguments[arity-1];
+	continue;
+      }
+      default:
+	PL_error(NULL, 0, NULL, ERR_PTR_TYPE, ATOM_number, p);
+        goto error;
+    }
+
+    if ( p == start )
+    { LD->in_arithmetic--;
+      assert(n == result);
+
+      return TRUE;
+    }
+
+    if ( walk_ref )
+      popForMark(&term_stack, &p, &walk_ref);
+
+    if ( !pushSegStack(&arg_stack, n_tmp, number) )
+    { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+      goto error;
+    }
+
+    while ( tagex(*--p) == (TAG_ATOM|STG_GLOBAL) )
+    { functor_t functor = *p;
+      ArithF f;
+
+      DEBUG(1, Sdprintf("Eval %s/%d\n",
+			stringAtom(nameFunctor(functor)),
+			arityFunctor(functor)));
+
+      if ( (f = isCurrentArithFunction(functor)) )
+      { int arity = arityFunctor(functor);
+
+	switch(arity)
+	{ case 1:
+	  { int rc;
+	    number *a0 = topOfSegStack(&arg_stack);
+
+	    rc = (*f)(a0, n);
+	    clearNumber(a0);
+	    if ( rc == TRUE )
+	    { *a0 = *n;
+	    } else
+	    { popTopOfSegStack(&arg_stack);
+	      goto error;
+	    }
+
+	    break;
+	  }
+	  case 2:
+	  { int rc;
+	    void *a[2];
+
+	    topsOfSegStack(&arg_stack, 2, a);
+	    rc = (*f)((number*)a[0], (number*)a[1], n);
+	    clearNumber((number*)a[0]);
+	    clearNumber((number*)a[1]);
+	    popTopOfSegStack(&arg_stack);
+
+	    if ( rc == TRUE )
+	    { number *n1 = a[1];
+	      *n1 = *n;
+	    } else
+	    { popTopOfSegStack(&arg_stack);
+	      goto error;
+	    }
+
+	    break;
+	  }
+	  case 3:
+	  { int rc;
+	    void *a[3];
+
+	    topsOfSegStack(&arg_stack, 3, a);
+	    rc = (*f)((number*)a[0], (number*)a[1], (number*)a[2], n);
+	    clearNumber((number*)a[0]);
+	    clearNumber((number*)a[1]);
+	    clearNumber((number*)a[2]);
+	    popTopOfSegStack(&arg_stack);
+	    popTopOfSegStack(&arg_stack);
+
+	    if ( rc == TRUE )
+	    { number *n2 = a[2];
+	      *n2 = *n;
+	    } else
+	    { popTopOfSegStack(&arg_stack);
+	      goto error;
+	    }
+
+	    break;
+	  }
+	  default:
+	    assert(0);
+	}
+
+	popForMark(&term_stack, &p, &walk_ref);
+	if ( p == start )
+	{ LD->in_arithmetic--;
+	  *result = *n;
+
+	  return TRUE;
+	}
+	if ( walk_ref )
+	  popForMark(&term_stack, &p, &walk_ref);
+      } else
+      { PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
+	goto error;
+      }
+    }
+  }
+
+error:
+  if ( p != start )
+  { number n;
+
+    clearSegStack(&term_stack);
+    while( popSegStack(&arg_stack, &n, number) )
+      clearNumber(&n);
+  }
+  LD->in_arithmetic--;
+
+  return FALSE;
 }
 
 
@@ -943,8 +894,8 @@ arithChar(Word p ARG_LD)
 
 
 static int
-getCharExpression(term_t t, Number r ARG_LD)
-{ Word a, p = valTermRef(t);
+getCharExpression(Word p, Number r ARG_LD)
+{ Word a;
   int chr;
 
   deRef(p);
@@ -2277,24 +2228,14 @@ ar_negation(Number n1, Number r)
 
 
 static int
-domainErrorNumber(const char *f, int a, Number n, atom_t error)
-{ GET_LD
-  term_t t = PL_new_term_ref();
-
-  PL_unify_number(t, n);
-  return PL_error(f, a, NULL, ERR_DOMAIN, error, t);
-}
-
-
-static int
 notLessThanZero(const char *f, int a, Number n)
-{ return domainErrorNumber(f, a, n, ATOM_not_less_than_zero);
+{ return PL_error(f, a, NULL, ERR_AR_DOMAIN, ATOM_not_less_than_zero, n);
 }
 
 
 static int
 mustBePositive(const char *f, int a, Number n)
-{ return domainErrorNumber(f, a, n, ATOM_not_less_than_one);
+{ return PL_error(f, a, NULL, ERR_AR_DOMAIN, ATOM_not_less_than_one, n);
 }
 
 
@@ -2432,7 +2373,7 @@ ar_u_minus(Number n1, Number r)
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
-  	if ( !promoteToFloatNumber(n1) )
+	if ( !promoteToFloatNumber(n1) )
 	  return FALSE;
 	r->type = V_FLOAT;
 #endif
@@ -2818,7 +2759,7 @@ seed_from_dev(const char *dev ARG_LD)
 #ifdef S_ISCHR
   int fd;
 
-  if ( (fd=open("/dev/urandom", O_RDONLY)) )
+  if ( (fd=open(dev, O_RDONLY)) )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 && S_ISCHR(buf.st_mode) )
@@ -2835,12 +2776,12 @@ seed_from_dev(const char *dev ARG_LD)
       }
 
       if ( rd >= MIN_RAND_SEED_LEN )
-      { DEBUG(1, Sdprintf("Seed random using %ld bytes from /dev/random\n",
-			  (long)n));
+      { DEBUG(1, Sdprintf("Seed random using %ld bytes from %s\n",
+			  (long)rd, dev));
 
 	LD->gmp.persistent++;
 	mpz_init(seed);
-	mpz_import(seed, n, 1, sizeof(char), 0, 0, seedarray);
+	mpz_import(seed, rd, 1, sizeof(char), 0, 0, seedarray);
 	gmp_randseed(LD->arith.random.state, seed);
 	mpz_clear(seed);
 	LD->gmp.persistent--;
@@ -2857,16 +2798,60 @@ seed_from_dev(const char *dev ARG_LD)
 }
 
 
+
+static int
+seed_from_crypt_context(ARG1_LD)
+{
+#ifdef _MSC_VER
+  HCRYPTPROV hCryptProv;
+  char *user_name = "seed_random";
+  BYTE seedarray[RAND_SEED_LEN];
+  mpz_t seed;
+
+
+  if ( CryptAcquireContext(&hCryptProv, user_name, NULL, PROV_RSA_FULL, 0) )
+  { CryptGenRandom(hCryptProv, sizeof(seedarray), seedarray);
+  } else if ( (GetLastError() == NTE_BAD_KEYSET) &&
+	      CryptAcquireContext(&hCryptProv, user_name, NULL,
+				  PROV_RSA_FULL, CRYPT_NEWKEYSET) )
+  { CryptGenRandom(hCryptProv, sizeof(seedarray), seedarray);
+  } else
+  { return FALSE;
+  }
+
+  LD->gmp.persistent++;
+  mpz_init(seed);
+  mpz_import(seed, RAND_SEED_LEN, 1, sizeof(BYTE), 0, 0, seedarray);
+  gmp_randseed(LD->arith.random.state, seed);
+  mpz_clear(seed);
+  LD->gmp.persistent--;
+
+  return TRUE;
+#else
+  return FALSE;
+#endif
+}
+
+
 static void
 seed_random(ARG1_LD)
 { if ( !seed_from_dev("/dev/urandom" PASS_LD) &&
-       !seed_from_dev("/dev/random" PASS_LD) )
-  { LD->gmp.persistent++;
-    gmp_randseed_ui(LD->arith.random.state,
-		    (unsigned long)time(NULL));
+       !seed_from_dev("/dev/random" PASS_LD) &&
+       !seed_from_crypt_context(PASS_LD1) )
+  { double t[1] = { WallTime() };
+    unsigned long key = 0;
+    unsigned long *p = (unsigned long*)t;
+    unsigned long *e = (unsigned long*)&t[1];
+
+    for(; p<e; p++)
+      key ^= *p;
+
+    LD->gmp.persistent++;
+    gmp_randseed_ui(LD->arith.random.state, key);
     LD->gmp.persistent--;
   }
 }
+
 #else /* O_GMP */
 
 static void
@@ -3028,7 +3013,7 @@ ar_cputime(Number r)
 		*********************************/
 
 static
-PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
+PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
 { PRED_LD
   AR_CTX
   number arg;
@@ -3047,132 +3032,31 @@ PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
 }
 
 
-#if O_PROLOG_FUNCTIONS
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Functions are module-sensitive. We has the arithmetic functions on their
-functor and keep them sorted in   the chain, most-specific module first.
-See also isCurrentArithFunction()
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/** current_arithmetic_function(?Term) is nondet.
+
+True if Term is evaluable.
+*/
 
 static
-PRED_IMPL("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
-{ GET_LD
-  Procedure proc;
-  functor_t fd;
-  FunctorDef fdef;
-  ArithFunction f, a, *ap;
-  Module m = NULL;
-  term_t head = PL_new_term_ref();
-  size_t v;
-  int index, rc;
-
-  PL_strip_module(A1, &m, head);
-  if ( !PL_get_functor(head, &fd) )
-    return PL_error(NULL, 0, NULL,
-		    ERR_TYPE, ATOM_callable, head);
-  fdef = valueFunctor(fd);
-  if ( fdef->arity < 1 )
-    return PL_error(NULL, 0, NULL,
-		    ERR_DOMAIN, ATOM_not_less_than_one, head);
-  if ( !PL_get_integer_ex(A2, &index) )
-    fail;
-
-  proc = lookupProcedure(fd, m);
-  fd = lookupFunctorDef(fdef->name, fdef->arity - 1);
-  if ( (f = isCurrentArithFunction(fd, m)) && f->module == m )
-    succeed;				/* already registered */
-
-  v = functorHashValue(fd, ARITHHASHSIZE);
-  f = allocHeap(sizeof(struct arithFunction));
-  f->functor  = fd;
-  f->function = NULL;
-  f->module   = m;
-  f->level    = m->level;
-  f->proc     = proc;
-
-  startCritical;
-  for(ap = &arithFunctionTable[v], a=*ap; ; ap = &a->next, a = *ap)
-  { if ( !a || isTableRef(a) || f->level >= a->level )
-    { f->next = a;
-      *ap = f;
-      break;
-    }
-  }
-  rc = registerFunction(f, index);
-  if ( !endCritical ) rc = FALSE;
-
-  return rc;
-}
-
-word
-pl_current_arithmetic_function(term_t f, control_t h)
-{ GET_LD
-  ArithFunction a;
-  Module m = NULL;
-  term_t head = PL_new_term_ref();
-
-  switch( ForeignControl(h) )
-  { case FRG_FIRST_CALL:
-    { functor_t fd;
-
-      PL_strip_module(f, &m, head);
-
-      if ( PL_is_variable(head) )
-      { a = arithFunctionTable[0];
-        break;
-      } else if ( PL_get_functor(head, &fd) )
-      {	return isCurrentArithFunction(fd, m) ? TRUE : FALSE;
-      } else
-        return PL_error(NULL, 0, NULL,
-			ERR_TYPE, ATOM_callable, f);
-    }
-    case FRG_REDO:
-      PL_strip_module(f, &m, head);
-
-      a = ForeignContextPtr(h);
-      break;
-    case FRG_CUTTED:
-    default:
-      succeed;
-  }
-
-  for( ; a; a = a->next )
-  { Module m2;
-
-    while( isTableRef(a) )
-    { a = unTableRef(ArithFunction, a);
-      if ( !a )
-        fail;
-    }
-
-    for(m2 = m; m2; )
-    { if ( m2 == a->module && a == isCurrentArithFunction(a->functor, m) )
-      { if ( PL_unify_functor(f, a->functor) )
-	  return_next_table(ArithFunction, a, ;);
-      }
-      if ( m2->supers )			/* TBD: multiple supers! */
-      { m2 = m2->supers->value;
-      } else
-	fail;
-    }
-  }
-
-  fail;
-}
-
-
-static
-PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
-	  PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
+PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
+	  PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  int i, mx;
-  term_t tmp;
-  fid_t fid;
+  int i;
+  term_t head = A1;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-      i = 0;
-      break;
+    { functor_t fd;
+
+      if ( PL_is_variable(head) )
+      { i = 0;
+        break;
+      } else if ( PL_get_functor(head, &fd) )
+      {	return isCurrentArithFunction(fd) ? TRUE : FALSE;
+      } else
+        return PL_error(NULL, 0, NULL,
+			ERR_TYPE, ATOM_callable, head);
+    }
     case FRG_REDO:
       i = (int)CTX_INT;
       break;
@@ -3181,37 +3065,18 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
       succeed;
   }
 
-  tmp = PL_new_term_ref();
-  mx = (int)entriesBuffer(function_array, ArithFunction);
+  for(; i<GD->arith.functions_allocated; i++)
+  { if ( GD->arith.functions[i] )
+    { functor_t f = functorArithFunction(i);
 
-  if ( !(fid = PL_open_foreign_frame()) )
-    return FALSE;
-
-  for( ; i<mx; i++ )
-  { ArithFunction f = FunctionFromIndex(i);
-
-    if ( PL_put_functor(tmp, f->functor) &&
-	 f->proc &&
-	 PL_unify_term(A1,
-		       PL_FUNCTOR, FUNCTOR_colon2,
-		         PL_ATOM, f->module->name,
-		         PL_TERM, tmp) &&
-	 PL_unify_integer(A2, (intptr_t)f->index) )
-    { if ( ++i == mx )
-	succeed;
-      ForeignRedoInt(i);
+      if ( PL_unify_functor(head, f) )
+	ForeignRedoInt(i+1);
     }
-
-    if ( exception_term )
-      return FALSE;
-
-    PL_rewind_foreign_frame(fid);
   }
 
   fail;
 }
 
-#endif /* O_PROLOG_FUNCTIONS */
 
 typedef struct
 { functor_t	functor;
@@ -3291,68 +3156,56 @@ static const ar_funcdef ar_funcdefs[] = {
 
 #undef ADD
 
-static int
-registerFunction(ArithFunction f, int index)
-{ int i = (int)entriesBuffer(function_array, ArithFunction);
+static size_t
+registerFunction(functor_t f, ArithF func)
+{ size_t index = indexFunctor(f);
 
-  if ( index )
-  { if ( index != i )
-    { fatalError("Mismatch in arithmetic function index (%d != %d)",
-		 index, i);
-      fail;				/* NOTREACHED */
+  DEBUG(1, Sdprintf("Register functor %ld\n", (long)index));
+
+  while ( index >= GD->arith.functions_allocated )
+  { GET_LD
+
+    if ( GD->arith.functions_allocated == 0 )
+    { size_t size = 256;
+
+      GD->arith.functions = allocHeap(size*sizeof(ArithF));
+      memset(GD->arith.functions, 0, size*sizeof(ArithF));
+      GD->arith.functions_allocated = size;
+    } else
+    { size_t size = GD->arith.functions_allocated*2;
+      ArithF *new = allocHeap(size*sizeof(ArithF));
+      size_t half = GD->arith.functions_allocated*sizeof(ArithF);
+      ArithF *old = GD->arith.functions;
+
+      DEBUG(0, Sdprintf("Re-sized function-table to %ld\n", (long)size));
+
+      memcpy(new, old, half);
+      memset(addPointer(new,half), 0, half);
+      GD->arith.functions = new;
+      GD->arith.functions_allocated = size;
+      freeHeap(old, half);
     }
   }
 
-  f->index = i;
-  addBuffer(function_array, f, ArithFunction);
+  GD->arith.functions[index] = func;
 
-  succeed;
+  return index;
 }
 
 
 static void
 registerBuiltinFunctions()
-{ GET_LD
-  int n, size = sizeof(ar_funcdefs)/sizeof(ar_funcdef);
-  ArithFunction f = allocHeap(size * sizeof(struct arithFunction));
+{ int n, size = sizeof(ar_funcdefs)/sizeof(ar_funcdef);
   const ar_funcdef *d;
 
-					/* grow to desired size immediately */
-  if ( !growBuffer(function_array, size * sizeof(ArithFunction)) )
-    outOfCore();
-  memset(f, 0, size * sizeof(struct arithFunction));
-
-  for(d = ar_funcdefs, n=0; n<size; n++, f++, d++)
-  { int v = (int)functorHashValue(d->functor, ARITHHASHSIZE);
-
-    f->functor  = d->functor;
-    f->function = d->function;
-    f->module   = MODULE_system;
-    f->level    = 0;			/* level of system module */
-    f->next     = arithFunctionTable[v];
-    arithFunctionTable[v] = f;
-    registerFunction(f, 0);
-    DEBUG(1, Sdprintf("Registered %s/%d at %d, index=%d\n",
-		      stringAtom(nameFunctor(f->functor)),
-		      arityFunctor(f->functor),
-		      v,
-		      f->index));
-  }
+  for(d = ar_funcdefs, n=0; n<size; n++, d++)
+    registerFunction(d->functor, d->function);
 }
 
 
 void
 initArith(void)
-{ initBuffer(function_array);
-					/* link the table to enumerate */
-  { ArithFunction *f;
-    int n;
-
-    for(n=0, f = arithFunctionTable; n < (ARITHHASHSIZE-1); n++, f++)
-      *f = makeTableRef(f+1);
-  }
-
-  registerBuiltinFunctions();
+{ registerBuiltinFunctions();
 
 #ifdef O_INHIBIT_FP_SIGNALS
   fpsetmask(fpgetmask() & ~(FP_X_DZ|FP_X_INV|FP_X_OFL));
@@ -3362,8 +3215,7 @@ initArith(void)
 
 void
 cleanupArith(void)
-{ discardBuffer(function_array);
-
+{
 #ifdef O_INHIBIT_FP_SIGNALS
   fpresetsticky(FP_X_DZ|FP_X_INV|FP_X_OFL);
   fpsetmask(FP_X_DZ|FP_X_INV|FP_X_OFL);
@@ -3378,19 +3230,29 @@ cleanupArith(void)
 		*********************************/
 
 int
-indexArithFunction(functor_t fdef, Module m)
-{ ArithFunction f;
+indexArithFunction(functor_t f)
+{ size_t index = indexFunctor(f);
 
-  if ( !(f = isCurrentArithFunction(fdef, m)) )
-    return -1;
+  if ( index < GD->arith.functions_allocated )
+  { if ( GD->arith.functions[index] )
+      return (int)index;
+  }
 
-  return (int)f->index;
+  return -1;
 }
 
 
 functor_t
-functorArithFunction(int n)
-{ return FunctionFromIndex(n)->functor;
+functorArithFunction(int i)
+{ FunctorDef fd = fetchBuffer(&functor_array, i, FunctorDef);
+
+  return fd->functor;
+}
+
+
+static ArithF
+FunctionFromIndex(int index)
+{ return GD->arith.functions[index];
 }
 
 
@@ -3404,42 +3266,28 @@ bool
 ar_func_n(int findex, int argc ARG_LD)
 { number result;
   int rval;
-  ArithFunction f = FunctionFromIndex(findex);
+  ArithF f = FunctionFromIndex(findex);
   Number argv = argvArithStack(argc PASS_LD);
 
-  if ( f->proc )			/* Prolog implementation */
-  { intptr_t lsafe = (char*)lTop - (char*)lBase;
+  DEBUG(0, if ( !f )
+	     fatalError("No function at index %d", findex));
 
-    lTop = (LocalFrame)argFrameP(lTop, 1); /* needed for is/2.  See A_IS */
-    { fid_t fid = PL_open_foreign_frame();
-      term_t h0 = PL_new_term_refs(argc+1);
-      int n;
-
-      for(n=0; n<argc; n++)
-	_PL_put_number(h0+n, argv+n);
-
-      rval = prologFunction(f, h0, &result PASS_LD);
-      PL_close_foreign_frame(fid);
-    }
-    lTop = addPointer(lBase, lsafe);
-  } else
-  { switch(argc)
-    { case 0:
-	rval = (*f->function)(&result);
-        break;
-      case 1:
-	rval = (*f->function)(argv, &result);
-        break;
-      case 2:
-	rval = (*f->function)(argv, argv+1, &result);
-	break;
-      case 3:
-	rval = (*f->function)(argv, argv+1, argv+2, &result);
-        break;
-      default:
-	rval = FALSE;
-        sysError("Too many arguments to arithmetic function");
-    }
+  switch(argc)
+  { case 0:
+      rval = (*f)(&result);
+      break;
+    case 1:
+      rval = (*f)(argv, &result);
+      break;
+    case 2:
+      rval = (*f)(argv, argv+1, &result);
+      break;
+    case 3:
+      rval = (*f)(argv, argv+1, argv+2, &result);
+      break;
+    default:
+      rval = FALSE;
+      sysError("Too many arguments to arithmetic function");
   }
 
   popArgvArithStack(argc PASS_LD);
@@ -3501,16 +3349,15 @@ PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
 		 *******************************/
 
 BeginPredDefs(arith)
-  PRED_DEF("is",   2, is,  PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("<",	   2, lt,  PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF(">",	   2, gt,  PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("=<",   2, leq, PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF(">=",   2, geq, PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("=\\=", 2, neq, PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("=:=",  2, eq,  PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
-	   PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
-  PRED_DEF("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
+  PRED_DEF("is",   2, is,  PL_FA_ISO)
+  PRED_DEF("<",	   2, lt,  PL_FA_ISO)
+  PRED_DEF(">",	   2, gt,  PL_FA_ISO)
+  PRED_DEF("=<",   2, leq, PL_FA_ISO)
+  PRED_DEF(">=",   2, geq, PL_FA_ISO)
+  PRED_DEF("=\\=", 2, neq, PL_FA_ISO)
+  PRED_DEF("=:=",  2, eq,  PL_FA_ISO)
+  PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,
+	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("succ", 2, succ, 0)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)

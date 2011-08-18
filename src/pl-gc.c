@@ -27,6 +27,7 @@
 #define O_SECURE 1
 #endif
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 #include "pentium.h"
 #include "pl-inline.h"
 
@@ -324,109 +325,6 @@ print_val(word val, char *buf)
 
   return buf;
 }
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The BACKTRACE code below can only  be   compiled  on systems using glibc
-(the GNU C-library). It saves the  stack-trace   of  the  latest call to
-markAtomsOnStacks()  to  help  identifying  problems.    You   can  call
-print_backtrace() from GDB to find the last stack-trace.
-
-Disabled of dmalloc is used because the  free of the memory allocated by
-backtrace_symbols() is considered an error by dmalloc.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(HAVE_EXECINFO_H) && !defined(DMALLOC)
-#include <execinfo.h>
-#include <string.h>
-
-#define SAVE_TRACES 10
-typedef struct
-{ char **symbols[SAVE_TRACES];
-  size_t sizes[SAVE_TRACES];
-  int    current;
-} btrace;
-
-static pthread_key_t trace_key;
-static pthread_once_t trace_key_once = PTHREAD_ONCE_INIT;
-
-static void
-trace_destroy(void *buf)
-{ btrace *bt = buf;
-  int i;
-
-  for(i=0; i<SAVE_TRACES; i++)
-  { if ( bt->symbols[i] )
-      free(bt->symbols[i]);
-  }
-
-  free(bt);
-}
-
-static void
-trace_key_alloc(void)
-{ pthread_key_create(&trace_key, trace_destroy);
-}
-
-static btrace *
-get_trace_store(void)
-{ btrace *bt;
-
-  pthread_once(&trace_key_once, trace_key_alloc);
-  if ( (bt=(btrace*)pthread_getspecific(trace_key)) )
-    return bt;
-  if ( (bt = malloc(sizeof(btrace))) )
-    memset(bt, 0, sizeof(*bt));
-
-  pthread_setspecific(trace_key, bt);
-
-  return bt;
-}
-
-
-static void
-save_backtrace(void)
-{ btrace *bt = get_trace_store();
-
-  if ( bt )
-  { void *array[100];
-    size_t frames;
-
-    frames = backtrace(array, sizeof(array)/sizeof(void *));
-    bt->sizes[bt->current] = frames;
-    if ( bt->symbols[bt->current] )
-      free(bt->symbols[bt->current]);
-    bt->symbols[bt->current] = backtrace_symbols(array, frames);
-    if ( ++bt->current == SAVE_TRACES )
-      bt->current = 0;
-  }
-}
-
-void
-print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ btrace *bt = get_trace_store();
-
-  if ( bt )
-  { int i;
-    int me = bt->current-last;
-    if ( me < 0 )
-      me += SAVE_TRACES;
-
-    for(i=0; i<bt->sizes[me]; i++)
-      Sdprintf("[%d] %s\n", i, bt->symbols[me][i]);
-  } else
-  { Sdprintf("No backtrace store?\n");
-  }
-}
-
-#else
-
-#define save_backtrace()
-
-#endif /*HAVE_EXECINFO_H*/
-
-#else
-
-#define save_backtrace()
 
 #endif /*O_DEBUG*/
 
@@ -794,7 +692,7 @@ forward:				/* Go into the tree */
   }
   BACKWARD;
 
-backward:  				/* reversing backwards */
+backward:				/* reversing backwards */
   while( !is_first(current) )
   { word w = get_value(current);
     int t = (int)tag(w);
@@ -1206,7 +1104,7 @@ stack to avoid allocation issues on the argument stack.
 #if O_DESTRUCTIVE_ASSIGNMENT
 static inline void
 push_marked(Word p ARG_LD)
-{ pushSegStack(&LD->cycle.vstack, &p);
+{ pushSegStack(&LD->cycle.vstack, p, Word);
 }
 
 
@@ -1214,7 +1112,7 @@ static void
 popall_marked(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.vstack, &p) )
+  while( popSegStack(&LD->cycle.vstack, &p, Word) )
   { unmark_first(p);
   }
 }
@@ -1705,6 +1603,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       case B_UNIFY_VV:
       case B_EQ_VV:
+      case B_NEQ_VV:
 	mark_frame_var(state, PC[0] PASS_LD);
         mark_frame_var(state, PC[1] PASS_LD);
 	break;
@@ -1717,6 +1616,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 
 	case B_UNIFY_VC:
 	case B_EQ_VC:
+	case B_NEQ_VC:
 	case B_ARGVAR:
 	case A_VAR:
 	case B_VAR:	    index = *PC;		goto var_common;
@@ -2121,7 +2021,7 @@ pointer.  The following types are identified:
 
     source	types
     local	address values (gTop references)
-    		term, reference and indirect pointers
+		term, reference and indirect pointers
     trail	address values (reset addresses)
     global	term, reference and indirect pointers
 
@@ -2338,13 +2238,18 @@ data.
 
 Note that initPrologStacks writes a dummy   marked cell below the global
 stack, so this routine needs not to check   for the bottom of the global
-stack.  This almost doubles the performance of this critical routine.
+stack. This almost doubles the performance of this critical routine.
 
-NOTE: making a hole using make_gc_hole() doubles  the speed when we have
-mostly empty stacks. Unfortunately other marks can point in the hole and
-react wrong. Possibly  we  can  fix   that  using  a  different  marking
-technique for the hole?
+(*) This function does a check for  the first non-garbage cell, which is
+a linear scan. If the are many   marks (choice-points and foreign marks)
+and a lot  of  garbage,  this   becomes  very  costly.  Therefore, after
+skipping a region the region  is  filled   with  variables  that cary as
+offset the location of the  target   non-garbage  location.  If scanning
+finds one of these cells, we simply fetch the value and go to `done'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define consVar(w) (((intptr_t)(w)<<LMASK_BITS) | TAG_VAR)
+#define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
 
 static void
 sweep_global_mark(Word *m ARG_LD)
@@ -2352,28 +2257,45 @@ sweep_global_mark(Word *m ARG_LD)
 
   SECURE(assert(onStack(local, m)));
   gm = *m;
+  if ( is_marked_or_first(gm-1) )
+    goto done;				/* quit common easy case */
 
   for(;;)
   { Word prev = gm-1;
 
     while( !(*prev & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
+    { if ( tag(*prev) == TAG_VAR && *prev != 0 )
+      { gm = gBase + valVar(*prev);
+	goto done;			/* (*) */
+      }
       prev--;
+    }
     gm = prev+1;
 
     if ( is_marked_or_first(prev) )
     {
     found:
-/*    if ( *m - gm > 5 )		See NOTE */
-/*	make_gc_hole(gm, *m - 1);		 */
+      { size_t off = gm-gBase;
+	word w = consVar(off);
+	Word p;
 
+	for(p = gm+1; p<(*m); p++)
+	  *p = w;			/* (*) */
+      }
+
+    done:
       *m = gm;
       DEBUG(3, Sdprintf("gTop mark from choice point: "));
       needsRelocation(m);
       check_relocation((Word)m);
       alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
+
       return;
-    } else if ( storage(*prev) == STG_LOCAL )
-    { size_t offset = offset_cell(prev);
+    } else				/* a large cell */
+    { size_t offset;
+
+      SECURE(assert(storage(*prev) == STG_LOCAL));
+      offset = wsizeofInd(*prev)+1;	/* = offset for a large cell */
       prev -= offset;
       if ( is_marked_or_first(prev) )
 	goto found;
@@ -2732,6 +2654,13 @@ quickly.
 
 Note that below the bottom of the stack   there  is a dummy marked cell.
 See also sweep_global_mark().
+
+It looks tempting to use the  down-references   in  GC-ed  areas left by
+sweep_global_mark(), but this does not work   because these cells can be
+inserted into new relocation chains while  sweeping the remainder of the
+data-areas :-( I tried, but this caused  a crash in Back52. After adding
+a check in into_relocation_chain() I discovered   that the above was the
+reason for the failure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Word
@@ -2745,11 +2674,12 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
 	return make_gc_hole(current+1, top_gc);
       } else if ( is_first(current) )
       { update_relocation_chain(current, dest PASS_LD);
-      } else if ( storage(*current) == STG_LOCAL ) /* large cell */
-      { size_t offset = offset_cell(current);
+      } else					/* large cell */
+      { size_t offset;
 
-	assert(offset > 0);
-	current -= offset;		/* start large cell */
+	SECURE(assert(storage(*current) == STG_LOCAL));
+	offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
+	current -= offset;			/* start large cell */
 	if ( is_marked(current) )
 	{ DEBUG(3, Sdprintf("Large-non-GC cell at %p, size %d\n",
 			    current, offset+1));
@@ -3353,7 +3283,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
 		      predicateName(fr->predicate),
 		      (false(fr->predicate, FOREIGN) && PC)
 		        ? (PC-fr->clause->clause->codes)
-		      	: 0));
+			: 0));
 
     slots = slotsInFrame(fr, PC);
     sp = argFrameP(fr, 0);
@@ -3517,6 +3447,7 @@ checkStacks(void *state_ptr)
     if ( qf->parent )			/* same code in mark_stacks() */
     { QueryFrame pqf = qf->parent;
 
+      assert(pqf->magic == QID_MAGIC);
       if ( (fr = pqf->registers.fr) )
       { PC = startOfVMI(pqf);
       } else
@@ -3566,8 +3497,6 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
 
 #endif /*O_SECURE || O_DEBUG*/
 
-#ifdef O_PLMT
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 About synchronisation with atom-gc (AGC). GC can run fully concurrent in
 different threads as it only  affects   the  runtime stacks. AGC however
@@ -3583,28 +3512,29 @@ system wants to do AGC it raised a request for AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-enterGC()
-{ PL_LOCK(L_GC);
+enterGC(ARG1_LD)
+{
+#ifdef O_PLMT
+  PL_LOCK(L_GC);
   GD->gc.active++;
   PL_UNLOCK(L_GC);
+  LD->gc.active = TRUE;
+#endif
 }
 
 static void
-leaveGC()
-{ PL_LOCK(L_GC);
+leaveGC(ARG1_LD)
+{
+#ifdef O_PLMT
+  LD->gc.active = FALSE;
+  PL_LOCK(L_GC);
   if ( --GD->gc.active == 0 && GD->gc.agc_waiting )
   { GD->gc.agc_waiting = FALSE;
     PL_raise(SIG_ATOM_GC);
   }
   PL_UNLOCK(L_GC);
+#endif
 }
-
-#else
-
-#define enterGC() (void)0
-#define leaveGC() (void)0
-
-#endif /*O_PLMT*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns: < 0: (local) overflow; TRUE: ok; FALSE: shifted;
@@ -3657,7 +3587,7 @@ garbageCollect(void)
 { GET_LD
   vm_state state;
   intptr_t tgar, ggar;
-  double t = CpuTime(CPU_USER);
+  double t = ThreadCPUTime(LD, CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
   int no_mark_bar;
   int rc;
@@ -3679,7 +3609,7 @@ garbageCollect(void)
     return FALSE;
 
 #ifdef O_MAINTENANCE
-  save_backtrace();
+  save_backtrace("GC");
 #endif
 
   get_vmi_state(LD->query, &state);
@@ -3689,7 +3619,7 @@ garbageCollect(void)
   { get_vmi_state(LD->query, &state);
   }
 
-  enterGC();
+  enterGC(PASS_LD1);
 #ifndef UNBLOCKED_GC
   blockSignals(&LD->gc.saved_sigmask);
 #endif
@@ -3773,7 +3703,7 @@ garbageCollect(void)
   free(mark_base);
 #endif
 
-  t = CpuTime(CPU_USER) - t;
+  t = ThreadCPUTime(LD, CPU_USER) - t;
   gc_status.time += t;
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
@@ -3810,7 +3740,7 @@ garbageCollect(void)
   unblockSignals(&LD->gc.saved_sigmask);
 #endif
   LD->gc.inferences = LD->statistics.inferences;
-  leaveGC();
+  leaveGC(PASS_LD1);
 
   assert(!LD->query ||
 	 !LD->query->registers.fr ||
@@ -3869,6 +3799,9 @@ stack-shifts.  Returns TRUE or FALSE and raises an exception.
 int
 makeMoreStackSpace(int overflow, int flags)
 { GET_LD
+
+  if ( overflow == MEMORY_OVERFLOW )
+    return raiseStackOverflow(overflow);
 
   if ( LD->exception.processing )
   { if ( overflow == GLOBAL_OVERFLOW &&
@@ -4440,7 +4373,11 @@ nextStackSize(Stack s, size_t minfree)
 			      minfree + s->min_free + s->def_spare);
 
     if ( size >= s->size_limit + s->size_limit/2 )
-      size = 0;				/* passed limit */
+    { if ( minfree == 1 && roomStackP(s) > minfree )
+	size = sizeStackP(s);		/* tight-stack request */
+      else
+	size = 0;			/* passed limit */
+    }
   }
 
   return size;
@@ -4503,7 +4440,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   if ( LD->shift_status.blocked )
     return FALSE;
 
-  enterGC();				/* atom-gc synchronisation */
+  enterGC(PASS_LD1);			/* atom-gc synchronisation */
   blockSignals(&mask);
   blockGC(0 PASS_LD);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
@@ -4513,7 +4450,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
-    double time = CpuTime(CPU_USER);
+    double time = ThreadCPUTime(LD, CPU_USER);
     int verbose = truePrologFlag(PLFLAG_TRACE_GC);
 
     DEBUG(1, verbose = TRUE);
@@ -4619,7 +4556,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
 
-    time = CpuTime(CPU_USER) - time;
+    time = ThreadCPUTime(LD, CPU_USER);
     LD->shift_status.time += time;
     SECURE({ gBase++;
 	     if ( checkStacks(&state) != key )
@@ -4637,7 +4574,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   restore_vmi_state(&state);
   unblockGC(0 PASS_LD);
   unblockSignals(&mask);
-  leaveGC();
+  leaveGC(PASS_LD1);
 
   if ( fatal )
     return fatal->overflow_id;
@@ -4669,7 +4606,7 @@ growStacks(size_t l, size_t g, size_t t)
   int rc;
 
 #ifdef O_MAINTENANCE
-  save_backtrace();
+  save_backtrace("SHIFT");
 #endif
 
   gBase--;
@@ -4706,7 +4643,9 @@ tight(Stack s ARG_LD)
   size_t spare_gap = s->def_spare - s->spare;
 
   if ( s == (Stack)&LD->stacks.trail )	/* See (*) */
-    min_room += sizeStack(global)/6;
+  { min_room += sizeStack(global)/6;
+    DEBUG(2, Sdprintf("Trail min_roomt = %ld\n", min_room));
+  }
 
   if ( min_room < s->min_free )
     min_room = s->min_free;
@@ -4904,7 +4843,7 @@ void
 markAtomsOnStacks(PL_local_data_t *ld)
 { assert(!ld->gc.status.active);
 
-  DEBUG(0, save_backtrace());
+  DEBUG(0, save_backtrace("AGC"));
 
   markAtomsOnGlobalStack(ld);
   markAtomsInEnvironments(ld);

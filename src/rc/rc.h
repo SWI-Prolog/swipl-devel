@@ -25,6 +25,10 @@
 #ifndef RC_H_INCLUDED
 #define RC_H_INCLUDED
 
+#if defined(__MINGW32__) && !defined(__WINDOWS__)
+#define __WINDOWS__ 1
+#endif
+
 #ifdef __WINDOWS__
 #  ifdef WIN64
 #    include "../config/win64.h"
@@ -40,13 +44,17 @@
 #  else
      typedef void *WIN_HANDLE;
 #  endif
-#  if (_MSC_VER < 1300)
+#  if defined(_MSC_VER)
+#    if (_MSC_VER < 1300)
 typedef long intptr_t;
 typedef unsigned long uintptr_t;
-#  else
-#    include <stddef.h>
-#  endif
+#    else
+#      include <stddef.h>
+#    endif
 typedef intptr_t ssize_t;		/* signed version of size_t */
+#  elif defined(__MINGW32__)
+#    include <stdint.h>
+#  endif
 #else
 #include <config.h>
 #include <unistd.h>

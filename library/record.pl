@@ -32,6 +32,7 @@
 :- module((record),
 	  [ (record)/1,			% +Record
 	    current_record/2,		% ?Name, ?Term
+	    current_record_predicate/2,	% ?Record, :PI
 	    op(1150, fx, record)
 	  ]).
 :- use_module(library(error)).
@@ -59,7 +60,8 @@ _directive_.  Here is a simple example declaration and some calls.
 */
 
 :- multifile
-	error:has_type/2.
+	error:has_type/2,
+	prolog:generated_predicate/1.
 
 error:has_type(record(M:Name), X) :-
 	current_record(Name, M, _, X, IsX), !,
@@ -136,7 +138,8 @@ compile_record(RecordDef) -->
 	current_clause(RecordDef).
 
 :- meta_predicate
-	current_record(:).
+	current_record(:),
+	current_record_predicate(?, :).
 :- multifile
 	current_record/5.		% Name, Module, Term, X, IsX
 
@@ -158,6 +161,56 @@ current_clause(RecordDef) -->
 	[ (record):current_record(Name, M, RecordDef, X, IsX)
 	].
 
+
+%%	current_record_predicate(?Record, ?PI) is nondet.
+%
+%	True if PI is the predicate indicator for an access predicate to
+%	Record. This predicate is intended   to support cross-referencer
+%	tools.
+
+current_record_predicate(Record, M:PI) :-
+	(   ground(PI)
+	->  Det = true
+	;   true
+	),
+	current_record(Record, M:RecordDef),
+	(   general_record_pred(Record, M:PI)
+	;   RecordDef =.. [_|Args],
+	    defaults(Args, _Defs, TypedArgs),
+	    types(TypedArgs, Names, _Types),
+	    member(Field, Names),
+	    field_record_pred(Record, Field, M:PI)
+	),
+	(   Det == true
+	->  !
+	;   true
+	).
+
+general_record_pred(Record, _:Name/1) :-
+	atom_concat(is_, Record, Name).
+general_record_pred(Record, _:Name/1) :-
+	atom_concat(default_, Record, Name).
+general_record_pred(Record, _:Name/A) :-
+	member(A, [2,3]),
+	atom_concat(make_, Record, Name).
+general_record_pred(Record, _:Name/3) :-
+	atom_concat(Record, '_data', Name).
+general_record_pred(Record, _:Name/A) :-
+	member(A, [3,4]),
+	atomic_list_concat([set_, Record, '_fields'], Name).
+general_record_pred(Record, _:Name/3) :-
+	atomic_list_concat([set_, Record, '_field'], Name).
+
+field_record_pred(Record, Field, _:Name/2) :-
+	atomic_list_concat([Record, '_', Field], Name).
+field_record_pred(Record, Field, _:Name/A) :-
+	member(A, [2,3]),
+	atomic_list_concat([set_, Field, '_of_', Record], Name).
+field_record_pred(Record, Field, _:Name/2) :-
+	atomic_list_concat([nb_set_, Field, '_of_', Record], Name).
+
+prolog:generated_predicate(P) :-
+	current_record_predicate(_, P).
 
 %%	make_predicate(+Constructor)// is det.
 %

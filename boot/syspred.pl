@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -66,11 +67,9 @@
 	    garbage_collect/0,
 	    set_prolog_stack/2,
 	    prolog_stack_property/2,
-	    arithmetic_function/1,
 	    absolute_file_name/2,
 	    require/1,
 	    call_with_depth_limit/3,
-	    length/2,			% ?List, ?Length
 	    numbervars/3,		% +Term, +Start, -End
 	    nb_setval/2			% +Var, +Value
 	  ]).
@@ -89,7 +88,7 @@
 '$map_bits'(Pred, +Name, Old, New) :- !,	% set a bit
 	call(Pred, Name, Bits), !,
 	New is Old \/ Bits.
-'$map_bits'(Pred, -Name, Old, New) :- !, 	% clear a bit
+'$map_bits'(Pred, -Name, Old, New) :- !,	% clear a bit
 	call(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
 '$map_bits'(Pred, ?(Name), Old, Old) :-		% ask a bit
@@ -120,9 +119,9 @@ visible(Ports) :-
 	'$map_bits'('$port_bit', Ports, Old, New),
 	'$visible'(_, New).
 
-'$map_style_check'(atom,     	    2'0000001).
-'$map_style_check'(singleton, 	    2'0000010).
-'$map_style_check'(dollar,   	    2'0000100).
+'$map_style_check'(atom,	    2'0000001).
+'$map_style_check'(singleton,	    2'0000010).
+'$map_style_check'(dollar,	    2'0000100).
 '$map_style_check'((discontiguous),   2'0001000).
 '$map_style_check'(dynamic,	    2'0010000).
 '$map_style_check'(charset,	    2'0100000).
@@ -364,7 +363,7 @@ atom_prefix(Atom, Prefix) :-
 
 source_file(File) :-
 	(   ground(File)
-	->  ( 	'$time_source_file'(File, Time, user)
+	->  (	'$time_source_file'(File, Time, user)
 	    ;	absolute_file_name(File, Abs),
 		'$time_source_file'(Abs, Time, user)
 	    ), !
@@ -710,9 +709,8 @@ statistics(Out) :-
 	statistics(localused, LocalUsed),
 	statistics(global, Global),
 	statistics(globalused, GlobalUsed),
-	statistics(cputime, Cputime),
+	statistics(process_cputime, Cputime),
 	statistics(inferences, Inferences),
-	statistics(heapused, Heapused),
 	statistics(atoms, Atoms),
 	statistics(functors, Functors),
 	statistics(predicates, Predicates),
@@ -727,13 +725,6 @@ statistics(Out) :-
 	format(Out, '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
 				    [Atoms, Functors, Predicates, Modules, Codes]),
 	format(Out, '                       Limit    Allocated       In use~n', []),
-	(   statistics(heap, Heap),
-	    statistics(heaplimit, HeapLimit)
-	->  format(Out, 'Heap         :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
-		   [HeapLimit, Heap, Heapused])
-	;   format(Out, 'Heap         :                  ~t~D~54| Bytes~n',
-		   [Heapused])
-	),
 	format(Out, 'Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 	       [LocalLimit, Local, LocalUsed]),
 	format(Out, 'Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
@@ -937,61 +928,12 @@ stack_property(min_free).
 
 
 		 /*******************************
-		 *	     ARITHMETIC		*
-		 *******************************/
-
-%%	arithmetic_function(:Spec)
-%
-%	Register a predicate as an arithmetic function.  Takes Name/Arity
-%	and a term as argument.
-
-:- meta_predicate
-	arithmetic_function(1).
-
-arithmetic_function(Module:Term) :-
-	(   Term = Name/Arity
-	;   functor(Term, Name, Arity)
-	), !,
-	PredArity is Arity + 1,
-	functor(Head, Name, PredArity),
-	'$arithmetic_function'(Module:Head, 0).
-
-		 /*******************************
-		 *	 LIST MANIPULATION	*
-		 *******************************/
-
-%%	length(?List, ?N)
-%
-%	Is true when N is the length of List.
-
-:- '$iso'((length/2)).
-
-length(List, Length) :-
-	(   nonvar(Length)
-	->  '$length'(List, Length)
-	;   '$skip_list'(Length0, List, Tail),
-	    (	Tail == []
-	    ->	Length = Length0
-	    ;	var(Tail)
-	    ->  length3(Tail, Length, Length0)
-	    ;	throw(error(type_error(list,Tail),
-			    context(length/2, _)))
-	    )
-	).
-
-length3([], N, N).
-length3([_|List], N, N0) :-
-        succ(N0, N1),
-        length3(List, N, N1).
-
-
-		 /*******************************
 		 *	       TERM		*
 		 *******************************/
 
 :- '$iso'((numbervars/3)).
 
-%	numbervars(+Term, +StartIndex, -EndIndex)
+%%	numbervars(+Term, +StartIndex, -EndIndex) is det.
 %
 %	Number all unbound variables in Term   using  '$VAR'(N), where the
 %	first N is StartIndex and EndIndex is  unified to the index that
@@ -1005,7 +947,7 @@ numbervars(Term, From, To) :-
 		 *	       GVAR		*
 		 *******************************/
 
-%	nb_setval(+Name, +Value)
+%%	nb_setval(+Name, +Value) is det.
 %
 %	Bind the non-backtrackable variable Name with a copy of Value
 

@@ -57,7 +57,6 @@ suggest predicates from a keyword.
 \predicatesummary{apply}{2}{Call goal with additional arguments}
 \predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
 \predicatesummary{arg}{3}{Access argument of a term}
-\predicatesummary{arithmetic_function}{1}{Register an evaluable function}
 \predicatesummary{assoc_to_list}{2}{Convert association tree to list}
 \predicatesummary{assert}{1}{Add a clause to the database}
 \predicatesummary{assert}{2}{Add a clause to the database, give reference}
@@ -87,6 +86,7 @@ suggest predicates from a keyword.
 \predicatesummary{atomic_list_concat}{2}{Append a list of atoms}
 \predicatesummary{atomic_list_concat}{3}{Append a list of atoms with separator}
 \predicatesummary{autoload}{0}{Autoload all predicates now}
+\predicatesummary{autoload_path}{1}{Add directories for autoloading}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
@@ -175,6 +175,7 @@ suggest predicates from a keyword.
 \predicatesummary{debug_control_hook}{1}{\hook{prolog} Extend spy/1, etc.}
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{debugging}{1}{Test where we are debugging topic}
+\predicatesummary{default_module}{2}{Query module inheritance}
 \predicatesummary{del_attr}{2}{Delete attribute from variable}
 \predicatesummary{del_attrs}{1}{Delete all attributes from variable}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
@@ -329,7 +330,7 @@ suggest predicates from a keyword.
 \predicatesummary{message_queue_destroy}{1}{Destroy queue for thread communication}
 \predicatesummary{message_queue_property}{2}{Query message queue properties}
 \predicatesummary{message_to_string}{2}{Translate message-term to string}
-\predicatesummary{meta_predicate}{1}{Quintus compatibility}
+\predicatesummary{meta_predicate}{1}{Declare access to other predicates}
 \predicatesummary{min_assoc}{3}{Lowest key in association tree}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
@@ -611,6 +612,7 @@ suggest predicates from a keyword.
 \predicatesummary{use_module}{1}{Import a module}
 \predicatesummary{use_module}{2}{Import predicates from a module}
 \predicatesummary{var}{1}{Type check for unbound variable}
+\predicatesummary{var_number}{2}{Check that var is numbered by numbervars}
 \predicatesummary{variant_sha1}{2}{Term-hash for term-variants}
 \predicatesummary{visible}{1}{Ports that are visible in the tracer}
 \oppredsummary{volatile}{1}{fx}{1150}{Predicates that are not saved}

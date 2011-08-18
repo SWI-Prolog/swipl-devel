@@ -77,12 +77,12 @@ explicitly in the source text.
 \begin{description}
     \directive{module}{2}{+Module, +PublicList}
 This directive can only be used as the first term of a source file. It
-declares the file to be a \jargon{module file}, defining a
-module named \arg{Module} and exporting the predicates of
-\arg{PublicList}. \arg{PublicList} is a list of predicate indicators
-(name/arity or name//arity pairs) or operator declarations using the
-format \term{op}{Precedence, Type, Name}. Operators defined in the
-export list are available inside the module as well as to modules
+declares the file to be a \jargon{module file}, defining a module named
+\arg{Module}. Note that a module name is an atom. The module exports the
+predicates of \arg{PublicList}. \arg{PublicList} is a list of predicate
+indicators (name/arity or name//arity pairs) or operator declarations
+using the format \term{op}{Precedence, Type, Name}. Operators defined in
+the export list are available inside the module as well as to modules
 importing this module. See also \secref{operators}.
 
 Compatible to Ciao Prolog, if \arg{Module} is unbound, it is unified
@@ -182,7 +182,7 @@ meta_predicate/1 for details.
 %	successive pairs of elements from List1 and List2.
 
 maplist(Goal, L1, L2) :-
-	maplist_(L1, L2, G).
+	maplist_(L1, L2, Goal).
 
 maplist_([], [], _).
 maplist_([H0|T0], [H|T], Goal) :-
@@ -213,14 +213,19 @@ The argument is not module sensitive and the mode is unspecified.
         \termitem{+}{}
 The argument is not module sensitive and bound (i.e., nonvar)
 on entry.
+        \termitem{^}{}
+This extension is used to denote the possibly \verb$^$-annotated goal of
+setof/3, bagof/3, aggregate/3 and aggregate/4. It is processed similar
+to `0', but leaving the \chr{^}/2 intact.
     \end{description}
 
-Each argument that is module-sensitive (i.e., marked 0..9 or \chr{:}) is
-qualified with the context module of the caller if it is not already
-qualified. The implementation ensures that the argument is passed as
-<module>:<term>, where <atom> is an atom denoting the name of a module
-and <term> itself is not a \functor{:}{2} term. Below is a simple
-declaration and a number of queries.
+Each argument that is module-sensitive (i.e., marked 0..9, \chr{:} or
+\chr{^}) is qualified with the context module of the caller if it is not
+already qualified. The implementation ensures that the argument is
+passed as <module>:<term>, where <module> is an atom denoting the name
+of a module and <term> itself is not a \functor{:}{2} term where the
+first argument is an atom. Below is a simple declaration and a number of
+queries.
 
 \begin{code}
 :- meta_predicate
@@ -365,7 +370,7 @@ used by modules that implement sub-languages such as chr (see
 
 \begin{code}
 :- module(clpfd,
- 	  [ op(760, yfx, #<==>),
+	  [ op(760, yfx, #<==>),
 	    op(750, xfy, #==>),
 	    op(750, yfx, #<==),
 	    op(740, yfx, #\/),
@@ -405,11 +410,19 @@ following predicates:
 Set the default import module of the current module to \arg{Module}.
 Typically, \arg{Module} is one of \const{user} or \const{system}.
 
-    \predicate{import_module}{2}{+Module, -Import}
-True if \arg{Import} is defined as an import module for \arg{Module}.
-All normal modules only import from \const{user}, which imports from
+    \predicate[nondet]{import_module}{2}{+Module, -Import}
+True if \arg{Module} inherits directly from \arg{Import}. All normal
+modules only import from \const{user}, which imports from
 \const{system}. The predicates add_import_module/3 and
 delete_import_module/2 can be used to manipulate the import list.
+See also default_module/2.
+
+    \predicate[multi]{default_module}{2}{+Module, -Default}
+True if predicates and operators in \arg{-Default} are visible in
+\arg{Module}. Modules are returned in the same search order used for
+predicates and operators.  I.e., \arg{Default} is first unified
+with \arg{Module}, followed by the depth-first transitive closure
+of import_module/2.
 
     \predicate{add_import_module}{3}{+Module, +Import, +StartOrEnd}
 If \arg{Import} is not already an import module for \arg{Module}, add

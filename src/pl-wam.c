@@ -1096,7 +1096,7 @@ reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static term_t
-findCatcher(LocalFrame fr, term_t ex ARG_LD)
+findCatcher(LocalFrame fr, Choice ch, term_t ex ARG_LD)
 { Definition catch3  = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
@@ -1106,7 +1106,9 @@ findCatcher(LocalFrame fr, term_t ex ARG_LD)
     if ( fr->predicate != catch3 )
       continue;
     if ( true(fr, FR_CATCHED) )
-      continue;
+      continue;				/* thrown from recover */
+    if ( (void*)fr > (void*)ch )
+      continue;				/* call-port of catch/3 */
 
     tref = consTermRef(fr);
     rc = PL_unify(consTermRef(argFrameP(fr, 1)), ex);
@@ -1633,7 +1635,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	   });
   SECURE(checkStacks(NULL));
   assert((void*)fli_context > (void*)environment_frame);
-  assert((void*)lTop >= (void*)(fli_context+1));
+  assert((Word)lTop >= refFliP(fli_context, fli_context->size));
 
 					/* resolve can call-back */
   def = getProcDefinedDefinition(proc->definition PASS_LD);
@@ -1740,11 +1742,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 #endif
   Mark(qf->choice.mark);
 
-  if ( true(def, FOREIGN) )
-  { fr->clause = NULL;			/* initial context */
-  } else
-  { fr->clause = def->definition.clauses;
-  }
 #ifdef O_LOGICAL_UPDATE
   fr->generation = GD->generation;
 #endif
@@ -1932,7 +1929,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
- 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
+	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( debugstatus.debugging ) \
 	  newChoice(CHP_DEBUG, FR PASS_LD); \
 	PC    = cref->clause->codes; \
@@ -1944,7 +1941,7 @@ typedef enum
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
- 	  ch->value.PC = altpc; \
+	  ch->value.PC = altpc; \
 	} else if ( debugstatus.debugging ) \
 	{ newChoice(CHP_DEBUG, FR PASS_LD); \
 	} \
@@ -2098,9 +2095,7 @@ registers  should  hold  valid  data  and  the  machine stacks should be
 initialised properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if VMCODE_IS_ADDRESS
-  NEXT_INSTRUCTION;
-#else
+#if !VMCODE_IS_ADDRESS			/* no goto *ptr; use a switch */
 next_instruction:
   thiscode = *PC++;
 #ifdef O_DEBUGGER
@@ -2432,10 +2427,14 @@ next_choice:
 	{ SAVE_REGISTERS(qid);
 	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
 	  LOAD_REGISTERS(qid);
+	} else
+	{ set(ch->frame, FR_CATCHED);
 	}
 	ch = BFR;			/* can be shifted */
 	if ( exception_term )
 	  THROW_EXCEPTION;
+      } else
+      { set(ch->frame, FR_CATCHED);
       }
       /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */

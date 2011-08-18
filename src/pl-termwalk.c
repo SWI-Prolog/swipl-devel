@@ -51,11 +51,11 @@ typedef struct term_agenda
 
 
 static void
-initTermAgenda(term_agenda *a, Word p)
+initTermAgenda(term_agenda *a, size_t size, Word p)
 { initSegStack(&a->stack, sizeof(aNode),
 	       sizeof(a->first_chunk), a->first_chunk);
   a->work.location = p;
-  a->work.size = 1;
+  a->work.size = size;
 }
 
 
@@ -67,31 +67,58 @@ clearTermAgenda(term_agenda *a)
 #define nextTermAgenda(a) \
 	nextTermAgenda__LD(a PASS_LD)
 
-static Word
+static inline Word
 nextTermAgenda__LD(term_agenda *a ARG_LD)
 { Word p;
 
-  while ( a->work.size == 0 )
-  { if ( !popSegStack(&a->stack, &a->work) )
-      return NULL;
+  if ( a->work.size > 0 )
+  { ok:
+    a->work.size--;
+    p = a->work.location++;
+    deRef(p);
+
+    return p;
   }
-  a->work.size--;
 
-  p = a->work.location++;
-  deRef(p);
+  if ( popSegStack(&a->stack, &a->work, aNode) )
+    goto ok;
 
-  return p;
+  return NULL;
 }
+
+
+#define nextTermAgendaNoDeRef(a) \
+	nextTermAgendaNoDeRef__LD(a PASS_LD)
+
+static inline Word
+nextTermAgendaNoDeRef__LD(term_agenda *a ARG_LD)
+{ Word p;
+
+  if ( a->work.size > 0 )
+  { ok:
+    a->work.size--;
+    p = a->work.location++;
+
+    return p;
+  }
+
+  if ( popSegStack(&a->stack, &a->work, aNode) )
+    goto ok;
+
+  return NULL;
+}
+
+
 
 
 		 /*******************************
 		 *	  PUSH VARIATIONS	*
 		 *******************************/
 
-static int
+static inline int
 pushWorkAgenda(term_agenda *a, size_t amount, Word start)
 { if ( a->work.size > 0 )
-  { if ( !pushSegStack(&a->stack, &a->work) )
+  { if ( !pushSegStack(&a->stack, a->work, aNode) )
       return FALSE;
   }
   a->work.location = start;
@@ -99,31 +126,6 @@ pushWorkAgenda(term_agenda *a, size_t amount, Word start)
 
   return TRUE;
 }
-
-
-#ifdef HAVE_VISITED
-/* pushTermAgendaIfNotVisited(agenda, term)
-
-Pushes a term if it has  not  yet   been  visited.  This version of this
-function cooperates with the visited functions   and  ensure that common
-subterms are visited only once.
-*/
-
-#define pushTermAgendaIfNotVisited(a, w) \
-	pushTermAgendaIfNotVisited__LD(a, w PASS_LD)
-
-static int
-pushTermAgendaIfNotVisited__LD(term_agenda *a, word w ARG_LD)
-{ Functor f;
-
-  SECURE(assert(isTerm(w)));
-  f = valueTerm(w);
-  if ( visited(f PASS_LD) )
-    return FALSE;
-
-  return pushWorkAgenda(a, arityFunctor(f->definition), f->arguments);
-}
-#endif /*HAVE_VISITED*/
 
 #endif /*!AC_TERM_WALK*/
 
@@ -162,7 +164,7 @@ ac_clearTermAgenda(ac_term_agenda *a)
 { do
   { if ( a->work.term )
       clear_marked((Word)&a->work.term->definition);
-  } while(popSegStack(&a->stack, &a->work));
+  } while(popSegStack(&a->stack, &a->work, acNode));
 }
 
 
@@ -176,7 +178,7 @@ ac_nextTermAgenda__LD(ac_term_agenda *a ARG_LD)
   while ( a->work.size == 0 )
   { if ( a->work.term )
       clear_marked((Word)&a->work.term->definition);
-    if ( !popSegStack(&a->stack, &a->work) )
+    if ( !popSegStack(&a->stack, &a->work, acNode) )
       return NULL;
   }
   a->work.size--;
@@ -196,7 +198,7 @@ ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
 
   if ( is_marked((Word)&term->definition) )
     return FALSE;			/* hit cycle */
-  if ( !pushSegStack(&a->stack, &a->work) )
+  if ( !pushSegStack(&a->stack, a->work, acNode) )
     return -1;				/* no memory */
   a->work.term     = term;
   a->work.location = term->arguments;
@@ -230,12 +232,12 @@ typedef struct term_agendaLR
 
 
 static void
-initTermAgendaLR(term_agendaLR *a, Word left, Word right)
+initTermAgendaLR(term_agendaLR *a, size_t count, Word left, Word right)
 { initSegStack(&a->stack, sizeof(aNodeLR),
 	       sizeof(a->first_chunk), a->first_chunk);
   a->work.left  = left;
   a->work.right = right;
-  a->work.size  = 1;
+  a->work.size  = count;
 }
 
 
@@ -244,31 +246,31 @@ clearTermAgendaLR(term_agendaLR *a)
 { clearSegStack(&a->stack);
 }
 
-
 #define nextTermAgendaLR(a, lp, rp) \
 	nextTermAgendaLR__LD(a, lp, rp PASS_LD)
 
 static int
 nextTermAgendaLR__LD(term_agendaLR *a, Word *lp, Word *rp ARG_LD)
-{ Word p;
+{ if ( a->work.size > 0 )
+  { ok:
+    a->work.size--;
+    *lp = a->work.left++;
+    *rp = a->work.right++;
 
-  while ( a->work.size == 0 )
-  { if ( !popSegStack(&a->stack, &a->work) )
-      return FALSE;
+    return TRUE;
   }
-  a->work.size--;
 
-  deRef2(a->work.left++, p); *lp = p;
-  deRef2(a->work.right++,p); *rp = p;
+  if ( popSegStack(&a->stack, &a->work, aNodeLR) )
+    goto ok;
 
-  return TRUE;
+  return FALSE;
 }
 
 
-static int
+static inline int
 pushWorkAgendaLR(term_agendaLR *a, size_t amount, Word left, Word right)
 { if ( a->work.size > 0 )
-  { if ( !pushSegStack(&a->stack, &a->work) )
+  { if ( !pushSegStack(&a->stack, a->work, aNodeLR) )
       return FALSE;
   }
   a->work.left  = left;
@@ -324,7 +326,7 @@ clearTermAgendaLRS(term_agendaLRS *a)
 { do
   { if ( a->work.arg != -1 )
       (*a->pop)(a->work.left, a->work.right, a->work.data);
-  } while(popSegStack(&a->stack, &a->work));
+  } while(popSegStack(&a->stack, &a->work, aNodeLRS));
 }
 
 
@@ -338,7 +340,7 @@ nextTermAgendaLRS__LD(term_agendaLRS *a, Word *lp, Word *rp ARG_LD)
   while ( a->work.arg == a->work.arity )
   { (*a->pop)(a->work.left, a->work.right, a->work.data);
     a->work.arg = -1;
-    if ( !popSegStack(&a->stack, &a->work) )
+    if ( !popSegStack(&a->stack, &a->work, aNodeLRS) )
       return FALSE;
   }
 
@@ -352,7 +354,7 @@ nextTermAgendaLRS__LD(term_agendaLRS *a, Word *lp, Word *rp ARG_LD)
 
 static int
 pushWorkAgendaLRS(term_agendaLRS *a, Functor left, Functor right, void *data)
-{ if ( !pushSegStack(&a->stack, &a->work) )
+{ if ( !pushSegStack(&a->stack, a->work, aNodeLRS) )
     return FALSE;
 
   a->work.data  = data;
@@ -366,84 +368,3 @@ pushWorkAgendaLRS(term_agendaLRS *a, Functor left, Functor right, void *data)
 
 #endif /*AC_TERM_WALK_LRS*/
 
-#if AC_TERM_WALK_VARIANT
-
-		 /*******************************
-		 *    WALKING FOR VARIANT/2	*
-		 *******************************/
-
-typedef struct aNodeVARIANT
-{ Word		left;			/* left term */
-  Word		right;			/* right term */
-  Word		c_left;			/* cyclic left term */
-  Word		c_right;		/* cyclic right term */
-  size_t 	size;
-} aNodeVARIANT;
-
-typedef struct term_agendaVARIANT
-{ aNodeVARIANT	work;			/* current work */
-  segstack	stack;
-  char		first_chunk[256];
-} term_agendaVARIANT;
-
-
-static void
-initTermAgendaVARIANT(term_agendaVARIANT *a, Word left, Word right)
-{ initSegStack(&a->stack, sizeof(aNodeVARIANT),
-	       sizeof(a->first_chunk), a->first_chunk);
-  a->work.left    = left;
-  a->work.right   = right;
-  a->work.c_left  = left;
-  a->work.c_right = right;
-  a->work.size    = 1;
-}
-
-
-static void
-clearTermAgendaVARIANT(term_agendaVARIANT *a)
-{ clearSegStack(&a->stack);
-}
-
-
-#define nextTermAgendaVARIANT(a, lp, rp, clp, crp) \
-	nextTermAgendaVARIANT__LD(a, lp, rp, clp, crp PASS_LD)
-
-static int
-nextTermAgendaVARIANT__LD(term_agendaVARIANT *a,
-			  Word *lp, Word *rp,
-			  Word *clp, Word *crp
-			  ARG_LD)
-{ Word p;
-
-  while ( a->work.size == 0 )
-  { if ( !popSegStack(&a->stack, &a->work) )
-      return FALSE;
-  }
-  a->work.size--;
-
-  deRef2(a->work.left++,    p); *lp = p;
-  deRef2(a->work.right++,   p); *rp = p;
-  deRef2(a->work.c_left++,  p); *clp = p;
-  deRef2(a->work.c_right++, p); *crp = p;
-
-  return TRUE;
-}
-
-
-static int
-pushWorkAgendaVARIANT(term_agendaVARIANT *a, size_t amount,
-		      Word left, Word right, Word c_left, Word c_right)
-{ if ( a->work.size > 0 )
-  { if ( !pushSegStack(&a->stack, &a->work) )
-      return FALSE;
-  }
-  a->work.left    = left;
-  a->work.right   = right;
-  a->work.c_left  = c_left;
-  a->work.c_right = c_right;
-  a->work.size    = amount;
-
-  return TRUE;
-}
-
-#endif /*AC_TERM_WALK_VARIANT*/

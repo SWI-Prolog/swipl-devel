@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -44,6 +44,7 @@
 	  nth0/3,
 	  nth1/3,
 	  last/2,			% +List, -Element
+	  same_length/2,		% ?List1, ?List2
 	  reverse/2,			% +List, -Reversed
 	  permutation/2,		% ?List, ?Permutation
 	  flatten/2,			% +Nested, -Flat
@@ -82,7 +83,7 @@ and the YAP lists library.
 %	element.  E.g. this is deterministic:
 %
 %	    ==
-%	    	member(X, [One]).
+%		member(X, [One]).
 %	    ==
 %
 %	@author Gertjan van Noord
@@ -208,17 +209,21 @@ delete([Head|Tail], Elem, [Head|Rest]) :-
 
 %%	nth0(?Index, ?List, ?Elem)
 %
-%	True if Elem is the Index'th element of List. Counting starts at
-%	0.  This  is  a  faster  version   of  the  original  SWI-Prolog
-%	predicate.
+%	True when Elem is the Index-th  element of List. Counting starts
+%	at 0.
+%
+%	@error	type_error(integer, Index) if Index is not an integer or
+%		unbound.
+%	@see nth1/3.
 
 nth0(Index, List, Elem) :-
-        integer(Index), !,
-        Index >= 0,
-        nth0_det(Index, List, Elem).    % take nth deterministically
-nth0(Index, List, Elem) :-
-        var(Index), !,
-        nth_gen(List, Elem, 0, Index).  % match
+        (   integer(Index)
+	->  nth0_det(Index, List, Elem)		% take nth deterministically
+	;   var(Index)
+	->  List = [H|T],
+	    nth_gen(T, Elem, H, 0, Index)	% match
+	;   must_be(integer, Index)
+	).
 
 nth0_det(0, [Elem|_], Elem) :- !.
 nth0_det(1, [_,Elem|_], Elem) :- !.
@@ -231,26 +236,28 @@ nth0_det(N, [_,_,_,_,_,_   |Tail], Elem) :-
 	M >= 0,
         nth0_det(M, Tail, Elem).
 
-nth_gen([Elem|_], Elem, Base, Base).
-nth_gen([_|Tail], Elem, N, Base) :-
+nth_gen(_, Elem, Elem, Base, Base).
+nth_gen([H|Tail], Elem, _, N, Base) :-
         succ(N, M),
-        nth_gen(Tail, Elem, M, Base).
+        nth_gen(Tail, Elem, H, M, Base).
 
 
 %%	nth1(?Index, ?List, ?Elem)
 %
 %	Is true when Elem is  the   Index'th  element  of List. Counting
-%	starts at 1. This is a faster version of the original SWI-Prolog
-%	predicate.
+%	starts at 1.
+%
+%	@see nth0/3.
 
-nth1(Index1, List, Elem) :-
-        integer(Index1), !,
-        Index0 is Index1 - 1,
-        nth0_det(Index0, List, Elem).   % take nth deterministically
 nth1(Index, List, Elem) :-
-        var(Index), !,
-        nth_gen(List, Elem, 1, Index).  % match
-
+	(   integer(Index)
+	->  Index0 is Index - 1,
+	    nth0_det(Index0, List, Elem)	% take nth deterministically
+	;   var(Index)
+	->  List = [H|T],
+	    nth_gen(T, Elem, H, 1, Index)	% match
+	;   must_be(integer, Index)
+	).
 
 %%	last(?List, ?Last)
 %
@@ -268,32 +275,91 @@ last_([X|Xs], _, Last) :-
     last_(Xs, X, Last).
 
 
+%%	same_length(?List1, ?List2)
+%
+%	Is true when List1 and List2 are   lists with the same number of
+%	elements. The predicate is deterministic if  at least one of the
+%	arguments is a proper list.  It   is  non-deterministic  if both
+%	arguments are partial lists.
+%
+%	@see length/2
+
+same_length([], []).
+same_length([_|T1], [_|T2]) :-
+	(   T2 == []			% determinism in mode (-,+)
+	->  T1 = []
+	;   same_length(T1, T2)
+	).
+
+
 %%	reverse(?List1, ?List2)
 %
 %	Is true when the elements of List2 are in reverse order compared to
 %	List1.
 
 reverse(Xs, Ys) :-
-    reverse(Xs, [], Ys, Ys).
+	reverse(Xs, [], Ys, Ys).
 
 reverse([], Ys, Ys, []).
 reverse([X|Xs], Rs, Ys, [_|Bound]) :-
-    reverse(Xs, [X|Rs], Ys, Bound).
+	reverse(Xs, [X|Rs], Ys, Bound).
 
 
 %%	permutation(?Xs, ?Ys) is nondet.
 %
 %	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
-%	can solve for Ys given Xs or Xs given Ys, or even enumerate Xs
-%	and Ys together.
+%	can solve for Ys given Xs or Xs   given Ys, or even enumerate Xs
+%	and  Ys  together.  The  predicate  permutation/2  is  primarily
+%	intended to generate permutations. Note that  a list of length N
+%	has N! permutations and unbounded permutation generation becomes
+%	prohibitively expensive, even for  rather   short  lists  (10! =
+%	3,628,800).
+%
+%	If both Xs and Ys are provided  and both lists have equal length
+%	the order is |Xs|^2. Simply testing  whether Xs is a permutation
+%	of Ys can be  achieved  in   order  log(|Xs|)  using  msort/2 as
+%	illustrated below with the =semidet= predicate is_permutation/2:
+%
+%	  ==
+%	  is_permutation(Xs, Ys) :-
+%	    msort(Xs, Sorted),
+%	    msort(Ys, Sorted).
+%	  ==
+%
+%	The example below illustrate that Xs   and Ys being proper lists
+%	is not a sufficient condition to use the above replacement.
+%
+%	  ==
+%	  ?- permutation([1,2], [X,Y]).
+%	  X = 1, Y = 2 ;
+%	  X = 2, Y = 1 ;
+%	  false.
+%	  ==
+%
+%	@error	type_error(list, Arg) if either argument is not a proper
+%		or partial list.
 
 permutation(Xs, Ys) :-
-	permutation(Xs, Ys, Ys).
+	'$skip_list'(Xlen, Xs, XTail),
+	'$skip_list'(Ylen, Ys, YTail),
+	(   XTail == [], YTail == []		% both proper lists
+	->  Xlen == Ylen
+	;   var(XTail), YTail == []		% partial, proper
+	->  length(Xs, Ylen)
+	;   XTail == [], var(YTail)		% proper, partial
+	->  length(Ys, Xlen)
+	;   var(XTail), var(YTail)		% partial, partial
+	->  length(Xs, Len),
+	    length(Ys, Len)
+	;   must_be(list, Xs),			% either is not a list
+	    must_be(list, Ys)
+	),
+	perm(Xs, Ys).
 
-permutation([], [], []).
-permutation([X|Xs], Ys1, [_|Bound]) :-
-	permutation(Xs, Ys, Bound),
-	select(X, Ys1, Ys).
+perm([], []).
+perm(List, [First|Perm]) :-
+        select(First, List, Rest),
+        perm(Rest, Perm).
 
 %%	flatten(+List1, ?List2) is det.
 %
@@ -390,13 +456,10 @@ numlist_(L, U, [L|Ns]) :-
 %	resource-error. There are no other error conditions.
 
 is_set(Set) :-
-	is_list(Set),
+	'$skip_list'(Len, Set, Tail),
+	Tail == [],				% Proper list
 	sort(Set, Sorted),
-	same_length(Set, Sorted).
-
-same_length([], []).
-same_length([_|T1], [_|T2]) :-
-	same_length(T1, T2).
+	length(Sorted, Len).
 
 
 %%	list_to_set(+List, ?Set) is det.

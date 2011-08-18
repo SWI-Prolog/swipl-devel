@@ -1,0 +1,49 @@
+################################################################
+# The uxnt library provides some additional Unix compatibility
+# stuff on top of the MSVC (posix) runtime library.
+################################################################
+
+srcdir=@srcdir@
+@VPATH@ @srcdir@
+
+CC=@CC@
+LDEXE=@LDEXE@
+AR=@AR@
+RANLIB=@RANLIB@
+
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CIFLAGS=@CIFLAGS@
+CMFLAGS=@CMFLAGS@
+CPFLAGS=
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
+LDFLAGS=@LDFLAGS@ $(CPFLAGS)
+
+PLHOME=../../..
+
+include $(srcdir)/../../common.mk
+
+OBJ=	uxnt.o
+OUT=	$(PLHOME)/lib/uxnt.a
+HDR=	$(PLHOME)/include/uxnt.h \
+	$(PLHOME)/include/dirent.h
+
+all:	$(OUT) $(HDR)
+
+$(OUT):	$(OBJ)
+	rm -f $@
+	$(AR) r $@ $(OBJ)
+	$(RANLIB) $@
+
+$(PLHOME)/include/uxnt.h: $(srcdir)/uxnt.h
+	cp -f $< $@
+
+$(PLHOME)/include/dirent.h: $(srcdir)/dirent.h
+	cp -f $< $@
+
+clean:
+	rm -f *.o
+	rm -f *~
+
+distclean: clean
+	rm -f uxnt.a

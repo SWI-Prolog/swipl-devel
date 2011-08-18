@@ -188,7 +188,9 @@ lookupEntry(atom_t name, atom_t type)
       if ( (s = tgetstr(stringAtom(name), &string_area)) != NULL )
         e->value  = PL_new_atom(s);	/* locked: ok */
     } else
-    { warning("tgetent/3: Illegal type");
+    { term_t t = PL_new_term_ref();
+      PL_put_atom(t, type);
+      PL_domain_error("termcap_type", t);
       freeHeap(e, sizeof(entry));
       e = NULL;
       goto out;

@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -104,16 +105,14 @@ expand_term_2(Term0, Term) :-
 
 expand_bodies(Terms, Out) :-
 	'$def_modules'(goal_expansion/2, MList),
-	MList \== [], !,
 	expand_terms(expand_body(MList), Terms, Out).
-expand_bodies(Terms, Terms).
 
 expand_body(MList, (Head :- Body), (Head :- ExpandedBody)) :-
 	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody, MList).
+	expand_goal(Body, ExpandedBody, MList, (Head :- Body)).
 expand_body(MList, (:- Body), (:- ExpandedBody)) :-
 	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody, MList).
+	expand_goal(Body, ExpandedBody, MList, (:- Body)).
 expand_body(_, Head, Head).
 
 
@@ -149,52 +148,68 @@ expand_terms(C, Term0, Term) :-
 
 expand_goal(A, B) :-
 	'$def_modules'(goal_expansion/2, MList),
-	(   expand_goal(A, B, MList)
+	(   expand_goal(A, B, MList, _)
 	->  A \== B
 	), !.
 expand_goal(A, A).
 
-expand_goal(G0, G, MList) :-
+expand_goal(G0, G, MList, Term) :-
 	'$set_source_module'(M, M),
-	expand_goal(G0, G, M, MList).
+	expand_goal(G0, G, M, MList, Term).
 
-expand_goal(G, G, _, _) :-
+%%	expand_goal(+GoalIn, -GoalOut, +Module, -ModuleList, +Term) is det.
+%
+%	@param Module is the current module to consider
+%	@param ModuleList are the other expansion modules
+%	@param Term is the overall term that is being translated
+
+% (*)	This is needed because call_goal_expansion may introduce extra
+%	context variables.  Consider the code below, where the variable
+%	E is introduced.  Is there a better representation for the
+%	context?
+%
+%	  ==
+%	  goal_expansion(catch_and_print(Goal), catch(Goal, E, print(E))).
+%
+%	  test :-
+%		catch_and_print(true).
+%	  ==
+
+expand_goal(G, G, _, _, _) :-
         var(G), !.
-expand_goal(G0, G, M, MList) :-
+expand_goal(G0, G, M, MList, Term) :-
 	call_goal_expansion(MList, G0, G1), !,
-	expand_goal(G1, G, M, MList).
-expand_goal((A,B), Conj, M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList),
+	expand_goal(G1, G, M, MList, Term/G1).		% (*)
+expand_goal((A,B), Conj, M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term),
 	simplify((EA, EB), Conj).
-expand_goal((A;B), Or, M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList),
+expand_goal((A;B), Or, M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term),
 	simplify((EA;EB), Or).
-expand_goal((A->B;C), ITE, M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList),
-        expand_goal(C, EC, M, MList),
+expand_goal((A->B;C), ITE, M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term),
+        expand_goal(C, EC, M, MList, Term),
 	simplify((EA->EB;EC), ITE).
-expand_goal((A->B), (EA->EB), M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList).
-expand_goal((A*->B), (EA*->EB), M, MList) :- !,
-        expand_goal(A, EA, M, MList),
-        expand_goal(B, EB, M, MList).
-expand_goal((\+A), (\+EA), M, MList) :- !,
-        expand_goal(A, EA, M, MList).
-expand_goal(setof(T,G,L), setof(T,EG,L), M, MList) :- !,
-	expand_setof_goal(G, EG, M, MList).
-expand_goal(bagof(T,G,L), bagof(T,EG,L), M, MList) :- !,
-	expand_setof_goal(G, EG, M, MList).
-expand_goal(M:G, M:EG, _M, _MList) :-
+expand_goal((A->B), (EA->EB), M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term).
+expand_goal((A*->B), (EA*->EB), M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term),
+        expand_goal(B, EB, M, MList, Term).
+expand_goal((\+A), (\+EA), M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term).
+expand_goal(call(A), call(EA), M, MList, Term) :- !,
+        expand_goal(A, EA, M, MList, Term).
+expand_goal(M:G, M:EG, _M, _MList, Term) :-
 	atom(M), !,
 	'$def_modules'(M:goal_expansion/2, MList),
 	setup_call_cleanup('$set_source_module'(Old, M),
-			   '$expand':expand_goal(G, EG, M, MList),
+			   '$expand':expand_goal(G, EG, M, MList, Term),
 			   '$set_source_module'(_, Old)).
-expand_goal(G0, G, M, MList) :-
+expand_goal(G0, G, M, MList, Term) :-
 	callable(G0),
 	functor(G0, N, A),
 	(   default_module(M, M2),
@@ -203,40 +218,49 @@ expand_goal(G0, G, M, MList) :-
 	),
 	'$get_predicate_attribute'(M2:G0, meta_predicate, Head),
 	has_meta_arg(Head),
-	expand_meta(Head, G0, G, M, MList),
+	expand_meta(Head, G0, G, M, MList, Term),
 	G0 \== G, !.
-expand_goal(A, A, _, _).
+expand_goal(A, A, _, _, _).
 
-expand_meta(Spec, G0, G, M, MList) :-
+expand_meta(Spec, G0, G, M, MList, Term) :-
 	functor(Spec, _, Arity),
 	functor(G0, Name, Arity),
 	functor(G, Name, Arity),
-	expand_meta(1, Arity, Spec, G0, G, M, MList).
+	expand_meta(1, Arity, Spec, G0, G, M, MList, Term).
 
-expand_meta(I, Arity, Spec, G0, G, M, MList) :-
+expand_meta(I, Arity, Spec, G0, G, M, MList, Term) :-
 	I =< Arity, !,
 	arg(I, Spec, Meta),
 	arg(I, G0, A0),
 	arg(I, G, A),
-	expand_meta_arg(Meta, A0, A, M, MList),
+	expand_meta_arg(Meta, A0, A, M, MList, Term),
 	I2 is I + 1,
-	expand_meta(I2, Arity, Spec, G0, G, M, MList).
-expand_meta(_, _, _, _, _, _, _).
+	expand_meta(I2, Arity, Spec, G0, G, M, MList, Term).
+expand_meta(_, _, _, _, _, _, _, _).
 
-expand_meta_arg(0, A0, A, M, MList) :- !,
-	expand_goal(A0, A, M, MList).
-expand_meta_arg(_, A, A, _, _).
+expand_meta_arg(0, A0, A, M, MList, Term) :- !,
+	expand_goal(A0, A1, M, MList, Term),
+	compile_meta_call(A1, A, M, Term).
+expand_meta_arg(^, A0, A, M, MList, Term) :- !,
+	expand_setof_goal(A0, A, M, MList, Term).
+expand_meta_arg(_, A, A, _, _, _).
 
 has_meta_arg(Head) :-
 	arg(_, Head, Arg),
-	Arg == 0, !.
+	meta_arg(Arg), !.
 
-expand_setof_goal(Var, Var, _, _) :-
+meta_arg(0).
+meta_arg(^).
+
+expand_setof_goal(Var, Var, _, _, _) :-
 	var(Var), !.
-expand_setof_goal(V^G, V^EG, M, MList) :- !,
-        expand_setof_goal(G, EG, M, MList).
-expand_setof_goal(G, EG, M, MList) :- !,
-        expand_goal(G, EG, M, MList).
+expand_setof_goal(V^G, V^EG, M, MList, Term) :- !,
+        expand_setof_goal(G, EG, M, MList, Term).
+expand_setof_goal(M0:G, M0:EG, M, MList, Term) :- !,
+        expand_setof_goal(G, EG, M, MList, Term).
+expand_setof_goal(G, EG, M, MList, Term) :- !,
+        expand_goal(G, EG0, M, MList, Term),
+	compile_meta_call(EG0, EG, M, Term).
 
 
 %%	call_goal_expansion(+ExpandModules, +Goal0, -Goal) is semidet.
@@ -303,6 +327,95 @@ eval_true(otherwise).
 
 eval_false(fail).
 eval_false(false).
+
+
+		 /*******************************
+		 *	   META CALLING		*
+		 *******************************/
+
+:- create_prolog_flag(compile_meta_arguments, false, [type(atom)]).
+
+%%	compile_meta_call(+CallIn, -CallOut, +Module, +Term) is det.
+%
+%	Compile (complex) meta-calls into a clause.
+
+compile_meta_call(CallIn, CallIn, _, Term) :-
+	var(Term), !.			% explicit call; no context
+compile_meta_call(CallIn, CallIn, _, _) :-
+	var(CallIn), !.
+compile_meta_call(CallIn, CallIn, _, _) :-
+	(   current_prolog_flag(compile_meta_arguments, false)
+	;   current_prolog_flag(xref, true)
+	), !.
+compile_meta_call(CallIn, CallIn, _, _) :-
+	strip_module(CallIn, _, Call),
+	(   is_aux_meta(Call)
+	;   \+ control(Call),
+	    (	'$c_current_predicate'(_, system:Call),
+		\+ current_prolog_flag(compile_meta_arguments, always)
+	    ;   current_prolog_flag(compile_meta_arguments, control)
+	    )
+	), !.
+compile_meta_call(M:CallIn, CallOut, _, Term) :- !,
+	(   atom(M), callable(CallIn)
+	->  compile_meta_call(CallIn, CallOut, M, Term)
+	;   CallOut = M:CallIn
+	).
+compile_meta_call(CallIn, CallOut, Module, Term) :-
+	compile_meta(CallIn, CallOut, Module, Term, Clause),
+	Clause = (Head:-Body),
+	functor(Head, Name, Arity),
+	'$set_source_module'(SM, SM),
+	(   current_predicate(SM:Name/Arity)
+	->  true
+	;   SM == Module
+	->  compile_aux_clauses([Clause])
+	;   compile_aux_clauses([Head:-Module:Body])
+	).
+
+control((_,_)).
+control((_;_)).
+control((_->_)).
+control((_*->_)).
+control(\+(_)).
+
+is_aux_meta(Term) :-
+	callable(Term),
+	functor(Term, Name, _),
+	sub_atom(Name, 0, _, _, '__aux_meta_call_').
+
+compile_meta(CallIn, CallOut, M, Term, (CallOut :- Body)) :-
+	term_variables(Term, AllVars),
+	term_variables(CallIn, InVars),
+	intersection_eq(InVars, AllVars, HeadVars),
+	variant_sha1(CallIn+HeadVars, Hash),
+	atom_concat('__aux_meta_call_', Hash, AuxName),
+	expand_goal(CallIn, Body, M, [], (CallOut:-CallIn)),
+	length(HeadVars, Arity),
+	(   Arity > 256			% avoid 1024 arity limit
+	->  HeadArgs = [v(HeadVars)]
+	;   HeadArgs = HeadVars
+	),
+	CallOut =.. [AuxName|HeadArgs].
+
+%%	intersection_eq(+Small, +Big, -Shared) is det.
+%
+%	Shared are the variables in Small that   also appear in Big. The
+%	variables in Shared are in the same order as Shared.
+
+intersection_eq([], _, []).
+intersection_eq([H|T0], L, List) :-
+	(   member_eq(H, L)
+	->  List = [H|T],
+	    intersection_eq(T0, L, T)
+	;   intersection_eq(T0, L, List)
+	).
+
+member_eq(E, [H|T]) :-
+	(   E == H
+	->  true
+	;   member_eq(E, T)
+	).
 
 
 		 /*******************************

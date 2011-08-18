@@ -65,9 +65,10 @@ typedef struct
 
 typedef struct
 { atom_t	file;			/* current source file */
-  int	  	line;			/* current line */
+  int		line;			/* current line */
   int		linepos;		/* position in the line */
   int64_t	character;		/* current character location */
+  int64_t	byte;			/* byte offset of location */
 } source_location;
 
 		 /*******************************
@@ -122,6 +123,8 @@ struct PL_global_data
     int		modules;		/* No. of modules in the system */
     intptr_t	codes;			/* No. of byte codes generated */
     double	start_time;		/* When Prolog was started */
+    double	user_cputime;		/* User CPU time (whole process) */
+    double	system_cputime;		/* Kernel CPU time (whole process) */
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
@@ -145,8 +148,8 @@ struct PL_global_data
   } recorded_db;
 
   struct
-  { buffer	functions;		/* index --> function */
-    ArithFunction table[ARITHHASHSIZE];	/* functor --> function table */
+  { ArithF     *functions;		/* index --> function */
+    size_t	functions_allocated;	/* Size of above array */
   } arith;
 
   struct
@@ -234,7 +237,7 @@ struct PL_global_data
     int			halting;	/* process is shutting down */
     int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
-    IOFUNCTIONS 	org_terminal;	/* IO+Prolog terminal functions */
+    IOFUNCTIONS		org_terminal;	/* IO+Prolog terminal functions */
     IOFUNCTIONS		rl_functions;	/* IO+Terminal+Readline functions */
   } os;
 
@@ -254,6 +257,7 @@ struct PL_global_data
     Procedure	prolog_trace_interception4;
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
+    Procedure   call3;			/* call/3*/
     Procedure	setup_call_catcher_cleanup4; /* setup_call_catcher_cleanup/4 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
@@ -296,12 +300,12 @@ struct PL_global_data
 
   struct
   { struct _at_exit_goal *exit_goals;	/* Global thread_at_exit/1 goals */
-    int		    	enabled;	/* threads are enabled */
+    int			enabled;	/* threads are enabled */
     Table		mutexTable;	/* Name --> mutex table */
     int			mutex_next_id;	/* next id for anonymous mutexes */
     struct pl_mutex*	MUTEX_load;	/* The $load mutex */
 #ifdef __WINDOWS__
-    HINSTANCE	    	instance;	/* Win32 process instance */
+    HINSTANCE		instance;	/* Win32 process instance */
 #endif
     counting_mutex     *mutexes;	/* Registered mutexes */
     int			thread_max;	/* Maximum # threads */
@@ -443,7 +447,7 @@ struct PL_local_data
   } modules;
 
   struct
-  { intptr_t 	generator;		/* See PL_atom_generator() */
+  { intptr_t	generator;		/* See PL_atom_generator() */
   } atoms;
 
   struct
@@ -451,10 +455,6 @@ struct PL_local_data
     int		nvardefs;
     int		filledVars;
   } comp;
-
-  struct
-  { int		active;
-  } read;
 
   struct
   { struct
@@ -518,7 +518,12 @@ struct PL_local_data
   { IOSTREAM *streams[6];		/* handles for standard streams */
     struct input_context *input_stack;	/* maintain input stream info */
     struct output_context *output_stack; /* maintain output stream info */
+    st_check stream_type_check;		/* Check bin/text streams? */
   } IO;
+
+  struct
+  { fid_t	numbervars_frame;	/* Numbervars choice-point */
+  } var_names;
 
 #ifdef O_LIMIT_DEPTH
   struct
@@ -556,10 +561,12 @@ struct PL_local_data
 #ifdef O_CALL_RESIDUE
     int			marked_attvars;	/* do not GC attvars */
 #endif
+    int active;				/* GC is running in this thread */
   } gc;
 
   pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
+  struct btrace *btrace_store;		/* C-backtraces */
 
 #ifdef O_PLMT
   struct
@@ -585,28 +592,19 @@ GLOBAL PL_local_data_t  PL_local_data;
 GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #endif
 
-#if !defined(O_PLMT) && !defined(O_MULTIPLE_ENGINES)
-#define GET_LD
-#define ARG_LD
-#define ARG1_LD void
-#define PASS_LD
-#define PASS_LD1
-#define LOCAL_LD  (&PL_local_data)
-#define GLOBAL_LD (&PL_local_data)
-#define LD	  GLOBAL_LD
-#endif /*O_PLMT && O_MULTIPLE_ENGINES*/
 #define GD (&PL_global_data)
 #define CD (&PL_code_data)
 
 #define functor_array		(GD->functors.array)
 #define systemDefaults		(GD->defaults)
 
-#define environment_frame 	(LD->environment)
-#define fli_context	  	(LD->foreign_environment)
+#define environment_frame	(LD->environment)
+#define fli_context		(LD->foreign_environment)
 #define source_file_name	(LD->read_source.file)
 #define source_line_no		(LD->read_source.line)
 #define source_line_pos		(LD->read_source.linepos)
 #define source_char_no		(LD->read_source.character)
+#define source_byte_no		(LD->read_source.byte)
 #define exception_term		(LD->exception.term)
 #define exception_bin		(LD->exception.bin)
 #define exception_printed	(LD->exception.printed)
@@ -621,7 +619,7 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define Scurin			(LD->IO.streams[3])
 #define Scurout			(LD->IO.streams[4])
 #define Sprotocol		(LD->IO.streams[5])
-#define Sdin			Suser_input 		/* not used for now */
+#define Sdin			Suser_input		/* not used for now */
 #define Sdout			Suser_output
 
 #ifdef VMCODE_IS_ADDRESS

@@ -95,8 +95,6 @@ form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
 
 rb_new(t(Nil,Nil)) :- Nil = black('',_,_,'').
 
-rb_new(K,V,t(Nil,black(Nil,K,V,Nil))) :- Nil = black('',_,_,'').
-
 %%	rb_empty(?T) is semidet.
 %
 %	Succeeds if T is an empty Red-Black tree.
@@ -413,7 +411,7 @@ insert2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 	-> insert2(L, K, V, Nil, IL, Flag0),
 	  fix_left(Flag0, black(IL,K0,V0,R), NT, Flag)
 	; K == K0 ->
-	  NT = 	black(L,K0,V,R),
+	  NT =	black(L,K0,V,R),
 	  Flag = done
 	;
 	  insert2(R, K, V, Nil, IR, Flag0),
@@ -537,25 +535,6 @@ fix_right(black(De,KC,VC,red(Ga,KB,VB,red(Be,KA,VA,Al))),
 %
 fix_right(T,T,done).
 
-%
-% simplified processor
-%
-%
-pretty_print(t(_,T)) :-
-	pretty_print(T,6).
-
-pretty_print(black('',_,_,''),_) :- !.
-pretty_print(red(L,K,_,R),D) :-
-	DN is D+6,
-	pretty_print(L,DN),
-	format("~t~a:~d~*|~n",[r,K,D]),
-	pretty_print(R,DN).
-pretty_print(black(L,K,_,R),D) :-
-	DN is D+6,
-	pretty_print(L,DN),
-	format("~t~a:~d~*|~n",[b,K,D]),
-	pretty_print(R,DN).
-
 
 rb_delete(t(Nil,T), K, t(Nil,NT)) :-
 	delete(T, K, _, NT, _).
@@ -645,7 +624,7 @@ delete_red_node(L,R,OUT,Done) :-
 	fixup_right(Done0,red(L,NK,NV,NR),OUT,Done).
 
 
-delete_black_node(L1,L2,L1,not_done) :- 	L1 == L2, !.
+delete_black_node(L1,L2,L1,not_done) :-		L1 == L2, !.
 delete_black_node(black('',_,_,''),red(L,K,V,R),black(L,K,V,R),done) :- !.
 delete_black_node(black('',_,_,''),R,R,not_done) :- !.
 delete_black_node(red(L,K,V,R),black('',_,_,''),black(L,K,V,R),done) :- !.
@@ -655,7 +634,7 @@ delete_black_node(L,R,OUT,Done) :-
 	fixup_right(Done0,black(L,NK,NV,NR),OUT,Done).
 
 
-delete_next(red(black('',_,_,''),K,V,R),K,V,R,done) :- 	!.
+delete_next(red(black('',_,_,''),K,V,R),K,V,R,done) :-	!.
 delete_next(black(black('',_,_,''),K,V,red(L1,K1,V1,R1)),
 	K,V,black(L1,K1,V1,R1),done) :- !.
 delete_next(black(black('',_,_,''),K,V,R),K,V,R,not_done) :- !.
@@ -858,9 +837,6 @@ clone(black(L,K,V,R),Nil,ONsF,ONs0,black(NL,K,NV,NR),NsF,Ns0) :-
 rb_partial_map(t(Nil,T0), Map, Goal, t(Nil,TF)) :-
 	partial_map(T0, Map, [], Nil, Goal, TF).
 
-rb_partial_map(t(Nil,T0), Map, Map0, Goal, t(Nil,TF)) :-
-	partial_map(T0, Map, Map0, Nil, Goal, TF).
-
 partial_map(T,[],[],_,_,T) :- !.
 partial_map(black('',_,_,_),Map,Map,Nil,_,Nil) :- !.
 partial_map(red(L,K,V,R),Map,MapF,Nil,Goal,red(NL,K,NV,NR)) :-
@@ -995,18 +971,9 @@ is_rbtree(t(Nil,Nil)) :- !.
 is_rbtree(t(_,T)) :-
 	catch(rbtree1(T), msg(_,_), fail).
 
-is_rbtree(X,_) :-
-	var(X), !, fail.
-is_rbtree(T,Goal) :-
-	catch(rbtree1(T), msg(S,Args), (once(Goal),format(S,Args))).
-
 %
 % This code checks if a tree is ordered and a rbtree
 %
-%
-rbtree(t(_,black('',_,_,''))) :- !.
-rbtree(t(_,T)) :-
-	catch(rbtree1(T),msg(S,Args),format(S,Args)).
 
 rbtree1(black(L,K,_,R)) :-
 	find_path_blacks(L, 0, Bls),

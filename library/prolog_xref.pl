@@ -32,6 +32,7 @@
 :- module(prolog_xref,
 	  [ xref_source/1,		% +Source
 	    xref_called/3,		% ?Source, ?Callable, ?By
+	    xref_called/4,		% ?Source, ?Callable, ?By, ?Cond
 	    xref_defined/3,		% ?Source. ?Callable, -How
 	    xref_definition_line/2,	% +How, -Line
 	    xref_exported/2,		% ?Source, ?Callable
@@ -65,7 +66,7 @@
 :- use_module(library(debug)).
 
 :- dynamic
-	called/3,			% Head, Src, From
+	called/4,			% Head, Src, From, Cond
 	(dynamic)/3,			% Head, Src, Line
 	(thread_local)/3,		% Head, Src, Line
 	(multifile)/3,			% Head, Src, Line
@@ -96,7 +97,7 @@ This code is used in two places:
     goals and predicates depending on their references.
 
 @bug	meta_predicate/1 declarations take the module into consideration.
-	Predicates that are both avalaible as meta-predicate and normal
+	Predicates that are both available as meta-predicate and normal
 	(in different modules) are handled as meta-predicate in all
 	places.
 */
@@ -125,7 +126,11 @@ This code is used in two places:
 :- multifile
 	prolog:called_by/2,		% +Goal, -Called
 	prolog:meta_goal/2,		% +Goal, -Pattern
-	prolog:hook/1.			% +Callable
+	prolog:hook/1,			% +Callable
+	prolog:generated_predicate/1.	% :PI
+
+:- meta_predicate
+	prolog:generated_predicate(:).
 
 :- dynamic
 	meta_goal/2.
@@ -247,7 +252,7 @@ xref_push_op(Src, P, T, N0) :- !,
 
 xref_clean(Source) :-
 	prolog_canonical_source(Source, Src),
-	retractall(called(_, Src, _Origin)),
+	retractall(called(_, Src, _Origin, _Cond)),
 	retractall(dynamic(_, Src, Line)),
 	retractall(multifile(_, Src, Line)),
 	retractall(public(_, Src, Line)),
@@ -287,16 +292,20 @@ xref_done(Source, Time) :-
 
 
 %%	xref_called(?Source, ?Called, ?By) is nondet.
+%%	xref_called(?Source, ?Called, ?By, ?Cond) is nondet.
 %
 %	Enumerate the predicate-call relations. Predicate called by
 %	directives have a By '<directive>'.
 
 xref_called(Source, Called, By) :-
+	xref_called(Source, Called, By, _).
+
+xref_called(Source, Called, By, Cond) :-
 	(   ground(Source)
 	->  prolog_canonical_source(Source, Src)
 	;   Source = Src
 	),
-	called(Called, Src, By).
+	called(Called, Src, By, Cond).
 
 
 %%	xref_defined(?Source, +Goal, ?How) is nondet.
@@ -409,13 +418,17 @@ xref_defined_class(Source, Class, file(File)) :-
 	prolog_canonical_source(Source, Src),
 	defined_class(Class, _, _, Src, file(File)).
 
+:- thread_local
+	current_cond/1.
+
 collect(Src, In) :-
 	repeat,
-	    catch(prolog_read_source_term(In, _Term, Expanded,
+	    catch(prolog_read_source_term(In, Term, Expanded,
 					  [ process_comment(true),
 					    term_position(TermPos)
 					  ]),
 		  E, report_syntax_error(E)),
+	    update_condition(Term),
 	    (	is_list(Expanded)
 	    ->	member(T, Expanded)
 	    ;	T = Expanded
@@ -434,6 +447,44 @@ report_syntax_error(E) :-
 	;   true
 	),
 	fail.
+
+
+%%	update_condition(+Term) is det.
+%
+%	Update the condition under which the current code is compiled.
+
+update_condition((:-Directive)) :- !,
+	update_cond(Directive).
+update_condition(_).
+
+update_cond(if(Cond)) :- !,
+	asserta(current_cond(Cond)).
+update_cond(else) :-
+	retract(current_cond(C0)), !,
+	assert(current_cond(\+C0)).
+update_cond(elif(Cond)) :-
+	retract(current_cond(C0)), !,
+	assert(current_cond((\+C0,Cond))).
+update_cond(endif) :-
+	retract(current_cond(_)), !.
+update_cond(_).
+
+%%	current_condition(-Condition) is det.
+%
+%	Condition is the current compilation condition as defined by the
+%	:- if/1 directive and friends.
+
+current_condition(Condition) :-
+	\+ current_cond(_), !,
+	Condition = true.
+current_condition(Condition) :-
+	findall(C, current_cond(C), List),
+	list_to_conj(List, Condition).
+
+list_to_conj([], true).
+list_to_conj([C], C) :- !.
+list_to_conj([H|T], (H,C)) :-
+	list_to_conj(T, C).
 
 
 		 /*******************************
@@ -571,9 +622,15 @@ process_meta_head(Decl) :-
 
 meta_args(I, Arity, _, _, []) :-
 	I > Arity, !.
-meta_args(I, Arity, Decl, Head, [H|T]) :- 		% 0
+meta_args(I, Arity, Decl, Head, [H|T]) :-		% 0
 	arg(I, Decl, 0), !,
 	arg(I, Head, H),
+	I2 is I + 1,
+	meta_args(I2, Arity, Decl, Head, T).
+meta_args(I, Arity, Decl, Head, [H|T]) :-		% ^
+	arg(I, Decl, ^), !,
+	arg(I, Head, EH),
+	setof_goal(EH, H),
 	I2 is I + 1,
 	meta_args(I2, Arity, Decl, Head, T).
 meta_args(I, Arity, Decl, Head, [H+A|T]) :-		% I --> H+I
@@ -591,9 +648,9 @@ meta_args(I, Arity, Decl, Head, Meta) :-
 	      *             BODY	      *
 	      ********************************/
 
-xref_meta((A, B), 		[A, B]).
-xref_meta((A; B), 		[A, B]).
-xref_meta((A| B), 		[A, B]).
+xref_meta((A, B),		[A, B]).
+xref_meta((A; B),		[A, B]).
+xref_meta((A| B),		[A, B]).
 xref_meta((A -> B),		[A, B]).
 xref_meta((A *-> B),		[A, B]).
 xref_meta(findall(_V,G,_L),	[G]).
@@ -725,11 +782,13 @@ hook(pce_principal:pce_lazy_send_method(_,_,_)).
 hook(pce_principal:pce_uses_template(_,_)).
 hook(prolog:locate_clauses(_,_)).
 hook(prolog:message(_,_,_)).
+hook(prolog:error_message(_,_,_)).
 hook(prolog:message_context(_,_,_)).
 hook(prolog:debug_control_hook(_)).
 hook(prolog:help_hook(_)).
 hook(prolog:show_profile_hook(_,_)).
 hook(prolog:general_exception(_,_)).
+hook(prolog:predicate_summary(_,_)).
 hook(prolog_edit:load).
 hook(prolog_edit:locate(_,_,_)).
 hook(shlib:unload_all_foreign_libraries).
@@ -759,34 +818,47 @@ arith_callable(Name/Arity, Goal) :-
 	PredArity is Arity + 1,
 	functor(Goal, Name, PredArity).
 
-
-%%	process_body(+Body, +Origin, +Src)
+%%	process_body(+Body, +Origin, +Src) is det.
 %
-%	Process a callable body (body of a clause or directive). Origin
-%	describes the origin of the call.
+%	Process a callable body (body of  a clause or directive). Origin
+%	describes the origin of the call. Partial evaluation may lead to
+%	non-determinism, which is why we backtrack over process_goal/3.
 
-process_body(Var, _, _) :-
+process_body(Body, Origin, Src) :-
+	forall(process_goal(Body, Origin, Src),
+	       true).
+
+process_goal(Var, _, _) :-
 	var(Var), !.
-process_body(Goal, Origin, Src) :-
+process_goal((A;B), Origin, Src) :- !,
+	(   process_goal(A, Origin, Src)
+	;   process_goal(B, Origin, Src)
+	).
+process_goal(Goal, Origin, Src) :-
 	called_by(Goal, Called), !,
 	must_be(list, Called),
 	assert_called(Src, Origin, Goal),
 	process_called_list(Called, Origin, Src).
-process_body(Goal, Origin, Src) :-
+process_goal(Goal, Origin, Src) :-
 	process_xpce_goal(Goal, Origin, Src), !.
-process_body(load_foreign_library(File), _Origin, Src) :-
+process_goal(load_foreign_library(File), _Origin, Src) :-
 	process_foreign(File, Src).
-process_body(load_foreign_library(File, _Init), _Origin, Src) :-
+process_goal(load_foreign_library(File, _Init), _Origin, Src) :-
 	process_foreign(File, Src).
-process_body(Goal, Origin, Src) :-
+process_goal(use_foreign_library(File), _Origin, Src) :-
+	process_foreign(File, Src).
+process_goal(use_foreign_library(File, _Init), _Origin, Src) :-
+	process_foreign(File, Src).
+process_goal(Goal, Origin, Src) :-
 	xref_meta(Goal, Metas), !,
 	assert_called(Src, Origin, Goal),
 	process_called_list(Metas, Origin, Src).
-process_body(Goal, Origin, Src) :-
+process_goal(Goal, Origin, Src) :-
 	asserting_goal(Goal, Rule), !,
 	assert_called(Src, Origin, Goal),
 	process_assert(Rule, Origin, Src).
-process_body(Goal, Origin, Src) :-
+process_goal(Goal, Origin, Src) :-
+	partial_evaluate(Goal),
 	assert_called(Src, Origin, Goal).
 
 process_called_list([], _, _).
@@ -796,11 +868,11 @@ process_called_list([H|T], Origin, Src) :-
 
 process_meta(A+N, Origin, Src) :- !,
 	(   extend(A, N, AX)
-	->  process_body(AX, Origin, Src)
+	->  process_goal(AX, Origin, Src)
 	;   true
 	).
 process_meta(G, Origin, Src) :-
-	process_body(G, Origin, Src).
+	process_goal(G, Origin, Src).
 
 extend(Var, _, _) :-
 	var(Var), !, fail.
@@ -825,6 +897,26 @@ process_assert(0, _, _) :- !.		% catch variables
 process_assert((_:-Body), Origin, Src) :- !,
 	process_body(Body, Origin, Src).
 process_assert(_, _, _).
+
+%%	partial_evaluate(Goal) is det.
+%
+%	Perform partial evaluation on Goal to trap cases such as below.
+%
+%	  ==
+%		T = hello(X),
+%		findall(T, T, List),
+%	  ==
+%
+%	@tbd	Make this user extensible? What about non-deterministic
+%		bindings?
+
+partial_evaluate(Goal) :-
+	eval(Goal), !.
+partial_evaluate(_).
+
+eval(X = Y) :-
+	X = Y,
+	acyclic_term(X).
 
 
 		 /*******************************
@@ -941,7 +1033,7 @@ process_pce_import(Name/Arity, Src, Path, Reexport) :-
 	integer(Arity), !,
 	functor(Term, Name, Arity),
 	(   \+ system_predicate(Term),
-	    \+ Term = pce_error(_) 	% hack!?
+	    \+ Term = pce_error(_)	% hack!?
 	->  assert_import(Src, [Name/Arity], _, Path, Reexport)
 	;   true
 	).
@@ -1153,12 +1245,14 @@ read_clauses(Term, In, [Term|T]) :-
 %	Process a load_foreign_library/1 call.
 
 process_foreign(Spec, Src) :-
-	current_foreign_library(Spec, Defined),
+	ground(Spec),
+	current_foreign_library(Spec, Defined), !,
 	(   xmodule(Module, Src)
 	->  true
 	;   Module = user
 	),
 	process_foreign_defined(Defined, Module, Src).
+process_foreign(_, _).
 
 process_foreign_defined([], _, _).
 process_foreign_defined([H|T], M, Src) :-
@@ -1245,7 +1339,7 @@ assert_constraint(Src, Head) :-
 		*       PHASE 1 ASSERTIONS	*
 		********************************/
 
-%%	assert_called(+Src, +From, +Head)
+%%	assert_called(+Src, +From, +Head) is det.
 %
 %	Assert the fact that Head is called by From in Src. We do not
 %	assert called system predicates.
@@ -1260,28 +1354,34 @@ assert_called(_, _, Goal) :-
 assert_called(Src, Origin, M:G) :- !,
 	(   atom(M),
 	    callable(G)
-	->  (   xmodule(M, Src)
+	->  current_condition(Cond),
+	    (   xmodule(M, Src)		% explicit call to own module
 	    ->  assert_called(Src, Origin, G)
-	    ;   called(M:G, Src, Origin)
+	    ;   called(M:G, Src, Origin, Cond) % already registered
 	    ->  true
-	    ;	system_predicate(G)
+	    ;	system_predicate(G)	% not interesting (now)
 	    ->	true
 	    ;   generalise(Origin, OTerm),
-		generalise(G, GTerm),
-		assert(called(M:GTerm, Src, OTerm))
+		generalise(G, GTerm)
+	    ->	assert(called(M:GTerm, Src, OTerm, Cond))
+	    ;	true
 	    )
 	;   true                        % call to variable module
 	).
 assert_called(_, _, Goal) :-
 	system_predicate(Goal), !.
 assert_called(Src, Origin, Goal) :-
-	called(Goal, Src, Origin), !.
-assert_called(Src, Origin, Goal) :-
-	generalise(Origin, OTerm),
-	generalise(Goal, Term),
-	assert(called(Term, Src, OTerm)).
+	current_condition(Cond),
+	(   called(Goal, Src, Origin, Cond)
+	->  true
+	;   generalise(Origin, OTerm),
+	    generalise(Goal, Term)
+	->  assert(called(Term, Src, OTerm, Cond))
+	;   true
+	).
 
-%%	hide_called(:Callable)
+
+%%	hide_called(:Callable) is semidet.
 %
 %	Goals that should not turn up as being called. Hack. Eventually
 %	we should deal with that using an XPCE plugin.
@@ -1347,8 +1447,8 @@ assert_import(Src, op(P,T,N), _, _, _) :-
 in_export_list(_Head, Export) :-
 	var(Export), !.
 in_export_list(Head, Export) :-
-	member(Export, Export),
-	pi_to_head(Export, Head).
+	member(PI, Export),
+	pi_to_head(PI, Head).
 
 assert_reexport(false, _, _) :- !.
 assert_reexport(true, Src, Term) :-
@@ -1472,7 +1572,7 @@ assert_used_class(Src, Name) :-
 
 assert_defined_class(Src, Name, _Meta, _Super, _) :-
 	defined_class(Name, _, _, Src, _), !.
-assert_defined_class(_, _, _, -, _) :- !. 		% :- pce_extend_class
+assert_defined_class(_, _, _, -, _) :- !.		% :- pce_extend_class
 assert_defined_class(Src, Name, Meta, Super, Summary) :-
 	flag(xref_src_line, Line, Line),
 	(   Summary == @(default)

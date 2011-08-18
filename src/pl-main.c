@@ -46,7 +46,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "morecore.c"
 #endif
 
-#if defined(_DEBUG) && defined(__WINDOWS__)
+#if defined(_DEBUG) && defined(__WINDOWS__) && !defined(__MINGW32__)
 #include <crtdbg.h>
 #endif
 
@@ -61,6 +61,13 @@ static bool	vsysError(const char *fm, va_list args);
 #define	optionString(s) { if (argc > 1) \
 			  { if ( s ) remove_string(s); \
 			    s = store_string(argv[1]); \
+			    argc--; argv++; \
+			  } else \
+			  { return -1; \
+			  } \
+			}
+#define	optionList(l)   { if (argc > 1) \
+			  { opt_append(l, store_string(argv[1])); \
 			    argc--; argv++; \
 			  } else \
 			  { return -1; \
@@ -105,6 +112,22 @@ longopt(const char *opt, int argc, const char **argv)
   }
 
   return NULL;
+}
+
+
+static int
+opt_append(opt_list **l, char *s)
+{ GET_LD
+  opt_list *n = allocHeap(sizeof(*n));
+
+  n->opt_val = s;
+  n->next = NULL;
+
+  while(*l)
+    l = &(*l)->next;
+  *l = n;
+
+  return TRUE;
 }
 
 
@@ -325,7 +348,7 @@ static void
 initDefaults()
 { GET_LD
 
-  systemDefaults.arch	     = ARCH;
+  systemDefaults.arch	     = PLARCH;
   systemDefaults.local       = DEFLOCAL;
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
@@ -411,7 +434,7 @@ initDefaultOptions()
   GD->options.goal	    = store_string(systemDefaults.goal);
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
   GD->options.initFile      = store_string(systemDefaults.startup);
-  GD->options.scriptFile    = store_string("");
+  GD->options.scriptFiles   = NULL;
   GD->options.saveclass	    = store_string("none");
 
   if ( !GD->bootsession && GD->resourceDB )
@@ -490,13 +513,14 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'O':	GD->cmdline.optimise = TRUE; /* see initFeatures() */
 			break;
 	case 'x':
-  	case 'o':	optionString(GD->options.compileOut);
+	case 'o':	optionString(GD->options.compileOut);
 			break;
 	case 'f':	optionString(GD->options.initFile);
 			break;
 	case 'F':	optionString(GD->options.systemInitFile);
 			break;
-	case 's':	optionString(GD->options.scriptFile);
+	case 'l':
+	case 's':	optionList(&GD->options.scriptFiles);
 			break;
 	case 'g':	optionString(GD->options.goal);
 			break;
@@ -991,6 +1015,7 @@ usage()
     "    -g goal          Initialisation goal\n",
     "    -f file          User initialisation file\n",
     "    -F file          System initialisation file\n",
+    "    -l file          Script source file\n",
     "    -s file          Script source file\n",
     "    [+/-]tty         Allow tty control\n",
     "    -O               Optimised compilation\n",
@@ -1020,7 +1045,7 @@ version()
 	  PLVERSION / 10000,
 	  (PLVERSION / 100) % 100,
 	  PLVERSION % 100,
-	  ARCH);
+	  PLARCH);
 
   return TRUE;
 }
@@ -1028,7 +1053,7 @@ version()
 
 static int
 arch()
-{ Sprintf("%s\n", ARCH);
+{ Sprintf("%s\n", PLARCH);
 
   return TRUE;
 }
@@ -1078,7 +1103,7 @@ runtime_vars(int format)
 
   printvar("CC",	C_CC, format);
   printvar("PLBASE",	home, format);
-  printvar("PLARCH",	ARCH, format);
+  printvar("PLARCH",	PLARCH, format);
   printvar("PLLIBS",	C_LIBS, format);
   printvar("PLLIB",	C_PLLIB, format);
   printvar("PLCFLAGS",  C_CFLAGS, format);
@@ -1172,7 +1197,8 @@ PL_cleanup(int rval)
 
   LOCK();
   GD->cleaning = CLN_ACTIVE;
-
+  emptyStacks();			/* no need for this and we may be */
+					/* out of stack */
   pl_notrace();				/* avoid recursive tracing */
 #ifdef O_PROFILE
   resetProfiler();			/* don't do profiling anymore */
@@ -1310,8 +1336,12 @@ vsysError(const char *fm, va_list args)
 { GET_LD
   static int active = 0;
 
-  if ( active++ )
-    PL_halt(3);
+  switch ( active++ )
+  { case 1:
+      PL_halt(3);
+    case 2:
+      abort();
+  }
 
 #ifdef O_PLMT
   Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d\n\t",
@@ -1371,14 +1401,23 @@ action:
 
 void
 vfatalError(const char *fm, va_list args)
-{
-#ifdef __WINDOWS__
-  char msg[500];
-  Ssprintf(msg, "[FATAL ERROR:\n\t");
-  Svsprintf(&msg[strlen(msg)], fm, args);
-  Ssprintf(&msg[strlen(msg)], "]");
+{ static int active = 0;
 
-  PlMessage(msg);
+  switch ( active++ )
+  { case 1:
+      exit(2);
+    case 2:
+      abort();
+  }
+
+#ifdef __WINDOWS__
+  { char msg[500];
+    Ssprintf(msg, "[FATAL ERROR:\n\t");
+    Svsprintf(&msg[strlen(msg)], fm, args);
+    Ssprintf(&msg[strlen(msg)], "]");
+
+    PlMessage(msg);
+  }
 #else
   Sfprintf(Serror, "[FATAL ERROR:\n\t");
   Svfprintf(Serror, fm, args);
@@ -1408,7 +1447,7 @@ vwarning(const char *fm, va_list args)
   { fid_t cid = 0;
 
     if ( !GD->bootsession && GD->initialised &&
-	 !LD->outofstack && 		/* cannot call Prolog */
+	 !LD->outofstack &&		/* cannot call Prolog */
 	 !fm[0] == '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
       char *s = message;

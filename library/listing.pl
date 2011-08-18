@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -33,23 +34,71 @@
 	[ listing/0,
 	  listing/1,
 	  portray_clause/1,		% +Clause
-	  portray_clause/2		% +Stream, +Clause
+	  portray_clause/2,		% +Stream, +Clause
+	  portray_clause/3		% +Stream, +Clause, +Options
 	]).
-:- use_module(library(lists), [member/2]).
+:- use_module(library(lists)).
+:- use_module(library(settings)).
+:- use_module(library(option)).
+:- use_module(library(error)).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
 	listing/0.
 :- meta_predicate
-	listing(:).
+	listing(:),
+	portray_clause(+,+,:).
 
 :- multifile
 	prolog:locate_clauses/2.	% +Spec, -ClauseRefList
 
+/** <module> List programs and pretty print clauses
+
+This module implements listing code from  the internal representation in
+a human readable format.
+
+    * listing/0 lists a module.
+    * listing/1 lists a predicate or matching clause
+    * portray_clause/2 pretty-prints a clause-term
+
+Layout can be customized using library(settings). The effective settings
+can be listed using list_settings/1 as   illustrated below. Settings can
+be changed using set_setting/2.
+
+    ==
+    ?- list_settings(listing).
+    ========================================================================
+    Name                      Value (*=modified) Comment
+    ========================================================================
+    listing:body_indentation  8              Indentation used goals in the body
+    listing:tab_distance      8              Distance between tab-stops.
+    ...
+    ==
+
+@tbd	More settings, support _|Coding Guidelines for Prolog|_ and make
+	the suggestions there the default.
+@tbd	Provide persistent user customization
+*/
+
+:- setting(listing:body_indentation, nonneg, 8,
+	   'Indentation used goals in the body').
+:- setting(listing:tab_distance, nonneg, 8,
+	   'Distance between tab-stops.  0 uses only spaces').
+:- setting(listing:cut_on_same_line, boolean, true,
+	   'Place cuts (!) on the same line').
+:- setting(listing:line_width, nonneg, 78,
+	   'Width of a line.  0 is infinite').
+
+
 %%	listing
 %
-%	Lists all predicates defined in the calling module. Imported
-%	predicates are not listed.
+%	Lists all predicates defined  in   the  calling module. Imported
+%	predicates are not listed. To  list   the  content of the module
+%	=mymodule=, use:
+%
+%	  ==
+%	  ?- mymodule:listing.
+%	  ==
 
 listing :-
 	context_module(Context),
@@ -69,9 +118,23 @@ listing :-
 listing.
 
 
-%%	listing(+PredIndicators)
+%%	listing(+What)
 %
-%	List the given predicates
+%	List matching clauses. What is either a plain specification or a
+%	list of specifications. Plain specifications are:
+%
+%	  * Predicate indicator (Name/Arity or Name//Arity)
+%	  Lists the indicated predicate.  This also outputs relevant
+%	  _declarations_, such as multifile/1 or dynamic/1.
+%
+%	  * A _Head_ term.  In this case, only clauses whose head
+%	  unify with _Head_ are listed.  This is illustrated in the
+%	  query below that only lists the first clause of append/3.
+%
+%	    ==
+%	    ?- listing(append([], _, _)).
+%	    lists:append([], A, A).
+%	    ==
 
 listing(V) :-
 	var(V), !,       % ignore variables
@@ -148,6 +211,7 @@ decl(thread_local, thread_local).
 decl(dynamic,	   dynamic).
 decl(volatile,	   volatile).
 decl(multifile,	   multifile).
+decl(public,	   public).
 
 declaration(Pred, Source, Decl) :-
 	decl(Prop, Declname),
@@ -205,12 +269,17 @@ notify_changed(_, _).
 
 %%	portray_clause(+Clause) is det.
 %%	portray_clause(+Out:stream, +Clause) is det.
+%%	portray_clause(+Out:stream, +Clause, +Options) is det.
 %
 %	Portray `Clause' on the current  output   stream.  Layout of the
 %	clause is to our best standards.   As  the actual variable names
 %	are not available we use A, B, ... Deals with ';', '|', '->' and
-%	various calls via  meta-call  predicates.   If  Clause  contains
-%	attributed variables, these are treated as normal variables.
+%	calls via meta-call predicates as determined using the predicate
+%	property   meta_predicate.   If   Clause   contains   attributed
+%	variables, these are treated as normal variables.
+%
+%	If  Options  is  provided,   the    option-list   is  passed  to
+%	write_term/3 that does the final writing of arguments.
 
 %	The prolog_list_goal/1 hook is  a  dubious   as  it  may lead to
 %	confusion if the heads relates to other   bodies.  For now it is
@@ -225,24 +294,32 @@ portray_clause(Term) :-
 	portray_clause(Out, Term).
 
 portray_clause(Stream, Term) :-
+	portray_clause(Stream, Term, []).
+
+portray_clause(Stream, Term, M:Options) :-
+	must_be(list, Options),
+	meta_options(is_meta, M:Options, QOptions),
 	\+ \+ ( copy_term_nat(Term, Copy),
 		numbervars(Copy, 0, _,
 			   [ singletons(true)
 			   ]),
-		do_portray_clause(Stream, Copy)
+		do_portray_clause(Stream, Copy, QOptions)
 	      ).
 
-do_portray_clause(Out, Var) :-
+is_meta(portray_goal).
+
+do_portray_clause(Out, Var, Options) :-
 	var(Var), !,
-	pprint(Out, Var, 1200).
-do_portray_clause(Out, (Head :- true)) :- !,
-	pprint(Out, Head, 1200),
+	pprint(Out, Var, 1200, Options).
+do_portray_clause(Out, (Head :- true), Options) :- !,
+	pprint(Out, Head, 1200, Options),
 	full_stop(Out).
-do_portray_clause(Out, (Head :- Body)) :- !,
+do_portray_clause(Out, Term, Options) :-
+	clause_term(Term, Head, Neck, Body), !,
 	inc_indent(0, 1, Indent),
-	infix_op((:-), LeftPri, RightPri),
-	pprint(Out, Head, LeftPri),
-	write(Out, ' :-'),
+	infix_op(Neck, RightPri, LeftPri),
+	pprint(Out, Head, LeftPri, Options),
+	format(Out, ' ~w', [Neck]),
 	(   nonvar(Body),
 	    Body = Module:LocalBody,
 	    \+ primitive(LocalBody)
@@ -252,80 +329,92 @@ do_portray_clause(Out, (Head :- Body)) :- !,
 	    nlindent(Out, Indent),
 	    write(Out, '(   '),
 	    inc_indent(Indent, 1, BodyIndent),
-	    portray_body(LocalBody, BodyIndent, noindent, 1200, Out),
+	    portray_body(LocalBody, BodyIndent, noindent, 1200, Out, Options),
 	    nlindent(Out, Indent),
 	    write(Out, ')')
-	;   inc_indent(0, 2, BodyIndent),
-	    portray_body(Body, BodyIndent, indent, RightPri, Out)
+	;   setting(listing:body_indentation, BodyIndent),
+	    portray_body(Body, BodyIndent, indent, RightPri, Out, Options)
 	),
 	full_stop(Out).
-do_portray_clause(Out, (:-use_module(File, Imports))) :-
+do_portray_clause(Out, (:-use_module(File, Imports)), Options) :-
 	length(Imports, Len),
 	Len > 3, !,
 	format(Out, ':- use_module(~q,', [File]),
-	portray_list(Imports, 14, Out),
+	portray_list(Imports, 14, Out, Options),
 	write(Out, ').\n').
-do_portray_clause(Out, (:-module(Module, Exports))) :- !,
+do_portray_clause(Out, (:-module(Module, Exports)), Options) :- !,
 	format(Out, ':- module(~q,', [Module]),
-	portray_list(Exports, 10, Out),
+	portray_list(Exports, 10, Out, Options),
 	write(Out, ').\n').
-do_portray_clause(Out, (:-Directive)) :- !,
+do_portray_clause(Out, (:-Directive), Options) :- !,
 	write(Out, ':- '),
-	portray_body(Directive, 3, noindent, 1199, Out),
+	portray_body(Directive, 3, noindent, 1199, Out, Options),
 	full_stop(Out).
-do_portray_clause(Out, Fact) :-
-	portray_body(Fact, 0, noindent, 1200, Out),
+do_portray_clause(Out, Fact, Options) :-
+	portray_body(Fact, 0, noindent, 1200, Out, Options),
 	full_stop(Out).
+
+clause_term((Head:-Body), Head, :-, Body).
+clause_term((Head-->Body), Head, -->, Body).
 
 full_stop(Out) :-
 	'$put_token'(Out, '.'),
 	nl(Out).
 
 
-%%	portray_body(+Term, +Indent, +DoIndent, +Priority, +Out)
+%%	portray_body(+Term, +Indent, +DoIndent, +Priority, +Out, +Options)
 %
 %	Write Term at current indentation. If   DoIndent  is 'indent' we
 %	must first call nlindent/2 before emitting anything.
 
-portray_body(Var, _, _, Pri, Out) :-
+portray_body(Var, _, _, Pri, Out, Options) :-
 	var(Var), !,
-	pprint(Out, Var, Pri).
-portray_body(!, _, _, _, Out) :- !,
+	pprint(Out, Var, Pri, Options).
+portray_body(!, _, _, _, Out, _) :-
+	setting(listing:cut_on_same_line, true), !,
 	write(Out, ' !').
-portray_body((!, Clause), Indent, _, Pri, Out) :-
+portray_body((!, Clause), Indent, _, Pri, Out, Options) :-
+	setting(listing:cut_on_same_line, true),
 	\+ term_needs_braces((_,_), Pri), !,
 	write(Out, ' !,'),
-	portray_body(Clause, Indent, indent, 1000, Out).
-portray_body(Term, Indent, indent, Pri, Out) :- !,
+	portray_body(Clause, Indent, indent, 1000, Out, Options).
+portray_body(Term, Indent, indent, Pri, Out, Options) :- !,
 	nlindent(Out, Indent),
-	portray_body(Term, Indent, noindent, Pri, Out).
-portray_body(Or, Indent, _, _, Out) :-
+	portray_body(Term, Indent, noindent, Pri, Out, Options).
+portray_body(Or, Indent, _, _, Out, Options) :-
 	or_layout(Or), !,
 	write(Out, '(   '),
-	portray_or(Or, Indent, 1200, Out),
+	portray_or(Or, Indent, 1200, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, ')').
-portray_body(Term, Indent, _, Pri, Out) :-
+portray_body(Term, Indent, _, Pri, Out, Options) :-
 	term_needs_braces(Term, Pri), !,
-	write(Out, '(   '),
-	portray_body(Term, Indent, noindent, 1200, Out),
+	write(Out, '( '),
+	ArgIndent is Indent + 2,
+	portray_body(Term, ArgIndent, noindent, 1200, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, ')').
-portray_body((A,B), Indent, _, _Pri, Out) :- !,
+portray_body((A,B), Indent, _, _Pri, Out, Options) :- !,
 	infix_op(',', LeftPri, RightPri),
-	portray_body(A, Indent, noindent, LeftPri, Out),
+	portray_body(A, Indent, noindent, LeftPri, Out, Options),
 	write(Out, ','),
-	portray_body(B, Indent, indent, RightPri, Out).
-portray_body(\+(Goal), Indent, _, _Pri, Out) :- !,
+	portray_body(B, Indent, indent, RightPri, Out, Options).
+portray_body(\+(Goal), Indent, _, _Pri, Out, Options) :- !,
 	write(Out, \+), write(Out, ' '),
 	prefix_op(\+, ArgPri),
 	ArgIndent is Indent+3,
-	portray_body(Goal, ArgIndent, noindent, ArgPri, Out).
-portray_body(Meta, Indent, _, Pri, Out) :-
-	meta_call(Meta, N), !,
-	portray_meta(Out, Meta, N, Indent, Pri).
-portray_body(Clause, _, _, Pri, Out) :-
-	pprint(Out, Clause, Pri).
+	portray_body(Goal, ArgIndent, noindent, ArgPri, Out, Options).
+portray_body(Call, _, _, _, Out, Options) :- % requires knowledge on the module!
+	m_callable(Call),
+	predicate_property(Call, meta_predicate(Meta)), !,
+	portray_meta(Out, Call, Meta, Options).
+portray_body(Clause, _, _, Pri, Out, Options) :-
+	pprint(Out, Clause, Pri, Options).
+
+m_callable(Term) :-
+	strip_module(Term, _, Plain),
+	callable(Plain),
+	Plain \= (_:_).
 
 term_needs_braces(Term, Pri) :-
 	callable(Term),
@@ -335,71 +424,71 @@ term_needs_braces(Term, Pri) :-
 
 %%	portray_or(+Term, +Indent, +Priority, +Out) is det.
 
-portray_or(Term, Indent, Pri, Out) :-
+portray_or(Term, Indent, Pri, Out, Options) :-
 	term_needs_braces(Term, Pri), !,
 	inc_indent(Indent, 1, NewIndent),
 	write(Out, '(   '),
-	portray_or(Term, NewIndent, Out),
+	portray_or(Term, NewIndent, Out, Options),
 	nlindent(Out, NewIndent),
 	write(Out, ')').
-portray_or(Term, Indent, _Pri, Out) :-
+portray_or(Term, Indent, _Pri, Out, Options) :-
 	or_layout(Term), !,
-	portray_or(Term, Indent, Out).
-portray_or(Term, Indent, Pri, Out) :-
+	portray_or(Term, Indent, Out, Options).
+portray_or(Term, Indent, Pri, Out, Options) :-
 	inc_indent(Indent, 1, NestIndent),
-	portray_body(Term, NestIndent, noindent, Pri, Out).
+	portray_body(Term, NestIndent, noindent, Pri, Out, Options).
 
 
-portray_or((If -> Then ; Else), Indent, Out) :- !,
+portray_or((If -> Then ; Else), Indent, Out, Options) :- !,
 	inc_indent(Indent, 1, NestIndent),
 	infix_op((->), LeftPri, RightPri),
-	portray_body(If, NestIndent, noindent, LeftPri, Out),
+	portray_body(If, NestIndent, noindent, LeftPri, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, '->  '),
-	portray_body(Then, NestIndent, noindent, RightPri, Out),
+	portray_body(Then, NestIndent, noindent, RightPri, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, ';   '),
 	infix_op(;, _LeftPri, RightPri2),
-	portray_or(Else, Indent, RightPri2, Out).
-portray_or((If *-> Then ; Else), Indent, Out) :- !,
+	portray_or(Else, Indent, RightPri2, Out, Options).
+portray_or((If *-> Then ; Else), Indent, Out, Options) :- !,
 	inc_indent(Indent, 1, NestIndent),
 	infix_op((*->), LeftPri, RightPri),
-	portray_body(If, NestIndent, noindent, LeftPri, Out),
+	portray_body(If, NestIndent, noindent, LeftPri, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, '*-> '),
-	portray_body(Then, NestIndent, noindent, RightPri, Out),
+	portray_body(Then, NestIndent, noindent, RightPri, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, ';   '),
 	infix_op(;, _LeftPri, RightPri2),
-	portray_or(Else, Indent, RightPri2, Out).
-portray_or((If -> Then), Indent, Out) :- !,
+	portray_or(Else, Indent, RightPri2, Out, Options).
+portray_or((If -> Then), Indent, Out, Options) :- !,
 	inc_indent(Indent, 1, NestIndent),
 	infix_op((->), LeftPri, RightPri),
-	portray_body(If, NestIndent, noindent, LeftPri, Out),
+	portray_body(If, NestIndent, noindent, LeftPri, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, '->  '),
-	portray_or(Then, Indent, RightPri, Out).
-portray_or((If *-> Then), Indent, Out) :- !,
+	portray_or(Then, Indent, RightPri, Out, Options).
+portray_or((If *-> Then), Indent, Out, Options) :- !,
 	inc_indent(Indent, 1, NestIndent),
 	infix_op((->), LeftPri, RightPri),
-	portray_body(If, NestIndent, noindent, LeftPri, Out),
+	portray_body(If, NestIndent, noindent, LeftPri, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, '*-> '),
-	portray_or(Then, Indent, RightPri, Out).
-portray_or((A;B), Indent, Out) :- !,
+	portray_or(Then, Indent, RightPri, Out, Options).
+portray_or((A;B), Indent, Out, Options) :- !,
 	inc_indent(Indent, 1, NestIndent),
 	infix_op(;, LeftPri, RightPri),
-	portray_body(A, NestIndent, noindent, LeftPri, Out),
+	portray_body(A, NestIndent, noindent, LeftPri, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, ';   '),
-	portray_or(B, Indent, RightPri, Out).
-portray_or((A|B), Indent, Out) :- !,
+	portray_or(B, Indent, RightPri, Out, Options).
+portray_or((A|B), Indent, Out, Options) :- !,
 	inc_indent(Indent, 1, NestIndent),
 	infix_op('|', LeftPri, RightPri),
-	portray_body(A, NestIndent, noindent, LeftPri, Out),
+	portray_body(A, NestIndent, noindent, LeftPri, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, '|   '),
-	portray_or(B, Indent, RightPri, Out).
+	portray_or(B, Indent, RightPri, Out, Options).
 
 
 %%	infix_op(+Op, -Left, -Right) is semidet.
@@ -416,7 +505,6 @@ infix_op(Op, Left, Right) :-
 infix_assoc(xfx, 1, 1).
 infix_assoc(xfy, 1, 0).
 infix_assoc(yfx, 0, 1).
-infix_assoc(yfy, 0, 0).
 
 prefix_op(Op, ArgPri) :-
 	current_op(Pri, Assoc, Op),
@@ -425,6 +513,14 @@ prefix_op(Op, ArgPri) :-
 
 pre_assoc(fx, 1).
 pre_assoc(fy, 0).
+
+postfix_op(Op, ArgPri) :-
+	current_op(Pri, Assoc, Op),
+	post_assoc(Assoc, ArgMin), !,
+	ArgPri is Pri - ArgMin.
+
+post_assoc(xf, 1).
+post_assoc(yf, 0).
 
 %%	or_layout(@Term) is semidet.
 %
@@ -444,74 +540,282 @@ primitive(G) :-
 primitive((_,_)) :- !, fail.
 primitive(_).
 
-%%	meta_call(+Goal, -Arg) is semidet.
-%
-%	True if Goal is a meta-predicate for which we wish to format the
-%	arguments.
-%
-%	@tbd	This really must be  synchronised with meta_predicate
-%		to fix this.
 
-meta_call(call(_), 1).
-meta_call(once(_), 1).
-meta_call(not(_), 1).
-meta_call(ignore(_), 1).
+%%	portray_meta(+Out, +Call, +MetaDecl, +Options)
+%
+%	Portray a meta-call. If Call   contains non-primitive meta-calls
+%	we put each argument on a line and layout the body. Otherwise we
+%	simply print the goal.
 
-portray_meta(Out, Term, N, Indent, _Pri) :-
-	arg(N, Term, Arg),
-	or_layout(Arg), !,
-	functor(Term, Name, _),
-	format(Out, '~q((   ', [Name]),
-	atom_length(Name, Alen),
-	BraceIndent is Indent+Alen+1,
-	portray_or(Arg, BraceIndent, Out),
-	nlindent(Out, BraceIndent),
-	write(Out, '))').
-portray_meta(Out, Term, _, _, Pri) :-
-	pprint(Out, Term, Pri).
+portray_meta(Out, Call, Meta, Options) :-
+	contains_non_primitive_meta_arg(Call, Meta), !,
+	Call =.. [Name|Args],
+	Meta =.. [_|Decls],
+	format(Out, '~q(', [Name]),
+	line_position(Out, Indent),
+	portray_meta_args(Decls, Args, Indent, Out, Options),
+	format(Out, ')', []).
+portray_meta(Out, Call, _, Options) :-
+	pprint(Out, Call, 999, Options).
+
+contains_non_primitive_meta_arg(Call, Decl) :-
+	arg(I, Call, CA),
+	arg(I, Decl, DA),
+	integer(DA),
+	\+ primitive(CA), !.
+
+portray_meta_args([], [], _, _, _).
+portray_meta_args([D|DT], [A|AT], Indent, Out, Options) :-
+	portray_meta_arg(D, A, Out, Options),
+	(   DT == []
+	->  true
+	;   format(Out, ',', []),
+	    nlindent(Out, Indent),
+	    portray_meta_args(DT, AT, Indent, Out, Options)
+	).
+
+portray_meta_arg(I, A, Out, Options) :-
+	integer(I), !,
+	line_position(Out, Indent),
+	portray_body(A, Indent, noindent, 999, Out, Options).
+portray_meta_arg(_, A, Out, Options) :-
+	pprint(Out, A, 999, Options).
 
 %%	portray_list(+List, +Indent, +Out)
 %
-%	Portray a list list this.  Right side for improper lists
+%	Portray a list like this.  Right side for improper lists
 %
 %		[ element1,		[ element1
 %		  element2,	OR	| tail
 %		]			]
 
-portray_list([], _, Out) :- !,
+portray_list([], _, Out, _) :- !,
 	write(Out, []).
-portray_list(List, Indent, Out) :-
+portray_list(List, Indent, Out, Options) :-
 	nlindent(Out, Indent),
 	write(Out, '[ '),
 	EIndent is Indent + 2,
-	portray_list_elements(List, EIndent, Out),
+	portray_list_elements(List, EIndent, Out, Options),
 	nlindent(Out, Indent),
 	write(Out, ']').
 
-portray_list_elements([H|T], EIndent, Out) :-
-	pprint(Out, H, 999),
+portray_list_elements([H|T], EIndent, Out, Options) :-
+	pprint(Out, H, 999, Options),
 	(   T == []
 	->  true
 	;   nonvar(T), T = [_|_]
 	->  write(Out, ','),
 	    nlindent(Out, EIndent),
-	    portray_list_elements(T, EIndent, Out)
+	    portray_list_elements(T, EIndent, Out, Options)
 	;   Indent is EIndent - 2,
 	    nlindent(Out, Indent),
 	    write(Out, '| '),
-	    pprint(Out, T, 999)
+	    pprint(Out, T, 999, Options)
 	).
+
+%%	pprint(+Out, +Term, +Priority, +Options)
+%
+%	Print  Term  at  Priority.  This  also  takes  care  of  several
+%	formatting options, in particular:
+%
+%	  * {}(Arg) terms are printed with aligned arguments, assuming
+%	  that the term is a body-term.
+%	  * Terms that do not fit on the line are wrapped using
+%	  pprint_wrapped/3.
+%
+%	@tbd	Decide when and how to wrap long terms.
+
+pprint(Out, Term, _, Options) :-
+	nonvar(Term),
+	Term = {}(Arg),
+	line_position(Out, Indent),
+	ArgIndent is Indent + 2,
+	format(Out, '{ ', []),
+	portray_body(Arg, ArgIndent, noident, 1000, Out, Options),
+	nlindent(Out, Indent),
+	format(Out, '}', []).
+pprint(Out, Term, Pri, Options) :-
+	compound(Term),
+	\+ nowrap_term(Term),
+	setting(listing:line_width, Width),
+	Width > 0,
+	print_length(Term, Width, Len, Options),
+	line_position(Out, Indent),
+	Indent + Len > Width,
+	Len > Width/4, !,		% ad-hoc rule for deeply nested goals
+	pprint_wrapped(Out, Term, Pri, Options).
+pprint(Out, Term, Pri, Options) :-
+	listing_write_options(Pri, WrtOptions, Options),
+	write_term(Out, Term, WrtOptions).
+
+nowrap_term('$VAR'(_)) :- !.
+nowrap_term(Term) :-
+	functor(Term, Name, Arity),
+	current_op(_, _, Name),
+	(   Arity == 2
+	->  infix_op(Name, _, _)
+	;   Arity == 1
+	->  (   prefix_op(Name, _)
+	    ->	true
+	    ;	postfix_op(Name, _)
+	    )
+	).
+
+
+pprint_wrapped(Out, Term, _, Options) :-
+	Term = [_|_], !,
+	line_position(Out, Indent),
+	portray_list(Term, Indent, Out, Options).
+pprint_wrapped(Out, Term, _, Options) :-
+	Term =.. [Name|Args],
+	format(Out, '~q(', Name),
+	line_position(Out, Indent),
+	pprint_args(Args, Indent, Out, Options),
+	format(Out, ')', []).
+
+pprint_args([], _, _, _).
+pprint_args([H|T], Indent, Out, Options) :-
+	pprint(Out, H, 999, Options),
+	(   T == []
+	->  true
+	;   format(Out, ',', []),
+	    nlindent(Out, Indent),
+	    pprint_args(T, Indent, Out, Options)
+	).
+
+
+%%	print_length(+Term, +MaxLen, -Len, +Options) is det.
+%
+%	Determine the number of  characters   emitted  for writing Term.
+%	Stop processing if MaxLen is  reached.   Len  may be larger than
+%	MaxLen, but only by the length of the last sub-term processed.
+%
+%	@bug	This is an aproximation.  Notably, we do not deal with
+%		quoted atoms, character escapes, small differences
+%		between operator and canonical notation, portray, etc. One way
+%		is to write the term to a null-stream, but the term may
+%		be huge, making this process unacceptably slow.
+%
+%		One solution may be to have a stream with a
+%		length-limit, but that will use exception handling as
+%		a normal process and requires dubious extensions to
+%		the stream implementation.
+
+:- public
+	print_length/4.
+
+print_length(Term, MaxLen, Len, Options) :-
+	current_prolog_flag(max_tagged_integer, MD),
+	option(max_depth(MaxDepth), Options, MD),
+	print_length(Term, MaxDepth, MaxLen, 0, Len).
+
+print_length(_, _, MaxLen, Len0, Len) :-
+	Len0 > MaxLen, !,
+	Len = Len0.
+print_length(_, MaxDepth, _, Len0, Len) :-
+	MaxDepth =< 0, !,
+	Len is Len0 + 3.			% ...
+print_length(Term, _, _, Len0, Len) :-
+	atomic(Term), !,
+	atom_length(Term, AL),
+	Len is Len0+AL.
+print_length(Var, _, _, Len0, Len) :-
+	var(Var), !,			% Only to support print_term/2
+	Len is Len0 + 4.
+print_length('$VAR'(Name), MaxDepth, MaxLen, Len0, Len) :- !,
+	(   atom(Name)
+	->  atom_length(Name, VL),
+	    Len is Len0+VL
+	;   integer(Name)
+	->  I is Name//26,
+	    (	I == 0
+	    ->	VL = 1
+	    ;	atom_length(I, V0),
+		VL is V0+1
+	    ),
+	    Len is Len0+VL
+	;   Len1 is Len0+6+2,
+	    MaxDepth1 is MaxDepth - 1,
+	    print_args_len(1, 1, '$VAR'(Name), MaxDepth1, MaxLen, Len1, Len)
+	).
+print_length(List, MaxDepth, MaxLen, Len0, Len) :-
+	List = [_|_], !,
+	Len1 is Len0+2,
+	print_list_len(List, MaxDepth, MaxLen, Len1, Len).
+print_length(Term, MaxDepth, MaxLen, Len0, Len) :-
+	compound(Term), !,
+	functor(Term, Name, Arity),
+	atom_length(Name, NameLen),
+	Len1 is Len0+NameLen+2+2*(Arity-1),
+	MaxDepth1 is MaxDepth - 1,
+	print_args_len(1, Arity, Term, MaxDepth1, MaxLen, Len1, Len).
+
+print_args_len(_, _, _, _, MaxLen, Len0, Len) :-
+	Len0 > MaxLen, !,
+	Len = Len0.
+print_args_len(Arity, Arity, Term, MaxDepth, MaxLen, Len0, Len) :- !,
+	arg(Arity, Term, A),			% last argument optimization
+	print_length(A, MaxDepth, MaxLen, Len0, Len).
+print_args_len(I, Arity, Term, MaxDepth, MaxLen, Len0, Len) :- !,
+	arg(I, Term, A),
+	print_length(A, MaxDepth, MaxLen, Len0, Len1),
+	I2 is I + 1,
+	print_args_len(I2, Arity, Term, MaxDepth, MaxLen, Len1, Len).
+
+print_list_len(_, _, MaxLen, Len0, Len) :-
+	Len0 > MaxLen, !,
+	Len = Len0.
+print_list_len(_, MaxDepth, _, Len0, Len) :-
+	MaxDepth =< 0, !,
+	Len is Len0 + 4.				% |...
+print_list_len(Var, _, _, Len0, Len) :-
+	var(Var), !,				% should not happen
+	Len is Len0 + 2.
+print_list_len([], _, _, Len0, Len) :- !,
+	Len is Len0.
+print_list_len([H|T], MaxDepth, MaxLen, Len0, Len) :- !,
+	MaxDepth1 is MaxDepth - 1,
+	print_length(H, MaxDepth, MaxLen, Len0, Len1),
+	(   T == []
+	->  Len is Len1
+	;   Len2 is Len1+2,
+	    print_list_len(T, MaxDepth1, MaxLen, Len2, Len)
+	).
+print_list_len(Tail, MaxDepth, MaxLen, Len0, Len) :-
+	Len1 is Len0 + 1,
+	print_length(Tail, MaxDepth, MaxLen, Len1, Len).
+
+
+%%	listing_write_options(+Priority, -WriteOptions) is det.
+%
+%	WriteOptions are write_term/3 options for writing a term at
+%	priority Priority.
+
+listing_write_options(Pri,
+		      [ quoted(true),
+			numbervars(true),
+			priority(Pri),
+			spacing(next_argument)
+		      | Options
+		      ],
+		      Options).
 
 %%	nlindent(+Out, +Indent)
 %
-%	Write newline and indent to column Indent.
+%	Write newline and indent to  column   Indent.  Uses  the setting
+%	listing:tab_distance to determine the mapping   between tabs and
+%	spaces.
 
 nlindent(Out, N) :-
 	nl(Out),
-	Tab is N // 8,
-	Space is N mod 8,
-	put_tabs(Out, Tab),
-	tab(Out, Space).
+	setting(listing:tab_distance, D),
+	(   D =:= 0
+	->  tab(Out, N)
+	;   Tab is N // D,
+	    Space is N mod D,
+	    put_tabs(Out, Tab),
+	    tab(Out, Space)
+	).
 
 put_tabs(Out, N) :-
 	N > 0, !,
@@ -528,14 +832,3 @@ put_tabs(_, _).
 inc_indent(Indent0, Inc, Indent) :-
 	Indent is Indent0 + Inc*4.
 
-%%	pprint(+Out, +Term, +Priority)
-%
-%	Print Term such that it can be read.
-
-pprint(Out, Term, Pri) :-
-	write_term(Out, Term,
-		   [ quoted(true),
-		     numbervars(true),
-		     priority(Pri),
-		     spacing(next_argument)
-		   ]).

@@ -12,9 +12,7 @@ test_factorize :-
 :- meta_predicate ok(+, 0).
 
 factorize_term(Term, Skeleton, Substitution) :-
-	F = f(Term),
-	'$factorize_term'(F, Substitution),
-	arg(1, F, Skeleton).
+	'$factorize_term'(Term, Skeleton, Substitution).
 
 test_factor(Term) :-
 	copy_term(Term, Save),

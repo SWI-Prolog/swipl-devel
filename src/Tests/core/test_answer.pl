@@ -94,6 +94,8 @@ test(double_cycle, true) :-
 test_answer :-
 	format(user_error, 'Skipped toplevel answer tests; requires clib~n', []).
 
+test_answer(_QueryAtom, _Replies).	% satisfy exports
+
 :- endif.
 
 

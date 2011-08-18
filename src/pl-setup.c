@@ -26,6 +26,7 @@
 
 #define GLOBAL SO_LOCAL			/* allocate global variables here */
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 #include "pl-dbref.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
@@ -84,7 +85,9 @@ setupProlog(void)
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   if ( truePrologFlag(PLFLAG_SIGNALS) )
-    initSignals();
+  { initSignals();
+    initBackTrace();
+  }
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.localSize,
@@ -182,7 +185,7 @@ provide very few.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static struct signame
-{ int 	      sig;
+{ int	      sig;
   const char *name;
   int	      flags;
 } signames[] =
@@ -277,7 +280,7 @@ static struct signame
   { -1,		NULL,     0}
 };
 
-static const char *
+const char *
 signal_name(int sig)
 { struct signame *sn = signames;
 
@@ -572,10 +575,12 @@ unprepareSignal(int sig)
 }
 
 
+#ifdef SIGHUP
 static void
 hupHandler(int sig)
 { PL_halt(2);
 }
+#endif
 
 
 static void
@@ -708,10 +713,26 @@ resetSignals()
 
 void
 allSignalMask(sigset_t *set)
-{ sigfillset(set);
+{ static sigset_t allmask;
+  static int done = FALSE;
+
+  if ( !done )
+  { sigset_t tmp;
+
+    sigfillset(&tmp);
+    sigdelset(&tmp, SIGSTOP);
+    sigdelset(&tmp, SIGCONT);
+    sigdelset(&tmp, SIGQUIT);
+    sigdelset(&tmp, SIGSEGV);
+    sigdelset(&tmp, SIGBUS);
 #ifdef O_PROFILE
-  sigdelset(set, SIGPROF);
+    sigdelset(&tmp, SIGPROF);
 #endif
+    allmask = tmp;
+    done = TRUE;
+  }
+
+  *set = allmask;
 }
 
 
@@ -805,7 +826,7 @@ PL_signal(int sigandflags, handler_t func)
     SigHandler sh;
     int sig = (sigandflags & 0xffff);
 
-    if ( sig > MAXSIGNAL )
+    if ( sig >= MAXSIGNAL )
     { warning("PL_signal(): illegal signal number: %d", sig);
       return SIG_DFL;
     }
@@ -1112,12 +1133,13 @@ emptyStack(Stack s)
 
 
 void
-emptyStacks()
+emptyStacks(void)
 { GET_LD
   int i;
 
   environment_frame = NULL;
   fli_context       = NULL;
+  LD->query         = NULL;
 
   emptyStack((Stack)&LD->stacks.local);
   emptyStack((Stack)&LD->stacks.global);
@@ -1146,7 +1168,7 @@ emptyStacks()
 
 
 		/********************************
-		*    	STACK ALLOCATION        *
+		*	STACK ALLOCATION        *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1158,7 +1180,7 @@ init_stack(Stack s, char *name,
 	   size_t size, size_t limit, size_t minfree, size_t spare)
 { GET_LD
 
-  s->name 	= name;
+  s->name	= name;
   s->top	= s->base;
   s->size_limit	= limit;
   s->spare      = spare;
@@ -1269,12 +1291,6 @@ stack_free(void *mem)
   PL_UNLOCK(L_MISC);
 
   free(sp);
-}
-
-
-void
-resetStacks()
-{ emptyStacks();
 }
 
 

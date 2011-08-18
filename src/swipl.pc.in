@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 PLBASE=${libdir}/@PL@-@PLVERSION@
-PLARCH=@ARCH@
+PLARCH=@PLARCH@
 PLLIBS=@LNLIBS@
 PLLIB=@USEPLLIB@
 PLCFLAGS=@CMFLAGS@ @CIFLAGS@
@@ -14,5 +14,5 @@ PLSOEXT=@SO_EXT@
 Name: pl
 Description: ISO/Edinburgh-style Prolog compiler
 Version: @PLVERSION@
-Libs: -L${libdir}/@PL@-@PLVERSION@/lib/@ARCH@ -lswipl
+Libs: -L${libdir}/@PL@-@PLVERSION@/lib/@PLARCH@ -lswipl
 Cflags: -I${includedir}

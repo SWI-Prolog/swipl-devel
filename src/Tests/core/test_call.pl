@@ -40,7 +40,8 @@ test_call :-
 		    cross_module_call,
 		    snip,
 		    no_autoload,
-		    setup_call_cleanup
+		    setup_call_cleanup,
+		    catch
 		  ]).
 
 :- begin_tests(call1).
@@ -254,3 +255,11 @@ test_error_choice :-
 a(_).
 
 :- end_tests(setup_call_cleanup).
+
+:- begin_tests(catch).
+
+test(exit_nondet, fail) :-
+	catch((true;throw(homer_simpson(38))),_E,true),
+	fail.
+
+:- end_tests(catch).

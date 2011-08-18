@@ -350,6 +350,7 @@ search_path('.', Here, 999, DirLen) :-
 	atom_length(Here, DirLen).
 search_path(Alias, Dir, AliasLen, DirLen) :-
 	user:file_search_path(Alias, _),
+	Alias \== autoload,
 	Spec =.. [Alias,'.'],
 	atom_length(Alias, AliasLen0),
 	AliasLen is 1000 - AliasLen0,	% must do reverse sort

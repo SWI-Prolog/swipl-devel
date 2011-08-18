@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -36,6 +37,7 @@ handling times must be cleaned, but that not only holds for this module.
 /*#define O_DEBUG 1*/
 /*#define O_DEBUG_MT 1*/
 
+#define NEEDS_SWINSOCK
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
@@ -701,15 +703,46 @@ getOutputStream(term_t t, IOSTREAM **s)
     using releaseStream() or streamStatus().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-getOutputStream(term_t t, IOSTREAM **stream)
-{ GET_LD
-  atom_t a;
+typedef enum
+{ S_DONTCARE = 0,
+  S_TEXT,
+  S_BINARY
+} s_type;
+
+
+static int
+checkStreamType(s_type text, IOSTREAM *s, atom_t *error ARG_LD)
+{ if ( text == S_DONTCARE || LD->IO.stream_type_check == ST_FALSE )
+    return TRUE;			/* no checking */
+
+					/* ok? */
+  if ( text == S_TEXT && (s->flags&SIO_TEXT) )
+    return TRUE;
+  if ( text == S_BINARY && !(s->flags&SIO_TEXT) )
+    return TRUE;
+					/* no */
+  if ( LD->IO.stream_type_check == ST_LOOSE )
+  { if ( text == S_TEXT )
+      return TRUE;
+    if ( s->encoding == ENC_ISO_LATIN_1 ||
+	 s->encoding == ENC_OCTET )
+      return TRUE;
+  }
+
+  *error = (text == S_TEXT ? ATOM_binary_stream : ATOM_text_stream);
+  return FALSE;
+}
+
+
+static int
+getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
+{ atom_t a;
   IOSTREAM *s;
+  atom_t tp;
 
   if ( t == 0 )
-  { if ( (*stream = getStream(Scurout)) )
-      return TRUE;
+  { if ( (s = getStream(Scurout)) )
+      goto ok;
     return no_stream(t);
   }
 
@@ -717,33 +750,49 @@ getOutputStream(term_t t, IOSTREAM **stream)
     return not_a_stream(t);
 
   if ( a == ATOM_user )
-  { if ( (*stream = getStream(Suser_output)) )
-      return TRUE;
+  { if ( (s = getStream(Suser_output)) )
+      goto ok;
     return no_stream(t);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_OUTPUT) )
     return FALSE;
 
+ok:
   if ( !(s->flags&SIO_OUTPUT) )
-  { releaseStream(s);
-    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		    ATOM_output, ATOM_stream, t);
+  { tp = ATOM_stream;
+  } else if ( checkStreamType(text, s, &tp PASS_LD) )
+  { *stream = s;
+    return TRUE;
   }
 
-  *stream = s;
-  return TRUE;
+  releaseStream(s);
+  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		  ATOM_output, tp, t);
 }
 
 
 int
-getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+getTextOutputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+{ return getOutputStream(t, S_TEXT, stream);
+}
+
+
+int
+getBinaryOutputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+{ return getOutputStream(t, S_BINARY, stream);
+}
+
+
+static int
+getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
 { atom_t a;
   IOSTREAM *s;
+  atom_t tp;
 
   if ( t == 0 )
-  { if ( (*stream = getStream(Scurin)) )
-      return TRUE;
+  { if ( (s = getStream(Scurin)) )
+      goto ok;
     return no_stream(t);
   }
 
@@ -751,22 +800,35 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
     return not_a_stream(t);
 
   if ( a == ATOM_user )
-  { if ( (*stream = getStream(Suser_input)) )
-      return TRUE;
+  { if ( (s = getStream(Suser_input)) )
+      goto ok;
     return no_stream(t);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
     return FALSE;
 
-  if ( !(s->flags &SIO_INPUT) )
-  { releaseStream(s);
-    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		    ATOM_input, ATOM_stream, t);
+ok:
+  if ( !(s->flags&SIO_INPUT) )
+  { tp = ATOM_stream;
+  } else if ( checkStreamType(text, s, &tp PASS_LD) )
+  { *stream = s;
+    return TRUE;
   }
 
-  *stream = s;
-  return TRUE;
+  releaseStream(s);
+  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		  ATOM_input, tp, t);
+}
+
+int
+getTextInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+{ return getInputStream__LD(t, S_TEXT, stream PASS_LD);
+}
+
+int
+getBinaryInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+{ return getInputStream__LD(t, S_BINARY, stream PASS_LD);
 }
 
 
@@ -796,8 +858,8 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
 	     PL_unify_stream_or_alias(A3, ref->write) );
   }
 
-  if ( getInputStream(A2, &in) &&
-       getOutputStream(A3, &out) )
+  if ( getInputStream(A2, S_DONTCARE, &in) &&
+       getOutputStream(A3, S_DONTCARE, &out) )
   { stream_ref ref;
 
     ref.read = in;
@@ -878,7 +940,13 @@ reportStreamError(IOSTREAM *s)
 	} else
 	  op = ATOM_read;
       } else
-	op = ATOM_write;
+      { if ( (s->flags & SIO_TIMEOUT) )
+	{ PL_error(NULL, 0, NULL, ERR_TIMEOUT,
+		   ATOM_write, stream);
+	  return FALSE;
+	} else
+	  op = ATOM_write;
+      }
 
       if ( s->message )
       { msg = s->message;
@@ -1018,23 +1086,6 @@ closeFiles(int all)
     }
   }
   freeTableEnum(e);
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_cleanup_fork() must be called between  fork()   and  exec() to remove
-traces of Prolog that are not  supposed   to  leak into the new process.
-Note that we must be careful  here.   Notably,  the  code cannot lock or
-unlock any mutex as the behaviour of mutexes is undefined over fork().
-
-Earlier versions used the file-table to  close file descriptors that are
-in use by Prolog. This can't work as   the  table is guarded by a mutex.
-Now we use the FD_CLOEXEC flag in Snew();
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-PL_cleanup_fork(void)
-{ stopItimer();
 }
 
 
@@ -1785,7 +1836,7 @@ error:
   return FALSE;
 }
 
-#ifdef __WINDOWS__			/* defined in pl-nt.c */
+#ifdef _MSC_VER					/* defined in pl-nt.c */
 extern int ftruncate(int fileno, int64_t length);
 #define HAVE_FTRUNCATE
 #endif
@@ -1872,22 +1923,29 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 
 #else
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Windows<->Unix note. This function uses the   Windows socket API for its
+implementation and defines the Unix API  in   terms  of the Windows API.
+This approach allows full support  of   the  restrictions of the Windows
+implementation. Because the Unix emulation is   more generic, this still
+supports  the  generic  facilities  of  Unix  select()  that  make  this
+predicate work on pipes, serial devices, etc.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifndef __WINDOWS__
+typedef int SOCKET;
+#define INVALID_SOCKET -1
+#define Swinsock(s) Sfileno(s)
+#define NFDS(max) (max+1)			/* see also S__wait() */
+#else
+#define NFDS(n) 0
+#endif
+
 typedef struct fdentry
-{ int fd;
+{ SOCKET fd;
   term_t stream;
   struct fdentry *next;
 } fdentry;
-
-
-static inline term_t
-findmap(fdentry *map, int fd)
-{ for( ; map; map = map->next )
-  { if ( map->fd == fd )
-      return map->stream;
-  }
-  assert(0);
-  return 0;
-}
 
 
 static
@@ -1896,7 +1954,10 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   fd_set fds;
   struct timeval t, *to;
   double time;
-  int n, max = 0, ret, min = 1 << (INTBITSIZE-2);
+  int rc;
+#ifndef __WINDOWS__
+  SOCKET max = 0, min = INT_MAX;
+#endif
   fdentry *map     = NULL;
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(A1);
@@ -1910,12 +1971,12 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   FD_ZERO(&fds);
   while( PL_get_list(streams, head, streams) )
   { IOSTREAM *s;
-    int fd;
+    SOCKET fd;
     fdentry *e;
 
     if ( !PL_get_stream_handle(head, &s) )
       return FALSE;
-    if ( (fd=Sfileno(s)) < 0 )
+    if ( (fd=Swinsock(s)) < 0 )
     { releaseStream(s);
       return PL_error("wait_for_input", 3, NULL, ERR_DOMAIN,
 		      PL_new_atom("file_stream"), head);
@@ -1935,16 +1996,13 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     e->next   = map;
     map       = e;
 
-#ifdef __WINDOWS__
-    FD_SET((SOCKET)fd, &fds);
-#else
     FD_SET(fd, &fds);
-#endif
-
+#ifndef __WINDOWS__
     if ( fd > max )
       max = fd;
     if( fd < min )
       min = fd;
+#endif
   }
   if ( !PL_get_nil(streams) )
     return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, A1);
@@ -1984,7 +2042,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
     to = &t;
   }
 
-  while( (ret=select(max+1, &fds, NULL, NULL, to)) == -1 &&
+  while( (rc=select(NFDS(max), &fds, NULL, NULL, to)) == -1 &&
 	 errno == EINTR )
   { fdentry *e;
 
@@ -1993,16 +2051,10 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
 
     FD_ZERO(&fds);			/* EINTR may leave fds undefined */
     for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
-    {
-#ifdef __WINDOWS__
-      FD_SET((SOCKET)e->fd, &fds);
-#else
       FD_SET(e->fd, &fds);
-#endif
-    }
   }
 
-  switch(ret)
+  switch(rc)
   { case -1:
       return PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
 		      ATOM_select, ATOM_stream, A1);
@@ -2011,14 +2063,17 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
       break;
 
     default: /* Something happend -> check fds */
-      for(n=min; n <= max; n++)
-      { if ( FD_ISSET(n, &fds) )
+    { fdentry *mp;
+
+      for(mp=map; mp; mp=mp->next)
+      { if ( FD_ISSET(mp->fd, &fds) )
 	{ if ( !PL_unify_list(available, ahead, available) ||
-	       !PL_unify(ahead, findmap(map, n)) )
+	       !PL_unify(ahead, mp->stream) )
 	    return FALSE;
 	}
       }
       break;
+    }
   }
 
   return PL_unify_nil(available);
@@ -2107,7 +2162,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 { PRED_LD
   IOSTREAM *s;
 
-  if ( getInputStream(A1, &s) )
+  if ( getInputStream(A1, S_DONTCARE, &s) )
   { char buf[MAX_PENDING];
     ssize_t n;
     int64_t off0 = Stell64(s);
@@ -2187,7 +2242,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  us += mbrtowc(&c, us, es-us, s->mbstate);
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
-    	  if ( s->position )
+	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
 	  addSmallIntList(&ctx, c);
@@ -2225,7 +2280,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	  us = utf8_get_char(us, &c);
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
-    	  if ( s->position )
+	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
 
 	  addSmallIntList(&ctx, c);
@@ -2323,7 +2378,7 @@ put_byte(term_t stream, term_t byte ARG_LD)
 
   if ( !PL_get_integer(byte, &c) || c < 0 || c > 255 )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_byte, byte);
-  if ( !getOutputStream(stream, &s) )
+  if ( !getBinaryOutputStream(stream, &s) )
     return FALSE;
 
   Sputc(c, s);
@@ -2355,7 +2410,7 @@ put_code(term_t stream, term_t chr ARG_LD)
 
   if ( !PL_get_char(chr, &c, FALSE) )
     return FALSE;
-  if ( !getOutputStream(stream, &s) )
+  if ( !getTextOutputStream(stream, &s) )
     return FALSE;
 
   Sputcode(c, s);
@@ -2400,7 +2455,7 @@ static foreign_t
 get_nonblank(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(in, &s) )
+  if ( getTextInputStream(in, &s) )
   { int c;
 
     for(;;)
@@ -2446,7 +2501,7 @@ skip(term_t in, term_t chr ARG_LD)
 
   if ( !PL_get_char(chr, &c, FALSE) )
     return FALSE;
-  if ( !getInputStream(in, &s) )
+  if ( !getTextInputStream(in, &s) )
     return FALSE;
 
   while((r=Sgetcode(s)) != c && r != EOF )
@@ -2502,7 +2557,7 @@ static foreign_t
 get_byte2(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(in, &s) )
+  if ( getBinaryInputStream(in, &s) )
   { int c = Sgetc(s);
 
     if ( PL_unify_integer(chr, c) )
@@ -2538,7 +2593,7 @@ static foreign_t
 get_code2(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(in, &s) )
+  if ( getTextInputStream(in, &s) )
   { int c = Sgetcode(s);
 
     if ( PL_unify_integer(chr, c) )
@@ -2573,7 +2628,7 @@ static foreign_t
 get_char2(term_t in, term_t chr ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(in, &s) )
+  if ( getTextInputStream(in, &s) )
   { int c = Sgetcode(s);
 
     if ( PL_unify_atom(chr, c == -1 ? ATOM_end_of_file : codeToAtom(c)) )
@@ -2720,11 +2775,11 @@ PrologPrompt()
 
 
 static int
-tab(term_t out, term_t spaces)
+tab(term_t out, term_t spaces ARG_LD)
 { int64_t count;
   IOSTREAM *s;
 
-  if ( !getOutputStream(out, &s) )
+  if ( !getTextOutputStream(out, &s) )
     return FALSE;
   if ( !PL_eval_expression_to_int64_ex(spaces, &count) )
     return FALSE;
@@ -2740,12 +2795,16 @@ tab(term_t out, term_t spaces)
 
 static
 PRED_IMPL("tab", 2, tab2, 0)
-{ return tab(A1, A2);
+{ PRED_LD
+
+  return tab(A1, A2 PASS_LD);
 }
 
 static
 PRED_IMPL("tab", 1, tab1, 0)
-{ return tab(0, A1);
+{ PRED_LD
+
+  return tab(0, A1 PASS_LD);
 }
 
 
@@ -2839,7 +2898,7 @@ static const opt_spec open4_options[] =
   { ATOM_lock,		 OPT_ATOM },
   { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
-  { ATOM_bom,	 	 OPT_BOOL },
+  { ATOM_bom,		 OPT_BOOL },
   { NULL_ATOM,	         0 }
 };
 
@@ -3269,7 +3328,7 @@ static const IOFUNCTIONS nullFunctions =
 
 static
 PRED_IMPL("open_null_stream", 1, open_null_stream, 0)
-{ int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT;
+{ int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT|SIO_TEXT;
   IOSTREAM *s = Snew((void *)NULL, sflags, (IOFUNCTIONS *)&nullFunctions);
 
   if ( s )
@@ -3368,8 +3427,10 @@ static int
 stream_file_name_propery(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
 
-  if ( (name = getStreamContext(s)->filename) )
-  { return PL_unify_atom(prop, name);
+  for(; s; s=s->downstream)
+  { if ( (name = getStreamContext(s)->filename) )
+    { return PL_unify_atom(prop, name);
+    }
   }
 
   return FALSE;
@@ -3512,7 +3573,7 @@ stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
     int fd = Sfileno(s);
     struct stat buf;
 
-    if ( fstat(fd, &buf) == 0 && S_ISREG(buf.st_mode) )
+    if ( fd != -1 && fstat(fd, &buf) == 0 && S_ISREG(buf.st_mode) )
       val = ATOM_true;
     else
       val = ATOM_false;
@@ -3697,7 +3758,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_end_of_stream1, stream_end_of_stream_prop },
   { FUNCTOR_eof_action1,    stream_eof_action_prop },
   { FUNCTOR_reposition1,    stream_reposition_prop },
-  { FUNCTOR_type1,    	    stream_type_prop },
+  { FUNCTOR_type1,	    stream_type_prop },
   { FUNCTOR_file_no1,	    stream_file_no_prop },
   { FUNCTOR_buffer1,	    stream_buffer_prop },
   { FUNCTOR_buffer_size1,   stream_buffer_size_prop },
@@ -3952,10 +4013,10 @@ PRED_IMPL("is_stream", 1, is_stream, 0)
 
 
 static int
-flush_output(term_t out)
+flush_output(term_t out ARG_LD)
 { IOSTREAM *s;
 
-  if ( getOutputStream(out, &s) )
+  if ( getOutputStream(out, S_DONTCARE, &s) )
   { Sflush(s);
     return streamStatus(s);
   }
@@ -3965,12 +4026,16 @@ flush_output(term_t out)
 
 static
 PRED_IMPL("flush_output", 0, flush_output, PL_FA_ISO)
-{ return flush_output(0);
+{ PRED_LD
+
+  return flush_output(0 PASS_LD);
 }
 
 static
 PRED_IMPL("flush_output", 1, flush_output1, PL_FA_ISO)
-{ return flush_output(A1);
+{ PRED_LD
+
+  return flush_output(A1 PASS_LD);
 }
 
 
@@ -4122,7 +4187,7 @@ PRED_IMPL("set_input", 1, set_input, PL_FA_ISO)
 { PRED_LD
   IOSTREAM *s;
 
-  if ( getInputStream(A1, &s) )
+  if ( getInputStream(A1, S_DONTCARE, &s) )
   { Scurin = s;
     releaseStream(s);
     return TRUE;
@@ -4137,7 +4202,7 @@ PRED_IMPL("set_output", 1, set_output, PL_FA_ISO)
 { PRED_LD
   IOSTREAM *s;
 
-  if ( getOutputStream(A1, &s) )
+  if ( getOutputStream(A1, S_DONTCARE, &s) )
   { Scurout = s;
     releaseStream(s);
     return TRUE;
@@ -4239,7 +4304,7 @@ static int
 at_end_of_stream(term_t stream ARG_LD)
 { IOSTREAM *s;
 
-  if ( getInputStream(stream, &s) )
+  if ( getInputStream(stream, S_DONTCARE, &s) )
   { int rval = Sfeof(s);
 
     if ( rval < 0 )
@@ -4277,7 +4342,7 @@ peek(term_t stream, term_t chr, int how ARG_LD)
 { IOSTREAM *s;
   int c;
 
-  if ( !getInputStream(stream, &s) )
+  if ( !getInputStream(stream, how == PL_BYTE ? S_BINARY : S_TEXT, &s) )
     return FALSE;
   if ( true(s, SIO_NBUF) || (s->bufsize && s->bufsize < MB_LEN_MAX) )
   { releaseStream(s);
@@ -4507,9 +4572,9 @@ copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
   int c;
   int count = 0;
 
-  if ( !getInputStream(in, &i) )
+  if ( !getInputStream(in, S_DONTCARE, &i) )
     return FALSE;
-  if ( !getOutputStream(out, &o) )
+  if ( !getOutputStream(out, S_DONTCARE, &o) )
   { releaseStream(i);
     return FALSE;
   }

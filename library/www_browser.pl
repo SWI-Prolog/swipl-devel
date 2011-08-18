@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,18 +37,27 @@
 :- use_module(library(lists)).
 :- use_module(library(readutil)).
 
+:- multifile
+	known_browser/2.
+
 %%	www_open_url(+Url)
 %
 %	Open URL in running version of the users' browser or start a new
-%	browser. Based on a windows-only version by Bob Wielinga.
+%	browser.  This predicate tries the following steps:
 %
-%	On Unix life is a bit harder as there is no established standard
-%	to figure out which browser to open.  We try:
+%	  1. If a prolog flag (see set_prolog_flag/2) =browser= is set
+%	  or the environment =BROWSER= and this is the name of a known
+%	  executable, use this.  This uses www_open_url/2.
 %
-%		* The start-program `open' (Mac and some Unix systems).
-%		* Prolog flag `browser'
-%		* Variable BROWSER
-%		* All known browsers
+%	  2. On Windows, use win_shell(open, URL)
+%
+%	  3. Find a generic `open' comment.  Candidates are =open=,
+%	  =|gnome-open|=, =kfmclient=.
+%
+%	  4. Try to find a known browser.
+%
+%	  @tbd	Figure out the right tool in step 3 as it is not
+%		uncommon that multiple are installed.
 
 www_open_url(Spec) :-			% user configured
 	(   current_prolog_flag(browser, Browser)
@@ -56,20 +66,30 @@ www_open_url(Spec) :-			% user configured
 	has_command(Browser), !,
 	expand_url_path(Spec, URL),
 	www_open_url(Browser, URL).
+:- if(current_predicate(win_shell/2)).
 www_open_url(Spec) :-			% Windows shell
-	current_prolog_flag(windows, true), !,
 	expand_url_path(Spec, URL),
-	call(win_shell(open, URL)).	% fool xref
+	win_shell(open, URL).
+:- endif.
 www_open_url(Spec) :-			% Unix `open document'
-	has_command(open), !,
+	open_command(Open),
+	has_command(Open), !,
 	expand_url_path(Spec, URL),
-	format(string(Cmd), 'open "~w"', [URL]),
+	format(string(Cmd), '~w "~w"', [Open, URL]),
+	shell(Cmd).
+www_open_url(Spec) :-			% KDE client
+	has_command(kfmclient), !,
+	expand_url_path(Spec, URL),
+	format(string(Cmd), 'kfmclient openURL "~w"', [URL]),
 	shell(Cmd).
 www_open_url(Spec) :-			% something we know
 	known_browser(Browser, _),
 	has_command(Browser), !,
 	expand_url_path(Spec, URL),
 	www_open_url(Browser, URL).
+
+open_command('gnome-open').
+open_command(open).
 
 %%	www_open_url(+Browser, +URL) is det.
 %
@@ -110,9 +130,6 @@ netscape_remote(Browser, Fmt, Args) :-
 compatible(Browser, With) :-
 	file_base_name(Browser, Base),
 	known_browser(Base, With).
-
-:- multifile
-	known_browser/2.
 
 %%	known_browser(+FileBaseName, -Compatible)
 %

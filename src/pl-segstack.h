@@ -47,15 +47,63 @@ typedef struct
 } segstack;
 
 
+#define popSegStack(stack, to, type) \
+	( ((stack)->top >= (stack)->base + sizeof(type))	\
+		? ( (stack)->top -= sizeof(type),		\
+		    *to = *(type*)(stack)->top,			\
+		    (stack)->count--,				\
+		    TRUE					\
+		  )						\
+		: popSegStack_((stack), to)			\
+	)
+
+#define pushSegStack(stack, data, type) \
+	( ((stack)->top + (stack)->unit_size <= (stack)->max)	\
+		? ( *(type*)(stack)->top = data,			\
+		    (stack)->top += sizeof(type),		\
+		    (stack)->count++,				\
+		    TRUE					\
+		  )						\
+		: pushSegStack_((stack), &data)			\
+	)
+
 COMMON(void)	initSegStack(segstack *stack, size_t unit_size,
 			     size_t len, void *data);
-COMMON(int)	pushSegStack(segstack *stack, void* data);
+COMMON(int)	pushSegStack_(segstack *stack, void* data);
 COMMON(int)	pushRecordSegStack(segstack *stack, Record r);
-COMMON(int)	popSegStack(segstack *stack, void *data);
+COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
 COMMON(void)	popTopOfSegStack(segstack *stack);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));
 COMMON(void)	clearSegStack(segstack *s);
+
+		 /*******************************
+		 *	       INLINE		*
+		 *******************************/
+
+static inline void
+topsOfSegStack(segstack *stack, int count, void **tops)
+{ char *p = stack->top - stack->unit_size;
+  char *base = stack->base;
+
+  SECURE(assert(stack->count >= count));
+
+  for(;;)
+  { while(count > 0 && p >= base)
+    { *tops++ = p;
+      p -= stack->unit_size;
+      count--;
+    }
+
+    if ( count > 0 )
+    { segchunk *chunk = stack->last->previous;
+
+      p = chunk->top - stack->unit_size;
+      base = chunk->data;
+    } else
+      break;
+  }
+}
 
 
 #endif /*PL_SEGSTACK_H_INCLUDED*/

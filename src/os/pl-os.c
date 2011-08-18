@@ -96,7 +96,6 @@ static double initial_time;
 static void	initExpand(void);
 static void	cleanupExpand(void);
 static void	initEnviron(void);
-static char *	Which(const char *program, char *fullname);
 
 #ifndef DEFAULT_PATH
 #define DEFAULT_PATH "/bin:/usr/bin"
@@ -445,9 +444,9 @@ UsedMemory(void)
 
 uintptr_t
 FreeMemory(void)
-{ uintptr_t used = UsedMemory();
-
+{
 #if defined(HAVE_GETRLIMIT) && defined(RLIMIT_DATA)
+  uintptr_t used = UsedMemory();
   struct rlimit limit;
 
   if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
@@ -469,7 +468,7 @@ FreeMemory(void)
     some systems (__WINDOWS__) the seed of rand() is thread-local, while on
     others it is global.  We appear to have the choice between
 
-    	# srand()/rand()
+	# srand()/rand()
 	Differ in MT handling, often bad distribution
 
 	# srandom()/random()
@@ -1226,11 +1225,12 @@ takeWord(const char **string, char *wrd, int maxlen)
 }
 
 
-bool
+char *
 expandVars(const char *pattern, char *expanded, int maxlen)
 { GET_LD
   int size = 0;
   char wordbuf[MAXPATHLEN];
+  char *rc = expanded;
 
   if ( *pattern == '~' )
   { char *user;
@@ -1293,7 +1293,9 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 #endif
     size += (l = (int) strlen(value));
     if ( size+1 >= maxlen )
-      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+    { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+      return NULL;
+    }
     strcpy(expanded, value);
     expanded += l;
     UNLOCK();
@@ -1333,8 +1335,9 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 	  size += (l = (int)strlen(value));
 	  if ( size+1 >= maxlen )
 	  { UNLOCK();
-	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
-			    ATOM_max_path_length);
+	    PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+		     ATOM_max_path_length);
+	    return NULL;
 	  }
 	  strcpy(expanded, value);
 	  UNLOCK();
@@ -1347,8 +1350,10 @@ expandVars(const char *pattern, char *expanded, int maxlen)
       def:
 	size++;
 	if ( size+1 >= maxlen )
-	  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
-			  ATOM_max_path_length);
+	{ PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+		   ATOM_max_path_length);
+	  return NULL;
+	}
 	*expanded++ = c;
 
 	continue;
@@ -1357,61 +1362,14 @@ expandVars(const char *pattern, char *expanded, int maxlen)
   }
 
   if ( ++size >= maxlen )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
-		    ATOM_max_path_length);
+  { PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+	     ATOM_max_path_length);
+    return NULL;
+  }
+
   *expanded = EOS;
 
-  succeed;
-}
-
-
-static int
-ExpandFile(const char *pattern, char **vector)
-{ char expanded[MAXPATHLEN];
-  int matches = 0;
-
-  if ( !expandVars(pattern, expanded, sizeof(expanded)) )
-    return -1;
-
-  vector[matches++] = store_string(expanded);
-
-  return matches;
-}
-
-
-char *
-ExpandOneFile(const char *spec, char *file)
-{ GET_LD
-  char *vector[256];
-  int size;
-
-  switch( (size=ExpandFile(spec, vector)) )
-  { case -1:
-      return NULL;
-    case 0:
-    { term_t tmp = PL_new_term_ref();
-
-      PL_put_atom_chars(tmp, spec);
-      PL_error(NULL, 0, "no match", ERR_EXISTENCE, ATOM_file, tmp);
-
-      return NULL;
-    }
-    case 1:
-      strcpy(file, vector[0]);
-      remove_string(vector[0]);
-      return file;
-    default:
-    { term_t tmp = PL_new_term_ref();
-      int n;
-
-      for(n=0; n<size; n++)
-	remove_string(vector[n]);
-      PL_put_atom_chars(tmp, spec);
-      PL_error(NULL, 0, "ambiguous", ERR_EXISTENCE, ATOM_file, tmp);
-
-      return NULL;
-    }
-  }
+  return rc;
 }
 
 
@@ -1489,7 +1447,7 @@ AbsoluteFile(const char *spec, char *path)
   if ( !file )
      return (char *) NULL;
   if ( truePrologFlag(PLFLAG_FILEVARS) )
-  { if ( !(file = ExpandOneFile(buf, tmp)) )
+  { if ( !(file = expandVars(buf, tmp, sizeof(tmp))) )
       return (char *) NULL;
   }
 
@@ -2447,30 +2405,15 @@ char *command;
 
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-[candidate]
-
-exec(+Cmd, [+In, +Out, +Error], -Pid)
-
-The streams may be one of standard   stream,  std, null stream, null, or
-pipe(S), where S is a pipe stream
-
-Detach if none is std!
-
-TBD: Sort out status. The above is SICStus 3. YAP uses `Status' for last
-argument (strange). SICStus 4 appears to drop this altogether.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    char *Symbols(char *buf)
+    char *findExecutable(char *buf)
 
     Return the path name of the executable of SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef __WINDOWS__			/* Win32 version in pl-nt.c */
+static char *	Which(const char *program, char *fullname);
 
 char *
 findExecutable(const char *av0, char *buffer)
@@ -2514,8 +2457,6 @@ findExecutable(const char *av0, char *buffer)
 
   return strcpy(buffer, file ? file : buf);
 }
-#endif /*__WINDOWS__*/
-
 
 #ifdef __unix__
 static char *
@@ -2619,6 +2560,7 @@ Which(const char *program, char *fullname)
   return NULL;
 }
 
+#endif /*__WINDOWS__*/
 
 /** int Pause(double time)
 

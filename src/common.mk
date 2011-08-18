@@ -5,7 +5,8 @@
 
 OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-file.o os/pl-files.o \
 	os/pl-glob.o os/pl-os.o os/pl-stream.o os/pl-string.o os/pl-table.o \
-	os/pl-text.o os/pl-utf8.o os/pl-fmt.o os/pl-dtoa.o os/pl-option.o
+	os/pl-text.o os/pl-utf8.o os/pl-fmt.o os/pl-dtoa.o os/pl-option.o \
+	os/pl-cstack.o
 
 OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-flag.o \
@@ -17,7 +18,8 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
 	pl-main.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
-	pl-dbref.o pl-termhash.o pl-codelist.o
+	pl-dbref.o pl-termhash.o pl-codelist.o pl-variant.o \
+	pl-copyterm.o
 
 # Prolog library
 
@@ -43,7 +45,8 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	thread.pl dialect.pl apply_macros.pl apply.pl nb_rbtrees.pl \
 	aggregate.pl pure_input.pl pio.pl thread_pool.pl terms.pl \
 	charsio.pl portray_text.pl csv.pl persistency.pl fastrw.pl \
-	coinduction.pl ansi_term.pl base32.pl prolog_history.pl
+	coinduction.pl ansi_term.pl base32.pl prolog_history.pl \
+	optparse.pl arithmetic.pl
 
 # Dialect library files
 

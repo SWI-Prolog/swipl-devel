@@ -133,8 +133,11 @@ unify_hsz(term_t term, HSZ hsz)
 
   if ( len == sizeof(buf)/sizeof(wchar_t)-1 )
   { if ( (len=DdeQueryStringW(ddeInst, hsz, NULL, 0, CP_WINUNICODE)) > 0 )
-    { wchar_t *b2 = malloc((len+1)*sizeof(wchar_t));
+    { wchar_t *b2;
       int rc;
+
+      if ( !(b2 = malloc((len+1)*sizeof(wchar_t))) )
+	return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
 
       DdeQueryStringW(ddeInst, hsz, b2, len+1, CP_WINUNICODE);
       rc = PL_unify_wchars(term, PL_ATOM, len, b2);
@@ -152,18 +155,21 @@ unify_hsz(term_t term, HSZ hsz)
 
 static word
 unify_hdata(term_t t, HDDEDATA data)
-{ char buf[FASTBUFSIZE];
-  int len;
+{ BYTE buf[FASTBUFSIZE];
+  DWORD len;
 
   if ( !(len=DdeGetData(data, buf, sizeof(buf), 0)) )
     return dde_warning("data handle");
 
-  DEBUG(0, Sdprintf("DdeGetData() returned %d bytes\n", len));
+  DEBUG(0, Sdprintf("DdeGetData() returned %ld bytes\n", (long)len));
 
   if ( len == sizeof(buf) )
   { if ( (len=DdeGetData(data, NULL, 0, 0)) > 0 )
-    { char *b2 = malloc(len);
+    { LPBYTE b2;
       int rval;
+
+      if ( !(b2 = malloc(len)) )
+	return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
 
       DdeGetData(data, b2, len, 0);
       rval = PL_unify_wchars(t, PL_ATOM, len/sizeof(wchar_t)-1, (wchar_t*)b2);
@@ -253,10 +259,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        return (void *)rval;
      }
      case XTYP_CONNECT_CONFIRM:
-     { fid_t cid = PL_open_foreign_frame();
-       term_t argv = PL_new_term_refs(3);
-       predicate_t pred = PL_pred(FUNCTOR_dde_connect_confirm3, MODULE_dde);
-       int plhandle;
+     { int plhandle;
 
        if ( (plhandle = allocServerHandle(hconv)) >= 0 )
        { fid_t cid = PL_open_foreign_frame();
@@ -496,7 +499,7 @@ pl_dde_request(term_t handle, term_t item,
   DdeFreeStringHandle(ddeInst, Hitem);
 
   if ( Hvalue)
-  { char *valuedata;
+  { LPBYTE valuedata;
 
     if ( (valuedata = DdeAccessData(Hvalue, &valuelen)) )
     { DEBUG(0, Sdprintf("valuelen = %ld; format = %d\n", valuelen, fmti));

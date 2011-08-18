@@ -25,7 +25,11 @@
 #include "pl-incl.h"
 #include "pl-dtoa.h"
 
+#ifdef WORDS_BIGENDIAN
+#define IEEE_MC68k 1
+#else
 #define IEEE_8087 1
+#endif
 
 #define MALLOC PL_malloc
 #define FREE PL_free

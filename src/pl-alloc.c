@@ -23,6 +23,7 @@
 */
 
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 
 #ifndef O_MYALLOC
 #define O_MYALLOC 1
@@ -628,7 +629,7 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 
 void
 cleanupMemAlloc(void)
-{ 					/* TBD: Cleanup! */
+{					/* TBD: Cleanup! */
 }
 
 void
@@ -659,9 +660,20 @@ int
 outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
   Stack s = stack;
+  const char *msg = "unhandled stack overflow";
 
   if ( LD->outofstack )
-    fatalError("Sorry, failed to recover from %s-overflow", s->name);
+  { Sdprintf("[Thread %d]: failed to recover from %s-overflow\n",
+	     PL_thread_self(), s->name);
+    print_backtrace_named(msg);
+    save_backtrace("crash");
+    print_backtrace_named("crash");
+    fatalError("Sorry, cannot continue");
+
+    return FALSE;				/* NOTREACHED */
+  }
+
+  save_backtrace(msg);
 
   LD->trim_stack_requested = TRUE;
   LD->exception.processing = TRUE;
@@ -716,6 +728,8 @@ raiseStackOverflow(int overflow)
     case GLOBAL_OVERFLOW:   s = (Stack)&LD->stacks.global;   break;
     case TRAIL_OVERFLOW:    s = (Stack)&LD->stacks.trail;    break;
     case ARGUMENT_OVERFLOW: s = (Stack)&LD->stacks.argument; break;
+    case MEMORY_OVERFLOW:
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
     case FALSE:				/* some other error is pending */
       return FALSE;
     default:
@@ -1295,7 +1309,7 @@ initAlloc(void)
 #if defined(_DEBUG) && defined(__WINDOWS__) && 0
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
 		 _CRTDBG_CHECK_CRT_DF|
-		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
+		 //_CRTDBG_CHECK_ALWAYS_DF|	/* very expensive */
 		 //_CRTDBG_DELAY_FREE_MEM_DF|   /* does not reuse freed mem */
 		 //_CRTDBG_LEAK_CHECK_DF|
 		 0);

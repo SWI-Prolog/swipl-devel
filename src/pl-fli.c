@@ -70,6 +70,9 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #define setHandle(h, w)		{ assert(*valTermRef(h) != QID_MAGIC); \
 				  (*valTermRef(h) = (w)); \
 				}
+#ifndef O_CHECK_TERM_REFS
+#define O_CHECK_TERM_REFS 1
+#endif
 #else
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #endif
@@ -131,6 +134,7 @@ PL_new_term_refs__LD(int n ARG_LD)
 { Word t;
   term_t r;
   int i;
+  FliFrame fr;
 
   if ( addPointer(lTop, n*sizeof(word)) > (void*) lMax )
   { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
@@ -147,7 +151,13 @@ PL_new_term_refs__LD(int n ARG_LD)
   for(i=0; i<n; i++)
     setVar(*t++);
   lTop = (LocalFrame)t;
-  fli_context->size += n;
+  fr = fli_context;
+  fr->size += n;
+#ifdef O_CHECK_TERM_REFS
+  { int s = (Word) lTop - (Word)(fr+1);
+    assert(s == fr->size);
+  }
+#endif
 
   return r;
 }
@@ -161,15 +171,16 @@ new_term_ref(ARG1_LD)
 
   t = (Word)lTop;
   r = consTermRef(t);
-  SECURE(assert(*t != QID_MAGIC));
-  setVar(*t);
+  setVar(*t++);
 
-  lTop = (LocalFrame)(t+1);
+  lTop = (LocalFrame)t;
   fr = fli_context;
   fr->size++;
-  SECURE({ int s = (Word) lTop - (Word)(fr+1);
-	   assert(s == fr->size);
-	 });
+#ifdef O_CHECK_TERM_REFS
+  { int s = (Word) lTop - (Word)(fr+1);
+    assert(s == fr->size);
+  }
+#endif
 
   return r;
 }
@@ -1420,7 +1431,7 @@ PL_get_float(term_t t, double *f)
 }
 
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 #define ULL(x) x ## ui64
 #else
 #define ULL(x) x ## ULL
@@ -1965,7 +1976,7 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 
 
 		 /*******************************
-		 *             PUT-*  		*
+		 *             PUT-*		*
 		 *******************************/
 
 int
@@ -2817,7 +2828,8 @@ PL_unify_termv(term_t t, va_list args)
   int rval;
   int op;
 
-  t = PL_copy_term_ref(t);
+  if ( !(t = PL_copy_term_ref(t)) )
+    return FALSE;
   initBuffer(&buf);
 
 cont:
@@ -2902,7 +2914,7 @@ cont:
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_NUTF8_CHARS ? PL_ATOM :
 			   op == PL_NUTF8_CODES ? PL_CODE_LIST :
-			   			  PL_STRING);
+						  PL_STRING);
       PL_free_text(&txt);
 
       break;
@@ -2968,7 +2980,8 @@ cont:
 	goto failout;
 
       w.type  = w_term;
-      w.value.term.term  = PL_copy_term_ref(t);
+      if ( !(w.value.term.term  = PL_copy_term_ref(t)) )
+	return FALSE;
       w.value.term.arg   = 0;
       w.value.term.arity = arity;
       addBuffer(&buf, w, work);
@@ -2982,7 +2995,8 @@ cont:
     { work w;
 
       w.type = w_list;
-      w.value.list.tail = PL_copy_term_ref(t);
+      if ( !(w.value.list.tail = PL_copy_term_ref(t)) )
+	return FALSE;
       w.value.list.len  = va_arg(args, int);
 
       addBuffer(&buf, w, work);
@@ -3284,6 +3298,35 @@ PL_strip_module(term_t raw, module_t *m, term_t plain)
 }
 #define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t PASS_LD)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_strip_module_ex() is similar to  PL_strip_module(),   but  returns an
+error if it encounters a term <m>:<t>, where <m> is not an atom.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
+{ Word p = valTermRef(raw);
+
+  deRef(p);
+  if ( hasFunctor(*p, FUNCTOR_colon2) )
+  { p = stripModule(p, m PASS_LD);
+    if ( hasFunctor(*p, FUNCTOR_colon2) )
+    { Word a1 = argTermP(*p, 0);
+      deRef(a1);
+      setHandle(plain, needsRef(*a1) ? makeRef(a1) : *a1);
+      return PL_type_error("module", plain);
+    }
+    setHandle(plain, linkVal(p));
+  } else
+  { if ( *m == NULL )
+      *m = environment_frame ? contextModule(environment_frame)
+			     : MODULE_user;
+    setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
+  }
+
+  return TRUE;
+}
+
 module_t
 PL_context()
 { GET_LD
@@ -3299,6 +3342,21 @@ PL_module_name(Module m)
 module_t
 PL_new_module(atom_t name)
 { return lookupModule(name);
+}
+
+int
+PL_qualify(term_t raw, term_t qualified)
+{ GET_LD
+  Module m = NULL;
+  term_t mname;
+
+  if ( !(mname = PL_new_term_ref()) ||
+       !PL_strip_module(raw, &m, qualified) )
+    return FALSE;
+
+  setHandle(mname, m->name);
+
+  return PL_cons_functor(qualified, FUNCTOR_colon2, mname, qualified);
 }
 
 

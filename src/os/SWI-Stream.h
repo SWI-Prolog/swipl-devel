@@ -32,14 +32,16 @@
 #include <sys/_mbstate_t.h>
 #endif
 
-#if defined(_MSC_VER) && !defined(__WINDOWS__)
+#ifndef __WINDOWS__
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define __WINDOWS__ 1
+#endif
 #endif
 
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 typedef __int64 int64_t;
 #if (_MSC_VER < 1300)
 typedef long intptr_t;
@@ -75,21 +77,21 @@ stuff.
 # ifdef PL_KERNEL
 #define PL_EXPORT(type)		__declspec(dllexport) type
 #define PL_EXPORT_DATA(type)	__declspec(dllexport) type
-#define install_t	 	void
+#define install_t		void
 # else
 #  ifdef __BORLANDC__
-#define PL_EXPORT(type)	 	type _stdcall
+#define PL_EXPORT(type)		type _stdcall
 #define PL_EXPORT_DATA(type)	extern type
 #  else
-#define PL_EXPORT(type)	 	extern type
+#define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllimport) type
 #  endif
-#define install_t	 	__declspec(dllexport) void
+#define install_t		__declspec(dllexport) void
 # endif
 #else /*HAVE_DECLSPEC*/
-#define PL_EXPORT(type)	 	extern type
+#define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	extern type
-#define install_t	 	void
+#define install_t		void
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
 
@@ -172,7 +174,7 @@ typedef struct io_stream
   char		       *unbuffer;	/* Sungetc buffer */
   int			lastc;		/* last character written */
   int			magic;		/* magic number SIO_MAGIC */
-  int  			bufsize;	/* size of the buffer */
+  int			bufsize;	/* size of the buffer */
   int			flags;		/* Status flags */
   IOPOS			posbuf;		/* location in file */
   IOPOS *		position;	/* pointer to above */
@@ -216,7 +218,7 @@ typedef struct io_stream
 #define SIO_STATIC	SmakeFlag(11)	/* Stream in static memory */
 #define SIO_RECORDPOS	SmakeFlag(12)	/* Maintain position */
 #define SIO_FILE	SmakeFlag(13)	/* Stream refers to an OS file */
-#define SIO_PIPE	SmakeFlag(14)	/* Stream refers to an OS pipe */
+/*      SIO_PIPE	SmakeFlag(14)	   Unused */
 #define SIO_NOFEOF	SmakeFlag(15)	/* don't set SIO_FEOF flag */
 #define SIO_TEXT	SmakeFlag(16)	/* text-mode operation */
 #define SIO_FEOF2	SmakeFlag(17)	/* attempt to read past eof */
@@ -273,6 +275,9 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 #define SIO_SETENCODING	(3)		/* modify encoding of stream */
 #define SIO_FLUSHOUTPUT	(4)		/* flush output */
 #define SIO_LASTERROR	(5)		/* string holding last error */
+#ifdef __WINDOWS__
+#define SIO_GETWINSOCK  (6)		/* get underlying SOCKET object */
+#endif
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
@@ -395,7 +400,12 @@ PL_EXPORT(int)		Sunlock(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	Snew(void *handle, int flags, IOFUNCTIONS *functions);
 PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
 PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
-PL_EXPORT(int)	   	Sfileno(IOSTREAM *s);
+PL_EXPORT(int)		Sfileno(IOSTREAM *s);
+#ifdef __WINDOWS__
+#if defined(_WINSOCKAPI_) || defined(NEEDS_SWINSOCK) /* have SOCKET */
+PL_EXPORT(SOCKET)	Swinsock(IOSTREAM *s);
+#endif
+#endif
 PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
 PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, size_t *sizep, const char *mode);
 PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, size_t sz, const char *m);

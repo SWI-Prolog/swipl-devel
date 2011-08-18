@@ -26,7 +26,7 @@
 #define _XNT_H_INCLUDED
 
 #undef _export
-#ifdef _UXNT_KERNEL
+#if defined(_UXNT_KERNEL) && !defined(__MINGW32__)
 #define _export _declspec(dllexport)
 #else
 #define _export extern
@@ -37,11 +37,13 @@
 #include <stdio.h>
 #include <io.h>
 #include <direct.h>
+#ifdef _MSC_VER
 #if (_MSC_VER < 1300)
 typedef long intptr_t;
 typedef unsigned long uintptr_t;
 #endif
 typedef intptr_t ssize_t;		/* signed version of size_t */
+#endif
 
 #ifndef _UXNT_KERNEL
 
@@ -85,9 +87,11 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 
 #endif /*_UXNT_KERNEL*/
 
+#ifndef F_OK
 #define F_OK 00
 #define R_OK 04				/* access() fields */
 #define W_OK 06
+#endif
 
 		 /*******************************
 		 *	     TYPES, ETC		*

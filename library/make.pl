@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,8 +36,15 @@
 :- use_module(library(check)).
 :- set_prolog_flag(generate_debug_info, false).
 
-/** <module>  Make: reload modified source files.
+/** <module>  Reload modified source files
 
+This module provides the SWI-Prolog   `make'  facility that synchronises
+Prolog internal database after loaded files have been edited.
+
+@bug	Dependency tracking is incomplete.  Notably, there is no
+	dependency tracking if compilation of one module depends
+	on goal_expansion/2 or term_expansion/2 rules provided by
+	another.
 */
 
 %%	make
@@ -46,6 +54,9 @@
 %	scan for undefined predicates.
 
 make :-
+	notrace(make_no_trace).
+
+make_no_trace :-
 	'$update_library_index',
 	findall(File, modified_file(File), Reload),
 	print_message(silent, make(reload(Reload))),
@@ -87,7 +98,7 @@ reload([H|T]) :-
 
 reload_file(File) :-
 	source_base_name(File, Compile),
-	findall(Context, '$load_context_module'(File, Context), Modules),
+	findall(Context, system:'$load_context_module'(File, Context), Modules),
 	(   Modules = []
 	->  load_files(user:Compile)
 	;   forall('$member'(Context, Modules),

@@ -35,7 +35,12 @@
 #define freeHeap(p, n)		freeHeap__LD(p, n PASS_LD)
 #endif
 #define freeRecord(r)		freeRecord__LD(r PASS_LD)
-#define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
+#define getInputStream(t, k, s)		getInputStream__LD(t, k, s PASS_LD)
+#define getTextInputStream(t, s)	getTextInputStream__LD(t, s PASS_LD)
+#define getBinaryInputStream(t, s)	getBinaryInputStream__LD(t, s PASS_LD)
+#define getOutputStream(t, k, s)	getOutputStream__LD(t, k, s PASS_LD)
+#define getTextOutputStream(t, s)	getTextOutputStream__LD(t, s PASS_LD)
+#define getBinaryOutputStream(t, s)	getBinaryOutputStream__LD(t, s PASS_LD)
 #define valFloat(w)		valFloat__LD(w PASS_LD)
 #define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
 #define getCharsWString(s, l)	getCharsWString__LD(s, l PASS_LD)
@@ -48,7 +53,7 @@
 #define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
-#define _PL_put_number(t, n) 	_PL_put_number__LD(t, n PASS_LD)
+#define _PL_put_number(t, n)	_PL_put_number__LD(t, n PASS_LD)
 #define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
 #define PL_new_term_ref_noshift()	PL_new_term_ref_noshift__LD(PASS_LD1)
 #define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
@@ -58,8 +63,8 @@
 #define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
 #define PL_put_variable(t)	PL_put_variable__LD(t PASS_LD)
 #define PL_is_functor(t, f)	PL_is_functor__LD(t, f PASS_LD)
-#define PL_put_integer(t, i) 	PL_put_integer__LD(t, i PASS_LD)
-#define PL_put_intptr(t, i) 	PL_put_intptr__LD(t, i PASS_LD)
+#define PL_put_integer(t, i)	PL_put_integer__LD(t, i PASS_LD)
+#define PL_put_intptr(t, i)	PL_put_intptr__LD(t, i PASS_LD)
 #define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t PASS_LD)
 #define PL_get_integer(t, i)	PL_get_integer__LD(t, i PASS_LD)
 #define PL_get_long(t, i)	PL_get_long__LD(t, i PASS_LD)
@@ -84,5 +89,6 @@
 #define PL_get_atom_ex(t, a)	PL_get_atom_ex__LD(t, a PASS_LD)
 #define PL_open_foreign_frame() PL_open_foreign_frame__LD(PASS_LD1)
 #define PL_close_foreign_frame(id) PL_close_foreign_frame__LD(id PASS_LD)
+#define PL_strip_module_ex(t,m,p) PL_strip_module_ex__LD(t,m,p PASS_LD)
 
 #endif /*PL_LDPASS_H_INCLUDED*/

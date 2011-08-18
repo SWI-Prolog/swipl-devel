@@ -32,9 +32,17 @@
 #include <winsock2.h>
 #endif
 
+#ifdef __MINGW32__
+#define _WIN32_IE 0x0400
+#include <shlobj.h>
+/* FIXME: these are copied from SWI-Prolog.h. */
+#define PL_MSG_EXCEPTION_RAISED -1
+#define PL_MSG_IGNORED 0
+#define PL_MSG_HANDLED 1
+#endif
+
 #include "pl-incl.h"
 #include "os/pl-utf8.h"
-#include <crtdbg.h>
 #include <process.h>
 #include "os/pl-ctype.h"
 #include <stdio.h>
@@ -42,6 +50,9 @@
 #include "SWI-Stream.h"
 #include <process.h>
 #include <winbase.h>
+#ifdef HAVE_CRTDBG_H
+#include <crtdbg.h>
+#endif
 
 
 		 /*******************************
@@ -228,6 +239,8 @@ Pause(double t)
 		 *	  SET FILE SIZE		*
 		 *******************************/
 
+#ifndef HAVE_FTRUNCATE
+
 int
 ftruncate(int fileno, int64_t length)
 { errno_t e;
@@ -238,6 +251,8 @@ ftruncate(int fileno, int64_t length)
   errno = e;
   return -1;
 }
+
+#endif
 
 
 		 /*******************************
@@ -263,6 +278,9 @@ CpuTime(cputime_kind which)
       case CPU_SYSTEM:
 	p = &kerneltime;
         break;
+      default:
+	assert(0);
+        return 0.0;
     }
     t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
     t += (double)p->dwLowDateTime  * (ntick nano);
@@ -338,12 +356,12 @@ get_showCmd(term_t show, int *cmd)
 { char *s;
   showtype *st;
   static showtype types[] =
-  { { "hide", 		 SW_HIDE },
-    { "maximize", 	 SW_MAXIMIZE },
-    { "minimize", 	 SW_MINIMIZE },
-    { "restore", 	 SW_RESTORE },
-    { "show", 		 SW_SHOW },
-    { "showdefault", 	 SW_SHOWDEFAULT },
+  { { "hide",		 SW_HIDE },
+    { "maximize",	 SW_MAXIMIZE },
+    { "minimize",	 SW_MINIMIZE },
+    { "restore",	 SW_RESTORE },
+    { "show",		 SW_SHOW },
+    { "showdefault",	 SW_SHOWDEFAULT },
     { "showmaximized",   SW_SHOWMAXIMIZED },
     { "showminimized",   SW_SHOWMINIMIZED },
     { "showminnoactive", SW_SHOWMINNOACTIVE },
@@ -351,8 +369,8 @@ get_showCmd(term_t show, int *cmd)
     { "shownoactive",    SW_SHOWNOACTIVATE },
     { "shownormal",      SW_SHOWNORMAL },
 					/* compatibility */
-    { "normal", 	 SW_SHOWNORMAL },
-    { "iconic", 	 SW_MINIMIZE },
+    { "normal",		 SW_SHOWNORMAL },
+    { "iconic",		 SW_MINIMIZE },
     { NULL, 0 },
   };
 
@@ -412,8 +430,9 @@ win_exec(size_t len, const wchar_t *cmd, UINT show)
   } else
   { term_t tmp = PL_new_term_ref();
 
-    PL_unify_wchars(tmp, PL_ATOM, len, cmd);
-    return PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp);
+    return ( PL_unify_wchars(tmp, PL_ATOM, len, cmd) &&
+	     PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp)
+	   );
   }
 }
 
@@ -514,7 +533,7 @@ static const shell_error se_errors[] =
   { SE_ERR_DDETIMEOUT,	    "DDE request timed out" },
   { SE_ERR_DLLNOTFOUND,	    "DLL not found" },
   { SE_ERR_FNF,		    "File not found (FNF)" },
-  { SE_ERR_NOASSOC, 	    "No association" },
+  { SE_ERR_NOASSOC,	    "No association" },
   { SE_ERR_OOM,		    "Not enough memory" },
   { SE_ERR_PNF,		    "Path not found (PNF)" },
   { SE_ERR_SHARE,	    "Sharing violation" },
@@ -670,7 +689,9 @@ dlclose(void *handle)
 		 *	      FOLDERS		*
 		 *******************************/
 
+#ifdef HAVE_SHLOBJ_H
 #include <Shlobj.h>
+#endif
 
 typedef struct folderid
 { int csidl;

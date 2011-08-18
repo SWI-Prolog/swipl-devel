@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -29,9 +30,9 @@
 #include <unistd.h>
 #endif
 
-#ifdef __WATCOMC__
-#include <direct.h>
-#else /*__WATCOMC__*/
+#ifdef O_XOS
+# include "windows/dirent.h"
+#else
 #if HAVE_DIRENT_H
 # include <dirent.h>
 #else
@@ -46,7 +47,7 @@
 #  include <ndir.h>
 # endif
 #endif
-#endif /*__WATCOMC__*/
+#endif /*O_XOS*/
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -582,8 +583,8 @@ PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
   if ( !PL_get_chars(A1, &s, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     fail;
   if ( strlen(s) > sizeof(spec)-1 )
-    return PL_error(NULL, 0, "File name too intptr_t",
-		    ERR_DOMAIN, ATOM_pattern, A1);
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+		    ATOM_max_path_length);
 
   if ( !expandVars(s, spec, sizeof(spec)) )
     fail;

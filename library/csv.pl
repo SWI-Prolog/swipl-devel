@@ -58,7 +58,8 @@ have the same name and arity.
 		    strip:boolean=false,
 		    convert:boolean=true,
 		    functor:atom=row,
-		    arity:integer).
+		    arity:integer,
+		    match_arity:boolean=true).
 
 
 %%	csv_read_file(+File, -Rows) is det.
@@ -114,6 +115,11 @@ csv_read_file(File, Rows, Options) :-
 %	    Number of fields in each row.  This predicate raises
 %	    a domain_error(row_arity(Expected), Found) if a row is
 %	    found with different arity.
+%
+%	    * match_arity(+Boolean)
+%	    If =false= (default =true=), do not reject CSV files where
+%	    lines provide a varying number of fields (columns).  This
+%	    can be a work-around to use some incorrect CSV files.
 
 csv(Rows) -->
 	csv(Rows, []).
@@ -147,6 +153,8 @@ row(Row, Options) -->
 
 check_arity(Options, Arity) :-
 	csv_options_arity(Options, Arity), !.
+check_arity(Options, _) :-
+	csv_options_match_arity(Options, false), !.
 check_arity(Options, Arity) :-
 	csv_options_arity(Options, Expected),
 	domain_error(row_arity(Expected), Arity).

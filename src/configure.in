@@ -13,7 +13,7 @@ AC_SUBST(MKDIR)
 AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(PROGLDFLAGS)
-AC_SUBST(ARCH)
+AC_SUBST(PLARCH)
 AC_SUBST(PLSHARED)
 AC_SUBST(PLTHREADS)
 AC_SUBST(PL)
@@ -38,6 +38,8 @@ AC_SUBST(CNFG)
 AC_SUBST(DLLIBVAR)
 AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
+AC_SUBST(MINGW)
+AC_SUBST(DEFSTARTUP)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -56,6 +58,7 @@ PLLIB=libswipl.a
 MKLIBS=staticlib
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
+DEFSTARTUP=.plrc
 
 dnl ****************************************************************
 dnl Some systems don't appear to have true.  Hope all like this ...
@@ -86,16 +89,16 @@ LDEXE="$CC"
 AC_PROG_RANLIB
 AC_CANONICAL_HOST
 changequote(,)dnl
-if test "x$ARCH" = "x"; then
+if test "x$PLARCH" = "x"; then
   case "$host" in
     *linux*)
-      ARCH=`echo $host | sed 's/-.*/-linux/'`
+      PLARCH=`echo $host | sed 's/-.*/-linux/'`
       ;;
     *-gnu)
-      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
+      PLARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
       ;;
     *)
-      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+      PLARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
       ;;
   esac
 fi
@@ -234,7 +237,7 @@ if test "x$custom_flags" = "xyes" ; then
 	else
 		COFLAGS="${COFLAGS--O}"
 
-		case "$ARCH" in
+		case "$PLARCH" in
 			*mips-irix*)
 				COFLAGS="${COFLAGS--O -OPT:Olimit_opt=on}"
 			;;
@@ -256,7 +259,7 @@ dnl On Alpha machines we need to enable IEEE float arithmetic to avoid
 dnl FPE signals on float underflow/overflow
 dnl ****************************************************************
 
-case "$ARCH" in
+case "$PLARCH" in
     *sco*|*SCO*)
 	AC_MSG_CHECKING("SCO-Unix.  See if we need -belf")
 	old_cflags="$CFLAGS"
@@ -277,6 +280,12 @@ case "$ARCH" in
 	else
 	  CMFLAGS="$CMFLAGS -ieee"
 	fi
+        ;;
+    i?86-mingw32msvc)
+	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN32"
+	;;
+    x86_64-mingw32msvc)
+	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN64"
 	;;
 esac
 
@@ -309,7 +318,7 @@ EOF
   fi
 fi
 
-case "$ARCH" in
+case "$PLARCH" in
     *cygwin*)
 	EXTRAHDR=def
         ;;
@@ -387,8 +396,8 @@ if test "$PLSHARED" = "yes"; then
 dnl Some versions of (g)cc need to export the symbols from the main program
 dnl using -rdynamic.  See whether this gcc understands this flag.
 
-case "$ARCH" in
-  *darwin*)
+case "$PLARCH" in
+  *darwin*|*mingw*)
 	rdynamic=done
 	;;
 esac
@@ -430,10 +439,11 @@ SO_pic="-fpic"
 SO_PIC="-fPIC"
 SO_LD="$CC"
 SO_EXT="so"
-SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH$RPATH_EXTRA"
+SO_PATH="-Wl,-rpath=$PLBASE/lib/$PLARCH$RPATH_EXTRA"
 DLLIBVAR=LD_LIBRARY_PATH
+MINGW="false"
 
-case "$ARCH" in
+case "$PLARCH" in
   *solaris* | *sunos*)
 	SO_LDFLAGS="-G"
 	if test "$GCC" != "yes"; then
@@ -494,19 +504,19 @@ case "$ARCH" in
 	SO_PIC=""
 	DLLIBVAR=PATH
 	;;
-# Seems we can simple add the executable add the end.  This is arranged
-# in swipl-ld.c based on the the __BEOS__ symbol.
-# *beos*)
-#	AC_DEFINE(SO_FORMAT_LDFLAGS,
-#		  ["-nostart -Xlinker -soname=\"%s\"", soout])
-#	;;
+  *mingw*)
+	SO_EXT="dll"
+	DLLIBVAR=PATH
+	DEFSTARTUP=swipl.ini
+	MINGW=true
+	;;
   *)
 	;;
 esac
 
 AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
 		   [Define to the extension of shared objects (often .so)])
-AC_DEFINE_UNQUOTED(SO_PATH,	"$DLLIBVAR",
+AC_DEFINE_UNQUOTED(SO_PATH,    "$DLLIBVAR",
 		   [Search path for shared objects (often LD_LIBRARY_PATH)])
 AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD",
 		   [Program to link shared objects])
@@ -518,7 +528,7 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
 		   [Name of the SWI-Prolog executable (normally pl)])
-case "$ARCH" in
+case "$PLARCH" in
   *cygwin*)
 	PLSO=cygpl.$SO_EXT
 	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libswipl.dll.a $(DEF)'
@@ -540,14 +550,28 @@ changequote(,)dnl
 USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
 changequote([,])dnl
 
+case "$PLARCH" in
+    *mingw32*)
+	AC_CHECK_LIB(shell32, main)
+	AC_CHECK_LIB(winmm, main)
+	AC_CHECK_LIB(wsock32, main)
+	EXTRAOBJ="pl-nt.o pl-dde.o"
+	;;
+esac
+
+
 PLTHREADS=no
 if test "$MT" = "yes"; then
 pthread_ok=false
 
-case "$ARCH" in
+case "$PLARCH" in
     *freebsd*)
 	AC_DEFINE(_THREAD_SAFE, 1,
 		  [Required in FreeBSD for compiling thread-safe code])
+	;;
+    *mingw32*)
+        pthread_ok=true
+	AC_CHECK_LIB(pthreadGC2, pthread_create)
 	;;
 esac
 
@@ -633,7 +657,7 @@ dnl     }
 dnl   ],
 dnl   AC_MSG_RESULT(yes)
 dnl   AC_DEFINE(HAVE_ATOMIC_INC, 1,
-dnl 	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
+dnl	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
 dnl   AC_MSG_RESULT(no),
 dnl   AC_MSG_RESULT(assuming no))
 
@@ -672,7 +696,7 @@ dnl Hacks for MacOS handling of libreadline.  We want to prefer the MacOS X
 dnl libraries, but we need to get libreadline from Macports, as the BSD
 dnl version is severely limited.
 
-case "$ARCH" in
+case "$PLARCH" in
   *darwin*)
 	if test -z "$RLPREFIX"; then
 	  RLPREFIX=/opt/local
@@ -778,6 +802,7 @@ AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h mach/thread_act.h locale.h)
 AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
+AC_CHECK_HEADERS(crtdbg.h Shlobj.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
@@ -960,6 +985,14 @@ else
 fi
 fi
 
+AC_CHECK_LIB(unwind, main,
+	     check_unwind_h=yes)
+if test "$check_unwind_h" = yes; then
+  AC_CHECK_HEADER(libunwind.h,
+		  AC_DEFINE(HAVE_LIBUNWIND, 1,
+			    [ Define if you have libunwind and libunwind.h ])
+		  LIBS="-lunwind $LIBS")
+fi
 
 AC_CHECK_SIZEOF(void*, 4)
 AC_CHECK_SIZEOF(long, 4)
@@ -1260,7 +1293,7 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(yes))
 
 AC_MSG_CHECKING("for symbolic links")
-if touch conftest.x && ln -s conftest.x conftest.lns && cmp conftest.x conftest.lns; then
+if test "$MINGW" = false && touch conftest.x && ln -s conftest.x conftest.lns && cmp conftest.x conftest.lns; then
     AC_DEFINE(HAVE_SYMLINKS, 1,
 	      [Define if the ln command supports -s])
     AC_MSG_RESULT(yes)
@@ -1411,7 +1444,7 @@ AC_TRY_COMPILE(
 
   label3:
 	if ( x == 2 )
-  	  exit(0);
+	  exit(0);
 
         exit(1);
 ], AC_DEFINE(O_LABEL_ADDRESSES, 1,
@@ -1536,7 +1569,7 @@ if test "$MKSHARED" = yes; then
   MKLIBS="$MKLIBS sharedlib"
   CMFLAGS="$CMFLAGS $SO_PIC"
   LDFLAGS="$LDFLAGS $SO_PATH"
-  case "$ARCH" in
+  case "$PLARCH" in
     *cygwin*)
 	LNLIBS="$LIBS"
 	;;
@@ -1545,7 +1578,7 @@ if test "$MKSHARED" = yes; then
 	;;
   esac
   AC_DEFINE(O_SHARED_KERNEL, 1,
-  	    "Define if Prolog kernel is in shared object")
+	    "Define if Prolog kernel is in shared object")
 else
   CHRPATH=":"
   LNLIBS="$LIBS"
@@ -1558,6 +1591,12 @@ echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
 OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
+
+case "$PLARCH" in
+    *mingw*)
+        OutputFiles="$OutputFiles os/windows/Makefile"
+	;;
+esac
 
 # Prepare the package configuration if present
 

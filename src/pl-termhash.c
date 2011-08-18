@@ -351,7 +351,7 @@ typedef enum
 
 static int
 push_var(Word p, sha1_state *state)
-{ return pushSegStack(&state->vars, &p);
+{ return pushSegStack(&state->vars, p, Word);
 }
 
 
@@ -466,7 +466,7 @@ PRED_IMPL("variant_sha1", 2, variant_sha1, 0)
 	       sizeof(state.vars_first_chunk), state.vars_first_chunk);
   rc = variant_sha1(&agenda, &state PASS_LD);
   ac_clearTermAgenda(&agenda);
-  while(popSegStack(&state.vars, &p))
+  while(popSegStack(&state.vars, &p, Word))
     setVar(*p);
 
   SECURE(checkData(valTermRef(A1)));

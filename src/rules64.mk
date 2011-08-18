@@ -13,7 +13,7 @@ LIBPTHREAD=pthreadVC2
 LIBZLIB=zlibwapi
 
 # Architecture ID
-ARCH=x64-win64
+PLARCH=x64-win64
 
 # Extra libraries to load
 EXTRALIBS=bufferoverflowU.lib

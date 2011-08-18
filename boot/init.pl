@@ -345,14 +345,25 @@ initialization(Goal, When) :-
 '$prefix_module'(Module, Module, Head, Head) :- !.
 '$prefix_module'(Module, _, Head, Module:Head).
 
-%%	default_module(+Me, -Super) is nondet.
+%%	default_module(+Me, -Super) is multi.
 %
 %	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
 
-default_module(Me, Me).
 default_module(Me, Super) :-
+	(   atom(Me)
+	->  (   var(Super)
+	    ->  '$default_module'(Me, Super)
+	    ;   '$default_module'(Me, Super), !
+	    )
+	;   var(Me)
+	->  throw(error(instantiation_error, _))
+	;   throw(error(type_error(module, Me), _))
+	).
+
+'$default_module'(Me, Me).
+'$default_module'(Me, Super) :-
 	import_module(Me, S),
-	default_module(S, Super).
+	'$default_module'(S, Super).
 
 
 		/********************************
@@ -530,22 +541,20 @@ expand_file_search_path(Spec, Expanded) :-
 		*         FILE CHECKING         *
 		*********************************/
 
-%%	absolute_file_name(+Term, +Args, -AbsoluteFile) is nondet.
-%%	absolute_file_name(+Term, -AbsoluteFile, +Args) is nondet.
+%%	absolute_file_name(+Term, -AbsoluteFile, +Options) is nondet.
 %
 %	Translate path-specifier into a full   path-name. This predicate
 %	originates from Quintus was introduced  in SWI-Prolog very early
 %	and  has  re-appeared  in  SICStus  3.9.0,  where  they  changed
-%	argument order and  added  some   options.  As  arguments aren't
-%	really ambiguous we swap the arguments if we find the new order.
-%	The  SICStus  options  file_type(source)   and  relative_to  are
-%	supported as well.
+%	argument order and added some options.   We addopted the SICStus
+%	argument order, but still accept the original argument order for
+%	compatibility reasons.
 
 absolute_file_name(Spec, Args, Path) :-
-	is_list(Path),
-	\+ is_list(Args), !,
+	is_list(Args),
+	\+ is_list(Path), !,
 	absolute_file_name(Spec, Path, Args).
-absolute_file_name(Spec, Args, Path) :-
+absolute_file_name(Spec, Path, Args) :-
 	(   is_list(Args)
 	->  true
 	;   throw(error(type_error(list, Args), _))
@@ -591,7 +600,7 @@ absolute_file_name(Spec, Args, Path) :-
 	;   '$chk_file'(Spec1, Extensions, C3, false, Path)
 	).
 
-'$file_type_extensions'(source, Exts) :- !, 	% SICStus 3.9 compatibility
+'$file_type_extensions'(source, Exts) :- !,	% SICStus 3.9 compatibility
 	'$file_type_extensions'(prolog, Exts).
 '$file_type_extensions'(Type, Exts) :-
 	'$current_module'('$bags', _File), !,
@@ -790,10 +799,10 @@ extensions to .ext
 		*********************************/
 
 :- user:(dynamic
-	 	library_directory/1,
+		library_directory/1,
 	        prolog_load_file/2).
 :- user:(multifile
-	 	library_directory/1,
+		library_directory/1,
 	        prolog_load_file/2).
 
 
@@ -1219,6 +1228,8 @@ load_files(Module:Files, Options) :-
 %	=|$load|=
 
 '$do_load_file'(File, FullFile, Module, Options) :-
+	'$get_option'(derived_from(DerivedFrom), Options, -),
+	'$register_derived_source'(FullFile, DerivedFrom),
 	'$qlf_file'(File, FullFile, Absolute, Mode, Options),
 	(   Mode == qcompile
 	->  qcompile(Module:File, Options)
@@ -1231,7 +1242,6 @@ load_files(Module:Files, Options) :-
 
 	'$set_verbose_load'(Options, OldVerbose),
 	'$update_autoload_level'(Options, OldAutoLevel),
-	'$get_option'(derived_from(DerivedFrom), Options, -),
 
 	current_prolog_flag(generate_debug_info, DebugInfo),
 
@@ -1270,8 +1280,6 @@ load_files(Module:Files, Options) :-
 	;   true
 	),
 
-	'$register_derived_source'(Absolute, DerivedFrom),
-
 	statistics(heapused, Heap),
 	statistics(cputime, Time),
 	HeapUsed is Heap - OldHeap,
@@ -1291,7 +1299,7 @@ load_files(Module:Files, Options) :-
 
 %%	'$import_from_loaded_module'(LoadedModule, Module, Options) is det.
 %
-% 	Import public predicates from LoadedModule into Module
+%	Import public predicates from LoadedModule into Module
 
 '$import_from_loaded_module'(LoadedModule, Module, Options) :-
 	LoadedModule \== Module,
@@ -1372,9 +1380,13 @@ load_files(Module:Files, Options) :-
 	'$set_source_module'(_, OldModule).
 
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
-	'$set_source_module'(OldModule, Module),	% Inform C we start loading
+	'$set_source_module'(OldModule, Module),% Inform C we start loading
 	'$load_id'(Absolute, Id),
 	'$start_consult'(Id),
+	(   '$derived_source'(Absolute, DerivedFrom, _)
+	->  '$start_consult'(DerivedFrom)
+	;   true
+	),
 	'$compile_type'(What),
 	(   flag('$compiling', wic, wic)	% TBD
 	->  '$add_directive_wic'('$assert_load_context_module'(Id, OldModule))
@@ -1476,7 +1488,7 @@ load_files(Module:Files, Options) :-
 '$load_file'(_, _, _, File, _, Options) :-
 	'$get_option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, _, File, Module, _) :- !, 	% empty file
+'$load_file'(end_of_file, _, _, File, Module, _) :- !,	% empty file
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
 	'$ifcompiling'('$qlf_end_part').
@@ -1604,11 +1616,12 @@ load_files(Module:Files, Options) :-
 	var(Var), !,
 	throw(error(instantitation_error, _)).
 '$import_list'(Target, Source, all, Reexport) :- !,
-	'$module_property'(Source, exports(Import)),
-	'$import_ops'(Target, Source, _All),
+	'$exported_ops'(Source, Import, Predicates),
+	'$module_property'(Source, exports(Predicates)),
 	'$import_list'(Target, Source, Import, Reexport).
 '$import_list'(Target, Source, except(Spec), Reexport) :- !,
-	'$module_property'(Source, exports(Export)),
+	'$exported_ops'(Source, Export, Predicates),
+	'$module_property'(Source, exports(Predicates)),
 	(   is_list(Spec)
 	->  true
 	;   throw(error(type_error(list, Spec), _))
@@ -1623,28 +1636,47 @@ load_files(Module:Files, Options) :-
 
 
 '$import_except'([], List, List).
-'$import_except'([H as N|T], List0, List) :- !,
-	'$import_as'(H, N, List0, List1),
-	'$import_except'(T, List1, List).
 '$import_except'([H|T], List0, List) :-
-	'$select'(P, List0, List1),
-	'$same_pi'(H, P), !,
+	'$import_except_1'(H, List0, List1),
 	'$import_except'(T, List1, List).
 
-'$import_as'(PI, N, [PI2|T], [PI as N|T]) :-
-	'$same_pi'(PI, PI2), !.
+'$import_except_1'(Var, _, _) :-
+	var(Var), !,
+	throw(error(instantitation_error, _)).
+'$import_except_1'(PI as N, List0, List) :-
+	'$pi'(PI), atom(N), !,
+	'$canonical_pi'(PI, CPI),
+	'$import_as'(CPI, N, List0, List).
+'$import_except_1'(op(P,A,N), List0, List) :- !,
+	'$remove_ops'(List0, op(P,A,N), List).
+'$import_except_1'(PI, List0, List) :-
+	'$pi'(PI), !,
+	'$canonical_pi'(PI, CPI),
+	'$select'(P, List0, List),
+	'$canonical_pi'(CPI, P), !.
+'$import_except_1'(Except, _, _) :-
+	throw(error(type_error(import_specifier, Except), _)).
+
+'$import_as'(CPI, N, [PI2|T], [CPI as N|T]) :-
+	'$canonical_pi'(PI2, CPI), !.
 '$import_as'(PI, N, [H|T0], [H|T]) :- !,
 	'$import_as'(PI, N, T0, T).
 '$import_as'(PI, _, _, _) :-
 	throw(error(existence_error(export, PI), _)).
 
-'$same_pi'(PI1, PI2) :-
-	'$canonical_pi'(PI1, PI),
-	'$canonical_pi'(PI2, PI).
+'$pi'(N/A) :- atom(N), integer(A), !.
+'$pi'(N//A) :- atom(N), integer(A).
 
-'$canonical_pi'(N//A0, N/A) :- !,
+'$canonical_pi'(N//A0, N/A) :-
 	A is A0 + 2.
 '$canonical_pi'(PI, PI).
+
+'$remove_ops'([], _, []).
+'$remove_ops'([Op|T0], Pattern, T) :-
+	subsumes_term(Pattern, Op), !,
+	'$remove_ops'(T0, Pattern, T).
+'$remove_ops'([H|T0], Pattern, [H|T]) :-
+	'$remove_ops'(T0, Pattern, T).
 
 
 '$import_all'(Import, Context, Source, Reexport) :-
@@ -1663,12 +1695,14 @@ load_files(Module:Files, Options) :-
 	length(Args, Arity),
 	Head =.. [Name|Args],
 	NewHead =.. [NewName|Args],
-	source_location(File, _Line),
 	(   '$get_predicate_attribute'(Source:Head, transparent, 1)
 	->  '$set_predicate_attribute'(Context:NewHead, transparent, 1)
 	;   true
 	),
-	'$store_clause'((NewHead :- Source:Head), File),
+	(   source_location(File, _Line)
+	->  '$store_clause'((NewHead :- Source:Head), File)
+	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
+	),					 % duplicate load
 	'$import_all2'(Rest, Context, Source, Imported).
 '$import_all2'([op(P,A,N)|Rest], Context, Source, Imported) :- !,
 	'$import_ops'(Context, Source, op(P,A,N)),
@@ -1683,13 +1717,33 @@ load_files(Module:Files, Options) :-
 '$list_to_conj'([H|T], (H,Rest)) :-
 	'$list_to_conj'(T, Rest).
 
+%%	'$exported_ops'(+Module, -Ops, ?Tail) is det.
+%
+%	Ops is a list of op(P,A,N) terms representing the operators
+%	exported from Module.
+
+'$exported_ops'(Module, Ops, Tail) :-
+	current_predicate(Module:'$exported_op'/3), !,
+	findall(op(P,A,N), Module:'$exported_op'(P,A,N), Ops, Tail).
+'$exported_ops'(_, Ops, Ops).
+
+
 %%	'$import_ops'(+Target, +Source, +Pattern)
 %
 %	Import the operators export from Source into the module table of
 %	Target.  We only import operators that unify with Pattern.
 
 '$import_ops'(To, From, Pattern) :-
-	(   '$c_current_predicate'(_, From:'$exported_op'(_, _, _)),
+	ground(Pattern), !,
+	Pattern = op(P,A,N),
+	op(P,A,To:N),
+	(   current_predicate(From:'$exported_op'/3),
+	    From:'$exported_op'(P, A, N)
+	->  true
+	;   print_message(warning, no_exported_op(From, Pattern))
+	).
+'$import_ops'(To, From, Pattern) :-
+	(   current_predicate(From:'$exported_op'/3),
 	    From:'$exported_op'(Pri, Assoc, Name),
 	    Pattern = op(Pri, Assoc, To:Name),
 	    op(Pri, Assoc, To:Name),
@@ -2039,7 +2093,7 @@ saved state.
 	current_prolog_flag(argv, Argv),
 	'$get_files_argv'(Argv, Files),
 	'$translate_options'(Argv, Options),
-	'$option'(compileout, Out, Out),
+	'$option'(compileout, Out),
         user:consult(Files),
 	user:qsave_program(Out, Options).
 
@@ -2070,13 +2124,13 @@ saved state.
 		*       LIST PROCESSING         *
 		*********************************/
 
-'$member'(X, [X|T]) :-
-	(   T == []
-	->  !
-	;   true
-	).
-'$member'(X, [_|T]) :-
-	'$member'(X, T).
+'$member'(El, [H|T]) :-
+	'$member_'(T, El, H).
+
+'$member_'(_, El, El).
+'$member_'([H|T], El, _) :-
+	'$member_'(T, El, H).
+
 
 '$append'([], L, L).
 '$append'([H|T], L, [H|R]) :-
@@ -2105,6 +2159,33 @@ saved state.
 '$last'([], Last, Last).
 '$last'([H|T], _, Last) :-
 	'$last'(T, H, Last).
+
+
+%%	length(?List, ?N)
+%
+%	Is true when N is the length of List.
+
+:- '$iso'((length/2)).
+
+length(List, Length) :-
+	(   nonvar(Length)
+	->  '$length'(List, Length)
+	;   '$skip_list'(Length0, List, Tail),
+	    (	Tail == []
+	    ->	Length = Length0
+	    ;	var(Tail)
+	    ->  '$length3'(Tail, Length, Length0)
+	    ;	throw(error(type_error(list,Tail),
+			    context(length/2, _)))
+	    )
+	).
+
+'$length3'([], N, N).
+'$length3'([_|List], N, N0) :-
+        succ(N0, N1),
+        '$length3'(List, N, N1).
+
+
 
 
 		 /*******************************

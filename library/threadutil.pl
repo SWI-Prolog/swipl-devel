@@ -126,14 +126,7 @@ attach_console :-
 	format(atom(Title),
 	       'SWI-Prolog Thread ~w (~d) Interactor',
 	       [Id, SysId]),
-	(   current_prolog_flag(windows, true)
-	->  regkey(Id, Key),
-					% Avoid undefined predicate listing
-	    call(win_open_console(Title, In, Out, Err,
-				  [ registry_key(Key)
-				  ]))
-	;   open_xterm(Title, In, Out, Err)
-	),
+	open_console(Title, In, Out, Err),
 	assert(has_console(Id, In, Out, Err)),
 	set_stream(In,  alias(user_input)),
 	set_stream(Out, alias(user_output)),
@@ -142,15 +135,33 @@ attach_console :-
 	set_stream(Out, alias(current_output)),
 	thread_at_exit(detach_console(Id)).
 
+:- if(current_predicate(win_open_console/5)).
+
+open_console(Title, In, Out, Err) :-
+	thread_self(Id),
+	regkey(Id, Key),
+	win_open_console(Title, In, Out, Err,
+			 [ registry_key(Key)
+			 ]).
+
 regkey(Key, Key) :-
 	atom(Key).
 regkey(_, 'Anonymous').
 
+:- else.
+
+open_console(Title, In, Out, Err) :-
+	open_xterm(Title, In, Out, Err).
+
+:- endif.
+
 detach_console(Id) :-
-	retract(has_console(Id, In, Out, Err)),
-	catch(close(In), _, true),
-	catch(close(Out), _, true),
-	catch(close(Err), _, true).
+	(   retract(has_console(Id, In, Out, Err))
+	->  close(In, [force(true)]),
+	    close(Out, [force(true)]),
+	    close(Err, [force(true)])
+	;   true
+	).
 
 
 		 /*******************************

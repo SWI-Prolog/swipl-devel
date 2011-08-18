@@ -109,10 +109,10 @@ on the Windows language. English versions typically use
 \begin{center}
 \begin{tabular}{|l|l|l|}
 \hline
-		& \bf Unix 	& \bf Windows \\
+		& \bf Unix	& \bf Windows \\
 \hline
-\bf local	& \file{.} 	& \file{.} \\
-\bf home	& \chr{~} 	& <appdata>/SWI-Prolog \\
+\bf local	& \file{.}	& \file{.} \\
+\bf home	& \chr{~}	& <appdata>/SWI-Prolog \\
 \hline
 \end{tabular}
 \end{center}
@@ -1025,6 +1025,32 @@ If \const{true} (default), read/1 interprets \verb$\$ escape sequences
 in quoted atoms and strings. May be changed. This flag is local to the
 module in which it is changed.
 
+    \prologflagitem{compile_meta_arguments}{atom}{rw}
+Experimental flag that controls compilation of arguments passed to
+meta-calls marked `0' or `\chr{^}' (see meta_predicate/1). Supported
+values are:
+
+\begin{description}
+    \termitem{false}{}
+(default).  Meta-arguments are passed verbatim.
+    \termitem{control}{}
+Compile meta-arguments that contain control-structures ((A,B), (A;B),
+(A->B;C), etc.).  If not compiled at compile-time, such arguments are
+compiled to a temporary clause before execution.  Using this option
+enhances performance of processing complex meta-goals that are known
+at compile-time.
+    \termitem{true}{}
+Also compile references to normal user-predicates. This harms
+performance (a little), but enhances the power of poor-mens consistency
+check used by make/0 and implemented by list_undefined/0.
+    \termitem{always}{}
+Always create an intermediate clause, even for system predicates. This
+prepares for a replacing the normal head of the generated predicate with
+a special reference (similar to database-references as used by e.g.,
+assert/2) that provides direct access to the executable code, thus
+avoiding runtime lookup of predicates for meta-calling.
+\end{description}
+
     \prologflagitem{compiled_at}{atom}{r}
 Describes when the system has been compiled. Only available if the
 C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__
@@ -1180,7 +1206,7 @@ SWI-Prolog behaviour.  Currently it has the following effect:
     \item abolish/[1,2] raises a permission error when accessing static
           predicates.
     \item Syntax is closer to the ISO standard.
-    	  \begin{itemize}
+	  \begin{itemize}
 		\item Unquoted commas and bars appearing as atoms
 		      are not allowed.  Instead of
 		      \exam{f(,,a)} now write \exam{f(',',a)}.
@@ -1321,6 +1347,14 @@ Determine whether Prolog is handling signals (software interrupts). This
 flag is \const{false} if the hosting OS does not support signal handling
 or the command-line option \cmdlineoption{-nosignals} is active.  See
 \secref{sigembedded} for details.
+
+    \prologflagitem{stream_type_check}{atom}{rw}
+Defines whether and how strictly the system validates that byte IO
+should not be applied to text-streams and text IO should not be applied
+to binary streams. Values are \const{false} (no checking), \const{true}
+(full checking) and \const{loose}.  Using checking mode \const{loose}
+(default), the system accepts byte I/O from text stream that use ISO
+Latin-1 encoding and accepts writing text to binary streams.
 
     \prologflagitem{system_thread_id}{int}{r}
 Available in multi-threaded version (see \secref{threads}) where the
@@ -1647,6 +1681,20 @@ the following search schema is followed:
 \end{enumerate}
 
 \begin{description}
+    \predicate{autoload_path}{1}{+DirAlias}
+Add DirAlias to the libraries that are  used by the autoloader. This
+extends the search  path  \const{autoload}   and  reloads  the library
+index.  For example:
+
+\begin{code}
+:- autoload_path(library(http)).
+\end{code}
+
+If this call appears as a directive, it is term-expanded into a clause
+for user:file_search_path/2 and a directive calling
+reload_library_index/0. This keeps source information and allows for
+removing this directive.
+
     \predicate{make_library_index}{1}{+Directory}
 Create an index for this directory.  The index is written to the file
 'INDEX.pl' in the specified directory.  Fails with a warning if the
@@ -1721,7 +1769,7 @@ for parsing Prolog source text.  Character classification is fixed to
 use UCS/Unicode as provided by the C-library \ctype{wchar_t} based
 primitives.  See also \secref{widechars}.
 
-\subsubsection{Character Escape Syntax} 	\label{sec:charescapes}
+\subsubsection{Character Escape Syntax}		\label{sec:charescapes}
 
 Within quoted atoms (using single quotes: \exam{'<atom>'}) special
 characters are represented using escape-sequences. An escape sequence is
@@ -1917,7 +1965,7 @@ messages can be suppressed using the style_check/1 directive.
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
-test(_). 	& \\
+test(_).	& \\
 test(_a).	& Singleton variables: [_a] \\
 test(_12).	& Singleton variables: [_12] \\
 test(A).	& Singleton variables: [A] \\

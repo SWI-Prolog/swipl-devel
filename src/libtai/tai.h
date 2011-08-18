@@ -1,14 +1,14 @@
 #ifndef TAI_H
 #define TAI_H
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 #else
 #include <inttypes.h>			/* more portable than stdint.h */
 #endif
 
-#ifdef __WINDOWS__
+#ifdef _MSC_VER
 #define LL(x)  x ## i64
 #define ULL(x) x ## ui64
 #else

@@ -1294,11 +1294,10 @@ resetReferences(void)
 
 /** meta_predicate :HeadList is det.
 
-Quintus compatible declaration  for   meta-predicates.  The  declaration
-fills the meta_info field of a  definition   as  well  as the P_META and
-P_TRANSPARENT  flags.  P_META  indicates  that    meta_info   is  valid.
-P_TRANSPARENT indicates that  the  declaration   contains  at  least one
-meta-argument (: or 0..9).
+Declaration for meta-predicates. The  declaration   fills  the meta_info
+field of a definition as well  as   the  P_META and P_TRANSPARENT flags.
+P_META indicates that meta_info is   valid. P_TRANSPARENT indicates that
+the declaration contains at least one meta-argument (: or 0..9).
 
 @param HeadList	Comma separated list of predicates heads, where each
 		predicate head has arguments 0..9, :,+,-,?
@@ -1344,10 +1343,11 @@ meta_declaration(term_t spec)
     } else if ( PL_get_atom(arg, &ma) )
     { int m;
 
-      if      ( ma == ATOM_plus ) m = MA_NONVAR;
-      else if ( ma == ATOM_minus ) m = MA_VAR;
+      if      ( ma == ATOM_plus )          m = MA_NONVAR;
+      else if ( ma == ATOM_minus )         m = MA_VAR;
       else if ( ma == ATOM_question_mark ) m = MA_ANY;
-      else if ( ma == ATOM_colon ) m = MA_META, transparent = TRUE;
+      else if ( ma == ATOM_colon )         m = MA_META, transparent = TRUE;
+      else if ( ma == ATOM_hat )           m = MA_HAT,  transparent = TRUE;
       else goto domain_error;
 
       mask |= m<<(i*4);
@@ -1406,6 +1406,7 @@ unify_meta_argument(term_t head, Definition def, int i)
       case MA_VAR:	a = ATOM_minus; break;
       case MA_ANY:	a = ATOM_question_mark; break;
       case MA_NONVAR:	a = ATOM_plus; break;
+      case MA_HAT:	a = ATOM_hat; break;
       default:		a = NULL_ATOM; assert(0);
     }
 
@@ -1431,6 +1432,45 @@ unify_meta_pattern(Procedure proc, term_t head)
   }
 
   return FALSE;
+}
+
+
+int
+PL_meta_predicate(predicate_t proc, ...)
+{ va_list args;
+  Definition def = proc->definition;
+  int arity = def->functor->arity;
+  int i;
+  int mask = 0;
+  int transparent = FALSE;
+
+  va_start(args, proc);
+  for(i=0; i<arity; i++)
+  { int spec = va_arg(args, int);
+
+    if ( (spec >= 0 && spec <= 9) ||
+	 spec == MA_NONVAR ||
+	 spec == MA_VAR ||
+	 spec == MA_ANY ||
+	 spec == MA_META )
+    { mask |= spec<<(i*4);
+      if ( spec < 10 || spec == MA_META || spec == MA_HAT )
+	transparent = TRUE;
+    } else
+    { fatalError("Invalid meta-argument\n");
+      return FALSE;
+    }
+  }
+  va_end(args);
+
+  def->meta_info = mask;
+  if ( transparent )
+    set(def, P_TRANSPARENT);
+  else
+    clear(def, P_TRANSPARENT);
+  set(def, P_META);
+
+  return TRUE;
 }
 
 
@@ -1469,6 +1509,7 @@ pl_garbage_collect_clauses(void)
     DEBUG(1, Sdprintf("pl_garbage_collect_clauses()\n"));
 
     LOCK();
+    PL_LOCK(L_GC);
     PL_LOCK(L_THREAD);
     blockSignals(&set);
 
@@ -1521,6 +1562,7 @@ pl_garbage_collect_clauses(void)
 
     unblockSignals(&set);
     PL_UNLOCK(L_THREAD);
+    PL_UNLOCK(L_GC);
     UNLOCK();
 
     if ( garbage )
@@ -1853,8 +1895,9 @@ PRED_IMPL("retract", 1, retract,
     atom_t b;
     fid_t fid;
 
-    PL_strip_module(term, &m, cl);
-    get_head_and_body_clause(cl, head, body, NULL PASS_LD);
+    if ( !PL_strip_module_ex(term, &m, cl) ||
+	 !get_head_and_body_clause(cl, head, body, NULL PASS_LD) )
+      return FALSE;
     if ( PL_get_atom(body, &b) && b == ATOM_true )
       PL_put_term(cl, head);
 
@@ -2159,8 +2202,8 @@ attribute_mask(atom_t key)
   if (key == ATOM_volatile)	 return VOLATILE;
   if (key == ATOM_thread_local)  return P_THREAD_LOCAL;
   if (key == ATOM_noprofile)     return P_NOPROFILE;
-  if (key == ATOM_iso)      	 return P_ISO;
-  if (key == ATOM_public)      	 return P_PUBLIC;
+  if (key == ATOM_iso)		 return P_ISO;
+  if (key == ATOM_public)	 return P_PUBLIC;
 
   return 0;
 }
@@ -2643,7 +2686,7 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
   } else if ( a == ATOM_fact )
   { return PL_unify_atom(value,
 			 true(clause, UNIT_CLAUSE) ? ATOM_true
-			 			   : ATOM_false);
+						   : ATOM_false);
   } else if ( a == ATOM_erased )
   { atom_t erased;
 
@@ -2849,7 +2892,8 @@ pl_source_file(term_t descr, term_t file, control_t h)
     { if ( !proc->definition ||
 	   true(proc->definition, FOREIGN|P_THREAD_LOCAL) ||
 	   !(cref = proc->definition->definition.clauses) ||
-	   !(sf = indexToSourceFile(cref->clause->source_no)) )
+	   !(sf = indexToSourceFile(cref->clause->source_no)) ||
+	   sf->count == 0 )
 	fail;
 
       return PL_unify_atom(file, sf->name);
@@ -2863,7 +2907,8 @@ pl_source_file(term_t descr, term_t file, control_t h)
     succeed;
 
   if ( !PL_get_atom_ex(file, &name) ||
-       !(sf = lookupSourceFile(name, FALSE)) )
+       !(sf = lookupSourceFile(name, FALSE)) ||
+       sf->count == 0 )
     fail;
 
   switch( ForeignControl(h) )
@@ -2923,6 +2968,9 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   fid = PL_open_foreign_frame();
   for(; index < mx; index++)
   { SourceFile f = fetchBuffer(&GD->files.source_files, index, SourceFile);
+
+    if ( f->count == 0 )
+      continue;
 
     if ( PL_unify_atom(file, f->name) &&
 	 unifyTime(time, f->time) &&
@@ -3121,8 +3169,14 @@ pl_start_consult(term_t file)
 
   if ( PL_get_atom(file, &name) )
   { SourceFile f = lookupSourceFile(name, TRUE);
+    char *fn;
 
-    f->time = LastModifiedFile(stringAtom(name));
+    if ( PL_get_file_name(file, &fn, 0) )
+    { f->time = LastModifiedFile(fn);
+    } else
+    { f->time = (time_t)0;
+    }
+
     startConsult(f);
     succeed;
   }

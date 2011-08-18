@@ -33,7 +33,8 @@ Tests that are hard to classify
 */
 
 test_write :-
-	run_tests([ portray
+	run_tests([ portray,
+		    write_canonical
 		  ]).
 
 :- begin_tests(portray).
@@ -43,5 +44,30 @@ user:portray(ptray_test) :-
 
 test(exception, throws(nono)) :-
 	print(ptray_test).
+test(blob, Text == text) :-
+	open_null_stream(S),
+	with_output_to(atom(Text),
+		       write_term(S, [ blobs(portray),
+				       portray_goal(portray_stream)
+				     ])),
+	close(S).
+
+portray_stream(S, _) :-
+	stream_property(S, type(T)),
+	format('~w', [T]).
 
 :- end_tests(portray).
+
+:- begin_tests(write_canonical).
+
+test(numbervars, X = 'x(_,_)') :-
+	with_output_to(atom(X),
+		       write_canonical(x(_,_))).
+test(numbervars, X = 'x(A,A)') :-
+	with_output_to(atom(X),
+		       write_canonical(x(B,B))).
+test(numbervars, X = 'x(\'$VAR\'(1),_)') :-
+	with_output_to(atom(X),
+		       write_canonical(x('$VAR'(1),_))).
+
+:- end_tests(write_canonical).

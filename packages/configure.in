@@ -19,10 +19,10 @@ export MAKE
 
 BUILDDIR=@BUILDDIR@
 srcdir=`echo @abs_srcdir@ | sed 's=/../packages$=='`
-ARCH=@ARCH@
+PLARCH=@PLARCH@
 PL=@PL@
 bdir=$srcdir/../$BUILDDIR
-ldir=$srcdir/../lib/$ARCH
+ldir=$srcdir/../lib/$PLARCH
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$ldir

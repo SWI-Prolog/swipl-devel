@@ -285,8 +285,11 @@ swi_context(file(Path, Line, -1, _CharNo)) --> !,
 	[ '~w:~d: '-[Path, Line] ].
 swi_context(file(Path, Line, LinePos, _CharNo)) -->
 	[ '~w:~d:~d: '-[Path, Line, LinePos] ].
-swi_context(stream(Stream, Line, LinePos, _CharNo)) -->
-	[ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ].
+swi_context(stream(Stream, Line, LinePos, CharNo)) -->
+	(   { stream_property(Stream, file_name(File)) }
+	->  swi_context(file(File, Line, LinePos, CharNo))
+        ;   [ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ]
+	).
 swi_context(_) -->
 	[].
 
@@ -409,6 +412,8 @@ prolog_message(declare_module(Module, abolish(Predicates))) -->
 	[ 'Loading module ~w abolished: ~p'-[Module, Predicates] ].
 prolog_message(undefined_export(Module, PI)) -->
 	[ 'Exported procedure ~q:~q is not defined'-[Module, PI] ].
+prolog_message(no_exported_op(Module, Op)) -->
+	[ 'Operator ~q:~q is not exported (still defined)'-[Module, Op] ].
 prolog_message(discontiguous((-)/2)) -->
 	prolog_message(minus_in_identifier).
 prolog_message(discontiguous(Proc)) -->

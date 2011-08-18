@@ -64,6 +64,7 @@ A backtrace		"backtrace"
 A bar			"|"
 A begin			"begin"
 A binary		"binary"
+A binary_stream		"binary_stream"
 A bind			"bind"
 A bitor			"\\/"
 A blobs			"blobs"
@@ -101,7 +102,7 @@ A clause		"clause"
 A clause_reference	"clause_reference"
 A close			"close"
 A close_on_abort	"close_on_abort"
-A close_on_exec       	"close_on_exec"
+A close_on_exec		"close_on_exec"
 A close_option		"close_option"
 A cm			"cm"
 A cntrl			"cntrl"
@@ -134,6 +135,7 @@ A cut_exit		"cut_exit"
 A cut_parent		"cut_parent"
 A cutted		"cut"
 A cyclic_term		"cyclic_term"
+A cycles		"cycles"
 A dand			"$and"
 A date			"date"
 A db_reference		"db_reference"
@@ -275,8 +277,6 @@ A has_alternatives	"has_alternatives"
 A hash			"hash"
 A hashed		"hashed"
 A hat			"^"
-A heap			"heap"
-A heaplimit		"heaplimit"
 A heapused		"heapused"
 A help			"help"
 A hidden		"hidden"
@@ -293,7 +293,7 @@ A inf			"inf"
 A inferences		"inferences"
 A infinite		"infinite"
 A informational		"informational"
-A init_file    		"init_file"
+A init_file		"init_file"
 A initialization	"initialization"
 A input			"input"
 A inserted_char		"inserted_char"
@@ -336,6 +336,7 @@ A locked		"locked"
 A log			"log"
 A log10			"log10"
 A long			"long"
+A loose			"loose"
 A low			"low"
 A lower			"lower"
 A lsb			"lsb"
@@ -402,7 +403,7 @@ A numbervar_option	"numbervar_option"
 A numbervars		"numbervars"
 A occurs_check		"occurs_check"
 A octet		        "octet"
-A off     		"off"
+A off			"off"
 A on			"on"
 A open			"open"
 A operator		"operator"
@@ -430,6 +431,7 @@ A plain			"plain"
 A plus			"+"
 A popcount		"popcount"
 A portray		"portray"
+A portray_goal		"portray_goal"
 A position		"position"
 A posix			"posix"
 A powm			"powm"
@@ -440,6 +442,7 @@ A print_message		"print_message"
 A priority		"priority"
 A private_procedure	"private_procedure"
 A procedure		"procedure"
+A process_cputime	"process_cputime"
 A profile_mode		"profile_mode"
 A profile_no_cpu_time	"profile_no_cpu_time"
 A profile_node		"profile_node"
@@ -546,6 +549,7 @@ A stream_or_alias	"stream_or_alias"
 A stream_pair		"stream_pair"
 A stream_position	"$stream_position"
 A stream_property	"stream_property"
+A stream_type_check	"stream_type_check"
 A strict_equal		"=="
 A string		"string"
 A string_position	"string_position"
@@ -556,7 +560,7 @@ A syntax_errors		"syntax_errors"
 A system		"system"
 A system_error		"system_error"
 A system_init_file	"system_init_file"
-A system_thread_id 	"system_thread_id"
+A system_thread_id	"system_thread_id"
 A system_time		"system_time"
 A tan			"tan"
 A temporary_files	"temporary_files"
@@ -566,6 +570,7 @@ A term_position		"term_position"
 A terminal		"terminal"
 A terminal_capability	"terminal_capability"
 A text			"text"
+A text_stream		"text_stream"
 A thread		"thread"
 A thread_cputime	"thread_cputime"
 A thread_initialization "thread_initialization"
@@ -585,7 +590,7 @@ A timezone		"timezone"
 A to_lower		"to_lower"
 A to_upper		"to_upper"
 A top			"top"
-A top_level    		"top_level"
+A top_level		"top_level"
 A toplevel		"toplevel"
 A trace			"trace"
 A trace_any		"trace_any"
@@ -697,7 +702,7 @@ F chars			1
 F chars			2
 F clause		1
 F close_on_abort	1
-F close_on_exec  	1
+F close_on_exec		1
 F codes			1
 F codes			2
 F colon			2
@@ -719,7 +724,7 @@ F debugging		1
 F detached		1
 F dexit			2
 F dforeign_registered   2
-F dgarbage_collect 	1
+F dgarbage_collect	1
 F div			2
 F gdiv			2
 F divide		2
@@ -816,6 +821,7 @@ F position		1
 F powm			3
 F print			1
 F print_message		2
+F priority		1
 F procedure		2
 F prove			1
 F prove			2
@@ -878,3 +884,4 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
+F xpceref		2

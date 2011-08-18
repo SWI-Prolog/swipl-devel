@@ -175,11 +175,17 @@ initialization/1 hooks.
     \predicate{thread_at_exit}{1}{:Goal}
 Run \arg{Goal} just before releasing the thread resources. This is to be
 compared to at_halt/1, but only for the current thread. These hooks are
-run regardless of why the execution of the thread has been completed. As
-these hooks are run, the return-code is already available through
+run regardless of why the execution of the thread has been completed.
+When these hooks are run, the return-code is already available through
 thread_property/2 using the result of thread_self/1 as
-thread-identifier.  See also the \term{at_exit}{Goal} argument of
-thread_create/3.
+thread-identifier. Note that there are two scenarios for using exit
+hooks. Using thread_at_exit/1 is typically used if the thread creates a
+side-effect that must be reverted if the thread dies. Another scenario
+is where the creator of the thread wants to be informed when the thread
+ends. That cannot be guaranteed by means of thread_at_exit/1 because it
+is possible that the thread cannot be created or dies almost instantly
+due to a signal or resource error.  The \term{at_exit}{Goal} option of
+thread_create/3 is designed to deal with this scenario.
 
     \predicate{thread_setconcurrency}{2}{-Old, +New}
 \index{Solaris}%
@@ -537,7 +543,7 @@ There is no limit to the number of mutexes that can be created.
 Create a mutex using options.  Defined options are:
 
     \begin{description}
-    	\termitem{alias}{Alias}
+	\termitem{alias}{Alias}
 Set the alias name.  Using \term{mutex_create}{X, [alias(name)]}
 is preferred over the equivalent \term{mutex_create}{name}.
     \end{description}

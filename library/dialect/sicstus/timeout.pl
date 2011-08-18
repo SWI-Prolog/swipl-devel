@@ -50,9 +50,7 @@
 %
 %	Virtual CPU time  is  hard   in  threaded-environments.  On most
 %	systems, you probably need a thread  that measures the CPU usage
-%	of the monitored thread. Unfortunately, this   does  not work on
-%	MacOSX because there is (AFAIK) no   way  to get thread-specific
-%	CPU statistics.
+%	of the monitored thread.
 
 time_out(Goal, Time_ms, Result) :-
 	Time_s is (Time_ms//1)/1000,

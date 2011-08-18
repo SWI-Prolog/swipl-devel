@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -43,7 +44,7 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 
-:- meta_predicate(assertion(:)).
+:- meta_predicate(assertion(0)).
 /*:- use_module(library(prolog_stack)).*/ % We use the autoloader if needed
 
 %:- set_prolog_flag(generate_debug_info, false).
@@ -54,7 +55,7 @@
 
 debug_context(thread).
 
-/** <module> Print debug messages
+/** <module> Print debug messages and test assertions
 
 This library is a replacement for  format/3 for printing debug messages.
 Messages are assigned a _topic_. By   dynamically  enabling or disabling
@@ -279,20 +280,14 @@ system:goal_expansion(debugging(Topic), fail) :-
 	;   debug_topic(Topic),
 	    fail
 	).
-system:goal_expansion(assertion(G), Goal) :-
-	(   current_prolog_flag(optimise, true)
-	->  Goal = true
-	;   expand_goal(G, G2),
-	    Goal = assertion(G2)
-	).
-system:goal_expansion(assume(G), Goal) :-
+system:goal_expansion(assertion(_), Goal) :-
+	current_prolog_flag(optimise, true),
+	Goal = true.
+system:goal_expansion(assume(_), Goal) :-
 	print_message(informational,
 		      compatibility(renamed(assume/1, assertion/1))),
-	(   current_prolog_flag(optimise, true)
-	->  Goal = true
-	;   expand_goal(G, G2),
-	    Goal = assertion(G2)
-	).
+	current_prolog_flag(optimise, true),
+	Goal = true.
 
 
 		 /*******************************

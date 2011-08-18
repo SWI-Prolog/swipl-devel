@@ -75,11 +75,15 @@ agc :-
 	repeat,
 	    garbage_collect_atoms,
 	    statistics(agc, AGC1),
- 	(   AGC1 > AGC0
+	(   AGC1 > AGC0
 	->  !
 	;   sleep(0.01),
 	    fail
 	).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% more tests
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 magic_pred_123.
 
@@ -91,6 +95,10 @@ test(directory_files, true) :-
 	file_base_name(File, Plain),
 	directory_files(Dir, Files),
 	memberchk(Plain, Files).
-
+test(max_path_len, error(representation_error(max_path_length))) :-
+	length(L, 10000),
+	maplist(=('a'), L),
+	atom_chars(F, L),
+	absolute_file_name(F, _, [access(read)]).
 
 :- end_tests(files).

@@ -36,13 +36,14 @@ while [ "$1" != "" ]; do
 			;;
     --without-*)	pkg=`echo $1 | sed 's/--without-//'`
 			DISABLE_PKGS="$DISABLE_PKGS $pkg"
+			export DISABLE_PKGS
 			shift
 			;;
     --link)		TARGET="ln-$TARGET"
 			shift
 			;;
     --help)		usage
-    			exit 0
+			exit 0
 			;;
     --*-libdirversion*|--*-useprofile*)
 			kerneloptions="$kerneloptions $1"

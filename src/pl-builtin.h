@@ -43,12 +43,6 @@ First, include config.h or, if MD is  specified, this file.  This allows
 for -DMD="config/win64.h"
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef MD
-#include MD
-#else
-#include <config.h>
-#endif
-
 #if defined(O_PLMT) && !defined(_REENTRANT)
 #define _REENTRANT 1
 #endif
@@ -57,7 +51,7 @@ for -DMD="config/win64.h"
 #include <xos.h>			/* Windows POSIX enhancements */
 #endif
 #ifdef HAVE_UXNT_H
-#include <uxnt.h>			/* More Windows POSIX enhancements */
+#include "os/windows/uxnt.h"		/* More Windows POSIX enhancements */
 #endif
 
 #include "pl-mutex.h"
@@ -134,8 +128,8 @@ func1(int arg ARG_LD)
 
   func1(42 PASS_LD)
 
-Note there is *NO* , before  ARG_LD   and  PASS_LD, because these macros
-expand to nothing of there is just  one engine. The versions ARG1_LD and
+Note there is *NO* "," before ARG_LD   and PASS_LD, because these macros
+expand to nothing if there is just  one engine. The versions ARG1_LD and
 PASS_LD1 are used if there is no other argument.
 
 On some frequently used functions,   writing PASS_LD everywhere clutters
@@ -169,8 +163,13 @@ typedef struct PL_global_data PL_global_data_t;
 #else
 
 #define GET_LD
-#define PRED_LD
-#define LOCAL_LD  GLOBAL_LD
+#define ARG_LD
+#define ARG1_LD void
+#define PASS_LD
+#define PASS_LD1
+#define LOCAL_LD  (&PL_local_data)
+#define GLOBAL_LD (&PL_local_data)
+#define LD	  GLOBAL_LD
 
 #endif
 
@@ -309,7 +308,7 @@ engine. The calls can be  nested,  but   the  program  must  ensure each
 blockGC() is matched by an unblockGC().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-COMMON(void) 	blockGC(int flags ARG_LD);	/* disallow garbage collect */
-COMMON(void) 	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
+COMMON(void)	blockGC(int flags ARG_LD);	/* disallow garbage collect */
+COMMON(void)	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
 
 #endif /*PL_BUILTIN_H_INCLUDED*/

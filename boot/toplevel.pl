@@ -36,7 +36,7 @@
 	    '$break'/0,			% live in a break
 	    '$compile'/0,		% `-c' toplevel
 	    '$welcome'/0,		% banner
-	    prolog/0, 			% user toplevel predicate
+	    prolog/0,			% user toplevel predicate
 	    '$set_prompt'/1,		% set the main prompt
 	    (initialization)/1,		% initialization goal (directive)
 	    '$thread_init'/0,		% initialise thread
@@ -75,7 +75,7 @@
 '$load_system_init_file' :-
 	loaded_init_file(system, _), !.
 '$load_system_init_file' :-
-	'$option'(system_init_file, Base, Base),
+	'$option'(system_init_file, Base),
 	Base \== none,
 	current_prolog_flag(home, Home),
 	file_name_extension(Base, rc, Name),
@@ -92,8 +92,11 @@
 '$load_script_file' :-
 	loaded_init_file(script, _), !.
 '$load_script_file' :-
-	'$option'(script_file, OsFile, OsFile),
-	OsFile \== '',
+	'$option'(script_file, OsFiles),
+	load_script_files(OsFiles).
+
+load_script_files([]).
+load_script_files([OsFile|More]) :-
 	prolog_to_os_filename(File, OsFile),
 	(   absolute_file_name(File, Path,
 			       [ file_type(prolog),
@@ -101,10 +104,10 @@
 				 file_errors(fail)
 			       ])
 	->  asserta(loaded_init_file(script, Path)),
-	    load_files(user:Path, [])
+	    load_files(user:Path, []),
+	    load_files(More)
 	;   throw(error(existence_error(script_file, File), _))
 	).
-'$load_script_file'.
 
 '$load_gnu_emacs_interface' :-
 	(   getenv('EMACS', t),
@@ -262,7 +265,9 @@ set_associated_file :-
 	current_prolog_flag(argv, Argv),
 	'$append'(Pre, [OsFile], Argv),
 	\+ memberchk(--, Pre),
-	\+ '$append'(_, ['-f'], Pre),	% Avoid loading twice
+	\+ ( '$append'(_, [LOpt], Pre),
+	     load_option(LOpt)		% Avoid loading twice
+	   ),
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
 	access_file(File, read), !,
@@ -275,6 +280,10 @@ set_associated_file :-
 	;   true
 	).
 set_associated_file.
+
+load_option('-s').
+load_option('-l').
+load_option('-f').
 
 
 %%	start_pldoc
@@ -356,13 +365,13 @@ initialise_prolog :-
 	'$run_initialization',
 	'$load_system_init_file',
 	'$load_gnu_emacs_interface',
-	'$option'(init_file, OsFile, OsFile),
+	'$option'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
 	start_pldoc,
 	'$load_script_file',
 	load_associated_file,
-	'$option'(goal, GoalAtom, GoalAtom),
+	'$option'(goal, GoalAtom),
 	term_to_atom(Goal, GoalAtom),
 	(   Goal == '$welcome'
 	->  flag('$banner_goal', TheGoal, TheGoal)
@@ -401,7 +410,7 @@ initialise_prolog :-
 %	crashing in a loop?
 
 '$runtoplevel' :-
-	'$option'(toplevel, TopLevelAtom, TopLevelAtom),
+	'$option'(toplevel, TopLevelAtom),
 	catch(term_to_atom(TopLevel, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),
@@ -808,13 +817,11 @@ bind_one_skel_vars([Var=Value|T], Bindings, Names, N0, N) :-
 
 factorize_bindings([], []).
 factorize_bindings([Name=Value|T0], [binding(Name, Skel, Subst)|T]) :-
-	F = f(Value),
-	'$factorize_term'(F, Subst0),
+	'$factorize_term'(Value, Skel, Subst0),
 	(   current_prolog_flag(toplevel_print_factorized, true)
 	->  Subst = Subst0
 	;   only_cycles(Subst0, Subst)
 	),
-	arg(1, F, Skel),
 	factorize_bindings(T0, T).
 
 

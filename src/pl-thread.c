@@ -27,7 +27,13 @@
 #define _GNU_SOURCE 1			/* get recursive mutex stuff to */
 					/* compile clean with glibc.  Can */
 					/* this do any harm? */
+
+#if defined(__MINGW32__)
+#define __SEH_NOOP 1
+#endif
+
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 #include <stdio.h>
 #ifdef O_PLMT
 
@@ -177,6 +183,7 @@ static int thread_highest_id;		/* Highest handed thread-id */
 static int threads_ready = FALSE;	/* Prolog threads available */
 static Table queueTable;		/* name --> queue */
 static int queue_id;			/* next generated id */
+static int will_exec;			/* process will exec soon */
 
 TLD_KEY PL_ldata;			/* key for thread PL_local_data */
 
@@ -350,7 +357,6 @@ static int	get_message_queue__LD(term_t t, message_queue **queue ARG_LD);
 static void	release_message_queue(message_queue *queue);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
-static double   ThreadCPUTime(PL_thread_info_t *info, int which);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
@@ -452,9 +458,8 @@ free_prolog_thread()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-free_prolog_thread(void *data)
-{ PL_local_data_t *ld = data;
-  PL_thread_info_t *info;
+freePrologThread(PL_local_data_t *ld, int after_fork)
+{ PL_thread_info_t *info;
   int acknowledge;
   double time;
 
@@ -462,19 +467,25 @@ free_prolog_thread(void *data)
     return;				/* Post-mortem */
 
   info = ld->thread.info;
-  DEBUG(1, Sdprintf("Freeing prolog thread %d (status = %d)\n",
+  DEBUG(2, Sdprintf("Freeing prolog thread %d (status = %d)\n",
 		    info->pl_tid, info->status));
 
-  LOCK();
-  if ( info->status == PL_THREAD_RUNNING )
-    info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
-  acknowledge = info->thread_data->exit_requested;
-  UNLOCK();
+  if ( !after_fork )
+  { LOCK();
+    if ( info->status == PL_THREAD_RUNNING )
+      info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
+    acknowledge = info->thread_data->exit_requested;
+    UNLOCK();
 
 #if O_DEBUGGER
-  callEventHook(PL_EV_THREADFINISHED, info);
+    callEventHook(PL_EV_THREADFINISHED, info);
 #endif
-  run_thread_exit_hooks(ld);
+    run_thread_exit_hooks(ld);
+  } else
+  { acknowledge = FALSE;
+    info->detached = TRUE;		/* cleanup */
+  }
+
   cleanupLocalDefinitions(ld);
   if ( ld->freed_clauses )
   { GET_LD
@@ -497,18 +508,24 @@ free_prolog_thread(void *data)
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
-  time = ThreadCPUTime(info, CPU_USER);
+  time = ThreadCPUTime(ld, CPU_USER);
 
-  LOCK();
+  if ( !after_fork )
+  { LOCK();
+    GD->statistics.threads_finished++;
+    assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
+    GD->statistics.thread_cputime += time;
+  }
   destroy_message_queue(&ld->thread.messages);
-  GD->statistics.threads_finished++;
-  assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
-  GD->statistics.thread_cputime += time;
-
+  if ( ld->btrace_store )
+  { btrace_destroy(ld->btrace_store);
+    ld->btrace_store = NULL;
+  }
   info->thread_data = NULL;
   info->has_tid = FALSE;		/* needed? */
   ld->thread.info = NULL;		/* avoid a loop */
-  UNLOCK();
+  if ( !after_fork )
+    UNLOCK();
 
   if ( info->detached )
     free_thread_info(info);
@@ -522,14 +539,129 @@ free_prolog_thread(void *data)
   }
 }
 
+
+static void
+free_prolog_thread(void *data)
+{ PL_local_data_t *ld = data;
+
+  freePrologThread(ld, FALSE);
+}
+
+
 #ifdef O_QUEUE_STATS
 static void msg_statistics(void);
 #endif
+
+#ifdef O_ATFORK					/* Not yet default */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+reinit_threads_after_fork() is called after a  fork   in  the child. Its
+task is to  restore  the  consistency   of  the  thread  information. It
+performs the following tasks:
+
+    * Reinitialize all mutexes we know of
+      Just calling simpleMutexInit() seems a bit dubious, but as we have
+      no clue about their locking status, what are the alternatives?
+    * Make the thread the main (=1) thread if this is not already the
+      case.  This is needed if another thread has initiated the fork.
+    * Reclaim stacks and other resources associated with other threads
+      that existed before the fork.
+
+There are several issues with the current implementation:
+
+    * If fork/1 is called while the calling thread holds a mutex (as in
+      with_mutex/2), the consistency of this mutex will be lost.
+    * I doubt we have all mutexes.  Certainly not of the packages.
+      We should check at least I/O, user-level mutexes and other mutexes
+      that are created locally.
+    * If another thread than the main thread forks, we still need to
+      properly reclaim the main-thread resources.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+reinit_threads_after_fork(void)
+{ GET_LD
+  counting_mutex *m;
+  PL_thread_info_t *info;
+  int i;
+
+  if ( will_exec ||
+       (GD->statistics.threads_created - GD->statistics.threads_finished) == 1)
+    return;					/* no point */
+
+  info = LD->thread.info;
+
+  for(m = GD->thread.mutexes; m; m = m->next)
+  { simpleMutexInit(&m->mutex);			/* Dubious */
+    m->count = 0L;
+    m->unlocked = 0L;
+#ifdef O_CONTENTION_STATISTICS
+    m->collisions = 0L;
+#endif
+  }
+
+  if ( info->pl_tid != 1 )
+  { DEBUG(1, Sdprintf("Forked thread %d\n", info->pl_tid));
+    *GD->thread.threads[1] = *info;
+    info->status = PL_THREAD_UNUSED;
+    info = GD->thread.threads[1];
+    LD->thread.info = info;
+    info->pl_tid = 1;
+    info->name = ATOM_main;
+  }
+  set_system_thread_id(info);
+
+  for(i=2; i<=thread_highest_id; i++)
+  { if ( (info=GD->thread.threads[i]) )
+    { if ( info->status != PL_THREAD_UNUSED )
+      { freePrologThread(info->thread_data, TRUE);
+	info->status = PL_THREAD_UNUSED;
+      }
+    }
+  }
+  thread_highest_id = 1;
+
+  simpleMutexInit(&LD->signal.sig_lock);
+  GD->statistics.thread_cputime = 0.0;
+  GD->statistics.threads_created = 1;
+  GD->statistics.threads_finished = 0;
+
+  assert(PL_thread_self() == 1);
+}
+
+#else
+
+#define pthread_atfork(prep, parent, child) (void)0
+
+#endif /*O_ATFORK*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_cleanup_fork() must be called between  fork()   and  exec() to remove
+traces of Prolog that are not  supposed   to  leak into the new process.
+Note that we must be careful  here.   Notably,  the  code cannot lock or
+unlock any mutex as the behaviour of mutexes is undefined over fork().
+
+Earlier versions used the file-table to  close file descriptors that are
+in use by Prolog. This can't work as   the  table is guarded by a mutex.
+Now we use the FD_CLOEXEC flag in Snew();
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+PL_cleanup_fork(void)
+{ will_exec = TRUE;
+  stopItimer();
+}
+
 
 void
 initPrologThreads()
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
+
+#if defined(PTW32_STATIC_LIB)
+  initMutexes();
+  ptw32_processInitialize();
+#endif
 
   LOCK();
   if ( threads_ready )
@@ -573,6 +705,9 @@ initPrologThreads()
     link_mutexes();
     threads_ready = TRUE;
   }
+
+  pthread_atfork(NULL, NULL, reinit_threads_after_fork);
+
   UNLOCK();
 }
 
@@ -618,6 +753,7 @@ exitPrologThreads()
   int canceled = 0;
 
   DEBUG(1, Sdprintf("exitPrologThreads(): me = %d\n", me));
+  GD->thread.enabled = FALSE;			/* we do not want new threads */
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
@@ -650,6 +786,8 @@ exitPrologThreads()
 
 	  break;
 	}
+	default:
+	  break;
       }
     }
   }
@@ -1560,7 +1698,7 @@ static const tprop tprop_list [] =
 
 
 typedef struct
-{ int 		tid;
+{ int		tid;
   const tprop  *p;
   int		enum_threads;
   int		enum_properties;
@@ -2203,8 +2341,8 @@ win32_cond_broadcast(win32_cond_t *cv)	/* must be holding associated mutex */
   return 0;
 }
 
-#define cv_broadcast 	win32_cond_broadcast
-#define cv_signal    	win32_cond_signal
+#define cv_broadcast	win32_cond_broadcast
+#define cv_signal	win32_cond_signal
 #define cv_init(cv,p)	win32_cond_init(cv)
 #define cv_destroy	win32_cond_destroy
 #else /*__WINDOWS__*/
@@ -2334,7 +2472,7 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 static int
 dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
 { return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var
-			  			  : &queue->drain_var),
+						  : &queue->drain_var),
 			 &queue->mutex);
 }
 
@@ -2731,6 +2869,8 @@ unlocked_message_queue_create(term_t queue, long max_size)
   q->type = QTYPE_QUEUE;
   q->id = id;
   addHTable(queueTable, (void *)id, q);
+  if ( isAtom(id) )
+    PL_register_atom(id);
 
   if ( unify_queue(queue, q) )
     return q;
@@ -2901,6 +3041,8 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   s = lookupHTable(queueTable, (void *)q->id);
   assert(s);
   deleteSymbolHTable(queueTable, s);
+  if ( isAtom(q->id) )
+    PL_unregister_atom(q->id);
   simpleMutexLock(&q->mutex);
   UNLOCK();
 
@@ -3409,7 +3551,7 @@ mutexCreate(atom_t name)
   m->owner = 0;
   m->id    = name;
   addHTable(GD->thread.mutexTable, (void *)name, m);
-  if ( isAtom(m->id) && GD->atoms.builtin ) 		/* (*) */
+  if ( isAtom(m->id) && GD->atoms.builtin )		/* (*) */
     PL_register_atom(m->id);
 
   return m;
@@ -4141,9 +4283,9 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
   if ( k == ATOM_heapused )
     ld = LD;
   else if ( k == ATOM_cputime || k == ATOM_runtime )
-    ld->statistics.user_cputime = ThreadCPUTime(info, CPU_USER);
+    ld->statistics.user_cputime = ThreadCPUTime(ld, CPU_USER);
   else if ( k == ATOM_system_time )
-    ld->statistics.system_cputime = ThreadCPUTime(info, CPU_SYSTEM);
+    ld->statistics.system_cputime = ThreadCPUTime(ld, CPU_SYSTEM);
 
   if ( LD == ld )		/* self: unlock first to avoid deadlock */
   { UNLOCK();
@@ -4166,9 +4308,10 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 #define nano * 0.0000001
 #define ntick 1.0			/* manual says 100.0 ??? */
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{ double t;
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
+{ PL_thread_info_t *info = ld->thread.info;
+  double t;
   FILETIME created, exited, kerneltime, usertime;
   HANDLE win_thread;
 
@@ -4204,9 +4347,11 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 #ifdef PTHREAD_CPUCLOCKS
 #define NO_THREAD_SYSTEM_TIME 1
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{ if ( which == CPU_SYSTEM )
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
+{ PL_thread_info_t *info = ld->thread.info;
+
+  if ( which == CPU_SYSTEM )
     return 0.0;
 
   if ( info->has_tid )
@@ -4231,9 +4376,11 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 
 #include <mach/thread_act.h>
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{ if ( info->has_tid )
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
+{ PL_thread_info_t *info = ld->thread.info;
+
+  if ( info->has_tid )
   { kern_return_t error;
     struct thread_basic_info th_info;
     mach_msg_type_number_t th_info_count = THREAD_BASIC_INFO_COUNT;
@@ -4372,9 +4519,10 @@ get_procps_entry(int tid)
 }
 
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
-{ procps_entry *e;
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
+{ PL_thread_info_t *info = ld->thread.info;
+  procps_entry *e;
 
   if ( (e=get_procps_entry(info->pid)) )
   { char buffer[1000];
@@ -4470,9 +4618,10 @@ SyncSystemCPU(int sig)
 
 #endif  /*LINUX_CPUCLOCKS*/
 
-static double
-ThreadCPUTime(PL_thread_info_t *info, int which)
+double
+ThreadCPUTime(PL_local_data_t *ld, int which)
 { GET_LD
+  PL_thread_info_t *info = ld->thread.info;
 
 #ifdef NO_THREAD_SYSTEM_TIME
   if ( which == CPU_SYSTEM )
@@ -4563,14 +4712,69 @@ asynchronous signals. Fortunately we  can   suspend  and resume threads.
 This makes the code a lot easier as   you can see below. Problem is that
 only one processor is doing the  job,   where  atom-gc  is a distributed
 activity in the POSIX based code.
+
+(*)    ld->gc.active    can    be     true      when     called     from
+pl_garbage_collect_clauses().  While  the  atom-garbage    collector  is
+cancelled and rescheduled if it is blocked  by a running GC, this cannot
+be used for pl_garbage_collect_clauses()  because   this  call must have
+done its job before returning. As  the   caller  holds L_GC, threads can
+finish GC/shift, but cannot start it.  We   currently  use a simple busy
+waiting loop (Sleep(0) does a shed_yield()). There are two alternatives.
+One is to skip these threads and put them  on a list, after which we can
+process the list until we have seen all  threads and the other is to use
+condition variables. Both seem to be an   overkill  because this code is
+only used or reconsult.
+
+(**) SuspendThread()  returning  success  does not mean  that the thread
+has  been  suspended.  Instead  it  means  that  the  thread  _will  be_
+suspended  when  it  finishes its  quantum. To  ensure  that  stacks are
+marked  only  when  the  thread is  indeed  suspended  we  pin both  the
+stack-marking-thread  and to-be-suspended-thread  to the same  CPU core,
+call  SuspendThread()  then  yield.  When  the  stack-marking-thread  is
+rescheduled we unpin both threads.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __WINDOWS__
+
+static void
+pin_threads(HANDLE process, HANDLE me, HANDLE target, int pin)
+{ DWORD_PTR process_affinity_mask, system_affinity_mask;
+
+  if ( GetProcessAffinityMask(process,
+			      &process_affinity_mask,
+			      &system_affinity_mask) )
+  { DWORD_PTR pin_to_core;
+
+    if ( pin )
+      pin_to_core = process_affinity_mask & (0 - process_affinity_mask);
+    else
+      pin_to_core = process_affinity_mask;
+
+    SetThreadAffinityMask(me, pin_to_core);
+    SetThreadAffinityMask(target, pin_to_core);
+  }
+}
+
+
+static int
+set_priority_threads(HANDLE me, HANDLE target, int new)
+{ int p;
+
+  if ((p = GetThreadPriority(me)) != THREAD_PRIORITY_ERROR_RETURN)
+  { SetThreadPriority(me, new);
+    SetThreadPriority(target, new);
+  }
+
+  return p;
+}
+
 
 void					/* For comments, see above */
 forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 { int i;
   int me = PL_thread_self();
+  HANDLE me_win_thread = GetCurrentThread();
+  HANDLE process = GetCurrentProcess();
 
   for(i=1; i<=thread_highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
@@ -4578,13 +4782,38 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
     if ( info && info->thread_data && i != me &&
 	 info->status == PL_THREAD_RUNNING )
     { HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
+      PL_local_data_t *ld = info->thread_data;
+      int old_p;
+
+      pin_threads(process, me_win_thread, win_thread, TRUE);
+      old_p = set_priority_threads(me_win_thread, win_thread,
+				   THREAD_PRIORITY_HIGHEST);
+
+    again:
+      while ( ld->gc.active )
+	Sleep(0);			/* (*) */
 
       if ( SuspendThread(win_thread) != -1L )
-      { (*func)(info->thread_data);
+      { Sleep(0);			/* (**) */
+        if ( ld->gc.active )		/* oops, just started */
+	{ ResumeThread(win_thread);
+	  goto again;
+	}
+
+        if ( old_p != THREAD_PRIORITY_ERROR_RETURN)
+	  set_priority_threads(me_win_thread, win_thread, old_p);
+	pin_threads(process, me_win_thread, win_thread, FALSE);
+
+	(*func)(ld);
+
         if ( (flags & PL_THREAD_SUSPEND_AFTER_WORK) )
 	  info->status = PL_THREAD_SUSPENDED;
 	else
 	  ResumeThread(win_thread);
+      } else
+      { if ( old_p != THREAD_PRIORITY_ERROR_RETURN)
+	  set_priority_threads(me_win_thread, win_thread, old_p);
+	pin_threads(process, me_win_thread, win_thread, FALSE);
       }
     }
   }

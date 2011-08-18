@@ -42,6 +42,7 @@
 	    current_setting/1,		% Module:Name
 	    setting_property/2,		% ?Setting, ?Property
 	    list_settings/0,
+	    list_settings/1,		% +Module
 
 	    convert_setting_text/3	% +Type, +Text, -Value
 	  ]).
@@ -49,6 +50,7 @@
 :- use_module(library(broadcast)).
 :- use_module(library(debug)).
 :- use_module(library(option)).
+:- use_module(library(arithmetic)).
 
 /** <module> Setting management
 
@@ -235,7 +237,7 @@ eval_default(setting(Name), Module, Type, Value) :- !,
 	must_be(Type, Value).
 eval_default(Expr, _, Type, Value) :-
 	numeric_type(Type, Basic), !,
-	Val0 is Expr,
+	arithmetic_expression_value(Expr, Val0),
 	(   Basic == float
 	->  Val is float(Val0)
 	;   Basic = integer
@@ -525,7 +527,7 @@ save_setting(Out, Module:Name) :-
 		 debug(setting, '~w <-> ~w~n', [DefValue, Value]),
 	         DefValue =@= Value
 	       )
-	->  format(Out, '~n%	~w~n', [Comment]),
+	->  format(Out, '~n%\t~w~n', [Comment]),
 	    format(Out, 'setting(~q:~q, ~q).~n', [Module, Name, Value])
 	;   true
 	).
@@ -571,18 +573,33 @@ setting_property(default(Default), M, Type, Default0, _, _) :-
 setting_property(comment(Comment), _, _, _, Comment, _).
 setting_property(source(Src), _, _, _, _, Src).
 
-%%	list_settings
+%%	list_settings is det.
+%%	list_settings(+Module) is det.
 %
-%	List settings to =current_output=.
+%	List settings to =current_output=. The   second  form only lists
+%	settings on the matching module.
+%
+%	@tbd	Compute the required column widths
 
 list_settings :-
-	format('~`=t~72|~n'),
-	format('~w~t~20| ~w~w~t~40| ~w~n', ['Name', 'Value (*=modified)', '', 'Comment']),
-	format('~`=t~72|~n'),
-	forall(current_setting(Module:Setting),
-	       list_setting(Module:Setting)).
+	list_settings(_).
 
-list_setting(Module:Name) :-
+list_settings(Spec) :-
+	spec_term(Spec, Term),
+	TS1 = 25,
+	TS2 = 40,
+	format('~`=t~72|~n'),
+	format('~w~t~*| ~w~w~t~*| ~w~n',
+	       ['Name', TS1, 'Value (*=modified)', '', TS2, 'Comment']),
+	format('~`=t~72|~n'),
+	forall(current_setting(Term),
+	       list_setting(Term, TS1, TS2)).
+
+spec_term(M:S, M:S) :- !.
+spec_term(M, M:_).
+
+
+list_setting(Module:Name, TS1, TS2) :-
 	curr_setting(Name, Module, Type, Default0, Comment, _Src),
 	eval_default(Default0, Module, Type, Default),
 	setting(Module:Name, Value),
@@ -590,7 +607,7 @@ list_setting(Module:Name) :-
 	->  Modified = (*)
 	;   Modified = ''
 	),
-        format('~w~t~20| ~q~w~t~40| ~w~n', [Module:Name, Value, Modified, Comment]).
+        format('~w~t~*| ~q~w~t~*| ~w~n', [Module:Name, TS1, Value, Modified, TS2, Comment]).
 
 
 		 /*******************************

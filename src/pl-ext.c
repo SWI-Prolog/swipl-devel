@@ -69,7 +69,6 @@ static const PL_extension foreigns[] = {
 #if O_DEBUG
   FRG("crash",			0, pl_crash,			0),
 #endif
-  FRG("nl",			0, pl_nl,			ISO),
 #ifdef __WINDOWS__
   FRG("win_exec",		2, pl_win_exec,			0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
@@ -87,8 +86,8 @@ static const PL_extension foreigns[] = {
   FRG("notrace",		1, pl_notrace1,		     META),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
-  FRG("write_term",		2, pl_write_term,	      ISO),
-  FRG("write_term",		3, pl_write_term3,	      ISO),
+  FRG("write_term",		2, pl_write_term,	 META|ISO),
+  FRG("write_term",		3, pl_write_term3,	 META|ISO),
   FRG("write",			1, pl_write,		      ISO),
   FRG("writeq",			1, pl_writeq,		      ISO),
   FRG("print",			1, pl_print,			0),
@@ -114,18 +113,14 @@ static const PL_extension foreigns[] = {
   FRG("$rc_save_archive",	2, pl_rc_save_archive,		0),
   FRG("$rc_append_file",	5, pl_rc_append_file,		0),
 
-  FRG("abolish",    		1, pl_abolish1,		     META|ISO),
-  FRG("abolish",    		2, pl_abolish,		     META),
-  FRG("nth_clause", 		3, pl_nth_clause,       NDET|META|CREF),
+  FRG("abolish",		1, pl_abolish1,		     META|ISO),
+  FRG("abolish",		2, pl_abolish,		     META),
+  FRG("nth_clause",		3, pl_nth_clause,       NDET|META|CREF),
   FRG("retractall",		1, pl_retractall,	 META|ISO),
 #ifdef O_MAINTENANCE
   FRG("$list_generations",	1, pl_list_generations,	     META),
   FRG("$check_procedure",	1, pl_check_procedure,	     META),
 #endif
-
-  FRG("$term_complexity",	3, pl_term_complexity,		0),
-  FRG("redefine_system_predicate", 1, pl_redefine_system_predicate,
-							     META),
 
   FRG("$c_current_predicate",	2, pl_current_predicate,  NDET|META),
   FRG("current_predicate",	1, pl_current_predicate1, NDET|META|ISO),
@@ -204,7 +199,6 @@ static const PL_extension foreigns[] = {
 #endif
   FRG("current_flag",		1, pl_current_flag,	     NDET),
 
-  FRG("nl",			1, pl_nl1,		      ISO),
   FRG("read",			2, pl_read2,		      ISO),
   FRG("write",			2, pl_write2,		      ISO),
   FRG("writeq",			2, pl_writeq2,		      ISO),
@@ -220,10 +214,6 @@ static const PL_extension foreigns[] = {
   FRG("current_format_predicate", 2, pl_current_format_predicate,
 						        META|NDET),
   FRG("get_time",		1, pl_get_time,			0),
-#if O_PROLOG_FUNCTIONS
-  FRG("current_arithmetic_function", 1, pl_current_arithmetic_function,
-							NDET|META),
-#endif
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
@@ -386,6 +376,8 @@ DECL_PLIST(flag);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(variant);
+DECL_PLIST(copyterm);
 DECL_PLIST(prologflag);
 DECL_PLIST(trace);
 DECL_PLIST(pro);
@@ -426,6 +418,8 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(variant);
+  REG_PLIST(copyterm);
   REG_PLIST(prologflag);
   REG_PLIST(trace);
   REG_PLIST(pro);
@@ -486,6 +480,24 @@ initBuildIns(void)
 					/* allow debugging in call/1 */
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
   set(PROCEDURE_dcall1->definition, DYNAMIC|SYSTEM);
+
+  PL_meta_predicate(PL_predicate("assert",         1, "system"), MA_META);
+  PL_meta_predicate(PL_predicate("asserta",        1, "system"), MA_META);
+  PL_meta_predicate(PL_predicate("assertz",        1, "system"), MA_META);
+  PL_meta_predicate(PL_predicate("assert",         2, "system"), MA_META, MA_VAR);
+  PL_meta_predicate(PL_predicate("asserta",        2, "system"), MA_META, MA_VAR);
+  PL_meta_predicate(PL_predicate("assertz",        2, "system"), MA_META, MA_VAR);
+  PL_meta_predicate(PL_predicate("retract",        1, "system"), MA_META);
+  PL_meta_predicate(PL_predicate("retractall",     1, "system"), MA_META);
+
+  PL_meta_predicate(PL_predicate("notrace",        1, "system"), 0);
+  PL_meta_predicate(PL_predicate("with_mutex",     2, "system"), MA_NONVAR, 0);
+  PL_meta_predicate(PL_predicate("with_output_to", 2, "system"), MA_NONVAR, 0);
+#ifdef O_PLMT
+  PL_meta_predicate(PL_predicate("thread_create",  3, "system"), 0, MA_ANY, MA_NONVAR);
+  PL_meta_predicate(PL_predicate("thread_at_exit", 1, "system"), 0);
+  PL_meta_predicate(PL_predicate("thread_signal",  2, "system"), MA_NONVAR, 0);
+#endif
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);

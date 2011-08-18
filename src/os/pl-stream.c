@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -23,15 +24,17 @@
 */
 
 #ifdef __WINDOWS__
-#include <uxnt.h>
+#include "windows/uxnt.h"
 #ifdef WIN64
-#define MD "config/win64.h"
+#include "config/win64.h"
 #else
-#define MD "config/win32.h"
+#include "config/win32.h"
 #endif
 #include <winsock2.h>
 #include "windows/mswchar.h"
 #define CRLF_MAPPING 1
+#else
+#include <config.h>
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -46,12 +49,6 @@ recursive locks. If a stream handle  might   be  known to another thread
 locking is required.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef MD
-#include MD
-#else
-#include <config.h>
-#endif
-
 #if _FILE_OFFSET_BITS == 64 || defined(_LARGE_FILES)
 #define O_LARGEFILES 1		/* use for conditional code in Prolog */
 #else
@@ -61,6 +58,7 @@ locking is required.
 #define PL_KERNEL 1
 #include <wchar.h>
 typedef wchar_t pl_wchar_t;
+#define NEEDS_SWINSOCK
 #include "SWI-Stream.h"
 #include "pl-utf8.h"
 #include <sys/types.h>
@@ -145,7 +143,7 @@ typedef intptr_t term_t;
 typedef intptr_t atom_t;
 #include "pl-error.h"
 
-extern int 			fatalError(const char *fm, ...);
+extern int			fatalError(const char *fm, ...);
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
 extern int			reportStreamError(IOSTREAM *s);
@@ -367,6 +365,69 @@ Sunlock(IOSTREAM *s)
 
 
 		 /*******************************
+		 *		TIMEOUT		*
+		 *******************************/
+
+#ifdef HAVE_SELECT
+
+#ifndef __WINDOWS__
+typedef int SOCKET;
+#define INVALID_SOCKET -1
+#define Swinsock(s) Sfileno(s)
+#define NFDS(n) (n+1)
+#else
+#define NFDS(n) (0)			/* 1st arg of select is ignored */
+#endif
+
+
+static int
+S__wait(IOSTREAM *s)
+{ SOCKET fd = Swinsock(s);
+  fd_set wait;
+  struct timeval time;
+  int rc;
+
+  if ( fd == INVALID_SOCKET )
+  { errno = EPERM;			/* no permission to select */
+    s->flags |= SIO_FERR;
+    return -1;
+  }
+
+  time.tv_sec  = s->timeout / 1000;
+  time.tv_usec = (s->timeout % 1000) * 1000;
+  FD_ZERO(&wait);
+  FD_SET(fd, &wait);
+
+  for(;;)
+  { if ( (s->flags & SIO_INPUT) )
+      rc = select(NFDS(fd), &wait, NULL, NULL, &time);
+    else
+      rc = select(NFDS(fd), NULL, &wait, NULL, &time);
+
+    if ( rc < 0 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+
+      continue;
+    }
+
+    break;
+  }
+
+  if ( rc == 0 )
+  { s->flags |= (SIO_TIMEOUT|SIO_FERR);
+    return -1;
+  }
+
+  return 0;				/* ok, data available */
+}
+
+#endif /*HAVE_SELECT*/
+
+
+		 /*******************************
 		 *	     FLUSH/FILL		*
 		 *******************************/
 
@@ -383,7 +444,18 @@ S__flushbuf(IOSTREAM *s)
 
   while ( from < to )
   { size_t size = (size_t)(to - from);
-    ssize_t n = (*s->functions->write)(s->handle, from, size);
+    ssize_t n;
+
+#ifdef HAVE_SELECT
+    s->flags &= ~SIO_TIMEOUT;
+
+    if ( s->timeout >= 0 )
+    { if ( (rc=S__wait(s)) < 0 )
+	goto partial;
+    }
+#endif
+
+    n = (*s->functions->write)(s->handle, from, size);
 
     if ( n > 0 )			/* wrote some */
     { from += n;
@@ -396,6 +468,9 @@ S__flushbuf(IOSTREAM *s)
     }
   }
 
+#ifdef HAVE_SELECT
+partial:
+#endif
   if ( to == from )			/* full flush */
   { rc = s->bufp - s->buffer;
     s->bufp = s->buffer;
@@ -440,52 +515,6 @@ S__flushbufc(int c, IOSTREAM *s)
 }
 
 
-static int
-Swait_for_data(IOSTREAM *s)
-{ int fd = Sfileno(s);
-  fd_set wait;
-  struct timeval time;
-  int rc;
-
-  if ( fd < 0 )
-  { errno = EPERM;			/* no permission to select */
-    s->flags |= SIO_FERR;
-    return -1;
-  }
-
-  time.tv_sec  = s->timeout / 1000;
-  time.tv_usec = (s->timeout % 1000) * 1000;
-  FD_ZERO(&wait);
-#ifdef __WINDOWS__
-  FD_SET((SOCKET)fd, &wait);
-#else
-  FD_SET(fd, &wait);
-#endif
-
-  for(;;)
-  { rc = select(fd+1, &wait, NULL, NULL, &time);
-
-    if ( rc < 0 && errno == EINTR )
-    { if ( PL_handle_signals() < 0 )
-      { errno = EPLEXCEPTION;
-	return -1;
-      }
-
-      continue;
-    }
-
-    break;
-  }
-
-  if ( rc == 0 )
-  { s->flags |= (SIO_TIMEOUT|SIO_FERR);
-    return -1;
-  }
-
-  return 0;				/* ok, data available */
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S__fillbuf() fills the read-buffer, returning the first character of it.
 It also realises the SWI-Prolog timeout facility.
@@ -506,7 +535,7 @@ S__fillbuf(IOSTREAM *s)
   if ( s->timeout >= 0 && !s->downstream )
   { int rc;
 
-    if ( (rc=Swait_for_data(s)) < 0 )
+    if ( (rc=S__wait(s)) < 0 )
       return rc;
   }
 #endif
@@ -861,7 +890,10 @@ Sputcode(int c, IOSTREAM *s)
   if ( s->tee && s->tee->magic == SIO_MAGIC )
     Sputcode(c, s->tee);
 
-  if ( c == '\n' && (s->flags&SIO_TEXT) && s->newline == SIO_NL_DOS )
+  if ( c == '\n' &&
+       (s->flags&SIO_TEXT) &&
+       s->newline == SIO_NL_DOS &&
+       s->lastc != '\r' )
   { if ( put_code('\r', s) < 0 )
       return -1;
   }
@@ -1070,7 +1102,9 @@ returns \n, but it returns the same for a single \n.
 
 Often, we could keep track of bufp and reset this, but we must deal with
 the case where we fetch a new buffer. In this case, we must copy the few
-remaining bytes to the `unbuffer' area.
+remaining bytes to the `unbuffer' area. If SIO_USERBUF is set, we do not
+have this spare buffer space. This  is   used  for reading from strings,
+which cannot fetch a new buffer anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -1092,7 +1126,7 @@ Speekcode(IOSTREAM *s)
   if ( (s->flags & SIO_FEOF) )
     return -1;
 
-  if ( s->bufp + UNDO_SIZE > s->limitp )
+  if ( s->bufp + UNDO_SIZE > s->limitp && !(s->flags&SIO_USERBUF) )
   { safe = s->limitp - s->bufp;
     memcpy(s->buffer-safe, s->bufp, safe);
   }
@@ -1108,7 +1142,7 @@ Speekcode(IOSTREAM *s)
 
   if ( s->bufp > start )
   { s->bufp = start;
-  } else
+  } else if ( c != -1 )
   { assert(safe != (size_t)-1);
     s->bufp = s->buffer-safe;
   }
@@ -1438,6 +1472,11 @@ Ssetenc(IOSTREAM *s, IOENC enc, IOENC *old)
   }
 
   s->encoding = enc;
+  if ( enc == ENC_OCTET )
+    s->flags &= ~SIO_TEXT;
+  else
+    s->flags |= SIO_TEXT;
+
   return 0;
 }
 
@@ -2621,6 +2660,11 @@ Scontrol_file(void *handle, int action, void *arg)
     case SIO_SETENCODING:
     case SIO_FLUSHOUTPUT:
       return 0;
+    case SIO_GETFILENO:
+    { int *p = arg;
+      *p = fd;
+      return 0;
+    }
     default:
       return -1;
   }
@@ -2891,12 +2935,10 @@ Sfileno(IOSTREAM *s)
   if ( s->flags & SIO_FILE )
   { intptr_t h = (intptr_t)s->handle;
     n = (int)h;
-  } else if ( s->flags & SIO_PIPE )
-  { n = fileno((FILE *)s->handle);
   } else if ( s->functions->control &&
 	      (*s->functions->control)(s->handle,
 				       SIO_GETFILENO,
-				       (void *)&n)  == 0 )
+				       (void *)&n) == 0 )
   { ;
   } else
   { errno = EINVAL;
@@ -2906,6 +2948,30 @@ Sfileno(IOSTREAM *s)
   return n;
 }
 
+
+#ifdef __WINDOWS__
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+On  Windows,  type  SOCKET  is   an    unsigned   int   and  all  values
+[0..INVALID_SOCKET) are valid. It is  also   not  allowed  to run normal
+file-functions on it or the application will crash. There seems to be no
+way out except for introducing an extra function at this level :-(
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+SOCKET
+Swinsock(IOSTREAM *s)
+{ SOCKET n = INVALID_SOCKET;
+
+  if ( s->functions->control &&
+       (*s->functions->control)(s->handle,
+				SIO_GETWINSOCK,
+				(void *)&n) == 0 )
+  { return n;
+  }
+
+  errno = EINVAL;
+  return INVALID_SOCKET;
+}
+#endif
 
 		 /*******************************
 		 *	       PIPES		*
@@ -2952,11 +3018,31 @@ Sclose_pipe(void *handle)
 }
 
 
+static int
+Scontrol_pipe(void *handle, int action, void *arg)
+{ FILE *fp = handle;
+
+  switch(action)
+  { case SIO_GETFILENO:
+    { int *ap = arg;
+      *ap = fileno(fp);
+      return 0;
+    }
+    case SIO_FLUSHOUTPUT:
+    case SIO_SETENCODING:
+      return 0;
+    default:
+      return -1;
+  }
+}
+
+
 IOFUNCTIONS Spipefunctions =
 { Sread_pipe,
   Swrite_pipe,
   (Sseek_function)0,
-  Sclose_pipe
+  Sclose_pipe,
+  Scontrol_pipe
 };
 
 
@@ -2977,9 +3063,9 @@ Sopen_pipe(const char *command, const char *type)
   { int flags;
 
     if ( *type == 'r' )
-      flags = SIO_PIPE|SIO_INPUT|SIO_FBUF;
+      flags = SIO_INPUT|SIO_FBUF;
     else
-      flags = SIO_PIPE|SIO_OUTPUT|SIO_FBUF;
+      flags = SIO_OUTPUT|SIO_FBUF;
 
     return Snew((void *)fd, flags, &Spipefunctions);
   }
@@ -3304,7 +3390,7 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
 		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
-		      ((void *)(n)), &Sttyfunctions, \
+		      (void *)(n), &Sttyfunctions, \
 		      0, NULL, \
 		      (void (*)(void *))0, NULL, \
 		      -1, \
@@ -3315,7 +3401,7 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY|SIO_TEXT)
 #define STDIO_STREAMS \
   STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
-  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL), 	/* Soutput */ \
+  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL),	/* Soutput */ \
   STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPL)	/* Serror */
 
 
@@ -3329,28 +3415,33 @@ static const IOSTREAM S__iob0[] =
 };
 
 
+static int S__initialised = FALSE;
+
 void
 SinitStreams()
-{ static int done;
-
-  if ( !done++ )
+{ if ( !S__initialised )
   { int i;
     IOENC enc = initEncoding();
 
+    S__initialised = TRUE;
+    enc = initEncoding();
+
     for(i=0; i<=2; i++)
-    { if ( !isatty(i) )
-      { S__iob[i].flags &= ~SIO_ISATTY;
-	S__iob[i].functions = &Sfilefunctions; /* Check for pipe? */
+    { IOSTREAM *s = &S__iob[i];
+
+      if ( !isatty(i) )
+      { s->flags &= ~SIO_ISATTY;
+	s->functions = &Sfilefunctions; /* Check for pipe? */
       }
-      if ( S__iob[i].encoding == ENC_ISO_LATIN_1 )
-	S__iob[i].encoding = enc;
+      if ( s->encoding == ENC_ISO_LATIN_1 )
+	s->encoding = enc;
 #ifdef O_PLMT
-      S__iob[i].mutex = malloc(sizeof(recursiveMutex));
-      recursiveMutexInit(S__iob[i].mutex);
+      s->mutex = malloc(sizeof(recursiveMutex));
+      recursiveMutexInit(s->mutex);
 #endif
 #if CRLF_MAPPING
       _setmode(i, O_BINARY);
-      S__iob[i].newline = SIO_NL_DOS;
+      s->newline = SIO_NL_DOS;
 #endif
     }
 
@@ -3458,4 +3549,6 @@ Scleanup(void)
 
     *s = S__iob0[i];			/* re-initialise */
   }
+
+  S__initialised = FALSE;
 }

@@ -105,8 +105,8 @@ predicates from \secref{shlib} in your application.
 \arg{File} is the name of a shared object file (called dynamic load
 library in MS-Windows). This file is attached to the current process and
 \arg{Handle} is unified with a handle to the library. Equivalent to
-\exam{open_shared_object(File, [], Handle)}. See also
-load_foreign_library/[1,2].
+\exam{open_shared_object(File, Handle, [])}. See also
+open_shared_object/3 and load_foreign_library/1.
 
 On errors, an exception \term{shared_object}{Action, Message} is
 raised. \arg{Message} is the return value from dlerror().
@@ -430,14 +430,14 @@ extract the handle from the extra argument using the
 {\tt PL_foreign_context*()} macro.
 
 \begin{description}
-    \cmacro{(return) foreign_t}{PL_retry}{long}
+    \cmacro{(return) foreign_t}{PL_retry}{intptr_t value}
 The foreign function succeeds while leaving a choice point. On
 backtracking over this goal the foreign function will be called again,
 but the control argument now indicates it is a `Redo' call and the
 macro PL_foreign_context() returns the handle passed via
-PL_retry(). This handle is a 30 bits signed value (two bits are used
-for status indication).  Defined as \exam{return _PL_retry(n)}.
-See also PL_succeed().
+PL_retry(). This handle is a two bits smaller than a pointer
+(30 or 62 bits) signed value (two bits are used for status indication).
+Defined as \exam{return _PL_retry(n)}. See also PL_succeed().
 
     \cmacro{(return) foreign_t}{PL_retry_address}{void *}
 As PL_retry(), but ensures an address as returned by malloc() is
@@ -451,7 +451,7 @@ are described above.  Note that the function should be prepared to
 handle the \const{PL_PRUNED} case and should be aware that the other
 arguments are not valid in this case.
 
-    \cmacro{long}{PL_foreign_context}{control_t}
+    \cmacro{intptr_t}{PL_foreign_context}{control_t}
 Extracts the context from the context argument.  In the call type is
 \const{PL_FIRST_CALL} the context value is 0L.  Otherwise it is the value
 returned by the last PL_retry() associated with this goal (both if the
@@ -1263,7 +1263,7 @@ created from the \arg{len}/\arg{chars} pair. The data will be copied.
 This interface can deal with 0-bytes in the string. See also
 \secref{foreigndata}.
 
-    \cfunction{int}{PL_unify_integer}{term_t ?t, long n}
+    \cfunction{int}{PL_unify_integer}{term_t ?t, intptr_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
     \cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
@@ -1512,70 +1512,70 @@ set_size(term_t name, term_t width, term_t height)
 \end{code}
 
 \begin{description}
-    \cfunction{int}{PL_get_atom_ex}{term_t t, atom_t *a};
+    \cfunction{int}{PL_get_atom_ex}{term_t t, atom_t *a}
 As PL_get_atom(), but raises a type or instantiation error if
 \arg{t} is not an atom.
 
-    \cfunction{int}{PL_get_integer_ex}{term_t t, int *i};
+    \cfunction{int}{PL_get_integer_ex}{term_t t, int *i}
 As PL_get_integer(), but raises a type or instantiation error if
 \arg{t} is not an integer or a representation error if the Prolog
 integer does not fit in a C \ctype{int}.
 
-    \cfunction{int}{PL_get_long_ex}{term_t t, long *i};
+    \cfunction{int}{PL_get_long_ex}{term_t t, long *i}
 As PL_get_long(), but raises a type or instantiation error if
 \arg{t} is not an atom or a representation error if the Prolog
 integer does not fit in a C \ctype{long}.
 
-    \cfunction{int}{PL_get_int64_ex}{term_t t, int64_t *i};
+    \cfunction{int}{PL_get_int64_ex}{term_t t, int64_t *i}
 As PL_get_int64(), but raises a type or instantiation error if
 \arg{t} is not an atom or a representation error if the Prolog
 integer does not fit in a C \ctype{int64_t}.
 
-    \cfunction{int}{PL_get_intptr_ex}{term_t t, intptr_t *i};
+    \cfunction{int}{PL_get_intptr_ex}{term_t t, intptr_t *i}
 As PL_get_intptr(), but raises a type or instantiation error if
 \arg{t} is not an atom or a representation error if the Prolog
 integer does not fit in a C \ctype{intptr_t}.
 
-    \cfunction{int}{PL_get_size_ex}{term_t t, size_t *i};
+    \cfunction{int}{PL_get_size_ex}{term_t t, size_t *i}
 As PL_get_size(), but raises a type or instantiation error if
 \arg{t} is not an atom or a representation error if the Prolog
 integer does not fit in a C \ctype{size_t}.
 
-    \cfunction{int}{PL_get_bool_ex}{term_t t, int *i};
+    \cfunction{int}{PL_get_bool_ex}{term_t t, int *i}
 As PL_get_atom_ex(), but raises a type or instantiation error if
 \arg{t} is not an atom.
 
-    \cfunction{int}{PL_get_float_ex}{term_t t, double *f};
+    \cfunction{int}{PL_get_float_ex}{term_t t, double *f}
 As PL_get_atom_ex(), but raises a type or instantiation error if
 \arg{t} is not an atom.
 
-    \cfunction{int}{PL_get_char_ex}{term_t t, int *p, int eof};
+    \cfunction{int}{PL_get_char_ex}{term_t t, int *p, int eof}
 Get a character code from \arg{t}, where \arg{t} is either an
 integer or an atom with length one.  If \arg{eof} is \const{TRUE}
 and \arg{t} is -1, \arg{p} is filled with -1.  Raises an appropriate
 error if the conversion is not possible.
 
-    \cfunction{int}{PL_get_pointer_ex}{term_t t, void **addrp};
+    \cfunction{int}{PL_get_pointer_ex}{term_t t, void **addrp}
 As PL_get_pointer(), but raises a type or instantiation error if
 \arg{t} is not a pointer.
 
-    \cfunction{int}{PL_get_list_ex}{term_t l, term_t h, term_t t};
+    \cfunction{int}{PL_get_list_ex}{term_t l, term_t h, term_t t}
 As PL_get_list(), but raises a type or instantiation error if
 \arg{t} is not a list.
 
-    \cfunction{int}{PL_get_nil_ex}{term_t l};
+    \cfunction{int}{PL_get_nil_ex}{term_t l}
 As PL_get_nil(), but raises a type or instantiation error if
 \arg{t} is not the empty list.
 
-    \cfunction{int}{PL_unify_list_ex}{term_t l, term_t h, term_t t};
+    \cfunction{int}{PL_unify_list_ex}{term_t l, term_t h, term_t t}
 As PL_unify_list(), but raises a type error if \arg{t} is not a
 variable, list-cell or the empty list.
 
-    \cfunction{int}{PL_unify_nil_ex}{term_t l};
+    \cfunction{int}{PL_unify_nil_ex}{term_t l}
 As PL_unify_nil(), but raises a type error if \arg{t} is not a
 variable, list-cell or the empty list.
 
-    \cfunction{int}{PL_unify_bool_ex}{term_t t, int val};
+    \cfunction{int}{PL_unify_bool_ex}{term_t t, int val}
 As PL_unify_bool(), but raises a type error if \arg{t} is not a
 variable, or a boolean.
 \end{description}
@@ -1609,6 +1609,8 @@ Raise \exam{existence_error(type, culprit)}.  See type_error/2.
 					 const char *type, term_t culprit}
 Raise \exam{permission_error(operation, type, culprit)}. See
 permission_error/3.
+    \cfunction{int}{PL_resource_error}{const char *resource}
+Raise \exam{resource_error(resource)}. See resource_error/1.
 \end{description}
 
 
@@ -2660,7 +2662,7 @@ The \ctype{PL_extension} type is defined as
 
 \begin{code}
 typedef struct PL_extension
-{ char 		*predicate_name;	/* Name of the predicate */
+{ char		*predicate_name;	/* Name of the predicate */
   short		arity;			/* Arity of the predicate */
   pl_function_t	function;		/* Implementing functions */
   short		flags;			/* Or of PL_FA_... */

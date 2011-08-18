@@ -382,12 +382,10 @@ dwim_predicate_list(M:Head, DWIMs) :-
 	setof(DWIM, dwim_pred(M:Head, DWIM), DWIMs), !.
 dwim_predicate_list(Head, DWIMs) :-
 	setof(DWIM, '$similar_module'(Head, DWIM), DWIMs), !.
-dwim_predicate_list(M:Goal, DWIMs) :-
+dwim_predicate_list(_:Goal, DWIMs) :-
 	setof(Module:Goal,
-	      ( current_module(Module),
-		default_module(Module, M),
-		current_predicate(_, Module:Goal)
-	      ), DWIMs).
+	      current_predicate(_, Module:Goal),
+	      DWIMs).
 
 %%	dwim_pred(:Head, -DWIM) is nondet.
 %

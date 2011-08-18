@@ -20,7 +20,7 @@
 
 PL=../swipl.sh
 PLBASE=@libdir@/@PLLIBDIR@
-PLARCH=@ARCH@
+PLARCH=@PLARCH@
 PLINCL=$(PLBASE)/include
 PLLIBDIR=$(PLBASE)/library
 SOLIBDIR=$(PLBASE)/lib/$(PLARCH)

@@ -165,6 +165,9 @@ PRED_IMPL("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
 like for the Prolog predicate call/1.
+
+Note that the caller must provide a   foreign context. We cannot do that
+here because closing will loose the exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -173,6 +176,8 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
   term_t reset, g, ex2;
   functor_t fd;
   Procedure proc;
+
+  assert((Word)lTop == refFliP(fli_context, fli_context->size));
 
   if ( ex )
   { if ( !(ex2=PL_new_term_ref()) )
@@ -605,11 +610,7 @@ last_arg:
     return key + *p;
   }
   if ( tagex(*p) == (TAG_VAR|STG_RESERVED) )
-  { if ( LD->read.active )
-      return key + *p;
-    else
-      printk("read() variable reference at %p", p);
-  }
+    return key + *p;			/* Used by read_term/2,3 and compiler */
 
 					/* now it should be a term */
   if ( tag(*p) != TAG_COMPOUND ||
@@ -630,6 +631,10 @@ last_arg:
     if ( tag(f->definition) != TAG_ATOM ||
          storage(f->definition) != STG_GLOBAL )
       printk("Illegal term: 0x%x", *p);
+    if ( f->definition & MARK_MASK )
+      printk("Term with mark: 0x%x", *p);
+    if ( f->definition & FIRST_MASK )
+      printk("Term with first: 0x%x", *p);
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk("Illegal arity (%d)", arity);

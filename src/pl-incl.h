@@ -27,12 +27,17 @@
 
 #ifdef __WINDOWS__
 #ifdef WIN64
-#define MD	     "config/win64.h"
+#include "config/win64.h"
 #else
-#define MD	     "config/win32.h"
+#include "config/win32.h"
 #endif
 #define PLHOME       "c:/Program Files/pl"
 #define DEFSTARTUP   "pl.ini"
+#else
+#include <config.h>
+#endif
+
+#ifdef _MSC_VER
 #define C_LIBS	     ""
 #define C_STATICLIBS ""
 #define C_CC	     "cl"
@@ -81,8 +86,6 @@ handy for it someone wants to add a data type to the system.
       Include arithmetic compiler (compiles is/2, >/2, etc. into WAM).
   O_COMPILE_IS
       Compile Var = Value in the body.
-  O_PROLOG_FUNCTIONS
-      Include evaluable Prolog functions into the arithmetic module.
   O_LABEL_ADDRESSES
       Means we can pick up the address of a label in  a function using
       the var  = `&&label' construct  and jump to  it using goto *var;
@@ -120,7 +123,6 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_ARITH		1
 #define O_COMPILE_IS		1
 #define O_STRING		1
-#define O_PROLOG_FUNCTIONS	1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
@@ -360,7 +362,7 @@ typedef int			bool;
 #endif
 #define succeed			return TRUE
 #define fail			return FALSE
-#define TRY(goal)		if ((goal) == FALSE) fail
+#define TRY(goal)		do { if (!(goal)) return FALSE; } while(0)
 
 #define CL_START		0	/* asserta */
 #define CL_END			1	/* assertz */
@@ -398,7 +400,7 @@ them.  Descriptions:
 	skips this amount of stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define BUFFER_RING_SIZE 	16	/* foreign buffer ring (pl-fli.c) */
+#define BUFFER_RING_SIZE	16	/* foreign buffer ring (pl-fli.c) */
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
 #define MINFOREIGNSIZE		32	/* Minimum term_t in foreign frame */
@@ -450,7 +452,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define MODULEHASHSIZE		16	/* global module table */
 #define PUBLICHASHSIZE		8	/* Module export table */
 #define FLAGHASHSIZE		16	/* global flag/3 table */
-#define ARITHHASHSIZE		64	/* arithmetic function table */
 
 #include "os/pl-table.h"
 
@@ -604,6 +605,7 @@ typedef uintptr_t		code WORD_ALIGNED; /* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef word			(*Func)();	/* foreign functions */
+typedef int			(*ArithF)();	/* arithmetic function */
 
 typedef struct atom *		Atom;		/* atom */
 typedef struct functor *	Functor;	/* complex term */
@@ -626,21 +628,20 @@ typedef struct localFrame *	LocalFrame;	/* environment frame */
 typedef struct local_definitions *LocalDefinitions; /* thread-local preds */
 typedef struct choice *		Choice;		/* Choice-point */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
-typedef struct fliFrame *	FliFrame; 	/* FLI interface frame */
+typedef struct fliFrame *	FliFrame;	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
 typedef struct gc_trail_entry *	GCTrailEntry;	/* Entry of trail stack (GC) */
 typedef struct mark		mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
-typedef struct arithFunction * 	ArithFunction;  /* arithmetic function */
 typedef struct _varDef *	VarDef;		/* pl-comp.c */
 typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
 typedef struct abort_handle *	AbortHandle;	/* PL_abort_hook() */
 typedef struct initialise_handle * InitialiseHandle;
 typedef struct canonical_dir *	CanonicalDir;	/* pl-os.c */
 typedef struct on_halt *	OnHalt;		/* pl-os.c */
-typedef struct find_data_tag *	FindData; 	/* pl-trace.c */
-typedef struct feature *	Feature; 	/* pl-prims.c */
+typedef struct find_data_tag *	FindData;	/* pl-trace.c */
+typedef struct feature *	Feature;	/* pl-prims.c */
 
 typedef uintptr_t qid_t;		/* external query-id */
 typedef uintptr_t PL_fid_t;		/* external foreign context-id */
@@ -818,7 +819,7 @@ with one operation, it turns out to be faster as well.
 #define DBLQ_CHARS		(0x0008) /* "ab" --> ['a', 'b'] */
 #define DBLQ_ATOM		(0x0010) /* "ab" --> 'ab' */
 #define DBLQ_STRING		(0x0020) /* "ab" --> "ab" */
-#define DBLQ_MASK 		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
+#define DBLQ_MASK		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
 #define MODULE_COPY_FLAGS	(DBLQ_MASK|CHARESCAPE)
 #define UNKNOWN_FAIL		(0x0040) /* module */
 #define UNKNOWN_WARNING		(0x0080) /* module */
@@ -858,7 +859,7 @@ Handling environment (or local stack) frames.
 #define FR_LEVEL		(((uintptr_t)1<<FR_BITS)-1)
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
-#define VAROFFSET(var) 		((var)+(ARGOFFSET/(int)sizeof(word)))
+#define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
 
 #define setLevelFrame(fr, l)	{ (fr)->flags &= ~FR_LEVEL;   \
 				  (fr)->flags |= ((l) << FR_BITS); \
@@ -943,7 +944,7 @@ assume
 
   sizeof(*to) == sizeof(*from) &&
   sizeof(*to) * n == sizeof(*double)
-  	with n == 1 or n == 2.
+	with n == 1 or n == 2.
 
 We assume the compiler will optimise this properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1058,7 +1059,7 @@ struct clause
 #endif /*O_LOGICAL_UPDATE*/
   unsigned int		variables;	/* # of variables for frame */
   unsigned int		prolog_vars;	/* # real Prolog variables */
-  unsigned int		line_no; 	/* Source line-number */
+  unsigned int		line_no;	/* Source line-number */
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */
@@ -1066,7 +1067,7 @@ struct clause
 		/* HAS_BREAKPOINTS Break-instructions in the clause */
 		/* GOAL_CLAUSE	   Temporary 'islocal' clause (no head) */
 		/* COMMIT_CLAUSE   Clause will commit (execute !) */
-  		/* DBREF_CLAUSE    Clause has a db-reference */
+		/* DBREF_CLAUSE    Clause has a db-reference */
   code		code_size;		/* size of ->codes */
   code		codes[1];		/* VM codes of clause */
 };
@@ -1137,7 +1138,7 @@ struct clause_index
 { int		buckets;		/* # entries */
   int		size;			/* # elements (clauses) */
   int		alldirty;		/* all chains need checked */
-  ClauseChain 	entries;		/* chains holding the clauses */
+  ClauseChain	entries;		/* chains holding the clauses */
 };
 
 struct clause_chain
@@ -1168,7 +1169,7 @@ struct definition
 #ifdef O_PLMT
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
-  ClauseIndex 	hash_info;		/* clause hash-tables */
+  ClauseIndex	hash_info;		/* clause hash-tables */
   unsigned int  indexPattern;		/* indexed argument pattern */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
@@ -1193,7 +1194,7 @@ struct definition
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
 		/*	NEEDSREHASH	   Hash-table is out-of-date */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
-  		/*	P_SHARED	   Multiple procs are using me */
+		/*	P_SHARED	   Multiple procs are using me */
   unsigned	indexCardinality : 8;	/* cardinality of index pattern */
   unsigned	number_of_clauses : 24;	/* number of associated clauses */
 #ifdef O_PROF_PENTIUM
@@ -1205,7 +1206,7 @@ struct definition
 
 struct definition_chain
 { Definition		definition;	/* chain on definition */
-  DefinitionChain 	next;		/* next in chain */
+  DefinitionChain	next;		/* next in chain */
 };
 
 
@@ -1256,7 +1257,7 @@ struct choice
 { choice_type	type;			/* CHP_* */
   Choice	parent;			/* Alternative if I fail */
   mark		mark;			/* data mark for undo */
-  LocalFrame 	frame;			/* Frame I am related to */
+  LocalFrame	frame;			/* Frame I am related to */
 #ifdef O_PROFILE
   struct call_node *prof_node;		/* Profiling node */
 #endif
@@ -1335,7 +1336,7 @@ struct queryFrame
 };
 
 
-#define FLI_MAGIC 		82649821
+#define FLI_MAGIC		82649821
 #define FLI_MAGIC_CLOSED	42424242
 
 struct fliFrame
@@ -1358,12 +1359,12 @@ struct record
 					/* R_EXTERNAL */
 					/* R_DUPLICATE */
 					/* R_NOLOCK */
-  					/* R_DBREF */
+					/* R_DBREF */
 #ifdef REC_MAGIC
   int		magic;			/* REC_MAGIC */
 #endif
   int		references;		/* PL_duplicate_record() support */
-  char 		buffer[1];		/* array holding codes */
+  char		buffer[1];		/* array holding codes */
 };
 
 struct recordList
@@ -1414,10 +1415,10 @@ struct module
   Procedure	hook;		/* Hooked module */
 #endif
   int		level;		/* Distance to root (root=0) */
-  unsigned int	line_no; 	/* Source line-number */
+  unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
 		/*	SYSTEM	   system module */
-  		/*	DBLQ_INHERIT inherit from default module */
+		/*	DBLQ_INHERIT inherit from default module */
 		/*	DBLQ_CHARS "ab" --> ['a', 'b'] */
 		/*	DBLQ_ATOM  "ab" --> 'ab' */
 		/*	UNKNOWN_FAIL silent failure of unknown pred */
@@ -1442,6 +1443,7 @@ struct gc_trail_entry
 #define MA_VAR		11		/* - */
 #define MA_ANY		12		/* ? */
 #define MA_NONVAR	13		/* + */
+#define MA_HAT		14		/* ^ */
 
 #define MA_INFO(def, n)		(((def)->meta_info >> ((n)*4)) & 0xf)
 #define MA_SETINFO(def, n, i)	((def)->meta_info &= ~(0xf << (n)*4), \
@@ -1471,9 +1473,9 @@ struct free_chunk
 struct alloc_pool
 { char	       *space;			/* pointer to free space */
   size_t	free;			/* size of free space */
-  size_t 	allocated;		/* total bytes allocated */
+  size_t	allocated;		/* total bytes allocated */
 					/* fast perfect fit chains */
-  Chunk  	free_chains[ALLOCFAST/sizeof(Chunk)+1];
+  Chunk		free_chains[ALLOCFAST/sizeof(Chunk)+1];
   int		free_count[ALLOCFAST/sizeof(Chunk)+1];
 };
 
@@ -1619,14 +1621,14 @@ typedef struct
 		 *	      EVENTS		*
 		 *******************************/
 
-#define PLEV_ERASED_CLAUSE   0 		/* clause was erased */
-#define PLEV_ERASED_RECORD   1 		/* record was erased */
+#define PLEV_ERASED_CLAUSE   0		/* clause was erased */
+#define PLEV_ERASED_RECORD   1		/* record was erased */
 #define PLEV_DEBUGGING	     2		/* changed debugging mode */
 #define PLEV_TRACING	     3		/* changed tracing mode */
 #define PLEV_SPY	     4		/* changed spypoint */
 #define PLEV_BREAK	     5		/* a break-point was set */
 #define PLEV_NOBREAK	     6		/* a break-point was cleared */
-#define PLEV_FRAMEFINISHED   7 		/* A watched frame was discarded */
+#define PLEV_FRAMEFINISHED   7		/* A watched frame was discarded */
 #define PL_EV_THREADFINISHED 8		/* A thread has finished */
 
 
@@ -1664,7 +1666,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  size_t	size_limit;	/* Max size the stack can grow to */\
 	  size_t	gced_size;	/* size after last GC */	    \
 	  size_t	small;		/* Do not GC below this size */	    \
-	  size_t	spare;		/* Current reserved area */ 	    \
+	  size_t	spare;		/* Current reserved area */	    \
 	  size_t	def_spare;	/* Desired reserved area */	    \
 	  size_t	min_free;	/* Free left when trimming */	    \
 	  bool		gc;		/* Can be GC'ed? */		    \
@@ -1735,6 +1737,7 @@ typedef struct
 #define	GLOBAL_OVERFLOW	  (-2)
 #define	TRAIL_OVERFLOW	  (-3)
 #define	ARGUMENT_OVERFLOW (-4)
+#define	MEMORY_OVERFLOW   (-5)		/* out of malloc()-heap */
 
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1
@@ -1783,7 +1786,16 @@ typedef struct
 { functor_t functor;			/* Functor to use ($VAR/1) */
   av_action on_attvar;			/* How to handle attvars */
   int	    singletons;			/* Write singletons as $VAR('_') */
+  int	    numbered_check;		/* Check for already numbered */
 } nv_options;
+
+#define BEGIN_NUMBERVARS() \
+	{ fid_t _savedf = LD->var_names.numbervars_frame; \
+	  LD->var_names.numbervars_frame = PL_open_foreign_frame();
+#define END_NUMBERVARS() \
+	  PL_discard_foreign_frame(LD->var_names.numbervars_frame); \
+	  LD->var_names.numbervars_frame = _savedf; \
+	}
 
 
 		 /*******************************
@@ -1938,7 +1950,6 @@ Tracer communication declarations.
 #define FAIL_PORT	0x004
 #define REDO_PORT	0x008
 #define UNIFY_PORT	0x010
-#define BREAK_PORT	0x020
 #define CUT_CALL_PORT   0x040
 #define CUT_EXIT_PORT   0x080
 #define EXCEPTION_PORT	0x100
@@ -1977,9 +1988,9 @@ typedef struct debuginfo
 
 #define PLFLAG_CHARESCAPE	    0x000001 /* handle \ in atoms */
 #define PLFLAG_GC		    0x000002 /* do GC */
-#define PLFLAG_TRACE_GC	  	    0x000004 /* verbose gc */
+#define PLFLAG_TRACE_GC		    0x000004 /* verbose gc */
 #define PLFLAG_TTY_CONTROL	    0x000008 /* allow for tty control */
-#define PLFLAG_READLINE	  	    0x000010 /* readline is loaded */
+#define PLFLAG_READLINE		    0x000010 /* readline is loaded */
 #define PLFLAG_DEBUG_ON_ERROR	    0x000020 /* start tracer on error */
 #define PLFLAG_REPORT_ERROR	    0x000040 /* print error message */
 #define PLFLAG_FILE_CASE	    0x000080 /* file names are case sensitive */
@@ -1987,11 +1998,11 @@ typedef struct debuginfo
 #define PLFLAG_DOS_FILE_NAMES       0x000200 /* dos (8+3) file names */
 #define ALLOW_VARNAME_FUNCTOR	    0x000400 /* Read Foo(x) as 'Foo'(x) */
 #define PLFLAG_ISO		    0x000800 /* Strict ISO compliance */
-#define PLFLAG_OPTIMISE	  	    0x001000 /* -O: optimised compilation */
-#define PLFLAG_FILEVARS	  	    0x002000 /* Expand $var and ~ in filename */
-#define PLFLAG_AUTOLOAD	  	    0x004000 /* do autoloading */
+#define PLFLAG_OPTIMISE		    0x001000 /* -O: optimised compilation */
+#define PLFLAG_FILEVARS		    0x002000 /* Expand $var and ~ in filename */
+#define PLFLAG_AUTOLOAD		    0x004000 /* do autoloading */
 #define PLFLAG_CHARCONVERSION	    0x008000 /* do character-conversion */
-#define PLFLAG_LASTCALL	  	    0x010000 /* Last call optimization enabled? */
+#define PLFLAG_LASTCALL		    0x010000 /* Last call optimization enabled? */
 #define PLFLAG_BACKQUOTED_STRING    0x020000 /* `a string` */
 #define PLFLAG_SIGNALS		    0x040000 /* Handle signals */
 #define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
@@ -2061,7 +2072,7 @@ decrease).
 #endif
 
 #define NULL_ATOM ((atom_t)0)
-#define MK_ATOM(n)    		((atom_t)((n)<<7|TAG_ATOM|STG_STATIC))
+#define MK_ATOM(n)		((atom_t)((n)<<7|TAG_ATOM|STG_STATIC))
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
@@ -2071,6 +2082,7 @@ decrease).
 #include "pl-data.h"			/* Access Prolog data */
 #include "pl-segstack.h"		/* Segmented stacks */
 #include "pl-gmp.h"			/* GNU-GMP support */
+#include "os/pl-file.h"			/* Stream management */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
 #include "pl-ldpass.h"			/* Wrap __LD functions */

@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -33,7 +34,7 @@
 #undef LD
 #define LD LOCAL_LD
 
-static bool	unify_with_occurs_check(Word t1, Word t2,
+static int	unify_with_occurs_check(Word t1, Word t2,
 					occurs_check_t mode ARG_LD);
 
 
@@ -110,7 +111,7 @@ visitedWord(Word p ARG_LD)
 { if ( is_marked(p) )
     succeed;
   set_marked(p);
-  pushSegStack(&LD->cycle.vstack, &p);
+  pushSegStack(&LD->cycle.vstack, p, Word);
   fail;
 }
 
@@ -127,7 +128,7 @@ static void
 unvisit(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.vstack, &p) )
+  while( popSegStack(&LD->cycle.vstack, &p, Word) )
   { clear_marked(p);
   }
 }
@@ -137,7 +138,7 @@ static void
 popVisited(ARG1_LD)
 { Word p;
 
-  popSegStack(&LD->cycle.vstack, &p);
+  popSegStack(&LD->cycle.vstack, &p, Word);
   clear_marked(p);
 }
 
@@ -154,7 +155,7 @@ linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
   Word p2 = (Word)&f2->definition;
 
   *p1 = makeRefG(p2);
-  pushSegStack(&LD->cycle.lstack, &p1);
+  pushSegStack(&LD->cycle.lstack, p1, Word);
 }
 
 
@@ -162,7 +163,7 @@ static inline void
 exitCyclic(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.lstack, &p) )
+  while( popSegStack(&LD->cycle.lstack, &p, Word) )
   { *p = *unRef(*p);
   }
 }
@@ -179,7 +180,6 @@ static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
 
 #define HAVE_VISITED
 #define AC_TERM_WALK_LR 1
-#define AC_TERM_WALK_LRS 1
 #include "pl-termwalk.c"
 
 		/********************************
@@ -216,121 +216,135 @@ Returns one of:
 
 static int
 do_unify(Word t1, Word t2 ARG_LD)
-{
-  word w1;
-  word w2;
+{ term_agendaLR agenda;
+  int compound = FALSE;
+  int rc = FALSE;
 
-right_recursion:
-  w1 = *t1;
-  w2 = *t2;
+  do
+  { word w1, w2;
 
-  while(isRef(w1))			/* this is deRef() */
-  { t1 = unRef(w1);
-    w1 = *t1;
-  }
-  while(isRef(w2))
-  { t2 = unRef(w2);
-    w2 = *t2;
-  }
+    deRef(t1); w1 = *t1;
+    deRef(t2); w2 = *t2;
 
-  SECURE(assert(w1 != ATOM_garbage_collected);
-	 assert(w2 != ATOM_garbage_collected));
+    SECURE(assert(w1 != ATOM_garbage_collected);
+	   assert(w2 != ATOM_garbage_collected));
 
-  if ( isVar(w1) )
-  { if ( unlikely(tTop+1 >= tMax) )
-      return TRAIL_OVERFLOW;
-
-    if ( isVar(w2) )
-    { if ( t1 < t2 )			/* always point downwards */
-      { Trail(t2, makeRef(t1));
-	return TRUE;
+    if ( isVar(w1) )
+    { if ( unlikely(tTop+1 >= tMax) )
+      { rc = TRAIL_OVERFLOW;
+	goto out_fail;
       }
-      if ( t1 == t2 )
-	succeed;
-      Trail(t1, makeRef(t2));
-      return TRUE;
+
+      if ( isVar(w2) )
+      { if ( t1 < t2 )			/* always point downwards */
+	{ Trail(t2, makeRef(t1));
+	  continue;
+	}
+	if ( t1 == t2 )
+	  continue;
+	Trail(t1, makeRef(t2));
+	continue;
+      }
+  #ifdef O_ATTVAR
+      if ( isAttVar(w2 ) )
+	w2 = makeRef(t2);
+  #endif
+      Trail(t1, w2);
+      continue;
     }
-#ifdef O_ATTVAR
-    if ( isAttVar(w2 ) )
-      w2 = makeRef(t2);
-#endif
-    Trail(t1, w2);
-    return TRUE;
-  }
-  if ( isVar(w2) )
-  { if ( unlikely(tTop+1 >= tMax) )
-      return TRAIL_OVERFLOW;
-#ifdef O_ATTVAR
+    if ( isVar(w2) )
+    { if ( unlikely(tTop+1 >= tMax) )
+      { rc = TRAIL_OVERFLOW;
+	goto out_fail;
+      }
+  #ifdef O_ATTVAR
+      if ( isAttVar(w1) )
+	w1 = makeRef(t1);
+  #endif
+      Trail(t2, w1);
+      continue;
+    }
+
+  #ifdef O_ATTVAR
     if ( isAttVar(w1) )
-      w1 = makeRef(t1);
-#endif
-    Trail(t2, w1);
-    return TRUE;
-  }
+    { if ( !hasGlobalSpace(0) )
+      { rc = overflowCode(0);
+	goto out_fail;
+      }
+      assignAttVar(t1, t2 PASS_LD);
+      continue;
+    }
+    if ( isAttVar(w2) )
+    { if ( !hasGlobalSpace(0) )
+      { rc = overflowCode(0);
+	goto out_fail;
+      }
+      assignAttVar(t2, t1 PASS_LD);
+      continue;
+    }
+  #endif
 
-#ifdef O_ATTVAR
-  if ( isAttVar(w1) )
-  { if ( !hasGlobalSpace(0) )
-      return overflowCode(0);
-    assignAttVar(t1, t2 PASS_LD);
-    return TRUE;
-  }
-  if ( isAttVar(w2) )
-  { if ( !hasGlobalSpace(0) )
-      return overflowCode(0);
-    assignAttVar(t2, t1 PASS_LD);
-    return TRUE;
-  }
-#endif
+    if ( w1 == w2 )
+      continue;
+    if ( tag(w1) != tag(w2) )
+      goto out_fail;
 
-  if ( w1 == w2 )
-    succeed;
-  if ( tag(w1) != tag(w2) )
-    fail;
-
-  switch(tag(w1))
-  { case TAG_ATOM:
-      fail;
-    case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE ||
-	   storage(w2) == STG_INLINE )
-	fail;
-    case TAG_STRING:
-    case TAG_FLOAT:
-      return equalIndirect(w1, w2);
-    case TAG_COMPOUND:
-    { Functor f1 = valueTerm(w1);
-      Functor f2 = valueTerm(w2);
-      Word e;
+    switch(tag(w1))
+    { case TAG_ATOM:
+	goto out_fail;
+      case TAG_INTEGER:
+	if ( storage(w1) == STG_INLINE ||
+	     storage(w2) == STG_INLINE )
+	  goto out_fail;;
+      case TAG_STRING:
+      case TAG_FLOAT:
+	if ( equalIndirect(w1, w2) )
+	  continue;
+        goto out_fail;
+      case TAG_COMPOUND:
+      { Functor f1 = valueTerm(w1);
+	Functor f2 = valueTerm(w2);
+	int arity;
 
 #if O_CYCLIC
-      while ( isRef(f1->definition) )
-	f1 = (Functor)unRef(f1->definition);
-      while ( isRef(f2->definition) )
-	f2 = (Functor)unRef(f2->definition);
-      if ( f1 == f2 )
-	succeed;
+	while ( isRef(f1->definition) )
+	  f1 = (Functor)unRef(f1->definition);
+	while ( isRef(f2->definition) )
+	  f2 = (Functor)unRef(f2->definition);
+	if ( f1 == f2 )
+	  continue;
 #endif
 
-      if ( f1->definition != f2->definition )
-	fail;
+	if ( f1->definition != f2->definition )
+	  goto out_fail;
+	arity = arityFunctor(f1->definition);
 
-      t1 = f1->arguments;
-      t2 = f2->arguments;
-      e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
-      linkTermsCyclic(f1, f2 PASS_LD);
+	if ( !compound )
+	{ compound = TRUE;
+	  initCyclic(PASS_LD1);
+	  initTermAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
+	} else
+	{ if ( !pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto out_fail;
+	  }
+	}
 
-      for(; t1 < e; t1++, t2++)
-      { int rc;
+	linkTermsCyclic(f1, f2 PASS_LD);
 
-	if ( (rc=do_unify(t1, t2 PASS_LD)) <= 0 )
-	  return rc;
+	continue;
       }
-      goto right_recursion;
     }
-  }
+  } while(compound && nextTermAgendaLR(&agenda, &t1, &t2));
 
-  succeed;
+  rc = TRUE;
+
+out_fail:
+  if ( compound )
+  { clearTermAgendaLR(&agenda);
+    exitCyclic(PASS_LD1);
+  }
+  return rc;
 }
 
 
@@ -338,14 +352,7 @@ static int
 raw_unify_ptrs(Word t1, Word t2 ARG_LD)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
-    { int rc;
-
-      initCyclic(PASS_LD1);
-      rc = do_unify(t1, t2 PASS_LD);
-      exitCyclic(PASS_LD1);
-
-      return rc;
-    }
+      return do_unify(t1, t2 PASS_LD);
     case OCCURS_CHECK_TRUE:
       return unify_with_occurs_check(t1, t2, OCCURS_CHECK_TRUE PASS_LD);
     case OCCURS_CHECK_ERROR:
@@ -380,9 +387,7 @@ PRED_IMPL("\\=", 2, not_unify, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Public unification procedure for `raw' data.   See also PL_unify(). Note
-that we can have an exception due   to occurs-check errors. In this case
-we must undo carefully to preserve the exception term.
+Public unification procedure for `raw' data.   See also PL_unify().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
@@ -393,6 +398,8 @@ unify_ptrs(Word t1, Word t2, int flags ARG_LD)
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc >= 0 )
     { return rc;
+    } else if ( rc == MEMORY_OVERFLOW )
+    { return PL_error(NULL, 0, NULL, ERR_NOMEM);
     } else				/* Stack overflow */
     { int rc2;
 
@@ -426,6 +433,8 @@ can_unify(Word t1, Word t2, term_t *ex)
       return TRUE;
     }
 
+    if ( !*ex && exception_term )	/* overflow exceptions from unify() */
+      *ex = exception_term;
     PL_discard_foreign_frame(fid);
   }
 
@@ -439,32 +448,80 @@ can_unify(Word t1, Word t2, term_t *ex)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int var_occurs_in(Word v, Word t)
-    Succeeds of the term `v' occurs in `t'.  v must be dereferenced on
-    entry.
+
+Succeeds of the term `v' occurs in `t'.  v must be dereferenced on
+entry.  Returns one of
+
+	- FALSE if v does not occur in t
+	- TRUE if v occurs in t
+	- MEMORY_OVERFLOW if the malloc() fails.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
-var_occurs_in(Word v, Word t)
-{ GET_LD
+static int
+var_occurs_in(Word v, Word t ARG_LD)
+{ segstack visited;
+  void *tmp[256];
+  term_agenda agenda;
+  int compound = FALSE;
+  int rc = FALSE;
 
-right_recursion:
   deRef(t);
   if ( v == t )
-    succeed;
+  { if ( isTerm(*t) )
+      goto unified;
 
-  if ( isTerm(*t) )
-  { Functor f = valueTerm(*t);
-    int arity = arityFunctor(f->definition);
-
-    t = f->arguments;
-    for( ; --arity > 0; t++)
-    { if ( var_occurs_in(v, t) )
-	succeed;
-    }
-    goto right_recursion;
+    return FALSE;
   }
 
-  fail;
+  do
+  { if ( v == t )
+    { rc = TRUE;
+      break;
+    }
+
+  unified:
+    if ( isTerm(*t) )
+    { Functor f = valueTerm(*t);
+
+      if ( !compound )
+      { int arity = arityFunctor(f->definition);
+
+	compound = TRUE;
+	initSegStack(&visited, sizeof(Functor), sizeof(tmp), tmp);
+	f->definition |= FIRST_MASK;
+	pushSegStack(&visited, f, Functor);
+	initTermAgenda(&agenda, arity, f->arguments);
+      } else if ( !(f->definition & FIRST_MASK) )
+      { int arity = arityFunctor(f->definition);
+
+	f->definition |= FIRST_MASK;
+	if ( !pushSegStack(&visited, f, Functor) ||
+	     !pushWorkAgenda(&agenda, arity, f->arguments) )
+	  return MEMORY_OVERFLOW;
+      }
+    }
+  } while( compound && (t=nextTermAgenda(&agenda)) );
+
+  if ( compound )
+  { Functor f;
+
+    while( popSegStack(&visited, &f, Functor) )
+      f->definition &= ~FIRST_MASK;
+    clearTermAgenda(&agenda);
+  }
+
+  return rc;
+}
+
+
+int
+PL_var_occurs_in(term_t var, term_t value)
+{ GET_LD
+  Word v = valTermRef(var);
+
+  deRef(v);
+
+  return var_occurs_in(v, valTermRef(value) PASS_LD);
 }
 
 
@@ -474,6 +531,15 @@ failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 
   if ( mode == OCCURS_CHECK_TRUE )
     fail;
+
+  deRef(t1);
+  deRef(t2);
+  if ( isVar(*t2) )			/* try to make Var = Term */
+  { Word tmp = t1;
+
+    t1 = t2;
+    t2 = tmp;
+  }
 
   blockGC(0 PASS_LD);
   rc = PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
@@ -485,148 +551,75 @@ failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 
 static int
 unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
-{ word w1;
-  word w2;
+{ mark m;
+  int rc;
 
-right_recursion:
-  w1 = *t1;
-  w2 = *t2;
-
-  while(isRef(w1))			/* this is deRef() */
-  { t1 = unRef(w1);
-    w1 = *t1;
-  }
-  while(isRef(w2))
-  { t2 = unRef(w2);
-    w2 = *t2;
-  }
-
-  if ( t1 == t2 )
-    succeed;
-
-  if ( isVar(w1) )
-  { if ( tTop+1 > tMax )
-      return TRAIL_OVERFLOW;
-
-    if ( isVar(w2) )
-    { if ( t1 < t2 )			/* always point downwards */
-      { Trail(t2, makeRef(t1));
-	return TRUE;
-      }
-      Trail(t1, makeRef(t2));
-      return TRUE;
-    }
-    if ( onStack(global, t1) && var_occurs_in(t1, t2) )
+  deRef(t1);
+  deRef(t2);
+  if ( canBind(*t1) )
+  { if ( onStack(global, t1) && var_occurs_in(t1, t2 PASS_LD) )
       return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
-#ifdef O_ATTVAR
-    if ( isAttVar(w2) )
-      w2 = makeRef(t2);
-#endif
-    Trail(t1, w2);
-    return TRUE;
+    return do_unify(t1, t2 PASS_LD);
   }
-  if ( isVar(w2) )
-  { if ( tTop+1 > tMax )
-      return TRAIL_OVERFLOW;
-
-    if ( onStack(global, t2) && var_occurs_in(t2, t1) )
-      return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
-
-#ifdef O_ATTVAR
-    if ( isAttVar(w1) )
-      w1 = makeRef(t1);
-#endif
-    Trail(t2, w1);
-    return TRUE;
-  }
-
-#ifdef O_ATTVAR
-  if ( isAttVar(w1) )
-  { if ( var_occurs_in(t1, t2) )
+  if ( canBind(*t2) )
+  { if ( onStack(global, t2) && var_occurs_in(t2, t1 PASS_LD) )
       return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
-    if ( !hasGlobalSpace(0) )
-      return GLOBAL_OVERFLOW;
-    assignAttVar(t1, t2 PASS_LD);
-    return TRUE;
+    return do_unify(t1, t2 PASS_LD);
   }
-  if ( isAttVar(w2) )
-  { if ( var_occurs_in(t2, t1) )
-      return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
-    if ( !hasGlobalSpace(0) )
-      return GLOBAL_OVERFLOW;
-    assignAttVar(t2, t1 PASS_LD);
-    return TRUE;
-  }
-#endif
 
-  if ( w1 == w2 )
-    succeed;
-  if ( tag(w1) != tag(w2) )
-    fail;
+  Mark(m);
+  rc = do_unify(t1, t2 PASS_LD);
+  DiscardMark(m);
 
-  switch(tag(w1))
-  { case TAG_ATOM:
-      fail;
-    case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE ||
-	   storage(w2) == STG_INLINE )
-	fail;
-    case TAG_STRING:
-    case TAG_FLOAT:
-      return equalIndirect(w1, w2);
-    case TAG_COMPOUND:
-    { int arity;
-      Functor f1 = valueTerm(w1);
-      Functor f2 = valueTerm(w2);
+  if ( rc == TRUE )
+  { TrailEntry tt = tTop;
+    TrailEntry mt = m.trailtop;
 
-      if ( f1->definition != f2->definition )
-	fail;
+    while(--tt >= mt)
+    { Word p = tt->address;
+      Word p2;
 
-      arity = arityFunctor(f1->definition);
-      t1 = f1->arguments;
-      t2 = f2->arguments;
+      if ( isTrailVal(p) )		/* assignment of an attvars */
+      { p = (--tt)->address;
 
-      for(; --arity > 0; t1++, t2++)
-      { int rc;
-
-	if ( (rc=unify_with_occurs_check(t1, t2, mode PASS_LD)) <= 0 )
-	  return rc;
+	if ( isTrailVal((--tt)->address) ) /* tail of wakeup list */
+	  tt--;
+	if ( isTrailVal((--tt)->address) ) /* head of wakeup list */
+	  tt--;
       }
-      goto right_recursion;
+
+      deRef2(p, p2);
+      if ( var_occurs_in(p2, p2 PASS_LD) )
+      { if ( mode == OCCURS_CHECK_ERROR )
+	{ Word t = allocGlobalNoShift(1);
+
+	  if ( !t )
+	    return GLOBAL_OVERFLOW;
+	  *t = *p2;
+	  Undo(m);
+	  rc = failed_unify_with_occurs_check(p, t, mode PASS_LD);
+	}
+	rc = FALSE;
+        break;
+      }
     }
   }
 
-  succeed;
+  return rc;
 }
 
 
 static
 PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 { PRED_LD
+  occurs_check_t old = LD->prolog_flag.occurs_check;
+  int rc;
 
-  for(;;)
-  { mark m;
-    int rc;
-    Word p1 = valTermRef(A1);
-    Word p2 = valTermRef(A2);
+  LD->prolog_flag.occurs_check = OCCURS_CHECK_TRUE;
+  rc = PL_unify(A1, A2);
+  LD->prolog_flag.occurs_check = old;
 
-    Mark(m);
-    rc = unify_with_occurs_check(p1, p2, OCCURS_CHECK_TRUE PASS_LD);
-    if ( rc == TRUE )			/* Terms unified */
-    { DiscardMark(m);
-      return rc;
-    } else if ( rc == FALSE )		/* Terms did not unify */
-    { if ( !exception_term )		/* Check for occurs error */
-	Undo(m);
-      DiscardMark(m);
-      return rc;
-    } else				/* Stack overflow */
-    { Undo(m);
-      DiscardMark(m);
-      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	return FALSE;
-    }
-  }
+  return rc;
 }
 
 
@@ -719,44 +712,39 @@ ph_visited(Functor f, phase ph ARG_LD)
   return ph_visitedWord(p, ph PASS_LD);
 }
 
-/* missing optimisations:
-
-   i  recurse only when at least another nontrivial case is open
-
-   ii programmed stack
-*/
 
 static int
 ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
-{ int arity;
-  Functor f;
+{ term_agenda agenda;
 
-last:
-  deRef(p);
+  initTermAgenda(&agenda, 1, p);
+  while((p=nextTermAgenda(&agenda)))
+  { if ( canBind(*p) )
+    { clearTermAgenda(&agenda);
+      return FALSE;
+    }
+    if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
 
-  if ( canBind(*p) )		/* attributed variables are not ground */
-    fail;
-  if ( !isTerm(*p) )
-    succeed;
-
-  f = valueTerm(*p);
-  arity = arityFunctor(f->definition);
-  p = f->arguments;
-  if ( ph_visited(f, ph PASS_LD) )	/* already been here, so it must be ground */
-    succeed;
-
-  for(; --arity > 0; p++)
-  { if ( !ph_ground(p, ph PASS_LD) )
-      fail;
+      if ( !ph_visited(f, ph PASS_LD) )
+      { pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      }
+    }
   }
 
-  goto last;
+  return TRUE;
 }
 
 
 int
 ground__LD(Word p ARG_LD)
 { int rc1, rc2;
+
+  deRef(p);
+  if ( canBind(*p) )
+    return FALSE;
+  if ( !isTerm(*p) )
+    return TRUE;
 
   startCritical;
   rc1 = ph_ground(p, ph_mark PASS_LD);  /* mark functors */
@@ -797,156 +785,270 @@ PRED_IMPL("callable", 1, callable, 0)
 
 
 		 /*******************************
+		 *	     COMPLEXITY		*
+		 *******************************/
+
+static size_t
+term_size(Word p, size_t max ARG_LD)
+{ size_t count = 0;
+  term_agenda agenda;
+  Word t;
+
+  initvisited(PASS_LD1);
+  initTermAgenda(&agenda, 1, p);
+
+  while((t=nextTermAgenda(&agenda)))
+  { if ( ++count > max )
+      break;
+
+    if ( isAttVar(*t) )
+    { Word p = valPAttVar(*t);
+
+      assert(onGlobalArea(p));
+      pushWorkAgenda(&agenda, 1, p);
+    } else if ( isIndirect(*t) )
+    { count += wsizeofInd(*t);
+
+      if ( count > max )
+	break;
+    } else if ( isTerm(*t) )
+    { Functor f = valueTerm(*t);
+      int arity = arityFunctor(f->definition);
+
+      if ( visited(f PASS_LD) )
+	continue;
+
+      if ( ++count > max )
+	break;
+
+      pushWorkAgenda(&agenda, arity, f->arguments);
+    }
+  }
+
+  clearTermAgenda(&agenda);
+  unvisit(PASS_LD1);
+
+  return count;
+}
+
+
+/** $term_size(+Term, +Max, -Size)
+
+Size represents the total size of Term on the stack, counted in cells.
+*/
+
+static
+PRED_IMPL("$term_size", 3, term_size, 0)
+{ PRED_LD
+  size_t c, m;
+  term_t t = A1;
+  term_t mx = A2;
+  term_t count = A3;
+
+  if ( PL_is_variable(mx) )
+    m = (size_t)-1;
+  else if ( !PL_get_size_ex(mx, &m) )
+    return FALSE;
+
+  c = term_size(valTermRef(t), m PASS_LD);
+  if ( c > m )
+    return FALSE;
+
+  return PL_unify_integer(count, c);
+}
+
+
+		 /*******************************
 		 *	     CYCLIC		*
 		 *******************************/
 
-static inline int
-ph1_markedWord(Word p ARG_LD)
-{ if ( is_marked(p) )
-    succeed;
-  fail;
-}
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Finding cyclic terms is a bit more   complicated than one may think. The
+native way is to walk the structure  depth-first while setting marks and
+if you find a mark you have a   cycle. However, when you backup from the
+recursion you must remove your marks because otherwise you find marks if
+the same subterm appears multiple times in   the tree (sharing). This is
+undesirable for two reasons:  it   kills  last-argument optimization and
+processes the shared subterms multiple times.
 
-static inline int
-ph1_marked(Functor f ARG_LD)
-{ Word p = &f->definition;
+Ulrich Neumerkel came with the following two enhancements:
 
-  return ph1_markedWord(p PASS_LD);
-}
+  1. Instead of removing the marks while backing up, put a new type of
+  mark that indicates there is no cycle there. Now, whenever we
+  encounter this second mark we know we visited this tree and it is
+  free of cycles.  This exploits sharing.
 
-static inline int
-ph1_visitedWord(Word p ARG_LD)
-{ if ( is_marked(p) )
-    succeed;
-  set_marked(p);
-  fail;
-}
+  2. Instead of making a recursive call for the last argument so that
+  we can set the second mark after this call returns, jump to the
+  beginning and remember the number of last arguments processed.  Now
+  we can simply mark all the last arguments.
 
-static inline int
-ph1_visited(Functor f ARG_LD)
-{ Word p = &f->definition;
+Later, the function is rearranged to avoid the C-stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  return ph1_visitedWord(p PASS_LD);
-}
+typedef struct acyclic_state
+{ Word		start;				/* start-term */
+  Word		argp;				/* argument pointer */
+  size_t	last_count;
+} acyclic_state;
 
-static inline int
-ph1_firstvisitedWord(Word p ARG_LD)
-{ if ( is_first(p) )
-    succeed;
-  set_first(p);
-  fail;
-}
 
-static inline int
-ph1_firstvisited(Functor f ARG_LD)
-{ Word p = &f->definition;
+static void
+mark_last_args(acyclic_state *state ARG_LD)
+{ size_t count;
 
-  return ph1_firstvisitedWord(p PASS_LD);
-}
+  DEBUG(3, Sdprintf("mark_last_args(%d)\n", (int)state->last_count));
 
-static int
-ph1_is_acyclic(Word firstp ARG_LD)
-{ Functor f;
-  int l = 0 ; /* number of last arguments to process */
-  Word p;
-
-  deRef(firstp);
-  p = firstp;
-
-  for(;;)
-  { int arity, i;
-    if ( !isTerm(*p) )
-      break;
-    f = valueTerm(*p);
-    arity = arityFunctor(f->definition);
-    p = f->arguments;
-    if ( ph1_marked(f PASS_LD) ) /* already acyclic */
-      break;
-    if ( ph1_firstvisited(f PASS_LD) )	/* Got a cycle! */
-      fail;
-
-    for(i = 0; i < arity-1; i++)
-    { if ( !ph1_is_acyclic((p+i) PASS_LD) )
-	fail;
-    }
-    l++; /* remember to mark later */
-    p = p + arity-1;
-    deRef(p);
-  }
-  /* mark all last arguments as ph1_visited */
-
-  if (l > 0) /* there are l structures to mark */
-  { Word p = firstp;
+  if ( (count=state->last_count) > 0 )
+  { Word p = state->start;
     int arity;
 
     for(;;)
-    { SECURE(assert(isTerm(*p)));
-      f = valueTerm(*p);
-      if (ph1_visited(f PASS_LD) )
-	{assert(0);} /* Impossible: someone else did it */
-      if (--l==0)
-	break;
+    { Functor f = valueTerm(*p);
+
+      f->definition |= MARK_MASK;
+      DEBUG(4, Sdprintf("\tmark %s/%d at %p as acyclic\n",
+			stringAtom(nameFunctor(f->definition)),
+			arityFunctor(f->definition),
+			f));
+
+      if ( --count == 0 )
+	return;
+
       arity = arityFunctor(f->definition);
-      p = f-> arguments + arity -1; /* next last argument */
+      p = f->arguments + arity-1;		/* next last argument */
       deRef(p);
     }
   }
-  succeed;
 }
 
 
-static inline int
-ph2_avisitedWord(Word p ARG_LD)
-{ if ( !is_first(p) )
-    succeed;
-  clear_both(p);
-  fail;
-}
+static int
+ph1_is_acyclic(Word p ARG_LD)
+{ segstack stack;
+  acyclic_state buf[64];
+  acyclic_state state;
 
+  initSegStack(&stack, sizeof(acyclic_state), sizeof(buf), buf);
 
-static inline int
-ph2_avisited(Functor f ARG_LD)
-{ Word p = &f->definition;
+  state.start      = NULL;
+  state.last_count = 0;
+  state.argp       = NULL;
 
-  return ph2_avisitedWord(p PASS_LD);
+  for(;;)
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      int arity;
+
+      DEBUG(3, Sdprintf("Term %s/%d at %p (%s)\n",
+			stringAtom(nameFunctor(f->definition)),
+			arityFunctor(f->definition), f,
+			(f->definition & (FIRST_MASK|MARK_MASK)) ? "seen"
+							         : "new"));
+
+      if ( f->definition & (FIRST_MASK|MARK_MASK) )
+      { if ( f->definition & MARK_MASK )	/* MARK_MASK:  already acyclic */
+	  goto next;
+	clearSegStack(&stack);
+	return FALSE;				/* FIRST_MASK: got a cycle */
+      }
+      f->definition |= FIRST_MASK;
+
+      arity = arityFunctor(f->definition);
+      if ( arity >= 2 )
+      { pushSegStack(&stack, state, acyclic_state);
+	state.last_count = 0;
+	p = state.argp   = &f->arguments[arity-2];
+	deRef(p);
+	state.start      = p;
+      } else
+      { p = &f->arguments[0];
+	deRef(p);
+	state.last_count++;
+      }
+    } else
+    { DEBUG(3, { if ( isAtom(*p) )
+		   Sdprintf("Atom %s\n", stringAtom(*p));
+		 else if ( isVar(*p) )
+		   Sdprintf("Var at %p\n", p);
+	       });
+    next:
+      if ( state.start )
+      { mark_last_args(&state PASS_LD);
+	p = --state.argp;
+	if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
+	{ popSegStack(&stack, &state, acyclic_state);
+	  DEBUG(3, Sdprintf("Last arg of %s/%d at %p\n",
+			    stringAtom(nameFunctor(*p)),
+			    arityFunctor(*p),
+			    p));
+	  p += arityFunctor(*p);
+	  deRef(p);
+	  state.last_count++;
+	} else
+	{ deRef(p);
+	  state.start = p;
+	  state.last_count = 0;
+	}
+      } else
+      { clearSegStack(&stack);
+	return TRUE;
+      }
+    }
+  }
 }
 
 
 static void
 ph2_is_acyclic(Word p ARG_LD)
-{ int arity, i;
-  Functor f;
+{ term_agenda agenda;
 
- top:
-  deRef(p);
-  if ( !isTerm(*p) )
-    return;
+  initTermAgenda(&agenda, 1, p);
+  while( (p=nextTermAgenda(&agenda)) )
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
 
-  f = valueTerm(*p);
-  arity = arityFunctor(f->definition);
-  p = f->arguments;
-  if ( ph2_avisited(f PASS_LD) )	/* Got a cycle! */
-    return;
+      if ( f->definition & FIRST_MASK )
+      { f->definition &= ~(FIRST_MASK|MARK_MASK);
+	pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
+}
 
-  for(i = 0; i < arity-1; i++)
-    ph2_is_acyclic((p+i) PASS_LD);
 
-  p = p+i;
-  goto top;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns TRUE, FALSE or MEMORY_OVERFLOW
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+is_acyclic(Word p ARG_LD)
+{ deRef(p);
+
+  if ( isTerm(*p) )
+  { int rc1;
+
+    rc1 = ph1_is_acyclic(p PASS_LD);
+    ph2_is_acyclic(p PASS_LD);
+    return rc1;
+  }
+
+  return TRUE;
 }
 
 
 static int
-is_acyclic(Word p ARG_LD)
-{ int rc1;
+PL_is_acyclic__LD(term_t t ARG_LD)
+{ int rc;
 
-  startCritical;
-  rc1 = ph1_is_acyclic(p PASS_LD);
-  ph2_is_acyclic(p PASS_LD);
-  if ( !endCritical )
-    return FALSE;
+  if ( (rc=is_acyclic(valTermRef(t) PASS_LD)) == TRUE )
+    return TRUE;
 
-  return rc1;
+  if ( rc == MEMORY_OVERFLOW )
+    rc = PL_error(NULL, 0, NULL, ERR_NOMEM);
+
+  return rc;
 }
 
 
@@ -954,7 +1056,7 @@ int
 PL_is_acyclic(term_t t)
 { GET_LD
 
-  return is_acyclic(valTermRef(t) PASS_LD);
+  return PL_is_acyclic__LD(t PASS_LD);
 }
 
 
@@ -962,15 +1064,21 @@ static
 PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
 { PRED_LD
 
-  return is_acyclic(valTermRef(A1) PASS_LD);
+  return PL_is_acyclic__LD(A1 PASS_LD);
 }
 
 
 static
 PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 { PRED_LD
+  int rc;
 
-  return is_acyclic(valTermRef(A1) PASS_LD) ? FALSE : TRUE;
+  if ( (rc=is_acyclic(valTermRef(A1) PASS_LD)) == TRUE )
+    return FALSE;
+  if ( rc == FALSE )
+    return TRUE;
+
+  return PL_error(NULL, 0, NULL, ERR_NOMEM);
 }
 
 
@@ -1005,7 +1113,7 @@ scan_shared(Word t, Word vart, size_t *count ARG_LD)
   size_t shared = 0;
   Word p;
 
-  initTermAgenda(&agenda, t);
+  initTermAgenda(&agenda, 1, t);
   while( (p=nextTermAgenda(&agenda)) )
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -1054,7 +1162,7 @@ unscan_shared(Word t ARG_LD)
 { term_agenda agenda;
   Word p;
 
-  initTermAgenda(&agenda, t);
+  initTermAgenda(&agenda, 1, t);
   while( (p=nextTermAgenda(&agenda)) )
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -1111,7 +1219,7 @@ link_shared(Word t, Word vars ARG_LD)
 { term_agenda agenda;
   Word p;
 
-  initTermAgenda(&agenda, t);
+  initTermAgenda(&agenda, 1, t);
   while( (p=nextTermAgenda(&agenda)) )
   { if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -1152,21 +1260,24 @@ link_shared(Word t, Word vars ARG_LD)
 }
 
 
-static
-PRED_IMPL("$factorize_term", 2, factorize_term, 0)
-{ PRED_LD
+int
+PL_factorize_term(term_t term, term_t template, term_t factors)
+{ GET_LD
   fid_t fid;
-  term_t vars;
+  term_t vars, wrapped;
   Word t;
   size_t count;
   int rc;
 
   for(;;)
-  { fid = PL_open_foreign_frame();
+  { if ( !(fid = PL_open_foreign_frame()) ||
+	 !(wrapped = PL_new_term_ref()) ||
+	 !(vars = PL_new_term_ref()) ||
+	 !PL_unify_term(wrapped, PL_FUNCTOR, FUNCTOR_var1, PL_TERM, term) )
+      return FALSE;
 
-    vars = PL_new_term_ref();
     PL_put_nil(vars);
-    t = valTermRef(A1);
+    t = valTermRef(wrapped);
 
     SECURE(checkStacks(NULL));
     startCritical;
@@ -1200,9 +1311,15 @@ PRED_IMPL("$factorize_term", 2, factorize_term, 0)
   if ( !endCritical )
     return FALSE;
 
-  return PL_unify(A2, vars);
+  _PL_get_arg(1, wrapped, wrapped);
+  return ( PL_unify(template, wrapped) &&
+	   PL_unify(factors, vars) );
 }
 
+static
+PRED_IMPL("$factorize_term", 3, factorize_term, 0)
+{ return PL_factorize_term(A1, A2, A3);
+}
 
 		 /*******************************
 		 *	 META-CALL SUPPORT	*
@@ -1443,8 +1560,10 @@ do_compare(term_agendaLR *agenda, int eq ARG_LD)
 
   while( nextTermAgendaLR(agenda, &p1, &p2) )
   { word t1, t2;
-    word w1 = *p1;
-    word w2 = *p2;
+    word w1, w2;
+
+    deRef(p1); w1 = *p1;
+    deRef(p2); w2 = *p2;
 
     if ( w1 == w2 )
     { if ( isVar(w1) )
@@ -1569,7 +1688,7 @@ compareStandard(Word p1, Word p2, int eq ARG_LD)
   int rc;
 
   initCyclic(PASS_LD1);
-  initTermAgendaLR(&agenda, p1, p2);
+  initTermAgendaLR(&agenda, 1, p1, p2);
   rc = do_compare(&agenda, eq PASS_LD);
   clearTermAgendaLR(&agenda);
   exitCyclic(PASS_LD1);
@@ -1701,248 +1820,6 @@ PRED_IMPL("\\==", 2, nonequal, 0)
     return FALSE;
 
   return rc == CMP_EQUAL ? FALSE : TRUE;
-}
-
-
-		/********************************
-		*	     VARIANT	        *
-		*********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Variant(A,B) is true iff there exists a  renaming of variables in A that
-is (==) equivalent to B  and  a  renaming   of  variables  in  B that is
-equivalent to A.
-
-The implementation went through quite a few cycles. The current one uses
-the following:
-
-    * Term-walking and cycle-detection follows structure pointers as
-      = and ==.
-    * In addition, there are two pointers that walk A and B and do not
-      follow the links created by the cycle detection.
-    * For each variable pair encountered, we use the labeling mechanism
-      described by Kuniaki Mukai:
-	- We use a triple.  The variable is set to refer to the
-	  triple.  The triple contains =v=, pointing to the variable for
-	  reset, =l=, containing the labeling seen from the left and =r=
-	  containing the labeling seen from the right.  The labeling is
-	  a pointer to the variable at the other side.
-	- For each pair of variables:
-	    - Left is ok if no =l= label or =l= points to right
-	    - Right is ok if no =r= label or =r= points to left
-	    - If ok, ensure there is a triple and assign the label
-	      if not already present.
-    * If a shared subterm is found, we call number_common_subterm().
-      Each variable encountered must either be labeled with itself
-      from left and right or be unlabeled.  Unlabeled variables are
-      labeled to itself.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef struct v_var
-{ Word  v;				/* The variable */
-  Word	l;				/* left label */
-  Word	r;				/* rigth label */
-} v_var;
-
-
-#define consVar(n) (((word)(n)<<LMASK_BITS) | TAG_VAR | FIRST_MASK)
-#define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
-#define FMPLAIN(w) ((intptr_t)(w) & ~(FIRST_MASK|MARK_MASK))
-
-static inline v_var *
-get_v_entry(Word p, TmpBuffer buf)
-{ if ( *p )
-  { int id = valVar(*p);
-
-    return &fetchBuffer(buf, id, v_var);
-  }
-
-  return NULL;
-}
-
-
-static void
-pop_variant_mark(Functor l, Functor r, void *data)
-{ uintptr_t d = (uintptr_t)data;
-
-  if ( !(d & FIRST_MASK) )
-    l->definition &= ~FIRST_MASK;
-  if ( !(d & MARK_MASK) )
-    r->definition &= ~MARK_MASK;
-}
-
-
-static bool
-variant(term_agendaLRS *agenda, TmpBuffer buf ARG_LD)
-{ Word l, r;
-
-  while( nextTermAgendaLRS(agenda, &l, &r) )
-  { word wl, wr;
-
-  attvar:
-    wl = *l;
-    wr = *r;
-
-    if ( tag(wl) != tag(wr) )
-      fail;
-    if ( tag(wl) == TAG_VAR )
-    { v_var *vl = get_v_entry(l, buf);
-      v_var *vr = get_v_entry(r, buf);
-
-      if ( vl && vl->r && vl->r != r )
-	fail;
-      if ( vr && vr->l && vr->l != l )
-	fail;
-
-      if ( !vl )
-      { v_var new;
-	size_t id = entriesBuffer(buf, v_var);
-
-	new.v = l;
-	new.r = r;
-	if ( l != r )
-	{ new.l = NULL;
-	  addBuffer(buf, new, v_var);
-	  *l = consVar(id);
-	} else
-	{ new.l = l;
-	  addBuffer(buf, new, v_var);
-	  *l = consVar(id);
-
-	  continue;
-	}
-      } else if ( !vl->r )
-      { vl->r = r;
-      }
-
-      if ( !vr )
-      { v_var new;
-	size_t id = entriesBuffer(buf, v_var);
-
-	new.v = r;
-	new.l = l;
-	new.r = NULL;
-	addBuffer(buf, new, v_var);
-	*r = consVar(id);
-      } else if ( !vr->l )
-      { vr->l = l;
-      }
-
-      continue;
-    }
-
-    if ( wl == wr && !isTerm(wl) )
-      continue;
-
-    switch(tag(wl))
-    { case TAG_ATOM:
-	fail;
-      case TAG_ATTVAR:
-      { l = valPAttVar(wl);
-	r = valPAttVar(wr);
-
-	goto attvar;
-      }
-      case TAG_INTEGER:
-	if ( storage(wl) == STG_INLINE ||
-	     storage(wr) == STG_INLINE )
-	  return FALSE;
-      case TAG_STRING:
-      case TAG_FLOAT:
-	if ( equalIndirect(wl, wr) )
-	  continue;
-        return FALSE;
-      case TAG_COMPOUND:
-      { Functor fl = valueTerm(wl);
-	Functor fr = valueTerm(wr);
-	intptr_t d;
-
-	if ( FMPLAIN(fl->definition) != FMPLAIN(fr->definition) )
-	  return FALSE;
-	if ( (fl->definition & FIRST_MASK) &&
-	     (fr->definition & MARK_MASK) )
-	  continue;
-
-	d = (fl->definition & FIRST_MASK) | (fr->definition & MARK_MASK);
-	fl->definition |= FIRST_MASK;
-	fr->definition |= MARK_MASK;
-
-	pushWorkAgendaLRS(agenda, fl, fr, (void*)d);
-	continue;
-      }
-    }
-  }
-
-  return TRUE;
-}
-
-
-static
-PRED_IMPL("=@=", 2, variant, 0)
-{ GET_LD
-  term_agendaLRS agenda;
-  bool rval;
-  tmp_buffer buf;
-  v_var *r;
-  Word p1 = valTermRef(A1);
-  Word p2 = valTermRef(A2);
-  Functor t1, t2;
-
-  deRef(p1);
-  deRef(p2);
-
-  if ( *p1 == *p2 )			/* same term */
-    succeed;
-  if ( tag(*p1) != tag(*p2) )		/* different type */
-    fail;
-again:
-  switch(tag(*p1))			/* quick tests */
-  { case TAG_VAR:
-      succeed;
-    case TAG_ATTVAR:
-      p1 = valPAttVar(*p1);
-      p2 = valPAttVar(*p2);
-      goto again;
-    case TAG_ATOM:
-      fail;
-    case TAG_INTEGER:
-      if ( !(isIndirect(*p1) && isIndirect(*p2)) )
-	fail;
-      /*FALLTHROUGH*/
-    case TAG_FLOAT:
-    case TAG_STRING:
-      return equalIndirect(*p1, *p2);
-    case TAG_COMPOUND:
-      t1 = valueTerm(*p1);
-      t2 = valueTerm(*p2);
-      if ( t1->definition != t2->definition )
-	fail;
-      break;
-    default:
-      assert(0);
-      fail;
-  }
-
-  startCritical;
-  initBuffer(&buf);			/* can be faster! */
-  initTermAgendaLRS(&agenda, t1, t2, pop_variant_mark, NULL);
-  rval = variant(&agenda, &buf PASS_LD);
-  clearTermAgendaLRS(&agenda);
-  for(r = baseBuffer(&buf, v_var); r < topBuffer(&buf, v_var); r++)
-  { setVar(*r->v);
-  }
-  discardBuffer(&buf);
-  SECURE(checkStacks(NULL));
-  if ( !endCritical )
-    return FALSE;
-
-  return rval;
-}
-
-
-static
-PRED_IMPL("\\=@=", 2, not_variant, 0)
-{ return pl_variant2_va(PL__t0, PL__ac, PL__ctx) ? FALSE : TRUE;
 }
 
 
@@ -2243,6 +2120,12 @@ PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
 }
 
 
+/*  Cycle detection uses Brent's algorithm.
+See http://en.wikipedia.org/wiki/Cycle_detection#Brent.27s_algorithm
+
+Author: Ulrich Neumerkel.
+*/
+
 intptr_t
 skip_list(Word l, Word *tailp ARG_LD)
 { intptr_t length = 0;
@@ -2406,75 +2289,102 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns	>= 0: Number for next variable variable
 	  -1: Error
-	< -1: Out of stack error
+	< -1: Out of stack error or ALREADY_NUMBERED or CONTAINS_ATTVAR
+
+TBD: when using the `singletons' mode, the   predicate is not cycle safe
+(this is an error) and does not exploit sharing. We could fix this using
+both flags:
+
+    - Not marked: go in there
+    - Marked, but not alt-mark: map vars in there _-->n
+    - both-marked: done
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define ALREADY_NUMBERED (-10)
+#define CONTAINS_ATTVAR  (-11)
 
 static int
 do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
-{
-start:
-  if ( n < 0 )
-    return n;				/* error */
+{ term_agenda agenda;
+  int start = n;
 
-  deRef(p);
+  initTermAgenda(&agenda, 1, p);
+  while((p=nextTermAgenda(&agenda)))
+  { if ( canBind(*p) )
+    { Word a;
+      word v;
 
-  if ( canBind(*p) )
-  { Word a;
-    word v;
+      if ( isAttVar(*p) )
+      { switch(options->on_attvar)
+	{ case AV_SKIP:
+	    continue;
+	  case AV_ERROR:
+	    n = CONTAINS_ATTVAR;
+	    goto out;
+	  case AV_BIND:
+	    break;
+	}
+      }
 
-    if ( isAttVar(*p) )
-    { switch(options->on_attvar)
-      { case AV_SKIP:
-	  return n;
-	case AV_ERROR:
-	  return -1;
-	case AV_BIND:
-	  break;
+      if ( !hasGlobalSpace(2) )
+      { n = overflowCode(2);
+	goto out;
+      }
+
+      a = gTop;
+      a[0] = options->functor;
+      if ( options->singletons )
+      { a[1] = ATOM_anonvar;
+      } else
+      { a[1] = consInt(n);
+	assert(valInt(a[1]) == n);
+	n++;
+      }
+      gTop += 2;
+
+      v = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+      bindConst(p, v);
+    } else if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+
+      if ( f->definition == options->functor )
+      { if ( (Word)f >= m->globaltop )	/* new one we created ourselves */
+	{ if ( options->singletons )
+	  { Word p = &f->arguments[0];
+
+	    if ( *p == ATOM_anonvar )
+	    { *p = consInt(n);		/* stack cannot hold enough vars */
+	      n++;			/* to averflow this */
+	    }
+	  }
+	} else if ( options->numbered_check )
+	{ Word p = &f->arguments[0];
+
+	  deRef(p);
+	  if ( isInteger(*p) )
+	  { intptr_t i = valInteger(*p);
+
+	    if ( i >= (intptr_t)start )
+	    { n = ALREADY_NUMBERED;
+	      goto out;
+	    }
+	  }
+	}
+	continue;
+      }
+
+      if ( !options->singletons && visited(f PASS_LD) )
+	continue;
+
+      if ( !pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments) )
+      { n = MEMORY_OVERFLOW;
+	goto out;
       }
     }
-
-    if ( !hasGlobalSpace(2) )
-      return overflowCode(2);
-
-    a = gTop;
-    a[0] = options->functor;
-    if ( options->singletons )
-    { a[1] = ATOM_anonvar;
-    } else
-    { a[1] = consInt(n);
-      assert(valInt(a[1]) == n);
-      n++;
-    }
-    gTop += 2;
-
-    v = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-    bindConst(p, v);
-  } else if ( isTerm(*p) )
-  { Functor f = valueTerm(*p);
-    int arity;
-
-    if ( options->singletons &&
-	 f->definition == options->functor &&
-	 (Word)f >= m->globaltop )	/* new one we created ourselves */
-    { Word p = &f->arguments[0];
-
-      if ( *p == ATOM_anonvar )
-      { *p = consInt(n);		/* stack can't hold enough vars */
-        n++;				/* to averflow this */
-      }
-    }
-
-    if ( !options->singletons && visited(f PASS_LD) )
-      return n;
-
-    arity = arityFunctor(f->definition);
-
-    for(p=argTermP(*p, 0); --arity > 0; p++)
-    { if ( (n=do_number_vars(p, options, n, m PASS_LD)) < 0 )
-	return n;
-    }
-    goto start;				/* right-argument recursion */
   }
+
+out:
+  clearTermAgenda(&agenda);
 
   return n;				/* anything else */
 }
@@ -2482,8 +2392,7 @@ start:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns	>= 0: Number for next variable variable
-	  -1: Error
-	< -1: Out of stack error
+	  -1: Error.  Exception is left in the environment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -2499,16 +2408,23 @@ numberVars(term_t t, nv_options *options, int n ARG_LD)
     if ( rc >= 0 )			/* all ok */
     { DiscardMark(m);
       return rc;
-    } else if ( rc == -1 )		/* error */
+    } else if ( rc == CONTAINS_ATTVAR )
     { DiscardMark(m);
-      return rc;
-    } else				/* stack overflow */
-    { int rc2;
 
-      Undo(m);
+      PL_error(NULL, 0, NULL,
+	       ERR_TYPE, ATOM_free_of_attvar, t);
+      return -1;
+    } else if ( rc == ALREADY_NUMBERED )
+    { DiscardMark(m);
+
+      PL_error(NULL, 0, "already numbered",
+	       ERR_PERMISSION, ATOM_numbervars, ATOM_term, t);
+      return -1;
+    } else				/* stack overflow */
+    { Undo(m);
       DiscardMark(m);
-      if ( !(rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT)) )
-	return rc;
+      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	return -1;
     }
   }
 }
@@ -2537,6 +2453,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
   nv_options opts;
 
   opts.singletons = FALSE;
+  opts.numbered_check = FALSE;
 
   t = PL_copy_term_ref(A1);
 
@@ -2574,13 +2491,33 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   opts.functor = PL_new_functor(name, 1);
   n = numberVars(t, &opts, n PASS_LD);
-  if ( n == -1 )
-    return PL_error(NULL, 0, NULL,
-		    ERR_TYPE, ATOM_free_of_attvar, A1);
-  else if ( n < 0 )
-    return raiseStackOverflow(n);
+  if ( n >= 0 )
+    return PL_unify_integer(end, n);
 
-  return PL_unify_integer(end, n);
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("var_number", 2, var_number, 0)
+{ PRED_LD
+  term_t t = A1;
+  Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isTerm(*p) )
+  { Functor f = valueTerm(*p);
+
+    if ( f->definition == FUNCTOR_isovar1 )
+    { Word a = &f->arguments[0];
+
+      deRef(a);
+      if ( isAtom(*a) || isInteger(*a) )
+	return _PL_unify_atomic(A2, *a);
+    }
+  }
+
+  return FALSE;
 }
 
 
@@ -2591,6 +2528,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 #define TV_ATTVAR 0x1
 #define TV_EXCEPTION ((size_t)-1)
 #define TV_NOSPACE   ((size_t)-2)
+#define TV_NOMEM     ((size_t)-3)
 
 static size_t
 term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
@@ -2630,7 +2568,12 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
 	*valTermRef(v) = makeRef(p);
       }
     } else if ( isTerm(w) )
-    { pushTermAgendaIfNotVisited(agenda, w);
+    { Functor f = valueTerm(w);
+
+      if ( visited(f PASS_LD) )
+	continue;
+      if ( !pushWorkAgenda(agenda, arityFunctor(f->definition), f->arguments) )
+	return TV_NOMEM;
     }
   }
 
@@ -2646,7 +2589,7 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
 
   startCritical;
   initvisited(PASS_LD1);
-  initTermAgenda(&agenda, valTermRef(t));
+  initTermAgenda(&agenda, 1, valTermRef(t));
   count = term_variables_loop(&agenda, maxcount, flags PASS_LD);
   clearTermAgenda(&agenda);
   unvisit(PASS_LD1);
@@ -2679,6 +2622,8 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
 	return FALSE;			/* GC doesn't help */
       continue;
     }
+    if ( count == TV_NOMEM )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
     if ( count > maxcount )
       return FALSE;
     break;
@@ -2817,90 +2762,140 @@ PRED_IMPL("subsumes_term", 2, subsumes_term, 0)
 }
 
 
-/** '$e_free_variables'(V0^V1^Term, Vars)
+/** free_variable_set(+Template^GoalIn, -GoalOut, -VarTemplate)
 
-Used by setof/3 and bagof/3 to determine  the free variables in the goal
-that have not been existentially bound. The implementation is very close
-to term_variables/2, but  while  traversing  the   lefthand  of  ^,  the
-variable is marked but not added to the list.
+This implements _|free variable set|_ as   defined the ISO core standard
+(sec. 7.1.1.4) for setof/3 and  bagof/3. This demands ^/2-quantification
+to be on the outside (except for M:) and removes ^/2 from the goal-term.
+The latter implies that we no longer need ^/2 as a predicate.
 */
 
 static size_t
-free_variables_loop(Word t, term_t l, size_t n, int existential ARG_LD)
-{
-right_recursion:
-  deRef(t);
+free_variables_loop(Word t, atom_t *mname, term_t goal ARG_LD)
+{ term_agenda agenda;
+  int in_goal = FALSE;
+  int existential = FALSE;		/* TRUE when processing left of ^ */
+  size_t n = 0;
+  word mark = 0;			/* mark that tells us we completed vars */
 
-  if ( canBind(*t) )
-  { term_t v;
-
-    if ( !visitedWord(t PASS_LD) && !existential )
-    { if ( !(v = PL_new_term_ref_noshift()) )
-	return TV_NOSPACE;
-      *valTermRef(v) = makeRef(t);
-
-      n++;
+  initTermAgenda(&agenda, 1, t);
+  while((t=nextTermAgenda(&agenda)))
+  { if ( t == &mark )
+    { existential = FALSE;
+      continue;
     }
 
-    return n;
-  }
-  if ( isTerm(*t) )
-  { int arity;
-    Functor f = valueTerm(*t);
-    word fd = f->definition;
+  again:
+    if ( canBind(*t) )
+    { term_t v;
 
-    if ( visited(f PASS_LD) )
-      return n;
+      if ( !visitedWord(t PASS_LD) && !existential )
+      { if ( !(v = PL_new_term_ref_noshift()) )
+	{ n = TV_NOSPACE;
+	  goto out;
+	}
+	*valTermRef(v) = makeRef(t);
 
-    t = f->arguments;
-    if ( fd == FUNCTOR_hat2 )
-    { n = free_variables_loop(t, l, n, TRUE PASS_LD); /* cannot overflow */
-      t++;
-    } else
-    { arity = arityFunctor(f->definition);
-      for(; --arity > 0; t++)
-      { n = free_variables_loop(t, l, n, existential PASS_LD);
-	if ( n == TV_NOSPACE )
-	  return n;
+	n++;
       }
+
+      continue;
     }
 
-    goto right_recursion;
+    if ( isTerm(*t) )
+    { Functor f = valueTerm(*t);
+      functor_t fd = f->definition;	/* modified by visited */
+
+      if ( visited(f PASS_LD) )
+      { if ( !in_goal && !existential )
+	{ *valTermRef(goal) = *t;
+	  in_goal = TRUE;
+	}
+	continue;
+      }
+
+      if ( !in_goal )
+      { if ( fd == FUNCTOR_hat2 && existential == FALSE )
+	{ if ( !pushWorkAgenda(&agenda, 1, &f->arguments[1]) ||
+	       !pushWorkAgenda(&agenda, 1, &mark) ||
+	       !pushWorkAgenda(&agenda, 1, &f->arguments[0]) )
+	    return TV_NOMEM;
+	  existential = TRUE;
+	  continue;
+	}
+	if ( fd == FUNCTOR_colon2 && !existential )
+	{ Word a1;
+
+	  deRef2(&f->arguments[0], a1);
+	  if ( isAtom(*a1) )
+	    *mname = *a1;
+	  t = &f->arguments[1];
+	  goto again;
+	} else if ( !existential )
+	{ *valTermRef(goal) = *t;
+	  in_goal = TRUE;
+	}
+      }
+
+      if ( !pushWorkAgenda(&agenda, arityFunctor(fd), f->arguments) )
+	return TV_NOMEM;
+
+      continue;
+    } else if ( !in_goal && !existential) /* non-term goal (atom or invalid) */
+    { *valTermRef(goal) = needsRef(*t) ? makeRef(t) : *t;
+      in_goal = TRUE;
+    }
   }
+
+out:
+  clearTermAgenda(&agenda);
 
   return n;
 }
 
 
 static
-PRED_IMPL("$e_free_variables", 2, e_free_variables, 0)
+PRED_IMPL("$free_variable_set", 3, free_variable_set, 0)
 { GET_LD
 
   for(;;)
-  { Word t2 = valTermRef(A1);
+  { term_t goal = PL_new_term_ref();
     term_t v0 = PL_new_term_refs(0);
-    size_t i, n;
+    size_t n;
+    atom_t mname = (atom_t)0;
 
     startCritical;
     initvisited(PASS_LD1);
-    n = free_variables_loop(t2, v0, 0, FALSE PASS_LD);
+    n = free_variables_loop(valTermRef(A1), &mname, goal PASS_LD);
     unvisit(PASS_LD1);
     if ( !endCritical )
       return FALSE;
     if ( n == TV_NOSPACE )
-    { PL_reset_term_refs(v0);
+    { PL_reset_term_refs(goal);
       if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )
 	return FALSE;
       continue;
     }
+    if ( n == TV_NOMEM )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
 
-    if ( PL_unify_functor(A2, PL_new_functor(ATOM_v, (int)n)) )
-    { for(i=0; i<n; i++)
-      { if ( !PL_unify_arg((int)i+1, A2, v0+i) )
+    if ( PL_unify_functor(A3, PL_new_functor(ATOM_v, (int)n)) )
+    { int i, m = (int)n;
+
+      for(i=0; i<m; i++)
+      { if ( !PL_unify_arg(i+1, A3, v0+i) )
 	  return FALSE;
       }
 
-      return TRUE;
+      if ( mname )
+      { term_t m = PL_new_term_ref();
+
+	PL_put_atom(m, mname);
+	if ( !PL_cons_functor(goal, FUNCTOR_colon2, m, goal) )
+	  return FALSE;
+      }
+
+      return PL_unify(A2, goal);
     }
     return FALSE;
   }
@@ -2944,7 +2939,7 @@ unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
       Word p2 = valTermRef(t2);
 
       deRef(p1);
-      if ( !var_occurs_in(p1, p2) )
+      if ( !var_occurs_in(p1, p2 PASS_LD) )
 	return TRUE;
 
       return failed_unify_with_occurs_check(p1, p2,
@@ -2965,27 +2960,25 @@ also needs support in garbageCollect() and growStacks().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-unify_all_trail_ptrs(Word t1, Word t2 ARG_LD)
+unify_all_trail_ptrs(Word t1, Word t2, mark *m ARG_LD)
 { for(;;)
-  { mark m;
-    int rc;
+  { int rc;
 
-    Mark(m);
+    Mark(*m);
     LD->mark_bar = NO_MARK_BAR;
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc == TRUE )			/* Terms unified */
-    { DiscardMark(m);
-      return rc;
+    { return rc;
     } else if ( rc == FALSE )		/* Terms did not unify */
     { if ( !exception_term )		/* Check for occurs error */
-	Undo(m);
-      DiscardMark(m);
+	Undo(*m);
+      DiscardMark(*m);
       return rc;
     } else				/* Stack overflow */
     { int rc2;
 
-      Undo(m);
-      DiscardMark(m);
+      Undo(*m);
+      DiscardMark(*m);
       PushPtr(t1); PushPtr(t2);
       rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
       PopPtr(t2); PopPtr(t1);
@@ -2998,7 +2991,7 @@ unify_all_trail_ptrs(Word t1, Word t2 ARG_LD)
 
 static ssize_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
-{ fid_t fid;
+{ mark m;
 
   if ( PL_is_variable(t1) )
   { if ( PL_compare(t1, t2) == 0 )
@@ -3027,15 +3020,11 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 			   PL_ATOM, ATOM_nil);
   }
 
-  if ( !(fid = PL_open_foreign_frame()) )
-    return FALSE;
-
 retry:
   if ( unify_all_trail_ptrs(valTermRef(t1),	/* can do shift/gc */
-			    valTermRef(t2) PASS_LD) )
-  { FliFrame fr = (FliFrame)valTermRef(fid);
-    TrailEntry tt = tTop;
-    TrailEntry mt = fr->mark.trailtop;
+			    valTermRef(t2), &m PASS_LD) )
+  { TrailEntry tt = tTop;
+    TrailEntry mt = m.trailtop;
 
     if ( tt > mt )
     { ssize_t needed = (tt-mt)*6+1;
@@ -3044,13 +3033,15 @@ retry:
       if ( !hasGlobalSpace(needed) )	/* See (*) */
       { int rc = overflowCode(needed);
 
-	PL_rewind_foreign_frame(fid);
+	Undo(m);
+	DiscardMark(m);
 	rc = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
 	if ( rc )
 	  goto retry;
 	return FALSE;
       }
 
+      DiscardMark(m);
       tail = list = gTop;
       gp = list+1;
 
@@ -3104,17 +3095,15 @@ retry:
 	}
       }
       gTop = gp;			/* may not have used all space */
-      tTop = fr->mark.trailtop;
+      tTop = m.trailtop;
 
-      PL_close_foreign_frame(fid);
       return PL_unify(wordToTermRef(list), subst);
     } else
-    { PL_close_foreign_frame(fid);
+    { DiscardMark(m);
       return PL_unify_atom(subst, ATOM_nil);
     }
   } else
-  { PL_close_foreign_frame(fid);
-    return FALSE;
+  { return FALSE;
   }
 }
 
@@ -3126,338 +3115,7 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
   return unifiable(A1, A2, A3 PASS_LD);
 }
 
-#if O_CYCLIC
 
-		 /*******************************
-		 *	       CYCLES		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-term_cycles(+Term, -Cycles)
-is_cycle(+SubTerm, +Cycles)
-
-term_cycles(+Term, -Cycles) returns a binary tree  holding the cycles of
-Term sorted by address. The tree   is  represented as cycle(Cycle, Left,
-Right) where [] represents terminals.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-
-#endif /*O_CYCLIC*/
-
-		 /*******************************
-		 *	    COPY TERM		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-copy_term(+Term, -Copy)
-
-Copy a term, renaming its  variables.   Attributed  variables have their
-attributed copied, so futher modification of the attribute list does not
-affect the copy  and  visa  versa.   The  algorithm  deals  with  shared
-variables as well as cyclic  terms.  It   works,  like  unify for cyclic
-terms, by creating references from  the   original  to the reference and
-restoring the references using a stack.
-
-There are three types of references between the original and the copy:
-
-	* For variables we set the new variable to VAR_MARK and
-	  make a reference to it.  This means that if we find a
-	  reference to a variable VAR_MARK we must create a reference
-	  to the same address.
-	* For attributed variables we create an TAG_ATTVAR link to the
-	  copy.  If we find a TAG_ATTVAR pointing to a TAG_ATTVAR we
-	  know we found a copy.  Unfortunately just trailing the old
-	  location doesn't suffice as we must recreate the link to
-	  the old address, so we push this one first.
-	* Compounds use the old trick to make the functor a reference
-	  to the copy.
-
-do_copy_term() returns TRUE if the term can   be shared and FALSE if not
-(i.e. it is a variable or attributed variable). If, in sharing mode, the
-copying routine copied a shareable term it   discards the copy and links
-the original.
-
-We cannot affort the stacks  to  be   shifted  during  the  execution of
-copy_term/2. If the copy  fails  due   to  lack  of space do_copy_term()
-returns with *_OVERFLOW. We then use   exitCyclic()  to undo the damage,
-reset gTop, get more space and try again.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define VAR_MARK (0x1<<LMASK_BITS|TAG_VAR)
-
-#define COPY_SHARE 0x01			/* Allow sharing ground terms */
-#define COPY_ATTRS 0x02			/* do copy attributes */
-
-
-static inline void
-initCyclicCopy(ARG1_LD)
-{ LD->cycle.lstack.unit_size = sizeof(Word);
-}
-
-
-static inline void
-TrailCyclic(Word p ARG_LD)
-{ pushSegStack(&LD->cycle.lstack, &p);
-}
-
-
-static inline void
-exitCyclicCopy(size_t count, int flags ARG_LD)
-{ while(LD->cycle.lstack.count > count)
-  { Word p;
-
-    popSegStack(&LD->cycle.lstack, &p);
-
-    if ( isRef(*p) )
-    { Word p2 = unRef(*p);
-
-      if ( *p2 == VAR_MARK )		/* sharing variables */
-      { setVar(*p2);
-	setVar(*p);
-      } else
-      { *p = *p2;			/* cyclic terms */
-      }
-    } else if ( is_first(p) )		/* shared ground term */
-    { clear_first(p);
-    } else
-    { Word old;
-
-      popSegStack(&LD->cycle.lstack, &old);
-
-      if ( !(flags&COPY_ATTRS) )
-      { Word p2 = valPAttVar(*p);
-
-	assert(*p2 == VAR_MARK);
-	setVar(*p2);
-      }
-
-      *p = consPtr(old, STG_GLOBAL|TAG_ATTVAR);
-    }
-  }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FALSE: term cannot be shared
-TRUE:  term can be shared (ground)
-*_OVERFLOW: not enough space on the stack
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-do_copy_term(Word from, Word to, int flags ARG_LD)
-{
-
-again:
-  switch(tag(*from))
-  { case TAG_REFERENCE:
-    { Word p2 = unRef(*from);
-
-      if ( *p2 == VAR_MARK )
-      { *to = makeRef(p2);
-        return FALSE;
-      } else
-      { from = p2;
-	goto again;
-      }
-    }
-    case TAG_VAR:
-      *to = VAR_MARK;
-      *from = makeRef(to);
-      TrailCyclic(from PASS_LD);
-      return FALSE;
-    case TAG_ATTVAR:
-    { Word p = valPAttVar(*from);
-
-      if ( !(flags & COPY_ATTRS) )
-      { if ( *p == VAR_MARK )
-	{ *to = makeRef(p);
-	  return FALSE;
-	} else
-	{ *to = VAR_MARK;
-	  *from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
-	  TrailCyclic(p PASS_LD);
-	  TrailCyclic(from PASS_LD);
-	  return FALSE;
-	}
-      }
-
-      if ( isAttVar(*p) )		/* already copied */
-      { *to = makeRefG(p);
-        return FALSE;
-      } else
-      { Word attr;			/* the new attributes */
-	int rc;
-
-	if ( !onGlobalArea(to) )
-	{ Word t;
-
-	  if ( !(t = allocGlobalNoShift(1)) )
-	    return GLOBAL_OVERFLOW;
-
-	  *to = makeRefG(t);
-	  to = t;
-	}
-	if ( !(attr = allocGlobalNoShift(1)) )
-	  return GLOBAL_OVERFLOW;
-	TrailCyclic(p PASS_LD);
-	TrailCyclic(from PASS_LD);
-	*from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
-	*to = consPtr(attr, STG_GLOBAL|TAG_ATTVAR);
-
-					/* copy attribute value */
-	flags &= ~COPY_SHARE;
-	if ( (rc=do_copy_term(p, attr, flags PASS_LD)) < 0 )
-	  return rc;
-	return FALSE;
-      }
-    }
-    case TAG_ATOM:
-    case TAG_FLOAT:
-    case TAG_INTEGER:
-    case TAG_STRING:
-      *to = *from;
-      return TRUE;
-    case TAG_COMPOUND:
-    { Functor f1 = valueTerm(*from);
-
-      if ( isRef(f1->definition) )
-      { *to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
-        return FALSE;			/* Cyclic */
-      } else if ( f1->definition & FIRST_MASK )
-      { *to = *from;
-	return TRUE;
-      } else
-      { int arity = arityFunctor(f1->definition);
-	Word oldtop = gTop;
-	Word to0 = to;
-	Word from0 = from;
-	Functor f2;
-	int ground = TRUE;
-	size_t count = LD->cycle.lstack.count;
-
-	if ( !(f2 = (Functor)allocGlobalNoShift(arity+1)) )
-	  return GLOBAL_OVERFLOW;
-
-	f2->definition = f1->definition;
-	f1->definition = makeRefG((Word)f2);
-	TrailCyclic(&f1->definition PASS_LD);
-	*to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
-
-	from = &f1->arguments[0];
-	to   = &f2->arguments[0];
-	while(--arity > 0)
-	{ int rc = do_copy_term(from++, to++, flags PASS_LD);
-	  if ( rc < 0 )
-	    return rc;
-	  ground &= rc;
-	}
-
-	if ( (flags & COPY_SHARE) )
-	{ int rc = do_copy_term(from, to, flags PASS_LD);
-
-	  if ( rc < 0 )
-	    return rc;
-
-	  ground &= rc;
-	  if ( ground )
-	  { exitCyclicCopy(count, flags PASS_LD);
-	    gTop = oldtop;
-	    *to0 = *from0;
-	    f1->definition |= FIRST_MASK;
-	    TrailCyclic(&f1->definition PASS_LD);
-	    DEBUG(2, Sdprintf("Shared\n"));
-	    return TRUE;
-	  } else
-	    return FALSE;
-	} else
-	  goto again;
-      }
-    }
-    default:
-      assert(0);
-      return FALSE;
-  }
-}
-
-
-static int
-copy_term_refs(term_t from, term_t to, int flags ARG_LD)
-{ for(;;)
-  { fid_t fid;
-    int rc;
-    Word dest;
-
-    if ( !(fid = PL_open_foreign_frame()) )
-      return FALSE;			/* no space */
-
-    if ( !(dest = allocGlobal(1)) )	/* make a variable on the global */
-      return FALSE;			/* stack */
-    setVar(*dest);
-    *valTermRef(to) = makeRef(dest);
-
-    initCyclicCopy(PASS_LD1);
-    rc = do_copy_term(valTermRef(from), dest, flags PASS_LD);
-    exitCyclicCopy(0, flags PASS_LD);
-
-    if ( rc < 0 )			/* no space for copy */
-    { PL_discard_foreign_frame(fid);
-      PL_put_variable(to);
-      if ( !makeMoreStackSpace(rc, ALLOW_SHIFT|ALLOW_GC) )
-	return FALSE;
-    } else
-    { PL_close_foreign_frame(fid);
-      return TRUE;		/* if do_copy_term() == FALSE --> not-ground */
-    }
-  }
-}
-
-
-static
-PRED_IMPL("copy_term", 2, copy_term, 0)
-{ PRED_LD
-  term_t copy = PL_new_term_ref();
-
-  if ( copy_term_refs(A1, copy, COPY_SHARE|COPY_ATTRS PASS_LD) )
-    return PL_unify(copy, A2);
-
-  fail;
-}
-
-
-int
-duplicate_term(term_t in, term_t copy ARG_LD)
-{ return copy_term_refs(in, copy, COPY_ATTRS PASS_LD);
-}
-
-
-static
-PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
-{ PRED_LD
-
-  if ( PL_is_atomic(A1) )
-  { return PL_unify(A1, A2);
-  } else
-  { term_t copy = PL_new_term_ref();
-
-    if ( duplicate_term(A1, copy PASS_LD) )
-      return PL_unify(copy, A2);
-
-    fail;
-  }
-}
-
-
-static
-PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
-{ PRED_LD
-  term_t copy = PL_new_term_ref();
-
-  if ( copy_term_refs(A1, copy, COPY_SHARE PASS_LD) )
-    return PL_unify(copy, A2);
-
-  fail;
-}
 
 		 /*******************************
 		 *	       ATOMS		*
@@ -3535,7 +3193,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 
 	if ( how == X_NUMBER )
 	{ if ( s )				/* ISO: number_codes(X, "  42") */
-	  { while(*s && isBlankW(*s))
+	  { while(*s && isBlank(*s))
 	      s++;
 	  }
 	}
@@ -4823,6 +4481,9 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   if      (key == ATOM_cputime)				/* time */
   { v->type = V_FLOAT;
     v->value.f = LD->statistics.user_cputime;
+  } else if (key == ATOM_process_cputime)		/* time */
+  { v->type = V_FLOAT;
+    v->value.f = GD->statistics.user_cputime;
   } else if (key == ATOM_inferences)			/* inferences */
     v->value.i = LD->statistics.inferences;
   else if (key == ATOM_stack)
@@ -4833,10 +4494,6 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = usedStack(local);
   else if (key == ATOM_locallimit)
     v->value.i = limitStack(local);
-  else if (key == ATOM_heaplimit)			/* heap */
-    fail;
-  else if (key == ATOM_heap)
-    fail;
   else if (key == ATOM_heapused)			/* heap usage */
     v->value.i = heapUsed();
   else if (key == ATOM_trail)				/* trail */
@@ -4960,10 +4617,12 @@ PRED_IMPL("statistics", 2, statistics, 0)
   atom_t k;
 
   if ( PL_get_atom(A1, &k) )
-  { if ( k == ATOM_cputime || k == ATOM_runtime )
-      LD->statistics.user_cputime = CpuTime(CPU_USER);
+  { if ( k == ATOM_process_cputime )
+      GD->statistics.user_cputime = CpuTime(CPU_USER);
+    if ( k == ATOM_cputime || k == ATOM_runtime )
+      LD->statistics.user_cputime = ThreadCPUTime(LD, CPU_USER);
     else if ( k == ATOM_system_time )
-      LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
+      LD->statistics.system_cputime = ThreadCPUTime(LD, CPU_SYSTEM);
   }
 
   return pl_statistics_ld(A1, A2, LD PASS_LD);
@@ -5092,6 +4751,7 @@ typedef struct
 
 #define CMDOPT_LONG   0
 #define CMDOPT_STRING 1
+#define CMDOPT_LIST   2
 
 static const optdef optdefs[] =
 { { "local",		CMDOPT_LONG,	&GD->options.localSize },
@@ -5102,7 +4762,7 @@ static const optdef optdefs[] =
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },
   { "init_file",	CMDOPT_STRING,	&GD->options.initFile },
   { "system_init_file",	CMDOPT_STRING,	&GD->options.systemInitFile },
-  { "script_file",	CMDOPT_STRING,	&GD->options.scriptFile },
+  { "script_file",	CMDOPT_LIST,	&GD->options.scriptFiles },
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
   { "home",		CMDOPT_STRING,	&GD->defaults.home },
@@ -5112,53 +4772,12 @@ static const optdef optdefs[] =
 
 
 static
-PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$option", 2, option, 0)
 { PRED_LD
   char *k;
 
   term_t key = A1;
-  term_t old = A2;
-  term_t new = A3;
-
-  switch( CTX_CNTRL )
-  { int index;
-
-    case FRG_FIRST_CALL:
-      if ( PL_is_variable(key) )
-      { index = 0;
-
-      next:
-	for( ; optdefs[index].name; index++ )
-	{ switch( optdefs[index].type )
-	  { case CMDOPT_LONG:
-	    { intptr_t *val = optdefs[index].address;
-
-	      if ( !PL_unify_integer(old, *val) )
-		continue;
-	      break;
-	    }
-	    case CMDOPT_STRING:
-	    { char **val = optdefs[index].address;
-
-	      if ( !PL_unify_atom_chars(old, *val) )
-		continue;
-	      break;
-	    }
-	  }
-	  if ( !PL_unify_atom_chars(key, optdefs[index].name) )
-	    return FALSE;
-	  ForeignRedoInt(index+1);
-	}
-
-	fail;
-      }
-      break;
-    case FRG_REDO:
-      index = (int)CTX_INT;
-      goto next;
-    case FRG_CUTTED:
-      succeed;
-  }
+  term_t val = A2;
 
   if ( PL_get_atom_chars(key, &k) )
   { OptDef d = (OptDef)optdefs;
@@ -5167,30 +4786,28 @@ PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
     { if ( streq(k, d->name) )
       { switch(d->type)
 	{ case CMDOPT_LONG:
-	  { long *val = d->address;
-	    long newval;
+	  { long *lp = d->address;
 
-	    if ( !PL_unify_integer(old, *val) ||
-		 !PL_get_long(new, &newval) )
-	      fail;
-	    *val = newval;
-
-	    succeed;
+	    return PL_unify_integer(val, *lp);
 	  }
 	  case CMDOPT_STRING:
-	  { char **val = d->address;
-	    char *newval;
+	  { char **sp = d->address;
 
-	    if ( !PL_unify_atom_chars(old, *val) ||
-		 !PL_get_atom_chars(new, &newval) )
-	      fail;
+	    return PL_unify_atom_chars(val, *sp);
+	  }
+	  case CMDOPT_LIST:
+	  { opt_list **list = d->address;
+	    opt_list *l;
+	    term_t tail = PL_copy_term_ref(val);
+	    term_t head = PL_new_term_ref();
 
-	    if ( !streq(*val, newval) )
-	    { remove_string(*val);
-	      *val = store_string(newval);
+	    for( l=*list; l; l = l->next)
+	    { if ( !PL_unify_list(tail, head, tail) ||
+		   !PL_unify_atom_chars(head, l->opt_val) )
+		return FALSE;
 	    }
 
-	    succeed;
+            return PL_unify_nil(tail);
 	  }
 	}
       }
@@ -5294,9 +4911,10 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
+  PRED_DEF("$term_size", 3, term_size, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, 0)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
-  PRED_DEF("$factorize_term", 2, factorize_term, 0)
+  PRED_DEF("$factorize_term", 3, factorize_term, 0)
   PRED_DEF("compound", 1, compound, PL_FA_ISO)
   PRED_DEF("callable", 1, callable, PL_FA_ISO)
   PRED_DEF("==", 2, equal, PL_FA_ISO)
@@ -5306,24 +4924,20 @@ BeginPredDefs(prims)
   PRED_DEF("@=<", 2, std_leq, PL_FA_ISO)
   PRED_DEF("@>", 2, std_gt, PL_FA_ISO)
   PRED_DEF("@>=", 2, std_geq, PL_FA_ISO)
-  PRED_DEF("=@=", 2, variant, 0)
-  PRED_DEF("\\=@=", 2, not_variant, 0)
   PRED_DEF("?=", 2, can_compare, 0)
   PRED_DEF("same_term", 2, same_term, 0)
   PRED_DEF("functor", 3, functor, PL_FA_ISO)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
   PRED_DEF("numbervars", 4, numbervars, 0)
+  PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)
-  PRED_DEF("$e_free_variables", 2, e_free_variables, 0)
+  PRED_DEF("$free_variable_set", 3, free_variable_set, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_TERMHASH
   PRED_DEF("term_hash", 4, term_hash4, 0)
 #endif
-  PRED_DEF("copy_term", 2, copy_term, PL_FA_ISO)
-  PRED_DEF("duplicate_term", 2, duplicate_term, 0)
-  PRED_DEF("copy_term_nat", 2, copy_term_nat, 0)
 #ifdef O_LIMIT_DEPTH
   PRED_DEF("$depth_limit_except", 3, depth_limit_except, 0)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
@@ -5348,7 +4962,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_to_atom", 2, string_to_atom, 0)
   PRED_DEF("string_to_list", 2, string_to_list, 0)
   PRED_DEF("statistics", 2, statistics, 0)
-  PRED_DEF("$option", 3, option, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$option", 2, option, 0)
   PRED_DEF("$style_check", 2, style_check, 0)
   PRED_DEF("deterministic", 1, deterministic, 0)
   PRED_DEF("setarg", 3, setarg, 0)
