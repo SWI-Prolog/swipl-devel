@@ -353,6 +353,7 @@ attrib_name(dynamic,	   dynamic,	  1).
 attrib_name(volatile,	   volatile,	  1).
 attrib_name(thread_local,  thread_local,  1).
 attrib_name(multifile,	   multifile,	  1).
+attrib_name(public,	   public,	  1).
 attrib_name(transparent,   transparent,	  1).
 attrib_name(discontiguous, discontiguous, 1).
 attrib_name(notrace,	   trace,	  0).
