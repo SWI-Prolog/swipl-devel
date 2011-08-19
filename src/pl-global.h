@@ -333,6 +333,9 @@ struct PL_local_data
 #endif
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
+#if defined(O_SECURE) || defined(SECURE_GC)
+  unsigned int  incr_seed;		/* Seed for random stack increments */
+#endif
   int		alerted;		/* Special mode. See updateAlerted() */
   int		critical;		/* heap is being modified */
   abort_type	aborted;		/* !ABORT_NONE: abort in Critical */
