@@ -2438,7 +2438,7 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
   setHandle(argv[0], w);
   truncate_term_stack(&argv[1], _PL_rd);
 
-  DEBUG(9, Sdprintf("result: "); pl_write(term); Sdprintf("\n") );
+  DEBUG(9, Sdprintf("result: "); pl_write(argv[0]); Sdprintf("\n") );
   return TRUE;
 }
 
@@ -2736,7 +2736,7 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
   }
 
   DEBUG(9, if ( rc ) Sdprintf("Reducing %s/%d\n",
-			      stringAtom(SideOp(side_p)->op), arity));
+			      stringAtom(op->op), arity));
 
   return rc;
 }

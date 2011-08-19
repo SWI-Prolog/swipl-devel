@@ -549,7 +549,7 @@ again:
   exitCyclicCopy(flags PASS_LD);
   cp_unmark(from, flags PASS_LD);
   DEBUG(0, { checkData(from);
-	     checkData(to)
+             checkData(to);
 	   });
 
   return rc;
