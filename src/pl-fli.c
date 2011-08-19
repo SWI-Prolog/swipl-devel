@@ -67,15 +67,12 @@ Prolog int) is used by the garbage collector to update the stack frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_SECURE
-#define setHandle(h, w)		{ assert(*valTermRef(h) != QID_MAGIC); \
-				  (*valTermRef(h) = (w)); \
-				}
 #ifndef O_CHECK_TERM_REFS
 #define O_CHECK_TERM_REFS 1
 #endif
-#else
-#define setHandle(h, w)		(*valTermRef(h) = (w))
 #endif
+
+#define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
 
 static int	PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD);
