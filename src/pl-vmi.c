@@ -3759,7 +3759,12 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 
 
 VMI(I_EXITCLEANUP, 0, 0, ())
-{ while( BFR && BFR->type == CHP_DEBUG )
+{
+#ifdef __llvm__
+  llvm_dummy();
+#endif
+
+  while( BFR && BFR->type == CHP_DEBUG )
     BFR = BFR->parent;
 
   if ( BFR->frame == FR && BFR->type == CHP_CATCH )

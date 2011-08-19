@@ -664,6 +664,21 @@ checkData(Word p)
 #endif /* TEST */
 
 		 /*******************************
+		 *         LLVM-GCC HACK	*
+		 *******************************/
+
+/* This avoids an optimizer bug in llvm-gcc-4.2 as distributed with
+   MacOS Lion.  Called from pl-vmi.c in I_EXITCLEANUP.
+*/
+
+#ifdef __llvm__
+int
+llvm_dummy(void)
+{ return 0;
+}
+#endif
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
