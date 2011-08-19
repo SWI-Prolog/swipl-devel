@@ -34,9 +34,9 @@ MAKE=make
 #
 #	CC:	 Which C-compiler to use
 #	COFLAGS: Flags for the optimizer such as "-O3" or "-g"
-# 	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
-# 	CIFLAGS: Include-path such as "-I/opt/include"
-# 	LDFLAGS: Link flags such as "-L/opt/lib"
+#	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
+#	CIFLAGS: Include-path such as "-I/opt/include"
+#	LDFLAGS: Link flags such as "-L/opt/lib"
 #
 # Leaving an option blank leaves the  choice to configure. The commented
 # values below enable much better C-level debugging with almost the same
@@ -54,7 +54,16 @@ if [ "`uname`" = Darwin ]; then
   export LIBRARY_PATH=/usr/lib:/opt/local/lib
   export CPATH=/usr/include:/opt/local/include
   export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
-  export CXXCPP="g++ -E"
+  case "`uname -r`" in
+    11.*)			# Avoid llvm-gcc on Lion
+      CC="gcc-4.2"
+      CXX="g++-4.2"
+      CXXCPP="g++-4.2 -E"
+      ;;
+    *)
+      export CXXCPP="g++ -E"
+      ;;
+  esac
 fi
 
 # [EDIT] On Solaris also puts there stuff everywhere ...
@@ -165,10 +174,10 @@ case "$1" in
 		shift
 		;;
    --prefix=*)  PREFIX=`echo "$1" | sed 's/--prefix=//'`
-   		shift
+		shift
 		;;
    --setvars)	setvars=true
-   		shift
+		shift
 		;;
    *)		done=true
 		;;

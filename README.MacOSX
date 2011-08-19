@@ -15,4 +15,8 @@ Even if you wish to install from the  source the above is recommended as
 it installs all requirements on your system. Next fetch the source, copy
 build.templ  to  build  and  edit  according  to  the  instructions.
 
+Lion
+----
 
+Lion's Xcode binds gcc to  llvm-gcc.   SWI-Prolog  does not compile with
+this version at this moment. Make sure to edit CC=gcc-4.2 in build.
