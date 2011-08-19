@@ -4306,7 +4306,7 @@ nextStackSizeAbove(size_t n)
 #ifdef O_SECURE
   static int got_incr = FALSE;
   static size_t increment = 0;
-  static __thread unsigned int seed = 0;
+  GET_LD
 
   if ( !got_incr )
   { char *incr = getenv("PL_STACK_INCREMENT"); /* 1: random */
@@ -4320,7 +4320,7 @@ nextStackSizeAbove(size_t n)
   { size_t sz;
 
     if ( increment == 1 )
-      sz = n+rand_r(&seed)%10000;
+      sz = n+rand_r(&LD->incr_seed)%10000;
     else
       sz = n+increment;
 
