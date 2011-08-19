@@ -3298,6 +3298,35 @@ PL_strip_module(term_t raw, module_t *m, term_t plain)
 }
 #define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t PASS_LD)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_strip_module_ex() is similar to  PL_strip_module(),   but  returns an
+error if it encounters a term <m>:<t>, where <m> is not an atom.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
+{ Word p = valTermRef(raw);
+
+  deRef(p);
+  if ( hasFunctor(*p, FUNCTOR_colon2) )
+  { p = stripModule(p, m PASS_LD);
+    if ( hasFunctor(*p, FUNCTOR_colon2) )
+    { Word a1 = argTermP(*p, 0);
+      deRef(a1);
+      setHandle(plain, needsRef(*a1) ? makeRef(a1) : *a1);
+      return PL_type_error("module", plain);
+    }
+    setHandle(plain, linkVal(p));
+  } else
+  { if ( *m == NULL )
+      *m = environment_frame ? contextModule(environment_frame)
+			     : MODULE_user;
+    setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
+  }
+
+  return TRUE;
+}
+
 module_t
 PL_context()
 { GET_LD

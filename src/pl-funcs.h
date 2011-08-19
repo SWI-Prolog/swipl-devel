@@ -163,7 +163,7 @@ COMMON(void)		markAtomsFindall(PL_local_data_t *ld);
 /* pl-comp.c */
 COMMON(void)		initWamTable(void);
 COMMON(void)		freeVarDefs(PL_local_data_t *ld);
-COMMON(void)		get_head_and_body_clause(term_t clause,
+COMMON(int)		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
 					 Module *m ARG_LD);
 COMMON(int)		compileClause(Clause *cp, Word head, Word body,
@@ -257,7 +257,10 @@ COMMON(int)		PL_put_intptr__LD(term_t t1, intptr_t i ARG_LD);
 COMMON(int)		PL_is_atomic__LD(term_t t ARG_LD);
 COMMON(int)		PL_is_functor__LD(term_t t, functor_t f ARG_LD);
 COMMON(int)		PL_is_variable__LD(term_t t ARG_LD);
-COMMON(int)		PL_strip_module__LD(term_t q, module_t *m, term_t t ARG_LD);
+COMMON(int)		PL_strip_module__LD(term_t q, module_t *m,
+					    term_t t ARG_LD);
+COMMON(int)		PL_strip_module_ex__LD(term_t raw, module_t *m,
+					       term_t plain ARG_LD);
 COMMON(int)		PL_qualify(term_t raw, term_t qualified);
 COMMON(int)		PL_get_integer__LD(term_t t, int *i ARG_LD);
 COMMON(int)		PL_get_long__LD(term_t t, long *i ARG_LD);
@@ -580,7 +583,6 @@ COMMON(void)		deallocateStacks(void);
 COMMON(bool)		restoreStack(Stack s);
 COMMON(void)		trimStacks(int resize ARG_LD);
 COMMON(void)		resumeAfterException(void);
-COMMON(void)		resetStacks(void);
 COMMON(void)		emptyStacks(void);
 COMMON(void)		freeStacks(ARG1_LD);
 COMMON(void)		freePrologLocalData(PL_local_data_t *ld);

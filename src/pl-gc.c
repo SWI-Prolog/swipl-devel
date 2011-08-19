@@ -3447,6 +3447,7 @@ checkStacks(void *state_ptr)
     if ( qf->parent )			/* same code in mark_stacks() */
     { QueryFrame pqf = qf->parent;
 
+      assert(pqf->magic == QID_MAGIC);
       if ( (fr = pqf->registers.fr) )
       { PC = startOfVMI(pqf);
       } else

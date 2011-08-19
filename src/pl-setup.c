@@ -1139,6 +1139,7 @@ emptyStacks(void)
 
   environment_frame = NULL;
   fli_context       = NULL;
+  LD->query         = NULL;
 
   emptyStack((Stack)&LD->stacks.local);
   emptyStack((Stack)&LD->stacks.global);
@@ -1290,12 +1291,6 @@ stack_free(void *mem)
   PL_UNLOCK(L_MISC);
 
   free(sp);
-}
-
-
-void
-resetStacks()
-{ emptyStacks();
 }
 
 

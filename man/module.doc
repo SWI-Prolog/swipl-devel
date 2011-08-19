@@ -77,12 +77,12 @@ explicitly in the source text.
 \begin{description}
     \directive{module}{2}{+Module, +PublicList}
 This directive can only be used as the first term of a source file. It
-declares the file to be a \jargon{module file}, defining a
-module named \arg{Module} and exporting the predicates of
-\arg{PublicList}. \arg{PublicList} is a list of predicate indicators
-(name/arity or name//arity pairs) or operator declarations using the
-format \term{op}{Precedence, Type, Name}. Operators defined in the
-export list are available inside the module as well as to modules
+declares the file to be a \jargon{module file}, defining a module named
+\arg{Module}. Note that a module name is an atom. The module exports the
+predicates of \arg{PublicList}. \arg{PublicList} is a list of predicate
+indicators (name/arity or name//arity pairs) or operator declarations
+using the format \term{op}{Precedence, Type, Name}. Operators defined in
+the export list are available inside the module as well as to modules
 importing this module. See also \secref{operators}.
 
 Compatible to Ciao Prolog, if \arg{Module} is unbound, it is unified
@@ -219,12 +219,13 @@ setof/3, bagof/3, aggregate/3 and aggregate/4. It is processed similar
 to `0', but leaving the \chr{^}/2 intact.
     \end{description}
 
-Each argument that is module-sensitive (i.e., marked 0..9 or \chr{:}) is
-qualified with the context module of the caller if it is not already
-qualified. The implementation ensures that the argument is passed as
-<module>:<term>, where <atom> is an atom denoting the name of a module
-and <term> itself is not a \functor{:}{2} term. Below is a simple
-declaration and a number of queries.
+Each argument that is module-sensitive (i.e., marked 0..9, \chr{:} or
+\chr{^}) is qualified with the context module of the caller if it is not
+already qualified. The implementation ensures that the argument is
+passed as <module>:<term>, where <module> is an atom denoting the name
+of a module and <term> itself is not a \functor{:}{2} term where the
+first argument is an atom. Below is a simple declaration and a number of
+queries.
 
 \begin{code}
 :- meta_predicate

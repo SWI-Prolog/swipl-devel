@@ -98,7 +98,7 @@ reload([H|T]) :-
 
 reload_file(File) :-
 	source_base_name(File, Compile),
-	findall(Context, '$load_context_module'(File, Context), Modules),
+	findall(Context, system:'$load_context_module'(File, Context), Modules),
 	(   Modules = []
 	->  load_files(user:Compile)
 	;   forall('$member'(Context, Modules),

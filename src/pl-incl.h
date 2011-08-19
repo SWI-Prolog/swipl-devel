@@ -1950,7 +1950,6 @@ Tracer communication declarations.
 #define FAIL_PORT	0x004
 #define REDO_PORT	0x008
 #define UNIFY_PORT	0x010
-#define BREAK_PORT	0x020
 #define CUT_CALL_PORT   0x040
 #define CUT_EXIT_PORT   0x080
 #define EXCEPTION_PORT	0x100

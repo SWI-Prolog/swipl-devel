@@ -324,7 +324,6 @@ portPrompt(int port)
     case FAIL_PORT:	 return " Fail:  ";
     case EXIT_PORT:	 return " Exit:  ";
     case UNIFY_PORT:	 return " Unify: ";
-    case BREAK_PORT:	 return " Break: ";
     case EXCEPTION_PORT: return " Exception: ";
     case CUT_CALL_PORT:	 return " Cut call: ";
     case CUT_EXIT_PORT:	 return " Cut exit: ";
@@ -393,9 +392,6 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
     }
   }
 
-  if ( port & BREAK_PORT )
-    goto ok;				/* always do break-points */
-
   if ( !debugstatus.tracing &&
        (false(def, SPY_ME) || (port & CUT_PORT)) )
     return ACTION_CONTINUE;		/* not tracing and no spy-point */
@@ -411,7 +407,6 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   if ( (true(def, HIDE_CHILDS) && !SYSTEM_MODE) &&
        (port & (/*REDO_PORT|*/CUT_PORT)) )
     return ACTION_CONTINUE;		/* redo or ! in system predicates */
-ok:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Give a trace on the skipped goal for a redo.
@@ -878,7 +873,6 @@ static const portname portnames[] =
   { FAIL_PORT,	    ATOM_fail },
   { REDO_PORT,	    ATOM_redo },
   { UNIFY_PORT,	    ATOM_unify },
-  { BREAK_PORT,	    ATOM_break },
   { CUT_CALL_PORT,  ATOM_cut_call },
   { CUT_EXIT_PORT,  ATOM_cut_exit },
   { EXCEPTION_PORT, ATOM_exception },
@@ -1184,7 +1178,6 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 			      PL_TERM, LD->exception.pending) )
 	  goto out;
 	break;
-      case BREAK_PORT:     portfunc = FUNCTOR_break1;	 break;
       case CUT_CALL_PORT:  portfunc = FUNCTOR_cut_call1; break;
       case CUT_EXIT_PORT:  portfunc = FUNCTOR_cut_exit1; break;
       default:
@@ -1672,7 +1665,7 @@ initTracer(void)
 
   debugstatus.visible      =
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
-			     BREAK_PORT|EXCEPTION_PORT;
+			     EXCEPTION_PORT;
   debugstatus.showContext  = FALSE;
 
   resetTracer();

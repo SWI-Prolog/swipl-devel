@@ -211,6 +211,7 @@ decl(thread_local, thread_local).
 decl(dynamic,	   dynamic).
 decl(volatile,	   volatile).
 decl(multifile,	   multifile).
+decl(public,	   public).
 
 declaration(Pred, Source, Decl) :-
 	decl(Prop, Declname),
@@ -403,11 +404,17 @@ portray_body(\+(Goal), Indent, _, _Pri, Out, Options) :- !,
 	prefix_op(\+, ArgPri),
 	ArgIndent is Indent+3,
 	portray_body(Goal, ArgIndent, noindent, ArgPri, Out, Options).
-portray_body(Call, _, _, _, Out, Options) :-	% requires knowledged on the module!
+portray_body(Call, _, _, _, Out, Options) :- % requires knowledge on the module!
+	m_callable(Call),
 	predicate_property(Call, meta_predicate(Meta)), !,
 	portray_meta(Out, Call, Meta, Options).
 portray_body(Clause, _, _, Pri, Out, Options) :-
 	pprint(Out, Clause, Pri, Options).
+
+m_callable(Term) :-
+	strip_module(Term, _, Plain),
+	callable(Plain),
+	Plain \= (_:_).
 
 term_needs_braces(Term, Pri) :-
 	callable(Term),

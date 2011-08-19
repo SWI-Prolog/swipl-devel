@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,9 +36,18 @@
 	  ]).
 :- use_module(library(lists)).
 
-:- module_transparent
-	qsave_program/1,
-	qsave_program/2.
+/** <module> Save current program as a state or executable
+
+This library provides qsave_program/1  and   qsave_program/2,  which are
+also used by the commandline sequence below.
+
+  ==
+  swipl -o exe -c file.pl ...
+  ==
+*/
+
+:- meta_predicate
+	qsave_program(+, :).
 
 :- system_mode(on).
 
@@ -45,16 +55,15 @@
 :- volatile verbose/1.			% contains a stream-handle
 
 %%	qsave_program(+File) is det.
-%%	qsave_program(+File, +Options) is det.
+%%	qsave_program(+File, :Options) is det.
 %
 %	Make a saved state in file `File'.
 
 qsave_program(File) :-
 	qsave_program(File, []).
 
-qsave_program(FileSpec, Options0) :-
+qsave_program(FileBase, Module:Options0) :-
 	check_options(Options0),
-	strip_module(FileSpec, Module, FileBase),
 	exe_file(FileBase, File),
 	option(Options0, autoload/true,	    Autoload,  Options1),
 	option(Options1, map/[],	    Map,       Options2),
@@ -344,6 +353,7 @@ attrib_name(dynamic,	   dynamic,	  1).
 attrib_name(volatile,	   volatile,	  1).
 attrib_name(thread_local,  thread_local,  1).
 attrib_name(multifile,	   multifile,	  1).
+attrib_name(public,	   public,	  1).
 attrib_name(transparent,   transparent,	  1).
 attrib_name(discontiguous, discontiguous, 1).
 attrib_name(notrace,	   trace,	  0).
@@ -418,16 +428,13 @@ save_flags :-
 		 *	     IMPORTS		*
 		 *******************************/
 
-default_import(system, _, _) :- !, fail.
-default_import(To, Head, _) :-
-	'$get_predicate_attribute'(To:Head, (dynamic), 1), !,
-	fail.
-default_import(user, Head, _) :- !,
-	'$default_predicate'(user:Head, system:Head).
-default_import(To, Head, _From) :-
-	'$default_predicate'(To:Head, user:Head).
-default_import(To, Head, _From) :-
-	'$default_predicate'(To:Head, system:Head).
+%%	save_imports
+%
+%	Save  import  relations.  An  import  relation  is  saved  if  a
+%	predicate is imported from a module that is not a default module
+%	for the destination module. If  the   predicate  is  dynamic, we
+%	always define the explicit import relation to make clear that an
+%	assert must assert on the imported predicate.
 
 save_imports :-
 	feedback('~nIMPORTS~n~n', []),
@@ -439,6 +446,13 @@ save_imports :-
 	    fail
 	;   true
 	).
+
+default_import(To, Head, From) :-
+	'$get_predicate_attribute'(To:Head, (dynamic), 1),
+	predicate_property(From:Head, exported), !,
+	fail.
+default_import(Into, _, From) :-
+	default_module(Into, From).
 
 %%	restore_import(+TargetModule, +SourceModule, +PI) is det.
 %

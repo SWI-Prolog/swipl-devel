@@ -452,7 +452,7 @@ saveWakeup(wakeup_state *state, int forceframe, ARG1_LD)
     { state->flags |= WAKEUP_STATE_WAKEUP;
       s = PL_new_term_refs(2);
 
-      DEBUG(1, pl_write(LD->attvar.head); pl_nl());
+      DEBUG(1, pl_writeln(LD->attvar.head));
 
       *valTermRef(s+0) = *h;
       setVar(*h);

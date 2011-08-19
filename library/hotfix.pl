@@ -155,7 +155,7 @@ load_hotfix(File, Loaded) :-
 			   close(In)).
 
 load_hotfix_from_stream(Loaded, In) :-
-	findall(Context, '$load_context_module'(Loaded, Context), Modules),
+	findall(Context, system:'$load_context_module'(Loaded, Context), Modules),
 	(   Modules == []
 	->  load_files(user:Loaded, [stream(In)])
 	;   forall('$member'(Context, Modules),

@@ -3427,8 +3427,10 @@ static int
 stream_file_name_propery(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
 
-  if ( (name = getStreamContext(s)->filename) )
-  { return PL_unify_atom(prop, name);
+  for(; s; s=s->downstream)
+  { if ( (name = getStreamContext(s)->filename) )
+    { return PL_unify_atom(prop, name);
+    }
   }
 
   return FALSE;

@@ -105,8 +105,8 @@ predicates from \secref{shlib} in your application.
 \arg{File} is the name of a shared object file (called dynamic load
 library in MS-Windows). This file is attached to the current process and
 \arg{Handle} is unified with a handle to the library. Equivalent to
-\exam{open_shared_object(File, [], Handle)}. See also
-load_foreign_library/[1,2].
+\exam{open_shared_object(File, Handle, [])}. See also
+open_shared_object/3 and load_foreign_library/1.
 
 On errors, an exception \term{shared_object}{Action, Message} is
 raised. \arg{Message} is the return value from dlerror().

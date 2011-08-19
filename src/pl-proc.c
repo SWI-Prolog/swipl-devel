@@ -1448,13 +1448,13 @@ PL_meta_predicate(predicate_t proc, ...)
   for(i=0; i<arity; i++)
   { int spec = va_arg(args, int);
 
-    if ( (mask >= 0 && mask <= 9) ||
-	 mask == MA_NONVAR ||
-	 mask == MA_VAR ||
-	 mask == MA_ANY ||
-	 mask == MA_META )
+    if ( (spec >= 0 && spec <= 9) ||
+	 spec == MA_NONVAR ||
+	 spec == MA_VAR ||
+	 spec == MA_ANY ||
+	 spec == MA_META )
     { mask |= spec<<(i*4);
-      if ( spec < 10 || spec == ATOM_colon )
+      if ( spec < 10 || spec == MA_META || spec == MA_HAT )
 	transparent = TRUE;
     } else
     { fatalError("Invalid meta-argument\n");
@@ -1895,8 +1895,9 @@ PRED_IMPL("retract", 1, retract,
     atom_t b;
     fid_t fid;
 
-    PL_strip_module(term, &m, cl);
-    get_head_and_body_clause(cl, head, body, NULL PASS_LD);
+    if ( !PL_strip_module_ex(term, &m, cl) ||
+	 !get_head_and_body_clause(cl, head, body, NULL PASS_LD) )
+      return FALSE;
     if ( PL_get_atom(body, &b) && b == ATOM_true )
       PL_put_term(cl, head);
 

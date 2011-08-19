@@ -4172,7 +4172,7 @@ atom is referenced by the goal-term anyway.
       DEBUG(1, { term_t g = a - (Word)lBase;
 		 LocalFrame ot = lTop;
 		 lTop += 100;
-		 pl_write(g); pl_nl();
+		 pl_writeln(g);
 		 lTop = ot;
 	       });
       lTop = NFR;

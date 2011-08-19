@@ -166,10 +166,9 @@ $(DVITOTTY):
 		$(MAKE) -C$(DVITOTTY-HOME) dvi2tty
 		$(CP) $(DVITOTTY-HOME)/dvi2tty ./$(DVITOTTY)
 
-install::
-		rsync -av $(PDF) ec:/home/pl/web/download/stable/doc/SWI-Prolog-$(VERSION).pdf
+# Upload to website
 
-beta-install::
+upload::
 		rsync -av $(PDF) ec:/home/pl/web/download/devel/doc/SWI-Prolog-$(VERSION).pdf
 
 ################################################################
