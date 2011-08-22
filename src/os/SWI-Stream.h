@@ -138,7 +138,7 @@ typedef struct io_functions
   Sseek_function	seek;		/* seek to position */
   Sclose_function	close;		/* close stream */
   Scontrol_function	control;	/* Info/control */
-  Sseek64_function	seek64;		/* seek to position (intptr_t files) */
+  Sseek64_function	seek64;		/* seek to position (large files) */
 } IOFUNCTIONS;
 
 typedef struct io_position
