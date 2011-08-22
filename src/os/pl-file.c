@@ -2713,7 +2713,7 @@ PRED_IMPL("prompt", 2, prompt, 0)
   term_t new = A2;
 
   if ( PL_unify_atom(old, LD->prompt.current) &&
-       PL_get_atom(new, &a) )
+       PL_get_atom_ex(new, &a) )
   { if ( LD->prompt.current )
       PL_unregister_atom(LD->prompt.current);
     LD->prompt.current = a;
