@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1326,7 +1326,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	}
       } else
       { if ( shift >= (long)sizeof(int64_t)*8 )
-	  r->value.i = 0;
+	  r->value.i = (r->value.i >= 0 ? 0 : -1);
 	else
 	  r->value.i = n1->value.i >> shift;
       }

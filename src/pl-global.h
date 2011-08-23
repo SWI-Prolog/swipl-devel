@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef PL_GLOBAL_H_INCLUDED
@@ -333,6 +333,9 @@ struct PL_local_data
 #endif
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
+#if defined(O_SECURE) || defined(SECURE_GC)
+  unsigned int  incr_seed;		/* Seed for random stack increments */
+#endif
   int		alerted;		/* Special mode. See updateAlerted() */
   int		critical;		/* heap is being modified */
   abort_type	aborted;		/* !ABORT_NONE: abort in Critical */

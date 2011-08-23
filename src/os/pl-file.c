@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2713,7 +2713,7 @@ PRED_IMPL("prompt", 2, prompt, 0)
   term_t new = A2;
 
   if ( PL_unify_atom(old, LD->prompt.current) &&
-       PL_get_atom(new, &a) )
+       PL_get_atom_ex(new, &a) )
   { if ( LD->prompt.current )
       PL_unregister_atom(LD->prompt.current);
     LD->prompt.current = a;

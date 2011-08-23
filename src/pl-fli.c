@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_SECURE 1*/
@@ -67,15 +67,12 @@ Prolog int) is used by the garbage collector to update the stack frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_SECURE
-#define setHandle(h, w)		{ assert(*valTermRef(h) != QID_MAGIC); \
-				  (*valTermRef(h) = (w)); \
-				}
 #ifndef O_CHECK_TERM_REFS
 #define O_CHECK_TERM_REFS 1
 #endif
-#else
-#define setHandle(h, w)		(*valTermRef(h) = (w))
 #endif
+
+#define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
 
 static int	PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD);
