@@ -4373,7 +4373,7 @@ nextStackSize(Stack s, size_t minfree)
 			      minfree + s->min_free + s->def_spare);
 
     if ( size >= s->size_limit + s->size_limit/2 )
-    { if ( minfree == 1 && roomStackP(s) > minfree )
+    { if ( minfree == 1 && roomStackP(s) > (ssize_t)minfree )
 	size = sizeStackP(s);		/* tight-stack request */
       else
 	size = 0;			/* passed limit */
