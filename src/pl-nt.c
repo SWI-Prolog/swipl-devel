@@ -34,7 +34,6 @@
 
 #ifdef __MINGW32__
 #define _WIN32_IE 0x0400
-#include <shlobj.h>
 /* FIXME: these are copied from SWI-Prolog.h. */
 #define PL_MSG_EXCEPTION_RAISED -1
 #define PL_MSG_IGNORED 0
@@ -698,7 +697,7 @@ dlclose(void *handle)
 		 *******************************/
 
 #ifdef HAVE_SHLOBJ_H
-#include <Shlobj.h>
+#include <shlobj.h>
 #endif
 
 typedef struct folderid
