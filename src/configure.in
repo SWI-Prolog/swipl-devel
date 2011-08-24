@@ -825,7 +825,7 @@ AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h mach/thread_act.h locale.h)
 AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
-AC_CHECK_HEADERS(crtdbg.h Shlobj.h)
+AC_CHECK_HEADERS(crtdbg.h shlobj.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
