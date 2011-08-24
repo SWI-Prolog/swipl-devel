@@ -844,6 +844,18 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
+case "$PLARCH" in
+    *mingw32*)
+      if test "x$ac_cv_func_select" = xno; then
+        # Under MinGW, select() is not in the default libraries.
+        for lib in ws2_32; do
+          AC_CHECK_LIB([$lib], [select], [AC_DEFINE([HAVE_SELECT])
+            LIBS="-l$lib $LIBS"; break])
+        done
+      fi
+      ;;
+esac
+
 AC_CHECK_TYPE(intptr_t)
 
 if test "x$ac_cv_func_unsetenv" = "xyes"; then
