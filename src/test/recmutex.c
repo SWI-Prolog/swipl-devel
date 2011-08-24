@@ -33,6 +33,11 @@
 #include <config.h>
 #endif
 
+#ifdef __MINGW32__
+#include <winbase.h>
+#define sleep(x) Sleep(x*1000)
+#endif
+
 pthread_mutex_t *my_mutex;
 
 int locked = 1;
