@@ -1027,8 +1027,16 @@ if test "$ac_cv_sizeof_long" = 8; then
   AC_DEFINE(INT64_FORMAT, ["%ld"],
 	    [printf format for int64_t datatype])
 else
-  AC_DEFINE(INT64_FORMAT, ["%lld"],
-	    [printf format for int64_t datatype])
+  case "$PLARCH" in
+    *mingw32*)
+      AC_DEFINE(INT64_FORMAT, ["%I64d"],
+                              [printf format for int64_t datatype])
+      ;;
+    *)
+      AC_DEFINE(INT64_FORMAT, ["%lld"],
+                              [printf format for int64_t datatype])
+      ;;
+  esac
 fi
 
 if test "$configgmp" = "yes"; then
