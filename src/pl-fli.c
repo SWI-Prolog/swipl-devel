@@ -3930,10 +3930,6 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 #include <sys/select.h>
 #endif
 
-#ifdef __WINDOWS__
-#include <winsock2.h>
-#endif
-
 static int
 input_on_fd(int fd)
 { fd_set rfds;
