@@ -140,6 +140,15 @@ handy for it someone wants to add a data type to the system.
 #ifdef HAVE_GMP_H
 #define O_GMP			1
 #endif
+#if defined(__MINGW32__) || defined(_MSC_VER)
+#define NOTTYCONTROL           TRUE
+#define O_DDE 1
+#define O_DLL 1
+#define O_HASDRIVES 1
+#define O_HASSHARES 1
+#define O_XOS 1
+#define O_RLC 1
+#endif
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
