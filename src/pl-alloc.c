@@ -440,8 +440,11 @@ allocHeap__LD(size_t n ARG_LD)
   } else
   { LOCK();
     mem = allocBigHeap(n);
-    GD->statistics.heap += n;
     UNLOCK();
+    if ( mem )
+      GD->statistics.heap += n;
+    else
+      outOfCore();
   }
 
   return mem;
@@ -549,9 +552,7 @@ allocBigHeap(size_t size)
 { BigHeap h = malloc(size+sizeof(*h));
 
   if ( !h )
-  { outOfCore();
     return NULL;
-  }
 
   h->next = big_heaps;
   h->prev = NULL;
