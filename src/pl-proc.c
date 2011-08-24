@@ -58,8 +58,8 @@ lookupProcedure(functor_t f, Module m)
   } else
   { GET_LD
 
-    proc = (Procedure)  allocHeap(sizeof(struct procedure));
-    def  = (Definition) allocHeap(sizeof(struct definition));
+    proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
+    def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
 
@@ -106,7 +106,7 @@ importDefinitionModule(Module m, Definition def)
   } else
   { GET_LD
 
-    proc = (Procedure) allocHeap(sizeof(struct procedure));
+    proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
     addHTable(m->procedures, (void *)functor, proc);
@@ -652,7 +652,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
       { e->epred = newTableEnum(e->module->procedures);
       }
 
-      e = allocHeap(sizeof(*e));
+      e = allocHeapOrHalt(sizeof(*e));
       *e = e0;
       break;
     }
@@ -750,7 +750,7 @@ typeerror:
 
 ClauseRef
 newClauseRef(Clause clause ARG_LD)
-{ ClauseRef cref = allocHeap(sizeof(struct clause_ref));
+{ ClauseRef cref = allocHeapOrHalt(sizeof(struct clause_ref));
 
   cref->clause = clause;
   cref->next   = NULL;
@@ -862,7 +862,7 @@ abolishProcedure(Procedure proc, Module module)
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
   { GET_LD
-    Definition ndef	     = allocHeap(sizeof(struct definition));
+    Definition ndef	     = allocHeapOrHalt(sizeof(struct definition));
 
     memset(ndef, 0, sizeof(*ndef));
     proc->definition         = ndef;
@@ -1487,7 +1487,7 @@ static void
 registerDirtyDefinition(Definition def)
 { if ( false(def, P_DIRTYREG) )
   { GET_LD
-    DefinitionChain cell = allocHeap(sizeof(*cell));
+    DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
 
     set(def, P_DIRTYREG);
     cell->definition = def;
@@ -1990,7 +1990,7 @@ PRED_IMPL("retract", 1, retract,
 	}
 
 	if ( ctx == &ctxbuf )		/* non-determinisic; save state */
-	{ ctx = allocHeap(sizeof(*ctx));
+	{ ctx = allocHeapOrHalt(sizeof(*ctx));
 	  *ctx = ctxbuf;
 	}
 	ctx->cref = next;
@@ -2743,7 +2743,7 @@ lookupSourceFile(atom_t name, int create)
   } else if ( create )
   { GET_LD
 
-    file = (SourceFile) allocHeap(sizeof(struct sourceFile));
+    file = (SourceFile) allocHeapOrHalt(sizeof(struct sourceFile));
     memset(file, 0, sizeof(struct sourceFile));
     file->name = name;
     file->index = ++source_index;
@@ -2802,7 +2802,7 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 
   { GET_LD
 
-    cell = allocHeap(sizeof(struct list_cell));
+    cell = allocHeapOrHalt(sizeof(struct list_cell));
     cell->value = proc;
     cell->next = sf->procedures;
     sf->procedures = cell;

@@ -131,7 +131,7 @@ setPrologFlag(const char *name, int flags, ...)
     if ( flags & FF_KEEP )
       return;
   } else
-  { f = allocHeap(sizeof(*f));
+  { f = allocHeapOrHalt(sizeof(*f));
     f->index = -1;
     f->flags = flags;
     addHTable(GD->prolog_flag.table, (void *)an, f);
@@ -209,7 +209,7 @@ static void
 copySymbolPrologFlagTable(Symbol s)
 { GET_LD
   prolog_flag *f = s->value;
-  prolog_flag *copy = allocHeap(sizeof(*copy));
+  prolog_flag *copy = allocHeapOrHalt(sizeof(*copy));
 
   *copy = *f;
   if ( (f->flags & FT_MASK) == FT_TERM )
@@ -401,7 +401,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
-    { prolog_flag *f2 = allocHeap(sizeof(*f2));
+    { prolog_flag *f2 = allocHeapOrHalt(sizeof(*f2));
 
       *f2 = *f;
       if ( (f2->flags & FT_MASK) == FT_TERM )
@@ -427,7 +427,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
   anyway:
     PL_register_atom(k);
-    f = allocHeap(sizeof(*f));
+    f = allocHeapOrHalt(sizeof(*f));
     f->index = -1;
 
     switch( (flags & FT_MASK) )
@@ -871,7 +871,7 @@ pl_prolog_flag5(term_t key, term_t value,
 
 	fail;
       } else if ( PL_is_variable(key) )
-      { e = allocHeap(sizeof(*e));
+      { e = allocHeapOrHalt(sizeof(*e));
 
 	e->module = module;
 

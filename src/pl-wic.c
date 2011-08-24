@@ -267,9 +267,9 @@ references.  That will normally overflow other system limits first.
 
 static void
 pushXrIdTable(wic_state *state ARG_LD)
-{ XrTable t = allocHeap(sizeof(struct xr_table));
+{ XrTable t = allocHeapOrHalt(sizeof(struct xr_table));
 
-  if ( !(t->table = allocHeap(ALLOCSIZE)) )
+  if ( !(t->table = allocHeapOrHalt(ALLOCSIZE)) )
     outOfCore();
   SECURE(memset(t->table, 0, ALLOCSIZE));
   t->tablesize = 0;
@@ -315,7 +315,7 @@ storeXrId(wic_state *state, long id, word value)
 
   while ( i >= t->tablesize )
   { GET_LD
-    Word a = allocHeap(ALLOCSIZE);
+    Word a = allocHeapOrHalt(ALLOCSIZE);
 
     if ( !a )
       outOfCore();
@@ -426,7 +426,7 @@ getAtom(IOSTREAM *fd, PL_blob_t *type ARG_LD)
   if ( len < sizeof(buf) )
     tmp = buf;
   else
-    tmp = allocHeap(len);
+    tmp = allocHeapOrHalt(len);
 
   for(s=tmp, i=0; i<len; i++)
   { int c = Sgetc(fd);
@@ -1085,7 +1085,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	int ncodes = getInt(fd);
 
 	DEBUG(2, Sdprintf("."));
-	clause = (Clause) allocHeap(sizeofClause(ncodes));
+	clause = (Clause) allocHeapOrHalt(sizeofClause(ncodes));
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
@@ -2190,7 +2190,7 @@ initSourceMarks(wic_state *state)
 
 static void
 sourceMark(wic_state *state ARG_LD)
-{ SourceMark pm = allocHeap(sizeof(struct source_mark));
+{ SourceMark pm = allocHeapOrHalt(sizeof(struct source_mark));
 
   pm->file_index = Stell(state->wicFd);
   pm->next = NULL;
@@ -2291,7 +2291,7 @@ qlfInfo(const char *file,
     return warning("qlf_info/4: seek failed: %s", OsError());
   nqlf = (int)getInt32(s);
   DEBUG(1, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (size_t*)allocHeap(sizeof(long) * nqlf);
+  qlfstart = (size_t*)allocHeapOrHalt(sizeof(long) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
   { qlfstart[i] = (size_t)getInt32(s);
@@ -2354,7 +2354,7 @@ qlfOpen(term_t file)
     return NULL;
   }
 
-  state = allocHeap(sizeof(*state));
+  state = allocHeapOrHalt(sizeof(*state));
   memset(state, 0, sizeof(*state));
   state->wicFile = store_string(name);
   state->mkWicFile = store_string(name);
@@ -2415,7 +2415,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 { GET_LD
   IOSTREAM *fd = state->wicFd;
   char *abssavename;
-  qlf_state *new = allocHeap(sizeof(*new));
+  qlf_state *new = allocHeapOrHalt(sizeof(*new));
 
   memset(new, 0, sizeof(*new));
   new->previous = state->load_state;
@@ -2784,7 +2784,7 @@ PRED_IMPL("$open_wic", 1, open_wic, 0)
   IOSTREAM *fd;
 
   if ( PL_get_stream_handle(A1, &fd) )
-  { wic_state *state = allocHeap(sizeof(*state));
+  { wic_state *state = allocHeapOrHalt(sizeof(*state));
 
     memset(state, 0, sizeof(*state));
     state->wicFd = fd;

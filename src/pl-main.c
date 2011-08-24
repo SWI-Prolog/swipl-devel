@@ -118,7 +118,7 @@ longopt(const char *opt, int argc, const char **argv)
 static int
 opt_append(opt_list **l, char *s)
 { GET_LD
-  opt_list *n = allocHeap(sizeof(*n));
+  opt_list *n = allocHeapOrHalt(sizeof(*n));
 
   n->opt_val = s;
   n->next = NULL;
@@ -743,7 +743,7 @@ script_argv(int argc, char **argv)
 
 	    DEBUG(1, Sdprintf("Got script %s\n", argv[i+1]));
 
-	    av = allocHeap(sizeof(char*)*(argc+2));
+	    av = allocHeapOrHalt(sizeof(char*)*(argc+2));
 	    for(j=0; j<=i+1; j++)
 	      av[j] = argv[j];
 	    av[j] = "--";
@@ -806,7 +806,7 @@ script_argv(int argc, char **argv)
 	    continue;
 	}
 #endif
-	av[an] = allocHeap(o-start+1);
+	av[an] = allocHeapOrHalt(o-start+1);
 	strncpy(av[an], start, o-start);
 	av[an][o-start] = EOS;
 	if ( ++an >= MAXARGV )
@@ -827,7 +827,7 @@ script_argv(int argc, char **argv)
       av[an++] = argv[i];
     GD->cmdline.argc = an;
     av[an++] = NULL;
-    GD->cmdline.argv = allocHeap(sizeof(char *) * an);
+    GD->cmdline.argv = allocHeapOrHalt(sizeof(char *) * an);
     memcpy(GD->cmdline.argv, av, sizeof(char *) * an);
 
     fclose(fd);
@@ -1170,7 +1170,7 @@ void
 PL_on_halt(halt_function f, void *arg)
 { if ( !GD->os.halting )
   { GET_LD
-    OnHalt h = allocHeap(sizeof(struct on_halt));
+    OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));
 
     h->function = f;
     h->argument = arg;

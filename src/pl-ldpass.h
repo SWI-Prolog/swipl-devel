@@ -32,6 +32,7 @@
 #define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
 #ifndef DMALLOC
 #define allocHeap(n)		allocHeap__LD(n PASS_LD)
+#define allocHeapOrHalt(n)	allocHeapOrHalt__LD(n PASS_LD)
 #define freeHeap(p, n)		freeHeap__LD(p, n PASS_LD)
 #endif
 #define freeRecord(r)		freeRecord__LD(r PASS_LD)

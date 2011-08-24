@@ -184,7 +184,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	  succeed;
 	}
 
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	cpNumber(&state->low, &l);
 	cpNumber(&state->high, &h);
 	state->hinf = hinf;
@@ -3168,12 +3168,12 @@ registerFunction(functor_t f, ArithF func)
     if ( GD->arith.functions_allocated == 0 )
     { size_t size = 256;
 
-      GD->arith.functions = allocHeap(size*sizeof(ArithF));
+      GD->arith.functions = allocHeapOrHalt(size*sizeof(ArithF));
       memset(GD->arith.functions, 0, size*sizeof(ArithF));
       GD->arith.functions_allocated = size;
     } else
     { size_t size = GD->arith.functions_allocated*2;
-      ArithF *new = allocHeap(size*sizeof(ArithF));
+      ArithF *new = allocHeapOrHalt(size*sizeof(ArithF));
       size_t half = GD->arith.functions_allocated*sizeof(ArithF);
       ArithF *old = GD->arith.functions;
 

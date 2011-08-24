@@ -59,7 +59,7 @@ allocHTableEntries(Table ht, int buckets)
   size_t bytes = buckets * sizeof(Symbol);
   Symbol *p;
 
-  p = allocHeap(bytes);
+  p = allocHeapOrHalt(bytes);
   memset(p, 0, bytes);
 
   return p;
@@ -71,7 +71,7 @@ newHTable(int buckets)
 { GET_LD
   Table ht;
 
-  ht		  = allocHeap(sizeof(struct table));
+  ht		  = allocHeapOrHalt(sizeof(struct table));
   ht->buckets	  = (buckets & ~TABLE_MASK);
   ht->size	  = 0;
   ht->enumerators = NULL;
@@ -81,7 +81,7 @@ newHTable(int buckets)
   if ( (buckets & TABLE_UNLOCKED) )
     ht->mutex = NULL;
   else
-  { ht->mutex     = allocHeap(sizeof(simpleMutex));
+  { ht->mutex     = allocHeapOrHalt(sizeof(simpleMutex));
     simpleMutexInit(ht->mutex);
   }
 #endif
@@ -191,7 +191,7 @@ rehashHTable(Table ht, Symbol map)
     if ( safe_copy )
     { for(s=ht->entries[i]; s; s = n)
       { int v = (int)pointerHashValue(s->name, newbuckets);
-	Symbol s2 = allocHeap(sizeof(*s2));
+	Symbol s2 = allocHeapOrHalt(sizeof(*s2));
 
 	n = s->next;
 	if ( s == map )
@@ -250,7 +250,7 @@ addHTable(Table ht, void *name, void *value)
   { UNLOCK_TABLE(ht);
     return NULL;
   }
-  s = allocHeap(sizeof(struct symbol));
+  s = allocHeapOrHalt(sizeof(struct symbol));
   s->name  = name;
   s->value = value;
   s->next  = ht->entries[v];
@@ -350,7 +350,7 @@ copyHTable(Table org)
   Table ht;
   int n;
 
-  ht = allocHeap(sizeof(struct table));
+  ht = allocHeapOrHalt(sizeof(struct table));
   LOCK_TABLE(org);
   *ht = *org;				/* copy all attributes */
 #ifdef O_PLMT
@@ -363,7 +363,7 @@ copyHTable(Table org)
 
     q = &ht->entries[n];
     for(s = org->entries[n]; s; s = s->next)
-    { Symbol s2 = allocHeap(sizeof(*s2));
+    { Symbol s2 = allocHeapOrHalt(sizeof(*s2));
 
       *q = s2;
       q = &s2->next;
@@ -377,7 +377,7 @@ copyHTable(Table org)
   }
 #ifdef O_PLMT
   if ( org->mutex )
-  { ht->mutex = allocHeap(sizeof(simpleMutex));
+  { ht->mutex = allocHeapOrHalt(sizeof(simpleMutex));
     simpleMutexInit(ht->mutex);
   }
 #endif
@@ -394,7 +394,7 @@ copyHTable(Table org)
 TableEnum
 newTableEnum(Table ht)
 { GET_LD
-  TableEnum e = allocHeap(sizeof(struct table_enum));
+  TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
   Symbol n;
 
   LOCK_TABLE(ht);

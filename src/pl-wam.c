@@ -77,7 +77,7 @@ count(code c, Code PC)
       if ( !counting[c].vartimesptr )
       { int bytes = sizeof(int)*MAXVAR;
 
-	counting[c].vartimesptr = allocHeap(bytes);
+	counting[c].vartimesptr = allocHeapOrHalt(bytes);
 	memset(counting[c].vartimesptr, 0, bytes);
       }
       counting[c].vartimesptr[v]++;
@@ -823,7 +823,7 @@ localDefinition(Definition def ARG_LD)
   { LOCKDYNDEF(def);
     if ( !v->blocks[idx] )
     { size_t bs = (size_t)1<<idx;
-      Definition *newblock = allocHeap(bs*sizeof(Definition));
+      Definition *newblock = allocHeapOrHalt(bs*sizeof(Definition));
 
       memset(newblock, 0, bs*sizeof(Definition));
 

@@ -3813,7 +3813,7 @@ sub_text(term_t atom,
 	  }
 	  fail;
 	}
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	state->type = SUB_SEARCH;
 	state->n1   = 0;
 	state->n2   = la;
@@ -3842,7 +3842,7 @@ sub_text(term_t atom,
 
 	  fail;
 	}
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	state->type = SUB_SPLIT_TAIL;
 	state->n1   = 0;		/* len of the split */
 	state->n2   = la;		/* length of the atom */
@@ -3863,7 +3863,7 @@ sub_text(term_t atom,
 
 	  fail;
 	}
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	state->type = SUB_SPLIT_LEN;
 	state->n1   = 0;		/* before */
 	state->n2   = l;		/* length */
@@ -3875,7 +3875,7 @@ sub_text(term_t atom,
       { if ( a > (int)la )
 	  fail;
 
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	state->type = SUB_SPLIT_HEAD;
 	state->n1   = 0;		/* before */
 	state->n2   = la;
@@ -3883,7 +3883,7 @@ sub_text(term_t atom,
 	break;
       }
 
-      state = allocHeap(sizeof(*state));
+      state = allocHeapOrHalt(sizeof(*state));
       state->type = SUB_ENUM;
       state->n1	= 0;			/* before */
       state->n2 = 0;			/* len */

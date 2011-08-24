@@ -400,11 +400,11 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   }
 
   oldheap = GD->statistics.heap;
-  a = allocHeap(sizeof(struct atom));
+  a = allocHeapOrHalt(sizeof(struct atom));
   a->length = length;
   a->type = type;
   if ( false(type, PL_BLOB_NOCOPY) )
-  { a->name = allocHeap(length+1);
+  { a->name = allocHeapOrHalt(length+1);
     memcpy(a->name, s, length);
     a->name[length] = EOS;
   } else
@@ -513,7 +513,7 @@ _PL_debug_atom_value(atom_t a)
     Sdprintf("*** No atom at index (#%d) ***", i);
     trap_gdb();
 
-    atom = allocHeap(sizeof(*atom));
+    atom = allocHeapOrHalt(sizeof(*atom));
     Ssprintf(buf, "***(#%d)***", i);
     atom->name = store_string(buf);
     atom->length = strlen(atom->name);
@@ -846,7 +846,7 @@ rehashAtoms()
   startCritical;
   atom_buckets *= 2;
   mask = atom_buckets-1;
-  atomTable = allocHeap(atom_buckets * sizeof(Atom));
+  atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
   memset(atomTable, 0, atom_buckets * sizeof(Atom));
 
   DEBUG(0, Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
@@ -885,7 +885,7 @@ static void
 registerBuiltinAtoms()
 { GET_LD
   int size = sizeof(atoms)/sizeof(char *) - 1;
-  Atom a = allocHeap(size * sizeof(struct atom));
+  Atom a = allocHeapOrHalt(size * sizeof(struct atom));
   const ccharp *s;
 
   GD->statistics.atoms = size;
@@ -926,7 +926,7 @@ initAtoms(void)
   if ( !atomTable )
   { GET_LD
     atom_buckets = ATOMHASHSIZE;
-    atomTable = allocHeap(atom_buckets * sizeof(Atom));
+    atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
 
     memset(atomTable, 0, atom_buckets * sizeof(Atom));
     GD->atoms.array_allocated = 4096;

@@ -783,7 +783,7 @@ mark_term_refs()
 Dealing  with  nb_setval/2  and   nb_getval/2  non-backtrackable  global
 variables as defined  in  pl-gvar.c.  We   cannot  mark  and  sweep  the
 hash-table itself as the  reversed   pointers  cannot  address arbitrary
-addresses returned by allocHeap(). Therefore we   turn all references to
+addresses returned by allocHeapOrHalt(). Therefore we   turn all references to
 the  global  stack  into  term-references  and  rely  on  the  available
 mark-and-sweep for foreign references.
 

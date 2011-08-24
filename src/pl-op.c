@@ -82,7 +82,7 @@ static void
 copyOperatorSymbol(Symbol s)
 { GET_LD
   operator *op = s->value;
-  operator *o2 = allocHeap(sizeof(*o2));
+  operator *o2 = allocHeapOrHalt(sizeof(*o2));
 
   *o2 = *op;
 }
@@ -157,7 +157,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   { UNLOCK();				/* already inherited: do not change */
     return TRUE;
   } else
-  { op = allocHeap(sizeof(*op));
+  { op = allocHeapOrHalt(sizeof(*op));
 
     op->priority[OP_PREFIX]  = -1;
     op->priority[OP_INFIX]   = -1;
@@ -504,7 +504,7 @@ current_op(Module m, int inherit,
       } else
 	return FALSE;
 
-      e = allocHeap(sizeof(*e));
+      e = allocHeapOrHalt(sizeof(*e));
       b = &e->buffer;
       initBuffer(b);
       e->index = 0;

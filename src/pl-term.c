@@ -119,9 +119,9 @@ initTerm(void)
     }
 
     if ( buf_area == NULL )
-      buf_area = allocHeap(MAX_TERMBUF);
+      buf_area = allocHeapOrHalt(MAX_TERMBUF);
     if ( string_area == NULL )
-      string_area = allocHeap(MAX_TERMBUF);
+      string_area = allocHeapOrHalt(MAX_TERMBUF);
 
     switch( tgetent(buf_area, term) )
     { case -1:
@@ -167,7 +167,7 @@ lookupEntry(atom_t name, atom_t type)
       goto out;
     }
 
-    e = (Entry) allocHeap(sizeof(entry));
+    e = (Entry) allocHeapOrHalt(sizeof(entry));
     e->name = name;
     e->type = type;
     e->value = 0L;

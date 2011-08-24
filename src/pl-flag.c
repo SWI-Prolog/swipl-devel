@@ -61,7 +61,7 @@ lookupFlag(word key ARG_LD)
   if ( (symb = lookupHTable(flagTable, (void *)key)) )
     return (Flag)symb->value;
 
-  f = (Flag) allocHeap(sizeof(struct flag));
+  f = (Flag) allocHeapOrHalt(sizeof(struct flag));
   f->key = key;
   if ( isTextAtom(key) )
     PL_register_atom(key);

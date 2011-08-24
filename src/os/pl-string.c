@@ -42,7 +42,7 @@ char *
 store_string(const char *s)
 { if ( s )
   { GET_LD
-    char *copy = (char *)allocHeap(strlen(s)+2);
+    char *copy = (char *)allocHeapOrHalt(strlen(s)+2);
 
     *copy++ = CHAR_INUSE;
     strcpy(copy, s);
@@ -72,7 +72,7 @@ store_string(const char *s)
 { if ( s )
   { GET_LD
 
-    char *copy = (char *)allocHeap(strlen(s)+1);
+    char *copy = (char *)allocHeapOrHalt(strlen(s)+1);
 
     strcpy(copy, s);
     return copy;

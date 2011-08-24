@@ -31,7 +31,7 @@
 static Code
 allocCodes(size_t n)
 { GET_LD
-  Code codes = allocHeap(sizeof(code)*(n+1));
+  Code codes = allocHeapOrHalt(sizeof(code)*(n+1));
 
   *codes++ = (code)n;
 

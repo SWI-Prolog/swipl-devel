@@ -64,7 +64,7 @@ lookupRecordList(word key)
 
     if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(key);
-    l = allocHeap(sizeof(*l));
+    l = allocHeapOrHalt(sizeof(*l));
     l->key = key;
     l->type = RECORD_TYPE;
     l->references = 0;
@@ -563,7 +563,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   unvisit(PASS_LD1);
 
   size = rsize + sizeOfBuffer(&info.code);
-  record = allocHeap(size);
+  record = allocHeapOrHalt(size);
 #ifdef REC_MAGIC
   record->magic = REC_MAGIC;
 #endif
@@ -638,7 +638,7 @@ PL_record_external(term_t t, size_t *len)
 
   ret_primitive:
     scode = (int)sizeOfBuffer(&info.code);
-    rec = allocHeap(scode);
+    rec = allocHeapOrHalt(scode);
     memcpy(rec, info.code.base, scode);
     discardBuffer(&info.code);
     *len = scode;
@@ -674,7 +674,7 @@ PL_record_external(term_t t, size_t *len)
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = (int)sizeOfBuffer(&hdr);
 
-  rec = allocHeap(shdr + scode);
+  rec = allocHeapOrHalt(shdr + scode);
   memcpy(rec, hdr.base, shdr);
   memcpy(rec+shdr, info.code.base, scode);
 
@@ -717,7 +717,7 @@ other stacks as scratch-area.
   { Word *p; \
     uint i; \
     if ( (n) > MAX_ALLOCA_VARS ) \
-      info.vars = allocHeap(sizeof(Word) * (n)); \
+      info.vars = allocHeapOrHalt(sizeof(Word) * (n)); \
     else \
     { if ( !(info.vars = alloca(sizeof(Word) * (n))) ) \
 	fatalError("alloca() failed"); \
@@ -1617,7 +1617,7 @@ record(term_t key, term_t term, term_t ref, int az)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
   copy = compileTermToHeap(term, 0);
-  r = allocHeap(sizeof(*r));
+  r = allocHeapOrHalt(sizeof(*r));
   r->record = copy;
   if ( ref && !PL_unify_recref(ref, r) )
     return FALSE;

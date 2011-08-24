@@ -76,7 +76,7 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
       return f->functor;
     }
   }
-  f = (FunctorDef) allocHeap(sizeof(struct functorDef));
+  f = (FunctorDef) allocHeapOrHalt(sizeof(struct functorDef));
   f->functor = 0L;
   f->name    = atom;
   f->arity   = arity;
@@ -163,7 +163,7 @@ allocFunctorTable()
 { GET_LD
   int size = functor_buckets * sizeof(FunctorDef);
 
-  functorDefTable = allocHeap(size);
+  functorDefTable = allocHeapOrHalt(size);
   memset(functorDefTable, 0, size);
 }
 
@@ -172,7 +172,7 @@ static void
 registerBuiltinFunctors()
 { GET_LD
   int size = sizeof(functors)/sizeof(builtin_functor) - 1;
-  FunctorDef f = allocHeap(size * sizeof(struct functorDef));
+  FunctorDef f = allocHeapOrHalt(size * sizeof(struct functorDef));
   const builtin_functor *d;
 
   GD->statistics.functors = size;

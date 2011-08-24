@@ -180,7 +180,7 @@ PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
     return PL_error(NULL, 0, NULL, ERR_SHARED_OBJECT_OP,
 		    ATOM_open, dlerror());
 
-  e = allocHeap(sizeof(struct dl_entry));
+  e = allocHeapOrHalt(sizeof(struct dl_entry));
 
   LOCK();
   e->id       = ++dl_plid;

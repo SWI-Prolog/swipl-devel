@@ -53,7 +53,7 @@ _lookupModule(atom_t name)
     return (Module) s->value;
 
   { GET_LD
-    m = allocHeap(sizeof(struct module));
+    m = allocHeapOrHalt(sizeof(struct module));
   }
   m->name = name;
   m->file = (SourceFile) NULL;
@@ -235,7 +235,7 @@ addSuperModule_no_lock(Module m, Module s, int where)
       return TRUE;			/* already a super-module */
   }
 
-  c = allocHeap(sizeof(*c));
+  c = allocHeapOrHalt(sizeof(*c));
   c->value = s;
 
   if ( where == 'A' )
@@ -1126,7 +1126,7 @@ pl_import(term_t pred)
 	    procedureName(proc));
   }
 
-  { Procedure nproc = (Procedure)  allocHeap(sizeof(struct procedure));
+  { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
 
     nproc->type = PROCEDURE_TYPE;
     nproc->definition = proc->definition;

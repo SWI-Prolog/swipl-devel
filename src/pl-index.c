@@ -472,7 +472,7 @@ unify_index_pattern(Procedure proc, term_t value)
 static ClauseIndex
 newClauseIndexTable(int buckets)
 { GET_LD
-  ClauseIndex ci = allocHeap(sizeof(struct clause_index));
+  ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   ClauseChain ch;
   int m = 4;
 
@@ -483,7 +483,7 @@ newClauseIndexTable(int buckets)
   ci->buckets  = buckets;
   ci->size     = 0;
   ci->alldirty = FALSE;
-  ci->entries  = allocHeap(sizeof(struct clause_chain) * buckets);
+  ci->entries  = allocHeapOrHalt(sizeof(struct clause_chain) * buckets);
 
   for(ch = ci->entries; buckets; buckets--, ch++)
   { ch->head = ch->tail = NULL;

@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -356,7 +357,7 @@ allocate(AllocPool pool, size_t n)
   if ( !(p = allocBigHeap(ALLOCSIZE)) )
   { if ( welocked )
       UNLOCK();
-    outOfCore();
+    return NULL;
   }
 
   pool->space = p + n;
@@ -443,11 +444,22 @@ allocHeap__LD(size_t n ARG_LD)
     UNLOCK();
     if ( mem )
       GD->statistics.heap += n;
-    else
-      outOfCore();
   }
 
   return mem;
+}
+
+
+void *
+allocHeapOrHalt__LD(size_t n ARG_LD)
+{ void *mem = allocHeap__LD(n PASS_LD);
+
+  if ( mem )
+  { return mem;
+  } else
+  { outOfCore();
+    return NULL;				/* keep compiler happy */
+  }
 }
 
 

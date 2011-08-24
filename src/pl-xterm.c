@@ -229,7 +229,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
   if ( tcsetattr(slave, TCSADRAIN, &termio) == -1 )
     perror("tcsetattr");
 
-  xt = allocHeap(sizeof(*xt));
+  xt = allocHeapOrHalt(sizeof(*xt));
   xt->pid   = pid;
   xt->fd    = slave;
   xt->count = 3;			/* opened 3 times */

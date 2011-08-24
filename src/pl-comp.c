@@ -130,7 +130,7 @@ initWamTable(void)
   dewam_table_offset = mincoded;
 
   assert(wam_table[C_NOT] != wam_table[C_IFTHENELSE]);
-  dewam_table = (unsigned char *)allocHeap(((maxcoded-dewam_table_offset) + 1) *
+  dewam_table = (unsigned char *)allocHeapOrHalt(((maxcoded-dewam_table_offset) + 1) *
 				  sizeof(char));
 
   for(n = 0; n < I_HIGHEST; n++)
@@ -277,7 +277,7 @@ getVarDef(int i ARG_LD)
   }
 
   if ( !(vd = vardefs[i]) )
-  { vd = vardefs[i] = allocHeap(sizeof(vardef));
+  { vd = vardefs[i] = allocHeapOrHalt(sizeof(vardef));
     memset(vd, 0, sizeof(*vd));
     vd->functor = FUNCTOR_dvard1;
   }
@@ -301,7 +301,7 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
     if ( (v = *vd) )
     { v->address = NULL;
     } else
-    { *vd = v = allocHeap(sizeof(vardef));
+    { *vd = v = allocHeapOrHalt(sizeof(vardef));
       memset(v, 0, sizeof(vardef));
       v->functor = FUNCTOR_dvard1;
     }
@@ -1156,7 +1156,7 @@ Finish up the clause.
   if ( head )
   { size_t size  = sizeofClause(clause.code_size);
 
-    cl = allocHeap(size);
+    cl = allocHeapOrHalt(size);
     memcpy(cl, &clause, sizeofClause(0));
 
     GD->statistics.codes += clause.code_size;
@@ -4492,7 +4492,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
     }
 
-    cr = allocHeap(sizeof(*cr));
+    cr = allocHeapOrHalt(sizeof(*cr));
     cr->clause = cref;
     cr->index  = 1;
     enterDefinition(def);
@@ -5165,7 +5165,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
   clause.code_size = entriesBuffer(&ci.codes, code);
   size  = sizeofClause(clause.code_size);
-  cl = allocHeap(size);
+  cl = allocHeapOrHalt(size);
   memcpy(cl, &clause, sizeofClause(0));
   GD->statistics.codes += clause.code_size;
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
@@ -5578,7 +5578,7 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
     breakTable = newHTable(16);
 
   if ( (codeTable[decode(op)].flags & VIF_BREAK) )
-  { BreakPoint bp = allocHeap(sizeof(break_point));
+  { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
 
     bp->clause = clause;
     bp->offset = offset;

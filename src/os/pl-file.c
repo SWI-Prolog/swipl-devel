@@ -144,7 +144,7 @@ getStreamContext(IOSTREAM *s)
 
   if ( !(symb = lookupHTable(streamContext, s)) )
   { GET_LD
-    stream_context *ctx = allocHeap(sizeof(*ctx));
+    stream_context *ctx = allocHeapOrHalt(sizeof(*ctx));
 
     DEBUG(1, Sdprintf("Created ctx=%p for stream %p\n", ctx, s));
 
@@ -175,7 +175,7 @@ aliasStream(IOSTREAM *s, atom_t name)
   addHTable(streamAliases, (void *)name, s);
   PL_register_atom(name);
 
-  a = allocHeap(sizeof(*a));
+  a = allocHeapOrHalt(sizeof(*a));
   a->next = NULL;
   a->name = name;
 
@@ -1111,7 +1111,7 @@ protocol(const char *str, size_t n)
 static int
 push_input_context()
 { GET_LD
-  InputContext c = allocHeap(sizeof(struct input_context));
+  InputContext c = allocHeapOrHalt(sizeof(struct input_context));
 
   c->stream           = Scurin;
   c->term_file        = source_file_name;
@@ -1158,7 +1158,7 @@ PRED_IMPL("$pop_input_context", 0, pop_input_context, 0)
 void
 pushOutputContext()
 { GET_LD
-  OutputContext c = allocHeap(sizeof(struct output_context));
+  OutputContext c = allocHeapOrHalt(sizeof(struct output_context));
 
   c->stream            = Scurout;
   c->previous          = output_context_stack;
@@ -3817,7 +3817,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 			    ATOM_stream_property, property);
 	}
 
-	pe = allocHeap(sizeof(*pe));
+	pe = allocHeapOrHalt(sizeof(*pe));
 
 	pe->e = newTableEnum(streamContext);
 	pe->s = NULL;
@@ -3835,7 +3835,7 @@ PRED_IMPL("stream_property", 2, stream_property,
       { functor_t f;
 
 	if ( PL_is_variable(property) )	/* generate properties */
-	{ pe = allocHeap(sizeof(*pe));
+	{ pe = allocHeapOrHalt(sizeof(*pe));
 
 	  pe->e = NULL;
 	  pe->s = s;

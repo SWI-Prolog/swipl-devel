@@ -3793,7 +3793,7 @@ struct abort_handle
 void
 PL_abort_hook(PL_abort_hook_t func)
 { GET_LD
-  AbortHandle h = (AbortHandle) allocHeap(sizeof(struct abort_handle));
+  AbortHandle h = (AbortHandle) allocHeapOrHalt(sizeof(struct abort_handle));
   h->next = NULL;
   h->function = func;
 
@@ -4242,7 +4242,7 @@ init_c_args()
     int argc    = GD->cmdline.argc;
     char **argv = GD->cmdline.argv;
 
-    c_argv = allocHeap(argc * sizeof(char *));
+    c_argv = allocHeapOrHalt(argc * sizeof(char *));
     c_argv[0] = argv[0];
     c_argc = 1;
 
@@ -4360,7 +4360,7 @@ PL_license(const char *license, const char *module)
 
     PL_discard_foreign_frame(fid);
   } else
-  { struct license *l = allocHeap(sizeof(*l));
+  { struct license *l = allocHeapOrHalt(sizeof(*l));
 
     l->license_id = store_string(license);
     l->module_id  = store_string(module);

@@ -1006,7 +1006,7 @@ canoniseDir(char *path)
   }
 
 					/* we need to use malloc() here */
-					/* because allocHeap() only ensures */
+					/* because allocHeapOrHalt() only ensures */
 					/* alignment for `word', and inode_t */
 					/* is sometimes bigger! */
 
@@ -1797,7 +1797,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-  buf->state = allocHeap(sizeof(tty_state));
+  buf->state = allocHeapOrHalt(sizeof(tty_state));
 
 #ifdef HAVE_TCSETATTR
   if ( tcgetattr(fd, &TTY_STATE(buf)) )	/* save the old one */
@@ -1903,7 +1903,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-  buf->state = allocHeap(sizeof(tty_state));
+  buf->state = allocHeapOrHalt(sizeof(tty_state));
 
   if ( ioctl(fd, TIOCGETP, &TTY_STATE(buf)) )  /* save the old one */
     fail;

@@ -573,7 +573,7 @@ setupFind(char *buf)
     FindData find;
 
     if ( !(find = LD->trace.find) )
-      find = LD->trace.find = allocHeap(sizeof(find_data));
+      find = LD->trace.find = allocHeapOrHalt(sizeof(find_data));
 
     if ( !PL_chars_to_term(s, t) )
     { PL_discard_foreign_frame(cid);

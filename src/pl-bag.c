@@ -62,7 +62,7 @@ get_bag(term_t t, findall_bag **bag ARG_LD)
 static
 PRED_IMPL("$new_findall_bag", 1, new_findall_bag, 0)
 { PRED_LD
-  findall_bag *bag = allocHeap(sizeof(*bag));
+  findall_bag *bag = allocHeapOrHalt(sizeof(*bag));
 
   memset(bag, 0, sizeof(*bag));
   bag->magic = FINDALL_MAGIC;

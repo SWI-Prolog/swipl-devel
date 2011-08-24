@@ -366,7 +366,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	}
       }
 
-      gen = allocHeap(sizeof(*gen));
+      gen = allocHeapOrHalt(sizeof(*gen));
       gen->do_enum = do_enum;
 
       if ( do_enum & ENUM_CHAR )

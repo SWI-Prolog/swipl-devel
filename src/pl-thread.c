@@ -683,11 +683,11 @@ initPrologThreads()
 
     simpleMutexInit(&LD->signal.sig_lock);
     GD->thread.thread_max = 4;		/* see resizeThreadMax() */
-    GD->thread.threads = allocHeap(GD->thread.thread_max *
+    GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
 				   sizeof(*GD->thread.threads));
     memset(GD->thread.threads, 0,
 	   GD->thread.thread_max * sizeof(*GD->thread.threads));
-    info = GD->thread.threads[1] = allocHeap(sizeof(*info));
+    info = GD->thread.threads[1] = allocHeapOrHalt(sizeof(*info));
     memset(info, 0, sizeof(*info));
     info->pl_tid = 1;
     thread_highest_id = 1;
@@ -919,7 +919,7 @@ resizeThreadMax(void)
   PL_thread_info_t **newinfo;
   size_t dsize = GD->thread.thread_max * sizeof(*GD->thread.threads);
 
-  newinfo = allocHeap(newmax * sizeof(*GD->thread.threads));
+  newinfo = allocHeapOrHalt(newmax * sizeof(*GD->thread.threads));
   memset(addPointer(newinfo,dsize), 0, dsize);
   memcpy(newinfo, GD->thread.threads, dsize);
   GD->thread.threads = newinfo;
@@ -941,13 +941,13 @@ retry:
   { PL_thread_info_t *info;
 
     if ( !(info=GD->thread.threads[i]) )
-    { info = allocHeap(sizeof(*info));
+    { info = allocHeapOrHalt(sizeof(*info));
       memset(info, 0, sizeof(*info));
       GD->thread.threads[i] = info;
     }
 
     if ( info->status == PL_THREAD_UNUSED )
-    { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
+    { PL_local_data_t *ld = allocHeapOrHalt(sizeof(PL_local_data_t));
 
       memset(ld, 0, sizeof(PL_local_data_t));
       simpleMutexInit(&ld->signal.sig_lock);
@@ -1838,7 +1838,7 @@ enumerate:
 
 	if ( advance_state(state) )
 	{ if ( state == &statebuf )
-	  { tprop_enum *copy = allocHeap(sizeof(*copy));
+	  { tprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;
@@ -1938,7 +1938,7 @@ static int
 thread_at_exit(term_t goal, PL_local_data_t *ld)
 { GET_LD
   Module m = NULL;
-  at_exit_goal *eg = allocHeap(sizeof(*eg));
+  at_exit_goal *eg = allocHeapOrHalt(sizeof(*eg));
 
   PL_strip_module(goal, &m, goal);
   eg->next = NULL;
@@ -1970,7 +1970,7 @@ int
 PL_thread_at_exit(void (*function)(void *), void *closure, int global)
 { GET_LD
 
-  at_exit_goal *eg = allocHeap(sizeof(*eg));
+  at_exit_goal *eg = allocHeapOrHalt(sizeof(*eg));
 
   eg->next = NULL;
   eg->type = EXIT_C;
@@ -2113,7 +2113,7 @@ pl_thread_signal(term_t thread, term_t goal)
     fail;
   }
 
-  sg = allocHeap(sizeof(*sg));
+  sg = allocHeapOrHalt(sizeof(*sg));
   sg->next = NULL;
   sg->module = m;
   sg->goal = PL_record(goal);
@@ -2380,7 +2380,7 @@ static thread_message *
 create_thread_message(term_t msg ARG_LD)
 { thread_message *msgp;
 
-  msgp = allocHeap(sizeof(*msgp));
+  msgp = allocHeapOrHalt(sizeof(*msgp));
   msgp->next    = NULL;
   msgp->message = compileTermToHeap(msg, R_NOLOCK);
   msgp->key     = getIndexOfTerm(msg);
@@ -3236,7 +3236,7 @@ enumerate:
 
 	if ( advance_qstate(state) )
 	{ if ( state == &statebuf )
-	  { qprop_enum *copy = allocHeap(sizeof(*copy));
+	  { qprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;
@@ -3457,7 +3457,7 @@ recursiveMutexUnlock(recursiveMutex *m)
 counting_mutex *
 allocSimpleMutex(const char *name)
 { GET_LD
-  counting_mutex *m = allocHeap(sizeof(*m));
+  counting_mutex *m = allocHeapOrHalt(sizeof(*m));
 
   simpleMutexInit(&m->mutex);
   m->count = 0L;
@@ -3545,7 +3545,7 @@ mutexCreate(atom_t name)
 { GET_LD
   pl_mutex *m;
 
-  m = allocHeap(sizeof(*m));
+  m = allocHeapOrHalt(sizeof(*m));
   pthread_mutex_init(&m->mutex, NULL);
   m->count = 0;
   m->owner = 0;
@@ -3995,7 +3995,7 @@ enumerate:
 
 	if ( advance_mstate(state) )
 	{ if ( state == &statebuf )
-	  { mprop_enum *copy = allocHeap(sizeof(*copy));
+	  { mprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;
@@ -5135,7 +5135,7 @@ localiseDefinition(Definition def)
 static void
 registerLocalDefinition(Definition def)
 { GET_LD
-  DefinitionChain cell = allocHeap(sizeof(*cell));
+  DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
 
   cell->definition = def;
   cell->next = LD->thread.local_definitions;
@@ -5146,7 +5146,7 @@ registerLocalDefinition(Definition def)
 LocalDefinitions
 new_ldef_vector(void)
 { GET_LD
-  LocalDefinitions f = allocHeap(sizeof(*f));
+  LocalDefinitions f = allocHeapOrHalt(sizeof(*f));
 
   memset(f, 0, sizeof(*f));
   f->blocks[0] = f->preallocated - 1;
@@ -5160,7 +5160,7 @@ new_ldef_vector(void)
 Definition
 localiseDefinition(Definition def)
 { GET_LD
-  Definition local = allocHeap(sizeof(*local));
+  Definition local = allocHeapOrHalt(sizeof(*local));
 
   *local = *def;
   local->mutex = NULL;
