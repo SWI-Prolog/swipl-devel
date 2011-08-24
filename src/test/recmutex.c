@@ -34,7 +34,7 @@
 #endif
 
 #ifdef __MINGW32__
-#include <winbase.h>
+#include <windows.h>
 #define sleep(x) Sleep(x*1000)
 #endif
 
