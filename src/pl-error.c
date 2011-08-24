@@ -701,6 +701,12 @@ PL_resource_error(const char *resource)
 }
 
 
+int
+PL_no_memory(void)
+{ return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+}
+
+
 		 /*******************************
 		 *	PRINTING MESSAGES	*
 		 *******************************/

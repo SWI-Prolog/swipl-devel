@@ -137,7 +137,7 @@ unify_hsz(term_t term, HSZ hsz)
       int rc;
 
       if ( !(b2 = malloc((len+1)*sizeof(wchar_t))) )
-	return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	return PL_no_memory();
 
       DdeQueryStringW(ddeInst, hsz, b2, len+1, CP_WINUNICODE);
       rc = PL_unify_wchars(term, PL_ATOM, len, b2);
@@ -169,7 +169,7 @@ unify_hdata(term_t t, HDDEDATA data)
       int rval;
 
       if ( !(b2 = malloc(len)) )
-	return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	return PL_no_memory();
 
       DdeGetData(data, b2, len, 0);
       rval = PL_unify_wchars(t, PL_ATOM, len/sizeof(wchar_t)-1, (wchar_t*)b2);

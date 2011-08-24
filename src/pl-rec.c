@@ -364,7 +364,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 
 	continue;
       }
-  #if O_ATTVAR
+#if O_ATTVAR
       case TAG_ATTVAR:
       { intptr_t n = info->nvars++;
 	Word ap = valPAttVar(w);
@@ -386,7 +386,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	deRef(p);
 	goto again;
       }
-  #endif
+#endif
       case TAG_ATOM:
       { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
 	{ intptr_t n = ((intptr_t)(w) >> 7);
@@ -419,12 +419,12 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	      addOpCode(info, PL_TYPE_INTEGER);
 	      addInt64(info, n.value.i);
 	      break;
-  #ifdef O_GMP
+#ifdef O_GMP
 	    case V_MPZ:
 	      addOpCode(info, PL_REC_MPZ);
 	      addMPZToBuffer((Buffer)&info->code, n.value.mpz);
 	      break;
-  #endif
+#endif
 	    default:
 	      assert(0);
 	  }
@@ -455,7 +455,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	int arity;
 	word functor;
 
-  #if O_CYCLIC
+#if O_CYCLIC
 	if ( isInteger(f->definition) )
 	{ addOpCode(info, PL_REC_CYCLE);
 	  addSizeInt(info, valInt(f->definition));
@@ -477,7 +477,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 					  /* overflow test */
 	  assert(valInt(f->definition) == (intptr_t)info->size);
 	}
-  #endif
+#endif
 
 	info->size += arity+1;
 	addFunctor(info, functor);

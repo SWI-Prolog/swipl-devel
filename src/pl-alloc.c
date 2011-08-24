@@ -779,7 +779,7 @@ pushArgumentStack__LD(Word p ARG_LD)
 
 
 void
-outOfCore()
+outOfCore(void)
 { fatalError("Could not allocate memory: %s", OsError());
 }
 

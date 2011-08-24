@@ -62,7 +62,10 @@ get_bag(term_t t, findall_bag **bag ARG_LD)
 static
 PRED_IMPL("$new_findall_bag", 1, new_findall_bag, 0)
 { PRED_LD
-  findall_bag *bag = allocHeapOrHalt(sizeof(*bag));
+  findall_bag *bag = allocHeap(sizeof(*bag));
+
+  if ( !bag )
+    return PL_no_memory();
 
   memset(bag, 0, sizeof(*bag));
   bag->magic = FINDALL_MAGIC;
@@ -86,7 +89,10 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
     return FALSE;
 
   r = compileTermToHeap(A2, R_NOLOCK);
-  pushRecordSegStack(&bag->answers, r);
+  if ( !pushRecordSegStack(&bag->answers, r) )
+  { freeRecord(r);
+    return PL_no_memory();
+  }
   bag->gsize += r->gsize;
   bag->solutions++;
 

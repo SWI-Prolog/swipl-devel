@@ -679,7 +679,7 @@ valueExpression(term_t expr, number *result ARG_LD)
         goto error;
       case TAG_REFERENCE:
       { if ( !pushForMark(&term_stack, p, walk_ref) )
-	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	{ PL_no_memory();
 	  goto error;
 	}
 	walk_ref = TRUE;
@@ -715,7 +715,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	}
 
 	if ( !pushSegStack(&term_stack, p, Word) )
-	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	{ PL_no_memory();
 	  goto error;
 	}
 	if ( term_stack.count > 100 && !known_acyclic )
@@ -753,7 +753,7 @@ valueExpression(term_t expr, number *result ARG_LD)
       popForMark(&term_stack, &p, &walk_ref);
 
     if ( !pushSegStack(&arg_stack, n_tmp, number) )
-    { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+    { PL_no_memory();
       goto error;
     }
 

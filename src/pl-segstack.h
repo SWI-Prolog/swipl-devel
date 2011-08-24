@@ -69,8 +69,8 @@ typedef struct
 
 COMMON(void)	initSegStack(segstack *stack, size_t unit_size,
 			     size_t len, void *data);
-COMMON(int)	pushSegStack_(segstack *stack, void* data);
-COMMON(int)	pushRecordSegStack(segstack *stack, Record r);
+COMMON(int)	pushSegStack_(segstack *stack, void* data) WUNUSED;
+COMMON(int)	pushRecordSegStack(segstack *stack, Record r) WUNUSED;
 COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
 COMMON(void)	popTopOfSegStack(segstack *stack);
