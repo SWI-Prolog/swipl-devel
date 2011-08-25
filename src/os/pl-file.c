@@ -4553,7 +4553,7 @@ PRED_IMPL("$size_stream", 2, size_stream, 0)
   if ( !PL_get_stream_handle(A1, &s) )
     return FALSE;
 
-  rval = PL_unify_integer(A2, Ssize(s));
+  rval = PL_unify_int64(A2, Ssize(s));
   PL_release_stream(s);
 
   return rval;

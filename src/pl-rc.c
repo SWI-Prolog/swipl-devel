@@ -34,7 +34,7 @@ Scontrol_rc(void *handle, int action, void *arg)
 
   switch(action)
   { case SIO_GETSIZE:
-    { intptr_t *rval = arg;
+    { int64_t *rval = arg;
 
       *rval = m->size;
       return 0;
@@ -76,7 +76,7 @@ SopenRC(void *rca, const char *name, const char *rcclass, int flags)
 
 
 		 /*******************************
-		 *	 PROLOG PREDICATES   	*
+		 *	 PROLOG PREDICATES	*
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
