@@ -825,7 +825,7 @@ AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h mach/thread_act.h locale.h)
 AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
-AC_CHECK_HEADERS(crtdbg.h shlobj.h)
+AC_CHECK_HEADERS(crtdbg.h shlobj.h winsock2.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
@@ -848,9 +848,32 @@ case "$PLARCH" in
     *mingw32*)
       if test "x$ac_cv_func_select" = xno; then
         # Under MinGW, select() is not in the default libraries.
-        for lib in ws2_32; do
-          AC_CHECK_LIB([$lib], [select], [AC_DEFINE([HAVE_SELECT])
-            LIBS="-l$lib $LIBS"; break])
+        for select_lib in ws2_32; do
+          AC_MSG_CHECKING([for select in $select_lib])
+          ac_save_LIBS="$LIBS"
+          LIBS="-l$select_lib $LIBS"
+          AC_LINK_IFELSE(
+            [AC_LANG_PROGRAM([[#ifdef HAVE_WINSOCK2_H
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#endif]],
+                             [[select(0,
+                                      (fd_set *) NULL, (fd_set *) NULL,
+                                      (fd_set *) NULL,
+                                      (struct timeval *) NULL);]])
+            ],
+            [
+              AC_MSG_RESULT([yes])
+              AC_DEFINE([HAVE_SELECT])
+              break
+            ],
+            [
+              AC_MSG_RESULT([no])
+              LIBS="$ac_save_LIBS"
+            ]
+          )
         done
       fi
       ;;
