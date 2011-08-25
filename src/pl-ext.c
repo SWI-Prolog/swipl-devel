@@ -167,15 +167,6 @@ static const PL_extension foreigns[] = {
   FRG("index",			1, pl_index,		     META),
   FRG("hash",			1, pl_hash,		     META),
 
-#if O_DDE
-  FRG("open_dde_conversation",	3, pl_open_dde_conversation,	0),
-  FRG("close_dde_conversation",	1, pl_close_dde_conversation,	0),
-  FRG("dde_request",		4, pl_dde_request,		0),
-  FRG("dde_execute",		3, pl_dde_execute,		0),
-  FRG("dde_poke",		4, pl_dde_poke,			0),
-  FRG("$dde_register_service",	2, pl_dde_register_service,	0),
-#endif /*O_DDE*/
-
 #if O_STRING
   FRG("sub_string",		5, pl_sub_string,	     NDET),
 #endif /* O_STRING */
@@ -403,6 +394,7 @@ DECL_PLIST(system);
 DECL_PLIST(op);
 DECL_PLIST(rec);
 DECL_PLIST(termhash);
+DECL_PLIST(dde);
 
 void
 initBuildIns(void)
@@ -450,6 +442,7 @@ initBuildIns(void)
 #endif
 #ifdef __WINDOWS__
   REG_PLIST(win);
+  REG_PLIST(dde);
 #endif
 
 #define LOOKUPPROC(name) \

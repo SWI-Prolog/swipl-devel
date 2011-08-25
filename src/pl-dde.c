@@ -349,13 +349,16 @@ dde_initialise()
 }
 
 
-word
-pl_dde_register_service(term_t topic, term_t onoff)
+static
+PRED_IMPL("$dde_register_service", 2, dde_register_service, 0)
 { HSZ t;
   int a;
 
-  TRY(dde_initialise());
+  term_t topic = A1;
+  term_t onoff = A2;
 
+  if ( !dde_initialise() )
+    return FALSE;
   if ( !get_hsz(topic, &t) )
     fail;
   if ( !PL_get_bool(onoff, &a) )
@@ -374,13 +377,16 @@ pl_dde_register_service(term_t topic, term_t onoff)
   }
 }
 
-
-word
-pl_open_dde_conversation(term_t service, term_t topic, term_t handle)
-{ GET_LD
+static
+PRED_IMPL("open_dde_conversation", 3, open_dde_conversation, 0)
+{ PRED_LD
   UINT i;
   HSZ Hservice = 0, Htopic = 0;
   int rc = TRUE;
+
+  term_t service = A1;
+  term_t topic   = A2;
+  term_t handle  = A3;
 
   if ( !dde_initialise() )
     fail;
@@ -435,9 +441,11 @@ get_conv_handle(term_t handle, int *theh)
 }
 
 
-word
-pl_close_dde_conversation(term_t handle)
+static
+PRED_IMPL("close_dde_conversation", 1, close_dde_conversation, 0)
 { int hdl;
+
+  term_t handle = A1;
 
   if ( !get_conv_handle(handle, &hdl) )
     fail;
@@ -454,9 +462,8 @@ NOTE: Windows-XP gives the wrong value for valuelen below. Hence we will
 use nul-terminated strings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_dde_request(term_t handle, term_t item,
-	       term_t value, term_t timeout)
+static
+PRED_IMPL("dde_request", 4, dde_request, 0)
 { int hdl;
   int rval;
   HSZ Hitem;
@@ -465,6 +472,11 @@ pl_dde_request(term_t handle, term_t item,
   long tmo;
   static UINT fmt[] = {CF_UNICODETEXT, CF_TEXT};
   int fmti;
+
+  term_t handle  = A1;
+  term_t item    = A2;
+  term_t value   = A3;
+  term_t timeout = A4;
 
   if ( !get_conv_handle(handle, &hdl) ||
        !get_hsz(item, &Hitem) ||
@@ -507,15 +519,18 @@ pl_dde_request(term_t handle, term_t item,
 }
 
 
-
-word
-pl_dde_execute(term_t handle, term_t command, term_t timeout)
+static
+PRED_IMPL("dde_execute", 3, dde_execute, 0)
 { int hdl;
   wchar_t *cmdstr;
   size_t cmdlen;
   HDDEDATA Hvalue, data;
   DWORD result;
   long tmo;
+
+  term_t handle  = A1;
+  term_t command = A2;
+  term_t timeout = A3;
 
   if ( !get_conv_handle(handle, &hdl) ||
        !PL_get_wchars(command, &cmdlen, &cmdstr, CVT_ALL|CVT_EXCEPTION) ||
@@ -541,14 +556,19 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
 }
 
 
-word
-pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
+static
+PRED_IMPL("dde_poke", 4, dde_poke, 0)
 { int hdl;
   wchar_t *datastr;
   size_t datalen;
   HDDEDATA Hvalue;
   HSZ Hitem;
   long tmo;
+
+  term_t handle  = A1;
+  term_t item    = A2;
+  term_t data    = A3;
+  term_t timeout = A4;
 
   if ( !get_conv_handle(handle, &hdl) ||
        !get_hsz(item, &Hitem) )
@@ -571,6 +591,19 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
 
   succeed;
 }
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(dde)
+  PRED_DEF("$dde_register_service",  2, dde_register_service,   0)
+  PRED_DEF("open_dde_conversation",  3, open_dde_conversation,  0)
+  PRED_DEF("close_dde_conversation", 1, close_dde_conversation, 0)
+  PRED_DEF("dde_request",	     4, dde_request,		0)
+  PRED_DEF("dde_execute",	     3, dde_execute,		0)
+  PRED_DEF("dde_poke",		     4, dde_poke,		0)
+EndPredDefs
 
 #endif /*O_DDE*/
 #endif /*__WINDOWS__*/

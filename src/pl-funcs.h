@@ -680,15 +680,6 @@ COMMON(bool)		warning(const char *fm, ...);
 COMMON(void)		vfatalError(const char *fm, va_list args) NORETURN;
 COMMON(bool)		vwarning(const char *fm, va_list args);
 
-/* pl-dde.c */
-
-COMMON(word)		pl_open_dde_conversation(term_t serv, term_t top, term_t hdl);
-COMMON(word)		pl_close_dde_conversation(term_t handle);
-COMMON(word)		pl_dde_request(term_t h, term_t it, term_t value, term_t tmo);
-COMMON(word)		pl_dde_execute(term_t handle, term_t cmd, term_t tmo);
-COMMON(word)		pl_dde_register_service(term_t service, term_t onoff);
-COMMON(word)		pl_dde_poke(term_t h, term_t item, term_t data, term_t tmo);
-
 /* pl-dll.c */
 COMMON(word)		pl_open_dll(term_t name, term_t handle);
 COMMON(word)		pl_close_dll(term_t handle);
