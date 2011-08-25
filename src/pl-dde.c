@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,49 +23,14 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #ifdef __WINDOWS__
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Extension of SWI-Prolog:
-   Primitives to support interprocess communication via DDE, for those
-   platforms that support DDEML.  Currently, this is the Windows family (3.1
-   and above) and Unix platforms with Bristol's Windows support.
-
-   Eventually, this should turn into a full DDE capability.  For the
-   present, I'm just implementing the client side of conversation
-   management, and only providing request transactions, as follows:
-
-   open_dde_conversation(+Service, +Topic, -Handle)
-   Open a conversation with a server supporting the given service name and
-   topic (atoms).  If successful, Handle may be used to send transactions to
-   the server.  If no willing server is found, fails.
-
-   close_dde_conversation(+Handle)
-   Close the conversation associated with Handle.  All opened conversations
-   should be closed when they're no longer needed, although the system
-   will close any that remain open on process termination.
-
-   dde_request(+Handle, +Item, -Value)
-   Request a value from the server.  Item is an atom that identifies the
-   requested data, and Value will be an atom (CF_TEXT data in DDE parlance)
-   representing that data, if the request is successful.  If unsuccessful,
-   Value will be unified with a term of form error(reason), identifying the
-   problem.
-
-   It could be argued that the atoms above should be strings; I may go that
-   way sometime.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define INCLUDE_DDEML_H
 #include "pl-incl.h"
 
 #if O_DDE
 #include <string.h>
-
-#ifdef __WATCOMC__			/* at least version 9.5 */
-#define WATCOM_DDEACCESS_BUG 1
-#endif
 
 #define FASTBUFSIZE 512			/* use local buffer upto here */
 #define MAX_CONVERSATIONS 32		/* Max. # of conversations */
@@ -112,7 +78,7 @@ dde_error_message(int errn)
 }
 
 
-static word
+static int
 dde_warning(const char *cmd)
 { const char *err = dde_error_message(-1);
 
@@ -161,7 +127,7 @@ unify_hdata(term_t t, HDDEDATA data)
   if ( !(len=DdeGetData(data, buf, sizeof(buf), 0)) )
     return dde_warning("data handle");
 
-  DEBUG(0, Sdprintf("DdeGetData() returned %ld bytes\n", (long)len));
+  DEBUG(1, Sdprintf("DdeGetData() returned %ld bytes\n", (long)len));
 
   if ( len == sizeof(buf) )
   { if ( (len=DdeGetData(data, NULL, 0, 0)) > 0 )
@@ -200,6 +166,8 @@ get_hsz(term_t data, HSZ *rval)
     { *rval = h;
       succeed;
     }
+
+    return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "DdeCreateStringHandleW");
   }
 
   fail;
@@ -298,7 +266,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        term_t argv = PL_new_term_refs(3);
        predicate_t pred = PL_pred(FUNCTOR_dde_execute3, MODULE_dde);
 
-       DEBUG(0, Sdprintf("Got XTYP_EXECUTE request\n"));
+       DEBUG(1, Sdprintf("Got XTYP_EXECUTE request\n"));
 
        PL_put_integer(argv+0, plhandle);
        unify_hsz(     argv+1, hsz1);
@@ -358,6 +326,9 @@ dde_initialise()
       return dde_warning("initialise");
     }
 
+    DEBUG(1, Sdprintf("Thread %d: created ddeInst %d\n",
+		      PL_thread_self(), ddeInst));
+
     MODULE_dde = lookupModule(PL_new_atom("win_dde"));
 
     FUNCTOR_dde_connect3  =
@@ -408,14 +379,17 @@ word
 pl_open_dde_conversation(term_t service, term_t topic, term_t handle)
 { GET_LD
   UINT i;
-  HSZ Hservice, Htopic;
+  HSZ Hservice = 0, Htopic = 0;
+  int rc = TRUE;
 
   if ( !dde_initialise() )
     fail;
 
   if ( !get_hsz(service, &Hservice) ||
        !get_hsz(topic, &Htopic) )
-    fail;
+  { rc = FALSE;
+    goto out;
+  }
 
   /* Establish a connection and get a handle for it */
   for (i=0; i < MAX_CONVERSATIONS; i++)   /* Find an open slot */
@@ -423,15 +397,25 @@ pl_open_dde_conversation(term_t service, term_t topic, term_t handle)
       break;
   }
   if (i == MAX_CONVERSATIONS)
-    return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_max_dde_handles);
+  { rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_max_dde_handles);
+    goto out;
+  }
 
   if ( !(conv_handle[i] = DdeConnect(ddeInst, Hservice, Htopic, 0)) )
-    fail;
+  { rc = dde_warning("connect");
+    goto out;
+  }
 
-  DdeFreeStringHandle(ddeInst, Hservice);
-  DdeFreeStringHandle(ddeInst, Htopic);
+out:
+  if ( Hservice )
+    DdeFreeStringHandle(ddeInst, Hservice);
+  if ( Htopic )
+    DdeFreeStringHandle(ddeInst, Htopic);
 
-  return PL_unify_integer(handle, i);
+  if ( rc )
+    rc = PL_unify_integer(handle, i);
+
+  return rc;
 }
 
 
@@ -502,9 +486,9 @@ pl_dde_request(term_t handle, term_t item,
   { LPBYTE valuedata;
 
     if ( (valuedata = DdeAccessData(Hvalue, &valuelen)) )
-    { DEBUG(0, Sdprintf("valuelen = %ld; format = %d\n", valuelen, fmti));
+    { DEBUG(1, Sdprintf("valuelen = %ld; format = %d\n", valuelen, fmti));
       if ( fmt[fmti] == CF_TEXT )
-      { DEBUG(0, Sdprintf("ANSI text\n"));
+      { DEBUG(1, Sdprintf("ANSI text\n"));
 	rval = PL_unify_string_chars(value, valuedata);
       } else
 	rval = PL_unify_wchars(value, PL_STRING, -1, (wchar_t*)valuedata);
@@ -581,19 +565,6 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
 				(DWORD)(datalen+1)*sizeof(wchar_t),
 				conv_handle[hdl], Hitem, CF_UNICODETEXT,
 				XTYP_POKE, (DWORD)tmo, NULL);
-
-#if 0
-  if ( !Hvalue )
-  { char *txt;
-
-    if ( !PL_get_nchars(data, &datalen, &txt, CVT_ALL|CVT_EXCEPTION|REP_MB) )
-      fail;
-
-    Hvalue = DdeClientTransaction(txt, datalen+1,
-				  conv_handle[hdl], Hitem, CF_TEXT,
-				  XTYP_POKE, (DWORD)tmo, NULL);
-  }
-#endif
 
   if ( !Hvalue )
     return dde_warning("poke");
