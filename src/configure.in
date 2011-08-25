@@ -645,17 +645,26 @@ esac
   fi
   AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
   AC_CHECK_FUNCS(pthread_kill)
-  AC_MSG_CHECKING("whether mutex support recursive locking")
-  echo '#include "confdefs.h"' > conftest.c
-  cat $srcdir/test/recmutex.c >> conftest.c
-  (eval $ac_link) 2>&5
-  if test -s conftest && ./conftest; then
-    AC_MSG_RESULT(yes)
-    AC_DEFINE(RECURSIVE_MUTEXES, 1,
-	      [Define to make use of standard (UNIX98) pthread recursive mutexes])
-  else
-    AC_MSG_RESULT(no)
-  fi
+  AC_MSG_CHECKING([whether mutex support recursive locking])
+  case "$PLARCH" in
+    *mingw32*)
+      AC_MSG_RESULT(yes)
+      AC_DEFINE(RECURSIVE_MUTEXES, 1,
+        [Define to make use of standard (UNIX98) pthread recursive mutexes])
+      ;;
+    *)
+      echo '#include "confdefs.h"' > conftest.c
+      cat $srcdir/test/recmutex.c >> conftest.c
+      (eval $ac_link) 2>&5
+      if test -s conftest && ./conftest; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE(RECURSIVE_MUTEXES, 1,
+          [Define to make use of standard (UNIX98) pthread recursive mutexes])
+      else
+        AC_MSG_RESULT(no)
+      fi
+      ;;
+  esac
   AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
 
 dnl ATOMIC inc/dec for reference counts
