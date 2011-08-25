@@ -2104,8 +2104,9 @@ decrease).
 #define DMALLOC_FUNC_CHECK 1
 #define O_MYALLOC 0
 #include <dmalloc.h>
-#define allocHeap(n)  xmalloc(n)
-#define freeHeap(ptr, n) xfree(ptr)
+#define allocHeap(n)		malloc(n)
+#define allocHeapOrHalt(n)	xmalloc(n)
+#define freeHeap(ptr, n)	xfree(ptr)
 #endif
 
 #endif /*_PL_INCLUDE_H*/

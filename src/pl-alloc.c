@@ -136,6 +136,7 @@ static void  freeAllBigHeaps(void);
 #define ALLOC_VIRGIN_MAGIC 0x7f
 
 void core_freeHeap__LD(void *mem, size_t n ARG_LD);
+void *core_allocHeapOrHalt__LD(size_t n ARG_LD);
 void *core_allocHeap__LD(size_t n ARG_LD);
 
 void
@@ -152,8 +153,8 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 
 
 void *
-allocHeap__LD(size_t n ARG_LD)
-{ intptr_t *p = core_allocHeap__LD(n+3*sizeof(intptr_t) PASS_LD);
+allocHeapOrHalt__LD(size_t n ARG_LD)
+{ intptr_t *p = core_allocHeapOrHalt__LD(n+3*sizeof(intptr_t) PASS_LD);
 
   p += 3;
   p[-1] = n;
@@ -163,7 +164,22 @@ allocHeap__LD(size_t n ARG_LD)
   return p;
 }
 
+void *
+allocHeap__LD(size_t n ARG_LD)
+{ intptr_t *p = core_allocHeap__LD(n+3*sizeof(intptr_t) PASS_LD);
+
+  if ( p )
+  { p += 3;
+    p[-1] = n;
+    p[-2] = INUSE_MAGIC;
+    memset(p, ALLOC_MAGIC, n);
+  }
+
+  return p;
+}
+
 #define freeHeap__LD core_freeHeap__LD
+#define allocHeapOrHalt__LD core_allocHeapOrHalt__LD
 #define allocHeap__LD core_allocHeap__LD
 
 #endif /*ALLOC_DEBUG*/
@@ -1353,3 +1369,6 @@ properly on Linux. Don't bother with it.
 
 #undef LOCK
 #undef UNLOCK
+#undef freeHeap__LD
+#undef allocHeapOrHalt__LD
+#undef allocHeap__LD
