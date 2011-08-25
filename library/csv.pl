@@ -59,8 +59,8 @@ have the same name and arity.
 		    convert:boolean=true,
 		    functor:atom=row,
 		    arity:integer,
-		    match_arity:boolean=true,
-		    row_separator:codes="\r\n").
+		    match_arity:boolean=true).
+
 
 %%	csv_read_file(+File, -Rows) is det.
 %%	csv_read_file(+File, -Rows, +Options) is det.
@@ -98,11 +98,6 @@ csv_read_file(File, Rows, Options) :-
 %	    The comma-separator.  Must be a character code.  Default is
 %	    (of course) the comma. Character codes can be specified
 %	    using the 0' notion. E.g., =|separator(0';)|=.
-%
-%	    * row_separator(+Codes)
-%	    The row separator. Must be a list of character codes.
-%	    Default is "\r\n" as specified by RFC4180. This is used only
-%	    by csv_write_file/3.
 %
 %	    * strip(+Boolean)
 %	    If =true= (default =false=), strip leading and trailing
@@ -242,10 +237,6 @@ separator(Options) -->
 	{ csv_options_separator(Options, Sep) },
 	[Sep].
 
-row_separator(Options) -->
-	{ csv_options_row_separator(Options, Sep) },
-	Sep.
-
 end_of_record --> "\n".
 end_of_record --> "\r\n".
 end_of_record --> eof.			% unterminated last record
@@ -273,8 +264,7 @@ csv_write_file(File, Data, Options) :-
 
 emit_csv([], _) --> [].
 emit_csv([H|T], Options) -->
-	emit_row(H, Options),
-	row_separator(Options),
+	emit_row(H, Options), "\r\n",	% RFC 4180 demands \r\n
 	emit_csv(T, Options).
 
 emit_row(Row, Options) -->
