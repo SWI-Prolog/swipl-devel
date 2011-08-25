@@ -560,11 +560,7 @@ PRED_IMPL("dde_request", 4, dde_request, 0)
     { return dde_warning("access_data");
     }
   } else
-  { const char *errmsg = dde_error_message(-1);
-
-    return PL_unify_term(value,
-			 PL_FUNCTOR, FUNCTOR_error1, /* error(Message) */
-			 PL_CHARS,   errmsg);
+  { return dde_warning("request");
   }
 }
 

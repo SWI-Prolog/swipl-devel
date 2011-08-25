@@ -6967,7 +6967,14 @@ A Windows DDE conversation is a form of interprocess communication
 based on sending reserved window-events between the communicating
 processes.
 
-See also \secref{shlib} for loading Windows DLL's into SWI-Prolog.
+Failing DDE operations raise an error of the structure below, where
+\arg{Operation} is the name of the (partial) operation that failed and
+\arg{Message} is a translation of the operator error code. For some
+errors, \arg{Context} provides additional comments.
+
+\begin{code}
+	error(dde_error(Operation, Message), Context)
+\end{code}
 
 
 \subsection{DDE client interface}
@@ -7006,22 +7013,21 @@ Open a conversation with a server supporting the given service name and
 topic (atoms).  If successful, \arg{Handle} may be used to send
 transactions to the server.  If no willing server is found this
 predicate fails silently.
+
     \predicate{close_dde_conversation}{1}{+Handle}
 Close the conversation associated with \arg{Handle}.  All opened
 conversations should be closed when they're no longer needed, although
 the system will close any that remain open on process termination.
+
     \predicate{dde_request}{3}{+Handle, +Item, -Value}
 Request a value from the server.  \arg{Item} is an atom that identifies
 the requested data, and \arg{Value} will be a string (\const{CF_TEXT} data
 in DDE parlance) representing that data, if the request is successful.
-If unsuccessful, \arg{Value} will be unified with a term of form
-\mbox{\tt error(<Reason>)}, identifying the problem.  This call uses
-SWI-Prolog string objects to return the value rather then atoms to
-reduce the load on the atom-space.  See \secref{strings} for
-a discussion on this data type.
+
     \predicate{dde_execute}{2}{+Handle, +Command}
 Request the DDE server to execute the given command-string.  Succeeds
 if the command could be executed and fails with error message otherwise.
+
     \predicate{dde_poke}{4}{+Handle, +Item, +Command}
 Issue a \const{POKE} command to the server on the specified \arg{Item}.
 Command is passed as data of type \const{CF_TEXT}.
