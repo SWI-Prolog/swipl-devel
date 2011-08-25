@@ -146,7 +146,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TABLE		9
 #define L_BREAK	       10
 #define L_FILE	       11
-#define L_PLFLAG      12
+#define L_PLFLAG       12
 #define L_OP	       13
 #define L_INIT	       14
 #define L_TERM	       15
@@ -154,6 +154,9 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_AGC	       17
 #define L_FOREIGN      18
 #define L_OS	       19
+#ifdef __WINDOWS__
+#define L_DDE	       20
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The IF_MT(id, g) macro  is  used  to   bypass  mutexes  if  threading  is

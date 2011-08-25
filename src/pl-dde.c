@@ -38,7 +38,6 @@
 
 static HCONV conv_handle[MAX_CONVERSATIONS];
 static HCONV server_handle[MAX_CONVERSATIONS];
-static DWORD ddeInst;			/* Instance of this process */
 
 static Module	 MODULE_dde;		/* win_dde */
 static functor_t FUNCTOR_dde_connect3;
@@ -48,12 +47,16 @@ static functor_t FUNCTOR_dde_request4;
 static functor_t FUNCTOR_dde_execute3;
 static functor_t FUNCTOR_error1;
 
+#define LOCK()   PL_LOCK(L_DDE)
+#define UNLOCK() PL_UNLOCK(L_DDE)
+
 static const char *
 dde_error_message(int errn)
-{ const char *err;
+{ GET_LD
+  const char *err;
 
   if ( errn <= 0 )
-    errn = DdeGetLastError(ddeInst);
+    errn = DdeGetLastError(LD->os.dde_instance);
 
   switch(errn)
   { case DMLERR_ADVACKTIMEOUT:
@@ -87,7 +90,7 @@ dde_warning(const char *cmd)
 
 
 static int
-unify_hsz(term_t term, HSZ hsz)
+unify_hsz(DWORD ddeInst, term_t term, HSZ hsz)
 { wchar_t buf[FASTBUFSIZE];
   int len;
 
@@ -152,7 +155,7 @@ unify_hdata(term_t t, HDDEDATA data)
 
 
 static int
-get_hsz(term_t data, HSZ *rval)
+get_hsz(DWORD ddeInst, term_t data, HSZ *rval)
 { wchar_t *s;
   size_t len;
 
@@ -178,15 +181,19 @@ static int
 allocServerHandle(HCONV handle)
 { int i;
 
+  LOCK();
   for(i=0; i<MAX_CONVERSATIONS; i++)
   { if ( !server_handle[i] )
     { server_handle[i] = handle;
-      return i;
+      break;
     }
   }
+  UNLOCK();
+
+  if ( i<MAX_CONVERSATIONS )
+    return i;
 
   PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_max_dde_handles);
-
   return -1;
 }
 
@@ -195,7 +202,7 @@ static int
 findServerHandle(HCONV handle)
 { int i;
 
-  for(i=0; i<MAX_CONVERSATIONS; i++)
+  for(i=0; i<MAX_CONVERSATIONS; i++)		/* can be unlocked */
   { if ( server_handle[i] == handle )
       return i;
   }
@@ -208,6 +215,8 @@ static HDDEDATA CALLBACK
 DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
             HDDEDATA hData, DWORD dwData1, DWORD dwData2)
 { GET_LD
+  DWORD ddeInst = LD->os.dde_instance;
+
   switch(type)
   {  case XTYP_CONNECT:
      { fid_t cid = PL_open_foreign_frame();
@@ -215,8 +224,8 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        predicate_t pred = PL_pred(FUNCTOR_dde_connect3, MODULE_dde);
        int rval;
 
-       if ( unify_hsz(argv+0, hsz2) &&			/* topic */
-	    unify_hsz(argv+1, hsz1) &&			/* service */
+       if ( unify_hsz(ddeInst, argv+0, hsz2) &&		/* topic */
+	    unify_hsz(ddeInst, argv+1, hsz1) &&		/* service */
 	    PL_unify_integer(argv+2, dwData2 ? 1 : 0) )	/* same instance */
        { rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
        } else
@@ -234,8 +243,8 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 term_t argv = PL_new_term_refs(3);
 	 predicate_t pred = PL_pred(FUNCTOR_dde_connect_confirm3, MODULE_dde);
 
-	 if ( unify_hsz(argv+0, hsz2) &&			/* topic */
-	      unify_hsz(argv+1, hsz1) &&			/* service */
+	 if ( unify_hsz(ddeInst, argv+0, hsz2) &&		/* topic */
+	      unify_hsz(ddeInst, argv+1, hsz1) &&		/* service */
 	      PL_unify_integer(argv+2, plhandle) )
 	   PL_call_predicate(MODULE_dde, TRUE, pred, argv);
 
@@ -269,7 +278,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        DEBUG(1, Sdprintf("Got XTYP_EXECUTE request\n"));
 
        PL_put_integer(argv+0, plhandle);
-       unify_hsz(     argv+1, hsz1);
+       unify_hsz(ddeInst, argv+1, hsz1);
        unify_hdata(   argv+2, hData);
        if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
 	 rval = (void *) DDE_FACK;
@@ -287,8 +296,8 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 int plhandle = findServerHandle(hconv);
 
 	 PL_put_integer( argv+0, plhandle);
-	 unify_hsz(	 argv+1, hsz1);	/* topic */
-	 unify_hsz(      argv+2, hsz2);	/* item */
+	 unify_hsz(ddeInst, argv+1, hsz1);	/* topic */
+	 unify_hsz(ddeInst, argv+2, hsz2);	/* item */
 
 	 if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
 	 { wchar_t *s;
@@ -314,22 +323,12 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 }
 
 
-static word
-dde_initialise()
-{ if ( ddeInst == (DWORD)NULL )
-  { if (DdeInitializeW(&ddeInst, (PFNCALLBACK)DdeCallback,
-		       APPCLASS_STANDARD|CBF_FAIL_ADVISES|CBF_FAIL_POKES|
-		       CBF_SKIP_REGISTRATIONS|CBF_SKIP_UNREGISTRATIONS,
-		       0L)
-	!= DMLERR_NO_ERROR)
-    { ddeInst = (DWORD) -1;
-      return dde_warning("initialise");
-    }
+static void
+dde_init_constants(void)
+{ static int done = FALSE;
 
-    DEBUG(1, Sdprintf("Thread %d: created ddeInst %d\n",
-		      PL_thread_self(), ddeInst));
-
-    MODULE_dde = lookupModule(PL_new_atom("win_dde"));
+  if ( !done )				/* no worries if this happens twice */
+  { MODULE_dde = lookupModule(PL_new_atom("win_dde"));
 
     FUNCTOR_dde_connect3  =
 	lookupFunctorDef(PL_new_atom("$dde_connect"), 3);
@@ -343,9 +342,50 @@ dde_initialise()
 	lookupFunctorDef(PL_new_atom("$dde_execute"), 3);
     FUNCTOR_error1        =
         lookupFunctorDef(ATOM_error, 1);
+
+    done = TRUE;
+  }
+}
+
+static void
+dde_uninitialise(void *closure)
+{ GET_LD
+  DWORD ddeInst;
+
+  if ( (ddeInst=LD->os.dde_instance) )
+  { LD->os.dde_instance = NULL;
+
+    DdeUninitialize(ddeInst);
+  }
+}
+
+
+static DWORD
+dde_initialise(void)
+{ GET_LD
+  DWORD ddeInst;
+
+  dde_init_constants();
+
+  if ( !(ddeInst=LD->os.dde_instance) )
+  { if ( DdeInitializeW(&ddeInst, (PFNCALLBACK)DdeCallback,
+			APPCLASS_STANDARD|CBF_FAIL_ADVISES|CBF_FAIL_POKES|
+			CBF_SKIP_REGISTRATIONS|CBF_SKIP_UNREGISTRATIONS,
+			0L) == DMLERR_NO_ERROR)
+    { LD->os.dde_instance = ddeInst;
+#ifdef O_PLMT
+      PL_thread_at_exit(dde_uninitialise, NULL, FALSE);
+#endif
+    } else
+    { dde_warning("initialise");
+    }
+
+    DEBUG(1, Sdprintf("Thread %d: created ddeInst %d\n",
+		      PL_thread_self(), ddeInst));
+
   }
 
-  succeed;
+  return ddeInst;
 }
 
 
@@ -353,13 +393,14 @@ static
 PRED_IMPL("$dde_register_service", 2, dde_register_service, 0)
 { HSZ t;
   int a;
+  DWORD ddeInst;
 
   term_t topic = A1;
   term_t onoff = A2;
 
-  if ( !dde_initialise() )
+  if ( !(ddeInst=dde_initialise()) )
     return FALSE;
-  if ( !get_hsz(topic, &t) )
+  if ( !get_hsz(ddeInst, topic, &t) )
     fail;
   if ( !PL_get_bool(onoff, &a) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, onoff);
@@ -383,25 +424,30 @@ PRED_IMPL("open_dde_conversation", 3, open_dde_conversation, 0)
   UINT i;
   HSZ Hservice = 0, Htopic = 0;
   int rc = TRUE;
+  DWORD ddeInst;
 
   term_t service = A1;
   term_t topic   = A2;
   term_t handle  = A3;
 
-  if ( !dde_initialise() )
+  if ( !(ddeInst=dde_initialise()) )
     fail;
 
-  if ( !get_hsz(service, &Hservice) ||
-       !get_hsz(topic, &Htopic) )
+  if ( !get_hsz(ddeInst, service, &Hservice) ||
+       !get_hsz(ddeInst, topic, &Htopic) )
   { rc = FALSE;
     goto out;
   }
 
   /* Establish a connection and get a handle for it */
+  LOCK();
   for (i=0; i < MAX_CONVERSATIONS; i++)   /* Find an open slot */
   { if (conv_handle[i] == (HCONV)NULL)
+    { conv_handle[i] = (HCONV)~0;
       break;
+    }
   }
+  UNLOCK();
   if (i == MAX_CONVERSATIONS)
   { rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_max_dde_handles);
     goto out;
@@ -472,14 +518,18 @@ PRED_IMPL("dde_request", 4, dde_request, 0)
   long tmo;
   static UINT fmt[] = {CF_UNICODETEXT, CF_TEXT};
   int fmti;
+  DWORD ddeInst;
 
   term_t handle  = A1;
   term_t item    = A2;
   term_t value   = A3;
   term_t timeout = A4;
 
+  if ( !(ddeInst=dde_initialise()) )
+    return FALSE;
+
   if ( !get_conv_handle(handle, &hdl) ||
-       !get_hsz(item, &Hitem) ||
+       !get_hsz(ddeInst, item, &Hitem) ||
        !PL_get_long_ex(timeout, &tmo) )
     fail;
 
@@ -526,13 +576,15 @@ PRED_IMPL("dde_execute", 3, dde_execute, 0)
   size_t cmdlen;
   HDDEDATA Hvalue, data;
   DWORD result;
+  DWORD ddeInst;
   long tmo;
 
   term_t handle  = A1;
   term_t command = A2;
   term_t timeout = A3;
 
-  if ( !get_conv_handle(handle, &hdl) ||
+  if ( !(ddeInst=dde_initialise()) ||
+       !get_conv_handle(handle, &hdl) ||
        !PL_get_wchars(command, &cmdlen, &cmdstr, CVT_ALL|CVT_EXCEPTION) ||
        !PL_get_long_ex(timeout, &tmo) )
     fail;
@@ -564,14 +616,16 @@ PRED_IMPL("dde_poke", 4, dde_poke, 0)
   HDDEDATA Hvalue;
   HSZ Hitem;
   long tmo;
+  DWORD ddeInst;
 
   term_t handle  = A1;
   term_t item    = A2;
   term_t data    = A3;
   term_t timeout = A4;
 
-  if ( !get_conv_handle(handle, &hdl) ||
-       !get_hsz(item, &Hitem) )
+  if ( !(ddeInst=dde_initialise()) ||
+       !get_conv_handle(handle, &hdl) ||
+       !get_hsz(ddeInst, item, &Hitem) )
     fail;
   if ( !PL_get_wchars(data, &datalen, &datastr, CVT_ALL|CVT_EXCEPTION) )
     fail;
