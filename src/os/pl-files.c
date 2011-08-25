@@ -542,7 +542,8 @@ PRED_IMPL("time_file", 2, time_file, 0)
 
 static
 PRED_IMPL("size_file", 2, size_file, 0)
-{ char *n;
+{ PRED_LD
+  char *n;
 
   if ( PL_get_file_name(A1, &n, 0) )
   { int64_t size;

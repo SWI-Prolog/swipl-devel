@@ -1527,23 +1527,23 @@ Sunit_size(IOSTREAM *s)
 Return the size of the underlying data object.  Should be optimized;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-long
+int64_t
 Ssize(IOSTREAM *s)
 { if ( s->functions->control )
-  { long size;
+  { int64_t size;
 
     if ( (*s->functions->control)(s->handle, SIO_GETSIZE, (void *)&size) == 0 )
       return size;
   }
   if ( s->functions->seek )
-  { long here = Stell(s);
-    long end;
+  { int64_t here = Stell64(s);
+    int64_t end;
 
-    if ( Sseek(s, 0, SIO_SEEK_END) == 0 )
-      end = Stell(s);
+    if ( Sseek64(s, 0, SIO_SEEK_END) == 0 )
+      end = Stell64(s);
     else
       end = -1;
-    Sseek(s, here, SIO_SEEK_SET);
+    Sseek64(s, here, SIO_SEEK_SET);
 
     return end;
   }
@@ -2648,7 +2648,7 @@ Scontrol_file(void *handle, int action, void *arg)
 
   switch(action)
   { case SIO_GETSIZE:
-    { intptr_t *rval = arg;
+    { int64_t *rval = arg;
       struct stat buf;
 
       if ( fstat(fd, &buf) == 0 )

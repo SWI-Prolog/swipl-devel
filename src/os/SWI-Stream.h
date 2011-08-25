@@ -376,7 +376,7 @@ PL_EXPORT(void)		Sset_exception(IOSTREAM *s, intptr_t ex);
 #endif
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
-PL_EXPORT(long)		Ssize(IOSTREAM *s);
+PL_EXPORT(int64_t)	Ssize(IOSTREAM *s);
 PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence);
 PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);

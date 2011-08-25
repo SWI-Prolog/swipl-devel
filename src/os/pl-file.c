@@ -2935,11 +2935,9 @@ openStream(term_t file, term_t mode, term_t options)
   { if ( mname == ATOM_write )
     { *h++ = 'w';
     } else if ( mname == ATOM_append )
-    { bom = FALSE;
-      *h++ = 'a';
+    { *h++ = 'a';
     } else if ( mname == ATOM_update )
-    { bom = FALSE;
-      *h++ = 'u';
+    { *h++ = 'u';
     } else if ( mname == ATOM_read )
     { *h++ = 'r';
     } else
@@ -3068,8 +3066,12 @@ openStream(term_t file, term_t mode, term_t options)
 	return NULL;
       }
     } else
-    { if ( SwriteBOM(s) < 0 )
-	goto bom_error;
+    { if ( mname == ATOM_write ||
+	   ( (mname == ATOM_append || mname == ATOM_update) &&
+	     Ssize(s) == 0 ) )
+      { if ( SwriteBOM(s) < 0 )
+	  goto bom_error;
+      }
     }
   }
 
@@ -4228,7 +4230,8 @@ PRED_IMPL("current_output", 1, current_output, PL_FA_ISO)
 
 static
 PRED_IMPL("byte_count", 2, byte_count, 0)
-{ IOSTREAM *s;
+{ PRED_LD
+  IOSTREAM *s;
 
   if ( getStreamWithPosition(A1, &s) )
   { int64_t n = s->position->byteno;
@@ -4243,7 +4246,8 @@ PRED_IMPL("byte_count", 2, byte_count, 0)
 
 static
 PRED_IMPL("character_count", 2, character_count, 0)
-{ IOSTREAM *s;
+{ PRED_LD
+  IOSTREAM *s;
 
   if ( getStreamWithPosition(A1, &s) )
   { int64_t n = s->position->charno;
@@ -4553,7 +4557,7 @@ PRED_IMPL("$size_stream", 2, size_stream, 0)
   if ( !PL_get_stream_handle(A1, &s) )
     return FALSE;
 
-  rval = PL_unify_integer(A2, Ssize(s));
+  rval = PL_unify_int64(A2, Ssize(s));
   PL_release_stream(s);
 
   return rval;
