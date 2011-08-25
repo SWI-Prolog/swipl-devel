@@ -142,8 +142,8 @@ PlMessage(const char *fm, ...)
 		 *	WinAPI ERROR CODES	*
 		 *******************************/
 
-char *
-WinError()
+const char *
+WinError(void)
 { int id = GetLastError();
   char *msg;
   static WORD lang;
@@ -630,7 +630,7 @@ need. They are used  by  pl-load.c,   which  defines  the  actual Prolog
 interface.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *dlmsg;
+static const char *dlmsg;
 
 void *
 dlopen(const char *file, int flags)	/* file is in UTF-8 */

@@ -707,6 +707,7 @@ COMMON(void *)		dlsym(void *handle, char *symbol);
 COMMON(int)		dlclose(void *handle);
 #endif /*EMULATE_DLOPEN*/
 COMMON(void)		getDefaultsFromRegistry(void);
+COMMON(const char*)	WinError(void);
 
 /* pl-rc.c */
 COMMON(IOSTREAM *)       SopenRC(void *rca,
