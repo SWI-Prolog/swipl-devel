@@ -2935,11 +2935,9 @@ openStream(term_t file, term_t mode, term_t options)
   { if ( mname == ATOM_write )
     { *h++ = 'w';
     } else if ( mname == ATOM_append )
-    { bom = FALSE;
-      *h++ = 'a';
+    { *h++ = 'a';
     } else if ( mname == ATOM_update )
-    { bom = FALSE;
-      *h++ = 'u';
+    { *h++ = 'u';
     } else if ( mname == ATOM_read )
     { *h++ = 'r';
     } else
@@ -3068,8 +3066,12 @@ openStream(term_t file, term_t mode, term_t options)
 	return NULL;
       }
     } else
-    { if ( SwriteBOM(s) < 0 )
-	goto bom_error;
+    { if ( mname == ATOM_write ||
+	   ( (mname == ATOM_append || mname == ATOM_update) &&
+	     Ssize(s) == 0 ) )
+      { if ( SwriteBOM(s) < 0 )
+	  goto bom_error;
+      }
     }
   }
 
