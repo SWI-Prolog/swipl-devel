@@ -60,6 +60,7 @@
 #define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
 #define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
+#define PL_unify_int64(t, i)	PL_unify_int64__LD(t, i PASS_LD)
 #define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
 #define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
 #define PL_put_variable(t)	PL_put_variable__LD(t PASS_LD)

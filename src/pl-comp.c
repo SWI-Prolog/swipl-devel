@@ -4881,7 +4881,8 @@ instruction.
 
 static
 PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
-{ Clause clause = NULL;
+{ PRED_LD
+  Clause clause = NULL;
   Procedure proc = NULL;
   size_t len;
   intptr_t pcoffset;

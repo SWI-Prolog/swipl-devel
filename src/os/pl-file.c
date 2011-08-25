@@ -4230,7 +4230,8 @@ PRED_IMPL("current_output", 1, current_output, PL_FA_ISO)
 
 static
 PRED_IMPL("byte_count", 2, byte_count, 0)
-{ IOSTREAM *s;
+{ PRED_LD
+  IOSTREAM *s;
 
   if ( getStreamWithPosition(A1, &s) )
   { int64_t n = s->position->byteno;
@@ -4245,7 +4246,8 @@ PRED_IMPL("byte_count", 2, byte_count, 0)
 
 static
 PRED_IMPL("character_count", 2, character_count, 0)
-{ IOSTREAM *s;
+{ PRED_LD
+  IOSTREAM *s;
 
   if ( getStreamWithPosition(A1, &s) )
   { int64_t n = s->position->charno;

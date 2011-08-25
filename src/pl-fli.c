@@ -2624,6 +2624,12 @@ PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
 
 
 int
+PL_unify_int64__LD(term_t t, int64_t i ARG_LD)
+{ return unify_int64_ex__LD(t, i, FALSE PASS_LD);
+}
+
+
+int
 PL_unify_integer__LD(term_t t, intptr_t i ARG_LD)
 { return unify_int64_ex__LD(t, i, FALSE PASS_LD);
 }
@@ -2637,14 +2643,14 @@ PL_unify_integer(term_t t, intptr_t i)
 }
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
 
-
+#undef PL_unify_int64
 int
 PL_unify_int64(term_t t, int64_t i)
 { GET_LD
 
   return unify_int64_ex__LD(t, i, FALSE PASS_LD);
 }
-
+#define PL_unify_int64(t, i)	PL_unify_int64__LD(t, i PASS_LD)
 
 int
 PL_unify_pointer__LD(term_t t, void *ptr ARG_LD)
