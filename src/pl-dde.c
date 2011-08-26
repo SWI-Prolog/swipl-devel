@@ -160,13 +160,14 @@ get_hsz(DWORD ddeInst, term_t data, HSZ *rval)
   size_t len;
 
   if ( PL_get_wchars(data, &len, &s, CVT_ALL|CVT_EXCEPTION) )
-  { HSZ h = DdeCreateStringHandleW(ddeInst, s, CP_WINUNICODE);
+  { HSZ h;
 
-    if ( s[len] )
-      Sdprintf("OOPS, s[%d] != 0\n", len);
+    assert(s[len] == 0);			/* Must be 0-terminated */
 
-    if ( h )
-    { *rval = h;
+    DEBUG(2, Sdprintf("Get HSZ for %Ws ...\n", s));
+    if ( (h=DdeCreateStringHandleW(ddeInst, s, CP_WINUNICODE)) )
+    { DEBUG(2, Sdprintf("\tHSZ = %d\n", (int)h));
+      *rval = h;
       succeed;
     }
 
@@ -353,7 +354,7 @@ dde_uninitialise(void *closure)
   DWORD ddeInst;
 
   if ( (ddeInst=LD->os.dde_instance) )
-  { LD->os.dde_instance = NULL;
+  { LD->os.dde_instance = 0;
 
     DdeUninitialize(ddeInst);
   }
@@ -441,9 +442,9 @@ PRED_IMPL("open_dde_conversation", 3, open_dde_conversation, 0)
 
   /* Establish a connection and get a handle for it */
   LOCK();
-  for (i=0; i < MAX_CONVERSATIONS; i++)   /* Find an open slot */
+  for (i=0; i < MAX_CONVERSATIONS; i++)		/* Find an open slot */
   { if (conv_handle[i] == (HCONV)NULL)
-    { conv_handle[i] = (HCONV)~0;
+    { conv_handle[i] = (HCONV)~0;		/* reserve it */
       break;
     }
   }
