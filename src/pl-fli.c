@@ -3568,7 +3568,7 @@ notify_registered_foreign(functor_t fd, Module m)
 }
 
 
-static bool
+static predicate_t
 bindForeign(Module m, const char *name, int arity, Func f, int flags)
 { GET_LD
   Procedure proc;
@@ -3585,7 +3585,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   if ( true(def, LOCKED) && !SYSTEM_MODE )
   { warning("PL_register_foreign: attempt to redefine a system predicate: %s",
 	    procedureName(proc));
-    fail;
+    return NULL;
   }
 
   if ( def->definition.function )
@@ -3611,7 +3611,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   createForeignSupervisor(def, f);
   notify_registered_foreign(fdef, m);
 
-  succeed;
+  return proc;
 }
 
 
@@ -3654,12 +3654,18 @@ PL_register_extensions(const PL_extension *e)
 }
 
 
-int
-PL_register_foreign_in_module(const char *module,
-			      const char *name, int arity, Func f, int flags)
+static int
+register_foreignv(const char *module,
+		  const char *name, int arity, Func f, int flags,
+		  va_list args)
 { if ( extensions_loaded )
   { Module m = resolveModule(module);
-    return bindForeign(m, name, arity, f, flags);
+    predicate_t p = bindForeign(m, name, arity, f, flags);
+
+    if ( p && (flags&PL_FA_META) )
+      PL_meta_predicate(p, va_arg(args, char*));
+
+    return (p != NULL);
   } else
   { PL_extension ext[2];
     ext->predicate_name = (char *)name;
@@ -3675,8 +3681,29 @@ PL_register_foreign_in_module(const char *module,
 
 
 int
-PL_register_foreign(const char *name, int arity, Func f, int flags)
-{ return PL_register_foreign_in_module(NULL, name, arity, f, flags);
+PL_register_foreign_in_module(const char *module,
+			      const char *name, int arity, Func f, int flags, ...)
+{ va_list args;
+  int rc;
+
+  va_start(args, flags);
+  rc = register_foreignv(module, name, arity, f, flags, args);
+  va_end(args);
+
+  return rc;
+}
+
+
+int
+PL_register_foreign(const char *name, int arity, Func f, int flags, ...)
+{ va_list args;
+  int rc;
+
+  va_start(args, flags);
+  rc = register_foreignv(NULL, name, arity, f, flags, args);
+  va_end(args);
+
+  return rc;
 }
 
 		    /* deprecated */

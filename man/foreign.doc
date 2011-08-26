@@ -2586,7 +2586,7 @@ The  options are given in \tabref{query}.
 \cfunction{int}{PL_register_foreign_in_module}{const char *module,
 					       const char *name, int arity,
 					       foreign_t (*function)(),
-					       int flags}
+					       int flags, ...}
 Register a C-function to implement a Prolog predicate. After this call
 returns successfully a predicate with name \arg{name} (a char *) and
 arity \arg{arity} (a C int) is created in module \arg{module}.  If
@@ -2599,13 +2599,25 @@ forms bitwise or'ed list of options for the installation. These are:
 
 \begin{tabular}{|p{\tableft}|p{3.5in}|}
 \hline
-\const{PL_FA_NOTRACE}          & Predicate cannot be seen in the tracer \\
-\const{PL_FA_TRANSPARENT}      & Predicate is module transparent \\
+\const{PL_FA_META}	       & Provide meta-predicate info (see below) \\
+\const{PL_FA_TRANSPARENT}      & Predicate is module transparent (deprecated) \\
 \const{PL_FA_NONDETERMINISTIC} & Predicate is non-deterministic.
                                  See also PL_retry(). \\
+\const{PL_FA_NOTRACE}          & Predicate cannot be seen in the tracer \\
 \const{PL_FA_VARARGS}	       & Use alternative calling convention. \\
 \hline
 \end{tabular}
+
+If \const{PL_FA_META} is provided, PL_register_foreign_in_module() takes
+one extra argument. This argument is of type \ctype{const char*}. This
+string must be exactly as long as the number of arguments of the
+predicate and filled with characters from the set \verb$0-9:^-+?$. See
+meta_predicate/1 for details. \const{PL_FA_TRANSPARENT} is implied if at
+least one meta-argument is provided (\verb$0-9:^$). Note that
+meta-arguments are \emph{not always} passed as <module>:<term>. Always
+use PL_strip_module() to extract the module and plain term from a
+meta-argument.\footnote{It is encouraged to pass an additional \const{NULL}
+pointer for non-meta-predicates.}
 
 Predicates may be registered either before or after PL_initialise().
 When registered before initialisation the registration is recorded and
@@ -2648,7 +2660,8 @@ install()
 \end{code}
 
 \cfunction{int}{PL_register_foreign}{const char *name, int arity,
-				     foreign_t (*function)(), int flags}
+				     foreign_t (*function)(),
+				     int flags, ...}
 Same as PL_register_foreign_in_module(), passing \const{NULL} for the
 \arg{module}.
 

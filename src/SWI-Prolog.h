@@ -280,15 +280,18 @@ typedef struct PL_extension
 #define PL_FA_VARARGS		(0x08)	/* call using t0, ac, ctx */
 #define PL_FA_CREF		(0x10)	/* Internal: has clause-reference */
 #define PL_FA_ISO		(0x20)	/* Internal: ISO core predicate */
+#define PL_FA_META		(0x40)	/* Additional meta-argument spec */
 
 extern			PL_extension PL_extensions[]; /* not Win32! */
 PL_EXPORT(void)		PL_register_extensions(const PL_extension *e);
 PL_EXPORT(void)		PL_register_extensions_in_module(const char *module, const PL_extension *e);
 PL_EXPORT(int)		PL_register_foreign(const char *name, int arity,
-					    pl_function_t func, int flags);
+					    pl_function_t func,
+					    int flags, ...);
 PL_EXPORT(int)		PL_register_foreign_in_module(const char *module,
 						      const char *name, int arity,
-						      pl_function_t func, int flags);
+						      pl_function_t func,
+						      int flags, ...);
 PL_EXPORT(void)		PL_load_extensions(const PL_extension *e);
 
 		 /*******************************
