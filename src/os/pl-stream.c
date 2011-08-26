@@ -1882,11 +1882,21 @@ Svprintf(const char *fm, va_list args)
 }
 
 
-#define NEXTCHR(s, c)	if ( utf8 ) \
-			{ (s) = utf8_get_char((s), &(c)); \
-			} else \
-			{ c = *(s)++; c &= 0xff; \
-			}
+#define NEXTCHR(s, c)				\
+	switch (enc)				\
+	{ case ENC_ANSI:			\
+	    c = *(s)++; c &= 0xff;		\
+	    break;				\
+	  case ENC_UTF8:			\
+	    (s) = utf8_get_char((s), &(c));	\
+	    break;				\
+	  case ENC_WCHAR:			\
+	  { wchar_t *_w = (wchar_t*)(s);			\
+	    c = *_w++;				\
+	    (s) = (char*)_w;			\
+	    break;				\
+	  }					\
+	}
 
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
@@ -1948,7 +1958,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	char fbuf[100], *fs = fbuf, *fe = fbuf;
 	int islong = 0;
 	int pad = ' ';
-	int utf8 = FALSE;
+	IOENC enc = ENC_ANSI;
 
 	for(;;)
 	{ switch(*fm)
@@ -1989,13 +1999,19 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	{ islong++;			/* 1: %ld */
 	  fm++;
 	}
-	if ( *fm == 'l' )
-	{ islong++;			/* 2: %lld */
-	  fm++;
-	}
-	if ( *fm == 'U' )		/* %Us: UTF-8 string */
-	{ utf8 = TRUE;
-	  fm++;
+	switch ( *fm )
+	{ case 'l':
+	    islong++;			/* 2: %lld */
+	    fm++;
+	    break;
+	  case 'U':			/* %Us: UTF-8 string */
+	    enc = ENC_UTF8;
+	    fm++;
+	    break;
+	  case 'W':			/* %Ws: wide string */
+	    enc = ENC_WCHAR;
+	    fm++;
+	    break;
 	}
 
 	switch(*fm)
@@ -2114,12 +2130,21 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  { size_t w;
 
 	    if ( fs == fbuf )
-	      w = fe - fs;
-	    else
-	      w = strlen(fs);
-
-	    if ( utf8 )
-	      w = utf8_strlen(fs, w);
+	    { w = fe - fs;
+	    } else
+	    { switch(enc)
+	      { case ENC_ANSI:
+		  w = strlen(fs);
+		  break;
+		case ENC_UTF8:
+		  w = strlen(fs);
+		  w = utf8_strlen(fs, w);
+		  break;
+		case ENC_WCHAR:
+		  w = wcslen((wchar_t*)fs);
+		  break;
+	      }
+	    }
 
 	    if ( (ssize_t)w < arg1 )
 	    { w = arg1 - w;
