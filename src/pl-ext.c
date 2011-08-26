@@ -474,22 +474,22 @@ initBuildIns(void)
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
   set(PROCEDURE_dcall1->definition, DYNAMIC|SYSTEM);
 
-  PL_meta_predicate(PL_predicate("assert",         1, "system"), MA_META);
-  PL_meta_predicate(PL_predicate("asserta",        1, "system"), MA_META);
-  PL_meta_predicate(PL_predicate("assertz",        1, "system"), MA_META);
-  PL_meta_predicate(PL_predicate("assert",         2, "system"), MA_META, MA_VAR);
-  PL_meta_predicate(PL_predicate("asserta",        2, "system"), MA_META, MA_VAR);
-  PL_meta_predicate(PL_predicate("assertz",        2, "system"), MA_META, MA_VAR);
-  PL_meta_predicate(PL_predicate("retract",        1, "system"), MA_META);
-  PL_meta_predicate(PL_predicate("retractall",     1, "system"), MA_META);
+  PL_meta_predicate(PL_predicate("assert",         1, "system"), ":");
+  PL_meta_predicate(PL_predicate("asserta",        1, "system"), ":");
+  PL_meta_predicate(PL_predicate("assertz",        1, "system"), ":");
+  PL_meta_predicate(PL_predicate("assert",         2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("asserta",        2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("assertz",        2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("retract",        1, "system"), ":");
+  PL_meta_predicate(PL_predicate("retractall",     1, "system"), ":");
 
-  PL_meta_predicate(PL_predicate("notrace",        1, "system"), 0);
-  PL_meta_predicate(PL_predicate("with_mutex",     2, "system"), MA_NONVAR, 0);
-  PL_meta_predicate(PL_predicate("with_output_to", 2, "system"), MA_NONVAR, 0);
+  PL_meta_predicate(PL_predicate("notrace",        1, "system"), "0");
+  PL_meta_predicate(PL_predicate("with_mutex",     2, "system"), "+0");
+  PL_meta_predicate(PL_predicate("with_output_to", 2, "system"), "+0");
 #ifdef O_PLMT
-  PL_meta_predicate(PL_predicate("thread_create",  3, "system"), 0, MA_ANY, MA_NONVAR);
-  PL_meta_predicate(PL_predicate("thread_at_exit", 1, "system"), 0);
-  PL_meta_predicate(PL_predicate("thread_signal",  2, "system"), MA_NONVAR, 0);
+  PL_meta_predicate(PL_predicate("thread_create",  3, "system"), "0?+");
+  PL_meta_predicate(PL_predicate("thread_at_exit", 1, "system"), "0");
+  PL_meta_predicate(PL_predicate("thread_signal",  2, "system"), "+0");
 #endif
 
   for( ecell = ext_head; ecell; ecell = ecell->next )

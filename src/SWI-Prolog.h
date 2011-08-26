@@ -291,7 +291,6 @@ PL_EXPORT(int)		PL_register_foreign_in_module(const char *module,
 						      pl_function_t func, int flags);
 PL_EXPORT(void)		PL_load_extensions(const PL_extension *e);
 
-
 		 /*******************************
 		 *	      LICENSE		*
 		 *******************************/

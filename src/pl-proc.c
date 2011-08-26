@@ -1436,32 +1436,46 @@ unify_meta_pattern(Procedure proc, term_t head)
 
 
 int
-PL_meta_predicate(predicate_t proc, ...)
-{ va_list args;
-  Definition def = proc->definition;
+PL_meta_predicate(predicate_t proc, const char *spec_s)
+{ Definition def = proc->definition;
   int arity = def->functor->arity;
   int i;
   int mask = 0;
   int transparent = FALSE;
 
-  va_start(args, proc);
   for(i=0; i<arity; i++)
-  { int spec = va_arg(args, int);
+  { int spec_c = spec_s[i]&0xff;
+    int spec;
 
-    if ( (spec >= 0 && spec <= 9) ||
-	 spec == MA_NONVAR ||
-	 spec == MA_VAR ||
-	 spec == MA_ANY ||
-	 spec == MA_META )
-    { mask |= spec<<(i*4);
-      if ( spec < 10 || spec == MA_META || spec == MA_HAT )
-	transparent = TRUE;
-    } else
-    { fatalError("Invalid meta-argument\n");
-      return FALSE;
+    switch(spec_c)
+    { case '+':
+	spec = MA_NONVAR;
+        break;
+      case '-':
+	spec = MA_VAR;
+        break;
+      case '?':
+	spec = MA_ANY;
+        break;
+      case ':':
+	spec = MA_META;
+        break;
+      case '^':
+	spec = MA_HAT;
+        break;
+      default:
+	if ( spec_c >= '0' && spec_c <= '9' )
+	{ spec = spec_c - '0';
+	  break;
+	}
+        fatalError("Invalid meta-argument\n");
+	return FALSE;
     }
+
+    mask |= spec<<(i*4);
+    if ( spec < 10 || spec == MA_META || spec == MA_HAT )
+      transparent = TRUE;
   }
-  va_end(args);
 
   def->meta_info = mask;
   if ( transparent )
