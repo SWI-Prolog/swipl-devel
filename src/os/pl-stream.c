@@ -1891,11 +1891,13 @@ Svprintf(const char *fm, va_list args)
 	    (s) = utf8_get_char((s), &(c));	\
 	    break;				\
 	  case ENC_WCHAR:			\
-	  { wchar_t *_w = (wchar_t*)(s);			\
+	  { wchar_t *_w = (wchar_t*)(s);	\
 	    c = *_w++;				\
 	    (s) = (char*)_w;			\
 	    break;				\
 	  }					\
+	  default:				\
+	    break;				\
 	}
 
 #define OUTCHR(s, c)	do { printed++; \
@@ -2142,6 +2144,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 		  break;
 		case ENC_WCHAR:
 		  w = wcslen((wchar_t*)fs);
+		  break;
+		default:
+		  assert(0);
+		  w = 0;		/* make compiler happy */
 		  break;
 	      }
 	    }
