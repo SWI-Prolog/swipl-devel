@@ -4113,7 +4113,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 )
             ;   fd_get(Y, _, YL, YU, _),
                 fd_get(Z, ZD, ZL, ZU, ZPs),
-                (   X > 0, YL cis_gt n(0) ->
+                (   X > 0, YL cis_geq n(0) ->
                     NZL cis n(X)^YL,
                     NZU cis n(X)^YU,
                     domains_intersection(ZD, from_to(NZL,NZU), NZD),
