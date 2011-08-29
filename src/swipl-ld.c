@@ -257,6 +257,7 @@ static char *ctmp;			/* base executable */
 static char *pltmp;			/* base saved state */
 static char *out;			/* final output */
 static int  opt_o=FALSE;		/* -o out given */
+static int  opt_E=FALSE;		/* -E given */
 
 static int build_defaults = FALSE;	/* don't ask Prolog for parameters*/
 
@@ -644,7 +645,6 @@ usage()
 #if defined(HOST_OS_WINDOWS)
 	  "       %s -dll -o out inputfile ...\n"
 #endif
-	  "       %s -E cppargument ...\n"
 	  "\n"
 	  "options:\n"
 	  "       -o out           define output file\n"
@@ -660,6 +660,8 @@ usage()
 	  "       -c++ compiler    compiler for C++ source files\n"
 	  "\n"
 	  "       -c               only compile C/C++ files, do not link\n"
+	  "       -S               emit assembler, do not link\n"
+	  "       -E               only run preprocessor, do not link\n"
           "       -build-defaults  use default parameters, don't ask Prolog\n"
 	  "       -nostate         just relink the kernel\n"
 	  "       -shared          create target for load_foreign_library/2\n"
@@ -691,8 +693,8 @@ usage()
 	  "       -llib            library (C/C++)\n",
 	plld,
         plld,
-        plld,
 #if defined(HOST_OS_WINDOWS)
+        plld,
         plld,
 #endif
         plld);
@@ -723,6 +725,11 @@ parseOptions(int argc, char **argv)
     { nolink++;
     } else if ( streq(opt, "-S") )		/* -S */
     { nolink++;
+      appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
+    } else if ( streq(opt, "-E") )		/* -E */
+    { nolink++;
+      opt_E = TRUE;
       appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
     } else if ( streq(opt, "-g") )		/* -g */
@@ -1165,7 +1172,8 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
       strcpy(ext, EXT_OBJ);
   }
 
-  prependArgList(args, "-c");
+  if ( !opt_E )
+    prependArgList(args, "-c");
 #if defined(HOST_OS_WINDOWS)
   appendArgList(args, "-D__WINDOWS__");
   appendArgList(args, "-D_WINDOWS");
@@ -1175,8 +1183,10 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
     appendArgList(args, "-D__SWI_EMBEDDED__");
   concatArgList(args, "-I", &includedirs);
 
-  appendArgList(args, "-o");
-  appendArgList(args, ofile);
+  if ( opt_o || !opt_E )
+  { appendArgList(args, "-o");
+    appendArgList(args, ofile);
+  }
   appendArgList(args, cfile);
 
   callprog(compiler, args);
@@ -1594,19 +1604,6 @@ main(int argc, char **argv)
     special = 2;
   else
     special = 0;
-					/* swipl-ld [-pl x] -E ...: behave as cpp */
-  if ( argc-special > 0 && streq(argv[special], "-E") )
-  { arglist cppoptions;
-    int i;
-
-    memset(&cppoptions, 0, sizeof(cppoptions));
-    for(i=special+1 ; i < argc; i++)
-      appendArgList(&cppoptions, argv[i]);
-
-    callprog(PROG_CPP, &cppoptions);
-
-    return 0;
-  }
 					  /* swipl-ld [-pl x] -v: verbose */
   if ( argc-special == 1 && streq(argv[special], "-v") )
   { arglist coptions;
