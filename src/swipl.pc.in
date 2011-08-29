@@ -11,8 +11,8 @@ PLCFLAGS=@CMFLAGS@ @CIFLAGS@
 PLLDFLAGS=@LDFLAGS@
 PLSOEXT=@SO_EXT@
 
-Name: pl
+Name: swipl
 Description: ISO/Edinburgh-style Prolog compiler
 Version: @PLVERSION@
 Libs: -L${libdir}/@PL@-@PLVERSION@/lib/@PLARCH@ -lswipl
-Cflags: -I${includedir}
+Cflags: -I${libdir}/@PL@-@PLVERSION@/include
