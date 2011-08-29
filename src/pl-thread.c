@@ -3096,7 +3096,7 @@ message_queue_size_property(message_queue *q, term_t prop ARG_LD)
 static int			/* message_queue_property(Queue, max_size(Size)) */
 message_queue_max_size_property(message_queue *q, term_t prop ARG_LD)
 { if ( q->max_size > 0 )
-    return PL_unify_integer(prop, q->size);
+    return PL_unify_integer(prop, q->max_size);
 
   fail;
 }
