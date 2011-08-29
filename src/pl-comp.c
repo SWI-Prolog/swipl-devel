@@ -4725,7 +4725,15 @@ unify_vmi(term_t t, Clause clause, Code bp)
   int rc;
 
   if ( op == D_BREAK )
+  { term_t t2 = PL_new_term_ref();
+
+    if ( !PL_unify_functor(t, FUNCTOR_break1) ||
+	 !PL_get_arg(1, t, t2) )
+      return NULL;
+    t = t2;
+
     op = decode(replacedBreak(bp));
+  }
 
   ci = &codeTable[op];
   bp++;					/* skip the instruction */

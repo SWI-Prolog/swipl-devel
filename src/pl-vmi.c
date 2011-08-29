@@ -140,6 +140,7 @@ VMI(D_BREAK, 0, 0, ())
   if ( debugstatus.debugging )
   { debugstatus.tracing = TRUE;		/* HACK: avoid printMessage() */
     tracemode(TRUE, NULL);		/* in tracemode() */
+    DEBUG(1, Sdprintf("Hit break\n"));
   }
 #if VMCODE_IS_ADDRESS
   { void *c = (void *)replacedBreak(PC-1);
