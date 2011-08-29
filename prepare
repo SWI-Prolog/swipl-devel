@@ -277,6 +277,18 @@ confdir()
 }
 
 
+is_mingw()
+{ case `uname` in
+    MINGW*)
+       return 0
+       ;;
+    *)
+       return 1
+       ;;
+  esac
+}
+
+
 if findexe autoconf; then
   for f in `find . -name configure.in`; do
     d=`dirname $f`
@@ -285,7 +297,18 @@ if findexe autoconf; then
   echo "Your kit is prepared."
   echo "Please consult INSTALL for further instructions."
 else
-  echo 'WARNING: Cannot find GNU autoconf in $PATH.'
-  echo 'WARNING: configure scripts cannot be created.'
-  echo 'WARNING: Please install autoconf and re-run this script.'
+  if is_mingw; then
+    cat << _EOM_
+Detected MinGW but could not find GNU autoconf.
+
+  - If you wish to use MinGW for building SWI-Prolog, please install
+    autoconf and re-run this script.
+  - If you plan to use Microsoft MSVC for building SWI-Prolog, GNU
+    autoconf is not required and you may proceed with building.
+_EOM_
+  else
+    echo 'WARNING: Cannot find GNU autoconf in $PATH.'
+    echo 'WARNING: configure scripts cannot be created.'
+    echo 'WARNING: Please install autoconf and re-run this script.'
+  fi
 fi
