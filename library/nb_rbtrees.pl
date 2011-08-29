@@ -108,7 +108,7 @@ insert2(black('',_,_,''), K, V, Nil, T, Status) :- !,
 	T = red(Nil,K,V,Nil),
 	Status = not_done.
 insert2(In, K, V, Nil, NT, Flag) :-
-	In = red(L,K0,V0,R),
+	In = red(L,K0,V0,R), !,
 	(   K @< K0
 	->  insert2(L, K, V, Nil, NL, Flag),
 	    (	Flag == shared
