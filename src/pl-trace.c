@@ -1770,27 +1770,20 @@ debugmode(debug_type doit, debug_type *old)
     { debugstatus.skiplevel = SKIP_VERY_DEEP;
       clearPrologFlagMask(PLFLAG_LASTCALL);
       if ( doit == DBG_ALL )
-      { LocalFrame fr = environment_frame;
+      { QueryFrame qf;
 
-	while( fr )
-	{ if ( fr->parent )
-	    fr = fr->parent;
-	  else
-	  { QueryFrame qf = queryOfFrame(fr);
-	    qf->debugSave = DBG_ON;
-	    fr = qf->saved_environment;
-	  }
-	}
+	for(qf = LD->query; qf; qf = qf->parent)
+	  qf->debugSave = DBG_ON;
+
 	doit = DBG_ON;
       }
-    } else
-    { setPrologFlagMask(PLFLAG_LASTCALL);
-    }
-    if ( doit )
       enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
 			   8*1024*SIZEOF_VOIDP,
 			   8*1024*SIZEOF_VOIDP
 			   PASS_LD);
+    } else
+    { setPrologFlagMask(PLFLAG_LASTCALL);
+    }
     debugstatus.debugging = doit;
     updateAlerted(LD);
     printMessage(ATOM_silent,
