@@ -958,11 +958,17 @@ and executed synchronous to normal user events like typing and clicking.
 
     \predicate[semidet]{in_pce_thread_sync}{1}{:Goal}
 Same as in_pce_thread/1, but wait for \arg{Goal} to be completed.
-Success depends on the success of executing \arg{Goal}. If \arg{Goal}
-throws an exception, this exception is re-thrown by in_pce_thread/1.
-\footnote{Possible variable bindings due to executing \arg{Goal} are
-	  lost in the current implementation.  This may change in the
-	  future.}
+Success depends on the success of executing \arg{Goal}. Variable
+bindings inside \arg{Goal} are visible to the caller, but it should be
+noted that the values are being \emph{copied}. If \arg{Goal} throws an
+exception, this exception is re-thrown by in_pce_thread/1. If the
+calling thread is the `pce thread', in_pce_thread_sync/1 executes a
+direct meta-call. See also pce_thread/1.
+
+Note that in_pce_thread_sync/1 is expensive because it requires copying
+and thread communication.  For example, \exam{in_pce_thread_sync{true}}
+runs at approximately 50,000 calls per second (AMD Phenom 9600B, Ubuntu
+11.04).
 
     \predicate{pce_dispatch}{1}{+Options}
 Create a Prolog thread with the alias-name \const{pce} for XPCE
