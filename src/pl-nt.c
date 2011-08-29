@@ -23,7 +23,7 @@
 */
 
 #ifdef __WINDOWS__
-#define _WIN32_WINNT 0x0400
+#define WINVER 0x0501
 #if (_MSC_VER >= 1300)
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
@@ -34,7 +34,6 @@
 
 #ifdef __MINGW32__
 #define _WIN32_IE 0x0400
-#include <shlobj.h>
 /* FIXME: these are copied from SWI-Prolog.h. */
 #define PL_MSG_EXCEPTION_RAISED -1
 #define PL_MSG_IGNORED 0
@@ -507,7 +506,11 @@ word
 pl_win_exec(term_t cmd, term_t how)
 { wchar_t *s;
   size_t len;
+#if defined(__MINGW32__)
+  int h;
+#else
   UINT h;
+#endif
 
   if ( PL_get_wchars(cmd, &len, &s, CVT_ALL|CVT_EXCEPTION) &&
        get_showCmd(how, &h) )
@@ -545,7 +548,11 @@ static int
 win_shell(term_t op, term_t file, term_t how)
 { size_t lo, lf;
   wchar_t *o, *f;
+#if defined(__MINGW32__)
+  int h;
+#else
   UINT h;
+#endif
   HINSTANCE instance;
 
   if ( !PL_get_wchars(op,   &lo, &o, CVT_ALL|CVT_EXCEPTION|BUF_RING) ||
@@ -690,7 +697,7 @@ dlclose(void *handle)
 		 *******************************/
 
 #ifdef HAVE_SHLOBJ_H
-#include <Shlobj.h>
+#include <shlobj.h>
 #endif
 
 typedef struct folderid

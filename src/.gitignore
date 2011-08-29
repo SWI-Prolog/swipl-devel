@@ -5,6 +5,7 @@ swipl.prc
 swipl.pc
 swipl.home
 swipl-ld
+swipl-ld-build
 swipl.sh
 rc/swipl-rc
 pl-atom.ic
