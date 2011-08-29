@@ -70,6 +70,10 @@ embedded application.
 
 #if (_MSC_VER < 1400)
 #define off_t intptr_t
+#endif
+
+#ifdef _MSC_VER
+#define HOST_TOOLCHAIN_MSC
 
 #define popen _popen
 #define pclose _pclose
@@ -1433,11 +1437,11 @@ createSavedState()
 static void
 copy_fd(int i, int o)
 { char buf[CPBUFSIZE];
-  int n;
+  ssize_t n;
 
   while( (n=read(i, buf, sizeof(buf))) > 0 )
   { while( n > 0 )
-    { int n2;
+    { ssize_t n2;
 
       if ( (n2 = write(o, buf, n)) > 0 )
       { n -= n2;
