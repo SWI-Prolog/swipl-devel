@@ -1211,19 +1211,61 @@ load_files(Module:Files, Options) :-
 
 	(   var(FromStream),
 	    '$noload'(If, FullFile)
-	->  (   '$current_module'(LoadModule, FullFile)
-	    ->  '$import_from_loaded_module'(LoadModule, Module, Options)
-	    ;   (   Module == user
-		->  true
-		;   '$load_file'(File, Module, [if(true)|Options])
-		)
-	    )
-	;   with_mutex('$load',
-		       '$do_load_file'(File, FullFile, Module, Options)),
-	    '$run_initialization'(FullFile)
+	->  '$already_loaded'(File, FullFile, Module, Options)
+	;   '$mt_load_file'(File, FullFile, Module, Options)
 	).
 
+'$already_loaded'(_File, FullFile, Module, Options) :-
+	'$current_module'(LoadModule, FullFile), !,
+	'$import_from_loaded_module'(LoadModule, Module, Options).
+'$already_loaded'(_, _, user, _) :- !.
+'$already_loaded'(File, _, Module, Options) :-
+	'$load_file'(File, Module, [if(true)|Options]).
 
+%%	'$mt_load_file'(+File, +FullFile, +Module, +Options) is det.
+%
+%	Deal with multi-threaded  loading  of   files.  The  thread that
+%	wishes to load the thread first will  do so, while other threads
+%	will wait until the leader finished and  than act as if the file
+%	is already loaded.
+%
+%	Synchronisation is handled using  a   message  queue that exists
+%	while the file is being loaded.   This synchronisation relies on
+%	the fact that thread_get_message/1 throws  an existence_error if
+%	the message queue  is  destroyed.  This   is  hacky.  Events  or
+%	condition variables would have made a cleaner design.
+
+:- dynamic
+	'$loading_file'/2.
+
+'$mt_load_file'(File, FullFile, Module, Options) :-
+	current_prolog_flag(threads, true), !,
+	setup_call_cleanup(with_mutex('$load_file',
+				      '$mt_start_load'(FullFile, Loading)),
+			   '$mt_do_load'(Loading, File, FullFile, Module, Options),
+			   '$mt_end_load'(Loading)).
+'$mt_load_file'(File, FullFile, Module, Options) :-
+	'$do_load_file'(File, FullFile, Module, Options).
+
+
+'$mt_start_load'(FullFile, queue(Queue)) :-
+	'$loading_file'(FullFile, Queue), !.
+'$mt_start_load'(FullFile, Ref) :-
+	message_queue_create(Queue),
+	assertz('$loading_file'(FullFile, Queue), Ref).
+
+'$mt_do_load'(queue(Queue), File, FullFile, Module, Options) :- !,
+	catch(thread_get_message(Queue), _, true),
+	'$already_loaded'(File, FullFile, Module, Options).
+'$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
+	'$do_load_file'(File, FullFile, Module, Options),
+	'$run_initialization'(FullFile).
+
+'$mt_end_load'(queue(_)) :- !.
+'$mt_end_load'(Ref) :-
+	clause('$loading_file'(_, Queue), _, Ref),
+	erase(Ref),
+	message_queue_destroy(Queue).
 
 
 %%	'$do_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
