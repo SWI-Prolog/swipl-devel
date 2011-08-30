@@ -813,10 +813,9 @@ extensions to .ext
 :-	flag('$break_level',	_, 0),
 	flag('$compiling',	_, database),
 	flag('$directive',	_, database),
-	flag('$preprocessor',	_, none),
 	prompt(_, '|: ').
 
-%	compiling
+%%	compiling
 %
 %	Is true if SWI-Prolog is generating a state or qlf file or
 %	executes a `call' directive while doing this.
@@ -838,8 +837,14 @@ compiling :-
 		*         PREPROCESSOR          *
 		*********************************/
 
+:- create_prolog_flag(preprocessor, none, [type(atom)]).
+
 preprocessor(Old, New) :-
-	flag('$preprocessor', Old, New).
+	(   current_prolog_flag(preprocessor, OldP)
+	->  Old = OldP
+	;   Old = none
+	),
+	set_prolog_flag(preprocessor, New).
 
 '$set_encoding'(Stream, Options) :-
 	memberchk(encoding(Enc), Options),
