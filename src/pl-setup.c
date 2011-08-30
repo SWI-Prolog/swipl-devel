@@ -1466,6 +1466,9 @@ freePrologLocalData(PL_local_data_t *ld)
 #ifdef O_PLMT
   simpleMutexDelete(&ld->signal.sig_lock);
 #endif
+
+  if ( ld->qlf.getstr_buffer )
+    free(ld->qlf.getstr_buffer);
 }
 
 

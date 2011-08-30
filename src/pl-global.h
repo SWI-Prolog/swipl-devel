@@ -367,6 +367,12 @@ struct PL_local_data
   } pipe;
 
   struct
+  { char       *getstr_buffer;		/* getString() buffer */
+    size_t	getstr_buffer_size;	/* size of getstr_buffer */
+    struct wic_state *current_state;	/* qlf-creation state */
+  } qlf;
+
+  struct
   { atom_t	current;		/* current global prompt */
     atom_t	first;			/* how to prompt first line */
     int		first_used;		/* did we do the first line? */
