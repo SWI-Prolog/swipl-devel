@@ -711,7 +711,6 @@ initPrologThreads()
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
     GD->thread.mutexTable = newHTable(16);
-    GD->thread.MUTEX_load = mutexCreate(ATOM_dload);
     link_mutexes();
     threads_ready = TRUE;
   }

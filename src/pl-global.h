@@ -303,7 +303,6 @@ struct PL_global_data
     int			enabled;	/* threads are enabled */
     Table		mutexTable;	/* Name --> mutex table */
     int			mutex_next_id;	/* next id for anonymous mutexes */
-    struct pl_mutex*	MUTEX_load;	/* The $load mutex */
 #ifdef __WINDOWS__
     HINSTANCE		instance;	/* Win32 process instance */
 #endif

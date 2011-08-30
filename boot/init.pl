@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -391,7 +392,7 @@ default_module(Me, Super) :-
 	user:exception(undefined_predicate, Pred, Action), !.
 '$undefined_procedure'(Module, Name, Arity, retry) :-
 	current_prolog_flag(autoload, true),
-	with_mutex('$load', '$autoload'(Module, Name, Arity)).
+	'$autoload'(Module, Name, Arity).
 '$undefined_procedure'(_, _, _, error).
 
 '$autoload'(Module, Name, Arity) :-

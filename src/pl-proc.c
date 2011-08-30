@@ -1768,8 +1768,8 @@ According to Paulo Moura, predicates defined either dynamic, multifile or
 discontiguous should not cause an undefined predicate warning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Definition
-trapUndefined_unlocked(Definition def ARG_LD)
+Definition
+trapUndefined(Definition def ARG_LD)
 { int retry_times = 0;
   Definition newdef;
   Module module = def->module;
@@ -1819,42 +1819,6 @@ error:
   } else
   { createUndefSupervisor(def);
   }
-
-  return def;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This must be  executed  holding  the   Prolog  mutex  '$load'  to  avoid
-race-conditions between threads trapping undefined   code. At the moment
-there is no neat way to share   mutexes  between C and Prolog, something
-that should be considered.
-
-Note that in the  multi-threaded  case,   we  first  try auto-import and
-unknown=fail before locking.  This enhances concurrency during startup.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-Definition
-trapUndefined(Definition undef ARG_LD)
-{ Definition def;
-
-#ifdef O_PLMT
-  Module module = undef->module;
-  FunctorDef functor = undef->functor;
-					/* Auto import */
-  if ( (def = autoImport(functor->functor, module)) )
-    return def;
-					/* Pred/Module does not want to trap */
-  if ( true(undef, PROC_DEFINED) ||
-       getUnknownModule(module) == UNKNOWN_FAIL )
-    return undef;
-
-  PL_mutex_lock(GD->thread.MUTEX_load);
-#endif
-  def = trapUndefined_unlocked(undef PASS_LD);
-#ifdef O_PLMT
-  PL_mutex_unlock(GD->thread.MUTEX_load);
-#endif
 
   return def;
 }
