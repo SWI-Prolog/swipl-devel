@@ -354,12 +354,15 @@ queue, is faster than the drain, consuming the messages.
     \predicate{message_queue_destroy}{1}{+Queue}
 Destroy a message queue created with message_queue_create/1. A
 permission error is raised if \arg{Queue} refers to (the default queue
-of) a thread. Other threads are waiting for \arg{Queue} using
+of) a thread. Other threads that are waiting for \arg{Queue} using
 thread_get_message/2 receive an existence error.
 
     \predicate{thread_get_message}{2}{+Queue, ?Term}
 As thread_get_message/1, operating on a given queue. It is allowed (but
-not advised) to get messages from the queue of other threads.
+not advised) to get messages from the queue of other threads.  This
+predicate raises an existence error exception if \arg{Queue} doesn't
+exist or is destroyed using message_queue_destroy/1 while this predicate
+is waiting.
 
     \predicate{thread_peek_message}{2}{+Queue, ?Term}
 As thread_peek_message/1, operating on a given queue. It is allowed

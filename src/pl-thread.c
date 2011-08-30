@@ -2598,7 +2598,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
     thread_message *prev = NULL;
 
     if ( queue->destroyed )
-      return FALSE;
+      return MSG_WAIT_DESTROYED;
 
     DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
@@ -3292,10 +3292,17 @@ PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
     rc = get_message(q, A2 PASS_LD);
     release_message_queue(q);
 
-    if ( rc == MSG_WAIT_INTR )
-    { if ( PL_handle_signals() >= 0 )
-	continue;
-      rc = FALSE;
+    switch(rc)
+    { case MSG_WAIT_INTR:
+	if ( PL_handle_signals() >= 0 )
+	  continue;
+	rc = FALSE;
+	break;
+      case MSG_WAIT_DESTROYED:
+	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
+        break;
+      default:
+	;
     }
 
     break;
