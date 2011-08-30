@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -49,13 +50,11 @@ Main program for running SWI-Prolog from   a window. The window provides
 X11-xterm like features: scrollback for a   predefined  number of lines,
 cut/paste and the GNU readline library for command-line editing.
 
-This module combines libpl.dll and plterm.dll  with some glue to produce
+This module combines swipl.dll and plterm.dll  with some glue to produce
 the final executable swipl-win.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 __declspec(dllexport) rlc_console	PL_current_console();
-static int		type_error(term_t actual, const char *expected);
-static int		domain_error(term_t actual, const char *expected);
 static HWND		create_prolog_hidden_window(rlc_console c);
 static int		get_chars_arg_ex(int a, term_t t, TCHAR **v);
 
@@ -69,7 +68,7 @@ static int		get_chars_arg_ex(int a, term_t t, TCHAR **v);
 		 *	    CONSOLE ADM		*
 		 *******************************/
 
-CRITICAL_SECTION mutex;
+static CRITICAL_SECTION mutex;
 #define LOCK()   EnterCriticalSection(&mutex)
 #define UNLOCK() LeaveCriticalSection(&mutex)
 
@@ -291,7 +290,7 @@ process_console_options(rlc_console_attr *attr, term_t options)
     int arity;
 
     if ( !PL_get_name_arity(opt, &name, &arity) )
-      return type_error(opt, "compound");
+      return PL_type_error("compound", opt);
     s = PL_atom_chars(name);
     if ( streq(s, "registry_key") && arity == 1 )
     { TCHAR *key;
@@ -301,10 +300,10 @@ process_console_options(rlc_console_attr *attr, term_t options)
 
       attr->key = key;
     } else
-      return domain_error(opt, "window_option");
+      return PL_domain_error("window_option", opt);
   }
-  if ( !PL_get_nil(tail) )
-    return type_error(tail, "list");
+  if ( !PL_get_nil_ex(tail) )
+    return FALSE;
 
   return TRUE;
 }
@@ -328,8 +327,8 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
   size_t len;
 
   memset(&attr, 0, sizeof(attr));
-  if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_RING) )
-    return type_error(title, "text");
+  if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_RING|CVT_EXCEPTION) )
+    return FALSE;
   attr.title = (const TCHAR*) s;
 
   if ( !process_console_options(&attr, options) )
@@ -503,8 +502,8 @@ pl_window_title(term_t old, term_t new)
 { TCHAR buf[256];
   TCHAR *n;
 
-  if ( !PL_get_wchars(new, NULL, &n, CVT_ALL) )
-    return type_error(new, "atom");
+  if ( !PL_get_wchars(new, NULL, &n, CVT_ALL|CVT_EXCEPTION) )
+    return FALSE;
 
   rlc_title(PL_current_console(), n, buf, sizeof(buf)/sizeof(TCHAR));
 
@@ -513,40 +512,14 @@ pl_window_title(term_t old, term_t new)
 
 
 static int
-type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
-
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "type_error", 2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
-
-  return PL_raise_exception(ex);
-}
-
-static int
-domain_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
-
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "domain_error", 2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
-
-  return PL_raise_exception(ex);
-}
-
-static int
 get_chars_arg_ex(int a, term_t t, TCHAR **v)
 { term_t arg = PL_new_term_ref();
 
   if ( PL_get_arg(a, t, arg) &&
-       PL_get_wchars(arg, NULL, v, CVT_ALL|BUF_RING) )
+       PL_get_wchars(arg, NULL, v, CVT_ALL|BUF_RING|CVT_EXCEPTION) )
     return TRUE;
 
-  return type_error(arg, "text");
+  return FALSE;
 }
 
 
@@ -555,10 +528,10 @@ get_int_arg_ex(int a, term_t t, int *v)
 { term_t arg = PL_new_term_ref();
 
   PL_get_arg(a, t, arg);
-  if ( PL_get_integer(arg, v) )
+  if ( PL_get_integer_ex(arg, v) )
     return TRUE;
 
-  return type_error(arg, "integer");
+  return FALSE;
 }
 
 
@@ -567,10 +540,10 @@ get_bool_arg_ex(int a, term_t t, int *v)
 { term_t arg = PL_new_term_ref();
 
   PL_get_arg(a, t, arg);
-  if ( PL_get_bool(arg, v) )
+  if ( PL_get_bool_ex(arg, v) )
     return TRUE;
 
-  return type_error(arg, "boolean");
+  return FALSE;
 }
 
 
@@ -588,7 +561,7 @@ pl_window_pos(term_t options)
     int arity;
 
     if ( !PL_get_name_arity(opt, &name, &arity) )
-      return type_error(opt, "compound");
+      return PL_type_error("compound", opt);
     s = PL_atom_chars(name);
     if ( streq(s, "position") && arity == 2 )
     { if ( !get_int_arg_ex(1, opt, &x) ||
@@ -605,8 +578,8 @@ pl_window_pos(term_t options)
       char *v;
 
       PL_get_arg(1, opt, t);
-      if ( !PL_get_atom_chars(t, &v) )
-	return type_error(t, "atom");
+      if ( !PL_get_chars(t, &v, CVT_ATOM|CVT_EXCEPTION) )
+	return FALSE;
       if ( streq(v, "top") )
 	z = HWND_TOP;
       else if ( streq(v, "bottom") )
@@ -616,7 +589,7 @@ pl_window_pos(term_t options)
       else if ( streq(v, "notopmost") )
 	z = HWND_NOTOPMOST;
       else
-	return domain_error(t, "hwnd_insert_after");
+	return PL_domain_error("hwnd_insert_after", t);
 
       flags &= ~SWP_NOZORDER;
     } else if ( streq(s, "show") && arity == 1 )
@@ -632,10 +605,10 @@ pl_window_pos(term_t options)
     } else if ( streq(s, "activate") && arity == 0 )
     { flags &= ~SWP_NOACTIVATE;
     } else
-      return domain_error(opt, "window_option");
+      return PL_domain_error("window_option", opt);
   }
-  if ( !PL_get_nil(tail) )
-   return type_error(tail, "list");
+  if ( !PL_get_nil_ex(tail) )
+   return FALSE;
 
   rlc_window_pos(PL_current_console(), z, x, y, w, h, flags);
 
