@@ -810,8 +810,7 @@ extensions to .ext
 	        prolog_load_file/2).
 
 
-:-	flag('$break_level',	_, 0),
-	flag('$compiling',	_, database),
+:-	flag('$compiling',	_, database),
 	flag('$directive',	_, database),
 	prompt(_, '|: ').
 

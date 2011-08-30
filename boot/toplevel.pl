@@ -379,22 +379,25 @@ initialise_prolog :-
 	),
 	ignore(user:TheGoal).
 
+:- create_prolog_flag(break_level, 0, []).
+
 '$abort' :-
 	see(user),
 	tell(user),
-	flag('$break_level', _, 0),
+	set_prolog_flag(break_level, 0),
 	flag('$compilation_level', _, 0),
 	'$calleventhook'(abort),
 	print_message(informational, '$aborted'),
 	'$toplevel'.
 
 '$break' :-
-	flag('$break_level', Old, Old+1),
-	flag('$break_level', New, New),
+	current_prolog_flag(break_level, Old),
+	New is Old+1,
+	set_prolog_flag(break_level, New),
 	print_message(informational, break(enter(New))),
 	'$runtoplevel',
 	print_message(informational, break(exit(New))),
-	flag('$break_level', _, Old), !.
+	set_prolog_flag(break_level, Old).
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
 :- '$hide'('$abort'/0).			% same after an abort
@@ -432,7 +435,7 @@ initialise_prolog :-
 
 prolog :-
 	flag('$tracing', _, off),
-	flag('$break_level', BreakLev, BreakLev),
+	current_prolog_flag(break_level, BreakLev),
 	repeat,
 	    (   '$module'(TypeIn, TypeIn),
 		(   stream_property(user_input, tty(true))
