@@ -383,7 +383,6 @@ default_module(Me, Super) :-
 %	to give a DWIM warning. Otherwise fail.   C  will print an error
 %	message.
 
-:- flag('$autoloading', _, 0).
 :- public
 	'$undefined_procedure'/4.
 
@@ -398,7 +397,7 @@ default_module(Me, Super) :-
 '$autoload'(Module, Name, Arity) :-
 	'$find_library'(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
-	flag('$autoloading', Old, Old+1),
+	'$update_autoload_level'([autoload(true)], Old),
 	(   current_prolog_flag(verbose_autoload, true)
 	->  Level = informational
 	;   Level = silent
@@ -413,7 +412,7 @@ default_module(Me, Super) :-
 	    )
 	),
 	flag('$compiling', _, OldComp),
-	flag('$autoloading', _, Old),
+	'$set_autoload_level'(Old),
 	'$c_current_predicate'(_, Module:Head).
 
 '$calleventhook'(Term) :-
@@ -1339,7 +1338,7 @@ load_files(Module:Files, Options) :-
 					LM,
 					TimeUsed,
 					HeapUsed))),
-	flag('$autoloading', _, OldAutoLevel),
+	'$set_autoload_level'(OldAutoLevel),
 	set_prolog_flag(verbose_load, OldVerbose),
 	set_prolog_flag(generate_debug_info, DebugInfo).
 
@@ -1374,14 +1373,26 @@ load_files(Module:Files, Options) :-
 
 %%	'$update_autoload_level'(+Options, -OldLevel)
 %
-%	Update the $autoloading flag and return the old value.
+%	Update the '$autoload_nesting' and return the old value.
+
+:- thread_local
+	'$autoload_nesting'/1.
 
 '$update_autoload_level'(Options, AutoLevel) :-
 	'$get_option'(autoload(Autoload), Options, false),
+	(   '$autoload_nesting'(CurrentLevel)
+	->  AutoLevel = CurrentLevel
+	;   AutoLevel = 0
+	),
 	(   Autoload == false
-	->  flag('$autoloading', AutoLevel, AutoLevel)
-	;   flag('$autoloading', AutoLevel, AutoLevel+1)
+	->  true
+	;   NewLevel is AutoLevel + 1,
+	    '$set_autoload_level'(NewLevel)
 	).
+
+'$set_autoload_level'(New) :-
+	retractall('$autoload_nesting'(_)),
+	asserta('$autoload_nesting'(New)).
 
 %%	'$load_message_level'(-MessageLevel) is det.
 %
@@ -1389,7 +1400,7 @@ load_files(Module:Files, Options) :-
 
 '$load_message_level'(MessageLevel) :-
 	(   current_prolog_flag(verbose_load, true),
-	    (   flag('$autoloading', 0, 0)
+	    (	'$update_autoload_level'([], 0)
 	    ;   current_prolog_flag(verbose_autoload, true)
 	    )
 	->  MessageLevel = informational

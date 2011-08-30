@@ -101,12 +101,12 @@ user:file_search_path(autoload, library(.)).
 	current_prolog_flag(autoload, true),
 	\+ current_prolog_flag(Module:unknown, fail),
 	'$find_library'(Module, Name, Arity, LoadModule, Library),
-	flag('$autoloading', Old, Old+1),
+	'$update_autoload_level'([autoload(true)], Old),
 	(   Module == LoadModule
 	->  ignore(ensure_loaded(Library))
 	;   ignore(Module:use_module(Library, [Name/Arity]))
 	),
-	flag('$autoloading', _, Old),
+	'$set_autoload_level'(Old),
 	'$define_predicate'(Term).
 
 
