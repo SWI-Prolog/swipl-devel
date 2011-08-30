@@ -375,12 +375,16 @@ default_module(Me, Super) :-
 :- user:multifile((exception/3,
 		   prolog_event_hook/1)).
 
-%	This function is called from C on undefined predicates.  First
-%	allows the user to take care of it using exception/3. Else try
-%	to give a DWIM warning. Otherwise fail. C will print an error
+%%	'$undefined_procedure'(+Module, +Name, +Arity, -Action) is det.
+%
+%	This predicate is called from C   on undefined predicates. First
+%	allows the user to take care of   it using exception/3. Else try
+%	to give a DWIM warning. Otherwise fail.   C  will print an error
 %	message.
 
 :- flag('$autoloading', _, 0).
+:- public
+	'$undefined_procedure'/4.
 
 '$undefined_procedure'(Module, Name, Arity, Action) :-
 	'$prefix_module'(Module, user, Name/Arity, Pred),
