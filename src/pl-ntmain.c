@@ -54,8 +54,9 @@ This module combines swipl.dll and plterm.dll  with some glue to produce
 the final executable swipl-win.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-__declspec(dllexport) rlc_console	PL_current_console();
-static HWND		create_prolog_hidden_window(rlc_console c);
+__declspec(dllexport)	rlc_console	PL_current_console(void);
+__declspec(dllexport)	int		PL_set_menu_thread(void);
+static HWND		create_prolog_hidden_window(rlc_console c, int replace);
 static int		get_chars_arg_ex(int a, term_t t, TCHAR **v);
 
 #define RLC_PROLOG_WINDOW	RLC_VALUE(0) /* GetCurrentThreadID() */
@@ -65,7 +66,7 @@ static int		get_chars_arg_ex(int a, term_t t, TCHAR **v);
 #define RLC_REGISTER		RLC_VALUE(4) /* Trap destruction */
 
 		 /*******************************
-		 *	    CONSOLE ADM		*
+		 *	  CONSOLE ADMIN		*
 		 *******************************/
 
 static CRITICAL_SECTION mutex;
@@ -335,7 +336,7 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
     return FALSE;
 
   c = rlc_create_console(&attr);
-  create_prolog_hidden_window(c);	/* for sending messages */
+  create_prolog_hidden_window(c, FALSE);	/* for sending messages */
   registerConsole(c);
 
 #define STREAM_COMMON (SIO_TEXT|	/* text-stream */		\
@@ -489,11 +490,24 @@ do_complete(RlcCompleteData data)
 		 *******************************/
 
 rlc_console
-PL_current_console()
+PL_current_console(void)
 { if ( Suser_input->functions->read == Srlc_read )
     return Suser_input->handle;
 
   return NULL;
+}
+
+
+static rlc_console main_console;
+
+int
+PL_set_menu_thread(void)
+{ if ( main_console )
+  { create_prolog_hidden_window(main_console, TRUE);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -763,11 +777,15 @@ destroy_hidden_window(uintptr_t hwnd)
 
 
 static HWND
-create_prolog_hidden_window(rlc_console c)
+create_prolog_hidden_window(rlc_console c, int replace)
 { uintptr_t hwnd;
 
   if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) && hwnd )
-    return (HWND)hwnd;
+  { if ( replace )
+      DestroyWindow((HWND)hwnd);
+    else
+      return (HWND)hwnd;
+  }
 
   hwnd = (uintptr_t)CreateWindow(HiddenFrameClass(),
 				     _T("SWI-Prolog hidden window"),
@@ -967,6 +985,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
 { char *av[MAX_ARGC+1];
   int i;
 
+  main_console = c;
   set_window_title(c);
   rlc_bind_terminal(c);
 
@@ -976,7 +995,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   main_console = c;
   PL_on_halt(closeWin, c);
 
-  create_prolog_hidden_window(c);
+  create_prolog_hidden_window(c, FALSE);
   PL_set_prolog_flag("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
