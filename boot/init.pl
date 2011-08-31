@@ -812,8 +812,13 @@ extensions to .ext
 :-	prompt(_, '|: ').
 
 :- thread_local
+	'$compilation_mode_store'/1,	% database, wic, qlf
+	'$directive_mode_store'/1,	% database, wic, qlf
+	'$compilation_context'/2.	% File, Line
+:- volatile
 	'$compilation_mode_store'/1,
-	'$directive_mode_store'/1.
+	'$directive_mode_store'/1,
+	'$compilation_context'/2.
 
 '$compilation_mode'(Mode) :-
 	(   '$compilation_mode_store'(Val)
@@ -848,6 +853,27 @@ extensions to .ext
 '$set_directive_mode'(Mode) :-
 	retractall('$directive_mode_store'(_)),
 	assertz('$directive_mode_store'(Mode)).
+
+%%	'$set_compilation_context'(-Ref) is det.
+%
+%	Maintains a stack  of  locations   from  where  compilation  was
+%	started. We will use this to   improve  the location information
+%	for error messages in the future.
+
+'$set_compilation_context'(Ref) :-
+	(   source_location(File, Line)
+	->  true
+	;   File = (-),
+	    Line = 0
+	),
+	asserta('$compilation_context'(File, Line), Ref).
+
+'$compilation_level'(Level) :-
+	'$get_predicate_attribute'('$compilation_context'(_,_),
+				   number_of_clauses, N), !,
+	Level is N.
+'$compilation_level'(0).
+
 
 %%	compiling
 %
@@ -921,22 +947,24 @@ preprocessor(Old, New) :-
 	).
 
 
-:- dynamic
+:- thread_local
 	'$load_input'/2.
 :- volatile
 	'$load_input'/2.
 
 '$open_source_call'(File, In, Goal, Status) :-
-	flag('$compilation_level', Level, Level+1),
-	asserta('$load_input'(File, In), Ref),
-	(   catch(Goal, E,
-		  (print_message(error, E),
-		   fail))
-	->  Status = yes
-	;   Status = no
-	),
-	erase(Ref),
-	flag('$compilation_level', _, Level).
+	setup_call_cleanup((   '$set_compilation_context'(CRef),
+			       asserta('$load_input'(File, In), Ref)
+			   ),
+			   (   catch(Goal, E,
+				     (print_message(error, E),
+				      fail))
+			   ->  Status = yes
+			   ;   Status = no
+			   ),
+			   (   erase(Ref),
+			       erase(CRef)
+			   )).
 
 
 %	'$substitute_atom'(+From, +To, +In, -Out)
@@ -1331,7 +1359,7 @@ load_files(Module:Files, Options) :-
 
 	current_prolog_flag(generate_debug_info, DebugInfo),
 
-	flag('$compilation_level', Level, Level),
+	'$compilation_level'(Level),
 	'$load_message_level'(MessageLevel),
 
 	'$print_message'(silent /*MessageLevel*/,
