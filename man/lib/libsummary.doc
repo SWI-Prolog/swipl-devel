@@ -58,6 +58,9 @@
 \subsection{\pllib{lists}}
 \input{summaries.d/lists.tex}
 
+\subsection{\pllib{debug}}
+\input{summaries.d/debug.tex}
+
 \subsection{\pllib{option}}
 \input{summaries.d/option.tex}
 
