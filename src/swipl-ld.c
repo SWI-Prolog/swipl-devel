@@ -89,7 +89,11 @@ embedded application.
 #define PROG_PL "swipl.exe"
 #endif
 
+#if defined(HOST_TOOLCHAIN_MSC)
 #define PROG_OUT "plout.exe"
+#else
+#define PROG_OUT "a.out"
+#endif
 
 #else /* !defined(__WINDOWS__) */
 
