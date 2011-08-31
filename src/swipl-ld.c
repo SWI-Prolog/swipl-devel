@@ -993,7 +993,7 @@ fillDefaultOptions()
   defaultProgram(&plinitfile, "none");
   defaultProgram(&plsysinit,  "none");
 
-#if defined(__WINDOWS__) && defined(HOST_OS_WINDOWS)
+#if defined(HOST_TOOLCHAIN_MSC)
   sprintf(tmp, "%s/lib", plbase);
 #else
   sprintf(tmp, "%s/lib/%s", plbase, plarch);
