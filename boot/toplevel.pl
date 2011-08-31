@@ -434,7 +434,6 @@ initialise_prolog :-
 		*********************************/
 
 prolog :-
-	flag('$tracing', _, off),
 	current_prolog_flag(break_level, BreakLev),
 	repeat,
 	    (   '$module'(TypeIn, TypeIn),
