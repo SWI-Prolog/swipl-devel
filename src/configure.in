@@ -595,6 +595,12 @@ case "$PLARCH" in
     *mingw32*)
         pthread_ok=true
 	AC_CHECK_LIB(pthreadGC2, pthread_create)
+        if test ! "$ac_cv_lib_pthreadGC2_pthread_create" = "yes"; then
+          AC_CHECK_LIB(pthreadGC, pthread_create)
+          if test ! "$ac_cv_lib_pthreadGC_pthread_create" = "yes"; then
+            AC_CHECK_LIB(pthread, pthread_create)
+          fi
+        fi
 	;;
 esac
 
