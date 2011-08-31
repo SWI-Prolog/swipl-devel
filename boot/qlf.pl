@@ -80,7 +80,7 @@ qcompile_(FileName, Module, Options) :-
 	;   Ok = fail
 	),
 	'$set_source_module'(_, OldModule),
-	'$ser_compilation_mode'(Old),
+	'$set_compilation_mode'(Old),
 	'$qlf_close',
 	Ok == true.
 
