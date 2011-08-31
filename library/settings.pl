@@ -343,16 +343,19 @@ set_setting(QName, Value) :-
 	must_be(atom, Name),
 	(   curr_setting(Name, Module, Type, Default0, _Comment, _Src),
 	    eval_default(Default0, Module, Type, Default)
-	->  (   Value == Default
+	->  setting(Module:Name, Old),
+	    (   Value == Default
 	    ->	retract_setting(Module:Name)
 	    ;	st_value(Name, Module, Value)
 	    ->	true
 	    ;	check_type(Type, Value)
-	    ->	setting(Module:Name, Old),
-	        retract_setting(Module:Name),
-	        assert_setting(Module:Name, Value),
-		broadcast(settings(changed(Module:Name, Old, Value))),
-		clear_setting_cache	% might influence dependent settings.
+	    ->	retract_setting(Module:Name),
+	        assert_setting(Module:Name, Value)
+	    ),
+	    (	Old == Value
+	    ->	true
+	    ;	broadcast(settings(changed(Module:Name, Old, Value))),
+		clear_setting_cache	% might influence dependent settings
 	    )
 	;   existence_error(setting, Name)
 	).
