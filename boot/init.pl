@@ -1297,7 +1297,7 @@ load_files(Module:Files, Options) :-
 %	condition variables would have made a cleaner design.
 
 :- dynamic
-	'$loading_file'/2.
+	'$loading_file'/3.		% File, Queue, Thread
 
 '$mt_load_file'(File, FullFile, Module, Options) :-
 	current_prolog_flag(threads, true), !,
@@ -1315,13 +1315,15 @@ load_files(Module:Files, Options) :-
 
 
 '$mt_start_load'(FullFile, queue(Queue), _) :-
-	'$loading_file'(FullFile, Queue), !.
+	'$loading_file'(FullFile, Queue, LoadThread),
+	\+ thread_self(LoadThread), !.
 '$mt_start_load'(FullFile, already_loaded, Options) :-
 	'$get_option'(if(If), Options, true),
 	'$noload'(If, FullFile), !.
 '$mt_start_load'(FullFile, Ref, _) :-
+	thread_self(Me),
 	message_queue_create(Queue),
-	assertz('$loading_file'(FullFile, Queue), Ref).
+	assertz('$loading_file'(FullFile, Queue, Me), Ref).
 
 '$mt_do_load'(queue(Queue), File, FullFile, Module, Options) :- !,
 	catch(thread_get_message(Queue, _), _, true),
@@ -1335,7 +1337,7 @@ load_files(Module:Files, Options) :-
 '$mt_end_load'(queue(_)) :- !.
 '$mt_end_load'(already_loaded) :- !.
 '$mt_end_load'(Ref) :-
-	clause('$loading_file'(_, Queue), _, Ref),
+	clause('$loading_file'(_, Queue, _), _, Ref),
 	erase(Ref),
 	thread_send_message(Queue, done),
 	message_queue_destroy(Queue).
