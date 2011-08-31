@@ -73,14 +73,14 @@ qcompile_(FileName, Module, Options) :-
 	once(user:prolog_file_type(QlfExt, qlf)),
 	file_name_extension(ABase, QlfExt, Qlf),
 	'$qlf_open'(Qlf),
-	flag('$compiling', Old, qlf),
+	'$compilation_mode'(Old, qlf),
 	'$set_source_module'(OldModule, Module), % avoid this in the module!
 	(   load_files(Module:Absolute, Options)
 	->  Ok = true
 	;   Ok = fail
 	),
 	'$set_source_module'(_, OldModule),
-	flag('$compiling', _, Old),
+	'$ser_compilation_mode'(Old),
 	'$qlf_close',
 	Ok == true.
 

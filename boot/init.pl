@@ -403,7 +403,7 @@ default_module(Me, Super) :-
 	;   Level = silent
 	),
 	print_message(Level, autoload(Module:Name/Arity, Library)),
-	flag('$compiling', OldComp, database),
+	'$compilation_mode'(OldComp, database),
 	(   Module == LoadModule
 	->  ensure_loaded(Module:Library)
 	;   (   '$get_predicate_attribute'(LoadModule:Head, defined, 1)
@@ -411,7 +411,7 @@ default_module(Me, Super) :-
 	    ;	use_module(Module:Library, [Name/Arity])
 	    )
 	),
-	flag('$compiling', _, OldComp),
+	'$set_compilation_mode'(OldComp),
 	'$set_autoload_level'(Old),
 	'$c_current_predicate'(_, Module:Head).
 
@@ -809,10 +809,45 @@ extensions to .ext
 		library_directory/1,
 	        prolog_load_file/2).
 
+:-	prompt(_, '|: ').
 
-:-	flag('$compiling',	_, database),
-	flag('$directive',	_, database),
-	prompt(_, '|: ').
+:- thread_local
+	'$compilation_mode_store'/1,
+	'$directive_mode_store'/1.
+
+'$compilation_mode'(Mode) :-
+	(   '$compilation_mode_store'(Val)
+	->  Mode = Val
+	;   Mode = database
+	).
+
+'$set_compilation_mode'(Mode) :-
+	retractall('$compilation_mode_store'(_)),
+	assertz('$compilation_mode_store'(Mode)).
+
+'$compilation_mode'(Old, New) :-
+	'$compilation_mode'(Old),
+	(   New == Old
+	->  true
+	;   '$set_compilation_mode'(New)
+	).
+
+'$directive_mode'(Mode) :-
+	(   '$directive_mode_store'(Val)
+	->  Mode = Val
+	;   Mode = database
+	).
+
+'$directive_mode'(Old, New) :-
+	'$directive_mode'(Old),
+	(   New == Old
+	->  true
+	;   '$set_compilation_mode'(New)
+	).
+
+'$set_directive_mode'(Mode) :-
+	retractall('$directive_mode_store'(_)),
+	assertz('$directive_mode_store'(Mode)).
 
 %%	compiling
 %
@@ -820,17 +855,18 @@ extensions to .ext
 %	executes a `call' directive while doing this.
 
 compiling :-
-	\+ (   flag('$compiling', database, database),
-	       flag('$directive', database, database)
+	\+ (   '$compilation_mode'(database),
+	       '$directive_mode'(database)
 	   ).
 
 :- meta_predicate
 	'$ifcompiling'(0).
 
-'$ifcompiling'(_) :-
-	flag('$compiling', database, database), !.
 '$ifcompiling'(G) :-
-	G.
+	(   '$compilation_mode'(database)
+	->  true
+	;   call(G)
+	).
 
 		/********************************
 		*         PREPROCESSOR          *
@@ -1122,7 +1158,7 @@ load_files(Module:Files, Options) :-
 	'$spec_extension'(Spec, Ext),
 	user:prolog_file_type(Ext, prolog), !.
 '$qlf_file'(_, FullFile, QlfFile, Mode, Options) :-
-	flag('$compiling', database, database),
+	'$compilation_mode'(database),
 	file_name_extension(Base, PlExt, FullFile),
 	user:prolog_file_type(PlExt, prolog),
 	user:prolog_file_type(QlfExt, qlf),
@@ -1450,7 +1486,7 @@ load_files(Module:Files, Options) :-
 	;   true
 	),
 	'$compile_type'(What),
-	(   flag('$compiling', wic, wic)	% TBD
+	(   '$compilation_mode'(wic)	% TBD
 	->  '$add_directive_wic'('$assert_load_context_module'(Id, OldModule))
 	;   true
 	),
@@ -1478,7 +1514,7 @@ load_files(Module:Files, Options) :-
 '$load_id'(Id, Id).
 
 '$compile_type'(What) :-
-	flag('$compiling', How, How),
+	'$compilation_mode'(How),
 	(   How == database
 	->  What = compiled
 	;   How == qlf
@@ -1892,14 +1928,14 @@ load_files(Module:Files, Options) :-
 	'$expand_directive'(ISO, Normal), !,
 	'$execute_directive'(Normal, F).
 '$execute_directive_2'(Goal, _) :-
-	\+ flag('$compiling', database, database), !,
+	\+ '$compilation_mode'(database), !,
 	'$add_directive_wic2'(Goal, Type),
 	(   Type == call		% suspend compiling into .qlf file
-	->  flag('$compiling', Old, database),
-	    flag('$directive', OldDir, Old),
+	->  '$compilation_mode'(Old, database),
+	    '$directive_mode'(OldDir, Old),
 	    call_cleanup('$execute_directive_3'(Goal),
-			 (   flag('$compiling', _, Old),
-			     flag('$directive', _, OldDir)
+			 (   '$set_compilation_mode'(Old),
+			     '$set_directive_mode'(OldDir)
 			 ))
 	;   '$execute_directive_3'(Goal)
 	).
@@ -1952,7 +1988,7 @@ load_files(Module:Files, Options) :-
 	    '$add_directive_wic'(Module:Goal)
 	).
 '$add_directive_wic2'(Goal, _) :-
-	(   flag('$compiling', qlf, qlf)	% no problem for qlf files
+	(   '$compilation_mode'(qlf)	% no problem for qlf files
 	->  true
 	;   print_message(error, mixed_directive(Goal))
 	).
@@ -1981,9 +2017,9 @@ load_files(Module:Files, Options) :-
 '$load_goal'(load_files(_,Options)) :-
 	memberchk(qcompile(QlfMode), Options),
 	'$qlf_part_mode'(QlfMode).
-'$load_goal'(ensure_loaded(_)) :- flag('$compiling', wic, wic).
-'$load_goal'(use_module(_))    :- flag('$compiling', wic, wic).
-'$load_goal'(use_module(_, _)) :- flag('$compiling', wic, wic).
+'$load_goal'(ensure_loaded(_)) :- '$compilation_mode'(wic, wic).
+'$load_goal'(use_module(_))    :- '$compilation_mode'(wic, wic).
+'$load_goal'(use_module(_, _)) :- '$compilation_mode'(wic, wic).
 
 '$qlf_part_mode'(part).
 '$qlf_part_mode'(true).			% compatibility
@@ -2010,7 +2046,7 @@ load_files(Module:Files, Options) :-
 	fail.
 '$store_clause'(Term, File) :-
 	'$clause_source'(Term, Clause, File, SrcLoc),
-	(   flag('$compiling', database, database)
+	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, SrcLoc)
 	;   '$record_clause'(Clause, SrcLoc, Ref),
 	    '$qlf_assert_clause'(Ref, development)
@@ -2301,11 +2337,11 @@ at_halt(Goal) :-
 	'$execute_directive'('$set_source_module'(OldM, Module), []),
 	'$save_lex_state'(LexState),
 	'$style_check'(_, 2'1111),
-	flag('$compiling', OldC, wic),
+	'$compilation_mode'(OldC, wic),
 	consult(Files),
 	'$execute_directive'('$set_source_module'(_, OldM), []),
 	'$execute_directive'('$restore_lex_state'(LexState), []),
-	flag('$compiling', _, OldC).
+	'$set_compilation_mode'(OldC).
 
 
 %%	'$load_additional_boot_files' is det.
@@ -2334,7 +2370,7 @@ at_halt(Goal) :-
        ;   true
        ),
        format('SWI-Prolog boot files loaded~n', []),
-       flag('$compiling', OldC, wic),
+       '$compilation_mode'(OldC, wic),
        '$execute_directive'('$set_source_module'(_, user), []),
-       flag('$compiling', _, OldC)
+       '$set_compilation_mode'(OldC)
       )).
