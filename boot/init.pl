@@ -847,7 +847,7 @@ extensions to .ext
 	'$directive_mode'(Old),
 	(   New == Old
 	->  true
-	;   '$set_compilation_mode'(New)
+	;   '$set_directive_mode'(New)
 	).
 
 '$set_directive_mode'(Mode) :-
@@ -2052,9 +2052,9 @@ load_files(Module:Files, Options) :-
 '$load_goal'(load_files(_,Options)) :-
 	memberchk(qcompile(QlfMode), Options),
 	'$qlf_part_mode'(QlfMode).
-'$load_goal'(ensure_loaded(_)) :- '$compilation_mode'(wic, wic).
-'$load_goal'(use_module(_))    :- '$compilation_mode'(wic, wic).
-'$load_goal'(use_module(_, _)) :- '$compilation_mode'(wic, wic).
+'$load_goal'(ensure_loaded(_)) :- '$compilation_mode'(wic).
+'$load_goal'(use_module(_))    :- '$compilation_mode'(wic).
+'$load_goal'(use_module(_, _)) :- '$compilation_mode'(wic).
 
 '$qlf_part_mode'(part).
 '$qlf_part_mode'(true).			% compatibility
