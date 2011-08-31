@@ -1266,22 +1266,15 @@ load_files(Module:Files, Options) :-
 	\+ memberchk(stream(_), Options),
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
-	(   memberchk(stream(FromStream), Options)
-	->  FullFile = File
-	;   absolute_file_name(File,
-			       [ file_type(prolog),
-				 access(read)
-			       ],
-			       FullFile)
-	),
-
-	'$get_option'(if(If), Options, true),
-
-	(   var(FromStream),
-	    '$noload'(If, FullFile)
-	->  '$already_loaded'(File, FullFile, Module, Options)
-	;   '$mt_load_file'(File, FullFile, Module, Options)
-	).
+	memberchk(stream(_), Options), !,
+	'$do_load_file'(File, File, Module, Options).
+'$load_file'(File, Module, Options) :-
+	absolute_file_name(File,
+			   [ file_type(prolog),
+			     access(read)
+			   ],
+			   FullFile),
+	'$mt_load_file'(File, FullFile, Module, Options).
 
 '$already_loaded'(_File, FullFile, Module, Options) :-
 	'$current_module'(LoadModule, FullFile), !,
@@ -1308,31 +1301,43 @@ load_files(Module:Files, Options) :-
 
 '$mt_load_file'(File, FullFile, Module, Options) :-
 	current_prolog_flag(threads, true), !,
-	setup_call_cleanup(with_mutex('$load_file',
-				      '$mt_start_load'(FullFile, Loading)),
-			   '$mt_do_load'(Loading, File, FullFile, Module, Options),
-			   '$mt_end_load'(Loading)).
+	setup_call_cleanup(
+	    with_mutex('$load_file',
+		       '$mt_start_load'(FullFile, Loading, Options)),
+	    '$mt_do_load'(Loading, File, FullFile, Module, Options),
+	    '$mt_end_load'(Loading)).
+'$mt_load_file'(File, FullFile, Module, Options) :-
+	'$get_option'(if(If), Options, true),
+	'$noload'(If, FullFile), !,
+	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_load_file'(File, FullFile, Module, Options) :-
 	'$do_load_file'(File, FullFile, Module, Options).
 
 
-'$mt_start_load'(FullFile, queue(Queue)) :-
+'$mt_start_load'(FullFile, queue(Queue), _) :-
 	'$loading_file'(FullFile, Queue), !.
-'$mt_start_load'(FullFile, Ref) :-
+'$mt_start_load'(FullFile, already_loaded, Options) :-
+	'$get_option'(if(If), Options, true),
+	'$noload'(If, FullFile), !.
+'$mt_start_load'(FullFile, Ref, _) :-
 	message_queue_create(Queue),
 	assertz('$loading_file'(FullFile, Queue), Ref).
 
 '$mt_do_load'(queue(Queue), File, FullFile, Module, Options) :- !,
-	catch(thread_get_message(Queue), _, true),
+	catch(thread_get_message(Queue, _), _, true),
+	'$already_loaded'(File, FullFile, Module, Options).
+'$mt_do_load'(already_loaded, File, FullFile, Module, Options) :- !,
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
 	'$do_load_file'(File, FullFile, Module, Options),
 	'$run_initialization'(FullFile).
 
 '$mt_end_load'(queue(_)) :- !.
+'$mt_end_load'(already_loaded) :- !.
 '$mt_end_load'(Ref) :-
 	clause('$loading_file'(_, Queue), _, Ref),
 	erase(Ref),
+	thread_send_message(Queue, done),
 	message_queue_destroy(Queue).
 
 
