@@ -63,6 +63,7 @@ CHRPATH=@CHRPATH@
 ETAGS=@ETAGS@
 AR=@AR@
 RANLIB=@RANLIB@
+PLBUILD=@PLBUILD@
 PLARCH=@PLARCH@
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
@@ -222,6 +223,9 @@ endif
 
 ifeq ($(MINGW),true)
 OSLIB=	../lib/$(PLARCH)/libuxnt.a
+ifeq ($(PLBUILD),$(PLARCH))
+BUILD_OSLIB=$(OSLIB)
+endif
 
 uxnt-lib:
 		@(cd os/windows && $(MAKE) COFLAGS="$(COFLAGS)")
@@ -351,7 +355,9 @@ defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
 ifeq ($(MINGW),true)
+#ifneq ($(PLBASE),$(PLBUILD))
 HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MSC
+#endif
 HOST_OS_FLAG=-DHOST_OS_WINDOWS
 endif
 
@@ -362,7 +368,7 @@ swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-
 swipl-ld-build$(EXEEXT_FOR_BUILD):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
 	$(CC_FOR_BUILD) $(HOST_OS_FLAG) \
 		-DPLBASE="\"@abs_top_builddir@/..\"" \
-		-I. -I$(srcdir) -g -O2 -o $@ $(srcdir)/swipl-ld.c
+		-I. -I$(srcdir) -g -O2 -o $@ $(srcdir)/swipl-ld.c $(BUILD_OSLIB)
 
 tags::
 		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
