@@ -695,7 +695,6 @@ usage()
         plld,
 #if defined(HOST_OS_WINDOWS)
         plld,
-        plld,
 #endif
         plld);
 
