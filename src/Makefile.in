@@ -579,7 +579,7 @@ distclean:	clean profclean
 		rm -f Makefile config.h config.status parms.h version.h
 		rm -f $(DEVPL) swipl.home swiplbin $(STARTUPPATH)
 		rm -f $(PL)$(EXEEXT)
-		rm .f  swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
+		rm -f  swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
 		rm -f  swipl.1 libswiplimp.a $(DEF)
 		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)
