@@ -1804,7 +1804,8 @@ trapUndefined(Definition def ARG_LD)
       { goto error;
       } else if ( answer == ATOM_retry )
       { if ( retry_times++ )
-	{ warning("exception handler failed to define predicate %s\n",
+	{ warning("[Thread %d]: exception handler failed to define %s\n",
+		  PL_thread_self(),
 		  predicateName(def));
 	  return def;
 	}
