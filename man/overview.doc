@@ -2167,18 +2167,22 @@ open/4.
 \subsection{Limits on memory areas}		\label{sec:memlimit}
 
 SWI-Prolog has a number of memory areas which are only enlarged to a
-certain limit. The default sizes for these areas should suffice for most
-applications, but big applications may require larger ones. They are
-modified by command-line options. The table below shows these areas. The
-first column gives the option name to modify the size of the area. The
-option character is immediately followed by a number and optionally by a
+certain limit. The internal data-representation limits the local-,
+global- and trail-stack to 128 Mbytes on 32 bit processors, or more
+generally to $\pow{2}{\mbox{bits-per-pointer} - 5}$ bytes. Considering
+that almost all modern hardware can deal with this amount of memory with
+ease, the default limits are set to their maximum on 32-bit hardware.
+The representation limits can easily exceed physical memory on 64-bit
+hardware. The default limits on 64-bit hardware are double of 32-bit
+hardware, which allows for storing the same amount of (Prolog-)data.
+
+The limits can be changed from the commandline as well as at runtime
+using set_prolog_stack/2. The table below shows these areas. The first
+column gives the option name to modify the size of the area. The option
+character is immediately followed by a number and optionally by a
 \const{k} or \const{m}. With \const{k} or no unit indicator, the value
 is interpreted in Kbytes (1024 bytes), with \const{m}, the value is
 interpreted in Mbytes ($1024 \times 1024$ bytes).
-
-The local-, global- and trail-stack are limited to 128 Mbytes on 32 bit
-processors, or more generally to $\pow{2}{\mbox{bits-per-long} - 5}$
-bytes.
 
 The PrologScript facility described in \secref{plscript} provides a
 mechanism for specifying options with the load-file.  On Windows the
@@ -2190,13 +2194,16 @@ A GUI for modifying these values is provided using the XPCE package.
 To use this, start the XPCE manual tools using manpce/0, after which
 you find \textit{Preferences} in the \textit{File} menu.
 
+Considering portability, applications that need to modify the default
+limits are adviced to do so using set_prolog_stack/2.
+
 \begin{table}
 \begin{center}
 \begin{tabular}{|c|c|l|p{5cm}|}
 \hline
 Option & Default & Area name & Description \\
 \hline
-\cmdlineoption{-L} & 16M & \bf local stack & The local stack is used to store
+\cmdlineoption{-L} & 128M & \bf local stack & The local stack is used to store
                        the execution environments of procedure
                        invocations. The space for an environment is
                        reclaimed when it fails, exits without leaving
@@ -2204,29 +2211,23 @@ Option & Default & Area name & Description \\
                        the !/0 predicate or no choice points have
                        been created since the invocation and the last
                        subclause is started (last call optimisation). \\
-\cmdlineoption{-G} & 32M & \bf global stack & The global stack is used
+\cmdlineoption{-G} & 128M & \bf global stack & The global stack is used
                        to store terms created during Prolog's
                        execution. Terms on this stack will be reclaimed
                        by backtracking to a point before the term
                        was created or by garbage collection (provided the
                        term is no longer referenced). \\
-\cmdlineoption{-T} & 32M & \bf trail stack & The trail stack is used to store
+\cmdlineoption{-T} & 128M & \bf trail stack & The trail stack is used to store
                        assignments during execution.  Entries on this
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector
                        determines they are nor needed any longer. \\
 \cmdlineoption{-A} & 1M & \bf argument stack & The argument stack is used to
-                       store one of the intermediate code interpreter's
+                       store one of the Virtual Machine's
                        registers. The amount of space needed on this
                        stack is determined entirely by the depth in
                        which terms are nested in the clauses that
-                       constitute the program. Overflow is most likely
-                       when using long strings in a clause.
-
-		       In addition, this stack is used by some built-in
-		       predicates to handle cyclic terms.  Its default
-		       size limit is proportional to the global stack
-		       limit such that it will never overflow. \\
+                       constitute the program. Overflow is unlikely. \\
 \hline
 \end{tabular}
 \end{center}
@@ -2308,6 +2309,6 @@ system.  As large parts of the system are written in Prolog itself
 we need some way to avoid name clashes with the user's predicates,
 database keys, etc.  Like Edinburgh C-Prolog \cite{CPROLOG:manual} all
 predicates, database keys, etc.\ that should be hidden from the user
-start with a dollar (\chr{\$}) sign (see style_check/1).
+start with a dollar (\chr{\$}) sign.
 
 \input{bit64.tex}
