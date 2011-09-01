@@ -161,15 +161,37 @@ systems grammar rule transformations. It is not allowed to use assert/1,
 retract/1 or any other database predicate in term_expansion/2 other than
 for local computational purposes.%
 	\footnote{It does work for normal loading, but not for qcompile/1.}
+Code that needs to create additional clauses must use
+compile_aux_clauses/1. See \pllib{library(apply_macros)} for an example.
 
-Directives may be placed anywhere in a source file, invoking any
-predicate.  They are executed when encountered.  If the directive fails,
-a warning is printed.  Directives are specified by :-/1 or ?-/1.  There
-is no difference between the two.
+A \jargon{directive} is an instruction to the compiler. Directives are
+used to set (predicate) properties (see \secref{declare}), set flags
+(see set_prolog_fag/2) and load files (this section).  Directives are
+terms of the form \mbox{\texttt{:-} <term>.}.  Here are some examples:
 
+\begin{code}
+:- use_module(library(lists)).
+:- dynamic
+	store/2.		% Name, Value
+\end{code}
+
+The directive initialization/1 can be used to run arbitrary Prolog
+goals.  The specified goal is started \emph{after} loading the file
+in which it appears has completed.
+
+SWI-Prolog compiles code as it is read from the file and directives are
+executed as \jargon{goals}. This implies that directives may call any
+predicate that has been defined before the point where the directive
+appears. It also accepts \mbox{\texttt{?-} <term>.} as a synonym.
+
+\index{reconsult}%
 SWI-Prolog does not have a separate \nopredref{reconsult}{1} predicate.
 Reconsulting is implied automatically by the fact that a file is
 consulted which is already loaded.
+
+Advanced topics are handled in subsequent sections: mutual dependend
+files (\secref{depload}), multi-threaded loading (\secref{mtload}) and
+reloading running code (\secref{reload}).
 
 \begin{description}
     \predicate{load_files}{2}{:Files, +Options}
@@ -385,10 +407,11 @@ autoload indices (see \secref{autoload}) and runs list_undefined/0
 from the \pllib{check} library to report on undefined predicates.
 
     \predicate{library_directory}{1}{?Atom}
-Dynamic predicate used to specify library directories.  Default
-\file{./lib}, \file{~/lib/prolog} and the system's library
-(in this order) are defined.  The user may add library directories
-using assert/1, asserta/1 or remove system defaults using retract/1.
+Dynamic predicate used to specify library directories. Default
+\file{./lib}, \file{~/lib/prolog} and the system's library (in this
+order) are defined. The user may add library directories using
+assertz/1, asserta/1 or remove system defaults using retract/1.
+Deprecated. New code should use file_search_path/2.
 
     \predicate{file_search_path}{2}{+Alias, ?Path}
 Dynamic predicate used to specify `path-aliases'.  This feature is
@@ -730,13 +753,13 @@ suffix(Suffix, List) :-
 Note that these directives can only appear as separate terms in the
 input.  Typical usage scenarios include:
 
-\begin{itemize}
+\begin{shortlist}
     \item Load different libraries on different dialects
     \item Define a predicate if it is missing as a system predicate
     \item Realise totally different implementations for a particular
     part of the code due to different capabilities.
     \item Realise different configuration options for your software.
-\end{itemize}
+\end{shortlist}
 
 
 \begin{description}
@@ -777,13 +800,13 @@ Traditionally, Prolog environments allow for reloading files holding
 currently active code.  In particular, the following sequence is valid
 use of the development environment:
 
-\begin{itemize}
+\begin{shortlist}
     \item Trace a goal
     \item Find unexpected behaviour of a predicate
     \item Enter a \jargon{break} using the \textbf{b} command
     \item Fix the sources and reload them using make/0
     \item Exit the break, \jargon{retry} using the \textbf{r} command
-\end{itemize}
+\end{shortlist}
 
 Goals running during the reload keep running on the old definition,
 while new goals use the reloaded definition, which is why the
@@ -805,7 +828,67 @@ execution of this predicate.
 \end{description}
 
 
-\subsubsection{Threads and reloading running code}
+\subsubsection{Compilation of mutual dependent code} \label{sec:depload}
+
+Large programs are generally split into multiple files. If file $A$
+accesses predicates from file $B$ which accesses predicates from file
+$A$, we consider this a mutual or circular dependency. If traditional
+load predicates (e.g., consult/1) are used to include file $B$ from $A$
+and $A$ from $B$, loading either file results in a loop. This is because
+consult/1 is mapped to load_files/2 using the option \term{if(true)}.
+Such programs are typically loaded using a \jargon{load-file} that
+consults all required (non-module) files. If modules are used, the
+dependencies are made explicit using use_module/1 statements. The
+use_module/1 predicate however maps to load_files/2 with the option
+\term{if(not_loaded)}. A use_module/1 on an already loaded file merely
+makes the public predicates of the used module available.
+
+Summarizing, mutual dependency of source-files is fully supported with
+no precautions when using modules. Modules can use each other in an
+arbitrary dependency graph. When using consult/1, predicate dependencies
+between loaded files can still be arbitrary, but the consult relations
+between files must be a proper tree.
+
+
+\subsubsection{Compilation with multiple threads} \label{sec:mtload}
+
+This section discusses compiling files for the first time. For
+re-loading see \secref{reload}.
+
+In older versions, compilation was thread-safe due to a global
+\jargon{lock} in load_files/2 and the code dealing with
+\jargon{autoloading} (see \secref{autoload}). Besides unnecessary
+stalling when multiple threads trap unrelated undefined predicates,
+this easily leads to deadlocks, notably if threads are started from an
+initialization/1 directive.\footnote{Although such goals are started
+after loading the file in which they appear, the calling thread is still
+likely to hold the `load' lock because it is compiling the file from
+which the file holding the directive is loaded.}
+
+Starting with version 5.11.27, the autoloader is no longer locked and
+multiple threads can compile files concurrently. This requires special
+precautions only if multiple threads wish to load the same file at the
+same time. Therefore, load_files/2 checks atomically whether some other
+thread is already loading the file. If not, it starts loading the file.
+If another thread is already loading the file, the thread blocks until
+the other thread finishes loading the file. After waiting, and if the
+file is a module file, it will make the public predicates available.
+
+Note that this schema does not prevent deadlocks under all situations.
+Consider two mutually dependent (see \secref{depload}) module files $A$
+and $B$, where thread~1 starts loading $A$ and thread~2 starts loading
+$B$ at the same time. Both threads will deadlock when trying to load the
+used module.
+
+The current implementation does not detect such cases and the involved
+threads will freeze. This problem can be avoided if a mutually dependend
+collection of files is always loaded from the same start-file.
+
+
+\subsubsection{Reloading running code}		\label{sec:reload}
+
+This section discusses \emph{not re-}loading of code.  Initial loading
+of code is discussed in \secref{mtload}.
 
 As of version 5.5.30, there is basic thread-safety for reloading
 source files while other threads are executing code defined in these
@@ -7036,7 +7119,7 @@ Command is passed as data of type \const{CF_TEXT}.
 
 \subsection{DDE server mode}
 
-The (autoload) \file{library(dde)} defines primitives to realise simple
+The \file{library(dde)} defines primitives to realise simple
 DDE server applications in SWI-Prolog.  These features are provided as
 of version 2.0.6 and should be regarded prototypes.  The C-part of
 the DDE server can handle some more primitives, so if you need features
