@@ -110,13 +110,13 @@ changequote(,)dnl
 if test "x$PLBUILD" = "x"; then
   case "$build" in
     *linux*)
-      PLBUILD=`echo $host | sed 's/-.*/-linux/'`
+      PLBUILD=`echo $build | sed 's/-.*/-linux/'`
       ;;
     *-gnu)
-      PLBUILD=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
+      PLBUILD=`echo $build | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
       ;;
     *)
-      PLBUILD=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+      PLBUILD=`echo $build | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
       ;;
   esac
 fi
