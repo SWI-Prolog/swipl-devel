@@ -19,6 +19,7 @@
 
 PUBLICPL=	@PL@
 PL=		../@BUILDDIR@/swipl.sh
+VERSION=	$(shell cat ../VERSION)
 
 CP=		cp
 CPP=		@CPP@
@@ -28,11 +29,10 @@ DVITOTTY-HOME=	txt/dvi2tty
 INDEX=		makeindex
 LATEX=		latex
 PDFTEX=		pdflatex
-MANUAL=		./MANUAL.dvi
-PDF=		MANUAL.pdf
+DOC=		SWI-Prolog-$(VERSION)
+PDF=		$(DOC).pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
-VERSION=	$(shell cat ../VERSION)
 
 WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
@@ -48,7 +48,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/apply.tex lib/aggregate.tex lib/threadpool.tex \
 		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
 		lib/csv.tex lib/optparse.tex lib/debug.tex
-TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
+TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
 		profile.tex attvar.tex chr.tex xref.tex bit64.tex \
@@ -78,19 +78,7 @@ all:
 		$(MAKE) clean
 		$(MAKE) windows.html macosx/macosx.html
 
-dvi:		doc.dvi
-
-doc.dvi:	$(TEXFILES)
-		env TEXINPUTS=lib:$$TEXINPUTS $(LATEX) doc
-		env TEXINPUTS=lib:$$TEXINPUTS $(LATEX) doc
-		env TEXINPUTS=lib:$$TEXINPUTS $(LATEX) doc
-
-ps:		doc.ps
-
-doc.ps:		doc.dvi
-		dvips $< -o $@
-
-html:		$(TEXFILES) $(STYFILES) doc.bbl
+html:		$(TEXFILES) $(STYFILES) $(DOC).bbl
 		env TEXINPUTS=lib:$$TEXINPUTS latex2html doc
 
 pdf:		$(PDF)
@@ -110,17 +98,14 @@ clean:
 		rm -f online.* *.tex
 
 distclean:	clean
-		rm -f $(MANUAL) $(DVITOTTY)
+		rm -f SWI-Prolog-*.???
+		rm -f $(DVITOTTY)
 		rm -rf Manual.tmp
 		rm -f Makefile
 		make -C$(DVITOTTY-HOME) distclean
 
-$(PDF):		doc.tex $(TEXFILES) doc.bbl
-		env TEXINPUTS=lib:$$TEXINPUTS ./runtex --pdf doc
-		mv doc.pdf $@
-
-man:		doc.tex $(TEXFILES) doc.bbl doc.ind
-		$(LATEX) doc
+$(PDF):		$(DOC).tex $(TEXFILES) $(DOC).bbl
+		env TEXINPUTS=lib:$$TEXINPUTS ./runtex --pdf $(DOC)
 
 tex:		$(TEXFILES)
 
@@ -129,7 +114,7 @@ $(TEXFILES):	doc2tex
 .doc.tex:
 		./doc2tex $*.doc > $*.tex
 
-doc.bbl:	biblio.doc
+$(DOC).bbl:	biblio.doc
 		cp  biblio.doc $@
 
 htmldoc.bbl:	biblio.doc
@@ -138,8 +123,8 @@ htmldoc.bbl:	biblio.doc
 online.bbl:	biblio.doc
 		cp  biblio.doc $@
 
-doc.idx:	$(TEXFILES)
-		$(LATEX) doc
+$(DOC).idx:	$(TEXFILES)
+		$(LATEX) $(DOC)
 
 $(ONLINE):	online.dvi $(DVITOTTY)
 		$(DVITOTTY) -w100 online | \
@@ -153,9 +138,9 @@ online.doc:	main.doc
 		cp main.doc main.h
 		$(CCCP) -DONLINE main.h | cat -s > online.doc
 		rm -f main.h
-doc.doc:	main.doc
+$(DOC).doc:	main.doc
 		cp main.doc main.h
-		$(CCCP) -UONLINE main.h | cat -s > doc.doc
+		$(CCCP) -UONLINE main.h | cat -s > $(DOC).doc
 		rm -f main.h
 
 $(ONLINE_INDEX):	$(ONLINE)
