@@ -749,7 +749,7 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
     }
   }
 
-  return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_category, A1);
+  return PL_domain_error("category", A1);
 }
 
 #else
