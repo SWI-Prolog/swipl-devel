@@ -69,8 +69,8 @@ we want to be able to have a lot of flags and don't harm thread_create/3
 too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void setArgvPrologFlag();
-static void setTZPrologFlag();
+static void setArgvPrologFlag(void);
+static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static atom_t lookupAtomFlag(atom_t key);
 
@@ -1121,7 +1121,7 @@ initPrologFlags()
 
 
 static void
-setArgvPrologFlag()
+setArgvPrologFlag(void)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
   term_t e = PL_new_term_ref();
@@ -1144,7 +1144,7 @@ setArgvPrologFlag()
 
 
 static void
-setTZPrologFlag()
+setTZPrologFlag(void)
 { tzset();
 
   setPrologFlag("timezone", FT_INTEGER|FF_READONLY, timezone);
@@ -1161,7 +1161,7 @@ setVersionPrologFlag(void)
   int patch = (PLVERSION%100);
 
   if ( !PL_unify_term(t,
-		      PL_FUNCTOR_CHARS, "swi", 4,
+		      PL_FUNCTOR_CHARS, PLNAME, 4,
 		        PL_INT, major,
 		        PL_INT, minor,
 		        PL_INT, patch,

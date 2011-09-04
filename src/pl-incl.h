@@ -25,6 +25,8 @@
 #ifndef _PL_INCLUDE_H
 #define _PL_INCLUDE_H
 
+#define PLNAME "swi"
+
 #ifdef __WINDOWS__
 #ifdef WIN64
 #include "config/win64.h"
