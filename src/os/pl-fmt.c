@@ -53,9 +53,9 @@ typedef struct
   struct rubber rub[MAXRUBBER];
 } format_state;
 
-#define BUFSIZE 	1024
-#define DEFAULT 	(-1)
-#define SHIFT   	{ argc--; argv++; }
+#define BUFSIZE		1024
+#define DEFAULT		(-1)
+#define SHIFT		{ argc--; argv++; }
 #define NEED_ARG	{ if ( argc <= 0 ) \
 			  { FMT_ERROR("not enough arguments"); \
 			  } \
@@ -189,7 +189,8 @@ outtext(format_state *state, PL_chars_t *txt)
 #define format_predicates (GD->format.predicates)
 
 static int	update_column(int, Char);
-static bool	do_format(IOSTREAM *fd, PL_chars_t *fmt, int ac, term_t av);
+static bool	do_format(IOSTREAM *fd, PL_chars_t *fmt,
+			  int ac, term_t av, Module m);
 static void	distribute_rubber(struct rubber *, int, int);
 static int	emit_rubber(format_state *state);
 
@@ -272,7 +273,7 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 
 
 static word
-format_impl(IOSTREAM *out, term_t format, term_t Args)
+format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
 { GET_LD
   term_t argv;
   int argc = 0;
@@ -307,7 +308,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
       break;
   }
 
-  rval = do_format(out, &fmt, argc, argv);
+  rval = do_format(out, &fmt, argc, argv, m);
   PL_free_text(&fmt);
   if ( !endCritical )
     return FALSE;
@@ -318,11 +319,17 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
 
 word
 pl_format3(term_t out, term_t format, term_t args)
-{ redir_context ctx;
+{ GET_LD
+  redir_context ctx;
   word rc;
+  Module m = NULL;
+  term_t list = PL_new_term_ref();
+
+  if ( !PL_strip_module(args, &m, list) )
+    return FALSE;
 
   if ( (rc=setupOutputRedirect(out, &ctx, FALSE)) )
-  { if ( (rc = format_impl(ctx.stream, format, args)) )
+  { if ( (rc = format_impl(ctx.stream, format, list, m)) )
       rc = closeOutputRedirect(&ctx);
     else
       discardOutputRedirect(&ctx);
@@ -357,7 +364,7 @@ get_chr_from_text(const PL_chars_t *t, int index)
 		********************************/
 
 static bool
-do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
+do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 { GET_LD
   format_state state;			/* complete state */
   int tab_stop = 0;			/* padded tab stop */
@@ -687,7 +694,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  { FMT_ERROR("not enough arguments");
 		  }
 		  tellString(&str, &bufsize, ENC_UTF8);
-		  rval = callProlog(NULL, argv, PL_Q_CATCH_EXCEPTION, &ex);
+		  rval = callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex);
 		  toldString();
 		  oututf8(&state, str, bufsize);
 		  if ( str != buf )

@@ -5518,7 +5518,7 @@ produce textual output.
     \predicate{format}{1}{+Format}
 Defined as `\exam{format(Format) :- format(Format, []).}'
 
-    \predicate{format}{2}{+Format, +Arguments}
+    \predicate{format}{2}{+Format, :Arguments}
 \arg{Format} is an atom, list of character codes, or a Prolog string.
 \arg{Arguments} provides the arguments required by the format
 specification. If only one argument is required and this single argument
@@ -5670,7 +5670,7 @@ Will output
 Runtime: .................. 3.45  Inferences: .......... 60,345
 \end{code}
 
-    \predicate{format}{3}{+Output, +Format, +Arguments}
+    \predicate{format}{3}{+Output, +Format, :Arguments}
 As format/2, but write the output on the given \arg{Output}. The
 de-facto standard only allows \arg{Output} to be a stream. The
 SWI-Prolog implementation allows all valid arguments for
