@@ -23,14 +23,7 @@
 */
 
 #ifndef COMMON
-#ifndef SO_LOCAL
-#ifdef HAVE_VISIBILITY_ATTRIBUTE
-#define SO_LOCAL __attribute__((visibility("hidden")))
-#else
-#define SO_LOCAL
-#endif
-#endif
-#define COMMON(type) SO_LOCAL type
+#define COMMON(type) extern type
 #endif
 
 typedef enum
