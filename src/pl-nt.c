@@ -294,7 +294,7 @@ CpuTime(cputime_kind which)
 
 
 static int
-CpuCount()
+CpuCount(void)
 { SYSTEM_INFO si;
 
   GetSystemInfo(&si);
@@ -304,7 +304,7 @@ CpuCount()
 
 
 void
-setOSPrologFlags()
+setOSPrologFlags(void)
 { PL_set_prolog_flag("cpu_count", PL_INTEGER, CpuCount());
 }
 
@@ -347,11 +347,11 @@ findExecutable(const char *module, char *exe)
 
 typedef struct
 { const char *name;
-  int         id;
+  UINT        id;
 } showtype;
 
 static int
-get_showCmd(term_t show, int *cmd)
+get_showCmd(term_t show, UINT *cmd)
 { char *s;
   showtype *st;
   static showtype types[] =
@@ -506,11 +506,7 @@ word
 pl_win_exec(term_t cmd, term_t how)
 { wchar_t *s;
   size_t len;
-#if defined(__MINGW32__)
-  int h;
-#else
   UINT h;
-#endif
 
   if ( PL_get_wchars(cmd, &len, &s, CVT_ALL|CVT_EXCEPTION) &&
        get_showCmd(how, &h) )
@@ -663,7 +659,7 @@ dlopen(const char *file, int flags)	/* file is in UTF-8 */
 
 
 const char *
-dlerror()
+dlerror(void)
 { return dlmsg;
 }
 
@@ -953,7 +949,7 @@ setStacksFromKey(HKEY key)
 
 
 void
-getDefaultsFromRegistry()
+getDefaultsFromRegistry(void)
 { HKEY key;
 
   if ( (key = reg_open_key(L"HKEY_LOCAL_MACHINE/Software/SWI/Prolog", FALSE)) )
