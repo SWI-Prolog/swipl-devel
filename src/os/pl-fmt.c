@@ -33,7 +33,7 @@ source should also use format() to produce error messages, etc.
 #include <ctype.h>
 
 static char *	formatNumber(bool split, int div, int radix,
-			     bool small, Number n, Buffer out);
+			     bool smll, Number n, Buffer out);
 static char *	formatFloat(int how, int arg, Number f, Buffer out);
 
 #define MAXRUBBER 100
@@ -201,15 +201,17 @@ static int	emit_rubber(format_state *state);
 word
 pl_format_predicate(term_t chr, term_t descr)
 { int c;
-  Procedure proc;
+  predicate_t proc = NULL;
   Symbol s;
+  int arity;
 
   if ( !PL_get_char_ex(chr, &c, FALSE) )
     fail;
 
   if ( !get_procedure(descr, &proc, 0, GP_CREATE) )
     fail;
-  if ( proc->definition->functor->arity == 0 )
+  PL_predicate_info(proc, NULL, &arity, NULL);
+  if ( arity == 0 )
     return PL_error(NULL, 0, "arity must be > 0", ERR_DOMAIN,
 		    PL_new_atom("format_predicate"),
 		    descr);
@@ -255,8 +257,7 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
   }
   while( (s=advanceTableEnum(e)) )
   { if ( PL_unify_integer(chr, (intptr_t)s->name) &&
-	 unify_definition(contextModule(LD->environment),
-			  descr, ((Procedure)s->value)->definition, 0, 0) )
+	 PL_unify_predicate(descr, (predicate_t)s->value, 0) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
     }
@@ -419,20 +420,23 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 					/* Check for user defined format */
 	  if ( format_predicates &&
 	       (s = lookupHTable(format_predicates, (void*)((intptr_t)c))) )
-	  { Procedure proc = (Procedure) s->value;
-	    FunctorDef fdef = proc->definition->functor;
-	    term_t av = PL_new_term_refs(fdef->arity);
+	  { predicate_t proc = (predicate_t) s->value;
+	    int arity;
+	    term_t av;
 	    char buf[BUFSIZE];
 	    char *str = buf;
 	    size_t bufsize = BUFSIZE;
 	    unsigned int i;
+
+	    PL_predicate_info(proc, NULL, &arity, NULL);
+	    av = PL_new_term_refs(arity);
 
 	    if ( arg == DEFAULT )
 	      PL_put_atom(av+0, ATOM_default);
 	    else
 	      PL_put_integer(av+0, arg);
 
-	    for(i=1; i<fdef->arity; i++)
+	    for(i=1; i < arity; i++)
 	    { NEED_ARG;
 	      PL_put_term(av+i, argv);
 	      SHIFT;
@@ -486,7 +490,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	      case 'g':			/* shortest of 'f' and 'e' */
 	      case 'G':			/* shortest of 'f' and 'E' */
 		{ number n;
+		  union {
 		  tmp_buffer b;
+		    buffer b1;
+		  } u;
 
 		  NEED_ARG;
 		  if ( !valueExpression(argv, &n PASS_LD) )
@@ -498,11 +505,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  }
 		  SHIFT;
 
-		  initBuffer(&b);
-		  formatFloat(c, arg, &n, (Buffer)&b);
+		  initBuffer(&u.b);
+		  formatFloat(c, arg, &n, &u.b1);
 		  clearNumber(&n);
-		  outstring0(&state, baseBuffer(&b, char));
-		  discardBuffer(&b);
+		  outstring0(&state, baseBuffer(&u.b, char));
+		  discardBuffer(&u.b);
 		  here++;
 		  break;
 		}
@@ -853,7 +860,7 @@ emit_rubber(format_state *state)
  ** Fri Aug 19 22:26:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static char *
-formatNumber(bool split, int div, int radix, bool small, Number i,
+formatNumber(bool split, int div, int radix, bool smll, Number i,
 	     Buffer out)
 { switch(i->type)
   { case V_INTEGER:
@@ -888,7 +895,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
 	  }
 	  if ( split && before && (digits++ % 3) == 0 && digits != 1 )
 	    *--s = ',';
-	  *--s = digitName((int)(n % radix), small);
+	  *--s = digitName((int)(n % radix), smll);
 	  n /= radix;
 	}
 	if ( negative )
@@ -913,7 +920,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
 	buf = tmp;
 
       mpz_get_str(buf, radix, i->value.mpz);
-      if ( !small && radix > 10 )
+      if ( !smll && radix > 10 )
       { char *s;
 
 	for(s=buf; *s; s++)
