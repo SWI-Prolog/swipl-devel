@@ -102,10 +102,10 @@ remove_string(char *s)
  ** Fri Jun 10 10:45:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 char
-digitName(int n, int small)
+digitName(int n, int smll)
 { if (n <= 9)
     return n + '0';
-  return n + (small ? 'a' : 'A') - 10;
+  return n + (smll ? 'a' : 'A') - 10;
 }
 
 
