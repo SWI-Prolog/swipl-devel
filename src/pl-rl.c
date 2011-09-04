@@ -280,7 +280,7 @@ static sigstate signals[] =
 
 
 static void
-prepare_signals()
+prepare_signals(void)
 { sigstate *s;
 
   for(s=signals; s->signo != -1; s++)
@@ -294,7 +294,7 @@ prepare_signals()
 
 
 static void
-restore_signals()
+restore_signals(void)
 { sigstate *s;
 
   for(s=signals; s->signo != -1; s++)
@@ -382,7 +382,7 @@ event_hook()
 
 
 static void
-reset_readline()
+reset_readline(void)
 { if ( in_readline )
   { restore_signals();
   }
@@ -560,7 +560,7 @@ prolog_completion(const char *text, int start, int end)
 #undef read				/* UXNT redefinition */
 
 install_t
-PL_install_readline()
+PL_install_readline(void)
 { GET_LD
   bool old;
 
@@ -606,7 +606,7 @@ PL_install_readline()
 #else /*HAVE_LIBREADLINE*/
 
 install_t
-PL_install_readline()
+PL_install_readline(void)
 {
 }
 
