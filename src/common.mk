@@ -6,13 +6,13 @@
 OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-file.o os/pl-files.o \
 	os/pl-glob.o os/pl-os.o os/pl-stream.o os/pl-string.o os/pl-table.o \
 	os/pl-text.o os/pl-utf8.o os/pl-fmt.o os/pl-dtoa.o os/pl-option.o \
-	os/pl-cstack.o os/pl-codelist.o os/pl-prologflag.o
+	os/pl-cstack.o os/pl-codelist.o os/pl-prologflag.o os/pl-rl.o
 
 OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-flag.o \
 	pl-funct.o pl-gc.o pl-privitf.o pl-list.o \
 	pl-load.o pl-modul.o pl-op.o pl-prims.o pl-pro.o \
-	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
+	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-setup.o \
 	pl-sys.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
 	pl-term.o pl-thread.o pl-xterm.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
