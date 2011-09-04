@@ -3012,6 +3012,8 @@ Swinsock(IOSTREAM *s)
 #ifdef __WINDOWS__
 #include "windows/popen.c"
 
+#undef popen
+#undef pclose
 #define popen(cmd, how) pt_popen(cmd, how)
 #define pclose(fd)	pt_pclose(fd)
 #endif
@@ -3449,7 +3451,7 @@ static const IOSTREAM S__iob0[] =
 static int S__initialised = FALSE;
 
 void
-SinitStreams()
+SinitStreams(void)
 { if ( !S__initialised )
   { int i;
     IOENC enc = initEncoding();
