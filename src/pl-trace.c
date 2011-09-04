@@ -1677,6 +1677,17 @@ initTracer(void)
 
 #if O_DEBUGGER
 
+void
+suspendTrace(int suspend)
+{ GET_LD
+
+  if ( suspend )
+    debugstatus.suspendTrace++;
+  else
+    debugstatus.suspendTrace--;
+}
+
+
 int
 tracemode(int doit, int *old)
 { GET_LD

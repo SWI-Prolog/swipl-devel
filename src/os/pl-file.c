@@ -1397,7 +1397,7 @@ getSingleChar(IOSTREAM *stream, int signals)
   int c;
   ttybuf buf;
 
-  debugstatus.suspendTrace++;
+  suspendTrace(TRUE);
   Slock(stream);
   Sflush(stream);
   PushTty(stream, &buf, TTY_RAW);	/* just donot prompt */
@@ -1424,7 +1424,7 @@ getSingleChar(IOSTREAM *stream, int signals)
     c = -1;
 
   PopTty(stream, &buf, TRUE);
-  debugstatus.suspendTrace--;
+  suspendTrace(FALSE);
   Sunlock(stream);
 
   return c;

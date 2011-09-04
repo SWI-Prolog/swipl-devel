@@ -1719,7 +1719,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
   if ( true(qf, PL_Q_NODEBUG) )
   { set(fr, FR_HIDE_CHILDS);
-    debugstatus.suspendTrace++;
+    suspendTrace(TRUE);
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = DBG_OFF;
     qf->flags_saved = (LD->prolog_flag.mask.flags & NDEBUG_SAVE_FLAGS);
@@ -1808,7 +1808,7 @@ restore_after_query(QueryFrame qf)
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
   if ( true(qf, PL_Q_NODEBUG) )
-  { debugstatus.suspendTrace--;
+  { suspendTrace(FALSE);
     debugstatus.debugging = qf->debugSave;
     LD->prolog_flag.mask.flags &= (~NDEBUG_SAVE_FLAGS);
     LD->prolog_flag.mask.flags |= qf->flags_saved;

@@ -310,5 +310,6 @@ blockGC() is matched by an unblockGC().
 
 COMMON(void)	blockGC(int flags ARG_LD);	/* disallow garbage collect */
 COMMON(void)	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
+COMMON(void)	suspendTrace(int suspend);	/* suspend/resume tracing */
 
 #endif /*PL_BUILTIN_H_INCLUDED*/
