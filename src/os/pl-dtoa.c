@@ -34,8 +34,14 @@
 #define MALLOC PL_malloc
 #define FREE PL_free
 
-#ifdef _REENTRANT
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Long must be a 32-bit int.  For now we use int.  Ideally we would use
+int32_t, but MS does not yet support stdint.h.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define Long int			/* 32-bits */
+
+#ifdef _REENTRANT
 #define MULTIPLE_THREADS
 
 /* TBD: Use the pl-thread.[ch] locks for better speed on Windows
