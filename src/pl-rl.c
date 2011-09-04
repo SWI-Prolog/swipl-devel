@@ -216,20 +216,6 @@ pl_rl_read_history(term_t fn)
 
 
 
-static int
-input_on_fd(int fd)
-{ fd_set rfds;
-  struct timeval tv;
-
-  FD_ZERO(&rfds);
-  FD_SET(fd, &rfds);
-  tv.tv_sec = 0;
-  tv.tv_usec = 0;
-
-  return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
-}
-
-
 static char *my_prompt    = NULL;
 static int   in_readline  = 0;
 static int   sig_at_level = -1;
@@ -359,7 +345,20 @@ reentrant access is tried.
 
 #ifdef HAVE_RL_EVENT_HOOK
 static int
-event_hook()
+input_on_fd(int fd)
+{ fd_set rfds;
+  struct timeval tv;
+
+  FD_ZERO(&rfds);
+  FD_SET(fd, &rfds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 0;
+
+  return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
+}
+
+static int
+event_hook(void)
 { if ( Sinput->position )
   { int64_t c0 = Sinput->position->charno;
 
