@@ -350,7 +350,7 @@ MarkExecutable(const char *name)
 
 int
 unifyTime(term_t t, time_t time)
-{ return PL_unify_float(t, (double)time);
+{ return PL_unify_time(t, time);
 }
 
 
