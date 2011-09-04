@@ -68,6 +68,11 @@ handling times must be cleaned, but that not only holds for this module.
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
 
+/* there are two types of stream property functions. In the usual case,
+   they have an argument, but in a few cases they don't */
+typedef int (*property0_t)(IOSTREAM *s ARG_LD);
+typedef int (*property_t)(IOSTREAM *s, term_t prop ARG_LD);
+
 static int	bad_encoding(const char *msg, atom_t name);
 static int	noprotocol(void);
 static PL_blob_t stream_blob;
@@ -1109,7 +1114,7 @@ protocol(const char *str, size_t n)
 
 
 static int
-push_input_context()
+push_input_context(void)
 { GET_LD
   InputContext c = allocHeapOrHalt(sizeof(struct input_context));
 
@@ -1124,7 +1129,7 @@ push_input_context()
 
 
 static int
-pop_input_context()
+pop_input_context(void)
 { GET_LD
   InputContext c = input_context_stack;
 
@@ -1156,7 +1161,7 @@ PRED_IMPL("$pop_input_context", 0, pop_input_context, 0)
 
 
 void
-pushOutputContext()
+pushOutputContext(void)
 { GET_LD
   OutputContext c = allocHeapOrHalt(sizeof(struct output_context));
 
@@ -1167,7 +1172,7 @@ pushOutputContext()
 
 
 void
-popOutputContext()
+popOutputContext(void)
 { GET_LD
   OutputContext c = output_context_stack;
 
@@ -3168,7 +3173,7 @@ ok:
 }
 
 int
-pl_seen()
+pl_seen(void)
 { GET_LD
   IOSTREAM *s = getStream(Scurin);
 
@@ -3746,15 +3751,15 @@ stream_close_on_exec_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 typedef struct
 { functor_t functor;			/* functor of property */
-  int (*function)();			/* function to generate */
+  property_t function; /* function to generate */
 } sprop;
 
 
 static const sprop sprop_list [] =
 { { FUNCTOR_file_name1,	    stream_file_name_propery },
   { FUNCTOR_mode1,	    stream_mode_property },
-  { FUNCTOR_input0,	    stream_input_prop },
-  { FUNCTOR_output0,	    stream_output_prop },
+  { FUNCTOR_input0,	    (property_t)stream_input_prop },
+  { FUNCTOR_output0,	    (property_t)stream_output_prop },
   { FUNCTOR_alias1,	    stream_alias_prop },
   { FUNCTOR_position1,	    stream_position_prop },
   { FUNCTOR_end_of_stream1, stream_end_of_stream_prop },
@@ -3857,7 +3862,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 
 	      switch(arityFunctor(f))
 	      { case 0:
-		  rval = (*p->function)(s PASS_LD);
+		  rval = (*(property0_t)p->function)(s PASS_LD);
 		  break;
 		case 1:
 		{ term_t a1 = PL_new_term_ref();
@@ -3932,7 +3937,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 
 	  switch(arityFunctor(pe->p->functor))
 	  { case 0:
-	      rval = (*pe->p->function)(pe->s PASS_LD);
+	      rval = (*(property0_t)pe->p->function)(pe->s PASS_LD);
 	      break;
 	    case 1:
 	    { _PL_get_arg(1, property, a1);
