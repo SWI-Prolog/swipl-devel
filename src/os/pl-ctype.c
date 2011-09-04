@@ -54,7 +54,7 @@ typedef struct
 typedef struct
 { int		current;		/* current character */
   const char_type   *class;		/* current class */
-  int   	do_enum;		/* what to enumerate */
+  int		do_enum;		/* what to enumerate */
 } generator;
 
 
@@ -682,7 +682,7 @@ so we ignore possible problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-initLocale()
+initLocale(void)
 { int rc = TRUE;
 
   if ( !setlocale(LC_CTYPE, "") )
