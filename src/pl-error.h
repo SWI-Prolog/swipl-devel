@@ -86,7 +86,6 @@ typedef enum
 COMMON(int)		PL_error(const char *pred, int arity, const char *msg,
 				 PL_error_code id, ...);
 COMMON(int)		PL_no_memory(void);
-COMMON(char *)		tostr(char *buf, const char *fmt, ...);
 COMMON(int)		printMessage(atom_t severity, ...);
 #ifdef ARG_LD
 COMMON(int)		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);

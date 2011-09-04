@@ -620,18 +620,6 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 }
 
 
-char *
-tostr(char *buf, const char *fmt, ...)
-{ va_list args;
-
-  va_start(args, fmt);
-  Svsprintf(buf, fmt, args);
-  va_end(args);
-
-  return buf;
-}
-
-
 		 /*******************************
 		 *	  TYPICAL ERRORS	*
 		 *******************************/

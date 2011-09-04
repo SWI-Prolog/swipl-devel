@@ -282,9 +282,9 @@ get_arity(term_t t, int extra, int maxarity, int *arity)
   if ( maxarity >= 0 && a > maxarity )
   { char buf[100];
 
-    return PL_error(NULL, 0,
-		    tostr(buf, "limit is %d, request = %d",
-			  maxarity, a),
+    Ssprintf(buf, "limit is %d, request = %d", maxarity, a);
+
+    return PL_error(NULL, 0, buf,
 		    ERR_REPRESENTATION, ATOM_max_arity);
   }
 
@@ -353,9 +353,10 @@ get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
     { fail;
     } else
     { char buf[100];
-      return PL_error(NULL, 0,
-		      tostr(buf, "limit is %d, request = %d",
-			    MAXARITY, arity),
+
+      Ssprintf(buf, "limit is %d, request = %d", MAXARITY, arity);
+
+      return PL_error(NULL, 0, buf,
 		      ERR_REPRESENTATION, ATOM_max_arity);
     }
   }
