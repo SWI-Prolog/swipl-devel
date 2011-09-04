@@ -919,7 +919,7 @@ has_extension(const char *name, const char *ext)
 
 
 static int
-name_too_long()
+name_too_long(void)
 { return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
 }
 
