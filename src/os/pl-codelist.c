@@ -23,7 +23,7 @@
 */
 
 #include "pl-incl.h"
-#include "pl-codelist.h"
+#include "../pl-codelist.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_code *status)
