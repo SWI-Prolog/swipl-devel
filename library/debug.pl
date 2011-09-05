@@ -31,7 +31,7 @@
 */
 
 :- module(prolog_debug,
-	  [ debug/3,			% +Topic, +Format, +Args
+	  [ debug/3,			% +Topic, +Format, :Args
 	    debug/1,			% +Topic
 	    nodebug/1,			% +Topic
 	    debugging/1,		% ?Topic
@@ -44,7 +44,10 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 
-:- meta_predicate(assertion(0)).
+:- meta_predicate
+	assertion(0),
+	debug(+,+,:).
+
 /*:- use_module(library(prolog_stack)).*/ % We use the autoloader if needed
 
 %:- set_prolog_flag(generate_debug_info, false).
@@ -192,10 +195,13 @@ valid_topic(X, _, _) :-
 	domain_error(debug_message_context, X).
 
 
-%%	debug(+Topic, +Format, +Args) is det.
+%%	debug(+Topic, +Format, :Args) is det.
 %
-%	As format/3 to user_error, but only does something if Topic
-%	is activated through debug/1.
+%	As format/3 to  =user_error=,  but  only   prints  if  Topic  is
+%	activated through debug/1. Args is a  meta-argument to deal with
+%	goal for the @-command.
+%
+%	@see	format/3.
 
 debug(Topic, Format, Args) :-
 	debugging(Topic, true, To), !,
