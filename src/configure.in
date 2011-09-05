@@ -41,6 +41,8 @@ AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
 AC_SUBST(MINGW)
 AC_SUBST(WINEPATHEXE)
+AC_SUBST(HOST_TOOLCHAIN_FLAG)
+AC_SUBST(HOST_OS_FLAG)
 AC_SUBST(DEFSTARTUP)
 
 if test ! -z "$CIFLAGS"; then
@@ -326,6 +328,14 @@ case "$PLARCH" in
     *-win64)
 	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN64"
 	;;
+esac
+
+dnl Set swipl-ld host parameters
+case "$PLARCH" in
+    *-win32|*-win64)
+        HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MSC
+        HOST_OS_FLAG=-DHOST_OS_WINDOWS
+       ;;
 esac
 
 AC_C_INLINE

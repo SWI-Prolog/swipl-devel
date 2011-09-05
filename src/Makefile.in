@@ -85,6 +85,9 @@ LDFLAGS=@LDFLAGS@ $(CPFLAGS)
 MINGW=@MINGW@
 DEFSTARTUP=@DEFSTARTUP@
 
+HOST_TOOLCHAIN_FLAG=@HOST_TOOLCHAIN_FLAG@
+HOST_OS_FLAG=@HOST_OS_FLAG@
+
 CC_FOR_BUILD = @CC_FOR_BUILD@
 EXEEXT_FOR_BUILD = @EXEEXT_FOR_BUILD@
 
@@ -353,13 +356,6 @@ $(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
 
 defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
-
-ifeq ($(MINGW),true)
-#ifneq ($(PLBASE),$(PLBUILD))
-HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MSC
-#endif
-HOST_OS_FLAG=-DHOST_OS_WINDOWS
-endif
 
 swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
 	$(CC) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
