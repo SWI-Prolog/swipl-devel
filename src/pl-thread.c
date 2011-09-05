@@ -4331,6 +4331,9 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
   FILETIME created, exited, kerneltime, usertime;
   HANDLE win_thread;
 
+  if ( !info->has_tid )
+    return 0.0;
+
   __try					/* sometimes appears to fail ... */
   { win_thread = pthread_getw32threadhandle_np(info->tid);
   } __except(EXCEPTION_EXECUTE_HANDLER)
