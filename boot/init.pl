@@ -1515,6 +1515,7 @@ load_files(Module:Files, Options) :-
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),% Inform C we start loading
 	'$load_id'(Absolute, Id),
+	ignore('$load_context_module'(Id, OldContext)),
 	'$start_consult'(Id),
 	(   '$derived_source'(Absolute, DerivedFrom, _)
 	->  '$start_consult'(DerivedFrom)
@@ -1530,10 +1531,12 @@ load_files(Module:Files, Options) :-
 
 	'$save_lex_state'(LexState),
 	'$open_source'(Absolute, In,
-		       '$load_file'(In, Id, LM, Options),
+		       '$load_file'(In, Id, IsModule, LM, Options),
 		       Options),
 	'$restore_lex_state'(LexState),
-	'$set_source_module'(_, OldModule).	% Restore old module
+	'$set_source_module'(_, OldModule),	% Restore old module
+	'$check_consult_multiple_context'(IsModule, OldContext, LM, Absolute).
+
 
 :- create_prolog_flag(emulated_dialect, swi, [type(atom)]).
 
@@ -1573,14 +1576,23 @@ load_files(Module:Files, Options) :-
 	).
 
 
-%%   '$load_file'(+In, +Path, -Module, +Options)
+%%   '$load_file'(+In, +Path, -IsModule, -Module, +Options)
 %
 %   '$load_file'/4 does the actual loading.
 
-'$load_file'(In, File, Module, Options) :-
+'$load_file'(In, File, IsModule, Module, Options) :-
 	'$read_first_clause'(In, First),
 	'$expand_term'(First, Expanded),
-	'$load_file'(Expanded, In, File, Module, Options).
+	'$load_file'(Expanded, In, File, IsModule, Module, Options).
+
+%%	'$check_consult_multiple_context'(+IsModule, +OldContext, +LM, +Absolute)
+
+'$check_consult_multiple_context'(true, _, _, _) :- !.
+'$check_consult_multiple_context'(_, OldContext, _, _) :-
+	var(OldContext), !.
+'$check_consult_multiple_context'(_, LM, LM, _) :- !.
+'$check_consult_multiple_context'(_, OldContext, LM, Absolute) :-
+	print_message(warning, reloaded_in_module(Absolute, OldContext, LM)).
 
 
 %%	'$read_first_clause'(+Stream, -Term) is det.
@@ -1603,30 +1615,38 @@ load_files(Module:Files, Options) :-
 	).
 
 
-'$load_file'(Var, In, File, Module, _Options) :-
+%%	'$load_file'(+FirstTerm, +In, +File, -IsModule, -Module, +Options)
+
+'$load_file'(Var, In, File, false, Module, _Options) :-
 	var(Var), !,
 	'$load_non_module_file'(Var, [], In, File, Module).
-'$load_file'([First|Rest], In, File, Module, Options) :- !,
-	'$load_file'(First, Rest, In, File, Module, Options).
-'$load_file'(First, In, File, Module, Options) :- !,
-	'$load_file'(First, [], In, File, Module, Options).
+'$load_file'([First|Rest], In, File, IsModule, Module, Options) :- !,
+	'$load_file'(First, Rest, In, File, IsModule, Module, Options).
+'$load_file'(First, In, File, IsModule, Module, Options) :- !,
+	'$load_file'(First, [], In, File, IsModule, Module, Options).
 
-'$load_file'(Var, Cls, In, File, Module, _Options) :-
+%%	'$load_file'(+FirstTerm, +Terms, +In, +File,
+%%		     -IsModule, -Module, +Options)
+
+'$load_file'(Var, Cls, In, File, false, Module, _Options) :-
 	var(Var), !,
 	'$load_non_module_file'(Var, Cls, In, File, Module).
-'$load_file'((?- Directive), Cls, In, File, Module, Options) :- !,
-	'$load_file'((:- Directive), Cls, In, File, Module, Options).
-'$load_file'((:- module(Module, Public)), Cls, In, File, Module, Options) :- !,
+'$load_file'((?- Directive), Cls, In, File, IsModule, Module, Options) :- !,
+	'$load_file'((:- Directive), Cls, In, File, IsModule, Module, Options).
+'$load_file'((:-module(Module,Public)), Cls, In, File,
+	     true, Module, Options) :- !,
 	'$load_module'(Module, Public, Cls, In, File, Options).
-'$load_file'(_, _, _, File, _, Options) :-
+'$load_file'(_, _, _, File, _, _, Options) :-
 	'$get_option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, _, File, Module, _) :- !,	% empty file
+'$load_file'(end_of_file, _, _, File, false, Module, _) :- !,	% empty file
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
 	'$ifcompiling'('$qlf_end_part').
-'$load_file'(FirstClause, Cls, In, File, Module, _Options) :-
+'$load_file'(FirstClause, Cls, In, File, false, Module, _Options) :-
 	'$load_non_module_file'(FirstClause, Cls, In, File, Module).
+
+%%	'$load_non_module_file'(+FirstClause, +Cls, +In, +File, -Module)
 
 '$load_non_module_file'(FirstClause, Cls, In, File, Module) :-
 	'$set_source_module'(Module, Module),

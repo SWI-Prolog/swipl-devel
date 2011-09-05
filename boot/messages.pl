@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@ca.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -460,7 +461,9 @@ prolog_message(redefine_module(Module, OldFile, File)) -->
 	].
 prolog_message(redefine_module_reply) -->
 	[ 'Please answer y(es), n(o) or a(bort)' ].
-
+prolog_message(reloaded_in_module(Absolute, OldContext, LM)) -->
+	[ '~w was previously loaded in module ~w'-[Absolute, OldContext], nl,
+	  '\tnow it is reloaded into module ~w'-[LM] ].
 
 used_search([]) -->
 	[].
