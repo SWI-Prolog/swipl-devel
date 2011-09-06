@@ -6,7 +6,7 @@
 PLHOME=..\..\..
 !include ..\..\rules.mk
 
-OBJ=	uxnt.obj mswchar.obj
+OBJ=	uxnt.obj
 OUT=	$(PLHOME)\lib\uxnt.lib
 HDR=	$(PLHOME)\include\uxnt.h \
 	$(PLHOME)\include\dirent.h
