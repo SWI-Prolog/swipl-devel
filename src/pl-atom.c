@@ -607,7 +607,7 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
   }
 
 #if 0
-  if ( strncmp(a->name, "xxxx", 4) == 0 ) 	/* (*) see above */
+  if ( strncmp(a->name, "xxxx", 4) == 0 )	/* (*) see above */
   { Sdprintf("Deleting %s\n", a->name);
     assert(0);
   }
@@ -700,7 +700,7 @@ pl_garbage_collect_atoms()
   }
 
 #ifdef O_PLMT
-  if ( GD->gc.active ) 			/* GC in progress: delay */
+  if ( GD->gc.active )			/* GC in progress: delay */
   { DEBUG(2, Sdprintf("GC active; delaying AGC\n"));
     GD->gc.agc_waiting = TRUE;
     PL_UNLOCK(L_GC);
@@ -967,7 +967,7 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
 	succeed;
       }
       if ( !PL_is_variable(a) )
-	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
+	return FALSE;
 
       i = 0;
       break;
