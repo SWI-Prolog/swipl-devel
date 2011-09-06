@@ -197,9 +197,16 @@ valid_topic(X, _, _) :-
 
 %%	debug(+Topic, +Format, :Args) is det.
 %
-%	As format/3 to  =user_error=,  but  only   prints  if  Topic  is
+%	Similar to format/3 to =user_error=, but only prints if Topic is
 %	activated through debug/1. Args is a  meta-argument to deal with
-%	goal for the @-command.
+%	goal for the @-command.  Output  is   first  handed  to the hook
+%	prolog:debug_print_hook/3.  If  this  fails,    Format+Args   is
+%	translated  to  text   using    the   message-translation   (see
+%	print_message/2) for the  term  debug(Format,   Args)  and  then
+%	printed to every matching destination   (controlled  by debug/1)
+%	using print_message_lines/3.
+%
+%	The message is preceeded by '% ' and terminated with a newline.
 %
 %	@see	format/3.
 
@@ -208,6 +215,15 @@ debug(Topic, Format, Args) :-
 	print_debug(Topic, To, Format, Args).
 debug(_, _, _).
 
+
+%%	prolog:debug_print_hook(+Topic, +Format, +Args) is semidet.
+%
+%	Hook called by debug/3.  This  hook   is  used  by the graphical
+%	frontend that can be activated using prolog_ide/1:
+%
+%	  ==
+%	  ?- prolog_ide(debug_monitor).
+%	  ==
 
 :- multifile
 	prolog:debug_print_hook/3.
