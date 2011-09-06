@@ -96,6 +96,14 @@ if test "x$PLARCH" = "x"; then
     *linux*)
       PLARCH=`echo $host | sed 's/-.*/-linux/'`
       ;;
+    i?86-*mingw32*)
+      # Make PLARCH match the definition in src/config/win32.h
+      PLARCH=i386-win32
+      ;;
+    x86_64-*mingw32*)
+      # Make PLARCH match the definition in src/config/win64.h
+      PLARCH=x64-win64
+      ;;
     *-gnu)
       PLARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
       ;;
@@ -111,6 +119,14 @@ if test "x$PLBUILD" = "x"; then
   case "$build" in
     *linux*)
       PLBUILD=`echo $build | sed 's/-.*/-linux/'`
+      ;;
+    i?86-*mingw32*)
+      # Make PLBUILD match the definition of PLARCH in src/config/win32.h
+      PLBUILD=i386-win32
+      ;;
+    x86_64-*mingw32*)
+      # Make PLBUILD match the definition of PLARCH in src/config/win64.h
+      PLBUILD=x64-win64
       ;;
     *-gnu)
       PLBUILD=`echo $build | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
@@ -304,10 +320,10 @@ case "$PLARCH" in
 	  CMFLAGS="$CMFLAGS -ieee"
 	fi
         ;;
-    i?86-mingw32*)
+    *-win32)
 	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN32"
 	;;
-    x86_64-mingw32*)
+    *-win64)
 	CMFLAGS="$CMFLAGS -D__WINDOWS__ -DWIN64"
 	;;
 esac
@@ -420,7 +436,7 @@ dnl Some versions of (g)cc need to export the symbols from the main program
 dnl using -rdynamic.  See whether this gcc understands this flag.
 
 case "$PLARCH" in
-  *darwin*|*mingw32*)
+  *darwin*|*-win32|*-win64)
 	rdynamic=done
 	;;
 esac
@@ -527,7 +543,7 @@ case "$PLARCH" in
 	SO_PIC=""
 	DLLIBVAR=PATH
 	;;
-  *mingw32*)
+  *-win32|*-win64)
 	SO_EXT="dll"
 	SO_pic=""
 	SO_PIC=""
@@ -569,7 +585,7 @@ case "$PLARCH" in
 	PLSO=cygpl.$SO_EXT
 	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libswipl.dll.a $(DEF)'
 	;;
-  *mingw32*)
+  *-win32|*-win64)
 	PLSO=libswipl.$SO_EXT
 	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a'
 	;;
@@ -591,7 +607,7 @@ USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
 changequote([,])dnl
 
 case "$PLARCH" in
-    *mingw32*)
+    *-win32|*-win64)
 	AC_CHECK_LIB(shell32, main)
 	AC_CHECK_LIB(winmm, main)
 	AC_CHECK_LIB(wsock32, main)
@@ -609,7 +625,7 @@ case "$PLARCH" in
 	AC_DEFINE(_THREAD_SAFE, 1,
 		  [Required in FreeBSD for compiling thread-safe code])
 	;;
-    *mingw32*)
+    *-win32|*-win64)
         pthread_ok=true
 	AC_CHECK_LIB(pthreadGC2, pthread_create)
         if test ! "$ac_cv_lib_pthreadGC2_pthread_create" = "yes"; then
@@ -670,7 +686,7 @@ esac
   AC_CHECK_FUNCS(pthread_kill)
   AC_MSG_CHECKING([whether mutex support recursive locking])
   case "$PLARCH" in
-    *mingw32*)
+    *-win32|*-win64)
       AC_MSG_RESULT(yes)
       AC_DEFINE(RECURSIVE_MUTEXES, 1,
         [Define to make use of standard (UNIX98) pthread recursive mutexes])
@@ -877,7 +893,7 @@ AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
 case "$PLARCH" in
-    *mingw32*)
+    *-win32|*-win64)
       if test "x$ac_cv_func_select" = xno; then
         # Under MinGW, select() is not in the default libraries.
         for select_lib in ws2_32; do
@@ -1095,7 +1111,7 @@ if test "$ac_cv_sizeof_long" = 8; then
 	    [printf format for int64_t datatype])
 else
   case "$PLARCH" in
-    *mingw32*)
+    *-win32|*-win64)
       AC_DEFINE(INT64_FORMAT, ["%I64d"],
                               [printf format for int64_t datatype])
       ;;
@@ -1691,7 +1707,7 @@ echo "	LIBS=$LIBS"
 OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
-    *mingw32*)
+    i386-win32|x64-win64)
         OutputFiles="$OutputFiles os/windows/Makefile"
 	;;
 esac

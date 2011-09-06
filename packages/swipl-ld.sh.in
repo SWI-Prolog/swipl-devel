@@ -20,7 +20,7 @@ fi
 export @DLLIBVAR@
 
 case "$PLARCH" in
-    *mingw*)
+    *-win32|*-win64)
         LDFLAGS=-luxnt
 	;;
 esac
