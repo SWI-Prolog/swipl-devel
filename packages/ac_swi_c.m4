@@ -67,3 +67,20 @@ if test ! -z "$GCC"; then
 else
     COFLAGS="${COFLAGS--O}"
 fi
+
+dnl Get MinGW thread support.  Note that this may change if we move to
+dnl winpthreads.h.  We could also consider handling this through $PLLIBS,
+dnl but in theory it should be possible to compile external packages with
+dnl different thread libraries.
+
+case "$PLARCH" in
+     *-win32|*-win64)
+        AC_CHECK_LIB(pthreadGC2, pthread_create)
+        if test ! "$ac_cv_lib_pthreadGC2_pthread_create" = "yes"; then
+          AC_CHECK_LIB(pthreadGC, pthread_create)
+          if test ! "$ac_cv_lib_pthreadGC_pthread_create" = "yes"; then
+            AC_CHECK_LIB(pthread, pthread_create)
+          fi
+        fi
+        ;;
+esac
