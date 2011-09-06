@@ -31,7 +31,6 @@
 #include "config/win32.h"
 #endif
 #include <winsock2.h>
-#include "windows/mswchar.h"
 #define CRLF_MAPPING 1
 #else
 #include <config.h>
