@@ -116,7 +116,10 @@ Prolog source files come in three flavours:
 \begin{description}
     \item [ A traditional ] Prolog source file contains Prolog
 clauses and directives, but no \jargon{module-declaration}.  They
-are normally loaded using consult/1 or ensure_loaded/1.
+are normally loaded using consult/1 or ensure_loaded/1.  Currently,
+a non-module file can only be loaded into a single module.\footnote{This
+limitation may be lifted in the future.  Existing limitations in SWI-Prolog's
+source-code administration make this non-trivial.}
 
     \item [ A module ] Prolog source file starts with a module
 declaration.  The subsequent Prolog code is loaded into the
@@ -192,6 +195,32 @@ consulted which is already loaded.
 Advanced topics are handled in subsequent sections: mutual dependend
 files (\secref{depload}), multi-threaded loading (\secref{mtload}) and
 reloading running code (\secref{reload}).
+
+The core of the family of loading predicates is load_files/2.  The predicates
+consult/1, ensure_loaded/1, use_module/1, use_module/2 and reexport/1 pass the
+file argument directly to load_files/2 and pass additional options as expressed
+in the \tabref{loadpreds}:
+
+\begin{table}
+\begin{center}
+\begin{tabular}{lccc}
+\hline
+\bf Predicate	& \bf if	     & \bf must_be_module & \bf import \\
+\hline
+consult/1	& \const{true}	     & \const{false} & all \\
+ensure_loaded/1	& \const{not_loaded} & \const{false} & all \\
+use_module/1	& \const{not_loaded} & \const{true}  & all\\
+use_module/2	& \const{not_loaded} & \const{true}  & specified \\
+reexport/1	& \const{not_loaded} & \const{true}  & all \\
+reexport/2	& \const{not_loaded} & \const{true}  & specified \\
+\hline
+\end{tabular}
+\end{center}
+    \caption{Properties of the file-loading predicates. The \textit{import}
+	     column specifies what is imported if the loaded file is a module
+	     file.}
+    \label{tab:loadpreds}
+\end{table}
 
 \begin{description}
     \predicate{load_files}{2}{:Files, +Options}
@@ -329,20 +358,14 @@ The load_files/2 predicate can be hooked to load other data or data from
 other objects than files.  See prolog_load_file/2 for a description and
 \pllib{http_load} for an example.
 
-    \predicate{consult}{1}{:File}
-Read \arg{File} as a Prolog source file. \arg{File} may be a list of
-files, in which case all members are consulted in turn. \arg{File} may
-start with the Unix shell special sequences \file{~}, \file{~<user>}
-and \file{\$<var>}. \arg{File} may also be \file{library(Name)}, in
-which case the libraries are searched for a file with the specified
-name. See also library_directory/1 and file_search_path/2. consult/1 may
-be abbreviated by just typing a number of file names in a list.
-Examples:
+    \predicate{consult}{1}{:Files}
+Read \arg{File} as a Prolog source file. Calls to consult/1 may be
+abbreviated by just typing a number of file names in a list. Examples:
 
 \begin{center}\begin{tabular}{ll}
-\exam{?- consult(load).}        & \% consult \file{load} or \file{load.pl} \\
-\exam{?- [library(quintus)].}   & \% load Quintus compatibility library \\
-\exam{?- [user].}		% \% Type program on the terminal \\
+\exam{?- consult(load).}     & \% consult \file{load} or \file{load.pl} \\
+\exam{?- [library(lists)].}  & \% load library lists \\
+\exam{?- [user].}	     & \% Type program on the terminal \\
 \end{tabular}\end{center}
 
 The predicate consult/1 is equivalent to load_files(Files, []), except
@@ -356,7 +379,7 @@ Finally, if the file is already loaded, is not a module file and the
 context module is not the global user module, ensure_loaded/1 will
 call consult/1.
 
-With the semantics, we hope to get as closely possible to the clear
+With the semantics, we hope to get as close as possible to the clear
 semantics without the presence of a module system.  Applications using
 modules should consider using use_module/[1,2].
 
