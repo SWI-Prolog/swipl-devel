@@ -94,12 +94,8 @@ typedef wchar_t pl_wchar_t;
 #include SYSLIB_H
 #endif
 
-#ifndef MB_LEN_MAX
-#define MB_LEN_MAX 6
-#endif
-
 #define ROUND(p, n) ((((p) + (n) - 1) & ~((n) - 1)))
-#define UNDO_SIZE ROUND(MB_LEN_MAX, sizeof(wchar_t))
+#define UNDO_SIZE ROUND(PL_MB_LEN_MAX, sizeof(wchar_t))
 
 #ifndef FALSE
 #define FALSE 0
@@ -803,7 +799,7 @@ put_code(int c, IOSTREAM *s)
       }
       goto simple;
     case ENC_ANSI:
-    { char b[MB_LEN_MAX];
+    { char b[PL_MB_LEN_MAX];
       size_t n;
 
       if ( !s->mbstate )
@@ -915,7 +911,7 @@ Scanrepresent(int c, IOSTREAM *s)
       return -1;
     case ENC_ANSI:
     { mbstate_t state;
-      char b[MB_LEN_MAX];
+      char b[PL_MB_LEN_MAX];
 
       memset(&state, 0, sizeof(state));
       if ( wcrtomb(b, (wchar_t)c, &state) != (size_t)-1 )
