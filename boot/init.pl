@@ -1516,18 +1516,13 @@ load_files(Module:Files, Options) :-
 	'$set_source_module'(OldModule, Module),% Inform C we start loading
 	'$load_id'(Absolute, Id),
 	ignore('$load_context_module'(Id, OldContext)),
+	'$assert_load_context_module'(Id, OldModule),
 	'$start_consult'(Id),
 	(   '$derived_source'(Absolute, DerivedFrom, _)
 	->  '$start_consult'(DerivedFrom)
 	;   true
 	),
 	'$compile_type'(What),
-	(   '$compilation_mode'(wic)	% TBD
-	->  '$add_directive_wic'('$assert_load_context_module'(Id, OldModule))
-	;   true
-	),
-	'$assert_load_context_module'(Id, OldModule),
-
 
 	'$save_lex_state'(LexState),
 	'$open_source'(Absolute, In,
@@ -1535,7 +1530,7 @@ load_files(Module:Files, Options) :-
 		       Options),
 	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule),	% Restore old module
-	'$check_consult_multiple_context'(IsModule, OldContext, LM, Absolute).
+	'$check_consult_multiple_context'(IsModule, OldContext, LM, Id).
 
 
 :- create_prolog_flag(emulated_dialect, swi, [type(atom)]).
@@ -1568,12 +1563,14 @@ load_files(Module:Files, Options) :-
 
 :- dynamic
 	'$load_context_module'/2.
+:- multifile
+	'$load_context_module'/2.
 
 '$assert_load_context_module'(File, Module) :-
-	(   '$load_context_module'(File, Module)
-	->  true
-	;   assert('$load_context_module'(File, Module))
-	).
+	source_location(FromFile, _Line), !,
+	'$store_clause'(system:'$load_context_module'(File, Module), FromFile).
+'$assert_load_context_module'(File, Module) :-
+	assertz('$load_context_module'(File, Module)).
 
 
 %%   '$load_file'(+In, +Path, -IsModule, -Module, +Options)
@@ -1585,14 +1582,14 @@ load_files(Module:Files, Options) :-
 	'$expand_term'(First, Expanded),
 	'$load_file'(Expanded, In, File, IsModule, Module, Options).
 
-%%	'$check_consult_multiple_context'(+IsModule, +OldContext, +LM, +Absolute)
+%%	'$check_consult_multiple_context'(+IsModule, +OldContext, +LM, +Id)
 
 '$check_consult_multiple_context'(true, _, _, _) :- !.
 '$check_consult_multiple_context'(_, OldContext, _, _) :-
 	var(OldContext), !.
 '$check_consult_multiple_context'(_, LM, LM, _) :- !.
-'$check_consult_multiple_context'(_, OldContext, LM, Absolute) :-
-	print_message(warning, reloaded_in_module(Absolute, OldContext, LM)).
+'$check_consult_multiple_context'(_, OldContext, LM, Id) :-
+	print_message(warning, reloaded_in_module(Id, OldContext, LM)).
 
 
 %%	'$read_first_clause'(+Stream, -Term) is det.
