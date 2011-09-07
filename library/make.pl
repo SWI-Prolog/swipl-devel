@@ -34,6 +34,7 @@
 	  [ make/0
 	  ]).
 :- use_module(library(check)).
+:- use_module(library(lists)).
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module>  Reload modified source files
@@ -65,9 +66,9 @@ make_no_trace :-
 	list_undefined([scan(local)]).
 
 modified_file(File) :-
-	'$time_source_file'(Source, Time, user),
+	source_file_property(Source, modified(Time)),
 	Time > 0.0,			% See source_file/1
-	(   '$derived_source'(Source, File, LoadTime)
+	(   source_file_property(Source, derived_from(File, LoadTime))
 	->  true
 	;   File = Source,
 	    LoadTime = Time
@@ -75,9 +76,9 @@ modified_file(File) :-
 	(   catch(time_file(File, Modified), _, fail),
 	    Modified > LoadTime
 	->  true
-	;   system:'$included'(File, Included, InclLoadTime),
+	;   source_file_property(Source, includes(Included, IncLoadTime)),
 	    catch(time_file(Included, Modified), _, fail),
-	    Modified > InclLoadTime
+	    Modified > IncLoadTime
 	->  true
 	).
 
@@ -98,10 +99,10 @@ reload([H|T]) :-
 
 reload_file(File) :-
 	source_base_name(File, Compile),
-	findall(Context, system:'$load_context_module'(File, Context), Modules),
+	findall(M, source_file_property(File, load_context(M, _)), Modules),
 	(   Modules = []
 	->  load_files(user:Compile)
-	;   forall('$member'(Context, Modules),
+	;   forall(member(Context, Modules),
 		   load_files(Context:Compile))
 	).
 

@@ -493,10 +493,16 @@ If \arg{File} is non-var, it can be a file-specification that is valid
 for load_files/2.  Defined properties are:
 
     \begin{description}
-	\termitem{modified}{Stamp}
-File-modification time when \arg{File} was loaded.  This is used by
-make/0 to find files whose modification time is different from when
-it was loaded.
+	\termitem{derived_from}{Original, OriginalModified}
+\arg{File} was generated from the file \arg{Original}, which was
+last-modified at \arg{OriginalModified} at the time it was loaded.
+This property is available if \arg{File} was loaded using the
+\term{derived_from}{Original} option to load_files/2.
+
+	\termitem{includes}{IncludedFile, IncludedFileModified}
+\arg{File} used include/1 to include \arg{IncludedFile}. The
+last-modified time of \arg{IncludedFile} was \arg{IncludedFileModified}
+at the time it was included.
 
 	\termitem{load_context}{Module, Location}
 \arg{Module} is the module into which the file was loaded. If \arg{File}
@@ -506,6 +512,14 @@ file are loaded.  \arg{Location} describes the file-location from which
 the file was loaded.  It is either a term <file>:<line> or the atom
 \const{user} if the file was loaded from the terminal or another unknown
 source.
+
+	\termitem{modified}{Stamp}
+File-modification time when \arg{File} was loaded.  This is used by
+make/0 to find files whose modification time is different from when
+it was loaded.
+
+	\termitem{module}{Module}
+\arg{File} is a module-file that declares the modules \arg{Module}.
     \end{description}
 
     \predicate{unload_file}{1}{+File}

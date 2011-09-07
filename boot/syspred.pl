@@ -386,6 +386,8 @@ source_file_property(File, P) :-
 
 property_source_file(modified(Time), File) :-
 	'$time_source_file'(File, Time, user).
+property_source_file(module(M), File) :-
+	'$current_module'(M, File).
 property_source_file(load_context(Module, Location), File) :-
 	'$time_source_file'(File, _, user),
 	clause(system:'$load_context_module'(File, Module), true, Ref),
@@ -394,6 +396,15 @@ property_source_file(load_context(Module, Location), File) :-
 	->  Location = FromFile:FromLine
 	;   Location = user
 	).
+property_source_file(includes(File2, Stamp), File) :-
+	system:'$included'(File, File2, Stamp).
+property_source_file(derived_from(DerivedFrom, Stamp), File) :-
+	system:'$derived_source'(File, DerivedFrom, Stamp).
+
+
+%%	canonical_source_file(+Spec, -File) is semidet.
+%
+%	File is the canonical representation of the source-file Spec.
 
 canonical_source_file(Spec, File) :-
 	source_file(Spec), !,
