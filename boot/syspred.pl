@@ -44,6 +44,7 @@
 	    atom_prefix/2,
 	    dwim_match/2,
 	    source_file/1,
+	    unload_file/1,
 	    prolog_load_context/2,
 	    stream_position_data/3,
 	    current_predicate/2,
@@ -400,6 +401,25 @@ prolog_load_context(script, Bool) :-
 	    source_location(Path, _)
 	->  Bool = true
 	;   Bool = false
+	).
+
+
+%%	unload_file(+File) is det.
+%
+%	Remove all traces of loading file.
+
+unload_file(File) :-
+	(   source_file(File)
+	->  AbsFile = File
+	;   absolute_file_name(File,
+			       [ file_type(prolog),
+				 access(read)
+			       ],
+			       AbsFile),
+	    source_file(AbsFile)
+	->  '$unload_file'(AbsFile),
+	    retractall(system:'$load_context_module'(AbsFile, _))
+	;   true
 	).
 
 

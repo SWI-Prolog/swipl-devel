@@ -3077,13 +3077,13 @@ unloadFile(SourceFile sf)
 }
 
 
-/** unload_file(+Name) is det.
+/** '$unload_file'(+Name) is det.
 
 Remove all traces of a loaded file.
 */
 
 static
-PRED_IMPL("unload_file", 1, unload_file, 0)
+PRED_IMPL("$unload_file", 1, unload_file, 0)
 { PRED_LD
   SourceFile sf;
   atom_t name;
@@ -3364,5 +3364,5 @@ BeginPredDefs(proc)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
-  PRED_DEF("unload_file", 1, unload_file, 0)
+  PRED_DEF("$unload_file", 1, unload_file, 0)
 EndPredDefs

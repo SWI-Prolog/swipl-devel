@@ -490,8 +490,8 @@ See also clause_property/2.
     \predicate{unload_file}{1}{+File}
 Remove all clauses loaded from \arg{File}.  If \arg{File} loaded a
 module, clear the module's export-list and disassociates it from the
-file.  \arg{File} is a canonical file-name.  See source_file/1,
-module_property/2 and absolute_file_name/3.
+file.  \arg{File} is a canonical file-name or a file-indicator that is
+valid for load_files/2.
 
 This predicare shall be used with care. The multi-threaded nature of
 SWI-Prolog makes removing static code unsafe. Attempts to do this should
