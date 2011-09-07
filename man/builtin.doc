@@ -510,7 +510,7 @@ absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
 See also clause_property/2.
 
-    \predicate{source_file_property}{?File, ?Property}
+    \predicate{source_file_property}{2}{?File, ?Property}
 Is true when \arg{Property} is a property of the loaded file \arg{File}.
 If \arg{File} is non-var, it can be a file-specification that is valid
 for load_files/2.  Defined properties are:
