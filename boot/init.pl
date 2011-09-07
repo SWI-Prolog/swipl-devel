@@ -1267,6 +1267,7 @@ load_files(Module:Files, Options) :-
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
 	memberchk(stream(_), Options), !,
+	'$assert_load_context_module'(File, Module),
 	'$do_load_file'(File, File, Module, Options).
 '$load_file'(File, Module, Options) :-
 	absolute_file_name(File,
@@ -1274,6 +1275,7 @@ load_files(Module:Files, Options) :-
 			     access(read)
 			   ],
 			   FullFile),
+	'$assert_load_context_module'(FullFile, Module),
 	'$mt_load_file'(File, FullFile, Module, Options).
 
 '$already_loaded'(_File, FullFile, Module, Options) :-
@@ -1345,8 +1347,7 @@ load_files(Module:Files, Options) :-
 
 %%	'$do_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
 %
-%	Perform the actual loading. This process is guarded by the mutex
-%	=|$load|=
+%	Perform the actual loading.
 
 '$do_load_file'(File, FullFile, Module, Options) :-
 	'$get_option'(derived_from(DerivedFrom), Options, -),
@@ -1515,8 +1516,6 @@ load_files(Module:Files, Options) :-
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),% Inform C we start loading
 	'$load_id'(Absolute, Id),
-	ignore('$load_context_module'(Id, OldContext)),
-	'$assert_load_context_module'(Id, OldModule),
 	'$start_consult'(Id),
 	(   '$derived_source'(Absolute, DerivedFrom, _)
 	->  '$start_consult'(DerivedFrom)
@@ -1526,11 +1525,10 @@ load_files(Module:Files, Options) :-
 
 	'$save_lex_state'(LexState),
 	'$open_source'(Absolute, In,
-		       '$load_file'(In, Id, IsModule, LM, Options),
+		       '$load_file'(In, Id, _IsModule, LM, Options),
 		       Options),
 	'$restore_lex_state'(LexState),
-	'$set_source_module'(_, OldModule),	% Restore old module
-	'$check_consult_multiple_context'(IsModule, OldContext, LM, Id).
+	'$set_source_module'(_, OldModule).	% Restore old module
 
 
 :- create_prolog_flag(emulated_dialect, swi, [type(atom)]).
@@ -1568,10 +1566,29 @@ load_files(Module:Files, Options) :-
 
 '$assert_load_context_module'(File, Module) :-
 	source_location(FromFile, _Line), !,
+	'$check_load_non_module'(File, Module),
 	'$store_clause'(system:'$load_context_module'(File, Module), FromFile).
 '$assert_load_context_module'(File, Module) :-
+	'$check_load_non_module'(File, Module),
 	assertz('$load_context_module'(File, Module)).
 
+%%	'$check_load_non_module'(+File) is det.
+%
+%	Test  that  a  non-module  file  is  not  loaded  into  multiple
+%	contexts.
+
+'$check_load_non_module'(File, _) :-
+	'$current_module'(_, File), !.
+'$check_load_non_module'(File, Module) :-
+	'$load_context_module'(File, OldModule),
+	Module \== OldModule, !,
+	format(atom(Msg),
+	       'Non-module file already loaded into module ~w; \c
+	       trying to load into ~w',
+	       [OldModule, Module]),
+	throw(error(permission_error(load, source, File),
+		    context(load_files/2, Msg))).
+'$check_load_non_module'(_, _).
 
 %%   '$load_file'(+In, +Path, -IsModule, -Module, +Options)
 %
@@ -1581,15 +1598,6 @@ load_files(Module:Files, Options) :-
 	'$read_first_clause'(In, First),
 	'$expand_term'(First, Expanded),
 	'$load_file'(Expanded, In, File, IsModule, Module, Options).
-
-%%	'$check_consult_multiple_context'(+IsModule, +OldContext, +LM, +Id)
-
-'$check_consult_multiple_context'(true, _, _, _) :- !.
-'$check_consult_multiple_context'(_, OldContext, _, _) :-
-	var(OldContext), !.
-'$check_consult_multiple_context'(_, LM, LM, _) :- !.
-'$check_consult_multiple_context'(_, OldContext, LM, Id) :-
-	print_message(warning, reloaded_in_module(Id, OldContext, LM)).
 
 
 %%	'$read_first_clause'(+Stream, -Term) is det.
