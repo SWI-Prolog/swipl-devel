@@ -43,6 +43,7 @@
 	    rational/3,
 	    atom_prefix/2,
 	    dwim_match/2,
+	    source_file_property/2,
 	    source_file/1,
 	    unload_file/1,
 	    prolog_load_context/2,
@@ -372,6 +373,41 @@ source_file(File) :-
 	),
 	Time > 0.0.
 
+%%	source_file_property(?File, ?Property) is nondet.
+%
+%	True if Property is a property of the loaded source-file File.
+
+source_file_property(File, P) :-
+	nonvar(File), !,
+	canonical_source_file(File, Path),
+	property_source_file(P, Path).
+source_file_property(File, P) :-
+	property_source_file(P, File).
+
+property_source_file(modified(Time), File) :-
+	'$time_source_file'(File, Time, user).
+property_source_file(load_context(Module, Location), File) :-
+	'$time_source_file'(File, _, user),
+	clause(system:'$load_context_module'(File, Module), true, Ref),
+	(   clause_property(Ref, file(FromFile)),
+	    clause_property(Ref, line_count(FromLine))
+	->  Location = FromFile:FromLine
+	;   Location = user
+	).
+
+canonical_source_file(Spec, File) :-
+	source_file(Spec), !,
+	File = Spec.
+canonical_source_file(Spec, File) :-
+	absolute_file_name(Spec,
+			       [ file_type(prolog),
+				 access(read),
+				 file_errors(fail)
+			       ],
+			       File),
+	source_file(File).
+
+
 %%	prolog_load_context(+Key, -Value)
 %
 %	Provides context information for  term_expansion and directives.
@@ -409,16 +445,9 @@ prolog_load_context(script, Bool) :-
 %	Remove all traces of loading file.
 
 unload_file(File) :-
-	(   source_file(File)
-	->  AbsFile = File
-	;   absolute_file_name(File,
-			       [ file_type(prolog),
-				 access(read)
-			       ],
-			       AbsFile),
-	    source_file(AbsFile)
-	->  '$unload_file'(AbsFile),
-	    retractall(system:'$load_context_module'(AbsFile, _))
+	(   canonical_source_file(File, Path)
+	->  '$unload_file'(Path),
+	    retractall(system:'$load_context_module'(Path, _))
 	;   true
 	).
 

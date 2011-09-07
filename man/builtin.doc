@@ -487,6 +487,27 @@ absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
 See also clause_property/2.
 
+    \predicate{source_file_property}{?File, ?Property}
+Is true when \arg{Property} is a property of the loaded file \arg{File}.
+If \arg{File} is non-var, it can be a file-specification that is valid
+for load_files/2.  Defined properties are:
+
+    \begin{description}
+	\termitem{modified}{Stamp}
+File-modification time when \arg{File} was loaded.  This is used by
+make/0 to find files whose modification time is different from when
+it was loaded.
+
+	\termitem{load_context}{Module, Location}
+\arg{Module} is the module into which the file was loaded. If \arg{File}
+is a module, this is the module into which the exports are imported.
+Otherwise it is the module into which the clauses of the non-module
+file are loaded.  \arg{Location} describes the file-location from which
+the file was loaded.  It is either a term <file>:<line> or the atom
+\const{user} if the file was loaded from the terminal or another unknown
+source.
+    \end{description}
+
     \predicate{unload_file}{1}{+File}
 Remove all clauses loaded from \arg{File}.  If \arg{File} loaded a
 module, clear the module's export-list and disassociates it from the

@@ -528,6 +528,7 @@ suggest predicates from a keyword.
 \predicatesummary{source_exports}{2}{Check whether source exports a predicate}
 \predicatesummary{source_file}{1}{Examine currently loaded source files}
 \predicatesummary{source_file}{2}{Obtain source file of predicate}
+\predicatesummary{source_file_property}{2}{Information about loaded files}
 \predicatesummary{source_location}{2}{Location of last read term}
 \predicatesummary{spy}{1}{Force tracer on specified predicate}
 \predicatesummary{stamp_date_time}{3}{Convert time-stamp to date structure}
