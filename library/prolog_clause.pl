@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -40,20 +41,24 @@
 :- use_module(library(debug)).
 :- use_module(library(listing)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Get detailed source-information about a clause
+
 This module started life as part of the   GUI tracer. As it is generally
 useful for debugging  purposes  it  has   moved  to  the  general Prolog
-library. Being only applicable to debugging   and  sitting very close to
-the kernel, do not rely too much that its functionality will be stable.
+library.
 
-The tracer library  tracer/clause.pl  adds   caching  and  dealing  with
+The tracer library library(trace/clause) adds   caching and dealing with
 dynamic predicates using listing to  XPCE   objects  to  this. Note that
-clause_info/4 as below can be pretty slow.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+clause_info/4 as below can be slow.
+*/
 
 %%	clause_info(+ClauseRef, -File, -TermPos, -VarNames)
 %
-%	Fetches source information for the given clause.
+%	Fetches source information for the  given   clause.  File is the
+%	file from which the clause  was   loaded.  TermPos describes the
+%	source layout in a format   compatible  to the subterm_positions
+%	option of read_term/2.  VarNames provides access to the variable
+%	allocation in a stack-frame.  See make_varnames/5 for details.
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	debug(clause_info, 'clause_info(~w)... ', [ClauseRef]),
@@ -660,6 +665,10 @@ hidden_module(Module) :-		% SWI-Prolog specific
 thaffix(1, st) :- !.
 thaffix(2, nd) :- !.
 thaffix(_, th).
+
+%%	predicate_name(:Head, -PredName:string) is det.
+%
+%	Describe a predicate as [Module:]Name/Arity.
 
 predicate_name(Predicate, PName) :-
 	strip_module(Predicate, Module, Head),
