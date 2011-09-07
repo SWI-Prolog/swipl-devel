@@ -100,10 +100,11 @@ reload([H|T]) :-
 reload_file(File) :-
 	source_base_name(File, Compile),
 	findall(M, source_file_property(File, load_context(M, _)), Modules),
-	(   Modules = []
-	->  load_files(user:Compile)
-	;   forall(member(Context, Modules),
-		   load_files(Context:Compile))
+	(   Modules = [First|Rest]
+	->  load_files(First:Compile),
+	    forall(member(Context, Rest),
+		   load_files(Context:Compile, [if(not_loaded)]))
+	;   load_files(user:Compile)
 	).
 
 source_base_name(File, Compile) :-
