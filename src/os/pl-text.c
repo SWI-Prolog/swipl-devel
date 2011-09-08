@@ -666,7 +666,7 @@ represented.
 
 static int
 wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
-{ char b[MB_LEN_MAX];
+{ char b[PL_MB_LEN_MAX];
   size_t n;
 
   if ( (n=wcrtomb(b, c, mbs)) != (size_t)-1 )

@@ -13,6 +13,7 @@ AC_SUBST(MKDIR)
 AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(PROGLDFLAGS)
+AC_SUBST(STACKFLAGS)
 AC_SUBST(PLBUILD)
 AC_SUBST(PLARCH)
 AC_SUBST(PLSHARED)
@@ -568,6 +569,14 @@ case "$PLARCH" in
 	AC_CHECK_PROG(WINEPATHEXE, winepath, winepath, ":")
 	DEFSTARTUP=swipl.ini
 	CHRPATH=:
+        AC_MSG_CHECKING(whether linker supports --stack)
+        oldflags="$LDFLAGS"
+        LDFLAGS="$LDFLAGS -Wl,--stack,4000000"
+        AC_TRY_LINK([], [],
+                    [AC_MSG_RESULT(yes)
+                     STACKFLAGS=-Wl,--stack,4000000],
+                    [AC_MSG_RESULT(no)])
+        LDFLAGS="$oldflags"
 	MINGW=true
 	;;
   *)

@@ -26,6 +26,8 @@
 #ifndef UTF8_H_INCLUDED
 #define UTF8_H_INCLUDED
 
+#define PL_MB_LEN_MAX 16
+
 #define UTF8_MALFORMED_REPLACEMENT 0xfffd
 
 #define ISUTF8_MB(c) ((unsigned)(c) >= 0xc0 && (unsigned)(c) <= 0xfd)

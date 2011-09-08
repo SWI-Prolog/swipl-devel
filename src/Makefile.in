@@ -81,6 +81,7 @@ CMFLAGS=@CMFLAGS@
 CPFLAGS=
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
 LDFLAGS=@LDFLAGS@ $(CPFLAGS)
+STACKFLAGS=@STACKFLAGS@
 
 MINGW=@MINGW@
 DEFSTARTUP=@DEFSTARTUP@
@@ -186,7 +187,7 @@ banner::
 # to run our local copy of SWI-Prolog.
 
 $(PL)$(EXEEXT):		$(MKLIBS) $(PLOBJ)
-		$(LDEXE) $(LDFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) -lswipl $(LNLIBS) $(OSLIB)
+		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) -lswipl $(LNLIBS) $(OSLIB)
 		$(CHRPATH) -c $@ || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)

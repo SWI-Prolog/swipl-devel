@@ -4353,7 +4353,7 @@ peek(term_t stream, term_t chr, int how ARG_LD)
 
   if ( !getInputStream(stream, how == PL_BYTE ? S_BINARY : S_TEXT, &s) )
     return FALSE;
-  if ( true(s, SIO_NBUF) || (s->bufsize && s->bufsize < MB_LEN_MAX) )
+  if ( true(s, SIO_NBUF) || (s->bufsize && s->bufsize < PL_MB_LEN_MAX) )
   { releaseStream(s);
     return PL_error(NULL, 0, "stream is unbuffered", ERR_PERMISSION,
 		    ATOM_peek, ATOM_stream, stream);
