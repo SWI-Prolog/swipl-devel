@@ -302,7 +302,7 @@ EndPredDefs
 		 *	       TIME		*
 		 *******************************/
 
-#define PL_unify_time(t, s) PL_unify_float(t, (float)(s))
+#define PL_unify_time(t, s) PL_unify_float(t, (double)(s))
 
 
 		 /*******************************
