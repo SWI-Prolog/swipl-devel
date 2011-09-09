@@ -195,8 +195,7 @@ freeToPool(AllocPool pool, void *mem, size_t n, int islocal)
 { Chunk p = (Chunk) mem;
 
   pool->allocated -= n;
-  DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
-		    (uintptr_t)n, (uintptr_t)p));
+  DEBUG(9, Sdprintf("freed %ld bytes at %p\n", (long)n, p));
 
   n /= ALIGN_SIZE;
   p->next = pool->free_chains[n];
