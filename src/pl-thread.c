@@ -762,7 +762,6 @@ exitPrologThreads()
   int canceled = 0;
 
   DEBUG(1, Sdprintf("exitPrologThreads(): me = %d\n", me));
-  GD->thread.enabled = FALSE;			/* we do not want new threads */
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
@@ -1293,7 +1292,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
 
   LOCK();
-  if ( !GD->thread.enabled )
+  if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
   { UNLOCK();
     return PL_error(NULL, 0, "threading disabled",
 		      ERR_PERMISSION,
@@ -4051,7 +4050,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     LD->thread.info->open_count++;
 
   LOCK();
-  if ( !GD->thread.enabled )
+  if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
   { UNLOCK();
 #ifdef EPERM				/* FIXME: Better reporting */
     errno = EPERM;
