@@ -516,13 +516,17 @@ import/1 and export/1 or specifying the import module as described in
 \secref{importmodule}.
 
 \begin{code}
-?- world_b:export(solve(_,_)).          % exports solve/2 from world_b
-?- world_c:import(world_b:solve(_,_)).  % and import it to world_c
+?- world_b:export(solve/2).          % exports solve/2 from world_b
+?- world_c:import(world_b:solve/2).  % and import it to world_c
 \end{code}
 
 
 \section{Transparent predicates: definition and context module}
 \label{sec:ctxmodule}
+
+\textit{The `module-transparent' mechanism is still underlying the
+actual implementation.  Direct usage by programmers is deprecated.
+Please use meta_predicate/1 to deal with meta-predicates.}
 
 The qualification of module sensitive arguments
 described in \secref{metapred} is realised using \jargon{transparent}
