@@ -1268,7 +1268,7 @@ load_files(Module:Files, Options) :-
 '$load_file'(File, Module, Options) :-
 	memberchk(stream(_), Options), !,
 	'$assert_load_context_module'(File, Module),
-	'$do_load_file'(File, File, Module, Options).
+	'$qdo_load_file'(File, File, Module, Options).
 '$load_file'(File, Module, Options) :-
 	absolute_file_name(File,
 			   [ file_type(prolog),
@@ -1277,6 +1277,7 @@ load_files(Module:Files, Options) :-
 			   FullFile),
 	'$assert_load_context_module'(FullFile, Module),
 	'$mt_load_file'(File, FullFile, Module, Options).
+
 
 '$already_loaded'(_File, FullFile, Module, Options) :-
 	'$current_module'(LoadModule, FullFile), !,
@@ -1313,7 +1314,7 @@ load_files(Module:Files, Options) :-
 	'$noload'(If, FullFile), !,
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_load_file'(File, FullFile, Module, Options) :-
-	'$do_load_file'(File, FullFile, Module, Options).
+	'$qdo_load_file'(File, FullFile, Module, Options).
 
 
 '$mt_start_load'(FullFile, queue(Queue), _) :-
@@ -1333,7 +1334,7 @@ load_files(Module:Files, Options) :-
 '$mt_do_load'(already_loaded, File, FullFile, Module, Options) :- !,
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
-	'$do_load_file'(File, FullFile, Module, Options),
+	'$qdo_load_file'(File, FullFile, Module, Options),
 	'$run_initialization'(FullFile).
 
 '$mt_end_load'(queue(_)) :- !.
@@ -1344,6 +1345,28 @@ load_files(Module:Files, Options) :-
 	thread_send_message(Queue, done),
 	message_queue_destroy(Queue).
 
+
+%%	'$qdo_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
+%
+%	Switch to qcompile mode if requested by the option '$qlf'(+Out)
+
+'$qdo_load_file'(File, FullFile, Module, Options) :-
+	memberchk('$qlf'(QlfOut), Options), !,
+	setup_call_cleanup('$qstart'(QlfOut, Module, State),
+			   '$do_load_file'(File, FullFile, Module, Options),
+			   '$qend'(State)).
+'$qdo_load_file'(File, FullFile, Module, Options) :-
+	'$do_load_file'(File, FullFile, Module, Options).
+
+'$qstart'(Qlf, Module, state(OldMode, OldModule)) :-
+	'$qlf_open'(Qlf),
+	'$compilation_mode'(OldMode, qlf),
+	'$set_source_module'(OldModule, Module).
+
+'$qend'(state(OldMode, OldModule)) :-
+	'$set_source_module'(_, OldModule),
+	'$set_compilation_mode'(OldMode),
+	'$qlf_close'.
 
 %%	'$do_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
 %

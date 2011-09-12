@@ -72,19 +72,7 @@ qcompile_(FileName, Module, Options) :-
 	),
 	once(user:prolog_file_type(QlfExt, qlf)),
 	file_name_extension(ABase, QlfExt, Qlf),
-	setup_call_cleanup(qstart(Qlf, Module, State),
-			   load_files(Module:Absolute, Options),
-			   qend(State)).
-
-qstart(Qlf, Module, state(OldMode, OldModule)) :-
-	'$qlf_open'(Qlf),
-	'$compilation_mode'(OldMode, qlf),
-	'$set_source_module'(OldModule, Module).
-
-qend(state(OldMode, OldModule)) :-
-	'$set_source_module'(_, OldModule),
-	'$set_compilation_mode'(OldMode),
-	'$qlf_close'.
+	load_files(Module:Absolute, ['$qlf'(Qlf)|Options]).
 
 
 %%	'$qload_file'(+File, +Module, -Action, -LoadedModule, +Options)
