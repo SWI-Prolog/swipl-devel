@@ -79,7 +79,7 @@ all:
 		$(MAKE) windows.html macosx/macosx.html
 
 html:		$(TEXFILES) $(STYFILES) $(DOC).bbl
-		env TEXINPUTS=lib:$$TEXINPUTS latex2html doc
+		env TEXINPUTS=lib:$$TEXINPUTS latex2html $(DOC)
 
 pdf:		$(PDF)
 
