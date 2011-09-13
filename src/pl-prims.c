@@ -1978,27 +1978,36 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
     }
     case FRG_REDO:
     { term_t a;
+      fid_t fid;
+      int rc = FALSE;
 
       if ( !PL_get_name_arity(term, &name, &arity) )
 	sysError("arg/3: PL_get_name_arity() failed");
       argn = (int)CTX_INT + 1;
 
     genarg:
-      a = PL_new_term_ref();
+      if ( !(fid=PL_open_foreign_frame()) ||
+	   !(a = PL_new_term_ref()) )
+	return FALSE;
       for(; argn <= arity; argn++)
       { _PL_get_arg(argn, term, a);
 	if ( PL_unify(arg, a) )
 	{ if ( !PL_unify_integer(n, argn) )
-	    return FALSE;
+	    break;
 	  if ( argn == arity )
-	    succeed;
+	  { rc = TRUE;
+	    break;
+	  }
+	  PL_close_foreign_frame(fid);
 	  ForeignRedoInt(argn);
 	}
 	if ( exception_term )
-	  return FALSE;
+	  break;
+	PL_rewind_foreign_frame(fid);
       }
 
-      fail;
+      PL_close_foreign_frame(fid);
+      return rc;
     }
     default:
       succeed;
