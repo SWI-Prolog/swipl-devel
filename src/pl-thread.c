@@ -665,7 +665,7 @@ initPrologThreads()
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
 
-#ifndef O_SHARED_KERNEL
+#ifdef USE_CRITICAL_SECTIONS
   initMutexes();
 #endif
 
