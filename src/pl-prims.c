@@ -1939,6 +1939,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   atom_t name;
   int arity;
+  int argn;
 
   term_t n    = A1;
   term_t term = A2;
@@ -1969,32 +1970,21 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 	fail;
       }
       if ( PL_is_variable(n) )
-      { int argn = 1;
-	term_t a = PL_new_term_ref();
+      { argn = 1;
 
-	for(argn=1; argn <= arity; argn++)
-	{ _PL_get_arg(argn, term, a);
-	  if ( PL_unify(arg, a) )
-	  { if ( !PL_unify_integer(n, argn) )
-	      return FALSE;
-	    if ( argn == arity )
-	      succeed;
-	    ForeignRedoInt(argn);
-	  }
-	  if ( exception_term )
-	    return FALSE;
-	}
-	fail;
+	goto genarg;
       }
       return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_integer, n);
     }
     case FRG_REDO:
-    { int argn = (int)CTX_INT + 1;
-      term_t a = PL_new_term_ref();
+    { term_t a;
 
       if ( !PL_get_name_arity(term, &name, &arity) )
 	sysError("arg/3: PL_get_name_arity() failed");
+      argn = (int)CTX_INT + 1;
 
+    genarg:
+      a = PL_new_term_ref();
       for(; argn <= arity; argn++)
       { _PL_get_arg(argn, term, a);
 	if ( PL_unify(arg, a) )
