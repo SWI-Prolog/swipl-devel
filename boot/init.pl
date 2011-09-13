@@ -1590,7 +1590,8 @@ load_files(Module:Files, Options) :-
 '$assert_load_context_module'(File, Module) :-
 	source_location(FromFile, _Line), !,
 	'$check_load_non_module'(File, Module),
-	'$store_clause'(system:'$load_context_module'(File, Module), FromFile).
+	'$compile_aux_clauses'(system:'$load_context_module'(File, Module),
+			       FromFile).
 '$assert_load_context_module'(File, Module) :-
 	'$check_load_non_module'(File, Module),
 	assertz('$load_context_module'(File, Module)).
@@ -2160,9 +2161,13 @@ compile_aux_clauses(_Clauses) :-
 	current_prolog_flag(xref, true), !.
 compile_aux_clauses(Clauses) :-
 	source_location(File, _Line),
-	'$start_aux'(File, Context),
-	call_cleanup('$store_clause'(Clauses, File),
-		     '$end_aux'(File, Context)).
+	'$compile_aux_clauses'(Clauses, File).
+
+'$compile_aux_clauses'(Clauses, File) :-
+	setup_call_cleanup('$start_aux'(File, Context),
+			   '$store_clause'(Clauses, File),
+			   '$end_aux'(File, Context)).
+
 
 
 		 /*******************************
@@ -2186,7 +2191,8 @@ compile_aux_clauses(Clauses) :-
 	'$read_include_file'(Term0, In, Terms),
 	close(In),
 	'$pop_input_context',
-	'$store_clause'(system:'$included'(FileInto, Path, Time), FileInto),
+	'$compile_aux_clauses'(system:'$included'(FileInto, Path, Time),
+			       FileInto),
 	'$consult_clauses'(Terms, FileInto).
 
 '$read_include_file'(end_of_file, _, []) :- !.
