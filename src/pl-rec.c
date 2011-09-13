@@ -473,9 +473,9 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	  mark.term = f;
 	  mark.fdef = f->definition;
 	  pushSegStack(&LD->cycle.lstack, mark, cycle_mark);
-	  f->definition = (functor_t)consInt(info->size);
-					  /* overflow test */
-	  assert(valInt(f->definition) == (intptr_t)info->size);
+	  f->definition = (functor_t)consUInt(info->size);
+				  /* overflow test (should not be possible) */
+	  SECURE(assert(valUInt(f->definition) == (uintptr_t)info->size));
 	}
 #endif
 

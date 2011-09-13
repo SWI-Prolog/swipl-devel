@@ -160,6 +160,7 @@ be kept consistent.
 #define valPtr2(w, s)	((Word)(((w) >> 5) + base_addresses[s]))
 #define valPtr(w)	valPtr2(w, storage(w))
 #define valInt(w)	((intptr_t)(w) >> LMASK_BITS)
+#define valUInt(w)	((uintptr_t)(w) >> LMASK_BITS)
 
 		 /*******************************
 		 *	  EXTENDED TAG		*
@@ -321,5 +322,6 @@ and while loading .wic files.  It comes at no price.
 #define MAXTAGGEDPTR	(((word)1<<((8*sizeof(word))-5)) - 1)
 
 #define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
+#define consUInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
 
 
