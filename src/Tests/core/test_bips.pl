@@ -35,6 +35,7 @@ test_bips :-
 	run_tests([ bips,
 		    bips_occurs_check_error,
 		    coroutining,
+		    arg,
 		    eq
 		  ]).
 
@@ -138,7 +139,7 @@ test(term_variable, [condition(error_unification),error(occurs_check(_, _))]) :-
 test(term_variable, [condition(error_unification),error(occurs_check(_, _))]) :-
 	X =.. [s,X].
 test(term_variable, [condition(error_unification),error(occurs_check(_, _))]) :-
- 	copy_term(X-X,Y-{Y}).
+	copy_term(X-X,Y-{Y}).
 test(findall, [condition(error_unification),error(occurs_check(_,_))]) :-
 	findall(X-X,true,[{X}-X]).
 %test(clause, [condition(error_unification),error(occurs_check(_,_))]) :-
@@ -174,6 +175,15 @@ test(when8,[fail]) :-
 
 :- end_tests(coroutining).
 
+
+:- begin_tests(arg).
+
+test(shared, error(type_error(integer,a))) :-
+	arg(a, f(a, b), a).
+test(unify) :-
+	arg(X, a(a(1,1), a(2,2)), a(X,2)).
+
+:- end_tests(arg).
 
 :- begin_tests(eq).
 
