@@ -1975,7 +1975,8 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 	for(argn=1; argn <= arity; argn++)
 	{ _PL_get_arg(argn, term, a);
 	  if ( PL_unify(arg, a) )
-	  { PL_unify_integer(n, argn);
+	  { if ( !PL_unify_integer(n, argn) )
+	      return FALSE;
 	    if ( argn == arity )
 	      succeed;
 	    ForeignRedoInt(argn);
@@ -1997,7 +1998,8 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       for(; argn <= arity; argn++)
       { _PL_get_arg(argn, term, a);
 	if ( PL_unify(arg, a) )
-	{ PL_unify_integer(n, argn);
+	{ if ( !PL_unify_integer(n, argn) )
+	    return FALSE;
 	  if ( argn == arity )
 	    succeed;
 	  ForeignRedoInt(argn);
