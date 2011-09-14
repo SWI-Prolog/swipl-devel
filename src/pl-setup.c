@@ -52,20 +52,6 @@ static int allocStacks(size_t local, size_t global, size_t trail);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
-#undef I
-#define I TAGEX_INDIRECT
-
-const unsigned int tagtypeex[] =
-{
-	    /* var     attvar  int    float   atom   string    term     ref */
-/* static */	0,	0,	0,	0,	0,	0,	0,	0,
-/* heap */	0,	0,      I,	I,	0,	I,	0,	0,
-/* global */	0,	0,      I,	I,	0,	I,	0,	0,
-/* local */	0,	0,	0,	0,	0,	0,	0,	0
-};
-
-#undef I
-
 void
 setupProlog(void)
 { GET_LD

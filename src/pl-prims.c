@@ -295,7 +295,7 @@ do_unify(Word t1, Word t2 ARG_LD)
       case TAG_INTEGER:
 	if ( storage(w1) == STG_INLINE ||
 	     storage(w2) == STG_INLINE )
-	  goto out_fail;;
+	  goto out_fail;
       case TAG_STRING:
       case TAG_FLOAT:
 	if ( equalIndirect(w1, w2) )

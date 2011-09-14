@@ -166,12 +166,18 @@ be kept consistent.
 		 *	  EXTENDED TAG		*
 		 *******************************/
 
-extern const unsigned int tagtypeex[];
+#define EXBIT(w)	(1<<((w)-1))
+#define INDIRECT_BM	( EXBIT(STG_GLOBAL|TAG_INTEGER) | \
+			  EXBIT(STG_LOCAL|TAG_INTEGER) | \
+			  EXBIT(STG_GLOBAL|TAG_FLOAT) | \
+			  EXBIT(STG_LOCAL|TAG_FLOAT) | \
+			  EXBIT(STG_GLOBAL|TAG_STRING) | \
+			  EXBIT(STG_LOCAL|TAG_STRING) \
+			)
 
 #define tagex(w)	((w) & (TAG_MASK|STG_MASK))
+#define isIndirect(w)	(EXBIT(tagex(w)) & INDIRECT_BM)
 
-#define TAGEX_INDIRECT	0x1
-#define isIndirect(w)	(tagtypeex[tagex(w)] & TAGEX_INDIRECT)
 
 		 /*******************************
 		 *	 BASIC TYPE TESTS	*
