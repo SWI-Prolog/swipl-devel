@@ -199,6 +199,8 @@ typedef struct _line
 #define COMPLETE_ENUMERATE 1
 #define COMPLETE_CLOSE	   2
 
+struct _complete_data;
+
 typedef int (*RlcCompleteFunc)(struct _complete_data *);
 
 typedef struct _complete_data
