@@ -1411,7 +1411,7 @@ rlc_is_word_char(int chr)
 		 *	    SELECTION		*
 		 *******************************/
 
-#define SelLT(l1, c1, l2, c2) ((l1) < (l2) || (l1) == (l2) && (c1) < (c2))
+#define SelLT(l1, c1, l2, c2) ((l1) < (l2) || ((l1) == (l2) && (c1) < (c2)))
 #define SelEQ(l1, c1, l2, c2) ((l1) == (l2) && (c1) == (c2))
 
 static int
@@ -1668,7 +1668,7 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
   TCHAR *buf;
   int i = 0;
 
-  if ( el < sl || el == sl && ec < sc )
+  if ( el < sl || (el == sl && ec < sc) )
     return NULL;			/* invalid region */
   if ( !(buf = rlc_malloc(bufsize * sizeof(TCHAR))) )
     return NULL;			/* not enough memory */
