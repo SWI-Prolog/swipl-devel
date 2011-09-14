@@ -101,12 +101,15 @@ build_zlib()
 ###########################
 # Do the whole lot for all prerequisites
 
-build_prerequisites()
+download_prerequisites()
 { download_gmp
-  build_gmp
   download_pthread_win32
-  build_pthread_win32
   download_zlib
+}
+
+build_prerequisites()
+{ build_gmp
+  build_pthread_win32
   build_zlib
 }
 
@@ -120,7 +123,6 @@ download_swipl()
 
   ( cd pl-devel
     git pull
-    git checkout mingw
     ./prepare --yes
   )
 }
