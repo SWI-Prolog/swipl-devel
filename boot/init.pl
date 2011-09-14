@@ -1578,7 +1578,11 @@ load_files(Module:Files, Options) :-
 
 %%	'$load_context_module'(+File, -Module)
 %
-%	Record the module a file was loaded from (see make/0)
+%	Record the module a file was loaded from (see make/0). The first
+%	clause deals with loading from  another   file.  On reload, this
+%	clause will be discarded by  $start_consult/1. The second clause
+%	deals with reload from the toplevel.   Here  we avoid creating a
+%	duplicate dynamic (i.e., not related to a source) clause.
 %
 %	@tbd	Should also know which predicates are imported!
 
@@ -1594,7 +1598,11 @@ load_files(Module:Files, Options) :-
 			       FromFile).
 '$assert_load_context_module'(File, Module) :-
 	'$check_load_non_module'(File, Module),
-	assertz('$load_context_module'(File, Module)).
+	(   clause('$load_context_module'(File, Module), true, Ref),
+	    \+ clause_property(Ref, file(_))
+	->  true
+	;   assertz('$load_context_module'(File, Module))
+	).
 
 %%	'$check_load_non_module'(+File) is det.
 %
