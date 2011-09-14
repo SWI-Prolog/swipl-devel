@@ -317,7 +317,7 @@ gitversion::
 version.h:	gitversion
 pl-version.o:	version.h
 
-$(OBJ):		parms.h \
+$(ALLOBJ):	parms.h \
 		$(srcdir)/pl-funct.ih $(srcdir)/pl-vmi.h \
 		$(srcdir)/pl-inline.h
 pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c \
