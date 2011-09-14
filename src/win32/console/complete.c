@@ -30,6 +30,10 @@
 #define EOS 0
 #endif
 
+#ifndef _TINT
+typedef wint_t _TINT;
+#endif
+
 static TCHAR *completion_chars = TEXT("~:\\/-.");
 
 static size_t
