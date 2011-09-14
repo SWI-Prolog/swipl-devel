@@ -153,7 +153,7 @@ PROFILE_GOAL=run(0.5)
 
 all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
 
-noprof:	uxnt-lib rc-lib tai-lib $(MKLIBS) system headers startup index
+noprof:	uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS) system headers startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
@@ -233,10 +233,14 @@ endif
 
 uxnt-lib:
 		@(cd os/windows && $(MAKE) COFLAGS="$(COFLAGS)")
+
+plterm-lib:
+		@(cd win32/console && $(MAKE) COFLAGS="$(COFLAGS)")
 else
 OSLIB=
 
 uxnt-lib:
+plterm-lib:
 endif
 
 rc-lib:		$(RCOBJ)
