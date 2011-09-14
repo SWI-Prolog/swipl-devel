@@ -166,7 +166,7 @@ be kept consistent.
 		 *	  EXTENDED TAG		*
 		 *******************************/
 
-#define EXBIT(w)	(1<<((w)-1))
+#define EXBIT(w)	(1<<(w))
 #define INDIRECT_BM	( EXBIT(STG_GLOBAL|TAG_INTEGER) | \
 			  EXBIT(STG_LOCAL|TAG_INTEGER) | \
 			  EXBIT(STG_GLOBAL|TAG_FLOAT) | \
