@@ -31,6 +31,7 @@ AC_SUBST(PLSO)			dnl libswipl.so
 AC_SUBST(SONAMEOPT)		dnl ld options for linking shared objects
 AC_SUBST(USEPLLIB)		dnl -lswipl
 AC_SUBST(LNLIBS)		dnl libs to link with Prolog
+AC_SUBST(XLIBS)                 dnl libs to link with plterm
 AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
 AC_SUBST(SO_EXT)
@@ -630,6 +631,8 @@ case "$PLARCH" in
 	AC_CHECK_LIB(shell32, main)
 	AC_CHECK_LIB(winmm, main)
 	AC_CHECK_LIB(wsock32, main)
+	AC_CHECK_LIB(gdi32, main, [XLIBS="$XLIBS -lgdi32"])
+	AC_CHECK_LIB(comdlg32, main, [XLIBS="$XLIBS -lcomdlg32"])
 	EXTRAOBJ="pl-nt.o pl-dde.o"
 	;;
 esac
@@ -1727,7 +1730,7 @@ OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
     i386-win32|x64-win64)
-        OutputFiles="$OutputFiles os/windows/Makefile"
+        OutputFiles="$OutputFiles os/windows/Makefile win32/console/Makefile"
 	;;
 esac
 

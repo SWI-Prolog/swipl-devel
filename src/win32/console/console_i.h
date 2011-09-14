@@ -181,7 +181,7 @@ void		rlc_clearprompt(rlc_console c);
 #define assert(g) (void)0
 #endif
 
-__inline RlcData
+static __inline RlcData
 rlc_get_data(rlc_console c)
 { if ( c )
   { RlcData b = c;

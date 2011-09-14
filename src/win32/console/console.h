@@ -33,7 +33,7 @@
 
 #ifndef _export
 #ifdef _MAKE_DLL
-#define _export _declspec(dllexport)
+#define _export __declspec(dllexport)
 #else
 #define _export extern
 #endif
@@ -41,9 +41,13 @@
 
 #include <signal.h>
 #include <stddef.h>
+#ifdef _MSC_VER
 #if (_MSC_VER < 1300)
 typedef long intptr_t;
 typedef unsigned long uintptr_t;
+#endif
+#else
+#include <stdint.h>
 #endif
 
 #define RLC_APPTIMER_ID	100		/* >=100: application timer */
@@ -90,7 +94,7 @@ typedef void	(*RlcResizeHook)(int, int); /* Hook for window change */
 typedef void	(*RlcMenuHook)(rlc_console, const TCHAR *id); /* Hook for menu-selection */
 typedef void	(*RlcFreeDataHook)(uintptr_t data); /* release data */
 
-#ifdef _WINDOWS_			/* <windows.h> is included */
+#ifdef __WINDOWS__			/* <windows.h> is included */
 					/* rlc_color(which, ...) */
 #define RLC_WINDOW	  (0)		/* window background */
 #define RLC_TEXT	  (1)		/* text color */
@@ -112,7 +116,7 @@ typedef LRESULT	(*RlcMessageHook)(HWND hwnd, UINT message,
 				  WPARAM wParam, LPARAM lParam);
 _export RlcMessageHook  rlc_message_hook(RlcMessageHook hook);
 
-#endif /*_WINDOWS_*/
+#endif /*__WINDOWS__*/
 
 _export RlcUpdateHook	rlc_update_hook(RlcUpdateHook updatehook);
 _export RlcTimerHook	rlc_timer_hook(RlcTimerHook timerhook);
@@ -194,6 +198,8 @@ typedef struct _line
 #define COMPLETE_INIT	   0
 #define COMPLETE_ENUMERATE 1
 #define COMPLETE_CLOSE	   2
+
+struct _complete_data;
 
 typedef int (*RlcCompleteFunc)(struct _complete_data *);
 
