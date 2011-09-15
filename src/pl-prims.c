@@ -482,19 +482,16 @@ var_occurs_in(Word v, Word t ARG_LD)
   unified:
     if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
+      int arity = arityFunctor(f->definition);
 
       if ( !compound )
-      { int arity = arityFunctor(f->definition);
-
-	compound = TRUE;
+      { compound = TRUE;
 	initSegStack(&visited, sizeof(Functor), sizeof(tmp), tmp);
 	f->definition |= FIRST_MASK;
 	pushSegStack(&visited, f, Functor);
 	initTermAgenda(&agenda, arity, f->arguments);
       } else if ( !(f->definition & FIRST_MASK) )
-      { int arity = arityFunctor(f->definition);
-
-	f->definition |= FIRST_MASK;
+      { f->definition |= FIRST_MASK;
 	if ( !pushSegStack(&visited, f, Functor) ||
 	     !pushWorkAgenda(&agenda, arity, f->arguments) )
 	  return MEMORY_OVERFLOW;
@@ -1641,14 +1638,14 @@ do_compare(term_agendaLR *agenda, int eq ARG_LD)
       { Functor f1 = (Functor)valPtr(w1);
 	Functor f2 = (Functor)valPtr(w2);
 
-  #if O_CYCLIC
+#if O_CYCLIC
 	while ( isRef(f1->definition) )
 	  f1 = (Functor)unRef(f1->definition);
 	while ( isRef(f2->definition) )
 	  f2 = (Functor)unRef(f2->definition);
 	if ( f1 == f2 )
 	  continue;
-  #endif
+#endif
 
 	if ( f1->definition != f2->definition )
 	{ FunctorDef fd1 = valueFunctor(f1->definition);
