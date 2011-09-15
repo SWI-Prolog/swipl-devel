@@ -559,6 +559,8 @@ export: install-lman
 #
 
 clean:
+		[ ! -f os/windows/Makefile ] || $(MAKE) -C os/windows $@
+		[ ! -f win32/console/Makefile ] || $(MAKE) -C win32/console $@
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.o $(ALLOBJ) os/*.o a.out core *~ #* parms.h
