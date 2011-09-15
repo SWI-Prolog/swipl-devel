@@ -42,6 +42,7 @@ AC_SUBST(DLLIBVAR)
 AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
 AC_SUBST(MINGW)
+AC_SUBST(WINDRES)
 AC_SUBST(WINEPATHEXE)
 AC_SUBST(HOST_TOOLCHAIN_FLAG)
 AC_SUBST(HOST_OS_FLAG)
@@ -234,6 +235,7 @@ dnl ****************************************************************
 
 AC_CHECK_PROG(AR, ar, ar, ar)
 AC_CHECK_PROG(CHRPATH, chrpath, chrpath, ":")
+AC_CHECK_PROGS(WINDRES, windres)
 AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_PROG_AWK
 AC_PATH_PROG(SED, sed, /bin/sed)

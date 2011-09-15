@@ -50,6 +50,7 @@ plmandir=$(PLBASE)/man
 
 PLVERSION=@PLVERSION@
 PL=@PL@
+PLWIN=@PL@-win
 PLBASE=$(libdir)/@PLLIBDIR@
 BOOTFILE=@BOOTFILE@
 
@@ -63,6 +64,7 @@ CHRPATH=@CHRPATH@
 ETAGS=@ETAGS@
 AR=@AR@
 RANLIB=@RANLIB@
+WINDRES=@WINDRES@
 PLBUILD=@PLBUILD@
 PLARCH=@PLARCH@
 INSTALL=@INSTALL@
@@ -103,6 +105,7 @@ STARTUPPATH=$(PL).prc
 RUNTIMEDIR=../lib/$(PLARCH)
 PLLIB=@PLLIB@
 LNLIBS=@LNLIBS@
+XLIBS=@XLIBS@
 USEPLLIB=@USEPLLIB@
 RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 SOEXT=@SO_EXT@
@@ -141,7 +144,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
 UNICODE=blocks.pl unicode_data.pl
-PLWIN=	wise.pl dde.pl progman.pl registry.pl
+PLWINLIBS=wise.pl dde.pl progman.pl registry.pl
 builddirs=../lib ../lib/$(PLARCH) os
 
 # OPTIMISE=noprof: normal build; prof: build twice, using profiling
@@ -153,7 +156,7 @@ PROFILE_GOAL=run(0.5)
 
 all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
 
-noprof:	uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS) system headers startup index
+noprof:	uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS) system headers plwin startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
@@ -236,11 +239,25 @@ uxnt-lib:
 
 plterm-lib:
 		@(cd win32/console && $(MAKE) COFLAGS="$(COFLAGS)")
+
+plwin:		$(PLWIN)$(EXEEXT)
+
+pl.res:		pl.rc pl.ico xpce.ico
+		$(WINDRES) -o $@ $<
+
+pl-ntmain.o:	pl-ntmain.c
+	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc -I$(srcdir)/os $(CFLAGS) $< -o $@
+
+$(PLWIN)$(EXEEXT):	pl.res pl-ntmain.o
+		$(LDEXE) $(LDFLAGS) -o $@ pl-ntmain.o \
+			-L../lib/$(PLARCH) -lswipl -lplterm $(LNLIBS) $(XLIBS) $(OSLIB)
+
 else
 OSLIB=
 
 uxnt-lib:
 plterm-lib:
+plwin:
 endif
 
 rc-lib:		$(RCOBJ)
