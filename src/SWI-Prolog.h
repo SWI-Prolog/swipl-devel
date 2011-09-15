@@ -972,7 +972,7 @@ PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 				  void *closure,
 				  int global);
 PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
-#if defined(_WINDOWS_)			/* <windows.h> is included */
+#if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
 PL_EXPORT(int) PL_w32thread_raise(DWORD dwTid, int sig);
 PL_EXPORT(int) PL_wait_for_console_input(void *handle);
 PL_EXPORT(int) PL_w32_wrap_ansi_console(void);
@@ -1014,7 +1014,7 @@ PL_EXPORT(void)		PL_prof_exit(void *node);
 		 *	 WINDOWS MESSAGES	*
 		 *******************************/
 
-#ifdef _WINDOWS_			/* <windows.h> is included */
+#if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
 #define PL_MSG_EXCEPTION_RAISED -1
 #define PL_MSG_IGNORED 0
 #define PL_MSG_HANDLED 1
@@ -1023,7 +1023,7 @@ PL_EXPORT(LRESULT)	PL_win_message_proc(HWND hwnd,
 					    UINT message,
 					    WPARAM wParam,
 					    LPARAM lParam);
-#endif /*_WINDOWS_*/
+#endif /* _WINDOWS_/_WINDOWS_H */
 
 
 		 /*******************************
