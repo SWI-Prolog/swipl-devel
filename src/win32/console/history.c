@@ -22,10 +22,10 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#define _MAKE_DLL 1
-#undef _export
 #include <windows.h>
 #include <tchar.h>
+#define _MAKE_DLL 1
+#undef _export
 #include "console.h"			/* public stuff */
 #include "console_i.h"			/* internal stuff */
 #include <string.h>
