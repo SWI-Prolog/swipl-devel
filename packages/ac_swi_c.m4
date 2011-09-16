@@ -14,6 +14,7 @@ AC_SUBST(ETAGS)
 AC_SUBST(LD)
 AC_SUBST(SO)				dnl shared-object extension (e.g., so)
 AC_SUBST(LDSOFLAGS)			dnl pass -shared to swipl-ld
+AC_SUBST(SOLIB)
 
 if test -z "$PLINCL"; then
 plcandidates="swipl swi-prolog pl"
@@ -43,8 +44,10 @@ fi
 
 case "$PLARCH" in
     *-win32|*-win64)
+        SOLIB=bin
         ;;
     *)
+        SOLIB=lib
         INSTALL_PLARCH=PLARCH
         ;;
 esac
