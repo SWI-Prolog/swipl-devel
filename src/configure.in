@@ -211,7 +211,7 @@ case "$PLARCH" in
         ;;
     *)
         PLBASE=$libdir/$PLLIBDIR
-        INSTALL_PLARCH=PLARCH
+        INSTALL_PLARCH=$PLARCH
         SOLIB=lib
         ;;
 esac
