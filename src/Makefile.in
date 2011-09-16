@@ -51,7 +51,7 @@ plmandir=$(PLBASE)/man
 PLVERSION=@PLVERSION@
 PL=@PL@
 PLWIN=@PL@-win
-PLBASE=$(libdir)/@PLLIBDIR@
+PLBASE=@PLBASE@
 BOOTFILE=@BOOTFILE@
 
 CC=@CC@
@@ -67,6 +67,7 @@ RANLIB=@RANLIB@
 WINDRES=@WINDRES@
 PLBUILD=@PLBUILD@
 PLARCH=@PLARCH@
+INSTALL_PLARCH=@INSTALL_PLARCH@
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_SHOBJ=@INSTALL_PROGRAM@
@@ -119,7 +120,7 @@ DEVPL=./swipl.sh
 include $(srcdir)/common.mk
 
 # MacOS
-LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(PLARCH)/$(SHARED)
+LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(INSTALL_PLARCH)/$(SHARED)
 
 OBJ+=	$(OSOBJ)
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
@@ -409,18 +410,18 @@ install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
 ifeq ($(MINGW),true)
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
-		  $(INSTALL_PROGRAM) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir); \
+		  $(INSTALL_PROGRAM) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 		$(INSTALL_PROGRAM) $(RUNTIMEDIR)/libswipl.dll $(DESTDIR)$(bindir)
 else
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
-		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(PLARCH)/$$f $(DESTDIR)$(bindir); \
+		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 endif
 
 install-arch:	idirs iruntime
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) rc/swipl-rc$(EXEEXT); do \
-		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(PLARCH); \
+		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH); \
 		done
 
 install-libs:	idirs iboot ilib iruntime iinclude ipkgconfig iman idot install-demo
@@ -435,35 +436,35 @@ install-demo:	idirs
 		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
 		$(INSTALL_DATA) ../demo/README $(DESTDIR)$(PLBASE)/demo
 
-installdirs=	bin bin/$(PLARCH) lib lib/$(PLARCH) man demo boot library \
+installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) man demo boot library \
 		library/clp library/unicode include include/sicstus dotfiles \
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/ciao library/dialect/ciao/engine \
 		library/dialect/sicstus
 
 iruntime:	idirs
-		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
-		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)/$(PLLIB)
+		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
+		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)/$(PLLIB)
 ifeq ($(SOEXT),dylib)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
 		fi
 else
 ifeq ($(SOEXT),dll)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
-		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(PLARCH) ; \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
+		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
-		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(PLARCH) ; \
-		( cd $(DESTDIR)$(PLBASE)/lib/$(PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
+		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		( cd $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
 		fi
 endif
 endif
 
 install-implib:	idirs
-		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
 idirs::
 		if [ ! -d $(DESTDIR)$(libdir)  ]; then $(MKDIR) $(DESTDIR)$(libdir); fi

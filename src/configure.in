@@ -15,7 +15,9 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(PROGLDFLAGS)
 AC_SUBST(STACKFLAGS)
 AC_SUBST(PLBUILD)
+AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
+AC_SUBST(INSTALL_PLARCH)
 AC_SUBST(PLSHARED)
 AC_SUBST(PLTHREADS)
 AC_SUBST(PL)
@@ -199,7 +201,17 @@ dnl Setup PLBASE.  Need to expand prefix first as this isn't yet set. Yek
 dnl ****************************************************************
 
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
-PLBASE=$libdir/$PLLIBDIR
+
+dnl Set directory structure parameters
+case "$PLARCH" in
+    *-win32|*-win64)
+        PLBASE=$prefix/pl
+        ;;
+    *)
+        PLBASE=$libdir/$PLLIBDIR
+        INSTALL_PLARCH=PLARCH
+        ;;
+esac
 
 dnl ****************************************************************
 dnl Checking for GNU make vpath construct

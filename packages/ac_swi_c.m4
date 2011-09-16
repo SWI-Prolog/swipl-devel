@@ -5,6 +5,7 @@ AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
 AC_SUBST(PLINCL)
+AC_SUBST(INSTALL_PLARCH)
 AC_SUBST(COFLAGS)
 AC_SUBST(CIFLAGS)
 AC_SUBST(CWFLAGS)
@@ -39,6 +40,14 @@ else
 PL=../swipl.sh
 PLLD=../swipl-ld.sh
 fi
+
+case "$PLARCH" in
+    *-win32|*-win64)
+        ;;
+    *)
+        INSTALL_PLARCH=PLARCH
+        ;;
+esac
 
 if test "$MT" = yes; then
   AC_DEFINE(_REENTRANT, 1,

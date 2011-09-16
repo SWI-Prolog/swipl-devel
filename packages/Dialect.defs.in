@@ -19,13 +19,14 @@
 #   Extension used for shared objects.  E.g., .so, .dylib, .dll, ...
 
 PL=../swipl.sh
-PLBASE=@libdir@/@PLLIBDIR@
+PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PLINCL=$(PLBASE)/include
 PLLIBDIR=$(PLBASE)/library
-SOLIBDIR=$(PLBASE)/lib/$(PLARCH)
+SOLIBDIR=$(PLBASE)/lib/$(INSTALL_PLARCH)
 PKGDOCDIR=$(PLBASE)/doc/packages
 PKGEXDIR=$(PLBASE)/doc/packages/examples
+INSTALL_PLARCH=@INSTALL_PLARCH@
 
 CC=../swipl-ld.sh
 CXX=../swipl-ld.sh

@@ -2,6 +2,7 @@ dnl Common autoconf handling SWI-Prolog packages that require no C/C++
 
 AC_SUBST(PL)
 AC_SUBST(PLBASE)
+AC_SUBST(PLARCH)
 
 if test -z "$PLINCL"; then
 plcandidates="swipl swi-prolog pl"
