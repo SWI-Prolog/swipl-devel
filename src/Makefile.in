@@ -405,33 +405,41 @@ ln-install::
 
 install:	@INSTALLTARGET@
 
-dv-install:	install-arch install-libs install-bins html-install
+ifeq ($(MINGW),true)
+dv-install:	dv-install-common install-plwin
+else
+dv-install:	dv-install-common install-bins install-pkgconfig install-man
+endif
+
+dv-install-common:	install-arch install-libs html-install
 
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
-ifeq ($(MINGW),true)
-		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
-		  $(INSTALL_PROGRAM) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)/$$f $(DESTDIR)$(bindir); \
-		done
-		$(INSTALL_PROGRAM) $(RUNTIMEDIR)/libswipl.dll $(DESTDIR)$(bindir)
-else
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) swipl-rc$(EXEEXT); do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)/$$f $(DESTDIR)$(bindir); \
 		done
-endif
 
 install-arch:	idirs iruntime
 		for f in $(PL)$(EXEEXT) swipl-ld$(EXEEXT) rc/swipl-rc$(EXEEXT); do \
 		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH); \
 		done
 
-install-libs:	idirs iboot ilib iruntime iinclude ipkgconfig iman idot install-demo
+install-libs:	idirs iboot ilib iruntime iinclude idot install-demo
 		$(INSTALL_DATA) $(STARTUPPATH) $(DESTDIR)$(PLBASE)/$(BOOTFILE)
 		echo . > $(DESTDIR)$(PLBASE)/swipl.home
 		echo .. > $(DESTDIR)$(PLBASE)/bin/swipl.home
 		$(DEVPL) -f none -F none \
 			-g make_library_index\(\'$(DESTDIR)$(PLBASE)/library\'\) \
 			-t halt
+
+install-plterm:	idirs
+		if [ -f $(RUNTIMEDIR)/plterm.$(SOEXT) ]; then \
+		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/plterm.$(SOEXT) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/plterm.$(SOEXT).a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		fi
+
+install-plwin:	idirs iruntime
+		$(INSTALL_PROGRAM) $(PLWIN)$(EXEEXT) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
 
 install-demo:	idirs
 		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
@@ -538,10 +546,10 @@ iinclude:	idirs
 		    fi; \
 		done
 
-ipkgconfig:	idirs
+install-pkgconfig:	idirs
 		$(INSTALL_DATA) swipl.pc $(DESTDIR)$(libdir)/pkgconfig/
 
-iman::
+install-man:
 		-if [ ! -d $(DESTDIR)$(mandir) ]; then $(MKDIR) $(DESTDIR)$(mandir); fi
 		-if [ ! -d $(DESTDIR)$(smandir)  ];    then $(MKDIR) $(DESTDIR)$(smandir); fi
 		-$(INSTALL_DATA) swipl.1 $(DESTDIR)$(smandir)/$(PL).$(mansec)
