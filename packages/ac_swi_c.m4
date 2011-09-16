@@ -48,7 +48,7 @@ case "$PLARCH" in
         ;;
     *)
         SOLIB=lib
-        INSTALL_PLARCH=PLARCH
+        INSTALL_PLARCH=$PLARCH
         ;;
 esac
 
