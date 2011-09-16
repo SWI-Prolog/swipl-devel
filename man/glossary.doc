@@ -18,14 +18,14 @@ Argument count (is number of arguments) of a \g{compound} \g{term}.
 
     \glossitem{assert}\index{assert}%
 Add a \g{clause} to a \g{predicate}. Clauses can be added at either
-end of the clause-list of a \g{predicate}.  See assert/1 and assertz/1.
+end of the clause-list of a \g{predicate}.  See asserta/1 and assertz/1.
 
     \glossitem{atom}\index{atom}%
 Textual constant.  Used as name for \g{compound} terms, to represent
 constants or text.
 
     \glossitem{backtracking}\index{backtracking}%
-Searching process used by Prolog.  If a predicate offers multiple
+Search process used by Prolog.  If a predicate offers multiple
 \g{clauses} to solve a \g{goal}, they are tried one-by-one until
 one \g{succeeds}.  If a subsequent part of the proof is not satisfied
 with the resulting \g{variable} \g{binding}, it may ask for

@@ -6998,12 +6998,13 @@ core		& Same as memory \\
     \predicate{statistics}{0}{}
 Display a table of system statistics on the current output stream.
     \predicate{time}{1}{:Goal}
-Execute \arg{Goal} just like once/1 (i.e., leaving no choice points),
-but print used time, number of logical inferences and the average
-number of \arg{lips} (logical inferences per second).  Note that
-SWI-Prolog counts the actual executed number of inferences rather than
-the number of passes through the call- and redo ports of the
-theoretical 4-port model.
+Execute \arg{Goal} just like call/1 and print used time, number of
+logical inferences and the average number of \arg{lips} (logical
+inferences per second). Note that SWI-Prolog counts the actual executed
+number of inferences rather than the number of passes through the call-
+and redo ports of the theoretical 4-port model. If \arg{Goal} is
+non-deterministic prints statistics for each solution, where the
+reported values are relative to the previous answer.
 \end{description}
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
