@@ -931,6 +931,27 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
+dnl AC_CHECK_FUNCS() doesn't work due to type errors.  Seems there is some
+dnl discussion for a better solution, but for now this should do.
+
+AC_MSG_CHECKING(for __builtin_clz)
+AC_TRY_LINK([],
+	    [ __builtin_clz(0); ],
+	    [ AC_MSG_RESULT(yes)
+	      AC_DEFINE(HAVE__BUILTIN_CLZ, 1,
+			[Define if you have __builtin_clz])
+	    ],
+	    [ AC_MSG_RESULT(no) ])
+AC_MSG_CHECKING(for __sync_synchronize)
+AC_TRY_LINK([],
+	    [ __sync_synchronize(); ],
+	    [ AC_MSG_RESULT(yes)
+	      AC_DEFINE(HAVE__SYNC_SYNCHRONIZE, 1,
+			[Define if you have __sync_synchronize])
+	    ],
+	    [ AC_MSG_RESULT(no) ])
+
+
 case "$PLARCH" in
     *-win32|*-win64)
       if test "x$ac_cv_func_select" = xno; then

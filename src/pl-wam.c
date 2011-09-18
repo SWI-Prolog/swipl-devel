@@ -777,6 +777,7 @@ do_undo(mark *m)
 
 #ifdef _MSC_VER				/* Windows MSVC version */
 
+#define HAVE_MSB 1
 static inline int
 MSB(unsigned int i)
 { unsigned long mask = i;
@@ -786,17 +787,25 @@ MSB(unsigned int i)
   return index;
 }
 
+#define HAVE_MEMORY_BARRIER 1
 #ifndef MemoryBarrier
 #define MemoryBarrier() (void)0
 #endif
 
-#elif defined(__GNUC__)			/* GCC version */
+#endif /*_MSC_VER*/
 
-#define MSB(i) (31 - __builtin_clz(i))
+#if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
+#define HAVE_MSB 1
+#define MSB(i) (31 - __builtin_clz(i))		/* GCC builtin */
+#endif
+
+#if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
+#define HAVE_MEMORY_BARRIER 1
 #define MemoryBarrier() __sync_synchronize()
+#endif
 
-#else					/* Other */
-
+#ifndef HAVE_MSB
+#define HAVE_MSB 1
 static inline int
 MSB(unsigned int i)
 { int j = 0;
@@ -809,9 +818,13 @@ MSB(unsigned int i)
 
   return j;
 }
-#define MemoryBarrier() (void)0
-
 #endif
+
+#ifndef HAVE_MEMORY_BARRIER
+#define HAVE_MEMORY_BARRIER 1
+#define MemoryBarrier() (void)0
+#endif
+
 
 static Definition
 localDefinition(Definition def ARG_LD)
