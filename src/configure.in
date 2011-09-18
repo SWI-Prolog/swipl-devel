@@ -1160,6 +1160,9 @@ if test "$check_unwind_h" = yes; then
 		  LIBS="-lunwind $LIBS")
 fi
 
+dnl Used in OpenBSD
+AC_CHECK_LIB(execinfo, backtrace_symbols)
+
 AC_CHECK_SIZEOF(void*, 4)
 AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(int,  4)
