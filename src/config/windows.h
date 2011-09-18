@@ -97,15 +97,6 @@ typedef int mode_t;
 /* Define as the return type of signal handlers (int or void).  */
 #define RETSIGTYPE void
 
-/* If using the C implementation of alloca, define if you know the
-   direction of stack growth for your system; otherwise it will be
-   automatically deduced at run-time.
-	STACK_DIRECTION > 0 => grows toward higher addresses
-	STACK_DIRECTION < 0 => grows toward lower addresses
-	STACK_DIRECTION = 0 => direction of growth unknown
- */
-#define STACK_DIRECTION -1
-
 /* Define if you have the ANSI C header files.  */
 #define STDC_HEADERS 1
 

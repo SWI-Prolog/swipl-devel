@@ -1608,22 +1608,8 @@ AC_TRY_COMPILE(
 
 
 dnl ****************************************************************
-dnl Very specific SWI-Prolog tests.  First of all, we'll try to determine
-dnl the direction of the C-stack as well as the area where malloc()'ed data
-dnl lifes.  We run test/memmodel.c for this.
+dnl Very specific SWI-Prolog tests.
 dnl ****************************************************************
-
-AC_MSG_CHECKING("memory model");
-echo '#include "confdefs.h"' > conftest.c
-cat $srcdir/test/memmodel.c >> conftest.c
-(eval $ac_link) 2>&5
-if test -s conftest && eval `./conftest`; then
-    AC_DEFINE_UNQUOTED(STACK_DIRECTION, $STACK_DIRECTION)
-    AC_MSG_RESULT(yes)
-else
-    AC_MSG_WARN("Failed to compile test/memmodel.c")
-fi
-rm -fr conftest*
 
 dnl ****************************************************************
 dnl Test whether we can use asm("nop") to separate instructions.
