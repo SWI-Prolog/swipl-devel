@@ -688,7 +688,7 @@ esac
 		  [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 		    pthread_mutex_lock(&m);
 		    pthread_mutex_unlock(&m);
-#if !(defined(_REENTRANT) || defined(_THREAD_SAFE))
+#if !(defined(_REENTRANT) || defined(_THREAD_SAFE) || defined(_POSIX_THREADS))
 	this should not be compiled
 #endif
 		  ],
