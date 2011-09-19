@@ -148,7 +148,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
 UNICODE=blocks.pl unicode_data.pl
-PLWINLIBS=wise.pl dde.pl progman.pl registry.pl
+PLWINLIBS=wise.pl dde.pl progman.pl registry.pl win_menu.pl
 builddirs=../lib ../lib/$(PLARCH) os
 
 # OPTIMISE=noprof: normal build; prof: build twice, using profiling
@@ -412,7 +412,7 @@ ln-install::
 install:	@INSTALLTARGET@
 
 ifeq ($(MINGW),true)
-dv-install:	dv-install-common install-plwin
+dv-install:	dv-install-common install-plterm install-foreign install-plwin install-readme
 else
 dv-install:	dv-install-common install-bins install-pkgconfig install-man
 endif
@@ -443,8 +443,17 @@ install-plterm:	idirs
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/plterm.$(SOEXT) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/plterm.$(SOEXT).a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
 		fi
+		$(INSTALL_DATA) ../include/console.h $(DESTDIR)$(PLBASE)/include/plterm.h
 
-install-plwin:	idirs iruntime
+install-foreign:	idirs
+		if [ -f $(RUNTIMEDIR)/plregtry.$(SOEXT) ]; then \
+		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/plregtry.$(SOEXT) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
+		fi
+		if [ -f $(RUNTIMEDIR)/dlltest.$(SOEXT) ]; then \
+		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/dlltest.$(SOEXT) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
+		fi
+
+install-plwin:	idirs iruntime iplwinlib
 		$(INSTALL_PROGRAM) $(PLWIN)$(EXEEXT) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
 
 install-demo:	idirs
@@ -483,7 +492,6 @@ install-implib:	idirs
 
 idirs::
 		if [ ! -d $(DESTDIR)$(libdir)  ]; then $(MKDIR) $(DESTDIR)$(libdir); fi
-		if [ ! -d $(DESTDIR)$(libdir)/pkgconfig ]; then $(MKDIR) $(DESTDIR)$(libdir)/pkgconfig; fi
 		if [ ! -d $(DESTDIR)$(PLBASE) ]; then $(MKDIR) $(DESTDIR)$(PLBASE); fi
 		for d in $(installdirs); do \
 			if [ ! -d $(DESTDIR)$(PLBASE)/$$d ]; then \
@@ -497,6 +505,11 @@ iboot:		idirs
 
 ilib:		idirs iclp idialect iunicode
 		for f in $(PLLIBS); do \
+			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
+		done
+
+iplwinlib:	idirs
+		for f in $(PLWINLIBS); do \
 			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
 		done
 
@@ -553,6 +566,7 @@ iinclude:	idirs
 		done
 
 install-pkgconfig:	idirs
+		if [ ! -d $(DESTDIR)$(libdir)/pkgconfig ]; then $(MKDIR) $(DESTDIR)$(libdir)/pkgconfig; fi
 		$(INSTALL_DATA) swipl.pc $(DESTDIR)$(libdir)/pkgconfig/
 
 install-man:
@@ -566,6 +580,13 @@ install-lman:	idirs
 		$(INSTALL_DATA) swipl.1 $(DESTDIR)$(plmandir)/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/swipl-rc.1 $(DESTDIR)$(plmandir)/swipl-rc.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(plmandir)/swipl-ld.$(mansec)
+
+install-readme:	idirs
+		$(INSTALL_DATA) ../README $(DESTDIR)$(PLBASE)/README$(TXTEXT)
+		$(INSTALL_DATA) ../VERSION $(DESTDIR)$(PLBASE)
+		$(INSTALL_DATA) ../ReleaseNotes/relnotes-5.10 $(DESTDIR)$(PLBASE)/RelNotes-5.10$(TXTEXT)
+		$(INSTALL_DATA) ../COPYING $(DESTDIR)$(PLBASE)/COPYING$(TXTEXT)
+		$(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc
 
 html-install::
 		if [ -d ../man/Manual ]; then \
