@@ -160,7 +160,7 @@ PROFILE_GOAL=run(0.5)
 
 all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
 
-noprof:	uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS) system headers plwin startup index
+noprof:	uxnt-lib plterm-lib foreign-lib rc-lib tai-lib $(MKLIBS) system headers plwin startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
@@ -244,6 +244,9 @@ uxnt-lib:
 plterm-lib:
 		@(cd win32/console && $(MAKE) COFLAGS="$(COFLAGS)")
 
+foreign-lib:
+		@(cd win32/foreign && $(MAKE) COFLAGS="$(COFLAGS)")
+
 plwin:		$(PLWIN)$(EXEEXT)
 
 pl.res:		pl.rc pl.ico xpce.ico
@@ -261,6 +264,7 @@ OSLIB=
 
 uxnt-lib:
 plterm-lib:
+foreign-lib:
 plwin:
 endif
 
