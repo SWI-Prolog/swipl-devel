@@ -38,6 +38,7 @@ AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
 AC_SUBST(SO_EXT)
 AC_SUBST(SOLIB)
+AC_SUBST(TXTEXT)
 AC_SUBST(MKLIBS)		dnl system libraries to make
 AC_SUBST(BUILDDIR)
 AC_SUBST(CNFG)
@@ -208,6 +209,7 @@ case "$PLARCH" in
     *-win32|*-win64)
         PLBASE=$prefix/pl
         SOLIB=bin
+        TXTEXT=.TXT
         ;;
     *)
         PLBASE=$libdir/$PLLIBDIR
