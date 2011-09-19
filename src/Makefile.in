@@ -86,6 +86,7 @@ CPFLAGS=
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
 LDFLAGS=@LDFLAGS@ $(CPFLAGS)
 STACKFLAGS=@STACKFLAGS@
+SUBSYSTEMFLAGS=@SUBSYSTEMFLAGS@
 
 MINGW=@MINGW@
 DEFSTARTUP=@DEFSTARTUP@
@@ -252,7 +253,7 @@ pl-ntmain.o:	pl-ntmain.c
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc -I$(srcdir)/os $(CFLAGS) $< -o $@
 
 $(PLWIN)$(EXEEXT):	pl.res pl-ntmain.o
-		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ pl-ntmain.o \
+		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) -o $@ pl-ntmain.o \
 			-L../lib/$(PLARCH) -lswipl -lplterm $(LNLIBS) $(XLIBS) $(OSLIB)
 
 else
