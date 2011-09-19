@@ -15,7 +15,9 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(PROGLDFLAGS)
 AC_SUBST(STACKFLAGS)
 AC_SUBST(PLBUILD)
+AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
+AC_SUBST(INSTALL_PLARCH)
 AC_SUBST(PLSHARED)
 AC_SUBST(PLTHREADS)
 AC_SUBST(PL)
@@ -35,6 +37,7 @@ AC_SUBST(XLIBS)                 dnl libs to link with plterm
 AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
 AC_SUBST(SO_EXT)
+AC_SUBST(SOLIB)
 AC_SUBST(MKLIBS)		dnl system libraries to make
 AC_SUBST(BUILDDIR)
 AC_SUBST(CNFG)
@@ -42,6 +45,7 @@ AC_SUBST(DLLIBVAR)
 AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
 AC_SUBST(MINGW)
+AC_SUBST(WINDRES)
 AC_SUBST(WINEPATHEXE)
 AC_SUBST(HOST_TOOLCHAIN_FLAG)
 AC_SUBST(HOST_OS_FLAG)
@@ -198,7 +202,19 @@ dnl Setup PLBASE.  Need to expand prefix first as this isn't yet set. Yek
 dnl ****************************************************************
 
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
-PLBASE=$libdir/$PLLIBDIR
+
+dnl Set directory structure parameters
+case "$PLARCH" in
+    *-win32|*-win64)
+        PLBASE=$prefix/pl
+        SOLIB=bin
+        ;;
+    *)
+        PLBASE=$libdir/$PLLIBDIR
+        INSTALL_PLARCH=$PLARCH
+        SOLIB=lib
+        ;;
+esac
 
 dnl ****************************************************************
 dnl Checking for GNU make vpath construct
@@ -234,6 +250,7 @@ dnl ****************************************************************
 
 AC_CHECK_PROG(AR, ar, ar, ar)
 AC_CHECK_PROG(CHRPATH, chrpath, chrpath, ":")
+AC_CHECK_PROGS(WINDRES, windres)
 AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_PROG_AWK
 AC_PATH_PROG(SED, sed, /bin/sed)
@@ -671,7 +688,7 @@ esac
 		  [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 		    pthread_mutex_lock(&m);
 		    pthread_mutex_unlock(&m);
-#if !(defined(_REENTRANT) || defined(_THREAD_SAFE))
+#if !(defined(_REENTRANT) || defined(_THREAD_SAFE) || defined(_POSIX_THREADS))
 	this should not be compiled
 #endif
 		  ],
@@ -914,6 +931,27 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
+dnl AC_CHECK_FUNCS() doesn't work due to type errors.  Seems there is some
+dnl discussion for a better solution, but for now this should do.
+
+AC_MSG_CHECKING(for __builtin_clz)
+AC_TRY_LINK([],
+	    [ __builtin_clz(0); ],
+	    [ AC_MSG_RESULT(yes)
+	      AC_DEFINE(HAVE__BUILTIN_CLZ, 1,
+			[Define if you have __builtin_clz])
+	    ],
+	    [ AC_MSG_RESULT(no) ])
+AC_MSG_CHECKING(for __sync_synchronize)
+AC_TRY_LINK([],
+	    [ __sync_synchronize(); ],
+	    [ AC_MSG_RESULT(yes)
+	      AC_DEFINE(HAVE__SYNC_SYNCHRONIZE, 1,
+			[Define if you have __sync_synchronize])
+	    ],
+	    [ AC_MSG_RESULT(no) ])
+
+
 case "$PLARCH" in
     *-win32|*-win64)
       if test "x$ac_cv_func_select" = xno; then
@@ -1121,6 +1159,9 @@ if test "$check_unwind_h" = yes; then
 			    [ Define if you have libunwind and libunwind.h ])
 		  LIBS="-lunwind $LIBS")
 fi
+
+dnl Used in OpenBSD
+AC_CHECK_LIB(execinfo, backtrace_symbols)
 
 AC_CHECK_SIZEOF(void*, 4)
 AC_CHECK_SIZEOF(long, 4)
@@ -1591,22 +1632,8 @@ AC_TRY_COMPILE(
 
 
 dnl ****************************************************************
-dnl Very specific SWI-Prolog tests.  First of all, we'll try to determine
-dnl the direction of the C-stack as well as the area where malloc()'ed data
-dnl lifes.  We run test/memmodel.c for this.
+dnl Very specific SWI-Prolog tests.
 dnl ****************************************************************
-
-AC_MSG_CHECKING("memory model");
-echo '#include "confdefs.h"' > conftest.c
-cat $srcdir/test/memmodel.c >> conftest.c
-(eval $ac_link) 2>&5
-if test -s conftest && eval `./conftest`; then
-    AC_DEFINE_UNQUOTED(STACK_DIRECTION, $STACK_DIRECTION)
-    AC_MSG_RESULT(yes)
-else
-    AC_MSG_WARN("Failed to compile test/memmodel.c")
-fi
-rm -fr conftest*
 
 dnl ****************************************************************
 dnl Test whether we can use asm("nop") to separate instructions.

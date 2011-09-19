@@ -82,7 +82,7 @@ duplicated this stuff.
 #ifndef _PL_EXPORT_DONE
 #define _PL_EXPORT_DONE
 
-#if (defined(_MSC_VER) || defined(__CYGWIN__)) && !defined(__LCC__)
+#if (defined(__WINDOWS__) || defined(__CYGWIN__)) && !defined(__LCC__)
 #define HAVE_DECLSPEC
 #endif
 
@@ -96,8 +96,13 @@ duplicated this stuff.
 #define PL_EXPORT(type)		type _stdcall
 #define PL_EXPORT_DATA(type)	extern type
 #  else
+#   ifdef __MINGW32__
+#define PL_EXPORT(type)		extern type
+#define PL_EXPORT_DATA(type)	extern type
+#   else
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllimport) type
+#   endif
 #  endif
 #define install_t		__declspec(dllexport) void
 # endif
@@ -972,7 +977,7 @@ PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 				  void *closure,
 				  int global);
 PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
-#if defined(_WINDOWS_)			/* <windows.h> is included */
+#if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
 PL_EXPORT(int) PL_w32thread_raise(DWORD dwTid, int sig);
 PL_EXPORT(int) PL_wait_for_console_input(void *handle);
 PL_EXPORT(int) PL_w32_wrap_ansi_console(void);
@@ -1014,7 +1019,7 @@ PL_EXPORT(void)		PL_prof_exit(void *node);
 		 *	 WINDOWS MESSAGES	*
 		 *******************************/
 
-#ifdef _WINDOWS_			/* <windows.h> is included */
+#if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
 #define PL_MSG_EXCEPTION_RAISED -1
 #define PL_MSG_IGNORED 0
 #define PL_MSG_HANDLED 1
@@ -1023,7 +1028,7 @@ PL_EXPORT(LRESULT)	PL_win_message_proc(HWND hwnd,
 					    UINT message,
 					    WPARAM wParam,
 					    LPARAM lParam);
-#endif /*_WINDOWS_*/
+#endif /* _WINDOWS_/_WINDOWS_H */
 
 
 		 /*******************************

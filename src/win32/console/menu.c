@@ -24,7 +24,8 @@
 
 #include <windows.h>
 #include <tchar.h>
-#define _MAKE_DLL
+#define _MAKE_DLL 1
+#undef _export
 #include "console.h"
 #include "console_i.h"
 #include "menu.h"

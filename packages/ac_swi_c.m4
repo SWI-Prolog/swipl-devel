@@ -5,6 +5,7 @@ AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
 AC_SUBST(PLINCL)
+AC_SUBST(INSTALL_PLARCH)
 AC_SUBST(COFLAGS)
 AC_SUBST(CIFLAGS)
 AC_SUBST(CWFLAGS)
@@ -13,6 +14,7 @@ AC_SUBST(ETAGS)
 AC_SUBST(LD)
 AC_SUBST(SO)				dnl shared-object extension (e.g., so)
 AC_SUBST(LDSOFLAGS)			dnl pass -shared to swipl-ld
+AC_SUBST(SOLIB)
 
 if test -z "$PLINCL"; then
 plcandidates="swipl swi-prolog pl"
@@ -39,6 +41,16 @@ else
 PL=../swipl.sh
 PLLD=../swipl-ld.sh
 fi
+
+case "$PLARCH" in
+    *-win32|*-win64)
+        SOLIB=bin
+        ;;
+    *)
+        SOLIB=lib
+        INSTALL_PLARCH=$PLARCH
+        ;;
+esac
 
 if test "$MT" = yes; then
   AC_DEFINE(_REENTRANT, 1,

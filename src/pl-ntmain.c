@@ -45,6 +45,10 @@
 #define streq(s,q) (strcmp((s), (q)) == 0)
 #endif
 
+#ifndef _TINT
+typedef wint_t _TINT;
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Main program for running SWI-Prolog from   a window. The window provides
 X11-xterm like features: scrollback for a   predefined  number of lines,

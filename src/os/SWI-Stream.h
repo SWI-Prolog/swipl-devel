@@ -83,8 +83,13 @@ stuff.
 #define PL_EXPORT(type)		type _stdcall
 #define PL_EXPORT_DATA(type)	extern type
 #  else
+#   ifdef __MINGW32__
+#define PL_EXPORT(type)		extern type
+#define PL_EXPORT_DATA(type)	extern type
+#   else
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllimport) type
+#   endif
 #  endif
 #define install_t		__declspec(dllexport) void
 # endif
