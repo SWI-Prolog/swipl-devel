@@ -85,6 +85,70 @@ build_pthread_win32()
 }
 
 ###########################
+# Download and install ssl
+
+download_ssl()
+{ [ -f openssl-1.0.0e.tar.gz ] || wget http://www.openssl.org/source/openssl-1.0.0e.tar.gz
+  tar xzf openssl-1.0.0e.tar.gz
+}
+
+build_ssl()
+{ ( cd openssl-1.0.0e
+    export CC=i586-mingw32msvc-gcc
+    ./Configure mingw --prefix=$install shared threads
+    make CROSS_COMPILE=i586-mingw32msvc- depend
+    make CROSS_COMPILE=i586-mingw32msvc
+    make CROSS_COMPILE=i586-mingw32msvc install
+  )
+}
+
+###########################
+# Download and install jpeg
+
+download_jpeg()
+{ [ -f jpegsrc.v8c.tar.gz ] || wget http://www.ijg.org/files/jpegsrc.v8c.tar.gz
+  tar xzf jpegsrc.v8c.tar.gz
+}
+
+build_jpeg()
+{ ( cd jpeg-8c
+    ./configure --host=i586-mingw32msvc --prefix=$install --enable-shared
+    make
+    make install
+  )
+}
+
+###########################
+# Download and install libXpm
+
+download_libxpm()
+{ [ -f libXpm-3.5.9.tar.bz2 ] || wget http://xorg.freedesktop.org/releases/individual/lib/libXpm-3.5.9.tar.bz2
+  tar xjf libXpm-3.5.9.tar.bz2
+}
+
+build_libxpm()
+{ ( cd libXpm-3.5.9
+    export XPM_CFLAGS="-DFOR_MSW"
+    export XPM_LIBS="-lgdi32"
+    ./configure --host=i586-mingw32msvc --prefix=$install --enable-shared
+    sed -i -e 's/sxpm cxpm//' Makefile
+    sed -i -e 's/CrBufFrP.lo//' \
+           -e 's/CrDatFrP.lo//' \
+           -e 's/CrIFrP.lo//' \
+           -e 's/CrPFrBuf.lo//' \
+           -e 's/CrPFrDat.lo//' \
+           -e 's/CrPFrI.lo//' \
+           -e 's/RdFToP.lo//' \
+           -e 's/WrFFrP.lo//' \
+           -e 's/scan.lo/scan.lo simx.lo/' src/Makefile
+    sed -i -e 's/#include "XpmI.h"/#include "XpmI.h"\n#include "fcntl.h"/' src/WrFFrI.c
+    sed -i -e 's/xpmi.h/XpmI.h/' src/simx.c
+    make
+    make install
+  )
+}
+
+###########################
 # Download and install zlib
 
 download_zlib()
@@ -104,12 +168,18 @@ build_zlib()
 download_prerequisites()
 { download_gmp
   download_pthread_win32
+  download_ssl
+  download_jpeg
+  download_libxpm
   download_zlib
 }
 
 build_prerequisites()
 { build_gmp
   build_pthread_win32
+  build_ssl
+  build_jpeg
+  build_libxpm
   build_zlib
 }
 
@@ -142,7 +212,6 @@ build_swipl_packages()
 { ( cd pl-devel/packages
     export CPPFLAGS=-I$install/include
     export PKGLDFLAGS=-I$install/lib
-    export PKG="clib zlib"
     ./configure --host=i586-mingw32msvc --prefix=$install
     make
     make install
