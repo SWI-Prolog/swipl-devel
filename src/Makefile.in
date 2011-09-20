@@ -441,7 +441,7 @@ install-plterm:	idirs
 		fi
 		$(INSTALL_DATA) ../include/console.h $(DESTDIR)$(PLBASE)/include/plterm.h
 
-<install-plwin:	idirs iruntime iplwinlib
+install-plwin:	idirs iruntime iplwinlib
 		$(INSTALL_PROGRAM) $(PLWIN)$(EXEEXT) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
 
 install-demo:	idirs
