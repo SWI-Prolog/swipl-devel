@@ -32,6 +32,7 @@ TXTEXT=@TXTEXT@
 CC=../swipl-ld.sh
 CXX=../swipl-ld.sh
 LD=$(CC)
+RANLIB=@RANLIB@
 SO=@SO_EXT@
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
