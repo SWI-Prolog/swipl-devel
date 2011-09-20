@@ -14,6 +14,7 @@ AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(PROGLDFLAGS)
 AC_SUBST(STACKFLAGS)
+AC_SUBST(SUBSYSTEMFLAGS)
 AC_SUBST(PLBUILD)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
@@ -38,6 +39,7 @@ AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
 AC_SUBST(SO_EXT)
 AC_SUBST(SOLIB)
+AC_SUBST(TXTEXT)
 AC_SUBST(MKLIBS)		dnl system libraries to make
 AC_SUBST(BUILDDIR)
 AC_SUBST(CNFG)
@@ -208,6 +210,7 @@ case "$PLARCH" in
     *-win32|*-win64)
         PLBASE=$prefix/pl
         SOLIB=bin
+        TXTEXT=.TXT
         ;;
     *)
         PLBASE=$libdir/$PLLIBDIR
@@ -593,6 +596,14 @@ case "$PLARCH" in
         AC_TRY_LINK([], [],
                     [AC_MSG_RESULT(yes)
                      STACKFLAGS=-Wl,--stack,4000000],
+                    [AC_MSG_RESULT(no)])
+        LDFLAGS="$oldflags"
+        AC_MSG_CHECKING(whether linker supports --subsystem)
+        oldflags="$LDFLAGS"
+        LDFLAGS="$LDFLAGS -Wl,--subsystem,windows"
+        AC_TRY_LINK([], [],
+                    [AC_MSG_RESULT(yes)
+                     SUBSYSTEMFLAGS=-Wl,--subsystem,windows],
                     [AC_MSG_RESULT(no)])
         LDFLAGS="$oldflags"
 	MINGW=true
@@ -1757,7 +1768,7 @@ OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
     i386-win32|x64-win64)
-        OutputFiles="$OutputFiles os/windows/Makefile win32/console/Makefile"
+        OutputFiles="$OutputFiles os/windows/Makefile win32/console/Makefile win32/foreign/Makefile"
 	;;
 esac
 

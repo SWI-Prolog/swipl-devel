@@ -1,6 +1,5 @@
 ################################################################
-# The uxnt library provides some additional Unix compatibility
-# stuff on top of the MSVC (posix) runtime library.
+# Makefile for the SWI-Prolog console window.
 ################################################################
 
 srcdir=@srcdir@
