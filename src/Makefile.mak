@@ -186,7 +186,7 @@ check:
 ################################################################
 
 install::	install-arch install-libs install-readme install_packages \
-		xpce_packages install-dotfiles install-demo html-install
+		xpce_packages install-custom install-demo html-install
 
 embed-manifests::
 		win32\embed_manifests.cmd
@@ -305,10 +305,10 @@ install-readme::
 		$(INSTALL_DATA) ..\COPYING "$(PLBASE)\COPYING.TXT"
 		$(INSTALL_DATA) ..\man\windows.html "$(PLBASE)\doc"
 
-install-dotfiles::
-		$(INSTALL_DATA) ..\dotfiles\dotplrc "$(PLCUSTOM)\pl.ini"
-		$(INSTALL_DATA) ..\dotfiles\dotxpcerc "$(PLCUSTOM)\xpce.ini"
-		$(INSTALL_DATA) ..\dotfiles\README "$(PLCUSTOM)\README.TXT"
+install-custom::
+		$(INSTALL_DATA) ..\customize\dotplrc "$(PLCUSTOM)\pl.ini"
+		$(INSTALL_DATA) ..\customize\dotxpcerc "$(PLCUSTOM)\xpce.ini"
+		$(INSTALL_DATA) ..\customize\README "$(PLCUSTOM)\README.TXT"
 
 html-install::
 		copy ..\man\Manual\*.html $(MANDIR) > nul

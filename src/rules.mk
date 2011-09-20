@@ -24,7 +24,7 @@ PLBASE=$(TARGET_PROGRAM_FILES)\$(PL_DIR_NAME)
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
-PLCUSTOM=$(PLBASE)\custom
+PLCUSTOM=$(PLBASE)\customize
 
 # Get extra include files from here
 EXTRAINCDIR=$(HOME)\include

@@ -117,6 +117,7 @@ SHARED=@PLSO@
 SHAREDV=$(SHARED).$(PLVERSION)
 SONAMEOPT=@SONAMEOPT@
 LIBRARYDIR=${PLBASE}/library
+PLCUSTOM=${PLBASE}/customize
 MKLIBS=@MKLIBS@
 DEVPL=./swipl.sh
 
@@ -426,7 +427,7 @@ install-arch:	idirs iruntime
 		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH); \
 		done
 
-install-libs:	idirs iboot ilib iruntime iinclude idot install-demo
+install-libs:	idirs iboot ilib iruntime iinclude icustom install-demo
 		$(INSTALL_DATA) $(STARTUPPATH) "$(DESTDIR)$(PLBASE)/$(BOOTFILE)"
 		echo . > "$(DESTDIR)$(PLBASE)/swipl.home"
 		echo .. > "$(DESTDIR)$(PLBASE)/bin/swipl.home"
@@ -449,7 +450,7 @@ install-demo:	idirs
 		$(INSTALL_DATA) ../demo/README $(DESTDIR)$(PLBASE)/demo/README$(TXTEXT)
 
 installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) man demo boot library \
-		library/clp library/unicode include include/sicstus dotfiles \
+		library/clp library/unicode include include/sicstus customize \
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/ciao library/dialect/ciao/engine \
 		library/dialect/sicstus
@@ -540,11 +541,16 @@ iunicode:	idirs
 			$(INSTALL_DATA) ../library/unicode/$$f $(DESTDIR)$(PLBASE)/library/unicode; \
 		done
 
-idot:		idirs
-		$(INSTALL_DATA) ../dotfiles/dotplrc $(DESTDIR)$(PLBASE)/dotfiles
-		$(INSTALL_DATA) ../dotfiles/dotxpcerc $(DESTDIR)$(PLBASE)/dotfiles
-		$(INSTALL_DATA) ../dotfiles/README $(DESTDIR)$(PLBASE)/dotfiles/README$(TXTEXT)
-		$(INSTALL_SCRIPT) ../dotfiles/edit $(DESTDIR)$(PLBASE)/dotfiles
+icustom:		idirs
+		$(INSTALL_DATA) ../customize/README $(DESTDIR)$(PLCUSTOM)/README$(TXTEXT)
+ifeq ($(MINGW),true)
+		$(INSTALL_DATA) ../customize/dotplrc $(DESTDIR)$(PLCUSTOM)/pl.ini
+		$(INSTALL_DATA) ../customize/dotxpcerc $(DESTDIR)$(PLCUSTOM)/xpce.ini
+else
+		$(INSTALL_DATA) ../customize/dotplrc $(DESTDIR)$(PLCUSTOM)
+		$(INSTALL_DATA) ../customize/dotxpcerc $(DESTDIR)$(PLCUSTOM)
+		$(INSTALL_SCRIPT) ../customize/edit $(DESTDIR)$(PLCUSTOM)
+endif
 
 iinclude:	idirs
 		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
