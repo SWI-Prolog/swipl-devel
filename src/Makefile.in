@@ -572,7 +572,6 @@ install-lman:	idirs
 install-readme:	idirs
 		$(INSTALL_DATA) ../README $(DESTDIR)$(PLBASE)/README$(TXTEXT)
 		$(INSTALL_DATA) ../VERSION $(DESTDIR)$(PLBASE)
-		$(INSTALL_DATA) ../ReleaseNotes/relnotes-5.10 $(DESTDIR)$(PLBASE)/RelNotes-5.10$(TXTEXT)
 		$(INSTALL_DATA) ../COPYING $(DESTDIR)$(PLBASE)/COPYING$(TXTEXT)
 		$(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc
 
