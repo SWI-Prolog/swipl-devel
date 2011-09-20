@@ -209,10 +209,13 @@ build_swipl_core()
   )
 }
 
+# Usage: build_swipl_packages [pkg ...]
+
 build_swipl_packages()
 { ( cd pl-devel/packages
     export CPPFLAGS=-I$install/include
     export PKGLDFLAGS=-I$install/lib
+    [ -z "$1" ] || export PKG="$1"
     ./configure --host=i586-mingw32msvc --prefix=$install
     make
     make install
