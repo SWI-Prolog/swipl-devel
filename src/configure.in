@@ -208,7 +208,7 @@ test "x$prefix" = xNONE && prefix=$ac_default_prefix
 dnl Set directory structure parameters
 case "$PLARCH" in
     *-win32|*-win64)
-        PLBASE=$prefix/pl
+        PLBASE=$prefix/$PLLIBDIR
         SOLIB=bin
         TXTEXT=.TXT
         ;;
