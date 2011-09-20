@@ -36,6 +36,7 @@
 # with the mingw cross-compiler and wine installed.
 
 install=$HOME/mingw
+export BUILDARCH=mingw		# build in mingw directory next to src
 src=$(pwd)
 
 case $(uname) in
