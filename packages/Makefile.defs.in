@@ -48,7 +48,6 @@ endif
 
 $(HTML):	$(TEX)
 		latex2html $(DOC)
-		mv html/index.html $@
 
 $(PDF):		$(TEX)
 		../../man/runtex --pdf $(DOC)
