@@ -16,9 +16,8 @@
 # install chrpath (if available) or remove   the installed system before
 # rebuilding.
 
-srcdir=@srcdir@
-lib=$srcdir/../lib/@PLARCH@
-bdir=$srcdir/../@BUILDDIR@
+bdir=@abs_top_builddir@
+lib=$bdir/../lib/@PLARCH@
 libso=$lib/libswipl.@SO_EXT@
 sep=":"
 
@@ -34,5 +33,13 @@ else
 fi
 
 export @DLLIBVAR@
+
+case "$1" in
+  -C) cd "$2"
+      shift
+      shift
+      ;;
+   *) ;;
+esac
 
 $bdir/@PL@@EXEEXT@ "$@"

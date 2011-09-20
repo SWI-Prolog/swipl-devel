@@ -430,8 +430,8 @@ install-libs:	idirs iboot ilib iruntime iinclude idot install-demo
 		$(INSTALL_DATA) $(STARTUPPATH) "$(DESTDIR)$(PLBASE)/$(BOOTFILE)"
 		echo . > "$(DESTDIR)$(PLBASE)/swipl.home"
 		echo .. > "$(DESTDIR)$(PLBASE)/bin/swipl.home"
-		$(DEVPL) --home="$(DESTDIR)$(PLBASE)" -f none -F none \
-			-g 'make_library_index(swi(library))' \
+		$(DEVPL) -C "$(DESTDIR)$(PLBASE)" -f none -F none \
+			-g 'make_library_index(library)' \
 			-t halt
 
 install-plterm:	idirs
