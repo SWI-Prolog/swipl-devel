@@ -251,9 +251,11 @@ dnl ****************************************************************
 dnl Finding various programs
 dnl ****************************************************************
 
+cross_winres=$(echo $CC | sed 's/-gcc/-windres/')
+
 AC_CHECK_PROG(AR, ar, ar, ar)
 AC_CHECK_PROG(CHRPATH, chrpath, chrpath, ":")
-AC_CHECK_PROGS(WINDRES, windres)
+AC_CHECK_PROGS(WINDRES, $cross_winres windres, ":")
 AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_PROG_AWK
 AC_PATH_PROG(SED, sed, /bin/sed)
