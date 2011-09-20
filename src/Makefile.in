@@ -160,7 +160,7 @@ PROFILE_GOAL=run(0.5)
 
 all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
 
-noprof:	uxnt-lib plterm-lib foreign-lib rc-lib tai-lib $(MKLIBS) system headers plwin startup index
+noprof:	uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS) system headers plwin startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
@@ -244,9 +244,6 @@ uxnt-lib:
 plterm-lib:
 		@(cd win32/console && $(MAKE) COFLAGS="$(COFLAGS)")
 
-foreign-lib:
-		@(cd win32/foreign && $(MAKE) COFLAGS="$(COFLAGS)")
-
 plwin:		$(PLWIN)$(EXEEXT)
 
 pl-res.o:	pl.rc pl.ico xpce.ico
@@ -264,7 +261,6 @@ OSLIB=
 
 uxnt-lib:
 plterm-lib:
-foreign-lib:
 plwin:
 endif
 
@@ -412,7 +408,7 @@ ln-install::
 install:	@INSTALLTARGET@
 
 ifeq ($(MINGW),true)
-dv-install:	dv-install-common install-plterm install-foreign install-plwin install-readme
+dv-install:	dv-install-common install-plterm install-plwin install-readme
 else
 dv-install:	dv-install-common install-bins install-pkgconfig install-man
 endif
@@ -445,15 +441,7 @@ install-plterm:	idirs
 		fi
 		$(INSTALL_DATA) ../include/console.h $(DESTDIR)$(PLBASE)/include/plterm.h
 
-install-foreign:	idirs
-		if [ -f $(RUNTIMEDIR)/plregtry.$(SOEXT) ]; then \
-		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/plregtry.$(SOEXT) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
-		fi
-		if [ -f $(RUNTIMEDIR)/dlltest.$(SOEXT) ]; then \
-		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/dlltest.$(SOEXT) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
-		fi
-
-install-plwin:	idirs iruntime iplwinlib
+<install-plwin:	idirs iruntime iplwinlib
 		$(INSTALL_PROGRAM) $(PLWIN)$(EXEEXT) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
 
 install-demo:	idirs

@@ -1768,7 +1768,7 @@ OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
     i386-win32|x64-win64)
-        OutputFiles="$OutputFiles os/windows/Makefile win32/console/Makefile win32/foreign/Makefile"
+        OutputFiles="$OutputFiles os/windows/Makefile win32/console/Makefile"
 	;;
 esac
 
