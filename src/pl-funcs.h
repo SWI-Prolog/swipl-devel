@@ -668,10 +668,6 @@ COMMON(char *)		format_float(double f, char *buf);
 
 /* pl-term.c */
 COMMON(void)		resetTerm(void);
-COMMON(word)		pl_tty_get_capability(term_t name, term_t type, term_t value);
-COMMON(word)		pl_tty_goto(term_t x, term_t y);
-COMMON(word)		pl_tty_put(term_t a, term_t affcnt);
-COMMON(word)		pl_tty_size(term_t r, term_t c);
 
 /* pl-main.c */
 COMMON(int)		startProlog(int argc, char **argv);

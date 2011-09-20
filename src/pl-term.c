@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -206,11 +207,15 @@ out:
 }
 
 
-word
-pl_tty_get_capability(term_t name, term_t type, term_t value)
-{ GET_LD
+static
+PRED_IMPL("tty_get_capability", 3, tty_get_capability, 0)
+{ PRED_LD
   Entry e;
   atom_t n, t;
+
+  term_t name  = A1;
+  term_t type  = A2;
+  term_t value = A3;
 
   if ( !PL_get_atom_ex(name, &n) || !PL_get_atom_ex(type, &t) )
     fail;
@@ -231,15 +236,15 @@ tputc(int chr)
 }
 
 
-word
-pl_tty_goto(term_t x, term_t y)
-{ GET_LD
+static
+PRED_IMPL("tty_goto", 2, tty_goto, 0)
+{ PRED_LD
   Entry e;
   char *s;
   int ix, iy;
 
-  if ( !PL_get_integer_ex(x, &ix) ||
-       !PL_get_integer_ex(y, &iy) )
+  if ( !PL_get_integer_ex(A1, &ix) ||
+       !PL_get_integer_ex(A2, &iy) )
     fail;
 
   if ( (e = lookupEntry(ATOM_cm, ATOM_string)) == NULL ||
@@ -260,10 +265,13 @@ pl_tty_goto(term_t x, term_t y)
 }
 
 
-word
-pl_tty_put(term_t a, term_t affcnt)
+static
+PRED_IMPL("tty_put", 2, pl_tty_put, 0)
 { char *s;
   int n;
+
+  term_t a = A1;
+  term_t affcnt = A2;
 
   if ( PL_get_chars(a, &s, CVT_ALL|CVT_EXCEPTION) &&
        PL_get_integer_ex(affcnt, &n) )
@@ -275,10 +283,13 @@ pl_tty_put(term_t a, term_t affcnt)
 }
 
 
-word
-pl_tty_size(term_t r, term_t c)
-{ GET_LD
+static
+PRED_IMPL("tty_size", 2, tty_size, 0)
+{ PRED_LD
   int rows, cols;
+
+  term_t r = A1;
+  term_t c = A2;
 
 #ifdef __unix__
   int iorval;
@@ -336,11 +347,14 @@ getModuleFunction(const char *module, const char *name)
   return NULL;
 }
 
-word
-pl_tty_size(term_t r, term_t c)
-{ GET_LD
+static
+PRED_IMPL("tty_size", 2, tty_size, 0)
+{ PRED_LD
   int (*ScreenCols)(void *h) = getModuleFunction("plterm", "ScreenCols");
   int (*ScreenRows)(void *h) = getModuleFunction("plterm", "ScreenRows");
+
+  term_t r = A1;
+  term_t c = A2;
 
   if ( ScreenCols && ScreenRows )
   { void *(*get_console)(void) = getModuleFunction(NULL, "PL_current_console");
@@ -351,6 +365,8 @@ pl_tty_size(term_t r, term_t c)
     if ( PL_unify_integer(r, rows) &&
 	 PL_unify_integer(c, cols) )
       succeed;
+
+    fail;
   }
 
   return notImplemented("tty_size", 2);
@@ -364,31 +380,18 @@ void resetTerm()
 {
 }
 
-word
-pl_tty_get_capability(term_t name, term_t type, term_t value)
-{ return notImplemented("tty_get_capability", 3);
-}
-
-word
-pl_tty_goto(term_t x, term_t y)
-{ return notImplemented("tty_goto", 2);
-}
-
-word
-pl_tty_put(term_t a, term_t affcnt)
-{ return notImplemented("tty_put", 2);
-}
-
-word
-pl_set_tty(term_t old, term_t new)
-{ return notImplemented("set_tty", 2);
-}
-
-#ifndef HAVE_PL_TTY_SIZE
-word
-pl_tty_size(term_t r, term_t c)
-{ return notImplemented("tty_size", 2);
-}
-#endif
-
 #endif /* TGETENT */
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(term)
+#ifdef HAVE_TGETENT
+  PRED_DEF("tty_get_capability", 3, tty_get_capability,	0)
+  PRED_DEF("tty_goto",		 2, tty_goto,		0)
+  PRED_DEF("tty_put",		 2, pl_tty_put,		0)
+#endif
+  PRED_DEF("tty_size",		 2, tty_size,		0)
+EndPredDefs

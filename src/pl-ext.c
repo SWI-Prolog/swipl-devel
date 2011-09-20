@@ -197,10 +197,6 @@ static const PL_extension foreigns[] = {
   FRG("write_canonical",	2, pl_write_canonical2,	      ISO),
   FRG("format",			3, pl_format3,		     META),
 
-  FRG("tty_get_capability",	3, pl_tty_get_capability,	0),
-  FRG("tty_goto",		2, pl_tty_goto,			0),
-  FRG("tty_put",		2, pl_tty_put,			0),
-  FRG("tty_size",		2, pl_tty_size,			0),
   FRG("format_predicate",	2, pl_format_predicate,	     META),
   FRG("current_format_predicate", 2, pl_current_format_predicate,
 						        META|NDET),
@@ -395,6 +391,7 @@ DECL_PLIST(op);
 DECL_PLIST(rec);
 DECL_PLIST(termhash);
 DECL_PLIST(dde);
+DECL_PLIST(term);
 
 void
 initBuildIns(void)
@@ -433,6 +430,7 @@ initBuildIns(void)
   REG_PLIST(system);
   REG_PLIST(op);
   REG_PLIST(rec);
+  REG_PLIST(term);
   REG_PLIST(termhash);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
