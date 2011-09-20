@@ -66,6 +66,14 @@ CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    MAKE="$(MAKE)" \
 	    ./configure $(CNFG) $(CNFGPASSED) --prefix=$(prefix)
 
+define FORCE_MKINDEX
+	@echo "*** Forcing update of library index ***"
+	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
+	./swipl.sh -C "$(DESTDIR)$(PLLIB)" -f none -F none \
+			-g "make_library_index(.)" -t halt
+	./swipl.sh -C "$(DESTDIR)$(PLBASE)" --home=. -f none -g make -t halt
+endef
+
 all:	objects
 
 objects::
@@ -82,18 +90,13 @@ install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
-	@echo "*** Forcing update of library index ***"
-	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./swipl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
-	./swipl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
+	$(FORCE_MKINDEX)
 
 rpm-install: html-install
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
-	@echo "*** Forcing update of library index ***"
-	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./swipl.sh -f none -g "make_library_index('$(PLLIB)')" -t halt
+	$(FORCE_MKINDEX)
 
 pdf-install::
 	for p in $(PKG); do \
@@ -110,10 +113,7 @@ ln-install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
-	@echo "*** Forcing update of library index ***"
-	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./swipl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
-	./swipl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
+	$(FORCE_MKINDEX)
 
 configure::
 	@echo "**********************"

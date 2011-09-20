@@ -26,4 +26,12 @@ else
 fi
 export @DLLIBVAR@
 
+case "$1" in
+  -C) cd "$2"
+      shift
+      shift
+      ;;
+   *) ;;
+esac
+
 $bdir/$PL$EXEEXT "$@"
