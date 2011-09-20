@@ -431,7 +431,7 @@ install-libs:	idirs iboot ilib iruntime iinclude idot install-demo
 		echo . > $(DESTDIR)$(PLBASE)/swipl.home
 		echo .. > $(DESTDIR)$(PLBASE)/bin/swipl.home
 		$(DEVPL) -f none -F none \
-			-g make_library_index\(\'$(DESTDIR)$(PLBASE)/library\'\) \
+			-g 'make_library_index(swi(library))' \
 			-t halt
 
 install-plterm:	idirs
