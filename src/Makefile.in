@@ -246,7 +246,7 @@ plterm-lib:
 
 plwin:		$(PLWIN)$(EXEEXT)
 
-pl-res.o:	pl.rc pl.ico xpce.ico
+pl-res.o:	$(srcdir)/pl.rc $(srcdir)/pl.ico $(srcdir)/xpce.ico
 		$(WINDRES) -o $@ $<
 
 pl-ntmain.o:	pl-ntmain.c
