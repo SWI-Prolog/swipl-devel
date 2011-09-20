@@ -155,7 +155,7 @@ ls__([]) :- !,
 	fail.
 ls__(Files) :-
 	maplist(tag_file, Files, Tagged),
-	tty_size(_, Width),
+	catch(tty_size(_, Width), _, Width=80),
 	list_atoms(Tagged, Width).
 
 tag_file(File, Dir) :-
