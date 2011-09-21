@@ -98,7 +98,6 @@ rm -f conftest.unique
 
 AC_PROG_CC
 LDEXE="$CC"
-AC_PROG_RANLIB
 AC_CANONICAL_HOST
 changequote(,)dnl
 if test "x$PLARCH" = "x"; then
@@ -251,11 +250,10 @@ dnl ****************************************************************
 dnl Finding various programs
 dnl ****************************************************************
 
-cross_winres=$(echo $CC | sed 's/-gcc/-windres/')
-
-AC_CHECK_PROG(AR, ar, ar, ar)
+AC_CHECK_TOOLS(AR, ar, ar)
+AC_CHECK_TOOLS(RANLIB, ranlib, ranlib)
+AC_CHECK_TOOLS(WINDRES, windres, ":")
 AC_CHECK_PROG(CHRPATH, chrpath, chrpath, ":")
-AC_CHECK_PROGS(WINDRES, $cross_winres windres, ":")
 AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_PROG_AWK
 AC_PATH_PROG(SED, sed, /bin/sed)
