@@ -1128,8 +1128,8 @@ if test "x$ac_linux_cpuclocks" = "xyes"; then
 else
 
 AC_MSG_CHECKING(linux 2.6 /proc)
-if test -f /proc/$$/task/$$/stat -a \
-	`cat /proc/$$/task/$$/stat | wc -w` -gt 41; then
+if { test -f /proc/$$/task/$$/stat && \
+     test `cat /proc/$$/task/$$/stat | wc -w` -gt 41; }; then
    AC_MSG_RESULT(yes)
    AC_DEFINE(LINUX_PROCFS, 26,
 	     [Define if you have Linux 2.6 compatible /proc])
@@ -1153,7 +1153,8 @@ if test "x$ac_sc_nprocessors_conf" = "xyes"; then
 else
 
 AC_MSG_CHECKING(linux /proc/cpuinfo)
-if grep 'processor[	 ]*: 0' /proc/cpuinfo 2>&1 > /dev/null; then
+if { test -f /proc/cpuinfo && \
+     grep 'processor[	 ]*: 0' /proc/cpuinfo 2>&1 > /dev/null; }; then
    AC_MSG_RESULT(yes)
    AC_DEFINE(PROCFS_CPUINFO, 1,
 	     [Define if you have Linux compatible /proc/cpuinfo])
