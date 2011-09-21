@@ -17,6 +17,8 @@ AC_SUBST(LDSOFLAGS)			dnl pass -shared to swipl-ld
 AC_SUBST(SOLIB)
 AC_SUBST(TXTEXT)
 
+PKGDIR=${PKGDIR-..}
+
 if test -z "$PLINCL"; then
 plcandidates="swipl swi-prolog pl"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
@@ -39,8 +41,8 @@ AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 if test "$PLTHREADS" = "yes"; then MT=yes; fi
 else
-PL=../swipl.sh
-PLLD=../swipl-ld.sh
+PL=$PKGDIR/swipl.sh
+PLLD=$PKGDIR/swipl-ld.sh
 fi
 
 case "$PLARCH" in
