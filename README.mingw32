@@ -146,6 +146,7 @@ build_libxpm()
     sed -i -e 's/xpmi.h/XpmI.h/' src/simx.c
     make
     make install
+    cp src/simx.h $install/include/X11
   )
 }
 
