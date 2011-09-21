@@ -41,6 +41,7 @@ srcdir=@srcdir@
 @VPATH@ @srcdir@
 bindir=@bindir@
 libdir=@libdir@
+datarootdir=@datarootdir@
 mandir=@mandir@
 mansec=1
 lmansec=3

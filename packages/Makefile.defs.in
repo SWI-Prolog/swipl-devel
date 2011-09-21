@@ -13,6 +13,7 @@ exec_prefix=@exec_prefix@
 srcdir=@abs_srcdir@/$(PACKAGE)
 bindir=@bindir@
 libdir=@libdir@
+datarootdir=@datarootdir@
 mandir=@mandir@
 
 SHELL=@SHELL@
