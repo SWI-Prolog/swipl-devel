@@ -55,6 +55,11 @@ case "$PLARCH" in
 esac
 
 if test "$MT" = yes; then
+  case "$PLARCH" in
+    *freebsd|openbsd*)	AC_DEFINE(_THREAD_SAFE, 1,
+				  [Define for threaded code on FreeBSD])
+			;;
+  esac
   AC_DEFINE(_REENTRANT, 1,
             [Define for multi-thread support])
 fi
