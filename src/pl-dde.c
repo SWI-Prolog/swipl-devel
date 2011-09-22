@@ -459,14 +459,13 @@ PRED_IMPL("open_dde_conversation", 3, open_dde_conversation, 0)
     goto out;
   }
 
+  rc = PL_unify_integer(handle, i);
+
 out:
   if ( Hservice )
     DdeFreeStringHandle(ddeInst, Hservice);
   if ( Htopic )
     DdeFreeStringHandle(ddeInst, Htopic);
-
-  if ( rc )
-    rc = PL_unify_integer(handle, i);
 
   return rc;
 }
@@ -552,7 +551,7 @@ PRED_IMPL("dde_request", 4, dde_request, 0)
     { DEBUG(1, Sdprintf("valuelen = %ld; format = %d\n", valuelen, fmti));
       if ( fmt[fmti] == CF_TEXT )
       { DEBUG(1, Sdprintf("ANSI text\n"));
-	rval = PL_unify_string_chars(value, valuedata);
+	rval = PL_unify_string_chars(value, (char*)valuedata);
       } else
 	rval = PL_unify_wchars(value, PL_STRING, -1, (wchar_t*)valuedata);
       DdeUnaccessData(Hvalue);

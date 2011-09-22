@@ -544,11 +544,7 @@ static int
 win_shell(term_t op, term_t file, term_t how)
 { size_t lo, lf;
   wchar_t *o, *f;
-#if defined(__MINGW32__)
-  int h;
-#else
   UINT h;
-#endif
   HINSTANCE instance;
 
   if ( !PL_get_wchars(op,   &lo, &o, CVT_ALL|CVT_EXCEPTION|BUF_RING) ||

@@ -396,7 +396,7 @@ pl_rl_add_history(term_t text)
 { atom_t a;
   static atom_t last = 0;
 
-  if ( PL_get_atom(text, &a) )
+  if ( PL_get_atom_ex(text, &a) )
   { if ( a != last )
     { TCHAR *s;
 
@@ -405,9 +405,8 @@ pl_rl_add_history(term_t text)
       last = a;
       PL_register_atom(last);
 
-      PL_get_wchars(text, NULL, &s, CVT_ATOM);
-
-      rlc_add_history(PL_current_console(), s);
+      if ( PL_get_wchars(text, NULL, &s, CVT_ATOM) )
+	rlc_add_history(PL_current_console(), s);
     }
 
     return TRUE;
@@ -551,7 +550,7 @@ static int
 get_int_arg_ex(int a, term_t t, int *v)
 { term_t arg = PL_new_term_ref();
 
-  PL_get_arg(a, t, arg);
+  _PL_get_arg(a, t, arg);
   if ( PL_get_integer_ex(arg, v) )
     return TRUE;
 
@@ -563,7 +562,7 @@ static int
 get_bool_arg_ex(int a, term_t t, int *v)
 { term_t arg = PL_new_term_ref();
 
-  PL_get_arg(a, t, arg);
+  _PL_get_arg(a, t, arg);
   if ( PL_get_bool_ex(arg, v) )
     return TRUE;
 
@@ -601,7 +600,7 @@ pl_window_pos(term_t options)
     { term_t t = PL_new_term_ref();
       char *v;
 
-      PL_get_arg(1, opt, t);
+      _PL_get_arg(1, opt, t);
       if ( !PL_get_chars(t, &v, CVT_ATOM|CVT_EXCEPTION) )
 	return FALSE;
       if ( streq(v, "top") )
@@ -648,8 +647,8 @@ call_menu(const TCHAR *name)
   term_t a0 = PL_new_term_ref();
   size_t len = _tcslen(name);
 
-  PL_unify_wchars(a0, PL_ATOM, len, name);
-  PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
+  if ( PL_unify_wchars(a0, PL_ATOM, len, name) )
+    PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
 
   PL_discard_foreign_frame(fid);
 }
