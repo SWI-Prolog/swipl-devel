@@ -401,13 +401,11 @@ clean:		clean_packages
 		chdir libtai & $(MAKE) clean
 		chdir os\windows & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
-		chdir win32\foreign & $(MAKE) clean
 		-del *.manifest *.obj os\*.obj *~ pl.res vmi 2>nul
 
 distclean:	clean distclean_packages
 		@chdir rc & $(MAKE) distclean
 		@chdir libtai & $(MAKE) distclean
-		@chdir win32\foreign & $(MAKE) distclean
 		-del ..\bin\*.exe ..\bin\*.dll ..\bin\*.pdb 2>nul
 		-del ..\library\INDEX.pl 2>nul
 		-del swipl.home swiplbin 2>nul
