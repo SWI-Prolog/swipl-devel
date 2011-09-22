@@ -222,6 +222,7 @@ Section "Base system (required)"
   SectionIn RO			# do not allow to delete this
 
   Delete $INSTDIR\bin\*.pdb
+  RmDir /r pl\custom		# old location of pl\customize
 
   SetOutPath $INSTDIR\bin
   File pl\bin\swipl.exe
@@ -232,7 +233,7 @@ Section "Base system (required)"
   File pl\bin\${PTHREAD}.dll
 
   SetOutPath $INSTDIR
-  File /r pl\custom
+  File /r pl\customize
   File pl\${BOOT}
   File pl\COPYING.TXT
   File pl\README.TXT
@@ -694,6 +695,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\snowball.pdb
   File pl\bin\isub.pdb
   File pl\bin\protobufs.pdb
+  File pl\bin\plregtry.pdb
 SectionEnd
 
 Section "Sources for system predicates"
