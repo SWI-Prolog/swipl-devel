@@ -24,7 +24,7 @@
 
 #include <winsock2.h>
 #include <windows.h>
-#include "SWI-Stream.h"
+#include "os/SWI-Stream.h"
 #include "SWI-Prolog.h"
 #include <signal.h>
 
