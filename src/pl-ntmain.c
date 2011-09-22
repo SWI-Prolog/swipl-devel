@@ -26,6 +26,12 @@
 #define _UNICODE 1
 #define UNICODE 1
 
+#ifdef WIN64
+#include "config/win64.h"
+#else
+#include "config/win32.h"
+#endif
+
 #include <windows.h>
 #include <tchar.h>
 #include <malloc.h>

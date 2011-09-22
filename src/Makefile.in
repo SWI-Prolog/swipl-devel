@@ -259,7 +259,7 @@ pl-ntmain.o:	pl-ntmain.c
 
 $(PLWIN)$(EXEEXT):	pl-res.o pl-ntmain.o
 		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) -o $@ $^ \
-			-L../lib/$(PLARCH) -lswipl -lplterm $(LNLIBS) $(XLIBS) $(OSLIB)
+			-L../lib/$(PLARCH) -lswipl -lplterm $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
 
 else
 OSLIB=
