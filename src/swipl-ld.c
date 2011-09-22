@@ -63,8 +63,7 @@ embedded application.
 
 #include "pl-incl.h"
 
-#if defined(__WINDOWS__)
-
+#ifdef __WINDOWS__
 #include <process.h>
 #include <io.h>
 
@@ -85,25 +84,19 @@ embedded application.
 #define O_BINARY _O_BINARY
 #endif
 
-#ifndef PROG_PL
-#define PROG_PL "swipl.exe"
-#endif
+#endif /*__WINDOWS__*/
 
-#if defined(HOST_TOOLCHAIN_MSC)
-#define PROG_OUT "plout.exe"
+#if defined(__WINDOWS__) || defined(HOST_OS_WINDOWS)
+#define DEF_PROG_PL "swipl.exe"
+#define PROG_OUT "a.exe"
 #else
+#define DEF_PROG_PL "swipl"
 #define PROG_OUT "a.out"
 #endif
-
-#else /* !defined(__WINDOWS__) */
 
 #ifndef PROG_PL
-#define PROG_PL "swipl"
+#define PROG_PL DEF_PROG_PL
 #endif
-
-#define PROG_OUT "a.out"
-
-#endif /* !defined(__WINDOWS__) */
 
 
 #if defined(HOST_TOOLCHAIN_MSC)
