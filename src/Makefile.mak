@@ -74,8 +74,7 @@ remake-all: distclean all install
 
 lite:	banner \
 	headers	swipl.home subdirs vmi \
-	$(PLCON) startup index $(PLWIN) $(PLLD) \
-	dlldemos
+	$(PLCON) startup index $(PLWIN) $(PLLD)
 
 plcon:	$(PLCON)
 plwin:	$(PLWIN)
@@ -194,8 +193,6 @@ embed-manifests::
 install-arch:	idirs iprog
 		$(INSTALL_PROGRAM) $(PLLD)  "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(PLRC)  "$(BINDIR)"
-		$(INSTALL_PROGRAM) ..\bin\plregtry.dll  "$(BINDIR)"
-		$(INSTALL_PROGRAM) ..\bin\dlltest.dll  "$(BINDIR)"
 		$(INSTALL_DATA) $(PLLIB) "$(LIBDIR)"
 		$(INSTALL_DATA) $(TERMLIB) "$(LIBDIR)"
 
@@ -325,12 +322,6 @@ installer::
 		$(INSTALL_DATA) win32\installer\mkinstaller.pl "$(PLBASE)\.."
 		"$(NSIS)" $(NSISDEFS) "$(PLBASE)\..\pl.nsi"
 
-################################################################
-# DLL DEMOS
-################################################################
-
-dlldemos::
-		chdir win32\foreign & $(MAKE)
 
 ################################################################
 # Build and install packages
