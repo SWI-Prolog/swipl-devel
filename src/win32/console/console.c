@@ -216,10 +216,8 @@ static int	rlc_between(RlcData b, int f, int t, int v);
 static void	free_user_data(RlcData b);
 
 static RlcQueue	rlc_make_queue(int size);
-static void	rlc_free_queue(RlcQueue q);
 static int	rlc_from_queue(RlcQueue q);
 static int	rlc_is_empty_queue(RlcQueue q);
-static void	rlc_empty_queue(RlcQueue q);
 
 extern int	main();
 
@@ -389,7 +387,7 @@ rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
 { TCHAR *	    argv[100];
   int		    argc;
   TCHAR		    program[MAXPATHLEN];
-  TCHAR	 	    progbase[100];
+  TCHAR		    progbase[100];
   RlcData           b;
   rlc_console_attr  attr;
 
@@ -734,7 +732,7 @@ static HKEY
 rlc_option_key(rlc_console_attr *attr, int create)
 { TCHAR Prog[256];
   TCHAR *address[] = { _T("Software"),
-  		      RLC_VENDOR,
+		      RLC_VENDOR,
 		      Prog,
 		      _T("Console"),
 		      (TCHAR *)attr->key,	/* possible secondary key */
@@ -985,7 +983,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
       if ( placement.showCmd == SW_SHOWNORMAL )
       { b->win_x = placement.rcNormalPosition.left;
-  	b->win_y = placement.rcNormalPosition.top;
+	b->win_y = placement.rcNormalPosition.top;
 
 	b->modified_options |= OPT_POSITION;
       }
@@ -1565,19 +1563,6 @@ rlc_start_selection(RlcData b, int x, int y)
 }
 
 
-static void
-rlc_end_selection(RlcData b, int x, int y)
-{ int l, c;
-
-  rlc_translate_mouse(b, x, y, &l, &c);
-  if ( SelLT(l, c, b->sel_org_line, b->sel_org_char) )
-    rlc_set_selection(b, l, c, b->sel_org_line, b->sel_org_char);
-  else if ( SelLT(b->sel_org_line, b->sel_org_char, l, c) )
-    rlc_set_selection(b, b->sel_org_line, b->sel_org_char, l, c);
-  rlc_set_selection(b, l, c, l, c);
-}
-
-
 static int				/* v >= f && v <= t */
 rlc_between(RlcData b, int f, int t, int v)
 { int h = rlc_count_lines(b, b->first, v);
@@ -2137,7 +2122,7 @@ rlc_queryfont(RlcData b)
   cf.hwndOwner   = b->window;
   cf.lpLogFont   = &lf;
   cf.Flags       = CF_SCREENFONTS|
-    		   CF_NOVERTFONTS|
+		   CF_NOVERTFONTS|
 		   CF_NOSIMULATIONS|
 		   CF_FORCEFONTEXIST|
 		   CF_INITTOLOGFONTSTRUCT;
@@ -2175,8 +2160,8 @@ rlc_make_buffer(int w, int h)
   b->changed	    = CHG_CARET|CHG_CHANGED|CHG_CLEAR;
   b->imode	    = IMODE_COOKED;	/* switch on first rlc_read() call */
   b->imodeswitch    = FALSE;
-  b->lhead 	    = NULL;
-  b->ltail 	    = NULL;
+  b->lhead	    = NULL;
+  b->ltail	    = NULL;
 
   memset(b->lines, 0, sizeof(text_line) * h);
   for(i=0; i<h; i++)
@@ -2346,7 +2331,7 @@ rlc_adjust_line(RlcData b, int line)
 
   if ( tl->text && !tl->adjusted )
   { tl->text = rlc_realloc(tl->text, tl->size == 0
-			   	? sizeof(TCHAR)
+				? sizeof(TCHAR)
 				: tl->size * sizeof(TCHAR));
     tl->adjusted = TRUE;
   }
@@ -2893,7 +2878,7 @@ window_loop(LPVOID arg)
   if ( b->closing <= 2 )
   { MSG msg;
     TCHAR *waiting = _T("\r\nWaiting for Prolog. ")
-      		     _T("Close again to force termination ..");
+		     _T("Close again to force termination ..");
 
     rlc_write(b, waiting, _tcslen(waiting));
 
@@ -3048,16 +3033,6 @@ rlc_make_queue(int size)
 }
 
 
-void
-rlc_free_queue(RlcQueue q)
-{ if ( q )
-  { if ( q->buffer )
-      rlc_free(q->buffer);
-    rlc_free(q);
-  }
-}
-
-
 static int
 rlc_resize_queue(RlcQueue q, int size)
 { TCHAR *newbuf;
@@ -3111,12 +3086,6 @@ rlc_is_empty_queue(RlcQueue q)
     return TRUE;
 
   return FALSE;
-}
-
-
-void
-rlc_empty_queue(RlcQueue q)
-{ q->first = q->last = 0;
 }
 
 
@@ -3369,8 +3338,6 @@ rlc_clearprompt(rlc_console c)
 		 /*******************************
 		 *	    MISC STUFF		*
 		 *******************************/
-
-static TCHAR current_title[RLC_TITLE_MAX];
 
 void
 rlc_title(rlc_console c, TCHAR *title, TCHAR *old, int size)
