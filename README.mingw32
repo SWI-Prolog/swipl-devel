@@ -123,30 +123,19 @@ build_jpeg()
 # Download and install libXpm
 
 download_libxpm()
-{ [ -f libXpm-3.5.9.tar.bz2 ] || wget http://xorg.freedesktop.org/releases/individual/lib/libXpm-3.5.9.tar.bz2
-  tar xjf libXpm-3.5.9.tar.bz2
+{ if [ -d libXpm ]; then
+     (cd $libXpm && git pull)
+  else
+     git clone git://www.swi-prolog.org/home/pl/git/misc/libXpm.git
+  fi
 }
 
 build_libxpm()
-{ ( cd libXpm-3.5.9
-    export XPM_CFLAGS="-DFOR_MSW"
-    export XPM_LIBS="-lgdi32"
-    ./configure --host=i586-mingw32msvc --prefix=$install --enable-shared
-    sed -i -e 's/sxpm cxpm//' Makefile
-    sed -i -e 's/CrBufFrP.lo//' \
-           -e 's/CrDatFrP.lo//' \
-           -e 's/CrIFrP.lo//' \
-           -e 's/CrPFrBuf.lo//' \
-           -e 's/CrPFrDat.lo//' \
-           -e 's/CrPFrI.lo//' \
-           -e 's/RdFToP.lo//' \
-           -e 's/WrFFrP.lo//' \
-           -e 's/scan.lo/scan.lo simx.lo/' src/Makefile
-    sed -i -e 's/#include "XpmI.h"/#include "XpmI.h"\n#include "fcntl.h"/' src/WrFFrI.c
-    sed -i -e 's/xpmi.h/XpmI.h/' src/simx.c
-    make
-    make install
-    cp src/simx.h $install/include/X11
+{ ( cd libXpm/lib
+    autoconf
+    ./configure --host=i586-mingw32msvc --prefix=$install
+    make -f Makefile.mingw
+    make -f Makefile.mingw install
   )
 }
 
