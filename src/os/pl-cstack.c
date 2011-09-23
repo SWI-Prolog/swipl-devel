@@ -250,22 +250,17 @@ save_backtrace(const char *why)
 
 static void
 print_trace(btrace *bt, int me)
-{ btrace_stack *s = &bt->dumps[me];
+{ size_t i;
 
-  if ( s->name )
-  { int depth;
+  if ( bt->why[me] )
+  { Sdprintf("Stack trace labeled \"%s\":\n", bt->why[me]);
 
-    Sdprintf("Stack trace labeled \"%s\":\n", s->name);
-    for(depth=0; depth<s->depth; depth++)
-    { Sdprintf("  [%d] %s+%p\n", depth,
-	       s->frame[depth].name,
-	       (void*)s->frame[depth].offset);
-    }
+    for(i=0; i<bt->sizes[me]; i++)
+      Sdprintf("  [%d] %s\n", i, bt->symbols[me][i]);
   } else
   { Sdprintf("No stack trace\n");
   }
 }
-
 
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
