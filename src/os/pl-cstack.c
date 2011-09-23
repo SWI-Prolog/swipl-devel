@@ -22,6 +22,10 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef _WIN64
+#define _WIN32_WINNT 0x0501            /* get RtlCaptureContext() */
+#endif
+
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 
@@ -115,7 +119,7 @@ static void
 print_trace(btrace *bt, int me)
 { btrace_stack *s = &bt->dumps[me];
 
-  if ( s->name )
+  if ( s && s->name )
   { int depth;
 
     Sdprintf("Stack trace labeled \"%s\":\n", s->name);
@@ -246,13 +250,17 @@ save_backtrace(const char *why)
 
 static void
 print_trace(btrace *bt, int me)
-{ size_t i;
+{ btrace_stack *s = &bt->dumps[me];
 
-  if ( bt->why[me] )
-  { Sdprintf("Stack trace labeled \"%s\":\n", bt->why[me]);
+  if ( s->name )
+  { int depth;
 
-    for(i=0; i<bt->sizes[me]; i++)
-      Sdprintf("  [%d] %s\n", i, bt->symbols[me][i]);
+    Sdprintf("Stack trace labeled \"%s\":\n", s->name);
+    for(depth=0; depth<s->depth; depth++)
+    { Sdprintf("  [%d] %s+%p\n", depth,
+	       s->frame[depth].name,
+	       (void*)s->frame[depth].offset);
+    }
   } else
   { Sdprintf("No stack trace\n");
   }
@@ -337,8 +345,288 @@ initBackTrace(void)
 
 
 		 /*******************************
+		 *   WINDOWS IMPLEMENTATION	    *
+		 *******************************/
+
+
+#if !defined(BTRACE_DONE) && defined(__WINDOWS__)
+#include <windows.h>
+#include <dbghelp.h>
+#define MAX_SYMBOL_LEN 1024
+#define MAX_DEPTH 10
+#define BTRACE_DONE 1
+
+#define MAX_FUNCTION_NAME_LENGTH 32
+/* Note that the module name may include the full path in some versions
+   of dbghelp. For me, 32 was not enough to see the module name in some
+   cases.
+*/
+#define MAX_MODULE_NAME_LENGTH 64
+
+typedef struct
+{ char name[MAX_FUNCTION_NAME_LENGTH];	/* function called */
+  DWORD64 offset;			/* offset in function */
+  char module[MAX_MODULE_NAME_LENGTH];	/* module of function */
+  DWORD module_reason;                  /* reason for module being absent */
+} frame_info;
+
+typedef struct
+{ const char *name;			/* label of the backtrace */
+  int depth;				/* # frames collectec */
+  frame_info frame[MAX_DEPTH];		/* per-frame info */
+} btrace_stack;
+
+typedef struct btrace
+{ btrace_stack dumps[SAVE_TRACES];	/* ring of buffers */
+  int current;				/* next to fill */
+} btrace;
+
+void
+btrace_destroy(struct btrace *bt)
+{ free(bt);
+}
+
+
+static btrace *
+get_trace_store(void)
+{ GET_LD
+
+  if ( !LD->btrace_store )
+  { btrace *s = malloc(sizeof(*s));
+    if ( s )
+    { memset(s, 0, sizeof(*s));
+      LD->btrace_store = s;
+    }
+  }
+
+  return LD->btrace_store;
+}
+
+int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
+{ STACKFRAME64 frame;
+  CONTEXT context;
+  int rc = 0;
+  HANDLE hThread = GetCurrentThread();
+  HANDLE hProcess = GetCurrentProcess();
+  char symbolScratch[sizeof(SYMBOL_INFO) + MAX_SYMBOL_LEN];
+  SYMBOL_INFO* symbol = (SYMBOL_INFO*)&symbolScratch;
+  IMAGEHLP_MODULE64 moduleInfo;
+  EXCEPTION_POINTERS *pExp = NULL;
+  DWORD64 offset;
+  DWORD imageType;
+  int skip = 0;
+  int depth = 0;
+
+  if (pExceptionInfo == NULL)
+  { memset(&context, 0, sizeof(CONTEXT));
+    // If we dont have the context, then we can get the current one from the CPU
+    // However, we should skip the first N frames, since these relate to the
+    // exception handler itself
+    // Obviously N is a magic number - it might differ if this code is modified!
+#if _WIN32_WINNT > 0x0500
+    // Good, just use RtlCaptureContext
+    skip = 2;
+    RtlCaptureContext(&context);
+#else
+    // For earlier than WinXPsp1 we have to do some weird stuff
+    // For win32, we can use inline assembly to get eip, esp and ebp but
+    // the MSVC2005 compiler refuses to emit inline assembly for AMD64
+    // Luckily, the oldest AMD64 build of Windows is XP, so we should be able to
+    // use RtlCaptureContext!
+#ifdef WIN64
+#error You appear to have a 64 bit build of a pre-XP version of Windows?!
+#else
+    skip = 2;
+    __asm
+    { call steal_eip
+      steal_eip:
+      pop eax
+      mov context.Eip, eax
+      mov eax, ebp
+      mov context.Ebp, eax
+      mov eax, esp
+      mov context.Esp, eax
+    }
+#endif
+
+#endif
+  } else
+  { context = *(pExceptionInfo->ContextRecord);
+  }
+
+  ZeroMemory(&frame, sizeof( STACKFRAME64));
+  memset(&moduleInfo,0,sizeof(IMAGEHLP_MODULE64));
+  moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
+  rc = SymInitialize(hProcess, NULL, TRUE);
+  if (rc == 0)
+    return 0;
+
+#ifdef _WIN64
+   imageType = IMAGE_FILE_MACHINE_AMD64;
+   frame.AddrPC.Offset = context.Rip;
+   frame.AddrFrame.Offset = context.Rsp;
+   frame.AddrStack.Offset = context.Rsp;
+#else
+   imageType = IMAGE_FILE_MACHINE_I386;
+   frame.AddrPC.Offset = context.Eip;
+   frame.AddrFrame.Offset = context.Ebp;
+   frame.AddrStack.Offset = context.Esp;
+#endif
+   frame.AddrPC.Mode = AddrModeFlat;
+   frame.AddrFrame.Mode = AddrModeFlat;
+   frame.AddrStack.Mode = AddrModeFlat;
+
+   while(depth < MAX_DEPTH &&
+	 (rc =  StackWalk64(imageType,
+			    hProcess,
+			    hThread,
+			    &frame,
+			    &context,
+			    NULL,
+			    SymFunctionTableAccess64,
+			    SymGetModuleBase64,
+			    NULL)) != 0)
+   { int hasModule = 0;
+     BOOL hasSymbol = FALSE;
+
+     if (skip > 0)
+     { skip--;
+       continue;
+     }
+
+     memset(symbol, 0, sizeof(SYMBOL_INFO) + MAX_SYMBOL_LEN);
+     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+     symbol->MaxNameLen = MAX_SYMBOL_LEN;
+     trace->frame[depth].offset = frame.AddrPC.Offset;
+     hasModule = SymGetModuleInfo64(hProcess, frame.AddrPC.Offset, &moduleInfo);
+
+     if (hasModule == 0)
+     {
+       // Note that this CAN be caused by a very out of date dbghelp.dll,
+       // like the one that ships with Windows XP
+       // Dropping version 6.x into the bin directory can magically
+       // make this work. At least we will have the offset
+       trace->frame[depth].name[0] = '\0';
+       trace->frame[depth].module[0] = '\0';
+       trace->frame[depth].module_reason = GetLastError();
+     } else
+     { hasSymbol = SymFromAddr(hProcess, frame.AddrPC.Offset, &offset, symbol);
+       strncpy(trace->frame[depth].module,
+	       moduleInfo.ImageName,
+	       MAX_MODULE_NAME_LENGTH);
+       trace->frame[depth].module[MAX_MODULE_NAME_LENGTH-1] = '\0';
+       trace->frame[depth].module_reason = 0;
+       if (hasSymbol)
+       { strncpy(trace->frame[depth].name,
+		 symbol->Name,
+		 MAX_FUNCTION_NAME_LENGTH);
+         trace->frame[depth].name[MAX_FUNCTION_NAME_LENGTH-1] = '\0';
+       } else
+       { trace->frame[depth].name[0] = '\0';
+       }
+     }
+     depth++;
+   }
+   return depth;
+}
+
+void
+win_save_backtrace(const char *why, PEXCEPTION_POINTERS pExceptionInfo)
+{ btrace *bt = get_trace_store();
+  if ( bt )
+  { btrace_stack *s = &bt->dumps[bt->current];
+    s->depth = backtrace(s, pExceptionInfo);
+    s->name = why;
+    if ( ++bt->current == SAVE_TRACES )
+      bt->current = 0;
+  }
+}
+
+
+void save_backtrace(const char *why)
+{ win_save_backtrace(why, NULL);
+}
+
+
+static void
+print_trace(btrace *bt, int me)
+{ btrace_stack *s = &bt->dumps[me];
+  if ( s->name )
+  { int depth;
+
+    Sdprintf("Stack trace labeled \"%s\":\n", s->name);
+    for(depth=0; depth<s->depth; depth++)
+    { Sdprintf("  [%d] <%s>:%s+%p\n", depth,
+               (s->frame[depth].module[0] == 0) ? "unknown module"
+						: s->frame[depth].module,
+	       s->frame[depth].name,
+	       (void*)s->frame[depth].offset);
+    }
+  } else
+  { Sdprintf("No stack trace\n");
+  }
+}
+
+
+
+void
+print_backtrace(int last)		/* 1..SAVE_TRACES */
+{ btrace *bt = get_trace_store();
+
+  if ( bt )
+  { int me = bt->current-last;
+    if ( me < 0 )
+      me += SAVE_TRACES;
+
+    print_trace(bt, me);
+  } else
+  { Sdprintf("No backtrace store?\n");
+  }
+}
+
+
+void
+print_backtrace_named(const char *why)
+{ btrace *bt = get_trace_store();
+
+  if ( bt )
+  { int me = bt->current-1;
+
+    for(;;)
+    { if ( bt->dumps[me].name && strcmp(bt->dumps[me].name, why) == 0 )
+      { print_trace(bt, me);
+	return;
+      }
+      if ( --me < 0 )
+	me += SAVE_TRACES;
+      if ( me == bt->current-1 )
+	break;
+    }
+  }
+
+  Sdprintf("No backtrace named %s\n", why);
+}
+
+static LONG WINAPI crashHandler(PEXCEPTION_POINTERS pExceptionInfo)
+{ win_save_backtrace("crash", pExceptionInfo);
+  print_backtrace_named("crash");
+  abort();
+
+  return EXCEPTION_CONTINUE_SEARCH; /* ? */
+}
+
+void
+initBackTrace(void)
+{ SetUnhandledExceptionFilter(crashHandler);
+}
+
+#endif /*__WINDOWS__*/
+
+
+	         /*******************************
 		 *   FALLBACK IMPLEMENTATION	*
 		 *******************************/
+
 
 #ifndef BTRACE_DONE
 
