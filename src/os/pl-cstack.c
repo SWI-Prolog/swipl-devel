@@ -344,7 +344,7 @@ initBackTrace(void)
 		 *******************************/
 
 
-#if !defined(BTRACE_DONE) && defined(__WINDOWS__)
+#if !defined(BTRACE_DONE) && defined(__WINDOWS__) && DEFINED(HAVE_DBGHELP_H)
 #include <windows.h>
 #include <dbghelp.h>
 #define MAX_SYMBOL_LEN 1024

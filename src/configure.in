@@ -995,6 +995,7 @@ case "$PLARCH" in
           )
         done
       fi
+      AC_CHECK_HEADERS(dbghelp.h)
       ;;
 esac
 

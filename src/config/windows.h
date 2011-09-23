@@ -39,6 +39,10 @@ typedef int mode_t;
 #endif
 #define HAVE_SIGSET_T 1			/* For the future */
 
+#ifndef __MINGW32__
+#define HAVE_DBGHELP_H 1
+#endif
+
 #define NOTTYCONTROL		TRUE	/* default -tty */
 #define O_GMP			1
 #define O_PLMT			1
