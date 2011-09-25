@@ -919,9 +919,9 @@ preprocessor(Old, New) :-
 '$open_source'(stream(Id, In), In, Goal, Options) :- !,
 	'$push_input_context',
 	'$set_encoding'(In, Options),
-	set_stream(In, file_name(Id)),
-	set_stream(In, record_position(true)),
+	'$prepare_load_stream'(In, Id, StreamState),
 	'$open_source_call'(Id, In, Goal, True),
+	'$restore_load_stream'(In, StreamState),
 	'$pop_input_context',
 	True == yes.
 '$open_source'(File, In, Goal, Options) :-
@@ -944,6 +944,33 @@ preprocessor(Old, New) :-
 	    '$pop_input_context',
 	    True == yes
 	;   throw(error(domain_error(preprocessor, Pre), _))
+	).
+
+'$prepare_load_stream'(In, Id, state(HasName,HasPos)) :-
+	(   stream_property(In, file_name(_))
+	->  HasName = true,
+	    (	stream_property(In, position(_))
+	    ->	HasPos = true
+	    ;	HasPos = false,
+		set_stream(In, record_position(true))
+	    )
+	;   HasName = false,
+	    set_stream(In, file_name(Id)),
+	    (	stream_property(In, position(_))
+	    ->	HasPos = true
+	    ;	HasPos = false,
+		set_stream(In, record_position(true))
+	    )
+	).
+
+'$restore_load_stream'(In, state(HasName, HasPos)) :-
+	(   HasName == false
+	->  set_stream(In, file_name(''))
+	;   true
+	),
+	(   HasPos == false
+	->  set_stream(In, record_position(false))
+	;   true
 	).
 
 
