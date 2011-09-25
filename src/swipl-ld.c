@@ -258,8 +258,9 @@ static int  opt_E=FALSE;		/* -E given */
 
 static int build_defaults = FALSE;	/* don't ask Prolog for parameters*/
 
-static int nostate = FALSE;		/* do not make a state */
+static int nostate = TRUE;		/* do not make a state */
 static int nolink = FALSE;		/* do not link */
+static int nolibswipl = FALSE;		/* do not link with -lswipl */
 static int shared = FALSE;		/* -shared: make a shared-object/DLL */
 static char *soext;			/* extension of shared object */
 static int embed_shared = FALSE;	/* -dll/-embed-shared: embed Prolog */
@@ -615,7 +616,9 @@ dispatchFile(const char *name)
 
     for( ; d->extension; d++ )
     { if ( strfeq(d->extension, ext) )
-      { appendArgList(d->list, name);
+      { if ( d->list == &plfiles )
+	  nostate = FALSE;
+	appendArgList(d->list, name);
 	return TRUE;
       }
     }
@@ -661,6 +664,8 @@ usage()
 	  "       -E               only run preprocessor, do not link\n"
           "       -build-defaults  use default parameters, don't ask Prolog\n"
 	  "       -nostate         just relink the kernel\n"
+	  "       -state           add a Prolog saved state\n"
+	  "       -nolibswipl      do not link with -lswipl\n"
 	  "       -shared          create target for load_foreign_library/2\n"
 	  "       -embed-shared    embed Prolog in a shared object/DLL\n"
 #if defined(HOST_OS_WINDOWS)
@@ -762,6 +767,10 @@ parseOptions(int argc, char **argv)
     { build_defaults = TRUE;
     } else if ( streq(opt, "-nostate") )	/* -nostate */
     { nostate = TRUE;
+    } else if ( streq(opt, "-state") )		/* -state */
+    { nostate = FALSE;
+    } else if ( streq(opt, "-nolibswipl") )	/* -nolibswipl */
+    { nolibswipl = TRUE;
     } else if ( streq(opt, "-dll") ||		/* -dll */
 		streq(opt, "-embed-shared") )   /* -embed-shared */
     { embed_shared = TRUE;
@@ -1258,7 +1267,8 @@ linkBaseExecutable()
 }
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   exportlibdirs();
-  appendArgList(&ldoptions, pllib);		/* -lpl */
+  if ( !nolibswipl )
+    appendArgList(&ldoptions, pllib);		/* -lswipl */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /* !defined(HOST_TOOLCHAIN_MSC) */
@@ -1266,7 +1276,8 @@ linkBaseExecutable()
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
-  appendArgList(&ldoptions, pllib);		/* -lpl */
+  if ( !nolibswipl )
+    appendArgList(&ldoptions, pllib);		/* -lswipl */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #endif /* !defined(HOST_TOOLCHAIN_MSC) */
@@ -1308,7 +1319,8 @@ linkSharedObject()
 }
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   exportlibdirs();
-  appendArgList(&ldoptions, pllib);		/* libpl.lib */
+  if ( !nolibswipl )
+    appendArgList(&ldoptions, pllib);		/* swipl.lib */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /* !defined(HOST_TOOLCHAIN_MSC) */
@@ -1317,7 +1329,8 @@ linkSharedObject()
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
-  appendArgList(&ldoptions, pllib);		/* -lpl */
+  if ( !nolibswipl )
+    appendArgList(&ldoptions, pllib);		/* -lswipl */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
@@ -1335,10 +1348,8 @@ linkSharedObject()
 #endif /*SO_FORMAT_LDFLAGS*/
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
-#if !defined(HOST_OS_WINDOWS) && !defined(O_SHARED_KERNEL)
-  if ( embed_shared )
-#endif
-  { appendArgList(&ldoptions, pllib);		/* -lpl */
+  if ( embed_shared && !nolibswipl )
+  { appendArgList(&ldoptions, pllib);		/* -lswipl */
   }
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
