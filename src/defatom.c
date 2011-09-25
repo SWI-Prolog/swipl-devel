@@ -61,6 +61,9 @@ main(int argc, char **argv)
   fic = fopen("pl-funct.ic", "w");
   fih = fopen("pl-funct.ih", "w");
 
+  fprintf(aih, "#define ATOM_ MK_ATOM(%d)\n", atom++);
+  fprintf(aic, "ATOM(\"\"),\n");
+
   in = fopen("ATOMS", "r");
   while(fgets(buf, sizeof(buf), in))
   { line++;

@@ -304,7 +304,7 @@ setFileNameStream(IOSTREAM *s, atom_t name)
   { PL_unregister_atom(ctx->filename);
     ctx->filename = NULL_ATOM;
   }
-  if ( name != NULL_ATOM )
+  if ( !(name == NULL_ATOM || name == ATOM_) )
     ctx->filename = name;
 }
 
