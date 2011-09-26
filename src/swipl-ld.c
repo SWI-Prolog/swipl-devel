@@ -233,6 +233,7 @@ static arglist libdirs;			/* -L library directories */
 static arglist includedirs;		/* -I include directories */
 
 static char *pllib;			/* -lswipl, swipl.lib, ... */
+static char *pllibs = "";		/* Requirements to link to pllib */
 
 static char *pl;			/* Prolog executable */
 static char *cc;			/* CC executable */
@@ -1046,12 +1047,8 @@ getPrologOptions()
 	  defaultPath(&plbase, v);
 	else if ( streq(name, "PLARCH") )
 	  defaultPath(&plarch, v);
-#ifdef __CYGWIN__
 	else if ( streq(name, "PLLIBS") )	/* Always required. */
-#else
-	else if ( streq(name, "PLLIBS") && !shared )
-#endif
-	  addOptionString(v);
+	  pllibs = strdup(v);
 	else if ( streq(name, "PLLIB") )
 	  defaultProgram(&pllib, v);
 	else if ( streq(name, "PLLDFLAGS") )
@@ -1268,7 +1265,9 @@ linkBaseExecutable()
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   exportlibdirs();
   if ( !nolibswipl )
-    appendArgList(&ldoptions, pllib);		/* -lswipl */
+  { appendArgList(&ldoptions, pllib);		/* -lswipl */
+    addOptionString(pllibs);
+  }
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /* !defined(HOST_TOOLCHAIN_MSC) */
@@ -1277,7 +1276,9 @@ linkBaseExecutable()
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   if ( !nolibswipl )
-    appendArgList(&ldoptions, pllib);		/* -lswipl */
+  { appendArgList(&ldoptions, pllib);		/* -lswipl */
+    addOptionString(pllibs);
+  }
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #endif /* !defined(HOST_TOOLCHAIN_MSC) */
@@ -1320,7 +1321,9 @@ linkSharedObject()
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   exportlibdirs();
   if ( !nolibswipl )
-    appendArgList(&ldoptions, pllib);		/* swipl.lib */
+  { appendArgList(&ldoptions, pllib);		/* swipl.lib */
+    addOptionString(pllibs);
+  }
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /* !defined(HOST_TOOLCHAIN_MSC) */
@@ -1330,7 +1333,9 @@ linkSharedObject()
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   if ( !nolibswipl )
-    appendArgList(&ldoptions, pllib);		/* -lswipl */
+  { appendArgList(&ldoptions, pllib);		/* -lswipl */
+    addOptionString(pllibs);
+  }
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
@@ -1638,10 +1643,7 @@ main(int argc, char **argv)
 #endif
     defaultPath(&plarch, PLARCH);
     defaultProgram(&pllib, C_PLLIB);
-#ifdef __CYGWIN__
-    if ( !shared )
-#endif
-      addOptionString(C_LIBS);
+    addOptionString(C_LIBS);
     appendArgList(&ldoptions, C_LDFLAGS);
     appendArgList(&coptions, C_CFLAGS);
     appendArgList(&cppoptions, C_CFLAGS);

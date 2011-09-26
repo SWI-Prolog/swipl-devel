@@ -1740,19 +1740,16 @@ AC_TRY_COMPILE(
 
 
 dnl ================================================================
+dnl LNLIBS is the set of libraries you need for linking with the SWI-Prolog
+dnl kernel.  If this kernel is a shared object, this is typically empty.
+dnl If the kernel is a static library it is the set of libraries needed
+dnl by the static library.
 
 if test "$MKSHARED" = yes; then
   MKLIBS="$MKLIBS sharedlib"
   CMFLAGS="$CMFLAGS $SO_PIC"
   LDFLAGS="$LDFLAGS $SO_PATH"
-  case "$PLARCH" in
-    *cygwin*)
-	LNLIBS="$LIBS"
-	;;
-    *)
-	LNLIBS="$USEPLLIB"
-	;;
-  esac
+  LNLIBS=""
   AC_DEFINE(O_SHARED_KERNEL, 1,
 	    "Define if Prolog kernel is in shared object")
 else

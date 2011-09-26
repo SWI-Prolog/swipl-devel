@@ -198,8 +198,8 @@ banner::
 # be overruled using LD_LIBRARY_PATH, which is what we need to be able
 # to run our local copy of SWI-Prolog.
 
-$(PL)$(EXEEXT):		$(MKLIBS) $(PLOBJ)
-		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) -lswipl $(LNLIBS) $(OSLIB)
+$(PL)$(EXEEXT):	$(MKLIBS) $(PLOBJ)
+		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB)
 		$(CHRPATH) -c $@ || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)
@@ -259,7 +259,7 @@ pl-ntmain.o:	pl-ntmain.c
 
 $(PLWIN)$(EXEEXT):	pl-res.o pl-ntmain.o
 		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) -o $@ $^ \
-			-L../lib/$(PLARCH) -lswipl -lplterm $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
+			-L../lib/$(PLARCH) -lplterm $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
 
 else
 OSLIB=
