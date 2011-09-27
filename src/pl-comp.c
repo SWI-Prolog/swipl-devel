@@ -3165,6 +3165,74 @@ argKey(Code PC, int constonly, word *key)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+skipArgs() skips skip arguments inside the   code  for a clause-head. If
+the skip is into the middle of a   H_VOID_N,  it returns the location of
+the H_VOID_N.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Code
+skipArgs(Code PC, int skip)
+{ int nested = 0;
+  Code nextPC;
+
+  for(;; PC=nextPC)
+  { code c = decode(*PC);
+    nextPC = stepPC(PC);
+
+#if O_DEBUGGER
+  again:
+#endif
+    switch(c)
+    { case H_FUNCTOR:
+      case H_LIST:
+	nested++;
+        continue;
+      case H_RFUNCTOR:
+      case H_RLIST:
+	continue;
+      case H_POP:
+	nested--;
+        assert(nested>=0);
+        continue;
+      case H_CONST:
+      case H_NIL:
+      case H_INT64:
+      case H_INTEGER:
+      case H_FLOAT:
+      case H_STRING:
+      case H_MPZ:
+      case H_FIRSTVAR:
+      case H_VAR:
+      case H_VOID:
+      case H_LIST_FF:
+	if ( nested )
+	  continue;
+        if ( --skip == 0 )
+	  return nextPC;
+	continue;
+      case H_VOID_N:
+	if ( nested )
+	  continue;
+	skip -= (int)PC[1];
+	if ( skip <= 0 )
+	  return PC;
+	continue;
+      case I_NOP:
+	continue;
+#ifdef O_DEBUGGER
+      case D_BREAK:
+        c = decode(replacedBreak(PC-1));
+	goto again;
+#endif
+      default:
+	assert(0);
+    }
+  }
+}
+
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The decompiler is rather straightforwards.  First it  will  construct  a
 term  with  variables  for  the  head  and an array of variables for all
 variables in  the  clause.   Next  the  head  arguments  are  filled  by
