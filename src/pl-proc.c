@@ -2539,7 +2539,7 @@ reindexDefinition(Definition def)
       if ( true(cref->clause, ERASED) )
 	continue;
 
-      if ( arg1Key(cref->clause, FALSE, &key) )
+      if ( argKey(cref->clause->codes, FALSE, &key) )
 	canindex++;
       else
 	cannotindex++;

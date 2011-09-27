@@ -119,7 +119,7 @@ it is very common for all clauses of   a predicate to have the same type
 of object. Hence, we now use exclusive or of the real value part and the
 tag-bits.
 
-NOTE: this function must be kept consistent with arg1Key() in pl-comp.c!
+NOTE: this function must be kept  consistent with argKey() in pl-comp.c!
 NOTE: This function returns 0 on non-indexable   fields, which is why we
 guarantee that the value is non-0 for indexable values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -150,7 +150,7 @@ indexOfWord(word w ARG_LD)
 			    valBignum(w), p[0]^p[1]));
 	  key = p[0]^p[1];
 #else
- 	  key = p[0];
+	  key = p[0];
 #endif
 	  if ( !key )
 	    key++;
@@ -409,7 +409,7 @@ reindexClause(Clause clause, Definition def, unsigned long pattern)
   { if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
     { word key;
 
-      if ( arg1Key(clause, FALSE, &key) )
+      if ( argKey(clause->codes, FALSE, &key) )
       { clause->index.key     = key;
 	clause->index.varmask = (uintptr_t)~0L;
       } else
@@ -633,7 +633,7 @@ addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
   { int n = ci->buckets;
 
     SECURE({ word k;
-	     assert(!arg1Key(cl, FALSE, &k));
+	     assert(!argKey(cl->codes, FALSE, &k));
 	   });
 
     DEBUG(1,

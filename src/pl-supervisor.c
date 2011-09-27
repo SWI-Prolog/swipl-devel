@@ -197,8 +197,8 @@ listSupervisor(Definition def)
     word c[2];
 
     getClauses(def, cref);
-    if ( arg1Key(cref[0]->clause, TRUE, &c[0]) &&
-	 arg1Key(cref[1]->clause, TRUE, &c[1]) &&
+    if ( argKey(cref[0]->clause->codes, TRUE, &c[0]) &&
+	 argKey(cref[1]->clause->codes, TRUE, &c[1]) &&
 	 ( (c[0] == ATOM_nil && c[1] == FUNCTOR_dot2) ||
 	   (c[1] == ATOM_nil && c[0] == FUNCTOR_dot2) ) )
     { Code codes = allocCodes(3);

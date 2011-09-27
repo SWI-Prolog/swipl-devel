@@ -3063,20 +3063,18 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-arg1Key() determines the first argument-key   by  inspecting the virtual
-machine code. If constonly is  non-zero,  it   creates  a  key for large
-integers and floats. Otherwise it only succeeds on atoms, small integers
-and functors.
+argKey() determines the indexing key for the  argument at the given code
+position by inspecting  the  virtual  machine   code.  If  constonly  is
+non-zero, it creates a key for large   integers and floats. Otherwise it
+only succeeds on atoms, small integers and functors.
 
 NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
 pl-index.c!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-arg1Key(Clause clause, int constonly, word *key)
-{ Code PC = clause->codes;
-
-  for(;;)
+argKey(Code PC, int constonly, word *key)
+{ for(;;)
   { code c = decode(*PC++);
 
 #if O_DEBUGGER
