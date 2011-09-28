@@ -1976,13 +1976,14 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
     case FRG_REDO:
     { term_t a;
       fid_t fid;
-      int rc = FALSE;
+      int rc;
 
       if ( !PL_get_name_arity(term, &name, &arity) )
 	sysError("arg/3: PL_get_name_arity() failed");
       argn = (int)CTX_INT + 1;
 
     genarg:
+      rc = FALSE;
       if ( !(fid=PL_open_foreign_frame()) ||
 	   !(a = PL_new_term_ref()) )
 	return FALSE;
