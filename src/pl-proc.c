@@ -830,7 +830,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
     { assert(!(def->indexPattern & NEED_REINDEX));
 
       addClauseToIndex(ci, clause, where PASS_LD);
-      if ( ci->size /2 > ci->buckets )
+      if ( ci->size/2 > ci->buckets )
       { if ( false(def, NEEDSREHASH) )
 	{ set(def, NEEDSREHASH);
 	  DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
@@ -2560,7 +2560,7 @@ reindexDefinition(Definition def)
     do_hash = canindex / 2;
 
   if ( do_hash )
-  { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
+  { DEBUG(2, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
     hashDefinition(def, 1, do_hash);	/* TBD: arg */
   }
 
