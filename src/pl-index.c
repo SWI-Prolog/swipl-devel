@@ -550,16 +550,27 @@ hashDefinition(Definition def, int arg, int buckets)
 }
 
 
+/** hash(:PredInd, +ArgSpec) is det.
+
+*/
+
 static
-PRED_IMPL("hash", 1, hash, PL_FA_TRANSPARENT)
+PRED_IMPL("hash", 2, hash, PL_FA_TRANSPARENT)
 { PRED_LD
   Procedure proc;
+  int argn;
 
   term_t pred = A1;
 
-  if ( get_procedure(pred, &proc, 0, GP_CREATE) )
+  if ( !PL_get_integer_ex(A2, &argn) )
+    return FALSE;
+  if ( argn < 1 )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_one, A2);
+
+  if ( get_procedure(pred, &proc, 0, GP_NAMEARITY|GP_CREATE) )
   { Definition def = getProcDefinition(proc);
     int size, minsize;
+    ClauseIndex ci;
 
     if ( def->hash_info )		/* already hashed; won't change */
       succeed;
@@ -567,23 +578,21 @@ PRED_IMPL("hash", 1, hash, PL_FA_TRANSPARENT)
     if ( true(def, FOREIGN) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		      ATOM_hash, ATOM_foreign, proc);
-    if ( def->functor->arity == 0 )
-      return PL_error(NULL, 0, "hash needs arguments", ERR_REPRESENTATION,
-		      ATOM_arity);
+    if ( argn > def->functor->arity )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_argument, A2);
+
+    for(ci=def->hash_info; ci; ci=ci->next)
+    { if ( ci->arg == argn )
+	succeed;			/* Hashed index already provided */
+    }
 
     LOCKDEF(def);
-    minsize = def->number_of_clauses / 4,
-    size = 64;
+    minsize = def->number_of_clauses / 2,
+    size = 4;
     while (size < minsize)
       size *= 2;
 
-					/* == reindexDefinition(), but */
-					/* we cannot call this as it would */
-					/* deadlock */
-    if ( def->indexPattern & NEED_REINDEX )
-      def->indexPattern = 0x1L;
-
-    hashDefinition(def, 1, size);	/* TBD: other arguments */
+    hashDefinition(def, argn, size);
     UNLOCKDEF(def);
 
     succeed;
@@ -598,5 +607,5 @@ PRED_IMPL("hash", 1, hash, PL_FA_TRANSPARENT)
 		 *******************************/
 
 BeginPredDefs(index)
-  PRED_DEF("hash", 1, hash, PL_FA_TRANSPARENT)
+  PRED_DEF("hash", 2, hash, PL_FA_TRANSPARENT)
 EndPredDefs
