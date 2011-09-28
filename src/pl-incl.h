@@ -1205,7 +1205,7 @@ struct definition
 		/*	NEEDSREHASH	   Hash-table is out-of-date */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
 		/*	P_SHARED	   Multiple procs are using me */
-  unsigned	number_of_clauses;	/* number of associated clauses */
+  unsigned int	number_of_clauses;	/* number of associated clauses */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */

@@ -338,8 +338,8 @@ appendClauseChain(ClauseChain ch, Clause cl, int where ARG_LD)
 { ClauseRef cr = newClauseRef(cl PASS_LD);
 
   if ( !ch->tail )
-    ch->head = ch->tail = cr;
-  else
+  { ch->head = ch->tail = cr;
+  } else
   { if ( where != CL_START )
     { ch->tail->next = cr;
       ch->tail = cr;
