@@ -3595,7 +3595,6 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
 
   def->definition.function = f;
   def->indexPattern = 0;
-  def->indexCardinality = 0;
   def->flags = FOREIGN|TRACE_ME;
 
   if ( m == MODULE_system )

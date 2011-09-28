@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -32,84 +33,6 @@ deterministic.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAXSEARCH 100
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Clause indexing.  Clauses store an  `index  structure',  which  provides
-summary information on the unification behaviour of the clause (e.i. its
-head  arguments.   This  structure  consists  of  two words: a key and a
-varmask.  Indexing can be done with upto 4 arguments.   Both  words  are
-divided  into  the  same  number  of  bit  groups  as  there are indexed
-arguments.  If an argument  is  indexable  (atom,  integer  or  compound
-term),  the  corresponding  bit group is filled with bits taken from the
-atom  pointer,  integer  or  functor  pointer.    In   this   case   all
-corresponding  bits  in  the varmask field are 1.  Otherwise the bits in
-both the varmask and the key are all 0.
-
-To find a clause using indexing, we calculate an  index  structure  from
-the  calling arguments to the goal using the same rules.  Now, we can do
-a mutual `and' using the varmasks on the keys and  compare  the  result.
-If  equal  a  good  chance  for a possible unification exists, otherwise
-unification will definitely fail.  See matchIndex() and findClause().
-
-Care has been taken to get this code as fast as  possible,  notably  for
-indexing only on the first argument as this is default.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-/* 1 <= c <= 4 */
-
-#define SHIFT(c, a)	((WORDBITSIZE/(c)) * a)
-#define IDX_MASK(c)	(c == 1 ? ~(word)0 : (((word)1 << (WORDBITSIZE/(c))) - 1))
-#define VM(c, a)	((word)((IDX_MASK(c) << SHIFT(c, a))))
-
-#define Shift(c, a)	(mask_shift[c][a])
-#define Mask(c)		(mask_mask[c])
-#define varMask(c, a)	(variable_mask[c][a])
-
-#define matchIndex(i1, i2)	(((i1).key & (i2).varmask) ==\
-				 ((i2).key & (i1).varmask))
-
-static uintptr_t variable_mask[][4] =
-  { { 0,        0,        0,        0 },
-#ifdef DONOT_AVOID_SHIFT_WARNING
-    { VM(1, 0), 0,        0,        0 },
-#else
-    { ~(word)0, 0,        0,        0 },
-#endif
-    { VM(2, 0), VM(2, 1), 0,        0 },
-    { VM(3, 0), VM(3, 1), VM(3, 2), 0 },
-    { VM(4, 0), VM(4, 1), VM(4, 2), VM(4, 3) }
-  };
-
-static int mask_shift[][4] =
-  { { 0,           0,           0,           0 },
-    { SHIFT(1, 0), 0,           0,           0 },
-    { SHIFT(2, 0), SHIFT(2, 1), 0,           0 },
-    { SHIFT(3, 0), SHIFT(3, 1), SHIFT(3, 2), 0 },
-    { SHIFT(4, 0), SHIFT(4, 1), SHIFT(4, 2), SHIFT(4, 3) }
-  };
-
-static word mask_mask[] =
-  { 0,
-#ifdef DONOT_AVOID_SHIFT_WARNING
-    IDX_MASK(1),
-#else
-    ~(word)0,
-#endif
-    IDX_MASK(2), IDX_MASK(3), IDX_MASK(4)
-  };
-
-
-int
-cardinalityPattern(unsigned long pattern)
-{ int result = 0;
-
-  for(; pattern; pattern >>= 1)
-    if ( pattern & 0x1UL )
-      result++;
-
-  return result;
-}
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -193,32 +116,14 @@ indexOfWord(word w ARG_LD)
 
 
 void
-getIndex(Word argv, unsigned long pattern, int card, struct index *index
+getIndex(Word argv, unsigned long pattern, struct index *index
 	 ARG_LD)
 { if ( pattern == 0x1L )
-  { index->key     = indexOfWord(*argv PASS_LD);
-    index->varmask = (index->key ? ~(word)0 : (word)0);
+  { index->key = indexOfWord(*argv PASS_LD);
 
     return;
   } else
-  { word key;
-    int a;
-
-    index->key = 0;
-    index->varmask = ~(word)0;			/* no variables */
-
-    for(a = 0; a < card; a++, pattern >>= 1, argv++)
-    { for(;(pattern & 0x1) == 0; pattern >>= 1)
-	argv++;
-
-      key = indexOfWord(*argv PASS_LD);
-      if ( !key )
-      { index->varmask &= ~varMask(card, a);
-      } else
-      { key = key ^ (key >> LMASK_BITS);	/* see hashIndex() */
-	index->key |= ((key & Mask(card)) << Shift(card, a) );
-      }
-    }
+  { assert(0);
   }
 
   return;
@@ -234,59 +139,20 @@ getIndexOfTerm(term_t t)
 }
 
 
-static ClauseRef
-nextClauseMultiIndexed(ClauseRef cref, uintptr_t generation,
-		       Word argv, Definition def,
-		       ClauseRef *next ARG_LD)
-{ struct index idx;
-
-  getIndex(argv, def->indexPattern, def->indexCardinality, &idx PASS_LD);
-
-  DEBUG(2, Sdprintf("Multi-argument indexing on %s ...",
-		    cref ? procedureName(cref->clause->procedure) : "?"));
-
-  for(; cref; cref = cref->next)
-  { if ( matchIndex(idx, cref->clause->index) &&
-	 visibleClause(cref->clause, generation))
-    { ClauseRef result = cref;
-      int maxsearch = MAXSEARCH;
-
-      for( cref = cref->next; cref; cref = cref->next )
-      { if ( (matchIndex(idx, cref->clause->index) &&
-	      visibleClause(cref->clause, generation)) ||
-	     --maxsearch == 0 )
-	{ *next = cref;
-
-	  DEBUG(2, Sdprintf("ndet\n"));
-	  return result;
-	}
-      }
-      DEBUG(2, Sdprintf("det\n"));
-      *next = NULL;
-
-      return result;
-    }
-  }
-  DEBUG(2, Sdprintf("NULL\n"));
-
-  return NULL;
-}
-
-
 static inline ClauseRef
 nextClauseArg1(ClauseRef cref, uintptr_t generation,
 	       ClauseRef *next, word key)
 { for(;cref ; cref = cref->next)
   { Clause clause = cref->clause;
 
-    if ( (key & clause->index.varmask) == clause->index.key &&
+    if ( (!clause->index.key || key == clause->index.key) &&
 	 visibleClause(clause, generation))
     { ClauseRef result = cref;
       int maxsearch = MAXSEARCH;
 
       for( cref = cref->next; cref; cref = cref->next )
       { clause = cref->clause;
-	if ( ((key&clause->index.varmask) == clause->index.key &&
+	if ( ((!clause->index.key || key == clause->index.key) &&
 	      visibleClause(clause, generation)) ||
 	     --maxsearch == 0 )
 	{ *next = cref;
@@ -343,12 +209,7 @@ again:
   { reindexDefinition(def);
     goto again;
   } else
-  { return nextClauseMultiIndexed(def->definition.clauses,
-				  gen,
-				  argv,
-				  def,
-				  next
-				  PASS_LD);
+  { assert(0);
   }
 
 #undef gen
@@ -387,7 +248,7 @@ findClause(ClauseRef cref, Word argv,
   { reindexDefinition(def);
     return findClause(cref, argv, fr, def, next PASS_LD);
   } else
-  { return nextClauseMultiIndexed(cref, gen, argv, def, next PASS_LD);
+  { assert(0);
   }
 
 #undef gen
@@ -411,59 +272,17 @@ reindexClause(Clause clause, Definition def, unsigned long pattern)
 
       if ( argKey(clause->codes, FALSE, &key) )
       { clause->index.key     = key;
-	clause->index.varmask = (uintptr_t)~0L;
       } else
       { clause->index.key     = 0L;
-	clause->index.varmask = 0L;
       }
     } else
-    { GET_LD
-      fid_t fid;
-      term_t head;
-
-      if ( !(fid=PL_open_foreign_frame()) ||
-	   !(head = PL_new_term_ref()) ||
-	   !decompileHead(clause, head) )
-	return FALSE;
-
-      getIndex(argTermP(*valTermRef(head), 0),
-	       pattern,
-	       def->indexCardinality,
-	       &clause->index
-	       PASS_LD);
-
-      PL_discard_foreign_frame(fid);
+    { assert(0);
     }
   }
 
   succeed;
 }
 
-
-bool
-unify_index_pattern(Procedure proc, term_t value)
-{ GET_LD
-  Definition def = proc->definition;
-  uintptr_t pattern = (def->indexPattern & ~NEED_REINDEX);
-  int n, arity = def->functor->arity;
-
-  if ( pattern == 0 )
-    fail;
-
-  if ( PL_unify_functor(value, def->functor->functor) )
-  { term_t a = PL_new_term_ref();
-
-    for(n=0; n<arity; n++, pattern >>= 1)
-    { if ( !PL_get_arg(n+1, value, a) ||
-	   !PL_unify_integer(a, (pattern & 0x1) ? 1 : 0) )
-	fail;
-    }
-
-    succeed;
-  }
-
-  fail;
-}
 
 		 /*******************************
 		 *	   HASH SUPPORT		*
@@ -563,8 +382,7 @@ gcClauseChain(ClauseChain ch, int dirty ARG_LD)
     { ClauseRef c = cref;
 
       if ( dirty > 0 )
-      { assert(c->clause->index.varmask != 0); /* must be indexed */
-	deleted++;
+      { deleted++;
 	dirty--;
       }
 
@@ -613,9 +431,9 @@ gcClauseIndex(ClauseIndex ci ARG_LD)
 
 void
 markDirtyClauseIndex(ClauseIndex ci, Clause cl)
-{ if ( cl->index.varmask == 0 )
-    ci->alldirty = TRUE;
-  else
+{ if ( cl->index.key == 0 )		/* not indexed */
+  { ci->alldirty = TRUE;
+  } else
   { int hi = hashIndex(cl->index.key, ci->buckets);
     ci->entries[hi].dirty++;
   }
@@ -629,7 +447,7 @@ addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
 { ClauseIndex ci = def->hash_info;
   ClauseChain ch = ci->entries;
 
-  if ( cl->index.varmask == 0 )		/* a non-indexable field */
+  if ( cl->index.key == 0 )		/* a non-indexable field */
   { int n = ci->buckets;
 
     SECURE({ word k;
@@ -658,7 +476,7 @@ delClauseFromIndex(Definition def, Clause cl)
 { ClauseIndex ci = def->hash_info;
   ClauseChain ch = ci->entries;
 
-  if ( cl->index.varmask == 0 )		/* a non-indexable field */
+  if ( cl->index.key == 0 )		/* a non-indexable field */
   { int n = ci->buckets;
 
     for(; n; n--, ch++)
@@ -734,7 +552,6 @@ pl_hash(term_t pred)
     if ( def->indexPattern & NEED_REINDEX )
     { ClauseRef cref;
 
-      def->indexCardinality = 1;
       for(cref = def->definition.clauses; cref; cref = cref->next)
       { if ( !reindexClause(cref->clause, def, 0x1L) )
 	{ UNLOCKDEF(def);

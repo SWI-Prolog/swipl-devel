@@ -164,7 +164,6 @@ static const PL_extension foreigns[] = {
   FRG("$set_source_module",	2, pl_set_source_module,	0),
   FRG("context_module",		1, pl_context_module,	     META),
   FRG("import",			1, pl_import,		     META),
-  FRG("index",			1, pl_index,		     META),
   FRG("hash",			1, pl_hash,		     META),
 
 #if O_STRING
@@ -344,7 +343,6 @@ registerBuiltins(const PL_extension *f)
 
     def->definition.function = f->function;
     def->indexPattern = 0;
-    def->indexCardinality = 0;
     createForeignSupervisor(def, f->function);
   }
 }

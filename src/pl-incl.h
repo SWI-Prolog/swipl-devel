@@ -1024,7 +1024,6 @@ extern Atom _PL_debug_atom_value(atom_t a);
 
 struct index
 { word		key;		/* key of index */
-  word		varmask;	/* variable field mask */
 };
 
 struct functorDef
@@ -1206,8 +1205,7 @@ struct definition
 		/*	NEEDSREHASH	   Hash-table is out-of-date */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
 		/*	P_SHARED	   Multiple procs are using me */
-  unsigned	indexCardinality : 8;	/* cardinality of index pattern */
-  unsigned	number_of_clauses : 24;	/* number of associated clauses */
+  unsigned	number_of_clauses;	/* number of associated clauses */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */

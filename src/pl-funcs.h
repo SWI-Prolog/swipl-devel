@@ -197,8 +197,7 @@ COMMON(word)		parseSaveProgramOptions(term_t args,
 			bool *tty, bool *standalone);
 
 /* pl-index.c */
-COMMON(int)		cardinalityPattern(unsigned long pattern);
-COMMON(void)		getIndex(Word argv, unsigned long pattern, int card,
+COMMON(void)		getIndex(Word argv, unsigned long pattern,
 				 struct index * ARG_LD);
 COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
@@ -207,7 +206,6 @@ COMMON(ClauseRef)	findClause(ClauseRef cl, Word argv, LocalFrame fr,
 			   Definition def, ClauseRef *next ARG_LD);
 COMMON(bool)		reindexClause(Clause clause, Definition def,
 				      unsigned long pattern);
-COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
 COMMON(bool)		hashDefinition(Definition def, int buckets);
 COMMON(word)		pl_hash(term_t pred);
 COMMON(void)		addClauseToIndex(Definition def, Clause cl,

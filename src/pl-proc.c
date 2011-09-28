@@ -148,8 +148,7 @@ resetProcedure(Procedure proc, bool isnew)
   def->number_of_clauses = 0;
 
   if ( isnew )
-  { def->indexCardinality = 0;
-    def->indexPattern = (0x0 | NEED_REINDEX);
+  { def->indexPattern = (0x0 | NEED_REINDEX);
     set(def, AUTOINDEX);
 
     if ( def->hash_info )
@@ -2215,10 +2214,6 @@ pl_get_predicate_attribute(term_t pred,
   { if ( module == def->module )
       fail;
     return PL_unify_atom(value, def->module->name);
-  } else if ( key == ATOM_indexed )
-  { if ( def->indexPattern == 0x0 )
-      fail;
-    return unify_index_pattern(proc, value);
   } else if ( key == ATOM_meta_predicate )
   { if ( false(def, P_META) )
       fail;
@@ -2559,7 +2554,6 @@ reindexDefinition(Definition def)
        canindex > 5 && cannotindex <= 2 )
     do_hash = canindex / 2;
 
-  def->indexCardinality = cardinalityPattern(pattern);
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { if ( !reindexClause(cref->clause, def, pattern) )
     { UNLOCKDEF(def);
@@ -2595,53 +2589,6 @@ indexDefinition(Definition def, long pattern)
   }
 
   def->indexPattern = (pattern | NEED_REINDEX);
-}
-
-
-word
-pl_index(term_t pred)
-{ GET_LD
-  Procedure proc;
-  term_t head = PL_new_term_ref();
-
-  if ( get_procedure(pred, &proc, head, GP_CREATE) )
-  { Definition def = proc->definition;
-    int arity = def->functor->arity;
-
-    if ( true(def, FOREIGN) )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_index, PL_new_atom("foreign_procedure"), proc);
-
-    if ( arity > 0 )
-    { unsigned long pattern = 0x0;
-      int n, card = 0;
-      term_t a = PL_new_term_ref();
-
-      for(n=0; n<arity && n < 31; n++)
-      { int ia;
-
-	_PL_get_arg(n+1, head, a);
-	if ( !PL_get_integer(a, &ia) || (ia & ~1) )
-	  return PL_error(NULL, 0, "0 or 1", ERR_TYPE,
-			  ATOM_integer, a);
-	if ( ia )
-	{ pattern |= 1 << n;
-	  if (++card == 4)		/* maximal 4 indexed arguments */
-	    break;
-	}
-      }
-
-      if ( def->indexPattern != pattern)
-      { LOCKDEF(def);
-	indexDefinition(def, pattern);
-	UNLOCKDEF(def);
-      }
-    }
-
-    succeed;
-  }
-
-  fail;
 }
 
 
