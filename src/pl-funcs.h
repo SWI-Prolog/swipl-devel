@@ -197,8 +197,6 @@ COMMON(word)		parseSaveProgramOptions(term_t args,
 			bool *tty, bool *standalone);
 
 /* pl-index.c */
-COMMON(void)		getIndex(Word argv, unsigned long pattern,
-				 word *key ARG_LD);
 COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseRef *next ARG_LD);

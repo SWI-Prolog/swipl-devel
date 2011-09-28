@@ -115,21 +115,6 @@ indexOfWord(word w ARG_LD)
 }
 
 
-void
-getIndex(Word argv, unsigned long pattern, word *index
-	 ARG_LD)
-{ if ( pattern == 0x1L )
-  { *index = indexOfWord(*argv PASS_LD);
-
-    return;
-  } else
-  { assert(0);
-  }
-
-  return;
-}
-
-
 word
 getIndexOfTerm(term_t t)
 { GET_LD
