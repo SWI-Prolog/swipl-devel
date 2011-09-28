@@ -792,7 +792,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   ClauseRef cref;
   ClauseIndex ci;
 
-  argKey(clause->codes, FALSE, &key);
+  argKey(clause->codes, 0, FALSE, &key);
   cref = newClauseRef(clause, key PASS_LD);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
@@ -2534,12 +2534,10 @@ reindexDefinition(Definition def)
 
   if ( true(def, AUTOINDEX) || pattern == 0x1 )
   { for(cref = def->definition.clauses; cref; cref = cref->next)
-    { word key;
-
-      if ( true(cref->clause, ERASED) )
+    { if ( true(cref->clause, ERASED) )
 	continue;
 
-      if ( argKey(cref->clause->codes, FALSE, &key) )
+      if ( cref->key )
 	canindex++;
       else
 	cannotindex++;

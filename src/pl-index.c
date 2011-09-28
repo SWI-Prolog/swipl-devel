@@ -360,7 +360,7 @@ resizeClauseIndex(ClauseIndex ci, ClauseRef cref, int newbuckets ARG_LD)
   { Clause clause = cref->clause;
     word key;
 
-    if ( argKey(clause->codes, FALSE, &key) )
+    if ( argKey(clause->codes, ci->arg-1, FALSE, &key) )
     { int hi = hashIndex(key, newbuckets);
       appendClauseChain(&chains[hi], clause, key, CL_END PASS_LD);
     } else
@@ -451,7 +451,7 @@ void
 markDirtyClauseIndex(ClauseIndex ci, Clause cl)
 { word key;
 
-  argKey(cl->codes, FALSE, &key);	/* TBD: this is just arg1 */
+  argKey(cl->codes, ci->arg-1, FALSE, &key);
 
   if ( key == 0 )			/* not indexed */
   { ci->alldirty = TRUE;
@@ -471,7 +471,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
 
   assert(ci->arg == 1);
 
-  argKey(cl->codes, FALSE, &key);	/* TBD: this is only arg1 */
+  argKey(cl->codes, ci->arg-1, FALSE, &key);
 
   if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
@@ -496,7 +496,7 @@ delClauseFromIndex(Definition def, Clause cl)
   { ClauseChain ch = ci->entries;
     word key;
 
-    argKey(cl->codes, FALSE, &key);	/* TBD: this is only arg1 */
+    argKey(cl->codes, ci->arg-1, FALSE, &key);
 
     if ( key == 0 )			/* a non-indexable field */
     { int n = ci->buckets;
