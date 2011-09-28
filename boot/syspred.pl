@@ -616,8 +616,6 @@ predicate_property(Pred, Property) :-
 	'$get_predicate_attribute'(Pred, imported, Module).
 '$predicate_property'(transparent, Pred) :-
 	'$get_predicate_attribute'(Pred, transparent, 1).
-'$predicate_property'(indexed(Pattern), Pred) :-
-	'$get_predicate_attribute'(Pred, indexed, Pattern).
 '$predicate_property'(meta_predicate(Pattern), Pred) :-
 	'$get_predicate_attribute'(Pred, meta_predicate, Pattern).
 '$predicate_property'(file(File), Pred) :-
@@ -630,9 +628,6 @@ predicate_property(Pred, Property) :-
 	'$get_predicate_attribute'(Pred, hide_childs, 1).
 '$predicate_property'(spying, Pred) :-
 	'$get_predicate_attribute'(Pred, spy, 1).
-'$predicate_property'(hashed(N), Pred) :-
-	'$get_predicate_attribute'(Pred, hashed, N),
-	N > 0.
 '$predicate_property'(references(N), Pred) :-
 	'$get_predicate_attribute'(Pred, references, N),
 	N \== 0.			% show negative for debugging!
