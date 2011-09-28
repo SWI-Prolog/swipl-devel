@@ -825,28 +825,24 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   if ( false(def, DYNAMIC) )		/* see (*) above */
     freeCodesDefinition(def);
 
-  if ( (ci=def->hash_info) )
-  { for(; ci; ci=ci->next)
-    { assert(!(def->indexPattern & NEED_REINDEX));
-
-      addClauseToIndex(ci, clause, where PASS_LD);
-      if ( ci->size/2 > ci->buckets )
-      { if ( false(def, NEEDSREHASH) )
-	{ set(def, NEEDSREHASH);
-	  DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
-	}
-	if ( true(def, DYNAMIC) && def->references == 0 )
-	{ gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
-	  return cref;
-	}
+  for(ci=def->hash_info; ci; ci=ci->next)
+  { addClauseToIndex(ci, clause, where PASS_LD);
+    if ( ci->size/2 > ci->buckets )
+    { if ( false(def, NEEDSREHASH) )
+      { set(def, NEEDSREHASH);
+	DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
+      }
+      if ( true(def, DYNAMIC) && def->references == 0 )
+      { gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
+	return cref;
       }
     }
-  } else
-  { if ( def->number_of_clauses == 25 &&
-	 true(def, AUTOINDEX) )
-    { DEBUG(2, Sdprintf("Request re-index for %s\n", predicateName(def)));
-      def->indexPattern |= NEED_REINDEX;
-    }
+  }
+
+  if ( def->number_of_clauses == 25 &&
+       true(def, AUTOINDEX) )
+  { DEBUG(2, Sdprintf("Request re-index for %s\n", predicateName(def)));
+    def->indexPattern |= NEED_REINDEX;
   }
   UNLOCKDEF(def);
 
