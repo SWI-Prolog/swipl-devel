@@ -199,7 +199,7 @@ again:
 
 
 ClauseRef
-findClause(ClauseRef cref, Word argv,
+nextClause(ClauseRef cref, Word argv,
 	   LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
 {
 #ifdef O_LOGICAL_UPDATE
@@ -227,8 +227,8 @@ findClause(ClauseRef cref, Word argv,
 
     return nextClauseArg1(cref, gen, next, key);
   } else if ( def->indexPattern & NEED_REINDEX )
-  { reindexDefinition(def);
-    return findClause(cref, argv, fr, def, next PASS_LD);
+  { reindexDefinition(def);		/* very dubious */
+    return nextClause(cref, argv, fr, def, next PASS_LD);
   } else
   { assert(0);
   }

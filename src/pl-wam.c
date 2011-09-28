@@ -2229,7 +2229,7 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
     { ClauseRef next;
 
       ARGP = argFrameP(FR, 0);
-      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
+      if ( !(CL = nextClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
 	FRAME_FAILED;			/* should not happen */
       PC = CL->clause->codes;
       umode = uread;
@@ -2366,7 +2366,7 @@ next_choice:
       ARGP = argFrameP(FR, 0);
       DiscardMark(ch->mark);
       BFR = ch->parent;
-      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
+      if ( !(CL = nextClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
 	goto next_choice;		/* should not happen */
 
 #ifdef O_DEBUGGER

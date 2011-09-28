@@ -1938,7 +1938,7 @@ PRED_IMPL("retract", 1, retract,
       ctx->cref = cref;
     } else
     { ctx  = CTX_PTR;
-      ctx->cref = findClause(ctx->cref, argv, environment_frame,
+      ctx->cref = nextClause(ctx->cref, argv, environment_frame,
 			     ctx->def, &next PASS_LD);
       startCritical;
     }
@@ -1987,7 +1987,7 @@ PRED_IMPL("retract", 1, retract,
 
       PL_rewind_foreign_frame(fid);
 
-      ctx->cref = findClause(next, argv, environment_frame,
+      ctx->cref = nextClause(next, argv, environment_frame,
 			     ctx->def, &next PASS_LD);
     }
 
@@ -2099,7 +2099,7 @@ pl_retractall(term_t head)
 	argv = argTermP(*argv, 0);
       }
 
-      cref = findClause(next, argv, environment_frame, def, &next PASS_LD);
+      cref = nextClause(next, argv, environment_frame, def, &next PASS_LD);
     }
   }
   leaveDefinition(def);

@@ -200,7 +200,7 @@ COMMON(word)		parseSaveProgramOptions(term_t args,
 COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseRef *next ARG_LD);
-COMMON(ClauseRef)	findClause(ClauseRef cl, Word argv, LocalFrame fr,
+COMMON(ClauseRef)	nextClause(ClauseRef cl, Word argv, LocalFrame fr,
 				   Definition def, ClauseRef *next ARG_LD);
 COMMON(bool)		hashDefinition(Definition def, int arg, int buckets);
 COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
