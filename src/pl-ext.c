@@ -164,7 +164,6 @@ static const PL_extension foreigns[] = {
   FRG("$set_source_module",	2, pl_set_source_module,	0),
   FRG("context_module",		1, pl_context_module,	     META),
   FRG("import",			1, pl_import,		     META),
-  FRG("hash",			1, pl_hash,		     META),
 
 #if O_STRING
   FRG("sub_string",		5, pl_sub_string,	     NDET),
@@ -358,6 +357,7 @@ DECL_PLIST(arith);
 DECL_PLIST(bag);
 DECL_PLIST(comp);
 DECL_PLIST(flag);
+DECL_PLIST(index);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
@@ -402,6 +402,7 @@ initBuildIns(void)
   REG_PLIST(bag);
   REG_PLIST(comp);
   REG_PLIST(flag);
+  REG_PLIST(index);
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);

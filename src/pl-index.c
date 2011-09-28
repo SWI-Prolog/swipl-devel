@@ -550,13 +550,15 @@ hashDefinition(Definition def, int arg, int buckets)
 }
 
 
-word
-pl_hash(term_t pred)
-{ Procedure proc;
+static
+PRED_IMPL("hash", 1, hash, PL_FA_TRANSPARENT)
+{ PRED_LD
+  Procedure proc;
+
+  term_t pred = A1;
 
   if ( get_procedure(pred, &proc, 0, GP_CREATE) )
-  { GET_LD
-    Definition def = getProcDefinition(proc);
+  { Definition def = getProcDefinition(proc);
     int size, minsize;
 
     if ( def->hash_info )		/* already hashed; won't change */
@@ -589,3 +591,12 @@ pl_hash(term_t pred)
 
   fail;
 }
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(index)
+  PRED_DEF("hash", 1, hash, PL_FA_TRANSPARENT)
+EndPredDefs

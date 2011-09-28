@@ -205,7 +205,6 @@ COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 COMMON(ClauseRef)	findClause(ClauseRef cl, Word argv, LocalFrame fr,
 				   Definition def, ClauseRef *next ARG_LD);
 COMMON(bool)		hashDefinition(Definition def, int arg, int buckets);
-COMMON(word)		pl_hash(term_t pred);
 COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
 					 int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
