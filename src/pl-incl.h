@@ -638,6 +638,7 @@ typedef struct list_cell *	ListCell;	/* Anonymous list */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
 typedef struct local_definitions *LocalDefinitions; /* thread-local preds */
 typedef struct choice *		Choice;		/* Choice-point */
+typedef struct clause_choice *  ClauseChoice;   /* firstClause()/nextClause() */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame;	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
@@ -1259,6 +1260,11 @@ typedef enum
   DBG_ALL				/* switch on globally */
 } debug_type;
 
+struct clause_choice
+{ ClauseRef	cref;			/* Next clause reference */
+  word		key;			/* Search key */
+};
+
 struct choice
 { choice_type	type;			/* CHP_* */
   Choice	parent;			/* Alternative if I fail */
@@ -1268,7 +1274,7 @@ struct choice
   struct call_node *prof_node;		/* Profiling node */
 #endif
   union
-  { ClauseRef	clause;			/* Next candidate clause */
+  { struct clause_choice clause;	/* Next candidate clause */
     Code	PC;			/* Next candidate program counter */
     word        foreign;		/* foreign redo handle */
   } value;

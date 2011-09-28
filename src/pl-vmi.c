@@ -2479,13 +2479,14 @@ the temporary variable `cl' for storing the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_STATIC, 0, 0, ())
-{ ClauseRef cl, nextcl;
+{ ClauseRef cl;
   ARGP = argFrameP(FR, 0);
   lTop = (LocalFrame)ARGP+DEF->functor->arity;
+  struct clause_choice chp;
 
   DEBUG(9, Sdprintf("Searching clause ... "));
 
-  if ( !(cl = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
+  if ( !(cl = firstClause(ARGP, FR, DEF, &chp PASS_LD)) )
   { DEBUG(9, Sdprintf("No clause matching index.\n"));
     if ( debugstatus.debugging )
       newChoice(CHP_DEBUG, FR PASS_LD);
@@ -2499,9 +2500,9 @@ VMI(S_STATIC, 0, 0, ())
   ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
   CL = cl;
 
-  if ( nextcl )
+  if ( chp.cref )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-    ch->value.clause = nextcl;
+    ch->value.clause = chp;
   } else if ( debugstatus.debugging )
     newChoice(CHP_DEBUG, FR PASS_LD);
 

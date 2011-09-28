@@ -2226,19 +2226,16 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 
       NEXT_INSTRUCTION;
     } else if ( ch->type == CHP_CLAUSE )
-    { ClauseRef next;
-
-      ARGP = argFrameP(FR, 0);
-      if ( !(CL = nextClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
-	FRAME_FAILED;			/* should not happen */
+    { ARGP = argFrameP(FR, 0);
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+	FRAME_FAILED;		/* can happen if scan-ahead was too short */
       PC = CL->clause->codes;
       umode = uread;
 
       if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
-      { DiscardMark(ch->mark);
-	if ( next )
-	{ ch->value.clause = next;
-	  Mark(ch->mark);
+      { DiscardMark(ch->mark);		/* is this needed? */
+	if ( ch->value.clause.cref )
+	{ Mark(ch->mark);
 	  lTop = (LocalFrame)(ch+1);
 	  NEXT_INSTRUCTION;
 	} else if ( unlikely(debugstatus.debugging) )
@@ -2251,15 +2248,16 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	BFR = ch->parent;
 	lTop = (LocalFrame)ch;
 	NEXT_INSTRUCTION;
-      } else
+      } else				/* Choice point needs to move */
       { DiscardMark(ch->mark);
 	BFR = ch->parent;
+	struct clause_choice chp = ch->value.clause;
 	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
-	if ( next )
+	if ( chp.cref )
 	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	  ch->value.clause = next;
+	  ch->value.clause = chp;
 	} else if ( unlikely(debugstatus.debugging) )
 	{ ch = newChoice(CHP_DEBUG, FR PASS_LD);
 	}
@@ -2357,8 +2355,7 @@ next_choice:
       ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
-    { ClauseRef next;
-      Clause clause;
+    { Clause clause;
 
       DEBUG(3, Sdprintf("    REDO #%ld: Clause in %s\n",
 			loffset(FR),
@@ -2366,8 +2363,8 @@ next_choice:
       ARGP = argFrameP(FR, 0);
       DiscardMark(ch->mark);
       BFR = ch->parent;
-      if ( !(CL = nextClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
-	goto next_choice;		/* should not happen */
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+	goto next_choice;	/* Can happen of look-ahead was too short */
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
@@ -2401,9 +2398,10 @@ next_choice:
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
-      if ( next )
-      { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	ch->value.clause = next;
+      if ( ch->value.clause.cref )
+      { struct clause_choice chp = ch->value.clause;
+	ch = newChoice(CHP_CLAUSE, FR PASS_LD);
+	ch->value.clause = chp;
       } else if ( unlikely(debugstatus.debugging) )
       { newChoice(CHP_DEBUG, FR PASS_LD);
       }

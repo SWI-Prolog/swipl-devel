@@ -125,9 +125,11 @@ getIndexOfTerm(term_t t)
 
 
 static inline ClauseRef
-nextClauseArg1(ClauseRef cref, uintptr_t generation,
-	       ClauseRef *next, word key)
-{ for(;cref ; cref = cref->next)
+nextClauseArg1(uintptr_t generation, ClauseChoice chp)
+{ ClauseRef cref = chp->cref;
+  word key = chp->key;
+
+  for( ; cref; cref = cref->next)
   { if ( (!cref->key || key == cref->key) &&
 	 visibleClause(cref->clause, generation))
     { ClauseRef result = cref;
@@ -137,12 +139,12 @@ nextClauseArg1(ClauseRef cref, uintptr_t generation,
       { if ( ((!cref->key || key == cref->key) &&
 	      visibleClause(cref->clause, generation)) ||
 	     --maxsearch == 0 )
-	{ *next = cref;
+	{ chp->cref = cref;
 
 	  return result;
 	}
       }
-      *next = NULL;
+      chp->cref = NULL;
 
       return result;
     }
@@ -153,7 +155,7 @@ nextClauseArg1(ClauseRef cref, uintptr_t generation,
 
 
 ClauseRef
-firstClause(Word argv, LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
+firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
 
 #ifdef O_LOGICAL_UPDATE
@@ -168,25 +170,24 @@ again:
   noindex:
     for(cref = def->definition.clauses; cref; cref = cref->next)
     { if ( visibleClause(cref->clause, gen) )
-      { *next = cref->next;
+      { chp->cref = cref->next;
+	chp->key = 0;
         return cref;
       }
     }
     return NULL;
   } else if ( def->indexPattern == 0x1L )
-  { word key = indexOfWord(*argv PASS_LD);
-
-    if ( key == 0L )
+  { if ( !(chp->key = indexOfWord(*argv PASS_LD)) )
       goto noindex;
 
     if ( def->hash_info )
-    { int hi = hashIndex(key, def->hash_info->buckets);
+    { int hi = hashIndex(chp->key, def->hash_info->buckets);
 
-      cref = def->hash_info->entries[hi].head;
+      chp->cref = def->hash_info->entries[hi].head;
     } else
-      cref = def->definition.clauses;
+      chp->cref = def->definition.clauses;
 
-    return nextClauseArg1(cref, gen, next, key);
+    return nextClauseArg1(gen, chp);
   } else if ( def->indexPattern & NEED_REINDEX )
   { reindexDefinition(def);
     goto again;
@@ -199,8 +200,8 @@ again:
 
 
 ClauseRef
-nextClause(ClauseRef cref, Word argv,
-	   LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
+nextClause(ClauseChoice chp, Word argv,
+	   LocalFrame fr, Definition def ARG_LD)
 {
 #ifdef O_LOGICAL_UPDATE
   #define gen (fr->generation)
@@ -208,29 +209,18 @@ nextClause(ClauseRef cref, Word argv,
   #define gen 0L
 #endif
 
-  if ( def->indexPattern == 0x0L )	/* not indexed */
-  { noindex:
-    for(;;cref = cref->next)
-    { if ( cref )
-      { if ( visibleClause(cref->clause, gen) )
-	{ *next = cref->next;
-	  return cref;
-	}
-      } else
-	return NULL;
+  if ( !chp->key )			/* not indexed */
+  { ClauseRef cref;
+
+    for(cref=chp->cref; cref; cref = cref->next)
+    { if ( visibleClause(cref->clause, gen) )
+      { chp->cref = cref->next;
+	return cref;
+      }
     }
-  } else if ( def->indexPattern == 0x1L ) /* first-argument indexing */
-  { word key = indexOfWord(*argv PASS_LD);
-
-    if ( !key )
-      goto noindex;
-
-    return nextClauseArg1(cref, gen, next, key);
-  } else if ( def->indexPattern & NEED_REINDEX )
-  { reindexDefinition(def);		/* very dubious */
-    return nextClause(cref, argv, fr, def, next PASS_LD);
+    return NULL;
   } else
-  { assert(0);
+  { return nextClauseArg1(gen, chp);
   }
 
 #undef gen

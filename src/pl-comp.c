@@ -4352,7 +4352,9 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 { PRED_LD
   Procedure proc;
   Definition def;
-  ClauseRef cref, next;
+  struct clause_choice chp_buf;
+  ClauseChoice chp;
+  ClauseRef cref;
   Word argv;
   Module module = NULL;
   term_t term = PL_new_term_ref();
@@ -4404,26 +4406,24 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 			ATOM_access, ATOM_private_procedure, proc);
 
-      cref = NULL;			/* see below */
+      chp = NULL;
       enterDefinition(def);		/* reference the predicate */
       break;
     }
     case FRG_REDO:
-    { cref = CTX_PTR;
-      proc = cref->clause->procedure;
+      chp  = CTX_PTR;
+      proc = chp->cref->clause->procedure;
       def  = getProcDefinition(proc);
       break;
-    }
     case FRG_CUTTED:
-    default:
-    { cref = CTX_PTR;
-
-      if ( cref )
-      { def  = getProcDefinition(cref->clause->procedure);
-	leaveDefinition(def);
-      }
+      chp = CTX_PTR;
+      proc = chp->cref->clause->procedure;
+      def  = getProcDefinition(proc);
+      leaveDefinition(def);
+      freeHeap(chp, sizeof(*chp));
       succeed;
-    }
+    default:
+      assert(0);
   }
 
   if ( def->functor->arity > 0 )
@@ -4434,10 +4434,11 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   } else
     argv = NULL;
 
-  if ( !cref )
-  { cref = firstClause(argv, fr, def, &next PASS_LD);
+  if ( !chp )
+  { chp = &chp_buf;
+    cref = firstClause(argv, fr, def, chp PASS_LD);
   } else
-  { cref = nextClause(cref, argv, fr, def, &next PASS_LD);
+  { cref = nextClause(chp, argv, fr, def PASS_LD);
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
@@ -4450,12 +4451,16 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       if ( unify_head(head, h PASS_LD) &&
 	   PL_unify(b, body) &&
 	   (!ref || PL_unify_clref(ref, cref->clause)) )
-      { if ( !next )
+      { if ( !chp->cref )
 	{ leaveDefinition(def);
 	  succeed;
 	}
+	if ( chp == &chp_buf )
+	{ chp = allocHeapOrHalt(sizeof(*chp));
+	  *chp = chp_buf;
+	}
 
-	ForeignRedoPtr(next);
+	ForeignRedoPtr(chp);
       } else
       { PL_put_variable(h);		/* otherwise they point into */
 	PL_put_variable(b);		/* term, which is removed */
@@ -4468,9 +4473,11 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       deRef(argv);
       argv = argTermP(*argv, 0);
     }
-    cref = nextClause(next, argv, fr, def, &next PASS_LD);
+    cref = nextClause(chp, argv, fr, def PASS_LD);
   }
 
+  if ( chp != &chp_buf )
+    freeHeap(chp, sizeof(*chp));
   leaveDefinition(def);
   fail;
 }

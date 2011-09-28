@@ -1853,7 +1853,7 @@ pl_require(term_t pred)
 
 typedef struct
 { Definition def;
-  ClauseRef  cref;
+  struct clause_choice chp;
 } retract_context;
 
 static
@@ -1863,6 +1863,7 @@ PRED_IMPL("retract", 1, retract,
   term_t term = A1;
   retract_context ctxbuf;
   retract_context *ctx;
+  ClauseRef cref;
 
   if ( CTX_CNTRL == FRG_CUTTED )
   { ctx = CTX_PTR;
@@ -1872,12 +1873,11 @@ PRED_IMPL("retract", 1, retract,
 
     return TRUE;
   } else
-  { Module m = (Module) NULL;
+  { Module m = NULL;
     term_t cl = PL_new_term_ref();
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
     Word argv;
-    ClauseRef next;
     atom_t b;
     fid_t fid;
 
@@ -1898,7 +1898,6 @@ PRED_IMPL("retract", 1, retract,
     { functor_t fd;
       Procedure proc;
       Definition def;
-      ClauseRef cref;
 
       if ( !PL_get_functor(head, &fd) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
@@ -1926,7 +1925,7 @@ PRED_IMPL("retract", 1, retract,
 
       startCritical;
       enterDefinition(def);			/* reference the predicate */
-      cref = firstClause(argv, environment_frame, def, &next PASS_LD);
+      cref = firstClause(argv, environment_frame, def, &ctxbuf.chp PASS_LD);
       if ( !cref )
       { leaveDefinition(def);
 	endCritical;
@@ -1935,11 +1934,9 @@ PRED_IMPL("retract", 1, retract,
 
       ctx = &ctxbuf;
       ctx->def = def;
-      ctx->cref = cref;
     } else
     { ctx  = CTX_PTR;
-      ctx->cref = nextClause(ctx->cref, argv, environment_frame,
-			     ctx->def, &next PASS_LD);
+      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def PASS_LD);
       startCritical;
     }
 
@@ -1954,9 +1951,9 @@ PRED_IMPL("retract", 1, retract,
 
     /* ctx->cref is the first candidate; next is the next one */
 
-    while( ctx->cref )
-    { if ( decompile(ctx->cref->clause, cl, 0) )
-      { retractClauseDefinition(ctx->def, ctx->cref->clause PASS_LD);
+    while( cref )
+    { if ( decompile(cref->clause, cl, 0) )
+      { retractClauseDefinition(ctx->def, cref->clause PASS_LD);
 
 	if ( !endCritical )
 	{ leaveDefinition(ctx->def);
@@ -1967,7 +1964,7 @@ PRED_IMPL("retract", 1, retract,
 	  return FALSE;
 	}
 
-	if ( !next )			/* deterministic last one */
+	if ( !ctx->chp.cref )		/* deterministic last one */
 	{ leaveDefinition(ctx->def);
 	  if ( ctx != &ctxbuf )
 	    freeHeap(ctx, sizeof(*ctx));
@@ -1979,7 +1976,6 @@ PRED_IMPL("retract", 1, retract,
 	{ ctx = allocHeapOrHalt(sizeof(*ctx));
 	  *ctx = ctxbuf;
 	}
-	ctx->cref = next;
 
 	PL_close_foreign_frame(fid);
 	ForeignRedoPtr(ctx);
@@ -1987,8 +1983,7 @@ PRED_IMPL("retract", 1, retract,
 
       PL_rewind_foreign_frame(fid);
 
-      ctx->cref = nextClause(next, argv, environment_frame,
-			     ctx->def, &next PASS_LD);
+      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def PASS_LD);
     }
 
     PL_close_foreign_frame(fid);
@@ -2033,7 +2028,6 @@ pl_retractall(term_t head)
   Procedure proc;
   Definition def;
   ClauseRef cref;
-  ClauseRef next;
   Word argv;
   int allvars = TRUE;
   fid_t fid;
@@ -2077,7 +2071,9 @@ pl_retractall(term_t head)
       }
     }
   } else
-  { if ( !(cref = firstClause(argv, environment_frame, def, &next PASS_LD)) )
+  { struct clause_choice chp;
+
+    if ( !(cref = firstClause(argv, environment_frame, def, &chp PASS_LD)) )
     { int rc = endCritical;
       leaveDefinition(def);
       return rc;
@@ -2089,7 +2085,7 @@ pl_retractall(term_t head)
 
       PL_rewind_foreign_frame(fid);
 
-      if ( !next )
+      if ( !chp.cref )
       { leaveDefinition(def);
 	return endCritical;
       }
@@ -2099,7 +2095,7 @@ pl_retractall(term_t head)
 	argv = argTermP(*argv, 0);
       }
 
-      cref = nextClause(next, argv, environment_frame, def, &next PASS_LD);
+      cref = nextClause(&chp, argv, environment_frame, def PASS_LD);
     }
   }
   leaveDefinition(def);

@@ -1780,7 +1780,7 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
       case CHP_CLAUSE:
       { LocalFrame fr = ch->frame;
 
-	mark_alt_clauses(fr, ch->value.clause PASS_LD);
+	mark_alt_clauses(fr, ch->value.clause.cref PASS_LD);
         if ( false(fr, FR_MARKED) )
 	{ set(fr, FR_MARKED);
 	  COUNT(marked_envs);

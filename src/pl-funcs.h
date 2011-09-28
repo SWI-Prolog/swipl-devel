@@ -199,9 +199,9 @@ COMMON(word)		parseSaveProgramOptions(term_t args,
 /* pl-index.c */
 COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
-				    ClauseRef *next ARG_LD);
-COMMON(ClauseRef)	nextClause(ClauseRef cl, Word argv, LocalFrame fr,
-				   Definition def, ClauseRef *next ARG_LD);
+				    ClauseChoice next ARG_LD);
+COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
+				   Definition def ARG_LD);
 COMMON(bool)		hashDefinition(Definition def, int arg, int buckets);
 COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
 					 int where ARG_LD);
