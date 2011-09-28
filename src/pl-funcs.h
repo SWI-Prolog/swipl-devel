@@ -209,7 +209,7 @@ COMMON(word)		pl_hash(term_t pred);
 COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
 					 int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
-COMMON(void)		gcClauseIndex(ClauseIndex ci ARG_LD);
+COMMON(void)		cleanClauseIndex(ClauseIndex ci, ClauseRef cls ARG_LD);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		markDirtyClauseIndex(ClauseIndex ci, Clause cl);
 
@@ -492,7 +492,6 @@ COMMON(int)		reindexDefinition(Definition def);
 COMMON(int)		redefineProcedure(Procedure proc, SourceFile sf,
 					  unsigned int suppress);
 COMMON(void)		startConsult(SourceFile f);
-COMMON(void)		indexDefinition(Definition def, long pattern);
 COMMON(word)		pl_index(term_t pred);
 COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
 COMMON(SourceFile)	indexToSourceFile(int index);

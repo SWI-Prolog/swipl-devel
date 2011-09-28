@@ -148,12 +148,20 @@ resetProcedure(Procedure proc, bool isnew)
   def->number_of_clauses = 0;
 
   if ( isnew )
-  { def->indexPattern = (0x0 | NEED_REINDEX);
+  { ClauseIndex ci;
+
+    def->indexPattern = (0x0 | NEED_REINDEX);
     set(def, AUTOINDEX);
 
-    if ( def->hash_info )
-    { unallocClauseIndexTable(def->hash_info);
+    if ( (ci=def->hash_info) )
+    { ClauseIndex next;
+
       def->hash_info = NULL;
+      for (ci=def->hash_info; ci; ci=next)
+      { next = ci->next;
+	unallocClauseIndexTable(ci);
+	def->hash_info = NULL;
+      }
     }
   }
 
@@ -951,8 +959,13 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
       def->erased_clauses++;
     }
   }
-  if ( def->hash_info && deleted )
-    def->hash_info->alldirty = TRUE;
+
+  if ( deleted )
+  { ClauseIndex ci;
+
+    for(ci=def->hash_info; ci; ci=ci->next)
+      ci->alldirty = TRUE;
+  }
 
   return deleted;
 }
@@ -969,10 +982,7 @@ unlinkClause(Definition def, Clause clause ARG_LD)
 { ClauseRef prev = NULL;
   ClauseRef c;
 
-  startCritical;
-
-  if ( def->hash_info )
-    delClauseFromIndex(def, clause);
+  delClauseFromIndex(def, clause);
 
   for(c = def->definition.clauses; c; prev = c, c = c->next)
   { if ( c->clause == clause )
@@ -994,7 +1004,7 @@ unlinkClause(Definition def, Clause clause ARG_LD)
     }
   }
 
-  return endCritical;
+  return TRUE;
 }
 
 
@@ -1019,11 +1029,17 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
   if ( def->references ||
        def->number_of_clauses > 16 )
   { if ( def->hash_info )
-    { markDirtyClauseIndex(def->hash_info, clause);
-      if ( false(def, NEEDSREHASH) &&
-	   def->hash_info->size * 4 < def->hash_info->buckets )
-      { set(def, NEEDSREHASH);
+    { ClauseIndex ci;
+      int needsrehash = true(def, NEEDSREHASH);
+
+      for(ci=def->hash_info; ci; ci=ci->next)
+      { markDirtyClauseIndex(ci, clause);
+	if ( !needsrehash && ci->size * 4 < ci->buckets )
+	  needsrehash = TRUE;
       }
+
+      if ( needsrehash )
+	set(def, NEEDSREHASH);
     }
     def->number_of_clauses--;
     def->erased_clauses++;
@@ -1086,7 +1102,7 @@ freeClause(Clause c ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-gcClausesDefinition()
+cleanDefinition()
     This function has two tasks. If the predicates needs to be rehashed,
     this is done and all erased clauses from the predicate are returned
     as a linked list.
@@ -1098,65 +1114,47 @@ gcClausesDefinition()
 static ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
 { GET_LD
-  ClauseRef cref, prev = NULL;
-  int rehash = 0;
+  ClauseIndex ci;
+
+  DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
+
+  if ( true(def, NEEDSCLAUSEGC) )
+  { ClauseRef cref, next, prev = NULL;
 #if O_DEBUG
-  int left = 0, removed = 0;
+    int left = 0, removed = 0;
 #endif
+    for(cref = def->definition.clauses; cref && def->erased_clauses; cref=next)
+    { next = cref->next;
 
-  DEBUG(2, Sdprintf("gcClausesDefinition(%s) --> ", predicateName(def)));
+      if ( true(cref->clause, ERASED) )
+      { if ( !prev )
+	{ def->definition.clauses = cref->next;
+	  if ( !cref->next )
+	    def->lastClause = NULL;
+	} else
+	{ prev->next = cref->next;
+	  if ( cref->next == NULL)
+	    def->lastClause = prev;
+	}
 
-  cref = def->definition.clauses;
+	DEBUG(2, removed++);
+	def->erased_clauses--;
 
-  if ( def->hash_info )
-  { if ( false(def, NEEDSREHASH) )
-      gcClauseIndex(def->hash_info PASS_LD);
-    else
-    { rehash = def->number_of_clauses * 2;
-      unallocClauseIndexTable(def->hash_info);
-      def->hash_info = NULL;
-    }
-  }
-
-  while( cref && def->erased_clauses )
-  { if ( true(cref->clause, ERASED) )
-    { ClauseRef c = cref;
-
-					/* Unlink from definition */
-      cref = cref->next;
-      if ( !prev )
-      { def->definition.clauses = c->next;
-	if ( !c->next )
-	  def->lastClause = NULL;
+					  /* re-link into garbage chain */
+	cref->next = garbage;
+	garbage = cref;
       } else
-      { prev->next = c->next;
-	if ( c->next == NULL)
-	  def->lastClause = prev;
+      { prev = cref;
+	DEBUG(2, left++);
       }
-
-      DEBUG(2, removed++);
-      def->erased_clauses--;
-
-					/* re-link into garbage chain */
-      c->next = garbage;
-      garbage = c;
-    } else
-    { prev = cref;
-      cref = cref->next;
-      DEBUG(2, left++);
     }
+
+    DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
+    assert(def->erased_clauses == 0);
   }
 
-  DEBUG(2, if ( def->erased_clauses != 0 )
-	     Sdprintf("*** %s has %d erased claused\n",
-		      predicateName(def), def->erased_clauses));
-
-  assert(def->erased_clauses == 0);
-
-  DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
-
-  if ( rehash )
-    hashDefinition(def, 1, rehash);	/* TBD: arg */
+  for(ci=def->hash_info; ci; ci=ci->next)
+    cleanClauseIndex(ci, def->definition.clauses PASS_LD);
 
   clear(def, NEEDSCLAUSEGC|NEEDSREHASH);
 
@@ -1256,7 +1254,13 @@ destroyDefinition(Definition def)
 { GET_LD
 
   if ( def->hash_info )
-    unallocClauseIndexTable(def->hash_info);
+  { ClauseIndex ci, next;
+
+    for(ci=def->hash_info; ci; ci=next)
+    { next = ci->next;
+      unallocClauseIndexTable(ci);
+    }
+  }
   if ( def->definition.clauses )
     freeClauseList(def->definition.clauses);
 
@@ -1604,7 +1608,7 @@ pl_check_definition(term_t spec)
   int nclauses = 0;
   int nerased = 0;
   int nindexable = 0;
-
+  ClauseIndex ci;
   ClauseRef cref;
 
   if ( !get_procedure(spec, &proc, 0, GP_FIND) )
@@ -1630,9 +1634,9 @@ pl_check_definition(term_t spec)
     Sdprintf("%s has %d erased clauses, claims %d\n",
 	     predicateName(def), nerased, def->erased_clauses);
 
-  if ( def->hash_info )
-  { if ( def->hash_info->size != nindexable )
-      Sdprintf("%s has inconsistent def->hash_info->size",
+  for ( ci=def->hash_info; ci; ci=ci->next )
+  { if ( ci->size != nindexable )
+      Sdprintf("%s has inconsistent clause index->size",
 	      predicateName(def));
   }
 
@@ -2243,8 +2247,6 @@ pl_get_predicate_attribute(term_t pred,
       fail;
   } else if ( key == ATOM_foreign )
   { return PL_unify_integer(value, true(def, FOREIGN) ? 1 : 0);
-  } else if ( key == ATOM_hashed )
-  { return PL_unify_integer(value, def->hash_info?def->hash_info->buckets:0);
   } else if ( key == ATOM_references )
   { return PL_unify_integer(value, def->references);
   } else if ( key == ATOM_number_of_clauses )
@@ -2566,25 +2568,6 @@ reindexDefinition(Definition def)
   UNLOCKDEF(def);
 
   return TRUE;
-}
-
-
-/* MT: Definition is locked by caller
-*/
-
-void
-indexDefinition(Definition def, long pattern)
-{ clear(def, AUTOINDEX);
-
-  if ( pattern != 0x1L &&
-       true(def, DYNAMIC) && def->references == 0 )
-  { if ( def->hash_info )
-    { unallocClauseIndexTable(def->hash_info);
-      def->hash_info = NULL;
-    }
-  }
-
-  def->indexPattern = (pattern | NEED_REINDEX);
 }
 
 
@@ -3186,28 +3169,32 @@ listGenerations(Definition def)
   }
 
   if ( def->hash_info )
-  { int i;
+  { ClauseIndex ci;
 
-    Sdprintf("Hash index (%s, %s)\n",
-	     true(def, NEEDSREHASH) ? "needs rehash" : "clean",
-	     def->hash_info->alldirty ? "dirty" : "clean");
+    for ( ci=def->hash_info; ci; ci=ci->next )
+    { int i;
 
-    for(i=0; i<def->hash_info->buckets; i++)
-    { if ( !def->hash_info->entries[i].head &&
-	   !def->hash_info->entries[i].dirty )
-	continue;
+      Sdprintf("Hash index for arg %d (%s, %s)\n", ci->arg,
+	       true(def, NEEDSREHASH) ? "needs rehash" : "clean",
+	       ci->alldirty ? "dirty" : "clean");
 
-      Sdprintf("\nClauses at i = %d, dirty = %d:\n",
-	       i, def->hash_info->entries[i].dirty);
+      for(i=0; i<ci->buckets; i++)
+      { if ( !ci->entries[i].head &&
+	     !ci->entries[i].dirty )
+	  continue;
 
-      for(cl=def->hash_info->entries[i].head; cl; cl=cl->next)
-      { Clause clause = cl->clause;
+	Sdprintf("\nClauses at i = %d, dirty = %d:\n",
+		 i, ci->entries[i].dirty);
 
-	Sdprintf("%p: %8u-%10u %s\n",
-		 clause,
-		 clause->generation.created,
-		 clause->generation.erased,
-		 visibleClause(clause, gen) ? "ok" : "erased");
+	for(cl=ci->entries[i].head; cl; cl=cl->next)
+	{ Clause clause = cl->clause;
+
+	  Sdprintf("%p: %8u-%10u %s\n",
+		   clause,
+		   clause->generation.created,
+		   clause->generation.erased,
+		   visibleClause(clause, gen) ? "ok" : "erased");
+	}
       }
     }
   }
@@ -3218,6 +3205,7 @@ void
 checkDefinition(Definition def)
 { unsigned int nc, indexed = 0;
   ClauseRef cref;
+  ClauseIndex ci;
 
   for(nc=0, cref = def->definition.clauses; cref; cref=cref->next)
   { Clause clause = cref->clause;
@@ -3233,12 +3221,12 @@ checkDefinition(Definition def)
     pl_break();
   }
 
-  if ( def->hash_info )
+  for ( ci=def->hash_info; ci; ci=ci->next )
   { int i;
 
     nc = 0;
-    for(i=0; i<def->hash_info->buckets; i++)
-    { for(cref=def->hash_info->entries[i].head; cref; cref=cref->next)
+    for(i=0; i<ci->buckets; i++)
+    { for(cref=ci->entries[i].head; cref; cref=cref->next)
       { Clause clause = cref->clause;
 
 	if ( false(clause, ERASED) )

@@ -283,13 +283,12 @@ newClauseIndexTable(int arg, int buckets)
 }
 
 
-void
-unallocClauseIndexTable(ClauseIndex ci)
-{ GET_LD
-  ClauseChain ch;
-  int buckets = ci->buckets;
+static void
+unallocClauseIndexTableEntries(ClauseChain entries, int buckets ARG_LD)
+{ ClauseChain ch;
+  int i;
 
-  for(ch = ci->entries; buckets; buckets--, ch++)
+  for(ch=entries,i=buckets; --i>=0; ch++)
   { ClauseRef cr, next;
 
     for(cr = ch->head; cr; cr = next)
@@ -298,7 +297,14 @@ unallocClauseIndexTable(ClauseIndex ci)
     }
   }
 
-  freeHeap(ci->entries, ci->buckets * sizeof(struct clause_chain));
+  freeHeap(entries, buckets * sizeof(struct clause_chain));
+}
+
+void
+unallocClauseIndexTable(ClauseIndex ci)
+{ GET_LD
+
+  unallocClauseIndexTableEntries(ci->entries, ci->buckets PASS_LD);
   freeHeap(ci, sizeof(struct clause_index));
 }
 
@@ -343,6 +349,36 @@ deleteClauseChain(ClauseChain ch, Clause clause)
 
 
 static int
+resizeClauseIndex(ClauseIndex ci, ClauseRef cref, int newbuckets ARG_LD)
+{ size_t bytes = sizeof(struct clause_chain) * newbuckets;
+  ClauseChain chains = allocHeapOrHalt(bytes);
+  ClauseChain oldentries = ci->entries;
+  int oldbuckets = ci->buckets;
+
+  memset(chains, 0, bytes);
+  for(; cref; cref=cref->next)
+  { Clause clause = cref->clause;
+    word key;
+
+    if ( argKey(clause->codes, FALSE, &key) )
+    { int hi = hashIndex(key, ci->buckets);
+      appendClauseChain(&chains[hi], clause, key, CL_END PASS_LD);
+    } else
+    { int hi;
+
+      for(hi=0; hi<newbuckets; hi++)
+	appendClauseChain(&chains[hi], clause, 0, CL_END PASS_LD);
+    }
+  }
+  ci->entries = chains;
+  ci->buckets = newbuckets;
+  unallocClauseIndexTableEntries(oldentries, oldbuckets PASS_LD);
+
+  return TRUE;
+}
+
+
+static int
 gcClauseChain(ClauseChain ch, int dirty ARG_LD)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
@@ -380,9 +416,7 @@ gcClauseChain(ClauseChain ch, int dirty ARG_LD)
 }
 
 
-#define INFINT (~(1<<(INTBITSIZE-1)))
-
-void
+static void
 gcClauseIndex(ClauseIndex ci ARG_LD)
 { ClauseChain ch = ci->entries;
   int n = ci->buckets;
@@ -395,6 +429,20 @@ gcClauseIndex(ClauseIndex ci ARG_LD)
     { if ( ch->dirty )
 	ci->size -= gcClauseChain(ch, (int)ch->dirty PASS_LD);
     }
+  }
+}
+
+
+void
+cleanClauseIndex(ClauseIndex ci, ClauseRef clauses ARG_LD)
+{ gcClauseIndex(ci PASS_LD);
+  if ( ci->size > ci->buckets * 2 )
+  { int newbuckets = ci->buckets;
+
+    while(ci->size > newbuckets)
+      newbuckets *= 2;
+
+    resizeClauseIndex(ci, clauses, newbuckets PASS_LD);
   }
 }
 
@@ -442,29 +490,32 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
 
 void
 delClauseFromIndex(Definition def, Clause cl)
-{ ClauseIndex ci = def->hash_info;
-  ClauseChain ch = ci->entries;
-  word key;
+{ ClauseIndex ci;
 
-  argKey(cl->codes, FALSE, &key);	/* TBD: this is only arg1 */
+  for(ci=def->hash_info; ci; ci=ci->next)
+  { ClauseChain ch = ci->entries;
+    word key;
 
-  if ( key == 0 )			/* a non-indexable field */
-  { int n = ci->buckets;
+    argKey(cl->codes, FALSE, &key);	/* TBD: this is only arg1 */
 
-    for(; n; n--, ch++)
-      deleteClauseChain(ch, cl);
-  } else
-  { int hi = hashIndex(key, ci->buckets);
+    if ( key == 0 )			/* a non-indexable field */
+    { int n = ci->buckets;
 
-    deleteClauseChain(&ch[hi], cl);
-    ci->size--;
-    if ( false(def, NEEDSREHASH) && ci->size*4 < ci->buckets )
-    { set(def, NEEDSREHASH);
-      if ( true(def, DYNAMIC) && def->references == 0 )
-      { DEBUG(0, Sdprintf("Should clean %s\n", predicateName(def)));
-        /* TBD: need to clear right away if dynamic and not referenced */
-        /* see assertProcedure() for similar case.  To do that locking */
-        /* needs to be sorted out */
+      for(; n; n--, ch++)
+	deleteClauseChain(ch, cl);
+    } else
+    { int hi = hashIndex(key, ci->buckets);
+
+      deleteClauseChain(&ch[hi], cl);
+      ci->size--;
+      if ( false(def, NEEDSREHASH) && ci->size*4 < ci->buckets )
+      { set(def, NEEDSREHASH);
+	if ( true(def, DYNAMIC) && def->references == 0 )
+	{ DEBUG(0, Sdprintf("Should clean %s\n", predicateName(def)));
+	  /* TBD: need to clear right away if dynamic and not referenced */
+	  /* see assertProcedure() for similar case.  To do that locking */
+	  /* needs to be sorted out */
+	}
       }
     }
   }
@@ -519,8 +570,6 @@ pl_hash(term_t pred)
 		      ATOM_arity);
 
     LOCKDEF(def);
-    indexDefinition(def, 0x1L);		/* index in 1st argument */
-
     minsize = def->number_of_clauses / 4,
     size = 64;
     while (size < minsize)
