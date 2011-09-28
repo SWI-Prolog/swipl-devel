@@ -3089,10 +3089,15 @@ argKey(Code PC, int constonly, word *key)
         succeed;
       case H_INT64:			/* only on 32-bit hardware! */
 	if ( !constonly )
-	{ *key = (word)PC[0] ^ (word)PC[1];
+	{ word k = (word)PC[0] ^ (word)PC[1];
+	  if ( !k )
+	    k++;
+	  *key = k;
           succeed;
 	} else
+	{ *key = 0;
 	  fail;
+	}
       case H_INTEGER:
 	if ( !constonly )
 	{ word k;
@@ -3109,7 +3114,9 @@ argKey(Code PC, int constonly, word *key)
 	  *key = k;
 	  succeed;
 	} else
+	{ *key = 0;
 	  fail;
+	}
       case H_FLOAT:			/* tbd */
       if ( !constonly )
       { word k;
@@ -3139,6 +3146,7 @@ argKey(Code PC, int constonly, word *key)
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+	*key = 0;
 	fail;
       case I_NOP:
 	continue;
