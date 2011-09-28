@@ -754,6 +754,7 @@ newClauseRef(Clause clause ARG_LD)
 
   cref->clause = clause;
   cref->next   = NULL;
+  argKey(clause->codes, FALSE, &cref->key); /* TBD: This is only arg1 */
 
   return cref;
 }
@@ -813,11 +814,6 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 
   if ( def->hash_info )
   { assert(!(def->indexPattern & NEED_REINDEX));
-
-    DEBUG(3,
-	  if ( !clause->index.varmask )
-	    Sdprintf("Adding non-indexed clause to %s\n", predicateName(def));
-	 );
 
     addClauseToIndex(def, clause, where PASS_LD);
     if ( def->hash_info->size /2 > def->hash_info->buckets )
@@ -1614,7 +1610,7 @@ pl_check_definition(term_t spec)
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { Clause clause = cref->clause;
 
-    if ( clause->index.varmask != 0 )
+    if ( cref->key == 0 )
       nindexable++;
 
     if ( false(clause, ERASED) )
@@ -2554,13 +2550,6 @@ reindexDefinition(Definition def)
        canindex > 5 && cannotindex <= 2 )
     do_hash = canindex / 2;
 
-  for(cref = def->definition.clauses; cref; cref = cref->next)
-  { if ( !reindexClause(cref->clause, def, pattern) )
-    { UNLOCKDEF(def);
-      return FALSE;			/* no space; what to do? */
-    }
-  }
-
   if ( do_hash )
   { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
     hashDefinition(def, do_hash);
@@ -3221,13 +3210,13 @@ listGenerations(Definition def)
 void
 checkDefinition(Definition def)
 { unsigned int nc, indexed = 0;
-  ClauseRef cl;
+  ClauseRef cref;
 
-  for(nc=0, cl = def->definition.clauses; cl; cl=cl->next)
-  { Clause clause = cl->clause;
+  for(nc=0, cref = def->definition.clauses; cref; cref=cref->next)
+  { Clause clause = cref->clause;
 
     if ( false(clause, ERASED) )
-    { if ( clause->index.varmask )
+    { if ( cref->key )
 	indexed++;
       nc++;
     }
@@ -3242,11 +3231,11 @@ checkDefinition(Definition def)
 
     nc = 0;
     for(i=0; i<def->hash_info->buckets; i++)
-    { for(cl=def->hash_info->entries[i].head; cl; cl=cl->next)
-      { Clause clause = cl->clause;
+    { for(cref=def->hash_info->entries[i].head; cref; cref=cref->next)
+      { Clause clause = cref->clause;
 
 	if ( false(clause, ERASED) )
-	{ if ( clause->index.varmask )
+	{ if ( cref->key == 0 )
 	    nc++;
 	}
       }

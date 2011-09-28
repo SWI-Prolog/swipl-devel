@@ -2784,15 +2784,6 @@ assert_term(term_t term, int where, SourceLoc loc ARG_LD)
   DEBUG(2, Sdprintf("ok\n"));
   def = getProcDefinition(proc);
 
-  if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )
-  { getIndex(argTermP(*h, 0),
-	     def->indexPattern,
-	     &clause->index
-	     PASS_LD);
-  } else
-  { clause->index.key = 0;
-  }
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If loc is defined, we are called from record_clause/2.  This code takes
 care of reconsult, redefinition, etc.

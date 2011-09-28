@@ -198,12 +198,12 @@ COMMON(word)		parseSaveProgramOptions(term_t args,
 
 /* pl-index.c */
 COMMON(void)		getIndex(Word argv, unsigned long pattern,
-				 struct index * ARG_LD);
+				 word *key ARG_LD);
 COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
-			    ClauseRef *next ARG_LD);
+				    ClauseRef *next ARG_LD);
 COMMON(ClauseRef)	findClause(ClauseRef cl, Word argv, LocalFrame fr,
-			   Definition def, ClauseRef *next ARG_LD);
+				   Definition def, ClauseRef *next ARG_LD);
 COMMON(bool)		reindexClause(Clause clause, Definition def,
 				      unsigned long pattern);
 COMMON(bool)		hashDefinition(Definition def, int buckets);

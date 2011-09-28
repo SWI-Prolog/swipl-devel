@@ -116,10 +116,10 @@ indexOfWord(word w ARG_LD)
 
 
 void
-getIndex(Word argv, unsigned long pattern, struct index *index
+getIndex(Word argv, unsigned long pattern, word *index
 	 ARG_LD)
 { if ( pattern == 0x1L )
-  { index->key = indexOfWord(*argv PASS_LD);
+  { *index = indexOfWord(*argv PASS_LD);
 
     return;
   } else
@@ -143,17 +143,14 @@ static inline ClauseRef
 nextClauseArg1(ClauseRef cref, uintptr_t generation,
 	       ClauseRef *next, word key)
 { for(;cref ; cref = cref->next)
-  { Clause clause = cref->clause;
-
-    if ( (!clause->index.key || key == clause->index.key) &&
-	 visibleClause(clause, generation))
+  { if ( (!cref->key || key == cref->key) &&
+	 visibleClause(cref->clause, generation))
     { ClauseRef result = cref;
       int maxsearch = MAXSEARCH;
 
       for( cref = cref->next; cref; cref = cref->next )
-      { clause = cref->clause;
-	if ( ((!clause->index.key || key == clause->index.key) &&
-	      visibleClause(clause, generation)) ||
+      { if ( ((!cref->key || key == cref->key) &&
+	      visibleClause(cref->clause, generation)) ||
 	     --maxsearch == 0 )
 	{ *next = cref;
 
@@ -252,35 +249,6 @@ findClause(ClauseRef cref, Word argv,
   }
 
 #undef gen
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Recalculate the index of  a  clause  after  the  index  pattern  on  the
-predicate  has been changed.  The head of the clause is decompiled.  The
-resulting term is simply discarded as it cannot have links to any  other
-part of the stacks (e.g. backtrailing is not needed).
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-bool
-reindexClause(Clause clause, Definition def, unsigned long pattern)
-{ if ( pattern == 0x0 )
-    succeed;
-  if ( false(clause, ERASED) )
-  { if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
-    { word key;
-
-      if ( argKey(clause->codes, FALSE, &key) )
-      { clause->index.key     = key;
-      } else
-      { clause->index.key     = 0L;
-      }
-    } else
-    { assert(0);
-    }
-  }
-
-  succeed;
 }
 
 
@@ -423,7 +391,7 @@ gcClauseIndex(ClauseIndex ci ARG_LD)
   } else
   { for(; n; n--, ch++)
     { if ( ch->dirty )
-	ci->size -= gcClauseChain(ch, ch->dirty PASS_LD);
+	ci->size -= gcClauseChain(ch, (int)ch->dirty PASS_LD);
     }
   }
 }
@@ -431,10 +399,14 @@ gcClauseIndex(ClauseIndex ci ARG_LD)
 
 void
 markDirtyClauseIndex(ClauseIndex ci, Clause cl)
-{ if ( cl->index.key == 0 )		/* not indexed */
+{ word key;
+
+  argKey(cl->codes, FALSE, &key);	/* TBD: this is just arg1 */
+
+  if ( key == 0 )			/* not indexed */
   { ci->alldirty = TRUE;
   } else
-  { int hi = hashIndex(cl->index.key, ci->buckets);
+  { int hi = hashIndex(key, ci->buckets);
     ci->entries[hi].dirty++;
   }
 }
@@ -446,8 +418,11 @@ void
 addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
 { ClauseIndex ci = def->hash_info;
   ClauseChain ch = ci->entries;
+  word key;
 
-  if ( cl->index.key == 0 )		/* a non-indexable field */
+  argKey(cl->codes, FALSE, &key);	/* TBD: this is only arg1 */
+
+  if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
 
     SECURE({ word k;
@@ -462,7 +437,7 @@ addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
     for(; n; n--, ch++)
       appendClauseChain(ch, cl, where PASS_LD);
   } else
-  { int hi = hashIndex(cl->index.key, ci->buckets);
+  { int hi = hashIndex(key, ci->buckets);
 
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
     appendClauseChain(&ch[hi], cl, where PASS_LD);
@@ -475,14 +450,17 @@ void
 delClauseFromIndex(Definition def, Clause cl)
 { ClauseIndex ci = def->hash_info;
   ClauseChain ch = ci->entries;
+  word key;
 
-  if ( cl->index.key == 0 )		/* a non-indexable field */
+  argKey(cl->codes, FALSE, &key);	/* TBD: this is only arg1 */
+
+  if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
 
     for(; n; n--, ch++)
       deleteClauseChain(ch, cl);
   } else
-  { int hi = hashIndex(cl->index.key, ci->buckets);
+  { int hi = hashIndex(key, ci->buckets);
 
     deleteClauseChain(&ch[hi], cl);
     ci->size--;
@@ -550,16 +528,7 @@ pl_hash(term_t pred)
 					/* we cannot call this as it would */
 					/* deadlock */
     if ( def->indexPattern & NEED_REINDEX )
-    { ClauseRef cref;
-
-      for(cref = def->definition.clauses; cref; cref = cref->next)
-      { if ( !reindexClause(cref->clause, def, 0x1L) )
-	{ UNLOCKDEF(def);
-	  return FALSE;			/* No space; what to do? */
-	}
-      }
       def->indexPattern = 0x1L;
-    }
 
     hashDefinition(def, size);
     UNLOCKDEF(def);

@@ -1213,11 +1213,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	if ( skip )
 	  freeClause(clause PASS_LD);
 	else
-	{ if ( def->hash_info )
-	  { reindexClause(clause, def, 0x1L);
-	  }
 	  assertProcedure(proc, clause, CL_END PASS_LD);
-	}
       }
     }
   }

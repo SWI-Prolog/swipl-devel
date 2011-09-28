@@ -643,7 +643,6 @@ typedef struct fliFrame *	FliFrame;	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
 typedef struct gc_trail_entry *	GCTrailEntry;	/* Entry of trail stack (GC) */
 typedef struct mark		mark;		/* backtrack mark */
-typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
 typedef struct _varDef *	VarDef;		/* pl-comp.c */
 typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
@@ -1022,10 +1021,6 @@ extern Atom _PL_debug_atom_value(atom_t a);
 #define PL_unregister_atom(a)
 #endif
 
-struct index
-{ word		key;		/* key of index */
-};
-
 struct functorDef
 { FunctorDef	next;		/* next in chain */
   word		functor;	/* as appearing on the global stack */
@@ -1060,7 +1055,6 @@ to avoid problems for most platforms.
 
 struct clause
 { Procedure	procedure;		/* procedure we belong to */
-  struct index	index;			/* index key of clause */
 #ifdef O_LOGICAL_UPDATE
   struct
   { uintptr_t created;		/* Generation that created me */
@@ -1085,6 +1079,7 @@ struct clause
 struct clause_ref
 { Clause	clause;
   ClauseRef	next;
+  word		key;			/* Index key */
 };
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
@@ -1145,9 +1140,9 @@ struct procedure
 };
 
 struct clause_index
-{ int		buckets;		/* # entries */
-  int		size;			/* # elements (clauses) */
-  int		alldirty;		/* all chains need checked */
+{ unsigned int	buckets;		/* # entries */
+  unsigned	size : 31;		/* # elements (clauses) */
+  unsigned	alldirty : 1;		/* all chains need checked */
   ClauseChain	entries;		/* chains holding the clauses */
 };
 
