@@ -456,8 +456,6 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
 { ClauseChain ch = ci->entries;
   word key;
 
-  assert(ci->arg == 1);
-
   argKey(cl->codes, ci->arg-1, FALSE, &key);
 
   if ( key == 0 )			/* a non-indexable field */
