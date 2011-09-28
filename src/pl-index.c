@@ -154,9 +154,19 @@ nextClauseArg1(uintptr_t generation, ClauseChoice chp)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+firstClause() finds the first applicable   clause  and leave information
+for finding the next clause in chp.
+
+TBD:
+  - non-indexable predicates must use a different supervisor
+  - Predicates needing reindexing should use a different supervisor
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
+  ClauseIndex ci;
 
 #ifdef O_LOGICAL_UPDATE
 # define gen (fr->generation)
@@ -164,7 +174,18 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 # define gen 0L
 #endif
 
-again:
+  if ( def->indexPattern & NEED_REINDEX )
+    reindexDefinition(def);
+
+  for(ci=def->hash_info; ci; ci=ci->next)
+  { if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
+    { int hi = hashIndex(chp->key, def->hash_info->buckets);
+
+      chp->cref = def->hash_info->entries[hi].head;
+      return nextClauseArg1(gen, chp);
+    }
+  }
+
   if ( def->indexPattern == 0x0L )
   {
   noindex:
@@ -177,20 +198,11 @@ again:
     }
     return NULL;
   } else if ( def->indexPattern == 0x1L )
-  { if ( !(chp->key = indexOfWord(*argv PASS_LD)) )
+  { if ( !(chp->key = indexOfWord(argv[0] PASS_LD)) )
       goto noindex;
 
-    if ( def->hash_info )
-    { int hi = hashIndex(chp->key, def->hash_info->buckets);
-
-      chp->cref = def->hash_info->entries[hi].head;
-    } else
-      chp->cref = def->definition.clauses;
-
+    chp->cref = def->definition.clauses;
     return nextClauseArg1(gen, chp);
-  } else if ( def->indexPattern & NEED_REINDEX )
-  { reindexDefinition(def);
-    goto again;
   } else
   { assert(0);
   }
