@@ -361,7 +361,7 @@ resizeClauseIndex(ClauseIndex ci, ClauseRef cref, int newbuckets ARG_LD)
     word key;
 
     if ( argKey(clause->codes, FALSE, &key) )
-    { int hi = hashIndex(key, ci->buckets);
+    { int hi = hashIndex(key, newbuckets);
       appendClauseChain(&chains[hi], clause, key, CL_END PASS_LD);
     } else
     { int hi;
