@@ -204,11 +204,9 @@ COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseRef *next ARG_LD);
 COMMON(ClauseRef)	findClause(ClauseRef cl, Word argv, LocalFrame fr,
 				   Definition def, ClauseRef *next ARG_LD);
-COMMON(bool)		reindexClause(Clause clause, Definition def,
-				      unsigned long pattern);
-COMMON(bool)		hashDefinition(Definition def, int buckets);
+COMMON(bool)		hashDefinition(Definition def, int arg, int buckets);
 COMMON(word)		pl_hash(term_t pred);
-COMMON(void)		addClauseToIndex(Definition def, Clause cl,
+COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
 					 int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		gcClauseIndex(ClauseIndex ci ARG_LD);
@@ -477,7 +475,7 @@ COMMON(void)		freeClause(Clause c ARG_LD);
 COMMON(void)		unallocClause(Clause c ARG_LD);
 COMMON(void)		freeClauseRef(ClauseRef c ARG_LD);
 COMMON(void)		freeClauseList(ClauseRef cref);
-COMMON(ClauseRef)	newClauseRef(Clause cl ARG_LD);
+COMMON(ClauseRef)	newClauseRef(Clause cl, word key ARG_LD);
 COMMON(void)		gcClausesDefinition(Definition def);
 COMMON(void)		gcClausesDefinitionAndUnlock(Definition def);
 COMMON(void)		destroyDefinition(Definition def);

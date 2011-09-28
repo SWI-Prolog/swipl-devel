@@ -1141,8 +1141,10 @@ struct procedure
 
 struct clause_index
 { unsigned int	buckets;		/* # entries */
-  unsigned	size : 31;		/* # elements (clauses) */
+  unsigned int	size;			/* # elements (clauses) */
+  unsigned	arg : 10;		/* Indexed argument */
   unsigned	alldirty : 1;		/* all chains need checked */
+  ClauseIndex	next;			/* Next index */
   ClauseChain	entries;		/* chains holding the clauses */
 };
 

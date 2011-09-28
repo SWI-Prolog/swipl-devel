@@ -749,12 +749,12 @@ typeerror:
 
 
 ClauseRef
-newClauseRef(Clause clause ARG_LD)
+newClauseRef(Clause clause, word key ARG_LD)
 { ClauseRef cref = allocHeapOrHalt(sizeof(struct clause_ref));
 
   cref->clause = clause;
   cref->next   = NULL;
-  argKey(clause->codes, FALSE, &cref->key); /* TBD: This is only arg1 */
+  cref->key    = key;
 
   return cref;
 }
@@ -780,7 +780,12 @@ installed, causing further clauses to have no effect.
 ClauseRef
 assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 { Definition def = getProcDefinition(proc);
-  ClauseRef cref = newClauseRef(clause PASS_LD);
+  word key;
+  ClauseRef cref;
+  ClauseIndex ci;
+
+  argKey(clause->codes, FALSE, &key);
+  cref = newClauseRef(clause, key PASS_LD);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
     printMessage(ATOM_informational,
@@ -812,18 +817,20 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   if ( false(def, DYNAMIC) )		/* see (*) above */
     freeCodesDefinition(def);
 
-  if ( def->hash_info )
-  { assert(!(def->indexPattern & NEED_REINDEX));
+  if ( (ci=def->hash_info) )
+  { for(; ci; ci=ci->next)
+    { assert(!(def->indexPattern & NEED_REINDEX));
 
-    addClauseToIndex(def, clause, where PASS_LD);
-    if ( def->hash_info->size /2 > def->hash_info->buckets )
-    { if ( false(def, NEEDSREHASH) )
-      { set(def, NEEDSREHASH);
-	DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
-      }
-      if ( true(def, DYNAMIC) && def->references == 0 )
-      { gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
-	return cref;
+      addClauseToIndex(ci, clause, where PASS_LD);
+      if ( ci->size /2 > ci->buckets )
+      { if ( false(def, NEEDSREHASH) )
+	{ set(def, NEEDSREHASH);
+	  DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
+	}
+	if ( true(def, DYNAMIC) && def->references == 0 )
+	{ gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
+	  return cref;
+	}
       }
     }
   } else
@@ -1149,7 +1156,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
   DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
 
   if ( rehash )
-    hashDefinition(def, rehash);
+    hashDefinition(def, 1, rehash);	/* TBD: arg */
 
   clear(def, NEEDSCLAUSEGC|NEEDSREHASH);
 
@@ -2552,7 +2559,7 @@ reindexDefinition(Definition def)
 
   if ( do_hash )
   { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
-    hashDefinition(def, do_hash);
+    hashDefinition(def, 1, do_hash);	/* TBD: arg */
   }
 
   def->indexPattern = pattern;

@@ -257,7 +257,7 @@ findClause(ClauseRef cref, Word argv,
 		 *******************************/
 
 static ClauseIndex
-newClauseIndexTable(int buckets)
+newClauseIndexTable(int arg, int buckets)
 { GET_LD
   ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   ClauseChain ch;
@@ -270,6 +270,8 @@ newClauseIndexTable(int buckets)
   ci->buckets  = buckets;
   ci->size     = 0;
   ci->alldirty = FALSE;
+  ci->arg      = arg;
+  ci->next     = NULL;
   ci->entries  = allocHeapOrHalt(sizeof(struct clause_chain) * buckets);
 
   for(ch = ci->entries; buckets; buckets--, ch++)
@@ -302,8 +304,8 @@ unallocClauseIndexTable(ClauseIndex ci)
 
 
 static void
-appendClauseChain(ClauseChain ch, Clause cl, int where ARG_LD)
-{ ClauseRef cr = newClauseRef(cl PASS_LD);
+appendClauseChain(ClauseChain ch, Clause cl, word key, int where ARG_LD)
+{ ClauseRef cr = newClauseRef(cl, key PASS_LD);
 
   if ( !ch->tail )
   { ch->head = ch->tail = cr;
@@ -415,32 +417,24 @@ markDirtyClauseIndex(ClauseIndex ci, Clause cl)
 /* MT: caller must have predicate locked */
 
 void
-addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
-{ ClauseIndex ci = def->hash_info;
-  ClauseChain ch = ci->entries;
+addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
+{ ClauseChain ch = ci->entries;
   word key;
+
+  assert(ci->arg == 1);
 
   argKey(cl->codes, FALSE, &key);	/* TBD: this is only arg1 */
 
   if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
 
-    SECURE({ word k;
-	     assert(!argKey(cl->codes, FALSE, &k));
-	   });
-
-    DEBUG(1,
-	  if ( def->indexPattern == 0x1 )
-	    Sdprintf("*** Adding unindexed clause to index of %s\n",
-		     predicateName(def)));
-
     for(; n; n--, ch++)
-      appendClauseChain(ch, cl, where PASS_LD);
+      appendClauseChain(ch, cl, key, where PASS_LD);
   } else
   { int hi = hashIndex(key, ci->buckets);
 
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
-    appendClauseChain(&ch[hi], cl, where PASS_LD);
+    appendClauseChain(&ch[hi], cl, key, where PASS_LD);
     ci->size++;
   }
 }
@@ -481,21 +475,29 @@ delClauseFromIndex(Definition def, Clause cl)
 */
 
 bool
-hashDefinition(Definition def, int buckets)
+hashDefinition(Definition def, int arg, int buckets)
 { GET_LD
   ClauseRef cref;
+  ClauseIndex ci = newClauseIndexTable(arg, buckets);
+  ClauseIndex *cip;
 
-  DEBUG(2, Sdprintf("hashDefinition(%s, %d)\n", predicateName(def), buckets));
+  DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d)\n",
+		    predicateName(def), arg, buckets));
 
-  def->hash_info = newClauseIndexTable(buckets);
+  ci = newClauseIndexTable(arg, buckets);
 
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { if ( false(cref->clause, ERASED) )
-      addClauseToIndex(def, cref->clause, CL_END PASS_LD);
+      addClauseToIndex(ci, cref->clause, CL_END PASS_LD);
   }
 
-  succeed;
+  for(cip=&def->hash_info; *cip; cip = &(*cip)->next)
+    ;
+  *cip = ci;
+
+  return TRUE;
 }
+
 
 word
 pl_hash(term_t pred)
@@ -530,7 +532,7 @@ pl_hash(term_t pred)
     if ( def->indexPattern & NEED_REINDEX )
       def->indexPattern = 0x1L;
 
-    hashDefinition(def, size);
+    hashDefinition(def, 1, size);	/* TBD: other arguments */
     UNLOCKDEF(def);
 
     succeed;
