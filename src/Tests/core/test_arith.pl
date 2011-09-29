@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -38,7 +39,8 @@ test_arith :-
 		    gcd,
 		    shift,
 		    errors,
-		    ar_builtin
+		    ar_builtin,
+		    eval
 		  ]).
 
 :- begin_tests(div).
@@ -165,3 +167,13 @@ test(a_fc_minus) :-
 	a2.
 
 :- end_tests(ar_builtin).
+
+
+:- begin_tests(eval).
+
+test(ref, R==6) :-			% Bug#12
+	term_to_atom(Expr, 'X = 2+3, Y is X+1'),
+	call(Expr),
+	Expr = (_,R is _).
+
+:- end_tests(eval).
