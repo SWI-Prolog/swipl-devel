@@ -3059,7 +3059,7 @@ the skip is into the middle of a   H_VOID_N,  it returns the location of
 the H_VOID_N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Code
+Code
 skipArgs(Code PC, int skip)
 { int nested = 0;
   Code nextPC;

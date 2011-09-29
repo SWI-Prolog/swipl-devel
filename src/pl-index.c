@@ -517,6 +517,182 @@ hashDefinition(Definition def, int arg, int buckets)
   return TRUE;
 }
 
+		 /*******************************
+		 *	     ASSESSMENT		*
+		 *******************************/
+
+typedef struct hash_assessment
+{ int		arg;			/* arg for which to assess */
+  size_t	allocated;		/* allocated size of array */
+  size_t	size;			/* keys in array */
+  size_t	var_count;		/* # non-indexable cases */
+  word	       *keys;			/* tmp key-set */
+} hash_assessment;
+
+static int
+compar_keys(const void *p1, const void *p2)
+{ const word *k1 = p1;
+  const word *k2 = p2;
+  intptr_t d = (*k1-*k2);
+
+  return d < 0 ? -1 : d > 0 ? 1 : 0;
+}
+
+static void
+assess_remove_duplicates(hash_assessment *a)
+{ Word s = a->keys;
+  Word o = a->keys;
+  Word e = &s[a->size];
+  word c = 0;				/* invalid key */
+
+  qsort(a->keys, a->size, sizeof(word), compar_keys);
+  for( ; s<e; s++)
+  { if ( *s != c )
+      c = *o++ = *s;
+  }
+  a->size = o - a->keys;
+}
+
+static int
+assessAddKey(hash_assessment *a, word key)
+{ if ( a->size < a->allocated )
+  { a->keys[a->size++] = key;
+  } else
+  { if ( a->allocated == 0 )
+    { a->allocated = 512;
+      if ( !(a->keys = malloc(a->allocated*sizeof(*a->keys))) )
+	return FALSE;
+      a->keys[a->size++] = key;
+    } else
+    { assess_remove_duplicates(a);
+      if ( a->size*2 > a->allocated )
+      { word *new = realloc(a->keys, a->allocated*2*sizeof(*a->keys));
+	if ( !new )
+	  return FALSE;
+	a->keys = new;
+	a->allocated *= 2;
+      }
+      a->keys[a->size++] = key;
+    }
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bestHash() finds the best argument for creating a hash, given a concrete
+argument vector and a list of  clauses.   To  do  so, it establishes the
+following figures:
+
+  - Total number of non-erased clauses in cref
+  - For each indexable argument
+    - The count of distinct values
+    - The count of non-indexable clauses (i.e. clauses with a var
+      at that argument)
+
+Now, the hash-table has a space   that  is #clauses*(nvars+1), while the
+expected speedup is
+
+	       #clauses * #distinct
+	----------------------------------
+	#clauses - #var + #var * #distinct
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define ASSESS_BUFSIZE 10
+
+static int
+bestHash(Word av, ClauseRef cref)
+{ GET_LD
+  int i, arity = cref->clause->procedure->definition->functor->arity;
+  hash_assessment assess_buf[ASSESS_BUFSIZE];
+  hash_assessment *assessments = assess_buf;
+  int assess_allocated = ASSESS_BUFSIZE;
+  int assess_count = 0;
+  int clause_count = 0;
+  hash_assessment *a;
+  int best = -1;
+  float  best_speedup = 1.5;
+//size_t best_size;
+
+					/* Step 1: allocate assessments */
+  for(i=0; i<arity; i++)
+  { word k;
+
+    if ( (k=indexOfWord(av[i] PASS_LD)) )
+    { if ( assess_count	>= assess_allocated )
+      { size_t newbytes = sizeof(*assessments)*2*assess_allocated;
+
+	if ( assessments == assess_buf )
+	{ assessments = malloc(newbytes);
+	  memcpy(assessments, assess_buf, sizeof(assess_buf));
+	} else
+	  assessments = realloc(assessments, newbytes);
+      }
+      a = &assessments[assess_count++];
+      memset(a, 0, sizeof(*a));
+      a->arg = i;
+    }
+  }
+
+  if ( assess_count == 0 )
+    return -1;				/* no luck */
+
+					/* Step 2: assess */
+  for(; cref; cref=cref->next)
+  { Clause cl = cref->clause;
+    Code pc = cref->clause->codes;
+    int carg = 0;
+
+    if ( true(cl, ERASED) )
+      continue;
+
+    for(i=0, a=assessments; i<assess_count; i++, a++)
+    { word k;
+
+      if ( carg < a->arg )
+      { pc = skipArgs(pc, a->arg-carg);
+	carg = a->arg;
+      }
+      if ( argKey(pc, 0, FALSE, &k) )
+      { assessAddKey(a, k);
+      } else
+      { a->var_count++;
+      }
+    }
+
+    clause_count++;
+  }
+
+  for(i=0, a=assessments; i<assess_count; i++, a++)
+  { size_t space;
+    float speedup;
+
+    assess_remove_duplicates(a);
+    if ( a->keys )
+    { free(a->keys);			/* also implies a-size>0 */
+
+      space   = clause_count*a->var_count;
+      speedup =            (float)(clause_count*a->size) /
+	        (float)(clause_count - a->var_count + a->var_count*a->size);
+
+      if ( speedup > best_speedup )
+      { best = a->arg;
+	best_speedup = speedup;
+      }
+    }
+  }
+
+  if ( assessments != assess_buf )
+    free(assessments);
+
+  return best;
+}
+
+
+		 /*******************************
+		 *	     PREDICATES		*
+		 *******************************/
 
 /** hash(:PredInd, +ArgSpec) is det.
 
