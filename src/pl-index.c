@@ -179,7 +179,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   { if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
     { int hi = hashIndex(chp->key, ci->buckets);
 
-      chp->cref = def->hash_info->entries[hi].head;
+      chp->cref = ci->entries[hi].head;
       return nextClauseArg1(chp, generationFrame(fr));
     }
   }
