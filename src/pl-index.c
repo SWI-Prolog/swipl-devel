@@ -125,7 +125,7 @@ getIndexOfTerm(term_t t)
 
 
 static inline ClauseRef
-nextClauseArg1(uintptr_t generation, ClauseChoice chp)
+nextClauseArg1(ClauseChoice chp, uintptr_t generation)
 { ClauseRef cref = chp->cref;
   word key = chp->key;
 
@@ -168,12 +168,6 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
   ClauseIndex ci;
 
-#ifdef O_LOGICAL_UPDATE
-# define gen (fr->generation)
-#else
-# define gen 0L
-#endif
-
   if ( def->indexPattern & NEED_REINDEX )
     reindexDefinition(def);
 
@@ -182,7 +176,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     { int hi = hashIndex(chp->key, def->hash_info->buckets);
 
       chp->cref = def->hash_info->entries[hi].head;
-      return nextClauseArg1(gen, chp);
+      return nextClauseArg1(chp, generationFrame(fr));
     }
   }
 
@@ -190,7 +184,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   {
   noindex:
     for(cref = def->definition.clauses; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, gen) )
+    { if ( visibleClause(cref->clause, generationFrame(fr)) )
       { chp->cref = cref->next;
 	chp->key = 0;
         return cref;
@@ -202,40 +196,29 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
       goto noindex;
 
     chp->cref = def->definition.clauses;
-    return nextClauseArg1(gen, chp);
+    return nextClauseArg1(chp, generationFrame(fr));
   } else
   { assert(0);
   }
-
-#undef gen
 }
 
 
 ClauseRef
 nextClause(ClauseChoice chp, Word argv,
 	   LocalFrame fr, Definition def ARG_LD)
-{
-#ifdef O_LOGICAL_UPDATE
-  #define gen (fr->generation)
-#else
-  #define gen 0L
-#endif
-
-  if ( !chp->key )			/* not indexed */
+{ if ( !chp->key )			/* not indexed */
   { ClauseRef cref;
 
     for(cref=chp->cref; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, gen) )
+    { if ( visibleClause(cref->clause, generationFrame(fr)) )
       { chp->cref = cref->next;
 	return cref;
       }
     }
     return NULL;
   } else
-  { return nextClauseArg1(gen, chp);
+  { return nextClauseArg1(chp, generationFrame(fr));
   }
-
-#undef gen
 }
 
 
