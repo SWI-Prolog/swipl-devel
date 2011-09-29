@@ -172,6 +172,9 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   ClauseIndex ci;
   int best, buckets;
 
+  if ( def->functor->arity == 0 )
+    goto simple;
+
   for(ci=def->hash_info; ci; ci=ci->next)
   { if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
     { int hi = hashIndex(chp->key, ci->buckets);
@@ -207,6 +210,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
+simple:
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { if ( visibleClause(cref->clause, generationFrame(fr)) )
     { chp->cref = cref->next;
