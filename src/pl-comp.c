@@ -3106,6 +3106,10 @@ skipArgs(Code PC, int skip)
 	if ( skip <= 0 )
 	  return PC;
 	continue;
+      case I_EXITFACT:
+      case I_EXIT:
+      case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+	return PC;
       case I_NOP:
 	continue;
 #ifdef O_DEBUGGER
