@@ -25,6 +25,9 @@
 
 #include "pl-incl.h"
 
+static int		bestHash(Word av, ClauseRef cref, int *buckets);
+static ClauseIndex	hashDefinition(Definition def, int arg, int buckets);
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Maximum number of clauses we  look  ahead   on  indexed  clauses  for an
 alternative clause. If the choice is committed   this is lost effort, it
@@ -167,39 +170,52 @@ ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
   ClauseIndex ci;
-
-  if ( def->indexPattern & NEED_REINDEX )
-    reindexDefinition(def);
+  int best, buckets;
 
   for(ci=def->hash_info; ci; ci=ci->next)
   { if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
-    { int hi = hashIndex(chp->key, def->hash_info->buckets);
+    { int hi = hashIndex(chp->key, ci->buckets);
 
       chp->cref = def->hash_info->entries[hi].head;
       return nextClauseArg1(chp, generationFrame(fr));
     }
   }
 
-  if ( def->indexPattern == 0x0L )
-  {
-  noindex:
-    for(cref = def->definition.clauses; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, generationFrame(fr)) )
-      { chp->cref = cref->next;
-	chp->key = 0;
-        return cref;
-      }
-    }
+  if ( def->number_of_clauses == 0 )
     return NULL;
-  } else if ( def->indexPattern == 0x1L )
-  { if ( !(chp->key = indexOfWord(argv[0] PASS_LD)) )
-      goto noindex;
 
-    chp->cref = def->definition.clauses;
+  if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
+       def->number_of_clauses <= 10 )
+  { chp->cref = def->definition.clauses;
     return nextClauseArg1(chp, generationFrame(fr));
-  } else
-  { assert(0);
   }
+
+  if ( (best=bestHash(argv, def->definition.clauses, &buckets)) >= 0 )
+  { if ( (ci=hashDefinition(def, best+1, buckets)) )
+    { int hi;
+
+      chp->key = indexOfWord(argv[ci->arg-1] PASS_LD);
+      assert(chp->key);
+      hi = hashIndex(chp->key, ci->buckets);
+      chp->cref = def->hash_info->entries[hi].head;
+      return nextClauseArg1(chp, generationFrame(fr));
+    }
+  }
+
+  if ( chp->key )
+  { chp->cref = def->definition.clauses;
+    return nextClauseArg1(chp, generationFrame(fr));
+  }
+
+  for(cref = def->definition.clauses; cref; cref = cref->next)
+  { if ( visibleClause(cref->clause, generationFrame(fr)) )
+    { chp->cref = cref->next;
+      chp->key = 0;
+      return cref;
+    }
+  }
+
+  return NULL;
 }
 
 
@@ -490,15 +506,28 @@ delClauseFromIndex(Definition def, Clause cl)
 }
 
 
-/* MT: Caller must have predicate locked
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Create a hash-index on def for arg. It is   ok to do so unlocked, but if
+another thread did  the  job,  we   discard  our  result.  Another issue
+concerns resizing. If our new table is  a resized version of an existing
+table, we can only discard the existing table if it is not in use. There
+are two conditions:
 
-bool
+  1. def is dynamic and def->references == 1
+  2. def is static.  In this case we must leave it to clause-GC
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static ClauseIndex
 hashDefinition(Definition def, int arg, int buckets)
 { GET_LD
   ClauseRef cref;
-  ClauseIndex ci = newClauseIndexTable(arg, buckets);
+  ClauseIndex ci, old;
   ClauseIndex *cip;
+
+  for(old=def->hash_info; old; old=old->next)
+  { if ( old->arg == arg )
+      break;
+  }
 
   DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d)\n",
 		    predicateName(def), arg, buckets));
@@ -510,11 +539,30 @@ hashDefinition(Definition def, int arg, int buckets)
       addClauseToIndex(ci, cref->clause, CL_END PASS_LD);
   }
 
+  LOCKDEF(def);
+  if ( !old )				/* this is a new table */
+  { ClauseIndex conc;
+
+    for(conc=def->hash_info; conc; conc=conc->next)
+    { if ( conc->arg == arg )
+      { UNLOCKDEF(def);
+	unallocClauseIndexTable(ci);
+	return conc;
+      }
+    }
+  } else				/* replace (resize) old */
+  { if ( true(def, DYNAMIC) )
+    { assert(0);			/* TBD */
+    } else
+    { assert(0);
+    }
+  }
   for(cip=&def->hash_info; *cip; cip = &(*cip)->next)
     ;
   *cip = ci;
+  UNLOCKDEF(def);
 
-  return TRUE;
+  return ci;
 }
 
 		 /*******************************
@@ -602,7 +650,7 @@ expected speedup is
 #define ASSESS_BUFSIZE 10
 
 static int
-bestHash(Word av, ClauseRef cref)
+bestHash(Word av, ClauseRef cref, int *buckets)
 { GET_LD
   int i, arity = cref->clause->procedure->definition->functor->arity;
   hash_assessment assess_buf[ASSESS_BUFSIZE];
@@ -613,7 +661,7 @@ bestHash(Word av, ClauseRef cref)
   hash_assessment *a;
   int best = -1;
   float  best_speedup = 1.5;
-//size_t best_size;
+  size_t best_size;
 
 					/* Step 1: allocate assessments */
   for(i=0; i<arity; i++)
@@ -677,14 +725,18 @@ bestHash(Word av, ClauseRef cref)
 	        (float)(clause_count - a->var_count + a->var_count*a->size);
 
       if ( speedup > best_speedup )
-      { best = a->arg;
+      { best         = a->arg;
 	best_speedup = speedup;
+	best_size    = a->size;
       }
     }
   }
 
   if ( assessments != assess_buf )
     free(assessments);
+
+  if ( best >= 0 )
+    *buckets = best_size;
 
   return best;
 }
@@ -730,14 +782,12 @@ PRED_IMPL("hash", 2, hash, PL_FA_TRANSPARENT)
 	succeed;			/* Hashed index already provided */
     }
 
-    LOCKDEF(def);
     minsize = def->number_of_clauses / 2,
     size = 4;
     while (size < minsize)
       size *= 2;
 
     hashDefinition(def, argn, size);
-    UNLOCKDEF(def);
 
     succeed;
   }

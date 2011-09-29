@@ -2383,7 +2383,7 @@ this supervisor (see resetProcedure()). The task of this is to
 	* Resolve the definition (i.e. auto-import or auto-load if
 	not defined).
 	* Check the indexing opportunities and install the proper
-        supervisor (see reindexDefinition()).
+        supervisor (see pl-index.c).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_VIRGIN, 0, 0, ())

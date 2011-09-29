@@ -203,7 +203,6 @@ COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseChoice next ARG_LD);
 COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
 				   Definition def ARG_LD);
-COMMON(bool)		hashDefinition(Definition def, int arg, int buckets);
 COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
 					 int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
@@ -486,7 +485,6 @@ COMMON(word)		pl_abolish1(term_t pred);
 COMMON(word)		pl_get_clause_attribute(term_t ref, term_t att, term_t value);
 COMMON(word)		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(word)		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
-COMMON(int)		reindexDefinition(Definition def);
 COMMON(int)		redefineProcedure(Procedure proc, SourceFile sf,
 					  unsigned int suppress);
 COMMON(void)		startConsult(SourceFile f);
