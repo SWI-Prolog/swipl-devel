@@ -714,7 +714,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	  initSegStack(&arg_stack, sizeof(number), sizeof(arg_buf), arg_buf);
 	}
 
-	if ( !pushSegStack(&term_stack, p, Word) )
+	if ( !pushForMark(&term_stack, p, walk_ref) )
 	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
 	  goto error;
 	}
