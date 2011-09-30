@@ -206,7 +206,7 @@ COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
 COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
 					 int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
-COMMON(void)		cleanClauseIndex(ClauseIndex ci, ClauseRef cls ARG_LD);
+COMMON(void)		cleanClauseIndex(ClauseIndex ci ARG_LD);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);

@@ -1127,7 +1127,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
   }
 
   for(ci=def->hash_info; ci; ci=ci->next)
-    cleanClauseIndex(ci, def->definition.clauses PASS_LD);
+    cleanClauseIndex(ci PASS_LD);
 
   clear(def, NEEDSCLAUSEGC);
 

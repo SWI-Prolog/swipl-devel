@@ -337,36 +337,6 @@ deleteClauseChain(ClauseChain ch, Clause clause)
 
 
 static int
-resizeClauseIndex(ClauseIndex ci, ClauseRef cref, int newbuckets ARG_LD)
-{ size_t bytes = sizeof(struct clause_chain) * newbuckets;
-  ClauseChain chains = allocHeapOrHalt(bytes);
-  ClauseChain oldentries = ci->entries;
-  int oldbuckets = ci->buckets;
-
-  memset(chains, 0, bytes);
-  for(; cref; cref=cref->next)
-  { Clause clause = cref->clause;
-    word key;
-
-    if ( argKey(clause->codes, ci->arg-1, FALSE, &key) )
-    { int hi = hashIndex(key, newbuckets);
-      appendClauseChain(&chains[hi], clause, key, CL_END PASS_LD);
-    } else
-    { int hi;
-
-      for(hi=0; hi<newbuckets; hi++)
-	appendClauseChain(&chains[hi], clause, 0, CL_END PASS_LD);
-    }
-  }
-  ci->entries = chains;
-  ci->buckets = newbuckets;
-  unallocClauseIndexTableEntries(oldentries, oldbuckets PASS_LD);
-
-  return TRUE;
-}
-
-
-static int
 gcClauseChain(ClauseChain ch, unsigned int dirty ARG_LD)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
@@ -403,8 +373,8 @@ gcClauseChain(ClauseChain ch, unsigned int dirty ARG_LD)
 }
 
 
-static void
-gcClauseIndex(ClauseIndex ci ARG_LD)
+void
+cleanClauseIndex(ClauseIndex ci ARG_LD)
 { if ( ci->dirty )
   { ClauseChain ch = ci->entries;
     int n = ci->buckets;
@@ -418,21 +388,6 @@ gcClauseIndex(ClauseIndex ci ARG_LD)
   }
 
   assert((int)ci->size >= 0);
-}
-
-
-void
-cleanClauseIndex(ClauseIndex ci, ClauseRef clauses ARG_LD)
-{ gcClauseIndex(ci PASS_LD);
-
-  if ( ci->size > ci->dim_ok_size*2 )
-  { int newbuckets = ci->buckets;
-
-    while(ci->size > newbuckets)
-      newbuckets *= 2;
-
-    resizeClauseIndex(ci, clauses, newbuckets PASS_LD);
-  }
 }
 
 
