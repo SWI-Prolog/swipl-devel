@@ -1087,7 +1087,6 @@ cleanDefinition()
 static ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
 { GET_LD
-  ClauseIndex ci;
 
   DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
 
@@ -1126,9 +1125,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
     assert(def->erased_clauses == 0);
   }
 
-  for(ci=def->hash_info; ci; ci=ci->next)
-    cleanClauseIndex(ci PASS_LD);
-
+  cleanClauseIndexes(def PASS_LD);
   clear(def, NEEDSCLAUSEGC);
 
   return garbage;

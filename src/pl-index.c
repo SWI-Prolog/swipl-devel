@@ -27,6 +27,7 @@
 
 static int		bestHash(Word av, ClauseRef cref, int *buckets);
 static ClauseIndex	hashDefinition(Definition def, int arg, int buckets);
+static ClauseIndex	resizeHashDefinition(Definition def, ClauseIndex old);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Maximum number of clauses we  look  ahead   on  indexed  clauses  for an
@@ -177,8 +178,12 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 
   for(ci=def->hash_info; ci; ci=ci->next)
   { if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
-    { int hi = hashIndex(chp->key, ci->buckets);
+    { int hi;
 
+      if ( ci->size > ci->dim_ok_size*2 )
+	ci = resizeHashDefinition(def, ci);
+
+      hi  = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
       return nextClauseArg1(chp, generationFrame(fr));
     }
@@ -373,7 +378,7 @@ gcClauseChain(ClauseChain ch, unsigned int dirty ARG_LD)
 }
 
 
-void
+static void
 cleanClauseIndex(ClauseIndex ci ARG_LD)
 { if ( ci->dirty )
   { ClauseChain ch = ci->entries;
@@ -388,6 +393,36 @@ cleanClauseIndex(ClauseIndex ci ARG_LD)
   }
 
   assert((int)ci->size >= 0);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cleanClauseIndexes() is called from cleanDefinition(),   which is called
+either locked or otherwise safe for  concurrency while the definition is
+not referenced. This is the time that we can remove cells from the index
+chains and can reclaim old indexes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+cleanClauseIndexes(Definition def ARG_LD)
+{ ClauseIndex ci;
+
+  for(ci=def->hash_info; ci; ci=ci->next)
+    cleanClauseIndex(ci PASS_LD);
+
+  if ( def->old_hash_info )
+  { ClauseIndexList li = def->old_hash_info;
+    ClauseIndexList next;
+
+    def->old_hash_info = NULL;
+
+    for(; li; li=next)
+    { next = li->next;
+
+      unallocClauseIndexTable(li->index);
+      freeHeap(li, sizeof(*li));
+    }
+  }
 }
 
 
@@ -519,20 +554,50 @@ hashDefinition(Definition def, int arg, int buckets)
 	return conc;
       }
     }
+					/* insert at the end */
+    for(cip=&def->hash_info; *cip; cip = &(*cip)->next)
+      ;
+    *cip = ci;
   } else				/* replace (resize) old */
-  { if ( true(def, DYNAMIC) )
-    { assert(0);			/* TBD */
-    } else
-    { assert(0);
+  { for(cip=&def->hash_info; *cip && *cip != old; cip = &(*cip)->next)
+      ;
+
+    if ( true(def, DYNAMIC) && def->references == 1 )
+    { ci->next = old->next;		/* replace */
+      *cip = ci;
+      unallocClauseIndexTable(old);
+    } else				/* insert before old */
+    { ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
+
+      ci->next = old->next;
+      MemoryBarrier();			/* lock only synchronizes updates */
+      *cip = ci;
+
+      old->erased = TRUE;
+      c->index = old;
+      c->next = def->old_hash_info;
+      def->old_hash_info = c;
     }
   }
-  for(cip=&def->hash_info; *cip; cip = &(*cip)->next)
-    ;
-  *cip = ci;
   UNLOCKDEF(def);
 
   return ci;
 }
+
+
+static ClauseIndex
+resizeHashDefinition(Definition def, ClauseIndex old)
+{ int newbuckets = 4;
+  int newdim;
+
+  newdim = (int)(((int64_t)old->buckets * (int64_t)old->size) /
+		         (int64_t)old->dim_ok_size);
+  while(newdim>newbuckets)
+    newbuckets *= 2;
+
+  return hashDefinition(def, old->arg, newbuckets);
+}
+
 
 		 /*******************************
 		 *	     ASSESSMENT		*

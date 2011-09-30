@@ -1140,10 +1140,16 @@ struct clause_index
   unsigned int	 size;			/* # clauses */
   unsigned int	 dim_ok_size;		/* Was dimensioned ok with #clauses */
   unsigned short arg;			/* Indexed argument */
+  unsigned	 erased : 1;		/* Index is erased */
   unsigned int	 dirty;			/* # chains that are dirty */
   ClauseIndex	 next;			/* Next index */
   ClauseChain	 entries;		/* chains holding the clauses */
 };
+
+typedef struct clause_index_list
+{ ClauseIndex index;
+  struct clause_index_list *next;
+} clause_index_list, *ClauseIndexList;
 
 struct clause_chain
 { ClauseRef	head;
@@ -1174,6 +1180,7 @@ struct definition
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndex	hash_info;		/* clause hash-tables */
+  ClauseIndexList old_hash_info;	/* Outdated hash indexes */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */

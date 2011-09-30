@@ -27,6 +27,66 @@
 #undef LD
 #define LD LOCAL_LD
 
+
+		 /*******************************
+		 *	 LOCK-FREE SUPPORT	*
+		 *******************************/
+
+#ifdef _MSC_VER				/* Windows MSVC version */
+
+#define HAVE_MSB 1
+static inline int
+MSB(unsigned int i)
+{ unsigned long mask = i;
+  unsigned long index;
+
+  _BitScanReverse(&index, mask);
+  return index;
+}
+
+#define HAVE_MEMORY_BARRIER 1
+#ifndef MemoryBarrier
+#define MemoryBarrier() (void)0
+#endif
+
+#endif /*_MSC_VER*/
+
+#if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
+#define HAVE_MSB 1
+#define MSB(i) (31 - __builtin_clz(i))		/* GCC builtin */
+#endif
+
+#if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
+#define HAVE_MEMORY_BARRIER 1
+#define MemoryBarrier() __sync_synchronize()
+#endif
+
+#ifndef HAVE_MSB
+#define HAVE_MSB 1
+static inline int
+MSB(unsigned int i)
+{ int j = 0;
+
+  if (i >= 0x10000) {i >>= 16; j += 16;}
+  if (i >=   0x100) {i >>=  8; j +=  8;}
+  if (i >=    0x10) {i >>=  4; j +=  4;}
+  if (i >=     0x4) {i >>=  2; j +=  2;}
+  if (i >=     0x2) j++;
+
+  return j;
+}
+#endif
+
+#ifndef HAVE_MEMORY_BARRIER
+#define HAVE_MEMORY_BARRIER 1
+#define MemoryBarrier() (void)0
+#endif
+
+
+		 /*******************************
+		 *	     MISC STUFF		*
+		 *******************************/
+
 static inline code
 fetchop(Code PC)
 { code op = decode(*PC);
