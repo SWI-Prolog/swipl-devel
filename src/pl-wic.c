@@ -134,7 +134,6 @@ Below is an informal description of the format of a `.qlf' file:
 		      | 'u'				% user source file
 <time>		::=	<word>				% time file was loaded
 <line>		::=	<num>
-<pattern>	::=	<num>				% indexing pattern
 <codes>		::=	<num> {<code>}
 <string>	::=	{<non-zero byte>} <0>
 <word>		::=	<4 byte entity>
@@ -151,8 +150,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 58			/* load all versions later >= X */
-#define VERSION 58			/* save version number */
+#define LOADVERSION 59			/* load all versions later >= X */
+#define VERSION 59			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -1057,23 +1056,12 @@ loadPredicate(wic_state *state, int skip ARG_LD)
     }
     addProcedureSourceFile(state->currentSource, proc);
   }
-  if ( def->references == 0 && !def->hash_info )
-    def->indexPattern |= NEED_REINDEX;
   loadPredicateFlags(state, def, skip PASS_LD);
 
   for(;;)
   { switch(Sgetc(fd) )
     { case 'X':
-      { unsigned long pattern = getLong(fd);
-
-	if ( (def->indexPattern & ~NEED_REINDEX) != pattern )
-	{ if ( def->references == 0 && !def->hash_info )
-	    def->indexPattern = (pattern | NEED_REINDEX);
-	  else if ( false(def, MULTIFILE|DYNAMIC) )
-	    Sdprintf("Cannot change indexing of %s\n", predicateName(def));
-	}
-
-	DEBUG(2, Sdprintf("ok\n"));
+      { DEBUG(2, Sdprintf("ok\n"));
 	succeed;
       }
       case 'C':
@@ -2031,8 +2019,6 @@ static void
 closeProcedureWic(wic_state *state)
 { if ( state->currentProc )
   { Sputc('X', state->wicFd);
-    putNum(state->currentProc->definition->indexPattern & ~NEED_REINDEX,
-	   state->wicFd);
     state->currentProc = NULL;
   }
 }

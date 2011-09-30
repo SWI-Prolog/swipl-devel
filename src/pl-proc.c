@@ -150,7 +150,6 @@ resetProcedure(Procedure proc, bool isnew)
   if ( isnew )
   { ClauseIndex ci;
 
-    def->indexPattern = (0x0 | NEED_REINDEX);
     set(def, AUTOINDEX);
 
     if ( (ci=def->hash_info) )
@@ -839,11 +838,6 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
     }
   }
 
-  if ( def->number_of_clauses == 25 &&
-       true(def, AUTOINDEX) )
-  { DEBUG(2, Sdprintf("Request re-index for %s\n", predicateName(def)));
-    def->indexPattern |= NEED_REINDEX;
-  }
   UNLOCKDEF(def);
 
   return cref;
@@ -2338,10 +2332,8 @@ setDynamicProcedure(Procedure proc, bool isdyn)
 
       return PL_error(NULL, 0, msg,
 		      ERR_MODIFY_STATIC_PROC, proc);
-    } else if ( def->functor->arity > 0 )
-    { def->indexPattern = 0x1;
-      set(def, AUTOINDEX);
     }
+
   ok:
     freeCodesDefinition(def);		/* reset to S_VIRGIN */
     set(def, DYNAMIC);

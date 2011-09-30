@@ -465,11 +465,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 
 #include "os/pl-table.h"
-
-/* Definition->indexPattern is set to NEED_REINDEX if the definition's index
-   pattern needs to be recomputed */
-#define NEED_REINDEX (1U << (INTBITSIZE-1))
-
 #include "pl-vmi.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1178,7 +1173,6 @@ struct definition
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndex	hash_info;		/* clause hash-tables */
-  unsigned int  indexPattern;		/* indexed argument pattern */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */

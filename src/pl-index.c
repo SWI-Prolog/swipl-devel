@@ -665,7 +665,7 @@ bestHash(Word av, ClauseRef cref, int *buckets)
   hash_assessment *a;
   int best = -1;
   float  best_speedup = 1.5;
-  size_t best_size;
+  size_t best_size = 0;
 
 					/* Step 1: allocate assessments */
   for(i=0; i<arity; i++)

@@ -341,7 +341,6 @@ registerBuiltins(const PL_extension *f)
     if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
 
     def->definition.function = f->function;
-    def->indexPattern = 0;
     createForeignSupervisor(def, f->function);
   }
 }
