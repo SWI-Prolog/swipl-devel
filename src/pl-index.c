@@ -172,14 +172,16 @@ TBD:
 ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
-  ClauseIndex ci;
+  ClauseIndex ci, next;
   int best, buckets;
 
   if ( def->functor->arity == 0 )
     goto simple;
 
-  for(ci=def->hash_info; ci; ci=ci->next)
-  { if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
+  for(ci=def->hash_info; ci; ci=next)
+  { next = ci->next;
+
+    if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
     { int hi;
 
       if ( ci->size > ci->resize_above || ci->size < ci->resize_below )
@@ -599,8 +601,12 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
     ;
 
   if ( true(def, DYNAMIC) && def->references == 1 )
-  { ci->next = old->next;		/* replace */
-    *cip = ci;
+  { if ( ci )
+    { ci->next = old->next;		/* replace */
+      *cip = ci;
+    } else
+    { *cip = old->next;
+    }
     unallocClauseIndexTable(old);
   } else				/* insert before old */
   { ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
