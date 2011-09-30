@@ -183,7 +183,9 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     { int hi;
 
       if ( ci->size > ci->resize_at )
-	ci = resizeHashDefinition(def, ci);
+      { if ( !(ci = resizeHashDefinition(def, ci)) )
+	  continue;			/* no longer hashable */
+      }
 
       hi  = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
@@ -522,6 +524,8 @@ are two conditions:
   2. def is static.  In this case we must leave it to clause-GC
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci);
+
 static ClauseIndex
 hashDefinition(Definition def, int arg, int buckets)
 { GET_LD
@@ -561,25 +565,7 @@ hashDefinition(Definition def, int arg, int buckets)
       ;
     *cip = ci;
   } else				/* replace (resize) old */
-  { for(cip=&def->hash_info; *cip && *cip != old; cip = &(*cip)->next)
-      ;
-
-    if ( true(def, DYNAMIC) && def->references == 1 )
-    { ci->next = old->next;		/* replace */
-      *cip = ci;
-      unallocClauseIndexTable(old);
-    } else				/* insert before old */
-    { ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
-
-      ci->next = old->next;
-      MemoryBarrier();			/* lock only synchronizes updates */
-      *cip = ci;
-
-      old->erased = TRUE;
-      c->index = old;
-      c->next = def->old_hash_info;
-      def->old_hash_info = c;
-    }
+  { replaceIndex(def, old, ci);
   }
   UNLOCKDEF(def);
 
@@ -592,11 +578,45 @@ resizeHashDefinition(Definition def, ClauseIndex old)
 { int newbuckets;
 
   if ( (newbuckets=reassessHash(def, old)) < 0 )
-  { old->resize_at *= 2;		/* TBD: get rid of useless table */
-    return old;
+  { LOCKDEF(def);
+    replaceIndex(def, old, NULL);
+    UNLOCKDEF(def);
+
+    return NULL;
   }
 
   return hashDefinition(def, old->arg, newbuckets);
+}
+
+
+static void				/* definition must be locked */
+replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
+{ GET_LD
+  ClauseIndex *cip;
+
+  for(cip=&def->hash_info; *cip && *cip != old; cip = &(*cip)->next)
+    ;
+
+  if ( true(def, DYNAMIC) && def->references == 1 )
+  { ci->next = old->next;		/* replace */
+    *cip = ci;
+    unallocClauseIndexTable(old);
+  } else				/* insert before old */
+  { ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
+
+    if ( ci )
+    { ci->next = old->next;
+      MemoryBarrier();			/* lock only synchronizes updates */
+      *cip = ci;
+    } else				/* this is a delete */
+    { *cip = old->next;
+    }
+
+    old->erased = TRUE;
+    c->index = old;
+    c->next = def->old_hash_info;
+    def->old_hash_info = c;
+  }
 }
 
 
