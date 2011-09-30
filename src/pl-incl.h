@@ -1136,18 +1136,19 @@ struct procedure
 };
 
 struct clause_index
-{ unsigned int	buckets;		/* # entries */
-  unsigned int	size;			/* # elements (clauses) */
-  unsigned	arg : 10;		/* Indexed argument */
-  unsigned	alldirty : 1;		/* all chains need checked */
-  ClauseIndex	next;			/* Next index */
-  ClauseChain	entries;		/* chains holding the clauses */
+{ unsigned int	 buckets;		/* # entries */
+  unsigned int	 size;			/* # clauses */
+  unsigned int	 dim_ok_size;		/* Was dimensioned ok with #clauses */
+  unsigned short arg;			/* Indexed argument */
+  unsigned int	 dirty;			/* # chains that are dirty */
+  ClauseIndex	 next;			/* Next index */
+  ClauseChain	 entries;		/* chains holding the clauses */
 };
 
 struct clause_chain
 { ClauseRef	head;
   ClauseRef	tail;
-  int		dirty;			/* # of garbage clauses */
+  unsigned int	dirty;			/* # of garbage clauses */
 };
 
 #define MAX_BLOCKS 20			/* allows for 2M threads */

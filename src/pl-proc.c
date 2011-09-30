@@ -926,7 +926,7 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 #endif
 
   if ( true(def, P_THREAD_LOCAL) )
-    return deleted;
+    return 0;
 
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
@@ -935,6 +935,7 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 	 (!fromfile || cl->line_no > 0) &&
 	 false(cl, ERASED) )
     { set(cl, ERASED);
+      deleteActiveClauseFromIndexes(def, cl);
 
       if ( deleted++ == 0 )
 	set(def, NEEDSCLAUSEGC);
@@ -945,13 +946,6 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
       def->number_of_clauses--;
       def->erased_clauses++;
     }
-  }
-
-  if ( deleted )
-  { ClauseIndex ci;
-
-    for(ci=def->hash_info; ci; ci=ci->next)
-      ci->alldirty = TRUE;
   }
 
   return deleted;
@@ -3071,8 +3065,7 @@ listGenerations(Definition def)
     for ( ci=def->hash_info; ci; ci=ci->next )
     { int i;
 
-      Sdprintf("Hash index for arg %d (%s)\n", ci->arg,
-	       ci->alldirty ? "dirty" : "clean");
+      Sdprintf("Hash index for arg %d (%d dirty)\n", ci->arg, ci->dirty);
 
       for(i=0; i<ci->buckets; i++)
       { if ( !ci->entries[i].head &&

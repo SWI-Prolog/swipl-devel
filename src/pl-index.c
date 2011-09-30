@@ -257,11 +257,9 @@ newClauseIndexTable(int arg, int buckets)
     m *= 2;
   buckets = m;
 
+  memset(ci, 0, sizeof(*ci));
   ci->buckets  = buckets;
-  ci->size     = 0;
-  ci->alldirty = FALSE;
   ci->arg      = arg;
-  ci->next     = NULL;
   ci->entries  = allocHeapOrHalt(sizeof(struct clause_chain) * buckets);
 
   for(ch = ci->entries; buckets; buckets--, ch++)
@@ -369,18 +367,17 @@ resizeClauseIndex(ClauseIndex ci, ClauseRef cref, int newbuckets ARG_LD)
 
 
 static int
-gcClauseChain(ClauseChain ch, int dirty ARG_LD)
+gcClauseChain(ClauseChain ch, unsigned int dirty ARG_LD)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
 
-  while( cref && dirty != 0 )
+  while( cref && dirty )
   { if ( true(cref->clause, ERASED) )
     { ClauseRef c = cref;
 
-      if ( dirty > 0 )
-      { deleted++;
-	dirty--;
-      }
+      if ( cref->key )
+	deleted++;			/* only reduce size by indexed */
+      dirty--;
 
       cref = cref->next;
       if ( !prev )
@@ -408,25 +405,27 @@ gcClauseChain(ClauseChain ch, int dirty ARG_LD)
 
 static void
 gcClauseIndex(ClauseIndex ci ARG_LD)
-{ ClauseChain ch = ci->entries;
-  int n = ci->buckets;
+{ if ( ci->dirty )
+  { ClauseChain ch = ci->entries;
+    int n = ci->buckets;
 
-  if ( ci->alldirty )
-  { for(; n; n--, ch++)
-      ci->size -= gcClauseChain(ch, -1 PASS_LD); /* do them all */
-  } else
-  { for(; n; n--, ch++)
+    for(; n; n--, ch++)
     { if ( ch->dirty )
-	ci->size -= gcClauseChain(ch, (int)ch->dirty PASS_LD);
+	ci->size -= gcClauseChain(ch, ch->dirty PASS_LD);
+      if ( --ci->dirty == 0 )
+	break;
     }
   }
+
+  assert((int)ci->size >= 0);
 }
 
 
 void
 cleanClauseIndex(ClauseIndex ci, ClauseRef clauses ARG_LD)
 { gcClauseIndex(ci PASS_LD);
-  if ( ci->size > ci->buckets * 2 )
+
+  if ( ci->size > ci->dim_ok_size*2 )
   { int newbuckets = ci->buckets;
 
     while(ci->size > newbuckets)
@@ -444,11 +443,30 @@ deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
   argKey(cl->codes, ci->arg-1, FALSE, &key);
 
   if ( key == 0 )			/* not indexed */
-  { ci->alldirty = TRUE;
+  { if ( ci->dirty != ci->buckets )
+    { int i;
+      ClauseChain ch;
+
+      ci->dirty = ci->buckets;
+      for(i=ci->buckets, ch = ci->entries; --i>=0; ch++)
+	ch->dirty++;
+    }
   } else
   { int hi = hashIndex(key, ci->buckets);
+
+    if ( ci->entries[hi].dirty == 0 )
+      ci->dirty++;
     ci->entries[hi].dirty++;
   }
+}
+
+
+void
+deleteActiveClauseFromIndexes(Definition def, Clause cl)
+{ ClauseIndex ci;
+
+  for(ci=def->hash_info; ci; ci=ci->next)
+    deleteActiveClauseFromIndex(ci, cl);
 }
 
 
@@ -496,7 +514,6 @@ delClauseFromIndex(Definition def, Clause cl)
 
       deleteClauseChain(&ch[hi], cl);
       ci->size--;
-      /*TBD: Consider shrinking*/
     }
   }
 }
@@ -534,6 +551,7 @@ hashDefinition(Definition def, int arg, int buckets)
   { if ( false(cref->clause, ERASED) )
       addClauseToIndex(ci, cref->clause, CL_END PASS_LD);
   }
+  ci->dim_ok_size = ci->size;
 
   LOCKDEF(def);
   if ( !old )				/* this is a new table */

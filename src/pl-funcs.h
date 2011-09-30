@@ -209,6 +209,7 @@ COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		cleanClauseIndex(ClauseIndex ci, ClauseRef cls ARG_LD);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl);
+COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 
 /* pl-dwim.c */
 COMMON(word)		pl_dwim_match(term_t a1, term_t a2, term_t mm);
