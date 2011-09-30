@@ -28,6 +28,8 @@
 static int		bestHash(Word av, ClauseRef cref, int *buckets);
 static ClauseIndex	hashDefinition(Definition def, int arg, int buckets);
 static ClauseIndex	resizeHashDefinition(Definition def, ClauseIndex old);
+static int		reassessHash(Definition def, ClauseIndex ci);
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Maximum number of clauses we  look  ahead   on  indexed  clauses  for an
@@ -180,7 +182,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   { if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
     { int hi;
 
-      if ( ci->size > ci->dim_ok_size*2 )
+      if ( ci->size > ci->resize_at )
 	ci = resizeHashDefinition(def, ci);
 
       hi  = hashIndex(chp->key, ci->buckets);
@@ -541,7 +543,7 @@ hashDefinition(Definition def, int arg, int buckets)
   { if ( false(cref->clause, ERASED) )
       addClauseToIndex(ci, cref->clause, CL_END PASS_LD);
   }
-  ci->dim_ok_size = ci->size;
+  ci->resize_at = ci->size*2;
 
   LOCKDEF(def);
   if ( !old )				/* this is a new table */
@@ -587,13 +589,12 @@ hashDefinition(Definition def, int arg, int buckets)
 
 static ClauseIndex
 resizeHashDefinition(Definition def, ClauseIndex old)
-{ int newbuckets = 4;
-  int newdim;
+{ int newbuckets;
 
-  newdim = (int)(((int64_t)old->buckets * (int64_t)old->size) /
-		         (int64_t)old->dim_ok_size);
-  while(newdim>newbuckets)
-    newbuckets *= 2;
+  if ( (newbuckets=reassessHash(def, old)) < 0 )
+  { old->resize_at *= 2;		/* TBD: get rid of useless table */
+    return old;
+  }
 
   return hashDefinition(def, old->arg, newbuckets);
 }
@@ -774,6 +775,51 @@ bestHash(Word av, ClauseRef cref, int *buckets)
 
   return best;
 }
+
+
+static int
+reassessHash(Definition def, ClauseIndex ci)
+{ hash_assessment a_store;
+  hash_assessment *a = &a_store;
+  ClauseRef cref;
+  int clause_count = def->number_of_clauses;
+
+  memset(a, 0, sizeof(*a));
+
+  for(cref=def->definition.clauses; cref; cref=cref->next)
+  { Clause cl = cref->clause;
+    word k;
+
+    if ( true(cl, ERASED) )
+      continue;
+
+    if ( argKey(cref->clause->codes, ci->arg-1, FALSE, &k) )
+    { assessAddKey(a, k);
+    } else
+    { a->var_count++;
+    }
+  }
+
+  if ( a->keys )
+  { float speedup;
+    size_t size;
+
+    free(a->keys);
+
+    size    = a->size;
+    speedup =            (float)(clause_count*a->size) /
+	        (float)(clause_count - a->var_count + a->var_count*a->size);
+
+    if ( speedup < 2.0 )
+      return -1;
+
+    return size;
+  }
+
+  return -1;				/* not hashable */
+}
+
+
 
 
 		 /*******************************

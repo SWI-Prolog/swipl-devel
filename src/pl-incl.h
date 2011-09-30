@@ -1138,7 +1138,7 @@ struct procedure
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
   unsigned int	 size;			/* # clauses */
-  unsigned int	 dim_ok_size;		/* Was dimensioned ok with #clauses */
+  unsigned int	 resize_at;		/* consider resize at #clauses */
   unsigned short arg;			/* Indexed argument */
   unsigned	 erased : 1;		/* Index is erased */
   unsigned int	 dirty;			/* # chains that are dirty */
