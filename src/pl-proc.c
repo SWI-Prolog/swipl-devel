@@ -827,10 +827,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   for(ci=def->hash_info; ci; ci=ci->next)
   { addClauseToIndex(ci, clause, where PASS_LD);
     if ( ci->size/2 > ci->buckets )
-    { if ( false(def, NEEDSREHASH) )
-      { set(def, NEEDSREHASH);
-	DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
-      }
+    { /*TBD: Consider resizing*/
       if ( true(def, DYNAMIC) && def->references == 0 )
       { gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
 	return cref;
@@ -1018,19 +1015,11 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 
   if ( def->references ||
        def->number_of_clauses > 16 )
-  { if ( def->hash_info )
-    { ClauseIndex ci;
-      int needsrehash = true(def, NEEDSREHASH);
+  { ClauseIndex ci;
 
-      for(ci=def->hash_info; ci; ci=ci->next)
-      { markDirtyClauseIndex(ci, clause);
-	if ( !needsrehash && ci->size * 4 < ci->buckets )
-	  needsrehash = TRUE;
-      }
+    for(ci=def->hash_info; ci; ci=ci->next)
+      deleteActiveClauseFromIndex(ci, clause);
 
-      if ( needsrehash )
-	set(def, NEEDSREHASH);
-    }
     def->number_of_clauses--;
     def->erased_clauses++;
     if ( def->erased_clauses > def->number_of_clauses/(unsigned)16 )
@@ -1146,7 +1135,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
   for(ci=def->hash_info; ci; ci=ci->next)
     cleanClauseIndex(ci, def->definition.clauses PASS_LD);
 
-  clear(def, NEEDSCLAUSEGC|NEEDSREHASH);
+  clear(def, NEEDSCLAUSEGC);
 
   return garbage;
 }
@@ -1271,7 +1260,7 @@ resetReferencesModule(Module m)
   for_unlocked_table(m->procedures, s,
 		     { def = ((Procedure) s->value)->definition;
 		       def->references = 0;
-		       if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
+		       if ( true(def, NEEDSCLAUSEGC) )
 			 gcClausesDefinition(def);
 		     })
 }
@@ -2342,7 +2331,7 @@ setDynamicProcedure(Procedure proc, bool isdyn)
   } else				/* dynamic --> static */
   { clear(def, DYNAMIC);
     if ( def->references )
-    { if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
+    { if ( true(def, NEEDSCLAUSEGC) )
 	registerDirtyDefinition(def);
       def->references = 0;
     }
@@ -3082,8 +3071,7 @@ listGenerations(Definition def)
     for ( ci=def->hash_info; ci; ci=ci->next )
     { int i;
 
-      Sdprintf("Hash index for arg %d (%s, %s)\n", ci->arg,
-	       true(def, NEEDSREHASH) ? "needs rehash" : "clean",
+      Sdprintf("Hash index for arg %d (%s)\n", ci->arg,
 	       ci->alldirty ? "dirty" : "clean");
 
       for(i=0; i<ci->buckets; i++)

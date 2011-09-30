@@ -438,7 +438,7 @@ cleanClauseIndex(ClauseIndex ci, ClauseRef clauses ARG_LD)
 
 
 void
-markDirtyClauseIndex(ClauseIndex ci, Clause cl)
+deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
 { word key;
 
   argKey(cl->codes, ci->arg-1, FALSE, &key);
@@ -496,15 +496,7 @@ delClauseFromIndex(Definition def, Clause cl)
 
       deleteClauseChain(&ch[hi], cl);
       ci->size--;
-      if ( false(def, NEEDSREHASH) && ci->size*4 < ci->buckets )
-      { set(def, NEEDSREHASH);
-	if ( true(def, DYNAMIC) && def->references == 0 )
-	{ DEBUG(0, Sdprintf("Should clean %s\n", predicateName(def)));
-	  /* TBD: need to clear right away if dynamic and not referenced */
-	  /* see assertProcedure() for similar case.  To do that locking */
-	  /* needs to be sorted out */
-	}
-      }
+      /*TBD: Consider shrinking*/
     }
   }
 }

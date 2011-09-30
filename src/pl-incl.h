@@ -799,7 +799,7 @@ with one operation, it turns out to be faster as well.
 #define VOLATILE		(0x00020000L) /* predicate */
 #define AUTOINDEX		(0x00040000L) /* predicate */
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
-#define NEEDSREHASH		(0x00100000L) /* predicate */
+		      /* unused (0x00100000L) */
 #define P_VARARG		(0x00200000L) /* predicate */
 #define P_SHARED		(0x00400000L) /* predicate */
 #define P_REDEFINED		(0x00800000L) /* predicate */
@@ -910,7 +910,7 @@ introduce a garbage collector (TBD).
 	if ( unlikely(true(def, DYNAMIC)) ) \
 	{ LOCKDYNDEF(def); \
 	  if ( --def->references == 0 && \
-	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
+	       true(def, NEEDSCLAUSEGC) ) \
 	  { gcClausesDefinitionAndUnlock(def); \
 	  } else \
 	  { UNLOCKDYNDEF(def); \
@@ -1194,7 +1194,6 @@ struct definition
 		/*	VOLATILE	   Don't save my clauses */
 		/*	AUTOINDEX	   Automatically guess index */
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
-		/*	NEEDSREHASH	   Hash-table is out-of-date */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
 		/*	P_SHARED	   Multiple procs are using me */
   unsigned int	number_of_clauses;	/* number of associated clauses */
