@@ -182,7 +182,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   { if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
     { int hi;
 
-      if ( ci->size > ci->resize_at )
+      if ( ci->size > ci->resize_above || ci->size < ci->resize_below )
       { if ( !(ci = resizeHashDefinition(def, ci)) )
 	  continue;			/* no longer hashable */
       }
@@ -547,7 +547,8 @@ hashDefinition(Definition def, int arg, int buckets)
   { if ( false(cref->clause, ERASED) )
       addClauseToIndex(ci, cref->clause, CL_END PASS_LD);
   }
-  ci->resize_at = ci->size*2;
+  ci->resize_above = ci->size*2;
+  ci->resize_below = ci->size/4;
 
   LOCKDEF(def);
   if ( !old )				/* this is a new table */
