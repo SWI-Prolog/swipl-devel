@@ -447,7 +447,7 @@ cleanClauseIndexes(Definition def ARG_LD)
 }
 
 
-void
+static void
 deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
 { word key;
 

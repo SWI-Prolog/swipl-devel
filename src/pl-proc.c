@@ -1009,10 +1009,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 
   if ( def->references ||
        def->number_of_clauses > 16 )
-  { ClauseIndex ci;
-
-    for(ci=def->hash_info; ci; ci=ci->next)
-      deleteActiveClauseFromIndex(ci, clause);
+  { deleteActiveClauseFromIndexes(def, clause);
 
     def->number_of_clauses--;
     def->erased_clauses++;

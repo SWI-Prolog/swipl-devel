@@ -208,7 +208,6 @@ COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		cleanClauseIndexes(Definition def ARG_LD);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
-COMMON(void)		deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
 
