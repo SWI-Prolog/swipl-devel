@@ -171,6 +171,8 @@ for finding the next clause in chp.
 TBD:
   - non-indexable predicates must use a different supervisor
   - Predicates needing reindexing should use a different supervisor
+  - When to select best table?
+  - When to ignore the best and try again?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ClauseRef
@@ -194,7 +196,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 	  continue;			/* no longer hashable */
       }
 
-      hi  = hashIndex(chp->key, ci->buckets);
+      hi = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
       return nextClauseArg1(chp, generationFrame(fr));
     }
