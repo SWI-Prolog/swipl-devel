@@ -25,10 +25,12 @@
 
 #include "pl-incl.h"
 
-static int		bestHash(Word av, ClauseRef cref, int *buckets);
+static int		bestHash(Word av, ClauseRef cref,
+				 int *buckets, float *best_speedup);
 static ClauseIndex	hashDefinition(Definition def, int arg, int buckets);
 static ClauseIndex	resizeHashDefinition(Definition def, ClauseIndex old);
-static int		reassessHash(Definition def, ClauseIndex ci);
+static int		reassessHash(Definition def,
+				     ClauseIndex ci, float *speedup);
 static void		replaceIndex(Definition def,
 				     ClauseIndex old, ClauseIndex ci);
 
@@ -176,6 +178,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
   ClauseIndex ci, next;
   int best, buckets;
+  float speedup;
 
   if ( def->functor->arity == 0 )
     goto simple;
@@ -206,10 +209,11 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
-  if ( (best=bestHash(argv, def->definition.clauses, &buckets)) >= 0 )
+  if ( (best=bestHash(argv, def->definition.clauses, &buckets, &speedup)) >= 0 )
   { if ( (ci=hashDefinition(def, best+1, buckets)) )
     { int hi;
 
+      ci->speedup = speedup;
       chp->key = indexOfWord(argv[ci->arg-1] PASS_LD);
       assert(chp->key);
       hi = hashIndex(chp->key, ci->buckets);
@@ -586,8 +590,10 @@ hashDefinition(Definition def, int arg, int buckets)
 static ClauseIndex
 resizeHashDefinition(Definition def, ClauseIndex old)
 { int newbuckets;
+  float speedup;
+  ClauseIndex ci;
 
-  if ( (newbuckets=reassessHash(def, old)) < 0 )
+  if ( (newbuckets=reassessHash(def, old, &speedup)) < 0 )
   { LOCKDEF(def);
     replaceIndex(def, old, NULL);
     UNLOCKDEF(def);
@@ -595,7 +601,10 @@ resizeHashDefinition(Definition def, ClauseIndex old)
     return NULL;
   }
 
-  return hashDefinition(def, old->arg, newbuckets);
+  if ( (ci=hashDefinition(def, old->arg, newbuckets)) )
+    ci->speedup = speedup;
+
+  return ci;
 }
 
 
@@ -719,7 +728,7 @@ expected speedup is
 #define ASSESS_BUFSIZE 10
 
 static int
-bestHash(Word av, ClauseRef cref, int *buckets)
+bestHash(Word av, ClauseRef cref, int *buckets, float *speedup)
 { GET_LD
   int i, arity = cref->clause->procedure->definition->functor->arity;
   hash_assessment assess_buf[ASSESS_BUFSIZE];
@@ -805,14 +814,16 @@ bestHash(Word av, ClauseRef cref, int *buckets)
     free(assessments);
 
   if ( best >= 0 )
-    *buckets = best_size;
+  { *buckets = best_size;
+    *speedup = best_speedup;
+  }
 
   return best;
 }
 
 
 static int
-reassessHash(Definition def, ClauseIndex ci)
+reassessHash(Definition def, ClauseIndex ci, float *speedup)
 { hash_assessment a_store;
   hash_assessment *a = &a_store;
   ClauseRef cref;
@@ -835,26 +846,59 @@ reassessHash(Definition def, ClauseIndex ci)
   }
 
   if ( a->keys )
-  { float speedup;
-    size_t size;
-
+  { size_t size;
+    float sp;
     free(a->keys);
 
-    size    = a->size;
-    speedup =            (float)(clause_count*a->size) /
+    size = a->size;
+    sp   =            (float)(clause_count*a->size) /
 	        (float)(clause_count - a->var_count + a->var_count*a->size);
 
-    if ( speedup < 2.0 )
+    if ( sp < 2.0 )
       return -1;
 
+    *speedup = sp;
     return size;
   }
 
   return -1;				/* not hashable */
 }
 
+		 /*******************************
+		 *  PREDICATE PROPERTY SUPPORT	*
+		 *******************************/
 
+static int
+unify_clause_index(term_t t, ClauseIndex ci)
+{ return PL_unify_term(t,
+		       PL_FUNCTOR, FUNCTOR_minus2,
+			 PL_INT, (int)ci->arg,
+			 PL_FUNCTOR_CHARS, "hash", 2,
+			   PL_INT, (int)ci->buckets,
+			   PL_DOUBLE, (double)ci->speedup);
+}
 
+bool
+unify_index_pattern(Procedure proc, term_t value)
+{ GET_LD
+  Definition def = proc->definition;
+  ClauseIndex ci;
+
+  if ( (ci=def->hash_info) )
+  { term_t tail = PL_copy_term_ref(value);
+    term_t head = PL_new_term_ref();
+
+    for(; ci; ci=ci->next)
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !unify_clause_index(head, ci) )
+	return FALSE;
+    }
+
+    return PL_unify_nil(tail);
+  }
+
+  return FALSE;
+}
 
 		 /*******************************
 		 *	     PREDICATES		*

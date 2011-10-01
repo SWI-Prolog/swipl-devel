@@ -2187,6 +2187,8 @@ pl_get_predicate_attribute(term_t pred,
   { if ( module == def->module )
       fail;
     return PL_unify_atom(value, def->module->name);
+  } else if ( key == ATOM_indexed )
+  { return unify_index_pattern(proc, value);
   } else if ( key == ATOM_meta_predicate )
   { if ( false(def, P_META) )
       fail;

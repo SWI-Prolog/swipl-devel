@@ -1143,6 +1143,7 @@ struct clause_index
   unsigned short arg;			/* Indexed argument */
   unsigned	 erased : 1;		/* Index is erased */
   unsigned int	 dirty;			/* # chains that are dirty */
+  float		 speedup;		/* Estimated speedup */
   ClauseIndex	 next;			/* Next index */
   ClauseChain	 entries;		/* chains holding the clauses */
 };

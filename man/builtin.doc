@@ -2611,6 +2611,17 @@ achieved using nth_clause/3 and clause_property/2.
     \termitem{foreign}{}
 Is true if the predicate is defined in the C language.
 
+    \termitem{indexed}{Indexes}
+\arg{Indexes}\footnote{This predicate property should be used for
+analysis and statistics only. The exact representation of \arg{Indexes}
+may change between versions.} is a list of additional (hash) indexes on
+the predicate. Each element of the list is a term
+\arg{ArgSpec}-\arg{Index}. Currently \arg{ArgSpec} is an integer
+denoting the argument position and \arg{Index} is a term
+\term{hash}{Buckets, Speedup}. Here \arg{Buckets} is the number of
+buckets in the hash and \arg{Speedup} is the expected speedup relative
+to trying all clauses linearly.
+
     \termitem{interpreted}{}
 Is true if the predicate is defined in Prolog. We return true on this
 because, although the code is actually compiled, it is completely

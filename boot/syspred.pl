@@ -633,6 +633,8 @@ predicate_property(Pred, Property) :-
 	N \== 0.			% show negative for debugging!
 '$predicate_property'(number_of_clauses(N), Pred) :-
 	'$get_predicate_attribute'(Pred, number_of_clauses, N).
+'$predicate_property'(indexed(Indices), Pred) :-
+	'$get_predicate_attribute'(Pred, indexed, Indices).
 '$predicate_property'(noprofile, Pred) :-
 	'$get_predicate_attribute'(Pred, noprofile, 1).
 '$predicate_property'(iso, Pred) :-
