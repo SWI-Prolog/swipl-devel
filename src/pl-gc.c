@@ -3135,6 +3135,7 @@ considerGarbageCollect(Stack s)
 #define INTBITS (sizeof(int)*8)
 #define REGISTER_STARTS 0x2
 
+#if O_SECURE
 static void
 alloc_start_map()
 { GET_LD
@@ -3144,7 +3145,7 @@ alloc_start_map()
   start_map = PL_malloc(ints*sizeof(int));
   memset(start_map, 0, ints*sizeof(int));
 }
-
+#endif
 
 static void
 set_start(Word m ARG_LD)
@@ -3173,7 +3174,7 @@ scan_global(int flags)
   int errors = 0;
   intptr_t cells = 0;
   int marked = (flags & TRUE);
-  int regstart = (flags & REGISTER_STARTS) != 0;
+  int regstart = start_map && (flags & REGISTER_STARTS) != 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
   { size_t offset;
