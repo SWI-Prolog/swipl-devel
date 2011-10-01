@@ -3080,7 +3080,8 @@ skipArgs(Code PC, int skip)
       case H_RLIST:
 	continue;
       case H_POP:
-	nested--;
+	if ( --nested == 0 && --skip == 0 )
+	  return nextPC;
         assert(nested>=0);
         continue;
       case H_CONST:
