@@ -29,6 +29,8 @@ static int		bestHash(Word av, ClauseRef cref, int *buckets);
 static ClauseIndex	hashDefinition(Definition def, int arg, int buckets);
 static ClauseIndex	resizeHashDefinition(Definition def, ClauseIndex old);
 static int		reassessHash(Definition def, ClauseIndex ci);
+static void		replaceIndex(Definition def,
+				     ClauseIndex old, ClauseIndex ci);
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -184,7 +186,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
     { int hi;
 
-      if ( ci->size > ci->resize_above || ci->size < ci->resize_below )
+      if ( ci->size > ci->resize_above )
       { if ( !(ci = resizeHashDefinition(def, ci)) )
 	  continue;			/* no longer hashable */
       }
@@ -385,20 +387,24 @@ gcClauseChain(ClauseChain ch, unsigned int dirty ARG_LD)
 
 
 static void
-cleanClauseIndex(ClauseIndex ci ARG_LD)
-{ if ( ci->dirty )
-  { ClauseChain ch = ci->entries;
-    int n = ci->buckets;
+cleanClauseIndex(Definition def, ClauseIndex ci ARG_LD)
+{ if ( ci->size < ci->resize_below )
+  { replaceIndex(def, ci, NULL);
+  } else
+  { if ( ci->dirty )
+    { ClauseChain ch = ci->entries;
+      int n = ci->buckets;
 
-    for(; n; n--, ch++)
-    { if ( ch->dirty )
-	ci->size -= gcClauseChain(ch, ch->dirty PASS_LD);
-      if ( --ci->dirty == 0 )
-	break;
+      for(; n; n--, ch++)
+      { if ( ch->dirty )
+	  ci->size -= gcClauseChain(ch, ch->dirty PASS_LD);
+	if ( --ci->dirty == 0 )
+	  break;
+      }
     }
-  }
 
-  assert((int)ci->size >= 0);
+    assert((int)ci->size >= 0);
+  }
 }
 
 
@@ -407,6 +413,9 @@ cleanClauseIndexes() is called from cleanDefinition(),   which is called
 either locked or otherwise safe for  concurrency while the definition is
 not referenced. This is the time that we can remove cells from the index
 chains and can reclaim old indexes.
+
+If the index is too large, it is  simply discarded. It will be recreated
+when (and if) it is needed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -414,7 +423,7 @@ cleanClauseIndexes(Definition def ARG_LD)
 { ClauseIndex ci;
 
   for(ci=def->hash_info; ci; ci=ci->next)
-    cleanClauseIndex(ci PASS_LD);
+    cleanClauseIndex(def, ci PASS_LD);
 
   if ( def->old_hash_info )
   { ClauseIndexList li = def->old_hash_info;
@@ -525,8 +534,6 @@ are two conditions:
   1. def is dynamic and def->references == 1
   2. def is static.  In this case we must leave it to clause-GC
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci);
 
 static ClauseIndex
 hashDefinition(Definition def, int arg, int buckets)
