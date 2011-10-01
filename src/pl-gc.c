@@ -300,10 +300,10 @@ print_val(word val, char *buf)
   }
 
   if ( isVar(val) )
-    strcpy(o, "VAR");
-  else if ( isTaggedInt(val) )
-    Ssprintf(o, "int(%ld)", valInteger(val));
-  else if ( isAtom(val) )
+  { strcpy(o, "VAR");
+  } else if ( isTaggedInt(val) )
+  { Ssprintf(o, "int(%ld)", valInteger(val));
+  } else if ( isAtom(val) )
   { const char *s = stringAtom(val);
     if ( strlen(s) > 10 )
     { strncpy(o, s, 10);
@@ -311,6 +311,10 @@ print_val(word val, char *buf)
     } else
     { strcpy(o, s);
     }
+  } else if ( tagex(val) == (TAG_ATOM|STG_GLOBAL) )
+  { FunctorDef fd = valueFunctor(val);
+
+    Ssprintf(o, "functor %s/%d", stringAtom(fd->name), fd->arity);
   } else
   { size_t offset = (val>>(LMASK_BITS-2))/sizeof(word);
 
