@@ -178,26 +178,40 @@ TBD:
 ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
-  ClauseIndex ci, next;
+  ClauseIndex ci;
   int best, buckets;
   float speedup;
 
   if ( def->functor->arity == 0 )
     goto simple;
 
-  for(ci=def->hash_info; ci; ci=next)
-  { next = ci->next;
+retry:
+  if ( def->hash_info )
+  { float speedup = 0.0;
+    ClauseIndex best_index = NULL;
 
-    if ( (chp->key=indexOfWord(argv[ci->arg-1] PASS_LD)) )
+    for(ci=def->hash_info; ci; ci=ci->next)
+    { if ( ci->speedup > speedup )
+      { word k;
+
+	if ( (k=indexOfWord(argv[ci->arg-1] PASS_LD)) )
+	{ chp->key = k;
+	  speedup = ci->speedup;
+	  best_index = ci;
+	}
+      }
+    }
+
+    if ( best_index )
     { int hi;
 
-      if ( ci->size > ci->resize_above )
-      { if ( !(ci = resizeHashDefinition(def, ci)) )
-	  continue;			/* no longer hashable */
+      if ( best_index->size > best_index->resize_above )
+      { if ( !(best_index = resizeHashDefinition(def, best_index)) )
+	  goto retry;
       }
 
-      hi = hashIndex(chp->key, ci->buckets);
-      chp->cref = ci->entries[hi].head;
+      hi = hashIndex(chp->key, best_index->buckets);
+      chp->cref = best_index->entries[hi].head;
       return nextClauseArg1(chp, generationFrame(fr));
     }
   }
