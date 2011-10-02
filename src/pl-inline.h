@@ -84,6 +84,65 @@ MSB(unsigned int i)
 
 
 		 /*******************************
+		 *	     BITVECTOR		*
+		 *******************************/
+
+typedef uintptr_t bitv_chunk;
+typedef struct bit_vector
+{ size_t size;
+  bitv_chunk chunk[1];				/* bits */
+} bit_vector;
+#define BITSPERE (sizeof(bitv_chunk)*8)
+
+#ifndef offset
+#define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
+#endif
+
+#define new_bitvector(size) new_bitvector__LD(size PASS_LD)
+#define free_bitvector(v)   free_bitvector__LD(v PASS_LD)
+
+static inline bit_vector *
+new_bitvector__LD(size_t size ARG_LD)
+{ size_t bytes = offset(bit_vector, chunk[(size+BITSPERE-1)/BITSPERE]);
+  bit_vector *v = allocHeapOrHalt(bytes);
+
+  memset(v, 0, bytes);
+  v->size = size;
+  return v;
+}
+
+static inline void
+free_bitvector__LD(bit_vector *v, int size ARG_LD)
+{ size_t bytes = offset(bit_vector, chunk[(v->size+BITSPERE-1)/BITSPERE]);
+
+  freeHeap(v, bytes);
+}
+
+static inline void
+clear_bitvector(bit_vector *v ARG_LD)
+{ size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
+
+  memset(v->chunk, 0, chunks*sizeof(bitv_chunk));
+}
+
+static inline void
+set_bit(bit_vector *v, int which)
+{ int e = which/BITSPERE;
+  int b = which%BITSPERE;
+
+  v->chunk[e] |= (1<<b);
+}
+
+static inline int
+true_bit(bit_vector *v, int which)
+{ int e = which/BITSPERE;
+  int b = which%BITSPERE;
+
+  return (v->chunk[e]&(1<<b)) != 0;
+}
+
+
+		 /*******************************
 		 *	     MISC STUFF		*
 		 *******************************/
 

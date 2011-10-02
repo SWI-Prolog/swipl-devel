@@ -1183,6 +1183,7 @@ struct definition
 #endif
   ClauseIndex	hash_info;		/* clause hash-tables */
   ClauseIndexList old_hash_info;	/* Outdated hash indexes */
+  struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */

@@ -25,7 +25,7 @@
 
 #include "pl-incl.h"
 
-static int		bestHash(Word av, ClauseRef cref,
+static int		bestHash(Word av, Definition def,
 				 int *buckets, float *best_speedup);
 static ClauseIndex	hashDefinition(Definition def, int arg, int buckets);
 static ClauseIndex	resizeHashDefinition(Definition def, ClauseIndex old);
@@ -225,7 +225,7 @@ retry:
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
-  if ( (best=bestHash(argv, def->definition.clauses, &buckets, &speedup)) >= 0 )
+  if ( (best=bestHash(argv, def, &buckets, &speedup)) >= 0 )
   { if ( (ci=hashDefinition(def, best+1, buckets)) )
     { int hi;
 
@@ -749,11 +749,13 @@ expected speedup is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define ASSESS_BUFSIZE 10
+#define MIN_SPEEDUP 1.5
 
 static int
-bestHash(Word av, ClauseRef cref, int *buckets, float *speedup)
+bestHash(Word av, Definition def, int *buckets, float *speedup)
 { GET_LD
-  int i, arity = cref->clause->procedure->definition->functor->arity;
+  int i;
+  ClauseRef cref;
   hash_assessment assess_buf[ASSESS_BUFSIZE];
   hash_assessment *assessments = assess_buf;
   int assess_allocated = ASSESS_BUFSIZE;
@@ -761,14 +763,17 @@ bestHash(Word av, ClauseRef cref, int *buckets, float *speedup)
   int clause_count = 0;
   hash_assessment *a;
   int best = -1;
-  float  best_speedup = 1.5;
+  float  best_speedup = MIN_SPEEDUP;
   size_t best_size = 0;
 
+  if ( !def->tried_index )
+    def->tried_index = new_bitvector(def->functor->arity);
+
 					/* Step 1: allocate assessments */
-  for(i=0; i<arity; i++)
+  for(i=0; i<def->functor->arity; i++)
   { word k;
 
-    if ( (k=indexOfWord(av[i] PASS_LD)) )
+    if ( !true_bit(def->tried_index, i) && (k=indexOfWord(av[i] PASS_LD)) )
     { if ( assess_count	>= assess_allocated )
       { size_t newbytes = sizeof(*assessments)*2*assess_allocated;
 
@@ -788,7 +793,7 @@ bestHash(Word av, ClauseRef cref, int *buckets, float *speedup)
     return -1;				/* no luck */
 
 					/* Step 2: assess */
-  for(; cref; cref=cref->next)
+  for(cref=def->definition.clauses; cref; cref=cref->next)
   { Clause cl = cref->clause;
     Code pc = cref->clause->codes;
     int carg = 0;
@@ -825,11 +830,20 @@ bestHash(Word av, ClauseRef cref, int *buckets, float *speedup)
       speedup =            (float)(clause_count*a->size) /
 	        (float)(clause_count - a->var_count + a->var_count*a->size);
 
+      DEBUG(2, Sdprintf("Assess arg %d of %s: speedup %f, space = %ld\n",
+			a->arg+1, predicateName(def), speedup, (long)space));
+
       if ( speedup > best_speedup )
       { best         = a->arg;
 	best_speedup = speedup;
 	best_size    = a->size;
+      } else if ( speedup <= MIN_SPEEDUP )
+      { set_bit(def->tried_index, a->arg);
       }
+    } else
+    { set_bit(def->tried_index, a->arg);
+      DEBUG(2, Sdprintf("Assess arg %d of %s: not indexable\n",
+			a->arg+1, predicateName(def)));
     }
   }
 
