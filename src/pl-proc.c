@@ -1092,6 +1092,9 @@ cleanDefinition(Definition def, ClauseRef garbage)
 #if O_DEBUG
     int left = 0, removed = 0;
 #endif
+
+    cleanClauseIndexes(def PASS_LD);
+
     for(cref = def->definition.clauses; cref && def->erased_clauses; cref=next)
     { next = cref->next;
 
@@ -1120,10 +1123,9 @@ cleanDefinition(Definition def, ClauseRef garbage)
 
     DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
     assert(def->erased_clauses == 0);
-  }
 
-  cleanClauseIndexes(def PASS_LD);
-  clear(def, NEEDSCLAUSEGC);
+    clear(def, NEEDSCLAUSEGC);
+  }
 
   return garbage;
 }
