@@ -825,15 +825,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
     freeCodesDefinition(def);
 
   for(ci=def->hash_info; ci; ci=ci->next)
-  { addClauseToIndex(ci, clause, where PASS_LD);
-    if ( ci->size/2 > ci->buckets )
-    { /*TBD: Consider resizing*/
-      if ( true(def, DYNAMIC) && def->references == 0 )
-      { gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
-	return cref;
-      }
-    }
-  }
+    addClauseToIndex(ci, clause, where PASS_LD);
 
   UNLOCKDEF(def);
 
@@ -1208,6 +1200,8 @@ gcClausesDefinitionAndUnlock(Definition def)
 
   if ( cref )
     freeClauseList(cref);
+
+  SECURE(checkDefinition(def));
 }
 
 
@@ -3038,23 +3032,25 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
 static void
 listGenerations(Definition def)
 { GET_LD
-  uintptr_t gen = environment_frame->generation;
+  uintptr_t gen = generationFrame(environment_frame);
   ClauseRef cl;
+  int i;
 
   Sdprintf("%s has %d clauses at generation %ld (%s)\n",
 	   predicateName(def),
 	   def->number_of_clauses, gen,
 	   true(def, NEEDSCLAUSEGC) ? "needs clause-gc" : "clean");
 
-
-  for(cl=def->definition.clauses; cl; cl=cl->next)
+  for(i=1,cl=def->definition.clauses; cl; cl=cl->next, i++)
   { Clause clause = cl->clause;
 
-    Sdprintf("%p: %8u-%10u %s\n",
-	     clause,
+    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
+	     clause, i,
 	     clause->generation.created,
 	     clause->generation.erased,
-	     visibleClause(clause, gen) ? "ok" : "erased");
+	     true(clause, ERASED) ? " erased" : "",
+	     visibleClause(clause, gen) ? " invisible" : "",
+	     cl->key ? " idx" : " var");
   }
 
   if ( def->hash_info )
@@ -3063,7 +3059,7 @@ listGenerations(Definition def)
     for ( ci=def->hash_info; ci; ci=ci->next )
     { int i;
 
-      Sdprintf("Hash index for arg %d (%d dirty)\n", ci->arg, ci->dirty);
+      Sdprintf("\nHash index for arg %d (%d dirty)\n", ci->arg, ci->dirty);
 
       for(i=0; i<ci->buckets; i++)
       { if ( !ci->entries[i].head &&
@@ -3076,11 +3072,14 @@ listGenerations(Definition def)
 	for(cl=ci->entries[i].head; cl; cl=cl->next)
 	{ Clause clause = cl->clause;
 
-	  Sdprintf("%p: %8u-%10u %s\n",
+	  Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
 		   clause,
+		   clauseNo(def, clause),
 		   clause->generation.created,
 		   clause->generation.erased,
-		   visibleClause(clause, gen) ? "ok" : "erased");
+		   true(clause, ERASED) ? " erased" : "",
+		   visibleClause(clause, gen) ? " invisible" : "",
+		   cl->key ? " idx" : " var");
 	}
       }
     }
@@ -3117,13 +3116,13 @@ checkDefinition(Definition def)
       { Clause clause = cref->clause;
 
 	if ( false(clause, ERASED) )
-	{ if ( cref->key == 0 )
+	{ if ( i == 0 || cref->key != 0 )
 	    nc++;
 	}
       }
     }
 
-    if ( nc != indexed )
+    if ( nc != def->number_of_clauses )
     { listGenerations(def);
       pl_break();
     }

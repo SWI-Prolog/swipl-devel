@@ -386,6 +386,9 @@ gcClauseChain(ClauseChain ch, unsigned int dirty ARG_LD)
     }
   }
 
+  SECURE(for(cref=ch->head; cref; cref=cref->next)
+	   assert(false(cref->clause, ERASED)));
+
   ch->dirty = 0;
 
   return deleted;
@@ -403,9 +406,10 @@ cleanClauseIndex(Definition def, ClauseIndex ci ARG_LD)
 
       for(; n; n--, ch++)
       { if ( ch->dirty )
-	  ci->size -= gcClauseChain(ch, ch->dirty PASS_LD);
-	if ( --ci->dirty == 0 )
-	  break;
+	{ ci->size -= gcClauseChain(ch, ch->dirty PASS_LD);
+	  if ( --ci->dirty == 0 )
+	    break;
+	}
       }
     }
 
@@ -458,9 +462,12 @@ deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
     { int i;
       ClauseChain ch;
 
-      ci->dirty = ci->buckets;
       for(i=ci->buckets, ch = ci->entries; --i>=0; ch++)
+      { if ( ch->dirty == 0 )
+	  ci->dirty++;
 	ch->dirty++;
+      }
+      assert(ci->dirty == ci->buckets);
     }
   } else
   { int hi = hashIndex(key, ci->buckets);
