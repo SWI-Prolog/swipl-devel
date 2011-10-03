@@ -781,7 +781,9 @@ bestHash(Word av, Definition def, int *buckets, float *speedup)
 	{ assessments = malloc(newbytes);
 	  memcpy(assessments, assess_buf, sizeof(assess_buf));
 	} else
-	  assessments = realloc(assessments, newbytes);
+	{ assessments = realloc(assessments, newbytes);
+	}
+	assess_allocated *= 2;
       }
       a = &assessments[assess_count++];
       memset(a, 0, sizeof(*a));
