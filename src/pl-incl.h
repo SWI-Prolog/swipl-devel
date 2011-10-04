@@ -1156,7 +1156,7 @@ typedef struct clause_index_list
 
 typedef struct clause_list
 { ClauseRef	first_clause;		/* clause list of procedure */
-  ClauseRef	lastClause;		/* last clause of list */
+  ClauseRef	last_clause;		/* last clause of list */
   ClauseIndex	clause_indexes;		/* Hash index(es) */
   unsigned int	number_of_clauses;	/* number of associated clauses */
 } clause_list, *ClauseList;

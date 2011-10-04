@@ -801,16 +801,16 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 		   _PL_PREDICATE_INDICATOR, proc);
 
   LOCKDEF(def);
-  if ( !def->impl.clauses.lastClause )
-  { def->impl.clauses.first_clause = def->impl.clauses.lastClause = cref;
+  if ( !def->impl.clauses.last_clause )
+  { def->impl.clauses.first_clause = def->impl.clauses.last_clause = cref;
   } else if ( where == CL_START )
   { cref->next = def->impl.clauses.first_clause;
     def->impl.clauses.first_clause = cref;
   } else
-  { ClauseRef last = def->impl.clauses.lastClause;
+  { ClauseRef last = def->impl.clauses.last_clause;
 
     last->next = cref;
-    def->impl.clauses.lastClause = cref;
+    def->impl.clauses.last_clause = cref;
   }
 
   def->impl.clauses.number_of_clauses++;
@@ -860,7 +860,7 @@ abolishProcedure(Procedure proc, Module module)
     ndef->module             = module;	     /* lookupProcedure()!! */
     resetProcedure(proc, TRUE);
   } else if ( true(def, FOREIGN) )	/* foreign: make normal */
-  { def->impl.clauses.first_clause = def->impl.clauses.lastClause = NULL;
+  { def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
     resetProcedure(proc, TRUE);
   } else if ( true(def, P_THREAD_LOCAL) )
   { UNLOCKDEF(def);
@@ -962,11 +962,11 @@ unlinkClause(Definition def, Clause clause ARG_LD)
     { if ( !prev )
       { def->impl.clauses.first_clause = c->next;
 	if ( !c->next )
-	  def->impl.clauses.lastClause = NULL;
+	  def->impl.clauses.last_clause = NULL;
       } else
       { prev->next = c->next;
 	if ( c->next == NULL)
-	  def->impl.clauses.lastClause = prev;
+	  def->impl.clauses.last_clause = prev;
       }
 
 
@@ -1096,11 +1096,11 @@ cleanDefinition(Definition def, ClauseRef garbage)
       { if ( !prev )
 	{ def->impl.clauses.first_clause = cref->next;
 	  if ( !cref->next )
-	    def->impl.clauses.lastClause = NULL;
+	    def->impl.clauses.last_clause = NULL;
 	} else
 	{ prev->next = cref->next;
 	  if ( cref->next == NULL)
-	    def->impl.clauses.lastClause = prev;
+	    def->impl.clauses.last_clause = prev;
 	}
 
 	DEBUG(2, removed++);
