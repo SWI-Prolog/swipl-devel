@@ -164,6 +164,54 @@ nextClauseArg1(ClauseChoice chp, uintptr_t generation)
 }
 
 
+static ClauseRef
+nextClauseFromBucket(ClauseChoice chp, uintptr_t generation)
+{ ClauseRef cref = chp->cref;
+  word key = chp->key;
+
+  if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+  { for( ; cref; cref = cref->next)
+    { if ( cref->key == key )
+      { ClauseList cl = &cref->value.clauses;
+	ClauseRef cr;
+
+	for(cr=cl->first_clause; cr; cr=cr->next)
+	{ if ( visibleClause(cr->value.clause, generation) )
+	  { chp->cref = cr->next;
+	    return cr;
+	  }
+	}
+      }
+    }
+
+    return NULL;
+  } else
+  { for( ; cref; cref = cref->next)
+    { if ( (!cref->key || key == cref->key) &&
+	   visibleClause(cref->value.clause, generation))
+      { ClauseRef result = cref;
+	int maxsearch = MAXSEARCH;
+
+	for( cref = cref->next; cref; cref = cref->next )
+	{ if ( ((!cref->key || key == cref->key) &&
+		visibleClause(cref->value.clause, generation)) ||
+	       --maxsearch == 0 )
+	  { chp->cref = cref;
+
+	    return result;
+	  }
+	}
+	chp->cref = NULL;
+
+	return result;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 firstClause() finds the first applicable   clause  and leave information
 for finding the next clause in chp.
@@ -212,7 +260,7 @@ retry:
 
       hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
-      return nextClauseArg1(chp, generationFrame(fr));
+      return nextClauseFromBucket(chp, generationFrame(fr));
     }
   }
 
@@ -234,7 +282,7 @@ retry:
       assert(chp->key);
       hi = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
-      return nextClauseArg1(chp, generationFrame(fr));
+      return nextClauseFromBucket(chp, generationFrame(fr));
     }
   }
 
@@ -305,6 +353,24 @@ newClauseIndexTable(int arg, int buckets)
 
 
 static void
+freeClauseRefOrList(ClauseRef cref ARG_LD)
+{ if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+  { ClauseList cl = &cref->value.clauses;
+    ClauseRef cr, next;
+
+    for(cr=cl->first_clause; cr; cr=next)
+    { next = cr->next;
+      freeClauseRef(cr PASS_LD);
+    }
+
+    freeHeap(cref, SIZEOF_CREF_LIST);
+  } else
+  { freeClauseRef(cref PASS_LD);
+  }
+}
+
+
+static void
 unallocClauseIndexTableEntries(ClauseBucket entries, int buckets ARG_LD)
 { ClauseBucket ch;
   int i;
@@ -314,12 +380,13 @@ unallocClauseIndexTableEntries(ClauseBucket entries, int buckets ARG_LD)
 
     for(cr = ch->head; cr; cr = next)
     { next = cr->next;
-      freeClauseRef(cr PASS_LD);
+      freeClauseRefOrList(cr PASS_LD);
     }
   }
 
   freeHeap(entries, buckets * sizeof(struct clause_bucket));
 }
+
 
 void
 unallocClauseIndexTable(ClauseIndex ci)
@@ -330,9 +397,59 @@ unallocClauseIndexTable(ClauseIndex ci)
 }
 
 
+static ClauseRef
+newClauseListRef(word key ARG_LD)
+{ ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_LIST);
+
+  memset(cref, 0, sizeof(*cref));
+  cref->key = key;
+
+  return cref;
+}
+
+
 static void
-appendClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
-{ ClauseRef cr = newClauseRef(cl, key PASS_LD);
+addClauseList(ClauseRef cref, Clause clause, int where ARG_LD)
+{ ClauseList cl = &cref->value.clauses;
+  ClauseRef cr = newClauseRef(clause, 0 PASS_LD);	/* TBD: key? */
+
+  if ( cl->first_clause )
+  { if ( where != CL_START )
+    { cl->last_clause->next = cr;
+      cl->last_clause = cr;
+    } else
+    { cr->next = cl->first_clause;
+      cl->first_clause = cr;
+    }
+    cl->number_of_clauses++;
+  } else
+  { cl->first_clause = cl->last_clause = cr;
+    cl->number_of_clauses = 1;
+  }
+
+  /* TBD: Add to indexes */
+}
+
+
+static void
+addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
+{ ClauseRef cr;
+
+  if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )	/* functor */
+  { ClauseRef cref;
+
+    for(cref=ch->head; cref; cref=cref->next)
+    { if ( cref->key == key )
+      { addClauseList(cref, cl, where PASS_LD);
+	return;
+      }
+    }
+
+    cr = newClauseListRef(key PASS_LD);
+    addClauseList(cr, cl, where PASS_LD);
+  } else
+  { cr = newClauseRef(cl, key PASS_LD);
+  }
 
   if ( !ch->tail )
   { ch->head = ch->tail = cr;
@@ -349,20 +466,53 @@ appendClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
 
 
 static void
-deleteClauseBucket(ClauseBucket ch, Clause clause)
+deleteClauseList(ClauseRef cref, Clause clause)
+{ ClauseList cl = &cref->value.clauses;
+  ClauseRef cr, prev=NULL;
+
+  for(cr=cl->first_clause; cr; prev=cr, cr=cr->next)
+  { if ( cr->value.clause == clause )
+    { if ( !prev )
+      { cl->first_clause = cr->next;
+	if ( !cr->next )
+	  cl->last_clause = NULL;
+      } else
+      { prev->next = cr->next;
+	if ( !cr->next )
+	  cl->last_clause = prev;
+      }
+
+      break;
+    }
+  }
+}
+
+
+static void
+deleteClauseBucket(ClauseBucket ch, Clause clause, word key)
 { ClauseRef prev = NULL;
   ClauseRef c;
 
-  for(c = ch->head; c; prev = c, c = c->next)
-  { if ( c->value.clause == clause )
-    { if ( !prev )
-      { ch->head = c->next;
-	if ( !c->next )
-	  ch->tail = NULL;
-      } else
-      { prev->next = c->next;
-	if ( !c->next)
-	  ch->tail = prev;
+  if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+  { for(c = ch->head; c; prev = c, c = c->next)
+    { if ( c->key == key )
+      { deleteClauseList(c, clause);
+	break;
+      }
+    }
+  } else
+  { for(c = ch->head; c; prev = c, c = c->next)
+    { if ( c->value.clause == clause )
+      { if ( !prev )
+	{ ch->head = c->next;
+	  if ( !c->next )
+	    ch->tail = NULL;
+	} else
+	{ prev->next = c->next;
+	  if ( !c->next)
+	    ch->tail = prev;
+	}
+	break;
       }
     }
   }
@@ -375,28 +525,37 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
   int deleted = 0;
 
   while( cref && dirty )
-  { if ( true(cref->value.clause, ERASED) )
-    { ClauseRef c = cref;
+  { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+    { ClauseList cl = &cref->value.clauses;
+      ClauseRef cr;
 
-      if ( cref->key )
-	deleted++;			/* only reduce size by indexed */
-      dirty--;
-
-      cref = cref->next;
-      if ( !prev )
-      { ch->head = c->next;
-	if ( !c->next )
-	  ch->tail = NULL;
-      } else
-      { prev->next = c->next;
-	if ( c->next == NULL)
-	  ch->tail = prev;
+      for(cr=cl->first_clause; cr; cr=cr->next)
+      { /*TBD*/
       }
-
-      freeClauseRef(c PASS_LD);
     } else
-    { prev = cref;
-      cref = cref->next;
+    { if ( true(cref->value.clause, ERASED) )
+      { ClauseRef c = cref;
+
+	if ( cref->key )
+	  deleted++;			/* only reduce size by indexed */
+	dirty--;
+
+	cref = cref->next;
+	if ( !prev )
+	{ ch->head = c->next;
+	  if ( !c->next )
+	    ch->tail = NULL;
+	} else
+	{ prev->next = c->next;
+	  if ( c->next == NULL)
+	    ch->tail = prev;
+	}
+
+	freeClauseRef(c PASS_LD);
+      } else
+      { prev = cref;
+	cref = cref->next;
+      }
     }
   }
 
@@ -515,12 +674,12 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
   { int n = ci->buckets;
 
     for(; n; n--, ch++)
-      appendClauseBucket(ch, cl, key, where PASS_LD);
+      addClauseBucket(ch, cl, key, where PASS_LD);
   } else
   { int hi = hashIndex(key, ci->buckets);
 
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
-    appendClauseBucket(&ch[hi], cl, key, where PASS_LD);
+    addClauseBucket(&ch[hi], cl, key, where PASS_LD);
     ci->size++;
   }
 }
@@ -540,11 +699,11 @@ delClauseFromIndex(Definition def, Clause cl)
     { int n = ci->buckets;
 
       for(; n; n--, ch++)
-	deleteClauseBucket(ch, cl);
+	deleteClauseBucket(ch, cl, key);
     } else
     { int hi = hashIndex(key, ci->buckets);
 
-      deleteClauseBucket(&ch[hi], cl);
+      deleteClauseBucket(&ch[hi], cl, key);
       ci->size--;
     }
   }

@@ -621,6 +621,7 @@ COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
 /* pl-util.c */
 COMMON(char *)		procedureName(Procedure proc);
 COMMON(char *)		predicateName(Definition def);
+COMMON(char *)		functorName(functor_t f);
 COMMON(int)		clauseNo(Definition def, Clause clause);
 COMMON(int)		notImplemented(char *name, int arity);
 COMMON(word)		setBoolean(int *flag, term_t o, term_t n);
