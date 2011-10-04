@@ -170,7 +170,9 @@ nextClauseFromBucket(ClauseChoice chp, uintptr_t generation)
   word key = chp->key;
 
   if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
-  { for( ; cref; cref = cref->next)
+  { Sdprintf("Searching for %s\n", functorName(key));
+
+    for( ; cref; cref = cref->next)
     { if ( cref->key == key )
       { ClauseList cl = &cref->value.clauses;
 	ClauseRef cr;
@@ -441,10 +443,12 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
     for(cref=ch->head; cref; cref=cref->next)
     { if ( cref->key == key )
       { addClauseList(cref, cl, where PASS_LD);
+	Sdprintf("Adding to existing %s\n", functorName(key));
 	return;
       }
     }
 
+    Sdprintf("Adding new %s\n", functorName(key));
     cr = newClauseListRef(key PASS_LD);
     addClauseList(cr, cl, where PASS_LD);
   } else
