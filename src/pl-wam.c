@@ -2198,9 +2198,11 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	lTop = (LocalFrame)ch;
 	NEXT_INSTRUCTION;
       } else				/* Choice point needs to move */
-      { DiscardMark(ch->mark);
+      { struct clause_choice chp;
+
+        DiscardMark(ch->mark);
 	BFR = ch->parent;
-	struct clause_choice chp = ch->value.clause;
+	chp = ch->value.clause;
 	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 

@@ -2480,9 +2480,10 @@ the temporary variable `cl' for storing the clause.
 
 VMI(S_STATIC, 0, 0, ())
 { ClauseRef cl;
+  struct clause_choice chp;
+
   ARGP = argFrameP(FR, 0);
   lTop = (LocalFrame)ARGP+DEF->functor->arity;
-  struct clause_choice chp;
 
   DEBUG(9, Sdprintf("Searching clause ... "));
 
