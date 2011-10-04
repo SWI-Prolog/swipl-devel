@@ -283,7 +283,7 @@ static ClauseIndex
 newClauseIndexTable(int arg, int buckets)
 { GET_LD
   ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
-  ClauseChain ch;
+  ClauseBucket ch;
   int m = 4;
 
   while(m<buckets)
@@ -293,7 +293,7 @@ newClauseIndexTable(int arg, int buckets)
   memset(ci, 0, sizeof(*ci));
   ci->buckets  = buckets;
   ci->arg      = arg;
-  ci->entries  = allocHeapOrHalt(sizeof(struct clause_chain) * buckets);
+  ci->entries  = allocHeapOrHalt(sizeof(struct clause_bucket) * buckets);
 
   for(ch = ci->entries; buckets; buckets--, ch++)
   { ch->head = ch->tail = NULL;
@@ -305,8 +305,8 @@ newClauseIndexTable(int arg, int buckets)
 
 
 static void
-unallocClauseIndexTableEntries(ClauseChain entries, int buckets ARG_LD)
-{ ClauseChain ch;
+unallocClauseIndexTableEntries(ClauseBucket entries, int buckets ARG_LD)
+{ ClauseBucket ch;
   int i;
 
   for(ch=entries,i=buckets; --i>=0; ch++)
@@ -318,7 +318,7 @@ unallocClauseIndexTableEntries(ClauseChain entries, int buckets ARG_LD)
     }
   }
 
-  freeHeap(entries, buckets * sizeof(struct clause_chain));
+  freeHeap(entries, buckets * sizeof(struct clause_bucket));
 }
 
 void
@@ -331,7 +331,7 @@ unallocClauseIndexTable(ClauseIndex ci)
 
 
 static void
-appendClauseChain(ClauseChain ch, Clause cl, word key, int where ARG_LD)
+appendClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
 { ClauseRef cr = newClauseRef(cl, key PASS_LD);
 
   if ( !ch->tail )
@@ -349,7 +349,7 @@ appendClauseChain(ClauseChain ch, Clause cl, word key, int where ARG_LD)
 
 
 static void
-deleteClauseChain(ClauseChain ch, Clause clause)
+deleteClauseBucket(ClauseBucket ch, Clause clause)
 { ClauseRef prev = NULL;
   ClauseRef c;
 
@@ -370,7 +370,7 @@ deleteClauseChain(ClauseChain ch, Clause clause)
 
 
 static int
-gcClauseChain(ClauseChain ch, unsigned int dirty ARG_LD)
+gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
 
@@ -415,12 +415,12 @@ cleanClauseIndex(Definition def, ClauseIndex ci ARG_LD)
   { replaceIndex(def, ci, NULL);
   } else
   { if ( ci->dirty )
-    { ClauseChain ch = ci->entries;
+    { ClauseBucket ch = ci->entries;
       int n = ci->buckets;
 
       for(; n; n--, ch++)
       { if ( ch->dirty )
-	{ ci->size -= gcClauseChain(ch, ch->dirty PASS_LD);
+	{ ci->size -= gcClauseBucket(ch, ch->dirty PASS_LD);
 	  if ( --ci->dirty == 0 )
 	    break;
 	}
@@ -474,7 +474,7 @@ deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
   if ( key == 0 )			/* not indexed */
   { if ( ci->dirty != ci->buckets )
     { int i;
-      ClauseChain ch;
+      ClauseBucket ch;
 
       for(i=ci->buckets, ch = ci->entries; --i>=0; ch++)
       { if ( ch->dirty == 0 )
@@ -506,7 +506,7 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 
 void
 addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
-{ ClauseChain ch = ci->entries;
+{ ClauseBucket ch = ci->entries;
   word key;
 
   argKey(cl->codes, ci->arg-1, FALSE, &key);
@@ -515,12 +515,12 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
   { int n = ci->buckets;
 
     for(; n; n--, ch++)
-      appendClauseChain(ch, cl, key, where PASS_LD);
+      appendClauseBucket(ch, cl, key, where PASS_LD);
   } else
   { int hi = hashIndex(key, ci->buckets);
 
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
-    appendClauseChain(&ch[hi], cl, key, where PASS_LD);
+    appendClauseBucket(&ch[hi], cl, key, where PASS_LD);
     ci->size++;
   }
 }
@@ -531,7 +531,7 @@ delClauseFromIndex(Definition def, Clause cl)
 { ClauseIndex ci;
 
   for(ci=def->clause_indexes; ci; ci=ci->next)
-  { ClauseChain ch = ci->entries;
+  { ClauseBucket ch = ci->entries;
     word key;
 
     argKey(cl->codes, ci->arg-1, FALSE, &key);
@@ -540,11 +540,11 @@ delClauseFromIndex(Definition def, Clause cl)
     { int n = ci->buckets;
 
       for(; n; n--, ch++)
-	deleteClauseChain(ch, cl);
+	deleteClauseBucket(ch, cl);
     } else
     { int hi = hashIndex(key, ci->buckets);
 
-      deleteClauseChain(&ch[hi], cl);
+      deleteClauseBucket(&ch[hi], cl);
       ci->size--;
     }
   }

@@ -622,7 +622,7 @@ typedef struct definition_chain *DefinitionChain; /* linked list of defs */
 typedef struct clause *		Clause;		/* compiled clause */
 typedef struct clause_ref *	ClauseRef;      /* reference to a clause */
 typedef struct clause_index *	ClauseIndex;    /* Clause indexing table */
-typedef struct clause_chain *	ClauseChain;    /* Chain of clauses in table */
+typedef struct clause_bucket *	ClauseBucket;   /* Bucked in clause-index table */
 typedef struct operator *	Operator;	/* see pl-op.c, pl-read.c */
 typedef struct record *		Record;		/* recorda/3, etc. */
 typedef struct recordRef *	RecordRef;      /* reference to a record */
@@ -1145,7 +1145,7 @@ struct clause_index
   unsigned int	 dirty;			/* # chains that are dirty */
   float		 speedup;		/* Estimated speedup */
   ClauseIndex	 next;			/* Next index */
-  ClauseChain	 entries;		/* chains holding the clauses */
+  ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
 typedef struct clause_index_list
@@ -1153,7 +1153,7 @@ typedef struct clause_index_list
   struct clause_index_list *next;
 } clause_index_list, *ClauseIndexList;
 
-struct clause_chain
+struct clause_bucket
 { ClauseRef	head;
   ClauseRef	tail;
   unsigned int	dirty;			/* # of garbage clauses */
