@@ -5184,7 +5184,7 @@ localiseDefinition(Definition def)
   local->mutex = NULL;
   clear(local, P_THREAD_LOCAL);		/* remains DYNAMIC */
   local->definition.clauses = NULL;
-  local->hash_info = NULL;
+  local->clause_indexes = NULL;
 
   createSupervisor(local);
   registerLocalDefinition(def);

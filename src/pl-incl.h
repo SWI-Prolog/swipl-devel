@@ -1181,8 +1181,8 @@ struct definition
 #ifdef O_PLMT
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
-  ClauseIndex	hash_info;		/* clause hash-tables */
-  ClauseIndexList old_hash_info;	/* Outdated hash indexes */
+  ClauseIndex	clause_indexes;		/* clause hash-tables */
+  ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */

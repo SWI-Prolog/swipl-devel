@@ -152,14 +152,14 @@ resetProcedure(Procedure proc, bool isnew)
 
     set(def, AUTOINDEX);
 
-    if ( (ci=def->hash_info) )
+    if ( (ci=def->clause_indexes) )
     { ClauseIndex next;
 
-      def->hash_info = NULL;
-      for (ci=def->hash_info; ci; ci=next)
+      def->clause_indexes = NULL;
+      for (ci=def->clause_indexes; ci; ci=next)
       { next = ci->next;
 	unallocClauseIndexTable(ci);
-	def->hash_info = NULL;
+	def->clause_indexes = NULL;
       }
     }
   }
@@ -824,7 +824,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   if ( false(def, DYNAMIC) )		/* see (*) above */
     freeCodesDefinition(def);
 
-  for(ci=def->hash_info; ci; ci=ci->next)
+  for(ci=def->clause_indexes; ci; ci=ci->next)
     addClauseToIndex(ci, clause, where PASS_LD);
 
   UNLOCKDEF(def);
@@ -1216,10 +1216,10 @@ void
 destroyDefinition(Definition def)
 { GET_LD
 
-  if ( def->hash_info )
+  if ( def->clause_indexes )
   { ClauseIndex ci, next;
 
-    for(ci=def->hash_info; ci; ci=next)
+    for(ci=def->clause_indexes; ci; ci=next)
     { next = ci->next;
       unallocClauseIndexTable(ci);
     }
@@ -1597,7 +1597,7 @@ pl_check_definition(term_t spec)
     Sdprintf("%s has %d erased clauses, claims %d\n",
 	     predicateName(def), nerased, def->erased_clauses);
 
-  for ( ci=def->hash_info; ci; ci=ci->next )
+  for ( ci=def->clause_indexes; ci; ci=ci->next )
   { if ( ci->size != nindexable )
       Sdprintf("%s has inconsistent clause index->size",
 	      predicateName(def));
@@ -3053,10 +3053,10 @@ listGenerations(Definition def)
 	     cl->key ? " idx" : " var");
   }
 
-  if ( def->hash_info )
+  if ( def->clause_indexes )
   { ClauseIndex ci;
 
-    for ( ci=def->hash_info; ci; ci=ci->next )
+    for ( ci=def->clause_indexes; ci; ci=ci->next )
     { int i;
 
       Sdprintf("\nHash index for arg %d (%d dirty)\n", ci->arg, ci->dirty);
@@ -3107,7 +3107,7 @@ checkDefinition(Definition def)
     pl_break();
   }
 
-  for ( ci=def->hash_info; ci; ci=ci->next )
+  for ( ci=def->clause_indexes; ci; ci=ci->next )
   { int i;
 
     nc = 0;

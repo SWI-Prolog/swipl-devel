@@ -186,11 +186,11 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     goto simple;
 
 retry:
-  if ( def->hash_info )
+  if ( def->clause_indexes )
   { float speedup = 0.0;
     ClauseIndex best_index = NULL;
 
-    for(ci=def->hash_info; ci; ci=ci->next)
+    for(ci=def->clause_indexes; ci; ci=ci->next)
     { if ( ci->speedup > speedup )
       { word k;
 
@@ -446,14 +446,14 @@ void
 cleanClauseIndexes(Definition def ARG_LD)
 { ClauseIndex ci;
 
-  for(ci=def->hash_info; ci; ci=ci->next)
+  for(ci=def->clause_indexes; ci; ci=ci->next)
     cleanClauseIndex(def, ci PASS_LD);
 
-  if ( def->old_hash_info )
-  { ClauseIndexList li = def->old_hash_info;
+  if ( def->old_clause_indexes )
+  { ClauseIndexList li = def->old_clause_indexes;
     ClauseIndexList next;
 
-    def->old_hash_info = NULL;
+    def->old_clause_indexes = NULL;
 
     for(; li; li=next)
     { next = li->next;
@@ -497,7 +497,7 @@ void
 deleteActiveClauseFromIndexes(Definition def, Clause cl)
 { ClauseIndex ci;
 
-  for(ci=def->hash_info; ci; ci=ci->next)
+  for(ci=def->clause_indexes; ci; ci=ci->next)
     deleteActiveClauseFromIndex(ci, cl);
 }
 
@@ -530,7 +530,7 @@ void
 delClauseFromIndex(Definition def, Clause cl)
 { ClauseIndex ci;
 
-  for(ci=def->hash_info; ci; ci=ci->next)
+  for(ci=def->clause_indexes; ci; ci=ci->next)
   { ClauseChain ch = ci->entries;
     word key;
 
@@ -569,7 +569,7 @@ hashDefinition(Definition def, int arg, int buckets)
   ClauseIndex ci, old;
   ClauseIndex *cip;
 
-  for(old=def->hash_info; old; old=old->next)
+  for(old=def->clause_indexes; old; old=old->next)
   { if ( old->arg == arg )
       break;
   }
@@ -590,7 +590,7 @@ hashDefinition(Definition def, int arg, int buckets)
   if ( !old )				/* this is a new table */
   { ClauseIndex conc;
 
-    for(conc=def->hash_info; conc; conc=conc->next)
+    for(conc=def->clause_indexes; conc; conc=conc->next)
     { if ( conc->arg == arg )
       { UNLOCKDEF(def);
 	unallocClauseIndexTable(ci);
@@ -598,7 +598,7 @@ hashDefinition(Definition def, int arg, int buckets)
       }
     }
 					/* insert at the end */
-    for(cip=&def->hash_info; *cip; cip = &(*cip)->next)
+    for(cip=&def->clause_indexes; *cip; cip = &(*cip)->next)
       ;
     *cip = ci;
   } else				/* replace (resize) old */
@@ -636,7 +636,7 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
 { GET_LD
   ClauseIndex *cip;
 
-  for(cip=&def->hash_info; *cip && *cip != old; cip = &(*cip)->next)
+  for(cip=&def->clause_indexes; *cip && *cip != old; cip = &(*cip)->next)
     ;
 
   if ( true(def, DYNAMIC) && def->references == 1 )
@@ -660,8 +660,8 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
 
     old->erased = TRUE;
     c->index = old;
-    c->next = def->old_hash_info;
-    def->old_hash_info = c;
+    c->next = def->old_clause_indexes;
+    def->old_clause_indexes = c;
   }
 }
 
@@ -923,7 +923,7 @@ unify_index_pattern(Procedure proc, term_t value)
   Definition def = proc->definition;
   ClauseIndex ci;
 
-  if ( (ci=def->hash_info) )
+  if ( (ci=def->clause_indexes) )
   { term_t tail = PL_copy_term_ref(value);
     term_t head = PL_new_term_ref();
 
@@ -965,7 +965,7 @@ PRED_IMPL("hash", 2, hash, PL_FA_TRANSPARENT)
     int size, minsize;
     ClauseIndex ci;
 
-    if ( def->hash_info )		/* already hashed; won't change */
+    if ( def->clause_indexes )		/* already hashed; won't change */
       succeed;
 
     if ( true(def, FOREIGN) )
@@ -974,7 +974,7 @@ PRED_IMPL("hash", 2, hash, PL_FA_TRANSPARENT)
     if ( argn > def->functor->arity )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_argument, A2);
 
-    for(ci=def->hash_info; ci; ci=ci->next)
+    for(ci=def->clause_indexes; ci; ci=ci->next)
     { if ( ci->arg == argn )
 	succeed;			/* Hashed index already provided */
     }
