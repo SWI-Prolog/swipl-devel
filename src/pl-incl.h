@@ -1130,9 +1130,10 @@ struct functor
   word		arguments[1];	/* arguments vector */
 };
 
-struct procedure
-{ Definition	definition;	/* definition of procedure */
-  int		type;		/* PROCEDURE_TYPE */
+struct clause_bucket
+{ ClauseRef	head;
+  ClauseRef	tail;
+  unsigned int	dirty;			/* # of garbage clauses */
 };
 
 struct clause_index
@@ -1152,12 +1153,6 @@ typedef struct clause_index_list
 { ClauseIndex index;
   struct clause_index_list *next;
 } clause_index_list, *ClauseIndexList;
-
-struct clause_bucket
-{ ClauseRef	head;
-  ClauseRef	tail;
-  unsigned int	dirty;			/* # of garbage clauses */
-};
 
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
@@ -1214,12 +1209,15 @@ struct definition
 #endif
 };
 
-
 struct definition_chain
 { Definition		definition;	/* chain on definition */
   DefinitionChain	next;		/* next in chain */
 };
 
+struct procedure
+{ Definition	definition;	/* definition of procedure */
+  int		type;		/* PROCEDURE_TYPE */
+};
 
 struct localFrame
 { Code		programPointer;		/* pointer into program */
