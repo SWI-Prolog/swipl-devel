@@ -1154,6 +1154,13 @@ typedef struct clause_index_list
   struct clause_index_list *next;
 } clause_index_list, *ClauseIndexList;
 
+typedef struct clause_list
+{ ClauseRef	first_clause;		/* clause list of procedure */
+  ClauseRef	lastClause;		/* last clause of list */
+  ClauseIndex	clause_indexes;		/* Hash index(es) */
+  unsigned int	number_of_clauses;	/* number of associated clauses */
+} clause_list, *ClauseList;
+
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
 typedef struct local_definitions
@@ -1166,17 +1173,16 @@ struct definition
   Module	module;			/* module of the predicate */
   Code		codes;			/* Executable code */
   union
-  { ClauseRef	clauses;		/* clause list of procedure */
+  { void *	any;			/* has some value */
+    clause_list	clauses;		/* (Indexed) list of clauses */
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
-  } definition;
-  ClauseRef	lastClause;		/* last clause of list */
+  } impl;
   int		references;		/* reference count */
   unsigned int  erased_clauses;		/* #erased but not reclaimed clauses */
 #ifdef O_PLMT
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
-  ClauseIndex	clause_indexes;		/* clause hash-tables */
   ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   unsigned int  meta_info;		/* meta-predicate info */
@@ -1202,7 +1208,6 @@ struct definition
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
 		/*	P_SHARED	   Multiple procs are using me */
-  unsigned int	number_of_clauses;	/* number of associated clauses */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */

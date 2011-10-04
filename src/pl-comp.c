@@ -2811,7 +2811,7 @@ care of reconsult, redefinition, etc.
     if ( proc == sf->current_procedure )
       return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
 
-    if ( def->definition.clauses )	/* i.e. is (might be) defined */
+    if ( def->impl.any )	/* i.e. is (might be) defined */
     { if ( !redefineProcedure(proc, sf, 0) )
       { freeClause(clause PASS_LD);
 	return NULL;
@@ -4526,7 +4526,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 
       proc = clause->procedure;
       def  = getProcDefinition(proc);
-      for( cref = def->definition.clauses, i=1; cref; cref = cref->next)
+      for( cref = def->impl.clauses.first_clause, i=1; cref; cref = cref->next)
       { if ( cref->clause == clause )
 	{ if ( !PL_unify_integer(n, i) ||
 	       !unify_definition(contextModule(LD->environment), p, def, 0, 0) )
@@ -4550,7 +4550,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
 
     def = getProcDefinition(proc);
-    cref = def->definition.clauses;
+    cref = def->impl.clauses.first_clause;
     while ( cref && !visibleClause(cref->clause, generation) )
       cref = cref->next;
 
@@ -4616,7 +4616,7 @@ wouldBindToDefinition(Definition from, Definition to)
     { if ( def == to )			/* found it */
 	succeed;
 
-      if ( def->definition.clauses ||	/* defined and not the same */
+      if ( def->impl.any ||		/* defined and not the same */
 	   true(def, PROC_DEFINED) ||
 	   getUnknownModule(def->module) == UNKNOWN_FAIL )
 	fail;

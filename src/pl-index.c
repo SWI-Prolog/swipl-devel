@@ -186,11 +186,11 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     goto simple;
 
 retry:
-  if ( def->clause_indexes )
+  if ( def->impl.clauses.clause_indexes )
   { float speedup = 0.0;
     ClauseIndex best_index = NULL;
 
-    for(ci=def->clause_indexes; ci; ci=ci->next)
+    for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
     { if ( ci->speedup > speedup )
       { word k;
 
@@ -216,12 +216,12 @@ retry:
     }
   }
 
-  if ( def->number_of_clauses == 0 )
+  if ( def->impl.clauses.number_of_clauses == 0 )
     return NULL;
 
   if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
-       def->number_of_clauses <= 10 )
-  { chp->cref = def->definition.clauses;
+       def->impl.clauses.number_of_clauses <= 10 )
+  { chp->cref = def->impl.clauses.first_clause;
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
@@ -239,12 +239,12 @@ retry:
   }
 
   if ( chp->key )
-  { chp->cref = def->definition.clauses;
+  { chp->cref = def->impl.clauses.first_clause;
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
 simple:
-  for(cref = def->definition.clauses; cref; cref = cref->next)
+  for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( visibleClause(cref->clause, generationFrame(fr)) )
     { chp->cref = cref->next;
       chp->key = 0;
@@ -446,7 +446,7 @@ void
 cleanClauseIndexes(Definition def ARG_LD)
 { ClauseIndex ci;
 
-  for(ci=def->clause_indexes; ci; ci=ci->next)
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
     cleanClauseIndex(def, ci PASS_LD);
 
   if ( def->old_clause_indexes )
@@ -497,7 +497,7 @@ void
 deleteActiveClauseFromIndexes(Definition def, Clause cl)
 { ClauseIndex ci;
 
-  for(ci=def->clause_indexes; ci; ci=ci->next)
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
     deleteActiveClauseFromIndex(ci, cl);
 }
 
@@ -530,7 +530,7 @@ void
 delClauseFromIndex(Definition def, Clause cl)
 { ClauseIndex ci;
 
-  for(ci=def->clause_indexes; ci; ci=ci->next)
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
   { ClauseBucket ch = ci->entries;
     word key;
 
@@ -569,7 +569,7 @@ hashDefinition(Definition def, int arg, int buckets)
   ClauseIndex ci, old;
   ClauseIndex *cip;
 
-  for(old=def->clause_indexes; old; old=old->next)
+  for(old=def->impl.clauses.clause_indexes; old; old=old->next)
   { if ( old->arg == arg )
       break;
   }
@@ -579,7 +579,7 @@ hashDefinition(Definition def, int arg, int buckets)
 
   ci = newClauseIndexTable(arg, buckets);
 
-  for(cref = def->definition.clauses; cref; cref = cref->next)
+  for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( false(cref->clause, ERASED) )
       addClauseToIndex(ci, cref->clause, CL_END PASS_LD);
   }
@@ -590,7 +590,7 @@ hashDefinition(Definition def, int arg, int buckets)
   if ( !old )				/* this is a new table */
   { ClauseIndex conc;
 
-    for(conc=def->clause_indexes; conc; conc=conc->next)
+    for(conc=def->impl.clauses.clause_indexes; conc; conc=conc->next)
     { if ( conc->arg == arg )
       { UNLOCKDEF(def);
 	unallocClauseIndexTable(ci);
@@ -598,7 +598,7 @@ hashDefinition(Definition def, int arg, int buckets)
       }
     }
 					/* insert at the end */
-    for(cip=&def->clause_indexes; *cip; cip = &(*cip)->next)
+    for(cip=&def->impl.clauses.clause_indexes; *cip; cip = &(*cip)->next)
       ;
     *cip = ci;
   } else				/* replace (resize) old */
@@ -636,7 +636,7 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
 { GET_LD
   ClauseIndex *cip;
 
-  for(cip=&def->clause_indexes; *cip && *cip != old; cip = &(*cip)->next)
+  for(cip=&def->impl.clauses.clause_indexes; *cip && *cip != old; cip = &(*cip)->next)
     ;
 
   if ( true(def, DYNAMIC) && def->references == 1 )
@@ -795,7 +795,7 @@ bestHash(Word av, Definition def, int *buckets, float *speedup)
     return -1;				/* no luck */
 
 					/* Step 2: assess */
-  for(cref=def->definition.clauses; cref; cref=cref->next)
+  for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
   { Clause cl = cref->clause;
     Code pc = cref->clause->codes;
     int carg = 0;
@@ -866,11 +866,11 @@ reassessHash(Definition def, ClauseIndex ci, float *speedup)
 { hash_assessment a_store;
   hash_assessment *a = &a_store;
   ClauseRef cref;
-  int clause_count = def->number_of_clauses;
+  int clause_count = def->impl.clauses.number_of_clauses;
 
   memset(a, 0, sizeof(*a));
 
-  for(cref=def->definition.clauses; cref; cref=cref->next)
+  for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
   { Clause cl = cref->clause;
     word k;
 
@@ -923,7 +923,7 @@ unify_index_pattern(Procedure proc, term_t value)
   Definition def = proc->definition;
   ClauseIndex ci;
 
-  if ( (ci=def->clause_indexes) )
+  if ( (ci=def->impl.clauses.clause_indexes) )
   { term_t tail = PL_copy_term_ref(value);
     term_t head = PL_new_term_ref();
 
@@ -965,7 +965,7 @@ PRED_IMPL("hash", 2, hash, PL_FA_TRANSPARENT)
     int size, minsize;
     ClauseIndex ci;
 
-    if ( def->clause_indexes )		/* already hashed; won't change */
+    if ( def->impl.clauses.clause_indexes )		/* already hashed; won't change */
       succeed;
 
     if ( true(def, FOREIGN) )
@@ -974,12 +974,12 @@ PRED_IMPL("hash", 2, hash, PL_FA_TRANSPARENT)
     if ( argn > def->functor->arity )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_argument, A2);
 
-    for(ci=def->clause_indexes; ci; ci=ci->next)
+    for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
     { if ( ci->arg == argn )
 	succeed;			/* Hashed index already provided */
     }
 
-    minsize = def->number_of_clauses / 2,
+    minsize = def->impl.clauses.number_of_clauses / 2,
     size = 4;
     while (size < minsize)
       size *= 2;

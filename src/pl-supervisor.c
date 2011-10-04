@@ -142,7 +142,7 @@ static int
 getClauses(Definition def, ClauseRef *refp0)
 { ClauseRef cref, *refp = refp0;
 
-  for(cref = def->definition.clauses; cref; cref = cref->next)
+  for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( visibleClause(cref->clause, GD->generation) )
       *refp++ = cref;
   }
@@ -160,7 +160,7 @@ only clause of the predicate.  Creates
 
 static Code
 singleClauseSupervisor(Definition def)
-{ if ( def->number_of_clauses == 1 )
+{ if ( def->impl.clauses.number_of_clauses == 1 )
   { ClauseRef cref;
     Code codes = allocCodes(2);
 
@@ -192,7 +192,7 @@ The code is
 
 static Code
 listSupervisor(Definition def)
-{ if ( def->number_of_clauses == 2 )
+{ if ( def->impl.clauses.number_of_clauses == 2 )
   { ClauseRef cref[2];
     word c[2];
 
@@ -303,7 +303,7 @@ chainMetaPredicateSupervisor(Definition def, Code post)
 
 int
 createUndefSupervisor(Definition def)
-{ if ( def->number_of_clauses == 0 && false(def, PROC_DEFINED) )
+{ if ( def->impl.clauses.number_of_clauses == 0 && false(def, PROC_DEFINED) )
   { def->codes = SUPERVISOR(undef);
 
     succeed;

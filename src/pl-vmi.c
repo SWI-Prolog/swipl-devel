@@ -1700,7 +1700,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 { if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
   { Procedure proc = (Procedure) *PC++;
 
-    if ( !proc->definition->definition.clauses &&	/* see (*) */
+    if ( !proc->definition->impl.any &&	/* see (*) */
 	 false(proc->definition, PROC_DEFINED) )
     { PC--;
       VMI_GOTO(I_CALL);
@@ -2583,7 +2583,7 @@ BEGIN_SHAREDVARS
 ClauseRef cref;
 
 VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
-{ cref = DEF->definition.clauses;
+{ cref = DEF->impl.clauses.first_clause;
 
 next_clause:
   ARGP = argFrameP(FR, 0);
@@ -4332,7 +4332,7 @@ environment before we can call trapUndefined() to make shift/GC happy.
 
 mcall_cont:
   setNextFrameFlags(NFR, FR);
-  if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any && false(DEF, PROC_DEFINED) )
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
     NFR->predicate      = DEF;		/* TBD */

@@ -5183,8 +5183,8 @@ localiseDefinition(Definition def)
   *local = *def;
   local->mutex = NULL;
   clear(local, P_THREAD_LOCAL);		/* remains DYNAMIC */
-  local->definition.clauses = NULL;
-  local->clause_indexes = NULL;
+  local->impl.clauses.first_clause = NULL;
+  local->impl.clauses.clause_indexes = NULL;
 
   createSupervisor(local);
   registerLocalDefinition(def);

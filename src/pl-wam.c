@@ -513,7 +513,7 @@ static void
 discardForeignFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
   int argc       = def->functor->arity;
-  Func function  = def->definition.function;
+  Func function  = def->impl.function;
   struct foreign_context context;
   fid_t fid;
 
@@ -779,7 +779,7 @@ static Definition
 localDefinition(Definition def ARG_LD)
 { unsigned int tid = LD->thread.info->pl_tid;
   size_t idx = MSB(tid);
-  LocalDefinitions v = def->definition.local;
+  LocalDefinitions v = def->impl.local;
 
   if ( !v->blocks[idx] )
   { LOCKDYNDEF(def);
@@ -804,7 +804,7 @@ localDefinition(Definition def ARG_LD)
 void
 destroyLocalDefinition(Definition def, unsigned int tid)
 { size_t idx = MSB(tid);
-  LocalDefinitions v = def->definition.local;
+  LocalDefinitions v = def->impl.local;
   Definition local;
 
   local = v->blocks[idx][tid];
@@ -828,7 +828,7 @@ getProcDefinition__LD(Definition def ARG_LD)
 
 static inline Definition
 getProcDefinedDefinition(Definition def ARG_LD)
-{ if ( !def->definition.clauses && false(def, PROC_DEFINED) )
+{ if ( !def->impl.any && false(def, PROC_DEFINED) )
     def = trapUndefined(def PASS_LD);
 
 #ifdef O_PLMT
@@ -1035,7 +1035,7 @@ static Code
 findCatchExit()
 { if ( !GD->exceptions.catch_exit_address )
   { Definition catch3 = PROCEDURE_catch3->definition;
-    Clause cl = catch3->definition.clauses->clause;
+    Clause cl = catch3->impl.clauses.first_clause->clause;
     Code Exit = &cl->codes[cl->code_size-1];
     assert(*Exit == encode(I_EXIT));
 
@@ -1193,7 +1193,7 @@ dbgRedoFrame(LocalFrame fr ARG_LD)
 
 static int
 exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
-{ if ( PROCEDURE_exception_hook4->definition->definition.clauses )
+{ if ( PROCEDURE_exception_hook4->definition->impl.clauses.first_clause )
   { if ( !LD->exception.in_hook )
     { wakeup_state wstate;
       qid_t qid;

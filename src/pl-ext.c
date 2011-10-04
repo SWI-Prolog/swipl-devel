@@ -340,7 +340,7 @@ registerBuiltins(const PL_extension *f)
     if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
     if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
 
-    def->definition.function = f->function;
+    def->impl.function = f->function;
     createForeignSupervisor(def, f->function);
   }
 }

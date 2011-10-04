@@ -1046,7 +1046,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
   def = proc->definition;
   if ( !skip && state->currentSource )
-  { if ( def->definition.clauses )
+  { if ( def->impl.any )
     { if ( !redefineProcedure(proc, state->currentSource, DISCONTIGUOUS_STYLE) )
       { printMessage(ATOM_error, exception_term);
 	exception_term = 0;
