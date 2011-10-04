@@ -1174,7 +1174,7 @@ Finish up the clause.
 					/* check space */
     space = ( clause.variables*sizeof(word) +
 	      sizeofClause(clause.code_size) +
-	      sizeof(*cref) +
+	      SIZEOF_CREF_CLAUSE +
 	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY) +
 	      sizeof(struct choice)
 	    );
@@ -1184,9 +1184,9 @@ Finish up the clause.
     }
 
     cref = (ClauseRef)p;
-    p = addPointer(p, sizeof(*cref));
+    p = addPointer(p, SIZEOF_CREF_CLAUSE);
     cref->next = NULL;
-    cref->clause = cl = (Clause)p;
+    cref->value.clause = cl = (Clause)p;
     memcpy(cl, &clause, sizeofClause(0));
     p = addPointer(p, sizeofClause(clause.code_size));
     cl->variables += (int)(p-p0);
@@ -4418,12 +4418,12 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     }
     case FRG_REDO:
       chp  = CTX_PTR;
-      proc = chp->cref->clause->procedure;
+      proc = chp->cref->value.clause->procedure;
       def  = getProcDefinition(proc);
       break;
     case FRG_CUTTED:
       chp = CTX_PTR;
-      proc = chp->cref->clause->procedure;
+      proc = chp->cref->value.clause->procedure;
       def  = getProcDefinition(proc);
       leaveDefinition(def);
       freeHeap(chp, sizeof(*chp));
@@ -4451,12 +4451,12 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     return FALSE;
 
   while(cref)
-  { if ( decompile(cref->clause, term, bindings) )
+  { if ( decompile(cref->value.clause, term, bindings) )
     { if ( !get_head_and_body_clause(term, h, b, NULL PASS_LD) )
 	break;
       if ( unify_head(head, h PASS_LD) &&
 	   PL_unify(b, body) &&
-	   (!ref || PL_unify_clref(ref, cref->clause)) )
+	   (!ref || PL_unify_clref(ref, cref->value.clause)) )
       { if ( !chp->cref )
 	{ leaveDefinition(def);
 	  succeed;
@@ -4511,7 +4511,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   { cr = ForeignContextPtr(h);
 
     if ( cr )
-    { def = getProcDefinition(cr->clause->clause->procedure);
+    { def = getProcDefinition(cr->clause->value.clause->procedure);
       leaveDefinition(def);
       freeHeap(cr, sizeof(*cr));
     }
@@ -4528,14 +4528,14 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       proc = clause->procedure;
       def  = getProcDefinition(proc);
       for( cref = def->impl.clauses.first_clause, i=1; cref; cref = cref->next)
-      { if ( cref->clause == clause )
+      { if ( cref->value.clause == clause )
 	{ if ( !PL_unify_integer(n, i) ||
 	       !unify_definition(contextModule(LD->environment), p, def, 0, 0) )
 	    fail;
 
 	  succeed;
 	}
-	if ( visibleClause(cref->clause, generation) )
+	if ( visibleClause(cref->value.clause, generation) )
 	  i++;
       }
     }
@@ -4552,7 +4552,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 
     def = getProcDefinition(proc);
     cref = def->impl.clauses.first_clause;
-    while ( cref && !visibleClause(cref->clause, generation) )
+    while ( cref && !visibleClause(cref->value.clause, generation) )
       cref = cref->next;
 
     if ( !cref )
@@ -4564,12 +4564,12 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       while(i > 0 && cref)
       { do
 	{ cref = cref->next;
-	} while ( cref && !visibleClause(cref->clause, generation) );
+	} while ( cref && !visibleClause(cref->value.clause, generation) );
 
 	i--;
       }
       if ( i == 0 && cref )
-	return PL_unify_clref(ref, cref->clause);
+	return PL_unify_clref(ref, cref->value.clause);
       fail;
     }
 
@@ -4579,14 +4579,14 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     enterDefinition(def);
   } else
   { cr = ForeignContextPtr(h);
-    def = getProcDefinition(cr->clause->clause->procedure);
+    def = getProcDefinition(cr->clause->value.clause->procedure);
   }
 
   PL_unify_integer(n, cr->index);
-  PL_unify_clref(ref, cr->clause->clause);
+  PL_unify_clref(ref, cr->clause->value.clause);
 
   cref = cr->clause->next;
-  while ( cref && !visibleClause(cref->clause, generation) )
+  while ( cref && !visibleClause(cref->value.clause, generation) )
     cref = cref->next;
 
   if ( cref )
@@ -4890,7 +4890,7 @@ unify_vmi(term_t t, Clause clause, Code bp)
 	{ ClauseRef cref = (ClauseRef)*bp++;
 
 	  rc = PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_clause1,
-			     PL_POINTER, cref->clause);
+			     PL_POINTER, cref->value.clause);
 
 	  break;
 	}

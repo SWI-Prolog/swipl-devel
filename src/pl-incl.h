@@ -1072,11 +1072,25 @@ struct clause
   code		codes[1];		/* VM codes of clause */
 };
 
-struct clause_ref
-{ Clause	clause;
-  ClauseRef	next;
+typedef struct clause_list
+{ ClauseRef	first_clause;		/* clause list of procedure */
+  ClauseRef	last_clause;		/* last clause of list */
+  ClauseIndex	clause_indexes;		/* Hash index(es) */
+  unsigned int	number_of_clauses;	/* number of associated clauses */
+} clause_list, *ClauseList;
+
+typedef struct clause_ref
+{ ClauseRef	next;			/* Next in list */
   word		key;			/* Index key */
-};
+  union
+  { Clause	clause;			/* Single clause value */
+    clause_list	clauses;		/* Clause list (in hash-tables) */
+  } value;
+} clause_ref;
+
+#define SIZEOF_CREF_CLAUSE	(offsetof(clause_ref, value.clause) + \
+				 sizeof(Clause))
+#define SIZEOF_CREF_LIST	sizeof(clause_ref)
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
@@ -1153,13 +1167,6 @@ typedef struct clause_index_list
 { ClauseIndex index;
   struct clause_index_list *next;
 } clause_index_list, *ClauseIndexList;
-
-typedef struct clause_list
-{ ClauseRef	first_clause;		/* clause list of procedure */
-  ClauseRef	last_clause;		/* last clause of list */
-  ClauseIndex	clause_indexes;		/* Hash index(es) */
-  unsigned int	number_of_clauses;	/* number of associated clauses */
-} clause_list, *ClauseList;
 
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 

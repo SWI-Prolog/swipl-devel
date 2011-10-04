@@ -1968,12 +1968,12 @@ VMI(I_CUT, VIF_BREAK, 0, ())
       SAVE_REGISTERS(qid);
       dbg_discardChoicesAfter(FR PASS_LD);
       LOAD_REGISTERS(qid);
-      lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+      lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
       ch = newChoice(CHP_DEBUG, FR PASS_LD);
       ch->mark = m;
     } else
     { dbg_discardChoicesAfter(FR PASS_LD);
-      lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+      lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
     }
     ARGP = argFrameP(lTop, 0);
     if ( exception_term )
@@ -1995,7 +1995,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
   { SAVE_REGISTERS(qid);
     discardChoicesAfter(FR, FINISH_CUT PASS_LD);
     LOAD_REGISTERS(qid);
-    lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
     ARGP = argFrameP(lTop, 0);
     if ( exception_term )
       THROW_EXCEPTION;
@@ -2208,7 +2208,7 @@ c_cut:
   } else
   { int nvar = (true(fr->predicate, FOREIGN)
 			? fr->predicate->functor->arity
-			: fr->clause->clause->variables);
+			: fr->clause->value.clause->variables);
     lTop = (LocalFrame) argFrameP(fr, nvar);
   }
 
@@ -2496,8 +2496,8 @@ VMI(S_STATIC, 0, 0, ())
   }
   DEBUG(9, Sdprintf("Clauses found.\n"));
 
-  PC = cl->clause->codes;
-  lTop = (LocalFrame)(ARGP + cl->clause->variables);
+  PC = cl->value.clause->codes;
+  lTop = (LocalFrame)(ARGP + cl->value.clause->variables);
   ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
   CL = cl;
 
@@ -2588,7 +2588,7 @@ VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
 next_clause:
   ARGP = argFrameP(FR, 0);
   for(; cref; cref = cref->next)
-  { if ( visibleClause(cref->clause, FR->generation) )
+  { if ( visibleClause(cref->value.clause, FR->generation) )
     { TRY_CLAUSE(cref, cref->next, PC);
     }
   }
@@ -2605,7 +2605,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
     lTop = (LocalFrame)ARGP + FR->predicate->functor->arity;
 
     for(; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, FR->generation) )
+    { if ( visibleClause(cref->value.clause, FR->generation) )
       {	LocalFrame fr;
 	CL = cref;
 

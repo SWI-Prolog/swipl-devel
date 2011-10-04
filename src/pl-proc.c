@@ -199,7 +199,7 @@ hasClausesDefinition(Definition def)
 #endif
 
       for(c = def->impl.clauses.first_clause; c; c = c->next)
-      { Clause cl = c->clause;
+      { Clause cl = c->value.clause;
 
 	if ( visibleClause(cl, generation) )
 	  return c;
@@ -757,11 +757,11 @@ typeerror:
 
 ClauseRef
 newClauseRef(Clause clause, word key ARG_LD)
-{ ClauseRef cref = allocHeapOrHalt(sizeof(struct clause_ref));
+{ ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_CLAUSE);
 
-  cref->clause = clause;
-  cref->next   = NULL;
-  cref->key    = key;
+  cref->value.clause = clause;
+  cref->next         = NULL;
+  cref->key          = key;
 
   return cref;
 }
@@ -769,7 +769,7 @@ newClauseRef(Clause clause, word key ARG_LD)
 
 void
 freeClauseRef(ClauseRef cref ARG_LD)
-{ freeHeap(cref, sizeof(struct clause_ref));
+{ freeHeap(cref, SIZEOF_CREF_CLAUSE);
 }
 
 
@@ -921,7 +921,7 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
     return 0;
 
   for(c = def->impl.clauses.first_clause; c; c = c->next)
-  { Clause cl = c->clause;
+  { Clause cl = c->value.clause;
 
     if ( (sfindex == 0 || sfindex == cl->source_no) &&
 	 (!fromfile || cl->line_no > 0) &&
@@ -958,7 +958,7 @@ unlinkClause(Definition def, Clause clause ARG_LD)
   delClauseFromIndex(def, clause);
 
   for(c = def->impl.clauses.first_clause; c; prev = c, c = c->next)
-  { if ( c->clause == clause )
+  { if ( c->value.clause == clause )
     { if ( !prev )
       { def->impl.clauses.first_clause = c->next;
 	if ( !c->next )
@@ -1092,7 +1092,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
 	cref=next)
     { next = cref->next;
 
-      if ( true(cref->clause, ERASED) )
+      if ( true(cref->value.clause, ERASED) )
       { if ( !prev )
 	{ def->impl.clauses.first_clause = cref->next;
 	  if ( !cref->next )
@@ -1170,7 +1170,7 @@ freeClauseList(ClauseRef cref)
 #endif
 
   for( ; cref; cref = next)
-  { Clause cl = cref->clause;
+  { Clause cl = cref->value.clause;
     next = cref->next;
 
 #if O_DEBUGGER
@@ -1917,8 +1917,8 @@ PRED_IMPL("retract", 1, retract,
     /* ctx->cref is the first candidate; next is the next one */
 
     while( cref )
-    { if ( decompile(cref->clause, cl, 0) )
-      { retractClauseDefinition(ctx->def, cref->clause PASS_LD);
+    { if ( decompile(cref->value.clause, cl, 0) )
+      { retractClauseDefinition(ctx->def, cref->value.clause PASS_LD);
 
 	if ( !endCritical )
 	{ leaveDefinition(ctx->def);
@@ -2031,8 +2031,8 @@ pl_retractall(term_t head)
   { uintptr_t gen = environment_frame->generation;
 
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, gen) )
-      { retractClauseDefinition(def, cref->clause PASS_LD);
+    { if ( visibleClause(cref->value.clause, gen) )
+      { retractClauseDefinition(def, cref->value.clause PASS_LD);
       }
     }
   } else
@@ -2045,8 +2045,8 @@ pl_retractall(term_t head)
     }
 
     while( cref )
-    { if ( decompileHead(cref->clause, thehead) )
-	retractClauseDefinition(def, cref->clause PASS_LD);
+    { if ( decompileHead(cref->value.clause, thehead) )
+	retractClauseDefinition(def, cref->value.clause PASS_LD);
 
       PL_rewind_foreign_frame(fid);
 
@@ -2204,7 +2204,7 @@ pl_get_predicate_attribute(term_t pred,
 
     if ( false(def, FOREIGN|P_THREAD_LOCAL) &&
 	 def->impl.clauses.first_clause &&
-	 (line=def->impl.clauses.first_clause->clause->line_no) )
+	 (line=def->impl.clauses.first_clause->value.clause->line_no) )
       return PL_unify_integer(value, line);
     else
       fail;
@@ -2623,7 +2623,7 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
     def = getProcDefinition__LD(def PASS_LD);
     first = hasClausesDefinition(def);
 
-    if ( first && first->clause->source_no == sf->index )
+    if ( first && first->value.clause->source_no == sf->index )
     { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, DISCONTIGUOUS) )
 	printMessage(ATOM_warning,
@@ -2683,7 +2683,7 @@ pl_source_file(term_t descr, term_t file, control_t h)
     { if ( !proc->definition ||
 	   true(proc->definition, FOREIGN|P_THREAD_LOCAL) ||
 	   !(cref = proc->definition->impl.clauses.first_clause) ||
-	   !(sf = indexToSourceFile(cref->clause->source_no)) ||
+	   !(sf = indexToSourceFile(cref->value.clause->source_no)) ||
 	   sf->count == 0 )
 	fail;
 
@@ -3005,7 +3005,7 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
     { ClauseRef cref = def->impl.clauses.first_clause;
 
       for( ; cref; cref = cref->next )
-      { Clause cl = cref->clause;
+      { Clause cl = cref->value.clause;
 
 	if ( cl->source_no == f->index )
 	{ if ( ln >= (int)cl->line_no )
@@ -3044,7 +3044,7 @@ listGenerations(Definition def)
 	   true(def, NEEDSCLAUSEGC) ? "needs clause-gc" : "clean");
 
   for(i=1,cl=def->impl.clauses.first_clause; cl; cl=cl->next, i++)
-  { Clause clause = cl->clause;
+  { Clause clause = cl->value.clause;
 
     Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
 	     clause, i,
@@ -3072,7 +3072,7 @@ listGenerations(Definition def)
 		 i, ci->entries[i].dirty);
 
 	for(cl=ci->entries[i].head; cl; cl=cl->next)
-	{ Clause clause = cl->clause;
+	{ Clause clause = cl->value.clause;
 
 	  Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
 		   clause,
@@ -3096,7 +3096,7 @@ checkDefinition(Definition def)
   ClauseIndex ci;
 
   for(nc=0, cref = def->impl.clauses.first_clause; cref; cref=cref->next)
-  { Clause clause = cref->clause;
+  { Clause clause = cref->value.clause;
 
     if ( false(clause, ERASED) )
     { if ( cref->key )
@@ -3115,7 +3115,7 @@ checkDefinition(Definition def)
     nc = 0;
     for(i=0; i<ci->buckets; i++)
     { for(cref=ci->entries[i].head; cref; cref=cref->next)
-      { Clause clause = cref->clause;
+      { Clause clause = cref->value.clause;
 
 	if ( false(clause, ERASED) )
 	{ if ( i == 0 || cref->key != 0 )

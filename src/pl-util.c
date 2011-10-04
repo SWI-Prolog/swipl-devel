@@ -124,7 +124,7 @@ clauseNo(Definition def, Clause cl)
   ClauseRef cref;
 
   for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
-  { if ( cref->clause == cl )
+  { if ( cref->value.clause == cl )
       return i;
   }
 

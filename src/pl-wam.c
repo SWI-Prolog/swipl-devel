@@ -1035,7 +1035,7 @@ static Code
 findCatchExit()
 { if ( !GD->exceptions.catch_exit_address )
   { Definition catch3 = PROCEDURE_catch3->definition;
-    Clause cl = catch3->impl.clauses.first_clause->clause;
+    Clause cl = catch3->impl.clauses.first_clause->value.clause;
     Code Exit = &cl->codes[cl->code_size-1];
     assert(*Exit == encode(I_EXIT));
 
@@ -1151,7 +1151,7 @@ slotsInFrame(LocalFrame fr, Code PC)
   if ( !PC || true(def, FOREIGN) || !fr->clause )
     return def->functor->arity;
 
-  return fr->clause->clause->prolog_vars;
+  return fr->clause->value.clause->prolog_vars;
 }
 
 
@@ -1573,13 +1573,14 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   size_t lneeded;
   static int top_initialized = FALSE;
   static struct clause clause;
-  static struct clause_ref cref = {&clause};
+  static struct clause_ref cref;
 
   if ( !top_initialized )
   { clause.procedure = PROCEDURE_dc_call_prolog;
     clause.generation.erased = ~0L;
     clause.code_size = 1;
     clause.codes[0] = encode(I_EXITQUERY);
+    cref.value.clause = &clause;
 
     top_initialized = TRUE;
   }
@@ -1890,16 +1891,16 @@ typedef enum
 #define TRUST_CLAUSE(cref) \
 	umode = uread; \
 	CL    = cref; \
-	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
+	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( debugstatus.debugging ) \
 	  newChoice(CHP_DEBUG, FR PASS_LD); \
-	PC    = cref->clause->codes; \
+	PC    = cref->value.clause->codes; \
 	NEXT_INSTRUCTION;
 #define TRY_CLAUSE(cref, cond, altpc) \
 	umode = uread; \
 	CL    = cref; \
-	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
+	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
@@ -1907,7 +1908,7 @@ typedef enum
 	} else if ( debugstatus.debugging ) \
 	{ newChoice(CHP_DEBUG, FR PASS_LD); \
 	} \
-	PC    = cref->clause->codes; \
+	PC    = cref->value.clause->codes; \
 	NEXT_INSTRUCTION;
 
 
@@ -2178,10 +2179,10 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
     { ARGP = argFrameP(FR, 0);
       if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
 	FRAME_FAILED;		/* can happen if scan-ahead was too short */
-      PC = CL->clause->codes;
+      PC = CL->value.clause->codes;
       umode = uread;
 
-      if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
+      if ( ch == (Choice)argFrameP(FR, CL->value.clause->variables) )
       { DiscardMark(ch->mark);		/* is this needed? */
 	if ( ch->value.clause.cref )
 	{ Mark(ch->mark);
@@ -2203,7 +2204,7 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
         DiscardMark(ch->mark);
 	BFR = ch->parent;
 	chp = ch->value.clause;
-	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
+	lTop = (LocalFrame)argFrameP(FR, CL->value.clause->variables);
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
 	if ( chp.cref )
@@ -2343,7 +2344,7 @@ next_choice:
 #endif
 
       umode  = uread;
-      clause = CL->clause;
+      clause = CL->value.clause;
       PC     = clause->codes;
       Profile(profRedo(ch->prof_node PASS_LD));
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);

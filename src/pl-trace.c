@@ -904,7 +904,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     if ( true(def, FOREIGN) )
       PL_put_atom(pc, ATOM_foreign);
     else if ( PC && frame->clause )
-      rc = PL_put_intptr(pc, PC-frame->clause->clause->codes);
+      rc = PL_put_intptr(pc, PC-frame->clause->value.clause->codes);
     else
       PL_put_nil(pc);
 
@@ -1192,7 +1192,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     { int pcn;
 
       if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
-	pcn = (int)(PC - frame->clause->clause->codes);
+	pcn = (int)(PC - frame->clause->value.clause->codes);
       else
 	pcn = 0;
 
@@ -1378,7 +1378,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
       intptr_t pc = -1;
 
       if ( fr->clause )
-      { Clause cl = fr->clause->clause;
+      { Clause cl = fr->clause->value.clause;
 
 	if ( c->pc >= cl->codes && c->pc < &cl->codes[cl->code_size] )
 	  pc = c->pc - cl->codes;
@@ -1993,7 +1993,7 @@ prolog_frame_attribute(term_t frame, term_t what,
     { if ( argn > fr->predicate->functor->arity )
 	fail;
     } else
-    { if ( argn > fr->clause->clause->prolog_vars )
+    { if ( argn > fr->clause->value.clause->prolog_vars )
 	fail;
     }
 
@@ -2047,7 +2047,7 @@ prolog_frame_attribute(term_t frame, term_t what,
   { if ( false(fr->predicate, FOREIGN) &&
 	 fr->clause &&
 	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
-    { if ( !PL_unify_clref(result, fr->clause->clause) )
+    { if ( !PL_unify_clref(result, fr->clause->value.clause) )
 	return FALSE;
     } else
     { return FALSE;
@@ -2141,7 +2141,7 @@ prolog_frame_attribute(term_t frame, term_t what,
 	 false(fr->parent->predicate, FOREIGN) &&
 	 fr->parent->clause &&
 	 fr->parent->predicate != PROCEDURE_dcall1->definition )
-    { intptr_t pc = fr->programPointer - fr->parent->clause->clause->codes;
+    { intptr_t pc = fr->programPointer - fr->parent->clause->value.clause->codes;
 
       PL_put_intptr(result, pc);
     } else
@@ -2208,7 +2208,7 @@ in_clause_jump(Choice ch)
   if ( ch->type == CHP_JUMP &&
        false(ch->frame->predicate, FOREIGN) &&
        ch->frame->clause &&
-       (cl=ch->frame->clause->clause) &&
+       (cl=ch->frame->clause->value.clause) &&
        ch->value.PC >= cl->codes &&
        ch->value.PC < &cl->codes[cl->code_size] )
     return ch->value.PC - cl->codes;

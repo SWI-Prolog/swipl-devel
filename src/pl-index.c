@@ -141,13 +141,13 @@ nextClauseArg1(ClauseChoice chp, uintptr_t generation)
 
   for( ; cref; cref = cref->next)
   { if ( (!cref->key || key == cref->key) &&
-	 visibleClause(cref->clause, generation))
+	 visibleClause(cref->value.clause, generation))
     { ClauseRef result = cref;
       int maxsearch = MAXSEARCH;
 
       for( cref = cref->next; cref; cref = cref->next )
       { if ( ((!cref->key || key == cref->key) &&
-	      visibleClause(cref->clause, generation)) ||
+	      visibleClause(cref->value.clause, generation)) ||
 	     --maxsearch == 0 )
 	{ chp->cref = cref;
 
@@ -245,7 +245,7 @@ retry:
 
 simple:
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
-  { if ( visibleClause(cref->clause, generationFrame(fr)) )
+  { if ( visibleClause(cref->value.clause, generationFrame(fr)) )
     { chp->cref = cref->next;
       chp->key = 0;
       return cref;
@@ -263,7 +263,7 @@ nextClause(ClauseChoice chp, Word argv,
   { ClauseRef cref;
 
     for(cref=chp->cref; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, generationFrame(fr)) )
+    { if ( visibleClause(cref->value.clause, generationFrame(fr)) )
       { chp->cref = cref->next;
 	return cref;
       }
@@ -314,7 +314,7 @@ unallocClauseIndexTableEntries(ClauseBucket entries, int buckets ARG_LD)
 
     for(cr = ch->head; cr; cr = next)
     { next = cr->next;
-      freeHeap(cr, sizeof(*cr));
+      freeClauseRef(cr PASS_LD);
     }
   }
 
@@ -354,7 +354,7 @@ deleteClauseBucket(ClauseBucket ch, Clause clause)
   ClauseRef c;
 
   for(c = ch->head; c; prev = c, c = c->next)
-  { if ( c->clause == clause )
+  { if ( c->value.clause == clause )
     { if ( !prev )
       { ch->head = c->next;
 	if ( !c->next )
@@ -375,7 +375,7 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
   int deleted = 0;
 
   while( cref && dirty )
-  { if ( true(cref->clause, ERASED) )
+  { if ( true(cref->value.clause, ERASED) )
     { ClauseRef c = cref;
 
       if ( cref->key )
@@ -580,8 +580,8 @@ hashDefinition(Definition def, int arg, int buckets)
   ci = newClauseIndexTable(arg, buckets);
 
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
-  { if ( false(cref->clause, ERASED) )
-      addClauseToIndex(ci, cref->clause, CL_END PASS_LD);
+  { if ( false(cref->value.clause, ERASED) )
+      addClauseToIndex(ci, cref->value.clause, CL_END PASS_LD);
   }
   ci->resize_above = ci->size*2;
   ci->resize_below = ci->size/4;
@@ -796,8 +796,8 @@ bestHash(Word av, Definition def, int *buckets, float *speedup)
 
 					/* Step 2: assess */
   for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
-  { Clause cl = cref->clause;
-    Code pc = cref->clause->codes;
+  { Clause cl = cref->value.clause;
+    Code pc = cref->value.clause->codes;
     int carg = 0;
 
     if ( true(cl, ERASED) )
@@ -871,13 +871,13 @@ reassessHash(Definition def, ClauseIndex ci, float *speedup)
   memset(a, 0, sizeof(*a));
 
   for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
-  { Clause cl = cref->clause;
+  { Clause cl = cref->value.clause;
     word k;
 
     if ( true(cl, ERASED) )
       continue;
 
-    if ( argKey(cref->clause->codes, ci->arg-1, FALSE, &k) )
+    if ( argKey(cref->value.clause->codes, ci->arg-1, FALSE, &k) )
     { assessAddKey(a, k);
     } else
     { a->var_count++;
