@@ -14,5 +14,5 @@ PLSOEXT=@SO_EXT@
 Name: swipl
 Description: ISO/Edinburgh-style Prolog compiler
 Version: @PLVERSION@
-Libs: -L${libdir}/@PL@-@PLVERSION@/lib/@PLARCH@ -lswipl
-Cflags: -I${libdir}/@PL@-@PLVERSION@/include
+Libs: ${PLLDFLAGS} -L${libdir}/@PL@-@PLVERSION@/lib/@PLARCH@ -lswipl
+Cflags: ${PLCFLAGS} -I${libdir}/@PL@-@PLVERSION@/include
