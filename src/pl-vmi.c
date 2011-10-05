@@ -1700,7 +1700,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 { if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
   { Procedure proc = (Procedure) *PC++;
 
-    if ( !proc->definition->definition.clauses &&	/* see (*) */
+    if ( !proc->definition->impl.any &&	/* see (*) */
 	 false(proc->definition, PROC_DEFINED) )
     { PC--;
       VMI_GOTO(I_CALL);
@@ -2383,7 +2383,7 @@ this supervisor (see resetProcedure()). The task of this is to
 	* Resolve the definition (i.e. auto-import or auto-load if
 	not defined).
 	* Check the indexing opportunities and install the proper
-        supervisor (see reindexDefinition()).
+        supervisor (see pl-index.c).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_VIRGIN, 0, 0, ())
@@ -2479,13 +2479,15 @@ the temporary variable `cl' for storing the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_STATIC, 0, 0, ())
-{ ClauseRef cl, nextcl;
+{ ClauseRef cl;
+  struct clause_choice chp;
+
   ARGP = argFrameP(FR, 0);
   lTop = (LocalFrame)ARGP+DEF->functor->arity;
 
   DEBUG(9, Sdprintf("Searching clause ... "));
 
-  if ( !(cl = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
+  if ( !(cl = firstClause(ARGP, FR, DEF, &chp PASS_LD)) )
   { DEBUG(9, Sdprintf("No clause matching index.\n"));
     if ( debugstatus.debugging )
       newChoice(CHP_DEBUG, FR PASS_LD);
@@ -2499,9 +2501,9 @@ VMI(S_STATIC, 0, 0, ())
   ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
   CL = cl;
 
-  if ( nextcl )
+  if ( chp.cref )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-    ch->value.clause = nextcl;
+    ch->value.clause = chp;
   } else if ( debugstatus.debugging )
     newChoice(CHP_DEBUG, FR PASS_LD);
 
@@ -2581,7 +2583,7 @@ BEGIN_SHAREDVARS
 ClauseRef cref;
 
 VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
-{ cref = DEF->definition.clauses;
+{ cref = DEF->impl.clauses.first_clause;
 
 next_clause:
   ARGP = argFrameP(FR, 0);
@@ -4330,7 +4332,7 @@ environment before we can call trapUndefined() to make shift/GC happy.
 
 mcall_cont:
   setNextFrameFlags(NFR, FR);
-  if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any && false(DEF, PROC_DEFINED) )
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
     NFR->predicate      = DEF;		/* TBD */

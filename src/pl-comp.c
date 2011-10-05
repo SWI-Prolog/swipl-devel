@@ -2784,15 +2784,6 @@ assert_term(term_t term, int where, SourceLoc loc ARG_LD)
   DEBUG(2, Sdprintf("ok\n"));
   def = getProcDefinition(proc);
 
-  if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )
-  { getIndex(argTermP(*h, 0),
-	     def->indexPattern,
-	     def->indexCardinality,
-	     &clause->index
-	     PASS_LD);
-  } else
-    clause->index.key = clause->index.varmask = 0L;
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If loc is defined, we are called from record_clause/2.  This code takes
 care of reconsult, redefinition, etc.
@@ -2820,7 +2811,7 @@ care of reconsult, redefinition, etc.
     if ( proc == sf->current_procedure )
       return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
 
-    if ( def->definition.clauses )	/* i.e. is (might be) defined */
+    if ( def->impl.any )	/* i.e. is (might be) defined */
     { if ( !redefineProcedure(proc, sf, 0) )
       { freeClause(clause PASS_LD);
 	return NULL;
@@ -3063,7 +3054,80 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-arg1Key() determines the first argument-key   by  inspecting the virtual
+skipArgs() skips skip arguments inside the   code  for a clause-head. If
+the skip is into the middle of a   H_VOID_N,  it returns the location of
+the H_VOID_N.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Code
+skipArgs(Code PC, int skip)
+{ int nested = 0;
+  Code nextPC;
+
+  for(;; PC=nextPC)
+  { code c = decode(*PC);
+    nextPC = stepPC(PC);
+
+#if O_DEBUGGER
+  again:
+#endif
+    switch(c)
+    { case H_FUNCTOR:
+      case H_LIST:
+	nested++;
+        continue;
+      case H_RFUNCTOR:
+      case H_RLIST:
+	continue;
+      case H_POP:
+	if ( --nested == 0 && --skip == 0 )
+	  return nextPC;
+        assert(nested>=0);
+        continue;
+      case H_CONST:
+      case H_NIL:
+      case H_INT64:
+      case H_INTEGER:
+      case H_FLOAT:
+      case H_STRING:
+      case H_MPZ:
+      case H_FIRSTVAR:
+      case H_VAR:
+      case H_VOID:
+      case H_LIST_FF:
+	if ( nested )
+	  continue;
+        if ( --skip == 0 )
+	  return nextPC;
+	continue;
+      case H_VOID_N:
+	if ( nested )
+	  continue;
+	skip -= (int)PC[1];
+	if ( skip <= 0 )
+	  return PC;
+	continue;
+      case I_EXITFACT:
+      case I_EXIT:
+      case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+	return PC;
+      case I_NOP:
+	continue;
+#ifdef O_DEBUGGER
+      case D_BREAK:
+        c = decode(replacedBreak(PC-1));
+	goto again;
+#endif
+      default:
+	assert(0);
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+argKey() determines the indexing key for the  argument at the given code
+position after skipping skip argument terms   by  inspecting the virtual
 machine code. If constonly is  non-zero,  it   creates  a  key for large
 integers and floats. Otherwise it only succeeds on atoms, small integers
 and functors.
@@ -3073,8 +3137,9 @@ pl-index.c!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-arg1Key(Clause clause, int constonly, word *key)
-{ Code PC = clause->codes;
+argKey(Code PC, int skip, int constonly, word *key)
+{ if ( skip > 0 )
+    PC = skipArgs(PC, skip);
 
   for(;;)
   { code c = decode(*PC++);
@@ -3100,10 +3165,15 @@ arg1Key(Clause clause, int constonly, word *key)
         succeed;
       case H_INT64:			/* only on 32-bit hardware! */
 	if ( !constonly )
-	{ *key = (word)PC[0] ^ (word)PC[1];
+	{ word k = (word)PC[0] ^ (word)PC[1];
+	  if ( !k )
+	    k++;
+	  *key = k;
           succeed;
 	} else
+	{ *key = 0;
 	  fail;
+	}
       case H_INTEGER:
 	if ( !constonly )
 	{ word k;
@@ -3120,7 +3190,9 @@ arg1Key(Clause clause, int constonly, word *key)
 	  *key = k;
 	  succeed;
 	} else
+	{ *key = 0;
 	  fail;
+	}
       case H_FLOAT:			/* tbd */
       if ( !constonly )
       { word k;
@@ -3150,6 +3222,7 @@ arg1Key(Clause clause, int constonly, word *key)
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+	*key = 0;
 	fail;
       case I_NOP:
 	continue;
@@ -4284,7 +4357,9 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 { PRED_LD
   Procedure proc;
   Definition def;
-  ClauseRef cref, next;
+  struct clause_choice chp_buf;
+  ClauseChoice chp;
+  ClauseRef cref;
   Word argv;
   Module module = NULL;
   term_t term = PL_new_term_ref();
@@ -4336,26 +4411,24 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 			ATOM_access, ATOM_private_procedure, proc);
 
-      cref = NULL;			/* see below */
+      chp = NULL;
       enterDefinition(def);		/* reference the predicate */
       break;
     }
     case FRG_REDO:
-    { cref = CTX_PTR;
-      proc = cref->clause->procedure;
+      chp  = CTX_PTR;
+      proc = chp->cref->clause->procedure;
       def  = getProcDefinition(proc);
       break;
-    }
     case FRG_CUTTED:
-    default:
-    { cref = CTX_PTR;
-
-      if ( cref )
-      { def  = getProcDefinition(cref->clause->procedure);
-	leaveDefinition(def);
-      }
+      chp = CTX_PTR;
+      proc = chp->cref->clause->procedure;
+      def  = getProcDefinition(proc);
+      leaveDefinition(def);
+      freeHeap(chp, sizeof(*chp));
       succeed;
-    }
+    default:
+      assert(0);
   }
 
   if ( def->functor->arity > 0 )
@@ -4366,10 +4439,11 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   } else
     argv = NULL;
 
-  if ( !cref )
-  { cref = firstClause(argv, fr, def, &next PASS_LD);
+  if ( !chp )
+  { chp = &chp_buf;
+    cref = firstClause(argv, fr, def, chp PASS_LD);
   } else
-  { cref = findClause(cref, argv, fr, def, &next PASS_LD);
+  { cref = nextClause(chp, argv, fr, def PASS_LD);
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
@@ -4382,12 +4456,16 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       if ( unify_head(head, h PASS_LD) &&
 	   PL_unify(b, body) &&
 	   (!ref || PL_unify_clref(ref, cref->clause)) )
-      { if ( !next )
+      { if ( !chp->cref )
 	{ leaveDefinition(def);
 	  succeed;
 	}
+	if ( chp == &chp_buf )
+	{ chp = allocHeapOrHalt(sizeof(*chp));
+	  *chp = chp_buf;
+	}
 
-	ForeignRedoPtr(next);
+	ForeignRedoPtr(chp);
       } else
       { PL_put_variable(h);		/* otherwise they point into */
 	PL_put_variable(b);		/* term, which is removed */
@@ -4400,9 +4478,11 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       deRef(argv);
       argv = argTermP(*argv, 0);
     }
-    cref = findClause(next, argv, fr, def, &next PASS_LD);
+    cref = nextClause(chp, argv, fr, def PASS_LD);
   }
 
+  if ( chp != &chp_buf )
+    freeHeap(chp, sizeof(*chp));
   leaveDefinition(def);
   fail;
 }
@@ -4446,7 +4526,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 
       proc = clause->procedure;
       def  = getProcDefinition(proc);
-      for( cref = def->definition.clauses, i=1; cref; cref = cref->next)
+      for( cref = def->impl.clauses.first_clause, i=1; cref; cref = cref->next)
       { if ( cref->clause == clause )
 	{ if ( !PL_unify_integer(n, i) ||
 	       !unify_definition(contextModule(LD->environment), p, def, 0, 0) )
@@ -4470,7 +4550,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
 
     def = getProcDefinition(proc);
-    cref = def->definition.clauses;
+    cref = def->impl.clauses.first_clause;
     while ( cref && !visibleClause(cref->clause, generation) )
       cref = cref->next;
 
@@ -4536,7 +4616,7 @@ wouldBindToDefinition(Definition from, Definition to)
     { if ( def == to )			/* found it */
 	succeed;
 
-      if ( def->definition.clauses ||	/* defined and not the same */
+      if ( def->impl.any ||		/* defined and not the same */
 	   true(def, PROC_DEFINED) ||
 	   getUnknownModule(def->module) == UNKNOWN_FAIL )
 	fail;

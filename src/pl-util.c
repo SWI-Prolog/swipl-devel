@@ -123,7 +123,7 @@ clauseNo(Definition def, Clause cl)
 { int i;
   ClauseRef cref;
 
-  for(i=1, cref=def->definition.clauses; cref; cref=cref->next, i++)
+  for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
   { if ( cref->clause == cl )
       return i;
   }

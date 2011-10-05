@@ -174,7 +174,8 @@ COMMON(Clause)		assert_term(term_t term, int where,
 COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
 COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
 COMMON(bool)		decompileHead(Clause clause, term_t head);
-COMMON(int)		arg1Key(Clause clause, int constonly, word *key);
+COMMON(Code)		skipArgs(Code PC, int skip);
+COMMON(int)		argKey(Code PC, int skip, int constonly, word *key);
 COMMON(bool)		decompile(Clause clause, term_t term, term_t bindings);
 COMMON(word)		pl_nth_clause(term_t p, term_t n, term_t ref,
 				      control_t h);
@@ -197,25 +198,18 @@ COMMON(word)		parseSaveProgramOptions(term_t args,
 			bool *tty, bool *standalone);
 
 /* pl-index.c */
-COMMON(int)		cardinalityPattern(unsigned long pattern);
-COMMON(void)		getIndex(Word argv, unsigned long pattern, int card,
-				 struct index * ARG_LD);
 COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
-			    ClauseRef *next ARG_LD);
-COMMON(ClauseRef)	findClause(ClauseRef cl, Word argv, LocalFrame fr,
-			   Definition def, ClauseRef *next ARG_LD);
-COMMON(bool)		reindexClause(Clause clause, Definition def,
-				      unsigned long pattern);
-COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
-COMMON(bool)		hashDefinition(Definition def, int buckets);
-COMMON(word)		pl_hash(term_t pred);
-COMMON(void)		addClauseToIndex(Definition def, Clause cl,
+				    ClauseChoice next ARG_LD);
+COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
+				   Definition def ARG_LD);
+COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
 					 int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
-COMMON(void)		gcClauseIndex(ClauseIndex ci ARG_LD);
+COMMON(void)		cleanClauseIndexes(Definition def ARG_LD);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
-COMMON(void)		markDirtyClauseIndex(ClauseIndex ci, Clause cl);
+COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
+COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
 
 /* pl-dwim.c */
 COMMON(word)		pl_dwim_match(term_t a1, term_t a2, term_t mm);
@@ -479,7 +473,7 @@ COMMON(void)		freeClause(Clause c ARG_LD);
 COMMON(void)		unallocClause(Clause c ARG_LD);
 COMMON(void)		freeClauseRef(ClauseRef c ARG_LD);
 COMMON(void)		freeClauseList(ClauseRef cref);
-COMMON(ClauseRef)	newClauseRef(Clause cl ARG_LD);
+COMMON(ClauseRef)	newClauseRef(Clause cl, word key ARG_LD);
 COMMON(void)		gcClausesDefinition(Definition def);
 COMMON(void)		gcClausesDefinitionAndUnlock(Definition def);
 COMMON(void)		destroyDefinition(Definition def);
@@ -492,11 +486,9 @@ COMMON(word)		pl_abolish1(term_t pred);
 COMMON(word)		pl_get_clause_attribute(term_t ref, term_t att, term_t value);
 COMMON(word)		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(word)		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
-COMMON(int)		reindexDefinition(Definition def);
 COMMON(int)		redefineProcedure(Procedure proc, SourceFile sf,
 					  unsigned int suppress);
 COMMON(void)		startConsult(SourceFile f);
-COMMON(void)		indexDefinition(Definition def, long pattern);
 COMMON(word)		pl_index(term_t pred);
 COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
 COMMON(SourceFile)	indexToSourceFile(int index);

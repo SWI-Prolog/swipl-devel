@@ -25,6 +25,9 @@
 
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
+#include <mcheck.h>
+#endif
 
 #ifndef O_MYALLOC
 #define O_MYALLOC 1

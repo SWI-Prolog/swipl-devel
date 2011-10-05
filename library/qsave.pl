@@ -340,8 +340,6 @@ save_module(M, SaveClass) :-
 	    feedback('~n', [])
 	).
 
-pred_attrib(indexed(Term), Head, index(M:Term)) :- !,
-	    strip_module(Head, M, _).
 pred_attrib(meta_predicate(Term), Head, meta_predicate(M:Term)) :- !,
 	    strip_module(Head, M, _).
 pred_attrib(Attrib, Head, '$set_predicate_attribute'(M:Name/Arity, AttName, Val)) :-
@@ -364,11 +362,7 @@ attrib_name(nodebug,       hide_childs,	  1).
 
 save_attribute(P, Attribute) :-
 	pred_attrib(Attribute, P, D),
-	(   Attribute = indexed(Term)
-	->  \+(( arg(1, Term, 1),
-	         functor(Term, _, Arity),
-		 forall(between(2, Arity, N), arg(N, Term, 0))))
-	;   Attribute == built_in	% no need if there are clauses
+	(   Attribute == built_in	% no need if there are clauses
 	->  (   predicate_property(P, number_of_clauses(0))
 	    ->	true
 	    ;	predicate_property(P, volatile)

@@ -300,10 +300,10 @@ print_val(word val, char *buf)
   }
 
   if ( isVar(val) )
-    strcpy(o, "VAR");
-  else if ( isTaggedInt(val) )
-    Ssprintf(o, "int(%ld)", valInteger(val));
-  else if ( isAtom(val) )
+  { strcpy(o, "VAR");
+  } else if ( isTaggedInt(val) )
+  { Ssprintf(o, "int(%ld)", valInteger(val));
+  } else if ( isAtom(val) )
   { const char *s = stringAtom(val);
     if ( strlen(s) > 10 )
     { strncpy(o, s, 10);
@@ -311,6 +311,10 @@ print_val(word val, char *buf)
     } else
     { strcpy(o, s);
     }
+  } else if ( tagex(val) == (TAG_ATOM|STG_GLOBAL) )
+  { FunctorDef fd = valueFunctor(val);
+
+    Ssprintf(o, "functor %s/%d", stringAtom(fd->name), fd->arity);
   } else
   { size_t offset = (val>>(LMASK_BITS-2))/sizeof(word);
 
@@ -1780,7 +1784,7 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
       case CHP_CLAUSE:
       { LocalFrame fr = ch->frame;
 
-	mark_alt_clauses(fr, ch->value.clause PASS_LD);
+	mark_alt_clauses(fr, ch->value.clause.cref PASS_LD);
         if ( false(fr, FR_MARKED) )
 	{ set(fr, FR_MARKED);
 	  COUNT(marked_envs);
@@ -3135,6 +3139,7 @@ considerGarbageCollect(Stack s)
 #define INTBITS (sizeof(int)*8)
 #define REGISTER_STARTS 0x2
 
+#if O_SECURE
 static void
 alloc_start_map()
 { GET_LD
@@ -3144,7 +3149,7 @@ alloc_start_map()
   start_map = PL_malloc(ints*sizeof(int));
   memset(start_map, 0, ints*sizeof(int));
 }
-
+#endif
 
 static void
 set_start(Word m ARG_LD)
@@ -3173,7 +3178,7 @@ scan_global(int flags)
   int errors = 0;
   intptr_t cells = 0;
   int marked = (flags & TRUE);
-  int regstart = (flags & REGISTER_STARTS) != 0;
+  int regstart = start_map && (flags & REGISTER_STARTS) != 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
   { size_t offset;

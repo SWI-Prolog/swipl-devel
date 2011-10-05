@@ -513,7 +513,7 @@ static void
 discardForeignFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
   int argc       = def->functor->arity;
-  Func function  = def->definition.function;
+  Func function  = def->impl.function;
   struct foreign_context context;
   fid_t fid;
 
@@ -775,62 +775,11 @@ do_undo(mark *m)
 		 *	    PROCEDURES		*
 		 *******************************/
 
-#ifdef _MSC_VER				/* Windows MSVC version */
-
-#define HAVE_MSB 1
-static inline int
-MSB(unsigned int i)
-{ unsigned long mask = i;
-  unsigned long index;
-
-  _BitScanReverse(&index, mask);
-  return index;
-}
-
-#define HAVE_MEMORY_BARRIER 1
-#ifndef MemoryBarrier
-#define MemoryBarrier() (void)0
-#endif
-
-#endif /*_MSC_VER*/
-
-#if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
-#define HAVE_MSB 1
-#define MSB(i) (31 - __builtin_clz(i))		/* GCC builtin */
-#endif
-
-#if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
-#define HAVE_MEMORY_BARRIER 1
-#define MemoryBarrier() __sync_synchronize()
-#endif
-
-#ifndef HAVE_MSB
-#define HAVE_MSB 1
-static inline int
-MSB(unsigned int i)
-{ int j = 0;
-
-  if (i >= 0x10000) {i >>= 16; j += 16;}
-  if (i >=   0x100) {i >>=  8; j +=  8;}
-  if (i >=    0x10) {i >>=  4; j +=  4;}
-  if (i >=     0x4) {i >>=  2; j +=  2;}
-  if (i >=     0x2) j++;
-
-  return j;
-}
-#endif
-
-#ifndef HAVE_MEMORY_BARRIER
-#define HAVE_MEMORY_BARRIER 1
-#define MemoryBarrier() (void)0
-#endif
-
-
 static Definition
 localDefinition(Definition def ARG_LD)
 { unsigned int tid = LD->thread.info->pl_tid;
   size_t idx = MSB(tid);
-  LocalDefinitions v = def->definition.local;
+  LocalDefinitions v = def->impl.local;
 
   if ( !v->blocks[idx] )
   { LOCKDYNDEF(def);
@@ -855,7 +804,7 @@ localDefinition(Definition def ARG_LD)
 void
 destroyLocalDefinition(Definition def, unsigned int tid)
 { size_t idx = MSB(tid);
-  LocalDefinitions v = def->definition.local;
+  LocalDefinitions v = def->impl.local;
   Definition local;
 
   local = v->blocks[idx][tid];
@@ -879,7 +828,7 @@ getProcDefinition__LD(Definition def ARG_LD)
 
 static inline Definition
 getProcDefinedDefinition(Definition def ARG_LD)
-{ if ( !def->definition.clauses && false(def, PROC_DEFINED) )
+{ if ( !def->impl.any && false(def, PROC_DEFINED) )
     def = trapUndefined(def PASS_LD);
 
 #ifdef O_PLMT
@@ -1086,7 +1035,7 @@ static Code
 findCatchExit()
 { if ( !GD->exceptions.catch_exit_address )
   { Definition catch3 = PROCEDURE_catch3->definition;
-    Clause cl = catch3->definition.clauses->clause;
+    Clause cl = catch3->impl.clauses.first_clause->clause;
     Code Exit = &cl->codes[cl->code_size-1];
     assert(*Exit == encode(I_EXIT));
 
@@ -1244,7 +1193,7 @@ dbgRedoFrame(LocalFrame fr ARG_LD)
 
 static int
 exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
-{ if ( PROCEDURE_exception_hook4->definition->definition.clauses )
+{ if ( PROCEDURE_exception_hook4->definition->impl.clauses.first_clause )
   { if ( !LD->exception.in_hook )
     { wakeup_state wstate;
       qid_t qid;
@@ -2226,19 +2175,16 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 
       NEXT_INSTRUCTION;
     } else if ( ch->type == CHP_CLAUSE )
-    { ClauseRef next;
-
-      ARGP = argFrameP(FR, 0);
-      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
-	FRAME_FAILED;			/* should not happen */
+    { ARGP = argFrameP(FR, 0);
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+	FRAME_FAILED;		/* can happen if scan-ahead was too short */
       PC = CL->clause->codes;
       umode = uread;
 
       if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
-      { DiscardMark(ch->mark);
-	if ( next )
-	{ ch->value.clause = next;
-	  Mark(ch->mark);
+      { DiscardMark(ch->mark);		/* is this needed? */
+	if ( ch->value.clause.cref )
+	{ Mark(ch->mark);
 	  lTop = (LocalFrame)(ch+1);
 	  NEXT_INSTRUCTION;
 	} else if ( unlikely(debugstatus.debugging) )
@@ -2251,15 +2197,18 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	BFR = ch->parent;
 	lTop = (LocalFrame)ch;
 	NEXT_INSTRUCTION;
-      } else
-      { DiscardMark(ch->mark);
+      } else				/* Choice point needs to move */
+      { struct clause_choice chp;
+
+        DiscardMark(ch->mark);
 	BFR = ch->parent;
+	chp = ch->value.clause;
 	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
-	if ( next )
+	if ( chp.cref )
 	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	  ch->value.clause = next;
+	  ch->value.clause = chp;
 	} else if ( unlikely(debugstatus.debugging) )
 	{ ch = newChoice(CHP_DEBUG, FR PASS_LD);
 	}
@@ -2357,8 +2306,7 @@ next_choice:
       ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
-    { ClauseRef next;
-      Clause clause;
+    { Clause clause;
 
       DEBUG(3, Sdprintf("    REDO #%ld: Clause in %s\n",
 			loffset(FR),
@@ -2366,8 +2314,8 @@ next_choice:
       ARGP = argFrameP(FR, 0);
       DiscardMark(ch->mark);
       BFR = ch->parent;
-      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
-	goto next_choice;		/* should not happen */
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+	goto next_choice;	/* Can happen of look-ahead was too short */
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
@@ -2401,9 +2349,10 @@ next_choice:
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
-      if ( next )
-      { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	ch->value.clause = next;
+      if ( ch->value.clause.cref )
+      { struct clause_choice chp = ch->value.clause;
+	ch = newChoice(CHP_CLAUSE, FR PASS_LD);
+	ch->value.clause = chp;
       } else if ( unlikely(debugstatus.debugging) )
       { newChoice(CHP_DEBUG, FR PASS_LD);
       }

@@ -716,7 +716,7 @@ find_modules_with_def(Module m, functor_t fdef,
   }
 
   if ( (proc = isCurrentProcedure(fdef, m)) &&
-       proc->definition->definition.clauses )
+       proc->definition->impl.any )
   { if ( !(PL_unify_list(t, h, t) &&
 	   PL_unify_atom(h, m->name)) )
       fail;

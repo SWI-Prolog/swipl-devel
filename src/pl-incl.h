@@ -465,11 +465,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 
 #include "os/pl-table.h"
-
-/* Definition->indexPattern is set to NEED_REINDEX if the definition's index
-   pattern needs to be recomputed */
-#define NEED_REINDEX (1U << (INTBITSIZE-1))
-
 #include "pl-vmi.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -627,7 +622,7 @@ typedef struct definition_chain *DefinitionChain; /* linked list of defs */
 typedef struct clause *		Clause;		/* compiled clause */
 typedef struct clause_ref *	ClauseRef;      /* reference to a clause */
 typedef struct clause_index *	ClauseIndex;    /* Clause indexing table */
-typedef struct clause_chain *	ClauseChain;    /* Chain of clauses in table */
+typedef struct clause_bucket *	ClauseBucket;   /* Bucked in clause-index table */
 typedef struct operator *	Operator;	/* see pl-op.c, pl-read.c */
 typedef struct record *		Record;		/* recorda/3, etc. */
 typedef struct recordRef *	RecordRef;      /* reference to a record */
@@ -638,12 +633,12 @@ typedef struct list_cell *	ListCell;	/* Anonymous list */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
 typedef struct local_definitions *LocalDefinitions; /* thread-local preds */
 typedef struct choice *		Choice;		/* Choice-point */
+typedef struct clause_choice *  ClauseChoice;   /* firstClause()/nextClause() */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame;	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
 typedef struct gc_trail_entry *	GCTrailEntry;	/* Entry of trail stack (GC) */
 typedef struct mark		mark;		/* backtrack mark */
-typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
 typedef struct _varDef *	VarDef;		/* pl-comp.c */
 typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
@@ -804,7 +799,7 @@ with one operation, it turns out to be faster as well.
 #define VOLATILE		(0x00020000L) /* predicate */
 #define AUTOINDEX		(0x00040000L) /* predicate */
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
-#define NEEDSREHASH		(0x00100000L) /* predicate */
+		      /* unused (0x00100000L) */
 #define P_VARARG		(0x00200000L) /* predicate */
 #define P_SHARED		(0x00400000L) /* predicate */
 #define P_REDEFINED		(0x00800000L) /* predicate */
@@ -915,7 +910,7 @@ introduce a garbage collector (TBD).
 	if ( unlikely(true(def, DYNAMIC)) ) \
 	{ LOCKDYNDEF(def); \
 	  if ( --def->references == 0 && \
-	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
+	       true(def, NEEDSCLAUSEGC) ) \
 	  { gcClausesDefinitionAndUnlock(def); \
 	  } else \
 	  { UNLOCKDYNDEF(def); \
@@ -1022,11 +1017,6 @@ extern Atom _PL_debug_atom_value(atom_t a);
 #define PL_unregister_atom(a)
 #endif
 
-struct index
-{ word		key;		/* key of index */
-  word		varmask;	/* variable field mask */
-};
-
 struct functorDef
 { FunctorDef	next;		/* next in chain */
   word		functor;	/* as appearing on the global stack */
@@ -1061,7 +1051,6 @@ to avoid problems for most platforms.
 
 struct clause
 { Procedure	procedure;		/* procedure we belong to */
-  struct index	index;			/* index key of clause */
 #ifdef O_LOGICAL_UPDATE
   struct
   { uintptr_t created;		/* Generation that created me */
@@ -1086,6 +1075,7 @@ struct clause
 struct clause_ref
 { Clause	clause;
   ClauseRef	next;
+  word		key;			/* Index key */
 };
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
@@ -1140,23 +1130,36 @@ struct functor
   word		arguments[1];	/* arguments vector */
 };
 
-struct procedure
-{ Definition	definition;	/* definition of procedure */
-  int		type;		/* PROCEDURE_TYPE */
+struct clause_bucket
+{ ClauseRef	head;
+  ClauseRef	tail;
+  unsigned int	dirty;			/* # of garbage clauses */
 };
 
 struct clause_index
-{ int		buckets;		/* # entries */
-  int		size;			/* # elements (clauses) */
-  int		alldirty;		/* all chains need checked */
-  ClauseChain	entries;		/* chains holding the clauses */
+{ unsigned int	 buckets;		/* # entries */
+  unsigned int	 size;			/* # clauses */
+  unsigned int	 resize_above;		/* consider resize > #clauses */
+  unsigned int	 resize_below;		/* consider resize < #clauses */
+  unsigned short arg;			/* Indexed argument */
+  unsigned	 erased : 1;		/* Index is erased */
+  unsigned int	 dirty;			/* # chains that are dirty */
+  float		 speedup;		/* Estimated speedup */
+  ClauseIndex	 next;			/* Next index */
+  ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
-struct clause_chain
-{ ClauseRef	head;
-  ClauseRef	tail;
-  int		dirty;			/* # of garbage clauses */
-};
+typedef struct clause_index_list
+{ ClauseIndex index;
+  struct clause_index_list *next;
+} clause_index_list, *ClauseIndexList;
+
+typedef struct clause_list
+{ ClauseRef	first_clause;		/* clause list of procedure */
+  ClauseRef	last_clause;		/* last clause of list */
+  ClauseIndex	clause_indexes;		/* Hash index(es) */
+  unsigned int	number_of_clauses;	/* number of associated clauses */
+} clause_list, *ClauseList;
 
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
@@ -1170,18 +1173,18 @@ struct definition
   Module	module;			/* module of the predicate */
   Code		codes;			/* Executable code */
   union
-  { ClauseRef	clauses;		/* clause list of procedure */
+  { void *	any;			/* has some value */
+    clause_list	clauses;		/* (Indexed) list of clauses */
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
-  } definition;
-  ClauseRef	lastClause;		/* last clause of list */
+  } impl;
   int		references;		/* reference count */
   unsigned int  erased_clauses;		/* #erased but not reclaimed clauses */
 #ifdef O_PLMT
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
-  ClauseIndex	hash_info;		/* clause hash-tables */
-  unsigned int  indexPattern;		/* indexed argument pattern */
+  ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
+  struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
@@ -1203,23 +1206,23 @@ struct definition
 		/*	VOLATILE	   Don't save my clauses */
 		/*	AUTOINDEX	   Automatically guess index */
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
-		/*	NEEDSREHASH	   Hash-table is out-of-date */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
 		/*	P_SHARED	   Multiple procs are using me */
-  unsigned	indexCardinality : 8;	/* cardinality of index pattern */
-  unsigned	number_of_clauses : 24;	/* number of associated clauses */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
 #endif
 };
 
-
 struct definition_chain
 { Definition		definition;	/* chain on definition */
   DefinitionChain	next;		/* next in chain */
 };
 
+struct procedure
+{ Definition	definition;	/* definition of procedure */
+  int		type;		/* PROCEDURE_TYPE */
+};
 
 struct localFrame
 { Code		programPointer;		/* pointer into program */
@@ -1264,6 +1267,11 @@ typedef enum
   DBG_ALL				/* switch on globally */
 } debug_type;
 
+struct clause_choice
+{ ClauseRef	cref;			/* Next clause reference */
+  word		key;			/* Search key */
+};
+
 struct choice
 { choice_type	type;			/* CHP_* */
   Choice	parent;			/* Alternative if I fail */
@@ -1273,7 +1281,7 @@ struct choice
   struct call_node *prof_node;		/* Profiling node */
 #endif
   union
-  { ClauseRef	clause;			/* Next candidate clause */
+  { struct clause_choice clause;	/* Next candidate clause */
     Code	PC;			/* Next candidate program counter */
     word        foreign;		/* foreign redo handle */
   } value;

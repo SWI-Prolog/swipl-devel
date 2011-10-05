@@ -3588,14 +3588,12 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
     return NULL;
   }
 
-  if ( def->definition.function )
+  if ( def->impl.function )
     warning("PL_register_foreign: redefined %s", procedureName(proc));
-  if ( false(def, FOREIGN) && def->definition.clauses != NULL )
+  if ( false(def, FOREIGN) && def->impl.clauses.first_clause != NULL )
     abolishProcedure(proc, m);
 
-  def->definition.function = f;
-  def->indexPattern = 0;
-  def->indexCardinality = 0;
+  def->impl.function = f;
   def->flags = FOREIGN|TRACE_ME;
 
   if ( m == MODULE_system )
