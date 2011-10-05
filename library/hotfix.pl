@@ -155,11 +155,13 @@ load_hotfix(File, Loaded) :-
 			   close(In)).
 
 load_hotfix_from_stream(Loaded, In) :-
-	findall(Context, system:'$load_context_module'(Loaded, Context), Modules),
-	(   Modules == []
-	->  load_files(user:Loaded, [stream(In)])
-	;   forall('$member'(Context, Modules),
-		   load_files(Context:Loaded, [stream(In)]))
+	set_stream(In, file_name(Loaded)),
+	findall(M, source_file_property(Loaded, load_context(M, _)), Modules),
+	(   Modules = [First|Rest]
+	->  load_files(First:Loaded, [stream(In)]),
+	    forall('$member'(Context, Rest),
+		   load_files(Context:Loaded, [if(not_loaded), stream(In)]))
+	;   load_files(user:Loaded, [stream(In)])
 	).
 
 
