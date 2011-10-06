@@ -3040,10 +3040,10 @@ listGenerations(Definition def)
 
   Sdprintf("%s has %d clauses at generation %ld (%s)\n",
 	   predicateName(def),
-	   def->number_of_clauses, gen,
+	   def->impl.clauses.number_of_clauses, gen,
 	   true(def, NEEDSCLAUSEGC) ? "needs clause-gc" : "clean");
 
-  for(i=1,cl=def->impl.clauses; cl; cl=cl->next, i++)
+  for(i=1,cl=def->impl.clauses.first_clause; cl; cl=cl->next, i++)
   { Clause clause = cl->clause;
 
     Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
@@ -3095,7 +3095,7 @@ checkDefinition(Definition def)
   ClauseRef cref;
   ClauseIndex ci;
 
-  for(nc=0, cref = def->impl.clauses; cref; cref=cref->next)
+  for(nc=0, cref = def->impl.clauses.first_clause; cref; cref=cref->next)
   { Clause clause = cref->clause;
 
     if ( false(clause, ERASED) )
@@ -3104,7 +3104,7 @@ checkDefinition(Definition def)
       nc++;
     }
   }
-  if ( nc != def->number_of_clauses )
+  if ( nc != def->impl.clauses.number_of_clauses )
   { listGenerations(def);
     pl_break();
   }
@@ -3124,7 +3124,7 @@ checkDefinition(Definition def)
       }
     }
 
-    if ( nc != def->number_of_clauses )
+    if ( nc != def->impl.clauses.number_of_clauses )
     { listGenerations(def);
       pl_break();
     }
