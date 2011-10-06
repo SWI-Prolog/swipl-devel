@@ -716,7 +716,9 @@ print_length(_, MaxDepth, _, Len0, Len) :-
 	MaxDepth =< 0, !,
 	Len is Len0 + 3.			% ...
 print_length(Term, _, _, Len0, Len) :-
-	atomic(Term), !,
+	(   atom(Term)
+	;   number(Term)
+	), !,
 	atom_length(Term, AL),
 	Len is Len0+AL.
 print_length(Var, _, _, Len0, Len) :-
