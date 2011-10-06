@@ -492,7 +492,7 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
     if ( offset > text->length || offset + len > text->length )
       return FALSE;
 
-    if ( len == 1 )
+    if ( len == 1 && type == PL_ATOM )
     { GET_LD
       int c;
 
