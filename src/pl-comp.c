@@ -2343,7 +2343,8 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
   { int f1, f2;
 
     if ( i1 == i2 )			/* unify a var with itself? */
-    { Output_0(ci, I_TRUE);
+    { skippedVar(a1, ci PASS_LD);
+      Output_0(ci, I_TRUE);
       return TRUE;
     }
 
