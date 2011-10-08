@@ -164,15 +164,26 @@ nextClauseArg1(ClauseChoice chp, uintptr_t generation)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+nextClauseFromBucket()
+
+If we search for a functor there  are   two  options: we have a list for
+this functor, in which case we can use   this or we don't. In the latter
+case we must still perform the traditional   search as clauses without a
+key may match.
+
+TBD: Keep a flag telling is whether there are non-indexable clauses.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static ClauseRef
 nextClauseFromBucket(ClauseChoice chp, uintptr_t generation)
-{ ClauseRef cref = chp->cref;
+{ ClauseRef cref;
   word key = chp->key;
 
   if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
-  { Sdprintf("Searching for %s\n", functorName(key));
+  { DEBUG(1, Sdprintf("Searching for %s\n", functorName(key)));
 
-    for( ; cref; cref = cref->next)
+    for(cref = chp->cref; cref; cref = cref->next)
     { if ( cref->key == key )
       { ClauseList cl = &cref->value.clauses;
 	ClauseRef cr;
@@ -186,27 +197,27 @@ nextClauseFromBucket(ClauseChoice chp, uintptr_t generation)
       }
     }
 
-    return NULL;
-  } else
-  { for( ; cref; cref = cref->next)
-    { if ( (!cref->key || key == cref->key) &&
-	   visibleClause(cref->value.clause, generation))
-      { ClauseRef result = cref;
-	int maxsearch = MAXSEARCH;
+    DEBUG(1, Sdprintf("%s not found; trying non-indexed\n", functorName(key)));
+  }
 
-	for( cref = cref->next; cref; cref = cref->next )
-	{ if ( ((!cref->key || key == cref->key) &&
-		visibleClause(cref->value.clause, generation)) ||
-	       --maxsearch == 0 )
-	  { chp->cref = cref;
+  for(cref = chp->cref; cref; cref = cref->next)
+  { if ( (!cref->key || key == cref->key) &&
+	 visibleClause(cref->value.clause, generation))
+    { ClauseRef result = cref;
+      int maxsearch = MAXSEARCH;
 
-	    return result;
-	  }
+      for( cref = cref->next; cref; cref = cref->next )
+      { if ( ((!cref->key || key == cref->key) &&
+	      visibleClause(cref->value.clause, generation)) ||
+	     --maxsearch == 0 )
+	{ chp->cref = cref;
+
+	  return result;
 	}
-	chp->cref = NULL;
-
-	return result;
       }
+      chp->cref = NULL;
+
+      return result;
     }
   }
 
@@ -443,16 +454,35 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
     for(cref=ch->head; cref; cref=cref->next)
     { if ( cref->key == key )
       { addClauseList(cref, cl, where PASS_LD);
-	Sdprintf("Adding to existing %s\n", functorName(key));
+	DEBUG(1, Sdprintf("Adding to existing %s\n", functorName(key)));
 	return;
       }
     }
 
-    Sdprintf("Adding new %s\n", functorName(key));
+    DEBUG(1, Sdprintf("Adding new %s\n", functorName(key)));
     cr = newClauseListRef(key PASS_LD);
+    for(cref=ch->head; cref; cref=cref->next)
+    { if ( !cref->key )
+      { addClauseList(cr, cref->value.clause, CL_END PASS_LD);
+	DEBUG(1, Sdprintf("Preparing var to clause-list for %s\n",
+			  functorName(key)));
+      }
+    }
     addClauseList(cr, cl, where PASS_LD);
   } else
-  { cr = newClauseRef(cl, key PASS_LD);
+  { if ( !key )
+    { ClauseRef cref;
+
+      for(cref=ch->head; cref; cref=cref->next)
+      { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+	{ addClauseList(cref, cl, where PASS_LD);
+	  DEBUG(1, Sdprintf("Adding var to clause-list for %s\n",
+			    functorName(cref->key)));
+	}
+      }
+    }
+
+    cr = newClauseRef(cl, key PASS_LD);
   }
 
   if ( !ch->tail )
