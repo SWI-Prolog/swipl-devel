@@ -190,7 +190,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 	    if ( offset >= 0 && offset < (int)FR->predicate->codes[-1] )
 	      relto = FR->predicate->codes;
 	  } else if ( FR->clause )
-	  { relto = FR->clause->clause->codes;
+	  { relto = FR->clause->value.clause->codes;
 	  }
 
 	  Sdprintf("\t%s\n", codeTable[decode(*PC)].name);

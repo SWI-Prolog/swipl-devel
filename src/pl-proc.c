@@ -1583,8 +1583,8 @@ pl_check_definition(term_t spec)
   if ( true(def, FOREIGN) )
     succeed;
 
-  for(cref = def->impl.clauses; cref; cref = cref->next)
-  { Clause clause = cref->clause;
+  for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
+  { Clause clause = cref->value.clause;
 
     if ( cref->key == 0 )
       nindexable++;
@@ -1605,9 +1605,9 @@ pl_check_definition(term_t spec)
 	      predicateName(def));
   }
 
-  if ( def->number_of_clauses != nclauses )
+  if ( def->impl.clauses.number_of_clauses != nclauses )
     Sdprintf("%s has inconsistent number_of_clauses (%d, should be %d)",
-	     predicateName(def), def->number_of_clauses, nclauses);
+	     predicateName(def), def->impl.clauses.number_of_clauses, nclauses);
 
   succeed;
 }

@@ -1724,7 +1724,7 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
   { if ( visibleClause(cref->value.clause, fr->generation) )
     { COUNT(c_scanned);
       state.c0 = cref->value.clause->codes;
-      DEBUG(3, Sdprintf("Scanning clause %p\n", cref->clause));
+      DEBUG(3, Sdprintf("Scanning clause %p\n", cref->value.clause));
       walk_and_mark(&state, state.c0, I_EXIT PASS_LD);
     }
 
@@ -3287,7 +3287,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
 		      levelFrame(fr),
 		      predicateName(fr->predicate),
 		      (false(fr->predicate, FOREIGN) && PC)
-		        ? (PC-fr->clause->clause->codes)
+		        ? (PC-fr->clause->value.clause->codes)
 			: 0));
 
     slots = slotsInFrame(fr, PC);
