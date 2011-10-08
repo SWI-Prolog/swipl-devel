@@ -3008,24 +3008,24 @@ compileFile(wic_state *state, const char *file)
 bool
 compileFileList(IOSTREAM *fd, int argc, char **argv)
 { GET_LD
-  wic_state state;
+  wic_state *state = allocHeapOrHalt(sizeof(*state));
   predicate_t pred;
   int rc;
 
-  memset(&state, 0, sizeof(state));
-  state.wicFd = fd;
+  memset(state, 0, sizeof(*state));
+  state->wicFd = fd;
 
-  if ( !writeWicHeader(&state) )
+  if ( !writeWicHeader(state) )
     return FALSE;
 
   systemMode(TRUE);
   PL_set_prolog_flag("autoload", PL_BOOL, FALSE);
 
-  LD->qlf.current_state = &state; /* make Prolog compilation go into state */
+  LD->qlf.current_state = state; /* make Prolog compilation go into state */
   for(;argc > 0; argc--, argv++)
   { if ( streq(argv[0], "-c" ) )
       break;
-    if ( !compileFile(&state, argv[0]) )
+    if ( !compileFile(state, argv[0]) )
       return FALSE;
   }
 
@@ -3034,11 +3034,11 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
 
   pred = PL_predicate("$load_additional_boot_files", 0, "user");
   rc = PL_call_predicate(MODULE_user, TRUE, pred, 0);
+  if ( rc )
+    rc = writeWicTrailer(state);
 
   LD->qlf.current_state = NULL;
-
-  if ( rc )
-    rc = writeWicTrailer(&state);
+  freeHeap(state, sizeof(*state));
 
   return rc;
 }
