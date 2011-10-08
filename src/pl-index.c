@@ -667,7 +667,7 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 
 /* MT: caller must have predicate locked */
 
-void
+static void
 addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
 { ClauseBucket ch = ci->entries;
   word key;
@@ -686,6 +686,15 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
     addClauseBucket(&ch[hi], cl, key, where PASS_LD);
     ci->size++;
   }
+}
+
+
+void
+addClauseToIndexes(Definition def, Clause cl, int where ARG_LD)
+{ ClauseIndex ci;
+
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
+    addClauseToIndex(ci, cl, where PASS_LD);
 }
 
 

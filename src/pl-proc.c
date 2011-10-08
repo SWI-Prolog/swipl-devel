@@ -789,7 +789,6 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 { Definition def = getProcDefinition(proc);
   word key;
   ClauseRef cref;
-  ClauseIndex ci;
 
   argKey(clause->codes, 0, FALSE, &key);
   cref = newClauseRef(clause, key PASS_LD);
@@ -824,8 +823,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   if ( false(def, DYNAMIC) )		/* see (*) above */
     freeCodesDefinition(def);
 
-  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-    addClauseToIndex(ci, clause, where PASS_LD);
+  addClauseToIndexes(def, clause, where PASS_LD);
 
   UNLOCKDEF(def);
 

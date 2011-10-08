@@ -203,8 +203,8 @@ COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseChoice next ARG_LD);
 COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
 				   Definition def ARG_LD);
-COMMON(void)		addClauseToIndex(ClauseIndex ci, Clause cl,
-					 int where ARG_LD);
+COMMON(void)		addClauseToIndexes(Definition def, Clause cl,
+					   int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		cleanClauseIndexes(Definition def ARG_LD);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
