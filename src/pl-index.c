@@ -554,6 +554,42 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key)
 
 
 static int
+gcClauseList(ClauseList cl, unsigned int dirty ARG_LD)
+{ ClauseRef cref=cl->first_clause, prev = NULL;
+  int deleted = 0;
+
+  while(cref && dirty)
+  { if ( true(cref->value.clause, ERASED) )
+    { ClauseRef c = cref;
+
+      if ( cref->key )
+	deleted++;			/* only reduce size by indexed */
+      dirty--;
+
+      cref = cref->next;
+      if ( !prev )
+      { cl->first_clause = c->next;
+	if ( !c->next )
+	  cl->last_clause = NULL;
+      } else
+      { prev->next = c->next;
+	if ( c->next == NULL)
+	  cl->last_clause = prev;
+      }
+
+      freeClauseRef(c PASS_LD);
+    }
+  }
+
+  return deleted;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TBD: Get the `dirty' adminstration ok.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
 gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
@@ -561,15 +597,16 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
   while( cref && dirty )
   { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
     { ClauseList cl = &cref->value.clauses;
-      ClauseRef cr;
+      dirty -= gcClauseList(cl, dirty PASS_LD);
 
-      for(cr=cl->first_clause; cr; cr=cr->next)
-      { /*TBD*/
-      }
+      if ( cl->first_clause == NULL )
+	goto delete;
     } else
     { if ( true(cref->value.clause, ERASED) )
-      { ClauseRef c = cref;
+      { ClauseRef c;
 
+      delete:
+	c = cref;
 	if ( cref->key )
 	  deleted++;			/* only reduce size by indexed */
 	dirty--;
@@ -585,7 +622,7 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
 	    ch->tail = prev;
 	}
 
-	freeClauseRef(c PASS_LD);
+	freeClauseRefOrList(c PASS_LD);
       } else
       { prev = cref;
 	cref = cref->next;
