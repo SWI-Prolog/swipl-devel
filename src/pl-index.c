@@ -533,9 +533,12 @@ deleteClauseList(ClauseRef cref, Clause clause)
 	  cl->last_clause = prev;
       }
 
-      break;
+      cl->number_of_clauses--;
+      return;
     }
   }
+
+  assert(0);
 }
 
 
@@ -753,8 +756,11 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
     for(cref=cb->head; cref; cref=cref->next)
     { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
-      { if ( cref->value.clauses.erased_clauses++ == 0 )
+      { ClauseList cl = &cref->value.clauses;
+
+	if ( cl->erased_clauses++ == 0 )
 	  cb->dirty++;
+	cl->number_of_clauses--;
       }
     }
 
@@ -768,17 +774,22 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 	if ( cl->erased_clauses++ == 0 )
 	  cb->dirty++;
+	cl->number_of_clauses--;
 
 #ifdef O_SECURE
 	{ ClauseRef cr;
 	  unsigned int erased = 0;
+	  unsigned int count = 0;
 
 	  for(cr=cl->first_clause; cr; cr=cr->next)
 	  { if ( true(cr->value.clause, ERASED) )
 	      erased++;
+	    else
+	      count++;
 	  }
 
 	  assert(erased == cl->erased_clauses);
+	  assert(count  == cl->number_of_clauses);
 	}
 #endif
 	return;

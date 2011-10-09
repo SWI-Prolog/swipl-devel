@@ -187,16 +187,12 @@ hasClausesDefinition(Definition def)
     else
     { GET_LD
       ClauseRef c;
-#ifdef O_LOGICAL_UPDATE
       uintptr_t generation;
       LocalFrame fr = environment_frame;
       if ( fr )
 	generation = generationFrame(fr);
       else
 	generation = ~0L-1;		/* any non-erased clause */
-#else
-#define generation (0)
-#endif
 
       for(c = def->impl.clauses.first_clause; c; c = c->next)
       { Clause cl = c->value.clause;
@@ -3135,12 +3131,16 @@ checkDefinition(Definition def)
 	{ ClauseList cl = &cref->value.clauses;
 	  ClauseRef cr;
 	  unsigned int erased = 0;
+	  unsigned int count = 0;
 
 	  for(cr=cl->first_clause; cr; cr=cr->next)
 	  { if ( true(cr->value.clause, ERASED) )
 	      erased++;
+	    else
+	      count++;
 	  }
 	  assert(erased == cl->erased_clauses);
+	  assert(count  == cl->number_of_clauses);
 	  if ( erased )
 	    dirty++;
 	} else
@@ -3167,7 +3167,7 @@ pl_check_procedure(term_t desc)
   Procedure proc;
   Definition def;
 
-  if ( !get_procedure(desc, &proc, 0, GP_FIND) )
+  if ( !get_procedure(desc, &proc, 0, GP_FIND|GP_NAMEARITY) )
     fail;
   def = getProcDefinition(proc);
 
@@ -3186,7 +3186,7 @@ pl_list_generations(term_t desc)
   Procedure proc;
   Definition def;
 
-  if ( !get_procedure(desc, &proc, 0, GP_FIND) )
+  if ( !get_procedure(desc, &proc, 0, GP_FIND|GP_NAMEARITY) )
     fail;
   def = getProcDefinition(proc);
 
