@@ -596,6 +596,12 @@ gcClauseList(ClauseList cl ARG_LD)
     }
   }
 
+#if O_SECURE
+  for(cref=cl->first_clause; cref; cref=cref->next)
+  { assert(false(cref->value.clause, ERASED));
+  }
+#endif
+
   assert(cl->erased_clauses==0);
 }
 
@@ -603,8 +609,6 @@ gcClauseList(ClauseList cl ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 gcClauseBucket() removes all erased clauses from  the bucket and returns
 the number of indexable entries that have been removed from the bucket.
-
-TBD: Add erased clauses to ClauseList and use that here?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -627,11 +631,12 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
     { if ( true(cref->value.clause, ERASED) )
       { ClauseRef c;
 
+	dirty--;
+
       delete:
 	c = cref;
 	if ( cref->key )
 	  deleted++;			/* only reduce size by indexed */
-	dirty--;
 
 	cref = cref->next;
 	if ( !prev )
@@ -653,8 +658,22 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
     cref = cref->next;
   }
 
-  SECURE(for(cref=ch->head; cref; cref=cref->next)
-	   assert(false(cref->clause, ERASED)));
+#if O_SECURE
+  for(cref=ch->head; cref; cref=cref->next)
+  { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+    { ClauseList cl = &cref->value.clauses;
+      ClauseRef cr;
+
+      assert(cl->first_clause);
+      assert(cl->erased_clauses==0);
+      for(cr=cl->first_clause; cr; cr=cr->next)
+      { assert(false(cr->value.clause, ERASED));
+      }
+    } else
+    { assert(false(cref->value.clause, ERASED));
+    }
+  }
+#endif
 
   ch->dirty = 0;
 
@@ -743,8 +762,23 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
     for(cref=cb->head; cref; cref=cref->next)
     { if ( cref->key == key )
-      { if ( cref->value.clauses.erased_clauses++ == 0 )
+      { ClauseList cl = &cref->value.clauses;
+
+	if ( cl->erased_clauses++ == 0 )
 	  cb->dirty++;
+
+#ifdef O_SECURE
+	{ ClauseRef cr;
+	  unsigned int erased = 0;
+
+	  for(cr=cl->first_clause; cr; cr=cr->next)
+	  { if ( true(cr->value.clause, ERASED) )
+	      erased++;
+	  }
+
+	  assert(erased == cl->erased_clauses);
+	}
+#endif
 	return;
       }
     }
@@ -841,6 +875,8 @@ addClauseToIndexes(Definition def, Clause cl, int where ARG_LD)
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
     addClauseToIndex(ci, cl, where PASS_LD);
+
+  SECURE(checkDefinition(def));
 }
 
 

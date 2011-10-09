@@ -975,6 +975,8 @@ unlinkClause(Definition def, Clause clause ARG_LD)
     }
   }
 
+  SECURE(checkDefinition(def));
+
   return TRUE;
 }
 
@@ -995,6 +997,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     succeed;
   }
 
+  SECURE(checkDefinition(def));
   set(clause, ERASED);
 
   if ( def->references ||
@@ -1014,11 +1017,14 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 #endif
     UNLOCKDYNDEF(def);
 
+    SECURE(checkDefinition(def));
+
     succeed;
   }
 
   rc = unlinkClause(def, clause PASS_LD);
   UNLOCKDYNDEF(def);
+  SECURE(checkDefinition(def));
 
 					/* as we do a call-back, we cannot */
 					/* hold the L_PREDICATE mutex */
@@ -1075,6 +1081,8 @@ cleanDefinition()
 static ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
 { GET_LD
+
+  SECURE(checkDefinition(def));
 
   DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
 
@@ -2026,8 +2034,9 @@ pl_retractall(term_t head)
   enterDefinition(def);
   fid = PL_open_foreign_frame();
 
+  checkDefinition(def);
   if ( allvars )
-  { uintptr_t gen = environment_frame->generation;
+  { uintptr_t gen = generationFrame(environment_frame);
 
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( visibleClause(cref->value.clause, gen) )
@@ -3093,7 +3102,9 @@ checkDefinition(Definition def)
 { unsigned int nc, indexed = 0;
   ClauseRef cref;
   ClauseIndex ci;
+  unsigned int erased = 0;
 
+						/* check basic clause list */
   for(nc=0, cref = def->impl.clauses.first_clause; cref; cref=cref->next)
   { Clause clause = cref->value.clause;
 
@@ -3101,32 +3112,51 @@ checkDefinition(Definition def)
     { if ( cref->key )
 	indexed++;
       nc++;
+    } else
+    { erased++;
     }
   }
-  if ( nc != def->impl.clauses.number_of_clauses )
-  { listGenerations(def);
-    pl_break();
-  }
 
+  assert(nc == def->impl.clauses.number_of_clauses);
+  assert(erased == def->impl.clauses.erased_clauses);
+
+						/* Check indexes */
   for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
   { int i;
+    ClauseBucket cb;
+    unsigned int ci_dirty = 0;
 
     nc = 0;
-    for(i=0; i<ci->buckets; i++)
-    { for(cref=ci->entries[i].head; cref; cref=cref->next)
-      { Clause clause = cref->value.clause;
+    for(i=0,cb=ci->entries; i<ci->buckets; i++,cb++)
+    { unsigned int dirty = 0;
 
-	if ( false(clause, ERASED) )
-	{ if ( i == 0 || cref->key != 0 )
-	    nc++;
+      for(cref=cb->head; cref; cref=cref->next)
+      { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+	{ ClauseList cl = &cref->value.clauses;
+	  ClauseRef cr;
+	  unsigned int erased = 0;
+
+	  for(cr=cl->first_clause; cr; cr=cr->next)
+	  { if ( true(cr->value.clause, ERASED) )
+	      erased++;
+	  }
+	  assert(erased == cl->erased_clauses);
+	  if ( erased )
+	    dirty++;
+	} else
+	{ Clause clause = cref->value.clause;
+
+	  if ( true(clause, ERASED) )
+	    dirty++;
 	}
       }
+
+      assert(cb->dirty == dirty);
+      if ( cb->dirty )
+	ci_dirty++;
     }
 
-    if ( nc != def->impl.clauses.number_of_clauses )
-    { listGenerations(def);
-      pl_break();
-    }
+    assert(ci->dirty == ci_dirty);
   }
 }
 
