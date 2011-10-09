@@ -1976,7 +1976,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
   }
 					/* floating point numbers */
   if ( *in == '.' && isDigit(in[1]) )
-  { value->type = V_FLOAT;
+  { clearNumber(value);
+    value->type = V_FLOAT;
 
     in++;
     while( isDigit(*in) )
@@ -1985,7 +1986,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
   if ( (*in == 'e' || *in == 'E') &&
        ((isSign(in[1]) && isDigit(in[2])) || isDigit(in[1])) )
-  { value->type = V_FLOAT;
+  { clearNumber(value);
+    value->type = V_FLOAT;
 
     in++;
     if ( isSign(*in) )
