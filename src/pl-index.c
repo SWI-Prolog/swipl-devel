@@ -571,14 +571,11 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key)
 static int
 gcClauseList(ClauseList cl, unsigned int dirty ARG_LD)
 { ClauseRef cref=cl->first_clause, prev = NULL;
-  int deleted = 0;
 
   while(cref && dirty)
   { if ( true(cref->value.clause, ERASED) )
     { ClauseRef c = cref;
 
-      if ( cref->key )
-	deleted++;			/* only reduce size by indexed */
       dirty--;
 
       cref = cref->next;
@@ -596,13 +593,15 @@ gcClauseList(ClauseList cl, unsigned int dirty ARG_LD)
     }
   }
 
-  return deleted;
+  return dirty;
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 gcClauseBucket() removes all erased clauses from  the bucket and returns
 the number of indexable entries that have been removed from the bucket.
+
+TBD: Add erased clauses to ClauseList and use that here?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -613,7 +612,7 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
   while( cref && dirty )
   { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
     { ClauseList cl = &cref->value.clauses;
-      dirty -= gcClauseList(cl, dirty PASS_LD);
+      dirty = gcClauseList(cl, dirty PASS_LD);
 
       if ( cl->first_clause == NULL )
 	goto delete;
