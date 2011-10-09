@@ -556,17 +556,22 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key)
     }
   } else
   { for(c = ch->head; c; prev = c, c = c->next)
-    { if ( c->value.clause == clause )
-      { if ( !prev )
-	{ ch->head = c->next;
-	  if ( !c->next )
-	    ch->tail = NULL;
-	} else
-	{ prev->next = c->next;
-	  if ( !c->next)
-	    ch->tail = prev;
+    { if ( tagex(c->key) == (TAG_ATOM|STG_GLOBAL) )
+      { if ( !key )
+	  deleteClauseList(c, clause);
+      } else
+      { if ( c->value.clause == clause )
+	{ if ( !prev )
+	  { ch->head = c->next;
+	    if ( !c->next )
+	      ch->tail = NULL;
+	  } else
+	  { prev->next = c->next;
+	    if ( !c->next)
+	      ch->tail = prev;
+	  }
+	  break;
 	}
-	break;
       }
     }
   }
