@@ -444,7 +444,20 @@ addClauseList(ClauseRef cref, Clause clause, int where ARG_LD)
 }
 
 
-static void
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Add a clause to a bucket.  There are some special cases:
+
+  - If the key denotes a functor, create or extend a clause-list for
+    this functor.
+  - If the key is non-indexable, add the clause both to the bucket
+    chain and to all functor clause-lists (*). The latter also implies
+    that if we create a functor clause-list we must add all
+    non-indexable clauses to it (**).
+
+Return how many indexable entries have been added to the bucket.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
 addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
 { ClauseRef cr;
 
@@ -455,13 +468,13 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
     { if ( cref->key == key )
       { addClauseList(cref, cl, where PASS_LD);
 	DEBUG(1, Sdprintf("Adding to existing %s\n", functorName(key)));
-	return;
+	return 0;
       }
     }
 
     DEBUG(1, Sdprintf("Adding new %s\n", functorName(key)));
     cr = newClauseListRef(key PASS_LD);
-    for(cref=ch->head; cref; cref=cref->next)
+    for(cref=ch->head; cref; cref=cref->next)	/* (**) */
     { if ( !cref->key )
       { addClauseList(cr, cref->value.clause, CL_END PASS_LD);
 	DEBUG(1, Sdprintf("Preparing var to clause-list for %s\n",
@@ -471,7 +484,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
     addClauseList(cr, cl, where PASS_LD);
   } else
   { if ( !key )
-    { ClauseRef cref;
+    { ClauseRef cref;				/* (*) */
 
       for(cref=ch->head; cref; cref=cref->next)
       { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
@@ -496,6 +509,8 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
       ch->head = cr;
     }
   }
+
+  return key ? 1 : 0;
 }
 
 
@@ -586,7 +601,8 @@ gcClauseList(ClauseList cl, unsigned int dirty ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TBD: Get the `dirty' adminstration ok.
+gcClauseBucket() removes all erased clauses from  the bucket and returns
+the number of indexable entries that have been removed from the bucket.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -695,6 +711,19 @@ cleanClauseIndexes(Definition def ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Deal with deletion of an active  clause   from  the indexes. This clause
+cannot really be deleted as it might  still   be  alive  for goals of an
+older generation. The task of   this deleteActiveClauseFromIndex() is to
+maintain administration that makes it  easy   to  actually  clean up the
+index if this is need. The actual cleanup is done by cleanClauseIndex().
+
+On the clause index, it maintains a   `dirty' that indicates how many of
+the buckets contain erased clauses. Each  bucket maintains a dirty count
+that indicates the number  of  references   to  erased  clauses  in that
+bucket.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
 { word key;
@@ -732,7 +761,14 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
 }
 
 
-/* MT: caller must have predicate locked */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Add a clause to an index.  If   the  clause cannot be indexed (typically
+because it has a variable at the  argument location), the clause must be
+added to all indexes.
+
+ClauseIndex->size maintains the number of elements  in the list that are
+indexed. This is needed for resizing the index.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
@@ -750,8 +786,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
   { int hi = hashIndex(key, ci->buckets);
 
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
-    addClauseBucket(&ch[hi], cl, key, where PASS_LD);
-    ci->size++;
+    ci->size += addClauseBucket(&ch[hi], cl, key, where PASS_LD);
   }
 }
 
