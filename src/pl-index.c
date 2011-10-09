@@ -194,6 +194,8 @@ nextClauseFromBucket(ClauseChoice chp, uintptr_t generation)
 	    return cr;
 	  }
 	}
+
+	return NULL;
       }
     }
 
