@@ -590,6 +590,9 @@ gcClauseList(ClauseList cl ARG_LD)
       }
 
       freeClauseRef(c PASS_LD);
+    } else
+    { prev = cref;
+      cref = cref->next;
     }
   }
 
@@ -642,11 +645,12 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
 	}
 
 	freeClauseRefOrList(c PASS_LD);
-      } else
-      { prev = cref;
-	cref = cref->next;
+	continue;
       }
     }
+
+    prev = cref;
+    cref = cref->next;
   }
 
   SECURE(for(cref=ch->head; cref; cref=cref->next)
