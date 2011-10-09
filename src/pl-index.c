@@ -568,15 +568,15 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key)
 }
 
 
-static int
-gcClauseList(ClauseList cl, unsigned int dirty ARG_LD)
+static void
+gcClauseList(ClauseList cl ARG_LD)
 { ClauseRef cref=cl->first_clause, prev = NULL;
 
-  while(cref && dirty)
+  while(cref && cl->erased_clauses)
   { if ( true(cref->value.clause, ERASED) )
     { ClauseRef c = cref;
 
-      dirty--;
+      cl->erased_clauses--;
 
       cref = cref->next;
       if ( !prev )
@@ -593,7 +593,7 @@ gcClauseList(ClauseList cl, unsigned int dirty ARG_LD)
     }
   }
 
-  return dirty;
+  assert(cl->erased_clauses==0);
 }
 
 
@@ -612,10 +612,14 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty ARG_LD)
   while( cref && dirty )
   { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
     { ClauseList cl = &cref->value.clauses;
-      dirty = gcClauseList(cl, dirty PASS_LD);
 
-      if ( cl->first_clause == NULL )
-	goto delete;
+      if ( cl->erased_clauses )
+      { gcClauseList(cl PASS_LD);
+	dirty--;
+
+	if ( cl->first_clause == NULL )
+	  goto delete;
+      }
     } else
     { if ( true(cref->value.clause, ERASED) )
       { ClauseRef c;
@@ -711,6 +715,43 @@ cleanClauseIndexes(Definition def ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+deleteActiveClauseFromBucket() maintains dirty  count   on  the  bucket,
+which expresses the number of clause-references  in the chain that needs
+updating. If a clause-reference  is  a   clause-list,  it  increases the
+erased_clauses count thereof.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+deleteActiveClauseFromBucket(ClauseBucket cb, word key)
+{ if ( !key )
+  { ClauseRef cref;
+
+    for(cref=cb->head; cref; cref=cref->next)
+    { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+      { if ( cref->value.clauses.erased_clauses++ == 0 )
+	  cb->dirty++;
+      }
+    }
+
+    cb->dirty++;				/* for the one directly added */
+  } else if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+  { ClauseRef cref;
+
+    for(cref=cb->head; cref; cref=cref->next)
+    { if ( cref->key == key )
+      { if ( cref->value.clauses.erased_clauses++ == 0 )
+	  cb->dirty++;
+	return;
+      }
+    }
+    assert(0);
+  } else
+  { cb->dirty++;
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deal with deletion of an active  clause   from  the indexes. This clause
 cannot really be deleted as it might  still   be  alive  for goals of an
 older generation. The task of   this deleteActiveClauseFromIndex() is to
@@ -730,23 +771,23 @@ deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
   argKey(cl->codes, ci->arg-1, FALSE, &key);
 
   if ( key == 0 )			/* not indexed */
-  { if ( ci->dirty != ci->buckets )
-    { int i;
-      ClauseBucket ch;
+  { int i;
+    ClauseBucket cb;
 
-      for(i=ci->buckets, ch = ci->entries; --i>=0; ch++)
-      { if ( ch->dirty == 0 )
-	  ci->dirty++;
-	ch->dirty++;
-      }
-      assert(ci->dirty == ci->buckets);
+    for(i=ci->buckets, cb = ci->entries; --i>=0; cb++)
+    { if ( cb->dirty == 0 )
+	ci->dirty++;
+      deleteActiveClauseFromBucket(cb, key);
     }
+    assert(ci->dirty == ci->buckets);
   } else
   { int hi = hashIndex(key, ci->buckets);
+    ClauseBucket cb = &ci->entries[hi];
 
-    if ( ci->entries[hi].dirty == 0 )
+    if ( cb->dirty == 0 )
       ci->dirty++;
-    ci->entries[hi].dirty++;
+    deleteActiveClauseFromBucket(cb, key);
+    assert(cb->dirty>0);
   }
 }
 
