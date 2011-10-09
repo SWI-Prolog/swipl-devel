@@ -1077,6 +1077,7 @@ typedef struct clause_list
   ClauseRef	last_clause;		/* last clause of list */
   ClauseIndex	clause_indexes;		/* Hash index(es) */
   unsigned int	number_of_clauses;	/* number of associated clauses */
+  unsigned int	erased_clauses;		/* number of erased clauses in set */
 } clause_list, *ClauseList;
 
 typedef struct clause_ref
@@ -1186,7 +1187,6 @@ struct definition
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
   int		references;		/* reference count */
-  unsigned int  erased_clauses;		/* #erased but not reclaimed clauses */
 #ifdef O_PLMT
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif

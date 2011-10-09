@@ -182,7 +182,7 @@ isCurrentProcedure(functor_t f, Module m)
 ClauseRef
 hasClausesDefinition(Definition def)
 { if ( def->impl.clauses.first_clause )
-  { if ( def->erased_clauses == 0 )
+  { if ( def->impl.clauses.erased_clauses == 0 )
       return def->impl.clauses.first_clause;
     else
     { GET_LD
@@ -934,7 +934,7 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
       cl->generation.erased = GD->generation;
 #endif
       def->impl.clauses.number_of_clauses--;
-      def->erased_clauses++;
+      def->impl.clauses.erased_clauses++;
     }
   }
 
@@ -1002,8 +1002,9 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
   { deleteActiveClauseFromIndexes(def, clause);
 
     def->impl.clauses.number_of_clauses--;
-    def->erased_clauses++;
-    if ( def->erased_clauses > def->impl.clauses.number_of_clauses/(unsigned)16 )
+    def->impl.clauses.erased_clauses++;
+    if ( def->impl.clauses.erased_clauses >
+	 def->impl.clauses.number_of_clauses/(unsigned)16 )
     { set(def, NEEDSCLAUSEGC);
     }
 #ifdef O_LOGICAL_UPDATE
@@ -1086,7 +1087,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
     cleanClauseIndexes(def PASS_LD);
 
     for(cref = def->impl.clauses.first_clause;
-	cref && def->erased_clauses;
+	cref && def->impl.clauses.erased_clauses;
 	cref=next)
     { next = cref->next;
 
@@ -1102,7 +1103,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
 	}
 
 	DEBUG(2, removed++);
-	def->erased_clauses--;
+	def->impl.clauses.erased_clauses--;
 
 					  /* re-link into garbage chain */
 	cref->next = garbage;
@@ -1114,7 +1115,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
     }
 
     DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
-    assert(def->erased_clauses == 0);
+    assert(def->impl.clauses.erased_clauses == 0);
 
     clear(def, NEEDSCLAUSEGC);
   }
@@ -1593,9 +1594,9 @@ pl_check_definition(term_t spec)
       nerased++;
   }
 
-  if ( nerased != def->erased_clauses )
+  if ( nerased != def->impl.clauses.erased_clauses )
     Sdprintf("%s has %d erased clauses, claims %d\n",
-	     predicateName(def), nerased, def->erased_clauses);
+	     predicateName(def), nerased, def->impl.clauses.erased_clauses);
 
   for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
   { if ( ci->size != nindexable )
