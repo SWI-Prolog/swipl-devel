@@ -517,9 +517,8 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
 
 
 static void
-deleteClauseList(ClauseRef cref, Clause clause)
-{ ClauseList cl = &cref->value.clauses;
-  ClauseRef cr, prev=NULL;
+deleteClauseList(ClauseList cl, Clause clause)
+{ ClauseRef cr, prev=NULL;
 
   for(cr=cl->first_clause; cr; prev=cr, cr=cr->next)
   { if ( cr->value.clause == clause )
@@ -550,28 +549,59 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key)
   if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
   { for(c = ch->head; c; prev = c, c = c->next)
     { if ( c->key == key )
-      { deleteClauseList(c, clause);
-	break;
+      { ClauseList cl = &c->value.clauses;
+
+	deleteClauseList(cl, clause);
+	if ( !cl->first_clause )
+	  goto delete;
+	return;
       }
+    }
+  } else if ( !key )
+  { for(c = ch->head; c;)
+    { if ( tagex(c->key) == (TAG_ATOM|STG_GLOBAL) )
+      { ClauseList cl = &c->value.clauses;
+
+	deleteClauseList(cl, clause);
+	if ( !cl->first_clause )
+	{ ClauseRef d;
+
+	delete_nokey:
+	  d = c;
+	  c = c->next;
+	  if ( !prev )
+	  { ch->head = d->next;
+	    if ( !d->next )
+	      ch->tail = NULL;
+	  } else
+	  { prev->next = d->next;
+	    if ( !d->next)
+	      ch->tail = prev;
+	  }
+	  continue;
+	}
+      } else if ( c->value.clause == clause )
+      {	goto delete_nokey;
+      }
+      prev = c;
+      c = c->next;
     }
   } else
   { for(c = ch->head; c; prev = c, c = c->next)
-    { if ( tagex(c->key) == (TAG_ATOM|STG_GLOBAL) )
-      { if ( !key )
-	  deleteClauseList(c, clause);
-      } else
-      { if ( c->value.clause == clause )
-	{ if ( !prev )
-	  { ch->head = c->next;
-	    if ( !c->next )
-	      ch->tail = NULL;
-	  } else
-	  { prev->next = c->next;
-	    if ( !c->next)
-	      ch->tail = prev;
-	  }
-	  break;
+    { if ( tagex(c->key) != (TAG_ATOM|STG_GLOBAL) &&
+	   c->value.clause == clause )
+      {
+      delete:
+	if ( !prev )
+	{ ch->head = c->next;
+	  if ( !c->next )
+	    ch->tail = NULL;
+	} else
+	{ prev->next = c->next;
+	  if ( !c->next)
+	    ch->tail = prev;
 	}
+	return;
       }
     }
   }
