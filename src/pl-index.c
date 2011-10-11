@@ -479,10 +479,16 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where ARG_LD)
     for(cref=ch->head; cref; cref=cref->next)	/* (**) */
     { if ( !cref->key )
       { addClauseList(cr, cref->value.clause, CL_END PASS_LD);
+	if ( true(cref->value.clause, ERASED) )	/* or do not add? */
+	{ cr->value.clauses.number_of_clauses--;
+	  cr->value.clauses.erased_clauses++;
+	}
 	DEBUG(1, Sdprintf("Preparing var to clause-list for %s\n",
 			  functorName(key)));
       }
     }
+    if ( cr->value.clauses.erased_clauses )
+      ch->dirty++;
     addClauseList(cr, cl, where PASS_LD);
   } else
   { if ( !key )
