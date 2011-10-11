@@ -416,7 +416,7 @@ static ClauseRef
 newClauseListRef(word key ARG_LD)
 { ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_LIST);
 
-  memset(cref, 0, sizeof(*cref));
+  memset(cref, 0, SIZEOF_CREF_LIST);
   cref->key = key;
 
   return cref;
