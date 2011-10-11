@@ -114,6 +114,25 @@ predicateName(Definition def)
 }
 
 
+char *
+functorName(functor_t f)
+{ char tmp[650];
+  char *e = tmp;
+  FunctorDef fd;
+
+  if ( tagex(f) != (TAG_ATOM|STG_GLOBAL) )
+    return "<not-a-functor>";
+
+  fd = valueFunctor(f);
+  strcpy(e, atom_summary(fd->name, 50));
+  e += strlen(e);
+  *e++ = '/';
+  Ssprintf(e, "%d", fd->arity);
+
+  return buffer_string(tmp, BUF_RING);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 clauseNo() returns the clause index of the given clause
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -124,7 +143,7 @@ clauseNo(Definition def, Clause cl)
   ClauseRef cref;
 
   for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
-  { if ( cref->clause == cl )
+  { if ( cref->value.clause == cl )
       return i;
   }
 

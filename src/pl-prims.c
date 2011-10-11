@@ -3323,8 +3323,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 
         AR_END();
         return rc;
-      }
-      else
+      } else
       { clearNumber(&n);
         AR_END();
         return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");

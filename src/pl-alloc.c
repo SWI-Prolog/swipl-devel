@@ -634,6 +634,21 @@ allocHeap__LD(size_t n ARG_LD)
 { if ( n )
   { void *mem = malloc(n);
 
+    if ( mem )
+      GD->statistics.heap += n;
+
+    return mem;
+  }
+
+  return NULL;
+}
+
+
+void *
+allocHeapOrHalt__LD(size_t n ARG_LD)
+{ if ( n )
+  { void *mem = malloc(n);
+
     if ( !mem )
       outOfCore();
 

@@ -1067,7 +1067,7 @@ slotsInFrame(LocalFrame fr, Code PC)
   if ( !PC || true(def, FOREIGN) || !fr->clause )
     return def->functor->arity;
 
-  return fr->clause->clause->prolog_vars;
+  return fr->clause->value.clause->prolog_vars;
 }
 
 
@@ -1721,10 +1721,10 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
 
   DEBUG(2, Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate)));
   for(; cref && state.unmarked > 0; cref=cref->next)
-  { if ( visibleClause(cref->clause, fr->generation) )
+  { if ( visibleClause(cref->value.clause, fr->generation) )
     { COUNT(c_scanned);
-      state.c0 = cref->clause->codes;
-      DEBUG(3, Sdprintf("Scanning clause %p\n", cref->clause));
+      state.c0 = cref->value.clause->codes;
+      DEBUG(3, Sdprintf("Scanning clause %p\n", cref->value.clause));
       walk_and_mark(&state, state.c0, I_EXIT PASS_LD);
     }
 
@@ -1862,7 +1862,7 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
       state.frame    = fr;
       state.unmarked = slotsInFrame(fr, PC);
       state.envtop   = argFrameP(fr, state.unmarked);
-      state.c0       = fr->clause->clause->codes;
+      state.c0       = fr->clause->value.clause->codes;
 
       if ( fr == mstate->vm_state->frame &&
 	   PC == mstate->vm_state->pc_start_vmi )
@@ -2881,7 +2881,7 @@ setStartOfVMI(vm_state *state)
 { LocalFrame fr = state->frame;
 
   if ( fr->clause && false(fr->predicate, FOREIGN) && state->pc )
-  { Clause clause = fr->clause->clause;
+  { Clause clause = fr->clause->value.clause;
     Code PC, ep, next;
 
     PC = clause->codes;
@@ -3287,7 +3287,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
 		      levelFrame(fr),
 		      predicateName(fr->predicate),
 		      (false(fr->predicate, FOREIGN) && PC)
-		        ? (PC-fr->clause->clause->codes)
+		        ? (PC-fr->clause->value.clause->codes)
 			: 0));
 
     slots = slotsInFrame(fr, PC);
@@ -4058,7 +4058,7 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs, intptr_t ts)
       if ( fr->predicate == PROCEDURE_dcall1->definition && fr->clause )
       { assert(onStackArea(local, fr->clause));
 	update_pointer(&fr->clause, ls);
-	update_pointer(&fr->clause->clause, ls);
+	update_pointer(&fr->clause->value.clause, ls);
       } else
       { assert(!onStackArea(local, fr->clause));
       }
@@ -4761,13 +4761,13 @@ mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
 
     if ( fr->predicate == PROCEDURE_dcall1->definition &&
 	 fr->clause )
-      forAtomsInClause(fr->clause->clause, markAtom);
+      forAtomsInClause(fr->clause->value.clause, markAtom);
 
     if ( true(fr->predicate, FOREIGN) ||
 	 !fr->clause )
       slots = fr->predicate->functor->arity;
     else
-      slots = fr->clause->clause->prolog_vars;
+      slots = fr->clause->value.clause->prolog_vars;
 
     sp = argFrameP(fr, 0);
     for( n=0; n < slots; n++, sp++ )
@@ -4896,7 +4896,7 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
     { ClauseRef cref = (ClauseRef)fr->clause;
 
-      def = cref->clause->procedure->definition; /* See (*) above */
+      def = cref->value.clause->procedure->definition; /* See (*) above */
     } else
       def = fr->predicate;
 
