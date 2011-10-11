@@ -1066,7 +1066,6 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
     { *cip = old->next;
     }
 
-    old->erased = TRUE;
     c->index = old;
     c->next = def->old_clause_indexes;
     def->old_clause_indexes = c;
