@@ -441,7 +441,7 @@ printk(char *fm, ...)
   Sfprintf(Serror, "]\n");
   va_end(args);
 
-  trap_gdb();
+  assert(0);
 }
 
 static intptr_t check_marked;
