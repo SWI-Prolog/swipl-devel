@@ -3039,7 +3039,7 @@ static void
 listGenerations(Definition def)
 { GET_LD
   uintptr_t gen = generationFrame(environment_frame);
-  ClauseRef cl;
+  ClauseRef cref;
   int i;
 
   Sdprintf("%s has %d clauses at generation %ld (%s)\n",
@@ -3047,8 +3047,8 @@ listGenerations(Definition def)
 	   def->impl.clauses.number_of_clauses, gen,
 	   true(def, NEEDSCLAUSEGC) ? "needs clause-gc" : "clean");
 
-  for(i=1,cl=def->impl.clauses.first_clause; cl; cl=cl->next, i++)
-  { Clause clause = cl->value.clause;
+  for(i=1,cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
+  { Clause clause = cref->value.clause;
 
     Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
 	     clause, i,
@@ -3056,7 +3056,7 @@ listGenerations(Definition def)
 	     clause->generation.erased,
 	     true(clause, ERASED) ? " erased" : "",
 	     visibleClause(clause, gen) ? " invisible" : "",
-	     cl->key ? " idx" : " var");
+	     cref->key ? " idx" : " var");
   }
 
   if ( def->impl.clauses.clause_indexes )
@@ -3075,17 +3075,37 @@ listGenerations(Definition def)
 	Sdprintf("\nClauses at i = %d, dirty = %d:\n",
 		 i, ci->entries[i].dirty);
 
-	for(cl=ci->entries[i].head; cl; cl=cl->next)
-	{ Clause clause = cl->value.clause;
+	for(cref=ci->entries[i].head; cref; cref=cref->next)
+	{ if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+	  { ClauseList cl = &cref->value.clauses;
+	    ClauseRef cr;
 
-	  Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
-		   clause,
-		   clauseNo(def, clause),
-		   clause->generation.created,
-		   clause->generation.erased,
-		   true(clause, ERASED) ? " erased" : "",
-		   visibleClause(clause, gen) ? " invisible" : "",
-		   cl->key ? " idx" : " var");
+	    Sdprintf("List count=%d, erased=%d\n",
+		     cl->number_of_clauses, cl->erased_clauses);
+
+	    for(cr=cl->first_clause; cr; cr=cr->next)
+	    { Clause clause = cr->value.clause;
+
+	      Sdprintf("  %p: [%2d] %8u-%10u%s%s\n",
+		       clause,
+		       clauseNo(def, clause),
+		       clause->generation.created,
+		       clause->generation.erased,
+		       true(clause, ERASED) ? " erased" : "",
+		       visibleClause(clause, gen) ? " invisible" : "");
+	    }
+	  } else
+	  { Clause clause = cref->value.clause;
+
+	    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
+		     clause,
+		     clauseNo(def, clause),
+		     clause->generation.created,
+		     clause->generation.erased,
+		     true(clause, ERASED) ? " erased" : "",
+		     visibleClause(clause, gen) ? " invisible" : "",
+		     cref->key ? " idx" : " var");
+	  }
 	}
       }
     }
