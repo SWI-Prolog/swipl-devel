@@ -2030,7 +2030,7 @@ pl_retractall(term_t head)
   enterDefinition(def);
   fid = PL_open_foreign_frame();
 
-  checkDefinition(def);
+  SECURE(checkDefinition(def));
   if ( allvars )
   { uintptr_t gen = generationFrame(environment_frame);
 
