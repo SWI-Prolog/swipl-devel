@@ -1157,6 +1157,7 @@ struct clause_index
   unsigned int	 resize_above;		/* consider resize > #clauses */
   unsigned int	 resize_below;		/* consider resize < #clauses */
   unsigned short arg;			/* Indexed argument */
+  unsigned	 is_list : 1;		/* Index with lists */
   unsigned int	 dirty;			/* # chains that are dirty */
   float		 speedup;		/* Estimated speedup */
   ClauseIndex	 next;			/* Next index */

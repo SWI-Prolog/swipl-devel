@@ -3065,18 +3065,19 @@ listGenerations(Definition def)
     for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
     { int i;
 
-      Sdprintf("\nHash index for arg %d (%d dirty)\n", ci->arg, ci->dirty);
+      Sdprintf("\nHash %sindex for arg %d (%d dirty)\n",
+	       ci->is_list ? "list-" : "", ci->arg, ci->dirty);
 
       for(i=0; i<ci->buckets; i++)
       { if ( !ci->entries[i].head &&
 	     !ci->entries[i].dirty )
 	  continue;
 
-	Sdprintf("\nClauses at i = %d, dirty = %d:\n",
+	Sdprintf("\nEntries at i = %d, dirty = %d:\n",
 		 i, ci->entries[i].dirty);
 
 	for(cref=ci->entries[i].head; cref; cref=cref->next)
-	{ if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+	{ if ( ci->is_list )
 	  { ClauseList cl = &cref->value.clauses;
 	    ClauseRef cr;
 
@@ -3147,7 +3148,7 @@ checkDefinition(Definition def)
     { unsigned int dirty = 0;
 
       for(cref=cb->head; cref; cref=cref->next)
-      { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
+      { if ( ci->is_list )
 	{ ClauseList cl = &cref->value.clauses;
 	  ClauseRef cr;
 	  unsigned int erased = 0;
