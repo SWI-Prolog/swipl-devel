@@ -3055,8 +3055,8 @@ listGenerations(Definition def)
 	     clause->generation.created,
 	     clause->generation.erased,
 	     true(clause, ERASED) ? " erased" : "",
-	     visibleClause(clause, gen) ? " invisible" : "",
-	     cref->key ? " idx" : " var");
+	     visibleClause(clause, gen) ? " v " : " X ",
+	     keyName(cref->key));
   }
 
   if ( def->impl.clauses.clause_indexes )
@@ -3081,8 +3081,9 @@ listGenerations(Definition def)
 	  { ClauseList cl = &cref->value.clauses;
 	    ClauseRef cr;
 
-	    Sdprintf("List count=%d, erased=%d\n",
-		     cl->number_of_clauses, cl->erased_clauses);
+	    Sdprintf("List count=%d, erased=%d (%s)\n",
+		     cl->number_of_clauses, cl->erased_clauses,
+		     keyName(cref->key));
 
 	    for(cr=cl->first_clause; cr; cr=cr->next)
 	    { Clause clause = cr->value.clause;
@@ -3093,7 +3094,7 @@ listGenerations(Definition def)
 		       clause->generation.created,
 		       clause->generation.erased,
 		       true(clause, ERASED) ? " erased" : "",
-		       visibleClause(clause, gen) ? " invisible" : "");
+		       visibleClause(clause, gen) ? " v" : " X");
 	    }
 	  } else
 	  { Clause clause = cref->value.clause;
@@ -3104,8 +3105,8 @@ listGenerations(Definition def)
 		     clause->generation.created,
 		     clause->generation.erased,
 		     true(clause, ERASED) ? " erased" : "",
-		     visibleClause(clause, gen) ? " invisible" : "",
-		     cref->key ? " idx" : " var");
+		     visibleClause(clause, gen) ? " v " : " X ",
+		     keyName(cref->key));
 	  }
 	}
       }
@@ -3141,14 +3142,18 @@ checkDefinition(Definition def)
   for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
   { int i;
     ClauseBucket cb;
-    unsigned int ci_dirty = 0;
+    unsigned int ci_dirty = 0;		/* # dirty buckets */
+    unsigned int ci_size = 0;		/* # indexable values in table */
 
     nc = 0;
     for(i=0,cb=ci->entries; i<ci->buckets; i++,cb++)
     { unsigned int dirty = 0;
 
       for(cref=cb->head; cref; cref=cref->next)
-      { if ( ci->is_list )
+      { if ( cref->key )
+	  ci_size++;
+
+	if ( ci->is_list )
 	{ ClauseList cl = &cref->value.clauses;
 	  ClauseRef cr;
 	  unsigned int erased = 0;
@@ -3178,6 +3183,7 @@ checkDefinition(Definition def)
     }
 
     assert(ci->dirty == ci_dirty);
+    assert(ci->size  == ci_size);
   }
 }
 
