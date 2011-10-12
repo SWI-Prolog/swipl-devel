@@ -202,8 +202,10 @@ nextClauseFromBucket(ClauseChoice chp, uintptr_t generation, int is_list)
 
     if ( key )
     { key = 0;
-      DEBUG(1, Sdprintf("%s not found; trying non-indexed\n", functorName(key)));
+      DEBUG(1, Sdprintf("Not found; trying non-indexed\n"));
       goto non_indexed;
+    } else
+    { DEBUG(1, Sdprintf("Not found\n"));
     }
 
     return NULL;
@@ -465,19 +467,6 @@ The non-indexable clauses are added to an   entry with key=0. This entry
 must be used if none of the indexes matches.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static ClauseList
-varEntryBucket(ClauseBucket cb)
-{ ClauseRef cref;
-
-  for(cref=cb->head; cref; cref=cref->next)
-  { if ( cref->key == 0 )
-      return &cref->value.clauses;
-  }
-
-  return NULL;
-}
-
-
 static int
 addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
 		int is_list ARG_LD)
@@ -485,19 +474,31 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
 
   if ( is_list )
   { ClauseRef cref;
-    ClauseList vars;
+    ClauseList vars = NULL;
 
-    for(cref=ch->head; cref; cref=cref->next)
-    { if ( cref->key == key )
-      { addClauseList(cref, cl, where PASS_LD);
-	DEBUG(1, Sdprintf("Adding to existing %s\n", functorName(key)));
-	return 0;
+    if ( key )
+    { for(cref=ch->head; cref; cref=cref->next)
+      { if ( cref->key == key )
+	{ addClauseList(cref, cl, where PASS_LD);
+	  DEBUG(1, Sdprintf("Adding to existing %s\n", keyName(key)));
+	  return 0;
+	} else if ( !cref->key )
+	{ vars = &cref->value.clauses;
+	}
       }
+    } else
+    { for(cref=ch->head; cref; cref=cref->next)
+      { if ( !cref->key )
+	  vars = &cref->value.clauses;
+	addClauseList(cref, cl, where PASS_LD);
+      }
+      if ( vars )
+	return 0;
     }
 
     DEBUG(1, Sdprintf("Adding new %s\n", keyName(key)));
     cr = newClauseListRef(key PASS_LD);
-    if ( (vars=varEntryBucket(ch)) )		/* (**) */
+    if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
       { addClauseList(cr, cref->value.clause, CL_END PASS_LD);
 	if ( true(cref->value.clause, ERASED) )	/* or do not add? */
@@ -511,12 +512,6 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
 	ch->dirty++;
     }
     addClauseList(cr, cl, where PASS_LD);
-
-    if ( !key )
-    { for(cref=ch->head; cref; cref=cref->next)
-	addClauseList(cref, cl, where PASS_LD);
-      return 0;
-    }
   } else
   { cr = newClauseRef(cl, key PASS_LD);
   }
@@ -562,9 +557,20 @@ deleteClauseList(ClauseList cl, Clause clause)
 }
 
 
-static void
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+deleteClauseBucket() returns number of deleted   indexable  values. Note
+that deleting with key=0  can  still   delete  indexable  values  if the
+var-key is the only clause of an indexed clause-list.
+
+TBD: We can delete clause-lists  that   are  indexable  but only contain
+non-indexed clauses. This probably requires  us   to  keep  track of the
+number of such clauses.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
 deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
-{ ClauseRef prev = NULL;
+{ GET_LD
+  ClauseRef prev = NULL;
   ClauseRef c;
 
   if ( is_list )
@@ -575,12 +581,15 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 
 	  deleteClauseList(cl, clause);
 	  if ( !cl->first_clause )
-	    goto delete;
-	  return;
+	    goto delete;		/* will return 1 */
 	}
       }
+
+      return 0;
     } else
-    { for(c = ch->head; c;)
+    { int deleted = 0;
+
+      for(c = ch->head; c;)
       { ClauseList cl = &c->value.clauses;
 
 	deleteClauseList(cl, clause);
@@ -598,11 +607,16 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 	    if ( !d->next)
 	      ch->tail = prev;
 	  }
+	  if ( d->key )
+	    deleted++;
+	  freeClauseListRef(d PASS_LD);
 	  continue;
 	}
+	prev = c;
+	c = c->next;
       }
-      prev = c;
-      c = c->next;
+
+      return deleted;
     }
   } else
   { for(c = ch->head; c; prev = c, c = c->next)
@@ -618,9 +632,16 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 	  if ( !c->next)
 	    ch->tail = prev;
 	}
-	return;
+	if ( is_list )
+	  freeClauseListRef(c PASS_LD);
+	else
+	  freeClauseRef(c PASS_LD);
+	return 1;
       }
     }
+
+    assert(0);
+    return 0;
   }
 }
 
@@ -817,8 +838,6 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 	cb->dirty++;
       cl->number_of_clauses--;
     }
-
-    cb->dirty++;				/* for the one directly added */
   } else
   { ClauseRef cref;
 
@@ -965,12 +984,11 @@ delClauseFromIndex(Definition def, Clause cl)
     { int n = ci->buckets;
 
       for(; n; n--, ch++)
-	deleteClauseBucket(ch, cl, key, ci->is_list);
+	ci->size -= deleteClauseBucket(ch, cl, key, ci->is_list);
     } else
     { int hi = hashIndex(key, ci->buckets);
 
-      deleteClauseBucket(&ch[hi], cl, key, ci->is_list);
-      ci->size--;
+      ci->size -= deleteClauseBucket(&ch[hi], cl, key, ci->is_list);
     }
   }
 }
@@ -1002,7 +1020,7 @@ hashDefinition(Definition def, int arg, int buckets)
   DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d)\n",
 		    predicateName(def), arg, buckets));
 
-  ci = newClauseIndexTable(arg, buckets, FALSE); /* TBD */
+  ci = newClauseIndexTable(arg, buckets, TRUE); /* TBD */
 
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( false(cref->value.clause, ERASED) )
