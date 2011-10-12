@@ -25,12 +25,17 @@
 
 #include "pl-incl.h"
 
-static int		bestHash(Word av, Definition def,
-				 int *buckets, float *best_speedup);
-static ClauseIndex	hashDefinition(Definition def, int arg, int buckets);
+typedef struct hash_hints
+{ unsigned int	buckets;		/* # buckets to use */
+  float		speedup;		/* Expected speedup */
+  unsigned	list : 1;		/* Use a list per key */
+} hash_hints;
+
+static int		bestHash(Word av, Definition def, hash_hints *hints);
+static ClauseIndex	hashDefinition(Definition def, int arg, hash_hints *h);
 static ClauseIndex	resizeHashDefinition(Definition def, ClauseIndex old);
 static int		reassessHash(Definition def,
-				     ClauseIndex ci, float *speedup);
+				     ClauseIndex ci, hash_hints *h);
 static void		replaceIndex(Definition def,
 				     ClauseIndex old, ClauseIndex ci);
 
@@ -251,8 +256,8 @@ ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 { ClauseRef cref;
   ClauseIndex ci;
-  int best, buckets;
-  float speedup;
+  hash_hints hints;
+  int best;
 
   if ( def->functor->arity == 0 )
     goto simple;
@@ -297,11 +302,10 @@ retry:
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
-  if ( (best=bestHash(argv, def, &buckets, &speedup)) >= 0 )
-  { if ( (ci=hashDefinition(def, best+1, buckets)) )
+  if ( (best=bestHash(argv, def, &hints)) >= 0 )
+  { if ( (ci=hashDefinition(def, best+1, &hints)) )
     { int hi;
 
-      ci->speedup = speedup;
       chp->key = indexOfWord(argv[ci->arg-1] PASS_LD);
       assert(chp->key);
       hi = hashIndex(chp->key, ci->buckets);
@@ -352,22 +356,25 @@ nextClause(ClauseChoice chp, Word argv,
 		 *******************************/
 
 static ClauseIndex
-newClauseIndexTable(int arg, int buckets, int list)
+newClauseIndexTable(int arg, hash_hints *hints)
 { GET_LD
   ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   int m = 4;
+  size_t bytes;
 
-  while(m<buckets)
+  while(m<hints->buckets)
     m *= 2;
-  buckets = m;
+  hints->buckets = m;
+  bytes = sizeof(struct clause_bucket) * hints->buckets;
 
   memset(ci, 0, sizeof(*ci));
-  ci->buckets  = buckets;
-  ci->arg      = arg;
-  ci->is_list  = list;
-  ci->entries  = allocHeapOrHalt(sizeof(struct clause_bucket) * buckets);
+  ci->arg     = arg;
+  ci->buckets = hints->buckets;
+  ci->is_list = hints->list;
+  ci->speedup = hints->speedup;
+  ci->entries = allocHeapOrHalt(bytes);
 
-  memset(ci->entries, 0, sizeof(struct clause_bucket) * buckets);
+  memset(ci->entries, 0, bytes);
 
   return ci;
 }
@@ -1006,7 +1013,7 @@ are two conditions:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseIndex
-hashDefinition(Definition def, int arg, int buckets)
+hashDefinition(Definition def, int arg, hash_hints *hints)
 { GET_LD
   ClauseRef cref;
   ClauseIndex ci, old;
@@ -1017,10 +1024,11 @@ hashDefinition(Definition def, int arg, int buckets)
       break;
   }
 
-  DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d)\n",
-		    predicateName(def), arg, buckets));
+  DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d) (%s)\n",
+		    predicateName(def), arg, hints->buckets,
+		    hints->list ? "lists" : "clauses"));
 
-  ci = newClauseIndexTable(arg, buckets, TRUE); /* TBD */
+  ci = newClauseIndexTable(arg, hints);
 
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( false(cref->value.clause, ERASED) )
@@ -1055,11 +1063,9 @@ hashDefinition(Definition def, int arg, int buckets)
 
 static ClauseIndex
 resizeHashDefinition(Definition def, ClauseIndex old)
-{ int newbuckets;
-  float speedup;
-  ClauseIndex ci;
+{ hash_hints hints;
 
-  if ( (newbuckets=reassessHash(def, old, &speedup)) < 0 )
+  if ( !reassessHash(def, old, &hints) )
   { LOCKDEF(def);
     replaceIndex(def, old, NULL);
     UNLOCKDEF(def);
@@ -1067,10 +1073,7 @@ resizeHashDefinition(Definition def, ClauseIndex old)
     return NULL;
   }
 
-  if ( (ci=hashDefinition(def, old->arg, newbuckets)) )
-    ci->speedup = speedup;
-
-  return ci;
+  return hashDefinition(def, old->arg, &hints);
 }
 
 
@@ -1194,7 +1197,7 @@ expected speedup is
 #define MIN_SPEEDUP 1.5
 
 static int
-bestHash(Word av, Definition def, int *buckets, float *speedup)
+bestHash(Word av, Definition def, hash_hints *hints)
 { GET_LD
   int i;
   ClauseRef cref;
@@ -1204,9 +1207,9 @@ bestHash(Word av, Definition def, int *buckets, float *speedup)
   int assess_count = 0;
   int clause_count = 0;
   hash_assessment *a;
-  int best = -1;
-  float  best_speedup = MIN_SPEEDUP;
-  size_t best_size = 0;
+  int best = -1;			/* argument */
+  float  best_speedup = MIN_SPEEDUP;	/* speedup */
+  size_t best_size = 0;			/* #unique indexable values */
 
   if ( !def->tried_index )
     def->tried_index = new_bitvector(def->functor->arity);
@@ -1295,16 +1298,22 @@ bestHash(Word av, Definition def, int *buckets, float *speedup)
     free(assessments);
 
   if ( best >= 0 )
-  { *buckets = best_size;
-    *speedup = best_speedup;
+  { hints->buckets = best_size;
+    hints->speedup = best_speedup;
+    hints->list    = def->impl.clauses.number_of_clauses/best_size > 4;
   }
 
   return best;
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+reassessHash() gets new hints for  the  hash   and  returns  TRUE if the
+argument is still considered hash-able. Otherwise it returns FALSE;
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-reassessHash(Definition def, ClauseIndex ci, float *speedup)
+reassessHash(Definition def, ClauseIndex ci, hash_hints *hints)
 { hash_assessment a_store;
   hash_assessment *a = &a_store;
   ClauseRef cref;
@@ -1327,36 +1336,40 @@ reassessHash(Definition def, ClauseIndex ci, float *speedup)
   }
 
   if ( a->keys )
-  { size_t size;
-    float sp;
-    free(a->keys);
+  { free(a->keys);
 
-    size = a->size;
-    sp   =            (float)(clause_count*a->size) /
+    hints->speedup =            (float)(clause_count*a->size) /
 	        (float)(clause_count - a->var_count + a->var_count*a->size);
+    if ( hints->speedup < 2.0 )
+      return FALSE;
+    hints->buckets = a->size;
+    hints->list    = def->impl.clauses.number_of_clauses/a->size > 4;
 
-    if ( sp < 2.0 )
-      return -1;
-
-    *speedup = sp;
-    return size;
+    return TRUE;
   }
 
-  return -1;				/* not hashable */
+  return FALSE;				/* not hashable */
 }
 
 		 /*******************************
 		 *  PREDICATE PROPERTY SUPPORT	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Index info is
+
+	Arg - hash(Buckets, Speedup, IsList)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 unify_clause_index(term_t t, ClauseIndex ci)
 { return PL_unify_term(t,
 		       PL_FUNCTOR, FUNCTOR_minus2,
 			 PL_INT, (int)ci->arg,
-			 PL_FUNCTOR_CHARS, "hash", 2,
+			 PL_FUNCTOR_CHARS, "hash", 3,
 			   PL_INT, (int)ci->buckets,
-			   PL_DOUBLE, (double)ci->speedup);
+			   PL_DOUBLE, (double)ci->speedup,
+		           PL_BOOL, ci->is_list);
 }
 
 bool
@@ -1381,64 +1394,10 @@ unify_index_pattern(Procedure proc, term_t value)
   return FALSE;
 }
 
-		 /*******************************
-		 *	     PREDICATES		*
-		 *******************************/
-
-/** hash(:PredInd, +ArgSpec) is det.
-
-*/
-
-static
-PRED_IMPL("hash", 2, hash, PL_FA_TRANSPARENT)
-{ PRED_LD
-  Procedure proc;
-  int argn;
-
-  term_t pred = A1;
-
-  if ( !PL_get_integer_ex(A2, &argn) )
-    return FALSE;
-  if ( argn < 1 )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_one, A2);
-
-  if ( get_procedure(pred, &proc, 0, GP_NAMEARITY|GP_CREATE) )
-  { Definition def = getProcDefinition(proc);
-    int size, minsize;
-    ClauseIndex ci;
-
-    if ( def->impl.clauses.clause_indexes )		/* already hashed; won't change */
-      succeed;
-
-    if ( true(def, FOREIGN) )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_hash, ATOM_foreign, proc);
-    if ( argn > def->functor->arity )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_argument, A2);
-
-    for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-    { if ( ci->arg == argn )
-	succeed;			/* Hashed index already provided */
-    }
-
-    minsize = def->impl.clauses.number_of_clauses / 2,
-    size = 4;
-    while (size < minsize)
-      size *= 2;
-
-    hashDefinition(def, argn, size);
-
-    succeed;
-  }
-
-  fail;
-}
-
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(index)
-  PRED_DEF("hash", 2, hash, PL_FA_TRANSPARENT)
 EndPredDefs
