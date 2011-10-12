@@ -24,6 +24,7 @@
 */
 
 #include "pl-incl.h"
+#include <math.h>
 
 typedef struct hash_hints
 { unsigned int	buckets;		/* # buckets to use */
@@ -1115,59 +1116,144 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
 		 *	     ASSESSMENT		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These functions access the index capabilities   for  a given key-set. It
+establishes whether a hash makes  sense,   how  big  (#buckets) the hash
+should be and whether to use a list of clauses or a list of clause-lists
+as units in the hash. Lists of clauses are more compact and suitable for
+arguments that have a good distribution (i.e.  few clauses match a key).
+Lists of clause-lists are suitable  if   individual  keys  refer to many
+clauses. In such cases we can create   secondary index to improve. There
+are two cases for this:
+
+  1. The keys are functors.  In that case we might be able to hash on
+  one or more of the compound arguments.
+  2. It can be profitable to create a secondary hash on another argument.
+  Note that this can always be used, whether the key is a functor or
+  not.
+
+Even without secondary indices, lists can be   profitable  if a rare key
+and a popular key collide on the same hash-bucket.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct key_asm
+{ word		key;
+  uintptr_t	count;
+} key_asm;
+
 typedef struct hash_assessment
 { int		arg;			/* arg for which to assess */
   size_t	allocated;		/* allocated size of array */
   size_t	size;			/* keys in array */
   size_t	var_count;		/* # non-indexable cases */
-  word	       *keys;			/* tmp key-set */
+  size_t	funct_count;		/* # functor cases */
+  float		stdev;			/* Standard deviation */
+  float		speedup;		/* Expected speedup */
+  int		list;			/* Put lists in the buckets */
+  size_t	space;			/* Space indication */
+  key_asm      *keys;			/* tmp key-set */
 } hash_assessment;
+
 
 static int
 compar_keys(const void *p1, const void *p2)
-{ const word *k1 = p1;
-  const word *k2 = p2;
-  intptr_t d = (*k1-*k2);
+{ const key_asm *k1 = p1;
+  const key_asm *k2 = p2;
+  intptr_t d = (k1->key - k2->key);
 
   return d < 0 ? -1 : d > 0 ? 1 : 0;
 }
 
-static void
-assess_remove_duplicates(hash_assessment *a)
-{ Word s = a->keys;
-  Word o = a->keys;
-  Word e = &s[a->size];
-  word c = 0;				/* invalid key */
 
-  qsort(a->keys, a->size, sizeof(word), compar_keys);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Only the final call gets a clause_count > 0. Here we do the remainder of
+the assessment. We could consider  for   a  seperate  function to merely
+reduce the set.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+assess_remove_duplicates(hash_assessment *a, size_t clause_count)
+{ key_asm *s = a->keys;
+  key_asm *o = a->keys-1;
+  key_asm *e = &s[a->size];
+  word c = 0;				/* invalid key */
+  size_t fc = 0;
+  size_t i  = 0;
+  float A=0.0, Q=0.0;
+
+  if ( !a->keys )
+    return FALSE;
+
+  qsort(a->keys, a->size, sizeof(key_asm), compar_keys);
   for( ; s<e; s++)
-  { if ( *s != c )
-      c = *o++ = *s;
+  { if ( s->key != c )
+    { if ( i++ > 0 && clause_count )
+      { float A0 = A;
+	A = A+((float)o->count-A)/(float)i;
+	Q = Q+((float)o->count-A0)*((float)o->count-A);
+      }
+      c = s->key;
+      if ( tagex(s->key) == (TAG_ATOM|STG_GLOBAL) )
+	fc++;
+      *++o = *s;
+    } else
+    { o->count += s->count;
+    }
   }
-  a->size = o - a->keys;
+
+  a->size        = i;
+  a->funct_count = fc;
+
+					/* assess quality */
+  if ( clause_count )
+  { a->stdev   = sqrt(Q/(float)i);
+    a->list    = FALSE;
+
+    a->speedup =            (float)(clause_count*a->size) /
+	      (float)(clause_count - a->var_count + a->var_count*a->size);
+
+    a->space = ( a->size * sizeof(struct clause_bucket) +
+		 clause_count * SIZEOF_CREF_CLAUSE +
+		 a->size * a->var_count * SIZEOF_CREF_CLAUSE );
+
+    if ( clause_count/a->size > 10 ||
+	 a->stdev > 3 )
+    { a->list = TRUE;
+      a->space += a->size * SIZEOF_CREF_LIST;
+    }
+
+    if ( (float)a->var_count/(float)a->size * 0.1 )
+      return FALSE;			/* not indexable */
+  }
+
+  return TRUE;
 }
+
 
 static int
 assessAddKey(hash_assessment *a, word key)
 { if ( a->size < a->allocated )
-  { a->keys[a->size++] = key;
+  {
+  put_key:
+    a->keys[a->size].key   = key;
+    a->keys[a->size].count = 1;
+    a->size++;
   } else
   { if ( a->allocated == 0 )
     { a->allocated = 512;
       if ( !(a->keys = malloc(a->allocated*sizeof(*a->keys))) )
 	return FALSE;
-      a->keys[a->size++] = key;
     } else
-    { assess_remove_duplicates(a);
+    { assess_remove_duplicates(a, 0);
       if ( a->size*2 > a->allocated )
-      { word *new = realloc(a->keys, a->allocated*2*sizeof(*a->keys));
+      { key_asm *new = realloc(a->keys, a->allocated*2*sizeof(*a->keys));
 	if ( !new )
 	  return FALSE;
 	a->keys = new;
 	a->allocated *= 2;
       }
-      a->keys[a->size++] = key;
     }
+    goto put_key;
   }
 
   return TRUE;
@@ -1207,9 +1293,8 @@ bestHash(Word av, Definition def, hash_hints *hints)
   int assess_count = 0;
   int clause_count = 0;
   hash_assessment *a;
-  int best = -1;			/* argument */
-  float  best_speedup = MIN_SPEEDUP;	/* speedup */
-  size_t best_size = 0;			/* #unique indexable values */
+  hash_assessment *best = NULL;		/* argument */
+  int best_arg = -1;
 
   if ( !def->tried_index )
     def->tried_index = new_bitvector(def->functor->arity);
@@ -1266,44 +1351,34 @@ bestHash(Word av, Definition def, hash_hints *hints)
   }
 
   for(i=0, a=assessments; i<assess_count; i++, a++)
-  { size_t space;
-    float speedup;
+  {
+    if ( assess_remove_duplicates(a, clause_count) )
+    { DEBUG(2, Sdprintf("Assess arg %d of %s: speedup %f\n",
+			a->arg+1, predicateName(def), a->speedup));
 
-    assess_remove_duplicates(a);
-    if ( a->keys )
-    { free(a->keys);			/* also implies a-size>0 */
-
-      space   = clause_count*a->var_count;
-      speedup =            (float)(clause_count*a->size) /
-	        (float)(clause_count - a->var_count + a->var_count*a->size);
-
-      DEBUG(2, Sdprintf("Assess arg %d of %s: speedup %f, space = %ld\n",
-			a->arg+1, predicateName(def), speedup, (long)space));
-
-      if ( speedup > best_speedup )
-      { best         = a->arg;
-	best_speedup = speedup;
-	best_size    = a->size;
-      } else if ( speedup <= MIN_SPEEDUP )
-      { set_bit(def->tried_index, a->arg);
-      }
+      if ( !best || a->speedup > best->speedup )
+	best = a;
     } else
     { set_bit(def->tried_index, a->arg);
       DEBUG(2, Sdprintf("Assess arg %d of %s: not indexable\n",
 			a->arg+1, predicateName(def)));
     }
+
+    if ( a->keys )
+      free(a->keys);
+  }
+
+  if ( best )
+  { best_arg       = best->arg;
+    hints->buckets = best->size;
+    hints->speedup = best->speedup;
+    hints->list    = best->list;
   }
 
   if ( assessments != assess_buf )
     free(assessments);
 
-  if ( best >= 0 )
-  { hints->buckets = best_size;
-    hints->speedup = best_speedup;
-    hints->list    = def->impl.clauses.number_of_clauses/best_size > 4;
-  }
-
-  return best;
+  return best_arg;
 }
 
 
@@ -1318,6 +1393,7 @@ reassessHash(Definition def, ClauseIndex ci, hash_hints *hints)
   hash_assessment *a = &a_store;
   ClauseRef cref;
   int clause_count = def->impl.clauses.number_of_clauses;
+  int rc;
 
   memset(a, 0, sizeof(*a));
 
@@ -1335,20 +1411,18 @@ reassessHash(Definition def, ClauseIndex ci, hash_hints *hints)
     }
   }
 
-  if ( a->keys )
-  { free(a->keys);
+  if ( (rc=assess_remove_duplicates(a, clause_count)) )
+  { assess_remove_duplicates(a, clause_count);
 
-    hints->speedup =            (float)(clause_count*a->size) /
-	        (float)(clause_count - a->var_count + a->var_count*a->size);
-    if ( hints->speedup < 2.0 )
-      return FALSE;
+    hints->speedup = a->speedup;
     hints->buckets = a->size;
-    hints->list    = def->impl.clauses.number_of_clauses/a->size > 4;
-
-    return TRUE;
+    hints->list    = a->list;
   }
 
-  return FALSE;				/* not hashable */
+  if ( a->keys )
+    free(a->keys);
+
+  return rc;				/* not hashable */
 }
 
 		 /*******************************
