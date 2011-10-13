@@ -133,6 +133,47 @@ functorName(functor_t f)
 }
 
 
+char *
+keyName(word key)
+{ if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+  { return functorName(key);
+  } else
+  { char tmp[650];
+
+    if ( !key )
+    { strcpy(tmp, "<nil>");
+    } else
+    { switch(tag(key))
+      { case PL_INTEGER:
+	case PL_FLOAT:
+	{ GET_LD
+	  number n;
+
+	  get_number(key, &n PASS_LD);
+	  switch(n.type)
+	  { case V_INTEGER:
+	      Ssprintf(tmp, "%lld", n.value.i);
+	      break;
+	    case V_FLOAT:
+	      Ssprintf(tmp, "%f", n.value.f);
+	      break;
+	    default:
+	      strcpy(tmp, "<number>");
+	  }
+	  break;
+	}
+      case PL_ATOM:
+	strcpy(tmp, atom_summary(key, 30));
+	break;
+      }
+    }
+
+    return buffer_string(tmp, BUF_RING);
+  }
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 clauseNo() returns the clause index of the given clause
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
