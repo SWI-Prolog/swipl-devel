@@ -1216,11 +1216,13 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 		 clause_count * SIZEOF_CREF_CLAUSE +
 		 a->size * a->var_count * SIZEOF_CREF_CLAUSE );
 
+#ifdef O_DEEP_INDEX
     if ( clause_count/a->size > 10 ||
 	 a->stdev > 3 )
     { a->list = TRUE;
       a->space += a->size * SIZEOF_CREF_LIST;
     }
+#endif
 
     if ( (float)a->var_count/(float)a->size * 0.1 )
       return FALSE;			/* not indexable */
