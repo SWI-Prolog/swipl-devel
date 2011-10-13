@@ -136,6 +136,19 @@ t1 :-
 
 t("hello world").
 
+loop(0) :- !.
+loop(N) :-
+	setup_call_catcher_cleanup(
+	    true,
+	    setup_call_cleanup(
+		true,
+		between(1, 2, _),
+		garbage_collect),
+	    Reason,
+	    Reason == true),
+	N2 is N - 1,
+	loop(N2).
+
 test(b_string) :-
 	t1.
 test(wakeup_two) :-
@@ -144,6 +157,10 @@ test(wakeup_two) :-
 	(   x(V1,V2) = x(a,b)
 	;   x(V1,V2) = x(x,y)
 	).
+test(cut) :-
+	loop(10), !.
+test(c_cut) :-
+	loop(10) -> true.
 
 :- end_tests(gc_crash).
 
