@@ -2147,12 +2147,14 @@ VMI(C_LCUT, 0, 1, (CA1_CHP))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_CUT implements -> (and most of  *->).   Unfortunately  we have to loop
-twice because calling discardFrame() in the fist loop can invalidate the
-stacks and make GC calls from frameFinished() invalid.
+twice because calling discardFrame() in the   first  loop can invalidate
+the stacks and make GC calls from frameFinished() invalid.
 
 It might be possible to fix this by updating pointers in the first loop,
 but that is complicated and might  well  turn   out  to  be slower as it
 involves more write operations.
+
+See also discardChoicesAfter();
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_CUT, 0, 1, (CA1_CHP))
@@ -2190,6 +2192,12 @@ c_cut:
 	  THROW_EXCEPTION;
       }
     }
+  }
+  assert(och == ch);
+
+					/* see above why this isn't merged */
+  for(ch=BFR; ch && ch > och; ch = ch->parent)
+  { LocalFrame fr2;
 
     for(fr2 = ch->frame;
 	fr2 && fr2->clause && fr2 > fr;
@@ -2200,8 +2208,7 @@ c_cut:
     if ( ch->parent == och )
       DiscardMark(ch->mark);
   }
-  assert(och == ch);
-  BFR = och;
+  BFR = ch;
 
   if ( (void *)och > (void *)fr )
   { lTop = (LocalFrame)(och+1);
