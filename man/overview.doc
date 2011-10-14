@@ -1988,14 +1988,18 @@ test(A, A).	& \\
 \end{center}
 
 
-\section{Infinite trees (cyclic terms)}		\label{sec:cyclic}
+\section{Rational trees (cyclic terms)}		\label{sec:cyclic}
 
+\index{rational trees}%
 \index{infinite trees}\index{cyclic terms}\index{terms,cyclic}%
-SWI-Prolog has limited support for infinite trees, also known as cyclic
-terms. Full support requires special code in all built-in predicates that
-require recursive exploration of a term. The current version supports
-cyclic terms in the pure Prolog kernel including the garbage collector
-and in the following predicates:
+
+SWI-Prolog supports rational trees, also known as cyclic terms.
+`Supports' is defined that most relevant built-in predicates terminate
+when faced with rational trees.  Almost all SWI-Prolog's built-in term
+manipulation predicates process terms in a time that is linear to the
+amount of memory used to represent the term on the stack.  The following
+set of predicates safely handles rational trees:
+%
 \predref{=..}{2},
 \predref{==}{2},
 \predref{=@=}{2},
@@ -2023,9 +2027,27 @@ recordz/3,
 setof/3,
 term_variables/2,
 throw/1,
+unify_with_occurs_check/2,
+unifiable/3,
 when/2,
-write/1 (incomplete)
+write/1 (and related predicates)
 .
+
+In addition, some built-ins recognise rational trees and raise an
+appropriate exception. Arithmetic evaluation belongs to this group. The
+compiler (asserta/1, etc.) also raises an exception. Future versions may
+support rational trees. Predicates that could provide meaningful
+processing of rational trees raise a \const{representation_error}.
+Predicates for which rational trees have no meaningful interpretation
+raise a \const{type_error}.  For example:
+
+\begin{code}
+1 ?- A = f(A), asserta(a(A)).
+ERROR: asserta/1: Cannot represent due to `cyclic_term'
+2 ?- A = 1+A, B is A.
+ERROR: is/2: Type error: `expression' expected, found
+	     `@(S_1,[S_1=1+S_1])' (cyclic term)
+\end{code}
 
 
 \section{Wide character support}		\label{sec:widechars}
