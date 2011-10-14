@@ -2492,16 +2492,6 @@ no semantics.\footnote{This declaration is compatible to SICStus.  In
 YAP, public/1 instructs the compiler to keep the source.  As the source
 is always available in SWI-Prolog, our current interpretation also
 enhanced the compatibility to YAP.}
-
-    \predicate{hash}{1}{+Head}
-Index the given predicate by hashing on the first argument. This is done
-by default on any predicate with more than 5 clauses having a first
-argument that can be indexed and at most two that can not be indexed. On
-dynamic predicates the hash-table is resized as the number of clauses
-grows, providing roughly constant-time access regardless of the number
-of clauses predicates that can be indexed on the first argument.
-See also index/1, term_hash/2 and predicate_property/2.
-
 \end{description}
 
 \section{Examining the program}		\label{sec:examineprog}

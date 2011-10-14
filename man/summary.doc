@@ -275,7 +275,6 @@ suggest predicates from a keyword.
 \predicatesummary{gxref}{0}{Cross-reference loaded program}
 \predicatesummary{halt}{0}{Exit from Prolog}
 \predicatesummary{halt}{1}{Exit from Prolog with status}
-\predicatesummary{hash}{1}{Index predicate using a hash-table}
 \predicatesummary{term_hash}{2}{Hash-value of ground term}
 \predicatesummary{term_hash}{4}{Hash-value of term with depth limit}
 \predicatesummary{help}{0}{Give help on help}
