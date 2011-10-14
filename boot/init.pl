@@ -1186,18 +1186,22 @@ load_files(Module:Files, Options) :-
 	).
 
 
-'$noload'(true, _) :- !,
+%%	'$noload'(+Condition, +FullFile, +Options) is semidet.
+%
+%	True of FullFile should _not_ be loaded.
+
+'$noload'(true, _, _) :- !,
 	fail.
-'$noload'(not_loaded, FullFile) :-
+'$noload'(not_loaded, FullFile, _) :-
 	source_file(FullFile), !.
-'$noload'(changed, Derived) :-
+'$noload'(changed, Derived, _) :-
 	'$derived_source'(_FullFile, Derived, LoadTime),
 	time_file(Derived, Modified),
         Modified @=< LoadTime, !.
-'$noload'(changed, FullFile) :-
+'$noload'(changed, FullFile, Options) :-
 	'$time_source_file'(FullFile, LoadTime, user),
-        time_file(FullFile, Modified),
-        Modified @=< LoadTime, !.
+	'$modified_id'(FullFile, _, Modified, Options),
+	Modified @=< LoadTime, !.
 
 %	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options)
 %
@@ -1349,7 +1353,7 @@ load_files(Module:Files, Options) :-
 	\+ thread_self(LoadThread), !.
 '$mt_start_load'(FullFile, already_loaded, Options) :-
 	'$get_option'(if(If), Options, true),
-	'$noload'(If, FullFile), !.
+	'$noload'(If, FullFile, Options), !.
 '$mt_start_load'(FullFile, Ref, _) :-
 	thread_self(Me),
 	message_queue_create(Queue),
@@ -1565,10 +1569,10 @@ load_files(Module:Files, Options) :-
 
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),% Inform C we start loading
-	'$load_id'(Absolute, Id, Modified),
+	'$load_id'(Absolute, Id, Modified, Options),
 	'$start_consult'(Id, Modified),
 	(   '$derived_source'(Absolute, DerivedFrom, _)
-	->  '$modified_id'(DerivedFrom, DerivedModified),
+	->  '$modified_id'(DerivedFrom, DerivedModified, Options),
 	    '$start_consult'(DerivedFrom, DerivedModified)
 	;   true
 	),
@@ -1592,15 +1596,19 @@ load_files(Module:Files, Options) :-
 	set_prolog_flag(emulated_dialect, Dialect).
 
 
-'$load_id'(stream(Id, _), Id, Modified) :- !,
-	'$modified_id'(Id, Modified).
-'$load_id'(Id, Id, Modified) :-
-	'$modified_id'(Id, Modified).
+'$load_id'(stream(Id, _), Id, Modified, Options) :- !,
+	'$modified_id'(Id, Modified, Options).
+'$load_id'(Id, Id, Modified, Options) :-
+	'$modified_id'(Id, Modified, Options).
 
-'$modified_id'(Id, Modified) :-
+'$modified_id'(_, Modified, Options) :-
+	'$get_option'(modified(Stamp), Options, Def),
+	Stamp \== Def, !,
+	Modified = Stamp.
+'$modified_id'(Id, Modified, _) :-
 	exists_file(Id), !,
 	time_file(Id, Modified).
-'$modified_id'(_, 0.0).
+'$modified_id'(_, 0.0, _).
 
 
 '$compile_type'(What) :-

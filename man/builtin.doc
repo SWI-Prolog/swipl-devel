@@ -298,6 +298,12 @@ operators that unify with this term are imported. Typically, this
 construct will be used with all arguments unbound to import all
 operators or with only \arg{Name} bound to import a particular operator.
 
+    \termitem{modified}{TimeStamp}
+Claim that the source was load modified at \arg{TimeStamp} without
+checking the source.  This option is intended to be used together with
+the \term{stream}{Input} option, for example after extracting the time
+from an HTTP server or database.
+
     \termitem{must_be_module}{Bool}
 If \const{true}, raise an error if the file is not a module file.  Used by
 use_module/[1,2].
