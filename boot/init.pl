@@ -1565,10 +1565,11 @@ load_files(Module:Files, Options) :-
 
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),% Inform C we start loading
-	'$load_id'(Absolute, Id),
-	'$start_consult'(Id),
+	'$load_id'(Absolute, Id, Modified),
+	'$start_consult'(Id, Modified),
 	(   '$derived_source'(Absolute, DerivedFrom, _)
-	->  '$start_consult'(DerivedFrom)
+	->  '$modified_id'(DerivedFrom, DerivedModified),
+	    '$start_consult'(DerivedFrom, DerivedModified)
 	;   true
 	),
 	'$compile_type'(What),
@@ -1591,8 +1592,16 @@ load_files(Module:Files, Options) :-
 	set_prolog_flag(emulated_dialect, Dialect).
 
 
-'$load_id'(stream(Id, _), Id) :- !.
-'$load_id'(Id, Id).
+'$load_id'(stream(Id, _), Id, Modified) :- !,
+	'$modified_id'(Id, Modified).
+'$load_id'(Id, Id, Modified) :-
+	'$modified_id'(Id, Modified).
+
+'$modified_id'(Id, Modified) :-
+	exists_file(Id), !,
+	time_file(Id, Modified).
+'$modified_id'(_, 0.0).
+
 
 '$compile_type'(What) :-
 	'$compilation_mode'(How),

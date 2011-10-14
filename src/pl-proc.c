@@ -2957,28 +2957,29 @@ startConsult(SourceFile f)
 }
 
 
+/** '$start_consult'(+Id, +Modified) is det.
+*/
+
 static
-PRED_IMPL("$start_consult", 1, start_consult, 0)
+PRED_IMPL("$start_consult", 2, start_consult, 0)
 { PRED_LD
   atom_t name;
+  double time;
 
   term_t file = A1;
+  term_t modified = A2;
 
-  if ( PL_get_atom(file, &name) )
+  if ( PL_get_atom_ex(file, &name) &&
+       PL_get_float_ex(modified, &time) )
   { SourceFile f = lookupSourceFile(name, TRUE);
-    char *fn;
 
-    if ( PL_get_file_name(file, &fn, 0) )
-    { f->time = LastModifiedFile(fn);
-    } else
-    { f->time = (time_t)0;
-    }
-
+    f->time = (time_t)time;
     startConsult(f);
-    succeed;
+
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 		 /*******************************
@@ -3242,5 +3243,5 @@ BeginPredDefs(proc)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("$unload_file", 1, unload_file, 0)
-  PRED_DEF("$start_consult", 1, start_consult, 0)
+  PRED_DEF("$start_consult", 2, start_consult, 0)
 EndPredDefs
