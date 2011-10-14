@@ -2940,6 +2940,7 @@ compileFile(wic_state *state, const char *file)
   char tmp[MAXPATHLEN];
   char *path;
   term_t f = PL_new_term_ref();
+  SourceFile sf;
   atom_t nf;
 
   DEBUG(1, Sdprintf("Boot compilation of %s\n", file));
@@ -2953,8 +2954,10 @@ compileFile(wic_state *state, const char *file)
   if ( !pl_see(f) )
     fail;
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
-  pl_start_consult(f);
-  qlfStartFile(state, lookupSourceFile(nf, TRUE) PASS_LD);
+  sf = lookupSourceFile(nf, TRUE);
+  startConsult(sf);
+  sf->time = LastModifiedFile(path);
+  qlfStartFile(state, sf PASS_LD);
 
   for(;;)
   { fid_t	 cid = PL_open_foreign_frame();

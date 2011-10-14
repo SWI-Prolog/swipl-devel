@@ -2957,10 +2957,12 @@ startConsult(SourceFile f)
 }
 
 
-word
-pl_start_consult(term_t file)
-{ GET_LD
+static
+PRED_IMPL("$start_consult", 1, start_consult, 0)
+{ PRED_LD
   atom_t name;
+
+  term_t file = A1;
 
   if ( PL_get_atom(file, &name) )
   { SourceFile f = lookupSourceFile(name, TRUE);
@@ -3240,4 +3242,5 @@ BeginPredDefs(proc)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("$unload_file", 1, unload_file, 0)
+  PRED_DEF("$start_consult", 1, start_consult, 0)
 EndPredDefs
