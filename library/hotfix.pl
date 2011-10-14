@@ -150,18 +150,21 @@ ensure_dirsep(Dir0, Dir) :-
 %	@see	make:reload_file/1
 
 load_hotfix(File, Loaded) :-
-	setup_call_cleanup(open(File, read, In),
-			   load_hotfix_from_stream(Loaded, In),
-			   close(In)).
+	time_file(File, Modified),
+	setup_call_cleanup(
+	    open(File, read, In),
+	    load_hotfix_from_stream(Loaded, In, Modified),
+	    close(In)).
 
-load_hotfix_from_stream(Loaded, In) :-
+load_hotfix_from_stream(Loaded, In, Modified) :-
+	Options = [stream(In), modified(Modified)],
 	set_stream(In, file_name(Loaded)),
 	findall(M, source_file_property(Loaded, load_context(M, _)), Modules),
 	(   Modules = [First|Rest]
-	->  load_files(First:Loaded, [stream(In)]),
+	->  load_files(First:Loaded, Options),
 	    forall('$member'(Context, Rest),
-		   load_files(Context:Loaded, [if(not_loaded), stream(In)]))
-	;   load_files(user:Loaded, [stream(In)])
+		   load_files(Context:Loaded, [if(not_loaded)|Options]))
+	;   load_files(user:Loaded, Options)
 	).
 
 
