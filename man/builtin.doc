@@ -2620,9 +2620,11 @@ may change between versions.} is a list of additional (hash) indexes on
 the predicate. Each element of the list is a term
 \arg{ArgSpec}-\arg{Index}. Currently \arg{ArgSpec} is an integer
 denoting the argument position and \arg{Index} is a term
-\term{hash}{Buckets, Speedup}. Here \arg{Buckets} is the number of
-buckets in the hash and \arg{Speedup} is the expected speedup relative
-to trying all clauses linearly.
+\term{hash}{Buckets, Speedup, IsList}. Here \arg{Buckets} is the number
+of buckets in the hash and \arg{Speedup} is the expected speedup
+relative to trying all clauses linearly.  \arg{IsList} indicates that
+a list is created for all clauses with the same key.  This is currently
+not used.
 
     \termitem{interpreted}{}
 Is true if the predicate is defined in Prolog. We return true on this
