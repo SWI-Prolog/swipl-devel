@@ -918,12 +918,32 @@ deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+deleteActiveClauseFromIndexes() is called on a   retract  from a dynamic
+predicate that is referenced or has too many clauses to justify a costly
+update   of   its   clause   lists.    It     is    also   called   from
+removeClausesProcedure(), which is called when reloading a source file.
+
+For dynamic predicates, the predicate is  locked. L_PREDICATE is held if
+def is static.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 deleteActiveClauseFromIndexes(Definition def, Clause cl)
-{ ClauseIndex ci;
+{ ClauseIndex ci, next;
 
-  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-    deleteActiveClauseFromIndex(ci, cl);
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
+  { next = ci->next;
+
+    if ( true(def, DYNAMIC) )
+    { if ( ci->size < ci->resize_below )
+	replaceIndex(def, ci, NULL);
+      else
+	deleteActiveClauseFromIndex(ci, cl);
+    } else
+    { replaceIndex(def, ci, NULL);
+    }
+  }
 }
 
 
@@ -978,6 +998,12 @@ addClauseToIndexes(Definition def, Clause cl, int where ARG_LD)
   SECURE(checkDefinition(def));
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called from unlinkClause(), which is called for retracting a clause from
+a dynamic predicate which is not  referenced   and  has  few clauses. In
+other cases, deleteActiveClauseFromIndex() is called.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 delClauseFromIndex(Definition def, Clause cl)
