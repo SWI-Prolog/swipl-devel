@@ -2050,6 +2050,103 @@ ERROR: is/2: Type error: `expression' expected, found
 \end{code}
 
 
+\section{Just-in-time clause indexing}		\label{sec:jitindex}
+
+\index{jitindex}%
+SWI-Prolog provides `just-in-time' indexing over multiple
+arguments.\footnote{JIT indexing was added in version 5.11.29 (Oct.
+2011)} `Just-in-time' means that clause indexes are not built by the
+compiler (or asserta/1 for dynamic predicates), but on the first call
+to such a predicate where an index might help (i.e., a call where at
+least one argument is instantiated).  This section describes the rules
+used by the indexing logic.  Note that this logic is not `set in stone'.
+The indexing capabilities of the system will change. Although this
+inevitably leads to some regressing on some particular use-cases we
+strive to avoid significant slowdowns.
+
+The list below describes the clause selection process for various
+predicates and calls.  The alternatives are considered in the order
+they are presented.
+
+\begin{itemlist}
+    \item [Special purpose code]
+Currently two special cases are recognised by the compiler: static code
+with exactly one clause and static code with two clauses, one where the
+first argument is the empty list (\verb$[]$) and one where the first
+argument is a list (\verb$[_|_]$)
+
+    \item [Linear scan on first argument]
+The principal clause-list maintains a \jargon{key} for the first
+argument. An indexing key is either a constant or a functor (name/arity
+reference). Calls with an instantiated first argument and less than
+10 clauses perform a linear scan for a possible matching clause using
+this index key.
+
+    \item [Hash lookup]
+If none of the above applies, the system considers the available
+hash-tables for which the corresponding argument is instantiated. If one
+or more of such tables exist, it selects the most selective one. If no
+such table exists, it iterates over all instantiated arguments and
+computes the hash-opportunity for each argument by processing the
+virtual machine code for each clause. If the best table has acceptable
+characteristics, this table is created and associated with the
+predicate.
+
+If an argument is considered unsuitable for indexing, it is added to a
+bit-vector to avoid repeated re-evaluation. This also indicates the
+worsed case scenario: a call where it is not possible to create an index
+for any of the instantiated argument(s) will continuously scan the
+instantiation pattern of the call and test the bitvector.
+
+Clauses that have a variable at an otherwise indexable argument must be
+linked into all hash-buckets. Currently, predicates that have more than
+10\% such clauses for a specific argument are not considered for
+indexing on that argument.
+
+The indexes of dynamic predicates are deleted if the number of clauses
+is doubled since its creation or reduced below 1/4th. The JIT approach
+will recreate a suitable index on the next call. Indexes of running
+predicates cannot be deleted. They are added to `removed index list'
+associated to the predicate. Dynamic predicates maintain a counter for
+the number of goals running the predicate (a predicate can `run'
+multiple times due to recursion, open choice-points and it can run in
+multiple threads) and destroy removed indexes if this count drops to
+zero. Outdated indexes of static predicates (e.g., due to reconsult or
+enlarging multifile predicates) are reclaimed by
+garbage_collect_clauses/0.
+\end{itemlist}
+
+\subsection{Future directions}
+
+\begin{itemize}
+    \item
+The current indexing system is largely prepared for secondary indexes.
+This implies that if there are many clauses that match a given key, the
+system could (JIT) create a secondary index. This secondary index could
+exploit another argument or, if the key denotes a functor, an argument
+inside the compound term.
+
+    \item
+The `special cases' can be extended.  This is notably attractive for
+static predicates with a relatively small number of clauses where a
+hash lookup is too costly.
+\end{itemize}
+
+\subsection{Indexing and portability}
+
+The base-line functionality of Prolog implementations provide indexing
+on constants and functor (name/arity) on the first argument. This must
+be your assumption if wide portability of your program is important.
+This can typically be achieved by exploiting term_hash/2 or term_hash/4
+and/or maintaining multiple copies of a predicate with reordered
+arguments and wrappers that update all implementations (assert/retract)
+and selects the appropriate implementation (query).
+
+YAP provides full JIT indexing, including indexing arguments of compound
+terms. YAP's indexing has been the inspiration for enhancing
+SWI-Prolog's indexing capabilities.
+
+
 \section{Wide character support}		\label{sec:widechars}
 
 \index{UTF-8}\index{Unicode}\index{UCS}\index{internationalization}%

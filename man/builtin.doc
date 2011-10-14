@@ -2373,12 +2373,18 @@ it was erased.  Only clauses with `created' \ldots `erased' interval
 that encloses the generation of the current goal are considered visible.
 
 
-\subsection{Indexing databases}
+\subsection{Indexing databases}			\label{sec:hashterm}
 
-By default, SWI-Prolog, as most other implementations, indexes
-predicates on their first argument.  SWI-Prolog allows indexing
-on other and multiple arguments using the declaration index/1.
-Dedicated index schemas can be built using term_hash/2 or term_hash/4.
+\index{indexing,term-hashes}%
+The indexing capabilities of SWI-Prolog are described in
+\secref{jitindex}. Summarizing, SWI-Prolog creates indexes for any
+applicable argument, but indexes only on one argument and does not index
+on arguments of compound terms. The predicates below provide building
+blocks to circumvent the limitations of the current indexing system.
+
+Programs that aim at portability should consider using term_hash/2 and
+term_hash/4 to design their database such that indexing on constant or
+functor (name/arity reference) on the first argument is sufficient.
 
 \begin{description}
     \predicate[det]{term_hash}{2}{+Term, -HashKey}
