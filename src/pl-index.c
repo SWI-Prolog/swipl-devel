@@ -761,9 +761,13 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+See also deleteActiveClauseFromIndexes() comment
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 cleanClauseIndex(Definition def, ClauseIndex ci ARG_LD)
-{ if ( ci->size < ci->resize_below )
+{ if ( ci->size - def->impl.clauses.erased_clauses < ci->resize_below )
   { replaceIndex(def, ci, NULL);
   } else
   { if ( ci->dirty )
@@ -926,6 +930,8 @@ removeClausesProcedure(), which is called when reloading a source file.
 
 For dynamic predicates, the predicate is  locked. L_PREDICATE is held if
 def is static.
+
+Note that ci->size includes erased clauses. Maybe we should change that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -936,7 +942,7 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
   { next = ci->next;
 
     if ( true(def, DYNAMIC) )
-    { if ( ci->size < ci->resize_below )
+    { if ( ci->size - def->impl.clauses.erased_clauses < ci->resize_below )
 	replaceIndex(def, ci, NULL);
       else
 	deleteActiveClauseFromIndex(ci, cl);

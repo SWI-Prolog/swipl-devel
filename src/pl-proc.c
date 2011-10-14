@@ -1532,7 +1532,7 @@ pl_garbage_collect_clauses(void)
 	  last = cell;
 	  continue;
 	} else
-	{ DEBUG(1, Sdprintf("gcClausesDefinition(%s)\n", predicateName(def)));
+	{ DEBUG(1, Sdprintf("cleanDefinition(%s)\n", predicateName(def)));
 	  garbage = cleanDefinition(def, garbage);
 	}
       }
