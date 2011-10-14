@@ -34,9 +34,6 @@ typedef struct hash_hints
 
 static int		bestHash(Word av, Definition def, hash_hints *hints);
 static ClauseIndex	hashDefinition(Definition def, int arg, hash_hints *h);
-static ClauseIndex	resizeHashDefinition(Definition def, ClauseIndex old);
-static int		reassessHash(Definition def,
-				     ClauseIndex ci, hash_hints *h);
 static void		replaceIndex(Definition def,
 				     ClauseIndex old, ClauseIndex ci);
 
@@ -263,7 +260,6 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   if ( def->functor->arity == 0 )
     goto simple;
 
-retry:
   if ( def->impl.clauses.clause_indexes )
   { float speedup = 0.0;
     ClauseIndex best_index = NULL;
@@ -281,14 +277,8 @@ retry:
     }
 
     if ( best_index )
-    { int hi;
+    { int hi = hashIndex(chp->key, best_index->buckets);
 
-      if ( best_index->size > best_index->resize_above )
-      { if ( !(best_index = resizeHashDefinition(def, best_index)) )
-	  goto retry;
-      }
-
-      hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
       return nextClauseFromBucket(chp, generationFrame(fr), best_index->is_list);
     }
@@ -967,12 +957,23 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+addClauseToIndexes() is called (only) by   assertProcedure(),  which has
+the definition locked.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 addClauseToIndexes(Definition def, Clause cl, int where ARG_LD)
-{ ClauseIndex ci;
+{ ClauseIndex ci, next;
 
-  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-    addClauseToIndex(ci, cl, where PASS_LD);
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
+  { next = ci->next;
+
+    if ( ci->size >= ci->resize_above )
+      replaceIndex(def, ci, NULL);
+    else
+      addClauseToIndex(ci, cl, where PASS_LD);
+  }
 
   SECURE(checkDefinition(def));
 }
@@ -1059,22 +1060,6 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   UNLOCKDEF(def);
 
   return ci;
-}
-
-
-static ClauseIndex
-resizeHashDefinition(Definition def, ClauseIndex old)
-{ hash_hints hints;
-
-  if ( !reassessHash(def, old, &hints) )
-  { LOCKDEF(def);
-    replaceIndex(def, old, NULL);
-    UNLOCKDEF(def);
-
-    return NULL;
-  }
-
-  return hashDefinition(def, old->arg, &hints);
 }
 
 
@@ -1383,49 +1368,6 @@ bestHash(Word av, Definition def, hash_hints *hints)
   return best_arg;
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-reassessHash() gets new hints for  the  hash   and  returns  TRUE if the
-argument is still considered hash-able. Otherwise it returns FALSE;
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-reassessHash(Definition def, ClauseIndex ci, hash_hints *hints)
-{ hash_assessment a_store;
-  hash_assessment *a = &a_store;
-  ClauseRef cref;
-  int clause_count = def->impl.clauses.number_of_clauses;
-  int rc;
-
-  memset(a, 0, sizeof(*a));
-
-  for(cref=def->impl.clauses.first_clause; cref; cref=cref->next)
-  { Clause cl = cref->value.clause;
-    word k;
-
-    if ( true(cl, ERASED) )
-      continue;
-
-    if ( argKey(cref->value.clause->codes, ci->arg-1, FALSE, &k) )
-    { assessAddKey(a, k);
-    } else
-    { a->var_count++;
-    }
-  }
-
-  if ( (rc=assess_remove_duplicates(a, clause_count)) )
-  { assess_remove_duplicates(a, clause_count);
-
-    hints->speedup = a->speedup;
-    hints->buckets = a->size;
-    hints->list    = a->list;
-  }
-
-  if ( a->keys )
-    free(a->keys);
-
-  return rc;				/* not hashable */
-}
 
 		 /*******************************
 		 *  PREDICATE PROPERTY SUPPORT	*
