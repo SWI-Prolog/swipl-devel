@@ -130,7 +130,7 @@ set_bit(bit_vector *v, int which)
 { int e = which/BITSPERE;
   int b = which%BITSPERE;
 
-  v->chunk[e] |= (1<<b);
+  v->chunk[e] |= ((uintptr_t)1<<b);
 }
 
 static inline int
@@ -138,7 +138,7 @@ true_bit(bit_vector *v, int which)
 { int e = which/BITSPERE;
   int b = which%BITSPERE;
 
-  return (v->chunk[e]&(1<<b)) != 0;
+  return (v->chunk[e]&((uintptr_t)1<<b)) != 0;
 }
 
 
