@@ -1217,6 +1217,14 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
   { a->stdev   = sqrt(Q/(float)i);
     a->list    = FALSE;
 
+    if ( a->size == 1 )			/* Single value that is not compound */
+    {
+#ifdef O_DEEP_INDEX
+      if ( tagex(a->keys[0].key) != (TAG_ATOM|STG_GLOBAL) )
+#endif
+	return FALSE;
+    }
+
     a->speedup =            (float)(clause_count*a->size) /
 	      (float)(clause_count - a->var_count + a->var_count*a->size);
 
