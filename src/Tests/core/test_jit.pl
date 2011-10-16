@@ -34,5 +34,10 @@ test(remove, [cleanup(retractall(d(_,_)))]) :-
 	\+ predicate_property(d(_,_), indexed(_)),
 	d(_,45),
 	predicate_property(d(_,_), indexed([2-_])).
+test(retract, [cleanup(retractall(d(_,_))), Xs == Xsok]) :-
+	forall(between(1,10,X), assertz(d(X,X))),
+	forall(between(11,100,X), assertz(d(a,X))),
+	findall(X, retract(d(a,X)), Xs),
+	numlist(11, 100, Xsok).
 
 :- end_tests(jit).
