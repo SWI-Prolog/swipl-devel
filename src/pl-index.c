@@ -1095,37 +1095,28 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
 }
 
 
+/* Caller must have the predicate locked */
+
 static void				/* definition must be locked */
 replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
 { GET_LD
   ClauseIndex *cip;
+  ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
 
   for(cip=&def->impl.clauses.clause_indexes; *cip && *cip != old; cip = &(*cip)->next)
     ;
 
-  if ( true(def, DYNAMIC) && def->references == 1 )
-  { if ( ci )
-    { ci->next = old->next;		/* replace */
-      *cip = ci;
-    } else
-    { *cip = old->next;
-    }
-    unallocClauseIndexTable(old);
-  } else				/* insert before old */
-  { ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
-
-    if ( ci )
-    { ci->next = old->next;
-      MemoryBarrier();			/* lock only synchronizes updates */
-      *cip = ci;
-    } else				/* this is a delete */
-    { *cip = old->next;
-    }
-
-    c->index = old;
-    c->next = def->old_clause_indexes;
-    def->old_clause_indexes = c;
+  if ( ci )
+  { ci->next = old->next;
+    MemoryBarrier();			/* lock only synchronizes updates */
+    *cip = ci;
+  } else				/* this is a delete */
+  { *cip = old->next;
   }
+
+  c->index = old;
+  c->next = def->old_clause_indexes;
+  def->old_clause_indexes = c;
 }
 
 
