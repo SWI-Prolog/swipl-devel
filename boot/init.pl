@@ -1200,7 +1200,7 @@ load_files(Module:Files, Options) :-
         Modified @=< LoadTime, !.
 '$noload'(changed, FullFile, Options) :-
 	'$time_source_file'(FullFile, LoadTime, user),
-	'$modified_id'(FullFile, _, Modified, Options),
+	'$modified_id'(FullFile, Modified, Options),
 	Modified @=< LoadTime, !.
 
 %	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options)
