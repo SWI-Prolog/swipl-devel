@@ -112,7 +112,7 @@ new_bitvector__LD(size_t size ARG_LD)
 }
 
 static inline void
-free_bitvector__LD(bit_vector *v, int size ARG_LD)
+free_bitvector__LD(bit_vector *v ARG_LD)
 { size_t bytes = offset(bit_vector, chunk[(v->size+BITSPERE-1)/BITSPERE]);
 
   freeHeap(v, bytes);

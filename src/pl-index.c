@@ -794,8 +794,9 @@ either locked or otherwise safe for  concurrency while the definition is
 not referenced. This is the time that we can remove cells from the index
 chains and can reclaim old indexes.
 
-If the index is too large, it is  simply discarded. It will be recreated
-when (and if) it is needed.
+If we reclaim old  indexes,  there   apparently  have  been  significant
+changes to the predicate  and  therefore   we  also  delete  the `tried'
+bitvector to force reevaluation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -816,6 +817,13 @@ cleanClauseIndexes(Definition def ARG_LD)
 
       unallocClauseIndexTable(li->index);
       freeHeap(li, sizeof(*li));
+    }
+
+    if ( def->tried_index )
+    { bit_vector *old = def->tried_index;
+
+      def->tried_index = NULL;
+      free_bitvector(old);
     }
   }
 }
