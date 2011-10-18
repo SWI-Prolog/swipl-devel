@@ -3041,7 +3041,7 @@ static
 PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
 	  PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  int i;
+  unsigned int i;
   term_t head = A1;
 
   switch( CTX_CNTRL )

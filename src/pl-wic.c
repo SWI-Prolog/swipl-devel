@@ -346,7 +346,7 @@ getString(IOSTREAM *fd, size_t *length)
 { GET_LD
   char *s;
   size_t len = (size_t)getInt64(fd);
-  int i;
+  size_t i;
 
   if ( LD->qlf.getstr_buffer_size < len+1 )
   { size_t size = ((len+1+1023)/1024)*1024;
