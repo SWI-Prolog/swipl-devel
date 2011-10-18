@@ -2361,7 +2361,7 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 
 	  deRef(p);
 	  if ( isInteger(*p) )
-	  { intptr_t i = valInteger(*p);
+	  { intptr_t i = (intptr_t)valInteger(*p); /* cannot be bigger */
 
 	    if ( i >= (intptr_t)start )
 	    { n = ALREADY_NUMBERED;
