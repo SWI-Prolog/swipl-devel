@@ -112,7 +112,7 @@ new_bitvector__LD(size_t size ARG_LD)
 }
 
 static inline void
-free_bitvector__LD(bit_vector *v, int size ARG_LD)
+free_bitvector__LD(bit_vector *v ARG_LD)
 { size_t bytes = offset(bit_vector, chunk[(v->size+BITSPERE-1)/BITSPERE]);
 
   freeHeap(v, bytes);
@@ -130,7 +130,7 @@ set_bit(bit_vector *v, int which)
 { int e = which/BITSPERE;
   int b = which%BITSPERE;
 
-  v->chunk[e] |= (1<<b);
+  v->chunk[e] |= ((uintptr_t)1<<b);
 }
 
 static inline int
@@ -138,7 +138,7 @@ true_bit(bit_vector *v, int which)
 { int e = which/BITSPERE;
   int b = which%BITSPERE;
 
-  return (v->chunk[e]&(1<<b)) != 0;
+  return (v->chunk[e]&((uintptr_t)1<<b)) != 0;
 }
 
 

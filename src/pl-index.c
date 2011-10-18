@@ -350,7 +350,7 @@ static ClauseIndex
 newClauseIndexTable(int arg, hash_hints *hints)
 { GET_LD
   ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
-  int m = 4;
+  unsigned int m = 4;
   size_t bytes;
 
   while(m<hints->buckets)
@@ -794,8 +794,9 @@ either locked or otherwise safe for  concurrency while the definition is
 not referenced. This is the time that we can remove cells from the index
 chains and can reclaim old indexes.
 
-If the index is too large, it is  simply discarded. It will be recreated
-when (and if) it is needed.
+If we reclaim old  indexes,  there   apparently  have  been  significant
+changes to the predicate  and  therefore   we  also  delete  the `tried'
+bitvector to force reevaluation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -816,6 +817,13 @@ cleanClauseIndexes(Definition def ARG_LD)
 
       unallocClauseIndexTable(li->index);
       freeHeap(li, sizeof(*li));
+    }
+
+    if ( def->tried_index )
+    { bit_vector *old = def->tried_index;
+
+      def->tried_index = NULL;
+      free_bitvector(old);
     }
   }
 }
@@ -1214,7 +1222,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 
 					/* assess quality */
   if ( clause_count )
-  { a->stdev   = sqrt(Q/(float)i);
+  { a->stdev   = (float)sqrt(Q/(float)i);
     a->list    = FALSE;
 
     if ( a->size == 1 )			/* Single value that is not compound */
@@ -1318,7 +1326,7 @@ bestHash(Word av, Definition def, hash_hints *hints)
     def->tried_index = new_bitvector(def->functor->arity);
 
 					/* Step 1: allocate assessments */
-  for(i=0; i<def->functor->arity; i++)
+  for(i=0; i<(int)def->functor->arity; i++)
   { word k;
 
     if ( !true_bit(def->tried_index, i) && (k=indexOfWord(av[i] PASS_LD)) )
@@ -1388,7 +1396,7 @@ bestHash(Word av, Definition def, hash_hints *hints)
 
   if ( best )
   { best_arg       = best->arg;
-    hints->buckets = best->size;
+    hints->buckets = (unsigned int)best->size;
     hints->speedup = best->speedup;
     hints->list    = best->list;
   }
