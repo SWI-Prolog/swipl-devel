@@ -2427,6 +2427,33 @@ sweep_trail(void)
 
 
 
+static void
+sweep_frame(LocalFrame fr, int slots ARG_LD)
+{ Word sp;
+
+  sp = argFrameP(fr, 0);
+  for( ; slots > 0; slots--, sp++ )
+  { if ( is_marked(sp) )
+    { unmark(sp);
+      if ( isGlobalRef(get_value(sp)) )
+      { processLocal(sp);
+	check_relocation(sp);
+	into_relocation_chain(sp, STG_LOCAL PASS_LD);
+      }
+    } else
+    { if ( isGlobalRef(*sp) )
+      { DEBUG(1, char b[64];
+	      Sdprintf("[%ld] %s: GC VAR(%d) (=%s)\n",
+		       levelFrame(fr), predicateName(fr->predicate),
+		       sp-argFrameP(fr, 0),
+		       print_val(*sp, b)));
+	*sp = ATOM_garbage_collected;
+      }
+    }
+  }
+}
+
+
 static QueryFrame
 sweep_environments(LocalFrame fr, Code PC)
 { GET_LD
@@ -2436,7 +2463,6 @@ sweep_environments(LocalFrame fr, Code PC)
 
   for( ; ; )
   { int slots;
-    Word sp;
 
     if ( false(fr, FR_MARKED) )
       return NULL;
@@ -2444,32 +2470,19 @@ sweep_environments(LocalFrame fr, Code PC)
 
     slots = slotsInFrame(fr, PC);
 
-    sp = argFrameP(fr, 0);
-    for( ; slots > 0; slots--, sp++ )
-    { if ( is_marked(sp) )
-      { unmark(sp);
-	if ( isGlobalRef(get_value(sp)) )
-	{ processLocal(sp);
-	  check_relocation(sp);
-	  into_relocation_chain(sp, STG_LOCAL PASS_LD);
-	}
-      } else
-      { if ( isGlobalRef(*sp) )
-	{ DEBUG(1, char b[64];
-		Sdprintf("[%ld] %s: GC VAR(%d) (=%s)\n",
-			 levelFrame(fr), predicateName(fr->predicate),
-			 sp-argFrameP(fr, 0),
-			 print_val(*sp, b)));
-	  *sp = ATOM_garbage_collected;
-	}
-      }
-    }
+    DEBUG(2, Sdprintf("Sweep %d arguments for [%d] %s\n",
+		      slots, levelFrame(fr), predicateName(fr->predicate)));
 
-    PC = fr->programPointer;
-    if ( fr->parent != NULL )
+    sweep_frame(fr, slots PASS_LD);
+
+    if ( fr->parent )
+    { PC = fr->programPointer;
       fr = fr->parent;
-    else
-      return queryOfFrame(fr);
+    } else
+    { QueryFrame qf = queryOfFrame(fr);
+
+      return qf;
+    }
   }
 }
 

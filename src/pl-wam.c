@@ -1407,11 +1407,15 @@ discardChoicesAfter() discards all choicepoints created  after fr, while
 calling possible hooks on the frames.   It return the oldest choicepoint
 created after fr was created or NULL if this doesn't exist.
 
-GC  interaction  is  tricky  here.  See   also  C_CUT.  We  cannot  call
-discardFrame() because this sets fr->clause to NULL.  If we have a frame
-where a variable is a ref to the parent   frame and where the var in the
-parent points to the global stack and the clause of this parent is NULL,
-the variable is marked, but not sweeped.
+GC interaction is tricky here. See also   C_CUT.  The loop needs to call
+the  cleanup  handlers  and  call   discardFrame().  The  latter  resets
+LocalFrame->clause to NULL. This means  that   these  frames  may not be
+visible to GC. In older versions, this was achieved using two loops: one
+for the cleanup and one to discard the  frames, but if Undo() is called,
+the resets may corrupt the datastructures,   which makes the second loop
+fail. We now moved discardFrame() back into the primary loop and set BFR
+before calling frameFinished() such that the discarded frames are really
+invisible to GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
@@ -1421,43 +1425,43 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 
     for(me = BFR; ; me=me->parent)
     { LocalFrame fr2;
+      LocalFrame delto;
+
+      if ( me->parent && me->parent->frame > fr )
+	delto = me->parent->frame;
+      else
+	delto = fr;
 
       DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(me)));
       for(fr2 = me->frame;
-	  fr2 && fr2->clause && fr2 > fr;
+	  fr2 > delto;
 	  fr2 = fr2->parent)
-      { if ( true(fr2, FR_WATCHED) )
+      { assert(fr2->clause || true(fr2->predicate, FOREIGN));
+
+	if ( true(fr2, FR_WATCHED) )
 	{ char *lSave = (char*)lBase;
 
 	  if ( reason == FINISH_EXCEPT ||
 	       reason == FINISH_EXTERNAL_EXCEPT )
 	    Undo(me->mark);
+	  BFR = me->parent;
 	  frameFinished(fr2, reason PASS_LD);
 	  if ( lSave != (char*)lBase )	/* shifted */
 	  { intptr_t offset = (char*)lBase - lSave;
 
 	    me  = addPointer(me, offset);
+	    me->parent = BFR;		/* not updated because BFR=me->parent */
 	    fr  = addPointer(fr, offset);
 	    fr2 = addPointer(fr2, offset);
+	    delto = addPointer(delto, offset);
 	  }
 #if 0					/* What to do if we have multiple */
 	  if ( exception_term )		/* handlers and multiple exceptions? */
 	    break;
 #endif
 	}
-      }
 
-      if ( (LocalFrame)me->parent <= fr )
-	break;
-    }
-
-    for(me = BFR; ; me=me->parent)
-    { LocalFrame fr2;
-
-      for(fr2 = me->frame;		/* (*) */
-	  fr2 && fr2->clause && fr2 > fr;
-	  fr2 = fr2->parent)
-      { discardFrame(fr2 PASS_LD);
+	discardFrame(fr2 PASS_LD);
       }
 
       if ( (LocalFrame)me->parent <= fr )
@@ -1466,8 +1470,6 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	return me;
       }
     }
-
-    DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
   }
 
   return NULL;

@@ -2166,17 +2166,27 @@ c_cut:
   else
     fr = och->frame;
 
-  for(ch=BFR; ch && ch > och; ch = ch->parent)
+  assert(BFR>=och);
+  for(ch=BFR; ch > och; ch = ch->parent)
   { LocalFrame fr2;
+    LocalFrame delto;
+
+    if ( ch->parent && ch->parent->frame > fr )
+      delto = ch->parent->frame;
+    else
+      delto = fr;
 
     DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
 
     for(fr2 = ch->frame;
-	fr2 && fr2->clause && fr2 > fr;
+	fr2 > delto;
 	fr2 = fr2->parent)
-    { if ( true(fr2, FR_WATCHED) )
+    { assert(fr2->clause || true(fr2->predicate, FOREIGN));
+
+      if ( true(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
 
+	BFR = ch->parent;
 	SAVE_REGISTERS(qid);
 	frameFinished(fr2, FINISH_CUT PASS_LD);
 	LOAD_REGISTERS(qid);
@@ -2185,29 +2195,22 @@ c_cut:
 
 	  fr2 = addPointer(fr2, offset);
 	  ch  = addPointer(ch,  offset);
+	  ch->parent = BFR;
 	  och = addPointer(och, offset);
 	  fr  = addPointer(fr,  offset);
+	  delto = addPointer(delto, offset);
 	}
 	if ( exception_term )
 	  THROW_EXCEPTION;
       }
-    }
-  }
-  assert(och == ch);
 
-					/* see above why this isn't merged */
-  for(ch=BFR; ch && ch > och; ch = ch->parent)
-  { LocalFrame fr2;
-
-    for(fr2 = ch->frame;
-	fr2 && fr2->clause && fr2 > fr;
-	fr2 = fr2->parent)
-    { discardFrame(fr2 PASS_LD);
+      discardFrame(fr2 PASS_LD);
     }
 
     if ( ch->parent == och )
       DiscardMark(ch->mark);
   }
+  assert(och == ch);
   BFR = ch;
 
   if ( (void *)och > (void *)fr )
