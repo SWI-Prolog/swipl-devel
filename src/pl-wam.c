@@ -608,34 +608,16 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     { term_t clean;
       term_t ex = 0;
       int rval;
-      int set_env = (reason == FINISH_CUT ||
-		     reason == FINISH_EXCEPT ||
-		     reason == FINISH_EXTERNAL_EXCEPT);
-      term_t esave;
       wakeup_state wstate;
 
       fr = (LocalFrame)valTermRef(fref);
-
-      if ( set_env )
-      { esave = consTermRef(environment_frame);
-	environment_frame = fr;
-      } else
-      { esave = 0;			/* keep compiler happy */
-	assert(environment_frame == fr);
-      }
-
       clean = consTermRef(argFrameP(fr, 3));
-      startCritical;
       if ( saveWakeup(&wstate, FALSE PASS_LD) )
       { rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
 	restoreWakeup(&wstate PASS_LD);
       } else
       { rval = FALSE;
       }
-      endCritical;
-
-      if ( set_env )
-	environment_frame = (LocalFrame)valTermRef(esave);
 
       if ( !rval && ex && !exception_term )
 	PL_raise_exception(ex);
