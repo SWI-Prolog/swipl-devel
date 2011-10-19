@@ -519,8 +519,11 @@ int
 S__fillbuf(IOSTREAM *s)
 { int c;
 
-  if ( s->flags & (SIO_FEOF|SIO_FERR) )
-  { s->flags |= SIO_FEOF2;		/* reading past eof */
+  if ( s->flags & (SIO_FEOF|SIO_FERR) )	/* reading past eof */
+  { if ( s->flags & SIO_FEOF2ERR )
+      s->flags |= (SIO_FEOF2|SIO_FERR);
+    else
+      s->flags |= SIO_FEOF2;
     return -1;
   }
 
