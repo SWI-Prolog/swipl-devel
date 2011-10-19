@@ -623,23 +623,24 @@ last_arg:
   }
 
   { Functor f = valueTerm(*p);
-    mark(p);
 
     if ( !onGlobal(f) )
       printk("Term at %p not on global stack", f);
 
     if ( tag(f->definition) != TAG_ATOM ||
          storage(f->definition) != STG_GLOBAL )
-      printk("Illegal term: 0x%x", *p);
+      printk("Illegal functor: 0x%x", *p);
     if ( f->definition & MARK_MASK )
-      printk("Term with mark: 0x%x", *p);
+      printk("functor with mark: 0x%x", *p);
     if ( f->definition & FIRST_MASK )
-      printk("Term with first: 0x%x", *p);
+      printk("functor with first: 0x%x", *p);
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk("Illegal arity (%d)", arity);
     else if ( arity > 256 && !is_ht_capacity(arity) )
       printk("Dubious arity (%d)", arity);
+
+    mark(p);
     for(n=0; n<arity-1; n++)
       key += check_data(&f->arguments[n], recursive PASS_LD);
 
