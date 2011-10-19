@@ -3046,6 +3046,12 @@ openStream(term_t file, term_t mode, term_t options)
 	s->flags |= SIO_NOFEOF;
       else if ( eof_action == ATOM_error )
 	s->flags |= SIO_FEOF2ERR;
+      else
+      { term_t ex = PL_new_term_ref();
+	PL_put_atom(ex, eof_action);
+	PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_eof_action, ex);
+	return NULL;
+      }
     }
   } else
   { if ( buffer != ATOM_full )
@@ -3054,6 +3060,12 @@ openStream(term_t file, term_t mode, term_t options)
 	s->flags |= SIO_LBUF;
       if ( buffer == ATOM_false )
 	s->flags |= SIO_NBUF;
+      else
+      { term_t ex = PL_new_term_ref();
+	PL_put_atom(ex, buffer);
+	PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_buffer, ex);
+	return NULL;
+      }
     }
   }
 
