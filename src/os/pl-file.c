@@ -3058,7 +3058,7 @@ openStream(term_t file, term_t mode, term_t options)
     { s->flags &= ~SIO_FBUF;
       if ( buffer == ATOM_line )
 	s->flags |= SIO_LBUF;
-      if ( buffer == ATOM_false )
+      else if ( buffer == ATOM_false )
 	s->flags |= SIO_NBUF;
       else
       { term_t ex = PL_new_term_ref();
