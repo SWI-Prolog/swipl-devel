@@ -96,28 +96,6 @@ if findexe gtar; then tar=gtar; fi;
 # Sub-modules
 ################################################################
 
-notemptydir()
-{ if [ -z "`find $1 -type f`" ]; then
-    return 1
-  fi
-
-  return 0
-}
-
-notamodule=
-for d in $COREMODULES; do
-  if [ -d $d -a ! -d $d/.git ] && notemptydir $d ; then
-    notamodule+=" $d"
-  fi
-done
-if [ ! -z "$notamodule" ]; then
-  if confirm "Directories $notamodule are not git submodules.  Remove? "; then
-    rm -rf $notamodule
-    rm -f man/Manual/index.html	# re-fetch the manual
-    git submodule sync
-  fi
-fi
-
 nothere=`git submodule status $COREMODULES | awk '/^[-]/ {print $2}'`
 if [ ! -z "$nothere" ]; then
   echo "The following submodules are not yet initialised"
