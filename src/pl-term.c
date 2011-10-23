@@ -283,6 +283,8 @@ PRED_IMPL("tty_put", 2, pl_tty_put, 0)
 }
 
 
+#define HAVE_TTY_SIZE_PRED 1
+
 static
 PRED_IMPL("tty_size", 2, tty_size, 0)
 { PRED_LD
@@ -347,6 +349,8 @@ getModuleFunction(const char *module, const char *name)
   return NULL;
 }
 
+#define HAVE_TTY_SIZE_PRED 1
+
 static
 PRED_IMPL("tty_size", 2, tty_size, 0)
 { PRED_LD
@@ -393,5 +397,7 @@ BeginPredDefs(term)
   PRED_DEF("tty_goto",		 2, tty_goto,		0)
   PRED_DEF("tty_put",		 2, pl_tty_put,		0)
 #endif
+#if HAVE_TTY_SIZE_PRED
   PRED_DEF("tty_size",		 2, tty_size,		0)
+#endif
 EndPredDefs
