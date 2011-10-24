@@ -1353,12 +1353,12 @@ linkSharedObject()
 #endif /*SO_FORMAT_LDFLAGS*/
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
+  concatArgList(&ldoptions, "", &libs);		/* libraries */
 #ifdef O_SHARED_KERNEL
   if ( !nolibswipl )
 #endif
   { appendArgList(&ldoptions, pllib);		/* -lswipl */
   }
-  concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #ifdef __BEOS__
   appendArgList(&ldoptions, plexe);		/* last is executable */
