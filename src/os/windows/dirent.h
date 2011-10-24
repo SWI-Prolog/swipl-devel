@@ -28,7 +28,7 @@
 #include <io.h>
 
 #undef _export
-#if defined(_UXNT_KERNEL) && !defined(__LCC__)
+#if defined(_UXNT_KERNEL) && !defined(__MINGW32__)
 #define _export _declspec(dllexport)
 #else
 #define _export extern
@@ -37,7 +37,7 @@
 #define DIRENT_MAX 512
 
 typedef struct dirent
-{ void *      		data;		/* actually WIN32_FIND_DATA * */
+{ void *		data;		/* actually WIN32_FIND_DATA * */
   int			first;
   void *		handle;		/* actually HANDLE */
 					/* dirent */
