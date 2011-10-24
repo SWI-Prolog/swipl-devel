@@ -1353,7 +1353,9 @@ linkSharedObject()
 #endif /*SO_FORMAT_LDFLAGS*/
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
-  if ( embed_shared && !nolibswipl )
+#ifdef O_SHARED_KERNEL
+  if ( !nolibswipl )
+#endif
   { appendArgList(&ldoptions, pllib);		/* -lswipl */
   }
   concatArgList(&ldoptions, "", &libs);		/* libraries */
