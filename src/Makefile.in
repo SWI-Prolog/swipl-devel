@@ -257,7 +257,7 @@ pl-res.o:	$(srcdir)/pl.rc $(srcdir)/pl.ico $(srcdir)/xpce.ico
 pl-ntmain.o:	pl-ntmain.c
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc -I$(srcdir)/os $(CFLAGS) $< -o $@
 
-$(PLWIN)$(EXEEXT):	pl-res.o pl-ntmain.o
+$(PLWIN)$(EXEEXT):	pl-res.o pl-ntmain.o plterm-lib
 		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) -o $@ $^ \
 			-L../lib/$(PLARCH) -lplterm $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
 
