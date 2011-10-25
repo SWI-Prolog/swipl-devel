@@ -51,7 +51,6 @@
 	     attvar,
 	     bags,
 	     apply,
-	     writef,
 	     history,
 	     dwim,
 	     parms,

@@ -245,6 +245,7 @@ Section "Base system (required)"
   File pl\library\listing.pl
   File pl\library\qsave.pl
   File pl\library\statistics.pl
+  File pl\library\writef.pl
   File pl\library\shlib.pl
   File pl\library\system.pl
   File pl\library\threadutil.pl
