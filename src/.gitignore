@@ -21,3 +21,4 @@ vmi
 *.exe
 .defatom-sentinel
 .vmi-sentinel
+*.dSYM

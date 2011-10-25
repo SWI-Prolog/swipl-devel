@@ -604,6 +604,7 @@ clean:
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.o $(ALLOBJ) os/*.o a.out core *~ #* parms.h
+		rm -rf *.dSYM
 
 profclean:
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
