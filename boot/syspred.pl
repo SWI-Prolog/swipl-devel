@@ -777,7 +777,7 @@ statistics(Out) :-
 	statistics(globallimit, GlobalLimit),
 	statistics(traillimit, TrailLimit),
 
-	format(Out, '~2f seconds cpu time for ~D inferences~n',
+	format(Out, '~3f seconds cpu time for ~D inferences~n',
 				    [Cputime, Inferences]),
 	format(Out, '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
 				    [Atoms, Functors, Predicates, Modules, Codes]),
@@ -800,7 +800,7 @@ gc_statistics(Out) :-
 	statistics(collected, Collected),
 	statistics(gctime, GcTime),
 
-	format(Out, '~D garbage collections gained ~D bytes in ~2f seconds.~n',
+	format(Out, '~D garbage collections gained ~D bytes in ~3f seconds.~n',
 	       [Collections, Collected, GcTime]).
 gc_statistics(_).
 
@@ -809,7 +809,7 @@ agc_statistics(Out) :-
 	Agc > 0, !,
 	statistics(agc_gained, Gained),
 	statistics(agc_time, Time),
-	format(Out, '~D atom garbage collections gained ~D atoms in ~2f seconds.~n',
+	format(Out, '~D atom garbage collections gained ~D atoms in ~3f seconds.~n',
 	       [Agc, Gained, Time]).
 agc_statistics(_).
 
@@ -821,8 +821,9 @@ shift_statistics(Out) :-
 	;   GS > 0
 	;   TS > 0
 	), !,
-	format(Out, 'Stack shifts: ~D local, ~D global, ~D trail.~n',
-	       [LS, GS, TS]).
+	statistics(shift_time, Time),
+	format(Out, 'Stack shifts: ~D local, ~D global, ~D trail in ~3f seconds.~n',
+	       [LS, GS, TS, Time]).
 shift_statistics(_).
 
 thread_statistics(Out) :-
@@ -831,7 +832,7 @@ thread_statistics(Out) :-
 	statistics(threads_created, Created),
 	statistics(thread_cputime, CpuTime),
 	Finished is Created - Active,
-	format(Out, '~D threads, ~D finished threads used ~2f seconds.~n',
+	format(Out, '~D threads, ~D finished threads used ~3f seconds.~n',
 	       [Active, Finished, CpuTime]).
 thread_statistics(_).
 

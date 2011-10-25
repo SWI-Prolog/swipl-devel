@@ -4468,7 +4468,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
-    double time = ThreadCPUTime(LD, CPU_USER);
+    double time, time0 = ThreadCPUTime(LD, CPU_USER);
     int verbose = truePrologFlag(PLFLAG_TRACE_GC);
 
     DEBUG(1, verbose = TRUE);
@@ -4574,7 +4574,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
 
-    time = ThreadCPUTime(LD, CPU_USER);
+    time = ThreadCPUTime(LD, CPU_USER) - time0;
     LD->shift_status.time += time;
     SECURE({ gBase++;
 	     if ( checkStacks(&state) != key )

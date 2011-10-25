@@ -6905,17 +6905,21 @@ stack		& Total memory in use for stacks in all threads \\
 local           & Allocated size of the local stack in bytes. \\
 localused       & Number of bytes in use on the local stack. \\
 locallimit      & Size to which the local stack is allowed to grow \\
+local_shifts	& Number of local-stack expansions \\
 global          & Allocated size of the global stack in bytes. \\
 globalused      & Number of bytes in use on the global stack. \\
 globallimit     & Size to which the global stack is allowed to grow \\
+global_shifts	& Number of global-stack expansions \\
 trail           & Allocated size of the trail stack in bytes. \\
 trailused       & Number of bytes in use on the trail stack. \\
 traillimit      & Size to which the trail stack is allowed to grow \\
+trail_shifts	& Number of trail-stack expansions \\
+shift_time	& Time spent in stack-shifts \\
 atoms           & Total number of defined atoms. \\
 functors        & Total number of defined name/arity pairs. \\
 predicates      & Total number of defined predicates. \\
 modules         & Total number of defined modules. \\
-codes           & Total amount of byte codes in all clauses. \\
+codes           & Total size of (virtual) executable code in words. \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
 thread_cputime  & MT-version: seconds CPU time used by finished threads.
@@ -6941,7 +6945,7 @@ stacks		& [ global use, local use ] \\
 program		& [ heap, 0 ] \\
 global_stack	& [ global use, global free ] \\
 local_stack	& [ local use, local free ] \\
-trail		& [ trail use, 0 ] \\
+trail		& [ trail use, trail free ] \\
 garbage_collection & [ number of GC, bytes gained, time spent, bytes left ]
 		  The last column is a SWI-Prolog extension.  It contains the
 		  sum of the memory left after each collection, which can be

@@ -4425,7 +4425,7 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     vn = 2;
   } else if ( key == ATOM_trail )
   { v[0] = usedStack(trail);
-    v[1] = 0;
+    v[1] = limitStack(trail) - v[0];
     vn = 2;
   } else if ( key == ATOM_program )
   { v[0] = GD->statistics.heap;
@@ -4543,6 +4543,10 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = LD->shift_status.local_shifts;
   else if (key == ATOM_trail_shifts)
     v->value.i = LD->shift_status.trail_shifts;
+  else if (key == ATOM_shift_time)
+  { v->type = V_FLOAT;
+    v->value.f = LD->shift_status.time;
+  }
 #ifdef O_PLMT
   else if ( key == ATOM_threads )
     v->value.i = GD->statistics.threads_created -
