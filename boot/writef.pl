@@ -31,8 +31,7 @@
 
 
 :- module('$writef',
-	  [ writeln/1
-	  , writef/1
+	  [ writef/1
 	  , writef/2
 	  , swritef/2
 	  , swritef/3
@@ -52,9 +51,6 @@
 %
 %	- renamed write_ln(X) into writeln(X) for better compatibility
 %	- Fixed fileheader
-
-writeln(X) :-
-	write(X), nl.
 
 writef(Format) :-
 	writef(Format, []).

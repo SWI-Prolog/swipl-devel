@@ -1522,6 +1522,8 @@ do_write2(term_t stream, term_t term, int flags)
 
     PutOpenToken(EOF, s);		/* reset this */
     rc = writeTopTerm(term, 1200, &options);
+    if ( rc && (flags&PL_WRT_NEWLINE) )
+      rc = Putc('\n', s);
 
     return streamStatus(s) && rc;
   }
@@ -1589,14 +1591,9 @@ pl_write_canonical(term_t term)
 { return pl_write_canonical2(0, term);
 }
 
-word					/* for debugging purposes! */
+word
 pl_writeln(term_t term)
-{ if ( PL_write_term(Serror, term, 1200,
-		     PL_WRT_QUOTED|PL_WRT_NUMBERVARS) &&
-       Sdprintf("\n") >= 0 )
-    succeed;
-
-  fail;
+{ return do_write2(0, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE);
 }
 
 
