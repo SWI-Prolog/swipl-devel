@@ -49,21 +49,19 @@ MAKE=make
 # export CIFLAGS=
 # export LDFLAGS="-O2 -g"
 
-# On MacOS you need this to get some libraries from Macports
+# On MacOS you need this to get some libraries from Macports.  Recent
+# Xcode versions provide an LLVM based GCC, which provides *very* slow
+# support for GCC's `threaded code' extension (5-20 times slower).  If
+# you want optimal performance, install and select the non-llvm version
+# of gcc.
+
 if [ "`uname`" = Darwin ]; then
   export LIBRARY_PATH=/usr/lib:/opt/local/lib
   export CPATH=/usr/include:/opt/local/include
   export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
-  case "`uname -r`" in
-    11.*)			# Avoid llvm-gcc on Lion
-      CC="gcc-4.2"
-      CXX="g++-4.2"
-      CXXCPP="g++-4.2 -E"
-      ;;
-    *)
-      export CXXCPP="g++ -E"
-      ;;
-  esac
+  # CC="gcc-4.2"
+  # CXX="g++-4.2"
+  # CXXCPP="g++-4.2 -E"
 fi
 
 # [EDIT] On Solaris also puts there stuff everywhere ...
