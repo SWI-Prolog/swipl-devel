@@ -1944,8 +1944,14 @@ pl-comp.c
 
 code thiscode;
 
+#if __GNUC__
+#define UNUSED_LABEL __attribute__ ((unused))
+#else
+#define UNUSED_LABEL
+#endif
+
 #define VMI(Name,f,na,a)	case Name: \
-				  case_ ## Name:
+				  case_ ## Name: UNUSED_LABEL \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
 #define VMI_GOTO(n)		{ END_PROF(); \
