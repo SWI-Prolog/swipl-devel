@@ -58,7 +58,6 @@
 	    current_module/1,
 	    module_property/2,
 	    module/1,
-	    statistics/0,
 	    shell/1,
 	    shell/0,
 	    on_signal/3,
@@ -751,90 +750,6 @@ module(Module) :-
 module(Module) :-
 	'$module'(_, Module),
 	print_message(warning, no_current_module(Module)).
-
-		/********************************
-		*          STATISTICS           *
-		*********************************/
-
-statistics :-
-	statistics(user_error).
-
-statistics(Out) :-
-	statistics(trail, Trail),
-	statistics(trailused, TrailUsed),
-	statistics(local, Local),
-	statistics(localused, LocalUsed),
-	statistics(global, Global),
-	statistics(globalused, GlobalUsed),
-	statistics(process_cputime, Cputime),
-	statistics(inferences, Inferences),
-	statistics(atoms, Atoms),
-	statistics(functors, Functors),
-	statistics(predicates, Predicates),
-	statistics(modules, Modules),
-	statistics(codes, Codes),
-	statistics(locallimit, LocalLimit),
-	statistics(globallimit, GlobalLimit),
-	statistics(traillimit, TrailLimit),
-
-	format(Out, '~3f seconds cpu time for ~D inferences~n',
-				    [Cputime, Inferences]),
-	format(Out, '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
-				    [Atoms, Functors, Predicates, Modules, Codes]),
-	format(Out, '                       Limit    Allocated       In use~n', []),
-	format(Out, 'Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
-	       [LocalLimit, Local, LocalUsed]),
-	format(Out, 'Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
-	       [GlobalLimit, Global, GlobalUsed]),
-	format(Out, 'Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n~n',
-	       [TrailLimit, Trail, TrailUsed]),
-
-	gc_statistics(Out),
-	agc_statistics(Out),
-	shift_statistics(Out),
-	thread_statistics(Out).
-
-gc_statistics(Out) :-
-	statistics(collections, Collections),
-	Collections > 0, !,
-	statistics(collected, Collected),
-	statistics(gctime, GcTime),
-
-	format(Out, '~D garbage collections gained ~D bytes in ~3f seconds.~n',
-	       [Collections, Collected, GcTime]).
-gc_statistics(_).
-
-agc_statistics(Out) :-
-	catch(statistics(agc, Agc), _, fail),
-	Agc > 0, !,
-	statistics(agc_gained, Gained),
-	statistics(agc_time, Time),
-	format(Out, '~D atom garbage collections gained ~D atoms in ~3f seconds.~n',
-	       [Agc, Gained, Time]).
-agc_statistics(_).
-
-shift_statistics(Out) :-
-	statistics(local_shifts, LS),
-	statistics(global_shifts, GS),
-	statistics(trail_shifts, TS),
-	(   LS > 0
-	;   GS > 0
-	;   TS > 0
-	), !,
-	statistics(shift_time, Time),
-	format(Out, 'Stack shifts: ~D local, ~D global, ~D trail in ~3f seconds.~n',
-	       [LS, GS, TS, Time]).
-shift_statistics(_).
-
-thread_statistics(Out) :-
-	current_prolog_flag(threads, true), !,
-	statistics(threads, Active),
-	statistics(threads_created, Created),
-	statistics(thread_cputime, CpuTime),
-	Finished is Created - Active,
-	format(Out, '~D threads, ~D finished threads used ~3f seconds.~n',
-	       [Active, Finished, CpuTime]).
-thread_statistics(_).
 
 
 		/********************************
