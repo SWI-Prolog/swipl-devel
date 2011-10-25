@@ -1623,6 +1623,10 @@ AC_TRY_COMPILE(
 [ int x=0;
   void *addr;
 
+#ifdef __llvm__
+  ERROR: Label addresses compile on LLVM, but they are *very* slow.
+#endif
+
   addr = &&label2;
   goto *addr;
 

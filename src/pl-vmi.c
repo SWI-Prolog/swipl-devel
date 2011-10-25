@@ -3771,9 +3771,15 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 }
 
 
+/* (*) Work around a bug in the LLVM.  Just calling a dummy function avoids
+   a crash here!?  If we do not use GCC's threaded-code support it appears
+   that the bug is gone too.  LLVM's support for this GCC extension is poor
+   anyway: it runs, but is *much* slower than the switch.
+*/
+
 VMI(I_EXITCLEANUP, 0, 0, ())
 {
-#ifdef __llvm__
+#if defined(__llvm__) && defined(VMCODE_IS_ADDRESS) /* (*) */
   llvm_dummy();
 #endif
 
