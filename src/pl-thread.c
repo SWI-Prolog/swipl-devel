@@ -4320,8 +4320,8 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 */
 
 					/* see also pl-nt.c */
-#define nano * 0.0000001
-#define ntick 1.0			/* manual says 100.0 ??? */
+#define nano * 0.000000001
+#define ntick 100.0
 
 double
 ThreadCPUTime(PL_local_data_t *ld, int which)
@@ -4350,7 +4350,6 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 
     t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
     t += (double)p->dwLowDateTime  * (ntick nano);
-
     return t;
   }
 
