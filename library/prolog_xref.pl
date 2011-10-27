@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2006, University of Amsterdam
+    E-mail:        J.Wielemaker@cs.vu.nl
+    WWW:           http://www.swi-prolog.org/projects/xpce/
+    Copyright (C): 1985-2011, University of Amsterdam
+			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -134,6 +135,9 @@ This code is used in two places:
 
 :- dynamic
 	meta_goal/2.
+
+:- public
+	called_by/2.				% used by option analyzer
 
 called_by(Goal, Called) :-
 	prolog:called_by(Goal, Called), !.
