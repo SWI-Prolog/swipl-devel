@@ -258,7 +258,7 @@ debug_output(File, Stream) :-
 
 %%	assertion(:Goal) is det.
 %
-%	Acts similar to C assert() macro.  It has no effect of Goal
+%	Acts similar to C assert() macro.  It has no effect if Goal
 %	succeeds.  If Goal fails it prints a message, a stack-trace
 %	and finally traps the debugger.
 
