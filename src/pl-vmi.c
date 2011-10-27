@@ -3974,6 +3974,7 @@ b_throw:
 	    PL_clear_exception();
 	    SAVE_REGISTERS(qid);
 	    discardChoicesAfter(FR, FINISH_CUT PASS_LD);
+	    resumeAfterException();	/* reinstantiate spare stacks */
 	    LOAD_REGISTERS(qid);
 	    DEF = FR->predicate;
 	    goto retry_continue;
