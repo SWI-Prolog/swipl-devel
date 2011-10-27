@@ -467,7 +467,7 @@ load_settings(Setting, In, Options) :-
 
 read_setting(In, Term) :-
 	read_term(In, Term,
-		  [ errors(dec10)
+		  [ syntax_errors(dec10)
 		  ]).
 
 %%	store_setting(Term, +Options)
