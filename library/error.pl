@@ -35,8 +35,8 @@
 	    existence_error/2,		% +Type, +Term
 	    permission_error/3,		% +Action, +Type, +Term
 	    instantiation_error/1,	% +Term
-	    representation_error/1, 	% +Reason
-	    syntax_error/1, 		% +Culprit
+	    representation_error/1,	% +Reason
+	    syntax_error/1,		% +Culprit
 
 	    must_be/2,			% +Type, +Term
 	    is_of_type/2		% +Type, +Term
@@ -162,7 +162,7 @@ syntax_error(Culprit) :-
 %	=chars=, =codes=, =text=, =compound=, =constant=, =float=,
 %	=integer=, =nonneg=, =positive_integer=, =negative_integer=,
 %	=nonvar=, =number=, =oneof=, =list=, =list_or_partial_list=,
-%	=symbol=, =var=, =rational= and =string=.
+%	=symbol=, =var=, =rational=, =encoding= and =string=.
 %
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
@@ -177,6 +177,7 @@ syntax_error(Culprit) :-
 %	| positive_integer | Integer > 0 |
 %	| negative_integer | Integer < 0 |
 %	| oneof(L) | Ground term that is member of L |
+%	| encoding | Valid name for a character encoding |
 %	| list(Type) | Proper list with elements of Type |
 %	| list_or_partial_list | A list or an open list (ending in a variable |
 %
@@ -261,7 +262,7 @@ has_type(between(L,U), X) :- (   integer(L)
 			     ->  integer(X), between(L,U,X)
 			     ;   number(X), X >= L, X =< U
 			     ).
-has_type(boolean, X) 	  :- (X==true;X==false), !.
+has_type(boolean, X)	  :- (X==true;X==false), !.
 has_type(callable, X)	  :- callable(X).
 has_type(chars,	X)	  :- chars(X).
 has_type(codes,	X)	  :- codes(X).
@@ -278,13 +279,14 @@ has_type(nonvar, X)	  :- nonvar(X).
 has_type(number, X)	  :- number(X).
 has_type(oneof(L), X)	  :- ground(X), memberchk(X, L).
 has_type(proper_list, X)  :- is_list(X).
-has_type(list, X)  	  :- is_list(X).
+has_type(list, X)	  :- is_list(X).
 has_type(list_or_partial_list, X)  :- is_list_or_partial_list(X).
 has_type(symbol, X)	  :- atom(X).
 has_type(var, X)	  :- var(X).
 has_type(rational, X)	  :- rational(X).
 has_type(string, X)	  :- string(X).
 has_type(stream, X)	  :- is_stream(X).
+has_type(encoding, X)	  :- current_encoding(X).
 has_type(list(Type), X)	  :- is_list(X), element_types(X, Type).
 
 chars(Chs) :-
@@ -320,3 +322,17 @@ element_types([H|T], Type) :-
 is_list_or_partial_list(L0) :-
 	'$skip_list'(_, L0,L),
 	( var(L) -> true ; L == [] ).
+
+%%	current_encoding(?Name) is nondet.
+%
+%	True if Name is the name of   a supported encoding. See encoding
+%	option of e.g., open/4.
+
+current_encoding(octet).
+current_encoding(ascii).
+current_encoding(iso_latin_1).
+current_encoding(text).
+current_encoding(utf8).
+current_encoding(unicode_be).
+current_encoding(unicode_le).
+current_encoding(wchar_t).
