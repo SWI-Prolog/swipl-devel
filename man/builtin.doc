@@ -3558,21 +3558,23 @@ On end-of-file, \arg{Char} is unified to the atom \const{end_of_file}.
 Unify \arg{Char} with the next character from \arg{Stream} as a
 one-character-atom.  See also get_char/2, get_byte/2 and get_code/2.
 
-    \predicate{get0}{1}{-Char}
+    \predicate[deprecated]{get0}{1}{-Char}
 Edinburgh version of the ISO get_code/1 predicate. Note that Edinburgh
 prolog didn't support wide characters and therefore technically speaking
 get0/1 should have been mapped to get_byte/1.  The intention of get0/1
 however is to read character codes.
 
-    \predicate{get0}{2}{+Stream, -Char}
+    \predicate[deprecated]{get0}{2}{+Stream, -Char}
 Edinburgh version of the ISO get_code/2 predicate.  See also get0/1.
 
-    \predicate{get}{1}{-Char}
+    \predicate[deprecated]{get}{1}{-Char}
 Read the current input stream and unify the next non-blank character
-with \arg{Char}. \arg{Char} is unified with -1 on end of file.
+with \arg{Char}. \arg{Char} is unified with -1 on end of file.  The
+predicate get/1 operates on character \emph{codes}.  See also get0/1.
 
-    \predicate{get}{2}{+Stream, -Char}
-Read the next non-blank character from \arg{Stream}.
+    \predicate[deprecated]{get}{2}{+Stream, -Char}
+Read the next non-blank character from \arg{Stream}.  See also
+get/1, get0/1 and get0/2.
 
     \predicate[ISO]{peek_byte}{1}{-Byte}
     \nodescription
