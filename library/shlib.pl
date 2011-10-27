@@ -140,11 +140,11 @@ find_library(Spec, Lib) :-
 	find_library2(Spec, Lib).
 
 find_library2(Spec, Lib) :-
-	absolute_file_name(Spec,
+	absolute_file_name(Spec, Lib,
 			   [ file_type(executable),
 			     access(read),
 			     file_errors(fail)
-			   ], Lib), !.
+			   ]), !.
 find_library2(Spec, Spec) :-
 	atom(Spec), !.			% use machines finding schema
 find_library2(foreign(Spec), Spec) :-
@@ -194,9 +194,9 @@ entry(_, default(Function), Function).
 %	with =_=, this prefix is added before calling.
 %
 %	  ==
-%	  	...
-%	  	load_foreign_library(foreign(mylib)),
-%	  	...
+%		...
+%		load_foreign_library(foreign(mylib)),
+%		...
 %	  ==
 %
 %	@param	FileSpec is a specification for absolute_file_name/3.  If searching

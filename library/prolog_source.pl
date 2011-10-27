@@ -291,12 +291,11 @@ prolog_canonical_source(Source, Src) :-
 	var(Source), !,
 	Src = Source.
 prolog_canonical_source(Source, Src) :-
-	absolute_file_name(Source,
+	absolute_file_name(Source, Src,
 			   [ file_type(prolog),
 			     access(read),
 			     file_errors(fail)
-			   ],
-			   Src), !.
+			   ]), !.
 
 
 %%	file_name_on_path(+File:atom, -OnPath) is det.

@@ -1671,9 +1671,9 @@ do_xref_source_file(Spec, File, Options) :-
 	prolog:xref_source_file(Spec, File, Options), !.
 do_xref_source_file(Spec, File, Options) :-
 	option(file_type(Type), Options, prolog),
-	absolute_file_name(Spec,
+	absolute_file_name(Spec, File,
 			   [ file_type(Type),
 			     access(read),
 			     file_errors(fail)
-			   ], File), !.
+			   ]), !.
 

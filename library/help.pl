@@ -200,7 +200,7 @@ pager_stream(Stream) :-
 	open(pipe(Pager), write, Stream).
 
 find_manual(Path) :-
-	absolute_file_name(library('MANUAL'), [access(read)], Path).
+	absolute_file_name(library('MANUAL'), Path, [access(read)]).
 
 find_pager(Pager) :-
 	getenv('PAGER', Pager), !.
