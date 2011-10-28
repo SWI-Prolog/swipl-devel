@@ -1061,11 +1061,6 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   ClauseIndex ci, old;
   ClauseIndex *cip;
 
-  for(old=def->impl.clauses.clause_indexes; old; old=old->next)
-  { if ( old->arg == arg )
-      break;
-  }
-
   DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d) (%s)\n",
 		    predicateName(def), arg, hints->buckets,
 		    hints->list ? "lists" : "clauses"));
@@ -1080,6 +1075,11 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   ci->resize_below = ci->size/4;
 
   LOCKDEF(def);
+  for(old=def->impl.clauses.clause_indexes; old; old=old->next)
+  { if ( old->arg == arg )
+      break;
+  }
+
   if ( !old )				/* this is a new table */
   { ClauseIndex conc;
 
