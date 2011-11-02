@@ -2298,6 +2298,7 @@ next_choice:
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
     { Clause clause;
+      struct clause_choice chp;
 
       DEBUG(3, Sdprintf("    REDO #%ld: Clause in %s\n",
 			loffset(FR),
@@ -2337,12 +2338,12 @@ next_choice:
       clause = CL->value.clause;
       PC     = clause->codes;
       Profile(profRedo(ch->prof_node PASS_LD));
+      chp = ch->value.clause;
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
-      if ( ch->value.clause.cref )
-      { struct clause_choice chp = ch->value.clause;
-	ch = newChoice(CHP_CLAUSE, FR PASS_LD);
+      if ( chp.cref )
+      { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
 	ch->value.clause = chp;
       } else if ( unlikely(debugstatus.debugging) )
       { newChoice(CHP_DEBUG, FR PASS_LD);
