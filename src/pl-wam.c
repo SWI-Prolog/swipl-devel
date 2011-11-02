@@ -1454,6 +1454,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	    fr  = addPointer(fr, offset);
 	    fr2 = addPointer(fr2, offset);
 	    delto = addPointer(delto, offset);
+	    fr2->parent = addPointer(fr2->parent, offset);
 	  }
 #if 0					/* What to do if we have multiple */
 	  if ( exception_term )		/* handlers and multiple exceptions? */
