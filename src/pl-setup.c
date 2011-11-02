@@ -1238,6 +1238,9 @@ stack_malloc(size_t size)
   if ( mem )
   { size_t *sp = mem;
     *sp++ = size;
+#ifdef SECURE_GC
+    memset(sp, 0xFB, size);
+#endif
 
     PL_LOCK(L_MISC);
     GD->statistics.stack_space += size;
@@ -1254,6 +1257,13 @@ stack_realloc(void *old, size_t size)
   size_t osize = *--sp;
   void *mem;
 
+#ifdef SECURE_GC
+  if ( (mem = stack_malloc(size)) )
+  { memcpy(mem, old, (size>osize?osize:size));
+    stack_free(old);
+    return mem;
+  }
+#else
   if ( (mem = realloc(sp, size+sizeof(size_t))) )
   { sp = mem;
     *sp++ = size;
@@ -1263,6 +1273,7 @@ stack_realloc(void *old, size_t size)
     PL_UNLOCK(L_MISC);
     return sp;
   }
+#endif
 
   return NULL;
 }
@@ -1276,6 +1287,9 @@ stack_free(void *mem)
   GD->statistics.stack_space -= osize;
   PL_UNLOCK(L_MISC);
 
+#ifdef SECURE_GC
+  memset(sp, 0xFB, osize+sizeof(size_t));
+#endif
   free(sp);
 }
 
