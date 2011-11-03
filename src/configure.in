@@ -56,7 +56,14 @@ AC_SUBST(DEFSTARTUP)
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
     CPPFLAGS="$CIFLAGS $CPPFLAGS"
-else
+fi
+
+if test ! -z "$COFLAGS"; then
+    CFLAGS="$COFLAGS $CFLAGS"
+    CPPFLAGS="$COFLAGS $CPPFLAGS"
+fi
+
+if test -z "$CIFLAGS" -a -z "$COFLAGS"; then
   if test ! -z "$CFLAGS"; then
     CIFLAGS="$CFLAGS"
   fi

@@ -382,7 +382,7 @@ defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
 swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
-	$(CC) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
+	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
 		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
 
 swipl-ld-build$(EXEEXT_FOR_BUILD):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
