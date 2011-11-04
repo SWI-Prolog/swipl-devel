@@ -47,7 +47,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	aggregate.pl pure_input.pl pio.pl thread_pool.pl terms.pl \
 	charsio.pl portray_text.pl csv.pl persistency.pl fastrw.pl \
 	coinduction.pl ansi_term.pl base32.pl prolog_history.pl \
-	optparse.pl arithmetic.pl writef.pl
+	optparse.pl arithmetic.pl writef.pl predicate_options.pl
 
 # Dialect library files
 
@@ -61,3 +61,4 @@ CIAO=	assertions.pl isomodes.pl regtypes.pl sockets.pl \
 	classic.pl
 CIAO_ENGINE=internals.pl hiord_rt.pl
 ISO=	iso_predicates.pl
+SWI=	syspred_options.pl
