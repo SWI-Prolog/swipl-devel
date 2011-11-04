@@ -353,7 +353,10 @@ derived_predicate_options(PI, Arg, Options) :-
 	      derived_predicate_option(PI, Arg, Option),
 	      Options0),
 	group_pairs_by_key(Options0, Grouped),
-	member(Arg-Options, Grouped).
+	member(Arg-Options1, Grouped),
+	PI = M:_,
+	phrase(expand_pass_to_options(Options1, M), Options2),
+	sort(Options2, Options).
 
 derived_predicate_option(PI, Arg, Decl) :-
 	current_option_arg(PI, Arg, DefM),
@@ -365,6 +368,31 @@ derived_predicate_option(PI, Arg, Decl) :-
 	;   DefM:'$dyn_pred_option'(Head, Decl, _, [])
 	).
 
+%%	expand_pass_to_options(+OptionsIn, +Module, -OptionsOut)// is det.
+%
+%	Expand the options of pass_to(PI,Arg) if PI  does not refer to a
+%	public predicate.
+
+expand_pass_to_options([], _) --> [].
+expand_pass_to_options([H|T], M) -->
+	expand_pass_to(H, M),
+	expand_pass_to_options(T, M).
+
+expand_pass_to(pass_to(PI, Arg), Module) -->
+	{ strip_module(Module:PI, M, Name/Arity),
+	  functor(Head, Name, Arity),
+	  \+ (   predicate_property(M:Head, exported)
+	     ;   predicate_property(M:Head, public)
+	     ;   M == system
+	     ), !,
+	  current_predicate_options(M:Name/Arity, Arg, Options)
+	},
+	list(Options).
+expand_pass_to(Option, _) -->
+	[Option].
+
+list([]) --> [].
+list([H|T]) --> [H], list(T).
 
 %%	derived_predicate_options(+Module) is det.
 %
