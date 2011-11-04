@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -95,6 +96,8 @@ access, loading and saving of settings.
 	set_setting_default(:, +),
 	current_setting(:),
 	restore_setting(:).
+
+:- predicate_options(load_settings/2, 2, [undefined(oneof([load,error]))]).
 
 curr_setting(Name, Module, Type, Default, Comment, Src) :-
 	current_setting(Name, Module, Type, Default0, Comment, Src),
