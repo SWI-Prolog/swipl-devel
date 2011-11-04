@@ -373,7 +373,14 @@ derived_predicate_option(PI, Arg, Decl) :-
 
 derived_predicate_options(Module) :-
 	findall(predicate_options(Module:PI, Arg, Options),
-		derived_predicate_options(Module:PI, Arg, Options),
+		( derived_predicate_options(Module:PI, Arg, Options),
+		  PI = Name/Arity,
+		  functor(Head, Name, Arity),
+		  (   predicate_property(Module:Head, exported)
+		  ->  true
+		  ;   predicate_property(Module:Head, public)
+		  )
+		),
 		Decls0),
 	maplist(qualify_decl(Module), Decls0, Decls1),
 	sort(Decls1, Decls),
