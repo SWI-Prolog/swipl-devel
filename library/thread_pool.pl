@@ -78,6 +78,10 @@ otherwise during startup of the application.
 
 :- meta_predicate
 	thread_create_in_pool(+, 0, -, +).
+:- predicate_options(thread_create_in_pool/4, 4,
+                     [ wait(boolean),
+                       pass_to(system:thread_create/3, 3)
+                     ]).
 
 
 %%	thread_pool_create(+Pool, +Size, +Options) is det.
