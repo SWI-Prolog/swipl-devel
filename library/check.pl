@@ -50,6 +50,8 @@ loaded Prolog program.
 @see	prolog_xref.pl
 */
 
+:- predicate_options(list_undefined/1, 1, [scan(oneof([local,global]))]).
+
 %%	check
 %
 %	Run all consistency checks defined in this library

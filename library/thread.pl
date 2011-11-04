@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2002-2007, University of Amsterdam
+    Copyright (C): 2002-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -42,6 +43,15 @@
 :- meta_predicate
 	concurrent(+, :, +),
 	first_solution(-, :, +).
+
+:- predicate_options(concurrent/3, 3,
+		     [ pass_to(system:thread_create/3, 3)
+		     ]).
+:- predicate_options(first_solution/3, 3,
+		     [ on_fail(oneof([stop,continue])),
+		       on_error(oneof([stop,continue])),
+		       pass_to(system:thread_create/3, 3)
+		     ]).
 
 /** <module> High level thread primitives
 
@@ -120,11 +130,7 @@ following consequences:
 concurrent(1, M:List, _) :- !,
 	maplist(M:call, List).
 concurrent(N, M:List, Options) :-
-	(   current_prolog_flag(max_threads, MaxThreads)
-	->  Max is MaxThreads - 1,	% TBD: actually - already running
-	    must_be(between(1, Max), N)
-	;   must_be(positive_integer, N)
-	),
+	must_be(positive_integer, N),
 	must_be(list(callable), List),
 	length(List, JobCount),
 	message_queue_create(Done),

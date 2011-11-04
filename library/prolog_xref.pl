@@ -103,6 +103,10 @@ This code is used in two places:
 	places.
 */
 
+:- predicate_options(xref_source_file/4, 4,
+		     [ file_type(file_type(oneof([txt,prolog])))
+		     ]).
+
 
 		 /*******************************
 		 *	      HOOKS		*

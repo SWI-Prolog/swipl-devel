@@ -405,6 +405,10 @@ list([H|T]) --> [H], list(T).
 %	print them to the current output.
 
 derived_predicate_options(Module) :-
+	var(Module), !,
+	forall(current_module(Module),
+	       derived_predicate_options(Module)).
+derived_predicate_options(Module) :-
 	findall(predicate_options(Module:PI, Arg, Options),
 		( derived_predicate_options(Module:PI, Arg, Options),
 		  PI = Name/Arity,
@@ -417,8 +421,13 @@ derived_predicate_options(Module) :-
 		Decls0),
 	maplist(qualify_decl(Module), Decls0, Decls1),
 	sort(Decls1, Decls),
-	forall(member(Decl, Decls),
-	       portray_clause((:-Decl))).
+	(   Decls \== []
+	->  format('~N~n~n% Predicate option declarations for module ~q~n~n',
+		   [Module]),
+	    forall(member(Decl, Decls),
+		   portray_clause((:-Decl)))
+	;   true
+	).
 
 qualify_decl(M,
 	     predicate_options(PI0, Arg, Options0),

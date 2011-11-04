@@ -75,6 +75,12 @@ users of the library are:
 	prolog:xref_open_source/2.		% +SourceId, -Stream
 
 
+:- predicate_options(prolog_read_source_term/4, 4,
+		     [ process_comment(boolean),
+		       pass_to(system:read_term/3, 3)
+		     ]).
+
+
 		 /*******************************
 		 *	     READING		*
 		 *******************************/

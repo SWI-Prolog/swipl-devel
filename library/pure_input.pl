@@ -54,6 +54,11 @@ than compensated for by using block reads based on read_pending_input/3.
 @author Jan Wielemaker
 */
 
+:- predicate_options(phrase_from_file/3, 3,
+		     [ buffer_size(positive_integer),
+		       pass_to(system:open/4, 4)
+		     ]).
+
 %%	phrase_from_file(:Grammar, +File) is nondet.
 %
 %	Process the content of File  using   the  DCG  rule Grammar. The

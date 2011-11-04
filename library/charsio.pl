@@ -52,6 +52,8 @@
 	with_output_to_chars(0, -, ?),
 	with_output_to_chars(0, -, -, ?).
 
+:- predicate_options(read_term_from_chars/3, 3,
+		     [pass_to(system:read_term/3, 3)]).
 
 /** <module> I/O on Lists of Character Codes
 

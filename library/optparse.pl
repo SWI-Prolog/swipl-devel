@@ -320,6 +320,12 @@ parameter style above (perhaps with asserting appl_config/2).
 @tbd: validation? e.g, numbers; file path existence; one-out-of-a-set-of-atoms
 */
 
+:- predicate_options(opt_parse/5, 5,
+		     [ allow_empty_flag_spec(boolean),
+		       duplicated_flags(oneof([keepfirst,keeplast,keepall])),
+		       output_functor(atom),
+		       suppress_empty_meta(boolean)
+		     ]).
 
 %%   opt_arguments(+OptsSpec, -Opts, -PositionalArgs) is det
 %

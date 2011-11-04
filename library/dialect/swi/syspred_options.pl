@@ -151,6 +151,3 @@
 :- predicate_options(system:mutex_create/2, 2,
 		     [ alias(atom)
 		     ]).
-:- predicate_options(system:pce_dispatch/1, 1,
-		     [ pass_to(thread_create/3, 3)
-		     ]).
