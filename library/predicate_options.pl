@@ -522,9 +522,10 @@ check_clause((Head:-Body), M, ClauseRef, Action) :- !,
 	        TermPos = term_position(_,_,_,_,[_,BodyPos]),
 	        catch(check_body(Body, M, BodyPos, Action),
 		      error(Formal, ArgPos), true),
-		compound(ArgPos)
-	    ->  arg(1, ArgPos, CharPos),
-		Location = filepos(File, CharPos)
+		compound(ArgPos),
+		arg(1, ArgPos, CharPos),
+		integer(CharPos)
+	    ->	Location = filepos(File, CharPos)
 	    ;   Location = clause(ClauseRef),
 		E = error(Formal, _)
 	    ),
