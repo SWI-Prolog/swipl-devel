@@ -39,7 +39,7 @@
 	  ]).
 :- set_prolog_flag(generate_debug_info, false).
 
-/** Old-style formatted write
+/** <module> Old-style formatted write
 
 This library provides writef/1 and   friends. These predicates originate
 from Edinburgh C-Prolog and and provided for compatibility purposes. New
