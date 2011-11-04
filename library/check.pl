@@ -216,6 +216,7 @@ list_redefined_ :-
 	(   global_module(Super),
 	    Super \== Module,
 	    '$c_current_predicate'(_, Super:Head),
+	    \+ redefined_ok(Head),
 	    '$syspreds':'$defined_predicate'(Super:Head),
 	    \+ predicate_property(Super:Head, (dynamic)),
 	    \+ predicate_property(Super:Head, imported_from(Module)),
@@ -226,6 +227,9 @@ list_redefined_ :-
 	fail.
 list_redefined_.
 
+redefined_ok('$mode'(_,_)).
+redefined_ok('$pldoc'(_,_,_,_)).
+redefined_ok('$pred_option'(_,_,_,_)).
 
 global_module(user).
 global_module(system).
