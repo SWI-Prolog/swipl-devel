@@ -253,17 +253,17 @@ add_attr(Var, Value) :-
 	;   put_attr(Var, predicate_options, [Value])
 	).
 
-system:option_type(Type, Arg) :-
+system:predicate_option_type(Type, Arg) :-
 	var(Arg), !,
 	add_attr(Arg, option_type(Type)).
-system:option_type(Type, Arg) :-
+system:predicate_option_type(Type, Arg) :-
 	must_be(Type, Arg).
 
 
-system:option_mode(Mode, Arg) :-
+system:predicate_option_mode(Mode, Arg) :-
 	var(Arg), !,
 	add_attr(Arg, option_mode(Mode)).
-system:option_mode(Mode, Arg) :-
+system:predicate_option_mode(Mode, Arg) :-
 	check_mode(Mode, Arg).
 
 check_mode(input, Arg) :-
@@ -297,8 +297,8 @@ option_goals([H|T], Var) -->
 	option_goal(H, Var),
 	option_goals(T, Var).
 
-option_goal(option_type(Type), Var) --> [option_type(Type, Var)].
-option_goal(option_mode(Mode), Var) --> [option_mode(Mode, Var)].
+option_goal(option_type(Type), Var) --> [predicate_option_type(Type, Var)].
+option_goal(option_mode(Mode), Var) --> [predicate_option_mode(Mode, Var)].
 
 
 		 /*******************************
@@ -325,11 +325,11 @@ current_predicate_option_decl(PI, Arg, Option) :-
 	current_predicate_option(PI, Arg, Option0),
 	Option0 =.. [Name,Value],
 	copy_term(Value,_,Goals),
-	(   memberchk(option_mode(output, _), Goals)
+	(   memberchk(predicate_option_mode(output, _), Goals)
 	->  ModeAndType = -(Type)
 	;   ModeAndType = Type
 	),
-	(   memberchk(option_type(Type, _), Goals)
+	(   memberchk(predicate_option_type(Type, _), Goals)
 	->  true
 	;   Type = any
 	),

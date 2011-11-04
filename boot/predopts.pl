@@ -96,14 +96,14 @@ option_clause(Option, _, _, _) -->
 	{ throw(error(type_error(option_specifier, Option)))
 	}.
 
-mode_and_type(-Type, A, (option_mode(output, A), Body)) :- !,
+mode_and_type(-Type, A, (predicate_option_mode(output, A), Body)) :- !,
 	type_goal(Type, A, Body).
 mode_and_type(+Type, A, Body) :- !,
 	type_goal(Type, A, Body).
 mode_and_type(Type, A, Body) :-
 	type_goal(Type, A, Body).
 
-type_goal(Type, A, option_type(Type, A)).
+type_goal(Type, A, predicate_option_type(Type, A)).
 
 
 %%	canonical_pi(+PIIn, -PIout)
