@@ -32,7 +32,7 @@
 	    current_predicate_option/3,		% ?PI, ?Arg, ?Option
 	    current_option_arg/2,		% ?PI, ?Arg
 						% Create declarations
-	    current_predicate_options/3,	% ?PI, ?Arg, ?Option
+	    current_predicate_options/3,	% ?PI, ?Arg, ?Options
 	    assert_predicate_options/4,		% +PI, +Arg, +Options, ?New
 	    retractall_predicate_options/0,
 	    derived_predicate_options/3,	% :PI, ?Arg, ?Options
