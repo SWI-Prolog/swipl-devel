@@ -235,11 +235,16 @@ pred_option(M:Head, Option) :-
 	pred_option(M:Head, Option, []).
 
 pred_option(M:Head, Option, Seen) :-
-	(   current_predicate(M:'$pred_option'/4),
+	(   has_static_option_decl(M),
 	    M:'$pred_option'(Head, _, Option, Seen)
-	;   current_predicate(M:'$dyn_pred_option'/4),
+	;   has_dynamic_option_decl(M),
 	    M:'$dyn_pred_option'(Head, _, Option, Seen)
 	).
+
+has_static_option_decl(M) :-
+	'$c_current_predicate'(_, M:'$pred_option'(_,_,_,_)).
+has_dynamic_option_decl(M) :-
+	'$c_current_predicate'(_, M:'$dyn_pred_option'(_,_,_,_)).
 
 
 
@@ -362,8 +367,8 @@ derived_predicate_option(PI, Arg, Decl) :-
 	current_option_arg(PI, Arg, DefM),
 	PI = _:Name/Arity,
 	functor(Head, Name, Arity),
-	current_predicate(DefM:'$dyn_pred_option'/4),
-	(   current_predicate(DefM:'$pred_option'/4),
+	has_dynamic_option_decl(DefM),
+	(   has_static_option_decl(DefM),
 	    DefM:'$pred_option'(Head, Decl, _, [])
 	;   DefM:'$dyn_pred_option'(Head, Decl, _, [])
 	).
@@ -613,13 +618,16 @@ check_meta_args(_,_,_,_, _, _).
 check_xref_called([], _, _).
 check_xref_called([H|T], M, Action) :-
 	(   H = G+N
-	->  extend(G, N, G2),
-	    check_body(G2, M, _, Action)
+	->  (   extend(G, N, G2)
+	    ->	check_body(G2, M, _, Action)
+	    ;	true
+	    )
 	;   check_body(H, M, _, Action)
 	),
 	check_xref_called(T, M, Action).
 
 extend(Goal, N, GoalEx) :-
+	callable(Goal),
 	Goal =.. List,
 	length(Extra, N),
 	append(List, Extra, ListEx),
@@ -726,12 +734,18 @@ processes(Opt, Spec) :-
 
 %%	option_decl(:Head, +Action) is det.
 %
-%	Add new declarations based on attributes   left  by the analisis
-%	pass.
+%	Add new declarations based on attributes   left  by the analysis
+%	pass. We do not add declarations   for system modules or modules
+%	that already contain static declarations.
+%
+%	@tbd	Should we add a mode to include generating declarations
+%		for system modules and modules with static declarations?
 
 option_decl(_, check) :- !.
 option_decl(M:_, _) :-
 	system_module(M), !.
+option_decl(M:_, _) :-
+	has_static_option_decl(M), !.
 option_decl(M:Head, _) :-
 	arg(AP, Head, QA),
 	remove_qualifier(QA, A),
