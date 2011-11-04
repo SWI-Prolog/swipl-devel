@@ -53,6 +53,16 @@ implementation if the shared object cannot be found.
 @see library(pure_input) allows for processing files with DCGs.
 */
 
+:- predicate_options(read_file_to_codes/3, 3,
+		     [ tail(list_or_partial_list),
+		       pass_to(system:open/4, 4)
+		     ]).
+:- predicate_options(read_file_to_terms/3, 3,
+		     [ tail(list_or_partial_list),
+		       pass_to(read_stream_to_terms/4, 4),
+		       pass_to(system:open/4, 4)
+		     ]).
+
 :- volatile
 	read_line_to_codes/2,
 	read_line_to_codes/3,
