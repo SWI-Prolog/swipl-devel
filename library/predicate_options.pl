@@ -801,4 +801,4 @@ new_decls([H|T]) -->
 		 *	SYSTEM DECLARATIONS	*
 		 *******************************/
 
-:- include(library(dialect/swi/syspred_options)).
+:- use_module(library(dialect/swi/syspred_options)).
