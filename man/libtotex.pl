@@ -15,6 +15,13 @@ libtotex(Lib, Out, Options) :-
 		  | Options
 		  ]).
 
+libtotex(Options, TxtFile) :-
+	file_name_extension(Base, txt, TxtFile), !,
+        file_name_extension(Base, tex, TexFile),
+	doc_latex(TxtFile, TexFile,
+		  [ stand_alone(false)
+		  | Options
+		  ]).
 libtotex(Options, LibAtom) :-
 	atom_to_term(LibAtom, Term, _),
 	must_be(ground, Term),
@@ -46,6 +53,13 @@ strip(In, Code, Out) :-
 	delete(Codes0, Code, Codes),
 	atom_codes(Out, Codes).
 
+load_prolog([], []).
+load_prolog([load(File)|T0], T) :- !,
+	user:consult(File),
+	load_prolog(T0, T).
+load_prolog([H|T0], [H|T]) :-
+	load_prolog(T0, T).
+
 
 %%	libtotex
 %
@@ -56,7 +70,8 @@ libtotex :-
 
 main(Argv) :-
 	partition(is_option, Argv, OptArgs, Files),
-	maplist(to_option, OptArgs, Options),
+	maplist(to_option, OptArgs, AllOptions),
+	load_prolog(AllOptions, Options),
 	maplist(libtotex(Options), Files).
 
 is_option(Arg) :-
@@ -69,3 +84,9 @@ to_option(Opt, output(TexBase)) :-
 	atom_concat('--out=', TexBase, Opt).
 to_option(Opt, outdir(Dir)) :-
 	atom_concat('--outdir=', Dir, Opt).
+to_option(Opt, load(File)) :-
+	atom_concat('--load=', Atom, Opt),
+	atom_to_term(Atom, File, _).
+to_option(Opt, load(library(File))) :-
+	atom_concat('--lib=', File, Opt).
+

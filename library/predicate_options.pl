@@ -29,11 +29,13 @@
 
 :- module(predicate_options,
 	  [ predicate_options/3,		% +PI, +Arg, +Options
-	    current_predicate_option/3,		% ?PI, ?Arg, ?Option
+	    assert_predicate_options/4,		% +PI, +Arg, +Options, ?New
+
 	    current_option_arg/2,		% ?PI, ?Arg
+	    current_predicate_option/3,		% ?PI, ?Arg, ?Option
+	    check_predicate_option/3,		% +PI, +Arg, +Option
 						% Create declarations
 	    current_predicate_options/3,	% ?PI, ?Arg, ?Options
-	    assert_predicate_options/4,		% +PI, +Arg, +Options, ?New
 	    retractall_predicate_options/0,
 	    derived_predicate_options/3,	% :PI, ?Arg, ?Options
 	    derived_predicate_options/1,	% +Module
@@ -138,11 +140,30 @@ Below, we describe some use-cases.
 %	  accepted by must_be/2.
 %
 %	  * pass_to(:PI,Arg)
-%	  Options are passed to the indicated predicate.
+%	  The option-list is passed to the indicated predicate.
 %
-%	This predicate is normally used as a directive, in which case it
-%	is processed by expand_term/2. If  predicate_options/3 is called
-%	as a predicate, the information is asserted into the database.
+%	Below is an example that   processes  the option header(boolean)
+%	and passes all options to open/4:
+%
+%	  ==
+%	  :- predicate_options(write_xml_file/3, 3,
+%			       [ header(boolean),
+%			         pass_to(open/4, 4)
+%			       ]).
+%
+%	  write_xml_file(File, XMLTerm, Options) :-
+%	      open(File, write, Out, Options),
+%	      (   option(header(true), Option, true)
+%	      ->  write_xml_header(Out)
+%	      ;   true
+%	      ),
+%	      ...
+%	  ==
+%
+%	This predicate may  only  be  used   as  a  _directive_  and  is
+%	processed  by  expand_term/2.  Option  processing    can  be  be
+%	specified at runtime using  assert_predicate_options/3, which is
+%	intended to support program analysis.
 
 predicate_options(PI, Arg, Options) :-
 	throw(error(context_error(nodirective,
@@ -201,7 +222,8 @@ rename_clause(Head, Head, _, _).
 
 %%	current_option_arg(:PI, ?Arg) is nondet.
 %
-%	True when Arg of PI processes options
+%	True when Arg of PI processes   predicate options. Which options
+%	are processed can be accessed using current_predicate_option/3.
 
 current_option_arg(Module:Name/Arity, Arg) :-
 	current_option_arg(Module:Name/Arity, Arg, _DefM).
@@ -221,15 +243,51 @@ current_option_arg(M:Name/Arity, Arg, M) :-
 
 %%	current_predicate_option(:PI, ?Arg, ?Option) is nondet.
 %
-%	True when Arg of PI processes Option.
+%	True when Arg of PI processes Option. For example, the following
+%	is true:
+%
+%	  ==
+%	  ?- current_predicate_option(open/4, 4, type(text)).
+%	  true.
+%	  ==
+%
+%	This predicate is intended to   support  conditional compilation
+%	using      if/1      ...      endif/0.        The      predicate
+%	current_predicate_options/3 can be  used  to   access  the  full
+%	capabilities of a predicate.
 
 current_predicate_option(Module:PI, Arg, Option) :-
 	current_option_arg(Module:PI, Arg, DefM),
 	PI = Name/Arity,
 	functor(Head, Name, Arity),
 	arg(Arg, Head, A),
-	pred_option(DefM:Head, Option),
+	catch(pred_option(DefM:Head, Option),
+	      error(type_error(_,_),_),
+	      fail),
 	arg(1, Option, A).
+
+%%	check_predicate_option(:PI, +Arg, +Option) is det.
+%
+%	Similar to current_predicate_option/3, but   intended to support
+%	runtime checking.
+%
+%	@error	existence_error(option, OptionName) if the option is not
+%		supported by PI.
+%	@error	type_error(Type, Value) if the option is supported but
+%		the value does not match the option type. See must_be/2.
+
+check_predicate_option(Module:PI, Arg, Option) :-
+	current_option_arg(Module:PI, Arg, DefM),
+	PI = Name/Arity,
+	functor(Head, Name, Arity),
+	arg(Arg, Head, A),
+	arg(1, Option, A),
+	(   pred_option(DefM:Head, Option)
+	->  true
+	;   functor(Option, OptionName, _),
+	    existence_error(option, OptionName)
+	).
+
 
 pred_option(M:Head, Option) :-
 	pred_option(M:Head, Option, []).

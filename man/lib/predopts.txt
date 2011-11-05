@@ -1,0 +1,159 @@
+---++ The strength and weakness of predicate options
+
+Many ISO predicates accept options,  e.g., open/4, write_term/3. Options
+offer an attractive alternative to   proliferation  into many predicates
+and using high-arity predicates. Properly defined   and  used, they also
+form a mechanism for extending the API   of  both system and application
+predicates  without  breaking  portability.    I.e.,   previously  fixed
+behaviour can be replaced by dynamic   behaviour controlled by an option
+where the default  is  the  previously   defined  fixed  behaviour.  The
+alternative to using options  is  to   add  an  additional  argument and
+maintain the previous definition. While  a   series  of  predicates with
+increasing  arity  is  adequate  for  a    small  number  of  additional
+parameters, the untyped positional argument   handling of Prolog quickly
+makes this unmanageable.
+
+The ISO standard uses the extensibility   offered by options by allowing
+implementations to extend the set  of   accepted  options. While options
+form a perfect solution to  maintain   backward  portability in a linear
+development model, it is  not  well   equipped  to  deal with concurrent
+branches because
+
+    1. There is no API to find which options are supported in a
+    particular implementation.
+    2. While the portability problem caused by a missing predicate in
+    Prolog _A_ can easily be solved by implementing this predicate, it
+    is much harder to add processing of an additional option to an
+    already existing predicate.
+
+Different Prolog implementations can be   seen as concurrent development
+branches of the Prolog language.  Different   sets  of supported options
+pose a serious portability issue. Using   an option _O_ that establishes
+the desired behaviour on system _A_ leads  (on most systems) to an error
+or system _B_. Porting may require several actions:
+
+    - Drop _O_ (if the option is not vital, such as the layout options
+      to write_term/3)
+    - Replace _O_ by _O2_ (i.e., a differently named option doing the
+      same)
+    - Something else (cannot be ported; requires a totally
+      different approach, etc.)
+
+Predicates that process options are particularly  a problem when writing
+a compatibility layer to run programs developed for System _A_ on System
+_B_ because complete emulation  is  often   hard,  may  cause  a serious
+slowdown and is often not   needed  because the application-to-be-ported
+only uses options that are shared  by all target Prolog implementations.
+Unfortunately,  the  consequences  of  a  partial  emulation  cannot  be
+assessed by tools.
+
+
+---++ Options as arguments or environment?
+
+We distinguish two views on options. One   is  to see them as additional
+parameters that require strict existence,   type and domain-checking and
+the other is to consider them   `locally  scoped environment variables'.
+Most systems adopt the first option.   SWI-Prolog  adopts the second: it
+silently ignores options that are not supported but does type and domain
+checking of option-values. The `environment' view   is  commonly used in
+applications to create predicates  supporting   more  options  using the
+skeleton below. This way  of  programming   requires  that  _pred1_  and
+_pred2_ do not interpret the  same   option  differently. In cases where
+this is not true, the options  must   be  distributed by _some_pred_. We
+have been using this programming style for many years and in practice it
+turns out that the need for  active   distribution  of  options is rare.
+I.e.,  options  either  have  distinct   names  or  multiple  predicates
+implement the same option but this has the desired effect. An example of
+the latter is the =encoding= option, which typically needs to be applied
+consistently.
+
+  ==
+  some_pred(..., Options) :-
+	pred1(..., Options),
+	pred2(..., Options).
+  ==
+
+As stated before, options provide a   readable alternative to high-arity
+predicates and offer a robust mechanism to   evolve  the API, but at the
+cost of some runtime overhead and   weaker consistency checking, both at
+compiletime and runtime. From our experience, the `environment' approach
+is productive, but the consequence is that mistyped options are silently
+ignored. The option infrastructure described in   this  section tries to
+remedy these problems.
+
+---++ Improving on the current situation
+
+Whether we see options  as  arguments   or  locally  scoped  environment
+variables, the most obvious way to improve   on the current situation is
+to provide reflective support for options:   discover that an argument is
+an option-list and find what options  are supported. Reflective access to
+options can be used by the compiler  and development environment as well
+as by the runtime system to warn or throw errors.
+
+
+---+++ Options as types
+
+An obvious approach to deal with  options   is  to  define the different
+possible option values as a type and   type  the argument that processes
+the option as list(<option_type>),  as   illustrated  below. Considering
+options as types fully covers the  case   where  we  consider options as
+additional parameters.
+
+  ==
+  :- type open_option ---> type(stream_type) |
+			   alias(atom) | ... .
+  :- pred open(source_sink, open_mode, stream, list(open_option)).
+  ==
+
+There are three reasons for considering a different approach:
+
+  - There is no consensus about types in the Prolog world, neither about
+  what types should look like, nor whether or not they are desirable. It
+  is not likely that this debate will be resolved shortly.
+
+  - Considering options as types does not support the `environment'
+  view, which we consider the most productive.
+
+  - Even when using types, we need reflective access to what
+  options are provided in order to be able to write
+  compile or runtime conditional code.
+
+
+---+++ Reflective access to options
+
+From the above, we conclude that we   require  reflective access to find
+out whether an option is supported and valid for a particular predicate.
+Possible option values must be described by types. Due to lack of a type
+system,  we  use  library(error)  to  describe  allowed  option  values.
+Predicate options are declared using predicate_options/3:
+
+  * [[predicate_options/3]]
+  * [[assert_predicate_options/4]]
+
+The predicates below  realise  the  support   for  compile  and  runtime
+checking for supported options.
+
+  * [[current_predicate_option/3]]
+  * [[check_predicate_option/3]]
+
+The predicates below can be used in  a development environment to inform
+the user about supported  options.  PceEmacs   uses  this  for colouring
+option names and values.
+
+  * [[current_option_arg/2]]
+  * [[current_predicate_options/3]]
+
+The  library  can  execute  a  complete  check  of  your  program  using
+check_predicate_options/0:
+
+  * [[check_predicate_options/0]].
+
+The library offers predicates that may   be  used to create declarations
+for your application. These predicates are   designed  to cooperate with
+the module system.
+
+  * [[derive_predicate_options/0]]
+  * [[retractall_predicate_options/0]]
+  * [[derived_predicate_options/3]]
+  * [[derived_predicate_options/1]]
+

@@ -47,7 +47,8 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/record.tex lib/clpfd.tex lib/pairs.tex lib/option.tex \
 		lib/apply.tex lib/aggregate.tex lib/threadpool.tex \
 		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
-		lib/csv.tex lib/optparse.tex lib/debug.tex
+		lib/csv.tex lib/optparse.tex lib/debug.tex \
+		lib/predicateoptions.tex lib/predopts.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -192,6 +193,8 @@ lib/csv.tex: ../library/csv.pl
 		$(LIBTOTEX) 'library(csv)'
 lib/lists.tex: ../library/lists.pl
 		$(LIBTOTEX) 'library(lists)'
+lib/predopts.tex: lib/predopts.txt ../library/predicate_options.pl
+		$(LIBTOTEX) --lib=predicate_options lib/predopts.txt
 
 
 ################################################################

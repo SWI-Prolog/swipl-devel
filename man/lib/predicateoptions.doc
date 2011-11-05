@@ -1,0 +1,3 @@
+\libdoc{predicate_options}{Declare option-processing of predicates}
+
+\input{predopts.tex}
