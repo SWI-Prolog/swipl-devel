@@ -80,7 +80,7 @@ fast_write(Term) :-
 
 fast_write(Stream, Term) :-
 	write_term(Stream, Term,
-		   [ attributes(false),
+		   [ attributes(ignore),
 		     ignore_ops(true),
 		     quoted(true),
 		     partial(true)
