@@ -74,12 +74,13 @@ option_clause(Var, _, _, _) -->
 	{ var(Var), !,
 	  throw(error(instantiation_error, _))
 	}.
-option_clause(pass_to(PI, Arg), Head, M, AP) --> !,
-	{ strip_module(M:PI, TM, Name/Arity),
+option_clause(pass_to(PI0, Arg), Head, M, AP) --> !,
+	{ canonical_pi(PI0, PI),
+	  strip_module(M:PI, TM, Name/Arity),
 	  functor(THead, Name, Arity),
 	  arg(Arg, THead, A),
 	  arg(AP, Head, A),
-	  Clause = ('$pred_option'(Head, pass_to(PI, Arg), Opt, Seen) :-
+	  Clause = ('$pred_option'(Head, pass_to(PI0, Arg), Opt, Seen) :-
 		      \+ memberchk(PI-Arg, Seen),
 		      predicate_options:pred_option(TM:THead, Opt, [PI-Arg|Seen]))
 	},
