@@ -3482,7 +3482,7 @@ Write a newline to \arg{Stream}.
     \predicate{put}{1}{+Char}
 Write \arg{Char} to the current output stream, \arg{Char} is either an
 integer-expression evaluating to a character code or an atom of one
-character.  Depreciated.  New code should use put_char/1 or put_code/1.
+character.  Deprecated.  New code should use put_char/1 or put_code/1.
 
     \predicate{put}{2}{+Stream, +Char}
 Write \arg{Char} to \arg{Stream}.  See put/1 for details.
@@ -4373,7 +4373,7 @@ as code-lists and character-lists, expressing the length of the list.%
     \predicate{atom_prefix}{2}{+Atom, +Prefix}
 True if \arg{Atom} starts with the characters from \arg{Prefix}.
 Its behaviour is equivalent to
-\exam{?- sub_atom(\arg{Atom}, 0, _, _, \arg{Prefix})}.  Depreciated.
+\exam{?- sub_atom(\arg{Atom}, 0, _, _, \arg{Prefix})}.  Deprecated.
 
     \predicate[ISO]{sub_atom}{5}{+Atom, ?Before, ?Len, ?After, ?Sub}
 ISO predicate for breaking atoms.  It maintains the following relation:
