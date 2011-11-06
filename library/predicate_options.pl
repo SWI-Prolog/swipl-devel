@@ -284,8 +284,7 @@ check_predicate_option(Module:PI, Arg, Option) :-
 	arg(1, Option, A),
 	(   pred_option(DefM:Head, Option)
 	->  true
-	;   functor(Option, OptionName, _),
-	    existence_error(option, OptionName)
+	;   existence_error(option, Option)
 	).
 
 
@@ -729,14 +728,12 @@ check_option_list([H|T], PI, OptArg, Options, ArgPos, Action) :-
 
 check_option(_, _, _, _, decl) :- !.
 check_option(PI, OptArg, Opt, ArgPos, _) :-
-	catch(current_predicate_option(PI, OptArg, Opt), E, true), !,
+	catch(check_predicate_option(PI, OptArg, Opt), E, true), !,
 	(   var(E)
 	->  true
 	;   E = error(Formal,_),
 	    throw(error(Formal,ArgPos))
 	).
-check_option(_PI, _OptArg, Opt, ArgPos, _) :-
-	throw(error(existence_error(option, Opt), ArgPos)).
 
 
 		 /*******************************
