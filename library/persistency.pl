@@ -42,6 +42,10 @@
 :- use_module(library(error)).
 :- use_module(library(aggregate)).
 
+:- predicate_options(db_attach/2, 2,
+		     [ sync(oneof([close,flush,none]))
+		     ]).
+
 /** <module> Provide persistent dynamic predicates
 
 This module provides simple persistent storage   for one or more dynamic
