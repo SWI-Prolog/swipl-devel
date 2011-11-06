@@ -109,7 +109,10 @@ type_goal(Type, A, predicate_option_type(Type, A)).
 %%	canonical_pi(+PIIn, -PIout)
 
 canonical_pi(M:Name//Arity, M:Name/PArity) :-
-	integer(Arity),
+	integer(Arity), !,
+	PArity is Arity+2.
+canonical_pi(Name//Arity, Name/PArity) :-
+	integer(Arity), !,
 	PArity is Arity+2.
 canonical_pi(PI, PI).
 
