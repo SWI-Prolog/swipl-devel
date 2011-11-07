@@ -235,6 +235,7 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
+		"$(PLBASE)\library\dialect\swi" \
 		"$(PLBASE)\library\dialect\iso" \
 		"$(PLBASE)\library\dialect\sicstus" \
 		"$(PLBASE)\library\dialect\ciao" \
@@ -250,7 +251,7 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idialect iyap isicstus iciao iiso iunicode
+ilib:		iclp idialect iswi iyap isicstus iciao iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
@@ -261,6 +262,10 @@ iclp::
 idialect:	iyap
 		chdir $(PLHOME)\library\dialect & \
 			for %f in ($(DIALECT)) do copy %f "$(PLBASE)\library\dialect"
+
+iswi::
+		chdir $(PLHOME)\library\dialect\swi & \
+			for %f in ($(SWI)) do copy %f "$(PLBASE)\library\dialect\swi"
 
 iyap::
 		chdir $(PLHOME)\library\dialect\yap & \
