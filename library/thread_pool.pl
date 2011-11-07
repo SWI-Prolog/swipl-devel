@@ -109,6 +109,7 @@ otherwise during startup of the application.
 %		internal use by this library.
 
 thread_pool_create(Name, Size, Options) :-
+	must_be(list, Options),
 	pool_manager(Manager),
 	thread_self(Me),
 	thread_send_message(Manager, create_pool(Name, Size, Options, Me)),
