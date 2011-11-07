@@ -260,11 +260,9 @@ current_predicate_option(Module:PI, Arg, Option) :-
 	current_option_arg(Module:PI, Arg, DefM),
 	PI = Name/Arity,
 	functor(Head, Name, Arity),
-	arg(Arg, Head, A),
 	catch(pred_option(DefM:Head, Option),
 	      error(type_error(_,_),_),
-	      fail),
-	arg(1, Option, A).
+	      fail).
 
 %%	check_predicate_option(:PI, +Arg, +Option) is det.
 %
@@ -280,8 +278,6 @@ check_predicate_option(Module:PI, Arg, Option) :-
 	current_option_arg(Module:PI, Arg, DefM),
 	PI = Name/Arity,
 	functor(Head, Name, Arity),
-	arg(Arg, Head, A),
-	arg(1, Option, A),
 	(   pred_option(DefM:Head, Option)
 	->  true
 	;   existence_error(option, Option)

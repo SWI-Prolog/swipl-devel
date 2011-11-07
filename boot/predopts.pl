@@ -67,35 +67,45 @@ qualify(QTerm, _, QTerm).
 
 option_clauses([], _, _, _) --> [].
 option_clauses([H|T], Head, M, A) -->
-	option_clause(H, Head, M, A),
+	option_clause(H, Head, M),
 	option_clauses(T, Head, M, A).
 
-option_clause(Var, _, _, _) -->
+option_clause(Var, _, _) -->
 	{ var(Var), !,
 	  throw(error(instantiation_error, _))
 	}.
-option_clause(pass_to(PI0, Arg), Head, M, AP) --> !,
+option_clause(pass_to(PI0, Arg), Head, M) --> !,
 	{ canonical_pi(PI0, PI),
 	  strip_module(M:PI, TM, Name/Arity),
 	  functor(THead, Name, Arity),
-	  arg(Arg, THead, A),
-	  arg(AP, Head, A),
 	  Clause = ('$pred_option'(Head, pass_to(PI0, Arg), Opt, Seen) :-
 		      \+ memberchk(PI-Arg, Seen),
 		      predicate_options:pred_option(TM:THead, Opt, [PI-Arg|Seen]))
 	},
 	[ M:Clause ].
-option_clause(Option, Head, M, AP) -->
-	{ Option =.. [Name, ModeAndType], !,
-	  Opt =.. [Name, A],
-	  arg(AP, Head, A),
-	  mode_and_type(ModeAndType, A, Body),
+option_clause(Option, Head, M) -->
+	{ Option =.. [Name|ModeAndTypes], !,
+	  modes_and_types(ModeAndTypes, Args, Body),
+	  Opt =.. [Name|Args],
 	  Clause = ('$pred_option'(Head, Option, Opt, _) :- Body)
 	},
 	[ M:Clause ].
-option_clause(Option, _, _, _) -->
+option_clause(Option, _, _) -->
 	{ throw(error(type_error(option_specifier, Option)))
 	}.
+
+modes_and_types([], [], true).
+modes_and_types([H|T], [A|AT], Body) :-
+	mode_and_type(H, A, Body0),
+	(   T == []
+	->  Body = Body0,
+	    AT = []
+	;   Body0 == true
+	->  modes_and_types(T, AT, Body)
+	;   Body = (Body0,Body1),
+	    modes_and_types(T, AT, Body1)
+	).
+
 
 mode_and_type(-Type, A, (predicate_option_mode(output, A), Body)) :- !,
 	type_goal(Type, A, Body).
