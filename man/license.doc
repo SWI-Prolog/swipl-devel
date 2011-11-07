@@ -187,6 +187,7 @@ be made \emph{before} PL_initialise().
 
 
 \section{License conditions inherited from used code}
+\label{sec:otherlicenses}
 
 \subsection{Cryptographic routines}		\label{sec:cryptlicense}
 

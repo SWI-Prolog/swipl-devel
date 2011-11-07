@@ -459,6 +459,7 @@ predicates without any special precautions.
 
 
 \section{An alternative import/export interface}
+\label{sec:altmoduleapi}
 
 The use_module/1 predicate from \secref{import} defines import and
 export relations based on the filename from which a module is loaded. If
