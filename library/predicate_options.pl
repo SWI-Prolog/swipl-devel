@@ -381,7 +381,11 @@ current_predicate_options(PI, Arg, Options) :-
 
 current_predicate_option_decl(PI, Arg, Option) :-
 	current_predicate_option(PI, Arg, Option0),
-	Option0 =.. [Name,Value],
+	Option0 =.. [Name|Values],
+	maplist(mode_and_type, Values, Types),
+	Option =.. [Name|Types].
+
+mode_and_type(Value, ModeAndType) :-
 	copy_term(Value,_,Goals),
 	(   memberchk(predicate_option_mode(output, _), Goals)
 	->  ModeAndType = -(Type)
@@ -390,8 +394,7 @@ current_predicate_option_decl(PI, Arg, Option) :-
 	(   memberchk(predicate_option_type(Type, _), Goals)
 	->  true
 	;   Type = any
-	),
-	Option =.. [Name,ModeAndType].
+	).
 
 define_predicate(PI) :-
 	ground(PI), !,
