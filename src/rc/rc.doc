@@ -126,7 +126,7 @@ Open an object in the archive, returning a handle to it.  Returns
 \const{NULL} if the resource cannot be found. If \arg{class} is
 \const{NULL}, the first resource with the given name is returned.
     \cfunction{void}{rc_close}{RcObject}
-Invalidate the handle returned by \funcref{rc_open}{}, releasing
+Invalidate the handle returned by \cfuncref{rc_open}{}, releasing
 possibly associated resources.
     \cfunction{void}{rc_stat}{RcStatBuf status}
 Returns status information on the archive member (size, modification
@@ -140,7 +140,7 @@ Get a pointer to the entire contents of the object.  If the operating
 system defines memory mapping, this will be a pointer to the mapped
 object.  Otherwise it will be a pointer to a malloc()-ed buffer into
 which the entire content of the resource has been copied.  This buffer
-will be released by \funcref{rc_close}{}. The size of the resource in
+will be released by \cfuncref{rc_close}{}. The size of the resource in
 bytes is stored into \arg{size}.
 \end{description}
 

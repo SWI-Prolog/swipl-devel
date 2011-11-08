@@ -1634,7 +1634,7 @@ function pointers that tell Prolog how to handle releasing the atom,
 writing it, sorting it, etc. Two atoms created with different types can
 represent the same sequence of bytes. Atoms are first ordered on the
 rank number of the type and then on the result of the
-\funcref{compare}{} function.  Rank numbers are assigned when the
+\cfuncref{compare}{} function.  Rank numbers are assigned when the
 type is registered.
 
 
