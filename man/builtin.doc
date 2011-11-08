@@ -45,7 +45,7 @@ refer to a grammar rule. For all non-negative arity, <name>//<arity> is
 the same as <name>/<arity+2>, regardless on whether or not the
 referenced predicate is defined or can be used as a grammar rule.
 The //-notation can be used in all places that traditionally allow
-for a predicate indicator, e.g.\ the module declaration, spy/1,
+for a predicate indicator, e.g., the module declaration, spy/1,
 and dynamic/1.
 
 
@@ -4844,7 +4844,7 @@ Expr2}.
 \infixop[ISO]{is}{-Number}{+Expr}
 True when \arg{Number} is the value to which \arg{Expr} evaluates.
 Typically, is/2 should be used with unbound left operand. If equality is
-to be tested, =:=/2 should be used. For example:
+to be tested, \predref{=:=}{2} should be used. For example:
 
 \begin{center}\begin{tabular}{lp{2.5in}}
 \exam{?- 1 is sin({pi}/2).}        & Fails!.  sin({pi}/2) evaluates to the
@@ -4884,10 +4884,11 @@ are currently not supported by a Prolog type. They are represented by
 the compound term \term{rdiv}{N,M}. Rational numbers that are returned
 from is/2 are \emph{canonical}, which means $M$ is positive and $N$ and
 $M$ have no common divisors. Rational numbers are introduced in the
-computation using the rational/1, rationalize/1 or the rdiv/2 (rational
-division) function. Using the same functor for rational division and
-representing rational numbers allow for passing rational numbers between
-computations as well as to format/3 for printing.
+computation using the \funcref{rational}{1}, \funcref{rationalize}{1} or
+the \funcref{rdiv}{2} (rational division) function. Using the same
+functor for rational division and representing rational numbers allow
+for passing rational numbers between computations as well as to format/3
+for printing.
 
 On the long term it is likely that rational numbers will become
 \emph{atomic} as well as subtype of \emph{number}.  User code that
@@ -4917,10 +4918,11 @@ integer $\rightarrow$ rational number $\rightarrow$ floating point number
 The use of rational numbers with unbounded integers allows for exact
 integer or \jargon{fixed point} arithmetic under the addition,
 subtraction, multiplication and division.  To exploit rational
-arithmetic rdiv/2 should be used instead of `/' and floating point
-numbers must be converted to rational using rational/1.  Omitting the
-rational/1 on floats will convert a rational operand to float and continue
-the arithmetic using floating point numbers.  Here are some examples.
+arithmetic \funcref{rdiv}{2} should be used instead of `/' and floating
+point numbers must be converted to rational using \funcref{rational}{1}.
+Omitting the \funcref{rational}{1} on floats will convert a rational
+operand to float and continue the arithmetic using floating point
+numbers. Here are some examples.
 
 \begin{center}
 \begin{tabular}{ll}
@@ -4932,10 +4934,10 @@ A is 4 rdiv 3 + rational(1.5)	& A = 17 rdiv 6 \\
 \end{center}
 
 Note that floats cannot represent all decimal numbers exactly.  The
-function rational/1 creates an \emph{exact} equivalent of the float,
-while rationalize/1 creates a rational number that is within the
-float rounding error from the original float.  Please check the
-documentation of these functions for details and examples.
+function \funcref{rational}{1} creates an \emph{exact} equivalent of the
+float, while \funcref{rationalize}{1} creates a rational number that is
+within the float rounding error from the original float. Please check
+the documentation of these functions for details and examples.
 
 Rational numbers can be printed as decimal numbers with arbitrary
 precision using the format/3 floating point conversion:
@@ -4994,8 +4996,8 @@ to float and the return value is a float. Otherwise (default), if both
 arguments are integers the operation returns an integer if the division
 is exact. If at least one of the arguments is rational and the other
 argument is integer, the operation returns a rational number. In all
-other cases the return value is a float.  See also \predref{//}{2}
-and rdiv/2.
+other cases the return value is a float.  See also \funcref{//}{2}
+and \funcref{rdiv}{2}.
 
     \infixfunction[ISO]{mod}{+IntExpr1}{+IntExpr2}
 Modulo, defined as \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1}
@@ -5019,8 +5021,9 @@ guarantee rounding towards zero.}
 Integer division, defined as \mbox{\arg{Result} is
 $(IntExpr1 - IntExpr1 mod IntExpr2) // IntExpr2$}.
 In other words, this is integer division that rounds towards -infinity.
-This function guarantees behaviour that is consistent with mod/2, i.e.,
-the following holds for every pair of integers $X,Y$ where \verb$Y =\= 0$.
+This function guarantees behaviour that is consistent with
+\funcref{mod}{2}, i.e., the following holds for every pair of integers
+$X,Y$ where \verb$Y =\= 0$.
 
 \begin{code}
 	Q is div(X, Y),
@@ -5051,7 +5054,7 @@ the two values after converting to float, but returns the integer 3.
 
     \function{min}{2}{+Expr1, +Expr2}
 Evaluates to the smallest of both \arg{Expr1} and \arg{Expr2}. See
-max/2 for a description of type-handling.
+\funcref{max}{2} for a description of type-handling.
 
     \function{.}{2}{+Int, []}
 A list of one element evaluates to the element.  This implies \exam{"a"}
@@ -5076,14 +5079,15 @@ used to control the random number generator.
 
     \function{random_float}{0}{}
 Evaluates to a random float $I$ for which $0.0 \leq i < 1.0$.  This
-function shares the random state with random/1.  All remarks with
-the function random/1 also apply for random_float/0.
+function shares the random state with \funcref{random}{1}. All remarks
+with the function \funcref{random}{1} also apply for
+\funcref{random_float}{0}.
 
     \function[ISO]{round}{1}{+Expr}
 Evaluates \arg{Expr} and rounds the result to the nearest integer.
 
     \function{integer}{1}{+Expr}
-Same as round/1 (backward compatibility).
+Same as \funcref{round}{1} (backward compatibility).
 
     \function[ISO]{float}{1}{+Expr}
 Translate the result to a floating point number.  Normally, Prolog will
@@ -5098,9 +5102,9 @@ numbers, the returned rational number \emph{exactly} represents the
 float.  As floats cannot exactly represent all decimal numbers the
 results may be surprising.  In the examples below, doubles can
 represent 0.25 and the result is as expected, in contrast to the
-result of \term{rational}{0.1}.  The function rationalize/1 remedies
-this.  See \secref{rational} for more information on rational number
-support.
+result of \term{rational}{0.1}. The function \funcref{rationalize}{1}
+remedies this. See \secref{rational} for more information on rational
+number support.
 
 \begin{code}
 ?- A is rational(0.25).
@@ -5112,11 +5116,12 @@ A = 3602879701896397 rdiv 36028797018963968
 
     \function{rationalize}{1}{+Expr}
 Convert the \arg{Expr} to a rational number or integer.  The function
-is similar to rational/1, but the result is only accurate within the
-rounding error of floating point numbers, generally producing a much
-smaller denominator.%
-	\footnote{The names rational/1 and rationalize/1 as well as
-		  their semantics are inspired by Common Lisp.}
+is similar to \funcref{rational}{1}, but the result is only accurate
+within the rounding error of floating point numbers, generally producing
+a much smaller denominator.%
+	\footnote{The names \funcref{rational}{1} and
+	\funcref{rationalize}{1} as well as their semantics are inspired
+	by Common Lisp.}
 
 \begin{code}
 ?- A is rationalize(0.25).
@@ -5151,7 +5156,7 @@ Evaluates \arg{Expr} and returns the smallest integer larger or equal
 to the result of the evaluation.
 
     \function{ceil}{1}{+Expr}
-Same as ceiling/1 (backward compatibility).
+Same as \funcref{ceiling}{1} (backward compatibility).
 
     \infixfunction[ISO]{>>}{+IntExpr}{+IntExpr}
 Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the right.  The
@@ -5194,7 +5199,7 @@ $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
     \function{atan}{2}{+YExpr, +XExpr}
-Same as atan2/2 (backward compatibility).
+Same as \funcref{atan2}{2} (backward compatibility).
     \function[ISO]{log}{1}{+Expr}
 Natural logarithm.  $\arg{Result} = \ln{\arg{Expr}}$
     \function{log10}{1}{+Expr}
@@ -5215,7 +5220,7 @@ Only available when compiled with unbounded integer support. This
 formula is required for Diffie-Hellman key-exchange, a technique where
 two parties can establish a secret key over a public network.
     \infixfunction{^}{+Expr1}{+Expr2}
-Same as **/2 (backward compatibility).
+Same as \funcref{**}{2} (backward compatibility).
     \function{pi}{0}{}
 Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
     \function{e}{0}{}
@@ -5233,16 +5238,17 @@ Evaluate \arg{Expr}. Although ISO standard dictates that $A$=1+2, $B$ is
 $A$ works and unifies $B$ to 3, it is widely felt that source-level
 variables in arithmetic expressions should have been limited to numbers.
 In this view the eval function can be used to evaluate arbitrary
-expressions.\footnote{The eval/1 function was first introduced by
-ECLiPSe and is under consideration for YAP.}
+expressions.\footnote{The \funcref{eval}{1} function was first
+introduced by ECLiPSe and is under consideration for YAP.}
 \end{description}
 
 
 \paragraph{Bitvector functions}
 
-The functions below are not covered by the standard.  The msb/1 function
-is compatible with hProlog. The others are private extensions that improve
-handling of ---unbounded--- integers as bit-vectors.
+The functions below are not covered by the standard. The
+\funcref{msb}{1} function is compatible with hProlog. The others are
+private extensions that improve handling of ---unbounded--- integers as
+bit-vectors.
 
 \begin{description}
     \function{msb}{1}{+IntExpr}
@@ -5268,7 +5274,7 @@ non-negative integer \arg{IntExpr}.
 \begin{description}
     \predicate{set_random}{1}{+Option}
 Controls the random number generator that accessible through the
-\emph{function} \nopredref{random}{1}. Note that the library
+\emph{function} \funcref{random}{1}. Note that the library
 \pllib{random} provides distinct support for random numbers that is not
 affected by set_random/1.
 
@@ -5276,8 +5282,8 @@ affected by set_random/1.
 	\termitem{seed}{+Seed}
 Set the seed of the random generator for this thread.  \arg{Seed} is
 an integer or the atom \const{random}.  If \const{random}, repeat the
-initialization procedure described with the function random/1.  Here
-is an example:
+initialization procedure described with the function
+\funcref{random}{1}. Here is an example:
 
 \begin{code}
 ?- set_random(seed(111)), A is random(6).
