@@ -1044,14 +1044,11 @@ delClauseFromIndex(Definition def, Clause cl)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Create a hash-index on def for arg. It is   ok to do so unlocked, but if
-another thread did  the  job,  we   discard  our  result.  Another issue
-concerns resizing. If our new table is  a resized version of an existing
-table, we can only discard the existing table if it is not in use. There
-are two conditions:
-
-  1. def is dynamic and def->references == 1
-  2. def is static.  In this case we must leave it to clause-GC
+Create a hash-index on def for  arg.  It   is  ok  to do so unlocked for
+static predicates, but if another thread  did   the  job, we discard our
+result. For dynamic  or  multifile  predicates,   we  need  to  keep the
+predicate locked while building the  hash-table   because  we  will miss
+clauses that are added while building.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseIndex
@@ -1060,6 +1057,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   ClauseRef cref;
   ClauseIndex ci, old;
   ClauseIndex *cip;
+  int dyn_or_multi;
 
   DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d) (%s)\n",
 		    predicateName(def), arg, hints->buckets,
@@ -1067,6 +1065,8 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
 
   ci = newClauseIndexTable(arg, hints);
 
+  if ( (dyn_or_multi=true(def, DYNAMIC|MULTIFILE)) )
+    LOCKDEF(def);
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( false(cref->value.clause, ERASED) )
       addClauseToIndex(ci, cref->value.clause, CL_END PASS_LD);
@@ -1074,7 +1074,8 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   ci->resize_above = ci->size*2;
   ci->resize_below = ci->size/4;
 
-  LOCKDEF(def);
+  if ( !dyn_or_multi )
+    LOCKDEF(def);
   for(old=def->impl.clauses.clause_indexes; old; old=old->next)
   { if ( old->arg == arg )
       break;
@@ -1111,8 +1112,15 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
   ClauseIndex *cip;
   ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
 
-  for(cip=&def->impl.clauses.clause_indexes; *cip && *cip != old; cip = &(*cip)->next)
+  for(cip=&def->impl.clauses.clause_indexes;
+      *cip && *cip != old;
+      cip = &(*cip)->next)
     ;
+
+  DEBUG(2, Sdprintf("%d: replaceIndex(%s) %p-->%p\n",
+		    PL_thread_self(),
+		    predicateName(def),
+		    old, ci));
 
   if ( ci )
   { ci->next = old->next;
