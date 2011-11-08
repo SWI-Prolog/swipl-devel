@@ -31,7 +31,11 @@
 	  [
 	  ]).
 
-:- multifile predicate_options:option_decl/3.
+:- multifile
+	predicate_options:option_decl/3.
+:- multifile				% provided by library(predicate_options)
+	system:predicate_option_type/2,
+	system:predicate_option_mode/2.
 
 :- public
 	option_clauses//4.
