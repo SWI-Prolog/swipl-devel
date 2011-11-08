@@ -56,6 +56,7 @@
 	predicate_options(:, +, +),
 	assert_predicate_options(:, +, +, ?),
 	current_predicate_option(:, ?, ?),
+	check_predicate_option(:, ?, ?),
 	current_predicate_options(:, ?, ?),
 	current_option_arg(:, ?),
 	pred_option(:,-),
@@ -275,6 +276,7 @@ current_predicate_option(Module:PI, Arg, Option) :-
 %		the value does not match the option type. See must_be/2.
 
 check_predicate_option(Module:PI, Arg, Option) :-
+	define_predicate(Module:PI),
 	current_option_arg(Module:PI, Arg, DefM),
 	PI = Name/Arity,
 	functor(Head, Name, Arity),
