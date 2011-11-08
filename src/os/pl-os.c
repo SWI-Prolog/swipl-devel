@@ -520,16 +520,14 @@ _PL_Random(void)
   }
 
 #ifdef HAVE_RANDOM
-#if SIZEOF_VOIDP == 4
   { uint64_t l = random();
 
-    l ^= (uint64_t)random()<<32;
+    l ^= (uint64_t)random()<<15;
+    l ^= (uint64_t)random()<<30;
+    l ^= (uint64_t)random()<<45;
 
     return l;
   }
-#else
-  return random();
-#endif
 #else
   { uint64_t l = rand();			/* 0<n<2^15-1 */
 

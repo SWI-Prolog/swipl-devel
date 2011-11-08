@@ -696,7 +696,7 @@ suggest predicates from a keyword.
 \opfuncsummary{mod}{2}{xfx}{300}{Remainder of division}
 \functionsummary{powm}{3}{Integer exponent and modulo}
 \functionsummary{random}{1}{Generate random number}
-\functionsummary{random}{1}{Generate random number}
+\functionsummary{random_float}{0}{Generate random number}
 \functionsummary{rational}{1}{Convert to rational number}
 \functionsummary{rationalize}{1}{Convert to rational number}
 \functionsummary{rdiv}{2}{Ration number division}

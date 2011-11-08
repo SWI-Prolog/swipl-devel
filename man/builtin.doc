@@ -5074,6 +5074,11 @@ numbers are shared between threads and the seed is initialised from the
 clock when SWI-Prolog was started. The predicate set_random/1 can be
 used to control the random number generator.
 
+    \predicate{random_float}{0}{}
+Evaluates to a random float $I$ for which $0.0 \leq i < 1.0$.  This
+function shares the random state with random/1.  All remarks with
+the function random/1 also apply for random_float/0.
+
     \predicate[ISO]{round}{1}{+Expr}
 Evaluates \arg{Expr} and rounds the result to the nearest integer.
 

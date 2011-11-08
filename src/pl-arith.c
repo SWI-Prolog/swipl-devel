@@ -2971,6 +2971,31 @@ ar_random(Number n1, Number r)
   }
 }
 
+#ifndef UINT64_MAX
+#define UINT64_MAX (~(uint64_t)0)
+#endif
+
+static int
+ar_random_float(Number r)
+{ GET_LD
+
+  init_random(PASS_LD1);
+
+#ifdef O_GMP
+{ mpf_t rop;
+  mpf_init2(rop, sizeof(double)*8);
+  mpf_urandomb(rop, LD->arith.random.state, sizeof(double)*8);
+  r->value.f = mpf_get_d(rop);
+  mpf_clear(rop);
+}
+#else
+  r->value.f = _PL_Random()/(float)UINT64_MAX;
+#endif
+
+  r->type = V_FLOAT;
+  succeed;
+}
+
 
 static int
 ar_pi(Number r)
@@ -3116,6 +3141,9 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_backslash1,	ar_negation),
 
   ADD(FUNCTOR_random1,		ar_random),
+#ifdef O_GMP
+  ADD(FUNCTOR_random_float0,	ar_random_float),
+#endif
 
   ADD(FUNCTOR_integer1,		ar_integer),
   ADD(FUNCTOR_round1,		ar_integer),
