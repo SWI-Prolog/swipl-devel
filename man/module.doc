@@ -580,7 +580,8 @@ defined in the same module.
 
 \begin{code}
 :- module(count_atom_results,
-	  count_atom_results/3).
+	  [ count_atom_results/3
+	  ]).
 :- meta_predicate count_atom_results(-,0,-).
 
 count_atom_results(A, Goal, Count) :-

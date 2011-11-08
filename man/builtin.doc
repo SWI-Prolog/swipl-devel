@@ -2677,8 +2677,8 @@ thread_local/1.
     \termitem{transparent}{}
 Is true if the predicate is declared transparent using the
 module_transparent/1 or meta_predicate/1 declaration.  In the
-latter case the property \const{meta} is also provided. See
-\chapref{modules} for details.
+latter case the property \term{meta_predicate}{Head} is also provided.
+See \chapref{modules} for details.
 
     \termitem{undefined}{}
 Is true if a procedure definition block for the predicate exists, but
