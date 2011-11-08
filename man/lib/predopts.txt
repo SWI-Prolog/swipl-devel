@@ -146,7 +146,7 @@ option names and values.
 The  library  can  execute  a  complete  check  of  your  program  using
 check_predicate_options/0:
 
-  * [[check_predicate_options/0]].
+  * [[check_predicate_options/0]]
 
 The library offers predicates that may   be  used to create declarations
 for your application. These predicates are   designed  to cooperate with
