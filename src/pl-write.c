@@ -1736,7 +1736,7 @@ PRED_IMPL("write_length", 3, write_length, 0)
 
     Sclose(s);
     if ( len >= 0 )
-      return PL_unify_int64(A2, s->position->charno);
+      return PL_unify_int64(A2, len);
   }
 
   return FALSE;
