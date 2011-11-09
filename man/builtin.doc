@@ -3807,6 +3807,18 @@ used to separate arguments in a term or list.
 As write_term/2, but output is sent to \arg{Stream} rather than the
 current output.
 
+    \predicate[semidet]{write_length}{3}{+Term, -Length, +Options}
+True when \arg{Length} is the number of characters emited for
+\arg{write_term}{Term, Options}.  In addition to valid options for
+write_term/2, it processes the option
+
+    \begin{description}
+	\termitem{max_length}{+MaxLength}
+If provided, fail if \arg{Length} would be larger than \arg{MaxLength}.
+The implementation ensures that the runtime is limited when computing
+the length of a huge term with a bounded maximum.
+    \end{description}
+
     \predicate[ISO]{write_canonical}{1}{+Term}
 Write \arg{Term} on the current output stream using standard
 parenthesised prefix notation (i.e., ignoring operator declarations).

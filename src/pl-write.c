@@ -1646,6 +1646,95 @@ PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
 }
 
 
+		 /*******************************
+		 *	   PRINT LENGTH		*
+		 *******************************/
+
+typedef struct limit_size_stream
+{ IOSTREAM	*stream;		/* Limited stream */
+  int64_t	 length;		/* Max size */
+} limit_size_stream;
+
+static ssize_t
+Swrite_lss(void *handle, char *buf, size_t size)
+{ limit_size_stream *lss = handle;
+
+  if ( lss->stream->position->charno > lss->length )
+    return -1;
+
+  return size;
+}
+
+static int
+Sclose_lss(void *handle)
+{ return 0;
+}
+
+static const IOFUNCTIONS lss_functions =
+{ NULL,
+  Swrite_lss,
+  NULL,
+  Sclose_lss
+};
+
+/** write_length(+Term, -Len, +Options) is det.
+*/
+
+static
+PRED_IMPL("write_length", 3, write_length, 0)
+{ PRED_LD
+  limit_size_stream lss;
+  int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT|SIO_TEXT;
+  IOSTREAM *s;
+  term_t options = PL_copy_term_ref(A3);
+  term_t head = PL_new_term_ref();
+  char buf[100];
+
+  lss.length = PLMAXINT;
+  while(PL_get_list(options, head, options))
+  { atom_t name;
+    int arity;
+
+    if ( PL_get_name_arity(head, &name, &arity) &&
+	 name == ATOM_max_length && arity == 1 )
+    { term_t a = PL_new_term_ref();
+
+      _PL_get_arg(1, head, a);
+      if ( !PL_get_int64_ex(a, &lss.length) )
+	return FALSE;
+    }
+  }
+
+  if ( (s = Snew(&lss, sflags, (IOFUNCTIONS *)&lss_functions)) )
+  { int64_t len;
+    int rc;
+
+    lss.stream = s;
+    s->encoding = ENC_UTF8;
+    Ssetbuffer(s, buf, sizeof(buf));
+    s->flags |= SIO_USERBUF;
+
+    pushOutputContext();
+    Scurout = s;
+    rc = pl_write_term3(0, A1, A3);
+    popOutputContext();
+
+    if ( rc && s->position->charno <= lss.length )
+    { len = s->position->charno;
+    } else
+    { len = -1;
+      if ( s->position->charno > lss.length )
+	PL_clear_exception();
+    }
+
+    Sclose(s);
+    if ( len >= 0 )
+      return PL_unify_int64(A2, s->position->charno);
+  }
+
+  return FALSE;
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -1656,5 +1745,6 @@ BeginPredDefs(write)
   PRED_DEF("nl", 1, nl, 0)
   PRED_DEF("$put_token", 2, put_token, 0)
   PRED_DEF("$put_quoted", 4, put_quoted_codes, 0)
+  PRED_DEF("write_length", 3, write_length, 0)
 EndPredDefs
 

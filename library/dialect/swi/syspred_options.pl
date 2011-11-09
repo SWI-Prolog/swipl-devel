@@ -63,6 +63,10 @@
 :- predicate_options(system:write_term/2, 2,
 		     [ pass_to(system:write_term/3, 3)
 		     ]).
+:- predicate_options(system:write_length/3, 3,
+		     [ max_length(nonneg),
+		       pass_to(system:write_term/3, 3)
+		     ]).
 :- predicate_options(system:read_term/3, 3,
 		     [ backquoted_string(boolean),
 		       character_escapes(boolean),

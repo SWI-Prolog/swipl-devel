@@ -50,7 +50,6 @@
 	portray_clause(+,+,:).
 
 :- predicate_options(portray_clause/3, 3, [pass_to(system:write_term/3, 3)]).
-:- predicate_options(print_length/4,   4, [pass_to(system:write_term/3, 3)]).
 
 :- multifile
 	prolog:locate_clauses/2.	% +Spec, -ClauseRefList
@@ -642,7 +641,10 @@ pprint(Out, Term, Pri, Options) :-
 	\+ nowrap_term(Term),
 	setting(listing:line_width, Width),
 	Width > 0,
-	print_length(Term, Width, Len, Options),
+	(   write_length(Term, Len, [max_length(Width)|Options])
+	->  true
+	;   Len = Width
+	),
 	line_position(Out, Indent),
 	Indent + Len > Width,
 	Len > Width/4, !,		% ad-hoc rule for deeply nested goals
@@ -685,110 +687,6 @@ pprint_args([H|T], Indent, Out, Options) :-
 	    nlindent(Out, Indent),
 	    pprint_args(T, Indent, Out, Options)
 	).
-
-
-%%	print_length(+Term, +MaxLen, -Len, +Options) is det.
-%
-%	Determine the number of  characters   emitted  for writing Term.
-%	Stop processing if MaxLen is  reached.   Len  may be larger than
-%	MaxLen, but only by the length of the last sub-term processed.
-%
-%	@bug	This is an aproximation.  Notably, we do not deal with
-%		quoted atoms, character escapes, small differences
-%		between operator and canonical notation, portray, etc. One way
-%		is to write the term to a null-stream, but the term may
-%		be huge, making this process unacceptably slow.
-%
-%		One solution may be to have a stream with a
-%		length-limit, but that will use exception handling as
-%		a normal process and requires dubious extensions to
-%		the stream implementation.
-
-:- public
-	print_length/4.
-
-print_length(Term, MaxLen, Len, Options) :-
-	current_prolog_flag(max_tagged_integer, MD),
-	option(max_depth(MaxDepth), Options, MD),
-	print_length(Term, MaxDepth, MaxLen, 0, Len).
-
-print_length(_, _, MaxLen, Len0, Len) :-
-	Len0 > MaxLen, !,
-	Len = Len0.
-print_length(_, MaxDepth, _, Len0, Len) :-
-	MaxDepth =< 0, !,
-	Len is Len0 + 3.			% ...
-print_length(Term, _, _, Len0, Len) :-
-	(   atom(Term)
-	;   number(Term)
-	), !,
-	atom_length(Term, AL),
-	Len is Len0+AL.
-print_length(Var, _, _, Len0, Len) :-
-	var(Var), !,			% Only to support print_term/2
-	Len is Len0 + 4.
-print_length('$VAR'(Name), MaxDepth, MaxLen, Len0, Len) :- !,
-	(   atom(Name)
-	->  atom_length(Name, VL),
-	    Len is Len0+VL
-	;   integer(Name)
-	->  I is Name//26,
-	    (	I == 0
-	    ->	VL = 1
-	    ;	atom_length(I, V0),
-		VL is V0+1
-	    ),
-	    Len is Len0+VL
-	;   Len1 is Len0+6+2,
-	    MaxDepth1 is MaxDepth - 1,
-	    print_args_len(1, 1, '$VAR'(Name), MaxDepth1, MaxLen, Len1, Len)
-	).
-print_length(List, MaxDepth, MaxLen, Len0, Len) :-
-	List = [_|_], !,
-	Len1 is Len0+2,
-	print_list_len(List, MaxDepth, MaxLen, Len1, Len).
-print_length(Term, MaxDepth, MaxLen, Len0, Len) :-
-	compound(Term), !,
-	functor(Term, Name, Arity),
-	atom_length(Name, NameLen),
-	Len1 is Len0+NameLen+2+2*(Arity-1),
-	MaxDepth1 is MaxDepth - 1,
-	print_args_len(1, Arity, Term, MaxDepth1, MaxLen, Len1, Len).
-
-print_args_len(_, _, _, _, MaxLen, Len0, Len) :-
-	Len0 > MaxLen, !,
-	Len = Len0.
-print_args_len(Arity, Arity, Term, MaxDepth, MaxLen, Len0, Len) :- !,
-	arg(Arity, Term, A),			% last argument optimization
-	print_length(A, MaxDepth, MaxLen, Len0, Len).
-print_args_len(I, Arity, Term, MaxDepth, MaxLen, Len0, Len) :- !,
-	arg(I, Term, A),
-	print_length(A, MaxDepth, MaxLen, Len0, Len1),
-	I2 is I + 1,
-	print_args_len(I2, Arity, Term, MaxDepth, MaxLen, Len1, Len).
-
-print_list_len(_, _, MaxLen, Len0, Len) :-
-	Len0 > MaxLen, !,
-	Len = Len0.
-print_list_len(_, MaxDepth, _, Len0, Len) :-
-	MaxDepth =< 0, !,
-	Len is Len0 + 4.				% |...
-print_list_len(Var, _, _, Len0, Len) :-
-	var(Var), !,				% should not happen
-	Len is Len0 + 2.
-print_list_len([], _, _, Len0, Len) :- !,
-	Len is Len0.
-print_list_len([H|T], MaxDepth, MaxLen, Len0, Len) :- !,
-	MaxDepth1 is MaxDepth - 1,
-	print_length(H, MaxDepth, MaxLen, Len0, Len1),
-	(   T == []
-	->  Len is Len1
-	;   Len2 is Len1+2,
-	    print_list_len(T, MaxDepth1, MaxLen, Len2, Len)
-	).
-print_list_len(Tail, MaxDepth, MaxLen, Len0, Len) :-
-	Len1 is Len0 + 1,
-	print_length(Tail, MaxDepth, MaxLen, Len1, Len).
 
 
 %%	listing_write_options(+Priority, -WriteOptions) is det.
