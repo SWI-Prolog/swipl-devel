@@ -1678,6 +1678,10 @@ static const IOFUNCTIONS lss_functions =
 };
 
 /** write_length(+Term, -Len, +Options) is det.
+
+(*) Avoid error on max_length in iso mode.  It might be nicer to get the
+option processing out of pl_write_term3(), so we can take control of the
+whole lot here more easily.
 */
 
 static
@@ -1708,16 +1712,19 @@ PRED_IMPL("write_length", 3, write_length, 0)
   if ( (s = Snew(&lss, sflags, (IOFUNCTIONS *)&lss_functions)) )
   { int64_t len;
     int rc;
+    pl_features_t oldmask = LD->prolog_flag.mask; /* (*) */
 
     lss.stream = s;
     s->encoding = ENC_UTF8;
     Ssetbuffer(s, buf, sizeof(buf));
     s->flags |= SIO_USERBUF;
 
+    clearPrologFlagMask(PLFLAG_ISO);
     pushOutputContext();
     Scurout = s;
     rc = pl_write_term3(0, A1, A3);
     popOutputContext();
+    LD->prolog_flag.mask = oldmask;
 
     if ( rc && s->position->charno <= lss.length )
     { len = s->position->charno;
