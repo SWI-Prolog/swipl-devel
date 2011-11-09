@@ -4464,6 +4464,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   PL_clearsig(SIG_GC);
 
   get_vmi_state(LD->query, &state);
+  SECURE(gBase++; checkStacks(&state); gBase--;);
 
   { TrailEntry tb = tBase;
     Word gb = gBase;
@@ -4589,6 +4590,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     }
   }
 
+  SECURE(gBase++; checkStacks(&state); gBase--;);
   restore_vmi_state(&state);
   unblockGC(0 PASS_LD);
   unblockSignals(&mask);
