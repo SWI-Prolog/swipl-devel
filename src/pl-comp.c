@@ -1391,7 +1391,7 @@ right_argument:
 
 	Output_1(ci, C_IFTHEN, var);
 	ci->cut.var = var;		/* Cut locally in the condition */
-	ci->cut.instruction = C_CUT;
+	ci->cut.instruction = C_LCUTIFTHEN;
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
 	  return rv;
 	ci->cut = cutsave;
@@ -4048,6 +4048,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    BUILD_TERM(FUNCTOR_nonvar1);
 			    pushed++;
 			    continue;
+      case C_LCUTIFTHEN:
       case C_LCUT:	    PC++;
 			    /*FALLTHROUGH*/
       case I_CUT:	    *ARGP++ = ATOM_cut;

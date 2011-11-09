@@ -42,7 +42,7 @@ test_db :-
 
 :- dynamic
 	term/0,
-	f/1, f/2.
+	f/1, f/2, f/0.
 
 test(right_cyclic_head, [ sto(rational_trees),
 			  error(representation_error(cyclic_term))
@@ -59,6 +59,11 @@ test(cyclic_body, [ sto(rational_trees),
 		  ]) :-
 	X = f(X),
 	assert((f(a) :- X)).
+
+test(cut_cond, Body = (! -> fail)) :-
+	assert(f :- (! -> fail)),
+	clause(f, Body),
+	retractall(f).
 
 :- end_tests(assert).
 

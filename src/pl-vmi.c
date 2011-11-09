@@ -2145,6 +2145,12 @@ VMI(C_LCUT, 0, 1, (CA1_CHP))
 }
 
 
+VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
+{ SEPERATE_VMI;
+  VMI_GOTO(C_CUT)
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_CUT implements -> (and most of  *->).   Unfortunately  we have to loop
 twice because calling discardFrame() in the   first  loop can invalidate
