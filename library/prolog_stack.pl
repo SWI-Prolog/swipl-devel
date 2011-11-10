@@ -34,11 +34,17 @@
 	  [ get_prolog_backtrace/2,	% +MaxDepth, -Stack
 	    get_prolog_backtrace/3,	% +Frame, +MaxDepth, -Stack
 	    print_prolog_backtrace/2,	% +Stream, +Stack
+	    print_prolog_backtrace/3,	% +Stream, +Stack, +Options
 	    backtrace/1			% +MaxDepth
 	  ]).
 :- use_module(library(prolog_clause)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
+:- use_module(library(option)).
+
+:- predicate_options(print_prolog_backtrace/3, 3,
+		     [ subgoal_positions(boolean)
+		     ]).
 
 /** <module> Examine the Prolog stack
 
@@ -108,45 +114,58 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 %	Print a stacktrace in human readable form to Stream.
 
 print_prolog_backtrace(Stream, Backtrace) :-
-	phrase(message(Backtrace), Lines),
+	print_prolog_backtrace(Stream, Backtrace, []).
+
+
+%%	print_prolog_backtrace(+Stream, +Backtrace, +Options)
+%
+%	Print a stacktrace in human readable form to Stream.
+%	Options is an option list that accepts:
+%
+%	    * subgoal_positions(+Boolean)
+%	    If =true= (default), print subgoal line numbers
+
+print_prolog_backtrace(Stream, Backtrace, Options) :-
+	phrase(message(Backtrace, Options), Lines),
 	print_message_lines(Stream, '', Lines).
 
-message([]) -->
+message([], _) -->
 	[].
-message([H|T]) -->
-	message(H),
+message([H|T], Options) -->
+	message(H, Options),
 	(   {T == []}
 	->  []
 	;   [nl],
-	    message(T)
+	    message(T, Options)
 	).
 
-message(frame(Level, Where)) -->
+message(frame(Level, Where), Options) -->
 	level(Level),
-	where(Where).
+	where(Where, Options).
 
-where(foreign(PI)) -->
+where(foreign(PI), _) -->
 	[ '~w <foreign>'-[PI] ].
-where(call(PI)) -->
+where(call(PI), _) -->
 	[ '~w'-[PI] ].
-where(clause(Clause, PC)) -->
-	{ subgoal_position(Clause, PC, File, CharA, _CharZ),
+where(clause(Clause, PC), Options) -->
+	{ option(subgoal_positions(true), Options, true),
+	  subgoal_position(Clause, PC, File, CharA, _CharZ),
 	  File \= @(_),			% XPCE Object reference
 	  lineno(File, CharA, Line),
 	  clause_predicate_name(Clause, PredName)
 	}, !,
 	[ '~w at ~w:~d'-[PredName, File, Line] ].
-where(clause(Clause, _PC)) -->
+where(clause(Clause, _PC), _) -->
 	{ clause_property(Clause, file(File)),
 	  clause_property(Clause, line_count(Line)),
 	  clause_predicate_name(Clause, PredName)
 	}, !,
 	[ '~w at ~w:~d'-[PredName, File, Line] ].
-where(clause(Clause, _PC)) -->
+where(clause(Clause, _PC), _) -->
 	{ clause_name(Clause, ClauseName)
 	},
 	[ '~w <no source>'-[ClauseName] ].
-where(meta_call) -->
+where(meta_call, _) -->
 	[ '<meta call>' ].
 
 level(Level) -->
