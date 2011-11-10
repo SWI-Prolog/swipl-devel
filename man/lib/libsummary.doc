@@ -91,6 +91,9 @@
 \subsubsection{\pllib{pure_input}}
 \input{summaries.d/pureinput.tex}
 
+\subsection{\pllib{random}}
+\input{summaries.d/random.tex}
+
 \subsection{\pllib{readutil}}
 
 \begin{summarylist}{ll}

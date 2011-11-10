@@ -120,10 +120,6 @@ getrand(State) :-
 %	Binds R to a random  number  in  [L,U).   If  L  and  U are both
 %	integers, R is an integer, Otherwise, R  is a float. Note that U
 %	will *never* be generated.
-%
-%	@bug	The state is only 48-bits.  This is insufficient for
-%		generating uniformely distributed integers in a very
-%		large domain.
 
 random(L, U, R) :-
 	integer(L), integer(U), !,

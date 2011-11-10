@@ -47,6 +47,7 @@ documented at all.
 \input{pio}
 \input{predicateoptions}
 \input{prologxref}
+\input{random}
 \input{readutil}
 \input{record}
 \input{registry}
