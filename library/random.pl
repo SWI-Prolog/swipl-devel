@@ -34,12 +34,20 @@
 %   arithmetic.
 
 :- module(random,
-	  [ random/1,			% -float
+	  [ random/1,			% -Float [0,1)
 	    random/3,			% +Low, +High, -Random
-	    randseq/3,			% +Size, +Max, -Set
-	    randset/3,			% +Size, +Max, -List
+
 	    getrand/1,			% -State
 	    setrand/1,			% +State
+
+	    maybe/0,
+	    maybe/1,			% +P
+	    maybe/2,			% +K, +N
+
+	    random_perm2/4,		% A,B, X,Y
+
+	    randseq/3,			% +Size, +Max, -Set
+	    randset/3,			% +Size, +Max, -List
 	    random_permutation/2	% +List, -Permutation
 	  ]).
 :- use_module(library(pairs)).
@@ -60,7 +68,7 @@ on the GMP library.
 
 
 		 /*******************************
-		 *	   C PRIMITIVES		*
+		 *	   PRIMITIVES		*
 		 *******************************/
 
 %%	random(-R:float) is det.
@@ -73,6 +81,28 @@ on the GMP library.
 
 random(R) :-
 	R is random_float.
+
+%%	random(+L:int, +U:int, -R:int) is det.
+%%	random(+L:float, +U:float, -R:float) is det.
+%
+%	Binds R to a random  number  in  [L,U).   If  L  and  U are both
+%	integers, R is an integer, Otherwise, R  is a float. Note that U
+%	will *never* be generated.
+
+random(L, U, R) :-
+	integer(L), integer(U), !,
+	R is L+random(U-L).
+random(L, U, R) :-
+	number(L), number(U), !,
+	R is L+((U-L)*random_float).
+random(L, U, _) :-
+	must_be(number, L),
+	must_be(number, U).
+
+
+		 /*******************************
+		 *	       STATE		*
+		 *******************************/
 
 %%	setrand(+State) is det.
 %%	getrand(-State) is det.
@@ -111,25 +141,56 @@ getrand(State) :-
 
 
 		 /*******************************
-		 *	       PROLOG		*
+		 *	      MAYBE		*
 		 *******************************/
 
-%%	random(+L:int, +U:int, -R:int) is det.
-%%	random(+L:float, +U:float, -R:float) is det.
+%%	maybe is semidet.
 %
-%	Binds R to a random  number  in  [L,U).   If  L  and  U are both
-%	integers, R is an integer, Otherwise, R  is a float. Note that U
-%	will *never* be generated.
+%	Succeed/fail with equal probability (variant of maybe/1).
 
-random(L, U, R) :-
-	integer(L), integer(U), !,
-	R is L+random(U-L).
-random(L, U, R) :-
-	number(L), number(U), !,
-	R is L+((U-L)*random_float).
-random(L, U, _) :-
-	must_be(number, L),
-	must_be(number, U).
+maybe :-
+	random(2) =:= 0.
+
+%%	maybe(+P) is semidet.
+%
+%	Succeed with probability P, fail with probability 1-P
+
+maybe(P) :-
+	must_be(between(0.0,1.0), P),
+	random_float < P.
+
+%%	maybe(K,N) is semidet.
+%
+%	Succeed with probability K/N (variant of maybe/1)
+
+maybe(K, N) :-
+	integer(K), integer(N),
+	between(0, N, K), !,
+	random(N) < K.
+maybe(K, N) :-
+	must_be(nonneg, K),
+	must_be(nonneg, N),
+	domain_error(not_less_than_zero,N-K).
+
+
+		 /*******************************
+		 *	    PERMUTATION		*
+		 *******************************/
+
+%%	random_perm2(?A, ?B, ?X, ?Y) is semidet.
+%
+%	Does X=A,Y=B or X=B,Y=A with equal probability.
+
+random_perm2(A,B, X,Y) :-
+	(   maybe
+	->  X = A, Y = B
+	;   X = B, Y = A
+	).
+
+
+		 /*******************************
+		 *    SET AND LIST OPERATIONS	*
+		 *******************************/
 
 %%	randset(+K:int, +N:int, -S:list(int)) is det.
 %
