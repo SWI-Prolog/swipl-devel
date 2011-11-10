@@ -66,7 +66,7 @@ number of term-refs allocated. This  information   (stored  as  a tagged
 Prolog int) is used by the garbage collector to update the stack frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SECURE
+#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
 #ifndef O_CHECK_TERM_REFS
 #define O_CHECK_TERM_REFS 1
 #endif
