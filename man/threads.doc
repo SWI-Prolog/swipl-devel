@@ -217,7 +217,7 @@ True if thread \arg{Id} has \arg{Property}.  Either or both arguments
 may be unbound, enumerating all relations on backtracking.
 Calling thread_property/2 does not influence any thread.  See also
 thread_join/2.  For threads that have an alias-name, this name is
-returned in \arg{Id} instead of the numerical thread identifier.
+returned in \arg{Id} instead of the opaque thread identifier.
 Defined properties are:
 
 \begin{description}
@@ -249,16 +249,21 @@ exception (see throw/1 and catch/3).
 \end{description}
     \end{description}
 
+See also thread_statistics/3 to obtain resource usage information and
+message_queue_property/2 to get the number of queued messages for a
+thread.
+
     \predicate{thread_statistics}{3}{+Id, +Key, -Value}
 Obtains statistical information on thread \arg{Id} as statistics/2
 does in single-threaded applications.  This call supports all keys
 of statistics/2, although only stack sizes and CPU time yield
 different values for each thread.%
-	\footnote{Getting the CPU-time of a specific thread is
-		  not supported on all platforms. On some platforms
-		  it returns total process CPU time instead of the
-		  thread CPU time. Thread CPU time is supported on
-		  MS-Windows and most recent Linux versions.}
+	\footnote{There is no portable interface to obtain
+		  thread-specific CPU-time and some operating systems
+		  provide no access to this information at all.  On
+		  such systems the total process CPU is returned. Thread
+		  CPU time is supported on MS-Windows, Linux and
+		  MacOSX.}
 
     \predicate{mutex_statistics}{0}{}
 Print usage statistics on internal mutexes and mutexes associated with
@@ -376,11 +381,20 @@ are:
     \begin{description}
         \termitem{alias}{Alias}
 Queue has the given alias name.
+	\termitem{max_size}{Size}
+Maximum number of terms that can be in the queue. See
+message_queue_create/2.  This property is not present if there is no
+limit (default).
 	\termitem{size}{Size}
 Queue currently contains \arg{Size} terms. Note that due to concurrent
 access the returned value may be outdated before it is returned. It can
 be used for debugging purposes as well as work distribution purposes.
     \end{description}
+
+The \term{size}{Size} property is always present and may be used to
+enumerate the created message queues.  Note that this predicate does
+\emph{not enumerate} threads, but can be used to query the properties
+of the default queue of a thread.
 \end{description}
 
 Explicit message queues are designed with the \jargon{worker-pool} model
