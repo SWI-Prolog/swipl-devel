@@ -4199,12 +4199,11 @@ atom is referenced by the goal-term anyway.
     { Clause cl;
       int rc;
 
-      a = &goal;			/* we're going to overwrite */
-      deRef(a);
-      DEBUG(1, { term_t g = a - (Word)lBase;
+      DEBUG(1, { term_t g = pushWordAsTermRef(a);
 		 LocalFrame ot = lTop;
 		 lTop += 100;
 		 pl_writeln(g);
+		 popTermRef();
 		 lTop = ot;
 	       });
       lTop = NFR;
@@ -4214,10 +4213,13 @@ atom is referenced by the goal-term anyway.
 	THROW_EXCEPTION;
       if ( rc == LOCAL_OVERFLOW )
       { size_t room = roomStack(local);
+	term_t lTopH = consTermRef(lTop);
 
+	lTop = (LocalFrame)argFrameP(NFR, 1);
 	SAVE_REGISTERS(qid);
 	rc = ensureLocalSpace(room*2, ALLOW_SHIFT);
 	LOAD_REGISTERS(qid);
+	lTop = (LocalFrame)valTermRef(lTopH);
 	if ( rc != TRUE )
 	{ raiseStackOverflow(rc);
 	  THROW_EXCEPTION;
