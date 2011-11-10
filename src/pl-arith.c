@@ -2897,6 +2897,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 
       if ( PL_get_atom(arg, &a) && a == ATOM_random )
       { seed_random(PASS_LD1);
+	return TRUE;
       } else
       { number n;
 
@@ -2909,30 +2910,72 @@ PRED_IMPL("set_random", 1, set_random, 0)
 	  case V_INTEGER:
 	    gmp_randseed_ui(LD->arith.random.state,
 			    (unsigned long)n.value.i);
-	    break;
+	    return TRUE;
 	  case V_MPZ:
 	    gmp_randseed(LD->arith.random.state, n.value.mpz);
-	    break;
+	    return TRUE;
 #else
 	  case V_INTEGER:
           { unsigned int seed = (unsigned int)n.value.i;
 	    setRandom(&seed);
-	    break;
+	    return TRUE;
 	  }
 #endif
 	  default:
-	    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, a);
+	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, a);
 	}
       }
+    } else if ( name == ATOM_state )
+    { number n;
+
+      if ( !PL_get_number(arg, &n) ||
+	   n.type != V_MPZ )
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_state, arg);
+
+      mpz_set(LD->arith.random.state[0]._mp_seed, n.value.mpz);
+      clearNumber(&n);
+
+      return TRUE;
     } else
-    { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_random_option, A1);
+    { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_random_option, A1);
     }
   } else
-  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_random_option, A1);
+  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_random_option, A1);
+  }
+}
+
+
+#ifdef O_GMP
+static
+PRED_IMPL("random_property", 1, random_property, 0)
+{ PRED_LD
+  atom_t name;
+  int arity;
+
+  init_random(PASS_LD1);
+
+  if ( PL_get_name_arity(A1, &name, &arity) && arity == 1 )
+  { term_t arg = PL_new_term_ref();
+
+    _PL_get_arg(1, A1, arg);
+    if ( name == ATOM_state )
+    { int rc;
+      number seed;
+
+      seed.type = V_MPZ;
+      mpz_init(seed.value.mpz);
+      LD->arith.random.state[0]._mp_seed[0]._mp_size =
+      LD->arith.random.state[0]._mp_seed[0]._mp_alloc;					      mpz_set(seed.value.mpz, LD->arith.random.state[0]._mp_seed);
+      rc = PL_unify_number(arg, &seed);
+      clearNumber(&seed);
+
+      return rc;
+    }
   }
 
-  succeed;
+  return FALSE;
 }
+#endif
 
 
 static int
@@ -3394,4 +3437,7 @@ BeginPredDefs(arith)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
   PRED_DEF("set_random", 1, set_random, 0)
+#ifdef O_GMP
+  PRED_DEF("random_property", 1, random_property, 0)
+#endif
 EndPredDefs

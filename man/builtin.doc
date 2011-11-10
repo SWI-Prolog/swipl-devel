@@ -5303,6 +5303,25 @@ A = 5.
 ?- set_random(seed(111)), A is random(6).
 A = 5.
 \end{code}
+	\termitem{state}{+State}
+Set the generator to a state fetched using the state
+property of random_property/1.  Using other values may lead to undefined
+behaviour.\footnote{The limitations of the underlying (GMP) library are
+unknown, which makes it impossible to validate the \arg{State}.}
+    \end{description}
+
+    \predicate{random_property}{1}{?Option}
+True when \arg{Option} is a current property of the random generator.
+Currently, this predicate provides access to the state.  This predicate
+is not present on systems where the state is inaccessible.
+
+    \begin{description}
+	\termitem{state}{-State}
+Describes the current state of the random generator. State is a normal
+Prolog term that can be asserted or written to a file. Applications
+should make no other assumptions about its representation. The only
+meaningful operation is to use as argument to set_random/1 using the
+\term{state}{State} option.
     \end{description}
 
     \predicate{current_arithmetic_function}{1}{Head}

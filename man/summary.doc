@@ -454,6 +454,7 @@ suggest predicates from a keyword.
 \predicatesummary{qcompile}{2}{Compile source to Quick Load File}
 \predicatesummary{qsave_program}{1}{Create runtime application}
 \predicatesummary{qsave_program}{2}{Create runtime application}
+\predicatesummary{random_property}{1}{Query properties of random generation}
 \predicatesummary{rational}{1}{Type check for a rational number}
 \predicatesummary{rational}{3}{Decompose a rational}
 \predicatesummary{read}{1}{Read Prolog term}
