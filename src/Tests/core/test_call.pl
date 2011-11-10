@@ -55,6 +55,16 @@ test(clause, Body == call(X)) :-
 	clause(call1_a(X), Body).
 test(clause, Body == call(X)) :-
 	clause(call1_b(X), Body).
+test(big_clause, V==N) :-
+	N = 100000,
+	trim_stacks,			% ensure shifts are needed
+        link_clause(N, 0, V, Body),
+	call(Body).
+
+link_clause(1, V0, V, succ(V0, V)) :- !.
+link_clause(N, V0, V, (succ(V0, V1), G)) :-
+        N2 is N - 1,
+        link_clause(N2, V1, V, G).
 
 :- end_tests(call1).
 
