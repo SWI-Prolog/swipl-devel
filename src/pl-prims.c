@@ -2199,7 +2199,9 @@ lengthList(term_t list, int errors)
     return length;
 
   if ( errors )
-    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, wordToTermRef(l));
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, pushWordAsTermRef(l));
+    popTermRef();
+  }
 
   return isVar(*tail) ? -2 : -1;
 }
@@ -2991,6 +2993,7 @@ unify_all_trail_ptrs(Word t1, Word t2, mark *m ARG_LD)
 static ssize_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 { mark m;
+  int rc;
 
   if ( PL_is_variable(t1) )
   { if ( PL_compare(t1, t2) == 0 )
@@ -3096,7 +3099,10 @@ retry:
       gTop = gp;			/* may not have used all space */
       tTop = m.trailtop;
 
-      return PL_unify(wordToTermRef(list), subst);
+      rc = PL_unify(pushWordAsTermRef(list), subst);
+      popTermRef();
+
+      return rc;
     } else
     { DiscardMark(m);
       return PL_unify_atom(subst, ATOM_nil);

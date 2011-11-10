@@ -3085,8 +3085,9 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
     int rc;
 
     SAVE_REGISTERS(qid);
-    if ( (fid = PL_open_foreign_frame()) )
-    { rc = valueExpression(wordToTermRef(np), &n PASS_LD);
+    if ( (fid = PL_open_foreign_frame()) )	/* Still needed? */
+    { rc = valueExpression(pushWordAsTermRef(np), &n PASS_LD);
+      popTermRef();
       if ( rc )
       { ensureWritableNumber(&n);
 	if ( (rc=ar_add_ui(&n, add)) )
@@ -4244,14 +4245,11 @@ atom is referenced by the goal-term anyway.
       NEXT_INSTRUCTION;
     }
   } else
-  { fid_t fid;
-
+  {
   call_type_error:
-    LD->exception.processing = TRUE;	/* allow using spare stack */
-    lTop = (LocalFrame)argFrameP(NFR, 1);
-    fid = PL_open_foreign_frame();
-    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(NFR, 0)));
-    PL_close_foreign_frame(fid);
+    PL_error(NULL, 0, NULL, ERR_TYPE,
+	     ATOM_callable, pushWordAsTermRef(argFrameP(NFR, 0)));
+    popTermRef();
     THROW_EXCEPTION;
   }
   goto i_usercall_common;
@@ -4285,8 +4283,9 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
     functor = lookupFunctorDef(fdef->name, arity + callargs);
     args    = argTermP(goal, 0);
   } else
-  { lTop = (LocalFrame)argFrameP(NFR, 1);
-    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(NFR, 0)));
+  { PL_error(NULL, 0, NULL, ERR_TYPE,
+	     ATOM_callable, pushWordAsTermRef(argFrameP(NFR, 0)));
+    popTermRef();
     THROW_EXCEPTION;
   }
 

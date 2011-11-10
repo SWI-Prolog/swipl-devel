@@ -887,7 +887,8 @@ arithChar(Word p ARG_LD)
   }
 
   PL_error(NULL, 0, NULL, ERR_TYPE,
-	   ATOM_character, wordToTermRef(p));
+	   ATOM_character, pushWordAsTermRef(p));
+  popTermRef();
 
   return EOF;
 }
@@ -906,8 +907,11 @@ getCharExpression(Word p, Number r ARG_LD)
 
   a = argTermP(*p, 1);
   if ( !isNil(*a) )
-    return PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
-		    ATOM_nil, wordToTermRef(a));
+  { PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
+	     ATOM_nil, pushWordAsTermRef(a));
+    popTermRef();
+    return FALSE;
+  }
 
   r->value.i = chr;
   r->type = V_INTEGER;

@@ -52,6 +52,8 @@
 #define consPtr(p, ts)		consPtr__LD(p, ts PASS_LD)
 #define allocGlobalNoShift(n)	allocGlobalNoShift__LD(n PASS_LD)
 #define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
+#define popTermRef()		popTermRef__LD(PASS_LD1)
+#define pushWordAsTermRef(p)	pushWordAsTermRef__LD(p PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n)	_PL_put_number__LD(t, n PASS_LD)

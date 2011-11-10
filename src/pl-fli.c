@@ -107,18 +107,39 @@ linkVal__LD(Word p ARG_LD)
   return w;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+term_t pushWordAsTermRef(Word p)
+       popTermRef()
+
+These two functions are used to create a term-ref from a `Word'. This is
+typically needed for calling  PL_error().  In   many  cases  there is no
+foreign  environment  around,  which   makes    that   we   cannot  call
+PL_new_term_ref(). These functions use the   tmp-references, shared with
+PushPtr()/PopPtr() (see pl-incl.h).  Push and pop *must* match.
+
+Note that this protects creating a term-ref  if there is no environment.
+However, the function called still must   either not use term-references
+or must create an environment.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 term_t
-wordToTermRef(Word p)
-{ GET_LD
+pushWordAsTermRef__LD(Word p ARG_LD)
+{ int i = LD->tmp.top++;
+  term_t t = LD->tmp.h[i];
 
-  if ( p > (Word) lBase )
-    return p - (Word)lBase;
-  else
-  { term_t t = PL_new_term_ref();
+  assert(i<TMP_PTR_SIZE);
+  setHandle(t, linkVal(p));
 
-    setHandle(t, linkVal(p));
-    return t;
-  }
+  return t;
+}
+
+void
+popTermRef__LD(ARG1_LD)
+{ int i = --LD->tmp.top;
+
+  assert(i>=0);
+  setVar(*valTermRef(LD->tmp.h[i]));
 }
 
 

@@ -165,7 +165,7 @@ just plain not using qsort().
 
 /*  ITEM	The type of an individual item.
     COMPARE	Compares two items given their addresses (allows ITEM to be
-    		large and avoids pass by copy).  Return <0, =0, or >0.
+		large and avoids pass by copy).  Return <0, =0, or >0.
     COMPARE_KEY	Compares the keys of two items given the addresses of the
 		entire items.
     FREE	Frees a List_Record including its ITEM.
@@ -355,9 +355,10 @@ prolog_list_to_sort_list(term_t t, int remove_dups, int key,
       { p->item.key = argTermP(w, 0);
 	deRef(p->item.key);
       } else
-      { term_t t = wordToTermRef(p->item.term);
-
-	return PL_error("keysort", 2, NULL, ERR_TYPE, ATOM_pair, t);
+      { PL_error("keysort", 2, NULL, ERR_TYPE,
+		 ATOM_pair, pushWordAsTermRef(p->item.term));
+	popTermRef();
+	return FALSE;
       }
     }
     l = TailList(l);

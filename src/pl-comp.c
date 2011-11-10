@@ -1132,7 +1132,8 @@ that have an I_CONTEXT because we need to reset the context.
     { if ( rc == NOT_CALLABLE )
       {	resetVars(PASS_LD1);
 	rc = PL_error(NULL, 0, NULL, ERR_TYPE,
-		      ATOM_callable, wordToTermRef(body));
+		      ATOM_callable, pushWordAsTermRef(body));
+	popTermRef();
       }
 
       goto exit_fail;
@@ -2203,8 +2204,10 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
       if ( first )
       { resetVars(PASS_LD1);		/* get clean Prolog data, assume */
 					/* calling twice is ok */
-	return PL_error(NULL, 0, "Unbound variable in arithmetic expression",
-			ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
+	PL_error(NULL, 0, "Unbound variable in arithmetic expression",
+		 ERR_TYPE, ATOM_evaluable, pushWordAsTermRef(arg));
+	popTermRef();
+	return FALSE;
       }
       Output_0(ci, A_VAR);
     }
@@ -2213,8 +2216,11 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   }
 
   if ( isVar(*arg) )			/* void variable */
-    return PL_error(NULL, 0, "Unbound variable in arithmetic expression",
-		    ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
+  { PL_error(NULL, 0, "Unbound variable in arithmetic expression",
+	     ERR_TYPE, ATOM_evaluable, pushWordAsTermRef(arg));
+    popTermRef();
+    return FALSE;
+  }
 
   { functor_t fdef;
     int n, ar;
@@ -2229,8 +2235,10 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
       ar = arityFunctor(fdef);
       a = argTermP(*arg, 0);
     } else
-      return PL_error(NULL, 0, NULL, ERR_TYPE,
-		      ATOM_evaluable, wordToTermRef(arg));
+    { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_evaluable, pushWordAsTermRef(arg));
+      popTermRef();
+      return FALSE;
+    }
 
     if ( fdef == FUNCTOR_dot2 )		/* "char" */
     { Word a2;
@@ -2238,8 +2246,11 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 
       deRef2(a+1, a2);
       if ( !isNil(*a2) )
-	return PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
-			ATOM_nil, wordToTermRef(a2));
+      { PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
+		 ATOM_nil, pushWordAsTermRef(a2));
+	popTermRef();
+	return FALSE;
+      }
       deRef2(a, a2);
       if ( !isVar(*a2) && isIndexedVarTerm(*a2 PASS_LD) < 0 )
       { if ( (chr=arithChar(a2 PASS_LD)) == EOF )
@@ -2253,8 +2264,10 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     }
 
     if ( (index = indexArithFunction(fdef)) < 0 )
-    { return PL_error(NULL, 0, "No such arithmetic function",
-		      ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
+    { PL_error(NULL, 0, "No such arithmetic function",
+	       ERR_TYPE, ATOM_evaluable, pushWordAsTermRef(arg));
+      popTermRef();
+      return FALSE;
     }
 
     for(n=0; n<ar; a++, n++)

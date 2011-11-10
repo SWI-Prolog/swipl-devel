@@ -357,8 +357,10 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 
       rc = PL_unify_term(formal,
 			 PL_FUNCTOR, FUNCTOR_occurs_check2,
-			   PL_TERM, wordToTermRef(p1),
-			   PL_TERM, wordToTermRef(p2));
+			   PL_TERM, pushWordAsTermRef(p1),
+			   PL_TERM, pushWordAsTermRef(p2));
+      popTermRef();
+      popTermRef();
 
       break;
     }
