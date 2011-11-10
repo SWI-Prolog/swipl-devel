@@ -490,7 +490,6 @@ Section "Package CLIB"
   File pl\bin\memfile.dll
   File pl\bin\mime.dll
   File pl\bin\socket.dll
-  File pl\bin\random.dll
   File pl\bin\time.dll
   File pl\bin\readutil.dll
   File pl\bin\process.dll
