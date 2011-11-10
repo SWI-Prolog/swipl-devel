@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -39,17 +40,24 @@
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module defines more high-level primitives for examining the Prolog
-stack.  It is defined for debugging purposes.
+/** <module> Examine the Prolog stack
 
-Status
-------
+This module defines  high-level  primitives   for  examining  the Prolog
+stack.  It provides the following functionality:
 
-This module is in an early development  status. Please be aware that the
-Prolog representation of a backtrace as  well   as  the printed form are
-subject to change.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    * get_prolog_backtrace/2 gets a Prolog representation of the
+    Prolog stack.  This can be used for printing, but also to enrich
+    exceptions (see prolog_exception_hook/4).
+
+    * print_prolog_backtrace/2 prints a backtrace as returned by
+    get_prolog_backtrace/2
+
+    * The shorthand backtrace/1 fetches and prints a backtrace.
+
+@see	library(http/http_error) exploits these to print a backtrace
+	for HTTP server handlers that throw an exception.  Use this
+	as a template for your own application specific handlers.
+*/
 
 %%	get_prolog_backtrace(+MaxDepth, -Backtrace)
 %
@@ -97,7 +105,7 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 
 %%	print_prolog_backtrace(+Stream, +Backtrace)
 %
-%	Print a stacktrace in human readable form.
+%	Print a stacktrace in human readable form to Stream.
 
 print_prolog_backtrace(Stream, Backtrace) :-
 	phrase(message(Backtrace), Lines),
@@ -186,15 +194,17 @@ find_subgoal([A|T], term_position(_, _, _, _, PosL), SPos) :-
 %	Translate a character location to a line-number.
 
 lineno(File, Char, Line) :-
-	open(File, read, Fd),
-	lineno_(Fd, Char, Line0),
-	close(Fd),
-	Line = Line0.
+	setup_call_cleanup(
+	    open(File, read, Fd),
+	    lineno_(Fd, Char, Line),
+	    close(Fd)).
 
 lineno_(Fd, Char, L) :-
-	stream_property(Fd, position('$stream_position'(C,L0,_,_))),
+	stream_property(Fd, position(Pos)),
+	stream_position_data(char_count, Pos, C),
 	C > Char, !,
+	stream_position_data(line_count, Pos, L0),
 	L is L0-1.
 lineno_(Fd, Char, L) :-
-	skip(Fd, 10),
+	skip(Fd, 0'\n),
 	lineno_(Fd, Char, L).
