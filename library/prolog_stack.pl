@@ -129,6 +129,12 @@ print_prolog_backtrace(Stream, Backtrace, Options) :-
 	phrase(message(Backtrace, Options), Lines),
 	print_message_lines(Stream, '', Lines).
 
+:- public				% Called from some handlers
+	message//1.
+
+message(Backtrace) -->
+	message(Backtrace, []).
+
 message([], _) -->
 	[].
 message([H|T], Options) -->
