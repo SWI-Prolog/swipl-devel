@@ -3863,6 +3863,16 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 Note that exceptions are placed on the stack using PL_raise_exception(),
 which uses duplicate_term() and  freezeGlobal()   to  make the exception
 term immune for undo operations.
+
+(*) If the exception is not caught, we  try to print it and enable trace
+mode. However, we should be careful about   this  if the exception is an
+out-of-stack exception because the trace runs in Prolog and is likely to
+run fatally out of stack if we start the tracer immediately. That is the
+role of trace_if_space(). As long as there is no space, the exception is
+unwinded until there is space. Unfortunately,   this  means that some of
+the context of the exception is lost. Note that  we need to run GC if we
+ran out of global stack because  the   stack  is  frozen to preserve the
+exception ball.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_THROW, 0, 0, ())
@@ -3926,11 +3936,16 @@ b_throw:
 
     if ( !rc )
     { SAVE_REGISTERS(qid);
-      LD->critical++;				/* do not handle signals */
-      printMessage(ATOM_error, PL_TERM, exception_term);
-      start_tracer = TRUE;
+      if ( LD->outofstack == (Stack)&LD->stacks.global )
+	garbageCollect();
+      LD->critical++;			/* do not handle signals */
       debugmode(TRUE, NULL);
-      trace_if_space();
+      if ( !trace_if_space() )		/* see (*) */
+      { start_tracer = TRUE;
+      } else
+      { trimStacks(FALSE PASS_LD);	/* restore spare stacks */
+	printMessage(ATOM_error, PL_TERM, exception_term);
+      }
       LD->critical--;
       LOAD_REGISTERS(qid);
     }
@@ -4006,8 +4021,29 @@ b_throw:
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
       }
-      if ( start_tracer )
-	trace_if_space();
+
+      if ( start_tracer )		/* See (*) */
+      {	if ( LD->outofstack == (Stack)&LD->stacks.global )
+	{ SAVE_REGISTERS(qid);
+	  garbageCollect();
+	  LOAD_REGISTERS(qid);
+	}
+
+	DEBUG(1, Sdprintf("g+l+t free = %ld+%ld+%ld\n",
+			  spaceStack(global),
+			  spaceStack(local),
+			  spaceStack(trail)));
+
+	if ( trace_if_space() )
+	{ start_tracer = FALSE;
+	  SAVE_REGISTERS(qid);
+	  LD->critical++;		/* do not handle signals */
+	  trimStacks(FALSE PASS_LD);
+	  printMessage(ATOM_error, PL_TERM, exception_term);
+	  LD->critical--;
+	  LOAD_REGISTERS(qid);
+	}
+      }
     }
   } else
 #endif /*O_DEBUGGER*/

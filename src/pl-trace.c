@@ -1723,21 +1723,25 @@ used to start tracing uncaught overflow exceptions.
 
 int
 trace_if_space(void)
-{ GET_LD;
+{ GET_LD
+  int trace;
 
-  if ( debugstatus.tracing == TRUE )
-    return debugstatus.tracing;
 
   if ( LD->outofstack )
   { if ( spaceStack(local) > 10000 * sizeof(void*) &&
 	 spaceStack(global) > 10000 * sizeof(void*) &&
 	 spaceStack(trail) > 10000 * sizeof(void*) )
-      tracemode(TRUE, NULL);
+      trace = TRUE;
+    else
+      trace = FALSE;
   } else
-  { tracemode(TRUE, NULL);
+  { trace = TRUE;
   }
 
-  return debugstatus.tracing;
+  if ( trace )
+    tracemode(trace, NULL);
+
+  return trace;
 }
 
 
