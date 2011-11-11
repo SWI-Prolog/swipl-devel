@@ -1726,11 +1726,13 @@ trace_if_space(void)
 { GET_LD
   int trace;
 
+#define minFreeStack(name, size) \
+	(spaceStack(name) > size*(int)sizeof(void*))
 
   if ( LD->outofstack )
-  { if ( spaceStack(local) > 10000 * sizeof(void*) &&
-	 spaceStack(global) > 10000 * sizeof(void*) &&
-	 spaceStack(trail) > 10000 * sizeof(void*) )
+  { if ( minFreeStack(local,  50000) &&
+	 minFreeStack(global, 50000) &&
+	 minFreeStack(trail,  20000) )
       trace = TRUE;
     else
       trace = FALSE;

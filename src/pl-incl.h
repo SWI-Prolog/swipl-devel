@@ -1743,12 +1743,12 @@ typedef struct
 #define onGlobalArea(addr) \
 	((char *)(addr) >= (char *)gBase && \
 	 (char *)(addr) <  (char *)lBase)
-#define usedStackP(s) ((char *)(s)->top - (char *)(s)->base)
-#define sizeStackP(s) ((char *)(s)->max - (char *)(s)->base)
-#define roomStackP(s) ((char *)(s)->max - (char *)(s)->top)
+#define usedStackP(s) ((intptr_t)((char *)(s)->top - (char *)(s)->base))
+#define sizeStackP(s) ((intptr_t)((char *)(s)->max - (char *)(s)->base))
+#define roomStackP(s) ((intptr_t)((char *)(s)->max - (char *)(s)->top))
 #define spaceStackP(s) (limitStackP(s)-usedStackP(s))
-#define limitStackP(s) ((s)->size_limit)
-#define narrowStackP(s) (roomStackP(s) < (s)->minfree)
+#define limitStackP(s) ((intptr_t)((s)->size_limit))
+#define narrowStackP(s) (roomStackP(s) < (intptr_t)(s)->minfree)
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
 #define sizeStack(name) sizeStackP(&LD->stacks.name)
