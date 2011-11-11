@@ -3857,12 +3857,12 @@ the stack, looking for a frame running catch/3 on which it can unify the
 exception code. It then cuts all  choicepoints created since throw/3. If
 throw/3 is not found, it sets  the   query  exception  field and returns
 failure. Otherwise, it will simulate an I_USERCALL0 instruction: it sets
-the FR and lTop as it it  was   running  the  throw/3 predicate. Then it
+the FR and lTop as if it  was   running  the  throw/3 predicate. Then it
 pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
 Note that exceptions are placed on the stack using PL_raise_exception(),
-which use duplicate_term() and freezeGlobal() to make the exception term
-immune for undo operations.
+which uses duplicate_term() and  freezeGlobal()   to  make the exception
+term immune for undo operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_THROW, 0, 0, ())
@@ -3931,7 +3931,7 @@ b_throw:
       start_tracer = TRUE;
       debugmode(TRUE, NULL);
       trace_if_space();
-       LD->critical--;
+      LD->critical--;
       LOAD_REGISTERS(qid);
     }
   }
