@@ -5321,7 +5321,11 @@ Describes the current state of the random generator. State is a normal
 Prolog term that can be asserted or written to a file. Applications
 should make no other assumptions about its representation. The only
 meaningful operation is to use as argument to set_random/1 using the
-\term{state}{State} option.
+\term{state}{State} option.\bug{GMP provides no portable mechanism to
+fetch and restore the state.  The current implementation works, but the
+state depends on the platform.  I.e., it is generally not possible to
+reuse the state with another version of GMP or on a CPU with different
+datasizes or endian-ness.}
     \end{description}
 
     \predicate{current_arithmetic_function}{1}{Head}

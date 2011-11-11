@@ -2871,7 +2871,7 @@ init_random(ARG1_LD)
 #ifdef O_GMP
   if ( !LD->arith.random.initialised )
   { LD->gmp.persistent++;
-    gmp_randinit_default(LD->arith.random.state);
+    gmp_randinit_mt(LD->arith.random.state);
     LD->arith.random.initialised = TRUE;
     seed_random(PASS_LD1);
     LD->gmp.persistent--;
