@@ -41,28 +41,42 @@ Documenting libraries
 
 Libraries are documented in their own file  in the lib subdirectory. The
 library file has to be added to  the input statements of lib/library.doc
-and the LIBFILES macro of the Makefile.   The summary of libraries is in
-the file lib/summary.doc. Please update   this  with summary information
-for your library.
+and the LIBFILES macro of the  Makefile.   To  modify the Makefile, edit
+Makefile.in and run ./config.status from the build-directory of the base
+system (normally 'src').  The  summary  of   libraries  is  in  the file
+lib/summary.doc. Please update this with   summary  information for your
+library.
+
+Many of the libraries are nowadays documented  in the source and the TeX
+is created through PlDoc.  To add a library
+
+    - Edit Makefile.in:
+	- $LIBFILES
+	- Add a run to the section "PlDoc generated manual files"
+	- Add an \input to lib/library.doc and lib/summary.doc.
+
+Note that the LaTeX filename should   not contain underscores (see e.g.,
+pure_input for an example).
+
 
 Generating the documentation
 ----------------------------
 
-You need a recent latex installation,   including pdflatex. We use teTeX
-and the more recent `TeX Live' distribution.   You  also need to install
-the fixed-width font libraries available in   the  txt subdirectory. The
-README there explains how this must be installed.
+You need a recent latex  installation   with  many optional packages. We
+currently  use  the  default  Ubuntu  one.    See  README.linux  in  the
+top directory.
 
-For the HTML, you also need to install the Prolog based latex2html. This
-is available in ../packages/ltx2html. After   installing Prolog and with
-Prolog in your PATH, a simple "make   install" should suffice to install
-this in $HOME/bin
+You also need to install the fixed-width font libraries available in the
+txt subdirectory. The README there explains how this must be installed.
 
-Finally, check the Makefile, notably the definition of PL.
+For the HTML version, you need to   install the Prolog based latex2html.
+This is available in ../packages/ltx2html.   After installing Prolog and
+with Prolog in your PATH, a  simple   "make  install"  should suffice to
+install this in $HOME/bin
 
 Targets:
 
 	make online	- Generate the library/MANUAL file and index
-	make pdf	- Generate MANUAL.pdf
-	make html	- Generate the HTML version
-	make clean	- Remove generated intermediate files.
+	make pdf	- Generate SWI-Prolog-<version>.pdf
+	make html	- Generate the HTML version in Manual/
+	make clean	- Remove generated intermediate files
