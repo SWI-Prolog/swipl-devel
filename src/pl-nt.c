@@ -685,6 +685,52 @@ dlclose(void *handle)
 
 
 		 /*******************************
+		 *	 SNPRINTF MADNESS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+MS-Windows _snprintf() may look like C99 snprintf(), but is is not quite
+the same: on overflow, the buffer is   *not* 0-terminated and the return
+is negative (unspecified how negative).  The   code  below  works around
+this, returning count on overflow. This is still not the same as the C99
+version that returns the  number  of   characters  that  would have been
+written, but it seems to be enough for our purposes.
+
+See http://www.di-mgt.com.au/cprog.html#snprintf
+
+The above came from the provided link, but it is even worse (copied from
+VS2005 docs):
+
+  - If len < count, then len characters are stored in buffer, a
+  null-terminator is appended, and len is returned.
+
+  - If len = count, then len characters are stored in buffer, no
+  null-terminator is appended, and len is returned.
+
+  - If len > count, then count characters are stored in buffer, no
+  null-terminator is appended, and a negative value is returned.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+ms_snprintf(char *buffer, size_t count, const char *fmt, ...)
+{ va_list ap;
+  int ret;
+
+  va_start(ap, fmt);
+  ret = _vsnprintf(buffer, count-1, fmt, ap);
+  va_end(ap);
+
+  if ( ret < 0 || ret == count )
+  { ret = count;
+    buffer[count-1] = '\0';
+  }
+
+  return ret;
+}
+
+
+
+		 /*******************************
 		 *	      FOLDERS		*
 		 *******************************/
 
