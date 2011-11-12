@@ -268,7 +268,13 @@ void *alloca ();
 #endif
 
 #ifdef O_GMP
+#ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
+#pragma warning( disable : 4146 )
+#endif
 #include <gmp.h>
+#ifdef _MSC_VER
+#pragma warning( default : 4146 )
+#endif
 #endif
 
 #if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
