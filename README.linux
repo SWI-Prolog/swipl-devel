@@ -42,7 +42,7 @@ For odbc: unixodbc-dev
 For ssl: libssl-dev
 For pldoc: no other package required
 For plunit: no other package required
-For jpl: openjdk-6-jdk
+For jpl: openjdk-6-jdk junit
 For zlib: zlib1g-dev
 
 Note 1: installing these packages triggers the automatic installation
@@ -70,7 +70,7 @@ sudo apt-get install \
 	libxpm-dev libxt-dev pkg-config \
 	libssl-dev \
 	unixodbc-dev \
-	openjdk-6-jdk \
+	openjdk-6-jdk junit \
 	zlib1g-dev
 
 The provided build.templ works fine for Debian and Ubuntu. Copy it to
