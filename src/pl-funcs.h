@@ -688,6 +688,8 @@ COMMON(const)  char *	dlerror(void);
 COMMON(void *)		dlsym(void *handle, char *symbol);
 COMMON(int)		dlclose(void *handle);
 #endif /*EMULATE_DLOPEN*/
+COMMON(int)		ms_snprintf(char *buffer, size_t count,
+				    const char *fmt, ...);
 COMMON(void)		getDefaultsFromRegistry(void);
 COMMON(const char*)	WinError(void);
 

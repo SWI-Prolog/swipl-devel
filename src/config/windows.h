@@ -60,7 +60,7 @@ typedef int mode_t;
 #define ASSOCIATE_STATE "qlx"
 #define ASSOCIATE_SRC	"pl"
 
-#define snprintf _snprintf
+#define snprintf ms_snprintf		/* defined in pl-nt.c */
 
 #ifdef O_GMP
 #define HAVE_GMP_H 1
