@@ -2,7 +2,7 @@ SWI-Prolog and the GMP library
 
 Author:  Jan Wielemaker
 Created: Aug 21, 2005
-Udated:  Sep 22, 2011, using comments from Degski
+Udated:  Nov 12, 2011, document creating gmp.lib
 
 The GNU GMP library (GNU  Multiple   Precision  Arithmetic  Library), is
 available  from  http://gmplib.org/.  It   provides  multiple  precision
@@ -25,6 +25,80 @@ trouble making a Windows version. There  are   several  ways  to get the
 official  sources  compiled,  notably  using    MinGW   [1].  An  easier
 alternative is to use the fork created by the MPIR project, which can be
 found at http://mpir.org/.
+
+That said, MPIR requires VS, which  requires   a  lot  of other stuff to
+install, while the whole lot comes nicely   installed with MinGW and its
+cross-compilers. The current gmp.lib is  produced   on  an  Ubuntu 11.04
+system using these commands and the GMP 5.0.2 sources:
+
+  % ./configure --host=i586-mingw32msvc --prefix=$HOME/mingw \
+	--disable-shared --enable-static
+  % make
+  % make install
+  % cd ~/mingw/lib
+
+  % GCC=i586-mingw32msvc-gcc
+  % NM=i586-mingw32msvc-nm
+  % AR=i586-mingw32msvc-ar
+  % RANLIB=i586-mingw32msvc-ranlib
+
+  % $AR x `$GCC print-libgcc-file-name` _chkstk.o
+  % $CC -c ms_snprintf.c
+  % $AR q gmp.a _chkstk.o ms_snprintf.o
+  % $RANLIB libgmp.a
+  % mv gmp.a gmp.lib
+
+Note that _chkstk.o is the archive member holding alloca(), which can be
+verified using
+
+  % $NM -o `$GCC -print-libgcc-file-name` | grep alloca
+
+ms_snprintf.c is here, including the motivation why it is needed.
+
+================
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+MS-Windows _snprintf() may look like C99 snprintf(), but is is not quite
+the same: on overflow, the buffer is   *not* 0-terminated and the return
+is negative (unspecified how negative).  The   code  below  works around
+this, returning count on overflow. This is still not the same as the C99
+version that returns the  number  of   characters  that  would have been
+written, but it seems to be enough for our purposes.
+
+See http://www.di-mgt.com.au/cprog.html#snprintf
+
+The above came from the provided link, but it is even worse (copied from
+VS2005 docs):
+
+  - If len < count, then len characters are stored in buffer, a
+  null-terminator is appended, and len is returned.
+
+  - If len = count, then len characters are stored in buffer, no
+  null-terminator is appended, and len is returned.
+
+  - If len > count, then count characters are stored in buffer, no
+  null-terminator is appended, and a negative value is returned.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#include <stdarg.h>
+#include <stdlib.h>
+
+int
+snprintf(char *buffer, size_t count, const char *fmt, ...)
+{ va_list ap;
+  int ret;
+
+  va_start(ap, fmt);
+  ret = _vsnprintf(buffer, count-1, fmt, ap);
+  va_end(ap);
+
+  if ( ret < 0 || ret == count )
+  { ret = count;
+    buffer[count-1] = '\0';
+  }
+
+  return ret;
+}
+================
 
 =====
 [1]. This readme used to document these. Most likely this documentation
