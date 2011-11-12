@@ -759,7 +759,7 @@ user:prolog_file_type(Ext,	executable) :-
 '$file_condition'(access([]), _) :- !.
 '$file_condition'(access(Access), File) :- !,
 	access_file(File, Access).
-'$file_condition'(relative_to(_), _File).		% This isn't a condition
+'$file_condition'(_, _File).		% This isn't a condition
 
 '$extend_file'(File, Exts, FileEx) :-
 	'$ensure_extensions'(Exts, File, Fs),
