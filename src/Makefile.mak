@@ -381,21 +381,12 @@ odbc-install:
 # Redistributable Requirements .cab files
 ################################################################
 
-!IF "$(MD)" == "WIN32"
-BITS=32
-!ELSE
-BITS=64
-!ENDIF
-
-CAB:	reqs$(BITS)
-
-reqs$(BITS)::
-	cabarc.exe -m LZX:21 N include.cab "..\include$(BITS)\*.*"
-	cabarc.exe -m LZX:21 N lib.cab "..\lib$(BITS)\*.*"
-	cabarc.exe -m LZX:21 N reqs$(BITS).cab include.cab lib.cab
-	if exist include.cab (del /Q include.cab)
-	if exist lib.cab (del /Q lib.cab)
-
+# To update the reqs-N-BITS.cab, do this:
+#
+# Extract the old one, update the files and update files.txt
+# Then run
+#
+# cabarc.exe -p n reqs-N-BITS.cab @files.txt
 
 ################################################################
 # Cleanup
