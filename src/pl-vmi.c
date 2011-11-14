@@ -427,7 +427,7 @@ TBD:	Deal with multiple identical instructions
 
 VMI(H_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 { SEPERATE_VMI;
-  VMI_GOTO(H_STRING)
+  VMI_GOTO(H_STRING);
 }
 
 
@@ -2147,7 +2147,7 @@ VMI(C_LCUT, 0, 1, (CA1_CHP))
 
 VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
 { SEPERATE_VMI;
-  VMI_GOTO(C_CUT)
+  VMI_GOTO(C_CUT);
 }
 
 

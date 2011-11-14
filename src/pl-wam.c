@@ -1929,13 +1929,13 @@ pl-comp.c
 #define VMI(Name,f,na,a)	Name ## _LBL: \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
-#define VMI_GOTO(n)		{ END_PROF(); \
-				  goto n ## _LBL; \
-				}
-#define NEXT_INSTRUCTION	{ END_PROF(); \
-				  DbgPrintInstruction(FR, PC); \
-				  goto *(void *)((intptr_t)(*PC++)); \
-				}
+#define VMI_GOTO(n)		do { END_PROF(); \
+				       goto n ## _LBL; \
+				   } while(0)
+#define NEXT_INSTRUCTION	do { END_PROF(); \
+				     DbgPrintInstruction(FR, PC); \
+				     goto *(void *)((intptr_t)(*PC++)); \
+				   } while(0)
 #ifndef ASM_NOP
 #define ASM_NOP asm("nop")
 #endif
