@@ -56,7 +56,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 51131
+#define PLVERSION 51132
 #endif
 
 		 /*******************************
