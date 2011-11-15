@@ -243,11 +243,28 @@ randseq(K, N, Si, So) :-
 	randseq(K, M, Si, So).
 
 %%	random_permutation(+List, -Permutation) is det.
+%%	random_permutation(-List, +Permutation) is det.
 %
 %	Permutation is a random permutation of List. This is intended to
-%	process the elements of List in random order.
+%	process the elements of List in   random order. The predicate is
+%	symetric.
+%
+%	@error instantiation_error, type_error(list, _).
 
-random_permutation(List, RandomPermutation) :-
+random_permutation(List1, List2) :-
+	is_list(List1), !,
+	random_permutation_(List1, List2).
+random_permutation(List1, List2) :-
+	is_list(List2), !,
+	random_permutation_(List2, List1).
+random_permutation(List1, List2) :-
+	var(List1), var(List2), !,
+	instantiation_error(List1+List2).
+random_permutation(List1, List2) :-
+	must_be(list, List1),
+	must_be(list, List2).
+
+random_permutation_(List, RandomPermutation) :-
         key_random(List, Keyed),
         keysort(Keyed, Sorted),
         pairs_values(Sorted, RandomPermutation).
