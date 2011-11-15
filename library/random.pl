@@ -46,12 +46,16 @@
 
 	    random_perm2/4,		% A,B, X,Y
 
+	    random_member/2,		% -Element, +List
+	    random_select/3,		% ?Element, +List, -Rest
+
 	    randseq/3,			% +Size, +Max, -Set
 	    randset/3,			% +Size, +Max, -List
-	    random_permutation/2	% +List, -Permutation
+	    random_permutation/2	% ?List, ?Permutation
 	  ]).
 :- use_module(library(pairs)).
 :- use_module(library(error)).
+:- use_module(library(lists)).
 
 /** <module> Random numbers
 
@@ -192,12 +196,48 @@ random_perm2(A,B, X,Y) :-
 		 *    SET AND LIST OPERATIONS	*
 		 *******************************/
 
+%%	random_member(-X, +List:list) is det.
+%
+%	X is a random member of  List.   Implemented  by taking a random
+%	integer in the range [0, |List|], followed by nth0/3.
+%
+%	@compat	Quintus and SICStus libraries.
+
+random_member(X, List) :-
+	length(List, Len),
+	N is random(Len),
+	nth0(N, List, X).
+
+%%	random_select(-X, +List, -Rest) is det.
+%%	random_select(+X, -List, +Rest) is det.
+%
+%	Randomly select or insert an element.   Either List or Rest must
+%	be a list.
+%
+%	@compat	Quintus and SICStus libraries.
+
+random_select(X, List, Rest) :-
+	(   '$skip_list'(Len, List, Tail),
+	    Tail == []
+	->  true
+	;   '$skip_list'(RLen, Rest, Tail),
+	    Tail == []
+	->  Len is RLen+1
+	), !,
+	N is random(Len),
+	nth0(N, List, X, Rest).
+random_select(_, List, Rest) :-
+	partial_list(List), partial_list(Rest),
+	instantiation_error(List+Rest).
+random_select(_, List, Rest) :-
+	must_be(list, List),
+	must_be(list, Rest).
+
 %%	randset(+K:int, +N:int, -S:list(int)) is det.
 %
 %	S is a sorted list of K integers in the range 1..N.
 %
 %	@see randseq/3.
-
 
 randset(K, N, S) :-
 	must_be(nonneg, K),
@@ -258,7 +298,7 @@ random_permutation(List1, List2) :-
 	is_list(List2), !,
 	random_permutation_(List2, List1).
 random_permutation(List1, List2) :-
-	var(List1), var(List2), !,
+	partial_list(List1), partial_list(List2), !,
 	instantiation_error(List1+List2).
 random_permutation(List1, List2) :-
 	must_be(list, List1),
@@ -273,3 +313,11 @@ key_random([], []).
 key_random([H|T0], [K-H|T]) :-
         random(K),
         key_random(T0, T).
+
+%%	partial_list(@Term) is semidet.
+%
+%	True if Term is a partial list.
+
+partial_list(List) :-
+	'$skip_list'(_, List, Tail),
+	var(Tail).
