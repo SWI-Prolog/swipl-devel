@@ -41,8 +41,10 @@
 	  selectchk/4,			% ?X, ?XList, ?Y, ?YList
 	  nextto/3,			% ?X, ?Y, ?List
 	  delete/3,			% ?List, ?X, ?Rest
-	  nth0/3,
-	  nth1/3,
+	  nth0/3,			% ?N, ?List, ?Elem
+	  nth1/3,			% ?N, ?List, ?Elem
+	  nth0/4,			% ?N, ?List, ?Elem, ?Rest
+	  nth1/4,			% ?N, ?List, ?Elem, ?Rest
 	  last/2,			% +List, -Element
 	  same_length/2,		% ?List1, ?List2
 	  reverse/2,			% +List, -Reversed
@@ -258,6 +260,55 @@ nth1(Index, List, Elem) :-
 	    nth_gen(T, Elem, H, 1, Index)	% match
 	;   must_be(integer, Index)
 	).
+
+%%	nth0(?N, ?List, ?Elem, ?Rest) is det.
+%
+%	Select/insert element at index.  True  when   Elem  is  the N-th
+%	(0-based) element of List and Rest is   the  remainder (as in by
+%	select/3) of List.  For example:
+%
+%	  ==
+%	  ?- nth0(I, [a,b,c], E, R).
+%	  I = 0, E = a, R = [b, c] ;
+%	  I = 1, E = b, R = [a, c] ;
+%	  I = 2, E = c, R = [a, b] ;
+%	  false.
+%	  ==
+%
+%	  ==
+%	  ?- nth0(1, L, a1, [a,b]).
+%	  L = [a, a1, b].
+%	  ==
+
+nth0(V, In, Element, Rest) :-
+	var(V), !,
+        generate_nth(0, V, In, Element, Rest).
+nth0(V, In, Element, Rest) :-
+	must_be(nonneg, V),
+	find_nth0(V, In, Element, Rest).
+
+%%	nth1(?N, ?List, ?Elem, ?Rest) is det.
+%
+%	As nth0/4, but counting starts at 1.
+
+nth1(V, In, Element, Rest) :-
+	var(V), !,
+        generate_nth(1, V, In, Element, Rest).
+nth1(V, In, Element, Rest) :-
+	must_be(positive_integer, V),
+	succ(V0, V),
+	find_nth0(V0, In, Element, Rest).
+
+generate_nth(I, I, [Head|Rest], Head, Rest).
+generate_nth(I, IN, [H|List], El, [H|Rest]) :-
+        I1 is I+1,
+	generate_nth(I1, IN, List, El, Rest).
+
+find_nth0(0, [Head|Rest], Head, Rest) :- !.
+find_nth0(N, [Head|Rest0], Elem, [Head|Rest]) :-
+        M is N-1,
+        find_nth0(M, Rest0, Elem, Rest).
+
 
 %%	last(?List, ?Last)
 %
