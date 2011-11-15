@@ -739,17 +739,8 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list ARG_LD)
   }
 
 #if O_SECURE
-  for(cref=ch->head; cref; cref=cref->next)
-  { if ( tagex(cref->key) == (TAG_ATOM|STG_GLOBAL) )
-    { ClauseList cl = &cref->value.clauses;
-      ClauseRef cr;
-
-      assert(cl->first_clause);
-      assert(cl->erased_clauses==0);
-      for(cr=cl->first_clause; cr; cr=cr->next)
-      { assert(false(cr->value.clause, ERASED));
-      }
-    } else
+  if ( !is_list )
+  { for(cref=ch->head; cref; cref=cref->next)
     { assert(false(cref->value.clause, ERASED));
     }
   }
