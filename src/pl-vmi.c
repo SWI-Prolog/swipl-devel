@@ -2671,8 +2671,8 @@ VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
   else if ( isNil(*k) )
     cref = (ClauseRef)PC[0];
   else if ( canBind(*k) )
-  { PC = SUPERVISOR(next_clause);
-    VMI_GOTO(S_ALLCLAUSES);
+  { PC = SUPERVISOR(staticp) + 1;
+    VMI_GOTO(S_STATIC);
   } else
     FRAME_FAILED;
 
