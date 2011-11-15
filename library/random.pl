@@ -235,20 +235,28 @@ random_select(_, List, Rest) :-
 
 %%	randset(+K:int, +N:int, -S:list(int)) is det.
 %
-%	S is a sorted list of K integers in the range 1..N.
+%	S is a sorted list of  K   unique  random  integers in the range
+%	1..N. Implemented by enumerating 1..N   and  deciding whether or
+%	not the number should be part of the set.  For example:
+%
+%	  ==
+%	  ?- randset(5, 5, S).
+%	  S = [1, 2, 3, 4, 5].		(always)
+%	  ?- randset(5, 20, S).
+%	  S = [2, 7, 10, 19, 20].
+%	  ==
 %
 %	@see randseq/3.
+%	@bug Slow if N is large and K is small.
 
 randset(K, N, S) :-
 	must_be(nonneg, K),
 	K =< N,
 	randset(K, N, [], S).
 
-
 randset(0, _, S, S) :- !.
 randset(K, N, Si, So) :-
-	random(X),
-	X * N < K, !,
+	random(N) < K, !,
 	J is K-1,
 	M is N-1,
 	randset(J, M, [N|Si], So).
@@ -257,10 +265,16 @@ randset(K, N, Si, So) :-
 	randset(K, M, Si, So).
 
 
-%%	randseq(+K:int, +N:int, -S:list(int)) is det.
+%%	randseq(+K:int, +N:int, -List:list(int)) is det.
 %
-%	S is a list of K integers in the range 1..N. The order is
-%	random.
+%	S is a list of K unique random   integers in the range 1..N. The
+%	order is random. Works as if defined by the following code.
+%
+%	  ==
+%	  randseq(K, N, List) :-
+%		randset(K, N, Set),
+%		random_permutation(Set, List).
+%	  ==
 %
 %	@see randset/3.
 
@@ -272,8 +286,7 @@ randseq(K, N, S) :-
 
 randseq(0, _, S, S) :- !.
 randseq(K, N, [Y-N|Si], So) :-
-	random(X),
-	X * N < K, !,
+	random(N) < K, !,
 	random(Y),
 	J is K-1,
 	M is N-1,
