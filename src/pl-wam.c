@@ -2245,6 +2245,7 @@ next_choice:
 	SAVE_REGISTERS(qid);
 	rc = tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD);
 	LOAD_REGISTERS(qid);
+	ch = BFR;			/* can be shifted */
 
 	switch( rc )
 	{ case ACTION_RETRY:
@@ -2320,6 +2321,7 @@ next_choice:
 	  SAVE_REGISTERS(qid);
 	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
 	  LOAD_REGISTERS(qid);
+	  ch = BFR;			/* can be shifted */
 
 	  switch( action )
 	  { case ACTION_FAIL:
