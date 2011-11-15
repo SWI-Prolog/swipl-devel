@@ -2925,6 +2925,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, a);
 	}
       }
+#ifdef O_GMP
     } else if ( name == ATOM_state )
     { number n;
 
@@ -2936,6 +2937,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
       clearNumber(&n);
 
       return TRUE;
+#endif /*O_GMP*/
     } else
     { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_random_option, A1);
     }
