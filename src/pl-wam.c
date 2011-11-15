@@ -2310,6 +2310,7 @@ next_choice:
       BFR = ch->parent;
       if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
 	goto next_choice;	/* Can happen of look-ahead was too short */
+      chp = ch->value.clause;
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
@@ -2341,7 +2342,6 @@ next_choice:
       clause = CL->value.clause;
       PC     = clause->codes;
       Profile(profRedo(ch->prof_node PASS_LD));
-      chp = ch->value.clause;
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
