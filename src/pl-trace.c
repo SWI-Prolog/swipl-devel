@@ -1223,8 +1223,9 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  { LocalFrame fr;
 
 	    if ( PL_get_frame(argv+1, &fr) )
-	      debugstatus.skiplevel = levelFrame(fr);
-	    else
+	    { debugstatus.skiplevel = levelFrame(fr);
+	      set(fr, FR_SKIPPED);
+	    } else
 	      assert(0);
 	  }
 	  rval = ACTION_CONTINUE;
