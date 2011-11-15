@@ -219,7 +219,6 @@ user to intercept and redefine the tracer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 					/* Frame <-> Prolog integer */
-static LocalFrame	redoFrame(LocalFrame, Code *PC);
 static void		helpTrace(void);
 #ifdef O_INTERRUPT
 static void		helpInterrupt(void);
@@ -420,7 +419,7 @@ Give a trace on the skipped goal for a redo.
 
       debugstatus.skiplevel = SKIP_REDO_IN_SKIP;
       SAVE_PTRS();
-      rc = tracePort(frame, bfr, REDO_PORT, pc2 PASS_LD);
+      rc = tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD);
       RESTORE_PTRS();
       debugstatus.skiplevel = levelFrame(fr);
       set(fr, FR_SKIPPED);		/* cleared by "case 'c'" */
