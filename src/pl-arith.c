@@ -1321,7 +1321,16 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       if ( dir < 0 )			/* shift left (<<) */
       {
 #ifdef O_GMP				/* msb() is 0..63 */
-	if ( msb64(n1->value.i) + shift >= (int)(sizeof(int64_t)*8-1) )
+        int bits = shift;
+
+	if ( n1->value.i >= 0 )
+	  bits += msb64(n1->value.i);
+	else if ( n1->value.i == PLMININT )
+	  bits += sizeof(int64_t)*8;
+	else
+	  bits += msb64(-n1->value.i);
+
+	if ( bits >= (int)(sizeof(int64_t)*8-1) )
 	{ promoteToMPZNumber(n1);
 	  goto mpz;
 	} else

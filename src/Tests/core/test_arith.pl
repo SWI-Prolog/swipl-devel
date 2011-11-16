@@ -124,9 +124,12 @@ test(shift_right_large, X == 0) :-
 	X is 5>>64.
 test(shift_right_large, X == 0) :-
 	X is 5>>(1<<62).
-test(shift_right_large,
-     [condition(current_prolog_flag(bounded, false)), X == 0]) :-
+:- if(current_prolog_flag(bounded, false)).
+test(shift_right_large, X == 0) :-
 	X is 5>>(1<<100).
+test(shift_left_large, X == -18446744073709551616) :-
+	X is (-1<<40)<<24.
+:- endif.
 
 :- end_tests(shift).
 
