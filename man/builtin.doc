@@ -2723,7 +2723,7 @@ arity of \arg{Pred} are used to determine the predicate.  If \arg{Index}
 is provided \arg{Reference} will be unified with the clause reference.
 If \arg{Index} is unbound, backtracking will yield both the indices and
 the references of all clauses of the predicate.  The following example
-finds the 2nd clause of member/2:
+finds the 2nd clause of append/3:
 
 \begin{code}
 ?- use_module(library(lists)).
