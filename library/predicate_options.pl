@@ -643,7 +643,7 @@ check_body((A,B), M, term_position(_,_,_,_,[PA,PB]), Action) :- !,
 	check_body(A, M, PA, Action),
 	check_body(B, M, PB, Action).
 check_body(A=B, _, _, _) :-		% partial evaluation
-	A=B, !.
+	unify_with_occurs_check(A,B), !.
 check_body(Goal, M, term_position(_,_,_,_,ArgPosList), Action) :-
 	callable(Goal),
 	functor(Goal, Name, Arity),
@@ -775,17 +775,17 @@ eval_option_pred(swi_option:option(Opt, Options, _Default)) :-
 	processes(Opt, Spec),
 	annotate(Options, Spec).
 eval_option_pred(swi_option:select_option(Opt, Options, Rest)) :-
-	ignore(Rest = Options),
+	ignore(unify_with_occurs_check(Rest, Options)),
 	processes(Opt, Spec),
 	annotate(Options, Spec).
 eval_option_pred(swi_option:select_option(Opt, Options, Rest, _Default)) :-
-	ignore(Rest = Options),
+	ignore(unify_with_occurs_check(Rest, Options)),
 	processes(Opt, Spec),
 	annotate(Options, Spec).
 eval_option_pred(swi_option:meta_options(_Cond, QOptionsIn, QOptionsOut)) :-
 	remove_qualifier(QOptionsIn, OptionsIn),
 	remove_qualifier(QOptionsOut, OptionsOut),
-	ignore(OptionsIn = OptionsOut).
+	ignore(unify_with_occurs_check(OptionsIn, OptionsOut)).
 
 processes(Opt, Spec) :-
 	compound(Opt),
