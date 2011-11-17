@@ -97,6 +97,8 @@ reload([H|T]) :-
 %	@bug	If modules import each other, we must load them in the
 %		proper order for import/export dependencies.
 
+:- public reload_file/1.		% Used by PDT
+
 reload_file(File) :-
 	source_base_name(File, Compile),
 	findall(M, source_file_property(File, load_context(M, _)), Modules),
