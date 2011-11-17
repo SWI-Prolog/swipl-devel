@@ -31,6 +31,7 @@
 	  [ prolog_history/1
 	  ]).
 :- use_module(library(base32)).
+:- use_module(library(lists)).
 
 /** <module> Per-directory persistent commandline history
 
@@ -38,8 +39,16 @@ This module implements  persistency  of   the  commandline  history over
 Prolog sessions on Prolog  installations  that   are  based  on  the GNU
 readline library (default for the development version on Unix systems).
 
-This is
+This facility is normally enabled using   the  following command in your
+personal initialization file (e.g., ~/.plrc or ~/pl.ini on Windows).
 
+  ==
+  :- prolog_history(enable).
+  ==
+
+The history is stored  in   the  directory =|~/.swipl-dir-history|=. For
+each directory for which it keeps the index  there is file whose name is
+the base32 encoding of the directory path.
 */
 
 %%	history_directory(-Dir) is semidet.
