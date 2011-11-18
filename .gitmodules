@@ -85,3 +85,6 @@
 [submodule "packages/windows"]
 	path = packages/windows
 	url = ../packages/windows.git
+[submodule "packages/PDT"]
+	path = packages/PDT
+	url = ../packages/PDT.git
