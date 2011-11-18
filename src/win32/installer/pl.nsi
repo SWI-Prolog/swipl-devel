@@ -368,11 +368,13 @@ Section "Documentation and Help-system"
   File pl\library\help.pl
 SectionEnd
 
-#Section "Common Prolog Library"
-#  SectionIn 1 3
-#  SetOutPath $INSTDIR\library\common
-#  File /r pl\library\common
-#SectionEnd
+Section "PDT support files"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library\
+  File pl\library\pdt_console.pl
+  SetOutPath $INSTDIR\bin
+  File pl\bin\pdt_console.dll
+SectionEnd
 
 Section "Constraint Handling Rules"
   SectionIn 1 3
