@@ -43,7 +43,15 @@
 /** <module> Manage Prolog break-points
 
 This module provides an  interface  for   development  tools  to set and
-delete break-points, giving a location in the source.
+delete break-points, giving a location in  the source. Development tools
+that want to track changes to   breakpoints must use user:message_hook/3
+to intercept these message terms:
+
+  * breakpoint(set, Id)
+  * breakpoint(delete, Id)
+
+Note that the hook must fail  after   creating  its side-effects to give
+other hooks the opportunity to react.
 */
 
 :- dynamic
@@ -143,19 +151,19 @@ delete_breakpoint(Id) :-
 %	    Reference of the clause in which the breakpoint resides.
 
 breakpoint_property(Id, file(File)) :-
-	known_breakpoint(_,_,Location,Id),
-	location_file(Location, File).
+	known_breakpoint(ClauseRef,_,_,Id),
+	clause_property(ClauseRef, file(File)).
 breakpoint_property(Id, line_count(Line)) :-
 	known_breakpoint(_,_,Location,Id),
 	location_line(Location, Line).
 breakpoint_property(Id, character_range(Start, Len)) :-
-	known_breakpoint(_,_,file_character_range(Start,Len),Id).
+	known_breakpoint(ClauseRef,PC,_,Id),
+	(   known_breakpoint(_,_,file_character_range(Start,Len),Id)
+	;   break_location(ClauseRef, PC, _File, Start-End),
+	    Len is End+1-Start
+	).
 breakpoint_property(Id, clause(Reference)) :-
 	known_breakpoint(Reference,_,_,Id).
-
-location_file(file_position(File, _Line, _Char), File).
-location_file(file_character_range(File, _Start, _Len), File).
-location_file(file_line(File, _Line), File).
 
 location_line(file_position(_File, Line, _Char), Line).
 location_line(file_character_range(File, _Start, _Len), File).
@@ -222,7 +230,7 @@ prolog:message(breakpoint(SetClear, Id)) -->
 setclear(set) -->
 	['Breakpoint '].
 setclear(delete) -->
-	['Deleted breakpoint from '].
+	['Deleted breakpoint '].
 
 breakpoint(Id) -->
 	breakpoint_name(Id),
