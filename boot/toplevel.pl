@@ -36,6 +36,7 @@
 	    '$break'/0,			% live in a break
 	    '$compile'/0,		% `-c' toplevel
 	    '$welcome'/0,		% banner
+	    '$toplevel_thread'/1,	% ?Thread
 	    prolog/0,			% user toplevel predicate
 	    '$set_prompt'/1,		% set the main prompt
 	    (initialization)/1,		% initialization goal (directive)
@@ -433,7 +434,17 @@ initialise_prolog :-
 		*    USER INTERACTIVE LOOP      *
 		*********************************/
 
+:- dynamic
+	'$toplevel_thread'/1.
+
 prolog :-
+	thread_self(Me),
+	setup_call_cleanup(
+	    assertz('$toplevel_thread'(Me), Ref),
+	    prolog_,
+	    erase(Ref)).
+
+prolog_ :-
 	current_prolog_flag(break_level, BreakLev),
 	repeat,
 	    (   '$module'(TypeIn, TypeIn),
