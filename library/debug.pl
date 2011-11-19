@@ -48,6 +48,9 @@
 	assertion(0),
 	debug(+,+,:).
 
+:- multifile prolog:assertion_failed/2.
+:- dynamic   prolog:assertion_failed/2.
+
 /*:- use_module(library(prolog_stack)).*/ % We use the autoloader if needed
 
 %:- set_prolog_flag(generate_debug_info, false).
@@ -258,19 +261,36 @@ debug_output(File, Stream) :-
 
 %%	assertion(:Goal) is det.
 %
-%	Acts similar to C assert() macro.  It has no effect if Goal
-%	succeeds.  If Goal fails it prints a message, a stack-trace
-%	and finally traps the debugger.
+%	Acts similar to C assert()  macro.  It   has  no  effect if Goal
+%	succeeds. If Goal fails or throws   and exception, the following
+%	steps are taken:
+%
+%	  * call prolog:assertion_failed/2.  If prolog:assertion_failed/2
+%	    fails, then:
+%
+%	    - If this is an interactive toplevel thread, print a
+%	      message, the stack-trace and finally traps the debugger.
+%	    - Otherwise, throw error(assertion_error(Reason, G),_) where
+%	      Reason is one of =fail= or the exception raised.
 
 assertion(G) :-
-	\+ \+ G, !.			% avoid binding variables
+	\+ \+ catch(G,
+		    Error,
+		    assertion_failed(Error, G)),
+	!.
 assertion(G) :-
-	print_message(error, assumption_failed(G)),
+	assertion_failed(fail, G).
+
+assertion_failed(Reason, G) :-
+	prolog:assertion_failed(Reason, G), !.
+assertion_failed(Reason, G) :-
+	print_message(error, assertion_failed(Reason, G)),
 	backtrace(10),
-	(   thread_self(main)
+	(   thread_self(Me),
+	    '$toplevel_thread'(Me)
 	->  trace,
 	    assertion_failed
-	;   throw(error(assertion_error(G), _))
+	;   throw(error(assertion_error(Reason, G), _))
 	).
 
 assertion_failed.
@@ -319,7 +339,7 @@ system:goal_expansion(assume(_), Goal) :-
 :- multifile
 	prolog:message/3.
 
-prolog:message(assumption_failed(G)) -->
+prolog:message(assertion_failed(_, G)) -->
 	[ 'Assertion failed: ~q'-[G] ].
 prolog:message(debug(Fmt, Args)) -->
 	show_thread_context,
@@ -346,3 +366,14 @@ show_time_context -->
 show_time_context -->
 	[].
 
+		 /*******************************
+		 *	       HOOKS		*
+		 *******************************/
+
+%%	prolog:assertion_failed(+Reason, +Goal) is semidet.
+%
+%	This hook is called if the Goal  of assertion/1 fails. Reason is
+%	unified with either =fail= if Goal simply failed or an exception
+%	ball otherwise. If this hook  fails,   the  default behaviour is
+%	activated.  If  the  hooks  throws  an   exception  it  will  be
+%	propagated into the caller of assertion/1.
