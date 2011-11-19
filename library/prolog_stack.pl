@@ -33,6 +33,7 @@
 :- module(prolog_stack,
 	  [ get_prolog_backtrace/2,	% +MaxDepth, -Stack
 	    get_prolog_backtrace/3,	% +Frame, +MaxDepth, -Stack
+	    prolog_stack_frame_property/2, % +Frame, ?Property
 	    print_prolog_backtrace/2,	% +Stream, +Stack
 	    print_prolog_backtrace/3,	% +Stream, +Stack, +Options
 	    backtrace/1			% +MaxDepth
@@ -107,6 +108,32 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 	    backtrace(D2, Parent, PC2, Stack)
 	;   Stack = []
 	).
+
+%%	prolog_stack_frame_property(+Frame, ?Property) is nondet.
+%
+%	True when Property is a property of   Frame. Frame is an element
+%	of a stack-trace as produced by get_prolog_backtrace/2.  Defined
+%	properties are:
+%
+%	  * level(Level)
+%	  * predicate(PI)
+%	  * location(File:Line)
+
+prolog_stack_frame_property(frame(Level,_), level(Level)).
+prolog_stack_frame_property(frame(_,Where), predicate(PI)) :-
+	frame_predicate(Where, PI).
+prolog_stack_frame_property(frame(_,clause(Clause,PC)), location(File:Line)) :-
+	subgoal_position(Clause, PC, File, CharA, _CharZ),
+	File \= @(_),			% XPCE Object reference
+	lineno(File, CharA, Line).
+
+frame_predicate(foreign(PI), PI).
+frame_predicate(call(PI), PI).
+frame_predicate(clause(Clause, _PC), M:Name/Arity) :-
+	nth_clause(Head, _, Clause), !,
+	Head = M:H,
+	functor(H, Name, Arity).
+
 
 
 %%	print_prolog_backtrace(+Stream, +Backtrace)
@@ -186,7 +213,7 @@ level(Level) -->
 clause_predicate_name(Clause, PredName) :-
 	user:prolog_clause_name(Clause, PredName), !.
 clause_predicate_name(Clause, PredName) :-
-	nth_clause(Head, _N, Clause),
+	nth_clause(Head, _N, Clause), !,
 	predicate_name(user:Head, PredName).
 
 
