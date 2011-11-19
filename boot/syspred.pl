@@ -570,6 +570,9 @@ predicate_property(Pred, Property) :-
 	\+ current_predicate(_, Pred),
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
+predicate_property(Pred, Property) :-
+	Property == visible, !,
+	visible_predicate(Pred).
 predicate_property(_:Head, Property) :-
 	nonvar(Property),
 	Property = autoload(File), !,
@@ -595,6 +598,8 @@ predicate_property(Pred, Property) :-
 
 '$predicate_property'(interpreted, Pred) :-
 	'$get_predicate_attribute'(Pred, foreign, 0).
+'$predicate_property'(visible, Pred) :-
+	'$get_predicate_attribute'(Pred, defined, 1).
 '$predicate_property'(built_in, Pred) :-
 	'$get_predicate_attribute'(Pred, system, 1).
 '$predicate_property'(exported, Pred) :-
@@ -643,6 +648,40 @@ system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).
 system_undefined(system:'$c_call_prolog'/0).
 system_undefined(system:window_title/2).
+
+%%	visible_predicate(:Head) is nondet.
+%
+%	True when Head can be called without raising an existence error.
+%	This implies it is defined,  can   be  inherited  from a default
+%	module or can be autoloaded.
+
+visible_predicate(Pred) :-
+	Pred = M:Head,
+	current_module(M),
+	(   callable(Head)
+	->  (   '$get_predicate_attribute'(Pred, defined, 1)
+	    ->	\+ hidden_system_predicate(Pred)
+	    ;	\+ current_prolog_flag(M:unknown, fail),
+		functor(Head, Name, Arity),
+		'$find_library'(M, Name, Arity, _LoadModule, _Library)
+	    )
+	;   (   default_module(M, DefM),
+	        '$c_current_predicate'(_, DefM:Head),
+		\+ '$get_predicate_attribute'(DefM:Head, imported, _),
+		\+ hidden_system_predicate(Pred)
+	    ;	'$in_library'(Name, Arity, _),
+		functor(Head, Name, Arity),
+		\+ '$get_predicate_attribute'(Pred, defined, 1)
+	    )
+	).
+
+hidden_system_predicate(_) :-
+	style_check(?(dollar)), !,
+	fail.
+hidden_system_predicate(_:Head) :-
+	functor(Head, Name, _),
+	sub_atom(Name, 0, _, _, $).
+
 
 %%	clause_property(+ClauseRef, ?Property) is nondet.
 %

@@ -2562,17 +2562,17 @@ lookup of the autoloader will cause the autoloader to verify that its
 index is up-to-date.
 
     \predicate{predicate_property}{2}{:Head, ?Property}
-True if \arg{Head} refers to a predicate that has property
+True when \arg{Head} refers to a predicate that has property
 \arg{Property}. With sufficiently instantiated \arg{Head},
 predicate_property/2 tries to resolve the predicate the same way as
 calling it would do: if the predicate is not defined it scans the
-auto-import modules and finally tries the autoloader. Unlike calling,
-failure to find the target predicate causes predicate_property/2 to fail
-silently. If \arg{Head} is not sufficiently bound, only currently
-locally defined and already imported predicates are enumerated. See
-current_predicate/1 for enumerating all predicates. A common issue
-concerns \emph{generating} all built-in predicates. This can be achieved
-using the code below.
+default modules (see default_module/2) and finally tries the autoloader.
+Unlike calling, failure to find the target predicate causes
+predicate_property/2 to fail silently. If \arg{Head} is not sufficiently
+bound, only currently locally defined and already imported predicates
+are enumerated. See current_predicate/1 for enumerating all predicates.
+A common issue concerns \emph{generating} all built-in predicates. This
+can be achieved using the code below.
 
 \begin{code}
 generate_built_in(Name/Arity) :-
@@ -2687,6 +2687,14 @@ This is true if the predicate occurs in the body of a loaded predicate,
 an attempt to call it has been made via one of the meta-call predicates
 or the predicate had a definition in the past. See the library package
 \pllib{check} for example usage.
+
+    \termitem{visible}{}
+True when predicate can be called without raising a predicate existence
+error. This means that the predicate is (1) defined, (2) can be
+inherited from one of the default modules (see default_module/2) or (3)
+can be autoloaded. The behaviour is logically consistent iff the propery
+\const{visible} is provided explicitly. If the property is left unbound,
+only defined predicates are enumerated.
 
     \termitem{volatile}{}
 If true, the clauses are not saved into a saved-state
