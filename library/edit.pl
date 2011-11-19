@@ -194,6 +194,14 @@ locate(module(Module), [file(Path)|Rest]) :-
 	->  Rest = [line(Line)]
 	;   Rest = []
 	).
+locate(breakpoint(Id), Location) :-
+	integer(Id),
+	breakpoint_property(Id, clause(Ref)),
+	(   breakpoint_property(Id, file(File)),
+	    breakpoint_property(Id, line_count(Line))
+	->  Location = [file(File),line(Line)]
+	;   locate(clause(Ref), Location)
+	).
 locate(clause(Ref), [file(File), line(Line)]) :-
 	clause_property(Ref, file(File)),
 	clause_property(Ref, line_count(Line)).
@@ -379,7 +387,7 @@ merge_specs(source_file(Path), _, source_file(Path)).
 %%	select_location(+Pairs, +UserSpec, -Location)
 
 do_select_location(Pairs, Spec, Location) :-
-	select_location(Pairs, Spec, Location), !, 		% HOOK
+	select_location(Pairs, Spec, Location), !,		% HOOK
 	Location \== [].
 do_select_location([], Spec, _) :- !,
 	print_message(warning, edit(not_found(Spec))),
