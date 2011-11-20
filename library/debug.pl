@@ -279,7 +279,8 @@ assertion(G) :-
 		    assertion_failed(Error, G)),
 	!.
 assertion(G) :-
-	assertion_failed(fail, G).
+	assertion_failed(fail, G),
+	assertion_failed.		% prevent last call optimization.
 
 assertion_failed(Reason, G) :-
 	prolog:assertion_failed(Reason, G), !.
@@ -288,8 +289,7 @@ assertion_failed(Reason, G) :-
 	backtrace(10),
 	(   thread_self(Me),
 	    '$toplevel_thread'(Me)
-	->  trace,
-	    assertion_failed
+	->  trace
 	;   throw(error(assertion_error(Reason, G), _))
 	).
 
