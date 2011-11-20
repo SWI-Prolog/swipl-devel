@@ -40,7 +40,7 @@
 :- use_module(library(system)).
 :- use_module(library(option)).
 
-:- system_mode(on).			% lock these predicates
+:- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Consistency checking
 
