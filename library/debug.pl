@@ -287,8 +287,7 @@ assertion_failed(Reason, G) :-
 assertion_failed(Reason, G) :-
 	print_message(error, assertion_failed(Reason, G)),
 	backtrace(10),
-	(   thread_self(Me),
-	    '$toplevel_thread'(Me)
+	(   current_prolog_flag(break_level, _)	% interactive thread
 	->  trace
 	;   throw(error(assertion_error(Reason, G), _))
 	).

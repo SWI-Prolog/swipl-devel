@@ -1005,7 +1005,9 @@ integers can be arbitrarily large and the \prologflag{min_integer} and
 \prologflag{max_integer} are not present. See \secref{artypes}.
 
     \prologflagitem{break_level}{integer}{r}
-Current break-level.  The initial toplevel has value 0.  See break/0.
+Current break-level. The initial toplevel (started with
+\cmdlineoption{-t}) has value 0. See break/0. This flag is absent from
+threads that are not running a toplevel loop.
 
     \prologflagitem{c_cc}{atom}{r}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc

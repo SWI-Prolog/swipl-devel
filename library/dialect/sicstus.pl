@@ -482,4 +482,5 @@ user:(\(X,Y,R)) :-				% SICStus 4
 %	Query the current break-level
 
 prolog:'$breaklevel'(BreakLevel, _) :-
-	system:flag('$break_level', BreakLevel, BreakLevel).
+	current_prolog_flag(break_level, BreakLevel), !.
+prolog:'$breaklevel'(0, _).

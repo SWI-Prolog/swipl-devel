@@ -759,7 +759,11 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   } else if ( key == ATOM_debugger_show_context )
   { return PL_unify_bool_ex(val, debugstatus.showContext);
   } else if ( key == ATOM_break_level )
-  { return PL_unify_integer(val, currentBreakLevel());
+  { int bl = currentBreakLevel();
+
+    if ( bl >= 0 )
+      return PL_unify_integer(val, bl);
+    return FALSE;
   }
 
   switch(f->flags & FT_MASK)

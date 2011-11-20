@@ -34,8 +34,8 @@
 	    '$toplevel'/0,		% Prolog top-level (re-entrant)
 	    '$compile'/0,		% `-c' toplevel
 	    '$welcome'/0,		% banner
-	    '$toplevel_thread'/1,	% ?Thread
 	    prolog/0,			% user toplevel predicate
+	    '$query_loop'/0,		% toplevel predicate
 	    '$set_prompt'/1,		% set the main prompt
 	    (initialization)/1,		% initialization goal (directive)
 	    '$thread_init'/0,		% initialise thread
@@ -401,10 +401,15 @@ initialise_prolog :-
 
 '$runtoplevel' :-
 	'$option'(toplevel, TopLevelAtom),
-	catch(term_to_atom(TopLevel, TopLevelAtom), E,
+	catch(term_to_atom(TopLevel0, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),
+	toplevel_goal(TopLevel0, TopLevel),
 	user:TopLevel.
+
+toplevel_goal(prolog, '$query_loop') :- !.
+toplevel_goal(Goal, Goal).
+
 
 %%	'$compile'
 %
@@ -421,18 +426,21 @@ initialise_prolog :-
 		*    USER INTERACTIVE LOOP      *
 		*********************************/
 
-:- dynamic
-	'$toplevel_thread'/1.
-
 prolog :-
-	thread_self(Me),
-	setup_call_cleanup(
-	    assertz('$toplevel_thread'(Me), Ref),
-	    prolog_,
-	    erase(Ref)).
+	break.
 
-prolog_ :-
-	current_prolog_flag(break_level, BreakLev),
+%%	'$query_loop'
+%
+%	Run the normal Prolog query loop.  Note   that  the query is not
+%	protected by catch/3. Dealing with  unhandled exceptions is done
+%	by the C-function query_loop().  This   ensures  that  unhandled
+%	exceptions are really unhandled (in Prolog).
+
+'$query_loop' :-
+	(   current_prolog_flag(break_level, BreakLev)
+	->  true
+	;   BreakLev = -1
+	),
 	repeat,
 	    (   '$module'(TypeIn, TypeIn),
 		(   stream_property(user_input, tty(true))
@@ -562,7 +570,7 @@ restore_debug :-
 	->   '$substitute'("%m", [Module, ": "], P0, P1)
 	;    '$substitute'("%m", [], P0, P1)
 	),
-	(    BrekLev \== 0
+	(    BrekLev > 0
 	->   '$substitute'("%l", ["[", BrekLev, "] "], P1, P2)
 	;    '$substitute'("%l", [], P1, P2)
 	),

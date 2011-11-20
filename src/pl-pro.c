@@ -59,8 +59,18 @@ resetProlog(int clear_stacks)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+query_loop() runs a zero-argument goal on   behalf  of the toplevel. The
+reason for this to be in C is to   be able to handle exceptions that are
+considered unhandled and thus  can  trap   the  debugger.  I.e., if goal
+terminates due to an exception, the exception   is  reported and goal is
+restarted. Before the restart, the system is   restored to a sane state.
+This notably affects I/O  (reset  current  I/O   to  user  I/O)  and the
+debugger.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-toplevel_loop(atom_t goal)
+query_loop(atom_t goal)
 { GET_LD
   int rc;
   int loop = TRUE;
@@ -141,17 +151,21 @@ pl_break1(atom_t goal)
   Scurout = Soutput;
 
   LD->break_level++;
-  printMessage(ATOM_informational,
-	       PL_FUNCTOR, FUNCTOR_break2,
-	         PL_ATOM, ATOM_begin,
-	         PL_INT,  LD->break_level);
+  if ( LD->break_level > 0 )
+  { printMessage(ATOM_informational,
+		 PL_FUNCTOR, FUNCTOR_break2,
+	           PL_ATOM, ATOM_begin,
+		   PL_INT,  LD->break_level);
+  }
 
-  rc = toplevel_loop(goal);
+  rc = query_loop(goal);
 
-  printMessage(ATOM_informational,
-	       PL_FUNCTOR, FUNCTOR_break2,
-	         PL_ATOM, ATOM_end,
-		 PL_INT,  LD->break_level);
+  if ( LD->break_level > 0 )
+  { printMessage(ATOM_informational,
+		 PL_FUNCTOR, FUNCTOR_break2,
+	           PL_ATOM, ATOM_end,
+		   PL_INT,  LD->break_level);
+  }
   LD->break_level = old_level;
 
   debugstatus.suspendTrace = suspSave;
@@ -180,7 +194,7 @@ pl_break(void)
   if ( saveWakeup(&wstate, TRUE PASS_LD) )
   { word rc;
 
-    rc = pl_break1(ATOM_prolog);
+    rc = pl_break1(ATOM_dquery_loop);
     restoreWakeup(&wstate PASS_LD);
 
     return rc;
@@ -331,7 +345,7 @@ abortProlog(void)
 { GET_LD
   fid_t fid;
   term_t ex;
-  int rc;
+  int rc = FALSE;
 
   pl_notrace();
   Sreset();				/* Discard pending IO */
@@ -371,7 +385,17 @@ it is not reentrant).
 
 bool
 prologToplevel(atom_t goal)
-{ return toplevel_loop(goal);
+{ GET_LD
+  int rc;
+  int old_level = LD->break_level;
+
+  if ( goal == ATOM_dquery_loop ||
+       goal == ATOM_dtoplevel )
+    LD->break_level++;
+  rc = query_loop(goal);
+  LD->break_level = old_level;
+
+  return rc;
 }
 
 
