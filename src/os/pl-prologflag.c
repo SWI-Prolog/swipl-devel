@@ -1008,7 +1008,7 @@ initPrologFlags()
 #endif
   setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
   setPrologFlag("generate_debug_info", FT_BOOL,
-	     truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
+		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
   setPrologFlag("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
   setPrologFlag("c_cc",	  FT_ATOM|FF_READONLY, C_CC);

@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -82,8 +83,8 @@ truth(off,   false).
 
 %%	system_module
 %
-%	Any predicate defined after this declaraction uptill the end of
-%	the file will become a system predicate. Normally invoked by a
+%	Any predicate defined after this declaraction   uptil the end of
+%	the file will become a system   predicate. Normally invoked by a
 %	directive immediately following the module declaration.
 
 system_module :-
