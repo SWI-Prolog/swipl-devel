@@ -952,6 +952,14 @@ such flags should be written as below.
 
 
 \begin{description}
+    \prologflagitem{access_level}{atom}{rw}
+This flag defines a normal `user' view (\const{user}, default) or a
+`system' view. In system view all system code is fully accessible as if
+it was normal user code. In user view, certain operations are not
+premitted and some details are kept invisible.  We leave the exact
+consequences undefined, but for example system code can be traced
+using system access and system predicates can be redefined.
+
     \prologflagitem{address_bits}{integer}{r}
 Address-size of the hosting machine.  Typically 32 or 64.  Except for
 the maximum stack limit, this has few implications to the user.  See

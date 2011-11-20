@@ -302,7 +302,7 @@ prof_statistics(nodes, Term, Ticks) :-
 	arg(4, Term, Ticks).
 
 
-%	prof_node(+KeyOn
+%%	prof_node(+KeyOn
 %		  Key-node(Pred,
 %		           TimeSelf, TimeSiblings,
 %		           Calls, Redo, Recursive,
@@ -311,8 +311,12 @@ prof_statistics(nodes, Term, Ticks) :-
 %	Collect data for each of the interesting predicates.
 
 prof_node(KeyOn, Node) :-
-	style_check(+dollar),
-	call_cleanup(get_prof_node(KeyOn, Node), style_check(-dollar)).
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, Old),
+	      set_prolog_flag(access_level, system)
+	    ),
+	    get_prof_node(KeyOn, Node),
+	    set_prolog_flag(access_level, Old)).
 
 get_prof_node(KeyOn, Key-Node) :-
 	Node = node(M:H,

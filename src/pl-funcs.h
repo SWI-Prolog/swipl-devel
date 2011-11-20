@@ -718,7 +718,7 @@ COMMON(foreign_t)	pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
 
 COMMON(IOENC)		initEncoding(void);
 COMMON(void)		initCharTypes(void);
-COMMON(bool)		systemMode(bool accept);
+COMMON(access_level_t)	setAccessLevel(access_level_t new_level);
 
 
 /* pl-thread.c */

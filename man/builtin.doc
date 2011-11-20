@@ -2702,14 +2702,15 @@ by qsave_program/[1,2].  This property is set using volatile/1.
 \end{description}
 
     \predicate{dwim_predicate}{2}{+Term, -Dwim}
-`Do What I Mean' (`dwim') support predicate. \arg{Term} is a term,
-which name and arity are used as a predicate specification.  \arg{Dwim}
-is instantiated with the most general term built from \arg{Name} and the
+`Do What I Mean' (`dwim') support predicate. \arg{Term} is a term, which
+name and arity are used as a predicate specification. \arg{Dwim} is
+instantiated with the most general term built from \arg{Name} and the
 arity of a defined predicate that matches the predicate specified by
-\arg{Term} in the `Do What I Mean' sense.  See dwim_match/2 for `Do
-What I Mean' string matching.  Internal system predicates are
-not generated, unless \exam{style_check(+dollar)} is active.  Backtracking
-provides all alternative matches.
+\arg{Term} in the `Do What I Mean' sense. See dwim_match/2 for `Do What
+I Mean' string matching. Internal system predicates are not generated,
+unless the access level is \const{system} (see
+\prologflag{access_level}). Backtracking provides all alternative
+matches.
 
     \predicate[ISO]{clause}{2}{:Head, ?Body}
 True if \arg{Head} can be unified with a clause head and \arg{Body} with
@@ -6915,9 +6916,6 @@ Name & Default & Description \\
 \const{atom}       & on & read/1 and derivatives will produce an
                         error message on quoted atoms or strings longer
                         than 5 lines. \\
-\const{dollar}     & off & Accept dollar as a lower case character, thus
-                        avoiding the need for quoting atoms with dollar signs.
-                        System maintenance use only. \\
 \const{discontiguous} & on & Warn if the clauses for a predicate are not
                         together in the same source file. \\
 \const{string}     & off & Backward compatibility.  See the Prolog flag

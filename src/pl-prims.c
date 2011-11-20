@@ -4875,7 +4875,6 @@ PRED_IMPL("$style_check", 2, style_check, 0)
   if ( PL_unify_integer(old, debugstatus.styleCheck) &&
        PL_get_integer(new, &n) )
   { debugstatus.styleCheck = n;
-    systemMode(n & DOLLAR_STYLE);
 
     succeed;
   }

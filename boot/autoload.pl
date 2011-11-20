@@ -346,16 +346,12 @@ library_index_out_of_date(Index, Files) :-
 
 
 do_make_library_index(Index, Files) :-
-	setup_call_cleanup((   '$style_check'(OldStyle, OldStyle),
-			       style_check(-dollar),
-			       open(Index, write, Fd)
+	setup_call_cleanup(open(Index, write, Fd),
+			   ( index_header(Fd),
+			     index_files(Files, Fd)
 			   ),
-			   (   index_header(Fd),
-			       index_files(Files, Fd)
-			   ),
-			   (   close(Fd),
-			       '$style_check'(_, OldStyle)
-			   )).
+			   close(Fd)).
+
 
 index_files([], _).
 index_files([File|Files], Fd) :-
@@ -439,21 +435,28 @@ autoload :-
 
 autoload(Options) :-
 	al_option(Options, verbose/true, Verbose),
-	'$style_check'(Old, Old),
-	style_check(+dollar),
-	current_prolog_flag(autoload, OldAutoLoad),
-	current_prolog_flag(verbose_autoload, OldVerbose),
-	set_prolog_flag(autoload, false),
-	findall(Pred, needs_autoloading(Pred), Preds),
-	set_prolog_flag(autoload, OldAutoLoad),
-	'$style_check'(_, Old),
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      current_prolog_flag(autoload, OldAutoLoad),
+	      set_prolog_flag(autoload, false),
+	      set_prolog_flag(access_level, system)
+	    ),
+	    findall(Pred, needs_autoloading(Pred), Preds),
+	    ( set_prolog_flag(autoload, OldAutoLoad),
+	      set_prolog_flag(access_level, OldLevel)
+	    )),
 	(   Preds == []
 	->  true
-	;   set_prolog_flag(autoload, true),
-	    set_prolog_flag(verbose_autoload, Verbose),
-	    defined_predicates(Preds),
-	    set_prolog_flag(autoload, OldAutoLoad),
-	    set_prolog_flag(verbose_autoload, OldVerbose),
+	;   setup_call_cleanup(
+		( current_prolog_flag(autoload, OldAutoLoad),
+		  current_prolog_flag(verbose_autoload, OldVerbose),
+		  set_prolog_flag(autoload, true),
+		  set_prolog_flag(verbose_autoload, Verbose)
+		),
+		defined_predicates(Preds),
+		( set_prolog_flag(autoload, OldAutoLoad),
+		  set_prolog_flag(verbose_autoload, OldVerbose)
+		)),
 	    autoload(Verbose)		% recurse for possible new
 					% unresolved links
 	).

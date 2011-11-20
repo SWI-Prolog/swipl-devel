@@ -138,8 +138,6 @@ alternate_syntax(prolog, _,    true,
 alternate_syntax(pce_class, M, pce_expansion:push_compile_operators(M),
 			       pce_expansion:pop_compile_operators) :-
 	current_prolog_flag(xpce, true).
-alternate_syntax(system, _,    style_check(+dollar),
-			       style_check(-dollar)).
 
 system_module(system) :- !.
 system_module(Module) :-

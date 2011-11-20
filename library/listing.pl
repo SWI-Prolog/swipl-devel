@@ -111,7 +111,7 @@ listing :-
 	(   (   predicate_property(Pred, built_in)
 	    ;	sub_atom(Name, 0, _, _, $)
 	    )
-	->  style_check(?(dollar))
+	->  current_prolog_flag(access_level, system)
 	;   true
 	),
 	nl,

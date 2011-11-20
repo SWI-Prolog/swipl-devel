@@ -4196,7 +4196,7 @@ PL_action(int action, ...)
 #ifdef O_DEBUGGER
     { GET_LD
       int a = va_arg(args, int);
-      int om;
+      access_level_t alevel;
 
       if ( gc_status.active )
       { Sfprintf(Serror,
@@ -4211,9 +4211,9 @@ PL_action(int action, ...)
 	rval = FALSE;
 	break;
       }
-      om = systemMode(TRUE);		/* Also show hidden frames */
+      alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM); /* Also show hidden frames */
       backTrace(environment_frame, a);
-      systemMode(om);
+      setAccessLevel(alevel);
     }
 #else
       warning("No Prolog backtrace in runtime version");

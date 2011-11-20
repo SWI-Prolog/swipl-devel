@@ -559,8 +559,6 @@ process_directive(public(Public), Src) :-
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
-process_directive(system_mode(on), _Src) :- !,
-	style_check(+dollar).
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 	assert_defined_class(Src, Name, Meta, Super, Doc).
 process_directive(pce_autoload(Name, From), Src) :-
@@ -575,8 +573,6 @@ process_directive(encoding(Enc), _) :-
 	->  catch(set_stream(Stream, encoding(Enc)), _, true)
 	;   true			% can this happen?
 	).
-process_directive(system_module, _) :-
-	style_check(+dollar).
 process_directive(set_prolog_flag(character_escapes, Esc), _) :-
 	set_prolog_flag(character_escapes, Esc).
 process_directive(pce_expansion:push_compile_operators, _) :-

@@ -34,8 +34,7 @@
 	  reset_gensym/1,
 	  gensym/2
 	]).
-
-:- style_check(+dollar).		% lock these predicates
+:- set_prolog_flag(generate_debug_info, false).
 
 %%	gensym(+Base, -Unique)
 %

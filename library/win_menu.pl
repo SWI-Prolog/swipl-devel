@@ -32,7 +32,7 @@
 :- module(win_menu,
 	  [ init_win_menus/0
 	  ]).
-:- style_check(+dollar).
+:- set_prolog_flag(generate_debug_info, false).
 :- op(200, fy, @).
 :- op(990, xfx, :=).
 

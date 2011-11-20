@@ -1354,10 +1354,11 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 
 static bool
 loadPart(wic_state *state, Module *module, int skip ARG_LD)
-{ IOSTREAM *fd  = state->wicFd;
-  Module om     = LD->modules.source;
-  SourceFile of = state->currentSource;
-  int stchk     = debugstatus.styleCheck;
+{ IOSTREAM *fd		= state->wicFd;
+  Module om		= LD->modules.source;
+  SourceFile of		= state->currentSource;
+  int stchk		= debugstatus.styleCheck;
+  access_level_t alevel = LD->prolog_flag.access_level;
 
   switch(Qgetc(fd))
   { case 'M':
@@ -1430,7 +1431,7 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 	LD->modules.source = om;
 	state->currentSource  = of;
 	debugstatus.styleCheck = stchk;
-	systemMode(debugstatus.styleCheck & DOLLAR_STYLE);
+	setAccessLevel(alevel);
 
 	succeed;
       }
@@ -3014,6 +3015,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
   wic_state *state = allocHeapOrHalt(sizeof(*state));
   predicate_t pred;
   int rc;
+  access_level_t alevel;
 
   memset(state, 0, sizeof(*state));
   state->wicFd = fd;
@@ -3021,7 +3023,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
   if ( !writeWicHeader(state) )
     return FALSE;
 
-  systemMode(TRUE);
+  alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM);
   PL_set_prolog_flag("autoload", PL_BOOL, FALSE);
 
   LD->qlf.current_state = state; /* make Prolog compilation go into state */
@@ -3033,7 +3035,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
   }
 
   PL_set_prolog_flag("autoload", PL_BOOL, TRUE);
-  systemMode(FALSE);
+  setAccessLevel(alevel);
 
   pred = PL_predicate("$load_additional_boot_files", 0, "user");
   rc = PL_call_predicate(MODULE_user, TRUE, pred, 0);

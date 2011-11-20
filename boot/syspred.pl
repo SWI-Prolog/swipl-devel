@@ -122,7 +122,6 @@ visible(Ports) :-
 
 '$map_style_check'(atom,	    2'0000001).
 '$map_style_check'(singleton,	    2'0000010).
-'$map_style_check'(dollar,	    2'0000100).
 '$map_style_check'((discontiguous),   2'0001000).
 '$map_style_check'(dynamic,	    2'0010000).
 '$map_style_check'(charset,	    2'0100000).
@@ -676,7 +675,7 @@ visible_predicate(Pred) :-
 	).
 
 hidden_system_predicate(_) :-
-	style_check(?(dollar)), !,
+	current_prolog_flag(access_mode, system), !,
 	fail.
 hidden_system_predicate(_:Head) :-
 	functor(Head, Name, _),

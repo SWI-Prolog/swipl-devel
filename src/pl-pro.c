@@ -399,16 +399,13 @@ prologToplevel(atom_t goal)
 }
 
 
-bool
-systemMode(bool accept)
+access_level_t
+setAccessLevel(access_level_t accept)
 { GET_LD
-  bool old = SYSTEM_MODE ? TRUE : FALSE;
+  bool old;
 
-  if ( accept )
-    debugstatus.styleCheck |= DOLLAR_STYLE;
-  else
-    debugstatus.styleCheck &= ~DOLLAR_STYLE;
-
+  old = LD->prolog_flag.access_level;
+  LD->prolog_flag.access_level = accept;
   return old;
 }
 

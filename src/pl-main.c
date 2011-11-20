@@ -929,7 +929,7 @@ PL_initialise(int argc, char **argv)
   PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
   initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
 		    GD->cmdline.argv);
-  systemMode(TRUE);
+  setAccessLevel(ACCESS_LEVEL_SYSTEM);
 
   if ( GD->bootsession )
   { IOSTREAM *s = SopenRC(GD->resourceDB, "$state", "$prolog", RC_WRONLY);
@@ -976,7 +976,7 @@ PL_initialise(int argc, char **argv)
   debugstatus.styleCheck = (LONGATOM_CHECK|
 			    SINGLETON_CHECK|
 			    DISCONTIGUOUS_STYLE);
-  systemMode(FALSE);
+  setAccessLevel(ACCESS_LEVEL_USER);
   GD->initialised = TRUE;
   registerForeignLicenses();
 
@@ -1355,7 +1355,7 @@ vsysError(const char *fm, va_list args)
   }
 
 #if defined(O_DEBUGGER)
-  systemMode(TRUE);
+  setAccessLevel(ACCESS_LEVEL_SYSTEM);
   Sfprintf(Serror, "\n\nPROLOG STACK:\n");
   backTrace(NULL, 10);
   Sfprintf(Serror, "]\n");

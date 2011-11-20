@@ -303,7 +303,7 @@ setWriteAttributes(atom_t a)
 
 
 static int
-setAccessLevel(atom_t a)
+setAccessLevelFromAtom(atom_t a)
 { GET_LD
 
   if ( getAccessLevelMask(a, &LD->prolog_flag.access_level) )
@@ -585,7 +585,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       } else if ( k == ATOM_occurs_check )
       { rval = setOccursCheck(a);
       } else if ( k == ATOM_access_level )
-      { rval = setAccessLevel(a);
+      { rval = setAccessLevelFromAtom(a);
       } else if ( k == ATOM_encoding )
       { rval = setEncoding(a);
       } else if ( k == ATOM_stream_type_check )

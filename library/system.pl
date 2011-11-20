@@ -36,8 +36,7 @@
 	  system_mode/1,
 	  system_module/0
 	]).
-
-:- style_check(+dollar).
+:- use_module(library(error)).
 
 /** <module> System utilities
 
@@ -49,37 +48,20 @@ predicates cannot be traced or redefined.
 @tbd		Move this functionality to prolog flags.
 */
 
-%%	system_mode(?Boolean)
+%%	system_mode(+Boolean) is det.
 %
 %	Switch the system into system or user mode.  When in system mode,
 %	system predicates loose most of their special properties, so it
-%	becomes possible to trace and even redefine them.  Use the latter
-%	with care as the system predicates call one another.  This should
-%	once be fixed by defining all of them in a module ('$system'), so
-%	the user can savely remove them from module user.
+%	becomes possible to trace and even redefine them.
 %
-%	@bug	This predicate both accepts true/false and on/off.  New
-%		code must use true/false.
+%	@deprecated  New code should use the prolog flag =access_level=.
 
-system_mode(X) :-
-	var(X), !,
-	(   style_check(?(dollar))
-	->  X = true
-	;   X = false
-	).
-system_mode(True) :-
-	truth(True, true), !,
-	style_check(+dollar).
-system_mode(True) :-
-	truth(True, false), !,
-	style_check(-dollar).
 system_mode(Val) :-
-	must_be(boolean, Val).
-
-truth(true,  true).
-truth(false, false).
-truth(on,    true).
-truth(off,   false).
+	must_be(boolean, Val),
+	(   Val == true
+	->  set_prolog_flag(access_level, system)
+	;   set_prolog_flag(access_level, user)
+	).
 
 %%	system_module
 %
@@ -88,7 +70,7 @@ truth(off,   false).
 %	directive immediately following the module declaration.
 
 system_module :-
-	system_mode(on).
+	set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	lock_predicate(:),

@@ -1987,12 +1987,10 @@ Tracer communication declarations.
 
 #define LONGATOM_CHECK	    0x01	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x02	/* read/1: check singleton vars */
-#define DOLLAR_STYLE	    0x04	/* dollar is lower case */
 #define DISCONTIGUOUS_STYLE 0x08	/* warn on discontiguous predicates */
 #define DYNAMIC_STYLE	    0x10	/* warn on assert/retract active */
 #define CHARSET_CHECK	    0x20	/* warn on unquoted characters */
 #define MAXNEWLINES	    5		/* maximum # of newlines in atom */
-#define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
 typedef struct debuginfo
 { size_t	skiplevel;		/* current skip level */
@@ -2055,6 +2053,8 @@ typedef enum
 { ACCESS_LEVEL_USER = 0,	/* Default user view */
   ACCESS_LEVEL_SYSTEM		/* Allow low-level access */
 } access_level_t;
+
+#define SYSTEM_MODE	    (LD->prolog_flag.access_level == ACCESS_LEVEL_SYSTEM)
 
 #ifdef O_LIMIT_DEPTH
 #define DEPTH_NO_LIMIT	(~(uintptr_t)0x0) /* Highest value */
