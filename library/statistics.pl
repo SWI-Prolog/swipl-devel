@@ -302,13 +302,20 @@ prof_statistics(nodes, Term, Ticks) :-
 	arg(4, Term, Ticks).
 
 
-%%	prof_node(+KeyOn
-%		  Key-node(Pred,
-%		           TimeSelf, TimeSiblings,
-%		           Calls, Redo, Recursive,
-%		           Parents))
+%%	prof_node(+Field, -Pairs) is nondet.
 %
-%	Collect data for each of the interesting predicates.
+%	Collect data for each of the interesting predicate.
+%
+%	@param Field specifies the field to use as key in each pair.
+%	@param Pair is a term of the following format:
+%
+%	  ==
+%	  KeyValue-node(Pred,
+%		        TimeSelf, TimeSiblings,
+%			Calls, Redo, Recursive,
+%		        Parents)
+%	  ==
+%
 
 prof_node(KeyOn, Node) :-
 	setup_call_cleanup(
