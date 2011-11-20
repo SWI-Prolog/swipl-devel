@@ -1357,20 +1357,22 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 					/* copy settings */
 
   PL_register_atom(LD->prompt.current);
-  ldnew->prompt			 = LD->prompt;
+  ldnew->prompt			  = LD->prompt;
   if ( LD->prompt.first )
-  { ldnew->prompt.first		 = LD->prompt.first;
+  { ldnew->prompt.first		  = LD->prompt.first;
     PL_register_atom(ldnew->prompt.first);
   }
-  ldnew->modules		 = LD->modules;
-  ldnew->IO			 = LD->IO;
-  ldnew->encoding		 = LD->encoding;
-  ldnew->_debugstatus		 = LD->_debugstatus;
-  ldnew->_debugstatus.retryFrame = NULL;
-  ldnew->prolog_flag.mask	 = LD->prolog_flag.mask;
+  ldnew->modules		  = LD->modules;
+  ldnew->IO			  = LD->IO;
+  ldnew->encoding		  = LD->encoding;
+  ldnew->_debugstatus		  = LD->_debugstatus;
+  ldnew->_debugstatus.retryFrame  = NULL;
+  ldnew->prolog_flag.mask	  = LD->prolog_flag.mask;
+  ldnew->prolog_flag.occurs_check = LD->prolog_flag.occurs_check;
+  ldnew->prolog_flag.access_level = LD->prolog_flag.access_level;
   if ( LD->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
-    ldnew->prolog_flag.table	 = copyHTable(LD->prolog_flag.table);
+    ldnew->prolog_flag.table	  = copyHTable(LD->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
   init_message_queue(&info->thread_data->thread.messages, -1);

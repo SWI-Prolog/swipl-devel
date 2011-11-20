@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.wielemaker@uva.nl
+    E-mail:        J.wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -302,6 +303,21 @@ setWriteAttributes(atom_t a)
 
 
 static int
+setAccessLevel(atom_t a)
+{ GET_LD
+
+  if ( getAccessLevelMask(a, &LD->prolog_flag.access_level) )
+  { succeed;
+  } else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_access_level, value);
+  }
+}
+
+
+static int
 getOccursCheckMask(atom_t a, occurs_check_t *val)
 { if ( a == ATOM_false )
   { *val = OCCURS_CHECK_FALSE;
@@ -568,6 +584,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setWriteAttributes(a);
       } else if ( k == ATOM_occurs_check )
       { rval = setOccursCheck(a);
+      } else if ( k == ATOM_access_level )
+      { rval = setAccessLevel(a);
       } else if ( k == ATOM_encoding )
       { rval = setEncoding(a);
       } else if ( k == ATOM_stream_type_check )
@@ -764,6 +782,8 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
     if ( bl >= 0 )
       return PL_unify_integer(val, bl);
     return FALSE;
+  } else if ( key == ATOM_access_level )
+  { return PL_unify_atom(val, accessLevel());
   }
 
   switch(f->flags & FT_MASK)
@@ -1083,6 +1103,7 @@ initPrologFlags()
   setPrologFlag("write_attributes", FT_ATOM, "ignore");
   setPrologFlag("stream_type_check", FT_ATOM, "loose");
   setPrologFlag("occurs_check", FT_ATOM, "false");
+  setPrologFlag("access_level", FT_ATOM, "user");
   setPrologFlag("double_quotes", FT_ATOM, "codes");
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);

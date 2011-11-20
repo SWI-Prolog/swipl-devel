@@ -450,6 +450,8 @@ COMMON(bool)		prologToplevel(atom_t toplevel);
 COMMON(word)		pl_metacut(void);
 COMMON(int)		trap_gdb(void);
 COMMON(word)		checkData(Word p);
+COMMON(int)		getAccessLevelMask(atom_t a, access_level_t *val);
+COMMON(atom_t)		accessLevel(void);
 
 /* pl-proc.c */
 COMMON(Procedure)	lookupProcedure(functor_t f, Module m);

@@ -698,6 +698,39 @@ llvm_dummy(void)
 #endif
 
 		 /*******************************
+		 *	      MISC		*
+		 *******************************/
+
+int
+getAccessLevelMask(atom_t a, access_level_t *val)
+{ if ( a == ATOM_user )
+    *val = ACCESS_LEVEL_USER;
+  else if ( a == ATOM_system )
+    *val = ACCESS_LEVEL_SYSTEM;
+  else
+    return FALSE;
+
+  return TRUE;
+}
+
+
+atom_t
+accessLevel(void)
+{ GET_LD
+
+  switch(LD->prolog_flag.access_level)
+  { case ACCESS_LEVEL_USER:	return ATOM_user;
+    case ACCESS_LEVEL_SYSTEM:	return ATOM_system;
+  }
+
+  return NULL_ATOM;
+}
+
+
+
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 

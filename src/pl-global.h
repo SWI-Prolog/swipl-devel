@@ -502,6 +502,7 @@ struct PL_local_data
     pl_features_t mask;			/* Masked access to booleans */
     int		  write_attributes;	/* how to write attvars? */
     occurs_check_t occurs_check;	/* Unify and occurs check */
+    access_level_t access_level;	/* Current access level */
   } prolog_flag;
 
   struct

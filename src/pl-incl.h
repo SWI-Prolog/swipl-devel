@@ -2051,6 +2051,10 @@ typedef enum
   OCCURS_CHECK_ERROR		/* exception if rational tree would result */
 } occurs_check_t;
 
+typedef enum
+{ ACCESS_LEVEL_USER = 0,	/* Default user view */
+  ACCESS_LEVEL_SYSTEM		/* Allow low-level access */
+} access_level_t;
 
 #ifdef O_LIMIT_DEPTH
 #define DEPTH_NO_LIMIT	(~(uintptr_t)0x0) /* Highest value */
