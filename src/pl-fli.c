@@ -4231,7 +4231,7 @@ PL_action(int action, ...)
       break;
     }
     case PL_ACTION_ABORT:
-      rval = (int)abortProlog(ABORT_THROW);
+      rval = (int)abortProlog();
       break;
     case PL_ACTION_GUIAPP:
     { int guiapp = va_arg(args, int);

@@ -523,7 +523,7 @@ again:
 out:
   restoreWakeup(&wstate PASS_LD);
   if ( action == ACTION_ABORT )
-    abortProlog(ABORT_RAISE);
+    abortProlog();
 
   return action;
 }
@@ -1559,7 +1559,6 @@ interruptHandler(int sig)
 { GET_LD
   int c;
   int safe;
-  abort_type at = ABORT_RAISE;
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
@@ -1600,8 +1599,7 @@ again:
   if ( safe )
   { printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_begin);
   } else
-  { at = ABORT_THROW;
-    Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
+  { Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
     Sflush(Sdout);
   }
   ResetTty();                           /* clear pending input -- atoenne -- */
@@ -1610,7 +1608,9 @@ again:
   switch(c)
   { case 'a':	Sfputs("abort\n", Sdout);
 		unblockSignal(sig);
-		abortProlog(at);
+		abortProlog();
+		if ( !safe )
+		  PL_rethrow();
 		break;
     case 'b':	Sfputs("break\n", Sdout);
 		unblockSignal(sig);	/* into pl_break() itself */
@@ -2293,7 +2293,11 @@ callEventHook(int ev, ...)
 
     va_start(args, ev);
     switch(ev)
-    { case PLEV_ERASED_CLAUSE:
+    { case PLEV_ABORT:
+      { rc = PL_unify_atom(arg, ATOM_abort);
+	break;
+      }
+      case PLEV_ERASED_CLAUSE:
       {	Clause cl = va_arg(args, Clause);	/* object erased */
 	term_t dbref = PL_new_term_ref();
 

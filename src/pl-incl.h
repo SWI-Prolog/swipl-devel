@@ -934,7 +934,7 @@ it mean anything?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define startCritical (void)(LD->critical++)
-#define endCritical   ((--(LD->critical) == 0 && LD->aborted) \
+#define endCritical   ((--(LD->critical) == 0 && LD->alerted) \
 				? endCritical__LD(PASS_LD1) : TRUE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1266,13 +1266,6 @@ typedef enum
   CHP_CATCH,				/* $catch initiated choice */
   CHP_DEBUG				/* Enable redo */
 } choice_type;
-
-typedef enum
-{ ABORT_NONE = 0,			/* not in abort-state */
-  ABORT_RAISE,				/* Raise exception */
-  ABORT_THROW,				/* Throw exception */
-  ABORT_FATAL				/* Total reset on fatal error */
-} abort_type;
 
 typedef enum
 { DBG_OFF = 0,				/* no debugging */
@@ -1653,15 +1646,19 @@ typedef struct
 		 *	      EVENTS		*
 		 *******************************/
 
-#define PLEV_ERASED_CLAUSE   0		/* clause was erased */
-#define PLEV_ERASED_RECORD   1		/* record was erased */
-#define PLEV_DEBUGGING	     2		/* changed debugging mode */
-#define PLEV_TRACING	     3		/* changed tracing mode */
-#define PLEV_SPY	     4		/* changed spypoint */
-#define PLEV_BREAK	     5		/* a break-point was set */
-#define PLEV_NOBREAK	     6		/* a break-point was cleared */
-#define PLEV_FRAMEFINISHED   7		/* A watched frame was discarded */
-#define PL_EV_THREADFINISHED 8		/* A thread has finished */
+typedef enum pl_event_type
+{ PLEV_ABORT,				/* Execution aborted */
+  PLEV_ERASED_CLAUSE,			/* clause was erased */
+  PLEV_ERASED_RECORD,			/* record was erased */
+  PLEV_DEBUGGING,			/* changed debugging mode */
+  PLEV_TRACING,				/* changed tracing mode */
+  PLEV_SPY,				/* changed spypoint */
+  PLEV_BREAK,				/* a break-point was set */
+  PLEV_NOBREAK,				/* a break-point was cleared */
+  PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
+  PL_EV_THREADFINISHED			/* A thread has finished */
+} pl_event_type;
+
 
 
 		 /*******************************

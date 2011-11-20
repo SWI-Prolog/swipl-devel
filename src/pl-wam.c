@@ -2114,7 +2114,10 @@ retry:					MARK(RETRY);
     }
   }
   Sdprintf("[Could not find retry-point]\n");
-  abortProlog(ABORT_THROW);		/* dubious */
+  SAVE_REGISTERS(qid);
+  abortProlog();				/* What else? */
+  LOAD_REGISTERS(qid);
+  THROW_EXCEPTION;
 
 do_retry:
   if ( rframe0 != rframe )

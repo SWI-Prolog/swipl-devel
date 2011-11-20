@@ -63,7 +63,6 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
   int v;
   FunctorDef f;
 
-  startCritical;
   LOCK();
   v = (int)pointerHashValue(atom, functor_buckets);
 
@@ -72,7 +71,6 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
   { if (atom == f->name && f->arity == arity)
     { DEBUG(9, Sdprintf("%p (old)\n", f));
       UNLOCK();
-      endCritical;
       return f->functor;
     }
   }
@@ -93,20 +91,18 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
     rehashFunctors();
 
   UNLOCK();
-  endCritical;
 
   return f->functor;
 }
 
 
 static void
-rehashFunctors()
+rehashFunctors(void)
 { GET_LD
   FunctorDef *oldtab = functorDefTable;
   int oldbucks       = functor_buckets;
   size_t i, mx = maxFunctorIndex();
 
-  startCritical;
   functor_buckets *= 2;
   allocFunctorTable();
 
@@ -122,7 +118,6 @@ rehashFunctors()
   }
 
   freeHeap(oldtab, oldbucks * sizeof(FunctorDef));
-  endCritical;
 }
 
 

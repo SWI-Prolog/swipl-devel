@@ -271,47 +271,34 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 
 
 int
-abortProlog(abort_type type)
+abortProlog(void)
 { GET_LD
+  fid_t fid;
+  term_t ex;
+  int rc;
 
   pl_notrace();
-  Sreset();
+  Sreset();				/* Discard pending IO */
 
-  if ( LD->critical > 0 && type != ABORT_RAISE )
-  { LD->aborted = type;			/* longjmp from critical region */
-    succeed;				/* we must delay */
-  } else
-  { fid_t fid;
-    term_t ex;
-    int rc;
+  LD->exception.processing = TRUE;	/* allow using spare stack */
 
-    LD->exception.processing = TRUE;	/* allow using spare stack */
+  if ( (fid = PL_open_foreign_frame()) &&
+       (ex = PL_new_term_ref()) )
+  { clearSegStack(&LD->cycle.lstack);	/* can do no harm */
+    clearSegStack(&LD->cycle.vstack);
 
-    if ( (fid = PL_open_foreign_frame()) &&
-	 (ex = PL_new_term_ref()) )
-    { clearSegStack(&LD->cycle.lstack);	/* can do no harm */
-      clearSegStack(&LD->cycle.vstack);
-
-      PL_put_atom(ex, ATOM_aborted);
-      if ( type == ABORT_RAISE )
-	rc = PL_raise_exception(ex);
-      else
-	rc = PL_throw(ex);		/* use longjmp() to ensure */
-
-      PL_close_foreign_frame(fid);
-    } else
-    { LD->aborted = type;
-      rc = FALSE;
-    }
-
-    return rc;
+    PL_put_atom(ex, ATOM_aborted);
+    rc = PL_raise_exception(ex);
+    PL_close_foreign_frame(fid);
   }
+
+  return rc;
 }
 
 
 static
 PRED_IMPL("abort", 0, abort, 0)
-{ return abortProlog(ABORT_RAISE);
+{ return abortProlog();
 }
 
 
@@ -322,8 +309,11 @@ machine interpreter with the toplevel goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-resetProlog()
+resetProlog(void)
 { GET_LD
+
+  Scurin  = Suser_input;
+  Scurout = Suser_output;
 
   if ( !LD->gvar.nb_vars )		/* we would loose nb_setval/2 vars */
     emptyStacks();
@@ -351,18 +341,15 @@ prologToplevel is called with various goals
   - Using '$initialise to run the initialization
   - Using '$compile'   if Prolog is called with -c ...
   - Using '$toplevel'  from PL_toplevel() to run the interactive toplevel
-  - Using '$abort'     to restart after an abort.
 
 It can only be ran when there is  no actively running Prolog goal (i.e.,
 it is not reentrant).
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-prologToplevel(volatile atom_t goal)
+prologToplevel(atom_t goal)
 { GET_LD
   bool rval;
-  volatile int aborted = FALSE;
   int loop = TRUE;
 
   debugstatus.debugging = DBG_OFF;
@@ -372,19 +359,12 @@ prologToplevel(volatile atom_t goal)
     qid_t qid = 0;
     term_t except = 0;
     Procedure p;
-    word gn;
 
     resetProlog();
     if ( !(fid = PL_open_foreign_frame()) )
       goto error;
 
-    if ( aborted )
-    { aborted = FALSE;
-      gn = PL_new_atom("$abort");
-    } else
-      gn = goal;
-
-    p = lookupProcedure(lookupFunctorDef(gn, 0), MODULE_system);
+    p = lookupProcedure(lookupFunctorDef(goal, 0), MODULE_system);
 
     if ( (qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0)) )
     { rval = PL_next_solution(qid);
@@ -401,7 +381,11 @@ prologToplevel(volatile atom_t goal)
       debugmode(DBG_OFF, NULL);
       setPrologFlagMask(PLFLAG_LASTCALL);
       if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      { aborted = TRUE;
+      {
+#ifdef O_DEBUGGER
+        callEventHook(PLEV_ABORT);
+#endif
+        printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
       } else if ( !PL_is_functor(except, FUNCTOR_error2) )
       { printMessage(ATOM_error,
 		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,

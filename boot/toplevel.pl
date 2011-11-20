@@ -32,7 +32,6 @@
 :- module('$toplevel',
 	  [ '$initialise'/0,		% start Prolog (does not return)
 	    '$toplevel'/0,		% Prolog top-level (re-entrant)
-	    '$abort'/0,			% restart after an abort
 	    '$compile'/0,		% `-c' toplevel
 	    '$welcome'/0,		% banner
 	    '$toplevel_thread'/1,	% ?Thread
@@ -378,14 +377,6 @@ initialise_prolog :-
 	;   TheGoal = Goal
 	),
 	ignore(user:TheGoal).
-
-'$abort' :-
-	see(user),
-	tell(user),
-	flag('$compilation_level', _, 0),
-	'$calleventhook'(abort),
-	print_message(informational, '$aborted'),
-	'$toplevel'.
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
 :- '$hide'('$abort'/0).			% same after an abort

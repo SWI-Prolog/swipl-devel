@@ -338,7 +338,6 @@ struct PL_local_data
   int		alerted;		/* Special mode. See updateAlerted() */
   int		critical;		/* heap is being modified */
   int		break_level;		/* current break level */
-  abort_type	aborted;		/* !ABORT_NONE: abort in Critical */
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */
 #ifdef O_PLMT

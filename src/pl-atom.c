@@ -843,7 +843,6 @@ rehashAtoms()
   uintptr_t mask;
   Atom *ap, *ep;
 
-  startCritical;
   atom_buckets *= 2;
   mask = atom_buckets-1;
   atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
@@ -862,7 +861,6 @@ rehashAtoms()
   }
 
   freeHeap(oldtab, oldbucks * sizeof(Atom));
-  endCritical;
 }
 
 

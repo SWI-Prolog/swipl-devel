@@ -920,7 +920,8 @@ PL_initialise(int argc, char **argv)
     argv += done;
   }
 
-  setupProlog();
+  if ( !setupProlog() )
+    return FALSE;
 #ifdef O_PLMT
   aliasThread(PL_thread_self(), ATOM_main);
   enableThreads(TRUE);
@@ -1174,10 +1175,8 @@ PL_on_halt(halt_function f, void *arg)
 
     h->function = f;
     h->argument = arg;
-    startCritical;
     h->next = GD->os.on_halt_list;
     GD->os.on_halt_list = h;
-    endCritical;
   }
 }
 
@@ -1212,7 +1211,7 @@ PL_cleanup(int rval)
   GD->cleaning = CLN_PROLOG;
 
   qlfCleanup();				/* remove errornous .qlf files */
-  if ( GD->initialised && !LD->aborted )
+  if ( GD->initialised )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
 
@@ -1224,10 +1223,8 @@ PL_cleanup(int rval)
   GD->cleaning = CLN_FOREIGN;
 
 					/* run PL_on_halt() hooks */
-  if ( !LD->aborted )
-  { for(h = GD->os.on_halt_list; h; h = h->next)
-      (*h->function)(rval, h->argument);
-  }
+  for(h = GD->os.on_halt_list; h; h = h->next)
+    (*h->function)(rval, h->argument);
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
@@ -1239,7 +1236,7 @@ PL_cleanup(int rval)
 
   GD->cleaning = CLN_SHARED;
 
-  if ( GD->initialised && !LD->aborted )
+  if ( GD->initialised )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
 				    "shlib");
@@ -1377,10 +1374,7 @@ action:
   ResetTty();
 
   switch(getSingleChar(Sinput, FALSE))
-  { case 'a':
-      abortProlog(ABORT_FATAL);
-      break;
-    case EOF:
+  { case EOF:
       Sfprintf(Serror, "EOF: exit\n");
     case 'e':
       PL_halt(3);
@@ -1388,14 +1382,11 @@ action:
     default:
       Sfprintf(Serror,
 	       "Unknown action.  Valid actions are:\n"
-	      "\ta\tabort to toplevel\n"
 	      "\te\texit Prolog\n");
       goto action;
   }
 
-  abortProlog(ABORT_FATAL);
-  PL_halt(3);
-  PL_fail;
+  return FALSE;					/* not reached */
 }
 
 

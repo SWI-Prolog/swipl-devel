@@ -52,13 +52,12 @@ static int allocStacks(size_t local, size_t global, size_t trail);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
-void
+int
 setupProlog(void)
 { GET_LD
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
   LD->critical = 0;
-  LD->aborted = ABORT_NONE;
   LD->signal.pending = 0;
 
   startCritical;
@@ -119,9 +118,11 @@ setupProlog(void)
   resetTerm();
   GD->io_initialised = TRUE;
 
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
 
   DEBUG(1, Sdprintf("Heap Initialised\n"));
+  return TRUE;
 }
 
 
@@ -618,7 +619,7 @@ free_clauses_handler(int sig)
 
 static void
 abort_handler(int sig)
-{ abortProlog(ABORT_RAISE);
+{ abortProlog();
 }
 
 
@@ -899,8 +900,8 @@ out:
 
 int
 endCritical__LD(ARG1_LD)
-{ if ( LD->aborted )
-    return abortProlog(ABORT_THROW);
+{ if ( exception_term )
+    return FALSE;
 
   return TRUE;
 }

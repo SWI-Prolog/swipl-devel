@@ -1896,7 +1896,8 @@ PRED_IMPL("retract", 1, retract,
       cref = firstClause(argv, environment_frame, def, &ctxbuf.chp PASS_LD);
       if ( !cref )
       { leaveDefinition(def);
-	endCritical;
+	if ( !endCritical )
+	  fail;
 	fail;
       }
 
@@ -1958,7 +1959,8 @@ PRED_IMPL("retract", 1, retract,
     leaveDefinition(ctx->def);
     if ( ctx != &ctxbuf )
       freeHeap(ctx, sizeof(*ctx));
-    endCritical;
+    if ( !endCritical )
+      fail;
     fail;
   }
 }
