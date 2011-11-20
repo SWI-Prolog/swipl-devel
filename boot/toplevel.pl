@@ -33,7 +33,6 @@
 	  [ '$initialise'/0,		% start Prolog (does not return)
 	    '$toplevel'/0,		% Prolog top-level (re-entrant)
 	    '$abort'/0,			% restart after an abort
-	    '$break'/0,			% live in a break
 	    '$compile'/0,		% `-c' toplevel
 	    '$welcome'/0,		% banner
 	    '$toplevel_thread'/1,	% ?Thread
@@ -380,25 +379,13 @@ initialise_prolog :-
 	),
 	ignore(user:TheGoal).
 
-:- create_prolog_flag(break_level, 0, []).
-
 '$abort' :-
 	see(user),
 	tell(user),
-	set_prolog_flag(break_level, 0),
 	flag('$compilation_level', _, 0),
 	'$calleventhook'(abort),
 	print_message(informational, '$aborted'),
 	'$toplevel'.
-
-'$break' :-
-	current_prolog_flag(break_level, Old),
-	New is Old+1,
-	set_prolog_flag(break_level, New),
-	print_message(informational, break(enter(New))),
-	'$runtoplevel',
-	print_message(informational, break(exit(New))),
-	set_prolog_flag(break_level, Old).
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
 :- '$hide'('$abort'/0).			% same after an abort

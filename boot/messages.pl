@@ -612,10 +612,10 @@ prolog_message(about) -->
 	prolog_message(copyright).
 prolog_message(halt) -->
 	[ 'halt' ].
-prolog_message(break(enter(Level))) -->
+prolog_message(break(begin, Level)) -->
 	[ 'Break level ~d'-[Level] ].
-prolog_message(break(exit(Level))) -->
-	[ nl, 'Exit break level ~d'-[Level] ].
+prolog_message(break(end, Level)) -->
+	[ 'Exit break level ~d'-[Level] ].
 prolog_message(var_query(_)) -->
 	[ '... 1,000,000 ............ 10,000,000 years later', nl, nl,
 	  '~t~8|>> 42 << (last release gives the question)'

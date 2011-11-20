@@ -41,7 +41,8 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 static int
 pl_break1(term_t goal)
 { GET_LD
-  bool rval;
+  int rval;
+  int old_level = LD->break_level;
 
   IOSTREAM *inSave  = Scurin;
   IOSTREAM *outSave = Scurout;
@@ -58,6 +59,11 @@ pl_break1(term_t goal)
 
   resetTracer();
 
+  LD->break_level++;
+  printMessage(ATOM_informational,
+	       PL_FUNCTOR, FUNCTOR_break2,
+	         PL_ATOM, ATOM_begin,
+	         PL_INT,  LD->break_level);
   for(;;)
   { fid_t cid;
     term_t ex;
@@ -84,6 +90,11 @@ pl_break1(term_t goal)
     if ( cid )
       PL_discard_foreign_frame(cid);
   }
+  printMessage(ATOM_informational,
+	       PL_FUNCTOR, FUNCTOR_break2,
+	         PL_ATOM, ATOM_end,
+		 PL_INT,  LD->break_level);
+  LD->break_level = old_level;
 
   debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
@@ -112,7 +123,7 @@ pl_break(void)
   { term_t goal = PL_new_term_ref();
     word rc;
 
-    PL_put_atom_chars(goal, "$break");
+    PL_put_atom(goal, ATOM_prolog);
     rc = pl_break1(goal);
     restoreWakeup(&wstate PASS_LD);
 
@@ -120,6 +131,14 @@ pl_break(void)
   }
 
   return FALSE;
+}
+
+
+int
+currentBreakLevel(void)
+{ GET_LD
+
+  return LD->break_level;
 }
 
 

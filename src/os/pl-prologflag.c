@@ -758,6 +758,8 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   { return PL_unify_bool_ex(val, debugstatus.debugging);
   } else if ( key == ATOM_debugger_show_context )
   { return PL_unify_bool_ex(val, debugstatus.showContext);
+  } else if ( key == ATOM_break_level )
+  { return PL_unify_integer(val, currentBreakLevel());
   }
 
   switch(f->flags & FT_MASK)
@@ -1046,6 +1048,7 @@ initPrologFlags()
   setPrologFlag("debug_on_error",	FT_BOOL, TRUE, PLFLAG_DEBUG_ON_ERROR);
   setPrologFlag("report_error",	FT_BOOL, TRUE, PLFLAG_REPORT_ERROR);
 #endif
+  setPrologFlag("break_level", FT_INTEGER|FF_READONLY, 0, 0);
   setPrologFlag("user_flags", FT_ATOM, "silent");
   setPrologFlag("editor", FT_ATOM, "default");
   setPrologFlag("debugger_show_context", FT_BOOL, FALSE, 0);
