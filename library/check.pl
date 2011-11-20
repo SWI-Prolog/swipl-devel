@@ -93,9 +93,12 @@ list_undefined(Options) :-
 
 
 list_undefined(Level, How) :-
-	system_mode(Old),
-	system_mode(on),
-	call_cleanup(list_undefined_(Level, How), system_mode(Old)).
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      set_prolog_flag(access_level, system)
+	    ),
+	    list_undefined_(Level, How),
+	    set_prolog_flag(access_level, OldLevel)).
 
 list_undefined_(Level, How) :-
 	findall(Pred, undefined_predicate(Pred), Preds),
@@ -167,14 +170,16 @@ referenced(Term, Module, Ref) :-
 %	requirements for the system modules.
 
 list_autoload :-
-	system_mode(Old),
-	system_mode(on),
-	current_prolog_flag(autoload, OldAutoLoad),
-	set_prolog_flag(autoload, false),
-	call_cleanup(list_autoload_(Old),
-		     (	 set_prolog_flag(autoload, OldAutoLoad),
-			 system_mode(Old)
-		     )).
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      current_prolog_flag(autoload, OldAutoLoad),
+	      set_prolog_flag(access_level, system),
+	      set_prolog_flag(autoload, false)
+	    ),
+	    list_autoload_(OldLevel),
+	    ( set_prolog_flag(access_level, OldLevel),
+	      set_prolog_flag(autoload, OldAutoLoad)
+	    )).
 
 list_autoload_(SystemMode) :-
 	(   setof(Lib-Pred,
@@ -196,7 +201,7 @@ autoload_predicate(Module, Library, Name/Arity, SystemMode) :-
 	->  true
 	).
 
-check_module_enabled(_, on) :- !.
+check_module_enabled(_, system) :- !.
 check_module_enabled(Module, _) :-
 	\+ import_module(Module, system).
 
@@ -206,9 +211,12 @@ check_module_enabled(Module, _) :-
 %	Show redefined system predicates
 
 list_redefined :-
-	system_mode(Old),
-	system_mode(on),
-	call_cleanup(list_redefined_, system_mode(Old)).
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      set_prolog_flag(access_level, system)
+	    ),
+	    list_redefined_,
+	    set_prolog_flag(access_level, OldLevel)).
 
 list_redefined_ :-
 	current_module(Module),

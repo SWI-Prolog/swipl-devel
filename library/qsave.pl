@@ -49,7 +49,7 @@ also used by the commandline sequence below.
 :- meta_predicate
 	qsave_program(+, :).
 
-:- system_mode(on).
+:- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic verbose/1.
 :- volatile verbose/1.			% contains a stream-handle
@@ -101,15 +101,19 @@ qsave_program(FileBase, Module:Options0) :-
 	save_resources(RC, SaveClass),
 	'$rc_open'(RC, '$state', '$prolog', write, StateFd),
 	'$open_wic'(StateFd),
-	system_mode(on),		% generate system modules too
-	save_modules(SaveClass),
-	save_records,
-	save_flags,
-	save_imports,
-	save_prolog_flags,
-	save_operators(SaveOps),
-	save_format_predicates,
-	system_mode(off),
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      set_prolog_flag(access_level, system) % generate system modules
+	    ),
+	    ( save_modules(SaveClass),
+	      save_records,
+	      save_flags,
+	      save_imports,
+	      save_prolog_flags,
+	      save_operators(SaveOps),
+	      save_format_predicates
+	    ),
+	    set_prolog_flag(access_level, OldLevel)),
 	'$close_wic',
 	close(StateFd),
 	'$rc_close_archive'(RC),
