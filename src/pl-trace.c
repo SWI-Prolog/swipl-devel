@@ -2028,6 +2028,8 @@ prolog_frame_attribute(term_t frame, term_t what,
   { PL_put_integer(result, levelFrame(fr));
   } else if (key == ATOM_has_alternatives)
   { PL_put_atom(result, hasAlternativesFrame(fr) ? ATOM_true : ATOM_false);
+  } else if (key == ATOM_skipped)
+  { PL_put_atom(result, true(fr, FR_SKIPPED) ? ATOM_true : ATOM_false);
   } else if (key == ATOM_alternative)
   { LocalFrame alt;
 
