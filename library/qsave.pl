@@ -269,13 +269,16 @@ reserved_resource('$state',	'$prolog').
 reserved_resource('$options',	'$prolog').
 
 copy_resource(FromRC, ToRC, Name, Class) :-
-	'$rc_open'(FromRC, Name, Class, read, FdIn),
-	'$rc_open'(ToRC,	 Name, Class, write, FdOut),
-	feedback('~t~8|~w~t~24|~w~t~40|~w~n',
-		 [Name, Class, '<Copied from running state>']),
-	copy_stream_data(FdIn, FdOut),
-	close(FdOut),
-	close(FdIn).
+	setup_call_cleanup(
+	    '$rc_open'(FromRC, Name, Class, read,  FdIn),
+	    setup_call_cleanup(
+		'$rc_open'(ToRC,   Name, Class, write, FdOut),
+		( feedback('~t~8|~w~t~24|~w~t~40|~w~n',
+			   [Name, Class, '<Copied from running state>']),
+		  copy_stream_data(FdIn, FdOut)
+		),
+		close(FdOut)),
+	    close(FdIn)).
 
 
 		 /*******************************
