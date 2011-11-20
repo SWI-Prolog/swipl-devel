@@ -32,6 +32,89 @@
 		*    CALLING THE INTERPRETER    *
 		*********************************/
 
+static void
+resetProlog(int clear_stacks)
+{ GET_LD
+
+  Scurin  = Suser_input;
+  Scurout = Suser_output;
+
+  resetTracer();
+
+  if ( clear_stacks )
+  { if ( !LD->gvar.nb_vars )		/* we would loose nb_setval/2 vars */
+      emptyStacks();
+
+    gc_status.blocked        = 0;
+    LD->shift_status.blocked = 0;
+    LD->in_arithmetic        = 0;
+    LD->in_print_message     = 0;
+  }
+
+#ifdef O_LIMIT_DEPTH
+  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
+#endif
+
+  updateAlerted(LD);
+}
+
+
+static int
+toplevel_loop(atom_t goal)
+{ GET_LD
+  int rc;
+  int loop = TRUE;
+  int clear_stacks = (LD->query == NULL);
+
+  while(loop)
+  { fid_t fid;
+    qid_t qid = 0;
+    term_t except = 0;
+    predicate_t p;
+
+    resetProlog(clear_stacks);
+    if ( !(fid = PL_open_foreign_frame()) )
+      goto error;
+
+    p = PL_pred(PL_new_functor(goal, 0), MODULE_system);
+
+    if ( (qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0)) )
+    { rc = PL_next_solution(qid);
+    } else
+    { error:
+      except = exception_term;
+      loop = rc = FALSE;		/* Won't get any better */
+    }
+
+    if ( !rc && (except = PL_exception(qid)) )
+    { atom_t a;
+
+      tracemode(FALSE, NULL);
+      debugmode(DBG_OFF, NULL);
+      setPrologFlagMask(PLFLAG_LASTCALL);
+      if ( PL_get_atom(except, &a) && a == ATOM_aborted )
+      {
+#ifdef O_DEBUGGER
+        callEventHook(PLEV_ABORT);
+#endif
+        printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
+      } else if ( !PL_is_functor(except, FUNCTOR_error2) )
+      { printMessage(ATOM_error,
+		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+		       PL_TERM, except);
+      }
+    }
+
+    if ( qid ) PL_close_query(qid);
+    if ( fid ) PL_discard_foreign_frame(fid);
+    if ( !except )
+      break;
+  }
+
+  return rc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Starts a new Prolog toplevel.  Resets I/O to point to the user and stops
 the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
@@ -39,9 +122,9 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-pl_break1(term_t goal)
+pl_break1(atom_t goal)
 { GET_LD
-  int rval;
+  int rc;
   int old_level = LD->break_level;
 
   IOSTREAM *inSave  = Scurin;
@@ -57,39 +140,14 @@ pl_break1(term_t goal)
   Scurin  = Sinput;
   Scurout = Soutput;
 
-  resetTracer();
-
   LD->break_level++;
   printMessage(ATOM_informational,
 	       PL_FUNCTOR, FUNCTOR_break2,
 	         PL_ATOM, ATOM_begin,
 	         PL_INT,  LD->break_level);
-  for(;;)
-  { fid_t cid;
-    term_t ex;
 
-    if ( (cid=PL_open_foreign_frame()) )
-    { rval = callProlog(MODULE_user, goal,
-			PL_Q_NORMAL|PL_Q_CATCH_EXCEPTION, &ex);
-    } else
-    { ex = exception_term;
-      rval = FALSE;
-    }
+  rc = toplevel_loop(goal);
 
-    if ( !rval && ex )
-    { printMessage(ATOM_error,
-		   PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		     PL_TERM, ex);
-      tracemode(FALSE, NULL);
-      debugmode(DBG_OFF, NULL);
-      PL_put_atom(goal, ATOM_prolog);
-    } else
-    { break;
-    }
-
-    if ( cid )
-      PL_discard_foreign_frame(cid);
-  }
   printMessage(ATOM_informational,
 	       PL_FUNCTOR, FUNCTOR_break2,
 	         PL_ATOM, ATOM_end,
@@ -104,7 +162,7 @@ pl_break1(term_t goal)
   Scurout = outSave;
   Scurin  = inSave;
 
-  return rval;
+  return rc;
 }
 
 
@@ -120,11 +178,9 @@ pl_break(void)
   wakeup_state wstate;
 
   if ( saveWakeup(&wstate, TRUE PASS_LD) )
-  { term_t goal = PL_new_term_ref();
-    word rc;
+  { word rc;
 
-    PL_put_atom(goal, ATOM_prolog);
-    rc = pl_break1(goal);
+    rc = pl_break1(ATOM_prolog);
     restoreWakeup(&wstate PASS_LD);
 
     return rc;
@@ -303,39 +359,6 @@ PRED_IMPL("abort", 0, abort, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-prologToplevel(): Initial entry point from C to start the Prolog engine.
-Saves abort context, clears the  stack   and  finally starts the virtual
-machine interpreter with the toplevel goal.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-resetProlog(void)
-{ GET_LD
-
-  Scurin  = Suser_input;
-  Scurout = Suser_output;
-
-  if ( !LD->gvar.nb_vars )		/* we would loose nb_setval/2 vars */
-    emptyStacks();
-
-#ifdef O_LIMIT_DEPTH
-  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
-#endif
-
-  gc_status.blocked        = 0;
-  LD->shift_status.blocked = 0;
-  LD->in_arithmetic        = 0;
-  LD->in_print_message     = 0;
-
-  tracemode(FALSE, NULL);
-  debugmode(DBG_OFF, NULL);
-  debugstatus.suspendTrace = 0;
-
-  updateAlerted(LD);
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 prologToplevel is called with various goals
 
   - Using '$initialise to run the initialization
@@ -348,58 +371,7 @@ it is not reentrant).
 
 bool
 prologToplevel(atom_t goal)
-{ GET_LD
-  bool rval;
-  int loop = TRUE;
-
-  debugstatus.debugging = DBG_OFF;
-
-  while(loop)
-  { fid_t fid;
-    qid_t qid = 0;
-    term_t except = 0;
-    Procedure p;
-
-    resetProlog();
-    if ( !(fid = PL_open_foreign_frame()) )
-      goto error;
-
-    p = lookupProcedure(lookupFunctorDef(goal, 0), MODULE_system);
-
-    if ( (qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0)) )
-    { rval = PL_next_solution(qid);
-    } else
-    { error:
-      except = exception_term;
-      loop = rval = FALSE;		/* Won't get any better */
-    }
-
-    if ( !rval && (except = PL_exception(qid)) )
-    { atom_t a;
-
-      tracemode(FALSE, NULL);
-      debugmode(DBG_OFF, NULL);
-      setPrologFlagMask(PLFLAG_LASTCALL);
-      if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      {
-#ifdef O_DEBUGGER
-        callEventHook(PLEV_ABORT);
-#endif
-        printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
-      } else if ( !PL_is_functor(except, FUNCTOR_error2) )
-      { printMessage(ATOM_error,
-		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		       PL_TERM, except);
-      }
-    }
-
-    if ( qid ) PL_close_query(qid);
-    if ( fid ) PL_discard_foreign_frame(fid);
-    if ( !except )
-      break;
-  }
-
-  return rval;
+{ return toplevel_loop(goal);
 }
 
 
