@@ -442,7 +442,6 @@ COMMON(void)		initPrologFlags(void);
 
 /* pl-pro.c */
 COMMON(word)		pl_break(void);
-COMMON(word)		pl_break1(term_t goal);
 COMMON(word)		pl_notrace1(term_t goal);
 COMMON(int)		callProlog(Module module, term_t goal, int flags, term_t *ex);
 COMMON(int)		abortProlog(abort_type type);

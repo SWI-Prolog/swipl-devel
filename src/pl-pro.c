@@ -38,27 +38,7 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 `$break' is called to actually built the break environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_break()
-{ GET_LD
-  wakeup_state wstate;
-
-  if ( saveWakeup(&wstate, TRUE PASS_LD) )
-  { term_t goal = PL_new_term_ref();
-    word rc;
-
-    PL_put_atom_chars(goal, "$break");
-    rc = pl_break1(goal);
-    restoreWakeup(&wstate PASS_LD);
-
-    return rc;
-  }
-
-  return FALSE;
-}
-
-
-word
+static int
 pl_break1(term_t goal)
 { GET_LD
   bool rval;
@@ -114,6 +94,32 @@ pl_break1(term_t goal)
   Scurin  = inSave;
 
   return rval;
+}
+
+
+/** break
+
+Run a nested toplevel. Do not  use   PRED_IMPL()  for this because it is
+very handy to use from e.g., the gdb debugger.
+*/
+
+word
+pl_break(void)
+{ GET_LD
+  wakeup_state wstate;
+
+  if ( saveWakeup(&wstate, TRUE PASS_LD) )
+  { term_t goal = PL_new_term_ref();
+    word rc;
+
+    PL_put_atom_chars(goal, "$break");
+    rc = pl_break1(goal);
+    restoreWakeup(&wstate PASS_LD);
+
+    return rc;
+  }
+
+  return FALSE;
 }
 
 
@@ -319,6 +325,19 @@ resetProlog()
   updateAlerted(LD);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+prologToplevel is called with various goals
+
+  - Using '$initialise to run the initialization
+  - Using '$compile'   if Prolog is called with -c ...
+  - Using '$toplevel'  from PL_toplevel() to run the interactive toplevel
+  - Using '$abort'     to restart after an abort.
+
+It can only be ran when there is  no actively running Prolog goal (i.e.,
+it is not reentrant).
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
 prologToplevel(volatile atom_t goal)

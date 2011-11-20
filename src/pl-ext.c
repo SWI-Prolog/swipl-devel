@@ -82,7 +82,6 @@ static const PL_extension foreigns[] = {
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
-  FRG("$break",			1, pl_break1,			0),
   FRG("notrace",		1, pl_notrace1,		     META),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),

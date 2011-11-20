@@ -403,15 +403,23 @@ initialise_prolog :-
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
 :- '$hide'('$abort'/0).			% same after an abort
 
+%%	'$toplevel'/0
+%
+%	Called from PL_toplevel()
+
 '$toplevel' :-
 	'$runtoplevel',
 	print_message(informational, halt).
 
-%	Actually run the toplevel.  If there is a syntax error in the
-%	goal there is no reason to persue.  Something like that should
-%	happen to repetitive exceptions in the toplevel as well, but
-%	how do we distinguish between a stupid user and a program
-%	crashing in a loop?
+%%	'$runtoplevel'
+%
+%	Actually run the toplevel. If there  is   a  syntax error in the
+%	goal there is no reason to   persue.  Something like that should
+%	happen to repetitive exceptions in the toplevel as well, but how
+%	do we distinguish between a stupid   user and a program crashing
+%	in a loop?
+%
+%	@see prolog/0 is the default interactive toplevel
 
 '$runtoplevel' :-
 	'$option'(toplevel, TopLevelAtom),
@@ -420,7 +428,8 @@ initialise_prolog :-
 	       halt(1))),
 	user:TopLevel.
 
-%	'$compile'
+%%	'$compile'
+%
 %	Toplevel called when invoked with -c option.
 
 '$compile' :-
