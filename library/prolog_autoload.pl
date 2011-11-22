@@ -32,6 +32,7 @@
 	    autoload/1				% +Options
 	  ]).
 :- use_module(library(option)).
+:- use_module(library(apply)).
 
 :- predicate_options(autoload/1, 1,
 		     [ verbose(boolean)
@@ -94,18 +95,13 @@ autoload(Options) :-
 		  set_prolog_flag(autoload, true),
 		  set_prolog_flag(verbose_autoload, Verbose)
 		),
-		defined_predicates(Preds),
+		maplist('$define_predicate', Preds),
 		( set_prolog_flag(autoload, OldAutoLoad),
 		  set_prolog_flag(verbose_autoload, OldVerbose)
 		)),
 	    autoload(Verbose)		% recurse for possible new
 					% unresolved links
 	).
-
-defined_predicates([]).
-defined_predicates([H|T]) :-
-	'$define_predicate'(H),
-	defined_predicates(T).
 
 needs_autoloading(Module:Head) :-
 	predicate_property(Module:Head, undefined),
