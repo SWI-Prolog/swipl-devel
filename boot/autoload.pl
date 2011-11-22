@@ -38,9 +38,7 @@
 	    make_library_index/1,
 	    make_library_index/2,
 	    reload_library_index/0,
-	    autoload_path/1,
-	    autoload/0,
-	    autoload/1
+	    autoload_path/1
 	  ]).
 
 :- dynamic
@@ -416,68 +414,3 @@ system:term_expansion((:- autoload_path(Alias)),
 		      [ user:file_search_path(autoload, Alias),
 			(:- reload_library_index)
 		      ]).
-
-
-		 /*******************************
-		 *	   DO AUTOLOAD		*
-		 *******************************/
-
-%%	autoload is det.
-%%	autoload(+Options) is det.
-%
-%	Force all necessary autoloading to be done _now_.  Options:
-%
-%	    * verbose(+Boolean)
-%	    If =true=, report on the files loaded.
-
-autoload :-
-	autoload([]).
-
-autoload(Options) :-
-	al_option(Options, verbose/true, Verbose),
-	setup_call_cleanup(
-	    ( current_prolog_flag(access_level, OldLevel),
-	      current_prolog_flag(autoload, OldAutoLoad),
-	      set_prolog_flag(autoload, false),
-	      set_prolog_flag(access_level, system)
-	    ),
-	    findall(Pred, needs_autoloading(Pred), Preds),
-	    ( set_prolog_flag(autoload, OldAutoLoad),
-	      set_prolog_flag(access_level, OldLevel)
-	    )),
-	(   Preds == []
-	->  true
-	;   setup_call_cleanup(
-		( current_prolog_flag(autoload, OldAutoLoad),
-		  current_prolog_flag(verbose_autoload, OldVerbose),
-		  set_prolog_flag(autoload, true),
-		  set_prolog_flag(verbose_autoload, Verbose)
-		),
-		defined_predicates(Preds),
-		( set_prolog_flag(autoload, OldAutoLoad),
-		  set_prolog_flag(verbose_autoload, OldVerbose)
-		)),
-	    autoload(Verbose)		% recurse for possible new
-					% unresolved links
-	).
-
-defined_predicates([]).
-defined_predicates([H|T]) :-
-	'$define_predicate'(H),
-	defined_predicates(T).
-
-needs_autoloading(Module:Head) :-
-	predicate_property(Module:Head, undefined),
-	\+ predicate_property(Module:Head, imported_from(_)),
-	functor(Head, Functor, Arity),
-	'$in_library'(Functor, Arity, _).
-
-al_option(Options, Name/Default, Value) :-
-	(   memberchk(Name = Value, Options)
-	->  true
-	;   Term =.. [Name,Value],
-	    memberchk(Term, Options)
-	->  true
-	;   Value = Default
-	).
-

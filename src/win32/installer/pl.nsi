@@ -260,6 +260,7 @@ Section "Base system (required)"
   File pl\library\prolog_source.pl
   File pl\library\prolog_history.pl
   File pl\library\prolog_breakpoints.pl
+  File pl\library\prolog_autoload.pl
   File pl\library\predicate_options.pl
 
 ; COMPATIBILITY
