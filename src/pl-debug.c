@@ -24,9 +24,10 @@
 
 #include "pl-incl.h"
 
+#define DEBUG_TOPIC(Name) { Name, #Name }
+
 const debug_topic debug_topics[] =
-{ 
-  DEBUG_TOPIC(DBG_LEVEL0),
+{ DEBUG_TOPIC(DBG_LEVEL0),
   DEBUG_TOPIC(DBG_LEVEL1),
   DEBUG_TOPIC(DBG_LEVEL2),
   DEBUG_TOPIC(DBG_LEVEL3),
@@ -37,26 +38,28 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(DBG_LEVEL8),
   DEBUG_TOPIC(DBG_LEVEL9),
   DEBUG_TOPIC(MSG_VMI),
-  DEBUG_TOPIC(CHK_SECURE)
-
-  /* { 0, NULL } */
+  DEBUG_TOPIC(CHK_SECURE),
+						/* end-of-list */
+  { 0, NULL }
 };
 
-int
-get_debug_code(char* topic)
-{ int i;
 
-  for (i=0; i <= MAX_DEBUG_TOPICS; i++)
-  { if (strcmp(topic, debug_topics[i].name) == 0)
-    { return debug_topics[i].code;
+static int
+get_debug_code(char *topic)
+{ const debug_topic *dt;
+
+  for (dt=debug_topics; dt->name; dt++)
+  { if ( strcasecmp(topic, dt->name) == 0 )
+    { return dt->code;
     }
   }
 
   return -1;
 }
 
-static
-int prolog_debug(term_t t, int flag)
+
+static int
+prolog_debug(term_t t, int flag)
 { GET_LD
   char *topic;
   int code;
@@ -65,14 +68,14 @@ int prolog_debug(term_t t, int flag)
   if( !PL_get_chars(t, &topic, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
     fail;
 
-  if (!GD->debug_topics)
-    GD->debug_topics = new_bitvector(MAX_DEBUG_TOPICS);
+  if ( !GD->debug_topics )
+    GD->debug_topics = new_bitvector(sizeof(debug_topics)/sizeof(*debug_topics));
 
   if( (code = get_debug_code(topic)) < 0 )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_debug_topic, t);
 
-  if (code <= DBG_LEVEL9)
-    GD->debug_level = code; 
+  if ( code <= DBG_LEVEL9 )
+    GD->debug_level = code;
   else if (flag)
     set_bit(GD->debug_topics, code);
   else
@@ -81,18 +84,17 @@ int prolog_debug(term_t t, int flag)
   return TRUE;
 }
 
+
 static
 PRED_IMPL("prolog_debug", 1, pl_prolog_debug, 0)
-{
-  return prolog_debug(A1, 1);
+{ return prolog_debug(A1, 1);
 }
+
 
 static
 PRED_IMPL("prolog_nodebug", 1, pl_prolog_nodebug, 0)
-{
-  return prolog_debug(A1, 0);
+{ return prolog_debug(A1, 0);
 }
-
 
 
 		 /*******************************

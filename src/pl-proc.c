@@ -3033,7 +3033,7 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
 }
 
 
-#ifdef O_MAINTENANCE
+#if defined(O_MAINTENANCE) || defined(O_DEBUG)
 
 		 /*******************************
 		 *	INTERNAL DEBUGGING	*

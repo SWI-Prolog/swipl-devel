@@ -1,6 +1,4 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
@@ -22,7 +20,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h> /* get NULL */
+#ifndef PL_DEBUG_INCLUDED
+#define PL_DEBUG_INCLUDED 1
 
 #define DBG_LEVEL0  0
 #define DBG_LEVEL1  1
@@ -42,5 +41,4 @@ typedef struct debug_topic
   const char   *name;
 } debug_topic;
 
-#define DEBUG_TOPIC(Name) { Name, #Name }
-#define MAX_DEBUG_TOPICS 11
+#endif /*PL_DEBUG_INCLUDED*/
