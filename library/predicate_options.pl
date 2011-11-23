@@ -302,10 +302,13 @@ has_dynamic_option_decl(M) :-
 	'$c_current_predicate'(_, M:'$dyn_pred_option'(_,_,_,_)).
 
 
-
 		 /*******************************
-		 *	      TYPES		*
+		 *     TYPE&MODE CONSTRAINTS	*
 		 *******************************/
+
+:- public
+	system:predicate_option_mode/2,
+	system:predicate_option_type/2.
 
 add_attr(Var, Value) :-
 	(   get_attr(Var, predicate_options, Old)
@@ -318,7 +321,6 @@ system:predicate_option_type(Type, Arg) :-
 	add_attr(Arg, option_type(Type)).
 system:predicate_option_type(Type, Arg) :-
 	must_be(Type, Arg).
-
 
 system:predicate_option_mode(Mode, Arg) :-
 	var(Arg), !,
