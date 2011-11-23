@@ -169,7 +169,7 @@ Root(int i, node **r, Buffer buf)
   do
   { k = i;
     n = Node(i, buf);
-    SECURE(assert(n > 0));
+    DEBUG(CHK_SECURE, assert(n > 0));
     i = node_isom(n);
   } while ( i != 0 );
 
@@ -473,7 +473,7 @@ again:
   discardBuffer(VARIANT_BUFFER);
   clearSegStack(&agenda.stack);
 
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 
   if ( !endCritical )
     return FALSE;

@@ -27,7 +27,7 @@ Get the ball rolling.  The main task of  this  module  is  command  line
 option  parsing,  initialisation  and  handling  of errors and warnings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define O_DEBUG 1
+/* #define O_DEBUG 1 */
 
 #include "rc/rc.h"
 #include "pl-incl.h"

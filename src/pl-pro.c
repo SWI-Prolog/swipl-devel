@@ -23,7 +23,7 @@
 */
 
 #ifdef SECURE_GC
-#define O_SECURE 1			/* include checkData() */
+#define O_DEBUG 1			/* include checkData() */
 #endif
 #include "pl-incl.h"
 
@@ -434,7 +434,7 @@ PRED_IMPL("$trap_gdb", 0, trap_gdb, 0)
   return TRUE;
 }
 
-#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
+#if O_DEBUG || defined(O_MAINTENANCE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 checkData(p) verifies p points to valid  Prolog  data  and  generates  a

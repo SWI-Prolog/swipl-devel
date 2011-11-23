@@ -22,7 +22,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#define O_DEBUG 1
+/* #define O_DEBUG 1 */
 
 #define _GNU_SOURCE 1			/* get recursive mutex stuff to */
 					/* compile clean with glibc.  Can */
@@ -5333,9 +5333,10 @@ pl_with_mutex(term_t mutex, term_t goal)
   pl_mutex_unlock(mutex);
 
   if ( !rval && ex )
-  { SECURE({ GET_LD
-	     checkData(valTermRef(ex));
-	   });
+  { DEBUG(CHK_SECURE,
+	  { GET_LD
+	    checkData(valTermRef(ex));
+	  });
     PL_raise_exception(ex);
   }
 

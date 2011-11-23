@@ -24,7 +24,6 @@
 
 #ifdef SECURE_GC
 #define O_DEBUG 1
-#define O_SECURE 1
 #endif
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
@@ -94,9 +93,9 @@ actions  are  counted  during garbage collection.  At regular points the
 consistency between these counts  is  verified.   This  causes  a  small
 performance degradation, but for the moment is worth this I think.
 
-If the O_SECURE cpp flag is set  some  additional  expensive  consistency
-checks  that need considerable amounts of memory and cpu time are added.
-Garbage collection gets about 3-4 times as slow.
+If the CHK_SECURE prolog_debug flag  is set  some  additional  expensive
+consistency checks that need considerable amounts of memory and cpu time
+are added. Garbage collection gets about 3-4 times as slow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -106,15 +105,16 @@ Marking, testing marks and extracting values from GC masked words.
 #define GC_MASK		(MARK_MASK|FIRST_MASK)
 #define VALUE_MASK	(~GC_MASK)
 
-#if O_SECURE
+#if O_DEBUG
 char tmp[256];				/* for calling print_val(), etc. */
 #define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__ PASS_LD)
 #define relocated_cell(p) do_relocated_cell(p PASS_LD)
-#define recordMark(p)   { if ( (char*)(p) < (char*)lBase ) \
-			  { assert(onStack(global, p)); \
-			    *mark_top++ = (p); \
-			  } \
-			}
+#define recordMark(p)   DEBUG(CHK_SECURE, \
+			      { if ( (char*)(p) < (char*)lBase ) \
+				{ assert(onStack(global, p)); \
+				  *mark_top++ = (p); \
+				} \
+			      })
 #else
 #define recordMark(p)
 #define needsRelocation(p) { needs_relocation++; }
@@ -204,7 +204,7 @@ static Code		startOfVMI(QueryFrame qf);
 static void		get_vmi_state(QueryFrame qf, vm_state *state);
 static size_t		tight(Stack s ARG_LD);
 
-#if O_SECURE
+#if O_DEBUG
 forwards int		cmp_address(const void *, const void *);
 forwards void		do_check_relocation(Word, char *file, int line ARG_LD);
 forwards void		needsRelocation(void *);
@@ -229,7 +229,7 @@ static int		check_marked(const char *s);
 #define local_frames	   (LD->gc._local_frames)
 #define choice_count	   (LD->gc._choice_count)
 #define start_map	   (LD->gc._start_map)
-#if O_SECURE
+#if O_DEBUG
 #define trailtops_marked   (LD->gc._trailtops_marked)
 #define mark_base	   (LD->gc._mark_base)
 #define mark_top	   (LD->gc._mark_top)
@@ -245,7 +245,7 @@ static int		check_marked(const char *s);
 		*           DEBUGGING           *
 		*********************************/
 
-#if O_DEBUG || O_SECURE || defined(O_MAINTENANCE)
+#if defined(O_DEBUG) || defined(O_MAINTENANCE)
 
 static char *
 print_adr(Word adr, char *buf)
@@ -332,7 +332,7 @@ print_val(word val, char *buf)
 
 #endif /*O_DEBUG*/
 
-#if O_SECURE
+#if O_DEBUG
 
 #define RELOC_NEEDS   ((void*)1)
 #define RELOC_CHAINED ((void*)2)
@@ -344,52 +344,56 @@ needsRelocation(void *addr)
 
   needs_relocation++;
 
-  addHTable(check_table, addr, RELOC_NEEDS);
+  DEBUG(CHK_SECURE, addHTable(check_table, addr, RELOC_NEEDS));
 }
 
 
 static void
 do_check_relocation(Word addr, char *file, int line ARG_LD)
-{ Symbol s;
+{ if ( DEBUGGING(CHK_SECURE) )
+  { Symbol s;
 
-  if ( !(s=lookupHTable(check_table, addr)) )
-  { char buf1[256];
-    char buf2[256];
-    sysError("%s:%d: Address %s (%s) was not supposed to be relocated",
-	     file, line, print_adr(addr, buf1), print_val(*addr, buf2));
-    return;
+    if ( !(s=lookupHTable(check_table, addr)) )
+    { char buf1[256];
+      char buf2[256];
+      sysError("%s:%d: Address %s (%s) was not supposed to be relocated",
+	       file, line, print_adr(addr, buf1), print_val(*addr, buf2));
+      return;
+    }
+
+    if ( s->value != RELOC_NEEDS )
+    { sysError("%s:%d: Relocated twice: 0x%lx", file, line, addr);
+      return;
+    }
+
+    s->value = RELOC_CHAINED;
   }
-
-  if ( s->value != RELOC_NEEDS )
-  { sysError("%s:%d: Relocated twice: 0x%lx", file, line, addr);
-    return;
-  }
-
-  s->value = RELOC_CHAINED;
 }
 
 
 static void
 do_relocated_cell(Word addr ARG_LD)
-{ if ( relocated_check )		/* we cannot do this during the */
-  { Symbol s;				/* final up-phase because the addresses */
+{ if ( DEBUGGING(CHK_SECURE) )
+  { if ( relocated_check )		/* we cannot do this during the */
+    { Symbol s;				/* final up-phase because the addresses */
 					/* have already changed */
-    if ( !(s=lookupHTable(check_table, addr)) )
-    { char buf1[64];
+      if ( !(s=lookupHTable(check_table, addr)) )
+      { char buf1[64];
 
-      sysError("Address %s was not supposed to be updated",
-	       print_adr(addr, buf1));
-      return;
+        sysError("Address %s was not supposed to be updated",
+	         print_adr(addr, buf1));
+        return;
+      }
+
+      if ( s->value == RELOC_UPDATED )
+      { char buf1[64];
+
+        sysError("%s: updated twice", print_adr(addr, buf1));
+        return;
+      }
+
+      s->value = RELOC_UPDATED;
     }
-
-    if ( s->value == RELOC_UPDATED )
-    { char buf1[64];
-
-      sysError("%s: updated twice", print_adr(addr, buf1));
-      return;
-    }
-
-    s->value = RELOC_UPDATED;
   }
 
   relocated_cells++;
@@ -420,31 +424,37 @@ printNotRelocated()
 static void
 markLocal(Word addr)
 { GET_LD
-  Symbol s;
 
   local_marked++;
-  if ( (s = lookupHTable(local_table, addr)) )
-    assert(0);
 
-  addHTable(local_table, addr, (void*)TRUE);
+  DEBUG(CHK_SECURE,
+	{ Symbol s;
+	  if ( (s = lookupHTable(local_table, addr)) )
+	    assert(0);
+	  addHTable(local_table, addr, (void*)TRUE);
+	});
 }
 
 
 static void
 processLocal(Word addr)
 { GET_LD
-  Symbol s;
 
   local_marked--;
-  if ( (s = lookupHTable(local_table, addr)) )
-  { assert(s->value == (void*)TRUE);
-    s->value = (void*)FALSE;
-  } else
-  { assert(0);
-  }
+
+  DEBUG(CHK_SECURE,
+	{ Symbol s;
+
+	  if ( (s = lookupHTable(local_table, addr)) )
+	  { assert(s->value == (void*)TRUE);
+	    s->value = (void*)FALSE;
+	  } else
+	  { assert(0);
+	  }
+	});
 }
 
-#endif /* O_SECURE */
+#endif /* O_DEBUG */
 
 		/********************************
 		*          UTILITIES            *
@@ -625,7 +635,7 @@ forward:				/* Go into the tree */
   switch(tag(val))
   { case TAG_REFERENCE:
     { next = unRef(val);		/* address pointing to */
-      SECURE(assert(onStack(global, next)));
+      DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
       if ( is_first(next) )		/* ref to choice point. we will */
         BACKWARD;			/* get there some day anyway */
@@ -637,9 +647,9 @@ forward:				/* Go into the tree */
     }
 #ifdef O_ATTVAR
     case TAG_ATTVAR:
-    { SECURE(assert(storage(val) == STG_GLOBAL));
+    { DEBUG(CHK_SECURE, assert(storage(val) == STG_GLOBAL));
       next = valPtr2(val, STG_GLOBAL);
-      SECURE(assert(onStack(global, next)));
+      DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
       if ( is_marked(next) )
 	BACKWARD;			/* term has already been marked */
@@ -654,9 +664,9 @@ forward:				/* Go into the tree */
     case TAG_COMPOUND:
     { int args;
 
-      SECURE(assert(storage(val) == STG_GLOBAL));
+      DEBUG(CHK_SECURE, assert(storage(val) == STG_GLOBAL));
       next = valPtr2(val, STG_GLOBAL);
-      SECURE(assert(onStack(global, next)));
+      DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
       if ( is_marked(next) )
 	BACKWARD;			/* term has already been marked */
@@ -666,7 +676,7 @@ forward:				/* Go into the tree */
 			args+1, next));
       domark(next);
       for( next += 2; args > 0; args--, next++ )
-      { SECURE(assert(!is_first(next)));
+      { DEBUG(CHK_SECURE, assert(!is_first(next)));
 	mark_first(next);
       }
       next--;				/* last cell of term */
@@ -683,8 +693,8 @@ forward:				/* Go into the tree */
     case TAG_FLOAT:			/* indirects */
     { next = valPtr2(val, STG_GLOBAL);
 
-      SECURE(assert(storage(val) == STG_GLOBAL));
-      SECURE(assert(onStack(global, next)));
+      DEBUG(CHK_SECURE, assert(storage(val) == STG_GLOBAL));
+      DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
       if ( is_marked(next) )		/* can be referenced from multiple */
         BACKWARD;			/* places */
@@ -725,7 +735,7 @@ backward:				/* reversing backwards */
   if ( current == start )
     return;
 
-  SECURE(assert(onStack(global, current)));
+  DEBUG(CHK_SECURE, assert(onStack(global, current)));
   { word tmp;
 
     tmp = get_value(current);
@@ -773,7 +783,7 @@ mark_term_refs()
       }
     }
 
-    SECURE(check_marked("After marking foreign frame"));
+    DEBUG(CHK_SECURE, check_marked("After marking foreign frame"));
   }
 
   DEBUG(3, Sdprintf("Marked %ld global and %ld local term references\n",
@@ -915,7 +925,7 @@ argument_stack_to_term_refs(vm_state *state)
 	} else
 	{ *valTermRef(t) = consPtr(adr, STG_GLOBAL|TAG_REFERENCE);
 	}
-	SECURE(checkData(adr));
+	DEBUG(CHK_SECURE, checkData(adr));
       } else
       { assert(adr >= (Word)lBase);
 	*ap = (Word)((word)adr | LARGP);
@@ -955,10 +965,11 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
     assert(fp == (Word)(fr+1) + fr->size);
     assert(uwc == state->uwrite_count);
 
-#ifdef O_SECURE
-    if ( onStackArea(local, LD->query->registers.argp) )
-      assert(LD->query->registers.argp == aTop[-1]);
-#endif
+    DEBUG(CHK_SECURE,
+	  { if ( onStackArea(local, LD->query->registers.argp) )
+	      assert(LD->query->registers.argp == aTop[-1]);
+	  });
+
     LD->query->registers.argp = *--aTop;
     PL_close_foreign_frame(fid);
   }
@@ -1026,12 +1037,12 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	case A_FIRSTVAR_IS:
 	case B_UNIFY_FIRSTVAR:
 	case C_VAR:
-#if O_SECURE
-	  if ( varFrameP(fr, PC[1]) <
-	       argFrameP(fr, fr->predicate->functor->arity) )
-	    sysError("Reset instruction on argument");
-	  /*assert(varFrame(fr, PC[1]) != QID_MAGIC); is possible */
-#endif
+	  DEBUG(CHK_SECURE,
+		{ if ( varFrameP(fr, PC[1]) <
+		       argFrameP(fr, fr->predicate->functor->arity) )
+		    sysError("Reset instruction on argument");
+		  /*assert(varFrame(fr, PC[1]) != QID_MAGIC); is possible */
+		});
 	  setVar(varFrame(fr, PC[1]));
 	  break;
        case C_VAR_N:
@@ -1239,7 +1250,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
     { Word tard = val_ptr(te->address);
 
       if ( tard >= top )		/* above local stack */
-      { SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
+      { DEBUG(CHK_SECURE, assert(ttag(te[1].address) != TAG_TRAILVAL));
 	te->address = 0;
 	trailcells_deleted++;
       } else if ( tard > gKeep && tard < gMax )
@@ -1267,7 +1278,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 
 static GCTrailEntry
 mark_foreign_frame(FliFrame fr, GCTrailEntry te ARG_LD)
-{ SECURE(assert(fr->magic == FLI_MAGIC));
+{ DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
 
   if ( isRealMark(fr->mark) )
   { te = early_reset_vars(&fr->mark, (Word)fr, te PASS_LD);
@@ -1275,7 +1286,7 @@ mark_foreign_frame(FliFrame fr, GCTrailEntry te ARG_LD)
     DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
     needsRelocation(&fr->mark.trailtop);
     check_relocation((Word)&fr->mark.trailtop);
-    SECURE(assert(isRealMark(fr->mark)));
+    DEBUG(CHK_SECURE, assert(isRealMark(fr->mark)));
     alien_into_relocation_chain(&fr->mark.trailtop,
 				STG_TRAIL, STG_LOCAL PASS_LD);
 
@@ -1400,7 +1411,7 @@ mark_new_arguments(vm_state *state ARG_LD)
   int slots = state->new_args;
 
   for( ; slots-- > 0; sp++ )
-  { SECURE(assert(*sp != FLI_MAGIC));
+  { DEBUG(CHK_SECURE, assert(*sp != FLI_MAGIC));
     if ( !is_marked(sp) )
       mark_local_variable(sp PASS_LD);
   }
@@ -1433,7 +1444,8 @@ clear_frame_var(walk_state *state, code var, Code PC ARG_LD)
   { LocalFrame fr = state->frame;
     DEBUG(3, Sdprintf("Clear var %d at %d\n",
 		      var-VAROFFSET(0), (PC-state->c0)-1));
-#ifdef O_SECURE
+#ifdef O_DEBUG
+    if ( DEBUGGING(CHK_SECURE) )
     { Word vp = varFrameP(fr, PC[0]);
 
       if ( !isVar(*vp & ~MARK_MASK) )
@@ -1442,6 +1454,8 @@ clear_frame_var(walk_state *state, code var, Code PC ARG_LD)
 		 var-VAROFFSET(0),
 		 (PC-state->c0)-1);
       }
+    } else
+    { setVar(varFrame(fr, var));
     }
 #else
     setVar(varFrame(fr, var));
@@ -1765,7 +1779,7 @@ early_reset_choicepoint(mark_state *state, Choice ch ARG_LD)
   needsRelocation(&ch->mark.trailtop);
   alien_into_relocation_chain(&ch->mark.trailtop,
 			      STG_TRAIL, STG_LOCAL PASS_LD);
-  SECURE(trailtops_marked--);
+  DEBUG(CHK_SECURE, trailtops_marked--);
 }
 
 
@@ -1978,7 +1992,7 @@ mark_stacks(vm_state *vmstate)
 }
 
 
-#if O_SECURE
+#if O_DEBUG
 static int
 cmp_address(const void *vp1, const void *vp2)
 { Word p1 = *((Word *)vp1);
@@ -1994,14 +2008,15 @@ mark_phase(vm_state *state)
 { GET_LD
   total_marked = 0;
 
-  SECURE(check_marked("Before mark_term_refs()"));
+  DEBUG(CHK_SECURE, check_marked("Before mark_term_refs()"));
   mark_term_refs();
   mark_stacks(state);
-#if O_SECURE
-  if ( !scan_global(TRUE) )
-    sysError("Global stack corrupted after GC mark-phase");
-  qsort(mark_base, mark_top - mark_base, sizeof(Word), cmp_address);
-#endif
+
+  DEBUG(CHK_SECURE,
+	{ if ( !scan_global(TRUE) )
+	    sysError("Global stack corrupted after GC mark-phase");
+	  qsort(mark_base, mark_top - mark_base, sizeof(Word), cmp_address);
+	});
 
   DEBUG(2, { intptr_t size = gTop - gBase;
 	     Sdprintf("%ld referenced cell; %ld garbage (gTop = %p)\n",
@@ -2119,8 +2134,8 @@ compact_trail(void)
   for( dest = current = (GCTrailEntry)tBase; current < (GCTrailEntry)tTop; )
   { if ( is_first(&current->address) )
       update_relocation_chain(&current->address, &dest->address PASS_LD);
-#if O_SECURE
-    else
+#if O_DEBUG
+    else if ( DEBUGGING(CHK_SECURE) )
     { Symbol s;
       if ( (s=lookupHTable(check_table, current)) != NULL &&
 	   s->value == (void *)TRUE )
@@ -2163,14 +2178,14 @@ tag_trail()
     if ( isTrailVal(p) )
     { Word p2 = trailValP(p);
 
-      SECURE(assert(onStack(global, p2)));
+      DEBUG(CHK_SECURE, assert(onStack(global, p2)));
       te->address = (Word)consPtr(p2, STG_GLOBAL|TAG_TRAILVAL);
-      //SECURE(assert(te == tBase || !isTrailVal(te[-1].address)));
+      //DEBUG(SECURE_CHK, assert(te == tBase || !isTrailVal(te[-1].address)));
     } else
     { if ( onLocal(te->address) )
       { stg = STG_LOCAL;
       } else
-      { SECURE(assert(onGlobalArea(te->address)));
+      { DEBUG(CHK_SECURE, assert(onGlobalArea(te->address)));
 	stg = STG_GLOBAL;
       }
 
@@ -2259,7 +2274,7 @@ static void
 sweep_global_mark(Word *m ARG_LD)
 { Word gm;
 
-  SECURE(assert(onStack(local, m)));
+  DEBUG(CHK_SECURE, assert(onStack(local, m)));
   gm = *m;
   if ( is_marked_or_first(gm-1) )
     goto done;				/* quit common easy case */
@@ -2298,7 +2313,7 @@ sweep_global_mark(Word *m ARG_LD)
     } else				/* a large cell */
     { size_t offset;
 
-      SECURE(assert(storage(*prev) == STG_LOCAL));
+      DEBUG(CHK_SECURE, assert(storage(*prev) == STG_LOCAL));
       offset = wsizeofInd(*prev)+1;	/* = offset for a large cell */
       prev -= offset;
       if ( is_marked_or_first(prev) )
@@ -2350,7 +2365,7 @@ unsweep_mark(mark *m ARG_LD)
   m->globaltop = valPtr2((word)m->globaltop, STG_GLOBAL);
   m->saved_bar = valPtr2((word)m->saved_bar, STG_GLOBAL);
 
-  SECURE(check_mark(m));
+  DEBUG(CHK_SECURE, check_mark(m));
 
   marks_unswept++;
 }
@@ -2546,23 +2561,25 @@ sweep_stacks(vm_state *state)
 
   if ( local_marked != 0 )
   {
-#ifdef O_SECURE
-    TableEnum e = newTableEnum(local_table);
-    Symbol s;
+#ifdef O_DEBUG
+    if ( DEBUGGING(CHK_SECURE) )
+    { TableEnum e = newTableEnum(local_table);
+      Symbol s;
 
-    Sdprintf("FATAL: unprocessed local variables:\n");
+      Sdprintf("FATAL: unprocessed local variables:\n");
 
-    while((s=advanceTableEnum(e)))
-    { if ( s->value )
-      {	Word p = s->name;
-	char buf1[64];
-	char buf2[64];
+      while((s=advanceTableEnum(e)))
+      { if ( s->value )
+	{ Word p = s->name;
+	  char buf1[64];
+	  char buf2[64];
 
-	Sdprintf("\t%s (*= %s)\n", print_adr(p, buf1), print_val(*p, buf2));
+	  Sdprintf("\t%s (*= %s)\n", print_adr(p, buf1), print_val(*p, buf2));
+	}
       }
-    }
 
-    freeTableEnum(e);
+      freeTableEnum(e);
+    }
 #endif
     sysError("local_marked = %ld", local_marked);
   }
@@ -2598,7 +2615,7 @@ is_downward_ref(Word p ARG_LD)
     case TAG_COMPOUND:
     { Word d = val_ptr(val);
 
-      SECURE(assert(d >= gBase));
+      DEBUG(CHK_SECURE, assert(d >= gBase));
 
       return d < p;
     }
@@ -2623,7 +2640,7 @@ is_upward_ref(Word p ARG_LD)
     case TAG_COMPOUND:
     { Word d = val_ptr(val);
 
-      SECURE(assert(d < gTop));
+      DEBUG(CHK_SECURE, assert(d < gTop));
 
       return d > p;
     }
@@ -2633,7 +2650,7 @@ is_upward_ref(Word p ARG_LD)
 }
 
 
-#if O_SECURE
+#if O_DEBUG
 
 static int
 check_marked(const char *s)
@@ -2659,7 +2676,7 @@ check_marked(const char *s)
   return FALSE;
 }
 
-#endif /*O_SECURE*/
+#endif /* O_DEBUG */
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2694,7 +2711,7 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
       } else					/* large cell */
       { size_t offset;
 
-	SECURE(assert(storage(*current) == STG_LOCAL));
+	DEBUG(CHK_SECURE, assert(storage(*current) == STG_LOCAL));
 	offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
 	current -= offset;			/* start large cell */
 	if ( is_marked(current) )
@@ -2717,7 +2734,7 @@ compact_global(void)
 { GET_LD
   Word dest, current;
   Word base = gBase, top;
-#if O_SECURE
+#if O_DEBUG
   Word *v = mark_top;
 #endif
 
@@ -2727,11 +2744,11 @@ compact_global(void)
   for( current = gTop; current >= base; current-- )
   { if ( is_marked(current) )
     { marked_large_cell:
-#if O_SECURE
-      if ( current != *--v )
-        sysError("Marked cell at %p (*= %p); gTop = %p; should be %p",
-		 current, *current, gTop, *v);
-#endif
+      DEBUG(CHK_SECURE,
+	    { if ( current != *--v )
+		sysError("Marked cell at %p (*= %p); gTop = %p; should be %p",
+			 current, *current, gTop, *v);
+	    });
       dest--;
       DEBUG(3, Sdprintf("Marked cell at %p (dest = %p)\n", current, dest));
       if ( is_first(current) )
@@ -2763,26 +2780,26 @@ compact_global(void)
     }
   }
 
-#if O_SECURE
-  if ( v != mark_base )
-  { for( v--; v >= mark_base; v-- )
-    { Sdprintf("Expected marked cell at %p, (*= 0x%lx)\n", *v, **v);
-    }
-    sysError("v = %p; mark_base = %p", v, mark_base);
-  }
-#endif
+  DEBUG(CHK_SECURE,
+	{ if ( v != mark_base )
+	  { for( v--; v >= mark_base; v-- )
+	    { Sdprintf("Expected marked cell at %p, (*= 0x%lx)\n", *v, **v);
+	    }
+	    sysError("v = %p; mark_base = %p", v, mark_base);
+	  }
+	});
 
   if ( dest != base )
     sysError("Mismatch in down phase: dest = %p, gBase = %p\n",
 	     dest, gBase);
   if ( relocation_cells != relocated_cells )
-  { SECURE(printNotRelocated());
+  { DEBUG(CHK_SECURE, printNotRelocated());
     sysError("After down phase: relocation_cells = %ld; relocated_cells = %ld",
 	     relocation_cells, relocated_cells);
   }
 
-  SECURE(check_marked("Before up"));
-  SECURE(relocated_check=FALSE);	/* see do_relocated_cell() */
+  DEBUG(CHK_SECURE, check_marked("Before up"));
+  DEBUG(CHK_SECURE, relocated_check=FALSE);	/* see do_relocated_cell() */
   DEBUG(2, Sdprintf("Scanning global stack upwards\n"));
 
   dest = base;
@@ -2842,7 +2859,7 @@ static void
 collect_phase(vm_state *state, Word *saved_bar_at)
 { GET_LD
 
-  SECURE(check_marked("Start collect"));
+  DEBUG(CHK_SECURE, check_marked("Start collect"));
 
   DEBUG(2, Sdprintf("Sweeping foreign references\n"));
   sweep_foreign();
@@ -3148,11 +3165,11 @@ considerGarbageCollect(Stack s)
 }
 
 
-#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
+#if O_DEBUG || defined(O_MAINTENANCE)
 #define INTBITS (sizeof(int)*8)
 #define REGISTER_STARTS 0x2
 
-#if O_SECURE
+#if O_DEBUG
 static void
 alloc_start_map()
 { GET_LD
@@ -3391,8 +3408,8 @@ check_trail()
       assert(te > tBase);
       te--;
       assert(!isTrailVal(te->address));
-#ifdef O_SECURE
-    } else
+#ifdef O_DEBUG
+    } else if ( DEBUGGING(CHK_SECURE) )
     { if ( onGlobalArea(te->address) )
       { if ( !onStack(global, te->address) )
 	{ char b1[64], b2[64], b3[64];
@@ -3477,7 +3494,7 @@ checkStacks(void *state_ptr)
       break;
   }
 
-  SECURE(trailtops_marked = choice_count);
+  DEBUG(CHK_SECURE, trailtops_marked = choice_count);
 
   unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
 
@@ -3513,7 +3530,7 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
   succeed;
 }
 
-#endif /*O_SECURE || O_DEBUG*/
+#endif /* O_DEBUG */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 About synchronisation with atom-gc (AGC). GC can run fully concurrent in
@@ -3614,7 +3631,7 @@ garbageCollect(void)
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
 #endif
-#ifdef O_SECURE
+#ifdef O_DEBUG
   word key;
 #endif
 
@@ -3659,24 +3676,26 @@ garbageCollect(void)
     prof_node = profCall(GD->procedures.dgarbage_collect1->definition PASS_LD);
 #endif
 
-#if O_SECURE
-  alloc_start_map();
-  if ( !scan_global(FALSE|REGISTER_STARTS) )
-    sysError("Stack not ok at gc entry");
-  key = checkStacks(&state);
-  free(start_map);
-  start_map = NULL;
+#if O_DEBUG
+  if ( DEBUGGING(CHK_SECURE) )
+  { alloc_start_map();
+    if ( !scan_global(FALSE|REGISTER_STARTS) )
+      sysError("Stack not ok at gc entry");
+    key = checkStacks(&state);
+    free(start_map);
+    start_map = NULL;
 
-  if ( check_table == NULL )
-  { check_table = newHTable(256);
-    local_table = newHTable(256);
-  } else
-  { clearHTable(check_table);
-    clearHTable(local_table);
+    if ( check_table == NULL )
+    { check_table = newHTable(256);
+      local_table = newHTable(256);
+    } else
+    { clearHTable(check_table);
+      clearHTable(local_table);
+    }
+
+    mark_base = mark_top = malloc(usedStack(global));
+    relocated_check = TRUE;
   }
-
-  mark_base = mark_top = malloc(usedStack(global));
-  relocated_check = TRUE;
 #endif
 
   needs_relocation  = 0;
@@ -3695,7 +3714,7 @@ garbageCollect(void)
 
   astack = argument_stack_to_term_refs(&state);
   gvars = gvars_to_term_refs(&saved_bar_at);
-  SECURE(check_foreign());
+  DEBUG(CHK_SECURE, check_foreign());
   tag_trail();
   mark_phase(&state);
   tgar = trailcells_deleted * sizeof(struct trail_entry);
@@ -3714,12 +3733,12 @@ garbageCollect(void)
 
   assert(LD->mark_bar <= gTop);
 
-#if O_SECURE
-  assert(trailtops_marked == 0);
-  if ( !scan_global(FALSE) )
-    sysError("Stack not ok after gc; gTop = %p", gTop);
-  free(mark_base);
-#endif
+  DEBUG(CHK_SECURE,
+	{ assert(trailtops_marked == 0);
+	  if ( !scan_global(FALSE) )
+	    sysError("Stack not ok after gc; gTop = %p", gTop);
+	  free(mark_base);
+	});
 
   t = ThreadCPUTime(LD, CPU_USER) - t;
   gc_status.time += t;
@@ -3728,7 +3747,7 @@ garbageCollect(void)
   gc_status.global_left      += usedStack(global);
   gc_status.trail_left       += usedStack(trail);
 
-  SECURE(checkStacks(&state));
+  DEBUG(CHK_SECURE, checkStacks(&state));
 
   if ( verbose )
     printMessage(ATOM_informational,
@@ -4138,7 +4157,7 @@ update_argument(intptr_t ls, intptr_t gs)
   for( ; p < t; p++ )
   { Word ptr = *p;
 
-    SECURE(assert(onGlobal(ptr) || onLocal(ptr)));
+    DEBUG(CHK_SECURE, assert(onGlobal(ptr) || onLocal(ptr)));
 
     if ( ptr > (Word)lBase )
       *p = addPointer(ptr, ls);
@@ -4321,28 +4340,30 @@ size_t
 nextStackSizeAbove(size_t n)
 { size_t size;
 
-#ifdef O_SECURE
-  static int got_incr = FALSE;
-  static size_t increment = 0;
-  GET_LD
+#ifdef O_DEBUG
+  if ( DEBUGGING(CHK_SECURE) )
+  { static int got_incr = FALSE;
+    static size_t increment = 0;
+    GET_LD
 
-  if ( !got_incr )
-  { char *incr = getenv("PL_STACK_INCREMENT"); /* 1: random */
+    if ( !got_incr )
+    { char *incr = getenv("PL_STACK_INCREMENT"); /* 1: random */
 
-    if ( incr )
-      increment = atol(incr);
-    got_incr = TRUE;
-  }
+      if ( incr )
+        increment = atol(incr);
+      got_incr = TRUE;
+    }
 
-  if ( increment )
-  { size_t sz;
+    if ( increment )
+    { size_t sz;
 
-    if ( increment == 1 )
-      sz = n+rand_r(&LD->incr_seed)%10000;
-    else
-      sz = n+increment;
+      if ( increment == 1 )
+        sz = n+rand_r(&LD->incr_seed)%10000;
+      else
+        sz = n+increment;
 
-    return sz & ~(size_t)(sizeof(word)-1); /* align on words */
+      return sz & ~(size_t)(sizeof(word)-1); /* align on words */
+    }
   }
 #endif
 
@@ -4441,7 +4462,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   vm_state state;
   Stack fatal = NULL;	/* stack we couldn't expand due to lack of memory */
   int rc;
-#if O_SECURE
+#if O_DEBUG
   word key;
 #endif
 
@@ -4464,7 +4485,11 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   PL_clearsig(SIG_GC);
 
   get_vmi_state(LD->query, &state);
-  SECURE(gBase++; checkStacks(&state); gBase--;);
+  DEBUG(CHK_SECURE,
+	{ gBase++;
+	  checkStacks(&state);
+	  gBase--;
+	});
 
   { TrailEntry tb = tBase;
     Word gb = gBase;
@@ -4491,12 +4516,13 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 		 prefix, (long)l, (long)g, (long)t);
     }
 
-    SECURE({ gBase++;
-	     if ( !scan_global(FALSE) )
-	       sysError("Stack not ok at shift entry");
-	     key = checkStacks(&state);
-	     gBase--;
-	   });
+    DEBUG(CHK_SECURE,
+	  { gBase++;
+	    if ( !scan_global(FALSE) )
+	      sysError("Stack not ok at shift entry");
+	    key = checkStacks(&state);
+	    gBase--;
+	  });
 
     if ( t )
     { void *nw;
@@ -4577,20 +4603,25 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
     time = ThreadCPUTime(LD, CPU_USER) - time0;
     LD->shift_status.time += time;
-    SECURE({ gBase++;
-	     if ( checkStacks(&state) != key )
-	     { Sdprintf("Stack checksum failure\n");
-	       trap_gdb();
-	     }
-	     gBase--;
-	   });
+    DEBUG(CHK_SECURE,
+	  { gBase++;
+	    if ( checkStacks(&state) != key )
+	    { Sdprintf("Stack checksum failure\n");
+	      trap_gdb();
+	    }
+	    gBase--;
+	  });
     if ( verbose )
     { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
 	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize, time);
     }
   }
 
-  SECURE(gBase++; checkStacks(&state); gBase--;);
+  DEBUG(CHK_SECURE,
+	{ gBase++;
+	  checkStacks(&state);
+	  gBase--;
+	});
   restore_vmi_state(&state);
   unblockGC(0 PASS_LD);
   unblockSignals(&mask);
@@ -4978,7 +5009,7 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
 #endif /*O_CLAUSEGC*/
 
 BeginPredDefs(gc)
-#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
+#if O_DEBUG || defined(O_MAINTENANCE)
   PRED_DEF("$check_stacks", 1, check_stacks, 0)
 #endif
 #ifdef GC_COUNTING

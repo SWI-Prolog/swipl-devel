@@ -2523,12 +2523,12 @@ VMI(S_STATIC, 0, 0, ())
   } else if ( debugstatus.debugging )
     newChoice(CHP_DEBUG, FR PASS_LD);
 
-  SECURE(
-  int argc; int n;
-  argc = DEF->functor->arity;
-  for(n=0; n<argc; n++)
-    checkData(argFrameP(FR, n));
-  );
+  DEBUG(CHK_SECURE,
+	{ int argc; int n;
+	  argc = DEF->functor->arity;
+	  for(n=0; n<argc; n++)
+	    checkData(argFrameP(FR, n));
+	});
 
   umode = uread;
   NEXT_INSTRUCTION;
@@ -3494,7 +3494,7 @@ VMI(I_FEXITDET, 0, 0, ())
 
   LOAD_REGISTERS(qid);
   PC += 3;
-  SECURE(assert(PC[-1] == encode(I_FEXITDET)));
+  DEBUG(CHK_SECURE, assert(PC[-1] == encode(I_FEXITDET)));
   fli_context = ffr->parent;
 
   switch(rc)
@@ -3697,13 +3697,13 @@ VMI(I_FEXITNDET, 0, 0, ())
       { exception_term = 0;
 	setVar(*valTermRef(exception_bin));
       }
-      SECURE(assert(BFR->value.PC == PC));
+      DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
       BFR = BFR->parent;
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
 	THROW_EXCEPTION;
-      SECURE(assert(BFR->value.PC == PC));
+      DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
       BFR = BFR->parent;
       FRAME_FAILED;
     default:
@@ -3888,7 +3888,7 @@ b_throw:
   if ( lTop < (LocalFrame)argFrameP(FR, FR->predicate->functor->arity) )
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
-  SECURE(checkData(valTermRef(exception_term)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
   DEBUG(1, { fid_t fid = PL_open_foreign_frame();
 	     Sdprintf("[%d] Throwing (from line %d): ",
 		      PL_thread_self(), throwed_from_line);
@@ -3909,11 +3909,12 @@ b_throw:
 	     }
 	   });
 
-  SECURE({ SAVE_REGISTERS(qid);
-	   checkData(valTermRef(exception_term));
-	   checkStacks(NULL);
-	   LOAD_REGISTERS(qid);
-	 });
+  DEBUG(CHK_SECURE,
+	{ SAVE_REGISTERS(qid);
+	  checkData(valTermRef(exception_term));
+	  checkStacks(NULL);
+	  LOAD_REGISTERS(qid);
+	});
 
   if ( debugstatus.suspendTrace == FALSE )
   { SAVE_REGISTERS(qid);
@@ -3968,10 +3969,11 @@ b_throw:
 	int rc;
 
 	lTop = (LocalFrame)(BFR+1);
-	SECURE({ SAVE_REGISTERS(qid);
-	         checkStacks(NULL);
-		 LOAD_REGISTERS(qid);
-	       });
+	DEBUG(CHK_SECURE,
+	      { SAVE_REGISTERS(qid);
+		checkStacks(NULL);
+		LOAD_REGISTERS(qid);
+	      });
 	SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	LOAD_REGISTERS(qid);
@@ -3981,11 +3983,12 @@ b_throw:
 	if ( printed )
 	  PL_put_term(exception_printed, exception_term);
 
-	SECURE({ SAVE_REGISTERS(qid);
-	         checkStacks(NULL);
-		 LOAD_REGISTERS(qid);
-		 ch = (Choice)valTermRef(chref);
-	       });
+	DEBUG(CHK_SECURE,
+	      { SAVE_REGISTERS(qid);
+	        checkStacks(NULL);
+		LOAD_REGISTERS(qid);
+		ch = (Choice)valTermRef(chref);
+	      });
 
 	SAVE_REGISTERS(qid);
 	rc = tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD);
@@ -4065,12 +4068,12 @@ b_throw:
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
       }
-      SECURE(checkData(valTermRef(exception_term)));
+      DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
     }
   }
 
 					/* re-fetch (test cleanup(clean-5)) */
-  SECURE(checkData(valTermRef(exception_term)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
 
   if ( catchfr_ref )
   { Choice ch;
@@ -4264,7 +4267,7 @@ atom is referenced by the goal-term anyway.
       }
 
       DEF		  = NFR->predicate;
-      SECURE(assert(DEF == PROCEDURE_dcall1->definition));
+      DEBUG(CHK_SECURE, assert(DEF == PROCEDURE_dcall1->definition));
       NFR->parent	  = FR;
       NFR->programPointer = PC;
 #ifdef O_PROFILE

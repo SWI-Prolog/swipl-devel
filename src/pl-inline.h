@@ -133,6 +133,14 @@ set_bit(bit_vector *v, int which)
   v->chunk[e] |= ((uintptr_t)1<<b);
 }
 
+static inline void
+clear_bit(bit_vector *v, int which)
+{ int e = which/BITSPERE;
+  int b = which%BITSPERE;
+
+  v->chunk[e] &= ~((uintptr_t)1<<b);
+}
+
 static inline int
 true_bit(bit_vector *v, int which)
 { int e = which/BITSPERE;
@@ -177,7 +185,7 @@ Note that the local stack is always _above_ the global stack.
 
 static inline void
 Trail__LD(Word p, word v ARG_LD)
-{ SECURE(assert(tTop+1 <= tMax));
+{ DEBUG(CHK_SECURE, assert(tTop+1 <= tMax));
 
   if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
@@ -187,7 +195,7 @@ Trail__LD(Word p, word v ARG_LD)
 
 static inline void
 bindConst__LD(Word p, word c ARG_LD)
-{ SECURE(assert(hasGlobalSpace(0)));
+{ DEBUG(CHK_SECURE, assert(hasGlobalSpace(0)));
 
 #ifdef O_ATTVAR
   if ( isVar(*p) )
@@ -210,7 +218,7 @@ consPtr__LD(void *p, word ts ARG_LD)
 { uintptr_t v = (uintptr_t) p;
 
   v -= LD->bases[ts&STG_MASK];
-  SECURE(assert(v < MAXTAGGEDPTR && !(v&0x3)));
+  DEBUG(CHK_SECURE, assert(v < MAXTAGGEDPTR && !(v&0x3)));
   return (v<<5)|ts;
 }
 

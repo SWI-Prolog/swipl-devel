@@ -586,7 +586,7 @@ sig_exception_handler(int sig)
     PL_erase(ex);
     exception_term = exception_bin;
 
-    SECURE(checkData(valTermRef(exception_term)));
+    DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
   }
 }
 
@@ -1399,9 +1399,10 @@ trimStacks(int resize ARG_LD)
     }
   }
 
-  SECURE({ scan_global(FALSE);
-	   checkStacks(NULL);
-	 });
+  DEBUG(CHK_SECURE,
+	{ scan_global(FALSE);
+	  checkStacks(NULL);
+	});
 }
 
 

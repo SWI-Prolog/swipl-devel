@@ -26,7 +26,7 @@
 #define _XOPEN_SOURCE 600
 #endif
 
-#define O_DEBUG 1
+/* #define O_DEBUG 1 */
 #include "pl-incl.h"
 #if defined(HAVE_GRANTPT) && defined(O_PLMT)
 

@@ -971,7 +971,7 @@ unlinkClause(Definition def, Clause clause ARG_LD)
     }
   }
 
-  SECURE(checkDefinition(def));
+  DEBUG(CHK_SECURE, checkDefinition(def));
 
   return TRUE;
 }
@@ -993,7 +993,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     succeed;
   }
 
-  SECURE(checkDefinition(def));
+  DEBUG(CHK_SECURE, checkDefinition(def));
   set(clause, ERASED);
 
   if ( def->references ||
@@ -1013,14 +1013,14 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 #endif
     UNLOCKDYNDEF(def);
 
-    SECURE(checkDefinition(def));
+    DEBUG(CHK_SECURE, checkDefinition(def));
 
     succeed;
   }
 
   rc = unlinkClause(def, clause PASS_LD);
   UNLOCKDYNDEF(def);
-  SECURE(checkDefinition(def));
+  DEBUG(CHK_SECURE, checkDefinition(def));
 
 					/* as we do a call-back, we cannot */
 					/* hold the L_PREDICATE mutex */
@@ -1078,7 +1078,7 @@ static ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
 { GET_LD
 
-  SECURE(checkDefinition(def));
+  DEBUG(CHK_SECURE, checkDefinition(def));
 
   DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
 
@@ -1206,7 +1206,7 @@ gcClausesDefinitionAndUnlock(Definition def)
   if ( cref )
     freeClauseList(cref);
 
-  SECURE(checkDefinition(def));
+  DEBUG(CHK_SECURE, checkDefinition(def));
 }
 
 
@@ -2032,7 +2032,7 @@ pl_retractall(term_t head)
   enterDefinition(def);
   fid = PL_open_foreign_frame();
 
-  SECURE(checkDefinition(def));
+  DEBUG(CHK_SECURE, checkDefinition(def));
   if ( allvars )
   { uintptr_t gen = generationFrame(environment_frame);
 
@@ -3033,7 +3033,7 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
 }
 
 
-#ifdef O_MAINTENANCE
+#if defined(O_MAINTENANCE) || defined(O_DEBUG)
 
 		 /*******************************
 		 *	INTERNAL DEBUGGING	*

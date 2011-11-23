@@ -86,7 +86,9 @@ topsOfSegStack(segstack *stack, int count, void **tops)
 { char *p = stack->top - stack->unit_size;
   char *base = stack->base;
 
-  SECURE(assert(stack->count >= count));
+#ifdef O_DEBUG
+  assert(stack->count >= count);
+#endif
 
   for(;;)
   { while(count > 0 && p >= base)

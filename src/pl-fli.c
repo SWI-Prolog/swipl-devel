@@ -23,7 +23,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
@@ -66,7 +65,7 @@ number of term-refs allocated. This  information   (stored  as  a tagged
 Prolog int) is used by the garbage collector to update the stack frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
+#if O_DEBUG || defined(O_MAINTENANCE)
 #ifndef O_CHECK_TERM_REFS
 #define O_CHECK_TERM_REFS 1
 #endif
@@ -102,7 +101,7 @@ linkVal__LD(Word p ARG_LD)
     w = *p;
   }
 
-  SECURE(assert(w != ATOM_garbage_collected));
+  DEBUG(CHK_SECURE, assert(w != ATOM_garbage_collected));
 
   return w;
 }
@@ -283,8 +282,8 @@ PL_reset_term_refs(term_t r)
 
   lTop = (LocalFrame) valTermRef(r);
   fr->size = (int)((Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame)));
-  SECURE(if ( fr->size < 0 || fr->size > 100 )
-	   Sdprintf("Suspect foreign frame size: %d\n", fr->size));
+  DEBUG(CHK_SECURE, if ( fr->size < 0 || fr->size > 100 )
+		      Sdprintf("Suspect foreign frame size: %d\n", fr->size));
 }
 
 
@@ -312,9 +311,10 @@ PL_copy_term_ref(term_t from)
   lTop = (LocalFrame)(t+1);
   fr = fli_context;
   fr->size++;
-  SECURE({ int s = (Word) lTop - (Word)(fr+1);
-	   assert(s == fr->size);
-	 });
+  DEBUG(CHK_SECURE,
+	{ int s = (Word) lTop - (Word)(fr+1);
+	  assert(s == fr->size);
+	});
 
   return r;
 }

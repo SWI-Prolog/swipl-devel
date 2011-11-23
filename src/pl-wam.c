@@ -22,7 +22,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-inline.h"
@@ -340,7 +339,7 @@ open_foreign_frame(ARG1_LD)
   lTop = (LocalFrame)(fr+1);
   fr->size = 0;
   Mark(fr->mark);
-  SECURE(assert(fr>fli_context));
+  DEBUG(CHK_SECURE, assert(fr>fli_context));
   fr->parent = fli_context;
   fr->magic = FLI_MAGIC;
   fli_context = fr;
@@ -562,7 +561,7 @@ unify_finished(term_t catcher, enum finished reason)
   { functor_t f = (reason == FINISH_EXCEPT ? FUNCTOR_exception1
 					   : FUNCTOR_external_exception1);
 
-    SECURE(checkData(valTermRef(exception_bin)));
+    DEBUG(CHK_SECURE, checkData(valTermRef(exception_bin)));
 
     return PL_unify_term(catcher,
 			 PL_FUNCTOR, f,
@@ -734,7 +733,7 @@ __do_undo(mark *m ARG_LD)
 
   tTop = mt;
   if ( LD->frozen_bar > m->globaltop )
-  { SECURE(assert(gTop >= LD->frozen_bar));
+  { DEBUG(CHK_SECURE, assert(gTop >= LD->frozen_bar));
     gTop = LD->frozen_bar;
   } else
   { gTop = m->globaltop;
@@ -1521,7 +1520,7 @@ static Choice
 newChoice(choice_type type, LocalFrame fr ARG_LD)
 { Choice ch = (Choice)lTop;
 
-  SECURE(assert(ch+1 <= (Choice)lMax));
+  DEBUG(CHK_SECURE, assert(ch+1 <= (Choice)lMax));
   lTop = (LocalFrame)(ch+1);
 
   ch->type = type;
@@ -1581,7 +1580,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     }
 	     Sdprintf(")\n");
 	   });
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
   assert((void*)fli_context > (void*)environment_frame);
   assert((Word)lTop >= refFliP(fli_context, fli_context->size));
 
@@ -1633,7 +1632,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->programPointer = clause.codes;
   arity		     = def->functor->arity;
 
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
   assert((uintptr_t)fli_context > (uintptr_t)environment_frame);
   assert((uintptr_t)lTop >= (uintptr_t)(fli_context+1));
 
@@ -1766,7 +1765,7 @@ restore_after_query(QueryFrame qf)
 #endif /*O_LIMIT_DEPTH*/
   }
   updateAlerted(LD);
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 }
 
 
@@ -1775,7 +1774,7 @@ PL_cut_query(qid_t qid)
 { GET_LD
   QueryFrame qf = QueryFromQid(qid);
 
-  SECURE(assert(qf->magic == QID_MAGIC));
+  DEBUG(CHK_SECURE, assert(qf->magic == QID_MAGIC));
   if ( qf->foreign_frame )
     PL_close_foreign_frame(qf->foreign_frame);
 
@@ -1795,7 +1794,7 @@ PL_close_query(qid_t qid)
   { GET_LD
     QueryFrame qf = QueryFromQid(qid);
 
-    SECURE(assert(qf->magic == QID_MAGIC));
+    DEBUG(CHK_SECURE, assert(qf->magic == QID_MAGIC));
     if ( qf->foreign_frame )
       PL_close_foreign_frame(qf->foreign_frame);
 
@@ -1983,7 +1982,7 @@ depart_continue() to do the normal thing or to the backtrack point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   QF  = QueryFromQid(qid);
-  SECURE(assert(QF->magic == QID_MAGIC));
+  DEBUG(CHK_SECURE, assert(QF->magic == QID_MAGIC));
   if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
   { fid_t fid = QF->foreign_frame;
     QF->foreign_frame = 0;

@@ -2196,7 +2196,7 @@ static
 PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
 { int rc = prolog_frame_attribute(A1, A2, A3);
 
-  SECURE(scan_global(0));
+  DEBUG(CHK_SECURE, scan_global(0));
 
   return rc;
 }

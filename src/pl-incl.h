@@ -1534,7 +1534,7 @@ struct alloc_pool
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
-			     SECURE(assert((b).saved_bar >= gBase && \
+			     DEBUG(CHK_SECURE, assert((b).saved_bar >= gBase && \
 					   (b).saved_bar <= gTop)); \
 			     LD->mark_bar = (b).globaltop = gTop; \
 			   } while(0)
