@@ -150,8 +150,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 59			/* load all versions later >= X */
-#define VERSION 59			/* save version number */
+#define LOADVERSION 60			/* load all versions later >= X */
+#define VERSION 60			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -1310,7 +1310,14 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 
   for(;;)
   { switch(Qgetc(fd))
-    { case 'S':
+    { case 'C':
+      { atom_t cname = loadXR(state);
+
+	m->class = cname;
+
+	continue;
+      }
+      case 'S':
       { atom_t sname = loadXR(state);
 	Module s = lookupModule(sname);
 
@@ -1390,7 +1397,8 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 	    skip = TRUE;
 	    LD->modules.source = m;
 	  } else
-	  { if ( !declareModule(mname, NULL_ATOM, state->currentSource, line, FALSE) )
+	  { if ( !declareModule(mname, NULL_ATOM, NULL_ATOM,
+				state->currentSource, line, FALSE) )
 	      fail;
 	  }
 
@@ -2548,6 +2556,8 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
   { Sputc('-', fd);
   }
 
+  Sputc('C', fd);
+  saveXR(state, m->class);
   for(c=m->supers; c; c=c->next)
   { Module s = c->value;
 

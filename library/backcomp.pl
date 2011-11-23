@@ -74,7 +74,8 @@
 	    merge/3,			% +List1, +List2, -Union
 	    merge_set/3,		% +Set1, +Set2, -Union
 	    index/1,			% :Head
-	    hash/1			% :PI
+	    hash/1,			% :PI
+	    set_base_module/1		% :Base
 	  ]).
 :- use_module(apply, [maplist/2]).
 :- use_module(system, [lock_predicate/1, unlock_predicate/1]).
@@ -86,7 +87,8 @@
 	checklist(1, +),
 	sublist(1, +, ?),
 	index(:),
-	hash(:).
+	hash(:),
+	set_base_module(:).
 
 /** <module> Backward compatibility
 
@@ -537,6 +539,15 @@ index(Head) :-
 
 hash(PI) :-
 	print_message(warning, decl_no_effect(index(PI))).
+
+%%	set_base_module(:Base) is det.
+%
+%	Set the default module from whic we inherit.
+%
+%	@deprecated Equivalent to set_module(base(Base)).
+
+set_base_module(M:Base) :-
+	set_module(M:base(Base)).
 
 
 		 /*******************************

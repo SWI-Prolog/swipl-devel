@@ -797,6 +797,7 @@ module_property(Module, Property) :-
 	module_property(Property),
 	'$module_property'(Module, Property).
 
+module_property(class(_)).
 module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).

@@ -1427,7 +1427,8 @@ struct list_cell
 
 
 struct module
-{ word		name;		/* name of module */
+{ atom_t	name;		/* name of module */
+  atom_t	class;		/* class of the module */
   SourceFile	file;		/* file from which module is loaded */
   Table		procedures;	/* predicates associated with module */
   Table		public;		/* public predicates associated */

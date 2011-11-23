@@ -1767,9 +1767,9 @@ load_files(Module:Files, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
 	'$get_option'(redefine_module(Action), Options, false),
-	'$super_module'(File, Super),
+	'$module_class'(File, Class, Super),
 	'$redefine_module'(Module, File, Action),
-	'$declare_module'(Module, Super, File, Line, false),
+	'$declare_module'(Module, Class, Super, File, Line, false),
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
@@ -1818,16 +1818,20 @@ load_files(Module:Files, Options) :-
 	fail.
 
 
-%%	'$super_module'(+File, -Super) is det.
+%%	'$module_class'(+File, -Class, -Super) is det.
 %
 %	Determine the initial module from which   I  inherit. All system
 %	and library modules inherit from =system=, while all normal user
 %	modules inherit from =user=.
 
-'$super_module'(File, system) :-
+'$module_class'(File, Class, system) :-
 	current_prolog_flag(home, Home),
-	sub_atom(File, 0, _, _, Home), !.
-'$super_module'(_, user).
+	sub_atom(File, 0, Len, _, Home), !,
+	(   sub_atom(File, Len, _, _, '/boot/')
+	->  Class = system
+	;   Class = library
+	).
+'$module_class'(_, user, user).
 
 '$check_export'(Module) :-
 	'$undefined_export'(Module, UndefList),
