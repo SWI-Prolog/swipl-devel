@@ -133,11 +133,6 @@ show_help(Title, Ranges) :-
 	write_ranges_to_file(Ranges, TmpFile),
 	prolog:show_help_hook(Title, TmpFile).
 show_help(_, Ranges) :-
-	clause(running_under_emacs_interface, _),
-	running_under_emacs_interface, !,
-	write_ranges_to_file(Ranges, Outfile),
-	call_emacs('(view-file-other-window "~w")', [Outfile]).
-show_help(_, Ranges) :-
 	current_prolog_flag(pipe, true), !,
 	online_manual_stream(Manual),
 	pager_stream(Pager),
