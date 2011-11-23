@@ -584,15 +584,18 @@ predicate_property(_:Head, Property) :-
 	;   '$find_library'(_, Name, Arity, _, File),
 	    functor(Head, Name, Arity)
 	).
-predicate_property(Pred, Property) :-
-	Pred = M:_,
-	M == system, !,				% do not autoload into system
-	'$c_current_predicate'(_, Pred),
-	'$defined_predicate'(Pred),
+predicate_property(Pred, Property) :-		% Mode +,?
+	Pred = M:Head,
+	callable(Head), !,
+	(   '$get_predicate_attribute'(Pred, defined, 1)
+	->  true
+	;   M \== system,
+	    '$define_predicate'(Pred)
+	),
 	'$predicate_property'(Property, Pred).
-predicate_property(Pred, Property) :-
+predicate_property(Pred, Property) :-		% Mode -,?
 	current_predicate(_, Pred),
-	'$define_predicate'(Pred),		% autoload if needed
+	'$define_predicate'(Pred),
 	'$predicate_property'(Property, Pred).
 
 '$predicate_property'(interpreted, Pred) :-
