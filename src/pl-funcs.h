@@ -319,11 +319,11 @@ COMMON(int)		ensureTrailSpace(size_t cells);
 COMMON(int)		ensureLocalSpace(size_t bytes, int flags);
 COMMON(void)		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(void)		setLTopInBody(void);
-COMMON(word)		check_foreign(void);	/* O_SECURE stuff */
+COMMON(word)		check_foreign(void);	/* DEBUG(CHK_SECURE...) stuff */
 COMMON(void)		markAtomsOnStacks(PL_local_data_t *ld);
 COMMON(void)		markPredicatesInEnvironments(PL_local_data_t *ld);
 COMMON(QueryFrame)	queryOfFrame(LocalFrame fr);
-#if defined(O_SECURE) || defined(SECURE_GC) || defined(O_MAINTENANCE)
+#if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 word			checkStacks(void *vm_state);
 COMMON(bool)		scan_global(int marked);
 #endif

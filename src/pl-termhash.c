@@ -469,7 +469,7 @@ PRED_IMPL("variant_sha1", 2, variant_sha1, 0)
   while(popSegStack(&state.vars, &p, Word))
     setVar(*p);
 
-  SECURE(checkData(valTermRef(A1)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(A1)));
 
   switch( rc )
   { case E_ATTVAR:

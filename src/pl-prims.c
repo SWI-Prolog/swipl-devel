@@ -226,7 +226,7 @@ do_unify(Word t1, Word t2 ARG_LD)
     deRef(t1); w1 = *t1;
     deRef(t2); w2 = *t2;
 
-    SECURE(assert(w1 != ATOM_garbage_collected);
+    DEBUG(CHK_SECURE, assert(w1 != ATOM_garbage_collected);
 	   assert(w2 != ATOM_garbage_collected));
 
     if ( isVar(w1) )
@@ -1276,7 +1276,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
     PL_put_nil(vars);
     t = valTermRef(wrapped);
 
-    SECURE(checkStacks(NULL));
+    DEBUG(CHK_SECURE, checkStacks(NULL));
     startCritical;
     switch( (rc=scan_shared(t, valTermRef(vars), &count PASS_LD)) )
     { case TRUE:
@@ -1303,7 +1303,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
   link_shared(t, valTermRef(vars) PASS_LD);
   restore_shared_functors(valTermRef(vars) PASS_LD);
   PL_close_foreign_frame(fid);
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 
   if ( !endCritical )
     return FALSE;

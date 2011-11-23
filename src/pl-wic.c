@@ -268,7 +268,7 @@ pushXrIdTable(wic_state *state ARG_LD)
 
   if ( !(t->table = allocHeapOrHalt(ALLOCSIZE)) )
     outOfCore();
-  SECURE(memset(t->table, 0, ALLOCSIZE));
+  DEBUG(CHK_SECURE, memset(t->table, 0, ALLOCSIZE));
   t->tablesize = 0;
   t->id = 0;
 
@@ -298,7 +298,7 @@ lookupXrId(wic_state *state, intptr_t id)
   Word array = t->table[id/SUBENTRIES];
   word value;
 
-  SECURE(assert(array));
+  DEBUG(CHK_SECURE, assert(array));
   value = array[id%SUBENTRIES];
 
   return value;
@@ -317,7 +317,7 @@ storeXrId(wic_state *state, long id, word value)
     if ( !a )
       outOfCore();
 
-    SECURE(memset(a, 0, ALLOCSIZE));
+    DEBUG(CHK_SECURE, memset(a, 0, ALLOCSIZE));
     t->table[t->tablesize++] = a;
   }
 

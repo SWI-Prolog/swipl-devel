@@ -672,11 +672,11 @@ gcClauseList(ClauseList cl ARG_LD)
     }
   }
 
-#if O_SECURE
-  for(cref=cl->first_clause; cref; cref=cref->next)
-  { assert(false(cref->value.clause, ERASED));
-  }
-#endif
+  DEBUG(CHK_SECURE,
+	{ for(cref=cl->first_clause; cref; cref=cref->next)
+	  { assert(false(cref->value.clause, ERASED));
+	  }
+	});
 
   assert(cl->erased_clauses==0);
 }
@@ -738,13 +738,13 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list ARG_LD)
     cref = cref->next;
   }
 
-#if O_SECURE
-  if ( !is_list )
-  { for(cref=ch->head; cref; cref=cref->next)
-    { assert(false(cref->value.clause, ERASED));
-    }
-  }
-#endif
+  DEBUG(CHK_SECURE,
+	{ if ( !is_list )
+	  { for(cref=ch->head; cref; cref=cref->next)
+	    { assert(false(cref->value.clause, ERASED));
+	    }
+	  }
+	});
 
   ch->dirty = 0;
 
@@ -850,7 +850,8 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 	  cb->dirty++;
 	cl->number_of_clauses--;
 
-#ifdef O_SECURE
+#ifdef O_DEBUG
+	if ( DEBUGGING(CHK_SECURE) )
 	{ ClauseRef cr;
 	  unsigned int erased = 0;
 	  unsigned int count = 0;
@@ -1000,7 +1001,7 @@ addClauseToIndexes(Definition def, Clause cl, int where ARG_LD)
       addClauseToIndex(ci, cl, where PASS_LD);
   }
 
-  SECURE(checkDefinition(def));
+  DEBUG(CHK_SECURE, checkDefinition(def));
 }
 
 

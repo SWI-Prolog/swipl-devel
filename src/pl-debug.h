@@ -35,7 +35,7 @@
 #define DBG_LEVEL8  8
 #define DBG_LEVEL9  9
 #define MSG_VMI    10
-#define MSG_FOO    11
+#define CHK_SECURE 11
 
 typedef struct debug_topic
 { unsigned    code;

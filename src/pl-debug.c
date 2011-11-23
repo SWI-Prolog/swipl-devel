@@ -37,7 +37,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(DBG_LEVEL8),
   DEBUG_TOPIC(DBG_LEVEL9),
   DEBUG_TOPIC(MSG_VMI),
-  DEBUG_TOPIC(MSG_FOO)
+  DEBUG_TOPIC(CHK_SECURE)
 
   /* { 0, NULL } */
 };

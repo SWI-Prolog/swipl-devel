@@ -22,7 +22,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-dbref.h"
@@ -475,7 +474,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	  pushSegStack(&LD->cycle.lstack, mark, cycle_mark);
 	  f->definition = (functor_t)consUInt(info->size);
 				  /* overflow test (should not be possible) */
-	  SECURE(assert(valUInt(f->definition) == (uintptr_t)info->size));
+	  DEBUG(CHK_SECURE, assert(valUInt(f->definition) == (uintptr_t)info->size));
 	}
 #endif
 
@@ -546,7 +545,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   size_t rsize = SIZERECORD(flags);
   term_agenda agenda;
 
-  SECURE(checkData(valTermRef(t)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
   init_cycle(PASS_LD1);
   initBuffer(&info.code);
@@ -617,7 +616,7 @@ PL_record_external(term_t t, size_t *len)
   int first = REC_HDR;
   term_agenda agenda;
 
-  SECURE(checkData(valTermRef(t)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(t)));
   p = valTermRef(t);
   deRef(p);
 
@@ -1028,7 +1027,7 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
     return rc;
 
   assert(b.gstore == gTop);
-  SECURE(checkData(valTermRef(copy)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(copy)));
 
   return TRUE;
 }
@@ -1480,7 +1479,7 @@ PL_recorded_external(const char *rec, term_t t)
   }
   assert(b.gstore == gTop);
 
-  SECURE(checkData(valTermRef(t)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
   return TRUE;
 }

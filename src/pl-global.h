@@ -333,7 +333,7 @@ struct PL_local_data
 #endif
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
-#if defined(O_SECURE) || defined(SECURE_GC)
+#if defined(O_DEBUG) || defined(SECURE_GC)
   unsigned int  incr_seed;		/* Seed for random stack increments */
 #endif
   int		alerted;		/* Special mode. See updateAlerted() */
@@ -560,7 +560,7 @@ struct PL_local_data
     intptr_t _choice_count;		/* choice-point count for debugging */
     int  *_start_map;			/* bitmap with legal global starts */
     sigset_t saved_sigmask;		/* Saved signal mask */
-#if defined(O_SECURE) || defined(SECURE_GC)
+#if defined(O_DEBUG) || defined(SECURE_GC)
     intptr_t _trailtops_marked;		/* # marked trailtops */
     Word *_mark_base;			/* Array of marked cells addresses */
     Word *_mark_top;			/* Top of this array */
