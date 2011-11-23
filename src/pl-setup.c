@@ -1399,9 +1399,10 @@ trimStacks(int resize ARG_LD)
     }
   }
 
-  DEBUG(CHK_SECURE, { scan_global(FALSE);
-	   checkStacks(NULL);
-	 });
+  DEBUG(CHK_SECURE,
+	{ scan_global(FALSE);
+	  checkStacks(NULL);
+	});
 }
 
 

@@ -283,7 +283,7 @@ PL_reset_term_refs(term_t r)
   lTop = (LocalFrame) valTermRef(r);
   fr->size = (int)((Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame)));
   DEBUG(CHK_SECURE, if ( fr->size < 0 || fr->size > 100 )
-	   Sdprintf("Suspect foreign frame size: %d\n", fr->size));
+		      Sdprintf("Suspect foreign frame size: %d\n", fr->size));
 }
 
 
@@ -311,9 +311,10 @@ PL_copy_term_ref(term_t from)
   lTop = (LocalFrame)(t+1);
   fr = fli_context;
   fr->size++;
-  DEBUG(CHK_SECURE, { int s = (Word) lTop - (Word)(fr+1);
-	   assert(s == fr->size);
-	 });
+  DEBUG(CHK_SECURE,
+	{ int s = (Word) lTop - (Word)(fr+1);
+	  assert(s == fr->size);
+	});
 
   return r;
 }

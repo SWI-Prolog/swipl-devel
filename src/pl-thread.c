@@ -5333,9 +5333,10 @@ pl_with_mutex(term_t mutex, term_t goal)
   pl_mutex_unlock(mutex);
 
   if ( !rval && ex )
-  { DEBUG(CHK_SECURE, { GET_LD
-	     checkData(valTermRef(ex));
-	   });
+  { DEBUG(CHK_SECURE,
+	  { GET_LD
+	    checkData(valTermRef(ex));
+	  });
     PL_raise_exception(ex);
   }
 

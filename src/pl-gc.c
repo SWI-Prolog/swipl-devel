@@ -4485,7 +4485,11 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   PL_clearsig(SIG_GC);
 
   get_vmi_state(LD->query, &state);
-  DEBUG(CHK_SECURE, gBase++; checkStacks(&state); gBase--;);
+  DEBUG(CHK_SECURE,
+	{ gBase++;
+	  checkStacks(&state);
+	  gBase--;
+	});
 
   { TrailEntry tb = tBase;
     Word gb = gBase;
@@ -4512,12 +4516,13 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 		 prefix, (long)l, (long)g, (long)t);
     }
 
-    DEBUG(CHK_SECURE, { gBase++;
-	     if ( !scan_global(FALSE) )
-	       sysError("Stack not ok at shift entry");
-	     key = checkStacks(&state);
-	     gBase--;
-	   });
+    DEBUG(CHK_SECURE,
+	  { gBase++;
+	    if ( !scan_global(FALSE) )
+	      sysError("Stack not ok at shift entry");
+	    key = checkStacks(&state);
+	    gBase--;
+	  });
 
     if ( t )
     { void *nw;
@@ -4598,20 +4603,25 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
     time = ThreadCPUTime(LD, CPU_USER) - time0;
     LD->shift_status.time += time;
-    DEBUG(CHK_SECURE, { gBase++;
-	     if ( checkStacks(&state) != key )
-	     { Sdprintf("Stack checksum failure\n");
-	       trap_gdb();
-	     }
-	     gBase--;
-	   });
+    DEBUG(CHK_SECURE,
+	  { gBase++;
+	    if ( checkStacks(&state) != key )
+	    { Sdprintf("Stack checksum failure\n");
+	      trap_gdb();
+	    }
+	    gBase--;
+	  });
     if ( verbose )
     { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
 	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize, time);
     }
   }
 
-  DEBUG(CHK_SECURE, gBase++; checkStacks(&state); gBase--;);
+  DEBUG(CHK_SECURE,
+	{ gBase++;
+	  checkStacks(&state);
+	  gBase--;
+	});
   restore_vmi_state(&state);
   unblockGC(0 PASS_LD);
   unblockSignals(&mask);

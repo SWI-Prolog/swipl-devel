@@ -3909,11 +3909,12 @@ b_throw:
 	     }
 	   });
 
-  DEBUG(CHK_SECURE, { SAVE_REGISTERS(qid);
-	   checkData(valTermRef(exception_term));
-	   checkStacks(NULL);
-	   LOAD_REGISTERS(qid);
-	 });
+  DEBUG(CHK_SECURE,
+	{ SAVE_REGISTERS(qid);
+	  checkData(valTermRef(exception_term));
+	  checkStacks(NULL);
+	  LOAD_REGISTERS(qid);
+	});
 
   if ( debugstatus.suspendTrace == FALSE )
   { SAVE_REGISTERS(qid);
@@ -3968,10 +3969,11 @@ b_throw:
 	int rc;
 
 	lTop = (LocalFrame)(BFR+1);
-	DEBUG(CHK_SECURE, { SAVE_REGISTERS(qid);
-	         checkStacks(NULL);
-		 LOAD_REGISTERS(qid);
-	       });
+	DEBUG(CHK_SECURE,
+	      { SAVE_REGISTERS(qid);
+		checkStacks(NULL);
+		LOAD_REGISTERS(qid);
+	      });
 	SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	LOAD_REGISTERS(qid);
@@ -3981,11 +3983,12 @@ b_throw:
 	if ( printed )
 	  PL_put_term(exception_printed, exception_term);
 
-	DEBUG(CHK_SECURE, { SAVE_REGISTERS(qid);
-	         checkStacks(NULL);
-		 LOAD_REGISTERS(qid);
-		 ch = (Choice)valTermRef(chref);
-	       });
+	DEBUG(CHK_SECURE,
+	      { SAVE_REGISTERS(qid);
+	        checkStacks(NULL);
+		LOAD_REGISTERS(qid);
+		ch = (Choice)valTermRef(chref);
+	      });
 
 	SAVE_REGISTERS(qid);
 	rc = tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD);
