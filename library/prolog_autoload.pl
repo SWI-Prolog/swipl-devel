@@ -60,9 +60,13 @@ predicates that are referenced by the program. Now, this is not possible
 in Prolog because the language allows   for constructing arbitrary goals
 and runtime and calling them (e.g.,  read(X),   call(X)).
 
-The classical version relies on the predicate_property =undefined=.
+The classical version relied on  the predicate_property =undefined=. The
+current version relies on code analysis of the bodies of all clauses and
+all initialization goals.
 */
 
+:- thread_local
+	autoloaded_count/1.
 
 %%	autoload is det.
 %%	autoload(+Options) is det.
@@ -76,35 +80,103 @@ autoload :-
 	autoload([]).
 
 autoload(Options) :-
-	option(verbose(Verbose), Options, true),
-	setup_call_cleanup(
-	    ( current_prolog_flag(access_level, OldLevel),
-	      current_prolog_flag(autoload, OldAutoLoad),
-	      set_prolog_flag(autoload, false),
-	      set_prolog_flag(access_level, system)
-	    ),
-	    findall(Pred, needs_autoloading(Pred), Preds),
-	    ( set_prolog_flag(autoload, OldAutoLoad),
-	      set_prolog_flag(access_level, OldLevel)
-	    )),
-	(   Preds == []
-	->  true
-	;   setup_call_cleanup(
-		( current_prolog_flag(autoload, OldAutoLoad),
-		  current_prolog_flag(verbose_autoload, OldVerbose),
-		  set_prolog_flag(autoload, true),
-		  set_prolog_flag(verbose_autoload, Verbose)
-		),
-		maplist('$define_predicate', Preds),
-		( set_prolog_flag(autoload, OldAutoLoad),
-		  set_prolog_flag(verbose_autoload, OldVerbose)
-		)),
-	    autoload(Verbose)		% recurse for possible new
-					% unresolved links
+	autoload_step(New, Options),
+	(   New > 0
+	->  autoload(Options)
+	;   true
 	).
 
-needs_autoloading(Module:Head) :-
-	predicate_property(Module:Head, undefined),
-	\+ predicate_property(Module:Head, imported_from(_)),
-	functor(Head, Functor, Arity),
-	'$in_library'(Functor, Arity, _).
+autoload_step(New, Options) :-
+	option(verbose(Verbose), Options, true),
+	setup_call_cleanup(
+	    ( current_prolog_flag(autoload, OldAutoLoad),
+	      current_prolog_flag(verbose_autoload, OldVerbose),
+	      set_prolog_flag(autoload, true),
+	      set_prolog_flag(verbose_autoload, Verbose),
+	      assert_autoload_hook(Ref),
+	      asserta(autoloaded_count(0))
+	    ),
+	    find_undefined,
+	    ( retract(autoloaded_count(Count)),
+	      erase(Ref),
+	      set_prolog_flag(autoload, OldAutoLoad),
+	      set_prolog_flag(verbose_autoload, OldVerbose)
+	    )),
+	New = Count.
+
+assert_autoload_hook(Ref) :-
+	asserta((user:message_hook(autoload(Module:Name/Arity, Library), _, _) :-
+			autoloaded(Module:Name/Arity, Library)), Ref).
+
+autoloaded(_, _) :-
+	retract(autoloaded_count(N)),
+	succ(N, N2),
+	asserta(autoloaded_count(N2)),
+	fail.					% proceed with other hooks
+
+
+find_undefined :-
+	forall(current_module(M),
+	       find_undefined_from_module(M)),
+	undefined_from_initialization.
+
+undefined_from_initialization :-
+	forall('$init_goal'(_File, Goal, _SourceLocation),
+	       undefined_called(Goal, user)).
+
+%%	find_undefined_from_module(+Module) is det.
+%
+%	Find undefined calls from the bodies  of all clauses that belong
+%	to Module.
+
+find_undefined_from_module(M) :-
+	forall(predicate_in_module(M, PI),
+	       undefined_called_by_pred(M:PI)).
+
+undefined_called_by_pred(Module:Name/Arity) :-
+	functor(Head, Name, Arity),
+	forall(catch(Module:clause(Head, Body), _, fail),
+	       undefined_called_by_body(Body, Module)).
+
+undefined_called_by_body(Body, Module) :-
+	forall(undefined_called(Body, Module), true).
+
+undefined_called(Var, _) :-
+	var(Var), !.				% incomplete analysis
+undefined_called(M:G, _) :- !,
+	undefined_called(G, M).
+undefined_called((A,B), M) :- !,
+	undefined_called(A, M),
+	undefined_called(B, M).
+undefined_called((A;B), M) :- !,
+	(   undefined_called(A, M)
+	;   undefined_called(B, M)
+	).
+undefined_called(A=B, _) :-
+	unify_with_occurs_check(A,B), !.
+undefined_called(Meta, M) :-
+	predicate_property(M:Meta, meta_predicate(Head)), !,
+	undef_called_meta(1, Head, Meta, M).
+undefined_called(_, _).
+
+undef_called_meta(I, Head, Meta, M) :-
+	arg(I, Head, AS), !,
+	(   AS == 0
+	->  arg(I, Meta, MA),
+	    undefined_called(MA, M)
+	;   true
+	),
+	succ(I, I2),
+	undef_called_meta(I2, Head, Meta, M).
+undef_called_meta(_, _, _, _).
+
+
+%%	predicate_in_module(+Module, ?PI) is nondet.
+%
+%	True if PI is a predicate locally defined in Module.
+
+predicate_in_module(Module, PI) :-
+	current_predicate(Module:PI),
+	PI = Name/Arity,
+	functor(Head, Name, Arity),
+	\+ predicate_property(Module:Head, imported_from(_)).
