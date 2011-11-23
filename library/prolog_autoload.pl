@@ -33,6 +33,7 @@
 	  ]).
 :- use_module(library(option)).
 :- use_module(library(apply)).
+:- use_module(library(prolog_xref)).
 
 :- predicate_options(autoload/1, 1,
 		     [ verbose(boolean)
@@ -154,10 +155,16 @@ undefined_called((A;B), M) :- !,
 	).
 undefined_called(A=B, _) :-
 	unify_with_occurs_check(A,B), !.
+undefined_called(Goal, M) :-
+	prolog_xref:called_by(Goal, Called),
+	Called \== [], !,
+	undefined_called_by(Called, M).
 undefined_called(Meta, M) :-
 	predicate_property(M:Meta, meta_predicate(Head)), !,
 	undef_called_meta(1, Head, Meta, M).
 undefined_called(_, _).
+
+%%	undef_called_meta(+Index, +GoalHead, +MetaHead, +Module)
 
 undef_called_meta(I, Head, Meta, M) :-
 	arg(I, Head, AS), !,
@@ -170,6 +177,26 @@ undef_called_meta(I, Head, Meta, M) :-
 	undef_called_meta(I2, Head, Meta, M).
 undef_called_meta(_, _, _, _).
 
+
+%%	undefined_called_by(+Called:list, +Module)
+
+undefined_called_by([], _).
+undefined_called_by([H|T], M) :-
+	(   H = G+N
+	->  (   extend(G, N, G2)
+	    ->	undefined_called(G2, M)
+	    ;	true
+	    )
+	;   undefined_called(H, M)
+	),
+	undefined_called_by(T, M).
+
+extend(Goal, N, GoalEx) :-
+	callable(Goal),
+	Goal =.. List,
+	length(Extra, N),
+	append(List, Extra, ListEx),
+	GoalEx =.. ListEx.
 
 %%	predicate_in_module(+Module, ?PI) is nondet.
 %
