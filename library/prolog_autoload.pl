@@ -32,6 +32,7 @@
 	    autoload/1				% +Options
 	  ]).
 :- use_module(library(option)).
+:- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 :- use_module(library(aggregate)).
@@ -134,7 +135,7 @@ autoload_step(NewFiles, NewPreds, Options) :-
 	      assert_autoload_hook(Ref),
 	      asserta(autoloaded_count(0))
 	    ),
-	    find_undefined,
+	    find_undefined(Options),
 	    ( retract(autoloaded_count(Count)),
 	      erase(Ref),
 	      set_prolog_flag(autoload, OldAutoLoad),
@@ -155,28 +156,75 @@ autoloaded(_, _) :-
 	fail.					% proceed with other hooks
 
 
-find_undefined :-
-	forall(current_module(M),
-	       find_undefined_from_module(M)),
-	undefined_from_initialization.
+find_undefined(Options) :-
+	forall(( current_module(M),
+		 scan_module(M)
+	       ),
+	       find_undefined_from_module(M, Options)),
+	undefined_from_initialization(Options).
 
-undefined_from_initialization :-
-	forall('$init_goal'(_File, Goal, _SourceLocation),
-	       undefined_called(Goal, user)).
+scan_module(M) :-
+	module_property(M, class(Class)),
+	scan_module_class(Class).
+
+scan_module_class(user).
+scan_module_class(library).
+
+
+%%	undefined_from_initialization(+Options)
+%
+%	Find initialization/1,2 directives and  process   what  they are
+%	calling.  Skip
+%
+%	@bug	Relies on private '$init_goal'/3 database.
+
+undefined_from_initialization(Options) :-
+	forall('$init_goal'(File, Goal, _SourceLocation),
+	       undefined_from_initialization(File, Goal, Options)).
+
+undefined_from_initialization(File, Goal, _Options) :-
+	module_property(Module, file(File)),
+	(   scan_module(Module)
+	->  true
+	;   undefined_called(Goal, Module)
+	).
+undefined_from_initialization(_, Goal, _Options) :-
+	undefined_called(Goal, user).
+
 
 %%	find_undefined_from_module(+Module) is det.
 %
 %	Find undefined calls from the bodies  of all clauses that belong
 %	to Module.
 
-find_undefined_from_module(M) :-
+find_undefined_from_module(M, _Options) :-
+	debug(autoload, 'Analysing module ~q', [M]),
 	forall(predicate_in_module(M, PI),
 	       undefined_called_by_pred(M:PI)).
 
 undefined_called_by_pred(Module:Name/Arity) :-
 	functor(Head, Name, Arity),
-	forall(catch(Module:clause(Head, Body), _, fail),
+	predicate_property(Module:Head, multifile), !,
+	forall(catch(clause_not_from_development(Module:Head, Body), _, fail),
 	       undefined_called_by_body(Body, Module)).
+
+
+undefined_called_by_pred(Module:Name/Arity) :-
+	functor(Head, Name, Arity),
+	forall(catch(clause(Module:Head, Body), _, fail),
+	       undefined_called_by_body(Body, Module)).
+
+%%	clause_not_from_development(:Head, -Body) is nondet.
+%
+%	Enumerate clauses for a multifile predicate, but omit those from
+%	a module that is specifically meant to support development.
+
+clause_not_from_development(Module:Head, Body) :-
+	clause(Module:Head, Body, Ref),
+	\+ ( clause_property(Ref, file(File)),
+	     module_property(LoadModule, file(File)),
+	     \+ scan_module(LoadModule)
+	   ).
 
 undefined_called_by_body(Body, Module) :-
 	forall(undefined_called(Body, Module), true).
