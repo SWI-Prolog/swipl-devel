@@ -1532,9 +1532,7 @@ load_files(Module:Files, Options) :-
 
 '$load_message_level'(MessageLevel) :-
 	(   current_prolog_flag(verbose_load, true),
-	    (	'$update_autoload_level'([], 0)
-	    ;   current_prolog_flag(verbose_autoload, true)
-	    )
+	    '$update_autoload_level'([], 0)
 	->  MessageLevel = informational
 	;   MessageLevel = silent
 	).
