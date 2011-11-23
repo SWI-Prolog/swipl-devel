@@ -22,7 +22,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#define O_DEBUG 1
+/* #define O_DEBUG 1 */
 
 #define _GNU_SOURCE 1			/* get recursive mutex stuff to */
 					/* compile clean with glibc.  Can */
