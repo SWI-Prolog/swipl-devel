@@ -772,6 +772,7 @@ hook(attribute_goals(_,_,_)).
 hook(goal_expansion(_,_)).
 hook(term_expansion(_,_)).
 hook(resource(_,_,_)).
+hook('$pred_option'(_,_,_,_)).
 
 hook(emacs_prolog_colours:goal_classification(_,_)).
 hook(emacs_prolog_colours:term_colours(_,_)).
@@ -797,6 +798,7 @@ hook(prolog_edit:load).
 hook(prolog_edit:locate(_,_,_)).
 hook(shlib:unload_all_foreign_libraries).
 hook(system:'$foreign_registered'(_, _)).
+hook(predicate_options:option_decl(_,_,_)).
 hook(user:exception(_,_,_)).
 hook(user:file_search_path(_,_)).
 hook(user:library_directory(_)).
