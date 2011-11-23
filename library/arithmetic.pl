@@ -32,6 +32,7 @@
 	    arithmetic_expression_value/2	% :Expression, -Value
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(lists)).
 
 /** <module> Extensible arithmetic
 
