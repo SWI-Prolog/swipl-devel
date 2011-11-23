@@ -312,7 +312,6 @@ Section "Base system (required)"
   File pl\library\edit.pl
   File pl\library\make.pl
   File pl\library\hotfix.pl
-  File pl\library\emacs_interface.pl
   File pl\library\explain.pl
   File pl\library\debug.pl
   File pl\library\portray_text.pl

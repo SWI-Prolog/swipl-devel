@@ -349,7 +349,7 @@ COMMON(int)		addSuperModule(Module m, Module s, int where);
 COMMON(int)		getUnknownModule(Module m);
 COMMON(Word)		stripModule(Word term, Module *module ARG_LD);
 COMMON(bool)		isPublicModule(Module module, Procedure proc);
-COMMON(int)		declareModule(atom_t name, atom_t super,
+COMMON(int)		declareModule(atom_t name, atom_t class, atom_t super,
 				      SourceFile sf, int line,
 				      int rdef);
 COMMON(word)		pl_current_module(term_t module, term_t file, control_t h);

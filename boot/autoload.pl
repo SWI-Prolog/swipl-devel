@@ -96,16 +96,7 @@ user:file_search_path(autoload, library(.)).
 '$define_predicate'(Term) :-
 	Term = Module:Head,
 	functor(Head, Name, Arity),
-	current_prolog_flag(autoload, true),
-	\+ current_prolog_flag(Module:unknown, fail),
-	'$find_library'(Module, Name, Arity, LoadModule, Library),
-	'$update_autoload_level'([autoload(true)], Old),
-	(   Module == LoadModule
-	->  ignore(ensure_loaded(Library))
-	;   ignore(Module:use_module(Library, [Name/Arity]))
-	),
-	'$set_autoload_level'(Old),
-	'$define_predicate'(Term).
+	'$undefined_procedure'(Module, Name, Arity, retry).
 
 
 		/********************************

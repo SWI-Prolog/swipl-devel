@@ -56,7 +56,7 @@
 	    xref_defined_class/3	% ?Source, ?ClassName, -How
 	  ]).
 :- use_module(library(debug), [debug/3, debugging/1]).
-:- use_module(library(lists), [append/3, member/2]).
+:- use_module(library(lists), [append/3, member/2, select/3]).
 :- use_module(library(operators),
 	      [pop_operators/0, push_op/3, push_operators/1]).
 :- use_module(library(shlib), [current_foreign_library/2]).
@@ -772,6 +772,7 @@ hook(attribute_goals(_,_,_)).
 hook(goal_expansion(_,_)).
 hook(term_expansion(_,_)).
 hook(resource(_,_,_)).
+hook('$pred_option'(_,_,_,_)).
 
 hook(emacs_prolog_colours:goal_classification(_,_)).
 hook(emacs_prolog_colours:term_colours(_,_)).
@@ -797,6 +798,7 @@ hook(prolog_edit:load).
 hook(prolog_edit:locate(_,_,_)).
 hook(shlib:unload_all_foreign_libraries).
 hook(system:'$foreign_registered'(_, _)).
+hook(predicate_options:option_decl(_,_,_)).
 hook(user:exception(_,_,_)).
 hook(user:file_search_path(_,_)).
 hook(user:library_directory(_)).

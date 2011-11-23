@@ -40,6 +40,7 @@
 	    path_segments_atom/2	% ?Segments, ?Atom
 	  ]).
 :- use_module(operators).
+:- use_module(lists).
 :- use_module(debug).
 :- use_module(option).
 

@@ -555,13 +555,29 @@ generate_current_predicate(Name, Module, Head) :-
 '$defined_predicate'(Head) :-
 	'$get_predicate_attribute'(Head, defined, 1), !.
 
+%%	predicate_property(?Predicate, ?Property) is nondet.
+%
+%	True when Property is a property of Predicate.
+
 :- meta_predicate
 	predicate_property(:, ?).
 
 :- '$iso'(predicate_property/2).
 
-predicate_property(Pred, Property) :-
-	Property == undefined, !,
+predicate_property(Pred, Property) :-		% Mode ?,+
+	nonvar(Property), !,
+	property_predicate(Property, Pred).
+predicate_property(Pred, Property) :-		% Mode +,-
+	define_or_generate(Pred),
+	'$predicate_property'(Property, Pred).
+
+%%	property_predicate(+Property, ?Pred)
+%
+%	First handle the special  cases  that   are  not  about querying
+%	normally  defined  predicates:   =undefined=,    =visible=   and
+%	=autoload=, followed by the generic case.
+
+property_predicate(undefined, Pred) :- !,
 	Pred = Module:Head,
 	current_module(Module),
 	'$c_current_predicate'(_, Pred),
@@ -569,12 +585,9 @@ predicate_property(Pred, Property) :-
 	\+ current_predicate(_, Pred),
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
-predicate_property(Pred, Property) :-
-	Property == visible, !,
+property_predicate(visible, Pred) :- !,
 	visible_predicate(Pred).
-predicate_property(_:Head, Property) :-
-	nonvar(Property),
-	Property = autoload(File), !,
+property_predicate(autoload(File), _:Head) :- !,
 	current_prolog_flag(autoload, true),
 	(   callable(Head)
 	->  functor(Head, Name, Arity),
@@ -584,16 +597,27 @@ predicate_property(_:Head, Property) :-
 	;   '$find_library'(_, Name, Arity, _, File),
 	    functor(Head, Name, Arity)
 	).
-predicate_property(Pred, Property) :-
-	Pred = M:_,
-	M == system, !,				% do not autoload into system
-	'$c_current_predicate'(_, Pred),
-	'$defined_predicate'(Pred),
+property_predicate(Property, Pred) :-
+	define_or_generate(Pred),
 	'$predicate_property'(Property, Pred).
-predicate_property(Pred, Property) :-
+
+%%	define_or_generate(+Head) is semidet.
+%%	define_or_generate(-Head) is nondet.
+%
+%	If the predicate is known, try to resolve it. Otherwise generate
+%	the known predicate, but do not try to (auto)load the predicate.
+
+define_or_generate(M:Head) :-
+	callable(Head),
+	'$get_predicate_attribute'(M:Head, defined, 1), !.
+define_or_generate(M:Head) :-
+	callable(Head),
+	nonvar(M), M \== system, !,
+	'$define_predicate'(M:Head).
+define_or_generate(Pred) :-
 	current_predicate(_, Pred),
-	'$define_predicate'(Pred),		% autoload if needed
-	'$predicate_property'(Property, Pred).
+	'$define_predicate'(Pred).
+
 
 '$predicate_property'(interpreted, Pred) :-
 	'$get_predicate_attribute'(Pred, foreign, 0).
@@ -773,6 +797,7 @@ module_property(Module, Property) :-
 	module_property(Property),
 	'$module_property'(Module, Property).
 
+module_property(class(_)).
 module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).

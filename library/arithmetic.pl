@@ -32,6 +32,7 @@
 	    arithmetic_expression_value/2	% :Expression, -Value
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(lists)).
 
 /** <module> Extensible arithmetic
 
@@ -62,11 +63,14 @@ arithmetic_function(Term) :-
 	throw(error(context_error(nodirective, arithmetic_function(Term)), _)).
 
 arith_decl_clauses(NameArity,
-		   arithmetic:evaluable(Term, Q)) :-
+		   [(:- public(Name/ImplArity)),
+		    arithmetic:evaluable(Term, Q)
+		   ]) :-
 	prolog_load_context(module, M),
 	strip_module(M:NameArity, Q, Spec),
 	(   Spec = Name/Arity
-	->  functor(Term, Name, Arity)
+	->  functor(Term, Name, Arity),
+	    ImplArity is Arity+1
 	;   type_error(predicate_indicator, Term)
 	).
 
