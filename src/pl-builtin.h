@@ -187,8 +187,13 @@ ensures that information is also printed if stdio is not available.
     DEBUG(1, Sdprintf("Running with pid=%d\n", getpid()));
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "pl-debug.h"
+
 #if O_DEBUG
-#define DEBUG(n, g) do { if (GD->debug_level >= (n)) { g; } } while(0)
+#define DEBUG(n, g) do { if ((n <= 9 && GD->debug_level >= (n)) || \
+                             (n > 9 && GD->debug_topics && \
+                              true_bit(GD->debug_topics, n))) \
+                         { g; } } while(0)
 #else
 #define DEBUG(a, b) ((void)0)
 #endif

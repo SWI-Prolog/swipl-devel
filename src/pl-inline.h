@@ -133,6 +133,14 @@ set_bit(bit_vector *v, int which)
   v->chunk[e] |= ((uintptr_t)1<<b);
 }
 
+static inline void
+clear_bit(bit_vector *v, int which)
+{ int e = which/BITSPERE;
+  int b = which%BITSPERE;
+
+  v->chunk[e] &= ~((uintptr_t)1<<b);
+}
+
 static inline int
 true_bit(bit_vector *v, int which)
 { int e = which/BITSPERE;

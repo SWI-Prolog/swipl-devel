@@ -85,6 +85,7 @@ struct PL_global_data
   cleanup_status cleaning;		/* Inside PL_cleanup() */
   int		bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
+  struct bit_vector *debug_topics;	/* debug topics enabled */
   void *	resourceDB;		/* program resource database */
 
 #ifdef HAVE_SIGNAL

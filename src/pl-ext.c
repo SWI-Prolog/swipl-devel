@@ -388,6 +388,7 @@ DECL_PLIST(rec);
 DECL_PLIST(termhash);
 DECL_PLIST(dde);
 DECL_PLIST(term);
+DECL_PLIST(debug);
 
 void
 initBuildIns(void)
@@ -439,6 +440,7 @@ initBuildIns(void)
   REG_PLIST(win);
   REG_PLIST(dde);
 #endif
+  REG_PLIST(debug);
 
 #define LOOKUPPROC(name) \
 	GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m);
