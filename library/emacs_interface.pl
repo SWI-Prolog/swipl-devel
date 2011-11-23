@@ -43,6 +43,17 @@
 	  ]).
 
 
+/** <module> GNU-Emacs interface
+
+This code use to be accompagnied by   GNU Emacs Lisp code to communicate
+errors and warnings, deal with completion, etc. No clue whether or where
+this code has gone.
+
+I made some enhancements to make the   code less vulnerable for encoding
+issues. This will be committed before removing this code.
+*/
+
+
 		/********************************
 		*              UTIL		*
 		********************************/
@@ -64,10 +75,14 @@ has_tmp_file([_|T], File) :-
 		*            SETUP		*
 		********************************/
 
-:- (   running_under_emacs_interface
-   ->  '$set_prompt'('a%m%l%! ?- ')
-   ;   true
-   ).
+setup_emacs_prompt :-
+	(   running_under_emacs_interface
+	->  '$set_prompt'('\u001ea\u001d%m%l%! ?- ')
+	;   true
+	).
+
+:- initialization
+	setup_emacs_prompt.
 
 
 		/********************************
@@ -144,13 +159,13 @@ exception(warning, warning(Path, Line, Message), _) :-
 
 
 emacs_start_compilation :-
-	absolute_file_name('', Pwd),
+	working_directory(Pwd, Pwd),
 	asserta(compilation_base_dir(Pwd)),
 	call_emacs('(prolog-compilation-start "~w")', [Pwd]).
 
 
 emacs_finish_compilation :-
-	retractall(emacs_compilation_base_dir(_)),
+	retractall(compilation_base_dir(_)),
 	call_emacs('(prolog-compilation-finish)').
 
 
@@ -282,7 +297,7 @@ emacs_next_command :-
 call_emacs(Fmt) :-
 	call_emacs(Fmt, []).
 call_emacs(Fmt, Args) :-
-	atomic_list_concat(['', Fmt, ''], F1),
+	atomic_list_concat(['\u001e', Fmt, '\u001d'], F1),
 	format(F1, Args),
 	flush_output.
 
