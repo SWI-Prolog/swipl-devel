@@ -388,10 +388,12 @@ default_module(Me, Super) :-
 
 '$undefined_procedure'(Module, Name, Arity, Action) :-
 	'$prefix_module'(Module, user, Name/Arity, Pred),
-	user:exception(undefined_predicate, Pred, Action), !.
-'$undefined_procedure'(Module, Name, Arity, retry) :-
+	user:exception(undefined_predicate, Pred, Action0), !,
+	Action = Action0.
+'$undefined_procedure'(Module, Name, Arity, Action) :-
 	current_prolog_flag(autoload, true),
-	'$autoload'(Module, Name, Arity).
+	'$autoload'(Module, Name, Arity), !,
+	Action = retry.
 '$undefined_procedure'(_, _, _, error).
 
 '$autoload'(Module, Name, Arity) :-
