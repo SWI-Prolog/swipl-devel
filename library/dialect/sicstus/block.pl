@@ -109,7 +109,9 @@ expand_specs(Head, Module) -->
 	},
 	(   { current_predicate(Module:'$block_pred'/1) }
 	->  []
-	;   [ (:- discontiguous('$block_pred'/1)) ]
+	;   [ (:- discontiguous('$block_pred'/1)),
+	      (:- public('$block_pred'/1))
+	    ]
 	),
 	(   { prolog_load_context(module, Module) }
 	->  [ Clause ]
