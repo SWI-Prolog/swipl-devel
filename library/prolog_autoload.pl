@@ -149,6 +149,9 @@ assert_autoload_hook(Ref) :-
 	asserta((user:message_hook(autoload(Module:Name/Arity, Library), _, _) :-
 			autoloaded(Module:Name/Arity, Library)), Ref).
 
+:- public
+	autoloaded/2.
+
 autoloaded(_, _) :-
 	retract(autoloaded_count(N)),
 	succ(N, N2),
@@ -229,8 +232,22 @@ clause_not_from_development(Module:Head, Body) :-
 undefined_called_by_body(Body, Module) :-
 	forall(undefined_called(Body, Module), true).
 
+%%	undefined_called(+Goal, +Module) is multi.
+%
+%	Perform abstract interpretation of Goal,  touching all sub-goals
+%	that  are  directly  called  or  immediately  reachable  through
+%	meta-calls.  The  actual  auto-loading  is    performed  by  the
+%	predicate_property/2 call for meta-predicates.
+%
+%	If  Goal  is  disjunctive,  undefined_called   succeeds  with  a
+%	choice-point.  Backtracking  analyses  the  alternative  control
+%	path(s).
+%
+%	@tbd	Analyse e.g. assert((Head:-Body))?
+
 undefined_called(Var, _) :-
-	var(Var), !.				% incomplete analysis
+	var(Var), !.				% Incomplete analysis
+undefined_called(true,_) :- !.			% Common for facts
 undefined_called(M:G, _) :- !,
 	undefined_called(G, M).
 undefined_called((A,B), M) :- !,
@@ -255,9 +272,10 @@ undefined_called(_, _).
 
 undef_called_meta(I, Head, Meta, M) :-
 	arg(I, Head, AS), !,
-	(   AS == 0
+	(   integer(AS)
 	->  arg(I, Meta, MA),
-	    undefined_called(MA, M)
+	    extend(MA, AS, Goal),
+	    undefined_called(Goal, M)
 	;   true
 	),
 	succ(I, I2),
@@ -278,6 +296,7 @@ undefined_called_by([H|T], M) :-
 	),
 	undefined_called_by(T, M).
 
+extend(Goal, 0, Goal) :- !.
 extend(Goal, N, GoalEx) :-
 	callable(Goal),
 	Goal =.. List,
