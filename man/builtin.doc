@@ -5350,7 +5350,7 @@ true.
 \section{Built-in list operations}		\label{sec:builtinlist}
 
 Most list operations are defined in the library \pllib{lists} described
-in \secref{lib:lists}. Some that are implemented with more low-level
+in \secref{lists}. Some that are implemented with more low-level
 primitives are built-in and described here.
 
 

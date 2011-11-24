@@ -56,7 +56,8 @@ class	 &		& atom		& If \const{runtime}, only read
 					  and keep reading resources from
 					  their source (if present).
 					  See also resource/3. \\
-autoload &              & bool          & If true, run autoload/0 first \\
+autoload &              & bool          & If \const{true} (default),
+					  run autoload/0 first \\
 map      &              & file          & File to write info on dump \\
 op       &              & \tt save/standard & Save operator declarations? \\
 stand_alone &           & bool          & Include the emulator in the state \\
@@ -98,41 +99,49 @@ are undefined and have a definition in the Prolog library.  Load the
 appropriate libraries.
 
 This predicate is used by qsave_program/[1,2] to ensure the saved state
-will not depend on one of the libraries. The predicate autoload/0 will
-find all \strong{direct} references to predicates. It does not find
-predicates referenced via meta-predicates. The predicate {log}/2 is
-defined in the library(quintus) to provide a quintus compatible means to
-compute the natural logarithm of a number. The following program will
-behave correctly if its state is executed in an environment where the
-library(quintus) is not available:
+does not depend on availability of the libraries. The predicate
+autoload/0 examines all clauses of the loaded program (obtained with
+clause/2) and analyses the body for referenced goals. Such an analysis
+cannot be complete in Prolog, which allows the create arbitrary terms at
+runtime and use them as a goal. The current analysis is limited to the
+following:
+
+    \begin{itemize}
+        \item Direct goals appearing in the body
+	\item Arguments of declared meta-predicates that are marked
+	      with an integer (0..9).  See meta_predicate/1.
+    \end{itemize}
+
+The analysis of meta-predicate arguments is limited to cases where the
+argument appears literally in the clause or is assigned using =/2 before
+the meta-call.  I.e., the following fragment is processed correctly:
 
 \begin{code}
-logtable(From, To) :-
-        From > To, !.
-logtable(From, To) :-
-        log(From, Value),
-        format('~d~t~8|~2f~n', [From, Value]),
-        F is From + 1,
-        logtable(F, To).
+	...,
+	Goal = prove(Theory),
+	forall(current_theory(Theory),
+	       Goal)),
 \end{code}
 
-However, the following implementation refers to {log}/2 through the
-meta-predicate maplist/3.  Autoload will not be able to find the
-reference.  This problem may be fixed either by loading the
-module library(quintus) explicitly or use require/1 to tell the
-system that the predicate {log}/2 is required by this module.
+But, the calls to \nopredref{prove_simple}{1} and
+\nopredref{prove_complex}{1} in the example below are \emph{not}
+discovered by the analysis and therefore the modules that define these
+predicates must be loaded explicitly using use_module/1,2.
 
 \begin{code}
-logtable(From, To) :-
-        findall(X, between(From, To, X), Xlist),
-        maplist(log, Xlist, SineList),
-        write_table(Xlist, SineList).
-
-write_table([], []).
-write_table([I|IT], [V|VT]) :-
-        format('~d~t~8|~2f~n', [I, V]),
-        write_table(IT, VT).
+	...,
+	member(Goal, [ prove_simple(Theory),
+		       prove_complex(Theory)
+		     ]),
+	forall(current_theory(Theory),
+	       Goal)),
 \end{code}
+
+It is good practice to use gxref/0 to make sure that the program has
+sufficient declarations such that the analaysis tools can verify that
+all required predicates can be resolved and that all code is called.
+See meta_predicate/1, dynamic/1, public/1 and prolog:called_by/2.
+
     \prefixop{volatile}{+Name/Arity, \ldots}
 Declare that the clauses of specified predicates should \strong{not} be
 saved to the program.  The volatile declaration is normally used to
