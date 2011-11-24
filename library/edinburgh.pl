@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -33,10 +34,15 @@
 	  [ display/1,
 	    display/2,
 	    unknown/2,
+	    reconsult/1,
 	    debug/0,
 	    nodebug/0,
 	    fileerrors/2
 	  ]).
+
+:- meta_predicate
+	unknown(:, :),
+	reconsult(:).
 
 
 /** <module> Some traditional Edinburgh predicates
@@ -63,16 +69,10 @@ display(Term) :-
 display(Stream, Term) :-
 	write_term(Stream, Term, [ignore_ops(true)]).
 
-		 /*******************************
-		 *	      DEBUGGING		*
-		 *******************************/
-
 %%	unknown(-Old, +New) is det.
 %
 %	Edinburgh Prolog predicate for dealing dealing with undefined
 %	procedures
-
-:- meta_predicate unknown(:, :).
 
 unknown(M:Old, M:New) :-
 	current_prolog_flag(M:unknown, O),
@@ -83,6 +83,17 @@ unknown(M:Old, M:New) :-
 map_unknown(error,   trace).
 map_unknown(warning, trace).
 map_unknown(fail,    fail).
+
+%%	reconsult(+FileOrList) is det.
+%
+%	Load source file(s), wiping the  old content first. SWI-Prolog's
+%	consult/1 and related predicates always do this.
+%
+%	@deprecated The Edinburgh Prolog consult/reconsult distinction
+%	is no longer used throughout most of the Prolog world.
+
+reconsult(File) :-
+	consult(File).
 
 %%	debug is det.
 %%	nodebug is det.
