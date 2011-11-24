@@ -34,7 +34,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	qsave.pl shlib.pl statistics.pl system.pl error.pl \
 	backcomp.pl gensym.pl listing.pl debug.pl vm.pl \
-	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
+	quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl shell.pl check.pl heaps.pl \
 	tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
@@ -52,7 +52,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 
 # Dialect library files
 
-DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl
+DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl bim.pl
 YAP=	README.TXT
 SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl \
 	sockets.pl swipl-lfr.pl

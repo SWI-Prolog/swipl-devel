@@ -265,7 +265,6 @@ Section "Base system (required)"
 
 ; COMPATIBILITY
   File pl\library\backcomp.pl
-  File pl\library\bim.pl
   File pl\library\edinburgh.pl
   File pl\library\qpforeign.pl
   File pl\library\quintus.pl
@@ -426,7 +425,7 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File pl\library\clp\clpq.pl
 SectionEnd
 
-Section "Portability (YAP, SICStus, Ciao) support"
+Section "Portability (YAP, SICStus, Ciao, BIM) support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
   File pl\library\fastrw.pl
