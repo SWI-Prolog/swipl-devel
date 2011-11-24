@@ -662,3 +662,14 @@ map_C_type_(term,    'term_t ').
 
 warning(Fmt, Args) :-
 	print_message(warning, format(Fmt, Args)).
+
+
+		 /*******************************
+		 *	      XREF		*
+		 *******************************/
+
+:- multifile
+	prolog:hook/1.
+
+prolog:hook(foreign(_,_,_)).
+prolog:hook(foreign_resource(_,_)).
