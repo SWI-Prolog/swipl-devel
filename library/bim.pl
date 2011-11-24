@@ -34,9 +34,7 @@
 :- module(bim,
        [ please/2,
 	 cputime/1,
-	 include/1,
 	 setdebug/0,
-	 reconsult/1,
 %	 erase/1,			% BIM-compatible erase/1
 	 rerecord/2,
 	 erase_all/1,
@@ -59,6 +57,14 @@
 :- redefine_system_predicate(erase(_)).
 :- redefine_system_predicate(recorded(_,_,_)).
 
+% These public predicates are not exported because they conflict with
+% SWI-Prolog.  Users must call bim:Goal.
+
+:- public
+	erase/1,
+	recorded/3,
+	erase/2,
+	random/1.
 
 % please/2 has no meaning in SWI-prolog (can't we map most actions to
 % other things (JW?). (Maybe, but it would not be very useful as please/2
@@ -69,18 +75,9 @@ please(_, _).
 cputime(Time):-
 	statistics(cputime, Time).
 
-% include/1 does not exist in SWI-prolog.
-
-include(_).
-
 % setdebug/0 has no meaning in SWI-prolog.
 
 setdebug.
-
-:- module_transparent reconsult/1.
-
-reconsult(X):-
-	consult(X).
 
 % erase/1 both exist in SWI-prolog and proLog by BIM.
 
@@ -144,34 +141,12 @@ printf(String, Param):-
 random(X):- X is random(1000000).
 
 
-% Mapping the BIM index/2 to the SWI index/1 directive.
+%%	index(+PI, +Indices) is det.
+%
+%	Index in the given arguments.  SWI-Prolog performs JIT indexing.
 
-instantiateOther(Index, Nr, Nr):- index(Index).
-instantiateOther(Index, ONr, Nr):-
- 	NNr is ONr +1,
-	arg(NNr, Index, 0),
-	instantiateOther(Index, NNr, Nr).
-instantiateOther(Index, ONr, Nr):-
-	NNr is ONr + 1,
-	instantiateOther(Index, NNr, Nr).
-
-
-index(Pred/Nr, (Index1, Index2, Index3)):-
-	functor(Term, Pred, Nr),
-	arg(Index1, Term, 1),
-	arg(Index2, Term, 1),
-	arg(Index3, Term, 1),
-	instantiateOther(Term, 0, Nr).
-index(Pred/Nr, (Index1, Index2)):-
-	functor(Term, Pred, Nr),
-	arg(Index1, Term, 1),
-	arg(Index2, Term, 1),
-	instantiateOther(Term, 0, Nr).
-index(Pred/Nr, Index):-
-	functor(Term, Pred, Nr),
-	arg(Index, Term, 1),
-	instantiateOther(Term, 0, Nr).
-
+index(Pred/Nr, Indices):-
+	print_message(warning, decl_no_effect(index(Pred/Nr, Indices))).
 
 
 predicate_type(reconsult(_), builtin).
@@ -189,7 +164,6 @@ bindVariables([X = X | Bindings]):-
 bindVariables([]).
 
 % writeClause/2 does the reverse of read_variables/2.  Hm? It used too.
-
 
 writeClause(Clause, Bindings) :-
 	bindVariablesForPortray(Bindings),
