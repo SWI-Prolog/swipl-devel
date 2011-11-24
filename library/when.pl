@@ -35,7 +35,11 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
-	when(+, 0).
+	when(+, 0),
+	suspend_list(+, 0),
+	trigger(+, 0),
+	trigger_disj(+, 0),
+	trigger_conj(+, +, 0).
 
 /** <module> Conditional coroutining
 
@@ -104,7 +108,7 @@ trigger(?=(X,Y),Goal) :-
 trigger((G1,G2),Goal) :-
 	trigger_conj(G1,G2,Goal).
 trigger(or(GL),Goal) :-
-	trigger_disj(GL, when:check_disj(_DisjID,GL,Goal)).
+	trigger_disj(GL, check_disj(_DisjID,GL,Goal)).
 
 trigger_nonvar(X, Goal) :-
 	(   nonvar(X)
@@ -145,7 +149,7 @@ wake_det(Det) :-
 	).
 
 trigger_conj(G1,G2,Goal) :-
-	trigger(G1,when:trigger(G2,Goal)).
+	trigger(G1, trigger(G2,Goal)).
 
 trigger_disj([],_).
 trigger_disj([H|T], G) :-
