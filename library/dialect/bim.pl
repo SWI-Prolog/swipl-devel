@@ -1,50 +1,43 @@
-% $Id$
-%
-% This file contains some predicates that are defined in BIM-prolog and
-% not in SWI-prolog (or at least not with the same meaning).
-% In case a predicate has a different meaning in SWI-prolog
-% and in proLog by BIM renaming is done.
-% Remark that some predicates are only partially covered, feel free to add.
-%
-% author: Henk Vandecasteele
-%         Departement Computerwetenschappen
-%         Katholiek Universiteit Leuven
-%         Celestijnenlaan 200A
-%         3001 Heverlee
-%         BELGIUM
-%         henk.vandecasteele@cs.kuleuven.ac.be
-%
-% modified by Jan Wielemaker:
-%
-%	  - Added module-declaration
-%	  - Mapped writeClause/2 onto portray_clause/1
-%	  - deleted the my... (SWI-Prolog can redefine predicates)
-%
-% modified by Henk Vandecasteel:
-%
-%         - Added some missing predicates in the module-declaration.
-%         - Index/2 of proLog by BIM is transformed to index/1.
-%         - Fixed some bugs in the record-database-predicates.
-%
-% modified by Jan Wielemaker at Aug 10, 2006
-%
-%	  - Fixed module header
-%	  - Keep erase/1 and recorded/3 local as they break applications
+/*  Part of SWI-Prolog
+
+    Author:        Henk Vandecasteele
+    E-mail:        henk.vandecasteele@cs.kuleuven.ac.be
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): Public domain
+*/
+
+/** <module> BIM compatibility layer
+
+This file contains some predicates that   are  defined in BIM-prolog and
+not in SWI-prolog (or at least not  with   the  same meaning). In case a
+predicate has a different meaning in  SWI-prolog   and  in proLog by BIM
+renaming is done.  Remark  that  some   predicates  are  only  partially
+covered, feel free to add.
+
+@author  Henk Vandecasteele
+         Departement Computerwetenschappen
+         Katholiek Universiteit Leuven
+         Celestijnenlaan 200A
+         3001 Heverlee
+         BELGIUM
+         henk.vandecasteele@cs.kuleuven.ac.be
+*/
 
 :- module(bim,
        [ please/2,
 	 cputime/1,
 	 setdebug/0,
-%	 erase/1,			% BIM-compatible erase/1
+	 bim_erase/1,			% BIM-compatible erase/1
+	 bim_erase/2,			% BIM-compatible erase/2
 	 rerecord/2,
 	 erase_all/1,
 	 (record)/3,
-%	 recorded/3,			% BIM-compatible recorded/3
+	 bim_recorded/3,			% BIM-compatible recorded/3
 	 inttoatom/2,
 	 atomconcat/3,
 	 update/1,
 	 printf/2,
-%	 random/1,			% conflicts with library(random)
+	 bim_random/1,			% conflicts with library(random)
 	 index/2,
 	 predicate_type/2,
 	 vread/2,
@@ -54,17 +47,34 @@
 
 :- op(700, xfx, <>).
 
-:- redefine_system_predicate(erase(_)).
-:- redefine_system_predicate(recorded(_,_,_)).
+		 /*******************************
+		 *	     EXPANSION		*
+		 *******************************/
 
-% These public predicates are not exported because they conflict with
-% SWI-Prolog.  Users must call bim:Goal.
+:- multifile
+	user:goal_expansion/2,
+	user:file_search_path/2,
+	user:prolog_file_type/2,
+	bim_expansion/2.
+:- dynamic
+	user:goal_expansion/2,
+	user:file_search_path/2,
+	user:prolog_file_type/2.
 
-:- public
-	erase/1,
-	recorded/3,
-	erase/2,
-	random/1.
+user:goal_expansion(In, Out) :-
+	prolog_load_context(dialect, yap),
+	bim_expansion(In, Out).
+
+%%	bim_expansion(+In, +Out)
+%
+%	goal_expansion rules to emulate YAP behaviour in SWI-Prolog. The
+%	expansions  below  maintain  optimization    from   compilation.
+%	Defining them as predicates would loose compilation.
+
+bim_expansion(erase(Key), bim_erase(Key)).
+bim_expansion(erase(Key1, Key2), bim_erase(Key1, Key2)).
+bim_expansion(recorded(Key1, Key2, Value), bim_recorded(Key1, Key2, Value)).
+bim_expansion(random(Int), bim_random(Int)).
 
 % please/2 has no meaning in SWI-prolog (can't we map most actions to
 % other things (JW?). (Maybe, but it would not be very useful as please/2
@@ -81,15 +91,15 @@ setdebug.
 
 % erase/1 both exist in SWI-prolog and proLog by BIM.
 
-erase(Key):-
-	system:recorded(Key, _, Reference),
-	system:erase(Reference).
-erase(_).
+bim_erase(Key):-
+	recorded(Key, _, Reference),
+	erase(Reference).
+bim_erase(_).
 
 
 rerecord(Key, Value):-
-	system:recorded(Key, _,Reference),!,
-	system:erase(Reference),
+	recorded(Key, _,Reference),!,
+	erase(Reference),
 	recorda(Key, Value).
 rerecord(Key, Value):-
 	recorda(Key, Value).
@@ -112,10 +122,10 @@ record(Key1, Key2, Value):-
 
 :- dynamic data__/3.
 
-recorded(Key1, Key2, Value):-
+bim_recorded(Key1, Key2, Value):-
 	data__(Key1, Key2, Value).
 
-erase(Key1, Key2):-
+bim_erase(Key1, Key2):-
 	retract(data__(Key1, Key2, _)).
 
 
@@ -138,7 +148,7 @@ update(Clause):-
 printf(String, Param):-
 	writef(String, Param).
 
-random(X):- X is random(1000000).
+bim_random(X):- X is random(1000000).
 
 
 %%	index(+PI, +Indices) is det.
