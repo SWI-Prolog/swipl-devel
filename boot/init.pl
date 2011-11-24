@@ -2350,8 +2350,8 @@ saved state.
 	atom_chars(O, [-,-|Rest]),
 	'$split'(Rest, [=], Head, Tail), !,
 	atom_chars(Name, Head),
-	name(Atom, Tail),
-	term_to_atom(Value, Atom),
+	'$compile_option_type'(Name, Type),
+	'$convert_option_value'(Type, Tail, Value),
 	Opt =.. [Name, Value],
 	'$translate_options'(T0, T).
 '$translate_options'([_|T0], T) :-
@@ -2361,6 +2361,28 @@ saved state.
 	'$append'(Split, Tail, List), !.
 '$split'([H|T0], Split, [H|T], Tail) :-
 	'$split'(T0, Split, T, Tail).
+
+'$compile_option_type'(argument,    integer).
+'$compile_option_type'(autoload,    atom).
+'$compile_option_type'(class,	    atom).
+'$compile_option_type'(emulator,    atom).
+'$compile_option_type'(global,	    integer).
+'$compile_option_type'(goal,	    callable).
+'$compile_option_type'(init_file,   atom).
+'$compile_option_type'(local,	    integer).
+'$compile_option_type'(map,	    atom).
+'$compile_option_type'(op,	    atom).
+'$compile_option_type'(stand_alone, atom).
+'$compile_option_type'(toplevel,    callable).
+'$compile_option_type'(trail,	    integer).
+
+'$convert_option_value'(integer, Chars, Value) :-
+	number_chars(Value, Chars).
+'$convert_option_value'(atom, Chars, Value) :-
+	atom_chars(Value, Chars).
+'$convert_option_value'(callable, Chars, Value) :-
+	atom_chars(Atom, Chars),
+	term_to_atom(Value, Atom).
 
 
 		/********************************
