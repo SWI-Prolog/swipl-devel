@@ -3040,9 +3040,29 @@ PRED_IMPL("redefine_system_predicate",  1, redefine_system_predicate,
 }
 
 
+/** '$predefine_foreign'(+PI) is det.
+
+Registers a PI as a foreign predicate   without providing a function for
+it. This is used by qsave_program/2 to make sure that foreign predicates
+are not left  undefined  and  possibly   auto-imported  from  the  wrong
+location.
+*/
+
+static
+PRED_IMPL("$predefine_foreign",  1, predefine_foreign, PL_FA_TRANSPARENT)
+{ Procedure proc;
+
+  if ( !get_procedure(A1, &proc, 0, GP_NAMEARITY|GP_DEFINE) )
+    return FALSE;
+  set(proc->definition, FOREIGN);
+
+  return TRUE;
+}
+
+
 static
 PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
-{ GET_LD
+{ PRED_LD
   term_t tail = PL_copy_term_ref(A1);
   term_t head = PL_new_term_ref();
 
@@ -5858,6 +5878,7 @@ BeginPredDefs(comp)
   PRED_DEF("asserta", 2, asserta2, META)
   PRED_DEF("redefine_system_predicate", 1, redefine_system_predicate, META)
   PRED_DEF("compile_predicates",  1, compile_predicates, META)
+  PRED_DEF("$predefine_foreign",  1, predefine_foreign, PL_FA_TRANSPARENT)
   PRED_SHARE("clause",  2, clause, META|NDET|PL_FA_CREF|PL_FA_ISO)
   PRED_SHARE("clause",  3, clause, META|NDET|PL_FA_CREF)
   PRED_SHARE("$clause", 4, clause, META|NDET|PL_FA_CREF)

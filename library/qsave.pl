@@ -321,35 +321,49 @@ save_module(M, SaveClass) :-
 	'$qlf_start_module'(M),
 	feedback('~n~nMODULE ~w~n', [M]),
 	save_unknown(M),
-	(   P = (M:H),
+	(   P = (M:_H),
 	    current_predicate(_, P),
 	    \+ predicate_property(P, imported_from(_)),
-	    \+ predicate_property(P, foreign),
-	    functor(H, F, A),
-	    feedback('~nsaving ~w/~d ', [F, A]),
-	    (	H = resource(_,_,_),
-		SaveClass \== development
-	    ->	save_attribute(P, (dynamic)),
-		(   M == user
-		->  save_attribute(P, (multifile))
-		),
-		feedback('(Skipped clauses)', []),
-		fail
-	    ;	true
-	    ),
-	    save_attributes(P),
-	    \+ predicate_property(P, (volatile)),
-	    nth_clause(P, _, Ref),
-	    feedback('.', []),
-	    '$qlf_assert_clause'(Ref, SaveClass),
+	    save_predicate(P, SaveClass),
 	    fail
 	;   '$qlf_end_part',
 	    feedback('~n', [])
 	).
 
+save_predicate(P, _SaveClass) :-
+	predicate_property(P, foreign), !,
+	P = (M:H),
+	functor(H, Name, Arity),
+	feedback('~npre-defining foreign ~w/~d ', [Name, Arity]),
+	'$add_directive_wic'('$predefine_foreign'(M:Name/Arity)).
+save_predicate(P, SaveClass) :-
+	P = (M:H),
+	functor(H, F, A),
+	feedback('~nsaving ~w/~d ', [F, A]),
+	(   H = resource(_,_,_),
+	    SaveClass \== development
+	->  save_attribute(P, (dynamic)),
+	    (   M == user
+	    ->  save_attribute(P, (multifile))
+	    ),
+	    feedback('(Skipped clauses)', []),
+	    fail
+	;   true
+	),
+	save_attributes(P),
+	\+ predicate_property(P, (volatile)),
+	(   nth_clause(P, _, Ref),
+	    feedback('.', []),
+	    '$qlf_assert_clause'(Ref, SaveClass),
+	    fail
+	;   true
+	).
+
+
 pred_attrib(meta_predicate(Term), Head, meta_predicate(M:Term)) :- !,
 	    strip_module(Head, M, _).
-pred_attrib(Attrib, Head, '$set_predicate_attribute'(M:Name/Arity, AttName, Val)) :-
+pred_attrib(Attrib, Head,
+	    '$set_predicate_attribute'(M:Name/Arity, AttName, Val)) :-
 	attrib_name(Attrib, AttName, Val),
 	strip_module(Head, M, Term),
 	functor(Term, Name, Arity).

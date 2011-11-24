@@ -3600,19 +3600,18 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   aname = PL_new_atom(name);
 
   fdef = lookupFunctorDef(aname, arity);
-  proc = lookupProcedure(fdef, m);
-  def = proc->definition;
-
-  if ( true(def, LOCKED) && !SYSTEM_MODE )
-  { warning("PL_register_foreign: attempt to redefine a system predicate: %s",
-	    procedureName(proc));
+  if ( !(proc = lookupProcedureToDefine(fdef, m)) )
+  { warning("PL_register_foreign(): attempt to redefine "
+	    "a system predicate: %s:%s",
+	    PL_atom_chars(m->name), functorName(fdef));
     return NULL;
   }
-
-  if ( def->impl.function )
-    warning("PL_register_foreign: redefined %s", procedureName(proc));
-  if ( false(def, FOREIGN) && def->impl.clauses.first_clause != NULL )
+  def = proc->definition;
+  if ( def->module != m || def->impl.any )
+  { Sdprintf("Abolish %s from %s\n", procedureName(proc), PL_atom_chars(m->name));
     abolishProcedure(proc, m);
+    def = proc->definition;
+  }
 
   def->impl.function = f;
   def->flags = FOREIGN|TRACE_ME;
