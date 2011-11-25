@@ -303,7 +303,7 @@ read_source_term_at_location(Stream, Term, Options) :-
 	alternate_syntax(Syntax, Module, Setup, Restore),
 	peek_char(Stream, X),
 	debug(read, 'Using syntax ~w (c=~w)', [Syntax, X]),
-	push_operators(Ops),
+	push_operators(Module:Ops),
 	Setup,
 	catch(read_term(Stream, Term,
 			[ module(Module)
