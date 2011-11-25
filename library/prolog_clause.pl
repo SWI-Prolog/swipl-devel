@@ -41,6 +41,15 @@
 :- use_module(library(debug)).
 :- use_module(library(listing)).
 
+:- public				% called from library(trace/clause)
+	unify_term/2,
+	read/5,
+	make_varnames/5,
+	do_make_varnames/3.
+
+:- multifile
+	make_varnames_hook/5.
+
 /** <module> Get detailed source-information about a clause
 
 This module started life as part of the   GUI tracer. As it is generally
@@ -92,9 +101,6 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 %
 %	NOTE: Called directly from  library(trace/clause)   for  the GUI
 %	tracer.
-
-:- public
-	unify_term/2.
 
 unify_term(X, X) :- !.
 unify_term(X1, X2) :-
@@ -157,9 +163,6 @@ read(Line, Handle, Module, Clause, TermPos, VarNames) :-
 %	Read clause from Stream at current position with unknown syntax.
 %	It returns the term read  at  that   position,  as  well  as the
 %	subterm position info and variable names.
-%
-%	NOTE: Called directly from  library(trace/clause)   for  the GUI
-%	tracer.
 
 read(Handle, Module, Clause, TermPos, VarNames) :-
 	(   system_module(Module)
@@ -201,13 +204,6 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 %
 %	@param Offsets	List of Offset=Var
 %	@param Names	List of Name=Var
-%
-%	@bug Called directly from library(trace/clause) for the GUI tracer.
-
-:- multifile make_varnames_hook/5.
-:- public
-	make_varnames/5,
-	do_make_varnames/3.		% allow usage from the hook.
 
 make_varnames(ReadClause, DecompiledClause, Offsets, Names, Term) :-
 	make_varnames_hook(ReadClause, DecompiledClause, Offsets, Names, Term), !.
