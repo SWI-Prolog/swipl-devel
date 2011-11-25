@@ -31,6 +31,7 @@
 
 :- module(prolog_colour,
 	  [ prolog_colourise_stream/3,	% +Stream, +SourceID, :ColourItem
+	    prolog_colourise_term/3,	% +Stream, +SourceID, :ColourItem
 	    syntax_colour/2		% +Class, -Attributes
 	  ]).
 :- use_module(library(prolog_xref)).
@@ -42,6 +43,9 @@
 :- use_module(library(edit)).
 :- use_module(library(error)).
 :- use_module(library(record)).
+:- if(exists_source(library(pce_meta))).
+:- use_module(library(pce_meta)).
+:- endif.
 
 :- meta_predicate
 	prolog_colourise_stream(+, +, 3).
@@ -56,7 +60,6 @@ This module defines reusable code to colourise Prolog source.
 
 :- multifile
 	style/2,			% +ColourClass, -Attributes
-	identify/2,			% +ColourClass, -Summary
 	term_colours/2,			% +SourceTerm, -ColourSpec
 	goal_colours/2,			% +Goal, -ColourSpec
 	directive_colours/2,		% +Goal, -ColourSpec
@@ -65,7 +68,8 @@ This module defines reusable code to colourise Prolog source.
 
 :- record
 	colour_state(source_id,
-		     closure).
+		     closure,
+		     singletons).
 
 %%	prolog_colourise_stream(+Stream, +SourceID, :ColourItem) is det.
 %
@@ -93,7 +97,6 @@ prolog_colourise_stream(Fd, SourceId, ColourItem) :-
 colourise_stream(Fd, TB) :-
 	repeat,
 	    '$set_source_module'(SM, SM),
-	    character_count(Fd, Start),
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
 			      singletons(Singletons),
@@ -101,10 +104,10 @@ colourise_stream(Fd, TB) :-
 			      comments(Comments)
 			    ]),
 		  E,
-		  syntax_error(M, Fd, Start, E)),
+		  read_error(TB, E)),
 	    fix_operators(Term, TB),
-	    (	colourise_term(Term, TB, TermPos, Comments),
-		send(M, mark_singletons, Term, Singletons, TermPos)
+	    colour_state_singletons(TB, Singletons),
+	    (	colourise_term(Term, TB, TermPos, Comments)
 	    ->	true
 	    ;	arg(1, TermPos, From),
 	        print_message(warning,
@@ -124,6 +127,17 @@ restore_settings(state(Fd, Style, Esc)) :-
 	pop_operators,
 	close(Fd).
 
+%%	read_error(+TB, +Error)
+%
+%	If this is a syntax error, create a syntax-error fragment.
+
+read_error(TB, Error) :-
+	(   Error = error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo))
+	->  message_to_string(error(syntax_error(Id), _), Msg),
+	    show_syntax_error(TB, CharNo:Msg)
+	;   throw(Error)
+	).
+
 %%	colour_item(+Class, +TB, +Pos) is det.
 
 colour_item(Class, TB, Pos) :-
@@ -134,47 +148,19 @@ colour_item(Class, TB, Pos) :-
 	call(Closure, Class, Start, Len).
 
 
-%	emacs_push_op(+Prec, +Type, :Name)
+%%	safe_push_op(+Prec, +Type, :Name)
 %
 %	Define operators into the default source module and register
 %	them to be undone by pop_operators/0.
 
-emacs_push_op(P, T, N0) :-
+safe_push_op(P, T, N0) :-
 	(   N0 = _:_
 	->  N = N0
 	;   '$set_source_module'(M, M),
 	    N = M:N0
 	),
 	push_op(P, T, N),
-	debug(emacs, ':- ~w.', [op(P,T,N)]).
-
-%%	syntax_error(+Mode, +Stream, +Start, +Error)
-%
-%	Deal with syntax errors while colouring the whole buffer.
-%	Performs the following tasks:
-%
-%	    * Colourise comments using shallow syntax
-%	    * Indicate the error position
-%	    * If debug =emacs= is active, print the message
-
-syntax_error(M, Stream, Start, E) :-
-	character_count(Stream, End),
-	send(M, colourise_comments, Start, End),
-	(   \+ get(M, show_syntax_errors, never),
-	    E = error(syntax_error(_), stream(_S, _Line, _LinePos, CharNo))
-	->  message_to_string(E, Msg),
-	    get(M, text_buffer, TB),
-	    show_syntax_error(TB, CharNo:Msg)
-	;   true
-	),
-	get(M, errors, E0),
-	E1 is E0 + 1,
-	send(M, slot, errors, E1),
-	(   debugging(emacs)
-	->  print_message(error, E)
-	;   true
-	),
-	fail.
+	debug(colour, ':- ~w.', [op(P,T,N)]).
 
 %%	fix_operators(+Term, +Src) is det.
 %
@@ -189,10 +175,10 @@ fix_operators(_, _).
 process_directive(style_check(X), _) :- !,
 	style_check(X).
 process_directive(op(P,T,N), _) :- !,
-	emacs_push_op(P, T, N).
+	safe_push_op(P, T, N).
 process_directive(module(_Name, Export), _) :- !,
 	forall(member(op(P,A,N), Export),
-	       emacs_push_op(P,A,N)).
+	       safe_push_op(P,A,N)).
 process_directive(use_module(Spec), Src) :- !,
 	catch(process_use_module(Spec, Src), _, true).
 process_directive(Directive, Src) :-
@@ -209,29 +195,53 @@ process_use_module([H|T], Src) :- !,
 process_use_module(File, Src) :-
 	(   xref_public_list(File, _Path, Public, Src)
 	->  forall(member(op(P,T,N), Public),
-		   emacs_push_op(P,T,N))
+		   safe_push_op(P,T,N))
 	;   true
 	).
 
-%%	colourise(+TB, +Stream)
+%%	prolog_colourise_term(+Stream, +SourceID, :ColourItem)
 %
-%	Read next term from the text_buffer and  colourise the syntax
+%	Colourise    the    next     term      on     Stream.     Unlike
+%	prolog_colourise_stream/3, this predicate assumes  it is reading
+%	a single term rather than the   entire stream. This implies that
+%	it cannot adjust syntax according to directives that preceed it.
 
-colourise(TB, Fd) :-
-	character_count(Fd, Pos),
-	emacs_prolog_mode:read_term_from_stream(TB, Fd, Pos,
-						Term,
-						Error,
-						_Singletons,
-						TermPos, Comments),
-	(   Error == none
-	->  colourise_term(Term, TB, TermPos, Comments)
+prolog_colourise_term(Stream, SourceId, ColourItem) :-
+	make_colour_state([ source_id(SourceId),
+			    closure(ColourItem)
+			  ],
+			  TB),
+	findall(Op, xref_op(SourceId, Op), Ops),
+	read_source_term_at_location(
+	    Stream, Term,
+	    [ module(prolog_colour),
+	      operators(Ops),
+	      error(Error),
+	      subterm_positions(TermPos),
+	      singletons(Singletons),
+	      comments(Comments)
+	    ]),
+	(   var(Error)
+	->  colour_state_singletons(TB, Singletons),
+	    colourise_term(Term, TB, TermPos, Comments)
 	;   show_syntax_error(TB, Error)
 	).
 
 show_syntax_error(TB, Pos:Message) :-
 	End is Pos + 1,
 	colour_item(syntax_error(Message), TB, Pos-End).
+
+
+singleton(Var, TB) :-
+	colour_state_singletons(TB, Singletons),
+	member_var(Var, Singletons).
+
+member_var(V, [_=V2|_]) :-
+	V == V2, !.
+member_var(V, [_|T]) :-
+	member_var(V, T).
+
+%%	colourise_term(+Term, +TB, +Termpos, +Comments)
 
 colourise_term(Term, TB, TermPos, Comments) :-
 	colourise_comments(Comments, TB),
@@ -390,12 +400,14 @@ colourise_body(Body, Origin, TB, Pos) :-
 	colour_item(body, TB, Pos),
 	colourise_goals(Body, Origin, TB, Pos).
 
-%	colourise_method_body(+MethodBody, +TB, +Pos)
+%%	colourise_method_body(+MethodBody, +TB, +Pos)
 %
 %	Colourise the optional "comment":: as pce(comment) and proceed
 %	with the body.
+%
+%	@tbd	Get this handled by a hook.
 
-colourise_method_body(_Comment::Body, TB,
+colourise_method_body(::(_Comment,Body), TB,
 		      term_position(_F,_T,_FF,_FT,[CP,BP])) :- !,
 	colour_item(comment, TB, CP),
 	colourise_body(Body, TB, BP).
@@ -719,7 +731,7 @@ colourise_files(Var, TB, P) :-
 	colour_item(var, TB, P).
 colourise_files(Spec0, TB, Pos) :-
 	strip_module(Spec0, _, Spec),
-	(   TB = @SourceId,		% HACK
+	(   colour_state_source_id(TB, SourceId),
 	    catch(xref_source_file(Spec, Path, SourceId), _, fail)
 	->  colour_item(file(Path), TB, Pos)
 	;   colour_item(nofile, TB, Pos)
@@ -736,7 +748,7 @@ colourise_file_list([H|T], TB, [PH|PT]) :-
 %	Colourise argument that should be an existing directory.
 
 colourise_directory(Spec, TB, Pos) :-
-	(   TB = @SourceId,		% HACK
+	(   colour_state_source_id(TB, SourceId),
 	    catch(xref_source_file(Spec, Path, SourceId,
 				   [file_type(directory)]),
 		  _, fail)
@@ -745,13 +757,22 @@ colourise_directory(Spec, TB, Pos) :-
 	).
 
 
-%	colourise_class(ClassName, TB, Pos)
+%%	colourise_class(ClassName, TB, Pos)
 %
 %	Colourise an XPCE class.
 
 colourise_class(ClassName, TB, Pos) :-
 	classify_class(TB, ClassName, Classification),
 	colour_item(class(Classification, ClassName), TB, Pos).
+
+%%	classify_class(+TB, +ClassName, -Classification).
+
+classify_class(TB, Name, Class) :-
+	xref_defined_class(TB, Name, Class), !.
+:- if(current_predicate(classify_class/2)).
+classify_class(_, Name, Class) :-
+	classify_class(Name, Class).
+:- endif.
 
 %	colourise_term_args(+Term, +TB, +Pos)
 %
@@ -771,7 +792,10 @@ colourise_term_args([Pos|T], N, Term, TB) :-
 
 colourise_term_arg(Var, TB, Pos) :-			% variable
 	var(Var), !,
-	colour_item(var, TB, Pos).
+	(   singleton(Var, TB)
+	->  colour_item(singleton, TB, Pos)
+	;   colour_item(var, TB, Pos)
+	).
 colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	atom(Atom),
 	arg(1, Pos, From),
@@ -821,7 +845,8 @@ colourise_exports2(_, _, _).
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
-	(   catch(xref_public_list(File, Path, Public, TB), _, fail)
+	(   colour_state_source_id(TB, SourceId),
+	    catch(xref_public_list(File, Path, Public, SourceId), _, fail)
 	->  true
 	;   Public = []
 	),
@@ -933,7 +958,8 @@ goal_classification(_, Goal, Origin, recursion) :-
 	functor(Goal, Name, Arity),
 	functor(Origin, Name, Arity), !.
 goal_classification(TB, Goal, _, How) :-
-	xref_defined(TB, Goal, How),
+	colour_state_source_id(TB, SourceId),
+	xref_defined(SourceId, Goal, How),
 	How \= public(_), !.
 goal_classification(_TB, Goal, _, Class) :-
 	goal_classification(Goal, Class), !.
@@ -958,16 +984,20 @@ goal_classification(SS, expanded) :-	% XPCE (TBD)
 	A >= 3, !.
 
 classify_head(TB, Goal, exported) :-
-	xref_exported(TB, Goal), !.
+	colour_state_source_id(TB, SourceId),
+	xref_exported(SourceId, Goal), !.
 classify_head(_TB, Goal, hook) :-
 	xref_hook(Goal), !.
 classify_head(TB, Goal, hook) :-
-	xref_module(TB, M),
+	colour_state_source_id(TB, SourceId),
+	xref_module(SourceId, M),
 	xref_hook(M:Goal), !.
 classify_head(TB, Goal, unreferenced) :-
-	\+ (xref_called(TB, Goal, By), By \= Goal), !.
+	colour_state_source_id(TB, SourceId),
+	\+ (xref_called(SourceId, Goal, By), By \= Goal), !.
 classify_head(TB, Goal, How) :-
-	xref_defined(TB, Goal, How), !.
+	colour_state_source_id(TB, SourceId),
+	xref_defined(SourceId, Goal, How), !.
 classify_head(_TB, Goal, built_in) :-
 	built_in_predicate(Goal), !.
 classify_head(_TB, _Goal, undefined).
@@ -1349,8 +1379,8 @@ specified_item(pce_arg, new(X, T), TB,
 	       term_position(_,_,_,_,[P1, P2])) :- !,
 	colourise_term_arg(X, TB, P1),
 	specified_item(pce_new, T, TB, P2).
-specified_item(pce_arg, @Ref, TB, Pos) :- !,
-	colourise_term_arg(@Ref, TB, Pos).
+specified_item(pce_arg, @(Ref), TB, Pos) :- !,
+	colourise_term_arg(@(Ref), TB, Pos).
 specified_item(pce_arg, prolog(Term), TB,
 	       term_position(_,_,FF,FT,[ArgPos])) :- !,
 	colour_item(prolog_data, TB, FF-FT),
@@ -1402,7 +1432,7 @@ specified_items(Spec, Term, TB, PosList) :-
 
 
 specified_arglist([], _, _, _, _).
-specified_arglist(_, _, _, _, []) :- !.			% Excess specification args
+specified_arglist(_, _, _, _, []) :- !.		% Excess specification args
 specified_arglist([S0|ST], N, T, TB, [P0|PT]) :-
 	arg(N, T, Term),
 	specified_item(S0, Term, TB, P0),
