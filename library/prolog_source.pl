@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +32,7 @@
 
 :- module(prolog_source,
 	  [ prolog_read_source_term/4,	% +Stream, -Term, -Expanded, +Options
+	    read_source_term_at_location/3, %Stream, -Term, +Options
 	    prolog_open_source/2,	% +Source, -Stream
 	    prolog_close_source/1,	% +Stream
 	    prolog_canonical_source/2,	% +Spec, -Id
@@ -73,9 +75,10 @@ users of the library are:
 
 :- multifile
 	requires_library/2,
-	prolog:xref_source_identifier/2,	% +Source, -Id
-	prolog:xref_source_time/2,		% +Source, -Modified
-	prolog:xref_open_source/2.		% +SourceId, -Stream
+	prolog:xref_source_identifier/2, % +Source, -Id
+	prolog:xref_source_time/2,	 % +Source, -Modified
+	prolog:xref_open_source/2,	 % +SourceId, -Stream
+	prolog:alternate_syntax/4.	 % Syntax, +Module, -Setup, -Restore
 
 
 :- predicate_options(prolog_read_source_term/4, 4,
@@ -96,8 +99,14 @@ users of the library are:
 %	    * process_comment(+Boolean)
 %	    If =true=, process structured comments for PlDoc
 %
+%	This predicate is intended to read the   file from the start. It
+%	tracks directives to update its notion of the currently effectie
+%	syntax (e.g., declared operators).
+%
 %	@param Term	Term read
 %	@param Expanded	Result of term-expansion on the term
+%	@see   read_source_term_at_location/3 for reading at an
+%	       arbitrary location.
 
 prolog_read_source_term(In, Term, Expanded, Options) :-
 	read_source_term(In, Term, Options),
@@ -228,6 +237,97 @@ module_decl(Spec, Decl) :-
 	setup_call_cleanup(prolog_open_source(Path, In),
 			   read(In, (:- module(_, Decl))),
 			   close(In)).
+
+
+%%	read_source_term_at_location(+Stream, -Term, +Options)
+%
+%	Try to read a Prolog term form   an  arbitrary location inside a
+%	file. Due to Prolog's dynamic  syntax,   e.g.,  due  to operator
+%	declarations that may change anywhere inside   the file, this is
+%	theoreticaly   impossible.   Therefore,   this    predicate   is
+%	fundamentally _heuristic_ and may fail.   This predicate is used
+%	by e.g., clause_info/4 and by  PceEmacs   to  colour the current
+%	clause.
+%
+%	This predicate has two ways to  find   the  right syntax. If the
+%	file is loaded, it can be  passed   the  module using the module
+%	option. This deals with  module  files   that  define  the  used
+%	operators globally for  the  file.  Second,   there  is  a  hook
+%	prolog:alternate_syntax/4 that can be used to temporary redefine
+%	the syntax.
+%
+%	Options:
+%
+%	  * line(+Line)
+%	  If present, start reading at line Line.
+%	  * module(+Module)
+%	  Use syntax from the given module. Default is the current
+%	  `source module'.
+%
+%	@see Use read_source_term/4 to read a file from the start.
+%	@see prolog:alternate_syntax/4 for locally scoped operators.
+
+read_source_term_at_location(Stream, Term, Options) :-
+	seek_to_start(Stream, Options),
+	stream_property(Stream, position(Here)),
+	'$set_source_module'(DefModule, DefModule),
+	option(module(Module), Options, DefModule),
+	alternate_syntax(Syntax, Module, Setup, Restore),
+	peek_char(Stream, X),
+	debug(read, 'Using syntax ~w (c=~w)', [Syntax, X]),
+	Setup,
+	catch(read_term(Stream, Term,
+			[ module(Module)
+			| Options
+			]),
+	      Error,
+	      true),
+	Restore,
+	(   var(Error)
+	->  !
+	;   set_stream_position(Stream, Here),
+	    fail
+	).
+
+
+%%	alternate_syntax(?Syntax, +Module, -Setup, -Restore) is nondet.
+%
+%	Define an alternative  syntax  to  try   reading  a  term  at an
+%	arbitrary location in module Module.
+%
+%	Calls the hook prolog:alternate_syntax/4 with the same signature
+%	to allow for user-defined extensions.
+%
+%	@param	Setup is a deterministic goal to enable this syntax in
+%		module.
+%	@param	Restore is a deterministic goal to revert the actions of
+%		Setup.
+
+alternate_syntax(prolog, _, true,  true).
+alternate_syntax(Syntax, M, Setup, Restore) :-
+	prolog:alternate_syntax(Syntax, M, Setup, Restore).
+
+
+%%	seek_to_start(+Stream, +Options) is det.
+%
+%	Go to the location from where to start reading.
+
+seek_to_start(Stream, Options) :-
+	option(line(Line), Options), !,
+	seek(Stream, 0, bof, _),
+	seek_to_line(Stream, Line).
+seek_to_start(_, _).
+
+%%	seek_to_line(+Stream, +Line)
+%
+%	Seek to indicated line-number.
+
+seek_to_line(Fd, N) :-
+	N > 1, !,
+	skip(Fd, 10),
+	NN is N - 1,
+	seek_to_line(Fd, NN).
+seek_to_line(_, _).
 
 
 		 /*******************************
