@@ -653,24 +653,3 @@ clause_name(Ref, Name) :-
 	thaffix(N, Th),
 	format(string(Name), '~d-~w clause of ~w', [N, Th, PredName]).
 clause_name(_, '<meta-call>').
-
-
-		 /*******************************
-		 *        LOW-LEVEL STUFF	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-These predicates communicate about lines.  We   should  consider using a
-line-cache for this for speed.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-%%	seek_to_line(+Stream, +Line)
-%
-%	Seek to indicated line-number.
-
-seek_to_line(Fd, N) :-
-	N > 1, !,
-	skip(Fd, 10),
-	NN is N - 1,
-	seek_to_line(Fd, NN).
-seek_to_line(_, _).
