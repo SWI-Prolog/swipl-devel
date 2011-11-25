@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -83,10 +84,10 @@ otherwise a more structured approach for operator handling.
 :- thread_local
 	operator_stack/1.
 
-:- module_transparent
-	push_operators/1,
-	push_operators/2,
-	push_op/3.
+:- meta_predicate
+	push_operators(:),
+	push_operators(:,-),
+	push_op(+,+,:).
 
 %%	push_operators(:New) is det.
 %%	push_operators(:New, -Undo) is det.
@@ -103,8 +104,7 @@ push_operators(New, Undo) :-
 
 push_operators(New) :-
 	push_operators(New, Undo),
-	assert_op(mark),
-	assert_op(Undo).
+	asserta(operator_stack(mark-Undo)).
 
 %%	push_op(+Precedence, +Type, :Name) is det.
 %
@@ -112,14 +112,9 @@ push_operators(New) :-
 %	pop_operators/0.  The  change  is   undone    by   the  call  to
 %	pop_operators/0
 
-push_op(P, T, A0) :-
-	(   A0 = _:_
-	->  A = A0
-	;   context_module(M),
-	    A = M:A0
-	),
+push_op(P, T, A) :-
 	undo_operator(op(P,T,A), Undo),
-	assert_op(Undo),
+	asserta(operator_stack(incremental-Undo)),
 	op(P, T, A).
 
 %%	pop_operators is det.
@@ -128,12 +123,9 @@ push_op(P, T, A0) :-
 %	push_operators/1.
 
 pop_operators :-
-	retract_op(Undo),
-	(   Undo == mark
-	->  !
-	;   set_operators(Undo),
-	    fail
-	).
+	retract(operator_stack(Mark-Undo)),
+	set_operators(Undo),
+	Mark == mark, !.
 
 %%	pop_operators(+Undo) is det.
 %
@@ -144,10 +136,8 @@ pop_operators(Undo) :-
 
 tag_ops([], _, []).
 tag_ops([op(P,Tp,N0)|T0], M, [op(P,Tp,N)|T]) :-
-	(   N0 = _:_
-	->  N = N0
-	;   N = M:N0
-	),
+	strip_module(M:N0, M1, N1),
+	N = M1:N1,
 	tag_ops(T0, M, T).
 
 set_operators([]).
@@ -183,16 +173,5 @@ op_type(yfx, infix).
 op_type(yfy, infix).
 op_type(xf,  postfix).
 op_type(yf,  postfix).
-
-%%	assert_op(+Term) is det.
-%%	retract_op(-Term) is det.
-%
-%	Force local assert/retract.
-
-assert_op(Term) :-
-	asserta(operator_stack(Term)).
-
-retract_op(Term) :-
-	retract(operator_stack(Term)).
 
 
