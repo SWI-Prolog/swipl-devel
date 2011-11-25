@@ -85,6 +85,14 @@ users of the library are:
 		     [ process_comment(boolean),
 		       pass_to(system:read_term/3, 3)
 		     ]).
+:- predicate_options(read_source_term_at_location/3, 3,
+		     [ line(integer),
+		       offset(integer),
+		       module(atom),
+		       operators(list),
+		       error(-any),
+		       pass_to(system:read_term/3, 3)
+		     ]).
 
 
 		 /*******************************
@@ -239,7 +247,7 @@ module_decl(Spec, Decl) :-
 			   close(In)).
 
 
-%%	read_source_term_at_location(+Stream, -Term, +Options)
+%%	read_source_term_at_location(+Stream, -Term, +Options) is semidet.
 %
 %	Try to read a Prolog term form   an  arbitrary location inside a
 %	file. Due to Prolog's dynamic  syntax,   e.g.,  due  to operator
@@ -256,25 +264,44 @@ module_decl(Spec, Decl) :-
 %	prolog:alternate_syntax/4 that can be used to temporary redefine
 %	the syntax.
 %
-%	Options:
+%	The options below are processed in   addition  to the options of
+%	read_term/3. Note that  the  =line=   and  =offset=  options are
+%	mutually exclusive.
 %
 %	  * line(+Line)
 %	  If present, start reading at line Line.
+%	  * offset(+Characters)
+%	  Use seek/4 to go to the indicated location.  See seek/4
+%	  for limitations of seeking in text-files.
 %	  * module(+Module)
 %	  Use syntax from the given module. Default is the current
 %	  `source module'.
+%	  * operators(+List)
+%	  List of additional operator declarations to enforce while
+%	  reading the term.
+%	  * error(-Error)
+%	  If no correct parse can be found, unify Error with a term
+%	  Offset:Message that indicates the (character) location of
+%	  the error and the related message.  Adding this option
+%	  makes read_source_term_at_location/3 deterministic.
 %
 %	@see Use read_source_term/4 to read a file from the start.
 %	@see prolog:alternate_syntax/4 for locally scoped operators.
 
+:- thread_local
+	last_syntax_error/2.		% location, message
+
 read_source_term_at_location(Stream, Term, Options) :-
+	retractall(last_syntax_error(_,_)),
 	seek_to_start(Stream, Options),
 	stream_property(Stream, position(Here)),
 	'$set_source_module'(DefModule, DefModule),
 	option(module(Module), Options, DefModule),
+	option(operators(Ops), Options, []),
 	alternate_syntax(Syntax, Module, Setup, Restore),
 	peek_char(Stream, X),
 	debug(read, 'Using syntax ~w (c=~w)', [Syntax, X]),
+	push_operators(Ops),
 	Setup,
 	catch(read_term(Stream, Term,
 			[ module(Module)
@@ -283,11 +310,26 @@ read_source_term_at_location(Stream, Term, Options) :-
 	      Error,
 	      true),
 	Restore,
+	pop_operators,
 	(   var(Error)
 	->  !
 	;   set_stream_position(Stream, Here),
+	    assert_error(Error, Options),
 	    fail
 	).
+read_source_term_at_location(_, _, Options) :-
+	option(error(Error), Options), !,
+	setof(CharNo:Msg, retract(last_syntax_error(CharNo, Msg)), Pairs),
+	last(Pairs, Error).
+
+assert_error(Error, Options) :-
+	option(error(_), Options), !,
+	(   Error = error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo))
+	->  message_to_string(error(syntax_error(Id), _), Msg),
+	    assertz(last_syntax_error(CharNo, Msg))
+	;   throw(Error)
+	).
+assert_error(_, _).
 
 
 %%	alternate_syntax(?Syntax, +Module, -Setup, -Restore) is nondet.
@@ -316,6 +358,9 @@ seek_to_start(Stream, Options) :-
 	option(line(Line), Options), !,
 	seek(Stream, 0, bof, _),
 	seek_to_line(Stream, Line).
+seek_to_start(Stream, Options) :-
+	option(offset(Start), Options), !,
+	seek(Stream, Start, bof, _).
 seek_to_start(_, _).
 
 %%	seek_to_line(+Stream, +Line)
