@@ -301,6 +301,7 @@ read_source_term_at_location(Stream, Term, Options) :-
 	option(module(Module), Options, DefModule),
 	option(operators(Ops), Options, []),
 	alternate_syntax(Syntax, Module, Setup, Restore),
+	set_stream_position(Stream, Here),
 	peek_char(Stream, X),
 	debug(read, 'Using syntax ~w (c=~w)', [Syntax, X]),
 	push_operators(Module:Ops),
@@ -315,8 +316,7 @@ read_source_term_at_location(Stream, Term, Options) :-
 	pop_operators,
 	(   var(Error)
 	->  !
-	;   set_stream_position(Stream, Here),
-	    assert_error(Error, Options),
+	;   assert_error(Error, Options),
 	    fail
 	).
 read_source_term_at_location(_, _, Options) :-
