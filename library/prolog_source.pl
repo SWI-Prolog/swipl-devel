@@ -149,6 +149,8 @@ read_source_term(In, Term, Options) :-
 		  | Options
 		  ]).
 
+:- public
+	expand/3.			% Used by Prolog colour
 
 expand(Var, _, Var) :-
 	var(Var), !.
