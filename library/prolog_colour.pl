@@ -140,7 +140,7 @@ restore_settings(state(Fd, Style, Esc)) :-
 	pop_operators,
 	close(Fd).
 
-%%	read_error(+Error, +TB, +Stream, +Start)
+%%	read_error(+Error, +TB, +Stream, +Start) is failure.
 %
 %	If this is a syntax error, create a syntax-error fragment.
 
@@ -148,7 +148,8 @@ read_error(Error, TB, Stream, Start) :-
 	(   Error = error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo))
 	->  message_to_string(error(syntax_error(Id), _), Msg),
 	    character_count(Stream, End),
-	    show_syntax_error(TB, CharNo:Msg, Start-End)
+	    show_syntax_error(TB, CharNo:Msg, Start-End),
+	    fail
 	;   throw(Error)
 	).
 
@@ -245,11 +246,13 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 	    ]),
 	(   var(Error)
 	->  colour_state_singletons(TB, Singletons),
+	    colour_item(term, TB, TermPos),		% Call to allow clearing
 	    colourise_term(Term, TB, TermPos, Comments)
 	;   character_count(Stream, End),
+	    TermPos = error_position(Start, End, Pos),
+	    colour_item(term, TB, TermPos),
 	    show_syntax_error(TB, Error, Start-End),
-	    Error = Pos:_Message,
-	    TermPos = error_position(Start-End, Pos)
+	    Error = Pos:_Message
 	).
 
 show_syntax_error(TB, Pos:Message, Range) :-
@@ -314,11 +317,7 @@ colourise_term(:<-(Head, Body), TB,
 	colour_method_head(get(Head),  TB, HP),
 	colourise_method_body(Body,    TB, BP).
 colourise_term((:- Directive), TB, Pos) :- !,
-	arg(1, Pos, F),
-	arg(2, Pos, T),
-	get(TB, scan, T, line, 0, end, EOL),
-	To is EOL+1,
-	colour_item(directive, TB, F-To),
+	colour_item(directive, TB, Pos),
 	arg(5, Pos, [ArgPos]),
 	colourise_directive(Directive, TB, ArgPos).
 colourise_term((?- Directive), TB, Pos) :- !,
@@ -654,7 +653,8 @@ colourise_db((Head:-_Body), TB, term_position(_,_,_,_,[HP,_])) :- !,
 colourise_db(Module:Head, TB, term_position(_,_,_,_,[MP,HP])) :- !,
 	colour_item(module(Module), TB, MP),
 	(   atom(Module),
-	    xref_module(TB, Module)
+	    colour_state_source_id(TB, SourceId),
+	    xref_module(SourceId, Module)
 	->  colourise_db(Head, TB, HP)
 	;   true			% TBD: Modifying in other module
 	).
@@ -669,7 +669,8 @@ colourise_db(Head, TB, Pos) :-
 colourise_options(Goal, TB, ArgPos) :-
 	(   compound(Goal),
 	    functor(Goal, Name, Arity),
-	    (	xref_module(TB, Module)
+	    (	colour_state_source_id(TB, SourceId),
+		xref_module(SourceId, Module)
 	    ->	true
 	    ;	Module = user
 	    ),
@@ -742,7 +743,7 @@ colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 	colour_option_values(TV, TT, TB, TP).
 
 
-%	colourise_files(+Arg, +TB, +Pos)
+%%	colourise_files(+Arg, +TB, +Pos)
 %
 %	Colourise the argument list of one of the file-loading predicates.
 
@@ -756,7 +757,8 @@ colourise_files(Var, TB, P) :-
 	colour_item(var, TB, P).
 colourise_files(Spec0, TB, Pos) :-
 	strip_module(Spec0, _, Spec),
-	(   colour_state_source_id(TB, SourceId),
+	(   colour_state_source_id(TB, Source),
+	    prolog_canonical_source(Source, SourceId),
 	    catch(xref_source_file(Spec, Path, SourceId), _, fail)
 	->  colour_item(file(Path), TB, Pos)
 	;   colour_item(nofile, TB, Pos)
@@ -787,19 +789,20 @@ colourise_directory(Spec, TB, Pos) :-
 %	Colourise an XPCE class.
 
 colourise_class(ClassName, TB, Pos) :-
-	classify_class(TB, ClassName, Classification),
+	colour_state_source_id(TB, SourceId),
+	classify_class(SourceId, ClassName, Classification),
 	colour_item(class(Classification, ClassName), TB, Pos).
 
-%%	classify_class(+TB, +ClassName, -Classification).
+%%	classify_class(+SourceId, +ClassName, -Classification).
 
-classify_class(TB, Name, Class) :-
-	xref_defined_class(TB, Name, Class), !.
+classify_class(SourceId, Name, Class) :-
+	xref_defined_class(SourceId, Name, Class), !.
 :- if(current_predicate(classify_class/2)).
 classify_class(_, Name, Class) :-
 	classify_class(Name, Class).
 :- endif.
 
-%	colourise_term_args(+Term, +TB, +Pos)
+%%	colourise_term_args(+Term, +TB, +Pos)
 %
 %	colourise head/body principal terms.
 
@@ -821,11 +824,11 @@ colourise_term_arg(Var, TB, Pos) :-			% variable
 	->  colour_item(singleton, TB, Pos)
 	;   colour_item(var, TB, Pos)
 	).
-colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
-	atom(Atom),
-	arg(1, Pos, From),
-	get(TB, character, From, 39), !,
-	colour_item(quoted_atom, TB, Pos).
+%colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
+%	atom(Atom),
+%	arg(1, Pos, From),
+%	get(TB, character, From, 39), !,
+%	colour_item(quoted_atom, TB, Pos).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
 colourise_term_arg(Compound, TB, Pos) :-		% compound
@@ -1184,7 +1187,7 @@ def_style(hook,			   [colour(blue), underline(true)]).
 
 def_style(error,		   [background(orange)]).
 def_style(type_error(_),	   [background(orange)]).
-def_style(syntax_error(_),	   [background(orange)]).
+def_style(syntax_error(_,_),	   [background(orange)]).
 
 %%	syntax_colour(?Class, ?Attributes) is nondet.
 %
