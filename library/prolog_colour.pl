@@ -31,8 +31,9 @@
 
 :- module(prolog_colour,
 	  [ prolog_colourise_stream/3,	% +Stream, +SourceID, :ColourItem
-	    prolog_colourise_term/3,	% +Stream, +SourceID, :ColourItem
-	    syntax_colour/2		% +Class, -Attributes
+	    prolog_colourise_term/4,	% +Stream, +SourceID, :ColourItem, +Options
+	    syntax_colour/2,		% +Class, -Attributes
+	    syntax_message//1		% +Class
 	  ]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(predicate_options)).
@@ -42,13 +43,19 @@
 :- use_module(library(debug)).
 :- use_module(library(edit)).
 :- use_module(library(error)).
+:- use_module(library(option)).
 :- use_module(library(record)).
 :- if(exists_source(library(pce_meta))).
 :- use_module(library(pce_meta)).
 :- endif.
 
 :- meta_predicate
-	prolog_colourise_stream(+, +, 3).
+	prolog_colourise_stream(+, +, 3),
+	prolog_colourise_term(+, +, 3, +).
+
+:- predicate_options(prolog_colourise_term/4, 4,
+		     [ subterm_positions(-any)
+		     ]).
 
 /** <module> Prolog syntax colouring support.
 
@@ -60,6 +67,7 @@ This module defines reusable code to colourise Prolog source.
 
 :- multifile
 	style/2,			% +ColourClass, -Attributes
+	message//1,			% +ColourClass
 	term_colours/2,			% +SourceTerm, -ColourSpec
 	goal_colours/2,			% +Goal, -ColourSpec
 	directive_colours/2,		% +Goal, -ColourSpec
@@ -95,8 +103,13 @@ prolog_colourise_stream(Fd, SourceId, ColourItem) :-
 	    restore_settings(State)).
 
 colourise_stream(Fd, TB) :-
+	(   peek_char(Fd, #)		% skip #! script line
+	->  skip(Fd, 10)
+	;   true
+	),
 	repeat,
 	    '$set_source_module'(SM, SM),
+	    character_count(Fd, Start),
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
 			      singletons(Singletons),
@@ -104,7 +117,7 @@ colourise_stream(Fd, TB) :-
 			      comments(Comments)
 			    ]),
 		  E,
-		  read_error(TB, E)),
+		  read_error(E, TB, Fd, Start)),
 	    fix_operators(Term, TB),
 	    colour_state_singletons(TB, Singletons),
 	    (	colourise_term(Term, TB, TermPos, Comments)
@@ -127,14 +140,15 @@ restore_settings(state(Fd, Style, Esc)) :-
 	pop_operators,
 	close(Fd).
 
-%%	read_error(+TB, +Error)
+%%	read_error(+Error, +TB, +Stream, +Start)
 %
 %	If this is a syntax error, create a syntax-error fragment.
 
-read_error(TB, Error) :-
+read_error(Error, TB, Stream, Start) :-
 	(   Error = error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo))
 	->  message_to_string(error(syntax_error(Id), _), Msg),
-	    show_syntax_error(TB, CharNo:Msg)
+	    character_count(Stream, End),
+	    show_syntax_error(TB, CharNo:Msg, Start-End)
 	;   throw(Error)
 	).
 
@@ -199,19 +213,27 @@ process_use_module(File, Src) :-
 	;   true
 	).
 
-%%	prolog_colourise_term(+Stream, +SourceID, :ColourItem)
+%%	prolog_colourise_term(+Stream, +SourceID, :ColourItem, +Options)
 %
 %	Colourise    the    next     term      on     Stream.     Unlike
 %	prolog_colourise_stream/3, this predicate assumes  it is reading
 %	a single term rather than the   entire stream. This implies that
 %	it cannot adjust syntax according to directives that preceed it.
+%
+%	Options:
+%
+%	  * subterm_positions(-TermPos)
+%	  Return complete term-layout.  If an error is read, this is a
+%	  term error_position(StartClause, EndClause, ErrorPos)
 
-prolog_colourise_term(Stream, SourceId, ColourItem) :-
+prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 	make_colour_state([ source_id(SourceId),
 			    closure(ColourItem)
 			  ],
 			  TB),
+	option(subterm_positions(TermPos), Options, _),
 	findall(Op, xref_op(SourceId, Op), Ops),
+	character_count(Stream, Start),
 	read_source_term_at_location(
 	    Stream, Term,
 	    [ module(prolog_colour),
@@ -224,12 +246,15 @@ prolog_colourise_term(Stream, SourceId, ColourItem) :-
 	(   var(Error)
 	->  colour_state_singletons(TB, Singletons),
 	    colourise_term(Term, TB, TermPos, Comments)
-	;   show_syntax_error(TB, Error)
+	;   character_count(Stream, End),
+	    show_syntax_error(TB, Error, Start-End),
+	    Error = Pos:_Message,
+	    TermPos = error_position(Start-End, Pos)
 	).
 
-show_syntax_error(TB, Pos:Message) :-
+show_syntax_error(TB, Pos:Message, Range) :-
 	End is Pos + 1,
-	colour_item(syntax_error(Message), TB, Pos-End).
+	colour_item(syntax_error(Message, Range), TB, Pos-End).
 
 
 singleton(Var, TB) :-
@@ -1459,3 +1484,32 @@ specified_list(Spec, [H|T], TB, [HP|TP], TailPos) :-
 specified_list(_, _, _, [], none) :- !.
 specified_list(Spec, Tail, TB, [], TailPos) :-
 	specified_item(Spec, Tail, TB, TailPos).
+
+
+		 /*******************************
+		 *	   DESCRIPTIONS		*
+		 *******************************/
+
+syntax_message(Class) -->
+	message(Class), !.
+syntax_message(goal(Class, Goal)) --> !,
+	goal_message(Class, Goal).
+syntax_message(class(Type, Class)) --> !,
+	xpce_class_message(Type, Class).
+
+goal_message(meta, _) -->
+	[ 'Meta call' ].
+goal_message(recursion, _) -->
+	[ 'Recursive call' ].
+goal_message(undefined, _) -->
+	[ 'Call to undefined predicate' ].
+goal_message(expanded, _) -->
+	[ 'Expanded goal' ].
+goal_message(global, _) -->
+	[ 'Auto-imported from module user' ].
+goal_message(Class, Goal) -->
+	{ predicate_name(Goal, PI) },
+	[ 'Call to ~w predicate ~q'-[Class,PI] ].
+
+xpce_class_message(Type, Class) -->
+	[ 'XPCE ~w class ~q'-[Type, Class] ].
