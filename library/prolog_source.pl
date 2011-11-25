@@ -60,9 +60,11 @@ problems that must be taken care of.
 This module concentrates these issues  in   a  single  library. Intended
 users of the library are:
 
-	$ prolog_xref.pl : The Prolog cross-referencer
-	$ PceEmacs :	   Emacs syntax-colouring
-	$ PlDoc :	   The documentation framework
+	$ prolog_xref.pl :   The Prolog cross-referencer
+	$ prolog_clause.pl : Get details about (compiled) clauses
+	$ prolog_colour.pl : Colourise source-code
+	$ PceEmacs :	     Emacs syntax-colouring
+	$ PlDoc :	     The documentation framework
 */
 
 :- thread_local
