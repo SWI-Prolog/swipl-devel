@@ -246,11 +246,11 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 	    ]),
 	(   var(Error)
 	->  colour_state_singletons(TB, Singletons),
-	    colour_item(term, TB, TermPos),		% Call to allow clearing
+	    colour_item(range, TB, TermPos),		% Call to allow clearing
 	    colourise_term(Term, TB, TermPos, Comments)
 	;   character_count(Stream, End),
 	    TermPos = error_position(Start, End, Pos),
-	    colour_item(term, TB, TermPos),
+	    colour_item(range, TB, TermPos),
 	    show_syntax_error(TB, Error, Start-End),
 	    Error = Pos:_Message
 	).
@@ -824,11 +824,6 @@ colourise_term_arg(Var, TB, Pos) :-			% variable
 	->  colour_item(singleton, TB, Pos)
 	;   colour_item(var, TB, Pos)
 	).
-%colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
-%	atom(Atom),
-%	arg(1, Pos, From),
-%	get(TB, character, From, 39), !,
-%	colour_item(quoted_atom, TB, Pos).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
 colourise_term_arg(Compound, TB, Pos) :-		% compound
@@ -836,6 +831,9 @@ colourise_term_arg(Compound, TB, Pos) :-		% compound
 	colourise_term_args(Compound, TB, Pos).
 colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
 	colour_item(string, TB, F-T).
+colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
+	atom(Atom), !,
+	colour_item(atom, TB, Pos).
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
 
@@ -1162,6 +1160,7 @@ def_style(directive,		   [background(grey90)]).
 def_style(method(_),		   [bold(true)]).
 
 def_style(var,			   [colour(red4)]).
+def_style(singleton,		   [bold(true), colour(red4)]).
 def_style(unbound,		   [colour(red), bold(true)]).
 def_style(quoted_atom,		   [colour(navy_blue)]).
 def_style(string,		   [colour(navy_blue)]).
