@@ -40,6 +40,15 @@
 :- use_module(library(occurs), [sub_term/2]).
 :- use_module(library(debug)).
 :- use_module(library(listing)).
+:- use_module(library(prolog_source)).
+
+:- public				% called from library(trace/clause)
+	unify_term/2,
+	make_varnames/5,
+	do_make_varnames/3.
+
+:- multifile
+	make_varnames_hook/5.
 
 /** <module> Get detailed source-information about a clause
 
@@ -93,9 +102,6 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 %	NOTE: Called directly from  library(trace/clause)   for  the GUI
 %	tracer.
 
-:- public
-	unify_term/2.
-
 unify_term(X, X) :- !.
 unify_term(X1, X2) :-
 	compound(X1),
@@ -131,59 +137,22 @@ unify_args(I, Arity, T1, T2) :-
 	unify_args(A, Arity, T1, T2).
 
 
-%	Must be a user-programmable hook!
-
-alternate_syntax(prolog, _,    true,
-			       true).
-alternate_syntax(pce_class, M, pce_expansion:push_compile_operators(M),
-			       pce_expansion:pop_compile_operators) :-
-	current_prolog_flag(xpce, true).
-
-system_module(system) :- !.
-system_module(Module) :-
-	sub_atom(Module, 0, _, _, $), !.
+%%	read_term_at_line(+File, +Line, +Module,
+%%			  -Clause, -TermPos, -VarNames) is semidet.
+%
+%	Read a term from File at Line.
 
 read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
 	catch(open(File, read, In), _, fail),
-	call_cleanup(read(Line, In, Module, Clause, TermPos, VarNames),
-		     close(In)).
-
-read(Line, Handle, Module, Clause, TermPos, VarNames) :-
-	seek_to_line(Handle, Line),
-	read(Handle, Module, Clause, TermPos, VarNames).
-
-%%	read(+Stream, +Module, -Clause, -TermPos, -VarNames)
-%
-%	Read clause from Stream at current position with unknown syntax.
-%	It returns the term read  at  that   position,  as  well  as the
-%	subterm position info and variable names.
-%
-%	NOTE: Called directly from  library(trace/clause)   for  the GUI
-%	tracer.
-
-read(Handle, Module, Clause, TermPos, VarNames) :-
-	(   system_module(Module)
-	->  Syntax = system
-	;   true
-	),
-	stream_property(Handle, position(Here)),
-	alternate_syntax(Syntax, Module, Setup, Restore),
-	peek_char(Handle, X),
-	debug(clause_info, 'Using syntax ~w (c=~w)', [Syntax, X]),
-	Setup,
-	catch(read_term(Handle, Clause,
-			[ subterm_positions(TermPos),
-			  variable_names(VarNames),
-			  module(Module)
-			]),
-	      Error,
-	      true),
-	Restore,
-	(   var(Error)
-	->  !
-	;   set_stream_position(Handle, Here),
-	    fail
-	).
+	call_cleanup(
+	    read_source_term_at_location(
+		In, Clause,
+		[ line(Line),
+		  module(Module),
+		  subterm_positions(TermPos),
+		  variable_names(VarNames)
+		]),
+	    close(In)).
 
 
 %%	make_varnames(+ReadClause, +DecompiledClause,
@@ -201,13 +170,6 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 %
 %	@param Offsets	List of Offset=Var
 %	@param Names	List of Name=Var
-%
-%	@bug Called directly from library(trace/clause) for the GUI tracer.
-
-:- multifile make_varnames_hook/5.
-:- public
-	make_varnames/5,
-	do_make_varnames/3.		% allow usage from the hook.
 
 make_varnames(ReadClause, DecompiledClause, Offsets, Names, Term) :-
 	make_varnames_hook(ReadClause, DecompiledClause, Offsets, Names, Term), !.
@@ -691,24 +653,3 @@ clause_name(Ref, Name) :-
 	thaffix(N, Th),
 	format(string(Name), '~d-~w clause of ~w', [N, Th, PredName]).
 clause_name(_, '<meta-call>').
-
-
-		 /*******************************
-		 *        LOW-LEVEL STUFF	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-These predicates communicate about lines.  We   should  consider using a
-line-cache for this for speed.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-%%	seek_to_line(+Stream, +Line)
-%
-%	Seek to indicated line-number.
-
-seek_to_line(Fd, N) :-
-	N > 1, !,
-	skip(Fd, 10),
-	NN is N - 1,
-	seek_to_line(Fd, NN).
-seek_to_line(_, _).

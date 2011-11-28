@@ -836,10 +836,15 @@ process_body(Body, Origin, Src) :-
 
 process_goal(Var, _, _) :-
 	var(Var), !.
-process_goal((A;B), Origin, Src) :- !,
-	(   process_goal(A, Origin, Src)
-	;   process_goal(B, Origin, Src)
-	).
+process_goal(Goal, Origin, Src) :-
+	Goal = (A;B), !,
+	setof(Goal,
+	      (   process_goal(A, Origin, Src)
+	      ;   process_goal(B, Origin, Src)
+	      ),
+	      Alts0),
+	variants(Alts0, Alts),
+	member(Goal, Alts).
 process_goal(Goal, Origin, Src) :-
 	called_by(Goal, Called), !,
 	must_be(list, Called),
@@ -904,6 +909,21 @@ process_assert((_:-Body), Origin, Src) :- !,
 	process_body(Body, Origin, Src).
 process_assert(_, _, _).
 
+%%	variants(+SortedList, -Variants) is det.
+
+variants([], []).
+variants([H|T], List) :-
+	variants(T, H, List).
+
+variants([], H, [H]).
+variants([H|T], V, List) :-
+	(   H =@= V
+	->  variants(T, V, List)
+	;   List2 = [V|List],
+	    variants(T, H, List2)
+	).
+
+
 %%	partial_evaluate(Goal) is det.
 %
 %	Perform partial evaluation on Goal to trap cases such as below.
@@ -921,8 +941,7 @@ partial_evaluate(Goal) :-
 partial_evaluate(_).
 
 eval(X = Y) :-
-	X = Y,
-	acyclic_term(X).
+	unify_with_occurs_check(X, Y).
 
 
 		 /*******************************

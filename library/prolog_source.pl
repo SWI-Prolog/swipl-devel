@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +32,7 @@
 
 :- module(prolog_source,
 	  [ prolog_read_source_term/4,	% +Stream, -Term, -Expanded, +Options
+	    read_source_term_at_location/3, %Stream, -Term, +Options
 	    prolog_open_source/2,	% +Source, -Stream
 	    prolog_close_source/1,	% +Stream
 	    prolog_canonical_source/2,	% +Spec, -Id
@@ -60,9 +62,11 @@ problems that must be taken care of.
 This module concentrates these issues  in   a  single  library. Intended
 users of the library are:
 
-	$ prolog_xref.pl : The Prolog cross-referencer
-	$ PceEmacs :	   Emacs syntax-colouring
-	$ PlDoc :	   The documentation framework
+	$ prolog_xref.pl :   The Prolog cross-referencer
+	$ prolog_clause.pl : Get details about (compiled) clauses
+	$ prolog_colour.pl : Colourise source-code
+	$ PceEmacs :	     Emacs syntax-colouring
+	$ PlDoc :	     The documentation framework
 */
 
 :- thread_local
@@ -71,13 +75,22 @@ users of the library are:
 
 :- multifile
 	requires_library/2,
-	prolog:xref_source_identifier/2,	% +Source, -Id
-	prolog:xref_source_time/2,		% +Source, -Modified
-	prolog:xref_open_source/2.		% +SourceId, -Stream
+	prolog:xref_source_identifier/2, % +Source, -Id
+	prolog:xref_source_time/2,	 % +Source, -Modified
+	prolog:xref_open_source/2,	 % +SourceId, -Stream
+	prolog:alternate_syntax/4.	 % Syntax, +Module, -Setup, -Restore
 
 
 :- predicate_options(prolog_read_source_term/4, 4,
 		     [ process_comment(boolean),
+		       pass_to(system:read_term/3, 3)
+		     ]).
+:- predicate_options(read_source_term_at_location/3, 3,
+		     [ line(integer),
+		       offset(integer),
+		       module(atom),
+		       operators(list),
+		       error(-any),
 		       pass_to(system:read_term/3, 3)
 		     ]).
 
@@ -94,8 +107,14 @@ users of the library are:
 %	    * process_comment(+Boolean)
 %	    If =true=, process structured comments for PlDoc
 %
+%	This predicate is intended to read the   file from the start. It
+%	tracks directives to update its notion of the currently effectie
+%	syntax (e.g., declared operators).
+%
 %	@param Term	Term read
 %	@param Expanded	Result of term-expansion on the term
+%	@see   read_source_term_at_location/3 for reading at an
+%	       arbitrary location.
 
 prolog_read_source_term(In, Term, Expanded, Options) :-
 	read_source_term(In, Term, Options),
@@ -130,6 +149,8 @@ read_source_term(In, Term, Options) :-
 		  | Options
 		  ]).
 
+:- public
+	expand/3.			% Used by Prolog colour
 
 expand(Var, _, Var) :-
 	var(Var), !.
@@ -226,6 +247,134 @@ module_decl(Spec, Decl) :-
 	setup_call_cleanup(prolog_open_source(Path, In),
 			   read(In, (:- module(_, Decl))),
 			   close(In)).
+
+
+%%	read_source_term_at_location(+Stream, -Term, +Options) is semidet.
+%
+%	Try to read a Prolog term form   an  arbitrary location inside a
+%	file. Due to Prolog's dynamic  syntax,   e.g.,  due  to operator
+%	declarations that may change anywhere inside   the file, this is
+%	theoreticaly   impossible.   Therefore,   this    predicate   is
+%	fundamentally _heuristic_ and may fail.   This predicate is used
+%	by e.g., clause_info/4 and by  PceEmacs   to  colour the current
+%	clause.
+%
+%	This predicate has two ways to  find   the  right syntax. If the
+%	file is loaded, it can be  passed   the  module using the module
+%	option. This deals with  module  files   that  define  the  used
+%	operators globally for  the  file.  Second,   there  is  a  hook
+%	prolog:alternate_syntax/4 that can be used to temporary redefine
+%	the syntax.
+%
+%	The options below are processed in   addition  to the options of
+%	read_term/3. Note that  the  =line=   and  =offset=  options are
+%	mutually exclusive.
+%
+%	  * line(+Line)
+%	  If present, start reading at line Line.
+%	  * offset(+Characters)
+%	  Use seek/4 to go to the indicated location.  See seek/4
+%	  for limitations of seeking in text-files.
+%	  * module(+Module)
+%	  Use syntax from the given module. Default is the current
+%	  `source module'.
+%	  * operators(+List)
+%	  List of additional operator declarations to enforce while
+%	  reading the term.
+%	  * error(-Error)
+%	  If no correct parse can be found, unify Error with a term
+%	  Offset:Message that indicates the (character) location of
+%	  the error and the related message.  Adding this option
+%	  makes read_source_term_at_location/3 deterministic.
+%
+%	@see Use read_source_term/4 to read a file from the start.
+%	@see prolog:alternate_syntax/4 for locally scoped operators.
+
+:- thread_local
+	last_syntax_error/2.		% location, message
+
+read_source_term_at_location(Stream, Term, Options) :-
+	retractall(last_syntax_error(_,_)),
+	seek_to_start(Stream, Options),
+	stream_property(Stream, position(Here)),
+	'$set_source_module'(DefModule, DefModule),
+	option(module(Module), Options, DefModule),
+	option(operators(Ops), Options, []),
+	alternate_syntax(Syntax, Module, Setup, Restore),
+	set_stream_position(Stream, Here),
+	peek_char(Stream, X),
+	debug(read, 'Using syntax ~w (c=~w)', [Syntax, X]),
+	push_operators(Module:Ops),
+	Setup,
+	catch(read_term(Stream, Term,
+			[ module(Module)
+			| Options
+			]),
+	      Error,
+	      true),
+	Restore,
+	pop_operators,
+	(   var(Error)
+	->  !
+	;   assert_error(Error, Options),
+	    fail
+	).
+read_source_term_at_location(_, _, Options) :-
+	option(error(Error), Options), !,
+	setof(CharNo:Msg, retract(last_syntax_error(CharNo, Msg)), Pairs),
+	last(Pairs, Error).
+
+assert_error(Error, Options) :-
+	option(error(_), Options), !,
+	(   Error = error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo))
+	->  message_to_string(error(syntax_error(Id), _), Msg),
+	    assertz(last_syntax_error(CharNo, Msg))
+	;   throw(Error)
+	).
+assert_error(_, _).
+
+
+%%	alternate_syntax(?Syntax, +Module, -Setup, -Restore) is nondet.
+%
+%	Define an alternative  syntax  to  try   reading  a  term  at an
+%	arbitrary location in module Module.
+%
+%	Calls the hook prolog:alternate_syntax/4 with the same signature
+%	to allow for user-defined extensions.
+%
+%	@param	Setup is a deterministic goal to enable this syntax in
+%		module.
+%	@param	Restore is a deterministic goal to revert the actions of
+%		Setup.
+
+alternate_syntax(prolog, _, true,  true).
+alternate_syntax(Syntax, M, Setup, Restore) :-
+	prolog:alternate_syntax(Syntax, M, Setup, Restore).
+
+
+%%	seek_to_start(+Stream, +Options) is det.
+%
+%	Go to the location from where to start reading.
+
+seek_to_start(Stream, Options) :-
+	option(line(Line), Options), !,
+	seek(Stream, 0, bof, _),
+	seek_to_line(Stream, Line).
+seek_to_start(Stream, Options) :-
+	option(offset(Start), Options), !,
+	seek(Stream, Start, bof, _).
+seek_to_start(_, _).
+
+%%	seek_to_line(+Stream, +Line)
+%
+%	Seek to indicated line-number.
+
+seek_to_line(Fd, N) :-
+	N > 1, !,
+	skip(Fd, 10),
+	NN is N - 1,
+	seek_to_line(Fd, NN).
+seek_to_line(_, _).
 
 
 		 /*******************************

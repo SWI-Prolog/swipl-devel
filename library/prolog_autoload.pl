@@ -230,7 +230,8 @@ clause_not_from_development(Module:Head, Body) :-
 	   ).
 
 undefined_called_by_body(Body, Module) :-
-	forall(undefined_called(Body, Module), true).
+	forall(undefined_called(Body, Module),
+	       true).
 
 %%	undefined_called(+Goal, +Module) is multi.
 %
@@ -254,9 +255,14 @@ undefined_called((A,B), M) :- !,
 	undefined_called(A, M),
 	undefined_called(B, M).
 undefined_called((A;B), M) :- !,
-	(   undefined_called(A, M)
-	;   undefined_called(B, M)
-	).
+	Goal = (A;B),
+	setof(Goal,
+	      (   undefined_called(A, M)
+	      ;   undefined_called(B, M)
+	      ),
+	      Alts0),
+	variants(Alts0, Alts),
+	member(Goal, Alts).
 undefined_called(A=B, _) :-
 	unify_with_occurs_check(A,B), !.
 undefined_called(Goal, M) :-
@@ -303,6 +309,20 @@ extend(Goal, N, GoalEx) :-
 	length(Extra, N),
 	append(List, Extra, ListEx),
 	GoalEx =.. ListEx.
+
+%%	variants(+SortedList, -Variants) is det.
+
+variants([], []).
+variants([H|T], List) :-
+	variants(T, H, List).
+
+variants([], H, [H]).
+variants([H|T], V, List) :-
+	(   H =@= V
+	->  variants(T, V, List)
+	;   List2 = [V|List],
+	    variants(T, H, List2)
+	).
 
 %%	predicate_in_module(+Module, ?PI) is nondet.
 %
