@@ -4393,15 +4393,13 @@ L = [gnu, gnat]
 \end{code}
 
     \predicate[ISO]{atom_length}{2}{+Atom, -Length}
-True if \arg{Atom} is an atom of \arg{Length} characters long. This
-predicate also works for strings (see \secref{strings}). If the prolog
-flag \prologflag{iso} is \emph{not} set, it also accepts integers and floats,
-expressing the number of characters output when given to write/1 as well
-as code-lists and character-lists, expressing the length of the list.%
-    \bug{Note that \const{[]} is both an atom an empty code/character
-	 list.  The predicate atom_length/2 returns 2 for this atom.}
+True if \arg{Atom} is an atom of \arg{Length} characters long. The
+SWI-Prolog version accepts all atomic types, as well as code-lists and
+character-lists. New code should avoid this feature and use
+write_length/3 to get the number of characters that would be written if
+the argument was handed to write_term/3.
 
-    \predicate{atom_prefix}{2}{+Atom, +Prefix}
+    \predicate[deprecated]{atom_prefix}{2}{+Atom, +Prefix}
 True if \arg{Atom} starts with the characters from \arg{Prefix}.
 Its behaviour is equivalent to
 \exam{?- sub_atom(\arg{Atom}, 0, _, _, \arg{Prefix})}.  Deprecated.
@@ -6508,7 +6506,10 @@ working directory. See also absolute_file_name/3. See also
 absolute_file_name/3 and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
-Converts the given file specification into an absolute path.
+Converts the given file specification into an absolute path. \arg{Spec}
+is a term Alias(Relative) (e.g., \verb$(library(lists)$), a relative
+file-name or an absolute file name. The primary intention of this
+predicate is to resolve files specified as Alias(Relative).
 \arg{Option} is a list of options to guide the conversion:
 
 \begin{description}
