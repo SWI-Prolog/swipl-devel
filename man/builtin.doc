@@ -3254,6 +3254,16 @@ collect_wd([C|R]) :-
 collect_wd([]).
 \end{code}
 
+The effect of tell/1 is not undone on backtracking, and since the
+stream handle is not specified explicitly in further I/O operations
+when using Edinburgh-style I/O, you may write to unintended streams
+more easily than when using ISO compliant I/O. For example, the
+following query writes both "a" and "b" into the file `out' :
+
+\begin{code}
+?- (tell(out), write(a), false ; write(b)), told.
+\end{code}
+
 
 \subsubsection*{Compatibility notes}
 
