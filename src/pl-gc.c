@@ -3573,6 +3573,9 @@ leaveGC(ARG1_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns: < 0: (local) overflow; TRUE: ok; FALSE: shifted;
+
+If gcEnsureSpace() returns overflow or out-of-stack, it has restored the
+given vm-state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -3591,6 +3594,7 @@ gcEnsureSpace(vm_state *state ARG_LD)
   { if ( (char*)lTop + lneeded > (char*)lMax + LD->stacks.local.spare )
     { int rc2;
 
+      restore_vmi_state(state);
       if ( (rc2=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
 	return rc2;
       rc = FALSE;
