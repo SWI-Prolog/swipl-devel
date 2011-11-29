@@ -98,7 +98,7 @@ prolog_colourise_stream(Fd, SourceId, ColourItem) :-
 			  ],
 			  TB),
 	setup_call_cleanup(
-	    save_settings(Fd, State),
+	    save_settings(State),
 	    colourise_stream(Fd, TB),
 	    restore_settings(State)).
 
@@ -129,16 +129,15 @@ colourise_stream(Fd, TB) :-
 	    ),
 	    Term == end_of_file, !.
 
-save_settings(Fd, state(Fd, Style, Esc)) :-
+save_settings(state(Style, Esc)) :-
 	push_operators([]),
 	current_prolog_flag(character_escapes, Esc),
 	'$style_check'(Style, Style).
 
-restore_settings(state(Fd, Style, Esc)) :-
+restore_settings(state(Style, Esc)) :-
 	set_prolog_flag(character_escapes, Esc),
 	'$style_check'(_, Style),
-	pop_operators,
-	close(Fd).
+	pop_operators.
 
 %%	read_error(+Error, +TB, +Stream, +Start) is failure.
 %
