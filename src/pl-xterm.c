@@ -174,6 +174,20 @@ static IOFUNCTIONS SXtermfunctions =
 };
 
 
+static int
+unifyXtermStream(term_t t, xterm *xt, int flags)
+{ IOSTREAM *s;
+  int defflags = (SIO_NOCLOSE|SIO_TEXT);
+
+  if ( (s=Snew(xt, (defflags|flags), &SXtermfunctions)) )
+  { s->encoding = initEncoding();
+    return PL_unify_stream(t, s);
+  }
+
+  return FALSE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Start the Xterm window. This window  runs   in  a  separate process. How
 should this process be related to us?  Should it be a new session?
@@ -258,17 +272,9 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
   xt->fd    = slave;
   xt->count = 3;			/* opened 3 times */
 
-  PL_unify_stream(in,  Snew(xt,
-			    SIO_INPUT|SIO_LBUF|SIO_NOFEOF,
-			    &SXtermfunctions));
-  PL_unify_stream(out, Snew(xt,
-			    SIO_OUTPUT|SIO_LBUF,
-			    &SXtermfunctions));
-  PL_unify_stream(err, Snew(xt,
-			    SIO_OUTPUT|SIO_NBUF,
-			    &SXtermfunctions));
-
-  succeed;
+  return (unifyXtermStream(in,  xt, SIO_INPUT|SIO_LBUF|SIO_NOFEOF) &&
+	  unifyXtermStream(out, xt, SIO_OUTPUT|SIO_LBUF) &&
+	  unifyXtermStream(err, xt, SIO_OUTPUT|SIO_NBUF));
 }
 
 #else /*HAVE_GRANTPT*/
