@@ -2611,6 +2611,55 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 
 
 int
+addModuleSourceFile(SourceFile sf, Module m)
+{ ListCell cell;
+  int rc = TRUE;
+
+  LOCK();
+  for(cell=sf->modules; cell; cell = cell->next)
+  { if ( cell->value == m )
+    goto out;
+  }
+
+  { GET_LD
+
+    if ( !(cell = allocHeap(sizeof(struct list_cell))) )
+    { rc = FALSE;			/* no memory */
+      goto out;
+    }
+    cell->value = m;
+    cell->next = sf->modules;
+    sf->modules = cell;
+  }
+
+out:
+  UNLOCK();
+  return TRUE;
+}
+
+
+static int
+delModuleSourceFile(SourceFile sf, Module m)
+{ GET_LD
+  ListCell *cp, c;
+
+  LOCK();
+  for(cp=&sf->modules; (c=*cp); cp=&c->next)
+  { if ( c->value == m )
+    { *cp = c->next;
+      freeHeap(c, sizeof(*c));
+
+      UNLOCK();
+      return TRUE;
+    }
+  }
+
+  UNLOCK();
+  return FALSE;
+}
+
+
+int
 redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 { GET_LD
   Definition def = proc->definition;
@@ -2909,7 +2958,7 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
     return FALSE;
 
   if ( (sf = lookupSourceFile(name, FALSE)) )
-  { Module m;
+  { ListCell mc, mcn;
 
     if ( sf->system )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
@@ -2918,11 +2967,14 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
     if ( !unloadFile(sf) )
       return FALSE;
 
-    if ( (m=moduleFromFile(sf)) )
-    { LOCKMODULE(m);
+    for(mc=sf->modules; mc; mc=mcn)
+    { Module m = mc->value;
+
+      mcn = mc->next;
+      LOCKMODULE(m);
       m->file = NULL;
       m->line_no = 0;
-      sf->module_count--;
+      delModuleSourceFile(sf, m);
       clearHTable(m->public);
       setSuperModule(m, MODULE_user);
       UNLOCKMODULE(m);

@@ -385,7 +385,16 @@ source_file_property(File, P) :-
 property_source_file(modified(Time), File) :-
 	'$time_source_file'(File, Time, user).
 property_source_file(module(M), File) :-
-	'$current_module'(M, File).
+	(   nonvar(M)
+	->  '$current_module'(M, File)
+	;   nonvar(File)
+	->  '$current_module'(ML, File),
+	    (	atom(ML)
+	    ->	M = ML
+	    ;	'$member'(M, ML)
+	    )
+	;   '$current_module'(M, File)
+	).
 property_source_file(load_context(Module, Location), File) :-
 	'$time_source_file'(File, _, user),
 	clause(system:'$load_context_module'(File, Module), true, Ref),
@@ -788,10 +797,17 @@ current_module(Module) :-
 module_property(Module, Property) :-
 	nonvar(Module), nonvar(Property), !,
 	'$module_property'(Module, Property).
-module_property(Module, Property) :-
+module_property(Module, Property) :-	% -, file(File)
 	nonvar(Property), Property = file(File), !,
-	'$current_module'(Module, File),
-	File \== [].
+	(   nonvar(File)
+	->  '$current_module'(Modules, File),
+	    (	atom(Modules)
+	    ->	Module = Modules
+	    ;	'$member'(Module, Modules)
+	    )
+	;   '$current_module'(Module, File),
+	    File \== []
+	).
 module_property(Module, Property) :-
 	current_module(Module),
 	module_property(Property),

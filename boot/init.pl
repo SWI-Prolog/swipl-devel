@@ -1312,8 +1312,23 @@ load_files(Module:Files, Options) :-
 	'$mt_load_file'(File, FullFile, Module, Options).
 
 
+%%	'$already_loaded'(+File, +FulleFile, +Module, +Options) is det.
+%
+%	Called if File is already loaded. If  this is a module-file, the
+%	module must be imported into the context  Module. If it is not a
+%	module file, it must be reloaded.
+%
+%	@bug	A file may be associated with multiple modules.  How
+%		do we find the `main export module'?  Currently there
+%		is no good way to find out which module is associated
+%		to the file as a result of the first :- module/2 term.
+
 '$already_loaded'(_File, FullFile, Module, Options) :-
-	'$current_module'(LoadModule, FullFile), !,
+	'$current_module'(LoadModules, FullFile), !,
+	(   atom(LoadModules)
+	->  LoadModule = LoadModules
+	;   LoadModules = [LoadModule|_]
+	),
 	'$import_from_loaded_module'(LoadModule, Module, Options).
 '$already_loaded'(_, _, user, _) :- !.
 '$already_loaded'(File, _, Module, Options) :-

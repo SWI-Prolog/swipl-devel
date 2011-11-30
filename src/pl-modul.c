@@ -560,33 +560,14 @@ get_existing_source_file(term_t file, SourceFile *sfp ARG_LD)
 }
 
 
-Module
-moduleFromFile(SourceFile sf)
-{ TableEnum e;
-  Symbol symb;
-
-  for(e = newTableEnum(GD->tables.modules),
-      symb = advanceTableEnum(e);
-      symb;
-      symb = advanceTableEnum(e))
-  { Module m = symb->value;
-
-    if ( m->file == sf )
-    { freeTableEnum(e);
-      return m;
-    }
-  }
-
-  freeTableEnum(e);
-  return NULL;
-}
-
-
 /** '$current_module'(+Module, -File) is semidet.
-    '$current_module'(?Module, ?File) is nondet.
+    '$current_module'(-ModuleOrList, +File) is semidet.
+    '$current_module'(-Module, -File) is nondet.
 
 Query module<->file association. This association  is N:1 in SWI-Prolog.
-Think e.g., of test-units that are mapped to modules.
+Think e.g., of test-units that are mapped  to modules. When used in mode
+(-, +), this predicate unifies Module with  a non-empty list if the file
+is associated to multiple modules.
 */
 
 static
@@ -613,8 +594,40 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 
 	return FALSE;
       }
+
       if ( !get_existing_source_file(file, &sf PASS_LD) )
 	return FALSE;			/* given, but non-existing file */
+
+      if ( sf )
+      { if ( sf->modules )
+	{ int rc = FALSE;
+
+	  PL_LOCK(L_PREDICATE);
+	  if ( sf->modules->next )
+	  { term_t tail = PL_copy_term_ref(module);
+	    term_t head = PL_new_term_ref();
+	    ListCell c;
+
+	    for(c=sf->modules; c; c=c->next)
+	    { Module m = c->value;
+
+	      if ( !(PL_unify_list(tail, head, tail) &&
+		     PL_unify_atom(head, m->name)) )
+		goto out;
+	    }
+	    rc = PL_unify_nil(tail);
+	  } else
+	  { Module m = sf->modules->value;
+	    rc = PL_unify_atom(module, m->name);
+	  }
+
+	out:
+	  PL_UNLOCK(L_PREDICATE);
+	  return rc;
+	}
+	return FALSE;			/* source-file has no modules */
+      }
+
       e = newTableEnum(GD->tables.modules);
       break;
     case FRG_REDO:
@@ -630,34 +643,25 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
       return FALSE;
   }
 
+					/* mode (-,-) */
+
   while( (symb = advanceTableEnum(e)) )
   { Module m = symb->value;
+    atom_t f = ( !m->file ? ATOM_nil : m->file->name);
 
-    if ( stringAtom(m->name)[0] == '$' &&
+    if ( m->class == ATOM_system && m->name != ATOM_system &&
 	 !SYSTEM_MODE && PL_is_variable(module) )
       continue;
 
-    { fid_t cid = PL_open_foreign_frame();
-      atom_t f = ( !m->file ? ATOM_nil : m->file->name);
+    if ( PL_unify_atom(module, m->name) &&
+	 PL_unify_atom(file, f) )
+      ForeignRedoPtr(e);
 
-      if ( (!sf || (m->file == sf)) &&
-	   PL_unify_atom(module, m->name) &&
-	   PL_unify_atom(file, f) )
-      { PL_close_foreign_frame(cid);
-
-	if ( sf && sf->module_count == 1 )
-	{ freeTableEnum(e);
-	  succeed;
-	}
-	ForeignRedoPtr(e);
-      }
-
-      PL_discard_foreign_frame(cid);
-    }
+    break;				/* must be an error */
   }
 
   freeTableEnum(e);
-  fail;
+  return FALSE;
 }
 
 
@@ -835,7 +839,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
 
   if ( module->file != sf )
   { module->file = sf;
-    sf->module_count++;		/* current determinism in $current_module/2 */
+    addModuleSourceFile(sf, module);
   }
   module->line_no = line;
   LD->modules.source = module;

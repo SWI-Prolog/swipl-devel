@@ -1409,14 +1409,14 @@ struct recordRef
 };
 
 struct sourceFile
-{ atom_t	name;		/* name of source file */
-  int		count;		/* number of times loaded */
-  time_t	time;		/* load time of file */
-  ListCell	procedures;	/* List of associated procedures */
+{ atom_t	name;			/* name of source file */
+  time_t	time;			/* load time of file */
+  ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
-  int		index;		/* index number (1,2,...) */
-  unsigned	system : 1;	/* system sourcefile: do not reload */
-  unsigned	module_count:8;	/* # modules in the file */
+  ListCell	modules;		/* Modules associated to this file */
+  int		count;			/* number of times loaded */
+  unsigned	index : 24;		/* index number (1,2,...) */
+  unsigned	system : 1;		/* system sourcefile: do not reload */
 };
 
 
