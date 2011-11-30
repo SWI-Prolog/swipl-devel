@@ -94,13 +94,7 @@ interactor :-
 thread_run_interactor :-
 	attach_console,
 	print_message(banner, thread_welcome),
-	run_prolog.
-
-run_prolog :-
-	catch(prolog, E,
-	      ( print_message(error, E),
-%		E = error(_, _),
-		run_prolog)).
+	prolog.
 
 %%	attach_console
 %
@@ -110,10 +104,12 @@ run_prolog :-
 :- dynamic
 	has_console/4.			% Id, In, Out, Err
 
-has_console(main).			% we assume main has one.
+has_console(main) :- !.			% we assume main has one.
 has_console(Id) :-
 	has_console(Id, _, _, _).
 
+has_console :-
+	current_prolog_flag(break_level, _), !.
 has_console :-
 	thread_self(Id),
 	has_console(Id), !.
