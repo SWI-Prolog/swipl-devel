@@ -79,52 +79,59 @@
 		*           DEBUGGER            *
 		*********************************/
 
-:- meta_predicate
-	'$map_bits'(2, +, +, -).
+%%	map_bits(:Pred, +Modify, +OldBits, -NewBits)
 
-'$map_bits'(_, [], Bits, Bits) :- !.
-'$map_bits'(Pred, [H|T], Old, New) :-
-	'$map_bits'(Pred, H, Old, New0),
-	'$map_bits'(Pred, T, New0, New).
-'$map_bits'(Pred, +Name, Old, New) :- !,	% set a bit
-	call(Pred, Name, Bits), !,
+:- meta_predicate
+	map_bits(2, +, +, -).
+
+map_bits(_, [], Bits, Bits) :- !.
+map_bits(Pred, [H|T], Old, New) :-
+	map_bits(Pred, H, Old, New0),
+	map_bits(Pred, T, New0, New).
+map_bits(Pred, +Name, Old, New) :- !,	% set a bit
+	bit(Pred, Name, Bits), !,
 	New is Old \/ Bits.
-'$map_bits'(Pred, -Name, Old, New) :- !,	% clear a bit
-	call(Pred, Name, Bits), !,
+map_bits(Pred, -Name, Old, New) :- !,	% clear a bit
+	bit(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
-'$map_bits'(Pred, ?(Name), Old, Old) :-		% ask a bit
-	call(Pred, Name, Bits),
+map_bits(Pred, ?(Name), Old, Old) :-		% ask a bit
+	bit(Pred, Name, Bits),
 	Old /\ Bits > 0.
 
-'$port_bit'(      call, 2'000000001).
-'$port_bit'(      exit, 2'000000010).
-'$port_bit'(      fail, 2'000000100).
-'$port_bit'(      redo, 2'000001000).
-'$port_bit'(     unify, 2'000010000).
-'$port_bit'(     break, 2'000100000).
-'$port_bit'(  cut_call, 2'001000000).
-'$port_bit'(  cut_exit, 2'010000000).
-'$port_bit'( exception, 2'100000000).
-'$port_bit'(       cut, 2'011000000).
-'$port_bit'(       all, 2'000111111).
-'$port_bit'(      full, 2'000101111).
-'$port_bit'(      half, 2'000101101).	% '
+bit(Pred, Name, Bits) :-
+	call(Pred, Name, Bits), !.
+bit(_:Pred, Name, _) :-
+	throw(error(domain_error(Pred, Name), _)).
+
+port_name(      call, 2'000000001).
+port_name(      exit, 2'000000010).
+port_name(      fail, 2'000000100).
+port_name(      redo, 2'000001000).
+port_name(     unify, 2'000010000).
+port_name(     break, 2'000100000).
+port_name(  cut_call, 2'001000000).
+port_name(  cut_exit, 2'010000000).
+port_name( exception, 2'100000000).
+port_name(       cut, 2'011000000).
+port_name(       all, 2'000111111).
+port_name(      full, 2'000101111).
+port_name(      half, 2'000101101).	% '
 
 leash(Ports) :-
 	'$leash'(Old, Old),
-	'$map_bits'('$port_bit', Ports, Old, New),
+	map_bits(port_name, Ports, Old, New),
 	'$leash'(_, New).
 
 visible(Ports) :-
 	'$visible'(Old, Old),
-	'$map_bits'('$port_bit', Ports, Old, New),
+	map_bits(port_name, Ports, Old, New),
 	'$visible'(_, New).
 
-'$map_style_check'(atom,	    2'0000001).
-'$map_style_check'(singleton,	    2'0000010).
-'$map_style_check'((discontiguous),   2'0001000).
-'$map_style_check'(dynamic,	    2'0010000).
-'$map_style_check'(charset,	    2'0100000).
+style_name(atom,	    2'0000001).
+style_name(singleton,	    2'0000010).
+style_name(discontiguous,   2'0001000).
+style_name(dynamic,	    2'0010000).
+style_name(charset,	    2'0100000).
 
 style_check(+string) :- !,
 	set_prolog_flag(double_quotes, string).
@@ -134,7 +141,7 @@ style_check(?(string)) :- !,
 	current_prolog_flag(double_quotes, string).
 style_check(Spec) :-
 	'$style_check'(Old, Old),
-	'$map_bits'('$map_style_check', Spec, Old, New),
+	map_bits(style_name, Spec, Old, New),
 	'$style_check'(_, New).
 
 %	prolog:debug_control_hook(+Action)
