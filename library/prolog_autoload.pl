@@ -70,7 +70,8 @@ all initialization goals.
 */
 
 :- thread_local
-	autoloaded_count/1.
+	autoloaded_count/1,
+	multifile_predicate/3.		% Name, Arity, Module
 
 %%	autoload is det.
 %%	autoload(+Options) is det.
@@ -164,6 +165,7 @@ find_undefined(Options) :-
 		 scan_module(M)
 	       ),
 	       find_undefined_from_module(M, Options)),
+	undefined_from_multifile(Options),
 	undefined_from_initialization(Options).
 
 scan_module(M) :-
@@ -206,16 +208,29 @@ find_undefined_from_module(M, _Options) :-
 	       undefined_called_by_pred(M:PI)).
 
 undefined_called_by_pred(Module:Name/Arity) :-
+	multifile_predicate(Name, Arity, Module), !.
+undefined_called_by_pred(Module:Name/Arity) :-
 	functor(Head, Name, Arity),
 	predicate_property(Module:Head, multifile), !,
-	forall(catch(clause_not_from_development(Module:Head, Body), _, fail),
-	       undefined_called_by_body(Body, Module)).
-
-
+	assertz(multifile_predicate(Name, Arity, Module)).
 undefined_called_by_pred(Module:Name/Arity) :-
 	functor(Head, Name, Arity),
 	forall(catch(clause(Module:Head, Body), _, fail),
 	       undefined_called_by_body(Body, Module)).
+
+%%	undefined_from_multifile(+Options)
+%
+%	Process registered multifile predicates.
+
+undefined_from_multifile(_Options) :-
+	forall(retract(multifile_predicate(Name, Arity, Module)),
+	       undefined_called_by_multifile(Module:Name/Arity)).
+
+undefined_called_by_multifile(Module:Name/Arity) :-
+	functor(Head, Name, Arity),
+	forall(catch(clause_not_from_development(Module:Head, Body), _, fail),
+	       undefined_called_by_body(Body, Module)).
+
 
 %%	clause_not_from_development(:Head, -Body) is nondet.
 %
