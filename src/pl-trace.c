@@ -1613,8 +1613,12 @@ again:
 		  PL_rethrow();
 		break;
     case 'b':	Sfputs("break\n", Sdout);
-		unblockSignal(sig);	/* into pl_break() itself */
-		pl_break();
+		if ( safe )
+		{ unblockSignal(sig);	/* into pl_break() itself */
+		  pl_break();
+		} else
+		{ Sfputs("Cannot break from forced interrupt\n", Sdout);
+		}
 		goto again;
     case 'c':	if ( safe )
 		{ printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_end);
