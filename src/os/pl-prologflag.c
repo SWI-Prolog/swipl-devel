@@ -1123,10 +1123,10 @@ initPrologFlags()
 
   setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
 
-  setPrologFlag("tty_control", FT_BOOL|FF_READONLY,
-	     truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);
+  setPrologFlag("tty_control", FT_BOOL,
+		truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);
   setPrologFlag("signals", FT_BOOL|FF_READONLY,
-	     truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
+		truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
   setPrologFlag("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)

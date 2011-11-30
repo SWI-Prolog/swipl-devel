@@ -496,6 +496,7 @@ save_prolog_flags.
 
 no_save_flag(argv).
 no_save_flag(access_level).
+no_save_flag(tty_control).
 no_save_flag(readline).
 no_save_flag(associated_file).
 no_save_flag(hwnd).			% should be read-only, but comes
