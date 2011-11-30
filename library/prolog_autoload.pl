@@ -36,7 +36,6 @@
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 :- use_module(library(aggregate)).
-:- use_module(library(prolog_xref)).
 
 :- predicate_options(autoload/1, 1,
 		     [ verbose(boolean)
@@ -281,7 +280,7 @@ undefined_called((A;B), M) :- !,
 undefined_called(A=B, _) :-
 	unify_with_occurs_check(A,B), !.
 undefined_called(Goal, M) :-
-	prolog_xref:called_by(Goal, Called),
+	prolog:called_by(Goal, Called),
 	Called \== [], !,
 	undefined_called_by(Called, M).
 undefined_called(Meta, M) :-
@@ -335,7 +334,7 @@ variants([], H, [H]).
 variants([H|T], V, List) :-
 	(   H =@= V
 	->  variants(T, V, List)
-	;   List2 = [V|List],
+	;   List = [V|List2],
 	    variants(T, H, List2)
 	).
 

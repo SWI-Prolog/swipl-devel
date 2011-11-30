@@ -140,17 +140,6 @@ This code is used in two places:
 :- dynamic
 	meta_goal/2.
 
-:- public
-	called_by/2.				% used by option analyzer
-
-called_by(Goal, Called) :-
-	prolog:called_by(Goal, Called), !.
-called_by(on_signal(_,_,New), [New+1]) :-
-	(   new == throw
-	;   new == default
-	), !, fail.
-
-
 		 /*******************************
 		 *	     BUILT-INS		*
 		 *******************************/
@@ -617,7 +606,7 @@ process_meta_head(Decl) :-
 	functor(Head, Name, Arity),
 	meta_args(1, Arity, Decl, Head, Meta),
 	(   (   prolog:meta_goal(Head, _)
-	    ;   called_by(Head, _)
+	    ;   prolog:called_by(Head, _)
 	    ;   meta_goal(Head, _)
 	    )
 	->  true
@@ -789,6 +778,7 @@ hook(prolog:locate_clauses(_,_)).
 hook(prolog:message(_,_,_)).
 hook(prolog:error_message(_,_,_)).
 hook(prolog:message_context(_,_,_)).
+hook(prolog:message_line_element(_,_)).
 hook(prolog:debug_control_hook(_)).
 hook(prolog:help_hook(_)).
 hook(prolog:show_profile_hook(_,_)).
@@ -846,7 +836,7 @@ process_goal(Goal, Origin, Src) :-
 	variants(Alts0, Alts),
 	member(Goal, Alts).
 process_goal(Goal, Origin, Src) :-
-	called_by(Goal, Called), !,
+	prolog:called_by(Goal, Called), !,
 	must_be(list, Called),
 	assert_called(Src, Origin, Goal),
 	process_called_list(Called, Origin, Src).
@@ -919,7 +909,7 @@ variants([], H, [H]).
 variants([H|T], V, List) :-
 	(   H =@= V
 	->  variants(T, V, List)
-	;   List2 = [V|List],
+	;   List = [V|List2],
 	    variants(T, H, List2)
 	).
 

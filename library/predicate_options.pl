@@ -50,7 +50,6 @@
 :- use_module(library(lists)).
 :- use_module(library(debug)).
 :- use_module(library(prolog_clause)).
-:- use_module(library(prolog_xref)).
 
 :- meta_predicate
 	predicate_options(:, +, +),
@@ -661,9 +660,8 @@ check_body(Goal, M, term_position(_,_,_,_,ArgPosList), Action) :-
 	    check_options(DefM:Name/Arity, OptArg, Options, ArgPos, Action)
 	).
 check_body(Goal, M, _, Action) :-
-	prolog_xref:called_by(Goal, Called),
-	Called \== [], !,
-	check_xref_called(Called, M, Action).
+	prolog:called_by(Goal, Called), !,
+	check_called_by(Called, M, Action).
 check_body(Meta, M, term_position(_,_,_,_,ArgPosList), Action) :-
 	'$get_predicate_attribute'(M:Meta, meta_predicate, Head), !,
 	check_meta_args(1, Head, Meta, M, ArgPosList, Action).
@@ -680,12 +678,12 @@ check_meta_args(I, Head, Meta, M, [ArgPos|ArgPosList], Action) :-
 	check_meta_args(I2, Head, Meta, M, ArgPosList, Action).
 check_meta_args(_,_,_,_, _, _).
 
-%%	check_xref_called(+CalledBy, +M, +Action) is det.
+%%	check_called_by(+CalledBy, +M, +Action) is det.
 %
 %	Handle results from prolog:called_by/2.
 
-check_xref_called([], _, _).
-check_xref_called([H|T], M, Action) :-
+check_called_by([], _, _).
+check_called_by([H|T], M, Action) :-
 	(   H = G+N
 	->  (   extend(G, N, G2)
 	    ->	check_body(G2, M, _, Action)
@@ -693,7 +691,7 @@ check_xref_called([H|T], M, Action) :-
 	    )
 	;   check_body(H, M, _, Action)
 	),
-	check_xref_called(T, M, Action).
+	check_called_by(T, M, Action).
 
 extend(Goal, N, GoalEx) :-
 	callable(Goal),
