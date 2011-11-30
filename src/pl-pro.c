@@ -32,11 +32,18 @@
 		*    CALLING THE INTERPRETER    *
 		*********************************/
 
-static void
+static int
 resetProlog(int clear_stacks)
 { GET_LD
+  IOSTREAM *in = Suser_input;
 
-  Scurin  = Suser_input;
+  if ( Sferror(in) )
+  { Sclearerr(in);
+    if ( Sfeof(in) )
+      return FALSE;
+  }
+
+  Scurin  = in;
   Scurout = Suser_output;
 
   resetTracer();
@@ -82,7 +89,8 @@ query_loop(atom_t goal)
     term_t except = 0;
     predicate_t p;
 
-    resetProlog(clear_stacks);
+    if ( !resetProlog(clear_stacks) )
+      goto error;
     if ( !(fid = PL_open_foreign_frame()) )
       goto error;
 
@@ -93,7 +101,8 @@ query_loop(atom_t goal)
     } else
     { error:
       except = exception_term;
-      loop = rc = FALSE;		/* Won't get any better */
+      rc = FALSE;			/* Won't get any better */
+      break;
     }
 
     if ( !rc && (except = PL_exception(qid)) )
