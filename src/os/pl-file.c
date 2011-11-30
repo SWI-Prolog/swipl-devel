@@ -4462,6 +4462,8 @@ Sread_user(void *handle, char *buf, size_t size)
   if ( size == 0 )			/* end-of-file */
   { Sclearerr(Suser_input);
     LD->prompt.next = TRUE;
+  } else if ( size == 1 && buf[0] == 04 )
+  { size = 0;				/* Map ^D to end-of-file */
   } else if ( size > 0 && buf[size-1] == '\n' )
     LD->prompt.next = TRUE;
 
@@ -4513,6 +4515,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   IOSTREAM *in = NULL, *out = NULL, *error = NULL;
   int rval = FALSE;
   int wrapin = FALSE;
+  int i;
 
   if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) ||
        !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
@@ -4548,6 +4551,11 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
     LD->IO.streams[0] = in;		/* user_input */
     wrapIO(in, Sread_user, NULL);
     LD->prompt.next = TRUE;
+  }
+
+  for(i=0; i<3; i++)
+  { LD->IO.streams[i]->position = &LD->IO.streams[0]->posbuf;
+    LD->IO.streams[i]->flags |= SIO_RECORDPOS;
   }
 
   UNLOCK();
