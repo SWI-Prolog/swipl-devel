@@ -466,11 +466,11 @@ read_query(Prompt, Goal, Bindings) :-
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
 	catch('$raw_read'(user_input, Line), E,
-	      (print_message(error, E),
-	       (   E = error(syntax_error(_), _)
-	       ->  fail
-	       ;   throw(E)
-	       ))),
+	      (   E = error(syntax_error(_), _)
+	      ->  print_message(error, E),
+		  fail
+	      ;   throw(E)
+	      )),
 	(   current_predicate(_, user:rl_add_history(_))
 	->  format(atom(CompleteLine), '~W~W',
 		   [ Line, [partial(true)],

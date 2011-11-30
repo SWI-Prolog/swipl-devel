@@ -37,28 +37,27 @@
 
 %%  read_history(+History, +Help, +DontStore, +Prompt, -Term, -Bindings)
 %
-%   Give a prompt using Prompt. The sequence '%w' is substituted with the
-%   current event number. Then read a term from the input stream and perform
-%   the history expansion. Return the expanded term and the bindings of the
-%   variables as with read/2.
-%   entering the term History makes read_history/5 print the history.
-%   Help specifies the help command.
-%   DontStore is a list of events that need not be stored.
+%   Give a prompt using Prompt. The   sequence  '%w' is substituted with
+%   the current event number. Then read a term from the input stream and
+%   perform the history expansion. Return  the   expanded  term  and the
+%   bindings of the variables as with  read/2. entering the term History
+%   makes read_history/5 print the  history.   Help  specifies  the help
+%   command. DontStore is a list of events that need not be stored.
 
-%   When read_history reads a term of the form $silent(Goal), it will
-%   call Goal and pretend it has not seen anything.  This hook is used
-%   by the GNU-Emacs interface to for communication between GNU-EMACS
-%   and SWI-Prolog.
+%   When read_history reads a term of   the  form $silent(Goal), it will
+%   call Goal and pretend it has not seen anything. This hook is used by
+%   the GNU-Emacs interface to for   communication between GNU-EMACS and
+%   SWI-Prolog.
 
 read_history(History, Help, DontStore, Prompt, Term, Bindings) :-
 	repeat,
 	    prompt_history(Prompt),
 	    catch('$raw_read'(user_input, Raw), E,
-		  (print_message(error, E),
-		   (   E = error(syntax_error(_), _)
-		   ->  fail
-		   ;   throw(E)
-		   ))),
+		  (   E = error(syntax_error(_), _)
+		  ->  print_message(error, E),
+		      fail
+		  ;   throw(E)
+		  )),
 	    read_history_(History, Help, DontStore, Raw, Term, Bindings), !.
 
 read_history_(History, _, _, History, _, _) :-
