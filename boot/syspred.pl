@@ -862,6 +862,8 @@ shell :-
 	on_signal(+, :, :),
 	current_signal(?, ?, :).
 
+%%	on_signal(+Signal, -OldHandler, :NewHandler) is det.
+
 on_signal(Signal, Old, New) :-
 	atom(Signal), !,
 	'$on_signal'(_Num, Signal, Old, New).
@@ -871,13 +873,23 @@ on_signal(Signal, Old, New) :-
 on_signal(Signal, _Old, _New) :-
 	(   var(Signal)
 	->  Err = instantiation_error
-	;   Err = type_error(signal, Signal)
+	;   Err = type_error(signal_name, Signal)
 	),
 	throw(error(Err, context(on_signal/3, _))).
+
+%%	current_signal(?Name, ?SignalNumber, :Handler) is nondet.
 
 current_signal(Name, Id, Handler) :-
 	between(1, 32, Id),
 	'$on_signal'(Id, Name, Handler, Handler).
+
+:- multifile
+	prolog:called_by/2.
+
+prolog:called_by(on_signal(_,_,New), [New+1]) :-
+	(   new == throw
+	;   new == default
+	), !, fail.
 
 
 		 /*******************************
