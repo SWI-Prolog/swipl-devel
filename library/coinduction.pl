@@ -133,13 +133,15 @@ wrap_coinductive(Pred, Term, [Wrapper_1,Wrapper_2,FirstClause]) :-
 	atom_concat('coinductive ', Name, WrappedName),
 	WrappedHead =.. [WrappedName|Args],
 	Wrapper_1 = (GenHead :-
-		    	prolog_current_frame(F),
+			prolog_current_frame(F),
 		        prolog_frame_attribute(F, parent, FP),
 		        prolog_frame_attribute(FP, parent_goal, M:GenHead)),
 	Wrapper_2 = (GenHead :- WrappedHead, coinduction:no_lco),
 	rename_clause(Term, 'coinductive ', FirstClause).
 
-no_lco.
+:- public no_lco/0.
+
+no_lco.					% true, but do not optimize away
 
 %%	rename_clause(+Clause, +Prefix, -Renamed) is det.
 %
