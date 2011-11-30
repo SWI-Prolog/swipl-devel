@@ -582,44 +582,52 @@ moduleFromFile(SourceFile sf)
 }
 
 
-word
-pl_current_module(term_t module, term_t file, control_t h)
-{ GET_LD
-  TableEnum e = NULL;
+/** '$current_module'(+Module, -File) is semidet.
+    '$current_module'(?Module, ?File) is nondet.
+
+Query module<->file association. This association  is N:1 in SWI-Prolog.
+Think e.g., of test-units that are mapped to modules.
+*/
+
+static
+PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  TableEnum e;
   Symbol symb;
   atom_t name;
   SourceFile sf = NULL;
 
-  if ( ForeignControl(h) == FRG_CUTTED )
-  { e = ForeignContextPtr(h);
-    freeTableEnum(e);
-    succeed;
-  }
-				/* deterministic case: module --> file */
-  if ( PL_get_atom(module, &name) )
-  { Module m;
+  term_t module = A1;
+  term_t file   = A2;
 
-    if ( (m=isCurrentModule(name)) )
-    { atom_t f = (!m->file ? ATOM_nil : m->file->name);
-      return PL_unify_atom(file, f);
-    }
-
-    fail;
-  }
-
-  switch(ForeignControl(h))
+  switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
+				/* deterministic case: module --> file */
+      if ( PL_get_atom(module, &name) )
+      { Module m;
+
+	if ( (m=isCurrentModule(name)) )
+	{ atom_t f = (!m->file ? ATOM_nil : m->file->name);
+	  return PL_unify_atom(file, f);
+	}
+
+	return FALSE;
+      }
       if ( !get_existing_source_file(file, &sf PASS_LD) )
-	fail;				/* given, but non-existing file */
+	return FALSE;			/* given, but non-existing file */
       e = newTableEnum(GD->tables.modules);
       break;
     case FRG_REDO:
-      e = ForeignContextPtr(h);
+      e = CTX_PTR;
       get_existing_source_file(file, &sf PASS_LD);
       break;
     case FRG_CUTTED:
+      e = CTX_PTR;
       freeTableEnum(e);
       succeed;
+    default:
+      assert(0);
+      return FALSE;
   }
 
   while( (symb = advanceTableEnum(e)) )
@@ -1189,6 +1197,7 @@ BeginPredDefs(module)
   PRED_DEF("add_import_module", 3, add_import_module, 0)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
   PRED_DEF("set_module", 1, set_module, PL_FA_TRANSPARENT)
+  PRED_DEF("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$module_property", 2, module_property, 0)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
