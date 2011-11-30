@@ -127,7 +127,7 @@ Below, we describe some use-cases.
 @see library(option) for accessing options in Prolog code.
 */
 
-:- multifile option_decl/3.
+:- multifile option_decl/3, pred_option/3.
 :- dynamic   dyn_option_decl/3.
 
 %%	predicate_options(:PI, +Arg, +Options) is det.
