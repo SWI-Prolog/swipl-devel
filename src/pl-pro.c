@@ -63,6 +63,8 @@ resetProlog(int clear_stacks)
 #endif
 
   updateAlerted(LD);
+
+  return TRUE;
 }
 
 
