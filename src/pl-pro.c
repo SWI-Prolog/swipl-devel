@@ -39,8 +39,7 @@ resetProlog(int clear_stacks)
 
   if ( Sferror(in) )
   { Sclearerr(in);
-    if ( Sfeof(in) )
-      return FALSE;
+    LD->prompt.next = TRUE;
   }
 
   Scurin  = in;

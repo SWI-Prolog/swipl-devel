@@ -485,14 +485,10 @@ read_query(Prompt, Goal, Bindings) :-
 	      )), !,
 	'$save_history'(Line).
 read_query(Prompt, Goal, Bindings) :-
-	seeing(Old), see(user_input),
-	(   read_history(h, '!h',
-			 [trace, end_of_file],
-			 Prompt, Goal, Bindings)
-	->  see(Old)
-	;   see(Old),
-	    fail
-	).
+	read_history(h, '!h',
+		     [trace, end_of_file],
+		     Prompt, Goal, Bindings).
+
 
 remove_history_prompt('', '') :- !.
 remove_history_prompt(Prompt0, Prompt) :-

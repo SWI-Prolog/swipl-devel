@@ -177,7 +177,7 @@ static IOFUNCTIONS SXtermfunctions =
 static int
 unifyXtermStream(term_t t, xterm *xt, int flags)
 { IOSTREAM *s;
-  int defflags = (SIO_NOCLOSE|SIO_TEXT);
+  int defflags = (SIO_NOCLOSE|SIO_TEXT|SIO_RECORDPOS);
 
   if ( (s=Snew(xt, (defflags|flags), &SXtermfunctions)) )
   { s->encoding = initEncoding();
