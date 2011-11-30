@@ -63,20 +63,30 @@ static ssize_t
 Xterm_read(void *handle, char *buffer, size_t count)
 { GET_LD
   xterm *xt = handle;
-  int size;
+  ssize_t size;
 
   if ( LD->prompt.next && ttymode != TTY_RAW )
     PL_write_prompt(TRUE);
   else
     Sflush(Suser_output);
 
-  size = read(xt->fd, buffer, count);
+  do
+  { size = read(xt->fd, buffer, count);
+
+    if ( size < 0 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	break;
+      }
+
+      continue;
+    }
+  } while(0);
 
   if ( size == 0 )			/* end-of-file */
   { LD->prompt.next = TRUE;
   } else if ( size > 0 && buffer[size-1] == '\n' )
     LD->prompt.next = TRUE;
-
 
   return size;
 }
@@ -85,8 +95,22 @@ Xterm_read(void *handle, char *buffer, size_t count)
 static ssize_t
 Xterm_write(void *handle, char *buffer, size_t count)
 { xterm *xt = handle;
+  ssize_t size;
 
-  return write(xt->fd, buffer, count);
+  do
+  { size = write(xt->fd, buffer, count);
+
+    if ( size < 0 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	break;
+      }
+
+      continue;
+    }
+  } while(0);
+
+  return size;
 }
 
 
