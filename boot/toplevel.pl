@@ -108,14 +108,6 @@ load_script_files([OsFile|More]) :-
 	;   throw(error(existence_error(script_file, File), _))
 	).
 
-'$load_gnu_emacs_interface' :-
-	(   getenv('EMACS', t),
-	    current_prolog_flag(argv, Args),
-	    memberchk('+C', Args)
-	->  ensure_loaded(user:library(emacs_interface))
-	;   true
-	).
-
 
 		 /*******************************
 		 *	 AT_INITIALISATION	*
@@ -363,7 +355,6 @@ initialise_prolog :-
 	'$set_debugger_print_options'(print),
 	'$run_initialization',
 	'$load_system_init_file',
-	'$load_gnu_emacs_interface',
 	'$option'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
