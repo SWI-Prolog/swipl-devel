@@ -1735,7 +1735,8 @@ load_files(Module:Files, Options) :-
 '$load_non_module_file'(FirstClause, Cls, In, File, Module) :-
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
-	ignore('$store_clause'([FirstClause|Cls], File)),
+	catch('$store_clause'([FirstClause|Cls], File), E,
+	      '$print_message'(error, E)),
 	'$consult_stream'(In, File),
 	'$ifcompiling'('$qlf_end_part').
 
@@ -1776,7 +1777,8 @@ load_files(Module:Files, Options) :-
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
-	ignore('$store_clause'(Cls, File)),
+	catch('$store_clause'(Cls, File), E,
+	      '$print_message'(error, E)),
 	'$consult_stream'(In, File),
 	'$check_export'(Module),
 	'$ifcompiling'('$qlf_end_part').
@@ -1941,7 +1943,8 @@ load_files(Module:Files, Options) :-
 	;   true
 	),
 	(   source_location(File, _Line)
-	->  '$store_clause'((NewHead :- Source:Head), File)
+	->  catch('$store_clause'((NewHead :- Source:Head), File), E,
+		  '$print_message'(error, E))
 	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
 	),					 % duplicate load
 	'$import_all2'(Rest, Context, Source, Imported).
@@ -2022,29 +2025,20 @@ load_files(Module:Files, Options) :-
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
 	op(Pri, Assoc, Module:Name),
-	'$store_clause'('$exported_op'(Pri, Assoc, Name), File),
+	catch('$store_clause'('$exported_op'(Pri, Assoc, Name), File), E,
+	      '$print_message'(error, E)),
 	'$export_ops'(T, Module, File).
 '$export_ops'([], _, _).
 
 
 %%	'$consult_stream'(+Stream, +File)
 %
-%	Read and record all clauses until the rest of the file.
+%	Read and record all clauses until the end of the file.
 
 '$consult_stream'(In, File) :-
 	repeat,
-	catch('$consult_stream2'(In, File),
-	      E,
-	      (	  print_message(error, E),
-		  fail
-	      )), !.
-
-
-'$consult_stream2'(In, File) :-
-	repeat,
 	    '$read_clause'(In, Clause),
-	    '$expand_term'(Clause, Expanded),
-	    '$store_clause'(Expanded, File),
+	    '$consult_clause'(Clause, File),
 	    Clause == end_of_file, !.
 
 '$consult_clause'(Clause, File) :-
