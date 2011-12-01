@@ -232,17 +232,21 @@ undefined_from_multifile(Options) :-
 
 undefined_called_by_multifile(Module:Name/Arity, Options) :-
 	functor(Head, Name, Arity),
-	forall(catch(clause_not_from_development(Module:Head, Body, Options),
+	forall(catch(clause_not_from_development(
+			 Module:Head, Body, ClauseRef, Options),
 		     _, fail),
-	       undefined_called_by_body(Body, Module, Options)).
+	       undefined_called_by_body(Body, Module,
+					[ clause(ClauseRef)
+					| Options
+					])).
 
 
-%%	clause_not_from_development(:Head, -Body, +Options) is nondet.
+%%	clause_not_from_development(:Head, -Body, ?Ref, +Options) is nondet.
 %
 %	Enumerate clauses for a multifile predicate, but omit those from
 %	a module that is specifically meant to support development.
 
-clause_not_from_development(Module:Head, Body, Options) :-
+clause_not_from_development(Module:Head, Body, Ref, Options) :-
 	clause(Module:Head, Body, Ref),
 	\+ ( clause_property(Ref, file(File)),
 	     module_property(LoadModule, file(File)),
@@ -286,8 +290,10 @@ undefined_called_by_body(Missing, Body, _, Options) :-
 	format(user_error, 'Retrying due to ~w (~p)~n', [Missing, Options]),
 	portray_clause(('<head>' :- Body)), fail.
 undefined_called_by_body(undecided_call, Body, Module, Options) :-
-	forall(undefined_called(Body, Module, _TermPos, Options),
-	       true).
+	catch(forall(undefined_called(Body, Module, _TermPos, Options),
+		     true),
+	      missing(Missing),
+	      undefined_called_by_body(Missing, Body, Module, Options)).
 undefined_called_by_body(subterm_positions, Body, Module, Options) :-
 	option(clause(ClauseRef), Options),
 	(   clause_info(ClauseRef, _File, TermPos, _NameOffset),
