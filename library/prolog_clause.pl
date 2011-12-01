@@ -70,7 +70,12 @@ clause_info/4 as below can be slow.
 %	allocation in a stack-frame.  See make_varnames/5 for details.
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
-	debug(clause_info, 'clause_info(~w)... ', [ClauseRef]),
+	(   debugging(clause_info)
+	->  clause_name(ClauseRef, Name),
+	    debug(clause_info, 'clause_info(~w) (~w)... ',
+		  [ClauseRef, Name])
+	;   true
+	),
 	clause_property(ClauseRef, file(File)),
 	'$clause'(Head, Body, ClauseRef, VarOffset),
 	(   Body == true
@@ -550,6 +555,8 @@ To keep track of the source-locations, we   have to redo the analysis of
 the clause as defined in init.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+expand_goal(G, call(G), P, term_position(0,0,0,0,[P])) :-
+        var(G), !.
 expand_goal(G, G, P, P) :-
         var(G), !.
 expand_goal(M0, M, P0, P) :-
@@ -597,14 +604,26 @@ goal_expansion(SendSuperN, send_class(R, _, Msg), P, P) :-
 	compound(SendSuperN),
 	SendSuperN =.. [send_super, R, Sel | Args],
 	Msg =.. [Sel|Args].
+goal_expansion(SendN, send(R, Msg), P, P) :-
+	compound(SendN),
+	SendN =.. [send, R, Sel | Args],
+	atom(Sel), Args \== [],
+	Msg =.. [Sel|Args].
 goal_expansion(GetSuperN, get_class(R, _, Msg, Answer), P, P) :-
 	compound(GetSuperN),
 	GetSuperN =.. [get_super, R, Sel | AllArgs],
 	append(Args, [Answer], AllArgs),
 	Msg =.. [Sel|Args].
+goal_expansion(GetN, get(R, Msg, Answer), P, P) :-
+	compound(GetN),
+	GetN =.. [get, R, Sel | AllArgs],
+	append(Args, [Answer], AllArgs),
+	atom(Sel), Args \== [],
+	Msg =.. [Sel|Args].
 goal_expansion(G0, G, P, P) :-
 	user:goal_expansion(G0, G),	% TBD: we need the module!
 	G0 \== G.			% \=@=?
+
 
 		 /*******************************
 		 *	  PRINTABLE NAMES	*
