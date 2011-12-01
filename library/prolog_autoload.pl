@@ -161,13 +161,13 @@ autoloaded(_, _) :-
 
 find_undefined(Options) :-
 	forall(( current_module(M),
-		 scan_module(M)
+		 scan_module(M, Options)
 	       ),
 	       find_undefined_from_module(M, Options)),
 	undefined_from_multifile(Options),
 	undefined_from_initialization(Options).
 
-scan_module(M) :-
+scan_module(M, _) :-
 	module_property(M, class(Class)),
 	scan_module_class(Class).
 
@@ -186,9 +186,9 @@ undefined_from_initialization(Options) :-
 	forall('$init_goal'(File, Goal, _SourceLocation),
 	       undefined_from_initialization(File, Goal, Options)).
 
-undefined_from_initialization(File, Goal, _Options) :-
+undefined_from_initialization(File, Goal, Options) :-
 	module_property(Module, file(File)),
-	(   scan_module(Module)
+	(   scan_module(Module, Options)
 	->  true
 	;   undefined_called(Goal, Module)
 	).
@@ -221,26 +221,27 @@ undefined_called_by_pred(Module:Name/Arity) :-
 %
 %	Process registered multifile predicates.
 
-undefined_from_multifile(_Options) :-
+undefined_from_multifile(Options) :-
 	forall(retract(multifile_predicate(Name, Arity, Module)),
-	       undefined_called_by_multifile(Module:Name/Arity)).
+	       undefined_called_by_multifile(Module:Name/Arity, Options)).
 
-undefined_called_by_multifile(Module:Name/Arity) :-
+undefined_called_by_multifile(Module:Name/Arity, Options) :-
 	functor(Head, Name, Arity),
-	forall(catch(clause_not_from_development(Module:Head, Body), _, fail),
+	forall(catch(clause_not_from_development(Module:Head, Body, Options),
+		     _, fail),
 	       undefined_called_by_body(Body, Module)).
 
 
-%%	clause_not_from_development(:Head, -Body) is nondet.
+%%	clause_not_from_development(:Head, -Body, +Options) is nondet.
 %
 %	Enumerate clauses for a multifile predicate, but omit those from
 %	a module that is specifically meant to support development.
 
-clause_not_from_development(Module:Head, Body) :-
+clause_not_from_development(Module:Head, Body, Options) :-
 	clause(Module:Head, Body, Ref),
 	\+ ( clause_property(Ref, file(File)),
 	     module_property(LoadModule, file(File)),
-	     \+ scan_module(LoadModule)
+	     \+ scan_module(LoadModule, Options)
 	   ).
 
 undefined_called_by_body(Body, Module) :-
