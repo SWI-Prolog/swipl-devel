@@ -624,9 +624,9 @@ check_clause((Head:-Body), M, ClauseRef, Action) :- !,
 	        catch(check_body(Body, M, BodyPos, Action),
 		      error(Formal, ArgPos), true),
 		compound(ArgPos),
-		arg(1, ArgPos, CharPos),
-		integer(CharPos)
-	    ->	Location = filepos(File, CharPos)
+		arg(1, ArgPos, CharCount),
+		integer(CharCount)
+	    ->	Location = file_char_count(File, CharCount)
 	    ;   Location = clause(ClauseRef),
 		E = error(Formal, _)
 	    ),
@@ -873,7 +873,7 @@ prolog:message(check_options(new(Decls))) -->
 	[ 'Inferred declarations:'-[], nl ],
 	new_decls(Decls).
 
-error_location(filepos(File, CharPos)) -->
+error_location(file_char_count(File, CharPos)) -->
 	{ filepos_line(File, CharPos, Line, LinePos) },
 	[ '~w:~d:~d: '-[File, Line, LinePos] ].
 error_location(clause(ClauseRef)) -->
