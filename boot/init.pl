@@ -496,18 +496,6 @@ user:file_search_path(foreign, swi(ArchLib)) :-
 	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
-user:file_search_path(user_profile, '.').
-user:file_search_path(user_profile, app_preferences('.')).
-user:file_search_path(app_preferences, PrologAppData) :-
-	current_prolog_flag(windows, true),
-	catch(win_folder(appdata, AppData), _, fail),
-	atom_concat(AppData, '/SWI-Prolog', PrologAppData),
-	(   exists_directory(PrologAppData)
-	->  true
-	;   catch(make_directory(PrologAppData), _, fail)
-	).
-user:file_search_path(app_preferences, UserHome) :-
-	catch(expand_file_name(~, [UserHome]), _, fail).
 
 
 %	expand_file_search_path(+Spec, -Expanded) is nondet.
