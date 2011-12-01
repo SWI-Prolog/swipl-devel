@@ -714,12 +714,10 @@ visible_predicate(Pred) :-
 	    )
 	).
 
-hidden_system_predicate(_) :-
-	current_prolog_flag(access_mode, system), !,
-	fail.
 hidden_system_predicate(_:Head) :-
 	functor(Head, Name, _),
-	sub_atom(Name, 0, _, _, $).
+	sub_atom(Name, 0, _, _, $),
+	\+ current_prolog_flag(access_level, system).
 
 
 %%	clause_property(+ClauseRef, ?Property) is nondet.
