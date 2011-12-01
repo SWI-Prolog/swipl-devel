@@ -216,8 +216,8 @@ undefined_called_by_pred(Module:Name/Arity, Options) :-
 	functor(Head, Name, Arity),
 	forall(catch(clause(Module:Head, Body, ClauseRef), _, fail),
 	       undefined_called_by_body(Body, Module,
-					[ clause(ClauseRef),
-					  Options
+					[ clause(ClauseRef)
+					| Options
 					])).
 
 %%	undefined_from_multifile(+Options)
@@ -265,13 +265,24 @@ undefined_called_by_body(Body, Module, Options) :-
 		  | Options
 		  ]),
 	      missing(Missing),
-	      undefined_called_by_body(Missing, Body, Module, Options)).
+	      undefined_called_by_body(Missing, Body, Module, Options)), !.
+undefined_called_by_body(Body, _Module, _Options) :-
+	format(user_error, 'Failed to analyse:~n'),
+	portray_clause(('<head>' :- Body)),
+	(   debugging(autoload(trace))
+	->  gtrace
+	;   true
+	).
 
 %%	undefined_called_by_body(+Missing, +Body, +Module, +Options)
 %
 %	Restart the analysis because  the   previous  analysis  provided
 %	insufficient information.
 
+undefined_called_by_body(Missing, Body, _, Options) :-
+	debugging(autoload),
+	format(user_error, 'Retrying due to ~w (~p)~n', [Missing, Options]),
+	portray_clause(('<head>' :- Body)), fail.
 undefined_called_by_body(undecided_call, Body, Module, Options) :-
 	forall(undefined_called(Body, Module, _TermPos, Options),
 	       true).
@@ -317,8 +328,11 @@ undefined_called_by_body(subterm_positions, Body, Module, Options) :-
 undefined_called(Var, _, TermPos, Options) :-
 	var(Var), !,				% Incomplete analysis
 	undecided(Var, TermPos, Options).
-undefined_called(M:G, _, term_position(_,_,_,_,[_,Pos]), Options) :- !,
-	undefined_called(G, M, Pos, Options).
+undefined_called(M:G, _, term_position(_,_,_,_,[MPos,Pos]), Options) :- !,
+	(   nonvar(M)
+	->  undefined_called(G, M, Pos, Options)
+	;   undecided(M, MPos, Options)
+	).
 undefined_called((A,B), M, term_position(_,_,_,_,[PA,PB]), Options) :- !,
 	undefined_called(A, M, PA, Options),
 	undefined_called(B, M, PB, Options).
@@ -345,7 +359,8 @@ undefined_called(Meta, M, term_position(_,_,_,_,ArgPosList), Options) :-
 	predicate_property(M:Meta, meta_predicate(Head)), !,
 	undef_called_meta(1, Head, Meta, M, ArgPosList, Options).
 undefined_called(Goal, Module, _, _) :-
-	predicate_property(Module:Goal, visible), !.
+	nonvar(Module),
+	'$get_predicate_attribute'(Module:Goal, defined, 1), !.
 undefined_called(Goal, Module, TermPos, Options) :-
 	undefined(Module:Goal, TermPos, Options).
 
@@ -398,7 +413,7 @@ undef_called_meta(I, Head, Meta, M, [ArgPos|ArgPosList], Options) :-
 	arg(I, Head, AS), !,
 	(   integer(AS)
 	->  arg(I, Meta, MA),
-	    extend(MA, AS, Goal),
+	    extend(MA, AS, Goal, ArgPos, Options),
 	    undefined_called(Goal, M, ArgPos, Options)
 	;   true
 	),
@@ -412,7 +427,7 @@ undef_called_meta(_, _, _, _, _, _).
 undefined_called_by([], _, _, _).
 undefined_called_by([H|T], M, TermPos, Options) :-
 	(   H = G+N
-	->  (   extend(G, N, G2)
+	->  (   extend(G, N, G2, _, Options)
 	    ->	undefined_called(G2, M, _, Options)
 	    ;	true
 	    )
@@ -420,13 +435,17 @@ undefined_called_by([H|T], M, TermPos, Options) :-
 	),
 	undefined_called_by(T, M, TermPos, Options).
 
-extend(Goal, 0, Goal) :- !.
-extend(Goal, N, GoalEx) :-
+extend(Goal, 0, Goal, _, _) :- !.
+extend(Goal, N, GoalEx, _, _) :-
 	callable(Goal),
 	Goal =.. List,
 	length(Extra, N),
 	append(List, Extra, ListEx),
 	GoalEx =.. ListEx.
+extend(Goal, _, _, TermPos, Options) :-
+	var(Goal), !,
+	undecided(Goal, TermPos, Options).
+
 
 %%	variants(+SortedList, -Variants) is det.
 
