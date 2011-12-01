@@ -39,7 +39,8 @@
 :- use_module(library(aggregate)).
 
 :- predicate_options(autoload/1, 1,
-		     [ verbose(boolean)
+		     [ verbose(boolean),
+		       undefined(oneof([ignore,error]))
 		     ]).
 
 /** <module> Autoload all dependencies
@@ -80,6 +81,10 @@ all initialization goals.
 %
 %	    * verbose(+Boolean)
 %	    If =true=, report on the files loaded.
+%	    * undefined(+Action)
+%	    Action defines what happens if the analysis finds a
+%	    definitely undefined predicate.  One of =ignore= or
+%	    =error=.
 
 autoload :-
 	autoload([]).
@@ -185,8 +190,11 @@ scan_module_class(library).
 %	@bug	Relies on private '$init_goal'/3 database.
 
 undefined_from_initialization(Options) :-
-	forall('$init_goal'(File, Goal, _SourceLocation),
-	       undefined_from_initialization(File, Goal, Options)).
+	forall('$init_goal'(File, Goal, SourceLocation),
+	       undefined_from_initialization(File, Goal,
+					     [ source(SourceLocation)
+					     | Options
+					     ])).
 
 undefined_from_initialization(File, Goal, Options) :-
 	module_property(Module, file(File)),
@@ -411,6 +419,11 @@ undefined(Goal, TermPos, Options) :-
 				       clause(Clause)))
 	;   throw(missing(subterm_positions))
 	).
+undefined(Goal, _, Options) :-
+	option(source(File:Line), Options), !,
+	goal_pi(Goal, PI),
+	print_message(error, error(existence_error(procedure, PI),
+				   file(File, Line, -1, _))).
 undefined(Goal, _, _) :-
 	goal_pi(Goal, PI),
 	print_message(error, error(existence_error(procedure, PI), _)).
