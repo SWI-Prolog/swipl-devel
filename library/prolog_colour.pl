@@ -1213,27 +1213,19 @@ syntax_colour(Class, Attributes) :-
 
 term_colours((?- Directive), Colours) :-
 	term_colours((:- Directive), Colours).
-term_colours((prolog:message(_) --> _),
+term_colours((prolog:Head --> _),
 	     expanded - [ expanded - [ expanded,
 				       expanded - [ identifier
 						  ]
 				     ],
 			  classify
-			]).
-term_colours((prolog:error_message(_) --> _),
-	     expanded - [ expanded - [ expanded,
-				       expanded - [ identifier
-						  ]
-				     ],
-			  classify
-			]).
-term_colours((prolog:message_context(_) --> _),
-	     expanded - [ expanded - [ expanded,
-				       expanded - [ identifier
-						  ]
-				     ],
-			  classify
-			]).
+			]) :-
+	prolog_message_hook(Head).
+
+prolog_message_hook(message(_)).
+prolog_message_hook(error_message(_)).
+prolog_message_hook(message_context(_)).
+prolog_message_hook(message_location(_)).
 
 %	XPCE rules
 

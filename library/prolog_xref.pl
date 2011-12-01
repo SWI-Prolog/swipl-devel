@@ -777,6 +777,7 @@ hook(pce_principal:pce_uses_template(_,_)).
 hook(prolog:locate_clauses(_,_)).
 hook(prolog:message(_,_,_)).
 hook(prolog:error_message(_,_,_)).
+hook(prolog:message_location(_,_,_)).
 hook(prolog:message_context(_,_,_)).
 hook(prolog:message_line_element(_,_)).
 hook(prolog:debug_control_hook(_)).

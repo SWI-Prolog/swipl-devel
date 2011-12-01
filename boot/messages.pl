@@ -40,6 +40,7 @@
 	prolog:message/3,		% entire message
 	prolog:error_message/3,		% 1-st argument of error term
 	prolog:message_context/3,	% Context of error messages
+	prolog:message_location/3,	% (File) location of error messages
 	prolog:message_line_element/2.	% Extend printing
 :- discontiguous
 	prolog_message/3.
@@ -74,7 +75,7 @@ translate_message2(error(resource_error(stack), Name)) -->
 translate_message2(error(resource_error(Missing), _)) -->
 	[ 'Not enough resources: ~w'-[Missing] ].
 translate_message2(error(ISO, SWI)) -->
-	swi_context(SWI),
+	swi_location(SWI),
 	term_message(ISO),
 	swi_extra(SWI).
 translate_message2('$aborted') -->
@@ -274,24 +275,26 @@ swi_message(format_argument_type(Fmt, Arg)) -->
 swi_message(format(Msg)) -->
 	[ 'Format error: ~w'-[Msg] ].
 
-swi_context(X) -->
+swi_location(X) -->
 	{ var(X)
 	}, !,
 	[].
-swi_context(context(Caller, _Msg)) -->
+swi_location(Context) -->
+	prolog:message_location(Context), !.
+swi_location(context(Caller, _Msg)) -->
 	{ ground(Caller)
 	}, !,
 	caller(Caller).
-swi_context(file(Path, Line, -1, _CharNo)) --> !,
+swi_location(file(Path, Line, -1, _CharNo)) --> !,
 	[ '~w:~d: '-[Path, Line] ].
-swi_context(file(Path, Line, LinePos, _CharNo)) -->
+swi_location(file(Path, Line, LinePos, _CharNo)) -->
 	[ '~w:~d:~d: '-[Path, Line, LinePos] ].
-swi_context(stream(Stream, Line, LinePos, CharNo)) -->
+swi_location(stream(Stream, Line, LinePos, CharNo)) -->
 	(   { stream_property(Stream, file_name(File)) }
-	->  swi_context(file(File, Line, LinePos, CharNo))
+	->  swi_location(file(File, Line, LinePos, CharNo))
         ;   [ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ]
 	).
-swi_context(_) -->
+swi_location(_) -->
 	[].
 
 caller(system:'$record_clause'/3) --> !,
