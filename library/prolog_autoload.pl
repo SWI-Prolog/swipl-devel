@@ -190,10 +190,10 @@ undefined_from_initialization(File, Goal, Options) :-
 	module_property(Module, file(File)),
 	(   scan_module(Module, Options)
 	->  true
-	;   undefined_called(Goal, Module, Options)
+	;   undefined_called(Goal, Module, _, Options)
 	).
 undefined_from_initialization(_, Goal, Options) :-
-	undefined_called(Goal, user, Options).
+	undefined_called(Goal, user, _, Options).
 
 
 %%	find_undefined_from_module(+Module, +Options) is det.
@@ -256,7 +256,7 @@ undefined_called_by_body(True, _, _) :-
 	True == true, !.		% quickly deal with facts
 undefined_called_by_body(Body, Module, Options) :-
 	catch(undefined_called(
-		  Body, Module,
+		  Body, Module, _TermPos,
 		  [ undecided(error),
 		    evaluate(false)
 		  | Options
@@ -264,10 +264,10 @@ undefined_called_by_body(Body, Module, Options) :-
 	      undecided_call,
 	      fail), !.
 undefined_called_by_body(Body, Module, Options) :-
-	forall(undefined_called(Body, Module, Options),
+	forall(undefined_called(Body, Module, _TermPos, Options),
 	       true).
 
-%%	undefined_called(+Goal, +Module, Options) is multi.
+%%	undefined_called(+Goal, +Module, +TermPos, +Options) is multi.
 %
 %	Perform abstract interpretation of Goal,  touching all sub-goals
 %	that  are  directly  called  or  immediately  reachable  through
@@ -294,43 +294,46 @@ undefined_called_by_body(Body, Module, Options) :-
 %
 %	@tbd	Analyse e.g. assert((Head:-Body))?
 
-undefined_called(Var, _, Options) :-
+undefined_called(Var, _, TermPos, Options) :-
 	var(Var), !,				% Incomplete analysis
-	option(undecided(Action), Options, ignore),
-	undecided(Action, Var).
-undefined_called(M:G, _, Options) :- !,
-	undefined_called(G, M, Options).
-undefined_called((A,B), M, Options) :- !,
-	undefined_called(A, M, Options),
-	undefined_called(B, M, Options).
-undefined_called((A;B), M, Options) :- !,
+	undecided(Var, TermPos, Options).
+undefined_called(M:G, _, term_position(_,_,_,_,[_,Pos]), Options) :- !,
+	undefined_called(G, M, Pos, Options).
+undefined_called((A,B), M, term_position(_,_,_,_,[PA,PB]), Options) :- !,
+	undefined_called(A, M, PA, Options),
+	undefined_called(B, M, PB, Options).
+undefined_called((A;B), M, term_position(_,_,_,_,[PA,PB]), Options) :- !,
 	(   option(evaluate(true), Options, true)
 	->  Goal = (A;B),
 	    setof(Goal,
-		  (   undefined_called(A, M, Options)
-		  ;   undefined_called(B, M, Options)
+		  (   undefined_called(A, M, PA, Options)
+		  ;   undefined_called(B, M, PB, Options)
 		  ),
 		  Alts0),
 	    variants(Alts0, Alts),
 	    member(Goal, Alts)
-	;   undefined_called(A, M, Options),
-	    undefined_called(B, M, Options)
+	;   undefined_called(A, M, PA, Options),
+	    undefined_called(B, M, PB, Options)
 	).
-undefined_called(Goal, Module, Options) :-
+undefined_called(Goal, Module, _, Options) :-
 	evaluate(Goal, Module, Options), !.
-undefined_called(Goal, M, Options) :-
+undefined_called(Goal, M, TermPos, Options) :-
 	prolog:called_by(Goal, Called),
 	Called \== [], !,
-	undefined_called_by(Called, M, Options).
-undefined_called(Meta, M, Options) :-
+	undefined_called_by(Called, M, TermPos, Options).
+undefined_called(Meta, M, term_position(_,_,_,_,ArgPosList), Options) :-
 	predicate_property(M:Meta, meta_predicate(Head)), !,
-	undef_called_meta(1, Head, Meta, M, Options).
-undefined_called(_, _, _).
+	undef_called_meta(1, Head, Meta, M, ArgPosList, Options).
+undefined_called(_, _, _, _).
 
-%%	undecided(+Action, +Variable)
+%%	undecided(+Variable, +TermPos, +Options)
 
-undecided(ignore, _) :- !.
-undecided(error, _) :-
+undecided(Var, TermPos, Options) :-
+	option(undecided(Action), Options, ignore),
+	undecided(Action, Var, TermPos, Options).
+
+undecided(ignore, _, _, _) :- !.
+undecided(error,  _, _, _) :-
 	throw(undecided_call).
 
 %%	evaluate(Goal, Module, Options) is nondet.
@@ -343,33 +346,34 @@ evaluate(A=B, _) :-
 	unify_with_occurs_check(A, B).
 
 
-%%	undef_called_meta(+Index, +GoalHead, +MetaHead, +Module, +Options)
+%%	undef_called_meta(+Index, +GoalHead, +MetaHead, +Module,
+%%			  +ArgPosList, +Options)
 
-undef_called_meta(I, Head, Meta, M, Options) :-
+undef_called_meta(I, Head, Meta, M, [ArgPos|ArgPosList], Options) :-
 	arg(I, Head, AS), !,
 	(   integer(AS)
 	->  arg(I, Meta, MA),
 	    extend(MA, AS, Goal),
-	    undefined_called(Goal, M, Options)
+	    undefined_called(Goal, M, ArgPos, Options)
 	;   true
 	),
 	succ(I, I2),
-	undef_called_meta(I2, Head, Meta, M, Options).
-undef_called_meta(_, _, _, _, _).
+	undef_called_meta(I2, Head, Meta, M, ArgPosList, Options).
+undef_called_meta(_, _, _, _, _, _).
 
 
-%%	undefined_called_by(+Called:list, +Module, +Options)
+%%	undefined_called_by(+Called:list, +Module, +TermPost, +Options)
 
-undefined_called_by([], _, _).
-undefined_called_by([H|T], M, Options) :-
+undefined_called_by([], _, _, _).
+undefined_called_by([H|T], M, TermPos, Options) :-
 	(   H = G+N
 	->  (   extend(G, N, G2)
-	    ->	undefined_called(G2, M, Options)
+	    ->	undefined_called(G2, M, _, Options)
 	    ;	true
 	    )
-	;   undefined_called(H, M, Options)
+	;   undefined_called(H, M, TermPos, Options)
 	),
-	undefined_called_by(T, M, Options).
+	undefined_called_by(T, M, TermPos, Options).
 
 extend(Goal, 0, Goal) :- !.
 extend(Goal, N, GoalEx) :-
