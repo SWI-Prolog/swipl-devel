@@ -324,7 +324,10 @@ undefined_called(Goal, M, TermPos, Options) :-
 undefined_called(Meta, M, term_position(_,_,_,_,ArgPosList), Options) :-
 	predicate_property(M:Meta, meta_predicate(Head)), !,
 	undef_called_meta(1, Head, Meta, M, ArgPosList, Options).
-undefined_called(_, _, _, _).
+undefined_called(Goal, Module, _, _) :-
+	predicate_property(Module:Goal, visible), !.
+undefined_called(Goal, Module, TermPos, Options) :-
+	undefined(Module:Goal, TermPos, Options).
 
 %%	undecided(+Variable, +TermPos, +Options)
 
@@ -345,6 +348,11 @@ evaluate(Goal, Module, Options) :-
 evaluate(A=B, _) :-
 	unify_with_occurs_check(A, B).
 
+%%	undefined(:Goal, +TermPos, +Options)
+%
+%	The analysis trapped a definitely undefined predicate.
+
+undefined(_, _, _).
 
 %%	undef_called_meta(+Index, +GoalHead, +MetaHead, +Module,
 %%			  +ArgPosList, +Options)
