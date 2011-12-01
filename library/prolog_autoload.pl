@@ -214,8 +214,11 @@ undefined_called_by_pred(Module:Name/Arity, _) :-
 	assertz(multifile_predicate(Name, Arity, Module)).
 undefined_called_by_pred(Module:Name/Arity, Options) :-
 	functor(Head, Name, Arity),
-	forall(catch(clause(Module:Head, Body), _, fail),
-	       undefined_called_by_body(Body, Module, Options)).
+	forall(catch(clause(Module:Head, Body, ClauseRef), _, fail),
+	       undefined_called_by_body(Body, Module,
+					[ clause(ClauseRef),
+					  Options
+					])).
 
 %%	undefined_from_multifile(+Options)
 %
@@ -249,8 +252,8 @@ clause_not_from_development(Module:Head, Body, Options) :-
 %	Check the Body term when  executed   in  the  context of Module.
 %	Options:
 %
-%	  - undecided(+Action)
-%
+%	  - undefined(+Action)
+%	  One of =ignore=, =error=
 
 undefined_called_by_body(True, _, _) :-
 	True == true, !.		% quickly deal with facts
@@ -261,11 +264,28 @@ undefined_called_by_body(Body, Module, Options) :-
 		    evaluate(false)
 		  | Options
 		  ]),
-	      undecided_call,
-	      fail), !.
-undefined_called_by_body(Body, Module, Options) :-
+	      missing(Missing),
+	      undefined_called_by_body(Missing, Body, Module, Options)).
+
+%%	undefined_called_by_body(+Missing, +Body, +Module, +Options)
+%
+%	Restart the analysis because  the   previous  analysis  provided
+%	insufficient information.
+
+undefined_called_by_body(undecided_call, Body, Module, Options) :-
 	forall(undefined_called(Body, Module, _TermPos, Options),
 	       true).
+undefined_called_by_body(subterm_positions, Body, Module, Options) :-
+	option(clause(ClauseRef), Options),
+	(   clause_info(ClauseRef, _File, TermPos, _NameOffset),
+	    TermPos = term_position(_,_,_,_,[_,BodyPos])
+	->  forall(undefined_called(Body, Module, BodyPos, Options),
+		   true)
+	;   forall(undefined_called(Body, Module, BodyPos,
+				    [source(false)|Options]),
+		   true)
+	).
+
 
 %%	undefined_called(+Goal, +Module, +TermPos, +Options) is multi.
 %
@@ -337,7 +357,7 @@ undecided(Var, TermPos, Options) :-
 
 undecided(ignore, _, _, _) :- !.
 undecided(error,  _, _, _) :-
-	throw(undecided_call).
+	throw(missing(undecided_call)).
 
 %%	evaluate(Goal, Module, Options) is nondet.
 
@@ -352,7 +372,24 @@ evaluate(A=B, _) :-
 %
 %	The analysis trapped a definitely undefined predicate.
 
-undefined(_, _, _).
+undefined(_, _, Options) :-
+	option(undefined(ignore), Options, ignore), !.
+undefined(Goal, TermPos, Options) :-
+	option(clause(Clause), Options), !,
+	(   compound(TermPos),
+	    arg(1, TermPos, CharCount),
+	    integer(CharCount)
+	->  clause_property(Clause, file(File)),
+	    print_message(error, error(existence_error(procedure, Goal),
+				       file_char_count(File, CharCount)))
+	;   option(source(false), Options)
+	->  print_message(error, error(existence_error(procedure, Goal),
+				       clause(Clause)))
+	;   throw(missing(subterm_positions))
+	).
+undefined(Goal, _, _) :-
+	print_message(error, error(existence_error(procedure, Goal), _)).
+
 
 %%	undef_called_meta(+Index, +GoalHead, +MetaHead, +Module,
 %%			  +ArgPosList, +Options)
