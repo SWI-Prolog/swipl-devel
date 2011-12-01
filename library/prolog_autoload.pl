@@ -244,6 +244,25 @@ clause_not_from_development(Module:Head, Body, Options) :-
 	     \+ scan_module(LoadModule, Options)
 	   ).
 
+%%	undefined_called_by_body(+Body, +Module, +Options) is det.
+%
+%	Check the Body term when  executed   in  the  context of Module.
+%	Options:
+%
+%	  - undecided(+Action)
+%
+
+undefined_called_by_body(True, _, _) :-
+	True == true, !.		% quickly deal with facts
+undefined_called_by_body(Body, Module, Options) :-
+	catch(undefined_called(
+		  Body, Module,
+		  [ undecided(error),
+		    evaluate(false)
+		  | Options
+		  ]),
+	      undecided_call,
+	      fail), !.
 undefined_called_by_body(Body, Module, Options) :-
 	forall(undefined_called(Body, Module, Options),
 	       true).
@@ -259,27 +278,46 @@ undefined_called_by_body(Body, Module, Options) :-
 %	choice-point.  Backtracking  analyses  the  alternative  control
 %	path(s).
 %
+%	Options:
+%
+%	  * undecided(+Action)
+%	  How to deal with insifficiently instantiated terms in the
+%	  call-tree.  Values are:
+%
+%	    - ignore
+%	    Silently ignore such goals
+%	    - error
+%	    Throw =undecided_call=
+%
+%	  * evaluate(+Boolean)
+%	  If =true= (default), evaluate some goals.  Notably =/2.
+%
 %	@tbd	Analyse e.g. assert((Head:-Body))?
 
-undefined_called(Var, _, _) :-
-	var(Var), !.				% Incomplete analysis
-undefined_called(true, _, _) :- !.		% Common for facts
+undefined_called(Var, _, Options) :-
+	var(Var), !,				% Incomplete analysis
+	option(undecided(Action), Options, ignore),
+	undecided(Action, Var).
 undefined_called(M:G, _, Options) :- !,
 	undefined_called(G, M, Options).
 undefined_called((A,B), M, Options) :- !,
 	undefined_called(A, M, Options),
 	undefined_called(B, M, Options).
 undefined_called((A;B), M, Options) :- !,
-	Goal = (A;B),
-	setof(Goal,
-	      (   undefined_called(A, M, Options)
-	      ;   undefined_called(B, M, Options)
-	      ),
-	      Alts0),
-	variants(Alts0, Alts),
-	member(Goal, Alts).
-undefined_called(A=B, _, _Options) :-
-	unify_with_occurs_check(A,B), !.
+	(   option(evaluate(true), Options, true)
+	->  Goal = (A;B),
+	    setof(Goal,
+		  (   undefined_called(A, M, Options)
+		  ;   undefined_called(B, M, Options)
+		  ),
+		  Alts0),
+	    variants(Alts0, Alts),
+	    member(Goal, Alts)
+	;   undefined_called(A, M, Options),
+	    undefined_called(B, M, Options)
+	).
+undefined_called(Goal, Module, Options) :-
+	evaluate(Goal, Module, Options), !.
 undefined_called(Goal, M, Options) :-
 	prolog:called_by(Goal, Called),
 	Called \== [], !,
@@ -288,6 +326,22 @@ undefined_called(Meta, M, Options) :-
 	predicate_property(M:Meta, meta_predicate(Head)), !,
 	undef_called_meta(1, Head, Meta, M, Options).
 undefined_called(_, _, _).
+
+%%	undecided(+Action, +Variable)
+
+undecided(ignore, _) :- !.
+undecided(error, _) :-
+	throw(undecided_call).
+
+%%	evaluate(Goal, Module, Options) is nondet.
+
+evaluate(Goal, Module, Options) :-
+	option(evaluate(true), Options, true),
+	evaluate(Goal, Module).
+
+evaluate(A=B, _) :-
+	unify_with_occurs_check(A, B).
+
 
 %%	undef_called_meta(+Index, +GoalHead, +MetaHead, +Module, +Options)
 
