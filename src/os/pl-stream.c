@@ -1109,7 +1109,6 @@ int
 Speekcode(IOSTREAM *s)
 { int c;
   char *start;
-  IOPOS *psave = s->position;
   size_t safe = (size_t)-1;
 
   if ( !s->buffer )
@@ -1130,9 +1129,13 @@ Speekcode(IOSTREAM *s)
   }
 
   start = s->bufp;
-  s->position = NULL;
-  c = Sgetcode(s);
-  s->position = psave;
+  if ( s->position )
+  { IOPOS psave = *s->position;
+    c = Sgetcode(s);
+    *s->position = psave;
+  } else
+  { c = Sgetcode(s);
+  }
   if ( Sferror(s) )
     return -1;
 
