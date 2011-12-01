@@ -32,6 +32,7 @@
 	    autoload/1				% +Options
 	  ]).
 :- use_module(library(option)).
+:- use_module(library(error)).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
@@ -84,6 +85,7 @@ autoload :-
 	autoload([]).
 
 autoload(Options) :-
+	must_be(list, Options),
 	statistics(cputime, T0),
 	aggregate_all(count, source_file(_), OldFileCount),
 	autoload(0, Iterations, Options),
@@ -391,19 +393,27 @@ undefined(_, _, Options) :-
 	option(undefined(ignore), Options, ignore), !.
 undefined(Goal, TermPos, Options) :-
 	option(clause(Clause), Options), !,
+	goal_pi(Goal, PI),
 	(   compound(TermPos),
 	    arg(1, TermPos, CharCount),
 	    integer(CharCount)
 	->  clause_property(Clause, file(File)),
-	    print_message(error, error(existence_error(procedure, Goal),
+	    print_message(error, error(existence_error(procedure, PI),
 				       file_char_count(File, CharCount)))
 	;   option(source(false), Options)
-	->  print_message(error, error(existence_error(procedure, Goal),
+	->  print_message(error, error(existence_error(procedure, PI),
 				       clause(Clause)))
 	;   throw(missing(subterm_positions))
 	).
 undefined(Goal, _, _) :-
-	print_message(error, error(existence_error(procedure, Goal), _)).
+	goal_pi(Goal, PI),
+	print_message(error, error(existence_error(procedure, PI), _)).
+
+goal_pi(Goal, M:Name/Arity) :-
+	strip_module(Goal, M, Head),
+	callable(Head), !,
+	functor(Head, Name, Arity).
+goal_pi(Goal, Goal).
 
 
 %%	undef_called_meta(+Index, +GoalHead, +MetaHead, +Module,
@@ -413,8 +423,8 @@ undef_called_meta(I, Head, Meta, M, [ArgPos|ArgPosList], Options) :-
 	arg(I, Head, AS), !,
 	(   integer(AS)
 	->  arg(I, Meta, MA),
-	    extend(MA, AS, Goal, ArgPos, Options),
-	    undefined_called(Goal, M, ArgPos, Options)
+	    extend(MA, AS, Goal, ArgPos, ArgPosEx, Options),
+	    undefined_called(Goal, M, ArgPosEx, Options)
 	;   true
 	),
 	succ(I, I2),
@@ -427,7 +437,7 @@ undef_called_meta(_, _, _, _, _, _).
 undefined_called_by([], _, _, _).
 undefined_called_by([H|T], M, TermPos, Options) :-
 	(   H = G+N
-	->  (   extend(G, N, G2, _, Options)
+	->  (   extend(G, N, G2, _, _, Options)
 	    ->	undefined_called(G2, M, _, Options)
 	    ;	true
 	    )
@@ -435,16 +445,41 @@ undefined_called_by([H|T], M, TermPos, Options) :-
 	),
 	undefined_called_by(T, M, TermPos, Options).
 
-extend(Goal, 0, Goal, _, _) :- !.
-extend(Goal, N, GoalEx, _, _) :-
+%%	extend(+Goal, +ExtraArgs, +TermPosIn, -TermPosOut, +Options)
+%
+%	@bug:
+
+extend(Goal, 0, Goal, TermPos, TermPos, _) :- !.
+extend(Goal, _, _, TermPos, TermPos, Options) :-
+	var(Goal), !,
+	undecided(Goal, TermPos, Options).
+extend(M:Goal, N, M:GoalEx,
+       term_position(F,T,FT,TT,[MPos,GPosIn]),
+       term_position(F,T,FT,TT,[MPos,GPosOut]), Options) :- !,
+	(   var(M)
+	->  undecided(N, MPos, Options)
+	;   true
+	),
+	extend(Goal, N, GoalEx, GPosIn, GPosOut, Options).
+extend(Goal, N, GoalEx, TermPosIn, TermPosOut, _) :-
 	callable(Goal),
 	Goal =.. List,
 	length(Extra, N),
+	extend_term_pos(TermPosIn, N, TermPosOut),
 	append(List, Extra, ListEx),
 	GoalEx =.. ListEx.
-extend(Goal, _, _, TermPos, Options) :-
-	var(Goal), !,
-	undecided(Goal, TermPos, Options).
+
+extend_term_pos(Var, _, _) :-
+	var(Var), !.
+extend_term_pos(term_position(F,T,FT,TT,ArgPosIn),
+		N,
+		term_position(F,T,FT,TT,ArgPosOut)) :- !,
+	length(Extra, N),
+	maplist(=(0-0), Extra),
+	append(ArgPosIn, Extra, ArgPosOut).
+extend_term_pos(F-T, N, term_position(F,T,F,T,Extra)) :-
+	length(Extra, N),
+	maplist(=(0-0), Extra).
 
 
 %%	variants(+SortedList, -Variants) is det.
@@ -476,7 +511,9 @@ predicate_in_module(Module, PI) :-
 		 *	      MESSAGES		*
 		 *******************************/
 
-:- multifile prolog:message//1.
+:- multifile
+	prolog:message//1,
+	prolog:message_location//1.
 
 prolog:message(autoload(reiterate(Iteration, NewFiles, NewPreds, Time))) -->
 	[ 'Autoloader: iteration ~D resolved ~D predicates and loaded ~D files in ~3f seconds. \c
@@ -485,3 +522,31 @@ prolog:message(autoload(reiterate(Iteration, NewFiles, NewPreds, Time))) -->
 prolog:message(autoload(completed(Iterations, Time, NewFiles))) -->
 	[ 'Autoloader: loaded ~D files in ~D iterations in ~3f seconds'-
 	  [NewFiles, Iterations, Time] ].
+
+prolog:message_location(file_char_count(File, CharCount)) -->
+	{ filepos_line(File, CharCount, Line, LinePos) },
+	[ '~w:~d:~d: '-[File, Line, LinePos] ].
+prolog:message_location(clause(ClauseRef)) -->
+	{ clause_property(ClauseRef, file(File)),
+	  clause_property(ClauseRef, line_count(Line))
+	}, !,
+	[ '~w:~d: '-[File, Line] ].
+prolog:message_location(clause(ClauseRef)) -->
+	{ clause_name(ClauseRef, Name) },
+	[ '~w: '-[Name] ].
+
+
+filepos_line(File, CharPos, Line, LinePos) :-
+	setup_call_cleanup(
+	    ( open(File, read, In),
+	      open_null_stream(Out)
+	    ),
+	    ( Skip is CharPos-1,
+	      copy_stream_data(In, Out, Skip),
+	      stream_property(In, position(Pos)),
+	      stream_position_data(line_count, Pos, Line),
+	      stream_position_data(line_position, Pos, LinePos)
+	    ),
+	    ( close(Out),
+	      close(In)
+	    )).
