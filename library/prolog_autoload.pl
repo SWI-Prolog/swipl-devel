@@ -192,7 +192,7 @@ scan_module_class(library).
 undefined_from_initialization(Options) :-
 	forall('$init_goal'(File, Goal, SourceLocation),
 	       undefined_from_initialization(File, Goal,
-					     [ source(SourceLocation)
+					     [ initialization(SourceLocation)
 					     | Options
 					     ])).
 
@@ -420,7 +420,7 @@ undefined(Goal, TermPos, Options) :-
 	;   throw(missing(subterm_positions))
 	).
 undefined(Goal, _, Options) :-
-	option(source(File:Line), Options), !,
+	option(initialization(File:Line), Options), !,
 	goal_pi(Goal, PI),
 	print_message(error, error(existence_error(procedure, PI),
 				   file(File, Line, -1, _))).
