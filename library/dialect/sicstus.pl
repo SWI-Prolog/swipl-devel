@@ -229,10 +229,27 @@ from library(qpforeign).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 system:term_expansion(
-	(:- load_foreign_resource(Base)),
-	(:- initialization(load_foreign_resource(M:Base, Source), now))) :-
+	   (:- load_foreign_resource(Base)),
+	   (:- initialization(load_foreign_resource(M:Base, Source), now))) :-
 	prolog_load_context(source, Source),
 	prolog_load_context(module, M).
+system:term_expansion(
+	   (:- module(Name, Exports, Options)),
+	   [ (:- module(Name, Exports))
+	   | Declarations
+	   ]) :-
+	prolog_load_context(dialect, sicstus),
+	phrase(sicstus_module_decls(Options), Declarations).
+
+sicstus_module_decls([]) --> [].
+sicstus_module_decls([H|T]) -->
+	sicstus_module_decl(H),
+	sicstus_module_decls(T).
+
+sicstus_module_decl(hidden(true)) --> !,
+	[(:- set_prolog_flag(generate_debug_info, false))].
+sicstus_module_decl(_) -->
+	[].
 
 
 		 /*******************************
