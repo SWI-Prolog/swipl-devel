@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -178,6 +179,8 @@ syntax_error(Culprit) :-
 %	| negative_integer | Integer < 0 |
 %	| oneof(L) | Ground term that is member of L |
 %	| encoding | Valid name for a character encoding |
+%	| cyclic | Cyclic term (rational tree) |
+%	| acyclic | Acyclic term (tree) |
 %	| list(Type) | Proper list with elements of Type |
 %	| list_or_partial_list | A list or an open list (ending in a variable |
 %
@@ -212,6 +215,10 @@ is_not(var,X) :- !,
 	throw(error(uninstantiation_error(X), _)).
 is_not(rational, X) :- !,
 	not_a_rational(X).
+is_not(cyclic, X) :-
+	domain_error(acyclic_term, X).
+is_not(acyclic, X) :-
+	domain_error(cyclic_term, X).
 is_not(Type, X) :-
 	(   var(X)
 	->  instantiation_error(X)
@@ -271,6 +278,8 @@ has_type(compound, X)	  :- compound(X).
 has_type(constant, X)	  :- atomic(X).
 has_type(float, X)	  :- float(X).
 has_type(ground, X)	  :- ground(X).
+has_type(cyclic, X)	  :- cyclic_term(X).
+has_type(acyclic, X)	  :- acyclic_term(X).
 has_type(integer, X)	  :- integer(X).
 has_type(nonneg, X)	  :- integer(X), X >= 0.
 has_type(positive_integer, X)	  :- integer(X), X > 0.
