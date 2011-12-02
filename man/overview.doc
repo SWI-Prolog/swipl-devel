@@ -1425,6 +1425,25 @@ This argument is given as option-list to write_term/2 for printing results
 of queries. Default is \exam{[quoted(true), portray(true),
 max_depth(10), attributes(portray)]}.
 
+    \prologflagitem{toplevel_prompt}{atom}{rw}
+Define the prompt that is used by the interactive toplevel. The
+following \verb$~$ (tilde) sequences are replaced:
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\chr{~}m & \jargon{Type in} module if not \const{user}
+	   (see module/1) \\
+\chr{~}l & \jargon{Break level} if not 0
+	   (see break/0) \\
+\chr{~}d & \jargon{Debugging state} if not normal execution
+	   (see debug/0, trace/0) \\
+\chr{~}! & \jargon{History event} if history is enabled
+           (see flag \prologflag{history}) \\
+\hline
+\end{tabular}
+\end{center}
+
     \prologflagitem{toplevel_var_size}{int}{rw}
 Maximum size counted in literals of a term returned as a binding for a
 variable in a top-level query that is saved for re-use using the

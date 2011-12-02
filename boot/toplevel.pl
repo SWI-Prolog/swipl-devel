@@ -36,7 +36,6 @@
 	    '$welcome'/0,		% banner
 	    prolog/0,			% user toplevel predicate
 	    '$query_loop'/0,		% toplevel predicate
-	    '$set_prompt'/1,		% set the main prompt
 	    (initialization)/1,		% initialization goal (directive)
 	    '$thread_init'/0,		% initialise thread
 	    (thread_initialization)/1	% thread initialization goal
@@ -562,33 +561,23 @@ restore_debug :-
 		*            PROMPTING		*
 		********************************/
 
-:- dynamic
-	'$prompt'/1.
-
-'$prompt'("%m%d%l%! ?- ").
-
-'$set_prompt'(P) :-
-	atom_codes(P, S),
-	retractall('$prompt'(_)),
-	assert('$prompt'(S)).
-
-
 '$system_prompt'(Module, BrekLev, Prompt) :-
-	'$prompt'(P0),
+	current_prolog_flag(toplevel_prompt, PAtom),
+	atom_codes(PAtom, P0),
 	(    Module \== user
-	->   '$substitute'("%m", [Module, ": "], P0, P1)
-	;    '$substitute'("%m", [], P0, P1)
+	->   '$substitute'("~m", [Module, ": "], P0, P1)
+	;    '$substitute'("~m", [], P0, P1)
 	),
 	(    BrekLev > 0
-	->   '$substitute'("%l", ["[", BrekLev, "] "], P1, P2)
-	;    '$substitute'("%l", [], P1, P2)
+	->   '$substitute'("~l", ["[", BrekLev, "] "], P1, P2)
+	;    '$substitute'("~l", [], P1, P2)
 	),
 	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
 	(    Tracing == true
-	->   '$substitute'("%d", ["[trace] "], P2, P3)
+	->   '$substitute'("~d", ["[trace] "], P2, P3)
 	;    Debugging == true
-	->   '$substitute'("%d", ["[debug] "], P2, P3)
-	;    '$substitute'("%d", [], P2, P3)
+	->   '$substitute'("~d", ["[debug] "], P2, P3)
+	;    '$substitute'("~d", [], P2, P3)
 	),
 	atom_chars(Prompt, P3).
 

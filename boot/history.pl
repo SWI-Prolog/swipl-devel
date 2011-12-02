@@ -110,8 +110,9 @@ list_history :-
 '$clean_history' :-
 	retractall('$history'(_,_)).
 
-%   prompt_history(+Prompt)
-%   Give prompt, substituting '%!' by the event number.
+%%   prompt_history(+Prompt)
+%
+%    Give prompt, substituting '~!' by the event number.
 
 prompt_history('') :- !,
 	ttyflush.
@@ -122,7 +123,7 @@ prompt_history(Prompt) :-
 	),
 	atom_codes(Prompt, SP),
 	atom_codes(This, ST),
-	(   substitute("%!", ST, SP, String)
+	(   substitute("~!", ST, SP, String)
 	->  prompt1(String)
 	;   prompt1(Prompt)
 	),

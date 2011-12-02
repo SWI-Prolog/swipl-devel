@@ -35,6 +35,7 @@
 	    '$version'/1,
 	    '$home'/1,
 	    '$argv'/1,
+	    '$set_prompt'/1,
 	    '$strip_module'/3,
 	    '$declare_module'/3,
 	    at_initialization/1,	% :Goal
@@ -133,6 +134,21 @@ compatibility predicates.
 
 '$argv'(Argv) :-
 	current_prolog_flag(argv, Argv).
+
+%%	'$set_prompt'(+Prompt) is det.
+%
+%	Set the prompt for the toplevel
+%
+%	@deprecated use set_prolog_flag(toplevel_prompt, Prompt).
+
+'$set_prompt'(Prompt) :-
+	maplist(percent_to_tilde, Prompt, Prompt1),
+	atom_codes(Atom, Prompt1),
+	set_prolog_flag(toplevel_prompt, Atom).
+
+percent_to_tilde(0'%, 0'~) :- !.
+percent_to_tilde(X, X).
+
 
 %%	displayq(@Term) is det.
 %%	displayq(+Stream, @Term) is det.
