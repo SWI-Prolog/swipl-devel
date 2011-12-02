@@ -271,6 +271,7 @@ Section "Base system (required)"
   File pl\library\quintus.pl
   File pl\library\files.pl
   File pl\library\charsio.pl
+  File pl\library\codesio.pl
   File pl\library\arithmetic.pl
 
 ; `STANDARD LIBRARIES'
