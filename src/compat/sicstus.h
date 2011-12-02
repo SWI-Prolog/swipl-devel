@@ -43,6 +43,7 @@ Please checks the notes for:
 #include <SWI-Prolog.h>
 
 typedef term_t SP_term_ref;
+typedef atom_t SP_atom;
 typedef predicate_t SP_pred_ref;
 
 #define SP_ERROR  -1
@@ -51,6 +52,12 @@ typedef predicate_t SP_pred_ref;
 
 #define SP_WHEN_RESTORE 1		/* Note: these are not supported yet */
 #define SP_WHEN_SAVE 2
+
+#define SP_TYPE_ATOM     PL_ATOM
+#define SP_TYPE_COMPOUND PL_TERM
+#define SP_TYPE_FLOAT    PL_FLOAT
+#define SP_TYPE_INTEGER  PL_INTEGER
+#define SP_TYPE_VARIABLE PL_VARIABLE
 
 
 		 /*******************************
@@ -77,6 +84,7 @@ typedef predicate_t SP_pred_ref;
 #define SP_get_arg(i,t,a) PL_get_arg(i,t,a)
 
 #define SP_unify(x,y) PL_unify(x,y)
+#define SP_term_type(t) PL_term_type(t)
 
 static __inline int
 SP_put_string(term_t t, const char *s)
