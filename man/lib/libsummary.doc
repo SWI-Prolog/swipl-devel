@@ -193,3 +193,5 @@ This library is only available on Windows systems.
 \subsection{\pllib{thread_pool}}
 \input{summaries.d/threadpool.tex}
 
+\subsection{\pllib{varnumbers}}
+\input{summaries.d/varnumbers.tex}

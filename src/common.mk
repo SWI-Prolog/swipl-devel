@@ -49,7 +49,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	coinduction.pl ansi_term.pl base32.pl prolog_history.pl \
 	optparse.pl arithmetic.pl writef.pl predicate_options.pl \
 	random.pl prolog_breakpoints.pl prolog_autoload.pl \
-	prolog_colour.pl
+	prolog_colour.pl varnumbers.pl
 
 # Dialect library files
 
