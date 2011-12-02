@@ -34,7 +34,9 @@
 	    wait/2,			% +PID, -Status
 	    pid/1,			% -PID
 
+	    now/1,			% -TimeStamp
 	    datime/1,			% -DaTime
+	    datime/2,			% +TimeStamp, -DaTime
 	    sleep/1,			% +Seconds
 
 	    shell/0,
@@ -134,7 +136,28 @@ wait(PID, Status) :-
 pid(PID) :-
 	current_prolog_flag(pid, PID).
 
-%%	datime(-Datime)
+%%	now(-When) is det.
+%
+%	Unify when with the current time-stamp
+%
+%	@compat sicstus
+
+now(When) :-
+	get_time(Now),
+	When is integer(Now).
+
+%%	datime(+When, -Datime) is det.
+%
+%	True when Datime is a  datime/6   record  that reflects the time
+%	stamp When.
+%
+%	@compat sicstus
+
+datime(When, datime(Year,Month,Day,Hour,Min,Sec)) :-
+	stamp_date_time(When, date(Year,Month,Day,Hour,Min,SecF,_,_,_), local),
+	Sec is integer(SecF).
+
+%%	datime(-Datime) is det.
 %
 %	Unifies Datime with the current  date   and  time  as a datime/6
 %	record  of  the  form  datime(Year,Month,Day,Hour,Min,Sec).  All
