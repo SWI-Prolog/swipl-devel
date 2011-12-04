@@ -29,19 +29,21 @@ PKGEXDIR=$(PLBASE)/doc/packages/examples
 INSTALL_PLARCH=@INSTALL_PLARCH@
 TXTEXT=@TXTEXT@
 
-CC=../swipl-ld.sh
-CXX=../swipl-ld.sh
+CC=@CC@
+CXX=@CC@
 LD=$(CC)
 RANLIB=@RANLIB@
 SO=@SO_EXT@
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
-CMFLAGS=-fPIC
-CIFLAGS=
-CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) $(PKGCFLAGS) @DEFS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=@CIFLAGS@ -I@abs_top_builddir@/../include
+DEFS=@DEFS@ -D__SWI_PROLOG__ -D__SWI_EMBEDDED__
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) $(PKGCFLAGS) $(DEFS)
 
-LDSOFLAGS=-shared $(PKGLDFLAGS)
-LDFLAGS=$(PKGLDFLAGS)
+PLLDFLAGS=@LDFLAGS@ -L@abs_top_builddir@/../lib/$(PLARCH) -lswipl
+LDSOFLAGS=-shared $(PLLDFLAGS) $(PKGLDFLAGS)
+LDFLAGS=$(PLLDFLAGS) $(PKGLDFLAGS)
 
 MKINDEX=$(PL) -f none -g make -t halt
 MKPKGINDEX=$(PL) -C "$(DESTDIR)$(PLBASE)/library/$(PACKAGE)" -f none -F none -g 'make_library_index(.),halt' -t 'halt(1)'
