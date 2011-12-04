@@ -381,6 +381,18 @@ Z = 1,
 X in inf..sup.
 ==
 
+You can cite this library in your publications as:
+
+==
+@inproceedings{Triska08,
+  author    = {Markus Triska},
+  title     = {Generalising Constraint Solving over Finite Domains},
+  booktitle = {ICLP},
+  year      = {2008},
+  pages     = {820-821}
+}
+==
+
 @author Markus Triska
 */
 
