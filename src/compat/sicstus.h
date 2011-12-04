@@ -72,14 +72,20 @@ typedef predicate_t SP_pred_ref;
 
 #define SP_cons_list(l,h,t) PL_cons_list(l,h,t)
 
+#define SP_atom_from_string(s) PL_new_atom(s)
+#define SP_string_from_atom(a) PL_atom_chars(a)
+
 #define SP_put_variable(t) PL_put_variable(t)
+#define SP_put_atom(t,a) PL_put_atom(t,a)
 #define SP_put_integer(t,i) PL_put_integer(t,i)
 #define SP_put_float(t,f) PL_put_float(t,f)
 #define SP_put_list(t) PL_put_list(t)
-#define SP_put_term(t1, t2) PL_put_term(t1, t2)
+#define SP_put_term(t1,t2) PL_put_term(t1,t2)
 
+#define SP_get_float(t,f) PL_get_float(t,f)
+#define SP_get_functor(t,n,a) PL_get_name_arity(t,n,a)
 #define SP_get_list(l,h,t) PL_get_list(l,h,t)
-#define SP_get_string(t,s) PL_get_chars(t,s,CVT_ATOM|REP_SP)
+#define SP_get_string(t,s) PL_get_chars(t,(char**)(s),CVT_ATOM|REP_SP)
 #define SP_get_integer(t,pi) PL_get_long(t, pi)
 #define SP_get_arg(i,t,a) PL_get_arg(i,t,a)
 
@@ -161,6 +167,97 @@ SP_get_list_n_bytes(SP_term_ref term,
 }
 
 
+static __inline int
+SP_get_number_codes(SP_term_ref term, char const **s)
+{ char *tmp;
+
+  if ( PL_get_chars(term, &tmp, CVT_NUMBER) )
+  { *s = (const char*)tmp;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If native is zero, buf  consists  of   the  buf_size  bytes  of the twos
+complement representation of the integer. Less  significant bytes are at
+lower indices
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static __inline int
+SP_put_integer_bytes(SP_term_ref term,
+		     void *buf, size_t buf_size,
+		     int native)
+{ if ( native )
+  { int64_t val;
+
+    switch(buf_size)
+    { case 1:
+      { char *p = buf;
+	val = *p;
+	break;
+      }
+      case 2:
+      { short *p = buf;
+	val = *p;
+	break;
+      }
+      case 4:
+      { int *p = buf;
+	val = *p;
+	break;
+      }
+      case 8:
+      { int64_t *p = buf;
+	val = *p;
+	break;
+      }
+    default:
+      return FALSE;
+    }
+
+    return PL_put_int64(term, val);
+  } else					/* see above */
+  {
+#ifdef __GNU_MP__
+    mpz_t mpz;
+    int rc;
+
+    mpz_import(mpz, buf_size, 1, 0, 1, buf);
+    PL_put_variable(term);
+    rc = PL_unify_mpz(term, mpz);
+    mpz_clear(mpz);
+
+    return rc;
+#else
+    assert(0);
+#endif
+  }
+}
+
+
+
+static __inline int
+SP_cons_functor_array(SP_term_ref term, SP_atom name, int arity,
+		      SP_term_ref *arg)
+{ functor_t f = PL_new_functor(name, arity);
+  term_t argv;
+
+  if ( (argv=PL_new_term_refs(arity)) )
+  { int i;
+
+    for(i=0; i<arity; i++)
+      PL_put_term(arg[i], argv+i);
+
+    return PL_cons_functor_v(term, f, argv);
+  }
+
+  return FALSE;
+}
+
+
 
 		 /*******************************
 		 * RETURN CODES AND EXCEPTIONS	*
@@ -224,6 +321,53 @@ SP_query(SP_pred_ref predicate, ...)
   }
   PL_cut_query(qid);
   PL_close_foreign_frame(fid);
+
+  return SP_SUCCESS;
+}
+
+
+static __inline int
+SP_query_cut_fail(SP_pred_ref predicate, ...)
+{ atom_t name;
+  int i, arity;
+  module_t module;
+  fid_t fid;
+  qid_t qid;
+  term_t t0;
+  va_list args;
+
+  if ( !(fid = PL_open_foreign_frame()) )
+    return SP_ERROR;
+
+  PL_predicate_info(predicate, &name, &arity, &module);
+
+  if ( !(t0 = PL_new_term_refs(arity)) )
+  { PL_close_foreign_frame(fid);
+    return SP_ERROR;
+  }
+
+  va_start(args, predicate);
+  for(i=0; i<arity; i++)
+  { term_t a = va_arg(args, term_t);
+    PL_put_term(t0+i, a);
+  }
+  va_end(args);
+
+  if ( !(qid=PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, predicate, t0)) )
+    return SP_ERROR;
+  if ( !PL_next_solution(qid) )
+  { term_t ex = PL_exception(qid);
+
+    PL_cut_query(qid);
+    if ( ex )
+    { PL_close_foreign_frame(fid);
+      return SP_ERROR;
+    }
+    PL_discard_foreign_frame(fid);
+    return SP_FAILURE;
+  }
+  PL_cut_query(qid);
+  PL_discard_foreign_frame(fid);
 
   return SP_SUCCESS;
 }
