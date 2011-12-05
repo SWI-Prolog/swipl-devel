@@ -41,6 +41,7 @@ Please checks the notes for:
 #ifndef SICSTUS_H_INCLUDED
 #define SICSTUS_H_INCLUDED
 #include <SWI-Prolog.h>
+#include <assert.h>
 
 typedef term_t SP_term_ref;
 typedef atom_t SP_atom;
@@ -180,6 +181,20 @@ SP_get_number_codes(SP_term_ref term, char const **s)
 }
 
 
+static __inline int
+SP_put_number_codes(SP_term_ref term, char const *s)
+{ term_t t = PL_new_term_ref();
+
+  if ( PL_chars_to_term(s, t) &&
+       PL_is_number(t) )
+  { PL_put_term(term, t);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If native is zero, buf  consists  of   the  buf_size  bytes  of the twos
 complement representation of the integer. Less  significant bytes are at
@@ -225,7 +240,14 @@ SP_put_integer_bytes(SP_term_ref term,
     mpz_t mpz;
     int rc;
 
-    mpz_import(mpz, buf_size, 1, 0, 1, buf);
+    mpz_init(mpz);
+    mpz_import(mpz,
+	       buf_size,			/* COUNT */
+	       1,				/* ORDER */
+	       1,				/* SIZE */
+	       0,				/* ENDIAN (native) */
+	       0,				/* NAILS */
+	       buf);				/* OP */
     PL_put_variable(term);
     rc = PL_unify_mpz(term, mpz);
     mpz_clear(mpz);
@@ -249,7 +271,7 @@ SP_cons_functor_array(SP_term_ref term, SP_atom name, int arity,
   { int i;
 
     for(i=0; i<arity; i++)
-      PL_put_term(arg[i], argv+i);
+      PL_put_term(argv+i, arg[i]);
 
     return PL_cons_functor_v(term, f, argv);
   }
