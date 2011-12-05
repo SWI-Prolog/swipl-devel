@@ -135,7 +135,7 @@ read_from_codes(List, Term) :-
 %	@compat sicstus
 
 read_term_from_codes(Codes, Term, Options) :-
-	setup_call_cleanup(open_codes_stream(Codes, Stream, ' .\n'),
+	setup_call_cleanup(open_codes_stream(Codes, Stream, '\n.\n'),
 			   read_term(Stream, Term0, Options),
 			   close(Stream)),
 	Term = Term0.
@@ -154,9 +154,10 @@ open_codes_stream(Codes, Stream) :-
 
 open_codes_stream(Codes, Stream, Postfix) :-
 	new_memory_file(MF),
-	open_memory_file(MF, write, Out),
-	format(Out, '~s~w', [Codes, Postfix]),
-	close(Out),
+	setup_call_cleanup(
+	    open_memory_file(MF, write, Out),
+	    format(Out, '~s~w', [Codes, Postfix]),
+	    close(Out)),
 	open_memory_file(MF, read, Stream,
 			 [ free_on_close(true)
 			 ]).
