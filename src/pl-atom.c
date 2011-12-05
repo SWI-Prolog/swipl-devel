@@ -328,6 +328,16 @@ registerAtom(Atom a)
 }
 
 
+static size_t
+paddingBlob(PL_blob_t *type)
+{ if ( true(type, PL_BLOB_TEXT) )
+  { return true(type, PL_BLOB_WCHAR) ? sizeof(pl_wchar_t) : sizeof(char);
+  } else
+  { return 0;
+  }
+}
+
+
 		 /*******************************
 		 *	  GENERAL LOOKUP	*
 		 *******************************/
@@ -404,9 +414,10 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   a->length = length;
   a->type = type;
   if ( false(type, PL_BLOB_NOCOPY) )
-  { a->name = allocHeapOrHalt(length+1);
+  { size_t pad = paddingBlob(type);
+    a->name = allocHeapOrHalt(length+pad);
     memcpy(a->name, s, length);
-    a->name[length] = EOS;
+    memset(a->name+length, 0, pad);
   } else
   { a->name = (char *)s;
   }
@@ -631,7 +642,7 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
 
   *ap = NULL;			/* delete from index array */
   if ( false(a->type, PL_BLOB_NOCOPY) )
-    freeHeap(a->name, a->length+1);
+    freeHeap(a->name, a->length+paddingBlob(a->type));
   freeHeap(a, sizeof(*a));
 
   return TRUE;
