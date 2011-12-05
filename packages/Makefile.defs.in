@@ -59,5 +59,7 @@ $(TEX):		$(DOC2TEX)
 		$(DOC2TEX) $*.doc > $*.tex
 
 # Get the Prolog dialect specific part of the Makefiles
+# See http://stackoverflow.com/questions/8074372/make-include-in-makefiles-be-relative-to-the-files-location
 
-include ../Dialect.defs
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(SELF_DIR)/Dialect.defs
