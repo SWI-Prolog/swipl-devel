@@ -50,17 +50,24 @@
 	  reverse/2,			% +List, -Reversed
 	  permutation/2,		% ?List, ?Permutation
 	  flatten/2,			% +Nested, -Flat
+
+					% Ordered operations
+	  max_member/2,			% -Max, +List
+	  min_member/2,			% -Min, +List
+
+					% Lists of numbers
 	  sumlist/2,			% +List, -Sum
 	  max_list/2,			% +List, -Max
 	  min_list/2,			% +List, -Min
 	  numlist/3,			% +Low, +High, -List
 
-	  is_set/1,			% set manipulation
+					% set manipulation
+	  is_set/1,			% +List
 	  list_to_set/2,		% +List, -Set
-	  intersection/3,
-	  union/3,
-	  subset/2,
-	  subtract/3
+	  intersection/3,		% +List1, +List2, -Intersection
+	  union/3,			% +List1, +List2, -Union
+	  subset/2,			% +SubSet, +Set
+	  subtract/3			% +Set, +Delete, -Remaining
 	]).
 :- use_module(library(error)).
 
@@ -74,7 +81,13 @@ are built-in. See e.g., memberchk/2, length/2.
 
 The implementation of this library  is   copied  from many places. These
 include: "The Craft of Prolog", the   DEC-10  Prolog library (LISTRO.PL)
-and the YAP lists library.
+and the YAP lists library. Some   predicates  are reimplemented based on
+their specification by Quintus and SICStus.
+
+@compat	Virtually every Prolog system has library(lists), but the set
+	of provided predicates is diverse.  There is a fair agreement
+	on the semantics of most of these predicates, although error
+	handling may vary.
 */
 
 %%	member(?Elem, ?List)
@@ -188,7 +201,7 @@ nextto(X, Y, [X,Y|_]).
 nextto(X, Y, [_|Zs]) :-
 	nextto(X, Y, Zs).
 
-%%	delete(?List1, ?Elem, ?List2)
+%%	delete(?List1, ?Elem, ?List2) is det.
 %
 %	Is true when Lis1, with all occurences of Elem deleted results in
 %	List2.
@@ -312,7 +325,9 @@ find_nth0(N, [Head|Rest0], Elem, [Head|Rest]) :-
 
 %%	last(?List, ?Last)
 %
-%	Succeeds if `Last' unifies with the last element of `List'.
+%	Succeeds when `Last'  is  the  last   element  of  `List'.  This
+%	predicate is =semidet= if List is a  list and =multi= if List is
+%	a partial list.
 %
 %	@compat	There is no de-facto standard for the argument order of
 %		last/2.  Be careful when porting code or use
@@ -436,6 +451,53 @@ flatten([Hd|Tl], Tail, List) :- !,
 	flatten(Tl, Tail, FlatHeadTail).
 flatten(NonList, Tl, [NonList|Tl]).
 
+
+		 /*******************************
+		 *	 ORDER OPERATIONS	*
+		 *******************************/
+
+%%	max_member(-Max, +List) is semidet.
+%
+%	True when Max is the largest  member   in  the standard order of
+%	terms.  Fails if List is empty.
+%
+%	@see compare/3
+%	@see max_list/2 for the maximum of a list of numbers.
+
+max_member(Max, [H|T]) :-
+	max_member_(T, H, Max).
+
+max_member_([], Max, Max).
+max_member_([H|T], Max0, Max) :-
+	(   H @=< Max0
+	->  max_member_(T, Max0, Max)
+	;   max_member_(T, H, Max)
+	).
+
+
+%%	min_member(-Min, +List) is semidet.
+%
+%	True when Min is the largest  member   in  the standard order of
+%	terms.  Fails if List is empty.
+%
+%	@see compare/3
+%	@see min_list/2 for the minimum of a list of numbers.
+
+min_member(Min, [H|T]) :-
+	min_member_(T, H, Min).
+
+min_member_([], Min, Min).
+min_member_([H|T], Min0, Min) :-
+	(   H @=< Min0
+	->  min_member_(T, Min0, Min)
+	;   min_member_(T, H, Min)
+	).
+
+
+		 /*******************************
+		 *	 LISTS OF NUMBERS	*
+		 *******************************/
+
 %%	sumlist(+List, -Sum) is det.
 %
 %	Sum is the result of adding all numbers in List.
@@ -448,10 +510,12 @@ sumlist([X|Xs], Sum0, Sum) :-
 	Sum1 is Sum0 + X,
 	sumlist(Xs, Sum1, Sum).
 
-
-%%	max_list(+List:list(number), -Max:number) is det.
+%%	max_list(+List:list(number), -Max:number) is semidet.
 %
-%	True if Max is the largest number in List.
+%	True if Max is the largest number in List.  Fails if List is
+%	empty.
+%
+%	@see max_member/2.
 
 max_list([H|T], Max) :-
 	max_list(T, H, Max).
@@ -462,9 +526,12 @@ max_list([H|T], Max0, Max) :-
 	max_list(T, Max1, Max).
 
 
-%%	min_list(+List:list(number), -Min:number) is det.
+%%	min_list(+List:list(number), -Min:number) is semidet.
 %
-%	True if Min is the largest number in List.
+%	True if Min is the largest number in List.  Fails if List is
+%	empty.
+%
+%	@see min_member/2.
 
 min_list([H|T], Min) :-
 	min_list(T, H, Min).
