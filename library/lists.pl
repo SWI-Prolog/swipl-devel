@@ -46,6 +46,7 @@
 	  nth0/4,			% ?N, ?List, ?Elem, ?Rest
 	  nth1/4,			% ?N, ?List, ?Elem, ?Rest
 	  last/2,			% +List, -Element
+	  proper_length/2,		% @List, -Length
 	  same_length/2,		% ?List1, ?List2
 	  reverse/2,			% +List, -Reversed
 	  permutation/2,		% ?List, ?Permutation
@@ -339,6 +340,23 @@ last([X|Xs], Last) :-
 last_([], Last, Last).
 last_([X|Xs], _, Last) :-
     last_(Xs, X, Last).
+
+
+%%	proper_length(@List, -Length) is semidet.
+%
+%	True when Length is the number of   elements  in the proper list
+%	List.  This is equivalent to
+%
+%	  ==
+%	  proper_length(List, Length) :-
+%		is_list(List),
+%		length(List, Length).
+%	  ==
+
+proper_length(List, Length) :-
+	'$skip_list'(Length0, List, Tail),
+	Tail == [],
+	Length = Length0.
 
 
 %%	same_length(?List1, ?List2)
