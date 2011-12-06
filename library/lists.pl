@@ -352,10 +352,7 @@ last_([X|Xs], _, Last) :-
 
 same_length([], []).
 same_length([_|T1], [_|T2]) :-
-	(   T2 == []			% determinism in mode (-,+)
-	->  T1 = []
-	;   same_length(T1, T2)
-	).
+	same_length(T1, T2).
 
 
 %%	reverse(?List1, ?List2)
