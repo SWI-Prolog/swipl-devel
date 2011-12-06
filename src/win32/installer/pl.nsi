@@ -262,6 +262,7 @@ Section "Base system (required)"
   File pl\library\prolog_history.pl
   File pl\library\prolog_breakpoints.pl
   File pl\library\prolog_autoload.pl
+  File pl\library\prolog_colour.pl
   File pl\library\predicate_options.pl
 
 ; COMPATIBILITY
@@ -372,7 +373,7 @@ SectionEnd
 
 Section "PDT support files"
   SectionIn 1 3
-  SetOutPath $INSTDIR\library\
+  SetOutPath $INSTDIR\library
   File pl\library\pdt_console.pl
   SetOutPath $INSTDIR\bin
   File pl\bin\pdt_console.dll
