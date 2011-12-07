@@ -78,21 +78,13 @@ also used by the commandline sequence below.
 qsave_program(File) :-
 	qsave_program(File, []).
 
-qsave_program(FileBase, Module:Options) :-
+qsave_program(FileBase, Options0) :-
+	meta_options(is_meta, Options0, Options),
 	check_options(Options),
 	exe_file(FileBase, File),
 	option(class(SaveClass),    Options, runtime),
 	option(init_file(InitFile), Options, DefInit),
 	default_init_file(SaveClass, DefInit),
-	(   select_option(goal(GoalTerm), Options, Options1)
-	->  term_to_atom(Module:GoalTerm, GoalAtom),
-	    term_to_atom(GT, GoalAtom),
-	    define_predicate(user:GT),
-	    Options2 = [goal(GoalAtom)|Options1]
-	;   flag('$banner_goal', BannerGoal, BannerGoal),
-	    define_predicate(user:BannerGoal),
-	    Options2 = Options
-	),
 	save_autoload(Options),
 	open_map(Options),
 	create_prolog_flag(saved_program, true, []),
@@ -104,7 +96,7 @@ qsave_program(FileBase, Module:Options) :-
 	'$rc_open_archive'(File, RC),
 	make_header(RC, SaveClass, Options),
 	save_options(RC, [ init_file(InitFile)
-			 | Options2
+			 | Options
 			 ]),
 	save_resources(RC, SaveClass),
 	'$rc_open'(RC, '$state', '$prolog', write, StateFd),
@@ -127,6 +119,9 @@ qsave_program(FileBase, Module:Options) :-
 	'$rc_close_archive'(RC),
 	'$mark_executable'(File),
 	close_map.
+
+is_meta(goal).
+is_meta(toplevel).
 
 exe_file(Base, Exe) :-
 	current_prolog_flag(windows, true),
@@ -184,7 +179,10 @@ convert_option(Stack, Val, NewVal) :-	% stack-sizes are in K-bytes
 	->  NewVal = Val
 	;   NewVal is max(Min, Val*1024)
 	).
-convert_option(_, Val, Val).
+convert_option(goal, Callable, Atom) :-
+	term_to_atom(Callable, Atom).
+convert_option(toplevel, Callable, Atom) :-
+	term_to_atom(Callable, Atom).
 
 doption(Name) :- min_stack(Name, _).
 doption(goal).
@@ -313,7 +311,21 @@ define_predicate(Head) :-
 		 *	      AUTOLOAD		*
 		 *******************************/
 
+define_init_goal(Options) :-
+	option(goal(Goal), Options), !,
+	define_predicate(Goal).
+define_init_goal(_) :-
+	flag('$banner_goal', BannerGoal, BannerGoal),
+	define_predicate(user:BannerGoal).
+
+define_toplevel_goal(Options) :-
+	option(toplevel(Goal), Options), !,
+	define_predicate(Goal).
+define_toplevel_goal(_).
+
 save_autoload(Options) :-
+	define_init_goal(Options),
+	define_toplevel_goal(Options),
 	option(autoload(true),  Options, true), !,
 	autoload(Options).
 
@@ -572,7 +584,7 @@ qualify_head(T, user:T).
 		 *	       UTIL		*
 		 *******************************/
 
-open_map(Options) :- !,
+open_map(Options) :-
 	option(map(Map), Options), !,
 	open(Map, write, Fd),
 	asserta(verbose(Fd)).
