@@ -194,13 +194,14 @@ doption(system_init_file).
 doption(class).
 doption(home).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Save the options in the '$options' resource.   The home directory is saved
-for development saves, so it keeps refering to the development home.
-
-The script-file (-s script) is not saved at all. I think this is fine to
-avoid a save-script loading itself.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+%%	save_options(+ArchiveHandle, +Options)
+%
+%	Save the options in the '$options'  resource. The home directory
+%	is saved for development saves,  so   it  keeps  refering to the
+%	development home.
+%
+%	The script-file (-s script) is not saved at all. I think this is
+%	fine to avoid a save-script loading itself.
 
 save_options(RC, Options) :-
 	'$rc_open'(RC, '$options', '$prolog', write, Fd),
