@@ -496,7 +496,13 @@ user:file_search_path(foreign, swi(ArchLib)) :-
 	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
-
+user:file_search_path(path, Dir) :-
+	getenv('PATH', Path),
+	(   current_prolog_flag(windows, true)
+	->  atomic_list_concat(Dirs, (;), Path)
+	;   atomic_list_concat(Dirs, :, Path)
+	),
+	'$member'(Dir, Dirs).
 
 %	expand_file_search_path(+Spec, -Expanded) is nondet.
 %
