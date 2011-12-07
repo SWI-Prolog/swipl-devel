@@ -1347,7 +1347,7 @@ load_files(Module:Files, Options) :-
 	    '$mt_end_load'(Loading)).
 '$mt_load_file'(File, FullFile, Module, Options) :-
 	'$get_option'(if(If), Options, true),
-	'$noload'(If, FullFile), !,
+	'$noload'(If, FullFile, Options), !,
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_load_file'(File, FullFile, Module, Options) :-
 	'$qdo_load_file'(File, FullFile, Module, Options).
