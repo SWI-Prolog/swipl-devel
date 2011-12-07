@@ -653,9 +653,12 @@ are:
 	and never the DCG form Name//Arity). Future versions may also
 	use the DCG form and include public operators. See also
 	predicate_property/2.
+	\termitem{exported_operators}{-ListOfOperators}
+	True if \arg{Module} exports the given operators.  Each exported
+	operator is represented as a term \term{op}{Pri,Assoc,Name}.
     \end{description}
 
-    \predicate{set_module}{1}{:Porperty}
+    \predicate{set_module}{1}{:Property}
 Modify properties of the module.  Currently, the following properties
 may be modified.
 

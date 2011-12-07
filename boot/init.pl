@@ -1967,10 +1967,13 @@ load_files(Module:Files, Options) :-
 %	exported from Module.
 
 '$exported_ops'(Module, Ops, Tail) :-
-	current_predicate(Module:'$exported_op'/3), !,
+	'$c_current_predicate'(_, Module:'$exported_op'(_,_,_)), !,
 	findall(op(P,A,N), Module:'$exported_op'(P,A,N), Ops, Tail).
 '$exported_ops'(_, Ops, Ops).
 
+'$exported_op'(Module, P, A, N) :-
+	'$c_current_predicate'(_, Module:'$exported_op'(_,_,_)),
+	Module:'$exported_op'(P, A, N).
 
 %%	'$import_ops'(+Target, +Source, +Pattern)
 %
@@ -1981,14 +1984,12 @@ load_files(Module:Files, Options) :-
 	ground(Pattern), !,
 	Pattern = op(P,A,N),
 	op(P,A,To:N),
-	(   current_predicate(From:'$exported_op'/3),
-	    From:'$exported_op'(P, A, N)
+	(   '$exported_op'(From, P, A, N)
 	->  true
 	;   print_message(warning, no_exported_op(From, Pattern))
 	).
 '$import_ops'(To, From, Pattern) :-
-	(   current_predicate(From:'$exported_op'/3),
-	    From:'$exported_op'(Pri, Assoc, Name),
+	(   '$exported_op'(From, Pri, Assoc, Name),
 	    Pattern = op(Pri, Assoc, To:Name),
 	    op(Pri, Assoc, To:Name),
 	    fail

@@ -798,10 +798,12 @@ current_module(Module) :-
 %	    The module declaration is on line Count of File.
 %	    * exports(ListOfPredicateIndicators)
 %	    The module exports ListOfPredicateIndicators
+%	    * exported_operators(ListOfOp3)
+%	    The module exports the operators ListOfOp3.
 
 module_property(Module, Property) :-
 	nonvar(Module), nonvar(Property), !,
-	'$module_property'(Module, Property).
+	property_module(Property, Module).
 module_property(Module, Property) :-	% -, file(File)
 	nonvar(Property), Property = file(File), !,
 	(   nonvar(File)
@@ -815,6 +817,12 @@ module_property(Module, Property) :-	% -, file(File)
 	).
 module_property(Module, Property) :-
 	current_module(Module),
+	property_module(Property, Module).
+
+property_module(exported_operators(List), Module) :- !,
+	'$exported_ops'(Module, List, []),
+	List \== [].
+property_module(Property, Module) :-
 	module_property(Property),
 	'$module_property'(Module, Property).
 
