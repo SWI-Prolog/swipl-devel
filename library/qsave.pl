@@ -35,6 +35,7 @@
 	  , qsave_program/2
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(option)).
 
 /** <module> Save current program as a state or executable
 
@@ -49,7 +50,7 @@ also used by the commandline sequence below.
 :- meta_predicate
 	qsave_program(+, :).
 
-:- set_prolog_flag(generate_debug_info, false).
+% :- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic verbose/1.
 :- volatile verbose/1.			% contains a stream-handle
@@ -62,24 +63,24 @@ also used by the commandline sequence below.
 qsave_program(File) :-
 	qsave_program(File, []).
 
-qsave_program(FileBase, Module:Options0) :-
-	check_options(Options0),
+qsave_program(FileBase, Module:Options) :-
+	check_options(Options),
 	exe_file(FileBase, File),
-	option(Options0, autoload/true,	    Autoload,  Options1),
-	option(Options1, map/[],	    Map,       Options2),
-	option(Options2, goal/[],	    GoalTerm,  Options3),
-	option(Options3, op/save,	    SaveOps,   Options4),
-	option(Options4, class/runtime,	    SaveClass, Options5),
-	option(Options5, init_file/DefInit, InitFile,  Options6),
+	option(autoload(Autoload),  Options, true),
+	option(map(Map),	    Options, []),
+	option(goal(GoalTerm),	    Options, []),
+	option(op(SaveOps),	    Options, save),
+	option(class(SaveClass),    Options, runtime),
+	option(init_file(InitFile), Options, DefInit),
 	default_init_file(SaveClass, DefInit),
-	(   GoalTerm == []
-	->  Options = Options6,
-	    flag('$banner_goal', BannerGoal, BannerGoal),
-	    define_predicate(user:BannerGoal)
-	;   term_to_atom(Module:GoalTerm, GoalAtom),
+	(   select_option(goal(GoalTerm), Options, Options1)
+	->  term_to_atom(Module:GoalTerm, GoalAtom),
 	    term_to_atom(GT, GoalAtom),
 	    define_predicate(user:GT),
-	    Options = [goal=GoalAtom|Options6]
+	    Options2 = [goal(GoalAtom)|Options1]
+	;   flag('$banner_goal', BannerGoal, BannerGoal),
+	    define_predicate(user:BannerGoal),
+	    Options2 = Options
 	),
 	(   Autoload == true
 	->  save_autoload
@@ -96,7 +97,7 @@ qsave_program(FileBase, Module:Options0) :-
 	make_header(RC, SaveClass, Options),
 	save_options(RC, [ class(SaveClass),
 			   init_file(InitFile)
-			 | Options
+			 | Options2
 			 ]),
 	save_resources(RC, SaveClass),
 	'$rc_open'(RC, '$state', '$prolog', write, StateFd),
@@ -136,8 +137,7 @@ default_init_file(_,       InitFile) :-
 		 *******************************/
 
 make_header(RC, _, Options) :-
-	option(Options, emulator/(-), OptVal, _),
-	OptVal \== (-), !,
+	option(emulator(OptVal), Options), !,
 	absolute_file_name(OptVal, [access(read)], Emulator),
 	'$rc_append_file'(RC, '$header', '$rc', none, Emulator).
 make_header(RC, _, Options) :-
@@ -145,8 +145,7 @@ make_header(RC, _, Options) :-
 	->  DefStandAlone = true
 	;   DefStandAlone = false
 	),
-	option(Options, stand_alone/DefStandAlone, OptVal, _),
-	OptVal == true, !,
+	option(stand_alone(true), Options, DefStandAlone), !,
 	current_prolog_flag(executable, Executable),
 	'$rc_append_file'(RC, '$header', '$rc', none, Executable).
 make_header(RC, SaveClass, _Options) :-
@@ -204,10 +203,10 @@ save_options(RC, Options) :-
 		->  \+ memberchk(class(runtime), Options)
 		;   true
 		),
-	        option(Options, OptionName/_, OptionVal1, _),
-	        (   var(OptionVal1)	% used the default
-		->  OptionVal = OptionVal0
-		;   convert_option(OptionName, OptionVal1, OptionVal)
+	        OptTerm =.. [OptionName,OptionVal1],
+	        (   option(OptTerm, Options)
+		->  convert_option(OptionName, OptionVal1, OptionVal)
+		;   OptionVal = OptionVal0
 		),
 	        format(Fd, '~w=~w~n', [OptionName, OptionVal]),
 	    fail
@@ -578,13 +577,6 @@ feedback(Fmt, Args) :-
 	format(Fd, Fmt, Args).
 feedback(_, _).
 
-
-option(List, Name/_Default, Value, Rest) :- % goal = Goal
-	select(Name=Value, List, Rest), !.
-option(List, Name/_Default, Value, Rest) :- % goal(Goal)
-	Term =.. [Name, Value],
-	select(Term, List, Rest), !.
-option(List, _Name/Default, Default, List).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Option checking and exception generation.  This should be in a library!
