@@ -509,7 +509,7 @@ remove_history_prompt(Prompt0, Prompt) :-
 	atom_chars(Prompt, Chars).
 
 clean_history_prompt_chars([], []).
-clean_history_prompt_chars(['%', !|T], T) :- !.
+clean_history_prompt_chars(['~', !|T], T) :- !.
 clean_history_prompt_chars([H|T0], [H|T]) :-
 	clean_history_prompt_chars(T0, T).
 
