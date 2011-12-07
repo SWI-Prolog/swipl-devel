@@ -42,9 +42,8 @@ pairs. The available keys are described in \tabref{qsave-options}.
 local    & \bf -L       & K-bytes       & Size (Limit) of local stack \\
 global   & \bf -G       & K-bytes       & Size (Limit) of global stack \\
 trail    & \bf -T       & K-bytes       & Size (Limit) of trail stack \\
-argument & \bf -A       & K-bytes       & Size (Limit) of argument stack \\
-goal     & \bf -g       & atom          & Initialisation goal \\
-toplevel & \bf -t       & atom          & Prolog top-level goal \\
+goal     & \bf -g       & callable      & Initialisation goal \\
+toplevel & \bf -t       & callable      & Prolog top-level goal \\
 init_file& \bf -f       & atom          & Personal initialisation file \\
 \hline
 class	 &		& atom		& If \const{runtime}, only read
@@ -68,27 +67,20 @@ emulator &		& file		& Emulator attached to the
 \end{tabular}
 \end{center}
 
-    \caption{<Key> = <Value> pairs for qsave_program/2}
+    \caption{Options for qsave_program/2}
     \label{tab:qsave-options}
 \end{table}
 
-Before writing the data to file, qsave_program/2 will run autoload/0 to
-all required autoloading the system can discover.  See autoload/0.
-
 Provided the application does not require any of the Prolog libraries to
 be loaded at runtime, the only file from the SWI-Prolog development
-environment required is the emulator itself.  The emulator may be built
-in two flavours.  The default is the \jargon{development emulator}.  The
-\jargon{runtime emulator} is similar, but lacks the tracer.
+environment required is the emulator itself.
 
 If the option \exam{stand_alone(true)} is present, the emulator is the
 first part of the state. If the emulator is started it will test whether
 a boot-file (state) is attached to the emulator itself and load this
 state. Provided the application has all libraries loaded, the resulting
 executable is completely independent of the runtime environment or
-location where it was build.
-
-See also \secref{cmdlinecomp}.
+location where it was build.  See also \secref{cmdlinecomp}.
 
     \predicate{qsave_program}{1}{+File}
 Equivalent to \exam{qsave_program(File, [])}.

@@ -50,7 +50,22 @@ also used by the commandline sequence below.
 :- meta_predicate
 	qsave_program(+, :).
 
-% :- set_prolog_flag(generate_debug_info, false).
+:- predicate_options(qsave_program/2, 2,
+		     [ local(integer),
+		       global(integer),
+		       trail(integer),
+		       goal(callable),
+		       toplevel(callable),
+		       init_file(atom),
+		       class(oneof([runtime,kernel,development])),
+		       autoload(boolean),
+		       map(atom),
+		       op(oneof([save,standard])),
+		       stand_alone(boolean),
+		       emulator(atom)
+		     ]).
+
+:- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic verbose/1.
 :- volatile verbose/1.			% contains a stream-handle
@@ -66,10 +81,6 @@ qsave_program(File) :-
 qsave_program(FileBase, Module:Options) :-
 	check_options(Options),
 	exe_file(FileBase, File),
-	option(autoload(Autoload),  Options, true),
-	option(map(Map),	    Options, []),
-	option(goal(GoalTerm),	    Options, []),
-	option(op(SaveOps),	    Options, save),
 	option(class(SaveClass),    Options, runtime),
 	option(init_file(InitFile), Options, DefInit),
 	default_init_file(SaveClass, DefInit),
@@ -82,11 +93,8 @@ qsave_program(FileBase, Module:Options) :-
 	    define_predicate(user:BannerGoal),
 	    Options2 = Options
 	),
-	(   Autoload == true
-	->  save_autoload
-	;   true
-	),
-	open_map(Map),
+	save_autoload(Options),
+	open_map(Options),
 	create_prolog_flag(saved_program, true, []),
 	create_prolog_flag(saved_program_class, SaveClass, []),
 	(   exists_file(File)
@@ -95,8 +103,7 @@ qsave_program(FileBase, Module:Options) :-
 	),
 	'$rc_open_archive'(File, RC),
 	make_header(RC, SaveClass, Options),
-	save_options(RC, [ class(SaveClass),
-			   init_file(InitFile)
+	save_options(RC, [ init_file(InitFile)
 			 | Options2
 			 ]),
 	save_resources(RC, SaveClass),
@@ -111,7 +118,7 @@ qsave_program(FileBase, Module:Options) :-
 	      save_flags,
 	      save_imports,
 	      save_prolog_flags,
-	      save_operators(SaveOps),
+	      save_operators(Options),
 	      save_format_predicates
 	    ),
 	    set_prolog_flag(access_level, OldLevel)),
@@ -305,8 +312,10 @@ define_predicate(Head) :-
 		 *	      AUTOLOAD		*
 		 *******************************/
 
-save_autoload :-
-	autoload.
+save_autoload(Options) :-
+	option(autoload(true),  Options, true), !,
+	autoload(Options).
+
 
 		 /*******************************
 		 *	       MODULES		*
@@ -519,12 +528,13 @@ restore_prolog_flag(Flag, Value, Type) :-
 		 *	     OPERATORS		*
 		 *******************************/
 
-%%	save_operators(+Save) is det.
+%%	save_operators(+Options) is det.
 %
 %	Save operators for all modules.   Operators for =system= are
 %	not saved because these are read-only anyway.
 
-save_operators(save) :- !,
+save_operators(Options) :- !,
+	option(op(save), Options, save),
 	feedback('~nOPERATORS~n', []),
 	forall(current_module(M), save_module_operators(M)),
 	feedback('~n', []).
@@ -561,11 +571,12 @@ qualify_head(T, user:T).
 		 *	       UTIL		*
 		 *******************************/
 
-open_map([]) :- !,
-	retractall(verbose(_)).
-open_map(File) :-
-	open(File, write, Fd),
+open_map(Options) :- !,
+	option(map(Map), Options), !,
+	open(Map, write, Fd),
 	asserta(verbose(Fd)).
+open_map(_) :-
+	retractall(verbose(_)).
 
 close_map :-
 	retract(verbose(Fd)),
