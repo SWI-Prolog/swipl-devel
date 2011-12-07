@@ -391,7 +391,6 @@ initialise_prolog :-
 	ignore(user:TheGoal).
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
-:- '$hide'('$abort'/0).			% same after an abort
 
 %%	'$toplevel'/0
 %
