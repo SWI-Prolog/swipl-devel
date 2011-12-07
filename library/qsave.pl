@@ -31,11 +31,12 @@
 */
 
 :- module(qsave,
-	  [ qsave_program/1
-	  , qsave_program/2
+	  [ qsave_program/1,			% +File
+	    qsave_program/2			% +File, +Options
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
+:- use_module(library(error)).
 
 /** <module> Save current program as a state or executable
 
@@ -62,6 +63,7 @@ also used by the commandline sequence below.
 		       map(atom),
 		       op(oneof([save,standard])),
 		       stand_alone(boolean),
+		       foreign(oneof([save,no_save])),
 		       emulator(atom)
 		     ]).
 
@@ -116,6 +118,7 @@ qsave_program(FileBase, Options0) :-
 	    set_prolog_flag(access_level, OldLevel)),
 	'$close_wic',
 	close(StateFd),
+	save_foreign_libraries(RC, Options),
 	'$rc_close_archive'(RC),
 	'$mark_executable'(File),
 	close_map.
@@ -581,6 +584,53 @@ qualify_head(T, user:T).
 
 
 		 /*******************************
+		 *	 FOREIGN LIBRARIES	*
+		 *******************************/
+
+%%	save_foreign_libraries(+Archive, +Options) is det.
+%
+%	Save current foreign libraries into the archive.
+
+save_foreign_libraries(RC, Options) :-
+	option(foreign(save), Options), !,
+	feedback('~nFOREIGN LIBRARIES~n', []),
+	forall(current_foreign_library(FileSpec, _Predicates),
+	       ( find_foreign_library(FileSpec, File),
+		 term_to_atom(FileSpec, Name),
+		 '$rc_append_file'(RC, Name, shared, none, File)
+	       )).
+save_foreign_libraries(_, _).
+
+%%	find_foreign_library(+FileSpec, -File) is det.
+%
+%	Find the shared object specified by   FileSpec.  If posible, the
+%	shared object is stripped to reduce   its size. This is achieved
+%	by calling strip -o <tmp> <shared-object>. Note that the file is
+%	a Prolog tmp file and will be deleted on halt.
+%
+%	@bug	Should perform OS search on failure
+
+find_foreign_library(FileSpec, SharedObject) :-
+	absolute_file_name(FileSpec,
+			   [ file_type(executable),
+			     file_errors(fail)
+			   ], File), !,
+	(   absolute_file_name(path(strip), Strip,
+			       [ access(execute),
+				 file_errors(fail)
+			       ]),
+	    tmp_file(shared, Stripped),
+	    format(atom(Cmd), '"~w" -o "~w" "~w"',
+		   [ Strip, Stripped, File ]),
+	    shell(Cmd)
+	->  SharedObject = Stripped,
+	    Delete = true
+	;   SharedObject = File,
+	    Delete = false
+	).
+
+
+		 /*******************************
 		 *	       UTIL		*
 		 *******************************/
 
@@ -607,11 +657,12 @@ Option checking and exception generation.  This should be in a library!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 option_type(Name,	 integer) :- min_stack(Name, _MinValue).
-option_type(class,	 atom([runtime,kernel,development])).
+option_type(class,	 oneof([runtime,kernel,development])).
 option_type(autoload,	 bool).
 option_type(map,	 atom).
-option_type(op,		 atom([save, standard])).
+option_type(op,		 oneof([save, standard])).
 option_type(stand_alone, bool).
+option_type(foreign,	 oneof([save, no_save])).
 option_type(goal,	 callable).
 option_type(toplevel,	 callable).
 option_type(init_file,	 atom).
@@ -623,7 +674,7 @@ check_options([Var|_]) :-
 	throw(error(domain_error(save_options, Var), _)).
 check_options([Name=Value|T]) :- !,
 	(   option_type(Name, Type)
-	->  (   check_type(Type, Value)
+	->  (   must_be(Type, Value)
 	    ->  check_options(T)
 	    ;	throw(error(domain_error(Type, Value), _))
 	    )
@@ -637,21 +688,6 @@ check_options([Var|_]) :-
 check_options(Opt) :-
 	throw(error(domain_error(list, Opt), _)).
 
-check_type(integer, V) :-
-	integer(V).
-check_type(atom(List), V) :-
-	atom(V),
-	memberchk(V, List), !.
-check_type(atom, V) :-
-	atom(V).
-check_type(callable, V) :-
-	atom(V).
-check_type(callable, V) :-
-	compound(V).
-check_type(ground, V) :-
-	ground(V).
-check_type(bool, true).
-check_type(bool, false).
 
 		 /*******************************
 		 *	      MESSAGES		*

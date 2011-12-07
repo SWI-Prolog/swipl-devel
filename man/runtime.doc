@@ -23,64 +23,60 @@ using the \cmdlineoption{-x}{} command-line switch.
 
 
 \begin{description}
-    \predicate{qsave_program}{2}{+File, +ListOfOptions}
+    \predicate{qsave_program}{2}{+File, +Options}
 Saves the current state of the program to the file \arg{File}.  The
 result is a resource archive containing a saved-state that expresses
 all Prolog data from the running program and all user-defined resources.
 Depending on the \const{stand_alone} option, the resource is headed by
-the emulator, a Unix shell-script or nothing.
+the emulator, a Unix shell-script or nothing.  \arg{Options} is a list
+of additional options:
 
-\arg{ListOfOptions} is a list of $<Key> = <Value>$ or $<Key>(<Value>)$
-pairs. The available keys are described in \tabref{qsave-options}.
-
-\begin{table}
-\begin{center}
-\begin{tabular}{|l|c|c|p{3in}|}
-\hline
-\bf Key & \bf Option    & \bf Type      & \bf Description \\
-\hline
-local    & \bf -L       & K-bytes       & Size (Limit) of local stack \\
-global   & \bf -G       & K-bytes       & Size (Limit) of global stack \\
-trail    & \bf -T       & K-bytes       & Size (Limit) of trail stack \\
-goal     & \bf -g       & callable      & Initialisation goal \\
-toplevel & \bf -t       & callable      & Prolog top-level goal \\
-init_file& \bf -f       & atom          & Personal initialisation file \\
-\hline
-class	 &		& atom		& If \const{runtime}, only read
-					  resources from the state (default).
-					  If \const{kernel}, lock all
-					  predicates as system predicates
-					  If \const{development}, save the
-					  predicates in their current state
-					  and keep reading resources from
-					  their source (if present).
-					  See also resource/3. \\
-autoload &              & bool          & If \const{true} (default),
-					  run autoload/0 first \\
-map      &              & file          & File to write info on dump \\
-op       &              & \tt save/standard & Save operator declarations? \\
-stand_alone &           & bool          & Include the emulator in the state \\
-emulator &		& file		& Emulator attached to the
-					  (stand-alone) executable.  Default
-					  is the running emulator. \\
-\hline
-\end{tabular}
-\end{center}
-
-    \caption{Options for qsave_program/2}
-    \label{tab:qsave-options}
-\end{table}
-
-Provided the application does not require any of the Prolog libraries to
-be loaded at runtime, the only file from the SWI-Prolog development
-environment required is the emulator itself.
-
-If the option \exam{stand_alone(true)} is present, the emulator is the
-first part of the state. If the emulator is started it will test whether
-a boot-file (state) is attached to the emulator itself and load this
-state. Provided the application has all libraries loaded, the resulting
-executable is completely independent of the runtime environment or
-location where it was build.  See also \secref{cmdlinecomp}.
+    \begin{description}
+	\termitem{local}{+KBytes}
+Limit for the local stack.  See \secref{stacksizes}.
+	\termitem{global}{+KBytes}
+Limit for the global stack.  See \secref{stacksizes}.
+	\termitem{trail}{+KBytes}
+Limit for the trail stack.  See \secref{stacksizes}.
+	\termitem{goal}{:Callable}
+Initialization goal for the new executable (see \cmdlineoption{-g}).
+	\termitem{toplevel}{:Callable}
+Toplevel goal for the new executable (see \cmdlineoption{-t}).
+	\termitem{init_file}{+Atom}
+Default initialization file for the new executable. See
+\cmdlineoption{-f}.
+	\termitem{class}{+Class}
+If \const{runtime}, only read resources from the state (default). If
+\const{kernel}, lock all predicates as system predicates If
+\const{development}, save the predicates in their current state and keep
+reading resources from their source (if present). See also resource/3.
+	\termitem{autoload}{+Boolean}
+If \const{true} (default), run autoload/0 first.
+	\termitem{map}{+File}
+Deump a human-readable trace of what has been saved in \arg{File}.
+	\termitem{op}{+Action}
+One of \const{save} (default) to save the current operator table
+or \const{standard} to use the initial table of the emulator.
+	\termitem{stand_alone}{+Boolean}
+If \const{true}, the emulator is the first part of the state. If the
+emulator is started it will test whether a boot-file (state) is attached
+to the emulator itself and load this state. Provided the application has
+all libraries loaded, the resulting executable is completely independent
+of the runtime environment or location where it was build. See also
+\secref{cmdlinecomp}.
+	\termitem{emulator}{+File}
+File to use for the emulator.  Default is the running Prolog image.
+	\termitem{foreign}{+Action}
+If \const{save}, include shared objects (DLLs) into the saved-state. See
+current_foreign_library/2. If the program \program{strip} is available,
+this is first used to reduce the size of the shared object. If a state
+is started, use_foreign_library/1 first tries to locate the foreign
+resource in the executable. When found it copies the content of the
+resource to a temporary file and loads it.  If possible (Unix), the
+temporary object is deleted immediately after opening.\footnote{This
+option is experimental and currently disabled by default.  It will
+become the default if it proves robust.}
+    \end{description}
 
     \predicate{qsave_program}{1}{+File}
 Equivalent to \exam{qsave_program(File, [])}.

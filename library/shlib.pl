@@ -126,30 +126,44 @@ predicate defined in C.
 		 *	     DISPATCHING	*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Windows: If libpl.dll is compiled for debugging, prefer loading <lib>D.dll
-to allow for debugging.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+%%	find_library(+LibSpec, -Lib, -Delete) is det.
+%
+%	Find a foreign library from LibSpec.  If LibSpec is available as
+%	a resource, the content of the resource is copied to a temporary
+%	file and Delete is unified with =true=.
+%
+%	On Windows, if =|swipl.dll|= is   compiled for debugging, prefer
+%	loading <lib>D.dll to allow for debugging.
 
-find_library(Spec, Lib) :-
+find_library(Spec, Lib, Delete) :-
 	current_prolog_flag(windows, true),
 	current_prolog_flag(kernel_compile_mode, debug),
 	libd_spec(Spec, SpecD),
-	catch(find_library2(SpecD, Lib), _, fail).
-find_library(Spec, Lib) :-
-	find_library2(Spec, Lib).
+	catch(find_library2(SpecD, Lib, Delete), _, fail).
+find_library(Spec, Lib, Delete) :-
+	find_library2(Spec, Lib, Delete).
 
-find_library2(Spec, Lib) :-
+find_library2(Spec, TmpFile, true) :-
+	'$rc_handle'(RC),
+	term_to_atom(Spec, Name),
+	setup_call_cleanup(
+	    '$rc_open'(RC, Name, shared, read, In),
+	    setup_call_cleanup(
+		tmp_file_stream(binary, TmpFile, Out),
+		copy_stream_data(In, Out),
+		close(Out)),
+	    close(In)), !.
+find_library2(Spec, Lib, false) :-
 	absolute_file_name(Spec, Lib,
 			   [ file_type(executable),
 			     access(read),
 			     file_errors(fail)
 			   ]), !.
-find_library2(Spec, Spec) :-
+find_library2(Spec, Spec, false) :-
 	atom(Spec), !.			% use machines finding schema
-find_library2(foreign(Spec), Spec) :-
+find_library2(foreign(Spec), Spec, false) :-
 	atom(Spec), !.			% use machines finding schema
-find_library2(Spec, _) :-
+find_library2(Spec, _, _) :-
 	throw(error(existence_error(source_sink, Spec), _)).
 
 libd_spec(Name, NameD) :-
@@ -218,13 +232,14 @@ load_foreign_library(LibFile, _Module, _) :-
 	current_library(LibFile, _, _, _, _), !.
 load_foreign_library(LibFile, Module, DefEntry) :-
 	retractall(error(_, _)),
-	find_library(LibFile, Path),
+	find_library(LibFile, Path, Delete),
 	asserta(loading(LibFile)),
 	catch(Module:open_shared_object(Path, Handle), E, true),
 	(   nonvar(E)
-	->  assert(error(Path, E)),
+	->  delete_foreign_lib(Delete, Path),
+	    assert(error(Path, E)),
 	    fail
-	;   true
+	;   delete_foreign_lib(Delete, Path)
 	), !,
 	(   (	entry(LibFile, DefEntry, Entry),
 		Module:call_shared_object_function(Handle, Entry)
@@ -245,6 +260,11 @@ load_foreign_library(LibFile, _, _) :-
 	    throw(E)
 	;   throw(error(existence_error(foreign_library, LibFile), _))
 	).
+
+delete_foreign_lib(true, Path) :-
+	catch(delete_file(Path), _, true).
+delete_foreign_lib(_, _).
+
 
 %%	use_foreign_library(+FileSpec) is det.
 %%	use_foreign_library(+FileSpec, +Entry:atom) is det.
