@@ -575,7 +575,7 @@ case "$PLARCH" in
 		  [Define if we must use sem_open() instead of the preferred sem_init()])
 	AC_DEFINE(LD_SYMBOL_PREFIX, "_",
 		  [String used to prefix all symbols requested through dlsym()])
-	CMFLAGS="-no-cpp-precomp"
+	CMFLAGS="$CMFLAGS -no-cpp-precomp"
 	;;
   *cygwin*)
 	SO_EXT="dll"
