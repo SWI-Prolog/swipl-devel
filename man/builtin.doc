@@ -3438,13 +3438,14 @@ waits indefinitely.%
 This predicate can be used to implement timeout while reading and to
 handle input from multiple sources. The following example will wait for
 input from the user and an explicitly opened second terminal. On return,
-\arg{Inputs} may hold \const{user} or \arg{P4} or both.
+\arg{Inputs} may hold \const{user_input} or \arg{P4} or both.
 
 \begin{code}
 ?- open('/dev/ttyp4', read, P4),
-   wait_for_input([user, P4], Inputs, 0).
+   wait_for_input([user_input, P4], Inputs, 0).
 \end{code}
 
+\index{select()}%
 This predicate relies on the select() call on most operating systems. On
 Unix this call is implemented for any stream referring to a file-handle,
 which implies all OS-based streams: sockets, terminals, pipes, etc.  On
