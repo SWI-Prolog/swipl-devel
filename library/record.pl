@@ -138,7 +138,7 @@ compile_record(RecordDef) -->
 	current_clause(RecordDef).
 
 :- meta_predicate
-	current_record(:),
+	current_record(?, :),
 	current_record_predicate(?, :).
 :- multifile
 	current_record/5.		% Name, Module, Term, X, IsX
