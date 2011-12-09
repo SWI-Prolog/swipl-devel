@@ -725,6 +725,7 @@ esac
   AC_CHECK_LIB(pthread, main)
     if test "$ac_cv_lib_pthread_main" = "yes"; then
       pthread_ok=true
+      CMFLAGS="$CMFLAGS -D_REENTRANT"
     fi
   fi
 
