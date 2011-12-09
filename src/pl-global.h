@@ -333,9 +333,6 @@ struct PL_local_data
 #endif
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
-#if defined(O_DEBUG) || defined(SECURE_GC)
-  unsigned int  incr_seed;		/* Seed for random stack increments */
-#endif
   int		alerted;		/* Special mode. See updateAlerted() */
   int		critical;		/* heap is being modified */
   int		break_level;		/* current break level */
@@ -545,38 +542,6 @@ struct PL_local_data
   } depth_info;
 #endif
 
-  struct
-  { intptr_t _total_marked;		/* # marked global cells */
-    intptr_t _trailcells_deleted;	/* # garbage trailcells */
-    intptr_t _relocation_chains;	/* # relocation chains (debugging) */
-    intptr_t _relocation_cells;		/* # relocation cells */
-    intptr_t _relocated_cells;		/* # relocated cells */
-    intptr_t _needs_relocation;		/* # cells that need relocation */
-    intptr_t _local_marked;		/* # marked local -> global ptrs */
-    intptr_t _marks_swept;		/* # marks swept */
-    intptr_t _marks_unswept;		/* # marks swept */
-    intptr_t _alien_relocations;	/* # alien_into_relocation_chain() */
-    intptr_t _local_frames;		/* frame count for debugging */
-    intptr_t _choice_count;		/* choice-point count for debugging */
-    int  *_start_map;			/* bitmap with legal global starts */
-    sigset_t saved_sigmask;		/* Saved signal mask */
-#if defined(O_DEBUG) || defined(SECURE_GC)
-    intptr_t _trailtops_marked;		/* # marked trailtops */
-    Word *_mark_base;			/* Array of marked cells addresses */
-    Word *_mark_top;			/* Top of this array */
-    Table _check_table;			/* relocation address table */
-    Table _local_table;			/* marked local variables */
-    int  _relocated_check;		/* Verify relocated addresses? */
-#endif
-    int64_t inferences;			/* #inferences at last GC */
-
-    pl_gc_status_t	status;		/* Garbage collection status */
-#ifdef O_CALL_RESIDUE
-    int			marked_attvars;	/* do not GC attvars */
-#endif
-    int active;				/* GC is running in this thread */
-  } gc;
-
   pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
   struct btrace *btrace_store;		/* C-backtraces */
@@ -596,6 +561,41 @@ struct PL_local_data
 
   struct alloc_pool alloc_pool;		/* Thread allocation pool */
 #endif
+
+  struct
+  { intptr_t _total_marked;		/* # marked global cells */
+    intptr_t _trailcells_deleted;	/* # garbage trailcells */
+    intptr_t _relocation_chains;	/* # relocation chains (debugging) */
+    intptr_t _relocation_cells;		/* # relocation cells */
+    intptr_t _relocated_cells;		/* # relocated cells */
+    intptr_t _needs_relocation;		/* # cells that need relocation */
+    intptr_t _local_marked;		/* # marked local -> global ptrs */
+    intptr_t _marks_swept;		/* # marks swept */
+    intptr_t _marks_unswept;		/* # marks swept */
+    intptr_t _alien_relocations;	/* # alien_into_relocation_chain() */
+    intptr_t _local_frames;		/* frame count for debugging */
+    intptr_t _choice_count;		/* choice-point count for debugging */
+    int  *_start_map;			/* bitmap with legal global starts */
+    sigset_t saved_sigmask;		/* Saved signal mask */
+    int64_t inferences;			/* #inferences at last GC */
+    pl_gc_status_t	status;		/* Garbage collection status */
+#ifdef O_CALL_RESIDUE
+    int			marked_attvars;	/* do not GC attvars */
+#endif
+    int active;				/* GC is running in this thread */
+					/* These must be at the end to be */
+					/* able to define O_DEBUG in only */
+					/* some modules */
+#if defined(O_DEBUG) || defined(SECURE_GC)
+    intptr_t _trailtops_marked;		/* # marked trailtops */
+    Word *_mark_base;			/* Array of marked cells addresses */
+    Word *_mark_top;			/* Top of this array */
+    Table _check_table;			/* relocation address table */
+    Table _local_table;			/* marked local variables */
+    int  _relocated_check;		/* Verify relocated addresses? */
+    unsigned int incr_seed;		/* Seed for random stack increments */
+#endif
+  } gc;
 };
 
 GLOBAL PL_global_data_t PL_global_data;

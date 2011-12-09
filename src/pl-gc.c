@@ -4362,7 +4362,7 @@ nextStackSizeAbove(size_t n)
     { size_t sz;
 
       if ( increment == 1 )
-        sz = n+rand_r(&LD->incr_seed)%10000;
+        sz = n+rand_r(&LD->gc.incr_seed)%10000;
       else
         sz = n+increment;
 
