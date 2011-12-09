@@ -142,7 +142,7 @@ handy for it someone wants to add a data type to the system.
 #ifdef HAVE_GMP_H
 #define O_GMP			1
 #endif
-#if defined(__MINGW32__) || defined(_MSC_VER)
+#ifdef __WINDOWS__
 #define NOTTYCONTROL           TRUE
 #define O_DDE 1
 #define O_DLL 1
