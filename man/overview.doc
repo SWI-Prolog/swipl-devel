@@ -163,7 +163,7 @@ below. Double-clicking \file{run.pl} will start the application.
 
 \Secref{plscript} discusses further scripting options and
 \chapref{runtime} discusses the generation of runtime executables.
-Runtime executables are a mean to deliver executables that do not
+Runtime executables are a means to deliver executables that do not
 require the Prolog system.
 
 
@@ -279,7 +279,7 @@ so we can rollback on backtracking or exceptions.
     \cmdlineoptionitem{-g}{goal}
 \arg{Goal} is executed just before entering the top level. Default is a
 predicate which prints the welcome message. The welcome message can be
-be suppressed with \cmdlineoption{--quiet}, but also with
+suppressed with \cmdlineoption{--quiet}, but also with
 \argoption{-g}{true}. \arg{goal} can be a complex term. In this case
 quotes are normally needed to protect it from being expanded by the
 shell. A safe way to run a goal non-interactively is here:
@@ -449,9 +449,9 @@ Examples:
 \exam{?- help('PL_retry').}& Give help on interface function PL_retry() \\
 \end{tabular}\end{center}
 
-See also apropos/1, and the SWI-Prolog home page at
+See also apropos/1 and the SWI-Prolog home page at
 \url{http://www.swi-prolog.org}, which provides a FAQ, an HTML version
-of manual for online browsing and HTML and PDF versions for downloading.
+of the manual for online browsing, and HTML and PDF versions for downloading.
 
     \predicate{apropos}{1}{+Pattern}
 Display all predicates, functions and sections that have {\em
@@ -693,7 +693,7 @@ skipping this goal and all calls to children of this goal). This option
 is useful to stop tracing a failure driven loop.}
     \traceoption{w}{Write}{
 Set the Prolog flag \prologflag{debugger_print_options} to
-\exam{[quoted(true), attributes(write), priority(699)]}, bypassing portray/1, etc.}
+\texttt{[quoted(true), attributes(write), priority(699)]}, bypassing portray/1, etc.}
 \end{description}
 
 The ideal 4 port Byrd box model \cite{Byrd:80} as described in many
@@ -966,7 +966,7 @@ the maximum stack limit, this has few implications to the user.  See
 also the Prolog flag \prologflag{arch}.
 
     \prologflagitem{agc_margin}{integer}{rw}
-If this amount of atoms has been created since the last atom-garbage
+If this amount of atoms has been created since the last atom garbage
 collection, perform atom garbage collection at the first opportunity.
 Initial value is 10,000.   May be changed.  A value of 0 (zero) disables
 atom garbage collection.  See also PL_register_atom().
@@ -1106,7 +1106,7 @@ be changed.  Default is {\tt true}, except for the runtime version.
     \prologflagitem{debugger_print_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing goals
 by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
-debugger.  Default is \exam{[quoted(true), portray(true),
+debugger.  Default is \texttt{[quoted(true), portray(true),
 max_depth(10), attributes(portray)]}.
 
     \prologflagitem{debugger_show_context}{bool}{rw}
@@ -1475,7 +1475,7 @@ systems this flag is not available.
 
     \prologflagitem{unknown}{fail,warning,error}{rw}
 Determines the behaviour if an undefined procedure is encountered. If
-\const{fail}, the predicates fails silently. If \const{warn}, a warning
+\const{fail}, the predicate fails silently. If \const{warn}, a warning
 is printed, and execution continues as if the predicate was not defined
 and if \const{error} (default), an \except{existence_error} exception is
 raised. This flag is local to each module and inherited from the
@@ -1483,7 +1483,7 @@ module's \jargon{import-module}. Using default setup, this implies that
 normal modules inherit the flag from \const{user}, which in turn
 inherits the value \const{error} from \const{system}.  The user may
 change the flag for module \const{user} to change the default for all
-application modules or for a specific module.  It is strongly adviced
+application modules or for a specific module.  It is strongly advised
 to keep the \const{error} default and use dynamic/1 and/or multifile/1
 to specify possible non-existence of a predicate.
 
@@ -1498,7 +1498,7 @@ Developers are encouraged to use another value and ensure proper use
 of create_prolog_flag/3 to create flags for their library.
 
     \prologflagitem{verbose}{Atom}{rw}
-This flags is used by print_message/2.  If its value is \const{silent},
+This flag is used by print_message/2.  If its value is \const{silent},
 messages of type \const{informational} and \const{banner} are suppressed.
 The \cmdlineoption{-q} switches the value from the initial
 \const{normal} to \const{silent}.
@@ -1526,9 +1526,9 @@ the three numbers separated by dots. The current representation is much
 easier for implementing version-conditional statements.
 
     \prologflagitem{version_data}{swi(Major, Minor, Patch, Extra)}{r}
-Part of the dialect compatibility layer, See also the Prolog flag
+Part of the dialect compatibility layer; see also the Prolog flag
 \prologflag{dialect} and \secref{dialect}. \arg{Extra} provides
-platform specific version information.  Currently it is simply unified
+platform-specific version information.  Currently it is simply unified
 to \const{[]}.
 
     \prologflagitem{version_git}{atom}{r}
@@ -1620,14 +1620,14 @@ Hook into write_term/3 to alter the way terms are printed (ISO).
 Hook into print_message/2 to alter the way system messages are printed
 (Quintus/SICStus).
     \item [library_directory/1]
-Hook into absolute_file_name/3 to define new library directories.
-(most Prolog system).
+Hook into absolute_file_name/3 to define new library directories
+(most Prolog systems).
     \item [file_search_path/2]
 Hook into absolute_file_name/3 to define new search-paths
 (Quintus/SICStus).
     \item [term_expansion/2]
 Hook into load_files/2 to modify read terms before they are compiled
-(macro-processing) (most Prolog system).
+(macro-processing) (most Prolog systems).
     \item [goal_expansion/2]
 Same as term_expansion/2 for individual goals (SICStus).
     \item [prolog_load_file/2]
@@ -1637,7 +1637,7 @@ of consult/1, use_module/1, etc.
     \item [prolog_edit:locate/3]
 Hook into edit/1 to locate objects (SWI).
     \item [prolog_edit:edit_source/1]
-Hook into edit/1 to call some internal editor (SWI).
+Hook into edit/1 to call an internal editor (SWI).
     \item [prolog_edit:edit_command/2]
 Hook into edit/1 to define the external editor to use (SWI).
     \item [prolog_list_goal/1]
@@ -1662,7 +1662,7 @@ module.  See \secref{attvar} for details.
 
 \section{Automatic loading of libraries}	\label{sec:autoload}
 
-If ---at runtime--- an undefined predicate is trapped the system will
+If ---at runtime--- an undefined predicate is trapped, the system will
 first try to import the predicate from the module's default module (see
 \secref{importmodule}. If this fails the \jargon{auto loader} is
 activated.\footnote{Actually, the hook user:exception/3 is called; only
@@ -1670,12 +1670,12 @@ if this hook fails it calles the autoloader.} On first activation an
 index to all library files in all library directories is loaded in core
 (see library_directory/1, file_search_path/2 and
 reload_library_index/0). If the undefined predicate can be located in
-one of the libraries that library file is automatically loaded and the
+one of the libraries, that library file is automatically loaded and the
 call to the (previously undefined) predicate is restarted. By default
 this mechanism loads the file silently. The current_prolog_flag/2
-\prologflag{verbose_autoload} is provided to get verbose loading. The
+key \prologflag{verbose_autoload} is provided to get verbose loading. The
 Prolog flag \prologflag{autoload} can be used to enable/disable the
-auto-load system.
+autoload system.
 
 Autoloading only handles (library) source files that use the module
 mechanism described in \chapref{modules}.  The files are loaded
@@ -1707,7 +1707,7 @@ Below is an example creating an indexed library directory.
 % swipl -g true -t 'make_library_index(.)'
 \end{code}
 
-If there are more than one library files containing the desired predicate
+If there is more than one library file containing the desired predicate,
 the following search schema is followed:
 
 \begin{enumerate}
@@ -1815,10 +1815,10 @@ primitives.  See also \secref{widechars}.
 \subsubsection{Character Escape Syntax}		\label{sec:charescapes}
 
 Within quoted atoms (using single quotes: \exam{'<atom>'}) special
-characters are represented using escape-sequences. An escape sequence is
-lead in by the backslash (\chr{\}) character. The list of escape
-sequences is compatible with the ISO standard, but contains some
-extensions and the interpretation of numerically specified characters is
+characters are represented using escape sequences. An escape sequence is
+led in by the backslash (\chr{\}) character. The list of escape
+sequences is compatible with the ISO standard but contains some
+extensions, and the interpretation of numerically specified characters is
 slightly more flexible to improve compatibility.
 
 \begin{description}
@@ -1838,7 +1838,7 @@ format('This is a long line that looks better if it was \c
     \escapeitem{\bnfmeta{{\sc RETURN}}}
 No output.  Skips input to the next non-layout character or to the
 end of the next line.  ISO demands skipping only the newline.  We
-advice to use \verb$\c$ or put the layout \emph{before} the \chr{\},
+advise using \verb$\c$ or putting the layout \emph{before} the \chr{\},
 as shown below.  Using \verb$\c$ is supported by various other Prolog
 implementations and will remain supported by SWI-Prolog.  The style
 shown below is the most compatible solution.\footnote{Future versions
@@ -1897,12 +1897,12 @@ consisting of a single \chr{\} and \verb$'\''$ and \verb$''''$ both
 describe the atom with a single~\verb$'$.
 \end{description}
 
-Character escaping is only available if the
+Character escaping is only available if
 \exam{current_prolog_flag(character_escapes, true)} is active (default).
 See current_prolog_flag/2. Character escapes conflict with writef/2 in
 two ways: \verb$\40$ is interpreted as decimal 40 by writef/2, but
-character escapes handling by read has already interpreted as 32 (40
-octal). Also, \fmtseq{\l} is translated to a single `l'. It is advised
+as octal 40 (decimal 32) by \verb$read$.
+Also, \fmtseq{\l} is translated to a single `l'. It is advised
 to use the more widely supported format/[2,3] predicate instead. If you
 insist upon using writef/2, either switch \prologflag{character_escapes} to
 \const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
@@ -1926,7 +1926,7 @@ writing international source files is described in \secref{intsrcfile}.
 
 The SWI-Prolog Unicode character classification is based on version
 6.0.0 of the Unicode standard. Please note that char_type/2 and
-friends, intended to be used with all text except Prolog source code is
+friends, intended to be used with all text except Prolog source code, is
 based on the C-library locale-based classification routines.
 
 
@@ -1978,7 +1978,7 @@ the variable a name. As mistyping a variable is a common mistake, Prolog
 systems generally give a warning (controlled by style_check/1) if a
 variable is used only once. The system can be informed a variable is
 known to appear once by \emph{starting} it with an underscore. E.g.\
-\verb$_Name$. Please note that any variable, except plain \verb$_$
+\verb$_Name$. Please note that any variable, except plain \verb$_$,
 shares with variables of the same name. The term \verb$t(_X, _X)$ is
 equivalent to \verb$t(X, X)$, which is \emph{different} from
 \verb$t(_, _)$.
@@ -2091,13 +2091,13 @@ ERROR: is/2: Type error: `expression' expected, found
 \index{jitindex}%
 SWI-Prolog provides `just-in-time' indexing over multiple
 arguments.\footnote{JIT indexing was added in version 5.11.29 (Oct.
-2011)} `Just-in-time' means that clause indexes are not built by the
+2011).} `Just-in-time' means that clause indexes are not built by the
 compiler (or asserta/1 for dynamic predicates), but on the first call
 to such a predicate where an index might help (i.e., a call where at
 least one argument is instantiated).  This section describes the rules
 used by the indexing logic.  Note that this logic is not `set in stone'.
 The indexing capabilities of the system will change. Although this
-inevitably leads to some regressing on some particular use-cases we
+inevitably leads to some regressing on some particular use cases, we
 strive to avoid significant slowdowns.
 
 The list below describes the clause selection process for various
@@ -2109,10 +2109,10 @@ they are presented.
 Currently two special cases are recognised by the compiler: static code
 with exactly one clause and static code with two clauses, one where the
 first argument is the empty list (\verb$[]$) and one where the first
-argument is a list (\verb$[_|_]$)
+argument is a non-empty list (\verb$[_|_]$).
 
     \item [Linear scan on first argument]
-The principal clause-list maintains a \jargon{key} for the first
+The principal clause list maintains a \jargon{key} for the first
 argument. An indexing key is either a constant or a functor (name/arity
 reference). Calls with an instantiated first argument and less than
 10 clauses perform a linear scan for a possible matching clause using
@@ -2120,7 +2120,7 @@ this index key.
 
     \item [Hash lookup]
 If none of the above applies, the system considers the available
-hash-tables for which the corresponding argument is instantiated. If one
+hash tables for which the corresponding argument is instantiated. If one
 or more of such tables exist, it selects the most selective one. If no
 such table exists, it iterates over all instantiated arguments and
 computes the hash-opportunity for each argument by processing the
@@ -2129,20 +2129,20 @@ characteristics, this table is created and associated with the
 predicate.
 
 If an argument is considered unsuitable for indexing, it is added to a
-bit-vector to avoid repeated re-evaluation. This also indicates the
+bit vector to avoid repeated re-evaluation. This also indicates the
 worst case scenario: a call where it is not possible to create an index
 for any of the instantiated argument(s) will continuously scan the
-instantiation pattern of the call and test the bitvector.
+instantiation pattern of the call and test the bit vector.
 
 Clauses that have a variable at an otherwise indexable argument must be
-linked into all hash-buckets. Currently, predicates that have more than
+linked into all hash buckets. Currently, predicates that have more than
 10\% such clauses for a specific argument are not considered for
 indexing on that argument.
 
 The indexes of dynamic predicates are deleted if the number of clauses
 is doubled since its creation or reduced below 1/4th. The JIT approach
 will recreate a suitable index on the next call. Indexes of running
-predicates cannot be deleted. They are added to `removed index list'
+predicates cannot be deleted. They are added to a `removed index list'
 associated to the predicate. Dynamic predicates maintain a counter for
 the number of goals running the predicate (a predicate can `run'
 multiple times due to recursion, open choice-points and it can run in
@@ -2189,19 +2189,19 @@ SWI-Prolog's indexing capabilities.
 SWI-Prolog supports \jargon{wide characters}, characters with character
 codes above 255 that cannot be represented in a single \jargon{byte}.
 \jargon{Universal Character Set} (UCS) is the ISO/IEC 10646 standard
-that specifies a unique 31-bits unsigned integer for any character in
+that specifies a unique 31-bit unsigned integer for any character in
 any language.  It is a superset of 16-bit Unicode, which in turn is
 a superset of ISO 8859-1 (ISO Latin-1), a superset of US-ASCII.  UCS
-can handle strings holding characters from multiple languages and
+can handle strings holding characters from multiple languages, and
 character classification (uppercase, lowercase, digit, etc.) and
-operations such as case-conversion are unambiguously defined.
+operations such as case conversion are unambiguously defined.
 
 For this reason SWI-Prolog has two representations for atoms and string
 objects (see \secref{strings}). If the text fits in ISO Latin-1, it is
 represented as an array of 8-bit characters.  Otherwise the text is
 represented as an array of 32-bit numbers.  This representational issue
 is completely transparent to the Prolog user.  Users of the foreign
-language interface as described in \secref{foreign} sometimes need to
+language interface as described in \chapref{foreign} sometimes need to
 be aware of these issues though.
 
 Character coding comes into view when characters of strings need to be
@@ -2220,11 +2220,11 @@ stream. The most popular one, especially in the context of the web, is
 UTF-8. Bytes 0~\ldots{}~127 represent simply the corresponding US-ASCII
 character, while bytes 128~\ldots{}~255 are used for multi-byte
 encoding of characters placed higher in the UCS space. Especially on
-MS-Windows the 16-bit Unicode standard, represented by pairs of bytes is
+MS-Windows the 16-bit Unicode standard, represented by pairs of bytes, is
 also popular.
 
 Prolog I/O streams have a property called \jargon{encoding} which
-specifies the used encoding that influence get_code/2 and put_code/2 as
+specifies the used encoding that influences get_code/2 and put_code/2 as
 well as all the other text I/O predicates.
 
 The default encoding for files is derived from the Prolog flag
@@ -2285,32 +2285,32 @@ Note that not all encodings can represent all characters. This implies
 that writing text to a stream may cause errors because the stream cannot
 represent these characters. The behaviour of a stream on these errors
 can be controlled using set_stream/2. Initially the terminal stream
-write the characters using Prolog escape sequences while other streams
+writes the characters using Prolog escape sequences while other streams
 generate an I/O exception.
 
 
 \subsubsection{BOM: Byte Order Mark}		\label{sec:bom}
 
 \index{BOM}\index{Byte Order Mark}%
-From \secref{encoding}, you may have got the impression text-files are
-complicated. This section deals with a related topic, making live often
+From \secref{encoding}, you may have got the impression that text files are
+complicated. This section deals with a related topic, making life often
 easier for the user, but providing another worry to the programmer.
 \textbf{BOM} or \jargon{Byte Order Marker} is a technique for
-identifying Unicode text-files as well as the encoding they use. Such
+identifying Unicode text files as well as the encoding they use. Such
 files start with the Unicode character 0xFEFF, a non-breaking,
 zero-width space character. This is a pretty unique sequence that is not
 likely to be the start of a non-Unicode file and uniquely distinguishes
 the various Unicode file formats. As it is a zero-width blank, it even
 doesn't produce any output. This solves all problems, or \ldots
 
-Some formats start of as US-ASCII and may contain some encoding mark to
+Some formats start off as US-ASCII and may contain some encoding mark to
 switch to UTF-8, such as the \verb$encoding="UTF-8"$ in an XML header.
 Such formats often explicitly forbid the use of a UTF-8 BOM. In
-other cases there is additional information telling the encoding making
+other cases there is additional information revealing the encoding, making
 the use of a BOM redundant or even illegal.
 
 The BOM is handled by SWI-Prolog open/4 predicate. By default,
-text-files are probed for the BOM when opened for reading. If a BOM is
+text files are probed for the BOM when opened for reading. If a BOM is
 found, the encoding is set accordingly and the property \term{bom}{true}
 is available through stream_property/2. When opening a file for writing,
 writing a BOM can be requested using the option \term{bom}{true} with
@@ -2322,16 +2322,16 @@ open/4.
 \subsection{Limits on memory areas}		\label{sec:memlimit}
 
 SWI-Prolog has a number of memory areas which are only enlarged to a
-certain limit. The internal data-representation limits the local-,
+certain limit. The internal data representation limits the local-,
 global- and trail-stack to 128 Mbytes on 32 bit processors, or more
 generally to $\pow{2}{\mbox{bits-per-pointer} - 5}$ bytes. Considering
 that almost all modern hardware can deal with this amount of memory with
 ease, the default limits are set to their maximum on 32-bit hardware.
 The representation limits can easily exceed physical memory on 64-bit
 hardware. The default limits on 64-bit hardware are double of 32-bit
-hardware, which allows for storing the same amount of (Prolog-)data.
+hardware, which allows for storing the same amount of (Prolog) data.
 
-The limits can be changed from the commandline as well as at runtime
+The limits can be changed from the command line as well as at runtime
 using set_prolog_stack/2. The table below shows these areas. The first
 column gives the option name to modify the size of the area. The option
 character is immediately followed by a number and optionally by a
@@ -2340,8 +2340,8 @@ is interpreted in Kbytes (1024 bytes), with \const{m}, the value is
 interpreted in Mbytes ($1024 \times 1024$ bytes).
 
 The PrologScript facility described in \secref{plscript} provides a
-mechanism for specifying options with the load-file.  On Windows the
-default stack-sizes are controlled using the Windows \idx{registry}
+mechanism for specifying options with the load file.  On Windows the
+default stack sizes are controlled using the Windows \idx{registry}
 on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$ using the
 names \const{localSize}, \const{globalSize} and \const{trailSize}.  The
 value is a \const{DWORD} expressing the default stack size in Kbytes.
@@ -2350,7 +2350,7 @@ To use this, start the XPCE manual tools using manpce/0, after which
 you find \textit{Preferences} in the \textit{File} menu.
 
 Considering portability, applications that need to modify the default
-limits are adviced to do so using set_prolog_stack/2.
+limits are advised to do so using set_prolog_stack/2.
 
 \begin{table}
 \begin{center}
@@ -2376,7 +2376,7 @@ Option & Default & Area name & Description \\
                        assignments during execution.  Entries on this
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector
-                       determines they are nor needed any longer. \\
+                       determines they are no longer needed. \\
 \cmdlineoption{-A} & 1M & \bf argument stack & The argument stack is used to
                        store one of the Virtual Machine's
                        registers. The amount of space needed on this
@@ -2404,7 +2404,7 @@ malloc() and friends.
 On some machines, the runtime stacks described above are allocated using
 `sparse allocation'. Virtual space up to the limit is claimed at startup
 and committed and released while the area grows and shrinks.  On Win32
-platform this is realised using VirtualAlloc() and friends.
+platforms this is realised using VirtualAlloc() and friends.
 On Unix systems this is realised using mmap().
 
 \subsection{Other Limits}			\label{sec:morelimits}
@@ -2432,7 +2432,7 @@ heap, which is not limited.  On 64-bit hardware there are no meaningful
 limits.
 
     \item[Nesting of terms]
-Many build-in predicates process nested terms using recursive C
+Many built-in predicates process nested terms using recursive C
 functions. Too deeply nested terms generally cause a fatal crash. All
 these functions avoid recursion on the right-most argument and therefore
 terms are not limited on the nesting level of the last argument. This
@@ -2446,7 +2446,7 @@ On most systems SWI-Prolog is compiled with support for unbounded
 integers by means of the GNU GMP library. In practice this means that
 integers are bound by the global stack size. Too large integers cause a
 \except{resource_error}. On systems that lack GMP, integers are 64-bit
-on 32 as well as 64-bit machines.
+on 32- as well as 64-bit machines.
 
 Integers up to the value of the \prologflag{max_tagged_integer} Prolog
 flag are represented more efficiently on the stack. For clauses and
@@ -2454,7 +2454,7 @@ records the difference is much smaller.
 
     \item[Floating point numbers]
 Floating point numbers are represented as C-native double precision
-floats, 64 bit IEEE on most machines.
+floats, 64-bit IEEE on most machines.
 \end{description}
 
 \subsection{Reserved Names}			\label{sec:resnames}
@@ -2463,7 +2463,7 @@ The boot compiler (see \cmdlineoption{-b} option) does not support the module
 system.  As large parts of the system are written in Prolog itself
 we need some way to avoid name clashes with the user's predicates,
 database keys, etc.  Like Edinburgh C-Prolog \cite{CPROLOG:manual} all
-predicates, database keys, etc.\ that should be hidden from the user
+predicates, database keys, etc., that should be hidden from the user
 start with a dollar (\chr{\$}) sign.
 
 \input{bit64.tex}

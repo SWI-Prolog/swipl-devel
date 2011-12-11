@@ -2,7 +2,7 @@
 \label{sec:64bits}
 
 \index{bits, 64}%
-Most todays 64-bit platforms are capable of running both 32-bit and
+Most of today's 64-bit platforms are capable of running both 32-bit and
 64-bit applications. This asks for some clarifications on the advantages
 and drawbacks of 64-bit addressing for (SWI-)Prolog.
 
@@ -11,7 +11,7 @@ and drawbacks of 64-bit addressing for (SWI-)Prolog.
 \label{sec:64bitsplatforms}
 
 \index{64-bits,platforms}%
-SWI-Prolog can be compiled for 32 or 64-bit address space on any system
+SWI-Prolog can be compiled for a 32- or 64-bit address space on any system
 with a suitable C-compiler. Pointer arithmetic is based on the type
 (u)intptr_t from \file{stdint.h}, with suitable emulation on MS-Windows.
 
@@ -19,19 +19,19 @@ with a suitable C-compiler. Pointer arithmetic is based on the type
 \subsection{Comparing 32- and 64-bits Prolog}
 \label{sec:32vs64bits}
 
-Most of Prolog's memory-usage consists of pointers.  This indicates the
-primary drawback: Prolog memory usage almost doubles when using the 64
-bit addressing model.  Using more memory means copying more data between
+Most of Prolog's memory usage consists of pointers.  This indicates the
+primary drawback: Prolog memory usage almost doubles when using the
+64-bit addressing model.  Using more memory means copying more data between
 CPU and main memory, slowing down the system.
 
-What than are the advantages? First of all, SWI-Prolog's addressing of
+What then are the advantages? First of all, SWI-Prolog's addressing of
 the Prolog stacks does not cover the whole address space due to the use
 of \jargon{type tag bits} and \jargon{garbage collection flags}. On
 32-bit hardware the stacks are limited to 128MB each. This tends to be
 too low for demanding applications on modern hardware. On 64-bit
 hardware the limit is $2^{32}$ times higher, exceeding the addressing
-capabilities of todays CPUs and operating systems. This implies Prolog
-can be started with stacks sizes that use the full capabilities of your
+capabilities of today's CPUs and operating systems. This implies Prolog
+can be started with stack sizes that use the full capabilities of your
 hardware.
 
 Multi-threaded applications profit much more because every thread has
@@ -40,15 +40,15 @@ expanded (see \secref{memlimit}). The C-stack is also dynamically
 expanded, but the maximum size is \emph{reserved} when a thread is
 started. Using 100 threads at the maximum default C-stack of 8Mb (Linux)
 costs 800Mb virtual memory!\footnote{C-recursion over Prolog
-datastructures is removed from most of SWI-Prolog. When removed from all
+data structures is removed from most of SWI-Prolog. When removed from all
 predicates it will often be possible to use lower limits in threads.
 See \url{http://www.swi-prolog.org/Devel/CStack.html}}
 
 
 \index{IA32}\index{AMD64}%
-The implications theoretical performance loss due to increased memory
+The implications of theoretical performance loss due to increased memory
 bandwidth implied by exchanging wider pointers depend on the design of
-the hardware. We only have data for the popular IA32 vs. AMD64
+the hardware. We only have data for the popular IA32 vs.\ AMD64
 architectures. Here, it appears that the loss is compensated for by an
 instruction set that has been optimized for modern programming. In
 particular, the AMD64 has more registers and the relative addressing
@@ -68,7 +68,7 @@ First of all, if SWI-Prolog needs to be linked against 32- or 64-bit
 native libraries, there is no choice as it is not possible to link 32-
 and 64-bit code into a single executable. Only if all required libraries
 are available in both sizes and there is no clear reason to use either
-the different characteristics of Prolog become important.
+do the different characteristics of Prolog become important.
 
 Prolog applications that require more than the 128MB stack limit
 provided in 32-bit addressing mode must use the 64-bit edition.  Note
@@ -76,7 +76,7 @@ however that the limits must be doubled to accommodate the same Prolog
 application.
 
 If the system is tight on physical memory, 32-bit Prolog has the clear
-advantage to use only slightly more than half of the memory of 64-bit
+advantage of using only slightly more than half of the memory of 64-bit
 Prolog. This argument applies as long as the application fits in the
 \jargon{virtual address space} of the machine. The virtual address space
 of 32-bit hardware is 4GB, but in many cases the operating system
@@ -91,7 +91,7 @@ and literals appear in the dataset as well as desired additional literal
 indexes.
 
 Summarizing, if applications are small enough to fit comfortably in
-virtual and physical memory simply take the model used by most of the
+virtual and physical memory, simply take the model used by most of the
 applications on the OS. If applications require more than 128MB per
 stack, use the 64-bit edition. If applications approach the size of
 physical memory, fit in the 128MB stack limit and fit in virtual memory,
