@@ -120,7 +120,7 @@ embedded application.
 #else /* !defined(HOST_TOOLCHAIN_MSC) */
 
 #define PROG_CC C_CC
-#define PROG_CXX C_CC "-x c++"
+#define PROG_CXX C_CC " -x c++"
 /* PROG_CPP is defined in config.h */
 
 #define PROG_LD C_CC
