@@ -658,10 +658,10 @@ Option checking and exception generation.  This should be in a library!
 
 option_type(Name,	 integer) :- min_stack(Name, _MinValue).
 option_type(class,	 oneof([runtime,kernel,development])).
-option_type(autoload,	 bool).
+option_type(autoload,	 boolean).
 option_type(map,	 atom).
 option_type(op,		 oneof([save, standard])).
-option_type(stand_alone, bool).
+option_type(stand_alone, boolean).
 option_type(foreign,	 oneof([save, no_save])).
 option_type(goal,	 callable).
 option_type(toplevel,	 callable).
