@@ -190,6 +190,10 @@ AC_ARG_ENABLE(dmalloc, [  --enable-dmalloc	  Enable DMALLOC debugging],
 	      dmalloc="$enableval",
 	      dmalloc=no)
 
+AC_ARG_ENABLE(boehm-gc, [  --disable-boehm-gc	  Disable using Boehm-GC],
+	      boehmgc="$enableval",
+	      boehmgc=yes)
+
 AC_ARG_ENABLE(useprofile, [  --enable-useprofile	  GCC: recompile with profile],
 	      useprofile="$enableval",
 	      useprofile=no)
@@ -971,6 +975,17 @@ AC_TRY_LINK([],
 	    ],
 	    [ AC_MSG_RESULT(no) ])
 
+
+if test ! "x$boehmgc" = xno; then
+  oldlibs="$LIBS"
+  AC_CHECK_LIB(gc, GC_malloc, check_gc_h=yes)
+  if test "x$check_gc_h" = "xyes"; then
+    AC_CHECK_HEADER(gc/gc.h,
+		    AC_DEFINE(HAVE_BOEHM_GC, 1,
+			      [ Define to 1 if you have Boehm GC. ])
+		    LIBS="-lgc $LIBS")
+  fi
+fi
 
 case "$PLARCH" in
     *-win32|*-win64)
