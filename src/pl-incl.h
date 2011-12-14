@@ -65,6 +65,19 @@
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
 #endif
 
+#ifdef HAVE_BOEHM_GC
+#include <gc/gc.h>
+#define O_MYALLOC 0
+#else
+#define GC_MALLOC(n)				malloc(n)
+#define GC_MALLOC_ATOMIC(n)			malloc(n)
+#define GC_MALLOC_IGNORE_OFF_PAGE(n)		malloc(n)
+#define GC_MALLOC_ATOMIC_IGNORE_OFF_PAGE(n)	malloc(n)
+#define GC_MALLOC_UNCOLLECTABLE(n)		malloc(n)
+#define GC_REALLOC(p,s)				realloc(p,s)
+#define GC_FREE(p)				free(p)
+#endif /*HAVE_BOEHM_GC*/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
 

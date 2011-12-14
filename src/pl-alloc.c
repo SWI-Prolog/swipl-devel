@@ -1361,6 +1361,10 @@ initAlloc(void)
 		 0);
 #endif
 
+#ifdef HAVE_BOEHM_GC
+  GC_INIT();
+#endif
+
 #if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
   if ( getenv("MALLOC_TRACE") )		/* glibc malloc tracer */
     mtrace();
