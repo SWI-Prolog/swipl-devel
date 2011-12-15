@@ -210,22 +210,22 @@ SP_put_integer_bytes(SP_term_ref term,
 
     switch(buf_size)
     { case 1:
-      { char *p = buf;
+	{ char *p = (char*)buf;
 	val = *p;
 	break;
       }
       case 2:
-      { short *p = buf;
+	{ short *p = (short*)buf;
 	val = *p;
 	break;
       }
       case 4:
-      { int *p = buf;
+	{ int *p = (int*)buf;
 	val = *p;
 	break;
       }
       case 8:
-      { int64_t *p = buf;
+	{ int64_t *p = (int64_t*)buf;
 	val = *p;
 	break;
       }
