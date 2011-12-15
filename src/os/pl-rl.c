@@ -535,7 +535,12 @@ atom_generator(const char *prefix, int state)
 { char *s = PL_atom_generator(prefix, state);
 
   if ( s )
-    return strcpy(PL_malloc(1 + strlen(s)), s);
+  { char *copy = malloc(1 + strlen(s));
+
+    if ( copy )				/* else pretend no completion */
+      strcpy(copy, s);
+    s = copy;
+  }
 
   return s;
 }
