@@ -647,7 +647,13 @@ initSignals(void)
 #endif
 
   for( ; sn->name; sn++)
-  { if ( sn->flags )
+  {
+#ifdef HAVE_BOEHM_GC
+    if ( sn->sig == GC_get_suspend_signal() ||
+	 sn->sig == GC_get_thr_restart_signal() )
+      sn->flags = 0;
+#endif
+    if ( sn->flags )
     { SigHandler sh = prepareSignal(sn->sig);
       sh->flags |= sn->flags;
     }
