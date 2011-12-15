@@ -4342,6 +4342,7 @@ QP_STATISTICS is defined. The compatibility   is pretty complete, except
 the `atoms' key that is defined by both and this ambiguous.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef HAVE_BOEHM_GC
 static size_t
 heapUsed(void)
 { size_t heap = GD->statistics.heap;	/* Big allocations */
@@ -4353,6 +4354,7 @@ heapUsed(void)
 
   return heap;
 }
+#endif
 
 static size_t
 CStackSize(PL_local_data_t *ld)
@@ -4498,8 +4500,6 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = usedStack(local);
   else if (key == ATOM_locallimit)
     v->value.i = limitStack(local);
-  else if (key == ATOM_heapused)			/* heap usage */
-    v->value.i = heapUsed();
   else if (key == ATOM_trail)				/* trail */
     v->value.i = sizeStack(trail);
   else if (key == ATOM_trailused)
@@ -4533,6 +4533,15 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = gc_status.collections;
   else if (key == ATOM_collected)
     v->value.i = gc_status.trail_gained + gc_status.global_gained;
+#ifdef HAVE_BOEHM_GC
+  else if ( key == ATOM_heap_gc )
+    v->value.i = GC_get_gc_no();
+  else if (key == ATOM_heapused)			/* heap usage */
+    v->value.i = GC_get_heap_size();
+#else
+  else if (key == ATOM_heapused)			/* heap usage */
+    v->value.i = heapUsed();
+#endif
 #ifdef O_ATOMGC
   else if (key == ATOM_agc)
     v->value.i = GD->atoms.gc;
