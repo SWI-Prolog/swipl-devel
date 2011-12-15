@@ -47,6 +47,7 @@
 #define LD LOCAL_LD
 
 #if O_MYALLOC
+#define PL_ALLOC_DONE 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines memory allocation for the heap (the  program  space)
@@ -627,7 +628,56 @@ freeAllBigHeaps(void)
 #undef allocHeap__LD
 #endif /*ALLOC_DEBUG*/
 
-#else /*O_MYALLOC*/
+#endif /*O_MYALLOC*/
+
+		 /*******************************
+		 *	    USE BOEHM GC	*
+		 *******************************/
+
+#if !defined(PL_ALLOC_DONE) && defined(HAVE_BOEHM_GC)
+#define PL_ALLOC_DONE 1
+
+void *
+allocHeap__LD(size_t n ARG_LD)
+{ return GC_MALLOC(n);
+}
+
+
+void *
+allocHeapOrHalt__LD(size_t n ARG_LD)
+{ void *mem = GC_MALLOC(n);
+
+  if ( !mem )
+    outOfCore();
+
+  return mem;
+}
+
+
+void
+freeHeap__LD(void *mem, size_t n ARG_LD)
+{
+}
+
+
+void
+cleanupMemAlloc(void)
+{					/* TBD: Cleanup! */
+}
+
+void
+mergeAllocPool(AllocPool to, AllocPool from)
+{
+}
+
+#endif /*HAVE_BOEHM_GC*/
+
+
+		 /*******************************
+		 *   USE PLAIN SYSTEM MALLOC	*
+		 *******************************/
+
+#ifndef PL_ALLOC_DONE
 
 void *
 allocHeap__LD(size_t n ARG_LD)
@@ -683,7 +733,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
 {
 }
 
-#endif /*O_MYALLOC*/
+#endif /*PL_ALLOC_DONE*/
 
 
 		/********************************
