@@ -66,6 +66,9 @@
 #endif
 
 #ifdef HAVE_BOEHM_GC
+#ifdef O_PLMT
+#define GC_THREADS 1
+#endif
 #include <gc/gc.h>
 #define O_MYALLOC 0
 #else

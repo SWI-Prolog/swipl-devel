@@ -24,12 +24,12 @@
 */
 
 /*#define O_DEBUG 1*/
+#define _GNU_SOURCE			/* get dladdr() */
 #include "pl-incl.h"
 #include "pl-dbref.h"
 #include "pl-inline.h"
 #include <limits.h>
 #ifdef HAVE_DLADDR
-#define __USE_GNU 1
 #include <dlfcn.h>
 #endif
 
