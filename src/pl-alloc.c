@@ -1313,7 +1313,7 @@ void *
 xmalloc(size_t size)
 { void *mem;
 
-  if ( (mem = malloc(size)) )
+  if ( (mem = GC_MALLOC(size)) )
     return mem;
   if ( size )
     outOfCore();
@@ -1326,7 +1326,7 @@ void *
 xrealloc(void *mem, size_t size)
 { void *newmem;
 
-  newmem = mem ? realloc(mem, size) : malloc(size);
+  newmem = mem ? GC_REALLOC(mem, size) : GC_MALLOC(size);
   if ( newmem )
     return newmem;
   if ( size )
@@ -1347,9 +1347,7 @@ void *
 PL_malloc(size_t size)
 { void *mem;
 
-  if ( size == 0 )
-    return NULL;
-  if ( (mem = malloc(size)) )
+  if ( (mem = GC_MALLOC(size)) )
     return mem;
 
   outOfCore();
@@ -1360,8 +1358,7 @@ PL_malloc(size_t size)
 
 void
 PL_free(void *mem)
-{ if ( mem )
-    free(mem);
+{ GC_FREE(mem);
 }
 
 
@@ -1369,19 +1366,10 @@ void *
 PL_realloc(void *mem, size_t size)
 { void *newmem;
 
-  if ( mem )
-  { if ( size )
-    { if ( !(newmem = realloc(mem, size)) )
-	outOfCore();
+  if ( !(newmem = GC_REALLOC(mem, size)) )
+    outOfCore();
 
-      return newmem;
-    } else
-    { free(mem);
-      return NULL;
-    }
-  }
-
-  return PL_malloc(size);
+  return newmem;
 }
 
 
@@ -1391,7 +1379,7 @@ PL_realloc(void *mem, size_t size)
 
 static void
 initHBase(void)
-{ void *p = malloc(sizeof(void*));
+{ void *p = GC_MALLOC(sizeof(void*));
   uintptr_t base = (uintptr_t)p;
 
   base &= ~0xfffff;			/* round down 1m */
