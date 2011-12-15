@@ -262,9 +262,9 @@ getVarDef(int i ARG_LD)
       nvd = nvd > 0 ? (nvd*2) : 32;
 
     if ( onvd > 0 )
-      vardefs = realloc(vardefs, sizeof(VarDef) * nvd);
+      vardefs = GC_REALLOC(vardefs, sizeof(VarDef) * nvd);
     else
-      vardefs = malloc(sizeof(VarDef) * nvd);
+      vardefs = GC_MALLOC(sizeof(VarDef) * nvd);
 
     if ( !vardefs )
       outOfCore();
@@ -323,7 +323,7 @@ freeVarDefs(PL_local_data_t *ld)
 	freeHeap(vardefs[i], sizeof(vardef));
     }
 
-    free(ld->comp.vardefs);
+    GC_FREE(ld->comp.vardefs);
     ld->comp.vardefs = NULL;
     ld->comp.nvardefs = 0;
     ld->comp.filledVars = 0;
