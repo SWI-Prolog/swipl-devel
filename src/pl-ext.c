@@ -349,6 +349,7 @@ registerBuiltins(const PL_extension *f)
 #define REG_PLIST(id) \
 	registerBuiltins(PL_predicates_from_ ## id)
 
+DECL_PLIST(alloc);
 DECL_PLIST(atom);
 DECL_PLIST(arith);
 DECL_PLIST(bag);
@@ -395,6 +396,7 @@ initBuildIns(void)
   Module m = MODULE_system;
 
   registerBuiltins(foreigns);
+  REG_PLIST(alloc);
   REG_PLIST(atom);
   REG_PLIST(arith);
   REG_PLIST(bag);

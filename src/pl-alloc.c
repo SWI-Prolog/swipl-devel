@@ -1431,3 +1431,18 @@ properly on Linux. Don't bother with it.
 #undef freeHeap__LD
 #undef allocHeapOrHalt__LD
 #undef allocHeap__LD
+
+#ifdef HAVE_BOEHM_GC
+static
+PRED_IMPL("garbage_collect_heap", 0, garbage_collect_heap, 0)
+{ GC_gcollect();
+
+  return TRUE;
+}
+#endif
+
+BeginPredDefs(alloc)
+#ifdef HAVE_BOEHM_GC
+  PRED_DEF("garbage_collect_heap", 0, garbage_collect_heap, 0)
+#endif
+EndPredDefs
