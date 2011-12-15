@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -54,7 +54,7 @@ typedef struct
 typedef struct
 { int		current;		/* current character */
   const char_type   *class;		/* current class */
-  int   	do_enum;		/* what to enumerate */
+  int		do_enum;		/* what to enumerate */
 } generator;
 
 
@@ -366,7 +366,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	}
       }
 
-      gen = allocHeap(sizeof(*gen));
+      gen = allocHeapOrHalt(sizeof(*gen));
       gen->do_enum = do_enum;
 
       if ( do_enum & ENUM_CHAR )
@@ -682,7 +682,7 @@ so we ignore possible problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-initLocale()
+initLocale(void)
 { int rc = TRUE;
 
   if ( !setlocale(LC_CTYPE, "") )
@@ -749,7 +749,7 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
     }
   }
 
-  return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_category, A1);
+  return PL_domain_error("category", A1);
 }
 
 #else

@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -39,24 +40,42 @@
 :- use_module(library(occurs), [sub_term/2]).
 :- use_module(library(debug)).
 :- use_module(library(listing)).
+:- use_module(library(prolog_source)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+:- public				% called from library(trace/clause)
+	unify_term/2,
+	make_varnames/5,
+	do_make_varnames/3.
+
+:- multifile
+	make_varnames_hook/5.
+
+/** <module> Get detailed source-information about a clause
+
 This module started life as part of the   GUI tracer. As it is generally
 useful for debugging  purposes  it  has   moved  to  the  general Prolog
-library. Being only applicable to debugging   and  sitting very close to
-the kernel, do not rely too much that its functionality will be stable.
+library.
 
-The tracer library  tracer/clause.pl  adds   caching  and  dealing  with
+The tracer library library(trace/clause) adds   caching and dealing with
 dynamic predicates using listing to  XPCE   objects  to  this. Note that
-clause_info/4 as below can be pretty slow.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+clause_info/4 as below can be slow.
+*/
 
 %%	clause_info(+ClauseRef, -File, -TermPos, -VarNames)
 %
-%	Fetches source information for the given clause.
+%	Fetches source information for the  given   clause.  File is the
+%	file from which the clause  was   loaded.  TermPos describes the
+%	source layout in a format   compatible  to the subterm_positions
+%	option of read_term/2.  VarNames provides access to the variable
+%	allocation in a stack-frame.  See make_varnames/5 for details.
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
-	debug(clause_info, 'clause_info(~w)... ', [ClauseRef]),
+	(   debugging(clause_info)
+	->  clause_name(ClauseRef, Name),
+	    debug(clause_info, 'clause_info(~w) (~w)... ',
+		  [ClauseRef, Name])
+	;   true
+	),
 	clause_property(ClauseRef, file(File)),
 	'$clause'(Head, Body, ClauseRef, VarOffset),
 	(   Body == true
@@ -87,9 +106,6 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 %
 %	NOTE: Called directly from  library(trace/clause)   for  the GUI
 %	tracer.
-
-:- public
-	unify_term/2.
 
 unify_term(X, X) :- !.
 unify_term(X1, X2) :-
@@ -126,61 +142,22 @@ unify_args(I, Arity, T1, T2) :-
 	unify_args(A, Arity, T1, T2).
 
 
-%	Must be a user-programmable hook!
-
-alternate_syntax(prolog, _,    true,
-			       true).
-alternate_syntax(pce_class, M, pce_expansion:push_compile_operators(M),
-			       pce_expansion:pop_compile_operators) :-
-	current_prolog_flag(xpce, true).
-alternate_syntax(system, _,    style_check(+dollar),
-			       style_check(-dollar)).
-
-system_module(system) :- !.
-system_module(Module) :-
-	sub_atom(Module, 0, _, _, $), !.
+%%	read_term_at_line(+File, +Line, +Module,
+%%			  -Clause, -TermPos, -VarNames) is semidet.
+%
+%	Read a term from File at Line.
 
 read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
 	catch(open(File, read, In), _, fail),
-	call_cleanup(read(Line, In, Module, Clause, TermPos, VarNames),
-		     close(In)).
-
-read(Line, Handle, Module, Clause, TermPos, VarNames) :-
-	seek_to_line(Handle, Line),
-	read(Handle, Module, Clause, TermPos, VarNames).
-
-%%	read(+Stream, +Module, -Clause, -TermPos, -VarNames)
-%
-%	Read clause from Stream at current position with unknown syntax.
-%	It returns the term read  at  that   position,  as  well  as the
-%	subterm position info and variable names.
-%
-%	NOTE: Called directly from  library(trace/clause)   for  the GUI
-%	tracer.
-
-read(Handle, Module, Clause, TermPos, VarNames) :-
-	(   system_module(Module)
-	->  Syntax = system
-	;   true
-	),
-	stream_property(Handle, position(Here)),
-	alternate_syntax(Syntax, Module, Setup, Restore),
-	peek_char(Handle, X),
-	debug(clause_info, 'Using syntax ~w (c=~w)', [Syntax, X]),
-	Setup,
-	catch(read_term(Handle, Clause,
-			[ subterm_positions(TermPos),
-			  variable_names(VarNames),
-			  module(Module)
-			]),
-	      Error,
-	      true),
-	Restore,
-	(   var(Error)
-	->  !
-	;   set_stream_position(Handle, Here),
-	    fail
-	).
+	call_cleanup(
+	    read_source_term_at_location(
+		In, Clause,
+		[ line(Line),
+		  module(Module),
+		  subterm_positions(TermPos),
+		  variable_names(VarNames)
+		]),
+	    close(In)).
 
 
 %%	make_varnames(+ReadClause, +DecompiledClause,
@@ -198,13 +175,6 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 %
 %	@param Offsets	List of Offset=Var
 %	@param Names	List of Name=Var
-%
-%	@bug Called directly from library(trace/clause) for the GUI tracer.
-
-:- multifile make_varnames_hook/5.
-:- public
-	make_varnames/5,
-	do_make_varnames/3.		% allow usage from the hook.
 
 make_varnames(ReadClause, DecompiledClause, Offsets, Names, Term) :-
 	make_varnames_hook(ReadClause, DecompiledClause, Offsets, Names, Term), !.
@@ -585,6 +555,8 @@ To keep track of the source-locations, we   have to redo the analysis of
 the clause as defined in init.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+expand_goal(G, call(G), P, term_position(0,0,0,0,[P])) :-
+        var(G), !.
 expand_goal(G, G, P, P) :-
         var(G), !.
 expand_goal(M0, M, P0, P) :-
@@ -632,14 +604,26 @@ goal_expansion(SendSuperN, send_class(R, _, Msg), P, P) :-
 	compound(SendSuperN),
 	SendSuperN =.. [send_super, R, Sel | Args],
 	Msg =.. [Sel|Args].
+goal_expansion(SendN, send(R, Msg), P, P) :-
+	compound(SendN),
+	SendN =.. [send, R, Sel | Args],
+	atom(Sel), Args \== [],
+	Msg =.. [Sel|Args].
 goal_expansion(GetSuperN, get_class(R, _, Msg, Answer), P, P) :-
 	compound(GetSuperN),
 	GetSuperN =.. [get_super, R, Sel | AllArgs],
 	append(Args, [Answer], AllArgs),
 	Msg =.. [Sel|Args].
+goal_expansion(GetN, get(R, Msg, Answer), P, P) :-
+	compound(GetN),
+	GetN =.. [get, R, Sel | AllArgs],
+	append(Args, [Answer], AllArgs),
+	atom(Sel), Args \== [],
+	Msg =.. [Sel|Args].
 goal_expansion(G0, G, P, P) :-
 	user:goal_expansion(G0, G),	% TBD: we need the module!
 	G0 \== G.			% \=@=?
+
 
 		 /*******************************
 		 *	  PRINTABLE NAMES	*
@@ -660,6 +644,10 @@ hidden_module(Module) :-		% SWI-Prolog specific
 thaffix(1, st) :- !.
 thaffix(2, nd) :- !.
 thaffix(_, th).
+
+%%	predicate_name(:Head, -PredName:string) is det.
+%
+%	Describe a predicate as [Module:]Name/Arity.
 
 predicate_name(Predicate, PName) :-
 	strip_module(Predicate, Module, Head),
@@ -684,24 +672,3 @@ clause_name(Ref, Name) :-
 	thaffix(N, Th),
 	format(string(Name), '~d-~w clause of ~w', [N, Th, PredName]).
 clause_name(_, '<meta-call>').
-
-
-		 /*******************************
-		 *        LOW-LEVEL STUFF	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-These predicates communicate about lines.  We   should  consider using a
-line-cache for this for speed.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-%%	seek_to_line(+Stream, +Line)
-%
-%	Seek to indicated line-number.
-
-seek_to_line(Fd, N) :-
-	N > 1, !,
-	skip(Fd, 10),
-	NN is N - 1,
-	seek_to_line(Fd, NN).
-seek_to_line(_, _).

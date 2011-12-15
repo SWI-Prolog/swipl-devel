@@ -19,11 +19,11 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifdef __WINDOWS__
-#define _WIN32_WINNT 0x0400
+#define WINVER 0x0501
 #if (_MSC_VER >= 1300)
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
@@ -34,7 +34,6 @@
 
 #ifdef __MINGW32__
 #define _WIN32_IE 0x0400
-#include <shlobj.h>
 /* FIXME: these are copied from SWI-Prolog.h. */
 #define PL_MSG_EXCEPTION_RAISED -1
 #define PL_MSG_IGNORED 0
@@ -47,7 +46,7 @@
 #include "os/pl-ctype.h"
 #include <stdio.h>
 #include <stdarg.h>
-#include "SWI-Stream.h"
+#include "os/SWI-Stream.h"
 #include <process.h>
 #include <winbase.h>
 #ifdef HAVE_CRTDBG_H
@@ -142,8 +141,8 @@ PlMessage(const char *fm, ...)
 		 *	WinAPI ERROR CODES	*
 		 *******************************/
 
-char *
-WinError()
+const char *
+WinError(void)
 { int id = GetLastError();
   char *msg;
   static WORD lang;
@@ -295,7 +294,7 @@ CpuTime(cputime_kind which)
 
 
 static int
-CpuCount()
+CpuCount(void)
 { SYSTEM_INFO si;
 
   GetSystemInfo(&si);
@@ -305,7 +304,7 @@ CpuCount()
 
 
 void
-setOSPrologFlags()
+setOSPrologFlags(void)
 { PL_set_prolog_flag("cpu_count", PL_INTEGER, CpuCount());
 }
 
@@ -348,11 +347,11 @@ findExecutable(const char *module, char *exe)
 
 typedef struct
 { const char *name;
-  int         id;
+  UINT        id;
 } showtype;
 
 static int
-get_showCmd(term_t show, int *cmd)
+get_showCmd(term_t show, UINT *cmd)
 { char *s;
   showtype *st;
   static showtype types[] =
@@ -630,7 +629,7 @@ need. They are used  by  pl-load.c,   which  defines  the  actual Prolog
 interface.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *dlmsg;
+static const char *dlmsg;
 
 void *
 dlopen(const char *file, int flags)	/* file is in UTF-8 */
@@ -656,7 +655,7 @@ dlopen(const char *file, int flags)	/* file is in UTF-8 */
 
 
 const char *
-dlerror()
+dlerror(void)
 { return dlmsg;
 }
 
@@ -686,11 +685,57 @@ dlclose(void *handle)
 
 
 		 /*******************************
+		 *	 SNPRINTF MADNESS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+MS-Windows _snprintf() may look like C99 snprintf(), but is is not quite
+the same: on overflow, the buffer is   *not* 0-terminated and the return
+is negative (unspecified how negative).  The   code  below  works around
+this, returning count on overflow. This is still not the same as the C99
+version that returns the  number  of   characters  that  would have been
+written, but it seems to be enough for our purposes.
+
+See http://www.di-mgt.com.au/cprog.html#snprintf
+
+The above came from the provided link, but it is even worse (copied from
+VS2005 docs):
+
+  - If len < count, then len characters are stored in buffer, a
+  null-terminator is appended, and len is returned.
+
+  - If len = count, then len characters are stored in buffer, no
+  null-terminator is appended, and len is returned.
+
+  - If len > count, then count characters are stored in buffer, no
+  null-terminator is appended, and a negative value is returned.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+ms_snprintf(char *buffer, size_t count, const char *fmt, ...)
+{ va_list ap;
+  int ret;
+
+  va_start(ap, fmt);
+  ret = _vsnprintf(buffer, count-1, fmt, ap);
+  va_end(ap);
+
+  if ( ret < 0 || ret == count )
+  { ret = count;
+    buffer[count-1] = '\0';
+  }
+
+  return ret;
+}
+
+
+
+		 /*******************************
 		 *	      FOLDERS		*
 		 *******************************/
 
 #ifdef HAVE_SHLOBJ_H
-#include <Shlobj.h>
+#include <shlobj.h>
 #endif
 
 typedef struct folderid
@@ -946,7 +991,7 @@ setStacksFromKey(HKEY key)
 
 
 void
-getDefaultsFromRegistry()
+getDefaultsFromRegistry(void)
 { HKEY key;
 
   if ( (key = reg_open_key(L"HKEY_LOCAL_MACHINE/Software/SWI/Prolog", FALSE)) )

@@ -17,7 +17,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -41,6 +41,10 @@
 :- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module(library(aggregate)).
+
+:- predicate_options(db_attach/2, 2,
+		     [ sync(oneof([close,flush,none]))
+		     ]).
 
 /** <module> Provide persistent dynamic predicates
 

@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -53,7 +53,7 @@ _lookupModule(atom_t name)
     return (Module) s->value;
 
   { GET_LD
-    m = allocHeap(sizeof(struct module));
+    m = allocHeapOrHalt(sizeof(struct module));
   }
   m->name = name;
   m->file = (SourceFile) NULL;
@@ -74,16 +74,19 @@ _lookupModule(atom_t name)
     m->procedures = newHTable(MODULEPROCEDUREHASHSIZE);
 
   m->public = newHTable(PUBLICHASHSIZE);
-
   m->supers = NULL;
+  m->class  = ATOM_user;
+
   if ( name == ATOM_user )
   { super = MODULE_system;
   } else if ( name == ATOM_system )
   { set(m, SYSTEM|UNKNOWN_ERROR);
     super = NULL;
+    m->class = ATOM_system;
   } else if ( stringAtom(name)[0] == '$' )
   { set(m, SYSTEM);
     super = MODULE_system;
+    m->class = ATOM_system;
   } else
   { super = MODULE_user;
   }
@@ -235,7 +238,7 @@ addSuperModule_no_lock(Module m, Module s, int where)
       return TRUE;			/* already a super-module */
   }
 
-  c = allocHeap(sizeof(*c));
+  c = allocHeapOrHalt(sizeof(*c));
   c->value = s;
 
   if ( where == 'A' )
@@ -325,21 +328,48 @@ setSuperModule(Module m, Module s)
 
 
 static
-PRED_IMPL("set_base_module", 1, set_base_module, PL_FA_TRANSPARENT)
+PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
 { PRED_LD
   Module m = MODULE_parse;
-  atom_t mname;
-  int rc;
+  term_t prop = PL_new_term_ref();
+  atom_t pname;
+  int arity;
 
-  PL_strip_module(A1, &m, A1);
-  if ( !PL_get_atom_ex(A1, &mname) )
-    fail;
+  PL_strip_module(A1, &m, prop);
+  if ( PL_get_name_arity(prop, &pname, &arity) && arity == 1 )
+  { term_t arg = PL_new_term_ref();
 
-  LOCK();
-  rc = setSuperModule(m, _lookupModule(mname));
-  UNLOCK();
+    _PL_get_arg(1, prop, arg);
 
-  return rc;
+    if ( pname == ATOM_base )
+    { atom_t mname;
+      int rc;
+
+      if ( !PL_get_atom_ex(arg, &mname) )
+	return FALSE;
+      LOCK();
+      rc = setSuperModule(m, _lookupModule(mname));
+      UNLOCK();
+      return rc;
+    } else if ( pname == ATOM_class )
+    { atom_t class;
+
+      if ( !PL_get_atom_ex(arg, &class) )
+	return FALSE;
+      if ( class == ATOM_user ||
+	   class == ATOM_system ||
+	   class == ATOM_library ||
+	   class == ATOM_test ||
+	   class == ATOM_development )
+      { m->class = class;
+	return TRUE;
+      } else
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_class, arg);
+    } else
+    { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_property, prop);
+    }
+  } else
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_module_property, prop);
 }
 
 
@@ -530,96 +560,108 @@ get_existing_source_file(term_t file, SourceFile *sfp ARG_LD)
 }
 
 
-Module
-moduleFromFile(SourceFile sf)
-{ TableEnum e;
-  Symbol symb;
+/** '$current_module'(+Module, -File) is semidet.
+    '$current_module'(-ModuleOrList, +File) is semidet.
+    '$current_module'(-Module, -File) is nondet.
 
-  for(e = newTableEnum(GD->tables.modules),
-      symb = advanceTableEnum(e);
-      symb;
-      symb = advanceTableEnum(e))
-  { Module m = symb->value;
+Query module<->file association. This association  is N:1 in SWI-Prolog.
+Think e.g., of test-units that are mapped  to modules. When used in mode
+(-, +), this predicate unifies Module with  a non-empty list if the file
+is associated to multiple modules.
+*/
 
-    if ( m->file == sf )
-    { freeTableEnum(e);
-      return m;
-    }
-  }
-
-  freeTableEnum(e);
-  return NULL;
-}
-
-
-word
-pl_current_module(term_t module, term_t file, control_t h)
-{ GET_LD
-  TableEnum e = NULL;
+static
+PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  TableEnum e;
   Symbol symb;
   atom_t name;
   SourceFile sf = NULL;
 
-  if ( ForeignControl(h) == FRG_CUTTED )
-  { e = ForeignContextPtr(h);
-    freeTableEnum(e);
-    succeed;
-  }
-				/* deterministic case: module --> file */
-  if ( PL_get_atom(module, &name) )
-  { Module m;
+  term_t module = A1;
+  term_t file   = A2;
 
-    if ( (m=isCurrentModule(name)) )
-    { atom_t f = (!m->file ? ATOM_nil : m->file->name);
-      return PL_unify_atom(file, f);
-    }
-
-    fail;
-  }
-
-  switch(ForeignControl(h))
+  switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
+				/* deterministic case: module --> file */
+      if ( PL_get_atom(module, &name) )
+      { Module m;
+
+	if ( (m=isCurrentModule(name)) )
+	{ atom_t f = (!m->file ? ATOM_nil : m->file->name);
+	  return PL_unify_atom(file, f);
+	}
+
+	return FALSE;
+      }
+
       if ( !get_existing_source_file(file, &sf PASS_LD) )
-	fail;				/* given, but non-existing file */
+	return FALSE;			/* given, but non-existing file */
+
+      if ( sf )
+      { if ( sf->modules )
+	{ int rc = FALSE;
+
+	  PL_LOCK(L_PREDICATE);
+	  if ( sf->modules->next )
+	  { term_t tail = PL_copy_term_ref(module);
+	    term_t head = PL_new_term_ref();
+	    ListCell c;
+
+	    for(c=sf->modules; c; c=c->next)
+	    { Module m = c->value;
+
+	      if ( !(PL_unify_list(tail, head, tail) &&
+		     PL_unify_atom(head, m->name)) )
+		goto out;
+	    }
+	    rc = PL_unify_nil(tail);
+	  } else
+	  { Module m = sf->modules->value;
+	    rc = PL_unify_atom(module, m->name);
+	  }
+
+	out:
+	  PL_UNLOCK(L_PREDICATE);
+	  return rc;
+	}
+	return FALSE;			/* source-file has no modules */
+      }
+
       e = newTableEnum(GD->tables.modules);
       break;
     case FRG_REDO:
-      e = ForeignContextPtr(h);
+      e = CTX_PTR;
       get_existing_source_file(file, &sf PASS_LD);
       break;
     case FRG_CUTTED:
+      e = CTX_PTR;
       freeTableEnum(e);
       succeed;
+    default:
+      assert(0);
+      return FALSE;
   }
+
+					/* mode (-,-) */
 
   while( (symb = advanceTableEnum(e)) )
   { Module m = symb->value;
+    atom_t f = ( !m->file ? ATOM_nil : m->file->name);
 
-    if ( stringAtom(m->name)[0] == '$' &&
+    if ( m->class == ATOM_system && m->name != ATOM_system &&
 	 !SYSTEM_MODE && PL_is_variable(module) )
       continue;
 
-    { fid_t cid = PL_open_foreign_frame();
-      atom_t f = ( !m->file ? ATOM_nil : m->file->name);
+    if ( PL_unify_atom(module, m->name) &&
+	 PL_unify_atom(file, f) )
+      ForeignRedoPtr(e);
 
-      if ( (!sf || (m->file == sf)) &&
-	   PL_unify_atom(module, m->name) &&
-	   PL_unify_atom(file, f) )
-      { PL_close_foreign_frame(cid);
-
-	if ( sf && sf->module_count == 1 )
-	{ freeTableEnum(e);
-	  succeed;
-	}
-	ForeignRedoPtr(e);
-      }
-
-      PL_discard_foreign_frame(cid);
-    }
+    break;				/* must be an error */
   }
 
   freeTableEnum(e);
-  fail;
+  return FALSE;
 }
 
 
@@ -716,7 +758,7 @@ find_modules_with_def(Module m, functor_t fdef,
   }
 
   if ( (proc = isCurrentProcedure(fdef, m)) &&
-       proc->definition->definition.clauses )
+       proc->definition->impl.any )
   { if ( !(PL_unify_list(t, h, t) &&
 	   PL_unify_atom(h, m->name)) )
       fail;
@@ -770,7 +812,7 @@ in it are abolished.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-declareModule(atom_t name, atom_t super,
+declareModule(atom_t name, atom_t class, atom_t super,
 	      SourceFile sf, int line,
 	      int allow_newfile)
 { GET_LD
@@ -779,6 +821,8 @@ declareModule(atom_t name, atom_t super,
 
   LOCK();
   module = _lookupModule(name);
+  if ( class )
+    module->class = class;
 
   if ( !allow_newfile && module->file && module->file != sf)
   { term_t obj;
@@ -795,7 +839,7 @@ declareModule(atom_t name, atom_t super,
 
   if ( module->file != sf )
   { module->file = sf;
-    sf->module_count++;		/* current determinism in $current_module/2 */
+    addModuleSourceFile(sf, module);
   }
   module->line_no = line;
   LD->modules.source = module;
@@ -840,7 +884,7 @@ declareModule(atom_t name, atom_t super,
 }
 
 
-/** '$declare_module'(+Module, +Super, +File, +Line, +Redefine) is det.
+/** '$declare_module'(+Module, +Class, +Super, +File, +Line, +Redefine) is det.
 
 Start a new (source-)module
 
@@ -852,19 +896,21 @@ Start a new (source-)module
 */
 
 static
-PRED_IMPL("$declare_module", 5, declare_module, 0)
+PRED_IMPL("$declare_module", 6, declare_module, 0)
 { PRED_LD
   SourceFile sf;
-  atom_t mname, sname, fname;
+  atom_t mname, cname, sname, fname;
   int line_no, rdef;
 
   term_t module   = A1;
-  term_t super    = A2;
-  term_t file     = A3;
-  term_t line     = A4;
-  term_t redefine = A5;
+  term_t class    = A2;
+  term_t super    = A3;
+  term_t file     = A4;
+  term_t line     = A5;
+  term_t redefine = A6;
 
   if ( !PL_get_atom_ex(module, &mname) ||
+       !PL_get_atom_ex(class, &cname) ||
        !PL_get_atom_ex(super, &sname) ||
        !PL_get_atom_ex(file, &fname) ||
        !PL_get_integer_ex(line, &line_no) ||
@@ -872,7 +918,7 @@ PRED_IMPL("$declare_module", 5, declare_module, 0)
     fail;
 
   sf = lookupSourceFile(fname, TRUE);
-  return declareModule(mname, sname, sf, line_no, rdef);
+  return declareModule(mname, cname, sname, sf, line_no, rdef);
 }
 
 
@@ -920,6 +966,8 @@ PRED_IMPL("$module_property", 2, module_property, 0)
       fail;
   } else if ( PL_is_functor(A2, FUNCTOR_exports1) )
   { return unify_export_list(a, m PASS_LD);
+  } else if ( PL_is_functor(A2, FUNCTOR_class1) )
+  { return PL_unify_atom(a, m->class);
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    ATOM_module_property, A2);
@@ -1126,7 +1174,7 @@ pl_import(term_t pred)
 	    procedureName(proc));
   }
 
-  { Procedure nproc = (Procedure)  allocHeap(sizeof(struct procedure));
+  { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
 
     nproc->type = PROCEDURE_TYPE;
     nproc->definition = proc->definition;
@@ -1149,10 +1197,11 @@ BeginPredDefs(module)
   PRED_DEF("import_module", 2, import_module,
 	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
-  PRED_DEF("$declare_module", 5, declare_module, 0)
+  PRED_DEF("$declare_module", 6, declare_module, 0)
   PRED_DEF("add_import_module", 3, add_import_module, 0)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
-  PRED_DEF("set_base_module", 1, set_base_module, PL_FA_TRANSPARENT)
+  PRED_DEF("set_module", 1, set_module, PL_FA_TRANSPARENT)
+  PRED_DEF("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$module_property", 2, module_property, 0)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)

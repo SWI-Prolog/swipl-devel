@@ -66,6 +66,8 @@
 \newcommand{\reffont}{\tt}
 \newcommand{\predref}[2]{%		% functor/arity
 	\mbox{\reffont #1/#2}}
+\newcommand{\funcref}[2]{%		% functor/arity
+	\mbox{\reffont #1/#2}}
 \newcommand{\dcgref}[2]{%		% functor//arity
 	\mbox{\reffont #1//#2}}
 \newcommand{\qpredref}[3]{%		% module:functor/arity
@@ -78,7 +80,7 @@
 	\mbox{\reffont #1/#2}}
 \newcommand{\manref}[2]{%		% page(n)
 	\mbox{{\reffont #1(}{\rm #2}{\tt )}}}
-\newcommand{\funcref}[2]{%		% function(Args...)
+\newcommand{\cfuncref}[2]{%		% function(Args...)
 	\mbox{{\reffont #1(}{\it #2}{\tt )}}}
 \newcommand{\prologflag}[1]{%
 	\mbox{\reffont #1}}
@@ -133,8 +135,11 @@
 
 %	\directive{Name}{Arity}{Args}
 %	\predicate[Attibutes]{Name}{Arity}{Args}
+%	\function[Attibutes]{Name}{Arity}{Args}
 %	\infixop{Name}{Left}{Right}
 %	\prefixop{Name}{Right}
+%	\infixfunction{Name}{Left}{Right}
+%	\prefixfunction{Name}{Right}
 %	\dcg[Attibutes]{Name}{Arity}{Args}
 %
 %	Predicate   descriptions.   Must   appear   in   a   description
@@ -203,6 +208,9 @@
 \def\@attprefixop[#1]#2#3{%
 	\defentry{#2 {\it #3}\predatt{#1}}%
 	\index{#2/1}\ignorespaces}
+\let\function\predicate
+\let\infixfunction\infixop
+\let\prefixfunction\prefixop
 \makeatother
 
 %	\termitem{functor}{Args}
@@ -359,31 +367,31 @@
 \urldef{\Scut}\satom{!}			% !
 \urldef{\Scomma}\satom{,}		% ,
 \urldef{\Sifthen}\satom{->}		% ->
-\urldef{\Ssoftcut}\satom{*->} 		% *->
-\urldef{\Sdot}\satom{.} 		% .
-\urldef{\Ssemicolon}\satom{;} 		% ;
-\urldef{\Slt}\satom{<} 			% <
-\urldef{\Sxor}\satom{><} 		% ><
-\urldef{\Seq}\satom{=} 			% =
-\urldef{\Suniv}\satom{=..} 		% =..
-\urldef{\Saeq}\satom{=:=} 		% =:=
-\urldef{\Sle}\satom{=<} 		% =<
-\urldef{\Sel}\satom{<=} 		% <=
-\urldef{\Sequal}\satom{==} 		% ==
-\urldef{\Sstructeq}\satom{=@=} 		% =@=
-\urldef{\Sstructneq}\satom{\=@=} 	% \=@=
-\urldef{\Sane}\satom{=\=} 		% =\=
-\urldef{\Sgt}\satom{>} 			% >
-\urldef{\Sge}\satom{>=} 		% >=
-\urldef{\Stlt}\satom{@<} 		% @<
-\urldef{\Stle}\satom{@=<} 		% @=<
-\urldef{\Stgt}\satom{@>} 		% @>
-\urldef{\Stge}\satom{@>=} 		% @>=
-\urldef{\Snot}\satom{\+} 		% \+
-\urldef{\Sne}\satom{\=} 		% \=
-\urldef{\Snequal}\satom{\==} 		% \==
-\urldef{\Shat}\satom{^} 		% ^
-\urldef{\Sbar}\satom{|} 		% |
+\urldef{\Ssoftcut}\satom{*->}		% *->
+\urldef{\Sdot}\satom{.}			% .
+\urldef{\Ssemicolon}\satom{;}		% ;
+\urldef{\Slt}\satom{<}			% <
+\urldef{\Sxor}\satom{><}		% ><
+\urldef{\Seq}\satom{=}			% =
+\urldef{\Suniv}\satom{=..}		% =..
+\urldef{\Saeq}\satom{=:=}		% =:=
+\urldef{\Sle}\satom{=<}			% =<
+\urldef{\Sel}\satom{<=}			% <=
+\urldef{\Sequal}\satom{==}		% ==
+\urldef{\Sstructeq}\satom{=@=}		% =@=
+\urldef{\Sstructneq}\satom{\=@=}	% \=@=
+\urldef{\Sane}\satom{=\=}		% =\=
+\urldef{\Sgt}\satom{>}			% >
+\urldef{\Sge}\satom{>=}			% >=
+\urldef{\Stlt}\satom{@<}		% @<
+\urldef{\Stle}\satom{@=<}		% @=<
+\urldef{\Stgt}\satom{@>}		% @>
+\urldef{\Stge}\satom{@>=}		% @>=
+\urldef{\Snot}\satom{\+}		% \+
+\urldef{\Sne}\satom{\=}			% \=
+\urldef{\Snequal}\satom{\==}		% \==
+\urldef{\Shat}\satom{^}			% ^
+\urldef{\Sbar}\satom{|}			% |
 \urldef{\Stimes}\satom{*}		% *
 \urldef{\Spow}\satom{**}		% **
 \urldef{\Splus}\satom{+}		% +

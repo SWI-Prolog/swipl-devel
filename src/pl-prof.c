@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -497,7 +497,7 @@ add_parent_ref(node_sum *sum,
     }
   }
 
-  r = allocHeap(sizeof(*r));
+  r = allocHeapOrHalt(sizeof(*r));
   r->calls = self->calls;
   r->redos = self->redos;
   r->ticks = self->ticks;
@@ -523,7 +523,7 @@ add_recursive_ref(node_sum *sum, call_node *self, uintptr_t count,
     }
   }
 
-  r = allocHeap(sizeof(*r));
+  r = allocHeapOrHalt(sizeof(*r));
   memset(r, 0, sizeof(*r));
   r->calls = count;
   r->handle = DEF_RECURSIVE;
@@ -549,7 +549,7 @@ add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling,
     }
   }
 
-  r = allocHeap(sizeof(*r));
+  r = allocHeapOrHalt(sizeof(*r));
   r->calls = sibling->calls;
   r->redos = sibling->redos;
   r->ticks = sibling->ticks;
@@ -855,7 +855,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
       }
     }
 
-    node = allocHeap(sizeof(*node));
+    node = allocHeapOrHalt(sizeof(*node));
     memset(node, 0, sizeof(*node));
     nodes++;
 
@@ -906,7 +906,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
     }
   }
 
-  node = allocHeap(sizeof(*node));
+  node = allocHeapOrHalt(sizeof(*node));
   memset(node, 0, sizeof(*node));
   nodes++;
   node->magic = PROFNODE_MAGIC;

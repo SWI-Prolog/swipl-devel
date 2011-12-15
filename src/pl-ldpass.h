@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef PL_LDPASS_H_INCLUDED
@@ -32,6 +32,7 @@
 #define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
 #ifndef DMALLOC
 #define allocHeap(n)		allocHeap__LD(n PASS_LD)
+#define allocHeapOrHalt(n)	allocHeapOrHalt__LD(n PASS_LD)
 #define freeHeap(p, n)		freeHeap__LD(p, n PASS_LD)
 #endif
 #define freeRecord(r)		freeRecord__LD(r PASS_LD)
@@ -51,6 +52,8 @@
 #define consPtr(p, ts)		consPtr__LD(p, ts PASS_LD)
 #define allocGlobalNoShift(n)	allocGlobalNoShift__LD(n PASS_LD)
 #define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
+#define popTermRef()		popTermRef__LD(PASS_LD1)
+#define pushWordAsTermRef(p)	pushWordAsTermRef__LD(p PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n)	_PL_put_number__LD(t, n PASS_LD)
@@ -59,6 +62,7 @@
 #define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
 #define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
+#define PL_unify_int64(t, i)	PL_unify_int64__LD(t, i PASS_LD)
 #define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
 #define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
 #define PL_put_variable(t)	PL_put_variable__LD(t PASS_LD)

@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2006, University of Amsterdam
+    E-mail:        J.Wielemaker@cs.vu.nl
+    WWW:           http://www.swi-prolog.org/projects/xpce/
+    Copyright (C): 1985-2011, University of Amsterdam
+			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -55,7 +56,7 @@
 	    xref_defined_class/3	% ?Source, ?ClassName, -How
 	  ]).
 :- use_module(library(debug), [debug/3, debugging/1]).
-:- use_module(library(lists), [append/3, member/2]).
+:- use_module(library(lists), [append/3, member/2, select/3]).
 :- use_module(library(operators),
 	      [pop_operators/0, push_op/3, push_operators/1]).
 :- use_module(library(shlib), [current_foreign_library/2]).
@@ -102,6 +103,10 @@ This code is used in two places:
 	places.
 */
 
+:- predicate_options(xref_source_file/4, 4,
+		     [ file_type(oneof([txt,prolog,directory]))
+		     ]).
+
 
 		 /*******************************
 		 *	      HOOKS		*
@@ -134,14 +139,6 @@ This code is used in two places:
 
 :- dynamic
 	meta_goal/2.
-
-called_by(Goal, Called) :-
-	prolog:called_by(Goal, Called), !.
-called_by(on_signal(_,_,New), [New+1]) :-
-	(   new == throw
-	;   new == default
-	), !, fail.
-
 
 		 /*******************************
 		 *	     BUILT-INS		*
@@ -551,8 +548,6 @@ process_directive(public(Public), Src) :-
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
-process_directive(system_mode(on), _Src) :- !,
-	style_check(+dollar).
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 	assert_defined_class(Src, Name, Meta, Super, Doc).
 process_directive(pce_autoload(Name, From), Src) :-
@@ -567,8 +562,6 @@ process_directive(encoding(Enc), _) :-
 	->  catch(set_stream(Stream, encoding(Enc)), _, true)
 	;   true			% can this happen?
 	).
-process_directive(system_module, _) :-
-	style_check(+dollar).
 process_directive(set_prolog_flag(character_escapes, Esc), _) :-
 	set_prolog_flag(character_escapes, Esc).
 process_directive(pce_expansion:push_compile_operators, _) :-
@@ -613,7 +606,7 @@ process_meta_head(Decl) :-
 	functor(Head, Name, Arity),
 	meta_args(1, Arity, Decl, Head, Meta),
 	(   (   prolog:meta_goal(Head, _)
-	    ;   called_by(Head, _)
+	    ;   prolog:called_by(Head, _)
 	    ;   meta_goal(Head, _)
 	    )
 	->  true
@@ -768,6 +761,7 @@ hook(attribute_goals(_,_,_)).
 hook(goal_expansion(_,_)).
 hook(term_expansion(_,_)).
 hook(resource(_,_,_)).
+hook('$pred_option'(_,_,_,_)).
 
 hook(emacs_prolog_colours:goal_classification(_,_)).
 hook(emacs_prolog_colours:term_colours(_,_)).
@@ -783,7 +777,9 @@ hook(pce_principal:pce_uses_template(_,_)).
 hook(prolog:locate_clauses(_,_)).
 hook(prolog:message(_,_,_)).
 hook(prolog:error_message(_,_,_)).
+hook(prolog:message_location(_,_,_)).
 hook(prolog:message_context(_,_,_)).
+hook(prolog:message_line_element(_,_)).
 hook(prolog:debug_control_hook(_)).
 hook(prolog:help_hook(_)).
 hook(prolog:show_profile_hook(_,_)).
@@ -793,6 +789,7 @@ hook(prolog_edit:load).
 hook(prolog_edit:locate(_,_,_)).
 hook(shlib:unload_all_foreign_libraries).
 hook(system:'$foreign_registered'(_, _)).
+hook(predicate_options:option_decl(_,_,_)).
 hook(user:exception(_,_,_)).
 hook(user:file_search_path(_,_)).
 hook(user:library_directory(_)).
@@ -830,12 +827,17 @@ process_body(Body, Origin, Src) :-
 
 process_goal(Var, _, _) :-
 	var(Var), !.
-process_goal((A;B), Origin, Src) :- !,
-	(   process_goal(A, Origin, Src)
-	;   process_goal(B, Origin, Src)
-	).
 process_goal(Goal, Origin, Src) :-
-	called_by(Goal, Called), !,
+	Goal = (A;B), !,
+	setof(Goal,
+	      (   process_goal(A, Origin, Src)
+	      ;   process_goal(B, Origin, Src)
+	      ),
+	      Alts0),
+	variants(Alts0, Alts),
+	member(Goal, Alts).
+process_goal(Goal, Origin, Src) :-
+	prolog:called_by(Goal, Called), !,
 	must_be(list, Called),
 	assert_called(Src, Origin, Goal),
 	process_called_list(Called, Origin, Src).
@@ -898,6 +900,21 @@ process_assert((_:-Body), Origin, Src) :- !,
 	process_body(Body, Origin, Src).
 process_assert(_, _, _).
 
+%%	variants(+SortedList, -Variants) is det.
+
+variants([], []).
+variants([H|T], List) :-
+	variants(T, H, List).
+
+variants([], H, [H]).
+variants([H|T], V, List) :-
+	(   H =@= V
+	->  variants(T, V, List)
+	;   List = [V|List2],
+	    variants(T, H, List2)
+	).
+
+
 %%	partial_evaluate(Goal) is det.
 %
 %	Perform partial evaluation on Goal to trap cases such as below.
@@ -915,8 +932,7 @@ partial_evaluate(Goal) :-
 partial_evaluate(_).
 
 eval(X = Y) :-
-	X = Y,
-	acyclic_term(X).
+	unify_with_occurs_check(X, Y).
 
 
 		 /*******************************
@@ -1671,9 +1687,9 @@ do_xref_source_file(Spec, File, Options) :-
 	prolog:xref_source_file(Spec, File, Options), !.
 do_xref_source_file(Spec, File, Options) :-
 	option(file_type(Type), Options, prolog),
-	absolute_file_name(Spec,
+	absolute_file_name(Spec, File,
 			   [ file_type(Type),
 			     access(read),
 			     file_errors(fail)
-			   ], File), !.
+			   ]), !.
 

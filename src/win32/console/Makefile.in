@@ -1,0 +1,51 @@
+################################################################
+# Makefile for the SWI-Prolog console window.
+################################################################
+
+srcdir=@srcdir@
+@VPATH@ @srcdir@
+
+CC=@CC@
+LDEXE=@LDEXE@
+PLARCH=@PLARCH@
+XLIBS=@XLIBS@
+SOEXT=@SO_EXT@
+
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CIFLAGS=@CIFLAGS@
+CMFLAGS=@CMFLAGS@ -DUNICODE -D_UNICODE
+CPFLAGS=
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
+LDFLAGS=@LDFLAGS@ $(CPFLAGS)
+
+PLHOME=../../..
+
+include $(srcdir)/../../common.mk
+
+OBJ=	complete.o console.o edit.o history.o menu.o
+OUT=	$(PLHOME)/lib/$(PLARCH)/plterm.$(SOEXT)
+INCLDIR=$(PLHOME)/include
+HDR=	$(INCLDIR)/console.h
+
+all:	$(OUT) $(HDR)
+
+$(OUT):	$(OBJ)
+	$(CC) -shared $(COFLAGS) -o $@ -Wl,--out-implib,$@.a $(OBJ) $(XLIBS)
+
+$(HDR):	$(INCLDIR)
+
+$(INCLDIR):
+	mkdir -p $@
+
+$(PLHOME)/include/console.h: $(srcdir)/console.h
+	cp -f $< $@
+
+clean:
+	rm -f *.o
+	rm -f *~
+
+distclean: clean
+	rm -f $(PLHOME)/lib/$(PLARCH)/plterm.$(SOEXT)
+	rm -f $(PLHOME)/lib/$(PLARCH)/plterm.$(SOEXT).a
+	rm -f $(INCLDIR)/console.h

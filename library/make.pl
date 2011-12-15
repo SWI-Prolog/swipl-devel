@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -34,6 +34,7 @@
 	  [ make/0
 	  ]).
 :- use_module(library(check)).
+:- use_module(library(lists)).
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module>  Reload modified source files
@@ -65,9 +66,9 @@ make_no_trace :-
 	list_undefined([scan(local)]).
 
 modified_file(File) :-
-	'$time_source_file'(Source, Time, user),
+	source_file_property(Source, modified(Time)),
 	Time > 0.0,			% See source_file/1
-	(   '$derived_source'(Source, File, LoadTime)
+	(   source_file_property(Source, derived_from(File, LoadTime))
 	->  true
 	;   File = Source,
 	    LoadTime = Time
@@ -75,9 +76,9 @@ modified_file(File) :-
 	(   catch(time_file(File, Modified), _, fail),
 	    Modified > LoadTime
 	->  true
-	;   system:'$included'(File, Included, InclLoadTime),
+	;   source_file_property(Source, includes(Included, IncLoadTime)),
 	    catch(time_file(Included, Modified), _, fail),
-	    Modified > InclLoadTime
+	    Modified > IncLoadTime
 	->  true
 	).
 
@@ -96,13 +97,16 @@ reload([H|T]) :-
 %	@bug	If modules import each other, we must load them in the
 %		proper order for import/export dependencies.
 
+:- public reload_file/1.		% Used by PDT
+
 reload_file(File) :-
 	source_base_name(File, Compile),
-	findall(Context, system:'$load_context_module'(File, Context), Modules),
-	(   Modules = []
-	->  load_files(user:Compile)
-	;   forall('$member'(Context, Modules),
-		   load_files(Context:Compile))
+	findall(M, source_file_property(File, load_context(M, _)), Modules),
+	(   Modules = [First|Rest]
+	->  load_files(First:Compile),
+	    forall(member(Context, Rest),
+		   load_files(Context:Compile, [if(not_loaded)]))
+	;   load_files(user:Compile)
 	).
 
 source_base_name(File, Compile) :-

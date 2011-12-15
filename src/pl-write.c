@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <math.h>
@@ -991,7 +991,7 @@ callPortray(term_t arg, int prec, write_options *options)
   { pred = _PL_predicate("call", 3, "user", &GD->procedures.call3);
   } else
   { pred = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
-    if ( !pred->definition->definition.clauses )
+    if ( !pred->definition->impl.any )
       return FALSE;
   }
 
@@ -1522,6 +1522,8 @@ do_write2(term_t stream, term_t term, int flags)
 
     PutOpenToken(EOF, s);		/* reset this */
     rc = writeTopTerm(term, 1200, &options);
+    if ( rc && (flags&PL_WRT_NEWLINE) )
+      rc = Putc('\n', s);
 
     return streamStatus(s) && rc;
   }
@@ -1589,14 +1591,9 @@ pl_write_canonical(term_t term)
 { return pl_write_canonical2(0, term);
 }
 
-word					/* for debugging purposes! */
+word
 pl_writeln(term_t term)
-{ if ( PL_write_term(Serror, term, 1200,
-		     PL_WRT_QUOTED|PL_WRT_NUMBERVARS) &&
-       Sdprintf("\n") >= 0 )
-    succeed;
-
-  fail;
+{ return do_write2(0, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE);
 }
 
 
@@ -1649,6 +1646,102 @@ PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
 }
 
 
+		 /*******************************
+		 *	   PRINT LENGTH		*
+		 *******************************/
+
+typedef struct limit_size_stream
+{ IOSTREAM	*stream;		/* Limited stream */
+  int64_t	 length;		/* Max size */
+} limit_size_stream;
+
+static ssize_t
+Swrite_lss(void *handle, char *buf, size_t size)
+{ limit_size_stream *lss = handle;
+
+  if ( lss->stream->position->charno > lss->length )
+    return -1;
+
+  return size;
+}
+
+static int
+Sclose_lss(void *handle)
+{ return 0;
+}
+
+static const IOFUNCTIONS lss_functions =
+{ NULL,
+  Swrite_lss,
+  NULL,
+  Sclose_lss
+};
+
+/** write_length(+Term, -Len, +Options) is det.
+
+(*) Avoid error on max_length in iso mode.  It might be nicer to get the
+option processing out of pl_write_term3(), so we can take control of the
+whole lot here more easily.
+*/
+
+static
+PRED_IMPL("write_length", 3, write_length, 0)
+{ PRED_LD
+  limit_size_stream lss;
+  int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT|SIO_TEXT;
+  IOSTREAM *s;
+  term_t options = PL_copy_term_ref(A3);
+  term_t head = PL_new_term_ref();
+  char buf[100];
+
+  lss.length = PLMAXINT;
+  while(PL_get_list(options, head, options))
+  { atom_t name;
+    int arity;
+
+    if ( PL_get_name_arity(head, &name, &arity) &&
+	 name == ATOM_max_length && arity == 1 )
+    { term_t a = PL_new_term_ref();
+
+      _PL_get_arg(1, head, a);
+      if ( !PL_get_int64_ex(a, &lss.length) )
+	return FALSE;
+    }
+  }
+
+  if ( (s = Snew(&lss, sflags, (IOFUNCTIONS *)&lss_functions)) )
+  { int64_t len;
+    int rc;
+    pl_features_t oldmask = LD->prolog_flag.mask; /* (*) */
+
+    lss.stream = s;
+    s->encoding = ENC_UTF8;
+    Ssetbuffer(s, buf, sizeof(buf));
+    s->flags |= SIO_USERBUF;
+
+    clearPrologFlagMask(PLFLAG_ISO);
+    pushOutputContext();
+    Scurout = s;
+    rc = pl_write_term3(0, A1, A3);
+    popOutputContext();
+    LD->prolog_flag.mask = oldmask;
+
+    if ( rc && s->position->charno <= lss.length )
+    { len = s->position->charno;
+    } else
+    { len = -1;
+      if ( s->position->charno > lss.length )
+	PL_clear_exception();
+    }
+
+    Sclose(s);
+    if ( len >= 0 )
+      return PL_unify_int64(A2, len);
+  }
+
+  return FALSE;
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -1659,5 +1752,6 @@ BeginPredDefs(write)
   PRED_DEF("nl", 1, nl, 0)
   PRED_DEF("$put_token", 2, put_token, 0)
   PRED_DEF("$put_quoted", 4, put_quoted_codes, 0)
+  PRED_DEF("write_length", 3, write_length, 0)
 EndPredDefs
 

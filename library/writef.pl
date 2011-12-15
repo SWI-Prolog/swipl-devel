@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -17,9 +18,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
+    You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -30,31 +31,68 @@
 */
 
 
-:- module('$writef',
-	  [ writeln/1
-	  , writef/1
-	  , writef/2
-	  , swritef/2
-	  , swritef/3
+:- module(writef,
+	  [ writef/1,			% +Format
+	    writef/2,			% +Format, +Args
+	    swritef/2,			% -String, +Format
+	    swritef/3			% -String, +Format, +Args
 	  ]).
+:- set_prolog_flag(generate_debug_info, false).
 
-%   Copied from Edinburgh C-Prolog. Original version by Byrd, changed
-%   many times since then.
-%
-%   Changes for version 1.3.0:
-%
-%	- Format can be of type string.
-%	- Adjustment now allowed for arbitrary types.
-%	- Uses more appropriate SWI-Prolog built-in predicates.
-%	- Uses 0'<letter> to specify ascii values (more readable).
-%
-%   Changes for version 4.1.1
-%
-%	- renamed write_ln(X) into writeln(X) for better compatibility
-%	- Fixed fileheader
+/** <module> Old-style formatted write
 
-writeln(X) :-
-	write(X), nl.
+This library provides writef/1 and   friends. These predicates originate
+from Edinburgh C-Prolog and and provided for compatibility purposes. New
+code should use format/1, format/2  and   friends,  which  are currently
+supported by more Prolog implementations.
+
+The   writef-family   of   predicates   conflicts    with   the   modern
+_|character-esacapes|_ flag about  the   interpretation  of \-sequences.
+This can be avoided by
+
+  1. Disable character escapes (not recommended unless one wants to
+  run really outdated code unmodified).
+  2. Double the \ for conflicting interpretations
+  3. Use ISO compliant alternatives for conflicting interpretations
+
+@copyright	Copied from Edinburgh C-Prolog. Original version by Byrd,
+		changed many times since.
+*/
+
+%%	writef(+Format) is det.
+%%	writef(+Format, +Arguments) is det.
+%
+%	Formatted write to the  =current_output=.   Format  is  a format
+%	specifier. Some escape sequences require  arguments that must be
+%	provided in the list Arguments. There   are  two types of escape
+%	sequences: special characters  start  with   =|\|=  and  include
+%	arguments start with =|%|=. The special character sequences are:
+%
+%	    | =|\n|= | Output a newline character |
+%	    | =|\l|= | Output a line separator (same as =|\n|=) |
+%	    | =|\r|= | Output a carriage-return character (ASCII 13) |
+%	    | =|\r|= | Output a TAB character (ASCII 9) |
+%	    | =|\\|= | Output =|\|= |
+%	    | =|\%|= | Output =|%|= |
+%	    | =|\nnn|= | Output character <nnn>. <nnn> is a 1-3 decimal number |
+%
+%	Escape sequences to include arguments  from Arguments. Each time
+%	a %-escape sequence is found in   Format  the next argument from
+%	Arguments is formatted according to the specification.
+%
+%	    | =|%t|= | print/1 the next item (mnemonic: term) |
+%	    | =|%w|= | write/1 the next item |
+%	    | =|%q|= | writeq/1 the next item  |
+%	    | =|%d|= | display/1 the next item |
+%	    | =|%n|= | Put the next item as a character |
+%	    | =|%r|= | Write the next item N times where N is the second item (an integer) |
+%	    | =|%s|= | Write the next item as a String (so it must be a list of characters) |
+%	    | =|%f|= |Perform a ttyflush/0 (no items used) |
+%	    | =|%Nc|= | Write the next item Centered in N columns. |
+%	    | =|%Nl|= | Write the next item Left justified in N columns. |
+%	    | =|%Nr|= | Write the next item Right justified in N columns. |
+%
+%	@deprecated New code should use format/1, format/2, etc.
 
 writef(Format) :-
 	writef(Format, []).
@@ -73,6 +111,15 @@ writef(Format, List) :-
 	'$writefs'(Fstring, List),
 	fail.				% clean up global stack
 writef(_, _).
+
+%%	swritef(-String, +Format) is det.
+%%	swritef(-String, +Format, +Arguments) is det.
+%
+%	Use writef/1 or writef/2 and  write   the  result to a _string_.
+%	Note that this is a  string   in  the sense of string_to_list/2,
+%	_not_ a list of character(-code)s.
+%
+%	@deprecated.  See format/2,3 and/or with_output_to/2.
 
 swritef(String, Format, Arguments) :-
 	with_output_to(string(String), writef(Format, Arguments)).

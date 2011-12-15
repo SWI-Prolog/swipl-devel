@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #define __WIN32__ 1
@@ -39,6 +39,10 @@ typedef int mode_t;
 #endif
 #define HAVE_SIGSET_T 1			/* For the future */
 
+#ifndef __MINGW32__
+#define HAVE_DBGHELP_H 1
+#endif
+
 #define NOTTYCONTROL		TRUE	/* default -tty */
 #define O_GMP			1
 #define O_PLMT			1
@@ -56,7 +60,7 @@ typedef int mode_t;
 #define ASSOCIATE_STATE "qlx"
 #define ASSOCIATE_SRC	"pl"
 
-#define snprintf _snprintf
+#define snprintf ms_snprintf		/* defined in pl-nt.c */
 
 #ifdef O_GMP
 #define HAVE_GMP_H 1
@@ -96,15 +100,6 @@ typedef int mode_t;
 
 /* Define as the return type of signal handlers (int or void).  */
 #define RETSIGTYPE void
-
-/* If using the C implementation of alloca, define if you know the
-   direction of stack growth for your system; otherwise it will be
-   automatically deduced at run-time.
-	STACK_DIRECTION > 0 => grows toward higher addresses
-	STACK_DIRECTION < 0 => grows toward lower addresses
-	STACK_DIRECTION = 0 => direction of growth unknown
- */
-#define STACK_DIRECTION -1
 
 /* Define if you have the ANSI C header files.  */
 #define STDC_HEADERS 1

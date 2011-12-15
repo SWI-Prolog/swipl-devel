@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -58,8 +58,8 @@ lookupProcedure(functor_t f, Module m)
   } else
   { GET_LD
 
-    proc = (Procedure)  allocHeap(sizeof(struct procedure));
-    def  = (Definition) allocHeap(sizeof(struct definition));
+    proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
+    def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
 
@@ -106,7 +106,7 @@ importDefinitionModule(Module m, Definition def)
   } else
   { GET_LD
 
-    proc = (Procedure) allocHeap(sizeof(struct procedure));
+    proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
     addHTable(m->procedures, (void *)functor, proc);
@@ -139,22 +139,28 @@ resetProcedure(Procedure proc, bool isnew)
 { Definition def = proc->definition;
 
   if ( (true(def, DYNAMIC) && def->references == 0) ||
-       def->definition.clauses == NULL )
+       !def->impl.any )
     isnew = TRUE;
 
   def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_SHARED|P_DIRTYREG);
   if ( stringAtom(def->functor->name)[0] != '$' )
     set(def, TRACE_ME);
-  def->number_of_clauses = 0;
+  def->impl.clauses.number_of_clauses = 0;
 
   if ( isnew )
-  { def->indexCardinality = 0;
-    def->indexPattern = (0x0 | NEED_REINDEX);
+  { ClauseIndex ci;
+
     set(def, AUTOINDEX);
 
-    if ( def->hash_info )
-    { unallocClauseIndexTable(def->hash_info);
-      def->hash_info = NULL;
+    if ( (ci=def->impl.clauses.clause_indexes) )
+    { ClauseIndex next;
+
+      def->impl.clauses.clause_indexes = NULL;
+      for (ci=def->impl.clauses.clause_indexes; ci; ci=next)
+      { next = ci->next;
+	unallocClauseIndexTable(ci);
+	def->impl.clauses.clause_indexes = NULL;
+      }
     }
   }
 
@@ -175,25 +181,21 @@ isCurrentProcedure(functor_t f, Module m)
 
 ClauseRef
 hasClausesDefinition(Definition def)
-{ if ( def->definition.clauses )
-  { if ( def->erased_clauses == 0 )
-      return def->definition.clauses;
+{ if ( def->impl.clauses.first_clause )
+  { if ( def->impl.clauses.erased_clauses == 0 )
+      return def->impl.clauses.first_clause;
     else
     { GET_LD
       ClauseRef c;
-#ifdef O_LOGICAL_UPDATE
       uintptr_t generation;
       LocalFrame fr = environment_frame;
       if ( fr )
 	generation = generationFrame(fr);
       else
 	generation = ~0L-1;		/* any non-erased clause */
-#else
-#define generation (0)
-#endif
 
-      for(c = def->definition.clauses; c; c = c->next)
-      { Clause cl = c->clause;
+      for(c = def->impl.clauses.first_clause; c; c = c->next)
+      { Clause cl = c->value.clause;
 
 	if ( visibleClause(cl, generation) )
 	  return c;
@@ -282,9 +284,9 @@ get_arity(term_t t, int extra, int maxarity, int *arity)
   if ( maxarity >= 0 && a > maxarity )
   { char buf[100];
 
-    return PL_error(NULL, 0,
-		    tostr(buf, "limit is %d, request = %d",
-			  maxarity, a),
+    Ssprintf(buf, "limit is %d, request = %d", maxarity, a);
+
+    return PL_error(NULL, 0, buf,
 		    ERR_REPRESENTATION, ATOM_max_arity);
   }
 
@@ -353,9 +355,10 @@ get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
     { fail;
     } else
     { char buf[100];
-      return PL_error(NULL, 0,
-		      tostr(buf, "limit is %d, request = %d",
-			    MAXARITY, arity),
+
+      Ssprintf(buf, "limit is %d, request = %d", MAXARITY, arity);
+
+      return PL_error(NULL, 0, buf,
 		      ERR_REPRESENTATION, ATOM_max_arity);
     }
   }
@@ -652,7 +655,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
       { e->epred = newTableEnum(e->module->procedures);
       }
 
-      e = allocHeap(sizeof(*e));
+      e = allocHeapOrHalt(sizeof(*e));
       *e = e0;
       break;
     }
@@ -749,11 +752,12 @@ typeerror:
 
 
 ClauseRef
-newClauseRef(Clause clause ARG_LD)
-{ ClauseRef cref = allocHeap(sizeof(struct clause_ref));
+newClauseRef(Clause clause, word key ARG_LD)
+{ ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_CLAUSE);
 
-  cref->clause = clause;
-  cref->next   = NULL;
+  cref->value.clause = clause;
+  cref->next         = NULL;
+  cref->key          = key;
 
   return cref;
 }
@@ -761,7 +765,7 @@ newClauseRef(Clause clause ARG_LD)
 
 void
 freeClauseRef(ClauseRef cref ARG_LD)
-{ freeHeap(cref, sizeof(struct clause_ref));
+{ freeHeap(cref, SIZEOF_CREF_CLAUSE);
 }
 
 
@@ -779,7 +783,11 @@ installed, causing further clauses to have no effect.
 ClauseRef
 assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 { Definition def = getProcDefinition(proc);
-  ClauseRef cref = newClauseRef(clause PASS_LD);
+  word key;
+  ClauseRef cref;
+
+  argKey(clause->codes, 0, FALSE, &key);
+  cref = newClauseRef(clause, key PASS_LD);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
     printMessage(ATOM_informational,
@@ -788,19 +796,19 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 		   _PL_PREDICATE_INDICATOR, proc);
 
   LOCKDEF(def);
-  if ( !def->lastClause )
-  { def->definition.clauses = def->lastClause = cref;
+  if ( !def->impl.clauses.last_clause )
+  { def->impl.clauses.first_clause = def->impl.clauses.last_clause = cref;
   } else if ( where == CL_START )
-  { cref->next = def->definition.clauses;
-    def->definition.clauses = cref;
+  { cref->next = def->impl.clauses.first_clause;
+    def->impl.clauses.first_clause = cref;
   } else
-  { ClauseRef last = def->lastClause;
+  { ClauseRef last = def->impl.clauses.last_clause;
 
     last->next = cref;
-    def->lastClause = cref;
+    def->impl.clauses.last_clause = cref;
   }
 
-  def->number_of_clauses++;
+  def->impl.clauses.number_of_clauses++;
 #ifdef O_LOGICAL_UPDATE
   PL_LOCK(L_MISC);
   clause->generation.created = ++GD->generation;
@@ -811,32 +819,8 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   if ( false(def, DYNAMIC) )		/* see (*) above */
     freeCodesDefinition(def);
 
-  if ( def->hash_info )
-  { assert(!(def->indexPattern & NEED_REINDEX));
+  addClauseToIndexes(def, clause, where PASS_LD);
 
-    DEBUG(3,
-	  if ( !clause->index.varmask )
-	    Sdprintf("Adding non-indexed clause to %s\n", predicateName(def));
-	 );
-
-    addClauseToIndex(def, clause, where PASS_LD);
-    if ( def->hash_info->size /2 > def->hash_info->buckets )
-    { if ( false(def, NEEDSREHASH) )
-      { set(def, NEEDSREHASH);
-	DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
-      }
-      if ( true(def, DYNAMIC) && def->references == 0 )
-      { gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
-	return cref;
-      }
-    }
-  } else
-  { if ( def->number_of_clauses == 25 &&
-	 true(def, AUTOINDEX) )
-    { DEBUG(2, Sdprintf("Request re-index for %s\n", predicateName(def)));
-      def->indexPattern |= NEED_REINDEX;
-    }
-  }
   UNLOCKDEF(def);
 
   return cref;
@@ -862,7 +846,7 @@ abolishProcedure(Procedure proc, Module module)
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
   { GET_LD
-    Definition ndef	     = allocHeap(sizeof(struct definition));
+    Definition ndef	     = allocHeapOrHalt(sizeof(struct definition));
 
     memset(ndef, 0, sizeof(*ndef));
     proc->definition         = ndef;
@@ -870,7 +854,7 @@ abolishProcedure(Procedure proc, Module module)
     ndef->module             = module;	     /* lookupProcedure()!! */
     resetProcedure(proc, TRUE);
   } else if ( true(def, FOREIGN) )	/* foreign: make normal */
-  { def->definition.clauses = def->lastClause = NULL;
+  { def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
     resetProcedure(proc, TRUE);
   } else if ( true(def, P_THREAD_LOCAL) )
   { UNLOCKDEF(def);
@@ -928,15 +912,16 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 #endif
 
   if ( true(def, P_THREAD_LOCAL) )
-    return deleted;
+    return 0;
 
-  for(c = def->definition.clauses; c; c = c->next)
-  { Clause cl = c->clause;
+  for(c = def->impl.clauses.first_clause; c; c = c->next)
+  { Clause cl = c->value.clause;
 
     if ( (sfindex == 0 || sfindex == cl->source_no) &&
 	 (!fromfile || cl->line_no > 0) &&
 	 false(cl, ERASED) )
     { set(cl, ERASED);
+      deleteActiveClauseFromIndexes(def, cl);
 
       if ( deleted++ == 0 )
 	set(def, NEEDSCLAUSEGC);
@@ -944,12 +929,10 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = GD->generation;
 #endif
-      def->number_of_clauses--;
-      def->erased_clauses++;
+      def->impl.clauses.number_of_clauses--;
+      def->impl.clauses.erased_clauses++;
     }
   }
-  if ( def->hash_info && deleted )
-    def->hash_info->alldirty = TRUE;
 
   return deleted;
 }
@@ -966,32 +949,31 @@ unlinkClause(Definition def, Clause clause ARG_LD)
 { ClauseRef prev = NULL;
   ClauseRef c;
 
-  startCritical;
+  delClauseFromIndex(def, clause);
 
-  if ( def->hash_info )
-    delClauseFromIndex(def, clause);
-
-  for(c = def->definition.clauses; c; prev = c, c = c->next)
-  { if ( c->clause == clause )
+  for(c = def->impl.clauses.first_clause; c; prev = c, c = c->next)
+  { if ( c->value.clause == clause )
     { if ( !prev )
-      { def->definition.clauses = c->next;
+      { def->impl.clauses.first_clause = c->next;
 	if ( !c->next )
-	  def->lastClause = NULL;
+	  def->impl.clauses.last_clause = NULL;
       } else
       { prev->next = c->next;
 	if ( c->next == NULL)
-	  def->lastClause = prev;
+	  def->impl.clauses.last_clause = prev;
       }
 
 
       freeClauseRef(c PASS_LD);
-      def->number_of_clauses--;
+      def->impl.clauses.number_of_clauses--;
 
       break;
     }
   }
 
-  return endCritical;
+  DEBUG(CHK_SECURE, checkDefinition(def));
+
+  return TRUE;
 }
 
 
@@ -1011,20 +993,17 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     succeed;
   }
 
+  DEBUG(CHK_SECURE, checkDefinition(def));
   set(clause, ERASED);
 
   if ( def->references ||
-       def->number_of_clauses > 16 )
-  { if ( def->hash_info )
-    { markDirtyClauseIndex(def->hash_info, clause);
-      if ( false(def, NEEDSREHASH) &&
-	   def->hash_info->size * 4 < def->hash_info->buckets )
-      { set(def, NEEDSREHASH);
-      }
-    }
-    def->number_of_clauses--;
-    def->erased_clauses++;
-    if ( def->erased_clauses > def->number_of_clauses/(unsigned)16 )
+       def->impl.clauses.number_of_clauses > 16 )
+  { deleteActiveClauseFromIndexes(def, clause);
+
+    def->impl.clauses.number_of_clauses--;
+    def->impl.clauses.erased_clauses++;
+    if ( def->impl.clauses.erased_clauses >
+	 def->impl.clauses.number_of_clauses/(unsigned)16 )
     { set(def, NEEDSCLAUSEGC);
     }
 #ifdef O_LOGICAL_UPDATE
@@ -1034,11 +1013,14 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 #endif
     UNLOCKDYNDEF(def);
 
+    DEBUG(CHK_SECURE, checkDefinition(def));
+
     succeed;
   }
 
   rc = unlinkClause(def, clause PASS_LD);
   UNLOCKDYNDEF(def);
+  DEBUG(CHK_SECURE, checkDefinition(def));
 
 					/* as we do a call-back, we cannot */
 					/* hold the L_PREDICATE mutex */
@@ -1083,7 +1065,7 @@ freeClause(Clause c ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-gcClausesDefinition()
+cleanDefinition()
     This function has two tasks. If the predicates needs to be rehashed,
     this is done and all erased clauses from the predicate are returned
     as a linked list.
@@ -1095,67 +1077,52 @@ gcClausesDefinition()
 static ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
 { GET_LD
-  ClauseRef cref, prev = NULL;
-  int rehash = 0;
+
+  DEBUG(CHK_SECURE, checkDefinition(def));
+
+  DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
+
+  if ( true(def, NEEDSCLAUSEGC) )
+  { ClauseRef cref, next, prev = NULL;
 #if O_DEBUG
-  int left = 0, removed = 0;
+    int left = 0, removed = 0;
 #endif
 
-  DEBUG(2, Sdprintf("gcClausesDefinition(%s) --> ", predicateName(def)));
+    cleanClauseIndexes(def PASS_LD);
 
-  cref = def->definition.clauses;
+    for(cref = def->impl.clauses.first_clause;
+	cref && def->impl.clauses.erased_clauses;
+	cref=next)
+    { next = cref->next;
 
-  if ( def->hash_info )
-  { if ( false(def, NEEDSREHASH) )
-      gcClauseIndex(def->hash_info PASS_LD);
-    else
-    { rehash = def->number_of_clauses * 2;
-      unallocClauseIndexTable(def->hash_info);
-      def->hash_info = NULL;
-    }
-  }
+      if ( true(cref->value.clause, ERASED) )
+      { if ( !prev )
+	{ def->impl.clauses.first_clause = cref->next;
+	  if ( !cref->next )
+	    def->impl.clauses.last_clause = NULL;
+	} else
+	{ prev->next = cref->next;
+	  if ( cref->next == NULL)
+	    def->impl.clauses.last_clause = prev;
+	}
 
-  while( cref && def->erased_clauses )
-  { if ( true(cref->clause, ERASED) )
-    { ClauseRef c = cref;
+	DEBUG(2, removed++);
+	def->impl.clauses.erased_clauses--;
 
-					/* Unlink from definition */
-      cref = cref->next;
-      if ( !prev )
-      { def->definition.clauses = c->next;
-	if ( !c->next )
-	  def->lastClause = NULL;
+					  /* re-link into garbage chain */
+	cref->next = garbage;
+	garbage = cref;
       } else
-      { prev->next = c->next;
-	if ( c->next == NULL)
-	  def->lastClause = prev;
+      { prev = cref;
+	DEBUG(2, left++);
       }
-
-      DEBUG(2, removed++);
-      def->erased_clauses--;
-
-					/* re-link into garbage chain */
-      c->next = garbage;
-      garbage = c;
-    } else
-    { prev = cref;
-      cref = cref->next;
-      DEBUG(2, left++);
     }
+
+    DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
+    assert(def->impl.clauses.erased_clauses == 0);
+
+    clear(def, NEEDSCLAUSEGC);
   }
-
-  DEBUG(2, if ( def->erased_clauses != 0 )
-	     Sdprintf("*** %s has %d erased claused\n",
-		      predicateName(def), def->erased_clauses));
-
-  assert(def->erased_clauses == 0);
-
-  DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
-
-  if ( rehash )
-    hashDefinition(def, rehash);
-
-  clear(def, NEEDSCLAUSEGC|NEEDSREHASH);
 
   return garbage;
 }
@@ -1206,7 +1173,7 @@ freeClauseList(ClauseRef cref)
 #endif
 
   for( ; cref; cref = next)
-  { Clause cl = cref->clause;
+  { Clause cl = cref->value.clause;
     next = cref->next;
 
 #if O_DEBUGGER
@@ -1238,6 +1205,8 @@ gcClausesDefinitionAndUnlock(Definition def)
 
   if ( cref )
     freeClauseList(cref);
+
+  DEBUG(CHK_SECURE, checkDefinition(def));
 }
 
 
@@ -1252,10 +1221,16 @@ void
 destroyDefinition(Definition def)
 { GET_LD
 
-  if ( def->hash_info )
-    unallocClauseIndexTable(def->hash_info);
-  if ( def->definition.clauses )
-    freeClauseList(def->definition.clauses);
+  if ( def->impl.clauses.clause_indexes )
+  { ClauseIndex ci, next;
+
+    for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
+    { next = ci->next;
+      unallocClauseIndexTable(ci);
+    }
+  }
+  if ( def->impl.clauses.first_clause )
+    freeClauseList(def->impl.clauses.first_clause);
 
   freeHeap(def, sizeof(*def));
 }
@@ -1274,7 +1249,7 @@ resetReferencesModule(Module m)
   for_unlocked_table(m->procedures, s,
 		     { def = ((Procedure) s->value)->definition;
 		       def->references = 0;
-		       if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
+		       if ( true(def, NEEDSCLAUSEGC) )
 			 gcClausesDefinition(def);
 		     })
 }
@@ -1436,32 +1411,46 @@ unify_meta_pattern(Procedure proc, term_t head)
 
 
 int
-PL_meta_predicate(predicate_t proc, ...)
-{ va_list args;
-  Definition def = proc->definition;
+PL_meta_predicate(predicate_t proc, const char *spec_s)
+{ Definition def = proc->definition;
   int arity = def->functor->arity;
   int i;
   int mask = 0;
   int transparent = FALSE;
 
-  va_start(args, proc);
   for(i=0; i<arity; i++)
-  { int spec = va_arg(args, int);
+  { int spec_c = spec_s[i]&0xff;
+    int spec;
 
-    if ( (spec >= 0 && spec <= 9) ||
-	 spec == MA_NONVAR ||
-	 spec == MA_VAR ||
-	 spec == MA_ANY ||
-	 spec == MA_META )
-    { mask |= spec<<(i*4);
-      if ( spec < 10 || spec == MA_META || spec == MA_HAT )
-	transparent = TRUE;
-    } else
-    { fatalError("Invalid meta-argument\n");
-      return FALSE;
+    switch(spec_c)
+    { case '+':
+	spec = MA_NONVAR;
+        break;
+      case '-':
+	spec = MA_VAR;
+        break;
+      case '?':
+	spec = MA_ANY;
+        break;
+      case ':':
+	spec = MA_META;
+        break;
+      case '^':
+	spec = MA_HAT;
+        break;
+      default:
+	if ( spec_c >= '0' && spec_c <= '9' )
+	{ spec = spec_c - '0';
+	  break;
+	}
+        fatalError("Invalid meta-argument\n");
+	return FALSE;
     }
+
+    mask |= spec<<(i*4);
+    if ( spec < 10 || spec == MA_META || spec == MA_HAT )
+      transparent = TRUE;
   }
-  va_end(args);
 
   def->meta_info = mask;
   if ( transparent )
@@ -1487,7 +1476,7 @@ static void
 registerDirtyDefinition(Definition def)
 { if ( false(def, P_DIRTYREG) )
   { GET_LD
-    DefinitionChain cell = allocHeap(sizeof(*cell));
+    DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
 
     set(def, P_DIRTYREG);
     cell->definition = def;
@@ -1543,7 +1532,7 @@ pl_garbage_collect_clauses(void)
 	  last = cell;
 	  continue;
 	} else
-	{ DEBUG(1, Sdprintf("gcClausesDefinition(%s)\n", predicateName(def)));
+	{ DEBUG(1, Sdprintf("cleanDefinition(%s)\n", predicateName(def)));
 	  garbage = cleanDefinition(def, garbage);
 	}
       }
@@ -1587,7 +1576,7 @@ pl_check_definition(term_t spec)
   int nclauses = 0;
   int nerased = 0;
   int nindexable = 0;
-
+  ClauseIndex ci;
   ClauseRef cref;
 
   if ( !get_procedure(spec, &proc, 0, GP_FIND) )
@@ -1597,10 +1586,10 @@ pl_check_definition(term_t spec)
   if ( true(def, FOREIGN) )
     succeed;
 
-  for(cref = def->definition.clauses; cref; cref = cref->next)
-  { Clause clause = cref->clause;
+  for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
+  { Clause clause = cref->value.clause;
 
-    if ( clause->index.varmask != 0 )
+    if ( cref->key == 0 )
       nindexable++;
 
     if ( false(clause, ERASED) )
@@ -1609,19 +1598,19 @@ pl_check_definition(term_t spec)
       nerased++;
   }
 
-  if ( nerased != def->erased_clauses )
+  if ( nerased != def->impl.clauses.erased_clauses )
     Sdprintf("%s has %d erased clauses, claims %d\n",
-	     predicateName(def), nerased, def->erased_clauses);
+	     predicateName(def), nerased, def->impl.clauses.erased_clauses);
 
-  if ( def->hash_info )
-  { if ( def->hash_info->size != nindexable )
-      Sdprintf("%s has inconsistent def->hash_info->size",
+  for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
+  { if ( ci->size != nindexable )
+      Sdprintf("%s has inconsistent clause index->size",
 	      predicateName(def));
   }
 
-  if ( def->number_of_clauses != nclauses )
+  if ( def->impl.clauses.number_of_clauses != nclauses )
     Sdprintf("%s has inconsistent number_of_clauses (%d, should be %d)",
-	     predicateName(def), def->number_of_clauses, nclauses);
+	     predicateName(def), def->impl.clauses.number_of_clauses, nclauses);
 
   succeed;
 }
@@ -1754,8 +1743,8 @@ According to Paulo Moura, predicates defined either dynamic, multifile or
 discontiguous should not cause an undefined predicate warning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Definition
-trapUndefined_unlocked(Definition def ARG_LD)
+Definition
+trapUndefined(Definition def ARG_LD)
 { int retry_times = 0;
   Definition newdef;
   Module module = def->module;
@@ -1790,7 +1779,8 @@ trapUndefined_unlocked(Definition def ARG_LD)
       { goto error;
       } else if ( answer == ATOM_retry )
       { if ( retry_times++ )
-	{ warning("exception handler failed to define predicate %s\n",
+	{ warning("[Thread %d]: exception handler failed to define %s\n",
+		  PL_thread_self(),
 		  predicateName(def));
 	  return def;
 	}
@@ -1805,42 +1795,6 @@ error:
   } else
   { createUndefSupervisor(def);
   }
-
-  return def;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This must be  executed  holding  the   Prolog  mutex  '$load'  to  avoid
-race-conditions between threads trapping undefined   code. At the moment
-there is no neat way to share   mutexes  between C and Prolog, something
-that should be considered.
-
-Note that in the  multi-threaded  case,   we  first  try auto-import and
-unknown=fail before locking.  This enhances concurrency during startup.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-Definition
-trapUndefined(Definition undef ARG_LD)
-{ Definition def;
-
-#ifdef O_PLMT
-  Module module = undef->module;
-  FunctorDef functor = undef->functor;
-					/* Auto import */
-  if ( (def = autoImport(functor->functor, module)) )
-    return def;
-					/* Pred/Module does not want to trap */
-  if ( true(undef, PROC_DEFINED) ||
-       getUnknownModule(module) == UNKNOWN_FAIL )
-    return undef;
-
-  PL_mutex_lock(GD->thread.MUTEX_load);
-#endif
-  def = trapUndefined_unlocked(undef PASS_LD);
-#ifdef O_PLMT
-  PL_mutex_unlock(GD->thread.MUTEX_load);
-#endif
 
   return def;
 }
@@ -1867,7 +1821,7 @@ pl_require(term_t pred)
 
 typedef struct
 { Definition def;
-  ClauseRef  cref;
+  struct clause_choice chp;
 } retract_context;
 
 static
@@ -1877,6 +1831,7 @@ PRED_IMPL("retract", 1, retract,
   term_t term = A1;
   retract_context ctxbuf;
   retract_context *ctx;
+  ClauseRef cref;
 
   if ( CTX_CNTRL == FRG_CUTTED )
   { ctx = CTX_PTR;
@@ -1886,12 +1841,11 @@ PRED_IMPL("retract", 1, retract,
 
     return TRUE;
   } else
-  { Module m = (Module) NULL;
+  { Module m = NULL;
     term_t cl = PL_new_term_ref();
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
     Word argv;
-    ClauseRef next;
     atom_t b;
     fid_t fid;
 
@@ -1912,7 +1866,6 @@ PRED_IMPL("retract", 1, retract,
     { functor_t fd;
       Procedure proc;
       Definition def;
-      ClauseRef cref;
 
       if ( !PL_get_functor(head, &fd) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
@@ -1940,20 +1893,19 @@ PRED_IMPL("retract", 1, retract,
 
       startCritical;
       enterDefinition(def);			/* reference the predicate */
-      cref = firstClause(argv, environment_frame, def, &next PASS_LD);
+      cref = firstClause(argv, environment_frame, def, &ctxbuf.chp PASS_LD);
       if ( !cref )
       { leaveDefinition(def);
-	endCritical;
+	if ( !endCritical )
+	  fail;
 	fail;
       }
 
       ctx = &ctxbuf;
       ctx->def = def;
-      ctx->cref = cref;
     } else
     { ctx  = CTX_PTR;
-      ctx->cref = findClause(ctx->cref, argv, environment_frame,
-			     ctx->def, &next PASS_LD);
+      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def PASS_LD);
       startCritical;
     }
 
@@ -1968,9 +1920,9 @@ PRED_IMPL("retract", 1, retract,
 
     /* ctx->cref is the first candidate; next is the next one */
 
-    while( ctx->cref )
-    { if ( decompile(ctx->cref->clause, cl, 0) )
-      { retractClauseDefinition(ctx->def, ctx->cref->clause PASS_LD);
+    while( cref )
+    { if ( decompile(cref->value.clause, cl, 0) )
+      { retractClauseDefinition(ctx->def, cref->value.clause PASS_LD);
 
 	if ( !endCritical )
 	{ leaveDefinition(ctx->def);
@@ -1981,7 +1933,7 @@ PRED_IMPL("retract", 1, retract,
 	  return FALSE;
 	}
 
-	if ( !next )			/* deterministic last one */
+	if ( !ctx->chp.cref )		/* deterministic last one */
 	{ leaveDefinition(ctx->def);
 	  if ( ctx != &ctxbuf )
 	    freeHeap(ctx, sizeof(*ctx));
@@ -1990,10 +1942,9 @@ PRED_IMPL("retract", 1, retract,
 	}
 
 	if ( ctx == &ctxbuf )		/* non-determinisic; save state */
-	{ ctx = allocHeap(sizeof(*ctx));
+	{ ctx = allocHeapOrHalt(sizeof(*ctx));
 	  *ctx = ctxbuf;
 	}
-	ctx->cref = next;
 
 	PL_close_foreign_frame(fid);
 	ForeignRedoPtr(ctx);
@@ -2001,15 +1952,15 @@ PRED_IMPL("retract", 1, retract,
 
       PL_rewind_foreign_frame(fid);
 
-      ctx->cref = findClause(next, argv, environment_frame,
-			     ctx->def, &next PASS_LD);
+      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def PASS_LD);
     }
 
     PL_close_foreign_frame(fid);
     leaveDefinition(ctx->def);
     if ( ctx != &ctxbuf )
       freeHeap(ctx, sizeof(*ctx));
-    endCritical;
+    if ( !endCritical )
+      fail;
     fail;
   }
 }
@@ -2047,7 +1998,6 @@ pl_retractall(term_t head)
   Procedure proc;
   Definition def;
   ClauseRef cref;
-  ClauseRef next;
   Word argv;
   int allvars = TRUE;
   fid_t fid;
@@ -2082,28 +2032,31 @@ pl_retractall(term_t head)
   enterDefinition(def);
   fid = PL_open_foreign_frame();
 
+  DEBUG(CHK_SECURE, checkDefinition(def));
   if ( allvars )
-  { uintptr_t gen = environment_frame->generation;
+  { uintptr_t gen = generationFrame(environment_frame);
 
-    for(cref = def->definition.clauses; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, gen) )
-      { retractClauseDefinition(def, cref->clause PASS_LD);
+    for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
+    { if ( visibleClause(cref->value.clause, gen) )
+      { retractClauseDefinition(def, cref->value.clause PASS_LD);
       }
     }
   } else
-  { if ( !(cref = firstClause(argv, environment_frame, def, &next PASS_LD)) )
+  { struct clause_choice chp;
+
+    if ( !(cref = firstClause(argv, environment_frame, def, &chp PASS_LD)) )
     { int rc = endCritical;
       leaveDefinition(def);
       return rc;
     }
 
     while( cref )
-    { if ( decompileHead(cref->clause, thehead) )
-	retractClauseDefinition(def, cref->clause PASS_LD);
+    { if ( decompileHead(cref->value.clause, thehead) )
+	retractClauseDefinition(def, cref->value.clause PASS_LD);
 
       PL_rewind_foreign_frame(fid);
 
-      if ( !next )
+      if ( !chp.cref )
       { leaveDefinition(def);
 	return endCritical;
       }
@@ -2113,7 +2066,7 @@ pl_retractall(term_t head)
 	argv = argTermP(*argv, 0);
       }
 
-      cref = findClause(next, argv, environment_frame, def, &next PASS_LD);
+      cref = nextClause(&chp, argv, environment_frame, def PASS_LD);
     }
   }
   leaveDefinition(def);
@@ -2236,9 +2189,7 @@ pl_get_predicate_attribute(term_t pred,
       fail;
     return PL_unify_atom(value, def->module->name);
   } else if ( key == ATOM_indexed )
-  { if ( def->indexPattern == 0x0 )
-      fail;
-    return unify_index_pattern(proc, value);
+  { return unify_index_pattern(proc, value);
   } else if ( key == ATOM_meta_predicate )
   { if ( false(def, P_META) )
       fail;
@@ -2258,15 +2209,13 @@ pl_get_predicate_attribute(term_t pred,
   { int line;
 
     if ( false(def, FOREIGN|P_THREAD_LOCAL) &&
-	 def->definition.clauses &&
-	 (line=def->definition.clauses->clause->line_no) )
+	 def->impl.clauses.first_clause &&
+	 (line=def->impl.clauses.first_clause->value.clause->line_no) )
       return PL_unify_integer(value, line);
     else
       fail;
   } else if ( key == ATOM_foreign )
   { return PL_unify_integer(value, true(def, FOREIGN) ? 1 : 0);
-  } else if ( key == ATOM_hashed )
-  { return PL_unify_integer(value, def->hash_info?def->hash_info->buckets:0);
   } else if ( key == ATOM_references )
   { return PL_unify_integer(value, def->references);
   } else if ( key == ATOM_number_of_clauses )
@@ -2274,9 +2223,9 @@ pl_get_predicate_attribute(term_t pred,
       fail;
 
     def = getProcDefinition(proc);
-    if ( def->number_of_clauses == 0 && false(def, DYNAMIC) )
+    if ( def->impl.clauses.number_of_clauses == 0 && false(def, DYNAMIC) )
       fail;
-    return PL_unify_integer(value, def->number_of_clauses);
+    return PL_unify_integer(value, def->impl.clauses.number_of_clauses);
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else
@@ -2349,12 +2298,12 @@ setDynamicProcedure(Procedure proc, bool isdyn)
   if ( isdyn )				/* static --> dynamic */
   { char *msg;
 
-    if ( def->definition.clauses )
+    if ( def->impl.clauses.first_clause )
     { UNLOCKDEF(def);
       if ( true(def, NEEDSCLAUSEGC) )
       { pl_garbage_collect_clauses();
 	LOCKDEF(def);
-	if ( !def->definition.clauses )
+	if ( !def->impl.clauses.first_clause )
 	  goto ok;
 	UNLOCKDEF(def);
       }
@@ -2366,10 +2315,8 @@ setDynamicProcedure(Procedure proc, bool isdyn)
 
       return PL_error(NULL, 0, msg,
 		      ERR_MODIFY_STATIC_PROC, proc);
-    } else if ( def->functor->arity > 0 )
-    { def->indexPattern = 0x1;
-      set(def, AUTOINDEX);
     }
+
   ok:
     freeCodesDefinition(def);		/* reset to S_VIRGIN */
     set(def, DYNAMIC);
@@ -2378,7 +2325,7 @@ setDynamicProcedure(Procedure proc, bool isdyn)
   } else				/* dynamic --> static */
   { clear(def, DYNAMIC);
     if ( def->references )
-    { if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
+    { if ( true(def, NEEDSCLAUSEGC) )
 	registerDirtyDefinition(def);
       def->references = 0;
     }
@@ -2409,14 +2356,14 @@ set_thread_local_procedure(Procedure proc, bool val)
   LOCKDEF(def);
 
   if ( val )				/* static --> local */
-  { if ( def->definition.clauses )
+  { if ( def->impl.clauses.first_clause )
     { UNLOCKDEF(def);
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     }
     set(def, DYNAMIC|VOLATILE|P_THREAD_LOCAL);
 
     def->codes = SUPERVISOR(thread_local);
-    def->definition.local = new_ldef_vector();
+    def->impl.local = new_ldef_vector();
 
     UNLOCKDEF(def);
     succeed;
@@ -2515,156 +2462,6 @@ pl_default_predicate(term_t d1, term_t d2)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-reindexDefinition()
-
-Rebuilds the clause index for the   predicate.  This predicate is called
-whenever NEED_REINDEX is set. It locks the predicate and checks the flag
-again to ensure proper multi-threaded behaviour.
-
-We cannot re-index if the  predicate   is  referenced  and hashed: other
-predicates are operating on the  hashed   clauses-lists.  If  we are not
-hashed there is no problem: the clause-list remains unaltered. Therefore
-assertProcedure() only signals a re-index request   if  the predicate is
-not yet hashed.
-
-This is the place that  builds   the  supervisors dealing with efficient
-calling conventions for the various cases.
-
-TBD: Clear NEED_REINDEX at the end?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-reindexDefinition(Definition def)
-{ ClauseRef cref;
-  int do_hash = 0;
-  int canindex = 0;
-  int cannotindex = 0;
-  unsigned long pattern = (def->indexPattern & ~NEED_REINDEX);
-
-  LOCKDEF(def);
-  if ( !(def->indexPattern & NEED_REINDEX) )
-  { UNLOCKDEF(def);
-    return TRUE;
-  }
-
-  assert(def->references == 1 || !def->hash_info);
-  DEBUG(2, Sdprintf("reindexDefinition(%s)\n", predicateName(def)));
-  def->indexPattern &= ~NEED_REINDEX;
-
-  if ( true(def, AUTOINDEX) || pattern == 0x1 )
-  { for(cref = def->definition.clauses; cref; cref = cref->next)
-    { word key;
-
-      if ( true(cref->clause, ERASED) )
-	continue;
-
-      if ( arg1Key(cref->clause, FALSE, &key) )
-	canindex++;
-      else
-	cannotindex++;
-    }
-  }
-
-  if ( true(def, AUTOINDEX) )
-  { if ( canindex == 0 )
-    { DEBUG(2, Sdprintf("not indexed: %s\n", predicateName(def)));
-      pattern = 0x0;
-    } else
-    { pattern = 0x1;
-    }
-  }
-
-  if ( pattern == 0x1 &&
-       canindex > 5 && cannotindex <= 2 )
-    do_hash = canindex / 2;
-
-  def->indexCardinality = cardinalityPattern(pattern);
-  for(cref = def->definition.clauses; cref; cref = cref->next)
-  { if ( !reindexClause(cref->clause, def, pattern) )
-    { UNLOCKDEF(def);
-      return FALSE;			/* no space; what to do? */
-    }
-  }
-
-  if ( do_hash )
-  { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
-    hashDefinition(def, do_hash);
-  }
-
-  def->indexPattern = pattern;
-  UNLOCKDEF(def);
-
-  return TRUE;
-}
-
-
-/* MT: Definition is locked by caller
-*/
-
-void
-indexDefinition(Definition def, long pattern)
-{ clear(def, AUTOINDEX);
-
-  if ( pattern != 0x1L &&
-       true(def, DYNAMIC) && def->references == 0 )
-  { if ( def->hash_info )
-    { unallocClauseIndexTable(def->hash_info);
-      def->hash_info = NULL;
-    }
-  }
-
-  def->indexPattern = (pattern | NEED_REINDEX);
-}
-
-
-word
-pl_index(term_t pred)
-{ GET_LD
-  Procedure proc;
-  term_t head = PL_new_term_ref();
-
-  if ( get_procedure(pred, &proc, head, GP_CREATE) )
-  { Definition def = proc->definition;
-    int arity = def->functor->arity;
-
-    if ( true(def, FOREIGN) )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_index, PL_new_atom("foreign_procedure"), proc);
-
-    if ( arity > 0 )
-    { unsigned long pattern = 0x0;
-      int n, card = 0;
-      term_t a = PL_new_term_ref();
-
-      for(n=0; n<arity && n < 31; n++)
-      { int ia;
-
-	_PL_get_arg(n+1, head, a);
-	if ( !PL_get_integer(a, &ia) || (ia & ~1) )
-	  return PL_error(NULL, 0, "0 or 1", ERR_TYPE,
-			  ATOM_integer, a);
-	if ( ia )
-	{ pattern |= 1 << n;
-	  if (++card == 4)		/* maximal 4 indexed arguments */
-	    break;
-	}
-      }
-
-      if ( def->indexPattern != pattern)
-      { LOCKDEF(def);
-	indexDefinition(def, pattern);
-	UNLOCKDEF(def);
-      }
-    }
-
-    succeed;
-  }
-
-  fail;
-}
-
-
 word
 pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 { GET_LD
@@ -2743,7 +2540,7 @@ lookupSourceFile(atom_t name, int create)
   } else if ( create )
   { GET_LD
 
-    file = (SourceFile) allocHeap(sizeof(struct sourceFile));
+    file = (SourceFile) allocHeapOrHalt(sizeof(struct sourceFile));
     memset(file, 0, sizeof(struct sourceFile));
     file->name = name;
     file->index = ++source_index;
@@ -2802,7 +2599,7 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 
   { GET_LD
 
-    cell = allocHeap(sizeof(struct list_cell));
+    cell = allocHeapOrHalt(sizeof(struct list_cell));
     cell->value = proc;
     cell->next = sf->procedures;
     sf->procedures = cell;
@@ -2810,6 +2607,55 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
   }
 
   UNLOCK();
+}
+
+
+int
+addModuleSourceFile(SourceFile sf, Module m)
+{ ListCell cell;
+  int rc = TRUE;
+
+  LOCK();
+  for(cell=sf->modules; cell; cell = cell->next)
+  { if ( cell->value == m )
+    goto out;
+  }
+
+  { GET_LD
+
+    if ( !(cell = allocHeap(sizeof(struct list_cell))) )
+    { rc = FALSE;			/* no memory */
+      goto out;
+    }
+    cell->value = m;
+    cell->next = sf->modules;
+    sf->modules = cell;
+  }
+
+out:
+  UNLOCK();
+  return TRUE;
+}
+
+
+static int
+delModuleSourceFile(SourceFile sf, Module m)
+{ GET_LD
+  ListCell *cp, c;
+
+  LOCK();
+  for(cp=&sf->modules; (c=*cp); cp=&c->next)
+  { if ( c->value == m )
+    { *cp = c->next;
+      freeHeap(c, sizeof(*c));
+
+      UNLOCK();
+      return TRUE;
+    }
+  }
+
+  UNLOCK();
+  return FALSE;
 }
 
 
@@ -2832,7 +2678,7 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
     def = getProcDefinition__LD(def PASS_LD);
     first = hasClausesDefinition(def);
 
-    if ( first && first->clause->source_no == sf->index )
+    if ( first && first->value.clause->source_no == sf->index )
     { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, DISCONTIGUOUS) )
 	printMessage(ATOM_warning,
@@ -2891,8 +2737,8 @@ pl_source_file(term_t descr, term_t file, control_t h)
   { if ( get_procedure(descr, &proc, 0, GP_FIND|GP_TYPE_QUIET) )
     { if ( !proc->definition ||
 	   true(proc->definition, FOREIGN|P_THREAD_LOCAL) ||
-	   !(cref = proc->definition->definition.clauses) ||
-	   !(sf = indexToSourceFile(cref->clause->source_no)) ||
+	   !(cref = proc->definition->impl.clauses.first_clause) ||
+	   !(sf = indexToSourceFile(cref->value.clause->source_no)) ||
 	   sf->count == 0 )
 	fail;
 
@@ -3097,13 +2943,13 @@ unloadFile(SourceFile sf)
 }
 
 
-/** unload_file(+Name) is det.
+/** '$unload_file'(+Name) is det.
 
 Remove all traces of a loaded file.
 */
 
 static
-PRED_IMPL("unload_file", 1, unload_file, 0)
+PRED_IMPL("$unload_file", 1, unload_file, 0)
 { PRED_LD
   SourceFile sf;
   atom_t name;
@@ -3112,7 +2958,7 @@ PRED_IMPL("unload_file", 1, unload_file, 0)
     return FALSE;
 
   if ( (sf = lookupSourceFile(name, FALSE)) )
-  { Module m;
+  { ListCell mc, mcn;
 
     if ( sf->system )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
@@ -3121,11 +2967,14 @@ PRED_IMPL("unload_file", 1, unload_file, 0)
     if ( !unloadFile(sf) )
       return FALSE;
 
-    if ( (m=moduleFromFile(sf)) )
-    { LOCKMODULE(m);
+    for(mc=sf->modules; mc; mc=mcn)
+    { Module m = mc->value;
+
+      mcn = mc->next;
+      LOCKMODULE(m);
       m->file = NULL;
       m->line_no = 0;
-      sf->module_count--;
+      delModuleSourceFile(sf, m);
       clearHTable(m->public);
       setSuperModule(m, MODULE_user);
       UNLOCKMODULE(m);
@@ -3162,26 +3011,29 @@ startConsult(SourceFile f)
 }
 
 
-word
-pl_start_consult(term_t file)
-{ GET_LD
+/** '$start_consult'(+Id, +Modified) is det.
+*/
+
+static
+PRED_IMPL("$start_consult", 2, start_consult, 0)
+{ PRED_LD
   atom_t name;
+  double time;
 
-  if ( PL_get_atom(file, &name) )
+  term_t file = A1;
+  term_t modified = A2;
+
+  if ( PL_get_atom_ex(file, &name) &&
+       PL_get_float_ex(modified, &time) )
   { SourceFile f = lookupSourceFile(name, TRUE);
-    char *fn;
 
-    if ( PL_get_file_name(file, &fn, 0) )
-    { f->time = LastModifiedFile(fn);
-    } else
-    { f->time = (time_t)0;
-    }
-
+    f->time = (time_t)time;
     startConsult(f);
-    succeed;
+
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 		 /*******************************
@@ -3211,10 +3063,10 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
     Definition def = proc->definition;
 
     if ( def && false(def, FOREIGN) )
-    { ClauseRef cref = def->definition.clauses;
+    { ClauseRef cref = def->impl.clauses.first_clause;
 
       for( ; cref; cref = cref->next )
-      { Clause cl = cref->clause;
+      { Clause cl = cref->value.clause;
 
 	if ( cl->source_no == f->index )
 	{ if ( ln >= (int)cl->line_no )
@@ -3233,7 +3085,7 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
 }
 
 
-#ifdef O_MAINTENANCE
+#if defined(O_MAINTENANCE) || defined(O_DEBUG)
 
 		 /*******************************
 		 *	INTERNAL DEBUGGING	*
@@ -3243,48 +3095,77 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
 static void
 listGenerations(Definition def)
 { GET_LD
-  uintptr_t gen = environment_frame->generation;
-  ClauseRef cl;
+  uintptr_t gen = generationFrame(environment_frame);
+  ClauseRef cref;
+  int i;
 
   Sdprintf("%s has %d clauses at generation %ld (%s)\n",
 	   predicateName(def),
-	   def->number_of_clauses, gen,
+	   def->impl.clauses.number_of_clauses, gen,
 	   true(def, NEEDSCLAUSEGC) ? "needs clause-gc" : "clean");
 
+  for(i=1,cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
+  { Clause clause = cref->value.clause;
 
-  for(cl=def->definition.clauses; cl; cl=cl->next)
-  { Clause clause = cl->clause;
-
-    Sdprintf("%p: %8u-%10u %s\n",
-	     clause,
+    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
+	     clause, i,
 	     clause->generation.created,
 	     clause->generation.erased,
-	     visibleClause(clause, gen) ? "ok" : "erased");
+	     true(clause, ERASED) ? " erased" : "",
+	     visibleClause(clause, gen) ? " v " : " X ",
+	     keyName(cref->key));
   }
 
-  if ( def->hash_info )
-  { int i;
+  if ( def->impl.clauses.clause_indexes )
+  { ClauseIndex ci;
 
-    Sdprintf("Hash index (%s, %s)\n",
-	     true(def, NEEDSREHASH) ? "needs rehash" : "clean",
-	     def->hash_info->alldirty ? "dirty" : "clean");
+    for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
+    { int i;
 
-    for(i=0; i<def->hash_info->buckets; i++)
-    { if ( !def->hash_info->entries[i].head &&
-	   !def->hash_info->entries[i].dirty )
-	continue;
+      Sdprintf("\nHash %sindex for arg %d (%d dirty)\n",
+	       ci->is_list ? "list-" : "", ci->arg, ci->dirty);
 
-      Sdprintf("\nClauses at i = %d, dirty = %d:\n",
-	       i, def->hash_info->entries[i].dirty);
+      for(i=0; i<ci->buckets; i++)
+      { if ( !ci->entries[i].head &&
+	     !ci->entries[i].dirty )
+	  continue;
 
-      for(cl=def->hash_info->entries[i].head; cl; cl=cl->next)
-      { Clause clause = cl->clause;
+	Sdprintf("\nEntries at i = %d, dirty = %d:\n",
+		 i, ci->entries[i].dirty);
 
-	Sdprintf("%p: %8u-%10u %s\n",
-		 clause,
-		 clause->generation.created,
-		 clause->generation.erased,
-		 visibleClause(clause, gen) ? "ok" : "erased");
+	for(cref=ci->entries[i].head; cref; cref=cref->next)
+	{ if ( ci->is_list )
+	  { ClauseList cl = &cref->value.clauses;
+	    ClauseRef cr;
+
+	    Sdprintf("List count=%d, erased=%d (%s)\n",
+		     cl->number_of_clauses, cl->erased_clauses,
+		     keyName(cref->key));
+
+	    for(cr=cl->first_clause; cr; cr=cr->next)
+	    { Clause clause = cr->value.clause;
+
+	      Sdprintf("  %p: [%2d] %8u-%10u%s%s\n",
+		       clause,
+		       clauseNo(def, clause),
+		       clause->generation.created,
+		       clause->generation.erased,
+		       true(clause, ERASED) ? " erased" : "",
+		       visibleClause(clause, gen) ? " v" : " X");
+	    }
+	  } else
+	  { Clause clause = cref->value.clause;
+
+	    Sdprintf("%p: [%2d] %8u-%10u%s%s%s\n",
+		     clause,
+		     clauseNo(def, clause),
+		     clause->generation.created,
+		     clause->generation.erased,
+		     true(clause, ERASED) ? " erased" : "",
+		     visibleClause(clause, gen) ? " v " : " X ",
+		     keyName(cref->key));
+	  }
+	}
       }
     }
   }
@@ -3294,41 +3175,72 @@ listGenerations(Definition def)
 void
 checkDefinition(Definition def)
 { unsigned int nc, indexed = 0;
-  ClauseRef cl;
+  ClauseRef cref;
+  ClauseIndex ci;
+  unsigned int erased = 0;
 
-  for(nc=0, cl = def->definition.clauses; cl; cl=cl->next)
-  { Clause clause = cl->clause;
+						/* check basic clause list */
+  for(nc=0, cref = def->impl.clauses.first_clause; cref; cref=cref->next)
+  { Clause clause = cref->value.clause;
 
     if ( false(clause, ERASED) )
-    { if ( clause->index.varmask )
+    { if ( cref->key )
 	indexed++;
       nc++;
+    } else
+    { erased++;
     }
   }
-  if ( nc != def->number_of_clauses )
-  { listGenerations(def);
-    pl_break();
-  }
 
-  if ( def->hash_info )
+  assert(nc == def->impl.clauses.number_of_clauses);
+  assert(erased == def->impl.clauses.erased_clauses);
+
+						/* Check indexes */
+  for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
   { int i;
+    ClauseBucket cb;
+    unsigned int ci_dirty = 0;		/* # dirty buckets */
+    unsigned int ci_size = 0;		/* # indexable values in table */
 
     nc = 0;
-    for(i=0; i<def->hash_info->buckets; i++)
-    { for(cl=def->hash_info->entries[i].head; cl; cl=cl->next)
-      { Clause clause = cl->clause;
+    for(i=0,cb=ci->entries; i<ci->buckets; i++,cb++)
+    { unsigned int dirty = 0;
 
-	if ( false(clause, ERASED) )
-	{ if ( clause->index.varmask )
-	    nc++;
+      for(cref=cb->head; cref; cref=cref->next)
+      { if ( cref->key )
+	  ci_size++;
+
+	if ( ci->is_list )
+	{ ClauseList cl = &cref->value.clauses;
+	  ClauseRef cr;
+	  unsigned int erased = 0;
+	  unsigned int count = 0;
+
+	  for(cr=cl->first_clause; cr; cr=cr->next)
+	  { if ( true(cr->value.clause, ERASED) )
+	      erased++;
+	    else
+	      count++;
+	  }
+	  assert(erased == cl->erased_clauses);
+	  assert(count  == cl->number_of_clauses);
+	  if ( erased )
+	    dirty++;
+	} else
+	{ Clause clause = cref->value.clause;
+
+	  if ( true(clause, ERASED) )
+	    dirty++;
 	}
       }
+
+      assert(cb->dirty == dirty);
+      if ( cb->dirty )
+	ci_dirty++;
     }
 
-    if ( nc != indexed )
-    { listGenerations(def);
-      pl_break();
-    }
+    assert(ci->dirty == ci_dirty);
+    assert(ci->size  == ci_size);
   }
 }
 
@@ -3339,7 +3251,7 @@ pl_check_procedure(term_t desc)
   Procedure proc;
   Definition def;
 
-  if ( !get_procedure(desc, &proc, 0, GP_FIND) )
+  if ( !get_procedure(desc, &proc, 0, GP_FIND|GP_NAMEARITY) )
     fail;
   def = getProcDefinition(proc);
 
@@ -3358,7 +3270,7 @@ pl_list_generations(term_t desc)
   Procedure proc;
   Definition def;
 
-  if ( !get_procedure(desc, &proc, 0, GP_FIND) )
+  if ( !get_procedure(desc, &proc, 0, GP_FIND|GP_NAMEARITY) )
     fail;
   def = getProcDefinition(proc);
 
@@ -3384,5 +3296,6 @@ BeginPredDefs(proc)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
-  PRED_DEF("unload_file", 1, unload_file, 0)
+  PRED_DEF("$unload_file", 1, unload_file, 0)
+  PRED_DEF("$start_consult", 2, start_consult, 0)
 EndPredDefs

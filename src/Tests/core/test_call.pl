@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 :- module(test_call, [test_call/0]).
@@ -55,6 +55,16 @@ test(clause, Body == call(X)) :-
 	clause(call1_a(X), Body).
 test(clause, Body == call(X)) :-
 	clause(call1_b(X), Body).
+test(big_clause, V==N) :-
+	N = 100000,
+	trim_stacks,			% ensure shifts are needed
+        link_clause(N, 0, V, Body),
+	call(Body).
+
+link_clause(1, V0, V, succ(V0, V)) :- !.
+link_clause(N, V0, V, (succ(V0, V1), G)) :-
+        N2 is N - 1,
+        link_clause(N2, V1, V, G).
 
 :- end_tests(call1).
 

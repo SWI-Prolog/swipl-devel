@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -350,7 +350,7 @@ MarkExecutable(const char *name)
 
 int
 unifyTime(term_t t, time_t time)
-{ return PL_unify_float(t, (double)time);
+{ return PL_unify_time(t, time);
 }
 
 
@@ -542,7 +542,8 @@ PRED_IMPL("time_file", 2, time_file, 0)
 
 static
 PRED_IMPL("size_file", 2, size_file, 0)
-{ char *n;
+{ PRED_LD
+  char *n;
 
   if ( PL_get_file_name(A1, &n, 0) )
   { int64_t size;
@@ -918,7 +919,7 @@ has_extension(const char *name, const char *ext)
 
 
 static int
-name_too_long()
+name_too_long(void)
 { return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
 }
 

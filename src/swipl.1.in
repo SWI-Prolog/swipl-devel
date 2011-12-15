@@ -86,9 +86,12 @@ this defines the location of various components.  For example,
 the library for embedding is in
 .B $PLBASE/lib/$PLARCH/libswipl.a
 .TP
+.B PLLIB
+CC identifier to link to SWI-Prolog.  Typically
+.B -lswipl
+.TP
 .B PLLIBS
-The required libraries for linking
-.B libswipl.a
+Additional libraries needed for linking PLLIB
 .TP
 .B PLCFLAGS
 Flags that need to be passed to the C-compiler to generate compatible

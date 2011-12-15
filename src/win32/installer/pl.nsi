@@ -222,6 +222,7 @@ Section "Base system (required)"
   SectionIn RO			# do not allow to delete this
 
   Delete $INSTDIR\bin\*.pdb
+  RmDir /r pl\custom		# old location of pl\customize
 
   SetOutPath $INSTDIR\bin
   File pl\bin\swipl.exe
@@ -232,7 +233,7 @@ Section "Base system (required)"
   File pl\bin\${PTHREAD}.dll
 
   SetOutPath $INSTDIR
-  File /r pl\custom
+  File /r pl\customize
   File pl\${BOOT}
   File pl\COPYING.TXT
   File pl\README.TXT
@@ -244,6 +245,7 @@ Section "Base system (required)"
   File pl\library\listing.pl
   File pl\library\qsave.pl
   File pl\library\statistics.pl
+  File pl\library\writef.pl
   File pl\library\shlib.pl
   File pl\library\system.pl
   File pl\library\threadutil.pl
@@ -252,20 +254,25 @@ Section "Base system (required)"
   File pl\library\tty.pl
   File pl\library\dif.pl
   File pl\library\when.pl
+  File pl\library\varnumbers.pl
   File pl\library\prolog_stack.pl
   File pl\library\prolog_clause.pl
   File pl\library\prolog_xref.pl
   File pl\library\prolog_source.pl
   File pl\library\prolog_history.pl
+  File pl\library\prolog_breakpoints.pl
+  File pl\library\prolog_autoload.pl
+  File pl\library\prolog_colour.pl
+  File pl\library\predicate_options.pl
 
 ; COMPATIBILITY
   File pl\library\backcomp.pl
-  File pl\library\bim.pl
   File pl\library\edinburgh.pl
   File pl\library\qpforeign.pl
   File pl\library\quintus.pl
   File pl\library\files.pl
   File pl\library\charsio.pl
+  File pl\library\codesio.pl
   File pl\library\arithmetic.pl
 
 ; `STANDARD LIBRARIES'
@@ -307,7 +314,6 @@ Section "Base system (required)"
   File pl\library\edit.pl
   File pl\library\make.pl
   File pl\library\hotfix.pl
-  File pl\library\emacs_interface.pl
   File pl\library\explain.pl
   File pl\library\debug.pl
   File pl\library\portray_text.pl
@@ -365,11 +371,13 @@ Section "Documentation and Help-system"
   File pl\library\help.pl
 SectionEnd
 
-#Section "Common Prolog Library"
-#  SectionIn 1 3
-#  SetOutPath $INSTDIR\library\common
-#  File /r pl\library\common
-#SectionEnd
+Section "PDT support files"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File pl\library\pdt_console.pl
+  SetOutPath $INSTDIR\bin
+  File pl\bin\pdt_console.dll
+SectionEnd
 
 Section "Constraint Handling Rules"
   SectionIn 1 3
@@ -420,7 +428,7 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File pl\library\clp\clpq.pl
 SectionEnd
 
-Section "Portability (YAP, SICStus, Ciao) support"
+Section "Portability (YAP, SICStus, Ciao, BIM) support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
   File pl\library\fastrw.pl
@@ -487,7 +495,6 @@ Section "Package CLIB"
   File pl\bin\memfile.dll
   File pl\bin\mime.dll
   File pl\bin\socket.dll
-  File pl\bin\random.dll
   File pl\bin\time.dll
   File pl\bin\readutil.dll
   File pl\bin\process.dll
@@ -694,6 +701,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\snowball.pdb
   File pl\bin\isub.pdb
   File pl\bin\protobufs.pdb
+  File pl\bin\plregtry.pdb
 SectionEnd
 
 Section "Sources for system predicates"

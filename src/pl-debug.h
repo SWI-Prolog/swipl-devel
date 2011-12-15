@@ -1,11 +1,9 @@
-/*  $Id$
+/*  Part of SWI-Prolog
 
-    Part of SWI-Prolog
-
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@uva.nl
+    Author:        Keri Harris
+    E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2011, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,32 +17,28 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-:- module(test_index, [test_index/0]).
-:- use_module(library(plunit)).
+#ifndef PL_DEBUG_INCLUDED
+#define PL_DEBUG_INCLUDED 1
 
-/** <module> Test Prolog indexing
+#define DBG_LEVEL0  0
+#define DBG_LEVEL1  1
+#define DBG_LEVEL2  2
+#define DBG_LEVEL3  3
+#define DBG_LEVEL4  4
+#define DBG_LEVEL5  5
+#define DBG_LEVEL6  6
+#define DBG_LEVEL7  7
+#define DBG_LEVEL8  8
+#define DBG_LEVEL9  9
+#define MSG_VMI    10
+#define CHK_SECURE 11
 
-This module is a Unit test for Prolog clause indexing.
+typedef struct debug_topic
+{ unsigned    code;
+  const char   *name;
+} debug_topic;
 
-@author	Jan Wielemaker
-*/
-
-test_index :-
-	run_tests([ index
-		  ]).
-
-:- begin_tests(index).
-
-:- index(t(0,1)).
-
-t(1, aap).
-t(2, noot).
-t(3, mies).
-
-test(arg_2, X==2) :-
-	t(X, noot).
-
-:- end_tests(index).
+#endif /*PL_DEBUG_INCLUDED*/

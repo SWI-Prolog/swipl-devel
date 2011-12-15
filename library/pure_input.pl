@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -53,6 +53,11 @@ than compensated for by using block reads based on read_pending_input/3.
 @author Ulrich Neumerkel
 @author Jan Wielemaker
 */
+
+:- predicate_options(phrase_from_file/3, 3,
+		     [ buffer_size(positive_integer),
+		       pass_to(system:open/4, 4)
+		     ]).
 
 %%	phrase_from_file(:Grammar, +File) is nondet.
 %

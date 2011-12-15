@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef PL_SEGSTACK_H_INCLUDED
@@ -69,8 +69,8 @@ typedef struct
 
 COMMON(void)	initSegStack(segstack *stack, size_t unit_size,
 			     size_t len, void *data);
-COMMON(int)	pushSegStack_(segstack *stack, void* data);
-COMMON(int)	pushRecordSegStack(segstack *stack, Record r);
+COMMON(int)	pushSegStack_(segstack *stack, void* data) WUNUSED;
+COMMON(int)	pushRecordSegStack(segstack *stack, Record r) WUNUSED;
 COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
 COMMON(void)	popTopOfSegStack(segstack *stack);
@@ -86,7 +86,9 @@ topsOfSegStack(segstack *stack, int count, void **tops)
 { char *p = stack->top - stack->unit_size;
   char *base = stack->base;
 
-  SECURE(assert(stack->count >= count));
+#ifdef O_DEBUG
+  assert(stack->count >= count);
+#endif
 
   for(;;)
   { while(count > 0 && p >= base)

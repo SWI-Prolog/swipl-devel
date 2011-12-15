@@ -17,7 +17,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -133,13 +133,15 @@ wrap_coinductive(Pred, Term, [Wrapper_1,Wrapper_2,FirstClause]) :-
 	atom_concat('coinductive ', Name, WrappedName),
 	WrappedHead =.. [WrappedName|Args],
 	Wrapper_1 = (GenHead :-
-		    	prolog_current_frame(F),
+			prolog_current_frame(F),
 		        prolog_frame_attribute(F, parent, FP),
 		        prolog_frame_attribute(FP, parent_goal, M:GenHead)),
 	Wrapper_2 = (GenHead :- WrappedHead, coinduction:no_lco),
 	rename_clause(Term, 'coinductive ', FirstClause).
 
-no_lco.
+:- public no_lco/0.
+
+no_lco.					% true, but do not optimize away
 
 %%	rename_clause(+Clause, +Prefix, -Renamed) is det.
 %

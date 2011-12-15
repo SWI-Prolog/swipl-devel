@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -31,7 +31,7 @@
 */
 
 :- module(prolog_debug,
-	  [ debug/3,			% +Topic, +Format, +Args
+	  [ debug/3,			% +Topic, +Format, :Args
 	    debug/1,			% +Topic
 	    nodebug/1,			% +Topic
 	    debugging/1,		% ?Topic
@@ -44,7 +44,13 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 
-:- meta_predicate(assertion(0)).
+:- meta_predicate
+	assertion(0),
+	debug(+,+,:).
+
+:- multifile prolog:assertion_failed/2.
+:- dynamic   prolog:assertion_failed/2.
+
 /*:- use_module(library(prolog_stack)).*/ % We use the autoloader if needed
 
 %:- set_prolog_flag(generate_debug_info, false).
@@ -192,16 +198,35 @@ valid_topic(X, _, _) :-
 	domain_error(debug_message_context, X).
 
 
-%%	debug(+Topic, +Format, +Args) is det.
+%%	debug(+Topic, +Format, :Args) is det.
 %
-%	As format/3 to user_error, but only does something if Topic
-%	is activated through debug/1.
+%	Similar to format/3 to =user_error=, but only prints if Topic is
+%	activated through debug/1. Args is a  meta-argument to deal with
+%	goal for the @-command.  Output  is   first  handed  to the hook
+%	prolog:debug_print_hook/3.  If  this  fails,    Format+Args   is
+%	translated  to  text   using    the   message-translation   (see
+%	print_message/2) for the  term  debug(Format,   Args)  and  then
+%	printed to every matching destination   (controlled  by debug/1)
+%	using print_message_lines/3.
+%
+%	The message is preceeded by '% ' and terminated with a newline.
+%
+%	@see	format/3.
 
 debug(Topic, Format, Args) :-
 	debugging(Topic, true, To), !,
 	print_debug(Topic, To, Format, Args).
 debug(_, _, _).
 
+
+%%	prolog:debug_print_hook(+Topic, +Format, +Args) is semidet.
+%
+%	Hook called by debug/3.  This  hook   is  used  by the graphical
+%	frontend that can be activated using prolog_ide/1:
+%
+%	  ==
+%	  ?- prolog_ide(debug_monitor).
+%	  ==
 
 :- multifile
 	prolog:debug_print_hook/3.
@@ -236,19 +261,35 @@ debug_output(File, Stream) :-
 
 %%	assertion(:Goal) is det.
 %
-%	Acts similar to C assert() macro.  It has no effect of Goal
-%	succeeds.  If Goal fails it prints a message, a stack-trace
-%	and finally traps the debugger.
+%	Acts similar to C assert()  macro.  It   has  no  effect if Goal
+%	succeeds. If Goal fails or throws   and exception, the following
+%	steps are taken:
+%
+%	  * call prolog:assertion_failed/2.  If prolog:assertion_failed/2
+%	    fails, then:
+%
+%	    - If this is an interactive toplevel thread, print a
+%	      message, the stack-trace and finally traps the debugger.
+%	    - Otherwise, throw error(assertion_error(Reason, G),_) where
+%	      Reason is one of =fail= or the exception raised.
 
 assertion(G) :-
-	\+ \+ G, !.			% avoid binding variables
+	\+ \+ catch(G,
+		    Error,
+		    assertion_failed(Error, G)),
+	!.
 assertion(G) :-
-	print_message(error, assumption_failed(G)),
+	assertion_failed(fail, G),
+	assertion_failed.		% prevent last call optimization.
+
+assertion_failed(Reason, G) :-
+	prolog:assertion_failed(Reason, G), !.
+assertion_failed(Reason, G) :-
+	print_message(error, assertion_failed(Reason, G)),
 	backtrace(10),
-	(   thread_self(main)
-	->  trace,
-	    assertion_failed
-	;   throw(error(assertion_error(G), _))
+	(   current_prolog_flag(break_level, _)	% interactive thread
+	->  trace
+	;   throw(error(assertion_error(Reason, G), _))
 	).
 
 assertion_failed.
@@ -297,7 +338,7 @@ system:goal_expansion(assume(_), Goal) :-
 :- multifile
 	prolog:message/3.
 
-prolog:message(assumption_failed(G)) -->
+prolog:message(assertion_failed(_, G)) -->
 	[ 'Assertion failed: ~q'-[G] ].
 prolog:message(debug(Fmt, Args)) -->
 	show_thread_context,
@@ -324,3 +365,14 @@ show_time_context -->
 show_time_context -->
 	[].
 
+		 /*******************************
+		 *	       HOOKS		*
+		 *******************************/
+
+%%	prolog:assertion_failed(+Reason, +Goal) is semidet.
+%
+%	This hook is called if the Goal  of assertion/1 fails. Reason is
+%	unified with either =fail= if Goal simply failed or an exception
+%	ball otherwise. If this hook  fails,   the  default behaviour is
+%	activated.  If  the  hooks  throws  an   exception  it  will  be
+%	propagated into the caller of assertion/1.

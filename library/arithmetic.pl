@@ -17,7 +17,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -32,6 +32,7 @@
 	    arithmetic_expression_value/2	% :Expression, -Value
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(lists)).
 
 /** <module> Extensible arithmetic
 
@@ -62,11 +63,14 @@ arithmetic_function(Term) :-
 	throw(error(context_error(nodirective, arithmetic_function(Term)), _)).
 
 arith_decl_clauses(NameArity,
-		   arithmetic:evaluable(Term, Q)) :-
+		   [(:- public(Name/ImplArity)),
+		    arithmetic:evaluable(Term, Q)
+		   ]) :-
 	prolog_load_context(module, M),
 	strip_module(M:NameArity, Q, Spec),
 	(   Spec = Name/Arity
-	->  functor(Term, Name, Arity)
+	->  functor(Term, Name, Arity),
+	    ImplArity is Arity+1
 	;   type_error(predicate_indicator, Term)
 	).
 

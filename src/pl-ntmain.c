@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,17 +20,23 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #define _UNICODE 1
 #define UNICODE 1
 
+#ifdef WIN64
+#include "config/win64.h"
+#else
+#include "config/win32.h"
+#endif
+
 #include <windows.h>
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>
-#include "SWI-Stream.h"
+#include "os/SWI-Stream.h"
 #include "SWI-Prolog.h"
 #include <ctype.h>
 #include "win32/console/console.h"
@@ -44,19 +51,22 @@
 #define streq(s,q) (strcmp((s), (q)) == 0)
 #endif
 
+#ifndef _TINT
+typedef wint_t _TINT;
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Main program for running SWI-Prolog from   a window. The window provides
 X11-xterm like features: scrollback for a   predefined  number of lines,
 cut/paste and the GNU readline library for command-line editing.
 
-This module combines libpl.dll and plterm.dll  with some glue to produce
+This module combines swipl.dll and plterm.dll  with some glue to produce
 the final executable swipl-win.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-__declspec(dllexport) rlc_console	PL_current_console();
-static int		type_error(term_t actual, const char *expected);
-static int		domain_error(term_t actual, const char *expected);
-static HWND		create_prolog_hidden_window(rlc_console c);
+__declspec(dllexport)	rlc_console	PL_current_console(void);
+__declspec(dllexport)	int		PL_set_menu_thread(void);
+static HWND		create_prolog_hidden_window(rlc_console c, int replace);
 static int		get_chars_arg_ex(int a, term_t t, TCHAR **v);
 
 #define RLC_PROLOG_WINDOW	RLC_VALUE(0) /* GetCurrentThreadID() */
@@ -66,10 +76,10 @@ static int		get_chars_arg_ex(int a, term_t t, TCHAR **v);
 #define RLC_REGISTER		RLC_VALUE(4) /* Trap destruction */
 
 		 /*******************************
-		 *	    CONSOLE ADM		*
+		 *	  CONSOLE ADMIN		*
 		 *******************************/
 
-CRITICAL_SECTION mutex;
+static CRITICAL_SECTION mutex;
 #define LOCK()   EnterCriticalSection(&mutex)
 #define UNLOCK() LeaveCriticalSection(&mutex)
 
@@ -291,7 +301,7 @@ process_console_options(rlc_console_attr *attr, term_t options)
     int arity;
 
     if ( !PL_get_name_arity(opt, &name, &arity) )
-      return type_error(opt, "compound");
+      return PL_type_error("compound", opt);
     s = PL_atom_chars(name);
     if ( streq(s, "registry_key") && arity == 1 )
     { TCHAR *key;
@@ -301,10 +311,10 @@ process_console_options(rlc_console_attr *attr, term_t options)
 
       attr->key = key;
     } else
-      return domain_error(opt, "window_option");
+      return PL_domain_error("window_option", opt);
   }
-  if ( !PL_get_nil(tail) )
-    return type_error(tail, "list");
+  if ( !PL_get_nil_ex(tail) )
+    return FALSE;
 
   return TRUE;
 }
@@ -328,15 +338,15 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
   size_t len;
 
   memset(&attr, 0, sizeof(attr));
-  if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_RING) )
-    return type_error(title, "text");
+  if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_RING|CVT_EXCEPTION) )
+    return FALSE;
   attr.title = (const TCHAR*) s;
 
   if ( !process_console_options(&attr, options) )
     return FALSE;
 
   c = rlc_create_console(&attr);
-  create_prolog_hidden_window(c);	/* for sending messages */
+  create_prolog_hidden_window(c, FALSE);	/* for sending messages */
   registerConsole(c);
 
 #define STREAM_COMMON (SIO_TEXT|	/* text-stream */		\
@@ -386,7 +396,7 @@ pl_rl_add_history(term_t text)
 { atom_t a;
   static atom_t last = 0;
 
-  if ( PL_get_atom(text, &a) )
+  if ( PL_get_atom_ex(text, &a) )
   { if ( a != last )
     { TCHAR *s;
 
@@ -395,9 +405,8 @@ pl_rl_add_history(term_t text)
       last = a;
       PL_register_atom(last);
 
-      PL_get_wchars(text, NULL, &s, CVT_ATOM);
-
-      rlc_add_history(PL_current_console(), s);
+      if ( PL_get_wchars(text, NULL, &s, CVT_ATOM) )
+	rlc_add_history(PL_current_console(), s);
     }
 
     return TRUE;
@@ -490,11 +499,24 @@ do_complete(RlcCompleteData data)
 		 *******************************/
 
 rlc_console
-PL_current_console()
+PL_current_console(void)
 { if ( Suser_input->functions->read == Srlc_read )
     return Suser_input->handle;
 
   return NULL;
+}
+
+
+static rlc_console main_console;
+
+int
+PL_set_menu_thread(void)
+{ if ( main_console )
+  { create_prolog_hidden_window(main_console, TRUE);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -503,8 +525,8 @@ pl_window_title(term_t old, term_t new)
 { TCHAR buf[256];
   TCHAR *n;
 
-  if ( !PL_get_wchars(new, NULL, &n, CVT_ALL) )
-    return type_error(new, "atom");
+  if ( !PL_get_wchars(new, NULL, &n, CVT_ALL|CVT_EXCEPTION) )
+    return FALSE;
 
   rlc_title(PL_current_console(), n, buf, sizeof(buf)/sizeof(TCHAR));
 
@@ -513,40 +535,14 @@ pl_window_title(term_t old, term_t new)
 
 
 static int
-type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
-
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "type_error", 2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
-
-  return PL_raise_exception(ex);
-}
-
-static int
-domain_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
-
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "domain_error", 2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
-
-  return PL_raise_exception(ex);
-}
-
-static int
 get_chars_arg_ex(int a, term_t t, TCHAR **v)
 { term_t arg = PL_new_term_ref();
 
   if ( PL_get_arg(a, t, arg) &&
-       PL_get_wchars(arg, NULL, v, CVT_ALL|BUF_RING) )
+       PL_get_wchars(arg, NULL, v, CVT_ALL|BUF_RING|CVT_EXCEPTION) )
     return TRUE;
 
-  return type_error(arg, "text");
+  return FALSE;
 }
 
 
@@ -554,11 +550,11 @@ static int
 get_int_arg_ex(int a, term_t t, int *v)
 { term_t arg = PL_new_term_ref();
 
-  PL_get_arg(a, t, arg);
-  if ( PL_get_integer(arg, v) )
+  _PL_get_arg(a, t, arg);
+  if ( PL_get_integer_ex(arg, v) )
     return TRUE;
 
-  return type_error(arg, "integer");
+  return FALSE;
 }
 
 
@@ -566,11 +562,11 @@ static int
 get_bool_arg_ex(int a, term_t t, int *v)
 { term_t arg = PL_new_term_ref();
 
-  PL_get_arg(a, t, arg);
-  if ( PL_get_bool(arg, v) )
+  _PL_get_arg(a, t, arg);
+  if ( PL_get_bool_ex(arg, v) )
     return TRUE;
 
-  return type_error(arg, "boolean");
+  return FALSE;
 }
 
 
@@ -588,7 +584,7 @@ pl_window_pos(term_t options)
     int arity;
 
     if ( !PL_get_name_arity(opt, &name, &arity) )
-      return type_error(opt, "compound");
+      return PL_type_error("compound", opt);
     s = PL_atom_chars(name);
     if ( streq(s, "position") && arity == 2 )
     { if ( !get_int_arg_ex(1, opt, &x) ||
@@ -604,9 +600,9 @@ pl_window_pos(term_t options)
     { term_t t = PL_new_term_ref();
       char *v;
 
-      PL_get_arg(1, opt, t);
-      if ( !PL_get_atom_chars(t, &v) )
-	return type_error(t, "atom");
+      _PL_get_arg(1, opt, t);
+      if ( !PL_get_chars(t, &v, CVT_ATOM|CVT_EXCEPTION) )
+	return FALSE;
       if ( streq(v, "top") )
 	z = HWND_TOP;
       else if ( streq(v, "bottom") )
@@ -616,7 +612,7 @@ pl_window_pos(term_t options)
       else if ( streq(v, "notopmost") )
 	z = HWND_NOTOPMOST;
       else
-	return domain_error(t, "hwnd_insert_after");
+	return PL_domain_error("hwnd_insert_after", t);
 
       flags &= ~SWP_NOZORDER;
     } else if ( streq(s, "show") && arity == 1 )
@@ -632,10 +628,10 @@ pl_window_pos(term_t options)
     } else if ( streq(s, "activate") && arity == 0 )
     { flags &= ~SWP_NOACTIVATE;
     } else
-      return domain_error(opt, "window_option");
+      return PL_domain_error("window_option", opt);
   }
-  if ( !PL_get_nil(tail) )
-   return type_error(tail, "list");
+  if ( !PL_get_nil_ex(tail) )
+   return FALSE;
 
   rlc_window_pos(PL_current_console(), z, x, y, w, h, flags);
 
@@ -651,8 +647,8 @@ call_menu(const TCHAR *name)
   term_t a0 = PL_new_term_ref();
   size_t len = _tcslen(name);
 
-  PL_unify_wchars(a0, PL_ATOM, len, name);
-  PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
+  if ( PL_unify_wchars(a0, PL_ATOM, len, name) )
+    PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
 
   PL_discard_foreign_frame(fid);
 }
@@ -790,11 +786,15 @@ destroy_hidden_window(uintptr_t hwnd)
 
 
 static HWND
-create_prolog_hidden_window(rlc_console c)
+create_prolog_hidden_window(rlc_console c, int replace)
 { uintptr_t hwnd;
 
   if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) && hwnd )
-    return (HWND)hwnd;
+  { if ( replace )
+      DestroyWindow((HWND)hwnd);
+    else
+      return (HWND)hwnd;
+  }
 
   hwnd = (uintptr_t)CreateWindow(HiddenFrameClass(),
 				     _T("SWI-Prolog hidden window"),
@@ -994,6 +994,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
 { char *av[MAX_ARGC+1];
   int i;
 
+  main_console = c;
   set_window_title(c);
   rlc_bind_terminal(c);
 
@@ -1003,7 +1004,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   main_console = c;
   PL_on_halt(closeWin, c);
 
-  create_prolog_hidden_window(c);
+  create_prolog_hidden_window(c, FALSE);
   PL_set_prolog_flag("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);

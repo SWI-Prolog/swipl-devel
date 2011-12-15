@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -27,7 +27,7 @@ Get the ball rolling.  The main task of  this  module  is  command  line
 option  parsing,  initialisation  and  handling  of errors and warnings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define O_DEBUG 1
+/* #define O_DEBUG 1 */
 
 #include "rc/rc.h"
 #include "pl-incl.h"
@@ -118,7 +118,7 @@ longopt(const char *opt, int argc, const char **argv)
 static int
 opt_append(opt_list **l, char *s)
 { GET_LD
-  opt_list *n = allocHeap(sizeof(*n));
+  opt_list *n = allocHeapOrHalt(sizeof(*n));
 
   n->opt_val = s;
   n->next = NULL;
@@ -743,7 +743,7 @@ script_argv(int argc, char **argv)
 
 	    DEBUG(1, Sdprintf("Got script %s\n", argv[i+1]));
 
-	    av = allocHeap(sizeof(char*)*(argc+2));
+	    av = allocHeapOrHalt(sizeof(char*)*(argc+2));
 	    for(j=0; j<=i+1; j++)
 	      av[j] = argv[j];
 	    av[j] = "--";
@@ -806,7 +806,7 @@ script_argv(int argc, char **argv)
 	    continue;
 	}
 #endif
-	av[an] = allocHeap(o-start+1);
+	av[an] = allocHeapOrHalt(o-start+1);
 	strncpy(av[an], start, o-start);
 	av[an][o-start] = EOS;
 	if ( ++an >= MAXARGV )
@@ -827,7 +827,7 @@ script_argv(int argc, char **argv)
       av[an++] = argv[i];
     GD->cmdline.argc = an;
     av[an++] = NULL;
-    GD->cmdline.argv = allocHeap(sizeof(char *) * an);
+    GD->cmdline.argv = allocHeapOrHalt(sizeof(char *) * an);
     memcpy(GD->cmdline.argv, av, sizeof(char *) * an);
 
     fclose(fd);
@@ -920,7 +920,8 @@ PL_initialise(int argc, char **argv)
     argv += done;
   }
 
-  setupProlog();
+  if ( !setupProlog() )
+    return FALSE;
 #ifdef O_PLMT
   aliasThread(PL_thread_self(), ATOM_main);
   enableThreads(TRUE);
@@ -928,7 +929,7 @@ PL_initialise(int argc, char **argv)
   PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
   initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
 		    GD->cmdline.argv);
-  systemMode(TRUE);
+  setAccessLevel(ACCESS_LEVEL_SYSTEM);
 
   if ( GD->bootsession )
   { IOSTREAM *s = SopenRC(GD->resourceDB, "$state", "$prolog", RC_WRONLY);
@@ -975,7 +976,7 @@ PL_initialise(int argc, char **argv)
   debugstatus.styleCheck = (LONGATOM_CHECK|
 			    SINGLETON_CHECK|
 			    DISCONTIGUOUS_STYLE);
-  systemMode(FALSE);
+  setAccessLevel(ACCESS_LEVEL_USER);
   GD->initialised = TRUE;
   registerForeignLicenses();
 
@@ -1170,14 +1171,12 @@ void
 PL_on_halt(halt_function f, void *arg)
 { if ( !GD->os.halting )
   { GET_LD
-    OnHalt h = allocHeap(sizeof(struct on_halt));
+    OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));
 
     h->function = f;
     h->argument = arg;
-    startCritical;
     h->next = GD->os.on_halt_list;
     GD->os.on_halt_list = h;
-    endCritical;
   }
 }
 
@@ -1212,7 +1211,7 @@ PL_cleanup(int rval)
   GD->cleaning = CLN_PROLOG;
 
   qlfCleanup();				/* remove errornous .qlf files */
-  if ( GD->initialised && !LD->aborted )
+  if ( GD->initialised )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
 
@@ -1224,10 +1223,8 @@ PL_cleanup(int rval)
   GD->cleaning = CLN_FOREIGN;
 
 					/* run PL_on_halt() hooks */
-  if ( !LD->aborted )
-  { for(h = GD->os.on_halt_list; h; h = h->next)
-      (*h->function)(rval, h->argument);
-  }
+  for(h = GD->os.on_halt_list; h; h = h->next)
+    (*h->function)(rval, h->argument);
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
@@ -1239,7 +1236,7 @@ PL_cleanup(int rval)
 
   GD->cleaning = CLN_SHARED;
 
-  if ( GD->initialised && !LD->aborted )
+  if ( GD->initialised )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
 				    "shlib");
@@ -1358,7 +1355,7 @@ vsysError(const char *fm, va_list args)
   }
 
 #if defined(O_DEBUGGER)
-  systemMode(TRUE);
+  setAccessLevel(ACCESS_LEVEL_SYSTEM);
   Sfprintf(Serror, "\n\nPROLOG STACK:\n");
   backTrace(NULL, 10);
   Sfprintf(Serror, "]\n");
@@ -1377,10 +1374,7 @@ action:
   ResetTty();
 
   switch(getSingleChar(Sinput, FALSE))
-  { case 'a':
-      abortProlog(ABORT_FATAL);
-      break;
-    case EOF:
+  { case EOF:
       Sfprintf(Serror, "EOF: exit\n");
     case 'e':
       PL_halt(3);
@@ -1388,14 +1382,11 @@ action:
     default:
       Sfprintf(Serror,
 	       "Unknown action.  Valid actions are:\n"
-	      "\ta\tabort to toplevel\n"
 	      "\te\texit Prolog\n");
       goto action;
   }
 
-  abortProlog(ABORT_FATAL);
-  PL_halt(3);
-  PL_fail;
+  return FALSE;					/* not reached */
 }
 
 

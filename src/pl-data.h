@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -160,17 +160,24 @@ be kept consistent.
 #define valPtr2(w, s)	((Word)(((w) >> 5) + base_addresses[s]))
 #define valPtr(w)	valPtr2(w, storage(w))
 #define valInt(w)	((intptr_t)(w) >> LMASK_BITS)
+#define valUInt(w)	((uintptr_t)(w) >> LMASK_BITS)
 
 		 /*******************************
 		 *	  EXTENDED TAG		*
 		 *******************************/
 
-extern const unsigned int tagtypeex[];
+#define EXBIT(w)	(1<<(w))
+#define INDIRECT_BM	( EXBIT(STG_GLOBAL|TAG_INTEGER) | \
+			  EXBIT(STG_LOCAL|TAG_INTEGER) | \
+			  EXBIT(STG_GLOBAL|TAG_FLOAT) | \
+			  EXBIT(STG_LOCAL|TAG_FLOAT) | \
+			  EXBIT(STG_GLOBAL|TAG_STRING) | \
+			  EXBIT(STG_LOCAL|TAG_STRING) \
+			)
 
 #define tagex(w)	((w) & (TAG_MASK|STG_MASK))
+#define isIndirect(w)	(EXBIT(tagex(w)) & INDIRECT_BM)
 
-#define TAGEX_INDIRECT	0x1
-#define isIndirect(w)	(tagtypeex[tagex(w)] & TAGEX_INDIRECT)
 
 		 /*******************************
 		 *	 BASIC TYPE TESTS	*
@@ -321,5 +328,6 @@ and while loading .wic files.  It comes at no price.
 #define MAXTAGGEDPTR	(((word)1<<((8*sizeof(word))-5)) - 1)
 
 #define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
+#define consUInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
 
 

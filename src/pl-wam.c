@@ -19,10 +19,9 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-inline.h"
@@ -77,7 +76,7 @@ count(code c, Code PC)
       if ( !counting[c].vartimesptr )
       { int bytes = sizeof(int)*MAXVAR;
 
-	counting[c].vartimesptr = allocHeap(bytes);
+	counting[c].vartimesptr = allocHeapOrHalt(bytes);
 	memset(counting[c].vartimesptr, 0, bytes);
       }
       counting[c].vartimesptr[v]++;
@@ -190,7 +189,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 	    if ( offset >= 0 && offset < (int)FR->predicate->codes[-1] )
 	      relto = FR->predicate->codes;
 	  } else if ( FR->clause )
-	  { relto = FR->clause->clause->codes;
+	  { relto = FR->clause->value.clause->codes;
 	  }
 
 	  Sdprintf("\t%s\n", codeTable[decode(*PC)].name);
@@ -340,7 +339,7 @@ open_foreign_frame(ARG1_LD)
   lTop = (LocalFrame)(fr+1);
   fr->size = 0;
   Mark(fr->mark);
-  SECURE(assert(fr>fli_context));
+  DEBUG(CHK_SECURE, assert(fr>fli_context));
   fr->parent = fli_context;
   fr->magic = FLI_MAGIC;
   fli_context = fr;
@@ -513,7 +512,7 @@ static void
 discardForeignFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
   int argc       = def->functor->arity;
-  Func function  = def->definition.function;
+  Func function  = def->impl.function;
   struct foreign_context context;
   fid_t fid;
 
@@ -562,7 +561,7 @@ unify_finished(term_t catcher, enum finished reason)
   { functor_t f = (reason == FINISH_EXCEPT ? FUNCTOR_exception1
 					   : FUNCTOR_external_exception1);
 
-    SECURE(checkData(valTermRef(exception_bin)));
+    DEBUG(CHK_SECURE, checkData(valTermRef(exception_bin)));
 
     return PL_unify_term(catcher,
 			 PL_FUNCTOR, f,
@@ -608,34 +607,16 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     { term_t clean;
       term_t ex = 0;
       int rval;
-      int set_env = (reason == FINISH_CUT ||
-		     reason == FINISH_EXCEPT ||
-		     reason == FINISH_EXTERNAL_EXCEPT);
-      term_t esave;
       wakeup_state wstate;
 
       fr = (LocalFrame)valTermRef(fref);
-
-      if ( set_env )
-      { esave = consTermRef(environment_frame);
-	environment_frame = fr;
-      } else
-      { esave = 0;			/* keep compiler happy */
-	assert(environment_frame == fr);
-      }
-
       clean = consTermRef(argFrameP(fr, 3));
-      startCritical;
       if ( saveWakeup(&wstate, FALSE PASS_LD) )
       { rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
 	restoreWakeup(&wstate PASS_LD);
       } else
       { rval = FALSE;
       }
-      endCritical;
-
-      if ( set_env )
-	environment_frame = (LocalFrame)valTermRef(esave);
 
       if ( !rval && ex && !exception_term )
 	PL_raise_exception(ex);
@@ -752,7 +733,7 @@ __do_undo(mark *m ARG_LD)
 
   tTop = mt;
   if ( LD->frozen_bar > m->globaltop )
-  { SECURE(assert(gTop >= LD->frozen_bar));
+  { DEBUG(CHK_SECURE, assert(gTop >= LD->frozen_bar));
     gTop = LD->frozen_bar;
   } else
   { gTop = m->globaltop;
@@ -775,55 +756,17 @@ do_undo(mark *m)
 		 *	    PROCEDURES		*
 		 *******************************/
 
-#ifdef _MSC_VER				/* Windows MSVC version */
-
-static inline int
-MSB(unsigned int i)
-{ unsigned long mask = i;
-  unsigned long index;
-
-  _BitScanReverse(&index, mask);
-  return index;
-}
-
-#ifndef MemoryBarrier
-#define MemoryBarrier() (void)0
-#endif
-
-#elif defined(__GNUC__)			/* GCC version */
-
-#define MSB(i) (31 - __builtin_clz(i))
-#define MemoryBarrier() __sync_synchronize()
-
-#else					/* Other */
-
-static inline int
-MSB(unsigned int i)
-{ int j = 0;
-
-  if (i >= 0x10000) {i >>= 16; j += 16;}
-  if (i >=   0x100) {i >>=  8; j +=  8;}
-  if (i >=    0x10) {i >>=  4; j +=  4;}
-  if (i >=     0x4) {i >>=  2; j +=  2;}
-  if (i >=     0x2) j++;
-
-  return j;
-}
-#define MemoryBarrier() (void)0
-
-#endif
-
 static Definition
 localDefinition(Definition def ARG_LD)
 { unsigned int tid = LD->thread.info->pl_tid;
   size_t idx = MSB(tid);
-  LocalDefinitions v = def->definition.local;
+  LocalDefinitions v = def->impl.local;
 
   if ( !v->blocks[idx] )
   { LOCKDYNDEF(def);
     if ( !v->blocks[idx] )
     { size_t bs = (size_t)1<<idx;
-      Definition *newblock = allocHeap(bs*sizeof(Definition));
+      Definition *newblock = allocHeapOrHalt(bs*sizeof(Definition));
 
       memset(newblock, 0, bs*sizeof(Definition));
 
@@ -842,7 +785,7 @@ localDefinition(Definition def ARG_LD)
 void
 destroyLocalDefinition(Definition def, unsigned int tid)
 { size_t idx = MSB(tid);
-  LocalDefinitions v = def->definition.local;
+  LocalDefinitions v = def->impl.local;
   Definition local;
 
   local = v->blocks[idx][tid];
@@ -866,7 +809,7 @@ getProcDefinition__LD(Definition def ARG_LD)
 
 static inline Definition
 getProcDefinedDefinition(Definition def ARG_LD)
-{ if ( !def->definition.clauses && false(def, PROC_DEFINED) )
+{ if ( !def->impl.any && false(def, PROC_DEFINED) )
     def = trapUndefined(def PASS_LD);
 
 #ifdef O_PLMT
@@ -1073,7 +1016,7 @@ static Code
 findCatchExit()
 { if ( !GD->exceptions.catch_exit_address )
   { Definition catch3 = PROCEDURE_catch3->definition;
-    Clause cl = catch3->definition.clauses->clause;
+    Clause cl = catch3->impl.clauses.first_clause->value.clause;
     Code Exit = &cl->codes[cl->code_size-1];
     assert(*Exit == encode(I_EXIT));
 
@@ -1189,7 +1132,7 @@ slotsInFrame(LocalFrame fr, Code PC)
   if ( !PC || true(def, FOREIGN) || !fr->clause )
     return def->functor->arity;
 
-  return fr->clause->clause->prolog_vars;
+  return fr->clause->value.clause->prolog_vars;
 }
 
 
@@ -1231,7 +1174,7 @@ dbgRedoFrame(LocalFrame fr ARG_LD)
 
 static int
 exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
-{ if ( PROCEDURE_exception_hook4->definition->definition.clauses )
+{ if ( PROCEDURE_exception_hook4->definition->impl.clauses.first_clause )
   { if ( !LD->exception.in_hook )
     { wakeup_state wstate;
       qid_t qid;
@@ -1463,67 +1406,70 @@ discardChoicesAfter() discards all choicepoints created  after fr, while
 calling possible hooks on the frames.   It return the oldest choicepoint
 created after fr was created or NULL if this doesn't exist.
 
-(*) Note that we cannot put discardFrame() in the first loop. See C_CUT.
-(**) Running GC goes wrong because discardFrame() sets clause to NULL.
-     If we have a frame where a variable is a ref to the parent frame
-     and where the var in the parent points to the global stack and
-     the clause of this parent is NULL, the variable is marked, but
-     not sweeped.
-
-     What we would need is a way to discard the choice and the frames
-     that can be reached from it, but *not* the frame that can be
-     reached from older choice-points.  How can we do this?
-
-     Please note this isn't too bad: cleanup handlers are supposed to
-     do small jobs.
+GC interaction is tricky here. See also   C_CUT.  The loop needs to call
+the  cleanup  handlers  and  call   discardFrame().  The  latter  resets
+LocalFrame->clause to NULL. This means  that   these  frames  may not be
+visible to GC. In older versions, this was achieved using two loops: one
+for the cleanup and one to discard the  frames, but if Undo() is called,
+the resets may corrupt the datastructures,   which makes the second loop
+fail. We now moved discardFrame() back into the primary loop and set BFR
+before calling frameFinished() such that the discarded frames are really
+invisible to GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
 discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 { if ( (LocalFrame)BFR > fr )
-  { for(;;)
-    { Choice me = BFR;
-      LocalFrame fr2;
+  { Choice me;
+
+    for(me = BFR; ; me=me->parent)
+    { LocalFrame fr2;
+      LocalFrame delto;
+
+      if ( me->parent && me->parent->frame > fr )
+	delto = me->parent->frame;
+      else
+	delto = fr;
 
       DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(me)));
       for(fr2 = me->frame;
-	  fr2 && fr2->clause && fr2 > fr;
+	  fr2 > delto;
 	  fr2 = fr2->parent)
-      { if ( true(fr2, FR_WATCHED) )
-	{ if ( reason == FINISH_EXCEPT ||
+      { assert(fr2->clause || true(fr2->predicate, FOREIGN));
+
+	if ( true(fr2, FR_WATCHED) )
+	{ char *lSave = (char*)lBase;
+
+	  if ( reason == FINISH_EXCEPT ||
 	       reason == FINISH_EXTERNAL_EXCEPT )
 	    Undo(me->mark);
-	  blockGC(ALLOW_SHIFT PASS_LD);	/* (**) */
+	  BFR = me->parent;
 	  frameFinished(fr2, reason PASS_LD);
-	  unblockGC(ALLOW_SHIFT PASS_LD);
-	  if ( me != BFR )		/* shifted */
-	  { intptr_t offset = (char*)BFR - (char*)me;
+	  if ( lSave != (char*)lBase )	/* shifted */
+	  { intptr_t offset = (char*)lBase - lSave;
 
 	    me  = addPointer(me, offset);
+	    me->parent = BFR;		/* not updated because BFR=me->parent */
 	    fr  = addPointer(fr, offset);
 	    fr2 = addPointer(fr2, offset);
+	    delto = addPointer(delto, offset);
+	    fr2->parent = addPointer(fr2->parent, offset);
 	  }
 #if 0					/* What to do if we have multiple */
 	  if ( exception_term )		/* handlers and multiple exceptions? */
 	    break;
 #endif
 	}
+
+	discardFrame(fr2 PASS_LD);
       }
 
-      for(fr2 = me->frame;		/* (*) */
-	  fr2 && fr2->clause && fr2 > fr;
-	  fr2 = fr2->parent)
-      { discardFrame(fr2 PASS_LD);
-      }
-
-      BFR = me->parent;
-      if ( (LocalFrame)BFR <= fr )
+      if ( (LocalFrame)me->parent <= fr )
       { DiscardMark(me->mark);
+	BFR = me->parent;
 	return me;
       }
     }
-
-    DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
   }
 
   return NULL;
@@ -1574,7 +1520,7 @@ static Choice
 newChoice(choice_type type, LocalFrame fr ARG_LD)
 { Choice ch = (Choice)lTop;
 
-  SECURE(assert(ch+1 <= (Choice)lMax));
+  DEBUG(CHK_SECURE, assert(ch+1 <= (Choice)lMax));
   lTop = (LocalFrame)(ch+1);
 
   ch->type = type;
@@ -1611,13 +1557,14 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   size_t lneeded;
   static int top_initialized = FALSE;
   static struct clause clause;
-  static struct clause_ref cref = {&clause};
+  static struct clause_ref cref;
 
   if ( !top_initialized )
   { clause.procedure = PROCEDURE_dc_call_prolog;
     clause.generation.erased = ~0L;
     clause.code_size = 1;
     clause.codes[0] = encode(I_EXITQUERY);
+    cref.value.clause = &clause;
 
     top_initialized = TRUE;
   }
@@ -1633,7 +1580,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     }
 	     Sdprintf(")\n");
 	   });
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
   assert((void*)fli_context > (void*)environment_frame);
   assert((Word)lTop >= refFliP(fli_context, fli_context->size));
 
@@ -1685,7 +1632,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->programPointer = clause.codes;
   arity		     = def->functor->arity;
 
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
   assert((uintptr_t)fli_context > (uintptr_t)environment_frame);
   assert((uintptr_t)lTop >= (uintptr_t)(fli_context+1));
 
@@ -1719,7 +1666,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
   if ( true(qf, PL_Q_NODEBUG) )
   { set(fr, FR_HIDE_CHILDS);
-    debugstatus.suspendTrace++;
+    suspendTrace(TRUE);
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = DBG_OFF;
     qf->flags_saved = (LD->prolog_flag.mask.flags & NDEBUG_SAVE_FLAGS);
@@ -1808,7 +1755,7 @@ restore_after_query(QueryFrame qf)
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
   if ( true(qf, PL_Q_NODEBUG) )
-  { debugstatus.suspendTrace--;
+  { suspendTrace(FALSE);
     debugstatus.debugging = qf->debugSave;
     LD->prolog_flag.mask.flags &= (~NDEBUG_SAVE_FLAGS);
     LD->prolog_flag.mask.flags |= qf->flags_saved;
@@ -1818,7 +1765,7 @@ restore_after_query(QueryFrame qf)
 #endif /*O_LIMIT_DEPTH*/
   }
   updateAlerted(LD);
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 }
 
 
@@ -1827,7 +1774,7 @@ PL_cut_query(qid_t qid)
 { GET_LD
   QueryFrame qf = QueryFromQid(qid);
 
-  SECURE(assert(qf->magic == QID_MAGIC));
+  DEBUG(CHK_SECURE, assert(qf->magic == QID_MAGIC));
   if ( qf->foreign_frame )
     PL_close_foreign_frame(qf->foreign_frame);
 
@@ -1847,7 +1794,7 @@ PL_close_query(qid_t qid)
   { GET_LD
     QueryFrame qf = QueryFromQid(qid);
 
-    SECURE(assert(qf->magic == QID_MAGIC));
+    DEBUG(CHK_SECURE, assert(qf->magic == QID_MAGIC));
     if ( qf->foreign_frame )
       PL_close_foreign_frame(qf->foreign_frame);
 
@@ -1928,16 +1875,16 @@ typedef enum
 #define TRUST_CLAUSE(cref) \
 	umode = uread; \
 	CL    = cref; \
-	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
+	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( debugstatus.debugging ) \
 	  newChoice(CHP_DEBUG, FR PASS_LD); \
-	PC    = cref->clause->codes; \
+	PC    = cref->value.clause->codes; \
 	NEXT_INSTRUCTION;
 #define TRY_CLAUSE(cref, cond, altpc) \
 	umode = uread; \
 	CL    = cref; \
-	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
+	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
@@ -1945,7 +1892,7 @@ typedef enum
 	} else if ( debugstatus.debugging ) \
 	{ newChoice(CHP_DEBUG, FR PASS_LD); \
 	} \
-	PC    = cref->clause->codes; \
+	PC    = cref->value.clause->codes; \
 	NEXT_INSTRUCTION;
 
 
@@ -1981,13 +1928,13 @@ pl-comp.c
 #define VMI(Name,f,na,a)	Name ## _LBL: \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
-#define VMI_GOTO(n)		{ END_PROF(); \
-				  goto n ## _LBL; \
-				}
-#define NEXT_INSTRUCTION	{ END_PROF(); \
-				  DbgPrintInstruction(FR, PC); \
-				  goto *(void *)((intptr_t)(*PC++)); \
-				}
+#define VMI_GOTO(n)		do { END_PROF(); \
+				       goto n ## _LBL; \
+				   } while(0)
+#define NEXT_INSTRUCTION	do { END_PROF(); \
+				     DbgPrintInstruction(FR, PC); \
+				     goto *(void *)((intptr_t)(*PC++)); \
+				   } while(0)
 #ifndef ASM_NOP
 #define ASM_NOP asm("nop")
 #endif
@@ -1997,8 +1944,14 @@ pl-comp.c
 
 code thiscode;
 
+#if __GNUC__
+#define UNUSED_LABEL __attribute__ ((unused))
+#else
+#define UNUSED_LABEL
+#endif
+
 #define VMI(Name,f,na,a)	case Name: \
-				  case_ ## Name:
+				  case_ ## Name: UNUSED_LABEL \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
 #define VMI_GOTO(n)		{ END_PROF(); \
@@ -2029,7 +1982,7 @@ depart_continue() to do the normal thing or to the backtrack point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   QF  = QueryFromQid(qid);
-  SECURE(assert(QF->magic == QID_MAGIC));
+  DEBUG(CHK_SECURE, assert(QF->magic == QID_MAGIC));
   if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
   { fid_t fid = QF->foreign_frame;
     QF->foreign_frame = 0;
@@ -2160,7 +2113,10 @@ retry:					MARK(RETRY);
     }
   }
   Sdprintf("[Could not find retry-point]\n");
-  abortProlog(ABORT_THROW);		/* dubious */
+  SAVE_REGISTERS(qid);
+  abortProlog();				/* What else? */
+  LOAD_REGISTERS(qid);
+  THROW_EXCEPTION;
 
 do_retry:
   if ( rframe0 != rframe )
@@ -2213,19 +2169,16 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 
       NEXT_INSTRUCTION;
     } else if ( ch->type == CHP_CLAUSE )
-    { ClauseRef next;
-
-      ARGP = argFrameP(FR, 0);
-      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
-	FRAME_FAILED;			/* should not happen */
-      PC = CL->clause->codes;
+    { ARGP = argFrameP(FR, 0);
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+	FRAME_FAILED;		/* can happen if scan-ahead was too short */
+      PC = CL->value.clause->codes;
       umode = uread;
 
-      if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
-      { DiscardMark(ch->mark);
-	if ( next )
-	{ ch->value.clause = next;
-	  Mark(ch->mark);
+      if ( ch == (Choice)argFrameP(FR, CL->value.clause->variables) )
+      { DiscardMark(ch->mark);		/* is this needed? */
+	if ( ch->value.clause.cref )
+	{ Mark(ch->mark);
 	  lTop = (LocalFrame)(ch+1);
 	  NEXT_INSTRUCTION;
 	} else if ( unlikely(debugstatus.debugging) )
@@ -2238,15 +2191,18 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	BFR = ch->parent;
 	lTop = (LocalFrame)ch;
 	NEXT_INSTRUCTION;
-      } else
-      { DiscardMark(ch->mark);
+      } else				/* Choice point needs to move */
+      { struct clause_choice chp;
+
+        DiscardMark(ch->mark);
 	BFR = ch->parent;
-	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
+	chp = ch->value.clause;
+	lTop = (LocalFrame)argFrameP(FR, CL->value.clause->variables);
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
-	if ( next )
+	if ( chp.cref )
 	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	  ch->value.clause = next;
+	  ch->value.clause = chp;
 	} else if ( unlikely(debugstatus.debugging) )
 	{ ch = newChoice(CHP_DEBUG, FR PASS_LD);
 	}
@@ -2291,6 +2247,7 @@ next_choice:
 	SAVE_REGISTERS(qid);
 	rc = tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD);
 	LOAD_REGISTERS(qid);
+	ch = BFR;			/* can be shifted */
 
 	switch( rc )
 	{ case ACTION_RETRY:
@@ -2336,6 +2293,31 @@ next_choice:
       DEBUG(3, Sdprintf("    REDO #%ld: Jump in %s\n",
 			loffset(FR),
 			predicateName(DEF)));
+#ifdef O_DEBUGGER
+      if ( debugstatus.debugging && !debugstatus.suspendTrace  )
+      { LocalFrame fr = dbgRedoFrame(FR PASS_LD);
+
+	if ( fr )
+	{ int action;
+
+	  SAVE_REGISTERS(qid);
+	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
+	  LOAD_REGISTERS(qid);
+	  ch = BFR;			/* can be shifted */
+
+	  switch( action )
+	  { case ACTION_FAIL:
+	      FRAME_FAILED;
+	    case ACTION_IGNORE:
+	      VMI_GOTO(I_EXIT);
+	    case ACTION_RETRY:
+	      goto retry_continue;
+	    case ACTION_ABORT:
+	      THROW_EXCEPTION;
+	  }
+	}
+      }
+#endif
       PC   = ch->value.PC;
       DiscardMark(ch->mark);
       BFR  = ch->parent;
@@ -2344,8 +2326,8 @@ next_choice:
       ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
     case CHP_CLAUSE:			/* try next clause */
-    { ClauseRef next;
-      Clause clause;
+    { Clause clause;
+      struct clause_choice chp;
 
       DEBUG(3, Sdprintf("    REDO #%ld: Clause in %s\n",
 			loffset(FR),
@@ -2353,8 +2335,9 @@ next_choice:
       ARGP = argFrameP(FR, 0);
       DiscardMark(ch->mark);
       BFR = ch->parent;
-      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
-	goto next_choice;		/* should not happen */
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+	goto next_choice;	/* Can happen of look-ahead was too short */
+      chp = ch->value.clause;
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
@@ -2366,6 +2349,7 @@ next_choice:
 	  SAVE_REGISTERS(qid);
 	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
 	  LOAD_REGISTERS(qid);
+	  ch = BFR;			/* can be shifted */
 
 	  switch( action )
 	  { case ACTION_FAIL:
@@ -2382,15 +2366,15 @@ next_choice:
 #endif
 
       umode  = uread;
-      clause = CL->clause;
+      clause = CL->value.clause;
       PC     = clause->codes;
       Profile(profRedo(ch->prof_node PASS_LD));
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
-      if ( next )
+      if ( chp.cref )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	ch->value.clause = next;
+	ch->value.clause = chp;
       } else if ( unlikely(debugstatus.debugging) )
       { newChoice(CHP_DEBUG, FR PASS_LD);
       }

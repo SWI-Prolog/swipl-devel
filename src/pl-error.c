@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
@@ -357,8 +357,10 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 
       rc = PL_unify_term(formal,
 			 PL_FUNCTOR, FUNCTOR_occurs_check2,
-			   PL_TERM, wordToTermRef(p1),
-			   PL_TERM, wordToTermRef(p2));
+			   PL_TERM, pushWordAsTermRef(p1),
+			   PL_TERM, pushWordAsTermRef(p2));
+      popTermRef();
+      popTermRef();
 
       break;
     }
@@ -620,18 +622,6 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 }
 
 
-char *
-tostr(char *buf, const char *fmt, ...)
-{ va_list args;
-
-  va_start(args, fmt);
-  Svsprintf(buf, fmt, args);
-  va_end(args);
-
-  return buf;
-}
-
-
 		 /*******************************
 		 *	  TYPICAL ERRORS	*
 		 *******************************/
@@ -698,6 +688,12 @@ PL_resource_error(const char *resource)
   PL_unregister_atom(r);
 
   return rc;
+}
+
+
+int
+PL_no_memory(void)
+{ return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
 }
 
 

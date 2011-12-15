@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -662,3 +662,14 @@ map_C_type_(term,    'term_t ').
 
 warning(Fmt, Args) :-
 	print_message(warning, format(Fmt, Args)).
+
+
+		 /*******************************
+		 *	      XREF		*
+		 *******************************/
+
+:- multifile
+	prolog:hook/1.
+
+prolog:hook(foreign(_,_,_)).
+prolog:hook(foreign_resource(_,_)).

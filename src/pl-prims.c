@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -226,7 +226,7 @@ do_unify(Word t1, Word t2 ARG_LD)
     deRef(t1); w1 = *t1;
     deRef(t2); w2 = *t2;
 
-    SECURE(assert(w1 != ATOM_garbage_collected);
+    DEBUG(CHK_SECURE, assert(w1 != ATOM_garbage_collected);
 	   assert(w2 != ATOM_garbage_collected));
 
     if ( isVar(w1) )
@@ -295,7 +295,7 @@ do_unify(Word t1, Word t2 ARG_LD)
       case TAG_INTEGER:
 	if ( storage(w1) == STG_INLINE ||
 	     storage(w2) == STG_INLINE )
-	  goto out_fail;;
+	  goto out_fail;
       case TAG_STRING:
       case TAG_FLOAT:
 	if ( equalIndirect(w1, w2) )
@@ -482,19 +482,16 @@ var_occurs_in(Word v, Word t ARG_LD)
   unified:
     if ( isTerm(*t) )
     { Functor f = valueTerm(*t);
+      int arity = arityFunctor(f->definition);
 
       if ( !compound )
-      { int arity = arityFunctor(f->definition);
-
-	compound = TRUE;
+      { compound = TRUE;
 	initSegStack(&visited, sizeof(Functor), sizeof(tmp), tmp);
 	f->definition |= FIRST_MASK;
 	pushSegStack(&visited, f, Functor);
 	initTermAgenda(&agenda, arity, f->arguments);
       } else if ( !(f->definition & FIRST_MASK) )
-      { int arity = arityFunctor(f->definition);
-
-	f->definition |= FIRST_MASK;
+      { f->definition |= FIRST_MASK;
 	if ( !pushSegStack(&visited, f, Functor) ||
 	     !pushWorkAgenda(&agenda, arity, f->arguments) )
 	  return MEMORY_OVERFLOW;
@@ -1279,7 +1276,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
     PL_put_nil(vars);
     t = valTermRef(wrapped);
 
-    SECURE(checkStacks(NULL));
+    DEBUG(CHK_SECURE, checkStacks(NULL));
     startCritical;
     switch( (rc=scan_shared(t, valTermRef(vars), &count PASS_LD)) )
     { case TRUE:
@@ -1306,7 +1303,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
   link_shared(t, valTermRef(vars) PASS_LD);
   restore_shared_functors(valTermRef(vars) PASS_LD);
   PL_close_foreign_frame(fid);
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 
   if ( !endCritical )
     return FALSE;
@@ -1641,14 +1638,14 @@ do_compare(term_agendaLR *agenda, int eq ARG_LD)
       { Functor f1 = (Functor)valPtr(w1);
 	Functor f2 = (Functor)valPtr(w2);
 
-  #if O_CYCLIC
+#if O_CYCLIC
 	while ( isRef(f1->definition) )
 	  f1 = (Functor)unRef(f1->definition);
 	while ( isRef(f2->definition) )
 	  f2 = (Functor)unRef(f2->definition);
 	if ( f1 == f2 )
 	  continue;
-  #endif
+#endif
 
 	if ( f1->definition != f2->definition )
 	{ FunctorDef fd1 = valueFunctor(f1->definition);
@@ -1939,6 +1936,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   atom_t name;
   int arity;
+  int argn;
 
   term_t n    = A1;
   term_t term = A2;
@@ -1969,44 +1967,45 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 	fail;
       }
       if ( PL_is_variable(n) )
-      { int argn = 1;
-	term_t a = PL_new_term_ref();
+      { argn = 1;
 
-	for(argn=1; argn <= arity; argn++)
-	{ _PL_get_arg(argn, term, a);
-	  if ( PL_unify(arg, a) )
-	  { PL_unify_integer(n, argn);
-	    if ( argn == arity )
-	      succeed;
-	    ForeignRedoInt(argn);
-	  }
-	  if ( exception_term )
-	    return FALSE;
-	}
-	fail;
+	goto genarg;
       }
       return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_integer, n);
     }
     case FRG_REDO:
-    { int argn = (int)CTX_INT + 1;
-      term_t a = PL_new_term_ref();
+    { term_t a;
+      fid_t fid;
+      int rc;
 
       if ( !PL_get_name_arity(term, &name, &arity) )
 	sysError("arg/3: PL_get_name_arity() failed");
+      argn = (int)CTX_INT + 1;
 
+    genarg:
+      rc = FALSE;
+      if ( !(fid=PL_open_foreign_frame()) ||
+	   !(a = PL_new_term_ref()) )
+	return FALSE;
       for(; argn <= arity; argn++)
       { _PL_get_arg(argn, term, a);
 	if ( PL_unify(arg, a) )
-	{ PL_unify_integer(n, argn);
+	{ if ( !PL_unify_integer(n, argn) )
+	    break;
 	  if ( argn == arity )
-	    succeed;
+	  { rc = TRUE;
+	    break;
+	  }
+	  PL_close_foreign_frame(fid);
 	  ForeignRedoInt(argn);
 	}
 	if ( exception_term )
-	  return FALSE;
+	  break;
+	PL_rewind_foreign_frame(fid);
       }
 
-      fail;
+      PL_close_foreign_frame(fid);
+      return rc;
     }
     default:
       succeed;
@@ -2200,7 +2199,9 @@ lengthList(term_t list, int errors)
     return length;
 
   if ( errors )
-    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, wordToTermRef(l));
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, pushWordAsTermRef(l));
+    popTermRef();
+  }
 
   return isVar(*tail) ? -2 : -1;
 }
@@ -2362,7 +2363,7 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 
 	  deRef(p);
 	  if ( isInteger(*p) )
-	  { intptr_t i = valInteger(*p);
+	  { intptr_t i = (intptr_t)valInteger(*p); /* cannot be bigger */
 
 	    if ( i >= (intptr_t)start )
 	    { n = ALREADY_NUMBERED;
@@ -2992,6 +2993,7 @@ unify_all_trail_ptrs(Word t1, Word t2, mark *m ARG_LD)
 static ssize_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 { mark m;
+  int rc;
 
   if ( PL_is_variable(t1) )
   { if ( PL_compare(t1, t2) == 0 )
@@ -3097,7 +3099,10 @@ retry:
       gTop = gp;			/* may not have used all space */
       tTop = m.trailtop;
 
-      return PL_unify(wordToTermRef(list), subst);
+      rc = PL_unify(pushWordAsTermRef(list), subst);
+      popTermRef();
+
+      return rc;
     } else
     { DiscardMark(m);
       return PL_unify_atom(subst, ATOM_nil);
@@ -3324,8 +3329,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 
         AR_END();
         return rc;
-      }
-      else
+      } else
       { clearNumber(&n);
         AR_END();
         return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
@@ -3813,7 +3817,7 @@ sub_text(term_t atom,
 	  }
 	  fail;
 	}
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	state->type = SUB_SEARCH;
 	state->n1   = 0;
 	state->n2   = la;
@@ -3842,7 +3846,7 @@ sub_text(term_t atom,
 
 	  fail;
 	}
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	state->type = SUB_SPLIT_TAIL;
 	state->n1   = 0;		/* len of the split */
 	state->n2   = la;		/* length of the atom */
@@ -3863,7 +3867,7 @@ sub_text(term_t atom,
 
 	  fail;
 	}
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	state->type = SUB_SPLIT_LEN;
 	state->n1   = 0;		/* before */
 	state->n2   = l;		/* length */
@@ -3875,7 +3879,7 @@ sub_text(term_t atom,
       { if ( a > (int)la )
 	  fail;
 
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	state->type = SUB_SPLIT_HEAD;
 	state->n1   = 0;		/* before */
 	state->n2   = la;
@@ -3883,7 +3887,7 @@ sub_text(term_t atom,
 	break;
       }
 
-      state = allocHeap(sizeof(*state));
+      state = allocHeapOrHalt(sizeof(*state));
       state->type = SUB_ENUM;
       state->n1	= 0;			/* before */
       state->n2 = 0;			/* len */
@@ -4427,7 +4431,7 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     vn = 2;
   } else if ( key == ATOM_trail )
   { v[0] = usedStack(trail);
-    v[1] = 0;
+    v[1] = limitStack(trail) - v[0];
     vn = 2;
   } else if ( key == ATOM_program )
   { v[0] = GD->statistics.heap;
@@ -4545,6 +4549,10 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = LD->shift_status.local_shifts;
   else if (key == ATOM_trail_shifts)
     v->value.i = LD->shift_status.trail_shifts;
+  else if (key == ATOM_shift_time)
+  { v->type = V_FLOAT;
+    v->value.f = LD->shift_status.time;
+  }
 #ifdef O_PLMT
   else if ( key == ATOM_threads )
     v->value.i = GD->statistics.threads_created -
@@ -4867,7 +4875,6 @@ PRED_IMPL("$style_check", 2, style_check, 0)
   if ( PL_unify_integer(old, debugstatus.styleCheck) &&
        PL_get_integer(new, &n) )
   { debugstatus.styleCheck = n;
-    systemMode(n & DOLLAR_STYLE);
 
     succeed;
   }

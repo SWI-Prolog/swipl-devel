@@ -24,7 +24,7 @@ COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
 COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
 COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
 COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
-COREMODULES+=" packages/nlp packages/cpp"
+COREMODULES+=" packages/nlp packages/cpp packages/windows packages/PDT"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"
@@ -95,28 +95,6 @@ if findexe gtar; then tar=gtar; fi;
 ################################################################
 # Sub-modules
 ################################################################
-
-notemptydir()
-{ if [ -z "`find $1 -type f`" ]; then
-    return 1
-  fi
-
-  return 0
-}
-
-notamodule=
-for d in $COREMODULES; do
-  if [ -d $d -a ! -d $d/.git ] && notemptydir $d ; then
-    notamodule+=" $d"
-  fi
-done
-if [ ! -z "$notamodule" ]; then
-  if confirm "Directories $notamodule are not git submodules.  Remove? "; then
-    rm -rf $notamodule
-    rm -f man/Manual/index.html	# re-fetch the manual
-    git submodule sync
-  fi
-fi
 
 nothere=`git submodule status $COREMODULES | awk '/^[-]/ {print $2}'`
 if [ ! -z "$nothere" ]; then
@@ -264,6 +242,11 @@ esac
 
 confdir()
 { if grep AC_INIT configure.in 2>&1 >/dev/null; then
+    for dep in ../ac_swi_c.m4 ../ac_swi_noc.m4; do
+      if [ -f configure -a -f $dep -a $dep -nt configure ]; then
+        rm configure;
+      fi
+    done
     if [ -f configure -a ! configure.in -nt configure ]; then
       return
     fi
@@ -280,25 +263,32 @@ confdir()
 is_mingw()
 { case `uname` in
     MINGW*)
-	return 0
-	;;
+       return 0
+       ;;
     *)
-	return 1
-	;;
+       return 1
+       ;;
   esac
 }
 
-if is_mingw; then
-  echo "MinGW: skipping autoconf setup"
+
+if findexe autoconf; then
+  for f in `find . -name configure.in`; do
+    d=`dirname $f`
+    (cd $d && confdir $d)
+  done
   echo "Your kit is prepared."
+  echo "Please consult INSTALL for further instructions."
 else
-  if findexe autoconf; then
-    for f in `find . -name configure.in`; do
-      d=`dirname $f`
-      (cd $d && confdir $d)
-    done
-    echo "Your kit is prepared."
-    echo "Please consult INSTALL for further instructions."
+  if is_mingw; then
+    cat << _EOM_
+Detected MinGW but could not find GNU autoconf.
+
+  - If you wish to use MinGW for building SWI-Prolog, please install
+    autoconf and re-run this script.
+  - If you plan to use Microsoft MSVC for building SWI-Prolog, GNU
+    autoconf is not required and you may proceed with building.
+_EOM_
   else
     echo 'WARNING: Cannot find GNU autoconf in $PATH.'
     echo 'WARNING: configure scripts cannot be created.'

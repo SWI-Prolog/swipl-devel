@@ -5,6 +5,7 @@ AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
 AC_SUBST(PLINCL)
+AC_SUBST(INSTALL_PLARCH)
 AC_SUBST(COFLAGS)
 AC_SUBST(CIFLAGS)
 AC_SUBST(CWFLAGS)
@@ -13,6 +14,10 @@ AC_SUBST(ETAGS)
 AC_SUBST(LD)
 AC_SUBST(SO)				dnl shared-object extension (e.g., so)
 AC_SUBST(LDSOFLAGS)			dnl pass -shared to swipl-ld
+AC_SUBST(SOLIB)
+AC_SUBST(TXTEXT)
+
+PLPKGDIR=${PLPKGDIR-..}
 
 if test -z "$PLINCL"; then
 plcandidates="swipl swi-prolog pl"
@@ -36,11 +41,27 @@ AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 if test "$PLTHREADS" = "yes"; then MT=yes; fi
 else
-PL=../swipl.sh
-PLLD=../swipl-ld.sh
+PL=$PLPKGDIR/swipl.sh
+PLLD=$PLPKGDIR/swipl-ld.sh
 fi
 
+case "$PLARCH" in
+    *-win32|*-win64)
+        SOLIB=bin
+        TXTEXT=.TXT
+        ;;
+    *)
+        SOLIB=lib
+        INSTALL_PLARCH=$PLARCH
+        ;;
+esac
+
 if test "$MT" = yes; then
+  case "$PLARCH" in
+    *freebsd|openbsd*)	AC_DEFINE(_THREAD_SAFE, 1,
+				  [Define for threaded code on FreeBSD])
+			;;
+  esac
   AC_DEFINE(_REENTRANT, 1,
             [Define for multi-thread support])
 fi
@@ -67,3 +88,20 @@ if test ! -z "$GCC"; then
 else
     COFLAGS="${COFLAGS--O}"
 fi
+
+dnl Get MinGW thread support.  Note that this may change if we move to
+dnl winpthreads.h.  We could also consider handling this through $PLLIBS,
+dnl but in theory it should be possible to compile external packages with
+dnl different thread libraries.
+
+case "$PLARCH" in
+     *-win32|*-win64)
+        AC_CHECK_LIB(pthreadGC2, pthread_create)
+        if test ! "$ac_cv_lib_pthreadGC2_pthread_create" = "yes"; then
+          AC_CHECK_LIB(pthreadGC, pthread_create)
+          if test ! "$ac_cv_lib_pthreadGC_pthread_create" = "yes"; then
+            AC_CHECK_LIB(pthread, pthread_create)
+          fi
+        fi
+        ;;
+esac

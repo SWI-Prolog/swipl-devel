@@ -19,11 +19,13 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef _PL_INCLUDE_H
 #define _PL_INCLUDE_H
+
+#define PLNAME "swi"
 
 #ifdef __WINDOWS__
 #ifdef WIN64
@@ -139,6 +141,15 @@ handy for it someone wants to add a data type to the system.
 #define O_CYCLIC		1
 #ifdef HAVE_GMP_H
 #define O_GMP			1
+#endif
+#ifdef __WINDOWS__
+#define NOTTYCONTROL           TRUE
+#define O_DDE 1
+#define O_DLL 1
+#define O_HASDRIVES 1
+#define O_HASSHARES 1
+#define O_XOS 1
+#define O_RLC 1
 #endif
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
@@ -257,7 +268,13 @@ void *alloca ();
 #endif
 
 #ifdef O_GMP
+#ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
+#pragma warning( disable : 4146 )
+#endif
 #include <gmp.h>
+#ifdef _MSC_VER
+#pragma warning( default : 4146 )
+#endif
 #endif
 
 #if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
@@ -454,11 +471,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 
 #include "os/pl-table.h"
-
-/* Definition->indexPattern is set to NEED_REINDEX if the definition's index
-   pattern needs to be recomputed */
-#define NEED_REINDEX (1U << (INTBITSIZE-1))
-
 #include "pl-vmi.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -616,7 +628,7 @@ typedef struct definition_chain *DefinitionChain; /* linked list of defs */
 typedef struct clause *		Clause;		/* compiled clause */
 typedef struct clause_ref *	ClauseRef;      /* reference to a clause */
 typedef struct clause_index *	ClauseIndex;    /* Clause indexing table */
-typedef struct clause_chain *	ClauseChain;    /* Chain of clauses in table */
+typedef struct clause_bucket *	ClauseBucket;   /* Bucked in clause-index table */
 typedef struct operator *	Operator;	/* see pl-op.c, pl-read.c */
 typedef struct record *		Record;		/* recorda/3, etc. */
 typedef struct recordRef *	RecordRef;      /* reference to a record */
@@ -627,12 +639,12 @@ typedef struct list_cell *	ListCell;	/* Anonymous list */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
 typedef struct local_definitions *LocalDefinitions; /* thread-local preds */
 typedef struct choice *		Choice;		/* Choice-point */
+typedef struct clause_choice *  ClauseChoice;   /* firstClause()/nextClause() */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame;	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
 typedef struct gc_trail_entry *	GCTrailEntry;	/* Entry of trail stack (GC) */
 typedef struct mark		mark;		/* backtrack mark */
-typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
 typedef struct _varDef *	VarDef;		/* pl-comp.c */
 typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
@@ -793,7 +805,7 @@ with one operation, it turns out to be faster as well.
 #define VOLATILE		(0x00020000L) /* predicate */
 #define AUTOINDEX		(0x00040000L) /* predicate */
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
-#define NEEDSREHASH		(0x00100000L) /* predicate */
+		      /* unused (0x00100000L) */
 #define P_VARARG		(0x00200000L) /* predicate */
 #define P_SHARED		(0x00400000L) /* predicate */
 #define P_REDEFINED		(0x00800000L) /* predicate */
@@ -904,7 +916,7 @@ introduce a garbage collector (TBD).
 	if ( unlikely(true(def, DYNAMIC)) ) \
 	{ LOCKDYNDEF(def); \
 	  if ( --def->references == 0 && \
-	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
+	       true(def, NEEDSCLAUSEGC) ) \
 	  { gcClausesDefinitionAndUnlock(def); \
 	  } else \
 	  { UNLOCKDYNDEF(def); \
@@ -922,7 +934,7 @@ it mean anything?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define startCritical (void)(LD->critical++)
-#define endCritical   ((--(LD->critical) == 0 && LD->aborted) \
+#define endCritical   ((--(LD->critical) == 0 && LD->alerted) \
 				? endCritical__LD(PASS_LD1) : TRUE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1011,11 +1023,6 @@ extern Atom _PL_debug_atom_value(atom_t a);
 #define PL_unregister_atom(a)
 #endif
 
-struct index
-{ word		key;		/* key of index */
-  word		varmask;	/* variable field mask */
-};
-
 struct functorDef
 { FunctorDef	next;		/* next in chain */
   word		functor;	/* as appearing on the global stack */
@@ -1050,7 +1057,6 @@ to avoid problems for most platforms.
 
 struct clause
 { Procedure	procedure;		/* procedure we belong to */
-  struct index	index;			/* index key of clause */
 #ifdef O_LOGICAL_UPDATE
   struct
   { uintptr_t created;		/* Generation that created me */
@@ -1072,10 +1078,26 @@ struct clause
   code		codes[1];		/* VM codes of clause */
 };
 
-struct clause_ref
-{ Clause	clause;
-  ClauseRef	next;
-};
+typedef struct clause_list
+{ ClauseRef	first_clause;		/* clause list of procedure */
+  ClauseRef	last_clause;		/* last clause of list */
+  ClauseIndex	clause_indexes;		/* Hash index(es) */
+  unsigned int	number_of_clauses;	/* number of associated clauses */
+  unsigned int	erased_clauses;		/* number of erased clauses in set */
+} clause_list, *ClauseList;
+
+typedef struct clause_ref
+{ ClauseRef	next;			/* Next in list */
+  word		key;			/* Index key */
+  union
+  { Clause	clause;			/* Single clause value */
+    clause_list	clauses;		/* Clause list (in hash-tables) */
+  } value;
+} clause_ref;
+
+#define SIZEOF_CREF_CLAUSE	(offsetof(clause_ref, value.clause) + \
+				 sizeof(Clause))
+#define SIZEOF_CREF_LIST	sizeof(clause_ref)
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
@@ -1129,23 +1151,29 @@ struct functor
   word		arguments[1];	/* arguments vector */
 };
 
-struct procedure
-{ Definition	definition;	/* definition of procedure */
-  int		type;		/* PROCEDURE_TYPE */
+struct clause_bucket
+{ ClauseRef	head;
+  ClauseRef	tail;
+  unsigned int	dirty;			/* # of garbage clauses */
 };
 
 struct clause_index
-{ int		buckets;		/* # entries */
-  int		size;			/* # elements (clauses) */
-  int		alldirty;		/* all chains need checked */
-  ClauseChain	entries;		/* chains holding the clauses */
+{ unsigned int	 buckets;		/* # entries */
+  unsigned int	 size;			/* # clauses */
+  unsigned int	 resize_above;		/* consider resize > #clauses */
+  unsigned int	 resize_below;		/* consider resize < #clauses */
+  unsigned short arg;			/* Indexed argument */
+  unsigned	 is_list : 1;		/* Index with lists */
+  unsigned int	 dirty;			/* # chains that are dirty */
+  float		 speedup;		/* Estimated speedup */
+  ClauseIndex	 next;			/* Next index */
+  ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
-struct clause_chain
-{ ClauseRef	head;
-  ClauseRef	tail;
-  int		dirty;			/* # of garbage clauses */
-};
+typedef struct clause_index_list
+{ ClauseIndex index;
+  struct clause_index_list *next;
+} clause_index_list, *ClauseIndexList;
 
 #define MAX_BLOCKS 20			/* allows for 2M threads */
 
@@ -1159,18 +1187,17 @@ struct definition
   Module	module;			/* module of the predicate */
   Code		codes;			/* Executable code */
   union
-  { ClauseRef	clauses;		/* clause list of procedure */
+  { void *	any;			/* has some value */
+    clause_list	clauses;		/* (Indexed) list of clauses */
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
-  } definition;
-  ClauseRef	lastClause;		/* last clause of list */
+  } impl;
   int		references;		/* reference count */
-  unsigned int  erased_clauses;		/* #erased but not reclaimed clauses */
 #ifdef O_PLMT
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
-  ClauseIndex	hash_info;		/* clause hash-tables */
-  unsigned int  indexPattern;		/* indexed argument pattern */
+  ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
+  struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
@@ -1192,23 +1219,23 @@ struct definition
 		/*	VOLATILE	   Don't save my clauses */
 		/*	AUTOINDEX	   Automatically guess index */
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
-		/*	NEEDSREHASH	   Hash-table is out-of-date */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
 		/*	P_SHARED	   Multiple procs are using me */
-  unsigned	indexCardinality : 8;	/* cardinality of index pattern */
-  unsigned	number_of_clauses : 24;	/* number of associated clauses */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
 #endif
 };
 
-
 struct definition_chain
 { Definition		definition;	/* chain on definition */
   DefinitionChain	next;		/* next in chain */
 };
 
+struct procedure
+{ Definition	definition;	/* definition of procedure */
+  int		type;		/* PROCEDURE_TYPE */
+};
 
 struct localFrame
 { Code		programPointer;		/* pointer into program */
@@ -1241,17 +1268,15 @@ typedef enum
 } choice_type;
 
 typedef enum
-{ ABORT_NONE = 0,			/* not in abort-state */
-  ABORT_RAISE,				/* Raise exception */
-  ABORT_THROW,				/* Throw exception */
-  ABORT_FATAL				/* Total reset on fatal error */
-} abort_type;
-
-typedef enum
 { DBG_OFF = 0,				/* no debugging */
   DBG_ON,				/* switch on in current environment */
   DBG_ALL				/* switch on globally */
 } debug_type;
+
+struct clause_choice
+{ ClauseRef	cref;			/* Next clause reference */
+  word		key;			/* Search key */
+};
 
 struct choice
 { choice_type	type;			/* CHP_* */
@@ -1262,7 +1287,7 @@ struct choice
   struct call_node *prof_node;		/* Profiling node */
 #endif
   union
-  { ClauseRef	clause;			/* Next candidate clause */
+  { struct clause_choice clause;	/* Next candidate clause */
     Code	PC;			/* Next candidate program counter */
     word        foreign;		/* foreign redo handle */
   } value;
@@ -1384,14 +1409,14 @@ struct recordRef
 };
 
 struct sourceFile
-{ atom_t	name;		/* name of source file */
-  int		count;		/* number of times loaded */
-  time_t	time;		/* load time of file */
-  ListCell	procedures;	/* List of associated procedures */
+{ atom_t	name;			/* name of source file */
+  time_t	time;			/* load time of file */
+  ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
-  int		index;		/* index number (1,2,...) */
-  unsigned	system : 1;	/* system sourcefile: do not reload */
-  unsigned	module_count:8;	/* # modules in the file */
+  ListCell	modules;		/* Modules associated to this file */
+  int		count;			/* number of times loaded */
+  unsigned	index : 24;		/* index number (1,2,...) */
+  unsigned	system : 1;		/* system sourcefile: do not reload */
 };
 
 
@@ -1402,7 +1427,8 @@ struct list_cell
 
 
 struct module
-{ word		name;		/* name of module */
+{ atom_t	name;		/* name of module */
+  atom_t	class;		/* class of the module */
   SourceFile	file;		/* file from which module is loaded */
   Table		procedures;	/* predicates associated with module */
   Table		public;		/* public predicates associated */
@@ -1508,7 +1534,7 @@ struct alloc_pool
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
-			     SECURE(assert((b).saved_bar >= gBase && \
+			     DEBUG(CHK_SECURE, assert((b).saved_bar >= gBase && \
 					   (b).saved_bar <= gTop)); \
 			     LD->mark_bar = (b).globaltop = gTop; \
 			   } while(0)
@@ -1621,15 +1647,19 @@ typedef struct
 		 *	      EVENTS		*
 		 *******************************/
 
-#define PLEV_ERASED_CLAUSE   0		/* clause was erased */
-#define PLEV_ERASED_RECORD   1		/* record was erased */
-#define PLEV_DEBUGGING	     2		/* changed debugging mode */
-#define PLEV_TRACING	     3		/* changed tracing mode */
-#define PLEV_SPY	     4		/* changed spypoint */
-#define PLEV_BREAK	     5		/* a break-point was set */
-#define PLEV_NOBREAK	     6		/* a break-point was cleared */
-#define PLEV_FRAMEFINISHED   7		/* A watched frame was discarded */
-#define PL_EV_THREADFINISHED 8		/* A thread has finished */
+typedef enum pl_event_type
+{ PLEV_ABORT,				/* Execution aborted */
+  PLEV_ERASED_CLAUSE,			/* clause was erased */
+  PLEV_ERASED_RECORD,			/* record was erased */
+  PLEV_DEBUGGING,			/* changed debugging mode */
+  PLEV_TRACING,				/* changed tracing mode */
+  PLEV_SPY,				/* changed spypoint */
+  PLEV_BREAK,				/* a break-point was set */
+  PLEV_NOBREAK,				/* a break-point was cleared */
+  PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
+  PL_EV_THREADFINISHED			/* A thread has finished */
+} pl_event_type;
+
 
 
 		 /*******************************
@@ -1717,12 +1747,12 @@ typedef struct
 #define onGlobalArea(addr) \
 	((char *)(addr) >= (char *)gBase && \
 	 (char *)(addr) <  (char *)lBase)
-#define usedStackP(s) ((char *)(s)->top - (char *)(s)->base)
-#define sizeStackP(s) ((char *)(s)->max - (char *)(s)->base)
-#define roomStackP(s) ((char *)(s)->max - (char *)(s)->top)
+#define usedStackP(s) ((intptr_t)((char *)(s)->top - (char *)(s)->base))
+#define sizeStackP(s) ((intptr_t)((char *)(s)->max - (char *)(s)->base))
+#define roomStackP(s) ((intptr_t)((char *)(s)->max - (char *)(s)->top))
 #define spaceStackP(s) (limitStackP(s)-usedStackP(s))
-#define limitStackP(s) ((s)->size_limit)
-#define narrowStackP(s) (roomStackP(s) < (s)->minfree)
+#define limitStackP(s) ((intptr_t)((s)->size_limit))
+#define narrowStackP(s) (roomStackP(s) < (intptr_t)(s)->minfree)
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
 #define sizeStack(name) sizeStackP(&LD->stacks.name)
@@ -1958,12 +1988,10 @@ Tracer communication declarations.
 
 #define LONGATOM_CHECK	    0x01	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x02	/* read/1: check singleton vars */
-#define DOLLAR_STYLE	    0x04	/* dollar is lower case */
 #define DISCONTIGUOUS_STYLE 0x08	/* warn on discontiguous predicates */
 #define DYNAMIC_STYLE	    0x10	/* warn on assert/retract active */
 #define CHARSET_CHECK	    0x20	/* warn on unquoted characters */
 #define MAXNEWLINES	    5		/* maximum # of newlines in atom */
-#define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
 typedef struct debuginfo
 { size_t	skiplevel;		/* current skip level */
@@ -2022,6 +2050,12 @@ typedef enum
   OCCURS_CHECK_ERROR		/* exception if rational tree would result */
 } occurs_check_t;
 
+typedef enum
+{ ACCESS_LEVEL_USER = 0,	/* Default user view */
+  ACCESS_LEVEL_SYSTEM		/* Allow low-level access */
+} access_level_t;
+
+#define SYSTEM_MODE	    (LD->prolog_flag.access_level == ACCESS_LEVEL_SYSTEM)
 
 #ifdef O_LIMIT_DEPTH
 #define DEPTH_NO_LIMIT	(~(uintptr_t)0x0) /* Highest value */
@@ -2104,8 +2138,9 @@ decrease).
 #define DMALLOC_FUNC_CHECK 1
 #define O_MYALLOC 0
 #include <dmalloc.h>
-#define allocHeap(n)  xmalloc(n)
-#define freeHeap(ptr, n) xfree(ptr)
+#define allocHeap(n)		malloc(n)
+#define allocHeapOrHalt(n)	xmalloc(n)
+#define freeHeap(ptr, n)	xfree(ptr)
 #endif
 
 #endif /*_PL_INCLUDE_H*/

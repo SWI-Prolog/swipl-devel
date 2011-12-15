@@ -17,9 +17,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
+    You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -72,17 +72,7 @@ qcompile_(FileName, Module, Options) :-
 	),
 	once(user:prolog_file_type(QlfExt, qlf)),
 	file_name_extension(ABase, QlfExt, Qlf),
-	'$qlf_open'(Qlf),
-	flag('$compiling', Old, qlf),
-	'$set_source_module'(OldModule, Module), % avoid this in the module!
-	(   load_files(Module:Absolute, Options)
-	->  Ok = true
-	;   Ok = fail
-	),
-	'$set_source_module'(_, OldModule),
-	flag('$compiling', _, Old),
-	'$qlf_close',
-	Ok == true.
+	load_files(Module:Absolute, ['$qlf'(Qlf)|Options]).
 
 
 %%	'$qload_file'(+File, +Module, -Action, -LoadedModule, +Options)

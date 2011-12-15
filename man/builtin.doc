@@ -45,7 +45,7 @@ refer to a grammar rule. For all non-negative arity, <name>//<arity> is
 the same as <name>/<arity+2>, regardless on whether or not the
 referenced predicate is defined or can be used as a grammar rule.
 The //-notation can be used in all places that traditionally allow
-for a predicate indicator, e.g.\ the module declaration, spy/1,
+for a predicate indicator, e.g., the module declaration, spy/1,
 and dynamic/1.
 
 
@@ -116,7 +116,10 @@ Prolog source files come in three flavours:
 \begin{description}
     \item [ A traditional ] Prolog source file contains Prolog
 clauses and directives, but no \jargon{module-declaration}.  They
-are normally loaded using consult/1 or ensure_loaded/1.
+are normally loaded using consult/1 or ensure_loaded/1.  Currently,
+a non-module file can only be loaded into a single module.\footnote{This
+limitation may be lifted in the future.  Existing limitations in SWI-Prolog's
+source-code administration make this non-trivial.}
 
     \item [ A module ] Prolog source file starts with a module
 declaration.  The subsequent Prolog code is loaded into the
@@ -161,15 +164,63 @@ systems grammar rule transformations. It is not allowed to use assert/1,
 retract/1 or any other database predicate in term_expansion/2 other than
 for local computational purposes.%
 	\footnote{It does work for normal loading, but not for qcompile/1.}
+Code that needs to create additional clauses must use
+compile_aux_clauses/1. See \pllib{library(apply_macros)} for an example.
 
-Directives may be placed anywhere in a source file, invoking any
-predicate.  They are executed when encountered.  If the directive fails,
-a warning is printed.  Directives are specified by :-/1 or ?-/1.  There
-is no difference between the two.
+A \jargon{directive} is an instruction to the compiler. Directives are
+used to set (predicate) properties (see \secref{declare}), set flags
+(see set_prolog_fag/2) and load files (this section).  Directives are
+terms of the form \mbox{\texttt{:-} <term>.}.  Here are some examples:
 
+\begin{code}
+:- use_module(library(lists)).
+:- dynamic
+	store/2.		% Name, Value
+\end{code}
+
+The directive initialization/1 can be used to run arbitrary Prolog
+goals.  The specified goal is started \emph{after} loading the file
+in which it appears has completed.
+
+SWI-Prolog compiles code as it is read from the file and directives are
+executed as \jargon{goals}. This implies that directives may call any
+predicate that has been defined before the point where the directive
+appears. It also accepts \mbox{\texttt{?-} <term>.} as a synonym.
+
+\index{reconsult}%
 SWI-Prolog does not have a separate \nopredref{reconsult}{1} predicate.
 Reconsulting is implied automatically by the fact that a file is
 consulted which is already loaded.
+
+Advanced topics are handled in subsequent sections: mutual dependend
+files (\secref{depload}), multi-threaded loading (\secref{mtload}) and
+reloading running code (\secref{reload}).
+
+The core of the family of loading predicates is load_files/2.  The predicates
+consult/1, ensure_loaded/1, use_module/1, use_module/2 and reexport/1 pass the
+file argument directly to load_files/2 and pass additional options as expressed
+in the \tabref{loadpreds}:
+
+\begin{table}
+\begin{center}
+\begin{tabular}{lccc}
+\hline
+\bf Predicate	& \bf if	     & \bf must_be_module & \bf import \\
+\hline
+consult/1	& \const{true}	     & \const{false} & all \\
+ensure_loaded/1	& \const{not_loaded} & \const{false} & all \\
+use_module/1	& \const{not_loaded} & \const{true}  & all\\
+use_module/2	& \const{not_loaded} & \const{true}  & specified \\
+reexport/1	& \const{not_loaded} & \const{true}  & all \\
+reexport/2	& \const{not_loaded} & \const{true}  & specified \\
+\hline
+\end{tabular}
+\end{center}
+    \caption{Properties of the file-loading predicates. The \textit{import}
+	     column specifies what is imported if the loaded file is a module
+	     file.}
+    \label{tab:loadpreds}
+\end{table}
 
 \begin{description}
     \predicate{load_files}{2}{:Files, +Options}
@@ -247,6 +298,12 @@ operators that unify with this term are imported. Typically, this
 construct will be used with all arguments unbound to import all
 operators or with only \arg{Name} bound to import a particular operator.
 
+    \termitem{modified}{TimeStamp}
+Claim that the source was load modified at \arg{TimeStamp} without
+checking the source.  This option is intended to be used together with
+the \term{stream}{Input} option, for example after extracting the time
+from an HTTP server or database.
+
     \termitem{must_be_module}{Bool}
 If \const{true}, raise an error if the file is not a module file.  Used by
 use_module/[1,2].
@@ -307,20 +364,14 @@ The load_files/2 predicate can be hooked to load other data or data from
 other objects than files.  See prolog_load_file/2 for a description and
 \pllib{http_load} for an example.
 
-    \predicate{consult}{1}{:File}
-Read \arg{File} as a Prolog source file. \arg{File} may be a list of
-files, in which case all members are consulted in turn. \arg{File} may
-start with the Unix shell special sequences \file{~}, \file{~<user>}
-and \file{\$<var>}. \arg{File} may also be \file{library(Name)}, in
-which case the libraries are searched for a file with the specified
-name. See also library_directory/1 and file_search_path/2. consult/1 may
-be abbreviated by just typing a number of file names in a list.
-Examples:
+    \predicate{consult}{1}{:Files}
+Read \arg{File} as a Prolog source file. Calls to consult/1 may be
+abbreviated by just typing a number of file names in a list. Examples:
 
 \begin{center}\begin{tabular}{ll}
-\exam{?- consult(load).}        & \% consult \file{load} or \file{load.pl} \\
-\exam{?- [library(quintus)].}   & \% load Quintus compatibility library \\
-\exam{?- [user].}		% \% Type program on the terminal \\
+\exam{?- consult(load).}     & \% consult \file{load} or \file{load.pl} \\
+\exam{?- [library(lists)].}  & \% load library lists \\
+\exam{?- [user].}	     & \% Type program on the terminal \\
 \end{tabular}\end{center}
 
 The predicate consult/1 is equivalent to load_files(Files, []), except
@@ -334,7 +385,7 @@ Finally, if the file is already loaded, is not a module file and the
 context module is not the global user module, ensure_loaded/1 will
 call consult/1.
 
-With the semantics, we hope to get as closely possible to the clear
+With the semantics, we hope to get as close as possible to the clear
 semantics without the presence of a module system.  Applications using
 modules should consider using use_module/[1,2].
 
@@ -385,10 +436,11 @@ autoload indices (see \secref{autoload}) and runs list_undefined/0
 from the \pllib{check} library to report on undefined predicates.
 
     \predicate{library_directory}{1}{?Atom}
-Dynamic predicate used to specify library directories.  Default
-\file{./lib}, \file{~/lib/prolog} and the system's library
-(in this order) are defined.  The user may add library directories
-using assert/1, asserta/1 or remove system defaults using retract/1.
+Dynamic predicate used to specify library directories. Default
+\file{./lib}, \file{~/lib/prolog} and the system's library (in this
+order) are defined. The user may add library directories using
+assertz/1, asserta/1 or remove system defaults using retract/1.
+Deprecated. New code should use file_search_path/2.
 
     \predicate{file_search_path}{2}{+Alias, ?Path}
 Dynamic predicate used to specify `path-aliases'.  This feature is
@@ -417,6 +469,13 @@ user:file_search_path(foreign, swi(ArchLib)) :-
         current_prolog_flag(arch, Arch),
         atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
+user:file_search_path(path, Dir) :-
+	getenv('PATH', Path),
+	(   current_prolog_flag(windows, true)
+	->  atomic_list_concat(Dirs, (;), Path)
+	;   atomic_list_concat(Dirs, :, Path)
+	),
+	member(Dir, Dirs).
 \end{code}
 
 The file_search_path/2 expansion is used by all loading predicates as
@@ -464,11 +523,46 @@ absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
 See also clause_property/2.
 
+    \predicate{source_file_property}{2}{?File, ?Property}
+Is true when \arg{Property} is a property of the loaded file \arg{File}.
+If \arg{File} is non-var, it can be a file-specification that is valid
+for load_files/2.  Defined properties are:
+
+    \begin{description}
+	\termitem{derived_from}{Original, OriginalModified}
+\arg{File} was generated from the file \arg{Original}, which was
+last-modified at \arg{OriginalModified} at the time it was loaded.
+This property is available if \arg{File} was loaded using the
+\term{derived_from}{Original} option to load_files/2.
+
+	\termitem{includes}{IncludedFile, IncludedFileModified}
+\arg{File} used include/1 to include \arg{IncludedFile}. The
+last-modified time of \arg{IncludedFile} was \arg{IncludedFileModified}
+at the time it was included.
+
+	\termitem{load_context}{Module, Location}
+\arg{Module} is the module into which the file was loaded. If \arg{File}
+is a module, this is the module into which the exports are imported.
+Otherwise it is the module into which the clauses of the non-module
+file are loaded.  \arg{Location} describes the file-location from which
+the file was loaded.  It is either a term <file>:<line> or the atom
+\const{user} if the file was loaded from the terminal or another unknown
+source.
+
+	\termitem{modified}{Stamp}
+File-modification time when \arg{File} was loaded.  This is used by
+make/0 to find files whose modification time is different from when
+it was loaded.
+
+	\termitem{module}{Module}
+\arg{File} is a module-file that declares the modules \arg{Module}.
+    \end{description}
+
     \predicate{unload_file}{1}{+File}
 Remove all clauses loaded from \arg{File}.  If \arg{File} loaded a
 module, clear the module's export-list and disassociates it from the
-file.  \arg{File} is a canonical file-name.  See source_file/1,
-module_property/2 and absolute_file_name/3.
+file.  \arg{File} is a canonical file-name or a file-indicator that is
+valid for load_files/2.
 
 This predicare shall be used with care. The multi-threaded nature of
 SWI-Prolog makes removing static code unsafe. Attempts to do this should
@@ -730,13 +824,13 @@ suffix(Suffix, List) :-
 Note that these directives can only appear as separate terms in the
 input.  Typical usage scenarios include:
 
-\begin{itemize}
+\begin{shortlist}
     \item Load different libraries on different dialects
     \item Define a predicate if it is missing as a system predicate
     \item Realise totally different implementations for a particular
     part of the code due to different capabilities.
     \item Realise different configuration options for your software.
-\end{itemize}
+\end{shortlist}
 
 
 \begin{description}
@@ -777,13 +871,13 @@ Traditionally, Prolog environments allow for reloading files holding
 currently active code.  In particular, the following sequence is valid
 use of the development environment:
 
-\begin{itemize}
+\begin{shortlist}
     \item Trace a goal
     \item Find unexpected behaviour of a predicate
     \item Enter a \jargon{break} using the \textbf{b} command
     \item Fix the sources and reload them using make/0
     \item Exit the break, \jargon{retry} using the \textbf{r} command
-\end{itemize}
+\end{shortlist}
 
 Goals running during the reload keep running on the old definition,
 while new goals use the reloaded definition, which is why the
@@ -805,7 +899,67 @@ execution of this predicate.
 \end{description}
 
 
-\subsubsection{Threads and reloading running code}
+\subsubsection{Compilation of mutual dependent code} \label{sec:depload}
+
+Large programs are generally split into multiple files. If file $A$
+accesses predicates from file $B$ which accesses predicates from file
+$A$, we consider this a mutual or circular dependency. If traditional
+load predicates (e.g., consult/1) are used to include file $B$ from $A$
+and $A$ from $B$, loading either file results in a loop. This is because
+consult/1 is mapped to load_files/2 using the option \term{if(true)}.
+Such programs are typically loaded using a \jargon{load-file} that
+consults all required (non-module) files. If modules are used, the
+dependencies are made explicit using use_module/1 statements. The
+use_module/1 predicate however maps to load_files/2 with the option
+\term{if(not_loaded)}. A use_module/1 on an already loaded file merely
+makes the public predicates of the used module available.
+
+Summarizing, mutual dependency of source-files is fully supported with
+no precautions when using modules. Modules can use each other in an
+arbitrary dependency graph. When using consult/1, predicate dependencies
+between loaded files can still be arbitrary, but the consult relations
+between files must be a proper tree.
+
+
+\subsubsection{Compilation with multiple threads} \label{sec:mtload}
+
+This section discusses compiling files for the first time. For
+re-loading see \secref{reload}.
+
+In older versions, compilation was thread-safe due to a global
+\jargon{lock} in load_files/2 and the code dealing with
+\jargon{autoloading} (see \secref{autoload}). Besides unnecessary
+stalling when multiple threads trap unrelated undefined predicates,
+this easily leads to deadlocks, notably if threads are started from an
+initialization/1 directive.\footnote{Although such goals are started
+after loading the file in which they appear, the calling thread is still
+likely to hold the `load' lock because it is compiling the file from
+which the file holding the directive is loaded.}
+
+Starting with version 5.11.27, the autoloader is no longer locked and
+multiple threads can compile files concurrently. This requires special
+precautions only if multiple threads wish to load the same file at the
+same time. Therefore, load_files/2 checks atomically whether some other
+thread is already loading the file. If not, it starts loading the file.
+If another thread is already loading the file, the thread blocks until
+the other thread finishes loading the file. After waiting, and if the
+file is a module file, it will make the public predicates available.
+
+Note that this schema does not prevent deadlocks under all situations.
+Consider two mutually dependent (see \secref{depload}) module files $A$
+and $B$, where thread~1 starts loading $A$ and thread~2 starts loading
+$B$ at the same time. Both threads will deadlock when trying to load the
+used module.
+
+The current implementation does not detect such cases and the involved
+threads will freeze. This problem can be avoided if a mutually dependend
+collection of files is always loaded from the same start-file.
+
+
+\subsubsection{Reloading running code}		\label{sec:reload}
+
+This section discusses \emph{not re-}loading of code.  Initial loading
+of code is discussed in \secref{mtload}.
 
 As of version 5.5.30, there is basic thread-safety for reloading
 source files while other threads are executing code defined in these
@@ -2226,12 +2380,18 @@ it was erased.  Only clauses with `created' \ldots `erased' interval
 that encloses the generation of the current goal are considered visible.
 
 
-\subsection{Indexing databases}
+\subsection{Indexing databases}			\label{sec:hashterm}
 
-By default, SWI-Prolog, as most other implementations, indexes
-predicates on their first argument.  SWI-Prolog allows indexing
-on other and multiple arguments using the declaration index/1.
-Dedicated index schemas can be built using term_hash/2 or term_hash/4.
+\index{indexing,term-hashes}%
+The indexing capabilities of SWI-Prolog are described in
+\secref{jitindex}. Summarizing, SWI-Prolog creates indexes for any
+applicable argument, but indexes only on one argument and does not index
+on arguments of compound terms. The predicates below provide building
+blocks to circumvent the limitations of the current indexing system.
+
+Programs that aim at portability should consider using term_hash/2 and
+term_hash/4 to design their database such that indexing on constant or
+functor (name/arity reference) on the first argument is sufficient.
 
 \begin{description}
     \predicate[det]{term_hash}{2}{+Term, -HashKey}
@@ -2345,62 +2505,6 @@ no semantics.\footnote{This declaration is compatible to SICStus.  In
 YAP, public/1 instructs the compiler to keep the source.  As the source
 is always available in SWI-Prolog, our current interpretation also
 enhanced the compatibility to YAP.}
-
-    \predicate{index}{1}{+Head}
-Index the clauses of the predicate with the same name and arity as
-\arg{Head} on the specified arguments. \arg{Head} is a term of which all
-arguments are either `1' (denoting `index this argument') or `0'
-(denoting `do not index this argument'). Indexing has no implications
-for the semantics of a predicate, only on its performance. If indexing
-is enabled on a predicate a special purpose algorithm is used to select
-candidate clauses based on the actual arguments of the goal. This
-algorithm checks whether indexed arguments might unify in the clause
-head. Only atoms, integers and compound terms are considered. Compound
-terms are indexed on the combination of their name and arity. Indexing
-is very useful for predicates with many clauses representing facts.
-
-Due to the representation technique used at most 4 arguments can be
-indexed. All indexed arguments should  be in the first 32 arguments of
-the predicate. If more than 4 arguments are specified for indexing only
-the first 4 will be accepted. Arguments above 32 are ignored for indexing.
-
-Indexing as specified by this predicate uses a quick but linear scan.
-Without explicit specification the system uses an algorithm depending on
-the structure of the first argument and number of clauses, In
-particular, for predicates that can be indexed on the first argument and
-have many clauses, the system will use an automatically resizing
-hash-table to provide access time independent from the number of
-clauses.%
-	\footnote{SWI-Prolog indexing is no longer state-of-the-art.
-		  Better schemas for multi-argument as well as indexing
-		  \emph{inside} compound terms are known.  We hope to
-		  integrate this in future versions.}
-If---for example---one wants to represents sub-types using a fact list
-\mbox{`sub_type(Sub, Super)'} that should be used both to determine sub- and
-super types one should declare {sub_type}/2 as follows:
-
-\begin{code}
-:- index(sub_type(1, 1)).
-
-sub_type(horse, animal).
-...
-...
-\end{code}
-
-Note that this type of indexing makes selecting clauses much faster but
-remains \emph{linear} with respect to the number of clauses, while
-hashing as described with hash/1 provides constant access time.
-See also hash/1 and term_hash/2.
-
-    \predicate{hash}{1}{+Head}
-Index the given predicate by hashing on the first argument. This is done
-by default on any predicate with more than 5 clauses having a first
-argument that can be indexed and at most two that can not be indexed. On
-dynamic predicates the hash-table is resized as the number of clauses
-grows, providing roughly constant-time access regardless of the number
-of clauses predicates that can be indexed on the first argument.
-See also index/1, term_hash/2 and predicate_property/2.
-
 \end{description}
 
 \section{Examining the program}		\label{sec:examineprog}
@@ -2465,17 +2569,17 @@ lookup of the autoloader will cause the autoloader to verify that its
 index is up-to-date.
 
     \predicate{predicate_property}{2}{:Head, ?Property}
-True if \arg{Head} refers to a predicate that has property
+True when \arg{Head} refers to a predicate that has property
 \arg{Property}. With sufficiently instantiated \arg{Head},
 predicate_property/2 tries to resolve the predicate the same way as
 calling it would do: if the predicate is not defined it scans the
-auto-import modules and finally tries the autoloader. Unlike calling,
-failure to find the target predicate causes predicate_property/2 to fail
-silently. If \arg{Head} is not sufficiently bound, only currently
-locally defined and already imported predicates are enumerated. See
-current_predicate/1 for enumerating all predicates. A common issue
-concerns \emph{generating} all built-in predicates. This can be achieved
-using the code below.
+default modules (see default_module/2) and finally tries the autoloader.
+Unlike calling, failure to find the target predicate causes
+predicate_property/2 to fail silently. If \arg{Head} is not sufficiently
+bound, only currently locally defined and already imported predicates
+are enumerated. See current_predicate/1 for enumerating all predicates.
+A common issue concerns \emph{generating} all built-in predicates. This
+can be achieved using the code below.
 
 \begin{code}
 generate_built_in(Name/Arity) :-
@@ -2516,10 +2620,18 @@ achieved using nth_clause/3 and clause_property/2.
     \termitem{foreign}{}
 Is true if the predicate is defined in the C language.
 
-    \termitem{indexed}{Head}
-Predicate is indexed (see index/1) according to \arg{Head}. \arg{Head}
-is a term whose name and arity are identical to the predicate. The
-arguments are unified with `1' for indexed arguments, `0' otherwise.
+    \termitem{indexed}{Indexes}
+\arg{Indexes}\footnote{This predicate property should be used for
+analysis and statistics only. The exact representation of \arg{Indexes}
+may change between versions.} is a list of additional (hash) indexes on
+the predicate. Each element of the list is a term
+\arg{ArgSpec}-\arg{Index}. Currently \arg{ArgSpec} is an integer
+denoting the argument position and \arg{Index} is a term
+\term{hash}{Buckets, Speedup, IsList}. Here \arg{Buckets} is the number
+of buckets in the hash and \arg{Speedup} is the expected speedup
+relative to trying all clauses linearly.  \arg{IsList} indicates that
+a list is created for all clauses with the same key.  This is currently
+not used.
 
     \termitem{interpreted}{}
 Is true if the predicate is defined in Prolog. We return true on this
@@ -2572,8 +2684,8 @@ thread_local/1.
     \termitem{transparent}{}
 Is true if the predicate is declared transparent using the
 module_transparent/1 or meta_predicate/1 declaration.  In the
-latter case the property \const{meta} is also provided. See
-\chapref{modules} for details.
+latter case the property \term{meta_predicate}{Head} is also provided.
+See \chapref{modules} for details.
 
     \termitem{undefined}{}
 Is true if a procedure definition block for the predicate exists, but
@@ -2583,20 +2695,29 @@ an attempt to call it has been made via one of the meta-call predicates
 or the predicate had a definition in the past. See the library package
 \pllib{check} for example usage.
 
+    \termitem{visible}{}
+True when predicate can be called without raising a predicate existence
+error. This means that the predicate is (1) defined, (2) can be
+inherited from one of the default modules (see default_module/2) or (3)
+can be autoloaded. The behaviour is logically consistent iff the propery
+\const{visible} is provided explicitly. If the property is left unbound,
+only defined predicates are enumerated.
+
     \termitem{volatile}{}
 If true, the clauses are not saved into a saved-state
 by qsave_program/[1,2].  This property is set using volatile/1.
 \end{description}
 
     \predicate{dwim_predicate}{2}{+Term, -Dwim}
-`Do What I Mean' (`dwim') support predicate. \arg{Term} is a term,
-which name and arity are used as a predicate specification.  \arg{Dwim}
-is instantiated with the most general term built from \arg{Name} and the
+`Do What I Mean' (`dwim') support predicate. \arg{Term} is a term, which
+name and arity are used as a predicate specification. \arg{Dwim} is
+instantiated with the most general term built from \arg{Name} and the
 arity of a defined predicate that matches the predicate specified by
-\arg{Term} in the `Do What I Mean' sense.  See dwim_match/2 for `Do
-What I Mean' string matching.  Internal system predicates are
-not generated, unless \exam{style_check(+dollar)} is active.  Backtracking
-provides all alternative matches.
+\arg{Term} in the `Do What I Mean' sense. See dwim_match/2 for `Do What
+I Mean' string matching. Internal system predicates are not generated,
+unless the access level is \const{system} (see
+\prologflag{access_level}). Backtracking provides all alternative
+matches.
 
     \predicate[ISO]{clause}{2}{:Head, ?Body}
 True if \arg{Head} can be unified with a clause head and \arg{Body} with
@@ -2618,7 +2739,7 @@ arity of \arg{Pred} are used to determine the predicate.  If \arg{Index}
 is provided \arg{Reference} will be unified with the clause reference.
 If \arg{Index} is unbound, backtracking will yield both the indices and
 the references of all clauses of the predicate.  The following example
-finds the 2nd clause of member/2:
+finds the 2nd clause of append/3:
 
 \begin{code}
 ?- use_module(library(lists)).
@@ -3140,6 +3261,16 @@ collect_wd([C|R]) :-
 collect_wd([]).
 \end{code}
 
+The effect of tell/1 is not undone on backtracking, and since the
+stream handle is not specified explicitly in further I/O operations
+when using Edinburgh-style I/O, you may write to unintended streams
+more easily than when using ISO compliant I/O. For example, the
+following query writes both "a" and "b" into the file `out' :
+
+\begin{code}
+?- (tell(out), write(a), false ; write(b)), told.
+\end{code}
+
 
 \subsubsection*{Compatibility notes}
 
@@ -3307,13 +3438,14 @@ waits indefinitely.%
 This predicate can be used to implement timeout while reading and to
 handle input from multiple sources. The following example will wait for
 input from the user and an explicitly opened second terminal. On return,
-\arg{Inputs} may hold \const{user} or \arg{P4} or both.
+\arg{Inputs} may hold \const{user_input} or \arg{P4} or both.
 
 \begin{code}
 ?- open('/dev/ttyp4', read, P4),
-   wait_for_input([user, P4], Inputs, 0).
+   wait_for_input([user_input, P4], Inputs, 0).
 \end{code}
 
+\index{select()}%
 This predicate relies on the select() call on most operating systems. On
 Unix this call is implemented for any stream referring to a file-handle,
 which implies all OS-based streams: sockets, terminals, pipes, etc.  On
@@ -3377,7 +3509,7 @@ Write a newline to \arg{Stream}.
     \predicate{put}{1}{+Char}
 Write \arg{Char} to the current output stream, \arg{Char} is either an
 integer-expression evaluating to a character code or an atom of one
-character.  Depreciated.  New code should use put_char/1 or put_code/1.
+character.  Deprecated.  New code should use put_char/1 or put_code/1.
 
     \predicate{put}{2}{+Stream, +Char}
 Write \arg{Char} to \arg{Stream}.  See put/1 for details.
@@ -3453,21 +3585,23 @@ On end-of-file, \arg{Char} is unified to the atom \const{end_of_file}.
 Unify \arg{Char} with the next character from \arg{Stream} as a
 one-character-atom.  See also get_char/2, get_byte/2 and get_code/2.
 
-    \predicate{get0}{1}{-Char}
+    \predicate[deprecated]{get0}{1}{-Char}
 Edinburgh version of the ISO get_code/1 predicate. Note that Edinburgh
 prolog didn't support wide characters and therefore technically speaking
 get0/1 should have been mapped to get_byte/1.  The intention of get0/1
 however is to read character codes.
 
-    \predicate{get0}{2}{+Stream, -Char}
+    \predicate[deprecated]{get0}{2}{+Stream, -Char}
 Edinburgh version of the ISO get_code/2 predicate.  See also get0/1.
 
-    \predicate{get}{1}{-Char}
+    \predicate[deprecated]{get}{1}{-Char}
 Read the current input stream and unify the next non-blank character
-with \arg{Char}. \arg{Char} is unified with -1 on end of file.
+with \arg{Char}. \arg{Char} is unified with -1 on end of file.  The
+predicate get/1 operates on character \emph{codes}.  See also get0/1.
 
-    \predicate{get}{2}{+Stream, -Char}
-Read the next non-blank character from \arg{Stream}.
+    \predicate[deprecated]{get}{2}{+Stream, -Char}
+Read the next non-blank character from \arg{Stream}.  See also
+get/1, get0/1 and get0/2.
 
     \predicate[ISO]{peek_byte}{1}{-Byte}
     \nodescription
@@ -3671,7 +3805,7 @@ predefined hook portray/1.  \arg{Goal} is called through call/3, where
 the first argument is \arg{Goal}, the second is the term to be
 printed and the 3th argument is the current write-option list.  The
 write option list is copied from the write_term call, but the list
-is guaranteed how hold an option \const{proprity} that reflects the
+is guaranteed to hold an option \const{proprity} that reflects the
 current priority.
 
     \termitem{priority}{Integer}
@@ -3699,6 +3833,18 @@ used to separate arguments in a term or list.
     \predicate[ISO]{write_term}{3}{+Stream, +Term, +Options}
 As write_term/2, but output is sent to \arg{Stream} rather than the
 current output.
+
+    \predicate[semidet]{write_length}{3}{+Term, -Length, +Options}
+True when \arg{Length} is the number of characters emited for
+\arg{write_term}{Term, Options}.  In addition to valid options for
+write_term/2, it processes the option
+
+    \begin{description}
+	\termitem{max_length}{+MaxLength}
+If provided, fail if \arg{Length} would be larger than \arg{MaxLength}.
+The implementation ensures that the runtime is limited when computing
+the length of a huge term with a bounded maximum.
+    \end{description}
 
     \predicate[ISO]{write_canonical}{1}{+Term}
 Write \arg{Term} on the current output stream using standard
@@ -4255,18 +4401,16 @@ L = [gnu, gnat]
 \end{code}
 
     \predicate[ISO]{atom_length}{2}{+Atom, -Length}
-True if \arg{Atom} is an atom of \arg{Length} characters long. This
-predicate also works for strings (see \secref{strings}). If the prolog
-flag \prologflag{iso} is \emph{not} set, it also accepts integers and floats,
-expressing the number of characters output when given to write/1 as well
-as code-lists and character-lists, expressing the length of the list.%
-    \bug{Note that \const{[]} is both an atom an empty code/character
-	 list.  The predicate atom_length/2 returns 2 for this atom.}
+True if \arg{Atom} is an atom of \arg{Length} characters long. The
+SWI-Prolog version accepts all atomic types, as well as code-lists and
+character-lists. New code should avoid this feature and use
+write_length/3 to get the number of characters that would be written if
+the argument was handed to write_term/3.
 
-    \predicate{atom_prefix}{2}{+Atom, +Prefix}
+    \predicate[deprecated]{atom_prefix}{2}{+Atom, +Prefix}
 True if \arg{Atom} starts with the characters from \arg{Prefix}.
 Its behaviour is equivalent to
-\exam{?- sub_atom(\arg{Atom}, 0, _, _, \arg{Prefix})}.  Depreciated.
+\exam{?- sub_atom(\arg{Atom}, 0, _, _, \arg{Prefix})}.  Deprecated.
 
     \predicate[ISO]{sub_atom}{5}{+Atom, ?Before, ?Len, ?After, ?Sub}
 ISO predicate for breaking atoms.  It maintains the following relation:
@@ -4737,7 +4881,7 @@ Expr2}.
 \infixop[ISO]{is}{-Number}{+Expr}
 True when \arg{Number} is the value to which \arg{Expr} evaluates.
 Typically, is/2 should be used with unbound left operand. If equality is
-to be tested, =:=/2 should be used. For example:
+to be tested, \predref{=:=}{2} should be used. For example:
 
 \begin{center}\begin{tabular}{lp{2.5in}}
 \exam{?- 1 is sin({pi}/2).}        & Fails!.  sin({pi}/2) evaluates to the
@@ -4777,10 +4921,11 @@ are currently not supported by a Prolog type. They are represented by
 the compound term \term{rdiv}{N,M}. Rational numbers that are returned
 from is/2 are \emph{canonical}, which means $M$ is positive and $N$ and
 $M$ have no common divisors. Rational numbers are introduced in the
-computation using the rational/1, rationalize/1 or the rdiv/2 (rational
-division) function. Using the same functor for rational division and
-representing rational numbers allow for passing rational numbers between
-computations as well as to format/3 for printing.
+computation using the \funcref{rational}{1}, \funcref{rationalize}{1} or
+the \funcref{rdiv}{2} (rational division) function. Using the same
+functor for rational division and representing rational numbers allow
+for passing rational numbers between computations as well as to format/3
+for printing.
 
 On the long term it is likely that rational numbers will become
 \emph{atomic} as well as subtype of \emph{number}.  User code that
@@ -4810,10 +4955,11 @@ integer $\rightarrow$ rational number $\rightarrow$ floating point number
 The use of rational numbers with unbounded integers allows for exact
 integer or \jargon{fixed point} arithmetic under the addition,
 subtraction, multiplication and division.  To exploit rational
-arithmetic rdiv/2 should be used instead of `/' and floating point
-numbers must be converted to rational using rational/1.  Omitting the
-rational/1 on floats will convert a rational operand to float and continue
-the arithmetic using floating point numbers.  Here are some examples.
+arithmetic \funcref{rdiv}{2} should be used instead of `/' and floating
+point numbers must be converted to rational using \funcref{rational}{1}.
+Omitting the \funcref{rational}{1} on floats will convert a rational
+operand to float and continue the arithmetic using floating point
+numbers. Here are some examples.
 
 \begin{center}
 \begin{tabular}{ll}
@@ -4825,10 +4971,10 @@ A is 4 rdiv 3 + rational(1.5)	& A = 17 rdiv 6 \\
 \end{center}
 
 Note that floats cannot represent all decimal numbers exactly.  The
-function rational/1 creates an \emph{exact} equivalent of the float,
-while rationalize/1 creates a rational number that is within the
-float rounding error from the original float.  Please check the
-documentation of these functions for details and examples.
+function \funcref{rational}{1} creates an \emph{exact} equivalent of the
+float, while \funcref{rationalize}{1} creates a rational number that is
+within the float rounding error from the original float. Please check
+the documentation of these functions for details and examples.
 
 Rational numbers can be printed as decimal numbers with arbitrary
 precision using the format/3 floating point conversion:
@@ -4864,43 +5010,43 @@ see \secref{artypes} for details), integer operations that would cause
 overflow automatically convert to floating point arithmetic.
 
 \begin{description}
-    \prefixop[ISO]{-}{+Expr}
+    \prefixfunction[ISO]{-}{+Expr}
 $\arg{Result} = -\arg{Expr}$
 
-    \prefixop{+}{+Expr}
+    \prefixfunction{+}{+Expr}
 $\arg{Result} = \arg{Expr}$.  Note that if \chr{+} is followed by a number
 the parser discards the \chr{+}.  I.e.\ \verb$?- integer(+1)$ succeeds.
 
-    \infixop[ISO]{+}{+Expr1}{+Expr2}
+    \infixfunction[ISO]{+}{+Expr1}{+Expr2}
 $\arg{Result} = \arg{Expr1} + \arg{Expr2}$
 
-    \infixop[ISO]{-}{+Expr1}{+Expr2}
+    \infixfunction[ISO]{-}{+Expr1}{+Expr2}
 $\arg{Result} = \arg{Expr1} - \arg{Expr2}$
 
-    \infixop[ISO]{*}{+Expr1}{+Expr2}
+    \infixfunction[ISO]{*}{+Expr1}{+Expr2}
 $\arg{Result} = \arg{Expr1} \times \arg{Expr2}$
 
-    \infixop[ISO]{/}{+Expr1}{+Expr2}
+    \infixfunction[ISO]{/}{+Expr1}{+Expr2}
 $\arg{Result} = \frac{\arg{Expr1}}{\arg{Expr2}}$
 The the flag \prologflag{iso} is \const{true}, both arguments are converted
 to float and the return value is a float. Otherwise (default), if both
 arguments are integers the operation returns an integer if the division
 is exact. If at least one of the arguments is rational and the other
 argument is integer, the operation returns a rational number. In all
-other cases the return value is a float.  See also \predref{//}{2}
-and rdiv/2.
+other cases the return value is a float.  See also \funcref{//}{2}
+and \funcref{rdiv}{2}.
 
-    \infixop[ISO]{mod}{+IntExpr1}{+IntExpr2}
+    \infixfunction[ISO]{mod}{+IntExpr1}{+IntExpr2}
 Modulo, defined as \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1}
 div \arg{IntExpr2}) $\times$ \arg{IntExpr2}}, where \const{div} is
 \jargon{floored} division.
 
-    \infixop[ISO]{rem}{+IntExpr1}{+IntExpr2}
+    \infixfunction[ISO]{rem}{+IntExpr1}{+IntExpr2}
 Remainder of integer division.  Behaves as if defined by
 \mbox{\arg{Result} is \arg{IntExpr1} -
 (\arg{IntExpr1} // \arg{IntExpr2}) $\times$ \arg{IntExpr2}}
 
-    \infixop[ISO]{//}{+IntExpr1}{+IntExpr2}
+    \infixfunction[ISO]{//}{+IntExpr1}{+IntExpr2}
 Integer division, defined as \mbox{\arg{Result} is
 $rnd_I$(\arg{Expr1}/\arg{Expr2})}. The function $rnd_I$ is the default
 rounding used by the C-compiler and available through the Prolog flag
@@ -4908,12 +5054,13 @@ rounding used by the C-compiler and available through the Prolog flag
 is defined as \const{towards_zero}.\footnote{Future versions might
 guarantee rounding towards zero.}
 
-    \predicate[ISO]{div}{2}{+IntExpr1, +IntExpr2}
+    \function[ISO]{div}{2}{+IntExpr1, +IntExpr2}
 Integer division, defined as \mbox{\arg{Result} is
 $(IntExpr1 - IntExpr1 mod IntExpr2) // IntExpr2$}.
 In other words, this is integer division that rounds towards -infinity.
-This function guarantees behaviour that is consistent with mod/2, i.e.,
-the following holds for every pair of integers $X,Y$ where \verb$Y =\= 0$.
+This function guarantees behaviour that is consistent with
+\funcref{mod}{2}, i.e., the following holds for every pair of integers
+$X,Y$ where \verb$Y =\= 0$.
 
 \begin{code}
 	Q is div(X, Y),
@@ -4921,32 +5068,32 @@ the following holds for every pair of integers $X,Y$ where \verb$Y =\= 0$.
 	X =:= Y*Q+M.
 \end{code}
 
-    \infixop{rdiv}{+RatExpr}{+RatExpr}
+    \infixfunction{rdiv}{+RatExpr}{+RatExpr}
 Rational number division. This function is only available if
 SWI-Prolog has been compiled with rational number support. See
 \secref{rational} for details.
 
-    \infixop{gcd}{+IntExpr1}{+IntExpr2}
+    \infixfunction{gcd}{+IntExpr1}{+IntExpr2}
 Result is the greatest common divisor of \arg{IntExpr1}, \arg{IntExpr2}.
 
-    \predicate[ISO]{abs}{1}{+Expr}
+    \function[ISO]{abs}{1}{+Expr}
 Evaluate \arg{Expr} and return the absolute value of it.
 
-    \predicate[ISO]{sign}{1}{+Expr}
+    \function[ISO]{sign}{1}{+Expr}
 Evaluate to -1 if $\arg{Expr} < 0$, 1 if $\arg{Expr} > 0$ and 0 if
 $\arg{Expr} = 0$.
 
-    \predicate{max}{2}{+Expr1, +Expr2}
+    \function{max}{2}{+Expr1, +Expr2}
 Evaluates to the largest of both \arg{Expr1} and \arg{Expr2}.  Both
 arguments are compared after converting to the same type, but the
 return value is in the original type.  For example, max(2.5, 3) compares
 the two values after converting to float, but returns the integer 3.
 
-    \predicate{min}{2}{+Expr1, +Expr2}
+    \function{min}{2}{+Expr1, +Expr2}
 Evaluates to the smallest of both \arg{Expr1} and \arg{Expr2}. See
-max/2 for a description of type-handling.
+\funcref{max}{2} for a description of type-handling.
 
-    \predicate{.}{2}{+Int, []}
+    \function{.}{2}{+Int, []}
 A list of one element evaluates to the element.  This implies \exam{"a"}
 evaluates to the character code of the letter `a' (97). This
 option is available for compatibility only. It will not work if
@@ -4954,7 +5101,7 @@ option is available for compatibility only. It will not work if
 transformed into a string object. The recommended way to specify the
 character code of the letter `a' is \exam{0'a}.
 
-    \predicate{random}{1}{+IntExpr}
+    \function{random}{1}{+IntExpr}
 Evaluates to a random integer \arg{i} for which $0 \leq i <
 \arg{IntExpr}$. The system has two implementations. If it is compiled
 with support for unbounded arithmetic (default) it uses the GMP-library
@@ -4967,28 +5114,34 @@ numbers are shared between threads and the seed is initialised from the
 clock when SWI-Prolog was started. The predicate set_random/1 can be
 used to control the random number generator.
 
-    \predicate[ISO]{round}{1}{+Expr}
+    \function{random_float}{0}{}
+Evaluates to a random float $I$ for which $0.0 \leq i < 1.0$.  This
+function shares the random state with \funcref{random}{1}. All remarks
+with the function \funcref{random}{1} also apply for
+\funcref{random_float}{0}.
+
+    \function[ISO]{round}{1}{+Expr}
 Evaluates \arg{Expr} and rounds the result to the nearest integer.
 
-    \predicate{integer}{1}{+Expr}
-Same as round/1 (backward compatibility).
+    \function{integer}{1}{+Expr}
+Same as \funcref{round}{1} (backward compatibility).
 
-    \predicate[ISO]{float}{1}{+Expr}
+    \function[ISO]{float}{1}{+Expr}
 Translate the result to a floating point number.  Normally, Prolog will
 use integers whenever possible.  When used around the 2nd argument of
 is/2, the result will be returned as a floating point number.  In other
 contexts, the operation has no effect.
 
-    \predicate{rational}{1}{+Expr}
+    \function{rational}{1}{+Expr}
 Convert the \arg{Expr} to a rational number or integer.  The function
 returns the input on integers and rational numbers.  For floating point
 numbers, the returned rational number \emph{exactly} represents the
 float.  As floats cannot exactly represent all decimal numbers the
 results may be surprising.  In the examples below, doubles can
 represent 0.25 and the result is as expected, in contrast to the
-result of \term{rational}{0.1}.  The function rationalize/1 remedies
-this.  See \secref{rational} for more information on rational number
-support.
+result of \term{rational}{0.1}. The function \funcref{rationalize}{1}
+remedies this. See \secref{rational} for more information on rational
+number support.
 
 \begin{code}
 ?- A is rational(0.25).
@@ -4998,13 +5151,14 @@ A is 1 rdiv 4
 A = 3602879701896397 rdiv 36028797018963968
 \end{code}
 
-    \predicate{rationalize}{1}{+Expr}
+    \function{rationalize}{1}{+Expr}
 Convert the \arg{Expr} to a rational number or integer.  The function
-is similar to rational/1, but the result is only accurate within the
-rounding error of floating point numbers, generally producing a much
-smaller denominator.%
-	\footnote{The names rational/1 and rationalize/1 as well as
-		  their semantics are inspired by Common Lisp.}
+is similar to \funcref{rational}{1}, but the result is only accurate
+within the rounding error of floating point numbers, generally producing
+a much smaller denominator.%
+	\footnote{The names \funcref{rational}{1} and
+	\funcref{rationalize}{1} as well as their semantics are inspired
+	by Common Lisp.}
 
 \begin{code}
 ?- A is rationalize(0.25).
@@ -5015,137 +5169,138 @@ A = 1 rdiv 4
 A = 1 rdiv 10
 \end{code}
 
-    \predicate[ISO]{float_fractional_part}{1}{+Expr}
+    \function[ISO]{float_fractional_part}{1}{+Expr}
 Fractional part of a floating-point number.  Negative if \arg{Expr} is
 negative, rational if \arg{Expr} is rational and 0 if \arg{Expr} is
 integer.  The following relation is always true:
 $X is float_fractional_part(X) + float_integer_part(X)$.
 
-    \predicate[ISO]{float_integer_part}{1}{+Expr}
+    \function[ISO]{float_integer_part}{1}{+Expr}
 Integer part of floating-point number. Negative if \arg{Expr} is
 negative, \arg{Expr} if \arg{Expr} is integer.
 
-    \predicate[ISO]{truncate}{1}{+Expr}
+    \function[ISO]{truncate}{1}{+Expr}
 Truncate \arg{Expr} to an integer.  If $\arg{Expr} \geq 0$ this is the
 same as \term{floor}{Expr}.  For $\arg{Expr} < 0$ this is the same as
 \term{ceil}{Expr}.  E.i.\ truncate rounds towards zero.
 
-    \predicate[ISO]{floor}{1}{+Expr}
+    \function[ISO]{floor}{1}{+Expr}
 Evaluates \arg{Expr} and returns the largest integer smaller or equal
 to the result of the evaluation.
 
-    \predicate[ISO]{ceiling}{1}{+Expr}
+    \function[ISO]{ceiling}{1}{+Expr}
 Evaluates \arg{Expr} and returns the smallest integer larger or equal
 to the result of the evaluation.
 
-    \predicate{ceil}{1}{+Expr}
-Same as ceiling/1 (backward compatibility).
+    \function{ceil}{1}{+Expr}
+Same as \funcref{ceiling}{1} (backward compatibility).
 
-    \infixop[ISO]{>>}{+IntExpr}{+IntExpr}
+    \infixfunction[ISO]{>>}{+IntExpr}{+IntExpr}
 Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the right.  The
 operation performs \jargon{arithmetic shift}, which implies that the
 inserted most significant bits are copies of the original most
 significant bit.
 
-    \infixop[ISO]{<<}{+IntExpr}{+IntExpr}
+    \infixfunction[ISO]{<<}{+IntExpr}{+IntExpr}
 Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the left.
 
-    \infixop[ISO]{\/}{+IntExpr}{+IntExpr}
+    \infixfunction[ISO]{\/}{+IntExpr}{+IntExpr}
 Bitwise `or' \arg{IntExpr1} and \arg{IntExpr2}.
 
-    \infixop[ISO]{/\}{+IntExpr}{+IntExpr}
+    \infixfunction[ISO]{/\}{+IntExpr}{+IntExpr}
 Bitwise `and' \arg{IntExpr1} and \arg{IntExpr2}.
 
-    \infixop[ISO]{xor}{+IntExpr}{+IntExpr}
+    \infixfunction[ISO]{xor}{+IntExpr}{+IntExpr}
 Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
 
-    \prefixop[ISO]{\}{+IntExpr}
+    \prefixfunction[ISO]{\}{+IntExpr}
 Bitwise negation.  The returned value is the one's complement of
 \arg{IntExpr}.
 
-    \predicate[ISO]{sqrt}{1}{+Expr}
+    \function[ISO]{sqrt}{1}{+Expr}
 $\arg{Result} = \sqrt{\arg{Expr}}$
-    \predicate[ISO]{sin}{1}{+Expr}
+    \function[ISO]{sin}{1}{+Expr}
 $\arg{Result} = \sin{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-    \predicate[ISO]{cos}{1}{+Expr}
+    \function[ISO]{cos}{1}{+Expr}
 $\arg{Result} = \cos{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-    \predicate{tan}{1}{+Expr}
+    \function{tan}{1}{+Expr}
 $\arg{Result} = \tan{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-    \predicate{asin}{1}{+Expr}
+    \function{asin}{1}{+Expr}
 $\arg{Result} = \arcsin{\arg{Expr}}$. \arg{Result} is the angle in radians.
-    \predicate{acos}{1}{+Expr}
+    \function{acos}{1}{+Expr}
 $\arg{Result} = \arccos{\arg{Expr}}$. \arg{Result} is the angle in radians.
-    \predicate[ISO]{atan}{1}{+Expr}
+    \function[ISO]{atan}{1}{+Expr}
 $\arg{Result} = \arctan{\arg{Expr}}$. \arg{Result} is the angle in radians.
-    \predicate[ISO]{atan2}{2}{+YExpr, +XExpr}
+    \function[ISO]{atan2}{2}{+YExpr, +XExpr}
 $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
-    \predicate{atan}{2}{+YExpr, +XExpr}
-Same as atan2/2 (backward compatibility).
-    \predicate[ISO]{log}{1}{+Expr}
+    \function{atan}{2}{+YExpr, +XExpr}
+Same as \funcref{atan2}{2} (backward compatibility).
+    \function[ISO]{log}{1}{+Expr}
 Natural logarithm.  $\arg{Result} = \ln{\arg{Expr}}$
-    \predicate{log10}{1}{+Expr}
+    \function{log10}{1}{+Expr}
 Base-10 logarithm.  $\arg{Result} = \lg{\arg{Expr}}$
-    \predicate[ISO]{exp}{1}{+Expr}
+    \function[ISO]{exp}{1}{+Expr}
 $\arg{Result} = \pow{e}{\arg{Expr}}$
-    \infixop[ISO]{**}{+Expr1}{+Expr2}
+    \infixfunction[ISO]{**}{+Expr1}{+Expr2}
 $\arg{Result} = \pow{\arg{Expr1}}{\arg{Expr2}}$. With unbounded integers
 and integer values for \arg{Expr1} and a non-negative integer
 \arg{Expr2}, the result is always integer. The integer expressions
 $\pow{0}{I}$, $\pow{1}{I}$ and $\pow{-1}{I}$ are guaranteed to work for
 any integer $I$.  Other integer base values generate a \const{resource}
 error if the result does not fit in memory.
-    \predicate{powm}{3}{+IntExprBase, +IntExprExp, +IntExprMod}
+    \function{powm}{3}{+IntExprBase, +IntExprExp, +IntExprMod}
 $\arg{Result} = (\pow{\arg{IntExprBase}}{\arg{IntExprExp}})
  \mbox{ modulo } \arg{IntExprMod}$.
 Only available when compiled with unbounded integer support. This
 formula is required for Diffie-Hellman key-exchange, a technique where
 two parties can establish a secret key over a public network.
-    \infixop{^}{+Expr1}{+Expr2}
-Same as **/2 (backward compatibility).
-    \predicate{pi}{0}{}
+    \infixfunction{^}{+Expr1}{+Expr2}
+Same as \funcref{**}{2} (backward compatibility).
+    \function{pi}{0}{}
 Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
-    \predicate{e}{0}{}
+    \function{e}{0}{}
 Evaluates to the mathematical constant $e$ (2.71828\ldots).
-    \predicate{epsilon}{0}{}
+    \function{epsilon}{0}{}
 Evaluates to the the difference between the float 1.0 and
 the first larger floating point number.
 
-    \predicate{cputime}{0}{}
+    \function{cputime}{0}{}
 Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
 
-    \predicate{eval}{1}{+Expr}
+    \function{eval}{1}{+Expr}
 Evaluate \arg{Expr}. Although ISO standard dictates that $A$=1+2, $B$ is
 $A$ works and unifies $B$ to 3, it is widely felt that source-level
 variables in arithmetic expressions should have been limited to numbers.
 In this view the eval function can be used to evaluate arbitrary
-expressions.\footnote{The eval/1 function was first introduced by
-ECLiPSe and is under consideration for YAP.}
+expressions.\footnote{The \funcref{eval}{1} function was first
+introduced by ECLiPSe and is under consideration for YAP.}
 \end{description}
 
 
 \paragraph{Bitvector functions}
 
-The functions below are not covered by the standard.  The msb/1 function
-is compatible with hProlog. The others are private extensions that improve
-handling of ---unbounded--- integers as bit-vectors.
+The functions below are not covered by the standard. The
+\funcref{msb}{1} function is compatible with hProlog. The others are
+private extensions that improve handling of ---unbounded--- integers as
+bit-vectors.
 
 \begin{description}
-    \predicate{msb}{1}{+IntExpr}
+    \function{msb}{1}{+IntExpr}
 Return the largest integer $N$ such that \verb$(IntExpr >> N) /\ 1 =:= 1$.
 This is the (zero-origin) index of the most significant 1 bit in the
 value of \arg{IntExpr}, which must evaluate to a positive integer.
 Errors for 0, negative integers, and non-integers.
 
-    \predicate{lsb}{1}{+IntExpr}
+    \function{lsb}{1}{+IntExpr}
 Return the smallest integer $N$ such that \verb$(IntExpr >> N) /\ 1 =:= 1$.
 This is the (zero-origin) index of the least significant 1 bit in the
 value of IntExpr, which must evaluate to a positive integer. Errors for
 0, negative integers, and non-integers.
 
-    \predicate{popcount}{1}{+IntExpr}
+    \function{popcount}{1}{+IntExpr}
 Return the number of 1s in the binary representation of the
 non-negative integer \arg{IntExpr}.
 \end{description}
@@ -5156,7 +5311,7 @@ non-negative integer \arg{IntExpr}.
 \begin{description}
     \predicate{set_random}{1}{+Option}
 Controls the random number generator that accessible through the
-\emph{function} \nopredref{random}{1}. Note that the library
+\emph{function} \funcref{random}{1}. Note that the library
 \pllib{random} provides distinct support for random numbers that is not
 affected by set_random/1.
 
@@ -5164,8 +5319,8 @@ affected by set_random/1.
 	\termitem{seed}{+Seed}
 Set the seed of the random generator for this thread.  \arg{Seed} is
 an integer or the atom \const{random}.  If \const{random}, repeat the
-initialization procedure described with the function random/1.  Here
-is an example:
+initialization procedure described with the function
+\funcref{random}{1}. Here is an example:
 
 \begin{code}
 ?- set_random(seed(111)), A is random(6).
@@ -5173,6 +5328,29 @@ A = 5.
 ?- set_random(seed(111)), A is random(6).
 A = 5.
 \end{code}
+	\termitem{state}{+State}
+Set the generator to a state fetched using the state
+property of random_property/1.  Using other values may lead to undefined
+behaviour.\footnote{The limitations of the underlying (GMP) library are
+unknown, which makes it impossible to validate the \arg{State}.}
+    \end{description}
+
+    \predicate{random_property}{1}{?Option}
+True when \arg{Option} is a current property of the random generator.
+Currently, this predicate provides access to the state.  This predicate
+is not present on systems where the state is inaccessible.
+
+    \begin{description}
+	\termitem{state}{-State}
+Describes the current state of the random generator. State is a normal
+Prolog term that can be asserted or written to a file. Applications
+should make no other assumptions about its representation. The only
+meaningful operation is to use as argument to set_random/1 using the
+\term{state}{State} option.\bug{GMP provides no portable mechanism to
+fetch and restore the state.  The current implementation works, but the
+state depends on the platform.  I.e., it is generally not possible to
+reuse the state with another version of GMP or on a CPU with different
+datasizes or endian-ness.}
     \end{description}
 
     \predicate{current_arithmetic_function}{1}{Head}
@@ -5188,7 +5366,7 @@ true.
 \section{Built-in list operations}		\label{sec:builtinlist}
 
 Most list operations are defined in the library \pllib{lists} described
-in \secref{lib:lists}. Some that are implemented with more low-level
+in \secref{lists}. Some that are implemented with more low-level
 primitives are built-in and described here.
 
 
@@ -5435,7 +5613,7 @@ produce textual output.
     \predicate{format}{1}{+Format}
 Defined as `\exam{format(Format) :- format(Format, []).}'
 
-    \predicate{format}{2}{+Format, +Arguments}
+    \predicate{format}{2}{+Format, :Arguments}
 \arg{Format} is an atom, list of character codes, or a Prolog string.
 \arg{Arguments} provides the arguments required by the format
 specification. If only one argument is required and this single argument
@@ -5587,7 +5765,7 @@ Will output
 Runtime: .................. 3.45  Inferences: .......... 60,345
 \end{code}
 
-    \predicate{format}{3}{+Output, +Format, +Arguments}
+    \predicate{format}{3}{+Output, +Format, :Arguments}
 As format/2, but write the output on the given \arg{Output}. The
 de-facto standard only allows \arg{Output} to be a stream. The
 SWI-Prolog implementation allows all valid arguments for
@@ -6336,7 +6514,10 @@ working directory. See also absolute_file_name/3. See also
 absolute_file_name/3 and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
-Converts the given file specification into an absolute path.
+Converts the given file specification into an absolute path. \arg{Spec}
+is a term Alias(Relative) (e.g., \verb$(library(lists)$), a relative
+file-name or an absolute file name. The primary intention of this
+predicate is to resolve files specified as Alias(Relative).
 \arg{Option} is a list of options to guide the conversion:
 
 \begin{description}
@@ -6754,9 +6935,6 @@ Name & Default & Description \\
 \const{atom}       & on & read/1 and derivatives will produce an
                         error message on quoted atoms or strings longer
                         than 5 lines. \\
-\const{dollar}     & off & Accept dollar as a lower case character, thus
-                        avoiding the need for quoting atoms with dollar signs.
-                        System maintenance use only. \\
 \const{discontiguous} & on & Warn if the clauses for a predicate are not
                         together in the same source file. \\
 \const{string}     & off & Backward compatibility.  See the Prolog flag
@@ -6800,17 +6978,21 @@ stack		& Total memory in use for stacks in all threads \\
 local           & Allocated size of the local stack in bytes. \\
 localused       & Number of bytes in use on the local stack. \\
 locallimit      & Size to which the local stack is allowed to grow \\
+local_shifts	& Number of local-stack expansions \\
 global          & Allocated size of the global stack in bytes. \\
 globalused      & Number of bytes in use on the global stack. \\
 globallimit     & Size to which the global stack is allowed to grow \\
+global_shifts	& Number of global-stack expansions \\
 trail           & Allocated size of the trail stack in bytes. \\
 trailused       & Number of bytes in use on the trail stack. \\
 traillimit      & Size to which the trail stack is allowed to grow \\
+trail_shifts	& Number of trail-stack expansions \\
+shift_time	& Time spent in stack-shifts \\
 atoms           & Total number of defined atoms. \\
 functors        & Total number of defined name/arity pairs. \\
 predicates      & Total number of defined predicates. \\
 modules         & Total number of defined modules. \\
-codes           & Total amount of byte codes in all clauses. \\
+codes           & Total size of (virtual) executable code in words. \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
 thread_cputime  & MT-version: seconds CPU time used by finished threads.
@@ -6836,7 +7018,7 @@ stacks		& [ global use, local use ] \\
 program		& [ heap, 0 ] \\
 global_stack	& [ global use, global free ] \\
 local_stack	& [ local use, local free ] \\
-trail		& [ trail use, 0 ] \\
+trail		& [ trail use, trail free ] \\
 garbage_collection & [ number of GC, bytes gained, time spent, bytes left ]
 		  The last column is a SWI-Prolog extension.  It contains the
 		  sum of the memory left after each collection, which can be
@@ -6857,12 +7039,13 @@ core		& Same as memory \\
     \predicate{statistics}{0}{}
 Display a table of system statistics on the current output stream.
     \predicate{time}{1}{:Goal}
-Execute \arg{Goal} just like once/1 (i.e., leaving no choice points),
-but print used time, number of logical inferences and the average
-number of \arg{lips} (logical inferences per second).  Note that
-SWI-Prolog counts the actual executed number of inferences rather than
-the number of passes through the call- and redo ports of the
-theoretical 4-port model.
+Execute \arg{Goal} just like call/1 and print used time, number of
+logical inferences and the average number of \arg{lips} (logical
+inferences per second). Note that SWI-Prolog counts the actual executed
+number of inferences rather than the number of passes through the call-
+and redo ports of the theoretical 4-port model. If \arg{Goal} is
+non-deterministic prints statistics for each solution, where the
+reported values are relative to the previous answer.
 \end{description}
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -6967,7 +7150,14 @@ A Windows DDE conversation is a form of interprocess communication
 based on sending reserved window-events between the communicating
 processes.
 
-See also \secref{shlib} for loading Windows DLL's into SWI-Prolog.
+Failing DDE operations raise an error of the structure below, where
+\arg{Operation} is the name of the (partial) operation that failed and
+\arg{Message} is a translation of the operator error code. For some
+errors, \arg{Context} provides additional comments.
+
+\begin{code}
+	error(dde_error(Operation, Message), Context)
+\end{code}
 
 
 \subsection{DDE client interface}
@@ -7006,22 +7196,21 @@ Open a conversation with a server supporting the given service name and
 topic (atoms).  If successful, \arg{Handle} may be used to send
 transactions to the server.  If no willing server is found this
 predicate fails silently.
+
     \predicate{close_dde_conversation}{1}{+Handle}
 Close the conversation associated with \arg{Handle}.  All opened
 conversations should be closed when they're no longer needed, although
 the system will close any that remain open on process termination.
+
     \predicate{dde_request}{3}{+Handle, +Item, -Value}
 Request a value from the server.  \arg{Item} is an atom that identifies
 the requested data, and \arg{Value} will be a string (\const{CF_TEXT} data
 in DDE parlance) representing that data, if the request is successful.
-If unsuccessful, \arg{Value} will be unified with a term of form
-\mbox{\tt error(<Reason>)}, identifying the problem.  This call uses
-SWI-Prolog string objects to return the value rather then atoms to
-reduce the load on the atom-space.  See \secref{strings} for
-a discussion on this data type.
+
     \predicate{dde_execute}{2}{+Handle, +Command}
 Request the DDE server to execute the given command-string.  Succeeds
 if the command could be executed and fails with error message otherwise.
+
     \predicate{dde_poke}{4}{+Handle, +Item, +Command}
 Issue a \const{POKE} command to the server on the specified \arg{Item}.
 Command is passed as data of type \const{CF_TEXT}.
@@ -7030,7 +7219,7 @@ Command is passed as data of type \const{CF_TEXT}.
 
 \subsection{DDE server mode}
 
-The (autoload) \file{library(dde)} defines primitives to realise simple
+The \file{library(dde)} defines primitives to realise simple
 DDE server applications in SWI-Prolog.  These features are provided as
 of version 2.0.6 and should be regarded prototypes.  The C-part of
 the DDE server can handle some more primitives, so if you need features

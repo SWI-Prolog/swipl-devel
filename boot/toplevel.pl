@@ -17,9 +17,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
+    You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -32,16 +32,36 @@
 :- module('$toplevel',
 	  [ '$initialise'/0,		% start Prolog (does not return)
 	    '$toplevel'/0,		% Prolog top-level (re-entrant)
-	    '$abort'/0,			% restart after an abort
-	    '$break'/0,			% live in a break
 	    '$compile'/0,		% `-c' toplevel
 	    '$welcome'/0,		% banner
 	    prolog/0,			% user toplevel predicate
-	    '$set_prompt'/1,		% set the main prompt
+	    '$query_loop'/0,		% toplevel predicate
 	    (initialization)/1,		% initialization goal (directive)
 	    '$thread_init'/0,		% initialise thread
 	    (thread_initialization)/1	% thread initialization goal
 	    ]).
+
+
+		 /*******************************
+		 *	 FILE_SEARCH_PATH	*
+		 *******************************/
+
+:- multifile user:file_search_path/2.
+
+user:file_search_path(user_profile, '.').
+user:file_search_path(user_profile, app_preferences('.')).
+:- if(current_prolog_flag(windows, true)).
+user:file_search_path(app_preferences, PrologAppData) :-
+	current_prolog_flag(windows, true),
+	catch(win_folder(appdata, AppData), _, fail),
+	atom_concat(AppData, '/SWI-Prolog', PrologAppData),
+	(   exists_directory(PrologAppData)
+	->  true
+	;   catch(make_directory(PrologAppData), _, fail)
+	).
+:- endif.
+user:file_search_path(app_preferences, UserHome) :-
+	catch(expand_file_name(~, [UserHome]), _, fail).
 
 
 		/********************************
@@ -107,14 +127,6 @@ load_script_files([OsFile|More]) :-
 	    load_files(user:Path, []),
 	    load_files(More)
 	;   throw(error(existence_error(script_file, File), _))
-	).
-
-'$load_gnu_emacs_interface' :-
-	(   getenv('EMACS', t),
-	    current_prolog_flag(argv, Args),
-	    memberchk('+C', Args)
-	->  ensure_loaded(user:library(emacs_interface))
-	;   true
 	).
 
 
@@ -364,7 +376,6 @@ initialise_prolog :-
 	'$set_debugger_print_options'(print),
 	'$run_initialization',
 	'$load_system_init_file',
-	'$load_gnu_emacs_interface',
 	'$option'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
@@ -379,44 +390,40 @@ initialise_prolog :-
 	),
 	ignore(user:TheGoal).
 
-'$abort' :-
-	see(user),
-	tell(user),
-	flag('$break_level', _, 0),
-	flag('$compilation_level', _, 0),
-	'$calleventhook'(abort),
-	print_message(informational, '$aborted'),
-	'$toplevel'.
-
-'$break' :-
-	flag('$break_level', Old, Old+1),
-	flag('$break_level', New, New),
-	print_message(informational, break(enter(New))),
-	'$runtoplevel',
-	print_message(informational, break(exit(New))),
-	flag('$break_level', _, Old), !.
-
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
-:- '$hide'('$abort'/0).			% same after an abort
+
+%%	'$toplevel'/0
+%
+%	Called from PL_toplevel()
 
 '$toplevel' :-
 	'$runtoplevel',
 	print_message(informational, halt).
 
-%	Actually run the toplevel.  If there is a syntax error in the
-%	goal there is no reason to persue.  Something like that should
-%	happen to repetitive exceptions in the toplevel as well, but
-%	how do we distinguish between a stupid user and a program
-%	crashing in a loop?
+%%	'$runtoplevel'
+%
+%	Actually run the toplevel. If there  is   a  syntax error in the
+%	goal there is no reason to   persue.  Something like that should
+%	happen to repetitive exceptions in the toplevel as well, but how
+%	do we distinguish between a stupid   user and a program crashing
+%	in a loop?
+%
+%	@see prolog/0 is the default interactive toplevel
 
 '$runtoplevel' :-
 	'$option'(toplevel, TopLevelAtom),
-	catch(term_to_atom(TopLevel, TopLevelAtom), E,
+	catch(term_to_atom(TopLevel0, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),
+	toplevel_goal(TopLevel0, TopLevel),
 	user:TopLevel.
 
-%	'$compile'
+toplevel_goal(prolog, '$query_loop') :- !.
+toplevel_goal(Goal, Goal).
+
+
+%%	'$compile'
+%
 %	Toplevel called when invoked with -c option.
 
 '$compile' :-
@@ -431,8 +438,20 @@ initialise_prolog :-
 		*********************************/
 
 prolog :-
-	flag('$tracing', _, off),
-	flag('$break_level', BreakLev, BreakLev),
+	break.
+
+%%	'$query_loop'
+%
+%	Run the normal Prolog query loop.  Note   that  the query is not
+%	protected by catch/3. Dealing with  unhandled exceptions is done
+%	by the C-function query_loop().  This   ensures  that  unhandled
+%	exceptions are really unhandled (in Prolog).
+
+'$query_loop' :-
+	(   current_prolog_flag(break_level, BreakLev)
+	->  true
+	;   BreakLev = -1
+	),
 	repeat,
 	    (   '$module'(TypeIn, TypeIn),
 		(   stream_property(user_input, tty(true))
@@ -458,11 +477,11 @@ read_query(Prompt, Goal, Bindings) :-
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
 	catch('$raw_read'(user_input, Line), E,
-	      (print_message(error, E),
-	       (   E = error(syntax_error(_), _)
-	       ->  fail
-	       ;   throw(E)
-	       ))),
+	      (   E = error(syntax_error(_), _)
+	      ->  print_message(error, E),
+		  fail
+	      ;   throw(E)
+	      )),
 	(   current_predicate(_, user:rl_add_history(_))
 	->  format(atom(CompleteLine), '~W~W',
 		   [ Line, [partial(true)],
@@ -477,14 +496,10 @@ read_query(Prompt, Goal, Bindings) :-
 	      )), !,
 	'$save_history'(Line).
 read_query(Prompt, Goal, Bindings) :-
-	seeing(Old), see(user_input),
-	(   read_history(h, '!h',
-			 [trace, end_of_file],
-			 Prompt, Goal, Bindings)
-	->  see(Old)
-	;   see(Old),
-	    fail
-	).
+	read_history(h, '!h',
+		     [trace, end_of_file],
+		     Prompt, Goal, Bindings).
+
 
 remove_history_prompt('', '') :- !.
 remove_history_prompt(Prompt0, Prompt) :-
@@ -494,7 +509,7 @@ remove_history_prompt(Prompt0, Prompt) :-
 	atom_chars(Prompt, Chars).
 
 clean_history_prompt_chars([], []).
-clean_history_prompt_chars(['%', !|T], T) :- !.
+clean_history_prompt_chars(['~', !|T], T) :- !.
 clean_history_prompt_chars([H|T0], [H|T]) :-
 	clean_history_prompt_chars(T0, T).
 
@@ -545,33 +560,23 @@ restore_debug :-
 		*            PROMPTING		*
 		********************************/
 
-:- dynamic
-	'$prompt'/1.
-
-'$prompt'("%m%d%l%! ?- ").
-
-'$set_prompt'(P) :-
-	atom_codes(P, S),
-	retractall('$prompt'(_)),
-	assert('$prompt'(S)).
-
-
 '$system_prompt'(Module, BrekLev, Prompt) :-
-	'$prompt'(P0),
+	current_prolog_flag(toplevel_prompt, PAtom),
+	atom_codes(PAtom, P0),
 	(    Module \== user
-	->   '$substitute'("%m", [Module, ": "], P0, P1)
-	;    '$substitute'("%m", [], P0, P1)
+	->   '$substitute'("~m", [Module, ": "], P0, P1)
+	;    '$substitute'("~m", [], P0, P1)
 	),
-	(    BrekLev \== 0
-	->   '$substitute'("%l", ["[", BrekLev, "] "], P1, P2)
-	;    '$substitute'("%l", [], P1, P2)
+	(    BrekLev > 0
+	->   '$substitute'("~l", ["[", BrekLev, "] "], P1, P2)
+	;    '$substitute'("~l", [], P1, P2)
 	),
 	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
 	(    Tracing == true
-	->   '$substitute'("%d", ["[trace] "], P2, P3)
+	->   '$substitute'("~d", ["[trace] "], P2, P3)
 	;    Debugging == true
-	->   '$substitute'("%d", ["[debug] "], P2, P3)
-	;    '$substitute'("%d", [], P2, P3)
+	->   '$substitute'("~d", ["[debug] "], P2, P3)
+	;    '$substitute'("~d", [], P2, P3)
 	),
 	atom_chars(Prompt, P3).
 

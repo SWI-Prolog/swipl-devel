@@ -20,10 +20,9 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
@@ -66,7 +65,7 @@ number of term-refs allocated. This  information   (stored  as  a tagged
 Prolog int) is used by the garbage collector to update the stack frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SECURE
+#if O_DEBUG || defined(O_MAINTENANCE)
 #ifndef O_CHECK_TERM_REFS
 #define O_CHECK_TERM_REFS 1
 #endif
@@ -75,7 +74,7 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
 
-static int	PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD);
+static int	unify_int64_ex__LD(term_t t, int64_t i, int ex ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deduce the value to store a copy of the  contents of p. This is a *very*
@@ -102,23 +101,44 @@ linkVal__LD(Word p ARG_LD)
     w = *p;
   }
 
-  SECURE(assert(w != ATOM_garbage_collected));
+  DEBUG(CHK_SECURE, assert(w != ATOM_garbage_collected));
 
   return w;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+term_t pushWordAsTermRef(Word p)
+       popTermRef()
+
+These two functions are used to create a term-ref from a `Word'. This is
+typically needed for calling  PL_error().  In   many  cases  there is no
+foreign  environment  around,  which   makes    that   we   cannot  call
+PL_new_term_ref(). These functions use the   tmp-references, shared with
+PushPtr()/PopPtr() (see pl-incl.h).  Push and pop *must* match.
+
+Note that this protects creating a term-ref  if there is no environment.
+However, the function called still must   either not use term-references
+or must create an environment.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 term_t
-wordToTermRef(Word p)
-{ GET_LD
+pushWordAsTermRef__LD(Word p ARG_LD)
+{ int i = LD->tmp.top++;
+  term_t t = LD->tmp.h[i];
 
-  if ( p > (Word) lBase )
-    return p - (Word)lBase;
-  else
-  { term_t t = PL_new_term_ref();
+  assert(i<TMP_PTR_SIZE);
+  setHandle(t, linkVal(p));
 
-    setHandle(t, linkVal(p));
-    return t;
-  }
+  return t;
+}
+
+void
+popTermRef__LD(ARG1_LD)
+{ int i = --LD->tmp.top;
+
+  assert(i>=0);
+  setVar(*valTermRef(LD->tmp.h[i]));
 }
 
 
@@ -262,8 +282,8 @@ PL_reset_term_refs(term_t r)
 
   lTop = (LocalFrame) valTermRef(r);
   fr->size = (int)((Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame)));
-  SECURE(if ( fr->size < 0 || fr->size > 100 )
-	   Sdprintf("Suspect foreign frame size: %d\n", fr->size));
+  DEBUG(CHK_SECURE, if ( fr->size < 0 || fr->size > 100 )
+		      Sdprintf("Suspect foreign frame size: %d\n", fr->size));
 }
 
 
@@ -291,9 +311,10 @@ PL_copy_term_ref(term_t from)
   lTop = (LocalFrame)(t+1);
   fr = fli_context;
   fr->size++;
-  SECURE({ int s = (Word) lTop - (Word)(fr+1);
-	   assert(s == fr->size);
-	 });
+  DEBUG(CHK_SECURE,
+	{ int s = (Word) lTop - (Word)(fr+1);
+	  assert(s == fr->size);
+	});
 
   return r;
 }
@@ -754,7 +775,7 @@ PL_cvt_i_address(term_t p, void *address)
 bool
 PL_cvt_o_int64(int64_t c, term_t p)
 { GET_LD
-  return PL_unify_int64__LD(p, c, TRUE PASS_LD);
+  return unify_int64_ex__LD(p, c, TRUE PASS_LD);
 }
 
 
@@ -2581,7 +2602,7 @@ PL_unify_chars(term_t t, int flags, size_t len, const char *s)
 
 
 static int
-PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD)
+unify_int64_ex__LD(term_t t, int64_t i, int ex ARG_LD)
 { word w = consInt(i);
   Word p = valHandleP(t);
 
@@ -2619,13 +2640,19 @@ PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD)
 
 int
 PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
-{ return PL_unify_int64__LD(t, i, TRUE PASS_LD);
+{ return unify_int64_ex__LD(t, i, TRUE PASS_LD);
+}
+
+
+int
+PL_unify_int64__LD(term_t t, int64_t i ARG_LD)
+{ return unify_int64_ex__LD(t, i, FALSE PASS_LD);
 }
 
 
 int
 PL_unify_integer__LD(term_t t, intptr_t i ARG_LD)
-{ return PL_unify_int64__LD(t, i, FALSE PASS_LD);
+{ return unify_int64_ex__LD(t, i, FALSE PASS_LD);
 }
 
 
@@ -2633,24 +2660,24 @@ PL_unify_integer__LD(term_t t, intptr_t i ARG_LD)
 int
 PL_unify_integer(term_t t, intptr_t i)
 { GET_LD
-  return PL_unify_int64__LD(t, i, FALSE PASS_LD);
+  return unify_int64_ex__LD(t, i, FALSE PASS_LD);
 }
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
 
-
+#undef PL_unify_int64
 int
 PL_unify_int64(term_t t, int64_t i)
 { GET_LD
 
-  return PL_unify_int64__LD(t, i, FALSE PASS_LD);
+  return unify_int64_ex__LD(t, i, FALSE PASS_LD);
 }
-
+#define PL_unify_int64(t, i)	PL_unify_int64__LD(t, i PASS_LD)
 
 int
 PL_unify_pointer__LD(term_t t, void *ptr ARG_LD)
 { uint64_t i = pointerToInt(ptr);
 
-  return PL_unify_int64__LD(t, (int64_t)i, FALSE PASS_LD);
+  return unify_int64_ex__LD(t, (int64_t)i, FALSE PASS_LD);
 }
 
 
@@ -3562,7 +3589,7 @@ notify_registered_foreign(functor_t fd, Module m)
 }
 
 
-static bool
+static predicate_t
 bindForeign(Module m, const char *name, int arity, Func f, int flags)
 { GET_LD
   Procedure proc;
@@ -3573,23 +3600,20 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   aname = PL_new_atom(name);
 
   fdef = lookupFunctorDef(aname, arity);
-  proc = lookupProcedure(fdef, m);
+  if ( !(proc = lookupProcedureToDefine(fdef, m)) )
+  { warning("PL_register_foreign(): attempt to redefine "
+	    "a system predicate: %s:%s",
+	    PL_atom_chars(m->name), functorName(fdef));
+    return NULL;
+  }
   def = proc->definition;
-
-  if ( true(def, LOCKED) && !SYSTEM_MODE )
-  { warning("PL_register_foreign: attempt to redefine a system predicate: %s",
-	    procedureName(proc));
-    fail;
+  if ( def->module != m || def->impl.any )
+  { Sdprintf("Abolish %s from %s\n", procedureName(proc), PL_atom_chars(m->name));
+    abolishProcedure(proc, m);
+    def = proc->definition;
   }
 
-  if ( def->definition.function )
-    warning("PL_register_foreign: redefined %s", procedureName(proc));
-  if ( false(def, FOREIGN) && def->definition.clauses != NULL )
-    abolishProcedure(proc, m);
-
-  def->definition.function = f;
-  def->indexPattern = 0;
-  def->indexCardinality = 0;
+  def->impl.function = f;
   def->flags = FOREIGN|TRACE_ME;
 
   if ( m == MODULE_system )
@@ -3605,7 +3629,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   createForeignSupervisor(def, f);
   notify_registered_foreign(fdef, m);
 
-  succeed;
+  return proc;
 }
 
 
@@ -3648,12 +3672,18 @@ PL_register_extensions(const PL_extension *e)
 }
 
 
-int
-PL_register_foreign_in_module(const char *module,
-			      const char *name, int arity, Func f, int flags)
+static int
+register_foreignv(const char *module,
+		  const char *name, int arity, Func f, int flags,
+		  va_list args)
 { if ( extensions_loaded )
   { Module m = resolveModule(module);
-    return bindForeign(m, name, arity, f, flags);
+    predicate_t p = bindForeign(m, name, arity, f, flags);
+
+    if ( p && (flags&PL_FA_META) )
+      PL_meta_predicate(p, va_arg(args, char*));
+
+    return (p != NULL);
   } else
   { PL_extension ext[2];
     ext->predicate_name = (char *)name;
@@ -3669,8 +3699,29 @@ PL_register_foreign_in_module(const char *module,
 
 
 int
-PL_register_foreign(const char *name, int arity, Func f, int flags)
-{ return PL_register_foreign_in_module(NULL, name, arity, f, flags);
+PL_register_foreign_in_module(const char *module,
+			      const char *name, int arity, Func f, int flags, ...)
+{ va_list args;
+  int rc;
+
+  va_start(args, flags);
+  rc = register_foreignv(module, name, arity, f, flags, args);
+  va_end(args);
+
+  return rc;
+}
+
+
+int
+PL_register_foreign(const char *name, int arity, Func f, int flags, ...)
+{ va_list args;
+  int rc;
+
+  va_start(args, flags);
+  rc = register_foreignv(NULL, name, arity, f, flags, args);
+  va_end(args);
+
+  return rc;
 }
 
 		    /* deprecated */
@@ -3793,7 +3844,7 @@ struct abort_handle
 void
 PL_abort_hook(PL_abort_hook_t func)
 { GET_LD
-  AbortHandle h = (AbortHandle) allocHeap(sizeof(struct abort_handle));
+  AbortHandle h = (AbortHandle) allocHeapOrHalt(sizeof(struct abort_handle));
   h->next = NULL;
   h->function = func;
 
@@ -3970,9 +4021,12 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 #include <sys/select.h>
 #endif
 
-#ifdef __WINDOWS__
-#include <winsock2.h>
-#endif
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that this is  used  to   integrate  X11  event-dispatching into the
+SWI-Prolog  toplevel.  Integration  of  event-handling   in  Windows  is
+achieved through the plterm DLL (see  win32/console). For this reason we
+do never want this code in Windows.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 input_on_fd(int fd)
@@ -4141,7 +4195,7 @@ PL_action(int action, ...)
 #ifdef O_DEBUGGER
     { GET_LD
       int a = va_arg(args, int);
-      int om;
+      access_level_t alevel;
 
       if ( gc_status.active )
       { Sfprintf(Serror,
@@ -4156,9 +4210,9 @@ PL_action(int action, ...)
 	rval = FALSE;
 	break;
       }
-      om = systemMode(TRUE);		/* Also show hidden frames */
+      alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM); /* Also show hidden frames */
       backTrace(environment_frame, a);
-      systemMode(om);
+      setAccessLevel(alevel);
     }
 #else
       warning("No Prolog backtrace in runtime version");
@@ -4176,7 +4230,7 @@ PL_action(int action, ...)
       break;
     }
     case PL_ACTION_ABORT:
-      rval = (int)abortProlog(ABORT_THROW);
+      rval = (int)abortProlog();
       break;
     case PL_ACTION_GUIAPP:
     { int guiapp = va_arg(args, int);
@@ -4246,7 +4300,7 @@ init_c_args()
     int argc    = GD->cmdline.argc;
     char **argv = GD->cmdline.argv;
 
-    c_argv = allocHeap(argc * sizeof(char *));
+    c_argv = allocHeapOrHalt(argc * sizeof(char *));
     c_argv[0] = argv[0];
     c_argc = 1;
 
@@ -4364,7 +4418,7 @@ PL_license(const char *license, const char *module)
 
     PL_discard_foreign_frame(fid);
   } else
-  { struct license *l = allocHeap(sizeof(*l));
+  { struct license *l = allocHeapOrHalt(sizeof(*l));
 
     l->license_id = store_string(license);
     l->module_id  = store_string(module);

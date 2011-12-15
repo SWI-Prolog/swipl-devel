@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 %:- set_prolog_flag(optimise, true).
@@ -854,7 +854,8 @@ cleanup(clean-7) :-
 	catch(call_cleanup(fail, throw(b)), E, true),
 	E == b.
 cleanup(clean-8) :-			% check handling of CHP_TOP
-	'$break'(call_cleanup(true, true)).
+					% notrace/1 does a call-back via C
+	notrace(call_cleanup(true, true)).
 cleanup(clean-9) :-
 	retractall(clean_rval(_)),
 	call_cleanup(bagof(x, cleanup_1, _Xs), Reason,

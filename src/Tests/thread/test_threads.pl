@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 :- module(test_threads, [test_threads/0]).
@@ -36,7 +36,8 @@ This module is a Unit test for Prolog built-ins that process threads.
 test_threads :-
 	run_tests([ thread_errors,
 		    thread_property,
-		    mutex_property
+		    mutex_property,
+		    message_queue
 		  ]).
 
 
@@ -170,3 +171,26 @@ test(locked, [By,Count] == [Me,1]) :-
 	mutex_destroy(X).
 
 :- end_tests(mutex_property).
+
+
+		 /*******************************
+		 *	       QUEUES		*
+		 *******************************/
+
+:- begin_tests(message_queue).
+
+test(max_size_prop, true) :-
+	message_queue_create(Queue, [max_size(5)]),
+	message_queue_property(Queue, P),
+	P = max_size(5), !,
+	message_queue_destroy(Queue).
+
+test(size_prop, true) :-
+	message_queue_create(Queue, []),
+	thread_send_message(Queue, 1),
+	thread_send_message(Queue, 2),
+	message_queue_property(Queue, P),
+	P = size(2), !,
+	message_queue_destroy(Queue).
+
+:- end_tests(message_queue).

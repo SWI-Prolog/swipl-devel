@@ -19,14 +19,14 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifdef __linux__
 #define _XOPEN_SOURCE 600
 #endif
 
-#define O_DEBUG 1
+/* #define O_DEBUG 1 */
 #include "pl-incl.h"
 #if defined(HAVE_GRANTPT) && defined(O_PLMT)
 
@@ -63,20 +63,30 @@ static ssize_t
 Xterm_read(void *handle, char *buffer, size_t count)
 { GET_LD
   xterm *xt = handle;
-  int size;
+  ssize_t size;
 
   if ( LD->prompt.next && ttymode != TTY_RAW )
     PL_write_prompt(TRUE);
   else
     Sflush(Suser_output);
 
-  size = read(xt->fd, buffer, count);
+  do
+  { size = read(xt->fd, buffer, count);
+
+    if ( size < 0 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	break;
+      }
+
+      continue;
+    }
+  } while(0);
 
   if ( size == 0 )			/* end-of-file */
   { LD->prompt.next = TRUE;
   } else if ( size > 0 && buffer[size-1] == '\n' )
     LD->prompt.next = TRUE;
-
 
   return size;
 }
@@ -85,8 +95,22 @@ Xterm_read(void *handle, char *buffer, size_t count)
 static ssize_t
 Xterm_write(void *handle, char *buffer, size_t count)
 { xterm *xt = handle;
+  ssize_t size;
 
-  return write(xt->fd, buffer, count);
+  do
+  { size = write(xt->fd, buffer, count);
+
+    if ( size < 0 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	break;
+      }
+
+      continue;
+    }
+  } while(0);
+
+  return size;
 }
 
 
@@ -148,6 +172,20 @@ static IOFUNCTIONS SXtermfunctions =
   Xterm_close,
   Xterm_control
 };
+
+
+static int
+unifyXtermStream(term_t t, xterm *xt, int flags)
+{ IOSTREAM *s;
+  int defflags = (SIO_NOCLOSE|SIO_TEXT|SIO_RECORDPOS);
+
+  if ( (s=Snew(xt, (defflags|flags), &SXtermfunctions)) )
+  { s->encoding = initEncoding();
+    return PL_unify_stream(t, s);
+  }
+
+  return FALSE;
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -229,22 +267,14 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
   if ( tcsetattr(slave, TCSADRAIN, &termio) == -1 )
     perror("tcsetattr");
 
-  xt = allocHeap(sizeof(*xt));
+  xt = allocHeapOrHalt(sizeof(*xt));
   xt->pid   = pid;
   xt->fd    = slave;
   xt->count = 3;			/* opened 3 times */
 
-  PL_unify_stream(in,  Snew(xt,
-			    SIO_INPUT|SIO_LBUF|SIO_NOFEOF,
-			    &SXtermfunctions));
-  PL_unify_stream(out, Snew(xt,
-			    SIO_OUTPUT|SIO_LBUF,
-			    &SXtermfunctions));
-  PL_unify_stream(err, Snew(xt,
-			    SIO_OUTPUT|SIO_NBUF,
-			    &SXtermfunctions));
-
-  succeed;
+  return (unifyXtermStream(in,  xt, SIO_INPUT|SIO_LBUF|SIO_NOFEOF) &&
+	  unifyXtermStream(out, xt, SIO_OUTPUT|SIO_LBUF) &&
+	  unifyXtermStream(err, xt, SIO_OUTPUT|SIO_NBUF));
 }
 
 #else /*HAVE_GRANTPT*/

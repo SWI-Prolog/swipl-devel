@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -94,13 +94,7 @@ interactor :-
 thread_run_interactor :-
 	attach_console,
 	print_message(banner, thread_welcome),
-	run_prolog.
-
-run_prolog :-
-	catch(prolog, E,
-	      ( print_message(error, E),
-%		E = error(_, _),
-		run_prolog)).
+	prolog.
 
 %%	attach_console
 %
@@ -110,10 +104,12 @@ run_prolog :-
 :- dynamic
 	has_console/4.			% Id, In, Out, Err
 
-has_console(main).			% we assume main has one.
+has_console(main) :- !.			% we assume main has one.
 has_console(Id) :-
 	has_console(Id, _, _, _).
 
+has_console :-
+	current_prolog_flag(break_level, _), !.
 has_console :-
 	thread_self(Id),
 	has_console(Id), !.

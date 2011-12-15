@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -87,7 +87,7 @@ tz_offset() returns the offset from UTC in seconds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-do_tzset()
+do_tzset(void)
 { static int done = FALSE;
 
   if ( !done )
@@ -105,7 +105,7 @@ value is EAST and includes the DST offset.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-tz_offset()
+tz_offset(void)
 {
 #ifdef HAVE_VAR_TIMEZONE
   do_tzset();
@@ -316,7 +316,7 @@ get_ftm(term_t t, ftm *ftm)
     compute missing fields from fmt
 */
 
-void
+static void
 cal_ftm(ftm *ftm, int required)
 { int missing = ftm->flags^required;
 

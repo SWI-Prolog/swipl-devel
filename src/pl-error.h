@@ -19,18 +19,11 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef COMMON
-#ifndef SO_LOCAL
-#ifdef HAVE_VISIBILITY_ATTRIBUTE
-#define SO_LOCAL __attribute__((visibility("hidden")))
-#else
-#define SO_LOCAL
-#endif
-#endif
-#define COMMON(type) SO_LOCAL type
+#define COMMON(type) extern type
 #endif
 
 typedef enum
@@ -85,7 +78,7 @@ typedef enum
 
 COMMON(int)		PL_error(const char *pred, int arity, const char *msg,
 				 PL_error_code id, ...);
-COMMON(char *)		tostr(char *buf, const char *fmt, ...);
+COMMON(int)		PL_no_memory(void);
 COMMON(int)		printMessage(atom_t severity, ...);
 #ifdef ARG_LD
 COMMON(int)		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);

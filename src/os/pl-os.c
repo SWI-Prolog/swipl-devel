@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*  Modified (M) 1993 Dave Sherratt  */
@@ -520,16 +520,14 @@ _PL_Random(void)
   }
 
 #ifdef HAVE_RANDOM
-#if SIZEOF_VOIDP == 4
   { uint64_t l = random();
 
-    l ^= (uint64_t)random()<<32;
+    l ^= (uint64_t)random()<<15;
+    l ^= (uint64_t)random()<<30;
+    l ^= (uint64_t)random()<<45;
 
     return l;
   }
-#else
-  return random();
-#endif
 #else
   { uint64_t l = rand();			/* 0<n<2^15-1 */
 
@@ -1006,7 +1004,7 @@ canoniseDir(char *path)
   }
 
 					/* we need to use malloc() here */
-					/* because allocHeap() only ensures */
+					/* because allocHeapOrHalt() only ensures */
 					/* alignment for `word', and inode_t */
 					/* is sometimes bigger! */
 
@@ -1089,6 +1087,17 @@ canoniseFileName(char *path)
 
     out = start = in;
   }
+#ifdef __MINGW32__ /* /c/ in MINGW is the same as c: */
+  if ( in[0] == '/' && isLetter(in[1]) &&
+       in[2] == '/' )
+  {
+    out[0] = in[1];
+    out[1] = ':';
+    in += 3;
+    out = start = in;
+  }
+#endif
+
 #endif
 #ifdef O_HASSHARES			/* //host/ */
   if ( in[0] == '/' && in[1] == '/' && isAlpha(in[2]) )
@@ -1382,6 +1391,12 @@ IsAbsolutePath(const char *p)				/* /d:/ */
 { if ( p[0] == '/' && p[2] == ':' && isLetter(p[1]) &&
        (p[3] == '/' || p[3] == '\0') )
     succeed;
+
+#ifdef __MINGW32__ /* /c/ in MINGW is the same as c: */
+  if ( p[0] == '/' && isLetter(p[1]) &&
+       (p[2] == '/' || p[2] == '\0') )
+    succeed;
+#endif
 
   if ( p[1] == ':' && isLetter(p[0]) &&			/* d:/ or d:\ */
        (IS_DIR_SEPARATOR(p[2]) || p[2] == '\0') )
@@ -1717,7 +1732,7 @@ PopTty(IOSTREAM *s, ttybuf *buf)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-ResetStdin()
+ResetStdin(void)
 { Sinput->limitp = Sinput->bufp = Sinput->buffer;
   if ( !GD->os.org_terminal.read )
     GD->os.org_terminal = *Sinput->functions;
@@ -1797,7 +1812,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-  buf->state = allocHeap(sizeof(tty_state));
+  buf->state = allocHeapOrHalt(sizeof(tty_state));
 
 #ifdef HAVE_TCSETATTR
   if ( tcgetattr(fd, &TTY_STATE(buf)) )	/* save the old one */
@@ -1903,7 +1918,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-  buf->state = allocHeap(sizeof(tty_state));
+  buf->state = allocHeapOrHalt(sizeof(tty_state));
 
   if ( ioctl(fd, TIOCGETP, &TTY_STATE(buf)) )  /* save the old one */
     fail;

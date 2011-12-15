@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -52,27 +52,12 @@ static int allocStacks(size_t local, size_t global, size_t trail);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
-#undef I
-#define I TAGEX_INDIRECT
-
-const unsigned int tagtypeex[] =
-{
-	    /* var     attvar  int    float   atom   string    term     ref */
-/* static */	0,	0,	0,	0,	0,	0,	0,	0,
-/* heap */	0,	0,      I,	I,	0,	I,	0,	0,
-/* global */	0,	0,      I,	I,	0,	I,	0,	0,
-/* local */	0,	0,	0,	0,	0,	0,	0,	0
-};
-
-#undef I
-
-void
+int
 setupProlog(void)
 { GET_LD
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
   LD->critical = 0;
-  LD->aborted = ABORT_NONE;
   LD->signal.pending = 0;
 
   startCritical;
@@ -133,9 +118,11 @@ setupProlog(void)
   resetTerm();
   GD->io_initialised = TRUE;
 
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
 
   DEBUG(1, Sdprintf("Heap Initialised\n"));
+  return TRUE;
 }
 
 
@@ -146,7 +133,9 @@ initPrologLocalData(ARG1_LD)
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
 #endif
 
+  LD->break_level = -1;
   LD->prolog_flag.write_attributes = PL_WRT_ATTVAR_IGNORE;
+
   updateAlerted(LD);
 }
 
@@ -597,7 +586,7 @@ sig_exception_handler(int sig)
     PL_erase(ex);
     exception_term = exception_bin;
 
-    SECURE(checkData(valTermRef(exception_term)));
+    DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
   }
 }
 
@@ -632,7 +621,7 @@ free_clauses_handler(int sig)
 
 static void
 abort_handler(int sig)
-{ abortProlog(ABORT_RAISE);
+{ abortProlog();
 }
 
 
@@ -913,8 +902,8 @@ out:
 
 int
 endCritical__LD(ARG1_LD)
-{ if ( LD->aborted )
-    return abortProlog(ABORT_THROW);
+{ if ( exception_term )
+    return FALSE;
 
   return TRUE;
 }
@@ -1252,6 +1241,9 @@ stack_malloc(size_t size)
   if ( mem )
   { size_t *sp = mem;
     *sp++ = size;
+#ifdef SECURE_GC
+    memset(sp, 0xFB, size);
+#endif
 
     PL_LOCK(L_MISC);
     GD->statistics.stack_space += size;
@@ -1268,6 +1260,13 @@ stack_realloc(void *old, size_t size)
   size_t osize = *--sp;
   void *mem;
 
+#ifdef SECURE_GC
+  if ( (mem = stack_malloc(size)) )
+  { memcpy(mem, old, (size>osize?osize:size));
+    stack_free(old);
+    return mem;
+  }
+#else
   if ( (mem = realloc(sp, size+sizeof(size_t))) )
   { sp = mem;
     *sp++ = size;
@@ -1277,6 +1276,7 @@ stack_realloc(void *old, size_t size)
     PL_UNLOCK(L_MISC);
     return sp;
   }
+#endif
 
   return NULL;
 }
@@ -1290,6 +1290,9 @@ stack_free(void *mem)
   GD->statistics.stack_space -= osize;
   PL_UNLOCK(L_MISC);
 
+#ifdef SECURE_GC
+  memset(sp, 0xFB, osize+sizeof(size_t));
+#endif
   free(sp);
 }
 
@@ -1396,9 +1399,10 @@ trimStacks(int resize ARG_LD)
     }
   }
 
-  SECURE({ scan_global(FALSE);
-	   checkStacks(NULL);
-	 });
+  DEBUG(CHK_SECURE,
+	{ scan_global(FALSE);
+	  checkStacks(NULL);
+	});
 }
 
 
@@ -1466,6 +1470,9 @@ freePrologLocalData(PL_local_data_t *ld)
 #ifdef O_PLMT
   simpleMutexDelete(&ld->signal.sig_lock);
 #endif
+
+  if ( ld->qlf.getstr_buffer )
+    free(ld->qlf.getstr_buffer);
 }
 
 

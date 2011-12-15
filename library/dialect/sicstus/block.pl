@@ -17,7 +17,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -109,7 +109,9 @@ expand_specs(Head, Module) -->
 	},
 	(   { current_predicate(Module:'$block_pred'/1) }
 	->  []
-	;   [ (:- discontiguous('$block_pred'/1)) ]
+	;   [ (:- discontiguous('$block_pred'/1)),
+	      (:- public('$block_pred'/1))
+	    ]
 	),
 	(   { prolog_load_context(module, Module) }
 	->  [ Clause ]

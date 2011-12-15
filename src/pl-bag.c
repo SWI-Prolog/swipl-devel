@@ -19,10 +19,9 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
@@ -64,6 +63,9 @@ PRED_IMPL("$new_findall_bag", 1, new_findall_bag, 0)
 { PRED_LD
   findall_bag *bag = allocHeap(sizeof(*bag));
 
+  if ( !bag )
+    return PL_no_memory();
+
   memset(bag, 0, sizeof(*bag));
   bag->magic = FINDALL_MAGIC;
   bag->answers.unit_size = sizeof(Record);
@@ -86,7 +88,10 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
     return FALSE;
 
   r = compileTermToHeap(A2, R_NOLOCK);
-  pushRecordSegStack(&bag->answers, r);
+  if ( !pushRecordSegStack(&bag->answers, r) )
+  { freeRecord(r);
+    return PL_no_memory();
+  }
   bag->gsize += r->gsize;
   bag->solutions++;
 

@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -181,7 +181,7 @@ void		rlc_clearprompt(rlc_console c);
 #define assert(g) (void)0
 #endif
 
-__inline RlcData
+static __inline RlcData
 rlc_get_data(rlc_console c)
 { if ( c )
   { RlcData b = c;

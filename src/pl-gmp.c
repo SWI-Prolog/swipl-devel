@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -77,7 +77,8 @@ mp_alloc(size_t bytes)
   if ( TOO_BIG_GMP(bytes) ||
        !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
   { gmp_too_big();
-    abortProlog(ABORT_THROW);
+    abortProlog();
+    PL_rethrow();
     return NULL;			/* make compiler happy */
   }
 
@@ -111,7 +112,8 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
   if ( TOO_BIG_GMP(newsize) ||
        !(newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
   { gmp_too_big();
-    abortProlog(ABORT_THROW);
+    abortProlog();
+    PL_rethrow();
     return NULL;			/* make compiler happy */
   }
 

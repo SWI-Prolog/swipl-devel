@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -31,7 +31,7 @@
 static Code
 allocCodes(size_t n)
 { GET_LD
-  Code codes = allocHeap(sizeof(code)*(n+1));
+  Code codes = allocHeapOrHalt(sizeof(code)*(n+1));
 
   *codes++ = (code)n;
 
@@ -142,8 +142,8 @@ static int
 getClauses(Definition def, ClauseRef *refp0)
 { ClauseRef cref, *refp = refp0;
 
-  for(cref = def->definition.clauses; cref; cref = cref->next)
-  { if ( visibleClause(cref->clause, GD->generation) )
+  for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
+  { if ( visibleClause(cref->value.clause, GD->generation) )
       *refp++ = cref;
   }
 
@@ -160,7 +160,7 @@ only clause of the predicate.  Creates
 
 static Code
 singleClauseSupervisor(Definition def)
-{ if ( def->number_of_clauses == 1 )
+{ if ( def->impl.clauses.number_of_clauses == 1 )
   { ClauseRef cref;
     Code codes = allocCodes(2);
 
@@ -192,13 +192,13 @@ The code is
 
 static Code
 listSupervisor(Definition def)
-{ if ( def->number_of_clauses == 2 )
+{ if ( def->impl.clauses.number_of_clauses == 2 )
   { ClauseRef cref[2];
     word c[2];
 
     getClauses(def, cref);
-    if ( arg1Key(cref[0]->clause, TRUE, &c[0]) &&
-	 arg1Key(cref[1]->clause, TRUE, &c[1]) &&
+    if ( argKey(cref[0]->value.clause->codes, 0, TRUE, &c[0]) &&
+	 argKey(cref[1]->value.clause->codes, 0, TRUE, &c[1]) &&
 	 ( (c[0] == ATOM_nil && c[1] == FUNCTOR_dot2) ||
 	   (c[1] == ATOM_nil && c[0] == FUNCTOR_dot2) ) )
     { Code codes = allocCodes(3);
@@ -303,7 +303,7 @@ chainMetaPredicateSupervisor(Definition def, Code post)
 
 int
 createUndefSupervisor(Definition def)
-{ if ( def->number_of_clauses == 0 && false(def, PROC_DEFINED) )
+{ if ( def->impl.clauses.number_of_clauses == 0 && false(def, PROC_DEFINED) )
   { def->codes = SUPERVISOR(undef);
 
     succeed;

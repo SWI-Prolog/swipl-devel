@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -63,7 +63,6 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
   int v;
   FunctorDef f;
 
-  startCritical;
   LOCK();
   v = (int)pointerHashValue(atom, functor_buckets);
 
@@ -72,11 +71,10 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
   { if (atom == f->name && f->arity == arity)
     { DEBUG(9, Sdprintf("%p (old)\n", f));
       UNLOCK();
-      endCritical;
       return f->functor;
     }
   }
-  f = (FunctorDef) allocHeap(sizeof(struct functorDef));
+  f = (FunctorDef) allocHeapOrHalt(sizeof(struct functorDef));
   f->functor = 0L;
   f->name    = atom;
   f->arity   = arity;
@@ -93,20 +91,18 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
     rehashFunctors();
 
   UNLOCK();
-  endCritical;
 
   return f->functor;
 }
 
 
 static void
-rehashFunctors()
+rehashFunctors(void)
 { GET_LD
   FunctorDef *oldtab = functorDefTable;
   int oldbucks       = functor_buckets;
   size_t i, mx = maxFunctorIndex();
 
-  startCritical;
   functor_buckets *= 2;
   allocFunctorTable();
 
@@ -122,7 +118,6 @@ rehashFunctors()
   }
 
   freeHeap(oldtab, oldbucks * sizeof(FunctorDef));
-  endCritical;
 }
 
 
@@ -163,7 +158,7 @@ allocFunctorTable()
 { GET_LD
   int size = functor_buckets * sizeof(FunctorDef);
 
-  functorDefTable = allocHeap(size);
+  functorDefTable = allocHeapOrHalt(size);
   memset(functorDefTable, 0, size);
 }
 
@@ -172,7 +167,7 @@ static void
 registerBuiltinFunctors()
 { GET_LD
   int size = sizeof(functors)/sizeof(builtin_functor) - 1;
-  FunctorDef f = allocHeap(size * sizeof(struct functorDef));
+  FunctorDef f = allocHeapOrHalt(size * sizeof(struct functorDef));
   const builtin_functor *d;
 
   GD->statistics.functors = size;

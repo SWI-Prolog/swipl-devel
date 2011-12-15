@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 :- module(test_db, [test_db/0]).
@@ -42,7 +42,7 @@ test_db :-
 
 :- dynamic
 	term/0,
-	f/1, f/2.
+	f/1, f/2, f/0.
 
 test(right_cyclic_head, [ sto(rational_trees),
 			  error(representation_error(cyclic_term))
@@ -59,6 +59,11 @@ test(cyclic_body, [ sto(rational_trees),
 		  ]) :-
 	X = f(X),
 	assert((f(a) :- X)).
+
+test(cut_cond, Body = (! -> fail)) :-
+	assert(f :- (! -> fail)),
+	clause(f, Body),
+	retractall(f).
 
 :- end_tests(assert).
 

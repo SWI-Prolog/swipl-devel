@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef _DIRENT_H_INCLUDED
@@ -28,7 +28,7 @@
 #include <io.h>
 
 #undef _export
-#if defined(_UXNT_KERNEL) && !defined(__LCC__)
+#if defined(_UXNT_KERNEL) && !defined(__MINGW32__)
 #define _export _declspec(dllexport)
 #else
 #define _export extern
@@ -37,7 +37,7 @@
 #define DIRENT_MAX 512
 
 typedef struct dirent
-{ void *      		data;		/* actually WIN32_FIND_DATA * */
+{ void *		data;		/* actually WIN32_FIND_DATA * */
   int			first;
   void *		handle;		/* actually HANDLE */
 					/* dirent */

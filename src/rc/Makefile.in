@@ -23,8 +23,10 @@ lmandir=$(man_prefix)/man$(lmansec)
 plmandir=$(PLBASE)/man
 
 CC=@CC@
+EXEEXT = @EXEEXT@
 AR=@AR@
 RANLIB=@RANLIB@
+PLARCH=@PLARCH@
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CIFLAGS=@CIFLAGS@
@@ -39,16 +41,16 @@ INSTALL_DATA=@INSTALL_DATA@
 
 MINGW=@MINGW@
 ifeq ($(MINGW),true)
-UXNTLIB=../../lib/uxnt.a
+UXNTLIB=../../lib/$(PLARCH)/libuxnt.a
 else
 UXNTLIB=
 endif
 
 LIBOBJ=	html.o access.o build.o util.o
 
-all:	swipl-rc
+all:	swipl-rc$(EXEEXT)
 
-swipl-rc:	librc.a rc.o
+swipl-rc$(EXEEXT):	librc.a rc.o
 	$(CC) $(LDFLAGS) -o $@ rc.o $(UXNTLIB) -L. -lrc
 
 librc.a:	$(LIBOBJ)

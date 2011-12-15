@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -328,6 +328,16 @@ registerAtom(Atom a)
 }
 
 
+static size_t
+paddingBlob(PL_blob_t *type)
+{ if ( true(type, PL_BLOB_TEXT) )
+  { return true(type, PL_BLOB_WCHAR) ? sizeof(pl_wchar_t) : sizeof(char);
+  } else
+  { return 0;
+  }
+}
+
+
 		 /*******************************
 		 *	  GENERAL LOOKUP	*
 		 *******************************/
@@ -400,13 +410,14 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   }
 
   oldheap = GD->statistics.heap;
-  a = allocHeap(sizeof(struct atom));
+  a = allocHeapOrHalt(sizeof(struct atom));
   a->length = length;
   a->type = type;
   if ( false(type, PL_BLOB_NOCOPY) )
-  { a->name = allocHeap(length+1);
+  { size_t pad = paddingBlob(type);
+    a->name = allocHeapOrHalt(length+pad);
     memcpy(a->name, s, length);
-    a->name[length] = EOS;
+    memset(a->name+length, 0, pad);
   } else
   { a->name = (char *)s;
   }
@@ -513,7 +524,7 @@ _PL_debug_atom_value(atom_t a)
     Sdprintf("*** No atom at index (#%d) ***", i);
     trap_gdb();
 
-    atom = allocHeap(sizeof(*atom));
+    atom = allocHeapOrHalt(sizeof(*atom));
     Ssprintf(buf, "***(#%d)***", i);
     atom->name = store_string(buf);
     atom->length = strlen(atom->name);
@@ -607,7 +618,7 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
   }
 
 #if 0
-  if ( strncmp(a->name, "xxxx", 4) == 0 ) 	/* (*) see above */
+  if ( strncmp(a->name, "xxxx", 4) == 0 )	/* (*) see above */
   { Sdprintf("Deleting %s\n", a->name);
     assert(0);
   }
@@ -631,7 +642,7 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
 
   *ap = NULL;			/* delete from index array */
   if ( false(a->type, PL_BLOB_NOCOPY) )
-    freeHeap(a->name, a->length+1);
+    freeHeap(a->name, a->length+paddingBlob(a->type));
   freeHeap(a, sizeof(*a));
 
   return TRUE;
@@ -700,7 +711,7 @@ pl_garbage_collect_atoms()
   }
 
 #ifdef O_PLMT
-  if ( GD->gc.active ) 			/* GC in progress: delay */
+  if ( GD->gc.active )			/* GC in progress: delay */
   { DEBUG(2, Sdprintf("GC active; delaying AGC\n"));
     GD->gc.agc_waiting = TRUE;
     PL_UNLOCK(L_GC);
@@ -714,10 +725,11 @@ pl_garbage_collect_atoms()
   {
 #ifdef O_DEBUG_ATOMGC
 /*
+    access_level_t old;
     Sdprintf("Starting ATOM-GC.  Stack:\n");
-    systemMode(TRUE);
+    old = setAccessLevel(ACCESS_LEVEL_SYSTEM);
     backTrace(NULL, 5);
-    systemMode(FALSE);
+    setAccessLevel(old);
 */
 #endif
     printMessage(ATOM_informational,
@@ -843,10 +855,9 @@ rehashAtoms()
   uintptr_t mask;
   Atom *ap, *ep;
 
-  startCritical;
   atom_buckets *= 2;
   mask = atom_buckets-1;
-  atomTable = allocHeap(atom_buckets * sizeof(Atom));
+  atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
   memset(atomTable, 0, atom_buckets * sizeof(Atom));
 
   DEBUG(0, Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
@@ -862,7 +873,6 @@ rehashAtoms()
   }
 
   freeHeap(oldtab, oldbucks * sizeof(Atom));
-  endCritical;
 }
 
 
@@ -885,7 +895,7 @@ static void
 registerBuiltinAtoms()
 { GET_LD
   int size = sizeof(atoms)/sizeof(char *) - 1;
-  Atom a = allocHeap(size * sizeof(struct atom));
+  Atom a = allocHeapOrHalt(size * sizeof(struct atom));
   const ccharp *s;
 
   GD->statistics.atoms = size;
@@ -926,7 +936,7 @@ initAtoms(void)
   if ( !atomTable )
   { GET_LD
     atom_buckets = ATOMHASHSIZE;
-    atomTable = allocHeap(atom_buckets * sizeof(Atom));
+    atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
 
     memset(atomTable, 0, atom_buckets * sizeof(Atom));
     GD->atoms.array_allocated = 4096;
@@ -967,7 +977,7 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
 	succeed;
       }
       if ( !PL_is_variable(a) )
-	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
+	return FALSE;
 
       i = 0;
       break;

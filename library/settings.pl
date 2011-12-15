@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -95,6 +96,8 @@ access, loading and saving of settings.
 	set_setting_default(:, +),
 	current_setting(:),
 	restore_setting(:).
+
+:- predicate_options(load_settings/2, 2, [undefined(oneof([load,error]))]).
 
 curr_setting(Name, Module, Type, Default, Comment, Src) :-
 	current_setting(Name, Module, Type, Default0, Comment, Src),
@@ -343,16 +346,19 @@ set_setting(QName, Value) :-
 	must_be(atom, Name),
 	(   curr_setting(Name, Module, Type, Default0, _Comment, _Src),
 	    eval_default(Default0, Module, Type, Default)
-	->  (   Value == Default
+	->  setting(Module:Name, Old),
+	    (   Value == Default
 	    ->	retract_setting(Module:Name)
 	    ;	st_value(Name, Module, Value)
 	    ->	true
 	    ;	check_type(Type, Value)
-	    ->	setting(Module:Name, Old),
-	        retract_setting(Module:Name),
-	        assert_setting(Module:Name, Value),
-		broadcast(settings(changed(Module:Name, Old, Value))),
-		clear_setting_cache	% might influence dependent settings.
+	    ->	retract_setting(Module:Name),
+	        assert_setting(Module:Name, Value)
+	    ),
+	    (	Old == Value
+	    ->	true
+	    ;	broadcast(settings(changed(Module:Name, Old, Value))),
+		clear_setting_cache	% might influence dependent settings
 	    )
 	;   existence_error(setting, Name)
 	).
@@ -464,7 +470,7 @@ load_settings(Setting, In, Options) :-
 
 read_setting(In, Term) :-
 	read_term(In, Term,
-		  [ errors(dec10)
+		  [ syntax_errors(dec10)
 		  ]).
 
 %%	store_setting(Term, +Options)

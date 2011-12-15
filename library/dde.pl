@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -39,21 +40,57 @@
 	    dde_current_connection/2	% -Service, -Topic
 	  ]).
 
+:- meta_predicate
+	dde_register_service(+, 0).
+
+/** <module> Windows DDE interface
+
+This module provides both a client and   server interface to Windows DDE
+(Dynamic Data Exchange) facilities. DDE provides a proprietary means for
+interprocess communication based on Windows  messages. This implies that
+applications that wish to use these   predicates  must provide a Windows
+`message loop'. Typically, this  is  provided   by  the  GUI frontend of
+SWI-Prolog. If SWI-Prolog is embedded,   the  embedding environment must
+provide the message loop.
+
+Errors from the DDE layer are mapped to error-terms of this format
+
+  ==
+  error(dde_error(Operation, Message), Context)
+  ==
+
+The interaction between DDE and threads is   unclear  to us. The current
+implementation uses a DDE instance for each   thread that executes a DDE
+predicate. Although not protected, we advice  to use a particular handle
+only from the thread in which it  was created and to unregister services
+from the thread that created them.
+
+@see	library(socket) provides platform independent interprocess
+	communication.
+*/
+
 		 /*******************************
 		 *	      CLIENT		*
 		 *******************************/
 
-%	Make a DDE request with default timeout value (meaning the request
-%	will block VERY long).
+%%	dde_request(+Handle, +Key, -Value) is det.
+%
+%	Make a DDE request  with  default   timeout  value  (meaning the
+%	request  can  block  forever).   Value    is   unified   with  a
+%	string-object (see string_list/2) on success.
 
 dde_request(Handle, Key, Value) :-
 	dde_request(Handle, Key, Value, 0).
 
+%%	dde_execute(+Handle, +Command) is det.
+%
 %	Make a DDE execute request with default timeout value.
 
 dde_execute(Handle, Command) :-
 	dde_execute(Handle, Command, 0).
 
+%%	dde_poke(+Handle, +Item, +Data) is det.
+%
 %	Make a DDE poke request with default timeout value.
 
 dde_poke(Handle, Item, Data) :-
@@ -67,9 +104,6 @@ dde_poke(Handle, Item, Data) :-
 :- dynamic
 	dde_service/6,
 	dde_current_connection/3.
-
-:- module_transparent
-	dde_register_service/2.
 
 %%	dde_register_service(Template, +Goal) is det.
 %
@@ -100,6 +134,13 @@ dde_register_service(Template, Goal) :-
 				    Command, Module, PlainGoal)).
 dde_register_service(Template, _Goal) :-
 	throw(error(type_error(dde_service, Template), _)).
+
+%%	dde_unregister_service(+Service) is det.
+%
+%	Unregister a previously registered service. Succeeds silently if
+%	the service was not registered.
+%
+%	@see dde_current_service/2.
 
 dde_unregister_service(Service) :-
 	(   retract(dde_service(Service, _, _, _, _, _))
@@ -184,3 +225,14 @@ dde_current_connection(Service, Topic) :-
 '$dde_execute'(_Handle, Topic, _Command) :-
 	throw(error(existence_error(dde_topic, Topic), _)).
 
+
+		 /*******************************
+		 *	       ERRORS		*
+		 *******************************/
+
+:- multifile
+	prolog:error_message//1.
+
+
+prolog:error_message(dde_error(Op,Msg)) -->
+	[ 'DDE: ~w failed: ~w'-[Op,Msg] ].

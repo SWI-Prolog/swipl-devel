@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef PL_THREAD_H_DEFINED
@@ -88,7 +88,7 @@ typedef struct _PL_thread_info_t
   pid_t		    pid;		/* for identifying */
 #endif
 #ifdef __WINDOWS__
-  unsigned long	    w32id;		/* Win32 thread HANDLE */
+  DWORD		    w32id;		/* Win32 thread HANDLE */
 #endif
   struct PL_local_data  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */
@@ -146,7 +146,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TABLE		9
 #define L_BREAK	       10
 #define L_FILE	       11
-#define L_PLFLAG      12
+#define L_PLFLAG       12
 #define L_OP	       13
 #define L_INIT	       14
 #define L_TERM	       15
@@ -154,6 +154,9 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_AGC	       17
 #define L_FOREIGN      18
 #define L_OS	       19
+#ifdef __WINDOWS__
+#define L_DDE	       20
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The IF_MT(id, g) macro  is  used  to   bypass  mutexes  if  threading  is

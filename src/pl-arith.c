@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -184,7 +184,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	  succeed;
 	}
 
-	state = allocHeap(sizeof(*state));
+	state = allocHeapOrHalt(sizeof(*state));
 	cpNumber(&state->low, &l);
 	cpNumber(&state->high, &h);
 	state->hinf = hinf;
@@ -679,7 +679,7 @@ valueExpression(term_t expr, number *result ARG_LD)
         goto error;
       case TAG_REFERENCE:
       { if ( !pushForMark(&term_stack, p, walk_ref) )
-	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	{ PL_no_memory();
 	  goto error;
 	}
 	walk_ref = TRUE;
@@ -715,7 +715,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	}
 
 	if ( !pushForMark(&term_stack, p, walk_ref) )
-	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+	{ PL_no_memory();
 	  goto error;
 	}
 	if ( term_stack.count > 100 && !known_acyclic )
@@ -753,7 +753,7 @@ valueExpression(term_t expr, number *result ARG_LD)
       popForMark(&term_stack, &p, &walk_ref);
 
     if ( !pushSegStack(&arg_stack, n_tmp, number) )
-    { PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
+    { PL_no_memory();
       goto error;
     }
 
@@ -887,7 +887,8 @@ arithChar(Word p ARG_LD)
   }
 
   PL_error(NULL, 0, NULL, ERR_TYPE,
-	   ATOM_character, wordToTermRef(p));
+	   ATOM_character, pushWordAsTermRef(p));
+  popTermRef();
 
   return EOF;
 }
@@ -906,8 +907,11 @@ getCharExpression(Word p, Number r ARG_LD)
 
   a = argTermP(*p, 1);
   if ( !isNil(*a) )
-    return PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
-		    ATOM_nil, wordToTermRef(a));
+  { PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
+	     ATOM_nil, pushWordAsTermRef(a));
+    popTermRef();
+    return FALSE;
+  }
 
   r->value.i = chr;
   r->type = V_INTEGER;
@@ -1317,7 +1321,16 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       if ( dir < 0 )			/* shift left (<<) */
       {
 #ifdef O_GMP				/* msb() is 0..63 */
-	if ( msb64(n1->value.i) + shift >= (int)(sizeof(int64_t)*8-1) )
+        int bits = shift;
+
+	if ( n1->value.i >= 0 )
+	  bits += msb64(n1->value.i);
+	else if ( n1->value.i == PLMININT )
+	  bits += sizeof(int64_t)*8;
+	else
+	  bits += msb64(-n1->value.i);
+
+	if ( bits >= (int)(sizeof(int64_t)*8-1) )
 	{ promoteToMPZNumber(n1);
 	  goto mpz;
 	} else
@@ -1326,7 +1339,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	}
       } else
       { if ( shift >= (long)sizeof(int64_t)*8 )
-	  r->value.i = 0;
+	  r->value.i = (r->value.i >= 0 ? 0 : -1);
 	else
 	  r->value.i = n1->value.i >> shift;
       }
@@ -2867,7 +2880,7 @@ init_random(ARG1_LD)
 #ifdef O_GMP
   if ( !LD->arith.random.initialised )
   { LD->gmp.persistent++;
-    gmp_randinit_default(LD->arith.random.state);
+    gmp_randinit_mt(LD->arith.random.state);
     LD->arith.random.initialised = TRUE;
     seed_random(PASS_LD1);
     LD->gmp.persistent--;
@@ -2893,6 +2906,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 
       if ( PL_get_atom(arg, &a) && a == ATOM_random )
       { seed_random(PASS_LD1);
+	return TRUE;
       } else
       { number n;
 
@@ -2905,30 +2919,74 @@ PRED_IMPL("set_random", 1, set_random, 0)
 	  case V_INTEGER:
 	    gmp_randseed_ui(LD->arith.random.state,
 			    (unsigned long)n.value.i);
-	    break;
+	    return TRUE;
 	  case V_MPZ:
 	    gmp_randseed(LD->arith.random.state, n.value.mpz);
-	    break;
+	    return TRUE;
 #else
 	  case V_INTEGER:
           { unsigned int seed = (unsigned int)n.value.i;
 	    setRandom(&seed);
-	    break;
+	    return TRUE;
 	  }
 #endif
 	  default:
-	    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, a);
+	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, a);
 	}
       }
+#ifdef O_GMP
+    } else if ( name == ATOM_state )
+    { number n;
+
+      if ( !PL_get_number(arg, &n) ||
+	   n.type != V_MPZ )
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_state, arg);
+
+      mpz_set(LD->arith.random.state[0]._mp_seed, n.value.mpz);
+      clearNumber(&n);
+
+      return TRUE;
+#endif /*O_GMP*/
     } else
-    { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_random_option, A1);
+    { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_random_option, A1);
     }
   } else
-  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_random_option, A1);
+  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_random_option, A1);
+  }
+}
+
+
+#ifdef O_GMP
+static
+PRED_IMPL("random_property", 1, random_property, 0)
+{ PRED_LD
+  atom_t name;
+  int arity;
+
+  init_random(PASS_LD1);
+
+  if ( PL_get_name_arity(A1, &name, &arity) && arity == 1 )
+  { term_t arg = PL_new_term_ref();
+
+    _PL_get_arg(1, A1, arg);
+    if ( name == ATOM_state )
+    { int rc;
+      number seed;
+
+      seed.type = V_MPZ;
+      mpz_init(seed.value.mpz);
+      LD->arith.random.state[0]._mp_seed[0]._mp_size =
+      LD->arith.random.state[0]._mp_seed[0]._mp_alloc;					      mpz_set(seed.value.mpz, LD->arith.random.state[0]._mp_seed);
+      rc = PL_unify_number(arg, &seed);
+      clearNumber(&seed);
+
+      return rc;
+    }
   }
 
-  succeed;
+  return FALSE;
 }
+#endif
 
 
 static int
@@ -2969,6 +3027,31 @@ ar_random(Number n1, Number r)
       assert(0);
       fail;
   }
+}
+
+#ifndef UINT64_MAX
+#define UINT64_MAX (~(uint64_t)0)
+#endif
+
+static int
+ar_random_float(Number r)
+{ GET_LD
+
+  init_random(PASS_LD1);
+
+#ifdef O_GMP
+{ mpf_t rop;
+  mpf_init2(rop, sizeof(double)*8);
+  mpf_urandomb(rop, LD->arith.random.state, sizeof(double)*8);
+  r->value.f = mpf_get_d(rop);
+  mpf_clear(rop);
+}
+#else
+  r->value.f = _PL_Random()/(float)UINT64_MAX;
+#endif
+
+  r->type = V_FLOAT;
+  succeed;
 }
 
 
@@ -3041,7 +3124,7 @@ static
 PRED_IMPL("current_arithmetic_function", 1, current_arithmetic_function,
 	  PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  int i;
+  unsigned int i;
   term_t head = A1;
 
   switch( CTX_CNTRL )
@@ -3116,6 +3199,9 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_backslash1,	ar_negation),
 
   ADD(FUNCTOR_random1,		ar_random),
+#ifdef O_GMP
+  ADD(FUNCTOR_random_float0,	ar_random_float),
+#endif
 
   ADD(FUNCTOR_integer1,		ar_integer),
   ADD(FUNCTOR_round1,		ar_integer),
@@ -3168,12 +3254,12 @@ registerFunction(functor_t f, ArithF func)
     if ( GD->arith.functions_allocated == 0 )
     { size_t size = 256;
 
-      GD->arith.functions = allocHeap(size*sizeof(ArithF));
+      GD->arith.functions = allocHeapOrHalt(size*sizeof(ArithF));
       memset(GD->arith.functions, 0, size*sizeof(ArithF));
       GD->arith.functions_allocated = size;
     } else
     { size_t size = GD->arith.functions_allocated*2;
-      ArithF *new = allocHeap(size*sizeof(ArithF));
+      ArithF *new = allocHeapOrHalt(size*sizeof(ArithF));
       size_t half = GD->arith.functions_allocated*sizeof(ArithF);
       ArithF *old = GD->arith.functions;
 
@@ -3362,4 +3448,7 @@ BeginPredDefs(arith)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
   PRED_DEF("set_random", 1, set_random, 0)
+#ifdef O_GMP
+  PRED_DEF("random_property", 1, random_property, 0)
+#endif
 EndPredDefs

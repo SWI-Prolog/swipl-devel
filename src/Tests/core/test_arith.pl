@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 :- module(test_arith, [test_arith/0]).
@@ -124,9 +124,12 @@ test(shift_right_large, X == 0) :-
 	X is 5>>64.
 test(shift_right_large, X == 0) :-
 	X is 5>>(1<<62).
-test(shift_right_large,
-     [condition(current_prolog_flag(bounded, false)), X == 0]) :-
+:- if(current_prolog_flag(bounded, false)).
+test(shift_right_large, X == 0) :-
 	X is 5>>(1<<100).
+test(shift_left_large, X == -18446744073709551616) :-
+	X is (-1<<40)<<24.
+:- endif.
 
 :- end_tests(shift).
 

@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -581,10 +581,11 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
 	return FALSE;
     } else
     { PL_close_foreign_frame(fid);
-      DEBUG(0, { checkData(valTermRef(from));
-		 checkData(valTermRef(to));
-		 checkStacks(NULL);
-	       });
+      DEBUG(CHK_SECURE,
+	    { checkData(valTermRef(from));
+	      checkData(valTermRef(to));
+	      checkStacks(NULL);
+	    });
       return TRUE;		/* if do_copy_term() == FALSE --> not-ground */
     }
   }

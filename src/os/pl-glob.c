@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -391,7 +391,7 @@ add_path(const char *path, GlobInfo info)
 }
 
 
-const char *
+static const char *
 expand_str(GlobInfo info, int at)
 { char *s = &fetchBuffer(&info->strings, at, char);
 
@@ -399,7 +399,7 @@ expand_str(GlobInfo info, int at)
 }
 
 
-const char *
+static const char *
 expand_entry(GlobInfo info, int idx)
 { int at = fetchBuffer(&info->files, idx, int);
 

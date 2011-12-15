@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <math.h>
@@ -1976,7 +1976,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
   }
 					/* floating point numbers */
   if ( *in == '.' && isDigit(in[1]) )
-  { value->type = V_FLOAT;
+  { clearNumber(value);
+    value->type = V_FLOAT;
 
     in++;
     while( isDigit(*in) )
@@ -1985,7 +1986,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
   if ( (*in == 'e' || *in == 'E') &&
        ((isSign(in[1]) && isDigit(in[2])) || isDigit(in[1])) )
-  { value->type = V_FLOAT;
+  { clearNumber(value);
+    value->type = V_FLOAT;
 
     in++;
     if ( isSign(*in) )

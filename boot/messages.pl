@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@ca.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -17,9 +18,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
+    You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -39,6 +40,7 @@
 	prolog:message/3,		% entire message
 	prolog:error_message/3,		% 1-st argument of error term
 	prolog:message_context/3,	% Context of error messages
+	prolog:message_location/3,	% (File) location of error messages
 	prolog:message_line_element/2.	% Extend printing
 :- discontiguous
 	prolog_message/3.
@@ -73,7 +75,7 @@ translate_message2(error(resource_error(stack), Name)) -->
 translate_message2(error(resource_error(Missing), _)) -->
 	[ 'Not enough resources: ~w'-[Missing] ].
 translate_message2(error(ISO, SWI)) -->
-	swi_context(SWI),
+	swi_location(SWI),
 	term_message(ISO),
 	swi_extra(SWI).
 translate_message2('$aborted') -->
@@ -273,24 +275,26 @@ swi_message(format_argument_type(Fmt, Arg)) -->
 swi_message(format(Msg)) -->
 	[ 'Format error: ~w'-[Msg] ].
 
-swi_context(X) -->
+swi_location(X) -->
 	{ var(X)
 	}, !,
 	[].
-swi_context(context(Caller, _Msg)) -->
+swi_location(Context) -->
+	prolog:message_location(Context), !.
+swi_location(context(Caller, _Msg)) -->
 	{ ground(Caller)
 	}, !,
 	caller(Caller).
-swi_context(file(Path, Line, -1, _CharNo)) --> !,
+swi_location(file(Path, Line, -1, _CharNo)) --> !,
 	[ '~w:~d: '-[Path, Line] ].
-swi_context(file(Path, Line, LinePos, _CharNo)) -->
+swi_location(file(Path, Line, LinePos, _CharNo)) -->
 	[ '~w:~d:~d: '-[Path, Line, LinePos] ].
-swi_context(stream(Stream, Line, LinePos, CharNo)) -->
+swi_location(stream(Stream, Line, LinePos, CharNo)) -->
 	(   { stream_property(Stream, file_name(File)) }
-	->  swi_context(file(File, Line, LinePos, CharNo))
+	->  swi_location(file(File, Line, LinePos, CharNo))
         ;   [ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ]
 	).
-swi_context(_) -->
+swi_location(_) -->
 	[].
 
 caller(system:'$record_clause'/3) --> !,
@@ -323,6 +327,12 @@ swi_extra(string(String, CharPos)) -->
 	},
 	[ nl, '~w'-[Before], nl, '** here **', nl, '~w'-[After] ].
 swi_extra(_) -->
+	[].
+
+thread_context -->
+	{ thread_self(Me), Me \== main }, !,
+	['[Thread ~w] '-[Me]].
+thread_context -->
 	[].
 
 		 /*******************************
@@ -454,7 +464,9 @@ prolog_message(redefine_module(Module, OldFile, File)) -->
 	].
 prolog_message(redefine_module_reply) -->
 	[ 'Please answer y(es), n(o) or a(bort)' ].
-
+prolog_message(reloaded_in_module(Absolute, OldContext, LM)) -->
+	[ '~w was previously loaded in module ~w'-[Absolute, OldContext], nl,
+	  '\tnow it is reloaded into module ~w'-[LM] ].
 
 used_search([]) -->
 	[].
@@ -501,6 +513,7 @@ prolog_message(file_search(tried(Spec, Cond), Path)) -->
 		 *******************************/
 
 prolog_message(gc(start)) -->
+	thread_context,
 	[ 'GC: ', flush ].
 prolog_message(gc(done(G, T, Time, UG, UT, RG, RT))) -->
 	[ at_same_line,
@@ -508,6 +521,7 @@ prolog_message(gc(done(G, T, Time, UG, UT, RG, RT))) -->
 	  [G, T, Time, UG, UT, RG, RT]
 	].
 prolog_message(shift_stacks(start(_L,_G,_T))) -->
+	thread_context,
 	[ 'Stack-shift: ', flush ].
 prolog_message(shift_stacks(done(Time, L, G, T))) -->
 	{ LKB is L//1024,
@@ -519,9 +533,8 @@ prolog_message(shift_stacks(done(Time, L, G, T))) -->
 	  [LKB, GKB, TKB, Time]
 	].
 prolog_message(agc(start)) -->
-	{ thread_self(Me)
-	},
-	[ 'AGC: [~w] '-[Me], flush ].
+	thread_context,
+	[ 'AGC: ', flush ].
 prolog_message(agc(done(Collected, Remaining, Time))) -->
 	[ at_same_line,
 	  'reclaimed ~D atoms in ~2f sec. (remaining: ~D)'-
@@ -543,7 +556,8 @@ prolog_message(make(done(_Files))) -->
 prolog_message(make(library_index(Dir))) -->
 	[ 'Updating index for library ~w'-[Dir] ].
 prolog_message(autoload(Pred, File)) -->
-	[ 'Autoloading ~p from ~w'-[Pred, File] ].
+	thread_context,
+	[ 'autoloading ~p from ~w'-[Pred, File] ].
 prolog_message(autoload(read_index(Dir))) -->
 	[ 'Loading autoload index for ~w'-[Dir] ].
 
@@ -601,10 +615,10 @@ prolog_message(about) -->
 	prolog_message(copyright).
 prolog_message(halt) -->
 	[ 'halt' ].
-prolog_message(break(enter(Level))) -->
+prolog_message(break(begin, Level)) -->
 	[ 'Break level ~d'-[Level] ].
-prolog_message(break(exit(Level))) -->
-	[ nl, 'Exit break level ~d'-[Level] ].
+prolog_message(break(end, Level)) -->
+	[ 'Exit break level ~d'-[Level] ].
 prolog_message(var_query(_)) -->
 	[ '... 1,000,000 ............ 10,000,000 years later', nl, nl,
 	  '~t~8|>> 42 << (last release gives the question)'
@@ -943,7 +957,7 @@ prolog_message(threads_not_died(Count)) -->
 :- dynamic
 	user:message_hook/3.
 
-%	print_message(+Kind, +Term)
+%%	print_message(+Kind, +Term)
 %
 %	Print an error message using a term as generated by the exception
 %	system.
@@ -960,7 +974,7 @@ print_message(Level, Term) :-
 	;   true
 	).
 
-%	print_system_message(+Term, +Level, +Lines)
+%%	print_system_message(+Term, +Level, +Lines)
 %
 %	Print the message if the user did not intecept the message.
 %	The first is used for errors and warnings that can be related
@@ -1069,7 +1083,7 @@ actions_to_format([nl|T], Fmt, Args) :- !,
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :- !,
         actions_to_format(Tail, Fmt1, Args1),
         atom_concat(Fmt0, Fmt1, Fmt),
-        '$append'(Args0, Args1, Args).
+	append_args(Args0, Args1, Args).
 actions_to_format([Term|Tail], Fmt, Args) :-
 	atomic(Term), !,
         actions_to_format(Tail, Fmt1, Args),
@@ -1077,7 +1091,14 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 actions_to_format([Term|Tail], Fmt, Args) :-
         actions_to_format(Tail, Fmt1, Args1),
         atom_concat('~w', Fmt1, Fmt),
-        '$append'([Term], Args1, Args).
+	append_args([Term], Args1, Args).
+
+append_args(M:Args0, Args1, M:Args) :- !,
+	strip_module(Args1, _, A1),
+	'$append'(Args0, A1, Args).
+append_args(Args0, Args1, Args) :-
+	strip_module(Args1, _, A1),
+	'$append'(Args0, A1, Args).
 
 
 		 /*******************************

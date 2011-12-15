@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -35,8 +36,8 @@
 	    existence_error/2,		% +Type, +Term
 	    permission_error/3,		% +Action, +Type, +Term
 	    instantiation_error/1,	% +Term
-	    representation_error/1, 	% +Reason
-	    syntax_error/1, 		% +Culprit
+	    representation_error/1,	% +Reason
+	    syntax_error/1,		% +Culprit
 
 	    must_be/2,			% +Type, +Term
 	    is_of_type/2		% +Type, +Term
@@ -162,7 +163,7 @@ syntax_error(Culprit) :-
 %	=chars=, =codes=, =text=, =compound=, =constant=, =float=,
 %	=integer=, =nonneg=, =positive_integer=, =negative_integer=,
 %	=nonvar=, =number=, =oneof=, =list=, =list_or_partial_list=,
-%	=symbol=, =var=, =rational= and =string=.
+%	=symbol=, =var=, =rational=, =encoding= and =string=.
 %
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
@@ -177,6 +178,9 @@ syntax_error(Culprit) :-
 %	| positive_integer | Integer > 0 |
 %	| negative_integer | Integer < 0 |
 %	| oneof(L) | Ground term that is member of L |
+%	| encoding | Valid name for a character encoding |
+%	| cyclic | Cyclic term (rational tree) |
+%	| acyclic | Acyclic term (tree) |
 %	| list(Type) | Proper list with elements of Type |
 %	| list_or_partial_list | A list or an open list (ending in a variable |
 %
@@ -211,6 +215,10 @@ is_not(var,X) :- !,
 	throw(error(uninstantiation_error(X), _)).
 is_not(rational, X) :- !,
 	not_a_rational(X).
+is_not(cyclic, X) :-
+	domain_error(acyclic_term, X).
+is_not(acyclic, X) :-
+	domain_error(cyclic_term, X).
 is_not(Type, X) :-
 	(   var(X)
 	->  instantiation_error(X)
@@ -261,7 +269,7 @@ has_type(between(L,U), X) :- (   integer(L)
 			     ->  integer(X), between(L,U,X)
 			     ;   number(X), X >= L, X =< U
 			     ).
-has_type(boolean, X) 	  :- (X==true;X==false), !.
+has_type(boolean, X)	  :- (X==true;X==false), !.
 has_type(callable, X)	  :- callable(X).
 has_type(chars,	X)	  :- chars(X).
 has_type(codes,	X)	  :- codes(X).
@@ -270,6 +278,8 @@ has_type(compound, X)	  :- compound(X).
 has_type(constant, X)	  :- atomic(X).
 has_type(float, X)	  :- float(X).
 has_type(ground, X)	  :- ground(X).
+has_type(cyclic, X)	  :- cyclic_term(X).
+has_type(acyclic, X)	  :- acyclic_term(X).
 has_type(integer, X)	  :- integer(X).
 has_type(nonneg, X)	  :- integer(X), X >= 0.
 has_type(positive_integer, X)	  :- integer(X), X > 0.
@@ -278,13 +288,14 @@ has_type(nonvar, X)	  :- nonvar(X).
 has_type(number, X)	  :- number(X).
 has_type(oneof(L), X)	  :- ground(X), memberchk(X, L).
 has_type(proper_list, X)  :- is_list(X).
-has_type(list, X)  	  :- is_list(X).
+has_type(list, X)	  :- is_list(X).
 has_type(list_or_partial_list, X)  :- is_list_or_partial_list(X).
 has_type(symbol, X)	  :- atom(X).
 has_type(var, X)	  :- var(X).
 has_type(rational, X)	  :- rational(X).
 has_type(string, X)	  :- string(X).
 has_type(stream, X)	  :- is_stream(X).
+has_type(encoding, X)	  :- current_encoding(X).
 has_type(list(Type), X)	  :- is_list(X), element_types(X, Type).
 
 chars(Chs) :-
@@ -320,3 +331,17 @@ element_types([H|T], Type) :-
 is_list_or_partial_list(L0) :-
 	'$skip_list'(_, L0,L),
 	( var(L) -> true ; L == [] ).
+
+%%	current_encoding(?Name) is nondet.
+%
+%	True if Name is the name of   a supported encoding. See encoding
+%	option of e.g., open/4.
+
+current_encoding(octet).
+current_encoding(ascii).
+current_encoding(iso_latin_1).
+current_encoding(text).
+current_encoding(utf8).
+current_encoding(unicode_be).
+current_encoding(unicode_le).
+current_encoding(wchar_t).

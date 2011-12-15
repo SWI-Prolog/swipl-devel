@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -379,6 +379,18 @@ of using the new constraint:
 Y = 5,
 Z = 1,
 X in inf..sup.
+==
+
+You can cite this library in your publications as:
+
+==
+@inproceedings{Triska08,
+  author    = {Markus Triska},
+  title     = {Generalising Constraint Solving over Finite Domains},
+  booktitle = {ICLP},
+  year      = {2008},
+  pages     = {820-821}
+}
 ==
 
 @author Markus Triska
@@ -4113,7 +4125,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 )
             ;   fd_get(Y, _, YL, YU, _),
                 fd_get(Z, ZD, ZL, ZU, ZPs),
-                (   X > 0, YL cis_gt n(0) ->
+                (   X > 0, YL cis_geq n(0) ->
                     NZL cis n(X)^YL,
                     NZU cis n(X)^YU,
                     domains_intersection(ZD, from_to(NZL,NZU), NZD),

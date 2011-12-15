@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -193,6 +193,14 @@ locate(module(Module), [file(Path)|Rest]) :-
 	(   module_property(Module, line_count(Line))
 	->  Rest = [line(Line)]
 	;   Rest = []
+	).
+locate(breakpoint(Id), Location) :-
+	integer(Id),
+	breakpoint_property(Id, clause(Ref)),
+	(   breakpoint_property(Id, file(File)),
+	    breakpoint_property(Id, line_count(Line))
+	->  Location = [file(File),line(Line)]
+	;   locate(clause(Ref), Location)
 	).
 locate(clause(Ref), [file(File), line(Line)]) :-
 	clause_property(Ref, file(File)),
@@ -379,7 +387,7 @@ merge_specs(source_file(Path), _, source_file(Path)).
 %%	select_location(+Pairs, +UserSpec, -Location)
 
 do_select_location(Pairs, Spec, Location) :-
-	select_location(Pairs, Spec, Location), !, 		% HOOK
+	select_location(Pairs, Spec, Location), !,		% HOOK
 	Location \== [].
 do_select_location([], Spec, _) :- !,
 	print_message(warning, edit(not_found(Spec))),

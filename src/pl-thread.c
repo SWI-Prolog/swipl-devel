@@ -19,10 +19,10 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#define O_DEBUG 1
+/* #define O_DEBUG 1 */
 
 #define _GNU_SOURCE 1			/* get recursive mutex stuff to */
 					/* compile clean with glibc.  Can */
@@ -241,6 +241,9 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_AGC"),
   COUNT_MUTEX_INITIALIZER("L_FOREIGN"),
   COUNT_MUTEX_INITIALIZER("L_OS")
+#ifdef L_DDE
+, COUNT_MUTEX_INITIALIZER("L_DDE")
+#endif
 };
 
 
@@ -279,6 +282,8 @@ deleteMutexes()
 }
 
 
+#ifdef O_SHARED_KERNEL
+
 BOOL WINAPI
 DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 { BOOL result = TRUE;
@@ -298,6 +303,8 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 
   return result;
 }
+
+#endif /*O_SHARED_KERNEL*/
 
 #endif /*USE_CRITICAL_SECTIONS*/
 
@@ -658,8 +665,11 @@ initPrologThreads()
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
 
-#if defined(PTW32_STATIC_LIB)
+#ifdef USE_CRITICAL_SECTIONS
   initMutexes();
+#endif
+
+#ifdef PTW32_STATIC_LIB
   ptw32_processInitialize();
 #endif
 
@@ -683,11 +693,11 @@ initPrologThreads()
 
     simpleMutexInit(&LD->signal.sig_lock);
     GD->thread.thread_max = 4;		/* see resizeThreadMax() */
-    GD->thread.threads = allocHeap(GD->thread.thread_max *
+    GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
 				   sizeof(*GD->thread.threads));
     memset(GD->thread.threads, 0,
 	   GD->thread.thread_max * sizeof(*GD->thread.threads));
-    info = GD->thread.threads[1] = allocHeap(sizeof(*info));
+    info = GD->thread.threads[1] = allocHeapOrHalt(sizeof(*info));
     memset(info, 0, sizeof(*info));
     info->pl_tid = 1;
     thread_highest_id = 1;
@@ -701,7 +711,6 @@ initPrologThreads()
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
     GD->thread.mutexTable = newHTable(16);
-    GD->thread.MUTEX_load = mutexCreate(ATOM_dload);
     link_mutexes();
     threads_ready = TRUE;
   }
@@ -753,7 +762,6 @@ exitPrologThreads()
   int canceled = 0;
 
   DEBUG(1, Sdprintf("exitPrologThreads(): me = %d\n", me));
-  GD->thread.enabled = FALSE;			/* we do not want new threads */
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
@@ -919,7 +927,7 @@ resizeThreadMax(void)
   PL_thread_info_t **newinfo;
   size_t dsize = GD->thread.thread_max * sizeof(*GD->thread.threads);
 
-  newinfo = allocHeap(newmax * sizeof(*GD->thread.threads));
+  newinfo = allocHeapOrHalt(newmax * sizeof(*GD->thread.threads));
   memset(addPointer(newinfo,dsize), 0, dsize);
   memcpy(newinfo, GD->thread.threads, dsize);
   GD->thread.threads = newinfo;
@@ -941,13 +949,13 @@ retry:
   { PL_thread_info_t *info;
 
     if ( !(info=GD->thread.threads[i]) )
-    { info = allocHeap(sizeof(*info));
+    { info = allocHeapOrHalt(sizeof(*info));
       memset(info, 0, sizeof(*info));
       GD->thread.threads[i] = info;
     }
 
     if ( info->status == PL_THREAD_UNUSED )
-    { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
+    { PL_local_data_t *ld = allocHeapOrHalt(sizeof(PL_local_data_t));
 
       memset(ld, 0, sizeof(PL_local_data_t));
       simpleMutexInit(&ld->signal.sig_lock);
@@ -1284,7 +1292,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
 
   LOCK();
-  if ( !GD->thread.enabled )
+  if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
   { UNLOCK();
     return PL_error(NULL, 0, "threading disabled",
 		      ERR_PERMISSION,
@@ -1349,20 +1357,22 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 					/* copy settings */
 
   PL_register_atom(LD->prompt.current);
-  ldnew->prompt			 = LD->prompt;
+  ldnew->prompt			  = LD->prompt;
   if ( LD->prompt.first )
-  { ldnew->prompt.first		 = LD->prompt.first;
+  { ldnew->prompt.first		  = LD->prompt.first;
     PL_register_atom(ldnew->prompt.first);
   }
-  ldnew->modules		 = LD->modules;
-  ldnew->IO			 = LD->IO;
-  ldnew->encoding		 = LD->encoding;
-  ldnew->_debugstatus		 = LD->_debugstatus;
-  ldnew->_debugstatus.retryFrame = NULL;
-  ldnew->prolog_flag.mask	 = LD->prolog_flag.mask;
+  ldnew->modules		  = LD->modules;
+  ldnew->IO			  = LD->IO;
+  ldnew->encoding		  = LD->encoding;
+  ldnew->_debugstatus		  = LD->_debugstatus;
+  ldnew->_debugstatus.retryFrame  = NULL;
+  ldnew->prolog_flag.mask	  = LD->prolog_flag.mask;
+  ldnew->prolog_flag.occurs_check = LD->prolog_flag.occurs_check;
+  ldnew->prolog_flag.access_level = LD->prolog_flag.access_level;
   if ( LD->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
-    ldnew->prolog_flag.table	 = copyHTable(LD->prolog_flag.table);
+    ldnew->prolog_flag.table	  = copyHTable(LD->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
   init_message_queue(&info->thread_data->thread.messages, -1);
@@ -1838,7 +1848,7 @@ enumerate:
 
 	if ( advance_state(state) )
 	{ if ( state == &statebuf )
-	  { tprop_enum *copy = allocHeap(sizeof(*copy));
+	  { tprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;
@@ -1938,7 +1948,7 @@ static int
 thread_at_exit(term_t goal, PL_local_data_t *ld)
 { GET_LD
   Module m = NULL;
-  at_exit_goal *eg = allocHeap(sizeof(*eg));
+  at_exit_goal *eg = allocHeapOrHalt(sizeof(*eg));
 
   PL_strip_module(goal, &m, goal);
   eg->next = NULL;
@@ -1970,7 +1980,7 @@ int
 PL_thread_at_exit(void (*function)(void *), void *closure, int global)
 { GET_LD
 
-  at_exit_goal *eg = allocHeap(sizeof(*eg));
+  at_exit_goal *eg = allocHeapOrHalt(sizeof(*eg));
 
   eg->next = NULL;
   eg->type = EXIT_C;
@@ -2113,7 +2123,7 @@ pl_thread_signal(term_t thread, term_t goal)
     fail;
   }
 
-  sg = allocHeap(sizeof(*sg));
+  sg = allocHeapOrHalt(sizeof(*sg));
   sg->next = NULL;
   sg->module = m;
   sg->goal = PL_record(goal);
@@ -2380,7 +2390,7 @@ static thread_message *
 create_thread_message(term_t msg ARG_LD)
 { thread_message *msgp;
 
-  msgp = allocHeap(sizeof(*msgp));
+  msgp = allocHeapOrHalt(sizeof(*msgp));
   msgp->next    = NULL;
   msgp->message = compileTermToHeap(msg, R_NOLOCK);
   msgp->key     = getIndexOfTerm(msg);
@@ -2588,7 +2598,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
     thread_message *prev = NULL;
 
     if ( queue->destroyed )
-      return FALSE;
+      return MSG_WAIT_DESTROYED;
 
     DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
@@ -3086,7 +3096,7 @@ message_queue_size_property(message_queue *q, term_t prop ARG_LD)
 static int			/* message_queue_property(Queue, max_size(Size)) */
 message_queue_max_size_property(message_queue *q, term_t prop ARG_LD)
 { if ( q->max_size > 0 )
-    return PL_unify_integer(prop, q->size);
+    return PL_unify_integer(prop, q->max_size);
 
   fail;
 }
@@ -3236,7 +3246,7 @@ enumerate:
 
 	if ( advance_qstate(state) )
 	{ if ( state == &statebuf )
-	  { qprop_enum *copy = allocHeap(sizeof(*copy));
+	  { qprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;
@@ -3282,10 +3292,17 @@ PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
     rc = get_message(q, A2 PASS_LD);
     release_message_queue(q);
 
-    if ( rc == MSG_WAIT_INTR )
-    { if ( PL_handle_signals() >= 0 )
-	continue;
-      rc = FALSE;
+    switch(rc)
+    { case MSG_WAIT_INTR:
+	if ( PL_handle_signals() >= 0 )
+	  continue;
+	rc = FALSE;
+	break;
+      case MSG_WAIT_DESTROYED:
+	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
+        break;
+      default:
+	;
     }
 
     break;
@@ -3457,7 +3474,7 @@ recursiveMutexUnlock(recursiveMutex *m)
 counting_mutex *
 allocSimpleMutex(const char *name)
 { GET_LD
-  counting_mutex *m = allocHeap(sizeof(*m));
+  counting_mutex *m = allocHeapOrHalt(sizeof(*m));
 
   simpleMutexInit(&m->mutex);
   m->count = 0L;
@@ -3545,7 +3562,7 @@ mutexCreate(atom_t name)
 { GET_LD
   pl_mutex *m;
 
-  m = allocHeap(sizeof(*m));
+  m = allocHeapOrHalt(sizeof(*m));
   pthread_mutex_init(&m->mutex, NULL);
   m->count = 0;
   m->owner = 0;
@@ -3995,7 +4012,7 @@ enumerate:
 
 	if ( advance_mstate(state) )
 	{ if ( state == &statebuf )
-	  { mprop_enum *copy = allocHeap(sizeof(*copy));
+	  { mprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;
@@ -4035,7 +4052,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     LD->thread.info->open_count++;
 
   LOCK();
-  if ( !GD->thread.enabled )
+  if ( !GD->thread.enabled || GD->cleaning != CLN_NORMAL )
   { UNLOCK();
 #ifdef EPERM				/* FIXME: Better reporting */
     errno = EPERM;
@@ -4305,8 +4322,8 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 */
 
 					/* see also pl-nt.c */
-#define nano * 0.0000001
-#define ntick 1.0			/* manual says 100.0 ??? */
+#define nano * 0.000000001
+#define ntick 100.0
 
 double
 ThreadCPUTime(PL_local_data_t *ld, int which)
@@ -4314,6 +4331,9 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
   double t;
   FILETIME created, exited, kerneltime, usertime;
   HANDLE win_thread;
+
+  if ( !info->has_tid )
+    return 0.0;
 
   __try					/* sometimes appears to fail ... */
   { win_thread = pthread_getw32threadhandle_np(info->tid);
@@ -4332,7 +4352,6 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 
     t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
     t += (double)p->dwLowDateTime  * (ntick nano);
-
     return t;
   }
 
@@ -5135,7 +5154,7 @@ localiseDefinition(Definition def)
 static void
 registerLocalDefinition(Definition def)
 { GET_LD
-  DefinitionChain cell = allocHeap(sizeof(*cell));
+  DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
 
   cell->definition = def;
   cell->next = LD->thread.local_definitions;
@@ -5146,7 +5165,7 @@ registerLocalDefinition(Definition def)
 LocalDefinitions
 new_ldef_vector(void)
 { GET_LD
-  LocalDefinitions f = allocHeap(sizeof(*f));
+  LocalDefinitions f = allocHeapOrHalt(sizeof(*f));
 
   memset(f, 0, sizeof(*f));
   f->blocks[0] = f->preallocated - 1;
@@ -5160,13 +5179,13 @@ new_ldef_vector(void)
 Definition
 localiseDefinition(Definition def)
 { GET_LD
-  Definition local = allocHeap(sizeof(*local));
+  Definition local = allocHeapOrHalt(sizeof(*local));
 
   *local = *def;
   local->mutex = NULL;
   clear(local, P_THREAD_LOCAL);		/* remains DYNAMIC */
-  local->definition.clauses = NULL;
-  local->hash_info = NULL;
+  local->impl.clauses.first_clause = NULL;
+  local->impl.clauses.clause_indexes = NULL;
 
   createSupervisor(local);
   registerLocalDefinition(def);
@@ -5211,6 +5230,8 @@ __assert_fail(const char *assertion,
 { Sdprintf("[Thread %d] %s:%d: %s: Assertion failed: %s\n",
 	   PL_thread_self(),
 	   file, line, function, assertion);
+  save_backtrace("crash");
+  print_backtrace_named("crash");
   abort();
 }
 
@@ -5312,9 +5333,10 @@ pl_with_mutex(term_t mutex, term_t goal)
   pl_mutex_unlock(mutex);
 
   if ( !rval && ex )
-  { SECURE({ GET_LD
-	     checkData(valTermRef(ex));
-	   });
+  { DEBUG(CHK_SECURE,
+	  { GET_LD
+	    checkData(valTermRef(ex));
+	  });
     PL_raise_exception(ex);
   }
 

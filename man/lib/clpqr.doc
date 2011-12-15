@@ -2,7 +2,7 @@
 \label{sec:lib:clpqr}
 
 \begin{quote}
-Author: \emph{Leslie De Koninck}, K.U. Leuven
+Author: \emph{Christian Holzbaur}, ported to SWI-Prolog by \emph{Leslie De Koninck}, K.U. Leuven
 \end{quote}
 
 This CLP(Q,R) system is a port of the CLP(Q,R) system of Sicstus
@@ -80,10 +80,10 @@ value may differ from an integer to be considered an integer. E.g.\ when
 this case). \arg{Eps} should be between 0 and 0.5.
 
 	\predicate{bb_inf}{4}{+Ints, +Expression, -Inf, -Vertex}
-This predicate is offered in CLP(Q) only. It behaves the same as 
-\predref{bb_inf}{5} but does not use an error margin. 
+This predicate is offered in CLP(Q) only. It behaves the same as
+\predref{bb_inf}{5} but does not use an error margin.
 
-	\predicate{bb_inf}{3}{+ints, +Expression, -Inf}
+	\predicate{bb_inf}{3}{+Ints, +Expression, -Inf}
 The same as \predref{bb_inf}{5} or \predref{bb_inf}{4} but without returning
 the values of the integers. In CLP(R), an error margin of 0.001 is used.
 
@@ -98,7 +98,7 @@ dump([X,Y,Z],[x,y,z],Cons)
 
 Cons will contain the constraints on X, Y and Z where these variables
 have been replaced by atoms x, y and z.
- 
+
 \end{description}
 
 \subsection{Syntax of the predicate arguments}
@@ -173,7 +173,7 @@ X = Y
 {X = 5.0}
 X = 5.0
 \end{code}
-	
+
 \end{itemlist}
 
 \subsection{Non-linear constraints}
@@ -212,3 +212,35 @@ $X = tan(Y)$    && \\
 \end{center}
 \end{table}
 
+\subsection{Status and known problems}
+
+The clpq and clpr libraries are `orphaned', i.e., they currently have
+no maintainer.
+
+\begin{itemlist}
+    \item [Top-level output]
+The top-level output may contain variables not present in the original
+query:
+
+\begin{code}
+?- {X+Y>=1}.
+{Y=1-X+_G2160, _G2160>=0}.
+
+?-
+\end{code}
+
+Nonetheless, for linear constraints this kind of answer means
+unconditional satisfiability.
+
+    \item [Dumping constraints]
+The first argument of dump/3 has to be a list of free variables at
+call-time:
+
+\begin{code}
+?- {X=1},dump([X],[Y],L).
+ERROR: Unhandled exception: Unknown message:
+       instantiation_error(dump([1],[_G11],_G6),1)
+?-
+\end{code}
+
+\end{itemlist}

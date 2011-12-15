@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 :- prolog_load_context(directory, Dir),
@@ -296,6 +296,7 @@ check_files :-
 ignore_file('INDEX.pl').
 ignore_file('plwin.opt').
 ignore_file('pl2xpce.pdb').
+ignore_file('dlltest.pdb').
 ignore_file('double_metaphone.pdb').
 ignore_file('porter_stem.pdb').
 ignore_file('Support SWI-Prolog development.url').

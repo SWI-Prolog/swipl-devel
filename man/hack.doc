@@ -84,6 +84,9 @@ otherwise.
 user, either because a parent has the hide-childs attribute (all system
 predicates), or the system has no trace-me attribute.
 
+    \termitem{skipped}{}
+\arg{Value} is \const{true} if this frame was skipped in the debugger.
+
     \termitem{pc}{}
 \arg{Value} is unified with the program-pointer saved on behalf of the
 parent-goal if the parent-goal is not owned by a foreign predicate.

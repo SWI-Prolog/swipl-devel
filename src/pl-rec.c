@@ -19,10 +19,9 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-dbref.h"
@@ -64,7 +63,7 @@ lookupRecordList(word key)
 
     if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(key);
-    l = allocHeap(sizeof(*l));
+    l = allocHeapOrHalt(sizeof(*l));
     l->key = key;
     l->type = RECORD_TYPE;
     l->references = 0;
@@ -364,7 +363,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 
 	continue;
       }
-  #if O_ATTVAR
+#if O_ATTVAR
       case TAG_ATTVAR:
       { intptr_t n = info->nvars++;
 	Word ap = valPAttVar(w);
@@ -386,7 +385,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	deRef(p);
 	goto again;
       }
-  #endif
+#endif
       case TAG_ATOM:
       { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
 	{ intptr_t n = ((intptr_t)(w) >> 7);
@@ -419,12 +418,12 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	      addOpCode(info, PL_TYPE_INTEGER);
 	      addInt64(info, n.value.i);
 	      break;
-  #ifdef O_GMP
+#ifdef O_GMP
 	    case V_MPZ:
 	      addOpCode(info, PL_REC_MPZ);
 	      addMPZToBuffer((Buffer)&info->code, n.value.mpz);
 	      break;
-  #endif
+#endif
 	    default:
 	      assert(0);
 	  }
@@ -455,7 +454,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	int arity;
 	word functor;
 
-  #if O_CYCLIC
+#if O_CYCLIC
 	if ( isInteger(f->definition) )
 	{ addOpCode(info, PL_REC_CYCLE);
 	  addSizeInt(info, valInt(f->definition));
@@ -473,11 +472,11 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	  mark.term = f;
 	  mark.fdef = f->definition;
 	  pushSegStack(&LD->cycle.lstack, mark, cycle_mark);
-	  f->definition = (functor_t)consInt(info->size);
-					  /* overflow test */
-	  assert(valInt(f->definition) == (intptr_t)info->size);
+	  f->definition = (functor_t)consUInt(info->size);
+				  /* overflow test (should not be possible) */
+	  DEBUG(CHK_SECURE, assert(valUInt(f->definition) == (uintptr_t)info->size));
 	}
-  #endif
+#endif
 
 	info->size += arity+1;
 	addFunctor(info, functor);
@@ -546,7 +545,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   size_t rsize = SIZERECORD(flags);
   term_agenda agenda;
 
-  SECURE(checkData(valTermRef(t)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
   init_cycle(PASS_LD1);
   initBuffer(&info.code);
@@ -563,7 +562,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   unvisit(PASS_LD1);
 
   size = rsize + sizeOfBuffer(&info.code);
-  record = allocHeap(size);
+  record = allocHeapOrHalt(size);
 #ifdef REC_MAGIC
   record->magic = REC_MAGIC;
 #endif
@@ -617,7 +616,7 @@ PL_record_external(term_t t, size_t *len)
   int first = REC_HDR;
   term_agenda agenda;
 
-  SECURE(checkData(valTermRef(t)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(t)));
   p = valTermRef(t);
   deRef(p);
 
@@ -638,7 +637,7 @@ PL_record_external(term_t t, size_t *len)
 
   ret_primitive:
     scode = (int)sizeOfBuffer(&info.code);
-    rec = allocHeap(scode);
+    rec = allocHeapOrHalt(scode);
     memcpy(rec, info.code.base, scode);
     discardBuffer(&info.code);
     *len = scode;
@@ -674,7 +673,7 @@ PL_record_external(term_t t, size_t *len)
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = (int)sizeOfBuffer(&hdr);
 
-  rec = allocHeap(shdr + scode);
+  rec = allocHeapOrHalt(shdr + scode);
   memcpy(rec, hdr.base, shdr);
   memcpy(rec+shdr, info.code.base, scode);
 
@@ -717,7 +716,7 @@ other stacks as scratch-area.
   { Word *p; \
     uint i; \
     if ( (n) > MAX_ALLOCA_VARS ) \
-      info.vars = allocHeap(sizeof(Word) * (n)); \
+      info.vars = allocHeapOrHalt(sizeof(Word) * (n)); \
     else \
     { if ( !(info.vars = alloca(sizeof(Word) * (n))) ) \
 	fatalError("alloca() failed"); \
@@ -1028,7 +1027,7 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
     return rc;
 
   assert(b.gstore == gTop);
-  SECURE(checkData(valTermRef(copy)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(copy)));
 
   return TRUE;
 }
@@ -1480,7 +1479,7 @@ PL_recorded_external(const char *rec, term_t t)
   }
   assert(b.gstore == gTop);
 
-  SECURE(checkData(valTermRef(t)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
   return TRUE;
 }
@@ -1617,7 +1616,7 @@ record(term_t key, term_t term, term_t ref, int az)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
   copy = compileTermToHeap(term, 0);
-  r = allocHeap(sizeof(*r));
+  r = allocHeapOrHalt(sizeof(*r));
   r->record = copy;
   if ( ref && !PL_unify_recref(ref, r) )
     return FALSE;

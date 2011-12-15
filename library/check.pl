@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -40,7 +40,7 @@
 :- use_module(library(system)).
 :- use_module(library(option)).
 
-:- system_mode(on).			% lock these predicates
+:- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Consistency checking
 
@@ -50,6 +50,8 @@ loaded Prolog program.
 @see	prolog_xref.pl
 */
 
+:- predicate_options(list_undefined/1, 1, [scan(oneof([local,global]))]).
+
 %%	check
 %
 %	Run all consistency checks defined in this library
@@ -57,7 +59,7 @@ loaded Prolog program.
 check :-
 	print_message(informational,
 		      check(pass(1, 'Undefined predicates'))),
-	list_undefined(silent, global),
+	list_undefined(silent, global, false),
 	print_message(informational,
 		      check(pass(2, 'Redefined system and global predicates'))),
 	list_redefined,
@@ -79,28 +81,36 @@ check :-
 %	    qualified goals (i.e., M:G), but can take long on big
 %	    programs.
 %
+%	    * unreferenced(+Boolean)
+%	    If =true= (default), report undefined predicates that are
+%	    not referenced by any clause body.
+%
 %	@see gxref/0 provides a graphical cross-referencer.
 %	@see make/0 calls list_undefined/1 using scan(local)
 
 list_undefined :-
-	list_undefined(informational, global).
+	list_undefined(informational, global, false).
 
 list_undefined(Options) :-
 	option(scan(Scan), Options, global),
-	list_undefined(informational, Scan).
+	option(unreferenced(Unreferenced), Options, false),
+	list_undefined(informational, Scan, Unreferenced).
 
 
-list_undefined(Level, How) :-
-	system_mode(Old),
-	system_mode(on),
-	call_cleanup(list_undefined_(Level, How), system_mode(Old)).
+list_undefined(Level, How, Unreferenced) :-
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      set_prolog_flag(access_level, system)
+	    ),
+	    list_undefined_(Level, How, Unreferenced),
+	    set_prolog_flag(access_level, OldLevel)).
 
-list_undefined_(Level, How) :-
+list_undefined_(Level, How, Unreferenced) :-
 	findall(Pred, undefined_predicate(Pred), Preds),
 	(   Preds == []
 	->  true
 	;   print_message(Level, check(find_references(Preds))),
-	    find_references(Preds, How, Pairs),
+	    find_references(Preds, How, Pairs, Unrefs),
 	    (	Pairs == []
 	    ->	true
 	    ;   print_message(warning, check(undefined_predicates)),
@@ -110,6 +120,17 @@ list_undefined_(Level, How) :-
 		    fail
 		;   true
 		)
+	    ),
+	    (	Unreferenced == true,
+		Unrefs \== []
+	    ->  print_message(warning, check(undefined_unreferenced_predicates)),
+		(   member(Module:Head, Unrefs),
+		    print_message(warning,
+				  check(undefined_unreferenced(Module:Head))),
+		    fail
+		;   true
+		)
+	    ;   true
 	    )
 	).
 
@@ -118,7 +139,7 @@ undefined_predicate(Module:Head) :-
 	\+ predicate_property(Module:Head, imported_from(_)).
 
 
-%%	find_references(+Heads, +How, -HeadRefs:list) is det.
+%%	find_references(+Heads, +How, -HeadRefs:list, -UnrefHeads:list) is det.
 %
 %	Find references to the given  predicates.   For  speedup we only
 %	look for references from the  same   module.  This  isn't really
@@ -126,19 +147,20 @@ undefined_predicate(Module:Head) :-
 %	through meta-calls, it isn't too bad either.
 %
 %	@param HeadRefs List of Head-Refs
+%	@param UnrefHeads List of Head
 %	@param How is one of =local= or =global=
 
-find_references([], _, []).
-find_references([H|T0], How, [H-Refs|T]) :-
+find_references([], _, [], []).
+find_references([H|T0], How, [H-Refs|T1], T2) :-
 	(   ignore(H = M:_),
 	    findall(Ref, referenced(H, M, Ref), Refs)
 	;   How == global,
 	    findall(Ref, referenced(H, _, Ref), Refs)
 	),
 	Refs \== [], !,
-	find_references(T0, How, T).
-find_references([_|T0], How, T) :-
-	find_references(T0, How, T).
+	find_references(T0, How, T1, T2).
+find_references([H|T0], How, T1, [H|T2]) :-
+	find_references(T0, How, T1, T2).
 
 %%	referenced(+Predicate, ?Module, -ClauseRef) is nondet.
 %
@@ -165,14 +187,16 @@ referenced(Term, Module, Ref) :-
 %	requirements for the system modules.
 
 list_autoload :-
-	system_mode(Old),
-	system_mode(on),
-	current_prolog_flag(autoload, OldAutoLoad),
-	set_prolog_flag(autoload, false),
-	call_cleanup(list_autoload_(Old),
-		     (	 set_prolog_flag(autoload, OldAutoLoad),
-			 system_mode(Old)
-		     )).
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      current_prolog_flag(autoload, OldAutoLoad),
+	      set_prolog_flag(access_level, system),
+	      set_prolog_flag(autoload, false)
+	    ),
+	    list_autoload_(OldLevel),
+	    ( set_prolog_flag(access_level, OldLevel),
+	      set_prolog_flag(autoload, OldAutoLoad)
+	    )).
 
 list_autoload_(SystemMode) :-
 	(   setof(Lib-Pred,
@@ -194,7 +218,7 @@ autoload_predicate(Module, Library, Name/Arity, SystemMode) :-
 	->  true
 	).
 
-check_module_enabled(_, on) :- !.
+check_module_enabled(_, system) :- !.
 check_module_enabled(Module, _) :-
 	\+ import_module(Module, system).
 
@@ -204,9 +228,12 @@ check_module_enabled(Module, _) :-
 %	Show redefined system predicates
 
 list_redefined :-
-	system_mode(Old),
-	system_mode(on),
-	call_cleanup(list_redefined_, system_mode(Old)).
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      set_prolog_flag(access_level, system)
+	    ),
+	    list_redefined_,
+	    set_prolog_flag(access_level, OldLevel)).
 
 list_redefined_ :-
 	current_module(Module),
@@ -216,6 +243,7 @@ list_redefined_ :-
 	(   global_module(Super),
 	    Super \== Module,
 	    '$c_current_predicate'(_, Super:Head),
+	    \+ redefined_ok(Head),
 	    '$syspreds':'$defined_predicate'(Super:Head),
 	    \+ predicate_property(Super:Head, (dynamic)),
 	    \+ predicate_property(Super:Head, imported_from(Module)),
@@ -226,6 +254,9 @@ list_redefined_ :-
 	fail.
 list_redefined_.
 
+redefined_ok('$mode'(_,_)).
+redefined_ok('$pldoc'(_,_,_,_)).
+redefined_ok('$pred_option'(_,_,_,_)).
 
 global_module(user).
 global_module(system).
@@ -243,7 +274,7 @@ prolog:message(check(pass(N, Comment))) -->
 prolog:message(check(find_references(Preds))) -->
 	{ length(Preds, N)
 	},
-	[ 'Scanning references for ~D possibly undefined predicates'-[N] ].
+	[ 'Scanning for references to ~D possibly undefined predicates'-[N] ].
 prolog:message(check(undefined_predicates)) -->
 	[ 'The predicates below are not defined. If these are defined', nl,
 	  'at runtime using assert/1, use :- dynamic Name/Arity.', nl, nl
@@ -252,6 +283,12 @@ prolog:message(check(undefined(Pred, Refs))) -->
 	predicate(Pred),
 	[ ', which is referenced by', nl ],
 	referenced_by(Refs).
+prolog:message(check(undefined_unreferenced_predicates)) -->
+	[ 'The predicates below are not defined, and are not', nl,
+	  'referenced.', nl, nl
+	].
+prolog:message(check(undefined_unreferenced(Pred))) -->
+	predicate(Pred).
 prolog:message(check(autoload(Module, Pairs))) -->
 	{ module_property(Module, file(Path))
 	}, !,

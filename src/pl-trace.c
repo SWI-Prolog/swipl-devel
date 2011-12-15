@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -219,7 +219,6 @@ user to intercept and redefine the tracer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 					/* Frame <-> Prolog integer */
-static LocalFrame	redoFrame(LocalFrame, Code *PC);
 static void		helpTrace(void);
 #ifdef O_INTERRUPT
 static void		helpInterrupt(void);
@@ -420,7 +419,7 @@ Give a trace on the skipped goal for a redo.
 
       debugstatus.skiplevel = SKIP_REDO_IN_SKIP;
       SAVE_PTRS();
-      rc = tracePort(frame, bfr, REDO_PORT, pc2 PASS_LD);
+      rc = tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD);
       RESTORE_PTRS();
       debugstatus.skiplevel = levelFrame(fr);
       set(fr, FR_SKIPPED);		/* cleared by "case 'c'" */
@@ -524,7 +523,7 @@ again:
 out:
   restoreWakeup(&wstate PASS_LD);
   if ( action == ACTION_ABORT )
-    abortProlog(ABORT_RAISE);
+    abortProlog();
 
   return action;
 }
@@ -573,7 +572,7 @@ setupFind(char *buf)
     FindData find;
 
     if ( !(find = LD->trace.find) )
-      find = LD->trace.find = allocHeap(sizeof(find_data));
+      find = LD->trace.find = allocHeapOrHalt(sizeof(find_data));
 
     if ( !PL_chars_to_term(s, t) )
     { PL_discard_foreign_frame(cid);
@@ -904,7 +903,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     if ( true(def, FOREIGN) )
       PL_put_atom(pc, ATOM_foreign);
     else if ( PC && frame->clause )
-      rc = PL_put_intptr(pc, PC-frame->clause->clause->codes);
+      rc = PL_put_intptr(pc, PC-frame->clause->value.clause->codes);
     else
       PL_put_nil(pc);
 
@@ -1147,7 +1146,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
   proc = _PL_predicate("prolog_trace_interception", 4, "user",
 		       &GD->procedures.prolog_trace_interception4);
-  if ( !getProcDefinition(proc)->definition.clauses )
+  if ( !getProcDefinition(proc)->impl.any )
     return rval;
 
   if ( !GD->bootsession && GD->debug_level == 0 )
@@ -1192,7 +1191,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     { int pcn;
 
       if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
-	pcn = (int)(PC - frame->clause->clause->codes);
+	pcn = (int)(PC - frame->clause->value.clause->codes);
       else
 	pcn = 0;
 
@@ -1223,8 +1222,9 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  { LocalFrame fr;
 
 	    if ( PL_get_frame(argv+1, &fr) )
-	      debugstatus.skiplevel = levelFrame(fr);
-	    else
+	    { debugstatus.skiplevel = levelFrame(fr);
+	      set(fr, FR_SKIPPED);
+	    } else
 	      assert(0);
 	  }
 	  rval = ACTION_CONTINUE;
@@ -1378,7 +1378,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
       intptr_t pc = -1;
 
       if ( fr->clause )
-      { Clause cl = fr->clause->clause;
+      { Clause cl = fr->clause->value.clause;
 
 	if ( c->pc >= cl->codes && c->pc < &cl->codes[cl->code_size] )
 	  pc = c->pc - cl->codes;
@@ -1559,7 +1559,6 @@ interruptHandler(int sig)
 { GET_LD
   int c;
   int safe;
-  abort_type at = ABORT_RAISE;
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
@@ -1600,8 +1599,7 @@ again:
   if ( safe )
   { printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_begin);
   } else
-  { at = ABORT_THROW;
-    Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
+  { Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
     Sflush(Sdout);
   }
   ResetTty();                           /* clear pending input -- atoenne -- */
@@ -1610,11 +1608,17 @@ again:
   switch(c)
   { case 'a':	Sfputs("abort\n", Sdout);
 		unblockSignal(sig);
-		abortProlog(at);
+		abortProlog();
+		if ( !safe )
+		  PL_rethrow();
 		break;
     case 'b':	Sfputs("break\n", Sdout);
-		unblockSignal(sig);	/* into pl_break() itself */
-		pl_break();
+		if ( safe )
+		{ unblockSignal(sig);	/* into pl_break() itself */
+		  pl_break();
+		} else
+		{ Sfputs("Cannot break from forced interrupt\n", Sdout);
+		}
 		goto again;
     case 'c':	if ( safe )
 		{ printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_end);
@@ -1677,6 +1681,17 @@ initTracer(void)
 
 #if O_DEBUGGER
 
+void
+suspendTrace(int suspend)
+{ GET_LD
+
+  if ( suspend )
+    debugstatus.suspendTrace++;
+  else
+    debugstatus.suspendTrace--;
+}
+
+
 int
 tracemode(int doit, int *old)
 { GET_LD
@@ -1712,21 +1727,27 @@ used to start tracing uncaught overflow exceptions.
 
 int
 trace_if_space(void)
-{ GET_LD;
+{ GET_LD
+  int trace;
 
-  if ( debugstatus.tracing == TRUE )
-    return debugstatus.tracing;
+#define minFreeStack(name, size) \
+	(spaceStack(name) > size*(int)sizeof(void*))
 
   if ( LD->outofstack )
-  { if ( spaceStack(local) > 10000 * sizeof(void*) &&
-	 spaceStack(global) > 10000 * sizeof(void*) &&
-	 spaceStack(trail) > 10000 * sizeof(void*) )
-      tracemode(TRUE, NULL);
+  { if ( minFreeStack(local,  50000) &&
+	 minFreeStack(global, 50000) &&
+	 minFreeStack(trail,  20000) )
+      trace = TRUE;
+    else
+      trace = FALSE;
   } else
-  { tracemode(TRUE, NULL);
+  { trace = TRUE;
   }
 
-  return debugstatus.tracing;
+  if ( trace )
+    tracemode(trace, NULL);
+
+  return trace;
 }
 
 
@@ -1770,27 +1791,20 @@ debugmode(debug_type doit, debug_type *old)
     { debugstatus.skiplevel = SKIP_VERY_DEEP;
       clearPrologFlagMask(PLFLAG_LASTCALL);
       if ( doit == DBG_ALL )
-      { LocalFrame fr = environment_frame;
+      { QueryFrame qf;
 
-	while( fr )
-	{ if ( fr->parent )
-	    fr = fr->parent;
-	  else
-	  { QueryFrame qf = queryOfFrame(fr);
-	    qf->debugSave = DBG_ON;
-	    fr = qf->saved_environment;
-	  }
-	}
+	for(qf = LD->query; qf; qf = qf->parent)
+	  qf->debugSave = DBG_ON;
+
 	doit = DBG_ON;
       }
-    } else
-    { setPrologFlagMask(PLFLAG_LASTCALL);
-    }
-    if ( doit )
       enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
 			   8*1024*SIZEOF_VOIDP,
 			   8*1024*SIZEOF_VOIDP
 			   PASS_LD);
+    } else
+    { setPrologFlagMask(PLFLAG_LASTCALL);
+    }
     debugstatus.debugging = doit;
     updateAlerted(LD);
     printMessage(ATOM_silent,
@@ -1951,7 +1965,7 @@ pl_prolog_current_frame(term_t frame)
 { GET_LD
   LocalFrame fr = environment_frame;
 
-  if ( fr->predicate->definition.function == pl_prolog_current_frame )
+  if ( fr->predicate->impl.function == pl_prolog_current_frame )
     fr = parentFrame(fr);		/* thats me! */
 
   return PL_unify_frame(frame, fr);
@@ -1989,7 +2003,7 @@ prolog_frame_attribute(term_t frame, term_t what,
     { if ( argn > fr->predicate->functor->arity )
 	fail;
     } else
-    { if ( argn > fr->clause->clause->prolog_vars )
+    { if ( argn > fr->clause->value.clause->prolog_vars )
 	fail;
     }
 
@@ -2018,6 +2032,8 @@ prolog_frame_attribute(term_t frame, term_t what,
   { PL_put_integer(result, levelFrame(fr));
   } else if (key == ATOM_has_alternatives)
   { PL_put_atom(result, hasAlternativesFrame(fr) ? ATOM_true : ATOM_false);
+  } else if (key == ATOM_skipped)
+  { PL_put_atom(result, true(fr, FR_SKIPPED) ? ATOM_true : ATOM_false);
   } else if (key == ATOM_alternative)
   { LocalFrame alt;
 
@@ -2043,7 +2059,7 @@ prolog_frame_attribute(term_t frame, term_t what,
   { if ( false(fr->predicate, FOREIGN) &&
 	 fr->clause &&
 	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
-    { if ( !PL_unify_clref(result, fr->clause->clause) )
+    { if ( !PL_unify_clref(result, fr->clause->value.clause) )
 	return FALSE;
     } else
     { return FALSE;
@@ -2137,7 +2153,7 @@ prolog_frame_attribute(term_t frame, term_t what,
 	 false(fr->parent->predicate, FOREIGN) &&
 	 fr->parent->clause &&
 	 fr->parent->predicate != PROCEDURE_dcall1->definition )
-    { intptr_t pc = fr->programPointer - fr->parent->clause->clause->codes;
+    { intptr_t pc = fr->programPointer - fr->parent->clause->value.clause->codes;
 
       PL_put_intptr(result, pc);
     } else
@@ -2184,7 +2200,7 @@ static
 PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
 { int rc = prolog_frame_attribute(A1, A2, A3);
 
-  SECURE(scan_global(0));
+  DEBUG(CHK_SECURE, scan_global(0));
 
   return rc;
 }
@@ -2204,7 +2220,7 @@ in_clause_jump(Choice ch)
   if ( ch->type == CHP_JUMP &&
        false(ch->frame->predicate, FOREIGN) &&
        ch->frame->clause &&
-       (cl=ch->frame->clause->clause) &&
+       (cl=ch->frame->clause->value.clause) &&
        ch->value.PC >= cl->codes &&
        ch->value.PC < &cl->codes[cl->code_size] )
     return ch->value.PC - cl->codes;
@@ -2270,7 +2286,7 @@ callEventHook(int ev, ...)
 { if ( !PROCEDURE_event_hook1 )
     PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
 
-  if ( PROCEDURE_event_hook1->definition->definition.clauses )
+  if ( PROCEDURE_event_hook1->definition->impl.any )
   { GET_LD
     wakeup_state wstate;
     int rc;
@@ -2283,7 +2299,11 @@ callEventHook(int ev, ...)
 
     va_start(args, ev);
     switch(ev)
-    { case PLEV_ERASED_CLAUSE:
+    { case PLEV_ABORT:
+      { rc = PL_unify_atom(arg, ATOM_abort);
+	break;
+      }
+      case PLEV_ERASED_CLAUSE:
       {	Clause cl = va_arg(args, Clause);	/* object erased */
 	term_t dbref = PL_new_term_ref();
 

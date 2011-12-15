@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -133,11 +133,6 @@ show_help(Title, Ranges) :-
 	write_ranges_to_file(Ranges, TmpFile),
 	prolog:show_help_hook(Title, TmpFile).
 show_help(_, Ranges) :-
-	clause(running_under_emacs_interface, _),
-	running_under_emacs_interface, !,
-	write_ranges_to_file(Ranges, Outfile),
-	call_emacs('(view-file-other-window "~w")', [Outfile]).
-show_help(_, Ranges) :-
 	current_prolog_flag(pipe, true), !,
 	online_manual_stream(Manual),
 	pager_stream(Pager),
@@ -200,7 +195,7 @@ pager_stream(Stream) :-
 	open(pipe(Pager), write, Stream).
 
 find_manual(Path) :-
-	absolute_file_name(library('MANUAL'), [access(read)], Path).
+	absolute_file_name(library('MANUAL'), Path, [access(read)]).
 
 find_pager(Pager) :-
 	getenv('PAGER', Pager), !.

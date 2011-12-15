@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -140,6 +140,7 @@ VMI(D_BREAK, 0, 0, ())
   if ( debugstatus.debugging )
   { debugstatus.tracing = TRUE;		/* HACK: avoid printMessage() */
     tracemode(TRUE, NULL);		/* in tracemode() */
+    DEBUG(1, Sdprintf("Hit break\n"));
   }
 #if VMCODE_IS_ADDRESS
   { void *c = (void *)replacedBreak(PC-1);
@@ -426,7 +427,7 @@ TBD:	Deal with multiple identical instructions
 
 VMI(H_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 { SEPERATE_VMI;
-  VMI_GOTO(H_STRING)
+  VMI_GOTO(H_STRING);
 }
 
 
@@ -1699,7 +1700,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 { if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
   { Procedure proc = (Procedure) *PC++;
 
-    if ( !proc->definition->definition.clauses &&	/* see (*) */
+    if ( !proc->definition->impl.any &&	/* see (*) */
 	 false(proc->definition, PROC_DEFINED) )
     { PC--;
       VMI_GOTO(I_CALL);
@@ -1967,12 +1968,12 @@ VMI(I_CUT, VIF_BREAK, 0, ())
       SAVE_REGISTERS(qid);
       dbg_discardChoicesAfter(FR PASS_LD);
       LOAD_REGISTERS(qid);
-      lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+      lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
       ch = newChoice(CHP_DEBUG, FR PASS_LD);
       ch->mark = m;
     } else
     { dbg_discardChoicesAfter(FR PASS_LD);
-      lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+      lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
     }
     ARGP = argFrameP(lTop, 0);
     if ( exception_term )
@@ -1994,7 +1995,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
   { SAVE_REGISTERS(qid);
     discardChoicesAfter(FR, FINISH_CUT PASS_LD);
     LOAD_REGISTERS(qid);
-    lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
     ARGP = argFrameP(lTop, 0);
     if ( exception_term )
       THROW_EXCEPTION;
@@ -2144,14 +2145,22 @@ VMI(C_LCUT, 0, 1, (CA1_CHP))
 }
 
 
+VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
+{ SEPERATE_VMI;
+  VMI_GOTO(C_CUT);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_CUT implements -> (and most of  *->).   Unfortunately  we have to loop
-twice because calling discardFrame() in the fist loop can invalidate the
-stacks and make GC calls from frameFinished() invalid.
+twice because calling discardFrame() in the   first  loop can invalidate
+the stacks and make GC calls from frameFinished() invalid.
 
 It might be possible to fix this by updating pointers in the first loop,
 but that is complicated and might  well  turn   out  to  be slower as it
 involves more write operations.
+
+See also discardChoicesAfter();
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_CUT, 0, 1, (CA1_CHP))
@@ -2163,17 +2172,27 @@ c_cut:
   else
     fr = och->frame;
 
-  for(ch=BFR; ch && ch > och; ch = ch->parent)
+  assert(BFR>=och);
+  for(ch=BFR; ch > och; ch = ch->parent)
   { LocalFrame fr2;
+    LocalFrame delto;
+
+    if ( ch->parent && ch->parent->frame > fr )
+      delto = ch->parent->frame;
+    else
+      delto = fr;
 
     DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
 
     for(fr2 = ch->frame;
-	fr2 && fr2->clause && fr2 > fr;
+	fr2 > delto;
 	fr2 = fr2->parent)
-    { if ( true(fr2, FR_WATCHED) )
+    { assert(fr2->clause || true(fr2->predicate, FOREIGN));
+
+      if ( true(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
 
+	BFR = ch->parent;
 	SAVE_REGISTERS(qid);
 	frameFinished(fr2, FINISH_CUT PASS_LD);
 	LOAD_REGISTERS(qid);
@@ -2182,32 +2201,30 @@ c_cut:
 
 	  fr2 = addPointer(fr2, offset);
 	  ch  = addPointer(ch,  offset);
+	  ch->parent = BFR;
 	  och = addPointer(och, offset);
 	  fr  = addPointer(fr,  offset);
+	  delto = addPointer(delto, offset);
 	}
 	if ( exception_term )
 	  THROW_EXCEPTION;
       }
-    }
 
-    for(fr2 = ch->frame;
-	fr2 && fr2->clause && fr2 > fr;
-	fr2 = fr2->parent)
-    { discardFrame(fr2 PASS_LD);
+      discardFrame(fr2 PASS_LD);
     }
 
     if ( ch->parent == och )
       DiscardMark(ch->mark);
   }
   assert(och == ch);
-  BFR = och;
+  BFR = ch;
 
   if ( (void *)och > (void *)fr )
   { lTop = (LocalFrame)(och+1);
   } else
   { int nvar = (true(fr->predicate, FOREIGN)
 			? fr->predicate->functor->arity
-			: fr->clause->clause->variables);
+			: fr->clause->value.clause->variables);
     lTop = (LocalFrame) argFrameP(fr, nvar);
   }
 
@@ -2382,7 +2399,7 @@ this supervisor (see resetProcedure()). The task of this is to
 	* Resolve the definition (i.e. auto-import or auto-load if
 	not defined).
 	* Check the indexing opportunities and install the proper
-        supervisor (see reindexDefinition()).
+        supervisor (see pl-index.c).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_VIRGIN, 0, 0, ())
@@ -2478,13 +2495,15 @@ the temporary variable `cl' for storing the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_STATIC, 0, 0, ())
-{ ClauseRef cl, nextcl;
+{ ClauseRef cl;
+  struct clause_choice chp;
+
   ARGP = argFrameP(FR, 0);
   lTop = (LocalFrame)ARGP+DEF->functor->arity;
 
   DEBUG(9, Sdprintf("Searching clause ... "));
 
-  if ( !(cl = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
+  if ( !(cl = firstClause(ARGP, FR, DEF, &chp PASS_LD)) )
   { DEBUG(9, Sdprintf("No clause matching index.\n"));
     if ( debugstatus.debugging )
       newChoice(CHP_DEBUG, FR PASS_LD);
@@ -2493,23 +2512,23 @@ VMI(S_STATIC, 0, 0, ())
   }
   DEBUG(9, Sdprintf("Clauses found.\n"));
 
-  PC = cl->clause->codes;
-  lTop = (LocalFrame)(ARGP + cl->clause->variables);
+  PC = cl->value.clause->codes;
+  lTop = (LocalFrame)(ARGP + cl->value.clause->variables);
   ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
   CL = cl;
 
-  if ( nextcl )
+  if ( chp.cref )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-    ch->value.clause = nextcl;
+    ch->value.clause = chp;
   } else if ( debugstatus.debugging )
     newChoice(CHP_DEBUG, FR PASS_LD);
 
-  SECURE(
-  int argc; int n;
-  argc = DEF->functor->arity;
-  for(n=0; n<argc; n++)
-    checkData(argFrameP(FR, n));
-  );
+  DEBUG(CHK_SECURE,
+	{ int argc; int n;
+	  argc = DEF->functor->arity;
+	  for(n=0; n<argc; n++)
+	    checkData(argFrameP(FR, n));
+	});
 
   umode = uread;
   NEXT_INSTRUCTION;
@@ -2580,12 +2599,12 @@ BEGIN_SHAREDVARS
 ClauseRef cref;
 
 VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
-{ cref = DEF->definition.clauses;
+{ cref = DEF->impl.clauses.first_clause;
 
 next_clause:
   ARGP = argFrameP(FR, 0);
   for(; cref; cref = cref->next)
-  { if ( visibleClause(cref->clause, FR->generation) )
+  { if ( visibleClause(cref->value.clause, FR->generation) )
     { TRY_CLAUSE(cref, cref->next, PC);
     }
   }
@@ -2602,7 +2621,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
     lTop = (LocalFrame)ARGP + FR->predicate->functor->arity;
 
     for(; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, FR->generation) )
+    { if ( visibleClause(cref->value.clause, FR->generation) )
       {	LocalFrame fr;
 	CL = cref;
 
@@ -2652,8 +2671,8 @@ VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
   else if ( isNil(*k) )
     cref = (ClauseRef)PC[0];
   else if ( canBind(*k) )
-  { PC = SUPERVISOR(next_clause);
-    VMI_GOTO(S_ALLCLAUSES);
+  { PC = SUPERVISOR(staticp) + 1;
+    VMI_GOTO(S_STATIC);
   } else
     FRAME_FAILED;
 
@@ -3066,8 +3085,9 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
     int rc;
 
     SAVE_REGISTERS(qid);
-    if ( (fid = PL_open_foreign_frame()) )
-    { rc = valueExpression(wordToTermRef(np), &n PASS_LD);
+    if ( (fid = PL_open_foreign_frame()) )	/* Still needed? */
+    { rc = valueExpression(pushWordAsTermRef(np), &n PASS_LD);
+      popTermRef();
       if ( rc )
       { ensureWritableNumber(&n);
 	if ( (rc=ar_add_ui(&n, add)) )
@@ -3474,7 +3494,7 @@ VMI(I_FEXITDET, 0, 0, ())
 
   LOAD_REGISTERS(qid);
   PC += 3;
-  SECURE(assert(PC[-1] == encode(I_FEXITDET)));
+  DEBUG(CHK_SECURE, assert(PC[-1] == encode(I_FEXITDET)));
   fli_context = ffr->parent;
 
   switch(rc)
@@ -3677,13 +3697,13 @@ VMI(I_FEXITNDET, 0, 0, ())
       { exception_term = 0;
 	setVar(*valTermRef(exception_bin));
       }
-      SECURE(assert(BFR->value.PC == PC));
+      DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
       BFR = BFR->parent;
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
 	THROW_EXCEPTION;
-      SECURE(assert(BFR->value.PC == PC));
+      DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
       BFR = BFR->parent;
       FRAME_FAILED;
     default:
@@ -3758,8 +3778,19 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 }
 
 
+/* (*) Work around a bug in the LLVM.  Just calling a dummy function avoids
+   a crash here!?  If we do not use GCC's threaded-code support it appears
+   that the bug is gone too.  LLVM's support for this GCC extension is poor
+   anyway: it runs, but is *much* slower than the switch.
+*/
+
 VMI(I_EXITCLEANUP, 0, 0, ())
-{ while( BFR && BFR->type == CHP_DEBUG )
+{
+#if defined(__llvm__) && defined(VMCODE_IS_ADDRESS) /* (*) */
+  llvm_dummy();
+#endif
+
+  while( BFR && BFR->type == CHP_DEBUG )
     BFR = BFR->parent;
 
   if ( BFR->frame == FR && BFR->type == CHP_CATCH )
@@ -3826,12 +3857,22 @@ the stack, looking for a frame running catch/3 on which it can unify the
 exception code. It then cuts all  choicepoints created since throw/3. If
 throw/3 is not found, it sets  the   query  exception  field and returns
 failure. Otherwise, it will simulate an I_USERCALL0 instruction: it sets
-the FR and lTop as it it  was   running  the  throw/3 predicate. Then it
+the FR and lTop as if it  was   running  the  throw/3 predicate. Then it
 pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
 Note that exceptions are placed on the stack using PL_raise_exception(),
-which use duplicate_term() and freezeGlobal() to make the exception term
-immune for undo operations.
+which uses duplicate_term() and  freezeGlobal()   to  make the exception
+term immune for undo operations.
+
+(*) If the exception is not caught, we  try to print it and enable trace
+mode. However, we should be careful about   this  if the exception is an
+out-of-stack exception because the trace runs in Prolog and is likely to
+run fatally out of stack if we start the tracer immediately. That is the
+role of trace_if_space(). As long as there is no space, the exception is
+unwinded until there is space. Unfortunately,   this  means that some of
+the context of the exception is lost. Note that  we need to run GC if we
+ran out of global stack because  the   stack  is  frozen to preserve the
+exception ball.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_THROW, 0, 0, ())
@@ -3847,7 +3888,7 @@ b_throw:
   if ( lTop < (LocalFrame)argFrameP(FR, FR->predicate->functor->arity) )
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
-  SECURE(checkData(valTermRef(exception_term)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
   DEBUG(1, { fid_t fid = PL_open_foreign_frame();
 	     Sdprintf("[%d] Throwing (from line %d): ",
 		      PL_thread_self(), throwed_from_line);
@@ -3868,11 +3909,12 @@ b_throw:
 	     }
 	   });
 
-  SECURE({ SAVE_REGISTERS(qid);
-	   checkData(valTermRef(exception_term));
-	   checkStacks(NULL);
-	   LOAD_REGISTERS(qid);
-	 });
+  DEBUG(CHK_SECURE,
+	{ SAVE_REGISTERS(qid);
+	  checkData(valTermRef(exception_term));
+	  checkStacks(NULL);
+	  LOAD_REGISTERS(qid);
+	});
 
   if ( debugstatus.suspendTrace == FALSE )
   { SAVE_REGISTERS(qid);
@@ -3895,12 +3937,17 @@ b_throw:
 
     if ( !rc )
     { SAVE_REGISTERS(qid);
-      LD->critical++;				/* do not handle signals */
-      printMessage(ATOM_error, PL_TERM, exception_term);
-      start_tracer = TRUE;
+      if ( LD->outofstack == (Stack)&LD->stacks.global )
+	garbageCollect();
+      LD->critical++;			/* do not handle signals */
       debugmode(TRUE, NULL);
-      trace_if_space();
-       LD->critical--;
+      if ( !trace_if_space() )		/* see (*) */
+      { start_tracer = TRUE;
+      } else
+      { trimStacks(FALSE PASS_LD);	/* restore spare stacks */
+	printMessage(ATOM_error, PL_TERM, exception_term);
+      }
+      LD->critical--;
       LOAD_REGISTERS(qid);
     }
   }
@@ -3922,10 +3969,11 @@ b_throw:
 	int rc;
 
 	lTop = (LocalFrame)(BFR+1);
-	SECURE({ SAVE_REGISTERS(qid);
-	         checkStacks(NULL);
-		 LOAD_REGISTERS(qid);
-	       });
+	DEBUG(CHK_SECURE,
+	      { SAVE_REGISTERS(qid);
+		checkStacks(NULL);
+		LOAD_REGISTERS(qid);
+	      });
 	SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	LOAD_REGISTERS(qid);
@@ -3935,11 +3983,12 @@ b_throw:
 	if ( printed )
 	  PL_put_term(exception_printed, exception_term);
 
-	SECURE({ SAVE_REGISTERS(qid);
-	         checkStacks(NULL);
-		 LOAD_REGISTERS(qid);
-		 ch = (Choice)valTermRef(chref);
-	       });
+	DEBUG(CHK_SECURE,
+	      { SAVE_REGISTERS(qid);
+	        checkStacks(NULL);
+		LOAD_REGISTERS(qid);
+		ch = (Choice)valTermRef(chref);
+	      });
 
 	SAVE_REGISTERS(qid);
 	rc = tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD);
@@ -3950,6 +3999,7 @@ b_throw:
 	    PL_clear_exception();
 	    SAVE_REGISTERS(qid);
 	    discardChoicesAfter(FR, FINISH_CUT PASS_LD);
+	    resumeAfterException();	/* reinstantiate spare stacks */
 	    LOAD_REGISTERS(qid);
 	    DEF = FR->predicate;
 	    goto retry_continue;
@@ -3974,8 +4024,29 @@ b_throw:
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
       }
-      if ( start_tracer )
-	trace_if_space();
+
+      if ( start_tracer )		/* See (*) */
+      {	if ( LD->outofstack == (Stack)&LD->stacks.global )
+	{ SAVE_REGISTERS(qid);
+	  garbageCollect();
+	  LOAD_REGISTERS(qid);
+	}
+
+	DEBUG(1, Sdprintf("g+l+t free = %ld+%ld+%ld\n",
+			  spaceStack(global),
+			  spaceStack(local),
+			  spaceStack(trail)));
+
+	if ( trace_if_space() )
+	{ start_tracer = FALSE;
+	  SAVE_REGISTERS(qid);
+	  LD->critical++;		/* do not handle signals */
+	  trimStacks(FALSE PASS_LD);
+	  printMessage(ATOM_error, PL_TERM, exception_term);
+	  LD->critical--;
+	  LOAD_REGISTERS(qid);
+	}
+      }
     }
   } else
 #endif /*O_DEBUGGER*/
@@ -3997,12 +4068,12 @@ b_throw:
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
       }
-      SECURE(checkData(valTermRef(exception_term)));
+      DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
     }
   }
 
 					/* re-fetch (test cleanup(clean-5)) */
-  SECURE(checkData(valTermRef(exception_term)));
+  DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
 
   if ( catchfr_ref )
   { Choice ch;
@@ -4167,12 +4238,11 @@ atom is referenced by the goal-term anyway.
     { Clause cl;
       int rc;
 
-      a = &goal;			/* we're going to overwrite */
-      deRef(a);
-      DEBUG(1, { term_t g = a - (Word)lBase;
+      DEBUG(1, { term_t g = pushWordAsTermRef(a);
 		 LocalFrame ot = lTop;
 		 lTop += 100;
 		 pl_writeln(g);
+		 popTermRef();
 		 lTop = ot;
 	       });
       lTop = NFR;
@@ -4182,10 +4252,13 @@ atom is referenced by the goal-term anyway.
 	THROW_EXCEPTION;
       if ( rc == LOCAL_OVERFLOW )
       { size_t room = roomStack(local);
+	term_t lTopH = consTermRef(lTop);
 
+	lTop = (LocalFrame)argFrameP(NFR, 1);
 	SAVE_REGISTERS(qid);
 	rc = ensureLocalSpace(room*2, ALLOW_SHIFT);
 	LOAD_REGISTERS(qid);
+	lTop = (LocalFrame)valTermRef(lTopH);
 	if ( rc != TRUE )
 	{ raiseStackOverflow(rc);
 	  THROW_EXCEPTION;
@@ -4194,7 +4267,7 @@ atom is referenced by the goal-term anyway.
       }
 
       DEF		  = NFR->predicate;
-      SECURE(assert(DEF == PROCEDURE_dcall1->definition));
+      DEBUG(CHK_SECURE, assert(DEF == PROCEDURE_dcall1->definition));
       NFR->parent	  = FR;
       NFR->programPointer = PC;
 #ifdef O_PROFILE
@@ -4213,14 +4286,11 @@ atom is referenced by the goal-term anyway.
       NEXT_INSTRUCTION;
     }
   } else
-  { fid_t fid;
-
+  {
   call_type_error:
-    LD->exception.processing = TRUE;	/* allow using spare stack */
-    lTop = (LocalFrame)argFrameP(NFR, 1);
-    fid = PL_open_foreign_frame();
-    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(NFR, 0)));
-    PL_close_foreign_frame(fid);
+    PL_error(NULL, 0, NULL, ERR_TYPE,
+	     ATOM_callable, pushWordAsTermRef(argFrameP(NFR, 0)));
+    popTermRef();
     THROW_EXCEPTION;
   }
   goto i_usercall_common;
@@ -4254,8 +4324,9 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
     functor = lookupFunctorDef(fdef->name, arity + callargs);
     args    = argTermP(goal, 0);
   } else
-  { lTop = (LocalFrame)argFrameP(NFR, 1);
-    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(NFR, 0)));
+  { PL_error(NULL, 0, NULL, ERR_TYPE,
+	     ATOM_callable, pushWordAsTermRef(argFrameP(NFR, 0)));
+    popTermRef();
     THROW_EXCEPTION;
   }
 
@@ -4324,7 +4395,7 @@ environment before we can call trapUndefined() to make shift/GC happy.
 
 mcall_cont:
   setNextFrameFlags(NFR, FR);
-  if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )
+  if ( !DEF->impl.any && false(DEF, PROC_DEFINED) )
   { term_t nref = consTermRef(NFR);
     NFR->parent         = FR;
     NFR->predicate      = DEF;		/* TBD */

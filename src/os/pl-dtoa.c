@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -34,8 +34,14 @@
 #define MALLOC PL_malloc
 #define FREE PL_free
 
-#ifdef _REENTRANT
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Long must be a 32-bit int.  For now we use int.  Ideally we would use
+int32_t, but MS does not yet support stdint.h.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define Long int			/* 32-bits */
+
+#ifdef _REENTRANT
 #define MULTIPLE_THREADS
 
 /* TBD: Use the pl-thread.[ch] locks for better speed on Windows

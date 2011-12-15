@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -37,7 +37,7 @@ SWI-Prolog.h and SWI-Stream.h
 #endif
 #include <string.h>
 #include <stdlib.h>
-#include "os/SWI-Stream.h"
+#include "SWI-Stream.h"
 #include "SWI-Prolog.h"
 
 #ifdef __WINDOWS__
@@ -216,20 +216,6 @@ pl_rl_read_history(term_t fn)
 
 
 
-static int
-input_on_fd(int fd)
-{ fd_set rfds;
-  struct timeval tv;
-
-  FD_ZERO(&rfds);
-  FD_SET(fd, &rfds);
-  tv.tv_sec = 0;
-  tv.tv_usec = 0;
-
-  return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
-}
-
-
 static char *my_prompt    = NULL;
 static int   in_readline  = 0;
 static int   sig_at_level = -1;
@@ -280,7 +266,7 @@ static sigstate signals[] =
 
 
 static void
-prepare_signals()
+prepare_signals(void)
 { sigstate *s;
 
   for(s=signals; s->signo != -1; s++)
@@ -294,7 +280,7 @@ prepare_signals()
 
 
 static void
-restore_signals()
+restore_signals(void)
 { sigstate *s;
 
   for(s=signals; s->signo != -1; s++)
@@ -359,7 +345,20 @@ reentrant access is tried.
 
 #ifdef HAVE_RL_EVENT_HOOK
 static int
-event_hook()
+input_on_fd(int fd)
+{ fd_set rfds;
+  struct timeval tv;
+
+  FD_ZERO(&rfds);
+  FD_SET(fd, &rfds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 0;
+
+  return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
+}
+
+static int
+event_hook(void)
 { if ( Sinput->position )
   { int64_t c0 = Sinput->position->charno;
 
@@ -382,7 +381,7 @@ event_hook()
 
 
 static void
-reset_readline()
+reset_readline(void)
 { if ( in_readline )
   { restore_signals();
   }
@@ -560,16 +559,16 @@ prolog_completion(const char *text, int start, int end)
 #undef read				/* UXNT redefinition */
 
 install_t
-PL_install_readline()
+PL_install_readline(void)
 { GET_LD
-  bool old;
+  access_level_t alevel;
 
 #ifndef __WINDOWS__
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) || !isatty(0) )
     return;
 #endif
 
-  old = systemMode(TRUE);
+  alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM);
   rl_catch_signals = 0;
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = prolog_completion;
@@ -600,13 +599,13 @@ PL_install_readline()
   PL_set_prolog_flag("readline",    PL_BOOL, TRUE);
   PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
   PL_license("gpl", "GNU Readline library");
-  systemMode(old);
+  setAccessLevel(alevel);
 }
 
 #else /*HAVE_LIBREADLINE*/
 
 install_t
-PL_install_readline()
+PL_install_readline(void)
 {
 }
 

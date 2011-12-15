@@ -17,7 +17,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -78,6 +78,10 @@ otherwise during startup of the application.
 
 :- meta_predicate
 	thread_create_in_pool(+, 0, -, +).
+:- predicate_options(thread_create_in_pool/4, 4,
+                     [ wait(boolean),
+                       pass_to(system:thread_create/3, 3)
+                     ]).
 
 
 %%	thread_pool_create(+Pool, +Size, +Options) is det.
@@ -105,6 +109,7 @@ otherwise during startup of the application.
 %		internal use by this library.
 
 thread_pool_create(Name, Size, Options) :-
+	must_be(list, Options),
 	pool_manager(Manager),
 	thread_self(Me),
 	thread_send_message(Manager, create_pool(Name, Size, Options, Me)),

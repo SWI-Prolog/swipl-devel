@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -108,7 +108,7 @@ insert2(black('',_,_,''), K, V, Nil, T, Status) :- !,
 	T = red(Nil,K,V,Nil),
 	Status = not_done.
 insert2(In, K, V, Nil, NT, Flag) :-
-	In = red(L,K0,V0,R),
+	In = red(L,K0,V0,R), !,
 	(   K @< K0
 	->  insert2(L, K, V, Nil, NL, Flag),
 	    (	Flag == shared

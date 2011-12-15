@@ -18,14 +18,14 @@ Argument count (is number of arguments) of a \g{compound} \g{term}.
 
     \glossitem{assert}\index{assert}%
 Add a \g{clause} to a \g{predicate}. Clauses can be added at either
-end of the clause-list of a \g{predicate}.  See assert/1 and assertz/1.
+end of the clause-list of a \g{predicate}.  See asserta/1 and assertz/1.
 
     \glossitem{atom}\index{atom}%
 Textual constant.  Used as name for \g{compound} terms, to represent
 constants or text.
 
     \glossitem{backtracking}\index{backtracking}%
-Searching process used by Prolog.  If a predicate offers multiple
+Search process used by Prolog.  If a predicate offers multiple
 \g{clauses} to solve a \g{goal}, they are tried one-by-one until
 one \g{succeeds}.  If a subsequent part of the proof is not satisfied
 with the resulting \g{variable} \g{binding}, it may ask for
@@ -126,7 +126,8 @@ if Prolog fails to prove the \g{goal}.
 Part of a \g{clause} before the \g{neck} instruction.   This is an atom
 or \g{compound} term.
 
-    \glossitem{imported [predicate]}\index{imported predicate}\index{predicate,imported}%
+    \glossitem{imported [predicate]}%
+\index{imported predicate}\index{predicate,imported}%
 A \g{predicate} is said to be \g{imported} into a \g{module} if it is
 defined in another \g{module} and made available in this \g{module}.
 See also \chapref{modules}.
@@ -134,11 +135,12 @@ See also \chapref{modules}.
     \glossitem{indexing}\index{indexing}%
 Indexing is a technique used to quickly select candidate \g{clauses} of
 a \g{predicate} for a specific \g{goal}. In most Prolog systems,
-including SWI-Prolog, indexing is done on the first \g{argument} of
-the \g{head}. If this argument is instantiated to an \g{atom},
-\g{integer}, \g{float} or \g{compound} term with \g{functor},
-\g{hashing} is used quickly select all \g{clauses} of which the
-first argument may \g{unify} with the first argument of the \g{goal}.
+indexing is done (only) on the first \g{argument} of the \g{head}. If
+this argument is instantiated to an \g{atom}, \g{integer}, \g{float} or
+\g{compound} term with \g{functor}, \g{hashing} is used quickly select
+all \g{clauses} of which the first argument may \g{unify} with the first
+argument of the \g{goal}. SWI-Prolog supports just-in-time and
+multi-argument indexing.  See \secref{jitindex}.
 
     \glossitem{integer}\index{integer}%
 Whole number.  On all implementations of SWI-Prolog integers are

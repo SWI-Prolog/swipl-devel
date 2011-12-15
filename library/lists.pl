@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -41,24 +41,34 @@
 	  selectchk/4,			% ?X, ?XList, ?Y, ?YList
 	  nextto/3,			% ?X, ?Y, ?List
 	  delete/3,			% ?List, ?X, ?Rest
-	  nth0/3,
-	  nth1/3,
+	  nth0/3,			% ?N, ?List, ?Elem
+	  nth1/3,			% ?N, ?List, ?Elem
+	  nth0/4,			% ?N, ?List, ?Elem, ?Rest
+	  nth1/4,			% ?N, ?List, ?Elem, ?Rest
 	  last/2,			% +List, -Element
+	  proper_length/2,		% @List, -Length
 	  same_length/2,		% ?List1, ?List2
 	  reverse/2,			% +List, -Reversed
 	  permutation/2,		% ?List, ?Permutation
 	  flatten/2,			% +Nested, -Flat
+
+					% Ordered operations
+	  max_member/2,			% -Max, +List
+	  min_member/2,			% -Min, +List
+
+					% Lists of numbers
 	  sumlist/2,			% +List, -Sum
 	  max_list/2,			% +List, -Max
 	  min_list/2,			% +List, -Min
 	  numlist/3,			% +Low, +High, -List
 
-	  is_set/1,			% set manipulation
+					% set manipulation
+	  is_set/1,			% +List
 	  list_to_set/2,		% +List, -Set
-	  intersection/3,
-	  union/3,
-	  subset/2,
-	  subtract/3
+	  intersection/3,		% +List1, +List2, -Intersection
+	  union/3,			% +List1, +List2, -Union
+	  subset/2,			% +SubSet, +Set
+	  subtract/3			% +Set, +Delete, -Remaining
 	]).
 :- use_module(library(error)).
 
@@ -72,7 +82,13 @@ are built-in. See e.g., memberchk/2, length/2.
 
 The implementation of this library  is   copied  from many places. These
 include: "The Craft of Prolog", the   DEC-10  Prolog library (LISTRO.PL)
-and the YAP lists library.
+and the YAP lists library. Some   predicates  are reimplemented based on
+their specification by Quintus and SICStus.
+
+@compat	Virtually every Prolog system has library(lists), but the set
+	of provided predicates is diverse.  There is a fair agreement
+	on the semantics of most of these predicates, although error
+	handling may vary.
 */
 
 %%	member(?Elem, ?List)
@@ -186,7 +202,7 @@ nextto(X, Y, [X,Y|_]).
 nextto(X, Y, [_|Zs]) :-
 	nextto(X, Y, Zs).
 
-%%	delete(?List1, ?Elem, ?List2)
+%%	delete(?List1, ?Elem, ?List2) is det.
 %
 %	Is true when Lis1, with all occurences of Elem deleted results in
 %	List2.
@@ -259,9 +275,60 @@ nth1(Index, List, Elem) :-
 	;   must_be(integer, Index)
 	).
 
+%%	nth0(?N, ?List, ?Elem, ?Rest) is det.
+%
+%	Select/insert element at index.  True  when   Elem  is  the N-th
+%	(0-based) element of List and Rest is   the  remainder (as in by
+%	select/3) of List.  For example:
+%
+%	  ==
+%	  ?- nth0(I, [a,b,c], E, R).
+%	  I = 0, E = a, R = [b, c] ;
+%	  I = 1, E = b, R = [a, c] ;
+%	  I = 2, E = c, R = [a, b] ;
+%	  false.
+%	  ==
+%
+%	  ==
+%	  ?- nth0(1, L, a1, [a,b]).
+%	  L = [a, a1, b].
+%	  ==
+
+nth0(V, In, Element, Rest) :-
+	var(V), !,
+        generate_nth(0, V, In, Element, Rest).
+nth0(V, In, Element, Rest) :-
+	must_be(nonneg, V),
+	find_nth0(V, In, Element, Rest).
+
+%%	nth1(?N, ?List, ?Elem, ?Rest) is det.
+%
+%	As nth0/4, but counting starts at 1.
+
+nth1(V, In, Element, Rest) :-
+	var(V), !,
+        generate_nth(1, V, In, Element, Rest).
+nth1(V, In, Element, Rest) :-
+	must_be(positive_integer, V),
+	succ(V0, V),
+	find_nth0(V0, In, Element, Rest).
+
+generate_nth(I, I, [Head|Rest], Head, Rest).
+generate_nth(I, IN, [H|List], El, [H|Rest]) :-
+        I1 is I+1,
+	generate_nth(I1, IN, List, El, Rest).
+
+find_nth0(0, [Head|Rest], Head, Rest) :- !.
+find_nth0(N, [Head|Rest0], Elem, [Head|Rest]) :-
+        M is N-1,
+        find_nth0(M, Rest0, Elem, Rest).
+
+
 %%	last(?List, ?Last)
 %
-%	Succeeds if `Last' unifies with the last element of `List'.
+%	Succeeds when `Last'  is  the  last   element  of  `List'.  This
+%	predicate is =semidet= if List is a  list and =multi= if List is
+%	a partial list.
 %
 %	@compat	There is no de-facto standard for the argument order of
 %		last/2.  Be careful when porting code or use
@@ -275,6 +342,23 @@ last_([X|Xs], _, Last) :-
     last_(Xs, X, Last).
 
 
+%%	proper_length(@List, -Length) is semidet.
+%
+%	True when Length is the number of   elements  in the proper list
+%	List.  This is equivalent to
+%
+%	  ==
+%	  proper_length(List, Length) :-
+%		is_list(List),
+%		length(List, Length).
+%	  ==
+
+proper_length(List, Length) :-
+	'$skip_list'(Length0, List, Tail),
+	Tail == [],
+	Length = Length0.
+
+
 %%	same_length(?List1, ?List2)
 %
 %	Is true when List1 and List2 are   lists with the same number of
@@ -286,10 +370,7 @@ last_([X|Xs], _, Last) :-
 
 same_length([], []).
 same_length([_|T1], [_|T2]) :-
-	(   T2 == []			% determinism in mode (-,+)
-	->  T1 = []
-	;   same_length(T1, T2)
-	).
+	same_length(T1, T2).
 
 
 %%	reverse(?List1, ?List2)
@@ -385,6 +466,53 @@ flatten([Hd|Tl], Tail, List) :- !,
 	flatten(Tl, Tail, FlatHeadTail).
 flatten(NonList, Tl, [NonList|Tl]).
 
+
+		 /*******************************
+		 *	 ORDER OPERATIONS	*
+		 *******************************/
+
+%%	max_member(-Max, +List) is semidet.
+%
+%	True when Max is the largest  member   in  the standard order of
+%	terms.  Fails if List is empty.
+%
+%	@see compare/3
+%	@see max_list/2 for the maximum of a list of numbers.
+
+max_member(Max, [H|T]) :-
+	max_member_(T, H, Max).
+
+max_member_([], Max, Max).
+max_member_([H|T], Max0, Max) :-
+	(   H @=< Max0
+	->  max_member_(T, Max0, Max)
+	;   max_member_(T, H, Max)
+	).
+
+
+%%	min_member(-Min, +List) is semidet.
+%
+%	True when Min is the largest  member   in  the standard order of
+%	terms.  Fails if List is empty.
+%
+%	@see compare/3
+%	@see min_list/2 for the minimum of a list of numbers.
+
+min_member(Min, [H|T]) :-
+	min_member_(T, H, Min).
+
+min_member_([], Min, Min).
+min_member_([H|T], Min0, Min) :-
+	(   H @=< Min0
+	->  min_member_(T, Min0, Min)
+	;   min_member_(T, H, Min)
+	).
+
+
+		 /*******************************
+		 *	 LISTS OF NUMBERS	*
+		 *******************************/
+
 %%	sumlist(+List, -Sum) is det.
 %
 %	Sum is the result of adding all numbers in List.
@@ -397,10 +525,12 @@ sumlist([X|Xs], Sum0, Sum) :-
 	Sum1 is Sum0 + X,
 	sumlist(Xs, Sum1, Sum).
 
-
-%%	max_list(+List:list(number), -Max:number) is det.
+%%	max_list(+List:list(number), -Max:number) is semidet.
 %
-%	True if Max is the largest number in List.
+%	True if Max is the largest number in List.  Fails if List is
+%	empty.
+%
+%	@see max_member/2.
 
 max_list([H|T], Max) :-
 	max_list(T, H, Max).
@@ -411,9 +541,12 @@ max_list([H|T], Max0, Max) :-
 	max_list(T, Max1, Max).
 
 
-%%	min_list(+List:list(number), -Min:number) is det.
+%%	min_list(+List:list(number), -Min:number) is semidet.
 %
-%	True if Min is the largest number in List.
+%	True if Min is the largest number in List.  Fails if List is
+%	empty.
+%
+%	@see min_member/2.
 
 min_list([H|T], Min) :-
 	min_list(T, H, Min).

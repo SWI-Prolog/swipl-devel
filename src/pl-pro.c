@@ -19,11 +19,11 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifdef SECURE_GC
-#define O_SECURE 1			/* include checkData() */
+#define O_DEBUG 1			/* include checkData() */
 #endif
 #include "pl-incl.h"
 
@@ -32,36 +32,120 @@
 		*    CALLING THE INTERPRETER    *
 		*********************************/
 
+static int
+resetProlog(int clear_stacks)
+{ GET_LD
+  IOSTREAM *in = Suser_input;
+
+  if ( Sferror(in) )
+  { Sclearerr(in);
+    LD->prompt.next = TRUE;
+  }
+
+  Scurin  = in;
+  Scurout = Suser_output;
+
+  resetTracer();
+
+  if ( clear_stacks )
+  { if ( !LD->gvar.nb_vars )		/* we would loose nb_setval/2 vars */
+      emptyStacks();
+
+    gc_status.blocked        = 0;
+    LD->shift_status.blocked = 0;
+    LD->in_arithmetic        = 0;
+    LD->in_print_message     = 0;
+  }
+
+#ifdef O_LIMIT_DEPTH
+  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
+#endif
+
+  updateAlerted(LD);
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+query_loop() runs a zero-argument goal on   behalf  of the toplevel. The
+reason for this to be in C is to   be able to handle exceptions that are
+considered unhandled and thus  can  trap   the  debugger.  I.e., if goal
+terminates due to an exception, the exception   is  reported and goal is
+restarted. Before the restart, the system is   restored to a sane state.
+This notably affects I/O  (reset  current  I/O   to  user  I/O)  and the
+debugger.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+query_loop(atom_t goal)
+{ GET_LD
+  int rc;
+  int loop = TRUE;
+  int clear_stacks = (LD->query == NULL);
+
+  while(loop)
+  { fid_t fid;
+    qid_t qid = 0;
+    term_t except = 0;
+    predicate_t p;
+
+    if ( !resetProlog(clear_stacks) )
+      goto error;
+    if ( !(fid = PL_open_foreign_frame()) )
+      goto error;
+
+    p = PL_pred(PL_new_functor(goal, 0), MODULE_system);
+
+    if ( (qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0)) )
+    { rc = PL_next_solution(qid);
+    } else
+    { error:
+      except = exception_term;
+      rc = FALSE;			/* Won't get any better */
+      break;
+    }
+
+    if ( !rc && (except = PL_exception(qid)) )
+    { atom_t a;
+
+      tracemode(FALSE, NULL);
+      debugmode(DBG_OFF, NULL);
+      setPrologFlagMask(PLFLAG_LASTCALL);
+      if ( PL_get_atom(except, &a) && a == ATOM_aborted )
+      {
+#ifdef O_DEBUGGER
+        callEventHook(PLEV_ABORT);
+#endif
+        printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
+      } else if ( !PL_is_functor(except, FUNCTOR_error2) )
+      { printMessage(ATOM_error,
+		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+		       PL_TERM, except);
+      }
+    }
+
+    if ( qid ) PL_close_query(qid);
+    if ( fid ) PL_discard_foreign_frame(fid);
+    if ( !except )
+      break;
+  }
+
+  return rc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Starts a new Prolog toplevel.  Resets I/O to point to the user and stops
 the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 `$break' is called to actually built the break environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_break()
+static int
+pl_break1(atom_t goal)
 { GET_LD
-  wakeup_state wstate;
-
-  if ( saveWakeup(&wstate, TRUE PASS_LD) )
-  { term_t goal = PL_new_term_ref();
-    word rc;
-
-    PL_put_atom_chars(goal, "$break");
-    rc = pl_break1(goal);
-    restoreWakeup(&wstate PASS_LD);
-
-    return rc;
-  }
-
-  return FALSE;
-}
-
-
-word
-pl_break1(term_t goal)
-{ GET_LD
-  bool rval;
+  int rc;
+  int old_level = LD->break_level;
 
   IOSTREAM *inSave  = Scurin;
   IOSTREAM *outSave = Scurout;
@@ -76,34 +160,23 @@ pl_break1(term_t goal)
   Scurin  = Sinput;
   Scurout = Soutput;
 
-  resetTracer();
-
-  for(;;)
-  { fid_t cid;
-    term_t ex;
-
-    if ( (cid=PL_open_foreign_frame()) )
-    { rval = callProlog(MODULE_user, goal,
-			PL_Q_NORMAL|PL_Q_CATCH_EXCEPTION, &ex);
-    } else
-    { ex = exception_term;
-      rval = FALSE;
-    }
-
-    if ( !rval && ex )
-    { printMessage(ATOM_error,
-		   PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		     PL_TERM, ex);
-      tracemode(FALSE, NULL);
-      debugmode(DBG_OFF, NULL);
-      PL_put_atom(goal, ATOM_prolog);
-    } else
-    { break;
-    }
-
-    if ( cid )
-      PL_discard_foreign_frame(cid);
+  LD->break_level++;
+  if ( LD->break_level > 0 )
+  { printMessage(ATOM_informational,
+		 PL_FUNCTOR, FUNCTOR_break2,
+	           PL_ATOM, ATOM_begin,
+		   PL_INT,  LD->break_level);
   }
+
+  rc = query_loop(goal);
+
+  if ( LD->break_level > 0 )
+  { printMessage(ATOM_informational,
+		 PL_FUNCTOR, FUNCTOR_break2,
+	           PL_ATOM, ATOM_end,
+		   PL_INT,  LD->break_level);
+  }
+  LD->break_level = old_level;
 
   debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
@@ -113,7 +186,39 @@ pl_break1(term_t goal)
   Scurout = outSave;
   Scurin  = inSave;
 
-  return rval;
+  return rc;
+}
+
+
+/** break
+
+Run a nested toplevel. Do not  use   PRED_IMPL()  for this because it is
+very handy to use from e.g., the gdb debugger.
+*/
+
+word
+pl_break(void)
+{ GET_LD
+  wakeup_state wstate;
+
+  if ( saveWakeup(&wstate, TRUE PASS_LD) )
+  { word rc;
+
+    rc = pl_break1(ATOM_dquery_loop);
+    restoreWakeup(&wstate PASS_LD);
+
+    return rc;
+  }
+
+  return FALSE;
+}
+
+
+int
+currentBreakLevel(void)
+{ GET_LD
+
+  return LD->break_level;
 }
 
 
@@ -246,151 +351,71 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 
 
 int
-abortProlog(abort_type type)
+abortProlog(void)
 { GET_LD
+  fid_t fid;
+  term_t ex;
+  int rc = FALSE;
 
   pl_notrace();
-  Sreset();
+  Sreset();				/* Discard pending IO */
 
-  if ( LD->critical > 0 && type != ABORT_RAISE )
-  { LD->aborted = type;			/* longjmp from critical region */
-    succeed;				/* we must delay */
-  } else
-  { fid_t fid;
-    term_t ex;
-    int rc;
+  LD->exception.processing = TRUE;	/* allow using spare stack */
 
-    LD->exception.processing = TRUE;	/* allow using spare stack */
+  if ( (fid = PL_open_foreign_frame()) &&
+       (ex = PL_new_term_ref()) )
+  { clearSegStack(&LD->cycle.lstack);	/* can do no harm */
+    clearSegStack(&LD->cycle.vstack);
 
-    if ( (fid = PL_open_foreign_frame()) &&
-	 (ex = PL_new_term_ref()) )
-    { clearSegStack(&LD->cycle.lstack);	/* can do no harm */
-      clearSegStack(&LD->cycle.vstack);
-
-      PL_put_atom(ex, ATOM_aborted);
-      if ( type == ABORT_RAISE )
-	rc = PL_raise_exception(ex);
-      else
-	rc = PL_throw(ex);		/* use longjmp() to ensure */
-
-      PL_close_foreign_frame(fid);
-    } else
-    { LD->aborted = type;
-      rc = FALSE;
-    }
-
-    return rc;
+    PL_put_atom(ex, ATOM_aborted);
+    rc = PL_raise_exception(ex);
+    PL_close_foreign_frame(fid);
   }
+
+  return rc;
 }
 
 
 static
 PRED_IMPL("abort", 0, abort, 0)
-{ return abortProlog(ABORT_RAISE);
+{ return abortProlog();
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-prologToplevel(): Initial entry point from C to start the Prolog engine.
-Saves abort context, clears the  stack   and  finally starts the virtual
-machine interpreter with the toplevel goal.
+prologToplevel is called with various goals
+
+  - Using '$initialise to run the initialization
+  - Using '$compile'   if Prolog is called with -c ...
+  - Using '$toplevel'  from PL_toplevel() to run the interactive toplevel
+
+It can only be ran when there is  no actively running Prolog goal (i.e.,
+it is not reentrant).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
-resetProlog()
+bool
+prologToplevel(atom_t goal)
 { GET_LD
+  int rc;
+  int old_level = LD->break_level;
 
-  if ( !LD->gvar.nb_vars )		/* we would loose nb_setval/2 vars */
-    emptyStacks();
+  if ( goal == ATOM_dquery_loop ||
+       goal == ATOM_dtoplevel )
+    LD->break_level++;
+  rc = query_loop(goal);
+  LD->break_level = old_level;
 
-#ifdef O_LIMIT_DEPTH
-  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
-#endif
-
-  gc_status.blocked        = 0;
-  LD->shift_status.blocked = 0;
-  LD->in_arithmetic        = 0;
-  LD->in_print_message     = 0;
-
-  tracemode(FALSE, NULL);
-  debugmode(DBG_OFF, NULL);
-  debugstatus.suspendTrace = 0;
-
-  updateAlerted(LD);
+  return rc;
 }
 
 
-bool
-prologToplevel(volatile atom_t goal)
+access_level_t
+setAccessLevel(access_level_t accept)
 { GET_LD
-  bool rval;
-  volatile int aborted = FALSE;
-  int loop = TRUE;
+  bool old;
 
-  debugstatus.debugging = DBG_OFF;
-
-  while(loop)
-  { fid_t fid;
-    qid_t qid = 0;
-    term_t except = 0;
-    Procedure p;
-    word gn;
-
-    resetProlog();
-    if ( !(fid = PL_open_foreign_frame()) )
-      goto error;
-
-    if ( aborted )
-    { aborted = FALSE;
-      gn = PL_new_atom("$abort");
-    } else
-      gn = goal;
-
-    p = lookupProcedure(lookupFunctorDef(gn, 0), MODULE_system);
-
-    if ( (qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0)) )
-    { rval = PL_next_solution(qid);
-    } else
-    { error:
-      except = exception_term;
-      loop = rval = FALSE;		/* Won't get any better */
-    }
-
-    if ( !rval && (except = PL_exception(qid)) )
-    { atom_t a;
-
-      tracemode(FALSE, NULL);
-      debugmode(DBG_OFF, NULL);
-      setPrologFlagMask(PLFLAG_LASTCALL);
-      if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      { aborted = TRUE;
-      } else if ( !PL_is_functor(except, FUNCTOR_error2) )
-      { printMessage(ATOM_error,
-		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		       PL_TERM, except);
-      }
-    }
-
-    if ( qid ) PL_close_query(qid);
-    if ( fid ) PL_discard_foreign_frame(fid);
-    if ( !except )
-      break;
-  }
-
-  return rval;
-}
-
-
-bool
-systemMode(bool accept)
-{ GET_LD
-  bool old = SYSTEM_MODE ? TRUE : FALSE;
-
-  if ( accept )
-    debugstatus.styleCheck |= DOLLAR_STYLE;
-  else
-    debugstatus.styleCheck &= ~DOLLAR_STYLE;
-
+  old = LD->prolog_flag.access_level;
+  LD->prolog_flag.access_level = accept;
   return old;
 }
 
@@ -419,7 +444,7 @@ PRED_IMPL("$trap_gdb", 0, trap_gdb, 0)
   return TRUE;
 }
 
-#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
+#if O_DEBUG || defined(O_MAINTENANCE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 checkData(p) verifies p points to valid  Prolog  data  and  generates  a
@@ -441,7 +466,7 @@ printk(char *fm, ...)
   Sfprintf(Serror, "]\n");
   va_end(args);
 
-  trap_gdb();
+  assert(0);
 }
 
 static intptr_t check_marked;
@@ -623,23 +648,24 @@ last_arg:
   }
 
   { Functor f = valueTerm(*p);
-    mark(p);
 
     if ( !onGlobal(f) )
       printk("Term at %p not on global stack", f);
 
     if ( tag(f->definition) != TAG_ATOM ||
          storage(f->definition) != STG_GLOBAL )
-      printk("Illegal term: 0x%x", *p);
+      printk("Illegal functor: 0x%x", *p);
     if ( f->definition & MARK_MASK )
-      printk("Term with mark: 0x%x", *p);
+      printk("functor with mark: 0x%x", *p);
     if ( f->definition & FIRST_MASK )
-      printk("Term with first: 0x%x", *p);
+      printk("functor with first: 0x%x", *p);
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk("Illegal arity (%d)", arity);
     else if ( arity > 256 && !is_ht_capacity(arity) )
       printk("Dubious arity (%d)", arity);
+
+    mark(p);
     for(n=0; n<arity-1; n++)
       key += check_data(&f->arguments[n], recursive PASS_LD);
 
@@ -662,6 +688,54 @@ checkData(Word p)
 }
 
 #endif /* TEST */
+
+		 /*******************************
+		 *         LLVM-GCC HACK	*
+		 *******************************/
+
+/* This avoids an optimizer bug in llvm-gcc-4.2 as distributed with
+   MacOS Lion.  Called from pl-vmi.c in I_EXITCLEANUP.
+*/
+
+#ifdef __llvm__
+int
+llvm_dummy(void)
+{ return 0;
+}
+#endif
+
+		 /*******************************
+		 *	      MISC		*
+		 *******************************/
+
+int
+getAccessLevelMask(atom_t a, access_level_t *val)
+{ if ( a == ATOM_user )
+    *val = ACCESS_LEVEL_USER;
+  else if ( a == ATOM_system )
+    *val = ACCESS_LEVEL_SYSTEM;
+  else
+    return FALSE;
+
+  return TRUE;
+}
+
+
+atom_t
+accessLevel(void)
+{ GET_LD
+
+  switch(LD->prolog_flag.access_level)
+  { case ACCESS_LEVEL_USER:	return ATOM_user;
+    case ACCESS_LEVEL_SYSTEM:	return ATOM_system;
+  }
+
+  return NULL_ATOM;
+}
+
+
+
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

@@ -18,9 +18,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
+    You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -43,7 +43,9 @@
 	    rational/3,
 	    atom_prefix/2,
 	    dwim_match/2,
+	    source_file_property/2,
 	    source_file/1,
+	    unload_file/1,
 	    prolog_load_context/2,
 	    stream_position_data/3,
 	    current_predicate/2,
@@ -56,7 +58,6 @@
 	    current_module/1,
 	    module_property/2,
 	    module/1,
-	    statistics/0,
 	    shell/1,
 	    shell/0,
 	    on_signal/3,
@@ -78,53 +79,59 @@
 		*           DEBUGGER            *
 		*********************************/
 
-:- meta_predicate
-	'$map_bits'(2, +, +, -).
+%%	map_bits(:Pred, +Modify, +OldBits, -NewBits)
 
-'$map_bits'(_, [], Bits, Bits) :- !.
-'$map_bits'(Pred, [H|T], Old, New) :-
-	'$map_bits'(Pred, H, Old, New0),
-	'$map_bits'(Pred, T, New0, New).
-'$map_bits'(Pred, +Name, Old, New) :- !,	% set a bit
-	call(Pred, Name, Bits), !,
+:- meta_predicate
+	map_bits(2, +, +, -).
+
+map_bits(_, [], Bits, Bits) :- !.
+map_bits(Pred, [H|T], Old, New) :-
+	map_bits(Pred, H, Old, New0),
+	map_bits(Pred, T, New0, New).
+map_bits(Pred, +Name, Old, New) :- !,	% set a bit
+	bit(Pred, Name, Bits), !,
 	New is Old \/ Bits.
-'$map_bits'(Pred, -Name, Old, New) :- !,	% clear a bit
-	call(Pred, Name, Bits), !,
+map_bits(Pred, -Name, Old, New) :- !,	% clear a bit
+	bit(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
-'$map_bits'(Pred, ?(Name), Old, Old) :-		% ask a bit
-	call(Pred, Name, Bits),
+map_bits(Pred, ?(Name), Old, Old) :-		% ask a bit
+	bit(Pred, Name, Bits),
 	Old /\ Bits > 0.
 
-'$port_bit'(      call, 2'000000001).
-'$port_bit'(      exit, 2'000000010).
-'$port_bit'(      fail, 2'000000100).
-'$port_bit'(      redo, 2'000001000).
-'$port_bit'(     unify, 2'000010000).
-'$port_bit'(     break, 2'000100000).
-'$port_bit'(  cut_call, 2'001000000).
-'$port_bit'(  cut_exit, 2'010000000).
-'$port_bit'( exception, 2'100000000).
-'$port_bit'(       cut, 2'011000000).
-'$port_bit'(       all, 2'000111111).
-'$port_bit'(      full, 2'000101111).
-'$port_bit'(      half, 2'000101101).	% '
+bit(Pred, Name, Bits) :-
+	call(Pred, Name, Bits), !.
+bit(_:Pred, Name, _) :-
+	throw(error(domain_error(Pred, Name), _)).
+
+port_name(      call, 2'000000001).
+port_name(      exit, 2'000000010).
+port_name(      fail, 2'000000100).
+port_name(      redo, 2'000001000).
+port_name(     unify, 2'000010000).
+port_name(     break, 2'000100000).
+port_name(  cut_call, 2'001000000).
+port_name(  cut_exit, 2'010000000).
+port_name( exception, 2'100000000).
+port_name(       cut, 2'011000000).
+port_name(       all, 2'000111111).
+port_name(      full, 2'000101111).
+port_name(      half, 2'000101101).	% '
 
 leash(Ports) :-
 	'$leash'(Old, Old),
-	'$map_bits'('$port_bit', Ports, Old, New),
+	map_bits(port_name, Ports, Old, New),
 	'$leash'(_, New).
 
 visible(Ports) :-
 	'$visible'(Old, Old),
-	'$map_bits'('$port_bit', Ports, Old, New),
+	map_bits(port_name, Ports, Old, New),
 	'$visible'(_, New).
 
-'$map_style_check'(atom,	    2'0000001).
-'$map_style_check'(singleton,	    2'0000010).
-'$map_style_check'(dollar,	    2'0000100).
-'$map_style_check'((discontiguous),   2'0001000).
-'$map_style_check'(dynamic,	    2'0010000).
-'$map_style_check'(charset,	    2'0100000).
+style_name(atom,	    2'0000001).
+style_name(singleton,	    2'0000010).
+style_name(discontiguous,   2'0001000).
+style_name(dynamic,	    2'0010000).
+style_name(charset,	    2'0100000).
 
 style_check(+string) :- !,
 	set_prolog_flag(double_quotes, string).
@@ -134,7 +141,7 @@ style_check(?(string)) :- !,
 	current_prolog_flag(double_quotes, string).
 style_check(Spec) :-
 	'$style_check'(Old, Old),
-	'$map_bits'('$map_style_check', Spec, Old, New),
+	map_bits(style_name, Spec, Old, New),
 	'$style_check'(_, New).
 
 %	prolog:debug_control_hook(+Action)
@@ -371,6 +378,61 @@ source_file(File) :-
 	),
 	Time > 0.0.
 
+%%	source_file_property(?File, ?Property) is nondet.
+%
+%	True if Property is a property of the loaded source-file File.
+
+source_file_property(File, P) :-
+	nonvar(File), !,
+	canonical_source_file(File, Path),
+	property_source_file(P, Path).
+source_file_property(File, P) :-
+	property_source_file(P, File).
+
+property_source_file(modified(Time), File) :-
+	'$time_source_file'(File, Time, user).
+property_source_file(module(M), File) :-
+	(   nonvar(M)
+	->  '$current_module'(M, File)
+	;   nonvar(File)
+	->  '$current_module'(ML, File),
+	    (	atom(ML)
+	    ->	M = ML
+	    ;	'$member'(M, ML)
+	    )
+	;   '$current_module'(M, File)
+	).
+property_source_file(load_context(Module, Location), File) :-
+	'$time_source_file'(File, _, user),
+	clause(system:'$load_context_module'(File, Module), true, Ref),
+	(   clause_property(Ref, file(FromFile)),
+	    clause_property(Ref, line_count(FromLine))
+	->  Location = FromFile:FromLine
+	;   Location = user
+	).
+property_source_file(includes(File2, Stamp), File) :-
+	system:'$included'(File, File2, Stamp).
+property_source_file(derived_from(DerivedFrom, Stamp), File) :-
+	system:'$derived_source'(File, DerivedFrom, Stamp).
+
+
+%%	canonical_source_file(+Spec, -File) is semidet.
+%
+%	File is the canonical representation of the source-file Spec.
+
+canonical_source_file(Spec, File) :-
+	source_file(Spec), !,
+	File = Spec.
+canonical_source_file(Spec, File) :-
+	absolute_file_name(Spec,
+			       [ file_type(prolog),
+				 access(read),
+				 file_errors(fail)
+			       ],
+			       File),
+	source_file(File).
+
+
 %%	prolog_load_context(+Key, -Value)
 %
 %	Provides context information for  term_expansion and directives.
@@ -400,6 +462,18 @@ prolog_load_context(script, Bool) :-
 	    source_location(Path, _)
 	->  Bool = true
 	;   Bool = false
+	).
+
+
+%%	unload_file(+File) is det.
+%
+%	Remove all traces of loading file.
+
+unload_file(File) :-
+	(   canonical_source_file(File, Path)
+	->  '$unload_file'(Path),
+	    retractall(system:'$load_context_module'(Path, _))
+	;   true
 	).
 
 
@@ -497,13 +571,29 @@ generate_current_predicate(Name, Module, Head) :-
 '$defined_predicate'(Head) :-
 	'$get_predicate_attribute'(Head, defined, 1), !.
 
+%%	predicate_property(?Predicate, ?Property) is nondet.
+%
+%	True when Property is a property of Predicate.
+
 :- meta_predicate
 	predicate_property(:, ?).
 
 :- '$iso'(predicate_property/2).
 
-predicate_property(Pred, Property) :-
-	Property == undefined, !,
+predicate_property(Pred, Property) :-		% Mode ?,+
+	nonvar(Property), !,
+	property_predicate(Property, Pred).
+predicate_property(Pred, Property) :-		% Mode +,-
+	define_or_generate(Pred),
+	'$predicate_property'(Property, Pred).
+
+%%	property_predicate(+Property, ?Pred)
+%
+%	First handle the special  cases  that   are  not  about querying
+%	normally  defined  predicates:   =undefined=,    =visible=   and
+%	=autoload=, followed by the generic case.
+
+property_predicate(undefined, Pred) :- !,
 	Pred = Module:Head,
 	current_module(Module),
 	'$c_current_predicate'(_, Pred),
@@ -511,9 +601,9 @@ predicate_property(Pred, Property) :-
 	\+ current_predicate(_, Pred),
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
-predicate_property(_:Head, Property) :-
-	nonvar(Property),
-	Property = autoload(File), !,
+property_predicate(visible, Pred) :- !,
+	visible_predicate(Pred).
+property_predicate(autoload(File), _:Head) :- !,
 	current_prolog_flag(autoload, true),
 	(   callable(Head)
 	->  functor(Head, Name, Arity),
@@ -523,19 +613,32 @@ predicate_property(_:Head, Property) :-
 	;   '$find_library'(_, Name, Arity, _, File),
 	    functor(Head, Name, Arity)
 	).
-predicate_property(Pred, Property) :-
-	Pred = M:_,
-	M == system, !,				% do not autoload into system
-	'$c_current_predicate'(_, Pred),
-	'$defined_predicate'(Pred),
+property_predicate(Property, Pred) :-
+	define_or_generate(Pred),
 	'$predicate_property'(Property, Pred).
-predicate_property(Pred, Property) :-
+
+%%	define_or_generate(+Head) is semidet.
+%%	define_or_generate(-Head) is nondet.
+%
+%	If the predicate is known, try to resolve it. Otherwise generate
+%	the known predicate, but do not try to (auto)load the predicate.
+
+define_or_generate(M:Head) :-
+	callable(Head),
+	'$get_predicate_attribute'(M:Head, defined, 1), !.
+define_or_generate(M:Head) :-
+	callable(Head),
+	nonvar(M), M \== system, !,
+	'$define_predicate'(M:Head).
+define_or_generate(Pred) :-
 	current_predicate(_, Pred),
-	'$define_predicate'(Pred),		% autoload if needed
-	'$predicate_property'(Property, Pred).
+	'$define_predicate'(Pred).
+
 
 '$predicate_property'(interpreted, Pred) :-
 	'$get_predicate_attribute'(Pred, foreign, 0).
+'$predicate_property'(visible, Pred) :-
+	'$get_predicate_attribute'(Pred, defined, 1).
 '$predicate_property'(built_in, Pred) :-
 	'$get_predicate_attribute'(Pred, system, 1).
 '$predicate_property'(exported, Pred) :-
@@ -556,8 +659,6 @@ predicate_property(Pred, Property) :-
 	'$get_predicate_attribute'(Pred, imported, Module).
 '$predicate_property'(transparent, Pred) :-
 	'$get_predicate_attribute'(Pred, transparent, 1).
-'$predicate_property'(indexed(Pattern), Pred) :-
-	'$get_predicate_attribute'(Pred, indexed, Pattern).
 '$predicate_property'(meta_predicate(Pattern), Pred) :-
 	'$get_predicate_attribute'(Pred, meta_predicate, Pattern).
 '$predicate_property'(file(File), Pred) :-
@@ -570,14 +671,13 @@ predicate_property(Pred, Property) :-
 	'$get_predicate_attribute'(Pred, hide_childs, 1).
 '$predicate_property'(spying, Pred) :-
 	'$get_predicate_attribute'(Pred, spy, 1).
-'$predicate_property'(hashed(N), Pred) :-
-	'$get_predicate_attribute'(Pred, hashed, N),
-	N > 0.
 '$predicate_property'(references(N), Pred) :-
 	'$get_predicate_attribute'(Pred, references, N),
 	N \== 0.			% show negative for debugging!
 '$predicate_property'(number_of_clauses(N), Pred) :-
 	'$get_predicate_attribute'(Pred, number_of_clauses, N).
+'$predicate_property'(indexed(Indices), Pred) :-
+	'$get_predicate_attribute'(Pred, indexed, Indices).
 '$predicate_property'(noprofile, Pred) :-
 	'$get_predicate_attribute'(Pred, noprofile, 1).
 '$predicate_property'(iso, Pred) :-
@@ -587,6 +687,38 @@ system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).
 system_undefined(system:'$c_call_prolog'/0).
 system_undefined(system:window_title/2).
+
+%%	visible_predicate(:Head) is nondet.
+%
+%	True when Head can be called without raising an existence error.
+%	This implies it is defined,  can   be  inherited  from a default
+%	module or can be autoloaded.
+
+visible_predicate(Pred) :-
+	Pred = M:Head,
+	current_module(M),
+	(   callable(Head)
+	->  (   '$get_predicate_attribute'(Pred, defined, 1)
+	    ->	\+ hidden_system_predicate(Pred)
+	    ;	\+ current_prolog_flag(M:unknown, fail),
+		functor(Head, Name, Arity),
+		'$find_library'(M, Name, Arity, _LoadModule, _Library)
+	    )
+	;   (   default_module(M, DefM),
+	        '$c_current_predicate'(_, DefM:Head),
+		\+ '$get_predicate_attribute'(DefM:Head, imported, _),
+		\+ hidden_system_predicate(Pred)
+	    ;	'$in_library'(Name, Arity, _),
+		functor(Head, Name, Arity),
+		\+ '$get_predicate_attribute'(Pred, defined, 1)
+	    )
+	).
+
+hidden_system_predicate(_:Head) :-
+	functor(Head, Name, _),
+	sub_atom(Name, 0, _, _, $),
+	\+ current_prolog_flag(access_level, system).
+
 
 %%	clause_property(+ClauseRef, ?Property) is nondet.
 %
@@ -666,19 +798,35 @@ current_module(Module) :-
 %	    The module declaration is on line Count of File.
 %	    * exports(ListOfPredicateIndicators)
 %	    The module exports ListOfPredicateIndicators
+%	    * exported_operators(ListOfOp3)
+%	    The module exports the operators ListOfOp3.
 
 module_property(Module, Property) :-
 	nonvar(Module), nonvar(Property), !,
-	'$module_property'(Module, Property).
-module_property(Module, Property) :-
+	property_module(Property, Module).
+module_property(Module, Property) :-	% -, file(File)
 	nonvar(Property), Property = file(File), !,
-	'$current_module'(Module, File),
-	File \== [].
+	(   nonvar(File)
+	->  '$current_module'(Modules, File),
+	    (	atom(Modules)
+	    ->	Module = Modules
+	    ;	'$member'(Module, Modules)
+	    )
+	;   '$current_module'(Module, File),
+	    File \== []
+	).
 module_property(Module, Property) :-
 	current_module(Module),
+	property_module(Property, Module).
+
+property_module(exported_operators(List), Module) :- !,
+	'$exported_ops'(Module, List, []),
+	List \== [].
+property_module(Property, Module) :-
 	module_property(Property),
 	'$module_property'(Module, Property).
 
+module_property(class(_)).
 module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
@@ -694,89 +842,6 @@ module(Module) :-
 module(Module) :-
 	'$module'(_, Module),
 	print_message(warning, no_current_module(Module)).
-
-		/********************************
-		*          STATISTICS           *
-		*********************************/
-
-statistics :-
-	statistics(user_error).
-
-statistics(Out) :-
-	statistics(trail, Trail),
-	statistics(trailused, TrailUsed),
-	statistics(local, Local),
-	statistics(localused, LocalUsed),
-	statistics(global, Global),
-	statistics(globalused, GlobalUsed),
-	statistics(process_cputime, Cputime),
-	statistics(inferences, Inferences),
-	statistics(atoms, Atoms),
-	statistics(functors, Functors),
-	statistics(predicates, Predicates),
-	statistics(modules, Modules),
-	statistics(codes, Codes),
-	statistics(locallimit, LocalLimit),
-	statistics(globallimit, GlobalLimit),
-	statistics(traillimit, TrailLimit),
-
-	format(Out, '~2f seconds cpu time for ~D inferences~n',
-				    [Cputime, Inferences]),
-	format(Out, '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
-				    [Atoms, Functors, Predicates, Modules, Codes]),
-	format(Out, '                       Limit    Allocated       In use~n', []),
-	format(Out, 'Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
-	       [LocalLimit, Local, LocalUsed]),
-	format(Out, 'Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
-	       [GlobalLimit, Global, GlobalUsed]),
-	format(Out, 'Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n~n',
-	       [TrailLimit, Trail, TrailUsed]),
-
-	gc_statistics(Out),
-	agc_statistics(Out),
-	shift_statistics(Out),
-	thread_statistics(Out).
-
-gc_statistics(Out) :-
-	statistics(collections, Collections),
-	Collections > 0, !,
-	statistics(collected, Collected),
-	statistics(gctime, GcTime),
-
-	format(Out, '~D garbage collections gained ~D bytes in ~2f seconds.~n',
-	       [Collections, Collected, GcTime]).
-gc_statistics(_).
-
-agc_statistics(Out) :-
-	catch(statistics(agc, Agc), _, fail),
-	Agc > 0, !,
-	statistics(agc_gained, Gained),
-	statistics(agc_time, Time),
-	format(Out, '~D atom garbage collections gained ~D atoms in ~2f seconds.~n',
-	       [Agc, Gained, Time]).
-agc_statistics(_).
-
-shift_statistics(Out) :-
-	statistics(local_shifts, LS),
-	statistics(global_shifts, GS),
-	statistics(trail_shifts, TS),
-	(   LS > 0
-	;   GS > 0
-	;   TS > 0
-	), !,
-	format(Out, 'Stack shifts: ~D local, ~D global, ~D trail.~n',
-	       [LS, GS, TS]).
-shift_statistics(_).
-
-thread_statistics(Out) :-
-	current_prolog_flag(threads, true), !,
-	statistics(threads, Active),
-	statistics(threads_created, Created),
-	statistics(thread_cputime, CpuTime),
-	Finished is Created - Active,
-	format(Out, '~D threads, ~D finished threads used ~2f seconds.~n',
-	       [Active, Finished, CpuTime]).
-thread_statistics(_).
 
 
 		/********************************
@@ -803,6 +868,8 @@ shell :-
 	on_signal(+, :, :),
 	current_signal(?, ?, :).
 
+%%	on_signal(+Signal, -OldHandler, :NewHandler) is det.
+
 on_signal(Signal, Old, New) :-
 	atom(Signal), !,
 	'$on_signal'(_Num, Signal, Old, New).
@@ -812,13 +879,23 @@ on_signal(Signal, Old, New) :-
 on_signal(Signal, _Old, _New) :-
 	(   var(Signal)
 	->  Err = instantiation_error
-	;   Err = type_error(signal, Signal)
+	;   Err = type_error(signal_name, Signal)
 	),
 	throw(error(Err, context(on_signal/3, _))).
+
+%%	current_signal(?Name, ?SignalNumber, :Handler) is nondet.
 
 current_signal(Name, Id, Handler) :-
 	between(1, 32, Id),
 	'$on_signal'(Id, Name, Handler, Handler).
+
+:- multifile
+	prolog:called_by/2.
+
+prolog:called_by(on_signal(_,_,New), [New+1]) :-
+	(   new == throw
+	;   new == default
+	), !, fail.
 
 
 		 /*******************************

@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -169,7 +169,7 @@ Root(int i, node **r, Buffer buf)
   do
   { k = i;
     n = Node(i, buf);
-    SECURE(assert(n > 0));
+    DEBUG(CHK_SECURE, assert(n > 0));
     i = node_isom(n);
   } while ( i != 0 );
 
@@ -473,7 +473,7 @@ again:
   discardBuffer(VARIANT_BUFFER);
   clearSegStack(&agenda.stack);
 
-  SECURE(checkStacks(NULL));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 
   if ( !endCritical )
     return FALSE;

@@ -17,7 +17,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -229,10 +229,27 @@ from library(qpforeign).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 system:term_expansion(
-	(:- load_foreign_resource(Base)),
-	(:- initialization(load_foreign_resource(M:Base, Source), now))) :-
+	   (:- load_foreign_resource(Base)),
+	   (:- initialization(load_foreign_resource(M:Base, Source), now))) :-
 	prolog_load_context(source, Source),
 	prolog_load_context(module, M).
+system:term_expansion(
+	   (:- module(Name, Exports, Options)),
+	   [ (:- module(Name, Exports))
+	   | Declarations
+	   ]) :-
+	prolog_load_context(dialect, sicstus),
+	phrase(sicstus_module_decls(Options), Declarations).
+
+sicstus_module_decls([]) --> [].
+sicstus_module_decls([H|T]) -->
+	sicstus_module_decl(H),
+	sicstus_module_decls(T).
+
+sicstus_module_decl(hidden(true)) --> !,
+	[(:- set_prolog_flag(generate_debug_info, false))].
+sicstus_module_decl(_) -->
+	[].
 
 
 		 /*******************************
@@ -482,4 +499,5 @@ user:(\(X,Y,R)) :-				% SICStus 4
 %	Query the current break-level
 
 prolog:'$breaklevel'(BreakLevel, _) :-
-	system:flag('$break_level', BreakLevel, BreakLevel).
+	current_prolog_flag(break_level, BreakLevel), !.
+prolog:'$breaklevel'(0, _).

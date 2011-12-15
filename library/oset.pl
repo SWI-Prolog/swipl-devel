@@ -148,21 +148,29 @@ dint([H|T], DInt0, DInt) :-
     dint(T, DInt1, DInt).
 
 
-%% oset_power(+Set, -PSet)
-%   ordered set powerset
+%%	oset_power(+Set, -PSet)
+%
+%	True when PSet is the powerset of Set. That is, Pset is a set of
+%	all subsets of Set, where each subset is a proper ordered set.
 
 oset_power(S, PSet) :-
-    pset(S, [[]], PSet0),
-    sort(PSet0, PSet).
+	reverse(S, R),
+	pset(R, [[]], PSet0),
+	sort(PSet0, PSet).
+
+% The powerset of a set  is  the  powerset   of  a  set  of one smaller,
+% together with the set of one  smaller   where  each subset is extended
+% with the new element.  Note that this produces the elements of the set
+% in reverse order.  Hence the reverse in oset_power/2.
 
 pset([], PSet, PSet).
 pset([H|T], PSet0, PSet) :-
-    happ(PSet0, H, PSet1),
-    pset(T, PSet1, PSet).
+	happ(PSet0, H, PSet1),
+	pset(T, PSet1, PSet).
 
 happ([], _, []).
 happ([S|Ss], H, [[H|S],S|Rest]) :-
-    happ(Ss, H, Rest).
+	happ(Ss, H, Rest).
 
 
 

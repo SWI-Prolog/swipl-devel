@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef _FLI_H_INCLUDED
@@ -56,7 +56,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 51005
+#define PLVERSION 51006
 #endif
 
 		 /*******************************
@@ -82,7 +82,7 @@ duplicated this stuff.
 #ifndef _PL_EXPORT_DONE
 #define _PL_EXPORT_DONE
 
-#if (defined(_MSC_VER) || defined(__CYGWIN__)) && !defined(__LCC__)
+#if (defined(__WINDOWS__) || defined(__CYGWIN__)) && !defined(__LCC__)
 #define HAVE_DECLSPEC
 #endif
 
@@ -96,8 +96,13 @@ duplicated this stuff.
 #define PL_EXPORT(type)		type _stdcall
 #define PL_EXPORT_DATA(type)	extern type
 #  else
+#   ifdef __MINGW32__
+#define PL_EXPORT(type)		extern type
+#define PL_EXPORT_DATA(type)	extern type
+#   else
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllimport) type
+#   endif
 #  endif
 #define install_t		__declspec(dllexport) void
 # endif
@@ -280,17 +285,19 @@ typedef struct PL_extension
 #define PL_FA_VARARGS		(0x08)	/* call using t0, ac, ctx */
 #define PL_FA_CREF		(0x10)	/* Internal: has clause-reference */
 #define PL_FA_ISO		(0x20)	/* Internal: ISO core predicate */
+#define PL_FA_META		(0x40)	/* Additional meta-argument spec */
 
 extern			PL_extension PL_extensions[]; /* not Win32! */
 PL_EXPORT(void)		PL_register_extensions(const PL_extension *e);
 PL_EXPORT(void)		PL_register_extensions_in_module(const char *module, const PL_extension *e);
 PL_EXPORT(int)		PL_register_foreign(const char *name, int arity,
-					    pl_function_t func, int flags);
+					    pl_function_t func,
+					    int flags, ...);
 PL_EXPORT(int)		PL_register_foreign_in_module(const char *module,
 						      const char *name, int arity,
-						      pl_function_t func, int flags);
+						      pl_function_t func,
+						      int flags, ...);
 PL_EXPORT(void)		PL_load_extensions(const PL_extension *e);
-
 
 		 /*******************************
 		 *	      LICENSE		*
@@ -798,6 +805,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_BLOB_PORTRAY	0x400	/* Use portray to emit non-text blobs */
 #define PL_WRT_NO_CYCLES	0x800	/* Never emit @(Template,Subst) */
 #define PL_WRT_LIST	       0x1000	/* Write [...], even with ignoreops */
+#define PL_WRT_NEWLINE	       0x2000	/* Add a newline */
 
 PL_EXPORT(int) PL_write_term(IOSTREAM *s,
 			     term_t term,
@@ -970,7 +978,7 @@ PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 				  void *closure,
 				  int global);
 PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
-#if defined(_WINDOWS_)			/* <windows.h> is included */
+#if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
 PL_EXPORT(int) PL_w32thread_raise(DWORD dwTid, int sig);
 PL_EXPORT(int) PL_wait_for_console_input(void *handle);
 PL_EXPORT(int) PL_w32_wrap_ansi_console(void);
@@ -1012,7 +1020,7 @@ PL_EXPORT(void)		PL_prof_exit(void *node);
 		 *	 WINDOWS MESSAGES	*
 		 *******************************/
 
-#ifdef _WINDOWS_			/* <windows.h> is included */
+#if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
 #define PL_MSG_EXCEPTION_RAISED -1
 #define PL_MSG_IGNORED 0
 #define PL_MSG_HANDLED 1
@@ -1021,7 +1029,7 @@ PL_EXPORT(LRESULT)	PL_win_message_proc(HWND hwnd,
 					    UINT message,
 					    WPARAM wParam,
 					    LPARAM lParam);
-#endif /*_WINDOWS_*/
+#endif /* _WINDOWS_/_WINDOWS_H */
 
 
 		 /*******************************

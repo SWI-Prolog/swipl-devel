@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -60,26 +61,36 @@ and initialise this using make_<record>/2. In addition to providing good
 performance, this also provides type-checking and central declaration of
 defaults.
 
-==
-:- record atts(width:integer=100, shape:oneof([box,circle])=box).
+  ==
+  :- record atts(width:integer=100, shape:oneof([box,circle])=box).
 
-process(Data, Options) :-
-	make_atts(Options, Attributes),
-	action(Data, Attributes).
+  process(Data, Options) :-
+	  make_atts(Options, Attributes),
+	  action(Data, Attributes).
 
-action(Data, Attributes) :-
-	atts_shape(Attributes, Shape),
-	...
-==
+  action(Data, Attributes) :-
+	  atts_shape(Attributes, Shape),
+	  ...
+  ==
+
+Options typically have exactly one argument.   The  library does support
+options  with  0  or  more  than    one  arguments  with  the  following
+restrictions:
+
+  - The predicate option/3 and select_option/4, involving default are
+    meaningless. They perform an arg(1, Option, Default), causing
+    failure without arguments and filling only the first option-argument
+    otherwise.
+  - meta_options/3 can only qualify options with exactly one argument.
 
 @tbd	We should consider putting many options in an assoc or record
 	with appropriate preprocessing to achieve better performance.
-@tbd	We should provide some standard to do automatic type-checking
-	on option lists.
 @see	library(record)
+@see	Option processing capabilities may be declared using the
+	directive predicate_options/3.
 */
 
-%%	option(?Option, +OptionList, +Default)
+%%	option(?Option, +OptionList, +Default) is semidet.
 %
 %	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention.
@@ -87,18 +98,15 @@ action(Data, Attributes) :-
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options, Default) :-	% make option processing stead-fast
-	arg(1, Opt, OptVal),
-	nonvar(OptVal), !,
-	functor(Opt, OptName, 1),
-	functor(Gen, OptName, 1),
-	option(Gen, Options, Default),
-	Opt = Gen.
-option(Opt, Options, _) :-
-	get_option(Opt, Options), !.
-option(Opt, _, Default) :-
-	arg(1, Opt, Default).
+	functor(Opt, Name, Arity),
+	functor(GenOpt, Name, Arity),
+	(   get_option(GenOpt, Options)
+	->  Opt = GenOpt
+	;   arg(1, Opt, Default)
+	).
 
-%%	option(?Option, +OptionList)
+
+%%	option(?Option, +OptionList) is semidet.
 %
 %	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention. Fails silently
@@ -107,15 +115,10 @@ option(Opt, _, Default) :-
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options) :-			% make option processing stead-fast
-	arg(1, Opt, OptVal),
-	nonvar(OptVal), !,
-	functor(Opt, OptName, 1),
-	functor(Gen, OptName, 1),
-	option(Gen, Options),
-	Opt = Gen.
-option(Opt, Options) :-
-	get_option(Opt, Options), !.
-
+	functor(Opt, Name, Arity),
+	functor(GenOpt, Name, Arity),
+	get_option(GenOpt, Options), !,
+	Opt = GenOpt.
 
 get_option(Opt, Options) :-
 	memberchk(Opt, Options), !.
@@ -132,22 +135,17 @@ get_option(Opt, Options) :-
 %	options with RestOptions.
 
 select_option(Opt, Options0, Options) :-	% stead-fast
-	arg(1, Opt, OptVal),
-	nonvar(OptVal), !,
-	functor(Opt, OptName, 1),
-	functor(Gen, OptName, 1),
-	select_option(Gen, Options0, Options),
-	Opt = Gen.
-select_option(Opt, Options0, Options) :-
-	get_option(Opt, Options0, Options), !.
-
+	functor(Opt, Name, Arity),
+	functor(GenOpt, Name, Arity),
+	get_option(GenOpt, Options0, Options),
+	Opt = GenOpt.
 
 get_option(Opt, Options0, Options) :-
-	select(Opt, Options0, Options), !.
+	selectchk(Opt, Options0, Options), !.
 get_option(Opt, Options0, Options) :-
 	functor(Opt, OptName, 1),
 	arg(1, Opt, OptVal),
-	select(OptName=OptVal, Options0, Options), !.
+	selectchk(OptName=OptVal, Options0, Options).
 
 %%	select_option(?Option, +Options, -RestOptions, +Default) is det.
 %
@@ -155,10 +153,14 @@ get_option(Opt, Options0, Options) :-
 %	but if Option is not  in  Options,   its  value  is unified with
 %	Default and RestOptions with Options.
 
-select_option(Option, Options, RestOptions, _Default) :-
-	select_option(Option, Options, RestOptions), !.
-select_option(Option, Options, Options, Default) :-
-	arg(1, Option, Default).
+select_option(Option, Options, RestOptions, Default) :-
+	functor(Option, Name, Arity),
+	functor(GenOpt, Name, Arity),
+	(   get_option(GenOpt, Options, RestOptions)
+	->  Option = GenOpt
+	;   RestOptions = Options,
+	    arg(1, Option, Default)
+	).
 
 
 %%	merge_options(+New, +Old, -Merged) is det.
@@ -239,6 +241,12 @@ canonise_options2([H|T0], [H|T]) :- !,
 %
 %	is_meta(callback).
 %	==
+%
+%	Meta-options must have exactly one  argument. This argument will
+%	be qualified.
+%
+%	@tbd	Should be integrated with declarations from
+%		predicate_options/3.
 
 :- meta_predicate
 	meta_options(1, :, -).

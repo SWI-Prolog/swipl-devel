@@ -17,7 +17,7 @@
 
     You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -52,6 +52,8 @@
 	with_output_to_chars(0, -, ?),
 	with_output_to_chars(0, -, -, ?).
 
+:- predicate_options(read_term_from_chars/3, 3,
+		     [pass_to(system:read_term/3, 3)]).
 
 /** <module> I/O on Lists of Character Codes
 
@@ -144,7 +146,7 @@ read_from_chars(List, Term) :-
 %	@compat sicstus
 
 read_term_from_chars(Codes, Term, Options) :-
-	setup_call_cleanup(open_chars_stream(Codes, Stream, ' .\n'),
+	setup_call_cleanup(open_chars_stream(Codes, Stream, '\n.\n'),
 			   read_term(Stream, Term0, Options),
 			   close(Stream)),
 	Term = Term0.
@@ -163,9 +165,10 @@ open_chars_stream(Codes, Stream) :-
 
 open_chars_stream(Codes, Stream, Postfix) :-
 	new_memory_file(MF),
-	open_memory_file(MF, write, Out),
-	format(Out, '~s~w', [Codes, Postfix]),
-	close(Out),
+	setup_call_cleanup(
+	    open_memory_file(MF, write, Out),
+	    format(Out, '~s~w', [Codes, Postfix]),
+	    close(Out)),
 	open_memory_file(MF, read, Stream,
 			 [ free_on_close(true)
 			 ]).

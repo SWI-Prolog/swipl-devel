@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -34,6 +35,7 @@
 	    '$version'/1,
 	    '$home'/1,
 	    '$argv'/1,
+	    '$set_prompt'/1,
 	    '$strip_module'/3,
 	    '$declare_module'/3,
 	    at_initialization/1,	% :Goal
@@ -71,10 +73,23 @@
 	    setup_and_call_cleanup/3,	% :Setup, :Goal, :Cleanup
 	    setup_and_call_cleanup/4,	% :Setup, :Goal, ?Catcher, :Cleanup
 	    merge/3,			% +List1, +List2, -Union
-	    merge_set/3			% +Set1, +Set2, -Union
+	    merge_set/3,		% +Set1, +Set2, -Union
+	    index/1,			% :Head
+	    hash/1,			% :PI
+	    set_base_module/1		% :Base
 	  ]).
 :- use_module(apply, [maplist/2]).
 :- use_module(system, [lock_predicate/1, unlock_predicate/1]).
+
+:- meta_predicate
+	at_initialization(0),
+	setup_and_call_cleanup(0,0,0),
+	setup_and_call_cleanup(0,0,?,0),
+	checklist(1, +),
+	sublist(1, +, ?),
+	index(:),
+	hash(:),
+	set_base_module(:).
 
 /** <module> Backward compatibility
 
@@ -119,6 +134,21 @@ compatibility predicates.
 
 '$argv'(Argv) :-
 	current_prolog_flag(argv, Argv).
+
+%%	'$set_prompt'(+Prompt) is det.
+%
+%	Set the prompt for the toplevel
+%
+%	@deprecated use set_prolog_flag(toplevel_prompt, Prompt).
+
+'$set_prompt'(Prompt) :-
+	maplist(percent_to_tilde, Prompt, Prompt1),
+	atom_codes(Atom, Prompt1),
+	set_prolog_flag(toplevel_prompt, Atom).
+
+percent_to_tilde(0'%, 0'~) :- !.
+percent_to_tilde(X, X).
+
 
 %%	displayq(@Term) is det.
 %%	displayq(+Stream, @Term) is det.
@@ -284,9 +314,6 @@ hash_term(Term, Hash) :-
 %
 %	@deprecated Use maplist/2
 
-:- meta_predicate
-	checklist(1, +),
-	sublist(1, +, ?).
 
 checklist(Goal, List) :-
 	maplist(Goal, List).
@@ -329,7 +356,7 @@ sublist(Goal, [_|T], R) :-
 %	Used in triple20 particle library. Should use a public interface
 
 '$declare_module'(Module, File, Line) :-
-	'$declare_module'(Module, user, File, Line, false).
+	'$declare_module'(Module, user, user, File, Line, false).
 
 
 %%	at_initialization(:Goal) is det.
@@ -337,9 +364,6 @@ sublist(Goal, [_|T], R) :-
 %	Register goal only to be run if a saved state is restored.
 %
 %	@deprecated Use initialization(Goal, restore)
-
-:- meta_predicate
-	at_initialization(0).
 
 at_initialization(Goal) :-
 	initialization(Goal, restore).
@@ -467,10 +491,6 @@ export_list(Module, List) :-
 %
 %	@deprecated Use setup_call_cleanup/3.
 
-:- meta_predicate
-	setup_and_call_cleanup(0,0,0),
-	setup_and_call_cleanup(0,0,?,0).
-
 setup_and_call_cleanup(Setup, Goal, Cleanup) :-
 	setup_call_cleanup(Setup, Goal, Cleanup).
 
@@ -517,3 +537,41 @@ merge([H1|T1], [H2|T2], [H|R]) :-
 	    merge([H1|T1], T2, R)
 	).
 
+%%	index(:Head) is det.
+%
+%	Prepare the predicate  indicated  by   Head  for  multi-argument
+%	indexing.
+%
+%	@deprecated	As of version 5.11.29, SWI-Prolog performs
+%			just-in-time indexing on all arguments.
+
+index(Head) :-
+	print_message(warning, decl_no_effect(index(Head))).
+
+%%	hash(:PredInd) is det.
+%
+%	Demands PredInd to be  indexed  using   a  hash-table.  This  is
+%	handled dynamically.
+
+hash(PI) :-
+	print_message(warning, decl_no_effect(index(PI))).
+
+%%	set_base_module(:Base) is det.
+%
+%	Set the default module from whic we inherit.
+%
+%	@deprecated Equivalent to set_module(base(Base)).
+
+set_base_module(M:Base) :-
+	set_module(M:base(Base)).
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+        prolog:message//1.
+
+prolog:message(decl_no_effect(Goal)) -->
+	[ 'Deprecated declaration has no effect: ~p'-[Goal] ].

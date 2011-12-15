@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -114,6 +114,66 @@ predicateName(Definition def)
 }
 
 
+char *
+functorName(functor_t f)
+{ char tmp[650];
+  char *e = tmp;
+  FunctorDef fd;
+
+  if ( tagex(f) != (TAG_ATOM|STG_GLOBAL) )
+    return "<not-a-functor>";
+
+  fd = valueFunctor(f);
+  strcpy(e, atom_summary(fd->name, 50));
+  e += strlen(e);
+  *e++ = '/';
+  Ssprintf(e, "%d", fd->arity);
+
+  return buffer_string(tmp, BUF_RING);
+}
+
+
+char *
+keyName(word key)
+{ if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+  { return functorName(key);
+  } else
+  { char tmp[650];
+
+    if ( !key )
+    { strcpy(tmp, "<nil>");
+    } else
+    { switch(tag(key))
+      { case PL_INTEGER:
+	case PL_FLOAT:
+	{ GET_LD
+	  number n;
+
+	  get_number(key, &n PASS_LD);
+	  switch(n.type)
+	  { case V_INTEGER:
+	      Ssprintf(tmp, "%lld", n.value.i);
+	      break;
+	    case V_FLOAT:
+	      Ssprintf(tmp, "%f", n.value.f);
+	      break;
+	    default:
+	      strcpy(tmp, "<number>");
+	  }
+	  break;
+	}
+      case PL_ATOM:
+	strcpy(tmp, atom_summary(key, 30));
+	break;
+      }
+    }
+
+    return buffer_string(tmp, BUF_RING);
+  }
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 clauseNo() returns the clause index of the given clause
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -123,8 +183,8 @@ clauseNo(Definition def, Clause cl)
 { int i;
   ClauseRef cref;
 
-  for(i=1, cref=def->definition.clauses; cref; cref=cref->next, i++)
-  { if ( cref->clause == cl )
+  for(i=1, cref=def->impl.clauses.first_clause; cref; cref=cref->next, i++)
+  { if ( cref->value.clause == cl )
       return i;
   }
 

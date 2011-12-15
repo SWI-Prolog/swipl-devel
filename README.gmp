@@ -2,9 +2,10 @@ SWI-Prolog and the GMP library
 
 Author:  Jan Wielemaker
 Created: Aug 21, 2005
+Udated:  Nov 12, 2011, document creating gmp.lib
 
 The GNU GMP library (GNU  Multiple   Precision  Arithmetic  Library), is
-available from http://www.swox.com/gmp/. It  provides multiple precision
+available  from  http://gmplib.org/.  It   provides  multiple  precision
 integer  and  rational  (N/M)  arithmetic  to  SWI-Prolog.  By  default,
 SWI-Prolog uses GMP, but it can  be   built  without using the configure
 option --disable-gmp. Statically linking GMP  makes SWI-Prolog about 20%
@@ -20,54 +21,86 @@ Windows
 -------
 
 Windows is a different matter.  The  GMP   people  state  it is too much
-trouble making a Windows version. Nevertheless, it can be done.  I found
-three starting points:
+trouble making a Windows version. There  are   several  ways  to get the
+official  sources  compiled,  notably  using    MinGW   [1].  An  easier
+alternative is to use the fork created by the MPIR project, which can be
+found at http://mpir.org/.
 
-	(1) http://developer.berlios.de/projects/win32gmp/
-		- Static library
-		- Big (2.5MB, adds 800 KB to Prolog dll) 
+That said, MPIR requires VS, which  requires   a  lot  of other stuff to
+install, while the whole lot comes nicely   installed with MinGW and its
+cross-compilers. The current gmp.lib is  produced   on  an  Ubuntu 11.04
+system using these commands and the GMP 5.0.2 sources:
 
-	(2) http://na-inet.jp/na/bnc/wingmp.html
-		- Only for MSVC 7 (.NET)
+  % ./configure --host=i586-mingw32msvc --prefix=$HOME/mingw \
+	--disable-shared --enable-static
+  % make
+  % make install
+  % cd ~/mingw/lib
 
-	(3) http://fp.gladman.plus.com/computing/gmp4win.htm
-		- Brian Gladman's build instructions for GMP on
-		  MSVC.
+  % GCC=i586-mingw32msvc-gcc
+  % NM=i586-mingw32msvc-nm
+  % AR=i586-mingw32msvc-ar
+  % RANLIB=i586-mingw32msvc-ranlib
 
-(2) is basically a precompiled version created   with  (3), but only the
-.NET version. I've tried  to  follow  (3)   for  MSVC  6,  but DevStudio
-crashed.
+  % $AR x `$GCC print-libgcc-file-name` _chkstk.o
+  % $CC -c ms_snprintf.c
+  % $AR q gmp.a _chkstk.o ms_snprintf.o
+  % $RANLIB libgmp.a
+  % mv gmp.a gmp.lib
 
-(1) is created by Miki Tebeka, who  told   me  it is build using MingW +
-Msys (www.mingw.org). With some more remarks I   managed  to find a good
-way to build a gmp.lib that can be used with MSVC 6:
+Note that _chkstk.o is the archive member holding alloca(), which can be
+verified using
 
-	* Get MSYS (1.0.10) and MinGW (4.1.1)
-		From http://www.mingw.org/
-	* Install MSYS.
-	* Get the source for GMP (I used 4.1.4)
-		From http://www.swox.com/gmp/
-	* Extract to a place *not holding spaces in the mingw path*
-	* Build using
-		% CFLAGS=-O2 ./configure
-	    	% make
-		% make check	*important to run the tests*
+  % $NM -o `$GCC -print-libgcc-file-name` | grep alloca
 
-Now  you  have  a  static  version   of    the   library  for  MinGW  in
-.libs/libgmp.a. Only, this uses alloca() which  is provided by libgcc.a.
-We want alloca() as it is faster and avoids memory fragmentation. So:
+ms_snprintf.c is here, including the motivation why it is needed.
 
-	* Find libgcc.a using 
-		% gcc -print-libgcc-file-name
-	* Find the file defining alloca() using the command below.
-	  For me this was _chkstk.o.  Guess that is pretty stable.
-		% nm -o `gcc -print-libgcc-file-name` | grep alloca
-	* Now merg _chkstk.o into our library:
-		% ar x `gcc -print-libgcc-file-name` _chkstk.o
-		% cp .libs/libgmp.a gmp.a
-		% ar q gmp.a _chkstk.o
-		% ranlib gmp.a
-		% mv gmp.a gmp.lib
+================
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+MS-Windows _snprintf() may look like C99 snprintf(), but is is not quite
+the same: on overflow, the buffer is   *not* 0-terminated and the return
+is negative (unspecified how negative).  The   code  below  works around
+this, returning count on overflow. This is still not the same as the C99
+version that returns the  number  of   characters  that  would have been
+written, but it seems to be enough for our purposes.
 
-Done!  You can use gmp.h and gmp.lib in an MSVC project.
-	
+See http://www.di-mgt.com.au/cprog.html#snprintf
+
+The above came from the provided link, but it is even worse (copied from
+VS2005 docs):
+
+  - If len < count, then len characters are stored in buffer, a
+  null-terminator is appended, and len is returned.
+
+  - If len = count, then len characters are stored in buffer, no
+  null-terminator is appended, and len is returned.
+
+  - If len > count, then count characters are stored in buffer, no
+  null-terminator is appended, and a negative value is returned.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#include <stdarg.h>
+#include <stdlib.h>
+
+int
+snprintf(char *buffer, size_t count, const char *fmt, ...)
+{ va_list ap;
+  int ret;
+
+  va_start(ap, fmt);
+  ret = _vsnprintf(buffer, count-1, fmt, ap);
+  va_end(ap);
+
+  if ( ret < 0 || ret == count )
+  { ret = count;
+    buffer[count-1] = '\0';
+  }
+
+  return ret;
+}
+================
+
+=====
+[1]. This readme used to document these. Most likely this documentation
+     is out of date, but you may want to check versions ofthe file pior
+     to Sep 22, 2011.

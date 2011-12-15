@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -28,9 +28,6 @@
 #include "pl-codelist.h"
 #include <errno.h>
 #include <stdio.h>
-#ifdef __WINDOWS__
-#include "windows/mswchar.h"			/* Terrible hack */
-#endif
 #if HAVE_LIMITS_H
 #include <limits.h>			/* solaris compatibility */
 #endif
@@ -495,7 +492,7 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
     if ( offset > text->length || offset + len > text->length )
       return FALSE;
 
-    if ( len == 1 )
+    if ( len == 1 && type == PL_ATOM )
     { GET_LD
       int c;
 
@@ -669,7 +666,7 @@ represented.
 
 static int
 wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
-{ char b[MB_LEN_MAX];
+{ char b[PL_MB_LEN_MAX];
   size_t n;
 
   if ( (n=wcrtomb(b, c, mbs)) != (size_t)-1 )

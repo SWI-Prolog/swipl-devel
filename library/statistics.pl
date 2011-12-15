@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -31,7 +32,8 @@
 
 
 :- module(prolog_statistics,
-	  [ time/1,			% :Goal
+	  [ statistics/0,
+	    time/1,			% :Goal
 	    profile/1,			% :Goal
 	    profile/3,			% :Goal, +Style, +Top
 	    show_profile/2,		% +Style, +Top
@@ -43,6 +45,103 @@
 	time(0),
 	profile(0),
 	profile(0, +, +).
+
+/** <module> Get information about resource usage
+
+This library provides predicates to   obtain  information about resource
+usage by your program. The predicates of  this library are for human use
+at the toplevel: information is _printed_.   All predicates obtain their
+information using public low-level primitives.   These primitives can be
+use to obtain selective statistics during execution.
+*/
+
+%%	statistics is det.
+%
+%	Print information about  resource  usage   to  the  =user_error=
+%	stream.
+%
+%	@see	All statistics printed are obtained through statistics/2.
+
+statistics :-
+	statistics(user_error).
+
+statistics(Out) :-
+	statistics(trail, Trail),
+	statistics(trailused, TrailUsed),
+	statistics(local, Local),
+	statistics(localused, LocalUsed),
+	statistics(global, Global),
+	statistics(globalused, GlobalUsed),
+	statistics(process_cputime, Cputime),
+	statistics(inferences, Inferences),
+	statistics(atoms, Atoms),
+	statistics(functors, Functors),
+	statistics(predicates, Predicates),
+	statistics(modules, Modules),
+	statistics(codes, Codes),
+	statistics(locallimit, LocalLimit),
+	statistics(globallimit, GlobalLimit),
+	statistics(traillimit, TrailLimit),
+
+	format(Out, '~3f seconds cpu time for ~D inferences~n',
+				    [Cputime, Inferences]),
+	format(Out, '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
+				    [Atoms, Functors, Predicates, Modules, Codes]),
+	format(Out, '                       Limit    Allocated       In use~n', []),
+	format(Out, 'Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
+	       [LocalLimit, Local, LocalUsed]),
+	format(Out, 'Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
+	       [GlobalLimit, Global, GlobalUsed]),
+	format(Out, 'Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n~n',
+	       [TrailLimit, Trail, TrailUsed]),
+
+	gc_statistics(Out),
+	agc_statistics(Out),
+	shift_statistics(Out),
+	thread_statistics(Out).
+
+gc_statistics(Out) :-
+	statistics(collections, Collections),
+	Collections > 0, !,
+	statistics(collected, Collected),
+	statistics(gctime, GcTime),
+
+	format(Out, '~D garbage collections gained ~D bytes in ~3f seconds.~n',
+	       [Collections, Collected, GcTime]).
+gc_statistics(_).
+
+agc_statistics(Out) :-
+	catch(statistics(agc, Agc), _, fail),
+	Agc > 0, !,
+	statistics(agc_gained, Gained),
+	statistics(agc_time, Time),
+	format(Out, '~D atom garbage collections gained ~D atoms in ~3f seconds.~n',
+	       [Agc, Gained, Time]).
+agc_statistics(_).
+
+shift_statistics(Out) :-
+	statistics(local_shifts, LS),
+	statistics(global_shifts, GS),
+	statistics(trail_shifts, TS),
+	(   LS > 0
+	;   GS > 0
+	;   TS > 0
+	), !,
+	statistics(shift_time, Time),
+	format(Out, 'Stack shifts: ~D local, ~D global, ~D trail in ~3f seconds.~n',
+	       [LS, GS, TS, Time]).
+shift_statistics(_).
+
+thread_statistics(Out) :-
+	current_prolog_flag(threads, true), !,
+	statistics(threads, Active),
+	statistics(threads_created, Created),
+	statistics(thread_cputime, CpuTime),
+	Finished is Created - Active,
+	format(Out, '~D threads, ~D finished threads used ~3f seconds.~n',
+	       [Active, Finished, CpuTime]).
+thread_statistics(_).
+
 
 %%	time(:Goal) is nondet.
 %
@@ -203,17 +302,28 @@ prof_statistics(nodes, Term, Ticks) :-
 	arg(4, Term, Ticks).
 
 
-%	prof_node(+KeyOn
-%		  Key-node(Pred,
-%		           TimeSelf, TimeSiblings,
-%		           Calls, Redo, Recursive,
-%		           Parents))
+%%	prof_node(+Field, -Pairs) is nondet.
 %
-%	Collect data for each of the interesting predicates.
+%	Collect data for each of the interesting predicate.
+%
+%	@param Field specifies the field to use as key in each pair.
+%	@param Pair is a term of the following format:
+%
+%	  ==
+%	  KeyValue-node(Pred,
+%		        TimeSelf, TimeSiblings,
+%			Calls, Redo, Recursive,
+%		        Parents)
+%	  ==
+%
 
 prof_node(KeyOn, Node) :-
-	style_check(+dollar),
-	call_cleanup(get_prof_node(KeyOn, Node), style_check(-dollar)).
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, Old),
+	      set_prolog_flag(access_level, system)
+	    ),
+	    get_prof_node(KeyOn, Node),
+	    set_prolog_flag(access_level, Old)).
 
 get_prof_node(KeyOn, Key-Node) :-
 	Node = node(M:H,

@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifdef __WINDOWS__
@@ -31,7 +31,6 @@
 #include "config/win32.h"
 #endif
 #include <winsock2.h>
-#include "windows/mswchar.h"
 #define CRLF_MAPPING 1
 #else
 #include <config.h>
@@ -95,12 +94,8 @@ typedef wchar_t pl_wchar_t;
 #include SYSLIB_H
 #endif
 
-#ifndef MB_LEN_MAX
-#define MB_LEN_MAX 6
-#endif
-
 #define ROUND(p, n) ((((p) + (n) - 1) & ~((n) - 1)))
-#define UNDO_SIZE ROUND(MB_LEN_MAX, sizeof(wchar_t))
+#define UNDO_SIZE ROUND(PL_MB_LEN_MAX, sizeof(wchar_t))
 
 #ifndef FALSE
 #define FALSE 0
@@ -524,8 +519,11 @@ int
 S__fillbuf(IOSTREAM *s)
 { int c;
 
-  if ( s->flags & (SIO_FEOF|SIO_FERR) )
-  { s->flags |= SIO_FEOF2;		/* reading past eof */
+  if ( s->flags & (SIO_FEOF|SIO_FERR) )	/* reading past eof */
+  { if ( s->flags & SIO_FEOF2ERR )
+      s->flags |= (SIO_FEOF2|SIO_FERR);
+    else
+      s->flags |= SIO_FEOF2;
     return -1;
   }
 
@@ -804,7 +802,7 @@ put_code(int c, IOSTREAM *s)
       }
       goto simple;
     case ENC_ANSI:
-    { char b[MB_LEN_MAX];
+    { char b[PL_MB_LEN_MAX];
       size_t n;
 
       if ( !s->mbstate )
@@ -916,7 +914,7 @@ Scanrepresent(int c, IOSTREAM *s)
       return -1;
     case ENC_ANSI:
     { mbstate_t state;
-      char b[MB_LEN_MAX];
+      char b[PL_MB_LEN_MAX];
 
       memset(&state, 0, sizeof(state));
       if ( wcrtomb(b, (wchar_t)c, &state) != (size_t)-1 )
@@ -1111,7 +1109,6 @@ int
 Speekcode(IOSTREAM *s)
 { int c;
   char *start;
-  IOPOS *psave = s->position;
   size_t safe = (size_t)-1;
 
   if ( !s->buffer )
@@ -1132,9 +1129,13 @@ Speekcode(IOSTREAM *s)
   }
 
   start = s->bufp;
-  s->position = NULL;
-  c = Sgetcode(s);
-  s->position = psave;
+  if ( s->position )
+  { IOPOS psave = *s->position;
+    c = Sgetcode(s);
+    *s->position = psave;
+  } else
+  { c = Sgetcode(s);
+  }
   if ( Sferror(s) )
     return -1;
 
@@ -1527,23 +1528,23 @@ Sunit_size(IOSTREAM *s)
 Return the size of the underlying data object.  Should be optimized;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-long
+int64_t
 Ssize(IOSTREAM *s)
 { if ( s->functions->control )
-  { long size;
+  { int64_t size;
 
     if ( (*s->functions->control)(s->handle, SIO_GETSIZE, (void *)&size) == 0 )
       return size;
   }
   if ( s->functions->seek )
-  { long here = Stell(s);
-    long end;
+  { int64_t here = Stell64(s);
+    int64_t end;
 
-    if ( Sseek(s, 0, SIO_SEEK_END) == 0 )
-      end = Stell(s);
+    if ( Sseek64(s, 0, SIO_SEEK_END) == 0 )
+      end = Stell64(s);
     else
       end = -1;
-    Sseek(s, here, SIO_SEEK_SET);
+    Sseek64(s, here, SIO_SEEK_SET);
 
     return end;
   }
@@ -1882,11 +1883,23 @@ Svprintf(const char *fm, va_list args)
 }
 
 
-#define NEXTCHR(s, c)	if ( utf8 ) \
-			{ (s) = utf8_get_char((s), &(c)); \
-			} else \
-			{ c = *(s)++; c &= 0xff; \
-			}
+#define NEXTCHR(s, c)				\
+	switch (enc)				\
+	{ case ENC_ANSI:			\
+	    c = *(s)++; c &= 0xff;		\
+	    break;				\
+	  case ENC_UTF8:			\
+	    (s) = utf8_get_char((s), &(c));	\
+	    break;				\
+	  case ENC_WCHAR:			\
+	  { wchar_t *_w = (wchar_t*)(s);	\
+	    c = *_w++;				\
+	    (s) = (char*)_w;			\
+	    break;				\
+	  }					\
+	  default:				\
+	    break;				\
+	}
 
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
@@ -1948,7 +1961,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	char fbuf[100], *fs = fbuf, *fe = fbuf;
 	int islong = 0;
 	int pad = ' ';
-	int utf8 = FALSE;
+	IOENC enc = ENC_ANSI;
 
 	for(;;)
 	{ switch(*fm)
@@ -1989,13 +2002,19 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	{ islong++;			/* 1: %ld */
 	  fm++;
 	}
-	if ( *fm == 'l' )
-	{ islong++;			/* 2: %lld */
-	  fm++;
-	}
-	if ( *fm == 'U' )		/* %Us: UTF-8 string */
-	{ utf8 = TRUE;
-	  fm++;
+	switch ( *fm )
+	{ case 'l':
+	    islong++;			/* 2: %lld */
+	    fm++;
+	    break;
+	  case 'U':			/* %Us: UTF-8 string */
+	    enc = ENC_UTF8;
+	    fm++;
+	    break;
+	  case 'W':			/* %Ws: wide string */
+	    enc = ENC_WCHAR;
+	    fm++;
+	    break;
 	}
 
 	switch(*fm)
@@ -2114,12 +2133,25 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  { size_t w;
 
 	    if ( fs == fbuf )
-	      w = fe - fs;
-	    else
-	      w = strlen(fs);
-
-	    if ( utf8 )
-	      w = utf8_strlen(fs, w);
+	    { w = fe - fs;
+	    } else
+	    { switch(enc)
+	      { case ENC_ANSI:
+		  w = strlen(fs);
+		  break;
+		case ENC_UTF8:
+		  w = strlen(fs);
+		  w = utf8_strlen(fs, w);
+		  break;
+		case ENC_WCHAR:
+		  w = wcslen((wchar_t*)fs);
+		  break;
+		default:
+		  assert(0);
+		  w = 0;		/* make compiler happy */
+		  break;
+	      }
+	    }
 
 	    if ( (ssize_t)w < arg1 )
 	    { w = arg1 - w;
@@ -2648,7 +2680,7 @@ Scontrol_file(void *handle, int action, void *arg)
 
   switch(action)
   { case SIO_GETSIZE:
-    { intptr_t *rval = arg;
+    { int64_t *rval = arg;
       struct stat buf;
 
       if ( fstat(fd, &buf) == 0 )
@@ -2981,6 +3013,8 @@ Swinsock(IOSTREAM *s)
 #ifdef __WINDOWS__
 #include "windows/popen.c"
 
+#undef popen
+#undef pclose
 #define popen(cmd, how) pt_popen(cmd, how)
 #define pclose(fd)	pt_pclose(fd)
 #endif
@@ -3418,7 +3452,7 @@ static const IOSTREAM S__iob0[] =
 static int S__initialised = FALSE;
 
 void
-SinitStreams()
+SinitStreams(void)
 { if ( !S__initialised )
   { int i;
     IOENC enc = initEncoding();

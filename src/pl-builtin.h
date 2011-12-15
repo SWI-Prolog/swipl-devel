@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef PL_BUILTIN_H_INCLUDED
@@ -179,16 +179,22 @@ typedef struct PL_global_data PL_global_data_t;
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Internal debugging and extra security checks.   To  enable them, compile
-with -DO_DEBUG and/or -DO_SECURE. Information   should  be printed using
-Sdprintf, which takes the same arguments   as printf(). Using Sdprintf()
-ensures that information is also printed if stdio is not available.
+Internal debugging  and extra security checks.   To  enable them, compile
+with -DO_DEBUG. Information should be printed using Sdprintf, which takes
+the same arguments as printf(). Using Sdprintf() ensures that information
+is also printed if stdio is not available.
 
     DEBUG(1, Sdprintf("Running with pid=%d\n", getpid()));
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "pl-debug.h"
+
 #if O_DEBUG
-#define DEBUG(n, g) do { if (GD->debug_level >= (n)) { g; } } while(0)
+#define DEBUG(n, g) do { if ((n <= DBG_LEVEL9 && GD->debug_level >= (n)) || \
+                             (n > DBG_LEVEL9 && GD->debug_topics && \
+                              true_bit(GD->debug_topics, n))) \
+                         { g; } } while(0)
+#define DEBUGGING(n) (GD->debug_topics && true_bit(GD->debug_topics, n))
 #else
 #define DEBUG(a, b) ((void)0)
 #endif
@@ -299,6 +305,13 @@ EndPredDefs
         };
 
 		 /*******************************
+		 *	       TIME		*
+		 *******************************/
+
+#define PL_unify_time(t, s) PL_unify_float(t, (double)(s))
+
+
+		 /*******************************
 		 *	       MISC		*
 		 *******************************/
 
@@ -310,5 +323,6 @@ blockGC() is matched by an unblockGC().
 
 COMMON(void)	blockGC(int flags ARG_LD);	/* disallow garbage collect */
 COMMON(void)	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
+COMMON(void)	suspendTrace(int suspend);	/* suspend/resume tracing */
 
 #endif /*PL_BUILTIN_H_INCLUDED*/

@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,11 +20,14 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
+#include <mcheck.h>
+#endif
 
 #ifndef O_MYALLOC
 #define O_MYALLOC 1
@@ -135,6 +139,7 @@ static void  freeAllBigHeaps(void);
 #define ALLOC_VIRGIN_MAGIC 0x7f
 
 void core_freeHeap__LD(void *mem, size_t n ARG_LD);
+void *core_allocHeapOrHalt__LD(size_t n ARG_LD);
 void *core_allocHeap__LD(size_t n ARG_LD);
 
 void
@@ -151,8 +156,8 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 
 
 void *
-allocHeap__LD(size_t n ARG_LD)
-{ intptr_t *p = core_allocHeap__LD(n+3*sizeof(intptr_t) PASS_LD);
+allocHeapOrHalt__LD(size_t n ARG_LD)
+{ intptr_t *p = core_allocHeapOrHalt__LD(n+3*sizeof(intptr_t) PASS_LD);
 
   p += 3;
   p[-1] = n;
@@ -162,7 +167,22 @@ allocHeap__LD(size_t n ARG_LD)
   return p;
 }
 
+void *
+allocHeap__LD(size_t n ARG_LD)
+{ intptr_t *p = core_allocHeap__LD(n+3*sizeof(intptr_t) PASS_LD);
+
+  if ( p )
+  { p += 3;
+    p[-1] = n;
+    p[-2] = INUSE_MAGIC;
+    memset(p, ALLOC_MAGIC, n);
+  }
+
+  return p;
+}
+
 #define freeHeap__LD core_freeHeap__LD
+#define allocHeapOrHalt__LD core_allocHeapOrHalt__LD
 #define allocHeap__LD core_allocHeap__LD
 
 #endif /*ALLOC_DEBUG*/
@@ -178,8 +198,7 @@ freeToPool(AllocPool pool, void *mem, size_t n, int islocal)
 { Chunk p = (Chunk) mem;
 
   pool->allocated -= n;
-  DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
-		    (uintptr_t)n, (uintptr_t)p));
+  DEBUG(9, Sdprintf("freed %ld bytes at %p\n", (long)n, p));
 
   n /= ALIGN_SIZE;
   p->next = pool->free_chains[n];
@@ -356,7 +375,7 @@ allocate(AllocPool pool, size_t n)
   if ( !(p = allocBigHeap(ALLOCSIZE)) )
   { if ( welocked )
       UNLOCK();
-    outOfCore();
+    return NULL;
   }
 
   pool->space = p + n;
@@ -440,11 +459,25 @@ allocHeap__LD(size_t n ARG_LD)
   } else
   { LOCK();
     mem = allocBigHeap(n);
-    GD->statistics.heap += n;
     UNLOCK();
+    if ( mem )
+      GD->statistics.heap += n;
   }
 
   return mem;
+}
+
+
+void *
+allocHeapOrHalt__LD(size_t n ARG_LD)
+{ void *mem = allocHeap__LD(n PASS_LD);
+
+  if ( mem )
+  { return mem;
+  } else
+  { outOfCore();
+    return NULL;				/* keep compiler happy */
+  }
 }
 
 
@@ -549,9 +582,7 @@ allocBigHeap(size_t size)
 { BigHeap h = malloc(size+sizeof(*h));
 
   if ( !h )
-  { outOfCore();
     return NULL;
-  }
 
   h->next = big_heaps;
   h->prev = NULL;
@@ -600,6 +631,21 @@ freeAllBigHeaps(void)
 
 void *
 allocHeap__LD(size_t n ARG_LD)
+{ if ( n )
+  { void *mem = malloc(n);
+
+    if ( mem )
+      GD->statistics.heap += n;
+
+    return mem;
+  }
+
+  return NULL;
+}
+
+
+void *
+allocHeapOrHalt__LD(size_t n ARG_LD)
 { if ( n )
   { void *mem = malloc(n);
 
@@ -766,7 +812,7 @@ pushArgumentStack__LD(Word p ARG_LD)
 
 
 void
-outOfCore()
+outOfCore(void)
 { fatalError("Could not allocate memory: %s", OsError());
 }
 
@@ -1340,3 +1386,6 @@ properly on Linux. Don't bother with it.
 
 #undef LOCK
 #undef UNLOCK
+#undef freeHeap__LD
+#undef allocHeapOrHalt__LD
+#undef allocHeap__LD

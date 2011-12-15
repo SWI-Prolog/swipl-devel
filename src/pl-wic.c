@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -134,7 +134,6 @@ Below is an informal description of the format of a `.qlf' file:
 		      | 'u'				% user source file
 <time>		::=	<word>				% time file was loaded
 <line>		::=	<num>
-<pattern>	::=	<num>				% indexing pattern
 <codes>		::=	<num> {<code>}
 <string>	::=	{<non-zero byte>} <0>
 <word>		::=	<4 byte entity>
@@ -151,8 +150,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 58			/* load all versions later >= X */
-#define VERSION 58			/* save version number */
+#define LOADVERSION 60			/* load all versions later >= X */
+#define VERSION 60			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -218,9 +217,7 @@ typedef struct wic_state
   struct wic_state *parent;		/* parent state */
 } wic_state;
 
-static wic_state *current_state = NULL;
-
-static char *	getString(IOSTREAM *, unsigned *len);
+static char *	getString(IOSTREAM *, size_t *len);
 static int64_t	getInt64(IOSTREAM *);
 static int	getInt32(IOSTREAM *s);
 static long	getLong(IOSTREAM *);
@@ -267,11 +264,11 @@ references.  That will normally overflow other system limits first.
 
 static void
 pushXrIdTable(wic_state *state ARG_LD)
-{ XrTable t = allocHeap(sizeof(struct xr_table));
+{ XrTable t = allocHeapOrHalt(sizeof(struct xr_table));
 
-  if ( !(t->table = allocHeap(ALLOCSIZE)) )
+  if ( !(t->table = allocHeapOrHalt(ALLOCSIZE)) )
     outOfCore();
-  SECURE(memset(t->table, 0, ALLOCSIZE));
+  DEBUG(CHK_SECURE, memset(t->table, 0, ALLOCSIZE));
   t->tablesize = 0;
   t->id = 0;
 
@@ -301,7 +298,7 @@ lookupXrId(wic_state *state, intptr_t id)
   Word array = t->table[id/SUBENTRIES];
   word value;
 
-  SECURE(assert(array));
+  DEBUG(CHK_SECURE, assert(array));
   value = array[id%SUBENTRIES];
 
   return value;
@@ -315,12 +312,12 @@ storeXrId(wic_state *state, long id, word value)
 
   while ( i >= t->tablesize )
   { GET_LD
-    Word a = allocHeap(ALLOCSIZE);
+    Word a = allocHeapOrHalt(ALLOCSIZE);
 
     if ( !a )
       outOfCore();
 
-    SECURE(memset(a, 0, ALLOCSIZE));
+    DEBUG(CHK_SECURE, memset(a, 0, ALLOCSIZE));
     t->table[t->tablesize++] = a;
   }
 
@@ -344,30 +341,28 @@ qlfLoadError_ctx(wic_state *state, char *file, int line)
 
 #define qlfLoadError(state) qlfLoadError_ctx(state, __FILE__, __LINE__)
 
-static char *getstr_buffer = NULL;
-static int  getstr_buffer_size = 0;
-
 static char *
-getString(IOSTREAM *fd, unsigned *length)
-{ char *s;
-  int len = getInt(fd);
-  int i;
+getString(IOSTREAM *fd, size_t *length)
+{ GET_LD
+  char *s;
+  size_t len = (size_t)getInt64(fd);
+  size_t i;
 
-  if ( getstr_buffer_size < len+1 )
-  { int size = ((len+1+1023)/1024)*1024;
+  if ( LD->qlf.getstr_buffer_size < len+1 )
+  { size_t size = ((len+1+1023)/1024)*1024;
 
-    if ( getstr_buffer )
-      getstr_buffer = realloc(getstr_buffer, size);
+    if ( LD->qlf.getstr_buffer )
+      LD->qlf.getstr_buffer = realloc(LD->qlf.getstr_buffer, size);
     else
-      getstr_buffer = malloc(size);
+      LD->qlf.getstr_buffer = malloc(size);
 
-    if ( getstr_buffer )
-      getstr_buffer_size = size;
+    if ( LD->qlf.getstr_buffer )
+      LD->qlf.getstr_buffer_size = size;
     else
       outOfCore();
   }
 
-  for( i=0, s = getstr_buffer; i<len; i++ )
+  for( i=0, s = LD->qlf.getstr_buffer; i<len; i++ )
   { int c = Sgetc(fd);
 
     if ( c == EOF )
@@ -381,7 +376,7 @@ getString(IOSTREAM *fd, unsigned *length)
   if ( length )
     *length = (unsigned) len;
 
-  return getstr_buffer;
+  return LD->qlf.getstr_buffer;
 }
 
 
@@ -426,7 +421,7 @@ getAtom(IOSTREAM *fd, PL_blob_t *type ARG_LD)
   if ( len < sizeof(buf) )
     tmp = buf;
   else
-    tmp = allocHeap(len);
+    tmp = allocHeapOrHalt(len);
 
   for(s=tmp, i=0; i<len; i++)
   { int c = Sgetc(fd);
@@ -680,7 +675,7 @@ loadXRc(wic_state *state, int c ARG_LD)
 #if O_STRING
     case XR_STRING:
     { char *s;
-      unsigned len;
+      size_t len;
 
       s = getString(fd, &len);
 
@@ -1051,7 +1046,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
   def = proc->definition;
   if ( !skip && state->currentSource )
-  { if ( def->definition.clauses )
+  { if ( def->impl.any )
     { if ( !redefineProcedure(proc, state->currentSource, DISCONTIGUOUS_STYLE) )
       { printMessage(ATOM_error, exception_term);
 	exception_term = 0;
@@ -1061,23 +1056,12 @@ loadPredicate(wic_state *state, int skip ARG_LD)
     }
     addProcedureSourceFile(state->currentSource, proc);
   }
-  if ( def->references == 0 && !def->hash_info )
-    def->indexPattern |= NEED_REINDEX;
   loadPredicateFlags(state, def, skip PASS_LD);
 
   for(;;)
   { switch(Sgetc(fd) )
     { case 'X':
-      { unsigned long pattern = getLong(fd);
-
-	if ( (def->indexPattern & ~NEED_REINDEX) != pattern )
-	{ if ( def->references == 0 && !def->hash_info )
-	    def->indexPattern = (pattern | NEED_REINDEX);
-	  else if ( false(def, MULTIFILE|DYNAMIC) )
-	    Sdprintf("Cannot change indexing of %s\n", predicateName(def));
-	}
-
-	DEBUG(2, Sdprintf("ok\n"));
+      { DEBUG(2, Sdprintf("ok\n"));
 	succeed;
       }
       case 'C':
@@ -1085,7 +1069,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	int ncodes = getInt(fd);
 
 	DEBUG(2, Sdprintf("."));
-	clause = (Clause) allocHeap(sizeofClause(ncodes));
+	clause = (Clause) allocHeapOrHalt(sizeofClause(ncodes));
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
@@ -1217,11 +1201,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	if ( skip )
 	  freeClause(clause PASS_LD);
 	else
-	{ if ( def->hash_info )
-	  { reindexClause(clause, def, 0x1L);
-	  }
 	  assertProcedure(proc, clause, CL_END PASS_LD);
-	}
       }
     }
   }
@@ -1330,7 +1310,14 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 
   for(;;)
   { switch(Qgetc(fd))
-    { case 'S':
+    { case 'C':
+      { atom_t cname = loadXR(state);
+
+	m->class = cname;
+
+	continue;
+      }
+      case 'S':
       { atom_t sname = loadXR(state);
 	Module s = lookupModule(sname);
 
@@ -1374,10 +1361,11 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 
 static bool
 loadPart(wic_state *state, Module *module, int skip ARG_LD)
-{ IOSTREAM *fd  = state->wicFd;
-  Module om     = LD->modules.source;
-  SourceFile of = state->currentSource;
-  int stchk     = debugstatus.styleCheck;
+{ IOSTREAM *fd		= state->wicFd;
+  Module om		= LD->modules.source;
+  SourceFile of		= state->currentSource;
+  int stchk		= debugstatus.styleCheck;
+  access_level_t alevel = LD->prolog_flag.access_level;
 
   switch(Qgetc(fd))
   { case 'M':
@@ -1409,7 +1397,8 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 	    skip = TRUE;
 	    LD->modules.source = m;
 	  } else
-	  { if ( !declareModule(mname, NULL_ATOM, state->currentSource, line, FALSE) )
+	  { if ( !declareModule(mname, NULL_ATOM, NULL_ATOM,
+				state->currentSource, line, FALSE) )
 	      fail;
 	  }
 
@@ -1450,7 +1439,7 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 	LD->modules.source = om;
 	state->currentSource  = of;
 	debugstatus.styleCheck = stchk;
-	systemMode(debugstatus.styleCheck & DOLLAR_STYLE);
+	setAccessLevel(alevel);
 
 	succeed;
       }
@@ -1538,7 +1527,7 @@ static void
 putAtom(wic_state *state, atom_t w)
 { IOSTREAM *fd = state->wicFd;
   Atom a = atomValue(w);
-  static PL_blob_t *text_blob;
+  static PL_blob_t *text_blob;		/* MT: ok */
 
   if ( !text_blob )
     text_blob = PL_find_blob_type("text");
@@ -2039,8 +2028,6 @@ static void
 closeProcedureWic(wic_state *state)
 { if ( state->currentProc )
   { Sputc('X', state->wicFd);
-    putNum(state->currentProc->definition->indexPattern & ~NEED_REINDEX,
-	   state->wicFd);
     state->currentProc = NULL;
   }
 }
@@ -2190,7 +2177,7 @@ initSourceMarks(wic_state *state)
 
 static void
 sourceMark(wic_state *state ARG_LD)
-{ SourceMark pm = allocHeap(sizeof(struct source_mark));
+{ SourceMark pm = allocHeapOrHalt(sizeof(struct source_mark));
 
   pm->file_index = Stell(state->wicFd);
   pm->next = NULL;
@@ -2291,7 +2278,7 @@ qlfInfo(const char *file,
     return warning("qlf_info/4: seek failed: %s", OsError());
   nqlf = (int)getInt32(s);
   DEBUG(1, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (size_t*)allocHeap(sizeof(long) * nqlf);
+  qlfstart = (size_t*)allocHeapOrHalt(sizeof(long) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
   { qlfstart[i] = (size_t)getInt32(s);
@@ -2354,7 +2341,7 @@ qlfOpen(term_t file)
     return NULL;
   }
 
-  state = allocHeap(sizeof(*state));
+  state = allocHeapOrHalt(sizeof(*state));
   memset(state, 0, sizeof(*state));
   state->wicFile = store_string(name);
   state->mkWicFile = store_string(name);
@@ -2387,7 +2374,7 @@ qlfClose(wic_state *state ARG_LD)
   }
   destroyXR(state);
 
-  current_state = state->parent;
+  LD->qlf.current_state = state->parent;
   freeHeap(state, sizeof(*state));
 
   return rc == 0;
@@ -2415,7 +2402,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 { GET_LD
   IOSTREAM *fd = state->wicFd;
   char *abssavename;
-  qlf_state *new = allocHeap(sizeof(*new));
+  qlf_state *new = allocHeapOrHalt(sizeof(*new));
 
   memset(new, 0, sizeof(*new));
   new->previous = state->load_state;
@@ -2569,6 +2556,8 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
   { Sputc('-', fd);
   }
 
+  Sputc('C', fd);
+  saveXR(state, m->class);
   for(c=m->supers; c; c=c->next)
   { Module s = c->value;
 
@@ -2635,14 +2624,16 @@ Start emitting a module.
 
 static
 PRED_IMPL("$qlf_start_module", 1, qlf_start_module, 0)
-{ if ( current_state )
-  { GET_LD
-    Module m;
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { Module m;
 
     if ( !PL_get_module_ex(A1, &m) )
       fail;
 
-    return qlfStartModule(current_state, m PASS_LD);
+    return qlfStartModule(state, m PASS_LD);
   }
 
   succeed;
@@ -2651,14 +2642,16 @@ PRED_IMPL("$qlf_start_module", 1, qlf_start_module, 0)
 
 static
 PRED_IMPL("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
-{ if ( current_state )
-  { GET_LD
-    Module m;
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { Module m;
 
     if ( !PL_get_module_ex(A1, &m) )
       fail;
 
-    return qlfStartSubModule(current_state, m PASS_LD);
+    return qlfStartSubModule(state, m PASS_LD);
   }
 
   succeed;
@@ -2667,14 +2660,16 @@ PRED_IMPL("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
 
 static
 PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
-{ if ( current_state )
-  { GET_LD
-    atom_t a;
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { atom_t a;
 
     if ( !PL_get_atom_ex(A1, &a) )
       fail;
 
-    return qlfStartFile(current_state, lookupSourceFile(a, TRUE) PASS_LD);
+    return qlfStartFile(state, lookupSourceFile(a, TRUE) PASS_LD);
   }
 
   succeed;
@@ -2683,8 +2678,11 @@ PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
 
 static
 PRED_IMPL("$qlf_end_part", 0, qlf_end_part, 0)
-{ if ( current_state )
-  { return qlfEndPart(current_state);
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { return qlfEndPart(state);
   }
 
   succeed;
@@ -2693,11 +2691,12 @@ PRED_IMPL("$qlf_end_part", 0, qlf_end_part, 0)
 
 static
 PRED_IMPL("$qlf_open", 1, qlf_open, 0)
-{ wic_state *state = qlfOpen(A1);
+{ PRED_LD
+  wic_state *state = qlfOpen(A1);
 
   if ( state )
-  { state->parent = current_state;
-    current_state = state;
+  { state->parent = LD->qlf.current_state;
+    LD->qlf.current_state = state;
 
     return TRUE;
   }
@@ -2709,9 +2708,10 @@ PRED_IMPL("$qlf_open", 1, qlf_open, 0)
 static
 PRED_IMPL("$qlf_close", 0, qlf_close, 0)
 { PRED_LD
+  wic_state *state;
 
-  if ( current_state )
-    return qlfClose(current_state PASS_LD);
+  if ( (state=LD->qlf.current_state) )
+    return qlfClose(state PASS_LD);
 
   succeed;
 }
@@ -2784,13 +2784,13 @@ PRED_IMPL("$open_wic", 1, open_wic, 0)
   IOSTREAM *fd;
 
   if ( PL_get_stream_handle(A1, &fd) )
-  { wic_state *state = allocHeap(sizeof(*state));
+  { wic_state *state = allocHeapOrHalt(sizeof(*state));
 
     memset(state, 0, sizeof(*state));
     state->wicFd = fd;
     writeWicHeader(state);
-    state->parent = current_state;
-    current_state = state;
+    state->parent = LD->qlf.current_state;
+    LD->qlf.current_state = state;
 
     succeed;
   }
@@ -2805,10 +2805,10 @@ PRED_IMPL("$close_wic", 0, close_wic, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=current_state) )
+  if ( (state=LD->qlf.current_state) )
   { writeWicTrailer(state);
 
-    current_state = state->parent;
+    LD->qlf.current_state = state->parent;
     freeHeap(state, sizeof(*state));
 
     succeed;
@@ -2820,9 +2820,11 @@ PRED_IMPL("$close_wic", 0, close_wic, 0)
 
 static
 PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
-{ if ( current_state )
-  { PRED_LD
-    Module m = MODULE_system;
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { Module m = MODULE_system;
     term_t term = PL_new_term_ref();
     term_t qterm = PL_new_term_ref();
 
@@ -2836,7 +2838,7 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 			  PL_TERM, term) )
       return FALSE;
 
-    return addDirectiveWic(current_state, qterm PASS_LD);
+    return addDirectiveWic(state, qterm PASS_LD);
   }
 
   succeed;
@@ -2848,16 +2850,18 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 
 static
 PRED_IMPL("$import_wic", 2, import_wic, 0)
-{ if ( current_state )
-  { GET_LD
-    Module m = NULL;
+{ PRED_LD
+  wic_state *state;
+
+  if ( (state=LD->qlf.current_state) )
+  { Module m = NULL;
     functor_t fd;
 
     if ( !PL_get_module(A1, &m) ||
 	 !get_functor(A2, &fd, &m, 0, GF_PROCEDURE) )
       fail;
 
-    return importWic(current_state, lookupProcedure(fd, m) PASS_LD);
+    return importWic(state, lookupProcedure(fd, m) PASS_LD);
   }
 
   succeed;
@@ -2872,7 +2876,7 @@ PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
 { PRED_LD
   wic_state *state;
 
-  if ( (state=current_state) )
+  if ( (state=LD->qlf.current_state) )
   { Clause clause;
     atom_t sclass;
 
@@ -2947,6 +2951,7 @@ compileFile(wic_state *state, const char *file)
   char tmp[MAXPATHLEN];
   char *path;
   term_t f = PL_new_term_ref();
+  SourceFile sf;
   atom_t nf;
 
   DEBUG(1, Sdprintf("Boot compilation of %s\n", file));
@@ -2960,8 +2965,10 @@ compileFile(wic_state *state, const char *file)
   if ( !pl_see(f) )
     fail;
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
-  pl_start_consult(f);
-  qlfStartFile(state, lookupSourceFile(nf, TRUE) PASS_LD);
+  sf = lookupSourceFile(nf, TRUE);
+  startConsult(sf);
+  sf->time = LastModifiedFile(path);
+  qlfStartFile(state, sf PASS_LD);
 
   for(;;)
   { fid_t	 cid = PL_open_foreign_frame();
@@ -3014,37 +3021,39 @@ compileFile(wic_state *state, const char *file)
 
 bool
 compileFileList(IOSTREAM *fd, int argc, char **argv)
-{ wic_state state;
+{ GET_LD
+  wic_state *state = allocHeapOrHalt(sizeof(*state));
   predicate_t pred;
   int rc;
+  access_level_t alevel;
 
-  memset(&state, 0, sizeof(state));
-  state.wicFd = fd;
+  memset(state, 0, sizeof(*state));
+  state->wicFd = fd;
 
-  if ( !writeWicHeader(&state) )
+  if ( !writeWicHeader(state) )
     return FALSE;
 
-  systemMode(TRUE);
+  alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM);
   PL_set_prolog_flag("autoload", PL_BOOL, FALSE);
 
-  current_state = &state;	/* make Prolog compilation go into state */
+  LD->qlf.current_state = state; /* make Prolog compilation go into state */
   for(;argc > 0; argc--, argv++)
   { if ( streq(argv[0], "-c" ) )
       break;
-    if ( !compileFile(&state, argv[0]) )
+    if ( !compileFile(state, argv[0]) )
       return FALSE;
   }
 
   PL_set_prolog_flag("autoload", PL_BOOL, TRUE);
-  systemMode(FALSE);
+  setAccessLevel(alevel);
 
   pred = PL_predicate("$load_additional_boot_files", 0, "user");
   rc = PL_call_predicate(MODULE_user, TRUE, pred, 0);
-
-  current_state = NULL;
-
   if ( rc )
-    rc = writeWicTrailer(&state);
+    rc = writeWicTrailer(state);
+
+  LD->qlf.current_state = NULL;
+  freeHeap(state, sizeof(*state));
 
   return rc;
 }
@@ -3055,11 +3064,12 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
 		 *******************************/
 
 void
-qlfCleanup()
+qlfCleanup(void)
 { GET_LD
   wic_state *state;
+  char *buf;
 
-  while ( (state=current_state) )
+  while ( (state=LD->qlf.current_state) )
   { if ( state->mkWicFile )
     { printMessage(ATOM_warning,
 		   PL_FUNCTOR_CHARS, "qlf", 1,
@@ -3070,14 +3080,14 @@ qlfCleanup()
       state->mkWicFile = NULL;
     }
 
-    current_state = state->parent;
+    LD->qlf.current_state = state->parent;
     freeHeap(state, sizeof(*state));
   }
 
-  if ( getstr_buffer )
-  { free(getstr_buffer);
-    getstr_buffer = NULL;
-    getstr_buffer_size = 0;
+  if ( (buf=LD->qlf.getstr_buffer) )
+  { LD->qlf.getstr_buffer = NULL;
+    LD->qlf.getstr_buffer_size = 0;
+    free(buf);
   }
 }
 

@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/			/* include crash/0 */
@@ -82,7 +82,6 @@ static const PL_extension foreigns[] = {
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
-  FRG("$break",			1, pl_break1,			0),
   FRG("notrace",		1, pl_notrace1,		     META),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
@@ -90,6 +89,7 @@ static const PL_extension foreigns[] = {
   FRG("write_term",		3, pl_write_term3,	 META|ISO),
   FRG("write",			1, pl_write,		      ISO),
   FRG("writeq",			1, pl_writeq,		      ISO),
+  FRG("writeln",		1, pl_writeln,		        0),
   FRG("print",			1, pl_print,			0),
 
   FRG("read_term",		2, pl_read_term,	      ISO),
@@ -129,7 +129,6 @@ static const PL_extension foreigns[] = {
   FRG("$get_clause_attribute",  3, pl_get_clause_attribute,	0),
   FRG("$require",		1, pl_require,		     META),
   FRG("source_file",		2, pl_source_file,      NDET|META),
-  FRG("$start_consult",		1, pl_start_consult,		0),
   FRG("$make_system_source_files",0,pl_make_system_source_files,0),
   FRG("$default_predicate",	2, pl_default_predicate,     META),
 
@@ -159,22 +158,10 @@ static const PL_extension foreigns[] = {
 #ifdef O_PROLOG_HOOK
   FRG("set_prolog_hook",	3, pl_set_prolog_hook,	        0),
 #endif
-  FRG("$current_module",	2, pl_current_module,	     NDET),
   FRG("$module",		2, pl_module,			0),
   FRG("$set_source_module",	2, pl_set_source_module,	0),
   FRG("context_module",		1, pl_context_module,	     META),
   FRG("import",			1, pl_import,		     META),
-  FRG("index",			1, pl_index,		     META),
-  FRG("hash",			1, pl_hash,		     META),
-
-#if O_DDE
-  FRG("open_dde_conversation",	3, pl_open_dde_conversation,	0),
-  FRG("close_dde_conversation",	1, pl_close_dde_conversation,	0),
-  FRG("dde_request",		4, pl_dde_request,		0),
-  FRG("dde_execute",		3, pl_dde_execute,		0),
-  FRG("dde_poke",		4, pl_dde_poke,			0),
-  FRG("$dde_register_service",	2, pl_dde_register_service,	0),
-#endif /*O_DDE*/
 
 #if O_STRING
   FRG("sub_string",		5, pl_sub_string,	     NDET),
@@ -206,10 +193,6 @@ static const PL_extension foreigns[] = {
   FRG("write_canonical",	2, pl_write_canonical2,	      ISO),
   FRG("format",			3, pl_format3,		     META),
 
-  FRG("tty_get_capability",	3, pl_tty_get_capability,	0),
-  FRG("tty_goto",		2, pl_tty_goto,			0),
-  FRG("tty_put",		2, pl_tty_put,			0),
-  FRG("tty_size",		2, pl_tty_size,			0),
   FRG("format_predicate",	2, pl_format_predicate,	     META),
   FRG("current_format_predicate", 2, pl_current_format_predicate,
 						        META|NDET),
@@ -355,9 +338,7 @@ registerBuiltins(const PL_extension *f)
     if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
     if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
 
-    def->definition.function = f->function;
-    def->indexPattern = 0;
-    def->indexCardinality = 0;
+    def->impl.function = f->function;
     createForeignSupervisor(def, f->function);
   }
 }
@@ -373,6 +354,7 @@ DECL_PLIST(arith);
 DECL_PLIST(bag);
 DECL_PLIST(comp);
 DECL_PLIST(flag);
+DECL_PLIST(index);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
@@ -403,6 +385,9 @@ DECL_PLIST(system);
 DECL_PLIST(op);
 DECL_PLIST(rec);
 DECL_PLIST(termhash);
+DECL_PLIST(dde);
+DECL_PLIST(term);
+DECL_PLIST(debug);
 
 void
 initBuildIns(void)
@@ -415,6 +400,7 @@ initBuildIns(void)
   REG_PLIST(bag);
   REG_PLIST(comp);
   REG_PLIST(flag);
+  REG_PLIST(index);
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
@@ -441,6 +427,7 @@ initBuildIns(void)
   REG_PLIST(system);
   REG_PLIST(op);
   REG_PLIST(rec);
+  REG_PLIST(term);
   REG_PLIST(termhash);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
@@ -450,7 +437,9 @@ initBuildIns(void)
 #endif
 #ifdef __WINDOWS__
   REG_PLIST(win);
+  REG_PLIST(dde);
 #endif
+  REG_PLIST(debug);
 
 #define LOOKUPPROC(name) \
 	GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m);
@@ -481,22 +470,26 @@ initBuildIns(void)
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
   set(PROCEDURE_dcall1->definition, DYNAMIC|SYSTEM);
 
-  PL_meta_predicate(PL_predicate("assert",         1, "system"), MA_META);
-  PL_meta_predicate(PL_predicate("asserta",        1, "system"), MA_META);
-  PL_meta_predicate(PL_predicate("assertz",        1, "system"), MA_META);
-  PL_meta_predicate(PL_predicate("assert",         2, "system"), MA_META, MA_VAR);
-  PL_meta_predicate(PL_predicate("asserta",        2, "system"), MA_META, MA_VAR);
-  PL_meta_predicate(PL_predicate("assertz",        2, "system"), MA_META, MA_VAR);
-  PL_meta_predicate(PL_predicate("retract",        1, "system"), MA_META);
-  PL_meta_predicate(PL_predicate("retractall",     1, "system"), MA_META);
+  PL_meta_predicate(PL_predicate("assert",           1, "system"), ":");
+  PL_meta_predicate(PL_predicate("asserta",          1, "system"), ":");
+  PL_meta_predicate(PL_predicate("assertz",          1, "system"), ":");
+  PL_meta_predicate(PL_predicate("assert",           2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("asserta",          2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("assertz",          2, "system"), ":-");
+  PL_meta_predicate(PL_predicate("retract",          1, "system"), ":");
+  PL_meta_predicate(PL_predicate("retractall",       1, "system"), ":");
 
-  PL_meta_predicate(PL_predicate("notrace",        1, "system"), 0);
-  PL_meta_predicate(PL_predicate("with_mutex",     2, "system"), MA_NONVAR, 0);
-  PL_meta_predicate(PL_predicate("with_output_to", 2, "system"), MA_NONVAR, 0);
+  PL_meta_predicate(PL_predicate("format",           2, "system"), "+:");
+  PL_meta_predicate(PL_predicate("format",           3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("format_predicate", 2, "system"), "+0");
+
+  PL_meta_predicate(PL_predicate("notrace",          1, "system"), "0");
+  PL_meta_predicate(PL_predicate("with_mutex",       2, "system"), "+0");
+  PL_meta_predicate(PL_predicate("with_output_to",   2, "system"), "+0");
 #ifdef O_PLMT
-  PL_meta_predicate(PL_predicate("thread_create",  3, "system"), 0, MA_ANY, MA_NONVAR);
-  PL_meta_predicate(PL_predicate("thread_at_exit", 1, "system"), 0);
-  PL_meta_predicate(PL_predicate("thread_signal",  2, "system"), MA_NONVAR, 0);
+  PL_meta_predicate(PL_predicate("thread_create",    3, "system"), "0?+");
+  PL_meta_predicate(PL_predicate("thread_at_exit",   1, "system"), "0");
+  PL_meta_predicate(PL_predicate("thread_signal",    2, "system"), "+0");
 #endif
 
   for( ecell = ext_head; ecell; ecell = ecell->next )

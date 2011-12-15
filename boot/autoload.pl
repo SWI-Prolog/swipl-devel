@@ -18,9 +18,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
+    You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -38,9 +38,7 @@
 	    make_library_index/1,
 	    make_library_index/2,
 	    reload_library_index/0,
-	    autoload_path/1,
-	    autoload/0,
-	    autoload/1
+	    autoload_path/1
 	  ]).
 
 :- dynamic
@@ -98,16 +96,7 @@ user:file_search_path(autoload, library(.)).
 '$define_predicate'(Term) :-
 	Term = Module:Head,
 	functor(Head, Name, Arity),
-	current_prolog_flag(autoload, true),
-	\+ current_prolog_flag(Module:unknown, fail),
-	'$find_library'(Module, Name, Arity, LoadModule, Library),
-	flag('$autoloading', Old, Old+1),
-	(   Module == LoadModule
-	->  ignore(ensure_loaded(Library))
-	;   ignore(Module:use_module(Library, [Name/Arity]))
-	),
-	flag('$autoloading', _, Old),
-	'$define_predicate'(Term).
+	'$undefined_procedure'(Module, Name, Arity, retry).
 
 
 		/********************************
@@ -346,16 +335,12 @@ library_index_out_of_date(Index, Files) :-
 
 
 do_make_library_index(Index, Files) :-
-	setup_call_cleanup((   '$style_check'(OldStyle, OldStyle),
-			       style_check(-dollar),
-			       open(Index, write, Fd)
+	setup_call_cleanup(open(Index, write, Fd),
+			   ( index_header(Fd),
+			     index_files(Files, Fd)
 			   ),
-			   (   index_header(Fd),
-			       index_files(Files, Fd)
-			   ),
-			   (   close(Fd),
-			       '$style_check'(_, OldStyle)
-			   )).
+			   close(Fd)).
+
 
 index_files([], _).
 index_files([File|Files], Fd) :-
@@ -420,61 +405,3 @@ system:term_expansion((:- autoload_path(Alias)),
 		      [ user:file_search_path(autoload, Alias),
 			(:- reload_library_index)
 		      ]).
-
-
-		 /*******************************
-		 *	   DO AUTOLOAD		*
-		 *******************************/
-
-%%	autoload is det.
-%%	autoload(+Options) is det.
-%
-%	Force all necessary autoloading to be done _now_.  Options:
-%
-%	    * verbose(+Boolean)
-%	    If =true=, report on the files loaded.
-
-autoload :-
-	autoload([]).
-
-autoload(Options) :-
-	al_option(Options, verbose/true, Verbose),
-	'$style_check'(Old, Old),
-	style_check(+dollar),
-	current_prolog_flag(autoload, OldAutoLoad),
-	current_prolog_flag(verbose_autoload, OldVerbose),
-	set_prolog_flag(autoload, false),
-	findall(Pred, needs_autoloading(Pred), Preds),
-	set_prolog_flag(autoload, OldAutoLoad),
-	'$style_check'(_, Old),
-	(   Preds == []
-	->  true
-	;   set_prolog_flag(autoload, true),
-	    set_prolog_flag(verbose_autoload, Verbose),
-	    defined_predicates(Preds),
-	    set_prolog_flag(autoload, OldAutoLoad),
-	    set_prolog_flag(verbose_autoload, OldVerbose),
-	    autoload(Verbose)		% recurse for possible new
-					% unresolved links
-	).
-
-defined_predicates([]).
-defined_predicates([H|T]) :-
-	'$define_predicate'(H),
-	defined_predicates(T).
-
-needs_autoloading(Module:Head) :-
-	predicate_property(Module:Head, undefined),
-	\+ predicate_property(Module:Head, imported_from(_)),
-	functor(Head, Functor, Arity),
-	'$in_library'(Functor, Arity, _).
-
-al_option(Options, Name/Default, Value) :-
-	(   memberchk(Name = Value, Options)
-	->  true
-	;   Term =.. [Name,Value],
-	    memberchk(Term, Options)
-	->  true
-	;   Value = Default
-	).
-

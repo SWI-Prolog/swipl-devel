@@ -67,7 +67,7 @@ test_answer(QueryAtom, Replies) :-
 	atom_to_term(ReplyAtom, Reply, ReplyBindings),
 	Written+OutBindings =@= Reply+ReplyBindings.
 
-:- begin_tests(answer).
+:- begin_tests(answer, [sto(rational_trees)]).
 
 test(simple, true) :-
 	test_answer('A=1', ['A=1']).

@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef _PL_STREAM_H
@@ -83,8 +83,13 @@ stuff.
 #define PL_EXPORT(type)		type _stdcall
 #define PL_EXPORT_DATA(type)	extern type
 #  else
+#   ifdef __MINGW32__
+#define PL_EXPORT(type)		extern type
+#define PL_EXPORT_DATA(type)	extern type
+#   else
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	__declspec(dllimport) type
+#   endif
 #  endif
 #define install_t		__declspec(dllexport) void
 # endif
@@ -138,7 +143,7 @@ typedef struct io_functions
   Sseek_function	seek;		/* seek to position */
   Sclose_function	close;		/* close stream */
   Scontrol_function	control;	/* Info/control */
-  Sseek64_function	seek64;		/* seek to position (intptr_t files) */
+  Sseek64_function	seek64;		/* seek to position (large files) */
 } IOFUNCTIONS;
 
 typedef struct io_position
@@ -376,7 +381,7 @@ PL_EXPORT(void)		Sset_exception(IOSTREAM *s, intptr_t ex);
 #endif
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
-PL_EXPORT(long)		Ssize(IOSTREAM *s);
+PL_EXPORT(int64_t)	Ssize(IOSTREAM *s);
 PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence);
 PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);

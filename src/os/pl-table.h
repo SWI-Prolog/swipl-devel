@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef TABLE_H_INCLUDED
@@ -27,7 +27,7 @@
 
 typedef struct table *		Table;		/* (numeric) hash table */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
-typedef struct table_enum *	TableEnum; 	/* Enumerate table entries */
+typedef struct table_enum *	TableEnum;	/* Enumerate table entries */
 
 struct table
 { int		buckets;	/* size of hash table */
@@ -36,8 +36,8 @@ struct table
 #ifdef O_PLMT
   simpleMutex  *mutex;		/* Mutex to guard table */
 #endif
-  void 		(*copy_symbol)(Symbol s);
-  void 		(*free_symbol)(Symbol s);
+  void		(*copy_symbol)(Symbol s);
+  void		(*free_symbol)(Symbol s);
   Symbol	*entries;	/* array of hash symbols */
 };
 
@@ -54,17 +54,17 @@ struct table_enum
   TableEnum	next;		/* More choice points */
 };
 
-COMMON(void) 		initTables();
-COMMON(Table) 		newHTable(int size);
-COMMON(void) 		destroyHTable(Table ht);
-COMMON(Symbol) 		lookupHTable(Table ht, void *name);
-COMMON(Symbol) 		addHTable(Table ht, void *name, void *value);
-COMMON(void) 		deleteSymbolHTable(Table ht, Symbol s);
-COMMON(void) 		clearHTable(Table ht);
-COMMON(Table) 		copyHTable(Table org);
-COMMON(TableEnum) 	newTableEnum(Table ht);
-COMMON(void) 		freeTableEnum(TableEnum e);
-COMMON(Symbol) 		advanceTableEnum(TableEnum e);
+COMMON(void)		initTables(void);
+COMMON(Table)		newHTable(int size);
+COMMON(void)		destroyHTable(Table ht);
+COMMON(Symbol)		lookupHTable(Table ht, void *name);
+COMMON(Symbol)		addHTable(Table ht, void *name, void *value);
+COMMON(void)		deleteSymbolHTable(Table ht, Symbol s);
+COMMON(void)		clearHTable(Table ht);
+COMMON(Table)		copyHTable(Table org);
+COMMON(TableEnum)	newTableEnum(Table ht);
+COMMON(void)		freeTableEnum(TableEnum e);
+COMMON(Symbol)		advanceTableEnum(TableEnum e);
 
 #define TABLE_UNLOCKED		0x10000000L /* do not create mutex for table */
 #define TABLE_MASK		0xf0000000UL

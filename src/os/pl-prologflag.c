@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.wielemaker@uva.nl
+    E-mail:        J.wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,12 +20,12 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#include "os/pl-ctype.h"
+#include "pl-ctype.h"
 #include <ctype.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -69,8 +70,8 @@ we want to be able to have a lot of flags and don't harm thread_create/3
 too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void setArgvPrologFlag();
-static void setTZPrologFlag();
+static void setArgvPrologFlag(void);
+static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static atom_t lookupAtomFlag(atom_t key);
 
@@ -131,7 +132,7 @@ setPrologFlag(const char *name, int flags, ...)
     if ( flags & FF_KEEP )
       return;
   } else
-  { f = allocHeap(sizeof(*f));
+  { f = allocHeapOrHalt(sizeof(*f));
     f->index = -1;
     f->flags = flags;
     addHTable(GD->prolog_flag.table, (void *)an, f);
@@ -209,7 +210,7 @@ static void
 copySymbolPrologFlagTable(Symbol s)
 { GET_LD
   prolog_flag *f = s->value;
-  prolog_flag *copy = allocHeap(sizeof(*copy));
+  prolog_flag *copy = allocHeapOrHalt(sizeof(*copy));
 
   *copy = *f;
   if ( (f->flags & FT_MASK) == FT_TERM )
@@ -297,6 +298,21 @@ setWriteAttributes(atom_t a)
 
     PL_put_atom(value, a);
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_write_attributes, value);
+  }
+}
+
+
+static int
+setAccessLevelFromAtom(atom_t a)
+{ GET_LD
+
+  if ( getAccessLevelMask(a, &LD->prolog_flag.access_level) )
+  { succeed;
+  } else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_access_level, value);
   }
 }
 
@@ -401,7 +417,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
-    { prolog_flag *f2 = allocHeap(sizeof(*f2));
+    { prolog_flag *f2 = allocHeapOrHalt(sizeof(*f2));
 
       *f2 = *f;
       if ( (f2->flags & FT_MASK) == FT_TERM )
@@ -427,7 +443,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
   anyway:
     PL_register_atom(k);
-    f = allocHeap(sizeof(*f));
+    f = allocHeapOrHalt(sizeof(*f));
     f->index = -1;
 
     switch( (flags & FT_MASK) )
@@ -568,6 +584,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setWriteAttributes(a);
       } else if ( k == ATOM_occurs_check )
       { rval = setOccursCheck(a);
+      } else if ( k == ATOM_access_level )
+      { rval = setAccessLevelFromAtom(a);
       } else if ( k == ATOM_encoding )
       { rval = setEncoding(a);
       } else if ( k == ATOM_stream_type_check )
@@ -758,6 +776,14 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   { return PL_unify_bool_ex(val, debugstatus.debugging);
   } else if ( key == ATOM_debugger_show_context )
   { return PL_unify_bool_ex(val, debugstatus.showContext);
+  } else if ( key == ATOM_break_level )
+  { int bl = currentBreakLevel();
+
+    if ( bl >= 0 )
+      return PL_unify_integer(val, bl);
+    return FALSE;
+  } else if ( key == ATOM_access_level )
+  { return PL_unify_atom(val, accessLevel());
   }
 
   switch(f->flags & FT_MASK)
@@ -871,7 +897,7 @@ pl_prolog_flag5(term_t key, term_t value,
 
 	fail;
       } else if ( PL_is_variable(key) )
-      { e = allocHeap(sizeof(*e));
+      { e = allocHeapOrHalt(sizeof(*e));
 
 	e->module = module;
 
@@ -1002,7 +1028,7 @@ initPrologFlags()
 #endif
   setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
   setPrologFlag("generate_debug_info", FT_BOOL,
-	     truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
+		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
   setPrologFlag("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
   setPrologFlag("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
@@ -1046,6 +1072,7 @@ initPrologFlags()
   setPrologFlag("debug_on_error",	FT_BOOL, TRUE, PLFLAG_DEBUG_ON_ERROR);
   setPrologFlag("report_error",	FT_BOOL, TRUE, PLFLAG_REPORT_ERROR);
 #endif
+  setPrologFlag("break_level", FT_INTEGER|FF_READONLY, 0, 0);
   setPrologFlag("user_flags", FT_ATOM, "silent");
   setPrologFlag("editor", FT_ATOM, "default");
   setPrologFlag("debugger_show_context", FT_BOOL, FALSE, 0);
@@ -1076,6 +1103,7 @@ initPrologFlags()
   setPrologFlag("write_attributes", FT_ATOM, "ignore");
   setPrologFlag("stream_type_check", FT_ATOM, "loose");
   setPrologFlag("occurs_check", FT_ATOM, "false");
+  setPrologFlag("access_level", FT_ATOM, "user");
   setPrologFlag("double_quotes", FT_ATOM, "codes");
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);
@@ -1087,6 +1115,7 @@ initPrologFlags()
 	     ALLOW_VARNAME_FUNCTOR);
   setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
   setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);
+  setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
   setPrologFlag("file_name_variables", FT_BOOL, FALSE, PLFLAG_FILEVARS);
   setPrologFlag("fileerrors", FT_BOOL, TRUE, PLFLAG_FILEERRORS);
 #ifdef __unix__
@@ -1095,10 +1124,10 @@ initPrologFlags()
 
   setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
 
-  setPrologFlag("tty_control", FT_BOOL|FF_READONLY,
-	     truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);
+  setPrologFlag("tty_control", FT_BOOL,
+		truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);
   setPrologFlag("signals", FT_BOOL|FF_READONLY,
-	     truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
+		truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
   setPrologFlag("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
@@ -1121,7 +1150,7 @@ initPrologFlags()
 
 
 static void
-setArgvPrologFlag()
+setArgvPrologFlag(void)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
   term_t e = PL_new_term_ref();
@@ -1144,7 +1173,7 @@ setArgvPrologFlag()
 
 
 static void
-setTZPrologFlag()
+setTZPrologFlag(void)
 { tzset();
 
   setPrologFlag("timezone", FT_INTEGER|FF_READONLY, timezone);
@@ -1161,7 +1190,7 @@ setVersionPrologFlag(void)
   int patch = (PLVERSION%100);
 
   if ( !PL_unify_term(t,
-		      PL_FUNCTOR_CHARS, "swi", 4,
+		      PL_FUNCTOR_CHARS, PLNAME, 4,
 		        PL_INT, major,
 		        PL_INT, minor,
 		        PL_INT, patch,

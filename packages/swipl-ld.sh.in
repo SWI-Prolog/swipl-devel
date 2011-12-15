@@ -9,7 +9,7 @@
 
 bdir=@abs_top_builddir@
 PLARCH=@PLARCH@
-PL=@PL@
+EXEEXT_FOR_BUILD=@EXEEXT_FOR_BUILD@
 ldir=$bdir/../lib/$PLARCH
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
@@ -19,4 +19,10 @@ else
 fi
 export @DLLIBVAR@
 
-$bdir/swipl-ld -pl $bdir/$PL "$@"
+case "$PLARCH" in
+    *-win32|*-win64)
+        LDFLAGS=-luxnt
+	;;
+esac
+
+$bdir/swipl-ld-build$EXEEXT_FOR_BUILD -build-defaults "$@" $LDFLAGS

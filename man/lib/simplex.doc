@@ -90,11 +90,12 @@ The \pllib{simplex} module provides the following predicates:
 		instance.
 
 \end{description}
-All numeric quantities are converted to rationals via rationalize/1, and
-rational arithmetic is used throughout solving linear programs. In the
-current implementation, all variables are implicitly constrained to be
-non-negative. This may change in future versions, and non-negativity
-constraints should therefore be stated explicitly.
+All numeric quantities are converted to rationals via
+\funcref{rationalize}{1}, and rational arithmetic is used throughout
+solving linear programs. In the current implementation, all variables
+are implicitly constrained to be non-negative. This may change in future
+versions, and non-negativity constraints should therefore be stated
+explicitly.
 
 \subsection{Example 1}
 This is the "radiation therapy" example, taken from "Introduction to

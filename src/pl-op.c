@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -82,7 +82,7 @@ static void
 copyOperatorSymbol(Symbol s)
 { GET_LD
   operator *op = s->value;
-  operator *o2 = allocHeap(sizeof(*o2));
+  operator *o2 = allocHeapOrHalt(sizeof(*o2));
 
   *o2 = *op;
 }
@@ -157,7 +157,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   { UNLOCK();				/* already inherited: do not change */
     return TRUE;
   } else
-  { op = allocHeap(sizeof(*op));
+  { op = allocHeapOrHalt(sizeof(*op));
 
     op->priority[OP_PREFIX]  = -1;
     op->priority[OP_INFIX]   = -1;
@@ -504,7 +504,7 @@ current_op(Module m, int inherit,
       } else
 	return FALSE;
 
-      e = allocHeap(sizeof(*e));
+      e = allocHeapOrHalt(sizeof(*e));
       b = &e->buffer;
       initBuffer(b);
       e->index = 0;

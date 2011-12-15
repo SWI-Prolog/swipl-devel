@@ -217,7 +217,7 @@ True if thread \arg{Id} has \arg{Property}.  Either or both arguments
 may be unbound, enumerating all relations on backtracking.
 Calling thread_property/2 does not influence any thread.  See also
 thread_join/2.  For threads that have an alias-name, this name is
-returned in \arg{Id} instead of the numerical thread identifier.
+returned in \arg{Id} instead of the opaque thread identifier.
 Defined properties are:
 
 \begin{description}
@@ -249,16 +249,21 @@ exception (see throw/1 and catch/3).
 \end{description}
     \end{description}
 
+See also thread_statistics/3 to obtain resource usage information and
+message_queue_property/2 to get the number of queued messages for a
+thread.
+
     \predicate{thread_statistics}{3}{+Id, +Key, -Value}
 Obtains statistical information on thread \arg{Id} as statistics/2
 does in single-threaded applications.  This call supports all keys
 of statistics/2, although only stack sizes and CPU time yield
 different values for each thread.%
-	\footnote{Getting the CPU-time of a specific thread is
-		  not supported on all platforms. On some platforms
-		  it returns total process CPU time instead of the
-		  thread CPU time. Thread CPU time is supported on
-		  MS-Windows and most recent Linux versions.}
+	\footnote{There is no portable interface to obtain
+		  thread-specific CPU-time and some operating systems
+		  provide no access to this information at all.  On
+		  such systems the total process CPU is returned. Thread
+		  CPU time is supported on MS-Windows, Linux and
+		  MacOSX.}
 
     \predicate{mutex_statistics}{0}{}
 Print usage statistics on internal mutexes and mutexes associated with
@@ -354,12 +359,15 @@ queue, is faster than the drain, consuming the messages.
     \predicate{message_queue_destroy}{1}{+Queue}
 Destroy a message queue created with message_queue_create/1. A
 permission error is raised if \arg{Queue} refers to (the default queue
-of) a thread. Other threads are waiting for \arg{Queue} using
+of) a thread. Other threads that are waiting for \arg{Queue} using
 thread_get_message/2 receive an existence error.
 
     \predicate{thread_get_message}{2}{+Queue, ?Term}
 As thread_get_message/1, operating on a given queue. It is allowed (but
-not advised) to get messages from the queue of other threads.
+not advised) to get messages from the queue of other threads.  This
+predicate raises an existence error exception if \arg{Queue} doesn't
+exist or is destroyed using message_queue_destroy/1 while this predicate
+is waiting.
 
     \predicate{thread_peek_message}{2}{+Queue, ?Term}
 As thread_peek_message/1, operating on a given queue. It is allowed
@@ -373,11 +381,20 @@ are:
     \begin{description}
         \termitem{alias}{Alias}
 Queue has the given alias name.
+	\termitem{max_size}{Size}
+Maximum number of terms that can be in the queue. See
+message_queue_create/2.  This property is not present if there is no
+limit (default).
 	\termitem{size}{Size}
 Queue currently contains \arg{Size} terms. Note that due to concurrent
 access the returned value may be outdated before it is returned. It can
 be used for debugging purposes as well as work distribution purposes.
     \end{description}
+
+The \term{size}{Size} property is always present and may be used to
+enumerate the created message queues.  Note that this predicate does
+\emph{not enumerate} threads, but can be used to query the properties
+of the default queue of a thread.
 \end{description}
 
 Explicit message queues are designed with the \jargon{worker-pool} model
@@ -929,48 +946,47 @@ realised.
 \section{Multithreading and the XPCE graphics system}	\label{sec:mt-xpce}
 \label{sec:xpcethread}
 
-GUI applications written in XPCE can benefit from the multi-threaded
-version of XPCE/SWI-Prolog if they need to do expensive computations
-that block to UI in the single-threaded version.
-
-Due to various technical problems on both Windows and Unix/X11 threading
-is best exploited by handing long computations to their own thread.
-
-The XPCE message passing system is guarded with a single \jargon{mutex},
+GUI applications written in XPCE can benefit from Prolog thraeds if they
+need to do expensive computations that would otherwise block the UI. The
+XPCE message passing system is guarded with a single \jargon{mutex},
 which synchronises both access from Prolog and activation through the
-GUI. In MS-Windows, GUI events are processed by the thread that
-created the window in which the event occurred, whereas in Unix/X11 they
-are processed by the thread that dispatches messages.
+GUI. In MS-Windows, GUI events are processed by the thread that created
+the window in which the event occurred, whereas in Unix/X11 they are
+processed by the thread that dispatches messages. In practice, the most
+feasible approach to graphical Prolog implementations is to control XPCE
+from a single thread and deploy other threads for (long) computations.
 
-Some tentative work is underway to improve the integration between XPCE
-and multi-threaded SWI-Prolog. There are two sets of support predicates.
-The first model assumes that XPCE is running in the main thread and
-background threads are used for computation.  In the second model,
-XPCE event dispatching runs in the background, while the foreground
-thread is used for Prolog.
+Traditionally, XPCE runs in the foreground (\const{main}) thread. We are
+working towards a situation where XPCE can run comfortably in a separate
+thread. A separete XPCE thread can be created using pce_dispatch/1. It
+is also possible to create this thread as the \pllib(pce) is loaded by
+setting the \prologflag{xpce_threaded} to \const{true}.
 
-\paragraph{XPCE in the foreground}
-Using XPCE in the foreground simplifies debugging of the UI and
-generally provides the most comfortable development environment.
-The GUI creates new threads using thread_create/3 and, after
-work in the thread is completed, the sub-thread signals the
-main thread of the completion using in_pce_thread/1.
+Threads other that the thread in which XPCE runs are provided with two
+predicates to communicate with XPCE.
 
 \begin{description}
-    \predicate{in_pce_thread}{1}{:Goal}
+    \predicate[det]{in_pce_thread}{1}{:Goal}
 Assuming XPCE is running in the foreground thread, this call gives
 background threads the opportunity to make calls to the XPCE thread.
 A call to in_pce_thread/1 succeeds immediately, copying \arg{Goal}
 to the XPCE thread.  \arg{Goal} is added to the XPCE event-queue
 and executed synchronous to normal user events like typing and clicking.
-\end{description}
 
+    \predicate[semidet]{in_pce_thread_sync}{1}{:Goal}
+Same as in_pce_thread/1, but wait for \arg{Goal} to be completed.
+Success depends on the success of executing \arg{Goal}. Variable
+bindings inside \arg{Goal} are visible to the caller, but it should be
+noted that the values are being \emph{copied}. If \arg{Goal} throws an
+exception, this exception is re-thrown by in_pce_thread/1. If the
+calling thread is the `pce thread', in_pce_thread_sync/1 executes a
+direct meta-call. See also pce_thread/1.
 
-\paragraph{XPCE in the background}
-In this model a thread for running XPCE is created using pce_dispatch/1
-and actions are sent to this thread using pce_call/1.
+Note that in_pce_thread_sync/1 is expensive because it requires copying
+and thread communication.  For example, \exam{in_pce_thread_sync{true}}
+runs at approximately 50,000 calls per second (AMD Phenom 9600B, Ubuntu
+11.04).
 
-\begin{description}
     \predicate{pce_dispatch}{1}{+Options}
 Create a Prolog thread with the alias-name \const{pce} for XPCE
 event-handling. In the X11 version this call creates a thread that
@@ -978,17 +994,8 @@ executes the X11 event-dispatch loop. In MS-Windows it creates a thread
 that executes a windows event-dispatch loop.  The XPCE event-handling
 thread has the alias \const{pce}. \arg{Options} specifies the
 thread-attributes as thread_create/3.
-
-    \predicate{pce_call}{1}{:Goal}
-Post \arg{Goal} to the \const{pce} thread, executing it synchronous
-with the thread's event-loop.  The pce_call/1 predicate returns
-immediately without waiting.  Note that \arg{Goal} is \emph{copied}
-to the \const{pce} thread.
 \end{description}
 
-For further information about XPCE in threaded applications, please
-visit
-\url{http://gollem.science.uva.nl/twiki/pl/bin/view/Development/MultiThreadsXPCE}
 
 
 

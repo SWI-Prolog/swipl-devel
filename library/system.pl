@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -19,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -35,8 +36,7 @@
 	  system_mode/1,
 	  system_module/0
 	]).
-
-:- style_check(+dollar).
+:- use_module(library(error)).
 
 /** <module> System utilities
 
@@ -48,46 +48,29 @@ predicates cannot be traced or redefined.
 @tbd		Move this functionality to prolog flags.
 */
 
-%%	system_mode(?Boolean)
+%%	system_mode(+Boolean) is det.
 %
 %	Switch the system into system or user mode.  When in system mode,
 %	system predicates loose most of their special properties, so it
-%	becomes possible to trace and even redefine them.  Use the latter
-%	with care as the system predicates call one another.  This should
-%	once be fixed by defining all of them in a module ('$system'), so
-%	the user can savely remove them from module user.
+%	becomes possible to trace and even redefine them.
 %
-%	@bug	This predicate both accepts true/false and on/off.  New
-%		code must use true/false.
+%	@deprecated  New code should use the prolog flag =access_level=.
 
-system_mode(X) :-
-	var(X), !,
-	(   style_check(?(dollar))
-	->  X = true
-	;   X = false
-	).
-system_mode(True) :-
-	truth(True, true), !,
-	style_check(+dollar).
-system_mode(True) :-
-	truth(True, false), !,
-	style_check(-dollar).
 system_mode(Val) :-
-	must_be(boolean, Val).
-
-truth(true,  true).
-truth(false, false).
-truth(on,    true).
-truth(off,   false).
+	must_be(boolean, Val),
+	(   Val == true
+	->  set_prolog_flag(access_level, system)
+	;   set_prolog_flag(access_level, user)
+	).
 
 %%	system_module
 %
-%	Any predicate defined after this declaraction uptill the end of
-%	the file will become a system predicate. Normally invoked by a
+%	Any predicate defined after this declaraction   uptil the end of
+%	the file will become a system   predicate. Normally invoked by a
 %	directive immediately following the module declaration.
 
 system_module :-
-	system_mode(on).
+	set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	lock_predicate(:),

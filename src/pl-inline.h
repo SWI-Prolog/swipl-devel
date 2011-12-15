@@ -19,13 +19,140 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #ifndef PL_INLINE_H_INCLUDED
 #define PL_INLINE_H_INCLUDED
 #undef LD
 #define LD LOCAL_LD
+
+
+		 /*******************************
+		 *	 LOCK-FREE SUPPORT	*
+		 *******************************/
+
+#ifdef _MSC_VER				/* Windows MSVC version */
+
+#define HAVE_MSB 1
+static inline int
+MSB(unsigned int i)
+{ unsigned long mask = i;
+  unsigned long index;
+
+  _BitScanReverse(&index, mask);
+  return index;
+}
+
+#define HAVE_MEMORY_BARRIER 1
+#ifndef MemoryBarrier
+#define MemoryBarrier() (void)0
+#endif
+
+#endif /*_MSC_VER*/
+
+#if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
+#define HAVE_MSB 1
+#define MSB(i) (31 - __builtin_clz(i))		/* GCC builtin */
+#endif
+
+#if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
+#define HAVE_MEMORY_BARRIER 1
+#define MemoryBarrier() __sync_synchronize()
+#endif
+
+#ifndef HAVE_MSB
+#define HAVE_MSB 1
+static inline int
+MSB(unsigned int i)
+{ int j = 0;
+
+  if (i >= 0x10000) {i >>= 16; j += 16;}
+  if (i >=   0x100) {i >>=  8; j +=  8;}
+  if (i >=    0x10) {i >>=  4; j +=  4;}
+  if (i >=     0x4) {i >>=  2; j +=  2;}
+  if (i >=     0x2) j++;
+
+  return j;
+}
+#endif
+
+#ifndef HAVE_MEMORY_BARRIER
+#define HAVE_MEMORY_BARRIER 1
+#define MemoryBarrier() (void)0
+#endif
+
+
+		 /*******************************
+		 *	     BITVECTOR		*
+		 *******************************/
+
+typedef uintptr_t bitv_chunk;
+typedef struct bit_vector
+{ size_t size;
+  bitv_chunk chunk[1];				/* bits */
+} bit_vector;
+#define BITSPERE (sizeof(bitv_chunk)*8)
+
+#ifndef offset
+#define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
+#endif
+
+#define new_bitvector(size) new_bitvector__LD(size PASS_LD)
+#define free_bitvector(v)   free_bitvector__LD(v PASS_LD)
+
+static inline bit_vector *
+new_bitvector__LD(size_t size ARG_LD)
+{ size_t bytes = offset(bit_vector, chunk[(size+BITSPERE-1)/BITSPERE]);
+  bit_vector *v = allocHeapOrHalt(bytes);
+
+  memset(v, 0, bytes);
+  v->size = size;
+  return v;
+}
+
+static inline void
+free_bitvector__LD(bit_vector *v ARG_LD)
+{ size_t bytes = offset(bit_vector, chunk[(v->size+BITSPERE-1)/BITSPERE]);
+
+  freeHeap(v, bytes);
+}
+
+static inline void
+clear_bitvector(bit_vector *v ARG_LD)
+{ size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
+
+  memset(v->chunk, 0, chunks*sizeof(bitv_chunk));
+}
+
+static inline void
+set_bit(bit_vector *v, int which)
+{ int e = which/BITSPERE;
+  int b = which%BITSPERE;
+
+  v->chunk[e] |= ((uintptr_t)1<<b);
+}
+
+static inline void
+clear_bit(bit_vector *v, int which)
+{ int e = which/BITSPERE;
+  int b = which%BITSPERE;
+
+  v->chunk[e] &= ~((uintptr_t)1<<b);
+}
+
+static inline int
+true_bit(bit_vector *v, int which)
+{ int e = which/BITSPERE;
+  int b = which%BITSPERE;
+
+  return (v->chunk[e]&((uintptr_t)1<<b)) != 0;
+}
+
+
+		 /*******************************
+		 *	     MISC STUFF		*
+		 *******************************/
 
 static inline code
 fetchop(Code PC)
@@ -58,7 +185,7 @@ Note that the local stack is always _above_ the global stack.
 
 static inline void
 Trail__LD(Word p, word v ARG_LD)
-{ SECURE(assert(tTop+1 <= tMax));
+{ DEBUG(CHK_SECURE, assert(tTop+1 <= tMax));
 
   if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
@@ -68,7 +195,7 @@ Trail__LD(Word p, word v ARG_LD)
 
 static inline void
 bindConst__LD(Word p, word c ARG_LD)
-{ SECURE(assert(hasGlobalSpace(0)));
+{ DEBUG(CHK_SECURE, assert(hasGlobalSpace(0)));
 
 #ifdef O_ATTVAR
   if ( isVar(*p) )
@@ -91,7 +218,7 @@ consPtr__LD(void *p, word ts ARG_LD)
 { uintptr_t v = (uintptr_t) p;
 
   v -= LD->bases[ts&STG_MASK];
-  SECURE(assert(v < MAXTAGGEDPTR && !(v&0x3)));
+  DEBUG(CHK_SECURE, assert(v < MAXTAGGEDPTR && !(v&0x3)));
   return (v<<5)|ts;
 }
 

@@ -24,7 +24,7 @@ PLBASE=$(TARGET_PROGRAM_FILES)\$(PL_DIR_NAME)
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
-PLCUSTOM=$(PLBASE)\custom
+PLCUSTOM=$(PLBASE)\customize
 
 # Get extra include files from here
 EXTRAINCDIR=$(HOME)\include
@@ -73,7 +73,7 @@ BINDIR=$(PLBASE)\runtime
 # Makefile also checks whether the package directory exists.
 
 PLPKG=chr clpqr http plunit pldoc R
-PKGS=$(PLPKG) cpp odbc clib table sgml RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL) $(BUILD_SPACE) protobufs
+PKGS=$(PLPKG) cpp odbc clib table sgml RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL) $(BUILD_SPACE) protobufs windows PDT
 
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
@@ -104,7 +104,7 @@ INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
 MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" MD="$(MD)" GMP="$(GMP)" /nologo /f Makefile.mak
 
-LIBS=msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib ws2_32.lib ole32.lib $(EXTRALIBS)
+LIBS=msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib ws2_32.lib ole32.lib $(EXTRALIBS) Dbghelp.lib
 !if "$(MT)" == "true"
 LIBS=$(LIBS) $(LIBPTHREAD).lib
 !ENDIF

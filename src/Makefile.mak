@@ -62,7 +62,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
 
 PLSRC=$(PLSRC) ../boot/menu.pl
-PLWINLIBS= wise.pl dde.pl progman.pl registry.pl win_menu.pl
+PLWINLIBS= wise.pl dde.pl progman.pl win_menu.pl
 PLLIBS=$(PLLIBS) $(PLWINLIBS)
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 UNICODE=blocks.pl unicode_data.pl
@@ -74,8 +74,7 @@ remake-all: distclean all install
 
 lite:	banner \
 	headers	swipl.home subdirs vmi \
-	$(PLCON) startup index $(PLWIN) $(PLLD) \
-	dlldemos
+	$(PLCON) startup index $(PLWIN) $(PLLD)
 
 plcon:	$(PLCON)
 plwin:	$(PLWIN)
@@ -186,7 +185,7 @@ check:
 ################################################################
 
 install::	install-arch install-libs install-readme install_packages \
-		xpce_packages install-dotfiles install-demo html-install
+		xpce_packages install-custom install-demo html-install
 
 embed-manifests::
 		win32\embed_manifests.cmd
@@ -194,8 +193,6 @@ embed-manifests::
 install-arch:	idirs iprog
 		$(INSTALL_PROGRAM) $(PLLD)  "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(PLRC)  "$(BINDIR)"
-		$(INSTALL_PROGRAM) ..\bin\plregtry.dll  "$(BINDIR)"
-		$(INSTALL_PROGRAM) ..\bin\dlltest.dll  "$(BINDIR)"
 		$(INSTALL_DATA) $(PLLIB) "$(LIBDIR)"
 		$(INSTALL_DATA) $(TERMLIB) "$(LIBDIR)"
 
@@ -238,6 +235,7 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
+		"$(PLBASE)\library\dialect\swi" \
 		"$(PLBASE)\library\dialect\iso" \
 		"$(PLBASE)\library\dialect\sicstus" \
 		"$(PLBASE)\library\dialect\ciao" \
@@ -253,7 +251,7 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idialect iyap isicstus iciao iiso iunicode
+ilib:		iclp idialect iswi iyap isicstus iciao iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
@@ -264,6 +262,10 @@ iclp::
 idialect:	iyap
 		chdir $(PLHOME)\library\dialect & \
 			for %f in ($(DIALECT)) do copy %f "$(PLBASE)\library\dialect"
+
+iswi::
+		chdir $(PLHOME)\library\dialect\swi & \
+			for %f in ($(SWI)) do copy %f "$(PLBASE)\library\dialect\swi"
 
 iyap::
 		chdir $(PLHOME)\library\dialect\yap & \
@@ -305,10 +307,10 @@ install-readme::
 		$(INSTALL_DATA) ..\COPYING "$(PLBASE)\COPYING.TXT"
 		$(INSTALL_DATA) ..\man\windows.html "$(PLBASE)\doc"
 
-install-dotfiles::
-		$(INSTALL_DATA) ..\dotfiles\dotplrc "$(PLCUSTOM)\pl.ini"
-		$(INSTALL_DATA) ..\dotfiles\dotxpcerc "$(PLCUSTOM)\xpce.ini"
-		$(INSTALL_DATA) ..\dotfiles\README "$(PLCUSTOM)\README.TXT"
+install-custom::
+		$(INSTALL_DATA) ..\customize\dotplrc "$(PLCUSTOM)\pl.ini"
+		$(INSTALL_DATA) ..\customize\dotxpcerc "$(PLCUSTOM)\xpce.ini"
+		$(INSTALL_DATA) ..\customize\README "$(PLCUSTOM)\README.TXT"
 
 html-install::
 		copy ..\man\Manual\*.html $(MANDIR) > nul
@@ -325,12 +327,6 @@ installer::
 		$(INSTALL_DATA) win32\installer\mkinstaller.pl "$(PLBASE)\.."
 		"$(NSIS)" $(NSISDEFS) "$(PLBASE)\..\pl.nsi"
 
-################################################################
-# DLL DEMOS
-################################################################
-
-dlldemos::
-		chdir win32\foreign & $(MAKE)
 
 ################################################################
 # Build and install packages
@@ -385,21 +381,12 @@ odbc-install:
 # Redistributable Requirements .cab files
 ################################################################
 
-!IF "$(MD)" == "WIN32"
-BITS=32
-!ELSE
-BITS=64
-!ENDIF
-
-CAB:	reqs$(BITS)
-
-reqs$(BITS)::
-	cabarc.exe -m LZX:21 N include.cab "..\include$(BITS)\*.*"
-	cabarc.exe -m LZX:21 N lib.cab "..\lib$(BITS)\*.*"
-	cabarc.exe -m LZX:21 N reqs$(BITS).cab include.cab lib.cab
-	if exist include.cab (del /Q include.cab)
-	if exist lib.cab (del /Q lib.cab)
-
+# To update the reqs-N-BITS.cab, do this:
+#
+# Extract the old one, update the files and update files.txt
+# Then run
+#
+# cabarc.exe -p n reqs-N-BITS.cab @files.txt
 
 ################################################################
 # Cleanup
@@ -410,13 +397,11 @@ clean:		clean_packages
 		chdir libtai & $(MAKE) clean
 		chdir os\windows & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
-		chdir win32\foreign & $(MAKE) clean
 		-del *.manifest *.obj os\*.obj *~ pl.res vmi 2>nul
 
 distclean:	clean distclean_packages
 		@chdir rc & $(MAKE) distclean
 		@chdir libtai & $(MAKE) distclean
-		@chdir win32\foreign & $(MAKE) distclean
 		-del ..\bin\*.exe ..\bin\*.dll ..\bin\*.pdb 2>nul
 		-del ..\library\INDEX.pl 2>nul
 		-del swipl.home swiplbin 2>nul

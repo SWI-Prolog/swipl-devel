@@ -20,7 +20,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     As a special exception, if you link this library with other files,
     compiled with a Free Software compiler, to produce an executable, this
@@ -31,10 +31,12 @@
 */
 
 :- module(qsave,
-	  [ qsave_program/1
-	  , qsave_program/2
+	  [ qsave_program/1,			% +File
+	    qsave_program/2			% +File, +Options
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(error)).
 
 /** <module> Save current program as a state or executable
 
@@ -49,7 +51,23 @@ also used by the commandline sequence below.
 :- meta_predicate
 	qsave_program(+, :).
 
-:- system_mode(on).
+:- predicate_options(qsave_program/2, 2,
+		     [ local(integer),
+		       global(integer),
+		       trail(integer),
+		       goal(callable),
+		       toplevel(callable),
+		       init_file(atom),
+		       class(oneof([runtime,kernel,development])),
+		       autoload(boolean),
+		       map(atom),
+		       op(oneof([save,standard])),
+		       stand_alone(boolean),
+		       foreign(oneof([save,no_save])),
+		       emulator(atom)
+		     ]).
+
+:- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic verbose/1.
 :- volatile verbose/1.			% contains a stream-handle
@@ -62,30 +80,15 @@ also used by the commandline sequence below.
 qsave_program(File) :-
 	qsave_program(File, []).
 
-qsave_program(FileBase, Module:Options0) :-
-	check_options(Options0),
+qsave_program(FileBase, Options0) :-
+	meta_options(is_meta, Options0, Options),
+	check_options(Options),
 	exe_file(FileBase, File),
-	option(Options0, autoload/true,	    Autoload,  Options1),
-	option(Options1, map/[],	    Map,       Options2),
-	option(Options2, goal/[],	    GoalTerm,  Options3),
-	option(Options3, op/save,	    SaveOps,   Options4),
-	option(Options4, class/runtime,	    SaveClass, Options5),
-	option(Options5, init_file/DefInit, InitFile,  Options6),
+	option(class(SaveClass),    Options, runtime),
+	option(init_file(InitFile), Options, DefInit),
 	default_init_file(SaveClass, DefInit),
-	(   GoalTerm == []
-	->  Options = Options6,
-	    flag('$banner_goal', BannerGoal, BannerGoal),
-	    define_predicate(user:BannerGoal)
-	;   term_to_atom(Module:GoalTerm, GoalAtom),
-	    term_to_atom(GT, GoalAtom),
-	    define_predicate(user:GT),
-	    Options = [goal=GoalAtom|Options6]
-	),
-	(   Autoload == true
-	->  save_autoload
-	;   true
-	),
-	open_map(Map),
+	save_autoload(Options),
+	open_map(Options),
 	create_prolog_flag(saved_program, true, []),
 	create_prolog_flag(saved_program_class, SaveClass, []),
 	(   exists_file(File)
@@ -94,27 +97,34 @@ qsave_program(FileBase, Module:Options0) :-
 	),
 	'$rc_open_archive'(File, RC),
 	make_header(RC, SaveClass, Options),
-	save_options(RC, [ class(SaveClass),
-			   init_file(InitFile)
+	save_options(RC, [ init_file(InitFile)
 			 | Options
 			 ]),
 	save_resources(RC, SaveClass),
 	'$rc_open'(RC, '$state', '$prolog', write, StateFd),
 	'$open_wic'(StateFd),
-	system_mode(on),		% generate system modules too
-	save_modules(SaveClass),
-	save_records,
-	save_flags,
-	save_imports,
-	save_prolog_flags,
-	save_operators(SaveOps),
-	save_format_predicates,
-	system_mode(off),
+	setup_call_cleanup(
+	    ( current_prolog_flag(access_level, OldLevel),
+	      set_prolog_flag(access_level, system) % generate system modules
+	    ),
+	    ( save_modules(SaveClass),
+	      save_records,
+	      save_flags,
+	      save_imports,
+	      save_prolog_flags,
+	      save_operators(Options),
+	      save_format_predicates
+	    ),
+	    set_prolog_flag(access_level, OldLevel)),
 	'$close_wic',
 	close(StateFd),
+	save_foreign_libraries(RC, Options),
 	'$rc_close_archive'(RC),
 	'$mark_executable'(File),
 	close_map.
+
+is_meta(goal).
+is_meta(toplevel).
 
 exe_file(Base, Exe) :-
 	current_prolog_flag(windows, true),
@@ -132,8 +142,7 @@ default_init_file(_,       InitFile) :-
 		 *******************************/
 
 make_header(RC, _, Options) :-
-	option(Options, emulator/(-), OptVal, _),
-	OptVal \== (-), !,
+	option(emulator(OptVal), Options), !,
 	absolute_file_name(OptVal, [access(read)], Emulator),
 	'$rc_append_file'(RC, '$header', '$rc', none, Emulator).
 make_header(RC, _, Options) :-
@@ -141,8 +150,7 @@ make_header(RC, _, Options) :-
 	->  DefStandAlone = true
 	;   DefStandAlone = false
 	),
-	option(Options, stand_alone/DefStandAlone, OptVal, _),
-	OptVal == true, !,
+	option(stand_alone(true), Options, DefStandAlone), !,
 	current_prolog_flag(executable, Executable),
 	'$rc_append_file'(RC, '$header', '$rc', none, Executable).
 make_header(RC, SaveClass, _Options) :-
@@ -174,7 +182,10 @@ convert_option(Stack, Val, NewVal) :-	% stack-sizes are in K-bytes
 	->  NewVal = Val
 	;   NewVal is max(Min, Val*1024)
 	).
-convert_option(_, Val, Val).
+convert_option(goal, Callable, Atom) :-
+	term_to_atom(Callable, Atom).
+convert_option(toplevel, Callable, Atom) :-
+	term_to_atom(Callable, Atom).
 
 doption(Name) :- min_stack(Name, _).
 doption(goal).
@@ -184,13 +195,14 @@ doption(system_init_file).
 doption(class).
 doption(home).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Save the options in the '$options' resource.   The home directory is saved
-for development saves, so it keeps refering to the development home.
-
-The script-file (-s script) is not saved at all. I think this is fine to
-avoid a save-script loading itself.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+%%	save_options(+ArchiveHandle, +Options)
+%
+%	Save the options in the '$options'  resource. The home directory
+%	is saved for development saves,  so   it  keeps  refering to the
+%	development home.
+%
+%	The script-file (-s script) is not saved at all. I think this is
+%	fine to avoid a save-script loading itself.
 
 save_options(RC, Options) :-
 	'$rc_open'(RC, '$options', '$prolog', write, Fd),
@@ -200,10 +212,10 @@ save_options(RC, Options) :-
 		->  \+ memberchk(class(runtime), Options)
 		;   true
 		),
-	        option(Options, OptionName/_, OptionVal1, _),
-	        (   var(OptionVal1)	% used the default
-		->  OptionVal = OptionVal0
-		;   convert_option(OptionName, OptionVal1, OptionVal)
+	        OptTerm =.. [OptionName,OptionVal1],
+	        (   option(OptTerm, Options)
+		->  convert_option(OptionName, OptionVal1, OptionVal)
+		;   OptionVal = OptionVal0
 		),
 	        format(Fd, '~w=~w~n', [OptionName, OptionVal]),
 	    fail
@@ -265,13 +277,16 @@ reserved_resource('$state',	'$prolog').
 reserved_resource('$options',	'$prolog').
 
 copy_resource(FromRC, ToRC, Name, Class) :-
-	'$rc_open'(FromRC, Name, Class, read, FdIn),
-	'$rc_open'(ToRC,	 Name, Class, write, FdOut),
-	feedback('~t~8|~w~t~24|~w~t~40|~w~n',
-		 [Name, Class, '<Copied from running state>']),
-	copy_stream_data(FdIn, FdOut),
-	close(FdOut),
-	close(FdIn).
+	setup_call_cleanup(
+	    '$rc_open'(FromRC, Name, Class, read,  FdIn),
+	    setup_call_cleanup(
+		'$rc_open'(ToRC,   Name, Class, write, FdOut),
+		( feedback('~t~8|~w~t~24|~w~t~40|~w~n',
+			   [Name, Class, '<Copied from running state>']),
+		  copy_stream_data(FdIn, FdOut)
+		),
+		close(FdOut)),
+	    close(FdIn)).
 
 
 		 /*******************************
@@ -299,8 +314,24 @@ define_predicate(Head) :-
 		 *	      AUTOLOAD		*
 		 *******************************/
 
-save_autoload :-
-	autoload.
+define_init_goal(Options) :-
+	option(goal(Goal), Options), !,
+	define_predicate(Goal).
+define_init_goal(_) :-
+	flag('$banner_goal', BannerGoal, BannerGoal),
+	define_predicate(user:BannerGoal).
+
+define_toplevel_goal(Options) :-
+	option(toplevel(Goal), Options), !,
+	define_predicate(Goal).
+define_toplevel_goal(_).
+
+save_autoload(Options) :-
+	define_init_goal(Options),
+	define_toplevel_goal(Options),
+	option(autoload(true),  Options, true), !,
+	autoload(Options).
+
 
 		 /*******************************
 		 *	       MODULES		*
@@ -314,37 +345,49 @@ save_module(M, SaveClass) :-
 	'$qlf_start_module'(M),
 	feedback('~n~nMODULE ~w~n', [M]),
 	save_unknown(M),
-	(   P = (M:H),
+	(   P = (M:_H),
 	    current_predicate(_, P),
 	    \+ predicate_property(P, imported_from(_)),
-	    \+ predicate_property(P, foreign),
-	    functor(H, F, A),
-	    feedback('~nsaving ~w/~d ', [F, A]),
-	    (	H = resource(_,_,_),
-		SaveClass \== development
-	    ->	save_attribute(P, (dynamic)),
-		(   M == user
-		->  save_attribute(P, (multifile))
-		),
-		feedback('(Skipped clauses)', []),
-		fail
-	    ;	true
-	    ),
-	    save_attributes(P),
-	    \+ predicate_property(P, (volatile)),
-	    nth_clause(P, _, Ref),
-	    feedback('.', []),
-	    '$qlf_assert_clause'(Ref, SaveClass),
+	    save_predicate(P, SaveClass),
 	    fail
 	;   '$qlf_end_part',
 	    feedback('~n', [])
 	).
 
-pred_attrib(indexed(Term), Head, index(M:Term)) :- !,
-	    strip_module(Head, M, _).
+save_predicate(P, _SaveClass) :-
+	predicate_property(P, foreign), !,
+	P = (M:H),
+	functor(H, Name, Arity),
+	feedback('~npre-defining foreign ~w/~d ', [Name, Arity]),
+	'$add_directive_wic'('$predefine_foreign'(M:Name/Arity)).
+save_predicate(P, SaveClass) :-
+	P = (M:H),
+	functor(H, F, A),
+	feedback('~nsaving ~w/~d ', [F, A]),
+	(   H = resource(_,_,_),
+	    SaveClass \== development
+	->  save_attribute(P, (dynamic)),
+	    (   M == user
+	    ->  save_attribute(P, (multifile))
+	    ),
+	    feedback('(Skipped clauses)', []),
+	    fail
+	;   true
+	),
+	save_attributes(P),
+	\+ predicate_property(P, (volatile)),
+	(   nth_clause(P, _, Ref),
+	    feedback('.', []),
+	    '$qlf_assert_clause'(Ref, SaveClass),
+	    fail
+	;   true
+	).
+
+
 pred_attrib(meta_predicate(Term), Head, meta_predicate(M:Term)) :- !,
 	    strip_module(Head, M, _).
-pred_attrib(Attrib, Head, '$set_predicate_attribute'(M:Name/Arity, AttName, Val)) :-
+pred_attrib(Attrib, Head,
+	    '$set_predicate_attribute'(M:Name/Arity, AttName, Val)) :-
 	attrib_name(Attrib, AttName, Val),
 	strip_module(Head, M, Term),
 	functor(Term, Name, Arity).
@@ -364,11 +407,7 @@ attrib_name(nodebug,       hide_childs,	  1).
 
 save_attribute(P, Attribute) :-
 	pred_attrib(Attribute, P, D),
-	(   Attribute = indexed(Term)
-	->  \+(( arg(1, Term, 1),
-	         functor(Term, _, Arity),
-		 forall(between(2, Arity, N), arg(N, Term, 0))))
-	;   Attribute == built_in	% no need if there are clauses
+	(   Attribute == built_in	% no need if there are clauses
 	->  (   predicate_property(P, number_of_clauses(0))
 	    ->	true
 	    ;	predicate_property(P, volatile)
@@ -480,6 +519,8 @@ save_prolog_flags :-
 save_prolog_flags.
 
 no_save_flag(argv).
+no_save_flag(access_level).
+no_save_flag(tty_control).
 no_save_flag(readline).
 no_save_flag(associated_file).
 no_save_flag(hwnd).			% should be read-only, but comes
@@ -503,12 +544,13 @@ restore_prolog_flag(Flag, Value, Type) :-
 		 *	     OPERATORS		*
 		 *******************************/
 
-%%	save_operators(+Save) is det.
+%%	save_operators(+Options) is det.
 %
 %	Save operators for all modules.   Operators for =system= are
 %	not saved because these are read-only anyway.
 
-save_operators(save) :- !,
+save_operators(Options) :- !,
+	option(op(save), Options, save),
 	feedback('~nOPERATORS~n', []),
 	forall(current_module(M), save_module_operators(M)),
 	feedback('~n', []).
@@ -542,14 +584,62 @@ qualify_head(T, user:T).
 
 
 		 /*******************************
+		 *	 FOREIGN LIBRARIES	*
+		 *******************************/
+
+%%	save_foreign_libraries(+Archive, +Options) is det.
+%
+%	Save current foreign libraries into the archive.
+
+save_foreign_libraries(RC, Options) :-
+	option(foreign(save), Options), !,
+	feedback('~nFOREIGN LIBRARIES~n', []),
+	forall(current_foreign_library(FileSpec, _Predicates),
+	       ( find_foreign_library(FileSpec, File),
+		 term_to_atom(FileSpec, Name),
+		 '$rc_append_file'(RC, Name, shared, none, File)
+	       )).
+save_foreign_libraries(_, _).
+
+%%	find_foreign_library(+FileSpec, -File) is det.
+%
+%	Find the shared object specified by   FileSpec.  If posible, the
+%	shared object is stripped to reduce   its size. This is achieved
+%	by calling strip -o <tmp> <shared-object>. Note that the file is
+%	a Prolog tmp file and will be deleted on halt.
+%
+%	@bug	Should perform OS search on failure
+
+find_foreign_library(FileSpec, SharedObject) :-
+	absolute_file_name(FileSpec,
+			   [ file_type(executable),
+			     file_errors(fail)
+			   ], File), !,
+	(   absolute_file_name(path(strip), Strip,
+			       [ access(execute),
+				 file_errors(fail)
+			       ]),
+	    tmp_file(shared, Stripped),
+	    format(atom(Cmd), '"~w" -o "~w" "~w"',
+		   [ Strip, Stripped, File ]),
+	    shell(Cmd)
+	->  SharedObject = Stripped,
+	    Delete = true
+	;   SharedObject = File,
+	    Delete = false
+	).
+
+
+		 /*******************************
 		 *	       UTIL		*
 		 *******************************/
 
-open_map([]) :- !,
-	retractall(verbose(_)).
-open_map(File) :-
-	open(File, write, Fd),
+open_map(Options) :-
+	option(map(Map), Options), !,
+	open(Map, write, Fd),
 	asserta(verbose(Fd)).
+open_map(_) :-
+	retractall(verbose(_)).
 
 close_map :-
 	retract(verbose(Fd)),
@@ -562,23 +652,17 @@ feedback(Fmt, Args) :-
 feedback(_, _).
 
 
-option(List, Name/_Default, Value, Rest) :- % goal = Goal
-	select(Name=Value, List, Rest), !.
-option(List, Name/_Default, Value, Rest) :- % goal(Goal)
-	Term =.. [Name, Value],
-	select(Term, List, Rest), !.
-option(List, _Name/Default, Default, List).
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Option checking and exception generation.  This should be in a library!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 option_type(Name,	 integer) :- min_stack(Name, _MinValue).
-option_type(class,	 atom([runtime,kernel,development])).
-option_type(autoload,	 bool).
+option_type(class,	 oneof([runtime,kernel,development])).
+option_type(autoload,	 boolean).
 option_type(map,	 atom).
-option_type(op,		 atom([save, standard])).
-option_type(stand_alone, bool).
+option_type(op,		 oneof([save, standard])).
+option_type(stand_alone, boolean).
+option_type(foreign,	 oneof([save, no_save])).
 option_type(goal,	 callable).
 option_type(toplevel,	 callable).
 option_type(init_file,	 atom).
@@ -590,7 +674,7 @@ check_options([Var|_]) :-
 	throw(error(domain_error(save_options, Var), _)).
 check_options([Name=Value|T]) :- !,
 	(   option_type(Name, Type)
-	->  (   check_type(Type, Value)
+	->  (   must_be(Type, Value)
 	    ->  check_options(T)
 	    ;	throw(error(domain_error(Type, Value), _))
 	    )
@@ -604,21 +688,6 @@ check_options([Var|_]) :-
 check_options(Opt) :-
 	throw(error(domain_error(list, Opt), _)).
 
-check_type(integer, V) :-
-	integer(V).
-check_type(atom(List), V) :-
-	atom(V),
-	memberchk(V, List), !.
-check_type(atom, V) :-
-	atom(V).
-check_type(callable, V) :-
-	atom(V).
-check_type(callable, V) :-
-	compound(V).
-check_type(ground, V) :-
-	ground(V).
-check_type(bool, true).
-check_type(bool, false).
 
 		 /*******************************
 		 *	      MESSAGES		*

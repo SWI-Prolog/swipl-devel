@@ -403,13 +403,9 @@ imports from \const{system} where all built-in predicates reside. These
 special modules are described in more detail in \secref{resmodules}.
 
 The list of import modules can be manipulated and queried using the
-following predicates:
+following predicates, as well as using set_module/1.
 
 \begin{description}
-    \predicate{set_base_module}{1}{:Module}
-Set the default import module of the current module to \arg{Module}.
-Typically, \arg{Module} is one of \const{user} or \const{system}.
-
     \predicate[nondet]{import_module}{2}{+Module, -Import}
 True if \arg{Module} inherits directly from \arg{Import}. All normal
 modules only import from \const{user}, which imports from
@@ -459,6 +455,7 @@ predicates without any special precautions.
 
 
 \section{An alternative import/export interface}
+\label{sec:altmoduleapi}
 
 The use_module/1 predicate from \secref{import} defines import and
 export relations based on the filename from which a module is loaded. If
@@ -516,13 +513,17 @@ import/1 and export/1 or specifying the import module as described in
 \secref{importmodule}.
 
 \begin{code}
-?- world_b:export(solve(_,_)).          % exports solve/2 from world_b
-?- world_c:import(world_b:solve(_,_)).  % and import it to world_c
+?- world_b:export(solve/2).          % exports solve/2 from world_b
+?- world_c:import(world_b:solve/2).  % and import it to world_c
 \end{code}
 
 
 \section{Transparent predicates: definition and context module}
 \label{sec:ctxmodule}
+
+\textit{The `module-transparent' mechanism is still underlying the
+actual implementation.  Direct usage by programmers is deprecated.
+Please use meta_predicate/1 to deal with meta-predicates.}
 
 The qualification of module sensitive arguments
 described in \secref{metapred} is realised using \jargon{transparent}
@@ -575,7 +576,8 @@ defined in the same module.
 
 \begin{code}
 :- module(count_atom_results,
-	  count_atom_results/3).
+	  [ count_atom_results/3
+	  ]).
 :- meta_predicate count_atom_results(-,0,-).
 
 count_atom_results(A, Goal, Count) :-
@@ -609,7 +611,7 @@ are unified to these values.  Otherwise, \arg{Plain} is unified to
 \end{description}
 
 
-\section{Query the module system}	\label{sec:manipmodule}
+\section{Module properties}	\label{sec:manipmodule}
 
 The following predicates can be used to query the module system for
 reflexive programming:
@@ -626,6 +628,21 @@ True if \arg{Property} is a property of \arg{Module}. Defined properties
 are:
 
     \begin{description}
+	\termitem{class}{-Class}
+	True when \arg{Class} is the class of the module.  Defined
+	classes are
+	\begin{description}
+	    \termitem{user}{}
+	    Default for user defined modules.
+	    \termitem{system}{}
+	    Module \const{system} and modules from \file{<home>/boot}.
+	    \termitem{library}{}
+	    Other modules from the system directories.
+	    \termitem{test}{}
+	    Modules that create tests.
+	    \termitem{development}{}
+	    Modules that only support the development environment.
+	\end{description}
         \termitem{file}{?File}
 	True if \arg{Module} was loaded from \arg{File}.
 	\termitem{line_count}{-Line}
@@ -636,6 +653,22 @@ are:
 	and never the DCG form Name//Arity). Future versions may also
 	use the DCG form and include public operators. See also
 	predicate_property/2.
+	\termitem{exported_operators}{-ListOfOperators}
+	True if \arg{Module} exports the given operators.  Each exported
+	operator is represented as a term \term{op}{Pri,Assoc,Name}.
+    \end{description}
+
+    \predicate{set_module}{1}{:Property}
+Modify properties of the module.  Currently, the following properties
+may be modified.
+
+    \begin{description}
+	\termitem{base}{+Base}
+Set the default import module of the current module to \arg{Module}.
+Typically, \arg{Module} is one of \const{user} or \const{system}.  See
+\secref{importmodule}.
+	\termitem{class}{+Class}
+Set the class of the module.  See module_property/2.
     \end{description}
 \end{description}
 

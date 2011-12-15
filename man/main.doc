@@ -46,8 +46,8 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{10}
-\newcommand{\vpatch}{5}
-\newcommand{\vmonth}{August}
+\newcommand{\vpatch}{6}
+\newcommand{\vmonth}{December}
 \newcommand{\vyear}{2011}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
@@ -73,7 +73,7 @@ build large scale applications in Prolog.  For this reason it stresses
 connectivity to the C-language, few system limits, comprehensive
 memory management, modules, multi-threading, coroutining, constraints
 and a fast and interactive development environment. Portable libraries
-for graphics, databases, networking, web-services, XML, RDF and many
+for graphics, databases, networking, web services, XML, RDF and many
 more complete the system.
 
 SWI-Prolog is compliant to part one of ISO standard Prolog. In addition
@@ -152,12 +152,12 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 SWI-Prolog is a Prolog implementation based on a subset of the WAM
 (Warren Abstract Machine). SWI-Prolog was developed as an {\em open}
 Prolog environment, providing a powerful and bi-directional interface to
-C in an era this was unknown to other Prolog implementations. This
+C in an era when this was unknown to other Prolog implementations. This
 environment is required to deal with XPCE, an object-oriented GUI system
 developed at SWI. XPCE is used at SWI for the development of
 knowledge-intensive graphical applications.
 
-As SWI-Prolog became more popular, a large user-community provided
+As SWI-Prolog became more popular, a large user community provided
 requirements that guided its development. Compatibility, portability,
 scalability, stability and providing a powerful development environment
 have been the most important requirements. Edinburgh, Quintus, SICStus

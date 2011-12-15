@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "pl-incl.h"
@@ -42,7 +42,7 @@ char *
 store_string(const char *s)
 { if ( s )
   { GET_LD
-    char *copy = (char *)allocHeap(strlen(s)+2);
+    char *copy = (char *)allocHeapOrHalt(strlen(s)+2);
 
     *copy++ = CHAR_INUSE;
     strcpy(copy, s);
@@ -72,7 +72,7 @@ store_string(const char *s)
 { if ( s )
   { GET_LD
 
-    char *copy = (char *)allocHeap(strlen(s)+1);
+    char *copy = (char *)allocHeapOrHalt(strlen(s)+1);
 
     strcpy(copy, s);
     return copy;
@@ -102,10 +102,10 @@ remove_string(char *s)
  ** Fri Jun 10 10:45:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 char
-digitName(int n, int small)
+digitName(int n, int smll)
 { if (n <= 9)
     return n + '0';
-  return n + (small ? 'a' : 'A') - 10;
+  return n + (smll ? 'a' : 'A') - 10;
 }
 
 

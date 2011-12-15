@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*#define O_DEBUG 1*/
@@ -831,9 +831,13 @@ static when_status
 when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
 { deRef(cond);
 
-  if ( state->depth++ == 100 &&
-       !PL_is_acyclic(wordToTermRef(cond)) )
-    return E_CYCLIC;
+  if ( state->depth++ == 100 )
+  { int rc = PL_is_acyclic(pushWordAsTermRef(cond));
+
+    popTermRef();
+    if ( !rc )
+      return E_CYCLIC;
+  }
 
   if ( isTerm(*cond) )
   { Functor term = valueTerm(*cond);
@@ -1240,8 +1244,13 @@ retry:
   { gTop = gend;
     return PL_unify_nil(A2);
   } else
-  { *tailp = ATOM_nil;
-    return PL_unify(A2, wordToTermRef(list));
+  { int rc;
+
+    *tailp = ATOM_nil;
+    rc = PL_unify(A2, pushWordAsTermRef(list));
+    popTermRef();
+
+    return rc;
   }
 
 grow:
