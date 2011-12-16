@@ -1356,6 +1356,32 @@ PL_malloc(size_t size)
 }
 
 
+void *
+PL_malloc_atomic(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC_ATOMIC(size)) )
+    return mem;
+
+  outOfCore();
+
+  return NULL;
+}
+
+
+void *
+PL_malloc_uncollectable(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC_UNCOLLECTABLE(size)) )
+    return mem;
+
+  outOfCore();
+
+  return NULL;
+}
+
+
 void
 PL_free(void *mem)
 { GC_FREE(mem);
@@ -1376,6 +1402,15 @@ PL_realloc(void *mem, size_t size)
 		 /*******************************
 		 *	       INIT		*
 		 *******************************/
+
+#ifdef HAVE_BOEHM_GC
+static void
+heap_gc_warn_proc(char *msg, GC_word arg)
+{ Sdprintf(msg, arg);
+  save_backtrace("heap-gc-warning");
+  print_backtrace_named("heap-gc-warning");
+}
+#endif
 
 static void
 initHBase(void)
@@ -1401,6 +1436,7 @@ initAlloc(void)
 
 #ifdef HAVE_BOEHM_GC
   GC_INIT();
+  GC_set_warn_proc(heap_gc_warn_proc);
 #endif
 
 #if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
