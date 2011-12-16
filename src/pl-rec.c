@@ -562,7 +562,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   unvisit(PASS_LD1);
 
   size = rsize + sizeOfBuffer(&info.code);
-  record = allocHeapOrHalt(size);
+  record = PL_malloc_stubborn(size);
 #ifdef REC_MAGIC
   record->magic = REC_MAGIC;
 #endif
@@ -574,6 +574,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   { record->references = 1;
   }
   memcpy(addPointer(record, rsize), info.code.base, sizeOfBuffer(&info.code));
+  PL_end_stubborn_change(record);
   discardBuffer(&info.code);
 
   DEBUG(3, Sdprintf("--> record at %p\n", record));
@@ -637,8 +638,9 @@ PL_record_external(term_t t, size_t *len)
 
   ret_primitive:
     scode = (int)sizeOfBuffer(&info.code);
-    rec = allocHeapOrHalt(scode);
+    rec = PL_malloc_stubborn(scode);
     memcpy(rec, info.code.base, scode);
+    PL_end_stubborn_change(rec);
     discardBuffer(&info.code);
     *len = scode;
     return rec;
@@ -673,9 +675,10 @@ PL_record_external(term_t t, size_t *len)
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = (int)sizeOfBuffer(&hdr);
 
-  rec = allocHeapOrHalt(shdr + scode);
+  rec = PL_malloc_stubborn(shdr + scode);
   memcpy(rec, hdr.base, shdr);
   memcpy(rec+shdr, info.code.base, scode);
+  PL_end_stubborn_change(rec);
 
   discardBuffer(&info.code);
   discardBuffer(&hdr);
