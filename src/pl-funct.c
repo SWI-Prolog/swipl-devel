@@ -285,8 +285,9 @@ cleanupFunctors(void)
   { FunctorDef *fp;
 
     if ( (fp=GD->functors.array.blocks[i]) )
-    { GD->functors.array.blocks[i] = NULL;
-      PL_free(fp);
+    { size_t bs = (size_t)1<<i;
+      GD->functors.array.blocks[i] = NULL;
+      PL_free(fp+bs);
     }
   }
 }

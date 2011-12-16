@@ -286,6 +286,11 @@ static const ccharp atoms[] = {
 };
 #undef ATOM
 
+/* Note that we use PL_malloc_uncollectable() here because the pointer in
+   our block is not the real memory pointer.  Probably it is better to
+   have two pointers; one to the allocated memory and one with the
+   necessary offset.
+*/
 
 static void
 putAtomArray(unsigned int where, Atom a)
@@ -1006,8 +1011,10 @@ cleanupAtoms(void)
   { Atom *ap;
 
     if ( (ap=GD->atoms.array.blocks[i]) )
-    { GD->atoms.array.blocks[i] = NULL;
-      PL_free(ap);
+    { size_t bs = (size_t)1<<i;
+
+      GD->atoms.array.blocks[i] = NULL;
+      PL_free(ap+bs);
     }
   }
 }
