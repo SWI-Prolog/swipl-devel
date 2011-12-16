@@ -878,8 +878,11 @@ PL_EXPORT(void)		PL_clock_wait_ticks(long waited);
 PL_EXPORT(void *)	PL_malloc(size_t size);
 PL_EXPORT(void *)	PL_malloc_atomic(size_t size);
 PL_EXPORT(void *)	PL_malloc_uncollectable(size_t size);
+PL_EXPORT(void *)	PL_malloc_stubborn(size_t size);
+PL_EXPORT(void)		PL_end_stubborn_change(void *mem);
 PL_EXPORT(void *)	PL_realloc(void *mem, size_t size);
 PL_EXPORT(void)		PL_free(void *mem);
+
 
 		/********************************
 		*             HOOKS		*

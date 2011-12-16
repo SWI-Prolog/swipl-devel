@@ -1382,6 +1382,25 @@ PL_malloc_uncollectable(size_t size)
 }
 
 
+void *
+PL_malloc_stubborn(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC_STUBBORN(size)) )
+    return mem;
+
+  outOfCore();
+
+  return NULL;
+}
+
+
+void
+PL_end_stubborn_change(void *mem)
+{ GC_END_STUBBORN_CHANGE(mem);
+}
+
+
 void
 PL_free(void *mem)
 { GC_FREE(mem);

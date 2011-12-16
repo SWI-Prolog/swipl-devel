@@ -444,10 +444,17 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   a->length = length;
   a->type = type;
   if ( false(type, PL_BLOB_NOCOPY) )
-  { size_t pad = paddingBlob(type);
-    a->name = allocHeapOrHalt(length+pad);
-    memcpy(a->name, s, length);
-    memset(a->name+length, 0, pad);
+  { if ( true(type, PL_BLOB_TEXT) )
+    { size_t pad = paddingBlob(type);
+
+      a->name = PL_malloc_atomic(length+pad);
+      memcpy(a->name, s, length);
+      memset(a->name+length, 0, pad);
+    } else
+    { a->name = PL_malloc_stubborn(length);
+      memcpy(a->name, s, length);
+      PL_end_stubborn_change(a->name);
+    }
   } else
   { a->name = (char *)s;
   }
