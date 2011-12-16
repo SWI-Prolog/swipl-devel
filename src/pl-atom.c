@@ -905,10 +905,13 @@ rehashAtoms(void)
 
     for(; index<upto; index++)
     { Atom a = b[index];
-      size_t v = a->hash_value & mask;
 
-      a->next = atomTable[v];
-      atomTable[v] = a;
+      if ( a )
+      { size_t v = a->hash_value & mask;
+
+	a->next = atomTable[v];
+	atomTable[v] = a;
+      }
     }
   }
 

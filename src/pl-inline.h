@@ -89,7 +89,7 @@ MSB(unsigned int i)
 #endif
 
 		 /*******************************
-		 *	       ATOMS		*
+		 *	 ATOMS/FUNCTORS		*
 		 *******************************/
 
 static inline Atom
@@ -97,6 +97,14 @@ fetchAtomArray(unsigned int index)
 { int idx = MSB(index);
 
   return GD->atoms.array.blocks[idx][index];
+}
+
+
+static inline FunctorDef
+fetchFunctorArray(unsigned int index)
+{ int idx = MSB(index);
+
+  return GD->functors.array.blocks[idx][index];
 }
 
 

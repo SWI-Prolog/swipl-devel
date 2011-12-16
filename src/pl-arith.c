@@ -3329,8 +3329,8 @@ indexArithFunction(functor_t f)
 
 
 functor_t
-functorArithFunction(int i)
-{ FunctorDef fd = fetchBuffer(&functor_array, i, FunctorDef);
+functorArithFunction(unsigned int i)
+{ FunctorDef fd = fetchFunctorArray(i);
 
   return fd->functor;
 }

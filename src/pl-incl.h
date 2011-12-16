@@ -1056,6 +1056,11 @@ struct functorDef
 };
 
 
+typedef struct functor_array
+{ FunctorDef *blocks[8*sizeof(void*)];
+} functor_array;
+
+
 #ifdef O_LOGICAL_UPDATE
 #define visibleClause(cl, gen) \
 	((cl)->generation.created <= (gen) && \

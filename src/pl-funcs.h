@@ -142,7 +142,7 @@ COMMON(word)		pl_current_arithmetic_function(term_t f, control_t h);
 COMMON(void)		initArith(void);
 COMMON(void)		cleanupArith(void);
 COMMON(int)		indexArithFunction(functor_t fdef);
-COMMON(functor_t)	functorArithFunction(int n);
+COMMON(functor_t)	functorArithFunction(unsigned int n);
 COMMON(bool)		ar_func_n(int findex, int argc ARG_LD);
 COMMON(int)		ar_add_ui(Number n, intptr_t add);
 COMMON(int)		valueExpression(term_t p, Number n ARG_LD);

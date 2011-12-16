@@ -218,7 +218,8 @@ struct PL_global_data
   } prolog_flag;
 
   struct
-  { buffer	array;			/* index --> functor */
+  { size_t	highest;		/* Next index to handout */
+    functor_array array;		/* index --> functor */
     int		buckets;		/* # buckets in atom --> functor */
     FunctorDef* table;			/* hash-table */
   } functors;
