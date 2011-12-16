@@ -894,7 +894,7 @@ cleanupExpand(void)
   canonical_dirlist = NULL;
   for( ; dn; dn = next )
   { next = dn->next;
-    free(dn);
+    PL_free(dn);
   }
 }
 
@@ -921,7 +921,7 @@ registerParentDirs(const char *path)
     }
 
     if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
-    { CanonicalDir dn   = malloc(sizeof(*dn));
+    { CanonicalDir dn   = PL_malloc(sizeof(*dn));
 
       dn->name		= store_string(dirname);
       dn->inode		= buf.st_ino;
@@ -976,7 +976,7 @@ verify_entry(CanonicalDir d)
     remove_string(d->name);
     if ( d->canonical != d->name )
       remove_string(d->canonical);
-    free(d);
+    PL_free(d);
   }
 
   return FALSE;
@@ -1009,7 +1009,7 @@ canoniseDir(char *path)
 					/* is sometimes bigger! */
 
   if ( statfunc(OsPath(path, tmp), &buf) == 0 )
-  { CanonicalDir dn = malloc(sizeof(*dn));
+  { CanonicalDir dn = PL_malloc(sizeof(*dn));
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
 
@@ -2133,7 +2133,7 @@ growEnviron(char **e, int amount)
     for(e1=e, filled=0; *e1; e1++, filled++)
       ;
     size = ROUND(filled+10+amount, 32);
-    env = (char **)malloc(size * sizeof(char *));
+    env = (char **)PL_malloc(size * sizeof(char *));
     for ( e1=e, e2=env; *e1; *e2++ = *e1++ )
       ;
     *e2 = (char *) NULL;
@@ -2147,7 +2147,7 @@ growEnviron(char **e, int amount)
   { char **env, **e1, **e2;
 
     size += 32;
-    env = (char **)realloc(e, size * sizeof(char *));
+    env = (char **)PL_realloc(e, size * sizeof(char *));
     for ( e1=e, e2=env; *e1; *e2++ = *e1++ )
       ;
     *e2 = (char *) NULL;
@@ -2179,9 +2179,9 @@ matchName(const char *e, const char *name)
 
 static void
 setEntry(char **e, char *name, char *value)
-{ int l = (int)strlen(name);
+{ size_t l = strlen(name);
 
-  *e = (char *) malloc(l + strlen(value) + 2);
+  *e = PL_malloc_atomic(l + strlen(value) + 2);
   strcpy(*e, name);
   e[0][l++] = '=';
   strcpy(&e[0][l], value);

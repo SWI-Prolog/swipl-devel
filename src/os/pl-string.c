@@ -239,13 +239,13 @@ int_mbscoll(const char *s1, const char *s2, int icase)
   if ( l1 < 1024 && (w1 = alloca(sizeof(wchar_t)*(l1+1))) )
   { ml1 = FALSE;
   } else
-  { w1 = PL_malloc(sizeof(wchar_t)*(l1+1));
+  { w1 = PL_malloc_atomic(sizeof(wchar_t)*(l1+1));
     ml1 = TRUE;
   }
   if ( l2 < 1024 && (w2 = alloca(sizeof(wchar_t)*(l2+1))) )
   { ml2 = FALSE;
   } else
-  { w2 = PL_malloc(sizeof(wchar_t)*(l2+1));
+  { w2 = PL_malloc_atomic(sizeof(wchar_t)*(l2+1));
     ml2 = TRUE;
   }
 
