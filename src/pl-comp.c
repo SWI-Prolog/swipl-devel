@@ -106,8 +106,7 @@ NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 #if VMCODE_IS_ADDRESS
 void
 initWamTable(void)
-{ GET_LD
-  unsigned int n;
+{ unsigned int n;
   code maxcoded, mincoded;
 
   assert(I_HIGHEST < 255);	/* need short for dewam_table on overflow */
@@ -130,8 +129,8 @@ initWamTable(void)
   dewam_table_offset = mincoded;
 
   assert(wam_table[C_NOT] != wam_table[C_IFTHENELSE]);
-  dewam_table = (unsigned char *)allocHeapOrHalt(((maxcoded-dewam_table_offset) + 1) *
-				  sizeof(char));
+  dewam_table = (unsigned char *)PL_malloc_atomic(((maxcoded-dewam_table_offset) + 1) *
+						  sizeof(char));
 
   for(n = 0; n < I_HIGHEST; n++)
     dewam_table[wam_table[n]-dewam_table_offset] = (unsigned char) n;
@@ -277,7 +276,7 @@ getVarDef(int i ARG_LD)
   }
 
   if ( !(vd = vardefs[i]) )
-  { vd = vardefs[i] = allocHeapOrHalt(sizeof(vardef));
+  { vd = vardefs[i] = PL_malloc_atomic(sizeof(vardef));
     memset(vd, 0, sizeof(*vd));
     vd->functor = FUNCTOR_dvard1;
   }
@@ -301,7 +300,7 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
     if ( (v = *vd) )
     { v->address = NULL;
     } else
-    { *vd = v = allocHeapOrHalt(sizeof(vardef));
+    { *vd = v = PL_malloc_atomic(sizeof(vardef));
       memset(v, 0, sizeof(vardef));
       v->functor = FUNCTOR_dvard1;
     }
@@ -1157,8 +1156,10 @@ Finish up the clause.
   if ( head )
   { size_t size  = sizeofClause(clause.code_size);
 
-    cl = allocHeapOrHalt(size);
+    cl = PL_malloc_stubborn(size);
     memcpy(cl, &clause, sizeofClause(0));
+    memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
+    PL_end_stubborn_change(cl);
 
     GD->statistics.codes += clause.code_size;
   } else
@@ -1189,6 +1190,7 @@ Finish up the clause.
     cref->next = NULL;
     cref->value.clause = cl = (Clause)p;
     memcpy(cl, &clause, sizeofClause(0));
+    memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
     p = addPointer(p, sizeofClause(clause.code_size));
     cl->variables += (int)(p-p0);
 
@@ -1201,7 +1203,6 @@ Finish up the clause.
     lTop = (LocalFrame)p;
   }
 
-  memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
   discardBuffer(&ci.codes);
 
   *cp = cl;
