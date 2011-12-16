@@ -34,6 +34,12 @@
 
 #ifdef _MSC_VER				/* Windows MSVC version */
 
+/* MSB(0) = undefined
+   MSB(1) = 0
+   MSB(2) = 1
+   ...
+*/
+
 #define HAVE_MSB 1
 static inline int
 MSB(unsigned int i)
@@ -81,6 +87,17 @@ MSB(unsigned int i)
 #define HAVE_MEMORY_BARRIER 1
 #define MemoryBarrier() (void)0
 #endif
+
+		 /*******************************
+		 *	       ATOMS		*
+		 *******************************/
+
+static inline Atom
+fetchAtomArray(unsigned int index)
+{ int idx = MSB(index);
+
+  return GD->atoms.array.blocks[idx][index];
+}
 
 
 		 /*******************************

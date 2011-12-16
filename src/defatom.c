@@ -43,7 +43,7 @@ int
 main(int argc, char **argv)
 { FILE *aic, *aih, *fic, *fih;
   FILE *in;
-  int atom=0;
+  int atom=1;
   int functor=0;
   int line=0;
   char buf[256];

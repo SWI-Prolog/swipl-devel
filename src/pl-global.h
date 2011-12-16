@@ -154,9 +154,8 @@ struct PL_global_data
   } arith;
 
   struct
-  { Atom *	array;			/* index --> atom */
-    size_t	count;			/* elements in array */
-    size_t	array_allocated;	/* allocated size of array */
+  { size_t	highest;		/* Highest atom index */
+    atom_array	array;
     unsigned int buckets;		/* # buckets in char * --> atom */
     Atom *	table;			/* hash-table */
     int		lookups;		/* # atom lookups */

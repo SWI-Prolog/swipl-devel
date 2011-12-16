@@ -1023,6 +1023,12 @@ struct atom
   char *	name;		/* name associated with atom */
 };
 
+
+typedef struct atom_array
+{ Atom *blocks[8*sizeof(void*)];
+} atom_array;
+
+
 #ifdef O_ATOMGC
 #define ATOM_MARKED_REFERENCE ((unsigned int)1 << (INTBITSIZE-1))
 #ifdef O_DEBUG_ATOMGC

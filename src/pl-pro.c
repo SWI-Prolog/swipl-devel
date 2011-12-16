@@ -622,15 +622,15 @@ last_arg:
   }
 
   if ( isAtom(*p) )
-  { uintptr_t idx;
-    uintptr_t mx = GD->atoms.count;
+  { size_t idx;
+    size_t mx = GD->atoms.highest;
 
     assert(!is_marked(p));
     if ( storage(*p) != STG_STATIC )
       printk("Atom doesn't have STG_STATIC");
 
     idx = indexAtom(*p);
-    if ( idx > mx )
+    if ( idx >= mx )
       printk("Atom index out of range (%ld > %ld)", idx, mx);
     return key + *p;
   }
