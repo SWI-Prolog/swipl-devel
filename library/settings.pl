@@ -60,7 +60,7 @@ applications. Applications define settings  in   one  or  multiple files
 using the directive setting/4 as illustrated below:
 
 ==
-:- use_module(library(setting)).
+:- use_module(library(settings)).
 
 :- setting(version, atom,   '1.0', 'Current version').
 :- setting(timeout, number,    20, 'Timeout in seconds').
