@@ -559,6 +559,9 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex;
 
+  if ( Sferror(rb.stream) )		/* Stream error; will be reported */
+    fail;				/* elsewhere */
+
   LD->exception.processing = TRUE;	/* allow using spare stack */
 
   ex = makeErrorTerm(id_str, id_term, _PL_rd);
