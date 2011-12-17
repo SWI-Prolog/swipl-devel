@@ -89,6 +89,9 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
   fid_t fid;
   int rc;
 
+  if ( exception_term )			/* do not overrule older exception */
+    return FALSE;
+
   if ( environment_frame )
     caller = environment_frame->predicate;
   else
