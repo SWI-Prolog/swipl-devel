@@ -150,8 +150,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 60			/* load all versions later >= X */
-#define VERSION 60			/* save version number */
+#define LOADVERSION 61			/* load all versions later >= X */
+#define VERSION 61			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -1127,6 +1127,13 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		*bp++ = w;
 		break;
 	      }
+	      case CA1_AFUNC:
+	      { word f = loadXR(state);
+		int  i = indexArithFunction(f);
+		assert(i>0);
+		*bp++ = i;
+		break;
+	      }
 	      case CA1_MODULE:
 		*bp++ = loadXR(state);
 		break;
@@ -1134,7 +1141,6 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      case CA1_JUMP:
 	      case CA1_VAR:
 	      case CA1_CHP:
-	      case CA1_AFUNC:
 		*bp++ = (intptr_t)getInt64(fd);
 		break;
 	      case CA1_INT64:
@@ -1951,6 +1957,11 @@ saveWicClause(wic_state *state, Clause clause)
 	  saveXRFunctor(state, f PASS_LD);
 	  break;
 	}
+	case CA1_AFUNC:
+	{ functor_t f = functorArithFunction((unsigned int)*bp++);
+	  saveXRFunctor(state, f PASS_LD);
+	  break;
+	}
 	case CA1_DATA:
 	{ word xr = (word) *bp++;
 	  saveXR(state, xr);
@@ -1960,7 +1971,6 @@ saveWicClause(wic_state *state, Clause clause)
 	case CA1_JUMP:
 	case CA1_VAR:
 	case CA1_CHP:
-	case CA1_AFUNC:
 	{ putNum(*bp++, fd);
 	  break;
 	}
