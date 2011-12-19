@@ -1383,6 +1383,19 @@ PL_malloc_uncollectable(size_t size)
 
 
 void *
+PL_malloc_atomic_uncollectable(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC_ATOMIC_UNCOLLECTABLE(size)) )
+    return mem;
+
+  outOfCore();
+
+  return NULL;
+}
+
+
+void *
 PL_malloc_stubborn(size_t size)
 { void *mem;
 
