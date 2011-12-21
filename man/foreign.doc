@@ -1048,6 +1048,9 @@ stack.}
 \cfunction{void}{PL_put_atom}{term_t -t, atom_t a}
 Put an atom in the term reference from a handle.  See also
 PL_new_atom() and PL_atom_chars().
+\cfunction{void}{PL_put_bool}{term_t -t, int val}
+Put one of the atoms \const{true} or \const{false} in the term reference
+See also PL_put_atom(), PL_unify_bool() and PL_get_bool().
 \cfunction{int}{PL_put_atom_chars}{term_t -t, const char *chars}
 Put an atom in the term-reference constructed from the 0-terminated
 string.  The string itself will never be referenced by Prolog after this

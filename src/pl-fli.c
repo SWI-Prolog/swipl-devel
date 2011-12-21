@@ -2033,6 +2033,15 @@ PL_put_atom(term_t t, atom_t a)
 
 
 int
+PL_put_bool(term_t t, int val)
+{ GET_LD
+
+  PL_put_atom__LD(t, val ? ATOM_true : ATOM_false PASS_LD);
+  return TRUE;
+}
+
+
+int
 PL_put_atom_chars(term_t t, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, strlen(s));
