@@ -40,9 +40,29 @@ AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
 AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 if test "$PLTHREADS" = "yes"; then MT=yes; fi
-else
-PL=$PLPKGDIR/swipl.sh
-PLLD=$PLPKGDIR/swipl-ld.sh
+CC=$PLLD
+LD=$PLLD
+LDSOFLAGS=-shared
+CMFLAGS=-fPIC
+SO="$PLSOEXT"
+
+else					# Called in build-tree
+
+dialectvar()
+{ grep "^$1=" $PLPKGDIR/Dialect.defs | sed "s/^$1=//"
+}
+
+PL="$PLPKGDIR/swipl.sh"
+CC="$(dialectvar CC)"
+CXX="$(dialectvar CXX)"
+LD="$(dialectvar LD)"
+SO="$(dialectvar SO)"
+COFLAGS="$(dialectvar COFLAGS)"
+CWFLAGS="$(dialectvar CWFLAGS)"
+CMFLAGS="$(dialectvar CMFLAGS)"
+CIFLAGS="$(dialectvar CIFLAGS)"
+
+CFLAGS="$COFLAGS $CWFLAGS $CMFLAGS $CIFLAGS"
 fi
 
 case "$PLARCH" in
@@ -55,23 +75,6 @@ case "$PLARCH" in
         INSTALL_PLARCH=$PLARCH
         ;;
 esac
-
-if test "$MT" = yes; then
-  case "$PLARCH" in
-    *freebsd|openbsd*)	AC_DEFINE(_THREAD_SAFE, 1,
-				  [Define for threaded code on FreeBSD])
-			;;
-  esac
-  AC_DEFINE(_REENTRANT, 1,
-            [Define for multi-thread support])
-fi
-
-CC=$PLLD
-LD=$PLLD
-LDSOFLAGS=-shared
-CMFLAGS=-fPIC
-
-SO="$PLSOEXT"
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
