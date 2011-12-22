@@ -679,7 +679,7 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
 
   *ap = NULL;			/* delete from index array */
   if ( false(a->type, PL_BLOB_NOCOPY) )
-    freeHeap(a->name, a->length+paddingBlob(a->type));
+    PL_free(a->name);
   freeHeap(a, sizeof(*a));
 
   return TRUE;

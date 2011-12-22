@@ -1412,7 +1412,7 @@ freeRecord__LD(Record record ARG_LD)
   }
 #endif
 
-  freeHeap(record, record->size);
+  PL_free(record);
 
   succeed;
 }

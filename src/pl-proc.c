@@ -1039,7 +1039,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 void
 unallocClause(Clause c ARG_LD)
 { GD->statistics.codes -= c->code_size;
-  freeHeap(c, sizeofClause(c->code_size));
+  PL_free(c);				/* allocated with PL_malloc_stubborn() */
 }
 
 
