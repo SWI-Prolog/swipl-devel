@@ -30,7 +30,7 @@
 #endif
 
 #ifndef O_MYALLOC
-#define O_MYALLOC 1
+#define O_MYALLOC 0
 #endif
 
 #ifndef ALLOC_DEBUG
