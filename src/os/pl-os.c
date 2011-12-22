@@ -101,21 +101,6 @@ static void	initEnviron(void);
 #define DEFAULT_PATH "/bin:/usr/bin"
 #endif
 
-		 /*******************************
-		 *	       GLOBALS		*
-		 *******************************/
-#ifdef HAVE_CLOCK
-long clock_wait_ticks;
-#endif
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module is a contraction of functions that used to be all  over  the
-place.   together  with  pl-os.h  (included  by  pl-incl.h) this file
-should define a basic  layer  around  the  OS,  on  which  the  rest  of
-SWI-Prolog  is  based.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
 		/********************************
 		*         INITIALISATION        *
 		*********************************/
@@ -238,11 +223,25 @@ static char errmsg[64];
 #endif /*_SC_CLK_TCK*/
 #endif /*HAVE_TIMES*/
 
+#ifdef HAVE_CLOCK_GETTIME
+#define timespec_to_double(ts) \
+	((double)(ts).tv_sec + (double)(ts).tv_nsec/(double)1000000000.0)
+#endif
 
 double
 CpuTime(cputime_kind which)
 {
-#ifdef HAVE_TIMES
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_PROCESS_CPUTIME_ID)
+#define CPU_TIME_DONE
+  struct timespec ts;
+
+  if ( clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts) == 0 )
+    return timespec_to_double(ts);
+  return 0.0;
+#endif
+
+#if !defined(CPU_TIME_DONE) && defined(HAVE_TIMES)
+#define CPU_TIME_DONE
   struct tms t;
   double used;
   static int MTOK_got_hz = FALSE;
@@ -267,38 +266,19 @@ CpuTime(cputime_kind which)
     used = 0.0;				/* happens when running under GDB */
 
   return used;
-#else
+#endif
 
-#if OS2 && EMX
-  DATETIME i;
-
-  DosGetDateTime((PDATETIME)&i);
-  return (((i.hours * 3600)
-                 + (i.minutes * 60)
-		 + i.seconds
-	         + (i.hundredths / 100.0)) - initial_time);
-#else
-
-#ifdef HAVE_CLOCK
+#if !defined(CPU_TIME_DONE) && defined(HAVE_CLOCK)
+#define CPU_TIME_DONE
   return (double) (clock() - clock_wait_ticks) / (double) CLOCKS_PER_SEC;
-#else
+#endif
 
+#if !defined(CPU_TIME_DONE)
   return 0.0;
-
-#endif
-#endif
 #endif
 }
 
 #endif /*__WINDOWS__*/
-
-void
-PL_clock_wait_ticks(long waited)
-{
-#ifdef HAVE_CLOCK
-  clock_wait_ticks += waited;
-#endif
-}
 
 
 double
@@ -309,7 +289,7 @@ WallTime(void)
   struct timespec tp;
 
   clock_gettime(CLOCK_REALTIME, &tp);
-  stime = (double)tp.tv_sec + (double)tp.tv_nsec/1000000000.0;
+  stime = timespec_to_double(tp);
 #else
 #ifdef HAVE_GETTIMEOFDAY
   struct timeval tp;
