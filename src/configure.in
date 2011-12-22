@@ -306,7 +306,8 @@ AC_ARG_ENABLE(custom-flags, [  --disable-custom-flags  Do not add custom build o
 	custom_flags=yes)
 if test "x$custom_flags" = "xyes" ; then
 	if test "$GCC" = "yes"; then
-		COFLAGS="${COFLAGS--O2 -fno-strict-aliasing}"
+		COFLAGS="${COFLAGS--O2}"
+		CMFLAGS="${CMFLAGS--fno-strict-aliasing}"
 		LDFLAGS="${LDFLAGS--O2}"
 		CWFLAGS="${CWFLAGS--Wall}"
 	else
