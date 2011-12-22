@@ -112,17 +112,15 @@ struct PL_global_data
   } paths;
 
   struct
-  { size_t	heap;			/* heap in use */
-    size_t	atoms;			/* No. of atoms defined */
-    size_t	atomspace;		/* # bytes used to store atoms */
+  { size_t	atoms;			/* No. of atoms defined */
+    size_t	atom_string_space;	/* # bytes used to store atoms */
+    size_t	atom_string_space_freed;/* # bytes in freed atoms */
     size_t	stack_space;		/* # bytes on stacks */
-#ifdef O_ATOMGC
-    size_t	atomspacefreed;		/* Freed atom-space */
-#endif
     int		functors;		/* No. of functors defined */
     int		predicates;		/* No. of predicates defined */
     int		modules;		/* No. of modules in the system */
-    intptr_t	codes;			/* No. of byte codes generated */
+    size_t	clauses;		/* No. clauses */
+    size_t	codes;			/* No. of VM codes generated */
     double	start_time;		/* When Prolog was started */
     double	user_cputime;		/* User CPU time (whole process) */
     double	system_cputime;		/* Kernel CPU time (whole process) */

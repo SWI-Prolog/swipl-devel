@@ -809,6 +809,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   }
 
   def->impl.clauses.number_of_clauses++;
+  GD->statistics.clauses++;
 #ifdef O_LOGICAL_UPDATE
   PL_LOCK(L_MISC);
   clause->generation.created = ++GD->generation;
@@ -1039,6 +1040,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 void
 unallocClause(Clause c ARG_LD)
 { GD->statistics.codes -= c->code_size;
+  GD->statistics.clauses--;
   PL_free(c);				/* allocated with PL_malloc_stubborn() */
 }
 

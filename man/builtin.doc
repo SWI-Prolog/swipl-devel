@@ -6972,8 +6972,10 @@ process_cputime & (User) {\sc cpu} time since Prolog was started in seconds \\
 cputime         & (User) {\sc cpu} time since thread was started in seconds \\
 inferences      & Total number of passes via the call and redo ports
                   since Prolog was started. \\
-heapused        & Bytes heap in use by Prolog. \\
-heap_gc         & Number of heap garbage-collections performed. \\
+heapused        & Bytes heap in use by Prolog (0 if not maintained). \\
+heap_gc         & Number of heap garbage-collections performed.
+		  Only provided if SWI-Prolog is configured with
+		  Boehm-GC.  See also garbage_collect_heap/0. \\
 c_stack		& System (C-) stack limit.  0 if not known. \\
 stack		& Total memory in use for stacks in all threads \\
 local           & Allocated size of the local stack in bytes. \\
@@ -6991,7 +6993,8 @@ trail_shifts	& Number of trail-stack expansions \\
 shift_time	& Time spent in stack-shifts \\
 atoms           & Total number of defined atoms. \\
 functors        & Total number of defined name/arity pairs. \\
-predicates      & Total number of defined predicates. \\
+functors        & Total number of defined name/arity pairs. \\
+clauses         & Total number of clauses in the program. \\
 modules         & Total number of defined modules. \\
 codes           & Total size of (virtual) executable code in words. \\
 threads		& MT-version: number of active threads \\

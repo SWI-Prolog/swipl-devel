@@ -248,7 +248,6 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
   } else
   { LOCK();
     freeBigHeap(mem);
-    GD->statistics.heap -= n;
     UNLOCK();
   }
 }
@@ -461,8 +460,6 @@ allocHeap__LD(size_t n ARG_LD)
   { LOCK();
     mem = allocBigHeap(n);
     UNLOCK();
-    if ( mem )
-      GD->statistics.heap += n;
   }
 
   return mem;
@@ -681,16 +678,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
 
 void *
 allocHeap__LD(size_t n ARG_LD)
-{ if ( n )
-  { void *mem = malloc(n);
-
-    if ( mem )
-      GD->statistics.heap += n;
-
-    return mem;
-  }
-
-  return NULL;
+{ return malloc(n);
 }
 
 
@@ -701,8 +689,6 @@ allocHeapOrHalt__LD(size_t n ARG_LD)
 
     if ( !mem )
       outOfCore();
-
-    GD->statistics.heap += n;
 
     return mem;
   }
@@ -719,7 +705,6 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 #endif
 
   free(mem);
-  GD->statistics.heap -= n;
 }
 
 

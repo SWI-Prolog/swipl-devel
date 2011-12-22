@@ -432,12 +432,12 @@ prolog_message(load_file(start(Level, File))) -->
 	[ '~|~t~*+Loading '-[Level] ],
 	load_file(File),
 	[ ' ...' ].
-prolog_message(load_file(done(Level, File, Action, Module, Time, Heap))) -->
+prolog_message(load_file(done(Level, File, Action, Module, Time, Clauses))) -->
 	[ '~|~t~*+'-[Level] ],
 	load_file(File),
 	[ ' ~w'-[Action] ],
 	load_module(Module),
-	[ ' ~2f sec, ~D bytes'-[Time, Heap] ].
+	[ ' ~2f sec, ~D clauses'-[Time, Clauses] ].
 prolog_message(dwim_undefined(Goal, Alternatives)) -->
 	{ goal_to_predicate_indicator(Goal, Pred)
 	},

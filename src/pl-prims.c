@@ -4342,19 +4342,15 @@ QP_STATISTICS is defined. The compatibility   is pretty complete, except
 the `atoms' key that is defined by both and this ambiguous.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef HAVE_BOEHM_GC
 static size_t
 heapUsed(void)
-{ size_t heap = GD->statistics.heap;	/* Big allocations */
-
-  heap += GD->alloc_pool.allocated;	/* global small allocations */
-#ifdef O_PLMT
-  heap += threadLocalHeapUsed();	/* thread-local small allocations */
+{
+#ifdef HAVE_BOEHM_GC
+  return GC_get_heap_size();
+#else
+  return 0;
 #endif
-
-  return heap;
 }
-#endif
 
 static size_t
 CStackSize(PL_local_data_t *ld)
@@ -4436,7 +4432,7 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     v[1] = limitStack(trail) - v[0];
     vn = 2;
   } else if ( key == ATOM_program )
-  { v[0] = GD->statistics.heap;
+  { v[0] = heapUsed();
     v[1] = 0;
     vn = 2;
   } else if ( key == ATOM_garbage_collection )
@@ -4455,14 +4451,14 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     vn = 3;
   } else if ( key == ATOM_atoms )
   { v[0] = GD->statistics.atoms;
-    v[1] = GD->statistics.atomspace;
+    v[1] = GD->statistics.atom_string_space;
     v[2] = 0;
     vn = 3;
   } else if ( key == ATOM_atom_garbage_collection )
   {
 #ifdef O_ATOMGC
     v[0] = GD->atoms.gc;
-    v[1] = GD->statistics.atomspacefreed;
+    v[1] = GD->statistics.atom_string_space_freed;
     v[2] = (int64_t)(GD->atoms.gc_time * 1000.0);
     vn = 3;
 #else
@@ -4522,6 +4518,8 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = GD->statistics.functors;
   else if (key == ATOM_predicates)			/* predicates */
     v->value.i = GD->statistics.predicates;
+  else if (key == ATOM_clauses)				/* clauses */
+    v->value.i = GD->statistics.clauses;
   else if (key == ATOM_modules)				/* modules */
     v->value.i = GD->statistics.modules;
   else if (key == ATOM_codes)				/* codes */
@@ -4536,12 +4534,9 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 #ifdef HAVE_BOEHM_GC
   else if ( key == ATOM_heap_gc )
     v->value.i = GC_get_gc_no();
-  else if (key == ATOM_heapused)			/* heap usage */
-    v->value.i = GC_get_heap_size();
-#else
+#endif
   else if (key == ATOM_heapused)			/* heap usage */
     v->value.i = heapUsed();
-#endif
 #ifdef O_ATOMGC
   else if (key == ATOM_agc)
     v->value.i = GD->atoms.gc;

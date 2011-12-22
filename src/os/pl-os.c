@@ -435,8 +435,7 @@ UsedMemory(void)
   }
 #endif
 
-  return (GD->statistics.heap +
-	  usedStack(global) +
+  return (usedStack(global) +
 	  usedStack(local) +
 	  usedStack(trail));
 }

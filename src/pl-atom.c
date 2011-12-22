@@ -389,7 +389,6 @@ word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 { GET_LD
   unsigned int v0, v;
-  uintptr_t oldheap;
   Atom a;
 
   if ( !type->registered )		/* avoid deadlock */
@@ -439,7 +438,6 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
     }
   }
 
-  oldheap = GD->statistics.heap;
   a = allocHeapOrHalt(sizeof(struct atom));
   a->length = length;
   a->type = type;
@@ -450,10 +448,12 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
       a->name = PL_malloc_atomic(length+pad);
       memcpy(a->name, s, length);
       memset(a->name+length, 0, pad);
+      GD->statistics.atom_string_space += length+pad;
     } else
     { a->name = PL_malloc_stubborn(length);
       memcpy(a->name, s, length);
       PL_end_stubborn_change(a->name);
+      GD->statistics.atom_string_space += length;
     }
   } else
   { a->name = (char *)s;
@@ -483,8 +483,6 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
   if ( atom_buckets * 2 < GD->statistics.atoms )
     rehashAtoms();
-
-  GD->statistics.atomspace += (GD->statistics.heap - oldheap);
 
   UNLOCK();
 
@@ -679,7 +677,11 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
 
   *ap = NULL;			/* delete from index array */
   if ( false(a->type, PL_BLOB_NOCOPY) )
+  { size_t slen = a->length+paddingBlob(a->type);
+    GD->statistics.atom_string_space -= slen;
+    GD->statistics.atom_string_space_freed += slen;
     PL_free(a->name);
+  }
   freeHeap(a, sizeof(*a));
 
   return TRUE;
@@ -741,7 +743,6 @@ GC. These issues are described with enterGC() in pl-gc.c.
 word
 pl_garbage_collect_atoms()
 { GET_LD
-  intptr_t oldheap, freed;
   int64_t oldcollected;
   int verbose;
   double t;
@@ -792,7 +793,6 @@ pl_garbage_collect_atoms()
   forThreadLocalData(markAtomsOnStacks, 0);
 #endif
   oldcollected = GD->atoms.collected;
-  oldheap = GD->statistics.heap;
   reclaimed = collectAtoms();
   GD->atoms.collected += reclaimed;
   GD->statistics.atoms -= reclaimed;
@@ -801,9 +801,6 @@ pl_garbage_collect_atoms()
   t = CpuTime(CPU_USER) - t;
   GD->atoms.gc_time += t;
   GD->atoms.gc++;
-  freed = oldheap - GD->statistics.heap;
-  GD->statistics.atomspacefreed += freed;
-  GD->statistics.atomspace -= freed;
   unblockSignals(&set);
   UNLOCK();
   PL_UNLOCK(L_AGC);

@@ -1424,7 +1424,7 @@ load_files(Module:Files, Options) :-
 	).
 
 '$do_load_file_2'(File, Absolute, Module, Options) :-
-	statistics(heapused, OldHeap),
+	statistics(clauses, OldClauses),
 	statistics(cputime, OldTime),
 
 	'$set_verbose_load'(Options, OldVerbose),
@@ -1467,9 +1467,9 @@ load_files(Module:Files, Options) :-
 	;   true
 	),
 
-	statistics(heapused, Heap),
+	statistics(clauses, NewClauses),
 	statistics(cputime, Time),
-	HeapUsed is Heap - OldHeap,
+	ClausesCreated is NewClauses - OldClauses,
 	TimeUsed is Time - OldTime,
 
 	'$print_message'(MessageLevel,
@@ -1478,7 +1478,7 @@ load_files(Module:Files, Options) :-
 					Action,
 					LM,
 					TimeUsed,
-					HeapUsed))),
+					ClausesCreated))),
 	'$set_autoload_level'(OldAutoLevel),
 	set_prolog_flag(verbose_load, OldVerbose),
 	set_prolog_flag(generate_debug_info, DebugInfo).
