@@ -43,7 +43,7 @@ static void	  allocFunctorTable(void);
 static void	  rehashFunctors(void);
 
 static void
-putFunctorArray(unsigned int where, FunctorDef fd)
+putFunctorArray(size_t where, FunctorDef fd)
 { int idx = MSB(where);
 
   assert(where >= 0);

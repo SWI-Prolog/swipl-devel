@@ -42,11 +42,16 @@
 
 #define HAVE_MSB 1
 static inline int
-MSB(unsigned int i)
-{ unsigned long mask = i;
-  unsigned long index;
-
+MSB(size_t i)
+{ unsigned long index;
+#if SIZEOF_VOIDP == 8
+  unsigned __int64 mask = i;
+  _BitScanReverse64(&index, mask);
+#else
+  unsigned long mask = i;
   _BitScanReverse(&index, mask);
+#endif
+
   return index;
 }
 
@@ -59,7 +64,7 @@ MSB(unsigned int i)
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
 #define HAVE_MSB 1
-#define MSB(i) (31 - __builtin_clz(i))		/* GCC builtin */
+#define MSB(i) (sizeof(long)*8 - 1 - __builtin_clzl(i)) /* GCC builtin */
 #endif
 
 #if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
@@ -70,14 +75,17 @@ MSB(unsigned int i)
 #ifndef HAVE_MSB
 #define HAVE_MSB 1
 static inline int
-MSB(unsigned int i)
+MSB(size_t i)
 { int j = 0;
 
-  if (i >= 0x10000) {i >>= 16; j += 16;}
-  if (i >=   0x100) {i >>=  8; j +=  8;}
-  if (i >=    0x10) {i >>=  4; j +=  4;}
-  if (i >=     0x4) {i >>=  2; j +=  2;}
-  if (i >=     0x2) j++;
+#if SIZEOF_VOIDP == 8
+  if (i >= 0x100000000) {i >>= 32; j += 32;}
+#endif
+  if (i >=     0x10000) {i >>= 16; j += 16;}
+  if (i >=       0x100) {i >>=  8; j +=  8;}
+  if (i >=        0x10) {i >>=  4; j +=  4;}
+  if (i >=         0x4) {i >>=  2; j +=  2;}
+  if (i >=         0x2) j++;
 
   return j;
 }
@@ -93,7 +101,7 @@ MSB(unsigned int i)
 		 *******************************/
 
 static inline Atom
-fetchAtomArray(unsigned int index)
+fetchAtomArray(size_t index)
 { int idx = MSB(index);
 
   return GD->atoms.array.blocks[idx][index];
@@ -101,7 +109,7 @@ fetchAtomArray(unsigned int index)
 
 
 static inline FunctorDef
-fetchFunctorArray(unsigned int index)
+fetchFunctorArray(size_t index)
 { int idx = MSB(index);
 
   return GD->functors.array.blocks[idx][index];

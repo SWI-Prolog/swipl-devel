@@ -293,7 +293,7 @@ static const ccharp atoms[] = {
 */
 
 static void
-putAtomArray(unsigned int where, Atom a)
+putAtomArray(size_t where, Atom a)
 { int idx = MSB(where);
 
   assert(where >= 0);
@@ -1153,8 +1153,8 @@ PRED_IMPL("$atom_references", 2, atom_references, 0)
 #define stringMatch(m)	((m)->name->name)
 
 typedef struct match
-{ Atom	name;
-  int	length;
+{ Atom		name;
+  size_t	length;
 } *Match;
 
 

@@ -500,10 +500,6 @@ Sread_readline(void *handle, char *buf, size_t size)
     }
   }
 
-#ifdef HAVE_CLOCK
-  PL_clock_wait_ticks(clock() - oldclock);
-#endif
-
   return rval;
 }
 

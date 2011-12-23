@@ -284,9 +284,7 @@ CpuTime(cputime_kind which)
     t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
     t += (double)p->dwLowDateTime  * (ntick nano);
   } else				/* '95, Windows 3.1/win32s */
-  { extern intptr_t clock_wait_ticks;
-
-    t = (double) (clock() - clock_wait_ticks) / (double) CLOCKS_PER_SEC;
+  { t = 0.0;
   }
 
   return t;
@@ -721,7 +719,7 @@ ms_snprintf(char *buffer, size_t count, const char *fmt, ...)
   va_end(ap);
 
   if ( ret < 0 || ret == count )
-  { ret = count;
+  { ret = (int)count;
     buffer[count-1] = '\0';
   }
 

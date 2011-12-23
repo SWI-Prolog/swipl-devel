@@ -129,20 +129,6 @@ initOs(void)
   setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #endif
 
-#ifdef HAVE_CLOCK
-  clock_wait_ticks = 0L;
-#endif
-
-#if OS2
-  { DATETIME i;
-    DosGetDateTime((PDATETIME)&i);
-    initial_time = (i.hours * 3600.0)
-                   + (i.minutes * 60.0)
-		   + i.seconds
-		   + (i.hundredths / 100.0);
-  }
-#endif /* OS2 */
-
   DEBUG(1, Sdprintf("OS:done\n"));
 
   succeed;
@@ -266,11 +252,6 @@ CpuTime(cputime_kind which)
     used = 0.0;				/* happens when running under GDB */
 
   return used;
-#endif
-
-#if !defined(CPU_TIME_DONE) && defined(HAVE_CLOCK)
-#define CPU_TIME_DONE
-  return (double) (clock() - clock_wait_ticks) / (double) CLOCKS_PER_SEC;
 #endif
 
 #if !defined(CPU_TIME_DONE)
