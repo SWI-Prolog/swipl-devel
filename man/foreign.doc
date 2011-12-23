@@ -3527,12 +3527,12 @@ previous PL_malloc() or PL_realloc() call.
 
 \index{Boehm GC}%
 To accomodate for future use of the Boehm garbage
-collector\fnurl{http://www.hpl.hp.com/personal/Hans_Boehm/gc/} for heap
-memory allocation, the interface provides the functions described below.
-Foreign extensions that wish to use the Boehm-GC facilities can use
-these wrappers.  Please be noted that if SWI-Prolog is not compiled to
-use Boehm-GC (default), the user is responsible of calling PL_free() to
-reclaim memory.
+collector\footnote{\url{http://www.hpl.hp.com/personal/Hans_Boehm/gc/}}
+for heap memory allocation, the interface provides the functions
+described below. Foreign extensions that wish to use the Boehm-GC
+facilities can use these wrappers. Please be noted that if SWI-Prolog is
+not compiled to use Boehm-GC (default), the user is responsible of
+calling PL_free() to reclaim memory.
 
 \begin{description}
     \cfunction{void*}{PL_malloc_atomic}{size_t bytes}
