@@ -41,6 +41,10 @@
 #endif
 #endif
 
+#if ALLOC_DEBUG
+#define ALLOC_FREE_MAGIC 0x5f
+#endif
+
 #define LOCK()   PL_LOCK(L_ALLOC)
 #define UNLOCK() PL_UNLOCK(L_ALLOC)
 #undef LD
@@ -135,7 +139,6 @@ static void  freeAllBigHeaps(void);
 
 #define INUSE_MAGIC 0x42424242
 #define FREE_MAGIC 0x43434343
-#define ALLOC_FREE_MAGIC 0x5f
 #define ALLOC_MAGIC 0xbf
 #define ALLOC_VIRGIN_MAGIC 0x7f
 
