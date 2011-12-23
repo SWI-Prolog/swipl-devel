@@ -45,6 +45,7 @@ resetProlog(int clear_stacks)
   Scurin  = in;
   Scurout = Suser_output;
 
+  PL_clear_exception();
   resetTracer();
 
   if ( clear_stacks )
