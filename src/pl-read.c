@@ -853,8 +853,11 @@ raw_read_quoted(int q, ReadData _PL_rd)
     addToBuffer(c, _PL_rd);
   }
   if (c == EOF)
-  { eofinstr:
-      rawSyntaxError("end_of_file_in_string");
+  {
+  eofinstr:
+    if ( Sferror(rb.stream) )
+      return FALSE;
+    rawSyntaxError("end_of_file_in_string");
   }
   addToBuffer(c, _PL_rd);
 
@@ -923,6 +926,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
   handle_c:
     switch(c)
     { case EOF:
+		if ( Sferror(rb.stream) )
+		  return NULL;
 		if ( isStringStream(rb.stream) ) /* do not require '. ' when */
 		{ addToBuffer(' ', _PL_rd);     /* reading from a string */
 		  addToBuffer('.', _PL_rd);
@@ -982,6 +987,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  { if ( cbuf )
 		      discardBuffer(cbuf);
 		    setErrorLocation(pos, _PL_rd);
+		    if ( Sferror(rb.stream) )
+		      return NULL;
 		    rawSyntaxError("end_of_file_in_block_comment");
 		  }
 		  if ( cbuf )
@@ -1004,6 +1011,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			if ( cbuf )
 			  discardBuffer(cbuf);
 		        setErrorLocation(pos, _PL_rd);
+			if ( Sferror(rb.stream) )
+			  return NULL;
 			rawSyntaxError("end_of_file_in_block_comment");
 		      case '*':
 			if ( last == '/' )
@@ -3420,8 +3429,18 @@ pl_raw_read2(term_t from, term_t term)
 
   init_read_data(&rd, in PASS_LD);
   if ( !(s = raw_read(&rd, &e PASS_LD)) )
-  { rval = PL_raise_exception(rd.exception);
-    goto out;
+  { if ( Sferror(in) )
+    { rval = streamStatus(in);
+    } else
+    { rval = PL_raise_exception(rd.exception);
+      PL_release_stream(in);
+    }
+
+    free_read_data(&rd);
+
+    return rval;
+  } else
+  { PL_release_stream(in);
   }
 
 					/* strip the input from blanks */
@@ -3442,13 +3461,7 @@ pl_raw_read2(term_t from, term_t term)
   txt.canonical = FALSE;
 
   rval = PL_unify_text(term, 0, &txt, PL_ATOM);
-
-out:
   free_read_data(&rd);
-  if ( Sferror(in) )
-    return streamStatus(in);
-  else
-    PL_release_stream(in);
 
   return rval;
 }
