@@ -895,7 +895,7 @@ static int
 isConsoleStream(IOSTREAM *s)
 { int i = standardStreamIndexFromStream(s);
 
-  return i >= 0 && i < 3;
+  return i >= 1 && i < 3;			/* only output streams */
 }
 #else
 #define isConsoleStream(s) FALSE
@@ -4452,22 +4452,23 @@ ssize_t
 Sread_user(void *handle, char *buf, size_t size)
 { GET_LD
   wrappedIO *wio = handle;
+  ssize_t rc;
 
   if ( LD->prompt.next && ttymode != TTY_RAW )
     PL_write_prompt(TRUE);
   else
     Sflush(Suser_output);
 
-  size = (*wio->wrapped_functions->read)(wio->wrapped_handle, buf, size);
-  if ( size == 0 )			/* end-of-file */
+  rc = (*wio->wrapped_functions->read)(wio->wrapped_handle, buf, size);
+  if ( rc == 0 )			/* end-of-file */
   { Sclearerr(Suser_input);
     LD->prompt.next = TRUE;
-  } else if ( size == 1 && buf[0] == 04 )
-  { size = 0;				/* Map ^D to end-of-file */
-  } else if ( size > 0 && buf[size-1] == '\n' )
+  } else if ( rc == 1 && buf[0] == 04 )
+  { rc = 0;				/* Map ^D to end-of-file */
+  } else if ( rc > 0 && buf[rc-1] == '\n' )
     LD->prompt.next = TRUE;
 
-  return size;
+  return rc;
 }
 
 
