@@ -542,7 +542,8 @@ S__fillbuf(IOSTREAM *s)
   { char chr;
     ssize_t n;
 
-    if ( (n=(*s->functions->read)(s->handle, &chr, 1)) == 1 )
+    n = (*s->functions->read)(s->handle, &chr, 1);
+    if ( n == 1 )
     { c = char_to_int(chr);
       return c;
     } else if ( n == 0 )
@@ -573,7 +574,8 @@ S__fillbuf(IOSTREAM *s)
       len = s->bufsize;
     }
 
-    if ( (n=(*s->functions->read)(s->handle, s->limitp, len)) > 0 )
+    n = (*s->functions->read)(s->handle, s->limitp, len);
+    if ( n > 0 )
     { s->limitp += n;
       c = char_to_int(*s->bufp++);
       return c;
