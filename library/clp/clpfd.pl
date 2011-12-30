@@ -3965,7 +3965,12 @@ run_propagator(pmod(X,Y,Z), MState) :-
 run_propagator(prem(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X rem Y
-            ;   true
+            ;   U is abs(X),
+                fd_get(Y, YD, _),
+                (   X >=0, domain_infimum(YD, n(Min)), Min >= 0 -> L = 0
+                ;   L is -U
+                ),
+                Z in L..U
             )
         ;   nonvar(Y) ->
             Y =\= 0,
