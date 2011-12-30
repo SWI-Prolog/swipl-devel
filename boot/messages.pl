@@ -59,6 +59,8 @@
 %	    * flush
 %	    Used only as last element of the list.   Simply flush the
 %	    output instead of producing a final newline.
+%	    * at_same_line
+%	    Start the messages at the same line (instead of using ~N)
 
 translate_message(Term) -->
 	translate_message2(Term), !.
@@ -1027,7 +1029,7 @@ prefix(error,	      Prefix,   user_error) :-
 prefix(banner,	      '',	   user_error).
 prefix(informational, '% ',        user_error).
 
-%	print_message_lines(+Stream, +Prefix, +Lines)
+%%	print_message_lines(+Stream, +Prefix, +Lines)
 %
 %	Quintus compatibility predicate to print message lines using
 %	a prefix.
@@ -1064,7 +1066,7 @@ line_element(S, Fmt) :-
 	format(S, Fmt, []).
 
 
-%	message_to_string(+Term, -String)
+%%	message_to_string(+Term, -String)
 %
 %	Translate an error term into a string
 
@@ -1080,6 +1082,8 @@ actions_to_format([Term, nl], Fmt, Args) :- !,
 actions_to_format([nl|T], Fmt, Args) :- !,
 	actions_to_format(T, Fmt0, Args),
 	atom_concat('~n', Fmt0, Fmt).
+actions_to_format([at_same_line|T], Fmt, Args) :- !,
+	actions_to_format(T, Fmt, Args).
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :- !,
         actions_to_format(Tail, Fmt1, Args1),
         atom_concat(Fmt0, Fmt1, Fmt),
@@ -1108,13 +1112,13 @@ append_args(Args0, Args1, Args) :-
 :- dynamic
 	printed/2.
 
-%	print_once(Message, Level)
+%%	print_once(Message, Level)
 %
 %	True for messages that must be printed only once.
 
 print_once(compatibility(_), _).
 
-%	must_print(+Level, +Message)
+%%	must_print(+Level, +Message)
 %
 %	True if the message must be printed.
 
