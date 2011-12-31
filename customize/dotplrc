@@ -112,6 +112,16 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 		 *	   MISC SETTINGS	*
 		 *******************************/
 
+%	Uncomment if you want to use color output on capable terminals.
+%	This module may be enabled on any terminal that accepts ANSI
+%	sequences for setting character attributes.
+
+%:- (   stream_property(user_output, tty(true)),
+%       getenv('TERM', xterm)
+%   ->  load_files(library(ansi_term), [silent(true)])
+%   ;   true
+%   ).
+
 %	If you want to access the command-history like a Unix shell,
 %	set this to the number of commands to remember.  Systems that
 %	use GNU readline (Unix) can enable saving the history on a
