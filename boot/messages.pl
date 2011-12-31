@@ -632,10 +632,10 @@ prolog_message(query(QueryResult)) -->
 	query_result(QueryResult).
 
 query_result(no) -->		% failure
-	[ 'false.'-[] ],
+	[ ansi([bold,fg(red)], 'false.', []) ],
 	extra_line.
 query_result(yes([])) --> !,	% prompt_alternatives_on: groundness
-	[ 'true.'-[] ],
+	[ ansi(bold, 'true.', []) ],
 	extra_line.
 query_result(yes(Residuals)) -->
 	result([], Residuals),
@@ -671,13 +671,13 @@ prompt(Answer, _, _) --> !,
 	prompt(Answer, non_empty).
 
 prompt(yes, empty) --> !,
-	[ 'true.'-[] ],
+	[ ansi(bold, 'true.', []) ],
 	extra_line.
 prompt(yes, _) --> !,
 	[ full_stop ],
 	extra_line.
 prompt(more, empty) --> !,
-	[ 'true '-[], flush ].
+	[ ansi(bold, 'true ', []), flush ].
 prompt(more, _) --> !,
 	[ ' '-[], flush ].
 
@@ -749,9 +749,9 @@ extra_line -->
 extra_line -->
 	[].
 
-prolog_message(if_tty(Text)) -->
+prolog_message(if_tty(Message)) -->
 	(   {current_prolog_flag(tty_control, true)}
-	->  [ at_same_line, '~w'-[Text] ]
+	->  [ at_same_line | Message ]
 	;   []
 	).
 prolog_message(halt(Reason)) -->
@@ -847,7 +847,7 @@ tracing_list([trace(Head, Ports)|T]) -->
 prolog_message(frame(Frame, backtrace, _PC)) --> !,
 	{ prolog_frame_attribute(Frame, level, Level)
 	},
-	[ '~t[~D] ~10|'-[Level] ],
+	[ ansi(bold, '~t[~D] ~10|', [Level]) ],
 	frame_context(Frame),
 	frame_goal(Frame).
 prolog_message(frame(Frame, choice, PC)) --> !,
@@ -909,16 +909,16 @@ frame_flags(Frame) -->
 	[ '~w~w '-[T, S] ].
 
 port(Port) -->
-	{ port_name(Port, Name)
+	{ port_name(Port, Colour, Name)
 	}, !,
-	[ '~w: '-[Name] ].
+	[ ansi([bold,fg(Colour)], '~w: ', [Name]) ].
 
-port_name(call,	     'Call').
-port_name(exit,	     'Exit').
-port_name(fail,	     'Fail').
-port_name(redo,	     'Redo').
-port_name(unify,     'Unify').
-port_name(exception, 'Exception').
+port_name(call,	     green,   'Call').
+port_name(exit,	     green,   'Exit').
+port_name(fail,	     red,     'Fail').
+port_name(redo,	     yellow,  'Redo').
+port_name(unify,     blue,    'Unify').
+port_name(exception, magenta, 'Exception').
 
 clean_goal(M:Goal, Goal) :-
 	hidden_module(M), !.

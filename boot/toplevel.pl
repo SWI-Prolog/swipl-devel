@@ -896,20 +896,20 @@ answer_respons(Char, again) :-
 	print_message(help, query(help)).
 answer_respons(Char, redo) :-
 	memberchk(Char, ";nrNR \t"), !,
-	print_message(query, if_tty(';')).
+	print_message(query, if_tty([ansi(bold, ';', [])])).
 answer_respons(Char, redo) :-
 	memberchk(Char, "tT"), !,
 	trace,
 	save_debug,
-	print_message(query, if_tty('; [trace]')).
+	print_message(query, if_tty([ansi(bold, '; [trace]', [])])).
 answer_respons(Char, continue) :-
 	memberchk(Char, "ca\n\ryY."), !,
-	print_message(query, if_tty('.')).
+	print_message(query, if_tty([ansi(bold, '.', [])])).
 answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-
 	print_predicate(Char, Pred, Options), !,
-	print_message(query, if_tty(Pred)),
+	print_message(query, if_tty([Pred-[]])),
 	set_prolog_flag(toplevel_print_options, Options).
 answer_respons(-1, show_again) :- !,
 	print_message(query, halt('EOF')),
