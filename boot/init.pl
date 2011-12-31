@@ -466,10 +466,10 @@ default_module(Me, Super) :-
 	    get_single_char(Answer),
 	    (	memberchk(Answer, "yYjJ \n")
 	    ->	!,
-	        print_message(query, if_tty(yes))
+	        print_message(query, if_tty([yes-[]]))
 	    ;	memberchk(Answer, "nN")
 	    ->	!,
-	        print_message(query, if_tty(no)),
+	        print_message(query, if_tty([no-[]])),
 		fail
 	    ;	print_message(help, query(confirm)),
 		fail
