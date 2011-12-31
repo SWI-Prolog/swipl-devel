@@ -1718,6 +1718,21 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	  s->position = NULL;
 
 	goto ok;
+      } else if ( aname == ATOM_line_position )
+      { int lpos;
+
+	if ( !PL_get_integer_ex(a, &lpos) )
+	  goto error;
+
+	if ( s->position )
+	{ s->position->linepos = lpos;
+	} else
+	{ PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		   ATOM_line_position, ATOM_stream, stream);
+	  goto error;
+	}
+
+	goto ok;
       } else if ( aname == ATOM_file_name ) /* file_name(Atom) */
       {	atom_t fn;
 

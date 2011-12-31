@@ -44,6 +44,9 @@ most modern terminals using ANSI escape sequences.
 
 :- create_prolog_flag(color_term, true, [type(boolean)]).
 
+:- meta_predicate
+	keep_line_pos(+, 0).
+
 %%	ansi_format(+Attributes, +Format, +Args) is det.
 %
 %	Format text with ANSI  attributes.   This  predicate  behaves as
@@ -87,8 +90,8 @@ ansi_format(Stream, Attr, Format, Args) :-
 	;   sgr_code(Attr, Code)
 	),
 	(   Args == []
-	->  format(Stream, '\u001B[~wm~w\u001B[0m', [Code, Format])
-	;   format(string(Fmt), '\u001B[~~wm~w\u001B[0m', [Format]),
+	->  format(Stream, '\e[~wm~w\e[0m', [Code, Format])
+	;   format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
 	    format(Stream, Fmt, [Code|Args])
 	).
 ansi_format(Stream, _Attr, Format, Args) :-
@@ -176,13 +179,22 @@ prolog:message_line_element(S, begin(Level, Ctx)) :-
 	    atomic_list_concat(Codes, ;, Code)
 	;   sgr_code(Attr, Code)
 	),
-	format(S, '\e[~wm', [Code]),
+	keep_line_pos(S, format(S, '\e[~wm', [Code])),
 	Ctx = ansi('\e[0m').
 prolog:message_line_element(S, end(Ctx)) :-
 	nonvar(Ctx),
 	Ctx = ansi(Reset),
-	write(S, Reset).
+	keep_line_pos(S, write(S, Reset)).
 
 level_attrs(informational, fg(green)).
 level_attrs(warning,	   fg(red)).
 level_attrs(error,	   [fg(red),bold]).
+
+keep_line_pos(S, G) :-
+	stream_property(S, position(Pos)), !,
+	stream_position_data(line_position, Pos, LPos),
+	G,
+	set_stream(S, line_position(LPos)).
+keep_line_pos(_, G) :-
+	G.
+
