@@ -992,76 +992,105 @@ print_system_message(Term, Level, Lines) :-
 	flush_output(user_output),
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
-	prefix(Level, Prefix, LinePrefix, PostFix, Wait, Stream), !,
-	format(Stream, Prefix, [File, Line]),
-	print_message_lines(Stream, LinePrefix, Lines),
-	format(Stream, PostFix, []),
+	prefix(Level, Prefix, LinePrefix, Wait, Stream), !,
+	insert_prefix(Lines, LinePrefix, PrefixLines),
+	'$append'([ begin(Level, Ctx),
+		    Prefix-[File,Line],
+		    nl
+		  | PrefixLines
+		  ],
+		  [ end(Ctx)
+		  ],
+		  AllLines),
+	print_message_lines(Stream, AllLines),
 	(   Wait > 0
 	->  sleep(Wait)
 	;   true
 	).
 print_system_message(_, Level, Lines) :-
-	flush_output(user_output),
 	prefix(Level, LinePrefix, Stream), !,
-	print_message_lines(Stream, LinePrefix, Lines).
+	insert_prefix(Lines, LinePrefix, PrefixLines),
+	'$append'([ begin(Level, Ctx)
+		  | PrefixLines
+		  ],
+		  [ end(Ctx)
+		  ],
+		  AllLines),
+	print_message_lines(Stream, AllLines).
 print_system_message(_, Level, _) :-
 	\+ prefix(Level, _, _),
 	throw(error(domain_error(message_kind, Level), _)).
 
-prefix(error,	      'ERROR: ~w:~d:~n',   '\t', '', 0.5, user_error).
-prefix(warning,	      'Warning: ~w:~d:~n', '\t', '', 0,   user_error).
+prefix(error,	      '~NERROR: ~w:~d:',   '~N\t', 0.1, user_error).
+prefix(warning,	      '~NWarning: ~w:~d:', '~N\t', 0,   user_error).
 
-prefix(help,	      '',          user_error).
-prefix(query,	      '',          user_error).
-prefix(debug,	      '',          user_output).
+prefix(help,	      '~N',	   user_error).
+prefix(query,	      '~N',        user_error).
+prefix(debug,	      '~N',        user_output).
 prefix(warning,	      Prefix,      user_error) :-
 	thread_self(Id),
 	(   Id == main
-	->  Prefix = 'Warning: '
-	;   atomic_list_concat(['Warning: [Thread ', Id, '] '], Prefix)
+	->  Prefix = '~NWarning: '
+	;   Prefix = '~NWarning: [Thread ~w] '-Id
 	).
-prefix(error,	      Prefix,   user_error) :-
+prefix(error,	      Prefix,      user_error) :-
 	thread_self(Id),
 	(   Id == main
-	->  Prefix = 'ERROR: '
-	;   atomic_list_concat(['ERROR: [Thread ', Id, '] '], Prefix)
+	->  Prefix = '~NERROR: '
+	;   Prefix = '~NERROR: [Thread ~w] '-Id
 	).
-prefix(banner,	      '',	   user_error).
-prefix(informational, '% ',        user_error).
+prefix(banner,	      '~N',	   user_error).
+prefix(informational, '~N% ',	   user_error).
 
 %%	print_message_lines(+Stream, +Prefix, +Lines)
 %
 %	Quintus compatibility predicate to print message lines using
 %	a prefix.
 
-print_message_lines(_, _, []) :- !.
-print_message_lines(S, P, [at_same_line|Lines]) :- !,
-	print_message_line(S, Lines, Rest),
-	print_message_lines(S, P, Rest).
-print_message_lines(S, P, Lines) :-
-	atom_concat('~N', P, Prefix),
-	format(S, Prefix, []),
-	print_message_line(S, Lines, Rest),
-	print_message_lines(S, P, Rest).
+print_message_lines(Stream, Prefix, Lines) :-
+	insert_prefix(Lines, Prefix, PrefixLines),
+	print_message_lines(Stream, PrefixLines).
 
-print_message_line(S, [flush], []) :- !,
-	flush_output(S).
-print_message_line(S, [], []) :- !,
-	nl(S).
-print_message_line(S, [nl|T], T) :- !,
-	nl(S).
-print_message_line(S, [H|T0], T) :- !,
+%%	insert_prefix(+Lines, +Prefix, -PrefixedLines)
+
+insert_prefix([at_same_line|Lines0], Prefix, Lines) :- !,
+	prefix_nl(Lines0, Prefix, Lines).
+insert_prefix(Lines0, Prefix, [prefix(Prefix)|Lines]) :-
+	prefix_nl(Lines0, Prefix, Lines).
+
+prefix_nl([], _, [nl]).
+prefix_nl([nl], _, [nl]) :- !.
+prefix_nl([flush], _, [flush]) :- !.
+prefix_nl([nl|T0], Prefix, [nl, prefix(Prefix)|T]) :- !,
+	prefix_nl(T0, Prefix, T).
+prefix_nl([H|T0], Prefix, [H|T]) :-
+	prefix_nl(T0, Prefix, T).
+
+%%	print_message_lines(+Stream, +Lines)
+
+print_message_lines(_, []) :- !.
+print_message_lines(S, [H|T]) :-
 	line_element(S, H),
-	print_message_line(S, T0, T).
+	print_message_lines(S, T).
 
-line_element(S, full_stop) :- !,
-	'$put_token'(S, '.').		% insert space if needed.
-line_element(S, Fmt-Args) :- !,
-	format(S, Fmt, Args).
 line_element(S, E) :-
 	prolog:message_line_element(S, E), !.
+line_element(S, full_stop) :- !,
+	'$put_token'(S, '.').		% insert space if needed.
+line_element(S, nl) :- !,
+	nl(S).
+line_element(S, prefix(Fmt-Args)) :- !,
+	format(S, Fmt, Args).
+line_element(S, prefix(Fmt)) :- !,
+	format(S, Fmt, []).
+line_element(S, flush) :- !,
+	flush_output(S).
+line_element(S, Fmt-Args) :- !,
+	format(S, Fmt, Args).
 line_element(S, ansi(_, Fmt, Args)) :- !,
 	format(S, Fmt, Args).
+line_element(_, begin(_Level, _Ctx)) :- !.
+line_element(_, end(_Ctx)) :- !.
 line_element(S, Fmt) :-
 	format(S, Fmt, []).
 
@@ -1082,7 +1111,8 @@ actions_to_format([Term, nl], Fmt, Args) :- !,
 actions_to_format([nl|T], Fmt, Args) :- !,
 	actions_to_format(T, Fmt0, Args),
 	atom_concat('~n', Fmt0, Fmt).
-actions_to_format([at_same_line|T], Fmt, Args) :- !,
+actions_to_format([Skip|T], Fmt, Args) :-
+	action_skip(Skip), !,
 	actions_to_format(T, Fmt, Args).
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :- !,
         actions_to_format(Tail, Fmt1, Args1),
@@ -1096,6 +1126,11 @@ actions_to_format([Term|Tail], Fmt, Args) :-
         actions_to_format(Tail, Fmt1, Args1),
         atom_concat('~w', Fmt1, Fmt),
 	append_args([Term], Args1, Args).
+
+action_skip(at_same_line).
+action_skip(ansi(_Attrs, _Fmt, _Args)).
+action_skip(begin(_Level, _Ctx)).
+action_skip(end(_Ctx)).
 
 append_args(M:Args0, Args1, M:Args) :- !,
 	strip_module(Args1, _, A1),
