@@ -167,3 +167,22 @@ ansi_color(default, 9).
 
 prolog:message_line_element(S, ansi(Attr, Fmt, Args)) :-
 	ansi_format(S, Attr, Fmt, Args).
+prolog:message_line_element(S, begin(Level, Ctx)) :-
+	level_attrs(Level, Attr),
+	stream_property(S, tty(true)),
+	current_prolog_flag(color_term, true), !,
+	(   is_list(Attr)
+	->  maplist(sgr_code, Attr, Codes),
+	    atomic_list_concat(Codes, ;, Code)
+	;   sgr_code(Attr, Code)
+	),
+	format(S, '\e[~wm', [Code]),
+	Ctx = ansi('\e[0m').
+prolog:message_line_element(S, end(Ctx)) :-
+	nonvar(Ctx),
+	Ctx = ansi(Reset),
+	write(S, Reset).
+
+level_attrs(informational, fg(green)).
+level_attrs(warning,	   fg(red)).
+level_attrs(error,	   [fg(red),bold]).
