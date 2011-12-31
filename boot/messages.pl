@@ -1041,6 +1041,7 @@ prefix(error,	      Prefix,      user_error) :-
 	).
 prefix(banner,	      '~N',	   user_error).
 prefix(informational, '~N% ',	   user_error).
+prefix(information,   '~N% ',	   user_error).
 
 %%	print_message_lines(+Stream, +Prefix, +Lines)
 %

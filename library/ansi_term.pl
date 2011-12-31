@@ -187,6 +187,7 @@ prolog:message_line_element(S, end(Ctx)) :-
 	keep_line_pos(S, write(S, Reset)).
 
 level_attrs(informational, fg(green)).
+level_attrs(information,   fg(green)).
 level_attrs(warning,	   fg(red)).
 level_attrs(error,	   [fg(red),bold]).
 

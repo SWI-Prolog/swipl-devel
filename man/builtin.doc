@@ -1874,13 +1874,13 @@ information was present.
 
 \subsection{Printing messages}			\label{sec:printmsg}
 
-The predicate print_message/2 may be used to print a message term
-in a human readable format.  The other predicates from this section
-allow the user to refine and extend the message system.  The most
-common usage of print_message/2 is to print error messages from
-exceptions.  The code below prints errors encountered during the
-execution of \arg{Goal}, without further propagating the exception
-and without starting the debugger.
+The predicate print_message/2 is used to print a message term in a human
+readable format. The other predicates from this section allow the user
+to refine and extend the message system. A common usage of
+print_message/2 is to print error messages from exceptions. The code
+below prints errors encountered during the execution of \arg{Goal},
+without further propagating the exception and without starting the
+debugger.
 
 \begin{code}
 	...,
@@ -1898,29 +1898,33 @@ messages or make something happen in addition to printing the message.
 \begin{description}
     \predicate{print_message}{2}{+Kind, +Term}
 The predicate print_message/2 is used to print messages, notably from
-exceptions in a human-readable format. \arg{Kind} is one of
-\const{informational}, \const{banner}, \const{warning}, \const{error},
-\const{help} or \const{silent}. A human-readable message is printed to
-the stream \const{user_error}.
+exceptions, in a human-readable format. \arg{Kind} is one of
+\const{informational}, \const{information}, \const{banner},
+\const{warning}, \const{error}, \const{help} or \const{silent}. A
+human-readable message is printed to the stream \const{user_error}.
 
 \index{silent}\index{quiet}%
 If the Prolog flag \prologflag{verbose} is \const{silent}, messages with
 \arg{Kind} \const{informational}, or \const{banner} are treated as
-silent. See \cmdlineoption{-q}.
+\const{silent}. See \cmdlineoption{-q}. The \arg{Kind}
+\const{information} is intended for informational messages that should
+also be printed in silent mode, typically because the user requests of
+the information. The predicate time/1 is an example.
 
-This predicate first translates the \arg{Term} into a list of
-`message lines' (see print_message_lines/3 for details).  Next it will
-call the hook message_hook/3 to allow the user intercepting the message.
-If message_hook/3 fails it will print the message unless \arg{Kind} is
-silent.
+The predicate print_message/2 first translates the \arg{Term} into a
+list of `message lines' (see print_message_lines/3 for details). Next,
+it calls the hook message_hook/3 to allow the user intercepting the
+message. If message_hook/3 fails it prints the message unless \arg{Kind}
+is silent.
 
 The print_message/2 predicate and its rules are in the file
 \file{<plhome>/boot/messages.pl}, which may be inspected for more
 information on the error messages and related error terms. If you need
-to report errors from your own predicates, we advise you to stick to the
-existing error terms if you can; but should you need to invent new ones,
-you can define corresponding error messages by asserting clauses for
-prolog:message. You will need to declare the predicate as multifile.
+to write messages from your own predicates, it is recommended to reuse
+the existing message terms if applicable. If no existing message term is
+applicable, invent a fairly unique term that represents the event and
+define a rule for the multifile predicate prolog:message//1. See
+\secref{libprintmsg} for a deeper discussion and examples.
 
 See also message_to_string/2.
 
@@ -1929,21 +1933,36 @@ Print a message (see print_message/2) that has been translated to
 a list of message elements.  The elements of this list are:
 
 \begin{description}
-    \definition{<Format>-<Args>}
+    \termitem{<Format>-<Args>}{}
         Where \arg{Format} is an atom and \arg{Args} is a list
 	of format argument.  Handed to format/3.
-    \definition{\const{flush}}
+    \termitem{flush}{}
 	If this appears as the last element, \arg{Stream} is flushed
-	(see flush_output/1) and no final newline is generated.
-    \definition{\const{at_same_line}}
+	(see flush_output/1) and no final newline is generated.  This
+	is combined with a subsequent message that starts with
+	\const{at_same_line} to complete the line.
+    \termitem{at_same_line}{}
         If this appears as first element, no prefix is printed for
 	the first line and the line-position is not forced to 0
 	(see format/1, \verb$~N$).
-    \definition{<Format>}
-        Handed to format/3 as \exam{format(Stream, Format, [])}.
-    \definition{nl}
-        A new line is started and if the message is not complete
-	the \arg{Prefix} is printed too.
+    \termitem{ansi}{+Attributes, +Format, +Args}
+	This message may be intercepted by means of the hook
+	prolog:message_line_element/2.  The library \pllib{ansi_term}
+	implements this hook to achieve coloured output. If it is not
+	intercepted it invokes \term{format}{Stream, Format, Args}.
+    \termitem{nl}{}
+        A new line is started.  If the message is not complete,
+	\arg{Prefix} is printed before the remainder of the message.
+    \termitem{begin}{Kind, Var}
+    \nodescription
+    \termitem{end}{Var}
+	The entire message is headed by \term{begin}{Kind, Var} and
+	ended by \term{end}{Var}.  This feature is used by e.g.,
+	library \pllib{ansi_term} to colour entire messages.
+    \termitem{<Format>}{}
+        Handed to format/3 as \term{format}{Stream, Format, []}.
+	Deprecated because it is ambiguous of \arg{Format} collides
+	with one of the atomic commands.
 \end{description}
 
 See also print_message/2 and message_hook/3.
@@ -1955,8 +1974,13 @@ the same as passed to print_message/2. \arg{Lines} is a list of format
 statements as described with print_message_lines/3.  See also
 message_to_string/2.
 
-This predicate should be defined dynamic and multifile to allow other
+This predicate must be defined dynamic and multifile to allow other
 modules defining clauses for it too.
+
+    \predicate{prolog:message_line_element}{2}{+Stream, +Term}
+This hook is called to print the individual elements of a message from
+print_message_lines/3. This hook is used by e.g., library
+\pllib{ansi_term} to colour messages on ANSI capable terminals.
 
     \predicate{message_to_string}{2}{+Term, -String}
 Translates a message-term into a string object (see \secref{strings}).
@@ -1970,7 +1994,7 @@ Primarily intended to write messages to Windows in XPCE (see
 Libraries should \emph{not} use format/3 or other output predicates
 directly. Libraries that print informational output directory to the
 console are hard to use from code that depend on your textual output,
-such as a GI script. The predicates in \secref{printmsg} define the API
+such as a CGI script. The predicates in \secref{printmsg} define the API
 for dealing with messages. The idea behind this is that a library that
 wants to provide information about its status, progress, events or
 problems calls print_message/2. The first argument is the
