@@ -2060,9 +2060,14 @@ mul64(int64_t x, int64_t y, int64_t *r)
 
     As division is pretty expensive, we make a quick test to see whether
     we are in the danger zone.
+
+    Finally, we must avoid INT64_MIN/-1 :-(
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MU64_SAFE_MAX (LL(1)<<30)
+#ifndef INT64_MIN
+#define INT64_MIN (LL(1)<<63)
+#endif
 
 static int
 mul64(int64_t x, int64_t y, int64_t *r)
@@ -2097,11 +2102,15 @@ mul64(int64_t x, int64_t y, int64_t *r)
     prod = (int64_t)(ax*ay);
     if ( sign < 0 )
       prod = -prod;
-    if ( (ax < MU64_SAFE_MAX && ay < MU64_SAFE_MAX) || prod/y == x )
+    if ( (ax < MU64_SAFE_MAX && ay < MU64_SAFE_MAX) )
     { *r = prod;
-
       return TRUE;
     }
+    if ( !(y==LL(-1) && prod == INT64_MIN) && prod/y == x )
+    { *r = prod;
+      return TRUE;
+    }
+
     return FALSE;
   }
 }
