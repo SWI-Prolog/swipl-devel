@@ -3975,12 +3975,13 @@ run_propagator(prem(X,Y,Z), MState) :-
         ;   nonvar(Y) ->
             Y =\= 0,
             (   abs(Y) =:= 1 -> kill(MState), Z = 0
-            ;   fd_get(Z, ZD, ZPs) ->
+            ;   var(Z) ->
                 YP is abs(Y) - 1,
                 YN is -YP,
                 (   Y > 0, fd_get(X, _, n(XL), n(XU), _) ->
-                    (   XL < 0, abs(XL) < Y -> ZL = XL
-                    ;   XL >= 0, XL < Y, XU < Y -> ZL = XL
+                    (   XL < 0, abs(XL) < Y, XU < Y -> Z = X, ZL = XL
+                    ;   XL < 0, abs(XL) < Y -> ZL = XL
+                    ;   XL >= 0, XU < Y -> Z = X, ZL = XL
                     ;   ZL = YN
                     ),
                     (   XU > 0, XU < Y -> ZU = XU
@@ -3988,8 +3989,11 @@ run_propagator(prem(X,Y,Z), MState) :-
                     )
                 ;   ZL = YN, ZU = YP
                 ),
-                domains_intersection(ZD, from_to(n(ZL), n(ZU)), ZD1),
-                fd_put(Z, ZD1, ZPs),
+                (   fd_get(Z, ZD, ZPs) ->
+                    domains_intersection(ZD, from_to(n(ZL), n(ZU)), ZD1),
+                    fd_put(Z, ZD1, ZPs)
+                ;   true
+                ),
                 (   fd_get(X, XD, _), domain_infimum(XD, n(Min)) ->
                     Z1 is Min rem Y,
                     (   domain_contains(ZD1, Z1) -> true
