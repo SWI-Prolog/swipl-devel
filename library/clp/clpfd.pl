@@ -3979,10 +3979,8 @@ run_propagator(prem(X,Y,Z), MState) :-
                 YP is abs(Y) - 1,
                 YN is -YP,
                 (   Y > 0, fd_get(X, _, n(XL), n(XU), _) ->
-                    (   XL < 0, abs(XL) < Y, XU < Y ->
-                        kill(MState), Z = X, ZL = XL
+                    (   abs(XL) < Y, XU < Y -> kill(MState), Z = X, ZL = XL
                     ;   XL < 0, abs(XL) < Y -> ZL = XL
-                    ;   XL >= 0, XU < Y -> kill(MState), Z = X, ZL = XL
                     ;   ZL = YN
                     ),
                     (   XU > 0, XU < Y -> ZU = XU
