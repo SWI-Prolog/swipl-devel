@@ -3988,6 +3988,7 @@ run_propagator(prem(X,Y,Z), MState) :-
                     ;   ZL = YN
                     ),
                     (   XU > 0, XU < Y -> ZU = XU
+                    ;   XU < 0 -> ZU = 0
                     ;   ZU = YP
                     )
                 ;   ZL = YN, ZU = YP
