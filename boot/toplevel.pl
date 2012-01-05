@@ -909,7 +909,7 @@ answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-
 	print_predicate(Char, Pred, Options), !,
-	print_message(query, if_tty([Pred-[]])),
+	print_message(query, if_tty(['~w'-[Pred]])),
 	set_prolog_flag(toplevel_print_options, Options).
 answer_respons(-1, show_again) :- !,
 	print_message(query, halt('EOF')),
