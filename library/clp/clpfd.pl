@@ -3901,15 +3901,23 @@ run_propagator(pmod(X,Y,Z), MState) :-
         ;   nonvar(Y) ->
             Y =\= 0,
             (   abs(Y) =:= 1 -> kill(MState), Z = 0
-            ;   fd_get(Z, ZD, ZPs) ->
+            ;   var(Z) ->
                 YP is abs(Y) - 1,
-                (   Y > 0 -> ZDN = from_to(n(0), n(YP))
-                ;   YN is -YP, ZDN = from_to(n(YN), n(0))
+                (   Y > 0, fd_get(X, _, n(XL), n(XU), _) ->
+                    (   XL >= 0, XU < Y ->
+                        kill(MState), Z = X, ZL = XL, ZU = XU
+                    ;   ZL = 0, ZU = YP
+                    )
+                ;   Y > 0 -> ZL = 0, ZU = YP
+                ;   YN is -YP, ZL = YN, ZU = 0
                 ),
-                domains_intersection(ZD, ZDN, ZD1),
-                fd_put(Z, ZD1, ZPs),
-                domain_infimum(ZD1, n(ZMin)),
-                domain_supremum(ZD1, n(ZMax)),
+                (   fd_get(Z, ZD, ZPs) ->
+                    domains_intersection(ZD, from_to(n(ZL), n(ZU)), ZD1),
+                    domain_infimum(ZD1, n(ZMin)),
+                    domain_supremum(ZD1, n(ZMax)),
+                    fd_put(Z, ZD1, ZPs)
+                ;   ZMin = Z, ZMax = Z
+                ),
                 (   fd_get(X, XD, XPs), domain_infimum(XD, n(XMin)) ->
                     Z1 is XMin mod Y,
                     (   between(ZMin, ZMax, Z1) -> true
