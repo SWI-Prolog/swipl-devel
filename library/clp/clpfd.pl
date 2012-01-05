@@ -3796,10 +3796,10 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         update_bounds(Y, YD, YPs, YL, YU, NYL, NYU)
                     )
                 ;   fd_get(Z, ZD, ZL, ZU, ZPs),
-                    (   X >= 0, YL cis_gt n(0) ->
+                    (   X >= 0, ( YL cis_gt n(0) ; YU cis_lt n(0) )->
                         NZL cis max(n(X)//YU, ZL),
                         NZU cis min(n(X)//YL, ZU)
-                    ;   X < 0, YL cis_gt n(0) ->
+                    ;   X < 0, ( YL cis_gt n(0) ; YU cis_lt n(0) ) ->
                         NZL cis max(n(X)//YL, ZL),
                         NZU cis min(n(X)//YU, ZU)
                     ;   % TODO: more stringent bounds, cover Y
