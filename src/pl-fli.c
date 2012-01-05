@@ -4117,7 +4117,7 @@ PL_duplicate_record(record_t r)
 
 
 		 /*******************************
-		 *	    FEATURES		*
+		 *	   PROLOG FLAGS		*
 		 *******************************/
 
 int
@@ -4125,8 +4125,6 @@ PL_set_prolog_flag(const char *name, int type, ...)
 { va_list args;
   int rval = TRUE;
   int flags = (type & FF_MASK);
-
-  initPrologFlagTable();
 
   va_start(args, type);
   switch(type & ~FF_MASK)
@@ -4151,8 +4149,8 @@ PL_set_prolog_flag(const char *name, int type, ...)
     default:
       rval = FALSE;
   }
-
   va_end(args);
+
   return rval;
 }
 

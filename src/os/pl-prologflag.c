@@ -74,6 +74,8 @@ static void setArgvPrologFlag(void);
 static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static atom_t lookupAtomFlag(atom_t key);
+static void initPrologFlagTable(void);
+
 
 typedef struct _prolog_flag
 { short		flags;			/* Type | Flags */
@@ -999,12 +1001,12 @@ pl_prolog_flag(term_t name, term_t value, control_t h)
 #define SO_PATH "LD_LIBRARY_PATH"
 #endif
 
-void
-initPrologFlagTable()
+static void
+initPrologFlagTable(void)
 { if ( !GD->prolog_flag.table )
   { initPrologThreads();	/* may be called before PL_initialise() */
 
-    GD->prolog_flag.table = newHTable(32);
+    GD->prolog_flag.table = newHTable(64);
   }
 }
 
