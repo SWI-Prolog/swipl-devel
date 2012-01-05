@@ -3799,6 +3799,9 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     (   X >= 0, YL cis_gt n(0) ->
                         NZL cis max(n(X)//YU, ZL),
                         NZU cis min(n(X)//YL, ZU)
+                    ;   X < 0, YL cis_gt n(0) ->
+                        NZL cis max(n(X)//YL, ZL),
+                        NZU cis min(n(X)//YU, ZU)
                     ;   % TODO: more stringent bounds, cover Y
                         NZL cis max(-abs(n(X)), ZL),
                         NZU cis min(abs(n(X)), ZU)
