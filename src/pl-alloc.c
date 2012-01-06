@@ -656,7 +656,7 @@ allocHeapOrHalt__LD(size_t n ARG_LD)
 
 void
 freeHeap__LD(void *mem, size_t n ARG_LD)
-{
+{ GC_FREE(mem);
 }
 
 
@@ -1437,6 +1437,7 @@ initHBase(void)
 { void *p = GC_MALLOC(sizeof(void*));
   uintptr_t base = (uintptr_t)p;
 
+  GC_FREE(p);				/* Keep leak-detection happy */
   base &= ~0xfffff;			/* round down 1m */
   GD->heap_base = base;			/* for pointer <-> int conversion */
 }
