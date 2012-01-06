@@ -2468,8 +2468,8 @@ popPathTranslation(wic_state *state)
     if ( old->has_moved )
     { remove_string(old->load_dir);
       remove_string(old->save_dir);
-      freeHeap(old, sizeof(*old));
     }
+    freeHeap(old, sizeof(*old));
   }
 }
 
