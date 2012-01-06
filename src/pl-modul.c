@@ -1146,6 +1146,7 @@ pl_import(term_t pred)
       if ( true(odef, P_SHARED) )
 	fixExport(odef, proc->definition);
       set(proc->definition, P_SHARED);
+      GC_LINGER(odef);
 
       succeed;
     }

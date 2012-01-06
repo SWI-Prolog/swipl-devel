@@ -207,6 +207,17 @@ setPrologFlag(const char *name, int flags, ...)
 }
 
 
+static void
+freePrologFlag(prolog_flag *f)
+{ GET_LD
+
+  if ( (f->flags & FT_MASK) == FT_TERM )
+    PL_erase(f->value.t);
+
+  freeHeap(f, sizeof(*f));
+}
+
+
 #ifdef O_PLMT
 static void
 copySymbolPrologFlagTable(Symbol s)
@@ -223,13 +234,7 @@ copySymbolPrologFlagTable(Symbol s)
 
 static void
 freeSymbolPrologFlagTable(Symbol s)
-{ GET_LD
-  prolog_flag *f = s->value;
-
-  if ( (f->flags & FT_MASK) == FT_TERM )
-    PL_erase(f->value.t);
-
-  freeHeap(f, sizeof(*f));
+{ freePrologFlag(s->value);
 }
 #endif
 
@@ -517,7 +522,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
     if ( (flags & FF_READONLY) )
       f->flags |= FF_READONLY;
 
-    addHTable(GD->prolog_flag.table, (void *)k, f);
+    if ( !addHTable(GD->prolog_flag.table, (void *)k, f) )
+    { freePrologFlag(f);
+      Sdprintf("OOPS; failed to set Prolog flag!?\n");
+    }
 
     succeed;
   } else

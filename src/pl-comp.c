@@ -1809,6 +1809,7 @@ lookupBodyProcedure(functor_t functor, Module tm ARG_LD)
 	  (syspred=isCurrentProcedure(functor, MODULE_system)) &&
 	  isDefinedProcedure(syspred)) )
     { assert(false(proc->definition, P_DIRTYREG));
+					/* TBD: use GC_LINGER() */
       freeHeap(proc->definition, sizeof(struct definition));
       proc->definition = syspred->definition;
     }
