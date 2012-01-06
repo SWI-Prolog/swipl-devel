@@ -184,7 +184,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	  succeed;
 	}
 
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	cpNumber(&state->low, &l);
 	cpNumber(&state->high, &h);
 	state->hinf = hinf;
@@ -210,7 +210,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
       cleanup:
 	clearInteger(&state->low);
 	clearInteger(&state->high);
-	freeHeap(state, sizeof(*state));
+	freeForeignState(state, sizeof(*state));
       }
     default:;
       return rc;

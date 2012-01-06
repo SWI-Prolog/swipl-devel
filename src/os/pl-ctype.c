@@ -366,7 +366,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	}
       }
 
-      gen = allocHeapOrHalt(sizeof(*gen));
+      gen = allocForeignState(sizeof(*gen));
       gen->do_enum = do_enum;
 
       if ( do_enum & ENUM_CHAR )
@@ -385,7 +385,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
     case FRG_CUTTED:
       gen = ForeignContextPtr(h);
       if ( gen )
-	freeHeap(gen, sizeof(*gen));
+	freeForeignState(gen, sizeof(*gen));
     default:
       succeed;
   }
@@ -412,9 +412,9 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       }
 
       if ( advanceGen(gen) )		/* ok, found one */
-	ForeignRedoPtr(gen);
-      else
-      { freeHeap(gen, sizeof(*gen));	/* the only one */
+      { ForeignRedoPtr(gen);
+      } else
+      { freeForeignState(gen, sizeof(*gen));	/* the only one */
 	succeed;
       }
     }
@@ -426,7 +426,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
   }
 
 error:
-  freeHeap(gen, sizeof(*gen));
+  freeForeignState(gen, sizeof(*gen));
   fail;
 }
 

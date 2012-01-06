@@ -65,13 +65,23 @@
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
 #endif
 
+		 /*******************************
+		 *	     ALLOCATION		*
+		 *******************************/
+
 #ifdef HAVE_BOEHM_GC
+
 #ifdef O_PLMT
 #define GC_THREADS 1
 #endif
 #include <gc/gc.h>
 #define O_MYALLOC 0
-#else
+
+#define allocForeignState(size)			GC_MALLOC_UNCOLLECTABLE(size)
+#define freeForeignState(ptr, size)		GC_FREE(ptr)
+
+#else /*HAVE_BOEHM_GC*/
+
 #define GC_MALLOC(n)				malloc(n)
 #define GC_MALLOC_ATOMIC(n)			malloc(n)
 #define GC_MALLOC_STUBBORN(n)			malloc(n)
@@ -82,6 +92,10 @@
 #define GC_REALLOC(p,s)				realloc(p,s)
 #define GC_FREE(p)				free(p)
 #define GC_END_STUBBORN_CHANGE(p)		((void)0)
+
+#define allocForeignState(size)			allocHeapOrHalt(size)
+#define freeForeignState(ptr, size)		freeHeap(ptr, size)
+
 #endif /*HAVE_BOEHM_GC*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

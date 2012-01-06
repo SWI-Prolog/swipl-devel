@@ -1819,7 +1819,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
       break;
     case FRG_CUTTED:
       state = CTX_PTR;
-      freeHeap(state, sizeof(*state));
+      freeForeignState(state, sizeof(*state));
       succeed;
     default:
       assert(0);
@@ -1848,7 +1848,7 @@ enumerate:
 
 	if ( advance_state(state) )
 	{ if ( state == &statebuf )
-	  { tprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
+	  { tprop_enum *copy = allocForeignState(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;
@@ -1858,14 +1858,14 @@ enumerate:
 	}
 
 	if ( state != &statebuf )
-	  freeHeap(state, sizeof(*state));
+	  freeForeignState(state, sizeof(*state));
 	succeed;
       }
 
       if ( !advance_state(state) )
       { error:
 	if ( state != &statebuf )
-	  freeHeap(state, sizeof(*state));
+	  freeForeignState(state, sizeof(*state));
 	fail;
       }
     }
@@ -3148,7 +3148,7 @@ free_qstate(qprop_enum *state)
   if ( state->e )
     freeTableEnum(state->e);
 
-  freeHeap(state, sizeof(*state));
+  freeForeignState(state, sizeof(*state));
 }
 
 
@@ -3246,7 +3246,7 @@ enumerate:
 
 	if ( advance_qstate(state) )
 	{ if ( state == &statebuf )
-	  { qprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
+	  { qprop_enum *copy = allocForeignState(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;
@@ -3919,7 +3919,7 @@ free_mstate__LD(mprop_enum *state ARG_LD)
 { if ( state->e )
     freeTableEnum(state->e);
 
-  freeHeap(state, sizeof(*state));
+  freeForeignState(state, sizeof(*state));
 }
 
 
@@ -4012,7 +4012,7 @@ enumerate:
 
 	if ( advance_mstate(state) )
 	{ if ( state == &statebuf )
-	  { mprop_enum *copy = allocHeapOrHalt(sizeof(*copy));
+	  { mprop_enum *copy = allocForeignState(sizeof(*copy));
 
 	    *copy = *state;
 	    state = copy;

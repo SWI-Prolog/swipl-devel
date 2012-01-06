@@ -3851,7 +3851,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 			    ATOM_stream_property, property);
 	}
 
-	pe = allocHeapOrHalt(sizeof(*pe));
+	pe = allocForeignState(sizeof(*pe));
 
 	pe->e = newTableEnum(streamContext);
 	pe->s = NULL;
@@ -3869,7 +3869,7 @@ PRED_IMPL("stream_property", 2, stream_property,
       { functor_t f;
 
 	if ( PL_is_variable(property) )	/* generate properties */
-	{ pe = allocHeapOrHalt(sizeof(*pe));
+	{ pe = allocForeignState(sizeof(*pe));
 
 	  pe->e = NULL;
 	  pe->s = s;
@@ -3927,7 +3927,7 @@ PRED_IMPL("stream_property", 2, stream_property,
       { if ( pe->e )
 	  freeTableEnum(pe->e);
 
-	freeHeap(pe, sizeof(*pe));
+	freeForeignState(pe, sizeof(*pe));
       }
       return TRUE;
     }
@@ -3943,7 +3943,7 @@ PRED_IMPL("stream_property", 2, stream_property,
     if ( pe->e )
       freeTableEnum(pe->e);
 
-    freeHeap(pe, sizeof(*pe));
+    freeForeignState(pe, sizeof(*pe));
     return FALSE;
   }
 
@@ -4017,7 +4017,7 @@ PRED_IMPL("stream_property", 2, stream_property,
     { if ( pe->e )
 	freeTableEnum(pe->e);
 
-      freeHeap(pe, sizeof(*pe));
+      freeForeignState(pe, sizeof(*pe));
       return FALSE;
     }
   }

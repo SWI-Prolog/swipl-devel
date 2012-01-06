@@ -655,7 +655,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
       { e->epred = newTableEnum(e->module->procedures);
       }
 
-      e = allocHeapOrHalt(sizeof(*e));
+      e = allocForeignState(sizeof(*e));
       *e = e0;
       break;
     }
@@ -735,7 +735,7 @@ clean:
       freeTableEnum(e->epred);
     if ( e->emod )
       freeTableEnum(e->emod);
-    freeHeap(e, sizeof(*e));
+    freeForeignState(e, sizeof(*e));
   }
 
   return rval;
@@ -1944,7 +1944,7 @@ PRED_IMPL("retract", 1, retract,
 	}
 
 	if ( ctx == &ctxbuf )		/* non-determinisic; save state */
-	{ ctx = allocHeapOrHalt(sizeof(*ctx));
+	{ ctx = allocForeignState(sizeof(*ctx));
 	  *ctx = ctxbuf;
 	}
 
@@ -1960,7 +1960,7 @@ PRED_IMPL("retract", 1, retract,
     PL_close_foreign_frame(fid);
     leaveDefinition(ctx->def);
     if ( ctx != &ctxbuf )
-      freeHeap(ctx, sizeof(*ctx));
+      freeForeignState(ctx, sizeof(*ctx));
     if ( !endCritical )
       fail;
     fail;

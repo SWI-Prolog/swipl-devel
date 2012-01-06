@@ -4461,7 +4461,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       proc = chp->cref->value.clause->procedure;
       def  = getProcDefinition(proc);
       leaveDefinition(def);
-      freeHeap(chp, sizeof(*chp));
+      freeForeignState(chp, sizeof(*chp));
       succeed;
     default:
       assert(0);
@@ -4497,7 +4497,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	  succeed;
 	}
 	if ( chp == &chp_buf )
-	{ chp = allocHeapOrHalt(sizeof(*chp));
+	{ chp = allocForeignState(sizeof(*chp));
 	  *chp = chp_buf;
 	}
 
@@ -4518,7 +4518,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   }
 
   if ( chp != &chp_buf )
-    freeHeap(chp, sizeof(*chp));
+    freeForeignState(chp, sizeof(*chp));
   leaveDefinition(def);
   fail;
 }
@@ -4548,7 +4548,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     if ( cr )
     { def = getProcDefinition(cr->clause->value.clause->procedure);
       leaveDefinition(def);
-      freeHeap(cr, sizeof(*cr));
+      freeForeignState(cr, sizeof(*cr));
     }
     succeed;
   }
@@ -4608,7 +4608,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
     }
 
-    cr = allocHeapOrHalt(sizeof(*cr));
+    cr = allocForeignState(sizeof(*cr));
     cr->clause = cref;
     cr->index  = 1;
     enterDefinition(def);
@@ -4630,7 +4630,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     ForeignRedoPtr(cr);
   }
 
-  freeHeap(cr, sizeof(*cr));
+  freeForeignState(cr, sizeof(*cr));
   leaveDefinition(def);
 
   succeed;
@@ -5290,10 +5290,11 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
   clause.code_size = entriesBuffer(&ci.codes, code);
   size  = sizeofClause(clause.code_size);
-  cl = allocHeapOrHalt(size);
+  cl = PL_malloc_stubborn(size);
   memcpy(cl, &clause, sizeofClause(0));
   GD->statistics.codes += clause.code_size;
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
+  PL_end_stubborn_change(cl);
   discardBuffer(&ci.codes);
 
 					/* TBD: see assert_term() */

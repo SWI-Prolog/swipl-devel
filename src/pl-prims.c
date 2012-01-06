@@ -3817,7 +3817,7 @@ sub_text(term_t atom,
 	  }
 	  fail;
 	}
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SEARCH;
 	state->n1   = 0;
 	state->n2   = la;
@@ -3846,7 +3846,7 @@ sub_text(term_t atom,
 
 	  fail;
 	}
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_TAIL;
 	state->n1   = 0;		/* len of the split */
 	state->n2   = la;		/* length of the atom */
@@ -3867,7 +3867,7 @@ sub_text(term_t atom,
 
 	  fail;
 	}
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_LEN;
 	state->n1   = 0;		/* before */
 	state->n2   = l;		/* length */
@@ -3879,7 +3879,7 @@ sub_text(term_t atom,
       { if ( a > (int)la )
 	  fail;
 
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_HEAD;
 	state->n1   = 0;		/* before */
 	state->n2   = la;
@@ -3887,7 +3887,7 @@ sub_text(term_t atom,
 	break;
       }
 
-      state = allocHeapOrHalt(sizeof(*state));
+      state = allocForeignState(sizeof(*state));
       state->type = SUB_ENUM;
       state->n1	= 0;			/* before */
       state->n2 = 0;			/* len */
@@ -3902,7 +3902,7 @@ sub_text(term_t atom,
     exit_succeed:
       state = ForeignContextPtr(h);
       if ( state )
-	freeHeap(state, sizeof(*state));
+	freeForeignState(state, sizeof(*state));
       succeed;
     default:
       assert(0);
@@ -3995,7 +3995,7 @@ again:
   }
 
 exit_fail:
-  freeHeap(state, sizeof(*state));
+  freeForeignState(state, sizeof(*state));
   fail;
 
 next:
