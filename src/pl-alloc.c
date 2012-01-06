@@ -660,6 +660,43 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+To debug the  interaction  between  Boehm-GC   and  Prolog,  we  run the
+collector in leak-detection mode.  Reported leaks can have three causes:
+
+  - They are real leaks. We would like to fix these, at least for the
+    non-GC version.
+  - They are caused by lacking traceable pointers.  This must be fixed
+    to run reliably under Boehm-GC.
+  - The are place that can currently not be safely removed.  We call
+    GC_LINGER() on such pointers.  These will be left to GC, but in
+    leak-detection mode we give them a reference to silence the leak
+    detector.
+
+GC_linger() is called to keep track of objects we would like to leave to
+GC because we are not sure they can be reclaimed safely now. We use this
+as a debugging aid if GC_DEBUG is enabled.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct linger
+{ struct linger *next;
+  void	        *object;
+} linger;
+
+linger *GC_lingering = NULL;
+
+void
+GC_linger(void *ptr)
+{ linger *l = GC_MALLOC_UNCOLLECTABLE(sizeof(*l));
+
+  l->object = ptr;
+  LOCK();
+  l->next = GC_lingering;
+  GC_lingering = l->next;
+  UNLOCK();
+}
+
+
 void
 cleanupMemAlloc(void)
 {					/* TBD: Cleanup! */

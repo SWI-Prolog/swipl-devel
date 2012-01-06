@@ -79,7 +79,12 @@
 
 #define allocForeignState(size)			GC_MALLOC_UNCOLLECTABLE(size)
 #define freeForeignState(ptr, size)		GC_FREE(ptr)
+#ifdef GC_DEBUG
+PL_EXPORT(void) GC_linger(void *ptr);
+#define GC_LINGER(p)				GC_linger(p)
+#else
 #define GC_LINGER(p)				((void)0)
+#endif
 
 #else /*HAVE_BOEHM_GC*/
 
