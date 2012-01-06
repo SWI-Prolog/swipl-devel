@@ -97,7 +97,10 @@ importDefinitionModule(Module m, Definition def)
     if ( proc->definition == def )
       goto done;
     if ( !isDefinedProcedure(proc) )
-    { proc->definition = def;		/* TBD: what about the old one */
+    { Definition odef = proc->definition;
+
+      proc->definition = def;
+      GC_LINGER(odef);
       goto done;
     }
     rc = warning("Failed to import %s into %s",
@@ -1688,6 +1691,8 @@ found:
 	GD->statistics.threads_finished) == 1 )
   { assert(false(proc->definition, P_DIRTYREG));
     freeHeap(odef, sizeof(struct definition));
+  } else
+  { GC_LINGER(odef);
   }
   PL_UNLOCK(L_THREAD);
 #else

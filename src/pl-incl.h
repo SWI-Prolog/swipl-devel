@@ -79,6 +79,7 @@
 
 #define allocForeignState(size)			GC_MALLOC_UNCOLLECTABLE(size)
 #define freeForeignState(ptr, size)		GC_FREE(ptr)
+#define GC_LINGER(p)				((void)0)
 
 #else /*HAVE_BOEHM_GC*/
 
@@ -92,6 +93,7 @@
 #define GC_REALLOC(p,s)				realloc(p,s)
 #define GC_FREE(p)				free(p)
 #define GC_END_STUBBORN_CHANGE(p)		((void)0)
+#define GC_LINGER(p)				((void)0)
 
 #define allocForeignState(size)			allocHeapOrHalt(size)
 #define freeForeignState(ptr, size)		freeHeap(ptr, size)
