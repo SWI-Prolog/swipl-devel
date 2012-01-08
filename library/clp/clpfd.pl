@@ -3808,8 +3808,9 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     ),
                     update_bounds(Z, ZD, ZPs, ZL, ZU, NZL, NZU),
                     (   X >= 0, NZL cis_gt n(0), fd_get(Y, YD1, YPs1) ->
+                        NYL cis n(X) // (NZU + n(1)) + n(1),
                         NYU cis n(X) // NZL,
-                        domains_intersection(YD1, from_to(n(1), NYU), NYD1),
+                        domains_intersection(YD1, from_to(NYL, NYU), NYD1),
                         fd_put(Y, NYD1, YPs1)
                     ;   true
                     )
