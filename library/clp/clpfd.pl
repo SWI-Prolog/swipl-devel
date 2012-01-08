@@ -3714,16 +3714,18 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   X =:= 0 -> kill(MState), Z = 0
             ;   X =:= 1 -> kill(MState), Z = Y
             ;   nonvar(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
-            ;   fd_get(Y, YD, _),
-                fd_get(Z, ZD, ZPs),
-                domain_expand(YD, X, Scaled_YD),
-                domains_intersection(ZD, Scaled_YD, ZD1),
-                fd_put(Z, ZD1, ZPs),
-                (   fd_get(Y, YDom2, YPs2) ->
-                    domain_contract(ZD1, X, Contract),
-                    domains_intersection(YDom2, Contract, NYDom),
-                    fd_put(Y, NYDom, YPs2)
-                ;   kill(MState), Z is X * Y
+            ;   (   Y == Z -> kill(MState), Y = 0
+                ;   fd_get(Y, YD, _),
+                    fd_get(Z, ZD, ZPs),
+                    domain_expand(YD, X, Scaled_YD),
+                    domains_intersection(ZD, Scaled_YD, ZD1),
+                    fd_put(Z, ZD1, ZPs),
+                    (   fd_get(Y, YDom2, YPs2) ->
+                        domain_contract(ZD1, X, Contract),
+                        domains_intersection(YDom2, Contract, NYDom),
+                        fd_put(Y, NYDom, YPs2)
+                    ;   kill(MState), Z is X * Y
+                    )
                 )
             )
         ;   nonvar(Y) -> run_propagator(ptimes(Y,X,Z), MState)
