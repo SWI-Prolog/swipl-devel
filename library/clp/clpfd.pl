@@ -3545,28 +3545,30 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
             fd_get(X, XD, XPs),
             domain_remove_greater_than(XD, R, XD1),
             fd_put(X, XD1, XPs)
-        ;   fd_get(Y, YD, _),
-            (   domain_supremum(YD, n(YSup)) ->
-                YS1 is YSup + C,
-                fd_get(X, XD, XPs),
-                domain_remove_greater_than(XD, YS1, XD1),
-                fd_put(X, XD1, XPs)
-            ;   true
-            ),
-            (   fd_get(X, XD2, _), domain_infimum(XD2, n(XInf)) ->
-                XI1 is XInf - C,
-                (   fd_get(Y, YD1, YPs1) ->
-                    domain_remove_smaller_than(YD1, XI1, YD2),
-                    (   domain_infimum(YD2, n(YInf)),
-                        domain_supremum(XD2, n(XSup)),
-                        XSup =< YInf + C ->
-                        kill(MState)
+        ;   (   X == Y -> C >= 0, kill(MState)
+            ;   fd_get(Y, YD, _),
+                (   domain_supremum(YD, n(YSup)) ->
+                    YS1 is YSup + C,
+                    fd_get(X, XD, XPs),
+                    domain_remove_greater_than(XD, YS1, XD1),
+                    fd_put(X, XD1, XPs)
+                ;   true
+                ),
+                (   fd_get(X, XD2, _), domain_infimum(XD2, n(XInf)) ->
+                    XI1 is XInf - C,
+                    (   fd_get(Y, YD1, YPs1) ->
+                        domain_remove_smaller_than(YD1, XI1, YD2),
+                        (   domain_infimum(YD2, n(YInf)),
+                            domain_supremum(XD2, n(XSup)),
+                            XSup =< YInf + C ->
+                            kill(MState)
+                        ;   true
+                        ),
+                        fd_put(Y, YD2, YPs1)
                     ;   true
-                    ),
-                    fd_put(Y, YD2, YPs1)
+                    )
                 ;   true
                 )
-            ;   true
             )
         ).
 
