@@ -1021,7 +1021,7 @@ initPrologFlagTable(void)
 
 
 void
-initPrologFlags()
+initPrologFlags(void)
 { GET_LD
   setPrologFlag("iso",  FT_BOOL, FALSE, PLFLAG_ISO);
   setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
@@ -1213,6 +1213,20 @@ setVersionPrologFlag(void)
 
   setGITVersion();
 }
+
+
+void
+cleanupPrologFlags(void)
+{ if ( GD->prolog_flag.table )
+  { Table t = GD->prolog_flag.table;
+
+    GD->prolog_flag.table = NULL;
+    t->free_symbol = freeSymbolPrologFlagTable;
+    destroyHTable(t);
+  }
+}
+
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
