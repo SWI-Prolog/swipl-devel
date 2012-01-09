@@ -835,6 +835,8 @@ unallocClauseIndexes(Definition def)
     unallocClauseIndexTable(ci);
 
   unallocOldClauseIndexes(def PASS_LD);
+  if ( def->tried_index )
+    free_bitvector(def->tried_index);
 }
 
 

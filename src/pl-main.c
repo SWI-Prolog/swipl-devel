@@ -1276,6 +1276,7 @@ PL_cleanup(int rval)
   cleanupSourceFiles();
   cleanupModules();
   cleanupPrologFlags();
+  cleanupFlags();
   cleanupTerm();
   cleanupAtoms();
   cleanupFunctors();

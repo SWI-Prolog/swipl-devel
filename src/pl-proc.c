@@ -96,11 +96,20 @@ unallocClauseList(ClauseRef cref)
 
 static void
 unallocDefinition(Definition def)
-{ if ( false(def, FOREIGN|P_THREAD_LOCAL) )
+{ GET_LD
+
+  if ( false(def, FOREIGN|P_THREAD_LOCAL) )
     unallocClauseList(def->impl.clauses.first_clause);
+  else if ( true(def, P_THREAD_LOCAL) )
+    free_ldef_vector(def->impl.local);
+
   if ( def->mutex )
     freeSimpleMutex(def->mutex);
+
   unallocClauseIndexes(def);
+  freeCodesDefinition(def);
+
+  freeHeap(def, sizeof(*def));
 }
 
 

@@ -225,6 +225,7 @@ COMMON(void)            rememberExtensions(const char *module,
 
 /* pl-flag.c */
 COMMON(void)		initFlags(void);
+COMMON(void)		cleanupFlags(void);
 COMMON(word)		pl_current_flag(term_t k, control_t h);
 
 /* pl-fli.c */

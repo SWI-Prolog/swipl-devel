@@ -40,6 +40,8 @@ typedef struct flag
   } value;				/* value of the flag */
 } *Flag;
 
+static void	freeFlagValue(Flag f);
+
 #define flagTable (GD->flags.table)
 #define LOCK()   PL_LOCK(L_FLAG)
 #define UNLOCK() PL_UNLOCK(L_FLAG)
@@ -47,9 +49,31 @@ typedef struct flag
 #undef LD
 #define LD LOCAL_LD
 
+static void
+freeFlagSymbol(Symbol s)
+{ GET_LD
+  Flag f = s->value;
+
+  freeFlagValue(f);
+  freeHeap(f, sizeof(*f));
+}
+
+
 void
 initFlags(void)
 { flagTable = newHTable(FLAGHASHSIZE);
+  flagTable->free_symbol = freeFlagSymbol;
+}
+
+
+void
+cleanupFlags(void)
+{ Table t;
+
+  if ( (t=flagTable) )
+  { flagTable = NULL;
+    destroyHTable(t);
+  }
 }
 
 

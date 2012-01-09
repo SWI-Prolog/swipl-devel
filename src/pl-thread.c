@@ -351,6 +351,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 		 *******************************/
 
 static PL_thread_info_t *alloc_thread(void);
+static void	unalloc_mutex(pl_mutex *m);
 static void	destroy_message_queue(message_queue *queue);
 static void	init_message_queue(message_queue *queue, long max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
@@ -660,6 +661,12 @@ PL_cleanup_fork(void)
 }
 
 
+static void
+unalloc_mutex_symbol(Symbol s)
+{ unalloc_mutex(s->value);
+}
+
+
 void
 initPrologThreads()
 { PL_thread_info_t *info;
@@ -711,6 +718,7 @@ initPrologThreads()
     GD->statistics.thread_cputime = 0.0;
     GD->statistics.threads_created = 1;
     GD->thread.mutexTable = newHTable(16);
+    GD->thread.mutexTable->free_symbol = unalloc_mutex_symbol;
     link_mutexes();
     threads_ready = TRUE;
   }
@@ -730,7 +738,14 @@ cleanupThreads()
   { destroyHTable(queueTable);		/* removes shared queues */
     queueTable = NULL;
   }
-  threadTable = NULL;
+  if ( GD->thread.mutexTable )
+  { destroyHTable(GD->thread.mutexTable);
+    GD->thread.mutexTable = NULL;
+  }
+  if ( threadTable )
+  { destroyHTable(threadTable);
+    threadTable = NULL;
+  }
   freeHeap(GD->thread.threads,
 	   GD->thread.thread_max * sizeof(*GD->thread.threads));
   GD->thread.threads = NULL;
@@ -3521,6 +3536,15 @@ freeSimpleMutex(counting_mutex *m)
 		 *	    USER MUTEXES	*
 		 *******************************/
 
+static void
+unalloc_mutex(pl_mutex *m)
+{ GET_LD
+
+  pthread_mutex_destroy(&m->mutex);
+  freeHeap(m, sizeof(*m));
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 User-level mutexes. On Windows we can't   use  critical sections here as
 TryEnterCriticalSection() is only defined on NT 4, not on Windows 95 and
@@ -3831,10 +3855,9 @@ pl_mutex_destroy(term_t mutex)
 
   if ( isAtom(m->id) )
     aid = m->id;
-  pthread_mutex_destroy(&m->mutex);
   s = lookupHTable(GD->thread.mutexTable, (void *)m->id);
   deleteSymbolHTable(GD->thread.mutexTable, s);
-  freeHeap(m, sizeof(*m));
+  unalloc_mutex(m);
   UNLOCK();
 
   if ( aid )
@@ -5173,6 +5196,23 @@ new_ldef_vector(void)
   f->blocks[2] = f->preallocated - 1;
 
   return f;
+}
+
+
+void
+free_ldef_vector(LocalDefinitions ldefs)
+{ GET_LD
+  int i;
+
+  for(i=3; i<MAX_BLOCKS; i++)
+  { size_t bs = (size_t)1<<i;
+    Definition *d0 = ldefs->blocks[i];
+
+    if ( d0 )
+      freeHeap(d0+bs, bs*sizeof(Definition));
+  }
+
+  freeHeap(ldefs, sizeof(*ldefs));
 }
 
 

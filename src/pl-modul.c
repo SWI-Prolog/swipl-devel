@@ -180,6 +180,7 @@ unallocModule(Module m)
   if ( m->public )     destroyHTable(m->public);
   if ( m->operators )  destroyHTable(m->operators);
   if ( m->supers )     unallocList(m->supers);
+  if ( m->mutex )      freeSimpleMutex(m->mutex);
 
   freeHeap(m, sizeof(*m));
 }
