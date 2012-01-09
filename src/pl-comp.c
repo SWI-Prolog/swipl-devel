@@ -2865,7 +2865,11 @@ mode, the predicate is still undefined and is not dynamic or multifile.
     }
   }
 
-  return assertProcedure(proc, clause, where PASS_LD) ? clause : (Clause)NULL;
+  if ( assertProcedure(proc, clause, where PASS_LD) )
+    return clause;
+
+  freeClause(clause PASS_LD);
+  return NULL;
 }
 
 
