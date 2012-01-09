@@ -1208,11 +1208,22 @@ PL_on_halt(halt_function f, void *arg)
   }
 }
 
+static void
+run_on_halt(int rval)
+{ GET_LD
+  OnHalt h, next;
+
+  for(h = GD->os.on_halt_list; h; h=next)
+  { next = h->next;
+    (*h->function)(rval, h->argument);
+    freeHeap(h, sizeof(*h));
+  }
+}
+
 
 int
 PL_cleanup(int rval)
 { GET_LD
-  OnHalt h;
   int rc = TRUE;
 
   if ( GD->cleaning != CLN_NORMAL )
@@ -1249,10 +1260,7 @@ PL_cleanup(int rval)
   }
 
   GD->cleaning = CLN_FOREIGN;
-
-					/* run PL_on_halt() hooks */
-  for(h = GD->os.on_halt_list; h; h = h->next)
-    (*h->function)(rval, h->argument);
+  run_on_halt(rval);
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
