@@ -2524,9 +2524,46 @@ registerSourceFile(SourceFile f)
 }
 
 
+static void
+freeList(ListCell *lp)
+{ GET_LD
+  ListCell c;
+
+  if ( (c=*lp) )
+  { ListCell n;
+
+    *lp = NULL;
+    for( ; c; c=n )
+    { n = c->next;
+
+      freeHeap(c, sizeof(*c));
+    }
+  }
+}
+
+
+static void
+freeSymbolSourceFile(Symbol s)
+{ GET_LD
+  SourceFile sf = s->value;
+
+  freeList(&sf->procedures);
+  freeList(&sf->modules);
+  freeHeap(sf, sizeof(*sf));
+}
+
+
 void
 cleanupSourceFiles(void)
-{ if ( GD->files.source_files.base )
+{ Table t;
+
+  if ( (t=sourceTable) )
+  { sourceTable = NULL;
+
+    destroyHTable(t);
+  }
+
+  if ( GD->files.source_files.base )
   { discardBuffer(&GD->files.source_files);
     GD->files.source_files.base = 0;
   }
@@ -2540,7 +2577,9 @@ lookupSourceFile(atom_t name, int create)
 
   LOCK();
   if ( !sourceTable )
-    sourceTable = newHTable(32);
+  { sourceTable = newHTable(32);
+    sourceTable->free_symbol = freeSymbolSourceFile;
+  }
 
   if ( (s=lookupHTable(sourceTable, (void*)name)) )
   { file = s->value;
