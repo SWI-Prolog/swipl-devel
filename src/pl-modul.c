@@ -1142,10 +1142,12 @@ pl_import(term_t pred)
     if ( !isDefinedProcedure(old) )
     { Definition odef = old->definition;
 
+
       old->definition = proc->definition;
-      if ( true(odef, P_SHARED) )
+      shareDefinition(proc->definition);
+      if ( odef->shared > 1 )
 	fixExport(odef, proc->definition);
-      set(proc->definition, P_SHARED);
+      shareDefinition(odef);
       GC_LINGER(odef);
 
       succeed;
@@ -1179,7 +1181,7 @@ pl_import(term_t pred)
 
     nproc->type = PROCEDURE_TYPE;
     nproc->definition = proc->definition;
-    set(proc->definition, P_SHARED);
+    shareDefinition(proc->definition);
 
     LOCKMODULE(destination);
     addHTable(destination->procedures,

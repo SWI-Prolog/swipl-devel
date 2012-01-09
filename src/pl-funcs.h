@@ -459,6 +459,8 @@ COMMON(int)		importDefinitionModule(Module m, Definition def);
 COMMON(Procedure)	lookupProcedureToDefine(functor_t def, Module m);
 COMMON(ClauseRef)	hasClausesDefinition(Definition def);
 COMMON(bool)		isDefinedProcedure(Procedure proc);
+COMMON(void)		shareDefinition(Definition def);
+COMMON(void)		unshareDefinition(Definition def);
 COMMON(int)		get_head_functor(term_t head, functor_t *fdef,
 				 int flags ARG_LD);
 COMMON(int)		get_functor(term_t descr, functor_t *fdef,

@@ -66,6 +66,7 @@ lookupProcedure(functor_t f, Module m)
     memset(def, 0, sizeof(*def));
     def->functor = valueFunctor(f);
     def->module  = m;
+    def->shared  = 1;
     addHTable(m->procedures, (void *)f, proc);
     GD->statistics.predicates++;
 
@@ -99,7 +100,9 @@ importDefinitionModule(Module m, Definition def)
     if ( !isDefinedProcedure(proc) )
     { Definition odef = proc->definition;
 
+      shareDefinition(def);
       proc->definition = def;
+      unshareDefinition(odef);
       GC_LINGER(odef);
       goto done;
     }
@@ -113,7 +116,7 @@ importDefinitionModule(Module m, Definition def)
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
     addHTable(m->procedures, (void *)functor, proc);
-    set(proc->definition, P_SHARED);
+    shareDefinition(def);
   }
 
 done:
@@ -145,7 +148,7 @@ resetProcedure(Procedure proc, bool isnew)
        !def->impl.any )
     isnew = TRUE;
 
-  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_SHARED|P_DIRTYREG);
+  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_DIRTYREG);
   if ( stringAtom(def->functor->name)[0] != '$' )
     set(def, TRACE_ME);
   def->impl.clauses.number_of_clauses = 0;
@@ -265,6 +268,22 @@ lookupProcedureToDefine(functor_t def, Module m)
     return lookupProcedure(def, m);
 
   fail;
+}
+
+
+void
+shareDefinition(Definition def)
+{ LOCKDEF(def);
+  def->shared++;
+  UNLOCKDEF(def);
+}
+
+
+void
+unshareDefinition(Definition def)
+{ LOCKDEF(def);
+  def->shared--;
+  UNLOCKDEF(def);
 }
 
 
@@ -1684,6 +1703,8 @@ found:
 					/* TBD: find something better! */
   odef = proc->definition;
   proc->definition = def;
+  shareDefinition(def);
+  unshareDefinition(odef);
 
 #ifdef O_PLMT
   PL_LOCK(L_THREAD);

@@ -847,7 +847,7 @@ with one operation, it turns out to be faster as well.
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
 		      /* unused (0x00100000L) */
 #define P_VARARG		(0x00200000L) /* predicate */
-#define P_SHARED		(0x00400000L) /* predicate */
+		      /* unused	(0x00400000L) */
 #define P_REDEFINED		(0x00800000L) /* predicate */
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 #define P_THREAD_LOCAL		(0x01000000L) /* predicate */
@@ -1244,12 +1244,12 @@ struct definition
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
-  int		references;		/* reference count */
 #ifdef O_PLMT
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
+  int		references;		/* reference count */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
@@ -1273,6 +1273,7 @@ struct definition
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
 		/*	P_SHARED	   Multiple procs are using me */
+  unsigned short shared;		/* #procedures sharing this def */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
