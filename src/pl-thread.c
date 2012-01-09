@@ -5251,6 +5251,11 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
   { Definition def = ch->definition;
     next = ch->next;
 
+    DEBUG(MSG_CLEANUP,
+	  Sdprintf("Clean local def in thread %d for %s\n",
+		   id,
+		   predicateName(def)));
+
     assert(true(def, P_THREAD_LOCAL));
     destroyLocalDefinition(def, id);
     freeHeap(ch, sizeof(*ch));
