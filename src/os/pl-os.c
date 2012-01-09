@@ -801,9 +801,6 @@ struct canonical_dir
 forwards char   *canoniseDir(char *);
 #endif /*O_CANONISE_DIRS*/
 
-#define CWDdir	(LD->os._CWDdir)	/* current directory */
-#define CWDlen	(LD->os._CWDlen)	/* strlen(CWDdir) */
-
 static void
 initExpand(void)
 { GET_LD
@@ -812,8 +809,8 @@ initExpand(void)
   char *cpaths;
 #endif
 
-  CWDdir = NULL;
-  CWDlen = 0;
+  GD->paths.CWDdir = NULL;
+  GD->paths.CWDlen = 0;
 
 #ifdef O_CANONISE_DIRS
 { char envbuf[MAXPATHLEN];
@@ -855,6 +852,11 @@ cleanupExpand(void)
   for( ; dn; dn = next )
   { next = dn->next;
     PL_free(dn);
+  }
+  if ( GD->paths.CWDdir )
+  { remove_string(GD->paths.CWDdir);
+    GD->paths.CWDdir = NULL;
+    GD->paths.CWDlen = 0;
   }
 }
 
@@ -1448,14 +1450,14 @@ AbsoluteFile(const char *spec, char *path)
   if ( !PL_cwd() )
     return NULL;
 
-  if ( (CWDlen + strlen(file) + 1) >= MAXPATHLEN )
+  if ( (GD->paths.CWDlen + strlen(file) + 1) >= MAXPATHLEN )
   { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     return (char *) NULL;
   }
 
-  strcpy(path, CWDdir);
+  strcpy(path, GD->paths.CWDdir);
   if ( file[0] != EOS )
-    strcpy(&path[CWDlen], file);
+    strcpy(&path[GD->paths.CWDlen], file);
   if ( strchr(file, '.') || strchr(file, '/') )
     return canonisePath(path);
   else
@@ -1467,10 +1469,10 @@ void
 PL_changed_cwd(void)
 { GET_LD
 
-  if ( CWDdir )
-    remove_string(CWDdir);
-  CWDdir = NULL;
-  CWDlen = 0;
+  if ( GD->paths.CWDdir )
+    remove_string(GD->paths.CWDdir);
+  GD->paths.CWDdir = NULL;
+  GD->paths.CWDlen = 0;
 }
 
 
@@ -1478,7 +1480,7 @@ const char *
 PL_cwd(void)
 { GET_LD
 
-  if ( CWDlen == 0 )
+  if ( GD->paths.CWDlen == 0 )
   { char buf[MAXPATHLEN];
     char *rval;
 
@@ -1508,16 +1510,16 @@ to be implemented directly.  What about other Unixes?
     }
 
     canonisePath(buf);
-    CWDlen = strlen(buf);
-    buf[CWDlen++] = '/';
-    buf[CWDlen] = EOS;
+    GD->paths.CWDlen = strlen(buf);
+    buf[GD->paths.CWDlen++] = '/';
+    buf[GD->paths.CWDlen] = EOS;
 
-    if ( CWDdir )
-      remove_string(CWDdir);
-    CWDdir = store_string(buf);
+    if ( GD->paths.CWDdir )
+      remove_string(GD->paths.CWDdir);
+    GD->paths.CWDdir = store_string(buf);
   }
 
-  return (const char *)CWDdir;
+  return (const char *)GD->paths.CWDdir;
 }
 
 
@@ -1574,7 +1576,7 @@ ChDir(const char *path)
   OsPath(path, ospath);
 
   if ( path[0] == EOS || streq(path, ".") ||
-       (CWDdir && streq(path, CWDdir)) )
+       (GD->paths.CWDdir && streq(path, GD->paths.CWDdir)) )
     succeed;
 
   AbsoluteFile(path, tmp);
@@ -1587,10 +1589,10 @@ ChDir(const char *path)
     { tmp[len++] = '/';
       tmp[len] = EOS;
     }
-    CWDlen = len;
-    if ( CWDdir )
-      remove_string(CWDdir);
-    CWDdir = store_string(tmp);
+    GD->paths.CWDlen = len;
+    if ( GD->paths.CWDdir )
+      remove_string(GD->paths.CWDdir);
+    GD->paths.CWDdir = store_string(tmp);
 
     succeed;
   }

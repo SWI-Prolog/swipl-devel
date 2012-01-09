@@ -105,7 +105,9 @@ struct PL_global_data
   } cmdline;
 
   struct
-  { char *	executable;		/* Running executable */
+  { char *	CWDdir;
+    size_t	CWDlen;
+    char *	executable;		/* Running executable */
 #ifdef __WINDOWS__
     char *	module;			/* argv[0] module passed */
 #endif
@@ -482,8 +484,7 @@ struct PL_local_data
 #endif
 
   struct
-  { char *	_CWDdir;
-    size_t	_CWDlen;
+  {
 #ifdef __BEOS__
     status_t	dl_error;		/* dlopen() emulation in pl-beos.c */
 #endif
