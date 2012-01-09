@@ -3315,6 +3315,14 @@ cleanupArith(void)
   fpresetsticky(FP_X_DZ|FP_X_INV|FP_X_OFL);
   fpsetmask(FP_X_DZ|FP_X_INV|FP_X_OFL);
 #endif
+
+  if ( GD->arith.functions )
+  { GET_LD
+
+    freeHeap(GD->arith.functions, GD->arith.functions_allocated*sizeof(ArithF));
+    GD->arith.functions = 0;
+    GD->arith.functions_allocated = 0;
+  }
 }
 
 
