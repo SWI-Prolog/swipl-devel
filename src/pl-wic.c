@@ -207,6 +207,7 @@ typedef struct wic_state
   Table	savedXRTable;			/* saved XR entries */
   intptr_t savedXRTableId;		/* next id to hand out */
 
+  int	     has_source_marks;
   SourceMark source_mark_head;		/* Locations of sources */
   SourceMark source_mark_tail;
 
@@ -2183,23 +2184,26 @@ importWic(wic_state *state, Procedure proc ARG_LD)
 
 static void
 initSourceMarks(wic_state *state)
-{ state->source_mark_head = NULL;
+{ state->has_source_marks = TRUE;
+  state->source_mark_head = NULL;
   state->source_mark_tail = NULL;
 }
 
 
 static void
 sourceMark(wic_state *state ARG_LD)
-{ SourceMark pm = allocHeapOrHalt(sizeof(struct source_mark));
+{ if ( state->has_source_marks )
+  { SourceMark pm = allocHeapOrHalt(sizeof(struct source_mark));
 
-  pm->file_index = Stell(state->wicFd);
-  pm->next = NULL;
-  if ( state->source_mark_tail )
-  { state->source_mark_tail->next = pm;
-    state->source_mark_tail = pm;
-  } else
-  { state->source_mark_tail = pm;
-    state->source_mark_head = pm;
+    pm->file_index = Stell(state->wicFd);
+    pm->next = NULL;
+    if ( state->source_mark_tail )
+    { state->source_mark_tail->next = pm;
+      state->source_mark_tail = pm;
+    } else
+    { state->source_mark_tail = pm;
+      state->source_mark_head = pm;
+    }
   }
 }
 
