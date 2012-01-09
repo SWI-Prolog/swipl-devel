@@ -599,8 +599,8 @@ To be used after loading the program,   so we won't traverse the program
 atoms each pass.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
-lockAtoms()
+static void
+lockAtoms(void)
 { GD->atoms.builtin      = GD->atoms.highest;
   GD->atoms.unregistered = 0;
 }
@@ -1007,18 +1007,39 @@ initAtoms(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cleanupAtoms() is called at shutdown. There are three possible scenarios
+these days: (1) do not cleanup at  all, (2) cleanup the main structures,
+leaving the rest to GC or (3) cleanup the whole thing.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 cleanupAtoms(void)
 { int i;
 
-  for(i=0; i<MSB(GD->atoms.highest); i++)
-  { Atom *ap;
+  for(i=1; i<MSB(GD->atoms.highest); i++)
+  { Atom *ap0;
 
-    if ( (ap=GD->atoms.array.blocks[i]) )
-    { size_t bs = (size_t)1<<i;
+    if ( (ap0=GD->atoms.array.blocks[i]) )
+    { GET_LD
+      size_t bs = (size_t)1<<i;
+      Atom *ap, *ep;
+
+      ap0 += bs;
+      for(ap=ap0,ep = ap+bs; ap<ep; ap++)
+      { if ( *ap )
+	{ Atom a = *ap;
+
+	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
+	  { if ( false(a->type, PL_BLOB_NOCOPY) )
+	      PL_free(a->name);
+	    freeHeap(a, sizeof(*a));
+	  }
+	}
+      }
 
       GD->atoms.array.blocks[i] = NULL;
-      PL_free(ap+bs);
+      PL_free(ap0);
     }
   }
 }
