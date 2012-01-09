@@ -355,6 +355,24 @@ cleanupStringP(char **loc)
 }
 
 static void
+cleanupOptListP(opt_list **listp)
+{ opt_list *l, *n;
+
+  if ( (l=*listp) )
+  { GET_LD
+    *listp = NULL;
+
+    for(; l; l=n)
+    { n = l->next;
+
+      remove_string(l->opt_val);
+      freeHeap(l, sizeof(*l));
+    }
+  }
+}
+
+
+static void
 cleanupPaths(void)
 { cleanupStringP(&GD->paths.executable);
   cleanupStringP(&systemDefaults.home);
@@ -369,6 +387,8 @@ cleanupPaths(void)
 #ifdef __WINDOWS__
   cleanupStringP(GD->paths.module);
 #endif
+
+  cleanupOptListP(&GD->options.scriptFiles);
 }
 
 
