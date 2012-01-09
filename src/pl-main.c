@@ -1061,7 +1061,7 @@ usage()
   if ( GD->cmdline.argc > 0 )
     prog = BaseName(GD->cmdline.argv[0]);
   else
-    prog = "pl";
+    prog = "swipl";
 
   for(lp = lines; *lp; lp++)
     Sfprintf(Serror, *lp, prog);
