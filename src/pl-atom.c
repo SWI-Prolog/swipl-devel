@@ -1042,6 +1042,11 @@ cleanupAtoms(void)
       PL_free(ap0);
     }
   }
+
+  if ( atomTable )
+  { freeHeap(atomTable, atom_buckets * sizeof(Atom));
+    atomTable = NULL;
+  }
 }
 
 
