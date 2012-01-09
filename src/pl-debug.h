@@ -33,12 +33,17 @@
 #define DBG_LEVEL7  7
 #define DBG_LEVEL8  8
 #define DBG_LEVEL9  9
-#define MSG_VMI    10
-#define CHK_SECURE 11
+
+#define MSG_VMI		10		/* VMI execution */
+#define MSG_CLEANUP	11		/* Cleanup memory in PL_cleanup() */
+
+#define CHK_SECURE    1000
 
 typedef struct debug_topic
-{ unsigned    code;
+{ unsigned	code;
   const char   *name;
 } debug_topic;
+
+COMMON(void)	cleanupDebug(void);
 
 #endif /*PL_DEBUG_INCLUDED*/

@@ -46,7 +46,9 @@ static void	unallocModule(Module m);
 
 static void
 unallocProcedureSymbol(Symbol s)
-{ unallocProcedure(s->value);
+{ DEBUG(MSG_CLEANUP,
+	Sdprintf("unallocProcedure(%s)\n", functorName(s->name)));
+  unallocProcedure(s->value);
 }
 
 
@@ -188,7 +190,8 @@ unallocModule(Module m)
 
 static void
 emptyModule(Module m)
-{ if ( m->procedures ) clearHTable(m->procedures);
+{ DEBUG(MSG_CLEANUP, Sdprintf("emptyModule(%s)\n", PL_atom_chars(m->name)));
+  if ( m->procedures ) clearHTable(m->procedures);
 }
 
 

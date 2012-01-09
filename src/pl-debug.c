@@ -37,7 +37,10 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(DBG_LEVEL7),
   DEBUG_TOPIC(DBG_LEVEL8),
   DEBUG_TOPIC(DBG_LEVEL9),
+
   DEBUG_TOPIC(MSG_VMI),
+  DEBUG_TOPIC(MSG_CLEANUP),
+
   DEBUG_TOPIC(CHK_SECURE),
 						/* end-of-list */
   { 0, NULL }
@@ -94,6 +97,17 @@ PRED_IMPL("prolog_debug", 1, pl_prolog_debug, 0)
 static
 PRED_IMPL("prolog_nodebug", 1, pl_prolog_nodebug, 0)
 { return prolog_debug(A1, 0);
+}
+
+
+void
+cleanupDebug(void)
+{ if ( GD->debug_topics )
+  { GET_LD
+
+    free_bitvector(GD->debug_topics);
+    GD->debug_topics = NULL;
+  }
 }
 
 

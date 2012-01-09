@@ -344,7 +344,7 @@ initPaths(int argc, const char **argv)
 }
 
 
-static void;
+static void
 cleanupStringP(char **loc)
 { char *s;
 
@@ -366,6 +366,9 @@ cleanupPaths(void)
   cleanupStringP(&GD->options.initFile);
   cleanupStringP(&GD->options.saveclass);
   cleanupStringP(&GD->os.myhome);
+#ifdef __WINDOWS__
+  cleanupStringP(GD->paths.module);
+#endif
 }
 
 
@@ -1310,6 +1313,7 @@ PL_cleanup(int rval)
 #ifdef O_GMP
   cleanupGMP();
 #endif
+  cleanupDebug();
 
   UNLOCK();				/* requires GD->thread.enabled */
 

@@ -1810,8 +1810,10 @@ lookupBodyProcedure(functor_t functor, Module tm ARG_LD)
 	  isDefinedProcedure(syspred)) )
     { assert(false(proc->definition, P_DIRTYREG));
 					/* TBD: use GC_LINGER() */
+      unshareDefinition(proc->definition);
       freeHeap(proc->definition, sizeof(struct definition));
       proc->definition = syspred->definition;
+      shareDefinition(proc->definition);
     }
   }
 
