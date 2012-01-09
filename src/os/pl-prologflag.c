@@ -476,8 +476,9 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 	    goto wrong_type;
 	  }
 	  if ( !(f->value.t = PL_record(value)) )
-	    goto wrong_type;
-	  f->value.t = PL_record(value);
+	  { freeHeap(f, sizeof(*f));
+	    return FALSE;
+	  }
 	}
 	break;
       }
