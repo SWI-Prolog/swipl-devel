@@ -79,6 +79,43 @@ lookupProcedure(functor_t f, Module m)
 }
 
 
+static void
+unallocClauseList(ClauseRef cref)
+{ GET_LD
+  ClauseRef next;
+
+  for( ; cref; cref = next)
+  { Clause cl = cref->value.clause;
+    next = cref->next;
+
+    unallocClause(cl PASS_LD);
+    freeClauseRef(cref PASS_LD);
+  }
+}
+
+
+static void
+unallocDefinition(Definition def)
+{ if ( false(def, FOREIGN|P_THREAD_LOCAL) )
+    unallocClauseList(def->impl.clauses.first_clause);
+  if ( def->mutex )
+    freeSimpleMutex(def->mutex);
+  unallocClauseIndexes(def);
+}
+
+
+void
+unallocProcedure(Procedure proc)
+{ GET_LD
+  Definition def = proc->definition;
+
+  freeHeap(proc, sizeof(*proc));
+  unshareDefinition(def);
+  if ( def->shared == 0 )
+    unallocDefinition(def);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Add (import) a definition to a  module.   Used  by loadImport(). Must be
 merged with pl_import().
@@ -276,6 +313,7 @@ shareDefinition(Definition def)
 { LOCKDEF(def);
   def->shared++;
   UNLOCKDEF(def);
+  assert(def->shared > 0);
 }
 
 

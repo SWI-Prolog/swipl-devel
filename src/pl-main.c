@@ -1274,6 +1274,7 @@ PL_cleanup(int rval)
 #endif
   freePrologLocalData(LD);
   cleanupSourceFiles();
+  cleanupModules();
   cleanupPrologFlags();
   cleanupTerm();
   cleanupAtoms();

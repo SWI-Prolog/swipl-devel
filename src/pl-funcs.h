@@ -207,6 +207,7 @@ COMMON(void)		addClauseToIndexes(Definition def, Clause cl,
 					   int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		cleanClauseIndexes(Definition def ARG_LD);
+COMMON(void)		unallocClauseIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
@@ -342,6 +343,7 @@ COMMON(void)		cleanupForeign(void);
 COMMON(Module)		lookupModule(atom_t name);
 COMMON(Module)		isCurrentModule(atom_t name);
 COMMON(void)		initModules(void);
+COMMON(void)		cleanupModules(void);
 COMMON(int)		addModuleSourceFile(SourceFile sf, Module m);
 COMMON(int)		setSuperModule(Module m, Module s);
 COMMON(int)		isSuperModule(Module s, Module m);
@@ -454,6 +456,7 @@ COMMON(atom_t)		accessLevel(void);
 
 /* pl-proc.c */
 COMMON(Procedure)	lookupProcedure(functor_t f, Module m);
+COMMON(void)		unallocProcedure(Procedure proc);
 COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
 COMMON(int)		importDefinitionModule(Module m, Definition def);
 COMMON(Procedure)	lookupProcedureToDefine(functor_t def, Module m);

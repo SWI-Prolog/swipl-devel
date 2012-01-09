@@ -790,14 +790,9 @@ changes to the predicate  and  therefore   we  also  delete  the `tried'
 bitvector to force reevaluation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
-cleanClauseIndexes(Definition def ARG_LD)
-{ ClauseIndex ci;
-
-  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-    cleanClauseIndex(def, ci PASS_LD);
-
-  if ( def->old_clause_indexes )
+static void
+unallocOldClauseIndexes(Definition def ARG_LD)
+{ if ( def->old_clause_indexes )
   { ClauseIndexList li = def->old_clause_indexes;
     ClauseIndexList next;
 
@@ -818,6 +813,30 @@ cleanClauseIndexes(Definition def ARG_LD)
     }
   }
 }
+
+
+void
+cleanClauseIndexes(Definition def ARG_LD)
+{ ClauseIndex ci;
+
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
+    cleanClauseIndex(def, ci PASS_LD);
+
+  unallocOldClauseIndexes(def PASS_LD);
+}
+
+
+void
+unallocClauseIndexes(Definition def)
+{ GET_LD
+  ClauseIndex ci;
+
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
+    unallocClauseIndexTable(ci);
+
+  unallocOldClauseIndexes(def PASS_LD);
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

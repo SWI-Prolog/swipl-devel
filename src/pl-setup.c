@@ -1456,7 +1456,10 @@ freePrologLocalData(PL_local_data_t *ld)
   discardBuffer(&ld->fli._discardable_buffer);
 
   for(i=0; i<BUFFER_RING_SIZE; i++)
-    discardBuffer(&ld->fli._buffer_ring[i]);
+  { discardBuffer(&ld->fli._buffer_ring[i]);
+    initBuffer(&ld->fli._buffer_ring[i]);	/* Used by debug-print */
+						/* on shutdown */
+  }
 
   freeVarDefs(ld);
 

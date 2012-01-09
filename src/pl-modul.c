@@ -41,7 +41,13 @@ the  global  module  for  the  user  and imports from `system' all other
 modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int addSuperModule_no_lock(Module m, Module s, int where);
+static int	addSuperModule_no_lock(Module m, Module s, int where);
+static void	unallocModule(Module m);
+
+static void
+unallocProcedureSymbol(Symbol s)
+{ unallocProcedure(s->value);
+}
 
 
 static Module
@@ -56,7 +62,7 @@ _lookupModule(atom_t name)
     m = allocHeapOrHalt(sizeof(struct module));
   }
   m->name = name;
-  m->file = (SourceFile) NULL;
+  m->file = NULL;
   m->operators = NULL;
   m->level = 0;
 #ifdef O_PROLOG_HOOK
@@ -72,6 +78,7 @@ _lookupModule(atom_t name)
     m->procedures = newHTable(PROCEDUREHASHSIZE);
   else
     m->procedures = newHTable(MODULEPROCEDUREHASHSIZE);
+  m->procedures->free_symbol = unallocProcedureSymbol;
 
   m->public = newHTable(PUBLICHASHSIZE);
   m->supers = NULL;
@@ -127,6 +134,12 @@ isCurrentModule(atom_t name)
 }
 
 
+static void
+unallocModuleSymbol(Symbol s)
+{ unallocModule(s->value);
+}
+
+
 void
 initModules(void)
 { LOCK();
@@ -139,10 +152,55 @@ initModules(void)
     initFunctors();
 
     GD->tables.modules = newHTable(MODULEHASHSIZE);
+    GD->tables.modules->free_symbol = unallocModuleSymbol;
     GD->modules.system = _lookupModule(ATOM_system);
     GD->modules.user   = _lookupModule(ATOM_user);
   }
   UNLOCK();
+}
+
+
+static void
+unallocList(ListCell c)
+{ GET_LD
+  ListCell n;
+
+  for(; c; c=n)
+  { n = c->next;
+
+    freeHeap(c, sizeof(*c));
+  }
+}
+
+static void
+unallocModule(Module m)
+{ GET_LD
+
+  if ( m->procedures ) destroyHTable(m->procedures);
+  if ( m->public )     destroyHTable(m->public);
+  if ( m->operators )  destroyHTable(m->operators);
+  if ( m->supers )     unallocList(m->supers);
+
+  freeHeap(m, sizeof(*m));
+}
+
+
+static void
+emptyModule(Module m)
+{ if ( m->procedures ) clearHTable(m->procedures);
+}
+
+
+void
+cleanupModules(void)
+{ Table t;
+
+  if ( (t=GD->tables.modules) )
+  { for_unlocked_table(t, s, emptyModule(s->value));
+
+    GD->tables.modules = NULL;
+    destroyHTable(t);
+  }
 }
 
 
