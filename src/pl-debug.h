@@ -23,6 +23,8 @@
 #ifndef PL_DEBUG_INCLUDED
 #define PL_DEBUG_INCLUDED 1
 
+#define MAX_TOPIC_LEN 32
+
 #define DBG_LEVEL0  0
 #define DBG_LEVEL1  1
 #define DBG_LEVEL2  2
@@ -45,5 +47,6 @@ typedef struct debug_topic
 } debug_topic;
 
 COMMON(void)	cleanupDebug(void);
+COMMON(int)	prolog_debug_from_string(const char *spec, int flag);
 
 #endif /*PL_DEBUG_INCLUDED*/

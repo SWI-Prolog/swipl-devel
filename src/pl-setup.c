@@ -1128,7 +1128,6 @@ emptyStack(Stack s)
 void
 emptyStacks(void)
 { GET_LD
-  int i;
 
   environment_frame = NULL;
   fli_context       = NULL;
@@ -1140,23 +1139,27 @@ emptyStacks(void)
   emptyStack((Stack)&LD->stacks.argument);
 
   LD->mark_bar          = gTop;
-  PL_open_foreign_frame();
-  exception_bin         = PL_new_term_ref();
-  exception_printed     = PL_new_term_ref();
-  LD->exception.tmp     = PL_new_term_ref();
-  LD->exception.pending = PL_new_term_ref();
-  LD->trim.dummy        = PL_new_term_ref();
+  if ( lTop && gTop )
+  { int i;
+
+    PL_open_foreign_frame();
+    exception_bin         = PL_new_term_ref();
+    exception_printed     = PL_new_term_ref();
+    LD->exception.tmp     = PL_new_term_ref();
+    LD->exception.pending = PL_new_term_ref();
+    LD->trim.dummy        = PL_new_term_ref();
 #ifdef O_ATTVAR
-  LD->attvar.head	= PL_new_term_ref();
-  LD->attvar.tail       = PL_new_term_ref();
-  DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
+    LD->attvar.head	= PL_new_term_ref();
+    LD->attvar.tail       = PL_new_term_ref();
+    DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
 #endif
 #ifdef O_GVAR
-  destroyGlobalVars();
+    destroyGlobalVars();
 #endif
-  for(i=0; i<TMP_PTR_SIZE; i++)
-    LD->tmp.h[i] = PL_new_term_ref();
-  LD->tmp.top = 0;
+    for(i=0; i<TMP_PTR_SIZE; i++)
+      LD->tmp.h[i] = PL_new_term_ref();
+    LD->tmp.top = 0;
+  }
 }
 
 

@@ -60,9 +60,13 @@ initRecords(void)
 
 void
 cleanupRecords(void)
-{ destroyHTable(GD->recorded_db.record_lists);
-  GD->recorded_db.record_lists = NULL;
-  GD->recorded_db.head = GD->recorded_db.tail = NULL;
+{ Table t;
+
+  if ( (t=GD->recorded_db.record_lists) )
+  { GD->recorded_db.record_lists = NULL;
+    destroyHTable(t);
+    GD->recorded_db.head = GD->recorded_db.tail = NULL;
+  }
 }
 
 

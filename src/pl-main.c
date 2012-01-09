@@ -529,7 +529,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
     while(*s)
     { switch(*s)
       { case 'd':	if (argc > 1)
-			{ GD->debug_level = atoi(argv[1]);
+			{ prolog_debug_from_string(argv[1], TRUE);
 			  argc--, argv++;
 			} else
 			  return -1;
@@ -881,8 +881,6 @@ PL_initialise(int argc, char **argv)
   initPrologThreads();			/* initialise thread system */
   SinitStreams();			/* before anything else */
 
-  GD->debug_level = 0;			/* 1-9: debug, also -d <level> */
-
   script_argv(argc, argv);		/* hande #! arguments */
   argc = GD->cmdline.argc;
   argv = GD->cmdline.argv;
@@ -1052,6 +1050,9 @@ usage()
     "    --nodebug        Omit generation of debug info\n",
     "    --quiet          Quiet operation (also -q)\n",
     "    --home=DIR       Use DIR as SWI-Prolog home\n",
+#ifdef O_DEBUG
+    "    -d level|topic   Enable maintenance debugging\n",
+#endif
     NULL
   };
   const cline *lp = lines;
