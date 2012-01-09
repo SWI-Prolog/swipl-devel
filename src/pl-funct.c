@@ -186,7 +186,7 @@ FUNCTOR(NULL_ATOM, 0)
 
 
 static void
-allocFunctorTable()
+allocFunctorTable(void)
 { GET_LD
   int size = functor_buckets * sizeof(FunctorDef);
 
@@ -196,7 +196,7 @@ allocFunctorTable()
 
 
 static void
-registerBuiltinFunctors()
+registerBuiltinFunctors(void)
 { GET_LD
   int size = sizeof(functors)/sizeof(builtin_functor) - 1;
   FunctorDef f = allocHeapOrHalt(size * sizeof(struct functorDef));
@@ -209,7 +209,7 @@ registerBuiltinFunctors()
 
     f->name             = d->name;
     f->arity            = d->arity;
-    f->flags		= 0;
+    f->flags		= BUILTIN_F;
     f->next             = functorDefTable[v];
     functorDefTable[v]  = f;
     registerFunctor(f);
@@ -279,16 +279,36 @@ initFunctors(void)
 
 void
 cleanupFunctors(void)
-{ int i;
+{ GET_LD
+  int i;
+  int builtin = sizeof(functors)/sizeof(builtin_functor) - 1;
 
-  for(i=0; i<MSB(GD->functors.highest); i++)
-  { FunctorDef *fp;
+  freeHeap(GD->functors.array.blocks[0][1],
+	   builtin * sizeof(struct functorDef));
 
-    if ( (fp=GD->functors.array.blocks[i]) )
+  for(i=1; i<MSB(GD->functors.highest); i++)
+  { FunctorDef *fp0;
+
+    if ( (fp0=GD->functors.array.blocks[i]) )
     { size_t bs = (size_t)1<<i;
+      FunctorDef *fp, *ep;
+
+      fp0 += bs;
+      for(fp=fp0,ep=fp+bs; fp<ep; fp++)
+      { FunctorDef f = *fp;
+
+	if ( false(f, BUILTIN_F) )
+	  freeHeap(f, sizeof(*f));
+      }
+
       GD->functors.array.blocks[i] = NULL;
-      PL_free(fp+bs);
+      PL_free(fp0);
     }
+  }
+
+  if ( functorDefTable )
+  { freeHeap(functorDefTable, functor_buckets*sizeof(FunctorDef));
+    functor_buckets = 0;
   }
 }
 
