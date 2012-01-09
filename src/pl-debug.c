@@ -61,6 +61,20 @@ get_debug_code(char *topic)
 }
 
 
+static unsigned
+debug_high_code(void)
+{ unsigned high = 0;
+  const debug_topic *dt;
+
+  for (dt=debug_topics; dt->name; dt++)
+  { if ( dt->code > high )
+      high = dt->code;
+  }
+
+  return high;
+}
+
+
 static int
 prolog_debug(term_t t, int flag)
 { GET_LD
@@ -72,7 +86,7 @@ prolog_debug(term_t t, int flag)
     fail;
 
   if ( !GD->debug_topics )
-    GD->debug_topics = new_bitvector(sizeof(debug_topics)/sizeof(*debug_topics));
+    GD->debug_topics = new_bitvector(debug_high_code()+1);
 
   if( (code = get_debug_code(topic)) < 0 )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_debug_topic, t);
