@@ -851,6 +851,9 @@ cleanupExpand(void)
   canonical_dirlist = NULL;
   for( ; dn; dn = next )
   { next = dn->next;
+    if ( dn->canonical && dn->canonical != dn->name )
+      remove_string(dn->canonical);
+    remove_string(dn->name);
     PL_free(dn);
   }
   if ( GD->paths.CWDdir )
