@@ -345,7 +345,20 @@ initPaths(int argc, const char **argv)
 
 
 static void
-initDefaults()
+cleanupPaths(void)
+{ if ( GD->paths.executable )
+  { remove_string(GD->paths.executable);
+    GD->paths.executable = NULL;
+  }
+  if ( GD->options.systemInitFile )
+  { remove_string(GD->options.systemInitFile);
+    GD->options.systemInitFile = NULL;
+  }
+}
+
+
+static void
+initDefaults(void)
 { GET_LD
 
   systemDefaults.arch	     = PLARCH;
@@ -1262,6 +1275,7 @@ PL_cleanup(int rval)
   freePrologLocalData(LD);
   cleanupSourceFiles();
   cleanupPrologFlags();
+  cleanupTerm();
   cleanupAtoms();
   cleanupFunctors();
   cleanupArith();
@@ -1273,6 +1287,7 @@ PL_cleanup(int rval)
   cleanupThreads();
 #endif
   cleanupForeign();
+  cleanupPaths();
   cleanupCodeToAtom();
   if ( rc )
     cleanupMemAlloc();

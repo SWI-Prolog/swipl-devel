@@ -114,8 +114,6 @@ setupProlog(void)
   initFiles();
   initIO();
   initCharConversion();
-  DEBUG(1, Sdprintf("Term ...\n"));
-  resetTerm();
   GD->io_initialised = TRUE;
 
   if ( !endCritical )

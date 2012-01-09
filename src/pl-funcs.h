@@ -662,7 +662,7 @@ COMMON(int)		writeAtomToStream(IOSTREAM *s, atom_t atom);
 COMMON(char *)		format_float(double f, char *buf);
 
 /* pl-term.c */
-COMMON(void)		resetTerm(void);
+COMMON(void)		cleanupTerm(void);
 
 /* pl-main.c */
 COMMON(int)		startProlog(int argc, char **argv);
