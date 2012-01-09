@@ -829,10 +829,12 @@ cleanClauseIndexes(Definition def ARG_LD)
 void
 unallocClauseIndexes(Definition def)
 { GET_LD
-  ClauseIndex ci;
+  ClauseIndex ci, next;
 
-  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
+  for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
+  { next = ci->next;
     unallocClauseIndexTable(ci);
+  }
 
   unallocOldClauseIndexes(def PASS_LD);
   if ( def->tried_index )

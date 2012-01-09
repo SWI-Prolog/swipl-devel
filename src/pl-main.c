@@ -344,16 +344,28 @@ initPaths(int argc, const char **argv)
 }
 
 
+static void;
+cleanupStringP(char **loc)
+{ char *s;
+
+  if ( (s=*loc) )
+  { *loc = NULL;
+    remove_string(s);
+  }
+}
+
 static void
 cleanupPaths(void)
-{ if ( GD->paths.executable )
-  { remove_string(GD->paths.executable);
-    GD->paths.executable = NULL;
-  }
-  if ( GD->options.systemInitFile )
-  { remove_string(GD->options.systemInitFile);
-    GD->options.systemInitFile = NULL;
-  }
+{ cleanupStringP(&GD->paths.executable);
+  cleanupStringP(&systemDefaults.home);
+  cleanupStringP(&systemDefaults.startup);
+  cleanupStringP(&GD->options.systemInitFile);
+  cleanupStringP(&GD->options.compileOut);
+  cleanupStringP(&GD->options.goal);
+  cleanupStringP(&GD->options.topLevel);
+  cleanupStringP(&GD->options.initFile);
+  cleanupStringP(&GD->options.saveclass);
+  cleanupStringP(&GD->os.myhome);
 }
 
 
@@ -1272,11 +1284,13 @@ PL_cleanup(int rval)
 #ifdef HAVE_DMALLOC_H
   dmalloc_verify(0);
 #endif
+  cleanupLocalDefinitions(LD);
   freePrologLocalData(LD);
   cleanupSourceFiles();
   cleanupModules();
   cleanupPrologFlags();
   cleanupFlags();
+  cleanupRecords();
   cleanupTerm();
   cleanupAtoms();
   cleanupFunctors();

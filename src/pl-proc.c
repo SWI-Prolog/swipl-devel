@@ -1292,14 +1292,7 @@ void
 destroyDefinition(Definition def)
 { GET_LD
 
-  if ( def->impl.clauses.clause_indexes )
-  { ClauseIndex ci, next;
-
-    for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
-    { next = ci->next;
-      unallocClauseIndexTable(ci);
-    }
-  }
+  unallocClauseIndexes(def);
   if ( def->impl.clauses.first_clause )
     freeClauseList(def->impl.clauses.first_clause);
 

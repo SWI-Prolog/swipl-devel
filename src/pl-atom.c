@@ -1044,7 +1044,8 @@ cleanupAtoms(void)
   }
 
   if ( atomTable )
-  { freeHeap(atomTable, atom_buckets * sizeof(Atom));
+  { GET_LD
+    freeHeap(atomTable, atom_buckets * sizeof(Atom));
     atomTable = NULL;
   }
 }

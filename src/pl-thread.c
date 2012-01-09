@@ -363,7 +363,6 @@ static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD);
 static int	get_message_queue__LD(term_t t, message_queue **queue ARG_LD);
 static void	release_message_queue(message_queue *queue);
-static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
@@ -730,8 +729,9 @@ initPrologThreads()
 
 
 void
-cleanupThreads()
+cleanupThreads(void)
 { GET_LD
+  int i;
   /*TLD_free(PL_ldata);*/		/* this causes crashes */
 
   if ( queueTable )
@@ -745,6 +745,12 @@ cleanupThreads()
   if ( threadTable )
   { destroyHTable(threadTable);
     threadTable = NULL;
+  }
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+
+    if ( info )
+      freeHeap(info, sizeof(*info));
   }
   freeHeap(GD->thread.threads,
 	   GD->thread.thread_max * sizeof(*GD->thread.threads));
@@ -5234,7 +5240,7 @@ localiseDefinition(Definition def)
 }
 
 
-static void
+void
 cleanupLocalDefinitions(PL_local_data_t *ld)
 { GET_LD
   DefinitionChain ch = ld->thread.local_definitions;

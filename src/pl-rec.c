@@ -42,9 +42,27 @@ static void freeRecordRef(RecordRef r ARG_LD);
 #undef LD
 #define LD LOCAL_LD
 
+static void
+free_recordlist_symbol(Symbol s)
+{ GET_LD
+  RecordList l = s->value;
+
+  freeHeap(l, sizeof(*l));
+}
+
+
 void
 initRecords(void)
 { GD->recorded_db.record_lists = newHTable(8);
+  GD->recorded_db.record_lists->free_symbol = free_recordlist_symbol;
+}
+
+
+void
+cleanupRecords(void)
+{ destroyHTable(GD->recorded_db.record_lists);
+  GD->recorded_db.record_lists = NULL;
+  GD->recorded_db.head = GD->recorded_db.tail = NULL;
 }
 
 

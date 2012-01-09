@@ -549,6 +549,7 @@ COMMON(int)		read_clause(IOSTREAM *s, term_t term ARG_LD);
 
 /* pl-rec.c */
 COMMON(void)		initRecords(void);
+COMMON(void)		cleanupRecords(void);
 COMMON(Record)		compileTermToHeap__LD(term_t term, int flags ARG_LD);
 COMMON(int)		copyRecordToGlobal(term_t copy, Record term,
 					   int flags ARG_LD);
