@@ -345,7 +345,6 @@ pl_current_functor(term_t name, term_t arity, control_t h)
     default:
       succeed;
   }
-  DEBUG(9, Sdprintf("current_functor(): i = %d\n", i));
 
   fid = PL_open_foreign_frame();
   LOCK();
