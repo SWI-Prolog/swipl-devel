@@ -397,7 +397,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
   LOCK();
   v  = v0 & (atom_buckets-1);
-  DEBUG(0, lookups++);
+  DEBUG(MSG_HASH_STAT, lookups++);
 
   if ( true(type, PL_BLOB_UNIQUE) )
   { if ( false(type, PL_BLOB_NOCOPY) )
@@ -757,7 +757,7 @@ pl_garbage_collect_atoms()
 
 #ifdef O_PLMT
   if ( GD->gc.active )			/* GC in progress: delay */
-  { DEBUG(2, Sdprintf("GC active; delaying AGC\n"));
+  { DEBUG(MSG_AGC, Sdprintf("GC active; delaying AGC\n"));
     GD->gc.agc_waiting = TRUE;
     PL_UNLOCK(L_GC);
     succeed;

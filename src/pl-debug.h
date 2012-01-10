@@ -42,6 +42,7 @@
 #define MSG_HASH_STAT   13		/* Hash-table statistics */
 #define MSG_SPARE_STACK 14		/* Spare stack handling */
 #define MSG_THREAD	15		/* Thread-related messages */
+#define MSG_AGC		16		/* Atom garbage collection */
 
 #define CHK_SECURE    1000
 

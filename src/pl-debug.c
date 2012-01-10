@@ -44,6 +44,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_HASH_STAT),
   DEBUG_TOPIC(MSG_SPARE_STACK),
   DEBUG_TOPIC(MSG_THREAD),
+  DEBUG_TOPIC(MSG_AGC),
 
   DEBUG_TOPIC(CHK_SECURE),
 						/* end-of-list */
