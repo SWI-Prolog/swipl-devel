@@ -38,6 +38,7 @@
 
 #define MSG_VMI		10		/* VMI execution */
 #define MSG_CLEANUP	11		/* Cleanup memory in PL_cleanup() */
+#define MSG_PROLOG_FLAG 12		/* Prolog flag handling */
 
 #define CHK_SECURE    1000
 

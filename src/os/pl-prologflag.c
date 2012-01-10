@@ -151,7 +151,8 @@ setPrologFlag(const char *name, int flags, ...)
 	val = (f->value.a == ATOM_true);
       } else if ( !s )				/* 1st definition */
       { f->index = indexOfBoolMask(mask);
-	DEBUG(2, Sdprintf("Prolog flag %s at 0x%08lx\n", name, mask));
+	DEBUG(MSG_PROLOG_FLAG,
+	      Sdprintf("Prolog flag %s at 0x%08lx\n", name, mask));
       }
 
       f->value.a = (val ? ATOM_true : ATOM_false);
@@ -438,7 +439,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       }
 
       addHTable(LD->prolog_flag.table, (void *)k, f2);
-      DEBUG(1, Sdprintf("Localised Prolog flag %s\n", PL_atom_chars(k)));
+      DEBUG(MSG_PROLOG_FLAG,
+	    Sdprintf("Localised Prolog flag %s\n", PL_atom_chars(k)));
       f = f2;
     }
 #endif
