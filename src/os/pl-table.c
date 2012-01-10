@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -109,8 +110,7 @@ destroyHTable(Table ht)
 }
 
 
-#if O_DEBUG || O_HASHSTAT
-#define HASHSTAT(c) c
+#if O_DEBUG
 static int lookups;
 static int cmps;
 
@@ -119,9 +119,7 @@ exitTables(int status, void *arg)
 { Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
 	   lookups, cmps);
 }
-#else
-#define HASHSTAT(c)
-#endif /*O_DEBUG*/
+#endif
 
 
 void
@@ -131,7 +129,7 @@ initTables(void)
   if ( !done )
   { done = TRUE;
 
-    HASHSTAT(PL_on_halt(exitTables, NULL));
+    DEBUG(MSG_HASH_STAT, PL_on_halt(exitTables, NULL));
   }
 }
 
@@ -140,9 +138,9 @@ Symbol
 lookupHTable(Table ht, void *name)
 { Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
 
-  HASHSTAT(lookups++);
+  DEBUG(MSG_HASH_STAT, lookups++);
   for( ; s; s = s->next)
-  { HASHSTAT(cmps++);
+  { DEBUG(MSG_HASH_STAT, cmps++);
     if ( s->name == name )
       return s;
   }
@@ -183,7 +181,8 @@ rehashHTable(Table ht, Symbol map)
   newbuckets = ht->buckets*2;
   newentries = allocHTableEntries(ht, newbuckets);
 
-  DEBUG(1, Sdprintf("Rehashing table %p to %d entries\n", ht, ht->buckets));
+  DEBUG(MSG_HASH_STAT,
+	Sdprintf("Rehashing table %p to %d entries\n", ht, ht->buckets));
 
   for(i=0; i<ht->buckets; i++)
   { Symbol s, n;
@@ -232,7 +231,7 @@ rehashHTable(Table ht, Symbol map)
   }
 
   freeHeap(oldentries, oldbuckets * sizeof(Symbol));
-  DEBUG(0, checkHTable(ht));
+  DEBUG(CHK_SECURE, checkHTable(ht));
 
   return map;
 }

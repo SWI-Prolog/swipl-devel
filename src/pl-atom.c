@@ -402,7 +402,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   if ( true(type, PL_BLOB_UNIQUE) )
   { if ( false(type, PL_BLOB_NOCOPY) )
     { for(a = atomTable[v]; a; a = a->next)
-      { DEBUG(0, cmps++);
+      { DEBUG(MSG_HASH_STAT, cmps++);
 	if ( length == a->length &&
 	     type == a->type &&
 	     memcmp(s, a->name, length) == 0 )
@@ -420,7 +420,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
       }
     } else
     { for(a = atomTable[v]; a; a = a->next)
-      { DEBUG(0, cmps++);
+      { DEBUG(MSG_HASH_STAT, cmps++);
 
 	if ( length == a->length &&
 	     type == a->type &&
@@ -901,7 +901,8 @@ rehashAtoms(void)
   atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
   memset(atomTable, 0, atom_buckets * sizeof(Atom));
 
-  DEBUG(0, Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
+  DEBUG(MSG_HASH_STAT,
+	Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -1001,7 +1002,7 @@ initAtoms(void)
 #endif
     PL_register_blob_type(&text_atom);
 
-    DEBUG(0, PL_on_halt(exitAtoms, NULL));
+    DEBUG(MSG_HASH_STAT, PL_on_halt(exitAtoms, NULL));
   }
   UNLOCK();
 }

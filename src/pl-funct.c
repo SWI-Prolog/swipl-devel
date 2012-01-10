@@ -71,7 +71,7 @@ registerFunctor(FunctorDef fd)
   fd->functor = MK_FUNCTOR(index, amask);
   putFunctorArray(index, fd);
 
-  DEBUG(0, assert(fd->arity == arityFunctor(fd->functor)));
+  DEBUG(CHK_SECURE, assert(fd->arity == arityFunctor(fd->functor)));
 }
 
 
@@ -125,8 +125,8 @@ rehashFunctors(void)
   functor_buckets *= 2;
   allocFunctorTable();
 
-  DEBUG(0, Sdprintf("Rehashing functor-table to %d entries\n",
-		    functor_buckets));
+  DEBUG(MSG_HASH_STAT,
+	Sdprintf("Rehashing functor-table to %d entries\n", functor_buckets));
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;

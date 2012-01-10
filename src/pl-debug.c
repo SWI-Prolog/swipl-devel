@@ -41,6 +41,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_VMI),
   DEBUG_TOPIC(MSG_CLEANUP),
   DEBUG_TOPIC(MSG_PROLOG_FLAG),
+  DEBUG_TOPIC(MSG_HASH_STAT),
 
   DEBUG_TOPIC(CHK_SECURE),
 						/* end-of-list */
