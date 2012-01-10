@@ -1048,6 +1048,15 @@ cleanupAtoms(void)
     }
   }
 
+  for(i=0; i<256; i++)			/* char-code -> char-atom map */
+  { atom_t *p;
+
+    if ( (p=GD->atoms.for_code[i]) )
+    { GD->atoms.for_code[i] = NULL;
+      PL_free(p);
+    }
+  }
+
   if ( atomTable )
   { GET_LD
     freeHeap(atomTable, atom_buckets * sizeof(Atom));
