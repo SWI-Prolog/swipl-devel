@@ -1479,6 +1479,11 @@ freePrologLocalData(PL_local_data_t *ld)
   freeArithLocalData(ld);
 #ifdef O_PLMT
   simpleMutexDelete(&ld->signal.sig_lock);
+  if ( ld->prolog_flag.table )
+  { PL_LOCK(L_PLFLAG);
+    destroyHTable(ld->prolog_flag.table);
+    PL_UNLOCK(L_PLFLAG);
+  }
 #endif
 
   if ( ld->qlf.getstr_buffer )

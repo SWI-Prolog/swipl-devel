@@ -507,11 +507,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     freeStacks(ld);			/* initialised */
   freePrologLocalData(ld);
 
-  if ( ld->prolog_flag.table )
-  { PL_LOCK(L_PLFLAG);
-    destroyHTable(ld->prolog_flag.table);
-    PL_UNLOCK(L_PLFLAG);
-  }
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
