@@ -146,7 +146,7 @@ my_sem_open(sem_t **ptr, unsigned int val)
 { if ( !*ptr )
   { sem_t *sem = sem_open("pl", O_CREAT|O_EXCL, 0600, val);
 
-    DEBUG(1, Sdprintf("sem = %p\n", sem));
+    DEBUG(MSG_THREAD, Sdprintf("sem = %p\n", sem));
 
     if ( sem == NULL )
     { perror("sem_open");
@@ -474,8 +474,8 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     return;				/* Post-mortem */
 
   info = ld->thread.info;
-  DEBUG(2, Sdprintf("Freeing prolog thread %d (status = %d)\n",
-		    info->pl_tid, info->status));
+  DEBUG(MSG_THREAD, Sdprintf("Freeing prolog thread %d (status = %d)\n",
+			     info->pl_tid, info->status));
 
   if ( !after_fork )
   { LOCK();
@@ -501,7 +501,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       freeClauseList(ld->freed_clauses);
   }
 
-  DEBUG(2, Sdprintf("Destroying data\n"));
+  DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
   ld->magic = 0;
   if ( ld->stacks.global.base )		/* otherwise assume they are not */
     freeStacks(ld);			/* initialised */
@@ -604,7 +604,7 @@ reinit_threads_after_fork(void)
   }
 
   if ( info->pl_tid != 1 )
-  { DEBUG(1, Sdprintf("Forked thread %d\n", info->pl_tid));
+  { DEBUG(MSG_THREAD, Sdprintf("Forked thread %d\n", info->pl_tid));
     *GD->thread.threads[1] = *info;
     info->status = PL_THREAD_UNUSED;
     info = GD->thread.threads[1];
@@ -778,7 +778,7 @@ exitPrologThreads()
   int me = PL_thread_self();
   int canceled = 0;
 
-  DEBUG(1, Sdprintf("exitPrologThreads(): me = %d\n", me));
+  DEBUG(MSG_THREAD, Sdprintf("exitPrologThreads(): me = %d\n", me));
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
@@ -817,13 +817,13 @@ exitPrologThreads()
     }
   }
 
-  DEBUG(1, Sdprintf("Waiting for %d threads ...", canceled));
+  DEBUG(MSG_THREAD, Sdprintf("Waiting for %d threads ...", canceled));
   for(i=canceled; i-- > 0;)
   { int maxwait = 10;
 
     while(maxwait--)
     { if ( sem_trywait(sem_canceled_ptr) == 0 )
-      { DEBUG(1, Sdprintf(" (ok)"));
+      { DEBUG(MSG_THREAD, Sdprintf(" (ok)"));
 	canceled--;
 	break;
       }
@@ -837,7 +837,7 @@ exitPrologThreads()
 		   PL_INT, canceled);
     rc = FALSE;
   } else
-  { DEBUG(1, Sdprintf("done\n"));
+  { DEBUG(MSG_THREAD, Sdprintf("done\n"));
 #ifndef WIN64			/* FIXME: Hangs if nothing is printed */
     sem_destroy(sem_canceled_ptr);
 #endif
@@ -1063,7 +1063,7 @@ PL_w32thread_raise(DWORD id, int sig)
       if ( info->w32id )
 	PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
       UNLOCK();
-      DEBUG(1, Sdprintf("Signalled %d to thread %d\n", sig, i));
+      DEBUG(MSG_THREAD, Sdprintf("Signalled %d to thread %d\n", sig, i));
       return TRUE;
     }
   }
@@ -1548,7 +1548,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info, int lock)
 			       PL_VARIABLE);
     }
     default:
-      DEBUG(1, Sdprintf("info->status = %d\n", info->status));
+      DEBUG(MSG_THREAD, Sdprintf("info->status = %d\n", info->status));
       fail;				/* can happen in current_thread/2 */
   }
 }
@@ -1648,7 +1648,7 @@ pl_thread_exit(term_t retcode)
   info->return_value = PL_record(retcode);
   UNLOCK();
 
-  DEBUG(1, Sdprintf("thread_exit(%d)\n", info->pl_tid));
+  DEBUG(MSG_THREAD, Sdprintf("thread_exit(%d)\n", info->pl_tid));
 
   pthread_exit(NULL);
   assert(0);
@@ -2049,10 +2049,11 @@ run_exit_hooks(at_exit_goal *eg, int free)
         if ( free )
 	  PL_erase(eg->goal.prolog.goal);
 	if ( rc )
-	{ DEBUG(1, { Sdprintf("Calling exit goal: ");
-		     PL_write_term(Serror, goal, 1200, PL_WRT_QUOTED);
-		     Sdprintf("\n");
-		   });
+	{ DEBUG(MSG_THREAD,
+		{ Sdprintf("Calling exit goal: ");
+		  PL_write_term(Serror, goal, 1200, PL_WRT_QUOTED);
+		  Sdprintf("\n");
+		});
 
 	  callProlog(eg->goal.prolog.module, goal, PL_Q_NODEBUG, NULL);
 	}
@@ -2193,7 +2194,8 @@ executeThreadSignals(int sig)
     gm = sg->module;
     freeHeap(sg, sizeof(*sg));
 
-    DEBUG(1, Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
+    DEBUG(MSG_THREAD,
+	  Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
     if ( rval )
     { rval = callProlog(gm, goal, PL_Q_CATCH_EXCEPTION, &ex);
     } else
@@ -2205,7 +2207,7 @@ executeThreadSignals(int sig)
     { PL_close_foreign_frame(fid);
       PL_raise_exception(ex);
 
-      DEBUG(1,
+      DEBUG(MSG_THREAD,
 	    { print_trace(8);
 	      Sdprintf("[%d]: Prolog backtrace:\n", PL_thread_self());
 	      backTrace(0, 5);
@@ -2477,16 +2479,17 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 
   if ( queue->waiting )
   { if ( queue->waiting > queue->waiting_var && queue->waiting > 1 )
-    { DEBUG(1, Sdprintf("%d of %d non-var waiters; broadcasting\n",
-			queue->waiting - queue->waiting_var,
-		        queue->waiting));
+    { DEBUG(MSG_THREAD,
+	    Sdprintf("%d of %d non-var waiters; broadcasting\n",
+		     queue->waiting - queue->waiting_var,
+		     queue->waiting));
       cv_broadcast(&queue->cond_var);
     } else
-    { DEBUG(1, Sdprintf("%d var waiters; signalling\n", queue->waiting));
+    { DEBUG(MSG_THREAD, Sdprintf("%d var waiters; signalling\n", queue->waiting));
       cv_signal(&queue->cond_var);
     }
   } else
-  { DEBUG(1, Sdprintf("No waiters\n"));
+  { DEBUG(MSG_THREAD, Sdprintf("No waiters\n"));
   }
 
   return TRUE;
@@ -2620,7 +2623,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
     if ( queue->destroyed )
       return MSG_WAIT_DESTROYED;
 
-    DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
+    DEBUG(MSG_THREAD, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { int rc;
 
@@ -2639,7 +2642,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
       rc = PL_unify(msg, tmp);
 
       if ( rc )
-      { DEBUG(1, Sdprintf("%d: match\n", PL_thread_self()));
+      { DEBUG(MSG_THREAD, Sdprintf("%d: match\n", PL_thread_self()));
 
 	PL_LOCK(L_AGC);
 	if ( prev )
@@ -2653,7 +2656,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
 	free_thread_message(msgp PASS_LD);
 	queue->size--;
 	if ( queue->wait_for_drain )
-	{ DEBUG(1, Sdprintf("Queue drained. wakeup writers\n"));
+	{ DEBUG(MSG_THREAD, Sdprintf("Queue drained. wakeup writers\n"));
 	  cv_signal(&queue->drain_var);
 	}
 
@@ -2667,7 +2670,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
 
     queue->waiting++;
     queue->waiting_var += isvar;
-    DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
+    DEBUG(MSG_THREAD, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
     if ( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR )
     { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
 
@@ -2682,7 +2685,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
 	return MSG_WAIT_INTR;
       }
     }
-    DEBUG(1, Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
+    DEBUG(MSG_THREAD, Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
     queue->waiting--;
     queue->waiting_var -= isvar;
   }
@@ -4410,7 +4413,8 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
     { if (clock_gettime(clock_id, &ts) == 0)
 	return timespec_to_double(ts);
     } else
-    { DEBUG(1, Sdprintf("Could not get thread time: %s\n", strerror(rc)));
+    { DEBUG(MSG_THREAD,
+	    Sdprintf("Could not get thread time: %s\n", strerror(rc)));
     }
   }
 
@@ -4904,7 +4908,7 @@ wait_resume(PL_thread_info_t *t)
   } while(t->status != PL_THREAD_RESUMING);
   t->status = PL_THREAD_RUNNING;
 
-  DEBUG(1, Sdprintf("Resuming %d\n", t->pl_tid));
+  DEBUG(MSG_THREAD, Sdprintf("Resuming %d\n", t->pl_tid));
 }
 
 
@@ -4937,7 +4941,7 @@ resumeThreads(void)
 
       info->status = PL_THREAD_RESUMING;
 
-      DEBUG(1, Sdprintf("Sending SIG_RESUME to %d\n", i));
+      DEBUG(MSG_THREAD, Sdprintf("Sending SIG_RESUME to %d\n", i));
       if ( (rc=pthread_kill(info->tid, SIG_RESUME)) == 0 )
 	signalled++;
       else
@@ -5012,14 +5016,14 @@ doThreadLocalData(int sig)
   (*ldata_function)(LD);
 
   if ( LD->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
-  { DEBUG(1, Sdprintf("\n\tDone work on %d; suspending ...",
-		      info->pl_tid));
+  { DEBUG(MSG_THREAD,
+	  Sdprintf("\n\tDone work on %d; suspending ...", info->pl_tid));
 
     info->status = PL_THREAD_SUSPENDED;
     sem_post(sem_mark_ptr);
     wait_resume(info);
   } else
-  { DEBUG(1, Sdprintf("\n\tDone work on %d", info->pl_tid));
+  { DEBUG(MSG_THREAD, Sdprintf("\n\tDone work on %d", info->pl_tid));
     sem_post(sem_mark_ptr);
   }
 
@@ -5036,7 +5040,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   PL_thread_info_t **th;
   sigset_t sigmask;
 
-  DEBUG(1, Sdprintf("Calling forThreadLocalData() from %d\n", me));
+  DEBUG(MSG_THREAD, Sdprintf("Calling forThreadLocalData() from %d\n", me));
 
   assert(ldata_function == NULL);
   ldata_function = func;
@@ -5062,7 +5066,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 	 info->status == PL_THREAD_RUNNING )
     { int rc;
 
-      DEBUG(1, Sdprintf("Signalling %d\n", info->pl_tid));
+      DEBUG(MSG_THREAD, Sdprintf("Signalling %d\n", info->pl_tid));
       info->thread_data->thread.forall_flags = flags;
       info->ldata_status = LDATA_SIGNALLED;
       if ( (rc=pthread_kill(info->tid, SIG_FORALL)) == 0 )
@@ -5072,11 +5076,11 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
     }
   }
 
-  DEBUG(1, Sdprintf("Signalled %d threads.  Waiting ... ", signalled));
+  DEBUG(MSG_THREAD, Sdprintf("Signalled %d threads.  Waiting ... ", signalled));
 
   while(signalled)
   { if ( sem_wait(sem_mark_ptr) == 0 )
-    { DEBUG(1, Sdprintf(" (ok)"));
+    { DEBUG(MSG_THREAD, Sdprintf(" (ok)"));
       signalled--;
     } else if ( errno != EINTR )
     { perror("sem_wait");
@@ -5092,7 +5096,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
     info->ldata_status = LDATA_IDLE;
   }
 
-  DEBUG(1, Sdprintf(" All done!\n"));
+  DEBUG(MSG_THREAD, Sdprintf(" All done!\n"));
 
   sigaction(SIG_FORALL, &old, NULL);
 

@@ -1311,7 +1311,8 @@ trim_stack(Stack s)
     ssize_t room = roomStackP(s);
 
     if ( room < reduce )
-    { DEBUG(0, Sdprintf("Only %d spare for %s-stack\n", room, s->name));
+    { DEBUG(MSG_SPARE_STACK,
+	    Sdprintf("Only %d spare for %s-stack\n", room, s->name));
       reduce = room;
     }
 

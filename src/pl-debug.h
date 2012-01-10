@@ -40,6 +40,8 @@
 #define MSG_CLEANUP	11		/* Cleanup memory in PL_cleanup() */
 #define MSG_PROLOG_FLAG 12		/* Prolog flag handling */
 #define MSG_HASH_STAT   13		/* Hash-table statistics */
+#define MSG_SPARE_STACK 14		/* Spare stack handling */
+#define MSG_THREAD	15		/* Thread-related messages */
 
 #define CHK_SECURE    1000
 
