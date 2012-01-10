@@ -746,7 +746,7 @@ cleanupThreads(void)
   { destroyHTable(threadTable);
     threadTable = NULL;
   }
-  for(i=1; i<=thread_highest_id; i++)
+  for(i=1; i<GD->thread.thread_max; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
 
     if ( info )
@@ -961,7 +961,7 @@ resizeThreadMax(void)
 /* MT: Caller must lock */
 
 static PL_thread_info_t *
-alloc_thread()				/* called with L_THREAD locked */
+alloc_thread(void)				/* called with L_THREAD locked */
 { GET_LD
   int i	= 1;
 
