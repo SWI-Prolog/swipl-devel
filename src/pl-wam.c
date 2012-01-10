@@ -516,8 +516,8 @@ discardForeignFrame(LocalFrame fr ARG_LD)
   struct foreign_context context;
   fid_t fid;
 
-  DEBUG(5, Sdprintf("\tCut %s, context = 0x%lx\n",
-		    predicateName(def), context));
+  DEBUG(5, Sdprintf("\tCut %s, context = %p\n",
+		    predicateName(def), fr->clause));
 
   context.context = (word)fr->clause;
   context.control = FRG_CUTTED;
