@@ -1851,6 +1851,10 @@ I_EXITFACT: generated to close a fact. The   reason for not generating a
 plain I_EXIT is first of all that the actual sequence should be I_ENTER,
 I_EXIT,  and  just  optimising   to    I_EXIT   looses   the  unify-port
 interception. Second, there should be some room for optimisation here.
+
+The exit_checking_wakeup is referenced from I_FEXITNDET.   If there is a
+wakeup and our current goal is  deterministic,   we  first pop it (i.e.,
+some sort of last-call optimization).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_EXITFACT, 0, 0, ())
@@ -3699,6 +3703,7 @@ VMI(I_FEXITNDET, 0, 0, ())
       }
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
       BFR = BFR->parent;
+      FR->clause = NULL;
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )

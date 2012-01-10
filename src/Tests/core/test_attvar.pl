@@ -43,6 +43,12 @@ test_attvar :-
 test(s_list, L=="hello") :-		% Verify wakeup on S_LIST
 	freeze(X, X="hello"),
 	append(X, [], L).
+test(true_ndet, error(existence_error(procedure,_))) :-
+	freeze(X, wake(X)),
+	between(-2, 2, X).
+
+wake(2) :-
+	i_am_undefined.
 
 :- end_tests(attvar).
 
