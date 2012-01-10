@@ -117,7 +117,7 @@ clearInteger(Number n)
 }
 
 
-typedef struct
+typedef struct between_state
 { number low;
   number high;
   int hinf;
@@ -191,6 +191,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	clearInteger(&l);
 	clearInteger(&h);
 	ForeignRedoPtr(state);
+	/*NOTREACHED*/
       }
     case FRG_REDO:
       { state = CTX_PTR;
@@ -204,6 +205,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	     cmpNumbers(&state->low, &state->high) == 0 )
 	  goto cleanup;
 	ForeignRedoPtr(state);
+	/*NOTREACHED*/
       }
     case FRG_CUTTED:
       { state = CTX_PTR;
@@ -211,6 +213,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	clearInteger(&state->low);
 	clearInteger(&state->high);
 	freeForeignState(state, sizeof(*state));
+	/*FALLTHROUGH*/
       }
     default:;
       return rc;
