@@ -940,14 +940,16 @@ static int
 resizeThreadMax(void)
 { GET_LD
   int newmax = GD->thread.thread_max*2;
-  PL_thread_info_t **newinfo;
+  PL_thread_info_t **newinfo, **oldinfo;
   size_t dsize = GD->thread.thread_max * sizeof(*GD->thread.threads);
 
+  oldinfo = GD->thread.threads;
   newinfo = allocHeapOrHalt(newmax * sizeof(*GD->thread.threads));
   memset(addPointer(newinfo,dsize), 0, dsize);
-  memcpy(newinfo, GD->thread.threads, dsize);
+  memcpy(newinfo, oldinfo, dsize);
   GD->thread.threads = newinfo;
   GD->thread.thread_max = newmax;
+  GC_LINGER(oldinfo);
 
   return TRUE;
 }
@@ -1316,6 +1318,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
 
   info = alloc_thread();
+
   UNLOCK();
   if ( !info )
     return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_threads);
