@@ -1031,7 +1031,12 @@ cleanupAtoms(void)
 	{ Atom a = *ap;
 
 	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
-	  { if ( false(a->type, PL_BLOB_NOCOPY) )
+	  { if ( a->type->release )
+	      (*a->type->release)(a->atom);
+	    else if ( GD->atoms.gc_hook )
+	      (*GD->atoms.gc_hook)(a->atom);
+
+	    if ( false(a->type, PL_BLOB_NOCOPY) )
 	      PL_free(a->name);
 	    freeHeap(a, sizeof(*a));
 	  }
