@@ -536,7 +536,8 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   freeHeap__LD(ld, sizeof(*ld), NULL);	/* move to global pool */
 
   if ( acknowledge )			/* == canceled */
-  { pthread_detach(pthread_self());
+  { free_thread_info(info);
+    pthread_detach(pthread_self());
     sem_post(sem_canceled_ptr);
   }
 }
