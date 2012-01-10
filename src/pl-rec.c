@@ -32,6 +32,7 @@
 static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word);
 static void freeRecordRef(RecordRef r ARG_LD);
+static void unallocRecordList(RecordList rl);
 
 #define RECORDA 0
 #define RECORDZ 1
@@ -47,7 +48,7 @@ free_recordlist_symbol(Symbol s)
 { GET_LD
   RecordList l = s->value;
 
-  freeHeap(l, sizeof(*l));
+  unallocRecordList(l);
 }
 
 
@@ -135,6 +136,22 @@ cleanRecordList(RecordList rl ARG_LD)
       p = &r->next;
     }
   }
+}
+
+
+static void
+unallocRecordList(RecordList rl)
+{ GET_LD
+  RecordRef p, n;
+
+  for(p = rl->firstRecord; p; p=n)
+  { n = p->next;
+
+    freeRecord(p->record);
+    freeHeap(p, sizeof(*p));
+  }
+
+  freeHeap(rl, sizeof(*rl));
 }
 
 
@@ -1644,7 +1661,10 @@ record(term_t key, term_t term, term_t ref, int az)
   r = allocHeapOrHalt(sizeof(*r));
   r->record = copy;
   if ( ref && !PL_unify_recref(ref, r) )
+  { PL_erase(copy);
+    freeHeap(r, sizeof(*r));
     return FALSE;
+  }
 
   LOCK();
   l = lookupRecordList(k);
