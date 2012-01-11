@@ -113,7 +113,7 @@ pushRecordSegStack(segstack *stack, Record r)
   { int rc;
 
     PL_LOCK(L_AGC);
-    rc = pushSegStack(stack, r, Record);
+    rc = pushSegStack_(stack, &r);
     PL_UNLOCK(L_AGC);
 
     return rc;
