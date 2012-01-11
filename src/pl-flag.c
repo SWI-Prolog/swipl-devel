@@ -77,7 +77,7 @@ cleanupFlags(void)
 
 
 static Flag
-lookupFlag(word key ARG_LD)
+lookupFlag(word key)
 { Symbol symb;
   Flag f;
 
@@ -121,7 +121,7 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
   rval = FALSE;
 
   LOCK();
-  f = lookupFlag(key PASS_LD);
+  f = lookupFlag(key);
   switch(f->type)
   { case FLG_ATOM:
       if ( !PL_unify_atom(old, f->value.a) )

@@ -40,7 +40,7 @@ simply jump to the last argument.
 
 typedef struct aNode
 { Word		location;
-  size_t 	size;
+  size_t	size;
 } aNode;
 
 typedef struct term_agenda
@@ -87,11 +87,8 @@ nextTermAgenda__LD(term_agenda *a ARG_LD)
 }
 
 
-#define nextTermAgendaNoDeRef(a) \
-	nextTermAgendaNoDeRef__LD(a PASS_LD)
-
 static inline Word
-nextTermAgendaNoDeRef__LD(term_agenda *a ARG_LD)
+nextTermAgendaNoDeRef(term_agenda *a)
 { Word p;
 
   if ( a->work.size > 0 )
@@ -139,7 +136,7 @@ pushWorkAgenda(term_agenda *a, size_t amount, Word start)
 typedef struct acNode
 { Functor	term;
   Word		location;
-  size_t 	size;
+  size_t	size;
 } acNode;
 
 typedef struct ac_term_agenda
@@ -221,7 +218,7 @@ ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
 typedef struct aNodeLR
 { Word		left;			/* left term */
   Word		right;			/* right term */
-  size_t 	size;
+  size_t	size;
 } aNodeLR;
 
 typedef struct term_agendaLR
@@ -292,7 +289,7 @@ typedef struct aNodeLRS
 { Functor	left;			/* left term */
   Functor	right;			/* right term */
   int		arg;
-  int	 	arity;
+  int		arity;
   void	       *data;
 } aNodeLRS;
 
@@ -300,7 +297,7 @@ typedef void (*popLRS)(Functor left, Functor right, void *data);
 
 typedef struct term_agendaLRS
 { aNodeLRS	work;			/* current work */
-  popLRS 	pop;
+  popLRS	pop;
   segstack	stack;
   char		first_chunk[sizeof(aNodeLRS)*25];
 } term_agendaLRS;

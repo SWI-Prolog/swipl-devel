@@ -106,7 +106,7 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
 
 
 static inline void
-freeBag(findall_bag *bag ARG_LD)
+freeBag(findall_bag *bag)
 { bag->magic = 0;
   clearSegStack(&bag->answers);
   freeHeap(bag, sizeof(*bag));
@@ -172,7 +172,7 @@ PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
     LD->bags.bags = bag->parent;
     PL_UNLOCK(L_AGC);
 
-    freeBag(bag PASS_LD);
+    freeBag(bag);
     succeed;
   }
 

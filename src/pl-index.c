@@ -324,8 +324,7 @@ simple:
 
 
 ClauseRef
-nextClause(ClauseChoice chp, Word argv,
-	   LocalFrame fr, Definition def ARG_LD)
+nextClause(ClauseChoice chp, Word argv, LocalFrame fr, Definition def)
 { if ( !chp->key )			/* not indexed */
   { ClauseRef cref;
 
@@ -377,7 +376,7 @@ freeClauseListRef(ClauseRef cref ARG_LD)
 
   for(cr=cl->first_clause; cr; cr=next)
   { next = cr->next;
-    freeClauseRef(cr PASS_LD);
+    freeClauseRef(cr);
   }
 
   freeHeap(cref, SIZEOF_CREF_LIST);
@@ -397,7 +396,7 @@ unallocClauseIndexTableEntries(ClauseIndex ci ARG_LD)
       if ( ci->is_list )
 	freeClauseListRef(cr PASS_LD);
       else
-	freeClauseRef(cr PASS_LD);
+	freeClauseRef(cr);
     }
   }
 
@@ -415,7 +414,7 @@ unallocClauseIndexTable(ClauseIndex ci)
 
 
 static ClauseRef
-newClauseListRef(word key ARG_LD)
+newClauseListRef(word key)
 { ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_LIST);
 
   memset(cref, 0, SIZEOF_CREF_LIST);
@@ -428,7 +427,7 @@ newClauseListRef(word key ARG_LD)
 static void
 addClauseList(ClauseRef cref, Clause clause, int where ARG_LD)
 { ClauseList cl = &cref->value.clauses;
-  ClauseRef cr = newClauseRef(clause, 0 PASS_LD);	/* TBD: key? */
+  ClauseRef cr = newClauseRef(clause, 0); /* TBD: key? */
 
   if ( cl->first_clause )
   { if ( where != CL_START )
@@ -494,7 +493,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
     }
 
     DEBUG(1, Sdprintf("Adding new %s\n", keyName(key)));
-    cr = newClauseListRef(key PASS_LD);
+    cr = newClauseListRef(key);
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
       { addClauseList(cr, cref->value.clause, CL_END PASS_LD);
@@ -510,7 +509,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
     }
     addClauseList(cr, cl, where PASS_LD);
   } else
-  { cr = newClauseRef(cl, key PASS_LD);
+  { cr = newClauseRef(cl, key);
   }
 
   if ( !ch->tail )
@@ -632,7 +631,7 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 	if ( is_list )
 	  freeClauseListRef(c PASS_LD);
 	else
-	  freeClauseRef(c PASS_LD);
+	  freeClauseRef(c);
 	return 1;
       }
     }
@@ -664,7 +663,7 @@ gcClauseList(ClauseList cl ARG_LD)
 	  cl->last_clause = prev;
       }
 
-      freeClauseRef(c PASS_LD);
+      freeClauseRef(c);
     } else
     { prev = cref;
       cref = cref->next;
@@ -727,7 +726,7 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list ARG_LD)
 	if ( is_list )
 	  freeClauseListRef(c PASS_LD);
 	else
-	  freeClauseRef(c PASS_LD);
+	  freeClauseRef(c);
 
 	continue;
       }

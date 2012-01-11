@@ -131,11 +131,8 @@ typedef struct bit_vector
 #define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
 #endif
 
-#define new_bitvector(size) new_bitvector__LD(size PASS_LD)
-#define free_bitvector(v)   free_bitvector__LD(v PASS_LD)
-
 static inline bit_vector *
-new_bitvector__LD(size_t size ARG_LD)
+new_bitvector(size_t size)
 { size_t bytes = offset(bit_vector, chunk[(size+BITSPERE-1)/BITSPERE]);
   bit_vector *v = allocHeapOrHalt(bytes);
 
@@ -145,14 +142,14 @@ new_bitvector__LD(size_t size ARG_LD)
 }
 
 static inline void
-free_bitvector__LD(bit_vector *v ARG_LD)
+free_bitvector(bit_vector *v)
 { size_t bytes = offset(bit_vector, chunk[(v->size+BITSPERE-1)/BITSPERE]);
 
   freeHeap(v, bytes);
 }
 
 static inline void
-clear_bitvector(bit_vector *v ARG_LD)
+clear_bitvector(bit_vector *v)
 { size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
 
   memset(v->chunk, 0, chunks*sizeof(bitv_chunk));

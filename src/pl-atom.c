@@ -639,7 +639,7 @@ know we trapped a bug.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
+destroyAtom(Atom *ap, uintptr_t mask)
 { Atom a = *ap;
   Atom *ap2 = &atomTable[a->hash_value & mask];
 
@@ -716,7 +716,7 @@ collectAtoms(void)
       }
 
       if ( a->references == 0 )
-      { if ( destroyAtom(&b[index], atom_buckets-1 PASS_LD) )
+      { if ( destroyAtom(&b[index], atom_buckets-1) )
 	{ reclaimed++;
 	  if ( !hole_seen )
 	  { hole_seen = TRUE;

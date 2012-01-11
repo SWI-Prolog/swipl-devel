@@ -687,7 +687,7 @@ typedef enum
 } phase;
 
 static inline int
-ph_visitedWord(Word p, phase ph ARG_LD)
+ph_visitedWord(Word p, phase ph)
 { switch(ph)
   { case ph_mark:
       if ( is_marked(p) )
@@ -706,7 +706,7 @@ static inline int
 ph_visited(Functor f, phase ph ARG_LD)
 { Word p = &f->definition;
 
-  return ph_visitedWord(p, ph PASS_LD);
+  return ph_visitedWord(p, ph);
 }
 
 

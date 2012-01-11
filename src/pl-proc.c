@@ -87,7 +87,7 @@ unallocClauseList(ClauseRef cref)
     next = cref->next;
 
     unallocClause(cl PASS_LD);
-    freeClauseRef(cref PASS_LD);
+    freeClauseRef(cref);
   }
 }
 
@@ -814,7 +814,7 @@ typeerror:
 
 
 ClauseRef
-newClauseRef(Clause clause, word key ARG_LD)
+newClauseRef(Clause clause, word key)
 { ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_CLAUSE);
 
   cref->value.clause = clause;
@@ -826,7 +826,7 @@ newClauseRef(Clause clause, word key ARG_LD)
 
 
 void
-freeClauseRef(ClauseRef cref ARG_LD)
+freeClauseRef(ClauseRef cref)
 { freeHeap(cref, SIZEOF_CREF_CLAUSE);
 }
 
@@ -849,7 +849,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   ClauseRef cref;
 
   argKey(clause->codes, 0, FALSE, &key);
-  cref = newClauseRef(clause, key PASS_LD);
+  cref = newClauseRef(clause, key);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
     printMessage(ATOM_informational,
@@ -1026,7 +1026,7 @@ unlinkClause(Definition def, Clause clause ARG_LD)
       }
 
 
-      freeClauseRef(c PASS_LD);
+      freeClauseRef(c);
       def->impl.clauses.number_of_clauses--;
 
       break;
@@ -1246,7 +1246,7 @@ freeClauseList(ClauseRef cref)
 #endif
 
     freeClause(cl PASS_LD);
-    freeClauseRef(cref PASS_LD);
+    freeClauseRef(cref);
   }
 }
 
@@ -1961,7 +1961,7 @@ PRED_IMPL("retract", 1, retract,
       ctx->def = def;
     } else
     { ctx  = CTX_PTR;
-      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def PASS_LD);
+      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
       startCritical;
     }
 
@@ -2008,7 +2008,7 @@ PRED_IMPL("retract", 1, retract,
 
       PL_rewind_foreign_frame(fid);
 
-      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def PASS_LD);
+      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
     }
 
     PL_close_foreign_frame(fid);
@@ -2122,7 +2122,7 @@ pl_retractall(term_t head)
 	argv = argTermP(*argv, 0);
       }
 
-      cref = nextClause(&chp, argv, environment_frame, def PASS_LD);
+      cref = nextClause(&chp, argv, environment_frame, def);
     }
   }
   leaveDefinition(def);

@@ -202,7 +202,7 @@ COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseChoice next ARG_LD);
 COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
-				   Definition def ARG_LD);
+				   Definition def);
 COMMON(void)		addClauseToIndexes(Definition def, Clause cl,
 					   int where ARG_LD);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
@@ -479,9 +479,9 @@ COMMON(bool)		abolishProcedure(Procedure proc, Module module);
 COMMON(bool)		retractClauseDefinition(Definition def, Clause clause ARG_LD);
 COMMON(void)		freeClause(Clause c ARG_LD);
 COMMON(void)		unallocClause(Clause c ARG_LD);
-COMMON(void)		freeClauseRef(ClauseRef c ARG_LD);
+COMMON(void)		freeClauseRef(ClauseRef c);
 COMMON(void)		freeClauseList(ClauseRef cref);
-COMMON(ClauseRef)	newClauseRef(Clause cl, word key ARG_LD);
+COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
 COMMON(void)		gcClausesDefinition(Definition def);
 COMMON(void)		gcClausesDefinitionAndUnlock(Definition def);
 COMMON(void)		destroyDefinition(Definition def);

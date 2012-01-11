@@ -4486,7 +4486,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   { chp = &chp_buf;
     cref = firstClause(argv, fr, def, chp PASS_LD);
   } else
-  { cref = nextClause(chp, argv, fr, def PASS_LD);
+  { cref = nextClause(chp, argv, fr, def);
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
@@ -4521,7 +4521,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       deRef(argv);
       argv = argTermP(*argv, 0);
     }
-    cref = nextClause(chp, argv, fr, def PASS_LD);
+    cref = nextClause(chp, argv, fr, def);
   }
 
   if ( chp != &chp_buf )

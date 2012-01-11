@@ -2170,7 +2170,7 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
       NEXT_INSTRUCTION;
     } else if ( ch->type == CHP_CLAUSE )
     { ARGP = argFrameP(FR, 0);
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
 	FRAME_FAILED;		/* can happen if scan-ahead was too short */
       PC = CL->value.clause->codes;
       umode = uread;
@@ -2335,7 +2335,7 @@ next_choice:
       ARGP = argFrameP(FR, 0);
       DiscardMark(ch->mark);
       BFR = ch->parent;
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
 	goto next_choice;	/* Can happen of look-ahead was too short */
       chp = ch->value.clause;
 

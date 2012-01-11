@@ -82,8 +82,7 @@ debug_high_code(void)
 
 static int
 prolog_debug_topic(const char *topic, int flag)
-{ GET_LD
-  long level;
+{ long level;
   char *end;
 
   level = strtol(topic, &end, 10);
@@ -170,9 +169,7 @@ PRED_IMPL("prolog_nodebug", 1, pl_prolog_nodebug, 0)
 void
 cleanupDebug(void)
 { if ( GD->debug_topics )
-  { GET_LD
-
-    free_bitvector(GD->debug_topics);
+  { free_bitvector(GD->debug_topics);
     GD->debug_topics = NULL;
   }
 }
