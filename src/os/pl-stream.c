@@ -3345,12 +3345,20 @@ Sopenmem(char **buffer, size_t *sizep, const char *mode)
 
 static ssize_t
 Sread_string(void *handle, char *buf, size_t size)
-{ return 0;				/* signal EOF */
+{ (void)handle;
+  (void)buf;
+  (void)size;
+
+  return 0;				/* signal EOF */
 }
 
 static ssize_t
 Swrite_string(void *handle, char *buf, size_t size)
-{ errno = ENOSPC;			/* signal error */
+{ (void)handle;
+  (void)buf;
+  (void)size;
+
+  errno = ENOSPC;			/* signal error */
   return -1;
 }
 

@@ -621,7 +621,7 @@ term_stream_handle(term_t t, IOSTREAM **s, int flags ARG_LD)
   if ( !PL_get_atom(t, &a) )
     return not_a_stream(t);
 
-  return get_stream_handle(a, s, SH_ERRORS|SH_ALIAS);
+  return get_stream_handle(a, s, flags);
 }
 
 
@@ -3324,19 +3324,28 @@ PRED_IMPL("told", 0, told, 0)
 
 static ssize_t
 Swrite_null(void *handle, char *buf, size_t size)
-{ return size;
+{ (void)handle;
+  (void)buf;
+
+  return size;
 }
 
 
 static ssize_t
 Sread_null(void *handle, char *buf, size_t size)
-{ return 0;
+{ (void)handle;
+  (void)buf;
+  (void)size;
+
+  return 0;
 }
 
 
 static long
 Sseek_null(void *handle, long offset, int whence)
-{ switch(whence)
+{ (void)handle;
+
+  switch(whence)
   { case SIO_SEEK_SET:
 	return offset;
     case SIO_SEEK_CUR:
@@ -3349,7 +3358,9 @@ Sseek_null(void *handle, long offset, int whence)
 
 static int
 Sclose_null(void *handle)
-{ return 0;
+{ (void)handle;
+
+  return 0;
 }
 
 
@@ -3495,13 +3506,17 @@ stream_mode_property(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_input_prop(IOSTREAM *s ARG_LD)
-{ return (s->flags & SIO_INPUT) ? TRUE : FALSE;
+{ IGNORE_LD
+
+  return (s->flags & SIO_INPUT) ? TRUE : FALSE;
 }
 
 
 static int
 stream_output_prop(IOSTREAM *s ARG_LD)
-{ return (s->flags & SIO_OUTPUT) ? TRUE : FALSE;
+{ IGNORE_LD
+
+  return (s->flags & SIO_OUTPUT) ? TRUE : FALSE;
 }
 
 
@@ -3542,7 +3557,9 @@ stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( s->position )
+{ IGNORE_LD
+
+  if ( s->position )
   { return PL_unify_term(prop,
 			 PL_FUNCTOR, FUNCTOR_stream_position4,
 			   PL_INT64, s->position->charno,
@@ -3558,8 +3575,7 @@ stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 static int
 stream_end_of_stream_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( s->flags & SIO_INPUT )
-  { GET_LD
-    atom_t val;
+  { atom_t val;
 
     if ( s->flags & SIO_FEOF2 )
       val = ATOM_past;
@@ -3624,7 +3640,9 @@ stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_close_on_abort_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ return PL_unify_bool_ex(prop, !(s->flags & SIO_NOCLOSE));
+{ IGNORE_LD
+
+  return PL_unify_bool_ex(prop, !(s->flags & SIO_NOCLOSE));
 }
 
 
@@ -3647,7 +3665,9 @@ stream_file_no_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( (s->flags & SIO_ISATTY) )
+{ IGNORE_LD
+
+  if ( (s->flags & SIO_ISATTY) )
     return PL_unify_bool_ex(prop, TRUE);
 
   return FALSE;
@@ -3656,7 +3676,9 @@ stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( (s->flags & SIO_BOM) )
+{ IGNORE_LD
+
+  if ( (s->flags & SIO_BOM) )
     return PL_unify_bool_ex(prop, TRUE);
 
   return FALSE;
@@ -3754,6 +3776,7 @@ stream_close_on_exec_prop(IOSTREAM *s, term_t prop ARG_LD)
 #else
    int fd_flags;
 #endif
+   IGNORE_LD
 
    if ( (fd = Sfileno(s)) < 0)
      return FALSE;

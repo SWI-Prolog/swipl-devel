@@ -728,7 +728,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		debugmode(DBG_OFF, NULL);
 		return ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
-		backTrace(frame, num_arg == Default ? 5 : num_arg);
+		backTrace(num_arg == Default ? 5 : num_arg);
 		return ACTION_AGAIN;
     case 'A':	FeedBack("alternatives\n");
 		alternatives(bfr);
@@ -1077,7 +1077,7 @@ writeContextFrame(pl_context_t *ctx)
 
 
 void
-backTrace(LocalFrame frame, int depth)
+backTrace(int depth)
 { pl_context_t ctx;
 
   if ( PL_get_context(&ctx, 0) )
@@ -1304,6 +1304,7 @@ See also backTrace() and os/pl-cstack.c.
 int
 PL_get_context(pl_context_t *c, int thread_id)
 { GET_LD
+  (void)thread_id;
 
   if ( !LD )
     return FALSE;
@@ -1633,7 +1634,7 @@ again:
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfputs("goals\n", Sdout);
-		backTrace(environment_frame, 5);
+		backTrace(5);
 		goto again;
 #endif /*O_DEBUGGER*/
     case 'h':

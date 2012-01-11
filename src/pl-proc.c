@@ -881,7 +881,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   if ( false(def, DYNAMIC) )		/* see (*) above */
     freeCodesDefinition(def);
 
-  addClauseToIndexes(def, clause, where PASS_LD);
+  addClauseToIndexes(def, clause, where);
 
   UNLOCKDEF(def);
 
@@ -1044,7 +1044,7 @@ the definition is always referenced.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-retractClauseDefinition(Definition def, Clause clause ARG_LD)
+retractClauseDefinition(Definition def, Clause clause)
 { int rc;
 
   LOCKDYNDEF(def);
@@ -1091,7 +1091,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     callEventHook(PLEV_ERASED_CLAUSE, clause);
 #endif
 
-  freeClause(clause PASS_LD);
+  freeClause(clause);
 
   return rc;
 }
@@ -1106,7 +1106,7 @@ unallocClause(Clause c)
 
 
 void
-freeClause(Clause c ARG_LD)
+freeClause(Clause c)
 {
 #if O_DEBUGGER
   if ( true(c, HAS_BREAKPOINTS) )
@@ -1138,9 +1138,7 @@ cleanDefinition()
 
 static ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
-{ GET_LD
-
-  DEBUG(CHK_SECURE, checkDefinition(def));
+{ DEBUG(CHK_SECURE, checkDefinition(def));
 
   DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
 
@@ -1150,7 +1148,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
     int left = 0, removed = 0;
 #endif
 
-    cleanClauseIndexes(def PASS_LD);
+    cleanClauseIndexes(def);
 
     for(cref = def->impl.clauses.first_clause;
 	cref && def->impl.clauses.erased_clauses;
@@ -1244,7 +1242,7 @@ freeClauseList(ClauseRef cref)
       callEventHook(PLEV_ERASED_CLAUSE, cl);
 #endif
 
-    freeClause(cl PASS_LD);
+    freeClause(cl);
     freeClauseRef(cref);
   }
 }
@@ -1977,7 +1975,7 @@ PRED_IMPL("retract", 1, retract,
 
     while( cref )
     { if ( decompile(cref->value.clause, cl, 0) )
-      { retractClauseDefinition(ctx->def, cref->value.clause PASS_LD);
+      { retractClauseDefinition(ctx->def, cref->value.clause);
 
 	if ( !endCritical )
 	{ leaveDefinition(ctx->def);
@@ -2093,7 +2091,7 @@ pl_retractall(term_t head)
 
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( visibleClause(cref->value.clause, gen) )
-      { retractClauseDefinition(def, cref->value.clause PASS_LD);
+      { retractClauseDefinition(def, cref->value.clause);
       }
     }
   } else
@@ -2107,7 +2105,7 @@ pl_retractall(term_t head)
 
     while( cref )
     { if ( decompileHead(cref->value.clause, thehead) )
-	retractClauseDefinition(def, cref->value.clause PASS_LD);
+	retractClauseDefinition(def, cref->value.clause);
 
       PL_rewind_foreign_frame(fid);
 

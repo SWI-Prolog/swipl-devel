@@ -1212,7 +1212,7 @@ restore_shared_functors(Word vars ARG_LD)
 
 
 static int
-link_shared(Word t, Word vars ARG_LD)
+link_shared(Word t ARG_LD)
 { term_agenda agenda;
   Word p;
 
@@ -1300,7 +1300,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
   }
 
   reverse_factor_pointers(valTermRef(vars) PASS_LD);
-  link_shared(t, valTermRef(vars) PASS_LD);
+  link_shared(t PASS_LD);
   restore_shared_functors(valTermRef(vars) PASS_LD);
   PL_close_foreign_frame(fid);
   DEBUG(CHK_SECURE, checkStacks(NULL));

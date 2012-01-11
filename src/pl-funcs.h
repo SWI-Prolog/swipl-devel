@@ -203,10 +203,9 @@ COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseChoice next ARG_LD);
 COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
 				   Definition def);
-COMMON(void)		addClauseToIndexes(Definition def, Clause cl,
-					   int where ARG_LD);
+COMMON(void)		addClauseToIndexes(Definition def, Clause cl, int where);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
-COMMON(void)		cleanClauseIndexes(Definition def ARG_LD);
+COMMON(void)		cleanClauseIndexes(Definition def);
 COMMON(void)		unallocClauseIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
@@ -476,8 +475,8 @@ COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 				int where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
-COMMON(bool)		retractClauseDefinition(Definition def, Clause clause ARG_LD);
-COMMON(void)		freeClause(Clause c ARG_LD);
+COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
+COMMON(void)		freeClause(Clause c);
 COMMON(void)		unallocClause(Clause c);
 COMMON(void)		freeClauseRef(ClauseRef c);
 COMMON(void)		freeClauseList(ClauseRef cref);
@@ -608,7 +607,7 @@ COMMON(word)		pl_get_pid(term_t pid);
 COMMON(int)		isDebugFrame(LocalFrame FR);
 COMMON(int)		tracePort(LocalFrame frame, Choice bfr,
 			  int port, Code PC ARG_LD);
-COMMON(void)		backTrace(LocalFrame frame, int depth);
+COMMON(void)		backTrace(int depth);
 COMMON(void)		initTracer(void);
 COMMON(void)		resetTracer(void);
 COMMON(int)		tracemode(int new, int *old);

@@ -4216,7 +4216,7 @@ PL_action(int action, ...)
 	break;
       }
       alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM); /* Also show hidden frames */
-      backTrace(environment_frame, a);
+      backTrace(a);
       setAccessLevel(alevel);
     }
 #else

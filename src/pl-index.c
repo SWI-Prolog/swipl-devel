@@ -813,7 +813,7 @@ unallocOldClauseIndexes(Definition def)
 
 
 void
-cleanClauseIndexes(Definition def ARG_LD)
+cleanClauseIndexes(Definition def)
 { ClauseIndex ci;
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
@@ -1008,7 +1008,7 @@ the definition locked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-addClauseToIndexes(Definition def, Clause cl, int where ARG_LD)
+addClauseToIndexes(Definition def, Clause cl, int where)
 { ClauseIndex ci, next;
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=next)

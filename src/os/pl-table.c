@@ -55,7 +55,7 @@ concurrent lock-free access.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Symbol *
-allocHTableEntries(Table ht, int buckets)
+allocHTableEntries(int buckets)
 { size_t bytes = buckets * sizeof(Symbol);
   Symbol *p;
 
@@ -85,7 +85,7 @@ newHTable(int buckets)
   }
 #endif
 
-  ht->entries = allocHTableEntries(ht, ht->buckets);
+  ht->entries = allocHTableEntries(ht->buckets);
   return ht;
 }
 
@@ -113,7 +113,10 @@ static int cmps;
 
 void
 exitTables(int status, void *arg)
-{ Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
+{ (void)status;
+  (void)arg;
+
+  Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
 	   lookups, cmps);
 }
 #endif
@@ -175,7 +178,7 @@ rehashHTable(Table ht, Symbol map)
   int     safe_copy = (ht->mutex != NULL);
 
   newbuckets = ht->buckets*2;
-  newentries = allocHTableEntries(ht, newbuckets);
+  newentries = allocHTableEntries(newbuckets);
 
   DEBUG(MSG_HASH_STAT,
 	Sdprintf("Rehashing table %p to %d entries\n", ht, ht->buckets));
@@ -347,7 +350,7 @@ copyHTable(Table org)
 #ifdef O_PLMT
   ht->mutex = NULL;
 #endif
-  ht->entries = allocHTableEntries(ht, ht->buckets);
+  ht->entries = allocHTableEntries(ht->buckets);
 
   for(n=0; n < ht->buckets; n++)
   { Symbol s, *q;

@@ -4069,7 +4069,7 @@ update_lg_pointer(Word *p, intptr_t ls, intptr_t gs ARG_LD)
 
 
 static QueryFrame
-update_environments(LocalFrame fr, intptr_t ls, intptr_t gs, intptr_t ts)
+update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
 { GET_LD
   if ( fr == NULL )
     return NULL;
@@ -4141,7 +4141,7 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
 		      chp_chars(ch),
 		      predicateName(ch->frame->predicate)));
 
-    update_environments(ch->frame, ls, gs, ts);
+    update_environments(ch->frame, ls, gs);
     choice_count++;
     DEBUG(3, Sdprintf("ok\n"));
   }
@@ -4272,7 +4272,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
        ; fr
        ;
        )
-    { qf = update_environments(fr, ls, gs, ts);
+    { qf = update_environments(fr, ls, gs);
       assert(qf->magic == QID_MAGIC);
 
       update_choicepoints(ch, ls, gs, ts);

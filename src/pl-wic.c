@@ -1205,7 +1205,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
 	if ( skip )
 	{ PL_end_stubborn_change(clause);
-	  freeClause(clause PASS_LD);
+	  freeClause(clause);
 	} else
 	{ assertProcedure(proc, clause, CL_END PASS_LD);
 	  PL_end_stubborn_change(clause);
@@ -2535,7 +2535,7 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
 
 
 static bool
-qlfSaveSource(wic_state *state, SourceFile f ARG_LD)
+qlfSaveSource(wic_state *state, SourceFile f)
 { IOSTREAM *fd = state->wicFd;
   Atom a = atomValue(f->name);
 
@@ -2561,7 +2561,7 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
   saveXR(state, m->name);
 
   if ( m->file )
-  { qlfSaveSource(state, m->file PASS_LD);
+  { qlfSaveSource(state, m->file);
     putNum(m->line_no, fd);
   } else
   { Sputc('-', fd);
@@ -2606,12 +2606,12 @@ qlfStartSubModule(wic_state *state, Module m ARG_LD)
 
 
 static bool
-qlfStartFile(wic_state *state, SourceFile f ARG_LD)
+qlfStartFile(wic_state *state, SourceFile f)
 { IOSTREAM *fd = state->wicFd;
 
   closeProcedureWic(state);
   Sputc('Q', fd);
-  qlfSaveSource(state, f PASS_LD);
+  qlfSaveSource(state, f);
 
   succeed;
 }
@@ -2680,7 +2680,7 @@ PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
     if ( !PL_get_atom_ex(A1, &a) )
       fail;
 
-    return qlfStartFile(state, lookupSourceFile(a, TRUE) PASS_LD);
+    return qlfStartFile(state, lookupSourceFile(a, TRUE));
   }
 
   succeed;
@@ -2979,7 +2979,7 @@ compileFile(wic_state *state, const char *file)
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);
   sf->time = LastModifiedFile(path);
-  qlfStartFile(state, sf PASS_LD);
+  qlfStartFile(state, sf);
 
   for(;;)
   { fid_t	 cid = PL_open_foreign_frame();

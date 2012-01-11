@@ -435,7 +435,7 @@ enableThreads(int enable)
 		 *******************************/
 
 static int
-initialise_thread(PL_thread_info_t *info, int emergency)
+initialise_thread(PL_thread_info_t *info)
 { assert(info->thread_data);
 
   TLD_set(PL_ldata, info->thread_data);
@@ -1218,7 +1218,7 @@ start_thread(void *closure)
 					/* Control-C */
   set_system_thread_id(info);		/* early to get exit code ok */
 
-  if ( !initialise_thread(info, TRUE) )
+  if ( !initialise_thread(info) )
     return (void *)FALSE;
 
   { GET_LD
@@ -1701,12 +1701,16 @@ thread_alias_propery(PL_thread_info_t *info, term_t prop ARG_LD)
 
 static int
 thread_status_propery(PL_thread_info_t *info, term_t prop ARG_LD)
-{ return unify_thread_status(prop, info, TRUE);
+{ IGNORE_LD
+
+  return unify_thread_status(prop, info, TRUE);
 }
 
 static int
 thread_detached_propery(PL_thread_info_t *info, term_t prop ARG_LD)
-{ return PL_unify_bool_ex(prop, info->detached);
+{ IGNORE_LD
+
+  return PL_unify_bool_ex(prop, info->detached);
 }
 
 
@@ -2168,6 +2172,7 @@ executeThreadSignals(int sig)
 { GET_LD
   thread_sig *sg, *next;
   fid_t fid;
+  (void)sig;
 
   if ( !is_alive(LD->thread.info->status) )
     return;
@@ -2207,7 +2212,7 @@ executeThreadSignals(int sig)
       DEBUG(MSG_THREAD,
 	    { print_trace(8);
 	      Sdprintf("[%d]: Prolog backtrace:\n", PL_thread_self());
-	      backTrace(0, 5);
+	      backTrace(5);
 	      Sdprintf("[%d]: end Prolog backtrace:\n", PL_thread_self());
 	    });
 
@@ -2419,7 +2424,7 @@ create_thread_message(term_t msg ARG_LD)
 
 
 static void
-free_thread_message(thread_message *msg ARG_LD)
+free_thread_message(thread_message *msg)
 { if ( msg->message )
     freeRecord(msg->message);
 
@@ -2650,7 +2655,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
 	    queue->tail = NULL;
 	}
 	PL_UNLOCK(L_AGC);
-	free_thread_message(msgp PASS_LD);
+	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
 	{ DEBUG(MSG_THREAD, Sdprintf("Queue drained. wakeup writers\n"));
@@ -2772,7 +2777,7 @@ PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
 
   for(;;)
   { if ( !get_message_queue__LD(A1, &q PASS_LD) )
-    { free_thread_message(msg PASS_LD);
+    { free_thread_message(msg);
       return FALSE;
     }
 
@@ -2783,13 +2788,13 @@ PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
     { case MSG_WAIT_INTR:
       { if ( PL_handle_signals() >= 0 )
 	  continue;
-	free_thread_message(msg PASS_LD);
+	free_thread_message(msg);
 	rc = FALSE;
 
 	break;
       }
       case MSG_WAIT_DESTROYED:
-      { free_thread_message(msg PASS_LD);
+      { free_thread_message(msg);
 	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
 	break;
       }
@@ -3934,7 +3939,7 @@ advance_mstate(mprop_enum *state)
 
 
 static void
-free_mstate__LD(mprop_enum *state ARG_LD)
+free_mstate(mprop_enum *state)
 { if ( state->e )
     freeTableEnum(state->e);
 
@@ -3990,7 +3995,7 @@ PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
       break;
     case FRG_CUTTED:
       state = CTX_PTR;
-      free_mstate__LD(state PASS_LD);
+      free_mstate(state);
       succeed;
     default:
       assert(0);
@@ -4041,14 +4046,14 @@ enumerate:
 	}
 
 	if ( state != &statebuf )
-	  free_mstate__LD(state PASS_LD);
+	  free_mstate(state);
 	succeed;
       }
 
       if ( !advance_mstate(state) )
       { error:
 	if ( state != &statebuf )
-	  free_mstate__LD(state PASS_LD);
+	  free_mstate(state);
 	fail;
       }
     }
@@ -4120,7 +4125,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     PL_UNLOCK(L_PLFLAG);
   }
 
-  if ( !initialise_thread(info, FALSE) )
+  if ( !initialise_thread(info) )
   { free_thread_info(info);
     errno = ENOMEM;
     return -1;

@@ -220,6 +220,7 @@ CpuTime(cputime_kind which)
 #if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_PROCESS_CPUTIME_ID)
 #define CPU_TIME_DONE
   struct timespec ts;
+  (void)which;
 
   if ( clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts) == 0 )
     return timespec_to_double(ts);
@@ -255,6 +256,8 @@ CpuTime(cputime_kind which)
 #endif
 
 #if !defined(CPU_TIME_DONE)
+  (void)which;
+
   return 0.0;
 #endif
 }

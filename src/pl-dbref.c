@@ -37,6 +37,7 @@ typedef struct recref
 static int
 write_clause_ref(IOSTREAM *s, atom_t aref, int flags)
 { clref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)flags;
 
   Sfprintf(s, "<clause>(%p)", ref->clause);
   return TRUE;
@@ -66,6 +67,7 @@ release_clause(atom_t aref)
 static int
 save_clause_ref(atom_t aref, IOSTREAM *fd)
 { clref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)fd;
 
   return PL_warning("Cannot save reference to <clause>(%p)", ref->clause);
 }
@@ -73,7 +75,9 @@ save_clause_ref(atom_t aref, IOSTREAM *fd)
 
 static atom_t
 load_clause_ref(IOSTREAM *fd)
-{ return PL_new_atom("<saved-clause-ref>");
+{ (void)fd;
+
+  return PL_new_atom("<saved-clause-ref>");
 }
 
 

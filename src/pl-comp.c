@@ -2822,7 +2822,7 @@ care of reconsult, redefinition, etc.
       { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		 ATOM_redefine, ATOM_imported_procedure, proc);
       }
-      freeClause(clause PASS_LD);
+      freeClause(clause);
       return NULL;
     }
 
@@ -2831,7 +2831,7 @@ care of reconsult, redefinition, etc.
 
     if ( def->impl.any )	/* i.e. is (might be) defined */
     { if ( !redefineProcedure(proc, sf, 0) )
-      { freeClause(clause PASS_LD);
+      { freeClause(clause);
 	return NULL;
       }
     }
@@ -2862,7 +2862,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   if ( false(def, DYNAMIC) )
   { if ( !setDynamicProcedure(proc, TRUE) )
-    { freeClause(clause PASS_LD);
+    { freeClause(clause);
       return NULL;
     }
   }
@@ -2870,7 +2870,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   if ( assertProcedure(proc, clause, where PASS_LD) )
     return clause;
 
-  freeClause(clause PASS_LD);
+  freeClause(clause);
   return NULL;
 }
 

@@ -1658,6 +1658,7 @@ typedef struct limit_size_stream
 static ssize_t
 Swrite_lss(void *handle, char *buf, size_t size)
 { limit_size_stream *lss = handle;
+  (void)buf;
 
   if ( lss->stream->position->charno > lss->length )
     return -1;
@@ -1667,7 +1668,9 @@ Swrite_lss(void *handle, char *buf, size_t size)
 
 static int
 Sclose_lss(void *handle)
-{ return 0;
+{ (void)handle;
+
+  return 0;
 }
 
 static const IOFUNCTIONS lss_functions =
