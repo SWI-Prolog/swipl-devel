@@ -205,7 +205,7 @@ registerBuiltinFunctors(void)
 
     f->name             = d->name;
     f->arity            = d->arity;
-    f->flags		= BUILTIN_F;
+    f->flags		= 0;
     f->next             = functorDefTable[v];
     functorDefTable[v]  = f;
     registerFunctor(f);
@@ -277,12 +277,13 @@ void
 cleanupFunctors(void)
 { if ( functorDefTable )
   { int i;
-    int builtin = sizeof(functors)/sizeof(builtin_functor) - 1;
+    int builtin_count      = sizeof(functors)/sizeof(builtin_functor) - 1;
+    FunctorDef builtin     = GD->functors.array.blocks[0][1];
+    FunctorDef builtin_end = builtin+builtin_count;
 
-    freeHeap(GD->functors.array.blocks[0][1],
-	     builtin * sizeof(struct functorDef));
+    freeHeap(builtin, builtin_count * sizeof(struct functorDef));
 
-    for(i=1; i<MSB(GD->functors.highest); i++)
+    for(i=0; i<MSB(GD->functors.highest); i++)
     { FunctorDef *fp0;
 
       if ( (fp0=GD->functors.array.blocks[i]) )
@@ -293,7 +294,7 @@ cleanupFunctors(void)
 	for(fp=fp0,ep=fp+bs; fp<ep; fp++)
 	{ FunctorDef f = *fp;
 
-	  if ( false(f, BUILTIN_F) )
+	  if ( !(f>=builtin && f<=builtin_end) )
 	    freeHeap(f, sizeof(*f));
 	}
 

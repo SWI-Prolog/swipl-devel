@@ -880,7 +880,6 @@ with one operation, it turns out to be faster as well.
 
 #define CONTROL_F		(0x0002) /* functor (compiled controlstruct) */
 #define ARITH_F			(0x0004) /* functor (arithmetic operator) */
-#define BUILTIN_F		(0x0008) /* functor (builtin) */
 
 #define RL_DIRTY		(0x0001) /* recordlist */
 
