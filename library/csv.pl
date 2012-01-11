@@ -67,7 +67,9 @@ have the same name and arity.
 %
 %	Read a CSV file into a list of   rows. Each row is a Prolog term
 %	with the same arity. Options  is   handed  to  csv//2. Remaining
-%	options are processed by phrase_from_file/3.
+%	options  are  processed  by    phrase_from_file/3.  The  default
+%	separator depends on the file name   extension and is =|\t|= for
+%	=|.tsv|= files and =|,|= otherwise.
 %
 %	Suppose we want to create a predicate   table/6  from a CSV file
 %	that we know contains 6 fields  per   record.  This  can be done
@@ -85,8 +87,23 @@ csv_read_file(File, Rows) :-
 	csv_read_file(File, Rows, []).
 
 csv_read_file(File, Rows, Options) :-
-	make_csv_options(Options, Record, RestOptions),
+	default_separator(File, Options, Options1),
+	make_csv_options(Options1, Record, RestOptions),
 	phrase_from_file(csv_roptions(Rows, Record), File, RestOptions).
+
+
+default_separator(File, Options0, Options) :-
+	(   option(separator(_), Options0)
+	->  Options = Options0
+	;   file_name_extension(_, Ext0, File),
+	    downcase_atom(Ext0, Ext),
+	    ext_separator(Ext, Sep)
+	->  Options = [separator(Sep)|Options0]
+	;   Options = Options0
+	).
+
+ext_separator(csv, 0',).
+ext_separator(tsv, 0'\t).
 
 
 %%	csv(?Rows)// is det.
@@ -241,21 +258,25 @@ end_of_record --> "\n".
 end_of_record --> "\r\n".
 end_of_record --> eof.			% unterminated last record
 
-/*******************************
-*	      OUTPUT		*
-*******************************/
+
+		/*******************************
+		*	      OUTPUT	       *
+		*******************************/
 
 %%	csv_write_file(+File, +Data) is det.
 %%	csv_write_file(+File, +Data, +Options) is det.
 %
 %	Write a list of Prolog terms to a CSV file.  Options are given
-%	to csv//2.  Remaining options are given to open/4.
-%
+%	to csv//2.  Remaining options are given to open/4.  The  default
+%	separator depends on the file name   extension and is =|\t|= for
+%	=|.tsv|= files and =|,|= otherwise.
+
 csv_write_file(File, Data) :-
 	csv_write_file(File, Data, []).
 
 csv_write_file(File, Data, Options) :-
-	make_csv_options(Options, Record, RestOptions),
+	default_separator(File, Options, Options1),
+	make_csv_options(Options1, Record, RestOptions),
 	phrase(csv_roptions(Data, Record), String),
 	setup_call_cleanup(open(File, write, Out, RestOptions),
 			   format(Out, '~s', [String]),
