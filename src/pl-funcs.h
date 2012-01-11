@@ -33,15 +33,15 @@ symbol lookup and relocations.
 
 /* pl-alloc.c */
 COMMON(void)		initAlloc(void);
-COMMON(void)		freeHeap__LD(void *mem, size_t n ARG_LD);
+COMMON(void)		freeHeap(void *mem, size_t n);
 COMMON(int)		enableSpareStack(Stack s);
 COMMON(int)		outOfStack(void *stack, stack_overflow_action how);
 COMMON(int)		raiseStackOverflow(int which);
 COMMON(void)		outOfCore(void) NORETURN;
 COMMON(Word)		allocGlobal__LD(size_t words ARG_LD);
 COMMON(Word)		allocGlobalNoShift__LD(size_t words ARG_LD);
-COMMON(void *)		allocHeap__LD(size_t n ARG_LD);
-COMMON(void *)		allocHeapOrHalt__LD(size_t n ARG_LD);
+COMMON(void *)		allocHeap(size_t n);
+COMMON(void *)		allocHeapOrHalt(size_t n);
 COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
 COMMON(void)		initMemAlloc(void);
 COMMON(void)		cleanupMemAlloc(void);

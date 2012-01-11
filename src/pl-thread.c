@@ -533,7 +533,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     free_thread_info(info);
 
   mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
-  freeHeap__LD(ld, sizeof(*ld), NULL);	/* move to global pool */
+  freeHeap(ld, sizeof(*ld));
 
   if ( acknowledge )			/* == canceled */
   { free_thread_info(info);
@@ -2239,7 +2239,7 @@ freeThreadSignals(PL_local_data_t *ld)
   { next = sg->next;
 
     PL_erase(sg->goal);
-    freeHeap__LD(sg, sizeof(*sg), ld);
+    freeHeap(sg, sizeof(*sg));
   }
 }
 

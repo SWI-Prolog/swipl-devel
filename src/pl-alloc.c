@@ -142,26 +142,28 @@ static void  freeAllBigHeaps(void);
 #define ALLOC_MAGIC 0xbf
 #define ALLOC_VIRGIN_MAGIC 0x7f
 
-void core_freeHeap__LD(void *mem, size_t n ARG_LD);
-void *core_allocHeapOrHalt__LD(size_t n ARG_LD);
-void *core_allocHeap__LD(size_t n ARG_LD);
+void core_freeHeap(void *mem, size_t n);
+void *core_allocHeapOrHalt(size_t n);
+void *core_allocHeap(size_t n);
 
 void
-freeHeap__LD(void *mem, size_t n ARG_LD)
-{ intptr_t *p = mem;
+freeHeap(void *mem, size_t n)
+{ GET_LD
+  intptr_t *p = mem;
 
   assert(p[-1] == (intptr_t)n);
   assert(p[-2] == INUSE_MAGIC);
   p[-2] = FREE_MAGIC;			/* trap double free */
   memset(mem, ALLOC_FREE_MAGIC, n);
 
-  core_freeHeap__LD(p-3, n+3*sizeof(intptr_t) PASS_LD);
+  core_freeHeap(p-3, n+3*sizeof(intptr_t) PASS_LD);
 }
 
 
 void *
-allocHeapOrHalt__LD(size_t n ARG_LD)
-{ intptr_t *p = core_allocHeapOrHalt__LD(n+3*sizeof(intptr_t) PASS_LD);
+allocHeapOrHalt(size_t n)
+{ GET_LD
+  intptr_t *p = core_allocHeapOrHalt__LD(n+3*sizeof(intptr_t) PASS_LD);
 
   p += 3;
   p[-1] = n;
@@ -172,8 +174,9 @@ allocHeapOrHalt__LD(size_t n ARG_LD)
 }
 
 void *
-allocHeap__LD(size_t n ARG_LD)
-{ intptr_t *p = core_allocHeap__LD(n+3*sizeof(intptr_t) PASS_LD);
+allocHeap(size_t n)
+{ GET_LD
+  intptr_t *p = core_allocHeap__LD(n+3*sizeof(intptr_t) PASS_LD);
 
   if ( p )
   { p += 3;
@@ -185,9 +188,9 @@ allocHeap__LD(size_t n ARG_LD)
   return p;
 }
 
-#define freeHeap__LD core_freeHeap__LD
-#define allocHeapOrHalt__LD core_allocHeapOrHalt__LD
-#define allocHeap__LD core_allocHeap__LD
+#define freeHeap core_freeHeap
+#define allocHeapOrHalt core_allocHeapOrHalt
+#define allocHeap core_allocHeap
 
 #endif /*ALLOC_DEBUG*/
 
@@ -232,8 +235,9 @@ freeToPool(AllocPool pool, void *mem, size_t n, int islocal)
 
 
 void
-freeHeap__LD(void *mem, size_t n ARG_LD)
-{ if ( mem == NULL )
+freeHeap(void *mem, size_t n)
+{ GET_LD
+  if ( mem == NULL )
     return;
   n = ALLOCROUND(n);
 
@@ -415,8 +419,9 @@ allocFromPool(AllocPool pool, size_t m)
 
 
 void *
-allocHeap__LD(size_t n ARG_LD)
-{ void *mem;
+allocHeap(size_t n)
+{ GET_LD
+  void *mem;
 
   if ( n == 0 )
     return NULL;
@@ -470,8 +475,9 @@ allocHeap__LD(size_t n ARG_LD)
 
 
 void *
-allocHeapOrHalt__LD(size_t n ARG_LD)
-{ void *mem = allocHeap__LD(n PASS_LD);
+allocHeapOrHalt(size_t n)
+{ GET_LD
+  void *mem = allocHeap(n PASS_LD);
 
   if ( mem )
   { return mem;
@@ -624,8 +630,8 @@ freeAllBigHeaps(void)
 }
 
 #if ALLOC_DEBUG
-#undef freeHeap__LD
-#undef allocHeap__LD
+#undef freeHeap
+#undef allocHeap
 #endif /*ALLOC_DEBUG*/
 
 #endif /*O_MYALLOC*/
@@ -638,13 +644,13 @@ freeAllBigHeaps(void)
 #define PL_ALLOC_DONE 1
 
 void *
-allocHeap__LD(size_t n ARG_LD)
+allocHeap(size_t n)
 { return GC_MALLOC(n);
 }
 
 
 void *
-allocHeapOrHalt__LD(size_t n ARG_LD)
+allocHeapOrHalt(size_t n)
 { void *mem = GC_MALLOC(n);
 
   if ( !mem )
@@ -655,7 +661,7 @@ allocHeapOrHalt__LD(size_t n ARG_LD)
 
 
 void
-freeHeap__LD(void *mem, size_t n ARG_LD)
+freeHeap(void *mem, size_t n)
 { GC_FREE(mem);
 }
 
@@ -717,13 +723,13 @@ mergeAllocPool(AllocPool to, AllocPool from)
 #ifndef PL_ALLOC_DONE
 
 void *
-allocHeap__LD(size_t n ARG_LD)
+allocHeap(size_t n)
 { return malloc(n);
 }
 
 
 void *
-allocHeapOrHalt__LD(size_t n ARG_LD)
+allocHeapOrHalt(size_t n)
 { if ( n )
   { void *mem = malloc(n);
 
@@ -738,7 +744,7 @@ allocHeapOrHalt__LD(size_t n ARG_LD)
 
 
 void
-freeHeap__LD(void *mem, size_t n ARG_LD)
+freeHeap(void *mem, size_t n)
 {
 #if ALLOC_DEBUG
   memset((char *) mem, ALLOC_FREE_MAGIC, n);
@@ -1522,9 +1528,9 @@ properly on Linux. Don't bother with it.
 
 #undef LOCK
 #undef UNLOCK
-#undef freeHeap__LD
-#undef allocHeapOrHalt__LD
-#undef allocHeap__LD
+#undef freeHeap
+#undef allocHeapOrHalt
+#undef allocHeap
 
 #ifdef HAVE_BOEHM_GC
 static
