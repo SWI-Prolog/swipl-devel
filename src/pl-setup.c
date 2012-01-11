@@ -614,8 +614,8 @@ gc_handler(int sig)
 static void
 free_clauses_handler(int sig)
 { GET_LD
-  (void)sig;
   ClauseRef cref;
+  (void)sig;
 
   if ( (cref=LD->freed_clauses) )
   { LD->freed_clauses = NULL;

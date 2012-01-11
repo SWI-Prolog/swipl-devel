@@ -383,7 +383,11 @@ PRED_IMPL("tty_size", 2, tty_size, 0)
 
 #endif /*__WINDOWS__*/
 
-void resetTerm()
+void resetTerm(void)
+{
+}
+
+void cleanupTerm(void)
 {
 }
 

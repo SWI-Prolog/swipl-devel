@@ -383,7 +383,7 @@ cleanupPaths(void)
   cleanupStringP(&GD->options.saveclass);
   cleanupStringP(&GD->os.myhome);
 #ifdef __WINDOWS__
-  cleanupStringP(GD->paths.module);
+  cleanupStringP(&GD->paths.module);
 #endif
 
   cleanupOptListP(&GD->options.scriptFiles);
