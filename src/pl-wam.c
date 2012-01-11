@@ -1908,7 +1908,7 @@ PL_next_solution(qid_t qid)
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
   exception_frame throw_env;		/* PL_thow() environment */
-  int	     throwed_from_line;		/* Debugging: line we came from */
+  int	     throwed_from_line=0;	/* Debugging: line we came from */
 #define	     CL (FR->clause)		/* clause of current frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

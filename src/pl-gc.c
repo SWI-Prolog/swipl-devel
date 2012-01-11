@@ -4467,7 +4467,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   Stack fatal = NULL;	/* stack we couldn't expand due to lack of memory */
   int rc;
 #if O_DEBUG
-  word key;
+  word key=0;
 #endif
 
   if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize))<0 ||
