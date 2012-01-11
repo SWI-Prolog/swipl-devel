@@ -280,27 +280,30 @@ cleanupFunctors(void)
     int builtin_count      = sizeof(functors)/sizeof(builtin_functor) - 1;
     FunctorDef builtin     = GD->functors.array.blocks[0][1];
     FunctorDef builtin_end = builtin+builtin_count;
+    FunctorDef *fp0;
 
     freeHeap(builtin, builtin_count * sizeof(struct functorDef));
 
-    for(i=0; i<MSB(GD->functors.highest); i++)
-    { FunctorDef *fp0;
+    for(i=0; (fp0=GD->functors.array.blocks[i]); i++)
+    { size_t bs = (size_t)1<<i;
+      size_t upto = (size_t)2<<i;
+      FunctorDef *fp, *ep;
 
-      if ( (fp0=GD->functors.array.blocks[i]) )
-      { size_t bs = (size_t)1<<i;
-	FunctorDef *fp, *ep;
+      fp0 += bs;
+      fp = fp0;
+      ep=fp+bs;
+      if ( upto > GD->functors.highest )
+	ep -= upto-GD->functors.highest;
 
-	fp0 += bs;
-	for(fp=fp0,ep=fp+bs; fp<ep; fp++)
-	{ FunctorDef f = *fp;
+      for(; fp<ep; fp++)
+      { FunctorDef f = *fp;
 
-	  if ( !(f>=builtin && f<=builtin_end) )
-	    freeHeap(f, sizeof(*f));
-	}
-
-	GD->functors.array.blocks[i] = NULL;
-	PL_free(fp0);
+	if ( !(f>=builtin && f<=builtin_end) )
+	  freeHeap(f, sizeof(*f));
       }
+
+      GD->functors.array.blocks[i] = NULL;
+      PL_free(fp0);
     }
 
     freeHeap(functorDefTable, functor_buckets*sizeof(FunctorDef));

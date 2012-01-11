@@ -158,6 +158,7 @@ struct PL_global_data
     atom_array	array;
     unsigned int buckets;		/* # buckets in char * --> atom */
     Atom *	table;			/* hash-table */
+    Atom	builtin_array;		/* Builtin atoms */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
 #ifdef O_ATOMGC

@@ -942,14 +942,15 @@ pl_atom_hashstat(term_t idx, term_t n)
 
 
 static void
-registerBuiltinAtoms()
+registerBuiltinAtoms(void)
 { int size = sizeof(atoms)/sizeof(char *) - 1;
-  Atom a = PL_malloc_uncollectable(size * sizeof(struct atom));
+  Atom a;
   const ccharp *s;
 
+  GD->atoms.builtin_array = PL_malloc(size * sizeof(struct atom));
   GD->statistics.atoms = size;
 
-  for(s = atoms; *s; s++, a++)
+  for(s = atoms, a = GD->atoms.builtin_array; *s; s++, a++)
   { size_t len = strlen(*s);
     unsigned int v0 = MurmurHashAligned2(*s, len, MURMUR_SEED);
     unsigned int v = v0 & (atom_buckets-1);
@@ -1014,36 +1015,44 @@ leaving the rest to GC or (3) cleanup the whole thing.
 void
 cleanupAtoms(void)
 { int i;
+  int builtin_count = sizeof(atoms)/sizeof(char *) - 1;
+  Atom builtin_start = GD->atoms.builtin_array;
+  Atom builtin_end   = builtin_start+builtin_count;
+  Atom *ap0;
 
-  for(i=1; i<MSB(GD->atoms.highest); i++)
-  { Atom *ap0;
+  for(i=0; (ap0=GD->atoms.array.blocks[i]); i++)
+  { size_t bs = (size_t)1<<i;
+    size_t upto = (size_t)2<<i;
+    Atom *ap, *ep;
 
-    if ( (ap0=GD->atoms.array.blocks[i]) )
-    { size_t bs = (size_t)1<<i;
-      Atom *ap, *ep;
+    ap0 += bs;
+    ap = ap0;
+    ep = ap+bs;
+    if ( upto > GD->atoms.highest )
+      ep -= upto-GD->atoms.highest;
 
-      ap0 += bs;
-      for(ap=ap0,ep = ap+bs; ap<ep; ap++)
-      { if ( *ap )
-	{ Atom a = *ap;
+    for(; ap<ep; ap++)
+    { if ( *ap )
+      { Atom a = *ap;
 
-	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
-	  { if ( a->type->release )
-	      (*a->type->release)(a->atom);
-	    else if ( GD->atoms.gc_hook )
-	      (*GD->atoms.gc_hook)(a->atom);
+	if ( !(a>=builtin_start && a<builtin_end) )
+	{ if ( a->type->release )
+	    (*a->type->release)(a->atom);
+	  else if ( GD->atoms.gc_hook )
+	    (*GD->atoms.gc_hook)(a->atom);
 
-	    if ( false(a->type, PL_BLOB_NOCOPY) )
-	      PL_free(a->name);
-	    freeHeap(a, sizeof(*a));
-	  }
+	  if ( false(a->type, PL_BLOB_NOCOPY) )
+	    PL_free(a->name);
+	  freeHeap(a, sizeof(*a));
 	}
       }
-
-      GD->atoms.array.blocks[i] = NULL;
-      PL_free(ap0);
     }
+
+    GD->atoms.array.blocks[i] = NULL;
+    PL_free(ap0);
   }
+
+  PL_free(builtin_start);
 
   for(i=0; i<256; i++)			/* char-code -> char-atom map */
   { atom_t *p;
