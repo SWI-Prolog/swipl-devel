@@ -264,7 +264,7 @@ references.  That will normally overflow other system limits first.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-pushXrIdTable(wic_state *state ARG_LD)
+pushXrIdTable(wic_state *state)
 { XrTable t = allocHeapOrHalt(sizeof(struct xr_table));
 
   if ( !(t->table = allocHeapOrHalt(ALLOCSIZE)) )
@@ -279,7 +279,7 @@ pushXrIdTable(wic_state *state ARG_LD)
 
 
 static void
-popXrIdTable(wic_state *state ARG_LD)
+popXrIdTable(wic_state *state)
 { int i;
   XrTable t = state->XR;
 
@@ -411,7 +411,7 @@ wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 
 
 static atom_t
-getAtom(IOSTREAM *fd, PL_blob_t *type ARG_LD)
+getAtom(IOSTREAM *fd, PL_blob_t *type)
 { char buf[1024];
   char *tmp, *s;
   size_t len = getInt(fd);
@@ -602,7 +602,7 @@ loadXRc(wic_state *state, int c ARG_LD)
     }
     case XR_ATOM:
     { id = ++state->XR->id;
-      xr = getAtom(fd, NULL PASS_LD);
+      xr = getAtom(fd, NULL);
       DEBUG(3, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
       break;
     }
@@ -745,7 +745,7 @@ getBlob(wic_state *state ARG_LD)
   if ( type->load )
   { return (*type->load)(state->wicFd);
   } else
-  { return getAtom(state->wicFd, type PASS_LD);
+  { return getAtom(state->wicFd, type);
   }
 }
 
@@ -840,16 +840,15 @@ the executable or the argument of pl -x <state>.
 
 int
 loadWicFromStream(IOSTREAM *fd)
-{ GET_LD
-  wic_state state;
+{ wic_state state;
   int rval;
 
   memset(&state, 0, sizeof(state));
   state.wicFd = fd;
 
-  pushXrIdTable(&state PASS_LD);
+  pushXrIdTable(&state);
   rval = loadWicFd(&state);
-  popXrIdTable(&state PASS_LD);
+  popXrIdTable(&state);
 
   return rval;
 }
@@ -1014,7 +1013,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 
 
 static void
-loadPredicateFlags(wic_state *state, Definition def, int skip ARG_LD)
+loadPredicateFlags(wic_state *state, Definition def, int skip)
 { int flags = getInt(state->wicFd);
 
   if ( !skip )
@@ -1056,7 +1055,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
     }
     addProcedureSourceFile(state->currentSource, proc);
   }
-  loadPredicateFlags(state, def, skip PASS_LD);
+  loadPredicateFlags(state, def, skip);
 
   for(;;)
   { switch(Sgetc(fd) )
@@ -2190,7 +2189,7 @@ initSourceMarks(wic_state *state)
 
 
 static void
-sourceMark(wic_state *state ARG_LD)
+sourceMark(wic_state *state)
 { if ( state->has_source_marks )
   { SourceMark pm = allocHeapOrHalt(sizeof(struct source_mark));
 
@@ -2208,7 +2207,7 @@ sourceMark(wic_state *state ARG_LD)
 
 
 static int
-writeSourceMarks(wic_state *state ARG_LD)
+writeSourceMarks(wic_state *state)
 { long n = 0;
   SourceMark pn, pm = state->source_mark_head;
 
@@ -2380,7 +2379,7 @@ qlfClose(wic_state *state ARG_LD)
 { int rc;
 
   closeProcedureWic(state);
-  writeSourceMarks(state PASS_LD);
+  writeSourceMarks(state);
   rc = Sclose(state->wicFd);
   state->wicFd = NULL;
   if ( state->mkWicFile )
@@ -2526,9 +2525,9 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
   if ( Qgetc(fd) != 'Q' )
     return qlfLoadError(state);
 
-  pushXrIdTable(state PASS_LD);
+  pushXrIdTable(state);
   rval = loadPart(state, module, FALSE PASS_LD);
-  popXrIdTable(state PASS_LD);
+  popXrIdTable(state);
   popPathTranslation(state);
 
   return rval;
@@ -2540,7 +2539,7 @@ qlfSaveSource(wic_state *state, SourceFile f ARG_LD)
 { IOSTREAM *fd = state->wicFd;
   Atom a = atomValue(f->name);
 
-  sourceMark(state PASS_LD);
+  sourceMark(state);
   Sputc('F', fd);
   putString(a->name, a->length, fd);
   putNum(f->time, fd);

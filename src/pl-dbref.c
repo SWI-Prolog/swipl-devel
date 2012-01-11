@@ -57,9 +57,8 @@ release_clause(atom_t aref)
 
   clear(ref->clause, DBREF_CLAUSE);
   if ( true(ref->clause, DBREF_ERASED_CLAUSE) )
-  { GET_LD
-    unallocClause(ref->clause PASS_LD);
-  }
+    unallocClause(ref->clause);
+
   return TRUE;
 }
 

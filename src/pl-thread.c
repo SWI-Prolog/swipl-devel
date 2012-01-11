@@ -4902,7 +4902,9 @@ wait_resume(PL_thread_info_t *t)
 
 static void
 resume_handler(int sig)
-{ sem_post(sem_mark_ptr);
+{ (void)sig;
+
+  sem_post(sem_mark_ptr);
 }
 
 
@@ -4995,6 +4997,7 @@ for whathever reason.
 static void
 doThreadLocalData(int sig)
 { GET_LD
+  (void)sig;
   PL_thread_info_t *info;
 
   info = LD->thread.info;

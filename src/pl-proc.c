@@ -79,14 +79,13 @@ lookupProcedure(functor_t f, Module m)
 
 static void
 unallocClauseList(ClauseRef cref)
-{ GET_LD
-  ClauseRef next;
+{ ClauseRef next;
 
   for( ; cref; cref = next)
   { Clause cl = cref->value.clause;
     next = cref->next;
 
-    unallocClause(cl PASS_LD);
+    unallocClause(cl);
     freeClauseRef(cref);
   }
 }
@@ -1099,7 +1098,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 
 
 void
-unallocClause(Clause c ARG_LD)
+unallocClause(Clause c)
 { GD->statistics.codes -= c->code_size;
   GD->statistics.clauses--;
   PL_free(c);				/* allocated with PL_malloc_stubborn() */
@@ -1123,7 +1122,7 @@ freeClause(Clause c ARG_LD)
     return;
   }
 
-  unallocClause(c PASS_LD);
+  unallocClause(c);
 }
 
 

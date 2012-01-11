@@ -248,7 +248,9 @@ html_decode_tag(const char *data, HtmlTagDef spec, void *dest)
 
 int
 html_cvt_malloc_string(const char *data, size_t len, void *dst, void *closure)
-{ if ( data )
+{ (void)closure;
+
+  if ( data )
   { char *tmp = malloc(len+1);
 
     if ( tmp )
@@ -268,7 +270,9 @@ html_cvt_malloc_string(const char *data, size_t len, void *dst, void *closure)
 
 int
 html_cvt_long(const char *data, size_t len, void *dst, void *closure)
-{ if ( data )
+{ (void)closure;
+
+  if ( data )
   { char *e;
     intptr_t val;
 

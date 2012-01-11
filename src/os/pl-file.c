@@ -456,6 +456,7 @@ typedef struct stream_ref
 static int
 write_stream_ref(IOSTREAM *s, atom_t aref, int flags)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)flags;
 
   if ( ref->read && ref->write )
     Sfprintf(s, "<stream>(%p,%p)", ref->read, ref->write);
@@ -499,6 +500,7 @@ release_stream_ref(atom_t aref)
 static int
 save_stream_ref(atom_t aref, IOSTREAM *fd)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)fd;
 
   return PL_warning("Cannot save reference to <stream>(%p,%p)",
 		    ref->read, ref->write);
@@ -507,7 +509,9 @@ save_stream_ref(atom_t aref, IOSTREAM *fd)
 
 static atom_t
 load_stream_ref(IOSTREAM *fd)
-{ return PL_new_atom("<saved-stream-ref>");
+{ (void)fd;
+
+  return PL_new_atom("<saved-stream-ref>");
 }
 
 

@@ -565,7 +565,9 @@ unprepareSignal(int sig)
 #ifdef SIGHUP
 static void
 hupHandler(int sig)
-{ PL_halt(2);
+{ (void)sig;
+
+  PL_halt(2);
 }
 #endif
 
@@ -612,6 +614,7 @@ gc_handler(int sig)
 static void
 free_clauses_handler(int sig)
 { GET_LD
+  (void)sig;
   ClauseRef cref;
 
   if ( (cref=LD->freed_clauses) )
@@ -623,7 +626,9 @@ free_clauses_handler(int sig)
 
 static void
 abort_handler(int sig)
-{ abortProlog();
+{ (void)sig;
+
+  abortProlog();
 }
 
 
@@ -1176,8 +1181,7 @@ Malloc/realloc/free based stack allocation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-init_stack(Stack s, char *name,
-	   size_t size, size_t limit, size_t minfree, size_t spare)
+init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare)
 { GET_LD
 
   s->name	= name;
@@ -1222,13 +1226,13 @@ allocStacks(size_t local, size_t global, size_t trail)
   lBase = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, global,  minglobal, 512*SIZEOF_VOIDP);
+	     "global",   iglobal, global, 512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  local,   minlocal, 512*SIZEOF_VOIDP);
+	     "local",    ilocal,  local,  512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.trail,
-	     "trail",    itrail,  trail,   mintrail, 256*SIZEOF_VOIDP);
+	     "trail",    itrail,  trail,  256*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.argument,
-	     "argument", argument, argument, minargument, 0);
+	     "argument", argument, argument, 0);
 
   LD->stacks.local.min_free = LOCAL_MARGIN;
 

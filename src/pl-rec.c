@@ -119,7 +119,7 @@ isCurrentRecordList(word key)
 */
 
 static void
-cleanRecordList(RecordList rl ARG_LD)
+cleanRecordList(RecordList rl)
 { RecordRef *p;
   RecordRef r, prev=NULL;
 
@@ -1766,7 +1766,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
 	LOCK();
 	if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-	  cleanRecordList(rl PASS_LD);
+	  cleanRecordList(rl);
 	UNLOCK();
       }
     }
@@ -1807,7 +1807,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	  ForeignRedoPtr(record->next);
 	} else
 	{ if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-	    cleanRecordList(rl PASS_LD);
+	    cleanRecordList(rl);
 
 	  if ( varkey )
 	  { for( rl=rl->next; rl; rl=rl->next )
@@ -1828,7 +1828,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
     }
 
     if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-      cleanRecordList(rl PASS_LD);
+      cleanRecordList(rl);
 
     if ( varkey )
     { if ( rl->next )

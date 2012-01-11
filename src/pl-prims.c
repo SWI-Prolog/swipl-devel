@@ -703,7 +703,7 @@ ph_visitedWord(Word p, phase ph)
 }
 
 static inline int
-ph_visited(Functor f, phase ph ARG_LD)
+ph_visited(Functor f, phase ph)
 { Word p = &f->definition;
 
   return ph_visitedWord(p, ph);
@@ -723,7 +723,7 @@ ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
     if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
 
-      if ( !ph_visited(f, ph PASS_LD) )
+      if ( !ph_visited(f, ph) )
       { pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
       }
     }

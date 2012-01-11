@@ -325,7 +325,10 @@ simple:
 
 ClauseRef
 nextClause(ClauseChoice chp, Word argv, LocalFrame fr, Definition def)
-{ if ( !chp->key )			/* not indexed */
+{ (void)argv;				/* we want to use these later */
+  (void)def;				/* to create secondary indexes */
+
+  if ( !chp->key )			/* not indexed */
   { ClauseRef cref;
 
     for(cref=chp->cref; cref; cref = cref->next)
@@ -751,7 +754,7 @@ See also deleteActiveClauseFromIndexes() comment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-cleanClauseIndex(Definition def, ClauseIndex ci ARG_LD)
+cleanClauseIndex(Definition def, ClauseIndex ci)
 { if ( ci->size - def->impl.clauses.erased_clauses < ci->resize_below )
   { replaceIndex(def, ci, NULL);
   } else
@@ -814,7 +817,7 @@ cleanClauseIndexes(Definition def ARG_LD)
 { ClauseIndex ci;
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-    cleanClauseIndex(def, ci PASS_LD);
+    cleanClauseIndex(def, ci);
 
   unallocOldClauseIndexes(def);
 }
@@ -979,7 +982,7 @@ indexed. This is needed for resizing the index.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
+addClauseToIndex(ClauseIndex ci, Clause cl, int where)
 { ClauseBucket ch = ci->entries;
   word key;
 
@@ -1014,7 +1017,7 @@ addClauseToIndexes(Definition def, Clause cl, int where ARG_LD)
     if ( ci->size >= ci->resize_above )
       replaceIndex(def, ci, NULL);
     else
-      addClauseToIndex(ci, cl, where PASS_LD);
+      addClauseToIndex(ci, cl, where);
   }
 
   DEBUG(CHK_SECURE, checkDefinition(def));
@@ -1061,8 +1064,7 @@ clauses that are added while building.
 
 static ClauseIndex
 hashDefinition(Definition def, int arg, hash_hints *hints)
-{ GET_LD
-  ClauseRef cref;
+{ ClauseRef cref;
   ClauseIndex ci, old;
   ClauseIndex *cip;
   int dyn_or_multi;
@@ -1077,7 +1079,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
     LOCKDEF(def);
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( false(cref->value.clause, ERASED) )
-      addClauseToIndex(ci, cref->value.clause, CL_END PASS_LD);
+      addClauseToIndex(ci, cref->value.clause, CL_END);
   }
   ci->resize_above = ci->size*2;
   ci->resize_below = ci->size/4;

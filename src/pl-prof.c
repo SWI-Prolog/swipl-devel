@@ -512,7 +512,7 @@ add_parent_ref(node_sum *sum,
 
 static void
 add_recursive_ref(node_sum *sum, call_node *self, uintptr_t count,
-		  int cycle ARG_LD)
+		  int cycle)
 { prof_ref *r;
 
   for(r=sum->callers; r; r=r->next)
@@ -534,8 +534,7 @@ add_recursive_ref(node_sum *sum, call_node *self, uintptr_t count,
 
 
 static void
-add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling,
-		int cycle)
+add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
 { prof_ref *r;
 
   for(r=sum->callees; r; r=r->next)
@@ -583,10 +582,10 @@ sumProfile(call_node *n, void *handle, PL_prof_type_t *type,
       add_parent_ref(sum, n, DEF_SPONTANEOUS, NULL, seen);
 
     if ( n->recur )
-      add_recursive_ref(sum, n, n->recur, seen PASS_LD);
+      add_recursive_ref(sum, n, n->recur, seen);
 
     for(s=n->siblings; s; s = s->next)
-      add_sibling_ref(sum, n, s, seen);
+      add_sibling_ref(sum, s, seen);
 
     seen++;
   }

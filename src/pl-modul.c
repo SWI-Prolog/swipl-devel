@@ -252,6 +252,7 @@ updateLevelModule(Module m)
 static int
 cannotSetSuperModule(Module m, Module s)
 { GET_LD
+  (void)s;				/* would be nice to add to message */
   term_t t = PL_new_term_ref();
 
   PL_put_atom(t, m->name);

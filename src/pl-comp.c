@@ -609,12 +609,12 @@ forwards int	compileArith(Word, compileInfo * ARG_LD);
 forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
 #endif
 #if O_COMPILE_IS
-forwards int	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
-forwards int	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
-forwards int	compileBodyNEQ(Word arg, code call, compileInfo *ci ARG_LD);
+forwards int	compileBodyUnify(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyEQ(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyNEQ(Word arg, compileInfo *ci ARG_LD);
 #endif
-forwards int	compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD);
-forwards int	compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD);
+forwards int	compileBodyVar1(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD);
 
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
@@ -1910,27 +1910,27 @@ compile, but they are related to meta-calling anyway.
     { if ( functor == FUNCTOR_equals2 )	/* =/2 */
       { int rc;
 
-	if ( (rc=compileBodyUnify(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyUnify(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_strict_equal2 )	/* ==/2 */
       { int rc;
 
-	if ( (rc=compileBodyEQ(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyEQ(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_not_strict_equal2 ) /* \==/2 */
       { int rc;
 
-	if ( (rc=compileBodyNEQ(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyNEQ(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_var1 )
       { int rc;
 
-	if ( (rc=compileBodyVar1(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyVar1(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_nonvar1 )
       { int rc;
 
-	if ( (rc=compileBodyNonVar1(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyNonVar1(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       }
     }
@@ -2334,7 +2334,7 @@ skippedVar(Word arg, compileInfo *ci ARG_LD)
 
 
 static int
-compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
@@ -2421,7 +2421,7 @@ errors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
@@ -2498,7 +2498,7 @@ errors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-compileBodyNEQ(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
@@ -2568,7 +2568,7 @@ compileBodyNEQ(Word arg, code call, compileInfo *ci ARG_LD)
 
 
 static int
-compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyVar1(Word arg, compileInfo *ci ARG_LD)
 { Word a1;
   int i1;
 
@@ -2609,7 +2609,7 @@ compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD)
 
 
 static int
-compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD)
 { Word a1;
   int i1;
 
@@ -4841,7 +4841,7 @@ is an error or unification failed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
-unify_vmi(term_t t, Clause clause, Code bp)
+unify_vmi(term_t t, Code bp)
 { GET_LD
   code op = decode(*bp);
   const code_info *ci;
@@ -5055,7 +5055,7 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   op = fetchop(PC);
   ci = &codeTable[op];
 
-  if ( (next=unify_vmi(instruction, clause, PC)) )
+  if ( (next=unify_vmi(instruction, PC)) )
     return PL_unify_int64(noffset, next-base);
 
   fail;

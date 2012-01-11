@@ -478,7 +478,7 @@ COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
 COMMON(bool)		retractClauseDefinition(Definition def, Clause clause ARG_LD);
 COMMON(void)		freeClause(Clause c ARG_LD);
-COMMON(void)		unallocClause(Clause c ARG_LD);
+COMMON(void)		unallocClause(Clause c);
 COMMON(void)		freeClauseRef(ClauseRef c);
 COMMON(void)		freeClauseList(ClauseRef cref);
 COMMON(ClauseRef)	newClauseRef(Clause cl, word key);

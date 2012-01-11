@@ -631,7 +631,9 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 
 int
 PL_instantiation_error(term_t actual)
-{ return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+{ (void)actual;
+
+  return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 }
 
 int
