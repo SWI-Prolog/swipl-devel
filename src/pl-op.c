@@ -80,8 +80,7 @@ typedef struct _opdef			/* predefined and enumerated */
 
 static void
 copyOperatorSymbol(Symbol s)
-{ GET_LD
-  operator *op = s->value;
+{ operator *op = s->value;
   operator *o2 = allocHeapOrHalt(sizeof(*o2));
 
   *o2 = *op;
@@ -90,8 +89,7 @@ copyOperatorSymbol(Symbol s)
 
 static void
 freeOperatorSymbol(Symbol s)
-{ GET_LD
-  operator *op = s->value;
+{ operator *op = s->value;
 
   PL_unregister_atom((atom_t) s->name);
   freeHeap(op, sizeof(*op));

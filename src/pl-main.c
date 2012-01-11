@@ -117,8 +117,7 @@ longopt(const char *opt, int argc, const char **argv)
 
 static int
 opt_append(opt_list **l, char *s)
-{ GET_LD
-  opt_list *n = allocHeapOrHalt(sizeof(*n));
+{ opt_list *n = allocHeapOrHalt(sizeof(*n));
 
   n->opt_val = s;
   n->next = NULL;
@@ -359,8 +358,7 @@ cleanupOptListP(opt_list **listp)
 { opt_list *l, *n;
 
   if ( (l=*listp) )
-  { GET_LD
-    *listp = NULL;
+  { *listp = NULL;
 
     for(; l; l=n)
     { n = l->next;
@@ -757,8 +755,7 @@ stack-parameters.
 
 static void
 script_argv(int argc, char **argv)
-{ GET_LD
-  FILE *fd;
+{ FILE *fd;
   int i;
 
   DEBUG(1,
@@ -1219,8 +1216,7 @@ struct on_halt
 void
 PL_on_halt(halt_function f, void *arg)
 { if ( !GD->os.halting )
-  { GET_LD
-    OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));
+  { OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));
 
     h->function = f;
     h->argument = arg;
@@ -1231,8 +1227,7 @@ PL_on_halt(halt_function f, void *arg)
 
 static void
 run_on_halt(int rval)
-{ GET_LD
-  OnHalt h, next;
+{ OnHalt h, next;
 
   for(h = GD->os.on_halt_list; h; h=next)
   { next = h->next;

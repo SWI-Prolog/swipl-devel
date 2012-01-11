@@ -148,8 +148,7 @@ getStreamContext(IOSTREAM *s)
 { Symbol symb;
 
   if ( !(symb = lookupHTable(streamContext, s)) )
-  { GET_LD
-    stream_context *ctx = allocHeapOrHalt(sizeof(*ctx));
+  { stream_context *ctx = allocHeapOrHalt(sizeof(*ctx));
 
     DEBUG(1, Sdprintf("Created ctx=%p for stream %p\n", ctx, s));
 
@@ -167,8 +166,7 @@ getStreamContext(IOSTREAM *s)
 
 void
 aliasStream(IOSTREAM *s, atom_t name)
-{ GET_LD
-  stream_context *ctx;
+{ stream_context *ctx;
   Symbol symb;
   alias *a;
 
@@ -197,8 +195,7 @@ aliasStream(IOSTREAM *s, atom_t name)
 
 static void
 unaliasStream(IOSTREAM *s, atom_t name)
-{ GET_LD
-  Symbol symb;
+{ Symbol symb;
 
   if ( name )
   { if ( (symb = lookupHTable(streamAliases, (void *)name)) )

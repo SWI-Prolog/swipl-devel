@@ -195,8 +195,7 @@ should this process be related to us?  Should it be a new session?
 
 foreign_t
 pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
-{ GET_LD
-  int master, slave, pid;
+{ int master, slave, pid;
   char *slavename;
   struct termios termio;
   xterm *xt;

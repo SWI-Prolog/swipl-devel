@@ -5703,8 +5703,7 @@ typedef struct
 
 static bool
 setBreak(Clause clause, int offset)	/* offset is already verified */
-{ GET_LD
-  Code PC = clause->codes + offset;
+{ Code PC = clause->codes + offset;
   code op = *PC;
 
   if ( !breakTable )

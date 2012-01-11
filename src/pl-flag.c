@@ -51,8 +51,7 @@ static void	freeFlagValue(Flag f);
 
 static void
 freeFlagSymbol(Symbol s)
-{ GET_LD
-  Flag f = s->value;
+{ Flag f = s->value;
 
   freeFlagValue(f);
   freeHeap(f, sizeof(*f));

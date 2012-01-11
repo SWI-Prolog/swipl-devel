@@ -56,9 +56,7 @@ lookupProcedure(functor_t f, Module m)
   { DEBUG(3, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
     proc = s->value;
   } else
-  { GET_LD
-
-    proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
+  { proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
     def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
@@ -96,9 +94,7 @@ unallocClauseList(ClauseRef cref)
 
 static void
 unallocDefinition(Definition def)
-{ GET_LD
-
-  if ( false(def, FOREIGN|P_THREAD_LOCAL) )
+{ if ( false(def, FOREIGN|P_THREAD_LOCAL) )
     unallocClauseList(def->impl.clauses.first_clause);
   else if ( true(def, P_THREAD_LOCAL) )
     free_ldef_vector(def->impl.local);
@@ -115,8 +111,7 @@ unallocDefinition(Definition def)
 
 void
 unallocProcedure(Procedure proc)
-{ GET_LD
-  Definition def = proc->definition;
+{ Definition def = proc->definition;
 
   freeHeap(proc, sizeof(*proc));
   unshareDefinition(def);
@@ -156,9 +151,7 @@ importDefinitionModule(Module m, Definition def)
 		 predicateName(def), PL_atom_chars(m->name));
     goto done;
   } else
-  { GET_LD
-
-    proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
+  { proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
     addHTable(m->procedures, (void *)functor, proc);
@@ -915,8 +908,7 @@ abolishProcedure(Procedure proc, Module module)
   startCritical;
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
-  { GET_LD
-    Definition ndef	     = allocHeapOrHalt(sizeof(struct definition));
+  { Definition ndef	     = allocHeapOrHalt(sizeof(struct definition));
 
     memset(ndef, 0, sizeof(*ndef));
     proc->definition         = ndef;
@@ -1290,9 +1282,7 @@ thread-local definitions at the end of a threads lifetime.
 
 void
 destroyDefinition(Definition def)
-{ GET_LD
-
-  unallocClauseIndexes(def);
+{ unallocClauseIndexes(def);
   if ( def->impl.clauses.first_clause )
     freeClauseList(def->impl.clauses.first_clause);
 
@@ -1539,8 +1529,7 @@ MT: locked by caller
 static void
 registerDirtyDefinition(Definition def)
 { if ( false(def, P_DIRTYREG) )
-  { GET_LD
-    DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
+  { DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
 
     set(def, P_DIRTYREG);
     cell->definition = def;
@@ -1722,8 +1711,7 @@ proc->definition fetch?
 
 Definition
 autoImport(functor_t f, Module m)
-{ GET_LD
-  Procedure proc;
+{ Procedure proc;
   Definition def, odef;
   ListCell c;
 					/* Defined: no problem */
@@ -2587,8 +2575,7 @@ registerSourceFile(SourceFile f)
 
 static void
 freeList(ListCell *lp)
-{ GET_LD
-  ListCell c;
+{ ListCell c;
 
   if ( (c=*lp) )
   { ListCell n;
@@ -2605,8 +2592,7 @@ freeList(ListCell *lp)
 
 static void
 freeSymbolSourceFile(Symbol s)
-{ GET_LD
-  SourceFile sf = s->value;
+{ SourceFile sf = s->value;
 
   freeList(&sf->procedures);
   freeList(&sf->modules);
@@ -2645,9 +2631,7 @@ lookupSourceFile(atom_t name, int create)
   if ( (s=lookupHTable(sourceTable, (void*)name)) )
   { file = s->value;
   } else if ( create )
-  { GET_LD
-
-    file = (SourceFile) allocHeapOrHalt(sizeof(struct sourceFile));
+  { file = (SourceFile) allocHeapOrHalt(sizeof(struct sourceFile));
     memset(file, 0, sizeof(struct sourceFile));
     file->name = name;
     file->index = ++source_index;
@@ -2704,14 +2688,11 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
     return;
   }
 
-  { GET_LD
-
-    cell = allocHeapOrHalt(sizeof(struct list_cell));
-    cell->value = proc;
-    cell->next = sf->procedures;
-    sf->procedures = cell;
-    set(proc->definition, FILE_ASSIGNED);
-  }
+  cell = allocHeapOrHalt(sizeof(struct list_cell));
+  cell->value = proc;
+  cell->next = sf->procedures;
+  sf->procedures = cell;
+  set(proc->definition, FILE_ASSIGNED);
 
   UNLOCK();
 }
@@ -2728,16 +2709,13 @@ addModuleSourceFile(SourceFile sf, Module m)
     goto out;
   }
 
-  { GET_LD
-
-    if ( !(cell = allocHeap(sizeof(struct list_cell))) )
-    { rc = FALSE;			/* no memory */
-      goto out;
-    }
-    cell->value = m;
-    cell->next = sf->modules;
-    sf->modules = cell;
+  if ( !(cell = allocHeap(sizeof(struct list_cell))) )
+  { rc = FALSE;			/* no memory */
+    goto out;
   }
+  cell->value = m;
+  cell->next = sf->modules;
+  sf->modules = cell;
 
 out:
   UNLOCK();
@@ -2747,8 +2725,7 @@ out:
 
 static int
 delModuleSourceFile(SourceFile sf, Module m)
-{ GET_LD
-  ListCell *cp, c;
+{ ListCell *cp, c;
 
   LOCK();
   for(cp=&sf->modules; (c=*cp); cp=&c->next)

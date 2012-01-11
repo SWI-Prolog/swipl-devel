@@ -85,8 +85,7 @@ typedef struct
 
 void
 cleanupTerm(void)
-{ GET_LD
-  Table t;
+{ Table t;
 
   if ( (t=capabilities) )
   { capabilities = NULL;

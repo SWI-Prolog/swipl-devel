@@ -56,8 +56,7 @@ concurrent lock-free access.
 
 static Symbol *
 allocHTableEntries(Table ht, int buckets)
-{ GET_LD
-  size_t bytes = buckets * sizeof(Symbol);
+{ size_t bytes = buckets * sizeof(Symbol);
   Symbol *p;
 
   p = allocHeapOrHalt(bytes);
@@ -69,8 +68,7 @@ allocHTableEntries(Table ht, int buckets)
 
 Table
 newHTable(int buckets)
-{ GET_LD
-  Table ht;
+{ Table ht;
 
   ht		  = allocHeapOrHalt(sizeof(struct table));
   ht->buckets	  = (buckets & ~TABLE_MASK);
@@ -94,8 +92,7 @@ newHTable(int buckets)
 
 void
 destroyHTable(Table ht)
-{ GET_LD
-
+{
 #ifdef O_PLMT
   if ( ht->mutex )
   { simpleMutexDelete(ht->mutex);
@@ -172,8 +169,7 @@ checkHTable(Table ht)
 
 static Symbol
 rehashHTable(Table ht, Symbol map)
-{ GET_LD
-  Symbol *newentries, *oldentries;
+{ Symbol *newentries, *oldentries;
   int     newbuckets, oldbuckets;
   int     i;
   int     safe_copy = (ht->mutex != NULL);
@@ -239,8 +235,7 @@ rehashHTable(Table ht, Symbol map)
 
 Symbol
 addHTable(Table ht, void *name, void *value)
-{ GET_LD
-  Symbol s;
+{ Symbol s;
   int v;
 
   LOCK_TABLE(ht);
@@ -273,8 +268,7 @@ Note: s must be in the table!
 
 void
 deleteSymbolHTable(Table ht, Symbol s)
-{ GET_LD
-  int v;
+{ int v;
   Symbol *h;
   TableEnum e;
 
@@ -304,8 +298,7 @@ deleteSymbolHTable(Table ht, Symbol s)
 
 void
 clearHTable(Table ht)
-{ GET_LD
-  int n;
+{ int n;
   TableEnum e;
 
   LOCK_TABLE(ht);
@@ -345,8 +338,7 @@ Table copyHTable(Table org)
 
 Table
 copyHTable(Table org)
-{ GET_LD
-  Table ht;
+{ Table ht;
   int n;
 
   ht = allocHeapOrHalt(sizeof(struct table));
@@ -392,8 +384,7 @@ copyHTable(Table org)
 
 TableEnum
 newTableEnum(Table ht)
-{ GET_LD
-  TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
+{ TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
   Symbol n;
 
   LOCK_TABLE(ht);
@@ -414,8 +405,7 @@ newTableEnum(Table ht)
 
 void
 freeTableEnum(TableEnum e)
-{ GET_LD
-  TableEnum *ep;
+{ TableEnum *ep;
   Table ht;
 
   if ( !e )

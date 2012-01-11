@@ -348,8 +348,7 @@ nextClause(ClauseChoice chp, Word argv,
 
 static ClauseIndex
 newClauseIndexTable(int arg, hash_hints *hints)
-{ GET_LD
-  ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
+{ ClauseIndex ci = allocHeapOrHalt(sizeof(struct clause_index));
   unsigned int m = 4;
   size_t bytes;
 
@@ -1123,8 +1122,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
 
 static void				/* definition must be locked */
 replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
-{ GET_LD
-  ClauseIndex *cip;
+{ ClauseIndex *cip;
   ClauseIndexList c = allocHeapOrHalt(sizeof(*c));
 
   for(cip=&def->impl.clauses.clause_indexes;

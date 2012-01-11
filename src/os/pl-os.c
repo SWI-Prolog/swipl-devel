@@ -803,7 +803,7 @@ forwards char   *canoniseDir(char *);
 
 static void
 initExpand(void)
-{ GET_LD
+{
 #ifdef O_CANONISE_DIRS
   char *dir;
   char *cpaths;
@@ -1470,9 +1470,7 @@ AbsoluteFile(const char *spec, char *path)
 
 void
 PL_changed_cwd(void)
-{ GET_LD
-
-  if ( GD->paths.CWDdir )
+{ if ( GD->paths.CWDdir )
     remove_string(GD->paths.CWDdir);
   GD->paths.CWDdir = NULL;
   GD->paths.CWDlen = 0;
@@ -1572,8 +1570,7 @@ DirName(const char *f, char *dir)
 
 bool
 ChDir(const char *path)
-{ GET_LD
-  char ospath[MAXPATHLEN];
+{ char ospath[MAXPATHLEN];
   char tmp[MAXPATHLEN];
 
   OsPath(path, ospath);
@@ -1835,9 +1832,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
-{ GET_LD
-
-  ttymode = buf->mode;
+{ ttymode = buf->mode;
 
   if ( buf->state )
   { int fd = Sfileno(s);

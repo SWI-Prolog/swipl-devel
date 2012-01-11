@@ -77,8 +77,7 @@ registerFunctor(FunctorDef fd)
 
 functor_t
 lookupFunctorDef(atom_t atom, unsigned int arity)
-{ GET_LD
-  int v;
+{ int v;
   FunctorDef f;
 
   LOCK();
@@ -116,8 +115,7 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
 
 static void
 rehashFunctors(void)
-{ GET_LD
-  FunctorDef *oldtab = functorDefTable;
+{ FunctorDef *oldtab = functorDefTable;
   int oldbucks       = functor_buckets;
   size_t index;
   int i, last = FALSE;
@@ -187,8 +185,7 @@ FUNCTOR(NULL_ATOM, 0)
 
 static void
 allocFunctorTable(void)
-{ GET_LD
-  int size = functor_buckets * sizeof(FunctorDef);
+{ int size = functor_buckets * sizeof(FunctorDef);
 
   functorDefTable = allocHeapOrHalt(size);
   memset(functorDefTable, 0, size);
@@ -197,8 +194,7 @@ allocFunctorTable(void)
 
 static void
 registerBuiltinFunctors(void)
-{ GET_LD
-  int size = sizeof(functors)/sizeof(builtin_functor) - 1;
+{ int size = sizeof(functors)/sizeof(builtin_functor) - 1;
   FunctorDef f = allocHeapOrHalt(size * sizeof(struct functorDef));
   const builtin_functor *d;
 
@@ -280,8 +276,7 @@ initFunctors(void)
 void
 cleanupFunctors(void)
 { if ( functorDefTable )
-  { GET_LD;
-    int i;
+  { int i;
     int builtin = sizeof(functors)/sizeof(builtin_functor) - 1;
 
     freeHeap(GD->functors.array.blocks[0][1],

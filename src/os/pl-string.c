@@ -37,9 +37,7 @@ String operations that are needed for the shared IO library.
 char *
 store_string(const char *s)
 { if ( s )
-  { GET_LD
-
-    char *copy = (char *)allocHeapOrHalt(strlen(s)+1);
+  { char *copy = (char *)allocHeapOrHalt(strlen(s)+1);
 
     strcpy(copy, s);
     return copy;
@@ -52,9 +50,7 @@ store_string(const char *s)
 void
 remove_string(char *s)
 { if ( s )
-  { GET_LD
     freeHeap(s, strlen(s)+1);
-  }
 }
 
 		 /*******************************

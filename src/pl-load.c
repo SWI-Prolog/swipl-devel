@@ -287,8 +287,7 @@ the cleanup, it should be safe now.
 
 void
 cleanupForeign(void)
-{ GET_LD
-  DlEntry e, next;
+{ DlEntry e, next;
 
   for(e = dl_head; e; e = next)
   { next = e->next;

@@ -3261,9 +3261,7 @@ registerFunction(functor_t f, ArithF func)
   DEBUG(1, Sdprintf("Register functor %ld\n", (long)index));
 
   while ( index >= GD->arith.functions_allocated )
-  { GET_LD
-
-    if ( GD->arith.functions_allocated == 0 )
+  { if ( GD->arith.functions_allocated == 0 )
     { size_t size = 256;
 
       GD->arith.functions = allocHeapOrHalt(size*sizeof(ArithF));
@@ -3320,9 +3318,7 @@ cleanupArith(void)
 #endif
 
   if ( GD->arith.functions )
-  { GET_LD
-
-    freeHeap(GD->arith.functions, GD->arith.functions_allocated*sizeof(ArithF));
+  { freeHeap(GD->arith.functions, GD->arith.functions_allocated*sizeof(ArithF));
     GD->arith.functions = 0;
     GD->arith.functions_allocated = 0;
   }

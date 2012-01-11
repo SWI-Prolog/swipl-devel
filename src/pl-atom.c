@@ -387,8 +387,7 @@ treat the signal as bogus if agc has already been performed.
 
 word
 lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
-{ GET_LD
-  unsigned int v0, v;
+{ unsigned int v0, v;
   Atom a;
 
   if ( !type->registered )		/* avoid deadlock */
@@ -889,8 +888,7 @@ PL_unregister_atom(atom_t a)
 
 static void
 rehashAtoms(void)
-{ GET_LD
-  Atom *oldtab   = atomTable;
+{ Atom *oldtab   = atomTable;
   int   oldbucks = atom_buckets;
   uintptr_t mask;
   size_t index;
@@ -985,11 +983,8 @@ exitAtoms(int status, void *arg)
 void
 initAtoms(void)
 { LOCK();
-  if ( !atomTable )
-  { GET_LD
-
-					/* Atom hash table */
-    atom_buckets = ATOMHASHSIZE;
+  if ( !atomTable )			/* Atom hash table */
+  { atom_buckets = ATOMHASHSIZE;
     atomTable = allocHeapOrHalt(atom_buckets * sizeof(Atom));
     memset(atomTable, 0, atom_buckets * sizeof(Atom));
 
@@ -1022,8 +1017,7 @@ cleanupAtoms(void)
   { Atom *ap0;
 
     if ( (ap0=GD->atoms.array.blocks[i]) )
-    { GET_LD
-      size_t bs = (size_t)1<<i;
+    { size_t bs = (size_t)1<<i;
       Atom *ap, *ep;
 
       ap0 += bs;
@@ -1059,8 +1053,7 @@ cleanupAtoms(void)
   }
 
   if ( atomTable )
-  { GET_LD
-    freeHeap(atomTable, atom_buckets * sizeof(Atom));
+  { freeHeap(atomTable, atom_buckets * sizeof(Atom));
     atomTable = NULL;
   }
 }

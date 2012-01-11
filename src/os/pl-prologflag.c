@@ -210,9 +210,7 @@ setPrologFlag(const char *name, int flags, ...)
 
 static void
 freePrologFlag(prolog_flag *f)
-{ GET_LD
-
-  if ( (f->flags & FT_MASK) == FT_TERM )
+{ if ( (f->flags & FT_MASK) == FT_TERM )
     PL_erase(f->value.t);
 
   freeHeap(f, sizeof(*f));
@@ -222,8 +220,7 @@ freePrologFlag(prolog_flag *f)
 #ifdef O_PLMT
 static void
 copySymbolPrologFlagTable(Symbol s)
-{ GET_LD
-  prolog_flag *f = s->value;
+{ prolog_flag *f = s->value;
   prolog_flag *copy = allocHeapOrHalt(sizeof(*copy));
 
   *copy = *f;

@@ -47,7 +47,7 @@ static void	unallocModule(Module m);
 static void
 unallocProcedureSymbol(Symbol s)
 { DEBUG(MSG_CLEANUP,
-	Sdprintf("unallocProcedure(%s)\n", functorName(s->name)));
+	Sdprintf("unallocProcedure(%s)\n", functorName((functor_t)s->name)));
   unallocProcedure(s->value);
 }
 
@@ -60,9 +60,7 @@ _lookupModule(atom_t name)
   if ((s = lookupHTable(GD->tables.modules, (void*)name)) != (Symbol) NULL)
     return (Module) s->value;
 
-  { GET_LD
-    m = allocHeapOrHalt(sizeof(struct module));
-  }
+  m = allocHeapOrHalt(sizeof(struct module));
   m->name = name;
   m->file = NULL;
   m->operators = NULL;
@@ -164,8 +162,7 @@ initModules(void)
 
 static void
 unallocList(ListCell c)
-{ GET_LD
-  ListCell n;
+{ ListCell n;
 
   for(; c; c=n)
   { n = c->next;
@@ -176,9 +173,7 @@ unallocList(ListCell c)
 
 static void
 unallocModule(Module m)
-{ GET_LD
-
-  if ( m->procedures ) destroyHTable(m->procedures);
+{ if ( m->procedures ) destroyHTable(m->procedures);
   if ( m->public )     destroyHTable(m->public);
   if ( m->operators )  destroyHTable(m->operators);
   if ( m->supers )     unallocList(m->supers);
@@ -289,8 +284,7 @@ reachableModule(Module here, Module end)
 
 static int
 addSuperModule_no_lock(Module m, Module s, int where)
-{ GET_LD
-  ListCell c;
+{ ListCell c;
 
   if ( reachableModule(s, m) )
     return cannotSetSuperModule(m, s);
@@ -335,8 +329,7 @@ addSuperModule(Module m, Module s, int where)
 
 static int
 delSuperModule(Module m, Module s)
-{ GET_LD
-  ListCell *p;
+{ ListCell *p;
 
   for(p = &m->supers; *p; p = &(*p)->next)
   { ListCell c = *p;
@@ -356,8 +349,7 @@ delSuperModule(Module m, Module s)
 
 static void
 clearSupersModule(Module m)
-{ GET_LD
-  ListCell c = m->supers;
+{ ListCell c = m->supers;
   ListCell next;
 
   m->supers = NULL;

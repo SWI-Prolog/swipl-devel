@@ -45,8 +45,7 @@ static void unallocRecordList(RecordList rl);
 
 static void
 free_recordlist_symbol(Symbol s)
-{ GET_LD
-  RecordList l = s->value;
+{ RecordList l = s->value;
 
   unallocRecordList(l);
 }
@@ -81,8 +80,7 @@ lookupRecordList(word key)
   if ( (s = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
   { return s->value;
   } else
-  { GET_LD
-    RecordList l;
+  { RecordList l;
 
     if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(key);
@@ -1529,8 +1527,7 @@ PL_recorded_external(const char *rec, term_t t)
 
 int
 PL_erase_external(char *rec)
-{ GET_LD
-  copy_info b;
+{ copy_info b;
   uint scode;
   uchar m;
 

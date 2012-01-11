@@ -312,8 +312,7 @@ storeXrId(wic_state *state, long id, word value)
   long i = id/SUBENTRIES;
 
   while ( i >= t->tablesize )
-  { GET_LD
-    Word a = allocHeapOrHalt(ALLOCSIZE);
+  { Word a = allocHeapOrHalt(ALLOCSIZE);
 
     if ( !a )
       outOfCore();
@@ -2342,8 +2341,7 @@ PRED_IMPL("$qlf_info", 5, qlf_info, 0)
 
 static wic_state *
 qlfOpen(term_t file)
-{ GET_LD
-  char *name;
+{ char *name;
   char *absname;
   char tmp[MAXPATHLEN];
   IOSTREAM *out;
@@ -2416,8 +2414,7 @@ qlfVersion(wic_state *state)
 
 static int
 pushPathTranslation(wic_state *state, const char *absloadname, int flags)
-{ GET_LD
-  IOSTREAM *fd = state->wicFd;
+{ IOSTREAM *fd = state->wicFd;
   char *abssavename;
   qlf_state *new = allocHeapOrHalt(sizeof(*new));
 
@@ -2462,9 +2459,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 
 static void
 popPathTranslation(wic_state *state)
-{ GET_LD
-
-  if ( state->load_state )
+{ if ( state->load_state )
   { qlf_state *old = state->load_state;
 
     state->load_state = old->previous;

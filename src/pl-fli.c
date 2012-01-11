@@ -4301,8 +4301,7 @@ PL_action(int action, ...)
 static void
 init_c_args()
 { if ( c_argc == -1 )
-  { GET_LD
-    int i;
+  { int i;
     int opts = 1;
     int argc    = GD->cmdline.argc;
     char **argv = GD->cmdline.argv;
@@ -4437,8 +4436,7 @@ PL_license(const char *license, const char *module)
 
 void
 registerForeignLicenses(void)
-{ GET_LD
-  struct license *l, *next;
+{ struct license *l, *next;
 
   for(l=pre_registered; l; l=next)
   { next = l->next;

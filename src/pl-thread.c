@@ -726,8 +726,7 @@ initPrologThreads()
 
 void
 cleanupThreads(void)
-{ GET_LD
-  int i;
+{ int i;
   /*TLD_free(PL_ldata);*/		/* this causes crashes */
 
   if ( queueTable )
@@ -939,8 +938,7 @@ TBD: remember the old ones, such that PL_cleanup() can remove them.
 
 static int
 resizeThreadMax(void)
-{ GET_LD
-  int newmax = GD->thread.thread_max*2;
+{ int newmax = GD->thread.thread_max*2;
   PL_thread_info_t **newinfo, **oldinfo;
   size_t dsize = GD->thread.thread_max * sizeof(*GD->thread.threads);
 
@@ -960,8 +958,7 @@ resizeThreadMax(void)
 
 static PL_thread_info_t *
 alloc_thread(void)				/* called with L_THREAD locked */
-{ GET_LD
-  int i	= 1;
+{ int i	= 1;
 
 retry:
   for(; i<GD->thread.thread_max; i++)
@@ -3166,9 +3163,7 @@ advance_qstate(qprop_enum *state)
 
 static void
 free_qstate(qprop_enum *state)
-{ GET_LD
-
-  if ( state->e )
+{ if ( state->e )
     freeTableEnum(state->e);
 
   freeForeignState(state, sizeof(*state));
@@ -3496,8 +3491,7 @@ recursiveMutexUnlock(recursiveMutex *m)
 
 counting_mutex *
 allocSimpleMutex(const char *name)
-{ GET_LD
-  counting_mutex *m = allocHeapOrHalt(sizeof(*m));
+{ counting_mutex *m = allocHeapOrHalt(sizeof(*m));
 
   simpleMutexInit(&m->mutex);
   m->count = 0L;
@@ -3520,8 +3514,7 @@ allocSimpleMutex(const char *name)
 
 void
 freeSimpleMutex(counting_mutex *m)
-{ GET_LD
-  counting_mutex *cm;
+{ counting_mutex *cm;
 
   simpleMutexDelete(&m->mutex);
   LOCK();
@@ -3546,9 +3539,7 @@ freeSimpleMutex(counting_mutex *m)
 
 static void
 unalloc_mutex(pl_mutex *m)
-{ GET_LD
-
-  pthread_mutex_destroy(&m->mutex);
+{ pthread_mutex_destroy(&m->mutex);
   freeHeap(m, sizeof(*m));
 }
 
@@ -3591,8 +3582,7 @@ critical.
 
 static pl_mutex *
 mutexCreate(atom_t name)
-{ GET_LD
-  pl_mutex *m;
+{ pl_mutex *m;
 
   m = allocHeapOrHalt(sizeof(*m));
   pthread_mutex_init(&m->mutex, NULL);
@@ -3843,8 +3833,7 @@ pl_mutex_unlock_all()
 
 foreign_t
 pl_mutex_destroy(term_t mutex)
-{ GET_LD
-  pl_mutex *m;
+{ pl_mutex *m;
   Symbol s;
   atom_t aid = NULL_ATOM;
 
@@ -5196,8 +5185,7 @@ registerLocalDefinition(Definition def)
 
 LocalDefinitions
 new_ldef_vector(void)
-{ GET_LD
-  LocalDefinitions f = allocHeapOrHalt(sizeof(*f));
+{ LocalDefinitions f = allocHeapOrHalt(sizeof(*f));
 
   memset(f, 0, sizeof(*f));
   f->blocks[0] = f->preallocated - 1;
@@ -5210,8 +5198,7 @@ new_ldef_vector(void)
 
 void
 free_ldef_vector(LocalDefinitions ldefs)
-{ GET_LD
-  int i;
+{ int i;
 
   for(i=3; i<MAX_BLOCKS; i++)
   { size_t bs = (size_t)1<<i;
@@ -5227,8 +5214,7 @@ free_ldef_vector(LocalDefinitions ldefs)
 
 Definition
 localiseDefinition(Definition def)
-{ GET_LD
-  Definition local = allocHeapOrHalt(sizeof(*local));
+{ Definition local = allocHeapOrHalt(sizeof(*local));
 
   *local = *def;
   local->mutex = NULL;
@@ -5245,8 +5231,7 @@ localiseDefinition(Definition def)
 
 void
 cleanupLocalDefinitions(PL_local_data_t *ld)
-{ GET_LD
-  DefinitionChain ch = ld->thread.local_definitions;
+{ DefinitionChain ch = ld->thread.local_definitions;
   DefinitionChain next;
   unsigned int id = ld->thread.info->pl_tid;
 

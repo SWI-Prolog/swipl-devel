@@ -30,8 +30,7 @@
 
 static Code
 allocCodes(size_t n)
-{ GET_LD
-  Code codes = allocHeapOrHalt(sizeof(code)*(n+1));
+{ Code codes = allocHeapOrHalt(sizeof(code)*(n+1));
 
   *codes++ = (code)n;
 
@@ -44,9 +43,7 @@ freeCodes(Code codes)
 { size_t size = (size_t)codes[-1];
 
   if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-  { GET_LD
     freeHeap(&codes[-1], (size+1)*sizeof(code));
-  }
 }
 
 
@@ -66,9 +63,7 @@ freeCodesDefinition(Definition def)
 
       def->codes = SUPERVISOR(virgin);
       if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-      { GET_LD
 	freeHeap(&codes[-1], (size+1)*sizeof(code));
-      }
     } else
       def->codes = SUPERVISOR(virgin);
   }
