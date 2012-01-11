@@ -171,7 +171,7 @@ PL_new_term_refs__LD(int n ARG_LD)
   fr = fli_context;
   fr->size += n;
 #ifdef O_CHECK_TERM_REFS
-  { int s = (Word) lTop - (Word)(fr+1);
+  { int s = (int)((Word) lTop - (Word)(fr+1));
     assert(s == fr->size);
   }
 #endif
@@ -194,7 +194,7 @@ new_term_ref(ARG1_LD)
   fr = fli_context;
   fr->size++;
 #ifdef O_CHECK_TERM_REFS
-  { int s = (Word) lTop - (Word)(fr+1);
+  { int s = (int)((Word) lTop - (Word)(fr+1));
     assert(s == fr->size);
   }
 #endif

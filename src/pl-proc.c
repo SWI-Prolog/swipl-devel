@@ -3201,7 +3201,7 @@ listGenerations(Definition def)
   { ClauseIndex ci;
 
     for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
-    { int i;
+    { unsigned int i;
 
       Sdprintf("\nHash %sindex for arg %d (%d dirty)\n",
 	       ci->is_list ? "list-" : "", ci->arg, ci->dirty);
@@ -3278,7 +3278,7 @@ checkDefinition(Definition def)
 
 						/* Check indexes */
   for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
-  { int i;
+  { unsigned int i;
     ClauseBucket cb;
     unsigned int ci_dirty = 0;		/* # dirty buckets */
     unsigned int ci_size = 0;		/* # indexable values in table */
