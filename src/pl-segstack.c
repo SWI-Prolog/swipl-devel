@@ -50,7 +50,7 @@ initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
   if ( len )
   { segchunk *chunk = data;
 
-    assert(len > sizeof(*chunk));
+    DEBUG(CHK_SECURE, assert(len > sizeof(*chunk)));
     memset(chunk, 0, sizeof(*chunk));
 
     chunk->size = len;
