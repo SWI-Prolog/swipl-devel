@@ -31,7 +31,7 @@
 
 static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word);
-static void freeRecordRef(RecordRef r ARG_LD);
+static void freeRecordRef(RecordRef r);
 static void unallocRecordList(RecordList rl);
 
 #define RECORDA 0
@@ -128,7 +128,7 @@ cleanRecordList(RecordList rl ARG_LD)
     { *p = r->next;
       if ( r == rl->lastRecord )
 	rl->lastRecord = prev;
-      freeRecordRef(r PASS_LD);
+      freeRecordRef(r);
     } else
     { prev = r;
       p = &r->next;
@@ -139,8 +139,7 @@ cleanRecordList(RecordList rl ARG_LD)
 
 static void
 unallocRecordList(RecordList rl)
-{ GET_LD
-  RecordRef p, n;
+{ RecordRef p, n;
 
   for(p = rl->firstRecord; p; p=n)
   { n = p->next;
@@ -1433,7 +1432,7 @@ markAtomsRecord(Record record)
 
 
 bool
-freeRecord__LD(Record record ARG_LD)
+freeRecord(Record record)
 { if ( true(record, R_DUPLICATE) && --record->references > 0 )
     succeed;
 
@@ -1456,13 +1455,13 @@ freeRecord__LD(Record record ARG_LD)
 
 
 void
-unallocRecordRef(RecordRef r ARG_LD)
+unallocRecordRef(RecordRef r)
 { freeHeap(r, sizeof(*r));
 }
 
 
 static void
-freeRecordRef(RecordRef r ARG_LD)
+freeRecordRef(RecordRef r)
 { int reclaim_now = false(r->record, R_DBREF);
 
   freeRecord(r->record);
@@ -1937,7 +1936,7 @@ PRED_IMPL("erase", 1, erase, 0)
     { if ( !record->next )
 	l->lastRecord = NULL;
       l->firstRecord = record->next;
-      freeRecordRef(record PASS_LD);
+      freeRecordRef(record);
     } else
     { prev = l->firstRecord;
       r = prev->next;
@@ -1948,7 +1947,7 @@ PRED_IMPL("erase", 1, erase, 0)
 	    l->lastRecord = prev;
 	  }
 	  prev->next = r->next;
-	  freeRecordRef(r PASS_LD);
+	  freeRecordRef(r);
 	  goto ok;
 	}
       }

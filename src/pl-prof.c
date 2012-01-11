@@ -30,7 +30,7 @@
 
 #ifdef O_PROFILE
 
-#define current    (LD->profile.current) 	/* current call-node */
+#define current    (LD->profile.current)	/* current call-node */
 #define roots      (LD->profile.roots)		/* roots (<spontaneous>) */
 #define nodes      (LD->profile.nodes)		/* # nodes created */
 #define accounting (LD->profile.accounting)	/* We are accounting */
@@ -53,7 +53,7 @@ static PL_prof_type_t *types[MAX_PROF_TYPES] = { &prof_default_type };
 #define PROFNODE_MAGIC 0x7ae38f24
 
 typedef struct call_node
-{ intptr_t 	    magic;		/* PROFNODE_MAGIC */
+{ intptr_t	    magic;		/* PROFNODE_MAGIC */
   struct call_node *parent;
   void *            handle;		/* handle to procedure-id */
   PL_prof_type_t   *type;
@@ -462,7 +462,7 @@ typedef struct
 
 
 static void
-free_relatives(prof_ref *r ARG_LD)
+free_relatives(prof_ref *r)
 { prof_ref *n;
 
   for( ; r; r=n)
@@ -480,7 +480,7 @@ static void
 add_parent_ref(node_sum *sum,
 	       call_node *self,
 	       void *handle, PL_prof_type_t *type,
-	       int cycle ARG_LD)
+	       int cycle)
 { prof_ref *r;
 
   sum->calls += self->calls;
@@ -535,7 +535,7 @@ add_recursive_ref(node_sum *sum, call_node *self, uintptr_t count,
 
 static void
 add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling,
-		int cycle ARG_LD)
+		int cycle)
 { prof_ref *r;
 
   for(r=sum->callees; r; r=r->next)
@@ -578,15 +578,15 @@ sumProfile(call_node *n, void *handle, PL_prof_type_t *type,
     }
 
     if ( n->parent )
-      add_parent_ref(sum, n, n->parent->handle, n->parent->type, seen PASS_LD);
+      add_parent_ref(sum, n, n->parent->handle, n->parent->type, seen);
     else
-      add_parent_ref(sum, n, DEF_SPONTANEOUS, NULL, seen PASS_LD);
+      add_parent_ref(sum, n, DEF_SPONTANEOUS, NULL, seen);
 
     if ( n->recur )
       add_recursive_ref(sum, n, n->recur, seen PASS_LD);
 
     for(s=n->siblings; s; s = s->next)
-      add_sibling_ref(sum, n, s, seen PASS_LD);
+      add_sibling_ref(sum, n, s, seen);
 
     seen++;
   }
@@ -707,8 +707,8 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 	 unify_relatives(A7, sum.callees PASS_LD)
        );
 
-  free_relatives(sum.callers PASS_LD);
-  free_relatives(sum.callees PASS_LD);
+  free_relatives(sum.callers);
+  free_relatives(sum.callees);
 
   return rc ? TRUE : FALSE;
 }

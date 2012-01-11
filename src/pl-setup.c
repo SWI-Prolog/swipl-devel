@@ -573,6 +573,7 @@ hupHandler(int sig)
 static void
 sig_exception_handler(int sig)
 { GET_LD
+  (void)sig;
 
   if ( LD && LD->signal.exception )
   { record_t ex = LD->signal.exception;
@@ -592,6 +593,7 @@ sig_exception_handler(int sig)
 static void
 agc_handler(int sig)
 { GET_LD
+  (void)sig;
 
   if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
        !gc_status.blocked )
@@ -601,7 +603,9 @@ agc_handler(int sig)
 
 static void
 gc_handler(int sig)
-{ garbageCollect();
+{ (void)sig;
+
+  garbageCollect();
 }
 
 

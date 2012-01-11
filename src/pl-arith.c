@@ -2853,6 +2853,9 @@ seed_from_crypt_context(ARG1_LD)
 
   return TRUE;
 #else
+#ifdef O_PLMT
+  (void)__PL_ld;
+#endif
   return FALSE;
 #endif
 }

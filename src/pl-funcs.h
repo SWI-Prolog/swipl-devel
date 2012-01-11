@@ -554,8 +554,8 @@ COMMON(Record)		compileTermToHeap__LD(term_t term, int flags ARG_LD);
 COMMON(int)		copyRecordToGlobal(term_t copy, Record term,
 					   int flags ARG_LD);
 COMMON(int)		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
-COMMON(bool)		freeRecord__LD(Record record ARG_LD);
-COMMON(void)		unallocRecordRef(RecordRef r ARG_LD);
+COMMON(bool)		freeRecord(Record record);
+COMMON(void)		unallocRecordRef(RecordRef r);
 COMMON(bool)		unifyKey(term_t key, word val);
 COMMON(int)		getKeyEx(term_t key, word *k ARG_LD);
 COMMON(word)		pl_term_complexity(term_t t, term_t mx, term_t count);

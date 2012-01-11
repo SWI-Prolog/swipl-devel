@@ -113,11 +113,9 @@ release_record(atom_t aref)
 { recref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->record->record )
-  { clear(ref->record->record, R_DBREF);
-  } else
-  { GET_LD
-    unallocRecordRef(ref->record PASS_LD);
-  }
+    clear(ref->record->record, R_DBREF);
+  else
+    unallocRecordRef(ref->record);
 
   return TRUE;
 }

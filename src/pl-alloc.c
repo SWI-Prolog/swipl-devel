@@ -748,6 +748,8 @@ freeHeap(void *mem, size_t n)
 {
 #if ALLOC_DEBUG
   memset((char *) mem, ALLOC_FREE_MAGIC, n);
+#else
+  (void)n;
 #endif
 
   free(mem);

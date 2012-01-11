@@ -2727,8 +2727,7 @@ Deletes the contents of the message-queue as well as the queue itself.
 
 static void
 destroy_message_queue(message_queue *queue)
-{ GET_LD
-  thread_message *msgp;
+{ thread_message *msgp;
   thread_message *next;
 
   if ( GD->cleaning )

@@ -384,7 +384,7 @@ freeClauseListRef(ClauseRef cref)
 
 
 static void
-unallocClauseIndexTableEntries(ClauseIndex ci ARG_LD)
+unallocClauseIndexTableEntries(ClauseIndex ci)
 { ClauseBucket cb;
   int i;
 
@@ -406,9 +406,7 @@ unallocClauseIndexTableEntries(ClauseIndex ci ARG_LD)
 
 void
 unallocClauseIndexTable(ClauseIndex ci)
-{ GET_LD
-
-  unallocClauseIndexTableEntries(ci PASS_LD);
+{ unallocClauseIndexTableEntries(ci);
   freeHeap(ci, sizeof(struct clause_index));
 }
 
@@ -464,8 +462,7 @@ must be used if none of the indexes matches.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
-		int is_list ARG_LD)
+addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
 { ClauseRef cr;
 
   if ( is_list )
@@ -685,7 +682,7 @@ the number of indexable entries that have been removed from the bucket.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list ARG_LD)
+gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
 
@@ -764,7 +761,7 @@ cleanClauseIndex(Definition def, ClauseIndex ci ARG_LD)
 
       for(; n; n--, ch++)
       { if ( ch->dirty )
-	{ ci->size -= gcClauseBucket(ch, ch->dirty, ci->is_list PASS_LD);
+	{ ci->size -= gcClauseBucket(ch, ch->dirty, ci->is_list);
 	  if ( --ci->dirty == 0 )
 	    break;
 	}
@@ -992,12 +989,12 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where ARG_LD)
   { int n = ci->buckets;
 
     for(; n; n--, ch++)
-      addClauseBucket(ch, cl, key, where, ci->is_list PASS_LD);
+      addClauseBucket(ch, cl, key, where, ci->is_list);
   } else
   { int hi = hashIndex(key, ci->buckets);
 
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
-    ci->size += addClauseBucket(&ch[hi], cl, key, where, ci->is_list PASS_LD);
+    ci->size += addClauseBucket(&ch[hi], cl, key, where, ci->is_list);
   }
 }
 

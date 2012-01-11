@@ -1007,7 +1007,7 @@ retractClauseDefinition().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-unlinkClause(Definition def, Clause clause ARG_LD)
+unlinkClause(Definition def, Clause clause)
 { ClauseRef prev = NULL;
   ClauseRef c;
 
@@ -1080,7 +1080,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     succeed;
   }
 
-  rc = unlinkClause(def, clause PASS_LD);
+  rc = unlinkClause(def, clause);
   UNLOCKDYNDEF(def);
   DEBUG(CHK_SECURE, checkDefinition(def));
 

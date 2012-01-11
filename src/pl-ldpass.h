@@ -30,7 +30,6 @@
 		 *******************************/
 
 #define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
-#define freeRecord(r)		freeRecord__LD(r PASS_LD)
 #define getInputStream(t, k, s)		getInputStream__LD(t, k, s PASS_LD)
 #define getTextInputStream(t, s)	getTextInputStream__LD(t, s PASS_LD)
 #define getBinaryInputStream(t, s)	getBinaryInputStream__LD(t, s PASS_LD)

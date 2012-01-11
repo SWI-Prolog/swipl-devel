@@ -4100,9 +4100,7 @@ PL_recorded(record_t r, term_t t)
 
 void
 PL_erase(record_t r)
-{ GET_LD
-
-  freeRecord(r);
+{ freeRecord(r);
 }
 
 
