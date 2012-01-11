@@ -663,6 +663,7 @@ valueExpression(term_t expr, number *result ARG_LD)
   Word p = valTermRef(expr);
   Word start;
   int known_acyclic = FALSE;
+  int pushed = 0;
 
   deRef(p);
   start = p;
@@ -721,7 +722,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	{ PL_no_memory();
 	  goto error;
 	}
-	if ( term_stack.count > 100 && !known_acyclic )
+	if ( ++pushed > 100 && !known_acyclic )
 	{ int rc;
 
 	  if ( (rc=is_acyclic(start PASS_LD)) == TRUE )

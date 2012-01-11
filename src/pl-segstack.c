@@ -45,7 +45,6 @@ TBD: Avoid instruction/cache write reordering in push/pop.
 void
 initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
 { stack->unit_size = unit_size;
-  stack->count = 0;
 
   if ( len )
   { segchunk *chunk = data;
@@ -68,7 +67,6 @@ pushSegStack_(segstack *stack, void *data)
 { if ( stack->top + stack->unit_size <= stack->max )
   { memcpy(stack->top, data, stack->unit_size);
     stack->top += stack->unit_size;
-    stack->count++;
 
     return TRUE;
   } else
@@ -96,7 +94,6 @@ pushSegStack_(segstack *stack, void *data)
     stack->max  = addPointer(chunk, chunk->size);
     memcpy(chunk->data, data, stack->unit_size);
     stack->top  = chunk->data + stack->unit_size;
-    stack->count++;
 
     return TRUE;
   }
@@ -110,7 +107,6 @@ pushRecordSegStack(segstack *stack, Record r)
 
     *rp++ = r;
     stack->top = (char*)rp;
-    stack->count++;
 
     return TRUE;
   } else
@@ -137,7 +133,6 @@ popSegStack_(segstack *stack, void *data)
   if ( stack->top >= stack->base + stack->unit_size )
   { stack->top -= stack->unit_size;
     memcpy(data, stack->top, stack->unit_size);
-    stack->count--;
 
     return TRUE;
   } else
@@ -184,7 +179,6 @@ popTopOfSegStack(segstack *stack)
 
   if ( stack->top >= stack->base + stack->unit_size )
   { stack->top -= stack->unit_size;
-    stack->count--;
   } else
   { segchunk *chunk = stack->last;
 
@@ -249,7 +243,6 @@ clearSegStack(segstack *s)
       s->last = c;
       s->base = s->top = c->top;
       s->max  = addPointer(c, c->size);
-      s->count = 0;
 
       for(c=n; c; c = n)
       { n = c->next;

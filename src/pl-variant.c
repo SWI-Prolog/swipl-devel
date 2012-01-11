@@ -48,7 +48,7 @@ typedef struct aWork
 { word *	left;			/* left term arguments */
   word *	right;			/* right term arguments */
   int		arg;
-  int	 	arity;
+  int		arity;
 } aWork;
 
 
@@ -63,7 +63,7 @@ typedef struct node
 { Word  bp;			/* pointer to the original term */
   word  orig;			/* saved word */
   int	a;			/* variant at left */
-  int	b; 			/* link to isomophic node */
+  int	b;			/* link to isomophic node */
 } node;
 
 
@@ -89,7 +89,7 @@ push_args(argPairs *a, Word left, Word right, int arity)  /* plural */
 
 static inline bool
 next_arg(argPairs *a, Word *lp, Word *rp)   /* singular (not plural !) */
-{ if ( a->stack.count == 0 )
+{ if ( emptySegStack(&a->stack) )
     return FALSE;
 
   *lp = a->work.left;
@@ -273,7 +273,7 @@ isomorphic(argPairs *a, int i, int j, Buffer buf ARG_LD)
 	  return MEMORY_OVERFLOW;
 	j = Root(j, &n, buf);
 
-  	if ( i==j )
+	if ( i==j )
 	  continue;
 
 	univ(node_orig(m), &dm, &lm PASS_LD);
@@ -284,7 +284,7 @@ isomorphic(argPairs *a, int i, int j, Buffer buf ARG_LD)
 
 	if ( i <= j )
 	  node_isom(m) = j;		/* union */
- 	else
+	else
 	  node_isom(n) = i;
 
 	if ( !push_args(a, lm, ln, arityFunctor(dm)) )
@@ -375,10 +375,10 @@ variant(argPairs *agenda, Buffer buf ARG_LD)
 
 	  if ( (i = term_id(l, buf)) < 0 )
 	    return MEMORY_OVERFLOW;
-  	  if ( (j = term_id(r, buf)) < 0 )
+	  if ( (j = term_id(r, buf)) < 0 )
 	    return MEMORY_OVERFLOW;
 
-  	  m = Node(i, buf);
+	  m = Node(i, buf);
 	  k = node_variant(m);
 
 	  if ( 0 != k )

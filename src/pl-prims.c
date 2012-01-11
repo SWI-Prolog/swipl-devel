@@ -100,10 +100,12 @@ initvisited(ARG1_LD)
 }
 
 
+#ifdef O_DEBUG
 static int
 empty_visited(ARG1_LD)
-{ return LD->cycle.vstack.count == 0;
+{ return emptySegStack(&LD->cycle.vstack);
 }
+#endif
 
 
 static inline int
@@ -1463,7 +1465,7 @@ PRED_IMPL("term_hash", 4, term_hash4, 0)
   if ( depth != 0 )
   { initvisited(PASS_LD1);
     rc = termHashValue(*p, depth, &hraw PASS_LD);
-    assert(empty_visited(PASS_LD1));
+    DEBUG(CHK_SECURE, assert(empty_visited(PASS_LD1)));
   }
 
   if ( rc )

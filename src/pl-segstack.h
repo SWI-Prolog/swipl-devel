@@ -39,7 +39,6 @@ typedef struct segchunk
 
 typedef struct
 { size_t   unit_size;
-  size_t   count;
 					/* below clean using memset() */
   segchunk *first;
   segchunk *last;
@@ -49,11 +48,17 @@ typedef struct
 } segstack;
 
 
+static inline int
+emptySegStack(segstack *s)
+{ return (s->top == s->base) &&
+	 (s->last == NULL || s->last->previous == NULL);
+}
+
+
 #define popSegStack(stack, to, type) \
 	( ((stack)->top >= (stack)->base + sizeof(type))	\
 		? ( (stack)->top -= sizeof(type),		\
 		    *to = *(type*)(stack)->top,			\
-		    (stack)->count--,				\
 		    TRUE					\
 		  )						\
 		: popSegStack_((stack), to)			\
@@ -63,7 +68,6 @@ typedef struct
 	( ((stack)->top + sizeof(type) <= (stack)->max)	\
 		? ( *(type*)(stack)->top = data,			\
 		    (stack)->top += sizeof(type),		\
-		    (stack)->count++,				\
 		    TRUE					\
 		  )						\
 		: pushSegStack_((stack), &data)			\
@@ -87,10 +91,6 @@ static inline void
 topsOfSegStack(segstack *stack, int count, void **tops)
 { char *p = stack->top - stack->unit_size;
   char *base = stack->base;
-
-#ifdef O_DEBUG
-  assert(stack->count >= count);
-#endif
 
   for(;;)
   { while(count > 0 && p >= base)
