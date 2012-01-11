@@ -85,7 +85,11 @@ unallocClauseList(ClauseRef cref)
   { Clause cl = cref->value.clause;
     next = cref->next;
 
-    unallocClause(cl);
+    if ( true(cl, DBREF_CLAUSE) )	/* will be freed from dbref */
+      set(cl, DBREF_ERASED_CLAUSE);
+    else
+      unallocClause(cl);
+
     freeClauseRef(cref);
   }
 }
@@ -1118,11 +1122,9 @@ freeClause(Clause c)
 #endif
 
   if ( true(c, DBREF_CLAUSE) )
-  { set(c, DBREF_ERASED_CLAUSE);
-    return;
-  }
-
-  unallocClause(c);
+    set(c, DBREF_ERASED_CLAUSE);
+  else
+    unallocClause(c);
 }
 
 
