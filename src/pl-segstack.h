@@ -61,12 +61,13 @@ emptySegStack(segstack *s)
 		    *to = *(type*)(stack)->top,			\
 		    TRUE					\
 		  )						\
+		: !(stack)->last || !(stack)->last->previous ? FALSE \
 		: popSegStack_((stack), to)			\
 	)
 
 #define pushSegStack(stack, data, type) \
 	( ((stack)->top + sizeof(type) <= (stack)->max)	\
-		? ( *(type*)(stack)->top = data,			\
+		? ( *(type*)(stack)->top = data,		\
 		    (stack)->top += sizeof(type),		\
 		    TRUE					\
 		  )						\
