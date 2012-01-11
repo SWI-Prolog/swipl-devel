@@ -370,7 +370,7 @@ newClauseIndexTable(int arg, hash_hints *hints)
 
 
 static void
-freeClauseListRef(ClauseRef cref ARG_LD)
+freeClauseListRef(ClauseRef cref)
 { ClauseList cl = &cref->value.clauses;
   ClauseRef cr, next;
 
@@ -394,7 +394,7 @@ unallocClauseIndexTableEntries(ClauseIndex ci ARG_LD)
     for(cr = cb->head; cr; cr = next)
     { next = cr->next;
       if ( ci->is_list )
-	freeClauseListRef(cr PASS_LD);
+	freeClauseListRef(cr);
       else
 	freeClauseRef(cr);
     }
@@ -425,7 +425,7 @@ newClauseListRef(word key)
 
 
 static void
-addClauseList(ClauseRef cref, Clause clause, int where ARG_LD)
+addClauseList(ClauseRef cref, Clause clause, int where)
 { ClauseList cl = &cref->value.clauses;
   ClauseRef cr = newClauseRef(clause, 0); /* TBD: key? */
 
@@ -475,7 +475,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
     if ( key )
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( cref->key == key )
-	{ addClauseList(cref, cl, where PASS_LD);
+	{ addClauseList(cref, cl, where);
 	  DEBUG(1, Sdprintf("Adding to existing %s\n", keyName(key)));
 	  return 0;
 	} else if ( !cref->key )
@@ -486,7 +486,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( !cref->key )
 	  vars = &cref->value.clauses;
-	addClauseList(cref, cl, where PASS_LD);
+	addClauseList(cref, cl, where);
       }
       if ( vars )
 	return 0;
@@ -496,7 +496,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
     cr = newClauseListRef(key);
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
-      { addClauseList(cr, cref->value.clause, CL_END PASS_LD);
+      { addClauseList(cr, cref->value.clause, CL_END);
 	if ( true(cref->value.clause, ERASED) )	/* or do not add? */
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
@@ -507,7 +507,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where,
       if ( cr->value.clauses.erased_clauses )
 	ch->dirty++;
     }
-    addClauseList(cr, cl, where PASS_LD);
+    addClauseList(cr, cl, where);
   } else
   { cr = newClauseRef(cl, key);
   }
@@ -565,8 +565,7 @@ number of such clauses.
 
 static int
 deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
-{ GET_LD
-  ClauseRef prev = NULL;
+{ ClauseRef prev = NULL;
   ClauseRef c;
 
   if ( is_list )
@@ -605,7 +604,7 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 	  }
 	  if ( d->key )
 	    deleted++;
-	  freeClauseListRef(d PASS_LD);
+	  freeClauseListRef(d);
 	  continue;
 	}
 	prev = c;
@@ -629,7 +628,7 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 	    ch->tail = prev;
 	}
 	if ( is_list )
-	  freeClauseListRef(c PASS_LD);
+	  freeClauseListRef(c);
 	else
 	  freeClauseRef(c);
 	return 1;
@@ -643,7 +642,7 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 
 
 static void
-gcClauseList(ClauseList cl ARG_LD)
+gcClauseList(ClauseList cl)
 { ClauseRef cref=cl->first_clause, prev = NULL;
 
   while(cref && cl->erased_clauses)
@@ -695,7 +694,7 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list ARG_LD)
     { ClauseList cl = &cref->value.clauses;
 
       if ( cl->erased_clauses )
-      { gcClauseList(cl PASS_LD);
+      { gcClauseList(cl);
 	dirty--;
 
 	if ( cl->first_clause == NULL )
@@ -724,7 +723,7 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list ARG_LD)
 	}
 
 	if ( is_list )
-	  freeClauseListRef(c PASS_LD);
+	  freeClauseListRef(c);
 	else
 	  freeClauseRef(c);
 
@@ -789,7 +788,7 @@ bitvector to force reevaluation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-unallocOldClauseIndexes(Definition def ARG_LD)
+unallocOldClauseIndexes(Definition def)
 { if ( def->old_clause_indexes )
   { ClauseIndexList li = def->old_clause_indexes;
     ClauseIndexList next;
@@ -820,21 +819,20 @@ cleanClauseIndexes(Definition def ARG_LD)
   for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
     cleanClauseIndex(def, ci PASS_LD);
 
-  unallocOldClauseIndexes(def PASS_LD);
+  unallocOldClauseIndexes(def);
 }
 
 
 void
 unallocClauseIndexes(Definition def)
-{ GET_LD
-  ClauseIndex ci, next;
+{ ClauseIndex ci, next;
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
   { next = ci->next;
     unallocClauseIndexTable(ci);
   }
 
-  unallocOldClauseIndexes(def PASS_LD);
+  unallocOldClauseIndexes(def);
   if ( def->tried_index )
     free_bitvector(def->tried_index);
 }

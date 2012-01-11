@@ -243,11 +243,9 @@ clearTermAgendaLR(term_agendaLR *a)
 { clearSegStack(&a->stack);
 }
 
-#define nextTermAgendaLR(a, lp, rp) \
-	nextTermAgendaLR__LD(a, lp, rp PASS_LD)
 
 static int
-nextTermAgendaLR__LD(term_agendaLR *a, Word *lp, Word *rp ARG_LD)
+nextTermAgendaLR(term_agendaLR *a, Word *lp, Word *rp)
 { if ( a->work.size > 0 )
   { ok:
     a->work.size--;

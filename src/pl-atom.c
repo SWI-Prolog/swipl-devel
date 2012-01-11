@@ -689,8 +689,7 @@ destroyAtom(Atom *ap, uintptr_t mask)
 
 static size_t
 collectAtoms(void)
-{ GET_LD
-  int hole_seen = FALSE;
+{ int hole_seen = FALSE;
   size_t reclaimed = 0;
   size_t index;
   int i, last=FALSE;
@@ -973,8 +972,11 @@ registerBuiltinAtoms()
 
 #if O_DEBUG
 static void
-exitAtoms(int status, void *arg)
-{ Sdprintf("hashstat: %d lookupAtom() calls used %d strcmp() calls\n",
+exitAtoms(int status, void *context)
+{ (void)status;
+  (void)context;
+
+  Sdprintf("hashstat: %d lookupAtom() calls used %d strcmp() calls\n",
 	   lookups, cmps);
 }
 #endif

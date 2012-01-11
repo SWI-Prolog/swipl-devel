@@ -1439,7 +1439,7 @@ mark_frame_var(walk_state *state, code v ARG_LD)
 
 
 static inline void
-clear_frame_var(walk_state *state, code var, Code PC ARG_LD)
+clear_frame_var(walk_state *state, code var, Code PC)
 { if ( (state->flags & GCM_CLEAR) )
   { LocalFrame fr = state->frame;
     DEBUG(3, Sdprintf("Clear var %d at %d\n",
@@ -1597,26 +1597,26 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case A_FIRSTVAR_IS:
       case B_UNIFY_FC:
       case C_VAR:
-	clear_frame_var(state, PC[0], PC PASS_LD);
+	clear_frame_var(state, PC[0], PC);
 	break;
       case C_VAR_N:
       { size_t var = PC[0];
 	size_t count = PC[1];
 
 	while(count--)
-	  clear_frame_var(state, var++, PC PASS_LD);
+	  clear_frame_var(state, var++, PC);
 	break;
       }
       case H_LIST_FF:
 	mark_argp(state PASS_LD);
         /*FALLTHROUGH*/
       case B_UNIFY_FF:
-	clear_frame_var(state, PC[0], PC PASS_LD);
-	clear_frame_var(state, PC[1], PC PASS_LD);
+	clear_frame_var(state, PC[0], PC);
+	clear_frame_var(state, PC[1], PC);
 	break;
       case A_ADD_FC:
       case B_UNIFY_FV:
-	clear_frame_var(state, PC[0], PC PASS_LD);
+	clear_frame_var(state, PC[0], PC);
 	mark_frame_var(state, PC[1] PASS_LD);
 	break;
       case B_UNIFY_VV:
@@ -1661,7 +1661,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 #ifdef MARK_ALT_CLAUSES
 	case H_FIRSTVAR:
 	  if ( (state->flags & GCM_CLEAR) )
-	  { clear_frame_var(state, PC[0], PC PASS_LD);
+	  { clear_frame_var(state, PC[0], PC);
 	    break;
 	  }
 	  mark_argp(state PASS_LD);
@@ -4438,7 +4438,7 @@ current usage and the minimum free stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-new_stack_size(Stack s, size_t *request, size_t *newsize ARG_LD)
+new_stack_size(Stack s, size_t *request, size_t *newsize)
 { if ( *request )
   { size_t new;
 
@@ -4470,9 +4470,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   word key;
 #endif
 
-  if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize PASS_LD))<0 ||
-       (rc=new_stack_size((Stack)&LD->stacks.global, &g, &gsize PASS_LD))<0 ||
-       (rc=new_stack_size((Stack)&LD->stacks.local,  &l, &lsize PASS_LD))<0 )
+  if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize))<0 ||
+       (rc=new_stack_size((Stack)&LD->stacks.global, &g, &gsize))<0 ||
+       (rc=new_stack_size((Stack)&LD->stacks.local,  &l, &lsize))<0 )
   { DEBUG(1, Sdprintf("Reached stack-limit\n"));
     return rc;
   }

@@ -1797,7 +1797,7 @@ mcall(code call)
 
 
 static Procedure
-lookupBodyProcedure(functor_t functor, Module tm ARG_LD)
+lookupBodyProcedure(functor_t functor, Module tm)
 { Procedure proc = lookupProcedure(functor, tm);
 
   if ( !isDefinedProcedure(proc) &&
@@ -1948,7 +1948,7 @@ re-definition.
     cont:
     { int ar = fdef->arity;
 
-      proc = lookupBodyProcedure(functor, tm PASS_LD);
+      proc = lookupBodyProcedure(functor, tm);
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
       { int rc;

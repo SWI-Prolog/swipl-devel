@@ -761,7 +761,8 @@ cleanupMemAlloc(void)
 
 void
 mergeAllocPool(AllocPool to, AllocPool from)
-{
+{ (void)to;
+  (void)from;
 }
 
 #endif /*PL_ALLOC_DONE*/

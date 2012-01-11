@@ -1349,7 +1349,7 @@ choice_type last_choice;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-leaveFrame(LocalFrame fr ARG_LD)
+leaveFrame(LocalFrame fr)
 { Definition def = fr->predicate;
 
   fr->clause = NULL;
@@ -2265,7 +2265,7 @@ next_choice:
     }
 #endif
 
-    leaveFrame(FR PASS_LD);
+    leaveFrame(FR);
     if ( true(FR, FR_WATCHED) )
     { environment_frame = FR;
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
