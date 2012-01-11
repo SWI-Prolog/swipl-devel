@@ -677,6 +677,7 @@ COMMON(void)		fatalError(const char *fm, ...) NORETURN;
 COMMON(bool)		warning(const char *fm, ...);
 COMMON(void)		vfatalError(const char *fm, va_list args) NORETURN;
 COMMON(bool)		vwarning(const char *fm, va_list args);
+COMMON(int)		cleanupProlog(int status, int reclaim);
 
 /* pl-dll.c */
 COMMON(word)		pl_open_dll(term_t name, term_t handle);

@@ -1237,8 +1237,19 @@ run_on_halt(int rval)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Cleanup Prolog. The reclaim_memory  argument   says  whether  the system
+tries to reclaim memory. This  is   true  when called from PL_cleanup().
+Ideally, this would allow for  restarting   the  system  without loosing
+memory. In practice, this is hard,   especially if foreign libraries are
+loaded.
+
+When called from PL_halt(),  reclaim_memory   is  FALSE, unless compiled
+with -DGC_DEBUG.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
-PL_cleanup(int rval)
+cleanupProlog(int rval, int reclaim_memory)
 { GET_LD
   int rc = TRUE;
 
@@ -1307,45 +1318,56 @@ PL_cleanup(int rval)
   }
 
   cleanupSignals();
-  freeStacks(PASS_LD1);
 #ifdef HAVE_DMALLOC_H
   dmalloc_verify(0);
 #endif
-  cleanupLocalDefinitions(LD);
-  freePrologLocalData(LD);
-  cleanupSourceFiles();
-  cleanupModules();
-  cleanupPrologFlags();
-  cleanupFlags();
-  cleanupRecords();
-  cleanupTerm();
-  cleanupAtoms();
-  cleanupFunctors();
-  cleanupArith();
-  cleanupInitialiseHooks();
-  cleanupExtensions();
-  cleanupOs();
-  Scleanup();
+
+  if ( reclaim_memory )
+  { freeStacks(PASS_LD1);
+    cleanupLocalDefinitions(LD);
+    freePrologLocalData(LD);
+    cleanupSourceFiles();
+    cleanupModules();
+    cleanupPrologFlags();
+    cleanupFlags();
+    cleanupRecords();
+    cleanupTerm();
+    cleanupAtoms();
+    cleanupFunctors();
+    cleanupArith();
+    cleanupInitialiseHooks();
+    cleanupExtensions();
+    cleanupOs();
+    Scleanup();
 #ifdef O_PLMT
-  cleanupThreads();
+    cleanupThreads();
 #endif
-  cleanupForeign();
-  cleanupPaths();
-  cleanupCodeToAtom();
-  if ( rc )
+    cleanupForeign();
+    cleanupPaths();
+    cleanupCodeToAtom();
     cleanupMemAlloc();
 #ifdef O_GMP
-  cleanupGMP();
+    cleanupGMP();
 #endif
-  cleanupDebug();
+    cleanupDebug();
+  }
 
   UNLOCK();				/* requires GD->thread.enabled */
 
-  memset(&PL_global_data, 0, sizeof(PL_global_data));
-  memset(&PL_local_data,  0, sizeof(PL_local_data));
+  if ( reclaim_memory )
+  { memset(&PL_global_data, 0, sizeof(PL_global_data));
+    memset(&PL_local_data,  0, sizeof(PL_local_data));
+  }
 
   return TRUE;
 }
+
+
+int
+PL_cleanup(int rc)
+{ return cleanupProlog(rc, TRUE);
+}
+
 
 		 /*******************************
 		 *	ERRORS AND WARNINGS	*

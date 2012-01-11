@@ -3757,7 +3757,13 @@ PL_toplevel(void)
 
 void
 PL_halt(int status)
-{ PL_cleanup(status);
+{ int reclaim_memory = FALSE;
+
+#if defined(GC_DEBUG) || defined(O_DEBUG)
+  reclaim_memory = TRUE;
+#endif
+
+  cleanupProlog(status, reclaim_memory);
 
   exit(status);
 }
