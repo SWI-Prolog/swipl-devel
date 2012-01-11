@@ -44,19 +44,21 @@ TBD: Avoid instruction/cache write reordering in push/pop.
 
 void
 initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
-{ memset(stack, 0, sizeof(*stack));
-  stack->unit_size = unit_size;
+{ stack->unit_size = unit_size;
+  stack->count = 0;
 
   if ( len )
   { segchunk *chunk = data;
 
     DEBUG(CHK_SECURE, assert(len > sizeof(*chunk)));
-    memset(chunk, 0, sizeof(*chunk));
-
     chunk->size = len;
     stack->base = stack->top = chunk->top = chunk->data;
     stack->last = stack->first = chunk;
     stack->max  = addPointer(chunk, len);
+    memset(&chunk->allocated, 0,
+	   offsetof(segchunk,data)-offsetof(segchunk,allocated));
+  } else
+  { memset(&stack->first, 0, sizeof(*stack)-offsetof(segstack,first));
   }
 }
 

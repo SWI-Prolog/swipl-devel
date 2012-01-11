@@ -28,22 +28,24 @@
 #define SEGSTACK_CHUNKSIZE (1*1024)
 
 typedef struct segchunk
-{ struct segchunk *next;		/* double linked list */
-  struct segchunk *previous;
-  char  *top;				/* top when closed */
-  int	 allocated;			/* must call free on it */
+{ char  *top;				/* top when closed */
   size_t size;				/* size of the chunk */
+					/* below clean using memset() */
+  int	 allocated;			/* must call free on it */
+  struct segchunk *next;		/* double linked list */
+  struct segchunk *previous;
   char	 data[1];			/* data on my back */
 } segchunk;
 
 typedef struct
-{ segchunk *first;
+{ size_t   unit_size;
+  size_t   count;
+					/* below clean using memset() */
+  segchunk *first;
   segchunk *last;
-  size_t   unit_size;
   char	   *base;
   char	   *top;
   char	   *max;
-  size_t    count;
 } segstack;
 
 
@@ -58,7 +60,7 @@ typedef struct
 	)
 
 #define pushSegStack(stack, data, type) \
-	( ((stack)->top + (stack)->unit_size <= (stack)->max)	\
+	( ((stack)->top + sizeof(type) <= (stack)->max)	\
 		? ( *(type*)(stack)->top = data,			\
 		    (stack)->top += sizeof(type),		\
 		    (stack)->count++,				\
