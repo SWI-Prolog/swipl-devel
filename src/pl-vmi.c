@@ -3896,25 +3896,27 @@ b_throw:
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
   DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
-  DEBUG(1, { fid_t fid = PL_open_foreign_frame();
-	     Sdprintf("[%d] Throwing (from line %d): ",
-		      PL_thread_self(), throwed_from_line);
-	     PL_write_term(Serror, exception_term, 1200, 0);
-	     Sdprintf("\n");
-	     PL_discard_foreign_frame(fid);
-	   });
+  DEBUG(MSG_THROW,
+	{ fid_t fid = PL_open_foreign_frame();
+	  Sdprintf("[%d] Throwing (from line %d): ",
+		   PL_thread_self(), throwed_from_line);
+	  PL_write_term(Serror, exception_term, 1200, 0);
+	  Sdprintf("\n");
+	  PL_discard_foreign_frame(fid);
+	});
 
   SAVE_REGISTERS(qid);
   catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term PASS_LD);
   LOAD_REGISTERS(qid);
-  DEBUG(1, { if ( catchfr_ref )
-	     { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
-	       Sdprintf("[%d]: found catcher at %ld\n",
-			PL_thread_self(), (long)levelFrame(fr));
-	     } else
-	     { Sdprintf("[%d]: not caught\n", PL_thread_self());
-	     }
-	   });
+  DEBUG(MSG_THROW,
+	{ if ( catchfr_ref )
+	  { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
+	    Sdprintf("[%d]: found catcher at %ld\n",
+		     PL_thread_self(), (long)levelFrame(fr));
+	  } else
+	  { Sdprintf("[%d]: not caught\n", PL_thread_self());
+	  }
+	});
 
   DEBUG(CHK_SECURE,
 	{ SAVE_REGISTERS(qid);
