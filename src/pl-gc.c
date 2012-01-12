@@ -611,7 +611,7 @@ mark_variable(Word start ARG_LD)
   word val;				/* old value of current cell */
   Word next;				/* cell to be examined */
 
-  DEBUG(3,
+  DEBUG(MSG_GC_MARK_VAR,
 	char b[64];
 	Sdprintf("marking %p (=%s)\n", start, print_val(*start, b)));
 
@@ -641,7 +641,8 @@ forward:				/* Go into the tree */
         BACKWARD;			/* get there some day anyway */
       val  = get_value(next);		/* invariant */
       set_value(next, makeRef(current));/* create backwards pointer */
-      DEBUG(5, Sdprintf("Marking REF from %p to %p\n", current, next));
+      DEBUG(MSG_GC_MARK_VAR_WALK,
+	    Sdprintf("Marking REF from %p to %p\n", current, next));
       current = next;			/* invariant */
       FORWARD;
     }
@@ -656,7 +657,8 @@ forward:				/* Go into the tree */
       val  = get_value(next);		/* invariant */
 					/* backwards pointer */
       set_value(next, makePtr(current, TAG_ATTVAR PASS_LD));
-      DEBUG(5, Sdprintf("Marking ATTVAR from %p to %p\n", current, next));
+      DEBUG(MSG_GC_MARK_VAR_WALK,
+	    Sdprintf("Marking ATTVAR from %p to %p\n", current, next));
       current = next;			/* invariant */
       FORWARD;
     }
@@ -671,9 +673,10 @@ forward:				/* Go into the tree */
       if ( is_marked(next) )
 	BACKWARD;			/* term has already been marked */
       args = arityFunctor(((Functor)next)->definition) - 1;
-      DEBUG(5, Sdprintf("Marking TERM %s/%d at %p\n",
-			stringAtom(nameFunctor(((Functor)next)->definition)),
-			args+1, next));
+      DEBUG(MSG_GC_MARK_VAR_WALK,
+	    Sdprintf("Marking TERM %s/%d at %p\n",
+		     stringAtom(nameFunctor(((Functor)next)->definition)),
+		     args+1, next));
       domark(next);
       for( next += 2; args > 0; args--, next++ )
       { DEBUG(CHK_SECURE, assert(!is_first(next)));
@@ -699,8 +702,9 @@ forward:				/* Go into the tree */
       if ( is_marked(next) )		/* can be referenced from multiple */
         BACKWARD;			/* places */
       domark(next);
-      DEBUG(5, Sdprintf("Marked indirect data type, size = %ld\n",
-			offset_cell(next) + 1));
+      DEBUG(MSG_GC_MARK_VAR_WALK,
+	    Sdprintf("Marked indirect data type, size = %ld\n",
+		     offset_cell(next) + 1));
       total_marked += offset_cell(next);
     }
   }
@@ -761,23 +765,24 @@ mark_term_refs()
   long lmarked = 0;
 #endif
 
-  DEBUG(3, Sdprintf("Marking term references ...\n"));
+  DEBUG(MSG_GC_MARK_TERMREF, Sdprintf("Marking term references ...\n"));
 
   for( ; fr; fr = fr->parent )
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
-    DEBUG(3, Sdprintf("Marking foreign frame %ld (size=%d)\n",
-		      (Word)fr-(Word)lBase, n));
+    DEBUG(MSG_GC_MARK_TERMREF,
+	  Sdprintf("Marking foreign frame %ld (size=%d)\n",
+		   (Word)fr-(Word)lBase, n));
 
     assert(fr->magic == FLI_MAGIC);
     for( ; n-- > 0; sp++ )
     { if ( !is_marked(sp) )
       { if ( isGlobalRef(*sp) )
-	{ DEBUG(3, gmarked++);
+	{ DEBUG(MSG_GC_MARK_TERMREF, gmarked++);
 	  mark_variable(sp PASS_LD);
 	} else
-	{ DEBUG(3, lmarked++);
+	{ DEBUG(MSG_GC_MARK_TERMREF, lmarked++);
 	  mark_local_variable(sp PASS_LD);
 	}
       }
@@ -786,8 +791,9 @@ mark_term_refs()
     DEBUG(CHK_SECURE, check_marked("After marking foreign frame"));
   }
 
-  DEBUG(3, Sdprintf("Marked %ld global and %ld local term references\n",
-		    gmarked, lmarked));
+  DEBUG(MSG_GC_MARK_TERMREF,
+	Sdprintf("Marked %ld global and %ld local term references\n",
+		 gmarked, lmarked));
 }
 
 
@@ -836,8 +842,9 @@ gvars_to_term_refs(Word **saved_bar_at)
     freeTableEnum(e);
     assert(LD->gvar.grefs == found);
 
-    DEBUG(1, Sdprintf("Found %d global vars on global stack. "
-		      "stored in frame %p\n", found, fli_context));
+    DEBUG(MSG_GC_MARK_GVAR,
+	  Sdprintf("Found %d global vars on global stack. "
+		   "stored in frame %p\n", found, fli_context));
   }
 
   if ( LD->frozen_bar )
@@ -984,7 +991,7 @@ mark_attvars()
 
   for( gp = gBase; gp < gTop; gp += (offset_cell(gp)+1) )
   { if ( isAttVar(*gp) && !is_marked(gp) )
-    { DEBUG(3, Sdprintf("mark_attvars(): marking %p\n", gp));
+    { DEBUG(MSG_GC_MARK_ATTVAR, Sdprintf("mark_attvars(): marking %p\n", gp));
       mark_variable(gp PASS_LD);
     }
   }
@@ -1139,7 +1146,8 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 { GCTrailEntry te;
   LD->cycle.vstack.unit_size = sizeof(Word);
 
-  DEBUG(2, Sdprintf("Scanning %d trailed assignments\n", assignments));
+  DEBUG(MSG_GC_ASSIGNMENTS,
+	Sdprintf("Scanning %d trailed assignments\n", assignments));
 
   for(te=mark; te <= top; te++)
   { if ( ttag(te[1].address) == TAG_TRAILVAL )
@@ -1147,7 +1155,8 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 
       assignments--;
       if ( is_first(p) )
-      {	DEBUG(3, Sdprintf("Delete duplicate trailed assignment at %p\n", p));
+      {	DEBUG(MSG_GC_ASSIGNMENTS_MERGE,
+	      Sdprintf("Delete duplicate trailed assignment at %p\n", p));
 	te->address = 0;
 	te[1].address = 0;
 	trailcells_deleted += 2;
@@ -1213,7 +1222,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	assert(onGlobal(gp));
 	assert(!is_first(gp));
 	if ( !is_marked(gp) )
-	{ DEBUG(3,
+	{ DEBUG(MSG_GC_ASSIGNMENTS_MARK,
 		char b1[64]; char b2[64]; char b3[64];
 		Sdprintf("Marking assignment at %s (%s --> %s)\n",
 			 print_adr(tard, b1),
@@ -1229,7 +1238,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       } else
       { Word gp = val_ptr(te->address);
 
-	DEBUG(4,
+	DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64]; char b3[64];
 	      Sdprintf("Early reset of assignment at %s (%s --> %s)\n",
 		       print_adr(tard, b1),
@@ -1257,7 +1266,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       { te->address = 0;
 	trailcells_deleted++;
       } else if ( !is_marked(tard) )
-      { DEBUG(3,
+      { DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64];
 	      Sdprintf("Early reset at %s (%s)\n", print_adr(tard, b1), print_val(*tard, b2)));
 	setVar(*tard);
@@ -1283,7 +1292,7 @@ mark_foreign_frame(FliFrame fr, GCTrailEntry te ARG_LD)
   if ( isRealMark(fr->mark) )
   { te = early_reset_vars(&fr->mark, (Word)fr, te PASS_LD);
 
-    DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
+    DEBUG(MSG_GC_MARK_FOREIGN, Sdprintf("Marking foreign frame %p\n", fr));
     needsRelocation(&fr->mark.trailtop);
     check_relocation((Word)&fr->mark.trailtop);
     DEBUG(CHK_SECURE, assert(isRealMark(fr->mark)));
@@ -1442,8 +1451,9 @@ static inline void
 clear_frame_var(walk_state *state, code var, Code PC)
 { if ( (state->flags & GCM_CLEAR) )
   { LocalFrame fr = state->frame;
-    DEBUG(3, Sdprintf("Clear var %d at %d\n",
-		      var-VAROFFSET(0), (PC-state->c0)-1));
+    DEBUG(MSG_GC_CLEAR,
+	  Sdprintf("Clear var %d at %d\n",
+		   var-VAROFFSET(0), (PC-state->c0)-1));
 #ifdef O_DEBUG
     if ( DEBUGGING(CHK_SECURE) )
     { Word vp = varFrameP(fr, PC[0]);
@@ -1489,7 +1499,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
   { op = decode(*PC++);
 
   again:
-    DEBUG(3, Sdprintf("\t%s at %d\n", codeTable[op].name, PC-state->c0-1));
+    DEBUG(MSG_GC_WALK,
+	  Sdprintf("\t%s at %d\n", codeTable[op].name, PC-state->c0-1));
     COUNT(vm_scanned);
     if ( op == end )
     { PC--;
@@ -1543,7 +1554,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[0]+1;
-	DEBUG(3, Sdprintf("C_OR at %d\n", PC-state->c0-1));
+	DEBUG(MSG_GC_WALK, Sdprintf("C_OR at %d\n", PC-state->c0-1));
 	PC++;				/* skip <n> */
 	walk_and_mark(state, PC, C_JMP PASS_LD);
 	PC = alt;
@@ -1554,10 +1565,10 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;
-	DEBUG(3, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
+	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the two arguments */
 	walk_and_mark(state, PC, C_CUT PASS_LD);
-	DEBUG(3, Sdprintf("C_NOT-ALT at %d\n", alt-state->c0));
+	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT-ALT at %d\n", alt-state->c0));
 	PC = alt;
 	op = decode(*PC++);
         goto again;
@@ -1567,7 +1578,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;
-	DEBUG(3, Sdprintf("C_IFTHENELSE at %d\n", PC-state->c0-1));
+	DEBUG(MSG_GC_WALK, Sdprintf("C_IFTHENELSE at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the 'MARK' variable and jmp */
 	walk_and_mark(state, PC, C_JMP PASS_LD);
 	PC = alt;
@@ -1733,12 +1744,13 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
   state.ARGP	     = argFrameP(fr, 0);
   state.envtop	     = state.ARGP + argc;
 
-  DEBUG(2, Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate)));
+  DEBUG(MSG_GC_WALK,
+	Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate)));
   for(; cref && state.unmarked > 0; cref=cref->next)
   { if ( visibleClause(cref->value.clause, fr->generation) )
     { COUNT(c_scanned);
       state.c0 = cref->value.clause->codes;
-      DEBUG(3, Sdprintf("Scanning clause %p\n", cref->value.clause));
+      DEBUG(MSG_GC_WALK, Sdprintf("Scanning clause %p\n", cref->value.clause));
       walk_and_mark(&state, state.c0, I_EXIT PASS_LD);
     }
 
@@ -1868,8 +1880,9 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
     }
 
     if ( true(fr->predicate, FOREIGN) || PC == NULL || !fr->clause )
-    { DEBUG(2, Sdprintf("Marking arguments for [%d] %s\n",
-			levelFrame(fr), predicateName(fr->predicate)));
+    { DEBUG(MSG_GC_MARK_ARGS,
+	    Sdprintf("Marking arguments for [%d] %s\n",
+		     levelFrame(fr), predicateName(fr->predicate)));
       mark_arguments(fr PASS_LD);
     } else
     { Word argp0;
@@ -1888,9 +1901,10 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
       { argp0 = NULL;
       }
 
-      DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
-			levelFrame(fr), predicateName(fr->predicate),
-			PC-state.c0));
+      DEBUG(MSG_GC_WALK,
+	    Sdprintf("Walking code for [%d] %s from PC=%d\n",
+		     levelFrame(fr), predicateName(fr->predicate),
+		     PC-state.c0));
 
       walk_and_mark(&state, PC, I_EXIT PASS_LD);
 
@@ -1963,7 +1977,7 @@ mark_stacks(vm_state *vmstate)
   while(fr)
   { vm_state sub_state;
 
-    DEBUG(1, Sdprintf("Marking query %p\n", qf));
+    DEBUG(MSG_GC_MARK_QUERY, Sdprintf("Marking query %p\n", qf));
     qf = mark_query_stacks(&state, fr, ch, PC PASS_LD);
 
     if ( qf->parent )			/* same code in checkStacks() */
@@ -1988,7 +2002,8 @@ mark_stacks(vm_state *vmstate)
     state.reset_entry = mark_foreign_frame(state.flictx,
 					   state.reset_entry PASS_LD);
 
-  DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
+  DEBUG(MSG_GC_STATS,
+	Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
 }
 
 
@@ -2018,10 +2033,11 @@ mark_phase(vm_state *state)
 	  qsort(mark_base, mark_top - mark_base, sizeof(Word), cmp_address);
 	});
 
-  DEBUG(2, { intptr_t size = gTop - gBase;
-	     Sdprintf("%ld referenced cell; %ld garbage (gTop = %p)\n",
-		      total_marked, size - total_marked, gTop);
-	   });
+  DEBUG(MSG_GC_STATS,
+	{ intptr_t size = gTop - gBase;
+	  Sdprintf("%ld referenced cell; %ld garbage (gTop = %p)\n",
+		   total_marked, size - total_marked, gTop);
+	});
 }
 
 
@@ -2061,8 +2077,9 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 { Word head = current;
   word val = get_value(current);
 
-  DEBUG(4, Sdprintf("unwinding relocation chain at %p to %p\n",
-		    current, dest));
+  DEBUG(MSG_GC_RELOC,
+	Sdprintf("unwinding relocation chain at %p to %p\n",
+		 current, dest));
 
   do
   { int tag;
@@ -2071,7 +2088,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
     current = valPtr(val);
     tag = (int)tag(val);
     val = get_value(current);
-    DEBUG(3,
+    DEBUG(MSG_GC_RELOC,
 	  { FliFrame f;
 
 	    f = addPointer(current, - offset(fliFrame, mark.trailtop));
@@ -2096,8 +2113,9 @@ into_relocation_chain(Word current, int stg ARG_LD)
   set_value(current, get_value(head));
   set_value(head, consPtr(current, stg|tag(val)));
 
-  DEBUG(4, Sdprintf("Into relocation chain: %p (head = %p)\n",
-		    current, head));
+  DEBUG(MSG_GC_RELOC,
+	Sdprintf("Into relocation chain: %p (head = %p)\n",
+		 current, head));
 
   if ( is_first(head) )
     mark_first(current);
@@ -2233,7 +2251,8 @@ make_gc_hole(Word bottom, Word top)
 
       hdr = mkIndHdr(MAX_STRLEN, TAG_STRING);
       *t1 = *bt = hdr;
-      DEBUG(3, Sdprintf("Created Garbage hole %p..%p\n", bt, t1+1));
+      DEBUG(MSG_GC_HOLE,
+	    Sdprintf("Created Garbage hole %p..%p\n", bt, t1+1));
       bt = t1+1;
       wsize = top - bt - 1;
     }
@@ -2241,8 +2260,9 @@ make_gc_hole(Word bottom, Word top)
     hdr = mkIndHdr(wsize, TAG_STRING); /* limited by size of string? */
     *top = *bt = hdr;
 
-    DEBUG(3, Sdprintf("Created Garbage hole %p..%p, size %ld\n",
-		      bt, top+1, (long)wsize));
+    DEBUG(MSG_GC_HOLE,
+	  Sdprintf("Created Garbage hole %p..%p, size %ld\n",
+		   bt, top+1, (long)wsize));
   }
 
   return bottom;
@@ -2304,7 +2324,7 @@ sweep_global_mark(Word *m ARG_LD)
 
     done:
       *m = gm;
-      DEBUG(3, Sdprintf("gTop mark from choice point: "));
+      DEBUG(MSG_GC_RELOC, Sdprintf("gTop mark from choice point: "));
       needsRelocation(m);
       check_relocation((Word)m);
       alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
@@ -2457,7 +2477,7 @@ sweep_frame(LocalFrame fr, int slots ARG_LD)
       }
     } else
     { if ( isGlobalRef(*sp) )
-      { DEBUG(1, char b[64];
+      { DEBUG(MSG_GC_SWEEP, char b[64];
 	      Sdprintf("[%ld] %s: GC VAR(%d) (=%s)\n",
 		       levelFrame(fr), predicateName(fr->predicate),
 		       sp-argFrameP(fr, 0),
@@ -2485,8 +2505,9 @@ sweep_environments(LocalFrame fr, Code PC)
 
     slots = slotsInFrame(fr, PC);
 
-    DEBUG(2, Sdprintf("Sweep %d arguments for [%d] %s\n",
-		      slots, levelFrame(fr), predicateName(fr->predicate)));
+    DEBUG(MSG_GC_SWEEP,
+	  Sdprintf("Sweep %d arguments for [%d] %s\n",
+		   slots, levelFrame(fr), predicateName(fr->predicate)));
 
     sweep_frame(fr, slots PASS_LD);
 
@@ -2704,7 +2725,7 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
   for(current-- ; ; current-- )
   { if ( (*current & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
     { if ( is_marked(current) )
-      { DEBUG(3, Sdprintf("Normal-non-GC cell at %p\n", current));
+      { DEBUG(MSG_GC_HOLE, Sdprintf("Normal-non-GC cell at %p\n", current));
 	return make_gc_hole(current+1, top_gc);
       } else if ( is_first(current) )
       { update_relocation_chain(current, dest PASS_LD);
@@ -2715,8 +2736,9 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
 	offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
 	current -= offset;			/* start large cell */
 	if ( is_marked(current) )
-	{ DEBUG(3, Sdprintf("Large-non-GC cell at %p, size %d\n",
-			    current, offset+1));
+	{ DEBUG(MSG_GC_HOLE,
+		Sdprintf("Large-non-GC cell at %p, size %d\n",
+			 current, offset+1));
 	  return make_gc_hole(current+offset+1, top_gc);
 	} else if ( is_first(current) )
 	{ update_relocation_chain(current, dest PASS_LD);
@@ -2738,7 +2760,7 @@ compact_global(void)
   Word *v = mark_top;
 #endif
 
-  DEBUG(2, Sdprintf("Scanning global stack downwards\n"));
+  DEBUG(MSG_GC_PROGRESS, Sdprintf("Scanning global stack downwards\n"));
 
   dest = base + total_marked;			/* first FREE cell */
   for( current = gTop; current >= base; current-- )
@@ -2750,7 +2772,8 @@ compact_global(void)
 			 current, *current, gTop, *v);
 	    });
       dest--;
-      DEBUG(3, Sdprintf("Marked cell at %p (dest = %p)\n", current, dest));
+      DEBUG(MSG_GC_RELOC,
+	    Sdprintf("Marked cell at %p (dest = %p)\n", current, dest));
       if ( is_first(current) )
 	update_relocation_chain(current, dest PASS_LD);
       if ( is_downward_ref(current PASS_LD) )
@@ -2771,11 +2794,11 @@ compact_global(void)
       } else if ( is_first(current) )
       { goto first_large_cell;
       }	else
-      { DEBUG(3, Sdprintf("Downskip from indirect\n"));
+      { DEBUG(MSG_GC_HOLE, Sdprintf("Downskip from indirect\n"));
 	current = downskip_combine_garbage(current, dest PASS_LD);
       }
     } else
-    { DEBUG(3, Sdprintf("Downskip from normal cell\n"));
+    { DEBUG(MSG_GC_HOLE, Sdprintf("Downskip from normal cell\n"));
       current = downskip_combine_garbage(current, dest PASS_LD);
     }
   }
@@ -2800,7 +2823,7 @@ compact_global(void)
 
   DEBUG(CHK_SECURE, check_marked("Before up"));
   DEBUG(CHK_SECURE, relocated_check=FALSE);	/* see do_relocated_cell() */
-  DEBUG(2, Sdprintf("Scanning global stack upwards\n"));
+  DEBUG(MSG_GC_PROGRESS, Sdprintf("Scanning global stack upwards\n"));
 
   dest = base;
   top = gTop;
@@ -2834,10 +2857,11 @@ compact_global(void)
       }
 
     } else
-    { DEBUG(3, if ( offset_cell(current) > 2 )
-	         Sdprintf("Skipping garbage cell %p..%p, size %d\n",
-			  current, current + offset_cell(current),
-			  offset_cell(current)-1));
+    { DEBUG(MSG_GC_HOLE,
+	    if ( offset_cell(current) > 2 )
+	      Sdprintf("Skipping garbage cell %p..%p, size %d\n",
+		       current, current + offset_cell(current),
+		       offset_cell(current)-1));
       current += offset_cell(current) + 1;
     }
   }
@@ -2846,10 +2870,11 @@ compact_global(void)
     sysError("Mismatch in up phase: dest = %p, gBase+total_marked = %p\n",
 	     dest, gBase + total_marked );
 
-  DEBUG(3, { Word p = dest;		/* clear top of stack */
-	     while(p < gTop)
-	       *p++ = 0xbfbfbfbfL;
-	   });
+  DEBUG(CHK_SECURE,
+	{ Word p = dest;		/* clear top of stack */
+	  while(p < gTop)
+	    *p++ = 0xbfbfbfbfL;
+	});
 
   gTop = dest;
 }
@@ -2861,17 +2886,17 @@ collect_phase(vm_state *state, Word *saved_bar_at)
 
   DEBUG(CHK_SECURE, check_marked("Start collect"));
 
-  DEBUG(2, Sdprintf("Sweeping foreign references\n"));
+  DEBUG(MSG_GC_PROGRESS, Sdprintf("Sweeping foreign references\n"));
   sweep_foreign();
-  DEBUG(2, Sdprintf("Sweeping trail stack\n"));
+  DEBUG(MSG_GC_PROGRESS, Sdprintf("Sweeping trail stack\n"));
   sweep_trail();
-  DEBUG(2, Sdprintf("Sweeping local stack\n"));
+  DEBUG(MSG_GC_PROGRESS, Sdprintf("Sweeping local stack\n"));
   sweep_stacks(state);
   if ( saved_bar_at )
   { DEBUG(2, Sdprintf("Sweeping frozen bar\n"));
     sweep_global_mark(saved_bar_at PASS_LD);
   }
-  DEBUG(2, Sdprintf("Compacting global stack\n"));
+  DEBUG(MSG_GC_PROGRESS, Sdprintf("Compacting global stack\n"));
   compact_global();
 
   unsweep_foreign(PASS_LD1);
@@ -3132,7 +3157,7 @@ considerGarbageCollect(Stack s)
 	size_t space = limit - used;
 
 	if ( LD->outofstack == s )
-	{ DEBUG(1, Sdprintf("GC: request on low space\n"));
+	{ DEBUG(MSG_GC_SCHEDULE, Sdprintf("GC: request on low space\n"));
 	  return PL_raise(SIG_GC);
 	}
 
@@ -3143,20 +3168,21 @@ considerGarbageCollect(Stack s)
 	}
 
 	if ( used > s->factor*s->gced_size + s->small )
-	{ DEBUG(1,
+	{ DEBUG(MSG_GC_SCHEDULE,
 		Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
 			 s->name, s->factor, s->gced_size, s->small));
 	  return PL_raise(SIG_GC);
 	} else if ( space < limit/8 &&
 		    used > s->gced_size + limit/32 )
-	{ DEBUG(1, Sdprintf("GC: request on low space\n"));
+	{ DEBUG(MSG_GC_SCHEDULE, Sdprintf("GC: request on low space\n"));
 	  return PL_raise(SIG_GC);
 	}
 
-	DEBUG(1, if ( PL_pending(SIG_GC) )
-		 { Sdprintf("%s overflow: Posted garbage collect request\n",
-			    s->name);
-		 });
+	DEBUG(MSG_GC_SCHEDULE,
+	      if ( PL_pending(SIG_GC) )
+	      { Sdprintf("%s overflow: Posted garbage collect request\n",
+			 s->name);
+	      });
       }
     }
   }
@@ -3313,26 +3339,28 @@ check_environments(LocalFrame fr, Code PC, Word key)
 
     assert(onStack(local, fr));
 
-    DEBUG(3, Sdprintf("Check [%ld] %s (PC=%d):",
-		      levelFrame(fr),
-		      predicateName(fr->predicate),
-		      (false(fr->predicate, FOREIGN) && PC)
-		        ? (PC-fr->clause->value.clause->codes)
-			: 0));
+    DEBUG(MSG_GC_CHECK,
+	  Sdprintf("Check [%ld] %s (PC=%d):",
+		   levelFrame(fr),
+		   predicateName(fr->predicate),
+		   (false(fr->predicate, FOREIGN) && PC)
+		   ? (PC-fr->clause->value.clause->codes)
+		   : 0));
 
     slots = slotsInFrame(fr, PC);
     sp = argFrameP(fr, 0);
     for( n=0; n < slots; n++ )
     { *key += checkData(&sp[n]);
     }
-    DEBUG(3, Sdprintf(" 0x%lx\n", key));
+    DEBUG(MSG_GC_CHECK, Sdprintf(" 0x%lx\n", key));
 
     PC = fr->programPointer;
     if ( fr->parent )
       fr = fr->parent;
     else
     { QueryFrame qf = queryOfFrame(fr);
-      DEBUG(3, Sdprintf("*** Query %s\n", predicateName(qf->frame.predicate)));
+      DEBUG(MSG_GC_CHECK,
+	    Sdprintf("*** Query %s\n", predicateName(qf->frame.predicate)));
       return qf;
     }
   }
@@ -3477,7 +3505,7 @@ checkStacks(void *state_ptr)
   { qf = check_environments(fr, PC, &key);
     assert(qf->magic == QID_MAGIC);
 
-    DEBUG(3, Sdprintf("%ld\n", key));
+    DEBUG(MSG_GC_CHECK, Sdprintf("%ld\n", key));
     check_choicepoints(ch);		/* Do not update key; see above */
     if ( qf->parent )			/* same code in mark_stacks() */
     { QueryFrame pqf = qf->parent;
@@ -3502,7 +3530,7 @@ checkStacks(void *state_ptr)
   assert(choice_count == 0);
 
   key += check_foreign();
-  DEBUG(3, Sdprintf("Foreign: %ld\n", key));
+  DEBUG(MSG_GC_CHECK, Sdprintf("Foreign: %ld\n", key));
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
   /*key +=*/ check_trail();
 #endif
@@ -3510,7 +3538,7 @@ checkStacks(void *state_ptr)
   if ( state == &state_buf )
     restore_vmi_state(state);
 
-  DEBUG(2, Sdprintf("Final: %ld\n", key));
+  DEBUG(MSG_GC_CHECK, Sdprintf("Final: %ld\n", key));
   return key;
 }
 
@@ -3642,8 +3670,6 @@ garbageCollect(void)
   END_PROF();
   START_PROF(P_GC, "P_GC");
 
-  DEBUG(1, verbose = TRUE);
-
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
@@ -3727,7 +3753,7 @@ garbageCollect(void)
   gc_status.trail_gained  += tgar;
   gc_status.collections++;
 
-  DEBUG(2, Sdprintf("Compacting trail ... "));
+  DEBUG(MSG_GC_PROGRESS, Sdprintf("Compacting trail\n"));
   compact_trail();
 
   collect_phase(&state, saved_bar_at);
@@ -4052,7 +4078,7 @@ update_local_pointer(Code *p, intptr_t ls)
 { GET_LD
 
   if ( onStackArea(local, *p) )
-  { DEBUG(2, Sdprintf(" (local ptr %p)", *p));
+  { DEBUG(MSG_SHIFT_POINTER, Sdprintf(" (local ptr %p)", *p));
     update_pointer(p, ls);
   }
 }
@@ -4082,9 +4108,9 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
     set(fr, FR_MARKED);
     local_frames++;
 
-    DEBUG(2,
+    DEBUG(MSG_SHIFT_FRAME,
 	  Sdprintf("Shifting frame %p [%ld] %s ... ",
-		 fr, levelFrame(fr), predicateName(fr->predicate)));
+		   fr, levelFrame(fr), predicateName(fr->predicate)));
 
     if ( ls )				/* update frame pointers */
     { update_pointer(&fr->parent, ls);
@@ -4099,7 +4125,7 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
       { assert(!onStackArea(local, fr->clause));
       }
 
-      DEBUG(2, Sdprintf("ok\n"));
+      DEBUG(MSG_SHIFT_FRAME, Sdprintf("ok\n"));
     }
 
     if ( fr->parent )
@@ -4137,13 +4163,13 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
     }
     update_mark(&ch->mark, gs, ts);
 
-    DEBUG(3, Sdprintf("Updated %s for %s ... ",
+    DEBUG(MSG_SHIFT_FRAME, Sdprintf("Updated %s for %s ... ",
 		      chp_chars(ch),
 		      predicateName(ch->frame->predicate)));
 
     update_environments(ch->frame, ls, gs);
     choice_count++;
-    DEBUG(3, Sdprintf("ok\n"));
+    DEBUG(MSG_SHIFT_FRAME, Sdprintf("ok\n"));
   }
 }
 
@@ -4246,7 +4272,8 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
   gs = (intptr_t) gb - (intptr_t) gBase;
   ts = (intptr_t) tb - (intptr_t) tBase;
 
-  DEBUG(2, Sdprintf("update_stacks(): ls+gs+ts = %ld %ld %ld\n", ls, gs, ts));
+  DEBUG(MSG_SHIFT_PROGRESS,
+	Sdprintf("update_stacks(): ls+gs+ts = %ld %ld %ld\n", ls, gs, ts));
 
   if ( ls || gs || ts )
   { LocalFrame fr;
@@ -4290,8 +4317,9 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
 	break;
     }
 
-    DEBUG(2, Sdprintf("%d frames, %d choice-points ...",
-		      local_frames, choice_count));
+    DEBUG(MSG_SHIFT_PROGRESS,
+	  Sdprintf("%d frames, %d choice-points ...",
+		   local_frames, choice_count));
 
     unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
 
@@ -4473,7 +4501,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize))<0 ||
        (rc=new_stack_size((Stack)&LD->stacks.global, &g, &gsize))<0 ||
        (rc=new_stack_size((Stack)&LD->stacks.local,  &l, &lsize))<0 )
-  { DEBUG(1, Sdprintf("Reached stack-limit\n"));
+  { DEBUG(MSG_STACK_OVERFLOW, Sdprintf("Reached stack-limit\n"));
     return rc;
   }
 
@@ -4500,8 +4528,6 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LocalFrame lb = lBase;
     double time, time0 = ThreadCPUTime(LD, CPU_USER);
     int verbose = truePrologFlag(PLFLAG_TRACE_GC);
-
-    DEBUG(1, verbose = TRUE);
 
     if ( verbose )
     { const char *prefix;
@@ -4570,7 +4596,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
 	gsize = sizeStack(global);
 	lsize = sizeStack(local);
-	DEBUG(1, Sdprintf("realloc() failed\n"));
+	DEBUG(MSG_STACK_OVERFLOW, Sdprintf("realloc() failed\n"));
       }
     }
 
@@ -4596,7 +4622,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	       });
     }
 
-    DEBUG(1, Sdprintf("Updating stacks ..."));
+    DEBUG(MSG_SHIFT_PROGRESS, Sdprintf("Updating stacks ..."));
     gBase++; gb++;
     update_stacks(&state, lb, gb, tb);
     gBase--; gb--;
@@ -4699,7 +4725,7 @@ tight(Stack s ARG_LD)
 
   if ( s == (Stack)&LD->stacks.trail )	/* See (*) */
   { min_room += sizeStack(global)/6;
-    DEBUG(2, Sdprintf("Trail min_roomt = %ld\n", min_room));
+    DEBUG(MSG_GC_SCHEDULE, Sdprintf("Trail min_room = %ld\n", min_room));
   }
 
   if ( min_room < s->min_free )
@@ -4898,7 +4924,7 @@ void
 markAtomsOnStacks(PL_local_data_t *ld)
 { assert(!ld->gc.status.active);
 
-  DEBUG(0, save_backtrace("AGC"));
+  DEBUG(MSG_AGC, save_backtrace("AGC"));
 
   markAtomsOnGlobalStack(ld);
   markAtomsInEnvironments(ld);
@@ -4960,7 +4986,7 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 	{ Procedure proc = cell->value;
 
 	  if ( proc->definition == def )
-	  { DEBUG(2, Sdprintf("Marking %s\n", predicateName(def)));
+	  { DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
 	    def->references++;
 	    GD->procedures.active_marked++;
 	    break;
@@ -4968,7 +4994,7 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 	}
       } else				/* pl_garbage_collect_clauses() */
       { if ( true(def, NEEDSCLAUSEGC) )
-	{ DEBUG(2, Sdprintf("Marking %s\n", predicateName(def)));
+	{ DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
 	  def->references++;
 	}
       }

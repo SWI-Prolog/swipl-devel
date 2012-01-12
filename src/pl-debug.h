@@ -36,13 +36,39 @@
 #define DBG_LEVEL8  8
 #define DBG_LEVEL9  9
 
-#define MSG_VMI		10		/* VMI execution */
-#define MSG_CLEANUP	11		/* Cleanup memory in PL_cleanup() */
-#define MSG_PROLOG_FLAG 12		/* Prolog flag handling */
-#define MSG_HASH_STAT   13		/* Hash-table statistics */
-#define MSG_SPARE_STACK 14		/* Spare stack handling */
-#define MSG_THREAD	15		/* Thread-related messages */
-#define MSG_AGC		16		/* Atom garbage collection */
+#define	MSG_VMI			 10
+#define	MSG_CLEANUP		 11
+#define	MSG_PROLOG_FLAG		 12
+#define	MSG_HASH_STAT		 13
+#define	MSG_SPARE_STACK		 14
+#define	MSG_THREAD		 15
+#define	MSG_AGC			 16
+#define	MSG_CLAUSE_GC		 17
+#define	MSG_GC_STATS		 18
+#define	MSG_GC_SCHEDULE		 19
+#define	MSG_GC_PROGRESS		 20
+#define	MSG_GC_MARK_VAR		 21
+#define	MSG_GC_MARK_GVAR	 22
+#define	MSG_GC_MARK_ATTVAR	 23
+#define	MSG_GC_MARK_TERMREF	 24
+#define	MSG_GC_MARK_FOREIGN	 25
+#define	MSG_GC_MARK_ARGS	 26
+#define	MSG_GC_MARK_QUERY	 27
+#define	MSG_GC_MARK_VAR_WALK	 28
+#define	MSG_GC_CLEAR		 29
+#define	MSG_GC_ASSIGNMENTS	 30
+#define	MSG_GC_ASSIGNMENTS_MERGE 31
+#define	MSG_GC_ASSIGNMENTS_MARK	 32
+#define	MSG_GC_RESET		 33
+#define	MSG_GC_WALK		 34
+#define	MSG_GC_RELOC		 35
+#define	MSG_GC_HOLE		 36
+#define	MSG_GC_SWEEP		 37
+#define	MSG_GC_CHECK		 38
+#define	MSG_SHIFT_PROGRESS	 39
+#define	MSG_SHIFT_POINTER	 40
+#define	MSG_SHIFT_FRAME		 41
+#define	MSG_STACK_OVERFLOW	 42
 
 #define CHK_SECURE    1000
 
