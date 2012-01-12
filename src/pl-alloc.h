@@ -28,27 +28,30 @@
 #ifdef O_PLMT
 #define GC_THREADS 1
 #endif
+#define DYNAMIC_MARKS
 #include <gc/gc.h>
 
 #define allocForeignState(size)			GC_MALLOC_UNCOLLECTABLE(size)
 #define freeForeignState(ptr, size)		GC_FREE(ptr)
 
-PL_EXPORT(void) GC_linger(void *ptr);
+#ifdef GC_DEBUG
+COMMON(void) GC_linger(void *ptr);
 #define GC_LINGER(p)				GC_linger(p)
+#else
+#define GC_LINGER(p)				((void)p)
+#endif
 
 #else /*HAVE_BOEHM_GC*/
 
 #define GC_MALLOC(n)				malloc(n)
 #define GC_MALLOC_ATOMIC(n)			malloc(n)
-#define GC_MALLOC_STUBBORN(n)			malloc(n)
 #define GC_MALLOC_IGNORE_OFF_PAGE(n)		malloc(n)
 #define GC_MALLOC_ATOMIC_IGNORE_OFF_PAGE(n)	malloc(n)
 #define GC_MALLOC_UNCOLLECTABLE(n)		malloc(n)
 #define GC_MALLOC_ATOMIC_UNCOLLECTABLE(n)	malloc(n)
 #define GC_REALLOC(p,s)				realloc(p,s)
 #define GC_FREE(p)				free(p)
-#define GC_END_STUBBORN_CHANGE(p)		((void)0)
-#define GC_LINGER(p)				((void)0)
+#define GC_LINGER(p)				((void)p)
 
 #define allocForeignState(size)			allocHeapOrHalt(size)
 #define freeForeignState(ptr, size)		freeHeap(ptr, size)

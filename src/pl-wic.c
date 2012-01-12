@@ -1068,7 +1068,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	int ncodes = getInt(fd);
 
 	DEBUG(2, Sdprintf("."));
-	clause = (Clause) PL_malloc_stubborn(sizeofClause(ncodes));
+	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
@@ -1204,12 +1204,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
 	if ( skip )
-	{ PL_end_stubborn_change(clause);
 	  freeClause(clause);
-	} else
-	{ assertProcedure(proc, clause, CL_END PASS_LD);
-	  PL_end_stubborn_change(clause);
-	}
+	else
+	  assertProcedure(proc, clause, CL_END PASS_LD);
       }
     }
   }

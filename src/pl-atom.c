@@ -449,9 +449,8 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
       memset(a->name+length, 0, pad);
       GD->statistics.atom_string_space += length+pad;
     } else
-    { a->name = PL_malloc_stubborn(length);
+    { a->name = PL_malloc(length);
       memcpy(a->name, s, length);
-      PL_end_stubborn_change(a->name);
       GD->statistics.atom_string_space += length;
     }
   } else

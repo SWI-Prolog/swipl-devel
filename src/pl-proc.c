@@ -1105,7 +1105,7 @@ void
 unallocClause(Clause c)
 { GD->statistics.codes -= c->code_size;
   GD->statistics.clauses--;
-  PL_free(c);				/* allocated with PL_malloc_stubborn() */
+  PL_free(c);
 }
 
 

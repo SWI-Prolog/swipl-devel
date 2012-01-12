@@ -1156,10 +1156,9 @@ Finish up the clause.
   if ( head )
   { size_t size  = sizeofClause(clause.code_size);
 
-    cl = PL_malloc_stubborn(size);
+    cl = PL_malloc_atomic(size);
     memcpy(cl, &clause, sizeofClause(0));
     memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
-    PL_end_stubborn_change(cl);
 
     GD->statistics.codes += clause.code_size;
   } else
@@ -5297,11 +5296,10 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
   clause.code_size = entriesBuffer(&ci.codes, code);
   size  = sizeofClause(clause.code_size);
-  cl = PL_malloc_stubborn(size);
+  cl = PL_malloc_atomic(size);
   memcpy(cl, &clause, sizeofClause(0));
   GD->statistics.codes += clause.code_size;
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
-  PL_end_stubborn_change(cl);
   discardBuffer(&ci.codes);
 
 					/* TBD: see assert_term() */

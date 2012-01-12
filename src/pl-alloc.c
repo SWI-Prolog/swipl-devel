@@ -44,11 +44,6 @@ void *
 allocHeap(size_t n)
 { void *mem = GC_MALLOC(n);
 
-#ifdef HAVE_GC_SET_FLAG
-  if ( mem )
-    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
-#endif
-
   return mem;
 }
 
@@ -60,11 +55,6 @@ allocHeapOrHalt(size_t n)
   if ( !mem )
     outOfCore();
 
-#ifdef HAVE_GC_SET_FLAG
-  if ( mem )
-    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
-#endif
-
   return mem;
 }
 
@@ -75,18 +65,7 @@ freeHeap(void *mem, size_t n)
 }
 
 
-#ifndef GC_DEBUG
-
-void
-GC_linger(void *mem)
-{
-#ifdef HAVE_GC_SET_FLAG
-  if ( mem )
-    GC_clear_flags(mem, GC_FLAG_UNCOLLECTABLE);
-#endif
-}
-
-#else /*GC_DEBUG*/
+#ifdef GC_DEBUG
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 To debug the  interaction  between  Boehm-GC   and  Prolog,  we  run the
 collector in leak-detection mode.  Reported leaks can have three causes:
@@ -738,9 +717,11 @@ equalIndirectFromCode(word a, Code *PC)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-These functions are used by various GNU-libraries and -when not linked
-with the GNU C-library lead to undefined symbols.  Therefore we define
-them in SWI-Prolog so that we can also give consistent warnings.
+These functions are used by various   GNU-libraries and -when not linked
+with the GNU C-library lead to   undefined  symbols. Therefore we define
+them in SWI-Prolog so that we can   also  give consistent warnings. Note
+that we must call plain system malloc as the library will call free() on
+it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if !defined(xmalloc) && defined(O_XMALLOC)
@@ -749,7 +730,7 @@ void *
 xmalloc(size_t size)
 { void *mem;
 
-  if ( (mem = GC_MALLOC(size)) )
+  if ( (mem = malloc(size)) )
     return mem;
   if ( size )
     outOfCore();
@@ -762,7 +743,7 @@ void *
 xrealloc(void *mem, size_t size)
 { void *newmem;
 
-  newmem = mem ? GC_REALLOC(mem, size) : GC_MALLOC(size);
+  newmem = mem ? realloc(mem, size) : malloc(size);
   if ( newmem )
     return newmem;
   if ( size )
@@ -832,11 +813,16 @@ PL_malloc_atomic_uncollectable(size_t size)
 
 
 void *
-PL_malloc_stubborn(size_t size)
+PL_malloc_unmanaged(size_t size)
 { void *mem;
 
-  if ( (mem = GC_MALLOC_STUBBORN(size)) )
+  if ( (mem = GC_MALLOC(size)) )
+  {
+#ifdef HAVE_GC_SET_FLAGS
+    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+#endif
     return mem;
+  }
 
   outOfCore();
 
@@ -844,15 +830,21 @@ PL_malloc_stubborn(size_t size)
 }
 
 
-void
-PL_end_stubborn_change(void *mem)
-{ GC_END_STUBBORN_CHANGE(mem);
-}
+void *
+PL_malloc_atomic_unmanaged(size_t size)
+{ void *mem;
 
+  if ( (mem = GC_MALLOC_ATOMIC(size)) )
+  {
+#ifdef HAVE_GC_SET_FLAGS
+    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+#endif
+    return mem;
+  }
 
-void
-PL_free(void *mem)
-{ GC_FREE(mem);
+  outOfCore();
+
+  return NULL;
 }
 
 
@@ -864,6 +856,25 @@ PL_realloc(void *mem, size_t size)
     outOfCore();
 
   return newmem;
+}
+
+
+void
+PL_free(void *mem)
+{ GC_FREE(mem);
+}
+
+
+int
+PL_linger(void *mem)
+{
+#ifdef HAVE_GC_SET_FLAGS
+  if ( mem )
+    GC_clear_flags(mem, GC_FLAG_UNCOLLECTABLE);
+  return TRUE;
+#else
+  return FALSE;
+#endif
 }
 
 
