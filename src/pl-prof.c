@@ -730,7 +730,7 @@ PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
 		 *******************************/
 
 bool
-resetProfiler()
+resetProfiler(void)
 { GET_LD
   stopProfiler();
 
@@ -1047,7 +1047,7 @@ collectSiblingsNode(call_node *n)
 
 
 static void
-collectSiblingsTime()
+collectSiblingsTime(void)
 { GET_LD
 
   if ( !sum_ok )
@@ -1080,11 +1080,11 @@ freeProfileNode(call_node *node ARG_LD)
 
 
 static void
-freeProfileData()
+freeProfileData(void)
 { GET_LD
   call_node *n, *next;
 
-  n=roots;
+  n = roots;
   roots = NULL;
   current = NULL;
 
@@ -1103,7 +1103,7 @@ freeProfileData()
 		 *******************************/
 
 void
-stopItimer()
+stopItimer(void)
 {
 }
 
