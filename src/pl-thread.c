@@ -532,7 +532,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   if ( info->detached )
     free_thread_info(info);
 
-  mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
   freeHeap(ld, sizeof(*ld));
 
   if ( acknowledge )			/* == canceled */

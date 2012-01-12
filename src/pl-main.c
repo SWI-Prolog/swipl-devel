@@ -1345,7 +1345,6 @@ cleanupProlog(int rval, int reclaim_memory)
     cleanupForeign();
     cleanupPaths();
     cleanupCodeToAtom();
-    cleanupMemAlloc();
 #ifdef O_GMP
     cleanupGMP();
 #endif
