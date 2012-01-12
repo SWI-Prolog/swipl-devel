@@ -986,6 +986,7 @@ if test ! "x$boehmgc" = xno; then
 		    AC_DEFINE(HAVE_BOEHM_GC, 1,
 			      [ Define to 1 if you have Boehm GC. ])
 		    LIBS="-lgc $LIBS")
+    AC_CHECK_FUNCS(GC_set_flags)	dnl Custom extensions
   fi
 fi
 
