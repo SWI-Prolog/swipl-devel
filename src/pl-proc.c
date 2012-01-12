@@ -3168,7 +3168,7 @@ remoduleClause(Clause cl, Module old, Module new)
 
 
 static
-PRED_IMPL("copy_predicate", 2, copy_predicate, PL_FA_TRANSPARENT)
+PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
 { PRED_LD
   Procedure from, to;
   Definition def, copy_def;
@@ -3491,5 +3491,5 @@ BeginPredDefs(proc)
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("$unload_file", 1, unload_file, 0)
   PRED_DEF("$start_consult", 2, start_consult, 0)
-  PRED_DEF("copy_predicate", 2, copy_predicate, PL_FA_TRANSPARENT)
+  PRED_DEF("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
 EndPredDefs
