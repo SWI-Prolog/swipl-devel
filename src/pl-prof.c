@@ -1063,10 +1063,14 @@ collectSiblingsTime()
 
 static void
 freeProfileNode(call_node *node ARG_LD)
-{ call_node *n;
+{ call_node *n, *next;
 
-  for(n=node->siblings; n; n=n->next)
-  { freeProfileNode(n PASS_LD);
+  assert(node->magic == PROFNODE_MAGIC);
+
+  for(n=node->siblings; n; n=next)
+  { next = n->next;
+
+    freeProfileNode(n PASS_LD);
   }
 
   node->magic = 0;
@@ -1078,14 +1082,16 @@ freeProfileNode(call_node *node ARG_LD)
 static void
 freeProfileData()
 { GET_LD
-  call_node *n;
+  call_node *n, *next;
 
-  for(n=roots; n; n=n->next)
-  { freeProfileNode(n PASS_LD);
-  }
-
+  n=roots;
   roots = NULL;
   current = NULL;
+
+  for(; n; n=next)
+  { next = n->next;
+    freeProfileNode(n PASS_LD);
+  }
 
   assert(nodes == 0);
 }
