@@ -3219,7 +3219,9 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
       copy->procedure = to;
       if ( def->module != copy_def->module )
 	remoduleClause(copy, def->module, copy_def->module);
-
+#ifdef O_ATOMGC
+      forAtomsInClause(copy, PL_register_atom);
+#endif
       assertProcedure(to, copy, CL_END PASS_LD);
     }
   }
