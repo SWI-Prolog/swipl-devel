@@ -42,7 +42,14 @@
 
 void *
 allocHeap(size_t n)
-{ return GC_MALLOC(n);
+{ void *mem = GC_MALLOC(n);
+
+#ifdef HAVE_GC_SET_FLAG
+  if ( mem )
+    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+#endif
+
+  return mem;
 }
 
 
@@ -52,6 +59,11 @@ allocHeapOrHalt(size_t n)
 
   if ( !mem )
     outOfCore();
+
+#ifdef HAVE_GC_SET_FLAG
+  if ( mem )
+    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+#endif
 
   return mem;
 }
@@ -63,6 +75,18 @@ freeHeap(void *mem, size_t n)
 }
 
 
+#ifndef GC_DEBUG
+
+void
+GC_linger(void *mem)
+{
+#ifdef HAVE_GC_SET_FLAG
+  if ( mem )
+    GC_clear_flags(mem, GC_FLAG_UNCOLLECTABLE);
+#endif
+}
+
+#else /*GC_DEBUG*/
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 To debug the  interaction  between  Boehm-GC   and  Prolog,  we  run the
 collector in leak-detection mode.  Reported leaks can have three causes:
@@ -99,6 +123,7 @@ GC_linger(void *ptr)
   UNLOCK();
 }
 
+#endif /*GC_DEBUG*/
 #endif /*HAVE_BOEHM_GC*/
 
 

@@ -31,40 +31,6 @@ libraries and avoids Prolog picking wrong   symbols. It also reduces ELF
 symbol lookup and relocations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* pl-alloc.c */
-COMMON(void)		initAlloc(void);
-COMMON(void)		freeHeap(void *mem, size_t n);
-COMMON(int)		enableSpareStack(Stack s);
-COMMON(int)		outOfStack(void *stack, stack_overflow_action how);
-COMMON(int)		raiseStackOverflow(int which);
-COMMON(void)		outOfCore(void) NORETURN;
-COMMON(Word)		allocGlobal__LD(size_t words ARG_LD);
-COMMON(Word)		allocGlobalNoShift__LD(size_t words ARG_LD);
-COMMON(void *)		allocHeap(size_t n);
-COMMON(void *)		allocHeapOrHalt(size_t n);
-COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
-COMMON(void)		initMemAlloc(void);
-COMMON(int)		unifyFreeStatsPool(term_t term, AllocPool pool);
-COMMON(word)		globalString(size_t len, const char *s);
-COMMON(word)		globalWString(size_t len, const pl_wchar_t *s);
-COMMON(char *)		getCharsString__LD(word w, size_t *len ARG_LD);
-COMMON(pl_wchar_t *)	getCharsWString__LD(word w, size_t *len ARG_LD);
-COMMON(Word)		newTerm(void);
-COMMON(void)		doublecpy(void *to, void *from);
-COMMON(int)		put_double(Word p, double f, int flags ARG_LD);
-COMMON(int)		put_int64(Word p, int64_t i, int flags ARG_LD);
-COMMON(double)		valFloat__LD(word w ARG_LD);
-#ifdef INT64_ALIGNMENT
-COMMON(int64_t)		valBignum__LD(word w ARG_LD);
-#endif
-COMMON(int)		equalIndirect(word r1, word r2);
-COMMON(size_t)		gsizeIndirectFromCode(Code PC);
-COMMON(word)		globalIndirectFromCode(Code *PC);
-#ifndef xmalloc
-COMMON(void *)		xmalloc(size_t size);
-COMMON(void *)		xrealloc(void *mem, size_t size);
-#endif
-
 /* pl-attvar.c */
 COMMON(void)		assignAttVar(Word av, Word value ARG_LD);
 COMMON(int)		saveWakeup(wakeup_state *state, int forceframe ARG_LD);
