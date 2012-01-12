@@ -3885,6 +3885,8 @@ VMI(B_THROW, 0, 0, ())
   int start_tracer;
 
   PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
+  THROW_EXCEPTION;				/* sets origin */
+
 b_throw:
   QF  = QueryFromQid(qid);
   aTop = QF->aSave;

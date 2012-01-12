@@ -1331,8 +1331,12 @@ choice_type last_choice;
 #define FRAME_FAILED		GO(frame_failed)
 #define CLAUSE_FAILED		GO(clause_failed)
 #define BODY_FAILED		GO(body_failed)
+#ifdef O_DEBUG
 #define THROW_EXCEPTION		do { throwed_from_line = __LINE__; \
 				     goto b_throw; } while(0)
+#else
+#define THROW_EXCEPTION		goto b_throw
+#endif
 
 #ifdef O_PROFILE
 #define Profile(g) if ( unlikely(LD->profile.active) ) g
@@ -1908,7 +1912,9 @@ PL_next_solution(qid_t qid)
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
   exception_frame throw_env;		/* PL_thow() environment */
+#ifdef O_DEBUG
   int	     throwed_from_line=0;	/* Debugging: line we came from */
+#endif
 #define	     CL (FR->clause)		/* clause of current frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2221,13 +2227,11 @@ START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
   Choice ch0 = BFR;
 #endif
   Choice ch;
-  LocalFrame fr0;
 
   DEBUG(3, Sdprintf("BACKTRACKING\n"));
 
 next_choice:
   ch = BFR;
-  fr0 = FR;
 					/* leave older frames */
   for(; (void *)FR > (void *)ch; FR = FR->parent)
   {

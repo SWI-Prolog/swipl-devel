@@ -5017,8 +5017,6 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   size_t len;
   intptr_t pcoffset;
   Code base, PC, next;
-  code op;
-  const code_info *ci;
 
   term_t from = A1;
   term_t offset = A2;
@@ -5051,8 +5049,6 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
     fail;
 
   PC = base + pcoffset;
-  op = fetchop(PC);
-  ci = &codeTable[op];
 
   if ( (next=unify_vmi(instruction, PC)) )
     return PL_unify_int64(noffset, next-base);
@@ -5460,11 +5456,9 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
   while( PC < loc )
   { code op = fetchop(PC);
-    const code_info *ci;
     Code nextpc = stepPC(PC);
 
-    ci = &codeTable[op];
-    DEBUG(1, Sdprintf("\t%s at %d\n", ci->name, PC-clause->codes));
+    DEBUG(1, Sdprintf("\t%s at %d\n", codeTable[op].name, PC-clause->codes));
 
     switch(op)
     { case I_ENTER:

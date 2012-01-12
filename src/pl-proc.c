@@ -2718,7 +2718,7 @@ addModuleSourceFile(SourceFile sf, Module m)
 
 out:
   UNLOCK();
-  return TRUE;
+  return rc;
 }
 
 

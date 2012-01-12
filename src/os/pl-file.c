@@ -679,10 +679,8 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 
 int
 PL_unify_stream(term_t t, IOSTREAM *s)
-{ stream_context *ctx;
-
-  LOCK();
-  ctx = getStreamContext(s);
+{ LOCK();
+  (void)getStreamContext(s);		/* get stream known to Prolog */
   UNLOCK();
 
   return unify_stream_ref(t, s);

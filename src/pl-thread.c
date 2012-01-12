@@ -2703,15 +2703,11 @@ peek_message(message_queue *queue, term_t msg ARG_LD)
   msgp = queue->head;
 
   for( msgp = queue->head; msgp; msgp = msgp->next )
-  { int rc;
-
-    if ( key && msgp->key && key != msgp->key )
+  { if ( key && msgp->key && key != msgp->key )
       continue;
 
     if ( !PL_recorded(msgp->message, tmp) )
-    { rc = raiseStackOverflow(GLOBAL_OVERFLOW);
-      break;
-    }
+      return raiseStackOverflow(GLOBAL_OVERFLOW);
 
     if ( PL_unify(msg, tmp) )
       return TRUE;

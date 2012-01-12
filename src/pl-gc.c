@@ -1864,9 +1864,8 @@ alternate flag for these two cases?
 static QueryFrame
 mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 { QueryFrame qf = NULL;
-  int first     = TRUE;
 
-  for(; fr; first=FALSE)
+  while ( fr )
   { walk_state state;
 
     if ( false(fr, FR_MARKED) )
