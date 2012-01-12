@@ -45,6 +45,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_SPARE_STACK),
   DEBUG_TOPIC(MSG_THREAD),
   DEBUG_TOPIC(MSG_THROW),
+  DEBUG_TOPIC(MSG_SRCLOC),
 						/* GC messages */
   DEBUG_TOPIC(MSG_AGC),
   DEBUG_TOPIC(MSG_CLAUSE_GC),

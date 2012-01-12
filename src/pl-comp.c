@@ -5310,11 +5310,6 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 		 *     SOURCE LEVEL DEBUGGER	*
 		 *******************************/
 
-#if 0
-#undef DEBUG
-#define DEBUG(l, g) g
-#endif
-
 static Code
 find_code1(Code PC, code fop, code ctx)
 { for(;; PC = stepPC(PC))
@@ -5348,7 +5343,7 @@ find_if_then_end(Code PC, Code base)
 
 	jmploc = nextpc + PC[1];
 	PC = jmploc + jmploc[-1];
-	DEBUG(1, Sdprintf("find_if_then_end: C_OR --> %d\n", PC-base));
+	DEBUG(MSG_SRCLOC, Sdprintf("find_if_then_end: C_OR --> %d\n", PC-base));
 	break;
       }
       case C_NOT:
@@ -5391,7 +5386,7 @@ add_node(term_t tail, int n ARG_LD)
   rval = PL_unify_list(tail, h, tail) && PL_unify_integer(h, n);
   PL_reset_term_refs(h);
 
-  DEBUG(1, Sdprintf("Added %d\n", n));
+  DEBUG(MSG_SRCLOC, Sdprintf("Added %d\n", n));
 
   return rval;
 }
@@ -5403,7 +5398,7 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
     PC = stepPC(PC);
 
   if ( PC != end )
-  { DEBUG(1, Sdprintf("not-at-end: adding 1\n"));
+  { DEBUG(MSG_SRCLOC, Sdprintf("not-at-end: adding 1\n"));
     add_node(tail, 1 PASS_LD);
   }
 }
@@ -5444,9 +5439,9 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   PC = clause->codes;
   loc = &PC[pcoffset];
   end = &PC[clause->code_size - 1];		/* forget the final I_EXIT */
-  DEBUG(0, assert(fetchop(end) == I_EXIT ||
-		  fetchop(end) == I_EXITFACT ||
-		  fetchop(end) == I_EXITCATCH));
+  assert(fetchop(end) == I_EXIT ||
+	 fetchop(end) == I_EXITFACT ||
+	 fetchop(end) == I_EXITCATCH);
 
   if ( pcoffset == (int)clause->code_size )
     return PL_unify_atom(A3, ATOM_exit);
@@ -5458,7 +5453,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   { code op = fetchop(PC);
     Code nextpc = stepPC(PC);
 
-    DEBUG(1, Sdprintf("\t%s at %d\n", codeTable[op].name, PC-clause->codes));
+    DEBUG(MSG_SRCLOC,
+	  Sdprintf("\t%s at %d\n", codeTable[op].name, PC-clause->codes));
 
     switch(op)
     { case I_ENTER:
@@ -5486,8 +5482,9 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	endloc = jmploc + jmploc[-1];
 	PC = nextpc;
 
-	DEBUG(1, Sdprintf("jmp = %d, end = %d\n",
-			  jmploc - clause->codes, endloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("jmp = %d, end = %d\n",
+		       jmploc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )		/* loc is in the disjunction */
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
@@ -5520,18 +5517,20 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	  assert(endnot[0] == encode(C_CUT));
 	}
 
-	DEBUG(1, Sdprintf("not: PC=%d, endnot=%d, endloc=%d\n",
-			  PC - clause->codes,
-			  endnot - clause->codes,
-			  endloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("not: PC=%d, endnot=%d, endloc=%d\n",
+		       PC - clause->codes,
+		       endnot - clause->codes,
+		       endloc - clause->codes));
 
 	if ( loc <= endnot )		/* in the \+ argument */
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  add_node(tail, 1 PASS_LD);
 	  end = endnot;			/* C_CUT <var>, C_FAIL */
-	  DEBUG(1, Sdprintf("Inside not: PC=%d, end = %d\n",
-			    PC - clause->codes, end - clause->codes));
+	  DEBUG(MSG_SRCLOC,
+		Sdprintf("Inside not: PC=%d, end = %d\n",
+			 PC - clause->codes, end - clause->codes));
 	  continue;
 	} else if ( loc <= endloc )
 	{ return PL_error(NULL, 0, "not a possible continuation",
@@ -5548,8 +5547,9 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
 	endloc = elseloc + elseloc[-1];
 
-	DEBUG(1, Sdprintf("else = %d, end = %d\n",
-			  elseloc - clause->codes, endloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("else = %d, end = %d\n",
+		       elseloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
@@ -5557,7 +5557,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	  if ( loc <= elseloc )		/* a->b */
 	  { Code cutloc = find_code1(nextpc, cut, PC[1]);
 
-	    DEBUG(1, Sdprintf("cut at %d\n", cutloc - clause->codes));
+	    DEBUG(MSG_SRCLOC, Sdprintf("cut at %d\n", cutloc - clause->codes));
 	    add_node(tail, 1 PASS_LD);
 
 	    if ( loc <= cutloc )	/* a */
@@ -5569,7 +5569,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	      PC = cutloc + 2;
 	      end = elseloc-2;
 	    }
-	    DEBUG(1, Sdprintf("end = %d\n", end - clause->codes));
+	    DEBUG(MSG_SRCLOC, Sdprintf("end = %d\n", end - clause->codes));
 	    continue;
 	  }
 					/* c */
@@ -5585,12 +5585,14 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 				/* C_IFTHEN <var> <A> C_CUT <var> <B> C_END */
       { Code cutloc = find_code1(nextpc, C_CUT, PC[1]);
 
-	DEBUG(1, Sdprintf("C_IFTHEN: cut at %d\n", cutloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("C_IFTHEN: cut at %d\n", cutloc - clause->codes));
 	endloc = find_if_then_end(cutloc+2, clause->codes)+1;
 	PC = nextpc;
 
-	DEBUG(1, Sdprintf("C_MARK: cut = %d, end = %d\n",
-			  cutloc - clause->codes, endloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("C_MARK: cut = %d, end = %d\n",
+		       cutloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
