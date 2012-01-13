@@ -137,15 +137,20 @@ cleanRecordList(RecordList rl)
 }
 
 
+/* unallocRecordList() is used when memory is cleaned for PL_cleanup().
+   We set R_NOLOCK to avoid needless update of the atom references in
+   freeRecord().
+*/
+
 static void
 unallocRecordList(RecordList rl)
-{ RecordRef p, n;
+{ RecordRef r, n;
 
-  for(p = rl->firstRecord; p; p=n)
-  { n = p->next;
+  for(r = rl->firstRecord; r; r=n)
+  { n = r->next;
 
-    freeRecord(p->record);
-    freeHeap(p, sizeof(*p));
+    set(r->record, R_NOLOCK);
+    freeRecordRef(r);
   }
 
   freeHeap(rl, sizeof(*rl));
