@@ -691,7 +691,7 @@ clearBuffer(ReadData _PL_rd)
 static void
 growToBuffer(int c, ReadData _PL_rd)
 { if ( rb.base == rb.fast )		/* long clause: jump to use malloc() */
-  { rb.base = PL_malloc(FASTBUFFERSIZE * 2);
+  { rb.base = PL_malloc_atomic(FASTBUFFERSIZE * 2);
     memcpy(rb.base, rb.fast, FASTBUFFERSIZE);
   } else
     rb.base = PL_realloc(rb.base, rb.size*2);
