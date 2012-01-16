@@ -83,5 +83,5 @@ COMMON(int)		printMessage(atom_t severity, ...);
 #ifdef ARG_LD
 COMMON(int)		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
 #endif
-COMMON(int)		PL_get_module_ex(term_t name, Module *m);
+COMMON(int)		PL_get_module_ex(term_t name, module_t *m);
 COMMON(int)		PL_get_arg_ex(int n, term_t term, term_t arg);

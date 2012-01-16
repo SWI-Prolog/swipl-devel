@@ -609,7 +609,11 @@ place them on the stack (see I_USERCALL).
 #define WORD_ALIGNED
 #endif
 
+#ifndef PL_HAVE_TERM_T
+#define PL_HAVE_TERM_T
 typedef uintptr_t		term_t;		/* external term-reference */
+#endif
+
 typedef uintptr_t		word;		/* Anonymous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */

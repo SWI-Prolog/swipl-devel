@@ -140,7 +140,10 @@ typedef uintptr_t	functor_t;	/* Name/arity pair */
 typedef void *		module_t;	/* Prolog module */
 typedef void *		predicate_t;	/* Prolog procedure */
 typedef void *		record_t;	/* Prolog recorded term */
+#ifndef PL_HAVE_TERM_T
+#define PL_HAVE_TERM_T
 typedef uintptr_t	term_t;		/* opaque term handle */
+#endif
 typedef uintptr_t	qid_t;		/* opaque query handle */
 typedef uintptr_t	PL_fid_t;	/* opaque foreign context handle */
 typedef void *		control_t;	/* non-deterministic control arg */

@@ -137,6 +137,11 @@ typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 typedef void *		IOLOCK;		/* Definition for external use */
 #endif
 
+#ifndef PL_HAVE_TERM_T
+#define PL_HAVE_TERM_T
+typedef uintptr_t	term_t;		/* opaque term handle */
+#endif
+
 typedef struct io_functions
 { Sread_function	read;		/* fill the buffer */
   Swrite_function	write;		/* empty the buffer */
@@ -374,11 +379,7 @@ PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
 PL_EXPORT(int)		Sferror(IOSTREAM *s);
 PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
 PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
-#ifdef _FLI_H_INCLUDED
 PL_EXPORT(void)		Sset_exception(IOSTREAM *s, term_t ex);
-#else
-PL_EXPORT(void)		Sset_exception(IOSTREAM *s, intptr_t ex);
-#endif
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
 PL_EXPORT(int64_t)	Ssize(IOSTREAM *s);

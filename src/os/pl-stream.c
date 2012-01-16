@@ -56,9 +56,9 @@ locking is required.
 
 #define PL_KERNEL 1
 #include <wchar.h>
-typedef wchar_t pl_wchar_t;
 #define NEEDS_SWINSOCK
 #include "SWI-Stream.h"
+#include "SWI-Prolog.h"
 #include "pl-utf8.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
@@ -132,10 +132,6 @@ STRYLOCK(IOSTREAM *s)
 #define STRYLOCK(s) (TRUE)
 #endif
 
-typedef void *record_t;
-typedef void *Module;
-typedef intptr_t term_t;
-typedef intptr_t atom_t;
 #include "pl-error.h"
 
 extern int			fatalError(const char *fm, ...);
@@ -1707,13 +1703,13 @@ unallocStream(IOSTREAM *s)
 #ifdef O_PLMT
   if ( s->mutex )
   { recursiveMutexDelete(s->mutex);
-    free(s->mutex);
+    PL_free(s->mutex);
     s->mutex = NULL;
   }
 #endif
 
   if ( !(s->flags & SIO_STATIC) )
-    free(s);
+    PL_free(s);
 }
 
 
@@ -2740,13 +2736,16 @@ provide  the  socket-id  through   Sfileno,    this   code   crashes  on
 tcp_open_socket(). As ttys and its detection is   of no value on Windows
 anyway, we skip this. Second, Windows doesn't have fork(), so FD_CLOEXEC
 is of no value.
+
+For now, we use PL_malloc_uncollectable(). In   the  end, this is really
+one of the object-types we want to leave to GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 IOSTREAM *
 Snew(void *handle, int flags, IOFUNCTIONS *functions)
 { IOSTREAM *s;
 
-  if ( !(s = malloc(sizeof(IOSTREAM))) )
+  if ( !(s = PL_malloc_uncollectable(sizeof(IOSTREAM))) )
   { errno = ENOMEM;
     return NULL;
   }
@@ -2766,8 +2765,8 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     s->position = &s->posbuf;
 #ifdef O_PLMT
   if ( !(flags & SIO_NOMUTEX) )
-  { if ( !(s->mutex = malloc(sizeof(recursiveMutex))) )
-    { free(s);
+  { if ( !(s->mutex = PL_malloc(sizeof(recursiveMutex))) )
+    { PL_free(s);
       return NULL;
     }
     recursiveMutexInit(s->mutex);
@@ -3391,7 +3390,7 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
 { int flags = SIO_FBUF|SIO_USERBUF;
 
   if ( !s )
-  { if ( !(s = malloc(sizeof(IOSTREAM))) )
+  { if ( !(s = PL_malloc_uncollectable(sizeof(IOSTREAM))) ) /* TBD: Use GC */
     { errno = ENOMEM;
       return NULL;
     }
@@ -3480,7 +3479,7 @@ SinitStreams(void)
       if ( s->encoding == ENC_ISO_LATIN_1 )
 	s->encoding = enc;
 #ifdef O_PLMT
-      s->mutex = malloc(sizeof(recursiveMutex));
+      s->mutex = PL_malloc(sizeof(recursiveMutex));
       recursiveMutexInit(s->mutex);
 #endif
 #if CRLF_MAPPING
