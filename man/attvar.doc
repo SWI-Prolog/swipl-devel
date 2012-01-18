@@ -2,10 +2,10 @@
 
 This chapter deals with extensions primarily designed to support
 constraint logic programming (CLP). The low-level attributed variable
-interface defined in in \secref{attvar} is not intended for the typical
+interface defined in \secref{attvar} is not intended for the typical
 Prolog programmer. Instead, the typical Prolog programmer should use the
 coroutining predicates and the various constraint solvers built on top
-of attributed variables. CHR (\secref{chr}) provides a general purpose
+of attributed variables. CHR (\chapref{chr}) provides a general purpose
 constraint handling language.
 
 As a rule of thumb, constraint programming reduces the search space by
@@ -16,9 +16,9 @@ it could translate $X > 0$ with uninstantiated X to \term{between}{1,
 infinite, X} and a similar primitive for $X < 3$. If the two are
 combined it has no choice but to generate and test over this infinite
 two-dimensional space. Instead, a constraint system will \jargon{delay}
-an uninstantated goal to $X > 0$. If, later, it finds a value for
+an uninstantiated goal to $X > 0$. If, later, it finds a value for
 \arg{X} it will execute the test. If it finds $X < 3$ it will combine
-this knowledge to infer that X is in 1..2 (see below). If never finds a
+this knowledge to infer that X is in 1..2 (see below). If it never finds a
 concrete value for \arg{X} it can be asked to \jargon{label} \arg{X} and
 produce 1 and 2 on backtracking. See \secref{clpfd}.
 
@@ -35,10 +35,10 @@ Using constraints generally makes your program more
 \jargon{declarative}. There are some caveats though:
 
 \begin{itemize}
-    \item Constraints and cuts to not merge well.  A cut after a goal
-    that is delayed prunes the search-space before the condition
+    \item Constraints and cuts do not merge well.  A cut after a goal
+    that is delayed prunes the search space before the condition
     is true.
-    \item Term-copying operations (assert/1, restract/2, findall/3,
+    \item Term-copying operations (assert/1, retract/2, findall/3,
     copy_term/2, etc.) generally also copy constraints.  The effect
     varies from ok, silent copying of huge constraint networks
     to violations of the internal consistency of constraint
@@ -55,17 +55,17 @@ of attributed variables. There is no consensus in the Prolog community
 on the exact definition and interface to attributed variables. The
 SWI-Prolog interface is identical to the one realised by Bart Demoen for
 hProlog \cite{Demoen:CW350}. This interface is simple and available on
-all Prolog systems that can run the Leuven CHR system (see \secref{chr}
+all Prolog systems that can run the Leuven CHR system (see \chapref{chr}
 and the Leuven \url[CHR
-page]{http://people.cs.kuleuven.be/~tom.schrijvers/CHR/}.
+page]{http://people.cs.kuleuven.be/~tom.schrijvers/CHR/}).
 
 Binding an attributed variable schedules a goal to be executed at the
 first possible opportunity. In the current implementation the hooks are
 executed immediately after a successful unification of the clause-head
 or successful completion of a foreign language (built-in) predicate. Each
-attribute is associated to a module and the hook (attr_unify_hook/2) is
+attribute is associated to a module, and the hook (attr_unify_hook/2) is
 executed in this module.  The example below realises a very simple and
-incomplete finite domain reasoner.
+incomplete finite domain reasoner:
 
 \begin{code}
 :- module(domain,
@@ -117,16 +117,16 @@ Before explaining the code we give some example queries:
 \end{quote}
 
 The predicate \nopredref{domain}{2} fetches (first clause) or assigns
-(second clause) the variable a \emph{domain}, a set of values it can be
-unified with. In the second clause first associates the domain with a
-fresh variable and then unifies X to this variable to deal with the
-possibility that X already has a domain. The predicate attr_unify_hook/2
+(second clause) the variable a \emph{domain}, a set of values the variable can be
+unified with. In the second clause, domain/2 first associates the domain with a
+fresh variable (Y) and then unifies X to this variable to deal with the
+possibility that X already has a domain. The predicate attr_unify_hook/2 (see below)
 is a hook called after a variable with a domain is assigned a value. In
-the simple case where the variable is bound to a concrete value we
+the simple case where the variable is bound to a concrete value, we
 simply check whether this value is in the domain. Otherwise we take the
 intersection of the domains and either fail if the intersection is empty
-(first example), simply assign the value if there is only one value in
-the intersection (second example) or assign the intersection as the new
+(first example), assign the value if there is only one value in
+the intersection (second example), or assign the intersection as the new
 domain of the variable (third example). The nonterminal
 attribute_goals/3 is used to translate remaining attributes to
 user-readable goals that, when executed, reinstate these attributes.
@@ -143,8 +143,8 @@ put_attr/3.
 If \arg{Var} is a variable or attributed variable, set the value for the
 attribute named \arg{Module} to \arg{Value}. If an attribute with this
 name is already associated with \var{Var}, the old value is replaced.
-Backtracking will restore the old value (i.e.\ an attribute is a mutable
-term. See also setarg/3). This predicate raises a representation error if
+Backtracking will restore the old value (i.e., an attribute is a mutable
+term; see also setarg/3). This predicate raises a representation error if
 \arg{Var} is not a variable and a type error if \arg{Module} is not an atom.
 
     \predicate{get_attr}{3}{+Var, +Module, -Value}
@@ -157,7 +157,7 @@ is not an atom, a type error is raised.
 Delete the named attribute.  If \arg{Var} loses its last attribute it
 is transformed back into a traditional Prolog variable.  If \arg{Module}
 is not an atom, a type error is raised. In all other cases this
-predicate succeeds regardless whether or not the named attribute is
+predicate succeeds regardless of whether or not the named attribute is
 present.
 \end{description}
 
@@ -166,19 +166,19 @@ present.
 
 Attribute names are linked to modules. This means that certain
 operations on attributed variables cause \jargon{hooks} to be called in
-the the module whose name matches the attribute name.
+the module whose name matches the attribute name.
 
 \begin{description}
     \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
-Hook that must be defined in the module an attributed variable refers
-to. Is is called \emph{after} the attributed variable has been
+A hook that must be defined in the module to which an attributed variable 
+refers. It is called \emph{after} the attributed variable has been
 unified with a non-var term, possibly another attributed variable.
 \arg{AttValue} is the attribute that was associated to the variable
 in this module and \arg{VarValue} is the new value of the variable.
 Normally this predicate fails to veto binding the variable to
 \arg{VarValue}, forcing backtracking to undo the binding.  If
 \arg{VarValue} is another attributed variable the hook often combines
-the two attribute and associates the combined attribute with
+the two attributes and associates the combined attribute with
 \arg{VarValue} using put_attr/3.
 
     \predicate{attr_portray_hook}{2}{+AttValue, +Var}
@@ -210,15 +210,15 @@ in a portable and understandable fashion. This predicate is the
 preferred way to reason about and communicate terms with constraints.
 
     \predicate{copy_term_nat}{2}{+Term, -Copy}
-As copy_term/2.  Attributes however, are \emph{not} copied but replaced
+As copy_term/2.  Attributes, however, are \emph{not} copied but replaced
 by fresh variables.
 
     \predicate{term_attvars}{2}{+Term, -AttVars}
 \arg{AttVars} is a list of all attributed variables in \arg{Term} and
-its attributes. I.e., term_attvars/2 works recursively through
-attributes. This predicate is Cycle-safe. The goal
+its attributes. That is, term_attvars/2 works recursively through
+attributes. This predicate is cycle-safe. The goal
 \term{term_attvars}{Term, []} in an efficient test that \arg{Term} has
-\emph{no} attributes. I.e., scanning the term is aborted after the first
+\emph{no} attributes; scanning the term is aborted after the first
 attributed variable is found.
 \end{description}
 
@@ -227,7 +227,7 @@ attributed variable is found.
 
 Normal user code should deal with put_attr/3, get_attr/3 and del_attr/2.
 The routines in this section fetch or set the entire attribute list of a
-variables. Use of these predicates is anticipated to be restricted to
+variable. Use of these predicates is anticipated to be restricted to
 printing and other special purpose operations.
 
 \begin{description}
@@ -256,7 +256,7 @@ a goal to execute immediately after a variable is bound can
 be used to avoid instantiation errors for some built-in predicates
 (e.g.\ arithmetic), do work \jargon{lazy}, prevent the binding of
 a variable to a particular value, etc.  Using freeze/2 for example
-we can define a variable can only be assigned an even number:
+we can define a variable that can only be assigned an even number:
 
 \begin{code}
 ?- freeze(X, X mod 2 =:= 0), X = 3
@@ -284,37 +284,37 @@ is one of \term{?=}{X, Y}, \term{nonvar}{X}, \term{ground}{X},
 \term{,}{Cond1, Cond2} or \term{;}{Cond1, Cond2}.  See also freeze/2
 and dif/2.  The implementation can deal with cyclic terms in \arg{X} and \arg{Y}.
 
-The when/2 predicate is realised using attributed variable associated
+The when/2 predicate is realised using attributed variables associated
 with the module \const{when}.  It is defined in the autoload library
 \pllib{when}.
 
     \predicate{dif}{2}{@{A}, @{B}}
 The dif/2 predicate provides a constraint stating that \arg{A} and
-\arg{B} are different terms. If \arg{A} and \arg{B} can never unify
+\arg{B} are different terms. If \arg{A} and \arg{B} can never unify,
 dif/2 succeeds deterministically. If \arg{A} and \arg{B} are identical
-it fails immediately and finally, if \arg{A} and \arg{B} can unify,
+it fails immediately, and finally, if \arg{A} and \arg{B} can unify,
 goals are delayed that prevent \arg{A} and \arg{B} to become equal. The
 dif/2 predicate behaves as if defined by
 \verb$dif(X, Y) :- when(?=(X, Y), X \== Y)$. See also \predref{?=}{2}.
 The implementation can deal with cyclic terms.
 
-The dif/2 predicate is realised using attributed variable associated
+The dif/2 predicate is realised using attributed variables associated
 with the module \const{dif}.  It is defined in the autoload library
 \pllib{dif}.
 
     \predicate{call_residue_vars}{2}{:Goal, -Vars}
 Find residual attributed variables left by \arg{Goal}. This predicate is
 intended for debugging programs using coroutining or constraints.
-Consider a program that poses contracting constraints on a variable.
+Consider a program that poses contradicting constraints on a variable.
 Such programs should fail, but sometimes succeed because the constraint
 solver is too weak to detect the contradiction. Ideally, delayed goals
 and constraints are all executed at the end of the computation. The meta
-predicate call_residue_vars/2 finds variables that are given attributes
+predicate call_residue_vars/2 finds variables that are given attribute
 variables or whose attributes are modified%
 	\footnote{Tracking modifications is currently not complete and
 		  this feature may be dropped completely in future
 		  versions.}
-by \arg{Goal}, regardless or not whether these variables are reachable
+by \arg{Goal}, regardless of whether or not these variables are reachable
 from the arguments of \arg{Goal}.
 
 The predicate has considerable implications. During the execution of
@@ -322,7 +322,7 @@ The predicate has considerable implications. During the execution of
 This causes some degradation of GC performance. In a well-behaved
 program there are no such variables, so the space impact is generally
 minimal. The actual collection of \arg{Vars} is implemented using a scan
-of the trail- and global stacks.
+of the trail and global stacks.
 \end{description}
 
 
@@ -334,7 +334,7 @@ or recorda/3.
 
 \begin{itemize}
     \item The value lives on the Prolog (global) stack.  This implies
-          that lookup time is independent from the size of the term.
+          that lookup time is independent of the size of the term.
 	  This is particularly interesting for large data structures
 	  such as parsed XML documents or the CHR global constraint
 	  store.
@@ -357,22 +357,22 @@ referenced name does not already refer to a variable.
 
 Global variables may be initialised from directives to make them
 available during the program lifetime, but some considerations are
-necessary for saved-states and threads. Saved-states to not store global
+necessary for saved states and threads. Saved states do not store global
 variables, which implies they have to be declared with initialization/1
 to recreate them after loading the saved state.  Each thread has
 its own set of global variables, starting with an empty set.  Using
 thread_initialization/1 to define a global variable it will be
 defined, restored after reloading a saved state and created in all
 threads that are created \emph{after} the registration.  Finally,
-global variables can be initialised using the exception hook called
-exception/3.  The latter technique is by CHR (see \chapref{chr}.
+global variables can be initialised using the exception hook 
+exception/3.  The latter technique is used by CHR (see \chapref{chr}).
 
 
 \begin{description}
     \predicate{b_setval}{2}{+Name, +Value}
-Associate the term \arg{Value} with the atom \arg{Name} or replaces
+Associate the term \arg{Value} with the atom \arg{Name} or replace
 the currently associated value with \arg{Value}.  If \arg{Name} does
-not refer to an existing global variable a variable with initial value
+not refer to an existing global variable, a variable with initial value
 \const{[]} is created (the empty list).  On backtracking the
 assignment is reversed.
 
@@ -394,9 +394,9 @@ initial value other than \const{[]} prior to backtrackable assignment.
     \predicate{nb_getval}{2}{+Name, -Value}
 The nb_getval/2 predicate is a synonym for b_getval/2, introduced for
 compatibility and symmetry.  As most scenarios will use a particular
-global variable either using non-backtrackable or backtrackable
+global variable using either non-backtrackable or backtrackable
 assignment, using nb_getval/2 can be used to document that the
-variable is used non-backtrackable.
+variable is non-backtrackable.
 
     \predicate{nb_linkval}{2}{+Name, +Value}
 Associates the term \arg{Value} with the atom \arg{Name} without copying
@@ -406,7 +406,7 @@ before creating the link are poorly defined for compound terms. The
 principal term is always left untouched, but backtracking behaviour on
 arguments is undone if the original assignment was \jargon{trailed} and
 left alone otherwise, which implies that the history that created the
-term affects the behaviour on backtracking. Please consider the
+term affects the behaviour on backtracking. Consider the
 following example:
 
 \begin{code}
@@ -434,9 +434,9 @@ Delete the named global variable.
 Global variables have been introduced by various Prolog implementations
 recently.  The implementation of them in SWI-Prolog is based on hProlog
 by Bart Demoen. In discussion with Bart it was decided that the
-semantics if hProlog nb_setval/2, which is equivalent to nb_linkval/2
+semantics of hProlog nb_setval/2, which is equivalent to nb_linkval/2,
 is not acceptable for normal Prolog users as the behaviour is influenced
-by how built-in predicates constructing terms (read/1, =../2, etc.) are
+by how built-in predicates that construct terms (read/1, =../2, etc.) are
 implemented.
 
 GNU-Prolog provides a rich set of global variables, including arrays.
