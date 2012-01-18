@@ -67,6 +67,7 @@
 #define PL_get_integer(t, i)	PL_get_integer__LD(t, i PASS_LD)
 #define PL_get_long(t, i)	PL_get_long__LD(t, i PASS_LD)
 #define PL_get_int64(t, i)	PL_get_int64__LD(t, i PASS_LD)
+#define PL_unify_number(t, n)	PL_unify_number__LD(t, n PASS_LD)
 #define PL_get_pointer(t, ptr)	PL_get_pointer__LD(t, ptr PASS_LD)
 #define PL_put_term(t1, t2)	PL_put_term__LD(t1, t2 PASS_LD)
 #define PL_get_functor(t, f)	PL_get_functor__LD(t, f PASS_LD)

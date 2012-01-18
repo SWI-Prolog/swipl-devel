@@ -753,9 +753,8 @@ put_number(Word at, Number n, int flags ARG_LD)
 
 
 int
-PL_unify_number(term_t t, Number n)
-{ GET_LD
-  Word p = valTermRef(t);
+PL_unify_number__LD(term_t t, Number n ARG_LD)
+{ Word p = valTermRef(t);
 
   deRef(p);
 
@@ -1056,7 +1055,8 @@ PL_get_mpq(term_t t, mpq_t mpq)
 
 int
 PL_unify_mpz(term_t t, mpz_t mpz)
-{ number n;
+{ GET_LD
+  number n;
   int rc;
 
   n.type = V_MPZ;
@@ -1072,7 +1072,8 @@ PL_unify_mpz(term_t t, mpz_t mpz)
 
 int
 PL_unify_mpq(term_t t, mpq_t mpq)
-{ number n;
+{ GET_LD
+  number n;
   int rc;
 
   n.type = V_MPQ;

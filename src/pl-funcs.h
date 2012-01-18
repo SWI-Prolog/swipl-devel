@@ -701,7 +701,7 @@ COMMON(int)		enableThreads(int enable);
 
 
 /* pl-gmp.c */
-COMMON(int)	PL_unify_number(term_t t, Number n);
+COMMON(int)	PL_unify_number__LD(term_t t, Number n ARG_LD);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);
