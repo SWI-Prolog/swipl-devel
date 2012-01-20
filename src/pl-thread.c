@@ -185,7 +185,11 @@ static Table queueTable;		/* name --> queue */
 static int queue_id;			/* next generated id */
 static int will_exec;			/* process will exec soon */
 
+#ifdef HAVE___THREAD
+__thread PL_local_data_t *GLOBAL_LD;
+#else
 TLD_KEY PL_ldata;			/* key for thread PL_local_data */
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The global mutexes. Most are using  within   a  module and their name is
@@ -438,7 +442,7 @@ static int
 initialise_thread(PL_thread_info_t *info)
 { assert(info->thread_data);
 
-  TLD_set(PL_ldata, info->thread_data);
+  TLD_set_LD(info->thread_data);
 
   if ( !info->local_size    ) info->local_size    = GD->options.localSize;
   if ( !info->global_size   ) info->global_size   = GD->options.globalSize;
@@ -685,10 +689,13 @@ initPrologThreads()
 #endif
 
   if ( !init_ldata_key )
-  { TLD_alloc(&PL_ldata);		/* see also alloc_thread() */
-    init_ldata_key = TRUE;
+  { init_ldata_key = TRUE;
+#ifndef HAVE___THREAD
+    TLD_alloc(&PL_ldata);		/* see also alloc_thread() */
+#endif
   }
-  TLD_set(PL_ldata, &PL_local_data);
+  TLD_set_LD(&PL_local_data);
+
   PL_local_data.magic = LD_MAGIC;
   { GET_LD
 
@@ -4113,7 +4120,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->_debugstatus.retryFrame = NULL;
   ldnew->prolog_flag.mask	 = ldmain->prolog_flag.mask;
   if ( ldmain->prolog_flag.table )
-  { TLD_set(PL_ldata, info->thread_data);
+  { TLD_set_LD(info->thread_data);
 
     PL_LOCK(L_PLFLAG);
     ldnew->prolog_flag.table	 = copyHTable(ldmain->prolog_flag.table);
@@ -4146,7 +4153,7 @@ PL_thread_destroy_engine()
   if ( LD )
   { if ( --LD->thread.info->open_count == 0 )
     { free_prolog_thread(LD);
-      TLD_set(PL_ldata, NULL);
+      TLD_set_LD(NULL);
     }
 
     return TRUE;
@@ -4196,7 +4203,7 @@ detach_engine(PL_engine_t e)
   memset(&info->tid, 0, sizeof(info->tid));
   info->has_tid = FALSE;
 
-  TLD_set(PL_ldata, NULL);
+  TLD_set_LD(NULL);
 }
 
 
@@ -4225,7 +4232,7 @@ PL_set_engine(PL_engine_t new, PL_engine_t *old)
       detach_engine(current);
 
     if ( new )
-    { TLD_set(PL_ldata, new);
+    { TLD_set_LD(new);
       new->thread.info->tid = pthread_self();
 
       set_system_thread_id(new->thread.info);
