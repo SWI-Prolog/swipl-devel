@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,6 +36,7 @@
 :- use_module(library(lists)).
 :- use_module(library(readutil)).
 :- use_module(library(apply)).
+:- use_module(library(prolog_source)).
 
 /** <module> Load hotfixes into executables
 
@@ -99,13 +101,15 @@ prolog_source_files(_) -->
 	[].
 
 
-%%	apply_hotfix(HotfixDir, File) is det.
+%%	apply_hotfix(+HotfixDir, +File) is det.
 %
 %	Locate the hotfix and load it if it is newer. First step to find
 %	the file we must replace is using  the module name, as these are
 %	guaranteed to be unique in the Prolog process. If that fails, we
 %	use the filename, but now we  can   get  multiple files with the
-%	same name loaded from different directories as candidates.
+%	same name loaded  from  different   directories  as  candidates.
+%	Finally, if no file matches, we load   the  file into the =user=
+%	module.
 
 apply_hotfix(_HotfixDir, File) :-
 	file_module(File, Module),
@@ -124,14 +128,18 @@ apply_hotfix(HotfixDir, File) :-
 		    sub_atom(Loaded, _, _, 0, SlashLocal)
 		),
 		Pairs),
+	Pairs \== [], !,
 	(   Pairs = [Loaded-Time]
 	->  true
 	;   select_file_to_reload(Pairs, Local, Loaded-Time)
 	),
 	time_file(File, HotfixTime),
-	HotfixTime =\= Time, !,
-	load_hotfix(File, Loaded).
-apply_hotfix(_, _).
+	(   HotfixTime =\= Time
+	->  load_hotfix(File, Loaded)
+	;   true
+	).
+apply_hotfix(_HotfixDir, File) :-
+	user:consult(File).
 
 
 %%	ensure_dirsep(+Dir, -DirSlash) is det.
@@ -195,7 +203,8 @@ file_module(File, Module) :-
 	catch(file_module_guarded(File, Module), _, fail).
 
 file_module_guarded(File, Module) :-
-	prolog_open_source(File, In),
-	call_cleanup(prolog_read_source_term(In, _, Expanded, []), _,
-		     prolog_close_source(In)),
+	setup_call_cleanup(
+	    prolog_open_source(File, In),
+	    prolog_read_source_term(In, _, Expanded, []),
+	    prolog_close_source(In)),
 	Expanded = (:- module(Module, _)).
