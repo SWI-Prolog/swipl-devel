@@ -3984,7 +3984,7 @@ emitting cyclic terms without using the template construct produces an
 infinitely large term (read: it will generate an error after producing
 a huge amount of output).
 
-    \termitem{double_quotes}{Bool}
+    \termitem{double_quotes}{Atom}
 Defines how to read "\ldots" strings. See the Prolog flag
 \prologflag{double_quotes}.  (SWI-Prolog).
 
