@@ -798,7 +798,8 @@ of the CHR compiler.
 \item[Type clash] for variable ... in rule ...
 
 	This error indicates an inconsistency between declared types;
-	a variable should belong to two types. See static type checking.
+	a variable can not belong to two types. See static type
+	checking.
 
 \item[Invalid functor] in head ... of rule ...
 
