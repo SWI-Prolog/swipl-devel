@@ -2741,6 +2741,10 @@ For now, we use PL_malloc_uncollectable(). In   the  end, this is really
 one of the object-types we want to leave to GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef FD_CLOEXEC			/* This is not defined in MacOS */
+#define FD_CLOEXEC 1
+#endif
+
 IOSTREAM *
 Snew(void *handle, int flags, IOFUNCTIONS *functions)
 { IOSTREAM *s;
@@ -2778,7 +2782,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   if ( (fd = Sfileno(s)) >= 0 )
   { if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
-#if defined(F_SETFD) && defined(FD_CLOEXEC)
+#ifdef F_SETFD
     fcntl(fd, F_SETFD, FD_CLOEXEC);
 #endif
   }
