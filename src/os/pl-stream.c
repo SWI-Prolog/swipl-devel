@@ -3590,7 +3590,7 @@ Scleanup(void)
 
       S__iob[i].mutex = NULL;
       recursiveMutexDelete(m);
-      free(m);
+      PL_free(m);
     }
 #endif
 
