@@ -4147,7 +4147,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
 
 int
-PL_thread_destroy_engine()
+PL_thread_destroy_engine(void)
 { GET_LD
 
   if ( LD )
@@ -4164,7 +4164,7 @@ PL_thread_destroy_engine()
 
 
 int
-attachConsole()
+attachConsole(void)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
   int rval;
