@@ -603,7 +603,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   unvisit(PASS_LD1);
 
   size = rsize + sizeOfBuffer(&info.code);
-  record = PL_malloc_atomic(size);
+  record = PL_malloc_atomic_unmanaged(size);
 #ifdef REC_MAGIC
   record->magic = REC_MAGIC;
 #endif
