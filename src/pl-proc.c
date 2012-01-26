@@ -3119,6 +3119,118 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
   return FALSE;
 }
 
+
+/** copy_predicate(From:predicate_indicator, To:predicate_indicator) is det.
+
+Copy all clauses of From into To. To is created as a dynamic predicate.
+*/
+
+static void
+remoduleClause(Clause cl, Module old, Module new)
+{ Code PC, end;
+  int in_body = FALSE;
+
+  if ( true(cl, UNIT_CLAUSE) )
+    return;
+
+  PC  = cl->codes;
+  end = &PC[cl->code_size];
+  for( ; PC < end; PC = stepPC(PC) )
+  { code op = fetchop(PC);
+
+    if ( in_body )
+    { const char *ats=codeTable[op].argtype;
+      int an;
+
+      for(an=0; ats[an]; an++)
+      { switch(ats[an])
+	{ case CA1_PROC:
+	  { Procedure op = (Procedure)PC[an+1];
+
+	    if ( op->definition->module != MODULE_system )
+	    { functor_t f = op->definition->functor->functor;
+
+	      PC[an+1] = (code)lookupProcedure(f, new);
+	    }
+	    break;
+	  }
+	  case CA1_MODULE:
+	  { if ( old == (Module)PC[an+1] )
+	      PC[an+1] = (code)new;
+	  }
+	}
+      }
+    } else if ( op == I_ENTER )
+    { in_body = TRUE;
+    }
+  }
+}
+
+
+static
+PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
+{ PRED_LD
+  Procedure from, to;
+  Definition def, copy_def;
+  ClauseRef cref;
+  uintptr_t generation;
+
+  if ( !get_procedure(A1, &from, 0, GP_NAMEARITY|GP_RESOLVE) )
+    fail;
+  if ( !isDefinedProcedure(from) )
+    trapUndefined(getProcDefinition(from) PASS_LD);
+  def = getProcDefinition(from);
+  generation = GD->generation;		/* take a consistent snapshot */
+
+  if ( true(def, FOREIGN) )
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_access, ATOM_private_procedure, from);
+
+  if ( !get_procedure(A2, &to, 0, GP_NAMEARITY|GP_CREATE) )
+    return FALSE;
+
+  copy_def = getProcDefinition(to);
+  if ( true(copy_def, FOREIGN) )
+    return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, to);
+  if ( false(copy_def, DYNAMIC) )
+  { if ( isDefinedProcedure(to) )
+      return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, to);
+    if ( !setDynamicProcedure(to, TRUE) )
+      fail;
+#if 0					/* seems we do not want to retract */
+  } else
+  { for(cref = copy_def->impl.clauses.first_clause; cref; cref = cref->next)
+    { if ( visibleClause(cref->value.clause, generation) )
+      { retractClauseDefinition(copy_def, cref->value.clause);
+      }
+    }
+#endif
+  }
+
+  enterDefinition(def);
+  for( cref = def->impl.clauses.first_clause; cref; cref = cref->next )
+  { Clause cl = cref->value.clause;
+
+    if ( visibleClause(cl, generation) )
+    { size_t size = sizeofClause(cl->code_size);
+      Clause copy = PL_malloc_atomic(size);
+
+      memcpy(copy, cl, size);
+      copy->procedure = to;
+      if ( def->module != copy_def->module )
+	remoduleClause(copy, def->module, copy_def->module);
+#ifdef O_ATOMGC
+      forAtomsInClause(copy, PL_register_atom);
+#endif
+      assertProcedure(to, copy, CL_END PASS_LD);
+    }
+  }
+  leaveDefinition(def);
+
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *       DEBUGGER SUPPORT	*
 		 *******************************/
@@ -3381,4 +3493,5 @@ BeginPredDefs(proc)
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("$unload_file", 1, unload_file, 0)
   PRED_DEF("$start_consult", 2, start_consult, 0)
+  PRED_DEF("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
 EndPredDefs
