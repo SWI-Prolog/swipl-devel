@@ -136,6 +136,7 @@ suggest predicates from a keyword.
 \predicatesummary{convert_time}{2}{Convert time stamp to string}
 \predicatesummary{copy_stream_data}{2}{Copy all data from stream to stream}
 \predicatesummary{copy_stream_data}{3}{Copy n bytes from stream to stream}
+\predicatesummary{copy_predicate_clauses}{2}{Copy clauses between predicates}
 \predicatesummary{copy_term}{2}{Make a copy of a term}
 \predicatesummary{copy_term}{3}{Copy a term and obtain attribute-goals}
 \predicatesummary{copy_term_nat}{2}{Make a copy of a term without attributes}

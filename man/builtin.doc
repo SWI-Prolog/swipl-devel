@@ -2269,6 +2269,30 @@ predicate.
 Same as \term{abolish}{Name/Arity}. The predicate abolish/2 conforms
 to the Edinburgh standard, while abolish/1 is ISO compliant.
 
+    \predicate{copy_predicate_clauses}{2}{:From, :To}
+Copy all clauses of predicate \arg{From} to \arg{To}. The predicate
+\arg{To} must be dynamic or undefined. If \arg{To} is undefined, it is
+created as a dynamic predicate holding a copy of the clauses of
+\arg{From}. If \arg{To} is a dynamic predicate, the clauses of
+\arg{From} are added (as in assertz/1) to the clauses of \arg{To}.
+\arg{To} and \arg{From} must have the same arity. Acts as if defined by
+the program below, but at a much better performance by avoiding
+decompilation and compilation.
+
+\begin{code}
+copy_predicate_clauses(From, To) :-
+	head(From, MF:FromHead),
+	head(To, MT:ToHead),
+	FromHead =.. [_|Args],
+	ToHead =.. [_|Args],
+	forall(clause(MF:FromHead, Body),
+	       assertz(MT:ToHead, Body)).
+
+head(From, M:Head) :-
+	strip_module(From, M, Name/Arity),
+	functor(Head, Name, Arity).
+\end{code}
+
     \predicate{redefine_system_predicate}{1}{+Head}
 This directive may be used both in module \const{user} and in normal
 modules to redefine any system predicate.  If the system definition is
