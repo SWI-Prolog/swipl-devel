@@ -35,6 +35,7 @@
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #include <stdio.h>
+#include <math.h>
 #ifdef O_PLMT
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2261,10 +2262,13 @@ typedef enum
   QUEUE_WAIT_DRAIN			/* wait for queue to drain */
 } queue_wait_type;
 
-#define MSG_WAIT_INTR (-1)
-#define MSG_WAIT_DESTROYED (-2)
+#define MSG_WAIT_INTR		(-1)
+#define MSG_WAIT_TIMEOUT	(-2)
+#define MSG_WAIT_DESTROYED	(-3)
 
-static int dispatch_cond_wait(message_queue *queue, queue_wait_type wait);
+static int dispatch_cond_wait(message_queue *queue,
+			      queue_wait_type wait,
+			      double *timeout);
 
 #ifdef __WINDOWS__
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2327,8 +2331,19 @@ win32_cond_destroy(win32_cond_t *cv)
 
 static int
 win32_cond_wait(win32_cond_t *cv,
-		CRITICAL_SECTION *external_mutex)
+		CRITICAL_SECTION *external_mutex,
+	        double *timeout)
 { int rc, last;
+  int dwMilliseconds;
+
+  if ( timeout )
+  { if ( *timeout <= 0.0 )
+      return ETIMEDOUT;
+
+    dwMilliseconds = (DWORD)((*timeout)*1000.0);
+  } else
+  { dwMilliseconds = INFINITE;
+  }
 
   cv->waiters++;
 
@@ -2336,8 +2351,9 @@ win32_cond_wait(win32_cond_t *cv,
   rc = MsgWaitForMultipleObjects(2,
 				 cv->events,
 				 FALSE,	/* wait for either event */
-				 INFINITE,
+				 dwMilliseconds,
 				 QS_ALLINPUT);
+  DEBUG(MSG_THREAD, Sdprintf("dwMilliseconds=%ld, rc=%d\n", dwMilliseconds, rc));
   if ( rc == WAIT_OBJECT_0+2 )
   { GET_LD
     MSG msg;
@@ -2351,6 +2367,9 @@ win32_cond_wait(win32_cond_t *cv,
     { EnterCriticalSection(external_mutex);
       return EINTR;
     }
+  } else if ( rc == WAIT_TIMEOUT )
+  { EnterCriticalSection(external_mutex);
+    return ETIMEDOUT;
   }
 
   EnterCriticalSection(external_mutex);
@@ -2456,7 +2475,7 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
   { queue->wait_for_drain++;
 
     while ( queue->size >= queue->max_size )
-    { if ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN) == EINTR )
+    { if ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, NULL) == EINTR )
       { if ( !LD )			/* needed for clean exit */
 	{ Sdprintf("Forced exit from queue_message()\n");
 	  exit(1);
@@ -2511,10 +2530,11 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 #ifdef __WINDOWS__
 
 static int
-dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
+dispatch_cond_wait(message_queue *queue, queue_wait_type wait, double *timeout)
 { return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var
 						  : &queue->drain_var),
-			 &queue->mutex);
+			 &queue->mutex,
+			 timeout);
 }
 
 #else /*__WINDOWS__*/
@@ -2531,34 +2551,87 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
 #endif
 
 static int
-dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
+timespec_cmp(struct timespec *a, struct timespec *b)
+{ struct timespec diff;
+
+  diff.tv_sec  = a->tv_sec - b->tv_sec;
+  diff.tv_nsec = a->tv_nsec - b->tv_nsec;
+  if ( diff.tv_nsec < 0 )
+  { --diff.tv_nsec;
+    diff.tv_nsec += 1000000000;
+  }
+
+  return ( diff.tv_sec > 0 ?  1 :
+	   diff.tv_sec < 0 ? -1 :
+	   diff.tv_nsec > 0 ? 1 :
+                              0 );
+}
+
+
+/* return: 0: ok, EINTR: interrupted, ETIMEDOUT: timeout
+*/
+
+static int
+dispatch_cond_wait(message_queue *queue, queue_wait_type wait, double *timeout)
 { GET_LD
+  struct timespec final_timeout;
   int rc;
 
-  for(;;)
-  { struct timespec timeout;
-#ifdef HAVE_CLOCK_GETTIME
-    struct timespec now;
+  if ( timeout )
+  { double ip, fp;
 
-    clock_gettime(CLOCK_REALTIME, &now);
-    timeout.tv_sec  = now.tv_sec;
-    timeout.tv_nsec = (now.tv_nsec+250000000);
+    if ( *timeout <= 0.0 )
+      return ETIMEDOUT;
+
+    fp = modf(*timeout, &ip);
+
+#ifdef HAVE_CLOCK_GETTIME
+    clock_gettime(CLOCK_REALTIME, &final_timeout);
+    final_timeout.tv_sec  += (time_t)ip;
+    final_timeout.tv_nsec += (long)(fp*1000000000.0);
 #else
     struct timeval now;
 
     gettimeofday(&now, NULL);
-    timeout.tv_sec  = now.tv_sec;
-    timeout.tv_nsec = (now.tv_usec+250000) * 1000;
+    final_timeout.tv_sec  = now.tv_sec + (time_t)ip;
+    final_timeout.tv_nsec = (long)(fp*1000000.0);
 #endif
 
-    if ( timeout.tv_nsec >= 1000000000 ) /* some platforms demand this */
-    { timeout.tv_nsec -= 1000000000;
-      timeout.tv_sec += 1;
+    if ( final_timeout.tv_nsec >= 1000000000 ) /* some platforms demand this */
+    { final_timeout.tv_nsec -= 1000000000;
+      final_timeout.tv_sec += 1;
     }
+  }
+
+
+  for(;;)
+  { struct timespec tmp_timeout;
+    struct timespec *api_timeout = &tmp_timeout;
+#ifdef HAVE_CLOCK_GETTIME
+    struct timespec now;
+
+    clock_gettime(CLOCK_REALTIME, &now);
+    tmp_timeout.tv_sec  = now.tv_sec;
+    tmp_timeout.tv_nsec = (now.tv_nsec+250000000);
+#else
+    struct timeval now;
+
+    gettimeofday(&now, NULL);
+    tmp_timeout.tv_sec  = now.tv_sec;
+    tmp_timeout.tv_nsec = (now.tv_usec+250000) * 1000;
+#endif
+
+    if ( tmp_timeout.tv_nsec >= 1000000000 ) /* some platforms demand this */
+    { tmp_timeout.tv_nsec -= 1000000000;
+      tmp_timeout.tv_sec += 1;
+    }
+
+    if ( timeout && timespec_cmp(&tmp_timeout, &final_timeout) >= 0 )
+      api_timeout = &final_timeout;
 
     rc = pthread_cond_timedwait((wait == QUEUE_WAIT_READ ? &queue->cond_var
 							 : &queue->drain_var),
-				&queue->mutex, &timeout);
+				&queue->mutex, api_timeout);
 #ifdef O_DEBUG
     if ( LD && LD->thread.info )	/* can be absent during shutdown */
     { switch( LD->thread.info->ldata_status )
@@ -2579,6 +2652,8 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
     { case ETIMEDOUT:
 	if ( LD->signal.pending )
 	  return EINTR;
+        if ( api_timeout == &final_timeout )
+	  return ETIMEDOUT;
 
 	return 0;
       default:
@@ -2611,11 +2686,15 @@ called with queue->mutex locked.  It returns one of
 	* TRUE
 	* FALSE
 	* MSG_WAIT_INTR
-	Got EINTR while waiting.
+	  Got EINTR while waiting.
+	* MSG_WAIT_TIMEOUT
+	  Got timeout while waiting
+	* MSG_WAIT_DESTROYED
+	  Queue was destroyed while waiting
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-get_message(message_queue *queue, term_t msg ARG_LD)
+get_message(message_queue *queue, term_t msg, double *timeout ARG_LD)
 { term_t tmp = PL_new_term_ref();
   int isvar = PL_is_variable(msg) ? 1 : 0;
   word key = (isvar ? 0L : getIndexOfTerm(msg));
@@ -2679,19 +2758,31 @@ get_message(message_queue *queue, term_t msg ARG_LD)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(MSG_THREAD, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    if ( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR )
-    { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
+    switch ( dispatch_cond_wait(queue, QUEUE_WAIT_READ, timeout) )
+    { case EINTR:
+      { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
 
-      if ( !LD )			/* needed for clean exit */
-      { Sdprintf("Forced exit from get_message()\n");
-	exit(1);
+	if ( !LD )			/* needed for clean exit */
+	{ Sdprintf("Forced exit from get_message()\n");
+	  exit(1);
+	}
+
+	if ( LD->signal.pending )	/* thread-signal */
+	{ queue->waiting--;
+	  queue->waiting_var -= isvar;
+	  return MSG_WAIT_INTR;
+	}
+	break;
       }
-
-      if ( LD->signal.pending )	/* thread-signal */
+      case ETIMEDOUT:
       { queue->waiting--;
 	queue->waiting_var -= isvar;
-	return MSG_WAIT_INTR;
+	return MSG_WAIT_TIMEOUT;
       }
+      case 0:
+	break;
+      default:
+	assert(0);
     }
     DEBUG(MSG_THREAD, Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
     queue->waiting--;
@@ -2810,13 +2901,13 @@ PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
 
 
 static
-PRED_IMPL("thread_get_message", 1, thread_get_message_1, PL_FA_ISO)
+PRED_IMPL("thread_get_message", 1, thread_get_message, PL_FA_ISO)
 { PRED_LD
   int rc;
 
   for(;;)
   { simpleMutexLock(&LD->thread.messages.mutex);
-    rc = get_message(&LD->thread.messages, A1 PASS_LD);
+    rc = get_message(&LD->thread.messages, A1, NULL PASS_LD);
     simpleMutexUnlock(&LD->thread.messages.mutex);
 
     if ( rc == MSG_WAIT_INTR )
@@ -3312,7 +3403,7 @@ thread_get_message__LD(term_t queue, term_t msg, double *timeout ARG_LD)
     if ( !get_message_queue__LD(queue, &q PASS_LD) )
       return FALSE;
 
-    rc = get_message(q, msg PASS_LD);
+    rc = get_message(q, msg, timeout PASS_LD);
     release_message_queue(q);
 
     switch(rc)
@@ -3323,6 +3414,9 @@ thread_get_message__LD(term_t queue, term_t msg, double *timeout ARG_LD)
 	break;
       case MSG_WAIT_DESTROYED:
 	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, queue);
+        break;
+      case MSG_WAIT_TIMEOUT:
+	rc = PL_unify_atom(msg, ATOM_timeout);
         break;
       default:
 	;
@@ -3336,10 +3430,35 @@ thread_get_message__LD(term_t queue, term_t msg, double *timeout ARG_LD)
 
 
 static
-PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
+PRED_IMPL("thread_get_message", 2, thread_get_message, 0)
 { PRED_LD
 
   return thread_get_message__LD(A1, A2, NULL PASS_LD);
+}
+
+static const opt_spec thread_get_message_options[] =
+{ { ATOM_timeout,	OPT_DOUBLE },
+  { NULL_ATOM,		0 }
+};
+
+#ifndef DBL_MAX
+#define DBL_MAX         1.7976931348623158e+308
+#endif
+
+static
+PRED_IMPL("thread_get_message", 3, thread_get_message, 0)
+{ PRED_LD
+  double tmo = DBL_MAX;
+  double *tmop;
+
+  if ( !scan_options(A3, 0,
+		     ATOM_thread_get_message_option, thread_get_message_options,
+		     &tmo) )
+    return FALSE;
+
+  tmop = (tmo != DBL_MAX ? &tmo	: NULL);
+
+  return thread_get_message__LD(A1, A2, tmop PASS_LD);
 }
 
 
@@ -5412,8 +5531,9 @@ BeginPredDefs(thread)
   PRED_DEF("message_queue_create", 2, message_queue_create2, PL_FA_ISO)
   PRED_DEF("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("thread_send_message", 2, thread_send_message, PL_FA_ISO)
-  PRED_DEF("thread_get_message", 1, thread_get_message_1, PL_FA_ISO)
-  PRED_DEF("thread_get_message", 2, thread_get_message_2, PL_FA_ISO)
+  PRED_DEF("thread_get_message", 1, thread_get_message, PL_FA_ISO)
+  PRED_DEF("thread_get_message", 2, thread_get_message, PL_FA_ISO)
+  PRED_DEF("thread_get_message", 3, thread_get_message, PL_FA_ISO)
   PRED_DEF("thread_peek_message", 1, thread_peek_message_1, PL_FA_ISO)
   PRED_DEF("thread_peek_message", 2, thread_peek_message_2, PL_FA_ISO)
   PRED_DEF("message_queue_destroy", 1, message_queue_destroy, PL_FA_ISO)
