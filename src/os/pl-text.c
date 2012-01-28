@@ -122,11 +122,10 @@ PL_from_stack_text(PL_chars_t *text)
 
 static char *
 ui64toa(uint64_t val, char *out)
-{ static const size_t szBuf = INT64_DIGITS + 1 ;
-  char tmpBuf[szBuf];
-  char *ptrOrg = tmpBuf + szBuf;
+{ char tmpBuf[INT64_DIGITS + 1];
+  char *ptrOrg = tmpBuf + INT64_DIGITS;
   char *ptr = ptrOrg;
-  int nbDigs;
+  size_t nbDigs;
 
   do
   { int rem = val % 10;
