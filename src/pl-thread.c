@@ -3302,18 +3302,17 @@ thread_get_message(-Message)
     a message from the queue implicitly associated to the thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static
-PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
-{ PRED_LD
-  int rc;
+static int
+thread_get_message__LD(term_t queue, term_t msg, double *timeout ARG_LD)
+{ int rc;
 
   for(;;)
   { message_queue *q;
 
-    if ( !get_message_queue__LD(A1, &q PASS_LD) )
+    if ( !get_message_queue__LD(queue, &q PASS_LD) )
       return FALSE;
 
-    rc = get_message(q, A2 PASS_LD);
+    rc = get_message(q, msg PASS_LD);
     release_message_queue(q);
 
     switch(rc)
@@ -3323,7 +3322,7 @@ PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
 	rc = FALSE;
 	break;
       case MSG_WAIT_DESTROYED:
-	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
+	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, queue);
         break;
       default:
 	;
@@ -3333,6 +3332,14 @@ PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
   }
 
   return rc;
+}
+
+
+static
+PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
+{ PRED_LD
+
+  return thread_get_message__LD(A1, A2, NULL PASS_LD);
 }
 
 
