@@ -492,8 +492,8 @@ max_member_([H|T], Max0, Max) :-
 
 %%	min_member(-Min, +List) is semidet.
 %
-%	True when Min is the largest  member   in  the standard order of
-%	terms.  Fails if List is empty.
+%	True when Min is the smallest member   in  the standard order of
+%	terms. Fails if List is empty.
 %
 %	@see compare/3
 %	@see min_list/2 for the minimum of a list of numbers.
@@ -503,7 +503,7 @@ min_member(Min, [H|T]) :-
 
 min_member_([], Min, Min).
 min_member_([H|T], Min0, Min) :-
-	(   H @=< Min0
+	(   H @>= Min0
 	->  min_member_(T, Min0, Min)
 	;   min_member_(T, H, Min)
 	).
