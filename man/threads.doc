@@ -383,7 +383,7 @@ message arrives before the time interval elapses, \arg{Term} is unified
 to the atom \const{timeout}.  Both resolution and maximum wait time is
 platform dependant.\footnote{The implementation uses
 MsgWaitForMultipleObjects() on MS-Windows and pthread_cond_timedwait()
-on other systems.
+on other systems.}
     \end{description}
 
     \predicate{thread_peek_message}{2}{+Queue, ?Term}
