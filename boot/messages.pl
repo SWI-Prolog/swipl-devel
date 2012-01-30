@@ -988,6 +988,7 @@ print_system_message(_, informational, _) :-
 	current_prolog_flag(verbose, silent), !.
 print_system_message(_, banner, _) :-
 	current_prolog_flag(verbose, silent), !.
+print_system_message(_, _, []) :- !.
 print_system_message(Term, Level, Lines) :-
 	flush_output(user_output),
 	source_location(File, Line),
