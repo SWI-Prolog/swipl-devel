@@ -348,7 +348,7 @@ key(callees,	    7).
 
 value(name, Data, Name) :- !,
 	arg(1, Data, Pred),
-	predicate_name(Pred, Name).
+	predicate_functor_name(Pred, Name).
 value(label, Data, Label) :- !,
 	arg(1, Data, Pred),
 	predicate_label(Pred, Label).
@@ -387,14 +387,14 @@ hidden_module(user, _).
 hidden_module(M, H) :-
 	predicate_property(system:H, imported_from(M)).
 
-%%	predicate_name(+Head, -Name)
+%%	predicate_functor_name(+Head, -Name)
 %
 %	Return the (module-free) name of the predicate for sorting
 %	purposes.
 
-predicate_name(_:H, Name) :- !,
-	predicate_name(H, Name).
-predicate_name(H, Name) :-
+predicate_functor_name(_:H, Name) :- !,
+	predicate_functor_name(H, Name).
+predicate_functor_name(H, Name) :-
 	functor(H, Name, _Arity).
 
 
