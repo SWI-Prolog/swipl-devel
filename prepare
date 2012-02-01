@@ -31,10 +31,19 @@ server="http://www.swi-prolog.org"
 serverpath="/download"
 serverurl="$server$serverpath"
 yes=ask
+man=auto
 tar=tar
 
-done=false
-while [ "$done" = false ]; do
+usage()
+{
+cat << _EOM_
+Usage: $0 [--yes] [--all] [--man]
+_EOM_
+  exit 1
+}
+
+
+while [ ! -z "$1" ]; do
   case "$1" in
     --yes)
 	yes=yes
@@ -44,8 +53,12 @@ while [ "$done" = false ]; do
 	COREMODULES=
 	shift
 	;;
+    --man)
+	man=download
+	shift
+	;;
     *)
-	done=true
+	usage
 	;;
   esac
 done
@@ -146,7 +159,6 @@ download_docs()
   eval_doc
 }
 
-
 eval_doc()
 { doc=unknown
   if [ ! -r man/Manual/index.html ]; then
@@ -165,13 +177,17 @@ eval_doc()
   fi
 }
 
-eval_doc
+if [ "$man" = download ]; then
+  doc=out-of-date
+else
+  eval_doc
+fi
 
 done=false
 while [ "$done" = false ]; do
   case "$doc" in
     absent|out-of-date)
-      if [ "$yes" = yes ]; then
+      if [ "$yes" = yes -o "$man" = download ]; then
         download_docs
       elif [ -f .doc-action ]; then
 	done=true
