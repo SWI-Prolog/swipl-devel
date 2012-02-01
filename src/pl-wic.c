@@ -1313,12 +1313,16 @@ static bool
 loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 { IOSTREAM *fd = state->wicFd;
 
+  if ( !skip )
+    clearSupersModule(m);
+
   for(;;)
   { switch(Qgetc(fd))
     { case 'C':
       { atom_t cname = loadXR(state);
 
-	m->class = cname;
+	if ( !skip )
+	  m->class = cname;
 
 	continue;
       }

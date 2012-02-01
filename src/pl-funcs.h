@@ -311,6 +311,7 @@ COMMON(void)		cleanupModules(void);
 COMMON(int)		addModuleSourceFile(SourceFile sf, Module m);
 COMMON(int)		setSuperModule(Module m, Module s);
 COMMON(int)		isSuperModule(Module s, Module m);
+COMMON(void)		clearSupersModule(Module m);
 COMMON(int)		addSuperModule(Module m, Module s, int where);
 COMMON(int)		getUnknownModule(Module m);
 COMMON(Word)		stripModule(Word term, Module *module ARG_LD);

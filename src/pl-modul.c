@@ -349,7 +349,7 @@ delSuperModule(Module m, Module s)
 
 
 static void
-clearSupersModule(Module m)
+clearSupersModule_no_lock(Module m)
 { ListCell c = m->supers;
   ListCell next;
 
@@ -360,6 +360,13 @@ clearSupersModule(Module m)
   }
 
   m->level = 0;
+}
+
+void
+clearSupersModule(Module m)
+{ LOCK();
+  clearSupersModule_no_lock(m);
+  UNLOCK();
 }
 
 
@@ -376,7 +383,7 @@ setSuperModule(Module m, Module s)
       succeed;
     }
   }
-  clearSupersModule(m);
+  clearSupersModule_no_lock(m);
 
   return addSuperModule_no_lock(m, s, 'A');
 }
