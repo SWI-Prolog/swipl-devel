@@ -9,12 +9,12 @@ following goals in mind.
 
 \begin{itemlist}
     \item[Multi-threaded server applications]
-Todays computing services often focus on (internet) server applications.
+Today's computing services often focus on (internet) server applications.
 Such applications often have need for communication between services
 and/or fast non-blocking service to multiple concurrent clients.  The
-shared heap provides fast communication and thread creation is
+shared heap provides fast communication, and thread creation is
 relatively cheap.%
-    \footnote{On an dual AMD-Athlon 1600, SWI-Prolog 5.1.0
+    \footnote{On a dual AMD-Athlon 1600, SWI-Prolog 5.1.0
 	      creates and joins 4,957 threads per second elapsed time.}
 
     \item[Interactive applications]
@@ -31,7 +31,7 @@ In addition, any foreign thread can create its own Prolog engine for
 dealing with calling Prolog from C-code.
 \end{itemlist}
 
-SWI-Prolog multi-threading is based on the POSIX thread standard
+SWI-Prolog multithreading is based on the POSIX thread standard
 \cite{Butenhof:1997:PPT} used on most popular systems except for
 MS-Windows. On Windows it uses the
 \url[pthread-win32]{http://sources.redhat.com/pthreads-win32/} emulation
@@ -54,7 +54,7 @@ by the platform.
 
 \begin{description}
     \termitem{alias}{AliasName}
-Associate an `alias-name' with the thread.  This named may be used to
+Associate an `alias name' with the thread.  This name may be used to
 refer to the thread and remains valid until the thread is joined
 (see thread_join/2).
 
@@ -75,7 +75,7 @@ a detached thread finishes or a normal thread has been joined.
 See also thread_join/2 and thread_detach/1.
 
 If a detached thread dies due to failure or exception of the initial
-goal the thread prints a message using print_message/2.  If such
+goal, the thread prints a message using print_message/2.  If such
 termination is considered normal, the code must be wrapped using
 ignore/1 and/or catch/3 to ensure successful completion.
 
@@ -101,24 +101,24 @@ omitted, the limit of the calling thread is used. See also the
 \end{description}
 
 The \arg{Goal} argument is \emph{copied} to the new Prolog engine.
-This implies further instantiation of this term in either thread does
+This implies that further instantiation of this term in either thread does
 not have consequences for the other thread: Prolog threads do not share
 data from their stacks.
 
     \predicate{thread_self}{1}{-Id}
 Get the Prolog thread identifier of the running thread.  If the thread
-has an alias, the alias-name is returned.
+has an alias, the alias name is returned.
 
     \predicate{thread_join}{2}{+Id, -Status}
-Wait for the termination of thread with given \arg{Id}.  Then unify
-the result-status of the thread with \arg{Status}.
+Wait for the termination of the thread with the given \arg{Id}.  Then unify
+the result status of the thread with \arg{Status}.
 After this call, \arg{Id} becomes invalid and all resources associated
 with the thread are reclaimed.  Note that threads with the attribute
 \term{detached}{true} cannot be joined.  See also thread_property/2.
 
 A thread that has been completed without thread_join/2 being called on
 it is partly reclaimed: the Prolog stacks are released and the C-thread
-is destroyed. A small data-structure representing the exit-status of the
+is destroyed. A small data structure representing the exit status of the
 thread is retained until thread_join/2 is called on the thread.  Defined
 values for \arg{Status} are:
 
@@ -138,13 +138,13 @@ The thread is terminated on thread_exit/1 using the argument \arg{Term}.
 \end{description}
 
     \predicate{thread_detach}{1}{+Id}
-Switch thread into detached-state (see \term{detached}{Bool} option at
+Switch thread into detached state (see \term{detached}{Bool} option at
 thread_create/3) at runtime.  \arg{Id} is the identifier of the thread
 placed in detached state.  This may be the result of thread_self/1.
 
 One of the possible applications is to simplify debugging. Threads that
 are created as \jargon{detached} leave no traces if they crash. For
-not-detached threads the status can be inspected using
+non-detached threads the status can be inspected using
 thread_property/2. Threads nobody is waiting for may be created normally
 and detach themselves just before completion. This way they leave no
 traces on normal completion and their reason for failure can be
@@ -152,9 +152,9 @@ inspected.
 
     \predicate[deprecated]{thread_exit}{1}{+Term}
 Terminates the thread immediately, leaving \term{exited}{Term} as
-result-state for thread_join/2.  If the thread has the attribute
+result state for thread_join/2.  If the thread has the attribute
 \term{detached}{true} it terminates, but its exit status cannot be
-retrieved using thread_join/2 making the value of \arg{Term} irrelevant.
+retrieved using thread_join/2, making the value of \arg{Term} irrelevant.
 The Prolog stacks and C-thread are reclaimed.
 
 The current implementation does not guarantee proper releasing of all
@@ -176,9 +176,9 @@ initialization/1 hooks.
 Run \arg{Goal} just before releasing the thread resources. This is to be
 compared to at_halt/1, but only for the current thread. These hooks are
 run regardless of why the execution of the thread has been completed.
-When these hooks are run, the return-code is already available through
+When these hooks are run, the return code is already available through
 thread_property/2 using the result of thread_self/1 as
-thread-identifier. Note that there are two scenarios for using exit
+thread identifier. Note that there are two scenarios for using exit
 hooks. Using thread_at_exit/1 is typically used if the thread creates a
 side-effect that must be reverted if the thread dies. Another scenario
 is where the creator of the thread wants to be informed when the thread
@@ -191,7 +191,7 @@ thread_create/3 is designed to deal with this scenario.
 \index{Solaris}%
 Determine the concurrency of the process, which is defined as the
 maximum number of concurrently active threads. `Active' here means they
-are using CPU time. This option is provided if the thread-implementation
+are using CPU time. This option is provided if the thread implementation
 provides pthread_setconcurrency(). Solaris is a typical example of this
 family. On other systems this predicate unifies \arg{Old} to 0 (zero)
 and succeeds silently.
@@ -200,7 +200,7 @@ and succeeds silently.
 
 \section{Monitoring threads}		\label{sec:thmonitor}
 
-Normal multi-threaded applications should not need the predicates
+Normal multithreaded applications should not need the predicates
 from this section because almost any usage of these predicates is
 unsafe. For example checking the existence of a thread before signalling
 it is of no use as it may vanish between the two calls. Catching
@@ -216,7 +216,7 @@ also \secref{thutil}, describing more high-level primitives.
 True if thread \arg{Id} has \arg{Property}.  Either or both arguments
 may be unbound, enumerating all relations on backtracking.
 Calling thread_property/2 does not influence any thread.  See also
-thread_join/2.  For threads that have an alias-name, this name is
+thread_join/2.  For threads that have an alias name, this name is
 returned in \arg{Id} instead of the opaque thread identifier.
 Defined properties are:
 
@@ -259,7 +259,7 @@ does in single-threaded applications.  This call supports all keys
 of statistics/2, although only stack sizes and CPU time yield
 different values for each thread.%
 	\footnote{There is no portable interface to obtain
-		  thread-specific CPU-time and some operating systems
+		  thread-specific CPU time and some operating systems
 		  provide no access to this information at all.  On
 		  such systems the total process CPU is returned. Thread
 		  CPU time is supported on MS-Windows, Linux and
@@ -269,8 +269,8 @@ different values for each thread.%
 Print usage statistics on internal mutexes and mutexes associated with
 dynamic predicates. For each mutex two numbers are printed: the number
 of times the mutex was acquired and the number of \jargon{collisions}:
-the number times the calling thread has to wait for the mutex. The
-collision-count is not available on MS-Windows. Generally collision
+the number of times the calling thread has to wait for the mutex. The
+collision count is not available on MS-Windows. Generally collision
 count is close to zero on single-CPU hardware.
 \end{description}
 
@@ -285,7 +285,7 @@ to wait for data or a condition as they can only be checked in an
 expensive polling loop. \jargon{Message queues} provide a means for
 threads to wait for data or conditions without using the CPU.
 
-Each thread has a message-queue attached to it that is identified
+Each thread has a message queue attached to it that is identified
 by the thread. Additional queues are created using
 message_queue_create/1.
 
@@ -294,7 +294,7 @@ message_queue_create/1.
 Place \arg{Term} in the given queue or default queue of the indicated
 thread (which can even be the message queue of itself, see
 thread_self/1). Any term can be placed in a message queue, but note that
-the term is copied to the receiving thread and variable-bindings are
+the term is copied to the receiving thread and variable bindings are
 thus lost. This call returns immediately.
 
 If more than one thread is waiting for messages on the given queue and
@@ -304,7 +304,7 @@ starting a rush for the available messages in the queue.  This behaviour
 can seriously harm performance with many threads waiting on the same
 queue as all-but-the-winner perform a useless scan of the queue. If
 there is only one waiting thread or all waiting threads wait with an
-unbound variable an arbitrary thread is restarted to scan the queue.%
+unbound variable, an arbitrary thread is restarted to scan the queue.%
 	\footnote{See the documentation for the POSIX thread functions
 		  pthread_cond_signal() v.s.\ pthread_cond_broadcast()
 		  for background information.}
@@ -315,7 +315,7 @@ until a term that unifies to \arg{Term} arrives in the queue.  After
 a term from the queue has been unified to \arg{Term}, the
 term is deleted from the queue.
 
-Please note that not-unifying messages remain in the queue.  After
+Please note that non-unifying messages remain in the queue.  After
 the following has been executed, thread 1 has the term \term{b}{gnu}
 in its queue and continues execution using \arg{A}~=~\const{gnat}.
 
@@ -331,21 +331,21 @@ in its queue and continues execution using \arg{A}~=~\const{gnat}.
 See also thread_peek_message/1.
 
     \predicate{thread_peek_message}{1}{?Term}
-Examines the thread message-queue and compares the queued terms
+Examines the thread message queue and compares the queued terms
 with \arg{Term} until one unifies or the end of the queue has been
-reached.  In the first case the call succeeds (possibly instantiating
-\arg{Term}.  If no term from the queue unifies this call fails.  I.e.,
+reached.  In the first case the call succeeds, possibly instantiating
+\arg{Term}.  If no term from the queue unifies, this call fails.  I.e.,
 thread_peek_message/1 never waits and does not remove any term from the
 queue.  See also thread_get_message/3.
 
     \predicate{message_queue_create}{1}{?Queue}
 If \arg{Queue} is an atom, create a named queue.  To avoid ambiguity
 of thread_send_message/2, the name of a queue may not be in use as a
-thread-name.  If \arg{Queue} is unbound an anonymous queue is created
+thread name.  If \arg{Queue} is unbound an anonymous queue is created
 and \arg{Queue} is unified to its identifier.
 
     \predicate{message_queue_create}{2}{-Queue, +Options}
-Create a message queue from \arg{Options}.  Defined options are.
+Create a message queue from \arg{Options}.  Defined options are:
 
     \begin{description}
 	\termitem{alias}{+Alias}
@@ -381,7 +381,7 @@ in seconds.  If \arg{Time} is 0.0 or less, thread_get_message/3 examines
 the queue but does not suspend if no matching term is available.  If no
 message arrives before the time interval elapses, \arg{Term} is unified
 to the atom \const{timeout}.  Both resolution and maximum wait time is
-platform dependant.\footnote{The implementation uses
+platform-dependent.\footnote{The implementation uses
 MsgWaitForMultipleObjects() on MS-Windows and pthread_cond_timedwait()
 on other systems.}
     \end{description}
@@ -454,9 +454,9 @@ work(Id, Goal) :-
 These predicates provide a mechanism to make another thread execute some
 goal as an \jargon{interrupt}.  Signalling threads is safe as these
 interrupts are only checked at safe points in the virtual machine.
-Nevertheless, signalling in multi-threaded environments should be
+Nevertheless, signalling in multithreaded environments should be
 handled with care as the receiving thread may hold a \jargon{mutex}
-(see with_mutex).  Signalling probably only makes sense to start
+(see with_mutex/2).  Signalling probably only makes sense to start
 debugging threads and to cancel no-longer-needed threads with throw/1,
 where the receiving thread should be designed carefully to handle
 exceptions at any point.
@@ -466,16 +466,16 @@ exceptions at any point.
 Make thread \arg{ThreadId} execute \arg{Goal} at the first
 opportunity.  In the current implementation, this implies at the first
 pass through the \jargon{Call-port}. The predicate thread_signal/2
-itself places \arg{Goal} into the signalled-thread's signal queue
+itself places \arg{Goal} into the signalled thread's signal queue
 and returns immediately.
 
 Signals (interrupts) do not cooperate well with the world of
-multi-threading, mainly because the status of mutexes cannot be
+multithreading, mainly because the status of mutexes cannot be
 guaranteed easily.  At the call-port, the Prolog virtual machine
 holds no locks and therefore the asynchronous execution is safe.
 
 \arg{Goal} can be any valid Prolog goal, including throw/1 to make
-the receiving thread generate an exception and trace/0 to start
+the receiving thread generate an exception, and trace/0 to start
 tracing the receiving thread.
 
 In the Windows version, the receiving thread immediately executes
@@ -487,7 +487,7 @@ happens if the thread is waiting for (user-)input.
 \subsection{Threads and dynamic predicates}	\label{sec:threadlocal}
 
 Besides queues (\secref{msgqueue}) threads can share and exchange
-data using dynamic predicates. The multi-threaded version knows about
+data using dynamic predicates. The multithreaded version knows about
 two types of dynamic predicates. By default, a predicate declared
 \jargon{dynamic} (see dynamic/1) is shared by all threads. Each thread
 may assert, retract and run the dynamic predicate. Synchronisation
@@ -499,26 +499,26 @@ invariants on the predicate are maintained.
 
 Besides shared predicates, dynamic predicates can be declared with the
 thread_local/1 directive. Such predicates share their attributes, but
-the clause-list is different in each thread.
+the clause list is different in each thread.
 
 \begin{description}
     \prefixop{thread_local}{+Functor/+Arity, \ldots}
 This directive is related to the dynamic/1 directive.  It tells the
 system that the predicate may be modified using assert/1, retract/1,
-etc.\ during execution of the program.  Unlike normal shared dynamic
-data however each thread has its own clause-list for the predicate.
+etc., during execution of the program.  Unlike normal shared dynamic
+data, however, each thread has its own clause list for the predicate.
 As a thread starts, this clause list is empty.  If there are still
 clauses when the thread terminates, these are automatically reclaimed
 by the system (see also volatile/1).  The thread_local property
-implies the properties dynamic and volatile.
+implies the properties \fargon{dynamic} and \jargon{volatile}.
 
 Thread-local dynamic predicates are intended for maintaining
 thread-specific state or intermediate results of a computation.
 
 It is not recommended to put clauses for a thread-local predicate into
-a file as in the example below because the clause is only visible from the
-thread that loaded the source-file.  All other threads start with an
-empty clause-list.
+a file, as in the example below, because the clause is only visible from the
+thread that loaded the source file.  All other threads start with an
+empty clause list.
 
 \begin{code}
 :- thread_local
@@ -529,19 +529,19 @@ foo(gnat).
 
 \textbf{DISCLAIMER} Whether or not this declaration is appropriate in
 the sense of the proper mechanism to reach the goal is still debated.
-If you have strong feeling in favour or against, please share them
+If you have strong feelings in favour or against, please share them
 in the SWI-Prolog mailing list.
 \end{description}
 
 
 \section{Thread synchronisation}		\label{sec:threadsync}
 
-All internal Prolog operations are thread-safe. This implies two Prolog
+All internal Prolog operations are thread-safe. This implies that two Prolog
 threads can operate on the same dynamic predicate without corrupting the
 consistency of the predicate. This section deals with user-level
 \jargon{mutexes} (called \jargon{monitors} in ADA or
 \jargon{critical-sections} by Microsoft).  A mutex is a
-{\bf MUT}ual {\bf EX}clusive device, which implies at most one thread
+{\bf MUT}ual {\bf EX}clusive device, which implies that at most one thread
 can \jargon{hold} a mutex.
 
 Mutexes are used to realise related updates to the Prolog database.
@@ -593,16 +593,16 @@ regardless of whether \arg{Goal} succeeds, fails or raises an exception.
 An exception thrown by \arg{Goal} is re-thrown after the mutex has been
 successfully unlocked.  See also mutex_create/1 and setup_call_cleanup/3.
 
-Although described in the thread-section, this predicate is also
+Although described in the thread section, this predicate is also
 available in the single-threaded version, where it behaves simply as
 once/1.
 
     \predicate{mutex_lock}{1}{+MutexId}
 Lock the mutex.  Prolog mutexes are \jargon{recursive} mutexes: they
 can be locked multiple times by the same thread.  Only after unlocking
-it as many times as it is locked, the mutex becomes available for
+it as many times as it is locked does the mutex become available for
 locking by other threads. If another thread has locked the mutex the
-calling thread is suspended until to mutex is unlocked.
+calling thread is suspended until the mutex is unlocked.
 
 If \arg{MutexId} is an atom, and there is no current mutex with that
 name, the mutex is created automatically using mutex_create/1.  This
@@ -610,7 +610,7 @@ implies named mutexes need not be declared explicitly.
 
 Please note that locking and unlocking mutexes should be paired
 carefully. Especially make sure to unlock mutexes even if the protected
-code fails or raises an exception. For most common cases use
+code fails or raises an exception. For most common cases, use
 with_mutex/2, which provides a safer way for handling Prolog-level
 mutexes.  The predicate setup_call_cleanup/3 is another way to guarantee
 that the mutex is unlocked while retaining non-determinism.
@@ -626,21 +626,21 @@ exception is raised.
 
     \predicate{mutex_unlock_all}{0}{}
 Unlock all mutexes held by the current thread.  This call is especially
-useful to handle thread-termination using abort/0 or exceptions.  See
+useful to handle thread termination using abort/0 or exceptions.  See
 also thread_signal/2.
 
     \predicate{mutex_property}{2}{?MutexId, ?Property}
-True if Property is a property of MutexId.  Defined properties are:
+True if \arg{Property} is a property of \arg{MutexId}.  Defined properties are:
 
     \begin{description}
 	\termitem{alias}{Alias}
-Mutex has defined alias name.  See mutex_create/2 using the `alias'
+Mutex has the defined alias name.  See mutex_create/2 using the `alias'
 option.
 
 	\termitem{status}{Status}
 Current status of the mutex. One of \const{unlocked} if the mutex is
-currently not locked or \term{locked}{Owner, Count} if mutex is locked
-\arg{Count} times by threads \arg{Owner}. Note that, unless \arg{Owner}
+currently not locked, or \term{locked}{Owner, Count} if mutex is locked
+\arg{Count} times by thread \arg{Owner}. Note that unless \arg{Owner}
 is the calling thread, the locked status can change at any time. There
 is no useful application of this property, except for diagnostic
 purposes.%
@@ -650,10 +650,10 @@ purposes.%
 \end{description}
 
 
-\section{Thread-support library(threadutil)}	\label{sec:thutil}
+\section{Thread support library(threadutil)}	\label{sec:thutil}
 
 This library defines a couple of useful predicates for demonstrating and
-debugging multi-threaded applications. This library is certainly not
+debugging multithreaded applications. This library is certainly not
 complete.
 
 \begin{description}
@@ -694,7 +694,7 @@ If the current thread has no console attached yet, attach one and
 redirect the user streams (input, output, and error) to the new console
 window. On Unix systems the console is an \program{xterm} application.
 On Windows systems this requires the GUI version \program{swipl-win.exe}
-rather than the console based \program{swipl.exe}.
+rather than the console-based \program{swipl.exe}.
 
 This predicate has a couple of useful applications.  One is to separate
 (debugging) I/O of different threads.  Another is to start debugging a
@@ -708,10 +708,10 @@ following sequence starts the tracer on this thread:
     \predicate{tdebug}{1}{+ThreadId}
 Prepare \arg{ThreadId} for debugging using the graphical tracer.  This
 implies installing the tracer hooks in the thread and switching the
-thread to debug-mode using debug/0.  The call is injected into the
+thread to debug mode using debug/0.  The call is injected into the
 thread using thread_signal/2.  We refer to the documentation of this
 predicate for asynchronous interaction with threads.  New threads
-created inherit their debug-mode from the thread that created them.
+created inherit their debug mode from the thread that created them.
 
     \predicate{tdebug}{0}{}
 Call tdebug/1 in all running threads.
@@ -726,7 +726,7 @@ Disable debugging in all threads.
 Set a spy-point as spy/1 and enable the thread for debugging using
 tdebug/1.  Note that a spy-point is a global flag on a predicate that
 is visible from all threads.  Spy points are honoured in all threads
-that are in debug-mode and ignored in threads that are in nodebug
+that are in debug mode and ignored in threads that are in nodebug
 mode.
 
     \predicate{tspy}{1}{:Spec}
@@ -759,7 +759,7 @@ execution profiler.
 systems, because every thread uses a considerable amount of \emph{virtual}
 address space. SWI-Prolog threads claim the stack \emph{limit} in
 virtual address space for each of the runtime stacks, while on 32-bit
-systems this resource is generally limited somewhere between 1GB and 3.5
+systems this resource is generally limited somewhere between 1 GB and 3.5
 GB, depending on the operating system and operating configuration.
 
 If SWI-Prolog starts a thread it copies the initial goal and starts a
@@ -775,21 +775,21 @@ foreign libraries used by it.  Such errors typically kill the process
 with a fatal error.
 
 Especially on 32-bit hardware, the design of the application must
-consider this issue and avoid ungraceful termination being conservative
+consider this issue and avoid ungraceful termination, being conservative
 with the dynamic creation of new threads.
 
 
 \section{Multi-threaded mixed C and Prolog applications}
 \label{sec:foreignthread}
 
-All foreign-code linked to the multi-threading version of SWI-Prolog
+All foreign code linked to the multithreading version of SWI-Prolog
 should be thread-safe (\jargon{reentrant}) or guarded in Prolog using
 with_mutex/2 from simultaneous access from multiple Prolog threads.
-If you want to write mixed multi-threaded C and Prolog application
-you should first familiarise yourself with writing multi-threaded
+If you want to write mixed multithreaded C and Prolog applications
+you should first familiarise yourself with writing multithreaded
 applications in C (C++).
 
-If you are using SWI-Prolog as an embedded engine in a multi-threaded
+If you are using SWI-Prolog as an embedded engine in a multithreaded
 application you can access the Prolog engine from multiple threads by
 creating an \jargon{engine} in each thread from which you call Prolog.
 Without creating an engine, a thread can only use functions that do
@@ -798,7 +798,7 @@ Without creating an engine, a thread can only use functions that do
 The system supports two models.  \Secref{threadoneone} describes the
 original one-to-one mapping.  In this schema a native thread attaches
 a Prolog thread if it needs to call Prolog and detaches it when
-finished, as opposed to the model from \secref{threadmanymany} where
+finished, as opposed to the model from \secref{threadmanymany}, where
 threads temporarily use a Prolog engine.
 
 \subsection{A Prolog thread for each native thread (one-to-one)}
@@ -821,7 +821,7 @@ single-threaded version of SWI-Prolog, where it returns -2.
     \cfunction{int}{PL_unify_thread_id}{term_t t, int i}
 Unify \arg{t} with the Prolog thread identifier for thread \arg{i}.
 Thread identifiers are normally returned from PL_thread_self().  Returns
--1 if the thread does not exists or the unification result.
+-1 if the thread does not exist or the unification fails.
 
     \cfunction{int}{PL_thread_attach_engine}{const PL_thread_attr_t *attr}
 Creates a new Prolog engine in the calling thread. If the calling thread
@@ -848,7 +848,7 @@ typedef struct
 The structure may be destroyed after PL_thread_attach_engine() has
 returned.  On success it returns the Prolog identifier for the thread
 (as returned by PL_thread_self()). If an error occurs, -1 is returned.
-If this Prolog is not compiled for multi-threading, -2 is returned.
+If this Prolog is not compiled for multithreading, -2 is returned.
 
     \cfunction{int}{PL_thread_destroy_engine}{}
 Destroy the Prolog engine in the calling thread. Only takes effect if
@@ -888,20 +888,20 @@ in the following identified cases:
 
 \begin{itemlist}
     \item [Compatibility with the single-threaded version]
-In the single-threaded version, foreign threads must serialise access
+In the single-threaded version, foreign threads must serialise access to
 the one and only thread engine.  Functions from this section allow
 sharing one engine among multiple threads.
 
     \item [Many native threads with infrequent Prolog work]
 Prolog threads are expensive in terms of memory and time to create and
-destroy them.  Systems that use a large number of threads that only
-infrequently need to call Prolog, better take an engine from a pool
+destroy them.  For systems that use a large number of threads that only
+infrequently need to call Prolog, it is better to take an engine from a pool
 and return it there.
 
     \item [Prolog status must be handed to another thread]
 This situation has been identified by Uwe Lesta when creating a .NET
-interface for SWI-Prolog. .NET distributes work for active internet
-connection over a pool of threads.  If a Prolog engine contains state
+interface for SWI-Prolog. .NET distributes work for an active internet
+connection over a pool of threads.  If a Prolog engine contains the state
 for a connection, it must be possible to detach the engine from a
 thread and re-attach it to another thread handling the same connection.
 \end{itemlist}
@@ -910,7 +910,7 @@ thread and re-attach it to another thread handling the same connection.
     \cfunction{PL_engine_t}{PL_create_engine}{PL_thread_attr_t *attributes}
 Create a new Prolog engine. \arg{attributes} is described with
 PL_thread_attach_engine(). Any thread can make this call after
-PL_initialise() returned success. The returned engine is not attached to
+PL_initialise() returns success. The returned engine is not attached to
 any thread and lives until PL_destroy_engine() is used on the returned
 handle.
 
@@ -963,7 +963,7 @@ realised.
 \section{Multithreading and the XPCE graphics system}	\label{sec:mt-xpce}
 \label{sec:xpcethread}
 
-GUI applications written in XPCE can benefit from Prolog thraeds if they
+GUI applications written in XPCE can benefit from Prolog threads if they
 need to do expensive computations that would otherwise block the UI. The
 XPCE message passing system is guarded with a single \jargon{mutex},
 which synchronises both access from Prolog and activation through the
@@ -975,11 +975,11 @@ from a single thread and deploy other threads for (long) computations.
 
 Traditionally, XPCE runs in the foreground (\const{main}) thread. We are
 working towards a situation where XPCE can run comfortably in a separate
-thread. A separete XPCE thread can be created using pce_dispatch/1. It
+thread. A separate XPCE thread can be created using pce_dispatch/1. It
 is also possible to create this thread as the \pllib(pce) is loaded by
 setting the \prologflag{xpce_threaded} to \const{true}.
 
-Threads other that the thread in which XPCE runs are provided with two
+Threads other than the thread in which XPCE runs are provided with two
 predicates to communicate with XPCE.
 
 \begin{description}
@@ -987,7 +987,7 @@ predicates to communicate with XPCE.
 Assuming XPCE is running in the foreground thread, this call gives
 background threads the opportunity to make calls to the XPCE thread.
 A call to in_pce_thread/1 succeeds immediately, copying \arg{Goal}
-to the XPCE thread.  \arg{Goal} is added to the XPCE event-queue
+to the XPCE thread.  \arg{Goal} is added to the XPCE event queue
 and executed synchronous to normal user events like typing and clicking.
 
     \predicate[semidet]{in_pce_thread_sync}{1}{:Goal}
@@ -1005,12 +1005,12 @@ runs at approximately 50,000 calls per second (AMD Phenom 9600B, Ubuntu
 11.04).
 
     \predicate{pce_dispatch}{1}{+Options}
-Create a Prolog thread with the alias-name \const{pce} for XPCE
+Create a Prolog thread with the alias name \const{pce} for XPCE
 event-handling. In the X11 version this call creates a thread that
 executes the X11 event-dispatch loop. In MS-Windows it creates a thread
 that executes a windows event-dispatch loop.  The XPCE event-handling
 thread has the alias \const{pce}. \arg{Options} specifies the
-thread-attributes as thread_create/3.
+thread attributes as thread_create/3.
 \end{description}
 
 
