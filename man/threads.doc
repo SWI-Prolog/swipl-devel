@@ -269,9 +269,8 @@ different values for each thread.%
 Print usage statistics on internal mutexes and mutexes associated with
 dynamic predicates. For each mutex two numbers are printed: the number
 of times the mutex was acquired and the number of \jargon{collisions}:
-the number of times the calling thread has to wait for the mutex. The
-collision count is not available on MS-Windows. Generally collision
-count is close to zero on single-CPU hardware.
+the number of times the calling thread has to wait for the mutex.
+Generally collision count is close to zero on single-CPU hardware.
 \end{description}
 
 
@@ -422,9 +421,10 @@ no means to tell when all work is done. This must be realised using
 additional synchronisation.
 
 \begin{code}
-%	create_workers(+Id, +N)
+%%	create_workers(?Id, +N)
 %
-%	Create a pool with given Id and number of workers.
+%	Create a pool with Id and number of workers.  After the pool is
+%	created, post_job/1 can be used to send jobs to the pool.
 
 create_workers(Id, N) :-
 	message_queue_create(Id),
@@ -440,11 +440,11 @@ do_work(Id) :-
 	  ),
 	fail.
 
-%	work(+Id, +Goal)
+%%	post_job(+Id, +Goal)
 %
-%	Post work to be done by the pool
+%	Post a job to be executed by one of the pool's workers.
 
-work(Id, Goal) :-
+post_job(Id, Goal) :-
 	thread_send_message(Id, Goal).
 \end{code}
 
