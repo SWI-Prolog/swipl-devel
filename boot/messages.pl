@@ -398,6 +398,12 @@ prolog_message(interrupt(end)) -->
 	[ 'continue' ].
 prolog_message(interrupt(trace)) -->
 	[ 'continue (trace mode)' ].
+prolog_message(unknown_in_module_user) -->
+	[ 'Using a non-error value for unknown in the global module', nl,
+	  'causes most of the development environment to stop working.', nl,
+	  'Please use :- dynamic or limit usage of unknown to a module.', nl,
+	  'See http://www.swi-prolog.org/howto/database.html'
+	].
 
 
 		 /*******************************
