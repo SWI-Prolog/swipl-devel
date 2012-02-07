@@ -510,7 +510,7 @@ data, however, each thread has its own clause list for the predicate.
 As a thread starts, this clause list is empty.  If there are still
 clauses when the thread terminates, these are automatically reclaimed
 by the system (see also volatile/1).  The thread_local property
-implies the properties \fargon{dynamic} and \jargon{volatile}.
+implies the properties \jargon{dynamic} and \jargon{volatile}.
 
 Thread-local dynamic predicates are intended for maintaining
 thread-specific state or intermediate results of a computation.
