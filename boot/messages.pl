@@ -1082,7 +1082,7 @@ print_message_lines(S, [H|T]) :-
 	print_message_lines(S, T).
 
 line_element(S, E) :-
-	prolog:message_line_element(S, E), !.
+	notrace(prolog:message_line_element(S, E)), !.
 line_element(S, full_stop) :- !,
 	'$put_token'(S, '.').		% insert space if needed.
 line_element(S, nl) :- !,
