@@ -171,7 +171,7 @@ PL_new_term_refs__LD(int n ARG_LD)
   fr = fli_context;
   fr->size += n;
 #ifdef O_CHECK_TERM_REFS
-  { int s = (Word) lTop - (Word)(fr+1);
+  { int s = (int)((Word) lTop - (Word)(fr+1));
     assert(s == fr->size);
   }
 #endif
@@ -194,7 +194,7 @@ new_term_ref(ARG1_LD)
   fr = fli_context;
   fr->size++;
 #ifdef O_CHECK_TERM_REFS
-  { int s = (Word) lTop - (Word)(fr+1);
+  { int s = (int)((Word) lTop - (Word)(fr+1));
     assert(s == fr->size);
   }
 #endif
@@ -2033,6 +2033,15 @@ PL_put_atom(term_t t, atom_t a)
 
 
 int
+PL_put_bool(term_t t, int val)
+{ GET_LD
+
+  PL_put_atom__LD(t, val ? ATOM_true : ATOM_false PASS_LD);
+  return TRUE;
+}
+
+
+int
 PL_put_atom_chars(term_t t, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, strlen(s));
@@ -3748,7 +3757,13 @@ PL_toplevel(void)
 
 void
 PL_halt(int status)
-{ PL_cleanup(status);
+{ int reclaim_memory = FALSE;
+
+#if defined(GC_DEBUG) || defined(O_DEBUG)
+  reclaim_memory = TRUE;
+#endif
+
+  cleanupProlog(status, reclaim_memory);
 
   exit(status);
 }
@@ -4091,9 +4106,7 @@ PL_recorded(record_t r, term_t t)
 
 void
 PL_erase(record_t r)
-{ GET_LD
-
-  freeRecord(r);
+{ freeRecord(r);
 }
 
 
@@ -4108,7 +4121,7 @@ PL_duplicate_record(record_t r)
 
 
 		 /*******************************
-		 *	    FEATURES		*
+		 *	   PROLOG FLAGS		*
 		 *******************************/
 
 int
@@ -4116,8 +4129,6 @@ PL_set_prolog_flag(const char *name, int type, ...)
 { va_list args;
   int rval = TRUE;
   int flags = (type & FF_MASK);
-
-  initPrologFlagTable();
 
   va_start(args, type);
   switch(type & ~FF_MASK)
@@ -4142,8 +4153,8 @@ PL_set_prolog_flag(const char *name, int type, ...)
     default:
       rval = FALSE;
   }
-
   va_end(args);
+
   return rval;
 }
 
@@ -4211,7 +4222,7 @@ PL_action(int action, ...)
 	break;
       }
       alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM); /* Also show hidden frames */
-      backTrace(environment_frame, a);
+      backTrace(a);
       setAccessLevel(alevel);
     }
 #else
@@ -4294,8 +4305,7 @@ PL_action(int action, ...)
 static void
 init_c_args()
 { if ( c_argc == -1 )
-  { GET_LD
-    int i;
+  { int i;
     int opts = 1;
     int argc    = GD->cmdline.argc;
     char **argv = GD->cmdline.argv;
@@ -4430,8 +4440,7 @@ PL_license(const char *license, const char *module)
 
 void
 registerForeignLicenses(void)
-{ GET_LD
-  struct license *l, *next;
+{ struct license *l, *next;
 
   for(l=pre_registered; l; l=next)
   { next = l->next;

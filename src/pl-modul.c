@@ -41,7 +41,15 @@ the  global  module  for  the  user  and imports from `system' all other
 modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int addSuperModule_no_lock(Module m, Module s, int where);
+static int	addSuperModule_no_lock(Module m, Module s, int where);
+static void	unallocModule(Module m);
+
+static void
+unallocProcedureSymbol(Symbol s)
+{ DEBUG(MSG_CLEANUP,
+	Sdprintf("unallocProcedure(%s)\n", functorName((functor_t)s->name)));
+  unallocProcedure(s->value);
+}
 
 
 static Module
@@ -52,11 +60,9 @@ _lookupModule(atom_t name)
   if ((s = lookupHTable(GD->tables.modules, (void*)name)) != (Symbol) NULL)
     return (Module) s->value;
 
-  { GET_LD
-    m = allocHeapOrHalt(sizeof(struct module));
-  }
+  m = allocHeapOrHalt(sizeof(struct module));
   m->name = name;
-  m->file = (SourceFile) NULL;
+  m->file = NULL;
   m->operators = NULL;
   m->level = 0;
 #ifdef O_PROLOG_HOOK
@@ -72,6 +78,7 @@ _lookupModule(atom_t name)
     m->procedures = newHTable(PROCEDUREHASHSIZE);
   else
     m->procedures = newHTable(MODULEPROCEDUREHASHSIZE);
+  m->procedures->free_symbol = unallocProcedureSymbol;
 
   m->public = newHTable(PUBLICHASHSIZE);
   m->supers = NULL;
@@ -127,6 +134,12 @@ isCurrentModule(atom_t name)
 }
 
 
+static void
+unallocModuleSymbol(Symbol s)
+{ unallocModule(s->value);
+}
+
+
 void
 initModules(void)
 { LOCK();
@@ -139,10 +152,54 @@ initModules(void)
     initFunctors();
 
     GD->tables.modules = newHTable(MODULEHASHSIZE);
+    GD->tables.modules->free_symbol = unallocModuleSymbol;
     GD->modules.system = _lookupModule(ATOM_system);
     GD->modules.user   = _lookupModule(ATOM_user);
   }
   UNLOCK();
+}
+
+
+static void
+unallocList(ListCell c)
+{ ListCell n;
+
+  for(; c; c=n)
+  { n = c->next;
+
+    freeHeap(c, sizeof(*c));
+  }
+}
+
+static void
+unallocModule(Module m)
+{ if ( m->procedures ) destroyHTable(m->procedures);
+  if ( m->public )     destroyHTable(m->public);
+  if ( m->operators )  destroyHTable(m->operators);
+  if ( m->supers )     unallocList(m->supers);
+  if ( m->mutex )      freeSimpleMutex(m->mutex);
+
+  freeHeap(m, sizeof(*m));
+}
+
+
+static void
+emptyModule(Module m)
+{ DEBUG(MSG_CLEANUP, Sdprintf("emptyModule(%s)\n", PL_atom_chars(m->name)));
+  if ( m->procedures ) clearHTable(m->procedures);
+}
+
+
+void
+cleanupModules(void)
+{ Table t;
+
+  if ( (t=GD->tables.modules) )
+  { for_unlocked_table(t, s, emptyModule(s->value));
+
+    GD->tables.modules = NULL;
+    destroyHTable(t);
+  }
 }
 
 
@@ -196,6 +253,7 @@ static int
 cannotSetSuperModule(Module m, Module s)
 { GET_LD
   term_t t = PL_new_term_ref();
+  (void)s;				/* would be nice to add to message */
 
   PL_put_atom(t, m->name);
 
@@ -227,8 +285,7 @@ reachableModule(Module here, Module end)
 
 static int
 addSuperModule_no_lock(Module m, Module s, int where)
-{ GET_LD
-  ListCell c;
+{ ListCell c;
 
   if ( reachableModule(s, m) )
     return cannotSetSuperModule(m, s);
@@ -273,8 +330,7 @@ addSuperModule(Module m, Module s, int where)
 
 static int
 delSuperModule(Module m, Module s)
-{ GET_LD
-  ListCell *p;
+{ ListCell *p;
 
   for(p = &m->supers; *p; p = &(*p)->next)
   { ListCell c = *p;
@@ -293,9 +349,8 @@ delSuperModule(Module m, Module s)
 
 
 static void
-clearSupersModule(Module m)
-{ GET_LD
-  ListCell c = m->supers;
+clearSupersModule_no_lock(Module m)
+{ ListCell c = m->supers;
   ListCell next;
 
   m->supers = NULL;
@@ -305,6 +360,13 @@ clearSupersModule(Module m)
   }
 
   m->level = 0;
+}
+
+void
+clearSupersModule(Module m)
+{ LOCK();
+  clearSupersModule_no_lock(m);
+  UNLOCK();
 }
 
 
@@ -321,7 +383,7 @@ setSuperModule(Module m, Module s)
       succeed;
     }
   }
-  clearSupersModule(m);
+  clearSupersModule_no_lock(m);
 
   return addSuperModule_no_lock(m, s, 'A');
 }
@@ -1142,10 +1204,13 @@ pl_import(term_t pred)
     if ( !isDefinedProcedure(old) )
     { Definition odef = old->definition;
 
+
       old->definition = proc->definition;
-      if ( true(odef, P_SHARED) )
+      shareDefinition(proc->definition);
+      if ( odef->shared > 1 )
 	fixExport(odef, proc->definition);
-      set(proc->definition, P_SHARED);
+      shareDefinition(odef);
+      GC_LINGER(odef);
 
       succeed;
     }
@@ -1178,7 +1243,7 @@ pl_import(term_t pred)
 
     nproc->type = PROCEDURE_TYPE;
     nproc->definition = proc->definition;
-    set(proc->definition, P_SHARED);
+    shareDefinition(proc->definition);
 
     LOCKMODULE(destination);
     addHTable(destination->procedures,

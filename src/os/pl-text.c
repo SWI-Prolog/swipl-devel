@@ -118,6 +118,42 @@ PL_from_stack_text(PL_chars_t *text)
 }
 
 
+#define INT64_DIGITS 20
+
+static char *
+ui64toa(uint64_t val, char *out)
+{ char tmpBuf[INT64_DIGITS + 1];
+  char *ptrOrg = tmpBuf + INT64_DIGITS;
+  char *ptr = ptrOrg;
+  size_t nbDigs;
+
+  do
+  { int rem = val % 10;
+
+    *--ptr = rem + '0';
+    val /= 10;
+  } while ( val );
+
+  nbDigs = ptrOrg - ptr;
+  memcpy(out, ptr, nbDigs);
+  out += nbDigs;
+  *out = '\0';
+
+  return out;				/* points to the END */
+};
+
+
+static char *
+i64toa(int64_t val, char *out)
+{ if ( val < 0 )
+  { *out++ = '-';
+    val = -val;
+  }
+
+  return ui64toa((uint64_t)val, out);
+}
+
+
 int
 PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 { word w = valHandle(l);
@@ -135,11 +171,13 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     PL_get_number(l, &n);
     switch(n.type)
     { case V_INTEGER:
-	sprintf(text->buf, INT64_FORMAT, n.value.i);
+      { char *ep = i64toa(n.value.i, text->buf);
+
         text->text.t    = text->buf;
-	text->length    = strlen(text->text.t);
+	text->length    = ep-text->text.t;
 	text->storage   = PL_CHARS_LOCAL;
 	break;
+      }
 #ifdef O_GMP
       case V_MPZ:
       { size_t sz = mpz_sizeinbase(n.value.mpz, 10) + 2;

@@ -101,21 +101,6 @@ static void	initEnviron(void);
 #define DEFAULT_PATH "/bin:/usr/bin"
 #endif
 
-		 /*******************************
-		 *	       GLOBALS		*
-		 *******************************/
-#ifdef HAVE_CLOCK
-long clock_wait_ticks;
-#endif
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module is a contraction of functions that used to be all  over  the
-place.   together  with  pl-os.h  (included  by  pl-incl.h) this file
-should define a basic  layer  around  the  OS,  on  which  the  rest  of
-SWI-Prolog  is  based.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
 		/********************************
 		*         INITIALISATION        *
 		*********************************/
@@ -143,20 +128,6 @@ initOs(void)
   setPrologFlagMask(PLFLAG_FILE_CASE);
   setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #endif
-
-#ifdef HAVE_CLOCK
-  clock_wait_ticks = 0L;
-#endif
-
-#if OS2
-  { DATETIME i;
-    DosGetDateTime((PDATETIME)&i);
-    initial_time = (i.hours * 3600.0)
-                   + (i.minutes * 60.0)
-		   + i.seconds
-		   + (i.hundredths / 100.0);
-  }
-#endif /* OS2 */
 
   DEBUG(1, Sdprintf("OS:done\n"));
 
@@ -238,11 +209,26 @@ static char errmsg[64];
 #endif /*_SC_CLK_TCK*/
 #endif /*HAVE_TIMES*/
 
+#ifdef HAVE_CLOCK_GETTIME
+#define timespec_to_double(ts) \
+	((double)(ts).tv_sec + (double)(ts).tv_nsec/(double)1000000000.0)
+#endif
 
 double
 CpuTime(cputime_kind which)
 {
-#ifdef HAVE_TIMES
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_PROCESS_CPUTIME_ID)
+#define CPU_TIME_DONE
+  struct timespec ts;
+  (void)which;
+
+  if ( clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts) == 0 )
+    return timespec_to_double(ts);
+  return 0.0;
+#endif
+
+#if !defined(CPU_TIME_DONE) && defined(HAVE_TIMES)
+#define CPU_TIME_DONE
   struct tms t;
   double used;
   static int MTOK_got_hz = FALSE;
@@ -267,38 +253,16 @@ CpuTime(cputime_kind which)
     used = 0.0;				/* happens when running under GDB */
 
   return used;
-#else
+#endif
 
-#if OS2 && EMX
-  DATETIME i;
-
-  DosGetDateTime((PDATETIME)&i);
-  return (((i.hours * 3600)
-                 + (i.minutes * 60)
-		 + i.seconds
-	         + (i.hundredths / 100.0)) - initial_time);
-#else
-
-#ifdef HAVE_CLOCK
-  return (double) (clock() - clock_wait_ticks) / (double) CLOCKS_PER_SEC;
-#else
+#if !defined(CPU_TIME_DONE)
+  (void)which;
 
   return 0.0;
-
-#endif
-#endif
 #endif
 }
 
 #endif /*__WINDOWS__*/
-
-void
-PL_clock_wait_ticks(long waited)
-{
-#ifdef HAVE_CLOCK
-  clock_wait_ticks += waited;
-#endif
-}
 
 
 double
@@ -309,7 +273,7 @@ WallTime(void)
   struct timespec tp;
 
   clock_gettime(CLOCK_REALTIME, &tp);
-  stime = (double)tp.tv_sec + (double)tp.tv_nsec/1000000000.0;
+  stime = timespec_to_double(tp);
 #else
 #ifdef HAVE_GETTIMEOFDAY
   struct timeval tp;
@@ -435,8 +399,7 @@ UsedMemory(void)
   }
 #endif
 
-  return (GD->statistics.heap +
-	  usedStack(global) +
+  return (usedStack(global) +
 	  usedStack(local) +
 	  usedStack(trail));
 }
@@ -841,19 +804,16 @@ struct canonical_dir
 forwards char   *canoniseDir(char *);
 #endif /*O_CANONISE_DIRS*/
 
-#define CWDdir	(LD->os._CWDdir)	/* current directory */
-#define CWDlen	(LD->os._CWDlen)	/* strlen(CWDdir) */
-
 static void
 initExpand(void)
-{ GET_LD
+{
 #ifdef O_CANONISE_DIRS
   char *dir;
   char *cpaths;
 #endif
 
-  CWDdir = NULL;
-  CWDlen = 0;
+  GD->paths.CWDdir = NULL;
+  GD->paths.CWDlen = 0;
 
 #ifdef O_CANONISE_DIRS
 { char envbuf[MAXPATHLEN];
@@ -894,7 +854,15 @@ cleanupExpand(void)
   canonical_dirlist = NULL;
   for( ; dn; dn = next )
   { next = dn->next;
-    free(dn);
+    if ( dn->canonical && dn->canonical != dn->name )
+      remove_string(dn->canonical);
+    remove_string(dn->name);
+    PL_free(dn);
+  }
+  if ( GD->paths.CWDdir )
+  { remove_string(GD->paths.CWDdir);
+    GD->paths.CWDdir = NULL;
+    GD->paths.CWDlen = 0;
   }
 }
 
@@ -921,7 +889,7 @@ registerParentDirs(const char *path)
     }
 
     if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
-    { CanonicalDir dn   = malloc(sizeof(*dn));
+    { CanonicalDir dn   = PL_malloc(sizeof(*dn));
 
       dn->name		= store_string(dirname);
       dn->inode		= buf.st_ino;
@@ -976,7 +944,7 @@ verify_entry(CanonicalDir d)
     remove_string(d->name);
     if ( d->canonical != d->name )
       remove_string(d->canonical);
-    free(d);
+    PL_free(d);
   }
 
   return FALSE;
@@ -1009,7 +977,7 @@ canoniseDir(char *path)
 					/* is sometimes bigger! */
 
   if ( statfunc(OsPath(path, tmp), &buf) == 0 )
-  { CanonicalDir dn = malloc(sizeof(*dn));
+  { CanonicalDir dn = PL_malloc(sizeof(*dn));
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
 
@@ -1488,14 +1456,14 @@ AbsoluteFile(const char *spec, char *path)
   if ( !PL_cwd() )
     return NULL;
 
-  if ( (CWDlen + strlen(file) + 1) >= MAXPATHLEN )
+  if ( (GD->paths.CWDlen + strlen(file) + 1) >= MAXPATHLEN )
   { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     return (char *) NULL;
   }
 
-  strcpy(path, CWDdir);
+  strcpy(path, GD->paths.CWDdir);
   if ( file[0] != EOS )
-    strcpy(&path[CWDlen], file);
+    strcpy(&path[GD->paths.CWDlen], file);
   if ( strchr(file, '.') || strchr(file, '/') )
     return canonisePath(path);
   else
@@ -1505,12 +1473,10 @@ AbsoluteFile(const char *spec, char *path)
 
 void
 PL_changed_cwd(void)
-{ GET_LD
-
-  if ( CWDdir )
-    remove_string(CWDdir);
-  CWDdir = NULL;
-  CWDlen = 0;
+{ if ( GD->paths.CWDdir )
+    remove_string(GD->paths.CWDdir);
+  GD->paths.CWDdir = NULL;
+  GD->paths.CWDlen = 0;
 }
 
 
@@ -1518,7 +1484,7 @@ const char *
 PL_cwd(void)
 { GET_LD
 
-  if ( CWDlen == 0 )
+  if ( GD->paths.CWDlen == 0 )
   { char buf[MAXPATHLEN];
     char *rval;
 
@@ -1548,16 +1514,16 @@ to be implemented directly.  What about other Unixes?
     }
 
     canonisePath(buf);
-    CWDlen = strlen(buf);
-    buf[CWDlen++] = '/';
-    buf[CWDlen] = EOS;
+    GD->paths.CWDlen = strlen(buf);
+    buf[GD->paths.CWDlen++] = '/';
+    buf[GD->paths.CWDlen] = EOS;
 
-    if ( CWDdir )
-      remove_string(CWDdir);
-    CWDdir = store_string(buf);
+    if ( GD->paths.CWDdir )
+      remove_string(GD->paths.CWDdir);
+    GD->paths.CWDdir = store_string(buf);
   }
 
-  return (const char *)CWDdir;
+  return (const char *)GD->paths.CWDdir;
 }
 
 
@@ -1607,14 +1573,13 @@ DirName(const char *f, char *dir)
 
 bool
 ChDir(const char *path)
-{ GET_LD
-  char ospath[MAXPATHLEN];
+{ char ospath[MAXPATHLEN];
   char tmp[MAXPATHLEN];
 
   OsPath(path, ospath);
 
   if ( path[0] == EOS || streq(path, ".") ||
-       (CWDdir && streq(path, CWDdir)) )
+       (GD->paths.CWDdir && streq(path, GD->paths.CWDdir)) )
     succeed;
 
   AbsoluteFile(path, tmp);
@@ -1627,10 +1592,10 @@ ChDir(const char *path)
     { tmp[len++] = '/';
       tmp[len] = EOS;
     }
-    CWDlen = len;
-    if ( CWDdir )
-      remove_string(CWDdir);
-    CWDdir = store_string(tmp);
+    GD->paths.CWDlen = len;
+    if ( GD->paths.CWDdir )
+      remove_string(GD->paths.CWDdir);
+    GD->paths.CWDdir = store_string(tmp);
 
     succeed;
   }
@@ -1870,9 +1835,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
-{ GET_LD
-
-  ttymode = buf->mode;
+{ ttymode = buf->mode;
 
   if ( buf->state )
   { int fd = Sfileno(s);
@@ -2133,7 +2096,7 @@ growEnviron(char **e, int amount)
     for(e1=e, filled=0; *e1; e1++, filled++)
       ;
     size = ROUND(filled+10+amount, 32);
-    env = (char **)malloc(size * sizeof(char *));
+    env = (char **)PL_malloc(size * sizeof(char *));
     for ( e1=e, e2=env; *e1; *e2++ = *e1++ )
       ;
     *e2 = (char *) NULL;
@@ -2147,7 +2110,7 @@ growEnviron(char **e, int amount)
   { char **env, **e1, **e2;
 
     size += 32;
-    env = (char **)realloc(e, size * sizeof(char *));
+    env = (char **)PL_realloc(e, size * sizeof(char *));
     for ( e1=e, e2=env; *e1; *e2++ = *e1++ )
       ;
     *e2 = (char *) NULL;
@@ -2179,9 +2142,9 @@ matchName(const char *e, const char *name)
 
 static void
 setEntry(char **e, char *name, char *value)
-{ int l = (int)strlen(name);
+{ size_t l = strlen(name);
 
-  *e = (char *) malloc(l + strlen(value) + 2);
+  *e = PL_malloc_atomic(l + strlen(value) + 2);
   strcpy(*e, name);
   e[0][l++] = '=';
   strcpy(&e[0][l], value);

@@ -25,7 +25,7 @@ Constraint Handling Rules (CHR) is a committed-choice rule-based language
 embedded in Prolog. It is designed for writing constraint solvers and is
 particularly useful for providing application-specific constraints.
 It has been used in many kinds of applications, like scheduling,
-model checking, abduction, type checking among many others.
+model checking, abduction, and type checking, among many others.
 
 CHR has previously been implemented in other Prolog systems (SICStus,
 Eclipse, Yap), Haskell and Java. This CHR system is based on the
@@ -40,10 +40,10 @@ implementation. For a more thorough review of CHR we refer the reader to
 In \secref{SyntaxAndSemantics} we present the syntax of CHR in Prolog and
 explain informally its operational semantics. Next, \secref{practical}
 deals with practical issues of writing and compiling Prolog programs
-containing CHR. \Secref{debugging} explains the currently primitive CHR
+containing CHR. \Secref{debugging} explains the (currently primitive) CHR
 debugging facilities. \Secref{predicates} provides a few useful predicates
-to inspect the constraint store and \secref{examples} illustrates CHR with
-two example programs. In \secref{sicstus-chr} some compatibility issues with
+to inspect the constraint store, and \secref{examples} illustrates CHR with
+two example programs. \Secref{sicstus-chr} describes some compatibility issues with
 older versions of this system and SICStus' CHR system. Finally, \secref{guidelines} concludes with a few
 practical guidelines for using CHR.
 
@@ -102,7 +102,7 @@ actual_pragma --> [atom('passive(')], variable, [atom(')')].
 
 Note that the guard of a rule may not contain any goal that binds a variable
 in the head of the rule with a non-variable or with another variable in the
-head of the rule. It may however bind variables that do not appear in the
+head of the rule. It may, however, bind variables that do not appear in the
 head of the rule, e.g. an auxiliary variable introduced in the guard.
 
 \subsection{Semantics}
@@ -117,14 +117,14 @@ sequentially in the order they are written.
 
 A rule is conceptually tried for an active constraint in the following
 way. The active constraint is matched with a constraint in the head of
-the rule. If more constraints appear in the head they are looked for
+the rule. If more constraints appear in the head, they are looked for
 among the suspended constraints, which are called passive constraints in
 this context. If the necessary passive constraints can be found and all
 match with the head of the rule and the guard of the rule succeeds, then
 the rule is committed and the body of the rule executed. If not all the
-necessary passive constraint can be found, the matching fails or the
+necessary passive constraints can be found, or the matching or the
 guard fails, then the body is not executed and the process of trying and
-executing simply continues with the following rules. If for a rule,
+executing simply continues with the following rules. If for a rule
 there are multiple constraints in the head, the active constraint will
 try the rule sequentially multiple times, each time trying to match with
 another constraint.
@@ -134,7 +134,7 @@ is removed by some rule, or after the last rule has been processed. In
 the latter case the active constraint becomes suspended.
 
 A suspended constraint is eligible as a passive constraint for an active
-constraint. The other way it may interact again with the rules, is when
+constraint. The other way it may interact again with the rules is when
 a variable appearing in the constraint becomes bound to either a non-variable
 or another variable involved in one or more constraints. In that case the
 constraint is triggered, i.e.\ it becomes an active constraint and all
@@ -143,7 +143,7 @@ the rules are tried.
 \paragraph{Rule Types}
 %- - - - - - - - - -
 
-There are three different kinds of rules, each with their specific semantics:
+There are three different kinds of rules, each with its specific semantics:
 
 \begin{itemlist}
     \item [simplification]
@@ -164,7 +164,7 @@ constraints are not called in the body.
 
 \paragraph{Rule Names}
 %- - - - - - - - - -
-Naming a rule is optional and has no semantical meaning. It only functions
+Naming a rule is optional and has no semantic meaning. It only functions
 as documentation for the programmer.
 
 \paragraph{Pragmas}
@@ -202,22 +202,22 @@ Available options are:
 \begin{description}
         \termitem{check_guard_bindings}{}
 This option controls whether guards should be checked for (illegal) variable
-bindings or not. Possible values for this option are \texttt{on}, to enable
-the checks, and \texttt{off}, to disable the checks. If this option is on,
+bindings or not. Possible values for this option are \texttt{on} to enable
+the checks, and \texttt{off} to disable the checks. If this option is on,
 any guard fails when it binds a variable that appears in the head of the rule.
 When the option is off (default), the behavior of a binding in the guard is undefined.
 
         \termitem{optimize}{}
 This option controls the degree of optimization.
-Possible values are \texttt{full}, to enable all available
-optimizations, and \texttt{off} (default), to disable all optimizations.
+Possible values are \texttt{full} to enable all available
+optimizations, and \texttt{off} (default) to disable all optimizations.
 The default is derived from the SWI-Prolog flag \prologflag{optimise}, where
 \const{true} is mapped to \const{full}.  Therefore the command-line
 option \cmdlineoption{-O} provides full CHR optimization.
 If optimization is enabled, debugging must be disabled.
 
 	\termitem{debug}{}
-This options enables or disables the possibility to debug the CHR code.
+This option enables or disables the possibility to debug the CHR code.
 Possible values are \texttt{on} (default) and \texttt{off}. See
 \secref{debugging} for more details on debugging.  The default is
 derived from the Prolog flag \prologflag{generate_debug_info}, which
@@ -374,7 +374,7 @@ Currently two complementary forms of type checking are performed:
 foobar @ abc(X) <=> def(X).
 \end{code}
       the variable \texttt{X} has to be of both type \texttt{foo} and \texttt{bar}.
-      This is reported by the type clash error:
+      This is reported as a type clash error:
       \begin{code}
 CHR compiler ERROR:
     `--> Type clash for variable _G5398 in rule foobar:
@@ -392,7 +392,7 @@ CHR compiler ERROR:
 
 foo @ abc(bar) <=> true.
 \end{code}
-in the head of the rule \texttt{bar} appears where something of type \texttt{foo}
+\texttt{bar} appears in the head of the rule where something of type \texttt{foo}
 is expected. This is reported as:
 \begin{code}
 CHR compiler ERROR:
@@ -437,8 +437,8 @@ ERROR: Type error: `foo' expected, found `bar' (CHR Runtime Type Error)
 The SWI-Prolog CHR compiler exploits term_expansion/2 rules to
 translate the constraint handling rules to plain Prolog. These rules are
 loaded from the library \pllib{chr}. They are activated if the compiled
-file has the \fileext{chr} extension or after finding a declaration of
-the format below.
+file has the \fileext{chr} extension or after finding a declaration in
+the following format:
 
 \begin{code}
 :- chr_constraint ...
@@ -455,7 +455,7 @@ as exemplified below:
 :- chr_constraint ...
 \end{code}
 
-Using this style CHR rules can be defined in ordinary Prolog .pl files and
+Using this style, CHR rules can be defined in ordinary Prolog .pl files and
 the operator definitions required by CHR do not leak into modules where they
 might cause conflicts.
 
@@ -501,11 +501,11 @@ the constraint store.
 An active or passive constraint is removed from the constraint
 store.
 \termitem{try}{}
-	An active constraints tries a rule with possibly
+	An active constraint tries a rule with possibly
 	some passive constraints. The try port is entered
 	just before committing to the rule.
 \termitem{apply}{}
-	An active constraints commits to a rule with possibly
+	An active constraint commits to a rule with possibly
 	some passive constraints. The apply port is entered
 	just after committing to the rule.
 \end{description}
@@ -569,7 +569,7 @@ deactivated automatically by the Prolog predicates trace/0 and
 notrace/0.
 
     \predicate{chr_notrace}{0}{}
-De-activate the CHR tracer.  By default the CHR tracer is activated and
+Deactivate the CHR tracer.  By default the CHR tracer is activated and
 deactivated automatically by the Prolog predicates trace/0 and
 notrace/0.
 
@@ -635,7 +635,7 @@ Yes
 \end{code}
 
 When the query succeeds, the SWI-Prolog top-level prints the content of
-the CHR constraint store and displays the bindings generate during the
+the CHR constraint store and displays the bindings generated during the
 query. Some of the query variables may have been bound to attributed
 variables, as you see in the above example.
 
@@ -675,7 +675,7 @@ Yes
 \subsection{The Old SICStus CHR implemenation}
 
 There are small differences between the current K.U.Leuven CHR system
-in SWI-Prolog, older versions of the same system and SICStus' CHR system.
+in SWI-Prolog, older versions of the same system, and SICStus' CHR system.
 
 The current system maps old syntactic elements onto new ones and ignores a
 number of no longer required elements. However, for each a {\em deprecated}
@@ -712,13 +712,13 @@ unification into failure. In SICStus this option does more: it intercepts
 instantiation errors from Prolog built-ins such as is/2 and
 turns them into failure. In SWI-Prolog, we do not go this far, as we like
 to separate concerns more. The CHR compiler is aware of the CHR code, the Prolog
-system and programmer should be aware of the appropriate meaning of the
+system, and the programmer should be aware of the appropriate meaning of the
 Prolog goals used in guards and bodies of CHR rules.
 \end{itemlist}
 
 \subsection{The Old ECLiPSe CHR implemenation}
 
-The old ECLiPSe CHR implementations features a \nopredref{label_with}{1} construct
+The old ECLiPSe CHR implementation features a \nopredref{label_with}{1} construct
 for labeling variables in CHR constraints. This feature has long since been abandoned.
 However, a simple transformation is all that is required to port the functionality.
 \begin{code}
@@ -774,7 +774,7 @@ Make sure to disable debug (-nodebug) and enable optimization (-O).
 Does consulting your CHR program take a long time in SWI-Prolog? Probably
 it takes the CHR compiler a long time to compile the CHR rules into Prolog
 code. When you disable optimizations the CHR compiler will be a lot quicker,
-but you may loose performance. Alternatively, you can just use SWI-Prolog's
+but you may lose performance. Alternatively, you can just use SWI-Prolog's
 qcompile/1 to generate a \fileext{qlf} file once from your
 \fileext{pl} file. This \fileext{qlf} contains the generated code of the
 CHR compiler (be it in a binary format). When you consult the \fileext{qlf}
@@ -782,7 +782,7 @@ file, the CHR compiler is not invoked and consultation is much faster.
 
     \item [Finding Constraints]
 The \predref{find_chr_constraint}{1} predicate is fairly expensive. Avoid it,
-if possible. If you must use it, try to use it with an instantiated toplevel
+if possible. If you must use it, try to use it with an instantiated top-level
 constraint symbol.
 \end{itemlist}
 
@@ -798,7 +798,8 @@ of the CHR compiler.
 \item[Type clash] for variable ... in rule ...
 
 	This error indicates an inconsistency between declared types;
-	a variable should belong to two types. See static type checking.
+	a variable can not belong to two types. See static type
+	checking.
 
 \item[Invalid functor] in head ... of rule ...
 
@@ -837,7 +838,7 @@ of the CHR compiler.
 \item[Undeclared constraint] ... in head of ...
 
 	You have used an undeclared constraint in the head of a rule.
-	This often indicates a misspelled constrained name or wrong
+	This often indicates a misspelled constraint name or wrong
 	number of arguments.
 
 \item[Invalid pragma] ... in ... Pragma should not be a variable.

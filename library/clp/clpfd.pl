@@ -3545,28 +3545,30 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
             fd_get(X, XD, XPs),
             domain_remove_greater_than(XD, R, XD1),
             fd_put(X, XD1, XPs)
-        ;   fd_get(Y, YD, _),
-            (   domain_supremum(YD, n(YSup)) ->
-                YS1 is YSup + C,
-                fd_get(X, XD, XPs),
-                domain_remove_greater_than(XD, YS1, XD1),
-                fd_put(X, XD1, XPs)
-            ;   true
-            ),
-            (   fd_get(X, XD2, _), domain_infimum(XD2, n(XInf)) ->
-                XI1 is XInf - C,
-                (   fd_get(Y, YD1, YPs1) ->
-                    domain_remove_smaller_than(YD1, XI1, YD2),
-                    (   domain_infimum(YD2, n(YInf)),
-                        domain_supremum(XD2, n(XSup)),
-                        XSup =< YInf + C ->
-                        kill(MState)
+        ;   (   X == Y -> C >= 0, kill(MState)
+            ;   fd_get(Y, YD, _),
+                (   domain_supremum(YD, n(YSup)) ->
+                    YS1 is YSup + C,
+                    fd_get(X, XD, XPs),
+                    domain_remove_greater_than(XD, YS1, XD1),
+                    fd_put(X, XD1, XPs)
+                ;   true
+                ),
+                (   fd_get(X, XD2, _), domain_infimum(XD2, n(XInf)) ->
+                    XI1 is XInf - C,
+                    (   fd_get(Y, YD1, YPs1) ->
+                        domain_remove_smaller_than(YD1, XI1, YD2),
+                        (   domain_infimum(YD2, n(YInf)),
+                            domain_supremum(XD2, n(XSup)),
+                            XSup =< YInf + C ->
+                            kill(MState)
+                        ;   true
+                        ),
+                        fd_put(Y, YD2, YPs1)
                     ;   true
-                    ),
-                    fd_put(Y, YD2, YPs1)
+                    )
                 ;   true
                 )
-            ;   true
             )
         ).
 
@@ -3712,16 +3714,18 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   X =:= 0 -> kill(MState), Z = 0
             ;   X =:= 1 -> kill(MState), Z = Y
             ;   nonvar(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
-            ;   fd_get(Y, YD, _),
-                fd_get(Z, ZD, ZPs),
-                domain_expand(YD, X, Scaled_YD),
-                domains_intersection(ZD, Scaled_YD, ZD1),
-                fd_put(Z, ZD1, ZPs),
-                (   fd_get(Y, YDom2, YPs2) ->
-                    domain_contract(ZD1, X, Contract),
-                    domains_intersection(YDom2, Contract, NYDom),
-                    fd_put(Y, NYDom, YPs2)
-                ;   kill(MState), Z is X * Y
+            ;   (   Y == Z -> kill(MState), Y = 0
+                ;   fd_get(Y, YD, _),
+                    fd_get(Z, ZD, ZPs),
+                    domain_expand(YD, X, Scaled_YD),
+                    domains_intersection(ZD, Scaled_YD, ZD1),
+                    fd_put(Z, ZD1, ZPs),
+                    (   fd_get(Y, YDom2, YPs2) ->
+                        domain_contract(ZD1, X, Contract),
+                        domains_intersection(YDom2, Contract, NYDom),
+                        fd_put(Y, NYDom, YPs2)
+                    ;   kill(MState), Z is X * Y
+                    )
                 )
             )
         ;   nonvar(Y) -> run_propagator(ptimes(Y,X,Z), MState)
@@ -3796,14 +3800,24 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         update_bounds(Y, YD, YPs, YL, YU, NYL, NYU)
                     )
                 ;   fd_get(Z, ZD, ZL, ZU, ZPs),
-                    (   X >= 0, YL cis_gt n(0) ->
+                    (   X >= 0, ( YL cis_gt n(0) ; YU cis_lt n(0) )->
                         NZL cis max(n(X)//YU, ZL),
                         NZU cis min(n(X)//YL, ZU)
+                    ;   X < 0, ( YL cis_gt n(0) ; YU cis_lt n(0) ) ->
+                        NZL cis max(n(X)//YL, ZL),
+                        NZU cis min(n(X)//YU, ZU)
                     ;   % TODO: more stringent bounds, cover Y
                         NZL cis max(-abs(n(X)), ZL),
                         NZU cis min(abs(n(X)), ZU)
                     ),
-                    update_bounds(Z, ZD, ZPs, ZL, ZU, NZL, NZU)
+                    update_bounds(Z, ZD, ZPs, ZL, ZU, NZL, NZU),
+                    (   X >= 0, NZL cis_gt n(0), fd_get(Y, YD1, YPs1) ->
+                        NYL cis n(X) // (NZU + n(1)) + n(1),
+                        NYU cis n(X) // NZL,
+                        domains_intersection(YD1, from_to(NYL, NYU), NYD1),
+                        fd_put(Y, NYD1, YPs1)
+                    ;   true
+                    )
                 )
             )
         ;   nonvar(Y) ->
@@ -3898,15 +3912,23 @@ run_propagator(pmod(X,Y,Z), MState) :-
         ;   nonvar(Y) ->
             Y =\= 0,
             (   abs(Y) =:= 1 -> kill(MState), Z = 0
-            ;   fd_get(Z, ZD, ZPs) ->
+            ;   var(Z) ->
                 YP is abs(Y) - 1,
-                (   Y > 0 -> ZDN = from_to(n(0), n(YP))
-                ;   YN is -YP, ZDN = from_to(n(YN), n(0))
+                (   Y > 0, fd_get(X, _, n(XL), n(XU), _) ->
+                    (   XL >= 0, XU < Y ->
+                        kill(MState), Z = X, ZL = XL, ZU = XU
+                    ;   ZL = 0, ZU = YP
+                    )
+                ;   Y > 0 -> ZL = 0, ZU = YP
+                ;   YN is -YP, ZL = YN, ZU = 0
                 ),
-                domains_intersection(ZD, ZDN, ZD1),
-                fd_put(Z, ZD1, ZPs),
-                domain_infimum(ZD1, n(ZMin)),
-                domain_supremum(ZD1, n(ZMax)),
+                (   fd_get(Z, ZD, ZPs) ->
+                    domains_intersection(ZD, from_to(n(ZL), n(ZU)), ZD1),
+                    domain_infimum(ZD1, n(ZMin)),
+                    domain_supremum(ZD1, n(ZMax)),
+                    fd_put(Z, ZD1, ZPs)
+                ;   ZMin = Z, ZMax = Z
+                ),
                 (   fd_get(X, XD, XPs), domain_infimum(XD, n(XMin)) ->
                     Z1 is XMin mod Y,
                     (   between(ZMin, ZMax, Z1) -> true
@@ -3965,16 +3987,36 @@ run_propagator(pmod(X,Y,Z), MState) :-
 run_propagator(prem(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X rem Y
-            ;   true
+            ;   U is abs(X),
+                fd_get(Y, YD, _),
+                (   X >=0, domain_infimum(YD, n(Min)), Min >= 0 -> L = 0
+                ;   L is -U
+                ),
+                Z in L..U
             )
         ;   nonvar(Y) ->
             Y =\= 0,
             (   abs(Y) =:= 1 -> kill(MState), Z = 0
-            ;   fd_get(Z, ZD, ZPs) ->
+            ;   var(Z) ->
                 YP is abs(Y) - 1,
                 YN is -YP,
-                domains_intersection(ZD, from_to(n(YN), n(YP)), ZD1),
-                fd_put(Z, ZD1, ZPs),
+                (   Y > 0, fd_get(X, _, n(XL), n(XU), _) ->
+                    (   abs(XL) < Y, XU < Y -> kill(MState), Z = X, ZL = XL
+                    ;   XL < 0, abs(XL) < Y -> ZL = XL
+                    ;   XL >= 0 -> ZL = 0
+                    ;   ZL = YN
+                    ),
+                    (   XU > 0, XU < Y -> ZU = XU
+                    ;   XU < 0 -> ZU = 0
+                    ;   ZU = YP
+                    )
+                ;   ZL = YN, ZU = YP
+                ),
+                (   fd_get(Z, ZD, ZPs) ->
+                    domains_intersection(ZD, from_to(n(ZL), n(ZU)), ZD1),
+                    fd_put(Z, ZD1, ZPs)
+                ;   true
+                ),
                 (   fd_get(X, XD, _), domain_infimum(XD, n(Min)) ->
                     Z1 is Min rem Y,
                     (   domain_contains(ZD1, Z1) -> true

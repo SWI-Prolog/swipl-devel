@@ -159,6 +159,7 @@ typedef struct PL_global_data PL_global_data_t;
 #define PASS_LD1  LD
 #define PASS_LD   , LD
 #define LOCAL_LD  __PL_ld
+#define IGNORE_LD (void)__PL_ld;
 
 #else
 
@@ -170,6 +171,7 @@ typedef struct PL_global_data PL_global_data_t;
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
 #define LD	  GLOBAL_LD
+#define IGNORE_LD
 
 #endif
 

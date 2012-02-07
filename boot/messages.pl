@@ -59,6 +59,8 @@
 %	    * flush
 %	    Used only as last element of the list.   Simply flush the
 %	    output instead of producing a final newline.
+%	    * at_same_line
+%	    Start the messages at the same line (instead of using ~N)
 
 translate_message(Term) -->
 	translate_message2(Term), !.
@@ -396,6 +398,12 @@ prolog_message(interrupt(end)) -->
 	[ 'continue' ].
 prolog_message(interrupt(trace)) -->
 	[ 'continue (trace mode)' ].
+prolog_message(unknown_in_module_user) -->
+	[ 'Using a non-error value for unknown in the global module', nl,
+	  'causes most of the development environment to stop working.', nl,
+	  'Please use :- dynamic or limit usage of unknown to a module.', nl,
+	  'See http://www.swi-prolog.org/howto/database.html'
+	].
 
 
 		 /*******************************
@@ -432,12 +440,12 @@ prolog_message(load_file(start(Level, File))) -->
 	[ '~|~t~*+Loading '-[Level] ],
 	load_file(File),
 	[ ' ...' ].
-prolog_message(load_file(done(Level, File, Action, Module, Time, Heap))) -->
+prolog_message(load_file(done(Level, File, Action, Module, Time, Clauses))) -->
 	[ '~|~t~*+'-[Level] ],
 	load_file(File),
 	[ ' ~w'-[Action] ],
 	load_module(Module),
-	[ ' ~2f sec, ~D bytes'-[Time, Heap] ].
+	[ ' ~2f sec, ~D clauses'-[Time, Clauses] ].
 prolog_message(dwim_undefined(Goal, Alternatives)) -->
 	{ goal_to_predicate_indicator(Goal, Pred)
 	},
@@ -630,10 +638,10 @@ prolog_message(query(QueryResult)) -->
 	query_result(QueryResult).
 
 query_result(no) -->		% failure
-	[ 'false.'-[] ],
+	[ ansi([bold,fg(red)], 'false.', []) ],
 	extra_line.
 query_result(yes([])) --> !,	% prompt_alternatives_on: groundness
-	[ 'true.'-[] ],
+	[ ansi(bold, 'true.', []) ],
 	extra_line.
 query_result(yes(Residuals)) -->
 	result([], Residuals),
@@ -669,13 +677,13 @@ prompt(Answer, _, _) --> !,
 	prompt(Answer, non_empty).
 
 prompt(yes, empty) --> !,
-	[ 'true.'-[] ],
+	[ ansi(bold, 'true.', []) ],
 	extra_line.
 prompt(yes, _) --> !,
 	[ full_stop ],
 	extra_line.
 prompt(more, empty) --> !,
-	[ 'true '-[], flush ].
+	[ ansi(bold, 'true ', []), flush ].
 prompt(more, _) --> !,
 	[ ' '-[], flush ].
 
@@ -747,9 +755,9 @@ extra_line -->
 extra_line -->
 	[].
 
-prolog_message(if_tty(Text)) -->
+prolog_message(if_tty(Message)) -->
 	(   {current_prolog_flag(tty_control, true)}
-	->  [ at_same_line, '~w'-[Text] ]
+	->  [ at_same_line | Message ]
 	;   []
 	).
 prolog_message(halt(Reason)) -->
@@ -845,7 +853,7 @@ tracing_list([trace(Head, Ports)|T]) -->
 prolog_message(frame(Frame, backtrace, _PC)) --> !,
 	{ prolog_frame_attribute(Frame, level, Level)
 	},
-	[ '~t[~D] ~10|'-[Level] ],
+	[ ansi(bold, '~t[~D] ~10|', [Level]) ],
 	frame_context(Frame),
 	frame_goal(Frame).
 prolog_message(frame(Frame, choice, PC)) --> !,
@@ -907,16 +915,16 @@ frame_flags(Frame) -->
 	[ '~w~w '-[T, S] ].
 
 port(Port) -->
-	{ port_name(Port, Name)
+	{ port_name(Port, Colour, Name)
 	}, !,
-	[ '~w: '-[Name] ].
+	[ ansi([bold,fg(Colour)], '~w: ', [Name]) ].
 
-port_name(call,	     'Call').
-port_name(exit,	     'Exit').
-port_name(fail,	     'Fail').
-port_name(redo,	     'Redo').
-port_name(unify,     'Unify').
-port_name(exception, 'Exception').
+port_name(call,	     green,   'Call').
+port_name(exit,	     green,   'Exit').
+port_name(fail,	     red,     'Fail').
+port_name(redo,	     yellow,  'Redo').
+port_name(unify,     blue,    'Unify').
+port_name(exception, magenta, 'Exception').
 
 clean_goal(M:Goal, Goal) :-
 	hidden_module(M), !.
@@ -986,85 +994,116 @@ print_system_message(_, informational, _) :-
 	current_prolog_flag(verbose, silent), !.
 print_system_message(_, banner, _) :-
 	current_prolog_flag(verbose, silent), !.
+print_system_message(_, _, []) :- !.
 print_system_message(Term, Level, Lines) :-
 	flush_output(user_output),
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
-	prefix(Level, Prefix, LinePrefix, PostFix, Wait, Stream), !,
-	format(Stream, Prefix, [File, Line]),
-	print_message_lines(Stream, LinePrefix, Lines),
-	format(Stream, PostFix, []),
+	prefix(Level, Prefix, LinePrefix, Wait, Stream), !,
+	insert_prefix(Lines, LinePrefix, PrefixLines),
+	'$append'([ begin(Level, Ctx),
+		    Prefix-[File,Line],
+		    nl
+		  | PrefixLines
+		  ],
+		  [ end(Ctx)
+		  ],
+		  AllLines),
+	print_message_lines(Stream, AllLines),
 	(   Wait > 0
 	->  sleep(Wait)
 	;   true
 	).
 print_system_message(_, Level, Lines) :-
-	flush_output(user_output),
 	prefix(Level, LinePrefix, Stream), !,
-	print_message_lines(Stream, LinePrefix, Lines).
+	insert_prefix(Lines, LinePrefix, PrefixLines),
+	'$append'([ begin(Level, Ctx)
+		  | PrefixLines
+		  ],
+		  [ end(Ctx)
+		  ],
+		  AllLines),
+	print_message_lines(Stream, AllLines).
 print_system_message(_, Level, _) :-
 	\+ prefix(Level, _, _),
 	throw(error(domain_error(message_kind, Level), _)).
 
-prefix(error,	      'ERROR: ~w:~d:~n',   '\t', '', 0.5, user_error).
-prefix(warning,	      'Warning: ~w:~d:~n', '\t', '', 0,   user_error).
+prefix(error,	      '~NERROR: ~w:~d:',   '~N\t', 0.1, user_error).
+prefix(warning,	      '~NWarning: ~w:~d:', '~N\t', 0,   user_error).
 
-prefix(help,	      '',          user_error).
-prefix(query,	      '',          user_error).
-prefix(debug,	      '',          user_output).
+prefix(help,	      '~N',	   user_error).
+prefix(query,	      '~N',        user_error).
+prefix(debug,	      '~N',        user_output).
 prefix(warning,	      Prefix,      user_error) :-
 	thread_self(Id),
 	(   Id == main
-	->  Prefix = 'Warning: '
-	;   atomic_list_concat(['Warning: [Thread ', Id, '] '], Prefix)
+	->  Prefix = '~NWarning: '
+	;   Prefix = '~NWarning: [Thread ~w] '-Id
 	).
-prefix(error,	      Prefix,   user_error) :-
+prefix(error,	      Prefix,      user_error) :-
 	thread_self(Id),
 	(   Id == main
-	->  Prefix = 'ERROR: '
-	;   atomic_list_concat(['ERROR: [Thread ', Id, '] '], Prefix)
+	->  Prefix = '~NERROR: '
+	;   Prefix = '~NERROR: [Thread ~w] '-Id
 	).
-prefix(banner,	      '',	   user_error).
-prefix(informational, '% ',        user_error).
+prefix(banner,	      '~N',	   user_error).
+prefix(informational, '~N% ',	   user_error).
+prefix(information,   '~N% ',	   user_error).
 
-%	print_message_lines(+Stream, +Prefix, +Lines)
+%%	print_message_lines(+Stream, +Prefix, +Lines)
 %
 %	Quintus compatibility predicate to print message lines using
 %	a prefix.
 
-print_message_lines(_, _, []) :- !.
-print_message_lines(S, P, [at_same_line|Lines]) :- !,
-	print_message_line(S, Lines, Rest),
-	print_message_lines(S, P, Rest).
-print_message_lines(S, P, Lines) :-
-	atom_concat('~N', P, Prefix),
-	format(S, Prefix, []),
-	print_message_line(S, Lines, Rest),
-	print_message_lines(S, P, Rest).
+print_message_lines(Stream, Prefix, Lines) :-
+	insert_prefix(Lines, Prefix, PrefixLines),
+	print_message_lines(Stream, PrefixLines).
 
-print_message_line(S, [flush], []) :- !,
-	flush_output(S).
-print_message_line(S, [], []) :- !,
-	nl(S).
-print_message_line(S, [nl|T], T) :- !,
-	nl(S).
-print_message_line(S, [H|T0], T) :- !,
+%%	insert_prefix(+Lines, +Prefix, -PrefixedLines)
+
+insert_prefix([at_same_line|Lines0], Prefix, Lines) :- !,
+	prefix_nl(Lines0, Prefix, Lines).
+insert_prefix(Lines0, Prefix, [prefix(Prefix)|Lines]) :-
+	prefix_nl(Lines0, Prefix, Lines).
+
+prefix_nl([], _, [nl]).
+prefix_nl([nl], _, [nl]) :- !.
+prefix_nl([flush], _, [flush]) :- !.
+prefix_nl([nl|T0], Prefix, [nl, prefix(Prefix)|T]) :- !,
+	prefix_nl(T0, Prefix, T).
+prefix_nl([H|T0], Prefix, [H|T]) :-
+	prefix_nl(T0, Prefix, T).
+
+%%	print_message_lines(+Stream, +Lines)
+
+print_message_lines(_, []) :- !.
+print_message_lines(S, [H|T]) :-
 	line_element(S, H),
-	print_message_line(S, T0, T).
+	print_message_lines(S, T).
 
+line_element(S, E) :-
+	notrace(prolog:message_line_element(S, E)), !.
 line_element(S, full_stop) :- !,
 	'$put_token'(S, '.').		% insert space if needed.
+line_element(S, nl) :- !,
+	nl(S).
+line_element(S, prefix(Fmt-Args)) :- !,
+	format(S, Fmt, Args).
+line_element(S, prefix(Fmt)) :- !,
+	format(S, Fmt, []).
+line_element(S, flush) :- !,
+	flush_output(S).
 line_element(S, Fmt-Args) :- !,
 	format(S, Fmt, Args).
-line_element(S, E) :-
-	prolog:message_line_element(S, E), !.
 line_element(S, ansi(_, Fmt, Args)) :- !,
 	format(S, Fmt, Args).
+line_element(_, begin(_Level, _Ctx)) :- !.
+line_element(_, end(_Ctx)) :- !.
 line_element(S, Fmt) :-
 	format(S, Fmt, []).
 
 
-%	message_to_string(+Term, -String)
+%%	message_to_string(+Term, -String)
 %
 %	Translate an error term into a string
 
@@ -1080,6 +1119,9 @@ actions_to_format([Term, nl], Fmt, Args) :- !,
 actions_to_format([nl|T], Fmt, Args) :- !,
 	actions_to_format(T, Fmt0, Args),
 	atom_concat('~n', Fmt0, Fmt).
+actions_to_format([Skip|T], Fmt, Args) :-
+	action_skip(Skip), !,
+	actions_to_format(T, Fmt, Args).
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :- !,
         actions_to_format(Tail, Fmt1, Args1),
         atom_concat(Fmt0, Fmt1, Fmt),
@@ -1092,6 +1134,11 @@ actions_to_format([Term|Tail], Fmt, Args) :-
         actions_to_format(Tail, Fmt1, Args1),
         atom_concat('~w', Fmt1, Fmt),
 	append_args([Term], Args1, Args).
+
+action_skip(at_same_line).
+action_skip(ansi(_Attrs, _Fmt, _Args)).
+action_skip(begin(_Level, _Ctx)).
+action_skip(end(_Ctx)).
 
 append_args(M:Args0, Args1, M:Args) :- !,
 	strip_module(Args1, _, A1),
@@ -1108,13 +1155,13 @@ append_args(Args0, Args1, Args) :-
 :- dynamic
 	printed/2.
 
-%	print_once(Message, Level)
+%%	print_once(Message, Level)
 %
 %	True for messages that must be printed only once.
 
 print_once(compatibility(_), _).
 
-%	must_print(+Level, +Message)
+%%	must_print(+Level, +Message)
 %
 %	True if the message must be printed.
 

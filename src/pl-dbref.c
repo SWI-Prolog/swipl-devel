@@ -37,6 +37,7 @@ typedef struct recref
 static int
 write_clause_ref(IOSTREAM *s, atom_t aref, int flags)
 { clref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)flags;
 
   Sfprintf(s, "<clause>(%p)", ref->clause);
   return TRUE;
@@ -57,9 +58,8 @@ release_clause(atom_t aref)
 
   clear(ref->clause, DBREF_CLAUSE);
   if ( true(ref->clause, DBREF_ERASED_CLAUSE) )
-  { GET_LD
-    unallocClause(ref->clause PASS_LD);
-  }
+    unallocClause(ref->clause);
+
   return TRUE;
 }
 
@@ -67,6 +67,7 @@ release_clause(atom_t aref)
 static int
 save_clause_ref(atom_t aref, IOSTREAM *fd)
 { clref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)fd;
 
   return PL_warning("Cannot save reference to <clause>(%p)", ref->clause);
 }
@@ -74,7 +75,9 @@ save_clause_ref(atom_t aref, IOSTREAM *fd)
 
 static atom_t
 load_clause_ref(IOSTREAM *fd)
-{ return PL_new_atom("<saved-clause-ref>");
+{ (void)fd;
+
+  return PL_new_atom("<saved-clause-ref>");
 }
 
 
@@ -113,11 +116,9 @@ release_record(atom_t aref)
 { recref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->record->record )
-  { clear(ref->record->record, R_DBREF);
-  } else
-  { GET_LD
-    unallocRecordRef(ref->record PASS_LD);
-  }
+    clear(ref->record->record, R_DBREF);
+  else
+    unallocRecordRef(ref->record);
 
   return TRUE;
 }

@@ -105,6 +105,7 @@ fi
 rm -f conftest.unique
 
 AC_PROG_CC
+AC_PROG_CXX		dnl used for packages
 LDEXE="$CC"
 AC_CANONICAL_HOST
 changequote(,)dnl
@@ -189,6 +190,10 @@ AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
 AC_ARG_ENABLE(dmalloc, [  --enable-dmalloc	  Enable DMALLOC debugging],
 	      dmalloc="$enableval",
 	      dmalloc=no)
+
+AC_ARG_ENABLE(boehm-gc, [  --enable-boehm-gc	  Enable using Boehm-GC],
+	      boehmgc="$enableval",
+	      boehmgc=no)
 
 AC_ARG_ENABLE(useprofile, [  --enable-useprofile	  GCC: recompile with profile],
 	      useprofile="$enableval",
@@ -302,7 +307,8 @@ AC_ARG_ENABLE(custom-flags, [  --disable-custom-flags  Do not add custom build o
 	custom_flags=yes)
 if test "x$custom_flags" = "xyes" ; then
 	if test "$GCC" = "yes"; then
-		COFLAGS="${COFLAGS--O2 -fno-strict-aliasing}"
+		COFLAGS="${COFLAGS--O2}"
+		CMFLAGS="${CMFLAGS--fno-strict-aliasing}"
 		LDFLAGS="${LDFLAGS--O2}"
 		CWFLAGS="${CWFLAGS--Wall}"
 	else
@@ -865,6 +871,7 @@ if test "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
       AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
       AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
       AC_CHECK_FUNCS(rl_filename_completion_function)
+      AC_CHECK_FUNCS(rl_set_keyboard_input_timeout)
       AC_CHECK_DECLS([rl_done])
       FreeBSD="$ocflags"
       readline_ok=yes
@@ -971,6 +978,18 @@ AC_TRY_LINK([],
 	    ],
 	    [ AC_MSG_RESULT(no) ])
 
+
+if test ! "x$boehmgc" = xno; then
+  oldlibs="$LIBS"
+  AC_CHECK_LIB(gc, GC_malloc, check_gc_h=yes)
+  if test "x$check_gc_h" = "xyes"; then
+    AC_CHECK_HEADER(gc/gc.h,
+		    AC_DEFINE(HAVE_BOEHM_GC, 1,
+			      [ Define to 1 if you have Boehm GC. ])
+		    LIBS="-lgc $LIBS")
+    AC_CHECK_FUNCS(GC_set_flags)	dnl Custom extensions
+  fi
+fi
 
 case "$PLARCH" in
     *-win32|*-win64)

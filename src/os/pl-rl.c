@@ -500,10 +500,6 @@ Sread_readline(void *handle, char *buf, size_t size)
     }
   }
 
-#ifdef HAVE_CLOCK
-  PL_clock_wait_ticks(clock() - oldclock);
-#endif
-
   return rval;
 }
 
@@ -535,7 +531,12 @@ atom_generator(const char *prefix, int state)
 { char *s = PL_atom_generator(prefix, state);
 
   if ( s )
-    return strcpy(PL_malloc(1 + strlen(s)), s);
+  { char *copy = malloc(1 + strlen(s));
+
+    if ( copy )				/* else pretend no completion */
+      strcpy(copy, s);
+    s = copy;
+  }
 
   return s;
 }
@@ -557,6 +558,14 @@ prolog_completion(const char *text, int start, int end)
 }
 
 #undef read				/* UXNT redefinition */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+For some obscure reasons,  notably  libreadline   6  can  show  very bad
+interactive behaviour. There is a timeout set   to  100000 (0.1 sec). It
+isn't particularly clear what this timeout is doing. I _think_ it should
+be synchronized PL_dispatch_hook(),  and  set  to   0  if  this  hook is
+non-null.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 install_t
 PL_install_readline(void)
@@ -580,6 +589,9 @@ PL_install_readline(void)
   rl_add_defun("prolog-complete", prolog_complete, '\t');
 #if HAVE_RL_INSERT_CLOSE
   rl_add_defun("insert-close", rl_insert_close, ')');
+#endif
+#if HAVE_RL_SET_KEYBOARD_INPUT_TIMEOUT	/* see (*) */
+  rl_set_keyboard_input_timeout(20000);
 #endif
 
   GD->os.rl_functions = *Sinput->functions;	/* structure copy */

@@ -179,7 +179,7 @@ report(t(OldWall, OldTime, OldInferences), Sub) :-
 	->  Lips = 'Infinite'
 	;   Lips is integer(UsedInf / UsedTime)
 	),
-	print_message(query, time(UsedInf, UsedTime, Wall, Lips)).
+	print_message(information, time(UsedInf, UsedTime, Wall, Lips)).
 
 time_state(t(Wall, Time, Inferences)) :-
 	get_time(Wall),
@@ -348,7 +348,7 @@ key(callees,	    7).
 
 value(name, Data, Name) :- !,
 	arg(1, Data, Pred),
-	predicate_name(Pred, Name).
+	predicate_functor_name(Pred, Name).
 value(label, Data, Label) :- !,
 	arg(1, Data, Pred),
 	predicate_label(Pred, Label).
@@ -387,14 +387,14 @@ hidden_module(user, _).
 hidden_module(M, H) :-
 	predicate_property(system:H, imported_from(M)).
 
-%%	predicate_name(+Head, -Name)
+%%	predicate_functor_name(+Head, -Name)
 %
 %	Return the (module-free) name of the predicate for sorting
 %	purposes.
 
-predicate_name(_:H, Name) :- !,
-	predicate_name(H, Name).
-predicate_name(H, Name) :-
+predicate_functor_name(_:H, Name) :- !,
+	predicate_functor_name(H, Name).
+predicate_functor_name(H, Name) :-
 	functor(H, Name, _Arity).
 
 
@@ -406,7 +406,7 @@ predicate_name(H, Name) :-
 	prolog:message/3.
 
 prolog:message(time(UsedInf, UsedTime, Wall, Lips)) -->
-	[ '% ~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
+	[ '~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
 	  [UsedInf, UsedTime, Wall, Perc, Lips] ],
 	{   Wall > 0
 	->  Perc is round(100*UsedTime/Wall)

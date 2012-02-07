@@ -34,13 +34,24 @@
 
 #ifdef _MSC_VER				/* Windows MSVC version */
 
+/* MSB(0) = undefined
+   MSB(1) = 0
+   MSB(2) = 1
+   ...
+*/
+
 #define HAVE_MSB 1
 static inline int
-MSB(unsigned int i)
-{ unsigned long mask = i;
-  unsigned long index;
-
+MSB(size_t i)
+{ unsigned long index;
+#if SIZEOF_VOIDP == 8
+  unsigned __int64 mask = i;
+  _BitScanReverse64(&index, mask);
+#else
+  unsigned long mask = i;
   _BitScanReverse(&index, mask);
+#endif
+
   return index;
 }
 
@@ -53,7 +64,7 @@ MSB(unsigned int i)
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
 #define HAVE_MSB 1
-#define MSB(i) (31 - __builtin_clz(i))		/* GCC builtin */
+#define MSB(i) (sizeof(long)*8 - 1 - __builtin_clzl(i)) /* GCC builtin */
 #endif
 
 #if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
@@ -64,14 +75,17 @@ MSB(unsigned int i)
 #ifndef HAVE_MSB
 #define HAVE_MSB 1
 static inline int
-MSB(unsigned int i)
+MSB(size_t i)
 { int j = 0;
 
-  if (i >= 0x10000) {i >>= 16; j += 16;}
-  if (i >=   0x100) {i >>=  8; j +=  8;}
-  if (i >=    0x10) {i >>=  4; j +=  4;}
-  if (i >=     0x4) {i >>=  2; j +=  2;}
-  if (i >=     0x2) j++;
+#if SIZEOF_VOIDP == 8
+  if (i >= 0x100000000) {i >>= 32; j += 32;}
+#endif
+  if (i >=     0x10000) {i >>= 16; j += 16;}
+  if (i >=       0x100) {i >>=  8; j +=  8;}
+  if (i >=        0x10) {i >>=  4; j +=  4;}
+  if (i >=         0x4) {i >>=  2; j +=  2;}
+  if (i >=         0x2) j++;
 
   return j;
 }
@@ -81,6 +95,25 @@ MSB(unsigned int i)
 #define HAVE_MEMORY_BARRIER 1
 #define MemoryBarrier() (void)0
 #endif
+
+		 /*******************************
+		 *	 ATOMS/FUNCTORS		*
+		 *******************************/
+
+static inline Atom
+fetchAtomArray(size_t index)
+{ int idx = MSB(index);
+
+  return GD->atoms.array.blocks[idx][index];
+}
+
+
+static inline FunctorDef
+fetchFunctorArray(size_t index)
+{ int idx = MSB(index);
+
+  return GD->functors.array.blocks[idx][index];
+}
 
 
 		 /*******************************
@@ -98,11 +131,8 @@ typedef struct bit_vector
 #define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
 #endif
 
-#define new_bitvector(size) new_bitvector__LD(size PASS_LD)
-#define free_bitvector(v)   free_bitvector__LD(v PASS_LD)
-
 static inline bit_vector *
-new_bitvector__LD(size_t size ARG_LD)
+new_bitvector(size_t size)
 { size_t bytes = offset(bit_vector, chunk[(size+BITSPERE-1)/BITSPERE]);
   bit_vector *v = allocHeapOrHalt(bytes);
 
@@ -112,14 +142,14 @@ new_bitvector__LD(size_t size ARG_LD)
 }
 
 static inline void
-free_bitvector__LD(bit_vector *v ARG_LD)
+free_bitvector(bit_vector *v)
 { size_t bytes = offset(bit_vector, chunk[(v->size+BITSPERE-1)/BITSPERE]);
 
   freeHeap(v, bytes);
 }
 
 static inline void
-clear_bitvector(bit_vector *v ARG_LD)
+clear_bitvector(bit_vector *v)
 { size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
 
   memset(v->chunk, 0, chunks*sizeof(bitv_chunk));

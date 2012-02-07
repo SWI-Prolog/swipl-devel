@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -38,29 +39,45 @@ See pl-atom.c for many useful comments on the representation.
 #define functor_buckets (GD->functors.buckets)
 #define functorDefTable (GD->functors.table)
 
-static void	  allocFunctorTable();
-static void	  rehashFunctors();
+static void	  allocFunctorTable(void);
+static void	  rehashFunctors(void);
 
-#define maxFunctorIndex() entriesBuffer(&functor_array, FunctorDef)
-#define getFunctorByIndex(i) baseBuffer(&functor_array, FunctorDef)[(i)]
+static void
+putFunctorArray(size_t where, FunctorDef fd)
+{ int idx = MSB(where);
+
+  assert(where >= 0);
+
+  if ( !GD->functors.array.blocks[idx] )
+  { PL_LOCK(L_MISC);
+    if ( !GD->functors.array.blocks[idx] )
+    { size_t bs = (size_t)1<<idx;
+      FunctorDef *newblock = PL_malloc_uncollectable(bs*sizeof(FunctorDef));
+
+      GD->functors.array.blocks[idx] = newblock-bs;
+    }
+    PL_UNLOCK(L_MISC);
+  }
+
+  GD->functors.array.blocks[idx][where] = fd;
+}
 
 
 static void
 registerFunctor(FunctorDef fd)
-{ size_t n = maxFunctorIndex();
+{ size_t index = GD->functors.highest++;
   int amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
 
-  fd->functor = MK_FUNCTOR(n, amask);
-  addBuffer(&functor_array, fd, FunctorDef);
+  fd->functor = MK_FUNCTOR(index, amask);
+  putFunctorArray(index, fd);
 
-  DEBUG(0, assert(fd->arity == arityFunctor(fd->functor)));
+  DEBUG(CHK_SECURE, assert(fd->arity == arityFunctor(fd->functor)));
 }
 
 
 functor_t
 lookupFunctorDef(atom_t atom, unsigned int arity)
-{ GET_LD
-  int v;
+{ int v;
   FunctorDef f;
 
   LOCK();
@@ -98,23 +115,36 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
 
 static void
 rehashFunctors(void)
-{ GET_LD
-  FunctorDef *oldtab = functorDefTable;
+{ FunctorDef *oldtab = functorDefTable;
   int oldbucks       = functor_buckets;
-  size_t i, mx = maxFunctorIndex();
+  size_t index;
+  int i, last = FALSE;
 
   functor_buckets *= 2;
   allocFunctorTable();
 
-  DEBUG(0, Sdprintf("Rehashing functor-table to %d entries\n",
-		    functor_buckets));
+  DEBUG(MSG_HASH_STAT,
+	Sdprintf("Rehashing functor-table to %d entries\n", functor_buckets));
 
-  for(i = 0; i<mx; i++)
-  { FunctorDef f = getFunctorByIndex(i);
-    size_t v = pointerHashValue(f->name, functor_buckets);
+  for(index=1, i=0; !last; i++)
+  { size_t upto = (size_t)2<<i;
+    FunctorDef *b = GD->functors.array.blocks[i];
 
-    f->next = functorDefTable[v];
-    functorDefTable[v] = f;
+    if ( upto >= GD->functors.highest )
+    { upto = GD->functors.highest;
+      last = TRUE;
+    }
+
+    for(; index<upto; index++)
+    { FunctorDef f = b[index];
+
+      if ( f )
+      { size_t v = pointerHashValue(f->name, functor_buckets);
+
+	f->next = functorDefTable[v];
+	functorDefTable[v] = f;
+      }
+    }
   }
 
   freeHeap(oldtab, oldbucks * sizeof(FunctorDef));
@@ -124,11 +154,11 @@ rehashFunctors(void)
 
 functor_t
 isCurrentFunctor(atom_t atom, unsigned int arity)
-{ int v;
+{ unsigned int v;
   FunctorDef f;
 
   LOCK();
-  v = (int)pointerHashValue(atom, functor_buckets);
+  v = (unsigned int)pointerHashValue(atom, functor_buckets);
   for(f = functorDefTable[v]; f; f = f->next)
   { if ( atom == f->name && f->arity == arity )
     { UNLOCK();
@@ -154,9 +184,8 @@ FUNCTOR(NULL_ATOM, 0)
 
 
 static void
-allocFunctorTable()
-{ GET_LD
-  int size = functor_buckets * sizeof(FunctorDef);
+allocFunctorTable(void)
+{ int size = functor_buckets * sizeof(FunctorDef);
 
   functorDefTable = allocHeapOrHalt(size);
   memset(functorDefTable, 0, size);
@@ -164,9 +193,8 @@ allocFunctorTable()
 
 
 static void
-registerBuiltinFunctors()
-{ GET_LD
-  int size = sizeof(functors)/sizeof(builtin_functor) - 1;
+registerBuiltinFunctors(void)
+{ int size = sizeof(functors)/sizeof(builtin_functor) - 1;
   FunctorDef f = allocHeapOrHalt(size * sizeof(struct functorDef));
   const builtin_functor *d;
 
@@ -235,8 +263,8 @@ initFunctors(void)
   if ( !functorDefTable )
   { initAtoms();
     functor_buckets = FUNCTORHASHSIZE;
-    initBuffer(&functor_array);
     allocFunctorTable();
+    GD->functors.highest = 1;
     registerBuiltinFunctors();
     registerControlFunctors();
     registerArithFunctors();
@@ -247,7 +275,41 @@ initFunctors(void)
 
 void
 cleanupFunctors(void)
-{ discardBuffer(&functor_array);
+{ if ( functorDefTable )
+  { int i;
+    int builtin_count      = sizeof(functors)/sizeof(builtin_functor) - 1;
+    FunctorDef builtin     = GD->functors.array.blocks[0][1];
+    FunctorDef builtin_end = builtin+builtin_count;
+    FunctorDef *fp0;
+
+    freeHeap(builtin, builtin_count * sizeof(struct functorDef));
+
+    for(i=0; (fp0=GD->functors.array.blocks[i]); i++)
+    { size_t bs = (size_t)1<<i;
+      size_t upto = (size_t)2<<i;
+      FunctorDef *fp, *ep;
+
+      fp0 += bs;
+      fp = fp0;
+      ep=fp+bs;
+      if ( upto > GD->functors.highest )
+	ep -= upto-GD->functors.highest;
+
+      for(; fp<ep; fp++)
+      { FunctorDef f = *fp;
+
+	if ( !(f>=builtin && f<=builtin_end) )
+	  freeHeap(f, sizeof(*f));
+      }
+
+      GD->functors.array.blocks[i] = NULL;
+      PL_free(fp0);
+    }
+
+    freeHeap(functorDefTable, functor_buckets*sizeof(FunctorDef));
+    functorDefTable = NULL;
+    functor_buckets = 0;
+  }
 }
 
 
@@ -275,9 +337,10 @@ word
 pl_current_functor(term_t name, term_t arity, control_t h)
 { GET_LD
   atom_t nm = 0;
+  size_t index;
+  int i, last=FALSE;
   int  ar;
   fid_t fid;
-  size_t mx, i;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -292,39 +355,43 @@ pl_current_functor(term_t name, term_t arity, control_t h)
       if ( !(PL_is_atom(name) || PL_is_variable(name)) )
 	return PL_error("current_functor", 2, NULL, ERR_DOMAIN,
 			ATOM_atom, name);
-      i = 0;
+      index = 1;
       break;
     case FRG_REDO:
       PL_get_atom(name, &nm);
-      i = ForeignContextInt(h);
+      index = ForeignContextInt(h);
       break;
     case FRG_CUTTED:
     default:
       succeed;
   }
-  DEBUG(9, Sdprintf("current_functor(): i = %d\n", i));
 
   fid = PL_open_foreign_frame();
   LOCK();
-  mx = maxFunctorIndex();
-  for(; i<mx; i++)
-  { FunctorDef fdef = getFunctorByIndex(i);
+  for(i=MSB(index); !last; i++)
+  { size_t upto = (size_t)2<<i;
+    FunctorDef *b = GD->functors.array.blocks[i];
 
-    if ( fdef->arity == 0 ||
-         (nm && nm != fdef->name) )
-      continue;
-    if ( !PL_unify_atom(name, fdef->name) ||
-	 !PL_unify_integer(arity, fdef->arity) )
-    { PL_rewind_foreign_frame(fid);
-
-      continue;
+    if ( upto >= GD->functors.highest )
+    { upto = GD->functors.highest;
+      last = TRUE;
     }
-    DEBUG(9, Sdprintf("Returning backtrack point %ld\n", fdef->next));
 
-    UNLOCK();
-    ForeignRedoInt(i+1);
+    for(; index<upto; index++)
+    { FunctorDef fd = b[index];
+
+      if ( fd && fd->arity > 0 && (!nm || nm == fd->name) )
+      { if ( PL_unify_atom(name, fd->name) &&
+	     PL_unify_integer(arity, fd->arity) )
+	{ UNLOCK();
+	  ForeignRedoInt(index+1);
+	} else
+	{ PL_rewind_foreign_frame(fid);
+	}
+      }
+    }
   }
 
   UNLOCK();
-  fail;
+  return FALSE;
 }

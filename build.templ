@@ -44,7 +44,7 @@ MAKE=make
 # For optiomal performance, see also --enable-useprofile below.
 
 # export CC=
-# export COFLAGS="-O2 -gdwarf-2 -g3 -fno-strict-aliasing"
+# export COFLAGS="-O2 -gdwarf-2 -g3"
 # export CMFLAGS=
 # export CIFLAGS=
 # export LDFLAGS="-O2 -g"
@@ -133,10 +133,17 @@ export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 # a CPU register. Given the limited number   of CPU registers on the x86
 # platform, this results in a performance degradation of about 10%.
 #
+# --enable-boehm-gc
+# Configure SWI-Prolog to use -a  custom   version  of- bdwgc (Boehm-GC,
+# http://www.hpl.hp.com/personal/Hans_Boehm/gc/). This is   intended  to
+# support  the  next   generation   of    the   SWI-Prolog   RDF   store
+# (packages/semweb). DO NOT USE (YET).
+
 # EXTRACFG+=" --link"
 # EXTRACFG+=" --enable-useprofile"
 # EXTRACFG+=" --disable-libdirversion"
 # EXTRACFG+=" --enable-shared"
+# EXTRACFG+=" --enable-boehm-gc"
 export EXTRACFG
 
 # One possiblity to make relocatable executables   on  Linux is by using

@@ -532,7 +532,7 @@ fmt_not_implemented(int c)
 	{ format_time(fd, f, ftm, posix); \
 	}
 #define OUTCHR(fd, c) \
- 	{ Sputcode(c, fd); \
+	{ Sputcode(c, fd); \
 	}
 #define OUTSTR(str) \
 	{ Sfputs(str, fd); \
@@ -624,7 +624,6 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  case_b:
 	  { char fmt[3];
 	    char buf[256];
-	    size_t n;
 
 	    fmt[0] = '%';
 	    fmt[1] = (char)c;
@@ -632,7 +631,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 
 	    cal_ftm(ftm, HAS_STAMP|HAS_WYDAY);
 					/* conversion is not thread-safe under locale switch */
-	    n = strftime(buf, sizeof(buf), fmt, &ftm->tm);
+	    strftime(buf, sizeof(buf), fmt, &ftm->tm);
 	    OUTSTRA(buf);
 	    break;
 	  }

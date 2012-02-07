@@ -60,7 +60,7 @@ windowing!
 #endif
 
 #define MAX_TERMBUF	1024		/* Conforming manual */
-#define STAT_START	0
+#define STAT_START	0		/* must be FALSE */
 #define STAT_OK		1
 #define STAT_ERROR	2
 
@@ -82,20 +82,19 @@ typedef struct
   word  value;				/* Value of the entry */
 } entry, *Entry;
 
-void
-resetTerm()
-{ GET_LD
 
-  LOCK();
-  if ( capabilities == NULL )
-  { capabilities = newHTable(16);
-  } else
-  { term_initialised = STAT_START;
-    for_table(capabilities, s,
+void
+cleanupTerm(void)
+{ Table t;
+
+  if ( (t=capabilities) )
+  { capabilities = NULL;
+    for_table(t, s,
 	      freeHeap(s->value, sizeof(entry)));
-    clearHTable(capabilities);
+    destroyHTable(t);
   }
-  UNLOCK();
+
+  term_initialised = STAT_START;
 }
 
 
@@ -108,6 +107,9 @@ initTerm(void)
 
   if ( term_initialised == STAT_START )
   { char term[100];
+
+    if ( !capabilities )
+      capabilities = newHTable(16);
 
     term_initialised = STAT_ERROR;
     if ( !Getenv("TERM", term, sizeof(term)) )
@@ -162,7 +164,8 @@ lookupEntry(atom_t name, atom_t type)
   Entry e;
 
   LOCK();
-  if ( (s = lookupHTable(capabilities, (void*)name)) == NULL )
+  if ( !capabilities ||
+       !(s = lookupHTable(capabilities, (void*)name)) )
   { if ( !initTerm() )
     { e = NULL;
       goto out;
@@ -380,7 +383,11 @@ PRED_IMPL("tty_size", 2, tty_size, 0)
 
 #endif /*__WINDOWS__*/
 
-void resetTerm()
+void resetTerm(void)
+{
+}
+
+void cleanupTerm(void)
 {
 }
 

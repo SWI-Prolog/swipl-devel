@@ -40,6 +40,8 @@ typedef struct flag
   } value;				/* value of the flag */
 } *Flag;
 
+static void	freeFlagValue(Flag f);
+
 #define flagTable (GD->flags.table)
 #define LOCK()   PL_LOCK(L_FLAG)
 #define UNLOCK() PL_UNLOCK(L_FLAG)
@@ -47,14 +49,35 @@ typedef struct flag
 #undef LD
 #define LD LOCAL_LD
 
+static void
+freeFlagSymbol(Symbol s)
+{ Flag f = s->value;
+
+  freeFlagValue(f);
+  freeHeap(f, sizeof(*f));
+}
+
+
 void
 initFlags(void)
 { flagTable = newHTable(FLAGHASHSIZE);
+  flagTable->free_symbol = freeFlagSymbol;
+}
+
+
+void
+cleanupFlags(void)
+{ Table t;
+
+  if ( (t=flagTable) )
+  { flagTable = NULL;
+    destroyHTable(t);
+  }
 }
 
 
 static Flag
-lookupFlag(word key ARG_LD)
+lookupFlag(word key)
 { Symbol symb;
   Flag f;
 
@@ -98,7 +121,7 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
   rval = FALSE;
 
   LOCK();
-  f = lookupFlag(key PASS_LD);
+  f = lookupFlag(key);
   switch(f->type)
   { case FLG_ATOM:
       if ( !PL_unify_atom(old, f->value.a) )

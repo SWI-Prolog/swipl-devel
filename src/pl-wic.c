@@ -150,8 +150,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 60			/* load all versions later >= X */
-#define VERSION 60			/* save version number */
+#define LOADVERSION 61			/* load all versions later >= X */
+#define VERSION 61			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -207,6 +207,7 @@ typedef struct wic_state
   Table	savedXRTable;			/* saved XR entries */
   intptr_t savedXRTableId;		/* next id to hand out */
 
+  int	     has_source_marks;
   SourceMark source_mark_head;		/* Locations of sources */
   SourceMark source_mark_tail;
 
@@ -263,7 +264,7 @@ references.  That will normally overflow other system limits first.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-pushXrIdTable(wic_state *state ARG_LD)
+pushXrIdTable(wic_state *state)
 { XrTable t = allocHeapOrHalt(sizeof(struct xr_table));
 
   if ( !(t->table = allocHeapOrHalt(ALLOCSIZE)) )
@@ -278,7 +279,7 @@ pushXrIdTable(wic_state *state ARG_LD)
 
 
 static void
-popXrIdTable(wic_state *state ARG_LD)
+popXrIdTable(wic_state *state)
 { int i;
   XrTable t = state->XR;
 
@@ -311,8 +312,7 @@ storeXrId(wic_state *state, long id, word value)
   long i = id/SUBENTRIES;
 
   while ( i >= t->tablesize )
-  { GET_LD
-    Word a = allocHeapOrHalt(ALLOCSIZE);
+  { Word a = allocHeapOrHalt(ALLOCSIZE);
 
     if ( !a )
       outOfCore();
@@ -411,7 +411,7 @@ wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 
 
 static atom_t
-getAtom(IOSTREAM *fd, PL_blob_t *type ARG_LD)
+getAtom(IOSTREAM *fd, PL_blob_t *type)
 { char buf[1024];
   char *tmp, *s;
   size_t len = getInt(fd);
@@ -602,7 +602,7 @@ loadXRc(wic_state *state, int c ARG_LD)
     }
     case XR_ATOM:
     { id = ++state->XR->id;
-      xr = getAtom(fd, NULL PASS_LD);
+      xr = getAtom(fd, NULL);
       DEBUG(3, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
       break;
     }
@@ -745,7 +745,7 @@ getBlob(wic_state *state ARG_LD)
   if ( type->load )
   { return (*type->load)(state->wicFd);
   } else
-  { return getAtom(state->wicFd, type PASS_LD);
+  { return getAtom(state->wicFd, type);
   }
 }
 
@@ -840,16 +840,15 @@ the executable or the argument of pl -x <state>.
 
 int
 loadWicFromStream(IOSTREAM *fd)
-{ GET_LD
-  wic_state state;
+{ wic_state state;
   int rval;
 
   memset(&state, 0, sizeof(state));
   state.wicFd = fd;
 
-  pushXrIdTable(&state PASS_LD);
+  pushXrIdTable(&state);
   rval = loadWicFd(&state);
-  popXrIdTable(&state PASS_LD);
+  popXrIdTable(&state);
 
   return rval;
 }
@@ -1014,7 +1013,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 
 
 static void
-loadPredicateFlags(wic_state *state, Definition def, int skip ARG_LD)
+loadPredicateFlags(wic_state *state, Definition def, int skip)
 { int flags = getInt(state->wicFd);
 
   if ( !skip )
@@ -1056,7 +1055,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
     }
     addProcedureSourceFile(state->currentSource, proc);
   }
-  loadPredicateFlags(state, def, skip PASS_LD);
+  loadPredicateFlags(state, def, skip);
 
   for(;;)
   { switch(Sgetc(fd) )
@@ -1069,7 +1068,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	int ncodes = getInt(fd);
 
 	DEBUG(2, Sdprintf("."));
-	clause = (Clause) allocHeapOrHalt(sizeofClause(ncodes));
+	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
@@ -1127,6 +1126,13 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		*bp++ = w;
 		break;
 	      }
+	      case CA1_AFUNC:
+	      { word f = loadXR(state);
+		int  i = indexArithFunction(f);
+		assert(i>0);
+		*bp++ = i;
+		break;
+	      }
 	      case CA1_MODULE:
 		*bp++ = loadXR(state);
 		break;
@@ -1134,7 +1140,6 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      case CA1_JUMP:
 	      case CA1_VAR:
 	      case CA1_CHP:
-	      case CA1_AFUNC:
 		*bp++ = (intptr_t)getInt64(fd);
 		break;
 	      case CA1_INT64:
@@ -1199,7 +1204,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
 	if ( skip )
-	  freeClause(clause PASS_LD);
+	  freeClause(clause);
 	else
 	  assertProcedure(proc, clause, CL_END PASS_LD);
       }
@@ -1308,12 +1313,16 @@ static bool
 loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 { IOSTREAM *fd = state->wicFd;
 
+  if ( !skip )
+    clearSupersModule(m);
+
   for(;;)
   { switch(Qgetc(fd))
     { case 'C':
       { atom_t cname = loadXR(state);
 
-	m->class = cname;
+	if ( !skip )
+	  m->class = cname;
 
 	continue;
       }
@@ -1951,6 +1960,11 @@ saveWicClause(wic_state *state, Clause clause)
 	  saveXRFunctor(state, f PASS_LD);
 	  break;
 	}
+	case CA1_AFUNC:
+	{ functor_t f = functorArithFunction((unsigned int)*bp++);
+	  saveXRFunctor(state, f PASS_LD);
+	  break;
+	}
 	case CA1_DATA:
 	{ word xr = (word) *bp++;
 	  saveXR(state, xr);
@@ -1960,7 +1974,6 @@ saveWicClause(wic_state *state, Clause clause)
 	case CA1_JUMP:
 	case CA1_VAR:
 	case CA1_CHP:
-	case CA1_AFUNC:
 	{ putNum(*bp++, fd);
 	  break;
 	}
@@ -2170,29 +2183,32 @@ importWic(wic_state *state, Procedure proc ARG_LD)
 
 static void
 initSourceMarks(wic_state *state)
-{ state->source_mark_head = NULL;
+{ state->has_source_marks = TRUE;
+  state->source_mark_head = NULL;
   state->source_mark_tail = NULL;
 }
 
 
 static void
-sourceMark(wic_state *state ARG_LD)
-{ SourceMark pm = allocHeapOrHalt(sizeof(struct source_mark));
+sourceMark(wic_state *state)
+{ if ( state->has_source_marks )
+  { SourceMark pm = allocHeapOrHalt(sizeof(struct source_mark));
 
-  pm->file_index = Stell(state->wicFd);
-  pm->next = NULL;
-  if ( state->source_mark_tail )
-  { state->source_mark_tail->next = pm;
-    state->source_mark_tail = pm;
-  } else
-  { state->source_mark_tail = pm;
-    state->source_mark_head = pm;
+    pm->file_index = Stell(state->wicFd);
+    pm->next = NULL;
+    if ( state->source_mark_tail )
+    { state->source_mark_tail->next = pm;
+      state->source_mark_tail = pm;
+    } else
+    { state->source_mark_tail = pm;
+      state->source_mark_head = pm;
+    }
   }
 }
 
 
 static int
-writeSourceMarks(wic_state *state ARG_LD)
+writeSourceMarks(wic_state *state)
 { long n = 0;
   SourceMark pn, pm = state->source_mark_head;
 
@@ -2325,8 +2341,7 @@ PRED_IMPL("$qlf_info", 5, qlf_info, 0)
 
 static wic_state *
 qlfOpen(term_t file)
-{ GET_LD
-  char *name;
+{ char *name;
   char *absname;
   char tmp[MAXPATHLEN];
   IOSTREAM *out;
@@ -2365,7 +2380,7 @@ qlfClose(wic_state *state ARG_LD)
 { int rc;
 
   closeProcedureWic(state);
-  writeSourceMarks(state PASS_LD);
+  writeSourceMarks(state);
   rc = Sclose(state->wicFd);
   state->wicFd = NULL;
   if ( state->mkWicFile )
@@ -2399,8 +2414,7 @@ qlfVersion(wic_state *state)
 
 static int
 pushPathTranslation(wic_state *state, const char *absloadname, int flags)
-{ GET_LD
-  IOSTREAM *fd = state->wicFd;
+{ IOSTREAM *fd = state->wicFd;
   char *abssavename;
   qlf_state *new = allocHeapOrHalt(sizeof(*new));
 
@@ -2445,9 +2459,7 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 
 static void
 popPathTranslation(wic_state *state)
-{ GET_LD
-
-  if ( state->load_state )
+{ if ( state->load_state )
   { qlf_state *old = state->load_state;
 
     state->load_state = old->previous;
@@ -2455,8 +2467,8 @@ popPathTranslation(wic_state *state)
     if ( old->has_moved )
     { remove_string(old->load_dir);
       remove_string(old->save_dir);
-      freeHeap(old, sizeof(*old));
     }
+    freeHeap(old, sizeof(*old));
   }
 }
 
@@ -2514,9 +2526,9 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
   if ( Qgetc(fd) != 'Q' )
     return qlfLoadError(state);
 
-  pushXrIdTable(state PASS_LD);
+  pushXrIdTable(state);
   rval = loadPart(state, module, FALSE PASS_LD);
-  popXrIdTable(state PASS_LD);
+  popXrIdTable(state);
   popPathTranslation(state);
 
   return rval;
@@ -2524,11 +2536,11 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
 
 
 static bool
-qlfSaveSource(wic_state *state, SourceFile f ARG_LD)
+qlfSaveSource(wic_state *state, SourceFile f)
 { IOSTREAM *fd = state->wicFd;
   Atom a = atomValue(f->name);
 
-  sourceMark(state PASS_LD);
+  sourceMark(state);
   Sputc('F', fd);
   putString(a->name, a->length, fd);
   putNum(f->time, fd);
@@ -2550,7 +2562,7 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
   saveXR(state, m->name);
 
   if ( m->file )
-  { qlfSaveSource(state, m->file PASS_LD);
+  { qlfSaveSource(state, m->file);
     putNum(m->line_no, fd);
   } else
   { Sputc('-', fd);
@@ -2595,12 +2607,12 @@ qlfStartSubModule(wic_state *state, Module m ARG_LD)
 
 
 static bool
-qlfStartFile(wic_state *state, SourceFile f ARG_LD)
+qlfStartFile(wic_state *state, SourceFile f)
 { IOSTREAM *fd = state->wicFd;
 
   closeProcedureWic(state);
   Sputc('Q', fd);
-  qlfSaveSource(state, f PASS_LD);
+  qlfSaveSource(state, f);
 
   succeed;
 }
@@ -2669,7 +2681,7 @@ PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
     if ( !PL_get_atom_ex(A1, &a) )
       fail;
 
-    return qlfStartFile(state, lookupSourceFile(a, TRUE) PASS_LD);
+    return qlfStartFile(state, lookupSourceFile(a, TRUE));
   }
 
   succeed;
@@ -2968,7 +2980,7 @@ compileFile(wic_state *state, const char *file)
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);
   sf->time = LastModifiedFile(path);
-  qlfStartFile(state, sf PASS_LD);
+  qlfStartFile(state, sf);
 
   for(;;)
   { fid_t	 cid = PL_open_foreign_frame();

@@ -140,7 +140,10 @@ typedef uintptr_t	functor_t;	/* Name/arity pair */
 typedef void *		module_t;	/* Prolog module */
 typedef void *		predicate_t;	/* Prolog procedure */
 typedef void *		record_t;	/* Prolog recorded term */
+#ifndef PL_HAVE_TERM_T
+#define PL_HAVE_TERM_T
 typedef uintptr_t	term_t;		/* opaque term handle */
+#endif
 typedef uintptr_t	qid_t;		/* opaque query handle */
 typedef uintptr_t	PL_fid_t;	/* opaque foreign context handle */
 typedef void *		control_t;	/* non-deterministic control arg */
@@ -441,6 +444,7 @@ PL_EXPORT(int)		PL_is_acyclic(term_t t);
 			/* Assign to term-references */
 PL_EXPORT(int)		PL_put_variable(term_t t);
 PL_EXPORT(int)		PL_put_atom(term_t t, atom_t a);
+PL_EXPORT(int)		PL_put_bool(term_t t, int val);
 PL_EXPORT(int)		PL_put_atom_chars(term_t t, const char *chars);
 PL_EXPORT(int)		PL_put_string_chars(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_chars(term_t t, const char *chars) WUNUSED;
@@ -867,7 +871,6 @@ PL_EXPORT(pl_wchar_t*)  PL_atom_generator_w(const pl_wchar_t *pref,
 					    pl_wchar_t *buffer,
 					    size_t buflen,
 					    int state);
-PL_EXPORT(void)		PL_clock_wait_ticks(long waited);
 
 
 		 /*******************************
@@ -875,8 +878,15 @@ PL_EXPORT(void)		PL_clock_wait_ticks(long waited);
 		 *******************************/
 
 PL_EXPORT(void *)	PL_malloc(size_t size);
+PL_EXPORT(void *)	PL_malloc_atomic(size_t size);
+PL_EXPORT(void *)	PL_malloc_uncollectable(size_t size);
+PL_EXPORT(void *)	PL_malloc_atomic_uncollectable(size_t size);
 PL_EXPORT(void *)	PL_realloc(void *mem, size_t size);
+PL_EXPORT(void *)	PL_malloc_unmanaged(size_t size);
+PL_EXPORT(void *)	PL_malloc_atomic_unmanaged(size_t size);
 PL_EXPORT(void)		PL_free(void *mem);
+PL_EXPORT(int)		PL_linger(void *mem);
+
 
 		/********************************
 		*             HOOKS		*

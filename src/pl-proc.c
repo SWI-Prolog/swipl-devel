@@ -56,9 +56,7 @@ lookupProcedure(functor_t f, Module m)
   { DEBUG(3, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
     proc = s->value;
   } else
-  { GET_LD
-
-    proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
+  { proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
     def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
@@ -66,6 +64,7 @@ lookupProcedure(functor_t f, Module m)
     memset(def, 0, sizeof(*def));
     def->functor = valueFunctor(f);
     def->module  = m;
+    def->shared  = 1;
     addHTable(m->procedures, (void *)f, proc);
     GD->statistics.predicates++;
 
@@ -75,6 +74,52 @@ lookupProcedure(functor_t f, Module m)
   UNLOCKMODULE(m);
 
   return proc;
+}
+
+
+static void
+unallocClauseList(ClauseRef cref)
+{ ClauseRef next;
+
+  for( ; cref; cref = next)
+  { Clause cl = cref->value.clause;
+    next = cref->next;
+
+    if ( true(cl, DBREF_CLAUSE) )	/* will be freed from dbref */
+      set(cl, DBREF_ERASED_CLAUSE);
+    else
+      unallocClause(cl);
+
+    freeClauseRef(cref);
+  }
+}
+
+
+static void
+unallocDefinition(Definition def)
+{ if ( false(def, FOREIGN|P_THREAD_LOCAL) )
+    unallocClauseList(def->impl.clauses.first_clause);
+  else if ( true(def, P_THREAD_LOCAL) )
+    free_ldef_vector(def->impl.local);
+
+  if ( def->mutex )
+    freeSimpleMutex(def->mutex);
+
+  unallocClauseIndexes(def);
+  freeCodesDefinition(def);
+
+  freeHeap(def, sizeof(*def));
+}
+
+
+void
+unallocProcedure(Procedure proc)
+{ Definition def = proc->definition;
+
+  freeHeap(proc, sizeof(*proc));
+  unshareDefinition(def);
+  if ( def->shared == 0 )
+    unallocDefinition(def);
 }
 
 
@@ -97,20 +142,23 @@ importDefinitionModule(Module m, Definition def)
     if ( proc->definition == def )
       goto done;
     if ( !isDefinedProcedure(proc) )
-    { proc->definition = def;		/* TBD: what about the old one */
+    { Definition odef = proc->definition;
+
+      shareDefinition(def);
+      proc->definition = def;
+      unshareDefinition(odef);
+      GC_LINGER(odef);
       goto done;
     }
     rc = warning("Failed to import %s into %s",
 		 predicateName(def), PL_atom_chars(m->name));
     goto done;
   } else
-  { GET_LD
-
-    proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
+  { proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
     addHTable(m->procedures, (void *)functor, proc);
-    set(proc->definition, P_SHARED);
+    shareDefinition(def);
   }
 
 done:
@@ -142,7 +190,7 @@ resetProcedure(Procedure proc, bool isnew)
        !def->impl.any )
     isnew = TRUE;
 
-  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_SHARED|P_DIRTYREG);
+  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_DIRTYREG);
   if ( stringAtom(def->functor->name)[0] != '$' )
     set(def, TRACE_ME);
   def->impl.clauses.number_of_clauses = 0;
@@ -262,6 +310,23 @@ lookupProcedureToDefine(functor_t def, Module m)
     return lookupProcedure(def, m);
 
   fail;
+}
+
+
+void
+shareDefinition(Definition def)
+{ LOCKDEF(def);
+  def->shared++;
+  UNLOCKDEF(def);
+  assert(def->shared > 0);
+}
+
+
+void
+unshareDefinition(Definition def)
+{ LOCKDEF(def);
+  def->shared--;
+  UNLOCKDEF(def);
 }
 
 
@@ -655,7 +720,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
       { e->epred = newTableEnum(e->module->procedures);
       }
 
-      e = allocHeapOrHalt(sizeof(*e));
+      e = allocForeignState(sizeof(*e));
       *e = e0;
       break;
     }
@@ -735,7 +800,7 @@ clean:
       freeTableEnum(e->epred);
     if ( e->emod )
       freeTableEnum(e->emod);
-    freeHeap(e, sizeof(*e));
+    freeForeignState(e, sizeof(*e));
   }
 
   return rval;
@@ -752,7 +817,7 @@ typeerror:
 
 
 ClauseRef
-newClauseRef(Clause clause, word key ARG_LD)
+newClauseRef(Clause clause, word key)
 { ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_CLAUSE);
 
   cref->value.clause = clause;
@@ -764,7 +829,7 @@ newClauseRef(Clause clause, word key ARG_LD)
 
 
 void
-freeClauseRef(ClauseRef cref ARG_LD)
+freeClauseRef(ClauseRef cref)
 { freeHeap(cref, SIZEOF_CREF_CLAUSE);
 }
 
@@ -787,7 +852,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   ClauseRef cref;
 
   argKey(clause->codes, 0, FALSE, &key);
-  cref = newClauseRef(clause, key PASS_LD);
+  cref = newClauseRef(clause, key);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
     printMessage(ATOM_informational,
@@ -809,6 +874,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   }
 
   def->impl.clauses.number_of_clauses++;
+  GD->statistics.clauses++;
 #ifdef O_LOGICAL_UPDATE
   PL_LOCK(L_MISC);
   clause->generation.created = ++GD->generation;
@@ -819,7 +885,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   if ( false(def, DYNAMIC) )		/* see (*) above */
     freeCodesDefinition(def);
 
-  addClauseToIndexes(def, clause, where PASS_LD);
+  addClauseToIndexes(def, clause, where);
 
   UNLOCKDEF(def);
 
@@ -845,8 +911,7 @@ abolishProcedure(Procedure proc, Module module)
   startCritical;
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
-  { GET_LD
-    Definition ndef	     = allocHeapOrHalt(sizeof(struct definition));
+  { Definition ndef	     = allocHeapOrHalt(sizeof(struct definition));
 
     memset(ndef, 0, sizeof(*ndef));
     proc->definition         = ndef;
@@ -945,7 +1010,7 @@ retractClauseDefinition().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-unlinkClause(Definition def, Clause clause ARG_LD)
+unlinkClause(Definition def, Clause clause)
 { ClauseRef prev = NULL;
   ClauseRef c;
 
@@ -964,7 +1029,7 @@ unlinkClause(Definition def, Clause clause ARG_LD)
       }
 
 
-      freeClauseRef(c PASS_LD);
+      freeClauseRef(c);
       def->impl.clauses.number_of_clauses--;
 
       break;
@@ -983,7 +1048,7 @@ the definition is always referenced.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-retractClauseDefinition(Definition def, Clause clause ARG_LD)
+retractClauseDefinition(Definition def, Clause clause)
 { int rc;
 
   LOCKDYNDEF(def);
@@ -1018,7 +1083,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     succeed;
   }
 
-  rc = unlinkClause(def, clause PASS_LD);
+  rc = unlinkClause(def, clause);
   UNLOCKDYNDEF(def);
   DEBUG(CHK_SECURE, checkDefinition(def));
 
@@ -1030,21 +1095,22 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     callEventHook(PLEV_ERASED_CLAUSE, clause);
 #endif
 
-  freeClause(clause PASS_LD);
+  freeClause(clause);
 
   return rc;
 }
 
 
 void
-unallocClause(Clause c ARG_LD)
+unallocClause(Clause c)
 { GD->statistics.codes -= c->code_size;
-  freeHeap(c, sizeofClause(c->code_size));
+  GD->statistics.clauses--;
+  PL_free(c);
 }
 
 
 void
-freeClause(Clause c ARG_LD)
+freeClause(Clause c)
 {
 #if O_DEBUGGER
   if ( true(c, HAS_BREAKPOINTS) )
@@ -1056,11 +1122,9 @@ freeClause(Clause c ARG_LD)
 #endif
 
   if ( true(c, DBREF_CLAUSE) )
-  { set(c, DBREF_ERASED_CLAUSE);
-    return;
-  }
-
-  unallocClause(c PASS_LD);
+    set(c, DBREF_ERASED_CLAUSE);
+  else
+    unallocClause(c);
 }
 
 
@@ -1076,9 +1140,7 @@ cleanDefinition()
 
 static ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
-{ GET_LD
-
-  DEBUG(CHK_SECURE, checkDefinition(def));
+{ DEBUG(CHK_SECURE, checkDefinition(def));
 
   DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
 
@@ -1088,7 +1150,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
     int left = 0, removed = 0;
 #endif
 
-    cleanClauseIndexes(def PASS_LD);
+    cleanClauseIndexes(def);
 
     for(cref = def->impl.clauses.first_clause;
 	cref && def->impl.clauses.erased_clauses;
@@ -1182,8 +1244,8 @@ freeClauseList(ClauseRef cref)
       callEventHook(PLEV_ERASED_CLAUSE, cl);
 #endif
 
-    freeClause(cl PASS_LD);
-    freeClauseRef(cref PASS_LD);
+    freeClause(cl);
+    freeClauseRef(cref);
   }
 }
 
@@ -1219,16 +1281,7 @@ thread-local definitions at the end of a threads lifetime.
 
 void
 destroyDefinition(Definition def)
-{ GET_LD
-
-  if ( def->impl.clauses.clause_indexes )
-  { ClauseIndex ci, next;
-
-    for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
-    { next = ci->next;
-      unallocClauseIndexTable(ci);
-    }
-  }
+{ unallocClauseIndexes(def);
   if ( def->impl.clauses.first_clause )
     freeClauseList(def->impl.clauses.first_clause);
 
@@ -1475,8 +1528,7 @@ MT: locked by caller
 static void
 registerDirtyDefinition(Definition def)
 { if ( false(def, P_DIRTYREG) )
-  { GET_LD
-    DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
+  { DefinitionChain cell = allocHeapOrHalt(sizeof(*cell));
 
     set(def, P_DIRTYREG);
     cell->definition = def;
@@ -1658,8 +1710,7 @@ proc->definition fetch?
 
 Definition
 autoImport(functor_t f, Module m)
-{ GET_LD
-  Procedure proc;
+{ Procedure proc;
   Definition def, odef;
   ListCell c;
 					/* Defined: no problem */
@@ -1679,6 +1730,8 @@ found:
 					/* TBD: find something better! */
   odef = proc->definition;
   proc->definition = def;
+  shareDefinition(def);
+  unshareDefinition(odef);
 
 #ifdef O_PLMT
   PL_LOCK(L_THREAD);
@@ -1686,6 +1739,8 @@ found:
 	GD->statistics.threads_finished) == 1 )
   { assert(false(proc->definition, P_DIRTYREG));
     freeHeap(odef, sizeof(struct definition));
+  } else
+  { GC_LINGER(odef);
   }
   PL_UNLOCK(L_THREAD);
 #else
@@ -1905,7 +1960,7 @@ PRED_IMPL("retract", 1, retract,
       ctx->def = def;
     } else
     { ctx  = CTX_PTR;
-      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def PASS_LD);
+      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
       startCritical;
     }
 
@@ -1922,7 +1977,7 @@ PRED_IMPL("retract", 1, retract,
 
     while( cref )
     { if ( decompile(cref->value.clause, cl, 0) )
-      { retractClauseDefinition(ctx->def, cref->value.clause PASS_LD);
+      { retractClauseDefinition(ctx->def, cref->value.clause);
 
 	if ( !endCritical )
 	{ leaveDefinition(ctx->def);
@@ -1942,7 +1997,7 @@ PRED_IMPL("retract", 1, retract,
 	}
 
 	if ( ctx == &ctxbuf )		/* non-determinisic; save state */
-	{ ctx = allocHeapOrHalt(sizeof(*ctx));
+	{ ctx = allocForeignState(sizeof(*ctx));
 	  *ctx = ctxbuf;
 	}
 
@@ -1952,13 +2007,13 @@ PRED_IMPL("retract", 1, retract,
 
       PL_rewind_foreign_frame(fid);
 
-      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def PASS_LD);
+      cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
     }
 
     PL_close_foreign_frame(fid);
     leaveDefinition(ctx->def);
     if ( ctx != &ctxbuf )
-      freeHeap(ctx, sizeof(*ctx));
+      freeForeignState(ctx, sizeof(*ctx));
     if ( !endCritical )
       fail;
     fail;
@@ -2038,7 +2093,7 @@ pl_retractall(term_t head)
 
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( visibleClause(cref->value.clause, gen) )
-      { retractClauseDefinition(def, cref->value.clause PASS_LD);
+      { retractClauseDefinition(def, cref->value.clause);
       }
     }
   } else
@@ -2052,7 +2107,7 @@ pl_retractall(term_t head)
 
     while( cref )
     { if ( decompileHead(cref->value.clause, thehead) )
-	retractClauseDefinition(def, cref->value.clause PASS_LD);
+	retractClauseDefinition(def, cref->value.clause);
 
       PL_rewind_foreign_frame(fid);
 
@@ -2066,7 +2121,7 @@ pl_retractall(term_t head)
 	argv = argTermP(*argv, 0);
       }
 
-      cref = nextClause(&chp, argv, environment_frame, def PASS_LD);
+      cref = nextClause(&chp, argv, environment_frame, def);
     }
   }
   leaveDefinition(def);
@@ -2517,9 +2572,44 @@ registerSourceFile(SourceFile f)
 }
 
 
+static void
+freeList(ListCell *lp)
+{ ListCell c;
+
+  if ( (c=*lp) )
+  { ListCell n;
+
+    *lp = NULL;
+    for( ; c; c=n )
+    { n = c->next;
+
+      freeHeap(c, sizeof(*c));
+    }
+  }
+}
+
+
+static void
+freeSymbolSourceFile(Symbol s)
+{ SourceFile sf = s->value;
+
+  freeList(&sf->procedures);
+  freeList(&sf->modules);
+  freeHeap(sf, sizeof(*sf));
+}
+
+
 void
 cleanupSourceFiles(void)
-{ if ( GD->files.source_files.base )
+{ Table t;
+
+  if ( (t=sourceTable) )
+  { sourceTable = NULL;
+
+    destroyHTable(t);
+  }
+
+  if ( GD->files.source_files.base )
   { discardBuffer(&GD->files.source_files);
     GD->files.source_files.base = 0;
   }
@@ -2533,14 +2623,14 @@ lookupSourceFile(atom_t name, int create)
 
   LOCK();
   if ( !sourceTable )
-    sourceTable = newHTable(32);
+  { sourceTable = newHTable(32);
+    sourceTable->free_symbol = freeSymbolSourceFile;
+  }
 
   if ( (s=lookupHTable(sourceTable, (void*)name)) )
   { file = s->value;
   } else if ( create )
-  { GET_LD
-
-    file = (SourceFile) allocHeapOrHalt(sizeof(struct sourceFile));
+  { file = (SourceFile) allocHeapOrHalt(sizeof(struct sourceFile));
     memset(file, 0, sizeof(struct sourceFile));
     file->name = name;
     file->index = ++source_index;
@@ -2597,14 +2687,11 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
     return;
   }
 
-  { GET_LD
-
-    cell = allocHeapOrHalt(sizeof(struct list_cell));
-    cell->value = proc;
-    cell->next = sf->procedures;
-    sf->procedures = cell;
-    set(proc->definition, FILE_ASSIGNED);
-  }
+  cell = allocHeapOrHalt(sizeof(struct list_cell));
+  cell->value = proc;
+  cell->next = sf->procedures;
+  sf->procedures = cell;
+  set(proc->definition, FILE_ASSIGNED);
 
   UNLOCK();
 }
@@ -2621,27 +2708,23 @@ addModuleSourceFile(SourceFile sf, Module m)
     goto out;
   }
 
-  { GET_LD
-
-    if ( !(cell = allocHeap(sizeof(struct list_cell))) )
-    { rc = FALSE;			/* no memory */
-      goto out;
-    }
-    cell->value = m;
-    cell->next = sf->modules;
-    sf->modules = cell;
+  if ( !(cell = allocHeap(sizeof(struct list_cell))) )
+  { rc = FALSE;			/* no memory */
+    goto out;
   }
+  cell->value = m;
+  cell->next = sf->modules;
+  sf->modules = cell;
 
 out:
   UNLOCK();
-  return TRUE;
+  return rc;
 }
 
 
 static int
 delModuleSourceFile(SourceFile sf, Module m)
-{ GET_LD
-  ListCell *cp, c;
+{ ListCell *cp, c;
 
   LOCK();
   for(cp=&sf->modules; (c=*cp); cp=&c->next)
@@ -3036,6 +3119,118 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
   return FALSE;
 }
 
+
+/** copy_predicate(From:predicate_indicator, To:predicate_indicator) is det.
+
+Copy all clauses of From into To. To is created as a dynamic predicate.
+*/
+
+static void
+remoduleClause(Clause cl, Module old, Module new)
+{ Code PC, end;
+  int in_body = FALSE;
+
+  if ( true(cl, UNIT_CLAUSE) )
+    return;
+
+  PC  = cl->codes;
+  end = &PC[cl->code_size];
+  for( ; PC < end; PC = stepPC(PC) )
+  { code op = fetchop(PC);
+
+    if ( in_body )
+    { const char *ats=codeTable[op].argtype;
+      int an;
+
+      for(an=0; ats[an]; an++)
+      { switch(ats[an])
+	{ case CA1_PROC:
+	  { Procedure op = (Procedure)PC[an+1];
+
+	    if ( op->definition->module != MODULE_system )
+	    { functor_t f = op->definition->functor->functor;
+
+	      PC[an+1] = (code)lookupProcedure(f, new);
+	    }
+	    break;
+	  }
+	  case CA1_MODULE:
+	  { if ( old == (Module)PC[an+1] )
+	      PC[an+1] = (code)new;
+	  }
+	}
+      }
+    } else if ( op == I_ENTER )
+    { in_body = TRUE;
+    }
+  }
+}
+
+
+static
+PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
+{ PRED_LD
+  Procedure from, to;
+  Definition def, copy_def;
+  ClauseRef cref;
+  uintptr_t generation;
+
+  if ( !get_procedure(A1, &from, 0, GP_NAMEARITY|GP_RESOLVE) )
+    fail;
+  if ( !isDefinedProcedure(from) )
+    trapUndefined(getProcDefinition(from) PASS_LD);
+  def = getProcDefinition(from);
+  generation = GD->generation;		/* take a consistent snapshot */
+
+  if ( true(def, FOREIGN) )
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_access, ATOM_private_procedure, from);
+
+  if ( !get_procedure(A2, &to, 0, GP_NAMEARITY|GP_CREATE) )
+    return FALSE;
+
+  copy_def = getProcDefinition(to);
+  if ( true(copy_def, FOREIGN) )
+    return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, to);
+  if ( false(copy_def, DYNAMIC) )
+  { if ( isDefinedProcedure(to) )
+      return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, to);
+    if ( !setDynamicProcedure(to, TRUE) )
+      fail;
+#if 0					/* seems we do not want to retract */
+  } else
+  { for(cref = copy_def->impl.clauses.first_clause; cref; cref = cref->next)
+    { if ( visibleClause(cref->value.clause, generation) )
+      { retractClauseDefinition(copy_def, cref->value.clause);
+      }
+    }
+#endif
+  }
+
+  enterDefinition(def);
+  for( cref = def->impl.clauses.first_clause; cref; cref = cref->next )
+  { Clause cl = cref->value.clause;
+
+    if ( visibleClause(cl, generation) )
+    { size_t size = sizeofClause(cl->code_size);
+      Clause copy = PL_malloc_atomic(size);
+
+      memcpy(copy, cl, size);
+      copy->procedure = to;
+      if ( def->module != copy_def->module )
+	remoduleClause(copy, def->module, copy_def->module);
+#ifdef O_ATOMGC
+      forAtomsInClause(copy, PL_register_atom);
+#endif
+      assertProcedure(to, copy, CL_END PASS_LD);
+    }
+  }
+  leaveDefinition(def);
+
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *       DEBUGGER SUPPORT	*
 		 *******************************/
@@ -3120,7 +3315,7 @@ listGenerations(Definition def)
   { ClauseIndex ci;
 
     for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
-    { int i;
+    { unsigned int i;
 
       Sdprintf("\nHash %sindex for arg %d (%d dirty)\n",
 	       ci->is_list ? "list-" : "", ci->arg, ci->dirty);
@@ -3197,7 +3392,7 @@ checkDefinition(Definition def)
 
 						/* Check indexes */
   for ( ci=def->impl.clauses.clause_indexes; ci; ci=ci->next )
-  { int i;
+  { unsigned int i;
     ClauseBucket cb;
     unsigned int ci_dirty = 0;		/* # dirty buckets */
     unsigned int ci_size = 0;		/* # indexable values in table */
@@ -3298,4 +3493,5 @@ BeginPredDefs(proc)
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("$unload_file", 1, unload_file, 0)
   PRED_DEF("$start_consult", 2, start_consult, 0)
+  PRED_DEF("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
 EndPredDefs

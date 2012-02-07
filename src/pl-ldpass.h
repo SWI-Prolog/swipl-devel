@@ -30,12 +30,6 @@
 		 *******************************/
 
 #define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
-#ifndef DMALLOC
-#define allocHeap(n)		allocHeap__LD(n PASS_LD)
-#define allocHeapOrHalt(n)	allocHeapOrHalt__LD(n PASS_LD)
-#define freeHeap(p, n)		freeHeap__LD(p, n PASS_LD)
-#endif
-#define freeRecord(r)		freeRecord__LD(r PASS_LD)
 #define getInputStream(t, k, s)		getInputStream__LD(t, k, s PASS_LD)
 #define getTextInputStream(t, s)	getTextInputStream__LD(t, s PASS_LD)
 #define getBinaryInputStream(t, s)	getBinaryInputStream__LD(t, s PASS_LD)
@@ -73,6 +67,7 @@
 #define PL_get_integer(t, i)	PL_get_integer__LD(t, i PASS_LD)
 #define PL_get_long(t, i)	PL_get_long__LD(t, i PASS_LD)
 #define PL_get_int64(t, i)	PL_get_int64__LD(t, i PASS_LD)
+#define PL_unify_number(t, n)	PL_unify_number__LD(t, n PASS_LD)
 #define PL_get_pointer(t, ptr)	PL_get_pointer__LD(t, ptr PASS_LD)
 #define PL_put_term(t1, t2)	PL_put_term__LD(t1, t2 PASS_LD)
 #define PL_get_functor(t, f)	PL_get_functor__LD(t, f PASS_LD)

@@ -117,7 +117,7 @@ clearInteger(Number n)
 }
 
 
-typedef struct
+typedef struct between_state
 { number low;
   number high;
   int hinf;
@@ -184,13 +184,14 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	  succeed;
 	}
 
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	cpNumber(&state->low, &l);
 	cpNumber(&state->high, &h);
 	state->hinf = hinf;
 	clearInteger(&l);
 	clearInteger(&h);
 	ForeignRedoPtr(state);
+	/*NOTREACHED*/
       }
     case FRG_REDO:
       { state = CTX_PTR;
@@ -204,13 +205,15 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	     cmpNumbers(&state->low, &state->high) == 0 )
 	  goto cleanup;
 	ForeignRedoPtr(state);
+	/*NOTREACHED*/
       }
     case FRG_CUTTED:
       { state = CTX_PTR;
       cleanup:
 	clearInteger(&state->low);
 	clearInteger(&state->high);
-	freeHeap(state, sizeof(*state));
+	freeForeignState(state, sizeof(*state));
+	/*FALLTHROUGH*/
       }
     default:;
       return rc;
@@ -660,6 +663,7 @@ valueExpression(term_t expr, number *result ARG_LD)
   Word p = valTermRef(expr);
   Word start;
   int known_acyclic = FALSE;
+  int pushed = 0;
 
   deRef(p);
   start = p;
@@ -718,7 +722,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	{ PL_no_memory();
 	  goto error;
 	}
-	if ( term_stack.count > 100 && !known_acyclic )
+	if ( ++pushed > 100 && !known_acyclic )
 	{ int rc;
 
 	  if ( (rc=is_acyclic(start PASS_LD)) == TRUE )
@@ -2060,9 +2064,14 @@ mul64(int64_t x, int64_t y, int64_t *r)
 
     As division is pretty expensive, we make a quick test to see whether
     we are in the danger zone.
+
+    Finally, we must avoid INT64_MIN/-1 :-(
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MU64_SAFE_MAX (LL(1)<<30)
+#ifndef INT64_MIN
+#define INT64_MIN (LL(1)<<63)
+#endif
 
 static int
 mul64(int64_t x, int64_t y, int64_t *r)
@@ -2097,11 +2106,15 @@ mul64(int64_t x, int64_t y, int64_t *r)
     prod = (int64_t)(ax*ay);
     if ( sign < 0 )
       prod = -prod;
-    if ( (ax < MU64_SAFE_MAX && ay < MU64_SAFE_MAX) || prod/y == x )
+    if ( (ax < MU64_SAFE_MAX && ay < MU64_SAFE_MAX) )
     { *r = prod;
-
       return TRUE;
     }
+    if ( !(y==LL(-1) && prod == INT64_MIN) && prod/y == x )
+    { *r = prod;
+      return TRUE;
+    }
+
     return FALSE;
   }
 }
@@ -2841,6 +2854,9 @@ seed_from_crypt_context(ARG1_LD)
 
   return TRUE;
 #else
+#ifdef O_PLMT
+  (void)__PL_ld;
+#endif
   return FALSE;
 #endif
 }
@@ -3249,9 +3265,7 @@ registerFunction(functor_t f, ArithF func)
   DEBUG(1, Sdprintf("Register functor %ld\n", (long)index));
 
   while ( index >= GD->arith.functions_allocated )
-  { GET_LD
-
-    if ( GD->arith.functions_allocated == 0 )
+  { if ( GD->arith.functions_allocated == 0 )
     { size_t size = 256;
 
       GD->arith.functions = allocHeapOrHalt(size*sizeof(ArithF));
@@ -3306,6 +3320,12 @@ cleanupArith(void)
   fpresetsticky(FP_X_DZ|FP_X_INV|FP_X_OFL);
   fpsetmask(FP_X_DZ|FP_X_INV|FP_X_OFL);
 #endif
+
+  if ( GD->arith.functions )
+  { freeHeap(GD->arith.functions, GD->arith.functions_allocated*sizeof(ArithF));
+    GD->arith.functions = 0;
+    GD->arith.functions_allocated = 0;
+  }
 }
 
 
@@ -3329,8 +3349,8 @@ indexArithFunction(functor_t f)
 
 
 functor_t
-functorArithFunction(int i)
-{ FunctorDef fd = fetchBuffer(&functor_array, i, FunctorDef);
+functorArithFunction(unsigned int i)
+{ FunctorDef fd = fetchFunctorArray(i);
 
   return fd->functor;
 }

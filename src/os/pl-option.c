@@ -39,6 +39,7 @@ typedef union
   long *l;				/* long value */
   int  *i;				/* integer value */
   uintptr_t *sz;			/* size_t value */
+  double *f;				/* double value */
   char **s;				/* string value */
   word *a;				/* atom value */
   term_t *t;				/* term-reference */
@@ -136,6 +137,13 @@ scan_options(term_t options, int flags, atom_t optype,
 		*values[n].sz = (size_t)-1;
 	      else
 		goto itemerror;
+	    }
+
+	    break;
+	  }
+	  case OPT_DOUBLE:
+	  { if ( !PL_get_float(val, values[n].f) )
+	    { goto itemerror;
 	    }
 
 	    break;

@@ -34,45 +34,10 @@ String operations that are needed for the shared IO library.
 		 *	     ALLOCATION		*
 		 *******************************/
 
-#ifdef O_DEBUG
-#define CHAR_INUSE 0x42
-#define CHAR_FREED 0x41
-
 char *
 store_string(const char *s)
 { if ( s )
-  { GET_LD
-    char *copy = (char *)allocHeapOrHalt(strlen(s)+2);
-
-    *copy++ = CHAR_INUSE;
-    strcpy(copy, s);
-
-    return copy;
-  } else
-  { return NULL;
-  }
-}
-
-
-void
-remove_string(char *s)
-{ if ( s )
-  { GET_LD
-    assert(s[-1] == CHAR_INUSE);
-
-    s[-1] = CHAR_FREED;
-    freeHeap(s-1, strlen(s)+2);
-  }
-}
-
-#else /*O_DEBUG*/
-
-char *
-store_string(const char *s)
-{ if ( s )
-  { GET_LD
-
-    char *copy = (char *)allocHeapOrHalt(strlen(s)+1);
+  { char *copy = (char *)allocHeapOrHalt(strlen(s)+1);
 
     strcpy(copy, s);
     return copy;
@@ -85,13 +50,8 @@ store_string(const char *s)
 void
 remove_string(char *s)
 { if ( s )
-  { GET_LD
     freeHeap(s, strlen(s)+1);
-  }
 }
-
-#endif /*O_DEBUG*/
-
 
 		 /*******************************
 		 *	     NUMBERS		*
@@ -239,13 +199,13 @@ int_mbscoll(const char *s1, const char *s2, int icase)
   if ( l1 < 1024 && (w1 = alloca(sizeof(wchar_t)*(l1+1))) )
   { ml1 = FALSE;
   } else
-  { w1 = PL_malloc(sizeof(wchar_t)*(l1+1));
+  { w1 = PL_malloc_atomic(sizeof(wchar_t)*(l1+1));
     ml1 = TRUE;
   }
   if ( l2 < 1024 && (w2 = alloca(sizeof(wchar_t)*(l2+1))) )
   { ml2 = FALSE;
   } else
-  { w2 = PL_malloc(sizeof(wchar_t)*(l2+1));
+  { w2 = PL_malloc_atomic(sizeof(wchar_t)*(l2+1));
     ml2 = TRUE;
   }
 

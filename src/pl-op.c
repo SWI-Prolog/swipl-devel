@@ -80,8 +80,7 @@ typedef struct _opdef			/* predefined and enumerated */
 
 static void
 copyOperatorSymbol(Symbol s)
-{ GET_LD
-  operator *op = s->value;
+{ operator *op = s->value;
   operator *o2 = allocHeapOrHalt(sizeof(*o2));
 
   *o2 = *op;
@@ -90,17 +89,16 @@ copyOperatorSymbol(Symbol s)
 
 static void
 freeOperatorSymbol(Symbol s)
-{ GET_LD
-  operator *op = s->value;
+{ operator *op = s->value;
 
   PL_unregister_atom((atom_t) s->name);
   freeHeap(op, sizeof(*op));
 }
 
 
-Table
-newOperatorTable()
-{ Table t = newHTable(8);
+static Table
+newOperatorTable(int size)
+{ Table t = newHTable(size);
 
   t->copy_symbol = copyOperatorSymbol;
   t->free_symbol = freeOperatorSymbol;
@@ -149,7 +147,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
 
   LOCK();
   if ( !m->operators )
-    m->operators = newOperatorTable();
+    m->operators = newOperatorTable(8);
 
   if ( (s = lookupHTable(m->operators, (void *)name)) )
   { op = s->value;
@@ -658,6 +656,8 @@ static const opdef operators[] = {
 void
 initOperators(void)
 { const opdef *op;
+
+  MODULE_system->operators = newOperatorTable(32);
 
   for( op = operators; op->name; op++ )
     defOperator(MODULE_system, op->name, op->type, op->priority, TRUE);

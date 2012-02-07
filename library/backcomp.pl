@@ -142,7 +142,11 @@ compatibility predicates.
 %	@deprecated use set_prolog_flag(toplevel_prompt, Prompt).
 
 '$set_prompt'(Prompt) :-
-	maplist(percent_to_tilde, Prompt, Prompt1),
+	(   is_list(Prompt)
+	->  Prompt0 = Prompt
+	;   atom_codes(Prompt, Prompt0)
+	),
+	maplist(percent_to_tilde, Prompt0, Prompt1),
 	atom_codes(Atom, Prompt1),
 	set_prolog_flag(toplevel_prompt, Atom).
 

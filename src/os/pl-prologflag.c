@@ -74,6 +74,8 @@ static void setArgvPrologFlag(void);
 static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static atom_t lookupAtomFlag(atom_t key);
+static void initPrologFlagTable(void);
+
 
 typedef struct _prolog_flag
 { short		flags;			/* Type | Flags */
@@ -149,7 +151,8 @@ setPrologFlag(const char *name, int flags, ...)
 	val = (f->value.a == ATOM_true);
       } else if ( !s )				/* 1st definition */
       { f->index = indexOfBoolMask(mask);
-	DEBUG(2, Sdprintf("Prolog flag %s at 0x%08lx\n", name, mask));
+	DEBUG(MSG_PROLOG_FLAG,
+	      Sdprintf("Prolog flag %s at 0x%08lx\n", name, mask));
       }
 
       f->value.a = (val ? ATOM_true : ATOM_false);
@@ -205,11 +208,19 @@ setPrologFlag(const char *name, int flags, ...)
 }
 
 
+static void
+freePrologFlag(prolog_flag *f)
+{ if ( (f->flags & FT_MASK) == FT_TERM )
+    PL_erase(f->value.t);
+
+  freeHeap(f, sizeof(*f));
+}
+
+
 #ifdef O_PLMT
 static void
 copySymbolPrologFlagTable(Symbol s)
-{ GET_LD
-  prolog_flag *f = s->value;
+{ prolog_flag *f = s->value;
   prolog_flag *copy = allocHeapOrHalt(sizeof(*copy));
 
   *copy = *f;
@@ -221,13 +232,7 @@ copySymbolPrologFlagTable(Symbol s)
 
 static void
 freeSymbolPrologFlagTable(Symbol s)
-{ GET_LD
-  prolog_flag *f = s->value;
-
-  if ( (f->flags & FT_MASK) == FT_TERM )
-    PL_erase(f->value.t);
-
-  freeHeap(f, sizeof(*f));
+{ freePrologFlag(s->value);
 }
 #endif
 
@@ -261,25 +266,34 @@ setDoubleQuotes(atom_t a, unsigned int *flagp)
 
 
 static int
-setUnknown(atom_t a, unsigned int *flagp)
-{ unsigned int flags;
+setUnknown(term_t value, atom_t a, Module m)
+{ unsigned int flags = m->flags & ~(UNKNOWN_MASK);
 
   if ( a == ATOM_error )
-    flags = UNKNOWN_ERROR;
+    flags |= UNKNOWN_ERROR;
   else if ( a == ATOM_warning )
-    flags = UNKNOWN_WARNING;
+    flags |= UNKNOWN_WARNING;
   else if ( a == ATOM_fail )
-    flags = UNKNOWN_FAIL;
+    flags |= UNKNOWN_FAIL;
   else
-  { GET_LD
-    term_t value = PL_new_term_ref();
-
-    PL_put_atom(value, a);
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unknown, value);
+
+  if ( !(flags&UNKNOWN_ERROR) && (m == MODULE_user || m == MODULE_system) )
+  { GET_LD
+
+    if ( m == MODULE_system && !SYSTEM_MODE )
+    { term_t key = PL_new_term_ref();
+
+      PL_put_atom(key, ATOM_unknown);
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		      ATOM_modify, ATOM_flag, key);
+    }
+
+    if ( !SYSTEM_MODE )
+      printMessage(ATOM_warning, PL_CHARS, "unknown_in_module_user");
   }
 
-  *flagp &= ~(UNKNOWN_MASK);
-  *flagp |= flags;
+  m->flags = flags;
 
   succeed;
 }
@@ -431,7 +445,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       }
 
       addHTable(LD->prolog_flag.table, (void *)k, f2);
-      DEBUG(1, Sdprintf("Localised Prolog flag %s\n", PL_atom_chars(k)));
+      DEBUG(MSG_PROLOG_FLAG,
+	    Sdprintf("Localised Prolog flag %s\n", PL_atom_chars(k)));
       f = f2;
     }
 #endif
@@ -469,8 +484,9 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 	    goto wrong_type;
 	  }
 	  if ( !(f->value.t = PL_record(value)) )
-	    goto wrong_type;
-	  f->value.t = PL_record(value);
+	  { freeHeap(f, sizeof(*f));
+	    return FALSE;
+	  }
 	}
 	break;
       }
@@ -515,7 +531,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
     if ( (flags & FF_READONLY) )
       f->flags |= FF_READONLY;
 
-    addHTable(GD->prolog_flag.table, (void *)k, f);
+    if ( !addHTable(GD->prolog_flag.table, (void *)k, f) )
+    { freePrologFlag(f);
+      Sdprintf("OOPS; failed to set Prolog flag!?\n");
+    }
 
     succeed;
   } else
@@ -579,7 +598,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       if ( k == ATOM_double_quotes )
       { rval = setDoubleQuotes(a, &m->flags);
       } else if ( k == ATOM_unknown )
-      { rval = setUnknown(a, &m->flags);
+      { rval = setUnknown(value, a, m);
       } else if ( k == ATOM_write_attributes )
       { rval = setWriteAttributes(a);
       } else if ( k == ATOM_occurs_check )
@@ -999,18 +1018,18 @@ pl_prolog_flag(term_t name, term_t value, control_t h)
 #define SO_PATH "LD_LIBRARY_PATH"
 #endif
 
-void
-initPrologFlagTable()
+static void
+initPrologFlagTable(void)
 { if ( !GD->prolog_flag.table )
   { initPrologThreads();	/* may be called before PL_initialise() */
 
-    GD->prolog_flag.table = newHTable(32);
+    GD->prolog_flag.table = newHTable(64);
   }
 }
 
 
 void
-initPrologFlags()
+initPrologFlags(void)
 { GET_LD
   setPrologFlag("iso",  FT_BOOL, FALSE, PLFLAG_ISO);
   setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
@@ -1202,6 +1221,20 @@ setVersionPrologFlag(void)
 
   setGITVersion();
 }
+
+
+void
+cleanupPrologFlags(void)
+{ if ( GD->prolog_flag.table )
+  { Table t = GD->prolog_flag.table;
+
+    GD->prolog_flag.table = NULL;
+    t->free_symbol = freeSymbolPrologFlagTable;
+    destroyHTable(t);
+  }
+}
+
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

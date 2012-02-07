@@ -148,8 +148,7 @@ getStreamContext(IOSTREAM *s)
 { Symbol symb;
 
   if ( !(symb = lookupHTable(streamContext, s)) )
-  { GET_LD
-    stream_context *ctx = allocHeapOrHalt(sizeof(*ctx));
+  { stream_context *ctx = allocHeapOrHalt(sizeof(*ctx));
 
     DEBUG(1, Sdprintf("Created ctx=%p for stream %p\n", ctx, s));
 
@@ -167,8 +166,7 @@ getStreamContext(IOSTREAM *s)
 
 void
 aliasStream(IOSTREAM *s, atom_t name)
-{ GET_LD
-  stream_context *ctx;
+{ stream_context *ctx;
   Symbol symb;
   alias *a;
 
@@ -197,8 +195,7 @@ aliasStream(IOSTREAM *s, atom_t name)
 
 static void
 unaliasStream(IOSTREAM *s, atom_t name)
-{ GET_LD
-  Symbol symb;
+{ Symbol symb;
 
   if ( name )
   { if ( (symb = lookupHTable(streamAliases, (void *)name)) )
@@ -459,6 +456,7 @@ typedef struct stream_ref
 static int
 write_stream_ref(IOSTREAM *s, atom_t aref, int flags)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)flags;
 
   if ( ref->read && ref->write )
     Sfprintf(s, "<stream>(%p,%p)", ref->read, ref->write);
@@ -502,6 +500,7 @@ release_stream_ref(atom_t aref)
 static int
 save_stream_ref(atom_t aref, IOSTREAM *fd)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)fd;
 
   return PL_warning("Cannot save reference to <stream>(%p,%p)",
 		    ref->read, ref->write);
@@ -510,7 +509,9 @@ save_stream_ref(atom_t aref, IOSTREAM *fd)
 
 static atom_t
 load_stream_ref(IOSTREAM *fd)
-{ return PL_new_atom("<saved-stream-ref>");
+{ (void)fd;
+
+  return PL_new_atom("<saved-stream-ref>");
 }
 
 
@@ -620,7 +621,7 @@ term_stream_handle(term_t t, IOSTREAM **s, int flags ARG_LD)
   if ( !PL_get_atom(t, &a) )
     return not_a_stream(t);
 
-  return get_stream_handle(a, s, SH_ERRORS|SH_ALIAS);
+  return get_stream_handle(a, s, flags);
 }
 
 
@@ -678,10 +679,8 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 
 int
 PL_unify_stream(term_t t, IOSTREAM *s)
-{ stream_context *ctx;
-
-  LOCK();
-  ctx = getStreamContext(s);
+{ LOCK();
+  (void)getStreamContext(s);		/* get stream known to Prolog */
   UNLOCK();
 
   return unify_stream_ref(t, s);
@@ -895,7 +894,7 @@ static int
 isConsoleStream(IOSTREAM *s)
 { int i = standardStreamIndexFromStream(s);
 
-  return i >= 0 && i < 3;
+  return i >= 1 && i < 3;			/* only output streams */
 }
 #else
 #define isConsoleStream(s) FALSE
@@ -1716,6 +1715,21 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	  s->position = &s->posbuf;
 	else
 	  s->position = NULL;
+
+	goto ok;
+      } else if ( aname == ATOM_line_position )
+      { int lpos;
+
+	if ( !PL_get_integer_ex(a, &lpos) )
+	  goto error;
+
+	if ( s->position )
+	{ s->position->linepos = lpos;
+	} else
+	{ PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		   ATOM_line_position, ATOM_stream, stream);
+	  goto error;
+	}
 
 	goto ok;
       } else if ( aname == ATOM_file_name ) /* file_name(Atom) */
@@ -3308,19 +3322,28 @@ PRED_IMPL("told", 0, told, 0)
 
 static ssize_t
 Swrite_null(void *handle, char *buf, size_t size)
-{ return size;
+{ (void)handle;
+  (void)buf;
+
+  return size;
 }
 
 
 static ssize_t
 Sread_null(void *handle, char *buf, size_t size)
-{ return 0;
+{ (void)handle;
+  (void)buf;
+  (void)size;
+
+  return 0;
 }
 
 
 static long
 Sseek_null(void *handle, long offset, int whence)
-{ switch(whence)
+{ (void)handle;
+
+  switch(whence)
   { case SIO_SEEK_SET:
 	return offset;
     case SIO_SEEK_CUR:
@@ -3333,7 +3356,9 @@ Sseek_null(void *handle, long offset, int whence)
 
 static int
 Sclose_null(void *handle)
-{ return 0;
+{ (void)handle;
+
+  return 0;
 }
 
 
@@ -3479,13 +3504,17 @@ stream_mode_property(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_input_prop(IOSTREAM *s ARG_LD)
-{ return (s->flags & SIO_INPUT) ? TRUE : FALSE;
+{ IGNORE_LD
+
+  return (s->flags & SIO_INPUT) ? TRUE : FALSE;
 }
 
 
 static int
 stream_output_prop(IOSTREAM *s ARG_LD)
-{ return (s->flags & SIO_OUTPUT) ? TRUE : FALSE;
+{ IGNORE_LD
+
+  return (s->flags & SIO_OUTPUT) ? TRUE : FALSE;
 }
 
 
@@ -3526,7 +3555,9 @@ stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( s->position )
+{ IGNORE_LD
+
+  if ( s->position )
   { return PL_unify_term(prop,
 			 PL_FUNCTOR, FUNCTOR_stream_position4,
 			   PL_INT64, s->position->charno,
@@ -3542,8 +3573,7 @@ stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 static int
 stream_end_of_stream_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( s->flags & SIO_INPUT )
-  { GET_LD
-    atom_t val;
+  { atom_t val;
 
     if ( s->flags & SIO_FEOF2 )
       val = ATOM_past;
@@ -3608,7 +3638,9 @@ stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_close_on_abort_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ return PL_unify_bool_ex(prop, !(s->flags & SIO_NOCLOSE));
+{ IGNORE_LD
+
+  return PL_unify_bool_ex(prop, !(s->flags & SIO_NOCLOSE));
 }
 
 
@@ -3631,7 +3663,9 @@ stream_file_no_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( (s->flags & SIO_ISATTY) )
+{ IGNORE_LD
+
+  if ( (s->flags & SIO_ISATTY) )
     return PL_unify_bool_ex(prop, TRUE);
 
   return FALSE;
@@ -3640,7 +3674,9 @@ stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( (s->flags & SIO_BOM) )
+{ IGNORE_LD
+
+  if ( (s->flags & SIO_BOM) )
     return PL_unify_bool_ex(prop, TRUE);
 
   return FALSE;
@@ -3738,6 +3774,7 @@ stream_close_on_exec_prop(IOSTREAM *s, term_t prop ARG_LD)
 #else
    int fd_flags;
 #endif
+   IGNORE_LD
 
    if ( (fd = Sfileno(s)) < 0)
      return FALSE;
@@ -3836,7 +3873,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 			    ATOM_stream_property, property);
 	}
 
-	pe = allocHeapOrHalt(sizeof(*pe));
+	pe = allocForeignState(sizeof(*pe));
 
 	pe->e = newTableEnum(streamContext);
 	pe->s = NULL;
@@ -3854,7 +3891,7 @@ PRED_IMPL("stream_property", 2, stream_property,
       { functor_t f;
 
 	if ( PL_is_variable(property) )	/* generate properties */
-	{ pe = allocHeapOrHalt(sizeof(*pe));
+	{ pe = allocForeignState(sizeof(*pe));
 
 	  pe->e = NULL;
 	  pe->s = s;
@@ -3912,7 +3949,7 @@ PRED_IMPL("stream_property", 2, stream_property,
       { if ( pe->e )
 	  freeTableEnum(pe->e);
 
-	freeHeap(pe, sizeof(*pe));
+	freeForeignState(pe, sizeof(*pe));
       }
       return TRUE;
     }
@@ -3928,7 +3965,7 @@ PRED_IMPL("stream_property", 2, stream_property,
     if ( pe->e )
       freeTableEnum(pe->e);
 
-    freeHeap(pe, sizeof(*pe));
+    freeForeignState(pe, sizeof(*pe));
     return FALSE;
   }
 
@@ -4002,7 +4039,7 @@ PRED_IMPL("stream_property", 2, stream_property,
     { if ( pe->e )
 	freeTableEnum(pe->e);
 
-      freeHeap(pe, sizeof(*pe));
+      freeForeignState(pe, sizeof(*pe));
       return FALSE;
     }
   }
@@ -4452,22 +4489,23 @@ ssize_t
 Sread_user(void *handle, char *buf, size_t size)
 { GET_LD
   wrappedIO *wio = handle;
+  ssize_t rc;
 
   if ( LD->prompt.next && ttymode != TTY_RAW )
     PL_write_prompt(TRUE);
   else
     Sflush(Suser_output);
 
-  size = (*wio->wrapped_functions->read)(wio->wrapped_handle, buf, size);
-  if ( size == 0 )			/* end-of-file */
+  rc = (*wio->wrapped_functions->read)(wio->wrapped_handle, buf, size);
+  if ( rc == 0 )			/* end-of-file */
   { Sclearerr(Suser_input);
     LD->prompt.next = TRUE;
-  } else if ( size == 1 && buf[0] == 04 )
-  { size = 0;				/* Map ^D to end-of-file */
-  } else if ( size > 0 && buf[size-1] == '\n' )
+  } else if ( rc == 1 && buf[0] == 04 )
+  { rc = 0;				/* Map ^D to end-of-file */
+  } else if ( rc > 0 && buf[rc-1] == '\n' )
     LD->prompt.next = TRUE;
 
-  return size;
+  return rc;
 }
 
 

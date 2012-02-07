@@ -87,8 +87,8 @@ than compensated for by using block reads based on read_pending_input/3.
 %	==
 
 :- meta_predicate
-	phrase_from_file(:, +),
-	phrase_from_file(:, +, +).
+	phrase_from_file(2, +),
+	phrase_from_file(2, +, +).
 
 phrase_from_file(Grammar, File) :-
 	phrase_from_file(Grammar, File, []).

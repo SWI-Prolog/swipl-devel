@@ -40,7 +40,8 @@ test_text :-
 		    atom_to_term,
 		    number_codes,
 		    number_chars,
-		    sub_atom
+		    sub_atom,
+		    atomic_list_concat
 		  ]).
 
 :- begin_tests(char_code).
@@ -205,3 +206,12 @@ test(neg, C = '\235\') :-		% test signed char handling
 	sub_atom('Azi\235\', _, 1, 0, C).
 
 :- end_tests(sub_atom).
+
+
+:- begin_tests(atomic_list_concat).
+
+test(int64, X == 'x-9223372036854775808') :-
+	N is -(1<<63),
+	atomic_list_concat([x, N], X).
+
+:- end_tests(atomic_list_concat).

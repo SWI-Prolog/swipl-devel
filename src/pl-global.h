@@ -105,24 +105,24 @@ struct PL_global_data
   } cmdline;
 
   struct
-  { char *	executable;		/* Running executable */
+  { char *	CWDdir;
+    size_t	CWDlen;
+    char *	executable;		/* Running executable */
 #ifdef __WINDOWS__
     char *	module;			/* argv[0] module passed */
 #endif
   } paths;
 
   struct
-  { size_t	heap;			/* heap in use */
-    size_t	atoms;			/* No. of atoms defined */
-    size_t	atomspace;		/* # bytes used to store atoms */
+  { size_t	atoms;			/* No. of atoms defined */
+    size_t	atom_string_space;	/* # bytes used to store atoms */
+    size_t	atom_string_space_freed;/* # bytes in freed atoms */
     size_t	stack_space;		/* # bytes on stacks */
-#ifdef O_ATOMGC
-    size_t	atomspacefreed;		/* Freed atom-space */
-#endif
     int		functors;		/* No. of functors defined */
     int		predicates;		/* No. of predicates defined */
     int		modules;		/* No. of modules in the system */
-    intptr_t	codes;			/* No. of byte codes generated */
+    size_t	clauses;		/* No. clauses */
+    size_t	codes;			/* No. of VM codes generated */
     double	start_time;		/* When Prolog was started */
     double	user_cputime;		/* User CPU time (whole process) */
     double	system_cputime;		/* Kernel CPU time (whole process) */
@@ -154,11 +154,11 @@ struct PL_global_data
   } arith;
 
   struct
-  { Atom *	array;			/* index --> atom */
-    size_t	count;			/* elements in array */
-    size_t	array_allocated;	/* allocated size of array */
+  { size_t	highest;		/* Highest atom index */
+    atom_array	array;
     unsigned int buckets;		/* # buckets in char * --> atom */
     Atom *	table;			/* hash-table */
+    Atom	builtin_array;		/* Builtin atoms */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
 #ifdef O_ATOMGC
@@ -219,7 +219,8 @@ struct PL_global_data
   } prolog_flag;
 
   struct
-  { buffer	array;			/* index --> functor */
+  { size_t	highest;		/* Next index to handout */
+    functor_array array;		/* index --> functor */
     int		buckets;		/* # buckets in atom --> functor */
     FunctorDef* table;			/* hash-table */
   } functors;
@@ -484,8 +485,7 @@ struct PL_local_data
 #endif
 
   struct
-  { char *	_CWDdir;
-    size_t	_CWDlen;
+  {
 #ifdef __BEOS__
     status_t	dl_error;		/* dlopen() emulation in pl-beos.c */
 #endif

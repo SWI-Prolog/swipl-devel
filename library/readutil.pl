@@ -197,7 +197,9 @@ read_file_to_codes(Spec, Codes, Options) :-
 %%	read_file_to_terms(+Spec, -Terms, +Options) is det.
 %
 %	Read the file Spec into a list   of terms. Options is split over
-%	absolute_file_name/3, open/4 and read_term/3.
+%	absolute_file_name/3, open/4 and  read_term/3.   Note  that  the
+%	`output' options of read_term/3,  such   as  =variable_names= or
+%	=subterm_positions= are meaningless.
 
 read_file_to_terms(Spec, Terms, Options) :-
 	must_be(list, Options),

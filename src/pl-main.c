@@ -117,8 +117,7 @@ longopt(const char *opt, int argc, const char **argv)
 
 static int
 opt_append(opt_list **l, char *s)
-{ GET_LD
-  opt_list *n = allocHeapOrHalt(sizeof(*n));
+{ opt_list *n = allocHeapOrHalt(sizeof(*n));
 
   n->opt_val = s;
   n->next = NULL;
@@ -345,7 +344,54 @@ initPaths(int argc, const char **argv)
 
 
 static void
-initDefaults()
+cleanupStringP(char **loc)
+{ char *s;
+
+  if ( (s=*loc) )
+  { *loc = NULL;
+    remove_string(s);
+  }
+}
+
+static void
+cleanupOptListP(opt_list **listp)
+{ opt_list *l, *n;
+
+  if ( (l=*listp) )
+  { *listp = NULL;
+
+    for(; l; l=n)
+    { n = l->next;
+
+      remove_string(l->opt_val);
+      freeHeap(l, sizeof(*l));
+    }
+  }
+}
+
+
+static void
+cleanupPaths(void)
+{ cleanupStringP(&GD->paths.executable);
+  cleanupStringP(&systemDefaults.home);
+  cleanupStringP(&systemDefaults.startup);
+  cleanupStringP(&GD->options.systemInitFile);
+  cleanupStringP(&GD->options.compileOut);
+  cleanupStringP(&GD->options.goal);
+  cleanupStringP(&GD->options.topLevel);
+  cleanupStringP(&GD->options.initFile);
+  cleanupStringP(&GD->options.saveclass);
+  cleanupStringP(&GD->os.myhome);
+#ifdef __WINDOWS__
+  cleanupStringP(&GD->paths.module);
+#endif
+
+  cleanupOptListP(&GD->options.scriptFiles);
+}
+
+
+static void
+initDefaults(void)
 { GET_LD
 
   systemDefaults.arch	     = PLARCH;
@@ -501,7 +547,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
     while(*s)
     { switch(*s)
       { case 'd':	if (argc > 1)
-			{ GD->debug_level = atoi(argv[1]);
+			{ prolog_debug_from_string(argv[1], TRUE);
 			  argc--, argv++;
 			} else
 			  return -1;
@@ -709,8 +755,7 @@ stack-parameters.
 
 static void
 script_argv(int argc, char **argv)
-{ GET_LD
-  FILE *fd;
+{ FILE *fd;
   int i;
 
   DEBUG(1,
@@ -852,8 +897,6 @@ PL_initialise(int argc, char **argv)
   initAlloc();
   initPrologThreads();			/* initialise thread system */
   SinitStreams();			/* before anything else */
-
-  GD->debug_level = 0;			/* 1-9: debug, also -d <level> */
 
   script_argv(argc, argv);		/* hande #! arguments */
   argc = GD->cmdline.argc;
@@ -1024,6 +1067,9 @@ usage()
     "    --nodebug        Omit generation of debug info\n",
     "    --quiet          Quiet operation (also -q)\n",
     "    --home=DIR       Use DIR as SWI-Prolog home\n",
+#ifdef O_DEBUG
+    "    -d level|topic   Enable maintenance debugging\n",
+#endif
     NULL
   };
   const cline *lp = lines;
@@ -1032,7 +1078,7 @@ usage()
   if ( GD->cmdline.argc > 0 )
     prog = BaseName(GD->cmdline.argv[0]);
   else
-    prog = "pl";
+    prog = "swipl";
 
   for(lp = lines; *lp; lp++)
     Sfprintf(Serror, *lp, prog);
@@ -1170,8 +1216,7 @@ struct on_halt
 void
 PL_on_halt(halt_function f, void *arg)
 { if ( !GD->os.halting )
-  { GET_LD
-    OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));
+  { OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));
 
     h->function = f;
     h->argument = arg;
@@ -1180,11 +1225,32 @@ PL_on_halt(halt_function f, void *arg)
   }
 }
 
+static void
+run_on_halt(int rval)
+{ OnHalt h, next;
+
+  for(h = GD->os.on_halt_list; h; h=next)
+  { next = h->next;
+    (*h->function)(rval, h->argument);
+    freeHeap(h, sizeof(*h));
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Cleanup Prolog. The reclaim_memory  argument   says  whether  the system
+tries to reclaim memory. This  is   true  when called from PL_cleanup().
+Ideally, this would allow for  restarting   the  system  without loosing
+memory. In practice, this is hard,   especially if foreign libraries are
+loaded.
+
+When called from PL_halt(),  reclaim_memory   is  FALSE, unless compiled
+with -DGC_DEBUG.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-PL_cleanup(int rval)
+cleanupProlog(int rval, int reclaim_memory)
 { GET_LD
-  OnHalt h;
   int rc = TRUE;
 
   if ( GD->cleaning != CLN_NORMAL )
@@ -1221,10 +1287,7 @@ PL_cleanup(int rval)
   }
 
   GD->cleaning = CLN_FOREIGN;
-
-					/* run PL_on_halt() hooks */
-  for(h = GD->os.on_halt_list; h; h = h->next)
-    (*h->function)(rval, h->argument);
+  run_on_halt(rval);
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
@@ -1255,37 +1318,55 @@ PL_cleanup(int rval)
   }
 
   cleanupSignals();
-  freeStacks(PASS_LD1);
 #ifdef HAVE_DMALLOC_H
   dmalloc_verify(0);
 #endif
-  freePrologLocalData(LD);
-  cleanupSourceFiles();
-  cleanupAtoms();
-  cleanupFunctors();
-  cleanupArith();
-  cleanupInitialiseHooks();
-  cleanupExtensions();
-  cleanupOs();
-  Scleanup();
+
+  if ( reclaim_memory )
+  { freeStacks(PASS_LD1);
+    cleanupLocalDefinitions(LD);
+    freePrologLocalData(LD);
+    cleanupSourceFiles();
+    cleanupModules();
+    cleanupPrologFlags();
+    cleanupFlags();
+    cleanupRecords();
+    cleanupTerm();
+    cleanupAtoms();
+    cleanupFunctors();
+    cleanupArith();
+    cleanupInitialiseHooks();
+    cleanupExtensions();
+    cleanupOs();
+    Scleanup();
 #ifdef O_PLMT
-  cleanupThreads();
+    cleanupThreads();
 #endif
-  cleanupForeign();
-  cleanupCodeToAtom();
-  if ( rc )
-    cleanupMemAlloc();
+    cleanupForeign();
+    cleanupPaths();
+    cleanupCodeToAtom();
 #ifdef O_GMP
-  cleanupGMP();
+    cleanupGMP();
 #endif
+    cleanupDebug();
+  }
 
   UNLOCK();				/* requires GD->thread.enabled */
 
-  memset(&PL_global_data, 0, sizeof(PL_global_data));
-  memset(&PL_local_data,  0, sizeof(PL_local_data));
+  if ( reclaim_memory )
+  { memset(&PL_global_data, 0, sizeof(PL_global_data));
+    memset(&PL_local_data,  0, sizeof(PL_local_data));
+  }
 
   return TRUE;
 }
+
+
+int
+PL_cleanup(int rc)
+{ return cleanupProlog(rc, TRUE);
+}
+
 
 		 /*******************************
 		 *	ERRORS AND WARNINGS	*
@@ -1357,7 +1438,7 @@ vsysError(const char *fm, va_list args)
 #if defined(O_DEBUGGER)
   setAccessLevel(ACCESS_LEVEL_SYSTEM);
   Sfprintf(Serror, "\n\nPROLOG STACK:\n");
-  backTrace(NULL, 10);
+  backTrace(10);
   Sfprintf(Serror, "]\n");
 #endif /*O_DEBUGGER*/
 

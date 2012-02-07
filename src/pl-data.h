@@ -290,7 +290,7 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define indexAtom(w)	((w)>>LMASK_BITS)
-#define atomValue(w)	(GD->atoms.array[indexAtom(w)])
+#define atomValue(w)	fetchAtomArray(indexAtom(w))
 #define stringAtom(w)	(atomValue(w)->name)
 #define valInteger(w)	(storage(w) == STG_INLINE ? valInt(w) : valBignum(w))
 
@@ -304,7 +304,7 @@ and while loading .wic files.  It comes at no price.
 			  TAG_ATOM|STG_GLOBAL)
 #define functorHashValue(f, n)	((f)>>(LMASK_BITS) & ((n)-1))
 #define indexFunctor(w)	((w)>>(LMASK_BITS+F_ARITY_BITS))
-#define valueFunctor(w) fetchBuffer(&functor_array,indexFunctor(w),FunctorDef)
+#define valueFunctor(w) fetchFunctorArray(indexFunctor(w))
 #define _arityFunc_(w)	((int)(((w) >> LMASK_BITS) & F_ARITY_MASK))
 #define arityFunctor(w) (unlikely(_arityFunc_(w) == F_ARITY_MASK) \
 				? valueFunctor(w)->arity \

@@ -33,6 +33,7 @@
 #define OPT_LONG	(5)
 #define OPT_NATLONG	(6)		/* > 0 */
 #define OPT_SIZE	(7)		/* size_t */
+#define OPT_DOUBLE	(8)
 #define OPT_TYPE_MASK	0xff
 #define OPT_INF		0x100		/* allow 'inf' */
 
@@ -43,7 +44,7 @@ typedef struct
   int		type;			/* Type of option */
 } opt_spec, *OptSpec;
 
-COMMON(int) 		scan_options(term_t list, int flags, atom_t name,
+COMMON(int)		scan_options(term_t list, int flags, atom_t name,
 				     const opt_spec *specs, ...);
 
 #endif /*OPTION_H_INCLUDED*/

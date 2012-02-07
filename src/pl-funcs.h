@@ -31,42 +31,6 @@ libraries and avoids Prolog picking wrong   symbols. It also reduces ELF
 symbol lookup and relocations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* pl-alloc.c */
-COMMON(void)		initAlloc(void);
-COMMON(void)		freeHeap__LD(void *mem, size_t n ARG_LD);
-COMMON(int)		enableSpareStack(Stack s);
-COMMON(int)		outOfStack(void *stack, stack_overflow_action how);
-COMMON(int)		raiseStackOverflow(int which);
-COMMON(void)		outOfCore(void) NORETURN;
-COMMON(Word)		allocGlobal__LD(size_t words ARG_LD);
-COMMON(Word)		allocGlobalNoShift__LD(size_t words ARG_LD);
-COMMON(void *)		allocHeap__LD(size_t n ARG_LD);
-COMMON(void *)		allocHeapOrHalt__LD(size_t n ARG_LD);
-COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
-COMMON(void)		initMemAlloc(void);
-COMMON(void)		cleanupMemAlloc(void);
-COMMON(int)		unifyFreeStatsPool(term_t term, AllocPool pool);
-COMMON(void)		mergeAllocPool(AllocPool to, AllocPool from);
-COMMON(word)		globalString(size_t len, const char *s);
-COMMON(word)		globalWString(size_t len, const pl_wchar_t *s);
-COMMON(char *)		getCharsString__LD(word w, size_t *len ARG_LD);
-COMMON(pl_wchar_t *)	getCharsWString__LD(word w, size_t *len ARG_LD);
-COMMON(Word)		newTerm(void);
-COMMON(void)		doublecpy(void *to, void *from);
-COMMON(int)		put_double(Word p, double f, int flags ARG_LD);
-COMMON(int)		put_int64(Word p, int64_t i, int flags ARG_LD);
-COMMON(double)		valFloat__LD(word w ARG_LD);
-#ifdef INT64_ALIGNMENT
-COMMON(int64_t)		valBignum__LD(word w ARG_LD);
-#endif
-COMMON(int)		equalIndirect(word r1, word r2);
-COMMON(size_t)		gsizeIndirectFromCode(Code PC);
-COMMON(word)		globalIndirectFromCode(Code *PC);
-#ifndef xmalloc
-COMMON(void *)		xmalloc(size_t size);
-COMMON(void *)		xrealloc(void *mem, size_t size);
-#endif
-
 /* pl-attvar.c */
 COMMON(void)		assignAttVar(Word av, Word value ARG_LD);
 COMMON(int)		saveWakeup(wakeup_state *state, int forceframe ARG_LD);
@@ -142,7 +106,7 @@ COMMON(word)		pl_current_arithmetic_function(term_t f, control_t h);
 COMMON(void)		initArith(void);
 COMMON(void)		cleanupArith(void);
 COMMON(int)		indexArithFunction(functor_t fdef);
-COMMON(functor_t)	functorArithFunction(int n);
+COMMON(functor_t)	functorArithFunction(unsigned int n);
 COMMON(bool)		ar_func_n(int findex, int argc ARG_LD);
 COMMON(int)		ar_add_ui(Number n, intptr_t add);
 COMMON(int)		valueExpression(term_t p, Number n ARG_LD);
@@ -202,11 +166,11 @@ COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,
 				    ClauseChoice next ARG_LD);
 COMMON(ClauseRef)	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
-				   Definition def ARG_LD);
-COMMON(void)		addClauseToIndexes(Definition def, Clause cl,
-					   int where ARG_LD);
+				   Definition def);
+COMMON(void)		addClauseToIndexes(Definition def, Clause cl, int where);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
-COMMON(void)		cleanClauseIndexes(Definition def ARG_LD);
+COMMON(void)		cleanClauseIndexes(Definition def);
+COMMON(void)		unallocClauseIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
@@ -224,6 +188,7 @@ COMMON(void)            rememberExtensions(const char *module,
 
 /* pl-flag.c */
 COMMON(void)		initFlags(void);
+COMMON(void)		cleanupFlags(void);
 COMMON(word)		pl_current_flag(term_t k, control_t h);
 
 /* pl-fli.c */
@@ -342,9 +307,11 @@ COMMON(void)		cleanupForeign(void);
 COMMON(Module)		lookupModule(atom_t name);
 COMMON(Module)		isCurrentModule(atom_t name);
 COMMON(void)		initModules(void);
+COMMON(void)		cleanupModules(void);
 COMMON(int)		addModuleSourceFile(SourceFile sf, Module m);
 COMMON(int)		setSuperModule(Module m, Module s);
 COMMON(int)		isSuperModule(Module s, Module m);
+COMMON(void)		clearSupersModule(Module m);
 COMMON(int)		addSuperModule(Module m, Module s, int where);
 COMMON(int)		getUnknownModule(Module m);
 COMMON(Word)		stripModule(Word term, Module *module ARG_LD);
@@ -436,8 +403,8 @@ COMMON(word)		pl_prolog_flag5(term_t key, term_t value,
 					term_t local, term_t access, term_t type,
 					control_t h);
 COMMON(int)		setDoubleQuotes(atom_t a, unsigned int *flagp);
-COMMON(void)		initPrologFlagTable(void);
 COMMON(void)		initPrologFlags(void);
+COMMON(void)		cleanupPrologFlags(void);
 
 /* pl-pro.c */
 COMMON(word)		pl_break(void);
@@ -454,11 +421,14 @@ COMMON(atom_t)		accessLevel(void);
 
 /* pl-proc.c */
 COMMON(Procedure)	lookupProcedure(functor_t f, Module m);
+COMMON(void)		unallocProcedure(Procedure proc);
 COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
 COMMON(int)		importDefinitionModule(Module m, Definition def);
 COMMON(Procedure)	lookupProcedureToDefine(functor_t def, Module m);
 COMMON(ClauseRef)	hasClausesDefinition(Definition def);
 COMMON(bool)		isDefinedProcedure(Procedure proc);
+COMMON(void)		shareDefinition(Definition def);
+COMMON(void)		unshareDefinition(Definition def);
 COMMON(int)		get_head_functor(term_t head, functor_t *fdef,
 				 int flags ARG_LD);
 COMMON(int)		get_functor(term_t descr, functor_t *fdef,
@@ -470,12 +440,12 @@ COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 				int where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
-COMMON(bool)		retractClauseDefinition(Definition def, Clause clause ARG_LD);
-COMMON(void)		freeClause(Clause c ARG_LD);
-COMMON(void)		unallocClause(Clause c ARG_LD);
-COMMON(void)		freeClauseRef(ClauseRef c ARG_LD);
+COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
+COMMON(void)		freeClause(Clause c);
+COMMON(void)		unallocClause(Clause c);
+COMMON(void)		freeClauseRef(ClauseRef c);
 COMMON(void)		freeClauseList(ClauseRef cref);
-COMMON(ClauseRef)	newClauseRef(Clause cl, word key ARG_LD);
+COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
 COMMON(void)		gcClausesDefinition(Definition def);
 COMMON(void)		gcClausesDefinitionAndUnlock(Definition def);
 COMMON(void)		destroyDefinition(Definition def);
@@ -543,12 +513,13 @@ COMMON(int)		read_clause(IOSTREAM *s, term_t term ARG_LD);
 
 /* pl-rec.c */
 COMMON(void)		initRecords(void);
+COMMON(void)		cleanupRecords(void);
 COMMON(Record)		compileTermToHeap__LD(term_t term, int flags ARG_LD);
 COMMON(int)		copyRecordToGlobal(term_t copy, Record term,
 					   int flags ARG_LD);
 COMMON(int)		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
-COMMON(bool)		freeRecord__LD(Record record ARG_LD);
-COMMON(void)		unallocRecordRef(RecordRef r ARG_LD);
+COMMON(bool)		freeRecord(Record record);
+COMMON(void)		unallocRecordRef(RecordRef r);
 COMMON(bool)		unifyKey(term_t key, word val);
 COMMON(int)		getKeyEx(term_t key, word *k ARG_LD);
 COMMON(word)		pl_term_complexity(term_t t, term_t mx, term_t count);
@@ -601,7 +572,7 @@ COMMON(word)		pl_get_pid(term_t pid);
 COMMON(int)		isDebugFrame(LocalFrame FR);
 COMMON(int)		tracePort(LocalFrame frame, Choice bfr,
 			  int port, Code PC ARG_LD);
-COMMON(void)		backTrace(LocalFrame frame, int depth);
+COMMON(void)		backTrace(int depth);
 COMMON(void)		initTracer(void);
 COMMON(void)		resetTracer(void);
 COMMON(int)		tracemode(int new, int *old);
@@ -662,7 +633,7 @@ COMMON(int)		writeAtomToStream(IOSTREAM *s, atom_t atom);
 COMMON(char *)		format_float(double f, char *buf);
 
 /* pl-term.c */
-COMMON(void)		resetTerm(void);
+COMMON(void)		cleanupTerm(void);
 
 /* pl-main.c */
 COMMON(int)		startProlog(int argc, char **argv);
@@ -671,6 +642,7 @@ COMMON(void)		fatalError(const char *fm, ...) NORETURN;
 COMMON(bool)		warning(const char *fm, ...);
 COMMON(void)		vfatalError(const char *fm, va_list args) NORETURN;
 COMMON(bool)		vwarning(const char *fm, va_list args);
+COMMON(int)		cleanupProlog(int status, int reclaim);
 
 /* pl-dll.c */
 COMMON(word)		pl_open_dll(term_t name, term_t handle);
@@ -730,7 +702,7 @@ COMMON(int)		enableThreads(int enable);
 
 
 /* pl-gmp.c */
-COMMON(int)	PL_unify_number(term_t t, Number n);
+COMMON(int)	PL_unify_number__LD(term_t t, Number n ARG_LD);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);

@@ -65,6 +65,7 @@
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
 #endif
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
 
@@ -608,7 +609,11 @@ place them on the stack (see I_USERCALL).
 #define WORD_ALIGNED
 #endif
 
+#ifndef PL_HAVE_TERM_T
+#define PL_HAVE_TERM_T
 typedef uintptr_t		term_t;		/* external term-reference */
+#endif
+
 typedef uintptr_t		word;		/* Anonymous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
@@ -807,7 +812,7 @@ with one operation, it turns out to be faster as well.
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
 		      /* unused (0x00100000L) */
 #define P_VARARG		(0x00200000L) /* predicate */
-#define P_SHARED		(0x00400000L) /* predicate */
+		      /* unused	(0x00400000L) */
 #define P_REDEFINED		(0x00800000L) /* predicate */
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 #define P_THREAD_LOCAL		(0x01000000L) /* predicate */
@@ -1007,6 +1012,12 @@ struct atom
   char *	name;		/* name associated with atom */
 };
 
+
+typedef struct atom_array
+{ Atom *blocks[8*sizeof(void*)];
+} atom_array;
+
+
 #ifdef O_ATOMGC
 #define ATOM_MARKED_REFERENCE ((unsigned int)1 << (INTBITSIZE-1))
 #ifdef O_DEBUG_ATOMGC
@@ -1032,6 +1043,11 @@ struct functorDef
 		  /* CONTROL_F	   Compiled control-structure */
 		  /* ARITH_F	   Arithmetic function */
 };
+
+
+typedef struct functor_array
+{ FunctorDef *blocks[8*sizeof(void*)];
+} functor_array;
 
 
 #ifdef O_LOGICAL_UPDATE
@@ -1192,12 +1208,12 @@ struct definition
     Func	function;		/* function pointer of procedure */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
-  int		references;		/* reference count */
 #ifdef O_PLMT
   counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
+  int		references;		/* reference count */
   unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
@@ -1221,6 +1237,7 @@ struct definition
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
 		/*	P_SHARED	   Multiple procs are using me */
+  unsigned short shared;		/* #procedures sharing this def */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
@@ -2110,6 +2127,7 @@ decrease).
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
+#include "pl-alloc.h"			/* Allocation primitives */
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 #include "pl-error.h"			/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */

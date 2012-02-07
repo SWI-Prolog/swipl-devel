@@ -24,12 +24,12 @@
 */
 
 /*#define O_DEBUG 1*/
+#define _GNU_SOURCE			/* get dladdr() */
 #include "pl-incl.h"
 #include "pl-dbref.h"
 #include "pl-inline.h"
 #include <limits.h>
 #ifdef HAVE_DLADDR
-#define __USE_GNU 1
 #include <dlfcn.h>
 #endif
 
@@ -106,8 +106,7 @@ NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 #if VMCODE_IS_ADDRESS
 void
 initWamTable(void)
-{ GET_LD
-  unsigned int n;
+{ unsigned int n;
   code maxcoded, mincoded;
 
   assert(I_HIGHEST < 255);	/* need short for dewam_table on overflow */
@@ -130,8 +129,8 @@ initWamTable(void)
   dewam_table_offset = mincoded;
 
   assert(wam_table[C_NOT] != wam_table[C_IFTHENELSE]);
-  dewam_table = (unsigned char *)allocHeapOrHalt(((maxcoded-dewam_table_offset) + 1) *
-				  sizeof(char));
+  dewam_table = (unsigned char *)PL_malloc_atomic(((maxcoded-dewam_table_offset) + 1) *
+						  sizeof(char));
 
   for(n = 0; n < I_HIGHEST; n++)
     dewam_table[wam_table[n]-dewam_table_offset] = (unsigned char) n;
@@ -262,9 +261,9 @@ getVarDef(int i ARG_LD)
       nvd = nvd > 0 ? (nvd*2) : 32;
 
     if ( onvd > 0 )
-      vardefs = realloc(vardefs, sizeof(VarDef) * nvd);
+      vardefs = GC_REALLOC(vardefs, sizeof(VarDef) * nvd);
     else
-      vardefs = malloc(sizeof(VarDef) * nvd);
+      vardefs = GC_MALLOC(sizeof(VarDef) * nvd);
 
     if ( !vardefs )
       outOfCore();
@@ -277,7 +276,7 @@ getVarDef(int i ARG_LD)
   }
 
   if ( !(vd = vardefs[i]) )
-  { vd = vardefs[i] = allocHeapOrHalt(sizeof(vardef));
+  { vd = vardefs[i] = PL_malloc_atomic(sizeof(vardef));
     memset(vd, 0, sizeof(*vd));
     vd->functor = FUNCTOR_dvard1;
   }
@@ -301,7 +300,7 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
     if ( (v = *vd) )
     { v->address = NULL;
     } else
-    { *vd = v = allocHeapOrHalt(sizeof(vardef));
+    { *vd = v = PL_malloc_atomic(sizeof(vardef));
       memset(v, 0, sizeof(vardef));
       v->functor = FUNCTOR_dvard1;
     }
@@ -323,7 +322,7 @@ freeVarDefs(PL_local_data_t *ld)
 	freeHeap(vardefs[i], sizeof(vardef));
     }
 
-    free(ld->comp.vardefs);
+    GC_FREE(ld->comp.vardefs);
     ld->comp.vardefs = NULL;
     ld->comp.nvardefs = 0;
     ld->comp.filledVars = 0;
@@ -610,12 +609,12 @@ forwards int	compileArith(Word, compileInfo * ARG_LD);
 forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
 #endif
 #if O_COMPILE_IS
-forwards int	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
-forwards int	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
-forwards int	compileBodyNEQ(Word arg, code call, compileInfo *ci ARG_LD);
+forwards int	compileBodyUnify(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyEQ(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyNEQ(Word arg, compileInfo *ci ARG_LD);
 #endif
-forwards int	compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD);
-forwards int	compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD);
+forwards int	compileBodyVar1(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD);
 
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
@@ -1157,8 +1156,9 @@ Finish up the clause.
   if ( head )
   { size_t size  = sizeofClause(clause.code_size);
 
-    cl = allocHeapOrHalt(size);
+    cl = PL_malloc_atomic(size);
     memcpy(cl, &clause, sizeofClause(0));
+    memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
 
     GD->statistics.codes += clause.code_size;
   } else
@@ -1189,6 +1189,7 @@ Finish up the clause.
     cref->next = NULL;
     cref->value.clause = cl = (Clause)p;
     memcpy(cl, &clause, sizeofClause(0));
+    memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
     p = addPointer(p, sizeofClause(clause.code_size));
     cl->variables += (int)(p-p0);
 
@@ -1201,7 +1202,6 @@ Finish up the clause.
     lTop = (LocalFrame)p;
   }
 
-  memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
   discardBuffer(&ci.codes);
 
   *cp = cl;
@@ -1796,7 +1796,7 @@ mcall(code call)
 
 
 static Procedure
-lookupBodyProcedure(functor_t functor, Module tm ARG_LD)
+lookupBodyProcedure(functor_t functor, Module tm)
 { Procedure proc = lookupProcedure(functor, tm);
 
   if ( !isDefinedProcedure(proc) &&
@@ -1808,8 +1808,11 @@ lookupBodyProcedure(functor_t functor, Module tm ARG_LD)
 	  (syspred=isCurrentProcedure(functor, MODULE_system)) &&
 	  isDefinedProcedure(syspred)) )
     { assert(false(proc->definition, P_DIRTYREG));
+					/* TBD: use GC_LINGER() */
+      unshareDefinition(proc->definition);
       freeHeap(proc->definition, sizeof(struct definition));
       proc->definition = syspred->definition;
+      shareDefinition(proc->definition);
     }
   }
 
@@ -1906,27 +1909,27 @@ compile, but they are related to meta-calling anyway.
     { if ( functor == FUNCTOR_equals2 )	/* =/2 */
       { int rc;
 
-	if ( (rc=compileBodyUnify(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyUnify(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_strict_equal2 )	/* ==/2 */
       { int rc;
 
-	if ( (rc=compileBodyEQ(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyEQ(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_not_strict_equal2 ) /* \==/2 */
       { int rc;
 
-	if ( (rc=compileBodyNEQ(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyNEQ(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_var1 )
       { int rc;
 
-	if ( (rc=compileBodyVar1(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyVar1(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_nonvar1 )
       { int rc;
 
-	if ( (rc=compileBodyNonVar1(arg, call, ci PASS_LD)) != FALSE )
+	if ( (rc=compileBodyNonVar1(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       }
     }
@@ -1944,7 +1947,7 @@ re-definition.
     cont:
     { int ar = fdef->arity;
 
-      proc = lookupBodyProcedure(functor, tm PASS_LD);
+      proc = lookupBodyProcedure(functor, tm);
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
       { int rc;
@@ -2330,7 +2333,7 @@ skippedVar(Word arg, compileInfo *ci ARG_LD)
 
 
 static int
-compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
@@ -2417,7 +2420,7 @@ errors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
@@ -2494,7 +2497,7 @@ errors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-compileBodyNEQ(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
@@ -2564,7 +2567,7 @@ compileBodyNEQ(Word arg, code call, compileInfo *ci ARG_LD)
 
 
 static int
-compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyVar1(Word arg, compileInfo *ci ARG_LD)
 { Word a1;
   int i1;
 
@@ -2605,7 +2608,7 @@ compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD)
 
 
 static int
-compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD)
+compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD)
 { Word a1;
   int i1;
 
@@ -2818,7 +2821,7 @@ care of reconsult, redefinition, etc.
       { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		 ATOM_redefine, ATOM_imported_procedure, proc);
       }
-      freeClause(clause PASS_LD);
+      freeClause(clause);
       return NULL;
     }
 
@@ -2827,7 +2830,7 @@ care of reconsult, redefinition, etc.
 
     if ( def->impl.any )	/* i.e. is (might be) defined */
     { if ( !redefineProcedure(proc, sf, 0) )
-      { freeClause(clause PASS_LD);
+      { freeClause(clause);
 	return NULL;
       }
     }
@@ -2858,12 +2861,16 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   if ( false(def, DYNAMIC) )
   { if ( !setDynamicProcedure(proc, TRUE) )
-    { freeClause(clause PASS_LD);
+    { freeClause(clause);
       return NULL;
     }
   }
 
-  return assertProcedure(proc, clause, where PASS_LD) ? clause : (Clause)NULL;
+  if ( assertProcedure(proc, clause, where PASS_LD) )
+    return clause;
+
+  freeClause(clause);
+  return NULL;
 }
 
 
@@ -4460,7 +4467,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       proc = chp->cref->value.clause->procedure;
       def  = getProcDefinition(proc);
       leaveDefinition(def);
-      freeHeap(chp, sizeof(*chp));
+      freeForeignState(chp, sizeof(*chp));
       succeed;
     default:
       assert(0);
@@ -4478,7 +4485,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   { chp = &chp_buf;
     cref = firstClause(argv, fr, def, chp PASS_LD);
   } else
-  { cref = nextClause(chp, argv, fr, def PASS_LD);
+  { cref = nextClause(chp, argv, fr, def);
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
@@ -4496,7 +4503,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	  succeed;
 	}
 	if ( chp == &chp_buf )
-	{ chp = allocHeapOrHalt(sizeof(*chp));
+	{ chp = allocForeignState(sizeof(*chp));
 	  *chp = chp_buf;
 	}
 
@@ -4513,11 +4520,11 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       deRef(argv);
       argv = argTermP(*argv, 0);
     }
-    cref = nextClause(chp, argv, fr, def PASS_LD);
+    cref = nextClause(chp, argv, fr, def);
   }
 
   if ( chp != &chp_buf )
-    freeHeap(chp, sizeof(*chp));
+    freeForeignState(chp, sizeof(*chp));
   leaveDefinition(def);
   fail;
 }
@@ -4547,7 +4554,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     if ( cr )
     { def = getProcDefinition(cr->clause->value.clause->procedure);
       leaveDefinition(def);
-      freeHeap(cr, sizeof(*cr));
+      freeForeignState(cr, sizeof(*cr));
     }
     succeed;
   }
@@ -4607,7 +4614,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;
     }
 
-    cr = allocHeapOrHalt(sizeof(*cr));
+    cr = allocForeignState(sizeof(*cr));
     cr->clause = cref;
     cr->index  = 1;
     enterDefinition(def);
@@ -4629,7 +4636,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     ForeignRedoPtr(cr);
   }
 
-  freeHeap(cr, sizeof(*cr));
+  freeForeignState(cr, sizeof(*cr));
   leaveDefinition(def);
 
   succeed;
@@ -4833,7 +4840,7 @@ is an error or unification failed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
-unify_vmi(term_t t, Clause clause, Code bp)
+unify_vmi(term_t t, Code bp)
 { GET_LD
   code op = decode(*bp);
   const code_info *ci;
@@ -5010,8 +5017,6 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   size_t len;
   intptr_t pcoffset;
   Code base, PC, next;
-  code op;
-  const code_info *ci;
 
   term_t from = A1;
   term_t offset = A2;
@@ -5044,10 +5049,8 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
     fail;
 
   PC = base + pcoffset;
-  op = fetchop(PC);
-  ci = &codeTable[op];
 
-  if ( (next=unify_vmi(instruction, clause, PC)) )
+  if ( (next=unify_vmi(instruction, PC)) )
     return PL_unify_int64(noffset, next-base);
 
   fail;
@@ -5289,7 +5292,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
   clause.code_size = entriesBuffer(&ci.codes, code);
   size  = sizeofClause(clause.code_size);
-  cl = allocHeapOrHalt(size);
+  cl = PL_malloc_atomic(size);
   memcpy(cl, &clause, sizeofClause(0));
   GD->statistics.codes += clause.code_size;
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
@@ -5306,11 +5309,6 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 		 /*******************************
 		 *     SOURCE LEVEL DEBUGGER	*
 		 *******************************/
-
-#if 0
-#undef DEBUG
-#define DEBUG(l, g) g
-#endif
 
 static Code
 find_code1(Code PC, code fop, code ctx)
@@ -5345,7 +5343,7 @@ find_if_then_end(Code PC, Code base)
 
 	jmploc = nextpc + PC[1];
 	PC = jmploc + jmploc[-1];
-	DEBUG(1, Sdprintf("find_if_then_end: C_OR --> %d\n", PC-base));
+	DEBUG(MSG_SRCLOC, Sdprintf("find_if_then_end: C_OR --> %d\n", PC-base));
 	break;
       }
       case C_NOT:
@@ -5388,7 +5386,7 @@ add_node(term_t tail, int n ARG_LD)
   rval = PL_unify_list(tail, h, tail) && PL_unify_integer(h, n);
   PL_reset_term_refs(h);
 
-  DEBUG(1, Sdprintf("Added %d\n", n));
+  DEBUG(MSG_SRCLOC, Sdprintf("Added %d\n", n));
 
   return rval;
 }
@@ -5400,7 +5398,7 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
     PC = stepPC(PC);
 
   if ( PC != end )
-  { DEBUG(1, Sdprintf("not-at-end: adding 1\n"));
+  { DEBUG(MSG_SRCLOC, Sdprintf("not-at-end: adding 1\n"));
     add_node(tail, 1 PASS_LD);
   }
 }
@@ -5441,9 +5439,9 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   PC = clause->codes;
   loc = &PC[pcoffset];
   end = &PC[clause->code_size - 1];		/* forget the final I_EXIT */
-  DEBUG(0, assert(fetchop(end) == I_EXIT ||
-		  fetchop(end) == I_EXITFACT ||
-		  fetchop(end) == I_EXITCATCH));
+  assert(fetchop(end) == I_EXIT ||
+	 fetchop(end) == I_EXITFACT ||
+	 fetchop(end) == I_EXITCATCH);
 
   if ( pcoffset == (int)clause->code_size )
     return PL_unify_atom(A3, ATOM_exit);
@@ -5453,11 +5451,10 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
   while( PC < loc )
   { code op = fetchop(PC);
-    const code_info *ci;
     Code nextpc = stepPC(PC);
 
-    ci = &codeTable[op];
-    DEBUG(1, Sdprintf("\t%s at %d\n", ci->name, PC-clause->codes));
+    DEBUG(MSG_SRCLOC,
+	  Sdprintf("\t%s at %d\n", codeTable[op].name, PC-clause->codes));
 
     switch(op)
     { case I_ENTER:
@@ -5485,8 +5482,9 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	endloc = jmploc + jmploc[-1];
 	PC = nextpc;
 
-	DEBUG(1, Sdprintf("jmp = %d, end = %d\n",
-			  jmploc - clause->codes, endloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("jmp = %d, end = %d\n",
+		       jmploc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )		/* loc is in the disjunction */
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
@@ -5519,18 +5517,20 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	  assert(endnot[0] == encode(C_CUT));
 	}
 
-	DEBUG(1, Sdprintf("not: PC=%d, endnot=%d, endloc=%d\n",
-			  PC - clause->codes,
-			  endnot - clause->codes,
-			  endloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("not: PC=%d, endnot=%d, endloc=%d\n",
+		       PC - clause->codes,
+		       endnot - clause->codes,
+		       endloc - clause->codes));
 
 	if ( loc <= endnot )		/* in the \+ argument */
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  add_node(tail, 1 PASS_LD);
 	  end = endnot;			/* C_CUT <var>, C_FAIL */
-	  DEBUG(1, Sdprintf("Inside not: PC=%d, end = %d\n",
-			    PC - clause->codes, end - clause->codes));
+	  DEBUG(MSG_SRCLOC,
+		Sdprintf("Inside not: PC=%d, end = %d\n",
+			 PC - clause->codes, end - clause->codes));
 	  continue;
 	} else if ( loc <= endloc )
 	{ return PL_error(NULL, 0, "not a possible continuation",
@@ -5547,8 +5547,9 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
 	endloc = elseloc + elseloc[-1];
 
-	DEBUG(1, Sdprintf("else = %d, end = %d\n",
-			  elseloc - clause->codes, endloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("else = %d, end = %d\n",
+		       elseloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
@@ -5556,7 +5557,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	  if ( loc <= elseloc )		/* a->b */
 	  { Code cutloc = find_code1(nextpc, cut, PC[1]);
 
-	    DEBUG(1, Sdprintf("cut at %d\n", cutloc - clause->codes));
+	    DEBUG(MSG_SRCLOC, Sdprintf("cut at %d\n", cutloc - clause->codes));
 	    add_node(tail, 1 PASS_LD);
 
 	    if ( loc <= cutloc )	/* a */
@@ -5568,7 +5569,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	      PC = cutloc + 2;
 	      end = elseloc-2;
 	    }
-	    DEBUG(1, Sdprintf("end = %d\n", end - clause->codes));
+	    DEBUG(MSG_SRCLOC, Sdprintf("end = %d\n", end - clause->codes));
 	    continue;
 	  }
 					/* c */
@@ -5584,12 +5585,14 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 				/* C_IFTHEN <var> <A> C_CUT <var> <B> C_END */
       { Code cutloc = find_code1(nextpc, C_CUT, PC[1]);
 
-	DEBUG(1, Sdprintf("C_IFTHEN: cut at %d\n", cutloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("C_IFTHEN: cut at %d\n", cutloc - clause->codes));
 	endloc = find_if_then_end(cutloc+2, clause->codes)+1;
 	PC = nextpc;
 
-	DEBUG(1, Sdprintf("C_MARK: cut = %d, end = %d\n",
-			  cutloc - clause->codes, endloc - clause->codes));
+	DEBUG(MSG_SRCLOC,
+	      Sdprintf("C_MARK: cut = %d, end = %d\n",
+		       cutloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
@@ -5694,8 +5697,7 @@ typedef struct
 
 static bool
 setBreak(Clause clause, int offset)	/* offset is already verified */
-{ GET_LD
-  Code PC = clause->codes + offset;
+{ Code PC = clause->codes + offset;
   code op = *PC;
 
   if ( !breakTable )

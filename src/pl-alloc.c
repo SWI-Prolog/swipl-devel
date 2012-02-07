@@ -25,635 +25,110 @@
 
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
-#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
-#include <mcheck.h>
-#endif
-
-#ifndef O_MYALLOC
-#define O_MYALLOC 1
-#endif
-
-#ifndef ALLOC_DEBUG
-#if defined(_DEBUG) && defined(__WINDOWS__)
-#define ALLOC_DEBUG 1
-#else
-#define ALLOC_DEBUG 0
-#endif
-#endif
 
 #define LOCK()   PL_LOCK(L_ALLOC)
 #define UNLOCK() PL_UNLOCK(L_ALLOC)
 #undef LD
 #define LD LOCAL_LD
 
-#if O_MYALLOC
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module defines memory allocation for the heap (the  program  space)
-and  the  various  stacks.   Memory  allocation below ALLOCFAST bytes is
-based entirely on a perfect fit algorithm.  Above ALLOCFAST  the  system
-memory  allocation  function  (typically malloc() is used to optimise on
-space.  Perfect fit memory allocation is fast and because  most  of  the
-memory  is allocated in small segments and these segments normally occur
-in similar relative frequencies it does not waste much memory.
-
-The prolog machinery using these memory allocation functions always know
-how  much  memory  is  allocated  and  provides  this  argument  to  the
-corresponding  unalloc()  call if memory need to be freed.  This saves a
-word to store the size of the memory segment.
-
-
-Releasing memory to the system in PL_cleanup()
-----------------------------------------------
-
-Big chunks are allocated using allocBigHeap(),  which preserves a double
-linked list of malloc() allocated object, so  we can easily and reliably
-return all allocated memory back to  the OS. Perfect-fit-allocated small
-blobs are formed from allocBigHeap() allocated   objects, so again there
-is no need to keep track  of  the   allocated  memory  for freeing it in
-PL_cleanup().
-
-
-Efficiency considerations in multi-threaded code
-------------------------------------------------
-
-Most malloc() libraries are thread-safe only by using a mutex around the
-entire function.  This poses a serious slow-down, especially in assert()
-and findall/3 and friends.
-
-We use a perfect-fit pool for each thread,   as well as a global pool in
-GD.  Rules:
-
-  * If a thread terminates  all  remaining   memory  is  merged with the
-    global pool.
-
-  * Memory freed during the execution of a thread is stored in the pool
-    of the thread.
-
-  * Memory is first allocated from the thread-pool.  If this is empty,
-    a quick-and-dirty access to the global pool is tried.  If there
-    appears to be memory it will try to nicely import the first 100
-    cells of the same size from the global pool.  If it fails, allocate()
-    allocates new memory.
-
-  * If a local pool holds more than 2*100 cells of a size, the first 100
-    are moved to the global pool.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef ALIGN_SIZE
-#if (defined(__sgi) && !defined(__GNUC__)) || defined __sparc__ || defined __sparc64__
-#define ALIGN_SIZE sizeof(double)
-#else
-#ifdef __ia64__
-#define ALIGN_SIZE sizeof(intptr_t[2])
-#else
-#define ALIGN_SIZE sizeof(intptr_t)
-#endif
-#endif
-#endif
-#define ALLOC_MIN  sizeof(Chunk)
-
-typedef struct big_heap
-{ struct big_heap *next;
-  struct big_heap *prev;
-} *BigHeap;
-
-static void *allocate(AllocPool pool, size_t size);
-static void *allocBigHeap(size_t size);
-static void  freeBigHeap(void *p);
-static void  freeAllBigHeaps(void);
-
-#define ALLOCROUND(n) ROUND(n, ALIGN_SIZE)
-
 
 		 /*******************************
-		 *	DEBUG ENCAPSULATION	*
+		 *	    USE BOEHM GC	*
 		 *******************************/
 
-#if ALLOC_DEBUG
-
-#define INUSE_MAGIC 0x42424242
-#define FREE_MAGIC 0x43434343
-#define ALLOC_FREE_MAGIC 0x5f
-#define ALLOC_MAGIC 0xbf
-#define ALLOC_VIRGIN_MAGIC 0x7f
-
-void core_freeHeap__LD(void *mem, size_t n ARG_LD);
-void *core_allocHeapOrHalt__LD(size_t n ARG_LD);
-void *core_allocHeap__LD(size_t n ARG_LD);
-
-void
-freeHeap__LD(void *mem, size_t n ARG_LD)
-{ intptr_t *p = mem;
-
-  assert(p[-1] == (intptr_t)n);
-  assert(p[-2] == INUSE_MAGIC);
-  p[-2] = FREE_MAGIC;			/* trap double free */
-  memset(mem, ALLOC_FREE_MAGIC, n);
-
-  core_freeHeap__LD(p-3, n+3*sizeof(intptr_t) PASS_LD);
-}
-
+#if !defined(PL_ALLOC_DONE) && defined(HAVE_BOEHM_GC)
+#define PL_ALLOC_DONE 1
+#undef HAVE_MTRACE
 
 void *
-allocHeapOrHalt__LD(size_t n ARG_LD)
-{ intptr_t *p = core_allocHeapOrHalt__LD(n+3*sizeof(intptr_t) PASS_LD);
-
-  p += 3;
-  p[-1] = n;
-  p[-2] = INUSE_MAGIC;
-  memset(p, ALLOC_MAGIC, n);
-
-  return p;
-}
-
-void *
-allocHeap__LD(size_t n ARG_LD)
-{ intptr_t *p = core_allocHeap__LD(n+3*sizeof(intptr_t) PASS_LD);
-
-  if ( p )
-  { p += 3;
-    p[-1] = n;
-    p[-2] = INUSE_MAGIC;
-    memset(p, ALLOC_MAGIC, n);
-  }
-
-  return p;
-}
-
-#define freeHeap__LD core_freeHeap__LD
-#define allocHeapOrHalt__LD core_allocHeapOrHalt__LD
-#define allocHeap__LD core_allocHeap__LD
-
-#endif /*ALLOC_DEBUG*/
-
-		 /*******************************
-		 *	       FREE		*
-		 *******************************/
-
-#define MAX_FREE_LENGTH 100
-
-static void
-freeToPool(AllocPool pool, void *mem, size_t n, int islocal)
-{ Chunk p = (Chunk) mem;
-
-  pool->allocated -= n;
-  DEBUG(9, Sdprintf("freed %ld bytes at %p\n", (long)n, p));
-
-  n /= ALIGN_SIZE;
-  p->next = pool->free_chains[n];
-  pool->free_chains[n] = p;
-  pool->free_count[n]++;
-
-#ifdef O_PLMT
-  if ( islocal && pool->free_count[n] > 2*MAX_FREE_LENGTH )
-  { Chunk l, c;
-    int i = MAX_FREE_LENGTH;
-
-    for(l=c=pool->free_chains[n]; --i > 0; c = c->next)
-    { assert(c);
-    }
-    pool->free_chains[n] = c->next;
-    c->next = NULL;
-    pool->free_count[n] -= MAX_FREE_LENGTH;
-
-    LOCK();
-    c->next = GD->alloc_pool.free_chains[n];
-    GD->alloc_pool.free_chains[n] = l;
-    GD->alloc_pool.free_count[n] += MAX_FREE_LENGTH;
-    UNLOCK();
-  }
-#endif
-}
-
-
-void
-freeHeap__LD(void *mem, size_t n ARG_LD)
-{ if ( mem == NULL )
-    return;
-  n = ALLOCROUND(n);
-
-  if ( n <= ALLOCFAST )
-  {
-#ifdef O_PLMT
-    if ( LD )				/* LD might be gone already */
-      freeToPool(&LD->alloc_pool, mem, n, TRUE);
-    else
-#endif
-    { LOCK();
-      freeToPool(&GD->alloc_pool, mem, n, FALSE);
-      UNLOCK();
-    }
-  } else
-  { LOCK();
-    freeBigHeap(mem);
-    GD->statistics.heap -= n;
-    UNLOCK();
-  }
-}
-
-
-#ifdef O_MEMSTATS
-		 /*******************************
-		 *	    STATISTICS		*
-		 *******************************/
-
-int
-unifyFreeStatsPool(term_t term, AllocPool pool)
-{ GET_LD
-  size_t i;
-  Chunk *t;
-  static atom_t a;
-  term_t tmp = PL_new_term_ref();
-
-  if ( !a )
-    a = PL_new_atom("pool");
-
-  if ( !PL_unify_functor(term, PL_new_functor(a, (ALLOCFAST/ALIGN_SIZE)+1)) )
-    return FALSE;
-
-  for(i=0, t=pool->free_chains; i <= (ALLOCFAST/ALIGN_SIZE); i++, t++)
-  { Chunk f;
-    int c;
-
-    for(c=0, f=*t; f; f=f->next)
-      c++;
-
-    _PL_get_arg(i+1, term, tmp);
-    if ( !PL_unify_integer(tmp, c) )
-      return FALSE;
-  }
-
-  return TRUE;
-}
-#endif
-
-
-		 /*******************************
-		 *	     ALLOCATE		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-No perfect fit is available.  We pick memory from the big chunk  we  are
-working  on.   If this is not big enough we will free the remaining part
-of it.  Next we check whether any areas are  assigned  to  be  used  for
-allocation.   If  all  this fails we allocate new core using Allocate(),
-which normally calls malloc().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-leftoverToChains(AllocPool pool)
-{ if ( pool->free >= sizeof(struct chunk) )
-  { size_t m = pool->free/ALIGN_SIZE;
-    Chunk ch = (Chunk)pool->space;
-
-    assert(m <= ALLOCFAST/ALIGN_SIZE);
-
-    ch->next = pool->free_chains[m];
-    pool->free_chains[m] = ch;
-    pool->free_count[m]++;
-  }
-
-  pool->free = 0;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-allocate() gets new memory from the free  space   of  a pool, or if this
-does not have the required memory, get a new block using allocBigHeap().
-It can be called both with a local  pool or the global pool as argument.
-In the latter case the call is   protected by the default LOCK/UNLOCK of
-this module. Calls with the local pools are  *not* locked, so we need to
-do locking to access the left_over_pool and allocBigHeap().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void *
-allocate(AllocPool pool, size_t n)
-{ char *p;
-  int mustlock = (pool != &GD->alloc_pool); /* See comment above */
-  int welocked = FALSE;
-
-  if ( n <= pool->free )
-  { p = pool->space;
-    pool->space += n;
-    pool->free -= n;
-    pool->allocated += n;
-    return p;
-  }
-
-  leftoverToChains(pool);
-#ifdef O_PLMT
-  if ( GD->left_over_pool )
-  { FreeChunk *fp, ch;
-
-    if ( mustlock )
-    { welocked = TRUE;
-      LOCK();
-    }
-    for( fp = &GD->left_over_pool; (ch=*fp); fp = &ch->next )
-    { if ( ch->size >= n )
-      { *fp = ch->next;
-        if ( welocked )
-	  UNLOCK();
-
-	p = (char *)ch;
-	pool->space = p + n;
-	pool->free  = ch->size - n;
-	pool->allocated += n;
-
-	return p;
-      }
-    }
-  }
-#endif
-
-  if ( mustlock && !welocked )
-  { LOCK();
-    welocked = TRUE;
-  }
-
-  if ( !(p = allocBigHeap(ALLOCSIZE)) )
-  { if ( welocked )
-      UNLOCK();
-    return NULL;
-  }
-
-  pool->space = p + n;
-  pool->free  = ALLOCSIZE - n;
-  pool->allocated += n;
-
-  if ( welocked )
-    UNLOCK();
-
-  return p;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-allocFromPool() allocates a block of size m*ALIGN_SIZE as available from
-the m-th chain.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void *
-allocFromPool(AllocPool pool, size_t m)
-{ Chunk f;
-
-  if ( (f = pool->free_chains[m]) )
-  { pool->free_chains[m] = f->next;
-    pool->free_count[m]--;
-    DEBUG(9, Sdprintf("(r) %p\n", f));
-    pool->allocated += m*ALIGN_SIZE;
-
-    return f;
-  }
-
-  return NULL;
-}
-
-
-void *
-allocHeap__LD(size_t n ARG_LD)
-{ void *mem;
-
-  if ( n == 0 )
-    return NULL;
-  n = ALLOCROUND(n);
-
-  if ( n <= ALLOCFAST )
-  { size_t m = n / (int) ALIGN_SIZE;
-#ifdef O_PLMT
-    if ( LD )			/* deal with alloc before PL_initialise() */
-    { if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
-      { if ( GD->alloc_pool.free_chains[m] )
-	{ Chunk c;
-	  int i = MAX_FREE_LENGTH;
-
-	  LOCK();
-	  LD->alloc_pool.free_chains[m] = GD->alloc_pool.free_chains[m];
-	  for(c=LD->alloc_pool.free_chains[m]; c && --i > 0; c = c->next)
-	    ;
-	  if ( c )
-	  { GD->alloc_pool.free_chains[m] = c->next;
-	    c->next = NULL;
-	    LD->alloc_pool.free_count[m] += MAX_FREE_LENGTH;
-	    GD->alloc_pool.free_count[m] -= MAX_FREE_LENGTH;
-	  } else
-	  { GD->alloc_pool.free_chains[m] = NULL;
-	    LD->alloc_pool.free_count[m] += GD->alloc_pool.free_count[m];
-	    GD->alloc_pool.free_count[m] = 0;
-	  }
-	  UNLOCK();
-
-	  if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
-	    mem = allocate(&LD->alloc_pool, n);
-	} else
-	  mem = allocate(&LD->alloc_pool, n);
-      }
-    } else
-#endif /*O_PLMT*/
-    { LOCK();
-      if ( !(mem = allocFromPool(&GD->alloc_pool, m)) )
-	mem = allocate(&GD->alloc_pool, n);
-      UNLOCK();
-    }
-  } else
-  { LOCK();
-    mem = allocBigHeap(n);
-    UNLOCK();
-    if ( mem )
-      GD->statistics.heap += n;
-  }
+allocHeap(size_t n)
+{ void *mem = GC_MALLOC(n);
 
   return mem;
 }
 
 
 void *
-allocHeapOrHalt__LD(size_t n ARG_LD)
-{ void *mem = allocHeap__LD(n PASS_LD);
+allocHeapOrHalt(size_t n)
+{ void *mem = GC_MALLOC(n);
 
-  if ( mem )
-  { return mem;
-  } else
-  { outOfCore();
-    return NULL;				/* keep compiler happy */
-  }
-}
+  if ( !mem )
+    outOfCore();
 
-
-static void
-destroyAllocPool(AllocPool pool)
-{ memset(pool->free_chains, 0, sizeof(pool->free_chains));
-  memset(pool->free_count,  0, sizeof(pool->free_count));
-  pool->free  = 0;
-  pool->space = NULL;
+  return mem;
 }
 
 
 void
-cleanupMemAlloc(void)
-{ freeAllBigHeaps();
-
-  destroyAllocPool(&GD->alloc_pool);
+freeHeap(void *mem, size_t n)
+{ GC_FREE(mem);
 }
 
 
-		 /*******************************
-		 *	 EXCHANGING POOLS	*
-		 *******************************/
-
-#ifdef O_PLMT
+#ifdef GC_DEBUG
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-mergeAllocPool(to, from)
-    Merge all chain from `from' into `to'.  Used to move the pool of a
-    terminated thread into the global pool.
+To debug the  interaction  between  Boehm-GC   and  Prolog,  we  run the
+collector in leak-detection mode.  Reported leaks can have three causes:
+
+  - They are real leaks. We would like to fix these, at least for the
+    non-GC version.
+  - They are caused by lacking traceable pointers.  This must be fixed
+    to run reliably under Boehm-GC.
+  - The are place that can currently not be safely removed.  We call
+    GC_LINGER() on such pointers.  These will be left to GC, but in
+    leak-detection mode we give them a reference to silence the leak
+    detector.
+
+GC_linger() is called to keep track of objects we would like to leave to
+GC because we are not sure they can be reclaimed safely now. We use this
+as a debugging aid if GC_DEBUG is enabled.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+typedef struct linger
+{ struct linger *next;
+  void	        *object;
+} linger;
+
+linger *GC_lingering = NULL;
+
 void
-mergeAllocPool(AllocPool to, AllocPool from)
-{ Chunk *t, *f;
-  unsigned int i;
+GC_linger(void *ptr)
+{ linger *l = GC_MALLOC_UNCOLLECTABLE(sizeof(*l));
 
-  assert(to == &GD->alloc_pool);	/* for now */
-  DEBUG(2, Sdprintf("Free pool has %d bytes\n", from->free));
-
+  l->object = ptr;
   LOCK();
-  if ( from->free > ALLOCFAST )
-  { FreeChunk p = (FreeChunk)from->space;
-    p->size = from->free;
-    from->free = 0;
-    p->next = GD->left_over_pool;
-    GD->left_over_pool = p;
-  } else
-    leftoverToChains(from);
-
-  for(i=0, t=to->free_chains, f = from->free_chains;
-      i <= (ALLOCFAST/ALIGN_SIZE);
-      i++, t++, f++)
-  { if ( *f )
-    { if ( to->free_count[i] )
-      { if ( to->free_count[i] <= from->free_count[i] )
-	{ Chunk c = *t;
-
-	  while(c->next)
-	    c = c->next;
-	  c->next = *f;
-	} else
-	{ Chunk c = *f;
-
-	  while(c->next)
-	    c = c->next;
-	  c->next = *t;
-	  *t = *f;
-	}
-      } else
-	*t = *f;			/* Unsafe according to helgrind? */
-
-      to->free_count[i] += from->free_count[i];
-      from->free_count[i] = 0;
-
-      *f = NULL;
-    }
-  }
+  l->next = GC_lingering;
+  GC_lingering = l->next;
   UNLOCK();
-
-  to->allocated += from->allocated;
 }
 
-#endif /*O_PLMT*/
+#endif /*GC_DEBUG*/
+#endif /*HAVE_BOEHM_GC*/
+
 
 		 /*******************************
-		 *	   LARGE CHUNKS		*
+		 *   USE PLAIN SYSTEM MALLOC	*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Deal with big allocHeap() calls. We have   comitted ourselves to be able
-to free all memory we have allocated, so   we  must know the pointers we
-have allocated. Normally big chunks are rather infrequent, but there can
-be a lot if the program uses lots of big clauses, records or atoms.
-
-MT: calls must be guarded by L_ALLOC
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static BigHeap big_heaps;
-
-static void *
-allocBigHeap(size_t size)
-{ BigHeap h = malloc(size+sizeof(*h));
-
-  if ( !h )
-    return NULL;
-
-  h->next = big_heaps;
-  h->prev = NULL;
-  if ( big_heaps )
-    big_heaps->prev = h;
-  big_heaps = h;
-  h++;					/* point to user-data */
-
-  return (void *)h;
-}
-
-
-static void
-freeBigHeap(void *p)
-{ BigHeap h = p;
-
-  h--;					/* get the base */
-  if ( h->prev )
-    h->prev->next = h->next;
-  else
-    big_heaps = h->next;
-  if ( h->next )
-    h->next->prev = h->prev;
-
-  free(h);
-}
-
-
-static void
-freeAllBigHeaps(void)
-{ BigHeap h, next;
-
-  for(h=big_heaps; h; h=next)
-  { next = h->next;
-    free(h);
-  }
-  big_heaps = NULL;
-}
-
-#if ALLOC_DEBUG
-#undef freeHeap__LD
-#undef allocHeap__LD
-#endif /*ALLOC_DEBUG*/
-
-#else /*O_MYALLOC*/
+#ifndef PL_ALLOC_DONE
+#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
+#include <mcheck.h>
+#endif
 
 void *
-allocHeap__LD(size_t n ARG_LD)
-{ if ( n )
-  { void *mem = malloc(n);
-
-    if ( mem )
-      GD->statistics.heap += n;
-
-    return mem;
-  }
-
-  return NULL;
+allocHeap(size_t n)
+{ return malloc(n);
 }
 
 
 void *
-allocHeapOrHalt__LD(size_t n ARG_LD)
+allocHeapOrHalt(size_t n)
 { if ( n )
   { void *mem = malloc(n);
 
     if ( !mem )
       outOfCore();
 
-    GD->statistics.heap += n;
-
     return mem;
   }
 
@@ -662,28 +137,18 @@ allocHeapOrHalt__LD(size_t n ARG_LD)
 
 
 void
-freeHeap__LD(void *mem, size_t n ARG_LD)
+freeHeap(void *mem, size_t n)
 {
 #if ALLOC_DEBUG
   memset((char *) mem, ALLOC_FREE_MAGIC, n);
+#else
+  (void)n;
 #endif
 
   free(mem);
-  GD->statistics.heap -= n;
 }
 
-
-void
-cleanupMemAlloc(void)
-{					/* TBD: Cleanup! */
-}
-
-void
-mergeAllocPool(AllocPool to, AllocPool from)
-{
-}
-
-#endif /*O_MYALLOC*/
+#endif /*PL_ALLOC_DONE*/
 
 
 		/********************************
@@ -1252,9 +717,11 @@ equalIndirectFromCode(word a, Code *PC)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-These functions are used by various GNU-libraries and -when not linked
-with the GNU C-library lead to undefined symbols.  Therefore we define
-them in SWI-Prolog so that we can also give consistent warnings.
+These functions are used by various   GNU-libraries and -when not linked
+with the GNU C-library lead to   undefined  symbols. Therefore we define
+them in SWI-Prolog so that we can   also  give consistent warnings. Note
+that we must call plain system malloc as the library will call free() on
+it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if !defined(xmalloc) && defined(O_XMALLOC)
@@ -1297,9 +764,7 @@ void *
 PL_malloc(size_t size)
 { void *mem;
 
-  if ( size == 0 )
-    return NULL;
-  if ( (mem = malloc(size)) )
+  if ( (mem = GC_MALLOC(size)) )
     return mem;
 
   outOfCore();
@@ -1308,10 +773,78 @@ PL_malloc(size_t size)
 }
 
 
-void
-PL_free(void *mem)
-{ if ( mem )
-    free(mem);
+void *
+PL_malloc_atomic(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC_ATOMIC(size)) )
+    return mem;
+
+  outOfCore();
+
+  return NULL;
+}
+
+
+void *
+PL_malloc_uncollectable(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC_UNCOLLECTABLE(size)) )
+    return mem;
+
+  outOfCore();
+
+  return NULL;
+}
+
+
+void *
+PL_malloc_atomic_uncollectable(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC_ATOMIC_UNCOLLECTABLE(size)) )
+    return mem;
+
+  outOfCore();
+
+  return NULL;
+}
+
+
+void *
+PL_malloc_unmanaged(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC(size)) )
+  {
+#if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
+    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+#endif
+    return mem;
+  }
+
+  outOfCore();
+
+  return NULL;
+}
+
+
+void *
+PL_malloc_atomic_unmanaged(size_t size)
+{ void *mem;
+
+  if ( (mem = GC_MALLOC_ATOMIC(size)) )
+  {
+#if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
+    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+#endif
+    return mem;
+  }
+
+  outOfCore();
+
+  return NULL;
 }
 
 
@@ -1319,19 +852,29 @@ void *
 PL_realloc(void *mem, size_t size)
 { void *newmem;
 
+  if ( !(newmem = GC_REALLOC(mem, size)) )
+    outOfCore();
+
+  return newmem;
+}
+
+
+void
+PL_free(void *mem)
+{ GC_FREE(mem);
+}
+
+
+int
+PL_linger(void *mem)
+{
+#if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
   if ( mem )
-  { if ( size )
-    { if ( !(newmem = realloc(mem, size)) )
-	outOfCore();
-
-      return newmem;
-    } else
-    { free(mem);
-      return NULL;
-    }
-  }
-
-  return PL_malloc(size);
+    GC_clear_flags(mem, GC_FLAG_UNCOLLECTABLE);
+  return TRUE;
+#else
+  return FALSE;
+#endif
 }
 
 
@@ -1339,11 +882,21 @@ PL_realloc(void *mem, size_t size)
 		 *	       INIT		*
 		 *******************************/
 
+#ifdef HAVE_BOEHM_GC
+static void
+heap_gc_warn_proc(char *msg, GC_word arg)
+{ Sdprintf(msg, arg);
+  save_backtrace("heap-gc-warning");
+  print_backtrace_named("heap-gc-warning");
+}
+#endif
+
 static void
 initHBase(void)
-{ void *p = malloc(sizeof(void*));
+{ void *p = GC_MALLOC(sizeof(void*));
   uintptr_t base = (uintptr_t)p;
 
+  GC_FREE(p);				/* Keep leak-detection happy */
   base &= ~0xfffff;			/* round down 1m */
   GD->heap_base = base;			/* for pointer <-> int conversion */
 }
@@ -1359,6 +912,11 @@ initAlloc(void)
 		 //_CRTDBG_DELAY_FREE_MEM_DF|   /* does not reuse freed mem */
 		 //_CRTDBG_LEAK_CHECK_DF|
 		 0);
+#endif
+
+#ifdef HAVE_BOEHM_GC
+  GC_INIT();
+  GC_set_warn_proc(heap_gc_warn_proc);
 #endif
 
 #if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
@@ -1386,6 +944,22 @@ properly on Linux. Don't bother with it.
 
 #undef LOCK
 #undef UNLOCK
-#undef freeHeap__LD
-#undef allocHeapOrHalt__LD
-#undef allocHeap__LD
+
+		 /*******************************
+		 *	      PREDICATES	*
+		 *******************************/
+
+#ifdef HAVE_BOEHM_GC
+static
+PRED_IMPL("garbage_collect_heap", 0, garbage_collect_heap, 0)
+{ GC_gcollect();
+
+  return TRUE;
+}
+#endif
+
+BeginPredDefs(alloc)
+#ifdef HAVE_BOEHM_GC
+  PRED_DEF("garbage_collect_heap", 0, garbage_collect_heap, 0)
+#endif
+EndPredDefs

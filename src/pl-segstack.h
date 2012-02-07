@@ -28,40 +28,47 @@
 #define SEGSTACK_CHUNKSIZE (1*1024)
 
 typedef struct segchunk
-{ struct segchunk *next;		/* double linked list */
-  struct segchunk *previous;
-  char  *top;				/* top when closed */
-  int	 allocated;			/* must call free on it */
+{ char  *top;				/* top when closed */
   size_t size;				/* size of the chunk */
+					/* below clean using memset() */
+  int	 allocated;			/* must call free on it */
+  struct segchunk *next;		/* double linked list */
+  struct segchunk *previous;
   char	 data[1];			/* data on my back */
 } segchunk;
 
 typedef struct
-{ segchunk *first;
+{ size_t   unit_size;
+					/* below clean using memset() */
+  segchunk *first;
   segchunk *last;
-  size_t   unit_size;
   char	   *base;
   char	   *top;
   char	   *max;
-  size_t    count;
 } segstack;
+
+
+static inline int
+emptySegStack(segstack *s)
+{ return (s->top == s->base) &&
+	 (s->last == NULL || s->last->previous == NULL);
+}
 
 
 #define popSegStack(stack, to, type) \
 	( ((stack)->top >= (stack)->base + sizeof(type))	\
 		? ( (stack)->top -= sizeof(type),		\
 		    *to = *(type*)(stack)->top,			\
-		    (stack)->count--,				\
 		    TRUE					\
 		  )						\
+		: !(stack)->last || !(stack)->last->previous ? FALSE \
 		: popSegStack_((stack), to)			\
 	)
 
 #define pushSegStack(stack, data, type) \
-	( ((stack)->top + (stack)->unit_size <= (stack)->max)	\
-		? ( *(type*)(stack)->top = data,			\
+	( ((stack)->top + sizeof(type) <= (stack)->max)	\
+		? ( *(type*)(stack)->top = data,		\
 		    (stack)->top += sizeof(type),		\
-		    (stack)->count++,				\
 		    TRUE					\
 		  )						\
 		: pushSegStack_((stack), &data)			\
@@ -85,10 +92,6 @@ static inline void
 topsOfSegStack(segstack *stack, int count, void **tops)
 { char *p = stack->top - stack->unit_size;
   char *base = stack->base;
-
-#ifdef O_DEBUG
-  assert(stack->count >= count);
-#endif
 
   for(;;)
   { while(count > 0 && p >= base)

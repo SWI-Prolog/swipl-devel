@@ -516,8 +516,8 @@ discardForeignFrame(LocalFrame fr ARG_LD)
   struct foreign_context context;
   fid_t fid;
 
-  DEBUG(5, Sdprintf("\tCut %s, context = 0x%lx\n",
-		    predicateName(def), context));
+  DEBUG(5, Sdprintf("\tCut %s, context = %p\n",
+		    predicateName(def), fr->clause));
 
   context.context = (word)fr->clause;
   context.control = FRG_CUTTED;
@@ -1331,8 +1331,12 @@ choice_type last_choice;
 #define FRAME_FAILED		GO(frame_failed)
 #define CLAUSE_FAILED		GO(clause_failed)
 #define BODY_FAILED		GO(body_failed)
+#ifdef O_DEBUG
 #define THROW_EXCEPTION		do { throwed_from_line = __LINE__; \
 				     goto b_throw; } while(0)
+#else
+#define THROW_EXCEPTION		goto b_throw
+#endif
 
 #ifdef O_PROFILE
 #define Profile(g) if ( unlikely(LD->profile.active) ) g
@@ -1349,7 +1353,7 @@ choice_type last_choice;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-leaveFrame(LocalFrame fr ARG_LD)
+leaveFrame(LocalFrame fr)
 { Definition def = fr->predicate;
 
   fr->clause = NULL;
@@ -1908,7 +1912,9 @@ PL_next_solution(qid_t qid)
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
   exception_frame throw_env;		/* PL_thow() environment */
-  int	     throwed_from_line;		/* Debugging: line we came from */
+#ifdef O_DEBUG
+  int	     throwed_from_line=0;	/* Debugging: line we came from */
+#endif
 #define	     CL (FR->clause)		/* clause of current frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2170,7 +2176,7 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
       NEXT_INSTRUCTION;
     } else if ( ch->type == CHP_CLAUSE )
     { ARGP = argFrameP(FR, 0);
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
 	FRAME_FAILED;		/* can happen if scan-ahead was too short */
       PC = CL->value.clause->codes;
       umode = uread;
@@ -2221,13 +2227,11 @@ START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
   Choice ch0 = BFR;
 #endif
   Choice ch;
-  LocalFrame fr0;
 
   DEBUG(3, Sdprintf("BACKTRACKING\n"));
 
 next_choice:
   ch = BFR;
-  fr0 = FR;
 					/* leave older frames */
   for(; (void *)FR > (void *)ch; FR = FR->parent)
   {
@@ -2265,7 +2269,7 @@ next_choice:
     }
 #endif
 
-    leaveFrame(FR PASS_LD);
+    leaveFrame(FR);
     if ( true(FR, FR_WATCHED) )
     { environment_frame = FR;
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
@@ -2335,7 +2339,7 @@ next_choice:
       ARGP = argFrameP(FR, 0);
       DiscardMark(ch->mark);
       BFR = ch->parent;
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF PASS_LD)) )
+      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
 	goto next_choice;	/* Can happen of look-ahead was too short */
       chp = ch->value.clause;
 

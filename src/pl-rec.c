@@ -31,7 +31,8 @@
 
 static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word);
-static void freeRecordRef(RecordRef r ARG_LD);
+static void freeRecordRef(RecordRef r);
+static void unallocRecordList(RecordList rl);
 
 #define RECORDA 0
 #define RECORDZ 1
@@ -42,9 +43,30 @@ static void freeRecordRef(RecordRef r ARG_LD);
 #undef LD
 #define LD LOCAL_LD
 
+static void
+free_recordlist_symbol(Symbol s)
+{ RecordList l = s->value;
+
+  unallocRecordList(l);
+}
+
+
 void
 initRecords(void)
 { GD->recorded_db.record_lists = newHTable(8);
+  GD->recorded_db.record_lists->free_symbol = free_recordlist_symbol;
+}
+
+
+void
+cleanupRecords(void)
+{ Table t;
+
+  if ( (t=GD->recorded_db.record_lists) )
+  { GD->recorded_db.record_lists = NULL;
+    destroyHTable(t);
+    GD->recorded_db.head = GD->recorded_db.tail = NULL;
+  }
 }
 
 
@@ -58,8 +80,7 @@ lookupRecordList(word key)
   if ( (s = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
   { return s->value;
   } else
-  { GET_LD
-    RecordList l;
+  { RecordList l;
 
     if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(key);
@@ -98,7 +119,7 @@ isCurrentRecordList(word key)
 */
 
 static void
-cleanRecordList(RecordList rl ARG_LD)
+cleanRecordList(RecordList rl)
 { RecordRef *p;
   RecordRef r, prev=NULL;
 
@@ -107,12 +128,32 @@ cleanRecordList(RecordList rl ARG_LD)
     { *p = r->next;
       if ( r == rl->lastRecord )
 	rl->lastRecord = prev;
-      freeRecordRef(r PASS_LD);
+      freeRecordRef(r);
     } else
     { prev = r;
       p = &r->next;
     }
   }
+}
+
+
+/* unallocRecordList() is used when memory is cleaned for PL_cleanup().
+   We set R_NOLOCK to avoid needless update of the atom references in
+   freeRecord().
+*/
+
+static void
+unallocRecordList(RecordList rl)
+{ RecordRef r, n;
+
+  for(r = rl->firstRecord; r; r=n)
+  { n = r->next;
+
+    set(r->record, R_NOLOCK);
+    freeRecordRef(r);
+  }
+
+  freeHeap(rl, sizeof(*rl));
 }
 
 
@@ -562,7 +603,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   unvisit(PASS_LD1);
 
   size = rsize + sizeOfBuffer(&info.code);
-  record = allocHeapOrHalt(size);
+  record = PL_malloc_atomic_unmanaged(size);
 #ifdef REC_MAGIC
   record->magic = REC_MAGIC;
 #endif
@@ -637,7 +678,7 @@ PL_record_external(term_t t, size_t *len)
 
   ret_primitive:
     scode = (int)sizeOfBuffer(&info.code);
-    rec = allocHeapOrHalt(scode);
+    rec = PL_malloc_atomic(scode);
     memcpy(rec, info.code.base, scode);
     discardBuffer(&info.code);
     *len = scode;
@@ -673,7 +714,7 @@ PL_record_external(term_t t, size_t *len)
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = (int)sizeOfBuffer(&hdr);
 
-  rec = allocHeapOrHalt(shdr + scode);
+  rec = PL_malloc_atomic(shdr + scode);
   memcpy(rec, hdr.base, shdr);
   memcpy(rec+shdr, info.code.base, scode);
 
@@ -1393,7 +1434,7 @@ markAtomsRecord(Record record)
 
 
 bool
-freeRecord__LD(Record record ARG_LD)
+freeRecord(Record record)
 { if ( true(record, R_DUPLICATE) && --record->references > 0 )
     succeed;
 
@@ -1409,20 +1450,20 @@ freeRecord__LD(Record record ARG_LD)
   }
 #endif
 
-  freeHeap(record, record->size);
+  PL_free(record);
 
   succeed;
 }
 
 
 void
-unallocRecordRef(RecordRef r ARG_LD)
+unallocRecordRef(RecordRef r)
 { freeHeap(r, sizeof(*r));
 }
 
 
 static void
-freeRecordRef(RecordRef r ARG_LD)
+freeRecordRef(RecordRef r)
 { int reclaim_now = false(r->record, R_DBREF);
 
   freeRecord(r->record);
@@ -1487,8 +1528,7 @@ PL_recorded_external(const char *rec, term_t t)
 
 int
 PL_erase_external(char *rec)
-{ GET_LD
-  copy_info b;
+{ copy_info b;
   uint scode;
   uchar m;
 
@@ -1619,7 +1659,10 @@ record(term_t key, term_t term, term_t ref, int az)
   r = allocHeapOrHalt(sizeof(*r));
   r->record = copy;
   if ( ref && !PL_unify_recref(ref, r) )
+  { PL_erase(copy);
+    freeHeap(r, sizeof(*r));
     return FALSE;
+  }
 
   LOCK();
   l = lookupRecordList(k);
@@ -1725,7 +1768,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
 	LOCK();
 	if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-	  cleanRecordList(rl PASS_LD);
+	  cleanRecordList(rl);
 	UNLOCK();
       }
     }
@@ -1766,7 +1809,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	  ForeignRedoPtr(record->next);
 	} else
 	{ if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-	    cleanRecordList(rl PASS_LD);
+	    cleanRecordList(rl);
 
 	  if ( varkey )
 	  { for( rl=rl->next; rl; rl=rl->next )
@@ -1787,7 +1830,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
     }
 
     if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-      cleanRecordList(rl PASS_LD);
+      cleanRecordList(rl);
 
     if ( varkey )
     { if ( rl->next )
@@ -1878,7 +1921,7 @@ PRED_IMPL("erase", 1, erase, 0)
       return PL_error("erase", 1, NULL, ERR_PERMISSION,
 		      ATOM_clause, ATOM_erase, ref);
 
-    return retractClauseDefinition(def, clause PASS_LD);
+    return retractClauseDefinition(def, clause);
   } else
   { RecordRef record = ptr;
 
@@ -1895,7 +1938,7 @@ PRED_IMPL("erase", 1, erase, 0)
     { if ( !record->next )
 	l->lastRecord = NULL;
       l->firstRecord = record->next;
-      freeRecordRef(record PASS_LD);
+      freeRecordRef(record);
     } else
     { prev = l->firstRecord;
       r = prev->next;
@@ -1906,7 +1949,7 @@ PRED_IMPL("erase", 1, erase, 0)
 	    l->lastRecord = prev;
 	  }
 	  prev->next = r->next;
-	  freeRecordRef(r PASS_LD);
+	  freeRecordRef(r);
 	  goto ok;
 	}
       }

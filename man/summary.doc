@@ -136,6 +136,7 @@ suggest predicates from a keyword.
 \predicatesummary{convert_time}{2}{Convert time stamp to string}
 \predicatesummary{copy_stream_data}{2}{Copy all data from stream to stream}
 \predicatesummary{copy_stream_data}{3}{Copy n bytes from stream to stream}
+\predicatesummary{copy_predicate_clauses}{2}{Copy clauses between predicates}
 \predicatesummary{copy_term}{2}{Make a copy of a term}
 \predicatesummary{copy_term}{3}{Copy a term and obtain attribute-goals}
 \predicatesummary{copy_term_nat}{2}{Make a copy of a term without attributes}
@@ -323,6 +324,7 @@ suggest predicates from a keyword.
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
+\predicatesummary{message_line_element}{2}{\hook{prolog} Intercept print_message_lines/3}
 \predicatesummary{message_queue_create}{1}{Create queue for thread communication}
 \predicatesummary{message_queue_create}{2}{Create queue for thread communication}
 \predicatesummary{message_queue_destroy}{1}{Destroy queue for thread communication}
@@ -564,6 +566,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
 \predicatesummary{thread_get_message}{1}{Wait for message}
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
+\predicatesummary{thread_get_message}{3}{Wait for message in a queue}
 \predicatesummary{thread_initialization}{1}{Run action at start of thread}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
 \predicatesummary{thread_local}{1}{Declare thread-specific clauses for a predicate}

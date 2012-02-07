@@ -433,7 +433,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	    char buf[BUFSIZE];
 	    char *str = buf;
 	    size_t bufsize = BUFSIZE;
-	    unsigned int i;
+	    int i;
 
 	    PL_predicate_info(proc, NULL, &arity, NULL);
 	    av = PL_new_term_refs(arity);

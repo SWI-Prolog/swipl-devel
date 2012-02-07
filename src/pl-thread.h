@@ -263,6 +263,11 @@ may wish to write:
 		 *   NATIVE THREAD-LOCAL DATA	*
 		 *******************************/
 
+#ifdef HAVE___THREAD
+extern __thread PL_local_data_t *GLOBAL_LD;
+#define TLD_set_LD(v) (GLOBAL_LD = (v))
+#else
+
 #ifdef __WINDOWS__
 typedef DWORD	TLD_KEY;
 
@@ -288,6 +293,8 @@ choose to store the result of LD is a local variable.
 extern TLD_KEY PL_ldata;		/* key to local data */
 
 #define GLOBAL_LD ((PL_local_data_t *)TLD_get(PL_ldata))
+#define TLD_set_LD(v) TLD_set(PL_ldata, v)
+#endif /*HAVE___THREAD*/
 
 
 		 /*******************************
@@ -325,6 +332,8 @@ COMMON(size_t)		threadLocalHeapUsed(void);
 COMMON(int)		attachConsole(void);
 COMMON(Definition)	localiseDefinition(Definition def);
 COMMON(LocalDefinitions) new_ldef_vector(void);
+COMMON(void)		free_ldef_vector(LocalDefinitions ldefs);
+COMMON(void)		cleanupLocalDefinitions(PL_local_data_t *ld);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);

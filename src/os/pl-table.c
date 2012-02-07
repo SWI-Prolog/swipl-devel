@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2011, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -54,9 +55,8 @@ concurrent lock-free access.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Symbol *
-allocHTableEntries(Table ht, int buckets)
-{ GET_LD
-  size_t bytes = buckets * sizeof(Symbol);
+allocHTableEntries(int buckets)
+{ size_t bytes = buckets * sizeof(Symbol);
   Symbol *p;
 
   p = allocHeapOrHalt(bytes);
@@ -68,8 +68,7 @@ allocHTableEntries(Table ht, int buckets)
 
 Table
 newHTable(int buckets)
-{ GET_LD
-  Table ht;
+{ Table ht;
 
   ht		  = allocHeapOrHalt(sizeof(struct table));
   ht->buckets	  = (buckets & ~TABLE_MASK);
@@ -86,15 +85,14 @@ newHTable(int buckets)
   }
 #endif
 
-  ht->entries = allocHTableEntries(ht, ht->buckets);
+  ht->entries = allocHTableEntries(ht->buckets);
   return ht;
 }
 
 
 void
 destroyHTable(Table ht)
-{ GET_LD
-
+{
 #ifdef O_PLMT
   if ( ht->mutex )
   { simpleMutexDelete(ht->mutex);
@@ -109,19 +107,19 @@ destroyHTable(Table ht)
 }
 
 
-#if O_DEBUG || O_HASHSTAT
-#define HASHSTAT(c) c
+#if O_DEBUG
 static int lookups;
 static int cmps;
 
 void
 exitTables(int status, void *arg)
-{ Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
+{ (void)status;
+  (void)arg;
+
+  Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
 	   lookups, cmps);
 }
-#else
-#define HASHSTAT(c)
-#endif /*O_DEBUG*/
+#endif
 
 
 void
@@ -131,7 +129,7 @@ initTables(void)
   if ( !done )
   { done = TRUE;
 
-    HASHSTAT(PL_on_halt(exitTables, NULL));
+    DEBUG(MSG_HASH_STAT, PL_on_halt(exitTables, NULL));
   }
 }
 
@@ -140,9 +138,9 @@ Symbol
 lookupHTable(Table ht, void *name)
 { Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
 
-  HASHSTAT(lookups++);
+  DEBUG(MSG_HASH_STAT, lookups++);
   for( ; s; s = s->next)
-  { HASHSTAT(cmps++);
+  { DEBUG(MSG_HASH_STAT, cmps++);
     if ( s->name == name )
       return s;
   }
@@ -174,16 +172,16 @@ checkHTable(Table ht)
 
 static Symbol
 rehashHTable(Table ht, Symbol map)
-{ GET_LD
-  Symbol *newentries, *oldentries;
+{ Symbol *newentries, *oldentries;
   int     newbuckets, oldbuckets;
   int     i;
   int     safe_copy = (ht->mutex != NULL);
 
   newbuckets = ht->buckets*2;
-  newentries = allocHTableEntries(ht, newbuckets);
+  newentries = allocHTableEntries(newbuckets);
 
-  DEBUG(1, Sdprintf("Rehashing table %p to %d entries\n", ht, ht->buckets));
+  DEBUG(MSG_HASH_STAT,
+	Sdprintf("Rehashing table %p to %d entries\n", ht, ht->buckets));
 
   for(i=0; i<ht->buckets; i++)
   { Symbol s, n;
@@ -232,7 +230,7 @@ rehashHTable(Table ht, Symbol map)
   }
 
   freeHeap(oldentries, oldbuckets * sizeof(Symbol));
-  DEBUG(0, checkHTable(ht));
+  DEBUG(CHK_SECURE, checkHTable(ht));
 
   return map;
 }
@@ -240,8 +238,7 @@ rehashHTable(Table ht, Symbol map)
 
 Symbol
 addHTable(Table ht, void *name, void *value)
-{ GET_LD
-  Symbol s;
+{ Symbol s;
   int v;
 
   LOCK_TABLE(ht);
@@ -274,8 +271,7 @@ Note: s must be in the table!
 
 void
 deleteSymbolHTable(Table ht, Symbol s)
-{ GET_LD
-  int v;
+{ int v;
   Symbol *h;
   TableEnum e;
 
@@ -305,8 +301,7 @@ deleteSymbolHTable(Table ht, Symbol s)
 
 void
 clearHTable(Table ht)
-{ GET_LD
-  int n;
+{ int n;
   TableEnum e;
 
   LOCK_TABLE(ht);
@@ -346,8 +341,7 @@ Table copyHTable(Table org)
 
 Table
 copyHTable(Table org)
-{ GET_LD
-  Table ht;
+{ Table ht;
   int n;
 
   ht = allocHeapOrHalt(sizeof(struct table));
@@ -356,7 +350,7 @@ copyHTable(Table org)
 #ifdef O_PLMT
   ht->mutex = NULL;
 #endif
-  ht->entries = allocHTableEntries(ht, ht->buckets);
+  ht->entries = allocHTableEntries(ht->buckets);
 
   for(n=0; n < ht->buckets; n++)
   { Symbol s, *q;
@@ -393,8 +387,7 @@ copyHTable(Table org)
 
 TableEnum
 newTableEnum(Table ht)
-{ GET_LD
-  TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
+{ TableEnum e = allocHeapOrHalt(sizeof(struct table_enum));
   Symbol n;
 
   LOCK_TABLE(ht);
@@ -415,8 +408,7 @@ newTableEnum(Table ht)
 
 void
 freeTableEnum(TableEnum e)
-{ GET_LD
-  TableEnum *ep;
+{ TableEnum *ep;
   Table ht;
 
   if ( !e )

@@ -114,8 +114,6 @@ setupProlog(void)
   initFiles();
   initIO();
   initCharConversion();
-  DEBUG(1, Sdprintf("Term ...\n"));
-  resetTerm();
   GD->io_initialised = TRUE;
 
   if ( !endCritical )
@@ -567,7 +565,9 @@ unprepareSignal(int sig)
 #ifdef SIGHUP
 static void
 hupHandler(int sig)
-{ PL_halt(2);
+{ (void)sig;
+
+  PL_halt(2);
 }
 #endif
 
@@ -575,6 +575,7 @@ hupHandler(int sig)
 static void
 sig_exception_handler(int sig)
 { GET_LD
+  (void)sig;
 
   if ( LD && LD->signal.exception )
   { record_t ex = LD->signal.exception;
@@ -594,6 +595,7 @@ sig_exception_handler(int sig)
 static void
 agc_handler(int sig)
 { GET_LD
+  (void)sig;
 
   if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
        !gc_status.blocked )
@@ -603,7 +605,9 @@ agc_handler(int sig)
 
 static void
 gc_handler(int sig)
-{ garbageCollect();
+{ (void)sig;
+
+  garbageCollect();
 }
 
 
@@ -611,6 +615,7 @@ static void
 free_clauses_handler(int sig)
 { GET_LD
   ClauseRef cref;
+  (void)sig;
 
   if ( (cref=LD->freed_clauses) )
   { LD->freed_clauses = NULL;
@@ -621,7 +626,9 @@ free_clauses_handler(int sig)
 
 static void
 abort_handler(int sig)
-{ abortProlog();
+{ (void)sig;
+
+  abortProlog();
 }
 
 
@@ -633,7 +640,7 @@ with EINTR and thus make them interruptable for thread-signals.
 #ifdef SIG_ALERT
 static void
 alert_handler(int sig)
-{
+{ (void)sig;
 }
 #endif
 
@@ -647,7 +654,13 @@ initSignals(void)
 #endif
 
   for( ; sn->name; sn++)
-  { if ( sn->flags )
+  {
+#ifdef HAVE_BOEHM_GC
+    if ( sn->sig == GC_get_suspend_signal() ||
+	 sn->sig == GC_get_thr_restart_signal() )
+      sn->flags = 0;
+#endif
+    if ( sn->flags )
     { SigHandler sh = prepareSignal(sn->sig);
       sh->flags |= sn->flags;
     }
@@ -1124,7 +1137,6 @@ emptyStack(Stack s)
 void
 emptyStacks(void)
 { GET_LD
-  int i;
 
   environment_frame = NULL;
   fli_context       = NULL;
@@ -1136,23 +1148,27 @@ emptyStacks(void)
   emptyStack((Stack)&LD->stacks.argument);
 
   LD->mark_bar          = gTop;
-  PL_open_foreign_frame();
-  exception_bin         = PL_new_term_ref();
-  exception_printed     = PL_new_term_ref();
-  LD->exception.tmp     = PL_new_term_ref();
-  LD->exception.pending = PL_new_term_ref();
-  LD->trim.dummy        = PL_new_term_ref();
+  if ( lTop && gTop )
+  { int i;
+
+    PL_open_foreign_frame();
+    exception_bin         = PL_new_term_ref();
+    exception_printed     = PL_new_term_ref();
+    LD->exception.tmp     = PL_new_term_ref();
+    LD->exception.pending = PL_new_term_ref();
+    LD->trim.dummy        = PL_new_term_ref();
 #ifdef O_ATTVAR
-  LD->attvar.head	= PL_new_term_ref();
-  LD->attvar.tail       = PL_new_term_ref();
-  DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
+    LD->attvar.head	= PL_new_term_ref();
+    LD->attvar.tail       = PL_new_term_ref();
+    DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
 #endif
 #ifdef O_GVAR
-  destroyGlobalVars();
+    destroyGlobalVars();
 #endif
-  for(i=0; i<TMP_PTR_SIZE; i++)
-    LD->tmp.h[i] = PL_new_term_ref();
-  LD->tmp.top = 0;
+    for(i=0; i<TMP_PTR_SIZE; i++)
+      LD->tmp.h[i] = PL_new_term_ref();
+    LD->tmp.top = 0;
+  }
 }
 
 
@@ -1165,8 +1181,7 @@ Malloc/realloc/free based stack allocation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-init_stack(Stack s, char *name,
-	   size_t size, size_t limit, size_t minfree, size_t spare)
+init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare)
 { GET_LD
 
   s->name	= name;
@@ -1211,13 +1226,13 @@ allocStacks(size_t local, size_t global, size_t trail)
   lBase = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, global,  minglobal, 512*SIZEOF_VOIDP);
+	     "global",   iglobal, global, 512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  local,   minlocal, 512*SIZEOF_VOIDP);
+	     "local",    ilocal,  local,  512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.trail,
-	     "trail",    itrail,  trail,   mintrail, 256*SIZEOF_VOIDP);
+	     "trail",    itrail,  trail,  256*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.argument,
-	     "argument", argument, argument, minargument, 0);
+	     "argument", argument, argument, 0);
 
   LD->stacks.local.min_free = LOCAL_MARGIN;
 
@@ -1304,7 +1319,8 @@ trim_stack(Stack s)
     ssize_t room = roomStackP(s);
 
     if ( room < reduce )
-    { DEBUG(0, Sdprintf("Only %d spare for %s-stack\n", room, s->name));
+    { DEBUG(MSG_SPARE_STACK,
+	    Sdprintf("Only %d spare for %s-stack\n", room, s->name));
       reduce = room;
     }
 
@@ -1452,7 +1468,10 @@ freePrologLocalData(PL_local_data_t *ld)
   discardBuffer(&ld->fli._discardable_buffer);
 
   for(i=0; i<BUFFER_RING_SIZE; i++)
-    discardBuffer(&ld->fli._buffer_ring[i]);
+  { discardBuffer(&ld->fli._buffer_ring[i]);
+    initBuffer(&ld->fli._buffer_ring[i]);	/* Used by debug-print */
+						/* on shutdown */
+  }
 
   freeVarDefs(ld);
 
@@ -1469,6 +1488,11 @@ freePrologLocalData(PL_local_data_t *ld)
   freeArithLocalData(ld);
 #ifdef O_PLMT
   simpleMutexDelete(&ld->signal.sig_lock);
+  if ( ld->prolog_flag.table )
+  { PL_LOCK(L_PLFLAG);
+    destroyHTable(ld->prolog_flag.table);
+    PL_UNLOCK(L_PLFLAG);
+  }
 #endif
 
   if ( ld->qlf.getstr_buffer )

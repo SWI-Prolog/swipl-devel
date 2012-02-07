@@ -100,10 +100,12 @@ initvisited(ARG1_LD)
 }
 
 
+#ifdef O_DEBUG
 static int
 empty_visited(ARG1_LD)
-{ return LD->cycle.vstack.count == 0;
+{ return emptySegStack(&LD->cycle.vstack);
 }
+#endif
 
 
 static inline int
@@ -687,7 +689,7 @@ typedef enum
 } phase;
 
 static inline int
-ph_visitedWord(Word p, phase ph ARG_LD)
+ph_visitedWord(Word p, phase ph)
 { switch(ph)
   { case ph_mark:
       if ( is_marked(p) )
@@ -703,10 +705,10 @@ ph_visitedWord(Word p, phase ph ARG_LD)
 }
 
 static inline int
-ph_visited(Functor f, phase ph ARG_LD)
+ph_visited(Functor f, phase ph)
 { Word p = &f->definition;
 
-  return ph_visitedWord(p, ph PASS_LD);
+  return ph_visitedWord(p, ph);
 }
 
 
@@ -723,7 +725,7 @@ ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
     if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
 
-      if ( !ph_visited(f, ph PASS_LD) )
+      if ( !ph_visited(f, ph) )
       { pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments);
       }
     }
@@ -1212,7 +1214,7 @@ restore_shared_functors(Word vars ARG_LD)
 
 
 static int
-link_shared(Word t, Word vars ARG_LD)
+link_shared(Word t ARG_LD)
 { term_agenda agenda;
   Word p;
 
@@ -1300,7 +1302,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
   }
 
   reverse_factor_pointers(valTermRef(vars) PASS_LD);
-  link_shared(t, valTermRef(vars) PASS_LD);
+  link_shared(t PASS_LD);
   restore_shared_functors(valTermRef(vars) PASS_LD);
   PL_close_foreign_frame(fid);
   DEBUG(CHK_SECURE, checkStacks(NULL));
@@ -1463,7 +1465,7 @@ PRED_IMPL("term_hash", 4, term_hash4, 0)
   if ( depth != 0 )
   { initvisited(PASS_LD1);
     rc = termHashValue(*p, depth, &hraw PASS_LD);
-    assert(empty_visited(PASS_LD1));
+    DEBUG(CHK_SECURE, assert(empty_visited(PASS_LD1)));
   }
 
   if ( rc )
@@ -3817,7 +3819,7 @@ sub_text(term_t atom,
 	  }
 	  fail;
 	}
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SEARCH;
 	state->n1   = 0;
 	state->n2   = la;
@@ -3846,7 +3848,7 @@ sub_text(term_t atom,
 
 	  fail;
 	}
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_TAIL;
 	state->n1   = 0;		/* len of the split */
 	state->n2   = la;		/* length of the atom */
@@ -3867,7 +3869,7 @@ sub_text(term_t atom,
 
 	  fail;
 	}
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_LEN;
 	state->n1   = 0;		/* before */
 	state->n2   = l;		/* length */
@@ -3879,7 +3881,7 @@ sub_text(term_t atom,
       { if ( a > (int)la )
 	  fail;
 
-	state = allocHeapOrHalt(sizeof(*state));
+	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_HEAD;
 	state->n1   = 0;		/* before */
 	state->n2   = la;
@@ -3887,7 +3889,7 @@ sub_text(term_t atom,
 	break;
       }
 
-      state = allocHeapOrHalt(sizeof(*state));
+      state = allocForeignState(sizeof(*state));
       state->type = SUB_ENUM;
       state->n1	= 0;			/* before */
       state->n2 = 0;			/* len */
@@ -3902,7 +3904,7 @@ sub_text(term_t atom,
     exit_succeed:
       state = ForeignContextPtr(h);
       if ( state )
-	freeHeap(state, sizeof(*state));
+	freeForeignState(state, sizeof(*state));
       succeed;
     default:
       assert(0);
@@ -3995,7 +3997,7 @@ again:
   }
 
 exit_fail:
-  freeHeap(state, sizeof(*state));
+  freeForeignState(state, sizeof(*state));
   fail;
 
 next:
@@ -4344,14 +4346,12 @@ the `atoms' key that is defined by both and this ambiguous.
 
 static size_t
 heapUsed(void)
-{ size_t heap = GD->statistics.heap;	/* Big allocations */
-
-  heap += GD->alloc_pool.allocated;	/* global small allocations */
-#ifdef O_PLMT
-  heap += threadLocalHeapUsed();	/* thread-local small allocations */
+{
+#ifdef HAVE_BOEHM_GC
+  return GC_get_heap_size();
+#else
+  return 0;
 #endif
-
-  return heap;
 }
 
 static size_t
@@ -4434,7 +4434,7 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     v[1] = limitStack(trail) - v[0];
     vn = 2;
   } else if ( key == ATOM_program )
-  { v[0] = GD->statistics.heap;
+  { v[0] = heapUsed();
     v[1] = 0;
     vn = 2;
   } else if ( key == ATOM_garbage_collection )
@@ -4453,14 +4453,14 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     vn = 3;
   } else if ( key == ATOM_atoms )
   { v[0] = GD->statistics.atoms;
-    v[1] = GD->statistics.atomspace;
+    v[1] = GD->statistics.atom_string_space;
     v[2] = 0;
     vn = 3;
   } else if ( key == ATOM_atom_garbage_collection )
   {
 #ifdef O_ATOMGC
     v[0] = GD->atoms.gc;
-    v[1] = GD->statistics.atomspacefreed;
+    v[1] = GD->statistics.atom_string_space_freed;
     v[2] = (int64_t)(GD->atoms.gc_time * 1000.0);
     vn = 3;
 #else
@@ -4498,8 +4498,6 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = usedStack(local);
   else if (key == ATOM_locallimit)
     v->value.i = limitStack(local);
-  else if (key == ATOM_heapused)			/* heap usage */
-    v->value.i = heapUsed();
   else if (key == ATOM_trail)				/* trail */
     v->value.i = sizeStack(trail);
   else if (key == ATOM_trailused)
@@ -4522,6 +4520,8 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = GD->statistics.functors;
   else if (key == ATOM_predicates)			/* predicates */
     v->value.i = GD->statistics.predicates;
+  else if (key == ATOM_clauses)				/* clauses */
+    v->value.i = GD->statistics.clauses;
   else if (key == ATOM_modules)				/* modules */
     v->value.i = GD->statistics.modules;
   else if (key == ATOM_codes)				/* codes */
@@ -4533,6 +4533,12 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = gc_status.collections;
   else if (key == ATOM_collected)
     v->value.i = gc_status.trail_gained + gc_status.global_gained;
+#ifdef HAVE_BOEHM_GC
+  else if ( key == ATOM_heap_gc )
+    v->value.i = GC_get_gc_no();
+#endif
+  else if (key == ATOM_heapused)			/* heap usage */
+    v->value.i = heapUsed();
 #ifdef O_ATOMGC
   else if (key == ATOM_agc)
     v->value.i = GD->atoms.gc;

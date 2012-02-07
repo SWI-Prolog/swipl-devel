@@ -1851,6 +1851,10 @@ I_EXITFACT: generated to close a fact. The   reason for not generating a
 plain I_EXIT is first of all that the actual sequence should be I_ENTER,
 I_EXIT,  and  just  optimising   to    I_EXIT   looses   the  unify-port
 interception. Second, there should be some room for optimisation here.
+
+The exit_checking_wakeup is referenced from I_FEXITNDET.   If there is a
+wakeup and our current goal is  deterministic,   we  first pop it (i.e.,
+some sort of last-call optimization).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_EXITFACT, 0, 0, ())
@@ -3699,6 +3703,7 @@ VMI(I_FEXITNDET, 0, 0, ())
       }
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
       BFR = BFR->parent;
+      FR->clause = NULL;
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
@@ -3880,6 +3885,8 @@ VMI(B_THROW, 0, 0, ())
   int start_tracer;
 
   PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
+  THROW_EXCEPTION;				/* sets origin */
+
 b_throw:
   QF  = QueryFromQid(qid);
   aTop = QF->aSave;
@@ -3889,25 +3896,27 @@ b_throw:
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
   DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
-  DEBUG(1, { fid_t fid = PL_open_foreign_frame();
-	     Sdprintf("[%d] Throwing (from line %d): ",
-		      PL_thread_self(), throwed_from_line);
-	     PL_write_term(Serror, exception_term, 1200, 0);
-	     Sdprintf("\n");
-	     PL_discard_foreign_frame(fid);
-	   });
+  DEBUG(MSG_THROW,
+	{ fid_t fid = PL_open_foreign_frame();
+	  Sdprintf("[%d] Throwing (from line %d): ",
+		   PL_thread_self(), throwed_from_line);
+	  PL_write_term(Serror, exception_term, 1200, 0);
+	  Sdprintf("\n");
+	  PL_discard_foreign_frame(fid);
+	});
 
   SAVE_REGISTERS(qid);
   catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term PASS_LD);
   LOAD_REGISTERS(qid);
-  DEBUG(1, { if ( catchfr_ref )
-	     { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
-	       Sdprintf("[%d]: found catcher at %ld\n",
-			PL_thread_self(), (long)levelFrame(fr));
-	     } else
-	     { Sdprintf("[%d]: not caught\n", PL_thread_self());
-	     }
-	   });
+  DEBUG(MSG_THROW,
+	{ if ( catchfr_ref )
+	  { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
+	    Sdprintf("[%d]: found catcher at %ld\n",
+		     PL_thread_self(), (long)levelFrame(fr));
+	  } else
+	  { Sdprintf("[%d]: not caught\n", PL_thread_self());
+	  }
+	});
 
   DEBUG(CHK_SECURE,
 	{ SAVE_REGISTERS(qid);

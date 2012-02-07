@@ -45,6 +45,7 @@ sub printTeX
   s/{#<==>}/{\\Scequal}/g;
   s/{#=\\=}/{\\Scine}/g;
   s/{#=:=}/{\\Scieq}/g;
+  s/{#}/{\\Shash}/g;
   s/{!}/{\\Scut}/g;
   s/{,}/{\\Scomma}/g;
   s/{->}/{\\Sifthen}/g;
