@@ -2947,7 +2947,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 	  }
 #endif
 	  default:
-	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, a);
+	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, arg);
 	}
       }
 #ifdef O_GMP
