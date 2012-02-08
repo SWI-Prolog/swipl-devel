@@ -2928,7 +2928,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 
 	if ( !PL_get_number(arg, &n) )
 	  return PL_error(NULL, 0, "integer or 'random'",
-			  ERR_TYPE, ATOM_seed, a);
+			  ERR_TYPE, ATOM_seed, arg);
 	switch(n.type)
 	{
 #ifdef O_GMP
