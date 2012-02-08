@@ -5368,8 +5368,8 @@ non-negative integer \arg{IntExpr}.
     \predicate{set_random}{1}{+Option}
 Controls the random number generator that accessible through the
 \emph{function} \funcref{random}{1}. Note that the library
-\pllib{random} provides distinct support for random numbers that is not
-affected by set_random/1.
+\pllib{random} provides an alternative API to the same random
+primitives.
 
     \begin{description}
 	\termitem{seed}{+Seed}
