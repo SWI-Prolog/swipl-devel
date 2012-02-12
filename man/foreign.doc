@@ -134,24 +134,24 @@ PL_register_foreign().
 \subsection{Static Linking} \label{sec:staticl}
 
 Below is an outline of the files structure required for statically
-linking SWI-Prolog with foreign extensions. \file{.../pl} refers to
+linking SWI-Prolog with foreign extensions. \file{.../swipl} refers to
 the SWI-Prolog home directory (see the Prolog flag \prologflag{home}).
 \file{<arch>} refers to the architecture identifier that may be obtained
 using the Prolog flag \prologflag{arch}.
 
 \begin{center}
 \begin{tabular}{ll}
-\file{.../pl/runtime/<arch>/libswipl.a} & SWI-Library \\
-\file{.../pl/include/SWI-Prolog.h}      & Include file \\
-\file{.../pl/include/SWI-Stream.h}      & Stream I/O include file \\
-\file{.../pl/include/SWI-Exports}       & Export declarations (AIX only) \\
-\file{.../pl/include/stub.c}            & Extension stub
+\file{.../swipl/runtime/<arch>/libswipl.a} & SWI-Library \\
+\file{.../swipl/include/SWI-Prolog.h}      & Include file \\
+\file{.../swipl/include/SWI-Stream.h}      & Stream I/O include file \\
+\file{.../swipl/include/SWI-Exports}       & Export declarations (AIX only) \\
+\file{.../swipl/include/stub.c}            & Extension stub
 \end{tabular}
 \end{center}
 
 The definition of the foreign predicates is the same as for dynamic
 linking.  Unlike with dynamic linking however, there is no
-initialisation function.  Instead, the file \file{.../pl/include/stub.c}
+initialisation function.  Instead, the file \file{.../swipl/include/stub.c}
 may be copied to your project and modified to define the foreign
 extensions.  Below is \file{stub.c}, modified to link the lowercase example
 described later in this chapter:
@@ -349,15 +349,15 @@ See PL_retry*() and PL_foreign_context*().
 Type for the install() and uninstall() functions of shared
 or dynamic link libraries.  See \secref{shlib}.
     \item[int64_t]
-Actually part of the C99 standard rather than Prolog.  As of version
-5.5.6, Prolog integers are 64-bit on all hardware.  The C99 type
-\ctype{int64_t} is defined in the \file{stdint.h} standard header and provides
-platform-independent 64-bit integers.  Portable code accessing Prolog
-should use this type to exchange integer values.  Please note that
-PL_get_long() can return \const{FALSE} on Prolog integers outside
-the long domain.  Robust code should not assume any of the integer
-fetching functions to succeed if the Prolog term is not known to be an
-integer.
+Actually part of the C99 standard rather than Prolog. As of version
+5.5.6, Prolog integers are 64-bit on all hardware. The C99 type
+\ctype{int64_t} is defined in the \file{stdint.h} standard header and
+provides platform-independent 64-bit integers. Portable code accessing
+Prolog should use this type to exchange integer values. Please note that
+PL_get_long() can return \const{FALSE} on Prolog integers that cannot be
+represetned as a C long. Robust code should not assume any of the
+integer fetching functions to succeed, even if the Prolog term is known
+to be an integer.
 \end{description}
 
 \section{The Foreign Include File}	\label{sec:foreigninclude}
@@ -889,7 +889,7 @@ is the same as for PL_get_chars().
 				     size_t len,
 				     const pl_wchar_t *s}
 Unify \arg{t} with a textual representation of the C wide-character
-array \arg{s}.  The \arg{arg}{type} argument defines the Prolog
+array \arg{s}.  The \arg{type} argument defines the Prolog
 representation and is one of \const{PL_ATOM}, \const{PL_STRING},
 \const{PL_CODE_LIST} or \const{PL_CHAR_LIST}.
     \cfunction{int}{PL_unify_wchars_diff}{term_t +t, term_t -tail, int type,
@@ -1547,8 +1547,8 @@ As PL_get_bool(), but raises a type or instantiation error if
 \arg{t} is not an boolean.
 
     \cfunction{int}{PL_get_float_ex}{term_t t, double *f}
-As PL_get_atom_ex(), but raises a type or instantiation error if
-\arg{t} is not an atom.
+As PL_get_float(), but raises a type or instantiation error if
+\arg{t} is not a float.
 
     \cfunction{int}{PL_get_char_ex}{term_t t, int *p, int eof}
 Get a character code from \arg{t}, where \arg{t} is either an
@@ -3175,7 +3175,7 @@ a combination of C files and Prolog files into a stand-alone executable.
 sections.
 
 In the normal usage, a copy is made of the default embedding template
-\file{\ldots/pl/include/stub.c}. The main() routine is modified to suit
+\file{.../swipl/include/stub.c}. The main() routine is modified to suit
 your application. PL_initialise() \strong{must} be passed the
 program-name (\arg{argv[0]}) (Win32: the executing program can be
 obtained using GetModuleFileName()). The other elements of the
@@ -3466,7 +3466,7 @@ install()
 
 \begin{figure}[htb]
 \begin{code}
-% gcc -I/usr/local/lib/pl-\plversion/include -fpic -c lowercase.c
+% gcc -I/usr/local/lib/swipl-\plversion/include -fpic -c lowercase.c
 % gcc -shared -o lowercase.so lowercase.o
 % swipl
 Welcome to SWI-Prolog (Version \plversion)
