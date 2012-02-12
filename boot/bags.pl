@@ -69,13 +69,16 @@ findall(Templ, Goal, List) :-
 	findall(Templ, Goal, List, []).
 
 findall(Templ, Goal, List, Tail) :-
-	setup_call_cleanup('$new_findall_bag'(Bag),
-			   fa_loop(Templ, Goal, Bag, List, Tail),
-			   '$destroy_findall_bag'(Bag)).
+	setup_call_cleanup(
+	    '$new_findall_bag'(Bag),
+	    findall_loop(Templ, Goal, Bag, List, Tail),
+	    '$destroy_findall_bag'(Bag)).
 
-fa_loop(Templ, Goal, Bag, List, Tail) :-
-	\+ (Goal, \+ '$add_findall_bag'(Bag, Templ)),
-	'$collect_findall_bag'(Bag, List, Tail).
+findall_loop(Templ, Goal, Bag, List, Tail) :-
+	(   Goal,
+	    '$add_findall_bag'(Bag, Templ)	% fails
+	;   '$collect_findall_bag'(Bag, List, Tail)
+	).
 
 %%      bagof(+Var, +Goal, -Bag) is semidet.
 %
