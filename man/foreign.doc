@@ -355,8 +355,8 @@ Actually part of the C99 standard rather than Prolog. As of version
 provides platform-independent 64-bit integers. Portable code accessing
 Prolog should use this type to exchange integer values. Please note that
 PL_get_long() can return \const{FALSE} on Prolog integers that cannot be
-represetned as a C long. Robust code should not assume any of the
-integer fetching functions to succeed, even if the Prolog term is known
+represented as a C long. Robust code should not assume any of the
+integer fetching functions to succeed, \emph{even} if the Prolog term is known
 to be an integer.
 \end{description}
 
