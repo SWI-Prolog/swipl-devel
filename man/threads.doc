@@ -374,15 +374,20 @@ is waiting.
 As thread_get_message/2, but providing additional \arg{Options}:
 
     \begin{description}
-    \termitem{timeout}{+Time}
-\arg{Time} is a float or integer and specifies the maximum time to wait
-in seconds.  If \arg{Time} is 0.0 or less, thread_get_message/3 examines
-the queue but does not suspend if no matching term is available.  If no
-message arrives before the time interval elapses, \arg{Term} is unified
-to the atom \const{timeout}.  Both resolution and maximum wait time is
+    \termitem{deadline}{+AbsTime}
+The call will timeout if no message has arrived before \arg{AbsTime}.
+See get_time/1 for the representation of absolute time. If \arg{AbsTime}
+is the current time or earlier, thread_get_message/3 examines the queue
+but does not suspend if no matching term is available. If no message
+arrives before the time interval elapses, \arg{Term} is unified to the
+atom \const{timeout}. Both resolution and maximum wait time is
 platform-dependent.\footnote{The implementation uses
 MsgWaitForMultipleObjects() on MS-Windows and pthread_cond_timedwait()
 on other systems.}
+    \termitem{timeout}{+Time}
+\arg{Time} is a float or integer and specifies the maximum time to wait
+in seconds.  This is a relative-time version of the \const{deadline}
+option.  If both options are provided, the earliest time is effective.
     \end{description}
 
     \predicate{thread_peek_message}{2}{+Queue, ?Term}

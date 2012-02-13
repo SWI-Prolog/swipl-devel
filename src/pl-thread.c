@@ -2337,14 +2337,14 @@ win32_cond_wait(win32_cond_t *cv,
 		CRITICAL_SECTION *external_mutex,
 	        struct timespec *deadline)
 { int rc, last;
-  int dwMilliseconds;
+  DWORD dwMilliseconds;
 
   if ( deadline )
-  {
-    struct timespec now;
+  { struct timespec now;
+
     get_current_timespec(&now);
-    dwMilliseconds = 1000*(deadline->tv_sec - now->tv_sec)
-                     + (int)round((deadline->tv_nsec - now->tv_nsec)/1000000.0);
+    dwMilliseconds = 1000*(DWORD)(deadline->tv_sec - now.tv_sec)
+                     + (deadline->tv_nsec - now.tv_nsec)/1000000;
 
      if ( dwMilliseconds <= 0 )
       return ETIMEDOUT;
@@ -2534,18 +2534,6 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 		 *     READING FROM A QUEUE	*
 		 *******************************/
 
-#ifdef __WINDOWS__
-
-static int
-dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *deadline)
-{ return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var
-						  : &queue->drain_var),
-			 &queue->mutex,
-			 deadline);
-}
-
-#else /*__WINDOWS__*/
-
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
@@ -2555,6 +2543,9 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *
 # else
 #  include <time.h>
 # endif
+#endif
+#ifdef HAVE_FTIME
+#include <sys/timeb.h>
 #endif
 
 static int
@@ -2575,32 +2566,28 @@ timespec_cmp(struct timespec *a, struct timespec *b)
 }
 
 
-/* return: 0: ok, EINTR: interrupted, ETIMEDOUT: timeout
-*/
-
 static void
 get_current_timespec(struct timespec *time)
 {
 #ifdef HAVE_CLOCK_GETTIME
   clock_gettime(CLOCK_REALTIME, time);
 #else
+#ifdef HAVE_GETTIMEOFDAY
   struct timeval now;
 
   gettimeofday(&now, NULL);
   time->tv_sec  = now.tv_sec;
   time->tv_nsec = now.tv_usec*1000;
+#else						/* HAVE_FTIME */
+  struct timeb now;
+
+  ftime(&now);
+  time->tv_sec  = now.time;
+  time->tv_nsec = now.millitm*1000000;
+#endif
 #endif
 }
 
-static void
-incr_timespec_double(struct timespec *time, double delta)
-{ double ip, fp;
-
-  fp = modf(delta, &ip);
-  time->tv_sec  += (time_t)ip;
-  time->tv_nsec += (long)(fp*1000000000.0);
-  carry_timespec_nanos(time);
-}
 
 static void
 carry_timespec_nanos(struct timespec *time)
@@ -2610,34 +2597,41 @@ carry_timespec_nanos(struct timespec *time)
   }
 }
 
+#ifdef __WINDOWS__
+
+static int
+dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *deadline)
+{ return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var
+						  : &queue->drain_var),
+			 &queue->mutex,
+			 deadline);
+}
+
+#else /*__WINDOWS__*/
+
+/* return: 0: ok, EINTR: interrupted, ETIMEDOUT: timeout
+*/
+
 static int
 dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *deadline)
 { GET_LD
-  struct timespec final_timeout;
   int rc;
-
-  if ( deadline )
-     final_timeout = *deadline;
-
-  // !!! what if already timed out?
 
   for(;;)
   { struct timespec tmp_timeout;
     struct timespec *api_timeout = &tmp_timeout;
 
     get_current_timespec(&tmp_timeout);
-    // !!! could check if deadline already passed and return ETIMEDOUT?
-    // !!! or could just let pthread_cond_timedwait handle it.
-	 tmp_timeout.tv_nsec += 250000000;
+    tmp_timeout.tv_nsec += 250000000;
     carry_timespec_nanos(&tmp_timeout);
 
-   if (deadline) final_timeout=*deadline;
-    if ( deadline && timespec_cmp(&tmp_timeout, &final_timeout) >= 0 ) {
-      api_timeout = &final_timeout;
-    }
+    if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
+      api_timeout = deadline;
+
     rc = pthread_cond_timedwait((wait == QUEUE_WAIT_READ ? &queue->cond_var
 							 : &queue->drain_var),
 				&queue->mutex, api_timeout);
+
 #ifdef O_DEBUG
     if ( LD && LD->thread.info )	/* can be absent during shutdown */
     { switch( LD->thread.info->ldata_status )
@@ -2658,7 +2652,7 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *
     { case ETIMEDOUT:
 	if ( LD->signal.pending )
 	  return EINTR;
-        if ( api_timeout == &final_timeout )
+        if ( api_timeout == deadline )
 	  return ETIMEDOUT;
 
 	return 0;
@@ -3466,23 +3460,24 @@ PRED_IMPL("thread_get_message", 3, thread_get_message, 0)
 		     &tmo, &dlo) )
     return FALSE;
 
-  if (dlo != DBL_MAX) // deadline (absolute) specified
+  if ( dlo != DBL_MAX )
   { double ip, fp;
+
     fp = modf(dlo, &ip);
-    deadline.tv_sec = ip;
+    deadline.tv_sec = (time_t)ip;
     deadline.tv_nsec = (long)(fp*1000000000.0);
     dlop = &deadline;
   }
 
-  if (tmo != DBL_MAX) // relative timeout specified
+  if ( tmo != DBL_MAX )
   { double ip, fp=modf(tmo,&ip);
 
     get_current_timespec(&timeout);
-	 timeout.tv_sec  += (time_t)ip;
-	 timeout.tv_nsec += (long)(fp*1000000000.0);
-	 carry_timespec_nanos(&timeout);
-    if (dlop==NULL || timespec_cmp(&timeout,&deadline)<0) // if timeout sooner than deadline
-    { dlop = &timeout; }
+    timeout.tv_sec  += (time_t)ip;
+    timeout.tv_nsec += (long)(fp*1000000000.0);
+    carry_timespec_nanos(&timeout);
+    if ( dlop==NULL || timespec_cmp(&timeout,&deadline) < 0 )
+      dlop = &timeout;
   }
 
   return thread_get_message__LD(A1, A2, dlop PASS_LD);
