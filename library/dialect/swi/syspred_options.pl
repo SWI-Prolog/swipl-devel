@@ -156,6 +156,7 @@
 		     [ alias(atom)
 		     ]).
 :- predicate_options(system:thread_get_message/3, 3,
-		     [ timeout(float)
+		     [ timeout(float),
+		       deadline(float)
 		     ]).
 
