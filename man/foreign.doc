@@ -1661,7 +1661,7 @@ typedef struct PL_blob_t
 
 For each type, exactly one such structure should be allocated.  Its
 first field must be initialised to \const{PL_BLOB_MAGIC}.  The
-\arg{flags} is a bitwise \em{or} of the following constants:
+\arg{flags} is a bitwise \emph{or} of the following constants:
 
 \begin{description}
     \constitem{PL_BLOB_TEXT}

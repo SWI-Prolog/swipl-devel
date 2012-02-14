@@ -5171,10 +5171,18 @@ clock when SWI-Prolog was started. The predicate set_random/1 can be
 used to control the random number generator.
 
     \function{random_float}{0}{}
-Evaluates to a random float $I$ for which $0.0 \leq i < 1.0$.  This
-function shares the random state with \funcref{random}{1}. All remarks
-with the function \funcref{random}{1} also apply for
-\funcref{random_float}{0}.
+Evaluates to a random float $I$ for which $0.0 < i < 1.0$. This function
+shares the random state with \funcref{random}{1}. All remarks with the
+function \funcref{random}{1} also apply for \funcref{random_float}{0}.
+Note that both sides of the domain are \jargon{open}. This avoids
+evaluation errors on e.g., \funcref{log}{1} or \funcref{/}{2} while no
+practical application can expect 0.0.\footnote{Richard O'Keefe said:
+``If you \emph{are} generating IEEE doubles with the claimed
+uniformity, then 0 has a 1 in $2^{53} = 1 in 9,007,199,254,740,992$
+chance of turning up. No program that expects [0.0,1.0) is going to be
+surprised when 0.0 fails to turn up in a few millions of millions of
+trials, now is it? But a program that expects (0.0,1.0) could be
+devastated if 0.0 did turn up.''}
 
     \function[ISO]{round}{1}{+Expr}
 Evaluates \arg{Expr} and rounds the result to the nearest integer.

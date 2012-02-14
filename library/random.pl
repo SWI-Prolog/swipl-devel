@@ -34,7 +34,7 @@
 %   arithmetic.
 
 :- module(random,
-	  [ random/1,			% -Float [0,1)
+	  [ random/1,			% -Float (0,1)
 	    random_between/3,		% +Low, +High, -Random
 
 	    getrand/1,			% -State
@@ -80,7 +80,7 @@ on the GMP library.
 
 %%	random(-R:float) is det.
 %
-%	Binds R to a new random number in [0.0,1.0).
+%	Binds R to a new random float in the _open_ interval (0.0,1.0).
 %
 %	@see setrand/1, getrand/1 maye be used to fetch/set the state.
 %	@see In SWI-Prolog, random/1 is implemented by the function
@@ -106,9 +106,9 @@ random_between(L, U, _) :-
 %%	random(+L:int, +U:int, -R:int) is det.
 %%	random(+L:float, +U:float, -R:float) is det.
 %
-%	Binds R to a random  number  in  [L,U).   If  L  and  U are both
-%	integers, R is an integer, Otherwise, R  is a float. Note that U
-%	will *never* be generated.
+%	If L and U are both integers, R  is a random integer in the half
+%	open interval [L,U). If L and U are both floats, R is a float in
+%	the open interval (L,U).
 %
 %	@deprecated Please use random/1 for   generating  a random float
 %	and random_between/3 for generating a  random integer. Note that
