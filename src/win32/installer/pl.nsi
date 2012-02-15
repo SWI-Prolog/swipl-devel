@@ -377,6 +377,8 @@ Section "PDT support files"
   File pl\library\pdt_console.pl
   SetOutPath $INSTDIR\bin
   File pl\bin\pdt_console.dll
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\pdt.html
 SectionEnd
 
 Section "Constraint Handling Rules"
