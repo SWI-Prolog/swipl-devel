@@ -44,6 +44,7 @@
 #define	MSG_THREAD		 15
 #define MSG_THROW		 16
 #define MSG_SRCLOC		 17
+#define MSG_PROC		 18
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101

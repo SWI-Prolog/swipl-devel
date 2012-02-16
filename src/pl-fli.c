@@ -3617,13 +3617,17 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   }
   def = proc->definition;
   if ( def->module != m || def->impl.any )
-  { Sdprintf("Abolish %s from %s\n", procedureName(proc), PL_atom_chars(m->name));
+  { DEBUG(MSG_PROC, Sdprintf("Abolish %s from %s\n",
+			     procedureName(proc), PL_atom_chars(m->name)));
     abolishProcedure(proc, m);
     def = proc->definition;
   }
 
+  if ( def->impl.any )
+    PL_linger(def->impl.any);
   def->impl.function = f;
-  def->flags = FOREIGN|TRACE_ME;
+  def->flags &= ~(DYNAMIC|P_THREAD_LOCAL|P_TRANSPARENT|NONDETERMINISTIC|P_VARARG);
+  def->flags |= (FOREIGN|TRACE_ME);
 
   if ( m == MODULE_system )
     set(def, SYSTEM|HIDE_CHILDS);
