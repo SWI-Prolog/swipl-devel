@@ -1372,10 +1372,6 @@ Sfeof(IOSTREAM *s)
     return -1;
   }
 
-  if ( s->downstream != NULL &&
-       Sfeof(s->downstream))
-    return TRUE;
-
   if ( S__fillbuf(s) == -1 )
     return TRUE;
 
