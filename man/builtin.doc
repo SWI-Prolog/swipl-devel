@@ -5375,9 +5375,9 @@ non-negative integer \arg{IntExpr}.
 \begin{description}
     \predicate{set_random}{1}{+Option}
 Controls the random number generator that accessible through the
-\emph{function} \funcref{random}{1}. Note that the library
-\pllib{random} provides an alternative API to the same random
-primitives.
+\emph{functions} \funcref{random}{1} and \funcref{random_float}{0}. Note
+that the library \pllib{random} provides an alternative API to the same
+random primitives.
 
     \begin{description}
 	\termitem{seed}{+Seed}
