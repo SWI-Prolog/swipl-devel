@@ -3056,8 +3056,9 @@ ar_random_float(Number r)
   init_random(PASS_LD1);
 
   do
+  {
 #ifdef O_GMP
-  { mpf_t rop;
+    mpf_t rop;
     mpf_init2(rop, sizeof(double)*8);
     mpf_urandomb(rop, LD->arith.random.state, sizeof(double)*8);
     r->value.f = mpf_get_d(rop);
