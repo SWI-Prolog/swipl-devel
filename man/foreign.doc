@@ -2000,7 +2000,7 @@ generating a single solution.  The arguments are the same as for
 PL_open_query(), the return value is the same as PL_next_solution().
     \cfunction{int}{PL_call}{term_t t, module_t m}
 Call term \arg{t} just like the Prolog predicate once/1. \arg{t} is called
-in the module \arg{m}, or in the context module if module_t = NULL.
+in the module \arg{m}, or in the context module if \arg{m} == NULL.
 Returns \const{TRUE} if the call succeeds, \const{FALSE} otherwise.
 \Figref{calling} shows an example to obtain the number of
 defined atoms. All checks are omitted to improve readability.
@@ -2072,20 +2072,22 @@ Modules are identified via a unique handle.  The following functions
 are available to query and manipulate modules.
 
 \begin{description}
-\cfunction{module_t}{PL_context}{}
+    \cfunction{module_t}{PL_context}{}
 Return the module identifier of the context module of the currently
 active foreign predicate.
-\cfunction{int}{PL_strip_module}{term_t +raw, module_t *m, term_t -plain}
+
+    \cfunction{int}{PL_strip_module}{term_t +raw, module_t *m, term_t -plain}
 Utility function. If \arg{raw} is a term, possibly holding the module
 construct \mbox{<module>{\tt :}<rest>}, this function will make
 \arg{plain} a reference to <rest> and fill \arg{module *} with <module>.
 For further nested module constructs the innermost module is returned
 via \arg{module *}. If \arg{raw} is not a module construct, \arg{raw}
-will simply be put in \arg{plain}. If \arg{module *} is \const{NULL}, it
-will be set to the context module. Otherwise it will be left untouched.
-The following example shows how to obtain the plain term and module if
-the default module is the user module:
-
+will simply be put in \arg{plain}. The value pointed to by \arg{m} must
+be initialized before calling PL_strip_module(), either to the default
+module or to \const{NULL}. A \const{NULL} value is replaced by the
+current context module if \arg{raw} carries no module. The following
+example shows how to obtain the plain term and module if the default
+module is the user module:
 
 \begin{code}
 { module m = PL_new_module(PL_new_atom("user"));
@@ -2212,13 +2214,7 @@ Prolog call, or because an exception was raised using throw/1.  This
 function returns a handle to the exception term if an exception was
 raised, or 0 if the Prolog goal simply failed. If there is an exception,
 PL_exception() allocates a term-handle using PL_new_term_ref() that is
-used to return the exception term.%
-    \footnote{This interface differs in two ways from Quintus.  The
-	      calling predicates simply signal failure if an exception
-	      is raised, and a term reference is returned, rather than
-	      passed and filled with the error term.   Exceptions
-	      can only be handled using the PL_next_solution() interface,
-	      as a handle to the query is required.}
+used to return the exception term.
 
 Additionally, \verb$PL_exception(0)$ returns the pending exception in
 the current query or 0 if no exception is pending. This can be used to
@@ -2781,25 +2777,42 @@ uninstall()
 
 \subsection{Storing foreign data}		\label{sec:foreigndata}
 
+When combining foreign code with Prolog, it can be necessary to make
+data represented in the foreign language available to Prolog. For
+example, to pass it to another foreign function. At the end of this
+section, there is a partial implementation of using foreign functions to
+manage bit-vectors. Another example is the SGML/XML library that manages
+a `parser' object, an object that represents the current state of the
+parser and that can be directed to perform actions such as parsing a
+document or make queries about the document content.
+
 This section provides some hints for handling foreign data in Prolog.
-With foreign data, we refer to data that is used by foreign language
-predicates and needs to be passed around in Prolog. Excluding
-combinations, there are three principal options for storing such data:
+There are four options for storing such data:
 
 \begin{itemlist}
     \item[Natural Prolog data]
-Uses the representation one would choose if no foreign
-interface was required.
-    \item[Opaque packed Prolog data]
-Data can also be represented in a foreign structure and stored on the
-Prolog stacks using PL_put_string_nchars() and retrieved using
-PL_get_string_chars().  It is generally good practice to wrap the
-string in a compound term with arity 1, so Prolog can identify the
-type.  portray/1 rules may be used to streamline printing such terms
-during development.
-    \item[Natural foreign data, passing a pointer]
-An alternative is to pass a pointer to the foreign data. Again, this
-functor may be wrapped in a compound term.
+Uses the representation one would choose if no foreign interface was
+required. E.g., a bitvector representing a list of small integers can be
+represented as a Prolog list of integers.
+
+    \item[Opaque packed data on the stacks]
+It is possible to represent the raw binary representation of the foreign
+object as a Prolog string (see \secref{string}). Strings may be created
+from foreign data using PL_put_string_nchars() and retrieved using
+PL_get_string_chars(). It is good practice to wrap the string in a
+compound term with arity 1, so Prolog can identify the type. The hook
+portray/1 rules may be used to streamline printing such terms during
+development.
+
+    \item[Opaque packed data in a blob]
+Similar to the above solution, binary data can be stored in an atom. The
+blob interface (\secref{blob}) provides additional facilities to assign
+a type and hook-functions that act on creation and destruction of the
+underlying atom.
+
+    \item[Natural foreign data, passed as a pointer]
+An alternative is to pass a pointer to the foreign data. Again, the
+pointer is often wrapped in a compound term.
 \end{itemlist}
 
 \noindent
@@ -2808,53 +2821,50 @@ The choice may be guided using the following distinctions
 \begin{itemlist}
     \item[Is the data opaque to Prolog]
 With `opaque' data, we refer to data handled in foreign functions,
-passed around in Prolog, but where Prolog never examines the contents
-of the data itself. If the data is opaque to Prolog, the chosen
-representation does not depend on simple analysis by Prolog, and the
-selection will be driven solely by simplicity of the interface and
-performance (both in time and space).
-    \item[How big is the data]
-Is efficient encoding required?  For example, a boolean array may be
-expressed as a compound term, holding integers each of which contains
-a number of bits, or as a list of \const{true} and \const{false}.
-    \item[What is the nature of the data]
-For examples in C, constants are often expressed using `enum' or
-\#define'd integer values. If Prolog needs to handle this data, atoms
-are a more logical choice.   Whether or not this mapping is used depends
-on whether Prolog needs to interpret the data, how important debugging is
-and how important performance is.
+passed around in Prolog, but where Prolog never examines the contents of
+the data itself. If the data is opaque to Prolog, the selection will be
+driven solely by simplicity of the interface and performance.
+
     \item[What is the lifetime of the data]
-We can distinguish three cases:
+With `lifetime' we refer to how it is decided that the object is (or can
+be) destroyed. We can distinguish three cases:
+
     \begin{enumerate}
 	\item
-The lifetime is dictated by the accessibility of the data on the Prolog
-stacks. There is no way by which the foreign code when the data becomes
-`garbage', and the data thus needs to be represented on the Prolog
-stacks using Prolog data types. (2),
+The object must be destroyed on backtracking and normal Prolog garbage
+collection (i.e., it acts as a normal Prolog term). In this case,
+representing the object as a Prolog string (second option above) is the
+only feasible solution.
+
         \item
-The data lives on the `heap' and is explicitly allocated and
-deallocated. In this case, representing the data using a native foreign
-representation and passing a pointer to it is a sensible choice.
+The data must survive Prolog backtracking. This leaves two options. One
+is to represent the object using a pointer and use explicit creation and
+destruction, making the programmer responsible. The alternative is to
+use the blob-interface, leaving destruction to the (atom) garbage
+collector.
+
 	\item
-The data lives as during the lifetime of a foreign predicate.  If the
-predicate is deterministic, foreign automatic variables are suitable.
-If the predicate is non-deterministic, the data may be allocated using
-malloc() and a pointer may be passed.  See \secref{foreignnondet}.
+The data lives as during the lifetime of a foreign function that
+implements a predicate. If the predicate is deterministic, foreign
+automatic variables are suitable. If the predicate is non-deterministic,
+the data may be allocated using malloc() and a pointer may be passed.
+See \secref{foreignnondet}.
     \end{enumerate}
 \end{itemlist}
 
 
 \subsubsection{Examples for storing foreign data}
 
-In this section, we will outline some examples, covering typical cases.
-In the first example, we will deal with extending Prolog's data
-representation with integer sets, represented as bit-vectors. Then,
-we discuss the outline of the DDE interface.
+In this section, we outline some examples, covering typical cases. In
+the first example, we will deal with extending Prolog's data
+representation with integer sets, represented as bit-vectors. Then, we
+discuss the outline of the DDE interface.
 
 \paragraph{Integer sets} with not-too-far-apart upper- and lower-bounds
 can be represented using bit-vectors. Common set operations, such as
-union, intersection, etc., are reduced to simple \emph{and}'ing and \emph{or}'ing the
-bit-vectors. This can be done using Prolog's unbounded integers.
+union, intersection, etc., are reduced to simple \emph{and}'ing and
+\emph{or}'ing the bit-vectors. This can be done using Prolog's unbounded
+integers.
 
 For really demanding applications, foreign representation will perform
 better, especially time-wise. Bit-vectors are naturally expressed using
