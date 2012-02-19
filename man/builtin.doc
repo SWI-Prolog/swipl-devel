@@ -1597,12 +1597,9 @@ code.
 
     \predicate{apply}{2}{:Goal, +List}
 Append the members of \arg{List} to the arguments of \arg{Goal} and call
-the resulting term. For example: \exam{apply(plus(1), [2, X])} will
-call \exam{plus(1, 2, X)}. apply/2 is incorporated in the virtual
-machine of SWI-Prolog. This implies that the overhead can be compared to
-the overhead of call/1. New code should use call/[2..] if the length of
-\arg{List} is fixed, which is more widely supported and faster because
-there is no need to build and examine the argument list.
+the resulting term. For example: \exam{apply(plus(1), [2, X])} calls
+\exam{plus(1, 2, X)}. New code should use call/[2..] if the length of
+\arg{List} is fixed.
 
     \predicate{not}{1}{:Goal}
 True if \arg{Goal} cannot be proven.  Retained for compatibility
