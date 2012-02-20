@@ -237,6 +237,17 @@ type(section(Index, Name)) -->
 	chapter_line(Index, Name), !.
 type(function(Name)) -->
 	function_line(Name), !.
+type(section([], Name)) -->
+	"Version", skip_blanks,
+	number(Major), ".", number(Minor), skip_blanks,
+	"Release Notes", !,
+	{ format(atom(Name), 'Version ~w.~w Release Notes', [Major, Minor]) }.
+type(section([], 'Incompatible changes')) -->
+	"Incompatible changes", !.
+type(section([], 'Compatibility notes')) -->
+	"Compatibility notes", !.
+type(section([], 'Index')) -->
+	"Index", !.
 type(unknown) -->
 	skipall(Line),
 	{ % trace,
@@ -346,6 +357,8 @@ atom(Name) -->
 	{ name(Name, [S]) }.
 atom('|') -->
 	"_".				% tex --> text conversion bug
+atom('{}') -->
+	"{}".
 
 alphas([C|R]) -->
 	alpha(C), !,

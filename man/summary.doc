@@ -43,6 +43,7 @@ suggest predicates from a keyword.
 \oppredsummary{\=@=}{2}{xfx}{700}{Not structural identical}
 \oppredsummary{^}{2}{xfy}{200}{Existential quantification (bagof/3, setof/3)}
 \oppredsummary{|}{2}{xfy}{1105}{Disjunction of goals. Same as \predref{;}{2}}
+\predicatesummary{{}}{1}{DCG escape; constraints}
 \predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
@@ -286,6 +287,7 @@ suggest predicates from a keyword.
 \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{import_module}{2}{Query import modules}
 \predicatesummary{in_pce_thread}{1}{Run goal in XPCE thread}
+\predicatesummary{in_pce_thread_sync}{1}{Run goal in XPCE thread}
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{initialization}{1}{Initialization directive}
 \predicatesummary{initialization}{2}{Initialization directive}

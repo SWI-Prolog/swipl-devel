@@ -173,7 +173,7 @@ list_debug_topics :-
 	;   true
 	).
 
-%%	debug_message_context(What) is det.
+%%	debug_message_context(+What) is det.
 %
 %	Specify additional context for debug messages.   What  is one of
 %	+Context or -Context and Context is   one of =thread=. =time= or

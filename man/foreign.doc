@@ -2221,7 +2221,7 @@ the current query or 0 if no exception is pending. This can be used to
 check the error status after a failing call to, e.g., one of the
 unification functions.
 
-    \cfunction{PL_clear_exception}{void}
+    \cfunction{void}{PL_clear_exception}{void}
 Tells Prolog that the encountered exception must be ignored. This
 function must be called if control remains in C after a previous API
 call fails with an exception.\footnote{This feature is non-portable.
