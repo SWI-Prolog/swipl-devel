@@ -27,7 +27,7 @@
 # Property:	Block
 */
 
-:- module(unicode,
+:- module(unicode_blocks,
 	  [ unicode_block/3		% Name, From, To
 	  ]).
 
