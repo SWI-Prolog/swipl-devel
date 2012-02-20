@@ -699,6 +699,7 @@ parse_summary(0, _, _) -->
 	;   "\\chapter"
 	;   "\\section"
 	;   "\\subsection"
+	;   "\\subsubsection"
 	;   "\\begin"
 	;   "\\end"
 	;   "\\newcommand"
@@ -773,6 +774,7 @@ tex_expand(predref(Name, Arity), Out) :- !,
 tex_expand(hook(Module), Out) :- !,
 	flatten(["Hook (", Module, ")"], Out).
 tex_expand('', "") :- !.
+tex_expand(bsl([]), "\\") :- !.
 tex_expand(In, "") :-
 	format('ERROR: could not expand TeX command ~q~n', [In]).
 
