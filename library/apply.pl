@@ -189,7 +189,7 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
 	maplist_(Tail1, Tail2, Tail3, Goal).
 
 
-%%	maplist(:Goal, ?List1, ?List2, ?List3, List4)
+%%	maplist(:Goal, ?List1, ?List2, ?List3, ?List4)
 %
 %	True if Goal  can  succesfully  be   applied  to  all  succesive
 %	quadruples of elements of List1..List4

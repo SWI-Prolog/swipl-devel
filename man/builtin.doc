@@ -5414,8 +5414,8 @@ reuse the state with another version of GMP or on a CPU with different
 datasizes or endian-ness.}
     \end{description}
 
-    \predicate{current_arithmetic_function}{1}{Head}
-True if \arg{Head} is an evaluable function.  For example:
+    \predicate{current_arithmetic_function}{1}{?Head}
+True when \arg{Head} is an evaluable function.  For example:
 
 \begin{code}
 ?- current_arithmetic_function(sin(_)).
