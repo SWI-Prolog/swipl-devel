@@ -185,7 +185,7 @@ maybe(P) :-
 	must_be(between(0.0,1.0), P),
 	random_float < P.
 
-%%	maybe(K,N) is semidet.
+%%	maybe(+K, +N) is semidet.
 %
 %	Succeed with probability K/N (variant of maybe/1)
 
