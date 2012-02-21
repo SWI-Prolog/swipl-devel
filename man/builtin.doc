@@ -2154,25 +2154,32 @@ Signals are blocked when the garbage collector is active.
 
 \section{DCG Grammar rules}			\label{sec:DCG}
 
-\index{DCG}%
+\index{DCG}\index{serialize},\index{deserialize}%
 Grammar rules form a comfortable interface to \jargon{difference-lists}.
-They are designed both to support writing parsers that build a parse-tree
-from a list as for generating a flat list from a term.  Unfortunately,
-Definite Clause Grammar (DCG) handling is not part of the Prolog
-standard.  Most Prolog engines implement DCG, but the details differ
-slightly.
+They are designed both to support writing parsers that build a parse
+tree from a list of characters or tokens as for generating a flat list
+from a term.
 
 Grammar rules look like ordinary clauses using \functor{-->}{2} for
 separating the head and body rather than \functor{:-}{2}. Expanding
 grammar rules is done by expand_term/2, which adds two additional
-argument to each term for representing the difference list. We will
-illustrate the behaviour by defining a rule-set for parsing an integer.
+argument to each term for representing the difference list.
+
+The body of a grammar rule can contain three types of terms. A callable
+term is interpreted as a reference to a grammar-rule. Code between
+\verb${$\ldots\verb$}$ is interpreted as plain Prolog code and finally,
+a list is interpreted as a sequence of \jargon{literals}. The Prolog
+control-constructs (\functor{\+}{1}, \functor{->}{2}, \functor{;}/2,
+\functor{,}{2} and \functor{!}{0}) can be used in grammar rules.
+
+We illustrate the behaviour by defining a rule-set for parsing an
+integer.
 
 \begin{code}
 integer(I) -->
 	digit(D0),
 	digits(D),
-	{ number_chars(I, [D0|D])
+	{ number_codes(I, [D0|D])
 	}.
 
 digits([D|T]) -->
@@ -2187,33 +2194,61 @@ digit(D) -->
 	}.
 \end{code}
 
-The body of a grammar rule can contain three types of terms.  A compound
-term interpreted as a reference to a grammar-rule.  Code between
-\verb${$\ldots\verb$}$ is interpreted as a reference to ordinary Prolog
-code and finally, a list is interpreted as a sequence of literals. The
-Prolog control-constructs (\functor{\+}{1}, \functor{->}{2},
-\functor{;}/2, \functor{,}{2} and \functor{!}{0}) can be used in grammar
-rules.
-
 Grammar rule-sets are called using the built-in predicates phrase/2
 and phrase/3:
 
 \begin{description}
-    \predicate{phrase}{2}{+RuleSet, +InputList}
-Equivalent to \exam{phrase(\arg{RuleSet}, \arg{InputList}, [])}.
-    \predicate{phrase}{3}{+RuleSet, +InputList, -Rest}
-Activate the rule-set with given name.  `InputList' is the list of tokens
-to parse, `Rest' is unified with the remaining tokens if the sentence is
-parsed correctly.  The example below calls the rule-set `integer' defined
-above.
+    \predicate{phrase}{2}{+DCGBody, ?List}
+Equivalent to \exam{phrase(\arg{DCGBody}, \arg{InputList}, [])}.
+    \predicate{phrase}{3}{+DCGBody, ?List, ?Rest}
+True when \arg{DCGBody} applies to the difference
+\arg{List}/\arg{Rest}. Although \arg{DCGBody} is typically a
+\jargon{callable} term that denotes a grammar rule, it can be any
+term that is valid as the body of DCG rule.
+
+The example below calls the rule set `integer' defined in \secref{DCG},
+binding \arg{Rest} to the remainder of the input after matching the
+integer.
 
 \begin{code}
 ?- phrase(integer(X), "42 times", Rest).
-
 X = 42
 Rest = [32, 116, 105, 109, 101, 115]
 \end{code}
+
+The next example calls example exploits a complete body.
+
+\begin{code}
+digit_weigth(W) -->
+	[D],
+	{ code_type(D, digit(W)) }.
+
+?- phrase(("Version ",
+	   digit_weigth(Major),".",digit_weigth(Minor)),
+	  "Version 3.4").
+Major = 3,
+Minor = 4.
+\end{code}
+
+See also portray_text/1, which can be used to print lists of character
+codes as a string to the toplevel and debugger to facilitate debugging
+of DCGs that process character codes. The library \pllib{apply_macros}
+compiles phrase/3 if the argument is sufficiently instantiated,
+eliminating the runtime overhead of translating \arg{DCGBody} and
+meta-calling.
 \end{description}
+
+As stated above, grammar rules are a general interface to difference
+lists. To illustrate that, we show a DCG-based implementation of
+reverse/2:
+
+\begin{code}
+reverse(List, Reversed) :-
+	phrase(reverse(List), Reversed).
+
+reverse([])    --> [].
+reverse([H|T]) --> reverse(T), [H].
+\end{code}
 
 
 \section{Database}			\label{sec:db}
