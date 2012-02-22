@@ -97,9 +97,10 @@ qsave_program(FileBase, Options0) :-
 	),
 	'$rc_open_archive'(File, RC),
 	make_header(RC, SaveClass, Options),
-	save_options(RC, [ init_file(InitFile)
-			 | Options
-			 ]),
+	save_options(RC, SaveClass,
+		     [ init_file(InitFile)
+		     | Options
+		     ]),
 	save_resources(RC, SaveClass),
 	'$rc_open'(RC, '$state', '$prolog', write, StateFd),
 	'$open_wic'(StateFd),
@@ -195,7 +196,7 @@ doption(system_init_file).
 doption(class).
 doption(home).
 
-%%	save_options(+ArchiveHandle, +Options)
+%%	save_options(+ArchiveHandle, +SaveClass, +Options)
 %
 %	Save the options in the '$options'  resource. The home directory
 %	is saved for development saves,  so   it  keeps  refering to the
@@ -204,24 +205,28 @@ doption(home).
 %	The script-file (-s script) is not saved at all. I think this is
 %	fine to avoid a save-script loading itself.
 
-save_options(RC, Options) :-
+save_options(RC, SaveClass, Options) :-
 	'$rc_open'(RC, '$options', '$prolog', write, Fd),
 	(   doption(OptionName),
 	    '$option'(OptionName, OptionVal0),
-	        (   OptionName == home	% save home if not runtime
-		->  \+ memberchk(class(runtime), Options)
-		;   true
-		),
-	        OptTerm =.. [OptionName,OptionVal1],
+	        save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
+	        OptTerm =.. [OptionName,OptionVal2],
 	        (   option(OptTerm, Options)
-		->  convert_option(OptionName, OptionVal1, OptionVal)
-		;   OptionVal = OptionVal0
+		->  convert_option(OptionName, OptionVal2, OptionVal)
+		;   OptionVal = OptionVal1
 		),
 	        format(Fd, '~w=~w~n', [OptionName, OptionVal]),
 	    fail
 	;   true
 	),
 	close(Fd).
+
+%%	save_option_value(+SaveClass, +OptionName, +OptionValue, -FinalValue)
+
+save_option_value(Class,   class, _,     Class) :- !.
+save_option_value(runtime, home,  _,     _) :- !, fail.
+save_option_value(_,       _,     Value, Value).
+
 
 		 /*******************************
 		 *	     RESOURCES		*
