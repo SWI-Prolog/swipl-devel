@@ -136,8 +136,7 @@ compatibility with other Prolog systems.
 SWI-Prolog offers a tight integration to the Object Oriented Package
 for User Interface Development, called XPCE \cite{P1098:C1.6}.
 XPCE allows you to implement graphical user interfaces that are
-source-code compatible over Unix/X11, Win32 (Windows 95/98/ME and
-NT/2000/XP) and MacOS X (darwin).
+source-code compatible over Unix/X11, Windows and MacOS X using X11.
 \end{itemlist}
 
 
