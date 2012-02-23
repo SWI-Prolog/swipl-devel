@@ -36,48 +36,58 @@ PRED_IMPL("is_list", 1, is_list, 0)
 }
 
 
-word
-pl_length(term_t list, term_t l)
-{ GET_LD
-  int n;
+/** $length(-List, +Len) is semidet.
 
-  if ( PL_get_integer(l, &n) )
-  { if ( n >= 0 )
-    { term_t h = PL_new_term_ref();
-      term_t l = PL_copy_term_ref(list);
+Implements `known-length' generation path of length/2. Fails if Len < 0.
+*/
 
-      while( n-- > 0 )
-      { TRY(PL_unify_list(l, h, l));
+static
+PRED_IMPL("$length", 2, dlength, 0)
+{ PRED_LD
+  intptr_t len;
+
+  if ( PL_get_intptr(A2, &len) )
+  { if ( len > 0 )
+    { Word p;
+      term_t list = PL_new_term_ref();
+
+      if ( !hasGlobalSpace(len*3) )
+      { int rc;
+
+	if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != TRUE )
+	  return raiseStackOverflow(rc);
       }
 
-      return PL_unify_nil(l);
+      p = gTop;
+      *valTermRef(list) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      while(len-- > 0)
+      { p[0] = FUNCTOR_dot2;
+	setVar(p[1]);
+	p[2] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p += 3;
+      }
+      p[-1] = ATOM_nil;
+      gTop = p;
+
+      return PL_unify(A1, list);
+    } else if ( len == 0 )
+    { return PL_unify_nil(A1);
+    } else
+    { return FALSE;
     }
-    fail;
-  }
-
-  if ( PL_is_variable(l) )
-  { intptr_t n;
-
-    if ( (n=lengthList(list, FALSE)) >= 0 )
-      return PL_unify_integer(l, n);
-
-    fail;			/* both variables: generate in Prolog */
-  }
-
-				/* large integer; we cannot represent anyway */
-  if ( PL_is_integer(l) )
+  } else if ( PL_is_integer(A2) )
   { number i;
-    Word p =  valTermRef(l);
+    Word p =  valTermRef(A2);
 
     deRef(p);
     get_integer(*p, &i);
     if ( ar_sign_i(&i) < 0 )
-      fail;
+      return FALSE;
 
     return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
   }
 
-  return PL_error("length", 2, NULL, ERR_TYPE, ATOM_integer, l);
+  return PL_error("length", 2, NULL, ERR_TYPE, ATOM_integer, A2);
 }
 
 
@@ -455,6 +465,7 @@ PRED_IMPL("keysort", 2, keysort, 0)
 
 BeginPredDefs(list)
   PRED_DEF("is_list", 1, is_list, 0)
+  PRED_DEF("$length", 2, dlength, 0)
   PRED_DEF("memberchk", 2, memberchk, 0)
   PRED_DEF("sort", 2, sort, PL_FA_ISO)
   PRED_DEF("msort", 2, msort, 0)

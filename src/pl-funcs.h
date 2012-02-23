@@ -296,9 +296,6 @@ COMMON(bool)		scan_global(int marked);
 /* pl-itf.c */
 COMMON(void)		resetForeign(void);
 
-/* pl-list.c */
-COMMON(word)		pl_length(term_t list, term_t l);
-
 /* pl-load.c */
 COMMON(word)		pl_load_shared_object(term_t file, term_t entry);
 COMMON(void)		cleanupForeign(void);

@@ -2438,24 +2438,27 @@ saved state.
 :- '$iso'((length/2)).
 
 length(List, Length) :-
-	(   nonvar(Length)
-	->  '$length'(List, Length)
-	;   '$skip_list'(Length0, List, Tail),
-	    (	Tail == []
-	    ->	Length = Length0
-	    ;	var(Tail)
-	    ->  '$length3'(Tail, Length, Length0)
-	    ;	throw(error(type_error(list,Tail),
+	'$skip_list'(Length0, List, Tail),
+	(   Tail == []				% proper list
+	->  Length = Length0
+	;   var(Tail)
+	->  (   integer(Length)
+	    ->	Extra is Length-Length0,
+		'$length'(Tail, Extra)
+	    ;   var(Length)
+	    ->	'$length3'(Tail, Length, Length0)
+	    ;	throw(error(type_error(integer,Length),
 			    context(length/2, _)))
 	    )
+	;   throw(error(type_error(list,Tail),
+			context(length/2, _)))
 	).
+
 
 '$length3'([], N, N).
 '$length3'([_|List], N, N0) :-
         succ(N0, N1),
         '$length3'(List, N, N1).
-
-
 
 
 		 /*******************************
