@@ -48,5 +48,7 @@ packages/protobufs/config.h.in
 packages/protobufs/configure
 packages/PDT/config.h.in
 packages/PDT/configure
+packages/utf8proc/config.h.in
+packages/utf8proc/configure
 src/config.h.in
 src/configure
