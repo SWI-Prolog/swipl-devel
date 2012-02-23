@@ -192,9 +192,12 @@ harmless_dcgexception(type_error(callable,_)).	% ex: phrase(27,L)
 contains_illegal_dcgnt(NT) :-
 	sub_term(I, NT),
 	nonvar(I),
-	( I = ! ; I = phrase(_,_,_) ), !.
-%	write(contains_illegal_nt(NT)),		% JW: we do not want to write
-%	nl.
+	illegal_dcgnt(I), !.
+
+illegal_dcgnt(!).
+illegal_dcgnt(phrase(_,_,_)).
+illegal_dcgnt((_->_)).
+
 
 		 /*******************************
 		 *	     ACTIVATE		*
