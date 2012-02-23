@@ -3416,7 +3416,7 @@ thread_get_message__LD(term_t queue, term_t msg, struct timespec *deadline ARG_L
 	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, queue);
         break;
       case MSG_WAIT_TIMEOUT:
-	rc = PL_unify_atom(msg, ATOM_timeout);
+	rc = FALSE;
         break;
       default:
 	;
@@ -3449,6 +3449,7 @@ static const opt_spec thread_get_message_options[] =
 static
 PRED_IMPL("thread_get_message", 3, thread_get_message, 0)
 { PRED_LD
+  struct timespec now;
   struct timespec deadline;
   struct timespec timeout;
   struct timespec *dlop=NULL;
@@ -3460,6 +3461,8 @@ PRED_IMPL("thread_get_message", 3, thread_get_message, 0)
 		     &tmo, &dlo) )
     return FALSE;
 
+  get_current_timespec(&now);
+
   if ( dlo != DBL_MAX )
   { double ip, fp;
 
@@ -3467,17 +3470,24 @@ PRED_IMPL("thread_get_message", 3, thread_get_message, 0)
     deadline.tv_sec = (time_t)ip;
     deadline.tv_nsec = (long)(fp*1000000000.0);
     dlop = &deadline;
+
+    if ( timespec_cmp(&deadline,&now) < 0 )
+      return FALSE;
   }
 
   if ( tmo != DBL_MAX )
-  { double ip, fp=modf(tmo,&ip);
+  { if ( tmo > 0.0 )
+    { double ip, fp=modf(tmo,&ip);
 
-    get_current_timespec(&timeout);
-    timeout.tv_sec  += (time_t)ip;
-    timeout.tv_nsec += (long)(fp*1000000000.0);
-    carry_timespec_nanos(&timeout);
-    if ( dlop==NULL || timespec_cmp(&timeout,&deadline) < 0 )
-      dlop = &timeout;
+      timeout.tv_sec  = now.tv_sec + (time_t)ip;
+      timeout.tv_nsec = now.tv_nsec + (long)(fp*1000000000.0);
+      carry_timespec_nanos(&timeout);
+      if ( dlop==NULL || timespec_cmp(&timeout,&deadline) < 0 )
+	dlop = &timeout;
+    } else if ( tmo == 0.0 )
+    { dlop = &now;				/* scan once */
+    } else
+      return FALSE;
   }
 
   return thread_get_message__LD(A1, A2, dlop PASS_LD);
