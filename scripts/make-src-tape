@@ -14,7 +14,7 @@ COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
 COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
 COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
 COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
-COREMODULES+=" packages/nlp packages/cpp packages/PDT"
+COREMODULES+=" packages/nlp packages/cpp packages/PDT packages/utf8proc"
 
 if [ -r modules ]; then
   SUBMODULES="`cat modules`"
