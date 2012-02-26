@@ -1,106 +1,35 @@
-Please search the section for your Linux distribution
+Installation on Linux should be trivial on most systems. Typically, this
+will do:
 
-################################################################
-# Debian dependency list as compiled by Nicolas Pelletier
-# Updated for Squeeze by Jan Wielemaker
-################################################################
+First time installation
+=======================
 
-List of packages needed to compile SWI Prolog on Debian 6.0 stable
-(Squeeze):
+  - Get the dependencies
+    See http://www.swi-prolog.org/build/LinuxDistro.txt for your distro.
+  - Get the source
+  - Go into the toplevel dir
+  - do
+	% cp build.templ build
+  - edit build. The defaults build the same as the binary distributions,
+    installing the system in $HOME/bin/swipl.
+  - do
+	% ./build
 
-binutils
-coreutils
-gcc
-grep
-libc6-dev
-libgmp3-dev
-libncursesw5-dev
-libreadline5-dev
-autoconf
-make
-sed
-curl
-chrpath
+Updating an installtion
+=======================
 
-List of packages needed to compile additional SWI Prolog packages on
-Debian 6.0 stable (Squeeze):
+  - From source archives
 
-For clib: no other package required
-For cpp: no other package required
-For odbc: unixodbc-dev
-For table: no other package required
-For xpce: libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev
-libxpm-dev libxt-dev pkg-config
-For sgml: no other package required
-For sgml/RDF: no other package required
-For semweb: no other package required
-For http: no other package required
-For chr: no other package required
-For clpqr: no other package required
-For nlp: no other package required
-For odbc: unixodbc-dev
-For ssl: libssl-dev
-For pldoc: no other package required
-For plunit: no other package required
-For jpl: openjdk-6-jdk junit
-For zlib: zlib1g-dev
+    - Unpack the new archive
+    - copy build from the previous installation
+    - do
+	% ./build
 
-Note 1: installing these packages triggers the automatic installation
-of other needed (dependent) packages.
-Note 2: JPL works with several Java implementations.  OpenJDK and SUN
-Java are both fine.
+  - From a version downloaded using git
 
-------------------------
-And now simple commands:
-------------------------
+    - do
+	% git pull
+	% ./prepare
+	% make distclean
+	% ./build
 
-To make life a bit easier for you we compiled a single-line apt-get
-command to get all SWI-Prolog's dependencies.  Simply copy-and-paste
-the command below in a terminal window and enter the sudo password
-to get everything installed.  Note that it does not matter than you
-may have some of these packages already present: apt-get will simply
-tell you they are installed and up-to-date.
-
-sudo apt-get install \
-	binutils coreutils gcc grep chrpath \
-	libc6-dev libncursesw5-dev libreadline5-dev \
-	libgmp3-dev \
-	make sed autoconf curl \
-	libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev \
-	libxpm-dev libxt-dev pkg-config \
-	libssl-dev \
-	unixodbc-dev \
-	openjdk-6-jdk junit \
-	zlib1g-dev
-
-The provided build.templ works fine for Debian and Ubuntu. Copy it to
-"build" and edit the installation prefix if you do not wish to install
-in your own $HOME/bin directory.  Then run
-
-	./build
-
---------------------------
-Building the documentation
---------------------------
-
-If you want to build the documentation from source you also need the
-following packages:
-
-	sudo apt-get install \
-		texlive-latex-base \
-		texlive-latex-recommended \
-		texlive-fonts-recommended
-
-################################################################
-# OpenSUSE 11.2
-################################################################
-
-For OpenSuSE 11.2, you need the following installed in addition
-to the basic X11/C/C++ development profile:
-
-zypper install \
-	git-core \
-	readline-devel \
-	unixODBC-devel \
-	libjpeg-devel \
-	java-1_6_0-openjdk-devel
