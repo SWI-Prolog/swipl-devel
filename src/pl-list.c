@@ -436,7 +436,7 @@ pl_nat_sort(term_t in, term_t out, int remove_dups, int compare_keys ARG_LD)
 
 
 static
-PRED_IMPL("sort", 2, sort, 0)
+PRED_IMPL("sort", 2, sort, PL_FA_ISO)
 { PRED_LD
 
   return pl_nat_sort(A1, A2, TRUE, FALSE PASS_LD);
@@ -452,7 +452,7 @@ PRED_IMPL("msort", 2, msort, 0)
 
 
 static
-PRED_IMPL("keysort", 2, keysort, 0)
+PRED_IMPL("keysort", 2, keysort, PL_FA_ISO)
 { PRED_LD
 
   return pl_nat_sort(A1, A2, FALSE, TRUE PASS_LD);

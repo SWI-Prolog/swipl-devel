@@ -159,7 +159,11 @@ public(Spec)		 :- '$set_pattr'(Spec, (public)).
 
 :- '$iso'((call/2,
 	   call/3,
-	   call/4)).
+	   call/4,
+	   call/5,
+	   call/6,
+	   call/7,
+	   call/8)).
 
 call(Goal) :-				% make these available as predicates
 	Goal.
@@ -195,6 +199,8 @@ once(Goal) :-
 ignore(Goal) :-
 	Goal, !.
 ignore(_Goal).
+
+:- '$iso'((false/0)).
 
 false :-					% SICStus compatibility
 	fail.

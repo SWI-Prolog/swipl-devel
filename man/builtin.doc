@@ -1230,11 +1230,11 @@ compound.
 True if \arg{Term} is bound to a compound term.  See also functor/3
 and =../2.
 
-    \predicate{callable}{1}{+Term}
+    \predicate[ISO]{callable}{1}{+Term}
 True if \arg{Term} is bound to an atom or a compound term, so it can
 be handed without type-error to call/1, functor/3 and =../2.
 
-    \predicate{ground}{1}{+Term}
+    \predicate[ISO]{ground}{1}{+Term}
 True if \arg{Term} holds no free variables.
 
     \predicate{cyclic_term}{1}{+Term}
@@ -1244,7 +1244,7 @@ See also acyclic_term/1 and \secref{cyclic}.%
 		  compatible with SICStus Prolog.  Some Prolog systems
 		  supporting cyclic terms use \nopredref{is_cyclic}{1}.}
 
-    \predicate{acyclic_term}{1}{+Term}
+    \predicate[ISO]{acyclic_term}{1}{+Term}
 True if \arg{Term} does not contain cycles,  i.e.\ can be processed
 recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
 \end{description}
@@ -1315,7 +1315,7 @@ True if \arg{Term1} is after \arg{Term2} in the standard order of terms.
 True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
 after \arg{Term2} in the standard order of terms.
 
-    \predicate{compare}{3}{?Order, +Term1, +Term2}
+    \predicate[ISO]{compare}{3}{?Order, +Term1, +Term2}
 Determine or test the \arg{Order} between two terms in the standard
 order of terms. \arg{Order} is one of \const{<}, \const{>} or \const{=},
 with the obvious meaning.
@@ -1487,7 +1487,7 @@ one_character_atoms(As) :-
     \predicate[ISO]{fail}{0}{}
 Always fail.  The predicate fail/0 is translated into a single virtual
 machine instruction.
-    \predicate{false}{0}{}
+    \predicate[ISO]{false}{0}{}
 Same as fail, but the name has a more declarative connotation.
     \predicate[ISO]{true}{0}{}
 Always succeed. The predicate true/0 is translated into a single virtual
@@ -1585,15 +1585,21 @@ while for normal calls this search is done at compile time.
 Invoke \arg{Goal} as a goal. Note that clauses may have variables as
 subclauses, which is identical to call/1.
 
-    \predicate{call}{2}{:Goal, +ExtraArg1, \ldots}		% 2..
+    \predicate[ISO]{call}{2}{:Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
 \arg{Goal} and call the result. For example, \exam{call(plus(1), 2, X)}
 will call \exam{plus(1, 2, X)}, binding \arg{X} to 3.
 
-The call/[2..] construct is handled by the compiler, which implies that
-redefinition as a predicate has no effect.  The predicates call/[2-6]
-are defined as real predicates, so they can be handled by interpreted
-code.
+The call/[2..] construct is handled by the compiler. The predicates
+call/[2-8] are defined as real (meta-)predicates and are available to
+inspection through current_predicate/1, predicate_property/2,
+etc.\footnote{Arities 2..8 are demanded by ISO/IEC
+13211-1:1995/Cor.2:2012.} Higher arities are handled by the compiler and
+runtime system, but the predicates are not accessible for
+inspection.\footnote{Future versions of the reflective predicate may
+fake the presense of \nopredref{call}{9..}. Full logical behaviour,
+generationg all these pseudo predicates is probably undesirable and will
+become impossible if \jargon{max_arity} is removed.}
 
     \predicate{apply}{2}{:Goal, +List}
 Append the members of \arg{List} to the arguments of \arg{Goal} and call
@@ -2339,7 +2345,7 @@ packages.  Use in other context is discouraged.
 When \arg{Term} is an atom or a term it is unified with the first unifying fact
 or clause in the database. The fact or clause is removed from the database.
 
-    \predicate{retractall}{1}{+Head}
+    \predicate[ISO]{retractall}{1}{+Head}
 All facts or clauses in the database for which the \arg{head}
 unifies with \arg{Head} are removed. If \arg{Head} refers to a predicate
 that is not defined, it is implicitly created as a dynamic predicate.
@@ -4232,7 +4238,7 @@ unification with \verb!'$VAR'(X)! and opens the path for replacing this
 valid Prolog term by an internal representation that has no textual
 equivalent.
 
-    \predicate{term_variables}{2}{+Term, -List}
+    \predicate[ISO]{term_variables}{2}{+Term, -List}
 Unify \arg{List} with a list of variables, each sharing with a unique variable
 of \arg{Term}.%
 	\footnote{This predicate used to be called
@@ -5101,7 +5107,7 @@ overflow automatically convert to floating point arithmetic.
     \prefixfunction[ISO]{-}{+Expr}
 $\arg{Result} = -\arg{Expr}$
 
-    \prefixfunction{+}{+Expr}
+    \prefixfunction[ISO]{+}{+Expr}
 $\arg{Result} = \arg{Expr}$.  Note that if \chr{+} is followed by a number
 the parser discards the \chr{+}.  I.e.\ \verb$?- integer(+1)$ succeeds.
 
@@ -5171,13 +5177,13 @@ Evaluate \arg{Expr} and return the absolute value of it.
 Evaluate to -1 if $\arg{Expr} < 0$, 1 if $\arg{Expr} > 0$ and 0 if
 $\arg{Expr} = 0$.
 
-    \function{max}{2}{+Expr1, +Expr2}
+    \function[ISO]{max}{2}{+Expr1, +Expr2}
 Evaluates to the largest of both \arg{Expr1} and \arg{Expr2}.  Both
 arguments are compared after converting to the same type, but the
 return value is in the original type.  For example, max(2.5, 3) compares
 the two values after converting to float, but returns the integer 3.
 
-    \function{min}{2}{+Expr1, +Expr2}
+    \function[ISO]{min}{2}{+Expr1, +Expr2}
 Evaluates to the smallest of both \arg{Expr1} and \arg{Expr2}. See
 \funcref{max}{2} for a description of type-handling.
 
@@ -5319,11 +5325,11 @@ $\arg{Result} = \sqrt{\arg{Expr}}$
 $\arg{Result} = \sin{\arg{Expr}}$. \arg{Expr} is the angle in radians.
     \function[ISO]{cos}{1}{+Expr}
 $\arg{Result} = \cos{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-    \function{tan}{1}{+Expr}
+    \function[ISO]{tan}{1}{+Expr}
 $\arg{Result} = \tan{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-    \function{asin}{1}{+Expr}
+    \function[ISO]{asin}{1}{+Expr}
 $\arg{Result} = \arcsin{\arg{Expr}}$. \arg{Result} is the angle in radians.
-    \function{acos}{1}{+Expr}
+    \function[ISO]{acos}{1}{+Expr}
 $\arg{Result} = \arccos{\arg{Expr}}$. \arg{Result} is the angle in radians.
     \function[ISO]{atan}{1}{+Expr}
 $\arg{Result} = \arctan{\arg{Expr}}$. \arg{Result} is the angle in radians.
@@ -5354,7 +5360,7 @@ formula is required for Diffie-Hellman key-exchange, a technique where
 two parties can establish a secret key over a public network.
     \infixfunction{^}{+Expr1}{+Expr2}
 Same as \funcref{**}{2} (backward compatibility).
-    \function{pi}{0}{}
+    \function[ISO]{pi}{0}{}
 Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
     \function{e}{0}{}
 Evaluates to the mathematical constant $e$ (2.71828\ldots).
@@ -5503,7 +5509,7 @@ predicate is non-deterministic, producing lists of increasing length if
 raises errors if \arg{List} is not a list or partial list or \arg{Int}
 is not an integer or unbound.
 
-    \predicate{sort}{2}{+List, -Sorted}
+    \predicate[ISO]{sort}{2}{+List, -Sorted}
 True if \arg{Sorted} can be unified with a list holding the
 elements of \arg{List}, sorted to the standard order of terms (see
 \secref{compare}).  Duplicates are removed.  The implementation is
@@ -5516,7 +5522,7 @@ version with the same elements.
 Equivalent to sort/2, but does not remove duplicates. Raises a
 \except{type_error} if \arg{List} is a cyclic list or not a list.
 
-    \predicate{keysort}{2}{+List, -Sorted}
+    \predicate[ISO]<{keysort}{2}{+List, -Sorted}
 List is a proper list whose elements are \exam{\arg{Key}-\arg{Value}},
 that is, terms whose principal functor is (-)/2, whose first argument is
 the sorting key, and whose second argument is the satellite data to be
