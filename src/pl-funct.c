@@ -95,7 +95,10 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
   f->functor = 0L;
   f->name    = atom;
   f->arity   = arity;
-  f->flags   = 0;
+  if ( atom == ATOM_call && arity > 8 )
+    f->flags = CONTROL_F;
+  else
+    f->flags   = 0;
   f->next    = functorDefTable[v];
   functorDefTable[v] = f;
   registerFunctor(f);

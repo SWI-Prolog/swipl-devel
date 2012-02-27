@@ -137,14 +137,6 @@ public(Spec)		 :- '$set_pattr'(Spec, (public)).
 	call_cleanup(0,0),
 	call_cleanup(0,?,0).
 
-/* Currently, meta_predicate is only supported upto arity 8
-*/
-
-:- module_transparent
-	call/9,
-	call/10,
-	call/11.
-
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (',')/2, (->)/2, catch/3)).
 
 %   ->/2, ;/2, |/2 and \+/1 are normally compiled. These predicate catch them
@@ -185,12 +177,6 @@ call(Goal, A, B, C, D, E, F) :-
 	call(Goal, A, B, C, D, E, F).
 call(Goal, A, B, C, D, E, F, G) :-
 	call(Goal, A, B, C, D, E, F, G).
-call(Goal, A, B, C, D, E, F, G, H) :-
-	call(Goal, A, B, C, D, E, F, G, H).
-call(Goal, A, B, C, D, E, F, G, H, I) :-
-	call(Goal, A, B, C, D, E, F, G, H, I).
-call(Goal, A, B, C, D, E, F, G, H, I, J) :-
-	call(Goal, A, B, C, D, E, F, G, H, I, J).
 
 not(Goal) :-
 	\+ Goal.
