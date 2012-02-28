@@ -18,6 +18,8 @@ test_expand :-
 :- dynamic
 	user:term_expansion/2,
 	user:goal_expansion/2.
+:- discontiguous
+	goal_expansion/2.
 
 user:term_expansion(b2c, final_c).
 
@@ -43,6 +45,22 @@ e_not :-
 
 g_c.
 
+% Test meta-predicate declaration before (local) definition of the
+% predicate.
+
+goal_expansion(foo, bar).
+
+:- meta_predicate
+	run(0).
+
+test_foo_bar :-
+	run(foo).
+
+bar.
+
+run(Goal) :- Goal.
+
+
 		 /*******************************
 		 *	       TESTS		*
 		 *******************************/
@@ -57,5 +75,7 @@ test(chained_term_expansion, B == true) :-
 	clause(final_c, B).
 test(meta_arg, [fail]) :-
 	e_not.
+test(goal_expansion_local_pred) :-
+	test_foo_bar.
 
 :- end_tests(expand).

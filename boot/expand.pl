@@ -211,12 +211,10 @@ expand_goal(M:G, M:EG, _M, _MList, Term) :-
 			   '$set_source_module'(_, Old)).
 expand_goal(G0, G, M, MList, Term) :-
 	callable(G0),
-	functor(G0, N, A),
 	(   default_module(M, M2),
-	    current_predicate(M2:N/A)
-	->  true
+	    '$get_predicate_attribute'(M2:G0, meta_predicate, Head)
+	->  true		% is a meta-pred without clauses defined?
 	),
-	'$get_predicate_attribute'(M2:G0, meta_predicate, Head),
 	has_meta_arg(Head),
 	expand_meta(Head, G0, G, M, MList, Term),
 	G0 \== G, !.
