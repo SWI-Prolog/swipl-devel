@@ -405,8 +405,8 @@ initialise_prolog :-
 %	Actually run the toplevel. If there  is   a  syntax error in the
 %	goal there is no reason to   persue.  Something like that should
 %	happen to repetitive exceptions in the toplevel as well, but how
-%	do we distinguish between a stupid   user and a program crashing
-%	in a loop?
+%	do we distinguish between  interactive   usage  that  frequently
+%	raises and error and a program crashing in a loop?
 %
 %	@see prolog/0 is the default interactive toplevel
 
@@ -436,6 +436,12 @@ toplevel_goal(Goal, Goal).
 		/********************************
 		*    USER INTERACTIVE LOOP      *
 		*********************************/
+
+%%	prolog
+%
+%	Run the Prolog toplevel. This is now  the same as break/0, which
+%	pretends  to  be  in  a  break-level    if  there  is  a  parent
+%	environment.
 
 prolog :-
 	break.
