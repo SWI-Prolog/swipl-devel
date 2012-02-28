@@ -1036,19 +1036,16 @@ load_files/2.\bug{Option processing is currently incomplete.}
 \end{description}
 
 
-\section{Listing and Editor Interface}	\label{sec:listing}
+\section{Editor Interface}	\label{sec:edit}
 
 SWI-Prolog offers an extensible interface which allows the user to
 edit objects of the program: predicates, modules, files, etc.  The
 editor interface is implemented by edit/1 and consists of three parts:
 {\em locating}, {\em selecting} and {\em starting the editor}.
-
-Any of these parts may be extended or redefined by adding clauses to
-various multi-file (see multifile/1) predicates defined in the module
-\module{prolog_edit}.
+Any of these parts may be customized.  See \secref{customedit}.
 
 The built-in edit specifications for edit/1 (see prolog_edit:locate/3)
-are described below.
+are described in the table below.
 
 \begin{center}
 \begin{tabular}{|l|p{3.5in}|}
@@ -1084,7 +1081,16 @@ basename of a file, XPCE class, XPCE method, etc.
 Edit the `default' file using edit/1.  The default file is the file
 loaded with the command-line option \cmdlineoption{-s} or, in windows,
 the file loaded by double-clicking from the Windows shell.
+\end{description}
 
+\subsection{Customizing the editor interface}
+\label{sec:customedit}
+
+The predicates described in this section are \jargon{hooks} can that be
+defined to disambiguate specifications given to edit/1, find the related
+source and open an editor at the given source location.
+
+\begin{description}
     \predicate{prolog_edit:locate}{3}{+Spec, -FullSpec, -Location}
 Where \arg{Spec} is the specification provided through edit/1.  This
 multifile predicate is used to enumerate locations at with an object
@@ -1121,20 +1127,32 @@ Windows.
 See the default user preferences file \file{dotfiles/dotplrc} for examples.
 
     \predicate{prolog_edit:edit_command}{2}{+Editor, -Command}
-Determines how \arg{Editor} is to be invoked using shell/1.
-\arg{Editor} is the determined editor (see edit_source/1), without
-the full path specification, and without possible (exe) extension.
-\arg{Command} is an atom describing the command.  The pattern
-\verb$%f$ is replaced by the full file-name of the location, and
-\verb$%d$ by the line number.  If the editor can deal with starting
-at a specified line, two clauses should be provided, one holding only
-the \verb$%f$ pattern, and one holding both patterns.
+Determines how \arg{Editor} is to be invoked using shell/1. \arg{Editor}
+is the determined editor (see edit_source/1), without the full path
+specification, and without possible (exe) extension. \arg{Command} is an
+atom describing the command. The following \%-sequences are relaced in
+\arg{Command} before the result is handed to shell/1:
+
+\begin{center}
+\begin{tabular}{|l|p{3.5in}|}
+\hline
+\%e	& Replaced by the (OS) command name of the editor \\
+\%f	& Replaced by the (OS) full path-name of the file \\
+\%d	& Replaced by the line-number \\
+\hline
+\end{tabular}
+\end{center}
+
+If the editor can deal with starting at a specified line, two clauses
+should be provided. The first pattern invokes the editor with a
+line-number, while the second is used if the line number is unknown.
 
 The default contains definitions for \program{vi}, \program{emacs},
-\program{emacsclient}, \program{vim} and \program{notepad} (latter
-without line-number version).
+\program{emacsclient}, \program{vim}, \program{notepad}$^*$ and
+\program{wordpad}$^*$.  Starred editors do not provide starting
+at a given line number.
 
-Please contribute your specifications to \email{jan@swi.psy.uva.nl}.
+Please contribute your specifications to \email{bugs@swi-prolog.org}.
 
     \predicate{prolog_edit:load}{0}{}
 Normally not-defined multifile predicate.  This predicate may be defined
@@ -1149,14 +1167,28 @@ to the PceEmacs built-in editor.
 prolog_edit:load :-
 	ensure_loaded(library(swi_edit)).
 \end{code}
+\end{description}
 
-    \predicate{listing}{1}{+Pred}
-List specified predicates (when an atom is given all predicates with
-this name will be listed).  The listing is produced on the basis of the
-internal representation, thus losing user's layout and variable name
-information.  See also portray_clause/1.
+\section{List the program, predicates or clauses}	\label{sec:listing}
+
+\begin{description}
+    \predicate{listing}{1}{:Pred}
+List predicates specified by \arg{Pred}.  \arg{Pred} may be a predicate
+name (atom), which lists all predicates with this name, regardless or
+their arity.  It can also be a predicate indicator (<name>/<arity> or
+<name>//<arity>), possibly qualified with a module.  For example:
+\exam{?- listing(lists:member/2).}.
+
+A listing is produced by enumerating the clauses of the predicate using
+clause/2 and printing each clause using portray_clause/1.  This implies
+that the variable names are generated (\arg{A}, \arg{B}, \ldots) and
+the layout is defined by rules in portray_clause/1.
+
     \predicate{listing}{0}{}
-List all predicates of the database using listing/1.
+List all predicates from the calling module using listing/1.  E.g.,
+\exam{?- listing.} lists clauses in the default \const{user} module
+and \exam{?- lists:listing.} lists the clauses in the module
+\const{lists}.
 
     \predicate{portray_clause}{1}{+Clause}
 Pretty print a clause. A clause should be specified as a term
@@ -1172,24 +1204,29 @@ Pretty print a clause to \arg{Stream}. See portray_clause/1 for details.
 
 \section{Verify Type of a Term}			\label{sec:typetest}
 
+Type tests are semi deterministic predicates that succeed if the
+argument satisfies the requested type. Type-test predicates have no
+error condition and do not instantiate their argument. See also library
+\pllib{error}.
+
 \begin{description}
-    \predicate[ISO]{var}{1}{+Term}
+    \predicate[ISO]{var}{1}{@Term}
 True if \arg{Term} currently is a free variable.
-    \predicate[ISO]{nonvar}{1}{+Term}
+    \predicate[ISO]{nonvar}{1}{@Term}
 True if \arg{Term} currently is not a free variable.
-    \predicate[ISO]{integer}{1}{+Term}
+    \predicate[ISO]{integer}{1}{@Term}
 True if \arg{Term} is bound to an integer.
-    \predicate[ISO]{float}{1}{+Term}
+    \predicate[ISO]{float}{1}{@Term}
 True if \arg{Term} is bound to a floating point number.
-    \predicate{rational}{1}{+Term}
+    \predicate{rational}{1}{@Term}
 True if \arg{Term} is bound to a rational number.  Rational numbers
 include integers.
-    \predicate{rational}{3}{+Term, -Numerator, -Denominator}
+    \predicate{rational}{3}{@Term, -Numerator, -Denominator}
 True if \arg{Term} is a rational number with given \arg{Numerator} and
 \arg{Denominator}.  The \arg{Numerator} and \arg{Denominator} are in
 canonical form, which means \arg{Denominator} is a positive integer and
 there are no common divisors between \arg{Numerator} and \arg{Denominator}.
-    \predicate[ISO]{number}{1}{+Term}
+    \predicate[ISO]{number}{1}{@Term}
 True if \arg{Term} is bound to an integer or floating point number.%
 	\footnote{As rational numbers are not atomic in the current
 		  implementation and we do not want to break the rule
@@ -1197,14 +1234,14 @@ True if \arg{Term} is bound to an integer or floating point number.%
 		  rational numbers. This will change if rational numbers
 		  become atomic.}
 
-    \predicate[ISO]{atom}{1}{+Term}
+    \predicate[ISO]{atom}{1}{@Term}
 True if \arg{Term} is bound to an atom.
 
     \predicate{blob}{2}{@Term, ?Type}
 True if \arg{Term} is a \jargon{blob} of type \arg{Type}. See
 \secref{blob}.
 
-    \predicate{string}{1}{+Term}
+    \predicate{string}{1}{@Term}
 True if \arg{Term} is bound to a string. Note that string here
 refers to the built-in atomic type string as described in
 \secref{strings},  Text in double quotes such as \verb|"hello"|
@@ -1220,31 +1257,31 @@ No
 Yes
 \end{code}
 
-    \predicate[ISO]{atomic}{1}{+Term}
+    \predicate[ISO]{atomic}{1}{@Term}
 True if \arg{Term} is bound to an atom, string, integer or floating
 point number. Note that string refers to the built-in type. See
 string/1.  Strings in the classical Prolog sense are lists and therefore
 compound.
 
-    \predicate[ISO]{compound}{1}{+Term}
+    \predicate[ISO]{compound}{1}{@Term}
 True if \arg{Term} is bound to a compound term.  See also functor/3
 and =../2.
 
-    \predicate[ISO]{callable}{1}{+Term}
+    \predicate[ISO]{callable}{1}{@Term}
 True if \arg{Term} is bound to an atom or a compound term, so it can
 be handed without type-error to call/1, functor/3 and =../2.
 
-    \predicate[ISO]{ground}{1}{+Term}
+    \predicate[ISO]{ground}{1}{@Term}
 True if \arg{Term} holds no free variables.
 
-    \predicate{cyclic_term}{1}{+Term}
+    \predicate{cyclic_term}{1}{@Term}
 True if \arg{Term} contains cycles, i.e.\ is an infinite term.
 See also acyclic_term/1 and \secref{cyclic}.%
 	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
 		  compatible with SICStus Prolog.  Some Prolog systems
 		  supporting cyclic terms use \nopredref{is_cyclic}{1}.}
 
-    \predicate[ISO]{acyclic_term}{1}{+Term}
+    \predicate[ISO]{acyclic_term}{1}{@Term}
 True if \arg{Term} does not contain cycles,  i.e.\ can be processed
 recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
 \end{description}
@@ -1255,7 +1292,7 @@ Although unification is mostly done implicitly while matching the
 head of a predicate, it is also provided by the predicate =/2.
 
 \begin{description}
-    \infixop[ISO]{=}{+Term1}{+Term2}
+    \infixop[ISO]{=}{?Term1}{?Term2}
 Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
 For behaviour on cyclic terms see the Prolog flag
 \prologflag{occurs_check}. It acts as if defined by the following fact.
@@ -1264,7 +1301,7 @@ For behaviour on cyclic terms see the Prolog flag
 =(Term, Term).
 \end{code}
 
-    \infixop[ISO]{\=}{+Term1}{+Term2}
+    \infixop[ISO]{\=}{@Term1}{@Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.  See also dif/2.
 \end{description}
 
@@ -1294,28 +1331,28 @@ so called ``standard order''. This order is defined as follows:
 
 
 \begin{description}
-    \infixop[ISO]{==}{+Term1}{+Term2}
+    \infixop[ISO]{==}{@Term1}{@Term2}
 True if \arg{Term1} is equivalent to \arg{Term2}. A variable is only
 identical to a sharing variable.
 
-    \infixop[ISO]{\==}{+Term1}{+Term2}
+    \infixop[ISO]{\==}{@Term1}{@Term2}
 Equivalent to \exam{\Snot Term1 == Term2}.
 
-    \infixop[ISO]{@<}{+Term1}{+Term2}
+    \infixop[ISO]{@<}{@Term1}{@Term2}
 True if \arg{Term1} is before \arg{Term2} in the standard order of terms.
 
-    \infixop[ISO]{@=<}{+Term1}{+Term2}
+    \infixop[ISO]{@=<}{@Term1}{@Term2}
 True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
 before \arg{Term2} in the standard order of terms.
 
-    \infixop[ISO]{@>}{+Term1}{+Term2}
+    \infixop[ISO]{@>}{@Term1}{@Term2}
 True if \arg{Term1} is after \arg{Term2} in the standard order of terms.
 
-    \infixop[ISO]{@>=}{+Term1}{+Term2}
+    \infixop[ISO]{@>=}{@Term1}{@Term2}
 True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
 after \arg{Term2} in the standard order of terms.
 
-    \predicate[ISO]{compare}{3}{?Order, +Term1, +Term2}
+    \predicate[ISO]{compare}{3}{?Order, @Term1, @Term2}
 Determine or test the \arg{Order} between two terms in the standard
 order of terms. \arg{Order} is one of \const{<}, \const{>} or \const{=},
 with the obvious meaning.
