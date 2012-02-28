@@ -15,7 +15,7 @@ over all threads.
     \predicate{gensym}{2}{+Base, -Unique}
 Generate a unique atom from base \arg{Base} and unify it with \arg{Unique}.
 \arg{Base} should be an atom. The first call will return \mbox{<base>1}, 
-the next \mbox{<base>2}, etc. Note that this is no warrant that the atom
+the next \mbox{<base>2}, etc. Note that this is no guarantee that the atom
 is unique in the system.
 
     \predicate{reset_gensym}{1}{+Base}
@@ -25,7 +25,7 @@ with care.
 
     \predicate{reset_gensym}{0}{}
 Reset gensym for all registered keys.  This predicate is available for
-compatibility only.  New code is strongly advice to avoid the use of
+compatibility only.  New code is strongly advised to avoid the use of
 reset_gensym or at least to reset only the keys used by your program
-to avoid unexpected site-effects on other components.
+to avoid unexpected side effects on other components.
 \end{description}

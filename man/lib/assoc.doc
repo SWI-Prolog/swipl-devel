@@ -64,7 +64,7 @@ expected time (and worst-case time) operation.
 		with the smallest key in \arg{Assoc}.
 
 	\predicate{ord_list_to_assoc}{2}{+List, ?Assoc}
-		\arg{Assoc} is an association list correpsond to the Key-Value
+		\arg{Assoc} is an association list correspond to the Key-Value
 		pairs in \arg{List}, which must occur in ascending order of
 		their keys.
 

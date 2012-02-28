@@ -11,20 +11,20 @@ style has been changed to be more in line with the rest of SWI-Prolog.}
 
 {\it
 The ugraphs library was originally released in the public domain.
-YAP is convered by the Perl artistic license, which does not imply
+YAP is covered by the Perl artistic license, which does not imply
 further restrictions on the SWI-Prolog LGPL license.}
 \end{quote}
 
-The routines assume directed graphs, undirected graphs may be
+The routines assume directed graphs; undirected graphs may be
 implemented by using two edges.
 
-Originally graphs where represented in two formats. The SICStus library
-and this version of \pllib{ugraphs.pl} only uses the
+Originally graphs were represented in two formats. The SICStus library
+and this version of \pllib{ugraphs.pl} only use the
 \jargon{S-representation}. The S-representation of a graph is a list of
 (vertex-neighbors) pairs, where the pairs are in standard order (as
 produced by keysort) and the neighbors of each vertex are also in
 standard order (as produced by sort). This form is convenient for many
-calculations.   Each vertex appears in the S-representation, also if it
+calculations.   Each vertex appears in the S-representation, even if it
 has no neighbors.
 
 
@@ -32,8 +32,8 @@ has no neighbors.
     \predicate{vertices_edges_to_ugraph}{3}{+Vertices, +Edges, -Graph}
 Given a graph with a set of \arg{Vertices} and a set of \arg{Edges},
 \arg{Graph} must unify with the corresponding S-representation. Note
-that the vertices without edges will appear in \arg{Vertices} but not in
-\arg{Edges}. Moreover, it is sufficient for a vertice to appear in
+that vertices without edges will appear in \arg{Vertices} but not in
+\arg{Edges}. Moreover, it is sufficient for a vertex to appear in
 \arg{Edges}. 
  
 \begin{code}
@@ -50,15 +50,14 @@ L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[], 6-[], 7-[], 8-[]] ?
 \end{code}
 
     \predicate{vertices}{2}{+Graph, -Vertices}
-Unify \arg{Vertices} with all vertices appearing in graph \arg{Graph}. Example: 
+Unify \arg{Vertices} with all vertices appearing in \arg{Graph}. Example:
 \begin{code}
 ?- vertices([1-[3,5],2-[4],3-[],4-[5],5-[]], L).
 L = [1, 2, 3, 4, 5]
 \end{code}
 
     \predicate{edges}{2}{+Graph, -Edges}
-Unify \arg{Edges} with all edges appearing in \arg{Graph}. In the next
-example: 
+Unify \arg{Edges} with all edges appearing in \arg{Graph}. Example:
  
 \begin{code}
 ?- edges([1-[3,5],2-[4],3-[],4-[5],5-[]], L).
@@ -67,7 +66,7 @@ L = [1-3, 1-5, 2-4, 4-5]
 
     \predicate{add_vertices}{3}{+Graph, +Vertices, -NewGraph}
 Unify \arg{NewGraph} with a new graph obtained by adding the list of
-\arg{Vertices} to the \arg{Graph}. Example: 
+\arg{Vertices} to \arg{Graph}. Example:
  
 \begin{code}
 ?- add_vertices([1-[3,5],2-[]], [0,1,2,9], NG).
@@ -76,8 +75,8 @@ NG = [0-[], 1-[3,5], 2-[], 9-[]]
 
     \predicate{del_vertices}{3}{+Graph, +Vertices, -NewGraph}
 Unify \arg{NewGraph} with a new graph obtained by deleting the list of
-\arg{Vertices} and all the edges that start from or go to a vertex in
-\arg{Vertices} to the \arg{Graph}. Example: 
+\arg{Vertices} and all edges that start from or go to a vertex in
+\arg{Vertices} from \arg{Graph}. Example:
  
 \begin{code}
 ?- del_vertices([2,1],
@@ -87,8 +86,8 @@ NL = [3-[],4-[5],5-[],6-[],7-[6],8-[]]
 \end{code}
 
     \predicate{add_edges}{3}{+Graph, +Edges, -NewGraph}
-Unify \arg{NewGraph} with a new graph obtained by adding the list of edges
-\arg{Edges} to the graph \arg{Graph}. Example: 
+Unify \arg{NewGraph} with a new graph obtained by adding the list of
+\arg{Edges} to \arg{Graph}. Example:
  
 \begin{code}
 ?- add_edges([1-[3,5],2-[4],3-[],4-[5],5-[],6-[],7-[],8-[]],
@@ -99,8 +98,7 @@ NL = [1-[3,5,6], 2-[3,4], 3-[2], 4-[5], 5-[7], 6-[], 7-[], 8-[]]
 
     \predicate{del_edges}{3}{+Graph, +Edges, -NewGraph}
 Unify \arg{NewGraph} with a new graph obtained by removing the list of
-\arg{Edges} from the \arg{Graph}. Notice that no vertices are deleted. In the
-next example: 
+\arg{Edges} from \arg{Graph}. Notice that no vertices are deleted. Example:
  
 \begin{code}
 ?- del_edges([1-[3,5],2-[4],3-[],4-[5],5-[],6-[],7-[],8-[]],
@@ -145,7 +143,7 @@ NL = [1-[2,4,6,7,8],2-[1,3,5,6,7,8],3-[1,2,4,5,6,7,8],
 \end{code}
 
     \predicate{compose}{3}{+LeftGraph, +RightGraph, -NewGraph}
-Compose, by connecting the \jargon{drains} of \arg{LeftGraph} to
+Compose \arg{NewGraph} by connecting the \jargon{drains} of \arg{LeftGraph} to
 the \jargon{sources} of \arg{RightGraph}.   Example: 
  
 \begin{code}
@@ -162,7 +160,7 @@ L = [1-[2], 2-[3,4], 3-[1,2,4]]
 \end{code}
 
     \predicate{top_sort}{2}{+Graph, -Sort}
-Generate the set of nodes \arg{Sort} as a topological sorting of graph
+Generate the set of nodes \arg{Sort} as a topological sorting of
 \arg{Graph}, if one is possible. A toplogical sort is possible if the
 graph is connected and acyclic. In the example we show how topological
 sorting works for a linear graph: 
@@ -174,10 +172,10 @@ L = [1, 2, 3]
 
     \predicate{top_sort}{3}{+Graph, -Sort0, -Sort}
 Generate the difference list Sort-Sort0 as a topological sorting of
-graph \arg{Graph}, if one is possible.
+\arg{Graph}, if one is possible.
 
     \predicate{transitive_closure}{2}{+Graph, -Closure}
-Generate the graph Closure as the transitive closure of graph
+Generate the graph Closure as the transitive closure of
 \arg{Graph}. Example: 
  
 \begin{code}
@@ -186,7 +184,7 @@ L = [1-[2,3,4,5,6], 2-[4,5,6], 4-[6]]
 \end{code}
 
     \predicate{reachable}{3}{+Vertex, +Graph, -Vertices}
-Unify \arg{Vertices} with the set of all vertices in graph \arg{Graph} that are
+Unify \arg{Vertices} with the set of all vertices in \arg{Graph} that are
 reachable from \arg{Vertex}. Example: 
  
 \begin{code}
