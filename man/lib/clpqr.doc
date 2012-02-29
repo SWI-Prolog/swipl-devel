@@ -23,7 +23,7 @@ constraints on the same variable will result in an exception.
 
 Please note that the \pllib{clpqr} library is \emph{not} an
 \jargon{autoload} library and therefore this library must be loaded
-explicitely before using it:
+explicitly before using it:
 
 \begin{code}
 :- use_module(library(clpq)).
@@ -61,7 +61,7 @@ predicate does not change the constraint store.
 
 	\predicate{minimize}{1}{+Expression}
 Minimizes \arg{Expression} within the current constraint store. This is
-the same as computing the infimum and equation the expression to that
+the same as computing the infimum and equating the expression to that
 infimum.
 
 	\predicate{maximize}{1}{+Expression}
@@ -89,14 +89,14 @@ the values of the integers. In CLP(R), an error margin of 0.001 is used.
 
 	\predicate{dump}{3}{+Target, +Newvars, -CodedAnswer}
 Returns the constraints on \arg{Target} in the list \arg{CodedAnswer}
-where all variables of \arg{Target} have veen replaced by \arg{NewVars}.
+where all variables of \arg{Target} have been replaced by \arg{NewVars}.
 This operation does not change the constraint store. E.g.\ in
 
 \begin{code}
 dump([X,Y,Z],[x,y,z],Cons)
 \end{code}
 
-Cons will contain the constraints on X, Y and Z where these variables
+\verb$Cons$ will contain the constraints on X, Y and Z, where these variables
 have been replaced by atoms x, y and z.
 
 \end{description}
