@@ -315,21 +315,26 @@ editor(_) :-				% No luck
 %		| %d | Line number of the target	  |
 
 
-edit_command(vi,	  '%e +%d ''%f''').
-edit_command(vi,	  '%e ''%f''').
-edit_command(emacs,	  '%e +%d ''%f''').
-edit_command(emacs,	  '%e ''%f''').
+edit_command(vi,	  '%e +%d \'%f\'').
+edit_command(vi,	  '%e \'%f\'').
+edit_command(emacs,	  '%e +%d \'%f\'').
+edit_command(emacs,	  '%e \'%f\'').
 edit_command(notepad,     '"%e" "%f"').
 edit_command(wordpad,     '"%e" "%f"').
 edit_command(uedit32,     '%e "%f/%d/0"').	% ultraedit (www.ultraedit.com)
-edit_command(edit,        '%e %f:%d').		% private stuff
+edit_command(jedit,	  '%e -wait \'%f\' +line:%d').
+edit_command(jedit,	  '%e -wait \'%f\'').
+edit_command(edit,        '%e %f:%d').		% PceEmacs client script
 edit_command(edit,        '%e %f').
 
 edit_command(emacsclient, Command) :- edit_command(emacs, Command).
 edit_command(vim,         Command) :- edit_command(vi,    Command).
 
 substitute(From, ToAtom, Old, New) :-
-	name(ToAtom, To),
+	(   atom(ToAtom)
+	->  atom_codes(ToAtom, To)
+	;   number_codes(ToAtom, To)
+	),
 	append(Pre, S0, Old),
 	append(From, Post, S0) ->
 	append(Pre, To, S1),
