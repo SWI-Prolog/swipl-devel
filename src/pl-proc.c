@@ -1577,7 +1577,7 @@ pl_garbage_collect_clauses(void)
 
       next = cell->next;
 
-      if ( false(def, DYNAMIC) )
+      if ( false(def, DYNAMIC|FOREIGN) )
       { if ( def->references )
 	{ assert(def->references == 1);
 	  def->references = 0;

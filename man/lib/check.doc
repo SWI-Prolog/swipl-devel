@@ -15,14 +15,14 @@ your program.
 
     \predicate{list_undefined}{0}{}
 Scans the database for predicates that have no definition.  A predicate
-is considered defined if it has clauses, is declared using dynamic/1 or
-multifile/1.  As a program is compiled calls are translated to
+is considered defined if it has clauses or is declared using dynamic/1 or
+multifile/1.  As a program is compiled, calls are translated to
 predicates.  If the called predicate is not yet defined it is created
 as a predicate without definition. The same happens with runtime
 generated calls.  This predicate lists all such undefined predicates
 that are referenced and not defined in the library. See also
 list_autoload/0. Below is an example from a real program and an
-illustration how to edit the referencing predicate using edit/1.
+illustration of how to edit the referencing predicate using edit/1.
 
 \begin{code}
 ?- list_undefined.
@@ -46,6 +46,6 @@ be autoloaded when accessed.  See also autoload/0.
 
     \predicate{list_redefined}{0}{}
 Lists predicates that are defined in the global module \const{user}
-as well as in a normal module.  I.e.\ predicates for which the local
+as well as in a normal module; that is, predicates for which the local
 definition overrules the global default definition.
 \end{description}

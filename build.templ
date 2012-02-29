@@ -49,19 +49,21 @@ MAKE=make
 # export CIFLAGS=
 # export LDFLAGS="-O2 -g"
 
-# On MacOS you need this to get some libraries from Macports.  Recent
-# Xcode versions provide an LLVM based GCC, which provides *very* slow
-# support for GCC's `threaded code' extension (5-20 times slower).  If
-# you want optimal performance, install and select the non-llvm version
-# of gcc.
+# On MacOS you need this to  get   some  libraries  from Macports. Since
+# recently, there are three C compilers:   gcc-llvm  and clang come with
+# XCode. Native gcc can  be  installed   in  various  ways  (e.g., using
+# Macports). Current SWI-Prolog sources compile and  work with all these
+# alternatives. If you want the last bit   of performance and don't mind
+# some extra work, get a recent  native   GCC,  set  CC below and enable
+# --enable-useprofile (see below).
 
 if [ "`uname`" = Darwin ]; then
   export LIBRARY_PATH=/usr/lib:/opt/local/lib
   export CPATH=/usr/include:/opt/local/include
   export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
-  # CC="gcc-4.2"
-  # CXX="g++-4.2"
-  # CXXCPP="g++-4.2 -E"
+  # export CC="gcc-4.2"
+  # export CXX="g++-4.2"
+  # export CXXCPP="g++-4.2 -E"
 fi
 
 # [EDIT] On Solaris also puts there stuff everywhere ...
@@ -90,8 +92,8 @@ export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 
 # export PKG=
 
-# [EDIT] Packages to skip.  Leaving it blank compiles all packages.
-# export DISABLE_PKGS="jpl ssl odbc"
+# [EDIT] Packages to skip.  Leaving it blank compiles all default packages.
+# export DISABLE_PKGS="jpl ssl odbc utf8proc"
 
 # [EDIT] Packages to add.
 # export EXTRA_PKGS="db ltx2htm space"

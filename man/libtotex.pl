@@ -18,8 +18,13 @@ libtotex(Lib, Out, Options) :-
 libtotex(Options, TxtFile) :-
 	file_name_extension(Base, txt, TxtFile), !,
         file_name_extension(Base, tex, TexFile),
+	file_directory_name(TexFile, Dir),
+	file_base_name(TexFile, TeXLocalFile),
+	atomic_list_concat([Dir, '/summaries.d'], SummaryDir),
+	atomic_list_concat([SummaryDir, /, TeXLocalFile], SummaryTeXFile),
 	doc_latex(TxtFile, TexFile,
-		  [ stand_alone(false)
+		  [ stand_alone(false),
+		    summary(SummaryTeXFile)
 		  | Options
 		  ]).
 libtotex(Options, LibAtom) :-

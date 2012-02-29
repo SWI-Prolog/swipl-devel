@@ -1,19 +1,19 @@
 \libdoc{www_browser}{Activating your Web-browser}
 
-This library deals with the very system dependent task of opening a
+This library deals with the very system-dependent task of opening a
 web page in a browser.  See also \pllib{url} and the HTTP package.
 
 \begin{description}
     \predicate{www_open_url}{1}{+URL}
-Open \arg{URL} in an external web-browser. The reason to place this in
-the library is to centralise the maintenance on this highly platform
-and browser specific task.  It distinguishes between the following
+Open \arg{URL} in an external web browser. The reason to place this in
+the library is to centralise the maintenance on this highly platform-
+and browser-specific task.  It distinguishes between the following
 cases:
 
 \begin{itemlist}
     \item [MS-Windows]
 If it detects MS-Windows it uses win_shell/2 to open the \arg{URL}.  The
-behaviour and browser started depends on the Window and Windows-shell
+behaviour and browser started depends on the version of Windows and Windows-shell
 configuration, but in general it should be the behaviour expected by
 the user.
 
@@ -21,8 +21,8 @@ the user.
 On other platforms it tests the environment variable (see getenv/2)
 named \env{BROWSER} or uses \program{netscape} if this variable is not
 set.  If the browser is either \const{mozilla} or \const{netscape},
-www_open_url/1 first tries to open a new window on a running using
-the \const{-remote} option of netscape.  If this fails or the browser
+www_open_url/1 first tries to open a new window on a running browser using
+the \const{-remote} option of Netscape.  If this fails or the browser
 is not \const{mozilla} or \const{netscape} the system simply passes
 the URL as first argument to the program.
 \end{itemlist}

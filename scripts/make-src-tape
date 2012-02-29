@@ -3,9 +3,9 @@
 # Make the SWI-Prolog source archives by running this script. Before
 # you start:
 #
-# 	* Update VERSION
-# 	* Run ./newversion, which creates a GIT tag VN.N.N
-# 	* Run ./make-src-tape
+#	* Update VERSION
+#	* Run ./newversion, which creates a GIT tag VN.N.N
+#	* Run ./make-src-tape
 #
 # This script requires GNU-tar!
 
@@ -14,7 +14,7 @@ COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
 COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
 COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
 COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
-COREMODULES+=" packages/nlp packages/cpp"
+COREMODULES+=" packages/nlp packages/cpp packages/PDT packages/utf8proc"
 
 if [ -r modules ]; then
   SUBMODULES="`cat modules`"

@@ -8,7 +8,7 @@ no consensus. The approach taken by this library is proposed by Richard
 O'Keefe on the SWI-Prolog mailinglist.
 
 The approach automates a technique commonly described in Prolog
-text-books, where access- and modification predicates are defined for
+text-books, where access and modification predicates are defined for
 the record type. Such predicates are subject to normal import/export as
 well as analysis by cross-referencers. Given the simple nature of the
 access predicates, an optimizing compiler can easily inline them for
@@ -36,9 +36,9 @@ a term of the format below.
 <name>[:<type>][=<default>]
 \end{quote}
 
-In this definition, <name> is an atom defining the name of the argument.
+In this definition, <name> is an atom defining the name of the argument,
 <type> is an optional type specification as defined by must_be/2 from 
-library \pllib{error} and <default> is the default initial value.  The
+library \pllib{error}, and <default> is the default initial value.  The
 <type> defaults to \const{any}.  If no default value is specified the 
 default is an unbound variable.
 

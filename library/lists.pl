@@ -187,7 +187,7 @@ select_([X|XList], X, Y, [Y|YList]) :-
 select_([X0|XList], X, Y, [X0|YList]) :-
 	select_(XList, X, Y, YList).
 
-%%	selectchk(X, XList, Y, YList) is semidet.
+%%	selectchk(?X, ?XList, ?Y, ?YList) is semidet.
 %
 %	Semi-deterministic version of select/4.
 

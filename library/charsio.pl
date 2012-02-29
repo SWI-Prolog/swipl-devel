@@ -173,7 +173,7 @@ open_chars_stream(Codes, Stream, Postfix) :-
 			 [ free_on_close(true)
 			 ]).
 
-%%	with_output_to_chars(:Goal, Codes) is det.
+%%	with_output_to_chars(:Goal, -Codes) is det.
 %
 %	Run Goal with as once/1.  Output written to =current_output=
 %	is collected in Codes.

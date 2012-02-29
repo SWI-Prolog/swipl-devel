@@ -377,6 +377,18 @@ Section "PDT support files"
   File pl\library\pdt_console.pl
   SetOutPath $INSTDIR\bin
   File pl\bin\pdt_console.dll
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\pdt.html
+SectionEnd
+
+Section "Unicode library (utf8proc)"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File pl\library\unicode.pl
+  SetOutPath $INSTDIR\bin
+  File pl\bin\unicode4pl.dll
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\utf8proc.html
 SectionEnd
 
 Section "Constraint Handling Rules"
@@ -702,6 +714,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\isub.pdb
   File pl\bin\protobufs.pdb
   File pl\bin\plregtry.pdb
+  File pl\bin\unicode4pl.pdb
 SectionEnd
 
 Section "Sources for system predicates"

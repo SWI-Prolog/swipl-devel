@@ -137,14 +137,6 @@ public(Spec)		 :- '$set_pattr'(Spec, (public)).
 	call_cleanup(0,0),
 	call_cleanup(0,?,0).
 
-/* Currently, meta_predicate is only supported upto arity 8
-*/
-
-:- module_transparent
-	call/9,
-	call/10,
-	call/11.
-
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (',')/2, (->)/2, catch/3)).
 
 %   ->/2, ;/2, |/2 and \+/1 are normally compiled. These predicate catch them
@@ -167,7 +159,11 @@ public(Spec)		 :- '$set_pattr'(Spec, (public)).
 
 :- '$iso'((call/2,
 	   call/3,
-	   call/4)).
+	   call/4,
+	   call/5,
+	   call/6,
+	   call/7,
+	   call/8)).
 
 call(Goal) :-				% make these available as predicates
 	Goal.
@@ -185,12 +181,6 @@ call(Goal, A, B, C, D, E, F) :-
 	call(Goal, A, B, C, D, E, F).
 call(Goal, A, B, C, D, E, F, G) :-
 	call(Goal, A, B, C, D, E, F, G).
-call(Goal, A, B, C, D, E, F, G, H) :-
-	call(Goal, A, B, C, D, E, F, G, H).
-call(Goal, A, B, C, D, E, F, G, H, I) :-
-	call(Goal, A, B, C, D, E, F, G, H, I).
-call(Goal, A, B, C, D, E, F, G, H, I, J) :-
-	call(Goal, A, B, C, D, E, F, G, H, I, J).
 
 not(Goal) :-
 	\+ Goal.
@@ -209,6 +199,8 @@ once(Goal) :-
 ignore(Goal) :-
 	Goal, !.
 ignore(_Goal).
+
+:- '$iso'((false/0)).
 
 false :-					% SICStus compatibility
 	fail.
@@ -2438,24 +2430,27 @@ saved state.
 :- '$iso'((length/2)).
 
 length(List, Length) :-
-	(   nonvar(Length)
-	->  '$length'(List, Length)
-	;   '$skip_list'(Length0, List, Tail),
-	    (	Tail == []
-	    ->	Length = Length0
-	    ;	var(Tail)
-	    ->  '$length3'(Tail, Length, Length0)
-	    ;	throw(error(type_error(list,Tail),
+	'$skip_list'(Length0, List, Tail),
+	(   Tail == []				% proper list
+	->  Length = Length0
+	;   var(Tail)
+	->  (   integer(Length)
+	    ->	Extra is Length-Length0,
+		'$length'(Tail, Extra)
+	    ;   var(Length)
+	    ->	'$length3'(Tail, Length, Length0)
+	    ;	throw(error(type_error(integer,Length),
 			    context(length/2, _)))
 	    )
+	;   throw(error(type_error(list,Tail),
+			context(length/2, _)))
 	).
+
 
 '$length3'([], N, N).
 '$length3'([_|List], N, N0) :-
         succ(N0, N1),
         '$length3'(List, N, N1).
-
-
 
 
 		 /*******************************

@@ -70,6 +70,9 @@
 \subsection{\pllib{ordsets}}
 \input{summaries.d/ordsets.tex}
 
+\subsection{\pllib{predicate_options}}
+\input{summaries.d/predopts.tex}
+
 \subsection{\pllib{prologxref}}
 
 \begin{summarylist}{ll}

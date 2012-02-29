@@ -1452,7 +1452,7 @@ right_argument:
 	succeed;
 #endif /* O_COMPILE_OR */
       }
-      assert(0);
+      assert(fdef->name == ATOM_call);
     }
   }
 

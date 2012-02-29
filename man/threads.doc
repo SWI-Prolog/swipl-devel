@@ -357,35 +357,45 @@ The option can be used if the source, sending messages to the
 queue, is faster than the drain, consuming the messages.
     \end{description}
 
-    \predicate{message_queue_destroy}{1}{+Queue}
+    \predicate[det]{message_queue_destroy}{1}{+Queue}
 Destroy a message queue created with message_queue_create/1. A
 permission error is raised if \arg{Queue} refers to (the default queue
 of) a thread. Other threads that are waiting for \arg{Queue} using
 thread_get_message/2 receive an existence error.
 
-    \predicate{thread_get_message}{2}{+Queue, ?Term}
+    \predicate[det]{thread_get_message}{2}{+Queue, ?Term}
 As thread_get_message/1, operating on a given queue. It is allowed (but
 not advised) to get messages from the queue of other threads.  This
 predicate raises an existence error exception if \arg{Queue} doesn't
 exist or is destroyed using message_queue_destroy/1 while this predicate
 is waiting.
 
-    \predicate{thread_get_message}{3}{+Queue, ?Term, +Options}
+    \predicate[semidet]{thread_get_message}{3}{+Queue, ?Term, +Options}
 As thread_get_message/2, but providing additional \arg{Options}:
 
     \begin{description}
-    \termitem{timeout}{+Time}
-\arg{Time} is a float or integer and specifies the maximum time to wait
-in seconds.  If \arg{Time} is 0.0 or less, thread_get_message/3 examines
-the queue but does not suspend if no matching term is available.  If no
-message arrives before the time interval elapses, \arg{Term} is unified
-to the atom \const{timeout}.  Both resolution and maximum wait time is
+    \termitem{deadline}{+AbsTime}
+The call fails (silently) if no message has arrived before
+\arg{AbsTime}. See get_time/1 for the representation of absolute time.
+If \arg{AbsTime} is earlier then the current time, thread_get_message/3
+fails immediately. Both resolution and maximum wait time is
 platform-dependent.\footnote{The implementation uses
 MsgWaitForMultipleObjects() on MS-Windows and pthread_cond_timedwait()
 on other systems.}
+
+    \termitem{timeout}{+Time}
+\arg{Time} is a float or integer and specifies the maximum time to wait
+in seconds.  This is a relative-time version of the \const{deadline}
+option.  If both options are provided, the earliest time is effective.
+
+It \arg{Time} is 0 or 0.0, thread_get_message/3 examines the queue but
+does not suspend if no matching term is available.  Note that unlike
+thread_peek_message/2, a matching term is removed from the queue.
+
+It \arg{Time} $< 0$, thread_get_message/3 fails immediately.
     \end{description}
 
-    \predicate{thread_peek_message}{2}{+Queue, ?Term}
+    \predicate[semidet]{thread_peek_message}{2}{+Queue, ?Term}
 As thread_peek_message/1, operating on a given queue. It is allowed
 to peek into another thread's message queue, an operation that can be
 used to check whether a thread has swallowed a message sent to it.

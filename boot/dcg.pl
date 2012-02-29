@@ -258,9 +258,20 @@ qualify(M:_, X, M:X).
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
-	strip_module(RuleSet, M, Plain),
-	( var(Plain) -> throw(error(instantiation_error,_)) ; true ),
-	'$t_body'(Plain, M:M, S0, S, Body),
-	Input = S0, Rest = S,
-	M:Body.
+	(   strip_module(RuleSet, M, Plain),
+	    nonvar(Plain),
+	    dcg_special(Plain)
+	->  '$t_body'(Plain, M:M, S0, S, Body),
+	    Input = S0, Rest = S,
+	    call(M:Body)
+	;   call(RuleSet, Input, Rest)
+	).
 
+dcg_special((_,_)).
+dcg_special((_;_)).
+dcg_special((_|_)).
+dcg_special((_->_)).
+dcg_special(!).
+dcg_special({_}).
+dcg_special([]).
+dcg_special([_|_]).

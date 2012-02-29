@@ -1312,7 +1312,8 @@ Not sure whether it is worth the trouble to use a hash-table here.
 	  for( ; v < _ev; v++ ) { code; } \
 	}
 
-#define isAnonVarName(n)   ((n)[0] == '_' && (n)[1] == EOS)
+#define isAnonVarName(n)       ((n)[0] == '_' && (n)[1] == EOS)
+#define isAnonVarNameN(n, l)   ((n)[0] == '_' && (l) == 1)
 
 static char *
 save_var_name(const char *name, size_t len, ReadData _PL_rd)
@@ -1347,7 +1348,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
   Variable var;
   size_t nv;
 
-  if ( !isAnonVarName(name) )			/* always add _ */
+  if ( !isAnonVarNameN(name, len) )		/* always add _ */
   { for_vars(v,
 	     if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
 	     { v->times++;

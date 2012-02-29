@@ -764,7 +764,7 @@ PL_is_ground(term_t t)
 
 
 static
-PRED_IMPL("ground", 1, ground, 0)
+PRED_IMPL("ground", 1, ground, PL_FA_ISO)
 { PRED_LD
 
   return ground__LD(valTermRef(A1) PASS_LD);
@@ -778,7 +778,7 @@ PRED_IMPL("compound", 1, compound, 0)
 
 
 static
-PRED_IMPL("callable", 1, callable, 0)
+PRED_IMPL("callable", 1, callable, PL_FA_ISO)
 { return PL_is_callable(A1);
 }
 
@@ -1060,7 +1060,7 @@ PL_is_acyclic(term_t t)
 
 
 static
-PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
+PRED_IMPL("acyclic_term", 1, acyclic_term, PL_FA_ISO)
 { PRED_LD
 
   return PL_is_acyclic__LD(A1 PASS_LD);
@@ -1699,7 +1699,7 @@ compareStandard(Word p1, Word p2, int eq ARG_LD)
 /* compare(-Diff, +T1, +T2) */
 
 static
-PRED_IMPL("compare", 3, compare, 0)
+PRED_IMPL("compare", 3, compare, PL_FA_ISO)
 { PRED_LD
   Word p1 = valTermRef(A2);
   Word p2 = p1+1;
@@ -2648,7 +2648,7 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
 
 
 static
-PRED_IMPL("term_variables", 2, term_variables2, 0)
+PRED_IMPL("term_variables", 2, term_variables2, PL_FA_ISO)
 { PRED_LD
 
   return term_variables(A1, A2, 0, 0 PASS_LD);
@@ -2752,7 +2752,7 @@ subsumes(term_t general, term_t specific ARG_LD)
 
 
 static
-PRED_IMPL("subsumes_term", 2, subsumes_term, 0)
+PRED_IMPL("subsumes_term", 2, subsumes_term, PL_FA_ISO)
 { PRED_LD
   int rc;
   fid_t fid;
@@ -4912,7 +4912,7 @@ BeginPredDefs(prims)
   PRED_DEF("=", 2, unify, PL_FA_ISO)
   PRED_DEF("\\=", 2, not_unify, PL_FA_ISO)
   PRED_DEF("unify_with_occurs_check", 2, unify_with_occurs_check, PL_FA_ISO)
-  PRED_DEF("subsumes_term", 2, subsumes_term, 0)
+  PRED_DEF("subsumes_term", 2, subsumes_term, PL_FA_ISO)
   PRED_DEF("nonvar", 1, nonvar, PL_FA_ISO)
   PRED_DEF("var", 1, var, PL_FA_ISO)
   PRED_DEF("integer", 1, integer, PL_FA_ISO)
@@ -4925,7 +4925,7 @@ BeginPredDefs(prims)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
   PRED_DEF("$term_size", 3, term_size, 0)
-  PRED_DEF("acyclic_term", 1, acyclic_term, 0)
+  PRED_DEF("acyclic_term", 1, acyclic_term, PL_FA_ISO)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
   PRED_DEF("$factorize_term", 3, factorize_term, 0)
   PRED_DEF("compound", 1, compound, PL_FA_ISO)
@@ -4943,7 +4943,7 @@ BeginPredDefs(prims)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("var_number", 2, var_number, 0)
-  PRED_DEF("term_variables", 2, term_variables2, 0)
+  PRED_DEF("term_variables", 2, term_variables2, PL_FA_ISO)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)
   PRED_DEF("$free_variable_set", 3, free_variable_set, 0)

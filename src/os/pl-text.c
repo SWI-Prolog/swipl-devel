@@ -232,7 +232,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 	{ case CVT_partial:
 	    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 	  case CVT_nolist:
-	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+	    goto error;
 	  case CVT_nocode:
 	  case CVT_nochar:
 	  { term_t culprit = PL_new_term_ref();
@@ -327,7 +327,9 @@ error:
   if ( (flags & CVT_EXCEPTION) )
   { atom_t expected;
 
-    if ( flags & CVT_LIST )
+    if ( (flags & CVT_LIST) && !(flags&(CVT_ATOM|CVT_NUMBER)) )
+      expected = ATOM_list;		/* List and/or string object */
+    else if ( flags & CVT_LIST )
       expected = ATOM_text;
     else if ( flags & CVT_NUMBER )
       expected = ATOM_atomic;

@@ -34,8 +34,8 @@
 %   arithmetic.
 
 :- module(random,
-	  [ random/1,			% -Float [0,1)
-	    random/3,			% +Low, +High, -Random
+	  [ random/1,			% -Float (0,1)
+	    random_between/3,		% +Low, +High, -Random
 
 	    getrand/1,			% -State
 	    setrand/1,			% +State
@@ -51,7 +51,10 @@
 
 	    randseq/3,			% +Size, +Max, -Set
 	    randset/3,			% +Size, +Max, -List
-	    random_permutation/2	% ?List, ?Permutation
+	    random_permutation/2,	% ?List, ?Permutation
+
+					% deprecated interface
+	    random/3			% +Low, +High, -Random
 	  ]).
 :- use_module(library(pairs)).
 :- use_module(library(error)).
@@ -77,7 +80,7 @@ on the GMP library.
 
 %%	random(-R:float) is det.
 %
-%	Binds R to a new random number in [0.0,1.0).
+%	Binds R to a new random float in the _open_ interval (0.0,1.0).
 %
 %	@see setrand/1, getrand/1 maye be used to fetch/set the state.
 %	@see In SWI-Prolog, random/1 is implemented by the function
@@ -86,12 +89,31 @@ on the GMP library.
 random(R) :-
 	R is random_float.
 
+%%	random_between(+L:int, +U:int, -R:int) is semidet.
+%
+%	Binds R to a random integer in [L,U] (i.e., including both L and
+%	U).  Fails silently if U<L.
+
+random_between(L, U, R) :-
+	integer(L), integer(U), !,
+	U >= L,
+	R is L+random((U+1)-L).
+random_between(L, U, _) :-
+	must_be(integer, L),
+	must_be(integer, U).
+
+
 %%	random(+L:int, +U:int, -R:int) is det.
 %%	random(+L:float, +U:float, -R:float) is det.
 %
-%	Binds R to a random  number  in  [L,U).   If  L  and  U are both
-%	integers, R is an integer, Otherwise, R  is a float. Note that U
-%	will *never* be generated.
+%	If L and U are both integers, R  is a random integer in the half
+%	open interval [L,U). If L and U are both floats, R is a float in
+%	the open interval (L,U).
+%
+%	@deprecated Please use random/1 for   generating  a random float
+%	and random_between/3 for generating a  random integer. Note that
+%	the  random_between/3  includes  the  upper  bound,  while  this
+%	predicate excludes the upper bound.
 
 random(L, U, R) :-
 	integer(L), integer(U), !,
@@ -163,7 +185,7 @@ maybe(P) :-
 	must_be(between(0.0,1.0), P),
 	random_float < P.
 
-%%	maybe(K,N) is semidet.
+%%	maybe(+K, +N) is semidet.
 %
 %	Succeed with probability K/N (variant of maybe/1)
 
@@ -196,23 +218,24 @@ random_perm2(A,B, X,Y) :-
 		 *    SET AND LIST OPERATIONS	*
 		 *******************************/
 
-%%	random_member(-X, +List:list) is det.
+%%	random_member(-X, +List:list) is semidet.
 %
-%	X is a random member of  List.   Implemented  by taking a random
-%	integer in the range [0, |List|], followed by nth0/3.
+%	X is a random member of   List.  Equivalent to random_between(1,
+%	|List|), followed by nth1/3. Fails of List is the empty list.
 %
 %	@compat	Quintus and SICStus libraries.
 
 random_member(X, List) :-
+	List \== [],
 	length(List, Len),
 	N is random(Len),
 	nth0(N, List, X).
 
-%%	random_select(-X, +List, -Rest) is det.
+%%	random_select(-X, +List, -Rest) is semidet.
 %%	random_select(+X, -List, +Rest) is det.
 %
 %	Randomly select or insert an element.   Either List or Rest must
-%	be a list.
+%	be a list.  Fails if List is the empty list.
 %
 %	@compat	Quintus and SICStus libraries.
 
@@ -224,6 +247,7 @@ random_select(X, List, Rest) :-
 	    Tail == []
 	->  Len is RLen+1
 	), !,
+	Len > 0,
 	N is random(Len),
 	nth0(N, List, X, Rest).
 random_select(_, List, Rest) :-

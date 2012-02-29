@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009, VU University Amsterdam
+    Copyright (C): 2009-2012, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -32,8 +32,10 @@
 	    csv//2,			% +Rows, +Options
 	    csv_read_file/2,		% +File, -Data
 	    csv_read_file/3,		% +File, -Data, +Options
+	    csv_read_file_row/3,	% +File, -Row, +Options
 	    csv_write_file/2,		% +File, +Data
-	    csv_write_file/3		% +File, +Data, +Options
+	    csv_write_file/3,		% +File, +Data, +Options
+	    csv_write_stream/3		% +Stream, +Data, +Options
 	  ]).
 :- use_module(library(record)).
 :- use_module(library(error)).
@@ -52,6 +54,31 @@ have the same name and arity.
 	resources.  This waits for pure output!
 @see RFC 4180
 */
+
+:- predicate_options(csv//2, 2,
+		     [ separator(nonneg),	% mustv be code
+		       strip(boolean),
+		       convert(boolean),
+		       functor(atom),
+		       arity(-nonneg),		% actually ?nonneg
+		       match_arity(boolean)
+		     ]).
+:- predicate_options(csv_read_file/3, 3,
+		     [ pass_to(csv//2, 2),
+		       pass_to(phrase_from_file/3, 3)
+		     ]).
+:- predicate_options(csv_read_file_row/3, 3,
+		     [ pass_to(csv//2, 2),
+		       pass_to(open/4, 4)
+		     ]).
+:- predicate_options(csv_write_file/3, 3,
+		     [ pass_to(csv//2, 2),
+		       pass_to(open/4, 4)
+		     ]).
+:- predicate_options(csv_write_stream/3, 3,
+		     [ pass_to(csv//2, 2)
+		     ]).
+
 
 :- record
 	csv_options(separator:integer=0',,
@@ -259,6 +286,42 @@ end_of_record --> "\r\n".
 end_of_record --> eof.			% unterminated last record
 
 
+%%     csv_read_file_row(+File, -Row, +Options) is nondet.
+%
+%      True when Row is a row in File.  First unifies Row with the first
+%      row in File. Backtracking  yields  the   second,  ...  row.  This
+%      interface  is  an  alternative  to  csv_read_file/3  that  avoids
+%      loading all rows in memory.  Note   that  this interface does not
+%      guarantee that all rows in File have the same arity.
+%
+%      In addition to the  options   of  csv_read_file/3, this predicate
+%      processes the option:
+%
+%        * line(-Line)
+%        Line is unified with the 1-based line-number from which Row is
+%	 read.
+
+csv_read_file_row(File, Row, Options) :-
+        default_separator(File, Options, Options1),
+        make_csv_options(Options1, RecordOptions, Options2),
+	select_option(line(Line), Options2, RestOptions, _),
+        setup_call_cleanup(
+	    open(File, read, Stream, RestOptions),
+	    csv_read_stream_row(Stream, Row, Line, RecordOptions),
+	    close(Stream)).
+
+
+csv_read_stream_row(Stream, Row, Line, Options) :-
+        between(1, infinite, Line),
+        read_line_to_codes(Stream, Codes, []),
+        (   Codes == []
+	->  !,
+            fail
+        ;   phrase(row(Row, Options), Codes),
+            debug(csv, 'Row: ~p', [Row])
+        ).
+
+
 		/*******************************
 		*	      OUTPUT	       *
 		*******************************/
@@ -277,10 +340,11 @@ csv_write_file(File, Data) :-
 csv_write_file(File, Data, Options) :-
 	default_separator(File, Options, Options1),
 	make_csv_options(Options1, Record, RestOptions),
-	phrase(csv_roptions(Data, Record), String),
-	setup_call_cleanup(open(File, write, Out, RestOptions),
-			   format(Out, '~s', [String]),
-			   close(Out)).
+	phrase(emit_csv(Data, Record), String),
+	setup_call_cleanup(
+	    open(File, write, Out, RestOptions),
+	    format(Out, '~s', [String]),
+	    close(Out)).
 
 
 emit_csv([], _) --> [].
@@ -329,3 +393,23 @@ emit_codes([0'"|T]) --> !, "\"\"", emit_codes(T).
 emit_codes([H|T]) --> [H], emit_codes(T).
 
 
+%%     csv_write_stream(+Stream, +Data, +Options) is det.
+%
+%      Write  the  rows  in  Data  to    Stream.   This  is  similar  to
+%      csv_write_file/3,  but  can  deal  with  data  that  is  produced
+%      incrementally. The example  below  saves   all  answers  from the
+%      predicate data/3 to File.
+%
+%        ==
+%        save_data(File) :-
+%	    setup_call_cleanup(
+%		open(File, write, Out),
+%		forall(data(C1,C2,C3),
+%		       csv_write_file(Out, [row(C1,C2,C3)], [])),
+%		close(Out)),
+%        ==
+
+csv_write_stream(Stream, Data, Options) :-
+	make_csv_options(Options, Record, _),
+	phrase(emit_csv(Data, Record), String),
+        format(Stream, '~s', [String]).

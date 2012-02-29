@@ -5,15 +5,15 @@
 
 SWI-Prolog offers a powerful interface to C \cite{Kernighan:78}. The
 main design objectives of the foreign language interface are flexibility
-and performance. A foreign predicate is a C-function that has the same
-number of arguments as the predicate represented. C-functions are
-provided to analyse the passed terms, convert them to basic C-types as
+and performance. A foreign predicate is a C function that has the same
+number of arguments as the predicate represented. C functions are
+provided to analyse the passed terms, convert them to basic C types as
 well as to instantiate arguments using unification. Non-deterministic
 foreign predicates are supported, providing the foreign function with a
 handle to control backtracking.
 
-C can call Prolog predicates, providing both an query interface and
-an interface to extract multiple solutions from an non-deterministic
+C can call Prolog predicates, providing both a query interface and
+an interface to extract multiple solutions from a non-deterministic
 Prolog predicate.  There is no limit to the nesting of Prolog calling
 C, calling Prolog, etc.  It is also possible to write the `main' in
 C and use Prolog as an embedded logical engine.
@@ -46,27 +46,27 @@ categories:
 
 Foreign modules may be linked to Prolog in two ways. Using
 \jargon{static linking}, the extensions, a (short) file defining main()
-which attaches the extensions calls Prolog and the SWI-Prolog kernel
-distributed as a C-library are linked together to form a new executable.
+which attaches the extensions calls to Prolog, and the SWI-Prolog kernel
+distributed as a C library are linked together to form a new executable.
 Using \jargon{dynamic linking}, the extensions are linked to a shared
-library (\fileext{so} file on most Unix systems) or dynamic-link library
+library (\fileext{so} file on most Unix systems) or dynamic link library
 (\fileext{DLL} file on Microsoft platforms) and loaded into the
 running Prolog process.%
     \footnote{The system also contains code to load \fileext{o} files
               directly for some operating systems, notably Unix systems
               using the BSD \file{a.out} executable format. As the number of
-              Unix platforms supporting this gets quickly smaller and
+              Unix platforms supporting this quickly gets smaller and
               this interface is difficult to port and slow, it is no
-              longer described in this manual.  The best alternatively
-              would be to use the \idx{dld} package on machines do
-	      not have shared libraries}.
+              longer described in this manual.  The best alternative
+              would be to use the \idx{dld} package on machines that do
+	      not have shared libraries.}
 
 \subsection{What linking is provided?}
 
 The \jargon{static linking} schema can be used on all versions of
 SWI-Prolog. Whether or not dynamic linking is supported can be deduced
 from the Prolog flag \prologflag{open_shared_object} (see
-current_prolog_flag/2). If this Prolog flag yields true,
+current_prolog_flag/2). If this Prolog flag yields \const{true},
 open_shared_object/2 and related predicates are defined. See
 \secref{shlib} for a suitable high-level interface to these predicates.
 
@@ -80,9 +80,9 @@ may vary from system to system, though the utility program
 from the user.
 
 Loading shared objects (DLL files on Windows) provides sharing and
-protection and is generally the best choice. If a saved-state is created
+protection and is generally the best choice. If a saved state is created
 using qsave_program/[1,2], an initialization/1 directive may be used to
-load the appropriate library at startup.
+load the appropriate library at start-up.
 
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
@@ -102,8 +102,7 @@ predicates from \secref{shlib} in your application.
 
 \begin{description}
     \predicate{open_shared_object}{2}{+File, -Handle}
-\arg{File} is the name of a shared object file (called dynamic load
-library in MS-Windows). This file is attached to the current process and
+\arg{File} is the name of a shared object file (DLL in MS-Windows). This file is attached to the current process and
 \arg{Handle} is unified with a handle to the library. Equivalent to
 \exam{open_shared_object(File, Handle, [])}. See also
 open_shared_object/3 and load_foreign_library/1.
@@ -126,7 +125,7 @@ Detach the shared object identified by \arg{Handle}.
 
     \predicate{call_shared_object_function}{2}{+Handle, +Function}
 Call the named function in the loaded shared library.  The function
-is called without arguments and the return-value is ignored.  Normally
+is called without arguments and the return value is ignored.  Normally
 this function installs foreign language predicates using calls to
 PL_register_foreign().
 \end{description}
@@ -135,26 +134,26 @@ PL_register_foreign().
 \subsection{Static Linking} \label{sec:staticl}
 
 Below is an outline of the files structure required for statically
-linking SWI-Prolog with foreign extensions. \file{\ldots/pl} refers to
+linking SWI-Prolog with foreign extensions. \file{.../swipl} refers to
 the SWI-Prolog home directory (see the Prolog flag \prologflag{home}).
 \file{<arch>} refers to the architecture identifier that may be obtained
 using the Prolog flag \prologflag{arch}.
 
 \begin{center}
 \begin{tabular}{ll}
-\file{.../pl/runtime/<arch>/libswipl.a} & SWI-Library \\
-\file{.../pl/include/SWI-Prolog.h}      & Include file \\
-\file{.../pl/include/SWI-Stream.h}      & Stream I/O include file \\
-\file{.../pl/include/SWI-Exports}       & Export declarations (AIX only) \\
-\file{.../pl/include/stub.c}            & Extension stub
+\file{.../swipl/runtime/<arch>/libswipl.a} & SWI-Library \\
+\file{.../swipl/include/SWI-Prolog.h}      & Include file \\
+\file{.../swipl/include/SWI-Stream.h}      & Stream I/O include file \\
+\file{.../swipl/include/SWI-Exports}       & Export declarations (AIX only) \\
+\file{.../swipl/include/stub.c}            & Extension stub
 \end{tabular}
 \end{center}
 
 The definition of the foreign predicates is the same as for dynamic
 linking.  Unlike with dynamic linking however, there is no
-initialisation function.  Instead, the file \file{\ldots/pl/include/stub.c}
+initialisation function.  Instead, the file \file{.../swipl/include/stub.c}
 may be copied to your project and modified to define the foreign
-extensions.  Below is stub.c, modified to link the lowercase example
+extensions.  Below is \file{stub.c}, modified to link the lowercase example
 described later in this chapter:
 
 \begin{code}
@@ -188,8 +187,8 @@ main(int argc, char **argv)
 Now, a new executable may be created by compiling this file and linking
 it to \file{libpl.a} from the runtime directory and the libraries
 required by both the extensions and the SWI-Prolog kernel. This may be
-done by hand, or using the \program{swipl-ld} utility described in
-secref{plld}. If the linking is performed `by hand', the command-line
+done by hand, or by using the \program{swipl-ld} utility described in
+\secref{plld}. If the linking is performed by hand, the command line
 option \const{-dump-runtime-variables} (see \secref{cmdline}) can be
 used to obtain the required paths, libraries and linking options to link
 the new executable.
@@ -198,36 +197,36 @@ the new executable.
 
 \subsection{Type \ctype{term_t}: a reference to a Prolog term}
 
-The principal data-type is \ctype{term_t}. Type \ctype{term_t} is what
+The principal data type is \ctype{term_t}. Type \ctype{term_t} is what
 Quintus calls \ctype{QP_term_ref}. This name indicates better what the
 type represents: it is a \jargon{handle} for a term rather than the term
 itself. Terms can only be represented and manipulated using this type,
 as this is the only safe way to ensure the Prolog kernel is aware of all
 terms referenced by foreign code and thus allows the kernel to perform
-garbage-collection and/or stack-shifts while foreign code is active,
+garbage collection and/or stack-shifts while foreign code is active,
 for example during a callback from C.
 
 A term reference is a C unsigned long, representing the offset of a
-variable on the Prolog environment-stack.  A foreign function is passed
-term references for the predicate-arguments, one for each argument.  If
+variable on the Prolog environment stack.  A foreign function is passed
+term references for the predicate arguments, one for each argument.  If
 references for intermediate results are needed, such references may be
 created using PL_new_term_ref() or PL_new_term_refs().  These references
 normally live till the foreign function returns control back to Prolog.
 Their scope can be explicitly limited using PL_open_foreign_frame()
 and PL_close_foreign_frame()/PL_discard_foreign_frame().
 
-A term_t always refers to a valid Prolog term (variable, atom, integer,
+A \ctype{term_t} always refers to a valid Prolog term (variable, atom, integer,
 float or compound term). A term lives either until backtracking takes us
 back to a point before the term was created, the garbage collector has
-collected the term or the term was created after a
+collected the term, or the term was created after a
 PL_open_foreign_frame() and PL_discard_foreign_frame() has been called.
 
-The foreign-interface functions can either {\em read}, {\em unify} or
-{\em write} to term-references.  In the this document we use the
-following notation for arguments of type term_t:
+The foreign interface functions can either {\em read}, {\em unify} or
+{\em write} to term references.  In this document we use the
+following notation for arguments of type \ctype{term_t}:
 
 \begin{quote}
-\begin{tabular}{lp{3.5in}}
+\begin{tabular}{lp{4in}}
 \tt term_t +t   & Accessed in read-mode.  The `+' indicates the
                   argument is `input'. \\
 \tt term_t -t   & Accessed in write-mode. \\
@@ -236,41 +235,41 @@ following notation for arguments of type term_t:
 \end{quote}
 
 \noindent
-Term references are obtained in any of the following ways.
+Term references are obtained in any of the following ways:
 
 \begin{itemlist}
 \item [Passed as argument]
-    The C-functions implementing foreign predicates are passed their
-    arguments as term-references.  These references may be read or
+    The C functions implementing foreign predicates are passed their
+    arguments as term references.  These references may be read or
     unified.  Writing to these variables causes undefined behaviour.
 \item [Created by PL_new_term_ref()]
     A term created by PL_new_term_ref() is normally used to build
-    temporary terms or be written by one of the interface functions.
-    For example, PL_get_arg() writes a reference to the term-argument
+    temporary terms or to be written by one of the interface functions.
+    For example, PL_get_arg() writes a reference to the term argument
     in its last argument.
 \item [Created by PL_new_term_refs(int n)]
-    This function returns a set of term refs with the same characteristics
+    This function returns a set of term references with the same characteristics
     as PL_new_term_ref().  See PL_open_query().
 \item [Created by PL_copy_term_ref(term_t t)]
-    Creates a new term-reference to the same term as the argument.  The
+    Creates a new term reference to the same term as the argument.  The
     term may be written to.  See \figref{pl-display}.
 \end{itemlist}
 
-Term-references can safely be copied to other C-variables of type
-term_t, but all copies will always refer to the same term.
+Term references can safely be copied to other C variables of type
+\ctype{term_t}, but all copies will always refer to the same term.
 
 \begin{description}
 \cfunction{term_t}{PL_new_term_ref}{}
 Return a fresh reference to a term.  The reference is allocated on the
-\jargon{local} stack.  Allocating a term-reference may trigger a stack-shift
-on machines that cannot use sparse-memory management for allocation the
+\jargon{local} stack.  Allocating a term reference may trigger a stack-shift
+on machines that cannot use sparse memory management for allocation of the
 Prolog stacks.  The returned reference describes a variable.
 \cfunction{term_t}{PL_new_term_refs}{int n}
-Return \arg{n} new term references.  The first term-reference is returned.
+Return \arg{n} new term references.  The first term reference is returned.
 The others are $\arg{t}+1$, $\arg{t}+2$, etc.  There are two reasons
 for using this function.  PL_open_query() expects the arguments as a set
-of consecutive term references and {\em very} time-critical code requiring
-a number of term-references can be written as:
+of consecutive term references, and {\em very} time-critical code requiring
+a number of term references can be written as:
 
 \begin{code}
 pl_mypredicate(term_t a0, term_t a1)
@@ -304,23 +303,23 @@ collection and stack expansion. On machines that allow for it, Prolog
 will use virtual memory management to detect stack overflow and expand
 the runtime stacks. On other machines Prolog will reallocate the stacks
 and update all pointers to them. To do so, Prolog needs to know which
-data is referenced by C-code. As all Prolog data known by C is
-referenced through term references (\ctype{term_t}), Prolog has all
+data is referenced by C code. As all Prolog data known by C is
+referenced through term references (\ctype{term_t}), Prolog has all the
 information necessary to perform its memory management without
-special precautions from the C-programmer.
+special precautions from the C programmer.
 
 
 \subsection{Other foreign interface types}
 
 \begin{description}
     \item[atom_t]
-An atom in Prologs internal representation.  Atoms are pointers to an
+An atom in Prolog's internal representation.  Atoms are pointers to an
 opaque structure.  They are a unique representation for represented
 text, which implies that atom $A$ represents the same text as
-atom $B$ if-and-only-if $A$ and $B$ are the same pointer.
+atom $B$ if and only if $A$ and $B$ are the same pointer.
 
-Atoms are the central representation for textual constants in Prolog
-The transformation of C a character string to an atom implies a
+Atoms are the central representation for textual constants in Prolog.
+The transformation of a character string $C$ to an atom implies a
 hash-table lookup.  If the same atom is needed often, it is advised
 to store its reference in a global variable to avoid repeated lookup.
     \item[functor_t]
@@ -330,35 +329,35 @@ construct new compound terms. Like atoms they live for the whole Prolog
 session and are unique.
     \item[predicate_t]
 Handle to a Prolog predicate. Predicate handles live forever (although
-they can loose their definition).
+they can lose their definition).
     \item[qid_t]
-Query Identifier. Used by
-PL_open_query()/PL_next_solution()/PL_close_query() to handle
+Query identifier. Used by
+PL_open_query(), PL_next_solution() and PL_close_query() to handle
 backtracking from C.
     \item[fid_t]
-Frame Identifier. Used by
-PL_open_foreign_frame()/PL_close_foreign_frame().
+Frame identifier. Used by
+PL_open_foreign_frame() and PL_close_foreign_frame().
     \item[module_t]
 A module is a unique handle to a Prolog module. Modules are used only
 to call predicates in a specific module.
     \item[foreign_t]
-Return type for a C-function implementing a Prolog predicate.
+Return type for a C function implementing a Prolog predicate.
     \item[control_t]
 Passed as additional argument to non-deterministic foreign functions.
 See PL_retry*() and PL_foreign_context*().
     \item[install_t]
 Type for the install() and uninstall() functions of shared
-or dynamic link libraries.  See secref{shlib}.
+or dynamic link libraries.  See \secref{shlib}.
     \item[int64_t]
-Actually part of the C99 standard rather than Prolog.  As of version
-5.5.6, Prolog integers are 64-bit on all hardware.  The C99 type
-int64_t is defined in the \file{stdint.h} standard header and provides
-platform independent 64-bit integers.  Portable code accessing Prolog
-should use this type to exchange integer values.  Please note that
-PL_get_long() can return \const{FALSE} on Prolog integers outside
-the long domain.  Robust code should not assume any of the integer
-fetching functions to succeed if the Prolog term is know to be an
-integer.
+Actually part of the C99 standard rather than Prolog. As of version
+5.5.6, Prolog integers are 64-bit on all hardware. The C99 type
+\ctype{int64_t} is defined in the \file{stdint.h} standard header and
+provides platform-independent 64-bit integers. Portable code accessing
+Prolog should use this type to exchange integer values. Please note that
+PL_get_long() can return \const{FALSE} on Prolog integers that cannot be
+represented as a C long. Robust code should not assume any of the
+integer fetching functions to succeed, \emph{even} if the Prolog term is known
+to be an integer.
 \end{description}
 
 \section{The Foreign Include File}	\label{sec:foreigninclude}
@@ -435,8 +434,8 @@ The foreign function succeeds while leaving a choice point. On
 backtracking over this goal the foreign function will be called again,
 but the control argument now indicates it is a `Redo' call and the
 macro PL_foreign_context() returns the handle passed via
-PL_retry(). This handle is a two bits smaller than a pointer
-(30 or 62 bits) signed value (two bits are used for status indication).
+PL_retry(). This handle is a signed value two bits smaller than a pointer,
+i.e., 30 or 62 bits (two bits are used for status indication).
 Defined as \exam{return _PL_retry(n)}. See also PL_succeed().
 
     \cmacro{(return) foreign_t}{PL_retry_address}{void *}
@@ -452,17 +451,17 @@ handle the \const{PL_PRUNED} case and should be aware that the other
 arguments are not valid in this case.
 
     \cmacro{intptr_t}{PL_foreign_context}{control_t}
-Extracts the context from the context argument.  In the call type is
+Extracts the context from the context argument.  If the call type is
 \const{PL_FIRST_CALL} the context value is 0L.  Otherwise it is the value
 returned by the last PL_retry() associated with this goal (both if the
-call type is \const{PL_REDO} as \const{PL_PRUNED}).
+call type is \const{PL_REDO} or \const{PL_PRUNED}).
 
     \cmacro{void *}{PL_foreign_context_address}{control_t}
 Extracts an address as passed in by PL_retry_address().
 \end{description}
 
-Note: If a non-deterministic foreign function returns using PL_succeed
-or PL_fail, Prolog assumes the foreign function has cleaned its
+Note: If a non-deterministic foreign function returns using PL_succeed()
+or PL_fail(), Prolog assumes the foreign function has cleaned its
 environment. {\bf No} call with control argument \const{PL_PRUNED} will
 follow.
 
@@ -531,13 +530,13 @@ Return the arity of the given functor.
 \end{description}
 
 
-\subsubsection{Atoms and atom-garbage collection}	\label{sec:atomgc}
+\subsubsection{Atoms and atom garbage collection}	\label{sec:atomgc}
 
-With the introduction of atom-garbage collection in version 3.3.0, atoms
+With the introduction of atom garbage collection in version 3.3.0, atoms
 no longer live as long as the process. Instead, their lifetime is
 guaranteed only as long as they are referenced. In the single-threaded
 version, atom garbage collections are only invoked at the
-\jargon{call-port}. In the multi-threaded version (see \secref{threads}),
+\jargon{call-port}. In the multi-threaded version (see \chapref{threads}),
 they appear asynchronously, except for the invoking thread.
 
 For dealing with atom garbage collection, two additional functions are
@@ -552,7 +551,7 @@ one.%
 		  destroy the atom before it is used.}
 
     \cfunction{void}{PL_unregister_atom}{atom_t atom}
-Decrement the reference count of the atom.  If the reference-count
+Decrement the reference count of the atom.  If the reference count
 drops below zero, an assertion error is raised.
 \end{description}
 
@@ -575,10 +574,10 @@ applicable.
 Each argument of a foreign function (except for the control argument) is
 of type \ctype{term_t}, an opaque handle to a Prolog term. Three groups of
 functions are available for the analysis of terms. The first just
-validates the type, like the Prolog predicates var/1, atom/1, etc and
+validates the type, like the Prolog predicates var/1, atom/1, etc., and
 are called {\tt PL_is_*()}. The second group attempts to translate the
 argument into a C primitive type. These predicates take a \ctype{term_t}
-and a pointer to the appropriate C-type and return \const{TRUE} or
+and a pointer to the appropriate C type and return \const{TRUE} or
 \const{FALSE} depending on successful or unsuccessful translation. If the
 translation fails, the pointed-to data is never modified.
 
@@ -589,7 +588,7 @@ translation fails, the pointed-to data is never modified.
 Obtain the type of a term, which should be a term returned by
 one of the other interface predicates or passed as an argument. The
 function returns the type of the Prolog term. The type identifiers are
-listed below.  Note that the extraction functions {\tt PL_ge_t*()} also
+listed below.  Note that the extraction functions {\tt PL_get_*()} also
 validate the type and thus the two sections below are equivalent.
 
 \begin{code}
@@ -650,10 +649,10 @@ Returns non-zero if \arg{term} is compound and its functor is \arg{functor}.
 This test is equivalent to PL_get_functor(), followed by testing the
 functor, but easier to write and faster.
 \cfunction{int}{PL_is_list}{term_t}
-Returns non-zero if \arg{term} is a compound term with functor ./2 or
+Returns non-zero if \arg{term} is a compound term with functor \functor{.}{2} or
 the atom \const{[]}.  See also PL_is_pair() and PL_skip_list().
 \cfunction{int}{PL_is_pair}{term_t}
-Returns non-zero if \arg{term} is a compound term with functor ./2.  See
+Returns non-zero if \arg{term} is a compound term with functor \functor{.}{2}.  See
 also PL_is_list() and PL_skip_list().
 \cfunction{int}{PL_is_atomic}{term_t}
 Returns non-zero if \arg{term} is atomic (not variable or compound).
@@ -668,7 +667,7 @@ Returns non-zero if \arg{term} is acyclic (i.e.\ a finite tree).
 
 The functions {\tt PL_get_*()} read information from a Prolog term. Most
 of them take two arguments.  The first is the input term and the second
-is a pointer to the output value or a term-reference.
+is a pointer to the output value or a term reference.
 
 \begin{description}
     \cfunction{int}{PL_get_atom}{term_t +t, atom_t *a}
@@ -688,23 +687,23 @@ read-only memory, so `temporary manipulation' can cause an error.
     \cfunction{int}{PL_get_string_chars}{term_t +t, char **s, int *len}
 If \arg{t} is a string object, store a pointer to a 0-terminated
 C-string in \arg{s} and the length of the string in \arg{len}.  Note
-that this pointer is invalidated by backtracking, garbage-collection
+that this pointer is invalidated by backtracking, garbage collection
 and stack-shifts, so generally the only save operations are to pass
-it immediately to a C-function that doesn't involve Prolog.
+it immediately to a C function that doesn't involve Prolog.
 
     \cfunction{int}{PL_get_chars}{term_t +t, char **s, unsigned flags}
 Convert the argument term \arg{t} to a 0-terminated C-string.  {\em
 flags} is a bitwise disjunction from two groups of constants.  The
-first specifies which term-types should converted and the second
+first specifies which term types should be converted and the second
 how the argument is stored.  Below is a specification of these
 constants.  \const{BUF_RING} implies, if the data is not static
-(as from an atom), the data is copied to the next buffer from a
+(as from an atom), that the data is copied to the next buffer from a
 ring of 16 buffers.  This is a convenient way of converting
 multiple arguments passed to a foreign predicate to C-strings.  If
-BUF_MALLOC is used, the data must be freed using PL_free() when not
-needed any longer.
+BUF_MALLOC is used, the data must be freed using PL_free() when no longer
+needed.
 
-With the introduction of wide-characters (see \secref{encoding}), not
+With the introduction of wide characters (see \secref{encoding}), not
 all atoms can be converted into a \ctype{char*}.  This function fails
 if \arg{t} is of the wrong type, but also if the text cannot be
 represented.  See the \const{REP_*} flags below for details.
@@ -717,14 +716,14 @@ represented.  See the \const{REP_*} flags below for details.
 		      1 and 255 \\
 \const{CVT_INTEGER} & Convert if term is an integer (using \const{\%d}) \\
 \const{CVT_FLOAT}   & Convert if term is a float (using \const{\%f}) \\
-\const{CVT_NUMBER}  & Convert if term is a integer or float \\
+\const{CVT_NUMBER}  & Convert if term is an integer or float \\
 \const{CVT_ATOMIC}  & Convert if term is atomic \\
 \const{CVT_VARIABLE}& Convert variable to print-name \\
 \const{CVT_WRITE}   & Convert any term that is not converted by
 		      any of the other flags using write/1.  If
 		      no \const{BUF_*} is provided, \const{BUF_RING}
 		      is implied. \\
-\const{CVT_WRITE_CANINICAL} & As CVT_WRITE, but use write_canonical/2. \\
+\const{CVT_WRITE_CANINICAL} & As \const{CVT_WRITE}, but use write_canonical/2. \\
 \const{CVT_ALL}     & Convert if term is any of the above, except for
                       \const{CVT_VARIABLE} and \const{CVT_WRITE} \\
 \hline
@@ -744,13 +743,13 @@ represented.  See the \const{REP_*} flags below for details.
 		      for all text. \\
 \const{REP_MB}		& Convert to default locale-defined 8-bit string.
 		      Success depends on the locale.  Conversion is done
-		      using the wcrtomb() C-library function. \\
+		      using the wcrtomb() C library function. \\
 \hline
 \end{tabular}
 
 \cfunction{int}{PL_get_list_chars}{+term_t l, char **s, unsigned flags}
 Same as \exam{PL_get_chars(\arg{l}, \arg{s}, CVT_LIST|\arg{flags})},
-provided \arg{flags} contains no of the {\tt CVT_*} flags.
+provided \arg{flags} contains none of the {\tt CVT_*} flags.
 \cfunction{int}{PL_get_integer}{+term_t t, int *i}
 If \arg{t} is a Prolog integer, assign its value over \arg{i}.  On
 32-bit machines, this is the same as PL_get_long(), but avoids a
@@ -761,7 +760,7 @@ If \arg{t} is a Prolog integer that can be represented as a long, assign
 its value over \arg{i}. If \arg{t} is an integer that cannot be
 represented by a C long, this function returns \const{FALSE}. If \arg{t}
 is a floating point number that can be represented as a long, this
-function succeeds as well.  See also PL_get_int64()
+function succeeds as well.  See also PL_get_int64().
 
 \cfunction{int}{PL_get_int64}{term_t +t, int64_t *i}
 If \arg{t} is a Prolog integer or float that can be represented as a
@@ -770,20 +769,20 @@ integers can be represented using this type, but this might change if
 SWI-Prolog introduces unbounded integers.
 
 \cfunction{int}{PL_get_intptr}{term_t +t, intptr_t *i}
-Get an integer that is at least as wide a as a pointer. On most
+Get an integer that is at least as wide as a pointer. On most
 platforms this is the same as PL_get_long(), but on Win64 pointers are 8
 bytes and longs only 4. Unlike PL_get_pointer(), the value is not
 modified.
 
 \cfunction{int}{PL_get_bool}{term_t +t, int *val}
 If \arg{t} has the value \const{true} or \const{false}, set \arg{val}
-to the C constant \const{TRUE} or \const{FALSE} and return success.
+to the C constant \const{TRUE} or \const{FALSE} and return success,
 otherwise return failure.
 \cfunction{int}{PL_get_pointer}{term_t +t, void **ptr}
 In the current system, pointers are represented by Prolog integers,
 but need some manipulation to make sure they do not get truncated due
-to the limited Prolog integer range.  PL_put_pointer()/PL_get_pointer()
-guarantees pointers in the range of malloc() are handled without
+to the limited Prolog integer range.  PL_put_pointer() and PL_get_pointer()
+guarantee pointers in the range of malloc() are handled without
 truncating.
 \cfunction{int}{PL_get_float}{term_t +t, double *f}
 If \arg{t} is a float or integer, its value is assigned over \arg{f}.
@@ -792,25 +791,25 @@ If \arg{t} is compound or an atom, the Prolog representation of the
 name-arity pair will be assigned over \arg{f}. See also
 PL_get_name_arity() and PL_is_functor().
 \cfunction{int}{PL_get_name_arity}{term_t +t, atom_t *name, int *arity}
-If \arg{t} is compound or an atom, the functor-name will be assigned
+If \arg{t} is compound or an atom, the functor name will be assigned
 over \arg{name} and the arity over \arg{arity}. See also
 PL_get_functor() and PL_is_functor().
 \cfunction{int}{PL_get_module}{term_t +t, module_t *module}
-If \arg{t} is an atom, the system will lookup or create the
+If \arg{t} is an atom, the system will look up or create the
 corresponding module and assign an opaque pointer to it over {\em
-module},.
+module}.
 \cfunction{int}{PL_get_arg}{int index, term_t +t, term_t -a}
-If \arg{t} is compound and index is between 1 and arity (including),
-assign \arg{a} with a term-reference to the argument.
+If \arg{t} is compound and index is between 1 and arity (inclusive),
+assign \arg{a} with a term reference to the argument.
 \cfunction{int}{_PL_get_arg}{int index, term_t +t, term_t -a}
-Same as PL_get_arg(), but no checking is performed, nor whether \arg{t}
-is actually a term, nor whether \arg{index} is a valid argument-index.
+Same as PL_get_arg(), but no checking is performed, neither whether \arg{t}
+is actually a term nor whether \arg{index} is a valid argument index.
 \end{description}
 
 
 \subsubsection{Exchanging text using length and string}
 
-All internal text-representation of SWI-Prolog is represented using
+All internal text representation in SWI-Prolog is represented using
 \type{char *} plus length and allow for \jargon{0-bytes} in them.
 The foreign library supports this by implementing a *_nchars() function
 for each applicable *_chars() function.  Below we briefly present the
@@ -848,17 +847,17 @@ inspecting atoms:
 
 \begin{description}
     \cfunction{atom_t}{PL_new_atom_nchars}{size_t len, const char *s}
-Create a new atom as PL_new_atom(), but from length and characters.
+Create a new atom as PL_new_atom(), but using the given length and characters.
     \cfunction{const char *}{PL_atom_nchars}{atom_t a, size_t *len}
-Extract text and length of an atom.
+Extract the text and length of an atom.
 \end{description}
 
 
-\subsubsection{Wide character versions}
+\subsubsection{Wide-character versions}
 
-Support for exchange of wide character strings is still under
+Support for exchange of wide-character strings is still under
 consideration. The functions dealing with 8-bit character strings
-return failure when operating on a wide character atom or Prolog string
+return failure when operating on a wide-character atom or Prolog string
 object. The functions below can extract and unify both 8-bit and wide
 atoms and string objects. Wide character strings are represented as C
 arrays of objects of the type \ctype{pl_wchar_t}, which is guaranteed to
@@ -889,8 +888,8 @@ is the same as for PL_get_chars().
     \cfunction{int}{PL_unify_wchars}{term_t t, int type,
 				     size_t len,
 				     const pl_wchar_t *s}
-Unify \arg{t} with a textual representation of the C wide character
-array \arg{s}.  The \arg{arg}{type} argument defines the Prolog
+Unify \arg{t} with a textual representation of the C wide-character
+array \arg{s}.  The \arg{type} argument defines the Prolog
 representation and is one of \const{PL_ATOM}, \const{PL_STRING},
 \const{PL_CODE_LIST} or \const{PL_CHAR_LIST}.
     \cfunction{int}{PL_unify_wchars_diff}{term_t +t, term_t -tail, int type,
@@ -909,7 +908,7 @@ source distribution.
 \subsubsection{Reading a list}
 
 The functions from this section are intended to read a Prolog list from
-C.  Suppose we expect a list of atoms, the following code will print the
+C.  Suppose we expect a list of atoms; the following code will print the
 atoms, each on a line:
 
 \begin{code}
@@ -934,23 +933,23 @@ pl_write_atoms(term_t l)
 
 \begin{description}
 \cfunction{int}{PL_get_list}{term_t +l, term_t -h, term_t -t}
-If \arg{l} is a list and not \const{[]} assign a term-reference to the
+If \arg{l} is a list and not \const{[]} assign a term reference to the
 head to \arg{h} and to the tail to \arg{t}.
 \cfunction{int}{PL_get_head}{term_t +l, term_t -h}
-If \arg{l} is a list and not \const{[]} assign a term-reference to the
+If \arg{l} is a list and not \const{[]} assign a term reference to the
 head to \arg{h}.
 \cfunction{int}{PL_get_tail}{term_t +l, term_t -t}
-If \arg{l} is a list and not \const{[]} assign a term-reference to the
+If \arg{l} is a list and not \const{[]} assign a term reference to the
 tail to \arg{t}.
 \cfunction{int}{PL_get_nil}{term_t +l}
-Succeeds if {\em} represents the atom \const{[]}.
+Succeeds if \arg{l} represents the atom \const{[]}.
 
 \cfunction{int}{PL_skip_list}{term_t +list, term_t -tail, size_t *len}
 This is a multi-purpose function to deal with lists.  It allows for
 finding the length of a list, checking whether something is a list,
 etc. The reference \arg{tail} is set to point to the end of the list,
-\arg{len} is filled with the number of list-cells skipped and the
-return-value indicates the status of the list:
+\arg{len} is filled with the number of list-cells skipped, and the
+return value indicates the status of the list:
 
     \begin{description}
 	\constitem{PL_LIST}
@@ -958,13 +957,13 @@ return-value indicates the status of the list:
     \arg{tail} is filled with \const{[]}
 
 	\constitem{PL_PARTIAL_LIST}
-    The list is `partial' list: one that ends in a variable and
+    The list is a `partial' list: one that ends in a variable and
     \arg{tail} is a reference to this variable.
 
 	\constitem{PL_CYCLIC_TERM}
     The list is cyclic (e.g. X = [a|X]).  \arg{tail} points to
     an arbitrary cell of the list and \arg{len} is at most twice
-    the cycle-length of the list.
+    the cycle length of the list.
 
 	\constitem{PL_NOT_A_LIST}
     The term \arg{list} is not a list at all.  \arg{tail} is
@@ -1038,11 +1037,11 @@ Alternatively, terms may be created `top-down', first creating a
 compound holding only variables and subsequently unifying the arguments.
 This section discusses functions for the first approach. This approach
 is generally used for creating arguments for PL_call() and
-PL_open_query.
+PL_open_query().
 
 \begin{description}
 \cfunction{void}{PL_put_variable}{term_t -t}
-Put a fresh variable in the term, resetting the term-reference to its
+Put a fresh variable in the term, resetting the term reference to its
 initial state.\footnote{Older versions created a variable on the global
 stack.}
 \cfunction{void}{PL_put_atom}{term_t -t, atom_t a}
@@ -1052,30 +1051,30 @@ PL_new_atom() and PL_atom_chars().
 Put one of the atoms \const{true} or \const{false} in the term reference
 See also PL_put_atom(), PL_unify_bool() and PL_get_bool().
 \cfunction{int}{PL_put_atom_chars}{term_t -t, const char *chars}
-Put an atom in the term-reference constructed from the 0-terminated
+Put an atom in the term reference constructed from the zero-terminated
 string.  The string itself will never be referenced by Prolog after this
 function.
 \cfunction{int}{PL_put_string_chars}{term_t -t, const char *chars}
-Put a zero-terminated string in the term-reference. The data will be
+Put a zero-terminated string in the term reference. The data will be
 copied.  See also PL_put_string_nchars().
 \cfunction{int}{PL_put_string_nchars}{term_t -t,
 				       size_t len,
 				       const char *chars}
 
 Put a string, represented by a length/start pointer pair in the
-term-reference.  The data will be copied.  This interface can deal
+term reference.  The data will be copied.  This interface can deal
 with 0-bytes in the string.  See also \secref{foreigndata}.
 \cfunction{int}{PL_put_list_chars}{term_t -t, const char *chars}
-Put a list of ASCII values in the term-reference.
+Put a list of ASCII values in the term reference.
 \cfunction{int}{PL_put_integer}{term_t -t, long i}
 Put a Prolog integer in the term reference.
 \cfunction{int}{PL_put_int64}{term_t -t, int64_t i}
 Put a Prolog integer in the term reference.
 \cfunction{int}{PL_put_pointer}{term_t -t, void *ptr}
-Put a Prolog integer in the term-reference.  Provided ptr is in the
+Put a Prolog integer in the term reference.  Provided \arg{ptr} is in the
 `malloc()-area', PL_get_pointer() will get the pointer back.
 \cfunction{int}{PL_put_float}{term_t -t, double f}
-Put a floating-point value in the term-reference.
+Put a floating-point value in the term reference.
 \cfunction{int}{PL_put_functor}{term_t -t, functor_t functor}
 Create a new compound term from \arg{functor} and bind \arg{t} to
 this term. All arguments of the term will be variables. To create
@@ -1088,8 +1087,8 @@ Same as \exam{PL_put_atom_chars("[]")}.
 \cfunction{void}{PL_put_term}{term_t -t1, term_t +t2}
 Make \arg{t1} point to the same term as \arg{t2}.
 \cfunction{int}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
-Create a term, whose arguments are filled from variable argument list
-holding the same number of term_t objects as the arity of the functor.
+Create a term whose arguments are filled from a variable argument list
+holding the same number of \ctype{term_t} objects as the arity of the functor.
 To create the term \exam{animal(gnu, 50)}, use:
 
 \begin{code}
@@ -1110,15 +1109,15 @@ To create the term \exam{animal(gnu, 50)}, use:
 \end{code}
 
 
-After this sequence, the term-references \arg{a1} and \arg{a2} may
+After this sequence, the term references \arg{a1} and \arg{a2} may
 be used for other purposes.
 \cfunction{int}{PL_cons_functor_v}{term_t -h, functor_t f, term_t a0}
-Creates a compound term like PL_cons_functor(), but \arg{a0} is an
+Create a compound term like PL_cons_functor(), but \arg{a0} is an
 array of term references as returned by PL_new_term_refs().  The length
 of this array should match the number of arguments required by the
 functor.
 \cfunction{int}{PL_cons_list}{term_t -l, term_t +h, term_t +t}
-Create a list (cons-) cell in \arg{l} from the head and tail.  The
+Create a list (cons-) cell in \arg{l} from the head \arg{h} and tail \arg{t}.  The
 code below creates a list of atoms from a \ctype{char **}.  The list
 is built tail-to-head.  The {\tt PL_unify_*()} functions can be used
 to build a list head-to-tail.
@@ -1143,12 +1142,12 @@ new value is set.
 
 \subsection{Unifying data}
 
-The functions of this sections \jargon{unify} terms with other terms or
-translated C-data structures. Except for PL_unify(), the functions of
-this section are specific to SWI-Prolog. They have been introduced
+The functions of this section \jargon{unify} terms with other terms or
+translated C data structures. Except for PL_unify(), these functions
+are specific to SWI-Prolog. They have been introduced
 because they shorten the code for returning data to Prolog and at the
 same time make this more efficient by avoiding the need to allocate
-temporary term-references and reduce the number of calls to the Prolog
+temporary term references and reduce the number of calls to the Prolog
 API. Consider the case where we want a foreign function to return the
 host name of the machine Prolog is running on. Using the {\tt
 PL_get_*()} and {\tt PL_put_*()} functions, the code becomes:
@@ -1200,8 +1199,8 @@ example, calling PL_unify() on \term{a}{X, a} and \term{a}{c,b} binds
 \arg{X} to \const{c} and fails when trying to unify \const{a} to
 \const{b}. If control remains in C or even if we want to return success
 to Prolog, we \emph{must} undo such bindings. This is achieved using
-PL_open_foreign_frame() and PL_rewind_foreign_frame(), as show in the
-snippid below.
+PL_open_foreign_frame() and PL_rewind_foreign_frame(), as shown in the
+snippet below.
 
 \begin{code}
     { fid_t fid = PL_open_foreign_frame();
@@ -1234,11 +1233,11 @@ Unify \arg{t} with either \const{true} or \const{false}.
 New function to deal with unification of \ctype{char*} with various
 encodings to a Prolog representation. The \arg{flags} argument is a
 bitwise \emph{or} specifying the Prolog target type and the encoding of
-\arg{chars}. Prolog types is one of \const{PL_ATOM}, \const{PL_STRING},
-\const{PL_CODE_LIST} or \const{PL_CHAR_LIST}. Representations is one of
+\arg{chars}. A Prolog type is one of \const{PL_ATOM}, \const{PL_STRING},
+\const{PL_CODE_LIST} or \const{PL_CHAR_LIST}. A representation is one of
 \const{REP_ISO_LATIN_1}, \const{REP_UTF8} or \const{REP_MB}. See
 PL_get_chars() for a definition of the representation types. If
-\arg{len} is \const{-1} \arg{chars} must be 0-terminated and the length
+\arg{len} is \const{-1} \arg{chars} must be zero-terminated and the length
 is computed from \arg{chars} using strlen().
 
 If \arg{flags} includes \const{PL_DIFF_LIST} and type is one of
@@ -1277,12 +1276,12 @@ Unify \arg{t} with a Prolog integer describing the pointer. See also
 PL_put_pointer() and PL_get_pointer().
     \cfunction{int}{PL_unify_functor}{term_t ?t, functor_t f}
 If \arg{t} is a compound term with the given functor, just succeed.
-If it is unbound, create a term and bind the variable, else fails.
+If it is unbound, create a term and bind the variable, else fail.
 Note that this function does not create a term if the argument is
 already instantiated.
     \cfunction{int}{PL_unify_list}{term_t ?l, term_t -h, term_t -t}
 Unify \arg{l} with a list-cell ({\tt ./2}). If successful, write a
-reference to the head of the list to \arg{h} and a reference
+reference to the head of the list into \arg{h} and a reference
 to the tail of the list into \arg{t}. This reference may be used for
 subsequent calls to this function. Suppose we want to return a list of
 atoms from a \ctype{char **}. We could use the example described by
@@ -1290,7 +1289,7 @@ PL_put_list(), followed by a call to PL_unify(), or we can use the code
 below. If the predicate argument is unbound, the difference is minimal
 (the code based on PL_put_list() is probably slightly faster). If the
 argument is bound, the code below may fail before reaching the end of
-the word-list, but even if the unification succeeds, this code avoids a
+the word list, but even if the unification succeeds, this code avoids a
 duplicate (garbage) list and a deep unification.
 
 \begin{code}
@@ -1317,24 +1316,24 @@ Unifies the {\em index-th} argument (1-based) of \arg{t} with
 \arg{a}.
 \cfunction{int}{PL_unify_term}{term_t ?t, \ldots}
 Unify \arg{t} with a (normally) compound term.  The remaining arguments
-is a sequence of a type identifier, followed by the required
+are a sequence of a type identifier followed by the required
 arguments. This predicate is an extension to the Quintus and SICStus
 foreign interface from which the SWI-Prolog foreign interface has been
 derived, but has proved to be a powerful and comfortable way to create
 compound terms from C.  Due to the vararg packing/unpacking and the
 required type-switching this interface is slightly slower than using
-the primitives.  Please note that some bad C-compilers have fairly
+the primitives.  Please note that some bad C compilers have fairly
 low limits on the number of arguments that may be passed to a function.
 
 Special attention is required when passing numbers. C `promotes' any
-integral smaller than \type{int} to \type{int}. I.e.\ the types
+integral smaller than \type{int} to \type{int}. That is, the types
 \type{char}, \type{short} and \type{int} are all passed as \type{int}.
 In addition, on most 32-bit platforms \type{int} and \type{long} are the
-same. Up-to version 4.0.5, only \const{PL_INTEGER} could be specified
+same. Up to version 4.0.5, only \const{PL_INTEGER} could be specified,
 which was taken from the stack as \type{long}. Such code fails when
 passing small integral types on machines where \type{int} is smaller
 than \type{long}. It is advised to use \const{PL_SHORT}, \const{PL_INT}
-or \const{PL_LONG} as appropriate. Similar, C compilers promote
+or \const{PL_LONG} as appropriate. Similarly, C compilers promote
 \type{float} to \type{double} and therefore \const{PL_FLOAT} and
 \const{PL_DOUBLE} are synonyms.
 
@@ -1348,10 +1347,10 @@ Unify the argument with \const{true} or \const{false}.
    \definition{\const{PL_ATOM} \arg{atom_t}}
 Unify the argument with an atom, as in PL_unify_atom().
    \definition{\const{PL_CHARS} \arg{const char *}}
-Unify the argument with an atom, constructed from the C \ctype{char *},
+Unify the argument with an atom constructed from the C \ctype{char *},
 as in PL_unify_atom_chars().
    \definition{\const{PL_NCHARS} \arg{size_t, const char *}}
-Unify the argument with an atom, constructed from length and
+Unify the argument with an atom constructed from length and
 \ctype{char*} as in PL_unify_atom_nchars().
    \definition{\const{PL_UTF8_CHARS} \arg{const char *}}
 Create an atom from a UTF-8 string.
@@ -1368,7 +1367,7 @@ current locale.
    \definition{\const{PL_NWCHARS} \arg{size_t, const wchar_t *}}
 Create an atom from a length and a wide character pointer.
    \definition{\const{PL_NWCODES} \arg{size_t, const wchar_t *}}
-Create an list of character codes from a length and a wide character pointer.
+Create a list of character codes from a length and a wide character pointer.
    \definition{\const{PL_NWSTRING} \arg{size_t, const wchar_t *}}
 Create a packed string object from a length and a wide character pointer.
    \definition{\const{PL_SHORT} \arg{short}}
@@ -1386,7 +1385,7 @@ Unify the argument with a 64-bit integer, as in PL_unify_int64().
    \definition{\const{PL_INTPTR} \arg{intptr_t}}
 Unify the argument with an integer with the same width as a pointer.
 On most machines this is the same as \const{PL_LONG}. but on 64-bit
-MS-Windows pointers are 64-bit while longs are only 32-bits.
+MS-Windows pointers are 64 bits while longs are only 32 bits.
    \definition{\const{PL_DOUBLE} \arg{double}}
 Unify the argument with a float, as in PL_unify_float(). Note that,
 as the argument is passed using the C vararg conventions, a float must
@@ -1398,7 +1397,7 @@ Unify the argument with a pointer, as in PL_unify_pointer().
    \definition{\const{PL_STRING} \arg{const char *}}
 Unify the argument with a string object, as in PL_unify_string_chars().
    \definition{\const{PL_TERM} \arg{term_t}}
-Unify a subterm.  Note this may the return value of a PL_new_term_ref()
+Unify a subterm.  Note this may be the return value of a PL_new_term_ref()
 call to get access to a variable.
    \definition{\const{PL_FUNCTOR} \arg{functor_t, \ldots}}
 Unify the argument with a compound term.  This specification should be
@@ -1409,7 +1408,7 @@ the compound term.
 Create a functor from the given name and arity and then behave as
 \const{PL_FUNCTOR}.
    \definition{\const{PL_LIST} \arg{int length, \ldots}}
-Create a list of the indicated length.  The following arguments contain
+Create a list of the indicated length.  The remaining arguments contain
 the elements of the list.
 \end{description}
 
@@ -1448,7 +1447,7 @@ In addition to returning \const{FALSE}, the exception-term is
 returned in \arg{t} on a syntax error.
 See also term_to_atom/2.
 
-The following example build a goal-term from a string and calls it.
+The following example builds a goal term from a string and calls it.
 
 \begin{code}
 int
@@ -1465,7 +1464,6 @@ call_chars(const char *goal)
   PL_discard_foreign_frame(fid);
   return rval;
 }
-
   ...
   call_chars("consult(load)");
   ...
@@ -1485,11 +1483,11 @@ call_chars(const char *goal)
 \end{description}
 
 
-\subsection{Convience functions to generate Prolog exceptions}
+\subsection{Convenient functions to generate Prolog exceptions}
 \label{sec:cerror}
 
 The typical implementation of a foreign predicate first uses the
-PL_get_*() functions to extract C datatypes from the Prolog terms.
+PL_get_*() functions to extract C data types from the Prolog terms.
 Failure of any of these functions is normally because the Prolog
 term is of the wrong type.  The *_ex() family of functions are
 wrappers around (mostly) the PL_get_*() functions, such that we
@@ -1521,36 +1519,36 @@ As PL_get_atom(), but raises a type or instantiation error if
 
     \cfunction{int}{PL_get_integer_ex}{term_t t, int *i}
 As PL_get_integer(), but raises a type or instantiation error if
-\arg{t} is not an integer or a representation error if the Prolog
+\arg{t} is not an integer, or a representation error if the Prolog
 integer does not fit in a C \ctype{int}.
 
     \cfunction{int}{PL_get_long_ex}{term_t t, long *i}
 As PL_get_long(), but raises a type or instantiation error if
-\arg{t} is not an atom or a representation error if the Prolog
+\arg{t} is not an atom, or a representation error if the Prolog
 integer does not fit in a C \ctype{long}.
 
     \cfunction{int}{PL_get_int64_ex}{term_t t, int64_t *i}
 As PL_get_int64(), but raises a type or instantiation error if
-\arg{t} is not an atom or a representation error if the Prolog
+\arg{t} is not an atom, or a representation error if the Prolog
 integer does not fit in a C \ctype{int64_t}.
 
     \cfunction{int}{PL_get_intptr_ex}{term_t t, intptr_t *i}
 As PL_get_intptr(), but raises a type or instantiation error if
-\arg{t} is not an atom or a representation error if the Prolog
+\arg{t} is not an atom, or a representation error if the Prolog
 integer does not fit in a C \ctype{intptr_t}.
 
     \cfunction{int}{PL_get_size_ex}{term_t t, size_t *i}
 As PL_get_size(), but raises a type or instantiation error if
-\arg{t} is not an atom or a representation error if the Prolog
+\arg{t} is not an atom, or a representation error if the Prolog
 integer does not fit in a C \ctype{size_t}.
 
     \cfunction{int}{PL_get_bool_ex}{term_t t, int *i}
-As PL_get_atom_ex(), but raises a type or instantiation error if
-\arg{t} is not an atom.
+As PL_get_bool(), but raises a type or instantiation error if
+\arg{t} is not an boolean.
 
     \cfunction{int}{PL_get_float_ex}{term_t t, double *f}
-As PL_get_atom_ex(), but raises a type or instantiation error if
-\arg{t} is not an atom.
+As PL_get_float(), but raises a type or instantiation error if
+\arg{t} is not a float.
 
     \cfunction{int}{PL_get_char_ex}{term_t t, int *p, int eof}
 Get a character code from \arg{t}, where \arg{t} is either an
@@ -1580,7 +1578,7 @@ variable, list-cell or the empty list.
 
     \cfunction{int}{PL_unify_bool_ex}{term_t t, int val}
 As PL_unify_bool(), but raises a type error if \arg{t} is not a
-variable, or a boolean.
+variable or a boolean.
 \end{description}
 
 The second family of functions in this section simplifies the generation
@@ -1630,7 +1628,7 @@ makes them attractive as a handle to foreign resources, such as
 Java atoms,  Microsoft's COM objects, etc., providing safe combined
 garbage collection.
 
-To exploit these features safely and in an organised manner the
+To exploit these features safely and in an organised manner, the
 SWI-Prolog foreign interface allows for creating `atoms' with additional
 type information. The type is represented by a structure holding C
 function pointers that tell Prolog how to handle releasing the atom,
@@ -1645,8 +1643,8 @@ type is registered.
 \label{sec:blobtype}
 
 The type \ctype{PL_blob_t} represents a structure with the layout
-displayed above. The structure contains additional fields at the
-\ldots for internal bookkeeping as well as future extension.
+displayed below. The structure contains additional fields at the
+\ldots for internal bookkeeping as well as future extensions.
 
 \begin{code}
 typedef struct PL_blob_t
@@ -1661,9 +1659,9 @@ typedef struct PL_blob_t
 } PL_blob_t;
 \end{code}
 
-For each type exactly one such structure should be allocated.  Its
+For each type, exactly one such structure should be allocated.  Its
 first field must be initialised to \const{PL_BLOB_MAGIC}.  The
-\arg{flags} is a bitwise or of the following constants:
+\arg{flags} is a bitwise \emph{or} of the following constants:
 
 \begin{description}
     \constitem{PL_BLOB_TEXT}
@@ -1673,18 +1671,18 @@ a normal Prolog atom.
     \constitem{PL_BLOB_UNIQUE}
 If specified the system ensures that the blob-handle is a unique
 reference for a blob with the given type, length and content.
-If this flag is not specified each lookup creates a new blob.
+If this flag is not specified, each lookup creates a new blob.
 
     \constitem{PL_BLOB_NOCOPY}
 By default the content of the blob is copied. Using this flag the blob
 references the external data directly. The user must ensure the provided
 pointer is valid as long as the atom lives.  If \const{PL_BLOB_UNIQUE}
-is also specified uniqueness is determined by comparing the pointer
+is also specified, uniqueness is determined by comparing the pointer
 rather than the data pointed at.
 \end{description}
 
 The \arg{name} field represents the type name as available to Prolog.
-See also current_blob/2. The other field are function pointers that must
+See also current_blob/2. The other fields are function pointers that must
 be initialised to proper functions or \const{NULL} to get the default
 behaviour of built-in atoms. Below are the defined member functions:
 
@@ -1692,7 +1690,7 @@ behaviour of built-in atoms. Below are the defined member functions:
     \cfunction{void}{acquire}{atom_t a}
 Called if a new blob of this type is created through PL_put_blob()
 or PL_unify_blob().  This callback may be used together with the
-release hook to deal with reference counted external objects.
+release hook to deal with reference-counted external objects.
 
     \cfunction{int}{release}{atom_t a}
 The blob (atom) \arg{a} is about to be released.  This function
@@ -1702,14 +1700,14 @@ reclaim the atom.
 
     \cfunction{int}{compare}{atom_t a, atom_t b}
 Compare the blobs \arg{a} and \arg{b}, both of which are of the
-type associated to this blob-type.  Return values are, as memcmp(),
-$< 0$ if \arg{a} is less then \arg{b}, $= 0$ if both are equal and
+type associated to this blob type.  Return values are, as memcmp(),
+$< 0$ if \arg{a} is less than \arg{b}, $= 0$ if both are equal, and
 $> 0$ otherwise.
 
     \cfunction{int}{write}{IOSTREAM *s, atom_t a, int flags}
 Write the content of the blob \arg{a} to the stream \arg{s}
-and respecting the \arg{flags}.  The \arg{flags} are a bitwise
-or of zero or more of the \const{PL_WRT_*} flags defined in
+respecting the \arg{flags}.  The \arg{flags} are a bitwise
+\em{or} of zero or more of the \const{PL_WRT_*} flags defined in
 \file{SWI-Prolog.h}. This prototype is available if the
 undocumented \file{SWI-Stream.h} is included \emph{before}
 \file{SWI-Prolog.h}.
@@ -1720,16 +1718,15 @@ string of the format \verb$<#$\textit{hex data}\verb$>$
 for binary blobs.
 \end{description}
 
-
 If a blob type is registered from a loadable object (shared object
-or DLL) the blob-type must be deregistered before the object may be
+or DLL) the blob type must be deregistered before the object may be
 released.
 
 \begin{description}
     \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}
 Unlink the blob type from the registered type and transform the type of
 possible living blobs to \const{unregistered}, avoiding further
-reference to the type structure, functions referred by it as well as the
+reference to the type structure, functions referred by it, as well as the
 data. This function returns \const{TRUE} if no blobs of this type
 existed and \const{FALSE} otherwise. PL_unregister_blob_type() is
 intended for the uninstall() hook of foreign modules, avoiding further
@@ -1741,8 +1738,8 @@ references to the module.
 \label{sec:blobaccess}
 
 The blob access functions are similar to the atom accessing functions.
-Blobs being atoms, the atom functions operate on blobs and visa versa.
-For clarity and possible future compatibility issues however it is not
+Blobs being atoms, the atom functions operate on blobs and vice versa.
+For clarity and possible future compatibility issues, however, it is not
 advised to rely on this.
 
 \begin{description}
@@ -1761,13 +1758,13 @@ Store the described blob in \arg{t}.  The return value indicates whether
 a new blob was allocated (\const{FALSE}) or the blob is a reference to
 an existing blob (\const{TRUE}).  Reporting new/existing can be used to
 deal with external objects having their own reference counts.  If the
-return is \const{TRUE} this reference count must be incremented and it
+return is \const{TRUE} this reference count must be incremented, and it
 must be decremented on blob destruction callback.  See also
 PL_put_atom_nchars().
 
     \cfunction{int}{PL_get_blob}{term_t t, void **blob, size_t *len,
 				 PL_blob_t **type}
-If \arg{t} holds a blob or atom get the data and type and return
+If \arg{t} holds a blob or atom, get the data and type and return
 \const{TRUE}.  Otherwise return \const{FALSE}.  Each result pointer
 may be \const{NULL}, in which case the requested information is
 ignored.
@@ -1838,15 +1835,15 @@ install()
 
 \begin{description}
     \cfunction{int}{PL_get_mpz}{term_t t, mpz_t mpz}
-If \arg{t} represents an integer \arg{mpz} is filled with the value and
+If \arg{t} represents an integer, \arg{mpz} is filled with the value and
 the function returns \const{TRUE}. Otherwise \arg{mpz} is untouched and
 the function returns \const{FALSE}.  Note that \arg{mpz} must have been
 initialised before calling this function and must be cleared using
 mpz_clear() to reclaim any storage associated with it.
 
     \cfunction{int}{PL_get_mpq}{term_t t, mpq_t mpq}
-If \arg{t} is an integer or rational number (term \functor{rdiv}{2})
-\arg{mpq} is filled with the \emph{normalise} rational number and the
+If \arg{t} is an integer or rational number (term \functor{rdiv}{2}),
+\arg{mpq} is filled with the \emph{normalised} rational number and the
 function returns \const{TRUE}.  Otherwise \arg{mpq} is untouched and
 the function returns \const{FALSE}.  Note that \arg{mpq} must have been
 initialised before calling this function and must be cleared using
@@ -1854,11 +1851,11 @@ mpq_clear() to reclaim any storage associated with it.
 
     \cfunction{int}{PL_unify_mpz}{term_t t, mpz_t mpz}
 Unify \arg{t} with the integer value represented by \arg{mpz} and return
-\arg{TRUE} on success.  The \arg{mpz} argument is not changed.
+\const{TRUE} on success.  The \arg{mpz} argument is not changed.
 
     \cfunction{int}{PL_unify_mpq}{term_t t, mpq_t mpq}
 Unify \arg{t} with a rational number represented by \arg{mpq} and return
-\arg{TRUE} on success.  Note that \arg{t} is unified with an integer if
+\const{TRUE} on success.  Note that \arg{t} is unified with an integer if
 the denominator is 1.  The \arg{mpq} argument is not changed.
 \end{description}
 
@@ -1867,7 +1864,7 @@ the denominator is 1.  The \arg{mpq} argument is not changed.
 
 The Prolog engine can be called from C. There are two interfaces for
 this. For the first, a term is created that could be used as an argument
-to call/1 and next PL_call() is used to call Prolog. This system is
+to call/1, and then PL_call() is used to call Prolog. This system is
 simple, but does not allow to inspect the different answers to a
 non-deterministic goal and is relatively slow as the runtime system
 needs to find the predicate. The other interface is based on
@@ -1879,8 +1876,8 @@ complicated to use.
 \subsubsection{Predicate references}
 
 This section discusses the functions used to communicate about
-predicates. Though a Prolog predicate may defined or not, redefined,
-etc., a Prolog predicate has a handle that is not destroyed, nor moved.
+predicates. Though a Prolog predicate may be defined or not, redefined,
+etc., a Prolog predicate has a handle that is neither destroyed nor moved.
 This handle is known by the type \ctype{predicate_t}.
 
 \begin{description}
@@ -1892,8 +1889,8 @@ undefined predicate if no handle was available.  If the module argument
 
     \cfunction{predicate_t}{PL_predicate}{const char *name, int arity,
 					  const char* module}
-Same a PL_pred(), but provides a more convenient interface to
-the C-programmer.
+Same as PL_pred(), but provides a more convenient interface to
+the C programmer.
 
     \cfunction{void}{PL_predicate_info}{predicate_t p, atom_t *n,
 					int *a, module_t *m}
@@ -1911,9 +1908,9 @@ is defined. Any of the arguments \arg{n}, \arg{a} and \arg{m} can be
 
 This section discusses the functions for creating and manipulating
 queries from C.  Note that a foreign context can have at most one
-active query.  This implies it is allowed to make strictly nested
+active query.  This implies that it is allowed to make strictly nested
 calls between C and Prolog (Prolog calls C, calls Prolog, calls C,
-etc., but it is \strong{not} allowed to open multiple queries and start
+etc.), but it is \strong{not} allowed to open multiple queries and start
 generating solutions for each of them by calling PL_next_solution().
 Be sure to call PL_cut_query() or PL_close_query() on any query you
 opened before opening the next or returning control back to Prolog.
@@ -1931,12 +1928,12 @@ module only matters for \jargon{meta-predicates}. See meta_predicate/1,
 context_module/1 and module_transparent/1. The \arg{p} argument
 specifies the predicate, and should be the result of a call to PL_pred()
 or PL_predicate(). Note that it is allowed to store this handle as
-global data and reuse it for future queries. The term-reference \arg{t0}
-is the first of a vector of term-references as returned by
+global data and reuse it for future queries. The term reference \arg{t0}
+is the first of a vector of term references as returned by
 PL_new_term_refs(n).
 
 The \arg{flags} arguments provides some additional options concerning
-debugging and exception handling.  It is a bitwise or of the following
+debugging and exception handling.  It is a bitwise \emph{or} of the following
 values:
 
 \begin{description}
@@ -1959,13 +1956,13 @@ As \const{PL_Q_CATCH_EXCEPTION}, but do not invalidate the exception-term
 while calling PL_close_query().  This option is experimental.
 \end{description}
 
-PL_open_query() can return a query-identifier `0' if there is not enough
+PL_open_query() can return the query identifier `0' if there is not enough
 space on the environment stack. This function succeeds, even if the
 referenced predicate is not defined. In this case, running the query
 using PL_next_solution() will return an existence_error. See
 PL_exception().
 
-The example below opens a query to the predicate {is_a}/2 to find the
+The example below opens a query to the predicate \verb$is_a/2$ to find the
 ancestor of `me'. The reference to the predicate is valid for the
 duration of the process and may be cached by the client.
 
@@ -1989,11 +1986,11 @@ Generate the first (next) solution for the given query.  The return
 value is \const{TRUE} if a solution was found, or \const{FALSE} to indicate
 the query could not be proven.  This function may be called repeatedly
 until it fails to generate all solutions to the query.
-\cfunction{void}{PL_cut_query}{qid}
+\cfunction{void}{PL_cut_query}{qid_t qid}
 Discards the query, but does not delete any of the data created by the
-query.  It just invalidate \arg{qid}, allowing for a new call to
+query.  It just invalidates \arg{qid}, allowing for a new call to
 PL_open_query() in this context.
-    \cfunction{void}{PL_close_query}{qid}
+    \cfunction{void}{PL_close_query}{qid_t qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed.
     \cfunction{int}{PL_call_predicate}{module_t m, int flags,
@@ -2001,9 +1998,9 @@ destroyed.
 Shorthand for PL_open_query(), PL_next_solution(), PL_cut_query(),
 generating a single solution.  The arguments are the same as for
 PL_open_query(), the return value is the same as PL_next_solution().
-    \cfunction{int}{PL_call}{term_t, module_t}
-Call term just like the Prolog predicate once/1. \arg{Term} is called
-in the specified module, or in the context module if module_t = NULL.
+    \cfunction{int}{PL_call}{term_t t, module_t m}
+Call term \arg{t} just like the Prolog predicate once/1. \arg{t} is called
+in the module \arg{m}, or in the context module if \arg{m} == NULL.
 Returns \const{TRUE} if the call succeeds, \const{FALSE} otherwise.
 \Figref{calling} shows an example to obtain the number of
 defined atoms. All checks are omitted to improve readability.
@@ -2011,29 +2008,29 @@ defined atoms. All checks are omitted to improve readability.
 
 \subsection{Discarding Data}
 
-The Prolog data created and term-references needed to setup the call
+The Prolog data created and term references needed to set up the call
 and/or analyse the result can in most cases be discarded right after the
-call. PL_close_query() allows for destructing the data, while leaving
-the term-references. The calls below may be used to destroy
-term-references and data. See \figref{calling} for an example.
+call. PL_close_query() allows for destroying the data, while leaving
+the term references. The calls below may be used to destroy
+term references and data. See \figref{calling} for an example.
 
 \begin{description}
 \cfunction{fid_t}{PL_open_foreign_frame}{}
-Created a foreign frame, holding a mark that allows the system to
-undo bindings and destroy data created after it as well as providing
-the environment for creating term-references.  This function is called
+Create a foreign frame, holding a mark that allows the system to
+undo bindings and destroy data created after it, as well as providing
+the environment for creating term references.  This function is called
 by the kernel before calling a foreign predicate.
 \cfunction{void}{PL_close_foreign_frame}{fid_t id}
-Discard all term-references created after the frame was opened.  All
+Discard all term references created after the frame was opened.  All
 other Prolog data is retained.  This function is called by the kernel
 whenever a foreign function returns control back to Prolog.
 \cfunction{void}{PL_discard_foreign_frame}{fid_t id}
 Same as PL_close_foreign_frame(), but also undo all bindings made since
 the open and destroy all Prolog data.
 \cfunction{void}{PL_rewind_foreign_frame}{fid_t id}
-Undo all bindings and discard all term-references created since the
-frame was created, but does not pop the frame.  I.e.\ the same frame
-can be rewinded multiple times, and must eventually be closed or
+Undo all bindings and discard all term references created since the
+frame was created, but do not pop the frame.  That is, the same frame
+can be rewound multiple times, and must eventually be closed or
 discarded.
 \end{description}
 
@@ -2075,20 +2072,22 @@ Modules are identified via a unique handle.  The following functions
 are available to query and manipulate modules.
 
 \begin{description}
-\cfunction{module_t}{PL_context}{}
+    \cfunction{module_t}{PL_context}{}
 Return the module identifier of the context module of the currently
 active foreign predicate.
-\cfunction{int}{PL_strip_module}{term_t +raw, module_t *m, term_t -plain}
-Utility function. If \arg{raw} is a term, possibly holding the module
-construct \mbox{<module>{\tt :}<rest>} this function will make
-\arg{plain} a reference to <rest> and fill \arg{module *} with <module>.
-For further nested module constructs the inner most module is returned
-via \arg{module *}. If \arg{raw} is not a module construct \arg{arg}
-will simply be put in \arg{plain}. If \arg{module *} is \const{NULL} it
-will be set to the context module. Otherwise it will be left untouched.
-The following example shows how to obtain the plain term and module if
-the default module is the user module:
 
+    \cfunction{int}{PL_strip_module}{term_t +raw, module_t *m, term_t -plain}
+Utility function. If \arg{raw} is a term, possibly holding the module
+construct \mbox{<module>{\tt :}<rest>}, this function will make
+\arg{plain} a reference to <rest> and fill \arg{module *} with <module>.
+For further nested module constructs the innermost module is returned
+via \arg{module *}. If \arg{raw} is not a module construct, \arg{raw}
+will simply be put in \arg{plain}. The value pointed to by \arg{m} must
+be initialized before calling PL_strip_module(), either to the default
+module or to \const{NULL}. A \const{NULL} value is replaced by the
+current context module if \arg{raw} carries no module. The following
+example shows how to obtain the plain term and module if the default
+module is the user module:
 
 \begin{code}
 { module m = PL_new_module(PL_new_atom("user"));
@@ -2100,11 +2099,10 @@ the default module is the user module:
 \end{code}
 
 
-\cfunction{atom_t}{PL_module_name}{module_t}
+\cfunction{atom_t}{PL_module_name}{module_t module}
 Return the name of \arg{module} as an atom.
 \cfunction{module_t}{PL_new_module}{atom_t name}
-Find an existing or create a new module with name specified by the atom
-\arg{name}.
+Find an existing module or create a new module with the name \arg{name}.
 \end{description}
 
 
@@ -2112,12 +2110,12 @@ Find an existing or create a new module with name specified by the atom
 
 This section discusses PL_exception(), PL_throw() and
 PL_raise_exception(), the interface functions to detect and generate
-Prolog exceptions from C-code. PL_throw() and PL_raise_exception() from
-the C-interface to raise an exception from foreign code. PL_throw()
-exploits the C-function longjmp() to return immediately to the innermost
+Prolog exceptions from C code. PL_throw() and PL_raise_exception() from
+the C interface raise an exception from foreign code. PL_throw()
+exploits the C function longjmp() to return immediately to the innermost
 PL_next_solution(). PL_raise_exception() registers the exception term
-and returns \const{FALSE}. If a foreign predicate returns FALSE, while
-and exception-term is registered a Prolog exception will be raised by
+and returns \const{FALSE}. If a foreign predicate returns \const{FALSE}, while
+an exception term is registered, a Prolog exception will be raised by
 the virtual machine.
 
 Calling these functions outside the context of a function implementing a
@@ -2127,12 +2125,12 @@ PL_exception() may be used after a call to PL_next_solution() fails,
 and returns a term reference to an exception term if an exception
 was raised, and 0 otherwise.
 
-If a C-function, implementing a predicate calls Prolog and detects
-an exception using PL_exception(), it can handle this exception, or
+If a C function implementing a predicate calls Prolog and detects
+an exception using PL_exception(), it can handle this exception or
 return with the exception.  Some caution is required though.  It is
 \strong{not} allowed to call PL_close_query() or
 PL_discard_foreign_frame() afterwards, as this will invalidate the
-exception term.  Below is the code that calls a Prolog defined
+exception term.  Below is the code that calls a Prolog-defined
 arithmetic function (see arithmetic_function/1).
 
 If PL_next_solution() succeeds, the result is analysed and translated to
@@ -2183,7 +2181,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
 \begin{description}
     \cfunction{int}{PL_raise_exception}{term_t exception}
 Generate an exception (as throw/1) and return \const{FALSE}.  Below is
-an example returning an exception from foreign predicate:
+an example returning an exception from a foreign predicate:
 
 \begin{code}
 foreign_t
@@ -2216,26 +2214,20 @@ Prolog call, or because an exception was raised using throw/1.  This
 function returns a handle to the exception term if an exception was
 raised, or 0 if the Prolog goal simply failed. If there is an exception,
 PL_exception() allocates a term-handle using PL_new_term_ref() that is
-used to return the exception term.%
-    \footnote{This interface differs in two ways from Quintus.  The
-	      calling predicates simply signal failure if an exception
-	      was raised, and a term referenced is returned, rather
-	      passed and filled with the error term.   Exceptions
-	      can only be handled using the PL_next_solution() interface,
-	      as a handle to the query is required.}
+used to return the exception term.
 
 Additionally, \verb$PL_exception(0)$ returns the pending exception in
 the current query or 0 if no exception is pending. This can be used to
-check the error-status after a failing call to e.g., one of the
+check the error status after a failing call to, e.g., one of the
 unification functions.
 
-    \cfunction{PL_clear_exception}{void}
+    \cfunction{void}{PL_clear_exception}{void}
 Tells Prolog that the encountered exception must be ignored. This
-function must be called if control remains in C after an previous API
-calls fails with an exception.\footnote{This feature is non-portable.
-Other Prolog systems (e.g., YAP) has no facilities to ignore raised
-exceptions and the design of YAP's exception handling does not support
-such a facility}.
+function must be called if control remains in C after a previous API
+call fails with an exception.\footnote{This feature is non-portable.
+Other Prolog systems (e.g., YAP) have no facilities to ignore raised
+exceptions, and the design of YAP's exception handling does not support
+such a facility.}
 \end{description}
 
 
@@ -2271,13 +2263,13 @@ SWI-Prolog. This generic handler validates the environment, creates a
 suitable environment for calling the interface functions described in
 this chapter and finally calls the registered user-handler.
 
-By default, signals are handled asynchronously (i.e.\ at the time they
+By default, signals are handled asynchronously (i.e., at the time they
 arrive). It is inherently dangerous to call extensive code fragments,
 and especially exception related code from asynchronous handlers. The
 interface allows for \jargon{synchronous} handling of signals. In this
 case the native OS handler just schedules the signal using PL_raise(),
 which is checked by PL_handle_signals() at the call- and redo-port. This
-behaviour is realised by or-ing \arg{sig} with the constant
+behaviour is realised by \emph{or}-ing \arg{sig} with the constant
 \const{PL_SIGSYNC}.%
     \footnote{A better default would be to use synchronous handling,
 	      but this interface preserves backward compatibility.}
@@ -2305,8 +2297,8 @@ is -1 and the calling routine should return with \const{FALSE} as
 soon as possible.
 
     \cfunction{int}{PL_get_signum_ex}{term_t t, int *sig}
-Extract a signal specification from a Prolog term and store as integer
-signal number in \arg{sig}.  The specification is an integer, lowercase
+Extract a signal specification from a Prolog term and store as an integer
+signal number in \arg{sig}.  The specification is an integer, a lowercase
 signal name without \const{SIG} or the full signal name.  These refer
 to the same: \verb$9$, \verb$kill$ and \verb$SIGKILL$. Leaves a typed,
 domain or instantiation error if the conversion fails.
@@ -2329,7 +2321,7 @@ domain or instantiation error if the conversion fails.
 \subsubsection{Recorded database}
 
 In some applications it is useful to store and retrieve Prolog terms
-from C-code.  For example, the XPCE graphical environment does this for
+from C code.  For example, the XPCE graphical environment does this for
 storing arbitrary Prolog data as slot-data of XPCE objects.
 
 Please note that the returned handles have no meaning at the Prolog
@@ -2354,7 +2346,7 @@ threads.
     Copy a recorded term back to the Prolog stack.  The same record
     may be used to copy multiple instances at any time to the Prolog
     stack. Returns \const{TRUE} on success, and \const{FALSE} if
-    there is not enough space on the stack to accomodate the term.
+    there is not enough space on the stack to accommodate the term.
     See also PL_record() and PL_erase().
 
 \cfunction{void}{PL_erase}{record_t record}
@@ -2365,7 +2357,7 @@ threads.
 The second group (headed by PL_record_external()) provides the same
 functionality, but the returned data has properties that enable storing
 the data on an external device. It has been designed to make it possible
-to store Prolog terms fast an compact in an external database.	Here are
+to store Prolog terms fast and compact in an external database.	Here are
 the main features:
 
 \begin{itemlist}
@@ -2374,10 +2366,10 @@ Records can be communicated to another Prolog session and made visible
 using PL_recorded_external().
     \item [Binary]
 The representation is binary for maximum performance.  The returned data
-may contain 0-bytes.
+may contain zero bytes.
     \item [Byte-order independent]
 The representation can be transferred between machines with different
-byte-order.
+byte order.
     \item [No alignment restrictions]
 There are no memory alignment restrictions and copies of the record
 can thus be moved freely.  For example, it is possible to use this
@@ -2419,12 +2411,12 @@ compatibility with older records.
 The function PL_get_file_name() provides access to Prolog filenames and
 its file-search mechanism described with absolute_file_name/3. Its
 existence is motivated to realise a uniform interface to deal with
-file-properties, search, naming conventions etc.\ from foreign code.
+file properties, search, naming conventions, etc., from foreign code.
 
 \begin{description}
     \cfunction{int}{PL_get_file_name}{term_t spec, char **name, int flags}
 Translate a Prolog term into a file name. The name is stored in the
-static buffer ring described with PL_get_chars() option
+static buffer ring described with th PL_get_chars() option
 \const{BUF_RING}. Conversion from the internal UNICODE encoding is done
 using standard C library functions. \arg{flags} is a bit-mask
 controlling the conversion process. Options are:
@@ -2433,7 +2425,7 @@ controlling the conversion process. Options are:
     \definition{\const{PL_FILE_ABSOLUTE}}
 Return an absolute path to the requested file.
     \definition{\const{PL_FILE_OSPATH}}
-Return a the name using the hosting OS conventions.  On MS-Windows,
+Return the name using the hosting OS conventions.  On MS-Windows,
 \chr{\} is used to separate directories rather than the canonical
 \chr{/}.
     \definition{\const{PL_FILE_SEARCH}}
@@ -2455,7 +2447,7 @@ Do not raise any exceptions.
 Same as PL_get_file_name(), but returns the filename as a wide-character
 string. This is intended for Windows to access the Unicode version of
 the Win32 API. Note that the flag \const{PL_FILE_OSPATH} must be
-provided to fetch a file name in OS native (e.g., \verb$C:\x\y$)
+provided to fetch a filename in OS native (e.g., \verb$C:\x\y$)
 notation.
 \end{description}
 
@@ -2480,7 +2472,7 @@ for \manref{printf}{2}. Always returns \const{FALSE}.
 \begin{description}
 \cfunction{int}{PL_action}{int, ...}
 Perform some action on the Prolog system. \arg{int} describes the
-action, Remaining arguments depend on the requested action. The actions
+action. Remaining arguments depend on the requested action. The actions
 are listed in \tabref{action}.
 
 \begin{table}
@@ -2491,12 +2483,12 @@ are listed in \tabref{action}.
 \const{PL_ACTION_DEBUG}     & Switch on Prolog debug mode (debug/0).
 			      Requires no arguments. \\
 \const{PL_ACTION_BACKTRACE} & Print backtrace on current output stream.
-                              The argument (an int) is the number of frames
+                              The argument (an \ctype{int}) is the number of frames
 			      printed. \\
 \const{PL_ACTION_HALT}      & Halt Prolog execution. This action should be
                               called rather than Unix exit() to give Prolog
                               the opportunity to clean up. This call does
-                              not return. The argument (an int) is the
+                              not return. The argument (an \ctype{int}) is the
 			      exit code. See halt/1. \\
 \const{PL_ACTION_ABORT}     & Generate a Prolog abort (abort/0).
 			      This call does not return.
@@ -2505,14 +2497,14 @@ are listed in \tabref{action}.
 			      (break/0). Returns after the user types
 			      the end-of-file character.
 			      Requires no arguments. \\
-\const{PL_ACTION_GUIAPP}    & Win32: Used to indicate the kernel that the
+\const{PL_ACTION_GUIAPP}    & Win32: Used to indicate to the kernel that the
 			      application is a GUI application if the
-			      argument is not 0 and a console
+			      argument is not 0, and a console
 			      application if the argument is 0.
 			      If a fatal error occurs, the system uses a
 			      windows messagebox to report this on a GUI
-			      application and simply prints the error
-			      and exits otherwise. \\
+			      application, and otherwise simply prints the error
+			      and exits. \\
 \const{PL_ACTION_WRITE}	    & Write the argument, a \ctype{char *} to the
 			      current output stream. \\
 \const{PL_ACTION_FLUSH}	    & Flush the current output stream.
@@ -2521,8 +2513,8 @@ are listed in \tabref{action}.
 			      Attach a console to a thread if it does
 			      not have one.  See attach_console/0. \\
 \const{PL_GMP_SET_ALLOC_FUNCTIONS} &
-			      Takes and integer argument. If
-			      \const{TRUE}, the GMP allocation are
+			      Takes an integer argument. If
+			      \const{TRUE}, the GMP allocations are
 			      immediately bound to the Prolog
 			      functions.  If \const{FALSE}, SWI-Prolog
 			      will never rebind the GMP allocation
@@ -2557,9 +2549,9 @@ The  options are given in \tabref{query}.
 \hline
 \const{PL_QUERY_ARGC}       & Return an integer holding the number of
                               arguments given to Prolog from Unix. \\
-\const{PL_QUERY_ARGV}       & Return a char ** holding the argument vector
+\const{PL_QUERY_ARGV}       & Return a \ctype{char **} holding the argument vector
                               given to Prolog from Unix. \\
-\const{PL_QUERY_SYMBOLFILE} & Return a char * holding the current symbol
+\const{PL_QUERY_SYMBOLFILE} & Return a \ctype{char *} holding the current symbol
                               file of the running process. \\
 \const{PL_MAX_INTEGER}      & Return a long, representing the maximal integer
                               value represented by a Prolog integer. \\
@@ -2568,7 +2560,7 @@ The  options are given in \tabref{query}.
 \const{PL_QUERY_VERSION}    & Return a long, representing the version as
                               $10,000 \times M + 100 \times m + p$, where
                               $M$ is the major, $m$ the minor version number
-                              and $p$ the patch-level.  For example,
+                              and $p$ the patch level.  For example,
                               \exam{20717} means \exam{2.7.17}. \\
 \const{PL_QUERY_ENCODING}    & Return the default stream encoding of
 			       Prolog (of type \ctype{IOENC}). \\
@@ -2590,15 +2582,15 @@ The  options are given in \tabref{query}.
 					       const char *name, int arity,
 					       foreign_t (*function)(),
 					       int flags, ...}
-Register a C-function to implement a Prolog predicate. After this call
-returns successfully a predicate with name \arg{name} (a char *) and
-arity \arg{arity} (a C int) is created in module \arg{module}.  If
+Register a C function to implement a Prolog predicate. After this call
+returns successfully a predicate with name \arg{name} (a \ctype{char *}) and
+arity \arg{arity} (a C \ctype{int}) is created in module \arg{module}.  If
 \arg{module} is \const{NULL}, the predicate is created in the module
-of the calling context or if no context is present in the module
+of the calling context, or if no context is present in the module
 \const{user}.
 
 When called in Prolog, Prolog will call \arg{function}. \arg{flags}
-forms bitwise or'ed list of options for the installation. These are:
+form a bitwise \emph{or}'ed list of options for the installation. These are:
 
 \begin{tabular}{|p{\tableft}|p{3.5in}|}
 \hline
@@ -2628,14 +2620,14 @@ executed after installing the system predicates and before loading the
 saved state.
 
 Default calling (i.e.\ without \const{PL_FA_VARARGS}) \arg{function} is
-passed the same number of term_t arguments as the arity of the predicate
+passed the same number of \ctype{term_t} arguments as the arity of the predicate
 and, if the predicate is non-deterministic, an extra argument of type
 \ctype{control_t} (see \secref{foreignnondet}). If \const{PL_FA_VARARGS}
 is provided, \arg{function} is called with three arguments. The first
 argument is a \ctype{term_t} handle to the first argument. Further
 arguments can be reached by adding the offset (see also
 PL_new_term_refs()). The second argument is the arity, which defines the
-number of valid term-references in the argument vector.  The last argument
+number of valid term references in the argument vector.  The last argument
 is used for non-deterministic calls.  It is currently undocumented and should
 be defined of type \ctype{void*}.  Here is an example:
 
@@ -2673,7 +2665,7 @@ Same as PL_register_foreign_in_module(), passing \const{NULL} for the
 Register a series of predicates from an array of definitions of the type
 \ctype{PL_extension} in the given \arg{module}. If \arg{module} is
 \const{NULL}, the predicate is created in the module of the calling
-context or if no context is present in the module \const{user}.
+context, or if no context is present in the module \const{user}.
 The \ctype{PL_extension} type is defined as
 
 \begin{code}
@@ -2713,7 +2705,7 @@ the \arg{module} argument.
 
 \subsection{Foreign Code Hooks}
 
-For various specific applications some hooks re provided.
+For various specific applications some hooks are provided.
 
 \begin{description}
 \cfunction{PL_dispatch_hook_t}{PL_dispatch_hook}{PL_dispatch_hook_t}
@@ -2747,7 +2739,7 @@ if this cannot be determined on your operating system) and the
 at_halt/1.
     \cfunction{PL_agc_hook_t}{PL_agc_hook}{PL_agc_hook_t new}
 Register a hook with the atom-garbage collector (see
-garbage_collect_atoms/0 that is called on any atom that is reclaimed.
+garbage_collect_atoms/0) that is called on any atom that is reclaimed.
 The old hook is returned.  If no hook is currently defined, \const{NULL}
 is returned. The argument of the called hook is the atom that is to be
 garbage collected.  The return value is an \ctype{int}.  If the return
@@ -2785,25 +2777,42 @@ uninstall()
 
 \subsection{Storing foreign data}		\label{sec:foreigndata}
 
+When combining foreign code with Prolog, it can be necessary to make
+data represented in the foreign language available to Prolog. For
+example, to pass it to another foreign function. At the end of this
+section, there is a partial implementation of using foreign functions to
+manage bit-vectors. Another example is the SGML/XML library that manages
+a `parser' object, an object that represents the current state of the
+parser and that can be directed to perform actions such as parsing a
+document or make queries about the document content.
+
 This section provides some hints for handling foreign data in Prolog.
-With foreign data, we refer to data that is used by foreign language
-predicates and needs to be passed around in Prolog. Excluding
-combinations, there are three principal options for storing such data
+There are four options for storing such data:
 
 \begin{itemlist}
     \item[Natural Prolog data]
-E.i.\ using the representation one would choose if there was no foreign
-interface required.
-    \item[Opaque packed Prolog data]
-Data can also be represented in a foreign structure and stored on the
-Prolog stacks using PL_put_string_nchars() and retrieved using
-PL_get_string_chars().  It is generally good practice to wrap the
-string in a compound term with arity 1, so Prolog can identify the
-type.  portray/1 rules may be used to streamline printing such terms
-during development.
-    \item[Natural foreign data, passing a pointer]
-An alternative is to pass a pointer to the foreign data. Again, this
-functor may be wrapped in a compound term.
+Uses the representation one would choose if no foreign interface was
+required. E.g., a bitvector representing a list of small integers can be
+represented as a Prolog list of integers.
+
+    \item[Opaque packed data on the stacks]
+It is possible to represent the raw binary representation of the foreign
+object as a Prolog string (see \secref{strings}). Strings may be created
+from foreign data using PL_put_string_nchars() and retrieved using
+PL_get_string_chars(). It is good practice to wrap the string in a
+compound term with arity 1, so Prolog can identify the type. The hook
+portray/1 rules may be used to streamline printing such terms during
+development.
+
+    \item[Opaque packed data in a blob]
+Similar to the above solution, binary data can be stored in an atom. The
+blob interface (\secref{blob}) provides additional facilities to assign
+a type and hook-functions that act on creation and destruction of the
+underlying atom.
+
+    \item[Natural foreign data, passed as a pointer]
+An alternative is to pass a pointer to the foreign data. Again, the
+pointer is often wrapped in a compound term.
 \end{itemlist}
 
 \noindent
@@ -2812,58 +2821,55 @@ The choice may be guided using the following distinctions
 \begin{itemlist}
     \item[Is the data opaque to Prolog]
 With `opaque' data, we refer to data handled in foreign functions,
-passed around in Prolog, but of which Prolog never examines the contents
-of the data itself. If the data is opaque to Prolog, the chosen
-representation does not depend on simple analysis by Prolog, and the
-selection will be driven solely by simplicity of the interface and
-performance (both in time and space).
-    \item[How big is the data]
-Is efficient encoding required?  For examine, a boolean array may be
-expressed as a compound term, holding integers each of which contains
-a number of bits, or as a list of \const{true} and \const{false}.
-    \item[What is the nature of the data]
-For examples in C, constants are often expressed using `enum' or
-\#define'd integer values. If prolog needs to handle this data, atoms
-are a more logical choice.   Whether or not this mapping is used depends
-on whether Prolog needs to interpret the data, how important debugging is
-and how important performance is.
+passed around in Prolog, but where Prolog never examines the contents of
+the data itself. If the data is opaque to Prolog, the selection will be
+driven solely by simplicity of the interface and performance.
+
     \item[What is the lifetime of the data]
-We can distinguish three cases.
+With `lifetime' we refer to how it is decided that the object is (or can
+be) destroyed. We can distinguish three cases:
+
     \begin{enumerate}
 	\item
-The lifetime is dictated by the accessibility of the data on the Prolog
-stacks. Their is no way by which the foreign code when the data becomes
-`garbage', and the data thus needs to be represented on the Prolog
-stacks using Prolog data-types. (2),
+The object must be destroyed on backtracking and normal Prolog garbage
+collection (i.e., it acts as a normal Prolog term). In this case,
+representing the object as a Prolog string (second option above) is the
+only feasible solution.
+
         \item
-The data lives on the `heap' and is explicitly allocated and
-deallocated. In this case, representing the data using native foreign
-representation and passing a pointer to it is a sensible choice.
+The data must survive Prolog backtracking. This leaves two options. One
+is to represent the object using a pointer and use explicit creation and
+destruction, making the programmer responsible. The alternative is to
+use the blob-interface, leaving destruction to the (atom) garbage
+collector.
+
 	\item
-The data lives as during the lifetime of a foreign predicate.  If the
-predicate is deterministic, foreign automatic variables are suitable.
-if the predicate is non-deterministic, the data may be allocated using
-malloc() and a pointer may be passed.  See \secref{foreignnondet}.
+The data lives as during the lifetime of a foreign function that
+implements a predicate. If the predicate is deterministic, foreign
+automatic variables are suitable. If the predicate is non-deterministic,
+the data may be allocated using malloc() and a pointer may be passed.
+See \secref{foreignnondet}.
     \end{enumerate}
 \end{itemlist}
 
 
 \subsubsection{Examples for storing foreign data}
 
-In this section, we will outline some examples, covering typical cases.
-In the first example, we will deal with extending Prolog's data
-representation with integer-sets, represented as bit-vectors. Finally,
-we discuss the outline of the DDE interface.
+In this section, we outline some examples, covering typical cases. In
+the first example, we will deal with extending Prolog's data
+representation with integer sets, represented as bit-vectors. Then, we
+discuss the outline of the DDE interface.
 
 \paragraph{Integer sets} with not-too-far-apart upper- and lower-bounds
 can be represented using bit-vectors. Common set operations, such as
-union, intersection, etc. are reduced to simple and'ing and or'ing the
-bit-vectors. This can be done using Prolog's unbounded integers.
+union, intersection, etc., are reduced to simple \emph{and}'ing and
+\emph{or}'ing the bit-vectors. This can be done using Prolog's unbounded
+integers.
 
 For really demanding applications, foreign representation will perform
 better, especially time-wise. Bit-vectors are naturally expressed using
 string objects. If the string is wrapped in \functor{bitvector}{1},
-lower-bound of the vector is 0, and the upper-bound is not defined, an
+the lower-bound of the vector is 0 and the upper-bound is not defined; an
 implementation for getting and putting the sets as well as the
 union predicate for it is below.
 
@@ -2943,17 +2949,17 @@ install()
 common usage of the foreign interface: providing communication to new
 operating system features. The DDE interface requires knowledge about
 active DDE server and client channels. These channels contains various
-foreign data-types.  Such an interface is normally achieved using an
+foreign data types.  Such an interface is normally achieved using an
 open/close protocol that creates and destroys a \jargon{handle}.  The
-handle is a reference to a foreign data-structure containing the
+handle is a reference to a foreign data structure containing the
 relevant information.
 
 There are a couple of possibilities for representing the handle.  The
 choice depends on responsibilities and debugging facilities.  The
-simplest approach is to using PL_unify_pointer() and PL_get_pointer().
+simplest approach is to use PL_unify_pointer() and PL_get_pointer().
 This approach is fast and easy, but has the drawbacks of (untyped)
 pointers: there is no reliable way to detect the validity of the
-pointer, not to verify it is pointing to a structure of the desired
+pointer, nor to verify that it is pointing to a structure of the desired
 type.  The pointer may be wrapped into a compound term with arity
 1 (i.e., \exam{dde_channel(<Pointer>)}), making the type-problem
 less serious.
@@ -2972,14 +2978,14 @@ is not the Prolog application.  Prolog is sometimes embedded in C, C++,
 Java or other languages to provide logic based services in a larger
 application.  Embedding loads the Prolog engine as a library to the
 external language.  Prolog itself only provides for embedding in the
-C-language (compatible with C++).  Embedding in Java is achieved using
-JPL using a C-glue between the Java and Prolog C-interfaces.
+C language (compatible with C++).  Embedding in Java is achieved using
+JPL using a C-glue between the Java and Prolog C interfaces.
 
 The most simple embedded program is below. The interface function
 PL_initialise() {\bf must} be called before any of the other SWI-Prolog
 foreign language functions described in this chapter, except for
 PL_initialise_hook(), PL_new_atom(), PL_new_functor() and
-PL_register_foreign(). PL_initialise() interprets all the command-line
+PL_register_foreign(). PL_initialise() interprets all the command line
 arguments, except for the \argoption{-t}{toplevel} flag that is
 interpreted by PL_toplevel().
 
@@ -3006,16 +3012,16 @@ runs the at_initialization/1 hooks and finally runs the
 \argoption{-g}{goal} hook.
 
 Special consideration is required for \verb$argv[0]$. On {\bf Unix},
-this argument passes the part of the command-line that is used
+this argument passes the part of the command line that is used
 to locate the executable.  Prolog uses this to find the file holding
 the running executable.  The {\bf Windows} version uses this to find
 a \jargon{module} of the running executable.  If the specified module
 cannot be found, it tries the module \const{libpl.dll}, containing
 the Prolog runtime kernel. In all these cases, the resulting file is
-used for two purposes
+used for two purposes:
 
 \begin{itemize}
-    \item See whether a Prolog saved-state is appended to the file.
+    \item See whether a Prolog saved state is appended to the file.
           If this is the case, this state will be loaded instead of
 	  the default \file{boot.prc} file from the SWI-Prolog home
 	  directory.  See also qsave_program/[1,2] and \secref{plld}.
@@ -3025,7 +3031,7 @@ used for two purposes
 
 PL_initialise() returns 1 if all initialisation succeeded and 0
 otherwise.%
-    \bug{Various fatal errors may cause PL_initialise to call
+    \bug{Various fatal errors may cause PL_initialise() to call
 	 PL_halt(1), preventing it from returning at all.}
 
 In most cases, \arg{argc} and \arg{argv} will be passed from the main
@@ -3055,9 +3061,9 @@ at any time and should therefore be valid as long as the Prolog engine
 is used.
 
 A good setup in Windows is to add SWI-Prolog's \file{bin} directory
-to your \env{PATH} and either pass a module holding a saved-state, or
+to your \env{PATH} and either pass a module holding a saved state, or
 \verb$"libpl.dll"$ as \verb$argv[0]$.  If the Prolog state is attached
-to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}, pass
+to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}), pass
 the name of this DLL.
 
     \cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
@@ -3068,7 +3074,7 @@ argument count used with PL_initialise() is stored in \arg{argc}.  Same
 for the argument vector \arg{argv}.
 
     \cfunction{void}{PL_install_readline}{}
-Installs the GNU-readline line-editor.  Embedded applications that do not
+Installs the GNU readline line editor.  Embedded applications that do not
 use the Prolog top-level should normally delete this line, shrinking the
 Prolog kernel significantly.  Note that the Windows version does not use
 GNU readline.
@@ -3087,16 +3093,16 @@ the various termination hooks and indicates the \jargon{exit-status}.
 The function returns \const{TRUE} if successful and \const{FALSE}
 otherwise. Currently, \const{FALSE} is returned when an attempt is made
 to call PL_cleanup() recursively or if PL_cleanup() is not called from
-the main-thread.
+the main thread.
 
 In theory, this function allows deleting and restarting the Prolog
 system in the same process. In practice, SWI-Prolog's cleanup process is
-far from complete and trying to revive the system using PL_initialise()
+far from complete, and trying to revive the system using PL_initialise()
 will leak memory in the best case. It can also crash the appliction.
 
 In this state, there is little practical use for this function. If you
-want to use Prolog temporary consider running it in a separate process.
-If you want to be able to reset Prolog your options are (again) a
+want to use Prolog temporarily, consider running it in a separate process.
+If you want to be able to reset Prolog, your options are (again) a
 separate process, modules or threads.
 
     \cfunction{void}{PL_cleanup_fork}{}
@@ -3115,10 +3121,10 @@ The call behaves the same  on  Windows,   though  there  is  probably no
 meaningful application.
 
     \cfunction{int}{PL_halt}{int status}
-Cleanup the Prolog environment using PL_cleanup() and calls exit() with
+Clean up the Prolog environment using PL_cleanup() and call exit() with
 the status argument.  As PL_cleanup() can only be called from the main
-thread, this function returns \const{FALSE} when called from another
-thread as the main one.%
+thread, this function returns \const{FALSE} when called from a
+thread other than the main one.%
 	\bug{Eventually it may become possible to call
 	     PL_halt() from any thread.}
 \end{description}
@@ -3128,7 +3134,7 @@ thread as the main one.%
 \label{sec:sigembedded}
 
 This section applies to Unix-based environments that have signals or
-multi-threading.  The Windows version is compiled for multi-threading
+multi-threading.  The Windows version is compiled for multi-threading,
 and Windows lacks proper signals.
 
 We can distinguish two classes of embedded executables. There are small
@@ -3139,25 +3145,25 @@ this is the preferred route. In other cases, Prolog is embedded in a
 complex application that---like Prolog---wants to control the process
 environment. A good example is Java. Embedding Prolog is generally the
 only way to get these environments together in one process image. Java
-applications however are by nature multi-threaded and appear to do
-signal-handling (software interrupts).
+applications, however, are by nature multi-threaded and appear to do
+signal handling (software interrupts).
 
 On Unix systems, SWI-Prolog uses three signals:
 
 \begin{description}
-    \item[SIGUSR1] is used to sychronise atom- and clause garbage
-    collection.  The handler is installed at the start of GC and
-    reverted to the old setting after completing.
+    \item[SIGUSR1] is used to sychronise atom and clause garbage
+    collection.  The handler is installed at the start of garbage collection and
+    reverted to the old setting after completion.
 
     \item[SIGUSR2] has an empty signal handler.   This signal is
     sent to a thread after sending a thread-signal (see
     thread_signal/2).  It causes blocking system calls to return
-    with \const{EINTR}, which gives them to opportunity to react
-    on thread-signals.
+    with \const{EINTR}, which gives them the opportunity to react
+    to thread-signals.
 
-    \item[SIGINT] is used by the toplevel to activate the tracer
+    \item[SIGINT] is used by the top-level to activate the tracer
     (typically bound to control-C).  The first control-C posts a
-    request for	starting the tracer in a safe synchronous fashion.
+    request for	starting the tracer in a safe, synchronous fashion.
     If control-C is hit again before the safe route is executed,
     it prompts the user whether or not a forced interrupt is
     desired.
@@ -3167,22 +3173,22 @@ The \cmdlineoption{--nosignals} option can be used to inhibit processing
 of \const{SIGINT}. The other signals are vital for the functioning of
 SWI-Prolog. If they conflict with other applications, signal handling of
 either component must be modified. The SWI-Prolog signals are defined in
-\file{pl-thread.h} of the source-distribution.
+\file{pl-thread.h} of the source distribution.
 
 
 \section{Linking embedded applications using swipl-ld}	\label{sec:plld}
 
 The utility program \program{swipl-ld} (Win32: swipl-ld.exe) may be used to link
-a combination of C-files and Prolog files into a stand-alone executable.
+a combination of C files and Prolog files into a stand-alone executable.
 \program{swipl-ld} automates most of what is described in the previous
 sections.
 
-In the normal usage, a copy is made of the default embedding template
-\file{\ldots/pl/include/stub.c}. The main() routine is modified to suit
+In normal usage, a copy is made of the default embedding template
+\file{.../swipl/include/stub.c}. The main() routine is modified to suit
 your application. PL_initialise() \strong{must} be passed the
-program-name (\arg{argv[0]}) (Win32: the executing program can be
+program name (\arg{argv[0]}) (Win32: the executing program can be
 obtained using GetModuleFileName()). The other elements of the
-command-line may be modified. Next, \program{swipl-ld} is typically invoked
+command line may be modified. Next, \program{swipl-ld} is typically invoked
 as:
 
 \begin{code}
@@ -3190,9 +3196,9 @@ swipl-ld -o output stubfile.c [other-c-or-o-files] [plfiles]
 \end{code}
 
 \program{swipl-ld} will first split the options into various groups for both
-the C-compiler and the Prolog compiler. Next, it will add various
-default options to the C-compiler and call it to create an executable
-holding the user's C-code and the Prolog kernel. Then, it will call the
+the C compiler and the Prolog compiler. Next, it will add various
+default options to the C compiler and call it to create an executable
+holding the user's C code and the Prolog kernel. Then, it will call the
 SWI-Prolog compiler to create a saved state from the provided Prolog
 files and finally, it will attach this saved state to the created
 emulator to create the requested executable.
@@ -3204,20 +3210,20 @@ options are passed.
     \cmdlineoptionitem{-help}{}
 Print brief synopsis.
     \cmdlineoptionitem{-pl}{prolog}
-Select the prolog to use.  This prolog is used for two purposes: get the
-home-directory as well as the compiler/linker options and create a saved
+Select the Prolog to use.  This Prolog is used for two purposes: get the
+home directory as well as the compiler/linker options and create a saved
 state of the Prolog code.
     \cmdlineoptionitem{-ld}{linker}
-Linker used to link the raw executable.  Default is to use the C-compiler
+Linker used to link the raw executable.  Default is to use the C compiler
 (Win32: \program{link.exe}).
-    \cmdlineoptionitem{-cc}{C-compiler}
-Compiler for \fileext{c} files found on the command-line.  Default is the
+    \cmdlineoptionitem{-cc}{C compiler}
+Compiler for \fileext{c} files found on the command line.  Default is the
 compiler used to build SWI-Prolog accessible through the Prolog flag
-\prologflag{c_cc} (Win32: \program{cl.exe})..
+\prologflag{c_cc} (Win32: \program{cl.exe}).
     \cmdlineoptionitem{-c++}{C++-compiler}
-Compiler for C++ sources (extensions \fileext{cpp}, \fileext{cxx},
-\fileext{cc} or \fileext{C}) files found on the command-line.  Default is
-\program{c++} or \program{g++} if the C-compiler is \program{gcc})
+Compiler for C++ source file (extensions \fileext{cpp}, \fileext{cxx},
+\fileext{cc} or \fileext{C}) found on the command line.  Default is
+\program{c++} or \program{g++} if the C compiler is \program{gcc}
 (Win32: cl.exe).
 
     \cmdlineoptionitem{-nostate}{}
@@ -3227,21 +3233,21 @@ on machines that do not support the shared-library (DLL) interface, or if
 building the state cannot be handled by the default procedure used by
 \program{swipl-ld}.  In the latter case the state is created separately and
 appended to the kernel using \exam{cat <kernel> <state> > <out>}
-(Win32: \exam{copy /b <kernel>+<state> <out>})
+(Win32: \exam{copy /b <kernel>+<state> <out>}).
 
     \cmdlineoptionitem{-shared}{}
 Link C, C++ or object files into a shared object (DLL) that can be
 loaded by the load_foreign_library/1 predicate. If used with
 \cmdlineoption{-c}{} it sets the proper options to compile a C or C++
-file ready for linking into a shared object
+file ready for linking into a shared object.
 
     \cmdlineoptionitem{-dll}{}
 \emph{Windows only}. Embed SWI-Prolog into a DLL rather than an
 executable.
 
     \cmdlineoptionitem{-c}{}
-Compile C or C++ source-files into object files. This turns
-\program{swipl-ld} into a replacement for the C or C++ compiler where proper
+Compile C or C++ source files into object files. This turns
+\program{swipl-ld} into a replacement for the C or C++ compiler, where proper
 options such as the location of the include directory are passed
 automatically to the compiler.
 
@@ -3253,7 +3259,7 @@ the C or C++ compiler.
 Additional options passed to Prolog when creating the saved state.  The
 first character immediately following \const{pl-options} is used as
 separator and translated to spaces when the argument is built.
-Example: \exam{-pl-options,-F,xpce} passed \exam{-F xpce} as additional
+Example: \exam{-pl-options,-F,xpce} passes \exam{-F xpce} as additional
 flags to Prolog.
     \cmdlineoptionitem{-ld-options}{,\ldots}
 Passes options to the linker, similar to \cmdlineoption{-pl-options}.
@@ -3264,16 +3270,16 @@ Select verbose operation, showing the various programs and their options.
     \cmdlineoptionitem{-o}{outfile}
 Reserved to specify the final output file.
     \cmdlineoptionitem*{-l}{library}
-Specifies a library for the C-compiler.  By default, \clib{-lswipl}
+Specifies a library for the C compiler.  By default, \clib{-lswipl}
 (Win32: libpl.lib) and the libraries needed by the Prolog kernel are given.
     \cmdlineoptionitem*{-L}{library-directory}
-Specifies a library directory for the C-compiler.  By default the
-directory containing the Prolog C-library for the current architecture
+Specifies a library directory for the C compiler.  By default the
+directory containing the Prolog C library for the current architecture
 is passed.
     \cmdlineoptionitem{\cmdlineoption{-g} \bnfor{}
 		       \cmdlineoption{-I\arg{include-directory}} \bnfor{}
 		       \cmdlineoption{-D\arg{definition}}}{}
-These options are passed to the C-compiler.  By default, the include
+These options are passed to the C compiler.  By default, the include
 directory containing \file{SWI-Prolog.h} is passed.  \program{swipl-ld} adds
 two additional \argoption*{-D}{def} flags:
 \begin{description}
@@ -3287,12 +3293,12 @@ Indicates the creation of an embedded program.
 			 *.C \bnfor{}
 			 *.cxx \bnfor{}
 			 *.cpp}
-Passed as input files to the C-compiler
+Passed as input files to the C compiler.
     \cmdlineoptionitem{}{*.pl \bnfor *.qlf}
-Passed as input files to the Prolog compiler to create the saved-state.
+Passed as input files to the Prolog compiler to create the saved state.
     \cmdlineoptionitem{}{*}
-I.e.\ all other options. These are passed as linker options to the
-C-compiler.
+All other options. These are passed as linker options to the
+C compiler.
 \end{description}
 
 
@@ -3311,8 +3317,8 @@ calc(Atom) :-
         nl.
 \end{code}
 
-The C-part of the application parses the command-line options,
-initialises the Prolog engine, locates the {calc}/1 predicate and calls
+The C part of the application parses the command line options,
+initialises the Prolog engine, locates the \verb$calc/1$ predicate and calls
 it.  The coder is in \figref{calc}.
 
 \begin{figure}
@@ -3364,12 +3370,12 @@ main(int argc, char **argv)
   return 0;
 }
 \end{code}
-\caption{C-source for the calc application}
+\caption{C source for the calc application}
 \label{fig:calc}
 \end{figure}
 
 \noindent
-The application is now created using the following command-line:
+The application is now created using the following command line:
 
 \begin{code}
 % swipl-ld -o calc calc.c calc.pl
@@ -3388,11 +3394,11 @@ The following indicates the usage of the application:
 
 Executables embedding SWI-Prolog should be able to find the `home'
 directory of the development environment unless a self-contained
-saved-state has been added to the executable (see qsave_program/[1,2]
+saved state has been added to the executable (see qsave_program/[1,2]
 and \secref{plld}).
 
 If Prolog starts up, it will try to locate the development environment.
-To do so, it will try the following steps until one succeeds.
+To do so, it will try the following steps until one succeeds:
 
 \begin{enumerate}
     \item If the \cmdlineoption{--home=DIR} is provided, use this.
@@ -3423,8 +3429,8 @@ directory located.
 
 Below is an example showing all stages of the declaration of a foreign
 predicate that transforms atoms possibly holding uppercase letters into
-an atom only holding lower case letters. \Figref{lowercase-c} shows the
-C-source file, \figref{load-foreign} illustrates compiling and loading
+an atom only holding lowercase letters. \Figref{lowercase-c} shows the
+C source file, \figref{load-foreign} illustrates compiling and loading
 of foreign code.
 
 \begin{figure}[htb]
@@ -3469,7 +3475,7 @@ install()
 
 \begin{figure}[htb]
 \begin{code}
-% gcc -I/usr/local/lib/pl-\plversion/include -fpic -c lowercase.c
+% gcc -I/usr/local/lib/swipl-\plversion/include -fpic -c lowercase.c
 % gcc -shared -o lowercase.so lowercase.o
 % swipl
 Welcome to SWI-Prolog (Version \plversion)
@@ -3484,7 +3490,7 @@ L = 'hello world!'
 
 Yes
 \end{code}
-    \caption{Compiling the C-source and loading the object file}
+    \caption{Compiling the C source and loading the object file}
     \label{fig:load-foreign}
 \end{figure}
 \clearpage
@@ -3508,7 +3514,7 @@ memory.
 
 \begin{description}
     \cfunction{void *}{PL_malloc}{size_t bytes}
-Allocate \arg{bytes} of memory.  On failure SWI-Prolog's fatal error
+Allocate \arg{bytes} of memory.  On failure SWI-Prolog's fatal-error
 handler is called and PL_malloc() does not return.  Memory allocated
 using these functions must use PL_realloc() and PL_free() rather than
 realloc() and free().
@@ -3526,12 +3532,12 @@ previous PL_malloc() or PL_realloc() call.
 \subsubsection{Boehm-GC support}
 
 \index{Boehm GC}%
-To accomodate for future use of the Boehm garbage
+To accommodate future use of the Boehm garbage
 collector\footnote{\url{http://www.hpl.hp.com/personal/Hans_Boehm/gc/}}
 for heap memory allocation, the interface provides the functions
 described below. Foreign extensions that wish to use the Boehm-GC
-facilities can use these wrappers. Please be noted that if SWI-Prolog is
-not compiled to use Boehm-GC (default), the user is responsible of
+facilities can use these wrappers. Please note that if SWI-Prolog is
+not compiled to use Boehm-GC (default), the user is responsible for
 calling PL_free() to reclaim memory.
 
 \begin{description}
@@ -3543,7 +3549,7 @@ calling PL_free() to reclaim memory.
 If Boehm-GC is not used, these are all the same as PL_malloc().  With
 Boehm-GC, these map to the corresponding Boehm-GC functions.
 \jargon{Atomic} means that the content should not be scanned for
-pointers and \jargon{uncollectable} means that the object should never
+pointers, and \jargon{uncollectable} means that the object should never
 be garbage collected.
     \cfunction{void*}{PL_malloc_stubborn}{size_t bytes}
     \nodescription
@@ -3556,11 +3562,11 @@ will not change after PL_end_stubborn_change().
 \subsection{Compatibility between Prolog versions}
 
 Great care is taken to ensure binary compatibility of foreign extensions
-between different Prolog versions. Only much less frequently used stream
+between different Prolog versions. Only the much less frequently used stream
 interface has been responsible for binary incompatibilities.
 
 \index{PLVERSION}%
-Source-code that relies on new features of the foreign interface can
+Source code that relies on new features of the foreign interface can
 use the macro \const{PLVERSION} to find the version of
 \file{SWI-Prolog.h} and PL_query() using the option
 \const{PL_QUERY_VERSION} to find the version of the attached Prolog
@@ -3572,7 +3578,7 @@ system. Both follow the same numbering schema explained with PL_query().
 \index{valgrind}\index{profiling,foreign code}%
 This section is only relevant for Unix users on platforms supported by
 \url[valgrind]{http://valgrind.org/}. Valgrind is an excellent binary
-intrumentation platform.  Unlike many other instrumentation platforms,
+instrumentation platform.  Unlike many other instrumentation platforms,
 valgrind can deal with code loaded through dlopen().
 
 The \program{callgrind} tool can be used to profile foreign code loaded
@@ -3598,10 +3604,10 @@ In the current version of the system all public C functions of
 SWI-Prolog are in the symbol table.  This can lead to name clashes with
 foreign code.  Someday I should write a program to strip all these
 symbols from the symbol table (why does Unix not have that?).  For now
-I can only suggest to give your function another name.  You can do this
+I can only suggest you give your function another name.  You can do this
 using the C preprocessor.  If---for example---your foreign package uses
 a function warning(), which happens to exist in SWI-Prolog as well, the
-following macro should fix the problem.
+following macro should fix the problem:
 
 \begin{code}
 #define warning warning_
@@ -3614,12 +3620,12 @@ symbols that are not defined in the library itself.
 
 \subsection{Compatibility of the Foreign Interface}
 
-The term-reference mechanism was first used by Quintus Prolog version 3.
+The term reference mechanism was first used by Quintus Prolog version 3.
 SICStus Prolog version 3 is strongly based on the Quintus interface. The
 described SWI-Prolog interface is similar to using the Quintus or
 SICStus interfaces, defining all foreign-predicate arguments of type
 \const{+term}.  SWI-Prolog explicitly uses type \ctype{functor_t}, while
-Quintus and SICStus uses <name> and <arity>.  As the names of the functions
+Quintus and SICStus use <name> and <arity>.  As the names of the functions
 differ from Prolog to Prolog, a simple macro layer dealing with the
 names can also deal with this detail.  For example:
 
@@ -3628,12 +3634,12 @@ names can also deal with this detail.  For example:
 \end{code}
 
 The {\tt PL_unify_*()} functions are lacking from the Quintus and
-SICStus interface.  They can easily be emulated or the put/unify
+SICStus interface.  They can easily be emulated, or the put/unify
 approach should be used to write compatible code.
 
 The PL_open_foreign_frame()/PL_close_foreign_frame() combination is
 lacking from both other Prologs.  SICStus has PL_new_term_refs(0),
-followed by PL_reset_term_refs() that allows for discarding
+followed by PL_reset_term_refs(), that allows for discarding
 term references.
 
 The Prolog interface for the graphical user interface package XPCE

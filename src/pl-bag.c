@@ -101,7 +101,7 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
   PL_LOCK(L_AGC);			/* see queue_message() in */
   PL_UNLOCK(L_AGC);			/* pl-thread.c for the motivation */
 
-  return TRUE;
+  return FALSE;				/* force backtracking of generator */
 }
 
 
