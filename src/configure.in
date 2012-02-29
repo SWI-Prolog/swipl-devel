@@ -562,7 +562,7 @@ case "$PLARCH" in
 	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
 	fi
 	;;
-  *x86_64*linux|*hppa*linux)
+  *x86_64*linux|*hppa*linux|*arm*linux)
 	if test "x$MKSHARED" = "x"; then
 	    MKSHARED=yes
 	fi
