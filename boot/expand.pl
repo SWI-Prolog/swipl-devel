@@ -212,6 +212,7 @@ expand_goal(M:G, M:EG, _M, _MList, Term) :-
 expand_goal(G0, G, M, MList, Term) :-
 	callable(G0),
 	(   default_module(M, M2),
+	    '$c_current_predicate'(_, M2:G0),
 	    '$get_predicate_attribute'(M2:G0, meta_predicate, Head)
 	->  true		% is a meta-pred without clauses defined?
 	),
