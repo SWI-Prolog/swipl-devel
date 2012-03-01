@@ -397,8 +397,8 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   if ( debugstatus.skiplevel < levelFrame(frame) )
     return ACTION_CONTINUE;		/* skipped */
   if ( debugstatus.skiplevel == levelFrame(frame) &&
-       (port & (REDO_PORT|CUT_PORT)) )
-    return ACTION_CONTINUE;		/* redo or ! in skipped predicate */
+       (port & (REDO_PORT|CUT_PORT|UNIFY_PORT)) )
+    return ACTION_CONTINUE;		/* redo, unify or ! in skipped pred */
   if ( false(def, TRACE_ME) )
     return ACTION_CONTINUE;		/* non-traced predicate */
   if ( (!(debugstatus.visible & port)) )
