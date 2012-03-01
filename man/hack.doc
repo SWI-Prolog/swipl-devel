@@ -30,7 +30,7 @@ frame in which execution is resumed if the goal associated with
 
     \termitem{has_alternatives}{}
 \arg{Value} is unified with \const{true} if \arg{Frame} still is a
-candidate for backtracking. \const{false} otherwise.
+candidate for backtracking; \const{false} otherwise.
 
     \termitem{goal}{}
 \arg{Value} is unified with the goal associated with \arg{Frame}. If the
@@ -120,7 +120,7 @@ choice-point stack.
 
     \predicate{deterministic}{1}{-Boolean}
 Unifies its argument with \const{true} if no choicepoint exists that is
-more recent than the entry of the clause in which is appears. There are
+more recent than the entry of the clause in which it appears. There are
 few realistic situations for using this predicate. It is used by the
 prolog/0 toplevel to check whether Prolog should prompt the user for
 alternatives. Similar results can be achieved in a more portable fashion
@@ -139,7 +139,7 @@ care of and continues execution as described by \arg{Action}. Otherwise
 the normal Prolog debugger actions are performed.
 
 \arg{Port} denotes the reason to activate the tracer (`port' in the
-4/5-port, but with some additions:
+4/5-port, but with some additions):
 
 \begin{description}
     \termitem{call}{}
@@ -157,7 +157,7 @@ leash/1 and visible/1.
 
     \termitem{exit}{}
 The exit-port signals the goal is proved.  It is possible for the goal
-to have alternative. See prolog_frame_attribute/3 to examine the
+to have alternatives. See prolog_frame_attribute/3 to examine the
 goal-stack.
 
     \termitem{fail}{}
@@ -167,7 +167,7 @@ The fail-port signals final failure of the goal.
 An exception is raised and still pending.  This port is activated on
 each parent frame of the frame generating the exception until the
 exception is caught or the user restarts normal computation using
-\const{retry}.  \arg{Except} is the pending exception-term.
+\const{retry}.  \arg{Except} is the pending exception term.
 
     \termitem{break}{PC}
 A \const{break} instruction is executed.  \arg{PC} is program counter.
@@ -175,7 +175,7 @@ This port is used by the graphical debugger.
 
     \termitem{cut_call}{PC}
 A cut is encountered at \arg{PC}. This port is used by the graphical
-debugger. to visualise the effect of the cut.
+debugger to visualise the effect of the cut.
 
     \termitem{cut_exit}{PC}
 A cut has been executed.  See \term{cut_call}{PC} for more information.
@@ -210,8 +210,8 @@ Skip over the current goal (i.e., \jargon{skip} in the commandline debugger).
 
 Together with the predicates described in \secref{debugger}
 and the other predicates of this chapter this predicate enables the
-Prolog user to define a complete new debugger in Prolog. Besides this it
-enables the Prolog programmer monitor the execution of a program. The
+Prolog user to define a complete new debugger in Prolog. Besides this, it
+enables the Prolog programmer to monitor the execution of a program. The
 example below records all goals trapped by the tracer in the database.
 
 \begin{code}
@@ -237,7 +237,7 @@ the skip-level is set to \const{redo_in_skip}.  Next, the skip level is
 set to skip-level of the skipped frame.
 
     \predicate{prolog_skip_level}{2}{-Old, +New}
-Unify \arg{Old} with the old value of `skip level' and than set this
+Unify \arg{Old} with the old value of `skip level' and then set this
 level according to \arg{New}. \arg{New} is an integer, the atom
 \const{very_deep} (meaning don't skip) or the atom \const{skip_in_redo}
 (see prolog_skip_frame/1). The `skip level' is a setting of each
@@ -251,7 +251,7 @@ than the level of the variable.  See also prolog_skip_frame/1.
 
 The hook prolog_exception_hook/4 has been introduced in SWI-Prolog 5.6.5
 to provide dedicated exception handling facilities for application
-frameworks.  For example non-interactive server applications that
+frameworks, for example non-interactive server applications that
 wish to provide extensive context for exceptions for offline debugging.
 
 \begin{description}
@@ -261,18 +261,18 @@ This hook predicate, if defined in the module \const{user}, is between
 raising an exception and handling it. It is intended to allow a program
 adding additional context to an exception to simplify diagnosing the
 problem. \arg{ExceptionIn} is the exception term as raised by throw/1 or
-one of the bullt-in predicates. The output argument \arg{ExceptionOut}
+one of the built-in predicates. The output argument \arg{ExceptionOut}
 describes the exception that is actually raised. \arg{Frame} is the
 innermost frame. See prolog_frame_attribute/3 and the library
 \pllib{prolog_stack} for getting information from this.
 \arg{CatcherFrame} is a reference to the frame calling the matching
-catch/3 or \const{none} of the exception is not caught.
+catch/3 or \const{none} if the exception is not caught.
 
-The hook is run in `nodebug' mode. If it succeeds \arg{ExceptionOut} is
+The hook is run in `nodebug' mode. If it succeeds, \arg{ExceptionOut} is
 considered the current exception. If it fails, \arg{ExceptionIn} is used
 for further processing. The hook is \emph{never} called recursively.
 The hook is \emph{not} allowed to modify \arg{ExceptionOut} in such
-as way that it no longer unifies with the catching frame.
+a way that it no longer unifies with the catching frame.
 
 Typically, prolog_exception_hook/4 is used to fill the second argument
 of \term{error}{Formal, Context} exceptions. \arg{Formal} is
@@ -355,21 +355,21 @@ into the message system.
 Hook, normally not defined. This hook is called by the 'L' command of
 the tracer in the module \module{user} to list the currently called
 predicate. This hook may be defined to list only relevant clauses of the
-indicated \arg{Goal} and/or show the actual source-code in an editor.
+indicated \arg{Goal} and/or show the actual source code in an editor.
 See also portray/1 and multifile/1.
 
     \predicate{prolog:debug_control_hook}{1}{:Action}
 Hook for the debugger-control predicates that allows the creator of
 more high-level programming languages to use the common front-end
-predicates to control de debugger.  For example, XPCE uses these hooks
-to allow for spying methods rather then predicates. \arg{Action} is one
+predicates to control the debugger.  For example, XPCE uses these hooks
+to allow for spying methods rather than predicates. \arg{Action} is one
 of:
 
 \begin{description}
     \termitem{spy}{Spec}
 Hook in spy/1.  If the hook succeeds spy/1 takes no further action.
     \termitem{nospy}{Spec}
-Hook in nospy/1.  If the hook succeeds spy/1 takes no further action.
+Hook in nospy/1.  If the hook succeeds nospy/1 takes no further action.
 If spy/1 is hooked, it is advised to place a complementary hook for
 nospy/1.
     \termitem{nospyall}{}
@@ -377,8 +377,8 @@ Hook in nospyall/0.  Should remove all spy-points.  This hook is
 called in a failure-driven loop.
     \termitem{debugging}{}
 Hook in debugging/0.  It can be used in two ways.  It can report
-the status of the additional debug-points controlled by the above
-hooks and fail to let the system report the others or it succeed,
+the status of the additional debug points controlled by the above
+hooks and fail to let the system report the others, or it succeeds,
 overruling the entire behaviour of debugging/0.
 \end{description}
 
@@ -402,7 +402,7 @@ Hook in apropos/1 on the topic \arg{What}.
 
 \section{Hooks for loading files}	\label{sec:loadfilehook}
 
-All loading of source-files is achieved by load_files/2.  The hook
+All loading of source files is achieved by load_files/2.  The hook
 prolog_load_file/2 can be used to load Prolog code from non-files
 or even load entirely different information, such as foreign files.
 
@@ -421,8 +421,8 @@ This hook allows for processing ---structured--- comments encountered
 by the compiler.  The reader collects all comments found from the
 current position to the end of the next term.  It calls this hook
 providing a list of \arg{Position}-\arg{Comment} in \arg{Comments},
-the start-position of the next term in \arg{Pos} and the next term
-itself in \arg{Term}.  All positions are stream-position terms.
+the start position of the next term in \arg{Pos}, and the next term
+itself in \arg{Term}.  All positions are stream position terms.
 This hook is exploited by the documentation system.  See
 stream_position_data/3. See also read_term/3.
 \end{description}
@@ -435,7 +435,7 @@ GNU readline library. This is by default the case on non-Windows
 installations and indicated by the Prolog flag \prologflag{readline}.%
 	\footnote{\program{swipl-win.exe} uses its own history system and
 		  does \emph{not} support these predicates.}
-See also \manref{readline}{3}
+See also \manref{readline}{3}.
 
 \begin{description}
 
