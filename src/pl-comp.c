@@ -1860,6 +1860,10 @@ compile, but they are related to meta-calling anyway.
 	  due to the ci->argvars computation and maintenance, so we skip
 	  this
 	* We do not try to be smart with <module>:call(...)
+
+FIXME: Note that this compiles  module:(if->then;else) into a meta-call.
+This must eventually be  handled  by   compileBody,  setting  the target
+module and simply compiling the content of the qualified term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     if ( functor == FUNCTOR_colon2 )
     { Word mp, g;
@@ -1873,7 +1877,7 @@ compile, but they are related to meta-calling anyway.
 	  { functor_t f2 = functorTerm(*g);
 	    FunctorDef fd2 = valueFunctor(f2);
 
-	    if ( fd2->name != ATOM_call )
+	    if ( fd2->name != ATOM_call && false(fd2, CONTROL_F) )
 	    { arg = g;
 	      functor = f2;
 	      fdef = fd2;
