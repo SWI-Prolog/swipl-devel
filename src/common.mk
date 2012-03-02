@@ -53,7 +53,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 
 # Dialect library files
 
-DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl bim.pl
+DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl bim.pl ifprolog.pl
 YAP=	README.TXT
 SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl \
 	sockets.pl swipl-lfr.pl
@@ -64,3 +64,4 @@ CIAO=	assertions.pl isomodes.pl regtypes.pl sockets.pl \
 CIAO_ENGINE=internals.pl hiord_rt.pl
 ISO=	iso_predicates.pl
 SWI=	syspred_options.pl
+IFPROLOG=

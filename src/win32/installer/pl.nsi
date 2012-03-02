@@ -440,7 +440,7 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File pl\library\clp\clpq.pl
 SectionEnd
 
-Section "Portability (YAP, SICStus, Ciao, BIM) support"
+Section "Portability (YAP, SICStus, Ciao, BIM, IF/Prolog) support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
   File pl\library\fastrw.pl
