@@ -29,7 +29,7 @@
     the GNU General Public License.
 
     Alternatively, this program may be distributed under the Perl
-    Artistic License.
+    Artistic License, version 2.0.
 */
 
 
