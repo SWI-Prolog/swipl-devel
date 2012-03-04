@@ -13,7 +13,7 @@ Although it is our aim to enhance compatibility, we are still faced
 with many incompatibilities between the dialects. As a first step both
 YAP and SWI will provide some instruments that help developing portable
 code. A first release of these tools appeared in SWI-Prolog 5.6.43.
-Some of the facilities are implemented in the base system. Others in the
+Some of the facilities are implemented in the base system, others in the
 library \pllib{dialect.pl}.
 
 \begin{itemize}
@@ -36,7 +36,7 @@ library \pllib{dialect.pl}.
 
     \item The module predicates use_module/1, use_module/2 have been
     extended with a notion for `import-except' and `import-as'.  This
-    is particulary useful together with reexport/1 and reexport/2 to
+    is particularly useful together with reexport/1 and reexport/2 to
     compose modules from other modules and mapping names.
 
     \item Foreign code can expect \const{__SWI_PROLOG__} when compiled
@@ -126,7 +126,7 @@ are some considerations.
     want to achieve compatibility with the new Prolog dialect with
     minimal changes, often keeping compatibility with the original
     dialect(s).  This problem is well known from the C/Unix world
-    and we advice anyone to study the philosophy of
+    and we advise anyone to study the philosophy of
     \url[GNU autoconf]{http://www.gnu.org/software/autoconf/}, from
     which we will illustrate some highlights below.
 \end{itemize}
@@ -153,10 +153,10 @@ behaviour. Using a separate \program{configure} program is needed in C,
 as you cannot perform C compilation step or run C programs from the C
 preprocessor. In most Prolog environments we do not need this
 distinction as the compiler is integrated into the runtime environment
-and Prolog has excelent reflexion capabilities.
+and Prolog has excellent reflexion capabilities.
 
 We must learn from the distinction to test for features instead of
-platform (dialect), as this makes the platform specific code robust for
+platform (dialect), as this makes the platform-specific code robust for
 future changes of the dialect. Suppose we need compare/3 as defined in
 this manual. The compare/3 predicate is not part of the ISO standard,
 but many systems support it and it is not unlikely it will become ISO
@@ -175,14 +175,14 @@ compare(=, Term1, Term2) :-
 \end{code}
 
 This code is \textbf{much} more robust against changes to the intended
-dialect and, possible at least as important, will provide compatibility
+dialect and, possibly at least as important, will provide compatibility
 with dialects you didn't even consider porting to right now.
 
 In a more challenging case, the target Prolog has compare/3, but the
 semantics are different. What to do? One option is to write a
 my_compare/3 and change all occurrences in the code. Alternatively you
 can rename calls using goal_expansion/2 like below. This construct will
-not only deal with Prolog dialects lacking compare as well as those that
+not only deal with Prolog dialects lacking compare/3 as well as those that
 only implement it for numeric comparison or have changed the argument
 order. Of course, writing rock-solid code would require a complete
 test-suite, but this example will probably cover all Prolog dialects

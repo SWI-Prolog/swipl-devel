@@ -14,7 +14,7 @@ and \arg{a2} are the first and second argument of the term
 \term{myterm}{A1, a2}.
 
     \glossitem{arity}\index{arity}%
-Argument count (is number of arguments) of a \g{compound} \g{term}.
+Argument count (= number of arguments) of a \g{compound} \g{term}.
 
     \glossitem{assert}\index{assert}%
 Add a \g{clause} to a \g{predicate}. Clauses can be added at either
@@ -55,7 +55,7 @@ parent(X) :-
 	father(X, _).
 \end{code}
 
-Expressed ``X is a parent if X is a father of someone''.  See also
+Expressed as ``X is a parent if X is a father of someone''.  See also
 \g{variable} and \g{predicate}.
 
     \glossitem{compile}
@@ -88,7 +88,7 @@ can be \g{imported} into another module to make it visible there.
 See also use_module/[1,2].
 
     \glossitem{fact}\index{fact}%
-\g{Clause} without a \g{body}. This is called a fact because interpreted
+\g{Clause} without a \g{body}. This is called a fact because, interpreted
 as logic, there is no condition to be satisfied. The example below
 states \const{john} is a person.
 
@@ -100,11 +100,11 @@ person(john).
 A \g{goal} is said to haved failed if it could not be \g{proven}.
 
     \glossitem{float}
-Computers crippled representation of a real number.  Represented as
+Computer's crippled representation of a real number.  Represented as
 `IEEE double'.
 
     \glossitem{foreign}
-Computer code expressed in other languages than Prolog.  SWI-Prolog can
+Computer code expressed in languages other than Prolog.  SWI-Prolog can
 only cooperate directly with the C and C++ computer languages.
 
     \glossitem{functor}\index{functor}%
@@ -115,15 +115,15 @@ Combination of name and \g{arity} of a \g{compound} term.  The term
 
     \glossitem{goal}\index{goal}\index{query}%
 Question stated to the Prolog engine.  A \g{goal} is either an \g{atom}
-or a \g{compound} term. A \g{goal} succeeds, in which case the
-\g{variables} in the \g{compound} terms have a \g{binding} or \g{fails}
-if Prolog fails to prove the \g{goal}.
+or a \g{compound} term. A \g{goal} either succeeds, in which case the
+\g{variables} in the \g{compound} terms have a \g{binding}, or it \g{fails}
+if Prolog fails to prove it.
 
     \glossitem{hashing}\index{hashing}%
 \g{Indexing} technique used for quick lookup.
 
     \glossitem{head}\index{head}%
-Part of a \g{clause} before the \g{neck} instruction.   This is an atom
+Part of a \g{clause} before the \g{neck} operator (\const{:-}).   This is an \g{atom}
 or \g{compound} term.
 
     \glossitem{imported [predicate]}%
@@ -137,8 +137,8 @@ Indexing is a technique used to quickly select candidate \g{clauses} of
 a \g{predicate} for a specific \g{goal}. In most Prolog systems,
 indexing is done (only) on the first \g{argument} of the \g{head}. If
 this argument is instantiated to an \g{atom}, \g{integer}, \g{float} or
-\g{compound} term with \g{functor}, \g{hashing} is used quickly select
-all \g{clauses} of which the first argument may \g{unify} with the first
+\g{compound} term with \g{functor}, \g{hashing} is used to quickly select
+all \g{clauses} where the first argument may \g{unify} with the first
 argument of the \g{goal}. SWI-Prolog supports just-in-time and
 multi-argument indexing.  See \secref{jitindex}.
 
@@ -170,7 +170,7 @@ also called a \g{meta-predicate}.
 
     \glossitem{multifile [predicate]}
 Predicate for which the definition is distributed over multiple
-source-files.  See multifile/1.
+source files.  See multifile/1.
 
     \glossitem{neck}\index{neck}%
 Operator (\const{:-}) separating \g{head} from \g{body} in a \g{clause}.
@@ -197,7 +197,7 @@ and then tries these \g{clauses} one-by-one.  See also \g{backtracking}.
 
     \glossitem{predicate indicator}\index{predicate indicator}%
 Term of the form Name/Arity (traditional) or Name//Arity (ISO
-DCG proposal) where Name is an atom an Arity a non-negative integer.
+DCG proposal), where Name is an atom and Arity a non-negative integer.
 It acts as an \emph{indicator} (or reference) to a predicate or
 \g{DCG} rule.
 
@@ -252,16 +252,16 @@ Synonym for \g{compound} term.
 
     \glossitem{string}
 Used for the following representations of text: a packed array
-(see \secref{strings}), SWI-Prolog specific), a list of character
+(see \secref{strings}, SWI-Prolog specific), a list of character
 codes or a list of one-character \g{atoms}.
 
     \glossitem{succeed}\index{succeed}%
 A \g{goal} is said to have \g{succeeded} if it has been \g{proven}.
 
     \glossitem{term}\index{term}%
-Value in Prolog. A \g{term} is either a \g{variable}, \g{atom}, integer,
-float or \g{compound} term.  In addition, SWI-Prolog also defines the
-type \g{string}
+Value in Prolog. A \g{term} is either a \g{variable}, \g{atom}, \g{integer},
+\g{float} or \g{compound} term.  In addition, SWI-Prolog also defines the
+type \g{string}.
 
     \glossitem{transparent}
 See \g{module transparent}.

@@ -335,16 +335,16 @@ installer::
 packages:
 		@for %p in ($(PKGS)) do \
 		   @if exist "$(PKGDIR)\%p" \
-		      $(CMD) /c "echo PACKAGE %p ... & chdir $(PKGDIR)\%p & $(MAKE)"
+		      $(CMD) /c "echo PACKAGE %p ... & chdir $(PKGDIR)\%p & $(MAKE)" || exit 1
 
 install_packages:
 		@for %p in ($(PKGS)) do \
 		   @if exist "$(PKGDIR)\%p" \
-		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) install"
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) install" || exit 1
 !IF "$(CFG)" == "dev"
 		@for %p in ($(PKGS)) do \
 		   if exist "$(PKGDIR)\%p" \
-		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) html-install"
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) html-install" || exit 1
 		if exist $(PKGDIR)\index.html \
 		    copy $(PKGDIR)\index.html "$(PKGDOC)"
 !ENDIF
@@ -352,17 +352,17 @@ install_packages:
 xpce_packages:
 		@for %p in ($(PKGS)) do \
 		   @if exist "$(PKGDIR)\%p" \
-		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) xpce-install"
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) xpce-install" || exit 1
 
 clean_packages:
 		for %p in ($(PKGS)) do \
 		   if exist "$(PKGDIR)\%p" \
-		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) clean"
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) clean" || exit 1
 
 distclean_packages:
 		for %p in ($(PKGS)) do \
 		   if exist "$(PKGDIR)\%p" \
-		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) distclean"
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) distclean" || exit 1
 
 
 ################################################################

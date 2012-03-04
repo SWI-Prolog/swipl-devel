@@ -4,11 +4,11 @@
 SWI-Prolog licensing aims at a large audience, combining ideas from the
 \url[Free Software Foundation]{http://www.fsf.org} and the less
 principal \url[Open Source Initiative]{http://www.opensource.org}. The
-license aims at:
+license aims at the following:
 
 \begin{itemize}
     \item
-Make SWI-Prolog itself and its libraries are `As free as possible'.
+Make SWI-Prolog and its libraries `as free as possible'.
 
     \item
 Allow for easy integration of contributions.  See \secref{contrib}.
@@ -24,7 +24,7 @@ cannot be used.
 \end{itemize}
 
 To achieve this, different parts of the system have different licenses.
-SWI-Prolog programs consists of a mixture of `native' code (source compiled
+SWI-Prolog programs consist of a mixture of `native' code (source compiled
 to machine instructions) and `virtual machine' code (Prolog source compiled to
 SWI-Prolog virtual machine instructions, covering both compiled SWI-Prolog
 libraries and your compiled application).
@@ -50,8 +50,8 @@ the %href(lgpl, Lesser GNU Public License), also called the
 parts, a process satisfying article \textbf{6b} of the LGPL.
 
 Under the LGPL SWI-Prolog can be linked to code distributed under
-arbitrary licenses, provided a number of requirements are fullfilled.
-The most important requirement is that, if an application replies on a
+arbitrary licenses, provided a number of requirements are fulfilled.
+The most important requirement is that, if an application relies on a
 \emph{modified} version of SWI-Prolog, the modified sources must
 be made available.
 
@@ -64,7 +64,7 @@ of the SWI-Prolog system (both libraries and kernel code).  This situation
 is comparable to \file{libgcc}, the runtime library used
 with the GNU C-compiler. Therefore, we use the same proven license terms
 as this library. The libgcc license is the %href(gpl, GPL), accompanied
-with a special exception. Below we rephrased this exception adjusted to
+with a special exception. Below we rephrase this exception adjusted to
 our needs:
 
 \begin{quote}\it
@@ -80,12 +80,12 @@ the GNU General Public License.
 \section{Contributing to the SWI-Prolog project}	\label{sec:contrib}
 
 To achieve maximal coherence using SWI-Prolog for Free and Non-Free
-software we advice the use of the LGPL for contributed foreign code and
-the use of the GPL with SWI-Prolog exception for Prolog code for
+software we advise using LGPL for contributed foreign code and
+using GPL with the SWI-Prolog exception for Prolog code for
 contributed modules.
 
-As a rule of thumb it is advised to use the above licenses whenever possible
-and only use a strict GPL compliant license only if the module contains other
+As a rule of thumb it is advised to use the above licenses whenever possible,
+and use a strict GPL compliant license only if the module contains other
 code under strict GPL compliant licenses.
 
 
@@ -102,7 +102,7 @@ will rely on the GPL.%
 	      therefore without need for \file{libreadline}.}
 The predicates below allow for registering license requirements for
 Prolog files and foreign modules.  The predicate eval_license/0 reports
-which components from the currenly configured system are distributed
+which components from the currently configured system are distributed
 under copy-left and open source enforcing licenses (the GPL) and
 therefore must be replaced before distributing linked applications
 under non-free license conditions.
@@ -143,7 +143,7 @@ applications must contribute sources to improvements they make to
 the community.
 
 	\termitem{lgpl}{}
-This is the default license for foreign-libraries linked with
+This is the default license for foreign libraries linked with
 SWI-Prolog. Use PL_license() to register the condition from foreign
 code.
 
@@ -156,12 +156,12 @@ component.
 
 Other licenses known to the system are \const{guile}, \const{gnu_ada},
 \const{x11}, \const{expat}, \const{sml}, \const{public_domain},
-\const{cryptix}, \const{bsd}, \const{zlib}, const{lgpl_compatible}
+\const{cryptix}, \const{bsd}, \const{zlib}, \const{lgpl_compatible}
 and \const{gpl_compatible}.  New licenses can be defined by adding
 clauses for the multifile predicate license:license/3.  Below is
 an example.  The second argument is either \const{gpl} or \const{lgpl}
 to indicate compatibility with these licenses.  Other values cause the
-license to interpreted as \jargon{proprietary}.  Proprietary licenses
+license to be interpreted as \jargon{proprietary}.  Proprietary licenses
 are reported by eval_license/0.  See the file \file{boot/license.pl} for
 details.
 
@@ -177,7 +177,7 @@ license:license(mylicense, lgpl,
 \end{code}
 
     \predicate{license}{1}{+LicenseId}
-Intented as a directive in Prolog source files.  It takes the current
+Intended as a directive in Prolog source files.  It takes the current
 filename and calls license/2.
 
     \cfunction{void}{PL_license}{const char *LicenseId, const char *Component}

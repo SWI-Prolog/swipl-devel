@@ -1,37 +1,35 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        R.A. O'Keefe, V.S. Costa, L. Damas, Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): Universidade do Porto, University of Amsterdam,
 		   VU University Amsterdam.
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+
+    Alternatively, this program may be distributed under the Perl
+    Artistic License, version 2.0.
 */
-
-/*************************************************************************
-*									 *
-*	 YAP Prolog							 *
-*									 *
-*	Yap Prolog was developed at NCCUP - Universidade do Porto	 *
-*									 *
-* Copyright L.Damas, V.S.Costa and Universidade do Porto 1985-1997	 *
-*									 *
-**************************************************************************
-*									 *
-* File:		random.yap						 *
-* Last rev:	5/12/99							 *
-* mods:									 *
-* comments:	Random operations					 *
-*									 *
-*************************************************************************/
-
-% original code from RA O'Keefe.
-
-%   This is algorithm AS 183 from Applied Statistics.  I also have a C
-%   version.  It is really very good.  It is straightforward to make a
-%   version which yields 15-bit random integers using only integer
-%   arithmetic.
 
 :- module(random,
 	  [ random/1,			% -Float (0,1)
@@ -67,7 +65,6 @@ random generator was moved to C. The current version uses the SWI-Prolog
 arithmetic functions to realise this library.  These functions are based
 on the GMP library.
 
-@copyright	DEC10 version: Public domain, YAP: Artistic
 @author		R.A. O'Keefe, V.S. Costa, L. Damas, Jan Wielemaker
 @see		Built-in function random/1: A is random(10)
 */

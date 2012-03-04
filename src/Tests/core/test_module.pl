@@ -48,7 +48,11 @@ test_module :-
 cross(M) :-
         context_module(M).
 
+t(X) :-
+	test_module:(true->X=1;X=2).
+
 :- begin_tests(module).
+
 
 test(cross, X == test_module) :-
 	cross(X).
@@ -67,5 +71,8 @@ test(clause, H == term) :-
 	assert(test_moduld_2:term, Ref),
 	clause(test_moduld_2:H,_,Ref),
 	erase(Ref).
+
+test(qcontrol, all(X==[1])) :-
+	t(X).
 
 :- end_tests(module).
