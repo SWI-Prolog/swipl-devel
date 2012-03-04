@@ -60,6 +60,17 @@
 :- use_module(library(arithmetic)).
 :- use_module(library(memfile)).
 
+/** <module> IF/Prolog compatibility package
+
+This library realises emulation of IF/Prolog.  As with all the emulation
+layers in the dialect directory, the   emulation has been established on
+`as needed' basis from porting programs. This implies that the emulation
+is incomplete. Emumated directives, predicates   and libraries are often
+not 100% compatible with the IF/Prolog version.
+
+Please   help   extending   this   library   and   submit   patches   to
+bugs@swi-prolog.org.
+*/
 
 :- module_transparent
 	calling_context/1.
@@ -102,6 +113,25 @@ user:term_expansion(In, Out) :-
 %	compilation.
 
 
+%%	Goal@Module
+%
+%	This is emulated as Module:Goal, which   is incorrect. Where @/2
+%	sets only the calling context, :/2 both defines where the Prolog
+%	is called and sets the calling context.
+
+%%	context(:Goal, Handler)
+%
+%	Is  mapped  to  catch(Goal,  Error,    Recover)  is  Handler  is
+%	=|error(_,_) => Recover|=. Other cases are   not  covered by the
+%	emulation.
+
+%%	asserta(Head,Body) is det.
+%%	assertz(Head,Body) is det.
+%%	retract(Head,Body) is det.
+%
+%	Mapped to asserta((Head:-Body)),  etc.  Note   that  this  masks
+%	SWI-Prolog's asserta/2, etc.
+
 ifprolog_goal_expansion(Goal@Module, Module:Goal).
 ifprolog_goal_expansion(context(Goal, [Error => Recover]),
 			catch(Goal, Error, Recover)) :-
@@ -118,6 +148,27 @@ ifprolog_goal_expansion(retract(Head,Body),
 %
 %	term_expansion  rules  to   emulate    IF/Prolog   behaviour  in
 %	SWI-Prolog.
+
+%%	meta(+ListOfPI)
+%
+%	Mapped  to  module_transparent/1.  Not  sure   whether  this  is
+%	correct. It surely is not very elegant   to  map to a deprecated
+%	feature.  Luckily,  although  the  module_transparent/1  API  is
+%	deprecated, the underlying functionality is   still  core of the
+%	module system.
+
+%%	export(+ListOfPI) is det.
+%%	discontiguous(+ListOfPI) is det.
+%
+%	Mapped to comma-lists
+
+%%	module(+Name).
+%%	begin_module(+Name).
+%%	end_module(+Name).
+%
+%	These are emulated correctly,  provided   module/1  is the first
+%	term of the file and the  implementation   is  part  of the same
+%	file. Begin/end are ignored.
 
 ifprolog_term_expansion((:- meta([])), []).
 ifprolog_term_expansion((:- meta(List)),
@@ -192,13 +243,19 @@ push_ifprolog_file_extension :-
 		 *	    PREDICATES		*
 		 *******************************/
 
+%%	calling_context(-Context)
+%
+%	Mapped to context_module/1.
+
 calling_context(Context) :-
 	context_module(Context).
 
 
 %%	system:modify_mode(+PI, -OldMode, +NewMode) is det.
 %
-%
+%	Switch between static and  dynamic   code.  Fully supported, but
+%	notably changing static to dynamic code   is  not allowed if the
+%	predicate has clauses.
 
 system:modify_mode(PI, OldMode, NewMode) :-
 	pi_head(PI, Head),
@@ -221,17 +278,39 @@ pi_head(M:PI, M:Head) :- !,
 pi_head(Name/Arity, Term) :-
 	functor(Term, Name, Arity).
 
+%%	debug_mode(:PI, -Old, +New)
+%
+%	Old is not unified.  Only  New  ==   off  is  mapped  to disable
+%	debugging of a predicate.
+
 debug_mode(PI, _, off) :-
 	'$hide'(PI).
+
+%%	debug_config(+Key, -Current, +Value)
+%
+%	Ignored.  Prints a message.
 
 debug_config(Key,Current,Value) :-
 	print_message(informational, ignored(debug_config(Key,Current,Value))).
 
+%%	float_format(-Old, +New)
+%
+%	Ignored. Prints a message. Cannot   be emulated. Printing floats
+%	with a specified precision can only be done using format/2.
+
 float_format(Old, New) :-
 	print_message(informational, ignored(float_format(Old, New))).
 
+%%	program_parameters(-List:atom)
+%
+%	All command-line argument, including the executable,
+
 program_parameters(Argv) :-
 	current_prolog_flag(argv, Argv).
+
+%%	user_parameters(-List:atom)
+%
+%	Parameters after =|--|=.
 
 user_parameters(Argv) :-
 	current_prolog_flag(argv, AllArgv),
@@ -240,12 +319,23 @@ user_parameters(Argv) :-
 	;   assertion(fail)
 	).
 
+%%	match(+Mask, +Atom) is semidet.
+%
+%	Matched  to  wildcard_match/2,  but  the  latter  also  supports
+%	=|[a-z]|= and =|{p1,p2,...}|=. Checks the the existence of [ and
+%	{ in the pattern. Could be mapped   to  match/3, which is slower
+%	but correct.
+
 match(Mask, Atom) :-
 	assertion(\+sub_atom(Mask, _, _, _, '[')),
 	assertion(\+sub_atom(Mask, _, _, _, '{')),
 	wildcard_match(Mask, Atom).
 
 %%	match(+Mask, +Atom, ?Replacements) is nondet.
+%
+%	Pattern matching. This emulation  should   be  complete.  Can be
+%	optimized using caching of  the   pattern-analysis  or doing the
+%	analysis at compile-time.
 
 match(Mask, Atom, Replacements) :-
 	atom_codes(Mask, MaskCodes),
@@ -287,7 +377,10 @@ non_special([]) --> [].
 special(0'*).
 special(0'?).
 
-
+%%	lower_upper(+Lower, -Upper) is det.
+%%	lower_upper(-Lower, +Upper) is det.
+%
+%	Multi-moded combination of upcase_atom/2 and downcase_atom/2.
 
 
 lower_upper(Lower, Upper) :-
@@ -296,14 +389,32 @@ lower_upper(Lower, Upper) :-
 lower_upper(Lower, Upper) :-
 	downcase_atom(Upper, Lower).
 
+%%	load(File)
+%
+%	Mapped to consult.  I think that the compatible version should
+%	only load .qlf (compiled) code.
+
 load(File) :-
 	consult(File).
+
+%%	file_test(+File, +Mode)
+%
+%	Mapped to access_file/2 (which understand more modes).
 
 file_test(File, Mode) :-
 	access_file(File, Mode).
 
+%%	write_atom(+Term, -Atom)
+%
+%	Use write/1 to write Term to Atom.
+
 write_atom(Term, Atom) :-
 	with_output_to(atom(Atom), write(Term)).
+
+%%	current_error(-Stream)
+%
+%	Doesn't exist in SWI-Prolog, but =user_error= is always an alias
+%	to the current error stream.
 
 current_error(user_error).
 
@@ -311,6 +422,13 @@ current_error(user_error).
 		 /*******************************
 		 *	  FORMATTED WRITE	*
 		 *******************************/
+
+%%	write_formatted_atom(-Atom, +Format, +ArgList) is det.
+%%	write_formatted(+Format, +ArgList) is det.
+%%	write_formatted(@Stream, +Format, +ArgList) is det.
+%
+%	Emulation of IF/Prolog formatted write.   The  emulation is very
+%	incomplete. Notable asks for dealing with aligned fields, etc.
 
 write_formatted_atom(Atom, Format, ArgList) :-
 	with_output_to(atom(Atom), write_formatted(Format, ArgList)).
@@ -344,6 +462,12 @@ map_format("c", "~c").
 map_format("%", "%").
 
 
+%%	get_until(+SearchChar, -Text, -EndChar) is det.
+%%	get_until(@Stream, +SearchChar, -Text, -EndChar) is det.
+%
+%	Read input from Stream  until   SearchChar.  Unify  EndChar with
+%	either SearchChar or the atom =end_of_file=.
+
 get_until(SearchChar, Text, EndChar) :-
 	get_until(current_input, SearchChar, Text, EndChar).
 
@@ -364,6 +488,8 @@ get_until(C0, In, Search, [C0|T], End) :-
 		 *******************************/
 
 %%	parse_atom(+Atom, +StartPos, ?EndPos, ?Term, ?VarList, ?Error)
+%
+%	Read from an atom.
 
 parse_atom(Atom, StartPos, EndPos, Term, VarList, Error) :-
 	setup_call_cleanup(
@@ -386,7 +512,7 @@ parse_atom(Atom, StartPos, EndPos, Term, VarList, Error) :-
 
 %%	for(+Start, ?Count, +End) is nondet.
 %
-%
+%	Similar to between/3, but can count down if Start > End.
 
 for(Start, Count, End) :-
 	Start =< End, !,
