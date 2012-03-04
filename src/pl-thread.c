@@ -2555,7 +2555,7 @@ timespec_cmp(struct timespec *a, struct timespec *b)
   diff.tv_sec  = a->tv_sec - b->tv_sec;
   diff.tv_nsec = a->tv_nsec - b->tv_nsec;
   if ( diff.tv_nsec < 0 )
-  { --diff.tv_nsec;
+  { --diff.tv_sec;
     diff.tv_nsec += 1000000000;
   }
 
