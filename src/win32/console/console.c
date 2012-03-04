@@ -3617,7 +3617,7 @@ Dprintf(const TCHAR *fmt, ...)
   va_list args;
 
   va_start(args, fmt);
-  _vstprintf(buf, fmt, args);
+  vswprintf(buf, sizeof(buf)/sizeof(TCHAR), fmt, args);
   va_end(args);
 
   OutputDebugString(buf);
