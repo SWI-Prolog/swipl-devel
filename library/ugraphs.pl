@@ -1,3 +1,39 @@
+/*  Part of SWI-Prolog
+
+    Author:        R.A.O'Keefe, Vitor Santos Costa, Jan Wielemaker
+    E-mail:        J.Wielemaker@cs.vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1984-2012, VU University Amsterdam
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+
+    The original code was distributed in the public domain and YAP
+    under the Perl artistic license. The current version is dual
+    licences and may be redistributed under the Artistic license,
+    version 2.0.
+*/
+
+
+
 %   $Id$
 %
 %   File   : GRAPHS.PL
@@ -40,14 +76,10 @@ library by Vitor Santos Costa.
 
 Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker.
 
-As the original code was distributed in  the public domain and YAP under
-the  Perl  artistic  license  the  code  can  be  used  with  SWI-Prolog
-applications without consequences to the   overall system or proprietary
-code linked to SWI-Prolog
-
 @author R.A.O'Keefe
 @author Vitor Santos Costa
 @author Jan Wielemaker
+@license GPL+SWI-exception or Artistic 2.0
 */
 
 :- use_module(library(lists), [
@@ -249,7 +281,7 @@ del_edges(Graph, Edges, NewGraph) :-
 
 %%	graph_subtract(+Set1, +Set2, ?Difference)
 %
-% 	Is based on ord_subtract
+%	Is based on ord_subtract
 
 graph_subtract(Set1, [], Set1) :- !.
 graph_subtract([], _, []).
