@@ -404,7 +404,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   if ( (!(debugstatus.visible & port)) )
     return ACTION_CONTINUE;		/* wrong port */
   if ( (true(def, HIDE_CHILDS) && !SYSTEM_MODE) &&
-       (port & (/*REDO_PORT|*/CUT_PORT)) )
+       (port & CUT_PORT) )
     return ACTION_CONTINUE;		/* redo or ! in system predicates */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
