@@ -58,9 +58,12 @@ an editor.
 %	Edit indicated object.
 
 edit(Spec) :-
+	notrace(edit_no_trace(Spec)).
+
+edit_no_trace(Spec) :-
 	var(Spec), !,
 	throw(error(instantiation_error, _)).
-edit(Spec) :-
+edit_no_trace(Spec) :-
 	load_extensions,
 	findall(Location-FullSpec,
 		locate(Spec, FullSpec, Location),

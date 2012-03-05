@@ -249,7 +249,7 @@ spy(M:[H|T]) :- !,
 	spy(M:H),
 	spy(M:T).
 spy(Spec) :-
-	prolog:debug_control_hook(spy(Spec)), !.
+	notrace(prolog:debug_control_hook(spy(Spec))), !.
 spy(Spec) :-
 	'$find_predicate'(Spec, Preds),
 	'$member'(PI, Preds),
@@ -267,7 +267,7 @@ nospy(M:[H|T]) :- !,
 	nospy(M:H),
 	nospy(M:T).
 nospy(Spec) :-
-	prolog:debug_control_hook(nospy(Spec)), !.
+	notrace(prolog:debug_control_hook(nospy(Spec))), !.
 nospy(Spec) :-
 	'$find_predicate'(Spec, Preds),
 	'$member'(PI, Preds),
@@ -277,7 +277,7 @@ nospy(Spec) :-
 nospy(_).
 
 nospyall :-
-	prolog:debug_control_hook(nospyall),
+	notrace(prolog:debug_control_hook(nospyall)),
 	fail.
 nospyall :-
 	spy_point(Head),
@@ -295,7 +295,7 @@ pi_to_head(Name/Arity, Head) :-
 %	Report current status of the debugger.
 
 debugging :-
-	prolog:debug_control_hook(debugging), !.
+	notrace(prolog:debug_control_hook(debugging)), !.
 debugging :-
 	current_prolog_flag(debug, true), !,
 	print_message(informational, debugging(on)),
@@ -328,9 +328,10 @@ trace_ports(Head, Ports) :-
 		 *	      RATIONAL		*
 		 *******************************/
 
-%	rational(+Rat, -M, -N)
+%%	rational(+Rat, -Numerator, -Denominator) is semidet.
 %
-%	Get parts of a rational number.
+%	True when Rat is a  rational   number  with  given Numerator and
+%	Denominator.
 
 rational(Rat, M, N) :-
 	rational(Rat),
