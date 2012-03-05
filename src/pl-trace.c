@@ -392,7 +392,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   }
 
   if ( !debugstatus.tracing &&
-       (false(def, SPY_ME) || (port & CUT_PORT)) )
+       (false(def, SPY_ME) || (port & (CUT_PORT|REDO_PORT))) )
     return ACTION_CONTINUE;		/* not tracing and no spy-point */
   if ( debugstatus.skiplevel < levelFrame(frame) )
     return ACTION_CONTINUE;		/* skipped */
