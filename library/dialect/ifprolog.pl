@@ -49,6 +49,7 @@
 	    get_until/3,			% +SearchChar, ?Text, ?EndChar
 	    get_until/4,			% @In, +SearchChar, ?Text, ?EndChar
 	    for/3,				% +Start, ?Counter, +End
+	    prolog_version/1,                   % -Atom
 
 	    op(1150, fx, (meta)),
 	    op(1150, fx, (export)),
@@ -524,6 +525,14 @@ for(Start, Count, End) :-
 	Range is Start-End,
 	between(0, Range, X),
 	Count is Start-X.
+
+%%	prolog_version(-Version)
+%
+%	Return IF/Prolog simulated version string
+
+prolog_version(Version) :-
+	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
+	atomic_list_concat([Major, Minor, Patch], '.', Version).
 
 
 		 /*******************************
