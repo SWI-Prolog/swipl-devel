@@ -46,6 +46,7 @@
 						% ?Term, ?VarList, ?Error
 	    load/1,				% :FileName
 	    file_test/2,			% +File, +Mode
+	    assign_alias/2,			% +Alias, @Stream
 	    get_until/3,			% +SearchChar, ?Text, ?EndChar
 	    get_until/4,			% @In, +SearchChar, ?Text, ?EndChar
 	    for/3,				% +Start, ?Counter, +End
@@ -97,6 +98,9 @@ bugs@swi-prolog.org.
 	user:term_expansion/2,
 	user:file_search_path/2,
 	user:prolog_file_type/2.
+
+:- dynamic
+	in_module_interface/1.
 
 user:goal_expansion(In, Out) :-
 	prolog_load_context(dialect, ifprolog),
@@ -157,6 +161,9 @@ ifprolog_goal_expansion(retract(Head,Body),
 %	feature.  Luckily,  although  the  module_transparent/1  API  is
 %	deprecated, the underlying functionality is   still  core of the
 %	module system.
+%
+%	Note that if :- meta  appears   inside  a  module interface, the
+%	predicate is also exported.
 
 %%	export(+ListOfPI) is det.
 %%	discontiguous(+ListOfPI) is det.
@@ -173,14 +180,22 @@ ifprolog_goal_expansion(retract(Head,Body),
 
 ifprolog_term_expansion((:- meta([])), []).
 ifprolog_term_expansion((:- meta(List)),
-			(:- module_transparent(Spec))) :-
-	pi_list_to_pi_term(List, Spec).
+			[ (:- module_transparent(Spec))
+			| Export
+			]) :-
+	pi_list_to_pi_term(List, Spec),
+	(   in_module_interface(_)
+	->  Export = [(:- export(Spec))]
+	;   Export = []
+	).
 
 ifprolog_term_expansion((:- export([])), []).
 ifprolog_term_expansion((:- export(List)),
 			(:- export(Spec))) :-
 	is_list(List),
 	pi_list_to_pi_term(List, Spec).
+
+ifprolog_term_expansion((:- private(_)), []).
 
 ifprolog_term_expansion((:- discontiguous([])), []).
 ifprolog_term_expansion((:- discontiguous(List)),
@@ -189,14 +204,29 @@ ifprolog_term_expansion((:- discontiguous(List)),
 	pi_list_to_pi_term(List, Spec).
 
 ifprolog_term_expansion((:- module(Name)),
-			(:- module(Name, []))).
+			(:- module(Name, []))) :-
+	asserta(in_module_interface(Name)).
 ifprolog_term_expansion((:- begin_module(Name)), []) :-
 	prolog_load_context(module, Loading),
-	assertion(Name == Loading).
+	assertion(Name == Loading),
+	retract(in_module_interface(Name)).
 ifprolog_term_expansion((:- end_module(_)), []).
 ifprolog_term_expansion((:- end_module), []).
 ifprolog_term_expansion((:- nonotify), []).	% TBD: set verbosity
 
+
+ifprolog_term_expansion((:- import(Module)),
+			(:- use_module(File))) :-
+	(   module_property(Module, file(File))
+	->  true
+	;   existence_error(module, Module)
+	).
+ifprolog_term_expansion((:- import(Module, ImportList)),
+			(:- use_module(File, ImportList))) :-
+	(   module_property(Module, file(File))
+	->  true
+	;   existence_error(module, Module)
+	).
 
 %%	pi_list_to_pi_term(+List, -CommaList) is det.
 
@@ -407,6 +437,12 @@ load(File) :-
 system:file_test(File, Mode) :-
 	access_file(File, Mode).
 
+%%	assign_alias(+Alias, @Stream) is det.
+%
+
+assign_alias(Alias, Stream) :-
+	set_stream(Stream, alias(Alias)).
+
 %%	write_atom(+Term, -Atom)
 %
 %	Use write/1 to write Term to Atom.
@@ -557,6 +593,9 @@ prolog_version(Version) :-
 		 *******************************/
 
 :- arithmetic_function(system:time/0).
+:- arithmetic_function(system:trunc/1).
 
 system:time(Time) :-
 	get_time(Time).
+system:trunc(Val, Trunc) :-
+	Trunc is truncate(Val).
