@@ -306,8 +306,7 @@ source_file_pattern(Pattern) :-
 	atom_concat('*.', PlExt, Pattern).
 
 plfile_in_dir(Dir, Base, PlBase, File) :-
-	once(user:prolog_file_type(PlExt, prolog)),
-	file_name_extension(Base, PlExt, PlBase),
+	file_name_extension(Base, pl, PlBase),
 	atomic_list_concat([Dir, '/', PlBase], File).
 
 expand_index_file_patterns(Patterns, Files) :-
