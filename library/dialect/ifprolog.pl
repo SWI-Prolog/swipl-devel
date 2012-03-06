@@ -400,9 +400,11 @@ load(File) :-
 
 %%	file_test(+File, +Mode)
 %
-%	Mapped to access_file/2 (which understand more modes).
+%	Mapped to access_file/2 (which understand more modes). Note that
+%	this predicate is defined in the   module  =system= to allow for
+%	direct calling.
 
-file_test(File, Mode) :-
+system:file_test(File, Mode) :-
 	access_file(File, Mode).
 
 %%	write_atom(+Term, -Atom)
@@ -444,7 +446,7 @@ write_formatted(Out, Format, ArgList) :-
 
 format_string([]) --> [].
 format_string(Fmt) -->
-	"%", [IFC], !,
+	"%", option_number(_Arg), [IFC], !,	% FIXME: Use Arg
 	{   map_format([IFC], Repl)
 	->  append(Repl, T, Fmt)
 	;   print_message(warning, ifprolog_format(IFC)),
@@ -461,6 +463,21 @@ map_format("s", "~a").
 map_format("d", "~d").
 map_format("c", "~c").
 map_format("%", "%").
+
+option_number(Arg) -->
+	"-",
+	digits(DL),
+	{ DL \== [], !, number_codes(Arg, [0'-|DL]) }.
+option_number(Arg) -->
+	digits(DL),
+	{ (DL == [] -> Arg = none ; number_codes(Arg, DL)) }.
+
+digits([D0|T]) -->
+	digit(D0), !,
+	digits(T).
+digits([]) --> [].
+
+digit(D) --> [D], {between(0'0, 0'9, D)}.
 
 
 %%	get_until(+SearchChar, -Text, -EndChar) is det.
