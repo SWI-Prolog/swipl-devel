@@ -57,6 +57,7 @@
 	    asserta_with_names/2,		% @Term, +VarNames
 	    assertz_with_names/2,		% @Term, +VarNames
 	    clause_with_names/3,		% ?Head, ?Body, ?VarNames
+	    retract_with_names/2,		% ?Clause, ?VarNames
 	    predicate_type/2,			% @Predicate, ?Type
 
 	    op(1150, fx, (meta)),
@@ -90,7 +91,10 @@ bugs@swi-prolog.org.
 	load(:),
 	asserta_with_names(:, +),
 	assertz_with_names(:, +),
-	clause_with_names(:, -, -).
+	clause_with_names(:, -, -),
+	retract_with_names(:, -),
+	predicate_type(:, -).
+
 
 		 /*******************************
 		 *	     EXPANSION		*
@@ -483,13 +487,13 @@ current_error(user_error).
 %	Emulation of IF/Prolog formatted write.   The  emulation is very
 %	incomplete. Notable asks for dealing with aligned fields, etc.
 
-write_formatted_atom(Atom, Format, ArgList) :-
+system:write_formatted_atom(Atom, Format, ArgList) :-
 	with_output_to(atom(Atom), write_formatted(Format, ArgList)).
 
-write_formatted(Format, ArgList) :-
+system:write_formatted(Format, ArgList) :-
 	write_formatted(current_output, Format, ArgList).
 
-write_formatted(Out, Format, ArgList) :-
+system:write_formatted(Out, Format, ArgList) :-
 	atom_codes(Format, Codes),
 	phrase(format_string(FormatCodes), Codes), !,
 	format(Out, FormatCodes, ArgList).
@@ -556,6 +560,9 @@ get_until(C0, In, Search, [C0|T], End) :-
 		 *******************************/
 
 %%	atom_part(+Atom, +Pos, +Len, -Sub) is det.
+%
+%	True when Sub is part  of   the  atom [Pos,Pos+Len). Unifies Sub
+%	with '' if Pos or Len is out of range!?
 
 atom_part(_, Pos, _, Sub) :-
 	Pos < 1, !,
@@ -634,6 +641,14 @@ prolog_version(Version) :-
 :- dynamic
 	names/2.
 
+%%	asserta_with_names(@Clause, +VarNames) is det.
+%%	assertz_with_names(@Clause, +VarNames) is det.
+%%	clause_with_names(?Head, ?Body, -VarNames) is det.
+%%	retract_with_names(?Clause, -VarNames) is det.
+%
+%	Predicates that manage  the  database   while  keeping  track of
+%	variable names.
+
 asserta_with_names(M:Clause, VarNames) :-
 	term_varnames(Clause, VarNames, VarTerm),
 	system:asserta(M:Clause, Ref),
@@ -666,10 +681,27 @@ clause_with_names(M:Head, Body, VarNames) :-
 	;   VarNames = []
 	).
 
+retract_with_names(M:Term, VarNames) :-
+	clause(M:Term, Ref),
+	erase(Ref),
+	(   names(Ref, VarTerm)
+	->  term_variables((Term), Vars),
+	    VarTerm =.. [v|NameList],
+	    make_bindings(NameList, Vars, VarNames)
+	;   VarNames = []
+	).
+
 make_bindings([], [], []).
 make_bindings([Name|NT], [Var|VT], [Name=Var|BT]) :-
 	make_bindings(NT, VT, BT).
 
+
+%%	predicate_type(:PI, -Type) is det.
+%
+%	True when Type describes the type  of   PI.  Note that the value
+%	=linear= seems to mean you can use clause/2 on it, which is true
+%	for any SWI-Prolog predicate that is  defined. Therefore, we use
+%	it for any predicate that is defined.
 
 predicate_type(M:Name/Arity, Type) :-
 	functor(Head, Name, Arity),
@@ -682,12 +714,20 @@ predicate_type(M:Name/Arity, Type) :-
 	->  Type = imported
 	;   predicate_property(Pred, dynamic)
 	->  Type = linear
-	;   control(Pred)
+	;   control(Head)
+	->  Type = control
+	;   Name == call
 	->  Type = control
 	;   current_predicate(M:Name/Arity)
-	->  Type = compiled
+	->  Type = linear
 	;   Type = undefined
 	).
+
+control((_,_)).
+control((_;_)).
+control((_->_)).
+control((_*->_)).
+control((!)).
 
 
 		 /*******************************
