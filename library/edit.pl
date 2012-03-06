@@ -124,7 +124,7 @@ locate(FileBase, source_file(Path), [file(Path)]) :-
 	atom(FileBase),
 	source_file(Path),
 	file_base_name(Path, File),
-	file_name_extension(FileBase, pl, File).
+	file_name_extension(FileBase, _, File).
 locate(Name, FullSpec, Location) :-
 	atom(Name),
 	locate(Name/_, FullSpec, Location).
