@@ -54,6 +54,11 @@
 	    (@)/2,				% Goal, Module
 	    prolog_version/1,                   % -Atom
 
+	    asserta_with_names/2,		% @Term, +VarNames
+	    assertz_with_names/2,		% @Term, +VarNames
+	    clause_with_names/3,		% ?Head, ?Body, ?VarNames
+	    predicate_type/2,			% @Predicate, ?Type
+
 	    op(1150, fx, (meta)),
 	    op(1150, fx, (export)),
 	    op(100, xfx, @),
@@ -82,7 +87,10 @@ bugs@swi-prolog.org.
 :- meta_predicate
 	system:modify_mode(:, -, +),
 	debug_mode(:, -, +),
-	load(:).
+	load(:),
+	asserta_with_names(:, +),
+	assertz_with_names(:, +),
+	clause_with_names(:, -, -).
 
 		 /*******************************
 		 *	     EXPANSION		*
@@ -617,6 +625,69 @@ system:(Goal@Module) :-
 prolog_version(Version) :-
 	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
 	atomic_list_concat([Major, Minor, Patch], '.', Version).
+
+
+		 /*******************************
+		 *	      DATABASE		*
+		 *******************************/
+
+:- dynamic
+	names/2.
+
+asserta_with_names(M:Clause, VarNames) :-
+	term_varnames(Clause, VarNames, VarTerm),
+	system:asserta(M:Clause, Ref),
+	asserta(names(Ref, VarTerm)).
+assertz_with_names(M:Clause, VarNames) :-
+	term_varnames(Clause, VarNames, VarTerm),
+	system:assertz(M:Clause, Ref),
+	asserta(names(Ref, VarTerm)).
+
+term_varnames(Term, VarNames, VarTerm) :-
+	findall(Vars,
+		( term_variables(Term, Vars),
+		  bind_names(VarNames)
+		),
+		[ VarList ]),
+	VarTerm =.. [ v | VarList ].
+
+bind_names([]).
+bind_names([Name=Var|T]) :-
+	Name=Var,
+	bind_names(T).
+
+
+clause_with_names(M:Head, Body, VarNames) :-
+	clause(M:Head, Body, Ref),
+	(   names(Ref, VarTerm)
+	->  term_variables((Head:-Body), Vars),
+	    VarTerm =.. [v|NameList],
+	    make_bindings(NameList, Vars, VarNames)
+	;   VarNames = []
+	).
+
+make_bindings([], [], []).
+make_bindings([Name|NT], [Var|VT], [Name=Var|BT]) :-
+	make_bindings(NT, VT, BT).
+
+
+predicate_type(M:Name/Arity, Type) :-
+	functor(Head, Name, Arity),
+	Pred = M:Head,
+	(   (   predicate_property(Pred, built_in)
+	    ;	predicate_property(Pred, foreign)
+	    )
+	->  Type = builtin
+	;   predicate_property(Pred, imported_from(_))
+	->  Type = imported
+	;   predicate_property(Pred, dynamic)
+	->  Type = linear
+	;   control(Pred)
+	->  Type = control
+	;   current_predicate(M:Name/Arity)
+	->  Type = compiled
+	;   Type = undefined
+	).
 
 
 		 /*******************************
