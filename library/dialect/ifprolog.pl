@@ -42,6 +42,7 @@
 	    write_formatted_atom/3,		% -Atom, +Format, +ArgList
 	    write_formatted/2,			% +Format, +ArgList
 	    write_formatted/3,			% +Stream, +Format, +ArgList
+	    atom_part/4,			% +Atom, +Pos, +Len, -Sub
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
 	    load/1,				% :FileName
@@ -50,6 +51,7 @@
 	    get_until/3,			% +SearchChar, ?Text, ?EndChar
 	    get_until/4,			% @In, +SearchChar, ?Text, ?EndChar
 	    for/3,				% +Start, ?Counter, +End
+	    (@)/2,				% Goal, Module
 	    prolog_version/1,                   % -Atom
 
 	    op(1150, fx, (meta)),
@@ -137,6 +139,10 @@ user:term_expansion(In, Out) :-
 %	Mapped to asserta((Head:-Body)),  etc.  Note   that  this  masks
 %	SWI-Prolog's asserta/2, etc.
 
+ifprolog_goal_expansion(system:retract(Head,Body)@Module,
+			retract(Module:(Head:-Body))).
+ifprolog_goal_expansion(retract(Head,Body)@Module,
+			retract(Module:(Head:-Body))).
 ifprolog_goal_expansion(Goal@Module, Module:Goal).
 ifprolog_goal_expansion(context(Goal, [Error => Recover]),
 			catch(Goal, Error, Recover)) :-
@@ -541,6 +547,24 @@ get_until(C0, In, Search, [C0|T], End) :-
 		 *	      PARSE		*
 		 *******************************/
 
+%%	atom_part(+Atom, +Pos, +Len, -Sub) is det.
+
+atom_part(_, Pos, _, Sub) :-
+	Pos < 1, !,
+	Sub = ''.
+atom_part(_, _, Len, Sub) :-
+	Len < 1, !,
+	Sub = ''.
+atom_part(Atom, Pos, _, Sub) :-
+	atom_length(Atom, Len),
+	Pos > Len, !,
+	Sub = ''.
+atom_part(Atom, Pos, Len, Sub) :-
+	Pos >= 1,
+	Pos0 is Pos - 1,
+	sub_atom(Atom, Pos0, Len, _, Sub).
+
+
 %%	parse_atom(+Atom, +StartPos, ?EndPos, ?Term, ?VarList, ?Error)
 %
 %	Read from an atom.
@@ -579,6 +603,13 @@ for(Start, Count, End) :-
 	between(0, Range, X),
 	Count is Start-X.
 
+%%	Goal@Module
+%
+%	FIXME: not really correct
+
+system:(Goal@Module) :-
+	Module:Goal.
+
 %%	prolog_version(-Version)
 %
 %	Return IF/Prolog simulated version string
@@ -594,8 +625,14 @@ prolog_version(Version) :-
 
 :- arithmetic_function(system:time/0).
 :- arithmetic_function(system:trunc/1).
+:- arithmetic_function(system:ln/1).
+:- arithmetic_function(system:maxint/0).
 
 system:time(Time) :-
 	get_time(Time).
 system:trunc(Val, Trunc) :-
 	Trunc is truncate(Val).
+system:ln(Val, Log) :-
+	Log is log(Val).
+system:maxint(MaxInt) :-
+	MaxInt is 1<<63.
