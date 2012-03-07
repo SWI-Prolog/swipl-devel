@@ -818,12 +818,10 @@ extensions to .ext
 
 :- thread_local
 	'$compilation_mode_store'/1,	% database, wic, qlf
-	'$directive_mode_store'/1,	% database, wic, qlf
-	'$compilation_context'/2.	% File, Line
+	'$directive_mode_store'/1.	% database, wic, qlf
 :- volatile
 	'$compilation_mode_store'/1,
-	'$directive_mode_store'/1,
-	'$compilation_context'/2.
+	'$directive_mode_store'/1.
 
 '$compilation_mode'(Mode) :-
 	(   '$compilation_mode_store'(Val)
@@ -859,25 +857,22 @@ extensions to .ext
 	retractall('$directive_mode_store'(_)),
 	assertz('$directive_mode_store'(Mode)).
 
-%%	'$set_compilation_context'(-Ref) is det.
-%
-%	Maintains a stack  of  locations   from  where  compilation  was
-%	started. We will use this to   improve  the location information
-%	for error messages in the future.
 
-'$set_compilation_context'(Ref) :-
-	(   source_location(File, Line)
-	->  true
-	;   File = (-),
-	    Line = 0
-	),
-	asserta('$compilation_context'(File, Line), Ref).
+%%	'$compilation_level'(-Level) is det.
+%
+%	True when Level reflects the nesting   in  files compiling other
+%	files. 0 if no files are being loaded.
 
 '$compilation_level'(Level) :-
-	'$get_predicate_attribute'('$compilation_context'(_,_),
-				   number_of_clauses, N), !,
-	Level is N.
-'$compilation_level'(0).
+	'$input_context'(Stack),
+	'$compilation_level'(Stack, Level).
+
+'$compilation_level'([], 0).
+'$compilation_level'([input(see,_,_)|T], Level) :-
+	'$compilation_level'(T, Level).
+'$compilation_level'([input(_,_,_)|T], Level) :-
+	'$compilation_level'(T, Level0),
+	Level is Level0+1.
 
 
 %%	compiling
@@ -985,18 +980,12 @@ preprocessor(Old, New) :-
 	'$load_input'/2.
 
 '$open_source_call'(File, In, Goal, Status) :-
-	setup_call_cleanup((   '$set_compilation_context'(CRef),
-			       asserta('$load_input'(File, In), Ref)
-			   ),
-			   (   catch(Goal, E,
-				     (print_message(error, E),
-				      fail))
+	setup_call_cleanup(asserta('$load_input'(File, In), Ref),
+			   (   catch(Goal, E, '$print_message_fail'(E))
 			   ->  Status = yes
 			   ;   Status = no
 			   ),
-			   (   erase(Ref),
-			       erase(CRef)
-			   )).
+			   erase(Ref)).
 
 
 %	'$substitute_atom'(+From, +To, +In, -Out)
