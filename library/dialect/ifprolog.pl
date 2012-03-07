@@ -46,6 +46,7 @@
 	    atom_part/4,			% +Atom, +Pos, +Len, -Sub
 	    atom_prefix/3,			% +Atom, +Len, -Sub
 	    atom_suffix/3,			% +Atom, +Len, -Sub
+	    getchar/3,				% +Atom, +Pos, -Char
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
 	    load/1,				% :FileName
@@ -628,7 +629,6 @@ atom_prefix(Atom, Len, Sub) :-
 	Len > AtomLen, !,
 	Sub = Atom.
 atom_prefix(Atom, Len, Sub) :-
-	atom_length(Atom, AtomLen),
 	sub_atom(Atom, 0, Len, _, Sub).
 
 %%	atom_suffix(+Atom, +Len, -Sub) is det.
@@ -649,6 +649,23 @@ atom_suffix(Atom, Len, Sub) :-
 	atom_length(Atom, AtomLen),
 	Pos is AtomLen - Len,
 	sub_atom(Atom, Pos, Len, _, Sub).
+
+%%	getchar(+Atom, +Pos, -Char)
+%
+%	Unifies Char with the Position-th character in Atom
+%	If Pos < 1 or Pos > length of Atom, then fail.
+
+getchar(_, Pos, _) :-
+	Pos < 1, !,
+	fail.
+getchar(Atom, Pos, _) :-
+	atom_length(Atom, Len),
+	Pos > Len, !,
+	fail.
+getchar(Atom, Pos, Char) :-
+	P is Pos - 1,
+	sub_atom(Atom, P, 1, _, Char).
+
 
 %%	parse_atom(+Atom, +StartPos, ?EndPos, ?Term, ?VarList, ?Error)
 %
