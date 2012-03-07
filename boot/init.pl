@@ -2253,15 +2253,15 @@ compile_aux_clauses(Clauses) :-
 			   [ file_type(prolog),
 			     access(read)
 			   ], Path),
+	time_file(Path, Time),
+	'$compile_aux_clauses'(system:'$included'(FileInto, Path, Time),
+			       FileInto),
 	'$push_input_context'(include),
 	open(Path, read, In),
-	time_file(Path, Time),
 	'$read_clause'(In, Term0),
 	'$read_include_file'(Term0, In, Terms),
 	close(In),
 	'$pop_input_context',
-	'$compile_aux_clauses'(system:'$included'(FileInto, Path, Time),
-			       FileInto),
 	'$consult_clauses'(Terms, FileInto).
 
 '$read_include_file'(end_of_file, _, []) :- !.
