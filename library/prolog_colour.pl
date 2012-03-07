@@ -135,7 +135,8 @@ colourise_stream(Fd, TB) :-
 save_settings(TB, state(Style, Esc, OSM)) :-
 	(   source_module(TB, SM)
 	->  '$set_source_module'(OSM, SM)
-	;   '$set_source_module'(OSM, OSM)
+	;   '$set_source_module'(SM, SM),
+	    OSM = SM
 	),
 	colour_state_module(TB, SM),
 	push_operators([]),
