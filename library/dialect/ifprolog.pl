@@ -49,6 +49,7 @@
 	    getchar/3,				% +Atom, +Pos, -Char
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
+	    index/3,				% +Atom, +String, -Position
 	    list_length/2,			% +List, ?Length
 	    load/1,				% :FileName
 	    file_test/2,			% +File, +Mode
@@ -685,6 +686,17 @@ parse_atom(Atom, StartPos, EndPos, Term, VarList, Error) :-
 	    ( close(In),
 	      free_memory_file(MemF)
 	    )).
+
+%%	index(+Atom, +String, -Position)
+%
+%	The predicate index/3  searches  for   the  first  occurrence of
+%	String in Atom. The position at   which  index/3 finds String is
+%	unified with Position If String does  not occur in Atom, index/3
+%	fails.
+
+index(Atom, String, Position) :-
+	sub_string(Atom, Pos0, _, _, String), !,
+        Position is Pos0 + 1.
 
 %%	list_length(+List, ?Length) is det.
 %
