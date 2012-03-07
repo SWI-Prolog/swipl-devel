@@ -684,7 +684,7 @@ clause_with_names(M:Head, Body, VarNames) :-
 retract_with_names(M:Term, VarNames) :-
 	clause(M:Term, Ref),
 	erase(Ref),
-	(   names(Ref, VarTerm)
+	(   retract(names(Ref, VarTerm))
 	->  term_variables((Term), Vars),
 	    VarTerm =.. [v|NameList],
 	    make_bindings(NameList, Vars, VarNames)
