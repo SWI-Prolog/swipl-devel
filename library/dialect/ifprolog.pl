@@ -47,6 +47,8 @@
 						% ?Term, ?VarList, ?Error
 	    load/1,				% :FileName
 	    file_test/2,			% +File, +Mode
+	    filepos/2,				% @Stream, -Line
+	    filepos/3,				% @Stream, -Line, -Column
 	    assign_alias/2,			% +Alias, @Stream
 	    get_until/3,			% +SearchChar, ?Text, ?EndChar
 	    get_until/4,			% @In, +SearchChar, ?Text, ?EndChar
@@ -459,6 +461,30 @@ load(File) :-
 
 system:file_test(File, Mode) :-
 	access_file(File, Mode).
+
+%%	filepos(@Stream, -Line)
+%
+%	from  the  IF/Prolog  documentation    The  predicate  filepos/2
+%	determines the current line  position   of  the  specified input
+%	stream and unifies the  result  with   Line.  The  current  line
+%	position is the number of line processed + 1
+
+filepos(Stream, Line) :-
+	line_count(Stream, L),
+	Line is L + 1.
+
+%%	filepos(@Stream, -Line, -Column)
+%
+%	from  the  IF/Prolog  documentation    The  predicate  filepos/2
+%	determines the current line  position   of  the  specified input
+%	stream and unifies the  result  with   Line.  The  current  line
+%	position is the number of line processed + 1
+
+filepos(Stream, Line, Column) :-
+	line_count(Stream, L),
+	line_position(Stream, C),
+	Line is L + 1,
+	Column is C + 1.
 
 %%	assign_alias(+Alias, @Stream) is det.
 %
