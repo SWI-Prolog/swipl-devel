@@ -1672,8 +1672,11 @@ load_files(Module:Files, Options) :-
 %   '$load_file'/4 does the actual loading.
 
 '$load_file'(In, File, IsModule, Module, Options) :-
-	'$read_first_clause'(In, First),
-	'$expand_term'(First, Expanded),
+	'$skip_script_line'(In),
+	repeat,
+	    '$read_first_clause'(In, First),
+	    '$expand_term'(First, Expanded),
+	    Expanded \== [], !,
 	'$load_file'(Expanded, In, File, IsModule, Module, Options).
 
 
@@ -1684,16 +1687,18 @@ load_files(Module:Files, Options) :-
 %	be an :- encoding(Enc) directive before the first (module) term.
 
 '$read_first_clause'(In, First) :-
-	(   peek_char(In, #)
-	->  skip(In, 10)
-	;   true
-	),
 	'$read_clause'(In, VeryFirst),
 	(   nonvar(First),
 	    First = (:- encoding(Encoding))
 	->  set_stream(In, encoding(Encoding)),
 	    '$read_first_clause'(In, First)
 	;   First = VeryFirst
+	).
+
+'$skip_script_line'(In) :-
+	(   peek_char(In, #)
+	->  skip(In, 10)
+	;   true
 	).
 
 
