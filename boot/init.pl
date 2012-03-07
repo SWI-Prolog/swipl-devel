@@ -922,7 +922,7 @@ preprocessor(Old, New) :-
 %%	'$open_source'(+Spec, -In, :Goal, +Options) is semidet.
 
 '$open_source'(stream(Id, In), In, Goal, Options) :- !,
-	'$push_input_context',
+	'$push_input_context'(load_file),
 	'$set_encoding'(In, Options),
 	'$prepare_load_stream'(In, Id, StreamState),
 	'$open_source_call'(Id, In, Goal, True),
@@ -931,7 +931,7 @@ preprocessor(Old, New) :-
 	True == yes.
 '$open_source'(File, In, Goal, Options) :-
 	preprocessor(none, none), !,
-	'$push_input_context',
+	'$push_input_context'(load_file),
 	open(File, read, In),
 	'$set_encoding'(In, Options),
 	'$open_source_call'(File, In, Goal, True),
@@ -941,7 +941,7 @@ preprocessor(Old, New) :-
 '$open_source'(File, In, Goal, Options) :-
 	preprocessor(Pre, Pre),
 	(   '$substitute_atom'('%f', File, Pre, Command)
-	->  '$push_input_context',
+	->  '$push_input_context'(load_file),
 	    open(pipe(Command), read, In),
 	    '$set_encoding'(In, Options),
 	    '$open_source_call'(File, In, Goal, True),
@@ -2253,7 +2253,7 @@ compile_aux_clauses(Clauses) :-
 			   [ file_type(prolog),
 			     access(read)
 			   ], Path),
-	'$push_input_context',
+	'$push_input_context'(include),
 	open(Path, read, In),
 	time_file(Path, Time),
 	'$read_clause'(In, Term0),

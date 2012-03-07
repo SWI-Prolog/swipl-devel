@@ -1004,6 +1004,7 @@ typedef struct output_context * OutputContext;
 
 struct input_context
 { IOSTREAM *    stream;                 /* pushed input */
+  atom_t	type;			/* Type of input */
   atom_t        term_file;              /* old term_position file */
   int           term_line;              /* old term_position line */
   InputContext  previous;               /* previous context */
@@ -1113,11 +1114,14 @@ protocol(const char *str, size_t n)
 
 
 static int
-push_input_context(void)
+push_input_context(atom_t type)
 { GET_LD
   InputContext c = allocHeapOrHalt(sizeof(struct input_context));
 
+  PL_register_atom(type);
+
   c->stream           = Scurin;
+  c->type	      = type;
   c->term_file        = source_file_name;
   c->term_line        = source_line_no;
   c->previous         = input_context_stack;
@@ -1137,6 +1141,7 @@ pop_input_context(void)
     source_file_name    = c->term_file;
     source_line_no      = c->term_line;
     input_context_stack = c->previous;
+    PL_unregister_atom(c->type);
     freeHeap(c, sizeof(struct input_context));
 
     return TRUE;
@@ -1148,14 +1153,46 @@ pop_input_context(void)
 
 
 static
-PRED_IMPL("$push_input_context", 0, push_input_context, 0)
-{ return push_input_context();
+PRED_IMPL("$push_input_context", 1, push_input_context, 0)
+{ PRED_LD
+  atom_t type;
+
+  if ( PL_get_atom_ex(A1, &type) )
+    return push_input_context(type);
+
+  return FALSE;
 }
 
 
 static
 PRED_IMPL("$pop_input_context", 0, pop_input_context, 0)
 { return pop_input_context();
+}
+
+
+/** '$input_context'(-List) is det.
+
+True if List is a  list   of  input(Type,File,Line) terms describing the
+current input context.
+*/
+
+static
+PRED_IMPL("$input_context", 1, input_context, 0)
+{ PRED_LD
+  term_t tail = PL_copy_term_ref(A1);
+  term_t head = PL_new_term_ref();
+  InputContext c = input_context_stack;
+
+  for(c=input_context_stack; c; c=c->previous)
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_input3,
+			PL_ATOM, c->type,
+			PL_ATOM, c->term_file,
+			PL_INT,  c->term_line) )
+      return FALSE;
+  }
+
+  return PL_unify_nil(tail);
 }
 
 
@@ -3189,7 +3226,7 @@ pl_see(term_t f)
   }
 
   set(getStreamContext(s), IO_SEE);
-  push_input_context();
+  push_input_context(ATOM_see);
   Scurin = s;
 
 ok:
@@ -4782,7 +4819,8 @@ BeginPredDefs(file)
   PRED_DEF("set_end_of_stream", 1, set_end_of_stream, 0)
 
 					/* SWI internal */
-  PRED_DEF("$push_input_context", 0, push_input_context, 0)
+  PRED_DEF("$push_input_context", 1, push_input_context, 0)
   PRED_DEF("$pop_input_context", 0, pop_input_context, 0)
+  PRED_DEF("$input_context", 1, input_context, 0)
   PRED_DEF("$size_stream", 2, size_stream, 0)
 EndPredDefs

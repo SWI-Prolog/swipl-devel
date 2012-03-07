@@ -515,6 +515,7 @@ A running		"running"
 A runtime		"runtime"
 A save_class		"save_class"
 A save_option		"save_option"
+A see			"see"
 A seed			"seed"
 A seek_method		"seek_method"
 A select		"select"
@@ -798,6 +799,7 @@ F ground		1
 F hat			2
 F ifthen		2
 F input			0
+F input			3
 F integer		1
 F interrupt		1
 F io_error		2
