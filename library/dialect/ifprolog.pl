@@ -49,6 +49,7 @@
 	    getchar/3,				% +Atom, +Pos, -Char
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
+	    list_length/2,			% +List, ?Length
 	    load/1,				% :FileName
 	    file_test/2,			% +File, +Mode
 	    filepos/2,				% @Stream, -Line
@@ -684,6 +685,14 @@ parse_atom(Atom, StartPos, EndPos, Term, VarList, Error) :-
 	    ( close(In),
 	      free_memory_file(MemF)
 	    )).
+
+%%	list_length(+List, ?Length) is det.
+%
+%	The predicate list_length/2 unifies Length   with  the number of
+%	elements in the list.
+
+list_length(List, Length) :-
+	length(List, Length).
 
 
 		 /*******************************
