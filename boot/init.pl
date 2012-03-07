@@ -182,19 +182,32 @@ call(Goal, A, B, C, D, E, F) :-
 call(Goal, A, B, C, D, E, F, G) :-
 	call(Goal, A, B, C, D, E, F, G).
 
+%%	not(:Goal) is semidet.
+%
+%	Pre-ISO version of \+/1. Note that  some systems define not/1 as
+%	a logically more sound version of \+/1.
+
 not(Goal) :-
 	\+ Goal.
 
-%	This version of not is compiled as well. For meta-calls only
+%%	\+ Goal is semidet.
+%
+%	Predicate version that allows for meta-calling.
 
 \+ Goal :-
 	\+ Goal.
 
-%	once/1 can normally be replaced by ->/2. For historical reasons
-%	only.
+%%	once(:Goal) is semidet.
+%
+%	ISO predicate, acting as call((Goal, !)).
 
 once(Goal) :-
 	Goal, !.
+
+%%	ignore(:Goal) is det.
+%
+%	Call Goal, cut choice-points on success  and succeed on failure.
+%	intended for calling side-effects and proceed on failure.
 
 ignore(Goal) :-
 	Goal, !.
@@ -202,7 +215,11 @@ ignore(_Goal).
 
 :- '$iso'((false/0)).
 
-false :-					% SICStus compatibility
+%%	false.
+%
+%	Synonym for fail/0, providing a declarative reading.
+
+false :-
 	fail.
 
 %%	catch(:Goal, +Catcher, :Recover)
