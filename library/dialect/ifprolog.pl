@@ -53,6 +53,7 @@
 	    for/3,				% +Start, ?Counter, +End
 	    (@)/2,				% Goal, Module
 	    prolog_version/1,                   % -Atom
+	    proroot/1,				% -Atom
 
 	    asserta_with_names/2,		% @Term, +VarNames
 	    assertz_with_names/2,		% @Term, +VarNames
@@ -635,6 +636,14 @@ system:(Goal@Module) :-
 prolog_version(Version) :-
 	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
 	atomic_list_concat([Major, Minor, Patch], '.', Version).
+
+%%	proroot(-Path)
+%
+%	The predicate proroot/1 unifies Path with an atom containing the
+%	installation path of IF/Prolog in the current operation system
+
+proroot(Path) :-
+	current_prolog_flag(home, Path).
 
 
 		 /*******************************
