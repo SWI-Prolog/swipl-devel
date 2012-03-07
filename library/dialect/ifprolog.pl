@@ -43,6 +43,7 @@
 	    write_formatted/2,			% +Format, +ArgList
 	    write_formatted/3,			% +Stream, +Format, +ArgList
 	    atom_part/4,			% +Atom, +Pos, +Len, -Sub
+	    atom_prefix/3,			% +Atom, +Len, -Sub
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
 	    load/1,				% :FileName
@@ -610,6 +611,23 @@ atom_part(Atom, Pos, Len, Sub) :-
 	Pos0 is Pos - 1,
 	sub_atom(Atom, Pos0, Len, _, Sub).
 
+%%	atom_prefix(+Atom, +Len, -Sub) is det.
+%
+%	Unifies Sub with the atom formed by the first Len characters in
+%	atom.
+%	If Len < 1, Sub is unified with the null atom ''.
+%	If Len > length of Atom, Sub is unified with Atom.
+
+atom_prefix(_, Len, Sub) :-
+	Len < 1, !,
+	Sub = ''.
+atom_prefix(Atom, Len, Sub) :-
+	atom_length(Atom, AtomLen),
+	Len > AtomLen, !,
+	Sub = Atom.
+atom_prefix(Atom, Len, Sub) :-
+	atom_length(Atom, AtomLen),
+	sub_atom(Atom, 0, Len, _, Sub).
 
 %%	parse_atom(+Atom, +StartPos, ?EndPos, ?Term, ?VarList, ?Error)
 %
