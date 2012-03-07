@@ -76,6 +76,8 @@ This module defines reusable code to colourise Prolog source.
 
 :- record
 	colour_state(source_id,
+		     module,
+		     stream,
 		     closure,
 		     singletons).
 
@@ -94,11 +96,12 @@ This module defines reusable code to colourise Prolog source.
 
 prolog_colourise_stream(Fd, SourceId, ColourItem) :-
 	make_colour_state([ source_id(SourceId),
+			    stream(Fd),
 			    closure(ColourItem)
 			  ],
 			  TB),
 	setup_call_cleanup(
-	    save_settings(State),
+	    save_settings(TB, State),
 	    colourise_stream(Fd, TB),
 	    restore_settings(State)).
 
@@ -108,7 +111,7 @@ colourise_stream(Fd, TB) :-
 	;   true
 	),
 	repeat,
-	    '$set_source_module'(SM, SM),
+	    colour_state_module(TB, SM),
 	    character_count(Fd, Start),
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
@@ -129,15 +132,36 @@ colourise_stream(Fd, TB) :-
 	    ),
 	    Term == end_of_file, !.
 
-save_settings(state(Style, Esc)) :-
+save_settings(TB, state(Style, Esc, OSM)) :-
+	(   source_module(TB, SM)
+	->  '$set_source_module'(OSM, SM)
+	;   '$set_source_module'(OSM, OSM)
+	),
+	colour_state_module(TB, SM),
 	push_operators([]),
 	current_prolog_flag(character_escapes, Esc),
 	'$style_check'(Style, Style).
 
-restore_settings(state(Style, Esc)) :-
+restore_settings(state(Style, Esc, OSM)) :-
 	set_prolog_flag(character_escapes, Esc),
 	'$style_check'(_, Style),
-	pop_operators.
+	pop_operators,
+	'$set_source_module'(_, OSM).
+
+%%	source_module(+State, -Module) is semidet.
+%
+%	True when Module is the module context   into  which the file is
+%	loaded.
+
+source_module(TB, Module) :-
+	(   colour_state_source_id(TB, File),
+	    atom(File)
+	;   colour_state_stream(TB, Fd),
+	    stream_property(Fd, file_name(File))
+	),
+	(   source_file_property(File, module(Module))
+	;   source_file_property(File, load_context(Module, _))
+	), !.
 
 %%	read_error(+Error, +TB, +Stream, +Start) is failure.
 %
@@ -162,21 +186,21 @@ colour_item(Class, TB, Pos) :-
 	call(Closure, Class, Start, Len).
 
 
-%%	safe_push_op(+Prec, +Type, :Name)
+%%	safe_push_op(+Prec, +Type, :Name, +State)
 %
 %	Define operators into the default source module and register
 %	them to be undone by pop_operators/0.
 
-safe_push_op(P, T, N0) :-
+safe_push_op(P, T, N0, State) :-
 	(   N0 = _:_
 	->  N = N0
-	;   '$set_source_module'(M, M),
+	;   colour_state_module(State, M),
 	    N = M:N0
 	),
 	push_op(P, T, N),
 	debug(colour, ':- ~w.', [op(P,T,N)]).
 
-%%	fix_operators(+Term, +Src) is det.
+%%	fix_operators(+Term, +State) is det.
 %
 %	Fix flags that affect the  syntax,   such  as operators and some
 %	style checking options. Src is the  canonical source as required
@@ -188,11 +212,11 @@ fix_operators(_, _).
 
 process_directive(style_check(X), _) :- !,
 	style_check(X).
-process_directive(op(P,T,N), _) :- !,
-	safe_push_op(P, T, N).
-process_directive(module(_Name, Export), _) :- !,
+process_directive(op(P,T,N), Src) :- !,
+	safe_push_op(P, T, N, Src).
+process_directive(module(_Name, Export), Src) :- !,
 	forall(member(op(P,A,N), Export),
-	       safe_push_op(P,A,N)).
+	       safe_push_op(P,A,N, Src)).
 process_directive(use_module(Spec), Src) :- !,
 	catch(process_use_module(Spec, Src), _, true).
 process_directive(Directive, Src) :-
@@ -209,7 +233,7 @@ process_use_module([H|T], Src) :- !,
 process_use_module(File, Src) :-
 	(   xref_public_list(File, _Path, Public, Src)
 	->  forall(member(op(P,T,N), Public),
-		   safe_push_op(P,T,N))
+		   safe_push_op(P,T,N,Src))
 	;   true
 	).
 
@@ -228,15 +252,20 @@ process_use_module(File, Src) :-
 
 prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 	make_colour_state([ source_id(SourceId),
+			    stream(Stream),
 			    closure(ColourItem)
 			  ],
 			  TB),
 	option(subterm_positions(TermPos), Options, _),
 	findall(Op, xref_op(SourceId, Op), Ops),
 	character_count(Stream, Start),
+	(   source_module(TB, Module)
+	->  true
+	;   Module = prolog_colour_ops
+	),
 	read_source_term_at_location(
 	    Stream, Term,
-	    [ module(prolog_colour),
+	    [ module(Module),
 	      operators(Ops),
 	      error(Error),
 	      subterm_positions(TermPos),

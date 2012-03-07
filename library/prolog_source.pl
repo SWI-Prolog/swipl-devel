@@ -326,10 +326,15 @@ read_source_term_at_location(_, _, Options) :-
 
 assert_error(Error, Options) :-
 	option(error(_), Options), !,
-	(   Error = error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo))
+	(   (   Error = error(syntax_error(Id),
+			      stream(_S1, _Line1, _LinePos1, CharNo))
+	    ;	Error = error(syntax_error(Id),
+			      file(_S2, _Line2, _LinePos2, CharNo))
+	    )
 	->  message_to_string(error(syntax_error(Id), _), Msg),
 	    assertz(last_syntax_error(CharNo, Msg))
-	;   throw(Error)
+	;   debug(read, 'Error: ~q', [Error]),
+	    throw(Error)
 	).
 assert_error(_, _).
 
