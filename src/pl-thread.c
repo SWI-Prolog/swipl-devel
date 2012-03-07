@@ -1391,6 +1391,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   ldnew->modules		  = LD->modules;
   ldnew->IO			  = LD->IO;
+  ldnew->IO.input_stack		  = NULL;
+  ldnew->IO.output_stack	  = NULL;
   ldnew->encoding		  = LD->encoding;
   ldnew->_debugstatus		  = LD->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
@@ -4273,6 +4275,8 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->prompt			 = ldmain->prompt;
   ldnew->modules		 = ldmain->modules;
   ldnew->IO			 = ldmain->IO;
+  ldnew->IO.input_stack		 = NULL;
+  ldnew->IO.output_stack	 = NULL;
   ldnew->encoding		 = ldmain->encoding;
   ldnew->_debugstatus		 = ldmain->_debugstatus;
   ldnew->_debugstatus.retryFrame = NULL;

@@ -526,9 +526,10 @@ struct PL_local_data
 
   struct				/* Local IO stuff */
   { IOSTREAM *streams[6];		/* handles for standard streams */
+    st_check stream_type_check;		/* Check bin/text streams? */
+					/* do not copy from parent */
     struct input_context *input_stack;	/* maintain input stream info */
     struct output_context *output_stack; /* maintain output stream info */
-    st_check stream_type_check;		/* Check bin/text streams? */
   } IO;
 
   struct
