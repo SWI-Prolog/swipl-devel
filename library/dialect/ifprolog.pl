@@ -54,6 +54,7 @@
 	    (@)/2,				% Goal, Module
 	    prolog_version/1,                   % -Atom
 	    proroot/1,				% -Atom
+	    system_name/1,			% -Atom
 
 	    asserta_with_names/2,		% @Term, +VarNames
 	    assertz_with_names/2,		% @Term, +VarNames
@@ -639,12 +640,21 @@ prolog_version(Version) :-
 
 %%	proroot(-Path)
 %
+%	from the IF/Prolog documentation
 %	The predicate proroot/1 unifies Path with an atom containing the
 %	installation path of IF/Prolog in the current operation system
 
 proroot(Path) :-
 	current_prolog_flag(home, Path).
 
+%%	system_name(-SystemName)
+%
+%	from the IF/Prolog documentation
+%	The predicate system_name/1 unifies SystemName with an atom
+%	containing the name of the operating system
+
+system_name(SystemName) :-
+	current_prolog_flag(arch, SystemName).
 
 		 /*******************************
 		 *	      DATABASE		*
