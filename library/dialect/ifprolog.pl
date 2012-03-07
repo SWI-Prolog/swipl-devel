@@ -1,5 +1,6 @@
 /*  Part of SWI-Prolog
 
+
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
@@ -44,6 +45,7 @@
 	    write_formatted/3,			% +Stream, +Format, +ArgList
 	    atom_part/4,			% +Atom, +Pos, +Len, -Sub
 	    atom_prefix/3,			% +Atom, +Len, -Sub
+	    atom_suffix/3,			% +Atom, +Len, -Sub
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
 	    load/1,				% :FileName
@@ -628,6 +630,25 @@ atom_prefix(Atom, Len, Sub) :-
 atom_prefix(Atom, Len, Sub) :-
 	atom_length(Atom, AtomLen),
 	sub_atom(Atom, 0, Len, _, Sub).
+
+%%	atom_suffix(+Atom, +Len, -Sub) is det.
+%
+%	Unifies Sub with the atom formed by the last Len characters in
+%	atom.
+%	If Len < 1, Sub is unified with the null atom ''.
+%	If Len > length of Atom, Sub is unified with Atom.
+
+atom_suffix(_, Len, Sub) :-
+	Len < 1, !,
+	Sub = ''.
+atom_suffix(Atom, Len, Sub) :-
+	atom_length(Atom, AtomLen),
+	Len > AtomLen, !,
+	Sub = Atom.
+atom_suffix(Atom, Len, Sub) :-
+	atom_length(Atom, AtomLen),
+	Pos is AtomLen - Len,
+	sub_atom(Atom, Pos, Len, _, Sub).
 
 %%	parse_atom(+Atom, +StartPos, ?EndPos, ?Term, ?VarList, ?Error)
 %
