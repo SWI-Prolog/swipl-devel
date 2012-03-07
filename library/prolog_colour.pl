@@ -169,13 +169,18 @@ source_module(TB, Module) :-
 %	If this is a syntax error, create a syntax-error fragment.
 
 read_error(Error, TB, Stream, Start) :-
-	(   Error = error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo))
+	(   syntax_error(Error, Id, CharNo)
 	->  message_to_string(error(syntax_error(Id), _), Msg),
 	    character_count(Stream, End),
 	    show_syntax_error(TB, CharNo:Msg, Start-End),
 	    fail
 	;   throw(Error)
 	).
+
+syntax_error(error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo)),
+	     Id, CharNo).
+syntax_error(error(syntax_error(Id), file(_S, _Line, _LinePos, CharNo)),
+	     Id, CharNo).
 
 %%	colour_item(+Class, +TB, +Pos) is det.
 
