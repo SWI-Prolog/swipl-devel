@@ -47,6 +47,7 @@
 	    atom_part/4,			% +Atom, +Pos, +Len, -Sub
 	    atom_prefix/3,			% +Atom, +Len, -Sub
 	    atom_suffix/3,			% +Atom, +Len, -Sub
+	    atom_split/3,			% +Atom, +Delimiter, ?Subatoms
 	    getchar/3,				% +Atom, +Pos, -Char
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
@@ -712,6 +713,15 @@ atom_suffix(Atom, Len, Sub) :-
 	atom_length(Atom, AtomLen),
 	Pos is AtomLen - Len,
 	sub_atom(Atom, Pos, Len, _, Sub).
+
+%%	atom_split( +Atom, +Delimiter, ?Subatoms ) 
+%
+%	The predicate atom_split/3 splits Atom into a list of subatoms 
+%	Subatoms. Delimiter is the delimiter of the subatoms and will 
+%	not appear in Subatoms.
+
+atom_split(Atom, Delimiter, Subatoms)  :-
+	atomic_list_concat(Subatoms, Delimiter, Atom).
 
 %%	getchar(+Atom, +Pos, -Char)
 %
