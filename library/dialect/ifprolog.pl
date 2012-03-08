@@ -725,11 +725,12 @@ getchar(Atom, Pos, Char) :-
 parse_atom(Atom, StartPos, EndPos, Term, VarList, Error) :-
 	setup_call_cleanup(
 	    ( atom_to_memory_file(Atom, MemF),
-	      open(MemF, read, In)
+	      open_memory_file(MemF, read, In)
 	    ),
 	    ( seek(In, StartPos, bof, _),
 	      catch(read_term(In, Term, [variable_names(VarList)]), E,
 		    Error = E),
+	      ignore(Error = 0),
 	      character_count(In, EndPos)
 	    ),
 	    ( close(In),
