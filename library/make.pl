@@ -67,6 +67,7 @@ make_no_trace :-
 
 modified_file(File) :-
 	source_file_property(Source, modified(Time)),
+	\+ source_file_property(Source, included_in(_,_)),
 	Time > 0.0,			% See source_file/1
 	(   source_file_property(Source, derived_from(File, LoadTime))
 	->  true

@@ -412,7 +412,9 @@ property_source_file(load_context(Module, Location), File) :-
 	;   Location = user
 	).
 property_source_file(includes(File2, Stamp), File) :-
-	system:'$included'(File, File2, Stamp).
+	system:'$included'(File, _Line, File2, Stamp).
+property_source_file(included_in(Master, Line), File) :-
+	system:'$included'(Master, Line, File, _).
 property_source_file(derived_from(DerivedFrom, Stamp), File) :-
 	system:'$derived_source'(File, DerivedFrom, Stamp).
 

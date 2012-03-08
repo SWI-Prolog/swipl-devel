@@ -2242,9 +2242,9 @@ compile_aux_clauses(Clauses) :-
 		 *******************************/
 
 :- multifile
-	'$included'/3.			% Into, File, LastModified
+	'$included'/4.			% Into, Line, File, LastModified
 :- dynamic
-	'$included'/3.
+	'$included'/4.
 
 %%	'$include'(+File, +FileInto) is det.
 %
@@ -2254,12 +2254,13 @@ compile_aux_clauses(Clauses) :-
 %		into multiple contexts.
 
 '$include'(File, FileInto) :-
+	source_location(File, Line),
 	absolute_file_name(File,
 			   [ file_type(prolog),
 			     access(read)
 			   ], Path),
 	time_file(Path, Time),
-	'$compile_aux_clauses'(system:'$included'(FileInto, Path, Time),
+	'$compile_aux_clauses'(system:'$included'(FileInto, Line, Path, Time),
 			       FileInto),
 	'$load_input'(FileInto, Stream),
 	stream_property(Stream, encoding(Enc)),

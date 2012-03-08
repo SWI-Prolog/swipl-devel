@@ -540,6 +540,10 @@ This property is available if \arg{File} was loaded using the
 last-modified time of \arg{IncludedFile} was \arg{IncludedFileModified}
 at the time it was included.
 
+	\termitem{included_in}{MasterFile, Line}
+\arg{File} was included into \arg{MasterFile} from line \arg{Line}. This
+is the inverse of the \const{includes} property.
+
 	\termitem{load_context}{Module, Location}
 \arg{Module} is the module into which the file was loaded. If \arg{File}
 is a module, this is the module into which the exports are imported.
