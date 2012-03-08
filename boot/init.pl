@@ -917,32 +917,38 @@ preprocessor(Old, New) :-
 %%	'$open_source'(+Spec, -In, :Goal, +Options) is semidet.
 
 '$open_source'(stream(Id, In), In, Goal, Options) :- !,
-	'$push_input_context'(load_file),
-	'$set_encoding'(In, Options),
-	'$prepare_load_stream'(In, Id, StreamState),
-	'$open_source_call'(Id, In, Goal, True),
-	'$restore_load_stream'(In, StreamState),
-	'$pop_input_context',
-	True == yes.
+	setup_call_cleanup(
+	    ( '$push_input_context'(load_file),
+	      '$set_encoding'(In, Options),
+	      '$prepare_load_stream'(In, Id, StreamState)
+	    ),
+	    '$open_source_call'(Id, In, Goal),
+	    ( '$pop_input_context',
+	      '$restore_load_stream'(In, StreamState)
+	    )).
 '$open_source'(File, In, Goal, Options) :-
 	preprocessor(none, none), !,
-	'$push_input_context'(load_file),
-	open(File, read, In),
-	'$set_encoding'(In, Options),
-	'$open_source_call'(File, In, Goal, True),
-	close(In),
-	'$pop_input_context',
-	True == yes.
+	setup_call_cleanup(
+	    ( '$push_input_context'(load_file),
+	      open(File, read, In),
+	      '$set_encoding'(In, Options)
+	    ),
+	    '$open_source_call'(File, In, Goal),
+	    ( '$pop_input_context',
+	      close(In)
+	    )).
 '$open_source'(File, In, Goal, Options) :-
 	preprocessor(Pre, Pre),
 	(   '$substitute_atom'('%f', File, Pre, Command)
-	->  '$push_input_context'(load_file),
-	    open(pipe(Command), read, In),
-	    '$set_encoding'(In, Options),
-	    '$open_source_call'(File, In, Goal, True),
-	    close(In),
-	    '$pop_input_context',
-	    True == yes
+	->  setup_call_cleanup(
+		( '$push_input_context'(load_file),
+		  open(pipe(Command), read, In),
+		  '$set_encoding'(In, Options)
+		),
+		'$open_source_call'(File, In, Goal),
+		( '$pop_input_context',
+		  close(In)
+		))
 	;   throw(error(domain_error(preprocessor, Pre), _))
 	).
 
@@ -979,13 +985,11 @@ preprocessor(Old, New) :-
 :- volatile
 	'$load_input'/2.
 
-'$open_source_call'(File, In, Goal, Status) :-
-	setup_call_cleanup(asserta('$load_input'(File, In), Ref),
-			   (   catch(Goal, E, '$print_message_fail'(E))
-			   ->  Status = yes
-			   ;   Status = no
-			   ),
-			   erase(Ref)).
+'$open_source_call'(File, In, Goal) :-
+	setup_call_cleanup(
+	    asserta('$load_input'(File, In), Ref),
+	    Goal,
+	    erase(Ref)).
 
 
 %	'$substitute_atom'(+From, +To, +In, -Out)
