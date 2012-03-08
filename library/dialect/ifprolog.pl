@@ -161,10 +161,14 @@ user:term_expansion(In, Out) :-
 %	Mapped to asserta((Head:-Body)),  etc.  Note   that  this  masks
 %	SWI-Prolog's asserta/2, etc.
 
-ifprolog_goal_expansion(system:retract(Head,Body)@Module,
-			retract(Module:(Head:-Body))).
-ifprolog_goal_expansion(retract(Head,Body)@Module,
-			retract(Module:(Head:-Body))).
+ifprolog_goal_expansion(Term,
+			retract(Module:(Head:-Body))) :-
+	subsumes_term(system:retract(Head,Body)@Module, Term),
+	Term = system:retract(Head,Body)@Module.
+ifprolog_goal_expansion(Term,
+			retract(Module:(Head:-Body))) :-
+	subsumes_term(retract(Head,Body)@Module, Term),
+	Term = retract(Head,Body)@Module.
 ifprolog_goal_expansion(Goal@Module, Module:Goal).
 ifprolog_goal_expansion(context(Goal, [Error => Recover]),
 			catch(Goal, Error, Recover)) :-
