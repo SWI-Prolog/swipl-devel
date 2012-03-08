@@ -2254,7 +2254,7 @@ compile_aux_clauses(Clauses) :-
 %		into multiple contexts.
 
 '$include'(File, FileInto) :-
-	source_location(File, Line),
+	source_location(FileInto, Line),
 	absolute_file_name(File,
 			   [ file_type(prolog),
 			     access(read)
