@@ -30,6 +30,7 @@
 
 :- module(ifprolog,
 	  [ calling_context/1,			% -Module
+	    modify_mode/3,			% +PI, -Old, +New
 	    debug_mode/3,			% +PI, -Old, +New
 	    debug_config/3,			% +Key, +Current, +Value
 	    float_format/2,			% -Old, +New
@@ -96,7 +97,7 @@ bugs@swi-prolog.org.
 	calling_context/1.
 
 :- meta_predicate
-	system:modify_mode(:, -, +),
+	modify_mode(:, -, +),
 	debug_mode(:, -, +),
 	load(:),
 	asserta_with_names(:, +),
@@ -161,24 +162,61 @@ user:term_expansion(In, Out) :-
 %	Mapped to asserta((Head:-Body)),  etc.  Note   that  this  masks
 %	SWI-Prolog's asserta/2, etc.
 
-ifprolog_goal_expansion(Term,
-			retract(Module:(Head:-Body))) :-
-	subsumes_term(system:retract(Head,Body)@Module, Term),
-	Term = system:retract(Head,Body)@Module.
-ifprolog_goal_expansion(Term,
-			retract(Module:(Head:-Body))) :-
-	subsumes_term(retract(Head,Body)@Module, Term),
-	Term = retract(Head,Body)@Module.
-ifprolog_goal_expansion(Goal@Module, Module:Goal).
-ifprolog_goal_expansion(context(Goal, [Error => Recover]),
-			catch(Goal, Error, Recover)) :-
+ifprolog_goal_expansion(Module:Goal, Expanded) :-
+	Module == system, nonvar(Goal), !,
+	expand_goal(Goal, ExpandedGoal),
+	head_pi(ExpandedGoal, PI),
+	(   current_predicate(ifprolog:PI),
+	    \+ predicate_property(ExpandedGoal, imported_from(_))
+	->  Expanded = ifprolog:ExpandedGoal
+	;   Expanded = ExpandedGoal
+	).
+ifprolog_goal_expansion(Goal, Expanded) :-
+	if_goal_expansion(Goal, Expanded).
+
+if_goal_expansion(Goal@Module, MetaGoal) :-
+	nonvar(Goal),
+	(   if_goal_expansion(Goal, Goal1)
+	->  true
+	;   Goal1 = Goal
+	),
+	(   predicate_property(Goal1, meta_predicate(Decl))
+	->  qualify(Goal1, Decl, Module, MetaGoal)
+	;   MetaGoal = Goal1
+	).
+if_goal_expansion(Goal@Module, Module:Goal).
+if_goal_expansion(context(Goal, [Error => Recover]),
+		  catch(Goal, Error, Recover)) :-
 	assertion(Error = error(_,_)).
-ifprolog_goal_expansion(assertz(Head,Body),
-			assertz((Head:-Body))).
-ifprolog_goal_expansion(asserta(Head,Body),
-			asserta((Head:-Body))).
-ifprolog_goal_expansion(retract(Head,Body),
-			retract((Head:-Body))).
+if_goal_expansion(assertz(Head,Body),
+		  assertz((Head:-Body))).
+if_goal_expansion(asserta(Head,Body),
+		  asserta((Head:-Body))).
+if_goal_expansion(retract(Head,Body),
+		  retract((Head:-Body))).
+
+qualify(Goal, Decl, Module, QGoal) :-
+	Goal =.. [Name|Args0],
+	Decl =.. [_|DeclArgs],
+	qualify_list(Args0, DeclArgs, Module, QArgs),
+	QGoal =.. [Name|QArgs].
+
+qualify_list([], [], _, []).
+qualify_list([A|AT], [D|DT], M, [Q|QT]) :-
+	(   meta_arg(D)
+	->  Q = (M:A)
+	;   Q = A
+	),
+	qualify_list(AT, DT, M, QT).
+
+meta_arg(:).
+meta_arg(^).
+meta_arg(I) :- integer(I).
+
+head_pi(M:Head, M:PI) :- !,
+	head_pi(Head, PI).
+head_pi(Head, Name/Arity) :-
+	functor(Head, Name, Arity).
 
 
 %%	ifprolog_term_expansion(+In, +Out)
@@ -323,16 +361,16 @@ calling_context(Context) :-
 	context_module(Context).
 
 
-%%	system:modify_mode(+PI, -OldMode, +NewMode) is det.
+%%	modify_mode(+PI, -OldMode, +NewMode) is det.
 %
 %	Switch between static and  dynamic   code.  Fully supported, but
 %	notably changing static to dynamic code   is  not allowed if the
 %	predicate has clauses.
 
-system:modify_mode(PI, OldMode, NewMode) :-
+modify_mode(PI, OldMode, NewMode) :-
 	pi_head(PI, Head),
 	old_mode(Head, OldMode),
-	set_mode(PI, NewMode).
+	set_mode(PI, OldMode, NewMode).
 
 old_mode(Head, Mode) :-
 	(   predicate_property(Head, dynamic)
@@ -340,9 +378,10 @@ old_mode(Head, Mode) :-
 	;   Mode = off
 	).
 
-set_mode(PI, on) :- !,
+set_mode(_, Old, Old) :- !.
+set_mode(PI, _, on) :- !,
 	dynamic(PI).
-set_mode(PI, off) :-
+set_mode(PI, _, off) :-
 	compile_predicates([PI]).
 
 pi_head(M:PI, M:Head) :- !,
@@ -475,7 +514,7 @@ load(File) :-
 %	this predicate is defined in the   module  =system= to allow for
 %	direct calling.
 
-system:file_test(File, Mode) :-
+file_test(File, Mode) :-
 	access_file(File, Mode).
 
 %%	filepos(@Stream, -Line)
@@ -534,13 +573,13 @@ current_error(user_error).
 %	Emulation of IF/Prolog formatted write.   The  emulation is very
 %	incomplete. Notable asks for dealing with aligned fields, etc.
 
-system:write_formatted_atom(Atom, Format, ArgList) :-
+write_formatted_atom(Atom, Format, ArgList) :-
 	with_output_to(atom(Atom), write_formatted(Format, ArgList)).
 
-system:write_formatted(Format, ArgList) :-
+write_formatted(Format, ArgList) :-
 	write_formatted(current_output, Format, ArgList).
 
-system:write_formatted(Out, Format, ArgList) :-
+write_formatted(Out, Format, ArgList) :-
 	atom_codes(Format, Codes),
 	phrase(format_string(FormatCodes), Codes), !,
 	format(Out, FormatCodes, ArgList).
@@ -740,7 +779,7 @@ for(Start, Count, End) :-
 %
 %	FIXME: not really correct
 
-system:(Goal@Module) :-
+(Goal@Module) :-
 	Module:Goal.
 
 %%	prolog_version(-Version)
