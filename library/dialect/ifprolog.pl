@@ -231,6 +231,12 @@ ifprolog_term_expansion((:- discontiguous(List)),
 	is_list(List),
 	pi_list_to_pi_term(List, Spec).
 
+ifprolog_term_expansion((:- multifile([])), []).
+ifprolog_term_expansion((:- multifile(List)),
+			(:- multifile(Spec))) :-
+	is_list(List),
+	pi_list_to_pi_term(List, Spec).
+
 ifprolog_term_expansion((:- module(Name)),
 			(:- module(Name, []))) :-
 	asserta(in_module_interface(Name)).
