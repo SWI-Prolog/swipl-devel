@@ -277,12 +277,15 @@ push_ifprolog_library :-
 %%	push_ifprolog_file_extension
 %
 %	Looks for .pro files before looking for .pl files if the current
-%	dialect is =pro=.
+%	dialect is =pro=. If the dialect is   not active, the .pro files
+%	are found as last resort.
 
 push_ifprolog_file_extension :-
 	asserta((user:prolog_file_type(pro, prolog) :-
 		prolog_load_context(dialect, ifprolog))).
 
+user:prolog_file_type(pro, prolog) :-
+	\+ prolog_load_context(dialect, ifprolog).
 
 :- push_ifprolog_library,
    push_ifprolog_file_extension.
