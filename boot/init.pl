@@ -2070,7 +2070,7 @@ load_files(Module:Files, Options) :-
 	'$execute_directive_2'(Goal1, F).
 
 '$execute_directive_2'(include(File), F) :- !,
-	'$expand_include'(File, F).
+	'$include'(File, F).
 '$execute_directive_2'(encoding(Encoding), F) :- !,
 	source_location(F, _),
 	'$load_input'(F, S),
@@ -2246,7 +2246,14 @@ compile_aux_clauses(Clauses) :-
 :- dynamic
 	'$included'/3.
 
-'$expand_include'(File, FileInto) :-
+%%	'$include'(+File, +FileInto) is det.
+%
+%	Process the content of File.
+%
+%	@bug	Source management if File contains clauses and is loaded
+%		into multiple contexts.
+
+'$include'(File, FileInto) :-
 	absolute_file_name(File,
 			   [ file_type(prolog),
 			     access(read)
@@ -2254,23 +2261,12 @@ compile_aux_clauses(Clauses) :-
 	time_file(Path, Time),
 	'$compile_aux_clauses'(system:'$included'(FileInto, Path, Time),
 			       FileInto),
-	'$push_input_context'(include),
-	open(Path, read, In),
-	'$read_clause'(In, Term0),
-	'$read_include_file'(Term0, In, Terms),
-	close(In),
-	'$pop_input_context',
-	'$consult_clauses'(Terms, FileInto).
-
-'$read_include_file'(end_of_file, _, []) :- !.
-'$read_include_file'(T0, In, [T0|T]) :-
-	'$read_clause'(In, T1),
-	'$read_include_file'(T1, In, T).
-
-'$consult_clauses'([], _).
-'$consult_clauses'([H|T], File) :-
-	'$consult_clause'(H, File),
-	'$consult_clauses'(T, File).
+	'$load_input'(FileInto, Stream),
+	stream_property(Stream, encoding(Enc)),
+	'$open_source'(Path, In,
+		       '$consult_stream'(In, Path),
+		       [ encoding(Enc)
+		       ]).
 
 
 		 /*******************************
