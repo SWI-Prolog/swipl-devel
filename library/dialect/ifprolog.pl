@@ -925,6 +925,12 @@ control((!)).
 :- arithmetic_function(system:trunc/1).
 :- arithmetic_function(system:ln/1).
 :- arithmetic_function(system:maxint/0).
+:- arithmetic_function(system:dbsize/0).
+:- arithmetic_function(system:dbused/0).
+:- arithmetic_function(system:ssize/0).
+:- arithmetic_function(system:gused/0).
+:- arithmetic_function(system:lused/0).
+:- arithmetic_function(system:tused/0).
 
 system:time(Time) :-
 	get_time(Time).
@@ -934,3 +940,13 @@ system:ln(Val, Log) :-
 	Log is log(Val).
 system:maxint(MaxInt) :-
 	MaxInt is 1<<63.
+system:dbsize(0).
+system:dbused(0).
+system:ssize(Size) :-
+	statistics(globallimit, Size).
+system:gused(Size) :-
+	statistics(globalused, Size).
+system:lused(Size) :-
+	statistics(localused, Size).
+system:tused(Size) :-
+	statistics(trailused, Size).
