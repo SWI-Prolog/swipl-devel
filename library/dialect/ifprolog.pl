@@ -1,7 +1,7 @@
 /*  Part of SWI-Prolog
 
 
-    Author:        Jan Wielemaker
+    Author:        Jan Wielemaker, Johan Romme
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2012, VU University Amsterdam
@@ -56,6 +56,7 @@
 	    file_test/2,			% +File, +Mode
 	    filepos/2,				% @Stream, -Line
 	    filepos/3,				% @Stream, -Line, -Column
+	    getcwd/1,				% -Dir
 	    assign_alias/2,			% +Alias, @Stream
 	    get_until/3,			% +SearchChar, ?Text, ?EndChar
 	    get_until/4,			% @In, +SearchChar, ?Text, ?EndChar
@@ -88,6 +89,8 @@ layers in the dialect directory, the   emulation has been established on
 `as needed' basis from porting programs. This implies that the emulation
 is incomplete. Emumated directives, predicates   and libraries are often
 not 100% compatible with the IF/Prolog version.
+
+Note that this emulation layer targets primarily IF/Prolog version 5.
 
 Please   help   extending   this   library   and   submit   patches   to
 bugs@swi-prolog.org.
@@ -527,6 +530,15 @@ file_test(File, Mode) :-
 filepos(Stream, Line) :-
 	line_count(Stream, L),
 	Line is L + 1.
+
+
+%%	getcwd(-Dir)
+%
+%	The predicate getcwd/1 unifies Dir with the full pathname of the
+%	current working directory.
+
+getcwd(Dir) :-
+	working_directory(Dir, Dir).
 
 %%	filepos(@Stream, -Line, -Column)
 %
