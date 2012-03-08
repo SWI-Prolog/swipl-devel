@@ -134,6 +134,8 @@ iso_message(permission_error(Action, built_in_procedure, Pred)) -->
 	    ]
 	;   []
 	).
+iso_message(permission_error(import_into(Dest), procedure, Pred)) -->
+	[ 'No permission to import ~p into ~w'-[Pred, Dest] ].
 iso_message(permission_error(Action, Type, Object)) -->
 	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
 iso_message(evaluation_error(Which)) -->
@@ -322,7 +324,7 @@ swi_extra(context(_, Msg)) -->
 	{ nonvar(Msg),
 	  Msg \== ''
 	}, !,
-	[ ' (~w)'-[Msg] ].
+	swi_comment(Msg).
 swi_extra(string(String, CharPos)) -->
 	{ sub_string(String, 0, CharPos, _, Before),
 	  sub_string(String, CharPos, _, 0, After)
@@ -330,6 +332,12 @@ swi_extra(string(String, CharPos)) -->
 	[ nl, '~w'-[Before], nl, '** here **', nl, '~w'-[After] ].
 swi_extra(_) -->
 	[].
+
+swi_comment(already_from(Module)) --> !,
+	[ ' (already imported from ~q)'-[Module] ].
+swi_comment(Msg) -->
+	[ ' (~w)'-[Msg] ].
+
 
 thread_context -->
 	{ thread_self(Me), Me \== main }, !,
@@ -428,6 +436,10 @@ prolog_message(redefined_procedure(Type, Proc)) -->
 	[ 'Redefined ~w procedure ~p'-[Type, Proc] ].
 prolog_message(declare_module(Module, abolish(Predicates))) -->
 	[ 'Loading module ~w abolished: ~p'-[Module, Predicates] ].
+prolog_message(import_private(Module, Private)) -->
+	[ 'import/1: ~p is not exported (still imported into ~q)'-
+	  [Private, Module]
+	].
 prolog_message(undefined_export(Module, PI)) -->
 	[ 'Exported procedure ~q:~q is not defined'-[Module, PI] ].
 prolog_message(no_exported_op(Module, Op)) -->

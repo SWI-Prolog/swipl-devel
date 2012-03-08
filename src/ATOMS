@@ -295,6 +295,7 @@ A history_depth		"history_depth"
 A ifthen		"->"
 A ignore		"ignore"
 A ignore_ops		"ignore_ops"
+A import_into		"import_into"
 A imported		"imported"
 A imported_procedure	"imported_procedure"
 A index			"index"
@@ -798,6 +799,7 @@ F goal_expansion	2
 F ground		1
 F hat			2
 F ifthen		2
+F import_into		1
 F input			0
 F input			3
 F integer		1

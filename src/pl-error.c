@@ -83,7 +83,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 { GET_LD
   char msgbuf[50];
   Definition caller;
-  term_t except, formal, swi;
+  term_t except, formal, swi, msgterm=0;
   va_list args;
   int do_throw = FALSE;
   fid_t fid;
@@ -305,6 +305,29 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_FUNCTOR, FUNCTOR_divide2,
 			     PL_CHARS, name,
 			     PL_INT, arity);
+      break;
+    }
+    case ERR_IMPORT_PROC:
+    { predicate_t pred = va_arg(args, predicate_t);
+      atom_t dest = va_arg(args, atom_t);
+      atom_t old  = va_arg(args, atom_t);
+      term_t pi = PL_new_term_ref();
+
+      rc = ( PL_unify_predicate(pi, pred, GP_NAMEARITY) &&
+	     PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_permission_error3,
+			     PL_FUNCTOR, FUNCTOR_import_into1,
+			       PL_ATOM, dest,
+			     PL_ATOM, ATOM_procedure,
+			     PL_TERM, pi));
+
+      if ( rc && old )
+      { rc = ( (msgterm = PL_new_term_ref()) &&
+	       PL_unify_term(msgterm,
+			     PL_FUNCTOR_CHARS, "already_from", 1,
+			       PL_ATOM, old) );
+      }
+
       break;
     }
     case ERR_FAILED:
@@ -579,9 +602,11 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
   va_end(args);
 
 					/* build SWI-Prolog context term */
-  if ( rc && (pred || msg || caller) )
+  if ( rc && (pred || msg || msgterm || caller) )
   { term_t predterm = PL_new_term_ref();
-    term_t msgterm  = PL_new_term_ref();
+
+    if ( !msgterm )
+      msgterm  = PL_new_term_ref();
 
     if ( pred )
     { rc = PL_unify_term(predterm,

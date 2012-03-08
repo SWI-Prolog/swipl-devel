@@ -1965,7 +1965,8 @@ load_files(Module:Files, Options) :-
 	'$import_ops'(Context, Source, op(P,A,N)),
 	'$import_all2'(Rest, Context, Source, Imported).
 '$import_all2'([Pred|Rest], Context, Source, [Pred|Imported]) :-
-	Context:import(Source:Pred),
+	catch(Context:import(Source:Pred), Error,
+	      print_message(error, Error)),
 	'$ifcompiling'('$import_wic'(Source, Pred)),
 	'$import_all2'(Rest, Context, Source, Imported).
 

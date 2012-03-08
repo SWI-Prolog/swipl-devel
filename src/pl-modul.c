@@ -1216,16 +1216,14 @@ pl_import(term_t pred)
     }
 
     if ( old->definition->module == destination )
-      return warning("Cannot import %s into module %s: name clash",
-		     procedureName(proc),
-		     stringAtom(destination->name) );
+    { return PL_error("import", 1, "name clash", ERR_IMPORT_PROC,
+		      proc, destination->name, 0);
+    }
 
-    if ( old->definition->module != source )
-    { warning("Cannot import %s into module %s: already imported from %s",
-	      procedureName(proc),
-	      stringAtom(destination->name),
-	      stringAtom(old->definition->module->name) );
-      fail;
+    if ( old->definition->module != source )	/* already imported */
+    { return PL_error("import", 1, NULL, ERR_IMPORT_PROC,
+		      proc, destination->name,
+		      old->definition->module->name);
     }
 
     sysError("Unknown problem importing %s into module %s",
@@ -1235,8 +1233,14 @@ pl_import(term_t pred)
   }
 
   if ( !isPublicModule(source, proc) )
-  { warning("import/1: %s is not exported (still imported)",
-	    procedureName(proc));
+  { term_t pi = PL_new_term_ref();
+
+    if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
+      return FALSE;
+    printMessage(ATOM_warning,
+		 PL_FUNCTOR_CHARS, "import_private", 2,
+		 PL_ATOM, destination->name,
+		 PL_TERM, pi);
   }
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
