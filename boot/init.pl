@@ -895,10 +895,150 @@ compiling :-
 	).
 
 		/********************************
-		*         PREPROCESSOR          *
+		*         READ SOURCE           *
 		*********************************/
 
 :- create_prolog_flag(preprocessor, none, [type(atom)]).
+
+%%	'$source_term'(+From, -Read, -Term, -Stream, +Options) is nondet.
+%
+%	Read Prolog terms from the  input   From.  Terms are returned on
+%	backtracking. Associated resources (i.e.,   streams)  are closed
+%	due to setup_call_cleanup/3.
+%
+%	@param From is either a term stream(Id, Stream) or a file
+%	       specification.
+%	@param Read is the raw term as read from the input.
+%	@param Term is the term after term-expansion.  If a term is
+%	       expanded into the empty list, this is returned too.  This
+%	       is required to be able to return the raw term in Read
+%	@param Stream is the stream from which Read is read
+%	@param Options provides additional options.  Currently the only
+%	       option processed is encoding(Enc).
+
+'$source_term'(From, Read, Term, Stream, Options) :-
+	'$source_term'(From, Read, Term, Stream, [], Options),
+	(   Term == end_of_file
+	->  !, fail
+	;   true
+	).
+
+'$source_term'(stream(Id, In), Read, Term, Stream, Parents, Options) :- !,
+	setup_call_cleanup(
+	    '$open_source'(stream(Id, In), In, State, Options),
+	    '$term_in_file'(In, Read, Term, Stream,
+			    [stream(Id)|Parents], Options),
+	    '$close_source'(State)).
+'$source_term'(File, Read, Term, Stream, Parents, Options) :-
+	absolute_file_name(File, Path,
+			   [ file_type(prolog),
+			     access(read)
+			   ]),
+	setup_call_cleanup(
+	    '$open_source'(Path, In, State, Options),
+	    '$term_in_file'(In, Read, Term, Stream, [Path|Parents], Options),
+	    '$close_source'(State)).
+
+:- thread_local
+	'$load_input'/2.
+:- volatile
+	'$load_input'/2.
+
+'$open_source'(stream(Id, In), In, restore(In, StreamState, Ref), Options) :- !,
+	'$push_input_context'(load_file),
+	'$set_encoding'(In, Options),
+	'$prepare_load_stream'(In, Id, StreamState),
+	asserta('$load_input'(stream(Id), In), Ref).
+'$open_source'(Path, In, close(In, Ref), Options) :-
+	preprocessor(none, none), !,
+	'$push_input_context'(load_file),
+	open(Path, read, In),
+	'$set_encoding'(In, Options),
+	asserta('$load_input'(Path, In), Ref).
+'$open_source'(Path, In, close(In, Ref), Options) :-
+	preprocessor(Pre, Pre),
+	(   '$substitute_atom'('%f', Path, Pre, Command)
+	->  '$push_input_context'(load_file),
+	    open(pipe(Command), read, In),
+	    '$set_encoding'(In, Options)
+	;   throw(error(domain_error(preprocessor, Pre), _))
+	),
+	asserta('$load_input'(Path, In), Ref).
+
+'$close_source'(close(In, Ref)) :-
+	erase(Ref),
+	call_cleanup(
+	    close(In),
+	    '$pop_input_context').
+'$close_source'(restore(In, StreamState, Ref)) :-
+	erase(Ref),
+	call_cleanup(
+	    '$restore_load_stream'(In, StreamState),
+	    '$pop_input_context').
+
+
+'$term_in_file'(In, Read, Term, Stream, Parents, Options) :-
+	'$record_included'(Parents),
+	'$skip_script_line'(In),
+	repeat,
+	  '$read_clause'(In, Raw),
+	  (   Raw == end_of_file
+	  ->  !,
+	      (	  Parents = [_,_|_]	% Included file
+	      ->  fail
+	      ;	  '$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options)
+	      )
+	  ;   '$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options)
+	  ).
+
+'$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options) :-
+	catch('$expand_term'(Raw, Expanded), E,
+	      '$print_message_fail'(E)),
+	(   is_list(Expanded), Expanded \== []
+	->  '$member'(Term1, Expanded)
+	;   Term1 = Expanded
+	),
+	(   nonvar(Term1), Term1 = (:-Directive), nonvar(Directive)
+	->  (   Directive = include(File)
+	    ->	stream_property(In, encoding(Enc)),
+		'$add_encoding'(Enc, Options, Options1),
+		'$source_term'(File, Read, Term, Stream, Parents, Options1)
+	    ;	Directive = encoding(Enc)
+	    ->  set_stream(In, encoding(Enc)),
+		fail
+	    ;	Term = Term1,
+		Stream = In,
+		Read = Raw
+	    )
+	;   Term = Term1,
+	    Stream = In,
+	    Read = Raw
+	).
+
+'$add_encoding'(Enc, Options0, Options) :-
+	(   Options0 = [encoding(Enc)|_]
+	->  Options = Options0
+	;   Options = [encoding(Enc)|Options0]
+	).
+
+:- multifile
+	'$included'/4.			% Into, Line, File, LastModified
+:- dynamic
+	'$included'/4.
+
+'$record_included'([File,Parent|_]) :-
+	source_location(_, Line), !,
+	time_file(File, Time),
+	'$compile_aux_clauses'(
+	     system:'$included'(Parent, Line, File, Time),
+	     Parent).
+'$record_included'(_).
+
+'$skip_script_line'(In) :-
+	(   peek_char(In, #)
+	->  skip(In, 10)
+	;   true
+	).
 
 preprocessor(Old, New) :-
 	(   current_prolog_flag(preprocessor, OldP)
@@ -908,49 +1048,11 @@ preprocessor(Old, New) :-
 	set_prolog_flag(preprocessor, New).
 
 '$set_encoding'(Stream, Options) :-
-	memberchk(encoding(Enc), Options),
+	memberchk(encoding(Enc), Options), !,
 	Enc \== default,
 	set_stream(Stream, encoding(Enc)).
 '$set_encoding'(_, _).
 
-
-%%	'$open_source'(+Spec, -In, :Goal, +Options) is semidet.
-
-'$open_source'(stream(Id, In), In, Goal, Options) :- !,
-	setup_call_cleanup(
-	    ( '$push_input_context'(load_file),
-	      '$set_encoding'(In, Options),
-	      '$prepare_load_stream'(In, Id, StreamState)
-	    ),
-	    '$open_source_call'(Id, In, Goal),
-	    ( '$pop_input_context',
-	      '$restore_load_stream'(In, StreamState)
-	    )).
-'$open_source'(File, In, Goal, Options) :-
-	preprocessor(none, none), !,
-	setup_call_cleanup(
-	    ( '$push_input_context'(load_file),
-	      open(File, read, In),
-	      '$set_encoding'(In, Options)
-	    ),
-	    '$open_source_call'(File, In, Goal),
-	    ( '$pop_input_context',
-	      close(In)
-	    )).
-'$open_source'(File, In, Goal, Options) :-
-	preprocessor(Pre, Pre),
-	(   '$substitute_atom'('%f', File, Pre, Command)
-	->  setup_call_cleanup(
-		( '$push_input_context'(load_file),
-		  open(pipe(Command), read, In),
-		  '$set_encoding'(In, Options)
-		),
-		'$open_source_call'(File, In, Goal),
-		( '$pop_input_context',
-		  close(In)
-		))
-	;   throw(error(domain_error(preprocessor, Pre), _))
-	).
 
 '$prepare_load_stream'(In, Id, state(HasName,HasPos)) :-
 	(   stream_property(In, file_name(_))
@@ -978,18 +1080,6 @@ preprocessor(Old, New) :-
 	->  set_stream(In, record_position(false))
 	;   true
 	).
-
-
-:- thread_local
-	'$load_input'/2.
-:- volatile
-	'$load_input'/2.
-
-'$open_source_call'(File, In, Goal) :-
-	setup_call_cleanup(
-	    asserta('$load_input'(File, In), Ref),
-	    Goal,
-	    erase(Ref)).
 
 
 %	'$substitute_atom'(+From, +To, +In, -Out)
@@ -1590,9 +1680,7 @@ load_files(Module:Files, Options) :-
 	'$compile_type'(What),
 
 	'$save_lex_state'(LexState),
-	'$open_source'(Absolute, In,
-		       '$load_file'(In, Id, _IsModule, LM, Options),
-		       Options),
+	'$load_file'(Absolute, Id, LM, Options),
 	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule).	% Restore old module
 
@@ -1665,7 +1753,7 @@ load_files(Module:Files, Options) :-
 %	contexts.
 
 '$check_load_non_module'(File, _) :-
-	'$current_module'(_, File), !.
+	'$current_module'(_, File), !.		% File is a module file
 '$check_load_non_module'(File, Module) :-
 	'$load_context_module'(File, OldModule),
 	Module \== OldModule, !,
@@ -1677,110 +1765,99 @@ load_files(Module:Files, Options) :-
 		    context(load_files/2, Msg))).
 '$check_load_non_module'(_, _).
 
-%%   '$load_file'(+In, +Path, -IsModule, -Module, +Options)
+%%	'$load_file'(+Path, +Id, -Module, +Options)
 %
-%   '$load_file'/5 does the actual loading.
-
-'$load_file'(In, File, IsModule, Module, Options) :-
-	'$skip_script_line'(In),
-	repeat,
-	    '$read_first_clause'(In, First),
-	    '$expand_term'(First, Expanded),
-	    Expanded \== [], !,
-	'$load_file'(Expanded, In, File, IsModule, Module, Options).
-
-
-%%	'$read_first_clause'(+Stream, -Term) is det.
+%	'$load_file'/4 does the actual loading.
 %
-%	Read the very first term. PrologScript says   we must be able to
-%	deal with an #! line. According to   the ISO proposal, there can
-%	be an :- encoding(Enc) directive before the first (module) term.
+%	state(FirstTerm:boolean,
+%	      Module:atom,
+%	      AtEnd:atom,
+%	      Stop:boolean,
+%	      Id:atom)
 
-'$read_first_clause'(In, First) :-
-	'$read_clause'(In, VeryFirst),
-	(   nonvar(First),
-	    First = (:- encoding(Encoding))
-	->  set_stream(In, encoding(Encoding)),
-	    '$read_first_clause'(In, First)
-	;   First = VeryFirst
-	).
+'$load_file'(Path, Id, Module, Options) :-
+	State = state(true, _, true, false, Id),
+	(   '$source_term'(Path, _Read, Term, _Stream, Options),
+	    '$valid_term'(Term),
+	    (	arg(1, State, true)
+	    ->	'$first_term'(Term, Id, State, Options),
+		nb_setarg(1, State, false)
+	    ;	'$compile_term'(Term, Id)
+	    ),
+	    arg(4, State, true)
+	;   '$end_load_file'(State)
+	), !,
+	arg(2, State, Module).
 
-'$skip_script_line'(In) :-
-	(   peek_char(In, #)
-	->  skip(In, 10)
-	;   true
-	).
-
-
-%%	'$load_file'(+FirstTerm, +In, +File, -IsModule, -Module, +Options)
-
-'$load_file'(Var, In, File, false, Module, _Options) :-
+'$valid_term'(Var) :-
 	var(Var), !,
-	'$load_non_module_file'(Var, [], In, File, Module).
-'$load_file'([First|Rest], In, File, IsModule, Module, Options) :- !,
-	'$load_file'(First, Rest, In, File, IsModule, Module, Options).
-'$load_file'(First, In, File, IsModule, Module, Options) :- !,
-	'$load_file'(First, [], In, File, IsModule, Module, Options).
+	print_message(error, error(instantiation_error, _)).
+'$valid_term'(Term) :-
+	Term \== [].
 
-%%	'$load_file'(+FirstTerm, +Terms, +In, +File,
-%%		     -IsModule, -Module, +Options)
+'$end_load_file'(State) :-
+	arg(1, State, true), !,		% empty file
+	nb_setarg(2, State, Module),
+	arg(5, State, Id),
+	'$set_source_module'(Module, Module),
+	'$ifcompiling'('$qlf_start_file'(Id)),
+	'$ifcompiling'('$qlf_end_part').
+'$end_load_file'(State) :-
+	arg(3, State, End),
+	'$end_load_file'(End, State).
 
-'$load_file'(Var, Cls, In, File, false, Module, _Options) :-
-	var(Var), !,
-	'$load_non_module_file'(Var, Cls, In, File, Module).
-'$load_file'((?- Directive), Cls, In, File, IsModule, Module, Options) :- !,
-	'$load_file'((:- Directive), Cls, In, File, IsModule, Module, Options).
-'$load_file'((:-module(Module,Public)), Cls, In, File,
-	     true, Module, Options) :- !,
-	'$load_module'(Module, Public, Cls, In, File, Options).
-'$load_file'(_, _, _, File, _, _, Options) :-
+'$end_load_file'(true, _).
+'$end_load_file'(end_module, State) :-
+	arg(2, State, Module),
+	'$check_export'(Module),
+	'$ifcompiling'('$qlf_end_part').
+'$end_load_file'(end_non_module, _State) :-
+	'$ifcompiling'('$qlf_end_part').
+
+
+'$first_term'(?-(Directive), Id, State, Options) :- !,
+	'$first_term'(:-(Directive), Id, State, Options).
+'$first_term'(:-(Directive), Id, State, Options) :-
+	nonvar(Directive),
+	Directive = module(Name, Public), !,
+	'$module_name'(Name, Id),
+	'$start_module'(Name, Public, State, Options).
+'$first_term'(Term, Id, State, Options) :-
+	'$start_non_module'(Id, State, Options),
+	'$compile_term'(Term, Id).
+
+'$compile_term'((?-Directive), Id) :- !,
+	'$execute_directive'(Directive, Id).
+'$compile_term'((:-Directive), Id) :- !,
+	'$execute_directive'(Directive, Id).
+'$compile_term'(Clause, Id) :- !,
+	catch('$store_clause'(Clause, Id), E,
+	      '$print_message'(error, E)).
+
+'$start_non_module'(Id, _State, Options) :-
 	'$get_option'(must_be_module(true), Options, false), !,
-	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, _, File, false, Module, _) :- !,	% empty file
+	throw(error(domain_error(module_file, Id), _)).
+'$start_non_module'(Id, State, _Options) :-
 	'$set_source_module'(Module, Module),
-	'$ifcompiling'('$qlf_start_file'(File)),
-	'$ifcompiling'('$qlf_end_part').
-'$load_file'(FirstClause, Cls, In, File, false, Module, _Options) :-
-	'$load_non_module_file'(FirstClause, Cls, In, File, Module).
+	'$ifcompiling'('$qlf_start_file'(Id)),
+	nb_setarg(2, State, Module),
+	nb_setarg(3, State, end_non_module).
 
-%%	'$load_non_module_file'(+FirstClause, +Cls, +In, +File, -Module)
 
-'$load_non_module_file'(FirstClause, Cls, In, File, Module) :-
-	'$set_source_module'(Module, Module),
-	'$ifcompiling'('$qlf_start_file'(File)),
-	catch('$store_clause'([FirstClause|Cls], File), E,
-	      '$print_message'(error, E)),
-	'$consult_stream'(In, File),
-	'$ifcompiling'('$qlf_end_part').
+		 /*******************************
+		 *	     MODULES		*
+		 *******************************/
 
-'$reserved_module'(system).
-'$reserved_module'(user).
-
-%%	'$load_module'(+Module, +Public, +Clauses, +Stream, +File, +Options)
-%
-%	Options processed:
-%
-%		* redefine_module(Action)
-%		Action is one of =true=, =false= or =ask=.
-%
-%	Redefining a module by loading another file must be more subtle.
-%	Verify the compatibility of the interface could be one example.
-
-'$load_module'(Var, Public, Cls, In, AbsFile, Options) :-
-	var(Var), !,
-	file_base_name(AbsFile, File),
-	file_name_extension(Base, _, File),
-	Var = Base,
-	'$load_module'(Var, Public, Cls, In, File, Options).
-'$load_module'(Reserved, _, _, _, _, _) :-
-	'$reserved_module'(Reserved), !,
-	throw(error(permission_error(load, module, Reserved), _)).
-'$load_module'(Module, _Public, _Cls, _In, File, _Options) :-
+'$start_module'(Module, _Public, State, _Options) :-
 	'$current_module'(Module, OldFile),
 	source_location(File, _Line),
 	OldFile \== File,
-	same_file(OldFile, File), !.
-'$load_module'(Module, Public, Cls, In, File, Options) :-
+	same_file(OldFile, File), !,
+	nb_setarg(2, State, Module),
+	nb_setarg(4, State, true).	% Stop processing
+'$start_module'(Module, Public, State, Options) :-
+	arg(5, State, File),
+	nb_setarg(2, State, Module),
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
 	'$get_option'(redefine_module(Action), Options, false),
@@ -1790,11 +1867,28 @@ load_files(Module:Files, Options) :-
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
-	catch('$store_clause'(Cls, File), E,
-	      '$print_message'(error, E)),
-	'$consult_stream'(In, File),
-	'$check_export'(Module),
-	'$ifcompiling'('$qlf_end_part').
+	nb_setarg(3, State, end_module).
+
+
+%%	'$module_name'(?Name, +Id) is det.
+%
+%	Sanatise the module name.  Compatible to Ciao, a variable module
+%	name is replaced by the file base-name.
+
+'$module_name'(Var, Id) :-
+	var(Var), !,
+	file_base_name(Id, File),
+	file_name_extension(Var, _, File),
+	'$module_name'(Var, Id).
+'$module_name'(Reserved, _) :-
+	'$reserved_module'(Reserved), !,
+	throw(error(permission_error(load, module, Reserved), _)).
+'$module_name'(_, _).
+
+
+'$reserved_module'(system).
+'$reserved_module'(user).
+
 
 %%	'$redefine_module'(+Module, +File, -Redefine)
 
@@ -2046,22 +2140,6 @@ load_files(Module:Files, Options) :-
 '$export_ops'([], _, _).
 
 
-%%	'$consult_stream'(+Stream, +File)
-%
-%	Read and record all clauses until the end of the file.
-
-'$consult_stream'(In, File) :-
-	repeat,
-	    '$read_clause'(In, Clause),
-	    '$consult_clause'(Clause, File),
-	    Clause == end_of_file, !.
-
-'$consult_clause'(Clause, File) :-
-	catch(('$expand_term'(Clause, Expanded),
-	       '$store_clause'(Expanded, File)),
-	       E,
-	       '$print_message_fail'(E)).
-
 %%	'$execute_directive'(:Goal, +File) is det.
 %
 %	Execute the argument of :- or ?- while loading a file.
@@ -2070,8 +2148,6 @@ load_files(Module:Files, Options) :-
 	'$expand_goal'(Goal, Goal1),
 	'$execute_directive_2'(Goal1, F).
 
-'$execute_directive_2'(include(File), F) :- !,
-	'$include'(File, F).
 '$execute_directive_2'(encoding(Encoding), F) :- !,
 	source_location(F, _),
 	'$load_input'(F, S),
@@ -2084,11 +2160,12 @@ load_files(Module:Files, Options) :-
 	'$add_directive_wic2'(Goal, Type),
 	(   Type == call		% suspend compiling into .qlf file
 	->  '$compilation_mode'(Old, database),
-	    '$directive_mode'(OldDir, Old),
-	    call_cleanup('$execute_directive_3'(Goal),
-			 (   '$set_compilation_mode'(Old),
-			     '$set_directive_mode'(OldDir)
-			 ))
+	    setup_call_cleanup(
+		'$directive_mode'(OldDir, Old),
+		'$execute_directive_3'(Goal),
+		( '$set_compilation_mode'(Old),
+		  '$set_directive_mode'(OldDir)
+		))
 	;   '$execute_directive_3'(Goal)
 	).
 '$execute_directive_2'(Goal, _) :-
@@ -2178,21 +2255,13 @@ load_files(Module:Files, Options) :-
 
 
 		/********************************
-		*        TERM EXPANSION         *
+		*        COMPILE A CLAUSE       *
 		*********************************/
 
-'$store_clause'(Var, _) :-
-	var(Var), !,
-	print_message(error, error(instantiation_error, _)).
-'$store_clause'([], _) :- !.
-'$store_clause'([C|T], F) :- !,
-	'$store_clause'(C, F),
-	'$store_clause'(T, F).
-'$store_clause'(end_of_file, _) :- !.
-'$store_clause'((:- Goal), F) :- !,
-	'$execute_directive'(Goal, F).
-'$store_clause'((?- Goal), F) :- !,
-	'$execute_directive'(Goal, F).
+%%	'$store_clause'(+Clause, +TermId) is det.
+%
+%	Store a clause into the database.
+
 '$store_clause'((_, _), _) :- !,
 	print_message(error, cannot_redefine_comma),
 	fail.
@@ -2232,43 +2301,17 @@ compile_aux_clauses(Clauses) :-
 	'$compile_aux_clauses'(Clauses, File).
 
 '$compile_aux_clauses'(Clauses, File) :-
-	setup_call_cleanup('$start_aux'(File, Context),
-			   '$store_clause'(Clauses, File),
-			   '$end_aux'(File, Context)).
+	setup_call_cleanup(
+	    '$start_aux'(File, Context),
+	    '$store_aux_clauses'(Clauses, File),
+	    '$end_aux'(File, Context)).
 
-
-
-		 /*******************************
-		 *	     INCLUDE		*
-		 *******************************/
-
-:- multifile
-	'$included'/4.			% Into, Line, File, LastModified
-:- dynamic
-	'$included'/4.
-
-%%	'$include'(+File, +FileInto) is det.
-%
-%	Process the content of File.
-%
-%	@bug	Source management if File contains clauses and is loaded
-%		into multiple contexts.
-
-'$include'(File, FileInto) :-
-	source_location(FileInto, Line),
-	absolute_file_name(File,
-			   [ file_type(prolog),
-			     access(read)
-			   ], Path),
-	time_file(Path, Time),
-	'$compile_aux_clauses'(system:'$included'(FileInto, Line, Path, Time),
-			       FileInto),
-	'$load_input'(FileInto, Stream),
-	stream_property(Stream, encoding(Enc)),
-	'$open_source'(Path, In,
-		       '$consult_stream'(In, Path),
-		       [ encoding(Enc)
-		       ]).
+'$store_aux_clauses'(Clauses, File) :-
+	is_list(Clauses), !,
+	forall('$member'(C,Clauses),
+	       '$compile_term'(C, File)).
+'$store_aux_clauses'(Clause, File) :-
+	'$compile_term'(Clause, File).
 
 
 		 /*******************************
