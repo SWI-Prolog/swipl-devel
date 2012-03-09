@@ -40,6 +40,7 @@
 	    match/3,				% +Mask, +Atom, ?Replacements
 	    lower_upper/2,			% ?Lower, ?Upper
 	    current_error/1,			% -Stream
+	    writeq_atom/2,			% +Term, -Atom
 	    write_atom/2,			% +Term, -Atom
 	    write_formatted_atom/3,		% -Atom, +Format, +ArgList
 	    write_formatted/2,			% +Format, +ArgList
@@ -561,6 +562,17 @@ filepos(Stream, Line, Column) :-
 assign_alias(Alias, Stream) :-
 	set_stream(Stream, alias(Alias)).
 
+%%	writeq_atom(+Term, -Atom)
+%
+%	The predicate writeq_atom/2 converts Term   into an atom, taking
+%	the operator definitions into account,   and  unifies the result
+%	with Atom. Conversion to an atom   occurs as with writeq/1, i.e.
+%	special characters in atoms  are   handled  according  to Prolog
+%	syntax rules.
+
+writeq_atom(Term, Atom) :-
+	with_output_to(atom(Atom), writeq(Term)).
+
 %%	write_atom(+Term, -Atom)
 %
 %	Use write/1 to write Term to Atom.
@@ -715,10 +727,10 @@ atom_suffix(Atom, Len, Sub) :-
 	Pos is AtomLen - Len,
 	sub_atom(Atom, Pos, Len, _, Sub).
 
-%%	atom_split( +Atom, +Delimiter, ?Subatoms ) 
+%%	atom_split( +Atom, +Delimiter, ?Subatoms )
 %
-%	The predicate atom_split/3 splits Atom into a list of subatoms 
-%	Subatoms. Delimiter is the delimiter of the subatoms and will 
+%	The predicate atom_split/3 splits Atom into a list of subatoms
+%	Subatoms. Delimiter is the delimiter of the subatoms and will
 %	not appear in Subatoms.
 
 atom_split(Atom, Delimiter, Subatoms)  :-
@@ -834,18 +846,18 @@ system_name(SystemName) :-
 
 %%	localtime(+Time, ?Year, ?Month, ?Day, ?DoW, ?DoY, ?Hour, ?Min, ?Sec)
 %
-%	The predicate localtime/9 converts a system time into date and time 
-%	information according to the local time zone. 
-%	The individual arguments are unified with the following information 
-%	(as integers): 
-%	Year      Year number      4 digits 
+%	The predicate localtime/9 converts a system time into date and time
+%	information according to the local time zone.
+%	The individual arguments are unified with the following information
+%	(as integers):
+%	Year      Year number      4 digits
 %	Month     Month number     1..12
 %	Day       Day of month     1..31
 %	DoW       Day of week      1..7 (Mon-Sun)
 %	DoY       Day in year      1..366
 %	Hour      Hours            0..23
 %	Min       Minutes          0..59
-%	Sec       Seconds          0..59 
+%	Sec       Seconds          0..59
 
 localtime(Time, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
         stamp_date_time(Time, date(Year4, Month, Hour, Day, Min, SecFloat, _Off, _TZ, _DST), local),
