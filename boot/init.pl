@@ -182,19 +182,32 @@ call(Goal, A, B, C, D, E, F) :-
 call(Goal, A, B, C, D, E, F, G) :-
 	call(Goal, A, B, C, D, E, F, G).
 
+%%	not(:Goal) is semidet.
+%
+%	Pre-ISO version of \+/1. Note that  some systems define not/1 as
+%	a logically more sound version of \+/1.
+
 not(Goal) :-
 	\+ Goal.
 
-%	This version of not is compiled as well. For meta-calls only
+%%	\+ Goal is semidet.
+%
+%	Predicate version that allows for meta-calling.
 
 \+ Goal :-
 	\+ Goal.
 
-%	once/1 can normally be replaced by ->/2. For historical reasons
-%	only.
+%%	once(:Goal) is semidet.
+%
+%	ISO predicate, acting as call((Goal, !)).
 
 once(Goal) :-
 	Goal, !.
+
+%%	ignore(:Goal) is det.
+%
+%	Call Goal, cut choice-points on success  and succeed on failure.
+%	intended for calling side-effects and proceed on failure.
 
 ignore(Goal) :-
 	Goal, !.
@@ -202,7 +215,11 @@ ignore(_Goal).
 
 :- '$iso'((false/0)).
 
-false :-					% SICStus compatibility
+%%	false.
+%
+%	Synonym for fail/0, providing a declarative reading.
+
+false :-
 	fail.
 
 %%	catch(:Goal, +Catcher, :Recover)
@@ -801,12 +818,10 @@ extensions to .ext
 
 :- thread_local
 	'$compilation_mode_store'/1,	% database, wic, qlf
-	'$directive_mode_store'/1,	% database, wic, qlf
-	'$compilation_context'/2.	% File, Line
+	'$directive_mode_store'/1.	% database, wic, qlf
 :- volatile
 	'$compilation_mode_store'/1,
-	'$directive_mode_store'/1,
-	'$compilation_context'/2.
+	'$directive_mode_store'/1.
 
 '$compilation_mode'(Mode) :-
 	(   '$compilation_mode_store'(Val)
@@ -842,25 +857,22 @@ extensions to .ext
 	retractall('$directive_mode_store'(_)),
 	assertz('$directive_mode_store'(Mode)).
 
-%%	'$set_compilation_context'(-Ref) is det.
-%
-%	Maintains a stack  of  locations   from  where  compilation  was
-%	started. We will use this to   improve  the location information
-%	for error messages in the future.
 
-'$set_compilation_context'(Ref) :-
-	(   source_location(File, Line)
-	->  true
-	;   File = (-),
-	    Line = 0
-	),
-	asserta('$compilation_context'(File, Line), Ref).
+%%	'$compilation_level'(-Level) is det.
+%
+%	True when Level reflects the nesting   in  files compiling other
+%	files. 0 if no files are being loaded.
 
 '$compilation_level'(Level) :-
-	'$get_predicate_attribute'('$compilation_context'(_,_),
-				   number_of_clauses, N), !,
-	Level is N.
-'$compilation_level'(0).
+	'$input_context'(Stack),
+	'$compilation_level'(Stack, Level).
+
+'$compilation_level'([], 0).
+'$compilation_level'([input(see,_,_)|T], Level) :-
+	'$compilation_level'(T, Level).
+'$compilation_level'([input(_,_,_)|T], Level) :-
+	'$compilation_level'(T, Level0),
+	Level is Level0+1.
 
 
 %%	compiling
@@ -905,32 +917,38 @@ preprocessor(Old, New) :-
 %%	'$open_source'(+Spec, -In, :Goal, +Options) is semidet.
 
 '$open_source'(stream(Id, In), In, Goal, Options) :- !,
-	'$push_input_context',
-	'$set_encoding'(In, Options),
-	'$prepare_load_stream'(In, Id, StreamState),
-	'$open_source_call'(Id, In, Goal, True),
-	'$restore_load_stream'(In, StreamState),
-	'$pop_input_context',
-	True == yes.
+	setup_call_cleanup(
+	    ( '$push_input_context'(load_file),
+	      '$set_encoding'(In, Options),
+	      '$prepare_load_stream'(In, Id, StreamState)
+	    ),
+	    '$open_source_call'(Id, In, Goal),
+	    ( '$pop_input_context',
+	      '$restore_load_stream'(In, StreamState)
+	    )).
 '$open_source'(File, In, Goal, Options) :-
 	preprocessor(none, none), !,
-	'$push_input_context',
-	open(File, read, In),
-	'$set_encoding'(In, Options),
-	'$open_source_call'(File, In, Goal, True),
-	close(In),
-	'$pop_input_context',
-	True == yes.
+	setup_call_cleanup(
+	    ( '$push_input_context'(load_file),
+	      open(File, read, In),
+	      '$set_encoding'(In, Options)
+	    ),
+	    '$open_source_call'(File, In, Goal),
+	    ( '$pop_input_context',
+	      close(In)
+	    )).
 '$open_source'(File, In, Goal, Options) :-
 	preprocessor(Pre, Pre),
 	(   '$substitute_atom'('%f', File, Pre, Command)
-	->  '$push_input_context',
-	    open(pipe(Command), read, In),
-	    '$set_encoding'(In, Options),
-	    '$open_source_call'(File, In, Goal, True),
-	    close(In),
-	    '$pop_input_context',
-	    True == yes
+	->  setup_call_cleanup(
+		( '$push_input_context'(load_file),
+		  open(pipe(Command), read, In),
+		  '$set_encoding'(In, Options)
+		),
+		'$open_source_call'(File, In, Goal),
+		( '$pop_input_context',
+		  close(In)
+		))
 	;   throw(error(domain_error(preprocessor, Pre), _))
 	).
 
@@ -967,19 +985,11 @@ preprocessor(Old, New) :-
 :- volatile
 	'$load_input'/2.
 
-'$open_source_call'(File, In, Goal, Status) :-
-	setup_call_cleanup((   '$set_compilation_context'(CRef),
-			       asserta('$load_input'(File, In), Ref)
-			   ),
-			   (   catch(Goal, E,
-				     (print_message(error, E),
-				      fail))
-			   ->  Status = yes
-			   ;   Status = no
-			   ),
-			   (   erase(Ref),
-			       erase(CRef)
-			   )).
+'$open_source_call'(File, In, Goal) :-
+	setup_call_cleanup(
+	    asserta('$load_input'(File, In), Ref),
+	    Goal,
+	    erase(Ref)).
 
 
 %	'$substitute_atom'(+From, +To, +In, -Out)
@@ -2241,15 +2251,15 @@ compile_aux_clauses(Clauses) :-
 			   [ file_type(prolog),
 			     access(read)
 			   ], Path),
-	'$push_input_context',
-	open(Path, read, In),
 	time_file(Path, Time),
+	'$compile_aux_clauses'(system:'$included'(FileInto, Path, Time),
+			       FileInto),
+	'$push_input_context'(include),
+	open(Path, read, In),
 	'$read_clause'(In, Term0),
 	'$read_include_file'(Term0, In, Terms),
 	close(In),
 	'$pop_input_context',
-	'$compile_aux_clauses'(system:'$included'(FileInto, Path, Time),
-			       FileInto),
 	'$consult_clauses'(Terms, FileInto).
 
 '$read_include_file'(end_of_file, _, []) :- !.

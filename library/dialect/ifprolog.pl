@@ -1,6 +1,7 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
+
+    Author:        Jan Wielemaker, Johan Romme
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2012, VU University Amsterdam
@@ -29,6 +30,7 @@
 
 :- module(ifprolog,
 	  [ calling_context/1,			% -Module
+	    modify_mode/3,			% +PI, -Old, +New
 	    debug_mode/3,			% +PI, -Old, +New
 	    debug_config/3,			% +Key, +Current, +Value
 	    float_format/2,			% -Old, +New
@@ -43,16 +45,26 @@
 	    write_formatted/2,			% +Format, +ArgList
 	    write_formatted/3,			% +Stream, +Format, +ArgList
 	    atom_part/4,			% +Atom, +Pos, +Len, -Sub
+	    atom_prefix/3,			% +Atom, +Len, -Sub
+	    atom_suffix/3,			% +Atom, +Len, -Sub
+	    getchar/3,				% +Atom, +Pos, -Char
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
+	    index/3,				% +Atom, +String, -Position
+	    list_length/2,			% +List, ?Length
 	    load/1,				% :FileName
 	    file_test/2,			% +File, +Mode
+	    filepos/2,				% @Stream, -Line
+	    filepos/3,				% @Stream, -Line, -Column
+	    getcwd/1,				% -Dir
 	    assign_alias/2,			% +Alias, @Stream
 	    get_until/3,			% +SearchChar, ?Text, ?EndChar
 	    get_until/4,			% @In, +SearchChar, ?Text, ?EndChar
 	    for/3,				% +Start, ?Counter, +End
 	    (@)/2,				% Goal, Module
 	    prolog_version/1,                   % -Atom
+	    proroot/1,				% -Atom
+	    system_name/1,			% -Atom
 
 	    asserta_with_names/2,		% @Term, +VarNames
 	    assertz_with_names/2,		% @Term, +VarNames
@@ -78,6 +90,8 @@ layers in the dialect directory, the   emulation has been established on
 is incomplete. Emumated directives, predicates   and libraries are often
 not 100% compatible with the IF/Prolog version.
 
+Note that this emulation layer targets primarily IF/Prolog version 5.
+
 Please   help   extending   this   library   and   submit   patches   to
 bugs@swi-prolog.org.
 */
@@ -86,7 +100,7 @@ bugs@swi-prolog.org.
 	calling_context/1.
 
 :- meta_predicate
-	system:modify_mode(:, -, +),
+	modify_mode(:, -, +),
 	debug_mode(:, -, +),
 	load(:),
 	asserta_with_names(:, +),
@@ -151,20 +165,61 @@ user:term_expansion(In, Out) :-
 %	Mapped to asserta((Head:-Body)),  etc.  Note   that  this  masks
 %	SWI-Prolog's asserta/2, etc.
 
-ifprolog_goal_expansion(system:retract(Head,Body)@Module,
-			retract(Module:(Head:-Body))).
-ifprolog_goal_expansion(retract(Head,Body)@Module,
-			retract(Module:(Head:-Body))).
-ifprolog_goal_expansion(Goal@Module, Module:Goal).
-ifprolog_goal_expansion(context(Goal, [Error => Recover]),
-			catch(Goal, Error, Recover)) :-
+ifprolog_goal_expansion(Module:Goal, Expanded) :-
+	Module == system, nonvar(Goal), !,
+	expand_goal(Goal, ExpandedGoal),
+	head_pi(ExpandedGoal, PI),
+	(   current_predicate(ifprolog:PI),
+	    \+ predicate_property(ExpandedGoal, imported_from(_))
+	->  Expanded = ifprolog:ExpandedGoal
+	;   Expanded = ExpandedGoal
+	).
+ifprolog_goal_expansion(Goal, Expanded) :-
+	if_goal_expansion(Goal, Expanded).
+
+if_goal_expansion(Goal@Module, MetaGoal) :-
+	nonvar(Goal),
+	(   if_goal_expansion(Goal, Goal1)
+	->  true
+	;   Goal1 = Goal
+	),
+	(   predicate_property(Goal1, meta_predicate(Decl))
+	->  qualify(Goal1, Decl, Module, MetaGoal)
+	;   MetaGoal = Goal1
+	).
+if_goal_expansion(Goal@Module, Module:Goal).
+if_goal_expansion(context(Goal, [Error => Recover]),
+		  catch(Goal, Error, Recover)) :-
 	assertion(Error = error(_,_)).
-ifprolog_goal_expansion(assertz(Head,Body),
-			assertz((Head:-Body))).
-ifprolog_goal_expansion(asserta(Head,Body),
-			asserta((Head:-Body))).
-ifprolog_goal_expansion(retract(Head,Body),
-			retract((Head:-Body))).
+if_goal_expansion(assertz(Head,Body),
+		  assertz((Head:-Body))).
+if_goal_expansion(asserta(Head,Body),
+		  asserta((Head:-Body))).
+if_goal_expansion(retract(Head,Body),
+		  retract((Head:-Body))).
+
+qualify(Goal, Decl, Module, QGoal) :-
+	Goal =.. [Name|Args0],
+	Decl =.. [_|DeclArgs],
+	qualify_list(Args0, DeclArgs, Module, QArgs),
+	QGoal =.. [Name|QArgs].
+
+qualify_list([], [], _, []).
+qualify_list([A|AT], [D|DT], M, [Q|QT]) :-
+	(   meta_arg(D)
+	->  Q = (M:A)
+	;   Q = A
+	),
+	qualify_list(AT, DT, M, QT).
+
+meta_arg(:).
+meta_arg(^).
+meta_arg(I) :- integer(I).
+
+head_pi(M:Head, M:PI) :- !,
+	head_pi(Head, PI).
+head_pi(Head, Name/Arity) :-
+	functor(Head, Name, Arity).
 
 
 %%	ifprolog_term_expansion(+In, +Out)
@@ -218,6 +273,12 @@ ifprolog_term_expansion((:- private(_)), []).
 ifprolog_term_expansion((:- discontiguous([])), []).
 ifprolog_term_expansion((:- discontiguous(List)),
 			(:- discontiguous(Spec))) :-
+	is_list(List),
+	pi_list_to_pi_term(List, Spec).
+
+ifprolog_term_expansion((:- multifile([])), []).
+ifprolog_term_expansion((:- multifile(List)),
+			(:- multifile(Spec))) :-
 	is_list(List),
 	pi_list_to_pi_term(List, Spec).
 
@@ -277,12 +338,15 @@ push_ifprolog_library :-
 %%	push_ifprolog_file_extension
 %
 %	Looks for .pro files before looking for .pl files if the current
-%	dialect is =pro=.
+%	dialect is =pro=. If the dialect is   not active, the .pro files
+%	are found as last resort.
 
 push_ifprolog_file_extension :-
 	asserta((user:prolog_file_type(pro, prolog) :-
 		prolog_load_context(dialect, ifprolog))).
 
+user:prolog_file_type(pro, prolog) :-
+	\+ prolog_load_context(dialect, ifprolog).
 
 :- push_ifprolog_library,
    push_ifprolog_file_extension.
@@ -300,16 +364,16 @@ calling_context(Context) :-
 	context_module(Context).
 
 
-%%	system:modify_mode(+PI, -OldMode, +NewMode) is det.
+%%	modify_mode(+PI, -OldMode, +NewMode) is det.
 %
 %	Switch between static and  dynamic   code.  Fully supported, but
 %	notably changing static to dynamic code   is  not allowed if the
 %	predicate has clauses.
 
-system:modify_mode(PI, OldMode, NewMode) :-
+modify_mode(PI, OldMode, NewMode) :-
 	pi_head(PI, Head),
 	old_mode(Head, OldMode),
-	set_mode(PI, NewMode).
+	set_mode(PI, OldMode, NewMode).
 
 old_mode(Head, Mode) :-
 	(   predicate_property(Head, dynamic)
@@ -317,9 +381,10 @@ old_mode(Head, Mode) :-
 	;   Mode = off
 	).
 
-set_mode(PI, on) :- !,
+set_mode(_, Old, Old) :- !.
+set_mode(PI, _, on) :- !,
 	dynamic(PI).
-set_mode(PI, off) :-
+set_mode(PI, _, off) :-
 	compile_predicates([PI]).
 
 pi_head(M:PI, M:Head) :- !,
@@ -452,8 +517,41 @@ load(File) :-
 %	this predicate is defined in the   module  =system= to allow for
 %	direct calling.
 
-system:file_test(File, Mode) :-
+file_test(File, Mode) :-
 	access_file(File, Mode).
+
+%%	filepos(@Stream, -Line)
+%
+%	from  the  IF/Prolog  documentation    The  predicate  filepos/2
+%	determines the current line  position   of  the  specified input
+%	stream and unifies the  result  with   Line.  The  current  line
+%	position is the number of line processed + 1
+
+filepos(Stream, Line) :-
+	line_count(Stream, L),
+	Line is L + 1.
+
+
+%%	getcwd(-Dir)
+%
+%	The predicate getcwd/1 unifies Dir with the full pathname of the
+%	current working directory.
+
+getcwd(Dir) :-
+	working_directory(Dir, Dir).
+
+%%	filepos(@Stream, -Line, -Column)
+%
+%	from  the  IF/Prolog  documentation    The  predicate  filepos/2
+%	determines the current line  position   of  the  specified input
+%	stream and unifies the  result  with   Line.  The  current  line
+%	position is the number of line processed + 1
+
+filepos(Stream, Line, Column) :-
+	line_count(Stream, L),
+	line_position(Stream, C),
+	Line is L + 1,
+	Column is C + 1.
 
 %%	assign_alias(+Alias, @Stream) is det.
 %
@@ -487,13 +585,13 @@ current_error(user_error).
 %	Emulation of IF/Prolog formatted write.   The  emulation is very
 %	incomplete. Notable asks for dealing with aligned fields, etc.
 
-system:write_formatted_atom(Atom, Format, ArgList) :-
+write_formatted_atom(Atom, Format, ArgList) :-
 	with_output_to(atom(Atom), write_formatted(Format, ArgList)).
 
-system:write_formatted(Format, ArgList) :-
+write_formatted(Format, ArgList) :-
 	write_formatted(current_output, Format, ArgList).
 
-system:write_formatted(Out, Format, ArgList) :-
+write_formatted(Out, Format, ArgList) :-
 	atom_codes(Format, Codes),
 	phrase(format_string(FormatCodes), Codes), !,
 	format(Out, FormatCodes, ArgList).
@@ -579,6 +677,58 @@ atom_part(Atom, Pos, Len, Sub) :-
 	Pos0 is Pos - 1,
 	sub_atom(Atom, Pos0, Len, _, Sub).
 
+%%	atom_prefix(+Atom, +Len, -Sub) is det.
+%
+%	Unifies Sub with the atom formed by the first Len characters in
+%	atom.
+%	If Len < 1, Sub is unified with the null atom ''.
+%	If Len > length of Atom, Sub is unified with Atom.
+
+atom_prefix(_, Len, Sub) :-
+	Len < 1, !,
+	Sub = ''.
+atom_prefix(Atom, Len, Sub) :-
+	atom_length(Atom, AtomLen),
+	Len > AtomLen, !,
+	Sub = Atom.
+atom_prefix(Atom, Len, Sub) :-
+	sub_atom(Atom, 0, Len, _, Sub).
+
+%%	atom_suffix(+Atom, +Len, -Sub) is det.
+%
+%	Unifies Sub with the atom formed by the last Len characters in
+%	atom.
+%	If Len < 1, Sub is unified with the null atom ''.
+%	If Len > length of Atom, Sub is unified with Atom.
+
+atom_suffix(_, Len, Sub) :-
+	Len < 1, !,
+	Sub = ''.
+atom_suffix(Atom, Len, Sub) :-
+	atom_length(Atom, AtomLen),
+	Len > AtomLen, !,
+	Sub = Atom.
+atom_suffix(Atom, Len, Sub) :-
+	atom_length(Atom, AtomLen),
+	Pos is AtomLen - Len,
+	sub_atom(Atom, Pos, Len, _, Sub).
+
+%%	getchar(+Atom, +Pos, -Char)
+%
+%	Unifies Char with the Position-th character in Atom
+%	If Pos < 1 or Pos > length of Atom, then fail.
+
+getchar(_, Pos, _) :-
+	Pos < 1, !,
+	fail.
+getchar(Atom, Pos, _) :-
+	atom_length(Atom, Len),
+	Pos > Len, !,
+	fail.
+getchar(Atom, Pos, Char) :-
+	P is Pos - 1,
+	sub_atom(Atom, P, 1, _, Char).
+
 
 %%	parse_atom(+Atom, +StartPos, ?EndPos, ?Term, ?VarList, ?Error)
 %
@@ -587,16 +737,36 @@ atom_part(Atom, Pos, Len, Sub) :-
 parse_atom(Atom, StartPos, EndPos, Term, VarList, Error) :-
 	setup_call_cleanup(
 	    ( atom_to_memory_file(Atom, MemF),
-	      open(MemF, read, In)
+	      open_memory_file(MemF, read, In)
 	    ),
 	    ( seek(In, StartPos, bof, _),
 	      catch(read_term(In, Term, [variable_names(VarList)]), E,
 		    Error = E),
+	      ignore(Error = 0),
 	      character_count(In, EndPos)
 	    ),
 	    ( close(In),
 	      free_memory_file(MemF)
 	    )).
+
+%%	index(+Atom, +String, -Position)
+%
+%	The predicate index/3  searches  for   the  first  occurrence of
+%	String in Atom. The position at   which  index/3 finds String is
+%	unified with Position If String does  not occur in Atom, index/3
+%	fails.
+
+index(Atom, String, Position) :-
+	sub_string(Atom, Pos0, _, _, String), !,
+        Position is Pos0 + 1.
+
+%%	list_length(+List, ?Length) is det.
+%
+%	The predicate list_length/2 unifies Length   with  the number of
+%	elements in the list.
+
+list_length(List, Length) :-
+	length(List, Length).
 
 
 		 /*******************************
@@ -622,7 +792,7 @@ for(Start, Count, End) :-
 %
 %	FIXME: not really correct
 
-system:(Goal@Module) :-
+(Goal@Module) :-
 	Module:Goal.
 
 %%	prolog_version(-Version)
@@ -633,6 +803,23 @@ prolog_version(Version) :-
 	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
 	atomic_list_concat([Major, Minor, Patch], '.', Version).
 
+%%	proroot(-Path)
+%
+%	from the IF/Prolog documentation
+%	The predicate proroot/1 unifies Path with an atom containing the
+%	installation path of IF/Prolog in the current operation system
+
+proroot(Path) :-
+	current_prolog_flag(home, Path).
+
+%%	system_name(-SystemName)
+%
+%	from the IF/Prolog documentation
+%	The predicate system_name/1 unifies SystemName with an atom
+%	containing the name of the operating system
+
+system_name(SystemName) :-
+	current_prolog_flag(arch, SystemName).
 
 		 /*******************************
 		 *	      DATABASE		*
