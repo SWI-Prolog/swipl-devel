@@ -1679,7 +1679,7 @@ load_files(Module:Files, Options) :-
 
 %%   '$load_file'(+In, +Path, -IsModule, -Module, +Options)
 %
-%   '$load_file'/4 does the actual loading.
+%   '$load_file'/5 does the actual loading.
 
 '$load_file'(In, File, IsModule, Module, Options) :-
 	'$skip_script_line'(In),
