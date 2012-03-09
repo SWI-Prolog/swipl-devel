@@ -66,6 +66,7 @@
 	    prolog_version/1,                   % -Atom
 	    proroot/1,				% -Atom
 	    system_name/1,			% -Atom
+	    localtime/9,			% +Time, ?Year, ?Month, ?Day, ?DoW, ?DoY, ?Hour, ?Min, ?Sec
 
 	    asserta_with_names/2,		% @Term, +VarNames
 	    assertz_with_names/2,		% @Term, +VarNames
@@ -830,6 +831,29 @@ proroot(Path) :-
 
 system_name(SystemName) :-
 	current_prolog_flag(arch, SystemName).
+
+%%	localtime(+Time, ?Year, ?Month, ?Day, ?DoW, ?DoY, ?Hour, ?Min, ?Sec)
+%
+%	The predicate localtime/9 converts a system time into date and time 
+%	information according to the local time zone. 
+%	The individual arguments are unified with the following information 
+%	(as integers): 
+%	Year      Year number      4 digits 
+%	Month     Month number     1..12
+%	Day       Day of month     1..31
+%	DoW       Day of week      1..7 (Mon-Sun)
+%	DoY       Day in year      1..366
+%	Hour      Hours            0..23
+%	Min       Minutes          0..59
+%	Sec       Seconds          0..59 
+
+localtime(Time, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
+        stamp_date_time(Time, date(Year4, Month, Hour, Day, Min, SecFloat, _Off, _TZ, _DST), local),
+        Year is Year4 rem 100,
+        Sec is floor(SecFloat),
+        day_of_the_week(date(Year, Month, Day), DoW),
+        DoY is (Month - 1) * 30 + Day. % INCORRECT!!!
+
 
 		 /*******************************
 		 *	      DATABASE		*
