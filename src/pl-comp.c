@@ -2835,7 +2835,7 @@ takes care of reconsult, redefinition, etc.
       return NULL;
     }
 
-    if ( proc == sf->current_procedure )
+    if ( proc == of->current_procedure )
       return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
 
     if ( def->impl.any )	/* i.e. is (might be) defined */
@@ -2863,7 +2863,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
     }
 
     addProcedureSourceFile(of, proc);
-    sf->current_procedure = proc;
+    of->current_procedure = proc;
     return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
   }
 
