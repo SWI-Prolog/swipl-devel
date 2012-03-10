@@ -1184,11 +1184,14 @@ PRED_IMPL("$input_context", 1, input_context, 0)
   InputContext c = input_context_stack;
 
   for(c=input_context_stack; c; c=c->previous)
-  { if ( !PL_unify_list(tail, head, tail) ||
+  { atom_t file = c->term_file ? c->term_file : ATOM_minus;
+    int line = c->term_file ? c->term_line : 0;
+
+    if ( !PL_unify_list(tail, head, tail) ||
 	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_input3,
 			PL_ATOM, c->type,
-			PL_ATOM, c->term_file,
-			PL_INT,  c->term_line) )
+			PL_ATOM, file,
+			PL_INT,  line) )
       return FALSE;
   }
 

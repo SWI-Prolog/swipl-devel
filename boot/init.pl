@@ -925,7 +925,7 @@ compiling :-
 
 '$source_term'(stream(Id, In), Read, Term, Stream, Parents, Options) :- !,
 	setup_call_cleanup(
-	    '$open_source'(stream(Id, In), In, State, Options),
+	    '$open_source'(stream(Id, In), In, State, Parents, Options),
 	    '$term_in_file'(In, Read, Term, Stream,
 			    [stream(Id)|Parents], Options),
 	    '$close_source'(State)).
@@ -935,7 +935,7 @@ compiling :-
 			     access(read)
 			   ]),
 	setup_call_cleanup(
-	    '$open_source'(Path, In, State, Options),
+	    '$open_source'(Path, In, State, Parents, Options),
 	    '$term_in_file'(In, Read, Term, Stream, [Path|Parents], Options),
 	    '$close_source'(State)).
 
@@ -944,26 +944,33 @@ compiling :-
 :- volatile
 	'$load_input'/2.
 
-'$open_source'(stream(Id, In), In, restore(In, StreamState, Ref), Options) :- !,
-	'$push_input_context'(load_file),
+'$open_source'(stream(Id, In), In,
+	       restore(In, StreamState, Ref), Parents, Options) :- !,
+	'$context_type'(Parents, ContextType),
+	'$push_input_context'(ContextType),
 	'$set_encoding'(In, Options),
 	'$prepare_load_stream'(In, Id, StreamState),
 	asserta('$load_input'(stream(Id), In), Ref).
-'$open_source'(Path, In, close(In, Ref), Options) :-
+'$open_source'(Path, In, close(In, Ref), Parents, Options) :-
 	preprocessor(none, none), !,
-	'$push_input_context'(load_file),
+	'$context_type'(Parents, ContextType),
+	'$push_input_context'(ContextType),
 	open(Path, read, In),
 	'$set_encoding'(In, Options),
 	asserta('$load_input'(Path, In), Ref).
-'$open_source'(Path, In, close(In, Ref), Options) :-
+'$open_source'(Path, In, close(In, Ref), Parents, Options) :-
 	preprocessor(Pre, Pre),
+	'$context_type'(Parents, ContextType),
 	(   '$substitute_atom'('%f', Path, Pre, Command)
-	->  '$push_input_context'(load_file),
+	->  '$push_input_context'(ContextType),
 	    open(pipe(Command), read, In),
 	    '$set_encoding'(In, Options)
 	;   throw(error(domain_error(preprocessor, Pre), _))
 	),
 	asserta('$load_input'(Path, In), Ref).
+
+'$context_type'([], load_file) :- !.
+'$context_type'(_, include).
 
 '$close_source'(close(In, Ref)) :-
 	erase(Ref),
