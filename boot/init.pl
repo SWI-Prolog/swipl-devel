@@ -1393,7 +1393,7 @@ load_files(Module:Files, Options) :-
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
 	memberchk(stream(_), Options), !,
-	'$assert_load_context_module'(File, Module),
+	'$assert_load_context_module'(File, Module, Options),
 	'$qdo_load_file'(File, File, Module, Options).
 '$load_file'(File, Module, Options) :-
 	absolute_file_name(File,
@@ -1401,7 +1401,7 @@ load_files(Module:Files, Options) :-
 			     access(read)
 			   ],
 			   FullFile),
-	'$assert_load_context_module'(FullFile, Module),
+	'$assert_load_context_module'(FullFile, Module, Options),
 	'$mt_load_file'(File, FullFile, Module, Options).
 
 
@@ -1687,6 +1687,7 @@ load_files(Module:Files, Options) :-
 	'$compile_type'(What),
 
 	'$save_lex_state'(LexState),
+	'$set_dialect'(Options),
 	'$load_file'(Absolute, Id, LM, Options),
 	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule).	% Restore old module
@@ -1701,6 +1702,10 @@ load_files(Module:Files, Options) :-
 	'$style_check'(_, Style),
 	set_prolog_flag(emulated_dialect, Dialect).
 
+'$set_dialect'(Options) :-
+	memberchk(dialect(Dialect), Options), !,
+	expects_dialect(Dialect).		% Autoloaded from library
+'$set_dialect'(_).
 
 '$load_id'(stream(Id, _), Id, Modified, Options) :- !,
 	'$modified_id'(Id, Modified, Options).
@@ -1726,33 +1731,41 @@ load_files(Module:Files, Options) :-
 	;   What = 'boot compiled'
 	).
 
-%%	'$load_context_module'(+File, -Module)
+%%	'$load_context_module'(+File, -Module, -Options)
 %
 %	Record the module a file was loaded from (see make/0). The first
 %	clause deals with loading from  another   file.  On reload, this
 %	clause will be discarded by  $start_consult/1. The second clause
 %	deals with reload from the toplevel.   Here  we avoid creating a
 %	duplicate dynamic (i.e., not related to a source) clause.
-%
-%	@tbd	Should also know which predicates are imported!
 
 :- dynamic
-	'$load_context_module'/2.
+	'$load_context_module'/3.
 :- multifile
-	'$load_context_module'/2.
+	'$load_context_module'/3.
 
-'$assert_load_context_module'(File, Module) :-
+'$assert_load_context_module'(File, Module, Options) :-
 	source_location(FromFile, _Line), !,
 	'$check_load_non_module'(File, Module),
-	'$compile_aux_clauses'(system:'$load_context_module'(File, Module),
-			       FromFile).
-'$assert_load_context_module'(File, Module) :-
+	'$add_dialect'(Options, Options1),
+	'$compile_aux_clauses'(
+	     system:'$load_context_module'(File, Module, Options1),
+	     FromFile).
+'$assert_load_context_module'(File, Module, Options) :-
 	'$check_load_non_module'(File, Module),
-	(   clause('$load_context_module'(File, Module), true, Ref),
+	'$add_dialect'(Options, Options1),
+	(   clause('$load_context_module'(File, Module, _), true, Ref),
 	    \+ clause_property(Ref, file(_))
-	->  true
-	;   assertz('$load_context_module'(File, Module))
-	).
+	->  erase(Ref)
+	;   true
+	),
+	assertz('$load_context_module'(File, Module, Options1)).
+
+'$add_dialect'(Options0, Options) :-
+	current_prolog_flag(emulated_dialect, Dialect), Dialect \== swi, !,
+	Options = [dialect(Dialect)|Options0].
+'$add_dialect'(Options, Options).
+
 
 %%	'$check_load_non_module'(+File) is det.
 %
@@ -1762,7 +1775,7 @@ load_files(Module:Files, Options) :-
 '$check_load_non_module'(File, _) :-
 	'$current_module'(_, File), !.		% File is a module file
 '$check_load_non_module'(File, Module) :-
-	'$load_context_module'(File, OldModule),
+	'$load_context_module'(File, OldModule, _),
 	Module \== OldModule, !,
 	format(atom(Msg),
 	       'Non-module file already loaded into module ~w; \c

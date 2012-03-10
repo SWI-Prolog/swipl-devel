@@ -93,8 +93,6 @@ reload([H|T]) :-
 %
 %	Reload file into the proper module.
 %
-%	@bug	If the module was loaded using use_module/2, importing only
-%		some of the predicates, this is not know.
 %	@bug	If modules import each other, we must load them in the
 %		proper order for import/export dependencies.
 
@@ -102,11 +100,13 @@ reload([H|T]) :-
 
 reload_file(File) :-
 	source_base_name(File, Compile),
-	findall(M, source_file_property(File, load_context(M, _)), Modules),
-	(   Modules = [First|Rest]
-	->  load_files(First:Compile),
-	    forall(member(Context, Rest),
-		   load_files(Context:Compile, [if(not_loaded)]))
+	findall(M-Opts,
+		source_file_property(File, load_context(M, _, Opts)),
+		Modules),
+	(   Modules = [First-OptsFirst|Rest]
+	->  load_files(First:Compile, [if(true)|OptsFirst]),
+	    forall(member(Context-Opts, Rest),
+		   load_files(Context:Compile, [if(not_loaded)|Opts]))
 	;   load_files(user:Compile)
 	).
 
