@@ -665,7 +665,7 @@ define_or_generate(Pred) :-
 '$predicate_property'(meta_predicate(Pattern), Pred) :-
 	'$get_predicate_attribute'(Pred, meta_predicate, Pattern).
 '$predicate_property'(file(File), Pred) :-
-	source_file(Pred, File).
+	'$get_predicate_attribute'(Pred, file, File).
 '$predicate_property'(line_count(LineNumber), Pred) :-
 	'$get_predicate_attribute'(Pred, line_count, LineNumber).
 '$predicate_property'(notrace, Pred) :-

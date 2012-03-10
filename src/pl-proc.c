@@ -2260,15 +2260,25 @@ pl_get_predicate_attribute(term_t pred,
       d = 0;
 
     return PL_unify_integer(value, d);
-  } else if ( key == ATOM_line_count )
+  } else if ( key == ATOM_line_count || key == ATOM_file )
   { int line;
+    Clause clause;
 
     if ( false(def, FOREIGN|P_THREAD_LOCAL) &&
 	 def->impl.clauses.first_clause &&
-	 (line=def->impl.clauses.first_clause->value.clause->line_no) )
-      return PL_unify_integer(value, line);
-    else
-      fail;
+	 (clause = def->impl.clauses.first_clause->value.clause) &&
+	 (line=clause->line_no) )
+    { if ( key == ATOM_line_count )
+      { return PL_unify_integer(value, line);
+      } else
+      { SourceFile sf = indexToSourceFile(clause->source_no);
+
+	if ( sf )
+	  return PL_unify_atom(value, sf->name);
+      }
+    }
+
+    return FALSE;
   } else if ( key == ATOM_foreign )
   { return PL_unify_integer(value, true(def, FOREIGN) ? 1 : 0);
   } else if ( key == ATOM_references )
