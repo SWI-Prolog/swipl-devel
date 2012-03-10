@@ -2742,7 +2742,7 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(term_t term, int where, SourceLoc loc ARG_LD)
+assert_term(term_t term, int where, atom_t owner, SourceLoc loc ARG_LD)
 { Clause clause;
   Procedure proc;
   Definition def;
@@ -2806,16 +2806,22 @@ assert_term(term_t term, int where, SourceLoc loc ARG_LD)
   def = getProcDefinition(proc);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If loc is defined, we are called from record_clause/2.  This code takes
-care of reconsult, redefinition, etc.
+If loc is defined, we  are   called  from  '$record_clause'/2. This code
+takes care of reconsult, redefinition, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( loc )
-  { SourceFile sf;
+  { SourceFile sf, of;
 
     sf = lookupSourceFile(loc->file, TRUE);
     clause->line_no   = loc->line;
     clause->source_no = sf->index;
+    if ( owner == loc->file )
+    { of = sf;
+    } else
+    { of = lookupSourceFile(owner, TRUE);
+    }
+    clause->owner_no  = of->index;
 
     if ( def->module != mhead )
     { if ( true(def->module, SYSTEM) )
@@ -2833,7 +2839,7 @@ care of reconsult, redefinition, etc.
       return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
 
     if ( def->impl.any )	/* i.e. is (might be) defined */
-    { if ( !redefineProcedure(proc, sf, 0) )
+    { if ( !redefineProcedure(proc, of, 0) )
       { freeClause(clause);
 	return NULL;
       }
@@ -2856,7 +2862,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
       }
     }
 
-    addProcedureSourceFile(sf, proc);
+    addProcedureSourceFile(of, proc);
     sf->current_procedure = proc;
     return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
   }
@@ -2882,7 +2888,7 @@ static
 PRED_IMPL("assertz", 1, assertz1, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return assert_term(A1, CL_END, NULL PASS_LD) == NULL ? FALSE : TRUE;
+  return assert_term(A1, CL_END, NULL_ATOM, NULL PASS_LD) != NULL;
 }
 
 
@@ -2890,7 +2896,7 @@ static
 PRED_IMPL("asserta", 1, asserta1, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return assert_term(A1, CL_START, NULL PASS_LD) == NULL ? FALSE : TRUE;
+  return assert_term(A1, CL_START, NULL_ATOM, NULL PASS_LD) != NULL;
 }
 
 
@@ -2910,7 +2916,7 @@ PRED_IMPL("assertz", 2, assertz2, PL_FA_TRANSPARENT)
 
   if ( !mustBeVar(A2 PASS_LD) )
     fail;
-  if ( !(clause = assert_term(A1, CL_END, NULL PASS_LD)) )
+  if ( !(clause = assert_term(A1, CL_END, NULL_ATOM, NULL PASS_LD)) )
     fail;
 
   return PL_unify_clref(A2, clause);
@@ -2924,47 +2930,55 @@ PRED_IMPL("asserta", 2, asserta2, PL_FA_TRANSPARENT)
 
   if ( !mustBeVar(A2 PASS_LD) )
     fail;
-  if ( !(clause = assert_term(A1, CL_START, NULL PASS_LD)) )
+  if ( !(clause = assert_term(A1, CL_START, NULL_ATOM, NULL PASS_LD)) )
     fail;
 
   return PL_unify_clref(A2, clause);
 }
 
 
+/** '$record_clause'(+Term, +Owner, +Source)
+    '$record_clause'(+Term, +Owner, +Source, -Ref)
+
+Compile a clause from loading a file. Term is the clause to be compiled.
+Source defines the origin of the clause.
+
+*/
+
 static int
-record_clause(term_t term, term_t file, term_t ref ARG_LD)
+record_clause(term_t term, term_t owner, term_t source, term_t ref ARG_LD)
 { Clause clause;
   sourceloc loc;
+  atom_t a_owner;
+  atom_t a;
 
-  if ( PL_get_atom(file, &loc.file) )	/* just the name of the file */
-  { loc.line = source_line_no;
-  } else if ( PL_is_functor(file, FUNCTOR_colon2) )
+  if ( !PL_get_atom_ex(owner, &a_owner) )
+    return FALSE;
+
+  if ( PL_get_atom(source, &a) && a == ATOM_minus )
+  { loc.file = source_file_name;
+    loc.line = source_line_no;
+  } else if ( PL_is_functor(source, FUNCTOR_colon2) )
   { term_t arg = PL_new_term_ref();	/* file:line */
 
-    _PL_get_arg(1, file, arg);
+    _PL_get_arg(1, source, arg);
     if ( !PL_get_atom_ex(arg, &loc.file) )
-      fail;
-    _PL_get_arg(2, file, arg);
+      return FALSE;
+    _PL_get_arg(2, source, arg);
     if ( !PL_get_integer_ex(arg, &loc.line) )
-      fail;
+      return FALSE;
+  } else
+  { return PL_type_error("source-location", source);
   }
 
-  if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
+  if ( (clause = assert_term(term, CL_END, a_owner, &loc PASS_LD)) )
   { if ( ref )
       return PL_unify_clref(ref, clause);
     else
       return TRUE;
   }
 
-  fail;
-}
-
-
-static
-PRED_IMPL("$record_clause", 2, record_clause, 0)
-{ PRED_LD
-
-  return record_clause(A1, A2, 0 PASS_LD);
+  return FALSE;
 }
 
 
@@ -2972,7 +2986,15 @@ static
 PRED_IMPL("$record_clause", 3, record_clause, 0)
 { PRED_LD
 
-  return record_clause(A1, A2, A3 PASS_LD);
+  return record_clause(A1, A2, A3, 0 PASS_LD);
+}
+
+
+static
+PRED_IMPL("$record_clause", 4, record_clause, 0)
+{ PRED_LD
+
+  return record_clause(A1, A2, A3, A4 PASS_LD);
 }
 
 
@@ -5872,8 +5894,8 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 #define NDET PL_FA_NONDETERMINISTIC
 
 BeginPredDefs(comp)
-  PRED_DEF("$record_clause", 2, record_clause, 0)
   PRED_DEF("$record_clause", 3, record_clause, 0)
+  PRED_DEF("$record_clause", 4, record_clause, 0)
   PRED_DEF("$start_aux", 2, start_aux, 0)
   PRED_DEF("$end_aux", 2, end_aux, 0)
   PRED_DEF("assert",  1, assertz1, META)

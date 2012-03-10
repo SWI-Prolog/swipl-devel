@@ -2265,7 +2265,7 @@ load_files(Module:Files, Options) :-
 		*        COMPILE A CLAUSE       *
 		*********************************/
 
-%%	'$store_clause'(+Clause, +TermId) is det.
+%%	'$store_clause'(+Clause, +SourceId) is det.
 %
 %	Store a clause into the database.
 
@@ -2273,15 +2273,15 @@ load_files(Module:Files, Options) :-
 	print_message(error, cannot_redefine_comma),
 	fail.
 '$store_clause'(Term, File) :-
-	'$clause_source'(Term, Clause, File, SrcLoc),
+	'$clause_source'(Term, Clause, SrcLoc),
 	(   '$compilation_mode'(database)
-	->  '$record_clause'(Clause, SrcLoc)
-	;   '$record_clause'(Clause, SrcLoc, Ref),
+	->  '$record_clause'(Clause, File, SrcLoc)
+	;   '$record_clause'(Clause, File, SrcLoc, Ref),
 	    '$qlf_assert_clause'(Ref, development)
 	).
 
-'$clause_source'('$source_location'(File,Line):Clause, Clause, _, File:Line) :- !.
-'$clause_source'(Clause, Clause, File, File).
+'$clause_source'('$source_location'(File,Line):Clause, Clause, File:Line) :- !.
+'$clause_source'(Clause, Clause, -).
 
 
 %%	compile_aux_clauses(+Clauses) is det.

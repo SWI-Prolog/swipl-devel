@@ -982,7 +982,7 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
   for(c = def->impl.clauses.first_clause; c; c = c->next)
   { Clause cl = c->value.clause;
 
-    if ( (sfindex == 0 || sfindex == cl->source_no) &&
+    if ( (sfindex == 0 || sfindex == cl->owner_no) &&
 	 (!fromfile || cl->line_no > 0) &&
 	 false(cl, ERASED) )
     { set(cl, ERASED);
@@ -2535,6 +2535,11 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 
     if ( sf )
       return PL_unify_atom(value, sf->name);
+  } else if ( a == ATOM_owner )
+  { SourceFile sf = indexToSourceFile(clause->owner_no);
+
+    if ( sf )
+      return PL_unify_atom(value, sf->name);
   } else if ( a == ATOM_fact )
   { return PL_unify_atom(value,
 			 true(clause, UNIT_CLAUSE) ? ATOM_true
@@ -2742,6 +2747,9 @@ delModuleSourceFile(SourceFile sf, Module m)
 }
 
 
+/* Sf is the `owning' source-file
+*/
+
 int
 redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 { GET_LD
@@ -2761,7 +2769,7 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
     def = getProcDefinition__LD(def PASS_LD);
     first = hasClausesDefinition(def);
 
-    if ( first && first->value.clause->source_no == sf->index )
+    if ( first && first->value.clause->owner_no == sf->index )
     { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, DISCONTIGUOUS) )
 	printMessage(ATOM_warning,

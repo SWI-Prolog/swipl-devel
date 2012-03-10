@@ -732,6 +732,9 @@ hidden_system_predicate(_:Head) :-
 %	    Line from which the clause is loaded.
 %	    * file(-File)
 %	    File from which the clause is loaded.
+%	    * owner(-File)
+%	    File that `owns' the clause: reloading this file wipes
+%	    the clause.
 %	    * fact
 %	    Clause has body =true=.
 %	    * erased
@@ -744,6 +747,8 @@ clause_property(Clause, Property) :-
 	'$get_clause_attribute'(Clause, line_count, LineNumber).
 '$clause_property'(file(File), Clause) :-
 	'$get_clause_attribute'(Clause, file, File).
+'$clause_property'(owner(File), Clause) :-
+	'$get_clause_attribute'(Clause, owner, File).
 '$clause_property'(fact, Clause) :-
 	'$get_clause_attribute'(Clause, fact, true).
 '$clause_property'(erased, Clause) :-

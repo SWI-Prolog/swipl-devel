@@ -2136,6 +2136,9 @@ writeWicTrailer(wic_state *state)
   succeed;
 }
 
+/* FIXME: Deal with owner/real location in saved state
+*/
+
 static bool
 addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
 { Clause clause;
@@ -2144,7 +2147,7 @@ addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
   loc.file = file;
   loc.line = source_line_no;
 
-  if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
+  if ( (clause = assert_term(term, CL_END, file, &loc PASS_LD)) )
   { openProcedureWic(state, clause->procedure, ATOM_development PASS_LD);
     saveWicClause(state, clause);
 
