@@ -2829,7 +2829,7 @@ pl_source_file(term_t descr, term_t file, control_t h)
     { if ( !proc->definition ||
 	   true(proc->definition, FOREIGN|P_THREAD_LOCAL) ||
 	   !(cref = proc->definition->impl.clauses.first_clause) ||
-	   !(sf = indexToSourceFile(cref->value.clause->source_no)) ||
+	   !(sf = indexToSourceFile(cref->value.clause->owner_no)) ||
 	   sf->count == 0 )
 	fail;
 
