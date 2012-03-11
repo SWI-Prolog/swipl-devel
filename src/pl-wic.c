@@ -70,6 +70,7 @@ Below is an informal description of the format of a `.qlf' file:
 			<version-number>
 			<bits-per-word>
 			'F' <string>			% path of qlf file
+			{'I' <include>}
 			'Q' <qlf-part>
 <qlf-magic>	::=	<string>
 <qlf-module>	::=	<qlf-header>
@@ -141,6 +142,7 @@ Below is an informal description of the format of a `.qlf' file:
 <codes>		::=	<num> {<code>}
 <string>	::=	{<non-zero byte>} <0>
 <word>		::=	<4 byte entity>
+<include>	::=	<owner> <parent> <line> <file> <time>
 
 Numbers are stored in  a  packed  format  to  reduce  the  size  of  the
 intermediate  code  file  as  99%  of  them  is  normally  small, but in
@@ -1489,6 +1491,42 @@ loadInModule(wic_state *state, int skip ARG_LD)
 }
 
 
+static bool
+loadInclude(wic_state *state ARG_LD)
+{ IOSTREAM *fd = state->wicFd;
+  atom_t owner, pn, fn;
+  int line;
+  double time;
+  fid_t fid = PL_open_foreign_frame();
+  term_t t = PL_new_term_ref();
+  sourceloc loc;
+
+  owner = loadXR(state);
+  pn    = loadXR(state);
+  line  = getInt(fd);
+  fn    = loadXR(state);
+  time  = getFloat(fd);
+
+  if ( !PL_unify_term(t,
+		      PL_FUNCTOR, FUNCTOR_colon2,
+			PL_ATOM, ATOM_system,
+			PL_FUNCTOR_CHARS, "$included", 4,
+			  PL_ATOM, pn,
+			  PL_INT, line,
+			  PL_ATOM, fn,
+			  PL_FLOAT, time) )
+    return FALSE;
+
+  loc.file = pn;
+  loc.line = line;
+
+  assert_term(t, CL_END, owner, &loc PASS_LD);
+
+  PL_discard_foreign_frame(fid);
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *	WRITING .QLF FILES	*
 		 *******************************/
@@ -2534,10 +2572,24 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
 
   pushPathTranslation(state, absloadname, 0);
   state->load_state->saved_version = lversion;
-  if ( Qgetc(fd) != 'Q' )
-    return qlfLoadError(state);
 
   pushXrIdTable(state);
+  for(;;)
+  { int c = Qgetc(fd);
+
+    switch(c)
+    { case 'Q':
+        break;
+      case 'I':
+	loadInclude(state PASS_LD);
+        continue;
+      default:
+	qlfLoadError(state);
+    }
+
+    break;
+  }
+
   rval = loadPart(state, module, FALSE PASS_LD);
   popXrIdTable(state);
   popPathTranslation(state);
@@ -2696,6 +2748,51 @@ PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
   }
 
   succeed;
+}
+
+
+static
+PRED_IMPL("$qlf_current_source", 1, qlf_current_source, 0)
+{ PRED_LD
+  wic_state *state;
+  SourceFile sf;
+
+  if ( (state=LD->qlf.current_state) &&
+       (sf = state->currentSource) )
+  { return PL_unify_atom(A1, sf->name);
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("$qlf_include", 5, qlf_include, 0)
+{ PRED_LD
+  atom_t owner, pn, fn;
+  int line;
+  double time;
+  wic_state *state;
+
+  if ( PL_get_atom_ex(A1, &owner) &&
+       PL_get_atom_ex(A2, &pn) &&
+       PL_get_integer_ex(A3, &line) &&
+       PL_get_atom_ex(A4, &fn) &&
+       PL_get_float(A5, &time) &&
+       (state=LD->qlf.current_state) )
+  { IOSTREAM *fd = state->wicFd;
+
+    Sputc('I', fd);
+    putAtom(state, owner);
+    putAtom(state, pn);
+    putNum(line, fd);
+    putAtom(state, fn);
+    putFloat(time, fd);
+
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -3147,6 +3244,8 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_start_module",	    1, qlf_start_module,     0)
   PRED_DEF("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
   PRED_DEF("$qlf_start_file",	    1, qlf_start_file,	     0)
+  PRED_DEF("$qlf_current_source",   1, qlf_current_source,   0)
+  PRED_DEF("$qlf_include",          5, qlf_include,          0)
   PRED_DEF("$qlf_end_part",	    0, qlf_end_part,	     0)
   PRED_DEF("$qlf_open",		    1, qlf_open,	     0)
   PRED_DEF("$qlf_close",	    0, qlf_close,	     0)

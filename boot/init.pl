@@ -1033,13 +1033,31 @@ compiling :-
 :- dynamic
 	'$included'/4.
 
-'$record_included'([Parent|_], File) :-
+%%	'$record_included'(+Parents, +File) is det.
+%
+%	Record that we included File into the   head of Parents. This is
+%	troublesome when creating a QLF  file   because  this may happen
+%	before we opened the QLF file (and  we   do  not yet know how to
+%	open the file because we  do  not   yet  know  whether this is a
+%	module file or not).
+%
+%	I think that the only sensible  solution   is  to have a special
+%	statement for this, that may appear  both inside and outside QLF
+%	`parts'.
+
+'$record_included'([], _).
+'$record_included'([Parent|Parents], File) :-
 	source_location(_, Line), !,
 	time_file(File, Time),
-	'$compile_aux_clauses'(
-	     system:'$included'(Parent, Line, File, Time),
-	     Parent).
-'$record_included'(_, _).
+	'$last'([Parent|Parents], Owner),
+	(   (   '$compilation_mode'(database)
+	    ;	'$qlf_current_source'(Owner)
+	    )
+	->  '$compile_aux_clauses'(
+	        system:'$included'(Parent, Line, File, Time),
+		Owner)
+	;   '$qlf_include'(Owner, Parent, Line, File, Time)
+	).
 
 '$skip_script_line'(In) :-
 	(   peek_char(In, #)
