@@ -934,6 +934,7 @@ compiling :-
 			   [ file_type(prolog),
 			     access(read)
 			   ]),
+	'$record_included'(Parents, Path),
 	setup_call_cleanup(
 	    '$open_source'(Path, In, State, Parents, Options),
 	    '$term_in_file'(In, Read, Term, Stream, [Path|Parents], Options),
@@ -985,7 +986,6 @@ compiling :-
 
 
 '$term_in_file'(In, Read, Term, Stream, Parents, Options) :-
-	'$record_included'(Parents),
 	'$skip_script_line'(In),
 	repeat,
 	  '$read_clause'(In, Raw),
@@ -1033,13 +1033,13 @@ compiling :-
 :- dynamic
 	'$included'/4.
 
-'$record_included'([File,Parent|_]) :-
+'$record_included'([Parent|_], File) :-
 	source_location(_, Line), !,
 	time_file(File, Time),
 	'$compile_aux_clauses'(
 	     system:'$included'(Parent, Line, File, Time),
 	     Parent).
-'$record_included'(_).
+'$record_included'(_, _).
 
 '$skip_script_line'(In) :-
 	(   peek_char(In, #)
