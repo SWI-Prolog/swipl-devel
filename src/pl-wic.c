@@ -109,7 +109,11 @@ Below is an informal description of the format of a `.qlf' file:
 			    'X'
 <flags>		::=	<num>				% Bitwise or of PRED_*
 <clause>	::=	'C' <#codes>
-			    <line_no> <# var>
+			    <line_no>
+			    <owner_file>
+			    <source_file>
+			    <# prolog vars> <# vars>
+			    <is_fact>			% 0 or 1
 			    <#n subclause> <codes>
 		      | 'X'				% end of list
 <XR>		::=	XR_REF     <num>		% XR id from table
@@ -150,8 +154,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 61			/* load all versions later >= X */
-#define VERSION 61			/* save version number */
+#define LOADVERSION 62			/* load all versions later >= X */
+#define VERSION 62			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -1072,13 +1076,16 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
-	{ SourceFile sf = (void *) loadXR(state);
+	{ SourceFile of = (void *) loadXR(state);
+	  SourceFile sf = (void *) loadXR(state);
+	  int ono = (of ? of->index : 0);
 	  int sno = (sf ? sf->index : 0);
 
+	  clause->owner_no = ono;
 	  clause->source_no = sno;
-	  if ( sf && sf != csf )
+	  if ( of && of != csf )
 	  { addProcedureSourceFile(sf, proc);
-	    csf = sf;
+	    csf = of;
 	  }
 	}
 
@@ -1928,6 +1935,7 @@ saveWicClause(wic_state *state, Clause clause)
   Sputc('C', fd);
   putNum(clause->code_size, fd);
   putNum(clause->line_no, fd);
+  saveXRSourceFile(state, indexToSourceFile(clause->owner_no) PASS_LD);
   saveXRSourceFile(state, indexToSourceFile(clause->source_no) PASS_LD);
   putNum(clause->prolog_vars, fd);
   putNum(clause->variables, fd);
