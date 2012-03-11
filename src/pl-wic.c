@@ -174,7 +174,7 @@ bits) as well as machines with different byte order.
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
 
-static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
+static char saveMagic[] = "SWI-Prolog state (www.swi-prolog.org)\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
 
 typedef struct source_mark
