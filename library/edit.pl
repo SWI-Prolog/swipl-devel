@@ -99,6 +99,9 @@ edit :-
 
 %%	locate(+Spec, -FullSpec, -Location)
 
+locate(FileSpec:Line, file(Path, line(Line)), [file(Path), line(Line)]) :-
+	integer(Line), Line >= 1, ground(FileSpec),
+	locate(FileSpec, _, [file(Path)]).
 locate(Path, file(Path), [file(Path)]) :-
 	atom(Path),
 	exists_file(Path),
