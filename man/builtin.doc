@@ -251,6 +251,11 @@ Indicate that the loaded file is derived from \arg{File}.  Used by
 make/0 to time-check and load the original file rather than the derived
 file.
 
+    \termitem{dialect}{+Dialect}
+Loads \arg{Files} with enhanced compatibility with the target Prolog
+system identified by \arg{Dialect}.  See expects_dialect/1 and
+\secref{dialect} for details.
+
     \termitem{encoding}{Encoding}
 Specify the way characters are encoded in the file.  Default is taken
 from the Prolog flag \prologflag{encoding}.  See \secref{encoding} for
@@ -632,12 +637,13 @@ following keys are defined:
 \bf Key               & \bf Description \\
 \hline
 \const{module}        & Module into which file is loaded \\
-\const{source}        & File loaded.  Returns the original Prolog file
-			when loading a \fileext{qlf} file. Compatible
-			with SICStus Prolog. \\
-\const{file}          & Currently equivalent to \const{source}.  In future
-			versions it may report a different values for
-			files being loaded using include/1. \\
+\const{source}        & File being loaded.  If the system is processing an
+			included file, the value is the \emph{main} file.
+			Returns the original Prolog file when loading a
+			\fileext{qlf} file. \\
+\const{file}          & Similar to \const{source}, but returns the file
+			being included when called while an include file
+			is being processed. \\
 \const{stream}        & Stream identifier (see current_input/1) \\
 \const{directory}     & Directory in which \const{source} lives. \\
 \const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
