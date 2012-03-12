@@ -396,11 +396,53 @@ Equivalent to load_files(Files, [if(not_loaded)]).%
 		  predicate deals with updating the running system
 		  after changing the source code.}
 
-    \predicate{include}{1}{+File}
-Pretend the terms in \arg{File} are in the source-file in which
-\exam{:- include(File)} appears.  The include construct is only
-honoured if it appears as a directive in a source-file.  Normally
-\arg{File} contains a sequence of directives.
+    \predicate[ISO]{include}{1}{+File}
+Textually include the content of \arg{File} in the file in which the
+\jargon{directive} \exam{:- include(File).} appears. The include
+construct is only honoured if it appears as a directive in a
+source-file. \jargon{Textual} include (similar to C/C++ \#include) is
+obviously useful for sharing declarations such as dynamic/1 or
+multifile/1 by including a file with directives from multiple files that
+use these predicates.
+
+Textual including files that contain clauses is less obvious. Normally,
+in SWI-Prolog, clauses are \emph{owned} by the file in which they are
+defined. This information is used to \emph{replace} the old definition
+after the file has beeen modified and is reloaded by e.g., make/0. As we
+understand it, include/1 is intended to include the same file multiple
+times. Including a file holding clauses multiple times into the same
+module is rather meaningless as is just duplicates the same clauses.
+Including a file holding clauses in multiple modules does not suffer
+from this problem, but leads to multiple equivalent \emph{copies} of
+predicates. Using use_module/1 can achieve the same result, while
+\emph{sharing} the predicates.
+
+Despite these observations, various projects seem to be using include/1
+to load files holding clauses, typically loading them only once. Such
+usage would allow replacement by e.g., consult/1. Unfortunately, the
+same project might use include/1 to share directives. Another example of
+a limitation of mapping to consult/1 is that if the clause of a
+predicate are distributed over two included files, discontiguous/2 is
+appropriate, while if they are distributed over two consulted files one
+must use multifile/1.
+
+Two accomodate included files holding clauses, SWI-Prolog distinguishes
+between the source location of a clause (in this cased the included
+file) and the \jargon{owner} of a clause (the file that includes the
+file holding the clause).  The source location is used for e.g., edit/1,
+the graphical tracer, etc., while the owner is used to determine which
+clauses are removed if the file is modified.  Relevant information is
+found with the following predicates.
+
+    \begin{itemize}
+
+    \item source_file/2 describes the owner relation.
+    \item predicate_property/2 describes the source location (of the
+          first clause).
+    \item clause_property/2 provides access to both source and ownership.
+    \item source_file_property/2 can be used to query include relationships
+          between files.
+<    \end{itemize}
 
     \predicate{require}{1}{+ListOfNameAndArity}
 Declare that this file/module requires the specified predicates to be
@@ -521,7 +563,10 @@ Is true if the predicate specified by \arg{Pred} was loaded from file
 \arg{File}, where \arg{File} is an absolute path name (see
 absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
-See also clause_property/2.
+See also clause_property/2.  Note that the relation between files
+and predicates is more complicated if include/1 is used.  The predicate
+describes the \jargon{owner} of the predicate.  See include/1 for
+details.
 
     \predicate{source_file_property}{2}{?File, ?Property}
 Is true when \arg{Property} is a property of the loaded file \arg{File}.
@@ -544,14 +589,16 @@ at the time it was included.
 \arg{File} was included into \arg{MasterFile} from line \arg{Line}. This
 is the inverse of the \const{includes} property.
 
-	\termitem{load_context}{Module, Location}
+	\termitem{load_context}{Module, Location, Options}
 \arg{Module} is the module into which the file was loaded. If \arg{File}
 is a module, this is the module into which the exports are imported.
 Otherwise it is the module into which the clauses of the non-module
 file are loaded.  \arg{Location} describes the file-location from which
 the file was loaded.  It is either a term <file>:<line> or the atom
 \const{user} if the file was loaded from the terminal or another unknown
-source.
+source. \arg{Options} are the options passed to load_files/2. Note that
+all predicates to load files are mapped to load_files/2, using the
+option argument to specify the exact behaviour.
 
 	\termitem{modified}{Stamp}
 File-modification time when \arg{File} was loaded.  This is used by
