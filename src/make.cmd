@@ -6,9 +6,9 @@ SETLOCAL
 call call_vcvars.cmd
 
 rem Build default multi-threaded version
-nmake /f makefile.mak %* || exit 1
+nmake /f makefile.mak %*
 
 rem Build for multi-threading and debugging
-rem nmake DBG=true /f makefile.mak %* || exit 1
+rem nmake DBG=true /f makefile.mak %*
 
 ENDLOCAL
