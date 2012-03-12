@@ -75,6 +75,11 @@
 	    retract_with_names/2,		% ?Clause, ?VarNames
 	    predicate_type/2,			% @Predicate, ?Type
 
+	    current_global/1,			% +Name
+	    get_global/2,			% +Name, ?Value
+	    set_global/2,			% +Name, ?Value
+	    unset_global/1,			% +Name
+
 	    op(1150, fx, (meta)),
 	    op(1150, fx, (export)),
 	    op(100, xfx, @),
@@ -865,6 +870,52 @@ localtime(Time, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
         Sec is floor(SecFloat),
         day_of_the_week(date(Year, Month, Day), DoW),
         DoY is (Month - 1) * 30 + Day. % INCORRECT!!!
+
+
+%%	current_global(+Name)
+%
+%	The predicate current_global/1 unifies Name by backtracking with all 
+%	the global variables defined in the calling module or in the specified 
+%	Module. The predicate current_global/1 succeeds by backtracking for 
+%	all the global variables which were defined at the time of the first 
+%	call, even if they have since been deleted or if other associations 
+%	have been added (logic update view). 
+
+current_global(Name) :- 
+	nb_current(Name, _).
+
+%%	get_global(+Name, ?Value)
+%
+%	The predicate get_global/2 unifies Value with the topmost element of 
+%	the value stack of the global variable Name in the calling module or 
+%	in the specified Module. The value remains the topmost element in the 
+%	value stack of global variable Name. If the global variable Name is 
+%	defined with set_global/2, then its value stack comprises just this 
+%	one value. 
+
+get_global(Name, Value) :-
+	nb_getval(Name, Value).	
+
+%%	set_global(+Name, ?Value
+%
+%	The predicate set_global/2 sets the global variable Name in the 
+%	calling module or in the specified Module to the given Value. If the 
+%	global variable Name does not exist, it is created. If the global 
+%	variable Name has a value stack, all previous values are removed from 
+%	the stack, thus making Value the only value in the stack. 
+
+set_global(Name, Value) :-
+	nb_setval(Name, Value).
+
+%%	unset_global(+Name)
+%
+%	The predicate unset_global/1 deletes the global variable Name in the 
+%	calling module or in the specified Module. The predicate 
+%	unset_global/1 will succeed even if no global variable called Name 
+%	exists.
+
+unset_global(Name) :-
+	nb_delete(Name).
 
 
 		 /*******************************
