@@ -2934,12 +2934,20 @@ Queries properties of a clause.  \arg{ClauseRef} is a reference to a
 clause as produced by clause/3, nth_clause/3 or prolog_frame_attribute/3.
 \arg{Property} is one of the following:
 \begin{description}
+
     \termitem{file}{FileName}
-Unify \arg{FileName} with the name of the source file in which the
-clause is defined.   Fails if the clause is not associated to a file.
+Unify \arg{FileName} with the name of the file in which the clause
+textually appears. Fails if the clause is created by loading a file
+(e.g., clauses added using assertz/1).  See also \const{source}.
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the clause.  Fails if
 the clause is not associated to a file.
+    \termitem{source}{FileName}
+Unify \arg{FileName} with the name of the source file that created
+the clause.  This is the same as the \const{file} property, unless the
+file is loaded from a file that is textually included into source using
+include/1.  In this scenario, \conts{file} is the included file, while
+the \const{source} property refers to the \jargon{main} file.
     \termitem{fact}{}
 True if the clause has no body.
     \termitem{erased}{}
