@@ -936,17 +936,17 @@ compiling :-
 	    '$open_source'(stream(Id, In), In, State, Parents, Options),
 	    '$term_in_file'(In, Read, Term, Stream,
 			    [stream(Id)|Parents], Options),
-	    '$close_source'(State)).
+	    '$close_source'(State, true)).
 '$source_term'(File, Read, Term, Stream, Parents, Options) :-
 	absolute_file_name(File, Path,
 			   [ file_type(prolog),
 			     access(read)
 			   ]),
-	'$record_included'(Parents, File, Path),
+	'$record_included'(Parents, File, Path, Message),
 	setup_call_cleanup(
 	    '$open_source'(Path, In, State, Parents, Options),
 	    '$term_in_file'(In, Read, Term, Stream, [Path|Parents], Options),
-	    '$close_source'(State)).
+	    '$close_source'(State, Message)).
 
 :- thread_local
 	'$load_input'/2.
@@ -981,16 +981,22 @@ compiling :-
 '$context_type'([], load_file) :- !.
 '$context_type'(_, include).
 
-'$close_source'(close(In, Ref)) :-
+'$close_source'(close(In, Ref), Message) :-
 	erase(Ref),
 	call_cleanup(
 	    close(In),
-	    '$pop_input_context').
-'$close_source'(restore(In, StreamState, Ref)) :-
+	    '$pop_input_context'),
+	'$close_message'(Message).
+'$close_source'(restore(In, StreamState, Ref), Message) :-
 	erase(Ref),
 	call_cleanup(
 	    '$restore_load_stream'(In, StreamState),
-	    '$pop_input_context').
+	    '$pop_input_context'),
+	'$close_message'(Message).
+
+'$close_message'(message(Level, Msg)) :- !,
+	'$print_message'(Level, Msg).
+'$close_message'(_).
 
 
 '$term_in_file'(In, Read, Term, Stream, Parents, Options) :-
@@ -1053,7 +1059,9 @@ compiling :-
 %	statement for this, that may appear  both inside and outside QLF
 %	`parts'.
 
-'$record_included'([Parent|Parents], File, Path) :-
+'$record_included'([Parent|Parents], File, Path,
+		   message(informational,
+			   include_file(done(Level, file(File, Path))))) :-
 	source_location(_, Line), !,
 	'$compilation_level'(Level),
 	'$print_message'(informational,
@@ -1069,7 +1077,7 @@ compiling :-
 		Owner)
 	;   '$qlf_include'(Owner, Parent, Line, Path, Time)
 	).
-'$record_included'(_, _, _).
+'$record_included'(_, _, _, true).
 
 '$skip_script_line'(In) :-
 	(   peek_char(In, #)
