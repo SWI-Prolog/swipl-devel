@@ -446,15 +446,10 @@ user_parameters(Argv) :-
 
 %%	match(+Mask, +Atom) is semidet.
 %
-%	Matched  to  wildcard_match/2,  but  the  latter  also  supports
-%	=|[a-z]|= and =|{p1,p2,...}|=. Checks the the existence of [ and
-%	{ in the pattern. Could be mapped   to  match/3, which is slower
-%	but correct.
+%	Same as once(match(Mask, Atom, _Replacements)).
 
 match(Mask, Atom) :-
-	assertion(\+sub_atom(Mask, _, _, _, '[')),
-	assertion(\+sub_atom(Mask, _, _, _, '{')),
-	wildcard_match(Mask, Atom).
+	match(Mask, Atom, _), !.
 
 %%	match(+Mask, +Atom, ?Replacements) is nondet.
 %
