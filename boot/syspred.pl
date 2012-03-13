@@ -449,7 +449,7 @@ prolog_load_context(file, F) :-
 prolog_load_context(source, F) :-	% SICStus compatibility
 	source_location(F0, _),
 	'$input_context'(Context),
-	top_file(Context, F0, F).
+	'$top_file'(Context, F0, F).
 prolog_load_context(stream, S) :-
 	source_location(F, _),
 	(   system:'$load_input'(F, S0)
@@ -468,10 +468,6 @@ prolog_load_context(script, Bool) :-
 	->  Bool = true
 	;   Bool = false
 	).
-
-top_file([input(include, F1, _)|T], _, F) :- !,
-	top_file(T, F1, F).
-top_file(_, F, F).
 
 %%	unload_file(+File) is det.
 %

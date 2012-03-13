@@ -291,13 +291,13 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 %	    state.
 
 initialization(Goal, When) :-
-	'$initialization_context'(Ctx),
+	'$initialization_context'(Source, Ctx),
 	(   When == now
 	->  Goal,
 	    assert('$init_goal'(-, Goal, Ctx))
 	;   When == after_load
-	->  (   Ctx = File:_Line
-	    ->	assert('$init_goal'(File, Goal, Ctx))
+	->  (   Source \== (-)
+	    ->	assert('$init_goal'(Source, Goal, Ctx))
 	    ;	throw(error(context_error(nodirective,
 					  initialization(Goal, after_load)),
 			    _))
@@ -323,11 +323,19 @@ initialization(Goal, When) :-
 	;   true
 	).
 
-'$initialization_context'(Ctx) :-
+'$initialization_context'(Source, Ctx) :-
 	(   source_location(File, Line)
-	->  Ctx = File:Line
-	;   Ctx = (-)
+	->  Ctx = File:Line,
+	    '$input_context'(Context),
+	    '$top_file'(Context, File, Source)
+	;   Ctx = (-),
+	    File = (-)
 	).
+
+'$top_file'([input(include, F1, _)|T], _, F) :- !,
+	'$top_file'(T, F1, F).
+'$top_file'(_, F, F).
+
 
 '$initialization_error'(E, Goal, Ctx) :-
 	print_message(error, initialization_error(Goal, E, Ctx)).
