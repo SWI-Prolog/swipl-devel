@@ -122,7 +122,11 @@ bugs@swi-prolog.org.
 	assertz_with_names(:, +),
 	clause_with_names(:, -, -),
 	retract_with_names(:, -),
-	predicate_type(:, -).
+	predicate_type(:, -),
+	current_global(:),
+	get_global(:, -),
+	set_global(:, +),
+	unset_global(:).
 
 
 		 /*******************************
@@ -380,7 +384,10 @@ calling_context(Context) :-
 
 %%	context(:Goal, +Mapping)
 %
+%	IF/Prolog context/2 construct. This is  the true predicate. This
+%	is normally mapped by goal-expansion.
 %
+%	@bug	Does not deal with IF/Prolog signal mapping
 
 context(M:Goal, Mapping) :-
 	member(Error => Action, Mapping),
@@ -429,7 +436,8 @@ debug_mode(_, _, on).
 
 %%	ifprolog_debug(:Goal)
 %
-%	Map IF/Prolog debug(Goal)@Module
+%	Map IF/Prolog debug(Goal)@Module. This should  run Goal in debug
+%	mode. We rarely needs this type of measures in SWI-Prolog.
 
 ifprolog_debug(Goal) :-
 	Goal.
@@ -590,11 +598,7 @@ assign_alias(Alias, Stream) :-
 
 %%	writeq_atom(+Term, -Atom)
 %
-%	The predicate writeq_atom/2 converts Term   into an atom, taking
-%	the operator definitions into account,   and  unifies the result
-%	with Atom. Conversion to an atom   occurs as with writeq/1, i.e.
-%	special characters in atoms  are   handled  according  to Prolog
-%	syntax rules.
+%	Use writeq/1 to write Term to Atom.
 
 writeq_atom(Term, Atom) :-
 	with_output_to(atom(Atom), writeq(Term)).
@@ -719,10 +723,11 @@ atom_part(Atom, Pos, Len, Sub) :-
 
 %%	atom_prefix(+Atom, +Len, -Sub) is det.
 %
-%	Unifies Sub with the atom formed by the first Len characters in
+%	Unifies Sub with the atom formed by  the first Len characters in
 %	atom.
-%	If Len < 1, Sub is unified with the null atom ''.
-%	If Len > length of Atom, Sub is unified with Atom.
+%
+%	 - If Len < 1, Sub is unified with the null atom ''.
+%	 - If Len > length of Atom, Sub is unified with Atom.
 
 atom_prefix(_, Len, Sub) :-
 	Len < 1, !,
@@ -736,10 +741,11 @@ atom_prefix(Atom, Len, Sub) :-
 
 %%	atom_suffix(+Atom, +Len, -Sub) is det.
 %
-%	Unifies Sub with the atom formed by the last Len characters in
+%	Unifies Sub with the atom formed by   the last Len characters in
 %	atom.
-%	If Len < 1, Sub is unified with the null atom ''.
-%	If Len > length of Atom, Sub is unified with Atom.
+%
+%	  - If Len < 1, Sub is unified with the null atom ''.
+%	  - If Len > length of Atom, Sub is unified with Atom.
 
 atom_suffix(_, Len, Sub) :-
 	Len < 1, !,
@@ -755,9 +761,7 @@ atom_suffix(Atom, Len, Sub) :-
 
 %%	atom_split( +Atom, +Delimiter, ?Subatoms )
 %
-%	The predicate atom_split/3 splits Atom into a list of subatoms
-%	Subatoms. Delimiter is the delimiter of the subatoms and will
-%	not appear in Subatoms.
+%	Split Atom over Delimiter and unify the parts with Subatoms.
 
 atom_split(Atom, Delimiter, Subatoms)  :-
 	atomic_list_concat(Subatoms, Delimiter, Atom).
@@ -798,12 +802,10 @@ parse_atom(Atom, StartPos, EndPos, Term, VarList, Error) :-
 	      free_memory_file(MemF)
 	    )).
 
-%%	index(+Atom, +String, -Position)
+%%	index(+Atom, +String, -Position) is semidet.
 %
-%	The predicate index/3  searches  for   the  first  occurrence of
-%	String in Atom. The position at   which  index/3 finds String is
-%	unified with Position If String does  not occur in Atom, index/3
-%	fails.
+%	True when Position is the first   occurrence  of String in Atom.
+%	Position is 1-based.
 
 index(Atom, String, Position) :-
 	sub_string(Atom, Pos0, _, _, String), !,
@@ -811,8 +813,8 @@ index(Atom, String, Position) :-
 
 %%	list_length(+List, ?Length) is det.
 %
-%	The predicate list_length/2 unifies Length   with  the number of
-%	elements in the list.
+%	Deterministic version of length/2. Current implementation simply
+%	calls length/2.
 
 list_length(List, Length) :-
 	length(List, Length).
@@ -854,36 +856,35 @@ prolog_version(Version) :-
 
 %%	proroot(-Path)
 %
-%	from the IF/Prolog documentation The predicate proroot/1 unifies
-%	Path with an atom containing the  installation path of IF/Prolog
-%	in the current operation system
+%	True when Path is  the  installation   location  of  the  Prolog
+%	system.
 
 proroot(Path) :-
 	current_prolog_flag(home, Path).
 
 %%	system_name(-SystemName)
 %
-%	from the IF/Prolog  documentation   The  predicate system_name/1
-%	unifies SystemName with an  atom  containing   the  name  of the
-%	operating system
+%	True when SystemName identifies the  operating system. Note that
+%	this returns the SWI-Prolog =arch= flag,   and not the IF/Prolog
+%	identifiers.
 
 system_name(SystemName) :-
 	current_prolog_flag(arch, SystemName).
 
 %%	localtime(+Time, ?Year, ?Month, ?Day, ?DoW, ?DoY, ?Hour, ?Min, ?Sec)
 %
-%	The predicate localtime/9 converts a system time into date and time
-%	information according to the local time zone.
-%	The individual arguments are unified with the following information
-%	(as integers):
-%	Year      Year number      4 digits
-%	Month     Month number     1..12
-%	Day       Day of month     1..31
-%	DoW       Day of week      1..7 (Mon-Sun)
-%	DoY       Day in year      1..366
-%	Hour      Hours            0..23
-%	Min       Minutes          0..59
-%	Sec       Seconds          0..59
+%	Break system time into its components.  Deefines components:
+%
+%	  | Year    | Year number    | 4 digits        |
+%	  | Month   | Month number   | 1..12           |
+%	  | Day	    | Day of month   | 1..31           |
+%	  | DoW	    | Day of week    | 1..7 (Mon-Sun)  |
+%	  | DoY	    | Day in year    | 1..366          |
+%	  | Hour    | Hours	     | 0..23           |
+%	  | Min	    | Minutes	     | 0..59           |
+%	  | Sec	    | Seconds	     | 0..59           |
+%
+%	@bug DoY is incorrect
 
 localtime(Time, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
         stamp_date_time(Time, date(Year4, Month, Hour, Day, Min, SecFloat, _Off, _TZ, _DST), local),
@@ -893,51 +894,33 @@ localtime(Time, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
         DoY is (Month - 1) * 30 + Day. % INCORRECT!!!
 
 
-%%	current_global(+Name)
+%%	current_global(+Name) is semidet.
+%%	get_global(+Name, ?Value) is det.
+%%	set_global(+Name, ?Value) is det.
+%%	unset_global(+Name) is det.
 %
-%	The predicate current_global/1 unifies Name by backtracking with
-%	all the global variables defined in the calling module or in the
-%	specified Module. The  predicate   current_global/1  succeeds by
-%	backtracking for all the global variables  which were defined at
-%	the time of the first call, even if they have since been deleted
-%	or if other associations have been added (logic update view).
+%	IF/Prolog  global  variables,  mapped    to   SWI-Prolog's  nb_*
+%	predicates.
 
 current_global(Name) :-
-	nb_current(Name, _).
-
-%%	get_global(+Name, ?Value)
-%
-%	The  predicate  get_global/2  unifies  Value  with  the  topmost
-%	element of the value stack of the   global  variable Name in the
-%	calling module or in the specified Module. The value remains the
-%	topmost element in the value stack   of global variable Name. If
-%	the global variable Name is defined  with set_global/2, then its
-%	value stack comprises just this one value.
+	gvar_name(Name, GName),
+	nb_current(GName, _).
 
 get_global(Name, Value) :-
-	nb_getval(Name, Value).
-
-%%	set_global(+Name, ?Value)
-%
-%	The predicate set_global/2 sets the global  variable Name in the
-%	calling module or in the specified Module to the given Value. If
-%	the global variable Name does not exist,   it is created. If the
-%	global variable Name has a value  stack, all previous values are
-%	removed from the stack, thus making Value  the only value in the
-%	stack.
+	gvar_name(Name, GName),
+	nb_getval(GName, Value).
 
 set_global(Name, Value) :-
-	nb_setval(Name, Value).
-
-%%	unset_global(+Name)
-%
-%	The predicate unset_global/1 deletes the global variable Name in
-%	the calling module or in  the   specified  Module. The predicate
-%	unset_global/1 will succeed even if   no  global variable called
-%	Name exists.
+	gvar_name(Name, GName),
+	nb_setval(GName, Value).
 
 unset_global(Name) :-
-	nb_delete(Name).
+	gvar_name(Name, GName),
+	nb_delete(GName).
+
+gvar_name(Module:Name, GName) :-
+	atomic_list_concat([Module, :, Name], GName).
+
 
 %%	current_default_module(-Module) is det.
 %
