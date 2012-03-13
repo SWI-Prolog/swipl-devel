@@ -479,6 +479,7 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("assertz",          2, "system"), ":-");
   PL_meta_predicate(PL_predicate("retract",          1, "system"), ":");
   PL_meta_predicate(PL_predicate("retractall",       1, "system"), ":");
+  PL_meta_predicate(PL_predicate("clause",           2, "system"), ":?");
 
   PL_meta_predicate(PL_predicate("format",           2, "system"), "+:");
   PL_meta_predicate(PL_predicate("format",           3, "system"), "++:");
