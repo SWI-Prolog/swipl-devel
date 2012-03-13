@@ -908,6 +908,24 @@ compiling :-
 
 :- create_prolog_flag(preprocessor, none, [type(atom)]).
 
+'$load_msg_level'(Action, Start, Done) :-
+	'$update_autoload_level'([], 0), !,
+	current_prolog_flag(verbose_load, Type0),
+	'$load_msg_compat'(Type0, Type),
+	'$load_msg_level'(Action, Type, Start, Done).
+'$load_msg_level'(_, silent, silent).
+
+'$load_msg_compat'(true, normal) :- !.
+'$load_msg_compat'(false, silent) :- !.
+'$load_msg_compat'(X, X).
+
+'$load_msg_level'(load_file,    full,   informational, informational) :- !.
+'$load_msg_level'(include_file, full,   informational, informational) :- !.
+'$load_msg_level'(load_file,    normal, silent,        informational) :- !.
+'$load_msg_level'(include_file, normal, silent,        silent) :- !.
+'$load_msg_level'(load_file,    silent, silent,        silent) :- !.
+'$load_msg_level'(include_file, silent, silent,        silent) :- !.
+
 %%	'$source_term'(+From, -Read, -Term, -Stream, +Options) is nondet.
 %
 %	Read Prolog terms from the  input   From.  Terms are returned on
@@ -1060,11 +1078,12 @@ compiling :-
 %	`parts'.
 
 '$record_included'([Parent|Parents], File, Path,
-		   message(informational,
+		   message(DoneMsgLevel,
 			   include_file(done(Level, file(File, Path))))) :-
 	source_location(_, Line), !,
 	'$compilation_level'(Level),
-	'$print_message'(informational,
+	'$load_msg_level'(include_file, StartMsgLevel, DoneMsgLevel),
+	'$print_message'(StartMsgLevel,
 			 include_file(start(Level,
 					    file(File, Path)))),
 	time_file(Path, Time),
@@ -1570,9 +1589,8 @@ load_files(Module:Files, Options) :-
 	current_prolog_flag(generate_debug_info, DebugInfo),
 
 	'$compilation_level'(Level),
-	'$load_message_level'(MessageLevel),
-
-	'$print_message'(MessageLevel,
+	'$load_msg_level'(load_file, StartMsgLevel, DoneMsgLevel),
+	'$print_message'(StartMsgLevel,
 			 load_file(start(Level,
 					 file(File, Absolute)))),
 
@@ -1609,7 +1627,7 @@ load_files(Module:Files, Options) :-
 	ClausesCreated is NewClauses - OldClauses,
 	TimeUsed is Time - OldTime,
 
-	'$print_message'(MessageLevel,
+	'$print_message'(DoneMsgLevel,
 			 load_file(done(Level,
 					file(File, Absolute),
 					Action,
@@ -1641,13 +1659,17 @@ load_files(Module:Files, Options) :-
 
 '$set_verbose_load'(Options, Old) :-
 	current_prolog_flag(verbose_load, Old),
-	'$negate'(Old, DefSilent),
-	'$get_option'(silent(Silent), Options, DefSilent),
-	'$negate'(Silent, Verbose),
-	set_prolog_flag(verbose_load, Verbose).
+	(   memberchk(silent(Silent), Options)
+	->  (   '$negate'(Silent, Level0)
+	    ->	'$load_msg_compat'(Level0, Level)
+	    ;	Level = Silent
+	    ),
+	    set_prolog_flag(verbose_load, Level)
+	;   true
+	).
 
+'$negate'(true, false).
 '$negate'(false, true).
-'$negate'(true,  false).
 
 %%	'$update_autoload_level'(+Options, -OldLevel)
 %
@@ -1672,16 +1694,6 @@ load_files(Module:Files, Options) :-
 	retractall('$autoload_nesting'(_)),
 	asserta('$autoload_nesting'(New)).
 
-%%	'$load_message_level'(-MessageLevel) is det.
-%
-%	Compute the verbosity-level for loading this file.
-
-'$load_message_level'(MessageLevel) :-
-	(   current_prolog_flag(verbose_load, true),
-	    '$update_autoload_level'([], 0)
-	->  MessageLevel = informational
-	;   MessageLevel = silent
-	).
 
 %%	'$print_message'(+Level, +Term) is det.
 %

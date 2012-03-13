@@ -1508,9 +1508,10 @@ If \const{true} the normal consult message will be printed if a library
 is autoloaded. By default this message is suppressed. Intended to be
 used for debugging purposes.
 
-    \prologflagitem{verbose_load}{bool}{rw}
-If \const{false} normal consult messages will be suppressed.  Default is
-\const{true}.  The value of this flag is normally controlled by the
+    \prologflagitem{verbose_load}{atom}{rw}
+Determines messages printed for loading (compiling) Prolog files.
+Current values are \const{full}, \const{normal} (default) and
+\const{silent}. The value of this flag is normally controlled by the
 option \term{silent}{Bool} provided by load_files/2.
 
     \prologflagitem{verbose_file_search}{bool}{rw}
