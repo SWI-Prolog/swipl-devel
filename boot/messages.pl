@@ -452,6 +452,10 @@ prolog_message(load_file(start(Level, File))) -->
 	[ '~|~t~*+Loading '-[Level] ],
 	load_file(File),
 	[ ' ...' ].
+prolog_message(include_file(start(Level, File))) -->
+	[ '~|~t~*+include '-[Level] ],
+	load_file(File),
+	[ ' ...' ].
 prolog_message(load_file(done(Level, File, Action, Module, Time, Clauses))) -->
 	[ '~|~t~*+'-[Level] ],
 	load_file(File),
