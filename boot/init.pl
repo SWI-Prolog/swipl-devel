@@ -934,7 +934,7 @@ compiling :-
 			   [ file_type(prolog),
 			     access(read)
 			   ]),
-	'$record_included'(Parents, Path),
+	'$record_included'(Parents, File, Path),
 	setup_call_cleanup(
 	    '$open_source'(Path, In, State, Parents, Options),
 	    '$term_in_file'(In, Read, Term, Stream, [Path|Parents], Options),
@@ -1033,7 +1033,7 @@ compiling :-
 :- dynamic
 	'$included'/4.
 
-%%	'$record_included'(+Parents, +File) is det.
+%%	'$record_included'(+Parents, +File, +Path) is det.
 %
 %	Record that we included File into the   head of Parents. This is
 %	troublesome when creating a QLF  file   because  this may happen
@@ -1045,19 +1045,23 @@ compiling :-
 %	statement for this, that may appear  both inside and outside QLF
 %	`parts'.
 
-'$record_included'([], _).
-'$record_included'([Parent|Parents], File) :-
+'$record_included'([Parent|Parents], File, Path) :-
 	source_location(_, Line), !,
-	time_file(File, Time),
+	'$compilation_level'(Level),
+	'$print_message'(informational,
+			 include_file(start(Level,
+					    file(File, Path)))),
+	time_file(Path, Time),
 	'$last'([Parent|Parents], Owner),
 	(   (   '$compilation_mode'(database)
 	    ;	'$qlf_current_source'(Owner)
 	    )
 	->  '$compile_aux_clauses'(
-	        system:'$included'(Parent, Line, File, Time),
+	        system:'$included'(Parent, Line, Path, Time),
 		Owner)
-	;   '$qlf_include'(Owner, Parent, Line, File, Time)
+	;   '$qlf_include'(Owner, Parent, Line, Path, Time)
 	).
+'$record_included'(_, _, _).
 
 '$skip_script_line'(In) :-
 	(   peek_char(In, #)
@@ -1552,7 +1556,7 @@ load_files(Module:Files, Options) :-
 	'$compilation_level'(Level),
 	'$load_message_level'(MessageLevel),
 
-	'$print_message'(silent /*MessageLevel*/,
+	'$print_message'(MessageLevel,
 			 load_file(start(Level,
 					 file(File, Absolute)))),
 
