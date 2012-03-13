@@ -1033,8 +1033,8 @@ compiling :-
 '$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options) :-
 	catch('$expand_term'(Raw, Expanded), E,
 	      '$print_message_fail'(E)),
-	(   is_list(Expanded), Expanded \== []
-	->  '$member'(Term1, Expanded)
+	(   Expanded \== []
+	->  '$nested_member'(Expanded, Term1)
 	;   Term1 = Expanded
 	),
 	(   nonvar(Term1), Term1 = (:-Directive), nonvar(Directive)
@@ -1053,6 +1053,15 @@ compiling :-
 	    Stream = In,
 	    Read = Raw
 	).
+
+'$nested_member'(Var, Var) :-
+	var(Var), !.
+'$nested_member'([H|T], M) :- !,
+	(   '$nested_member'(H, M)
+	;   '$nested_member'(T, M)
+	).
+'$nested_member'([], _) :- !, fail.
+'$nested_member'(X, X).
 
 '$add_encoding'(Enc, Options0, Options) :-
 	(   Options0 = [encoding(Enc)|_]
