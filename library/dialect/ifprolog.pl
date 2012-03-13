@@ -833,18 +833,18 @@ prolog_version(Version) :-
 
 %%	proroot(-Path)
 %
-%	from the IF/Prolog documentation
-%	The predicate proroot/1 unifies Path with an atom containing the
-%	installation path of IF/Prolog in the current operation system
+%	from the IF/Prolog documentation The predicate proroot/1 unifies
+%	Path with an atom containing the  installation path of IF/Prolog
+%	in the current operation system
 
 proroot(Path) :-
 	current_prolog_flag(home, Path).
 
 %%	system_name(-SystemName)
 %
-%	from the IF/Prolog documentation
-%	The predicate system_name/1 unifies SystemName with an atom
-%	containing the name of the operating system
+%	from the IF/Prolog  documentation   The  predicate system_name/1
+%	unifies SystemName with an  atom  containing   the  name  of the
+%	operating system
 
 system_name(SystemName) :-
 	current_prolog_flag(arch, SystemName).
@@ -874,45 +874,46 @@ localtime(Time, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
 
 %%	current_global(+Name)
 %
-%	The predicate current_global/1 unifies Name by backtracking with all 
-%	the global variables defined in the calling module or in the specified 
-%	Module. The predicate current_global/1 succeeds by backtracking for 
-%	all the global variables which were defined at the time of the first 
-%	call, even if they have since been deleted or if other associations 
-%	have been added (logic update view). 
+%	The predicate current_global/1 unifies Name by backtracking with
+%	all the global variables defined in the calling module or in the
+%	specified Module. The  predicate   current_global/1  succeeds by
+%	backtracking for all the global variables  which were defined at
+%	the time of the first call, even if they have since been deleted
+%	or if other associations have been added (logic update view).
 
-current_global(Name) :- 
+current_global(Name) :-
 	nb_current(Name, _).
 
 %%	get_global(+Name, ?Value)
 %
-%	The predicate get_global/2 unifies Value with the topmost element of 
-%	the value stack of the global variable Name in the calling module or 
-%	in the specified Module. The value remains the topmost element in the 
-%	value stack of global variable Name. If the global variable Name is 
-%	defined with set_global/2, then its value stack comprises just this 
-%	one value. 
+%	The  predicate  get_global/2  unifies  Value  with  the  topmost
+%	element of the value stack of the   global  variable Name in the
+%	calling module or in the specified Module. The value remains the
+%	topmost element in the value stack   of global variable Name. If
+%	the global variable Name is defined  with set_global/2, then its
+%	value stack comprises just this one value.
 
 get_global(Name, Value) :-
-	nb_getval(Name, Value).	
+	nb_getval(Name, Value).
 
-%%	set_global(+Name, ?Value
+%%	set_global(+Name, ?Value)
 %
-%	The predicate set_global/2 sets the global variable Name in the 
-%	calling module or in the specified Module to the given Value. If the 
-%	global variable Name does not exist, it is created. If the global 
-%	variable Name has a value stack, all previous values are removed from 
-%	the stack, thus making Value the only value in the stack. 
+%	The predicate set_global/2 sets the global  variable Name in the
+%	calling module or in the specified Module to the given Value. If
+%	the global variable Name does not exist,   it is created. If the
+%	global variable Name has a value  stack, all previous values are
+%	removed from the stack, thus making Value  the only value in the
+%	stack.
 
 set_global(Name, Value) :-
 	nb_setval(Name, Value).
 
 %%	unset_global(+Name)
 %
-%	The predicate unset_global/1 deletes the global variable Name in the 
-%	calling module or in the specified Module. The predicate 
-%	unset_global/1 will succeed even if no global variable called Name 
-%	exists.
+%	The predicate unset_global/1 deletes the global variable Name in
+%	the calling module or in  the   specified  Module. The predicate
+%	unset_global/1 will succeed even if   no  global variable called
+%	Name exists.
 
 unset_global(Name) :-
 	nb_delete(Name).
