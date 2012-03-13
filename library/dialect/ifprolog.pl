@@ -30,8 +30,10 @@
 
 :- module(ifprolog,
 	  [ calling_context/1,			% -Module
+	    context/2,				% :Goal, Mapping
 	    modify_mode/3,			% +PI, -Old, +New
 	    debug_mode/3,			% +PI, -Old, +New
+	    ifprolog_debug/1,			% :Goal,
 	    debug_config/3,			% +Key, +Current, +Value
 	    float_format/2,			% -Old, +New
 	    program_parameters/1,		% -Argv
@@ -111,8 +113,10 @@ bugs@swi-prolog.org.
 	calling_context/1.
 
 :- meta_predicate
+	context(0, +),
 	modify_mode(:, -, +),
 	debug_mode(:, -, +),
+	ifprolog_debug(0),
 	load(:),
 	asserta_with_names(:, +),
 	assertz_with_names(:, +),
@@ -374,6 +378,17 @@ user:prolog_file_type(pro, prolog) :-
 calling_context(Context) :-
 	context_module(Context).
 
+%%	context(:Goal, +Mapping)
+%
+%
+
+context(M:Goal, Mapping) :-
+	member(Error => Action, Mapping),
+	nonvar(Error),
+	Error = error(_,_), !,
+	catch(M:Goal, Error, Action).
+context(M:Goal, _Mapping) :-
+	M:Goal.
 
 %%	modify_mode(+PI, -OldMode, +NewMode) is det.
 %
@@ -408,8 +423,16 @@ pi_head(Name/Arity, Term) :-
 %	Old is not unified.  Only  New  ==   off  is  mapped  to disable
 %	debugging of a predicate.
 
-debug_mode(PI, _, off) :-
+debug_mode(PI, _, off) :- !,
 	'$hide'(PI).
+debug_mode(_, _, on).
+
+%%	ifprolog_debug(:Goal)
+%
+%	Map IF/Prolog debug(Goal)@Module
+
+ifprolog_debug(Goal) :-
+	Goal.
 
 %%	debug_config(+Key, -Current, +Value)
 %
