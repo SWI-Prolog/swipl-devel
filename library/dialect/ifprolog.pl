@@ -80,6 +80,9 @@
 	    set_global/2,			% +Name, ?Value
 	    unset_global/1,			% +Name
 
+	    current_default_module/1,		% -Module
+	    set_default_module/1,		% +Module
+
 	    op(1150, fx, (meta)),
 	    op(1150, fx, (export)),
 	    op(100, xfx, @),
@@ -917,6 +920,20 @@ set_global(Name, Value) :-
 
 unset_global(Name) :-
 	nb_delete(Name).
+
+%%	current_default_module(-Module) is det.
+%
+%	Name of the toplevel typein module.
+
+current_default_module(Module) :-
+	'$module'(Module, Module).
+
+%%	set_default_module(+Module) is det.
+%
+%	Set the default toplevel module.
+
+set_default_module(Module) :-
+	module(Module).
 
 
 		 /*******************************
