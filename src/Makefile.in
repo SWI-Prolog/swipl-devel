@@ -447,7 +447,7 @@ install-demo:	idirs
 		$(INSTALL_DATA) ../demo/README $(DESTDIR)$(PLBASE)/demo/README$(TXTEXT)
 
 installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) demo boot library \
-		library/clp library/unicode include include/sicstus customize \
+		library/clp library/unicode include include/sicstus include/Yap customize \
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/ciao library/dialect/ciao/engine \
 		library/dialect/sicstus library/dialect/swi \
@@ -514,6 +514,7 @@ iyap:		idirs
 		for f in $(YAP); do \
 			$(INSTALL_DATA) ../library/dialect/yap/$$f $(DESTDIR)$(PLBASE)/library/dialect/yap; \
 		done
+		$(INSTALL_DATA) $(srcdir)/compat/YapInterface.h $(DESTDIR)$(PLBASE)/include/Yap/YapInterface.h
 
 iifprolog:	idirs
 		for f in $(IFPROLOG); do \
