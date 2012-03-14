@@ -1608,12 +1608,13 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */
+  qf = (QueryFrame)lTop;
 #ifdef JMPBUF_ALIGNMENT
-  while ( (uintptr_t)lTop % JMPBUF_ALIGNMENT )
-    lTop = addPointer(lTop, sizeof(word));
+  while ( (uintptr_t)qf % JMPBUF_ALIGNMENT )
+    qf = addPointer(qf, sizeof(word));
 #endif
+  qf->saved_ltop = lTop;
 
-  qf	             = (QueryFrame) lTop;
 					/* fill top-frame */
   top	             = &qf->top_frame;
   top->parent        = NULL;
@@ -1757,7 +1758,7 @@ restore_after_query(QueryFrame qf)
   environment_frame = qf->saved_environment;
   PL_UNLOCK(L_AGC);
   aTop		    = qf->aSave;
-  lTop		    = (LocalFrame)qf;
+  lTop		    = qf->saved_ltop;
   if ( true(qf, PL_Q_NODEBUG) )
   { suspendTrace(FALSE);
     debugstatus.debugging = qf->debugSave;

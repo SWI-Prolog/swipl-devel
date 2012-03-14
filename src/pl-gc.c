@@ -4135,6 +4135,7 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
       if ( ls )
       { update_pointer(&query->parent, ls);
         update_pointer(&query->saved_bfr, ls);
+        update_pointer(&query->saved_ltop, ls);
 	update_pointer(&query->saved_environment, ls);
 	update_pointer(&query->registers.fr, ls);
 	update_local_pointer(&query->registers.pc, ls);
