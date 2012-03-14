@@ -411,8 +411,8 @@ property_source_file(load_context(Module, Location, Options), File) :-
 	->  Location = FromFile:FromLine
 	;   Location = user
 	).
-property_source_file(includes(File2, Stamp), File) :-
-	system:'$included'(File, _Line, File2, Stamp).
+property_source_file(includes(Master, Stamp), File) :-
+	system:'$included'(File, _Line, Master, Stamp).
 property_source_file(included_in(Master, Line), File) :-
 	system:'$included'(Master, Line, File, _).
 property_source_file(derived_from(DerivedFrom, Stamp), File) :-
@@ -425,6 +425,9 @@ property_source_file(derived_from(DerivedFrom, Stamp), File) :-
 
 canonical_source_file(Spec, File) :-
 	source_file(Spec), !,
+	File = Spec.
+canonical_source_file(Spec, File) :-
+	system:'$included'(_Master, _Line, Spec, _), !,
 	File = Spec.
 canonical_source_file(Spec, File) :-
 	absolute_file_name(Spec,
