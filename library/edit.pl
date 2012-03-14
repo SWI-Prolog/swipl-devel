@@ -128,6 +128,12 @@ locate(FileBase, source_file(Path), [file(Path)]) :-
 	source_file(Path),
 	file_base_name(Path, File),
 	file_name_extension(FileBase, _, File).
+locate(FileBase, include_file(Path), [file(Path)]) :-
+	atom(FileBase),
+	setof(Path, include_file(Path), Paths),
+	member(Path, Paths),
+	file_base_name(Path, File),
+	file_name_extension(FileBase, _, File).
 locate(Name, FullSpec, Location) :-
 	atom(Name),
 	locate(Name/_, FullSpec, Location).
@@ -167,6 +173,10 @@ locate(Spec, module(Spec), Location) :-
 	locate(module(Spec), Location).
 locate(Spec, Spec, Location) :-
 	locate(Spec, Location).
+
+include_file(Path) :-
+	source_file_property(Path, included_in(_,_)).
+
 
 %%	locate(+Spec, -Location)
 %
@@ -471,12 +481,14 @@ prolog:message(edit(make)) -->
 prolog:message(edit(canceled)) -->
 	[ 'Editor returned failure; skipped make/0 to reload files' ].
 
-edit_specifier(Module:Name/Arity) -->
+edit_specifier(Module:Name/Arity) --> !,
 	[ '~w:~w/~w'-[Module, Name, Arity] ].
-edit_specifier(file(_Path)) -->
+edit_specifier(file(_Path)) --> !,
 	[ '<file>' ].
-edit_specifier(source_file(_Path)) -->
+edit_specifier(source_file(_Path)) --> !,
 	[ '<loaded file>' ].
+edit_specifier(include_file(_Path)) --> !,
+	[ '<included file>' ].
 edit_specifier(Term) -->
 	[ '~p'-[Term] ].
 
