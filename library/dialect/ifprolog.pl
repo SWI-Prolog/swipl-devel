@@ -76,6 +76,7 @@
 	    clause_with_names/3,		% ?Head, ?Body, ?VarNames
 	    retract_with_names/2,		% ?Clause, ?VarNames
 	    predicate_type/2,			% @Predicate, ?Type
+	    current_visible/2,			% @Module, @Predicate
 
 	    current_global/1,			% +Name
 	    get_global/2,			% +Name, ?Value
@@ -1032,6 +1033,12 @@ control((_->_)).
 control((_*->_)).
 control((!)).
 
+%%	current_visible(@Module, @Predicate).
+%
+%	FIXME check with documentation
+
+current_visible(Module, Predicate) :-
+	predicate_property(Module:Predicate, visible).
 
 		 /*******************************
 		 *	    ARITHMETIC		*
