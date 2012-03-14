@@ -61,7 +61,7 @@ make_no_trace :-
 	'$update_library_index',
 	findall(File, modified_file(File), Reload),
 	print_message(silent, make(reload(Reload))),
-	reload(Reload),
+	maplist(reload_file, Reload),
 	print_message(silent, make(done(Reload))),
 	list_undefined([scan(local)]).
 
@@ -84,11 +84,6 @@ modified_file(File) :-
 	).
 
 
-reload([]).
-reload([H|T]) :-
-	reload_file(H),
-	reload(T).
-
 %%	reload_file(File)
 %
 %	Reload file into the proper module.
@@ -104,9 +99,17 @@ reload_file(File) :-
 		source_file_property(File, load_context(M, _, Opts)),
 		Modules),
 	(   Modules = [First-OptsFirst|Rest]
-	->  load_files(First:Compile, [if(true)|OptsFirst]),
+	->  load_files(First:Compile,
+		       [ if(true),
+			 silent(false)
+		       | OptsFirst
+		       ]),
 	    forall(member(Context-Opts, Rest),
-		   load_files(Context:Compile, [if(not_loaded)|Opts]))
+		   load_files(Context:Compile,
+			      [ if(not_loaded),
+				silent(false)
+			      | Opts
+			      ]))
 	;   load_files(user:Compile)
 	).
 
