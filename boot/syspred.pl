@@ -424,7 +424,8 @@ property_source_file(derived_from(DerivedFrom, Stamp), File) :-
 %	File is the canonical representation of the source-file Spec.
 
 canonical_source_file(Spec, File) :-
-	source_file(Spec), !,
+	atom(Spec),
+	'$time_source_file'(Spec, _, _), !,
 	File = Spec.
 canonical_source_file(Spec, File) :-
 	system:'$included'(_Master, _Line, Spec, _), !,
