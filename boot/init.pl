@@ -233,6 +233,13 @@ false :-
 catch(_Goal, _Catcher, _Recover) :-
 	'$catch'.
 
+%%	prolog_cut_to(+Choice)
+%
+%	Cut all choice points after Choice
+
+prolog_cut_to(Choice) :-
+	'$cut'(Choice).
+
 %%	'$recover_and_rethrow'(:Goal, +Term)
 %
 %	This goal is used to wrap  the   catch/3  recover handler if the

@@ -419,7 +419,9 @@ suggest predicates from a keyword.
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
 \predicatesummary{prolog}{0}{Run interactive top-level}
 \predicatesummary{prolog_choice_attribute}{3}{Examine the choice-point stack}
+\predicatesummary{prolog_current_choice}{1}{Reference to most recent choice point}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
+\predicatesummary{prolog_cut_to}{1}{Realise global cuts}
 \predicatesummary{prolog_edit:locate}{2}{Locate targets for edit/1}
 \predicatesummary{prolog_edit:locate}{3}{Locate targets for edit/1}
 \predicatesummary{prolog_edit:edit_source}{1}{Call editor for edit/1}

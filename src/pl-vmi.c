@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2146,6 +2145,42 @@ VMI(C_LCUT, 0, 1, (CA1_CHP))
   }
   assert(BFR == och);			/* no choicepoint yet */
   NEXT_INSTRUCTION;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_CUTCHP cuts all  choice-points  after   the  specified  argument. This
+instruction is generated for $cut(Var), used by prolog_cut_to(Choice).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_CUTCHP, 0, 1, ())
+{ Word a = argFrameP(lTop, 0);
+
+#define valid_choice(ch) \
+	(  (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG && \
+	   onStack(local, ch->frame) \
+	)
+
+  deRef(a);
+  if ( isInteger(*a) )
+  { intptr_t i = valInteger(*a);
+    och = ((Choice)((Word)lBase + i));
+
+    if ( !(och >= (Choice)lBase && och < (Choice)lTop) ||
+	 !valid_choice(och) )
+    { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice,
+	       pushWordAsTermRef(a));
+      popTermRef();
+      THROW_EXCEPTION;
+    }
+
+    goto c_cut;
+  } else
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_choice,
+	     pushWordAsTermRef(a));
+    popTermRef();
+    THROW_EXCEPTION;
+  }
 }
 
 

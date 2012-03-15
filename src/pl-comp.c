@@ -1966,6 +1966,9 @@ re-definition.
 	else
 	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	succeed;
+      } else if ( functor == FUNCTOR_dcut1 )	/* $cut(Choice) */
+      { Output_0(ci, I_CUTCHP);
+	succeed;
       }
     }
   } else if ( isTextAtom(*arg) )
@@ -4149,6 +4152,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
 			  }
       case I_USERCALL0:	    BUILD_TERM(FUNCTOR_call1);
+			    pushed++;
+			    continue;
+      case I_CUTCHP:	    BUILD_TERM(FUNCTOR_dcut1);
 			    pushed++;
 			    continue;
 #if O_COMPILE_OR
