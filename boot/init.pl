@@ -139,23 +139,27 @@ public(Spec)		 :- '$set_pattr'(Spec, (public)).
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (',')/2, (->)/2, catch/3)).
 
-%   ->/2, ;/2, |/2 and \+/1 are normally compiled. These predicate catch them
-%   in case they are called via the meta-call predicates.
+% The control structures are always compiled, both   if they appear in a
+% clause body and if they are handed  to   call/1.  The only way to call
+% these predicates is by means of  call/2..   In  that case, we call the
+% hole control structure again to get it compiled by call/1 and properly
+% deal  with  !,  etc.  Another  reason  for  having  these  things  are
+% predicates is to be able to define   properties for them, helping code
+% analyzers.
 
-(If ->  Then) :- If, !, Then.
-(If *-> Then) :- (If *-> Then ; fail).
+(M0:If ; M0:Then) :- !, call(M0:(If ; Then)).
+(M1:If ; M2:Then) :-    call(M1:(If ; M2:Then)).
+(G1   , G2)       :-    call((G1   , G2)).
+(If  -> Then)     :-    call((If  -> Then)).
+(If *-> Then)     :-    call((If *-> Then)).
 
-(If ->  Then; Else) :- !, (If  -> Then ; Else).
-(If *-> Then; Else) :- !, (If *-> Then ; Else).
-(A ; B) :- (A ; B).
-
-(If ->  Then| Else) :- !, (If  -> Then ; Else).
-(If *-> Then| Else) :- !, (If *-> Then ; Else).
-(A | B) :- (A ; B).
-
-','(Goal1, Goal2) :-			% Puzzle for beginners!
-	Goal1,
-	Goal2.
+%%	call(Closure, Arg, ...)
+%
+%	Arity 2..8 is demanded by the   ISO standard. Higher arities are
+%	supported, but handled by the compiler.   This  implies they are
+%	not backed up by predicates and   analyzers  thus cannot ask for
+%	their  properties.  Analyzers  should    hard-code  handling  of
+%	call/2..
 
 :- '$iso'((call/2,
 	   call/3,
