@@ -57,6 +57,7 @@
 	    index/3,				% +Atom, +String, -Position
 	    list_length/2,			% +List, ?Length
 	    load/1,				% :FileName
+%	    unload/1,				% +Module
 	    file_test/2,			% +File, +Mode
 	    filepos/2,				% @Stream, -Line
 	    filepos/3,				% @Stream, -Line, -Column
@@ -548,6 +549,19 @@ lower_upper(Lower, Upper) :-
 
 load(File) :-
 	consult(File).
+
+%%	unload(+Module) is det.
+%
+%	Unload the named module.
+%
+%	@bug: What to do with modules that are not associated to a
+%	file?
+
+unload(Module) :-
+	module_property(Module, file(File)), !,
+	unload_file(File).
+unload(_Module) :-
+	assertion(fail).
 
 %%	file_test(+File, +Mode)
 %
