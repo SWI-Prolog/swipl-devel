@@ -19,6 +19,7 @@ therefore its frame is destroyed immediately after succeeding.
     \predicate[semidet]{prolog_current_choice}{1}{-Choice}
 Unify \arg{Choice} with an integer provided a reference to the last
 choice-point.  Fails if the current environment has no choicepoints.
+See also prolog_choice_attribute/3.
 
     \predicate{prolog_frame_attribute}{3}{+Frame, +Key, -Value}
 Obtain information about the local stack frame \arg{Frame}.  \arg{Frame}
@@ -104,7 +105,8 @@ refer to local variables. Fails silently if \arg{N} is out of range.
     \predicate{prolog_choice_attribute}{3}{+ChoicePoint, +Key, -Value}
 Extract attributes of a choice-point.  \arg{ChoicePoint} is a reference
 to a choice-point as passed to prolog_trace_interception/4 on the 3-th
-argument.  \arg{Key} specifies the requested information:
+argumentm or obtained using prolog_current_choice/1. \arg{Key} specifies
+the requested information:
 
 \begin{description}
     \termitem{parent}{}
