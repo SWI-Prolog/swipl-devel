@@ -198,8 +198,11 @@ ifprolog_goal_expansion(Module:Goal, Expanded) :-
 ifprolog_goal_expansion(Goal, Expanded) :-
 	if_goal_expansion(Goal, Expanded).
 
+if_goal_expansion(call(Goal)@Module, MetaGoal) :-
+	qcallable(Goal), !,
+	if_goal_expansion(Goal@Module, MetaGoal).
 if_goal_expansion(Goal@Module, MetaGoal) :-
-	nonvar(Goal),
+	qcallable(Goal),
 	(   if_goal_expansion(Goal, Goal1)
 	->  true
 	;   Goal1 = Goal
@@ -219,6 +222,13 @@ if_goal_expansion(asserta(Head,Body),
 if_goal_expansion(retract(Head,Body),
 		  retract((Head:-Body))).
 
+qcallable(M:Goal) :- !,
+	atom(M), callable(Goal).
+qcallable(Goal) :-
+	callable(Goal).
+
+qualify(M:Goal, Decl, Module, M:QGoal) :- !,
+	qualify(Goal, Decl, Module, QGoal).
 qualify(Goal, Decl, Module, QGoal) :-
 	Goal =.. [Name|Args0],
 	Decl =.. [_|DeclArgs],
