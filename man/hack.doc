@@ -10,11 +10,15 @@ Prolog system by misusing them.
 \section{Examining the Environment Stack}	\label{sec:manipstack}
 
 \begin{description}
-    \predicate{prolog_current_frame}{1}{-Frame}
+    \predicate[det]{prolog_current_frame}{1}{-Frame}
 Unify \arg{Frame} with an integer providing a reference to the parent of
 the current local stack frame.  A pointer to the current local frame
 cannot be provided as the predicate succeeds deterministically and
 therefore its frame is destroyed immediately after succeeding.
+
+    \predicate[semidet]{prolog_current_choice}{1}{-Choice}
+Unify \arg{Choice} with an integer provided a reference to the last
+choice-point.  Fails if the current environment has no choicepoints.
 
     \predicate{prolog_frame_attribute}{3}{+Frame, +Key, -Value}
 Obtain information about the local stack frame \arg{Frame}.  \arg{Frame}

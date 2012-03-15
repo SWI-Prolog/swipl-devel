@@ -1973,6 +1973,18 @@ pl_prolog_current_frame(term_t frame)
 }
 
 
+static
+PRED_IMPL("prolog_current_choice", 1, prolog_current_choice, 0)
+{ PRED_LD
+  Choice ch;
+
+  if ( (ch=LD->choicepoints) )
+    return PL_unify_choice(A1, ch);
+
+  return FALSE;
+}
+
+
 static int
 prolog_frame_attribute(term_t frame, term_t what,
 		       term_t value)
@@ -2409,6 +2421,7 @@ callEventHook(int ev, ...)
 		 *******************************/
 
 BeginPredDefs(trace)
+  PRED_DEF("prolog_current_choice", 1, prolog_current_choice, 0)
   PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
   PRED_DEF("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
   PRED_DEF("prolog_skip_frame", 1, prolog_skip_frame, PL_FA_NOTRACE)
