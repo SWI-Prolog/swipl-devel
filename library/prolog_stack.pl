@@ -43,6 +43,9 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 
+:- dynamic stack_guard/1.
+:- multifile stack_guard/1.
+
 :- predicate_options(print_prolog_backtrace/3, 3,
 		     [ subgoal_positions(boolean)
 		     ]).
@@ -260,6 +263,38 @@ lineno_(Fd, Char, L) :-
 lineno_(Fd, Char, L) :-
 	skip(Fd, 0'\n),
 	lineno_(Fd, Char, L).
+
+
+		 /*******************************
+		 *	  DECORATE ERRORS	*
+		 *******************************/
+
+:- multifile
+	user:prolog_exception_hook/4.
+:- dynamic
+	user:prolog_exception_hook/4.
+
+user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
+			   error(E, context(prolog_stack(Stack),Msg)),
+			   Fr, Guard) :-
+	prolog_frame_attribute(Guard, predicate_indicator, Goal),
+	debug(http_error, 'Got exception ~p (Ctx0=~p, Catcher=~p)',
+	      [E, Ctx0, Goal]),
+	stack_guard(Goal),
+	get_prolog_backtrace(Fr, 50, Stack0),
+	debug(http_error, 'Stack = ~w', [Stack0]),
+	clean_stack(Stack0, Stack).
+
+clean_stack([], []).
+clean_stack([H|_], [H]) :-
+	guard_frame(H), !.
+clean_stack([H|T0], [H|T]) :-
+	clean_stack(T0, T).
+
+guard_frame(frame(_,clause(ClauseRef, _))) :-
+	nth_clause(M:Head, _, ClauseRef),
+	functor(Head, Name, Arity),
+	stack_guard(M:Name/Arity).
 
 
 		 /*******************************
