@@ -744,7 +744,9 @@ atom_part(Atom, Pos, _, Sub) :-
 atom_part(Atom, Pos, Len, Sub) :-
 	Pos >= 1,
 	Pos0 is Pos - 1,
-	sub_atom(Atom, Pos0, Len, _, Sub).
+	atom_length(Atom, ALen),
+	Len0 is min(Len, ALen-Pos0),
+	sub_atom(Atom, Pos0, Len0, _, Sub).
 
 %%	atom_prefix(+Atom, +Len, -Sub) is det.
 %
