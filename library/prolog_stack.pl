@@ -260,3 +260,21 @@ lineno_(Fd, Char, L) :-
 lineno_(Fd, Char, L) :-
 	skip(Fd, 0'\n),
 	lineno_(Fd, Char, L).
+
+
+		 /*******************************
+		 *	     MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(error(Error, context(Stack, Message))) -->
+	{ is_stack(Stack, Frames) }, !,
+	'$messages':translate_message(error(Error, context(_, Message))),
+	[ nl, 'In:', nl ],
+	prolog_stack:message(Frames).
+
+is_stack(Stack, Frames) :-
+	nonvar(Stack),
+	Stack = prolog_stack(Frames).
