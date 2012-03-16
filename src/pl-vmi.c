@@ -4228,8 +4228,31 @@ VMI(I_CALLATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
 }
 
 VMI(I_DEPARTATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
-{ VMI_GOTO(I_CALLATMV);				/* TBD: proper implementation */
+{ if ( (void *)BFR > (void *)FR || !truePrologFlag(PLFLAG_LASTCALL) )
+  { VMI_GOTO(I_CALLATMV);
+  } else
+  { Word ap;
+    int iv;
+
+    PC++;
+    iv = (int)*PC++;
+
+    ap = varFrameP(FR, iv);
+    deRef(ap);
+    if ( isTextAtom(*ap) )
+    { Module m = lookupModule(*ap);
+
+      setContextModule(FR, m);
+      VMI_GOTO(I_DEPART);
+    } else
+    { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_module,
+	       pushWordAsTermRef(ap));
+      popTermRef();
+      THROW_EXCEPTION;
+    }
+  }
 }
+
 
 VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
 { Word ap;

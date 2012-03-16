@@ -1482,7 +1482,7 @@ right_argument:
 	  return FALSE;
 	}
 
-	rv = compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD);
+	rv = compileBody(argTermP(*body, 0), call, ci PASS_LD);
 	ci->at_context = atsave;
 
 	return rv;
