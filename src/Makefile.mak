@@ -232,6 +232,7 @@ install-demo:	idirs
 
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\include\sicstus" \
+		"$(PLBASE)\include\Yap" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
@@ -270,6 +271,7 @@ iswi::
 iyap::
 		chdir $(PLHOME)\library\dialect\yap & \
 			for %f in ($(YAP)) do copy %f "$(PLBASE)\library\dialect\yap"
+		copy compat\YapInterface.h "$(PLBASE)\include\Yap\YapInterface.h"
 
 isicstus::
 		chdir $(PLHOME)\library\dialect\sicstus & \
