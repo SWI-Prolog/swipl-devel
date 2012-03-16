@@ -35,6 +35,8 @@
 	  ]).
 :- use_module(library(check)).
 :- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(debug)).
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module>  Reload modified source files
@@ -99,17 +101,14 @@ reload_file(File) :-
 		source_file_property(File, load_context(M, _, Opts)),
 		Modules),
 	(   Modules = [First-OptsFirst|Rest]
-	->  load_files(First:Compile,
-		       [ if(true),
-			 silent(false)
-		       | OptsFirst
-		       ]),
+	->  merge_options([if(true), silent(false)], OptsFirst, OFirst),
+	    debug(make, 'Make: First load ~q', [load_files(First:Compile, OFirst)]),
+	    load_files(First:Compile, OFirst),
 	    forall(member(Context-Opts, Rest),
-		   load_files(Context:Compile,
-			      [ if(not_loaded),
-				silent(false)
-			      | Opts
-			      ]))
+		   ( merge_options([if(not_loaded), silent(false)], Opts, O),
+		     debug(make, 'Make: re-import: ~q', [load_files(Context:Compile, O)]),
+		     load_files(Context:Compile, O)
+		   ))
 	;   load_files(user:Compile)
 	).
 
