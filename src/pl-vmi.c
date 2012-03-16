@@ -1739,6 +1739,18 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 }
 
 
+#ifdef O_CALL_AT_MODULE
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_DEPARTATM: procedure-module, context-module, procedure
+See I_CALLATM for details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+VMI(I_DEPARTATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
+{ PC++;						/* Ignore :-qualifier */
+  VMI_GOTO(I_DEPARTM);
+}
+#endif
+
+
 VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
 { if ( (void *)BFR > (void *)FR || !truePrologFlag(PLFLAG_LASTCALL) )
   { VMI_GOTO(I_CALLM);
@@ -4203,6 +4215,18 @@ BEGIN_SHAREDVARS
   functor_t functor;
   int arity;
   Word args;
+
+#ifdef O_CALL_AT_MODULE
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_CALLATM: procedure-module, context-module, procedure
+The procedure-module is provided to support the compiler.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_CALLATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
+{ PC++;
+  VMI_GOTO(I_CALLM);
+}
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CALLM deals with qualified calls. The unfortunate  task is to sort out

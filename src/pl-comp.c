@@ -1831,6 +1831,22 @@ mcall(code call)
 }
 
 
+#ifdef O_CALL_AT_MODULE
+static inline code
+callatm(code call)
+{ switch(call)
+  { case I_CALL:
+      return I_CALLATM;
+    case I_DEPART:
+      return I_DEPARTATM;
+    default:
+      assert(0);
+      return (code)0;
+  }
+}
+#endif
+
+
 static Procedure
 lookupBodyProcedure(functor_t functor, Module tm)
 { Procedure proc = lookupProcedure(functor, tm);
@@ -2039,12 +2055,13 @@ re-definition.
   { return NOT_CALLABLE;
   }
 
-#if O_CALL_AT_MODULE
+#ifdef O_CALL_AT_MODULE
   if ( ci->at_context )
   { if ( isAtom(ci->at_context) )
     { Module cm = lookupModule(ci->at_context);
+      code ctm = (tm==ci->module) ? (code)0 : (code)tm;
 
-      Output_2(ci, mcall(call), (code)cm, (code)proc);
+      Output_3(ci, callatm(call), ctm, (code)cm, (code)proc);
     } else
     { int idx = valInt(ci->at_context);
       assert(0);				/* TBD */
@@ -4189,12 +4206,30 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
 			  }
+#ifdef O_CALL_AT_MODULE
+      case I_DEPARTATM:
+      case I_CALLATM:     { Module pm = (Module)XR(*PC++);
+			    Module cm = (Module)XR(*PC++);
+			    Procedure proc = (Procedure)XR(*PC++);
+			    BUILD_TERM(proc->definition->functor->functor);
+			    if ( pm )
+			    { ARGP++;
+			      ARGP[-1] = ARGP[-2];	/* swap arguments */
+			      ARGP[-2] = pm->name;
+			      BUILD_TERM(FUNCTOR_colon2);
+			    }
+			    *ARGP++ = cm->name;
+			    BUILD_TERM(FUNCTOR_xpceref2);
+			    pushed++;
+			    continue;
+			  }
+#endif
       case I_DEPARTM:
       case I_CALLM:       { Module m = (Module)XR(*PC++);
 			    Procedure proc = (Procedure)XR(*PC++);
 			    BUILD_TERM(proc->definition->functor->functor);
 			    ARGP++;
-			    ARGP[-1] = ARGP[-2];	/* need to swap arguments */
+			    ARGP[-1] = ARGP[-2];	/* swap arguments */
 			    ARGP[-2] = m->name;
 			    BUILD_TERM(FUNCTOR_colon2);
 			    pushed++;
