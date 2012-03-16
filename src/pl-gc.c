@@ -1669,6 +1669,12 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
 	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
 	  break;
+#ifdef O_CALL_AT_MODULE
+	case I_CALLATM:
+	case I_DEPARTATMV:
+	  mark_frame_var(state, PC[1] PASS_LD);
+	  break;
+#endif
 #ifdef MARK_ALT_CLAUSES
 	case H_FIRSTVAR:
 	  if ( (state->flags & GCM_CLEAR) )

@@ -4226,6 +4226,38 @@ VMI(I_CALLATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
 { PC++;
   VMI_GOTO(I_CALLM);
 }
+
+VMI(I_DEPARTATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
+{ VMI_GOTO(I_CALLATMV);				/* TBD: proper implementation */
+}
+
+VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
+{ Word ap;
+  int iv;
+  Procedure proc;
+
+  PC++;
+  iv = (int)*PC++;
+  proc = (Procedure)*PC++;
+
+  ap = varFrameP(FR, iv);
+  deRef(ap);
+  if ( isTextAtom(*ap) )
+  { module = lookupModule(*ap);
+    DEF = proc->definition;
+    NFR = lTop;
+
+    goto mcall_cont;
+  } else
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_module,
+	     pushWordAsTermRef(ap));
+    popTermRef();
+    THROW_EXCEPTION;
+  }
+
+  VMI_GOTO(I_CALLM);
+}
+
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

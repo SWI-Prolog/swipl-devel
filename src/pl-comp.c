@@ -1844,6 +1844,19 @@ callatm(code call)
       return (code)0;
   }
 }
+
+static inline code
+callatmv(code call)
+{ switch(call)
+  { case I_CALL:
+      return I_CALLATMV;
+    case I_DEPART:
+      return I_DEPARTATMV;
+    default:
+      assert(0);
+      return (code)0;
+  }
+}
 #endif
 
 
@@ -2064,7 +2077,9 @@ re-definition.
       Output_3(ci, callatm(call), ctm, (code)cm, (code)proc);
     } else
     { int idx = valInt(ci->at_context);
-      assert(0);				/* TBD */
+      code ctm = (tm==ci->module) ? (code)0 : (code)tm;
+
+      Output_3(ci, callatmv(call), ctm, VAROFFSET(idx), (code)proc);
     }
   } else
 #endif
@@ -4207,6 +4222,29 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
 			  }
 #ifdef O_CALL_AT_MODULE
+      case I_DEPARTATMV:
+      case I_CALLATMV:	  { Module pm = (Module)XR(*PC++);
+			    size_t cm = XR(*PC++);
+			    Procedure proc = (Procedure)XR(*PC++);
+			    BUILD_TERM(proc->definition->functor->functor);
+			    if ( pm )
+			    { ARGP++;
+			      ARGP[-1] = ARGP[-2];	/* swap arguments */
+			      ARGP[-2] = pm->name;
+			      BUILD_TERM(FUNCTOR_colon2);
+			    }
+			    if ( nested )
+			    { int rc = unifyVar(ARGP++, di->variables,
+						cm PASS_LD);
+			      if ( rc != TRUE )
+				return rc;
+			    } else
+			    { *ARGP++ = makeVarRef(cm);
+			    }
+			    BUILD_TERM(FUNCTOR_xpceref2);
+			    pushed++;
+			    continue;
+			  }
       case I_DEPARTATM:
       case I_CALLATM:     { Module pm = (Module)XR(*PC++);
 			    Module cm = (Module)XR(*PC++);
