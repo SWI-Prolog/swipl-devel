@@ -576,6 +576,7 @@ calculation at runtime.
 #define A_RIGHT	0x08			/* rightmost argument */
 
 #define NOT_CALLABLE -10		/* return value for not-callable */
+#define NOT_AT_CALLABLE -11		/* return value for not-callable */
 
 #define BLOCK(s) do { s; } while (0)
 
@@ -1484,6 +1485,12 @@ right_argument:
 
 	rv = compileBody(argTermP(*body, 0), call, ci PASS_LD);
 	ci->at_context = atsave;
+	if ( rv == NOT_AT_CALLABLE )
+	{ if ( (rv=compileArgument(body, A_BODY, ci PASS_LD)) < 0 )
+	    return rv;
+	  Output_0(ci, I_USERCALL0);
+	  return TRUE;
+	}
 
 	return rv;
 #endif /*O_CALL_AT_MODULE*/
@@ -1904,6 +1911,11 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   if ( isIndexedVarTerm(*arg PASS_LD) >= 0 )
   { int rc;
+
+#ifdef O_CALL_AT_MODULE
+    if ( ci->at_context )
+      return NOT_AT_CALLABLE;
+#endif
 
     if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
       return rc;
