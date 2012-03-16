@@ -230,6 +230,9 @@ registerControlFunctors()
     FUNCTOR_ifthen2,
     FUNCTOR_softcut2,
     FUNCTOR_not_provable1,
+#ifdef O_CALL_AT_MODULE
+    FUNCTOR_xpceref2,
+#endif
     (functor_t) 0
   };
   functor_t *f;

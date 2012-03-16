@@ -231,17 +231,20 @@ typedef struct merge_state
 
 typedef struct
 { Module	module;			/* module to compile into */
-  int		arity;			/* arity of top-goal */
   Clause	clause;			/* clause we are constructing */
+  int		arity;			/* arity of top-goal */
   int		vartablesize;		/* size of the vartable */
-  cutInfo	cut;			/* how to compile ! */
   int		islocal;		/* Temporary local clause */
   int		subclausearg;		/* processing subclausearg */
   int		argvars;		/* islocal argument pseudo vars */
   int		argvar;			/* islocal current pseudo var */
+  cutInfo	cut;			/* how to compile ! */
   merge_state	mstate;			/* Instruction merging state */
-  tmp_buffer	codes;			/* scratch code table */
   VarTable	used_var;		/* boolean array of used variables */
+#ifdef O_CALL_AT_MODULE
+  word		at_context;		/* Call@Context */
+#endif
+  tmp_buffer	codes;			/* scratch code table */
 } compileInfo, *CompileInfo;
 
 
@@ -794,7 +797,7 @@ resetVars(ARG1_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-True if p points to a first-var allocated at *i.  P is derefereced.
+True if p points to a first-var allocated at *i.  P is dereferenced.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1056,6 +1059,9 @@ compileClause(Clause *cp, Word head, Word body,
 
   ci.clause = &clause;
   ci.module = module;
+#ifdef O_CALL_AT_MODULE
+  ci.at_context = 0;
+#endif
 
   if ( (rc=analyse_variables(head, body, &ci PASS_LD)) < 0 )
   { switch ( rc )
@@ -1452,6 +1458,35 @@ right_argument:
 
 	succeed;
 #endif /* O_COMPILE_OR */
+#ifdef O_CALL_AT_MODULE
+      } else if ( fd == FUNCTOR_xpceref2 )	/* Call@Module */
+      { Word m = argTermP(*body, 1);
+	int iv, rv;
+	word atsave = ci->at_context;
+
+	deRef(m);
+	if ( (iv=isIndexedVarTerm(*m PASS_LD)) >= 0 )
+	{ if ( !isFirstVar(ci->used_var, iv) )
+	  { ci->at_context = consInt(iv);
+	  } else
+	  { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+	    return FALSE;
+	  }
+	} else if ( isTextAtom(*m) )
+	{ ci->at_context = *m;
+	} else
+	{ resetVars(PASS_LD1);
+	  PL_error(NULL, 0, NULL,
+		   ERR_TYPE, ATOM_module, pushWordAsTermRef(m));
+	  popTermRef();
+	  return FALSE;
+	}
+
+	rv = compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD);
+	ci->at_context = atsave;
+
+	return rv;
+#endif /*O_CALL_AT_MODULE*/
       }
       assert(fdef->name == ATOM_call);
     }
@@ -2004,10 +2039,23 @@ re-definition.
   { return NOT_CALLABLE;
   }
 
-  if ( tm == ci->module )
-    Output_1(ci, call, (code) proc);
-  else
-    Output_2(ci, mcall(call), (code)tm, (code)proc);
+#if O_CALL_AT_MODULE
+  if ( ci->at_context )
+  { if ( isAtom(ci->at_context) )
+    { Module cm = lookupModule(ci->at_context);
+
+      Output_2(ci, mcall(call), (code)cm, (code)proc);
+    } else
+    { int idx = valInt(ci->at_context);
+      assert(0);				/* TBD */
+    }
+  } else
+#endif
+  { if ( tm == ci->module )
+      Output_1(ci, call, (code) proc);
+    else
+      Output_2(ci, mcall(call), (code)tm, (code)proc);
+  }
 
   return TRUE;
 }
