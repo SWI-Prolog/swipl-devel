@@ -7,6 +7,7 @@
 !define SHCTX  $6 ; Shell context (current/all)
 !define ARCH   $7 ; Architecture (x86, ia64 or amd64)
 !define SXSLEN $8 ; The length of the string of the location of the SideBySide directory
+Var /GLOBAL cmdLineParams  ; Command Line Options
 
 !ifdef WIN64
 !define REGKEY SOFTWARE\SWI\Prolog64
@@ -16,6 +17,7 @@
 
 !system "pl\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
 !include "version.nsi"
+!include "FileFunc.nsh"
 
 RequestExecutionLevel admin
 SetCompressor bzip2
@@ -208,6 +210,30 @@ FunctionEnd
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; End MSVCRT check/install
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Section "-Silent"
+  SectionIn RO
+  # A hidden section for reading in command line options
+  # And setting default values
+
+  IfSilent 0 notsilent
+    StrCpy ${EXT} "pl"
+    StrCpy ${GRP} "SWI-Prolog"
+    Call UserInfo
+
+  notsilent:
+  ${GetOptions} $cmdLineParams "/EXT=" $R0
+  IfErrors +2 0
+  StrCpy ${EXT} $R0
+
+  ${GetOptions} $cmdLineParams "/GRP=" $R0
+  IfErrors +2 0
+  StrCpy ${GRP} $R0
+
+  ${GetOptions} $cmdLineParams "/INSTDIR=" $R0
+  IfErrors +2 0
+  StrCpy $INSTDIR $R0
+SectionEnd
 
 !ifdef WIN64
 Page custom Check64 "" ": Checking for AMD64 architecture"
@@ -897,6 +923,15 @@ Function .onInit
   ReadEnvStr $INSTDIR ProgramW6432
   StrCpy $INSTDIR "$INSTDIR\pl"
 !endif
+
+Push $R0
+${GetParameters} $cmdLineParams
+ClearErrors
+${GetOptions} $cmdLineParams '/?' $R0
+IfErrors +3 0
+  MessageBox MB_OK "/S /GRP='SWI-Prolog' /EXT='pl' /INSTDIR='<Install Directory>'"
+  Abort
+Pop $R0
 
 FunctionEnd
 
