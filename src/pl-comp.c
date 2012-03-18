@@ -238,7 +238,7 @@ typedef enum target_module_type
 typedef struct target_module
 { target_module_type type;		/* Type of target module */
   int		     var_index;		/* Index of var if TM_VAR */
-  Module	    *module;		/* Module = TM_MODULE */
+  Module	     module;		/* Module = TM_MODULE */
 } target_module;
 
 typedef struct
@@ -255,7 +255,7 @@ typedef struct
   VarTable	used_var;		/* boolean array of used variables */
   target_module colon_context;		/* Context:Goal */
 #ifdef O_CALL_AT_MODULE
-  word		at_context;		/* Call@Context */
+  target_module	at_context;		/* Call@Context */
 #endif
   tmp_buffer	codes;			/* scratch code table */
 } compileInfo, *CompileInfo;
@@ -854,6 +854,44 @@ allocChoiceVar(CompileInfo ci)
 
 
 		 /*******************************
+		 *	   TARGET MODULES	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get the target module for Module:Term or Goal@Module. This is only valid
+if Module is either an atom  or   a  non-first-var. Other cases raise an
+error.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+getTargetModule(target_module *tm, Word t, CompileInfo ci ARG_LD)
+{ int iv;
+
+  deRef(t);
+  if ( (iv=isIndexedVarTerm(*t PASS_LD)) >= 0 )
+  { if ( !isFirstVar(ci->used_var, iv) )
+    { tm->var_index = iv;
+      tm->type = TM_VAR;
+    } else
+    { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+      return FALSE;
+    }
+  } else if ( isTextAtom(*t) )
+  { tm->module = lookupModule(*t);
+    tm->type = TM_MODULE;
+  } else
+  { resetVars(PASS_LD1);
+    PL_error(NULL, 0, NULL,
+	     ERR_TYPE, ATOM_module, pushWordAsTermRef(t));
+    popTermRef();
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+		 /*******************************
 		 *      INSTRUCTION MERGING	*
 		 *******************************/
 
@@ -1075,7 +1113,7 @@ compileClause(Clause *cp, Word head, Word body,
   ci.module = module;
   ci.colon_context.type = TM_NONE;
 #ifdef O_CALL_AT_MODULE
-  ci.at_context = 0;
+  ci.at_context.type = TM_NONE;
 #endif
 
   if ( (rc=analyse_variables(head, body, &ci PASS_LD)) < 0 )
@@ -1473,40 +1511,35 @@ right_argument:
 
 	succeed;
 #endif /* O_COMPILE_OR */
+      } else if ( fd == FUNCTOR_colon2 )	/* Module:Goal */
+      { target_module tmsave = ci->colon_context;
+	int rc;
+
+	if ( (rc=getTargetModule(&ci->colon_context,
+				 argTermP(*body, 0), ci PASS_LD)) != TRUE )
+	  return rc;
+	rc = compileBody(argTermP(*body, 1), call, ci PASS_LD);
+	ci->colon_context = tmsave;
+
+	return rc;
 #ifdef O_CALL_AT_MODULE
       } else if ( fd == FUNCTOR_xpceref2 )	/* Call@Module */
-      { Word m = argTermP(*body, 1);
-	int iv, rv;
-	word atsave = ci->at_context;
+      { target_module atsave = ci->at_context;
+	int rc;
 
-	deRef(m);
-	if ( (iv=isIndexedVarTerm(*m PASS_LD)) >= 0 )
-	{ if ( !isFirstVar(ci->used_var, iv) )
-	  { ci->at_context = consInt(iv);
-	  } else
-	  { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
-	    return FALSE;
-	  }
-	} else if ( isTextAtom(*m) )
-	{ ci->at_context = *m;
-	} else
-	{ resetVars(PASS_LD1);
-	  PL_error(NULL, 0, NULL,
-		   ERR_TYPE, ATOM_module, pushWordAsTermRef(m));
-	  popTermRef();
-	  return FALSE;
-	}
-
-	rv = compileBody(argTermP(*body, 0), call, ci PASS_LD);
+	if ( (rc=getTargetModule(&ci->at_context,
+				 argTermP(*body, 1), ci PASS_LD)) != TRUE )
+	  return rc;
+	rc = compileBody(argTermP(*body, 0), call, ci PASS_LD);
 	ci->at_context = atsave;
-	if ( rv == NOT_AT_CALLABLE )
-	{ if ( (rv=compileArgument(body, A_BODY, ci PASS_LD)) < 0 )
-	    return rv;
+	if ( rc == NOT_AT_CALLABLE )
+	{ if ( (rc=compileArgument(body, A_BODY, ci PASS_LD)) < 0 )
+	    return rc;
 	  Output_0(ci, I_USERCALL0);
 	  return TRUE;
 	}
 
-	return rv;
+	return rc;
 #endif /*O_CALL_AT_MODULE*/
       }
       assert(fdef->name == ATOM_call);
@@ -1927,7 +1960,7 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   { int rc;
 
 #ifdef O_CALL_AT_MODULE
-    if ( ci->at_context )
+    if ( ci->at_context.type != TM_NONE )
       return NOT_AT_CALLABLE;
 #endif
 
@@ -2095,14 +2128,14 @@ re-definition.
   }
 
 #ifdef O_CALL_AT_MODULE
-  if ( ci->at_context )
-  { if ( isAtom(ci->at_context) )
-    { Module cm = lookupModule(ci->at_context);
+  if ( ci->at_context.type != TM_NONE )
+  { if ( ci->at_context.type == TM_MODULE )
+    { Module cm = ci->at_context.module;
       code ctm = (tm==ci->module) ? (code)0 : (code)tm;
 
       Output_3(ci, callatm(call), ctm, (code)cm, (code)proc);
     } else
-    { int idx = valInt(ci->at_context);
+    { int idx = ci->at_context.var_index;
       code ctm = (tm==ci->module) ? (code)0 : (code)tm;
 
       Output_3(ci, callatmv(call), ctm, VAROFFSET(idx), (code)proc);
