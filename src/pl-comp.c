@@ -1947,10 +1947,16 @@ lookupBodyProcedure(functor_t functor, Module tm)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The task of compileSubClause() is to  generate  code  for  a  subclause.
-First  it will call compileArgument for each argument to the call.  Then
-an instruction to call the procedure is added.  Before doing all this it
-will check for the subclause just beeing a variable or the cut.
+Compile a single subclause. compileBody() already   took care of control
+structures, including :/2 and @/2. This means that the goal is one of:
+
+    - unbound (variable in the body)
+    - Some compiler reserved goal (true, !, ...)
+    - A normal Prolog goal
+    - Not callable (an error)
+
+The context left operators @/2 and   :/2 are available as ci->at_context
+and ci->colon_context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
