@@ -1974,10 +1974,6 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
 
   if ( ci->colon_context.type == TM_VAR )
     return NOT_AT_CALLABLE;
-#ifdef O_CALL_AT_MODULE
-  if ( ci->at_context.type == TM_VAR )
-    return NOT_AT_CALLABLE;
-#endif
 
   if ( isTerm(*arg) )
   { FunctorDef fdef;
