@@ -887,13 +887,11 @@ getTargetModule(target_module *tm, Word t, CompileInfo ci ARG_LD)
 
 
 static int
-pushTargetModule(target_module *tm, functor_t functor, CompileInfo ci)
-{ Output_1(ci, B_FUNCTOR, functor);
-
-  if ( ci->colon_context.type == TM_MODULE )
-  { Output_1(ci, B_CONST, ci->colon_context.module->name);
+pushTargetModule(target_module *tm, CompileInfo ci)
+{ if ( tm->type == TM_MODULE )
+  { Output_1(ci, B_CONST, tm->module->name);
   } else
-  { int index = ci->colon_context.var_index;
+  { int index = tm->var_index;
 
     if ( index < 3 )
       Output_0(ci, B_VAR0+index);
@@ -1969,23 +1967,30 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   if ( isIndexedVarTerm(*arg PASS_LD) >= 0 ||
        ci->colon_context.type == TM_VAR )
   { int rc;
-    int pop=0;
+    int pop = FALSE;
 
 #ifdef O_CALL_AT_MODULE
     if ( ci->at_context.type != TM_NONE )
-    { pushTargetModule(&ci->colon_context, FUNCTOR_xpceref2, ci);
-      pop++;
+    { Output_1(ci, B_FUNCTOR, FUNCTOR_xpceref2);
     }
 #endif
     if ( ci->colon_context.type != TM_NONE )
-    { pushTargetModule(&ci->colon_context, FUNCTOR_colon2, ci);
-      pop++;
+    { Output_1(ci, B_FUNCTOR, FUNCTOR_colon2);
+      pushTargetModule(&ci->colon_context, ci);
+      pop = TRUE;
     }
 
     if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
       return rc;
-    while(--pop >=0 )
+    if ( pop )
       Output_0(ci, B_POP);
+
+#ifdef O_CALL_AT_MODULE
+    if ( ci->at_context.type != TM_NONE )
+    { pushTargetModule(&ci->at_context, ci);
+      Output_0(ci, B_POP);
+    }
+#endif
 
     Output_0(ci, I_USERCALL0);
     succeed;
