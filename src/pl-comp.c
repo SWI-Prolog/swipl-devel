@@ -1520,6 +1520,13 @@ right_argument:
 	  return rc;
 	rc = compileBody(argTermP(*body, 1), call, ci PASS_LD);
 	ci->colon_context = tmsave;
+	if ( rc == NOT_AT_CALLABLE )
+	{ usercall:
+	  if ( (rc=compileArgument(body, A_BODY, ci PASS_LD)) < 0 )
+	    return rc;
+	  Output_0(ci, I_USERCALL0);
+	  return TRUE;
+	}
 
 	return rc;
 #ifdef O_CALL_AT_MODULE
@@ -1533,11 +1540,7 @@ right_argument:
 	rc = compileBody(argTermP(*body, 0), call, ci PASS_LD);
 	ci->at_context = atsave;
 	if ( rc == NOT_AT_CALLABLE )
-	{ if ( (rc=compileArgument(body, A_BODY, ci PASS_LD)) < 0 )
-	    return rc;
-	  Output_0(ci, I_USERCALL0);
-	  return TRUE;
-	}
+	  goto usercall;
 
 	return rc;
 #endif /*O_CALL_AT_MODULE*/
@@ -1949,8 +1952,9 @@ will check for the subclause just beeing a variable or the cut.
 static int
 compileSubClause(Word arg, code call, compileInfo *ci)
 { GET_LD
-  Module tm = ci->module;
+  functor_t functor;
   Procedure proc;
+  Module tm;				/* lookup module */
 
   deRef(arg);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1959,6 +1963,8 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   if ( isIndexedVarTerm(*arg PASS_LD) >= 0 )
   { int rc;
 
+    if ( ci->colon_context.type != TM_NONE )
+      return NOT_AT_CALLABLE;
 #ifdef O_CALL_AT_MODULE
     if ( ci->at_context.type != TM_NONE )
       return NOT_AT_CALLABLE;
@@ -1970,57 +1976,18 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     succeed;
   }
 
+  if ( ci->colon_context.type == TM_VAR )
+    return NOT_AT_CALLABLE;
+#ifdef O_CALL_AT_MODULE
+  if ( ci->at_context.type == TM_VAR )
+    return NOT_AT_CALLABLE;
+#endif
+
   if ( isTerm(*arg) )
-  { functor_t functor = functorTerm(*arg);
-    FunctorDef fdef = valueFunctor(functor);
+  { FunctorDef fdef;
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If the argument is of the form  <Module>:<Goal>, <Module> is an atom and
-<Goal> is callable, compile to to  a   call  I_CALLM  <module> <proc> or
-I_DEPARTM <module> <proc>. There are two special   cases  that we do not
-compile, but they are related to meta-calling anyway.
-
-	* When compiling in local mode, this is all much more complicated
-	  due to the ci->argvars computation and maintenance, so we skip
-	  this
-	* We do not try to be smart with <module>:call(...)
-
-FIXME: Note that this compiles  module:(if->then;else) into a meta-call.
-This must eventually be  handled  by   compileBody,  setting  the target
-module and simply compiling the content of the qualified term.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    if ( functor == FUNCTOR_colon2 )
-    { Word mp, g;
-      int rc;
-
-      mp = argTermP(*arg, 0); deRef(mp);
-      if ( isTextAtom(*mp) && !ci->islocal )
-      { g = argTermP(*arg, 1); deRef(g);
-	if ( isIndexedVarTerm(*g PASS_LD) < 0 )
-	{ if ( isTerm(*g) )
-	  { functor_t f2 = functorTerm(*g);
-	    FunctorDef fd2 = valueFunctor(f2);
-
-	    if ( fd2->name != ATOM_call && false(fd2, CONTROL_F) )
-	    { arg = g;
-	      functor = f2;
-	      fdef = fd2;
-	      tm = lookupModule(*mp);
-	      goto cont;
-	    }
-	  } else if ( isTextAtom(*g) )
-	  { arg = g;
-	    tm = lookupModule(*mp);
-	    goto cont_atom;
-	  }
-	}
-      }
-
-      if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
-	return rc;
-      Output_0(ci, I_USERCALL0);
-      succeed;
-    }
+    functor = functorTerm(*arg);
+    fdef = valueFunctor(functor);
 
     if ( true(fdef, ARITH_F) && !ci->islocal )
     { if ( functor == FUNCTOR_is2 &&
@@ -2072,10 +2039,7 @@ If we call a currently undefined procedure we   check it is not a system
 procedure. If it is, we import the  procedure immediately to avoid later
 re-definition.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    cont:
     { int ar = fdef->arity;
-
-      proc = lookupBodyProcedure(functor, tm);
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
       { int rc;
@@ -2083,6 +2047,8 @@ re-definition.
 	if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
 	  return rc;
       }
+
+      /* TBD: WIP if a module is specified. */
 
       if ( fdef->name == ATOM_call )
       { if ( fdef->arity == 1 )
@@ -2096,9 +2062,7 @@ re-definition.
       }
     }
   } else if ( isTextAtom(*arg) )
-  { cont_atom:
-
-    if ( *arg == ATOM_cut )
+  { if ( *arg == ATOM_cut )
     { if ( ci->cut.var )			/* local cut for \+ */
 	Output_1(ci, ci->cut.instruction, ci->cut.var);
       else
@@ -2119,13 +2083,15 @@ re-definition.
       Output_0(ci, I_EXITCLEANUP);
       succeed;
     } else
-    { functor_t fdef = lookupFunctorDef(*arg, 0);
-
-      proc = lookupProcedure(fdef, tm);
+    { functor = lookupFunctorDef(*arg, 0);
     }
   } else
   { return NOT_CALLABLE;
   }
+
+  tm = (ci->colon_context.type == TM_MODULE ? ci->colon_context.module
+					    : ci->module);
+  proc = lookupBodyProcedure(functor, tm);
 
 #ifdef O_CALL_AT_MODULE
   if ( ci->at_context.type != TM_NONE )
