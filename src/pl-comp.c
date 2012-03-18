@@ -2044,14 +2044,18 @@ re-definition.
 	  return rc;
       }
 
-      /* TBD: WIP if a module is specified. */
-
       if ( fdef->name == ATOM_call )
-      { if ( fdef->arity == 1 )
-	  Output_0(ci, I_USERCALL0);
-	else
-	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
-	succeed;
+      { if ( ci->colon_context.type == TM_NONE
+#ifdef O_CALL_AT_MODULE
+	     && ci->at_context.type == TM_NONE
+#endif
+	   )
+	{ if ( fdef->arity == 1 )
+	    Output_0(ci, I_USERCALL0);
+	  else
+	    Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
+	  return TRUE;
+	}
       } else if ( functor == FUNCTOR_dcut1 )	/* $cut(Choice) */
       { Output_0(ci, I_CUTCHP);
 	succeed;
