@@ -229,6 +229,18 @@ typedef struct merge_state
   size_t	merge_pos;		/* The merge candidate location */
 } merge_state;
 
+typedef enum target_module_type
+{ TM_NONE = 0,				/* No explicit target */
+  TM_MODULE,				/* Explicit module target */
+  TM_VAR				/* Explicit variable target */
+} target_module_type;
+
+typedef struct target_module
+{ target_module_type type;		/* Type of target module */
+  int		     var_index;		/* Index of var if TM_VAR */
+  Module	    *module;		/* Module = TM_MODULE */
+} target_module;
+
 typedef struct
 { Module	module;			/* module to compile into */
   Clause	clause;			/* clause we are constructing */
@@ -241,6 +253,7 @@ typedef struct
   cutInfo	cut;			/* how to compile ! */
   merge_state	mstate;			/* Instruction merging state */
   VarTable	used_var;		/* boolean array of used variables */
+  target_module colon_context;		/* Context:Goal */
 #ifdef O_CALL_AT_MODULE
   word		at_context;		/* Call@Context */
 #endif
@@ -1060,6 +1073,7 @@ compileClause(Clause *cp, Word head, Word body,
 
   ci.clause = &clause;
   ci.module = module;
+  ci.colon_context.type = TM_NONE;
 #ifdef O_CALL_AT_MODULE
   ci.at_context = 0;
 #endif
