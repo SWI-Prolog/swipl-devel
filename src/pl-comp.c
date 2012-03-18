@@ -468,19 +468,15 @@ right_recursion:
 
 	return nvars;
       } else if ( false(fd, CONTROL_F) )
-      { if ( f->definition == FUNCTOR_colon2 )	/* A:B --> I_USERCALL0 */
-	{ ci->argvars++;
-	} else
-	{ int ar = fd->arity;
+      { int ar = fd->arity;
 
-	  ci->subclausearg++;
-	  for(head = f->arguments, argn = ci->arity; --ar >= 0; head++, argn++)
-	  { nvars = analyseVariables2(head, nvars, argn, ci, depth PASS_LD);
-	    if ( nvars < 0 )
-	      return nvars;
-	  }
-	  ci->subclausearg--;
+	ci->subclausearg++;
+	for(head = f->arguments, argn = ci->arity; --ar >= 0; head++, argn++)
+	{ nvars = analyseVariables2(head, nvars, argn, ci, depth PASS_LD);
+	  if ( nvars < 0 )
+	    break;			/* error */
 	}
+	ci->subclausearg--;
 
 	return nvars;
       } /* else fall through to normal case */
