@@ -585,7 +585,6 @@ calculation at runtime.
 #define A_RIGHT	0x08			/* rightmost argument */
 
 #define NOT_CALLABLE -10		/* return value for not-callable */
-#define NOT_AT_CALLABLE -11		/* return value for not-callable */
 
 #define BLOCK(s) do { s; } while (0)
 
@@ -1536,13 +1535,6 @@ right_argument:
 	  return rc;
 	rc = compileBody(argTermP(*body, 1), call, ci PASS_LD);
 	ci->colon_context = tmsave;
-	if ( rc == NOT_AT_CALLABLE )
-	{ usercall:
-	  if ( (rc=compileArgument(body, A_BODY, ci PASS_LD)) < 0 )
-	    return rc;
-	  Output_0(ci, I_USERCALL0);
-	  return TRUE;
-	}
 
 	return rc;
 #ifdef O_CALL_AT_MODULE
@@ -1555,8 +1547,6 @@ right_argument:
 	  return rc;
 	rc = compileBody(argTermP(*body, 0), call, ci PASS_LD);
 	ci->at_context = atsave;
-	if ( rc == NOT_AT_CALLABLE )
-	  goto usercall;
 
 	return rc;
 #endif /*O_CALL_AT_MODULE*/
@@ -1976,7 +1966,8 @@ compileSubClause(Word arg, code call, compileInfo *ci)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A non-void variable. Create a I_USERCALL0 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-  if ( isIndexedVarTerm(*arg PASS_LD) >= 0 )
+  if ( isIndexedVarTerm(*arg PASS_LD) >= 0 ||
+       ci->colon_context.type == TM_VAR )
   { int rc;
     int pop=0;
 
@@ -1999,9 +1990,6 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     Output_0(ci, I_USERCALL0);
     succeed;
   }
-
-  if ( ci->colon_context.type == TM_VAR )
-    return NOT_AT_CALLABLE;
 
   if ( isTerm(*arg) )
   { FunctorDef fdef;
