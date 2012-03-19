@@ -1470,7 +1470,8 @@ load_files(Module:Files, Options) :-
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
 	memberchk(stream(_), Options), !,
-	'$assert_load_context_module'(File, Module, Options),
+	'$delete'(Options, stream(_), CtxOptions),
+	'$assert_load_context_module'(File, Module, CtxOptions),
 	'$qdo_load_file'(File, File, Module, Options).
 '$load_file'(File, Module, Options) :-
 	absolute_file_name(File,
