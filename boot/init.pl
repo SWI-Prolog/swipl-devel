@@ -237,8 +237,8 @@ catch(_Goal, _Catcher, _Recover) :-
 %
 %	Cut all choice points after Choice
 
-prolog_cut_to(Choice) :-
-	'$cut'(Choice).
+prolog_cut_to(_Choice) :-
+	'$cut'.
 
 %%	'$recover_and_rethrow'(:Goal, +Term)
 %

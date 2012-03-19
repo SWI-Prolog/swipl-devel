@@ -2083,9 +2083,6 @@ re-definition.
 	    Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	  return TRUE;
 	}
-      } else if ( functor == FUNCTOR_dcut1 )	/* $cut(Choice) */
-      { Output_0(ci, I_CUTCHP);
-	succeed;
       }
     }
   } else if ( isTextAtom(*arg) )
@@ -2108,6 +2105,9 @@ re-definition.
     } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
     { Output_0(ci, I_CALLCLEANUP);
       Output_0(ci, I_EXITCLEANUP);
+      succeed;
+    } else if ( *arg == ATOM_dcut )		/* $cut */
+    { Output_0(ci, I_CUTCHP);
       succeed;
     } else
     { functor = lookupFunctorDef(*arg, 0);
@@ -4256,6 +4256,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_CUT:	    *ARGP++ = ATOM_cut;
 			    pushed++;
 			    continue;
+      case I_CUTCHP:	    *ARGP++ = ATOM_dcut;
+			    pushed++;
+			    continue;
       case I_CATCH:	    *ARGP++ = ATOM_dcatch;
 			    pushed++;
 			    continue;
@@ -4326,9 +4329,6 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
 			  }
       case I_USERCALL0:	    BUILD_TERM(FUNCTOR_call1);
-			    pushed++;
-			    continue;
-      case I_CUTCHP:	    BUILD_TERM(FUNCTOR_dcut1);
 			    pushed++;
 			    continue;
 #if O_COMPILE_OR

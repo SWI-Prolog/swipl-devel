@@ -2165,8 +2165,8 @@ I_CUTCHP cuts all  choice-points  after   the  specified  argument. This
 instruction is generated for $cut(Var), used by prolog_cut_to(Choice).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_CUTCHP, 0, 1, ())
-{ Word a = argFrameP(lTop, 0);
+VMI(I_CUTCHP, 0, 0, ())
+{ Word a = argFrameP(FR, 0);
 
 #define valid_choice(ch) \
 	(  (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG && \
@@ -2180,17 +2180,13 @@ VMI(I_CUTCHP, 0, 1, ())
 
     if ( !(och >= (Choice)lBase && och < (Choice)lTop) ||
 	 !valid_choice(och) )
-    { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice,
-	       pushWordAsTermRef(a));
-      popTermRef();
+    { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, consTermRef(a));
       THROW_EXCEPTION;
     }
 
     goto c_cut;
   } else
-  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_choice,
-	     pushWordAsTermRef(a));
-    popTermRef();
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_choice, consTermRef(a));
     THROW_EXCEPTION;
   }
 }
