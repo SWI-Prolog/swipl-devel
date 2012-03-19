@@ -1975,11 +1975,12 @@ compileSubClause(Word arg, code call, compileInfo *ci)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A non-void variable. Create a I_USERCALL0 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-  if ( isIndexedVarTerm(*arg PASS_LD) >= 0 ||
-       ci->colon_context.type == TM_VAR )
+  if ( isIndexedVarTerm(*arg PASS_LD) >= 0 )
   { int rc;
-    int pop = FALSE;
+    int pop;
 
+  metacall:
+    pop = FALSE;
 #ifdef O_CALL_AT_MODULE
     if ( ci->at_context.type != TM_NONE )
     { Output_1(ci, B_FUNCTOR, FUNCTOR_xpceref2);
@@ -2082,6 +2083,15 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   } else
   { return NOT_CALLABLE;
   }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Var:Goal call. Handle using meta-calls. TBD:  push this further down the
+line; if Goal is  a  reserved  system   predicate  that  is  not a meta-
+predicate we can deal with it anyway.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  if ( ci->colon_context.type == TM_VAR )
+    goto metacall;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Calling  a  normal  predicate:  push  the  arguments  and  generate  the
