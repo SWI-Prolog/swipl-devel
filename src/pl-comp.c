@@ -1967,6 +1967,7 @@ static int
 compileSubClause(Word arg, code call, compileInfo *ci)
 { GET_LD
   functor_t functor;
+  FunctorDef fdef;
   Procedure proc;
   Module tm;				/* lookup module */
 
@@ -2007,9 +2008,7 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   }
 
   if ( isTerm(*arg) )
-  { FunctorDef fdef;
-
-    functor = functorTerm(*arg);
+  { functor = functorTerm(*arg);
     fdef = valueFunctor(functor);
 
     if ( true(fdef, ARITH_F) && !ci->islocal )
@@ -2052,39 +2051,6 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
       }
     }
 #endif
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-For normal cases, simply compile the arguments   (push on the stack) and
-create a call-instruction. Finally, some  special   atoms  are mapped to
-special instructions.
-
-If we call a currently undefined procedure we   check it is not a system
-procedure. If it is, we import the  procedure immediately to avoid later
-re-definition.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    { int ar = fdef->arity;
-
-      for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
-      { int rc;
-
-	if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
-	  return rc;
-      }
-
-      if ( fdef->name == ATOM_call )
-      { if ( ci->colon_context.type == TM_NONE
-#ifdef O_CALL_AT_MODULE
-	     && ci->at_context.type == TM_NONE
-#endif
-	   )
-	{ if ( fdef->arity == 1 )
-	    Output_0(ci, I_USERCALL0);
-	  else
-	    Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
-	  return TRUE;
-	}
-      }
-    }
   } else if ( isTextAtom(*arg) )
   { if ( *arg == ATOM_cut )
     { if ( ci->cut.var )			/* local cut for \+ */
@@ -2111,9 +2077,40 @@ re-definition.
       succeed;
     } else
     { functor = lookupFunctorDef(*arg, 0);
+      fdef = NULL;				/* NULL --> no arguments */
     }
   } else
   { return NOT_CALLABLE;
+  }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Calling  a  normal  predicate:  push  the  arguments  and  generate  the
+appropriate calling instruction.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  if ( fdef )				/* term: there are arguments */
+  { int ar = fdef->arity;
+
+    for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
+    { int rc;
+
+      if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
+	return rc;
+    }
+
+    if ( fdef->name == ATOM_call )
+    { if ( ci->colon_context.type == TM_NONE
+#ifdef O_CALL_AT_MODULE
+	   && ci->at_context.type == TM_NONE
+#endif
+	 )
+      { if ( fdef->arity == 1 )
+	  Output_0(ci, I_USERCALL0);
+	else
+	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
+	return TRUE;
+      }
+    }
   }
 
   tm = (ci->colon_context.type == TM_MODULE ? ci->colon_context.module
