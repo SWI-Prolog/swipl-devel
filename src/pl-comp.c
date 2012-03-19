@@ -1957,6 +1957,10 @@ structures, including :/2 and @/2. This means that the goal is one of:
 
 The context left operators @/2 and   :/2 are available as ci->at_context
 and ci->colon_context.
+
+TBD: A remaining problem is that  calls   to  compiler reserved code and
+system predicates is still subject to  meta-calling if the colon-context
+is unbound (e.g. Var:true).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
