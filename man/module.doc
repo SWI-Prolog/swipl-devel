@@ -4,10 +4,13 @@ A Prolog module is a collection of predicates which defines a public
 interface by means of a set of provided predicates and operators. Prolog
 modules are defined by an ISO standard. Unfortunately, the standard is
 considered a failure and, as far as we are aware, not implemented by any
-concrete Prolog implementation. The SWI-Prolog module system is derived
-from the Quintus Prolog module system. The Quintus module system has
-been the starting point for the module systems of a number of
-mainstream Prolog systems, such as SICStus, Ciao and YAP.
+concrete Prolog implementation. The SWI-Prolog module system syntax is
+derived from the Quintus Prolog module system. The Quintus module system
+has been the starting point for the module systems of a number of
+mainstream Prolog systems, such as SICStus, Ciao and YAP. The underlying
+primitives of the SWI-Prolog module system differs from the mentioned
+systems. These primitives allow for multiple modules in a file,
+hierarchical modules, emulation of other modules interfaces, etc.
 
 This chapter motivates and describes the SWI-Prolog module system.
 Novices can start using the module system after reading
@@ -195,8 +198,8 @@ maplist_([H0|T0], [H|T], Goal) :-
 Define the predicates referenced by the comma-separated list \arg{Head}
 as \jargon{meta-predicates}. Each argument of each head is a
 \jargon{meta argument specifier}. Defined specifiers are given below.
-Only 0..9 and \chr{:} are interpreted; the mode declarations \chr{+},
-\chr{-} and \chr{?} are ignored.
+Only 0..9, \chr{:} and \chr{^} are interpreted; the mode declarations
+\chr{+}, \chr{-} and \chr{?} are ignored.
 
     \begin{description}
         \termitem{0..9}{}
@@ -260,26 +263,60 @@ context_module/1 and strip_module/3.  See also \secref{modulecompat}.
 \section{Overruling Module Boundaries}       \label{sec:overrule}
 
 The module system described so far is sufficient to distribute programs
-over multiple modules. There are, however, cases in which we would like to
-be able to overrule this schema and explicitly call a predicate in some
-module or assert explicitly into some module. Calling in a particular
-module is useful for debugging from the user's top-level or to access
-multiple implementations of the same interface that reside in multiple
-modules. Accessing the same interface from multiple modules cannot be achieved
-using importing because importing a predicate with the same name and
-arity from two modules results in a name conflict. Asserting in a
-different module can be used to create models dynamically in a new
-module. See \secref{dynamic-modules}.
+over multiple modules. There are, however, cases in which we would like
+to be able to overrule this schema and explicitly call a predicate in
+some module or assert explicitly into some module. Calling in a
+particular module is useful for debugging from the user's top-level or
+to access multiple implementations of the same interface that reside in
+multiple modules. Accessing the same interface from multiple modules
+cannot be achieved using importing because importing a predicate with
+the same name and arity from two modules results in a name conflict.
+Asserting in a different module can be used to create models dynamically
+in a new module. See \secref{dynamic-modules}.
 
 Direct addressing of modules is achieved using a \functor{:}{2}
 explicitly in a program and relies on the module qualification mechanism
 described in \secref{metapred}.  Here are a few examples:
 
 \begin{code}
-?- assert(world:done).  % asserts done/0 into module world
-?- world:assert(done).  % the same
-?- world:done.          % calls done/0 in module world
+?- assert(world:done).   % asserts done/0 into module world
+?- world:asserta(done).  % the same
+?- world:done.           % calls done/0 in module world
 \end{code}
+
+Note that the second example is the same due to the Prolog flag
+\prologflag{colon_sets_calling_context}. The system predicate asserta/1
+is called in the module \const{world}, which is possible because system
+predicates are \jargon{visible} in all modules.  At the same time, the
+\jargon{calling context} is set to \const{world}. Because meta arguments
+are qualified with the calling context, the resulting call is the same
+as the first example.
+
+\subsection{Explicit manipulation of the calling context}
+
+Quintus' derived module systems have no means to separate the lookup
+module (for finding predicates) from the calling context (for qualifying
+meta arguments). Some other Prolog implementations (e.g., ECLiPSe and
+IF/Proloog) distinguish these operations, using \funcref{@}{2} for
+setting the calling context of a goal. This is provided by SWI-Prolog,
+currently mainly to support compatibility layers.
+
+\begin{description}
+    \predicate{@}{2}{:Goal, +Module}
+Execute \arg{Goal}, setting the calling context to \arg{Module}. Setting
+the calling context affects meta-predicates, for which meta arguments
+are qualified with \arg{Module} and transparent predicates (see
+module_transparent/1).  It has no implications for other predicates.
+
+For example, the code \exam{asserta(done)@world} is the same as
+\exam{asserta(world:done)}.  Unlike in \exam{world:asserta(done)},
+asserta/1 is resolved in the current module rather than the module
+\const{world}.  This makes no difference for system predicates, but
+usually does make a difference for user predicates.
+
+Not that SWI-Prolog does not define \chr{@} as an operator.  Some
+systems define this construct using \exam{op(900, xfx, @)}.
+\end{description}
 
 
 \section{Interacting with modules from the toplevel}
@@ -718,14 +755,15 @@ all built-in predicates.  The auto-import hierarchy can be changed
 using add_import_module/3 and delete_import_module/2.
 
 This mechanism can be used to realise a simple object-oriented system
-or hierarchical module system.
+or a hierarchical module system.
 
     \item
 Operator declarations are local to a module and may be exported. In
 Quintus and SICStus all operators are global.  YAP and Ciao also use
 local operators.  SWI-Prolog provides global operator declarations
 from within a module by explicitly qualifying the operator name with
-the \const{user} module.
+the \const{user} module.  I.e., operators are inherited from the
+\jargon{import modules} (see above).
 
 \begin{code}
 :- op(precedence, type, user:(operatorname)).

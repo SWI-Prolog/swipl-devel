@@ -16,6 +16,7 @@ The predicate summary is used by the Prolog predicate apropos/1 to
 suggest predicates from a keyword.
 
 \begin{summarylist}{ll}
+\predicatesummary{@}{2}{Call using calling context}
 \predicatesummary{!}{0}{Cut (discard choicepoints)}
 \oppredsummary{,}{2}{xfy}{1000}{Conjunction of goals}
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}

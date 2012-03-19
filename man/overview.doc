@@ -1038,6 +1038,11 @@ If \const{true} (default), read/1 interprets \verb$\$ escape sequences
 in quoted atoms and strings. May be changed. This flag is local to the
 module in which it is changed.
 
+    \prologflagitem{colon_sets_calling_context}{bool}{ro}
+Using the construct <module>:<goal> sets the \jargon{calling context}
+for executing <goal>.  This flag is defined by ISO/IEC 13211-2 (Prolog
+modules standard).  See \secref{modules}.
+
     \prologflagitem{compile_meta_arguments}{atom}{rw}
 Experimental flag that controls compilation of arguments passed to
 meta-calls marked `0' or `\chr{^}' (see meta_predicate/1). Supported
