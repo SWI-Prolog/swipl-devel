@@ -1061,6 +1061,7 @@ current_visible(Module, Predicate) :-
 :- arithmetic_function(system:time/0).
 :- arithmetic_function(system:trunc/1).
 :- arithmetic_function(system:ln/1).
+:- arithmetic_function(system:minint/0).
 :- arithmetic_function(system:maxint/0).
 :- arithmetic_function(system:dbsize/0).
 :- arithmetic_function(system:dbused/0).
@@ -1075,8 +1076,10 @@ system:trunc(Val, Trunc) :-
 	Trunc is truncate(Val).
 system:ln(Val, Log) :-
 	Log is log(Val).
+system:minint(MinInt) :-
+	MinInt is -1<<31.
 system:maxint(MaxInt) :-
-	MaxInt is 1<<63.
+	MaxInt is 1<<31 - 1.
 system:dbsize(0).
 system:dbused(0).
 system:ssize(Size) :-
