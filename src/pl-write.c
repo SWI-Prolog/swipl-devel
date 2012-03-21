@@ -257,6 +257,15 @@ PutComma(write_options *options)
 
 
 static bool
+PutBar(write_options *options)
+{ if ( options->spacing == ATOM_next_argument )
+    return PutString("| ", options->out);
+  else
+    return PutString("|", options->out);
+}
+
+
+static bool
 PutStringN(const char *str, size_t length, IOSTREAM *s)
 { size_t i;
   const unsigned char *q = (const unsigned char *)str;
@@ -1212,6 +1221,8 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 			options));
 	  if ( functor == ATOM_comma )
 	  { TRY(PutComma(options));
+	  } else if ( functor == ATOM_bar )
+	  { TRY(PutBar(options));
 	  } else
 	  { switch(writeAtom(functor, options))
 	    { case FALSE:
