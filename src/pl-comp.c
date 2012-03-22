@@ -1052,6 +1052,7 @@ compileClause(Clause *cp, Word head, Word body,
   clause.procedure  = proc;
   clause.code_size  = 0;
   clause.source_no  = clause.line_no = 0;
+  clause.owner_no   = 0;
 
   ci.clause = &clause;
   ci.module = module;
