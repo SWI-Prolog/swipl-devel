@@ -43,6 +43,10 @@ typedef enum
   CMD_ANSI
 } astate;
 
+typedef enum
+{ HDL_CONSOLE = 0,
+  HDL_FILE
+} htype;
 
 typedef struct
 { int magic;
@@ -57,6 +61,7 @@ typedef struct
   int argstat;
   astate cmdstat;			/* State for sequence processing */
   WORD def_attr;			/* Default attributes */
+  htype handletype;                     /* Type of stream handle */
 } ansi_stream;
 
 
@@ -85,11 +90,19 @@ flush_ansi(ansi_stream *as)
   { BOOL rc;
     DWORD done;
 
-    rc = WriteConsoleW(as->hConsole,
-		       &as->buffer[written],
-		       (DWORD)(as->buffered-written),
-		       &done,
-		       NULL);
+    if (as->handletype == HDL_CONSOLE)
+    { rc = WriteConsoleW(as->hConsole,
+		         &as->buffer[written],
+		         (DWORD)(as->buffered-written),
+		         &done,
+		         NULL);
+    } else
+    { rc = WriteFile(as->hConsole,
+                     &as->buffer[written],
+                     (DWORD)(as->buffered-written),
+                     &done,
+                     NULL);
+    }
 
     if ( rc )
     { written += done;
@@ -408,9 +421,15 @@ error:
 static int
 wrap_console(HANDLE h, IOSTREAM *s, IOFUNCTIONS *funcs)
 { ansi_stream *as;
+  DWORD mode;
 
   as = PL_malloc(sizeof(*as));
   memset(as, 0, sizeof(*as));
+
+  if (GetConsoleMode(h, &mode))
+    as->handletype = HDL_CONSOLE;
+  else
+    as->handletype = HDL_FILE;
 
   as->hConsole     = h;
   as->pStream      = s;
