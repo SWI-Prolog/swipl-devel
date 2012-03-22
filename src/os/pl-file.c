@@ -1339,6 +1339,12 @@ closeOutputRedirect(redir_context *ctx)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+discardOutputRedirect() is called if the `implementation' failed. One of
+the reasons for failure  can  be   that  the  implementation  detected a
+pending I/O stream error, in which case continuation is meaningless.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 discardOutputRedirect(redir_context *ctx)
 { if ( ctx->magic != REDIR_MAGIC )
@@ -1350,7 +1356,7 @@ discardOutputRedirect(redir_context *ctx)
     popOutputContext();
 
   if ( ctx->is_stream )
-  { releaseStream(ctx->stream);
+  { streamStatus(ctx->stream);
   } else
   { closeStream(ctx->stream);
     if ( ctx->data != ctx->buffer )
