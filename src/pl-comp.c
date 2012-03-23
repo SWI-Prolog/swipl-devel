@@ -1977,10 +1977,8 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   if ( isIndexedVarTerm(*arg PASS_LD) >= 0 )
   { int rc;
-    int pop;
 
   metacall:
-    pop = FALSE;
 #ifdef O_CALL_AT_MODULE
     if ( ci->at_context.type != TM_NONE )
     { Output_1(ci, B_FUNCTOR, FUNCTOR_xpceref2);
@@ -1989,14 +1987,13 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     if ( ci->colon_context.type != TM_NONE )
     { Output_1(ci, B_FUNCTOR, FUNCTOR_colon2);
       pushTargetModule(&ci->colon_context, ci);
-      pop = TRUE;
-    }
-
-    if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
-      return rc;
-    if ( pop )
+      if ( (rc=compileArgument(arg, A_BODY|A_RIGHT, ci PASS_LD)) < 0 )
+	return rc;
       Output_0(ci, B_POP);
-
+    } else
+    { if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
+	return rc;
+    }
 #ifdef O_CALL_AT_MODULE
     if ( ci->at_context.type != TM_NONE )
     { pushTargetModule(&ci->at_context, ci);
