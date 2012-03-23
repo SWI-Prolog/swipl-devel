@@ -69,6 +69,9 @@ expansion.
 	user:term_expansion/2,
 	user:goal_expansion/2.
 
+:- meta_predicate
+	expand_terms(2, +, -).
+
 %%	expand_term(+Input, -Output) is det.
 %
 %	This predicate is used to translate terms  as they are read from
@@ -122,9 +125,6 @@ expand_body(_, Head, Head).
 %	Loop over two constructs that  can   be  added by term-expansion
 %	rules in order to  run  the   next  phase.  Term_expansion/2 can
 %	return a list and terms may be preceeded with a source-location.
-
-:- meta_predicate
-	expand_terms(2, +, -).
 
 expand_terms(_, X, X) :-
 	var(X), !.
