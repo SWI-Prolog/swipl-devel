@@ -30,7 +30,11 @@
 
 :- module(ifprolog,
 	  [ calling_context/1,			% -Module
-	    context/2,				% :Goal, Mapping
+	    context/2,				% :Goal, +Mapping
+	    block/3,				% :Goal, +Tag, :Recovery
+	    exit_block/1,			% +Tag
+	    cut_block/1,			% +Tag
+
 	    modify_mode/3,			% +PI, -Old, +New
 	    debug_mode/3,			% +PI, -Old, +New
 	    ifprolog_debug/1,			% :Goal,
@@ -69,7 +73,9 @@
 	    prolog_version/1,                   % -Atom
 	    proroot/1,				% -Atom
 	    system_name/1,			% -Atom
-	    localtime/9,			% +Time, ?Year, ?Month, ?Day, ?DoW, ?DoY, ?Hour, ?Min, ?Sec
+	    localtime/9,			% +Time, ?Year, ?Month,
+						% ?Day, ?DoW, ?DoY,
+						% ?Hour, ?Min, ?Sec
 
 	    asserta_with_names/2,		% @Term, +VarNames
 	    assertz_with_names/2,		% @Term, +VarNames
@@ -115,6 +121,7 @@ bugs@swi-prolog.org.
 
 :- meta_predicate
 	context(0, +),
+	block(0, +, 0),
 	modify_mode(:, -, +),
 	debug_mode(:, -, +),
 	ifprolog_debug(0),
@@ -361,6 +368,41 @@ context(M:Goal, Mapping) :-
 	catch(M:Goal, Error, Action).
 context(M:Goal, _Mapping) :-
 	M:Goal.
+
+%%	block(:Goal, +Tag, :Recovery).
+%%	exit_block(+Tag).
+%%	cut_block(+Tag) is semidet.
+%
+%	The control construct block/3 runs Goal in a block labelled Tag.
+%	If Goal calls exit_block/1 using a   matching Tag, the execution
+%	of Goal is abandoned  using   exception  handling  and execution
+%	continues by running Recovery.  Goal   can  call cut_block/1. If
+%	there is a block with matching   Tag,  all choice points created
+%	since the block was started are destroyed.
+%
+%	@bug	The block control structure is implemented on top of
+%		catch/3 and throw/1.  If catch/3 is used inside Goal,
+%		the user must ensure that either (1) the protected
+%		goal does not call exit_block/1 or cut_block/1 or (2)
+%		the _Catcher_ if the catch/3 call does *not* unify with
+%		a term block(_,_).
+
+block(Goal, Tag, Recovery) :-
+	prolog_current_choice(Choice),
+	catch(Goal, block(Tag, Choice), Recovery).
+
+exit_block(Tag) :-
+	throw(block(Tag, _)).
+
+cut_block(Tag) :-
+	prolog_current_frame(Frame),
+	findall(Choice,			% use findall/3 to avoid binding
+		prolog_frame_attribute(
+		    Frame, parent_goal,
+		    system:catch(_, block(Tag, Choice), _)),
+		[Choice]),
+	nonvar(Choice),
+	prolog_cut_to(Choice).
 
 %%	modify_mode(+PI, -OldMode, +NewMode) is det.
 %
