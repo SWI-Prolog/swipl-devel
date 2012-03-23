@@ -384,7 +384,7 @@ context(M:Goal, _Mapping) :-
 %		catch/3 and throw/1.  If catch/3 is used inside Goal,
 %		the user must ensure that either (1) the protected
 %		goal does not call exit_block/1 or cut_block/1 or (2)
-%		the _Catcher_ if the catch/3 call does *not* unify with
+%		the _Catcher_ of the catch/3 call does *not* unify with
 %		a term block(_,_).
 
 block(Goal, Tag, Recovery) :-
