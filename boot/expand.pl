@@ -70,7 +70,7 @@ expansion.
 	user:goal_expansion/2.
 
 :- meta_predicate
-	expand_terms(2, +, -).
+	expand_terms(2, ?, +, -).
 
 %%	expand_term(+Input, -Output) is det.
 %
@@ -92,7 +92,7 @@ call_term_expansion([], Term, Term).
 call_term_expansion([M|T], Term0, Term) :-
 	(   M:term_expansion(Term0, Term1),
 	    Term1 \== Term0
-	->  expand_terms(call_term_expansion([M|T]), Term1, Term)
+	->  expand_terms(call_term_expansion([M|T]), Term0, Term1, Term)
 	;   call_term_expansion(T, Term0, Term)
 	).
 
@@ -109,7 +109,7 @@ expand_term_2(Term0, Term) :-
 
 expand_bodies(Terms, Out) :-
 	'$def_modules'(goal_expansion/2, MList),
-	expand_terms(expand_body(MList), Terms, Out).
+	expand_terms(expand_body(MList), _, Terms, Out).
 
 expand_body(MList, (Head :- Body), (Head :- ExpandedBody)) :-
 	nonvar(Body), !,
@@ -120,21 +120,24 @@ expand_body(MList, (:- Body), (:- ExpandedBody)) :-
 expand_body(_, Head, Head).
 
 
-%%	expand_terms(:Closure, +In, -Out)
+%%	expand_terms(:Closure, +NoExpand, +In, -Out)
 %
 %	Loop over two constructs that  can   be  added by term-expansion
 %	rules in order to  run  the   next  phase.  Term_expansion/2 can
 %	return a list and terms may be preceeded with a source-location.
 
-expand_terms(_, X, X) :-
+expand_terms(_, NoExpand, X, X) :-
+	NoExpand == X, !.
+expand_terms(_, _, X, X) :-
 	var(X), !.
-expand_terms(C, [H0|T0], [H|T]) :- !,
-	expand_terms(C, H0, H),
-	expand_terms(C, T0, T).
-expand_terms(C, '$source_location'(File, Line):Clause0,
-		'$source_location'(File, Line):Clause) :- !,
-	expand_terms(C, Clause0, Clause).
-expand_terms(C, Term0, Term) :-
+expand_terms(C, NE, [H0|T0], [H|T]) :- !,
+	expand_terms(C, NE, H0, H),
+	expand_terms(C, NE, T0, T).
+expand_terms(C, NE,
+	     '$source_location'(File, Line):Clause0,
+	     '$source_location'(File, Line):Clause) :- !,
+	expand_terms(C, NE, Clause0, Clause).
+expand_terms(C, _, Term0, Term) :-
 	call(C, Term0, Term).
 
 
