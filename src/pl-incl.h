@@ -89,6 +89,8 @@ handy for it someone wants to add a data type to the system.
       Include arithmetic compiler (compiles is/2, >/2, etc. into WAM).
   O_COMPILE_IS
       Compile Var = Value in the body.
+  O_CALL_AT_MODULE
+      Support the Goal@Module control-structure
   O_LABEL_ADDRESSES
       Means we can pick up the address of a label in  a function using
       the var  = `&&label' construct  and jump to  it using goto *var;
@@ -125,6 +127,7 @@ handy for it someone wants to add a data type to the system.
 #define O_SOFTCUT		1
 #define O_COMPILE_ARITH		1
 #define O_COMPILE_IS		1
+#define O_CALL_AT_MODULE	1
 #define O_STRING		1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
