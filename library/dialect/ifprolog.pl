@@ -66,7 +66,6 @@
 	    get_until/3,			% +SearchChar, ?Text, ?EndChar
 	    get_until/4,			% @In, +SearchChar, ?Text, ?EndChar
 	    for/3,				% +Start, ?Counter, +End
-	    (@)/2,				% Goal, Module
 	    prolog_version/1,                   % -Atom
 	    proroot/1,				% -Atom
 	    system_name/1,			% -Atom
@@ -166,13 +165,6 @@ user:term_expansion(In, Out) :-
 %	compilation.   Defining   them   as   predicates   would   loose
 %	compilation.
 
-
-%%	Goal@Module
-%
-%	This is emulated as Module:Goal, which   is incorrect. Where @/2
-%	sets only the calling context, :/2 both defines where the Prolog
-%	is called and sets the calling context.
-
 %%	context(:Goal, Handler)
 %
 %	Is  mapped  to  catch(Goal,  Error,    Recover)  is  Handler  is
@@ -198,20 +190,6 @@ ifprolog_goal_expansion(Module:Goal, Expanded) :-
 ifprolog_goal_expansion(Goal, Expanded) :-
 	if_goal_expansion(Goal, Expanded).
 
-if_goal_expansion(call(Goal)@Module, MetaGoal) :-
-	qcallable(Goal), !,
-	if_goal_expansion(Goal@Module, MetaGoal).
-if_goal_expansion(Goal@Module, MetaGoal) :-
-	qcallable(Goal),
-	(   if_goal_expansion(Goal, Goal1)
-	->  true
-	;   Goal1 = Goal
-	),
-	(   predicate_property(Goal1, meta_predicate(Decl))
-	->  qualify(Goal1, Decl, Module, MetaGoal)
-	;   MetaGoal = Goal1
-	).
-if_goal_expansion(Goal@Module, Module:Goal).
 if_goal_expansion(context(Goal, [Error => Recover]),
 		  catch(Goal, Error, Recover)) :-
 	assertion(Error = error(_,_)).
@@ -221,31 +199,6 @@ if_goal_expansion(asserta(Head,Body),
 		  asserta((Head:-Body))).
 if_goal_expansion(retract(Head,Body),
 		  retract((Head:-Body))).
-
-qcallable(M:Goal) :- !,
-	atom(M), callable(Goal).
-qcallable(Goal) :-
-	callable(Goal).
-
-qualify(M:Goal, Decl, Module, M:QGoal) :- !,
-	qualify(Goal, Decl, Module, QGoal).
-qualify(Goal, Decl, Module, QGoal) :-
-	Goal =.. [Name|Args0],
-	Decl =.. [_|DeclArgs],
-	qualify_list(Args0, DeclArgs, Module, QArgs),
-	QGoal =.. [Name|QArgs].
-
-qualify_list([], [], _, []).
-qualify_list([A|AT], [D|DT], M, [Q|QT]) :-
-	(   meta_arg(D)
-	->  Q = (M:A)
-	;   Q = A
-	),
-	qualify_list(AT, DT, M, QT).
-
-meta_arg(:).
-meta_arg(^).
-meta_arg(I) :- integer(I).
 
 head_pi(M:Head, M:PI) :- !,
 	head_pi(Head, PI).
@@ -865,13 +818,6 @@ for(Start, Count, End) :-
 	Range is Start-End,
 	between(0, Range, X),
 	Count is Start-X.
-
-%%	Goal@Module
-%
-%	FIXME: not really correct
-
-(Goal@Module) :-
-	Module:Goal.
 
 %%	prolog_version(-Version)
 %
