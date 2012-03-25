@@ -117,6 +117,7 @@ public(Spec)		 :- '$set_pattr'(Spec, (public)).
 	';'(0,0),
 	'|'(0,0),
 	','(0,0),
+	@(0,+),
 	call(0),
 	call(1,?),
 	call(2,?,?),
@@ -152,6 +153,7 @@ public(Spec)		 :- '$set_pattr'(Spec, (public)).
 (G1   , G2)       :-    call((G1   , G2)).
 (If  -> Then)     :-    call((If  -> Then)).
 (If *-> Then)     :-    call((If *-> Then)).
+@(Goal,Module)	  :-    @(Goal,Module).
 
 %%	call(Closure, Arg, ...)
 %
