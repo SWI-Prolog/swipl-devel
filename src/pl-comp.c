@@ -864,7 +864,7 @@ getTargetModule(target_module *tm, Word t, CompileInfo ci ARG_LD)
 
   deRef(t);
   if ( (iv=isIndexedVarTerm(*t PASS_LD)) >= 0 )
-  { if ( !isFirstVar(ci->used_var, iv) )
+  { if ( ci->islocal || !isFirstVar(ci->used_var, iv) )
     { tm->var_index = iv;
       tm->type = TM_VAR;
     } else
@@ -890,7 +890,7 @@ static int
 pushTargetModule(target_module *tm, CompileInfo ci)
 { if ( tm->type == TM_MODULE )
   { Output_1(ci, B_CONST, tm->module->name);
-  } else
+  } else					/* TBD: Handle islocal */
   { int index = tm->var_index;
 
     if ( index < 3 )

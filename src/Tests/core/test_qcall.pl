@@ -52,5 +52,7 @@ test(atvvv, C == C) :-
 	m2(QC),
 	g(C,G),
 	M:(G,true)@QC.
+test(localv, M-C == qm-qm) :-
+	call((m(M),M:qm(C))).
 
 :- end_tests(qualified_calls).
