@@ -54,5 +54,9 @@ test(atvvv, C == C) :-
 	M:(G,true)@QC.
 test(localv, M-C == qm-qm) :-
 	call((m(M),M:qm(C))).
+test(local_argvar, M-C == qm-qm) :-
+	call((m(M),M:(qm(C),qm(C)))).
+test(local_argvar, M-C == qm-qm) :-
+	call((m(M),M:(call(qm(C)),qm(C)))).
 
 :- end_tests(qualified_calls).

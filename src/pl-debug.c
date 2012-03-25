@@ -47,6 +47,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_THROW),
   DEBUG_TOPIC(MSG_SRCLOC),
   DEBUG_TOPIC(MSG_PROC),
+  DEBUG_TOPIC(MSG_COMP_ARGVAR),
 						/* GC messages */
   DEBUG_TOPIC(MSG_AGC),
   DEBUG_TOPIC(MSG_CLAUSE_GC),

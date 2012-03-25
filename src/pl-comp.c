@@ -464,7 +464,9 @@ right_recursion:
 
     if ( ci->islocal )
     { if ( ci->subclausearg )
-      { ci->argvars++;
+      { DEBUG(MSG_COMP_ARGVAR,
+	      Sdprintf("argvar for %s\n", functorName(f->definition)));
+	ci->argvars++;
 
 	return nvars;
       } else if ( false(fd, CONTROL_F) )
@@ -498,7 +500,10 @@ right_recursion:
   }
 
   if ( ci->subclausearg && (isString(*head) || isAttVar(*head)) )
+  { DEBUG(MSG_COMP_ARGVAR,
+	  Sdprintf("argvar for %s\n", isString(*head) ? "string" : "attvar"));
     ci->argvars++;
+  }
 
   return nvars;
 }
@@ -579,10 +584,11 @@ calculation at runtime.
 
 #define isConjunction(w) hasFunctor(w, FUNCTOR_comma2)
 
-#define A_HEAD	0x01			/* argument in head */
-#define A_BODY  0x02			/* argument in body */
-#define A_ARG	0x04			/* sub-argument */
-#define A_RIGHT	0x08			/* rightmost argument */
+#define A_HEAD		0x01		/* argument in head */
+#define A_BODY		0x02		/* argument in body */
+#define A_ARG		0x04		/* sub-argument */
+#define A_RIGHT		0x08		/* rightmost argument */
+#define A_NOARGVAR	0x10		/* do not compile using ci->argvar */
 
 #define NOT_CALLABLE -10		/* return value for not-callable */
 
@@ -1772,7 +1778,7 @@ isvar:
 
   assert(isTerm(*arg));
 
-  if ( ci->islocal )
+  if ( ci->islocal && !(where&A_NOARGVAR) )
   { int voffset;
     Word k;
 
@@ -1792,6 +1798,8 @@ isvar:
     } else
     { Output_1(ci, B_VAR, voffset);
     }
+    DEBUG(MSG_COMP_ARGVAR,
+	  Sdprintf("Using argvar %d\n", ci->argvar));
     ci->argvar++;
 
     return TRUE;
@@ -1824,7 +1832,7 @@ isvar:
       Output_1(ci, c, (word)fdef);
     }
     ar = arityFunctor(fdef);
-    where &= ~A_RIGHT;
+    where &= ~(A_RIGHT|A_NOARGVAR);
     where |= A_ARG;
 
     for(arg = argTermP(*arg, 0); --ar > 0; arg++)
@@ -1958,9 +1966,14 @@ structures, including :/2 and @/2. This means that the goal is one of:
 The context left operators @/2 and   :/2 are available as ci->at_context
 and ci->colon_context.
 
-TBD: A remaining problem is that  calls   to  compiler reserved code and
-system predicates is still subject to  meta-calling if the colon-context
-is unbound (e.g. Var:true).
+If the goal needs to be translated   into a meta-call, (e.g., calls like
+Var:g(x)), we must be aware that   the variable-analyser considers g/1 a
+goal and does not make this term a   candidate for the argvar trick used
+for `local' compilation.  Therefore, we use A_NOARGVAR.
+
+TBD: A remaining problem is  that   calls  to  non-meta-predicate system
+predicates is still subject to  meta-calling   if  the  colon-context is
+unbound (e.g. Var:is_list(X)).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1987,11 +2000,11 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     if ( ci->colon_context.type != TM_NONE )
     { Output_1(ci, B_FUNCTOR, FUNCTOR_colon2);
       pushTargetModule(&ci->colon_context, ci);
-      if ( (rc=compileArgument(arg, A_BODY|A_RIGHT, ci PASS_LD)) < 0 )
+      if ( (rc=compileArgument(arg, A_BODY|A_RIGHT|A_NOARGVAR, ci PASS_LD)) < 0 )
 	return rc;
       Output_0(ci, B_POP);
     } else
-    { if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
+    { if ( (rc=compileArgument(arg, A_BODY|A_NOARGVAR, ci PASS_LD)) < 0 )
 	return rc;
     }
 #ifdef O_CALL_AT_MODULE
