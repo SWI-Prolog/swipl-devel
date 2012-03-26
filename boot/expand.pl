@@ -90,9 +90,8 @@ expand_term(Term, Expanded) :-		% local term-expansion
 
 call_term_expansion([], Term, Term).
 call_term_expansion([M|T], Term0, Term) :-
-	(   M:term_expansion(Term0, Term1),
-	    Term1 \== Term0
-	->  expand_terms(call_term_expansion([M|T]), Term1, Term)
+	(   M:term_expansion(Term0, Term1)
+	->  expand_terms(call_term_expansion(T), Term1, Term)
 	;   call_term_expansion(T, Term0, Term)
 	).
 
