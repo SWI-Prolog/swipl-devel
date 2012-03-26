@@ -4526,18 +4526,27 @@ which in turn are assembled into larger units before communication them
 to the outside world is bad style. Consider using streams or
 with_output_to/2 to reduce the number of expensive intermediate atoms.
 
-    \predicate{name}{2}{?AtomOrInt, ?String}
-\arg{String} is a list of character codes representing the same text
-as \arg{Atom}. Each of the arguments may be a variable, but not both.
-When \arg{String} is bound to an character code list describing an
-integer and \arg{Atom} is a variable \arg{Atom} will be unified with the
-integer value described by \arg{String} (e.g., `\exam{name(N, "300"),
-400 is N + 100}' succeeds).  New code should consider using the ISO
-predicates atom_codes/2 or number_codes/2.\footnote{Unfortunately, the
-ISO predicates provide no neat way to check that a string can be
-interpreted as a number.  The most sensible way is to use catch/3 to
-catch the exception from number_codes/2, however this is both slow and
-cumbersome.}
+    \predicate{name}{2}{?Atomic, ?CodeList}
+\arg{CodeList} is a list of character codes representing the same text
+as \arg{Atomic}. Each of the arguments may be a variable, but not both.
+When \arg{CodeList} describes an integer or floating point number and
+\arg{Atomic} is a variable \arg{Atomic} will be unified with the numeric
+value described by \arg{CodeList} (e.g., `name(N, "300"), 400 is N +
+100' succeeds). If \arg{CodeList} is not a representation of a number,
+\arg{Atomic} will be unified with the atom with the name given by the
+character code list. When \arg{Atomic} is an atom or number, the
+unquoted print representation of it as a character code list will be
+unified with \arg{CodeList}.
+
+Note that it is not possible to produce the atom '300' using name/2, and
+that \exam{name(300, CodeList), name('300', CodeList)} succeeds. For these
+reasons, new code should consider using the ISO predicates atom_codes/2
+or number_codes/2.\footnote{Unfortunately, the ISO predicates provide no
+neat way to check that a string can be interpreted as a number. The most
+sensible way is to use catch/3 to catch the exception from
+number_codes/2, however this is both slow and cumbersome. We consider to
+make e.g., \exam{number_codes(N, "abc")} fail silently in future
+versions.}
 
     \predicate{term_to_atom}{2}{?Term, ?Atom}
 True if \arg{Atom} describes a term that unifies with \arg{Term}. When

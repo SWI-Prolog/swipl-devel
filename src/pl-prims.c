@@ -3175,9 +3175,14 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
     flags2 |= CVT_VARNOFAIL;
     PL_discard_foreign_frame(fid);
   } else if ( !PL_is_variable(atom) )
-  { return PL_error(pred, 2, NULL, ERR_TYPE,
-		    (how & X_NUMBER) ? ATOM_number : ATOM_atom,
-		    atom);
+  { atom_t type;
+
+    how &= X_MASK;
+    type = (how == X_ATOM   ? ATOM_atom :
+	    how == X_NUMBER ? ATOM_number :
+			      ATOM_atomic);
+
+    return PL_error(pred, 2, NULL, ERR_TYPE, type, atom);
   }
 
   if ( PL_get_text(string, &stext, flags2) != TRUE )
