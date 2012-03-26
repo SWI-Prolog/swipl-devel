@@ -11,7 +11,7 @@ user:term_expansion(check_foo,
 		      (test(foo2):-assertz(done(2)))
 		    ]).
 
-:-begin_tests(expand_unit).
+:- begin_tests(expand_unit, [sto(rational_trees)]).
 :- dynamic done/1.
 
 check_foo.
@@ -19,5 +19,5 @@ check_foo.
 test(expand, all(Done == [1,2])) :-
 	retract(done(Done)).
 
-:-end_tests(expand_unit).
+:- end_tests(expand_unit).
 
