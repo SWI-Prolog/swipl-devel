@@ -57,7 +57,7 @@
 	  min_member/2,			% -Min, +List
 
 					% Lists of numbers
-	  sumlist/2,			% +List, -Sum
+	  sum_list/2,			% +List, -Sum
 	  max_list/2,			% +List, -Max
 	  min_list/2,			% +List, -Min
 	  numlist/3,			% +Low, +High, -List
@@ -513,17 +513,17 @@ min_member_([H|T], Min0, Min) :-
 		 *	 LISTS OF NUMBERS	*
 		 *******************************/
 
-%%	sumlist(+List, -Sum) is det.
+%%	sum_list(+List, -Sum) is det.
 %
 %	Sum is the result of adding all numbers in List.
 
-sumlist(Xs, Sum) :-
-	sumlist(Xs, 0, Sum).
+sum_list(Xs, Sum) :-
+	sum_list(Xs, 0, Sum).
 
-sumlist([], Sum, Sum).
-sumlist([X|Xs], Sum0, Sum) :-
+sum_list([], Sum, Sum).
+sum_list([X|Xs], Sum0, Sum) :-
 	Sum1 is Sum0 + X,
-	sumlist(Xs, Sum1, Sum).
+	sum_list(Xs, Sum1, Sum).
 
 %%	max_list(+List:list(number), -Max:number) is semidet.
 %

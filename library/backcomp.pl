@@ -60,6 +60,7 @@
 	    hash_term/2,		% +Term, -Hash
 	    checklist/2,		% :Goal, +List
 	    sublist/3,			% :Goal, +List, -Sublist
+	    sumlist/2,			% +List, -Sum
 	    convert_time/2,		% +Stamp, -String
 	    convert_time/8,		% +String, -YMDmhs.ms
 	    'C'/3,			% +List, -Head, -Tail
@@ -78,8 +79,9 @@
 	    hash/1,			% :PI
 	    set_base_module/1		% :Base
 	  ]).
-:- use_module(apply, [maplist/2]).
+:- use_module(apply,  [maplist/2]).
 :- use_module(system, [lock_predicate/1, unlock_predicate/1]).
+:- use_module(lists,  [sum_list/2]).
 
 :- meta_predicate
 	at_initialization(0),
@@ -338,6 +340,14 @@ sublist(Goal, [H|T], Sub) :-
 sublist(Goal, [_|T], R) :-
 	sublist(Goal, T, R).
 
+%%	sumlist(+List, -Sum) is det.
+%
+%	True when Sum is the list of all numbers in List.
+%
+%	@deprecated Use sum_list/2
+
+sumlist(List, Sum) :-
+	sum_list(List, Sum).
 
 %%	'$strip_module'(+Term, -Module, -Plain)
 %
