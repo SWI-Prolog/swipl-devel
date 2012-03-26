@@ -6,10 +6,10 @@
 test_unit :-
 	run_tests([expand_unit]).
 
-user:term_expansion(check_foo,
-		    [ (test(foo1):-assertz(done(1))),
-		      (test(foo2):-assertz(done(2)))
-		    ]).
+term_expansion(check_foo,
+	       [ (test(foo1):-assertz(done(1))),
+		 (test(foo2):-assertz(done(2)))
+	       ]).
 
 :- begin_tests(expand_unit, [sto(rational_trees)]).
 :- dynamic done/1.
