@@ -652,6 +652,11 @@ current_error(user_error).
 %
 %	Emulation of IF/Prolog formatted write.   The  emulation is very
 %	incomplete. Notable asks for dealing with aligned fields, etc.
+%
+%	@bug	Not all format characters are processed
+%	@bug    Incomplete processing of modifiers, fieldwidth and precision
+%	@tbd	This should become goal-expansion based to process
+%		format specifiers at compile-time.
 
 write_formatted_atom(Atom, Format, ArgList) :-
 	with_output_to(atom(Atom), write_formatted(Format, ArgList)).
@@ -666,10 +671,11 @@ write_formatted(Out, Format, ArgList) :-
 
 format_string([]) --> [].
 format_string(Fmt) -->
-	"%", option_number(_Arg), [IFC], !,	% FIXME: Use Arg
-	{   map_format([IFC], Repl)
+	"%", format_modifiers(Flags, FieldLen, Precision), [IFC], !,
+	{   map_format([IFC], Flags, FieldLen, Precision, Repl)
 	->  append(Repl, T, Fmt)
 	;   print_message(warning, ifprolog_format(IFC)),
+	    %backtrace(20),
 	    T = Fmt
 	},
 	format_string(T).
@@ -677,20 +683,75 @@ format_string([H|T]) -->
 	[H],
 	format_string(T).
 
+map_format(Format, [], default, default, Mapped) :- !,
+	map_format(Format, Mapped).
+map_format(Format, Flags, Width, _Prec, Mapped) :-
+	integer(Width), !,			% left/right aligned in Width
+	map_format(Format, Field),
+	fill_code(Flags, [Fill]),
+	(   memberchk(-, Flags)			% left aligned
+	->  format(codes(Mapped), '~~|~s~~`~ct~~~d|', [Field, Fill, Width])
+	;   format(codes(Mapped), '~~|~~`~ct~s~~~d|', [Fill, Field, Width])
+	).
+map_format(Format, Flags, _, _, Mapped) :-
+	memberchk(#, Flags),
+	can_format(Format, Mapped), !.
+map_format(Format, _, _, _, Mapped) :-
+	map_format(Format, Mapped).
+
+can_format("o", "0~8r").
+can_format("x", "0x~16r").
+can_format("X", "0x~16R").
+can_format("w", "~k").
+
 map_format("t", "~w").
 map_format("q", "~q").
 map_format("s", "~a").
+map_format("f", "~f").
+map_format("e", "~e").
+map_format("E", "~E").
+map_format("g", "~G").
 map_format("d", "~d").
+map_format("x", "~16r").
+map_format("o", "~8r").
+map_format("X", "~16R").
+map_format("O", "~8R").
 map_format("c", "~c").
 map_format("%", "%").
 
-option_number(Arg) -->
-	"-",
-	digits(DL),
-	{ DL \== [], !, number_codes(Arg, [0'-|DL]) }.
-option_number(Arg) -->
-	digits(DL),
-	{ (DL == [] -> Arg = none ; number_codes(Arg, DL)) }.
+fill_code(Flags, "0") :- memberchk(0, Flags), !.
+fill_code(_,     " ").
+
+%%	format_modifiers(-Flags, -FieldLength, -Precision) is det.
+%
+%	Read the IF/Prolog format modifiers. We currently do not process
+%	any of the modifiers! Some code seems to be using e.g. %07lx. We
+%	assume this is the same as -07x (assuming l=left).
+
+format_modifiers(Flags, FieldLength, Precision) -->
+	format_flags(Flags0),
+	digits(FieldLengthDigits),
+	{   FieldLengthDigits == []
+	->  FieldLength = default
+	;   number_codes(FieldLength, FieldLengthDigits)
+	},
+	(   "."
+	->  digits(PrecisionDigits),
+	    { number_codes(Precision, PrecisionDigits) }
+	;   { Precision = default }
+	),
+	opt_alignment(Flags0, Flags).
+
+format_flags([H|T]) -->
+	format_flag(H), !,
+	format_flags(T).
+format_flags([]) --> [].
+
+format_flag(+) --> "+".		% Always prefix number with a sign
+format_flag(-) --> "-".		% Left-justify
+format_flag(space) --> " ".	% Space before positive numbers
+format_flag(#) --> "#".		% Canonical output
+format_flag(0) --> "0".		% Use leading 0 for integers
 
 digits([D0|T]) -->
 	digit(D0), !,
@@ -698,6 +759,9 @@ digits([D0|T]) -->
 digits([]) --> [].
 
 digit(D) --> [D], {between(0'0, 0'9, D)}.
+
+opt_alignment(L, [-|L]) --> "l", !.
+opt_alignment(L, L) --> [].
 
 
 %%	get_until(+SearchChar, -Text, -EndChar) is det.
@@ -1105,3 +1169,11 @@ system:lused(Size) :-
 	statistics(localused, Size).
 system:tused(Size) :-
 	statistics(trailused, Size).
+
+
+		 /*******************************
+		 *	       MESSAGES		*
+		 *******************************/
+
+prolog:message(ifprolog_format(IFC)) -->
+	[ 'Unknown specifier for write_formatted/3: ~c'-[IFC] ].
