@@ -393,10 +393,10 @@ modules should consider using use_module/[1,2].
 
 Equivalent to \verb$load_files(Files, [if(not_loaded)]).$%
 	\footnote{On older versions the condition used to be
-		  \verb$if(changed)$.  Poor time management on some machines
-		  or copying often caused problems.  The make/0
-		  predicate deals with updating the running system
-		  after changing the source code.}
+		  \exam{if(changed)}. Poor time management on some
+		  machines or copying often caused problems. The make/0
+		  predicate deals with updating the running system after
+		  changing the source code.}
 
     \predicate[ISO]{include}{1}{+File}
 Textually include the content of \arg{File} in the file in which the
@@ -2943,7 +2943,7 @@ the clause is not associated to a file.
 Unify \arg{FileName} with the name of the source file that created
 the clause.  This is the same as the \const{file} property, unless the
 file is loaded from a file that is textually included into source using
-include/1.  In this scenario, \conts{file} is the included file, while
+include/1.  In this scenario, \const{file} is the included file, while
 the \const{source} property refers to the \jargon{main} file.
     \termitem{fact}{}
 True if the clause has no body.
