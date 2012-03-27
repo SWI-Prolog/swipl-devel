@@ -206,6 +206,10 @@ if_goal_expansion(asserta(Head,Body),
 		  asserta((Head:-Body))).
 if_goal_expansion(retract(Head,Body),
 		  retract((Head:-Body))).
+if_goal_expansion(Call@Module, call((Module:Goal)@Module)) :-
+	nonvar(Call),
+	Call = call(Goal).
+
 
 head_pi(M:Head, M:PI) :- !,
 	head_pi(Head, PI).
@@ -808,21 +812,32 @@ getchar(Atom, Pos, Char) :-
 %%	parse_atom(+Atom, +StartPos, ?EndPos, ?Term, ?VarList, ?Error)
 %
 %	Read from an atom.
+%
+%	@param StartPos is 1-based position to start reading
+%	@param Error is the 1-based position of a syntax error or 0 if
+%	       there is no error.
 
 parse_atom(Atom, StartPos, EndPos, Term, VarList, Error) :-
 	setup_call_cleanup(
 	    ( atom_to_memory_file(Atom, MemF),
 	      open_memory_file(MemF, read, In)
 	    ),
-	    ( seek(In, StartPos, bof, _),
-	      catch(read_term(In, Term, [variable_names(VarList)]), E,
-		    Error = E),
-	      ignore(Error = 0),
-	      character_count(In, EndPos)
+	    ( StartPos0 is StartPos-1,
+	      seek(In, StartPos0, bof, _),
+	      catch(read_term(In, Term, [variable_names(VarList)]), E, true),
+	      parse_atom_error(E, Error),
+	      character_count(In, EndPos0),
+	      EndPos is EndPos0+1
 	    ),
 	    ( close(In),
 	      free_memory_file(MemF)
 	    )).
+
+parse_atom_error(Var, Pos) :-
+	var(Var), !, Pos = 0.
+parse_atom_error(error(_, stream(_Stream, _, _, Pos)), Pos1) :-
+	Pos1 is Pos+1.
+
 
 %%	index(+Atom, +String, -Position) is semidet.
 %
