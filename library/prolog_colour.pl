@@ -1057,7 +1057,10 @@ classify_head(TB, Goal, unreferenced) :-
 	\+ (xref_called(SourceId, Goal, By), By \= Goal), !.
 classify_head(TB, Goal, How) :-
 	colour_state_source_id(TB, SourceId),
-	xref_defined(SourceId, Goal, How), !.
+	(   xref_defined(SourceId, Goal, imported(From))
+	->  How = imported(From)
+	;   xref_defined(SourceId, Goal, How)
+	), !.
 classify_head(_TB, Goal, built_in) :-
 	built_in_predicate(Goal), !.
 classify_head(_TB, _Goal, undefined).
@@ -1186,6 +1189,7 @@ def_style(head(unreferenced),	   [colour(red), bold(true)]).
 def_style(head(hook),		   [colour(blue), underline(true)]).
 def_style(head(meta),		   []).
 def_style(head(constraint(_)),	   [colour(darkcyan), bold(true)]).
+def_style(head(imported(_)),	   [colour(darkgoldenrod4), bold(true)]).
 def_style(head(_),		   [bold(true)]).
 def_style(module(_),		   [colour(dark_slate_blue)]).
 def_style(comment,		   [colour(dark_green)]).
