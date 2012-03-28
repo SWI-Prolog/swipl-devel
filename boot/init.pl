@@ -2061,7 +2061,7 @@ load_files(Module:Files, Options) :-
 '$import_list'(Target, Source, all, Reexport) :- !,
 	'$exported_ops'(Source, Import, Predicates),
 	'$module_property'(Source, exports(Predicates)),
-	'$import_list'(Target, Source, Import, Reexport).
+	'$import_all'(Import, Target, Source, Reexport, weak).
 '$import_list'(Target, Source, except(Spec), Reexport) :- !,
 	'$exported_ops'(Source, Export, Predicates),
 	'$module_property'(Source, exports(Predicates)),
@@ -2070,10 +2070,10 @@ load_files(Module:Files, Options) :-
 	;   throw(error(type_error(list, Spec), _))
 	),
 	'$import_except'(Spec, Export, Import),
-	'$import_list'(Target, Source, Import, Reexport).
+	'$import_all'(Import, Target, Source, Reexport, weak).
 '$import_list'(Target, Source, Import, Reexport) :- !,
 	is_list(Import), !,
-	'$import_all'(Import, Target, Source, Reexport).
+	'$import_all'(Import, Target, Source, Reexport, strong).
 '$import_list'(_, _, Import, _) :-
 	throw(error(type_error(import_specifier, Import))).
 
@@ -2122,8 +2122,10 @@ load_files(Module:Files, Options) :-
 	'$remove_ops'(T0, Pattern, T).
 
 
-'$import_all'(Import, Context, Source, Reexport) :-
-	'$import_all2'(Import, Context, Source, Imported),
+%%	'$import_all'(+Import, +Context, +Source, +Reexport, +Strength)
+
+'$import_all'(Import, Context, Source, Reexport, Strength) :-
+	'$import_all2'(Import, Context, Source, Imported, Strength),
 	(   Reexport == true,
 	    '$list_to_conj'(Imported, Conj)
 	->  export(Context:Conj),
@@ -2131,9 +2133,9 @@ load_files(Module:Files, Options) :-
 	;   true
 	).
 
-'$import_all2'([], _, _, []).
+'$import_all2'([], _, _, [], _).
 '$import_all2'([PI as NewName|Rest], Context, Source,
-	       [NewName/Arity|Imported]) :- !,
+	       [NewName/Arity|Imported], Strength) :- !,
 	'$canonical_pi'(PI, Name/Arity),
 	length(Args, Arity),
 	Head =.. [Name|Args],
@@ -2147,15 +2149,15 @@ load_files(Module:Files, Options) :-
 		  '$print_message'(error, E))
 	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
 	),					 % duplicate load
-	'$import_all2'(Rest, Context, Source, Imported).
-'$import_all2'([op(P,A,N)|Rest], Context, Source, Imported) :- !,
+	'$import_all2'(Rest, Context, Source, Imported, Strength).
+'$import_all2'([op(P,A,N)|Rest], Context, Source, Imported, Strength) :- !,
 	'$import_ops'(Context, Source, op(P,A,N)),
-	'$import_all2'(Rest, Context, Source, Imported).
-'$import_all2'([Pred|Rest], Context, Source, [Pred|Imported]) :-
-	catch(Context:import(Source:Pred), Error,
+	'$import_all2'(Rest, Context, Source, Imported, Strength).
+'$import_all2'([Pred|Rest], Context, Source, [Pred|Imported], Strength) :-
+	catch(Context:'$import'(Source:Pred, Strength), Error,
 	      print_message(error, Error)),
-	'$ifcompiling'('$import_wic'(Source, Pred)),
-	'$import_all2'(Rest, Context, Source, Imported).
+	'$ifcompiling'('$import_wic'(Source, Pred, Strength)),
+	'$import_all2'(Rest, Context, Source, Imported, Strength).
 
 
 '$list_to_conj'([One], One) :- !.

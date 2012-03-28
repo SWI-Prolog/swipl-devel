@@ -440,6 +440,10 @@ prolog_message(import_private(Module, Private)) -->
 	[ 'import/1: ~p is not exported (still imported into ~q)'-
 	  [Private, Module]
 	].
+prolog_message(ignored_weak_import(Into, From:PI)) -->
+	[ 'Local definition of ~p overrules weak import from ~q'-
+	  [Into:PI, From]
+	].
 prolog_message(undefined_export(Module, PI)) -->
 	[ 'Exported procedure ~q:~q is not defined'-[Module, PI] ].
 prolog_message(no_exported_op(Module, Op)) -->

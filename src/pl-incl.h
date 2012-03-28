@@ -1248,9 +1248,11 @@ struct definition_chain
   DefinitionChain	next;		/* next in chain */
 };
 
+#define	PROC_WEAK	(0x0001)	/* implicit import */
+
 struct procedure
 { Definition	definition;		/* definition of procedure */
-  unsigned int	flags;			/* TBD: Implicit import, etc */
+  unsigned int	flags;			/* PROC_WEAK */
 };
 
 struct localFrame
@@ -2051,6 +2053,7 @@ typedef struct debuginfo
 #define PLFLAG_SIGNALS		    0x040000 /* Handle signals */
 #define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
 #define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
+#define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x200000 /* Warn overriding weak symbols */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

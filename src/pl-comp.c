@@ -2977,15 +2977,11 @@ takes care of reconsult, redefinition, etc.
     clause->owner_no  = of->index;
 
     if ( def->module != mhead )
-    { if ( true(def->module, SYSTEM) )
-      { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, ATOM_built_in_procedure, proc);
-      } else
-      { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, ATOM_imported_procedure, proc);
+    { if ( !overruleImportedProcedure(proc, mhead) )
+      { freeClause(clause);
+	return NULL;
       }
-      freeClause(clause);
-      return NULL;
+      def = getProcDefinition(proc);	/* may be changed */
     }
 
     if ( proc == of->current_procedure )

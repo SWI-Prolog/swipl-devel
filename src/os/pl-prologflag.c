@@ -1049,6 +1049,8 @@ initPrologFlags(void)
   setPrologFlag("generate_debug_info", FT_BOOL,
 		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
+  setPrologFlag("warn_override_implicit_import", FT_BOOL, TRUE,
+		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
   setPrologFlag("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
   setPrologFlag("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
   setPrologFlag("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);

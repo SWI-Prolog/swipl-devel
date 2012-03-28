@@ -1541,6 +1541,11 @@ to \const{[]}.
 Available if created from a git repository.  See \program{git-describe}
 for details.
 
+    \prologflagitem{warn_override_implicit_import}{bool}{rw}
+If \const{true} (default), a warning is printed if an implicitly
+imported predicate is clobbered by a local definition.  See
+use_module/1 for details.
+
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If present and \const{true}, the operating system is an implementation

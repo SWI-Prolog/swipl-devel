@@ -124,12 +124,12 @@ unallocProcedure(Procedure proc)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Add (import) a definition to a  module.   Used  by loadImport(). Must be
-merged with pl_import().
+Add (import) a definition to a module.  Used by loadImport() for loading
+states and QLF files. Must be merged with import/1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-importDefinitionModule(Module m, Definition def)
+importDefinitionModule(Module m, Definition def, int flags)
 { functor_t functor = def->functor->functor;
   Procedure proc;
   int rc = TRUE;
@@ -139,29 +139,28 @@ importDefinitionModule(Module m, Definition def)
   if ( (s = lookupHTable(m->procedures, (void *)functor)) )
   { proc = s->value;
 
-    if ( proc->definition == def )
-      goto done;
-    if ( !isDefinedProcedure(proc) )
-    { Definition odef = proc->definition;
+    if ( proc->definition != def )
+    { if ( !isDefinedProcedure(proc) )
+      { Definition odef = proc->definition;
 
-      shareDefinition(def);
-      proc->definition = def;
-      unshareDefinition(odef);
-      GC_LINGER(odef);
-      goto done;
+	shareDefinition(def);
+	proc->definition = def;
+	unshareDefinition(odef);
+	GC_LINGER(odef);
+      } else
+      { if ( !(flags&PROC_WEAK) )
+	  rc = warning("Failed to import %s into %s",
+		       predicateName(def), PL_atom_chars(m->name));
+      }
     }
-    rc = warning("Failed to import %s into %s",
-		 predicateName(def), PL_atom_chars(m->name));
-    goto done;
   } else
   { proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
     proc->definition = def;
-    proc->flags = 0;
+    proc->flags = flags;
     addHTable(m->procedures, (void *)functor, proc);
     shareDefinition(def);
   }
 
-done:
   UNLOCKMODULE(m);
 
   return rc;
@@ -299,17 +298,64 @@ checkModifySystemProc(functor_t fd)
 }
 
 
+int
+overruleImportedProcedure(Procedure proc, Module target)
+{ GET_LD
+  Definition def = getProcDefinition(proc);
+
+  assert(def->module != target);	/* e.g., imported */
+  if ( true(def->module, SYSTEM) )
+  { return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_redefine, ATOM_built_in_procedure, proc);
+  } else
+  { if ( proc->flags & PROC_WEAK )
+    { if ( truePrologFlag(PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT) )
+      { term_t pi = PL_new_term_ref();
+
+	if ( PL_unify_predicate(pi, proc, GP_NAMEARITY) )
+	{ printMessage(ATOM_warning,
+		       PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
+		         PL_ATOM, target->name,
+		         PL_TERM, pi);
+	}				/* no space to print message */
+      }
+
+      abolishProcedure(proc, target);
+      return TRUE;
+    }
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		  ATOM_redefine, ATOM_imported_procedure, proc);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+lookupProcedureToDefine() locates the proc for  a   functor  in a module
+with the aim of providing a  definition   for  this  procedure, e.g., to
+declare it as a meta-predicate, dynamic, etc.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 Procedure
 lookupProcedureToDefine(functor_t def, Module m)
 { Procedure proc;
 
-  if ( (proc = isCurrentProcedure(def, m)) && false(proc->definition, SYSTEM) )
+  if ( (proc = isCurrentProcedure(def, m)) )
+  { GET_LD
+    Definition def = getProcDefinition(proc);
+
+    if ( def->module != m )
+    { if ( !overruleImportedProcedure(proc, m) )
+	return NULL;
+    }
+
     return proc;
+  }
 
   if ( checkModifySystemProc(def) )
     return lookupProcedure(def, m);
 
-  fail;
+  return NULL;
 }
 
 

@@ -319,6 +319,7 @@ COMMON(int)		declareModule(atom_t name, atom_t class, atom_t super,
 COMMON(word)		pl_module(term_t old, term_t new);
 COMMON(word)		pl_set_source_module(term_t old, term_t new);
 COMMON(word)		pl_context_module(term_t module);
+COMMON(int)		atomToImportStrength(atom_t a);
 COMMON(word)		pl_import(term_t pred);
 #ifdef O_PROLOG_HOOK
 COMMON(word)		pl_set_prolog_hook(term_t module, term_t old, term_t new);
@@ -420,7 +421,8 @@ COMMON(atom_t)		accessLevel(void);
 COMMON(Procedure)	lookupProcedure(functor_t f, Module m);
 COMMON(void)		unallocProcedure(Procedure proc);
 COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
-COMMON(int)		importDefinitionModule(Module m, Definition def);
+COMMON(int)		importDefinitionModule(Module m,
+					       Definition def, int flags);
 COMMON(Procedure)	lookupProcedureToDefine(functor_t def, Module m);
 COMMON(ClauseRef)	hasClausesDefinition(Definition def);
 COMMON(bool)		isDefinedProcedure(Procedure proc);
@@ -432,10 +434,11 @@ COMMON(int)		get_functor(term_t descr, functor_t *fdef,
 				    Module *m, term_t h, int how);
 COMMON(int)		get_procedure(term_t descr, Procedure *proc,
 				      term_t he, int f);
+COMMON(int)		overruleImportedProcedure(Procedure proc, Module target);
 COMMON(word)		pl_current_predicate(term_t name, term_t functor, control_t h);
 COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
-				int where ARG_LD);
+					int where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
 COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
 COMMON(void)		freeClause(Clause c);

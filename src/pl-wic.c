@@ -103,7 +103,7 @@ Below is an informal description of the format of a `.qlf' file:
 		        <lineno>			% source line number
 			<term>				% directive
 		      | 'E' <XR/functor>		% export predicate
-		      | 'I' <XR/procedure>		% import predicate
+		      | 'I' <XR/procedure> <flags>	% import predicate
 		      | 'Q' <qlf-module>		% include module
 		      | 'M' <XR/modulename>		% load-in-module
 		            {<statement>}
@@ -156,8 +156,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 62			/* load all versions later >= X */
-#define VERSION 62			/* save version number */
+#define LOADVERSION 63			/* load all versions later >= X */
+#define VERSION 63			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -1248,9 +1248,10 @@ runInitialization(SourceFile sf)
 static bool
 loadImport(wic_state *state, int skip ARG_LD)
 { Procedure proc = (Procedure) loadXR(state);
+  int flags = getInt(state->wicFd);
 
   if ( !skip )
-    return importDefinitionModule(LD->modules.source, proc->definition);
+    return importDefinitionModule(LD->modules.source, proc->definition, flags);
 
   succeed;
 }
@@ -2217,11 +2218,15 @@ addDirectiveWic(wic_state *state, term_t term ARG_LD)
 
 
 static bool
-importWic(wic_state *state, Procedure proc ARG_LD)
-{ closeProcedureWic(state);
+importWic(wic_state *state, Procedure proc, atom_t strength ARG_LD)
+{ int flags = atomToImportStrength(strength);
+
+  assert(flags >= 0);
+  closeProcedureWic(state);
 
   Sputc('I', state->wicFd);
   saveXRProc(state, proc PASS_LD);
+  putNum(flags, state->wicFd);
 
   succeed;
 }
@@ -2965,23 +2970,25 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 }
 
 
-/** '$import_wic'(+Module, +PredicateIndicator)
+/** '$import_wic'(+Module, +PredicateIndicator, +Strength)
 */
 
 static
-PRED_IMPL("$import_wic", 2, import_wic, 0)
+PRED_IMPL("$import_wic", 3, import_wic, 0)
 { PRED_LD
   wic_state *state;
 
   if ( (state=LD->qlf.current_state) )
   { Module m = NULL;
     functor_t fd;
+    atom_t strength;
 
     if ( !PL_get_module(A1, &m) ||
-	 !get_functor(A2, &fd, &m, 0, GF_PROCEDURE) )
+	 !get_functor(A2, &fd, &m, 0, GF_PROCEDURE) ||
+	 !PL_get_atom_ex(A3, &strength) )
       fail;
 
-    return importWic(state, lookupProcedure(fd, m) PASS_LD);
+    return importWic(state, lookupProcedure(fd, m), strength PASS_LD);
   }
 
   succeed;
@@ -3252,5 +3259,5 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_assert_clause",    2, qlf_assert_clause,    0)
   PRED_DEF("$open_wic",		    1, open_wic,	     0)
   PRED_DEF("$close_wic",	    0, close_wic,	     0)
-  PRED_DEF("$import_wic",	    2, import_wic,	     0)
+  PRED_DEF("$import_wic",	    3, import_wic,	     0)
 EndPredDefs

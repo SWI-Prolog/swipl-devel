@@ -161,7 +161,6 @@ static const PL_extension foreigns[] = {
   FRG("$module",		2, pl_module,			0),
   FRG("$set_source_module",	2, pl_set_source_module,	0),
   FRG("context_module",		1, pl_context_module,	     META),
-  FRG("import",			1, pl_import,		     META),
 
 #if O_STRING
   FRG("sub_string",		5, pl_sub_string,	     NDET),

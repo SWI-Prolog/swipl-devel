@@ -1180,16 +1180,35 @@ fixExport(Definition old, Definition new)
 }
 
 
-word
-pl_import(term_t pred)
-{ GET_LD
-  Module source = NULL;
+int
+atomToImportStrength(atom_t a)
+{ if ( a == ATOM_weak )
+    return PROC_WEAK;
+  else if ( a == ATOM_strong )
+    return 0;
+  else
+    return -1;				/* domain error */
+}
+
+
+static int
+import(term_t pred, term_t strength ARG_LD)
+{ Module source = NULL;
   Module destination = contextModule(environment_frame);
   functor_t fd;
   Procedure proc, old;
+  int pflags = 0;
 
   if ( !get_functor(pred, &fd, &source, 0, GF_PROCEDURE) )
-    fail;
+    return FALSE;
+  if ( strength )
+  { atom_t a;
+
+    if ( !PL_get_atom_ex(strength, &a) )
+      return FALSE;
+    if ( (pflags=atomToImportStrength(a)) < 0 )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_import_type, strength);
+  }
 
   proc = lookupProcedure(fd, source);
 
@@ -1204,20 +1223,35 @@ pl_import(term_t pred)
     if ( !isDefinedProcedure(old) )
     { Definition odef = old->definition;
 
-
       old->definition = proc->definition;
       shareDefinition(proc->definition);
       if ( odef->shared > 1 )
 	fixExport(odef, proc->definition);
       shareDefinition(odef);
       GC_LINGER(odef);
+      set(old, pflags);
 
       succeed;
     }
 
     if ( old->definition->module == destination )
-    { return PL_error("import", 1, "name clash", ERR_IMPORT_PROC,
-		      proc, destination->name, 0);
+    { if ( (pflags & PROC_WEAK) )
+      { if ( truePrologFlag(PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT) )
+	{ term_t pi = PL_new_term_ref();
+
+	  if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
+	    return FALSE;
+
+	  printMessage(ATOM_warning,
+		       PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
+		         PL_ATOM, destination->name,
+		         PL_TERM, pi);
+	}
+
+	return TRUE;
+      } else
+	return PL_error("import", 1, "name clash", ERR_IMPORT_PROC,
+			proc, destination->name, 0);
     }
 
     if ( old->definition->module != source )	/* already imported */
@@ -1239,13 +1273,13 @@ pl_import(term_t pred)
       return FALSE;
     printMessage(ATOM_warning,
 		 PL_FUNCTOR_CHARS, "import_private", 2,
-		 PL_ATOM, destination->name,
-		 PL_TERM, pi);
+		   PL_ATOM, destination->name,
+		   PL_TERM, pi);
   }
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
 
-    nproc->flags = 0;
+    nproc->flags = pflags;
     nproc->definition = proc->definition;
     shareDefinition(proc->definition);
 
@@ -1256,6 +1290,20 @@ pl_import(term_t pred)
   }
 
   succeed;
+}
+
+static
+PRED_IMPL("import", 1, import, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return import(A1, 0 PASS_LD);
+}
+
+static
+PRED_IMPL("$import", 2, import, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return import(A1, A2 PASS_LD);
 }
 
 		 /*******************************
@@ -1273,6 +1321,8 @@ BeginPredDefs(module)
   PRED_DEF("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$module_property", 2, module_property, 0)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
+  PRED_DEF("import", 1, import, PL_FA_TRANSPARENT)
+  PRED_DEF("$import", 2, import, PL_FA_TRANSPARENT)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
   PRED_DEF("$undefined_export", 2, undefined_export, 0)
 EndPredDefs

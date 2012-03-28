@@ -114,6 +114,43 @@ loaded files are imported into the module from which this predicate is
 called. This predicate is equivalent to ensure_loaded/1, except that it
 raises an error if \arg{File} is not a module file.
 
+The imported predicates acts as \jargon{weak symbols} in the module into
+which they are imported. This implies that a local definition of a
+predicate overrides (clobbers) the imported definition. If the flag
+\prologflag{warn_override_implicit_import} is \const{true} (default), a
+warning is printed. Below is an example of a module that uses
+library(lists), but redefines flatten/2, giving it a totally different
+meaning:
+
+\begin{code}
+:- module(shapes, []).
+:- use_module(library(lists)).
+
+flatten(cube, square).
+flatten(ball, circle).
+\end{code}
+
+\noindent
+Loading the above file prints the following message:
+
+\begin{code}
+Warning: /home/janw/Bugs/Import/t.pl:5:
+	Local definition of shapes:flatten/2 overrules weak import from lists
+\end{code}
+
+This warning can be avoided by (1) using use_module/2 to only import the
+predicates from list that are actually used in the `shapes' module, (2)
+using the \exam{except([flatten/2])} option of use_module/2, (3) use
+\exam{:- abolish(flatten/2).} before the local definition or (4) setting
+\prologflag{warn_override_implicit_import} to \const{false}. Globally
+disabling this warning is only recommended if overriding imported
+predicates is common as a result of design choices or the program is
+ported from a system that silently overrides imported predicates.
+
+Note that it is always an error to import two modules with use_module/1
+that export the same predicate.  Such conflicts must be resolved with
+use_module/2 as described above.
+
     \predicate{use_module}{2}{+File, +ImportList}
 Load \arg{File}, which must be a module file and import the predicates
 as specified by \arg{ImportList}. \arg{ImportList} is a list of
