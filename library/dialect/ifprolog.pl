@@ -1198,6 +1198,10 @@ prolog_colour:goal_colours(import(Module,_),
 			   ifprolog-[module(Module),predicates]).
 prolog_colour:goal_colours(begin_module(Module),
 			   ifprolog-[module(Module)]).
+prolog_colour:goal_colours(end_module(Module),
+			   ifprolog-[module(Module)]).
+prolog_colour:goal_colours(end_module,
+			   ifprolog-[]).
 prolog_colour:goal_colours(nonotify,
 			   ifprolog-[]).
 
