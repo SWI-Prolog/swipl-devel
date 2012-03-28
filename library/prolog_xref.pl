@@ -549,9 +549,11 @@ process_directive(multifile(Dynamic), Src) :-
 	process_predicates(assert_multifile, Dynamic, Src).
 process_directive(public(Public), Src) :-
 	process_predicates(assert_public, Public, Src).
+process_directive(export(Export), Src) :-
+	process_predicates(assert_export, Export, Src).
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
-	assert_export(Src, Export).
+	assert_module_export(Src, Export).
 process_directive('$set_source_module'(_, system), Src) :-
 	assert_module(Src, system).	% hack for handling boot/init.pl
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
@@ -1514,14 +1516,14 @@ assert_module(Src, Module) :-
 	'$set_source_module'(_, Module),
 	assert(xmodule(Module, Src)).
 
-assert_export(_, []) :- !.
-assert_export(Src, [H|T]) :- !,
-	assert_export(Src, H),
-	assert_export(Src, T).
-assert_export(Src, PI) :-
+assert_module_export(_, []) :- !.
+assert_module_export(Src, [H|T]) :- !,
+	assert_module_export(Src, H),
+	assert_module_export(Src, T).
+assert_module_export(Src, PI) :-
 	pi_to_head(PI, Term), !,
 	assert(exported(Term, Src)).
-assert_export(Src, op(P, A, N)) :-
+assert_module_export(Src, op(P, A, N)) :-
 	xref_push_op(Src, P, A, N).
 
 %%	process_predicates(:Closure, +Predicates, +Src)
@@ -1571,16 +1573,20 @@ assert_thread_local(PI, Src) :-
 	flag(xref_src_line, Line, Line),
 	assert(thread_local(Term, Src, Line)).
 
-assert_multifile(PI, Src) :-
+assert_multifile(PI, Src) :-			% :- multifile(Spec)
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert(multifile(Term, Src, Line)).
 
-assert_public(PI, Src) :-
+assert_public(PI, Src) :-			% :- public(Spec)
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert_called(Src, '<public>'(Line), Term),
 	assert(public(Term, Src, Line)).
+
+assert_export(PI, Src) :-			% :- export(Spec)
+	pi_to_head(PI, Term), !,
+	assert(exported(Term, Src)).
 
 %%	pi_to_head(+PI, -Head) is semidet.
 %
