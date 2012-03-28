@@ -1916,9 +1916,15 @@ load_files(Module:Files, Options) :-
 	'$first_term'(:-(Directive), Id, State, Options).
 '$first_term'(:-(Directive), Id, State, Options) :-
 	nonvar(Directive),
-	Directive = module(Name, Public), !,
-	'$module_name'(Name, Id),
-	'$start_module'(Name, Public, State, Options).
+	(   Directive = module(Name, Public)
+	->  !,
+	    '$module_name'(Name, Id),
+	    '$start_module'(Name, Public, State, Options)
+	;   Directive = expects_dialect(Dialect)
+	->  !,
+	    expects_dialect(Dialect),	% Autoloaded from library
+	    fail			% Still consider next term as first
+	).
 '$first_term'(Term, Id, State, Options) :-
 	'$start_non_module'(Id, State, Options),
 	'$compile_term'(Term, Id).
