@@ -754,26 +754,25 @@ vs.\ Windows).
 
 \subsubsection{Using PrologScript}	\label{sec:plscript}
 
-New in version 4.0.5 is the possibility to use a Prolog source file
-directly as a Unix script-file.  The same mechanism is useful to
-specify additional parameters for running a Prolog file on Windows.
-
-If the first letter of a Prolog file is \verb$#$, the first line is
-treated as comment.%
-	\footnote{The \texttt{\#}-sign can be the legal start of a
-	normal Prolog clause. In the unlikely case this is required,
-	leave the first line blank or add a header-comment.}
-To create a Prolog script, make the first line start like this:
+A Prolog source file can be used directly as a Unix program using the
+Unix \verb$#!$ magic start. The same mechanism is useful for specifying
+additional parameters for running a Prolog file on Windows. The Unix
+\verb$#!$ magic is allowed because if the first letter of a Prolog file
+is \verb$#$, the first line is treated as comment.\footnote{The
+\texttt{\#}-sign can be the legal start of a normal Prolog clause. In
+the unlikely case this is required, leave the first line blank or add a
+header-comment.} To create a Prolog script, make the first line start
+like this:
 
 \begin{quote}
-\verb$#!/path/to/pl$ <options> \verb$-s$
+\verb$#!/path/to/swipl$ <options> \verb$-s$
 \end{quote}
 
 Prolog recognises this starting sequence and causes the interpreter
 to receive the following argument-list:
 
 \begin{quote}
-\verb$/path/to/pl$ <options> \verb$-s$ <script> \verb$--$ <ScriptArguments>
+\verb$/path/to/swipl$ <options> \verb$-s$ <script> \verb$--$ <ScriptArguments>
 \end{quote}
 
 Instead of \cmdlineoption{-s}, the user may use \cmdlineoption{-f} to
@@ -782,7 +781,7 @@ stop Prolog from looking for a personal initialisation file.
 Here is a simple script doing expression evaluation:
 
 \begin{code}
-#!/usr/bin/pl -q -t main -f
+#!/usr/bin/swipl -q -t main -f
 
 eval :-
 	current_prolog_flag(argv, Argv),
@@ -810,24 +809,23 @@ ERROR: Arithmetic: `foo/0' is not a function
 \end{code}
 
 \paragraph{The Windows version} supports the \verb$#!$ construct too,
-but here it serves a rather different role.  The Windows shell already
+but here it serves a rather different role. The Windows shell already
 allows the user to start Prolog source files directly through the
-Windows file-type association.  Windows however makes it rather
-complicated to provide additional parameters, such as the required
-stack-size for an individual Prolog file.  The \verb$#!$ line provides
-for this, providing a more flexible approach than changing the global
-defaults.  The following starts Prolog with unlimited stack-size on
-the given source file:
+Windows file-type association. However, Windows makes it rather
+complicated to provide additional parameters for opening an individual
+Prolog file. If the file starts with \verb$#!$, the first line is
+analysed to obtain additional commandline arguments. The example below
+runs the system in `quiet' mode.
 
 \begin{code}
-#!/usr/bin/pl -L0 -T0 -G0 -s
+#!/usr/bin/swipl -q -s
 
 ....
 \end{code}
 
-Note the use of \verb$/usr/bin/pl$, which specifies the interpreter.
-This argument is ignored in the Windows version, but required to ensure
-best cross-platform compatibility.
+Note the use of \verb$/usr/bin/swipl$, which specifies the interpreter.
+This argument is ignored in the Windows version, but must be present to
+ensure best cross-platform compatibility.
 
 
 \subsubsection{Creating a shell-script}		\label{sec:shellscript}
@@ -846,7 +844,7 @@ arguments.
 #!/bin/sh
 
 base=<absolute-path-to-source>
-PL=pl
+PL=swipl
 
 exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" \
 	 -t go -- $*
