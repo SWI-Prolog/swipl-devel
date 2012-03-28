@@ -83,6 +83,7 @@
 	    retract_with_names/2,		% ?Clause, ?VarNames
 	    predicate_type/2,			% @Predicate, ?Type
 	    current_visible/2,			% @Module, @Predicate
+	    digit/1,				% +Character
 
 	    current_global/1,			% +Name
 	    get_global/2,			% +Name, ?Value
@@ -1135,6 +1136,12 @@ control((!)).
 
 current_visible(Module, Predicate) :-
 	predicate_property(Module:Predicate, visible).
+
+%%	digit(+A).
+%
+%	Is the character A a digit
+digit(A) :-
+	is_digit(A).
 
 		 /*******************************
 		 *	    ARITHMETIC		*
