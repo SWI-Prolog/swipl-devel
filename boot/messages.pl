@@ -441,7 +441,7 @@ prolog_message(import_private(Module, Private)) -->
 	  [Private, Module]
 	].
 prolog_message(ignored_weak_import(Into, From:PI)) -->
-	[ 'Local definition of ~p overrules weak import from ~q'-
+	[ 'Local definition of ~p overrides weak import from ~q'-
 	  [Into:PI, From]
 	].
 prolog_message(undefined_export(Module, PI)) -->
