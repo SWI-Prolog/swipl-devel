@@ -140,6 +140,9 @@ This code is used in two places:
 :- dynamic
 	meta_goal/2.
 
+:- meta_predicate
+	process_predicates(2, +, +).
+
 		 /*******************************
 		 *	     BUILT-INS		*
 		 *******************************/
@@ -538,13 +541,13 @@ process_directive(load_files(Files, _Options), Src) :-
 process_directive(include(Files), Src) :-
 	process_include(Files, Src).
 process_directive(dynamic(Dynamic), Src) :-
-	assert_dynamic(Src, Dynamic).
+	process_predicates(assert_dynamic, Dynamic, Src).
 process_directive(thread_local(Dynamic), Src) :-
-	assert_thread_local(Src, Dynamic).
+	process_predicates(assert_thread_local, Dynamic, Src).
 process_directive(multifile(Dynamic), Src) :-
-	assert_multifile(Src, Dynamic).
+	process_predicates(assert_multifile, Dynamic, Src).
 process_directive(public(Public), Src) :-
-	assert_public(Src, Public).
+	process_predicates(assert_public, Public, Src).
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
@@ -1520,11 +1523,40 @@ assert_export(Src, PI) :-
 assert_export(Src, op(P, A, N)) :-
 	xref_push_op(Src, P, A, N).
 
-assert_dynamic(Src, (A, B)) :- !,
-	assert_dynamic(Src, A),
-	assert_dynamic(Src, B).
-assert_dynamic(_, _M:_Name/_Arity) :- !. % not local
-assert_dynamic(Src, PI) :-
+%%	process_predicates(:Closure, +Predicates, +Src)
+%
+%	Process areguments of dynamic,  etc.,   using  call(Closure, PI,
+%	Src).  Handles  both  lists  of    specifications  and  (PI,...)
+%	specifications.
+
+process_predicates(Closure, Preds, Src) :-
+	is_list(Preds), !,
+	process_predicate_list(Preds, Closure, Src).
+process_predicates(Closure, Preds, Src) :-
+	process_predicate_comma(Preds, Closure, Src).
+
+process_predicate_list([], _, _).
+process_predicate_list([H|T], Closure, Src) :-
+	(   nonvar(H)
+	->  call(Closure, H, Src)
+	;   true
+	),
+	process_predicate_list(T, Closure, Src).
+
+process_predicate_comma(Var, _, _) :-
+	var(Var), !.
+process_predicate_comma(M:(A,B), Closure, Src) :- !,
+	process_predicate_comma(M:A, Closure, Src),
+	process_predicate_comma(M:B, Closure, Src).
+process_predicate_comma((A,B), Closure, Src) :- !,
+	process_predicate_comma(A, Closure, Src),
+	process_predicate_comma(B, Closure, Src).
+process_predicate_comma(A, Closure, Src) :-
+	call(Closure, A, Src).
+
+
+assert_dynamic(_M:_Name/_Arity, _Src) :- !.   % not local
+assert_dynamic(PI, Src) :-
 	pi_to_head(PI, Term),
 	(   thread_local(Term, Src, _)	% dynamic after thread_local has
 	->  true			% no effect
@@ -1532,37 +1564,18 @@ assert_dynamic(Src, PI) :-
 	    assert(dynamic(Term, Src, Line))
 	).
 
-assert_thread_local(Src, (A, B)) :- !,
-	assert_thread_local(Src, A),
-	assert_thread_local(Src, B).
-assert_thread_local(_, _M:_Name/_Arity) :- !. % not local
-assert_thread_local(Src, PI) :-
+assert_thread_local(_M:_Name/_Arity, _Src) :- !. % not local
+assert_thread_local(PI, Src) :-
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert(thread_local(Term, Src, Line)).
 
-assert_multifile(_, Var) :-
-	var(Var), !, fail.
-assert_multifile(Src, (A,B)) :- !,
-	assert_multifile(Src, A),
-	assert_multifile(Src, B).
-assert_multifile(Src, M:(A,B)) :- !,
-	assert_multifile(Src, M:A),
-	assert_multifile(Src, M:B).
-assert_multifile(Src, PI) :-
+assert_multifile(PI, Src) :-
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert(multifile(Term, Src, Line)).
 
-assert_public(_, Var) :-
-	var(Var), !, fail.
-assert_public(Src, (A,B)) :- !,
-	assert_public(Src, A),
-	assert_public(Src, B).
-assert_public(Src, M:(A,B)) :- !,
-	assert_public(Src, M:A),
-	assert_public(Src, M:B).
-assert_public(Src, PI) :-
+assert_public(PI, Src) :-
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert_called(Src, '<public>'(Line), Term),

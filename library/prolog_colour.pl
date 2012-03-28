@@ -949,12 +949,19 @@ colourise_import(PI, _, TB, Pos) :-
 %	Colourise the Predicate indicator lists of dynamic, multifile, etc
 %	declarations.
 
+colourise_declarations(List, TB, list_position(_,_,Elms,none)) :- !,
+	colourise_list_declarations(List, TB, Elms).
 colourise_declarations((Head,Tail), TB,
 		       term_position(_,_,_,_,[PH,PT])) :- !,
 	colourise_declaration(Head, TB, PH),
 	colourise_declarations(Tail, TB, PT).
 colourise_declarations(Last, TB, Pos) :-
 	colourise_declaration(Last, TB, Pos).
+
+colourise_list_declarations([], _, []).
+colourise_list_declarations([H|T], TB, [HP|TP]) :-
+	colourise_declaration(H, TB, HP),
+	colourise_list_declarations(T, TB, TP).
 
 colourise_declaration(PI, TB, Pos) :-
 	pi_to_term(PI, Goal), !,
@@ -1104,6 +1111,7 @@ goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
 goal_colours(dynamic(_),	     built_in-[predicates]).
 goal_colours(thread_local(_),	     built_in-[predicates]).
 goal_colours(module_transparent(_),  built_in-[predicates]).
+goal_colours(discontiguous(_),	     built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(public(_),		     built_in-[predicates]).
