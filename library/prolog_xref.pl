@@ -548,6 +548,8 @@ process_directive(public(Public), Src) :-
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
+process_directive('$set_source_module'(_, system), Src) :-
+	assert_module(Src, system).	% hack for handling boot/init.pl
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 	assert_defined_class(Src, Name, Meta, Super, Doc).
 process_directive(pce_autoload(Name, From), Src) :-
@@ -1384,8 +1386,9 @@ assert_called(Src, Origin, M:G) :- !,
 	    )
 	;   true                        % call to variable module
 	).
-assert_called(_, _, Goal) :-
-	system_predicate(Goal), !.
+assert_called(Src, _, Goal) :-
+	system_predicate(Goal),
+	\+ xmodule(system, Src), !.
 assert_called(Src, Origin, Goal) :-
 	current_condition(Cond),
 	(   called(Goal, Src, Origin, Cond)

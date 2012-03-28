@@ -233,14 +233,14 @@ false :-
 %	ISO compliant exception handling.
 
 catch(_Goal, _Catcher, _Recover) :-
-	'$catch'.
+	'$catch'.			% Maps to I_CATCH, I_EXITCATCH
 
 %%	prolog_cut_to(+Choice)
 %
 %	Cut all choice points after Choice
 
 prolog_cut_to(_Choice) :-
-	'$cut'.
+	'$cut'.				% Maps to I_CUTCHP
 
 %%	'$recover_and_rethrow'(:Goal, +Term)
 %
@@ -249,6 +249,8 @@ prolog_cut_to(_Choice) :-
 %	uncachable exception is '$aborted', used   by abort/0. Note that
 %	we cut to ensure  that  the   exception  is  not delayed forever
 %	because the recover handler leaves a choicepoint.
+
+:- public '$recover_and_rethrow'/2.
 
 '$recover_and_rethrow'(Goal, Exception) :-
 	call_cleanup(Goal, throw(Exception)), !.
@@ -361,6 +363,8 @@ initialization(Goal, When) :-
 %	removes all initialization goals that are registered from File.
 %
 %	@see Called from startConsult() in pl-proc.c
+
+:- public '$clear_initialization'/1.
 
 '$clear_initialization'(File) :-
 	retractall('$init_goal'(_, _, File:_)).
@@ -2479,6 +2483,8 @@ given. It compiles all files and finally calls qsave_program to create a
 saved state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- public '$compile_wic'/0.
+
 '$compile_wic' :-
 	current_prolog_flag(argv, Argv),
 	'$get_files_argv'(Argv, Files),
@@ -2608,6 +2614,8 @@ length(List, Length) :-
 		 *   HANDLE TRACER 'L'-COMMAND	*
 		 *******************************/
 
+:- public '$prolog_list_goal'/1.
+
 :- multifile
 	user:prolog_list_goal/1.
 
@@ -2634,6 +2642,8 @@ halt :-
 
 at_halt(Goal) :-
 	asserta('$at_halt'(Goal)).
+
+:- public '$run_at_halt'/0.
 
 '$run_at_halt' :-
 	(   '$at_halt'(Goal),
@@ -2666,6 +2676,8 @@ at_halt(Goal) :-
 %
 %	Called from compileFileList() in pl-wic.c.   Gets the files from
 %	"-c file ..." and loads them into the module user.
+
+:- public '$load_additional_boot_files'/0.
 
 '$load_additional_boot_files' :-
 	current_prolog_flag(argv, Argv),

@@ -1052,6 +1052,20 @@ classify_head(TB, Goal, hook) :-
 	colour_state_source_id(TB, SourceId),
 	xref_module(SourceId, M),
 	xref_hook(M:Goal), !.
+classify_head(TB, Goal, Class) :-
+	built_in_predicate(Goal),
+	(   system_module(TB)
+	->  (   predicate_property(system:Goal, iso)
+	    ->	Class = def_iso
+	    ;	goal_name(Goal, Name),
+		\+ sub_atom(Name, 0, _, _, $)
+	    ->	Class = def_swi
+	    )
+	;   (   predicate_property(system:Goal, iso)
+	    ->  Class = iso
+	    ;   Class = built_in
+	    )
+	).
 classify_head(TB, Goal, unreferenced) :-
 	colour_state_source_id(TB, SourceId),
 	\+ (xref_called(SourceId, Goal, By), By \= Goal), !.
@@ -1061,17 +1075,24 @@ classify_head(TB, Goal, How) :-
 	->  How = imported(From)
 	;   xref_defined(SourceId, Goal, How)
 	), !.
-classify_head(_TB, Goal, built_in) :-
-	built_in_predicate(Goal), !.
 classify_head(_TB, _Goal, undefined).
 
 built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
-built_in_predicate(module(_, _)).
+built_in_predicate(module(_, _)).	% reserved expanded constructs
 built_in_predicate(if(_)).
 built_in_predicate(elif(_)).
 built_in_predicate(else).
 built_in_predicate(endif).
+
+goal_name(_:G, Name) :- nonvar(G), !, goal_name(G, Name).
+goal_name(G, Name) :- callable(G), functor(G, Name, _).
+
+system_module(TB) :-
+	colour_state_source_id(TB, SourceId),
+	xref_module(SourceId, M),
+	module_property(M, class(system)).
+
 
 %	Specify colours for individual goals.
 
@@ -1190,6 +1211,10 @@ def_style(head(hook),		   [colour(blue), underline(true)]).
 def_style(head(meta),		   []).
 def_style(head(constraint(_)),	   [colour(darkcyan), bold(true)]).
 def_style(head(imported(_)),	   [colour(darkgoldenrod4), bold(true)]).
+def_style(head(built_in),	   [background(orange), bold(true)]).
+def_style(head(iso),		   [background(orange), bold(true)]).
+def_style(head(def_iso),	   [colour(blue), bold(true)]).
+def_style(head(def_swi),	   [colour(blue), bold(true)]).
 def_style(head(_),		   [bold(true)]).
 def_style(module(_),		   [colour(dark_slate_blue)]).
 def_style(comment,		   [colour(dark_green)]).
