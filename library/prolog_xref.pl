@@ -188,9 +188,10 @@ xref_source(Source) :-
 	).
 
 do_xref(Src) :-
-	setup_call_cleanup(xref_setup(Src, In, State),
-			   collect(Src, In),
-			   xref_cleanup(State)).
+	setup_call_cleanup(
+	    xref_setup(Src, In, State),
+	    collect(Src, In),
+	    xref_cleanup(State)).
 
 last_modified(Source, Modified) :-
 	prolog:xref_source_time(Source, Modified), !.
@@ -202,9 +203,10 @@ last_modified(Source, Modified) :-
 :- thread_local
 	xref_stream/1.			% input stream
 
-xref_setup(Src, In, state(In, Xref, [SRef|HRefs])) :-
+xref_setup(Src, In, state(In, Dialect, Xref, [SRef|HRefs])) :-
+	current_prolog_flag(emulated_dialect, Dialect),
 	prolog_open_source(Src, In),
-	'$set_source_module'(_, user),
+	set_initial_mode(In),
 	asserta(xref_stream(In), SRef),
 	set_xref(Xref),
 	(   verbose
@@ -213,14 +215,33 @@ xref_setup(Src, In, state(In, Xref, [SRef|HRefs])) :-
 	    HRefs = [Ref]
 	).
 
-xref_cleanup(state(In, Xref, Refs)) :-
+xref_cleanup(state(In, Dialect, Xref, Refs)) :-
 	prolog_close_source(In),
+	set_prolog_flag(emulated_dialect, Dialect),
 	set_prolog_flag(xref, Xref),
 	maplist(erase, Refs).
 
 set_xref(Xref) :-
 	current_prolog_flag(xref, Xref),
 	set_prolog_flag(xref, true).
+
+%%	set_initial_mode(+Stream) is det.
+%
+%	Set  the  initial  mode  for  processing    this   file  in  the
+%	cross-referencer. If the file is loaded, we use information from
+%	the previous load context, setting   the  appropriate module and
+%	dialect.
+
+set_initial_mode(Stream) :-
+	stream_property(Stream, file_name(Path)),
+	source_file_property(Path, load_context(M, _, Opts)), !,
+	'$set_source_module'(_, M),
+	(   option(dialect(Dialect), Opts)
+	->  expects_dialect(Dialect)
+	;   true
+	).
+set_initial_mode(_) :-
+	'$set_source_module'(_, user).
 
 
 %%	xref_input_stream(-Stream) is det.
