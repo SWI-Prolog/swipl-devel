@@ -690,8 +690,8 @@ map_format(Format, Flags, Width, _Prec, Mapped) :-
 	map_format(Format, Field),
 	fill_code(Flags, [Fill]),
 	(   memberchk(-, Flags)			% left aligned
-	->  format(codes(Mapped), '~~|~s~~`~ct~~~d|', [Field, Fill, Width])
-	;   format(codes(Mapped), '~~|~~`~ct~s~~~d|', [Fill, Field, Width])
+	->  format(codes(Mapped), '~~|~s~~`~ct~~~d+', [Field, Fill, Width])
+	;   format(codes(Mapped), '~~|~~`~ct~s~~~d+', [Fill, Field, Width])
 	).
 map_format(Format, Flags, _, _, Mapped) :-
 	memberchk(#, Flags),
@@ -978,14 +978,17 @@ system_name(SystemName) :-
 %	  | Min	    | Minutes	     | 0..59           |
 %	  | Sec	    | Seconds	     | 0..59           |
 %
-%	@bug DoY is incorrect
+%	Note that in IF/Prolog  V4,  Year  is   0..99,  while  it  is  a
+%	four-digit number in IF/Prolog V5.  We emulate IF/Prolog V5.
 
 localtime(Time, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
-        stamp_date_time(Time, date(Year4, Month, Hour, Day, Min, SecFloat, _Off, _TZ, _DST), local),
-        Year is Year4 rem 100,
+        stamp_date_time(Time, date(Year, Month, Day,
+				   Hour, Min, SecFloat,
+				   _Off, _TZ, _DST), local),
         Sec is floor(SecFloat),
-        day_of_the_week(date(Year, Month, Day), DoW),
-        DoY is (Month - 1) * 30 + Day. % INCORRECT!!!
+	Date = date(Year,Month,Day),
+	day_of_the_year(Date, DoY),
+        day_of_the_week(Date, DoW).
 
 
 %%	current_global(+Name) is semidet.
