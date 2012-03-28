@@ -204,6 +204,7 @@ last_modified(Source, Modified) :-
 
 xref_setup(Src, In, state(In, Xref, [SRef|HRefs])) :-
 	prolog_open_source(Src, In),
+	'$set_source_module'(_, user),
 	asserta(xref_stream(In), SRef),
 	set_xref(Xref),
 	(   verbose
