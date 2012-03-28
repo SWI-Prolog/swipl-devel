@@ -506,14 +506,9 @@ Operator types.  NOTE: if you change OP_*, check operatorTypeToAtom()!
 #define OP_YFX	(0x70|OP_INFIX)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Type fields.  These codes are  included  in  a  number  of  the  runtime
-structures  at  a  fixed  point, so the runtime environment can tell the
-difference.
+Magic for assertions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define HeapMagic(n)	((n) | 0x25678000)
-#define PROCEDURE_TYPE	HeapMagic(1)	/* a procedure */
-#define RECORD_TYPE	HeapMagic(2)	/* a record list */
 #define StackMagic(n)	((n) | 0x98765000)
 #define QID_MAGIC	StackMagic(1)	/* Query frame */
 
@@ -1254,8 +1249,8 @@ struct definition_chain
 };
 
 struct procedure
-{ Definition	definition;	/* definition of procedure */
-  int		type;		/* PROCEDURE_TYPE */
+{ Definition	definition;		/* definition of procedure */
+  unsigned int	flags;			/* TBD: Implicit import, etc */
 };
 
 struct localFrame
@@ -1415,13 +1410,12 @@ struct record
 };
 
 struct recordList
-{ int		type;			/* RECORD_TYPE */
-  int		references;		/* choicepoints reference count */
-  word		key;			/* key of record */
-  RecordRef	firstRecord;		/* first record associated with key */
+{ RecordRef	firstRecord;		/* first record associated with key */
   RecordRef	lastRecord;		/* last record associated with key */
   struct recordList *next;		/* Next recordList */
-  unsigned int  flags;			/* RL_DIRTY */
+  word		key;			/* key of record */
+  unsigned int	flags;			/* RL_DIRTY */
+  int		references;		/* choicepoints reference count */
 };
 
 struct recordRef

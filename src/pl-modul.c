@@ -1245,7 +1245,7 @@ pl_import(term_t pred)
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
 
-    nproc->type = PROCEDURE_TYPE;
+    nproc->flags = 0;
     nproc->definition = proc->definition;
     shareDefinition(proc->definition);
 

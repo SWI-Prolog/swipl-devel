@@ -58,8 +58,8 @@ lookupProcedure(functor_t f, Module m)
   } else
   { proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
     def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
-    proc->type = PROCEDURE_TYPE;
     proc->definition = def;
+    proc->flags = 0;
 
     memset(def, 0, sizeof(*def));
     def->functor = valueFunctor(f);
@@ -155,8 +155,8 @@ importDefinitionModule(Module m, Definition def)
     goto done;
   } else
   { proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
-    proc->type = PROCEDURE_TYPE;
     proc->definition = def;
+    proc->flags = 0;
     addHTable(m->procedures, (void *)functor, proc);
     shareDefinition(def);
   }

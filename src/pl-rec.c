@@ -86,7 +86,6 @@ lookupRecordList(word key)
       PL_register_atom(key);
     l = allocHeapOrHalt(sizeof(*l));
     l->key = key;
-    l->type = RECORD_TYPE;
     l->references = 0;
     l->flags = 0;
     l->firstRecord = l->lastRecord = NULL;
