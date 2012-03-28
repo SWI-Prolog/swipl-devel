@@ -74,7 +74,7 @@ alternative for this library.
 format_to_chars(Format, Args, Codes) :-
 	format(codes(Codes), Format, Args).
 
-%%	format_to_chars(+Format, +Args, -Codes) is det.
+%%	format_to_chars(+Format, +Args, -Codes,	?Tail) is det.
 %
 %	Use format/2 to write to a difference list of character codes.
 
