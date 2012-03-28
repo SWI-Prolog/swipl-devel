@@ -84,6 +84,7 @@
 	    predicate_type/2,			% @Predicate, ?Type
 	    current_visible/2,			% @Module, @Predicate
 	    digit/1,				% +Character
+	    letter/1,				% +Character
 
 	    current_global/1,			% +Name
 	    get_global/2,			% +Name, ?Value
@@ -1139,9 +1140,15 @@ current_visible(Module, Predicate) :-
 
 %%	digit(+A).
 %
-%	Is the character A a digit
+%	Is the character A a digit [0-9]
 digit(A) :-
-	is_digit(A).
+	char_type(A, digit).
+
+%%	letter(+A).
+%
+%	Is the character A a letter [A-Za-z]
+letter(A) :-
+	char_type(A, alpha).
 
 		 /*******************************
 		 *	    ARITHMETIC		*
