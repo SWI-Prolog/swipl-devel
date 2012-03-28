@@ -1177,3 +1177,25 @@ system:tused(Size) :-
 
 prolog:message(ifprolog_format(IFC)) -->
 	[ 'Unknown specifier for write_formatted/3: ~c'-[IFC] ].
+
+
+		 /*******************************
+		 *	  COLOUR SUPPORT	*
+		 *******************************/
+
+:- multifile
+	prolog_colour:style/2,
+	prolog_colour:goal_colours/2.
+
+prolog_colour:goal_colours(meta(_),
+			   ifprolog-[predicates]).
+prolog_colour:goal_colours(private(_),
+			   ifprolog-[predicates]).
+prolog_colour:goal_colours(import(Module,_),
+			   ifprolog-[module(Module),predicates]).
+prolog_colour:goal_colours(begin_module(Module),
+			   ifprolog-[module(Module)]).
+prolog_colour:goal_colours(nonotify,
+			   ifprolog-[]).
+
+prolog_colour:style(goal(ifprolog,_), [ colour(blue), background(lightcyan) ]).
