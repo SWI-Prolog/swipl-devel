@@ -76,10 +76,15 @@ undefined predicates than list_undefined/0:
 %	  Action defines what happens if the analysis finds a
 %	  definitely undefined predicate.  One of =ignore= or
 %	  =error=.
+%
 %	  * autoload(+Boolean)
 %	  Try to autoload code while walking. This is enabled by default
 %	  to obtain as much as possible information about goals and find
 %	  references from autoloaded libraries.
+%
+%	  * source(+Boolean)
+%	  If =false= (default =true=), to not try to obtain detailed
+%	  source information for printed messages.
 
 prolog_walk_code(Options) :-
 	forall(( current_module(M),
