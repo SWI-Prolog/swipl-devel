@@ -32,6 +32,8 @@
 	  ]).
 :- use_module(library(option)).
 :- use_module(library(debug)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 
 /** <module> Prolog code walker
 
@@ -53,7 +55,8 @@ undefined predicates than list_undefined/0:
 	multifile_predicate/3.		% Name, Arity, Module
 
 :- predicate_options(prolog_walk_code/1, 1,
-		     [ undefined(oneof([ignore,error]))
+		     [ undefined(oneof([ignore,error])),
+		       autoload(boolean)
 		     ]).
 
 %%	prolog_walk_code(+Options) is det.
@@ -73,6 +76,10 @@ undefined predicates than list_undefined/0:
 %	  Action defines what happens if the analysis finds a
 %	  definitely undefined predicate.  One of =ignore= or
 %	  =error=.
+%	  * autoload(+Boolean)
+%	  Try to autoload code while walking. This is enabled by default
+%	  to obtain as much as possible information about goals and find
+%	  references from autoloaded libraries.
 
 prolog_walk_code(Options) :-
 	forall(( current_module(M),
@@ -280,7 +287,12 @@ walk_called(Goal, M, TermPos, Options) :-
 	Called \== [], !,
 	walk_called_by(Called, M, TermPos, Options).
 walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), Options) :-
-	predicate_property(M:Meta, meta_predicate(Head)), !,
+	(   option(autoload(false), Options)
+	->  nonvar(Module),
+	    '$get_predicate_attribute'(Module:Meta, defined, 1)
+	;   true
+	),
+	predicate_property(M:Meta, meta_predicate(Head)), !, % this may autoload
 	undef_called_meta(1, Head, Meta, M, ArgPosList, Options).
 walk_called(Goal, Module, _, _) :-
 	nonvar(Module),
@@ -313,6 +325,8 @@ evaluate(A=B, _) :-
 
 undefined(_, _, Options) :-
 	option(undefined(ignore), Options, ignore), !.
+undefined(Goal, _, _) :-
+	predicate_property(Goal, autoload(_)), !.
 undefined(Goal, TermPos, Options) :-
 	option(clause(Clause), Options), !,
 	goal_pi(Goal, PI),
