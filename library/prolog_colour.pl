@@ -161,7 +161,7 @@ source_module(TB, Module) :-
 	    stream_property(Fd, file_name(File))
 	),
 	(   source_file_property(File, module(Module))
-	;   source_file_property(File, load_context(Module, _))
+	;   source_file_property(File, load_context(Module, _, _))
 	), !.
 
 %%	read_error(+Error, +TB, +Stream, +Start) is failure.
