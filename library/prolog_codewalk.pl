@@ -298,7 +298,7 @@ walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), Options) :-
 	;   true
 	),
 	predicate_property(M:Meta, meta_predicate(Head)), !, % this may autoload
-	undef_called_meta(1, Head, Meta, M, ArgPosList, Options).
+	walk_meta_call(1, Head, Meta, M, ArgPosList, Options).
 walk_called(Goal, Module, _, _) :-
 	nonvar(Module),
 	'$get_predicate_attribute'(Module:Goal, defined, 1), !.
@@ -362,23 +362,42 @@ goal_pi(Goal, M:Name/Arity) :-
 goal_pi(Goal, Goal).
 
 
-%%	undef_called_meta(+Index, +GoalHead, +MetaHead, +Module,
-%%			  +ArgPosList, +Options)
+%%	walk_meta_call(+Index, +GoalHead, +MetaHead, +Module,
+%%		       +ArgPosList, +Options)
+%
+%	Walk a call to a meta-predicate.   This walks all meta-arguments
+%	labeled with an integer or ^.
 
-undef_called_meta(I, Head, Meta, M, [ArgPos|ArgPosList], Options) :-
+walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], Options) :-
 	arg(I, Head, AS), !,
 	(   integer(AS)
 	->  arg(I, Meta, MA),
 	    extend(MA, AS, Goal, ArgPos, ArgPosEx, Options),
 	    walk_called(Goal, M, ArgPosEx, Options)
+	;   AS == (^)
+	->  arg(I, Meta, MA),
+	    remove_quantifier(MA, Goal, ArgPos, ArgPosEx, Options),
+	    walk_called(Goal, M, ArgPosEx, Options)
 	;   true
 	),
 	succ(I, I2),
-	undef_called_meta(I2, Head, Meta, M, ArgPosList, Options).
-undef_called_meta(_, _, _, _, _, _).
+	walk_meta_call(I2, Head, Meta, M, ArgPosList, Options).
+walk_meta_call(_, _, _, _, _, _).
+
+remove_quantifier(Goal, _, TermPos, TermPos, Options) :-
+	var(Goal), !,
+	undecided(Goal, TermPos, Options).
+remove_quantifier(_^Goal0, Goal,
+		  term_position(_,_,_,_,[_,GPos]),
+		  TermPos, Options) :- !,
+	remove_quantifier(Goal0, Goal, GPos, TermPos, Options).
+remove_quantifier(Goal, Goal, TermPos, TermPos, _).
 
 
 %%	walk_called_by(+Called:list, +Module, +TermPost, +Options)
+%
+%	Walk code explicitly mentioned to  be   called  through the hook
+%	prolog:called_by/2.
 
 walk_called_by([], _, _, _).
 walk_called_by([H|T], M, TermPos, Options) :-
