@@ -285,6 +285,11 @@ walk_called((A;B), M, term_position(_,_,_,_,[PA,PB]), Options) :- !,
 	;   walk_called(A, M, PA, Options),
 	    walk_called(B, M, PB, Options)
 	).
+walk_called(Goal, Module, TermPos, Options) :-
+	option(trace_reference(To), Options),
+	subsumes_chk(To, Module:Goal),
+	print_reference(Module:Goal, TermPos, trace, Options),
+	fail.					% Continue search
 walk_called(Goal, Module, _, Options) :-
 	evaluate(Goal, Module, Options), !.
 walk_called(Goal, M, TermPos, Options) :-
@@ -333,27 +338,36 @@ undefined(_, _, Options) :-
 undefined(Goal, _, _) :-
 	predicate_property(Goal, autoload(_)), !.
 undefined(Goal, TermPos, Options) :-
+	print_reference(Goal, TermPos, undefined, Options).
+
+print_reference(Goal, TermPos, Why, Options) :-
 	option(clause(Clause), Options), !,
-	goal_pi(Goal, PI),
 	(   compound(TermPos),
 	    arg(1, TermPos, CharCount),
 	    integer(CharCount)
 	->  clause_property(Clause, file(File)),
-	    print_message(error, error(existence_error(procedure, PI),
-				       file_char_count(File, CharCount)))
+	    make_message(Why, Goal, file_char_count(File, CharCount), Message),
+	    print_message(error, Message)
 	;   option(source(false), Options)
-	->  print_message(error, error(existence_error(procedure, PI),
-				       clause(Clause)))
+	->  make_message(Why, Goal, clause(Clause), Message),
+	    print_message(error, Message)
 	;   throw(missing(subterm_positions))
 	).
-undefined(Goal, _, Options) :-
+print_reference(Goal, _, Why, Options) :-
 	option(initialization(File:Line), Options), !,
-	goal_pi(Goal, PI),
-	print_message(error, error(existence_error(procedure, PI),
-				   file(File, Line, -1, _))).
-undefined(Goal, _, _) :-
-	goal_pi(Goal, PI),
-	print_message(error, error(existence_error(procedure, PI), _)).
+	make_message(Why, Goal, file(File, Line, -1, _), Message),
+	print_message(error, Message).
+print_reference(Goal, _, Why, _) :-
+	make_message(Why, Goal, _, Message),
+	print_message(error, Message).
+
+make_message(undefined, Goal, Context,
+	     error(existence_error(procedure, PI), Context)) :-
+	goal_pi(Goal, PI).
+make_message(trace, Goal, Context,
+	     trace_call_to(PI, Context)) :-
+	goal_pi(Goal, PI).
+
 
 goal_pi(Goal, M:Name/Arity) :-
 	strip_module(Goal, M, Head),
@@ -477,7 +491,12 @@ predicate_in_module(Module, PI) :-
 		 *******************************/
 
 :- multifile
+	prolog:message//1,
 	prolog:message_location//1.
+
+prolog:message(trace_call_to(PI, Context)) -->
+	[ 'Call to ~q at '-[PI] ],
+	prolog:message_location(Context).
 
 prolog:message_location(file_char_count(File, CharCount)) -->
 	{ filepos_line(File, CharCount, Line, LinePos) },
