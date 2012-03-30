@@ -83,6 +83,7 @@
 	    retract_with_names/2,		% ?Clause, ?VarNames
 	    predicate_type/2,			% @Predicate, ?Type
 	    current_visible/2,			% @Module, @Predicate
+	    current_signal/2,			% ?Signal, ?Mode
 	    digit/1,				% +Character
 	    letter/1,				% +Character
 
@@ -983,7 +984,8 @@ system_name(SystemName) :-
 %	Note that in IF/Prolog  V4,  Year  is   0..99,  while  it  is  a
 %	four-digit number in IF/Prolog V5.  We emulate IF/Prolog V5.
 
-localtime(Time, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
+localtime(TimeExpr, Year, Month, Day, DoW, DoY, Hour, Min, Sec) :-
+	arithmetic_expression_value(TimeExpr, Time),
         stamp_date_time(Time, date(Year, Month, Day,
 				   Hour, Min, SecFloat,
 				   _Off, _TZ, _DST), local),
@@ -1137,6 +1139,18 @@ control((!)).
 
 current_visible(Module, Predicate) :-
 	predicate_property(Module:Predicate, visible).
+
+%%	current_signal(?Signal, ?Mode) is nondet.
+%
+%	True when Mode is the current   mode  for handling Signal. Modes
+%	are =on=, =off=,  =default=,  =ignore=.   Signals  are  =abort=,
+%	=alarm=, =interrupt=, =pipe=, =quit=,   =termination=,  =user_1=
+%	and =user_2=.
+%
+%	@tbd	Implement
+
+current_signal(_,_) :- fail.
+
 
 %%	digit(+A).
 %
