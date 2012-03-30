@@ -82,6 +82,11 @@ undefined predicates than list_undefined/0:
 %	  to obtain as much as possible information about goals and find
 %	  references from autoloaded libraries.
 %
+%	  * trace_reference(Callable)
+%	  Print all calls to goals that subsume Callable. Goals are
+%	  represented as Module:Callable (i.e., they are always
+%	  qualified).
+%
 %	  * source(+Boolean)
 %	  If =false= (default =true=), to not try to obtain detailed
 %	  source information for printed messages.
@@ -346,26 +351,27 @@ print_reference(Goal, TermPos, Why, Options) :-
 	    arg(1, TermPos, CharCount),
 	    integer(CharCount)
 	->  clause_property(Clause, file(File)),
-	    make_message(Why, Goal, file_char_count(File, CharCount), Message),
-	    print_message(error, Message)
+	    make_message(Why, Goal, file_char_count(File, CharCount),
+			 Message, Level),
+	    print_message(Level, Message)
 	;   option(source(false), Options)
-	->  make_message(Why, Goal, clause(Clause), Message),
-	    print_message(error, Message)
+	->  make_message(Why, Goal, clause(Clause), Message, Level),
+	    print_message(Level, Message)
 	;   throw(missing(subterm_positions))
 	).
 print_reference(Goal, _, Why, Options) :-
 	option(initialization(File:Line), Options), !,
-	make_message(Why, Goal, file(File, Line, -1, _), Message),
-	print_message(error, Message).
+	make_message(Why, Goal, file(File, Line, -1, _), Message, Level),
+	print_message(Level, Message).
 print_reference(Goal, _, Why, _) :-
-	make_message(Why, Goal, _, Message),
-	print_message(error, Message).
+	make_message(Why, Goal, _, Message, Level),
+	print_message(Level, Message).
 
 make_message(undefined, Goal, Context,
-	     error(existence_error(procedure, PI), Context)) :-
+	     error(existence_error(procedure, PI), Context), error) :-
 	goal_pi(Goal, PI).
 make_message(trace, Goal, Context,
-	     trace_call_to(PI, Context)) :-
+	     trace_call_to(PI, Context), informational) :-
 	goal_pi(Goal, PI).
 
 
