@@ -152,7 +152,9 @@ restore_settings(state(Style, Esc, OSM)) :-
 %%	source_module(+State, -Module) is semidet.
 %
 %	True when Module is the module context   into  which the file is
-%	loaded.
+%	loaded. This is the module of the file if File is a module file,
+%	or the load context of  File  if   File  is  not included or the
+%	module context of the file into which the file was included.
 
 source_module(TB, Module) :-
 	(   colour_state_source_id(TB, File),
@@ -160,9 +162,17 @@ source_module(TB, Module) :-
 	;   colour_state_stream(TB, Fd),
 	    stream_property(Fd, file_name(File))
 	),
-	(   source_file_property(File, module(Module))
-	;   source_file_property(File, load_context(Module, _, _))
-	), !.
+	module_context(File, [], Module).
+
+module_context(File, _, Module) :-
+	source_file_property(File, module(Module)), !.
+module_context(File, Seen, Module) :-
+	source_file_property(File, included_in(File2, _Line)),
+	\+ memberchk(File, Seen), !,
+	module_context(File2, [File|Seen], Module).
+module_context(File, _, Module) :-
+	source_file_property(File, load_context(Module, _, _)).
+
 
 %%	read_error(+Error, +TB, +Stream, +Start) is failure.
 %
