@@ -2224,7 +2224,7 @@ executeThreadSignals(int sig)
       DEBUG(MSG_THREAD,
 	    { print_trace(8);
 	      Sdprintf("[%d]: Prolog backtrace:\n", PL_thread_self());
-	      backTrace(5);
+	      PL_backtrace(5, 0);
 	      Sdprintf("[%d]: end Prolog backtrace:\n", PL_thread_self());
 	    });
 

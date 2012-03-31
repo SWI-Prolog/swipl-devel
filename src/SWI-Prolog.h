@@ -938,8 +938,12 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 #define PL_ACTION_ATTACH_CONSOLE 11	/* MT: Attach a console */
 #define PL_GMP_SET_ALLOC_FUNCTIONS 12	/* GMP: do not change allocation functions */
 
-PL_EXPORT(int)	 PL_action(int, ...);	/* perform some action */
+#define PL_BT_SAFE		0x1	/* Do not try to print goals */
+#define PL_BT_USER		0x2	/* Only show user-goals */
+
+PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
+PL_EXPORT(void) PL_backtrace(int depth, int flags);
 
 		/********************************
 		*         QUERY PROLOG          *

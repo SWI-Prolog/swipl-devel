@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -728,7 +726,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		debugmode(DBG_OFF, NULL);
 		return ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
-		backTrace(num_arg == Default ? 5 : num_arg);
+		PL_backtrace(num_arg == Default ? 5 : num_arg, PL_BT_USER);
 		return ACTION_AGAIN;
     case 'A':	FeedBack("alternatives\n");
 		alternatives(bfr);
@@ -1062,10 +1060,8 @@ listGoal(LocalFrame frame)
 
 
 static void
-writeContextFrame(pl_context_t *ctx)
-{ GET_LD
-
-  if ( gc_status.active )
+writeContextFrame(pl_context_t *ctx, int flags)
+{ if ( (flags&PL_BT_SAFE) )
   { char buf[256];
 
     PL_describe_context(ctx, buf, sizeof(buf));
@@ -1077,7 +1073,7 @@ writeContextFrame(pl_context_t *ctx)
 
 
 void
-backTrace(int depth)
+PL_backtrace(int depth, int flags)
 { pl_context_t ctx;
 
   if ( PL_get_context(&ctx, 0) )
@@ -1085,7 +1081,13 @@ backTrace(int depth)
     Definition def = NULL;
     int same_proc = 0;
     pl_context_t rctx;			/* recursive context */
-    int show_all = (gc_status.active || SYSTEM_MODE);
+
+    if ( gc_status.active )
+    { flags |= PL_BT_SAFE;
+      flags &= ~PL_BT_USER;
+    }
+    if ( SYSTEM_MODE )
+      flags &= ~PL_BT_USER;
 
     for(; depth > 0; PL_step_context(&ctx))
     { LocalFrame frame;
@@ -1102,8 +1104,8 @@ backTrace(int depth)
 	}
       } else
       { if ( same_proc >= 10 )
-	{ if ( isDebugFrame(rctx.fr) || show_all )
-	  { writeContextFrame(&rctx);
+	{ if ( isDebugFrame(rctx.fr) || !(flags&PL_BT_USER) )
+	  { writeContextFrame(&rctx, flags);
 	    depth--;
 	  }
 	  same_proc = 0;
@@ -1111,8 +1113,8 @@ backTrace(int depth)
 	def = frame->predicate;
       }
 
-      if ( isDebugFrame(frame) || show_all )
-      { writeContextFrame(&ctx);
+      if ( isDebugFrame(frame) || !(flags&PL_BT_USER) )
+      { writeContextFrame(&ctx, flags);
 	depth--;
       }
     }
@@ -1298,7 +1300,7 @@ gets the context of the calling   thread. The current implementation can
 only deal with extracting the stack for  the calling thread, but the API
 is prepared to generalise this.
 
-See also backTrace() and os/pl-cstack.c.
+See also PL_backtrace() and os/pl-cstack.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -1634,7 +1636,7 @@ again:
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfputs("goals\n", Sdout);
-		backTrace(5);
+		PL_backtrace(5, PL_BT_USER);
 		goto again;
 #endif /*O_DEBUGGER*/
     case 'h':

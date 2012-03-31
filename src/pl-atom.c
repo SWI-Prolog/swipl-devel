@@ -767,11 +767,8 @@ pl_garbage_collect_atoms()
   {
 #ifdef O_DEBUG_ATOMGC
 /*
-    access_level_t old;
     Sdprintf("Starting ATOM-GC.  Stack:\n");
-    old = setAccessLevel(ACCESS_LEVEL_SYSTEM);
-    backTrace(5);
-    setAccessLevel(old);
+    PL_backtrace(5, 0);
 */
 #endif
     printMessage(ATOM_informational,

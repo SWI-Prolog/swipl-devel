@@ -1436,9 +1436,8 @@ vsysError(const char *fm, va_list args)
   }
 
 #if defined(O_DEBUGGER)
-  setAccessLevel(ACCESS_LEVEL_SYSTEM);
   Sfprintf(Serror, "\n\nPROLOG STACK:\n");
-  backTrace(10);
+  PL_backtrace(10, 0);
   Sfprintf(Serror, "]\n");
 #endif /*O_DEBUGGER*/
 

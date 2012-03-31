@@ -571,8 +571,7 @@ COMMON(word)		pl_get_pid(term_t pid);
 /* pl-trace.c */
 COMMON(int)		isDebugFrame(LocalFrame FR);
 COMMON(int)		tracePort(LocalFrame frame, Choice bfr,
-			  int port, Code PC ARG_LD);
-COMMON(void)		backTrace(int depth);
+				  int port, Code PC ARG_LD);
 COMMON(void)		initTracer(void);
 COMMON(void)		resetTracer(void);
 COMMON(int)		tracemode(int new, int *old);
