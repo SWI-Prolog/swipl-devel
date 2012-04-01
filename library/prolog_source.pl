@@ -82,8 +82,7 @@ users of the library are:
 
 
 :- predicate_options(prolog_read_source_term/4, 4,
-		     [ process_comment(boolean),
-		       pass_to(system:read_term/3, 3)
+		     [ pass_to(system:read_clause/3, 3)
 		     ]).
 :- predicate_options(read_source_term_at_location/3, 3,
 		     [ line(integer),
@@ -117,37 +116,9 @@ users of the library are:
 %	       arbitrary location.
 
 prolog_read_source_term(In, Term, Expanded, Options) :-
-	read_source_term(In, Term, Options),
+	read_clause(In, Term, Options),
 	expand(Term, In, Expanded),
 	update_state(Expanded).
-
-:- multifile
-	prolog:comment_hook/3.
-
-read_source_term(In, Term, Options) :-
-	'$get_predicate_attribute'(prolog:comment_hook(_,_,_),
-				   number_of_clauses, N),
-	N > 0,
-	option(process_comment(true), Options), !,
-	select_option(term_position(TermPos), Options, Options1, _),
-	'$set_source_module'(SM, SM),
-	read_term(In, Term,
-		  [ comments(Comments),
-		    module(SM),
-		    term_position(TermPos)
-		  | Options1
-		  ]),
-	(   catch(prolog:comment_hook(Comments, TermPos, Term), E,
-		  print_message(error, E))
-	->  true
-	;   true
-	).
-read_source_term(In, Term, Options) :-
-	'$set_source_module'(SM, SM),
-	read_term(In, Term,
-		  [ module(SM)
-		  | Options
-		  ]).
 
 :- public
 	expand/3.			% Used by Prolog colour
