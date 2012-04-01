@@ -1,12 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (C): 1985-2011, University of Amsterdam
-			      Vu University Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -442,7 +440,12 @@ xref_defined_class(Source, Class, file(File)) :-
 	defined_class(Class, _, _, Src, file(File)).
 
 :- thread_local
-	current_cond/1.
+	current_cond/1,
+	source_line/1.
+
+current_source_line(Line) :-
+	source_line(Var), !,
+	Line = Var.
 
 collect(Src, In) :-
 	repeat,
@@ -459,8 +462,10 @@ collect(Src, In) :-
 	    (   T == end_of_file
 	    ->  !
 	    ;   stream_position_data(line_count, TermPos, Line),
-		flag(xref_src_line, _, Line),
-		catch(process(T, Src), E, print_message(error, E)),
+		setup_call_cleanup(
+		    asserta(source_line(Line), Ref),
+		    catch(process(T, Src), E, print_message(error, E)),
+		    erase(Ref)),
 		fail
 	    ).
 
@@ -603,21 +608,21 @@ process_directive(meta_predicate(Meta), _) :-
 	process_meta_predicate(Meta).
 process_directive(arithmetic_function(FSpec), Src) :-
 	arith_callable(FSpec, Goal), !,
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert_called(Src, '<directive>'(Line), Goal).
 process_directive(format_predicate(_, Goal), Src) :- !,
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert_called(Src, '<directive>'(Line), Goal).
 process_directive(if(Cond), Src) :- !,
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert_called(Src, '<directive>'(Line), Cond).
 process_directive(elif(Cond), Src) :- !,
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert_called(Src, '<directive>'(Line), Cond).
 process_directive(else, _) :- !.
 process_directive(endif, _) :- !.
 process_directive(Goal, Src) :-
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	process_body(Goal, '<directive>'(Line), Src).
 
 %%	process_meta_predicate(+Decl)
@@ -1378,7 +1383,7 @@ assert_constraint(Src, Head) :-
 assert_constraint(Src, Head) :-
 	functor(Head, Name, Arity),
 	functor(Term, Name, Arity),
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert(constraint(Term, Src, Line)).
 
 
@@ -1443,14 +1448,14 @@ assert_defined(Src, Goal) :-
 	defined(Goal, Src, _), !.
 assert_defined(Src, Goal) :-
 	generalise(Goal, Term),
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert(defined(Term, Src, Line)).
 
 assert_foreign(Src, Goal) :-
 	foreign(Goal, Src, _), !.
 assert_foreign(Src, Goal) :-
 	generalise(Goal, Term),
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert(foreign(Term, Src, Line)).
 
 %%	assert_import(+Src, +Import, +ExportList, +From, +Reexport) is det.
@@ -1478,7 +1483,7 @@ assert_import(Src, Import as Name, Export, From, Reexport) :- !,
 	(   in_export_list(Term0, Export)
 	->  assert(imported(Term, Src, From)),
 	    assert_reexport(Reexport, Src, Term)
-	;   flag(xref_src_line, Line, Line),
+	;   current_source_line(Line),
 	    assert_called(Src, '<directive>'(Line), Term0)
 	).
 assert_import(Src, Import, Export, From, Reexport) :-
@@ -1486,7 +1491,7 @@ assert_import(Src, Import, Export, From, Reexport) :-
 	(   in_export_list(Term, Export)
 	->  assert(imported(Term, Src, From)),
 	    assert_reexport(Reexport, Src, Term)
-	;   flag(xref_src_line, Line, Line),
+	;   current_source_line(Line),
 	    assert_called(Src, '<directive>'(Line), Term)
 	).
 assert_import(Src, op(P,T,N), _, _, _) :-
@@ -1586,24 +1591,24 @@ assert_dynamic(PI, Src) :-
 	pi_to_head(PI, Term),
 	(   thread_local(Term, Src, _)	% dynamic after thread_local has
 	->  true			% no effect
-	;   flag(xref_src_line, Line, Line),
+	;   current_source_line(Line),
 	    assert(dynamic(Term, Src, Line))
 	).
 
 assert_thread_local(_M:_Name/_Arity, _Src) :- !. % not local
 assert_thread_local(PI, Src) :-
 	pi_to_head(PI, Term),
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert(thread_local(Term, Src, Line)).
 
 assert_multifile(PI, Src) :-			% :- multifile(Spec)
 	pi_to_head(PI, Term),
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert(multifile(Term, Src, Line)).
 
 assert_public(PI, Src) :-			% :- public(Spec)
 	pi_to_head(PI, Term),
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	assert_called(Src, '<public>'(Line), Term),
 	assert(public(Term, Src, Line)).
 
@@ -1636,7 +1641,7 @@ assert_defined_class(Src, Name, _Meta, _Super, _) :-
 	defined_class(Name, _, _, Src, _), !.
 assert_defined_class(_, _, _, -, _) :- !.		% :- pce_extend_class
 assert_defined_class(Src, Name, Meta, Super, Summary) :-
-	flag(xref_src_line, Line, Line),
+	current_source_line(Line),
 	(   Summary == @(default)
 	->  Atom = ''
 	;   is_list(Summary)
