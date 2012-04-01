@@ -192,7 +192,7 @@ xref_source(Source) :-
 do_xref(Src) :-
 	setup_call_cleanup(
 	    xref_setup(Src, In, State),
-	    collect(Src, In),
+	    collect(Src, Src, In),
 	    xref_cleanup(State)).
 
 last_modified(Source, Modified) :-
@@ -331,18 +331,21 @@ xref_called(Source, Called, By, Cond) :-
 
 %%	xref_defined(?Source, +Goal, ?How) is nondet.
 %
-%	Test if Goal is accessible in Source. If this is the case, How
-%	specifies the reason why the predicate is accessible. Note that
+%	Test if Goal is accessible in Source.   If this is the case, How
+%	specifies the reason why the predicate  is accessible. Note that
 %	this predicate does not deal with built-in or global predicates,
-%	just locally defined and imported ones.  How is one of:
+%	just locally defined and imported ones.  How   is  one of of the
+%	terms below. Location is one of Line (an integer) or File:Line
+%	if the definition comes from an included (using :-
+%	include(File)) directive.
 %
-%	  * dynamic(Line)
-%	  * thread_local(Line)
-%	  * multifile(Line)
-%	  * public(Line)
-%	  * local(Line)
-%	  * foreign(Line)
-%	  * constraint(Line)
+%	  * dynamic(Location)
+%	  * thread_local(Location)
+%	  * multifile(Location)
+%	  * public(Location)
+%	  * local(Location)
+%	  * foreign(Location)
+%	  * constraint(Location)
 %	  * imported(From)
 
 xref_defined(Source, Called, How) :-
@@ -447,7 +450,11 @@ current_source_line(Line) :-
 	source_line(Var), !,
 	Line = Var.
 
-collect(Src, In) :-
+collect(Src, File, In) :-
+	(   Src == File
+	->  SrcSpec = Line
+	;   SrcSpec = (File:Line)
+	),
 	repeat,
 	    catch(prolog_read_source_term(In, Term, Expanded,
 					  [ process_comment(true),
@@ -463,7 +470,7 @@ collect(Src, In) :-
 	    ->  !
 	    ;   stream_position_data(line_count, TermPos, Line),
 		setup_call_cleanup(
-		    asserta(source_line(Line), Ref),
+		    asserta(source_line(SrcSpec), Ref),
 		    catch(process(T, Src), E, print_message(error, E)),
 		    erase(Ref)),
 		fail
@@ -1266,7 +1273,7 @@ process_include(File, Src) :-
 	->  assert(uses_file(File, Src, Path)),
 	    setup_call_cleanup(
 		open_include_file(Path, In, Refs),
-		collect(Src, In),
+		collect(Src, Path, In),
 		close_include(In, Refs))
 	;   assert(uses_file(File, Src, '<not_found>'))
 	).
