@@ -509,7 +509,7 @@ COMMON(word)		pl_read_term3(term_t stream, term_t term, term_t pos);
 COMMON(void)		initCharConversion(void);
 COMMON(foreign_t)	pl_char_conversion(term_t in, term_t out);
 COMMON(foreign_t)	pl_current_char_conversion(term_t in, term_t out, control_t h);
-COMMON(int)		read_clause(IOSTREAM *s, term_t term ARG_LD);
+COMMON(int)		read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD);
 
 /* pl-rec.c */
 COMMON(void)		initRecords(void);

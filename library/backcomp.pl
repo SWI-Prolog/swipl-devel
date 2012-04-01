@@ -46,8 +46,10 @@
 	    concat/3,
 	    concat_atom/2,		% +List, -Atom
 	    concat_atom/3,		% +List, +Sep, -Atom
-	    read_variables/2,
-	    read_variables/3,
+	    read_clause/1,		% -Term
+	    read_clause/2,		% +Stream, -Term
+	    read_variables/2,		% -Term, -VariableNames
+	    read_variables/3,		% +Stream, -Term, -VariableNames
 	    feature/2,
 	    set_feature/2,
 	    substring/4,
@@ -212,6 +214,19 @@ concat_atom(L, Atom) :-
 concat_atom(L, Sep, Atom) :-
 	atomic_list_concat(L, Sep, Atom).
 
+%%	read_clause(-Term) is det.
+%
+%	@deprecated Use read_clause/2 or read_term/2.
+
+read_clause(Term) :-
+	read_clause(current_input, Term).
+
+%%	read_clause(+Stream, -Term) is det.
+%
+%	@deprecated Use read_clause/3 or read_term/3.
+
+read_clause(Stream, Term) :-
+	read_clause(Stream, Term, [process_comments(false)]).
 
 %%	read_variables(-Term, -Bindings) is det.
 %%	read_variables(+In:stream, -Term, -Bindings) is det.

@@ -271,6 +271,7 @@ struct PL_global_data
 #ifdef O_CALL_RESIDUE
     Procedure	call_residue_vars2;	/* $attvar:call_residue_vars/2 */
 #endif
+    Procedure   comment_hook3;		/* prolog:comment_hook/3 */
 
     SourceFile  reloading;		/* source file we are re-loading */
     int		active_marked;		/* #prodedures marked active */

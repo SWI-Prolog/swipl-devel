@@ -3505,23 +3505,110 @@ pl_read(term_t term)
 }
 
 
-/* read_clause([+Stream, ]-Clause) */
+static int
+unify_read_term_position(term_t tpos ARG_LD)
+{ if ( tpos && source_line_no > 0 )
+  { return PL_unify_term(tpos,
+			 PL_FUNCTOR, FUNCTOR_stream_position4,
+			   PL_INT64, source_char_no,
+			   PL_INT, source_line_no,
+			   PL_INT, source_line_pos,
+			   PL_INT64, source_byte_no);
+  } else
+  { return TRUE;
+  }
+}
+
+
+/** read_clause(+Stream, -Clause, +Options)
+
+Options:
+	* process_comment(+Boolean)
+	* syntax_errors(+Atom)
+	* term_position(-Position)
+*/
+
+static const opt_spec read_clause_options[] =
+{ { ATOM_term_position,	  OPT_TERM },
+  { ATOM_process_comment, OPT_BOOL },
+  { ATOM_syntax_errors,   OPT_ATOM },
+  { NULL_ATOM,		  0 }
+};
+
+
+static void
+callCommentHook(predicate_t comment_hook,
+		term_t comments, term_t tpos, term_t term)
+{ GET_LD
+  fid_t fid;
+  term_t av;
+
+  if ( (fid = PL_open_foreign_frame()) &&
+       (av = PL_new_term_refs(3)) )
+  { qid_t qid;
+
+    PL_put_term(av+0, comments);
+    PL_put_term(av+1, tpos);
+    PL_put_term(av+2, term);
+
+    if ( (qid = PL_open_query(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+			      comment_hook, av)) )
+    { term_t ex;
+
+      if ( !PL_next_solution(qid) && (ex=PL_exception(qid)) )
+	printMessage(ATOM_error, PL_TERM, ex);
+
+      PL_close_query(qid);
+    }
+
+    PL_discard_foreign_frame(fid);
+  }
+}
+
 
 int
-read_clause(IOSTREAM *s, term_t term ARG_LD)
+read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
 { read_data rd;
   int rval;
   fid_t fid;
+  term_t tpos = 0;
+  term_t comments = 0;
+  int process_comment;
+  atom_t syntax_errors = ATOM_dec10;
+  predicate_t comment_hook;
+
+  comment_hook = _PL_predicate("comment_hook", 3, "prolog",
+			       &GD->procedures.comment_hook3);
+  process_comment = (comment_hook->definition->impl.any != NULL);
+  if ( process_comment )
+  { if ( !tpos )
+      tpos = PL_new_term_ref();
+    comments = PL_new_term_ref();
+    rd.comments = PL_copy_term_ref(comments);
+  }
+
+  if ( options &&
+       !scan_options(options, 0, ATOM_read_option, read_clause_options,
+		     &tpos,
+		     &process_comment,
+		     &syntax_errors) )
+    return FALSE;
 
   if ( !(fid=PL_open_foreign_frame()) )
     return FALSE;
 
 retry:
   init_read_data(&rd, s PASS_LD);
-  rd.on_error = ATOM_dec10;
+  rd.on_error = syntax_errors;
   rd.singles = rd.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
-  if ( !(rval = read_term(term, &rd PASS_LD)) && rd.has_exception )
-  { if ( reportReadError(&rd) )
+  if ( (rval = read_term(term, &rd PASS_LD)) )
+  { if ( tpos )
+      rval = unify_read_term_position(tpos PASS_LD);
+    if ( comments && (rval=PL_unify_nil(rd.comments)) &&
+	 !PL_get_nil(comments) )
+      callCommentHook(comment_hook, comments, tpos, term);
+  } else
+  { if ( rd.has_exception && reportReadError(&rd) )
     { PL_rewind_foreign_frame(fid);
       free_read_data(&rd);
       goto retry;
@@ -3533,35 +3620,21 @@ retry:
 }
 
 
-static int
-read_clause_pred(term_t from, term_t term ARG_LD)
-{ int rval;
+static
+PRED_IMPL("read_clause", 3, read_clause, 0)
+{ PRED_LD
+  int rc;
   IOSTREAM *s;
 
-  if ( !getTextInputStream(from, &s) )
-    fail;
-  rval = read_clause(s, term PASS_LD);
+  if ( !getTextInputStream(A1, &s) )
+    return FALSE;
+  rc = read_clause(s, A2, A3 PASS_LD);
   if ( Sferror(s) )
     return streamStatus(s);
   else
     PL_release_stream(s);
 
-  return rval;
-}
-
-
-static
-PRED_IMPL("read_clause", 1, read_clause, 0)
-{ PRED_LD
-
-  return read_clause_pred(0, A2 PASS_LD);
-}
-
-static
-PRED_IMPL("read_clause", 2, read_clause, 0)
-{ PRED_LD
-
-  return read_clause_pred(A1, A2 PASS_LD);
+  return rc;
 }
 
 
@@ -3646,13 +3719,8 @@ retry:
     PL_release_stream(s);
 
   if ( rval )
-  { if ( tpos && source_line_no > 0 )
-      rval = PL_unify_term(tpos,
-			   PL_FUNCTOR, FUNCTOR_stream_position4,
-			   PL_INT64, source_char_no,
-			   PL_INT, source_line_no,
-			   PL_INT, source_line_pos,
-			   PL_INT64, source_byte_no);
+  { if ( tpos )
+      rval = unify_read_term_position(tpos PASS_LD);
     if ( rval && tcomments )
     { if ( !PL_unify_nil(rd.comments) )
 	rval = FALSE;
@@ -3840,9 +3908,8 @@ PRED_IMPL("$code_class", 2, code_class, 0)
 		 *******************************/
 
 BeginPredDefs(read)
-  PRED_DEF("read_clause", 1, read_clause, 0)
-  PRED_DEF("read_clause", 2, read_clause, 0)
+  PRED_DEF("read_clause",  3, read_clause,  0)
   PRED_DEF("atom_to_term", 3, atom_to_term, 0)
   PRED_DEF("term_to_atom", 2, term_to_atom, 0)
-  PRED_DEF("$code_class", 2, code_class, 0)
+  PRED_DEF("$code_class",  2, code_class,   0)
 EndPredDefs

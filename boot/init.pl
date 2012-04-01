@@ -956,8 +956,12 @@ compiling :-
 %	       expanded into the empty list, this is returned too.  This
 %	       is required to be able to return the raw term in Read
 %	@param Stream is the stream from which Read is read
-%	@param Options provides additional options.  Currently the only
-%	       option processed is encoding(Enc).
+%	@param Options provides additional options:
+%		* encoding(Enc)
+%		Encoding used to open From
+%		* syntax_errors(+ErrorMode)
+%		* process_comments(+Boolean)
+%		* term_position(-Pos)
 
 '$source_term'(From, Read, Term, Stream, Options) :-
 	'$source_term'(From, Read, Term, Stream, [], Options),
@@ -1037,7 +1041,7 @@ compiling :-
 '$term_in_file'(In, Read, Term, Stream, Parents, Options) :-
 	'$skip_script_line'(In),
 	repeat,
-	  '$read_clause'(In, Raw),
+	  read_clause(In, Raw, Options),
 	  (   Raw == end_of_file
 	  ->  !,
 	      (	  Parents = [_,_|_]	% Included file
@@ -2424,33 +2428,7 @@ compile_aux_clauses(Clauses) :-
 		 *******************************/
 
 :- multifile
-	prolog:comment_hook/3.
-
-'$read_clause'(In, Term) :-
-	'$get_predicate_attribute'(prolog:comment_hook(_,_,_),
-				   number_of_clauses, N),
-	N > 0, !,
-	'$set_source_module'(SM, SM),
-	Options0 = [ errors(dec10),
-		     comments(Comments),
-		     term_position(Pos),
-		     module(SM)
-		   ],
-	'$singleton_option'(SM, Options, Options0),
-	read_term(In, Term, Options),
-	(   Comments \== [],
-	    catch(prolog:comment_hook(Comments, Pos, Term), E,
-		  print_message(error, E))
-	->  true
-	;   true
-	).
-'$read_clause'(In, Term) :-
-	read_clause(In, Term).
-
-'$singleton_option'(M, [singletons(warning)|T],T) :-
-	M:'$style_check'(Old, Old),
-	Old /\ 0b0000010 =\= 0, !.	% See style_check/1
-'$singleton_option'(_, T, T).
+	prolog:comment_hook/3.			% hook for read_clause/3
 
 
 		 /*******************************
