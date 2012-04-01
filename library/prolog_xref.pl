@@ -164,6 +164,10 @@ system_predicate(Goal) :-
 verbose :-
 	debugging(xref).
 
+:- thread_local
+	xref_input/2.			% File, Stream
+
+
 %%	xref_source(+Source) is det.
 %
 %	Generate the cross-reference data  for   Source  if  not already
@@ -200,14 +204,11 @@ last_modified(Source, Modified) :-
 	exists_file(Source),
 	time_file(Source, Modified).
 
-:- thread_local
-	xref_stream/1.			% input stream
-
 xref_setup(Src, In, state(In, Dialect, Xref, [SRef|HRefs])) :-
 	current_prolog_flag(emulated_dialect, Dialect),
 	prolog_open_source(Src, In),
 	set_initial_mode(In),
-	asserta(xref_stream(In), SRef),
+	asserta(xref_input(Src, In), SRef),
 	set_xref(Xref),
 	(   verbose
 	->  HRefs = []
@@ -249,7 +250,7 @@ set_initial_mode(_) :-
 %	Current input stream for cross-referencer.
 
 xref_input_stream(Stream) :-
-	xref_stream(Var), !,
+	xref_input(_, Var), !,
 	Stream = Var.
 
 %%	xref_push_op(Source, +Prec, +Type, :Name)
@@ -1255,35 +1256,36 @@ process_include([H|T], Src) :- !,
 	process_include(T, Src).
 process_include(File, Src) :-
 	callable(File), !,
-	(   xref_source_file(File, Path, Src)
+	(   xref_input(ParentSrc, _),
+	    xref_source_file(File, Path, ParentSrc)
 	->  assert(uses_file(File, Src, Path)),
-	    (	catch(read_src_to_terms(Path, Terms), _, fail)
-	    ->	process_terms(Terms, Src)
-	    ;	true
-	    )
+	    setup_call_cleanup(
+		open_include_file(Path, In, Refs),
+		collect(Src, In),
+		close_include(In, Refs))
 	;   assert(uses_file(File, Src, '<not_found>'))
 	).
 process_include(_, _).
 
-process_terms([], _).
-process_terms([H|T], Src) :-
-	process(H, Src),
-	process_terms(T, Src).
+%%	open_include_file(+Path, -In)
+%
+%	Opens an :- include(File) referenced file.   Note that we cannot
+%	use prolog_open_source/2 because we   should  _not_ safe/restore
+%	the lexical context.
 
-read_src_to_terms(Path, Terms) :-
-	prolog_open_source(Path, Fd),
-	call_cleanup(read_clauses(Fd, Terms),
-		     prolog_close_source(Fd)).
+open_include_file(Path, In, Ref) :-
+	xref_input(_, Parent),
+	stream_property(Parent, encoding(Enc)),
+	open(Path, read, In, [encoding(Enc)]),
+	(   peek_char(In, #)		% Deal with #! script
+	->  skip(In, 10)
+	;   true
+	),
+	asserta(xref_input(Path, In), Ref).
 
-read_clauses(In, Terms) :-
-	read_clause(In, C0),
-	read_clauses(C0, In, Terms).
-
-read_clauses(end_of_file, _, []) :- !.
-read_clauses(Term, In, [Term|T]) :-
-	read_clause(In, C),
-	read_clauses(C, In, T).
-
+close_include(In, Refs) :-
+	maplist(erase, Refs),
+	close(In).
 
 %%	process_foreign(+Spec, +Src)
 %
