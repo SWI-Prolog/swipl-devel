@@ -450,6 +450,12 @@ current_source_line(Line) :-
 	source_line(Var), !,
 	Line = Var.
 
+%%	collect(+Source, +File, +Stream)
+%
+%	Process data from Source. If File  \== Source, we are processing
+%	an included file. Stream is the stream   from  shich we read the
+%	program.
+
 collect(Src, File, In) :-
 	(   Src == File
 	->  SrcSpec = Line
@@ -1288,12 +1294,17 @@ process_include(_, _).
 open_include_file(Path, In, Ref) :-
 	xref_input(_, Parent),
 	stream_property(Parent, encoding(Enc)),
-	open(Path, read, In, [encoding(Enc)]),
+	include_encoding(Enc, Options),
+	open(Path, read, In, Options),
 	(   peek_char(In, #)		% Deal with #! script
 	->  skip(In, 10)
 	;   true
 	),
 	asserta(xref_input(Path, In), Ref).
+
+include_encoding(wchar_t, []) :- !.
+include_encoding(Enc, [encoding(Enc)]).
+
 
 close_include(In, Refs) :-
 	maplist(erase, Refs),
