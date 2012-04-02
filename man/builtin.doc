@@ -428,7 +428,7 @@ to load files holding clauses, typically loading them only once. Such
 usage would allow replacement by, e.g., consult/1. Unfortunately, the
 same project might use include/1 to share directives. Another example of
 a limitation of mapping to consult/1 is that if the clauses of a
-predicate are distributed over two included files, discontiguous/2 is
+predicate are distributed over two included files, discontiguous/1 is
 appropriate, while if they are distributed over two consulted files, one
 must use multifile/1.
 
