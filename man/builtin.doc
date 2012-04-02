@@ -115,21 +115,25 @@ Prolog source files come in three flavours:
 
 \begin{description}
     \item [ A traditional ] Prolog source file contains Prolog
-clauses and directives, but no \jargon{module declaration}.  They
-are normally loaded using consult/1 or ensure_loaded/1.  Currently,
-a non-module file can only be loaded into a single module.\footnote{This
-limitation may be lifted in the future.  Existing limitations in SWI-Prolog's
-source code administration make this non-trivial.}
+clauses and directives, but no \jargon{module declaration} (see
+module/1). They are normally loaded using consult/1 or ensure_loaded/1.
+Currently, a non-module file can only be loaded into a single
+module.\footnote{This limitation may be lifted in the future. Existing
+limitations in SWI-Prolog's source code administration make this
+non-trivial.}
 
     \item [ A module ] Prolog source file starts with a module
 declaration.  The subsequent Prolog code is loaded into the
-specified module, and only the \jargon{public} predicates are
+specified module, and only the \jargon{exported} predicates are
 made available to the context loading the module.  Module files
-are normally loaded using use_module/[1,2].  See \chapref{modules}
+are normally loaded with use_module/[1,2].  See \chapref{modules}
 for details.
 
     \item [ An include ] Prolog source file is loaded using
-the include/1 directive and normally contains only directives.
+the include/1 directive, textually including Prolog text into
+another Prolog source.  A file may be included into multiple
+source files and is typically used to share \jargon{declarations}
+such as multifile or dynamic between source files.
 \end{description}
 
 Prolog source files are located using absolute_file_name/3 with
