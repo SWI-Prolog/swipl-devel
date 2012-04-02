@@ -3584,7 +3584,6 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
   { if ( !tpos )
       tpos = PL_new_term_ref();
     comments = PL_new_term_ref();
-    rd.comments = PL_copy_term_ref(comments);
   }
 
   if ( options &&
@@ -3599,12 +3598,15 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
 
 retry:
   init_read_data(&rd, s PASS_LD);
+  if ( comments )
+    rd.comments = PL_copy_term_ref(comments);
   rd.on_error = syntax_errors;
   rd.singles = rd.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
   if ( (rval = read_term(term, &rd PASS_LD)) )
-  { if ( tpos )
-      rval = unify_read_term_position(tpos PASS_LD);
-    if ( comments && (rval=PL_unify_nil(rd.comments)) &&
+  { if ( tpos &&
+	 (rval = unify_read_term_position(tpos PASS_LD)) &&
+	 comments &&
+	 (rval = PL_unify_nil(rd.comments)) &&
 	 !PL_get_nil(comments) )
       callCommentHook(comment_hook, comments, tpos, term);
   } else
