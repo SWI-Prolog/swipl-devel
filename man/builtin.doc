@@ -2255,7 +2255,7 @@ Signals are blocked when the garbage collector is active.
 
 \section{DCG Grammar rules}			\label{sec:DCG}
 
-\index{DCG}\index{serialize},\index{deserialize}%
+\index{DCG}\index{serialize}\index{deserialize}%
 Grammar rules form a comfortable interface to \jargon{difference lists}.
 They are designed both to support writing parsers that build a parse
 tree from a list of characters or tokens and for generating a flat list
@@ -2357,7 +2357,7 @@ reverse([H|T]) --> reverse(T), [H].
 SWI-Prolog offers three different database mechanisms. The first one is
 the common assert/retract mechanism for manipulating the clause
 database. As facts and clauses asserted using assert/1 or one of its
-derivatives become part of the program these predicates compile the term
+derivatives become part of the program, these predicates compile the term
 given to them. retract/1 and retractall/1 have to unify a term and
 therefore have to decompile the program. For these reasons the
 assert/retract mechanism is expensive. On the other hand, once compiled,
@@ -2376,7 +2376,7 @@ clauses and records in the recorded database.  As of 5.9.10, these keys
 are represented by non-textual atoms (`blobs', see \secref{blob}), which
 makes accessing the database through references safe.
 
-The third mechanism is a special purpose one. It associates an integer
+The third mechanism is a special-purpose one. It associates an integer
 or atom with a key, which is an atom, integer or term. Each key can only
 have one atom or integer associated with it.
 
@@ -2390,9 +2390,9 @@ its old definition in its definition module.
 
 According to the ISO standard, abolish/1 can only be applied to dynamic
 procedures.  This is odd, as for dealing with dynamic procedures there
-is already retract/1 and retractall/1.  The abolish/1 predicate has been
+is already retract/1 and retractall/1.  The abolish/1 predicate was
 introduced in DEC-10 Prolog precisely for dealing with static procedures.
-In SWI-Prolog, abolish/1 works on static procedures, unless the prolog
+In SWI-Prolog, abolish/1 works on static procedures, unless the Prolog
 flag \prologflag{iso} is set to \const{true}.
 
 It is advised to use retractall/1 for erasing all clauses of a dynamic
@@ -2434,7 +2434,7 @@ definition for all sub-modules.  Otherwise the redefinition is local
 to the module.  The system definition remains in the module \const{system}.
 
 Redefining system predicate facilitates the definition of compatibility
-packages.  Use in other context is discouraged.
+packages.  Use in other contexts is discouraged.
 
     \predicate[ISO]{retract}{1}{+Term}
 When \arg{Term} is an atom or a term it is unified with the first unifying fact
@@ -2449,7 +2449,7 @@ dynamic/1 as a \jargon{directive}.}
 
     \predicate[ISO]{asserta}{1}{+Term}
 Assert a fact or clause in the database. \arg{Term} is asserted as the
-firsr fact or clause of the corresponding predicate. Equivalent to
+first fact or clause of the corresponding predicate. Equivalent to
 assert/1, but \arg{Term} is asserted as first clause or fact of the
 predicate.
 
@@ -2470,7 +2470,7 @@ Equivalent to asserta/1, asserting the new clause as the last clause of
 the predicate.
 
     \predicate{assert}{2}{+Term, -Reference}
-Equivalent to assertz/2.
+Equivalent to assertz/2. Deprecated: new code should use assertz/2.
 
     \predicate{recorda}{3}{+Key, +Term, -Reference}
 Assert \arg{Term} in the recorded database under key \arg{Key}.
@@ -2481,14 +2481,14 @@ key is a compound term, only the name and arity define the key.
 erase/1).
 
     \predicate{recorda}{2}{+Key, +Term}
-Equivalent to \exam{recorda(\arg{Key}, \arg{Value}, _)}.
+Equivalent to \exam{recorda(\arg{Key}, \arg{Term}, _)}.
 
     \predicate{recordz}{3}{+Key, +Term, -Reference}
 Equivalent to recorda/3, but puts the \arg{Term} at the tail of the terms
 recorded under \arg{Key}.
 
     \predicate{recordz}{2}{+Key, +Term}
-Equivalent to \exam{recordz(\arg{Key}, \arg{Value}, _)}.
+Equivalent to \exam{recordz(\arg{Key}, \arg{Term}, _)}.
 
     \predicate{recorded}{3}{?Key, ?Value, ?Reference}
 True if \arg{Value} is recorded under \arg{Key} and has the given
@@ -2508,7 +2508,7 @@ defined by recorda/2 and recordz/2.}  See also current_key/1.
 Equivalent to \exam{recorded(\arg{Key}, \arg{Value}, _)}.
 
     \predicate{erase}{1}{+Reference}
-Erase a record or clause from the database.  \arg{Reference} is an
+Erase a record or clause from the database.  \arg{Reference} is a
 db-reference returned by recorda/3 or recorded/3, clause/3, assert/2,
 asserta/2 or assertz/2.  Fail silently if the referenced object no
 longer exists.
@@ -2531,7 +2531,7 @@ generating unique integer counters.%
 		  global variables (nb_setval/2) and non-backtrackable
 		  assignment (nb_setarg/3) are more widely recognised
 		  special-purpose alternatives for non-backtrackable
-		  and/or global state.}
+		  and/or global states.}
 \end{description}
 
 
@@ -2542,22 +2542,22 @@ generating unique integer counters.%
 \index{update view}%
 Traditionally, Prolog systems used the \jargon{immediate update view}:
 new clauses became visible to predicates backtracking over dynamic
-predicates immediately and retracted clauses became invisible
+predicates immediately, and retracted clauses became invisible
 immediately.
 
-Starting with SWI-Prolog 3.3.0 we adhere the \jargon{logical update
+Starting with SWI-Prolog 3.3.0 we adhere to the \jargon{logical update
 view}, where backtrackable predicates that enter the definition of a
 predicate will not see any changes (either caused by assert/1 or
 retract/1) to the predicate.  This view is the ISO standard, the
 most commonly used and the most `safe'.%
     \footnote{For example, using the immediate update view, no call to a
 	      dynamic predicate is deterministic.}
-Logical updates are realised by keeping reference-counts on predicates
+Logical updates are realised by keeping reference counts on predicates
 and \jargon{generation} information on clauses.  Each change to the
 database causes an increment of the generation of the database.  Each
 goal is tagged with the generation in which it was started.  Each clause
-is flagged with the generation it was created as well as the generation
-it was erased.  Only clauses with `created' \ldots `erased' interval
+is flagged with the generation it was created in as well as the generation
+it was erased from.  Only clauses with a `created' \ldots `erased' interval
 that encloses the generation of the current goal are considered visible.
 
 
@@ -2566,7 +2566,7 @@ that encloses the generation of the current goal are considered visible.
 \index{indexing,term-hashes}%
 The indexing capabilities of SWI-Prolog are described in
 \secref{jitindex}. Summarizing, SWI-Prolog creates indexes for any
-applicable argument, but indexes only on one argument and does not index
+applicable argument, but only on one argument, and does not index
 on arguments of compound terms. The predicates below provide building
 blocks to circumvent the limitations of the current indexing system.
 
@@ -2577,26 +2577,26 @@ functor (name/arity reference) on the first argument is sufficient.
 \begin{description}
     \predicate[det]{term_hash}{2}{+Term, -HashKey}
 If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is unified
-with a positive integer value that may be used as a hash-key to the
+with a positive integer value that may be used as a hash key to the
 value. If \arg{Term} is not ground, the predicate leaves \arg{HashKey}
 an unbound variable.  Hash keys are in the range $0 \ldots 16,777,215$,
 the maximal integer that can be stored efficiently on both 32 and 64
 bit platforms.
 
-This predicate may be used to build hash-tables as well as to exploit
-argument-indexing to find complex terms more quickly.
+This predicate may be used to build hash tables as well as to exploit
+argument indexing to find complex terms more quickly.
 
-The hash-key does not rely on temporary information like addresses of
+The hash key does not rely on temporary information like addresses of
 atoms and may be assumed constant over different invocations and
 versions of SWI-Prolog.\footnote{Last change: version 5.10.4} Hashes
 differ between big and little endian machines. The term_hash/2 predicate
-is cycle-safe.\bug{All arguments that (indirecly) lead to the a cycle
-have the same hash-key.}
+is cycle-safe.\bug{All arguments that (indirectly) lead to a cycle
+have the same hash key.}
 
     \predicate[det]{term_hash}{4}{+Term, +Depth, +Range, -HashKey}
 As term_hash/2, but only considers \arg{Term} to the specified
 \arg{Depth}.   The toplevel term has depth 1, its arguments have
-depth 2, etc.  I.e. $\arg{Depth} = 0$ hashes nothing; $\arg{Depth} = 1$
+depth 2, etc.  That is, $\arg{Depth} = 0$ hashes nothing; $\arg{Depth} = 1$
 hashes atomic values or the functor and arity of a compound term,
 not its arguments; $\arg{Depth} = 2$ also indexes the immediate
 arguments, etc.
@@ -2605,36 +2605,36 @@ arguments, etc.
 must be in the range $[1 \ldots 2147483647]$
 
     \predicate[det]{variant_sha1}{2}{+Term, -SHA1}
-Compute an SHA1-hash from \arg{Term}. The hash is represented as a
+Compute a SHA1-hash from \arg{Term}. The hash is represented as a
 40-byte hexadecimal atom. Unlike term_hash/2 and friends, this predicate
-produces a hash-key for non-ground terms. The hash is invariant over
+produces a hash key for non-ground terms. The hash is invariant over
 variable-renaming (see \predref{=@=}{2}) and constants over different
-invocations of Prolog.\bug{The hash depends on word-order
+invocations of Prolog.\bug{The hash depends on word order
 (big/little-endian) and the wordsize (32/64 bits).}
 
-This predicate raises an exeption when trying to compute the hash on
+This predicate raises an exception when trying to compute the hash on
 a cyclic term or attributed term.  Attributed terms are not handled
 because subsumes_chk/2 is not considered well defined for attributed
 terms.  Cyclic terms are not supported because this would require
-establishing a canonical cycle.  I.e., given A=[a|A] and B=[a,a|B],
+establishing a canonical cycle.  That is, given A=[a|A] and B=[a,a|B],
 \arg{A} and \arg{B} should produce the same hash.  This is not
 (yet) implemented.
 
 This hash was developed for lookup of solutions to a goal stored in a
 table.  By using a cryptographic hash, heuristic algorithms can often
-ignore the possibility of hash-colisions and thus avoid storing the
-goal-term itself as well as testing using \predref{=@=}{2}.
+ignore the possibility of hash collisions and thus avoid storing the
+goal term itself as well as testing using \predref{=@=}{2}.
 \end{description}
 
 
-\section{Declaring predicates properties}	\label{ch:dynamic}
+\section{Declaring predicate properties}	\label{ch:dynamic}
 \label{sec:declare}
 
 This section describes directives which manipulate attributes of
 predicate definitions. The functors dynamic/1, multifile/1,
 discontiguous/1 and public/1 are operators of priority 1150 (see op/3),
-which implies the list of predicates they involve can just be a comma
-separated list:
+which implies that the list of predicates they involve can just be a
+comma-separated list:
 
 \begin{code}
 :- dynamic
@@ -2642,7 +2642,7 @@ separated list:
         baz/2.
 \end{code}
 
-On SWI-Prolog all these directives are just predicates. This implies
+In SWI-Prolog all these directives are just predicates. This implies
 they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
@@ -2652,22 +2652,22 @@ Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1). In the
 multi-threaded version, the clauses of dynamic predicates are shared
 between the threads. The directive thread_local/1 provides an
-alternative where each threads has its own clause-list for the
+alternative where each thread has its own clause list for the
 predicate.  Dynamic predicates can be turned into static ones using
 compile_predicates/1.
 
-    \predicate{compile_predicates}{1}{:ListOfPredicateIndicator}
+    \predicate{compile_predicates}{1}{:ListOfPredicateIndicators}
 Compile a list of specified dynamic predicates (see dynamic/1 and
 assert/1) into normal static predicates.  This call tells the Prolog
 environment the definition will not change anymore and further calls
 to assert/1 or retract/1 on the named predicates raise a permission
 error.  This predicate is designed to deal with parts of the program
-that is generated at runtime but does not change during the remainder
+that are generated at runtime but do not change during the remainder
 of the program execution.%
 	\footnote{The specification of this predicate is from
 		  Richard O'Keefe.  The implementation is allowed to
 		  optimise the predicate.  This is not yet implemented.
-		  In multi-threaded Prolog however, static code runs
+		  In multi-threaded Prolog, however, static code runs
 		  faster as it does not require synchronisation.  This
 		  is particularly true on SMP hardware.}
 
@@ -2682,16 +2682,15 @@ not be together in the source file.  See also style_check/1.
 
     \prefixop{public}{:PredicateIndicator, \ldots}
 Instructs the cross-referencer that the predicate can be called. It has
-no semantics.\footnote{This declaration is compatible to SICStus. In
+no semantics.\footnote{This declaration is compatible with SICStus. In
 YAP, public/1 instructs the compiler to keep the source. As the source
 is always available in SWI-Prolog, our current interpretation also
-enhances the compatibility to YAP.} The public declaration can be
+enhances the compatibility with YAP.} The public declaration can be
 queried using predicate_property/2. The public/1 directive does
 \emph{not} export the predicate (see module/1 and export/1). The public
-directive is used for (1) direct calls into the module from e.g.,
-foreign code, (2) direct calls into the module from other modules or (3)
-flag a predicate as being called if the call is generated by meta
-calling constructs that is not analysed by the cross-referencer.
+directive is used for (1) direct calls into the module from, e.g.,
+foreign code, (2) direct calls into the module from other modules, or (3)
+flag a predicate as being called if the call is generated by meta-calling constructs that are not analysed by the cross-referencer.
 \end{description}
 
 \section{Examining the program}		\label{sec:examineprog}
@@ -2705,7 +2704,7 @@ an atom.
     \predicate{current_blob}{2}{?Blob, ?Type}
 Examine the type or enumerate blobs of the given \arg{Type}.  Typed
 blobs are supported through the foreign language interface for
-storing arbitrary BLOBS (Binary Large Object) or handles to external
+storing arbitrary BLOBs (Binary Large Object) or handles to external
 entities. See \secref{blob} for details.
 
     \predicate{current_functor}{2}{?Name, ?Arity}
@@ -2734,13 +2733,13 @@ generates values that are defined in or already imported into the target
 module. Generating all callable predicates therefore requires
 enumerating modules using current_module/1. Generating predicates
 callable in a given module requires enumerating the import modules
-using import_module/2 and the auto-loadable predicates using the
+using import_module/2 and the autoloadable predicates using the
 predicate_property/2 \const{autoload}.
 
     \predicate{current_predicate}{2}{?Name, :Head}
 Classical pre-ISO implementation of current_predicate/1, where the
-predicate is represented by the head-term.  The advantage is that
-this can be used for checking existence of a predicate before calling
+predicate is represented by the head term.  The advantage is that
+this can be used for checking the existence of a predicate before calling
 it without the need for functor/3:
 
 \begin{code}
@@ -2751,7 +2750,7 @@ call_if_exists(G) :-
 
 Because of this intended usage, current_predicate/2 also succeeds if the
 predicate can be autoloaded.  Unfortunately, checking the autoloader
-makes this predicate relatively slow; in particular because a failed
+makes this predicate relatively slow, in particular because a failed
 lookup of the autoloader will cause the autoloader to verify that its
 index is up-to-date.
 
@@ -2766,7 +2765,7 @@ predicate_property/2 to fail silently. If \arg{Head} is not sufficiently
 bound, only currently locally defined and already imported predicates
 are enumerated. See current_predicate/1 for enumerating all predicates.
 A common issue concerns \emph{generating} all built-in predicates. This
-can be achieved using the code below.
+can be achieved using the code below:
 
 \begin{code}
 generate_built_in(Name/Arity) :-
@@ -2779,33 +2778,33 @@ generate_built_in(Name/Arity) :-
 
 \begin{description}
     \termitem{autoload}{File}
-Is true if the predicate can be autoloaded from the file \arg{File}.
+True if the predicate can be autoloaded from the file \arg{File}.
 Like \const{undefined}, this property is \emph{not} generated.
 
     \termitem{built_in}{}
-Is true if the predicate is locked as a built-in predicate. This
+True if the predicate is locked as a built-in predicate. This
 implies it cannot be redefined in its definition module and it can
 normally not be seen in the tracer.
 
     \termitem{dynamic}{}
-Is true if assert/1 and retract/1 may be used to modify the predicate.
+True if assert/1 and retract/1 may be used to modify the predicate.
 This property is set using dynamic/1.
 
     \termitem{exported}{}
-Is true if the predicate is in the public list of the context module.
+True if the predicate is in the public list of the context module.
     \termitem{imported_from}{Module}
 Is true if the predicate is imported into the context module from
 module \arg{Module}.
 
     \termitem{file}{FileName}
 Unify \arg{FileName} with the name of the source file in which the
-predicate is defined.  See also source_file/2 and the propery
+predicate is defined.  See also source_file/2 and the property
 \const{line_count}.  Note that this reports the file of the
 first clause of a predicate.  A more robust interface can be
 achieved using nth_clause/3 and clause_property/2.
 
     \termitem{foreign}{}
-Is true if the predicate is defined in the C language.
+True if the predicate is defined in the C language.
 
     \termitem{indexed}{Indexes}
 \arg{Indexes}\footnote{This predicate property should be used for
@@ -2821,12 +2820,12 @@ a list is created for all clauses with the same key.  This is currently
 not used.
 
     \termitem{interpreted}{}
-Is true if the predicate is defined in Prolog. We return true on this
+True if the predicate is defined in Prolog. We return true on this
 because, although the code is actually compiled, it is completely
 transparent, just like interpreted code.
 
     \termitem{iso}{}
-Is true if the predicate is covered by the ISO standard (ISO/IEC
+True if the predicate is covered by the ISO standard (ISO/IEC
 13211-1).
 
     \termitem{line_count}{LineNumber}
@@ -2836,14 +2835,14 @@ also source_file/2.  See also the \const{file} property above, notably
 the reference to clause_property/2.
 
     \termitem{multifile}{}
-Is true there may be multiple (or no) files providing clauses for the
+True if there may be multiple (or no) files providing clauses for the
 predicate.  This property is set using multifile/1.
 
     \termitem{meta_predicate}{Head}
 If the predicate is declared as a meta-predicate using meta_predicate/1,
-Unify \arg{Head} with the head-pattern.  The head-pattern is a
+unify \arg{Head} with the head-pattern.  The head-pattern is a
 compound term with the same name and arity as the predicate where each
-argument of the term is a meta predicate specifier.  See meta_predicate/1
+argument of the term is a meta-predicate specifier.  See meta_predicate/1
 for details.
 
     \termitem{nodebug}{}
@@ -2869,16 +2868,16 @@ its own clauses for the predicate. This property is set using
 thread_local/1.
 
     \termitem{transparent}{}
-Is true if the predicate is declared transparent using the
+True if the predicate is declared transparent using the
 module_transparent/1 or meta_predicate/1 declaration.  In the
 latter case the property \term{meta_predicate}{Head} is also provided.
 See \chapref{modules} for details.
 
     \termitem{undefined}{}
-Is true if a procedure definition block for the predicate exists, but
+True if a procedure definition block for the predicate exists, but
 there are no clauses for it and it is not declared dynamic or multifile.
 This is true if the predicate occurs in the body of a loaded predicate,
-an attempt to call it has been made via one of the meta-call predicates
+an attempt to call it has been made via one of the meta-call predicates,
 or the predicate had a definition in the past. See the library package
 \pllib{check} for example usage.
 
@@ -2886,7 +2885,7 @@ or the predicate had a definition in the past. See the library package
 True when predicate can be called without raising a predicate existence
 error. This means that the predicate is (1) defined, (2) can be
 inherited from one of the default modules (see default_module/2) or (3)
-can be autoloaded. The behaviour is logically consistent iff the propery
+can be autoloaded. The behaviour is logically consistent iff the property
 \const{visible} is provided explicitly. If the property is left unbound,
 only defined predicates are enumerated.
 
@@ -2896,7 +2895,7 @@ by qsave_program/[1,2].  This property is set using volatile/1.
 \end{description}
 
     \predicate{dwim_predicate}{2}{+Term, -Dwim}
-`Do What I Mean' (`dwim') support predicate. \arg{Term} is a term, which
+`Do What I Mean' (`dwim') support predicate. \arg{Term} is a term, whose
 name and arity are used as a predicate specification. \arg{Dwim} is
 instantiated with the most general term built from \arg{Name} and the
 arity of a defined predicate that matches the predicate specified by
@@ -2909,7 +2908,7 @@ matches.
     \predicate[ISO]{clause}{2}{:Head, ?Body}
 True if \arg{Head} can be unified with a clause head and \arg{Body} with
 the corresponding clause body. Gives alternative clauses on
-backtracking. For facts \arg{Body} is unified with the atom \arg{true}.
+backtracking. For facts, \arg{Body} is unified with the atom \arg{true}.
 
     \predicate{clause}{3}{:Head, ?Body, ?Reference}
 Equivalent to clause/2, but unifies \arg{Reference} with a unique
@@ -2921,10 +2920,10 @@ unified with \arg{Head} and \arg{Body}.
 Provides access to the clauses of a predicate using their index number.
 Counting starts at 1.  If \arg{Reference} is specified it unifies \arg{Pred}
 with the most general term with the same name/arity as the predicate and
-\arg{Index} with the index-number of the clause.  Otherwise the name and
+\arg{Index} with the index number of the clause.  Otherwise the name and
 arity of \arg{Pred} are used to determine the predicate.  If \arg{Index}
-is provided \arg{Reference} will be unified with the clause reference.
-If \arg{Index} is unbound, backtracking will yield both the indices and
+is provided, \arg{Reference} will be unified with the clause reference.
+If \arg{Index} is unbound, backtracking will yield both the indexes and
 the references of all clauses of the predicate.  The following example
 finds the 2nd clause of append/3:
 
@@ -2992,12 +2991,12 @@ well as changes to the working directory.  On the other hand, using
 the notion of current-I/O simplifies reusability of code without the
 need to pass arguments around.  E.g., see with_output_to/2.
 
-SWI-Prolog streams are, compatible to the ISO standard, either input
-or output streams.  To accomodate portability to other systems, a
+SWI-Prolog streams are, compatible with the ISO standard, either input
+or output streams.  To accommodate portability to other systems, a
 pair of streams can be packed into a \jargon{stream-pair}.  See
 stream_pair/3 for details.
 
-SWI-Prolog stream-handles are unique symbols that have no syntactical
+SWI-Prolog stream handles are unique symbols that have no syntactical
 representation. They are written as \verb$<stream>(hex-number)$, which
 is not valid input for read/1.  They are realised using a \jargon{blob}
 of type \const{stream} (see blob/2 and \secref{blob}).
@@ -3006,29 +3005,29 @@ of type \const{stream} (see blob/2 and \secref{blob}).
 \begin{description}
     \predicate[ISO]{open}{4}{+SrcDest, +Mode, -Stream, +Options}
 ISO compliant predicate to open a stream. \arg{SrcDest} is either an
-atom, specifying a file, or a term `\exam{pipe(\arg{Command})}',
+atom specifying a file, or a term `\exam{pipe(\arg{Command})}',
 like see/1 and tell/1. \arg{Mode} is one of \const{read}, \const{write},
 \const{append} or \const{update}. Mode \const{append} opens the file for
-writing, positioning the file-pointer at the end. Mode \const{update}
-opens the file for writing, positioning the file-pointer at the
+writing, positioning the file pointer at the end. Mode \const{update}
+opens the file for writing, positioning the file pointer at the
 beginning of the file without truncating the file. \arg{Stream} is
 either a variable, in which case it is bound to an integer identifying
 the stream, or an atom, in which case this atom will be the stream
 identifier.%
     \footnote{New code should use the \term{alias}{Alias}
-	      option for compatibility with the ISO standard}
+	      option for compatibility with the ISO standard.}
 The \arg{Options} list can contain the following options:
 
 \begin{description}
     \termitem{type}{Type}
-Using type \const{text} (default), Prolog will write a text-file in
-an operating-system compatible way. Using type \const{binary} the
+Using type \const{text} (default), Prolog will write a text file in
+an operating system compatible way. Using type \const{binary} the
 bytes will be read or written without any translation.  See also
 the option \const{encoding}.
 
     \termitem{alias}{Atom}
 Gives the stream a name.   Below is an example.   Be careful with this
-option as stream-names are global.  See also set_stream/2.
+option as stream names are global.  See also set_stream/2.
 
 \begin{code}
 ?- open(data, read, Fd, [alias(input)]).
@@ -3048,11 +3047,11 @@ is \const{octet}. For details on encoding issues, see \secref{encoding}.
 Check for a BOM (\jargon{Byte Order Marker}) or write
 one.  If omitted, the default is \const{true} for mode \const{read} and
 \const{false} for mode \const{write}.  See also stream_property/2 and
-especially \secref{bom} for a discussion on this feature.
+especially \secref{bom} for a discussion of this feature.
 
     \termitem{eof_action}{Action}
 Defines what happens if the end of the input stream is reached. Action
-\const{eof_code} makes get0/1 and friends return -1 and read/1 and friends
+\const{eof_code} makes get0/1 and friends return -1, and read/1 and friends
 return the atom \const{end_of_file}. Repetitive reading keeps yielding the
 same result. Action \const{error} is like \const{eof_code}, but repetitive
 reading will raise an error. With action \const{reset}, Prolog will
@@ -3068,7 +3067,7 @@ See also flush_output/[0,1]. This option is not an ISO option.
     \termitem{close_on_abort}{Bool}
 If \const{true} (default), the stream is closed on an abort (see
 abort/0). If \const{false}, the stream is not closed. If it is an output
-stream, it will be flushed however.  Useful for logfiles and if the
+stream, however, it will be flushed.  Useful for logfiles and if the
 stream is associated to a process (using the \functor{pipe}{1}
 construct).
 
@@ -3100,15 +3099,15 @@ The option \const{reposition} is not supported in SWI-Prolog.  All streams
 connected to a file may be repositioned.
 
     \predicate[ISO]{open}{3}{+SrcDest, +Mode, ?Stream}
-Equivalent to open/4 with an empty option-list.
+Equivalent to open/4 with an empty option list.
 
     \predicate{open_null_stream}{1}{?Stream}
 Open an output stream that produces no output. All counting functions
 are enabled on such a stream. It can be used to discard output (like
 Unix \file{/dev/null}) or exploit the counting properties. The initial
 encoding of \arg{Stream} is \const{utf8}, enabling arbitrary Unicode
-output. The encoding can be changed to determine byte-counts of the
-output in a particular encoding or validate output is possible in a
+output. The encoding can be changed to determine byte counts of the
+output in a particular encoding or validate if output is possible in a
 particular encoding. For example, the code below determines the number
 of characters emitted when writing \arg{Term}.
 
@@ -3131,16 +3130,16 @@ terminal is made the current input or output.
 
     \predicate[ISO]{close}{2}{+Stream, +Options}
 Provides \term{close}{Stream, [force(true)]} as the only option.  Called
-this way, any resource error (such as write-errors while flushing the
+this way, any resource errors (such as write errors while flushing the
 output buffer) are ignored.
 
     \predicate[ISO]{stream_property}{2}{?Stream, ?StreamProperty}
-ISO compatible predicate for querying status of open I/O streams.
+ISO compatible predicate for querying the status of open I/O streams.
 \arg{StreamProperty} is one of:
 
 \begin{description}
     \termitem{alias}{Atom}
-If \arg{Atom} is bound, test of the stream has the specified alias.
+If \arg{Atom} is bound, test if the stream has the specified alias.
 Otherwise unify \arg{Atom} with the first alias of the stream.%
 	\bug{Backtracking does not give other aliases.}
 
@@ -3151,15 +3150,15 @@ See also open/4.
 
     \termitem{buffer_size}{Integer}
 SWI-Prolog extension to query the size of the I/O buffer associated
-to a stream in bytes.  Fails of the stream is not buffered.
+to a stream in bytes.  Fails if the stream is not buffered.
 
     \termitem{bom}{Bool}
 If present and \const{true}, a BOM (\jargon{Byte Order Mark}) was
-detected while opening the file for reading or a BOM was written while
+detected while opening the file for reading, or a BOM was written while
 opening the stream. See \secref{bom} for details.
 
     \termitem{close_on_abort}{Bool}
-Determine whether or not the stream is closed by abort/0.  By default
+Determine whether or not abort/0 closes the stream.  By default
 streams are closed.
 
     \termitem{close_on_exec}{Bool}
@@ -3187,7 +3186,7 @@ If \arg{Stream} is associated to a file, unify \arg{Atom} to the
 name of this file.
 
     \termitem{file_no}{Integer}
-If the stream is associated with a POSIX file-descriptor, unify
+If the stream is associated with a POSIX file descriptor, unify
 \arg{Integer} with the descriptor number.  SWI-Prolog extension used
 primarily for integration with foreign code.  See also Sfileno() from
 \file{SWI-Stream.h}.
@@ -3201,7 +3200,7 @@ Values are: \const{read}, \const{write}, \const{append} and the
 SWI-Prolog extension \const{update}.
 
     \termitem{newline}{NewlineMode}
-One of \const{posix} or \const{dos}.  If \const{dos}, text-streams
+One of \const{posix} or \const{dos}.  If \const{dos}, text streams
 will emit \verb$\r\n$ for \verb$\n$ and discard \verb$\r$ from input
 streams.  Default depends on the operating system.
 
@@ -3215,8 +3214,8 @@ be bogus.  See the documentation of fstat() for your OS and the value
 True if \arg{Stream} has mode \const{write}, \const{append} or
 \const{update}.
 
-    \termitem{position}{Term}
-Unify \arg{Term} with the current stream-position. A stream-position is
+    \termitem{position}{Pos}
+Unify \arg{Pos} with the current stream position. A stream position is
 an opaque term whose fields can be extracted using
 stream_position_data/3. See also set_stream_position/2.
 
@@ -3224,14 +3223,14 @@ stream_position_data/3. See also set_stream_position/2.
 Unify \arg{Bool} with \arg{true} if the position of the stream can
 be set (see seek/4).  It is assumed the position can be set if the
 stream has a \jargon{seek-function} and is not based on a POSIX
-file-descriptor that is not associated to a regular file.
+file descriptor that is not associated to a regular file.
 
     \termitem{representation_errors}{Mode}
 Determines behaviour of character output if the stream cannot represent
 a character. For example, an ISO Latin-1 stream cannot represent
 Cyrillic characters.  The behaviour is one of \const{error} (throw
-and I/O error exception), \const{prolog} (write \verb$\...\$ escape
-code or \const{xml} (write \verb$&#...;$ XML character entity).
+an I/O error exception), \const{prolog} (write \verb$\...\$ escape
+code) or \const{xml} (write \verb$&#...;$ XML character entity).
 The initial mode is \const{prolog} for the user streams and
 \const{error} for all other streams. See also \secref{encoding}
 and set_stream/2.
@@ -3241,11 +3240,11 @@ and set_stream/2.
 set_stream/2 with the same option. If no timeout is specified,
 \arg{Time} is unified to the atom \const{infinite}.
 
-    \termitem{type}{T}
-Unify \arg{Bool} with \const{text} or \const{binary}.
+    \termitem{type}{Type}
+Unify \arg{Type} with \const{text} or \const{binary}.
 
     \termitem{tty}{Bool}
-This property is reported with \arg{Bool} equals \const{true} if
+This property is reported with \arg{Bool} equal to \const{true} if
 the stream is associated with a terminal.  See also set_stream/2.
 \end{description}
 
@@ -3253,8 +3252,8 @@ the stream is associated with a terminal.  See also set_stream/2.
 The predicate current_stream/3 is used to access the status of a
 stream as well as to generate all open streams.  \arg{Object} is the
 name of the file opened if the stream refers to an open file, an
-integer file-descriptor if the stream encapsulates an operating-system
-stream or the atom \const{[]} if the stream refers to some other object.
+integer file descriptor if the stream encapsulates an operating system
+stream, or the atom \const{[]} if the stream refers to some other object.
 \arg{Mode} is one of \const{read} or \const{write}.
 
     \predicate{is_stream}{1}{+Term}
@@ -3275,14 +3274,14 @@ Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
 a term as returned by stream_property/2 using the \term{position}{Pos}
 property.  See also seek/4.
 
-    \predicate{stream_position_data}{3}{?Field, +Position, -Data}
+    \predicate{stream_position_data}{3}{?Field, +Pos, -Data}
 Extracts information from the opaque stream position term as returned
-by stream_property/2 requesting the \term{position}{Position} property.
+by stream_property/2 requesting the \term{position}{Pos} property.
 \arg{Field} is one of \const{line_count}, \const{line_position},
 \const{char_count} or \const{byte_count}.  See also line_count/2,
 line_position/2, character_count/2 and byte_count/2.%
 	\footnote{Introduced in version 5.6.4 after extending the
-		  position term with a byte-count.  Compatible with
+		  position term with a byte count.  Compatible with
 		  SICStus Prolog.}
 
     \predicate{seek}{4}{+Stream, +Offset, +Method, -NewLocation}
@@ -3293,21 +3292,21 @@ underlying object.  \arg{NewLocation} is unified with the new offset,
 relative to the start of the stream.
 
 Positions are counted in `units'. A unit is 1 byte, except for
-text-files using 2-byte Unicode encoding (2 bytes) or \emph{wchar}
+text files using 2-byte Unicode encoding (2 bytes) or \emph{wchar}
 encoding (sizeof(wchar_t)). The latter guarantees comfortable
-interaction with wide-character text-objects. Otherwise, the use of
+interaction with wide-character text objects. Otherwise, the use of
 seek/4 on non-binary files (see open/4) is of limited use, especially
-when using multi-byte text-encodings (e.g.\ UTF-8) or multi-byte newline
-files (e.g.\ DOS/Windows). On text-files, SWI-Prolog offers reliable
+when using multi-byte text encodings (e.g.\ UTF-8) or multi-byte newline
+files (e.g.\ DOS/Windows). On text files, SWI-Prolog offers reliable
 backup to an old position using stream_property/2 and
 set_stream_position/2. Skipping $N$ character codes is achieved calling
 get_code/2 $N$ times or using copy_stream_data/3, directing the output
-to a null-stream (see open_null_stream/1). If the seek modifies the
+to a null stream (see open_null_stream/1). If the seek modifies the
 current location, the line number and character position in the line are
 set to 0.
 
 If the stream cannot be repositioned, a \const{permission_error} is
-raised. If applying the offset would result in a file-position less then
+raised. If applying the offset would result in a file position less than
 zero, a \const{domain_error} is raised. Behaviour when seeking to
 positions beyond the size of the underlying object depend on the object
 and possibly the operating system. The predicate seek/4 is compatible with
@@ -3321,9 +3320,9 @@ the stream property to set.  See also stream_property/2 and open/4.
 \begin{description}
     \termitem{alias}{AliasName}
 Set the alias of an already created stream. If \arg{AliasName} is the
-name of one of the standard streams is used, this stream is rebound.
-Thus, \exam{set_stream(S, current_input)} is the same as set_input/1 and
-by setting the alias of a stream to \const{user_input}, etc.\ all user
+name of one of the standard streams, this stream is rebound.
+Thus, \exam{set_stream(S, current_input)} is the same as set_input/1, and
+by setting the alias of a stream to \const{user_input}, etc., all user
 terminal input is read from this stream. See also interactor/0.
 
     \termitem{buffer}{Buffering}
@@ -3335,7 +3334,7 @@ Set the size of the I/O buffer of the underlying stream to \arg{Size}
 bytes.
 
     \termitem{close_on_abort}{Bool}
-Determine whether or not the stream is closed by abort/0.  By default
+Determine whether or not the stream is closed by abort/0.  By default,
 streams are closed.
 
     \termitem{close_on_exec}{Bool}
@@ -3351,12 +3350,12 @@ Set end-of-file handling to one of \const{eof_code}, \const{reset} or
 
     \termitem{file_name}{FileName}
 Set the filename associated to this stream.  This call can be used
-to set the file for error-locations if \arg{Stream} corresponds to
+to set the file for error locations if \arg{Stream} corresponds to
 \arg{FileName} and is not obtained by opening the file directly but,
 for example, through a network service.
 
     \termitem{line_position}{LinePos}
-Set the line-position attribute of the stream.  This feature is
+Set the line position attribute of the stream.  This feature is
 intended to correct position management of the stream after sending
 a terminal escape sequence (e.g., setting ANSI character attributes).
 Setting this attribute raises a permission error if the stream does
@@ -3387,7 +3386,7 @@ Set the type of the stream to one of \const{text} or \const{binary}.
 See also open/4 and the \const{encoding} property of streams.
 
     \termitem{record_position}{Bool}
-Do/do not record the line-count and line-position (see line_count/2
+Do/do not record the line count and line position (see line_count/2
 and line_position/2).
 
     \termitem{representation_errors}{Mode}
@@ -3412,19 +3411,19 @@ linked to \const{user_error}. Otherwise \arg{Error} is used for
 \const{user_error}. Output buffering for \arg{Out} is set to
 \const{line} and buffering on \arg{Error} is disabled.
 See also prolog/0 and set_stream/2.  The \emph{clib} package
-provides the library \pllib{prolog_server} creating a TCP/IP
+provides the library \pllib{prolog_server}, creating a TCP/IP
 server for creating an interactive session to Prolog.
 \end{description}
 
 \subsection{Edinburgh-style I/O}	\label{sec:edinburghIO}
 
-The package for implicit input and output destination is (almost)
+The package for implicit input and output destinations is (almost)
 compatible with Edinburgh DEC-10 and C-Prolog. The reading and writing
-predicates refer to resp. the \emph{current} input- and output stream.
+predicates refer to, resp., the \emph{current} input and output streams.
 Initially these streams are connected to the terminal. The current
 output stream is changed using tell/1 or append/1. The current input
-stream is changed using see/1. The streams current value can be obtained
-using telling/1 for output- and seeing/1 for input streams.
+stream is changed using see/1. The stream's current value can be obtained
+using telling/1 for output and seeing/1 for input.
 
 Source and destination are either a file, \const{user}, or a term
 `pipe(\arg{Command})'. The reserved stream name \const{user} refers
@@ -3478,8 +3477,8 @@ following query writes both "a" and "b" into the file `out' :
 \subsubsection*{Compatibility notes}
 
 Unlike Edinburgh Prolog systems, telling/1 and seeing/1 do not return
-the filename of the current input/output, but the stream-identifier, to
-ensure the design pattern below	works under all circumstances.%
+the filename of the current input/output but rather the stream identifier, to
+ensure the design pattern below	works under all circumstances:%
 	\footnote{Filenames can be ambiguous and SWI-Prolog streams can
 		  refer to much more than just files.}
 
@@ -3492,28 +3491,28 @@ ensure the design pattern below	works under all circumstances.%
 \end{code}
 
 The predicates tell/1 and see/1 first check for \const{user}, the
-\term{pipe}{command} and a stream-handle.  Otherwise, if the argument
+\term{pipe}{command} and a stream handle.  Otherwise, if the argument
 is an atom it is first compared to open streams associated to a file
-with \emph{exactly} the same name.  If such a stream, created using
-tell/1 or see/1 exists, output (input) is switch to the open stream.
+with \emph{exactly} the same name.  If such a stream exists, created using
+tell/1 or see/1, output (input) is switched to the open stream.
 Otherwise a file with the specified name is opened.
 
 The behaviour is compatible with Edinburgh Prolog.  This is not without
-problems. Changing directory, non-file streams, multiple names referring
+problems. Changing directory, non-file streams, and multiple names referring
 to the same file easily lead to unexpected behaviour. New code,
-especially when managing multiple I/O channels should consider using
+especially when managing multiple I/O channels, should consider using
 the ISO I/O predicates defined in \secref{isoIO}.
 
 \begin{description}
     \predicate{see}{1}{+SrcDest}
 Open \arg{SrcDest} for reading and make it the current input (see
-set_input/1). If \arg{SrcDest} is a stream-handle, just makes this
+set_input/1). If \arg{SrcDest} is a stream handle, just make this
 stream the current input. See the introduction of \secref{edinburghIO}
 for details.
 
     \predicate{tell}{1}{+SrcDest}
 Open \arg{SrcDest} for writing and make it the current output (see
-set_output/1).  If \arg{SrcDest} is a stream-handle, just makes this
+set_output/1).  If \arg{SrcDest} is a stream handle, just make this
 stream the current output. See the introduction of \secref{edinburghIO}
 for details.
 
@@ -3536,28 +3535,28 @@ with traditional Edinburgh I/O. See the introduction of
 
     \predicate{seen}{0}{}
 Close the current input stream. The new input stream becomes
-\arg{user_input}.
+\const{user_input}.
 
     \predicate{told}{0}{}
 Close the current output stream. The new output stream becomes
-\arg{user_output}.
+\const{user_output}.
 \end{description}
 
 
-\subsection{Switching Between Edinburgh and ISO I/O}
+\subsection{Switching between Edinburgh and ISO I/O}
 
-The predicates below can be used for switching between the implicit-
-and the explicit stream based I/O predicates.
+The predicates below can be used for switching between the implicit
+and the explicit stream-based I/O predicates.
 
 \begin{description}
     \predicate[ISO]{set_input}{1}{+Stream}
-Set the current input stream to become \arg{Stream}.  Thus, open(file,
-read, Stream), set_input(Stream) is equivalent to see(file).
+Set the current input stream to become \arg{Stream}.  Thus, \exam{open(file,
+read, Stream), set_input(Stream)} is equivalent to \exam{see(file)}.
     \predicate[ISO]{set_output}{1}{+Stream}
 Set the current output stream to become \arg{Stream}.  See also
 with_output_to/2.
     \predicate[ISO]{current_input}{1}{-Stream}
-Get the current input stream.  Useful to get access to the status
+Get the current input stream.  Useful for getting access to the status
 predicates associated with streams.
     \predicate[ISO]{current_output}{1}{-Stream}
 Get the current output stream.
@@ -3569,17 +3568,17 @@ Get the current output stream.
 \begin{description}
     \predicate{with_output_to}{2}{+Output, :Goal}
 Run \arg{Goal} as once/1, while characters written to the current output
-is sent to \arg{Output}. The predicate is SWI-Prolog specific, inspired
+are sent to \arg{Output}. The predicate is SWI-Prolog-specific, inspired
 by various posts to the mailinglist. It provides a flexible replacement
 for predicates such as \nopredref{sformat}{3}, swritef/3,
 term_to_atom/2, atom_number/2 converting numbers to atoms, etc. The
 predicate format/3 accepts the same terms as output argument.
 
 Applications should generally avoid creating atoms by breaking and
-concatenating other atoms as the creation of large numbers of
+concatenating other atoms, as the creation of large numbers of
 intermediate atoms generally leads to poor performance, even more so in
 multi-threaded applications.  This predicate supports creating
-difference-lists from character data efficiently.  The example below
+difference lists from character data efficiently.  The example below
 defines the DCG rule term//1 to insert a term in the output:
 
 \begin{code}
@@ -3594,7 +3593,7 @@ X = [104, 101, 108, 108, 111]
 
 \begin{description}
     \definition{A Stream handle or alias}
-Temporary switch current output to the given stream.  Redirection using
+Temporarily switch current output to the given stream.  Redirection using
 with_output_to/2 guarantees the original output is restored, also if
 \arg{Goal} fails or raises an exception.  See also call_cleanup/2.
 
@@ -3603,21 +3602,21 @@ Create an atom from the emitted characters. Please note the remark
 above.
 
     \termitem{string}{-String}
-Create a string-object as defined in \secref{strings}.
+Create a string object as defined in \secref{strings}.
 
     \termitem{codes}{-Codes}
 Create a list of character codes from the emitted characters, similar to
 atom_codes/2.
 
     \termitem{codes}{-Codes, -Tail}
-Create a list of character codes as a difference-list.
+Create a list of character codes as a difference list.
 
     \termitem{chars}{-Chars}
-Create a list of one-character-atoms codes from the emitted characters,
+Create a list of one-character atoms from the emitted characters,
 similar to atom_chars/2.
 
     \termitem{chars}{-Chars, -Tail}
-Create a list of one-character-atoms as a difference-list.
+Create a list of one-character atoms as a difference list.
 \end{description}
 \end{description}
 
@@ -3634,9 +3633,9 @@ second. If \arg{Timeout} equals \const{infinite}, wait_for_input/3
 waits indefinitely.%
 	\footnote{For compatibility reasons, a \arg{Timeout} value of 0
 		  (integer) also waits indefinitely.  To call select()
-		  without giving up the CPU pass the float 0.0.  If
+		  without giving up the CPU, pass the float 0.0.  If
 		  compatibility with versions older than 5.1.3 is
-		  desired pass the float value 1.0e-7.}
+		  desired, pass the float value 1.0e-7.}
 
 This predicate can be used to implement timeout while reading and to
 handle input from multiple sources. The following example will wait for
@@ -3650,7 +3649,7 @@ input from the user and an explicitly opened second terminal. On return,
 
 \index{select()}%
 This predicate relies on the select() call on most operating systems. On
-Unix this call is implemented for any stream referring to a file-handle,
+Unix this call is implemented for any stream referring to a file handle,
 which implies all OS-based streams: sockets, terminals, pipes, etc.  On
 non-Unix systems select() is generally only implemented for socket-based
 streams.  See also \pllib{socket} from the \const{clib} package.
@@ -3659,8 +3658,8 @@ Note that wait_for_input/3 returns streams that have data waiting. This
 does not mean you can, for example, call read/2 on the stream without
 blocking as the stream might hold an incomplete term. The predicate
 set_stream/2 using the option \term{timeout}{Seconds} can be used to
-make the stream generate an exception if no new data arrives for within
-the timeout.  Suppose two processes communicate by exchanging Prolog
+make the stream generate an exception if no new data arrives within
+the timeout period.  Suppose two processes communicate by exchanging Prolog
 terms.  The following code makes the server immune for clients that
 write an incomplete term:
 
@@ -3674,14 +3673,14 @@ write an incomplete term:
 \end{code}
 
     \predicate{byte_count}{2}{+Stream, -Count}
-Byte-position in \arg{Stream}.  For binary streams this is the same
+Byte position in \arg{Stream}.  For binary streams this is the same
 as character_count/2.  For text files the number may be different due
 to multi-byte encodings or additional record separators (such as
 Control-M in Windows).
 
     \predicate{character_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the current character index.  For input streams
-this is the number of characters read since the open, for output
+this is the number of characters read since the open; for output
 streams this is the number of characters written. Counting starts at 0.
 
     \predicate{line_count}{2}{+Stream, -Count}
@@ -3691,7 +3690,7 @@ starts at 1.
     \predicate{line_position}{2}{+Stream, -Count}
 Unify \arg{Count} with the position on the current line. Note that this
 assumes the position is 0 after the open.  Tabs are assumed to be
-defined on each 8-th character and backspaces are assumed to reduce the
+defined on each 8-th character, and backspaces are assumed to reduce the
 count by one, provided it is positive.
 \end{description}
 
@@ -3710,8 +3709,8 @@ nl/0 is equivalent to \exam{put(10)}.
 Write a newline to \arg{Stream}.
 
     \predicate{put}{1}{+Char}
-Write \arg{Char} to the current output stream, \arg{Char} is either an
-integer-expression evaluating to a character code or an atom of one
+Write \arg{Char} to the current output stream. \arg{Char} is either an
+integer expression evaluating to a character code or an atom of one
 character.  Deprecated.  New code should use put_char/1 or put_code/1.
 
     \predicate{put}{2}{+Stream, +Char}
@@ -3722,13 +3721,13 @@ Write a single byte to the output.  \arg{Byte} must be an integer
 between 0 and 255.
 
     \predicate[ISO]{put_byte}{2}{+Stream, +Byte}
-Write a single byte to a stream. \arg{Byte} must be an integer
+Write a single byte to \arg{Stream}. \arg{Byte} must be an integer
 between 0 and 255.
 
     \predicate[ISO]{put_char}{1}{+Char}
 Write a character to the current output, obeying the encoding defined
 for the current output stream. Note that this may raise an exception if
-the encoding of \arg{Stream} cannot represent \arg{Char}.
+the encoding of the output stream cannot represent \arg{Char}.
 
     \predicate[ISO]{put_char}{2}{+Stream, +Char}
 Write a character to \arg{Stream}, obeying the encoding defined for
@@ -3738,18 +3737,18 @@ encoding of \arg{Stream} cannot represent \arg{Char}.
     \predicate[ISO]{put_code}{1}{+Code}
 Similar to put_char/1, but using a \jargon{character code}.  \arg{Code}
 is a non-negative integer.  Note that this may raise an exception if the
-encoding of \arg{Stream} cannot represent \arg{Code}.
+encoding of the output stream cannot represent \arg{Code}.
 
     \predicate[ISO]{put_code}{2}{+Stream, +Code}
 Same as put_code/1 but directing \arg{Code} to \arg{Stream}.
 
     \predicate{tab}{1}{+Amount}
-Writes \arg{Amount} spaces on the current output stream.  \arg{Amount}
+Write \arg{Amount} spaces on the current output stream.  \arg{Amount}
 should be an expression that evaluates to a positive integer (see
 \secref{arith}).
 
     \predicate{tab}{2}{+Stream, +Amount}
-Writes \arg{Amount} spaces to \arg{Stream}.
+Write \arg{Amount} spaces to \arg{Stream}.
 
     \predicate[ISO]{flush_output}{0}{}
 Flush pending output on current output stream. flush_output/0 is
@@ -3761,14 +3760,14 @@ Flush output on the specified stream.  The stream must be open for
 writing.
 
     \predicate{ttyflush}{0}{}
-Flush pending output on stream \arg{user}. See also flush_output/[0,1].
+Flush pending output on stream \const{user}. See also flush_output/[0,1].
     \predicate[ISO]{get_byte}{1}{-Byte}
 Read the current input stream and unify the next byte with \arg{Byte}
-(an integer between 0 and 255. \arg{Byte} is unified with -1 on end of
+(an integer between 0 and 255). \arg{Byte} is unified with -1 on end of
 file.
 
     \predicate[ISO]{get_byte}{2}{+Stream, -Byte}
-Read the next byte from \arg{Stream}, returning an integer between
+Read the next byte from \arg{Stream} and unify \arg{Byte} with an integer between
 0 and 255.
 
     \predicate[ISO]{get_code}{1}{-Code}
@@ -3777,22 +3776,22 @@ code of the next character. \arg{Code} is unified with -1 on end of
 file.  See also get_char/1.
 
     \predicate[ISO]{get_code}{2}{+Stream, -Code}
-Read the next character-code from \arg{Stream}.
+Read the next character code from \arg{Stream}.
 
     \predicate[ISO]{get_char}{1}{-Char}
 Read the current input stream and unify \arg{Char} with the next
-character as a one-character-atom.  See also atom_chars/2.
+character as a one-character atom.  See also atom_chars/2.
 On end-of-file, \arg{Char} is unified to the atom \const{end_of_file}.
 
     \predicate[ISO]{get_char}{2}{+Stream, -Char}
 Unify \arg{Char} with the next character from \arg{Stream} as a
-one-character-atom.  See also get_char/2, get_byte/2 and get_code/2.
+one-character atom.  See also get_char/2, get_byte/2 and get_code/2.
 
     \predicate[deprecated]{get0}{1}{-Char}
 Edinburgh version of the ISO get_code/1 predicate. Note that Edinburgh
-prolog didn't support wide characters and therefore technically speaking
-get0/1 should have been mapped to get_byte/1.  The intention of get0/1
-however is to read character codes.
+Prolog didn't support wide characters and therefore technically speaking
+get0/1 should have been mapped to get_byte/1.  The intention of get0/1,
+however, is to read character codes.
 
     \predicate[deprecated]{get0}{2}{+Stream, -Char}
 Edinburgh version of the ISO get_code/2 predicate.  See also get0/1.
@@ -3820,12 +3819,12 @@ get/1, get0/1 and get0/2.
 Read the next byte/code/char from the input without removing it.
 These predicates do not modify the stream's position or end-of-file
 status. These predicates require a buffered stream (see set_stream/2)
-and raise a permission_error if the stream is unbuffered or the buffer
-is too small to hold the longest multibyte sequence that might need to
+and raise a permission error if the stream is unbuffered or the buffer
+is too small to hold the longest multi-byte sequence that might need to
 be buffered.
 
     \predicate{skip}{1}{+Code}
-Read the input until \arg{Char} or the end of the file is encountered.
+Read the input until \arg{Code} or the end of the file is encountered.
 A subsequent call to get_code/1 will read the first character after
 \arg{Code}.
 
@@ -3834,9 +3833,9 @@ Skip input (as skip/1) on \arg{Stream}.
 
     \predicate{get_single_char}{1}{-Code}
 Get a single character from input stream `user' (regardless of the
-current input stream). Unlike get_code/1 this predicate does not
+current input stream). Unlike get_code/1, this predicate does not
 wait for a return. The character is not echoed to the user's terminal.
-This predicate is meant for keyboard menu selection etc. If SWI-Prolog
+This predicate is meant for keyboard menu selection, etc. If SWI-Prolog
 was started with the \cmdlineoption{-tty} option this predicate reads an
 entire line of input and returns the first non-blank character on this
 line, or the character code of the newline (10) if the entire line
@@ -3849,34 +3848,34 @@ been read.  Also succeeds if there is no valid current input stream.
     \predicate[ISO]{at_end_of_stream}{1}{+Stream}
 Succeeds after the last character of the named stream is read, or
 \arg{Stream} is not a valid input stream.  The end-of-stream test
-is only available on buffered input stream (unbuffered input streams
-are rarely used, see open/4).
+is only available on buffered input streams (unbuffered input streams
+are rarely used; see open/4).
 
     \predicate{set_end_of_stream}{1}{+Stream}
-Sets the size of the file opened as \arg{Stream} to the current
-file-position.  This is typically used in combination with the
+Set the size of the file opened as \arg{Stream} to the current
+file position.  This is typically used in combination with the
 open-mode \const{update}.
 
     \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
-Copy \arg{Len} codes from stream \arg{StreamIn} to \arg{StreamOut}.
+Copy \arg{Len} codes from \arg{StreamIn} to \arg{StreamOut}.
 Note that the copy is done using the semantics of get_code/2 and
-put_code/2, taking care of possibly recoding that needs take place
+put_code/2, taking care of possibly recoding that needs to take place
 between two text files.  See \secref{encoding}.
 
     \predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}
-Copy data all (remaining) data from stream \arg{StreamIn} to
+Copy all (remaining) data from \arg{StreamIn} to
 \arg{StreamOut}.
 
     \predicate{read_pending_input}{3}{+StreamIn, -Codes, ?Tail}
 Read input pending in the input buffer of \arg{StreamIn} and return
-it in the difference list \arg{Codes}-\arg{Tail}. I.e.\ the
+it in the difference list \arg{Codes}-\arg{Tail}. That is, the
 available characters codes are used to create the list \arg{Codes}
 ending in the tail \arg{Tail}.  This predicate is intended for
 efficient unbuffered copying and filtering of input coming from
 network connections or devices.
 
-The following code fragment realises efficient non-blocking copy of data
-from an input- to an output stream. The at_end_of_stream/1 call checks
+The following code fragment realises efficient non-blocking copying of data
+from an input to an output stream. The at_end_of_stream/1 call checks
 for end-of-stream and fills the input buffer.  Note that the use of
 a get_code/2 and put_code/2 based loop requires a flush_output/1 call
 after \emph{each} put_code/2.  The copy_stream_data/2 does not allow
@@ -4152,7 +4151,7 @@ See the Prolog flags \prologflag{character_escapes}, current_prolog_flag/2.
 
     \termitem{comments}{-Comments}
 Unify \arg{Comments} with a list of \arg{Position}-\arg{Comment}, where
-\arg{Position} is a stream-position object (see stream_position_data/3)
+\arg{Position} is a stream position object (see stream_position_data/3)
 indicating the start of a comment and \arg{Comment} is a string-object
 containing the text including delimiters of a comment.  It returns all
 comments from where the read_term/2 call started up to the end of the
@@ -5689,7 +5688,7 @@ operator (\op{^}), except that bagof/3 fails when goal has no
 solutions.
 
     \predicate{findall}{4}{+Template, :Goal, -Bag, +Tail}
-As findall/3, but returns the result as the difference-list
+As findall/3, but returns the result as the difference list
 \arg{Bag}-\arg{Tail}.   The 3-argument version is defined as
 
 \begin{code}
