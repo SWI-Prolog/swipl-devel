@@ -400,22 +400,22 @@ colourise_clause_head(Head, TB, Pos) :-
 	->  classify_head(TB, Head, Class)
 	;   Class = ClassSpec
 	),
-	colour_item(head(Class), TB, FPos),
+	colour_item(head(Class, Head), TB, FPos),
 	specified_items(ArgSpecs, Head, TB, ArgPos).
 colourise_clause_head(Head, TB, Pos) :-
 	functor_position(Pos, FPos, _),
 	classify_head(TB, Head, Class),
-	colour_item(head(Class), TB, FPos),
+	colour_item(head(Class, Head), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
-%	colourise_extern_head(+Head, +Module, +TB, +Pos)
+%%	colourise_extern_head(+Head, +Module, +TB, +Pos)
 %
 %	Colourise the head specified as Module:Head. Normally used for
 %	adding clauses to multifile predicates in other modules.
 
 colourise_extern_head(Head, M, TB, Pos) :-
 	functor_position(Pos, FPos, _),
-	colour_item(head(extern(M)), TB, FPos),
+	colour_item(head(extern(M), Head), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
 colour_method_head(SGHead, TB, Pos) :-
@@ -1219,21 +1219,22 @@ def_style(goal(constraint(_),_),   [colour(darkcyan)]).
 def_style(option_name,		   [colour('#3434ba')]).
 def_style(no_option_name,	   [colour(red)]).
 
-def_style(head(exported),	   [colour(blue), bold(true)]).
-def_style(head(public(_)),	   [colour('#016300'), bold(true)]).
-def_style(head(extern(_)),	   [colour(blue), bold(true)]).
-def_style(head(dynamic),	   [colour(magenta), bold(true)]).
-def_style(head(multifile),	   [colour(navy_blue), bold(true)]).
-def_style(head(unreferenced),	   [colour(red), bold(true)]).
-def_style(head(hook),		   [colour(blue), underline(true)]).
-def_style(head(meta),		   []).
-def_style(head(constraint(_)),	   [colour(darkcyan), bold(true)]).
-def_style(head(imported(_)),	   [colour(darkgoldenrod4), bold(true)]).
-def_style(head(built_in),	   [background(orange), bold(true)]).
-def_style(head(iso),		   [background(orange), bold(true)]).
-def_style(head(def_iso),	   [colour(blue), bold(true)]).
-def_style(head(def_swi),	   [colour(blue), bold(true)]).
-def_style(head(_),		   [bold(true)]).
+def_style(head(exported,_),	   [colour(blue), bold(true)]).
+def_style(head(public(_),_),	   [colour('#016300'), bold(true)]).
+def_style(head(extern(_),_),	   [colour(blue), bold(true)]).
+def_style(head(dynamic,_),	   [colour(magenta), bold(true)]).
+def_style(head(multifile,_),	   [colour(navy_blue), bold(true)]).
+def_style(head(unreferenced,_),	   [colour(red), bold(true)]).
+def_style(head(hook,_),		   [colour(blue), underline(true)]).
+def_style(head(meta,_),		   []).
+def_style(head(constraint(_),_),   [colour(darkcyan), bold(true)]).
+def_style(head(imported(_),_),	   [colour(darkgoldenrod4), bold(true)]).
+def_style(head(built_in,_),	   [background(orange), bold(true)]).
+def_style(head(iso,_),		   [background(orange), bold(true)]).
+def_style(head(def_iso,_),	   [colour(blue), bold(true)]).
+def_style(head(def_swi,_),	   [colour(blue), bold(true)]).
+def_style(head(_,_),		   [bold(true)]).
+
 def_style(module(_),		   [colour(dark_slate_blue)]).
 def_style(comment,		   [colour(dark_green)]).
 
