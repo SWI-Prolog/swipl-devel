@@ -69,33 +69,55 @@ attempt to call the Prolog defined trace interceptor.
 	'$iso'(:),
 	'$hide'(:).
 
-dynamic(Spec)		 :- '$set_pattr'(Spec, (dynamic)).
-multifile(Spec)		 :- '$set_pattr'(Spec, (multifile)).
-module_transparent(Spec) :- '$set_pattr'(Spec, transparent).
-discontiguous(Spec)	 :- '$set_pattr'(Spec, (discontiguous)).
-volatile(Spec)		 :- '$set_pattr'(Spec, (volatile)).
-thread_local(Spec)	 :- '$set_pattr'(Spec, (thread_local)).
-noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
-public(Spec)		 :- '$set_pattr'(Spec, (public)).
-'$iso'(Spec)		 :- '$set_pattr'(Spec, (iso)).
+dynamic(Spec)		 :- '$set_pattr'(Spec, pred, (dynamic)).
+multifile(Spec)		 :- '$set_pattr'(Spec, pred, (multifile)).
+module_transparent(Spec) :- '$set_pattr'(Spec, pred, transparent).
+discontiguous(Spec)	 :- '$set_pattr'(Spec, pred, (discontiguous)).
+volatile(Spec)		 :- '$set_pattr'(Spec, pred, (volatile)).
+thread_local(Spec)	 :- '$set_pattr'(Spec, pred, (thread_local)).
+noprofile(Spec)		 :- '$set_pattr'(Spec, pred, (noprofile)).
+public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
+'$iso'(Spec)		 :- '$set_pattr'(Spec, pred, (iso)).
 
-'$set_pattr'(M:Pred, Attr) :-
-	'$set_pattr'(Pred, M, Attr).
+'$set_pattr'(M:Pred, How, Attr) :-
+	'$set_pattr'(Pred, M, How, Attr).
 
-'$set_pattr'(X, _, _) :-
+'$set_pattr'(X, _, _, _) :-
 	var(X),
 	throw(error(instantiation_error, _)).
-'$set_pattr'([], _, _) :- !.
-'$set_pattr'([H|T], M, Attr) :- !,		% ISO
-	'$set_pattr'(H, M, Attr),
-	'$set_pattr'(T, M, Attr).
-'$set_pattr'((A,B), M, Attr) :- !,		% ISO and traditional
-	'$set_pattr'(A, M, Attr),
-	'$set_pattr'(B, M, Attr).
-'$set_pattr'(M:T, _, Attr) :- !,
-	'$set_pattr'(T, M, Attr).
-'$set_pattr'(A, M, Attr) :-
+'$set_pattr'([], _, _, _) :- !.
+'$set_pattr'([H|T], M, How, Attr) :- !,		% ISO
+	'$set_pattr'(H, M, How, Attr),
+	'$set_pattr'(T, M, How, Attr).
+'$set_pattr'((A,B), M, How, Attr) :- !,		% ISO and traditional
+	'$set_pattr'(A, M, How, Attr),
+	'$set_pattr'(B, M, How, Attr).
+'$set_pattr'(M:T, _, How, Attr) :- !,
+	'$set_pattr'(T, M, How, Attr).
+'$set_pattr'(A, M, pred, Attr) :- !,
 	'$set_predicate_attribute'(M:A, Attr, 1).
+'$set_pattr'(A, M, directive, Attr) :- !,
+	catch('$set_predicate_attribute'(M:A, Attr, 1),
+	      error(E, _),
+	      print_message(error, error(E, context((Attr)/1,_)))).
+
+'$pattr_directive'(dynamic(Spec), M) :-
+	'$set_pattr'(Spec, M, directive, (dynamic)).
+'$pattr_directive'(multifile(Spec), M) :-
+	'$set_pattr'(Spec, M, directive, (multifile)).
+'$pattr_directive'(module_transparent(Spec), M) :-
+	'$set_pattr'(Spec, M, directive, (transparent)).
+'$pattr_directive'(discontiguous(Spec), M) :-
+	'$set_pattr'(Spec, M, directive, (discontiguous)).
+'$pattr_directive'(volatile(Spec), M) :-
+	'$set_pattr'(Spec, M, directive, (volatile)).
+'$pattr_directive'(thread_local(Spec), M) :-
+	'$set_pattr'(Spec, M, directive, (thread_local)).
+'$pattr_directive'(noprofile(Spec), M) :-
+	'$set_pattr'(Spec, M, directive, (noprofile)).
+'$pattr_directive'(public(Spec), M) :-
+	'$set_pattr'(Spec, M, directive, (public)).
+
 
 %%	'$hide'(:PI)
 %
@@ -2287,7 +2309,9 @@ load_files(Module:Files, Options) :-
 
 '$execute_directive_3'(Goal) :-
 	'$set_source_module'(Module, Module),
-	(   catch(Module:Goal, Term, '$exception_in_directive'(Term))
+	(   '$pattr_directive'(Goal, Module)
+	->  true
+	;   catch(Module:Goal, Term, '$exception_in_directive'(Term))
 	->  true
 	;   print_message(warning, goal_failed(directive, Module:Goal)),
 	    fail
