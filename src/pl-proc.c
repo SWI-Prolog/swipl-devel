@@ -2812,11 +2812,14 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
   Definition def = proc->definition;
 
   if ( true(def, FOREIGN) )
-  { abolishProcedure(proc, def->module);
+  {			/* first call printMessage() */
+			/* so we can provide info about the old definition */
     printMessage(ATOM_warning,
 		 PL_FUNCTOR_CHARS, "redefined_procedure", 2,
 		   PL_CHARS, "foreign",
 		   _PL_PREDICATE_INDICATOR, proc);
+			/* ... then abolish */
+    abolishProcedure(proc, def->module);
   }
 
   if ( false(def, MULTIFILE) )
@@ -2835,8 +2838,6 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
     { if ( true(def, P_THREAD_LOCAL) )
 	return PL_error(NULL, 0, NULL, ERR_MODIFY_THREAD_LOCAL_PROC, proc);
 
-      abolishProcedure(proc, def->module);
-
       if ( def->references )
       { printMessage(ATOM_informational,
 		     PL_FUNCTOR_CHARS, "redefined_procedure", 2,
@@ -2848,6 +2849,8 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 		       PL_CHARS, "static",
 		       _PL_PREDICATE_INDICATOR, proc);
       }
+			/* again, _after_ the printMessage() */
+      abolishProcedure(proc, def->module);
     }
   }
 

@@ -136,6 +136,9 @@ iso_message(permission_error(Action, built_in_procedure, Pred)) -->
 	).
 iso_message(permission_error(import_into(Dest), procedure, Pred)) -->
 	[ 'No permission to import ~p into ~w'-[Pred, Dest] ].
+iso_message(permission_error(Action, static_procedure, Proc)) -->
+	[ 'No permission to ~w static procedure `~p'''-[Action, Proc] ],
+	defined_definition('Defined', Proc).
 iso_message(permission_error(Action, Type, Object)) -->
 	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
 iso_message(evaluation_error(Which)) -->
@@ -433,7 +436,8 @@ prolog_message(cannot_redefine_comma) -->
 prolog_message(illegal_autoload_index(Dir, Term)) -->
 	[ 'Illegal term in INDEX file of directory ~w: ~w'-[Dir, Term] ].
 prolog_message(redefined_procedure(Type, Proc)) -->
-	[ 'Redefined ~w procedure ~p'-[Type, Proc] ].
+	[ 'Redefined ~w procedure ~p'-[Type, Proc] ],
+	defined_definition('Previously defined', Proc).
 prolog_message(declare_module(Module, abolish(Predicates))) -->
 	[ 'Loading module ~w abolished: ~p'-[Module, Predicates] ].
 prolog_message(import_private(Module, Private)) -->
@@ -498,6 +502,15 @@ prolog_message(redefine_module_reply) -->
 prolog_message(reloaded_in_module(Absolute, OldContext, LM)) -->
 	[ '~w was previously loaded in module ~w'-[Absolute, OldContext], nl,
 	  '\tnow it is reloaded into module ~w'-[LM] ].
+
+defined_definition(Message, Spec) -->
+	{ strip_module(user:Spec, M, Name/Arity),
+	  functor(Head, Name, Arity),
+	  predicate_property(M:Head, file(File)),
+	  predicate_property(M:Head, line_count(Line))
+	}, !,
+	[ nl, '~w at ~w:~d'-[Message, File,Line] ].
+defined_definition(_, _) --> [].
 
 used_search([]) -->
 	[].
