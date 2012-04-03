@@ -69,19 +69,6 @@ attempt to call the Prolog defined trace interceptor.
 	'$iso'(:),
 	'$hide'(:).
 
-'$set_pattr'(_:X, _) :-
-	var(X),
-	throw(error(instantiation_error, _)).
-'$set_pattr'(_:[], _) :- !.
-'$set_pattr'(M:[H|T], Attr) :- !,		% ISO
-	'$set_pattr'(M:H, Attr),
-	'$set_pattr'(M:T, Attr).
-'$set_pattr'(M:(A,B), Attr) :- !,		% ISO and traditional
-	'$set_pattr'(M:A, Attr),
-	'$set_pattr'(M:B, Attr).
-'$set_pattr'(A, Attr) :-
-	'$set_predicate_attribute'(A, Attr, 1).
-
 dynamic(Spec)		 :- '$set_pattr'(Spec, (dynamic)).
 multifile(Spec)		 :- '$set_pattr'(Spec, (multifile)).
 module_transparent(Spec) :- '$set_pattr'(Spec, transparent).
@@ -91,6 +78,24 @@ thread_local(Spec)	 :- '$set_pattr'(Spec, (thread_local)).
 noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 public(Spec)		 :- '$set_pattr'(Spec, (public)).
 '$iso'(Spec)		 :- '$set_pattr'(Spec, (iso)).
+
+'$set_pattr'(M:Pred, Attr) :-
+	'$set_pattr'(Pred, M, Attr).
+
+'$set_pattr'(X, _, _) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+'$set_pattr'([], _, _) :- !.
+'$set_pattr'([H|T], M, Attr) :- !,		% ISO
+	'$set_pattr'(H, M, Attr),
+	'$set_pattr'(T, M, Attr).
+'$set_pattr'((A,B), M, Attr) :- !,		% ISO and traditional
+	'$set_pattr'(A, M, Attr),
+	'$set_pattr'(B, M, Attr).
+'$set_pattr'(M:T, _, Attr) :- !,
+	'$set_pattr'(T, M, Attr).
+'$set_pattr'(A, M, Attr) :-
+	'$set_predicate_attribute'(M:A, Attr, 1).
 
 %%	'$hide'(:PI)
 %
