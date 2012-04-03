@@ -1023,10 +1023,10 @@ body_compiled((_*->_)).
 body_compiled((_;_)).
 body_compiled(\+_).
 
-%	goal_classification(+TB, +Goal, +Origin, -Class)
+%%	goal_classification(+TB, +Goal, +Origin, -Class)
 %
 %	Classify Goal appearing in TB and called from a clause with head
-%	Origin.  For directives Origin is [].
+%	Origin.  For directives, Origin is [].
 
 goal_classification(_, Goal, _, meta) :-
 	var(Goal), !.
@@ -1038,6 +1038,11 @@ goal_classification(TB, Goal, _, How) :-
 	colour_state_source_id(TB, SourceId),
 	xref_defined(SourceId, Goal, How),
 	How \= public(_), !.
+goal_classification(TB, Goal, _, How) :-
+	colour_state_module(TB, Module),
+	atom(Module),
+	predicate_property(Module:Goal, imported_from(From)), !,
+	How = imported(From).
 goal_classification(_TB, Goal, _, Class) :-
 	goal_classification(Goal, Class), !.
 goal_classification(_TB, _Goal, _, undefined).
