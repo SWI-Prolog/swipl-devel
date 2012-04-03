@@ -1008,7 +1008,7 @@ compiling :-
 	setup_call_cleanup(
 	    '$open_source'(stream(Id, In), In, State, Parents, Options),
 	    '$term_in_file'(In, Read, Term, Stream,
-			    [stream(Id)|Parents], Options),
+			    [Id|Parents], Options),
 	    '$close_source'(State, true)).
 '$source_term'(File, Read, Term, Stream, Parents, Options) :-
 	absolute_file_name(File, Path,
