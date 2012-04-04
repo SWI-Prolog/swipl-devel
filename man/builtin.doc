@@ -1537,6 +1537,7 @@ undone.\footnote{This predicate is often named subsumes_chk/2 in older
 Prolog dialects. The current name was established in the ISO WG17
 meeting in Edinburgh (2010). The \texttt{chk} postfix was
 considered to refer to determinism as in e.g., memberchk/2.}
+This predicate respects constraints.
 
     \predicate{term_subsumer}{3}{+Special1, +Special2, -General}
 \arg{General} is the most specific term that is a generalisation of
