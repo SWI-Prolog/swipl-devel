@@ -56,7 +56,7 @@ undefined predicates than list_undefined/0:
 	multifile_predicate/3.		% Name, Arity, Module
 
 :- predicate_options(prolog_walk_code/1, 1,
-		     [ undefined(oneof([ignore,error])),
+		     [ undefined(oneof([ignore,error,trace])),
 		       autoload(boolean),
 		       source(boolean),
 		       trace_reference(any),
@@ -64,7 +64,7 @@ undefined predicates than list_undefined/0:
 		     ]).
 
 :- record
-	walk_option(undefined:oneof([ignore,error])=ignore,
+	walk_option(undefined:oneof([ignore,error,trace])=ignore,
 		    autoload:boolean=true,
 		    source:boolean=true,
 		    module:atom,		% Only analyse given module
@@ -389,12 +389,15 @@ evaluate(A=B, _) :-
 %	The analysis trapped a definitely undefined predicate.
 
 undefined(_, _, OTerm) :-
-	walk_option_undefined(OTerm, Undefined),
-	Undefined == ignore, !.
+	walk_option_undefined(OTerm, ignore), !.
 undefined(Goal, _, _) :-
 	predicate_property(Goal, autoload(_)), !.
 undefined(Goal, TermPos, OTerm) :-
-	print_reference(Goal, TermPos, undefined, OTerm).
+	(   walk_option_undefined(OTerm, trace)
+	->  Why = trace
+	;   Why = undefined
+	),
+	print_reference(Goal, TermPos, Why, OTerm).
 
 %%	print_reference(+Goal, +TermPos, +Why, +OTerm)
 %
