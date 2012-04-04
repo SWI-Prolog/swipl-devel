@@ -59,14 +59,16 @@ undefined predicates than list_undefined/0:
 		     [ undefined(oneof([ignore,error])),
 		       autoload(boolean),
 		       source(boolean),
-		       trace_reference(any)
+		       trace_reference(any),
+		       on_trace(callable)
 		     ]).
 
 :- record
-	walk_option(undefined:oneof([ignore,error])=error,
+	walk_option(undefined:oneof([ignore,error])=ignore,
 		    autoload:boolean=true,
 		    source:boolean=true,
 		    trace_reference:any=(-),
+		    on_trace:callable,		% Call-back on trace hits
 						% private stuff
 		    clause,			% Processed clause
 		    initialization,		% Initialization source
@@ -101,18 +103,31 @@ undefined predicates than list_undefined/0:
 %	  represented as Module:Callable (i.e., they are always
 %	  qualified).
 %
+%	  * on_trace(:Callable)
+%	  If a reference to =trace_reference= is found, call
+%	  call(Callable, From-Goal), where From is one of
+%
+%	    - clause_char_count(+ClauseRef, +CharOffsetInFile)
+%	    - clause(+ClauseRef)
+%	    - file(+File, +Line, -1, _)
+%	    - a variable (unknown)
+%
 %	  * source(+Boolean)
 %	  If =false= (default =true=), to not try to obtain detailed
 %	  source information for printed messages.
 
 prolog_walk_code(Options) :-
-	make_walk_option(Options, OTerm, _),
+	meta_options(is_meta, Options, QOptions),
+	make_walk_option(QOptions, OTerm, _),
 	forall(( current_module(M),
 		 scan_module(M, OTerm)
 	       ),
 	       find_walk_from_module(M, OTerm)),
 	walk_from_multifile(OTerm),
 	walk_from_initialization(OTerm).
+
+is_meta(on_trace).
+
 
 scan_module(M, _) :-
 	module_property(M, class(Class)),
@@ -361,28 +376,38 @@ undefined(Goal, _, _) :-
 undefined(Goal, TermPos, OTerm) :-
 	print_reference(Goal, TermPos, undefined, OTerm).
 
+%%	print_reference(+Goal, +TermPos, +Why, +OTerm)
+%
+%	Print a reference to Goal, found at TermPos.
+%
+%	@param Why is one of =trace= or =undefined=
+
 print_reference(Goal, TermPos, Why, OTerm) :-
 	walk_option_clause(OTerm, Clause), nonvar(Clause), !,
 	(   compound(TermPos),
 	    arg(1, TermPos, CharCount),
 	    integer(CharCount)
-	->  clause_property(Clause, file(File)),
-	    make_message(Why, Goal, file_char_count(File, CharCount),
-			 Message, Level),
-	    print_message(Level, Message)
+	->  From = clause_char_count(Clause, CharCount)
 	;   walk_option_source(OTerm, false)
-	->  make_message(Why, Goal, clause(Clause), Message, Level),
-	    print_message(Level, Message)
+	->  From = clause(Clause)
 	;   throw(missing(subterm_positions))
-	).
+	),
+	print_reference2(Goal, From, Why, OTerm).
 print_reference(Goal, _, Why, OTerm) :-
 	walk_option_initialization(OTerm, Init), nonvar(Init),
 	Init = File:Line, !,
-	make_message(Why, Goal, file(File, Line, -1, _), Message, Level),
+	print_reference2(Goal, file(File, Line, -1, _), Why, OTerm).
+print_reference(Goal, _, Why, OTerm) :-
+	print_reference2(Goal, _, Why, OTerm).
+
+print_reference2(Goal, From, trace, OTerm) :-
+	walk_option_on_trace(OTerm, Closure),
+	nonvar(Closure),
+	call(Closure, From-Goal), !.
+print_reference2(Goal, From, Why, _OTerm) :-
+	make_message(Why, Goal, From, Message, Level),
 	print_message(Level, Message).
-print_reference(Goal, _, Why, _) :-
-	make_message(Why, Goal, _, Message, Level),
-	print_message(Level, Message).
+
 
 make_message(undefined, Goal, Context,
 	     error(existence_error(procedure, PI), Context), error) :-
@@ -521,8 +546,10 @@ prolog:message(trace_call_to(PI, Context)) -->
 	[ 'Call to ~q at '-[PI] ],
 	prolog:message_location(Context).
 
-prolog:message_location(file_char_count(File, CharCount)) -->
-	{ filepos_line(File, CharCount, Line, LinePos) },
+prolog:message_location(clause_char_count(ClauseRef, CharCount)) -->
+	{ clause_property(ClauseRef, file(File)),
+	  filepos_line(File, CharCount, Line, LinePos)
+	},
 	[ '~w:~d:~d: '-[File, Line, LinePos] ].
 prolog:message_location(clause(ClauseRef)) -->
 	{ clause_property(ClauseRef, file(File)),
