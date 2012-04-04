@@ -224,17 +224,17 @@ clause_not_from_development(Module:Head, Body, Ref, OTerm) :-
 walk_called_by_body(True, _, _) :-
 	True == true, !.		% quickly deal with facts
 walk_called_by_body(Body, Module, OTerm) :-
-	copy_term(OTerm, OTerm2),
-	walk_option_undecided(OTerm2, error),
-	walk_option_evaluate(OTerm2, false),
+	set_undecided_of_walk_option(error, OTerm, OTerm1),
+	set_evaluate_of_walk_option(false, OTerm1, OTerm2),
 	catch(walk_called(Body, Module, _TermPos, OTerm2),
 	      missing(Missing),
 	      walk_called_by_body(Missing, Body, Module, OTerm)), !.
-walk_called_by_body(Body, _Module, _OTerm) :-
-	format(user_error, 'Failed to analyse:~n'),
+walk_called_by_body(Body, Module, OTerm) :-
+	format(user_error, 'Failed to analyse:~n', []),
 	portray_clause(('<head>' :- Body)),
 	(   debugging(autoload(trace))
-	->  gtrace
+	->  gtrace,
+	    walk_called_by_body(Body, Module, OTerm)
 	;   true
 	).
 
