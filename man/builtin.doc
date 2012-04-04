@@ -2509,13 +2509,13 @@ Equivalent to \exam{recorded(\arg{Key}, \arg{Value}, _)}.
 
     \predicate{erase}{1}{+Reference}
 Erase a record or clause from the database.  \arg{Reference} is a
-db-reference returned by recorda/3 or recorded/3, clause/3, assert/2,
-asserta/2 or assertz/2.  Fail silently if the referenced object no
-longer exists.
+db-reference returned by recorda/3, recordz/3 or recorded/3, clause/3,
+assert/2, asserta/2 or assertz/2. Fail silently if the referenced object
+no longer exists.
 
     \predicate{instance}{2}{+Reference, -Term}
 Unify \arg{Term} with the referenced clause or database record.  Unit
-clauses are represented as \arg{Head} :- \arg{Body}.
+clauses are represented as \arg{Head} :- \const{true}.
 
     \predicate{flag}{3}{+Key, -Old, +New}
 \arg{Key} is an atom, integer or term. As with the recorded database, if
