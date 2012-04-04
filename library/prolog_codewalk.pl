@@ -67,6 +67,9 @@ undefined predicates than list_undefined/0:
 	walk_option(undefined:oneof([ignore,error])=ignore,
 		    autoload:boolean=true,
 		    source:boolean=true,
+		    module:atom,		% Only analyse given module
+		    module_class:oneof([default,user,system,
+					library,test,development])=default,
 		    trace_reference:any=(-),
 		    on_trace:callable,		% Call-back on trace hits
 						% private stuff
@@ -98,14 +101,22 @@ undefined predicates than list_undefined/0:
 %	  to obtain as much as possible information about goals and find
 %	  references from autoloaded libraries.
 %
+%	  * module(+Module)
+%	  Only process the given module
+%
+%	  * module_class(+ModuleClass)
+%	  Limit processing to modules of this class. See
+%	  module_property/2 for details on module classes.  Default
+%	  is to scan the classes =user= and =library=.
+%
 %	  * trace_reference(Callable)
 %	  Print all calls to goals that subsume Callable. Goals are
 %	  represented as Module:Callable (i.e., they are always
-%	  qualified).
+%	  qualified).  See also subsumes_term/2.
 %
 %	  * on_trace(:Callable)
 %	  If a reference to =trace_reference= is found, call
-%	  call(Callable, From-Goal), where From is one of
+%	  call(Callable, Goal-From), where From is one of
 %
 %	    - clause_char_count(+ClauseRef, +CharOffsetInFile)
 %	    - clause(+ClauseRef)
@@ -119,7 +130,8 @@ undefined predicates than list_undefined/0:
 prolog_walk_code(Options) :-
 	meta_options(is_meta, Options, QOptions),
 	make_walk_option(QOptions, OTerm, _),
-	forall(( current_module(M),
+	forall(( walk_option_module(OTerm, M),
+		 current_module(M),
 		 scan_module(M, OTerm)
 	       ),
 	       find_walk_from_module(M, OTerm)),
@@ -129,6 +141,10 @@ prolog_walk_code(Options) :-
 is_meta(on_trace).
 
 
+scan_module(M, OTerm) :-
+	walk_option_module_class(OTerm, Class),
+	Class \== default, !,
+	module_property(M, class(Class)).
 scan_module(M, _) :-
 	module_property(M, class(Class)),
 	scan_module_class(Class).
@@ -317,8 +333,12 @@ walk_called((A;B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
 	).
 walk_called(Goal, Module, TermPos, OTerm) :-
 	walk_option_trace_reference(OTerm, To), To \== (-),
-	subsumes_term(To, Module:Goal),
-	print_reference(Module:Goal, TermPos, trace, OTerm),
+	(   subsumes_term(To, Module:Goal)
+	->  M2 = Module
+	;   predicate_property(Module:Goal, imported_from(M2)),
+	    subsumes_term(To, M2:Goal)
+	),
+	print_reference(M2:Goal, TermPos, trace, OTerm),
 	fail.					% Continue search
 walk_called(Goal, Module, _, OTerm) :-
 	evaluate(Goal, Module, OTerm), !.
@@ -403,7 +423,7 @@ print_reference(Goal, _, Why, OTerm) :-
 print_reference2(Goal, From, trace, OTerm) :-
 	walk_option_on_trace(OTerm, Closure),
 	nonvar(Closure),
-	call(Closure, From-Goal), !.
+	call(Closure, Goal-From), !.
 print_reference2(Goal, From, Why, _OTerm) :-
 	make_message(Why, Goal, From, Message, Level),
 	print_message(Level, Message).
