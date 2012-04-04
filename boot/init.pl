@@ -69,9 +69,17 @@ attempt to call the Prolog defined trace interceptor.
 	'$iso'(:),
 	'$hide'(:).
 
+%%	dynamic(+Spec)
+%%	multifile(+Spec)
+%%	...
+%
+%	Predicate versions of standard  directives   that  set predicate
+%	attributes. These predicates bail out with an error on the first
+%	failure (typically permission errors).
+
 dynamic(Spec)		 :- '$set_pattr'(Spec, pred, (dynamic)).
 multifile(Spec)		 :- '$set_pattr'(Spec, pred, (multifile)).
-module_transparent(Spec) :- '$set_pattr'(Spec, pred, transparent).
+module_transparent(Spec) :- '$set_pattr'(Spec, pred, (transparent)).
 discontiguous(Spec)	 :- '$set_pattr'(Spec, pred, (discontiguous)).
 volatile(Spec)		 :- '$set_pattr'(Spec, pred, (volatile)).
 thread_local(Spec)	 :- '$set_pattr'(Spec, pred, (thread_local)).
@@ -100,6 +108,13 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 	catch('$set_predicate_attribute'(M:A, Attr, 1),
 	      error(E, _),
 	      print_message(error, error(E, context((Attr)/1,_)))).
+
+%%	'$pattr_directive'(+Spec, +Module) is det.
+%
+%	This implements the directive version of dynamic/1, multifile/1,
+%	etc. This version catches and prints   errors.  If the directive
+%	specifies  multiple  predicates,  processing    after  an  error
+%	continues with the remaining predicates.
 
 '$pattr_directive'(dynamic(Spec), M) :-
 	'$set_pattr'(Spec, M, directive, (dynamic)).
