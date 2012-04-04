@@ -52,12 +52,15 @@ undefined predicates than list_undefined/0:
   ==
 */
 
-:- thread_local
-	multifile_predicate/3.		% Name, Arity, Module
+:- meta_predicate
+	prolog_walk_code(:).
 
 :- predicate_options(prolog_walk_code/1, 1,
 		     [ undefined(oneof([ignore,error,trace])),
 		       autoload(boolean),
+		       module(atom),
+		       module_class(oneof([default,user,system,
+					   library,test,development])),
 		       source(boolean),
 		       trace_reference(any),
 		       on_trace(callable)
@@ -77,6 +80,9 @@ undefined predicates than list_undefined/0:
 		    initialization,		% Initialization source
 		    undecided,			% Error to throw error
 		    evaluate:boolean).		% Do partial evaluation
+
+:- thread_local
+	multifile_predicate/3.		% Name, Arity, Module
 
 %%	prolog_walk_code(+Options) is det.
 %
