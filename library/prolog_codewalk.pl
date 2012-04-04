@@ -258,7 +258,7 @@ walk_called_by_body(subterm_positions, Body, Module, OTerm) :-
 	    TermPos = term_position(_,_,_,_,[_,BodyPos])
 	->  forall(walk_called(Body, Module, BodyPos, OTerm),
 		   true)
-	;   set_source_of_walk_option(OTerm, false, OTerm2),
+	;   set_source_of_walk_option(false, OTerm, OTerm2),
 	    forall(walk_called(Body, Module, BodyPos, OTerm2),
 		   true)
 	).
