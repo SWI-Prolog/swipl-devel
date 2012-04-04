@@ -493,14 +493,6 @@ default_module(Me, Super) :-
 	'$set_autoload_level'(Old),
 	'$c_current_predicate'(_, Module:Head).
 
-'$calleventhook'(Term) :-
-	(   notrace(user:prolog_event_hook(Term))
-	->  true
-	;   true
-	).
-
-:- '$hide'('$calleventhook'/1).
-
 %	 handle debugger 'w', 'p' and <N> depth options.
 
 '$set_debugger_print_options'(write) :- !,
@@ -1262,7 +1254,7 @@ preprocessor(Old, New) :-
 	load_files(:),
 	load_files(:, +).
 
-%	ensure_loaded(+File|+ListOfFiles)
+%%	ensure_loaded(+File|+ListOfFiles)
 %
 %	Load specified files, provided they where not loaded before. If the
 %	file is a module file import the public predicates into the context
@@ -1271,7 +1263,7 @@ preprocessor(Old, New) :-
 ensure_loaded(Files) :-
 	load_files(Files, [if(not_loaded)]).
 
-%	use_module(+File|+ListOfFiles)
+%%	use_module(+File|+ListOfFiles)
 %
 %	Very similar to ensure_loaded/1, but insists on the loaded file to
 %	be a module file. If the file is already imported, but the public
@@ -1283,7 +1275,7 @@ use_module(Files) :-
 			    must_be_module(true)
 			  ]).
 
-%	use_module(+File, +ImportList)
+%%	use_module(+File, +ImportList)
 %
 %	As use_module/1, but takes only one file argument and imports only
 %	the specified predicates rather than all public predicates.
@@ -1427,7 +1419,7 @@ load_files(Module:Files, Options) :-
 	'$modified_id'(FullFile, Modified, Options),
 	Modified @=< LoadTime, !.
 
-%	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options)
+%%	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options)
 %
 %	Return the QLF file if it exists.  Might check for modification
 %	time, version, etc.
