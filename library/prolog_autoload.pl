@@ -91,13 +91,14 @@ autoload :-
 
 autoload(Options) :-
 	must_be(list, Options),
+	merge_options(Options, [undefined(ignore)], Options1),
 	statistics(cputime, T0),
 	aggregate_all(count, source_file(_), OldFileCount),
-	autoload(0, Iterations, Options),
+	autoload(0, Iterations, Options1),
 	aggregate_all(count, source_file(_), NewFileCount),
 	statistics(cputime, T1),
 	Time is T1-T0,
-	information_level(Level, Options),
+	information_level(Level, Options1),
 	NewFiles is NewFileCount - OldFileCount,
 	print_message(Level, autoload(completed(Iterations, Time, NewFiles))).
 

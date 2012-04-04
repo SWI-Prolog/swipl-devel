@@ -31,6 +31,7 @@
 	  [ prolog_walk_code/1		% +Options
 	  ]).
 :- use_module(library(option)).
+:- use_module(library(record)).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
@@ -56,8 +57,21 @@ undefined predicates than list_undefined/0:
 
 :- predicate_options(prolog_walk_code/1, 1,
 		     [ undefined(oneof([ignore,error])),
-		       autoload(boolean)
+		       autoload(boolean),
+		       source(boolean),
+		       trace_reference(any)
 		     ]).
+
+:- record
+	walk_option(undefined:oneof([ignore,error])=error,
+		    autoload:boolean=true,
+		    source:boolean=true,
+		    trace_reference:any=(-),
+						% private stuff
+		    clause,			% Processed clause
+		    initialization,		% Initialization source
+		    undecided,			% Error to throw error
+		    evaluate:boolean).		% Do partial evaluation
 
 %%	prolog_walk_code(+Options) is det.
 %
@@ -92,12 +106,13 @@ undefined predicates than list_undefined/0:
 %	  source information for printed messages.
 
 prolog_walk_code(Options) :-
+	make_walk_option(Options, OTerm, _),
 	forall(( current_module(M),
-		 scan_module(M, Options)
+		 scan_module(M, OTerm)
 	       ),
-	       find_walk_from_module(M, Options)),
-	walk_from_multifile(Options),
-	walk_from_initialization(Options).
+	       find_walk_from_module(M, OTerm)),
+	walk_from_multifile(OTerm),
+	walk_from_initialization(OTerm).
 
 scan_module(M, _) :-
 	module_property(M, class(Class)),
@@ -107,39 +122,38 @@ scan_module_class(user).
 scan_module_class(library).
 
 
-%%	walk_from_initialization(+Options)
+%%	walk_from_initialization(+OTerm)
 %
 %	Find initialization/1,2 directives and  process   what  they are
 %	calling.  Skip
 %
 %	@bug	Relies on private '$init_goal'/3 database.
 
-walk_from_initialization(Options) :-
+walk_from_initialization(OTerm) :-
 	forall('$init_goal'(File, Goal, SourceLocation),
-	       walk_from_initialization(File, Goal,
-					     [ initialization(SourceLocation)
-					     | Options
-					     ])).
+	       ( walk_option_initialization(OTerm, SourceLocation),
+		 walk_from_initialization(File, Goal, OTerm))).
 
-walk_from_initialization(File, Goal, Options) :-
+
+walk_from_initialization(File, Goal, OTerm) :-
 	module_property(Module, file(File)),
-	(   scan_module(Module, Options)
+	(   scan_module(Module, OTerm)
 	->  true
-	;   walk_called(Goal, Module, _, Options)
+	;   walk_called(Goal, Module, _, OTerm)
 	).
-walk_from_initialization(_, Goal, Options) :-
-	walk_called(Goal, user, _, Options).
+walk_from_initialization(_, Goal, OTerm) :-
+	walk_called(Goal, user, _, OTerm).
 
 
-%%	find_walk_from_module(+Module, +Options) is det.
+%%	find_walk_from_module(+Module, +OTerm) is det.
 %
 %	Find undefined calls from the bodies  of all clauses that belong
 %	to Module.
 
-find_walk_from_module(M, Options) :-
+find_walk_from_module(M, OTerm) :-
 	debug(autoload, 'Analysing module ~q', [M]),
 	forall(predicate_in_module(M, PI),
-	       walk_called_by_pred(M:PI, Options)).
+	       walk_called_by_pred(M:PI, OTerm)).
 
 walk_called_by_pred(Module:Name/Arity, _) :-
 	multifile_predicate(Name, Arity, Module), !.
@@ -147,31 +161,29 @@ walk_called_by_pred(Module:Name/Arity, _) :-
 	functor(Head, Name, Arity),
 	predicate_property(Module:Head, multifile), !,
 	assertz(multifile_predicate(Name, Arity, Module)).
-walk_called_by_pred(Module:Name/Arity, Options) :-
+walk_called_by_pred(Module:Name/Arity, OTerm) :-
 	functor(Head, Name, Arity),
 	forall(catch(clause(Module:Head, Body, ClauseRef), _, fail),
-	       walk_called_by_body(Body, Module,
-					[ clause(ClauseRef)
-					| Options
-					])).
+	       ( walk_option_clause(OTerm, ClauseRef),
+		 walk_called_by_body(Body, Module, OTerm))).
 
-%%	walk_from_multifile(+Options)
+
+%%	walk_from_multifile(+OTerm)
 %
 %	Process registered multifile predicates.
 
-walk_from_multifile(Options) :-
+walk_from_multifile(OTerm) :-
 	forall(retract(multifile_predicate(Name, Arity, Module)),
-	       walk_called_by_multifile(Module:Name/Arity, Options)).
+	       walk_called_by_multifile(Module:Name/Arity, OTerm)).
 
-walk_called_by_multifile(Module:Name/Arity, Options) :-
+walk_called_by_multifile(Module:Name/Arity, OTerm) :-
 	functor(Head, Name, Arity),
 	forall(catch(clause_not_from_development(
-			 Module:Head, Body, ClauseRef, Options),
+			 Module:Head, Body, ClauseRef, OTerm),
 		     _, fail),
-	       walk_called_by_body(Body, Module,
-					[ clause(ClauseRef)
-					| Options
-					])).
+	       ( walk_option_clause(OTerm, ClauseRef),
+		 walk_called_by_body(Body, Module, OTerm)
+	       )).
 
 
 %%	clause_not_from_development(:Head, -Body, ?Ref, +Options) is nondet.
@@ -179,14 +191,14 @@ walk_called_by_multifile(Module:Name/Arity, Options) :-
 %	Enumerate clauses for a multifile predicate, but omit those from
 %	a module that is specifically meant to support development.
 
-clause_not_from_development(Module:Head, Body, Ref, Options) :-
+clause_not_from_development(Module:Head, Body, Ref, OTerm) :-
 	clause(Module:Head, Body, Ref),
 	\+ ( clause_property(Ref, file(File)),
 	     module_property(LoadModule, file(File)),
-	     \+ scan_module(LoadModule, Options)
+	     \+ scan_module(LoadModule, OTerm)
 	   ).
 
-%%	walk_called_by_body(+Body, +Module, +Options) is det.
+%%	walk_called_by_body(+Body, +Module, +OTerm) is det.
 %
 %	Check the Body term when  executed   in  the  context of Module.
 %	Options:
@@ -196,16 +208,14 @@ clause_not_from_development(Module:Head, Body, Ref, Options) :-
 
 walk_called_by_body(True, _, _) :-
 	True == true, !.		% quickly deal with facts
-walk_called_by_body(Body, Module, Options) :-
-	catch(walk_called(
-		  Body, Module, _TermPos,
-		  [ undecided(error),
-		    evaluate(false)
-		  | Options
-		  ]),
+walk_called_by_body(Body, Module, OTerm) :-
+	copy_term(OTerm, OTerm2),
+	walk_option_undecided(OTerm2, error),
+	walk_option_evaluate(OTerm2, false),
+	catch(walk_called(Body, Module, _TermPos, OTerm2),
 	      missing(Missing),
-	      walk_called_by_body(Missing, Body, Module, Options)), !.
-walk_called_by_body(Body, _Module, _Options) :-
+	      walk_called_by_body(Missing, Body, Module, OTerm)), !.
+walk_called_by_body(Body, _Module, _OTerm) :-
 	format(user_error, 'Failed to analyse:~n'),
 	portray_clause(('<head>' :- Body)),
 	(   debugging(autoload(trace))
@@ -213,33 +223,33 @@ walk_called_by_body(Body, _Module, _Options) :-
 	;   true
 	).
 
-%%	walk_called_by_body(+Missing, +Body, +Module, +Options)
+%%	walk_called_by_body(+Missing, +Body, +Module, +OTerm)
 %
 %	Restart the analysis because  the   previous  analysis  provided
 %	insufficient information.
 
-walk_called_by_body(Missing, Body, _, Options) :-
+walk_called_by_body(Missing, Body, _, OTerm) :-
 	debugging(autoload),
-	format(user_error, 'Retrying due to ~w (~p)~n', [Missing, Options]),
+	format(user_error, 'Retrying due to ~w (~p)~n', [Missing, OTerm]),
 	portray_clause(('<head>' :- Body)), fail.
-walk_called_by_body(undecided_call, Body, Module, Options) :-
-	catch(forall(walk_called(Body, Module, _TermPos, Options),
+walk_called_by_body(undecided_call, Body, Module, OTerm) :-
+	catch(forall(walk_called(Body, Module, _TermPos, OTerm),
 		     true),
 	      missing(Missing),
-	      walk_called_by_body(Missing, Body, Module, Options)).
-walk_called_by_body(subterm_positions, Body, Module, Options) :-
-	option(clause(ClauseRef), Options),
+	      walk_called_by_body(Missing, Body, Module, OTerm)).
+walk_called_by_body(subterm_positions, Body, Module, OTerm) :-
+	walk_option_clause(OTerm, ClauseRef), nonvar(ClauseRef),
 	(   clause_info(ClauseRef, _File, TermPos, _NameOffset),
 	    TermPos = term_position(_,_,_,_,[_,BodyPos])
-	->  forall(walk_called(Body, Module, BodyPos, Options),
+	->  forall(walk_called(Body, Module, BodyPos, OTerm),
 		   true)
-	;   forall(walk_called(Body, Module, BodyPos,
-				    [source(false)|Options]),
+	;   set_source_of_walk_option(OTerm, false, OTerm2),
+	    forall(walk_called(Body, Module, BodyPos, OTerm2),
 		   true)
 	).
 
 
-%%	walk_called(+Goal, +Module, +TermPos, +Options) is multi.
+%%	walk_called(+Goal, +Module, +TermPos, +OTerm) is multi.
 %
 %	Perform abstract interpretation of Goal,  touching all sub-goals
 %	that  are  directly  called  or  immediately  reachable  through
@@ -266,87 +276,93 @@ walk_called_by_body(subterm_positions, Body, Module, Options) :-
 %
 %	@tbd	Analyse e.g. assert((Head:-Body))?
 
-walk_called(Var, _, TermPos, Options) :-
+walk_called(Var, _, TermPos, OTerm) :-
 	var(Var), !,				% Incomplete analysis
-	undecided(Var, TermPos, Options).
-walk_called(M:G, _, term_position(_,_,_,_,[MPos,Pos]), Options) :- !,
+	undecided(Var, TermPos, OTerm).
+walk_called(M:G, _, term_position(_,_,_,_,[MPos,Pos]), OTerm) :- !,
 	(   nonvar(M)
-	->  walk_called(G, M, Pos, Options)
-	;   undecided(M, MPos, Options)
+	->  walk_called(G, M, Pos, OTerm)
+	;   undecided(M, MPos, OTerm)
 	).
-walk_called((A,B), M, term_position(_,_,_,_,[PA,PB]), Options) :- !,
-	walk_called(A, M, PA, Options),
-	walk_called(B, M, PB, Options).
-walk_called((A;B), M, term_position(_,_,_,_,[PA,PB]), Options) :- !,
-	(   option(evaluate(true), Options, true)
+walk_called((A,B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
+	walk_called(A, M, PA, OTerm),
+	walk_called(B, M, PB, OTerm).
+walk_called((A;B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
+	(   walk_option_evaluate(OTerm, Eval), Eval == true
 	->  Goal = (A;B),
 	    setof(Goal,
-		  (   walk_called(A, M, PA, Options)
-		  ;   walk_called(B, M, PB, Options)
+		  (   walk_called(A, M, PA, OTerm)
+		  ;   walk_called(B, M, PB, OTerm)
 		  ),
 		  Alts0),
 	    variants(Alts0, Alts),
 	    member(Goal, Alts)
-	;   walk_called(A, M, PA, Options),
-	    walk_called(B, M, PB, Options)
+	;   walk_called(A, M, PA, OTerm),
+	    walk_called(B, M, PB, OTerm)
 	).
-walk_called(Goal, Module, TermPos, Options) :-
-	option(trace_reference(To), Options),
-	subsumes_chk(To, Module:Goal),
-	print_reference(Module:Goal, TermPos, trace, Options),
+walk_called(Goal, Module, TermPos, OTerm) :-
+	walk_option_trace_reference(OTerm, To), To \== (-),
+	subsumes_term(To, Module:Goal),
+	print_reference(Module:Goal, TermPos, trace, OTerm),
 	fail.					% Continue search
-walk_called(Goal, Module, _, Options) :-
-	evaluate(Goal, Module, Options), !.
-walk_called(Goal, M, TermPos, Options) :-
+walk_called(Goal, Module, _, OTerm) :-
+	evaluate(Goal, Module, OTerm), !.
+walk_called(Goal, M, TermPos, OTerm) :-
 	prolog:called_by(Goal, Called),
 	Called \== [], !,
-	walk_called_by(Called, M, TermPos, Options).
-walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), Options) :-
-	(   option(autoload(false), Options)
+	walk_called_by(Called, M, TermPos, OTerm).
+walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
+	(   walk_option_autoload(OTerm, false)
 	->  nonvar(Module),
 	    '$get_predicate_attribute'(Module:Meta, defined, 1)
 	;   true
 	),
 	predicate_property(M:Meta, meta_predicate(Head)), !, % this may autoload
-	walk_meta_call(1, Head, Meta, M, ArgPosList, Options).
+	walk_meta_call(1, Head, Meta, M, ArgPosList, OTerm).
 walk_called(Goal, Module, _, _) :-
 	nonvar(Module),
 	'$get_predicate_attribute'(Module:Goal, defined, 1), !.
-walk_called(Goal, Module, TermPos, Options) :-
-	undefined(Module:Goal, TermPos, Options).
+walk_called(Goal, Module, TermPos, OTerm) :-
+	undefined(Module:Goal, TermPos, OTerm).
 
-%%	undecided(+Variable, +TermPos, +Options)
+%%	undecided(+Variable, +TermPos, +OTerm)
 
-undecided(Var, TermPos, Options) :-
-	option(undecided(Action), Options, ignore),
-	undecided(Action, Var, TermPos, Options).
+undecided(Var, TermPos, OTerm) :-
+	walk_option_undecided(OTerm, Undecided),
+	(   var(Undecided)
+	->  Action = ignore
+	;   Action = Undecided
+	),
+	undecided(Action, Var, TermPos, OTerm).
 
 undecided(ignore, _, _, _) :- !.
 undecided(error,  _, _, _) :-
 	throw(missing(undecided_call)).
 
-%%	evaluate(Goal, Module, Options) is nondet.
+%%	evaluate(Goal, Module, OTerm) is nondet.
 
-evaluate(Goal, Module, Options) :-
-	option(evaluate(true), Options, true),
+evaluate(Goal, Module, OTerm) :-
+	walk_option_evaluate(OTerm, Evaluate),
+	Evaluate \== false,
 	evaluate(Goal, Module).
 
 evaluate(A=B, _) :-
 	unify_with_occurs_check(A, B).
 
-%%	undefined(:Goal, +TermPos, +Options)
+%%	undefined(:Goal, +TermPos, +OTerm)
 %
 %	The analysis trapped a definitely undefined predicate.
 
-undefined(_, _, Options) :-
-	option(undefined(ignore), Options, ignore), !.
+undefined(_, _, OTerm) :-
+	walk_option_undefined(OTerm, Undefined),
+	Undefined == ignore, !.
 undefined(Goal, _, _) :-
 	predicate_property(Goal, autoload(_)), !.
-undefined(Goal, TermPos, Options) :-
-	print_reference(Goal, TermPos, undefined, Options).
+undefined(Goal, TermPos, OTerm) :-
+	print_reference(Goal, TermPos, undefined, OTerm).
 
-print_reference(Goal, TermPos, Why, Options) :-
-	option(clause(Clause), Options), !,
+print_reference(Goal, TermPos, Why, OTerm) :-
+	walk_option_clause(OTerm, Clause), nonvar(Clause), !,
 	(   compound(TermPos),
 	    arg(1, TermPos, CharCount),
 	    integer(CharCount)
@@ -354,13 +370,14 @@ print_reference(Goal, TermPos, Why, Options) :-
 	    make_message(Why, Goal, file_char_count(File, CharCount),
 			 Message, Level),
 	    print_message(Level, Message)
-	;   option(source(false), Options)
+	;   walk_option_source(OTerm, false)
 	->  make_message(Why, Goal, clause(Clause), Message, Level),
 	    print_message(Level, Message)
 	;   throw(missing(subterm_positions))
 	).
-print_reference(Goal, _, Why, Options) :-
-	option(initialization(File:Line), Options), !,
+print_reference(Goal, _, Why, OTerm) :-
+	walk_option_initialization(OTerm, Init), nonvar(Init),
+	Init = File:Line, !,
 	make_message(Why, Goal, file(File, Line, -1, _), Message, Level),
 	print_message(Level, Message).
 print_reference(Goal, _, Why, _) :-
@@ -383,69 +400,69 @@ goal_pi(Goal, Goal).
 
 
 %%	walk_meta_call(+Index, +GoalHead, +MetaHead, +Module,
-%%		       +ArgPosList, +Options)
+%%		       +ArgPosList, +OTerm)
 %
 %	Walk a call to a meta-predicate.   This walks all meta-arguments
 %	labeled with an integer or ^.
 
-walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], Options) :-
+walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
 	arg(I, Head, AS), !,
 	(   integer(AS)
 	->  arg(I, Meta, MA),
-	    extend(MA, AS, Goal, ArgPos, ArgPosEx, Options),
-	    walk_called(Goal, M, ArgPosEx, Options)
+	    extend(MA, AS, Goal, ArgPos, ArgPosEx, OTerm),
+	    walk_called(Goal, M, ArgPosEx, OTerm)
 	;   AS == (^)
 	->  arg(I, Meta, MA),
-	    remove_quantifier(MA, Goal, ArgPos, ArgPosEx, Options),
-	    walk_called(Goal, M, ArgPosEx, Options)
+	    remove_quantifier(MA, Goal, ArgPos, ArgPosEx, OTerm),
+	    walk_called(Goal, M, ArgPosEx, OTerm)
 	;   true
 	),
 	succ(I, I2),
-	walk_meta_call(I2, Head, Meta, M, ArgPosList, Options).
+	walk_meta_call(I2, Head, Meta, M, ArgPosList, OTerm).
 walk_meta_call(_, _, _, _, _, _).
 
-remove_quantifier(Goal, _, TermPos, TermPos, Options) :-
+remove_quantifier(Goal, _, TermPos, TermPos, OTerm) :-
 	var(Goal), !,
-	undecided(Goal, TermPos, Options).
+	undecided(Goal, TermPos, OTerm).
 remove_quantifier(_^Goal0, Goal,
 		  term_position(_,_,_,_,[_,GPos]),
-		  TermPos, Options) :- !,
-	remove_quantifier(Goal0, Goal, GPos, TermPos, Options).
+		  TermPos, OTerm) :- !,
+	remove_quantifier(Goal0, Goal, GPos, TermPos, OTerm).
 remove_quantifier(Goal, Goal, TermPos, TermPos, _).
 
 
-%%	walk_called_by(+Called:list, +Module, +TermPost, +Options)
+%%	walk_called_by(+Called:list, +Module, +TermPost, +OTerm)
 %
 %	Walk code explicitly mentioned to  be   called  through the hook
 %	prolog:called_by/2.
 
 walk_called_by([], _, _, _).
-walk_called_by([H|T], M, TermPos, Options) :-
+walk_called_by([H|T], M, TermPos, OTerm) :-
 	(   H = G+N
-	->  (   extend(G, N, G2, _, _, Options)
-	    ->	walk_called(G2, M, _, Options)
+	->  (   extend(G, N, G2, _, _, OTerm)
+	    ->	walk_called(G2, M, _, OTerm)
 	    ;	true
 	    )
-	;   walk_called(H, M, TermPos, Options)
+	;   walk_called(H, M, TermPos, OTerm)
 	),
-	walk_called_by(T, M, TermPos, Options).
+	walk_called_by(T, M, TermPos, OTerm).
 
-%%	extend(+Goal, +ExtraArgs, +TermPosIn, -TermPosOut, +Options)
+%%	extend(+Goal, +ExtraArgs, +TermPosIn, -TermPosOut, +OTerm)
 %
 %	@bug:
 
 extend(Goal, 0, Goal, TermPos, TermPos, _) :- !.
-extend(Goal, _, _, TermPos, TermPos, Options) :-
+extend(Goal, _, _, TermPos, TermPos, OTerm) :-
 	var(Goal), !,
-	undecided(Goal, TermPos, Options).
+	undecided(Goal, TermPos, OTerm).
 extend(M:Goal, N, M:GoalEx,
        term_position(F,T,FT,TT,[MPos,GPosIn]),
-       term_position(F,T,FT,TT,[MPos,GPosOut]), Options) :- !,
+       term_position(F,T,FT,TT,[MPos,GPosOut]), OTerm) :- !,
 	(   var(M)
-	->  undecided(N, MPos, Options)
+	->  undecided(N, MPos, OTerm)
 	;   true
 	),
-	extend(Goal, N, GoalEx, GPosIn, GPosOut, Options).
+	extend(Goal, N, GoalEx, GPosIn, GPosOut, OTerm).
 extend(Goal, N, GoalEx, TermPosIn, TermPosOut, _) :-
 	callable(Goal),
 	Goal =.. List,
