@@ -1151,18 +1151,26 @@ public_list(Path, Module, Meta, Export, Public) :-
 	public_list(Path, Module, Meta, [], Export, [], Public, []).
 
 public_list(Path, Module, Meta, MT, Export, Rest, Public, PT) :-
-	setup_call_cleanup((prolog_open_source(Path, In),
-			    set_xref(Old)),
-			   phrase(read_directives(In), Directives),
-			   (set_prolog_flag(xref, Old),
-			    prolog_close_source(In))),
+	setup_call_cleanup(
+	    ( prolog_open_source(Path, In),
+	      set_xref(Old)
+	    ),
+	    phrase(read_directives(In), Directives),
+	    ( set_prolog_flag(xref, Old),
+	      prolog_close_source(In)
+	    )),
 	public_list(Directives, Path, Module, Meta, MT, Export, Rest, Public, PT).
 
 
 read_directives(In) -->
-	{ prolog_read_source_term(In, Term, Expanded, [process_comment(true)]),
-	  nonvar(Term),
-	  Term = (:-_)
+	{  repeat,
+	     catch(prolog_read_source_term(In, Term, Expanded,
+					   [ process_comment(true),
+					     syntax_errors(error)
+					   ]),
+		   E, report_syntax_error(E))
+	-> nonvar(Term),
+	   Term = (:-_)
 	}, !,
 	terms(Expanded),
 	read_directives(In).
