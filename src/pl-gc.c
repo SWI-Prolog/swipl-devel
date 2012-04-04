@@ -4979,9 +4979,12 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 
 					/* P_FOREIGN_CREF: clause, etc. choicepoints */
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
-    { ClauseRef cref = (ClauseRef)fr->clause;
+    { ClauseChoice chp = (ClauseChoice)fr->clause;
 
-      def = cref->value.clause->procedure->definition; /* See (*) above */
+      if ( chp )
+	def = chp->cref->value.clause->procedure->definition; /* See (*) above */
+      else
+	def = NULL;
     } else
       def = fr->predicate;
 
