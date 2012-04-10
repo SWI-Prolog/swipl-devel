@@ -4601,8 +4601,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   int wrapin = FALSE;
   int i;
 
-  if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) ||
-       !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
+  if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) )
     goto out;
 
   wrapin = (LD->IO.streams[0] != in);
@@ -4610,6 +4609,9 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   { if ( !(in = getStream(in)) )	/* lock it */
       goto out;
   }
+
+  if ( !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
+    goto out;
 
   if ( PL_compare(A2, A3) == 0 )	/* == */
   { error = getStream(Snew(out->handle, out->flags, out->functions));
