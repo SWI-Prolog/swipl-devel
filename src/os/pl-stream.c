@@ -2033,43 +2033,53 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  case 'u':
 	  case 'x':
 	  case 'X':
-	  { intptr_t v = 0;			/* make compiler silent */
-	    int64_t vl = 0;
+	  { int      vi = 0;
+	    long     vl = 0;			/* make compiler silent */
+	    int64_t vll = 0;
 	    char fmbuf[8], *fp=fmbuf;
 
 	    switch( islong )
 	    { case 0:
-		v = va_arg(args, int);
+		vi = va_arg(args, int);
 	        break;
 	      case 1:
-		v = va_arg(args, long);
+		vl = va_arg(args, long);
 	        break;
 	      case 2:
-	        vl = va_arg(args, int64_t);
+	        vll = va_arg(args, int64_t);
 		break;
+	      default:
+		assert(0);
 	    }
 
 	    *fp++ = '%';
 	    if ( modified )
 	      *fp++ = '#';
-	    if ( islong < 2 )
-	    { *fp++ = 'l';
-	      *fp++ = *fm;
-	      *fp   = '\0';
-	      SNPRINTF3(fmbuf, v);
-	    } else
-	    {
+	    switch( islong )
+	    { case 0:
+		*fp++ = *fm;
+	        *fp   = '\0';
+		SNPRINTF3(fmbuf, vi);
+		break;
+	      case 1:
+		*fp++ = 'l';
+	        *fp++ = *fm;
+		*fp   = '\0';
+		SNPRINTF3(fmbuf, vl);
+		break;
+	      case 2:
 #ifdef __WINDOWS__
-	      *fp++ = 'I';		/* Synchronise with INT64_FORMAT! */
-	      *fp++ = '6';
-	      *fp++ = '4';
+	        *fp++ = 'I';		/* Synchronise with INT64_FORMAT! */
+	        *fp++ = '6';
+		*fp++ = '4';
 #else
-	      *fp++ = 'l';
-	      *fp++ = 'l';
+	        *fp++ = 'l';
+	        *fp++ = 'l';
 #endif
-	      *fp++ = *fm;
-	      *fp   = '\0';
-	      SNPRINTF3(fmbuf, vl);
+	        *fp++ = *fm;
+	        *fp   = '\0';
+	        SNPRINTF3(fmbuf, vll);
+		break;
 	    }
 
 	    break;
