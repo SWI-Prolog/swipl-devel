@@ -256,8 +256,13 @@ assert_index(Term, Dir) :-
 %	@see make_library_index/2
 
 make_library_index(Dir0) :-
-	absolute_file_name(Dir0, Dir),
-	make_library_index2(Dir).
+	forall(absolute_file_name(Dir0, Dir,
+				  [ expand(true),
+				    file_type(directory),
+				    file_errors(fail),
+				    solutions(all)
+				  ]),
+	       make_library_index2(Dir)).
 
 make_library_index2(Dir) :-
 	plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
@@ -282,8 +287,13 @@ make_library_index2(Dir) :-
 %	@see make_library_index/1.
 
 make_library_index(Dir0, Patterns) :-
-	absolute_file_name(Dir0, Dir),
-	make_library_index2(Dir, Patterns).
+	forall(absolute_file_name(Dir0, Dir,
+				  [ expand(true),
+				    file_type(directory),
+				    file_errors(fail),
+				    solutions(all)
+				  ]),
+	       make_library_index2(Dir, Patterns)).
 
 make_library_index2(Dir, Patterns) :-
 	plfile_in_dir(Dir, 'INDEX', Index, AbsIndex),
