@@ -153,6 +153,8 @@ syntax(latin-1) :-
 		 *	       WRITE		*
 		 *******************************/
 
+:- op(200, fx, op_fa).
+
 write_test(q-1) :-
 	T = -(0),
 	term_to_atom(T, X),
@@ -175,6 +177,12 @@ write_test(q-7) :-
 	term_to_atom(p((0|a)), X), X == 'p((0|a))'.
 write_test(q-8) :-
 	term_to_atom(p((a|b)), X), X == 'p((a|b))'.
+write_test(op-1) :-
+	term_to_atom(-((a,b)), X), X == '- (a,b)'.
+write_test(op-2) :-
+	term_to_atom(op_fa((a,b)), X), X == 'op_fa (a,b)'.
+write_test(op-3) :-
+	term_to_atom(dynamic((a,b)), X), X == 'dynamic a,b'.
 write_test(c-1) :-
 	T = [a,b,c|T],
 	term_to_atom(T, X),
