@@ -2333,7 +2333,7 @@ Minor = 4.
 \end{code}
 
 See also portray_text/1, which can be used to print lists of character
-codes as a string to the toplevel and debugger to facilitate debugging
+codes as a string to the top-level and debugger to facilitate debugging
 DCGs that process character codes. The library \pllib{apply_macros}
 compiles phrase/3 if the argument is sufficiently instantiated,
 eliminating the runtime overhead of translating \arg{DCGBody} and
@@ -2596,7 +2596,7 @@ have the same hash key.}
 
     \predicate[det]{term_hash}{4}{+Term, +Depth, +Range, -HashKey}
 As term_hash/2, but only considers \arg{Term} to the specified
-\arg{Depth}.   The toplevel term has depth 1, its arguments have
+\arg{Depth}.   The top-level term has depth 1, its arguments have
 depth 2, etc.  That is, $\arg{Depth} = 0$ hashes nothing; $\arg{Depth} = 1$
 hashes atomic values or the functor and arity of a compound term,
 not its arguments; $\arg{Depth} = 2$ also indexes the immediate
@@ -4241,8 +4241,8 @@ Read term with options from \arg{Stream}.  See read_term/2.
 
     \predicate{read_history}{6}{+Show, +Help, +Special, +Prompt, -Term, -Bindings}
 Similar to read_term/2 using the option \const{variable_names}, but
-allows for history substitutions. read_history/6 is used by the top
-level to read the user's actions. \arg{Show} is the command the user
+allows for history substitutions. read_history/6 is used by the top-level
+to read the user's actions. \arg{Show} is the command the user
 should type to show the saved events. \arg{Help} is the command to get
 an overview of the capabilities. \arg{Special} is a list of commands
 that are not saved in the history. \arg{Prompt} is the first prompt
@@ -4674,14 +4674,14 @@ primitives.
 
 \begin{description}
     \termitem{alnum}{}
-\arg{Char} is a letter (upper- or lower-case) or digit.
+\arg{Char} is a letter (upper- or lowercase) or digit.
     \termitem{alpha}{}
-\arg{Char} is a letter (upper- or lower-case).
+\arg{Char} is a letter (upper- or lowercase).
     \termitem{csym}{}
-\arg{Char} is a letter (upper- or lower-case), digit or the underscore
+\arg{Char} is a letter (upper- or lowercase), digit or the underscore
 (\verb$_$).  These are valid C and Prolog symbol characters.
     \termitem{csymf}{}
-\arg{Char} is a letter (upper- or lower-case) or the underscore
+\arg{Char} is a letter (upper- or lowercase) or the underscore
 (\verb$_$). These are valid first characters for C and Prolog symbols.
     \termitem{ascii}{}
 \arg{Char} is a 7-bit ASCII character (0..127).
@@ -4702,21 +4702,21 @@ parsing numbers.
 \arg{Char} produces a visible mark on a page when printed. Note that
 the space is not included!
     \termitem{lower}{}
-\arg{Char} is a lower-case letter.
+\arg{Char} is a lowercase letter.
     \termitem{lower}{Upper}
-\arg{Char} is a lower-case version of \arg{Upper}. Only true if
-\arg{Char} is lower-case and \arg{Upper} upper-case.
+\arg{Char} is a lowercase version of \arg{Upper}. Only true if
+\arg{Char} is lowercase and \arg{Upper} uppercase.
     \termitem{to_lower}{Upper}
-\arg{Char} is a lower-case version of \arg{Upper}. For non-letters,
+\arg{Char} is a lowercase version of \arg{Upper}. For non-letters,
 or letter without case, \arg{Char} and \arg{Lower} are the same.
 See also upcase_atom/2 and downcase_atom/2.
     \termitem{upper}{}
-\arg{Char} is an upper-case letter.
+\arg{Char} is an uppercase letter.
     \termitem{upper}{Lower}
-\arg{Char} is an upper-case version of \arg{Lower}. Only true if
-\arg{Char} is upper-case and \arg{Lower} lower-case.
+\arg{Char} is an uppercase version of \arg{Lower}. Only true if
+\arg{Char} is uppercase and \arg{Lower} lowercase.
     \termitem{to_upper}{Lower}
-\arg{Char} is an upper-case version of \arg{Lower}.  For non-letters,
+\arg{Char} is an uppercase version of \arg{Lower}.  For non-letters,
 or letter without case, \arg{Char} and \arg{Lower} are the same.
 See also upcase_atom/2 and downcase_atom/2.
     \termitem{punct}{}
@@ -4760,13 +4760,13 @@ additional support:
 
 \begin{description}
     \predicate{downcase_atom}{2}{+AnyCase, -LowerCase}
-Converts the characters of \arg{AnyCase} into lower-case as char_type/2
+Converts the characters of \arg{AnyCase} into lowercase as char_type/2
 does (i.e.\ based on the defined \jargon{locale} if Prolog provides
-locale support on the hosting platform) and unifies the lower-case atom
+locale support on the hosting platform) and unifies the lowercase atom
 with \arg{LowerCase}.
 
     \predicate{upcase_atom}{2}{+AnyCase, -UpperCase}
-Converts, similar to downcase_atom/2, an atom to upper-case.
+Converts, similar to downcase_atom/2, an atom to uppercase.
 \end{description}
 
 
@@ -5681,11 +5681,11 @@ the same as sort/2.  See also keysort/2.%
 
 \begin{description}
     \predicate[ISO]{findall}{3}{+Template, :Goal, -Bag}
-Creates a list of the instantiations \arg{Template} gets successively on
-backtracking over \arg{Goal} and unifies the result with \arg{Bag}.
+Create a list of the instantiations \arg{Template} gets successively on
+backtracking over \arg{Goal} and unify the result with \arg{Bag}.
 Succeeds with an empty list if \arg{Goal} has no solutions. findall/3 is
 equivalent to bagof/3 with all free variables bound with the existential
-operator (\op{^}), except that bagof/3 fails when goal has no
+operator (\op{^}), except that bagof/3 fails when \arg{Goal} has no
 solutions.
 
     \predicate{findall}{4}{+Template, :Goal, -Bag, +Tail}
@@ -5698,11 +5698,11 @@ findall(Templ, Goal, Bag) :-
 \end{code}
 
     \predicate[ISO]{bagof}{3}{+Template, :Goal, -Bag}
-Unify \arg{Bag} with the alternatives of \arg{Template}, if \arg{Goal}
-has free variables besides the one sharing with \arg{Template} bagof
+Unify \arg{Bag} with the alternatives of \arg{Template}. If \arg{Goal}
+has free variables besides the one sharing with \arg{Template}, bagof/3
 will backtrack over the alternatives of these free variables, unifying
 \arg{Bag} with the corresponding alternatives of \arg{Template}. The
-construct \exam{+\arg{Var}{^}\arg{Goal}} tells bagof not to bind
+construct \exam{+\arg{Var}{^}\arg{Goal}} tells bagof/3 not to bind
 \arg{Var} in \arg{Goal}. bagof/3 fails if \arg{Goal} has no solutions.
 
 The example below illustrates bagof/3 and the \op{^} operator. The
@@ -5742,7 +5742,7 @@ list of alternatives without duplicates.
 
 \begin{description}
     \predicate[semidet]{forall}{2}{:Cond, :Action}
-For all alternative bindings of \arg{Cond} \arg{Action} can be proven.
+For all alternative bindings of \arg{Cond}, \arg{Action} can be proven.
 The example verifies that all arithmetic statements in the list \arg{L}
 are correct. It does not say which is wrong if one proves wrong.
 \begin{code}
@@ -5758,7 +5758,7 @@ write predicates.  The first is writef/[1,2], which is compatible with
 Edinburgh C-Prolog.  The second is format/[1,2], which is compatible
 with Quintus Prolog.  We hope the Prolog community will once define a
 standard formatted write predicate.  If you want performance use
-format/[1,2] as this predicate is defined in C.  Otherwise
+format/[1,2], as this predicate is defined in C.  Otherwise
 compatibility reasons might tell you which predicate to use.
 
 \subsection{Writef}
@@ -5781,19 +5781,19 @@ Escape sequences to generate a single special character:
 \hline
 \fmtseq{\n}   &  Output a newline character (see also nl/[0,1]) \\
 \fmtseq{\l}   &  Output a line separator (same as \fmtseq{\n}) \\
-\fmtseq{\r}   &  Output a carriage-return character (ASCII 13) \\
+\fmtseq{\r}   &  Output a carriage return character (ASCII 13) \\
 \fmtseq{\t}   &  Output the ASCII character TAB (9) \\
 \fmtseq{\\}   &  The character \chr{\} is output \\
 \fmtseq{\%}   &  The character \chr{%} is output \\
-\fmtseq{\nnn} &  where <nnn> is an integer (1-3 digits) the
-		 character with character code <nnn> is output
+\fmtseq{\nnn} &  where <nnn> is an integer (1-3 digits); the
+		 character with code <nnn> is output
 		 (NB : <nnn> is read as \strong{decimal}) \\
 \hline
 \end{tabular}
 \end{center}
 
 Note that \fmtseq{\l}, \fmtseq{\nnn} and \fmtseq{\\}
-are interpreted differently when character-escapes are in effect. See
+are interpreted differently when character escapes are in effect. See
 \secref{charescapes}.
 
 Escape sequences to include arguments from \arg{Arguments}. Each time a
@@ -5806,7 +5806,7 @@ Escape sequences to include arguments from \arg{Arguments}. Each time a
 \fmtseq{%w}  &  write/1 the next item \\
 \fmtseq{%q}  &  writeq/1 the next item \\
 \fmtseq{%d}  &  Write the term, ignoring operators.  See also
-		write_term/2.  Mnemonic: old Edinburgh display/1. \\
+		write_term/2.  Mnemonic: old Edinburgh display/1 \\
 \fmtseq{%p}  &  print/1 the next item (identical to \fmtseq{%t}) \\
 \fmtseq{%n}  &  Put the next item as a character (i.e., it is
                 a character code) \\
@@ -5815,8 +5815,8 @@ Escape sequences to include arguments from \arg{Arguments}. Each time a
 \fmtseq{%s}  &  Write the next item as a String (so it must
                 be a list of characters) \\
 \fmtseq{%f}  &  Perform a ttyflush/0 (no items used) \\
-\fmtseq{%Nc} &  Write the next item Centered in $N$ columns. \\
-\fmtseq{%Nl} &  Write the next item Left justified in $N$ columns. \\
+\fmtseq{%Nc} &  Write the next item Centered in $N$ columns \\
+\fmtseq{%Nl} &  Write the next item Left justified in $N$ columns \\
 \fmtseq{%Nr} &  Write the next item Right justified in $N$ columns.
                 $N$ is a decimal number with at least one digit.
                 The item must be an atom, integer, float or string. \\
@@ -5837,8 +5837,8 @@ Equivalent to \exam{swritef(String, Format, []).}
 
 \subsection{Format}
 
-The format-family of predicates is the most versatile and
-portable\footnote{Unfortunately not coverted by any standard.} way to
+The format family of predicates is the most versatile and
+portable\footnote{Unfortunately not covered by any standard.} way to
 produce textual output.
 
 \begin{description}
@@ -5849,7 +5849,7 @@ Defined as `\exam{format(Format) :- format(Format, []).}'
 \arg{Format} is an atom, list of character codes, or a Prolog string.
 \arg{Arguments} provides the arguments required by the format
 specification. If only one argument is required and this single argument
-is not a list the argument need not be put in a list. Otherwise the
+is not a list, the argument need not be put in a list. Otherwise the
 arguments are put in a list.
 
 Special sequences start with the tilde (\chr{~}), followed by an
@@ -5871,9 +5871,9 @@ pass 46 (\chr{.}) to \verb$~t$:
 Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f}, \chr{g}
 and \chr{G}) accept an arithmetic expression as argument. This is
 introduced to handle rational numbers transparently (see
-\secref{rational}.  The floating point conversions allow for unlimited
+\secref{rational}).  The floating point conversions allow for unlimited
 precision for printing rational numbers in decimal form.  E.g., the
-following will write as many 3-s as you want by changing the `70'.
+following will write as many 3's as you want by changing the `70'.
 
 \begin{code}
 ?- format('~70f', [10 rdiv 3]).
@@ -5887,23 +5887,23 @@ Output the tilde itself.
 
     \fmtchar{a}
 Output the next argument, which must be an atom. This option is
-equivalent to {\bf w}, except for that it requires the argument to be an
+equivalent to {\bf w}, except that it requires the argument to be an
 atom.
 
     \fmtchar{c}
-Interpret the next argument as an character code and add it to the
+Interpret the next argument as a character code and add it to the
 output. This argument should be an integer in the range [0, \ldots, 255]
 (including 0 and 255).
 
     \fmtchar{d}
 Output next argument as a decimal number.  It should be an integer.  If
-a numeric argument is specified a dot is inserted \arg{argument}
+a numeric argument is specified, a dot is inserted \arg{argument}
 positions from the right (useful for doing fixed point arithmetic with
 integers, such as handling amounts of money).
 
     \fmtchar{D}
 Same as {\bf d}, but makes large values easier to read by inserting a
-comma every three digits left to the dot or right.
+comma every three digits left or right of the dot.
 
     \fmtchar{e}
 Output next argument as a floating point number in exponential
@@ -5925,7 +5925,7 @@ Floating point in {\bf E} or {\bf f} notation, whichever is shorter.
     \fmtchar{i}
 Ignore next argument of the argument list. Produces no output.
     \fmtchar{k}
-Give the next argument to (write_canonical/1).
+Give the next argument to write_canonical/1.
     \fmtchar{n}
 Output a newline character.
     \fmtchar{N}
@@ -5936,44 +5936,41 @@ Give the next argument to print/1.
     \fmtchar{q}
 Give the next argument to writeq/1.
     \fmtchar{r}
-Print integer in radix the numeric argument notation. Thus
+Print integer in radix numeric argument notation. Thus
 \fmtseq{~16r} prints its argument hexadecimal. The argument should
-be in the range $[2, \ldots, 36]$. Lower case letters are used for
+be in the range $[2, \ldots, 36]$. Lowercase letters are used for
 digits above 9.
     \fmtchar{R}
-Same as {\bf r}, but uses upper case letters for digits above 9.
-
+Same as {\bf r}, but uses uppercase letters for digits above 9.
     \fmtchar{s}
 Output text from a list of character codes or a string (see string/1 and
 \secref{strings}) from the next argument.\footnote{The \textbf{s}
-modifier also accept an atom for compatibility.  This is deprecated
+modifier also accepts an atom for compatibility.  This is deprecated
 due to the ambiguity of \texttt{[]}.}
-
     \fmtchar{@}
 Interpret the next argument as a goal and execute it.  Output written
 to the \const{current_output} stream is inserted at this place.  Goal
 is called in the module calling format/3.  This option is not present
 in the original definition by Quintus, but supported by some other
 Prolog systems.
-
     \fmtchar{t}
 All remaining space between 2 tab stops is distributed equally over
 \fmtseq{~t} statements between the tab stops. This space is padded
-with spaces by default. If an argument is supplied this is taken to be
+with spaces by default. If an argument is supplied, it is taken to be
 the character code of the character used for padding. This can be
 used to do left or right alignment, centering, distributing, etc. See
 also \fmtseq{~|} and \fmtseq{~+} to set tab stops. A tab stop is
 assumed at the start of each line.
-
     \fmtchar{|}
 Set a tab stop on the current position. If an argument is supplied set
 a tab stop on the position of that argument. This will cause all
 \fmtseq{~t}'s to be distributed between the previous and this tab stop.
 \fmtchar{+} Set a tab stop relative to the current position. Further
-the same as \fmtseq{~|}. \fmtchar{w} Give the next argument to write/1.
-
+the same as \fmtseq{~|}.
+    \fmtchar{w}
+Give the next argument to write/1.
     \fmtchar{W}
-Give the next two argument to write_term/2.  E.g.\
+Give the next two arguments to write_term/2.  For example,
 \exam{format('~W', [Term, [numbervars(true)]])}.
 This option is SWI-Prolog specific.
 \end{itemize}
@@ -5989,7 +5986,7 @@ simple_statistics :-
     ....
 \end{code}
 
-Will output
+will output
 
 \begin{code}
                              Statistics
@@ -6020,16 +6017,16 @@ A = '1,000,000'
     \predicate{format_predicate}{2}{+Char, +Head}
 If a sequence \fmtseq{~c} (tilde, followed by some character) is
 found, the format derivatives will first check whether the user has
-defined a predicate to handle the format. If not, the built in
+defined a predicate to handle the format. If not, the built-in
 formatting rules described above are used. \arg{Char} is either an {\sc
-ascii} value, or a one character atom, specifying the letter to be
+ascii} value, or a one-character atom, specifying the letter to be
 (re)defined. \arg{Head} is a term, whose name and arity are used to
 determine the predicate to call for the redefined formatting character.
 The first argument to the predicate is the numeric argument of the
 format command, or the atom \const{default} if no argument is specified.
 The remaining arguments are filled from the argument list. The example
-below redefines \fmtseq{~n} to produce \arg{Arg} times return
-followed by linefeed (so a (Grr.) DOS machine is happy with the output).
+below redefines \fmtseq{~n} to produce <return>
+followed by <linefeed> \arg{Arg} times (so a (Grr.) DOS machine is happy with the output).
 
 \begin{code}
 :- format_predicate(n, dos_newline(_Arg)).
@@ -6055,23 +6052,23 @@ dos_newline(N) :-
 \section{Terminal Control}		\label{sec:tty}
 
 The following predicates form a simple access mechanism to the Unix termcap
-library to provide terminal independent I/O for screen terminals. These
+library to provide terminal-independent I/O for screen terminals. These
 predicates are only available on Unix machines.  The SWI-Prolog Windows
-consoles accepts the ANSI escape sequences.
+console accepts the ANSI escape sequences.
 
 \begin{description}
     \predicate{tty_get_capability}{3}{+Name, +Type, -Result}
 Get the capability named \arg{Name} from the termcap library.  See
 termcap(5) for the capability names. \arg{Type} specifies the type of
 the expected result, and is one of \const{string}, \const{number} or
-\const{bool}.  String results are returned as an atom, number result as
-an integer and bool results as the atom \const{on} or \const{off}.  If
-an option cannot be found this predicate fails silently.  The
+\const{bool}.  String results are returned as an atom, number results as
+an integer, and bool results as the atom \const{on} or \const{off}.  If
+an option cannot be found, this predicate fails silently.  The
 results are only computed once. Successive queries on the same
 capability are fast.
     \predicate{tty_goto}{2}{+X, +Y}
 Goto position \mbox{(\arg{X}, \arg{Y})} on the screen.  Note that the predicates
-line_count/2 and line_position/2 will not have a well defined
+line_count/2 and line_position/2 will not have a well-defined
 behaviour while using this predicate.
     \predicate{tty_put}{2}{+Atom, +Lines}
 Put an atom via the termcap library function tputs().  This function
@@ -6080,7 +6077,7 @@ and should be used to output these strings. \arg{Lines} is the
 number of lines affected by the operation, or 1 if not applicable (as
 in almost all cases).
     \predicate{set_tty}{2}{-OldStream, +NewStream}
-Set the output stream, used by tty_put/2 and tty_goto/2 to a
+Set the output stream used by tty_put/2 and tty_goto/2 to a
 specific stream. Default is user_output.
     \predicate{tty_size}{2}{-Rows, -Columns}
 Determine the size of the terminal.  Platforms:
@@ -6110,7 +6107,7 @@ Execute \arg{Command} on the operating system. \arg{Command} is given to the
 Bourne shell (/bin/sh). \arg{Status} is unified with the exit status of
 the command.
 
-On \arg{Win32} systems, shell/[1,2] executes the command using the
+On Win32 systems, shell/[1,2] executes the command using the
 CreateProcess() API and waits for the command to terminate. If the
 command ends with a \chr{\&} sign, the command is handed to the
 WinExec() API, which does not wait for the new task to terminate. See
@@ -6125,7 +6122,7 @@ can only be activated using the command interpreter. For example:
 Equivalent to `\exam{shell(Command, 0)}'.
 
     \predicate{shell}{0}{}
-Start an interactive Unix shell.  Default is \file{/bin/sh}, the
+Start an interactive Unix shell.  Default is \file{/bin/sh}; the
 environment variable \env{SHELL} overrides this default.  Not available
 for Win32 platforms.
 
@@ -6146,13 +6143,12 @@ written in lowercase without the \const{SW_*}:
 \const{shownoactive}
 \const{shownormal}.
 In addition, \const{iconic} is a synonym for \const{minimize} and
-\const{normal} for \const{shownormal}
+\const{normal} for \const{shownormal}.
 
     \predicate{win_shell}{2}{+Operation, +File, +Show}
-Win32 systems only. Opens the document \arg{File} using the windows
-shell-rules for doing so. \arg{Operation} is one of \const{open},
-\const{print} or \const{explore} or another operation registered with
-the shell for the given document-type.  On modern systems it is also
+Win32 systems only. Opens the document \arg{File} using the Windows
+shell rules for doing so. \arg{Operation} is one of \const{open}, \const{print}
+or \const{explore} or another operation registered with the shell for the given document type.  On modern systems it is also
 possible to pass a \index{URL}URL as \arg{File}, opening the URL in
 Windows default browser. This call interfaces to the Win32 API
 ShellExecute().  The \arg{Show} argument determines the initial
@@ -6164,11 +6160,11 @@ Same as \term{win_shell}{Operation, File, normal}
 
     \predicate{win_registry_get_value}{3}{+Key, +Name, -Value}
 Win32 systems only. Fetches the value of a Win32 registry key.
-\arg{Key} is an atom formed as a path-name describing the desired
+\arg{Key} is an atom formed as a path name describing the desired
 registry key. \arg{Name} is the desired attribute name of the key.
 \arg{Value} is unified with the value. If the value is of type
 \type{DWORD}, the value is returned as an integer. If the value is a
-string it is returned as a Prolog atom. Other types are currently not
+string, it is returned as a Prolog atom. Other types are currently not
 supported. The default `root' is \const{HKEY_CURRENT_USER}. Other roots
 can be specified explicitly as \const{HKEY_CLASSES_ROOT},
 \const{HKEY_CURRENT_USER}, \const{HKEY_LOCAL_MACHINE} or
@@ -6184,8 +6180,8 @@ Ext = pl
 \end{code}
 
     \predicate{win_folder}{2}{?Name, -Directory}
-Is true if \arg{Name} is the Windows `CSIDL' of \arg{Directory}.  If
-\arg{Name} is unbound all known Windows special paths are generated.
+True if \arg{Name} is the Windows `CSIDL' of \arg{Directory}.  If
+\arg{Name} is unbound, all known Windows special paths are generated.
 \arg{Name} is the CSIDL after deleting the leading \const{CSIDL_} and
 mapping the constant to lowercase.  Check the Windows documentation
 for the function SHGetSpecialFolderPath() for a description of the
@@ -6218,15 +6214,15 @@ the underlying unsetenv() library function. On these systems unsetenv/1
 sets the variable to the empty string.
 
     \predicate{setlocale}{3}{+Category, -Old, +New}
-Set/Query the \jargon{locale} setting which tells the C-library how to
-interpret text-files, write numbers, dates, etc. Category is one of
+Set/Query the \jargon{locale} setting which tells the C library how to
+interpret text files, write numbers, dates, etc. Category is one of
 \const{all}, \const{collate}, \const{ctype}, \const{messages},
 \const{monetary}, \const{numeric} or \const{time}. For details, please
-consult the C-library locale documentation. See also \secref{encoding}.
+consult the C library locale documentation. See also \secref{encoding}.
 Please note that the locale is shared between all threads and
 thread-safe usage of setlocale/3 is in general not possible. Do locale
 operations before starting threads or thoroughly study threading aspects
-of locale support in your environment before use in multi-threaded
+of locale support in your environment before using in multi-threaded
 environments. Locale settings are used by format_time/3, collation_key/2
 and locale_sort/2.
 
@@ -6255,12 +6251,12 @@ Equivalent to calling working_directory/2. Use for compatibility
 only.
 
     \termitem{argv}{-Argv}
-Unify \arg{Argv} with the list of command line arguments provides to
-this Prolog run. Please note that Prolog system-arguments and
+Unify \arg{Argv} with the list of command line arguments provided to
+this Prolog run. Please note that Prolog system arguments and
 application arguments are separated by \const{--}.  Integer arguments
 are passed as Prolog integers, float arguments and Prolog floating
 point numbers and all other arguments as Prolog atoms.  New applications
-should use the Prolog flag \prologflag{argv}.  See also prolog Prolog flag
+should use the Prolog flag \prologflag{argv}.  See also the Prolog flag
 \prologflag{argv}.
 
 A stand-alone program could use the following skeleton to handle
@@ -6279,14 +6275,14 @@ main :-
 \subsection{Dealing with time and date}		\label{sec:timedate}
 
 Representing time in a computer system is surprisingly complicated.
-There are a large number of time representations in use and the correct
+There are a large number of time representations in use, and the correct
 choice depends on factors such as compactness, resolution and desired
 operations. Humans tend to think about time in hours, days, months,
 years or centuries. Physicists think about time in seconds. But, a month
 does not have a defined number of seconds. Even a day does not have a
 defined number of seconds as sometimes a leap-second is introduced to
 synchronise properly with our earth's rotation. At the same time,
-resolution demands range from better then pico-seconds to millions of
+resolution demands a range from better than pico-seconds to millions of
 years. Finally, civilizations have a wide range of calendars. Although
 there exist libraries dealing with most if this complexity, our desire
 to keep Prolog clean and lean stops us from fully supporting these.
@@ -6294,21 +6290,21 @@ to keep Prolog clean and lean stops us from fully supporting these.
 For human-oriented tasks, time can be broken into years, months, days,
 hours, minutes, seconds and a timezone. Physicists prefer to have time
 in an arithmetic type representing seconds or fraction thereof, so basic
-arithmetic deal with comparison and durations. An additional advantage
-of the physicists approach is that it requires much less space. For
+arithmetic deals with comparison and durations. An additional advantage
+of the physicist's approach is that it requires much less space. For
 these reasons, SWI-Prolog uses an arithmetic type as its prime time
 representation.
 
 Many C libraries deal with time using fixed-point arithmetic, dealing
 with a large but finite time interval at constant resolution. In our
-opinion using a floating point number is a more natural choice as we can
+opinion, using a floating point number is a more natural choice as we can
 use a natural unit and the interface does not need to be changed if
 a higher resolution is required in the future. Our unit of choice is the
 second as it is the scientific unit.%
 	\footnote{Using Julian days is a choice made by the Eclipse
 		  team.  As conversion to dates is needed for a human
 		  readable notation of time and Julian days cannot deal
-		  naturally with leap seconds, we decided for second as
+		  naturally with leap seconds, we decided for the second as
 		  our unit.}
 We have placed our origin at 1970-1-1T0:0:0Z for compatibility with the
 POSIX notion of time as well as with older time support provided by
@@ -6319,30 +6315,30 @@ functions, the current implementation uses
 \url[libtai]{http://cr.yp.to/libtai.html} to realise conversion between
 time-stamps and calendar dates for a period of 10 million years.
 
-\subsubsection{Time and date data-structures}
+\subsubsection{Time and date data structures}
 \label{sec:dattimedata}
 
 We use the following time representations
 
 \begin{description}
     \definition{TimeStamp}
-A TimeStamp is a floating point number expression the time in seconds
+A TimeStamp is a floating point number expressing the time in seconds
 since the Epoch at 1970-1-1.
 
     \termitem{date}{Y,M,D,H,Mn,S,Off,TZ,DST}
 We call this term a \emph{date-time} structure. The first 5 fields are
-integers expressing the year, month (1..12), day (1..31), hour (0..23),
-Minute (0..59). The \arg{S} field holds the seconds as a floating point
+integers expressing the year, month (1..12), day (1..31), hour (0..23)
+and minute (0..59). The \arg{S} field holds the seconds as a floating point
 number between 0.0 and 60.0. \arg{Off} is an integer representing the
-offset relative to UTC in seconds where positive values are west of
-Greenwich.  If converted from local time (see stamp_date_time/3,
+offset relative to UTC in seconds, where positive values are west of
+Greenwich.  If converted from local time (see stamp_date_time/3),
 \arg{TZ} holds the name of the local timezone.  If the timezone is
-not known \arg{TZ} is the atom \const{-}.  \arg{DST} is \const{true}
+not known, \arg{TZ} is the atom \const{-}.  \arg{DST} is \const{true}
 if daylight saving time applies to the current time, \const{false}
-if daylight saving time is relevant but not effective and \const{-}
+if daylight saving time is relevant but not effective, and \const{-}
 if unknown or the timezone has no daylight saving time.
 
-    \termitem{date}{Y,M.D}
+    \termitem{date}{Y,M,D}
 Date using the same values as described above.  Extracted using
 date_time_value/3.
 
@@ -6357,14 +6353,13 @@ date_time_value/3.
 
 \begin{description}
     \predicate{get_time}{1}{-TimeStamp}
-Return the current time as a \arg{TimeStamp}.  The granularity is system
-dependent.  See \secref{dattimedata}.
+Return the current time as a \arg{TimeStamp}.  The granularity is system-dependent.  See \secref{dattimedata}.
 
     \predicate{stamp_date_time}{3}{+TimeStamp, -DateTime, +TimeZone}
-Convert a \arg{TimeStamp} to a \arg{DateTime} in the given time zone.
-See \secref{dattimedata} for details on the data-types.  \arg{TimeZone}
+Convert a \arg{TimeStamp} to a \arg{DateTime} in the given timezone.
+See \secref{dattimedata} for details on the data types.  \arg{TimeZone}
 describes the timezone for the conversion.  It is one of \const{local}
-to extract the local time, \const{'UTC'} to extract at UTC time or an
+to extract the local time, \const{'UTC'} to extract a UTC time or an
 integer describing the seconds west of Greenwich.
 
     \predicate{date_time_stamp}{2}{+DateTime, -TimeStamp}
@@ -6398,7 +6393,7 @@ Extract values from a {date}/9 term.  Provided keys are:
 \const{second}	&  Clock second as a float 0.0..60.0 \\
 \const{utc_offset}	&  Offset to UTC in seconds (positive is west) \\
 \const{time_zone}	&  Name of timezone; fails if unknown \\
-\const{daylight_saving}	&  Bool \const(true) if dst is effective \\
+\const{daylight_saving}	&  Bool \const(true) if dst is in effect \\
 \const{date}	&  Term \term{date}{Y,M,D} \\
 \const{time}	&  Term \term{time}{H,M,S} \\
 \hline
@@ -6411,7 +6406,7 @@ is a destination as specified with with_output_to/2.  \arg{Format}
 is an atom or string with the following conversions.  Conversions
 start with a tilde (\%) character.%
 	\footnote{Descriptions taken from Linux Programmer's Manual}
-\arg{StampOrDateTime} is either a (numeric time-stamp, a term
+\arg{StampOrDateTime} is either a numeric time-stamp, a term
 \term{date}{Y,M,D,H,M,S,O,TZ,DST} or a term \term{date}{Y,M,D}.
 
 \begin{itemize}
@@ -6435,9 +6430,9 @@ The century number ({year}/100) as a 2-digit integer.
     \fmtchar{d}
 The day of the month as a decimal number (range 01 to 31).
     \fmtchar{D}
-Equivalent to \%m/\%d/\%y. (Yecch — for Americans only. Americans should
+Equivalent to \%m/\%d/\%y. (For Americans only. Americans should
 note that in other countries \%d/\%m/\%y is rather common. This means
-that in international context this format is ambiguous and should not
+that in an international context this format is ambiguous and should not
 be used.)
     \fmtchar{e}
 Like \%d, the day of the month as a decimal number, but a leading
@@ -6448,7 +6443,7 @@ Modifier.  Not implemented.
 Number of microseconds.  The \const{f} can be prefixed by an integer
 to print the desired number of digits.  E.g., \const{\%3f} prints
 milliseconds.  This format is not covered by any standard, but
-available with different format-specifiers in various incarnations
+available with different format specifiers in various incarnations
 of the strftime() function.
     \fmtchar{F}
 Equivalent to \%Y-\%m-\%d (the ISO 8601 date format).
@@ -6533,18 +6528,21 @@ The year as a decimal number without a century (range 00 to 99).
     \fmtchar{Y}
 The year as a decimal number including the century.
     \fmtchar{z}
-The time-zone as hour offset from GMT using the format HHmm. Required to
+The timezone as hour offset from GMT using the format HHmm. Required to
 emit RFC822-conforming dates (using
 \texttt{'\%a,~\%d~\%b~\%Y~\%T~\%z'}). Our implementation supports
 \texttt{\%:z}, which modifies the output to HH:mm as required by
-XML-Schema. Note that both notations are valid in ISO8601. The
+XML-Schema. Note that both notations are valid in ISO 8601. The
 sequence \texttt{\%:z} is compatible to the GNU	date(1) command.
     \fmtchar{Z}
-The time zone or name or abbreviation. \fmtchar{+} The date and time in
-date(1) format. \fmtchar{\%} A literal `\%' character.
+The timezone or name or abbreviation.
+    \fmtchar{+}
+The date and time in date(1) format.
+    \fmtchar{\%}
+A literal `\%' character.
 \end{itemize}
 
-The table below, gives some format strings for popular time
+The table below gives some format strings for popular time
 representations.  RFC1123 is used by HTTP.  The full implementation of
 http_timestamp/2 as available from \pllib{http/http_header} is here.
 
@@ -6576,7 +6574,7 @@ Format time given a specified \arg{Locale}. This predicate is a
 work-around for lacking proper portable and thread-safe time and locale
 handling in current C libraries.  In its current implementation the only
 value allowed for \arg{Locale} is \const{posix}, which currently only
-modifies the behaviour or the \chr{a}, \chr{A}, \chr{b} and \chr{B}
+modifies the behaviour of the \chr{a}, \chr{A}, \chr{b} and \chr{B}
 format specifiers.  The predicate is used to be able to emit POSIX
 locale week and month names for emitting standardised time-stamps
 such as RFC1123.
@@ -6587,7 +6585,7 @@ Same as \term{parse_time}{Text, _Format, Stamp}.  See parse_time/3.
     \predicate{parse_time}{3}{+Text, ?Format, -Stamp}
 Parse a textual time representation, producing a time-stamp.  Supported
 formats for \arg{Text} are in the table below.  If the format is known,
-it may be given to reduce parse-time and avoid ambiguities.  Otherwise,
+it may be given to reduce parse time and avoid ambiguities.  Otherwise,
 \arg{Format} is unified with the format encountered.
 
 \begin{center}
@@ -6611,9 +6609,9 @@ iso_8601 & \tt 2006-12-08T17:29:44+02:00 \\
 
     \predicate{day_of_the_week}{2}{+Date,-DayOfTheWeek}
 Computes the day of the week for a given date.
-\exam{\arg{Date} = date(\arg{Year},\arg{Month},\arg{Day})},
-Days of the week are numbered from one to seven: monday = 1, tuesday =
-2, \ldots, sunday = 7.
+\exam{\arg{Date} = date(\arg{Year},\arg{Month},\arg{Day})}.
+Days of the week are numbered from one to seven: Monday = 1, Tuesday =
+2, \ldots, Sunday = 7.
 \end{description}
 
 \subsection{Controlling the \program{swipl-win.exe} console window}
@@ -6621,7 +6619,7 @@ Days of the week are numbered from one to seven: monday = 1, tuesday =
 
 The Windows executable \program{swipl-win.exe} console has a number of
 predicates to control the appearance of the console. Being totally
-non-portable, we do not advice using it for your own application, but
+non-portable, we do not advise using it for your own application, but
 use XPCE or another portable GUI platform instead. We give the
 predicates for reference here.
 
@@ -6635,12 +6633,12 @@ title to \arg{New}.%
     \predicate{win_window_pos}{1}{+ListOfOptions}
 Interface to the MS-Windows SetWindowPos() function, controlling
 size, position and stacking order of the window.  \arg{ListOfOptions}
-is a list that may hold any number of the terms below.
+is a list that may hold any number of the terms below:
 
 \begin{description}
     \termitem{size}{W, H}
 Change the size of the window.  \arg{W} and \arg{H} are expressed
-in character-units.
+in character units.
     \termitem{position}{X, Y}
 Change the top-left corner of the window.  The values are expressed
 in pixel units.
@@ -6659,11 +6657,11 @@ True if win_insert_menu/2 and win_insert_menu_item/4 are present.
 
     \predicate{win_insert_menu}{2}{+Label, +Before}
 Insert a new entry (pulldown) in the menu.  If the menu already contains
-this entry, nothing is done.  The \arg{Label} is the label and using the
-Windows conventions, a letter prefixed with \const{\&} is underlined and
+this entry, nothing is done.  The \arg{Label} is the label and, using the
+Windows convention, a letter prefixed with \const{\&} is underlined and
 defines the associated accelerator key. \arg{Before} is the label before
 which this one must be inserted. Using \chr{-} adds the new entry at the
-end (right).  For example, the call below adds a {\sf Application}
+end (right).  For example, the call below adds an {\sf Application}
 entry just before the {\sf Help} menu.
 
 \begin{code}
@@ -6682,15 +6680,15 @@ the item.
 
 \begin{description}
     \predicate{access_file}{2}{+File, +Mode}
-True if \arg{File} exists and can be accessed by this prolog
+True if \arg{File} exists and can be accessed by this Prolog
 process under mode \arg{Mode}.  \arg{Mode} is one of the atoms
 \const{read}, \const{write}, \const{append}, \const{exist}, \const{none} or
 \const{execute}. \arg{File} may also be the name of a directory. Fails
 silently otherwise.  \exam{access_file(File, none)} simply succeeds
 without testing anything.
 
-If `Mode' is \const{write} or \const{append}, this predicate also succeeds
-if the file does not exist and the user has write-access to the
+If \arg{Mode} is \const{write} or \const{append}, this predicate also succeeds
+if the file does not exist and the user has write access to the
 directory of the specified location.
 
     \predicate{exists_file}{1}{+File}
@@ -6698,14 +6696,14 @@ True if \arg{File} exists and is a regular file. This does not
 imply the user has read and/or write permission for the file.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
-Extracts the directory-part of \arg{File}.  The returned \arg{Directory}
+Extracts the directory part of \arg{File}.  The returned \arg{Directory}
 name does not end in \const{/}.  There are two special cases.  The
-directory-name of \const{/} is \const{/} itself and the directory-name
-if \arg{File} does not contain any \const{/} characters is \const{.}.
+directory name of \const{/} is \const{/} itself, and the directory name is \const{.}
+if \arg{File} does not contain any \const{/} characters.
 
     \predicate{file_base_name}{2}{+File, -BaseName}
 Extracts the filename part from a path specification. If \arg{File} does
-not contain any directory separators, \arg{File} is returned.
+not contain any directory separators, \arg{File} is returned in \arg{BaseName}.
 
     \predicate{same_file}{2}{+File1, +File2}
 True if both filenames refer to the same physical file.  That is,
@@ -6715,16 +6713,16 @@ relative vs. absolute paths).
 
     \predicate{exists_directory}{1}{+Directory}
 True if \arg{Directory} exists and is a directory. This does not
-imply the user has read, search and or write permission for the
+imply the user has read, search or write permission for the
 directory.
 
     \predicate{delete_file}{1}{+File}
 Remove \arg{File} from the file system.
 
     \predicate{rename_file}{2}{+File1, +File2}
-Rename \arg{File1} into \arg{File2}. The semantics is compatible to the
+Rename \arg{File1} as \arg{File2}. The semantics is compatible to the
 POSIX semantics of the rename() system call as far as the operating
-system allows. if \arg{File2} exists, the operation succeeds (except for
+system allows. If \arg{File2} exists, the operation succeeds (except for
 possible permission errors) and is \jargon{atomic} (meaning there is no
 window where \arg{File2} does not exist).
 
@@ -6739,14 +6737,14 @@ since Jan~1, 1970. See also convert_time/[2,8] and get_time/1.
     \predicate{absolute_file_name}{2}{+File, -Absolute}
 Expand a local filename into an absolute path. The absolute path is
 canonised: references to \file{.} and \file{..} are deleted. This
-predicate ensures that expanding a filename it returns the same
+predicate ensures that expanding a filename returns the same
 absolute path regardless of how the file is addressed. SWI-Prolog uses
 absolute filenames to register source files independent of the current
 working directory. See also absolute_file_name/3. See also
 absolute_file_name/3 and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
-Converts the given file specification into an absolute path. \arg{Spec}
+Convert the given file specification into an absolute path. \arg{Spec}
 is a term Alias(Relative) (e.g., \verb$(library(lists)$), a relative
 filename or an absolute filename. The primary intention of this
 predicate is to resolve files specified as Alias(Relative).
@@ -6754,14 +6752,14 @@ predicate is to resolve files specified as Alias(Relative).
 
 \begin{description}
     \termitem{extensions}{ListOfExtensions}
-List of file-extensions to try.  Default is \const{''}.  For each
+List of file extensions to try.  Default is \const{''}.  For each
 extension, absolute_file_name/3 will first add the extension and then
 verify the conditions imposed by the other options.  If the condition
-fails, the next extension of the list is tried.  Extensions may be
+fails, the next extension on the list is tried.  Extensions may be
 specified both as \fileext{ext} or plain \const{ext}.
 
     \termitem{relative_to}{+FileOrDir}
-Resolve the path relative to the given directory or directory the
+Resolve the path relative to the given directory or the directory
 holding the given file.  Without this option, paths are resolved
 relative to the working directory (see working_directory/2) or,
 if \arg{Spec} is atomic and absolute_file_name/[2,3] is executed
@@ -6769,25 +6767,25 @@ in a directive, it uses the current source file as reference.
 
     \termitem{access}{Mode}
 Imposes the condition access_file(\arg{File}, \arg{Mode}).  \arg{Mode}
-is on of \const{read}, \const{write}, \const{append},
+is one of \const{read}, \const{write}, \const{append},
 \const{execute}, \const{exist} or \const{none}. See also access_file/2.
 
     \termitem{file_type}{Type}
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
 \const{['.so', '']}, \const{qlf} implies \const{['.qlf', '']} and
-\const{directory} implies \const{['']}. The file-type \const{source} is
+\const{directory} implies \const{['']}. The file type \const{source} is
 an alias for \const{prolog} for compatibility with SICStus Prolog. See
 also prolog_file_type/2. This predicate only returns non-directories,
 unless the option \term{file_type}{directory} is specified.
 
     \termitem{file_errors}{fail/error}
-If \const{error} (default), throw and \const{existence_error} exception
+If \const{error} (default), throw an \const{existence_error} exception
 if the file cannot be found.  If \const{fail}, stay silent.%
 	\footnote{Silent operation was the default up to version 3.2.6.}
 
     \termitem{solutions}{first/all}
-If \const{first} (default), the predicates leaves no choice-point.
+If \const{first} (default), the predicate leaves no choice-point.
 Otherwise a choice-point will be left and backtracking may yield
 more solutions.
 
@@ -6806,8 +6804,8 @@ The argument order has been changed for compatibility with ISO and
 SICStus.  The Quintus argument order is still accepted.
 
     \predicate{is_absolute_file_name}{1}{+File}
-True if \arg{File} specifies and absolute path-name.  On Unix systems,
-this implies the path starts with a `/'.  For Microsoft based systems
+True if \arg{File} specifies an absolute path name.  On Unix systems,
+this implies the path starts with a `/'.  For Microsoft-based systems
 this implies the path starts with \file{<letter>:}. This predicate is
 intended to provide platform-independent checking for absolute paths.
 See also absolute_file_name/2 and prolog_to_os_filename/2.
@@ -6816,35 +6814,35 @@ See also absolute_file_name/2 and prolog_to_os_filename/2.
 This predicate is used to add, remove or test filename extensions. The
 main reason for its introduction is to deal with different filename
 properties in a portable manner.  If the file system is case-insensitive,
-testing for an extension will be done case-insensitive too. \arg{Extension} may be specified with or without a leading dot (\chr{.}).
+testing for an extension will also be done case-insensitive. \arg{Extension} may be specified with or without a leading dot (\chr{.}).
 If an \arg{Extension} is generated, it will not have a leading dot.
 
     \predicate{directory_files}{2}{+Directory, -Entries}
-Unifies \arg{Entries} with a list of entries in \arg{Directory}.
+Unify \arg{Entries} with a list of entries in \arg{Directory}.
 Each member of \arg{Entries} is an atom denoting an entry relative
 to \arg{Directory}. \arg{Entries} contains all entries, including hidden
 files and, if supplied by the OS, the special entries \const{.} and
 \const{..}.  See also expand_file_name/2.\footnote{This predicate should
 be considered a misnomer because it returns entries rather than files.
-We stick to this name for compatibility with e.g., SICStus, Ciao and
+We stick to this name for compatibility with, e.g., SICStus, Ciao and
 YAP.}
 
     \predicate{expand_file_name}{2}{+WildCard, -List}
 Unify \arg{List} with a sorted list of files or directories matching
 \arg{WildCard}. The normal Unix wildcard constructs `\const{?}',
 `\const{*}', `\const{[\ldots]}' and `\const{\{\ldots\}}' are recognised.
-The interpretation of `\const{\{\ldots\}}' is interpreted slightly
-different from the C shell (csh(1)). The comma separated argument can be
+The interpretation of `\const{\{\ldots\}}' is slightly
+different from the C shell (csh(1)). The comma-separated argument can be
 arbitrary patterns, including `\const{\{\ldots\}}' patterns. The empty
 pattern is legal as well: `\file{\{.pl,\}}' matches either `\file{.pl}'
 or the empty string.
 
 If the pattern contains wildcard characters, only existing files and
 directories are returned. Expanding a `pattern' without wildcard
-characters returns the argument, regardless on whether or not it exists.
+characters returns the argument, regardless of whether or not it exists.
 
 Before expanding wildcards, the construct \file{\$\arg{var}} is expanded
-to the value of the environment variable \var{var} and a possible
+to the value of the environment variable \var{var}, and a possible
 leading \verb$~$ character is expanded to the user's home directory.%
     \footnote{On Windows, the home directory is determined as follows:
 	      if the environment variable \env{HOME} exists, this is
@@ -6853,13 +6851,13 @@ leading \verb$~$ character is expanded to the user's home directory.%
 	      the system will set the environment variable \env{HOME}
 	      to point to the SWI-Prolog home directory if neither
 	      \env{HOME} nor \env{HOMEPATH} and \env{HOMEDRIVE} are
-	      defined}.
+	      defined.}
 
     \predicate{prolog_to_os_filename}{2}{?PrologPath, ?OsPath}
-Converts between the internal Prolog pathname conventions and the
-operating-system pathname conventions.  The internal conventions are
-Unix and this predicates is equivalent to =/2 (unify) on Unix systems.
-On DOS systems it will change the directory-separator, limit the
+Convert between the internal Prolog path name conventions and the
+operating system path name conventions.  The internal conventions are
+Unix and this predicate is equivalent to =/2 (unify) on Unix systems.
+On DOS systems it will change the directory separator, limit the
 filename length map dots, except for the last one, onto underscores.
 
     \predicate{read_link}{3}{+File, -Link, -Target}
@@ -6874,7 +6872,7 @@ Create a name for a temporary file. \arg{Base} is an identifier for the
 category of file. The \arg{TmpName} is guaranteed to be unique. If the
 system halts, it will automatically remove all created temporary files.
 \arg{Base} is used as part of the final filename.  Portable applications
-should limit themselves to alphanumerical characters.
+should limit themselves to alphanumeric characters.
 
 Because it is possible to guess the generated filename, attackers may
 create the filesystem entry as a link and possibly create a security
@@ -6890,9 +6888,8 @@ which guarantees that the file did not exist before this call. This
 predicate is a safe replacement of tmp_file/2. Note that in those cases
 where the temporary file is needed to store output from an external
 command, the file must be closed first. E.g., the following downloads a
-file from a URL to a temporary file and opens the file for reading (On
-Unix systems you can delete the file after opening it for reading for
-cleanup):
+file from a URL to a temporary file and opens the file for reading (on
+Unix systems you can delete the file for cleanup after opening it for reading):
 
 \begin{code}
 open_url(URL, In) :-
@@ -6923,9 +6920,9 @@ Unify \arg{Old} with an absolute path to the current working directory
 and change working directory to \arg{New}.  Use the pattern
 \term{working_directory}{CWD, CWD} to get the current directory.  See
 also absolute_file_name/2 and chdir/1.%
-	\bug{Some of the file-I/O predicates use local filenames.
+	\bug{Some of the file I/O predicates use local filenames.
 	     Changing directory while file-bound streams are open causes
-	     wrong results on telling/1, seeing/1 and current_stream/3}
+	     wrong results on telling/1, seeing/1 and current_stream/3.}
 Note that the working directory is shared between all threads.
 
     \predicate{chdir}{1}{+Path}
@@ -6936,19 +6933,19 @@ Compatibility predicate.  New code should use working_directory/2.
 
 \begin{description}
     \predicate{break}{0}{}
-Recursively start a new Prolog top level. This Prolog top level has its
-own stacks, but shares the heap with all break environments and the top
-level. Debugging is switched off on entering a break and restored on
+Recursively start a new Prolog top-level. This Prolog top-level has its
+own stacks, but shares the heap with all break environments and the top-level.
+Debugging is switched off on entering a break and restored on
 leaving one. The break environment is terminated by typing the system's
 \mbox{end-of-file} character (control-D). If the
-\argoption{-t}{toplevel} command line option is given this goal is
-started instead of entering the default interactive top level
+\argoption{-t}{toplevel} command line option is given, this goal is
+started instead of entering the default interactive top-level
 (prolog/0).
 
     \predicate{abort}{0}{}
-Abort the Prolog execution and restart the top level. If the
-\argoption{-t}{toplevel} command line options is given this goal is
-started instead of entering the default interactive top level.
+Abort the Prolog execution and restart the top-level. If the
+\argoption{-t}{toplevel} command line option is given, this goal is
+started instead of entering the default interactive top-level.
 
 Aborting is implemented by throwing the reserved exception
 \verb=$aborted=. This exception can be caught using catch/3, but the
@@ -6964,7 +6961,7 @@ and `a'.
 \end{code}
 
     \predicate[ISO]{halt}{0}{}
-Terminate Prolog execution.  Open files are closed and if the command
+Terminate Prolog execution.  Open files are closed, and if the command
 line option \cmdlineoption{-tty} is not active the terminal status (see Unix
 stty(1)) is restored.  Hooks may be registered both in Prolog and in
 foreign code.  Prolog hooks are registered using at_halt/1.  halt/0
@@ -6975,11 +6972,11 @@ is equivalent to \exam{halt(0)}.%
 	     Future versions may enable halt/0 from any thread.}
 
     \predicate[ISO]{halt}{1}{+Status}
-Terminate Prolog execution with given status.  Status is an integer.
+Terminate Prolog execution with the given status.  Status is an integer.
 See also halt/0.
 
     \predicate{prolog}{0}{}
-This goal starts the default interactive top level. Queries are read
+This goal starts the default interactive top-level. Queries are read
 from the stream \const{user_input}. See also the Prolog flag
 \prologflag{history}. The prolog/0 predicate is terminated (succeeds) by
 typing the end-of-file character (typically control-D).
@@ -6999,7 +6996,8 @@ the query and bindings to be executed by the top-level.  This predicate
 is used by the top-level (prolog/0).  See also expand_answer/2 and
 term_expansion/2.
 
-    \predicate{expand_answer}{2}{+Bindings, -ExpandedBindings} Hook in
+    \predicate{expand_answer}{2}{+Bindings, -ExpandedBindings}
+Hook in
 module \const{user}, normally not defined. Expand the result of a
 successfully executed top-level query. \arg{Bindings} is the query
 $<Name>=<Value>$ binding list from the query. \arg{ExpandedBindings}
@@ -7013,12 +7011,12 @@ on a file.%
     \footnote{A similar facility was added to Edinburgh C-Prolog by
               Wouter Jansweijer.}
 All Prolog interaction, including warnings and tracer output, are written
-on the protocol file.
+to the protocol file.
 
 \begin{description}
     \predicate{protocol}{1}{+File}
 Start protocolling on file \arg{File}. If there is already a protocol
-file open then close it first. If \arg{File} exists it is truncated.
+file open, then close it first. If \arg{File} exists it is truncated.
     \predicate{protocola}{1}{+File}
 Equivalent to protocol/1, but does not truncate the \arg{File} if it
 exists.
@@ -7043,30 +7041,30 @@ tracer.  This front-end is installed using the predicate guitracer/0.
 Start the tracer. trace/0 itself cannot be seen in the tracer.  Note that
 the Prolog top-level treats trace/0 special; it means `trace the next goal'.
     \predicate{tracing}{0}{}
-True if the tracer is currently switched on.  tracing/0 itself can
-not be seen in the tracer.
+True if the tracer is currently switched on.  tracing/0 itself cannot
+be seen in the tracer.
     \predicate{notrace}{0}{}
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
     \predicate{guitracer}{0}{}
 Installs hooks (see prolog_trace_interception/4) into the system that
-redirects tracing information to a GUI front-end providing structured
-access to variable-bindings, graphical overview of the stack and
-highlighting of relevant source-code.
+redirect tracing information to a GUI front-end providing structured
+access to variable bindings, graphical overview of the stack and
+highlighting of relevant source code.
     \predicate{noguitracer}{0}{}
-Reverts back to the textual tracer.
+Revert back to the textual tracer.
     \predicate{trace}{1}{+Pred}
 Equivalent to \exam{trace(\arg{Pred}, +all)}.
     \predicate{trace}{2}{+Pred, +Ports}
 Put a trace-point on all predicates satisfying the predicate specification
 \arg{Pred}. \arg{Ports} is a list of port names (\const{call},
 \const{redo}, \const{exit}, \const{fail}). The atom \const{all} refers
-to all ports. If the port is preceded by a \const{-} sign the
-trace-point is cleared for the port. If it is preceded by a \const{+}
+to all ports. If the port is preceded by a \const{-} sign, the
+trace-point is cleared for the port. If it is preceded by a \const{+},
 the trace-point is set.
 
 The predicate trace/2 activates debug mode (see debug/0).  Each time
-a port (of the 4-port model) is passed that has a trace-point set the
-goal is printed as with trace/0.  Unlike trace/0 however, the execution
+a port (of the 4-port model) is passed that has a trace-point set, the
+goal is printed as with trace/0.  Unlike trace/0, however, the execution
 is continued without asking for further information.  Examples:
 
 \begin{center}
@@ -7092,13 +7090,13 @@ disables last-call optimisation and aggressive destruction of
 choice points to make debugging information accessible.  Implemented
 by the Prolog flag \prologflag{debug}.
 
-Note that the \const{min_free} parameters of all stacks is enlarged to
-8~K-cells if debugging is switched off to avoid excessive GC. GC
+Note that the \const{min_free} parameter of all stacks is enlarged to
+8~K cells if debugging is switched off in order to avoid excessive GC. GC
 complicates tracing because it renames the \textit{_G<NNN>} variables
 and replaces unreachable variables with the atom
 \verb$<garbage_collected>$. Calling nodebug/0 does \emph{not} reset the
-initial free-margin because several parts of the toplevel and debugger
-disable debugging of system code-regions.  See also set_prolog_stack/2.
+initial free-margin because several parts of the top-level and debugger
+disable debugging of system code regions.  See also set_prolog_stack/2.
 
     \predicate{nodebug}{0}{}
 Stop debugger.  Implemented by the Prolog flag \prologflag{debug}.  See
@@ -7120,7 +7118,7 @@ Set/query leashing (ports which allow for user interaction). \arg{Ports} is
 one of \arg{+Name}, \arg{-Name}, \arg{?Name} or a list of these.
 \arg{+Name} enables leashing on that port, \arg{-Name} disables it and
 \arg{?Name} succeeds or fails according to the current setting.
-Recognised ports are: \const{call}, \const{redo}, \const{exit}, \const{fail} and
+Recognised ports are \const{call}, \const{redo}, \const{exit}, \const{fail} and
 \const{unify}. The special shorthand \const{all} refers to all ports,
 \const{full} refers to all ports except for the unify port (default).
 \const{half} refers to the \const{call}, \const{redo} and \const{fail}
@@ -7128,10 +7126,10 @@ port.
 
     \predicate{visible}{1}{+Ports}
 Set the ports shown by the debugger. See leash/1 for a description of
-the port specification. Default is \const{full}.
+the \arg{Ports} specification. Default is \const{full}.
 
     \predicate{unknown}{2}{-Old, +New}
-Edinburgh-prolog compatibility predicate, interfacing to the ISO prolog
+Edinburgh-Prolog compatibility predicate, interfacing to the ISO Prolog
 flag \prologflag{unknown}. Values are \const{trace} (meaning \const{error})
 and \const{fail}. If the \prologflag{unknown} flag is set to
 \const{warning}, unknown/2 reports the value as \const{trace}.
@@ -7140,13 +7138,13 @@ and \const{fail}. If the \prologflag{unknown} flag is set to
 Set style checking options.  \arg{Spec} is either \mbox{\tt +<option>},
 \mbox{\tt -<option>}, \mbox{\tt ?(<option>)}%
 	\footnote{In older versions `\const{?}' was a prefix operator.
-		  Inversions after 5.5.13, explicit brackets are needed.}
+		  In versions after 5.5.13, explicit brackets are needed.}
 or a list of such options. \mbox{\tt +<option>} sets a style checking
 option, \mbox{\tt -<option>} clears it and \mbox{\tt ?(<option>)}
 succeeds or fails according to the current setting. consult/1 and
-derivatives resets the style checking options to their value before
-loading the file. If---for example---a file containing long atoms should
-be loaded the user can start the file with:
+derivatives reset the style checking options to their value before
+loading the file. If, for example, a file containing long atoms should
+be loaded, the user can start the file with:
 
 \begin{code}
 :- style_check(-atom).
@@ -7160,7 +7158,7 @@ Currently available options are:
 Name & Default & Description \\
 \hline
 \const{singleton}  & on & read_clause/1 (used by consult/1) warns
-                        on variables only appearing once in a term (clause)
+                        on variables appearing only once in a term (clause)
                         which have a name not starting with an
 			underscore. See \secref{singleton} for details
 			on variable handling and warnings. \\
@@ -7187,9 +7185,9 @@ Unify system statistics determined by \arg{Key} with \arg{Value}. The
 possible keys are given in the \tabref{statistics}.  The last part of
 the table contains keys for compatibility with other Prolog implementations
 (Quintus) for improved portability.  Note that the ISO standard does not
-define methods to collect system statistics. Space unit is bytes%
+define methods to collect system statistics. Space unit is bytes.%
 	\footnote{This may change to `cells' to enhance compatibility
-		  between the 32- and 64-bit versions.}.
+		  between the 32- and 64-bit versions.}
 Times are in seconds, represented as a floating point number. The
 Quintus compatibility keys express times in milliseconds.
 
@@ -7197,38 +7195,37 @@ Quintus compatibility keys express times in milliseconds.
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
 \hline
-agc		& Number of atom garbage-collections performed \\
+agc		& Number of atom garbage collections performed \\
 agc_gained	& Number of atoms removed \\
-agc_time	& Time spent in atom garbage-collections \\
+agc_time	& Time spent in atom garbage collections \\
 process_cputime & (User) {\sc cpu} time since Prolog was started in seconds \\
 cputime         & (User) {\sc cpu} time since thread was started in seconds \\
 inferences      & Total number of passes via the call and redo ports
-                  since Prolog was started. \\
-heapused        & Bytes heap in use by Prolog (0 if not maintained). \\
-heap_gc         & Number of heap garbage-collections performed.
+                  since Prolog was started \\
+heapused        & Bytes of heap in use by Prolog (0 if not maintained) \\
+heap_gc         & Number of heap garbage collections performed.
 		  Only provided if SWI-Prolog is configured with
 		  Boehm-GC.  See also garbage_collect_heap/0. \\
 c_stack		& System (C-) stack limit.  0 if not known. \\
 stack		& Total memory in use for stacks in all threads \\
-local           & Allocated size of the local stack in bytes. \\
-localused       & Number of bytes in use on the local stack. \\
+local           & Allocated size of the local stack in bytes \\
+localused       & Number of bytes in use on the local stack \\
 locallimit      & Size to which the local stack is allowed to grow \\
 local_shifts	& Number of local-stack expansions \\
-global          & Allocated size of the global stack in bytes. \\
-globalused      & Number of bytes in use on the global stack. \\
+global          & Allocated size of the global stack in bytes \\
+globalused      & Number of bytes in use on the global stack \\
 globallimit     & Size to which the global stack is allowed to grow \\
 global_shifts	& Number of global-stack expansions \\
-trail           & Allocated size of the trail stack in bytes. \\
-trailused       & Number of bytes in use on the trail stack. \\
+trail           & Allocated size of the trail stack in bytes \\
+trailused       & Number of bytes in use on the trail stack \\
 traillimit      & Size to which the trail stack is allowed to grow \\
 trail_shifts	& Number of trail-stack expansions \\
 shift_time	& Time spent in stack-shifts \\
-atoms           & Total number of defined atoms. \\
-functors        & Total number of defined name/arity pairs. \\
-functors        & Total number of defined name/arity pairs. \\
-clauses         & Total number of clauses in the program. \\
-modules         & Total number of defined modules. \\
-codes           & Total size of (virtual) executable code in words. \\
+atoms           & Total number of defined atoms \\
+functors        & Total number of defined name/arity pairs \\
+clauses         & Total number of clauses in the program \\
+modules         & Total number of defined modules \\
+codes           & Total size of (virtual) executable code in words \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
 thread_cputime  & MT-version: seconds CPU time used by finished threads.
@@ -7275,12 +7272,12 @@ core		& Same as memory \\
     \predicate{statistics}{0}{}
 Display a table of system statistics on the current output stream.
     \predicate{time}{1}{:Goal}
-Execute \arg{Goal} just like call/1 and print used time, number of
+Execute \arg{Goal} just like call/1 and print time used, number of
 logical inferences and the average number of \arg{lips} (logical
 inferences per second). Note that SWI-Prolog counts the actual executed
-number of inferences rather than the number of passes through the call-
+number of inferences rather than the number of passes through the call
 and redo ports of the theoretical 4-port model. If \arg{Goal} is
-non-deterministic prints statistics for each solution, where the
+non-deterministic, print statistics for each solution, where the
 reported values are relative to the previous answer.
 \end{description}
 
@@ -7299,19 +7296,19 @@ reported values are relative to the previous answer.
 
 \begin{description}
     \predicate{garbage_collect}{0}{}
-Invoke the global- and trail stack garbage collector.  Normally the
+Invoke the global and trail stack garbage collector.  Normally the
 garbage collector is invoked automatically if necessary.  Explicit
 invocation might be useful to reduce the need for garbage collections in
-time critical segments of the code.  After the garbage collection
+time-critical segments of the code.  After the garbage collection
 trim_stacks/0 is invoked to release the collected memory resources.
 
     \predicate{garbage_collect_atoms}{0}{}
 Reclaim unused atoms. Normally invoked after \prologflag{agc_margin} (a
 Prolog flag) atoms have been created. On multi-threaded versions the
-actual collection is delayed until there there are no threads performing
+actual collection is delayed until there are no threads performing
 normal garbage collection. In this case garbage_collect_atoms/0 returns
-immediately. Note this implies there is no guarantee it will \emph{ever}
-happen as there may always be threads performing garbage collection.
+immediately. Note that there is no guarantee it will \emph{ever}
+happen, as there may always be threads performing garbage collection.
 
     \predicate{trim_stacks}{0}{}
 Release stack memory resources that are not in use at this moment,
@@ -7328,15 +7325,15 @@ loop :-
         stop_condition, !.
 \end{code}
 
-The prolog top level loop is written this way, reclaiming memory
+The Prolog top-level loop is written this way, reclaiming memory
 resources after every user query.
 
     \predicate{set_prolog_stack}{2}{+Stack, +KeyValue}
 Set a parameter for one of the Prolog runtime stacks. \arg{Stack} is one
 of \const{local}, \const{global}, \const{trail} or \const{argument}. The
-table below describes the \arg{Key}(arg{Value}) pairs.  \arg{Value} can
-be an arithmetic integer expression.  E.g., to specify a 2Gb limit for
-the global stack one can use:
+table below describes the \arg{Key}(\arg{Value}) pairs.  \arg{Value} can
+be an arithmetic integer expression.  For example, to specify a 2~GB limit for
+the global stack, one can use:
 
 \begin{code}
 ?- set_prolog_stack(global, limit(2*10**9)).
@@ -7347,7 +7344,7 @@ Current settings can be retrieved with prolog_stack_property/2.
 \begin{description}
     \termitem{limit}{+Bytes}
 Set the limit to which the stack is allowed to grow.  If the specified
-value is lower than the current usage a permission_error is raised.  If
+value is lower than the current usage a \const{permission_error} is raised.  If
 the limit is larger than supported, the system silently reduces the
 requested limit to the system limit.
 
@@ -7356,7 +7353,7 @@ Minimum amount of free space after trimming or shifting the stack.
 Setting this value higher can reduce the number of garbage collections
 and stack-shifts at the cost of higher memory usage. The spare stack
 amount is reported and specified in `cells'. A cell is 4 bytes in the
-32-bit version and 8-bytes on the 64-bit version. See
+32-bit version and 8 bytes on the 64-bit version. See
 \prologflag{address_bits}. See also trim_stacks/0 and debug/0.
 
     \termitem{spare}{+Cells}
@@ -7367,7 +7364,7 @@ The default suffices, unless the user redefines related hooks. Do
 \textbf{not} specify large values for this because it reduces the amount
 of memory available for your real task.
 
-Related hooks are: message_hook/3 (redefining GC messages),
+Related hooks are message_hook/3 (redefining GC messages),
 prolog_trace_interception/4 and prolog_exception_hook/4.
 \end{description}
 
@@ -7383,7 +7380,7 @@ The predicates in this section deal with MS-Windows `Dynamic Data
 Exchange' or DDE protocol.%
         \footnote{This interface is contributed by Don Dwiggins.}
 A Windows DDE conversation is a form of interprocess communication
-based on sending reserved window-events between the communicating
+based on sending reserved window events between the communicating
 processes.
 
 Failing DDE operations raise an error of the structure below, where
@@ -7445,11 +7442,11 @@ in DDE parlance) representing that data, if the request is successful.
 
     \predicate{dde_execute}{2}{+Handle, +Command}
 Request the DDE server to execute the given command string.  Succeeds
-if the command could be executed and fails with error message otherwise.
+if the command could be executed and fails with an error message otherwise.
 
     \predicate{dde_poke}{4}{+Handle, +Item, +Command}
 Issue a \const{POKE} command to the server on the specified \arg{Item}.
-Command is passed as data of type \const{CF_TEXT}.
+\arg{command} is passed as data of type \const{CF_TEXT}.
 \end{description}
 
 
@@ -7457,25 +7454,25 @@ Command is passed as data of type \const{CF_TEXT}.
 
 The \file{library(dde)} defines primitives to realise simple
 DDE server applications in SWI-Prolog.  These features are provided as
-of version 2.0.6 and should be regarded prototypes.  The C-part of
+of version 2.0.6 and should be regarded as prototypes.  The C part of
 the DDE server can handle some more primitives, so if you need features
 not provided by this interface, please study \file{library(dde)}.
 
 
 \begin{description}
     \predicate{dde_register_service}{2}{+Template, +Goal}
-Register a server to handle DDE request or DDE execute requests from
+Register a server to handle DDE request or DDE \const{execute} requests from
 other applications. To register a service for a DDE request, \arg{Template} is of the form:
 \begin{quote}
 +Service(+Topic, +Item, +Value)
 \end{quote}
 \arg{Service} is the name of the DDE service provided (like
 \program{progman} in the client example above). \arg{Topic} is either an
-atom, indicating \arg{Goal} only handles requests on this topic or a
+atom, indicating \arg{Goal} only handles requests on this topic, or a
 variable that also appears in \arg{Goal}. \arg{Item} and \arg{Value} are
 variables that also appear in \arg{Goal}. \arg{Item} represents the
 request data as a Prolog atom.%
-    \footnote{Up-to version 3.4.5 this was a list of character codes.
+    \footnote{Up to version 3.4.5 this was a list of character codes.
 	      As recent versions have atom garbage collection there is
 	      no need for this anymore.}
 
@@ -7501,7 +7498,7 @@ template is of the form:
 +Service(+Topic, +Item)
 \end{quote}
 
-Passing a \arg{Value} argument is not needed as execute requests either
+Passing a \arg{Value} argument is not needed as \const{execute} requests either
 succeed or fail.  If \arg{Goal} fails, a `not processed' is passed back
 to the caller of the DDE request.
     \predicate{dde_unregister_service}{1}{+Service}
@@ -7518,7 +7515,7 @@ Find currently open conversations.
 
 \begin{description}
     \predicate{dwim_match}{2}{+Atom1, +Atom2}
-True if \arg{Atom1} matches \arg{Atom2} in `Do What I Mean' sense.
+True if \arg{Atom1} matches \arg{Atom2} in the `Do What I Mean' sense.
 Both \arg{Atom1} and \arg{Atom2} may also be integers or floats.
 The two atoms match if:
 \begin{shortlist}
@@ -7527,7 +7524,7 @@ The two atoms match if:
     \item One character is inserted/deleted (debug $\equiv$ deug)
     \item Two characters are transposed (trace $\equiv$ tarce)
     \item `Sub-words' are glued differently (existsfile $\equiv$ existsFile $\equiv$ exists_file)
-    \item Two adjacent sub words are transposed (existsFile $\equiv$ fileExists)
+    \item Two adjacent sub-words are transposed (existsFile $\equiv$ fileExists)
 \end{shortlist}
     \predicate{dwim_match}{3}{+Atom1, +Atom2, -Difference}
 Equivalent to dwim_match/2, but unifies \arg{Difference} with an atom
@@ -7537,7 +7534,7 @@ return values are (in the same order as above): \const{equal},
 \const{separated} and \const{transposed_word}.
     \predicate{wildcard_match}{2}{+Pattern, +String}
 True if \arg{String} matches the wildcard pattern \arg{Pattern}.
-\arg{Pattern} is very similar the Unix csh pattern matcher. The
+\arg{Pattern} is very similar to the Unix \const{csh} pattern matcher. The
 patterns are given below:
 
 \begin{center}\begin{tabular}{ll}
@@ -7546,7 +7543,7 @@ patterns are given below:
 \const{[\ldots]}   & Matches one of the characters specified between the
 		     brackets. \\
 		   & \mbox{\tt <char1>-<char2>} indicates a range. \\
-\const{\{\ldots\}} & Matches any of the patterns of the comma separated
+\const{\{\ldots\}} & Matches any of the patterns of the comma-separated
 list between the braces.
 \end{tabular}\end{center}
 
@@ -7567,6 +7564,6 @@ execution is suspended for {\bf at least} \arg{Time} seconds.
 
 On Unix systems the sleep/1 predicate is realised ---in order of
 preference--- by nanosleep(), usleep(), select() if the time is below 1
-minute or sleep().  On Windows systems Sleep() is used.
+minute, or sleep().  On Windows systems Sleep() is used.
 \end{description}
 
