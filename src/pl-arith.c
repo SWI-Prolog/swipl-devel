@@ -2896,7 +2896,12 @@ init_random(ARG1_LD)
 #ifdef O_GMP
   if ( !LD->arith.random.initialised )
   { LD->gmp.persistent++;
+#ifdef HAVE_GMP_RANDINIT_MT
+#define O_RANDOM_STATE 1
     gmp_randinit_mt(LD->arith.random.state);
+#else
+    gmp_randinit_default(LD->arith.random.state);
+#endif
     LD->arith.random.initialised = TRUE;
     seed_random(PASS_LD1);
     LD->gmp.persistent--;
@@ -2950,7 +2955,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, arg);
 	}
       }
-#ifdef O_GMP
+#ifdef O_RANDOM_STATE
     } else if ( name == ATOM_state )
     { number n;
 
@@ -2972,7 +2977,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 }
 
 
-#ifdef O_GMP
+#ifdef O_RANDOM_STATE
 static
 PRED_IMPL("random_property", 1, random_property, 0)
 { PRED_LD
@@ -3471,7 +3476,7 @@ BeginPredDefs(arith)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
   PRED_DEF("set_random", 1, set_random, 0)
-#ifdef O_GMP
+#ifdef O_RANDOM_STATE
   PRED_DEF("random_property", 1, random_property, 0)
 #endif
 EndPredDefs

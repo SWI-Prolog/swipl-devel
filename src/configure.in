@@ -1237,6 +1237,18 @@ if test "$configgmp" = "yes"; then
 		    LIBS="-lgmp $LIBS",
 		    WARN_NO_GMP=yes)
   fi
+
+  AC_MSG_CHECKING("For gmp_randinit_mt()");
+  AC_TRY_COMPILE(
+      [#include <gmp.h>
+      ],
+      [ gmp_randstate_t state;
+	gmp_randinit_default(&state);
+      ],
+      AC_MSG_RESULT(yes)
+      AC_DEFINE(HAVE_GMP_RANDINIT_MT, 1,
+		[ Define you you have gmp_randinit_mt (gmp > 4.2.0) ]),
+      AC_MSG_RESULT(no))
 fi
 
 dnl Setup DMALLOC
