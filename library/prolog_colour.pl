@@ -41,7 +41,6 @@
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
-:- use_module(library(edit)).
 :- use_module(library(error)).
 :- use_module(library(option)).
 :- use_module(library(record)).
@@ -965,6 +964,14 @@ colourise_import(PI as Name, File, TB, term_position(_,_,FF,FT,[PP,NP])) :-
 	goal_classification(TB, NewGoal, [], Class),
 	colour_item(goal(Class, NewGoal), TB, NP),
 	colour_item(keyword(as), TB, FF-FT).
+colourise_import(PI, File, TB, Pos) :-
+	pi_to_term(PI, Goal),
+	colour_state_source_id(TB, SourceID),
+	(   \+ xref_defined(SourceID, Goal, imported(File))
+	->  colour_item(undefined_import, TB, Pos)
+	;   \+ xref_called(SourceID, Goal, _)
+	->  colour_item(unused_import, TB, Pos)
+	), !.
 colourise_import(PI, _, TB, Pos) :-
 	colourise_declaration(PI, TB, Pos).
 
@@ -1279,6 +1286,8 @@ def_style(class(undefined,_),	   [colour(red), underline(true)]).
 def_style(prolog_data,		   [colour(blue), underline(true)]).
 def_style(flag_name(_),		   [colour(blue)]).
 def_style(no_flag_name(_),	   [colour(red)]).
+def_style(unused_import,	   [colour(blue), background(pink)]).
+def_style(undefined_import,	   [colour(red)]).
 
 def_style(keyword(_),		   [colour(blue)]).
 def_style(identifier,		   [bold(true)]).
