@@ -787,32 +787,47 @@ colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 	colour_option_values(TV, TT, TB, TP).
 
 
-%%	colourise_files(+Arg, +TB, +Pos)
+%%	colourise_files(+Arg, +TB, +Pos, +Why)
 %
 %	Colourise the argument list of one of the file-loading predicates.
+%
+%	@param Why is one of =any= or =imported=
 
-colourise_files(List, TB, list_position(_,_,Elms,_)) :- !,
-	colourise_file_list(List, TB, Elms).
-colourise_files(M:Spec, TB, term_position(_,_,_,_,[MP,SP])) :- !,
+colourise_files(List, TB, list_position(_,_,Elms,_), Why) :- !,
+	colourise_file_list(List, TB, Elms, Why).
+colourise_files(M:Spec, TB, term_position(_,_,_,_,[MP,SP]), Why) :- !,
 	colour_item(module(M), TB, MP),
-	colourise_files(Spec, TB, SP).
-colourise_files(Var, TB, P) :-
+	colourise_files(Spec, TB, SP, Why).
+colourise_files(Var, TB, P, _) :-
 	var(Var), !,
 	colour_item(var, TB, P).
-colourise_files(Spec0, TB, Pos) :-
+colourise_files(Spec0, TB, Pos, Why) :-
 	strip_module(Spec0, _, Spec),
 	(   colour_state_source_id(TB, Source),
 	    prolog_canonical_source(Source, SourceId),
 	    catch(xref_source_file(Spec, Path, SourceId), _, fail)
-	->  colour_item(file(Path), TB, Pos)
+	->  (   Why = imported,
+	        \+ resolves_anything(TB, Path),
+		exports_something(TB, Path)
+	    ->	colour_item(file_no_depend(Path), TB, Pos)
+	    ;	colour_item(file(Path), TB, Pos)
+	    )
 	;   colour_item(nofile, TB, Pos)
 	).
 
-colourise_file_list([], _, _).
-colourise_file_list([H|T], TB, [PH|PT]) :-
-	colourise_files(H, TB, PH),
-	colourise_file_list(T, TB, PT).
+colourise_file_list([], _, _, _).
+colourise_file_list([H|T], TB, [PH|PT], Why) :-
+	colourise_files(H, TB, PH, Why),
+	colourise_file_list(T, TB, PT, Why).
 
+resolves_anything(TB, Path) :-
+	colour_state_source_id(TB, SourceId),
+	xref_defined(SourceId, Head, imported(Path)),
+	xref_called(SourceId, Head, _), !.
+
+exports_something(TB, Path) :-
+	colour_state_source_id(TB, SourceId),
+	xref_defined(SourceId, _, imported(Path)), !.
 
 %%	colourise_directory(+Arg, +TB, +Pos)
 %
@@ -1119,7 +1134,7 @@ system_module(TB) :-
 %	Specify colours for individual goals.
 
 goal_colours(module(_,_),	     built_in-[identifier,exports]).
-goal_colours(use_module(_),	     built_in-[file]).
+goal_colours(use_module(_),	     built_in-[imported_file]).
 goal_colours(use_module(File,_),     built_in-[file,imports(File)]).
 goal_colours(reexport(_),	     built_in-[file]).
 goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
@@ -1253,6 +1268,7 @@ def_style(quoted_atom,		   [colour(navy_blue)]).
 def_style(string,		   [colour(navy_blue)]).
 def_style(nofile,		   [colour(red)]).
 def_style(file(_),		   [colour(blue), underline(true)]).
+def_style(file_no_depend(_),	   [colour(blue), underline(true), background(pink)]).
 def_style(directory(_),		   [colour(blue)]).
 def_style(class(built_in,_),	   [colour(blue), underline(true)]).
 def_style(class(library(_),_),	   [colour(navy_blue), underline(true)]).
@@ -1447,7 +1463,9 @@ specified_item(db, Term, TB, Pos) :- !,
 	colourise_db(Term, TB, Pos).
 					% files
 specified_item(file, Term, TB, Pos) :- !,
-	colourise_files(Term, TB, Pos).
+	colourise_files(Term, TB, Pos, any).
+specified_item(imported_file, Term, TB, Pos) :- !,
+	colourise_files(Term, TB, Pos, imported).
 					% directory
 specified_item(directory, Term, TB, Pos) :- !,
 	colourise_directory(Term, TB, Pos).
