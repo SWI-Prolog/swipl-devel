@@ -6000,8 +6000,20 @@ assumed at the start of each line.
 Set a tab stop on the current position. If an argument is supplied set
 a tab stop on the position of that argument. This will cause all
 \fmtseq{~t}'s to be distributed between the previous and this tab stop.
-\fmtchar{+} Set a tab stop relative to the current position. Further
-the same as \fmtseq{~|}.
+
+    \fmtchar{+}
+Set a tab stop (as \fmtseq{~|}) relative to the last tab stop or the
+beginning of the line if no tab stops are set before the \fmtseq{~+}.
+This constructs can be used to fill fields. The partial format sequence
+below prints an integer right-aligned and padded with zeros in 6
+columns.  The \ldots{} sequences in the example illustrate that the
+integer is aligned in 6 columns regardless of the remainder of the
+format specification.
+
+\begin{code}
+	format('...~|~`0t~d~6+...', [..., Integer, ...])
+\end{code}
+
     \fmtchar{w}
 Give the next argument to write/1.
     \fmtchar{W}
@@ -6142,16 +6154,31 @@ Execute \arg{Command} on the operating system. \arg{Command} is given to the
 Bourne shell (/bin/sh). \arg{Status} is unified with the exit status of
 the command.
 
-On Win32 systems, shell/[1,2] executes the command using the
-CreateProcess() API and waits for the command to terminate. If the
-command ends with a \chr{\&} sign, the command is handed to the
-WinExec() API, which does not wait for the new task to terminate. See
-also win_exec/2 and win_shell/2. Please note that the CreateProcess()
-API does {\bf not} imply the Windows command interpreter
-(\program{command.exe} on Windows 95/98 and \program{cmd.exe} on
-Windows-NT) and therefore commands built-in to the command interpreter
-can only be activated using the command interpreter. For example:
-\exam{'command.exe /C copy file1.txt file2.txt'}
+On Windows, shell/[1,2] executes the command using the CreateProcess()
+API and waits for the command to terminate. If the command ends with a
+\chr{\&} sign, the command is handed to the WinExec() API, which does
+not wait for the new task to terminate. See also win_exec/2 and
+win_shell/2. Please note that the CreateProcess() API does {\bf not}
+imply the Windows command interpreter (\program{cmd.exe} and therefore
+commands that are built in the command interpreter can only be activated
+using the command interpreter. For example, a file can be compied using
+the command below.
+
+\begin{code}
+?- shell('cmd.exe /C copy file1.txt file2.txt').
+\end{code}
+
+Note that many of the operations that can be achieved using the shell
+built-in commands can easily be achieved using Prolog primitives. See
+make_directory/1, delete_file/1, rename_file/2, etc. The clib package
+provides \pllib{filesex}, implementing various high level file
+operations such as copy_file/2.  Using Prolog primitives instead of
+shell commands improves the portability of your program.
+
+The library \pllib{process} provides process_create/3 and several
+related primitives that support more fine-grained interaction with
+processes, including I/O redirection and management of asynchronous
+processes.
 
     \predicate{shell}{1}{+Command}
 Equivalent to `\exam{shell(Command, 0)}'.
@@ -6757,9 +6784,9 @@ Remove \arg{File} from the file system.
     \predicate{rename_file}{2}{+File1, +File2}
 Rename \arg{File1} as \arg{File2}. The semantics is compatible to the
 POSIX semantics of the rename() system call as far as the operating
-system allows. If \arg{File2} exists, the operation succeeds (except for
-possible permission errors) and is \jargon{atomic} (meaning there is no
-window where \arg{File2} does not exist).
+system allows. Notably, if \arg{File2} exists, the operation succeeds
+(except for possible permission errors) and is \jargon{atomic} (meaning
+there is no window where \arg{File2} does not exist).
 
     \predicate{size_file}{2}{+File, -Size}
 Unify \arg{Size} with the size of \arg{File} in bytes.
@@ -6890,10 +6917,10 @@ leading \verb$~$ character is expanded to the user's home directory.%
 
     \predicate{prolog_to_os_filename}{2}{?PrologPath, ?OsPath}
 Convert between the internal Prolog path name conventions and the
-operating system path name conventions.  The internal conventions are
-Unix and this predicate is equivalent to =/2 (unify) on Unix systems.
-On DOS systems it will change the directory separator, limit the
-filename length map dots, except for the last one, onto underscores.
+operating system path name conventions. The internal conventions follow
+the POSIX standard, which implies that this predicate is equivalent
+to =/2 (unify) on POSIX (e.g., Unix) systems. On Windows systems it
+changes the directory separator from \chr{\} into \chr{/}.
 
     \predicate{read_link}{3}{+File, -Link, -Target}
 If \arg{File} points to a symbolic link, unify \arg{Link} with the
