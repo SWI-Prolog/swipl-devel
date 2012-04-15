@@ -55,8 +55,7 @@
 	  ]).
 :- use_module(library(debug), [debug/3, debugging/1]).
 :- use_module(library(lists), [append/3, member/2, select/3]).
-:- use_module(library(operators),
-	      [pop_operators/0, push_op/3, push_operators/1]).
+:- use_module(library(operators), [push_op/3]).
 :- use_module(library(shlib), [current_foreign_library/2]).
 :- use_module(library(prolog_source)).
 :- use_module(library(option)).
