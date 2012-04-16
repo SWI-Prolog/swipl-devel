@@ -1243,7 +1243,7 @@ if test "$configgmp" = "yes"; then
       [#include <gmp.h>
       ],
       [ gmp_randstate_t state;
-	gmp_randinit_default(&state);
+	gmp_randinit_mt(&state);
       ],
       AC_MSG_RESULT(yes)
       AC_DEFINE(HAVE_GMP_RANDINIT_MT, 1,
