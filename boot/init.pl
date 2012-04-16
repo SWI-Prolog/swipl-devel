@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -2173,17 +2171,22 @@ load_files(Module:Files, Options) :-
 %%	'$import_all'(+Import, +Context, +Source, +Reexport, +Strength)
 
 '$import_all'(Import, Context, Source, Reexport, Strength) :-
-	'$import_all2'(Import, Context, Source, Imported, Strength),
+	'$import_all2'(Import, Context, Source, Imported, ImpOps, Strength),
 	(   Reexport == true,
-	    '$list_to_conj'(Imported, Conj)
-	->  export(Context:Conj),
-	    '$ifcompiling'('$add_directive_wic'(export(Context:Conj)))
+	    (	'$list_to_conj'(Imported, Conj)
+	    ->  export(Context:Conj),
+		'$ifcompiling'('$add_directive_wic'(export(Context:Conj)))
+	    ;	true
+	    ),
+	    '$export_ops'(ImpOps, Context, Source)
 	;   true
 	).
 
-'$import_all2'([], _, _, [], _).
+%%	'$import_all2'(+Imports, +Context, +Source, -Imported, -ImpOps, +Strength)
+
+'$import_all2'([], _, _, [], [], _).
 '$import_all2'([PI as NewName|Rest], Context, Source,
-	       [NewName/Arity|Imported], Strength) :- !,
+	       [NewName/Arity|Imported], ImpOps, Strength) :- !,
 	'$canonical_pi'(PI, Name/Arity),
 	length(Args, Arity),
 	Head =.. [Name|Args],
@@ -2197,15 +2200,16 @@ load_files(Module:Files, Options) :-
 		  '$print_message'(error, E))
 	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
 	),					 % duplicate load
-	'$import_all2'(Rest, Context, Source, Imported, Strength).
-'$import_all2'([op(P,A,N)|Rest], Context, Source, Imported, Strength) :- !,
+	'$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
+'$import_all2'([op(P,A,N)|Rest], Context, Source, Imported,
+	       [op(P,A,N)|ImpOps], Strength) :- !,
 	'$import_ops'(Context, Source, op(P,A,N)),
-	'$import_all2'(Rest, Context, Source, Imported, Strength).
-'$import_all2'([Pred|Rest], Context, Source, [Pred|Imported], Strength) :-
+	'$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
+'$import_all2'([Pred|Rest], Context, Source, [Pred|Imported], ImpOps, Strength) :-
 	catch(Context:'$import'(Source:Pred, Strength), Error,
 	      print_message(error, Error)),
 	'$ifcompiling'('$import_wic'(Source, Pred, Strength)),
-	'$import_all2'(Rest, Context, Source, Imported, Strength).
+	'$import_all2'(Rest, Context, Source, Imported, ImpOps, Strength).
 
 
 '$list_to_conj'([One], One) :- !.
