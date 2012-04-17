@@ -1197,6 +1197,8 @@ typedef struct local_definitions
   Definition preallocated[7];
 } local_definitions;
 
+typedef uint64_t meta_mask;
+
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */
   Module	module;			/* module of the predicate */
@@ -1212,8 +1214,8 @@ struct definition
 #endif
   ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
+  meta_mask	meta_info;		/* meta-predicate info */
   int		references;		/* reference count */
-  unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
 		/*	PROFILE_TICKED	   has been ticked this time? */
@@ -1490,8 +1492,8 @@ struct gc_trail_entry
 #define MA_HAT		14		/* ^ */
 
 #define MA_INFO(def, n)		(((def)->meta_info >> ((n)*4)) & 0xf)
-#define MA_SETINFO(def, n, i)	((def)->meta_info &= ~(0xf << (n)*4), \
-				 (def)->meta_info |= (i << (n)*4))
+#define MA_SETINFO(def, n, i)	((def)->meta_info &= ~((meta_mask)0xf << (n)*4), \
+				 (def)->meta_info |= ((meta_mask)(i) << (n)*4))
 
 
 		 /*******************************

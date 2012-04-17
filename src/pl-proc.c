@@ -1386,7 +1386,7 @@ meta_declaration(term_t spec)
   Definition def;
   atom_t name;
   int i, arity;
-  int mask = 0;
+  meta_mask mask = 0;
   int transparent = FALSE;
 
   if ( !get_procedure(spec, &proc, head, GP_DEFINE) ||
@@ -1394,8 +1394,12 @@ meta_declaration(term_t spec)
     return FALSE;
 
   if ( arity > (int)sizeof(mask)*2 )
-    return PL_error(NULL, 0, "max arity of meta predicates is 8",
+  { char msg[64];
+
+    Ssprintf(msg, "max arity of meta predicates is %d", (int)sizeof(mask)*2);
+    return PL_error(NULL, 0, msg,
 		    ERR_REPRESENTATION, ATOM_max_arity);
+  }
 
   for(i=0; i<arity; i++)
   { atom_t ma;
@@ -1415,7 +1419,7 @@ meta_declaration(term_t spec)
       mask |= e<<(i*4);
       transparent = TRUE;
     } else if ( PL_get_atom(arg, &ma) )
-    { int m;
+    { meta_mask m;
 
       if      ( ma == ATOM_plus )          m = MA_NONVAR;
       else if ( ma == ATOM_minus )         m = MA_VAR;
