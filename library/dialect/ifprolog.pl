@@ -782,7 +782,7 @@ get_until(In, SearchChar, Text, EndChar) :-
 	atom_chars(Text, Codes).
 
 get_until(C0, _, C0, [], C0) :- !.
-get_until(end_of_file, _, _,  [], end_of_file).
+get_until(end_of_file, _, _,  [], end_of_file) :- !.
 get_until(C0, In, Search, [C0|T], End) :-
 	get_char(In, C1),
 	get_until(C1, In, Search, T, End).
