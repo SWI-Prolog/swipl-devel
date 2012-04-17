@@ -1975,12 +1975,19 @@ pl_prolog_current_frame(term_t frame)
 }
 
 
+/** prolog_current_choice(-Choice) is semidet.
+
+True when Choice refers to the most recent choice-point.
+*/
+
 static
 PRED_IMPL("prolog_current_choice", 1, prolog_current_choice, 0)
 { PRED_LD
-  Choice ch;
+  Choice ch = LD->choicepoints;
 
-  if ( (ch=LD->choicepoints) )
+  while(ch && ch->type == CHP_DEBUG)
+    ch = ch->parent;
+  if ( ch )
     return PL_unify_choice(A1, ch);
 
   return FALSE;
@@ -2255,8 +2262,12 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
     fail;
 
   if ( key == ATOM_parent )
-  { if ( ch->parent )
-      return PL_unify_choice(A3, ch->parent);
+  { do
+    { ch = ch->parent;
+    } while(ch && ch->type == CHP_DEBUG);
+
+    if ( ch )
+      return PL_unify_choice(A3, ch);
     fail;
   } else if ( key == ATOM_frame )
   { return PL_unify_frame(A3, ch->frame);
