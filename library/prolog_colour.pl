@@ -574,7 +574,7 @@ colourise_goal(Goal, _, TB, list_position(F,T,Elms,_)) :- !,
 	AT is T - 1,
 	colour_item(goal(built_in, Goal), TB, F-FT),
 	colour_item(goal(built_in, Goal), TB, AT-T),
-	colourise_file_list(Goal, TB, Elms).
+	colourise_file_list(Goal, TB, Elms, any).
 colourise_goal(Goal, Origin, TB, Pos) :-
 	nonvar(Goal),
 	goal_colours(Goal, ClassSpec-ArgSpecs), !, % specified
