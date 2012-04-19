@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemakjan@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -368,12 +367,7 @@ initialise_prolog :-
 	'$clean_history',
 	set_associated_file,
 	'$set_file_search_paths',
-	once(print_predicate(_, [print], PrintOptions)),
-	create_prolog_flag(toplevel_print_options, PrintOptions, []),
-	create_prolog_flag(prompt_alternatives_on, determinism, []),
-	create_prolog_flag(toplevel_extra_white_line, true, []),
-	create_prolog_flag(toplevel_print_factorized, false, []),
-	'$set_debugger_print_options'(print),
+	init_debug_flags,
 	'$run_initialization',
 	'$load_system_init_file',
 	'$option'(init_file, OsFile),
@@ -389,6 +383,15 @@ initialise_prolog :-
 	;   TheGoal = Goal
 	),
 	ignore(user:TheGoal).
+
+init_debug_flags :-
+	once(print_predicate(_, [print], PrintOptions)),
+	create_prolog_flag(toplevel_print_options, PrintOptions, []),
+	create_prolog_flag(prompt_alternatives_on, determinism, []),
+	create_prolog_flag(toplevel_extra_white_line, true, []),
+	create_prolog_flag(toplevel_print_factorized, false, []),
+	'$set_debugger_print_options'(print).
+
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
 
@@ -427,9 +430,9 @@ toplevel_goal(Goal, Goal).
 %	Toplevel called when invoked with -c option.
 
 '$compile' :-
-	'$run_initialization',
-	'$load_system_init_file',
 	'$set_file_search_paths',
+	init_debug_flags,
+	'$run_initialization',
 	catch('$compile_wic', E, (print_message(error, E), halt(1))).
 
 
