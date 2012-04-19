@@ -86,7 +86,8 @@ embedded application.
 
 #endif /*__WINDOWS__*/
 
-#if defined(__WINDOWS__) || defined(HOST_OS_WINDOWS)
+#if defined(__WINDOWS__)
+#define HOST_OS_WINDOWS 1
 #define DEF_PROG_PL "swipl.exe"
 #define PROG_OUT "a.exe"
 #else
@@ -975,9 +976,9 @@ fillDefaultOptions()
   free(ctmp);
   ctmp = strdup(tmp);
 #endif
-#if defined(HOST_OS_WINDOWS) || /* FIXME: remove this */ defined(__CYGWIN__)
+#if defined(HOST_OS_WINDOWS)
 /* Saved states have the .exe extension under Windows */
-  replaceExtension(pltmp, embed_shared ? "dll" : "exe", tmp);
+  replaceExtension(pltmp, "exe", tmp);
   free(pltmp);
   pltmp = strdup(tmp);
 #endif
@@ -985,11 +986,9 @@ fillDefaultOptions()
   { fprintf(stderr, "%s: \"-o out\" required for linking shared object\n", plld);
     exit(1);
   }
-#if defined(__CYGWIN__)
-  /* Tack correct suffix to out, otherwise cat in createOutput fails. */
+#if defined(HOST_OS_WINDOWS)
   if ( out && !nolink )
   { replaceExtension(out, shared || embed_shared ? "dll" : "exe", tmp);
-    /* Dont call free(out), it could be an argv member. */
     out = strdup(tmp);
   }
 #endif
