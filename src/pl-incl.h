@@ -1197,7 +1197,11 @@ typedef struct local_definitions
   Definition preallocated[7];
 } local_definitions;
 
+#ifdef _MSC_VER
+typedef __int64 meta_mask;		/* MSVC cannot do typedef of typedef!? */
+#else
 typedef uint64_t meta_mask;
+#endif
 
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */
@@ -1491,9 +1495,11 @@ struct gc_trail_entry
 #define MA_NONVAR	13		/* + */
 #define MA_HAT		14		/* ^ */
 
-#define MA_INFO(def, n)		(((def)->meta_info >> ((n)*4)) & 0xf)
-#define MA_SETINFO(def, n, i)	((def)->meta_info &= ~((meta_mask)0xf << (n)*4), \
-				 (def)->meta_info |= ((meta_mask)(i) << (n)*4))
+#define MA_INFO(def, n) \
+	(((def)->meta_info >> ((n)*4)) & 0xf)
+#define MA_SETINFO(def, n, i) \
+	((def)->meta_info &= ~((meta_mask)0xf << (n)*4), \
+	 (def)->meta_info |= ((meta_mask)(i) << (n)*4))
 
 
 		 /*******************************
