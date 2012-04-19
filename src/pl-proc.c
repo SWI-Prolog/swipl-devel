@@ -1811,8 +1811,6 @@ autoLoader(Definition def)
   fid_t  cid;
   term_t argv;
   qid_t qid;
-  atom_t sfn = source_file_name;	/* needs better solution! */
-  int  sln = source_line_no;
   atom_t answer = ATOM_nil;
 
   if ( !GD->procedures.undefinterc4 )
@@ -1827,6 +1825,7 @@ autoLoader(Definition def)
   PL_put_atom(    argv+1, def->functor->name);
   PL_put_integer( argv+2, def->functor->arity);
 
+  push_input_context(ATOM_autoload);
   LD->autoload_nesting++;
   if ( (qid = PL_open_query(MODULE_system, PL_Q_NODEBUG,
 			    GD->procedures.undefinterc4, argv)) )
@@ -1835,8 +1834,7 @@ autoLoader(Definition def)
     PL_close_query(qid);
   }
   LD->autoload_nesting--;
-  source_file_name = sfn;
-  source_line_no   = sln;
+  pop_input_context();
   PL_discard_foreign_frame(cid);
 
   return answer;

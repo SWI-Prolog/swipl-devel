@@ -10,7 +10,7 @@ PLBOOTFILE=boot32.prc
 LIBPTHREAD=pthreadVC
 
 # ZLIB library
-LIBZLIB=zlib1
+LIBZLIB=zlibwapi
 
 # Installer
 NSIS=C:\Program Files\NSIS\MakeNSIS.exe
