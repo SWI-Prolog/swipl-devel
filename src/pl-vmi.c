@@ -2174,8 +2174,8 @@ VMI(I_CUTCHP, 0, 0, ())
 	)
 
   deRef(a);
-  if ( isInteger(*a) )
-  { intptr_t i = valInteger(*a);
+  if ( isInteger(*a) && storage(*a) == STG_INLINE )
+  { intptr_t i = valInt(*a);
     och = ((Choice)((Word)lBase + i));
 
     if ( !(och >= (Choice)lBase && och < (Choice)lTop) ||

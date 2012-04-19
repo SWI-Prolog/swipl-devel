@@ -220,9 +220,13 @@ read_index([H|T]) :- !,
 read_index(Index) :-
 	print_message(silent, autoload(read_index(Dir))),
 	file_directory_name(Index, Dir),
-	setup_call_cleanup(open(Index, read, In),
-			   read_index_from_stream(Dir, In),
-			   close(In)).
+	setup_call_cleanup(
+	    '$push_input_context'(autoload_index),
+	    setup_call_cleanup(
+		open(Index, read, In),
+		read_index_from_stream(Dir, In),
+		close(In)),
+	    '$pop_input_context').
 
 read_index_from_stream(Dir, In) :-
 	repeat,

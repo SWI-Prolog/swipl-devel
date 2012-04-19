@@ -2966,6 +2966,11 @@ takes care of reconsult, redefinition, etc.
   if ( loc )
   { SourceFile sf, of;
 
+    if ( !loc->file )
+    { loc->file = owner;
+      Sdprintf("No source location!?\n");
+    }
+
     sf = lookupSourceFile(loc->file, TRUE);
     clause->line_no   = loc->line;
     clause->source_no = sf->index;
@@ -3107,6 +3112,7 @@ record_clause(term_t term, term_t owner, term_t source, term_t ref ARG_LD)
   if ( PL_get_atom(source, &a) && a == ATOM_minus )
   { loc.file = source_file_name;
     loc.line = source_line_no;
+    assert(source_line_no != -1);
   } else if ( PL_is_functor(source, FUNCTOR_colon2) )
   { term_t arg = PL_new_term_ref();	/* file:line */
 

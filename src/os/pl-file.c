@@ -1113,7 +1113,7 @@ protocol(const char *str, size_t n)
 		 *******************************/
 
 
-static int
+int
 push_input_context(atom_t type)
 { GET_LD
   InputContext c = allocHeapOrHalt(sizeof(struct input_context));
@@ -1131,7 +1131,7 @@ push_input_context(atom_t type)
 }
 
 
-static int
+int
 pop_input_context(void)
 { GET_LD
   InputContext c = input_context_stack;

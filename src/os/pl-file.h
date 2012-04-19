@@ -75,5 +75,7 @@ COMMON(int)		setupOutputRedirect(term_t to,
 					    int redir);
 COMMON(int)		closeOutputRedirect(redir_context *ctx);
 COMMON(void)		discardOutputRedirect(redir_context *ctx);
+COMMON(int)		push_input_context(atom_t type);
+COMMON(int)		pop_input_context(void);
 
 #endif /*PL_FILE_H_INCLUDED*/
