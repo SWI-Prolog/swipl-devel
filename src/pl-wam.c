@@ -756,6 +756,10 @@ do_undo(mark *m)
 		 *	    PROCEDURES		*
 		 *******************************/
 
+/* Note that we use PL_malloc_uncollectable() here because the pointer in
+   our block is not the real memory pointer.
+*/
+
 static Definition
 localDefinition(Definition def ARG_LD)
 { unsigned int tid = LD->thread.info->pl_tid;
@@ -766,10 +770,9 @@ localDefinition(Definition def ARG_LD)
   { LOCKDYNDEF(def);
     if ( !v->blocks[idx] )
     { size_t bs = (size_t)1<<idx;
-      Definition *newblock = allocHeapOrHalt(bs*sizeof(Definition));
+      Definition *newblock = PL_malloc_uncollectable(bs*sizeof(Definition));
 
       memset(newblock, 0, bs*sizeof(Definition));
-
       v->blocks[idx] = newblock-bs;
     }
     UNLOCKDYNDEF(def);
