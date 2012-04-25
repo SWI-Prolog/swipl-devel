@@ -543,7 +543,7 @@ max_list([H|T], Max0, Max) :-
 
 %%	min_list(+List:list(number), -Min:number) is semidet.
 %
-%	True if Min is the largest number in List.  Fails if List is
+%	True if Min is the smallest  number   in  List. Fails if List is
 %	empty.
 %
 %	@see min_member/2.
