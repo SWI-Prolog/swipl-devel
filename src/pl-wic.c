@@ -2339,6 +2339,7 @@ qlfInfo(const char *file,
   TRY(PL_unify_integer(version, lversion));
 
   vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
+  (void)vm_signature;
   saved_wsize = getInt(s);		/* word-size of file */
   TRY(PL_unify_integer(wsize, saved_wsize));
 

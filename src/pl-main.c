@@ -1251,7 +1251,6 @@ with -DGC_DEBUG.
 int
 cleanupProlog(int rval, int reclaim_memory)
 { GET_LD
-  int rc = TRUE;
 
   if ( GD->cleaning != CLN_NORMAL )
     return FALSE;
@@ -1269,7 +1268,7 @@ cleanupProlog(int rval, int reclaim_memory)
   resetProfiler();			/* don't do profiling anymore */
 #endif
 #ifdef O_PLMT
-  rc = exitPrologThreads();
+  exitPrologThreads();
 #endif
 
   Scurout = Soutput;			/* reset output stream to user */
