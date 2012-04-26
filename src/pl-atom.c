@@ -165,6 +165,11 @@ static void	rehashAtoms();
 #undef LD
 #define LD LOCAL_LD
 
+#ifdef ATOMIC_INC
+#define ATOMIC_REFERENCES
+#endif
+
+
 		 /*******************************
 		 *	      TYPES		*
 		 *******************************/
@@ -408,7 +413,12 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	{
 #ifdef O_ATOMGC
 	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
-	  { if ( a->references++ == 0 )
+	  {
+#ifdef ATOMIC_REFERENCES
+	    if ( ATOMIC_INC(&a->references) == 1 )
+#else
+	    if ( ++a->references == 1 )
+#endif
 	      GD->atoms.unregistered--;
 	  }
 #endif
@@ -426,7 +436,11 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	     s == a->name )
 	{
 #ifdef O_ATOMGC
+#ifdef ATOMIC_REFERENCES
+	  if ( ATOMIC_INC(&a->references) == 1 )
+#else
 	  if ( a->references++ == 0 )
+#endif
 	    GD->atoms.unregistered--;
 #endif
           UNLOCK();
@@ -625,7 +639,11 @@ markAtom(atom_t a)
     if ( atomLogFd )
       Sfprintf(atomLogFd, "Marked `%s' at (#%d)\n", ap->name, i);
 #endif
+#ifdef ATOMIC_REFERENCES
+    ATOMIC_OR(&ap->references, ATOM_MARKED_REFERENCE);
+#else
     ap->references |= ATOM_MARKED_REFERENCE;
+#endif
   }
 }
 
@@ -722,7 +740,12 @@ collectAtoms(void)
 	  }
 	}
       } else
-      { a->references &= ~ATOM_MARKED_REFERENCE;
+      {
+#ifdef ATOMIC_REFERENCES
+	ATOMIC_NAND(&a->references, ATOM_MARKED_REFERENCE);
+#else
+	a->references &= ~ATOM_MARKED_REFERENCE;
+#endif
       }
     }
   }
@@ -833,6 +856,29 @@ resetAtoms()
 {
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(un)register atoms. If  possible,  this   is  implemented  using  atomic
+operations. This should be safe because:
+
+    - When we register an atom, it must be referenced from somewhere
+      else.
+    - When we unregister an atom, it must have at least one reference.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+register_atom(Atom p)
+{
+#ifdef ATOMIC_REFERENCES
+  if ( ATOMIC_INC(&p->references) == 1 )
+    ATOMIC_DEC(&GD->atoms.unregistered);
+#else
+  LOCK();
+  if ( p->references++ == 0 )
+    GD->atoms.unregistered--;
+  UNLOCK();
+#endif
+}
+
 
 void
 PL_register_atom(atom_t a)
@@ -841,16 +887,13 @@ PL_register_atom(atom_t a)
   size_t index = indexAtom(a);
 
   if ( index >= GD->atoms.builtin )
-  { Atom p;
+  { Atom p = fetchAtomArray(index);
 
-    LOCK();
-    p = fetchAtomArray(index);
-    if ( p->references++ == 0 )
-      GD->atoms.unregistered--;
-    UNLOCK();
+    register_atom(p);
   }
 #endif
 }
+
 
 void
 PL_unregister_atom(atom_t a)
@@ -860,16 +903,22 @@ PL_unregister_atom(atom_t a)
 
   if ( index >= GD->atoms.builtin )
   { Atom p;
+    unsigned int refs;
 
-    LOCK();
     p = fetchAtomArray(index);
-    if ( --p->references == 0 )
+#ifdef ATOMIC_REFERENCES
+    if ( (refs=ATOMIC_DEC(&p->references)) == 0 )
+      ATOMIC_INC(&GD->atoms.unregistered);
+#else
+    LOCK();
+    if ( (refs = --p->references) == 0 )
       GD->atoms.unregistered++;
-    if ( p->references == (unsigned)-1 )
+    UNLOCK();
+#endif
+    if ( refs == (unsigned int)-1 )
     { Sdprintf("OOPS: -1 references to '%s'\n", p->name);
       trap_gdb();
     }
-    UNLOCK();
   }
 #endif
 }

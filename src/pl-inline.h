@@ -70,6 +70,12 @@ MSB(size_t i)
 #if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
 #define HAVE_MEMORY_BARRIER 1
 #define MemoryBarrier() __sync_synchronize()
+#define ATOMIC_ADD(ptr, v)      __sync_add_and_fetch(ptr, v)
+#define ATOMIC_SUB(ptr, v)      __sync_sub_and_fetch(ptr, v)
+#define ATOMIC_INC(ptr)         ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
+#define ATOMIC_DEC(ptr)         ATOMIC_SUB(ptr, 1) /* --(*ptr) */
+#define ATOMIC_OR(ptr, v)	__sync_fetch_and_or(ptr, v);
+#define ATOMIC_NAND(ptr, v)	__sync_fetch_and_nand(ptr, v);
 #endif
 
 #ifndef HAVE_MSB
