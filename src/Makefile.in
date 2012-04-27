@@ -163,7 +163,7 @@ OPTIMISE=@OPTIMISE@
 PROFILE_SRC=../bench/run.pl
 PROFILE_GOAL=run(0.5)
 
-all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
+all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT)
 
 noprof:	uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS) system headers plwin startup index
 prof:
@@ -384,11 +384,6 @@ defatom:	defatom.c
 swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
 	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
 		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
-
-swipl-ld-build$(EXEEXT_FOR_BUILD):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
-	$(CC_FOR_BUILD) $(HOST_OS_FLAG) \
-		-DPLBASE="\"@abs_top_builddir@/..\"" \
-		-I. -I$(srcdir) -g -O2 -o $@ $(srcdir)/swipl-ld.c $(BUILD_OSLIB)
 
 tags::
 		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
@@ -635,7 +630,7 @@ distclean:	clean profclean
 		rm -f Makefile config.h config.status parms.h version.h
 		rm -f $(DEVPL) swipl.home swiplbin $(STARTUPPATH)
 		rm -f $(PL)$(EXEEXT)
-		rm -f  swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
+		rm -f  swipl-ld$(EXEEXT)
 		rm -f  swipl.1 libswiplimp.a $(DEF)
 		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)
