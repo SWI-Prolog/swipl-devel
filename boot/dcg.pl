@@ -275,3 +275,4 @@ dcg_special(!).
 dcg_special({_}).
 dcg_special([]).
 dcg_special([_|_]).
+dcg_special(\+_).
