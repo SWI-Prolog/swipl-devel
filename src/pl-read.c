@@ -620,7 +620,7 @@ singletonWarning(const char *which, const char **vars, int nvars)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	FAIL	return false
+	FALSE	return false
 	TRUE	redo
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -628,15 +628,14 @@ static int
 reportReadError(ReadData rd)
 { if ( rd->on_error == ATOM_error )
     return PL_raise_exception(rd->exception);
-  if ( rd->on_error == ATOM_quiet )
-    fail;
-
-  printMessage(ATOM_error, PL_TERM, rd->exception);
+  if ( rd->on_error != ATOM_quiet )
+    printMessage(ATOM_error, PL_TERM, rd->exception);
+  PL_clear_exception();
 
   if ( rd->on_error == ATOM_dec10 )
-    succeed;
+    return TRUE;
 
-  fail;
+  return FALSE;
 }
 
 
