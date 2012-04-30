@@ -2718,7 +2718,21 @@ subsumes(term_t general, term_t specific ARG_LD)
   int rc;
   int omode;
 
-  n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
+  for(;;)
+  { n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
+    if ( n == TV_EXCEPTION )
+      return FALSE;
+    if ( n == TV_NOSPACE )
+    { PL_reset_term_refs(v0);
+      if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )
+	return FALSE;			/* GC does not help */
+      continue;
+    }
+    if ( n == TV_NOMEM )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
+    break;
+  }
+
   omode = LD->prolog_flag.occurs_check;
   LD->prolog_flag.occurs_check = OCCURS_CHECK_FALSE;
   rc = PL_unify(general, specific);
