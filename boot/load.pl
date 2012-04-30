@@ -60,5 +60,6 @@
 	     qlf,
 	     rc,
 	     predopts,
+	     packs,
 	     user:topvars
 	   ]).

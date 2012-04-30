@@ -26,7 +26,7 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
-	../boot/history.pl ../boot/attvar.pl \
+	../boot/history.pl ../boot/attvar.pl ../boot/packs.pl \
 	../boot/dwim.pl ../boot/rc.pl ../boot/predopts.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
@@ -49,7 +49,8 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	coinduction.pl ansi_term.pl base32.pl prolog_history.pl \
 	optparse.pl arithmetic.pl writef.pl predicate_options.pl \
 	random.pl prolog_breakpoints.pl prolog_autoload.pl \
-	prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl
+	prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl \
+	prolog_pack.pl
 
 # Dialect library files
 
