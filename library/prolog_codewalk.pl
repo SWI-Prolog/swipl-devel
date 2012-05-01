@@ -278,12 +278,18 @@ walk_called_by_body(subterm_positions, Body, Module, OTerm) :-
 	walk_option_clause(OTerm, ClauseRef), nonvar(ClauseRef),
 	(   clause_info(ClauseRef, _File, TermPos, _NameOffset),
 	    TermPos = term_position(_,_,_,_,[_,BodyPos])
-	->  forall(walk_called(Body, Module, BodyPos, OTerm),
-		   true)
+	->  catch(forall(walk_called(Body, Module, BodyPos, OTerm),
+			 true),
+		  missing(subterm_positions),
+		  walk_called_by_body(no_positions, Body, Module, OTerm))
 	;   set_source_of_walk_option(false, OTerm, OTerm2),
 	    forall(walk_called(Body, Module, BodyPos, OTerm2),
 		   true)
 	).
+walk_called_by_body(no_positions, Body, Module, OTerm) :-
+	set_source_of_walk_option(false, OTerm, OTerm2),
+	forall(walk_called(Body, Module, _NoPos, OTerm2),
+	       true).
 
 
 %%	walk_called(+Goal, +Module, +TermPos, +OTerm) is multi.
@@ -351,7 +357,7 @@ walk_called(Goal, Module, _, OTerm) :-
 walk_called(Goal, M, TermPos, OTerm) :-
 	prolog:called_by(Goal, Called),
 	Called \== [], !,
-	walk_called_by(Called, M, TermPos, OTerm).
+	walk_called_by(Called, M, Goal, TermPos, OTerm).
 walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
 	(   walk_option_autoload(OTerm, false)
 	->  nonvar(Module),
@@ -485,21 +491,62 @@ remove_quantifier(_^Goal0, Goal,
 remove_quantifier(Goal, Goal, TermPos, TermPos, _).
 
 
-%%	walk_called_by(+Called:list, +Module, +TermPost, +OTerm)
+%%	walk_called_by(+Called:list, +Module, +Goal, +TermPos, +OTerm)
 %
 %	Walk code explicitly mentioned to  be   called  through the hook
 %	prolog:called_by/2.
 
-walk_called_by([], _, _, _).
-walk_called_by([H|T], M, TermPos, OTerm) :-
+walk_called_by([], _, _, _, _).
+walk_called_by([H|T], M, Goal, TermPos, OTerm) :-
 	(   H = G+N
-	->  (   extend(G, N, G2, _, _, OTerm)
-	    ->	walk_called(G2, M, _, OTerm)
+	->  subterm_pos(G, Goal, TermPos, GPos),
+	    (   extend(G, N, G2, GPos, GPosEx, OTerm)
+	    ->	walk_called(G2, M, GPosEx, OTerm)
 	    ;	true
 	    )
-	;   walk_called(H, M, TermPos, OTerm)
+	;   subterm_pos(G, Goal, TermPos, GPos),
+	    walk_called(H, M, GPos, OTerm)
 	),
-	walk_called_by(T, M, TermPos, OTerm).
+	walk_called_by(T, M, Goal, TermPos, OTerm).
+
+subterm_pos(Sub, Term, TermPos, SubTermPos) :-
+	subterm_pos(Sub, Term, same_term, TermPos, SubTermPos), !.
+subterm_pos(Sub, Term, TermPos, SubTermPos) :-
+	subterm_pos(Sub, Term, ==, TermPos, SubTermPos), !.
+subterm_pos(Sub, Term, TermPos, SubTermPos) :-
+	subterm_pos(Sub, Term, =@=, TermPos, SubTermPos), !.
+subterm_pos(Sub, Term, TermPos, SubTermPos) :-
+	subterm_pos(Sub, Term, =, TermPos, SubTermPos), !.
+subterm_pos(_, _, _, _).
+
+%%	subterm_pos(+SubTerm, +Term, :Cmp,
+%%		    +TermPosition, -SubTermPos) is nondet.
+%
+%	True when SubTerm is a sub  term   of  Term, compared using Cmp,
+%	TermPosition describes the term layout   of  Term and SubTermPos
+%	describes the term layout of SubTerm.   Cmp  is typically one of
+%	=same_term=, =|==|=, =|=@=|= or =|=|=
+
+subterm_pos(_, _, _, Pos, _) :-
+	var(Pos), !, fail.
+subterm_pos(Sub, Term, Cmp, Pos, Pos) :-
+	call(Cmp, Sub, Term), !.
+subterm_pos(Sub, Term, Cmp, term_position(_,_,_,_,ArgPosList), Pos) :-
+	nth1(I, ArgPosList, ArgPos),
+	arg(I, Term, Arg),
+	subterm_pos(Sub, Arg, Cmp, ArgPos, Pos).
+subterm_pos(Sub, Term, Cmp, list_position(_,_,ElemPosList,TailPos), Pos) :-
+	sublist_pos(ElemPosList, TailPos, Sub, Term, Cmp, Pos).
+subterm_pos(Sub, {Arg}, Cmp, brace_term_position(_,_,ArgPos), Pos) :-
+	subterm_pos(Sub, Arg, Cmp, ArgPos, Pos).
+
+sublist_pos([EP|TP], TailPos, Sub, [H|T], Cmp, Pos) :-
+	(   subterm_pos(Sub, H, Cmp, EP, Pos)
+	;   sublist_pos(TP, TailPos, Sub, T, Cmp, Pos)
+	).
+sublist_pos([], TailPos, Sub, Tail, Cmp, Pos) :-
+	TailPos \== none,
+	subterm_pos(Sub, Tail, Cmp, TailPos, Pos).
 
 %%	extend(+Goal, +ExtraArgs, +TermPosIn, -TermPosOut, +OTerm)
 %
