@@ -334,10 +334,10 @@ gettarget()
 }
 
 if is_mingw; then
-  if [ -d "X64" ]; then
+  if [ -d "X64/lib" ]; then
     echo
     echo "Found prerequisites for X64 (64-bit) version"
-  elif [ -d "X86" ]; then
+  elif [ -d "X86/lib" ]; then
     echo
     echo "Found prerequisites for X86 (32-bit) version"
   else
