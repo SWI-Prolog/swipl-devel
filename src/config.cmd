@@ -27,10 +27,6 @@ set "REDIR_TO_NUL=> nul"
 :: set "REDIR_TO_NUL="
 :end_debugging
 
-:: Update if the requirements change
-set "REQBASE=reqs-4-"
-
-
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::                                                                            ::
 :: EP! is the Export Prefix, all & any variable prefixed in this way          ::
@@ -169,119 +165,14 @@ if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "EP!NSISDEFS=/DWIN%BITS%
 
 
 :get_pre-requisites
-set "PRE-REQ_FILE=%REQBASE%%BITS%.cab"
-if exist "%PRE-REQ_FILE%" (goto have_pre-requisites)
-set "PRE-REQ_LOCA=http://www.swi-prolog.org/download/MS-Windows/"
-cls
-type welcome.txt
-echo In order for the build process to be able to complete successfully, an archive
-echo with the appropriate pre-requisites for your target-build (%PRE-REQ_FILE%) needs
-echo to be downloaded from %PRE-REQ_LOCA%
-echo You could also provide these (or some of them) yourself, you will be prompted
-echo for this.
-echo.
-echo The archive %PRE-REQ_FILE% will be placed in the following folder:
-echo.
-echo      %EP!HOME%\src
-:have_connection_to_swi-prolog.org
-:: ping.exe -n 2 -w 7500 www.swi-prolog.org | find "TTL=" %REDIR_TO_NUL% && goto get_pre-requisites_ask
-goto get_pre-requisites_ask
-cls
-type welcome.txt
-echo Error: can not connect to www.swi-prolog.org at the moment, the site might be
-echo experiencing problems, or your internet connection might be down.
-echo.
-echo Please, check your internet connection, and/or try again later, exiting...
+if not exist "%EP!TARGET_OS_ARCH%\nul" (goto have_pre-requisites)
+echo Cannot find prerequisites in %EP!TARGET_OS_ARCH%
+echo To install them, install GIT and run
+echo git clone	-b %EP!TARGET_OS_ARCH% git://www.swi-prolog.org/home/pl/git/misc/swilibs.git %EP!TARGET_OS_ARCH%
+echo Re-Run this script again after providing all pre-requisites, exiting...
 goto end
-:get_pre-requisites_ask
-set "ANSWER=enter"
-:get_pre-requisites_ask_again
-echo.
-set /P "ANSWER=Would you like to download %PRE-REQ_FILE% now? (y/[enter] or n): "
-if "%ANSWER%"=="y" (goto get_pre-requisites_start)
-if "%ANSWER%"=="n" (goto get_pre-requisites_answer_no)
-if "%ANSWER%"=="Y" (goto get_pre-requisites_start)
-if "%ANSWER%"=="N" (goto get_pre-requisites_answer_no)
-if "%ANSWER%"=="enter" (goto get_pre-requisites_start)
-echo.
-echo Error: the only choices possible are y/Y and n/N or [enter]!
-goto get_pre-requisites_ask_again
-:get_pre-requisites_answer_no
-cls
-type welcome.txt
-echo Warning: you have chosen to provide the required pre-requisites for your
-echo target-build yourself.
-echo.
-<nul (set/p _=Continuing in about 3 seconds )
-for /l %%A in (1,1,3) do (
-<nul (set/p _=.)
->nul ping 127.0.0.1 -n 2)
-goto create_user_lib_dirs
-:get_pre-requisites_start
-set "NO_TRIES=0"
-echo set oHTTP = WScript.CreateObject("Microsoft.XMLHTTP") > reqs%BITS%.swi
-echo oHTTP.open "GET"^, "%PRE-REQ_LOCA%" ^& "%PRE-REQ_FILE%"^, False >> reqs%BITS%.swi
-echo oHTTP.send >> reqs%BITS%.swi
-echo set oStream = createobject("adodb.stream") >> reqs%BITS%.swi
-echo oStream.type = 1 >> reqs%BITS%.swi
-echo oStream.open >> reqs%BITS%.swi
-echo oStream.write oHTTP.responseBody >> reqs%BITS%.swi
-echo oStream.savetofile "%PRE-REQ_FILE%"^, 2 >> reqs%BITS%.swi
-echo set oStream = nothing >> reqs%BITS%.swi
-echo set oHTTP = nothing >> reqs%BITS%.swi
-goto execute_get_pre-requisites_script
-:execute_get_pre-requisites_script_wait
-for /l %%A in (1,1,5) do (
-<nul (set/p _=.)
->nul ping 127.0.0.1 -n 2)
-:execute_get_pre-requisites_script
-cscript.exe //B //E:vbs reqs%BITS%.swi
-if exist %PRE-REQ_FILE% (goto get_pre-requisites_succes)
-set /A NO_TRIES+=1
-cls
-type welcome.txt
-echo Error: download of the SWI-Prolog %BITS%-bit pre-requisites failed on try %NO_TRIES% (of 3),
-<nul (set/p _=trying again in about 5 seconds )
-if %NO_TRIES% LEQ 3 (goto execute_get_pre-requisites_script_wait)
-cls
-type welcome.txt
-echo Error: download of the SWI-Prolog %BITS%-bit pre-requisites failed permanently, exiting...
-goto end
-:get_pre-requisites_succes
-cls
-type welcome.txt
-echo Successfully downloaded the SWI-Prolog %BITS%-bit pre-requisites...
-if exist reqs%BITS%.swi (del /Q reqs%BITS%.swi)
-goto end_get_pre-requisites
+
 :have_pre-requisites
-cls
-type welcome.txt
-echo Already downloaded the SWI-Prolog %BITS%-bit pre-requisites...
-:end_get_pre-requisites
-
-
-:start_expanding_pre-requisites
-goto :start_main_exp
-:expand_file_list
-if not exist "%~dp1" (md "%~dp1")
-expand "%EP!HOME%\src\%PRE-REQ_FILE%" -F:%1 "%~dp1\" > nul
-goto:eof
-:start_main_exp
-echo.
-echo Busy expanding package... This might take some time...
-pushd %EP!HOME%
-FOR /f "tokens=7 delims=. " %%G IN ('expand.exe ^| find "Version"') DO set "EXP_VERSION=%%G"
-IF %EXP_VERSION% GEQ 6 (expand.exe "%EP!HOME%\src\%PRE-REQ_FILE%" -F:* "%EP!HOME%" > nul) ELSE (expand "%EP!HOME%\src\%PRE-REQ_FILE%" -F:files.txt "%EP!HOME%" > nul & for /F %%1 in (files.txt) do (call :expand_file_list %%1))
-if exist files.txt (del /Q files.txt)
-popd
-echo.
-echo Expanded the pre-requisites Package header files to %EP!HOME%\include
-echo and the libraries to %EP!HOME%\lib
-echo.
-pause
-:end_start_expanding_pre-requisites
-
-
 :create_user_lib_dirs
 if exist "%EP!HOME%\%EP!TARGET_OS_ARCH%\lib\*.lib" (goto assumed_user_lib_dirs_complete)
 if exist "%EP!HOME%\%EP!TARGET_OS_ARCH%\bin\*.exe" (goto assumed_user_lib_dirs_complete)
@@ -516,14 +407,14 @@ for /F %%_ in ('dir "%SystemDrive%\jdk*" /A:D /B') do (set "EP!JAVA_JDK_VERSION=
 set "EP!JAVA_HOME=%SystemDrive%\%EP!JAVA_JDK_VERSION%"
 goto detect_java_detected
 :detect_java_detected
-if not exist "%EP!HOME%\lib\junit.jar" (goto detect_junit_jar_not_detected)
-set "EP!JUNIT=%EP!HOME%\lib\junit.jar"
+if not exist "%EP!HOME%\%EP!HOST_OS_ARCH%\lib\junit.jar" (goto detect_junit_jar_not_detected)
+set "EP!JUNIT=%EP!HOME%\%EP!HOST_OS_ARCH%\lib\junit.jar"
 set "EP!BUILD_JPL=jpl"
 goto end_detect_java
 :detect_junit_jar_not_detected
 cls
 type welcome.txt
-echo Java %EP!JAVA_JDK_VERSION% found, but %EP!HOME%\lib\junit.jar not found...
+echo Java %EP!JAVA_JDK_VERSION% found, but %EP!HOME%\%EP!HOST_OS_ARCH%\lib\junit.jar not found...
 echo.
 echo Warning: the build will continue without the SWI-Prolog Java Package, its
 echo functionality will not be available. If Java is required, install
