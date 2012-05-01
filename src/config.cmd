@@ -147,7 +147,7 @@ cd "%_%"
 
 
 :set_additional_variables
-set "EP!EXTRALIBDIR=%EP!HOME%\lib"
+set "EP!EXTRALIBDIR=%EP!HOME%\%EP!TARGET_OS_ARCH%\lib"
 set "EP!PLBOOTFILE=boot%BITS%.prc"
 if "%BITS%"=="32" (set "EP!LIBPTHREAD=pthreadVC") else (set "EP!LIBPTHREAD=pthreadVC2")
 set "EP!LIBZLIB=zlibwapi"

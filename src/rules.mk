@@ -27,7 +27,7 @@ INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\customize
 
 # Get extra include files from here
-EXTRAINCDIR=$(HOME)\include
+EXTRAINCDIR=$(HOME)\$(TARGET_OS_ARCH)\include
 
 # The OpenSSL library and include files
 # http://www.slproweb.com/products/Win32OpenSSL.html
