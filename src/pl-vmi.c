@@ -3977,9 +3977,7 @@ b_throw:
 #if O_DEBUGGER
   start_tracer = FALSE;
   if ( !catchfr_ref &&
-       PL_is_functor(exception_term, FUNCTOR_error2) &&
        !PL_same_term(exception_term, exception_printed) &&
-       truePrologFlag(PLFLAG_DEBUG_ON_ERROR) &&
        false(QueryFromQid(qid), PL_Q_CATCH_EXCEPTION) )
   { int rc;
 
@@ -3992,12 +3990,19 @@ b_throw:
       if ( LD->outofstack == (Stack)&LD->stacks.global )
 	garbageCollect();
       LD->critical++;			/* do not handle signals */
-      debugmode(TRUE, NULL);
-      if ( !trace_if_space() )		/* see (*) */
-      { start_tracer = TRUE;
+      if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
+	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
+      { debugmode(TRUE, NULL);
+	if ( !trace_if_space() )		/* see (*) */
+	{ start_tracer = TRUE;
+	} else
+	{ trimStacks(FALSE PASS_LD);	/* restore spare stacks */
+	  printMessage(ATOM_error, PL_TERM, exception_term);
+	}
       } else
-      { trimStacks(FALSE PASS_LD);	/* restore spare stacks */
-	printMessage(ATOM_error, PL_TERM, exception_term);
+      { printMessage(ATOM_error,
+		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+		       PL_TERM, exception_term);
       }
       LD->critical--;
       LOAD_REGISTERS(qid);
