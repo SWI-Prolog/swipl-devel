@@ -3785,7 +3785,11 @@ garbageCollect(void)
   gc_status.global_left      += usedStack(global);
   gc_status.trail_left       += usedStack(trail);
 
-  DEBUG(CHK_SECURE, checkStacks(&state));
+  DEBUG(CHK_SECURE,
+	{ memset(gTop, 0xFB, (char*)gMax-(char*)gTop);
+	  memset(tTop, 0xFB, (char*)tMax-(char*)tTop);
+	  checkStacks(&state);
+	});
 
   if ( verbose )
     printMessage(ATOM_informational,
