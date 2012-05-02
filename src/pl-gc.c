@@ -2947,6 +2947,9 @@ setStartOfVMI(vm_state *state)
   { Clause clause = fr->clause->value.clause;
     Code PC, ep, next;
 
+    if ( fr->predicate == PROCEDURE_dcall1->definition )
+      state->in_body = TRUE;		/* There is no head code */
+
     PC = clause->codes;
     ep = PC + clause->code_size;
 
