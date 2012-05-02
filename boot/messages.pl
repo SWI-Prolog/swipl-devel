@@ -988,8 +988,8 @@ prolog_message(abnormal_thread_completion(Goal, exception(Ex))) --> !,
 	translate_message(Ex).
 prolog_message(abnormal_thread_completion(Goal, fail)) -->
 	[ 'Thread running "~p" died due to failure'-[Goal] ].
-prolog_message(threads_not_died(Count)) -->
-	[ '~D threads wouldn\'t die'-[Count] ].
+prolog_message(threads_not_died(Running)) -->
+	[ 'The following threads wouldn\'t die: ~p'-[Running] ].
 
 
 		 /*******************************

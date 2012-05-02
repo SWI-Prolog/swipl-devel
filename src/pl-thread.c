@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam,
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -781,7 +780,7 @@ There are a lot of problems however.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-exitPrologThreads()
+exitPrologThreads(void)
 { int rc;
   int i;
   int me = PL_thread_self();
@@ -841,9 +840,42 @@ exitPrologThreads()
   }
 
   if ( canceled )
-  { printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "threads_not_died", 1,
-		   PL_INT, canceled);
+  { GET_LD
+    fid_t fid;
+
+    if ( (fid = PL_open_foreign_frame()) )
+    { term_t head    = PL_new_term_ref();
+      term_t running = PL_new_term_ref();
+      term_t tail    = PL_copy_term_ref(running);
+
+      rc = TRUE;
+      for(i = 1; i <= thread_highest_id; i++)
+      { PL_thread_info_t *info = GD->thread.threads[i];
+
+	if ( info && info->thread_data && i != me )
+	{ if ( info->status == PL_THREAD_RUNNING )
+	  { if ( !PL_unify_list(tail, head, tail) ||
+		 !unify_thread_id(head, info) )
+	    { rc = FALSE;
+	      break;
+	    }
+	  }
+	}
+      }
+
+      if ( rc )
+      { rc = ( PL_unify_nil(tail) &&
+	       printMessage(ATOM_informational,
+			    PL_FUNCTOR_CHARS, "threads_not_died", 1,
+			      PL_TERM, running)
+	     );
+      }
+    } else
+    { rc = FALSE;
+    }
+
+    if ( !rc )
+      Sdprintf("%d threads wouldn't die\n", canceled);
     rc = FALSE;
   } else
   { DEBUG(MSG_THREAD, Sdprintf("done\n"));
