@@ -358,6 +358,8 @@ walk_called(Goal, M, TermPos, OTerm) :-
 	prolog:called_by(Goal, Called),
 	Called \== [], !,
 	walk_called_by(Called, M, Goal, TermPos, OTerm).
+walk_called(phrase(DCG,_,_), M, term_position(_,_,_,_,[DCGPos|_]), OTerm) :- !,
+	walk_dcg_body(DCG, M, DCGPos, OTerm).
 walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
 	(   walk_option_autoload(OTerm, false)
 	->  nonvar(Module),
@@ -518,6 +520,40 @@ subterm_pos(Sub, Term, TermPos, SubTermPos) :-
 subterm_pos(Sub, Term, TermPos, SubTermPos) :-
 	subterm_pos(Sub, Term, =, TermPos, SubTermPos), !.
 subterm_pos(_, _, _, _).
+
+
+%%	walk_dcg_body(+Body, +Module, +TermPos, +OTerm)
+%
+%	Walk a DCG body that is meta-called.
+
+walk_dcg_body(Var, _Module, TermPos, OTerm) :-
+	var(var), !,
+	undecided(Var, TermPos, OTerm).
+walk_dcg_body([], _Module, _, _) :- !.
+walk_dcg_body([_|_], _Module, _, _) :- !.
+walk_dcg_body(!, _Module, _, _) :- !.
+walk_dcg_body(M:G, _, term_position(_,_,_,_,[MPos,Pos]), OTerm) :- !,
+	(   nonvar(M)
+	->  walk_dcg_body(G, M, Pos, OTerm)
+	;   undecided(M, MPos, OTerm)
+	).
+walk_dcg_body((A,B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
+	walk_dcg_body(A, M, PA, OTerm),
+	walk_dcg_body(B, M, PB, OTerm).
+walk_dcg_body((A->B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
+	walk_dcg_body(A, M, PA, OTerm),
+	walk_dcg_body(B, M, PB, OTerm).
+walk_dcg_body((A*->B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
+	walk_dcg_body(A, M, PA, OTerm),
+	walk_dcg_body(B, M, PB, OTerm).
+walk_dcg_body((A;B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
+	(   walk_dcg_body(A, M, PA, OTerm)
+	;   walk_dcg_body(B, M, PB, OTerm)
+	).
+walk_dcg_body(G, M, TermPos, OTerm) :-
+	extend(G, 2, G2, TermPos, TermPosEx, OTerm),
+	walk_called(G2, M, TermPosEx, OTerm).
+
 
 %%	subterm_pos(+SubTerm, +Term, :Cmp,
 %%		    +TermPosition, -SubTermPos) is nondet.
