@@ -3210,7 +3210,7 @@ alloc_start_map()
   size_t gsize = gTop+1-gBase;
   size_t ints = (gsize+INTBITS-1)/INTBITS;
 
-  start_map = PL_malloc(ints*sizeof(int));
+  start_map = malloc(ints*sizeof(int));
   memset(start_map, 0, ints*sizeof(int));
 }
 #endif
