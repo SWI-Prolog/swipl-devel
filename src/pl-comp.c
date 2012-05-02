@@ -2820,7 +2820,7 @@ forAtomsInClause(Clause clause, void (func)(atom_t a))
   ep = PC + clause->code_size;
 
   for( ; PC < ep; PC = stepPC(PC) )
-  { c = decode(*PC);
+  { c = fetchop(PC);
 
     switch(c)
     { case H_CONST:
@@ -5049,6 +5049,27 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   }
 
   fail;
+}
+
+		 /*******************************
+		 *	   SIMPLE VM LIST	*
+		 *******************************/
+
+void
+vm_list(Code start)
+{ Code PC;
+
+  for(PC=start; ; PC=stepPC(PC))
+  { code op = fetchop(PC);
+    const code_info *ci = &codeTable[op];
+
+    Sdprintf("%-3d %s\n", PC-start, ci->name);
+    switch(op)
+    { case I_EXIT:
+      case I_EXITFACT:
+	return;
+    }
+  }
 }
 
 
