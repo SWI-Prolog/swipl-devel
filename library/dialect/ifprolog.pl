@@ -1133,12 +1133,17 @@ control((_->_)).
 control((_*->_)).
 control((!)).
 
-%%	current_visible(@Module, @Predicate).
+%%	current_visible(@Module, @PredicateIndicator).
 %
 %	FIXME check with documentation
 
-current_visible(Module, Predicate) :-
-	predicate_property(Module:Predicate, visible).
+current_visible(Module, Name/Arity) :-
+	atom(Name), integer(Arity), !,
+	functor(Head, Name, Arity),
+	predicate_property(Module:Head, visible).
+current_visible(Module, Name/Arity) :-
+	predicate_property(Module:Head, visible),
+	functor(Head, Name, Arity).
 
 %%	current_signal(?Signal, ?Mode) is nondet.
 %
