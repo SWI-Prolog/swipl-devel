@@ -28,7 +28,9 @@
 					/* this do any harm? */
 
 #if defined(__MINGW32__)
-#define __SEH_NOOP 1
+#define __try
+#define __except(_) if (0)
+#define __finally
 #endif
 
 #include "pl-incl.h"

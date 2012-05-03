@@ -227,7 +227,9 @@ gcc.
 
 /* AIX requires this to be the first thing in the file.  */
 #ifdef __GNUC__
-# define alloca __builtin_alloca
+# ifndef alloca
+#  define alloca __builtin_alloca
+# endif
 #else
 # if HAVE_ALLOCA_H
 #  include <alloca.h>
@@ -249,6 +251,9 @@ void *alloca ();
 #endif
 
 #include <sys/types.h>
+#if __MINGW32__
+typedef _sigset_t sigset_t;
+#endif
 #include <setjmp.h>
 #ifdef ASSERT_H_REQUIRES_STDIO_H
 #include <stdio.h>

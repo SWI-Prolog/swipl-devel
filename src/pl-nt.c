@@ -24,7 +24,7 @@
 
 #ifdef __WINDOWS__
 #define WINVER 0x0501
-#if (_MSC_VER >= 1300)
+#if (_MSC_VER >= 1300) || __MINGW32__
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
 #else
@@ -33,7 +33,9 @@
 #endif
 
 #ifdef __MINGW32__
+#ifndef _WIN32_IE
 #define _WIN32_IE 0x0400
+#endif
 /* FIXME: these are copied from SWI-Prolog.h. */
 #define PL_MSG_EXCEPTION_RAISED -1
 #define PL_MSG_IGNORED 0
