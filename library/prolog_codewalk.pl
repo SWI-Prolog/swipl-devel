@@ -358,8 +358,6 @@ walk_called(Goal, M, TermPos, OTerm) :-
 	prolog:called_by(Goal, Called),
 	Called \== [], !,
 	walk_called_by(Called, M, Goal, TermPos, OTerm).
-walk_called(phrase(DCG,_,_), M, term_position(_,_,_,_,[DCGPos|_]), OTerm) :- !,
-	walk_dcg_body(DCG, M, DCGPos, OTerm).
 walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
 	(   walk_option_autoload(OTerm, false)
 	->  nonvar(Module),
@@ -465,7 +463,7 @@ goal_pi(Goal, Goal).
 %%		       +ArgPosList, +OTerm)
 %
 %	Walk a call to a meta-predicate.   This walks all meta-arguments
-%	labeled with an integer or ^.
+%	labeled with an integer, ^ or //.
 
 walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
 	arg(I, Head, AS), !,
@@ -477,6 +475,9 @@ walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
 	->  arg(I, Meta, MA),
 	    remove_quantifier(MA, Goal, ArgPos, ArgPosEx, OTerm),
 	    walk_called(Goal, M, ArgPosEx, OTerm)
+	;   AS == (//)
+	->  arg(I, Meta, DCG),
+	    walk_dcg_body(DCG, M, ArgPos, OTerm)
 	;   true
 	),
 	succ(I, I2),

@@ -1424,8 +1424,10 @@ meta_declaration(term_t spec)
       if      ( ma == ATOM_plus )          m = MA_NONVAR;
       else if ( ma == ATOM_minus )         m = MA_VAR;
       else if ( ma == ATOM_question_mark ) m = MA_ANY;
+      else if ( ma == ATOM_star )	   m = MA_ANY; /* * mapped to ? */
       else if ( ma == ATOM_colon )         m = MA_META, transparent = TRUE;
       else if ( ma == ATOM_hat )           m = MA_HAT,  transparent = TRUE;
+      else if ( ma == ATOM_gdiv )          m = MA_DCG,  transparent = TRUE;
       else goto domain_error;
 
       mask |= m<<(i*4);
@@ -1485,6 +1487,7 @@ unify_meta_argument(term_t head, Definition def, int i)
       case MA_ANY:	a = ATOM_question_mark; break;
       case MA_NONVAR:	a = ATOM_plus; break;
       case MA_HAT:	a = ATOM_hat; break;
+      case MA_DCG:	a = ATOM_gdiv; break;
       default:		a = NULL_ATOM; assert(0);
     }
 
@@ -1520,9 +1523,10 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
   int i;
   int mask = 0;
   int transparent = FALSE;
+  const unsigned char *s = (const unsigned char*)spec_s;
 
-  for(i=0; i<arity; i++)
-  { int spec_c = spec_s[i]&0xff;
+  for(i=0; i<arity; i++, s++)
+  { int spec_c = *s;
     int spec;
 
     switch(spec_c)
@@ -1541,17 +1545,26 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
       case '^':
 	spec = MA_HAT;
         break;
+      case '/':
+        if ( s[1] == '/' )
+	{ spec = MA_DCG;
+	  s++;
+	  break;
+	} else
+	{ goto invalid;
+	}
       default:
 	if ( spec_c >= '0' && spec_c <= '9' )
 	{ spec = spec_c - '0';
 	  break;
 	}
-        fatalError("Invalid meta-argument\n");
+      invalid:
+        fatalError("Invalid meta-argument for %s: %s\n", procedureName(proc), spec_s);
 	return FALSE;
     }
 
     mask |= spec<<(i*4);
-    if ( spec < 10 || spec == MA_META || spec == MA_HAT )
+    if ( spec < 10 || spec == MA_META || spec == MA_HAT || spec == MA_DCG )
       transparent = TRUE;
   }
 

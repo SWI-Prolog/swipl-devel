@@ -628,6 +628,9 @@ colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
 colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
 	expand_meta(MetaSpec, Arg, Expanded), !,
 	colourise_goal(Expanded, [], TB, Pos). % TBD: recursion
+colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
+	MetaSpec == //, !,
+	colourise_dcg_goals(Arg, //, TB, Pos).
 colourise_meta_arg(_, Arg, TB, Pos) :-
 	colourise_term_arg(Arg, TB, Pos).
 
@@ -657,7 +660,7 @@ instantiate_meta([H|T]) :-
 	),
 	instantiate_meta(T).
 
-%	expand_meta(+MetaSpec, +Goal, -Expanded)
+%%	expand_meta(+MetaSpec, +Goal, -Expanded) is semidet.
 %
 %	Add extra arguments to the goal if the meta-specifier is an
 %	integer (see above).

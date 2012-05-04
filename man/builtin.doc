@@ -2300,9 +2300,9 @@ Grammar rule sets are called using the built-in predicates phrase/2
 and phrase/3:
 
 \begin{description}
-    \predicate{phrase}{2}{+DCGBody, ?List}
+    \predicate{phrase}{2}{:DCGBody, ?List}
 Equivalent to \exam{phrase(\arg{DCGBody}, \arg{InputList}, [])}.
-    \predicate{phrase}{3}{+DCGBody, ?List, ?Rest}
+    \predicate{phrase}{3}{:DCGBody, ?List, ?Rest}
 True when \arg{DCGBody} applies to the difference
 \arg{List}/\arg{Rest}. Although \arg{DCGBody} is typically a
 \jargon{callable} term that denotes a grammar rule, it can be any

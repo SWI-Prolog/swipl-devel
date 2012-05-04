@@ -250,6 +250,11 @@ to a predicate.  For example: \exam{consult(:)}.
 The argument is not module sensitive and unbound on entry.
         \termitem{?}{}
 The argument is not module sensitive and the mode is unspecified.
+        \termitem{*}{}
+The argument is not module sensitive and the mode is unspecified.
+The specification \chr{*} is equivalent to \chr{?}.  It is accepted
+for compatibility reasons.  The predicate predicate_property/2 reports
+arguments declared using \chr{*} with \chr{?}.
         \termitem{+}{}
 The argument is not module sensitive and bound (i.e., nonvar)
 on entry.
@@ -257,6 +262,8 @@ on entry.
 This extension is used to denote the possibly \verb$^$-annotated goal of
 setof/3, bagof/3, aggregate/3 and aggregate/4. It is processed similar
 to `0', but leaving the \chr{^}/2 intact.
+	\termitem{//}{}
+The argument is a DCG body.  See phrase/3.
     \end{description}
 
 Each argument that is module sensitive (i.e., marked 0..9, \chr{:} or

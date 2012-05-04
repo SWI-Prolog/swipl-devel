@@ -250,8 +250,8 @@ qualify(M:_, X, M:X).
 %	Interface to DCGs
 
 :- meta_predicate
-	phrase(2, ?),
-	phrase(2, ?, ?).
+	phrase(//, ?),
+	phrase(//, ?, ?).
 :- noprofile((phrase/2,
 	      phrase/3)).
 
