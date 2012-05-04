@@ -59,7 +59,6 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #undef chmod
 #undef remove
 #undef rename
-#undef stat
 #undef chdir
 #undef mkdir
 #undef rmdir
