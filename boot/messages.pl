@@ -993,6 +993,20 @@ prolog_message(threads_not_died(Running)) -->
 
 
 		 /*******************************
+		 *	       PACKS		*
+		 *******************************/
+
+prolog_message(pack(attached(Pack, BaseDir))) -->
+	[ 'Attached package ~w at ~q'-[Pack, BaseDir] ].
+prolog_message(pack(duplicate(Entry, OldDir, Dir))) -->
+	[ 'Package ~w already attached at ~q.'-[Entry,OldDir], nl,
+	  '\tIgnoring version from ~q'- [Entry, OldDir, Dir]
+	].
+prolog_message(pack(no_arch(Entry, Arch))) -->
+	[ 'Package ~w: no binary for architecture ~w'-[Entry, Arch] ].
+
+
+		 /*******************************
 		 *	PRINTING MESSAGES	*
 		 *******************************/
 

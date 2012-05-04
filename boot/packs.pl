@@ -30,7 +30,9 @@
 
 :- module('$pack',
 	  [ attach_packs/0,
-	    attach_packs/1			% +Dir
+	    attach_packs/1,			% +Dir
+	    '$pack_detach'/2,			% +Name, -Dir
+	    '$pack_attach'/1			% +Dir
 	  ]).
 
 :- multifile user:file_search_path/2.
@@ -49,6 +51,34 @@ user:file_search_path(library, PackLib) :-
 user:file_search_path(foreign, PackLib) :-
 	pack_dir(_Name, foreign, PackLib).
 
+%%	'$pack_detach'(+Name, -Dir) is det.
+%
+%	Detach the given package  from  the   search  paths  and list of
+%	registered packages, but does not delete the files.
+
+'$pack_detach'(Name, Dir) :-
+	(   atom(Name)
+	->  true
+	;   throw(error(type_error(atom, Name), _))
+	),
+	(   retract(pack(Name, Dir))
+	->  retractall(pack_dir(Name, _, _)),
+	    reload_library_index
+	;   throw(error(existence_error(pack, Name), _))
+	).
+
+%%	'$pack_attach'(+Dir) is det.
+%
+%	Attach the given package
+
+'$pack_attach'(Dir) :-
+	attach_package(Dir), !.
+'$pack_attach'(Dir) :-
+	(   exists_directory(Dir)
+	->  throw(error(existence_error(directory, Dir), _))
+	;   throw(error(domain_error(pack, Dir), _))
+	).
+
 %%	attach_packs
 %
 %	Attach packages from all package directories.
@@ -60,9 +90,12 @@ attach_packs :-
 					      solutions(all)
 					    ]),
 		PackDirs),
-	remove_dups(PackDirs, UniquePackDirs, []),
-	forall('$member'(PackDir, UniquePackDirs),
-	       attach_packs(PackDir)).
+	(   PackDirs \== []
+	->  remove_dups(PackDirs, UniquePackDirs, []),
+	    forall('$member'(PackDir, UniquePackDirs),
+		   attach_packs(PackDir))
+	;   true
+	).
 
 %%	remove_dups(+List, -Unique, +Seen) is det.
 %
@@ -92,23 +125,34 @@ attach_packages([H|T], Dir) :-
 
 attach_package(Entry, Dir) :-
 	\+ special(Entry),
-	atomic_list_concat([Dir, Entry, '/pack.pl'], InfoFile),
-	access_file(InfoFile, read),
-	check_existing(Entry, Dir),
-	foreign_dir(Entry, Dir, ForeignDir),
-	prolog_dir(Entry, Dir, PrologDir),
-	atom_concat(Dir, Entry, BaseDir),
-	assertz(pack(Entry, BaseDir)),
-	assertz(pack_dir(Entry, prolog, PrologDir)),
-	(   ForeignDir \== (-)
-	->  assertz(pack_dir(Entry, foreign, ForeignDir))
-	;   true
-	),
-	print_message(silent, pack(attached(Entry, BaseDir))).
+	atom_concat(Dir, Entry, PackDir),
+	attach_package(PackDir), !.
 attach_package(_, _).
 
 special(.).
 special(..).
+
+
+%%	attach_package(+PackDir) is semidet.
+%
+%	@tbd	Deal with autoload index.  Reload?
+
+attach_package(PackDir) :-
+	atomic_list_concat([PackDir, '/pack.pl'], InfoFile),
+	access_file(InfoFile, read),
+	file_base_name(PackDir, Pack),
+	check_existing(Pack, PackDir),
+	foreign_dir(PackDir, ForeignDir),
+	prolog_dir(PackDir, PrologDir), !,
+	assertz(pack(Pack, PackDir)),
+	assertz(pack_dir(Pack, prolog, PrologDir)),
+	update_autoload(PrologDir),
+	(   ForeignDir \== (-)
+	->  assertz(pack_dir(Pack, foreign, ForeignDir))
+	;   true
+	),
+	print_message(silent, pack(attached(Pack, PackDir))).
+
 
 %%	check_existing(+Pack, +PackDir) is semidet.
 %
@@ -124,21 +168,28 @@ check_existing(Entry, Dir) :-
 check_existing(_, _).
 
 
-prolog_dir(Entry, Dir, PrologDir) :-
-	atomic_list_concat([Dir, Entry, '/prolog'], PrologDir),
+prolog_dir(PackDir, PrologDir) :-
+	atomic_list_concat([PackDir, '/prolog'], PrologDir),
 	exists_directory(PrologDir).
 
-foreign_dir(Entry, Dir, ForeignDir) :-
+update_autoload(PrologDir) :-
+	atom_concat(PrologDir, '/INDEX.pl', IndexFile),
+	(   exists_file(IndexFile)
+	->  reload_library_index
+	;   true
+	).
+
+foreign_dir(PackDir, ForeignDir) :-
 	current_prolog_flag(arch, Arch),
-	atomic_list_concat([Dir, Entry, '/bin'], ForeignBaseDir),
+	atomic_list_concat([PackDir, '/bin'], ForeignBaseDir),
 	exists_directory(ForeignBaseDir), !,
-	atomic_list_concat([Dir, Entry, '/bin/', Arch], ForeignDir),
+	atomic_list_concat([PackDir, '/bin/', Arch], ForeignDir),
 	(   exists_directory(ForeignDir)
 	->  assertz(pack_dir(Entry, foreign, ForeignDir))
-	;   print_message(warning, pack(no_arch(Entry, ForeignBaseDir))),
+	;   print_message(warning, pack(no_arch(Entry, Arch))),
 	    fail
 	).
-foreign_dir(_, _, (-)).
+foreign_dir(_, (-)).
 
 ensure_slash(Dir, SDir) :-
 	(   sub_atom(Dir, _, _, 0, /)
