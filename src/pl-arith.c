@@ -2828,7 +2828,7 @@ seed_from_dev(const char *dev ARG_LD)
 static int
 seed_from_crypt_context(ARG1_LD)
 {
-#ifdef _MSC_VER
+#ifdef __WINDOWS__
   HCRYPTPROV hCryptProv;
   char *user_name = "seed_random";
   BYTE seedarray[RAND_SEED_LEN];
