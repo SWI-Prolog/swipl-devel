@@ -2782,7 +2782,7 @@ ar_truncate(Number n1, Number r)
 static int
 seed_from_dev(const char *dev ARG_LD)
 { int done = FALSE;
-#ifdef S_ISCHR
+#if defined(S_ISCHR) && !defined(__WINDOWS__)
   int fd;
 
   if ( (fd=open(dev, O_RDONLY)) )
