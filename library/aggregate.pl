@@ -64,7 +64,7 @@ smallest_country(Name, Area) :-
 	aggregate(min(A, N), country(N, A), min(Area, Name)).
 ==
 
-There are four aggregation predicates, distinguished on two properties.
+There are four aggregation predicates (aggregate/3, aggregate/4, aggregate_all/3 and aggregate/4), distinguished on two properties.
 
     $ aggregate vs. aggregate_all :
     The aggregate predicates use setof/3 (aggregate/4) or bagof/3
@@ -72,23 +72,23 @@ There are four aggregation predicates, distinguished on two properties.
     (Var^Goal) and providing multiple solutions for the remaining free
     variables in Goal. The aggregate_all/3 predicate uses findall/3,
     implicitly qualifying all free variables and providing exactly one
-    solution, while aggregate_all/4 uses sort/2 over solutions and
-    Distinguish (see below) generated using findall/3.
+    solution, while aggregate_all/4 uses sort/2 over solutions that
+    Discriminator (see below) generated using findall/3.
 
-    $ The Distinguish argument :
-    The versions with 4 arguments provide a Distinguish argument that
-    allow for keeping duplicate bindings of a variable in the result.
+    $ The Discriminator argument :
+    The versions with 4 arguments provide a Discriminator argument that
+    allows for keeping duplicate bindings of a variable in the result.
     For example, if we wish to compute the total population of all
-    countries we do not want to lose results because two countries
+    countries, we do not want to lose results because two countries
     have the same population.  Therefore we use:
 
     ==
 	aggregate(sum(P), Name, country(Name, P), Total)
     ==
 
-All aggregation predicates support the following operator below in
-Template. In addition, they allow for an arbitrary named compound term
-where each of the arguments is a term from the list below. I.e. the term
+All aggregation predicates support the following operators below in
+Template. In addition, they allow for an arbitrary named compound term,
+where each of the arguments is a term from the list below. For example, the term
 r(min(X), max(X)) computes both the minimum and maximum binding for X.
 
 	* count
@@ -99,8 +99,8 @@ r(min(X), max(X)) computes both the minimum and maximum binding for X.
 	Minimum of Expr for all solutions.
 	* min(Expr, Witness)
 	A term min(Min, Witness), where Min is the minimal version
-	of Expr over all Solution and Witness is any other template
-	applied to Solution that produced Min.  If multiple
+	of Expr over all solutions, and Witness is any other template
+	applied to solutions that produced Min.  If multiple
 	solutions provide the same minimum, Witness corresponds to
 	the first solution.
 	* max(Expr)
@@ -142,7 +142,7 @@ aggregate(Template, Goal0, Result) :-
 
 %%	aggregate(+Template, +Discriminator, :Goal, -Result) is nondet.
 %
-%	Aggregate bindings in Goal according to Template.  The aggregate/3
+%	Aggregate bindings in Goal according to Template.  The aggregate/4
 %	version performs setof/3 on Goal.
 
 aggregate(Template, Discriminator, Goal0, Result) :-
@@ -163,7 +163,7 @@ aggregate_all(Template, Goal0, Result) :-
 
 %%	aggregate_all(+Template, +Discriminator, :Goal, -Result) is semidet.
 %
-%	Aggregate bindings in Goal according to Template.  The aggregate_all/3
+%	Aggregate bindings in Goal according to Template.  The aggregate_all/4
 %	version performs findall/3 followed by sort/2 on Goal.
 
 aggregate_all(Template, Discriminator, Goal0, Result) :-
@@ -214,7 +214,7 @@ clean_body((Goal0,Goal1), Goal) :- !,
 clean_body(Goal, Goal).
 
 
-%%	template_to_pattern(+Template, -Pattern, -Post, -Vars, -Agregate)
+%%	template_to_pattern(+Template, -Pattern, -Post, -Vars, -Aggregate)
 %
 %	Determine which parts of the goal we must remember in the
 %	findall/3 pattern.
@@ -223,7 +223,7 @@ clean_body(Goal, Goal).
 %		    storage requirements.
 %	@param Vars is a list of intermediate variables that must be
 %		    added to the existential variables for bagof/3.
-%	@param Agregate defines the aggregation operation to execute.
+%	@param Aggregate defines the aggregation operation to execute.
 
 template_to_pattern(sum(X),	      X,	 true,	  [],   sum) :- var(X), !.
 template_to_pattern(sum(X0),	      X,	 X is X0, [X0], sum) :- !.
@@ -423,7 +423,7 @@ state1(_,   X, X, _).
 %	True if the conjunction of instances  of Goal using the bindings
 %	from  Generator  is  true.  Unlike    forall/2,   which  runs  a
 %	failure-driven loop that  proves  Goal   for  each  solution  of
-%	Generator, foreach creates a  conjunction.   Each  member of the
+%	Generator, foreach/2 creates a  conjunction.   Each  member of the
 %	conjunction is a copy of  Goal,   where  the variables it shares
 %	with Generator are filled with the values from the corresponding
 %	solution.
@@ -440,7 +440,7 @@ state1(_,   X, X, _).
 %	No
 %	==
 %
-%	@bug	Goal is copied repeatetly, which may cause problems if
+%	@bug	Goal is copied repeatedly, which may cause problems if
 %		attributed variables are involved.
 
 foreach(Generator, Goal) :-
@@ -471,10 +471,10 @@ prove_list([H|T], Templ, SharedTempl, Goal) :-
 %	as yet unbound are universally quantified, unless
 %
 %	    1. they occur in the template
-%	    2. they are bound by X^P, setof, or bagof
+%	    2. they are bound by X^P, setof/3, or bagof/3
 %
 %	free_variables(Generator, Template, OldList, NewList) finds this
-%	set, using OldList as an accumulator.
+%	set using OldList as an accumulator.
 %
 %	@author Richard O'Keefe
 %	@author Jan Wielemaker (made some SWI-Prolog enhancements)
