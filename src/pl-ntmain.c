@@ -880,7 +880,7 @@ menu_select(rlc_console c, const TCHAR *name)
   { uintptr_t hwnd;
 
     if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
-      PostMessage((HWND)hwnd, WM_MENU, 0, (LONG)name);
+      PostMessage((HWND)hwnd, WM_MENU, 0, (LPARAM)name);
   }
 }
 

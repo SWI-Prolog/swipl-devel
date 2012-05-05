@@ -166,7 +166,7 @@ get_hsz(DWORD ddeInst, term_t data, HSZ *rval)
 
     DEBUG(2, Sdprintf("Get HSZ for %Ws ...\n", s));
     if ( (h=DdeCreateStringHandleW(ddeInst, s, CP_WINUNICODE)) )
-    { DEBUG(2, Sdprintf("\tHSZ = %d\n", (int)h));
+    { DEBUG(2, Sdprintf("\tHSZ = %p\n", h));
       *rval = h;
       succeed;
     }
@@ -234,7 +234,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        }
        PL_discard_foreign_frame(cid);
 
-       return (void *)rval;
+       return (void *)(intptr_t)rval;
      }
      case XTYP_CONNECT_CONFIRM:
      { int plhandle;
@@ -407,7 +407,7 @@ PRED_IMPL("$dde_register_service", 2, dde_register_service, 0)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, onoff);
 
   if ( !a )
-  { int rval = (int)DdeNameService(ddeInst, t, 0L, DNS_UNREGISTER);
+  { int rval = (intptr_t)DdeNameService(ddeInst, t, 0L, DNS_UNREGISTER);
     DdeFreeStringHandle(ddeInst, t);
     return rval ? TRUE : FALSE;
   } else

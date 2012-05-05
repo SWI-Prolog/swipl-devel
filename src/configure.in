@@ -1296,7 +1296,7 @@ AC_CHECK_MEMBER(struct tm.tm_gmtoff,
 		[#include <time.h>])
 
 AC_MSG_CHECKING("Boot filename");
-BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
+BOOTFILE=boot`expr ${ac_cv_sizeof_voidp} \* 8`.prc
 AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE",
 		   [Name of the file to boot from])
 AC_MSG_RESULT($BOOTFILE)

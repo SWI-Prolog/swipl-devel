@@ -558,7 +558,7 @@ win_shell(term_t op, term_t file, term_t how)
   { const shell_error *se;
 
     for(se = se_errors; se->message; se++)
-    { if ( se->eno == (int)instance )
+      { if ( se->eno == (int)(intptr_t)instance )
 	return PL_error(NULL, 0, se->message, ERR_SHELL_FAILED, file);
     }
     PL_error(NULL, 0, NULL, ERR_SHELL_FAILED, file);

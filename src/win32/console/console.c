@@ -88,7 +88,7 @@ static void initHeapDebug(void);
 #define UNICODE_NOCHAR 0xFFFF
 #endif
 
-#if (_MSC_VER < 1400)
+#if (_MSC_VER < 1400) && !defined(__MINGW32__)
 typedef DWORD DWORD_PTR;
 #endif
 
@@ -485,7 +485,7 @@ rlc_create_window(RlcData b)
 		      NULL, NULL, _rlc_hinstance, NULL);
 
   b->window = hwnd;
-  SetWindowLong(hwnd, GWL_DATA, (LONG) b);
+  SetWindowLongPtr(hwnd, GWL_DATA, (LONG_PTR) b);
   SetScrollRange(hwnd, SB_VERT, 0, b->sb_lines, FALSE);
   SetScrollPos(hwnd, SB_VERT, b->sb_start, TRUE);
 
@@ -962,7 +962,7 @@ IsDownKey(code)
 
 static LRESULT WINAPI
 rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{ RlcData b = (RlcData) GetWindowLong(hwnd, GWL_DATA);
+{ RlcData b = (RlcData) GetWindowLongPtr(hwnd, GWL_DATA);
 
   switch(message)
   { case WM_CREATE:
@@ -3358,11 +3358,7 @@ rlc_title(rlc_console c, TCHAR *title, TCHAR *old, int size)
 void
 rlc_icon(rlc_console c, HICON icon)
 {
-#ifdef WIN64
-  SetClassLong(rlc_hwnd(c), GCLP_HICON, (LONG) icon);
-#else
-  SetClassLong(rlc_hwnd(c), GCL_HICON, (LONG) icon);
-#endif
+  SetClassLongPtr(rlc_hwnd(c), GCLP_HICON, (LONG_PTR) icon);
 }
 
 
