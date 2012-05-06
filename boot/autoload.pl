@@ -300,17 +300,19 @@ make_library_index(Dir0, Patterns) :-
 	       make_library_index2(Dir, Patterns)).
 
 make_library_index2(Dir, Patterns) :-
-	plfile_in_dir(Dir, 'INDEX', Index, AbsIndex),
+	plfile_in_dir(Dir, 'INDEX', _Index, AbsIndex),
 	access_file(AbsIndex, write), !,
-	working_directory(OldDir, Dir),
-	working_directory(NewDir, NewDir),
-	expand_index_file_patterns(Patterns, Files),
-	(   library_index_out_of_date(Index, Files)
-	->  print_message(informational, make(library_index(NewDir))),
+	directory_files(Dir, AllFiles),
+	prolog_files(AllFiles, Patterns, Files),
+	(   sub_atom(Dir, _, _, 0, /)
+	->  DirS = Dir
+	;   atom_concat(Dir, /, DirS)
+	),
+	(   library_index_out_of_date(AbsIndex, DirS, Files)
+	->  print_message(informational, make(library_index(Dir))),
 	    flag('$modified_index', _, true),
-	    call_cleanup(do_make_library_index(Index, Files),
-			 working_directory(_, OldDir))
-	;   working_directory(_, OldDir)
+	    do_make_library_index(AbsIndex, DirS, Files)
+	;   true
 	).
 make_library_index2(Dir, _) :-
 	throw(error(permission_error(write, index_file, Dir), _)).
@@ -323,51 +325,55 @@ plfile_in_dir(Dir, Base, PlBase, File) :-
 	file_name_extension(Base, pl, PlBase),
 	atomic_list_concat([Dir, '/', PlBase], File).
 
-expand_index_file_patterns(Patterns, Files) :-
-	phrase(files_from_patterns(Patterns), Files).
-
-files_from_patterns([]) -->
-	[].
-files_from_patterns([P0|PT]) -->
-	{ expand_file_name(P0, Files)
-	},
-	Files,
-	files_from_patterns(PT).
+prolog_files([], _, []).
+prolog_files([H|T0], Patterns, Files) :-
+	(   '$member'(P, Patterns),
+	    wildcard_match(P, H)
+	->  Files = [H|T]
+	;   Files = T
+	),
+	prolog_files(T0, Patterns, T).
 
 
-library_index_out_of_date(Index, _Files) :-
+library_index_out_of_date(Index, _DirS, _Files) :-
 	\+ exists_file(Index), !.
-library_index_out_of_date(Index, Files) :-
+library_index_out_of_date(Index, DirS, Files) :-
 	time_file(Index, IndexTime),
 	(   time_file('.', DotTime),
 	    DotTime @> IndexTime
 	;   '$member'(File, Files),
-	    time_file(File, FileTime),
+	    atom_concat(DirS, File, AbsFile),
+	    time_file(AbsFile, FileTime),
 	    FileTime @> IndexTime
 	), !.
 
 
-do_make_library_index(Index, Files) :-
-	setup_call_cleanup(open(Index, write, Fd),
-			   ( index_header(Fd),
-			     index_files(Files, Fd)
-			   ),
-			   close(Fd)).
+do_make_library_index(Index, DirS, Files) :-
+	catch(setup_call_cleanup(
+		  open(Index, write, Fd),
+		  ( index_header(Fd),
+		    index_files(Files, DirS, Fd)
+		  ),
+		  close(Fd)),
+	      E, print_message(error, E)).
 
-
-index_files([], _).
-index_files([File|Files], Fd) :-
-	open(File, read, In),
-	call_cleanup(read(In, Term),
-		     close(In)),
-	(   Term = (:- module(Module, Public))
+index_files([], _, _).
+index_files([File|Files], DirS, Fd) :-
+	atom_concat(DirS, File, AbsFile),
+	catch(setup_call_cleanup(
+		  open(AbsFile, read, In),
+		  read(In, Term),
+		  close(In)),
+	      E, print_message(warning, E)),
+	(   Term = (:- module(Module, Public)),
+	    is_list(Public)
 	->  file_name_extension(Base, _, File),
 	    forall(public_predicate(Public, Name/Arity),
 		   format(Fd, 'index((~k), ~k, ~k, ~k).~n',
 			  [Name, Arity, Module, Base]))
 	;   true
 	),
-	index_files(Files, Fd).
+	index_files(Files, DirS, Fd).
 
 public_predicate(Public, PI) :-
 	'$member'(PI0, Public),
@@ -381,9 +387,7 @@ canonical_pi(Name//A0,   Name/Arity) :-
 
 
 index_header(Fd):-
-	format(Fd, '/*  $Id', []),
-	format(Fd, '$~n~n', []),
-	format(Fd, '    Creator: make/0~n~n', []),
+	format(Fd, '/*  Creator: make/0~n~n', []),
 	format(Fd, '    Purpose: Provide index for autoload~n', []),
 	format(Fd, '*/~n~n', []).
 
