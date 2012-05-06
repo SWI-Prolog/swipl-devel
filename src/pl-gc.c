@@ -4968,7 +4968,9 @@ the next clause. Amoung these are retract/1, clause/2, etc.
 (*) we must *not* use  getProcDefinition()  here   because  we  are in a
 signal handler and thus the locking there for thread-local predicates is
 not safe. That is no problem however,  because we are only interested in
-static predicates.
+static predicates. Note that clause/2,  etc.   use  the choice point for
+searching clauses and thus chp->cref may become NULL if all clauses have
+been searched.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -4987,9 +4989,10 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 					/* P_FOREIGN_CREF: clause, etc. choicepoints */
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
     { ClauseChoice chp = (ClauseChoice)fr->clause;
+      ClauseRef cref;
 
-      if ( chp )
-	def = chp->cref->value.clause->procedure->definition; /* See (*) above */
+      if ( chp && (cref=chp->cref) )
+	def = cref->value.clause->procedure->definition; /* See (*) above */
       else
 	def = NULL;
     } else
