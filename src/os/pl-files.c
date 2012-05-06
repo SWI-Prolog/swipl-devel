@@ -864,12 +864,13 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
 static
 PRED_IMPL("working_directory", 2, working_directory, 0)
 { PRED_LD
+  char buf[MAXPATHLEN];
   const char *wd;
 
   term_t old = A1;
   term_t new = A2;
 
-  if ( !(wd = PL_cwd()) )
+  if ( !(wd = PL_cwd(buf, sizeof(buf))) )
     return FALSE;
 
   if ( PL_unify_chars(old, PL_ATOM|REP_FN, -1, wd) )

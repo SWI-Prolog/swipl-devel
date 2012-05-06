@@ -1456,7 +1456,7 @@ AbsoluteFile(const char *spec, char *path)
   }
 #endif /*O_HASDRIVES*/
 
-  if ( !PL_cwd() )
+  if ( !PL_cwd(path, MAXPATHLEN) )
     return NULL;
 
   if ( (GD->paths.CWDlen + strlen(file) + 1) >= MAXPATHLEN )
@@ -1476,15 +1476,17 @@ AbsoluteFile(const char *spec, char *path)
 
 void
 PL_changed_cwd(void)
-{ if ( GD->paths.CWDdir )
+{ LOCK();
+  if ( GD->paths.CWDdir )
     remove_string(GD->paths.CWDdir);
   GD->paths.CWDdir = NULL;
   GD->paths.CWDlen = 0;
+  UNLOCK();
 }
 
 
-const char *
-PL_cwd(void)
+static char *
+cwd_unlocked(char *cwd, size_t cwdlen)
 { GET_LD
 
   if ( GD->paths.CWDlen == 0 )
@@ -1526,7 +1528,25 @@ to be implemented directly.  What about other Unixes?
     GD->paths.CWDdir = store_string(buf);
   }
 
-  return (const char *)GD->paths.CWDdir;
+  if ( GD->paths.CWDlen < cwdlen )
+  { memcpy(cwd, GD->paths.CWDdir, GD->paths.CWDlen+1);
+    return cwd;
+  } else
+  { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+    return NULL;
+  }
+}
+
+
+char *
+PL_cwd(char *cwd, size_t cwdlen)
+{ char *rc;
+
+  LOCK();
+  rc = cwd_unlocked(cwd, cwdlen);
+  UNLOCK();
+
+  return rc;
 }
 
 
@@ -1595,10 +1615,12 @@ ChDir(const char *path)
     { tmp[len++] = '/';
       tmp[len] = EOS;
     }
-    GD->paths.CWDlen = len;
+    LOCK();					/* Lock with PL_changed_cwd() */
+    GD->paths.CWDlen = len;			/* and PL_cwd() */
     if ( GD->paths.CWDdir )
       remove_string(GD->paths.CWDdir);
     GD->paths.CWDdir = store_string(tmp);
+    UNLOCK();
 
     succeed;
   }
