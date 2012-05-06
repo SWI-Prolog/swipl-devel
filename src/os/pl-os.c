@@ -1165,15 +1165,18 @@ canonisePath(char *path)
 #ifdef O_CANONISE_DIRS
 { char *e;
   char dirname[MAXPATHLEN];
+  size_t plen = strlen(path);
 
-  e = path + strlen(path) - 1;
-  for( ; *e != '/' && e > path; e-- )
-    ;
-  strncpy(dirname, path, e-path);
-  dirname[e-path] = EOS;
-  canoniseDir(dirname);
-  strcat(dirname, e);
-  strcpy(path, dirname);
+  if ( plen > 0 )
+  { e = path + plen - 1;
+    for( ; *e != '/' && e > path; e-- )
+      ;
+    strncpy(dirname, path, e-path);
+    dirname[e-path] = EOS;
+    canoniseDir(dirname);
+    strcat(dirname, e);
+    strcpy(path, dirname);
+  }
 }
 #endif
 
