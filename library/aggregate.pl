@@ -86,10 +86,11 @@ There are four aggregation predicates (aggregate/3, aggregate/4, aggregate_all/3
 	aggregate(sum(P), Name, country(Name, P), Total)
     ==
 
-All aggregation predicates support the following operators below in
-Template. In addition, they allow for an arbitrary named compound term,
-where each of the arguments is a term from the list below. For example, the term
-r(min(X), max(X)) computes both the minimum and maximum binding for X.
+All aggregation predicates support  the   following  operators  below in
+Template. In addition, they allow for  an arbitrary named compound term,
+where each of the arguments is a term  from the list below. For example,
+the term r(min(X), max(X)) computes both the minimum and maximum binding
+for X.
 
 	* count
 	Count number of solutions.  Same as sum(1).
@@ -153,8 +154,8 @@ aggregate(Template, Discriminator, Goal0, Result) :-
 
 %%	aggregate_all(+Template, :Goal, -Result) is semidet.
 %
-%	Aggregate bindings in Goal according to Template.  The aggregate_all/3
-%	version performs findall/3 on Goal.
+%	Aggregate  bindings  in  Goal   according    to   Template.  The
+%	aggregate_all/3 version performs findall/3 on Goal.
 
 aggregate_all(Template, Goal0, Result) :-
 	template_to_pattern(all, Template, Pattern, Goal0, Goal, Aggregate),
@@ -163,8 +164,9 @@ aggregate_all(Template, Goal0, Result) :-
 
 %%	aggregate_all(+Template, +Discriminator, :Goal, -Result) is semidet.
 %
-%	Aggregate bindings in Goal according to Template.  The aggregate_all/4
-%	version performs findall/3 followed by sort/2 on Goal.
+%	Aggregate  bindings  in  Goal   according    to   Template.  The
+%	aggregate_all/4 version performs findall/3 followed by sort/2 on
+%	Goal.
 
 aggregate_all(Template, Discriminator, Goal0, Result) :-
 	template_to_pattern(all, Template, Pattern, Goal0, Goal, Aggregate),
@@ -423,7 +425,7 @@ state1(_,   X, X, _).
 %	True if the conjunction of instances  of Goal using the bindings
 %	from  Generator  is  true.  Unlike    forall/2,   which  runs  a
 %	failure-driven loop that  proves  Goal   for  each  solution  of
-%	Generator, foreach/2 creates a  conjunction.   Each  member of the
+%	Generator, foreach/2 creates a conjunction.   Each member of the
 %	conjunction is a copy of  Goal,   where  the variables it shares
 %	with Generator are filled with the values from the corresponding
 %	solution.
