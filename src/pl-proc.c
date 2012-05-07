@@ -3057,15 +3057,17 @@ unloadFile(SourceFile sf)
     Procedure proc = cell->value;
     Definition def = proc->definition;
 
-    DEBUG(2, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
-		      predicateName(def), def->references));
+    DEBUG(MSG_UNLOAD, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
+			       predicateName(def), def->references));
 
     deleted = removeClausesProcedure(proc,
 				     true(def, MULTIFILE) ? sf->index : 0,
 				     TRUE);
 
-    if ( false(def, MULTIFILE) )
-      assert(def->impl.clauses.number_of_clauses == 0);
+    DEBUG(MSG_UNLOAD,
+	  if ( false(def, MULTIFILE) && def->impl.clauses.number_of_clauses )
+	    Sdprintf("%s: %d clauses after unload\n",
+		     predicateName(def), def->impl.clauses.number_of_clauses));
 
     if ( deleted )
     { if ( def->references == 0 )

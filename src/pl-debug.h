@@ -47,6 +47,7 @@
 #define MSG_PROC		 18
 
 #define MSG_COMP_ARGVAR		 19
+#define MSG_UNLOAD		 20
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101
