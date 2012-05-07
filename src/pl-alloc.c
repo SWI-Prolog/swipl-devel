@@ -912,9 +912,12 @@ PL_linger(void *mem)
 #ifdef HAVE_BOEHM_GC
 static void
 heap_gc_warn_proc(char *msg, GC_word arg)
-{ Sdprintf(msg, arg);
+{
+#if ALLOC_DEBUG
+  Sdprintf(msg, arg);
   save_backtrace("heap-gc-warning");
   print_backtrace_named("heap-gc-warning");
+#endif
 }
 #endif
 
