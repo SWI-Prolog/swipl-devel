@@ -821,7 +821,9 @@ pl_current_predicate1(term_t spec, control_t ctx)
       { Module m = sm->value;
 
 					/* skip hidden modules */
-	if ( stringAtom(m->name)[0] != '$' || SYSTEM_MODE )
+	if ( SYSTEM_MODE ||
+	     m->name == ATOM_system ||
+	     m->class != ATOM_system )
 	  break;
       }
       if ( sm )
