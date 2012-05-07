@@ -842,7 +842,7 @@ PL_malloc_unmanaged(size_t size)
   if ( (mem = GC_MALLOC(size)) )
   {
 #if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
-    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+    GC_SET_FLAGS(mem, GC_FLAG_UNCOLLECTABLE);
 #endif
     return mem;
   }
@@ -860,7 +860,7 @@ PL_malloc_atomic_unmanaged(size_t size)
   if ( (mem = GC_MALLOC_ATOMIC(size)) )
   {
 #if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
-    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+    GC_SET_FLAGS(mem, GC_FLAG_UNCOLLECTABLE);
 #endif
     return mem;
   }
@@ -893,7 +893,7 @@ PL_linger(void *mem)
 {
 #if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
   if ( mem )
-  { GC_clear_flags(mem, GC_FLAG_UNCOLLECTABLE);
+  { GC_CLEAR_FLAGS(mem, GC_FLAG_UNCOLLECTABLE);
 #ifdef GC_DEBUG
     GC_linger(mem);
 #endif
