@@ -1,26 +1,35 @@
-#!/bin/bash -f
+#!/bin/sh -f
 #
-# Ask PceEmacs to edit files for me.  To use this package, make sure
-# xpce-client is installed in your path and one XPCE process runs PceEmacs
-# as a server.  One way to do that is to put the following in your X
-# startup:
+# Ask PceEmacs to edit files for  me.   To  use  this package, make sure
+# xpce-client is installed in  your  path   and  one  XPCE  process runs
+# PceEmacs as a server. One way to do   that  is to put the following in
+# your X startup:
 #
-#	xterm -iconic -title 'PceEmacs server' -e xpce -g emacs_server
+#      xterm -iconic -title 'PceEmacs server' -e swipl -g emacs_server
 #
 # Author: Jan Wielemaker
-# Copying: GPL-2
+# Copying: Public domain
 
 usage()
-{ echo "usage: `basename $0` file[:line]"
+{ echo "usage: `basename $0` [+line] file[:line]"
   exit 1
 }
 
 line=""
 
-if [ -z "$HOST" ]; then HOST=`hostname`; fi
+HOST=`hostname`
+server="$HOME/.xpce_emacs_server"
 
-server="$HOME/.xpce_emacs_server.$HOST"
-if [ ! -S "$server" ]; then
+case "$DISPLAY" in
+  :*)	server=$server.$(echo "$DISPLAY" | sed 's/^:\([0-9]*\).*/\1/')
+	;;
+  *)	server=$server.$HOST
+        ;;
+esac
+
+#echo "Server = $server"
+
+if [ ! -S "$server" -o -z "$DISPLAY" ]; then
     server="$HOME/.xpce_emacs_server"
     if [ ! -S "$server" ]; then
 	echo "No PceEmacs server"
@@ -28,7 +37,21 @@ if [ ! -S "$server" ]; then
     fi
 fi
 
+done=false
+while [ $done = false ]; do
+    case "$1" in
+	+[0-9]*)
+		line=`echo "$1" | sed 's/^+//'`
+		shift
+		;;
+	*)
+		done=true
+		;;
+    esac
+done
+
 file="$1"
+
 case "$file" in
 	"")	usage
 		;;
@@ -50,4 +73,10 @@ fi
 
 xpce-client $server -bc "$cmd"
 
-if [ $? = 2 ]; then exec emacs $*; fi
+if [ $? = 2 ]; then
+  if [ "$line" = "" ]; then
+    exec emacs "$file";
+  else
+    exec emacs "$file" +$line
+  fi
+fi
