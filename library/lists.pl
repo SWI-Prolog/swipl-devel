@@ -113,7 +113,7 @@ member_([H|T], El, _) :-
 
 %%	append(?List1, ?List2, ?List1AndList2)
 %
-%	List1AndList2 is the concatination of List1 and List2
+%	List1AndList2 is the concatenation of List1 and List2
 
 append([], L, L).
 append([H|T], L, [H|R]) :-
@@ -121,10 +121,10 @@ append([H|T], L, [H|R]) :-
 
 %%	append(+ListOfLists, ?List)
 %
-%	Concatenate a list of lists.  Is  true   if  Lists  is a list of
+%	Concatenate a list of lists.  Is  true   if  ListOfLists  is a list of
 %	lists, and List is the concatenation of these lists.
 %
-%	@param	ListOfLists must be a list of -possibly- partial lists
+%	@param	ListOfLists must be a list of _possibly_ partial lists
 
 append(ListOfLists, List) :-
 	must_be(list, ListOfLists),
@@ -148,7 +148,7 @@ prefix([E|T0], [E|T]) :-
 
 %%	select(?Elem, ?List1, ?List2)
 %
-%	Is true when List1, with Elem removed results in List2.
+%	Is true when List1, with Elem removed, results in List2.
 
 select(X, [X|Tail], Tail).
 select(Elem, [Head|Tail], [Head|Rest]) :-
@@ -158,7 +158,7 @@ select(Elem, [Head|Tail], [Head|Rest]) :-
 %%	selectchk(+Elem, +List, -Rest) is semidet.
 %
 %	Semi-deterministic removal of first element in List that unifies
-%	Elem.
+%	with Elem.
 
 selectchk(Elem, List, Rest) :-
 	select(Elem, List, Rest0), !,
@@ -196,7 +196,7 @@ selectchk(X, XList, Y, YList) :-
 
 %%	nextto(?X, ?Y, ?List)
 %
-%	True of Y follows X in List.
+%	True if Y follows X in List.
 
 nextto(X, Y, [X,Y|_]).
 nextto(X, Y, [_|Zs]) :-
@@ -204,7 +204,7 @@ nextto(X, Y, [_|Zs]) :-
 
 %%	delete(?List1, ?Elem, ?List2) is det.
 %
-%	Is true when Lis1, with all occurences of Elem deleted results in
+%	Is true when List1, with all occurrences of Elem deleted, results in
 %	List2.
 %
 %	@deprecated There are too many ways in which one might want to
@@ -225,7 +225,7 @@ delete([Head|Tail], Elem, [Head|Rest]) :-
 
 %%	nth0(?Index, ?List, ?Elem)
 %
-%	True when Elem is the Index-th  element of List. Counting starts
+%	True when Elem is the Index'th  element of List. Counting starts
 %	at 0.
 %
 %	@error	type_error(integer, Index) if Index is not an integer or
@@ -277,7 +277,7 @@ nth1(Index, List, Elem) :-
 
 %%	nth0(?N, ?List, ?Elem, ?Rest) is det.
 %
-%	Select/insert element at index.  True  when   Elem  is  the N-th
+%	Select/insert element at index.  True  when   Elem  is  the N'th
 %	(0-based) element of List and Rest is   the  remainder (as in by
 %	select/3) of List.  For example:
 %
@@ -326,7 +326,7 @@ find_nth0(N, [Head|Rest0], Elem, [Head|Rest]) :-
 
 %%	last(?List, ?Last)
 %
-%	Succeeds when `Last'  is  the  last   element  of  `List'.  This
+%	Succeeds when Last  is  the  last   element  of  List.  This
 %	predicate is =semidet= if List is a  list and =multi= if List is
 %	a partial list.
 %
@@ -388,11 +388,11 @@ reverse([X|Xs], Rs, Ys, [_|Bound]) :-
 
 %%	permutation(?Xs, ?Ys) is nondet.
 %
-%	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
+%	True when Xs is a permutation of Ys. This
 %	can solve for Ys given Xs or Xs   given Ys, or even enumerate Xs
 %	and  Ys  together.  The  predicate  permutation/2  is  primarily
 %	intended to generate permutations. Note that  a list of length N
-%	has N! permutations and unbounded permutation generation becomes
+%	has N! permutations, and unbounded permutation generation becomes
 %	prohibitively expensive, even for  rather   short  lists  (10! =
 %	3,628,800).
 %
@@ -407,7 +407,7 @@ reverse([X|Xs], Rs, Ys, [_|Bound]) :-
 %	    msort(Ys, Sorted).
 %	  ==
 %
-%	The example below illustrate that Xs   and Ys being proper lists
+%	The example below illustrates that Xs   and Ys being proper lists
 %	is not a sufficient condition to use the above replacement.
 %
 %	  ==
@@ -444,7 +444,7 @@ perm(List, [First|Perm]) :-
 
 %%	flatten(+List1, ?List2) is det.
 %
-%	Is true it List2 is a non nested version of List1.
+%	Is true if List2 is a non-nested version of List1.
 %
 %	@deprecated	Ending up needing flatten/3 often indicates,
 %			like append/3 for appending two lists, a bad
@@ -597,7 +597,7 @@ is_set(Set) :-
 
 %%	list_to_set(+List, ?Set) is det.
 %
-%	True when Set has the same element   as  List in the same order.
+%	True when Set has the same elements  as  List in the same order.
 %	The left-most copy of the duplicate  is retained. The complexity
 %	of this operation is |List|^2.
 %
@@ -664,8 +664,8 @@ subset([E|R], Set) :-
 
 %%	subtract(+Set, +Delete, -Result) is det.
 %
-%	Delete all elements from `Set' that   occur  in `Delete' (a set)
-%	and unify the  result  with  `Result'.   Deletion  is  based  on
+%	Delete all elements from Set that   occur  in Delete (a set)
+%	and unify the  result  with  Result.   Deletion  is  based  on
 %	unification using memberchk/2. The complexity is |Delete|*|Set|.
 %
 %	@see ord_subtract/3.

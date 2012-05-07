@@ -65,7 +65,7 @@ members of a list.
 
 %%	include(:Goal, +List1, ?List2) is det.
 %
-%	Filter elements for which Goal succeed.   True if List2 contains
+%	Filter elements for which Goal succeeds.   True if List2 contains
 %	those elements Xi of List1 for which call(Goal, Xi) succeeds.
 %
 %	@see	Older versions of SWI-Prolog had sublist/3 with the same
@@ -121,7 +121,7 @@ partition_([H|T], Pred, Incl, Excl) :-
 
 %%	partition(:Pred, +List, ?Less, ?Equal, ?Greater) is semidet.
 %
-%	Filter list according to Pred in three sets. For each element Xi
+%	Filter List according to Pred in three sets. For each element Xi
 %	of List, its destination is determined by call(Pred, Xi, Place),
 %	where Place must be unified to  one   of  =|<|=, =|=|= or =|>|=.
 %	Pred must be deterministic.
@@ -150,7 +150,7 @@ partition_(Diff, _, _, _, _, _, _) :-
 
 %%	maplist(:Goal, ?List)
 %
-%	True if Goal can succesfully be applied on all elements of List.
+%	True if Goal can successfully be applied on all elements of List.
 %	Arguments are reordered to gain performance as well as to make
 %	the predicate deterministic under normal circumstances.
 
@@ -164,7 +164,7 @@ maplist_([Elem|Tail], Goal) :-
 
 %%	maplist(:Goal, ?List1, ?List2)
 %
-%	True if Goal can succesfully be applied to all succesive pairs
+%	True if Goal can successfully be applied to all successive pairs
 %	of elements of List1 and List2.
 
 maplist(Goal, List1, List2) :-
@@ -177,7 +177,7 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], Goal) :-
 
 %%	maplist(:Goal, ?List1, ?List2, ?List3)
 %
-%	True if Goal can succesfully be applied to all succesive triples
+%	True if Goal can successfully be applied to all successive triples
 %	of elements of List1..List3.
 
 maplist(Goal, List1, List2, List3) :-
@@ -191,7 +191,7 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
 
 %%	maplist(:Goal, ?List1, ?List2, ?List3, ?List4)
 %
-%	True if Goal  can  succesfully  be   applied  to  all  succesive
+%	True if Goal  can  successfully  be   applied  to  all  successive
 %	quadruples of elements of List1..List4
 
 maplist(Goal, List1, List2, List3, List4) :-

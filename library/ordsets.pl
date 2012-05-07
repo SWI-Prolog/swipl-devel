@@ -67,10 +67,10 @@ number of Prolog implementations. Our  predicates   are  designed  to be
 compatible  with  common  practice   in    the   Prolog  community.  The
 implementation is incomplete and  relies   partly  on  library(oset), an
 older ordered set library distributed  with SWI-Prolog. New applications
-are advices to use library(ordsets).
+are advised to use library(ordsets).
 
 Some  of  these  predicates  match    directly   to  corresponding  list
-operations. It is adviced to use the  versions from this library to make
+operations. It is advised to use the  versions from this library to make
 clear you are operating on ordered sets.
 */
 
@@ -261,7 +261,7 @@ ord_member(Element, [H|T]) :-
 
 %%	ord_subset(+Sub, +Super) is semidet.
 %
-%	Is true if all element of Sub are in Super
+%	Is true if all elements of Sub are in Super
 
 ord_subset([], _).
 ord_subset([H1|T1], [H2|T2]) :-
@@ -321,7 +321,7 @@ ord_union(Set1, Set2, Union) :-
 
 %%	ord_union(+Set1, +Set2, -Union,	-New) is det.
 %
-%	True if Union iff ord_union(Set1, Set2, Union) and
+%	True iff ord_union(Set1, Set2, Union) and
 %	ord_subtract(Set2, Set1, New).
 
 ord_union([], Set2, Set2, Set2).

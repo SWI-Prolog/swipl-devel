@@ -65,11 +65,11 @@
 /** <module> Access and analyse predicate options
 
 This  module  provides  the  developers   interface  for  the  directive
-predicate_options/3. This directive allows  us   to  specify  that e.g.,
+predicate_options/3. This directive allows  us  to  specify  that, e.g.,
 open/4 processes options using the 4th  argument and supports the option
 =type= using the values =text= and  =binary=. Declaring options that are
 processed allows for more reliable  handling   of  predicate options and
-simplifies porting applications. This  libarry   provides  the following
+simplifies porting applications. This  library   provides  the following
 functionality:
 
   * Query supported options through current_predicate_option/3
@@ -96,13 +96,13 @@ Below, we describe some use-cases.
     4 ?- check_predicate_options.
     ==
 
-  $ Add declaations to your program :
+  $ Add declarations to your program :
   Adding declarations about option processes improves the quality of
   the checking.  The analysis of derive_predicate_options/0 may miss
   options and does not derive the types for options that are processed
   in Prolog code.  The process is similar to the above.  In steps 4 and
   further, the inferred declarations are listed, inspected and added to
-  the source-code of the module.
+  the source code of the module.
 
     ==
     1 ?- [load].
@@ -115,7 +115,7 @@ Below, we describe some use-cases.
 
   $ Declare option processing requirements :
   If an application requires that open/4 needs to support lock(write),
-  it may do so using the derective below.  This directive raises an
+  it may do so using the directive below.  This directive raises an
   exception when loaded on a Prolog implementation that does not support
   this option.
 
@@ -161,7 +161,7 @@ Below, we describe some use-cases.
 %	  ==
 %
 %	This predicate may  only  be  used   as  a  _directive_  and  is
-%	processed  by  expand_term/2.  Option  processing    can  be  be
+%	processed  by  expand_term/2.  Option  processing    can  be
 %	specified at runtime using  assert_predicate_options/3, which is
 %	intended to support program analysis.
 
@@ -173,7 +173,7 @@ predicate_options(PI, Arg, Options) :-
 %%	assert_predicate_options(:PI, +Arg, +Options, ?New) is semidet.
 %
 %	As predicate_options(:PI, +Arg, +Options).  New   is  a  boolean
-%	indicating whether the declarations  have   changed.  If  new is
+%	indicating whether the declarations  have   changed.  If  New is
 %	provided and =false=, the predicate   becomes  semidet and fails
 %	without modifications if modifications are required.
 
@@ -525,7 +525,7 @@ retractall_predicate_options :-
 
 %%	check_predicate_options is det.
 %
-%	Analyse loaded program for  errornous   options.  This predicate
+%	Analyse loaded program for  erroneous   options.  This predicate
 %	decompiles  the  current  program  and  searches  for  calls  to
 %	predicates that process  options.  For   each  option  list,  it
 %	validates  whether  the  provided  options   are  supported  and

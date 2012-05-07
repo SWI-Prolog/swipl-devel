@@ -69,7 +69,7 @@ topics the user can  select  desired   messages.  Debug  statements  are
 removed when the code is compiled for optimization.
 
 See manual for details. With XPCE, you can use the call below to start a
-graphical monitorring tool.
+graphical monitoring tool.
 
 ==
 ?- prolog_ide(debug_monitor).
@@ -100,7 +100,7 @@ debugging(Topic, Bool) :-
 %	Add/remove a topic from being   printed.  nodebug(_) removes all
 %	topics. Gives a warning if the topic is not defined unless it is
 %	used from a directive. The latter allows placing debug topics at
-%	the start a a (load-)file without warnings.
+%	the start of a (load-)file without warnings.
 %
 %	For debug/1, Topic can be  a  term   Topic  >  Out, where Out is
 %	either a stream or  stream-alias  or   a  filename  (atom). This
@@ -176,9 +176,9 @@ list_debug_topics :-
 %%	debug_message_context(+What) is det.
 %
 %	Specify additional context for debug messages.   What  is one of
-%	+Context or -Context and Context is   one of =thread=. =time= or
-%	time(Format),  where  Format  is    a  format-specification  for
-%	format_time/3 (default is =|%T.%3f|=).   Initially, debug/3 show
+%	+Context or -Context, and Context is  one of =thread=, =time= or
+%	time(Format),  where  Format  is    a  format specification  for
+%	format_time/3 (default is =|%T.%3f|=).  Initially, debug/3 shows
 %	only thread information.
 
 debug_message_context(+Topic) :- !,
@@ -209,7 +209,7 @@ valid_topic(X, _, _) :-
 %	printed to every matching destination   (controlled  by debug/1)
 %	using print_message_lines/3.
 %
-%	The message is preceeded by '% ' and terminated with a newline.
+%	The message is preceded by '% ' and terminated with a newline.
 %
 %	@see	format/3.
 
@@ -262,14 +262,14 @@ debug_output(File, Stream) :-
 %%	assertion(:Goal) is det.
 %
 %	Acts similar to C assert()  macro.  It   has  no  effect if Goal
-%	succeeds. If Goal fails or throws   and exception, the following
+%	succeeds. If Goal fails or throws    an exception, the following
 %	steps are taken:
 %
 %	  * call prolog:assertion_failed/2.  If prolog:assertion_failed/2
 %	    fails, then:
 %
 %	    - If this is an interactive toplevel thread, print a
-%	      message, the stack-trace and finally traps the debugger.
+%	      message, the stack-trace, and finally trap the debugger.
 %	    - Otherwise, throw error(assertion_error(Reason, G),_) where
 %	      Reason is one of =fail= or the exception raised.
 
@@ -373,6 +373,6 @@ show_time_context -->
 %
 %	This hook is called if the Goal  of assertion/1 fails. Reason is
 %	unified with either =fail= if Goal simply failed or an exception
-%	ball otherwise. If this hook  fails,   the  default behaviour is
+%	call otherwise. If this hook  fails,   the  default behaviour is
 %	activated.  If  the  hooks  throws  an   exception  it  will  be
 %	propagated into the caller of assertion/1.

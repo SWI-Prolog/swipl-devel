@@ -79,7 +79,7 @@ on the GMP library.
 %
 %	Binds R to a new random float in the _open_ interval (0.0,1.0).
 %
-%	@see setrand/1, getrand/1 maye be used to fetch/set the state.
+%	@see setrand/1, getrand/1 may be used to fetch/set the state.
 %	@see In SWI-Prolog, random/1 is implemented by the function
 %	     random_float/0.
 
@@ -321,7 +321,7 @@ randseq(K, N, Si, So) :-
 %
 %	Permutation is a random permutation of List. This is intended to
 %	process the elements of List in   random order. The predicate is
-%	symetric.
+%	symmetric.
 %
 %	@error instantiation_error, type_error(list, _).
 
