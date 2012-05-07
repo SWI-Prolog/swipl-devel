@@ -106,7 +106,7 @@ unallocDefinition(Definition def)
     freeSimpleMutex(def->mutex);
 
   unallocClauseIndexes(def);
-  freeCodesDefinition(def);
+  freeCodesDefinition(def, FALSE);
 
   freeHeap(def, sizeof(*def));
 }
@@ -209,9 +209,9 @@ resetProcedure(Procedure proc, bool isnew)
 	def->impl.clauses.clause_indexes = NULL;
       }
     }
-  }
-
-  freeCodesDefinition(def);		/* carefully sets to S_VIRGIN */
+    freeCodesDefinition(def, FALSE);
+  } else
+    freeCodesDefinition(def, TRUE);	/* carefully sets to S_VIRGIN */
 }
 
 
@@ -931,7 +931,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 #endif
 
   if ( false(def, DYNAMIC) )		/* see (*) above */
-    freeCodesDefinition(def);
+    freeCodesDefinition(def, TRUE);
 
   addClauseToIndexes(def, clause, where);
 
@@ -2446,7 +2446,7 @@ setDynamicProcedure(Procedure proc, bool isdyn)
     }
 
   ok:
-    freeCodesDefinition(def);		/* reset to S_VIRGIN */
+    freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
     set(def, DYNAMIC);
 
     UNLOCKDEF(def);
@@ -2457,7 +2457,7 @@ setDynamicProcedure(Procedure proc, bool isdyn)
 	registerDirtyDefinition(def);
       def->references = 0;
     }
-    freeCodesDefinition(def);		/* reset to S_VIRGIN */
+    freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
 
     detachMutexAndUnlock(def);
   }
@@ -3063,11 +3063,11 @@ unloadFile(SourceFile sf)
 
     if ( deleted )
     { if ( def->references == 0 )
-      { freeCodesDefinition(def);
+      { freeCodesDefinition(def, FALSE);
 	garbage = cleanDefinition(def, garbage);
       } else if ( false(def, DYNAMIC) )
       { registerDirtyDefinition(def);
-	freeCodesDefinition(def);
+	freeCodesDefinition(def, TRUE);
       }
     }
 

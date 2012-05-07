@@ -51,10 +51,14 @@ freeCodes(Code codes)
 freeCodesDefinition() destroys the supervisor of  a predicate, replacing
 it  by  the  statically  allocated  S_VIRGIN  supervisor.  Note  that  a
 predicate *always* has non-NULL def->codes.
+
+If linger == FALSE, we  are  absolutely   sure  that  it  is harmless to
+deallocate the old supervisor. If TRUE,   there may be references. I.e.,
+other threads may have started executing this predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-freeCodesDefinition(Definition def)
+freeCodesDefinition(Definition def, int linger)
 { Code codes;
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
@@ -63,7 +67,11 @@ freeCodesDefinition(Definition def)
 
       def->codes = SUPERVISOR(virgin);
       if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-	freeHeap(&codes[-1], (size+1)*sizeof(code));
+      { if ( linger )
+	  PL_linger(&codes[-1]);
+	else
+	  freeHeap(&codes[-1], (size+1)*sizeof(code));
+      }
     } else
       def->codes = SUPERVISOR(virgin);
   }
