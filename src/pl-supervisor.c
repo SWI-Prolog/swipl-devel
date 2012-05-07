@@ -166,6 +166,14 @@ getClauses(Definition def, ClauseRef *refp, int max)
 }
 
 
+static Code
+undefSupervisor(Definition def)
+{ if ( def->impl.clauses.number_of_clauses == 0 && false(def, PROC_DEFINED) )
+    return SUPERVISOR(undef);
+
+  return NULL;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 createSingleClauseSupervisor() creates a supervisor to call the one and
 only clause of the predicate.  Creates
@@ -323,31 +331,32 @@ chainMetaPredicateSupervisor(Definition def, Code post)
 
 int
 createUndefSupervisor(Definition def)
-{ if ( def->impl.clauses.number_of_clauses == 0 && false(def, PROC_DEFINED) )
-  { def->codes = SUPERVISOR(undef);
+{ Code codes;
 
-    succeed;
+  if ( (codes = undefSupervisor(def)) )
+  { def->codes = codes;
+
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
 int
 createSupervisor(Definition def)
 { Code codes;
+  int has_codes;
 
-  if ( createUndefSupervisor(def))
-    succeed;
-
-  if ( !((codes = multifileSupervisor(def)) ||
-	 (codes = singleClauseSupervisor(def)) ||
-	 (codes = listSupervisor(def)) ||
-	 (codes = staticSupervisor(def))) )
-  { fatalError("Failed to create supervisor for %s\n",
-	       predicateName(def));
-  }
+  PL_LOCK(L_PREDICATE);
+  has_codes = ((codes = undefSupervisor(def)) ||
+	       (codes = multifileSupervisor(def)) ||
+	       (codes = singleClauseSupervisor(def)) ||
+	       (codes = listSupervisor(def)) ||
+	       (codes = staticSupervisor(def)));
+  assert(has_codes);
   def->codes = chainMetaPredicateSupervisor(def, codes);
+  PL_UNLOCK(L_PREDICATE);
 
   succeed;
 }
