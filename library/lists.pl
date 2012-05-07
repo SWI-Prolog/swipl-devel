@@ -204,8 +204,8 @@ nextto(X, Y, [_|Zs]) :-
 
 %%	delete(?List1, ?Elem, ?List2) is det.
 %
-%	Is true when List1, with all occurrences of Elem deleted, results in
-%	List2.
+%	Is true when List1,  with  all   occurrences  of  Elem  deleted,
+%	results in List2.
 %
 %	@deprecated There are too many ways in which one might want to
 %		    delete elements from a list to justify the name.
@@ -388,13 +388,12 @@ reverse([X|Xs], Rs, Ys, [_|Bound]) :-
 
 %%	permutation(?Xs, ?Ys) is nondet.
 %
-%	True when Xs is a permutation of Ys. This
-%	can solve for Ys given Xs or Xs   given Ys, or even enumerate Xs
-%	and  Ys  together.  The  predicate  permutation/2  is  primarily
-%	intended to generate permutations. Note that  a list of length N
-%	has N! permutations, and unbounded permutation generation becomes
-%	prohibitively expensive, even for  rather   short  lists  (10! =
-%	3,628,800).
+%	True when Xs is a permutation of Ys. This can solve for Ys given
+%	Xs or Xs given Ys, or  even   enumerate  Xs and Ys together. The
+%	predicate  permutation/2  is  primarily   intended  to  generate
+%	permutations. Note that a list of  length N has N! permutations,
+%	and  unbounded  permutation  generation   becomes  prohibitively
+%	expensive, even for rather short lists (10! = 3,628,800).
 %
 %	If both Xs and Ys are provided  and both lists have equal length
 %	the order is |Xs|^2. Simply testing  whether Xs is a permutation

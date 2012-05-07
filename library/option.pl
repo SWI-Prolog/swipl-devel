@@ -44,8 +44,8 @@
 
 The library(option) provides some utilities for processing option lists.
 Option lists are commonly used  as   an  alternative for many arguments.
-Examples of built-in predicates are  open/4   and  write_term/3. Naming the
-arguments results in more readable code,  and   the  list nature makes it
+Examples of built-in predicates are open/4  and write_term/3. Naming the
+arguments results in more readable code, and   the  list nature makes it
 easy to extend the list of options accepted by a predicate. Option lists
 come in two styles, both of which are handled by this library.
 
@@ -74,7 +74,7 @@ defaults.
   ==
 
 Options typically have exactly one argument.   The  library does support
-options  with  0  or  more  than    one  argument  with  the  following
+options  with  0  or  more  than    one   argument  with  the  following
 restrictions:
 
   - The predicate option/3 and select_option/4, involving default are
@@ -92,7 +92,7 @@ restrictions:
 
 %%	option(?Option, +OptionList, +Default) is semidet.
 %
-%	Get  an  Option  from  OptionList.  OptionList  can  use  the
+%	Get  an  Option  Qfrom  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention.
 %
 %	@param Option	Term of the form Name(?Value).
@@ -108,9 +108,9 @@ option(Opt, Options, Default) :-	% make option processing stead-fast
 
 %%	option(?Option, +OptionList) is semidet.
 %
-%	Get  an  Option  from  OptionList.  OptionList  can  use  the
-%	Name=Value as well as the Name(Value) convention. Fails silently
-%	if the option does not appear in OptionList.
+%	Get an Option from OptionList. OptionList can use the Name=Value
+%	as well as the Name(Value)  convention.   Fails  silently if the
+%	option does not appear in OptionList.
 %
 %	@param Option	Term of the form Name(?Value).
 
@@ -231,9 +231,9 @@ canonise_options2([H|T0], [H|T]) :- !,
 
 %%	meta_options(+IsMeta, :Options0, -Options) is det.
 %
-%	Perform meta-expansion on options that are module-sensitive.
-%	Whether an option name is module-sensitive is determined by
-%	calling call(IsMeta, Name).  Here is an example:
+%	Perform meta-expansion on  options   that  are module-sensitive.
+%	Whether an option name  is   module-sensitive  is  determined by
+%	calling call(IsMeta, Name). Here is an example:
 %
 %	==
 %		meta_options(is_meta, OptionsIn, Options),

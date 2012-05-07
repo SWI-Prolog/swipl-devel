@@ -90,7 +90,8 @@ write_to_chars(Term, Codes) :-
 
 %%	write_to_chars(+Term, -Codes, ?Tail)
 %
-%	Codes is a difference list of character codes produced by write/1 on Term.
+%	Codes is a difference  list  of   character  codes  produced  by
+%	write/1 on Term.
 
 write_to_chars(Term, Codes, Tail) :-
 	format(codes(Codes, Tail), '~w', [Term]).

@@ -279,8 +279,8 @@ cfragment(_) -->
 %%	parse_url(+URL, -Attributes) is det.
 %
 %	Construct or analyse a URL. URL is an   atom  holding a URL or a
-%	variable. Attributes is a list of   components.  Each component is of
-%	the format Name(Value). Defined components are:
+%	variable. Attributes is a list of  components. Each component is
+%	of the format Name(Value). Defined components are:
 %
 %	    * protocol(Protocol)
 %	    The used protocol. This is, after  the optional =|url:|=, an

@@ -65,7 +65,7 @@ members of a list.
 
 %%	include(:Goal, +List1, ?List2) is det.
 %
-%	Filter elements for which Goal succeeds.   True if List2 contains
+%	Filter elements for which Goal succeeds.  True if List2 contains
 %	those elements Xi of List1 for which call(Goal, Xi) succeeds.
 %
 %	@see	Older versions of SWI-Prolog had sublist/3 with the same
@@ -150,9 +150,9 @@ partition_(Diff, _, _, _, _, _, _) :-
 
 %%	maplist(:Goal, ?List)
 %
-%	True if Goal can successfully be applied on all elements of List.
-%	Arguments are reordered to gain performance as well as to make
-%	the predicate deterministic under normal circumstances.
+%	True if Goal can successfully  be   applied  on  all elements of
+%	List. Arguments are reordered to gain  performance as well as to
+%	make the predicate deterministic under normal circumstances.
 
 maplist(Goal, List) :-
 	maplist_(List, Goal).
@@ -177,8 +177,8 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], Goal) :-
 
 %%	maplist(:Goal, ?List1, ?List2, ?List3)
 %
-%	True if Goal can successfully be applied to all successive triples
-%	of elements of List1..List3.
+%	True if Goal can  successfully  be   applied  to  all successive
+%	triples of elements of List1..List3.
 
 maplist(Goal, List1, List2, List3) :-
 	maplist_(List1, List2, List3, Goal).
@@ -191,7 +191,7 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
 
 %%	maplist(:Goal, ?List1, ?List2, ?List3, ?List4)
 %
-%	True if Goal  can  successfully  be   applied  to  all  successive
+%	True if Goal can  successfully  be   applied  to  all successive
 %	quadruples of elements of List1..List4
 
 maplist(Goal, List1, List2, List3, List4) :-
