@@ -230,8 +230,8 @@ ClauseRef
 hasClausesDefinition(Definition def)
 { if ( def->impl.clauses.first_clause )
   { if ( def->impl.clauses.erased_clauses == 0 )
-      return def->impl.clauses.first_clause;
-    else
+    { return def->impl.clauses.first_clause;
+    } else
     { GET_LD
       ClauseRef c;
       uintptr_t generation;
@@ -241,16 +241,19 @@ hasClausesDefinition(Definition def)
       else
 	generation = ~0L-1;		/* any non-erased clause */
 
+      LOCK();				/* Avoid race with unloadFile() */
       for(c = def->impl.clauses.first_clause; c; c = c->next)
       { Clause cl = c->value.clause;
 
 	if ( visibleClause(cl, generation) )
-	  return c;
+	  break;
       }
+      UNLOCK();
+      return c;
     }
   }
 
-  fail;
+  return NULL;
 }
 
 
@@ -3060,6 +3063,9 @@ unloadFile(SourceFile sf)
     deleted = removeClausesProcedure(proc,
 				     true(def, MULTIFILE) ? sf->index : 0,
 				     TRUE);
+
+    if ( false(def, MULTIFILE) )
+      assert(def->impl.clauses.number_of_clauses == 0);
 
     if ( deleted )
     { if ( def->references == 0 )

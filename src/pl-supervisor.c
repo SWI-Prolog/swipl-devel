@@ -343,6 +343,12 @@ createUndefSupervisor(Definition def)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+createSupervisor()  is  synchronised  with  unloadFile()  (reconsult/1).
+Seems this is not yet enough to   stop all racer conditions between this
+code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 createSupervisor(Definition def)
 { Code codes;
