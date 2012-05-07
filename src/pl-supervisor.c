@@ -141,16 +141,28 @@ createForeignSupervisor(Definition def, Func f)
 		 *	   PROLOG CASES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+getClauses() finds alive clauses and stores them into the array refp. It
+stores at most `max' clauses and returns   the total number of candidate
+clauses. This code is only executed on   static code and in theory there
+should be no reason to validate the  counts, but reconsulting files must
+make us careful.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-getClauses(Definition def, ClauseRef *refp0)
-{ ClauseRef cref, *refp = refp0;
+getClauses(Definition def, ClauseRef *refp, int max)
+{ ClauseRef cref;
+  int found = 0;
 
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( visibleClause(cref->value.clause, GD->generation) )
-      *refp++ = cref;
+    { if ( found < max )
+	refp[found] = cref;
+      found++;
+    }
   }
 
-  return (int)(refp - refp0);
+  return found;
 }
 
 
@@ -166,15 +178,17 @@ singleClauseSupervisor(Definition def)
 { if ( def->impl.clauses.number_of_clauses == 1 )
   { ClauseRef cref;
     Code codes = allocCodes(2);
+    int found = getClauses(def, &cref, 1);
 
-    getClauses(def, &cref);
-    DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
-		      predicateName(def)));
+    if ( found == 1 )
+    { DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
+			predicateName(def)));
 
-    codes[0] = encode(S_TRUSTME);
-    codes[1] = (code)cref;
+      codes[0] = encode(S_TRUSTME);
+      codes[1] = (code)cref;
 
-    return codes;
+      return codes;
+    }
   }
 
   return NULL;
@@ -198,9 +212,10 @@ listSupervisor(Definition def)
 { if ( def->impl.clauses.number_of_clauses == 2 )
   { ClauseRef cref[2];
     word c[2];
+    int found = getClauses(def, cref, 2);
 
-    getClauses(def, cref);
-    if ( argKey(cref[0]->value.clause->codes, 0, TRUE, &c[0]) &&
+    if ( found == 2 &&
+	 argKey(cref[0]->value.clause->codes, 0, TRUE, &c[0]) &&
 	 argKey(cref[1]->value.clause->codes, 0, TRUE, &c[1]) &&
 	 ( (c[0] == ATOM_nil && c[1] == FUNCTOR_dot2) ||
 	   (c[1] == ATOM_nil && c[0] == FUNCTOR_dot2) ) )
