@@ -50,5 +50,7 @@ packages/PDT/config.h.in
 packages/PDT/configure
 packages/utf8proc/config.h.in
 packages/utf8proc/configure
+packages/archive/config.h.in
+packages/archive/configure
 src/config.h.in
 src/configure

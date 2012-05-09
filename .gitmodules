@@ -94,3 +94,6 @@
 [submodule "X86"]
 	path = X86
 	url = ../misc/winlibs.git
+[submodule "packages/archive"]
+	path = packages/archive
+	url = ../packages/archive.git

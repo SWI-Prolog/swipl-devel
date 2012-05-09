@@ -418,6 +418,16 @@ Section "Unicode library (utf8proc)"
   File pl\doc\packages\utf8proc.html
 SectionEnd
 
+Section "Archive library (libarchive)"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File pl\library\archive.pl
+  SetOutPath $INSTDIR\bin
+  File pl\bin\archive.dll
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\archive.html
+SectionEnd
+
 Section "Constraint Handling Rules"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
