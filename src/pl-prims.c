@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -2360,11 +2358,11 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 	      n++;			/* to averflow this */
 	    }
 	  }
-	} else if ( options->numbered_check )
+	} else
 	{ Word p = &f->arguments[0];
 
 	  deRef(p);
-	  if ( isInteger(*p) )
+	  if ( options->numbered_check && isInteger(*p) )
 	  { intptr_t i = (intptr_t)valInteger(*p); /* cannot be bigger */
 
 	    if ( i >= (intptr_t)start )
@@ -2372,10 +2370,13 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 	      goto out;
 	    }
 	  }
+	  if ( isVar(*p) || isTerm(*p) )
+	    goto do_number;		/* number '$VAR'(_) */
 	}
 	continue;
       }
 
+    do_number:
       if ( !options->singletons && visited(f PASS_LD) )
 	continue;
 
