@@ -5751,12 +5751,13 @@ are correct. It does not say which is wrong if one proves wrong.
                  Result =:= Formula).
 \end{code}
 
-The predicate forall/2 is implemented as \+ ( Cond, \+ Action ), i.e.,
-\textit{There is no instantiation of \arg{Cond} for which \arg{Action}
-is false.}. The use of double negation implies that forall/2 \emph{does
-not change any variable bindings}. It proves a relation. The forall/2
-control structure can be used for its side-effects. E.g., the following
-asserts relations in a list into the dynamic database:
+The predicate forall/2 is implemented as \verb$\+ ( Cond, \+ Action)$,
+i.e., \textit{There is no instantiation of \arg{Cond} for which
+\arg{Action} is false.}. The use of double negation implies that
+forall/2 \emph{does not change any variable bindings}. It proves a
+relation. The forall/2 control structure can be used for its
+side-effects. E.g., the following asserts relations in a list into the
+dynamic database:
 
 \begin{code}
 ?- forall(member(Child-Parent), ChildPairs),
