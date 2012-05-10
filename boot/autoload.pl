@@ -302,13 +302,12 @@ make_library_index(Dir0, Patterns) :-
 make_library_index2(Dir, Patterns) :-
 	plfile_in_dir(Dir, 'INDEX', _Index, AbsIndex),
 	access_file(AbsIndex, write), !,
-	directory_files(Dir, AllFiles),
-	prolog_files(AllFiles, Patterns, Files),
 	(   sub_atom(Dir, _, _, 0, /)
 	->  DirS = Dir
 	;   atom_concat(Dir, /, DirS)
 	),
-	(   library_index_out_of_date(AbsIndex, DirS, Files)
+	pattern_files(Patterns, DirS, Files),
+	(   library_index_out_of_date(AbsIndex, Files)
 	->  print_message(informational, make(library_index(Dir))),
 	    flag('$modified_index', _, true),
 	    do_make_library_index(AbsIndex, DirS, Files)
@@ -325,25 +324,21 @@ plfile_in_dir(Dir, Base, PlBase, File) :-
 	file_name_extension(Base, pl, PlBase),
 	atomic_list_concat([Dir, '/', PlBase], File).
 
-prolog_files([], _, []).
-prolog_files([H|T0], Patterns, Files) :-
-	(   '$member'(P, Patterns),
-	    wildcard_match(P, H)
-	->  Files = [H|T]
-	;   Files = T
-	),
-	prolog_files(T0, Patterns, T).
+pattern_files([], _, []).
+pattern_files([H|T], DirS, Files) :-
+	atom_concat(DirS, H, P0),
+	expand_file_name(P0, Files0),
+	'$append'(Files0, Rest, Files),
+	pattern_files(T, DirS, Rest).
 
-
-library_index_out_of_date(Index, _DirS, _Files) :-
+library_index_out_of_date(Index, _Files) :-
 	\+ exists_file(Index), !.
-library_index_out_of_date(Index, DirS, Files) :-
+library_index_out_of_date(Index, Files) :-
 	time_file(Index, IndexTime),
 	(   time_file('.', DotTime),
 	    DotTime @> IndexTime
 	;   '$member'(File, Files),
-	    atom_concat(DirS, File, AbsFile),
-	    time_file(AbsFile, FileTime),
+	    time_file(File, FileTime),
 	    FileTime @> IndexTime
 	), !.
 
@@ -359,15 +354,15 @@ do_make_library_index(Index, DirS, Files) :-
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-
-	atom_concat(DirS, File, AbsFile),
 	catch(setup_call_cleanup(
-		  open(AbsFile, read, In),
+		  open(File, read, In),
 		  read(In, Term),
 		  close(In)),
 	      E, print_message(warning, E)),
 	(   Term = (:- module(Module, Public)),
 	    is_list(Public)
-	->  file_name_extension(Base, _, File),
+	->  atom_concat(DirS, Local, File),
+	    file_name_extension(Base, _, Local),
 	    forall(public_predicate(Public, Name/Arity),
 		   format(Fd, 'index((~k), ~k, ~k, ~k).~n',
 			  [Name, Arity, Module, Base]))
