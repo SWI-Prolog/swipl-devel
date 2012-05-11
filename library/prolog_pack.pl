@@ -264,9 +264,7 @@ version_data(Version, version(Data)) :-
 
 %%	pack_search(+Query)
 %
-%	Search central package server and display results.
-%
-%	@tbd: Merge hits with local results.
+%	Query package server and installed packages and display results.
 
 pack_search(Query) :-
 	query_pack_server(search(Query), Result),
