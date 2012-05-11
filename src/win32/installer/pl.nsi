@@ -290,6 +290,7 @@ Section "Base system (required)"
   File pl\library\prolog_autoload.pl
   File pl\library\prolog_codewalk.pl
   File pl\library\prolog_colour.pl
+  File pl\library\prolog_pack.pl
   File pl\library\predicate_options.pl
 
 ; COMPATIBILITY
@@ -423,7 +424,7 @@ Section "Archive library (libarchive)"
   SetOutPath $INSTDIR\library
   File pl\library\archive.pl
   SetOutPath $INSTDIR\bin
-  File pl\bin\archive.dll
+  File pl\bin\archive4pl.dll
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\archive.html
 SectionEnd
@@ -742,6 +743,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\process.pdb
   File pl\bin\ssl4pl.pdb
   File pl\bin\zlib4pl.pdb
+  File pl\bin\archive4pl.pdb
   File pl\bin\sha4pl.pdb
   File pl\bin\uri.pdb
   File pl\bin\files.pdb
