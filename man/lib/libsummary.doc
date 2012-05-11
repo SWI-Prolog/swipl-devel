@@ -73,6 +73,9 @@
 \subsection{\pllib{predicate_options}}
 \input{summaries.d/predopts.tex}
 
+\subsection{\pllib{prologpack}}
+\input{summaries.d/prologpack.tex}
+
 \subsection{\pllib{prologxref}}
 
 \begin{summarylist}{ll}

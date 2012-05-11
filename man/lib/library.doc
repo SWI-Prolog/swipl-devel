@@ -46,6 +46,7 @@ documented at all.
 \input{pairs}
 \input{pio}
 \input{predicateoptions}
+\input{prologpack}
 \input{prologxref}
 \input{random}
 \input{readutil}
