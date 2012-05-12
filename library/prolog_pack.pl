@@ -78,7 +78,7 @@ attach_packs/0 that makes installed packages available as libaries.
 		 *	    CONSTANTS		*
 		 *******************************/
 
-:- setting(server, atom, 'http://www.prolog.org/pack/',
+:- setting(server, atom, 'http://www.swi-prolog.org/pack/',
 	   'Server to exchange pack information').
 
 
