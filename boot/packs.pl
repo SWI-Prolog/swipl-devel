@@ -181,9 +181,9 @@ update_autoload(PrologDir) :-
 
 foreign_dir(PackDir, ForeignDir) :-
 	current_prolog_flag(arch, Arch),
-	atomic_list_concat([PackDir, '/bin'], ForeignBaseDir),
+	atomic_list_concat([PackDir, '/lib'], ForeignBaseDir),
 	exists_directory(ForeignBaseDir), !,
-	atomic_list_concat([PackDir, '/bin/', Arch], ForeignDir),
+	atomic_list_concat([PackDir, '/lib/', Arch], ForeignDir),
 	(   exists_directory(ForeignDir)
 	->  assertz(pack_dir(Entry, foreign, ForeignDir))
 	;   print_message(warning, pack(no_arch(Entry, Arch))),
