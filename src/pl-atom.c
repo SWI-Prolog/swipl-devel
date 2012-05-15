@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -756,12 +754,22 @@ collectAtoms(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pl_garbage_collect_atoms() realised the atom   garbage  collector (AGC).
-This is a tricky beast that   needs  careful synchronisation with normal
-GC. These issues are described with enterGC() in pl-gc.c.
+
+AGC cannot run concurrently with GC because   we can not mark life atoms
+while GC is in progress. Therefore, if we   detect that GC is running we
+do nothing, but set GD->gc.agc_waiting. If   GC terminates and sees that
+the system is waiting to do AGC,  it   will  try to restart AGC. As each
+threads is doing its own GC, it  may   take  a  while before AGC can get
+started.
+
+Atoms from the  program  area  or   accessible  from  foreign  code  are
+registered using PL_register_atom(). Under normal   operation,  AGC asks
+each thread to mark atoms  accessible  from   its  stacks  and then just
+continue.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_garbage_collect_atoms()
+foreign_t
+pl_garbage_collect_atoms(void)
 { GET_LD
   int64_t oldcollected;
   int verbose;
