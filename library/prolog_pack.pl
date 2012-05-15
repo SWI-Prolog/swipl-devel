@@ -391,14 +391,17 @@ pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
 		  \+ exists_file(Candidate),
 		  \+ exists_directory(Candidate),
 		  file_directory_name(Candidate, Super),
-		  access_file(Super, write)
+		  (   exists_directory(Super)
+		  ->  access_file(Super, write)
+		  ;   true
+		  )
 		),
 		Candidates0),
 	list_to_set(Candidates0, Candidates),	% keep order
 	Candidates = [Default=_|_], !,
 	append(Candidates, [cancel=cancel], Menu),
 	menu(pack(create_pack_dir), Menu, Default, PackDir),
-	make_directory(PackDir).
+	make_directory_path(PackDir).
 pack_install_dir(_, _) :-
 	print_message(error, pack(cannot_create_dir(pack(.)))),
 	fail.
