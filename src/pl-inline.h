@@ -1,6 +1,4 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
@@ -69,13 +67,14 @@ MSB(size_t i)
 
 #if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
 #define HAVE_MEMORY_BARRIER 1
-#define MemoryBarrier() __sync_synchronize()
-#define ATOMIC_ADD(ptr, v)      __sync_add_and_fetch(ptr, v)
-#define ATOMIC_SUB(ptr, v)      __sync_sub_and_fetch(ptr, v)
-#define ATOMIC_INC(ptr)         ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
-#define ATOMIC_DEC(ptr)         ATOMIC_SUB(ptr, 1) /* --(*ptr) */
-#define ATOMIC_OR(ptr, v)	__sync_fetch_and_or(ptr, v);
-#define ATOMIC_NAND(ptr, v)	__sync_fetch_and_nand(ptr, v);
+#define MemoryBarrier()			__sync_synchronize()
+#define ATOMIC_ADD(ptr, v)		__sync_add_and_fetch(ptr, v)
+#define ATOMIC_SUB(ptr, v)		__sync_sub_and_fetch(ptr, v)
+#define ATOMIC_INC(ptr)			ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
+#define ATOMIC_DEC(ptr)			ATOMIC_SUB(ptr, 1) /* --(*ptr) */
+#define ATOMIC_OR(ptr, v)		__sync_fetch_and_or(ptr, v)
+#define ATOMIC_NAND(ptr, v)		__sync_fetch_and_nand(ptr, v)
+#define COMPARE_AND_SWAP(ptr,o,n)	__sync_bool_compare_and_swap(ptr,o,n)
 #endif
 
 #ifndef HAVE_MSB
