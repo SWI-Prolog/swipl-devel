@@ -5343,7 +5343,6 @@ markAtomsThreads(void)
     if ( (GD->thread.threads[i]->status != PL_THREAD_UNUSED) &&
 	 (ld=GD->thread.threads[i]->thread_data) )
     { markAtomsMessageQueue(&ld->thread.messages);
-      markAtomsFindall(ld);
     }
   }
 
