@@ -399,27 +399,21 @@ fid_t
 PL_open_signal_foreign_frame(int sync)
 { GET_LD
   FliFrame fr;
-  size_t margin = sizeof(struct localFrame);
+  size_t minspace = sizeof(struct localFrame) + MINFOREIGNSIZE*sizeof(word);
+  size_t margin   = sync ? 0 : MAXARITY*sizeof(word);
 
-  if ( sync )
-    margin += MINFOREIGNSIZE*sizeof(word);
-  else
-    margin += MAXARITY*sizeof(word);
-
-  if ( (char*)lTop + margin > (char*)lMax )
+  if ( (char*)lTop + minspace + margin  > (char*)lMax )
   { if ( sync )
     { int rc;
 
-      if ( (rc=ensureLocalSpace(margin, ALLOW_SHIFT)) != TRUE )
-	return FALSE;
+      if ( (rc=ensureLocalSpace(minspace, ALLOW_SHIFT)) != TRUE )
+	return 0;
     } else
-    { return FALSE;
+    { return 0;
     }
   }
 
-  fr = (FliFrame) lTop;
-  lTop = addPointer(fr, margin);
-
+  fr = addPointer(lTop, margin);
   fr->magic = FLI_MAGIC;
   fr->size = 0;
   Mark(fr->mark);
