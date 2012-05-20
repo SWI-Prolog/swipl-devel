@@ -4941,6 +4941,9 @@ markAtomsOnStacks(PL_local_data_t *ld)
 { assert(!ld->gc.status.active);
 
   DEBUG(MSG_AGC, save_backtrace("AGC"));
+#ifdef O_MAINTENANCE
+  save_backtrace("AGC");
+#endif
 #ifdef ATOMIC_REFERENCES
   markAtom(ld->atoms.unregistered);	/* see PL_unregister_atom() */
 #endif
