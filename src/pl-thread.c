@@ -2536,7 +2536,6 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
     queue->wait_for_drain--;
   }
 
-  PL_LOCK(L_AGC);
   msgp->sequence_id = ++queue->sequence_next;
   if ( !queue->head )
   { queue->head = queue->tail = msgp;
@@ -2545,7 +2544,6 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
     queue->tail = msgp;
   }
   queue->size++;
-  PL_UNLOCK(L_AGC);
 
   if ( queue->waiting )
   { if ( queue->waiting > queue->waiting_var && queue->waiting > 1 )
@@ -2767,7 +2765,6 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       if ( rc )
       { DEBUG(MSG_THREAD, Sdprintf("%d: match\n", PL_thread_self()));
 
-	PL_LOCK(L_AGC);
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
@@ -2775,7 +2772,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
-	PL_UNLOCK(L_AGC);
+	MemoryBarrier();
 	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
@@ -5307,20 +5304,15 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We do not register atoms  in   message  queues as the PL_register_atom()
-calls seriously hard concurrency  due  to   contention  on  L_ATOM.  So,
+calls seriously harms concurrency  due  to   contention  on  L_ATOM. So,
 instead we must sweep atoms in records  in the message queues. Note that
 atom-gc runs with the L_THREAD mutex  locked.   As  both he thread mutex
-queue   tables   are   guarded   by   this     mutex,   the   loops   in
-markAtomsThreads() are safe.
+queue tables are guarded by this  mutex, the loops in markAtomsThreads()
+are safe.
 
 We must lock the individual queues before   processing. This is safe, as
 these mutexes are never helt long  and   the  other  threads are not yet
 silenced.
-
-This means however that messages can still   be added to the queues that
-are subsequently not marked. Note that deletion  is not an issue. To fix
-this, we introduced L_AGC that protects   the atom garbage collector and
-the queue_message().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -5334,19 +5326,14 @@ markAtomsMessageQueue(message_queue *queue)
 
 
 void
-markAtomsThreads(void)
-{ int i;
+markAtomsThreadMessageQueue(PL_local_data_t *ld)
+{ markAtomsMessageQueue(&ld->thread.messages);
+}
 
-  for(i=1; i<=thread_highest_id; i++)
-  { PL_local_data_t *ld;
 
-    if ( (GD->thread.threads[i]->status != PL_THREAD_UNUSED) &&
-	 (ld=GD->thread.threads[i]->thread_data) )
-    { markAtomsMessageQueue(&ld->thread.messages);
-    }
-  }
-
-  if ( queueTable )
+void
+markAtomsMessageQueues(void)
+{ if ( queueTable )
   { Symbol s;
     TableEnum e = newTableEnum(queueTable);
 

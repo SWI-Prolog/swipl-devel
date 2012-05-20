@@ -4951,6 +4951,7 @@ markAtomsOnStacks(PL_local_data_t *ld)
   markAtomsInEnvironments(ld);
   markAtomsInTermReferences(ld);
   markAtomsFindall(ld);
+  markAtomsThreadMessageQueue(ld);
 }
 
 #endif /*O_ATOMGC*/

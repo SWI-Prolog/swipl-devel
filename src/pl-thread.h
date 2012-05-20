@@ -341,14 +341,16 @@ COMMON(void)		cleanupThreads();
 COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
+
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
 		 *******************************/
 
-void		forThreadLocalData(void (*func)(struct PL_local_data *),
+COMMON(void)	forThreadLocalData(void (*func)(struct PL_local_data *),
 				   unsigned flags);
-void		resumeThreads(void);
-void		markAtomsThreads(void);
+COMMON(void)	resumeThreads(void);
+COMMON(void)	markAtomsMessageQueues(void);
+COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
 
