@@ -33,10 +33,8 @@ test(N) :-
 
 eat(Q, I, N) :-
 	thread_get_message(Q, A),
-	atom_concat('XXX', NA, A),
-	atom_number(NA, Num),
-	assertion(Num==I),
-	(   Num == N
+	assertion(atomic_concat('XXX', I, A)),
+	(   I == N
 	->  true
 	;   I2 is I + 1,
 	    eat(Q, I2, N)
