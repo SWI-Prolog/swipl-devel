@@ -2131,6 +2131,7 @@ do_retry:
 	   predicateName(rframe->predicate));
 
   discardChoicesAfter(rframe, FINISH_CUT PASS_LD);
+  rframe->clause = NULL;
   environment_frame = FR = rframe;
   DEF = FR->predicate;
   Undo(m);

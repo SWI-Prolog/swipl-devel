@@ -4059,6 +4059,7 @@ b_throw:
 	    resumeAfterException();	/* reinstantiate spare stacks */
 	    LOAD_REGISTERS(qid);
 	    DEF = FR->predicate;
+	    FR->clause = NULL;
 	    goto retry_continue;
 	  case ACTION_ABORT:
 	    THROW_EXCEPTION;
