@@ -312,7 +312,6 @@ COMMON(int)		exitPrologThreads(void);
 COMMON(bool)		aliasThread(int tid, atom_t name);
 COMMON(word)		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
-COMMON(word)		pl_thread_join(term_t thread, term_t retcode);
 COMMON(word)		pl_thread_exit(term_t retcode);
 COMMON(foreign_t)	pl_thread_signal(term_t thread, term_t goal);
 
