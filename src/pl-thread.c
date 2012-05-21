@@ -1518,6 +1518,18 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 }
 
 
+static int
+get_thread_sync(term_t t, PL_thread_info_t **info, int warn)
+{ int rc;
+
+  LOCK();
+  rc = get_thread(t, info, warn);
+  UNLOCK();
+
+  return rc;
+}
+
+
 int
 unify_thread_id(term_t id, PL_thread_info_t *info)
 { GET_LD
@@ -1863,7 +1875,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
 	  case -1:
 	    fail;
 	}
-      } else if ( get_thread(thread, &info, TRUE) )
+      } else if ( get_thread_sync(thread, &info, TRUE) )
       { state->tid = info->pl_tid;
 
 	switch( get_prop_def(property, ATOM_thread_property,
@@ -1875,7 +1887,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
 	    state->enum_properties = TRUE;
 	    goto enumerate;
 	  case -1:
-      fail;
+	    fail;
 	}
       } else
       { fail;
