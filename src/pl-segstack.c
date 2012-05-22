@@ -178,15 +178,19 @@ popTopOfSegStack(segstack *stack)
 
     if ( chunk )
     { if ( chunk->previous )
-      { stack->last = chunk->previous;
-	stack->last->next = NULL;
-	if ( chunk->allocated )
-	  PL_free(chunk);
+      { segchunk *del = chunk;
 
+	stack->last = chunk->previous;
+	stack->last->next = NULL;
 	chunk = stack->last;
+	stack->top  = chunk->top;
+	MemoryBarrier();		/* Sync with scanSegStack() */
 	stack->base = chunk->data;
 	stack->max  = addPointer(chunk, chunk->size);
-	stack->top  = chunk->top;
+
+	if ( del->allocated )
+	  PL_free(del);
+
 	goto again;
       }
     }
@@ -200,6 +204,12 @@ popTopOfSegStack(segstack *stack)
 scanSegStack(segstack *stack, void (*func)(void *cell))
 Walk along all living cells on the stack and call func on them.  The stack
 is traversed last-to-first.
+
+This is used by markAtomsFindall(), which   is  called asynchronously by
+AGC. Note that this is _not_ concurrent.  The thread is either signalled
+(Unix) or stopped (Windows). We notably   need good synchronization with
+popTopOfSegStack(). Notably, we must  ensure   that  stack->top  is only
+valid if stack->base == chunk->data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline void
@@ -216,7 +226,8 @@ scanSegStack(segstack *stack, void (*func)(void *cell))
 { segchunk *chunk;
 
   if ( (chunk=stack->last) )		/* something there */
-  { chunk->top = stack->top;		/* close last chunk */
+  { if ( stack->base == chunk->data )
+      chunk->top = stack->top;		/* close last chunk */
     for(; chunk; chunk=chunk->previous)
       scan_chunk(stack, chunk->top, chunk->data, func);
   }
