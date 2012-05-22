@@ -2123,8 +2123,8 @@ VMI(C_VAR_N, 0, 2, (CA1_VAR,CA1_INTEGER))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_CUT will  destroy  all  backtrack  points  created  after  the  C_IFTHEN
-instruction in this clause.  It assumes the value of BFR has been stored
+C_CUT  destroys  all  backtrack  points    created  after  the  C_IFTHEN
+instruction in this clause. It assumes the  value of BFR has been stored
 in the nth-variable slot of the current local frame.
 
 We can dereference all frames that are older that the old backtrackframe
@@ -2239,7 +2239,7 @@ c_cut:
       if ( true(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
 
-	BFR = ch->parent;
+	BFR = ch;
 	SAVE_REGISTERS(qid);
 	frameFinished(fr2, FINISH_CUT PASS_LD);
 	LOAD_REGISTERS(qid);
@@ -2248,7 +2248,7 @@ c_cut:
 
 	  fr2 = addPointer(fr2, offset);
 	  ch  = addPointer(ch,  offset);
-	  ch->parent = BFR;
+	  assert(ch == BFR);
 	  och = addPointer(och, offset);
 	  fr  = addPointer(fr,  offset);
 	  delto = addPointer(delto, offset);
@@ -4352,11 +4352,7 @@ atom is referenced by the goal-term anyway.
       goto call_type_error;
 
     fd = valueFunctor(functor);
-    if ( false(fd, CONTROL_F)
-#if O_DEBUG
-	 || GD->bootsession || !GD->initialised
-#endif
-       )
+    if ( false(fd, CONTROL_F) )
     { args    = argTermP(goal, 0);
       arity   = fd->arity;
     } else
