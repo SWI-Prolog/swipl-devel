@@ -1518,6 +1518,18 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 }
 
 
+static int
+get_thread_sync(term_t t, PL_thread_info_t **info, int warn)
+{ int rc;
+
+  LOCK();
+  rc = get_thread(t, info, warn);
+  UNLOCK();
+
+  return rc;
+}
+
+
 int
 unify_thread_id(term_t id, PL_thread_info_t *info)
 { GET_LD
@@ -1640,16 +1652,20 @@ free_thread_info(PL_thread_info_t *info)
 }
 
 
-word
-pl_thread_join(term_t thread, term_t retcode)
-{ GET_LD
+static
+PRED_IMPL("thread_join", 2, thread_join, 0)
+{ PRED_LD
   PL_thread_info_t *info;
   void *r;
   word rval;
   int rc;
 
-  if ( !get_thread(thread, &info, TRUE) )
+  term_t thread = A1;
+  term_t retcode = A2;
+
+  if ( !get_thread_sync(thread, &info, TRUE) )
     fail;
+
   if ( info == LD->thread.info || info->detached )
   { return PL_error("thread_join", 2,
 		    info->detached ? "Cannot join detached thread"
@@ -1863,7 +1879,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
 	  case -1:
 	    fail;
 	}
-      } else if ( get_thread(thread, &info, TRUE) )
+      } else if ( get_thread_sync(thread, &info, TRUE) )
       { state->tid = info->pl_tid;
 
 	switch( get_prop_def(property, ATOM_thread_property,
@@ -1875,7 +1891,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
 	    state->enum_properties = TRUE;
 	    goto enumerate;
 	  case -1:
-      fail;
+	    fail;
 	}
       } else
       { fail;
@@ -5581,6 +5597,7 @@ pl_with_mutex(term_t mutex, term_t goal)
 BeginPredDefs(thread)
 #ifdef O_PLMT
   PRED_DEF("thread_detach", 1, thread_detach, PL_FA_ISO)
+  PRED_DEF("thread_join", 2, thread_join, 0)
   PRED_DEF("thread_statistics", 3, thread_statistics, 0)
   PRED_DEF("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("message_queue_create", 1, message_queue_create, 0)

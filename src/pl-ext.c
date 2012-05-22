@@ -198,7 +198,6 @@ static const PL_extension foreigns[] = {
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
-  FRG("thread_join",		2, pl_thread_join,	      ISO),
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
   FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
