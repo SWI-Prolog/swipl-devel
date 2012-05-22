@@ -1150,10 +1150,10 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 	Sdprintf("Scanning %d trailed assignments\n", assignments));
 
   for(te=mark; te <= top; te++)
-  { if ( ttag(te[1].address) == TAG_TRAILVAL )
-    { Word p = val_ptr(te->address);
+  { Word p = val_ptr(te->address);
 
-      assignments--;
+    if ( ttag(te[1].address) == TAG_TRAILVAL )
+    { assignments--;
       if ( is_first(p) )
       {	DEBUG(MSG_GC_ASSIGNMENTS_MERGE,
 	      Sdprintf("Delete duplicate trailed assignment at %p\n", p));
@@ -1163,6 +1163,11 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
       } else
       { mark_first(p);
 	push_marked(p PASS_LD);
+      }
+    } else
+    { if ( is_first(p) )
+      { te->address = 0;
+	trailcells_deleted++;
       }
     }
   }
@@ -1278,7 +1283,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
   }
 
 #if O_DESTRUCTIVE_ASSIGNMENT
-  if ( assignments >= 2 )
+  if ( assignments >= 1 )
     mergeTrailedAssignments(te0, tm, assignments PASS_LD);
 #endif
 
