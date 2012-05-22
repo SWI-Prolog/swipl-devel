@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -30,7 +29,7 @@
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 
 static RecordList lookupRecordList(word);
-static RecordList isCurrentRecordList(word);
+static RecordList isCurrentRecordList(word, int must_be_non_empty);
 static void freeRecordRef(RecordRef r);
 static void unallocRecordList(RecordList rl);
 
@@ -104,11 +103,26 @@ lookupRecordList(word key)
 
 
 static RecordList
-isCurrentRecordList(word key)
+isCurrentRecordList(word key, int must_be_non_empty)
 { Symbol s;
 
   if ( (s = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
-    return s->value;
+  { RecordList rl = s->value;
+
+    if ( must_be_non_empty )
+    { RecordRef record;
+
+      LOCK();
+      for(record = rl->firstRecord; record; record = record->next)
+      { if ( false(record->record, R_ERASED) )
+	  break;
+      }
+      UNLOCK();
+      return record ? rl : NULL;
+    } else
+    { return rl;
+    }
+  }
 
   return NULL;
 }
@@ -1604,7 +1618,7 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
       { rl = GD->recorded_db.head;
 	break;
       } else if ( getKeyEx(A1, &k PASS_LD) &&
-		  isCurrentRecordList(k) )
+		  isCurrentRecordList(k, TRUE) )
 	succeed;
 
       fail;
@@ -1738,7 +1752,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	  fail;
 	varkey = TRUE;
       } else if ( getKeyEx(key, &k PASS_LD) )
-      { if ( !(rl = isCurrentRecordList(k)) )
+      { if ( !(rl = isCurrentRecordList(k, FALSE)) )
 	  fail;
 	varkey = FALSE;
       } else
