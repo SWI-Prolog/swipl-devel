@@ -370,7 +370,10 @@ walk_called(Goal, Module, _, _) :-
 	nonvar(Module),
 	'$get_predicate_attribute'(Module:Goal, defined, 1), !.
 walk_called(Goal, Module, TermPos, OTerm) :-
+	callable(Goal), !,
 	undefined(Module:Goal, TermPos, OTerm).
+walk_called(Goal, _Module, TermPos, OTerm) :-
+	not_callable(Goal, TermPos, OTerm).
 
 %%	undecided(+Variable, +TermPos, +OTerm)
 
@@ -411,6 +414,14 @@ undefined(Goal, TermPos, OTerm) :-
 	),
 	print_reference(Goal, TermPos, Why, OTerm).
 
+%%	not_callable(+Goal, +TermPos, +OTerm)
+%
+%	We found a reference to a non-callable term
+
+not_callable(Goal, TermPos, OTerm) :-
+	print_reference(Goal, TermPos, not_callable, OTerm).
+
+
 %%	print_reference(+Goal, +TermPos, +Why, +OTerm)
 %
 %	Print a reference to Goal, found at TermPos.
@@ -447,6 +458,8 @@ print_reference2(Goal, From, Why, _OTerm) :-
 make_message(undefined, Goal, Context,
 	     error(existence_error(procedure, PI), Context), error) :-
 	goal_pi(Goal, PI).
+make_message(not_callable, Goal, Context,
+	     error(type_error(callable, Goal), Context), error).
 make_message(trace, Goal, Context,
 	     trace_call_to(PI, Context), informational) :-
 	goal_pi(Goal, PI).
