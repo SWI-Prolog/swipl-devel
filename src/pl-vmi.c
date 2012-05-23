@@ -3276,6 +3276,7 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       }
     }
 
+  can_bind:
     ARGP++;				/* new_args must become 1 in */
     SAVE_REGISTERS(qid);		/* get_vmi_state() */
     rc = put_number(&c, n, ALLOW_GC PASS_LD);
@@ -3284,7 +3285,20 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
 
     if ( rc == TRUE )
     { deRef2(ARGP, k);			/* may be shifted */
-      bindConst(k, c);
+      if ( !isTerm(c) )
+      { bindConst(k, c);
+      } else
+      { SAVE_REGISTERS(qid);
+	rc = unify_ptrs(k, &c, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+	LOAD_REGISTERS(qid);
+	if ( rc == FALSE )
+	{ popArgvArithStack(1 PASS_LD);
+	  AR_END();
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	  BODY_FAILED;
+	}
+      }
     } else
     { raiseStackOverflow(rc);
       popArgvArithStack(1 PASS_LD);
@@ -3309,6 +3323,10 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       clearNumber(&left);
     } else if ( isFloat(*k) && floatNumber(n) )
     { rc = (valFloat(*k) == n->value.f);
+#ifdef O_GMP
+    } else if ( n->type == V_MPQ )
+    { goto can_bind;
+#endif
     } else
     { rc = FALSE;
     }

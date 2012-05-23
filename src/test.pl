@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -620,6 +619,14 @@ gmp(rational-2) :-
 gmp(rational-3) :-
 	dec(6 rdiv 5, X),
 	X == 1 rdiv 5.
+gmp(rational-4) :-
+	X is 5 rdiv 3,
+	X == (5 rdiv 3).
+gmp(rational-5) :-
+	5 rdiv 3 is 5 rdiv 3.
+gmp(rational-6) :-
+	5 rdiv X is 5 rdiv 3,
+	X == 3.
 gmp(rationalize-1) :-
 	A is rationalize(0.0), A == 0,
 	B is rationalize(0.1), B == 1 rdiv 10,
