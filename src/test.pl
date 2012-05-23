@@ -2433,7 +2433,7 @@ thread(status-1) :-
 	thread_join(Id2, _).
 thread(create_error-1) :-
 	catch(thread_create(true, _, [local(a)]), E, true),
-	E = error(domain_error(thread_option, local(a)), _).
+	E = error(type_error(integer, a), _).
 
 
 		 /*******************************
