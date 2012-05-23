@@ -2880,8 +2880,9 @@ destroy_message_queue(message_queue *queue)
 { thread_message *msgp;
   thread_message *next;
 
-  if ( GD->cleaning )
+  if ( GD->cleaning || !queue->initialized )
     return;				/* deallocation is centralised */
+  queue->initialized = FALSE;
 
   assert(!queue->waiting && !queue->wait_for_drain);
 
@@ -2907,6 +2908,7 @@ init_message_queue(message_queue *queue, long max_size)
   queue->max_size = max_size;
   if ( queue->max_size > 0 )
     cv_init(&queue->drain_var, NULL);
+  queue->initialized = TRUE;
 }
 
 					/* Prolog predicates */
