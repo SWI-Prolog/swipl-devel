@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2011 Markus Triska
+    Copyright (C): 2007-2012 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -384,12 +384,12 @@ X in inf..sup.
 You can cite this library in your publications as:
 
 ==
-@inproceedings{Triska08,
+@inproceedings{Triska12,
   author    = {Markus Triska},
-  title     = {Generalising Constraint Solving over Finite Domains},
-  booktitle = {ICLP},
-  year      = {2008},
-  pages     = {820-821}
+  title     = {The Finite Domain Constraint Solver of {SWI-Prolog}},
+  booktitle = {FLOPS},
+  year      = {2012},
+  pages     = {307-316}
 }
 ==
 
