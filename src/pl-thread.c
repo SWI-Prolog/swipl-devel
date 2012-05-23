@@ -298,6 +298,7 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
   { case DLL_PROCESS_ATTACH:
       GD->thread.instance = hinstDll;
       initMutexes();
+      TLD_alloc(&PL_ldata);
       break;
     case DLL_PROCESS_DETACH:
       deleteMutexes();
@@ -675,8 +676,8 @@ initPrologThreads()
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
 
-#ifdef USE_CRITICAL_SECTIONS
-  initMutexes();
+#if defined(USE_CRITICAL_SECTIONS) && !defined(O_SHARED_KERNEL)
+  initMutexes();		/* see also DllMain() */
 #endif
 
 #ifdef PTW32_STATIC_LIB
@@ -695,8 +696,10 @@ initPrologThreads()
 
   if ( !init_ldata_key )
   { init_ldata_key = TRUE;
+#if defined(USE_CRITICAL_SECTIONS) && !defined(O_SHARED_KERNEL)
 #ifndef HAVE___THREAD
     TLD_alloc(&PL_ldata);		/* see also alloc_thread() */
+#endif
 #endif
   }
   TLD_set_LD(&PL_local_data);

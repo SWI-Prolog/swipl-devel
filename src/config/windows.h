@@ -110,6 +110,9 @@ typedef int mode_t;
 /* Define if SIGPROF and setitimer() are available */
 #define O_PROFILE 1
 
+/* "Define if Prolog kernel is in shared object" */
+#define O_SHARED_KERNEL 1
+
 /* The number of bytes in a int.  */
 #define SIZEOF_INT 4
 
