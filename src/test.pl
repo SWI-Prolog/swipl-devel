@@ -384,6 +384,11 @@ arithmetic(arith-13) :-
 arithmetic(sign-1) :-
 	-1 =:= sign(-1),   0 =:= sign(0),   1 =:= sign(1),
 	-1 =:= sign(-1.5), 0 =:= sign(0.0), 1 =:= sign(pi).
+arithmetic(sign-2) :-
+	-1 =:= sign(-0.0).
+arithmetic(abs-1) :-
+	A is abs(-0.0),
+	A == 0.0.
 arithmetic(floor-1) :-
 	0 is floor(0.0),
 	0 is floor(0.9),

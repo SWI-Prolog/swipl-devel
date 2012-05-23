@@ -230,6 +230,12 @@ typedef int mode_t;
 /* Define to 1 if you have `_fpclass' function */
 #define HAVE__FPCLASS 1
 
+/* Define to 1 if you have `signbit' function */
+/* #undef HAVE_SIGNBIT 1 */
+
+/* Define if floats are IEEE754 */
+#define IEEE754 1
+
 /* Define to 1 if you have <float.h> header */
 #define HAVE_FLOAT_H 1
 

@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -1820,6 +1818,23 @@ ar_div(Number n1, Number n2, Number r)
 }
 
 
+#ifndef HAVE_SIGNBIT				/* differs for -0.0 */
+#ifdef IEEE754
+static inline int
+signbit(double f)
+{ union
+  { double f;
+    int64_t i;
+  } v;
+
+  v.f = f;
+  return v.i < 0;
+}
+#else
+#define signbit(f) ((f)<0.0)
+#endif
+#endif
+
 int
 ar_sign_i(Number n1)
 { switch(n1->type)
@@ -1832,7 +1847,7 @@ ar_sign_i(Number n1)
       return mpq_sgn(n1->value.mpq);
 #endif
     case V_FLOAT:
-      return (n1->value.f < 0.0 ? -1 : n1->value.f > 0.0 ? 1 : 0);
+      return signbit(n1->value.f) ? -1 : n1->value.f > 0.0 ? 1 : 0;
     default:
       assert(0);
       fail;
@@ -2477,7 +2492,10 @@ ar_abs(Number n1, Number r)
       break;
 #endif
     case V_FLOAT:
-    { r->value.f = abs(n1->value.f);
+    { if ( signbit(n1->value.f) )
+	r->value.f = -n1->value.f;
+      else
+	r->value.f = n1->value.f;
       r->type = V_FLOAT;
       break;
     }

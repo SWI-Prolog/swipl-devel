@@ -977,6 +977,14 @@ AC_TRY_LINK([],
 			[Define if you have __sync_synchronize])
 	    ],
 	    [ AC_MSG_RESULT(no) ])
+AC_MSG_CHECKING(for signbit)
+AC_TRY_LINK([#include <math.h>],
+	    [ signbit(0.0); ],
+	    [ AC_MSG_RESULT(yes)
+	      AC_DEFINE(HAVE_SIGNBIT, 1,
+			[Define if you have signbit])
+	    ],
+	    [ AC_MSG_RESULT(no) ])
 
 
 if test ! "x$boehmgc" = xno; then
