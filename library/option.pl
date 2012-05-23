@@ -39,6 +39,7 @@
 	    meta_options/3		% :IsMeta, :OptionsIn, -OptionsOut
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(error)).
 
 /** <module> Option list processing
 
@@ -252,6 +253,7 @@ canonise_options2([H|T0], [H|T]) :- !,
 	meta_options(1, :, -).
 
 meta_options(IsMeta, Context:Options0, Options) :-
+	must_be(list, Options0),
 	meta_options(Options0, IsMeta, Context, Options).
 
 meta_options([], _, _, []).
