@@ -251,15 +251,15 @@ plterm-lib:
 
 plwin:		$(PLWIN)$(EXEEXT)
 
-pl-res.o:	$(srcdir)/pl.rc $(srcdir)/pl.ico $(srcdir)/xpce.ico
+swipl-res.o:	$(srcdir)/swipl.rc $(srcdir)/pl.ico $(srcdir)/xpce.ico
 		$(WINDRES) -o $@ $<
 
 pl-ntmain.o:	pl-ntmain.c
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc -I$(srcdir)/os $(CFLAGS) $< -o $@
 
-$(PLWIN)$(EXEEXT):	pl-res.o pl-ntmain.o plterm-lib $(MKLIBS)
+$(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o plterm-lib $(MKLIBS)
 	$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) \
-		-o $@ pl-res.o pl-ntmain.o -L../lib/$(PLARCH) -lplterm \
+		-o $@ swipl-res.o pl-ntmain.o -L../lib/$(PLARCH) -lplterm \
 		$(USEPLLIB) $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
 
 else

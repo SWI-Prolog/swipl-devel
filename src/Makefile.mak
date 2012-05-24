@@ -107,12 +107,12 @@ $(PLCON):	$(PLLIB) pl-ntcon.obj
 		copy plcon.exe $@
 		if exist plcon.exe.manifest copy plcon.exe.manifest $@.manifest
 
-$(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
-		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
+$(PLWIN):	$(PLLIB) pl-ntmain.obj swipl.res
+		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) swipl.res $(LIBS)
 		editbin /stack:$(STACK) $(PLWIN)
 
-pl.res:		pl.rc pl.ico xpce.ico
-		$(RSC) /fo$@ pl.rc
+swipl.res:	swipl.rc swipl.ico
+		$(RSC) /fo$@ swipl.rc
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PLCON)
 		$(PLCON) -O -o $(STARTUPPATH) -b $(PLINIT)
