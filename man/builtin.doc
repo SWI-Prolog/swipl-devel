@@ -5305,7 +5305,9 @@ Evaluate \arg{Expr} and return the absolute value of it.
 
     \function[ISO]{sign}{1}{+Expr}
 Evaluate to -1 if $\arg{Expr} < 0$, 1 if $\arg{Expr} > 0$ and 0 if
-$\arg{Expr} = 0$.
+$\arg{Expr} = 0$.  If \arg{Expr} evaluates to a float, the return value
+is a float (e.g., -1.0, 0.0 or 1.0). In particular, note that sign(-0.0)
+evaluates to 0.0.
 
     \function[ISO]{max}{2}{+Expr1, +Expr2}
 Evaluate to the larger of \arg{Expr1} and \arg{Expr2}.  Both

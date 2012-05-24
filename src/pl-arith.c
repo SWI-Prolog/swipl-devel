@@ -1846,8 +1846,6 @@ ar_sign_i(Number n1)
     case V_MPQ:
       return mpq_sgn(n1->value.mpq);
 #endif
-    case V_FLOAT:
-      return signbit(n1->value.f) ? -1 : n1->value.f > 0.0 ? 1 : 0;
     default:
       assert(0);
       fail;
@@ -1856,8 +1854,14 @@ ar_sign_i(Number n1)
 
 static int
 ar_sign(Number n1, Number r)
-{ r->value.i = ar_sign_i(n1);
-  r->type = V_INTEGER;
+{ if ( n1->type == V_FLOAT )
+  { r->value.f = n1->value.f < 0 ? -1.0 : n1->value.f > 0.0 ? 1.0 : 0.0;
+    r->type = V_FLOAT;
+  } else
+  { r->value.i = ar_sign_i(n1);
+    r->type = V_INTEGER;
+  }
+
   succeed;
 }
 

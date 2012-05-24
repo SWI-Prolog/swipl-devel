@@ -382,10 +382,11 @@ arithmetic(arith-12) :-
 arithmetic(arith-13) :-
 	1.0 =:= sin(pi/2).
 arithmetic(sign-1) :-
-	-1 =:= sign(-1),   0 =:= sign(0),   1 =:= sign(1),
-	-1 =:= sign(-1.5), 0 =:= sign(0.0), 1 =:= sign(pi).
+	-1   is sign(-1),   0   is sign(0),   1   is sign(1).
 arithmetic(sign-2) :-
-	-1 =:= sign(-0.0).
+	-1.0 is sign(-1.5), 0.0 is sign(0.0), 1.0 is sign(pi).
+arithmetic(sign-3) :-
+	0.0 is sign(-0.0).
 arithmetic(abs-1) :-
 	A is abs(-0.0),
 	A == 0.0.
