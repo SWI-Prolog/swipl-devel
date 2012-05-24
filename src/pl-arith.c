@@ -46,6 +46,7 @@ in this array.
 #include <float.h>
 #ifdef _MSC_VER
 #define isnan(x) _isnan(x)
+#define copysign(x,y) _copysign(x,y)
 #endif
 #endif
 #ifdef HAVE_IEEEFP_H
@@ -1841,6 +1842,7 @@ signbit(double f)
   return v.i < 0;
 }
 
+#ifndef copysign
 double
 copysign(double x, double y)
 { union { double f; uint64_t i; } ux, uy;
@@ -1853,6 +1855,7 @@ copysign(double x, double y)
 
   return ux.f;
 }
+#endif
 #else
 #error "Don't know how to support signbit() and copysign()"
 #endif
