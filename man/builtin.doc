@@ -5307,7 +5307,19 @@ Evaluate \arg{Expr} and return the absolute value of it.
 Evaluate to -1 if $\arg{Expr} < 0$, 1 if $\arg{Expr} > 0$ and 0 if
 $\arg{Expr} = 0$.  If \arg{Expr} evaluates to a float, the return value
 is a float (e.g., -1.0, 0.0 or 1.0). In particular, note that sign(-0.0)
-evaluates to 0.0.
+evaluates to 0.0.  See also \funcref{copysign}{1}
+
+    \function[ISO]{copysign}{1}{+Expr1, +Expr2}
+Evaluate to \arg{X}, where the absolute value of \arg{X} equals the
+absolute value of \arg{Expr1} and the sign of \arg{X} matches the sign
+of \arg{Expr2}. This function is based on copysign() from C99, which
+works on double precision floats and deals with handling the sign of
+special floating point values such as -0.0. Our implementation follows
+C99 if both arguments are floats.  Otherwise, \funcref{copysign}{1}
+evaluates to \arg{Expr1} if the sign of both expressions matches or
+-\arg{Expr1} if the signs do not match.  Here, we use the extended
+notion of signs for floating point numbers, where the sign of -0.0
+and other special floats is negative.
 
     \function[ISO]{max}{2}{+Expr1, +Expr2}
 Evaluate to the larger of \arg{Expr1} and \arg{Expr2}.  Both

@@ -683,6 +683,7 @@ suggest predicates from a keyword.
 \functionsummary{ceil}{1}{Smallest integer larger than arg}
 \functionsummary{ceiling}{1}{Smallest integer larger than arg}
 \functionsummary{cos}{1}{Cosine}
+\functionsummary{copysign}{2}{Apply sign of N2 to N1}
 \functionsummary{cputime}{0}{Get CPU time}
 \functionsummary{div}{2}{Integer division}
 \functionsummary{e}{0}{Mathematical constant}

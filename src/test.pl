@@ -387,6 +387,15 @@ arithmetic(sign-2) :-
 	-1.0 is sign(-1.5), 0.0 is sign(0.0), 1.0 is sign(pi).
 arithmetic(sign-3) :-
 	0.0 is sign(-0.0).
+arithmetic(copysign-1) :-
+	-1 is copysign(1, -0.0),
+	 1 is copysign(1, 0.0).
+arithmetic(copysign-2) :-
+	-2.0 is copysign(2.0, -0.0),
+	2.0 is copysign(2.0, 0.0).
+arithmetic(copysign-3) :-
+	1  is copysign(1, 1),
+	-1 is copysign(1, -1).
 arithmetic(abs-1) :-
 	A is abs(-0.0),
 	A == 0.0.

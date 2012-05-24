@@ -1028,6 +1028,8 @@ promoteIntNumber(Number n)
 		*     ARITHMETIC FUNCTIONS      *
 		*********************************/
 
+static int ar_u_minus(Number n1, Number r);
+
 int
 ar_add_ui(Number n, intptr_t add)
 { switch(n->type)
@@ -1819,6 +1821,14 @@ ar_div(Number n1, Number n2, Number r)
 
 
 #ifndef HAVE_SIGNBIT				/* differs for -0.0 */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+signbit() and copysign() are part of C99.   These  should be provided by
+most C compilers, but Microsoft decided  not   to  adopt  C99 (it is now
+2012).
+
+Note that there is no autoconf support  to verify that floats conform to
+the IEE754 representation, but they typically do these days.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 #ifdef IEEE754
 static inline int
 signbit(double f)
@@ -1830,8 +1840,21 @@ signbit(double f)
   v.f = f;
   return v.i < 0;
 }
+
+double
+copysign(double x, double y)
+{ union { double f; uint64_t i; } ux, uy;
+  const uint64_t smask = (uint64_t)1<<(sizeof(uint64_t)*8-1);
+
+  ux.f = x;
+  uy.f = y;
+  ux.i &= ~smask;
+  ux.i |= (uy.i & smask);
+
+  return ux.f;
+}
 #else
-#define signbit(f) ((f)<0.0)
+#error "Don't know how to support signbit() and copysign()"
 #endif
 #endif
 
@@ -1863,6 +1886,47 @@ ar_sign(Number n1, Number r)
   }
 
   succeed;
+}
+
+
+static int
+ar_signbit(Number n)
+{ switch(n->type)
+  { case V_INTEGER:
+      return n->value.i	< 0 ? -1 : 1;
+#ifdef O_GMP
+    case V_MPZ:
+    { int i = mpz_sgn(n->value.mpz);
+      return i < 0 ? -1 : 1;
+    }
+    case V_MPQ:
+    { int i = mpq_sgn(n->value.mpq);
+      return i < 0 ? -1 : 1;
+    }
+#endif
+    case V_FLOAT:
+      return signbit(n->value.f) ? -1 : 1;
+    default:
+      assert(0);
+      return 0;
+  }
+}
+
+
+static int
+ar_copysign(Number n1, Number n2, Number r)
+{
+  if ( n1->type == V_FLOAT && n2->type == V_FLOAT )
+  { r->value.f = copysign(n1->value.f, n2->value.f);
+    r->type = V_FLOAT;
+  } else
+  { if ( ar_signbit(n1) != ar_signbit(n2) )
+      return ar_u_minus(n1, r);
+    else
+      cpNumber(r, n1);
+  }
+
+  return TRUE;
 }
 
 
@@ -3258,6 +3322,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_ceiling1,		ar_ceil, F_ISO),
   ADD(FUNCTOR_float_fractional_part1, ar_float_fractional_part, F_ISO),
   ADD(FUNCTOR_float_integer_part1, ar_float_integer_part, F_ISO),
+  ADD(FUNCTOR_copysign2,	ar_copysign, 0),
 
   ADD(FUNCTOR_sqrt1,		ar_sqrt, F_ISO),
   ADD(FUNCTOR_sin1,		ar_sin, F_ISO),

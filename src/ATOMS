@@ -122,6 +122,7 @@ A compound		"compound"
 A context		"context"
 A context_module	"context_module"
 A continue		"continue"
+A copysign		"copysign"
 A core			"core"
 A core_left		"core_left"
 A cos			"cos"
@@ -736,6 +737,7 @@ F codes			2
 F colon			2
 F comma			2
 F context		2
+F copysign		2
 F cos			1
 F cputime		0
 F curl			1
