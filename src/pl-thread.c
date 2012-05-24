@@ -696,7 +696,7 @@ initPrologThreads()
 
   if ( !init_ldata_key )
   { init_ldata_key = TRUE;
-#if !(defined(USE_CRITICAL_SECTIONS) && !defined(O_SHARED_KERNEL))
+#if !(defined(USE_CRITICAL_SECTIONS) && defined(O_SHARED_KERNEL))
 #ifndef HAVE___THREAD
     TLD_alloc(&PL_ldata);		/* see also alloc_thread() */
 #endif
