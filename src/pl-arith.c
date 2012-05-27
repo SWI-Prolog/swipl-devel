@@ -1140,8 +1140,8 @@ ar_minus(Number n1, Number n2, Number r)
   { case V_INTEGER:
     { r->value.i = n1->value.i - n2->value.i;
 
-      if ( (n1->value.i > 0 && n2->value.i < 0 && r->value.i <= 0) ||
-	   (n1->value.i < 0 && n2->value.i > 0 && r->value.i >= 0) )
+      if ( (n1->value.i >= 0 && n2->value.i < 0 && r->value.i <= 0) ||
+	   (n1->value.i < 0  && n2->value.i > 0 && r->value.i >= 0) )
       {					/* overflow */
 	if ( !promoteIntNumber(n1) ||
 	     !promoteIntNumber(n2) )
