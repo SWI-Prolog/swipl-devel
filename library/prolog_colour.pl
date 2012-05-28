@@ -776,6 +776,9 @@ colour_option_values([], [], _, _).
 colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 	(   (   var(V0)
 	    ;	is_of_type(T0, V0)
+	    ;	T0 = list(_),
+		member(E, V0),
+		var(E)
 	    )
 	->  colourise_term_arg(V0, TB, P0)
 	;   callable(V0),
