@@ -184,7 +184,7 @@ nextClauseFromBucket(ClauseChoice chp, uintptr_t generation, int is_list)
   word key = chp->key;
 
   if ( is_list )
-  { DEBUG(1, Sdprintf("Searching for %s\n", keyName(key)));
+  { DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
 
   non_indexed:
     for(cref = chp->cref; cref; cref = cref->next)
@@ -205,10 +205,10 @@ nextClauseFromBucket(ClauseChoice chp, uintptr_t generation, int is_list)
 
     if ( key )
     { key = 0;
-      DEBUG(1, Sdprintf("Not found; trying non-indexed\n"));
+      DEBUG(MSG_INDEX_FIND, Sdprintf("Not found; trying non-indexed\n"));
       goto non_indexed;
     } else
-    { DEBUG(1, Sdprintf("Not found\n"));
+    { DEBUG(MSG_INDEX_FIND, Sdprintf("Not found\n"));
     }
 
     return NULL;
@@ -476,7 +476,8 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( cref->key == key )
 	{ addClauseList(cref, cl, where);
-	  DEBUG(1, Sdprintf("Adding to existing %s\n", keyName(key)));
+	  DEBUG(MSG_INDEX_UPDATE,
+		Sdprintf("Adding to existing %s\n", keyName(key)));
 	  return 0;
 	} else if ( !cref->key )
 	{ vars = &cref->value.clauses;
@@ -492,7 +493,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
 	return 0;
     }
 
-    DEBUG(1, Sdprintf("Adding new %s\n", keyName(key)));
+    DEBUG(MSG_INDEX_UPDATE, Sdprintf("Adding new %s\n", keyName(key)));
     cr = newClauseListRef(key);
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
@@ -501,8 +502,8 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
 	}
-	DEBUG(1, Sdprintf("Preparing var to clause-list for %s\n",
-			  keyName(key)));
+	DEBUG(MSG_INDEX_UPDATE, Sdprintf("Preparing var to clause-list for %s\n",
+					 keyName(key)));
       }
       if ( cr->value.clauses.erased_clauses )
 	ch->dirty++;
@@ -996,7 +997,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where)
   } else
   { int hi = hashIndex(key, ci->buckets);
 
-    DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
+    DEBUG(MSG_INDEX_UPDATE, Sdprintf("Storing in bucket %d\n", hi));
     ci->size += addClauseBucket(&ch[hi], cl, key, where, ci->is_list);
   }
 }
@@ -1069,9 +1070,9 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   ClauseIndex *cip;
   int dyn_or_multi;
 
-  DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d) (%s)\n",
-		    predicateName(def), arg, hints->buckets,
-		    hints->list ? "lists" : "clauses"));
+  DEBUG(MSG_JIT, Sdprintf("hashDefinition(%s, %d, %d) (%s)\n",
+			  predicateName(def), arg, hints->buckets,
+			  hints->list ? "lists" : "clauses"));
 
   ci = newClauseIndexTable(arg, hints);
 
@@ -1126,10 +1127,10 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
       cip = &(*cip)->next)
     ;
 
-  DEBUG(2, Sdprintf("%d: replaceIndex(%s) %p-->%p\n",
-		    PL_thread_self(),
-		    predicateName(def),
-		    old, ci));
+  DEBUG(MSG_JIT, Sdprintf("%d: replaceIndex(%s) %p-->%p\n",
+			  PL_thread_self(),
+			  predicateName(def),
+			  old, ci));
 
   if ( ci )
   { ci->next = old->next;
@@ -1396,15 +1397,15 @@ bestHash(Word av, Definition def, hash_hints *hints)
   for(i=0, a=assessments; i<assess_count; i++, a++)
   {
     if ( assess_remove_duplicates(a, clause_count) )
-    { DEBUG(2, Sdprintf("Assess arg %d of %s: speedup %f\n",
-			a->arg+1, predicateName(def), a->speedup));
+    { DEBUG(MSG_JIT, Sdprintf("Assess arg %d of %s: speedup %f\n",
+			      a->arg+1, predicateName(def), a->speedup));
 
       if ( !best || a->speedup > best->speedup )
 	best = a;
     } else
     { set_bit(def->tried_index, a->arg);
-      DEBUG(2, Sdprintf("Assess arg %d of %s: not indexable\n",
-			a->arg+1, predicateName(def)));
+      DEBUG(MSG_JIT, Sdprintf("Assess arg %d of %s: not indexable\n",
+			      a->arg+1, predicateName(def)));
     }
 
     if ( a->keys )
