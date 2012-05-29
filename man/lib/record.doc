@@ -37,9 +37,9 @@ a term of the format below.
 \end{quote}
 
 In this definition, <name> is an atom defining the name of the argument,
-<type> is an optional type specification as defined by must_be/2 from 
+<type> is an optional type specification as defined by must_be/2 from
 library \pllib{error}, and <default> is the default initial value.  The
-<type> defaults to \const{any}.  If no default value is specified the 
+<type> defaults to \const{any}.  If no default value is specified the
 default is an unbound variable.
 
 A record declaration creates a set of predicates through
@@ -68,6 +68,10 @@ Unify \arg{Value} with argument in \arg{Record} named <name>.%
 		  unification and can perfectly well instantiate the
 		  argument.}
 
+    \item [<constructor>_data(?Name, +Record, ?Value)]
+True when \arg{Value} is the value for the field named \arg{Name}
+in \arg{Record}.  This predicate does not perform type-checking.
+
     \item [set_<name>_of_<constructor>(+Value, +OldRecord, -NewRecord)]
 Replace the value for <name> in \arg{OldRecord} by \arg{Value} and unify
 the result with \arg{NewRecord}.
@@ -78,7 +82,7 @@ Destructively replace the argument <name> in \arg{Record} by
 
     \item [nb_set_<name>_of_<constructor>(+Value, !Record)]
 As above, but using non-backtrackable assignment based on nb_setarg/3.
-Use with \emph{extreme} care.  
+Use with \emph{extreme} care.
 
     \item [set_<constructor>_fields(+Fields, +Record0, -Record)]
 Set multiple fields using the same syntax as make_<constructor>/2, but
