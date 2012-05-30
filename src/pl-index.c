@@ -1397,8 +1397,9 @@ bestHash(Word av, Definition def, hash_hints *hints)
   for(i=0, a=assessments; i<assess_count; i++, a++)
   {
     if ( assess_remove_duplicates(a, clause_count) )
-    { DEBUG(MSG_JIT, Sdprintf("Assess arg %d of %s: speedup %f\n",
-			      a->arg+1, predicateName(def), a->speedup));
+    { DEBUG(MSG_JIT,
+	    Sdprintf("Assess arg %d of %s: speedup %f, stdev=%f\n",
+		     a->arg+1, predicateName(def), a->speedup, a->stdev));
 
       if ( !best || a->speedup > best->speedup )
 	best = a;
