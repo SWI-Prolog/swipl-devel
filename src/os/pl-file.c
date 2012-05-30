@@ -778,6 +778,12 @@ ok:
   }
 
   releaseStream(s);
+  if ( t == 0 )
+  { if ( (t = PL_new_term_ref()) )
+      PL_put_atom(t, ATOM_current_output);
+    else
+      return FALSE;				/* resource error */
+  }
   return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		  ATOM_output, tp, t);
 }
@@ -828,6 +834,12 @@ ok:
   }
 
   releaseStream(s);
+  if ( t == 0 )
+  { if ( (t = PL_new_term_ref()) )
+      PL_put_atom(t, ATOM_current_input);
+    else
+      return FALSE;				/* resource error */
+  }
   return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		  ATOM_input, tp, t);
 }
