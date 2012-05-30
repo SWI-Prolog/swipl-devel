@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -415,9 +413,14 @@ PL_release_stream(IOSTREAM *s)
 		 *	      ERRORS		*
 		 *******************************/
 
+static int symbol_no_stream(atom_t symbol);
+
 static int
-no_stream(term_t t)
-{ return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+no_stream(term_t t, atom_t name)
+{ if ( t )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+  else
+    return symbol_no_stream(name);
 }
 
 static int
@@ -428,9 +431,13 @@ not_a_stream(term_t t)
 static int
 symbol_no_stream(atom_t symbol)
 { GET_LD
-  term_t t = PL_new_term_ref();
-  PL_put_atom(t, symbol);
-  return no_stream(t);
+  term_t t;
+
+  if ( (t = PL_new_term_ref()) )
+  { PL_put_atom(t, symbol);
+    return no_stream(t, 0);
+  } else
+    return FALSE;
 }
 
 static int
@@ -747,7 +754,7 @@ getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { if ( (s = getStream(Scurout)) )
       goto ok;
-    return no_stream(t);
+    return no_stream(t, ATOM_current_output);
   }
 
   if ( !PL_get_atom(t, &a) )
@@ -756,7 +763,7 @@ getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( a == ATOM_user )
   { if ( (s = getStream(Suser_output)) )
       goto ok;
-    return no_stream(t);
+    return no_stream(t, ATOM_user);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_OUTPUT) )
@@ -797,7 +804,7 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { if ( (s = getStream(Scurin)) )
       goto ok;
-    return no_stream(t);
+    return no_stream(t, ATOM_current_input);
   }
 
   if ( !PL_get_atom(t, &a) )
@@ -806,7 +813,7 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( a == ATOM_user )
   { if ( (s = getStream(Suser_input)) )
       goto ok;
-    return no_stream(t);
+    return no_stream(t, ATOM_user);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
@@ -1239,12 +1246,12 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
 
   if ( to == 0 )
   { if ( !(ctx->stream = getStream(Scurout)) )
-      return no_stream(to);
+      return no_stream(to, ATOM_current_output);
     ctx->is_stream = TRUE;
   } else if ( PL_get_atom(to, &a) )
   { if ( a == ATOM_user )
     { if ( !(ctx->stream = getStream(Suser_output)) )
-	return no_stream(to);
+	return no_stream(to, ATOM_user);
       ctx->is_stream = TRUE;
     } else if ( get_stream_handle(a, &ctx->stream, SH_OUTPUT|SH_ERRORS) )
     { if ( !(ctx->stream->flags &SIO_OUTPUT) )
