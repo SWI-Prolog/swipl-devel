@@ -548,7 +548,8 @@ again:
   rc = copy_term(from, to, flags PASS_LD);
   exitCyclicCopy(flags PASS_LD);
   cp_unmark(from, flags PASS_LD);
-  DEBUG(0, { checkData(from);
+  DEBUG(0, if ( rc == TRUE )
+	   { checkData(from);
              checkData(to);
 	   });
 
