@@ -561,6 +561,7 @@ Section "Package CLIB"
   File pl\library\random.pl
   File pl\library\time.pl
   File pl\library\process.pl
+  File pl\library\udp_broadcast.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\clib.html
 SectionEnd
