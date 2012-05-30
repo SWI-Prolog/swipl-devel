@@ -32,7 +32,7 @@ typedef struct hash_hints
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
-static int		bestHash(Word av, Definition def, hash_hints *hints);
+static int bestHash(Word av, Definition def, float minbest, hash_hints *hints);
 static ClauseIndex	hashDefinition(Definition def, int arg, hash_hints *h);
 static void		replaceIndex(Definition def,
 				     ClauseIndex old, ClauseIndex ci);
@@ -293,7 +293,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
-  if ( (best=bestHash(argv, def, &hints)) >= 0 )
+  if ( (best=bestHash(argv, def, 0.0, &hints)) >= 0 )
   { if ( (ci=hashDefinition(def, best+1, &hints)) )
     { int hi;
 
@@ -804,10 +804,11 @@ unallocOldClauseIndexes(Definition def)
     }
 
     if ( def->tried_index )
-    { bit_vector *old = def->tried_index;
+    { ClauseIndex ci;
 
-      def->tried_index = NULL;
-      free_bitvector(old);
+      clear_bitvector(def->tried_index);
+      for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
+	set_bit(def->tried_index, ci->arg);
     }
   }
 }
@@ -1106,6 +1107,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
     for(cip=&def->impl.clauses.clause_indexes; *cip; cip = &(*cip)->next)
       ;
     *cip = ci;
+    set_bit(def->tried_index, ci->arg);
   } else				/* replace (resize) old */
   { replaceIndex(def, old, ci);
   }
@@ -1138,6 +1140,7 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
     *cip = ci;
   } else				/* this is a delete */
   { *cip = old->next;
+    clear_bit(def->tried_index, old->arg);
   }
 
   c->index = old;
@@ -1328,7 +1331,7 @@ expected speedup is
 #define MIN_SPEEDUP 1.5
 
 static int
-bestHash(Word av, Definition def, hash_hints *hints)
+bestHash(Word av, Definition def, float minbest, hash_hints *hints)
 { GET_LD
   int i;
   ClauseRef cref;
@@ -1402,8 +1405,10 @@ bestHash(Word av, Definition def, hash_hints *hints)
 	    Sdprintf("Assess arg %d of %s: speedup %f, stdev=%f\n",
 		     a->arg+1, predicateName(def), a->speedup, a->stdev));
 
-      if ( !best || a->speedup > best->speedup )
-	best = a;
+      if ( a->speedup > minbest )
+      { best = a;
+	minbest = a->speedup;
+      }
     } else
     { set_bit(def->tried_index, a->arg);
       DEBUG(MSG_JIT, Sdprintf("Assess arg %d of %s: not indexable\n",
