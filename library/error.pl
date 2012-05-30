@@ -240,7 +240,8 @@ not_a_list(Type, X) :-
 	;   Rest == []
 	->  Type = list(Of),
 	    element_is_not(X, Of)
-	;   type_error(Type, X)
+	;   functor(Type, Name, _),
+	    type_error(Name, X)
 	).
 
 
