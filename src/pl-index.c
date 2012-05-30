@@ -1253,6 +1253,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 
     a->speedup =            (float)(clause_count*a->size) /
 	      (float)(clause_count - a->var_count + a->var_count*a->size);
+    a->speedup /= 1.0+a->stdev;			/* punish bad distributions */
 
     a->space = ( a->size * sizeof(struct clause_bucket) +
 		 clause_count * SIZEOF_CREF_CLAUSE +
