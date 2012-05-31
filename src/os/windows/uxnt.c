@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      Vu University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -52,11 +51,6 @@
 #define FALSE 0
 #endif
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 256
-#endif
-
-
 #ifdef __LCC__
 #define _close close
 #define _read read
@@ -71,6 +65,10 @@
 
 #define XENOMAP 1
 #define XENOMEM 2
+
+#ifndef PATH_MAX
+#define PATH_MAX 260
+#endif
 
 
 		 /*******************************
@@ -169,11 +167,11 @@ existsAndWriteableDir(const TCHAR *name)
 
 char *
 _xos_home()				/* expansion of ~ */
-{ static char home[MAXPATHLEN];
+{ static char home[PATH_MAX];
   static int done = FALSE;
 
   if ( !done )
-  { TCHAR h[MAXPATHLEN];
+  { TCHAR h[PATH_MAX];
 
 					/* Unix, set by user */
     if ( GetEnvironmentVariable(_T("HOME"), h, sizeof(h)) &&
@@ -184,8 +182,8 @@ _xos_home()				/* expansion of ~ */
     { _xos_canonical_filenameW(h, home, sizeof(home), 0);
     } else
     { TCHAR d[100];
-      TCHAR p[MAXPATHLEN];
-      TCHAR tmp[MAXPATHLEN];
+      TCHAR p[PATH_MAX];
+      TCHAR tmp[PATH_MAX];
       int haved, havep;
 
       haved = GetEnvironmentVariable(_T("HOMEDRIVE"), d, sizeof(d));
