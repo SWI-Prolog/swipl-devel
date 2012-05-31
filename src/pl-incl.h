@@ -1186,6 +1186,7 @@ struct clause_index
   unsigned	 is_list : 1;		/* Index with lists */
   unsigned int	 dirty;			/* # chains that are dirty */
   float		 speedup;		/* Estimated speedup */
+  struct bit_vector *tried_better;	/* We tried to access for better hash */
   ClauseIndex	 next;			/* Next index */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };

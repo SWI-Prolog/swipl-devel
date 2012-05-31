@@ -2128,25 +2128,30 @@ reference). Calls with an instantiated first argument and less than
 this index key.
 
     \item [Hash lookup]
-If none of the above applies, the system considers the available
-hash tables for which the corresponding argument is instantiated. If one
-or more of such tables exist, it selects the most selective one. If no
-such table exists, it iterates over all instantiated arguments and
-computes the hash-opportunity for each argument by processing the
-virtual machine code for each clause. If the best table has acceptable
-characteristics, this table is created and associated with the
-predicate.
-
-If an argument is considered unsuitable for indexing, it is added to a
-bit vector to avoid repeated re-evaluation. This also indicates the
-worst case scenario: a call where it is not possible to create an index
-for any of the instantiated argument(s) will continuously scan the
-instantiation pattern of the call and test the bit vector.
+If none of the above applies, the system considers the available hash
+tables for which the corresponding argument is instantiated. If a table
+is found with acceptable characteristics, it is used. Otherwise, there
+are two cases. First, if no hash table is available for the instantiated
+arguments, it assesses the clauses for all instantiated arguments and
+selects the best candidate for creating a hash table. Arguments that
+cannot be indexed are flagged to avoid repeated scanning. Second, if
+there is a hash table for an indexed argument but it has poor
+characteristics, the system scans other instantiated arguments to see
+whether it can create a better hash table. The system maintains a bit
+vector on each table in which is marks arguments that are less suitable
+than the argument to which the table belongs.
 
 Clauses that have a variable at an otherwise indexable argument must be
 linked into all hash buckets. Currently, predicates that have more than
 10\% such clauses for a specific argument are not considered for
 indexing on that argument.
+
+Disregarding variables, the suitability of an argument for hashing is
+expressed as the number of unique indexable values devided by the
+standard deviation of the number of duplicate values for each value plus
+one.\footnote{Earlier versions simply used the number of unique values,
+but poor distribution of values makes a table less suitable.  This was
+analysed by Fabien Noth and G\"unter Kniesel.}
 
 The indexes of dynamic predicates are deleted if the number of clauses
 is doubled since its creation or reduced below 1/4th. The JIT approach

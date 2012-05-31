@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -32,7 +30,9 @@ typedef struct hash_hints
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
-static int bestHash(Word av, Definition def, float minbest, hash_hints *hints);
+static int		bestHash(Word av, Definition def,
+				 float minbest, struct bit_vector *tried,
+				 hash_hints *hints);
 static ClauseIndex	hashDefinition(Definition def, int arg, hash_hints *h);
 static void		replaceIndex(Definition def,
 				     ClauseIndex old, ClauseIndex ci);
@@ -277,8 +277,35 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     }
 
     if ( best_index )
-    { int hi = hashIndex(chp->key, best_index->buckets);
+    { int hi;
 
+      if ( def->impl.clauses.number_of_clauses > 10 &&
+	   def->impl.clauses.number_of_clauses/best_index->speedup > 10 )
+      { DEBUG(MSG_JIT,
+	      Sdprintf("Poor index in arg %d of %s (try to find better)\n",
+		       best_index->arg, predicateName(def)));
+
+	if ( !best_index->tried_better )
+	{ best_index->tried_better = new_bitvector(def->functor->arity);
+
+	  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
+	    set_bit(best_index->tried_better, ci->arg-1);
+	}
+
+	if ( (best=bestHash(argv, def,
+			    best_index->speedup, best_index->tried_better,
+			    &hints)) >= 0 )
+	{ DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best+1));
+
+	  if ( (ci=hashDefinition(def, best+1, &hints)) )
+	  { chp->key = indexOfWord(argv[ci->arg-1] PASS_LD);
+	    assert(chp->key);
+	    best_index = ci;
+	  }
+	}
+      }
+
+      hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
       return nextClauseFromBucket(chp, generationFrame(fr), best_index->is_list);
     }
@@ -293,7 +320,8 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
-  if ( (best=bestHash(argv, def, 0.0, &hints)) >= 0 )
+
+  if ( (best=bestHash(argv, def, 0.0, NULL, &hints)) >= 0 )
   { if ( (ci=hashDefinition(def, best+1, &hints)) )
     { int hi;
 
@@ -804,12 +832,7 @@ unallocOldClauseIndexes(Definition def)
     }
 
     if ( def->tried_index )
-    { ClauseIndex ci;
-
       clear_bitvector(def->tried_index);
-      for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-	set_bit(def->tried_index, ci->arg);
-    }
   }
 }
 
@@ -1107,7 +1130,6 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
     for(cip=&def->impl.clauses.clause_indexes; *cip; cip = &(*cip)->next)
       ;
     *cip = ci;
-    set_bit(def->tried_index, ci->arg);
   } else				/* replace (resize) old */
   { replaceIndex(def, old, ci);
   }
@@ -1140,7 +1162,6 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
     *cip = ci;
   } else				/* this is a delete */
   { *cip = old->next;
-    clear_bit(def->tried_index, old->arg);
   }
 
   c->index = old;
@@ -1331,7 +1352,9 @@ expected speedup is
 #define MIN_SPEEDUP 1.5
 
 static int
-bestHash(Word av, Definition def, float minbest, hash_hints *hints)
+bestHash(Word av, Definition def,
+	 float minbest, struct bit_vector *tried,
+	 hash_hints *hints)
 { GET_LD
   int i;
   ClauseRef cref;
@@ -1351,7 +1374,9 @@ bestHash(Word av, Definition def, float minbest, hash_hints *hints)
   for(i=0; i<(int)def->functor->arity; i++)
   { word k;
 
-    if ( !true_bit(def->tried_index, i) && (k=indexOfWord(av[i] PASS_LD)) )
+    if ( !true_bit(def->tried_index, i) &&	/* non-indexable */
+	 !(tried && true_bit(tried, i)) &&	/* already tried, not better */
+	 (k=indexOfWord(av[i] PASS_LD)) )
     { if ( assess_count	>= assess_allocated )
       { size_t newbytes = sizeof(*assessments)*2*assess_allocated;
 
@@ -1408,6 +1433,8 @@ bestHash(Word av, Definition def, float minbest, hash_hints *hints)
       if ( a->speedup > minbest )
       { best = a;
 	minbest = a->speedup;
+      } else if ( tried )
+      { set_bit(tried, a->arg);
       }
     } else
     { set_bit(def->tried_index, a->arg);
