@@ -103,6 +103,8 @@ bit(Pred, Name, Bits) :-
 bit(_:Pred, Name, _) :-
 	throw(error(domain_error(Pred, Name), _)).
 
+:- public port_name/2.			% used by library(test_cover)
+
 port_name(      call, 2'000000001).
 port_name(      exit, 2'000000010).
 port_name(      fail, 2'000000100).
