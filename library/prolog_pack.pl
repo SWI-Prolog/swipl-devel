@@ -804,20 +804,6 @@ update_hash(In, Ctx0, Ctx, _Hash0, Hash) :-
 	sha_hash_ctx(Ctx0, Data, Ctx1, Hash1),
 	update_hash(In, Ctx1, Ctx, Hash1, Hash).
 
-hash_atom(Codes, Hash) :-
-	phrase(bytes_hex(Codes), HexCodes),
-	atom_codes(Hash, HexCodes).
-
-bytes_hex([]) --> [].
-bytes_hex([H|T]) -->
-	{ High is H>>4,
-	  Low is H /\ 0xf,
-	  code_type(C0, xdigit(High)),
-	  code_type(C1, xdigit(Low))
-	},
-	[C0,C1],
-	bytes_hex(T).
-
 
 		 /*******************************
 		 *	 QUERY CENTRAL DB	*
