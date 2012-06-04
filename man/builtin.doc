@@ -6081,37 +6081,36 @@ A = '1,000,000'
 \begin{description}
     \predicate{format_predicate}{2}{+Char, +Head}
 If a sequence \fmtseq{~c} (tilde, followed by some character) is
-found, the format derivatives will first check whether the user has
+found, the format/3 and friends first check whether the user has
 defined a predicate to handle the format. If not, the built-in
-formatting rules described above are used. \arg{Char} is either an {\sc
-ascii} value, or a one-character atom, specifying the letter to be
-(re)defined. \arg{Head} is a term, whose name and arity are used to
+formatting rules described above are used. \arg{Char} is either a
+character code or a one-character atom, specifying the letter to
+be (re)defined. \arg{Head} is a term, whose name and arity are used to
 determine the predicate to call for the redefined formatting character.
 The first argument to the predicate is the numeric argument of the
 format command, or the atom \const{default} if no argument is specified.
 The remaining arguments are filled from the argument list. The example
-below redefines \fmtseq{~n} to produce <return>
-followed by <linefeed> \arg{Arg} times (so a (Grr.) DOS machine is happy with the output).
+below defines \fmtseq{~T} to print a timestamp in ISO8601 format (see
+format_time/3).  The subsequent block illustrates a possible call.
 
 \begin{code}
-:- format_predicate(n, dos_newline(_Arg)).
+:- format_predicate('T', format_time(_Arg,_Time)).
 
-dos_newline(default) :- !,
-	dos_newline(1).
-dos_newline(N) :-
-	(   N > 0
-	->  write('\r\n'),
-	    N2 is N - 1,
-	    dos_newline(N2)
-	;   true
-	).
+format_time(_Arg, Stamp) :-
+	must_be(number, Stamp),
+	format_time(current_output, '%FT%T%z', Stamp).
 \end{code}
+
+\begin{code}
+?- get_time(Now),
+   format('Now, it is ~T~n', [Now]).
+Now, it is 2012-06-04T19:02:01+0200
+Now = 1338829321.6620328.
+\end{code}
+
     \predicate{current_format_predicate}{2}{?Code, ?:Head}
-    Enumerates all user-defined format predicates. \arg{Code} is the
-    character code of the format character.  \arg{Head} is unified with
-    a term with the same name and arity as the predicate. If the
-    predicate does not reside in module \const{user}, \arg{Head} is
-    qualified with the definition module of the predicate.
+True when \chr{~}\arg{Code} is handled by the user-defined predicate
+specified by \arg{Head}.
 \end{description}
 
 \section{Terminal Control}		\label{sec:tty}
