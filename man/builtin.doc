@@ -5942,8 +5942,11 @@ atom.
 
     \fmtchar{c}
 Interpret the next argument as a character code and add it to the
-output. This argument should be an integer in the range [0, \ldots, 255]
-(including 0 and 255).
+output. This argument must be a valid Unicode character code. Note that
+the actually emitted bytes are defined by the character encoding of the
+output stream and an exception may be raised if the output stream is not
+capable of representing the requested Unicode character. See
+\secref{encoding} for details.
 
     \fmtchar{d}
 Output next argument as a decimal number.  It should be an integer.  If
