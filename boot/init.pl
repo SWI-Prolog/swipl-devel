@@ -1319,7 +1319,7 @@ consult(M:X) :-
 	atom_concat('user://', NN, Id),
 	load_files(M:Id, [stream(user_input)]).
 consult(List) :-
-	load_files(List).
+	load_files(List, [expand(true)]).
 
 %%	'$consult_goal'(+Path, -Goal)
 %
@@ -1380,10 +1380,14 @@ load_files(Module:Files, Options) :-
 
 '$load_one_file'(Spec, Module, Options) :-
 	atom(Spec),
-	'$get_option'(expand(Expand), Options, true),
+	'$get_option'(expand(Expand), Options, false),
 	Expand == true, !,
-	expand_file_name(Spec, Files),
-	'$load_files'(Files, Module, [expand(false)|Options]).
+	expand_file_name(Spec, Expanded),
+	(   Expanded = [Load]
+	->  true
+	;   Load = Expanded
+	),
+	'$load_files'(Load, Module, [expand(false)|Options]).
 '$load_one_file'(File, Module, Options) :-
 	strip_module(Module:File, Into, PlainFile),
 	'$load_file'(PlainFile, Into, Options).
