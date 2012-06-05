@@ -236,7 +236,7 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 %	  foldl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0, Vn) :-
 %		P(X11, ..., Xm1, V0, V1),
 %		...
-%		P(Xm1, ..., Xmn, V', Vn).
+%		P(X1n, ..., Xmn, V', Vn).
 %	  ==
 
 foldl(Goal, List, V0, V) :-
