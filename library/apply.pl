@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,7 +36,17 @@
 	    maplist/2,			% :Pred, +List
 	    maplist/3,			% :Pred, ?List, ?List
 	    maplist/4,			% :Pred, ?List, ?List, ?List
-	    maplist/5			% :Pred, ?List, ?List, ?List, ?List
+	    maplist/5,			% :Pred, ?List, ?List, ?List, ?List
+	    foldl/4,			% :Pred, +List, ?V0, ?V
+	    foldl/5,			% :Pred, +List1, +List2, ?V0, ?V
+	    foldl/6,			% :Pred, +List1, +List2, +List3, ?V0, ?V
+	    foldl/7,			% :Pred, +List1, +List2, +List3, +List4,
+					% ?V0, ?V
+	    scanl/4,			% :Pred, +List, ?V0, ?Vs
+	    scanl/5,			% :Pred, +List1, +List2, ?V0, ?Vs
+	    scanl/6,			% :Pred, +List1, +List2, +List3, ?V0, ?Vs
+	    scanl/7			% :Pred, +List1, +List2, +List3, +List4,
+					% ?V0, ?Vs
 	  ]).
 :- use_module(library(error)).
 
@@ -60,7 +69,15 @@ members of a list.
 	maplist(1, ?),
 	maplist(2, ?, ?),
 	maplist(3, ?, ?, ?),
-	maplist(4, ?, ?, ?, ?).
+	maplist(4, ?, ?, ?, ?),
+	foldl(3, +, +, -),
+	foldl(4, +, +, +, -),
+	foldl(5, +, +, +, +, -),
+	foldl(6, +, +, +, +, +, -),
+	scanl(3, +, +, -),
+	scanl(4, +, +, +, -),
+	scanl(5, +, +, +, +, -),
+	scanl(6, +, +, +, +, +, -).
 
 
 %%	include(:Goal, +List1, ?List2) is det.
@@ -201,3 +218,113 @@ maplist_([], [], [], [], _).
 maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 	call(Goal, Elem1, Elem2, Elem3, Elem4),
 	maplist_(Tail1, Tail2, Tail3, Tail4, Goal).
+
+
+		 /*******************************
+		 *	      FOLDL		*
+		 *******************************/
+
+%%	foldl(:Goal, +List, +V0, -V).
+%%	foldl(:Goal, +List1, +List2, +V0, -V).
+%%	foldl(:Goal, +List1, +List2, +List3, +V0, -V).
+%%	foldl(:Goal, +List1, +List2, +List3, +List4, +V0, -V).
+%
+%	Fold a list, using arguments of the   list as left argument. The
+%	foldl family of predicates is defined by:
+%
+%	  ==
+%	  foldl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0, Vn) :-
+%		P(X11, ..., Xm1, V0, V1),
+%		...
+%		P(Xm1, ..., Xmn, V', Vn).
+%	  ==
+
+foldl(Goal, List, V0, V) :-
+	foldl_(List, Goal, V0, V).
+
+foldl_([], _, V, V).
+foldl_([H|T], Goal, V0, V) :-
+	call(Goal, H, V0, V1),
+	foldl_(T, Goal, V1, V).
+
+
+foldl(Goal, List1, List2, V0, V) :-
+	foldl_(List1, List2, Goal, V0, V).
+
+foldl_([], [], _, V, V).
+foldl_([H1|T1], [H2|T2], Goal, V0, V) :-
+	call(Goal, H1, H2, V0, V1),
+	foldl_(T1, T2, Goal, V1, V).
+
+
+foldl(Goal, List1, List2, List3, V0, V) :-
+	foldl_(List1, List2, List3, Goal, V0, V).
+
+foldl_([], [], [], _, V, V).
+foldl_([H1|T1], [H2|T2], [H3|T3], Goal, V0, V) :-
+	call(Goal, H1, H2, H3, V0, V1),
+	foldl_(T1, T2, T3, Goal, V1, V).
+
+
+foldl(Goal, List1, List2, List3, List4, V0, V) :-
+	foldl_(List1, List2, List3, List4, Goal, V0, V).
+
+foldl_([], [], [], [], _, V, V).
+foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
+	call(Goal, H1, H2, H3, H4, V0, V1),
+	foldl_(T1, T2, T3, T4, Goal, V1, V).
+
+
+		 /*******************************
+		 *	       SCANL		*
+		 *******************************/
+
+%%	scanl(:Goal, +List, +V0, -Values).
+%%	scanl(:Goal, +List1, List2, +V0, -Values).
+%%	scanl(:Goal, +List1, List2, List3, +V0, -Values).
+%%	scanl(:Goal, +List1, List2, List3, List4, +V0, -Values).
+%
+%	Left scan of  list.  The  scanl   family  of  higher  order list
+%	operations is defined by:
+%
+%	  ==
+%	  scanl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0, [V0,V1,...,Vn]) :-
+%		P(X11, ..., Xmn, V0, V1),
+%		...
+%	        P(Xm1, ..., Xmn, V', Vn).
+%	  ==
+
+scanl(Goal, List, V0, [V0|Values]) :-
+	scanl_(List, Goal, V0, Values).
+
+scanl_([], _, _, []).
+scanl_([H|T], Goal, V, [VH|VT]) :-
+	call(Goal, H, V, VH),
+	scanl_(T, Goal, VH, VT).
+
+
+scanl(Goal, List1, List2, V0, [V0|Values]) :-
+	scanl_(List1, List2, Goal, V0, Values).
+
+scanl_([], [], _, _, []).
+scanl_([H1|T1], [H2|T2], Goal, V, [VH|VT]) :-
+	call(Goal, H1, H2, V, VH),
+	scanl_(T1, T2, Goal, VH, VT).
+
+
+scanl(Goal, List1, List2, List3, V0, [V0|Values]) :-
+	scanl_(List1, List2, List3, Goal, V0, Values).
+
+scanl_([], [], [], _, _, []).
+scanl_([H1|T1], [H2|T2], [H3|T3], Goal, V, [VH|VT]) :-
+	call(Goal, H1, H2, H3, V, VH),
+	scanl_(T1, T2, T3, Goal, VH, VT).
+
+
+scanl(Goal, List1, List2, List3, List4, V0, [V0|Values]) :-
+	scanl_(List1, List2, List3, List4, Goal, V0, Values).
+
+scanl_([], [], [], [], _, _, []).
+scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
+	call(Goal, H1, H2, H3, H4, V, VH),
+	scanl_(T1, T2, T3, T4, Goal, VH, VT).
