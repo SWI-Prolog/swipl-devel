@@ -291,7 +291,7 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 %	  scanl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0, [V0,V1,...,Vn]) :-
 %		P(X11, ..., Xmn, V0, V1),
 %		...
-%	        P(Xm1, ..., Xmn, V', Vn).
+%	        P(X1n, ..., Xmn, V', Vn).
 %	  ==
 
 scanl(Goal, List, V0, [V0|Values]) :-
