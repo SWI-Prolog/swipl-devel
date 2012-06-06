@@ -251,7 +251,7 @@ plterm-lib:
 
 plwin:		$(PLWIN)$(EXEEXT)
 
-swipl-res.o:	$(srcdir)/swipl.rc $(srcdir)/pl.ico $(srcdir)/xpce.ico
+swipl-res.o:	$(srcdir)/swipl.rc $(srcdir)/swipl.ico
 		$(WINDRES) -o $@ $<
 
 pl-ntmain.o:	pl-ntmain.c
