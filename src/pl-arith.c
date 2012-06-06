@@ -57,6 +57,10 @@ in this array.
 #define HAVE_FPCLASSIFY 1
 #endif
 
+#ifdef __WINDOWS__
+#include <wincrypt.h>
+#endif
+
 #undef LD
 #define LD LOCAL_LD
 
