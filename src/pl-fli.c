@@ -523,11 +523,14 @@ compareUCSAtom(atom_t h1, atom_t h2)
 
   for( ; len-- > 0; s1++, s2++)
   { if ( *s1 != *s2 )
-      return *s1 - *s2;
+    { int d = *s1 - *s2;
+
+      return d<0 ? CMP_LESS : d>0 ? CMP_GREATER : CMP_EQUAL;
+    }
   }
 
-  return a1->length >  a2->length ? 1 :
-	 a1->length == a2->length ? 0 : -1;
+  return a1->length >  a2->length ? CMP_GREATER :
+	 a1->length == a2->length ? CMP_EQUAL : CMP_LESS;
 }
 
 
