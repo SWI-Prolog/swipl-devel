@@ -62,6 +62,14 @@ extern long timezone;
 #endif
 #endif
 
+#ifdef __WINDOWS__
+#ifndef asctime_r
+#define asctime_r(t, r)		(strcpy((r), asctime((t))), (r))
+#endif
+#ifndef localtime_r
+#define localtime_r(t, r)	(*(r) = *localtime((t)), (r))
+#endif
+#endif
 
 #define TAI_UTC_OFFSET LL(4611686018427387914)
 
