@@ -280,9 +280,9 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 		 *******************************/
 
 %%	scanl(:Goal, +List, +V0, -Values).
-%%	scanl(:Goal, +List1, List2, +V0, -Values).
-%%	scanl(:Goal, +List1, List2, List3, +V0, -Values).
-%%	scanl(:Goal, +List1, List2, List3, List4, +V0, -Values).
+%%	scanl(:Goal, +List1, +List2, +V0, -Values).
+%%	scanl(:Goal, +List1, +List2, +List3, +V0, -Values).
+%%	scanl(:Goal, +List1, +List2, +List3, +List4, +V0, -Values).
 %
 %	Left scan of  list.  The  scanl   family  of  higher  order list
 %	operations is defined by:
