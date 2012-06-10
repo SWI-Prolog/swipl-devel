@@ -23,15 +23,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Solaris has asctime_r() with 3 arguments. Using _POSIX_PTHREAD_SEMANTICS
-is supposed to give the POSIX standard one.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(__sun__) || defined(__sun)
-#define _POSIX_PTHREAD_SEMANTICS 1
-#endif
-
 #include <math.h>
 #include "pl-incl.h"
 #include "libtai/taia.h"
@@ -59,15 +50,6 @@ is supposed to give the POSIX standard one.
 extern char *tzname[2];
 #ifdef HAVE_VAR_TIMEZONE
 extern long timezone;
-#endif
-#endif
-
-#ifdef __WINDOWS__
-#ifndef asctime_r
-#define asctime_r(t, r)		(strcpy((r), asctime((t))), (r))
-#endif
-#ifndef localtime_r
-#define localtime_r(t, r)	(*(r) = *localtime((t)), (r))
 #endif
 #endif
 
@@ -125,7 +107,7 @@ tz_offset(void)
   { time_t t = time(NULL);
     struct tm tm;
 
-    localtime_r(&t, &tm);
+    PL_localtime_r(&t, &tm);
 
     offset = -tm.tm_gmtoff;
     if ( tm.tm_isdst > 0 )
@@ -385,7 +367,7 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
 	if ( (int64_t)unixt == ut64 )
 	{ double ip;
 
-	  localtime_r(&unixt, &tm);
+	  PL_localtime_r(&unixt, &tm);
 	  sec = (double)tm.tm_sec + modf(argsec, &ip);
 	  ct.date.year  = tm.tm_year+1900;
 	  ct.date.month = tm.tm_mon+1;
@@ -833,7 +815,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    { char buf[26];
 
 	      cal_ftm(ftm, HAS_WYDAY);
-	      asctime_r(&ftm->tm, buf);
+	      PL_asctime_r(&ftm->tm, buf);
 	      buf[24] = EOS;
 	      OUTSTRA(buf);
 	    }
@@ -897,7 +879,7 @@ pl_format_time(term_t out, term_t format, term_t time, int posix)
 
     if ( (int64_t)unixt == ut64 )
     { tb.utcoff = tz_offset();
-      localtime_r(&unixt, &tb.tm);
+      PL_localtime_r(&unixt, &tb.tm);
       tb.sec = (double)tb.tm.tm_sec + modf(tb.stamp, &ip);
       if ( tb.tm.tm_isdst > 0 )
       { tb.utcoff -= 3600;

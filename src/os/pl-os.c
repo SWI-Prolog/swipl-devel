@@ -30,6 +30,15 @@
 #include <os2.h>                /* this has to appear before pl-incl.h */
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Solaris has asctime_r() with 3 arguments. Using _POSIX_PTHREAD_SEMANTICS
+is supposed to give the POSIX standard one.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if defined(__sun__) || defined(__sun)
+#define _POSIX_PTHREAD_SEMANTICS 1
+#endif
+
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
@@ -1634,7 +1643,7 @@ ChDir(const char *path)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    struct tm *LocalTime(time_t time, struct tm *r)
+    struct tm *PL_localtime_r(time_t time, struct tm *r)
 
     Convert time in Unix internal form (seconds since Jan 1 1970) into a
     structure providing easier access to the time.
@@ -1661,13 +1670,29 @@ ChDir(const char *path)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 struct tm *
-LocalTime(long *t, struct tm *r)
+PL_localtime_r(long *t, struct tm *r)
 {
-#if defined(_REENTRANT) && defined(HAVE_LOCALTIME_R)
+#ifdef HAVE_LOCALTIME_R
   return localtime_r(t, r);
 #else
+  LOCK();
   *r = *localtime((const time_t *) t);
+  UNLOCK();
   return r;
+#endif
+}
+
+char *
+PL_asctime_r(const struct tm *tm, char *buf)
+{
+#ifdef HAVE_ASCTIME_R
+  return asctime_r(tm, buf);
+#else
+  LOCK();
+  strcpy(buf, asctime(tm));
+  UNLOCK();
+
+  return buf;
 #endif
 }
 
