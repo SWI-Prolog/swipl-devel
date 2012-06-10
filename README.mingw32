@@ -153,6 +153,26 @@ build_zlib()
   )
 }
 
+#################################
+# Download and install libarchive
+
+download_libarchive()
+{ [ -f libarchive-3.0.4.tar.gz ] || wget https://github.com/downloads/libarchive/libarchive/libarchive-3.0.4.tar.gz
+  tar xzf libarchive-3.0.4.tar.gz
+}
+
+build_libarchive()
+{ ( cd libarchive-3.0.4
+    ./configure --host=i586-mingw32msvc --prefix=$install --with-pic \
+    --without-iconv --without-openssl --without-nettle --without-xml2 \
+    --without-expat --without-libregex --without-bz2lib
+    make
+    make install
+  )
+}
+
+
+
 ###########################
 # Do the whole lot for all prerequisites
 
