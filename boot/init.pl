@@ -1072,8 +1072,9 @@ compiling :-
 
 '$term_in_file'(In, Read, Term, Stream, Parents, Options) :-
 	'$skip_script_line'(In),
+	'$read_clause_options'(Options, ReadOptions),
 	repeat,
-	  read_clause(In, Raw, Options),
+	  read_clause(In, Raw, ReadOptions),
 	  (   Raw == end_of_file
 	  ->  !,
 	      (	  Parents = [_,_|_]	% Included file
@@ -1082,6 +1083,18 @@ compiling :-
 	      )
 	  ;   '$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options)
 	  ).
+
+'$read_clause_options'([], []).
+'$read_clause_options'([H|T0], List) :-
+	(   '$read_clause_option'(H)
+	->  List = [H|T]
+	;   List = T
+	),
+	'$read_clause_options'(T0, T).
+
+'$read_clause_option'(syntax_errors(_)).
+'$read_clause_option'(term_position(_)).
+'$read_clause_option'(process_comment(_)).
 
 '$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options) :-
 	catch('$expand_term'(Raw, Expanded), E,
