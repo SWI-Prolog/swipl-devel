@@ -3354,11 +3354,11 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
       } else
       { clearNumber(&n);
         AR_END();
-        return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
+	return FALSE;
       }
     } else
     { AR_END();
-      return PL_error(NULL, 0, NULL, ERR_SYNTAX, str_number_error(rc));
+      return FALSE;
     }
   } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
   { return PL_unify_atom_nchars(A1, len, s);
