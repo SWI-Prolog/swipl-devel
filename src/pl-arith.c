@@ -1832,8 +1832,11 @@ most C compilers, but Microsoft decided  not   to  adopt  C99 (it is now
 2012).
 
 Note that there is no autoconf support  to verify that floats conform to
-the IEE754 representation, but they typically do these days.
+the IEE754 representation,  but  they  typically   do  these  days.  See
+http://www.gnu.org/software/autoconf/manual/autoconf-2.67/html_node/Floating-Point-Portability.html
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#define IEEE754 1
+
 #ifdef IEEE754
 static inline int
 signbit(double f)
