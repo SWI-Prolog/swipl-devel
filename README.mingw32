@@ -48,16 +48,26 @@ case $(uname) in
 	;;
 esac
 
+GMP_VERSION=5.0.5
+PTHREADS_VERSION=2-9-1-release
+SSL_VERSION=1.0.1c
+JPEG_VERSION=8d
+ZLIB_VERSION=1.2.5
+ARCHIVE_VERSION=3.0.4
+
 ###########################
 # Download and install the GMP library.
 
 download_gmp()
-{ [ -f gmp-5.0.2.tar.bz2 ] || wget ftp://ftp.gmplib.org/pub/gmp-5.0.2/gmp-5.0.2.tar.bz2
-  tar jxf gmp-5.0.2.tar.bz2
+{ GMP_FILE=gmp-$GMP_VERSION.tar.bz2
+
+  [ -f $GMP_FILE ] || \
+    wget ftp://ftp.gmplib.org/pub/gmp-$GMP_VERSION/$GMP_FILE
+  tar jxf $GMP_FILE
 }
 
 build_gmp()
-{ ( cd gmp-5.0.2
+{ ( cd gmp-$GMP_VERSION
     ./configure --host=i586-mingw32msvc --prefix=$install \
        --enable-shared --disable-static
     make
@@ -69,14 +79,17 @@ build_gmp()
 # Download and install the Pthreads-win32 library.
 
 download_pthread_win32()
-{ cd $src
-  [ -f pthreads-w32-2-8-0-release.tar.gz ] || wget ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-8-0-release.tar.gz
+{ PTHREADS_FILE=pthreads-w32-$PTHREADS_VERSION.tar.gz
 
-  tar xzf pthreads-w32-2-8-0-release.tar.gz
+  cd $src
+  [ -f $PTHREADS_FILE ] || \
+    wget ftp://sourceware.org/pub/pthreads-win32/$PTHREADS_FILE
+
+  tar xzf $PTHREADS_FILE
 }
 
 build_pthread_win32()
-{ ( cd pthreads-w32-2-8-0-release
+{ ( cd pthreads-w32-$PTHREADS_VERSION
     make -f GNUmakefile CROSS=i586-mingw32msvc- \
         LFLAGS="-lwsock32 -Wl,--out-implib=libpthreadGC2.dll.a" GC
     cp pthread.h semaphore.h sched.h $install/include/
@@ -89,17 +102,18 @@ build_pthread_win32()
 # Download and install ssl
 
 download_ssl()
-{ [ -f openssl-1.0.0e.tar.gz ] || wget http://www.openssl.org/source/openssl-1.0.0e.tar.gz
-  tar xzf openssl-1.0.0e.tar.gz
+{ SSL_FILE=openssl-$SSL_VERSION.tar.gz
+  [ -f $SSL_FILE ] || wget http://www.openssl.org/source/$SSL_FILE
+  tar xzf $SSL_FILE
 }
 
 build_ssl()
-{ ( cd openssl-1.0.0e
+{ ( cd openssl-$SSL_VERSION
     export CC=i586-mingw32msvc-gcc
     ./Configure mingw --prefix=$install shared threads
     make CROSS_COMPILE=i586-mingw32msvc- depend
-    make CROSS_COMPILE=i586-mingw32msvc
-    make CROSS_COMPILE=i586-mingw32msvc install
+    make CROSS_COMPILE=i586-mingw32msvc-
+    make CROSS_COMPILE=i586-mingw32msvc- install
   )
 }
 
@@ -107,12 +121,14 @@ build_ssl()
 # Download and install jpeg
 
 download_jpeg()
-{ [ -f jpegsrc.v8c.tar.gz ] || wget http://www.ijg.org/files/jpegsrc.v8c.tar.gz
-  tar xzf jpegsrc.v8c.tar.gz
+{ JPEG_FILE=jpegsrc.v$JPEG_VERSION.tar.gz
+
+  [ -f $JPEG_FILE ] || wget http://www.ijg.org/files/$JPEG_FILE
+  tar xzf $JPEG_FILE
 }
 
 build_jpeg()
-{ ( cd jpeg-8c
+{ ( cd jpeg-$JPEG_VERSION
     ./configure --host=i586-mingw32msvc --prefix=$install --enable-shared
     make
     make install
@@ -124,7 +140,7 @@ build_jpeg()
 
 download_libxpm()
 { if [ -d libXpm ]; then
-     (cd $libXpm && git pull)
+     (cd libXpm && git pull)
   else
      git clone git://www.swi-prolog.org/home/pl/git/misc/libXpm.git
   fi
@@ -143,12 +159,15 @@ build_libxpm()
 # Download and install zlib
 
 download_zlib()
-{ [ -f zlib-1.2.5.tar.bz2 ] || wget http://garr.dl.sourceforge.net/project/libpng/zlib/1.2.5/zlib-1.2.5.tar.bz2
-  tar xjf zlib-1.2.5.tar.bz2
+{ ZLIB_FILE=zlib-$ZLIB_VERSION.tar.bz2
+
+  [ -f $ZLIB_FILE ] || \
+    wget http://garr.dl.sourceforge.net/project/libpng/zlib/$ZLIB_VERSION/$ZLIB_FILE
+  tar xjf $ZLIB_FILE
 }
 
 build_zlib()
-{ ( cd zlib-1.2.5
+{ ( cd zlib-$ZLIB_VERSION
     make -f win32/Makefile.gcc PREFIX=i586-mingw32msvc- BINARY_PATH=$install/bin INCLUDE_PATH=$install/include LIBRARY_PATH=$install/lib SHARED_MODE=1 install
   )
 }
@@ -157,12 +176,15 @@ build_zlib()
 # Download and install libarchive
 
 download_libarchive()
-{ [ -f libarchive-3.0.4.tar.gz ] || wget https://github.com/downloads/libarchive/libarchive/libarchive-3.0.4.tar.gz
-  tar xzf libarchive-3.0.4.tar.gz
+{ ARCHIVE_FILE=libarchive-$ARCHIVE_VERSION.tar.gz
+
+  [ -f $ARCHIVE_FILE ] || \
+    wget https://github.com/downloads/libarchive/libarchive/$ARCHIVE_FILE
+  tar xzf $ARCHIVE_FILE
 }
 
 build_libarchive()
-{ ( cd libarchive-3.0.4
+{ ( cd libarchive-$ARCHIVE_VERSION
     ./configure --host=i586-mingw32msvc --prefix=$install --with-pic \
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib
@@ -183,6 +205,7 @@ download_prerequisites()
   download_jpeg
   download_libxpm
   download_zlib
+  download_libarchive
 }
 
 build_prerequisites()
