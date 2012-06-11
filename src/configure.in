@@ -53,6 +53,7 @@ AC_SUBST(WINEPATHEXE)
 AC_SUBST(HOST_TOOLCHAIN_FLAG)
 AC_SUBST(HOST_OS_FLAG)
 AC_SUBST(DEFSTARTUP)
+AC_SUBST(EXEFORMAT)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -291,6 +292,25 @@ AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP",
 AC_ISC_POSIX
 AC_HEADER_STDC
 AC_SYS_LARGEFILE
+
+dnl ****************************************************************
+dnl * Test for ELF
+dnl ****************************************************************
+
+AC_RUN_IFELSE(
+    [ AC_LANG_PROGRAM(
+	  [],
+	  [
+#ifdef __ELF__
+return 0;
+#else
+return 1;
+#endif
+	  ])
+    ],
+    [EXEFORMAT=ELF],
+    [EXEFORMAT=unknown],
+    [EXEFORMAT=unknown])
 
 if test "x$useprofile" = "xyes"; then
   AC_MSG_CHECKING("whether to use GCC -fprofile-use")
