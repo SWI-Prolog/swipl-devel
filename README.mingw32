@@ -55,6 +55,8 @@ JPEG_VERSION=8d
 ZLIB_VERSION=1.2.5
 ARCHIVE_VERSION=3.0.4
 
+HOST=${HOST-i586-mingw32msvc}
+
 ###########################
 # Download and install the GMP library.
 
@@ -68,7 +70,7 @@ download_gmp()
 
 build_gmp()
 { ( cd gmp-$GMP_VERSION
-    ./configure --host=i586-mingw32msvc --prefix=$install \
+    ./configure --host=$HOST --prefix=$install \
        --enable-shared --disable-static
     make
     make install
@@ -90,7 +92,7 @@ download_pthread_win32()
 
 build_pthread_win32()
 { ( cd pthreads-w32-$PTHREADS_VERSION
-    make -f GNUmakefile CROSS=i586-mingw32msvc- \
+    make -f GNUmakefile CROSS=$HOST- \
         LFLAGS="-lwsock32 -Wl,--out-implib=libpthreadGC2.dll.a" GC
     cp pthread.h semaphore.h sched.h $install/include/
     cp pthreadGC2.dll $install/bin/
@@ -109,11 +111,11 @@ download_ssl()
 
 build_ssl()
 { ( cd openssl-$SSL_VERSION
-    export CC=i586-mingw32msvc-gcc
+    export CC=$HOST-gcc
     ./Configure mingw --prefix=$install shared threads
-    make CROSS_COMPILE=i586-mingw32msvc- depend
-    make CROSS_COMPILE=i586-mingw32msvc-
-    make CROSS_COMPILE=i586-mingw32msvc- install
+    make CROSS_COMPILE=$HOST- depend
+    make CROSS_COMPILE=$HOST-
+    make CROSS_COMPILE=$HOST- install
   )
 }
 
@@ -129,7 +131,7 @@ download_jpeg()
 
 build_jpeg()
 { ( cd jpeg-$JPEG_VERSION
-    ./configure --host=i586-mingw32msvc --prefix=$install --enable-shared
+    ./configure --host=$HOST --prefix=$install --enable-shared
     make
     make install
   )
@@ -149,7 +151,7 @@ download_libxpm()
 build_libxpm()
 { ( cd libXpm/lib
     autoconf
-    ./configure --host=i586-mingw32msvc --prefix=$install
+    ./configure --host=$HOST --prefix=$install
     make -f Makefile.mingw
     make -f Makefile.mingw install
   )
@@ -168,7 +170,7 @@ download_zlib()
 
 build_zlib()
 { ( cd zlib-$ZLIB_VERSION
-    make -f win32/Makefile.gcc PREFIX=i586-mingw32msvc- BINARY_PATH=$install/bin INCLUDE_PATH=$install/include LIBRARY_PATH=$install/lib SHARED_MODE=1 install
+    make -f win32/Makefile.gcc PREFIX=$HOST- BINARY_PATH=$install/bin INCLUDE_PATH=$install/include LIBRARY_PATH=$install/lib SHARED_MODE=1 install
   )
 }
 
@@ -185,7 +187,7 @@ download_libarchive()
 
 build_libarchive()
 { ( cd libarchive-$ARCHIVE_VERSION
-    ./configure --host=i586-mingw32msvc --prefix=$install --with-pic \
+    ./configure --host=$HOST --prefix=$install --with-pic \
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib
     make
@@ -235,7 +237,7 @@ build_swipl_core()
 { export CIFLAGS="-I$install/include"
   export LDFLAGS="-L$install/lib"
   ( cd pl-devel
-    ./configure --host=i586-mingw32msvc --prefix=$install \
+    ./configure --host=$HOST --prefix=$install \
         --disable-readline --disable-libdirversion --enable-shared
     make
     make install
@@ -249,7 +251,7 @@ build_swipl_packages()
     export CPPFLAGS=-I$install/include
     export PKGLDFLAGS=-I$install/lib
     [ -z "$1" ] || export PKG="$1"
-    ./configure --host=i586-mingw32msvc --prefix=$install
+    ./configure --host=$HOST --prefix=$install
     make
     make install
   )
