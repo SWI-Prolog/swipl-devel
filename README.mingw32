@@ -57,6 +57,16 @@ ARCHIVE_VERSION=3.0.4
 
 HOST=${HOST-i586-mingw32msvc}
 
+################
+# Create target directories
+
+make_mingw_dirs()
+{ mkdir -p $install/include
+  mkdir -p $install/lib
+  mkdir -p $install/bin
+}
+
+
 ###########################
 # Download and install the GMP library.
 
@@ -244,6 +254,11 @@ build_swipl_core()
   )
 }
 
+copy_dlls()
+{ cp $install/bin/*.dll $install/swipl/bin
+}
+
+
 # Usage: build_swipl_packages [pkg ...]
 
 build_swipl_packages()
@@ -259,6 +274,7 @@ build_swipl_packages()
 
 build_swipl()
 { build_swipl_core
+  copy_dlls
   build_swipl_packages
 }
 
@@ -266,6 +282,7 @@ build_swipl()
 # Do the whole lot
 
 build_all()
-{ build_prerequisites
+{ make_mingw_dirs
+  build_prerequisites
   build_swipl
 }
