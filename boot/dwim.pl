@@ -355,10 +355,11 @@ find_definition(Head, _, Def) :-
 	strip_module(Head, _, Plain),
 	callable(Plain),
 	functor(Plain, Name, Arity),
-	(   current_predicate(system:Name/Arity)
-	->  Def = system:Plain
-	;   predicate_property(Head, imported_from(Module))
-	->  Def = Module:Plain
+	(   predicate_property(Head, imported_from(Module))
+	->  (   current_predicate(system:Name/Arity)
+	    ->	Def = system:Plain
+	    ;	Def = Module:Plain
+	    )
 	;   Def = Head
 	).
 
