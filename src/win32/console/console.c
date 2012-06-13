@@ -1026,6 +1026,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	  rlc_paste(b);
 	  return 0;
 	case IDM_COPY:
+	  rlc_copy(b);
 	  return 0;			/* no op: already done */
 	case IDM_CUT:
 	  break;			/* TBD: cut */
@@ -1063,6 +1064,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case VK_DOWN:	chr = Control('N');	break;
 	case VK_HOME:	chr = Control('A');	break;
 	case VK_END:	chr = Control('E');	break;
+        case VK_CANCEL: rlc_interrupt(b);       return 0;
 
         case VK_PRIOR:			/* page up */
 	{ int maxdo = rlc_count_lines(b, b->first, b->window_start);
