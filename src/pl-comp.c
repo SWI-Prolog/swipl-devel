@@ -2915,8 +2915,12 @@ assert_term(term_t term, int where, atom_t owner, SourceLoc loc ARG_LD)
     return NULL;
   if ( !get_head_functor(head, &fdef, 0 PASS_LD) )
     return NULL;			/* not callable, arity too high */
-  if ( !(proc = lookupProcedureToDefine(fdef, mhead)) )
-    return NULL;			/* redefine a system predicate */
+  if ( !(proc = isCurrentProcedure(fdef, mhead)) )
+  { if ( checkModifySystemProc(fdef) )
+      proc = lookupProcedure(fdef, mhead);
+    if ( !proc )
+      return NULL;
+  }
 
 #ifdef O_PROLOG_HOOK
   if ( mhead->hook && isDefinedProcedure(mhead->hook) )

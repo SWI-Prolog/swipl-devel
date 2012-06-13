@@ -289,7 +289,7 @@ isStaticSystemProcedure(functor_t fd)
 }
 
 
-static int
+int
 checkModifySystemProc(functor_t fd)
 { Procedure proc;
 

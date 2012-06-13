@@ -435,6 +435,7 @@ COMMON(int)		get_functor(term_t descr, functor_t *fdef,
 				    Module *m, term_t h, int how);
 COMMON(int)		get_procedure(term_t descr, Procedure *proc,
 				      term_t he, int f);
+COMMON(int)		checkModifySystemProc(functor_t f);
 COMMON(int)		overruleImportedProcedure(Procedure proc, Module target);
 COMMON(word)		pl_current_predicate(term_t name, term_t functor, control_t h);
 COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
