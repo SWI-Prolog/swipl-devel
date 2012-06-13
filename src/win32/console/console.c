@@ -200,6 +200,8 @@ static int	rlc_add_lines(RlcData b, int here, int add);
 static void	rlc_start_selection(RlcData b, int x, int y);
 static void	rlc_extend_selection(RlcData b, int x, int y);
 static void	rlc_word_selection(RlcData b, int x, int y);
+static int	rlc_has_selection(RlcData b);
+static void	rlc_set_selection(RlcData b, int sl, int sc, int el, int ec);
 static void	rlc_copy(RlcData b);
 static void	rlc_destroy(RlcData b);
 static void	rlc_request_redraw(RlcData b);
@@ -929,7 +931,14 @@ rlc_interrupt(RlcData b)
 
 static void
 typed_char(RlcData b, int chr)
-{ if ( chr == Control('C') )
+{ if ( chr == Control('C') && rlc_has_selection(b) )
+  { rlc_copy(b);
+    return;
+  }
+
+  rlc_set_selection(b, 0, 0, 0, 0);
+
+  if ( chr == Control('C') )
     rlc_interrupt(b);
   else if ( chr == Control('V') || chr == Control('Y') )
     rlc_paste(b);
@@ -1694,15 +1703,22 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
 }
 
 
-static TCHAR *
-rlc_selection(RlcData b)
+static int
+rlc_has_selection(RlcData b)
 { if ( SelEQ(b->sel_start_line, b->sel_start_char,
 	     b->sel_end_line,   b->sel_end_char) )
-    return NULL;
+    return FALSE;
+  return TRUE;
+}
 
-  return rlc_read_from_window(b,
-			      b->sel_start_line, b->sel_start_char,
-			      b->sel_end_line,   b->sel_end_char);
+
+static TCHAR *
+rlc_selection(RlcData b)
+{ if ( rlc_has_selection(b) )
+    return rlc_read_from_window(b,
+				b->sel_start_line, b->sel_start_char,
+				b->sel_end_line,   b->sel_end_char);
+  return NULL;
 }
 
 
