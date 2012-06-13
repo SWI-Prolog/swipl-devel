@@ -475,11 +475,12 @@ prolog :-
 		    prompt(Old, '')
 		),
 		trim_stacks,
-		read_query(Prompt, Goal, Bindings),
+		read_query(Prompt, Query, Bindings),
 		prompt(_, Old),
-		call_expand_query(Goal, ExpandedGoal,
+		call_expand_query(Query, ExpandedQuery,
 				  Bindings, ExpandedBindings)
-	    ->  '$execute'(ExpandedGoal, ExpandedBindings)
+	    ->  expand_goal(ExpandedQuery, Goal),
+	        '$execute'(Goal, ExpandedBindings)
 	    ), !.
 
 
