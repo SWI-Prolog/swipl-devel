@@ -203,7 +203,7 @@ list_predicate(Pred, Context) :-
 decl_term(Pred, Context, Decl) :-
 	strip_module(Pred, Module, Head),
 	functor(Head, Name, Arity),
-	(   (Module == system; Context == Module)
+	(   hide_module(Module, Context, Head)
 	->  Decl = Name/Arity
 	;   Decl = Module:Name/Arity
 	).
@@ -249,16 +249,21 @@ write_declarations([H|T], Module) :-
 list_clauses(Pred, Source) :-
 	strip_module(Pred, Module, Head),
 	(   clause(Pred, Body),
-	    write_module(Module, Source),
+	    write_module(Module, Source, Head),
 	    portray_clause((Head:-Body)),
 	    fail
 	;   true
 	).
 
-write_module(system, _) :- !.
-write_module(Module, Module) :- !.
-write_module(Module, _) :-
+write_module(Module, Context, Head) :-
+	hide_module(Module, Context, Head), !.
+write_module(Module, _, _) :-
 	format('~q:', [Module]).
+
+hide_module(system, Module, Head) :-
+	predicate_property(Module:Head, imported_from(M)),
+	predicate_property(system:Head, imported_from(M)), !.
+hide_module(Module, Module, _) :- !.
 
 notify_changed(Pred, Context) :-
 	strip_module(Pred, user, Head),
