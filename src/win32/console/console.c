@@ -1678,7 +1678,7 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
 	e = tl->size;
 
       while(sc < e)
-      { if ( i >= bufsize )
+      { if ( i+1 >= bufsize )
 	{ bufsize *= 2;
 	  if ( !(buf = rlc_realloc(buf, bufsize * sizeof(TCHAR))) )
 	    return NULL;		/* not enough memory */
@@ -1688,12 +1688,12 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
     }
 
     if ( sl == el || sl == b->last )
-    { buf[i++] = '\0';
+    { buf[i++] = '\0';			/* Always room for the 0 */
       return buf;
     }
 
     if ( tl && !tl->softreturn )
-    { if ( i+1 >= bufsize )
+    { if ( i+2 >= bufsize )
       { bufsize *= 2;
 	if ( !(buf = rlc_realloc(buf, bufsize * sizeof(TCHAR))) )
 	  return NULL;			/* not enough memory */
