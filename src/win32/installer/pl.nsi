@@ -15,7 +15,7 @@ Var /GLOBAL cmdLineParams  ; Command Line Options
 !define REGKEY SOFTWARE\SWI\Prolog
 !endif
 
-!system "pl\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
+!system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
 !include "version.nsi"
 !include "FileFunc.nsh"
 
@@ -35,7 +35,7 @@ ComponentText "This will install the SWI-Prolog on your computer. \
 DirText "This program will install SWI-Prolog on your computer.\
          Choose a directory"
 
-LicenseData pl\COPYING.TXT
+LicenseData ${SWIPL}\COPYING.TXT
 LicenseText "SWI-Prolog is governed by the LGPL"
 
 InstType "Typical (all except debug symbols)"	# 1
@@ -251,135 +251,135 @@ Section "Base system (required)"
   RmDir /r pl\custom		# old location of pl\customize
 
   SetOutPath $INSTDIR\bin
-  File pl\bin\swipl.exe
-  File pl\bin\swipl-win.exe
-  File pl\bin\swipl.dll
-  File pl\bin\plterm.dll
-  File pl\bin\plregtry.dll
-  File pl\bin\${PTHREAD}.dll
+  File ${SWIPL}\bin\swipl.exe
+  File ${SWIPL}\bin\swipl-win.exe
+  File ${SWIPL}\bin\swipl.dll
+  File ${SWIPL}\bin\plterm.dll
+  File ${SWIPL}\bin\plregtry.dll
+  File ${SWIPL}\bin\${PTHREAD}.dll
 
   SetOutPath $INSTDIR
-  File /r pl\customize
-  File pl\${BOOT}
-  File pl\COPYING.TXT
-  File pl\README.TXT
-  File pl\VERSION
-  File pl\swipl.home
+  File /r ${SWIPL}\customize
+  File ${SWIPL}\${BOOT}
+  File ${SWIPL}\COPYING.TXT
+  File ${SWIPL}\README.TXT
+  File ${SWIPL}\VERSION
+  File ${SWIPL}\swipl.home
 
   SetOutPath $INSTDIR\library
 ; SYSTEM STUFF
-  File pl\library\listing.pl
-  File pl\library\qsave.pl
-  File pl\library\statistics.pl
-  File pl\library\writef.pl
-  File pl\library\shlib.pl
-  File pl\library\system.pl
-  File pl\library\threadutil.pl
-  File pl\library\thread.pl
-  File pl\library\thread_pool.pl
-  File pl\library\tty.pl
-  File pl\library\dif.pl
-  File pl\library\when.pl
-  File pl\library\varnumbers.pl
-  File pl\library\prolog_stack.pl
-  File pl\library\prolog_clause.pl
-  File pl\library\prolog_xref.pl
-  File pl\library\prolog_source.pl
-  File pl\library\prolog_history.pl
-  File pl\library\prolog_breakpoints.pl
-  File pl\library\prolog_autoload.pl
-  File pl\library\prolog_codewalk.pl
-  File pl\library\prolog_colour.pl
-  File pl\library\prolog_pack.pl
-  File pl\library\predicate_options.pl
+  File ${SWIPL}\library\listing.pl
+  File ${SWIPL}\library\qsave.pl
+  File ${SWIPL}\library\statistics.pl
+  File ${SWIPL}\library\writef.pl
+  File ${SWIPL}\library\shlib.pl
+  File ${SWIPL}\library\system.pl
+  File ${SWIPL}\library\threadutil.pl
+  File ${SWIPL}\library\thread.pl
+  File ${SWIPL}\library\thread_pool.pl
+  File ${SWIPL}\library\tty.pl
+  File ${SWIPL}\library\dif.pl
+  File ${SWIPL}\library\when.pl
+  File ${SWIPL}\library\varnumbers.pl
+  File ${SWIPL}\library\prolog_stack.pl
+  File ${SWIPL}\library\prolog_clause.pl
+  File ${SWIPL}\library\prolog_xref.pl
+  File ${SWIPL}\library\prolog_source.pl
+  File ${SWIPL}\library\prolog_history.pl
+  File ${SWIPL}\library\prolog_breakpoints.pl
+  File ${SWIPL}\library\prolog_autoload.pl
+  File ${SWIPL}\library\prolog_codewalk.pl
+  File ${SWIPL}\library\prolog_colour.pl
+  File ${SWIPL}\library\prolog_pack.pl
+  File ${SWIPL}\library\predicate_options.pl
 
 ; COMPATIBILITY
-  File pl\library\backcomp.pl
-  File pl\library\edinburgh.pl
-  File pl\library\qpforeign.pl
-  File pl\library\quintus.pl
-  File pl\library\files.pl
-  File pl\library\charsio.pl
-  File pl\library\codesio.pl
-  File pl\library\arithmetic.pl
+  File ${SWIPL}\library\backcomp.pl
+  File ${SWIPL}\library\edinburgh.pl
+  File ${SWIPL}\library\qpforeign.pl
+  File ${SWIPL}\library\quintus.pl
+  File ${SWIPL}\library\files.pl
+  File ${SWIPL}\library\charsio.pl
+  File ${SWIPL}\library\codesio.pl
+  File ${SWIPL}\library\arithmetic.pl
 
 ; `STANDARD LIBRARIES'
-  File pl\library\ctypes.pl
-  File pl\library\gensym.pl
-  File pl\library\lists.pl
-  File pl\library\sort.pl
-  File pl\library\ugraphs.pl
-  File pl\library\occurs.pl
-  File pl\library\ordsets.pl
-  File pl\library\oset.pl
-  File pl\library\assoc.pl
-  File pl\library\rbtrees.pl
-  File pl\library\nb_rbtrees.pl
-  File pl\library\nb_set.pl
-  File pl\library\operators.pl
-  File pl\library\heaps.pl
-  File pl\library\broadcast.pl
-  File pl\library\error.pl
-  File pl\library\pairs.pl
-  File pl\library\record.pl
-  File pl\library\settings.pl
-  File pl\library\terms.pl
-  File pl\library\apply_macros.pl
-  File pl\library\apply.pl
-  File pl\library\aggregate.pl
-  File pl\library\pure_input.pl
-  File pl\library\pio.pl
-  File pl\library\coinduction.pl
+  File ${SWIPL}\library\ctypes.pl
+  File ${SWIPL}\library\gensym.pl
+  File ${SWIPL}\library\lists.pl
+  File ${SWIPL}\library\sort.pl
+  File ${SWIPL}\library\ugraphs.pl
+  File ${SWIPL}\library\occurs.pl
+  File ${SWIPL}\library\ordsets.pl
+  File ${SWIPL}\library\oset.pl
+  File ${SWIPL}\library\assoc.pl
+  File ${SWIPL}\library\rbtrees.pl
+  File ${SWIPL}\library\nb_rbtrees.pl
+  File ${SWIPL}\library\nb_set.pl
+  File ${SWIPL}\library\operators.pl
+  File ${SWIPL}\library\heaps.pl
+  File ${SWIPL}\library\broadcast.pl
+  File ${SWIPL}\library\error.pl
+  File ${SWIPL}\library\pairs.pl
+  File ${SWIPL}\library\record.pl
+  File ${SWIPL}\library\settings.pl
+  File ${SWIPL}\library\terms.pl
+  File ${SWIPL}\library\apply_macros.pl
+  File ${SWIPL}\library\apply.pl
+  File ${SWIPL}\library\aggregate.pl
+  File ${SWIPL}\library\pure_input.pl
+  File ${SWIPL}\library\pio.pl
+  File ${SWIPL}\library\coinduction.pl
 
 ; WINDOWS
-  File pl\library\dde.pl
-  File pl\library\progman.pl
-  File pl\library\registry.pl
-  File pl\library\win_menu.pl
-  File pl\library\wise.pl
+  File ${SWIPL}\library\dde.pl
+  File ${SWIPL}\library\progman.pl
+  File ${SWIPL}\library\registry.pl
+  File ${SWIPL}\library\win_menu.pl
+  File ${SWIPL}\library\wise.pl
 
 ; DEVELOPMENT
-  File pl\library\edit.pl
-  File pl\library\make.pl
-  File pl\library\hotfix.pl
-  File pl\library\explain.pl
-  File pl\library\debug.pl
-  File pl\library\portray_text.pl
-  File pl\library\vm.pl
-  File pl\library\check.pl
-  File pl\library\checklast.pl
-  File pl\library\checkselect.pl
-  File pl\library\shell.pl
+  File ${SWIPL}\library\edit.pl
+  File ${SWIPL}\library\make.pl
+  File ${SWIPL}\library\hotfix.pl
+  File ${SWIPL}\library\explain.pl
+  File ${SWIPL}\library\debug.pl
+  File ${SWIPL}\library\portray_text.pl
+  File ${SWIPL}\library\vm.pl
+  File ${SWIPL}\library\check.pl
+  File ${SWIPL}\library\checklast.pl
+  File ${SWIPL}\library\checkselect.pl
+  File ${SWIPL}\library\shell.pl
 
 ; WEB STUFF
-  File pl\library\www_browser.pl
-  File pl\library\url.pl
-  File pl\library\utf8.pl
-  File pl\library\base32.pl
-  File pl\library\base64.pl
+  File ${SWIPL}\library\www_browser.pl
+  File ${SWIPL}\library\url.pl
+  File ${SWIPL}\library\utf8.pl
+  File ${SWIPL}\library\base32.pl
+  File ${SWIPL}\library\base64.pl
 
 ; MISC
-  File pl\library\am_match.pl
-  File pl\library\readln.pl
-  File pl\library\readutil.pl
-  File pl\library\streampool.pl
-  File pl\library\option.pl
-  File pl\library\date.pl
-  File pl\library\main.pl
-  File pl\library\csv.pl
-  File pl\library\persistency.pl
-  File pl\library\ansi_term.pl
-  File pl\library\optparse.pl
+  File ${SWIPL}\library\am_match.pl
+  File ${SWIPL}\library\readln.pl
+  File ${SWIPL}\library\readutil.pl
+  File ${SWIPL}\library\streampool.pl
+  File ${SWIPL}\library\option.pl
+  File ${SWIPL}\library\date.pl
+  File ${SWIPL}\library\main.pl
+  File ${SWIPL}\library\csv.pl
+  File ${SWIPL}\library\persistency.pl
+  File ${SWIPL}\library\ansi_term.pl
+  File ${SWIPL}\library\optparse.pl
 
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
-  File pl\library\unicode\blocks.pl
-  File pl\library\unicode\unicode_data.pl
+  File ${SWIPL}\library\unicode\blocks.pl
+  File ${SWIPL}\library\unicode\unicode_data.pl
 
   SetOutPath $INSTDIR\doc
-  File pl\doc\windows.html
+  File ${SWIPL}\doc\windows.html
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\index.html
+  File ${SWIPL}\doc\packages\index.html
 
   WriteRegStr HKLM ${REGKEY} "home" "$INSTDIR"
 
@@ -392,377 +392,377 @@ SectionEnd
 Section "Documentation and Help-system"
   SectionIn 1 3
   SetOutPath $INSTDIR
-  File pl\RelNotes-5.10.TXT
+  File ${SWIPL}\RelNotes-5.10.TXT
   SetOutPath $INSTDIR\library
-  File pl\library\MANUAL
-  File pl\library\helpidx.pl
-  File pl\library\help.pl
+  File ${SWIPL}\library\MANUAL
+  File ${SWIPL}\library\helpidx.pl
+  File ${SWIPL}\library\help.pl
 SectionEnd
 
 Section "PDT support files"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
-  File pl\library\pdt_console.pl
+  File ${SWIPL}\library\pdt_console.pl
   SetOutPath $INSTDIR\bin
-  File pl\bin\pdt_console.dll
+  File ${SWIPL}\bin\pdt_console.dll
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\pdt.html
+  File ${SWIPL}\doc\packages\pdt.html
 SectionEnd
 
 Section "Unicode library (utf8proc)"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
-  File pl\library\unicode.pl
+  File ${SWIPL}\library\unicode.pl
   SetOutPath $INSTDIR\bin
-  File pl\bin\unicode4pl.dll
+  File ${SWIPL}\bin\unicode4pl.dll
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\utf8proc.html
+  File ${SWIPL}\doc\packages\utf8proc.html
 SectionEnd
 
 Section "Archive library (libarchive)"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
-  File pl\library\archive.pl
+  File ${SWIPL}\library\archive.pl
   SetOutPath $INSTDIR\bin
-  File pl\bin\archive4pl.dll
+  File ${SWIPL}\bin\archive4pl.dll
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\archive.html
+  File ${SWIPL}\doc\packages\archive.html
 SectionEnd
 
 Section "Constraint Handling Rules"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
-  File pl\library\chr.pl
+  File ${SWIPL}\library\chr.pl
   SetOutPath $INSTDIR\library\chr
-  File pl\library\chr\chr_runtime.pl
-  File pl\library\chr\chr_messages.pl
-  File pl\library\chr\chr_debug.pl
-  File pl\library\chr\chr_op.pl
-  File pl\library\chr\chr_translate.pl
-  File pl\library\chr\pairlist.pl
-  File pl\library\chr\a_star.pl
-  File pl\library\chr\binomialheap.pl
-  File pl\library\chr\builtins.pl
-  File pl\library\chr\chr_hashtable_store.pl
-  File pl\library\chr\clean_code.pl
-  File pl\library\chr\find.pl
-  File pl\library\chr\listmap.pl
-  File pl\library\chr\guard_entailment.pl
-  File pl\library\chr\chr_compiler_options.pl
-  File pl\library\chr\chr_compiler_utility.pl
-  File pl\library\chr\chr_compiler_errors.pl
-  File pl\library\chr\chr_integertable_store.pl
-  File pl\library\chr\README.TXT
+  File ${SWIPL}\library\chr\chr_runtime.pl
+  File ${SWIPL}\library\chr\chr_messages.pl
+  File ${SWIPL}\library\chr\chr_debug.pl
+  File ${SWIPL}\library\chr\chr_op.pl
+  File ${SWIPL}\library\chr\chr_translate.pl
+  File ${SWIPL}\library\chr\pairlist.pl
+  File ${SWIPL}\library\chr\a_star.pl
+  File ${SWIPL}\library\chr\binomialheap.pl
+  File ${SWIPL}\library\chr\builtins.pl
+  File ${SWIPL}\library\chr\chr_hashtable_store.pl
+  File ${SWIPL}\library\chr\clean_code.pl
+  File ${SWIPL}\library\chr\find.pl
+  File ${SWIPL}\library\chr\listmap.pl
+  File ${SWIPL}\library\chr\guard_entailment.pl
+  File ${SWIPL}\library\chr\chr_compiler_options.pl
+  File ${SWIPL}\library\chr\chr_compiler_utility.pl
+  File ${SWIPL}\library\chr\chr_compiler_errors.pl
+  File ${SWIPL}\library\chr\chr_integertable_store.pl
+  File ${SWIPL}\library\chr\README.TXT
   SetOutPath $INSTDIR\doc\packages\examples
-  File /r pl\doc\packages\examples\chr
+  File /r ${SWIPL}\doc\packages\examples\chr
 SectionEnd
 
 Section "CLP"
   SectionIn 1 3
   SetOutPath $INSTDIR\library\clp
-  File pl\library\clp\bounds.pl
-  File pl\library\clp\clp_events.pl
-  File pl\library\clp\clp_distinct.pl
-  File pl\library\clp\simplex.pl
-  File pl\library\clp\clpfd.pl
+  File ${SWIPL}\library\clp\bounds.pl
+  File ${SWIPL}\library\clp\clp_events.pl
+  File ${SWIPL}\library\clp\clp_distinct.pl
+  File ${SWIPL}\library\clp\simplex.pl
+  File ${SWIPL}\library\clp\clpfd.pl
 SectionEnd
 
 Section "CLP on real and rational numbers: CLP(Q,R)"
   SectionIn 1 3
   Delete $INSTDIR\library\clp\clpqr\ugraphs.pl
   SetOutPath $INSTDIR\library\clp
-  File /r pl\library\clp\clpr
-  File /r pl\library\clp\clpq
-  File /r pl\library\clp\clpqr
-  File pl\library\clp\clpr.pl
-  File pl\library\clp\clpq.pl
+  File /r ${SWIPL}\library\clp\clpr
+  File /r ${SWIPL}\library\clp\clpq
+  File /r ${SWIPL}\library\clp\clpqr
+  File ${SWIPL}\library\clp\clpr.pl
+  File ${SWIPL}\library\clp\clpq.pl
 SectionEnd
 
 Section "Portability (YAP, SICStus, Ciao, BIM, IF/Prolog) support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
-  File pl\library\fastrw.pl
-  File pl\library\dialect.pl
-  File /r pl\library\dialect
+  File ${SWIPL}\library\fastrw.pl
+  File ${SWIPL}\library\dialect.pl
+  File /r ${SWIPL}\library\dialect
 SectionEnd
 
 Section "Demo files"
   SectionIn 1 3
   SetOutPath $INSTDIR
-  File /r pl\demo
+  File /r ${SWIPL}\demo
   SetOutPath $INSTDIR\bin
-  File pl\bin\dlltest.dll
+  File ${SWIPL}\bin\dlltest.dll
 SectionEnd
 
 Section "C/C++ Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\lib
-  File pl\lib\swipl.lib
-  File pl\lib\plterm.lib
-  File pl\lib\${PTHREAD}.lib
+  File ${SWIPL}\lib\swipl.lib
+  File ${SWIPL}\lib\plterm.lib
+  File ${SWIPL}\lib\${PTHREAD}.lib
   SetOutPath $INSTDIR
-  File /r pl\include
+  File /r ${SWIPL}\include
   SetOutPath $INSTDIR\bin
-  File pl\bin\swipl-ld.exe
-  File pl\bin\swipl-rc.exe
+  File ${SWIPL}\bin\swipl-ld.exe
+  File ${SWIPL}\bin\swipl-rc.exe
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\pl2cpp.html
+  File ${SWIPL}\doc\packages\pl2cpp.html
 SectionEnd
 
 Section "JPL -- Java <-> Prolog"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\jpl.dll
+  File ${SWIPL}\bin\jpl.dll
   SetOutPath $INSTDIR\lib
-  File pl\lib\jpl.jar
+  File ${SWIPL}\lib\jpl.jar
   SetOutPath $INSTDIR\library
-  File pl\library\jpl.pl
+  File ${SWIPL}\library\jpl.pl
   SetOutPath $INSTDIR\doc\packages
-  File /r pl\doc\packages\jpl
+  File /r ${SWIPL}\doc\packages\jpl
   SetOutPath $INSTDIR\doc\packages\examples
-  File /r pl\doc\packages\examples\jpl
+  File /r ${SWIPL}\doc\packages\examples\jpl
 SectionEnd
 
 Section "XPCE graphics library"
   SectionIn 1 3
   SetOutPath $INSTDIR
   Delete $INSTDIR\xpce\prolog\lib\pce_common.pl
-  File /r pl\xpce
-  File pl\swipl-win.rc
+  File /r ${SWIPL}\xpce
+  File ${SWIPL}\swipl-win.rc
   SetOutPath $INSTDIR\bin
-  File pl\bin\pl2xpce.dll
-  File pl\bin\xpce-stub.exe
+  File ${SWIPL}\bin\pl2xpce.dll
+  File ${SWIPL}\bin\xpce-stub.exe
 SectionEnd
 
 Section "Package CLIB"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\cgi.dll
-  File pl\bin\crypt.dll
-  File pl\bin\files.dll
-  File pl\bin\sha4pl.dll
-  File pl\bin\uri.dll
-  File pl\bin\memfile.dll
-  File pl\bin\mime.dll
-  File pl\bin\socket.dll
-  File pl\bin\time.dll
-  File pl\bin\readutil.dll
-  File pl\bin\process.dll
+  File ${SWIPL}\bin\cgi.dll
+  File ${SWIPL}\bin\crypt.dll
+  File ${SWIPL}\bin\files.dll
+  File ${SWIPL}\bin\sha4pl.dll
+  File ${SWIPL}\bin\uri.dll
+  File ${SWIPL}\bin\memfile.dll
+  File ${SWIPL}\bin\mime.dll
+  File ${SWIPL}\bin\socket.dll
+  File ${SWIPL}\bin\time.dll
+  File ${SWIPL}\bin\readutil.dll
+  File ${SWIPL}\bin\process.dll
   SetOutPath $INSTDIR\library
-  File pl\library\cgi.pl
-  File pl\library\crypt.pl
-  File pl\library\filesex.pl
-  File pl\library\sha.pl
-  File pl\library\uri.pl
-  File pl\library\memfile.pl
-  File pl\library\mime.pl
-  File pl\library\socket.pl
-  File pl\library\prolog_server.pl
-  File pl\library\random.pl
-  File pl\library\time.pl
-  File pl\library\process.pl
-  File pl\library\udp_broadcast.pl
+  File ${SWIPL}\library\cgi.pl
+  File ${SWIPL}\library\crypt.pl
+  File ${SWIPL}\library\filesex.pl
+  File ${SWIPL}\library\sha.pl
+  File ${SWIPL}\library\uri.pl
+  File ${SWIPL}\library\memfile.pl
+  File ${SWIPL}\library\mime.pl
+  File ${SWIPL}\library\socket.pl
+  File ${SWIPL}\library\prolog_server.pl
+  File ${SWIPL}\library\random.pl
+  File ${SWIPL}\library\time.pl
+  File ${SWIPL}\library\process.pl
+  File ${SWIPL}\library\udp_broadcast.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\clib.html
+  File ${SWIPL}\doc\packages\clib.html
 SectionEnd
 
 Section "SSL Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\ssl4pl.dll
+  File ${SWIPL}\bin\ssl4pl.dll
   SetOutPath $INSTDIR\library
-  File pl\library\ssl.pl
+  File ${SWIPL}\library\ssl.pl
 # SetOutPath $INSTDIR\library\http
-# File pl\library\http\http_ssl_plugin.pl
+# File ${SWIPL}\library\http\http_ssl_plugin.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\ssl.html
+  File ${SWIPL}\doc\packages\ssl.html
   SetOutPath $INSTDIR\doc\packages\examples
-  File /r pl\doc\packages\examples\ssl
+  File /r ${SWIPL}\doc\packages\examples\ssl
 SectionEnd
 
 Section "ODBC Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\odbc4pl.dll
+  File ${SWIPL}\bin\odbc4pl.dll
   SetOutPath $INSTDIR\library
-  File pl\library\odbc.pl
+  File ${SWIPL}\library\odbc.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\odbc.html
+  File ${SWIPL}\doc\packages\odbc.html
 SectionEnd
 
 Section "Google protocol buffers"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\protobufs.dll
+  File ${SWIPL}\bin\protobufs.dll
   SetOutPath $INSTDIR\library
-  File pl\library\protobufs.pl
+  File ${SWIPL}\library\protobufs.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\protobufs.html
+  File ${SWIPL}\doc\packages\protobufs.html
 SectionEnd
 
 Section "SGML/XML/HTML parser"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\sgml2pl.dll
+  File ${SWIPL}\bin\sgml2pl.dll
   SetOutPath $INSTDIR\library
-  File /r pl\library\DTD
-  File pl\library\sgml.pl
-  File pl\library\sgml_write.pl
-  File pl\library\xsdp_types.pl
-  File pl\library\iso_639.pl
-  File pl\library\xpath.pl
-  File pl\library\pwp.pl
+  File /r ${SWIPL}\library\DTD
+  File ${SWIPL}\library\sgml.pl
+  File ${SWIPL}\library\sgml_write.pl
+  File ${SWIPL}\library\xsdp_types.pl
+  File ${SWIPL}\library\iso_639.pl
+  File ${SWIPL}\library\xpath.pl
+  File ${SWIPL}\library\pwp.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\sgml.html
+  File ${SWIPL}\doc\packages\sgml.html
 SectionEnd
 
 Section "RDF and Semantic Web Library"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\rdf_db.dll
-  File pl\bin\turtle.dll
+  File ${SWIPL}\bin\rdf_db.dll
+  File ${SWIPL}\bin\turtle.dll
 
   SetOutPath $INSTDIR\library
-  File pl\library\rdf.pl
-  File pl\library\rdf_parser.pl
-  File pl\library\rdf_triple.pl
-  File pl\library\rewrite.pl
-  File pl\library\rdf_ntriples.pl
-  File pl\library\rdf_write.pl
-  File /r pl\library\semweb
+  File ${SWIPL}\library\rdf.pl
+  File ${SWIPL}\library\rdf_parser.pl
+  File ${SWIPL}\library\rdf_triple.pl
+  File ${SWIPL}\library\rewrite.pl
+  File ${SWIPL}\library\rdf_ntriples.pl
+  File ${SWIPL}\library\rdf_write.pl
+  File /r ${SWIPL}\library\semweb
 
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\rdf2pl.html
-  File pl\doc\packages\semweb.html
-  File pl\doc\packages\modules.gif
+  File ${SWIPL}\doc\packages\rdf2pl.html
+  File ${SWIPL}\doc\packages\semweb.html
+  File ${SWIPL}\doc\packages\modules.gif
 SectionEnd
 
 Section "HTTP Client/Server package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\http_stream.dll
-  File pl\bin\json.dll
+  File ${SWIPL}\bin\http_stream.dll
+  File ${SWIPL}\bin\json.dll
   SetOutPath $INSTDIR\library
-  File /r pl\library\http
+  File /r ${SWIPL}\library\http
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\http.html
-  File pl\doc\packages\httpserver.gif
+  File ${SWIPL}\doc\packages\http.html
+  File ${SWIPL}\doc\packages\httpserver.gif
   SetOutPath $INSTDIR\doc\packages\examples
-  File /r pl\doc\packages\examples\http
+  File /r ${SWIPL}\doc\packages\examples\http
 SectionEnd
 
 Section "Table package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\table.dll
+  File ${SWIPL}\bin\table.dll
   SetOutPath $INSTDIR\library
-  File pl\library\table.pl
-  File pl\library\table_util.pl
+  File ${SWIPL}\library\table.pl
+  File ${SWIPL}\library\table_util.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\table.html
+  File ${SWIPL}\doc\packages\table.html
 SectionEnd
 
 Section "NLP package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\porter_stem.dll
-  File pl\bin\snowball.dll
-  File pl\bin\double_metaphone.dll
-  File pl\bin\isub.dll
+  File ${SWIPL}\bin\porter_stem.dll
+  File ${SWIPL}\bin\snowball.dll
+  File ${SWIPL}\bin\double_metaphone.dll
+  File ${SWIPL}\bin\isub.dll
   SetOutPath $INSTDIR\library
-  File pl\library\porter_stem.pl
-  File pl\library\snowball.pl
-  File pl\library\double_metaphone.pl
-  File pl\library\isub.pl
+  File ${SWIPL}\library\porter_stem.pl
+  File ${SWIPL}\library\snowball.pl
+  File ${SWIPL}\library\double_metaphone.pl
+  File ${SWIPL}\library\isub.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\nlp.html
+  File ${SWIPL}\doc\packages\nlp.html
 SectionEnd
 
 Section "R-project interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
-  File pl\library\R.pl
+  File ${SWIPL}\library\R.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\R.html
+  File ${SWIPL}\doc\packages\R.html
   SetOutPath $INSTDIR\doc\packages\examples
-  File /r pl\doc\packages\examples\R
+  File /r ${SWIPL}\doc\packages\examples\R
 SectionEnd
 
 Section "ZLIB package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\zlib4pl.dll
-  File pl\bin\${ZLIB}.dll
+  File ${SWIPL}\bin\zlib4pl.dll
+  File ${SWIPL}\bin\${ZLIB}.dll
   SetOutPath $INSTDIR\library
-  File pl\library\zlib.pl
+  File ${SWIPL}\library\zlib.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\zlib.html
+  File ${SWIPL}\doc\packages\zlib.html
 SectionEnd
 
 Section "Unit test package"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
-  File pl\library\plunit.pl
-  File pl\library\test_wizard.pl
-  File pl\library\test_cover.pl
+  File ${SWIPL}\library\plunit.pl
+  File ${SWIPL}\library\test_wizard.pl
+  File ${SWIPL}\library\test_cover.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\plunit.html
+  File ${SWIPL}\doc\packages\plunit.html
   SetOutPath $INSTDIR\doc\packages\examples
-  File /r pl\doc\packages\examples\plunit
+  File /r ${SWIPL}\doc\packages\examples\plunit
 SectionEnd
 
 Section "Documentation package"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
-  File /r pl\library\pldoc
+  File /r ${SWIPL}\library\pldoc
   SetOutPath $INSTDIR\library
-  File pl\library\pldoc.pl
-  File pl\library\doc_http.pl
-  File pl\library\doc_latex.pl
+  File ${SWIPL}\library\pldoc.pl
+  File ${SWIPL}\library\doc_http.pl
+  File ${SWIPL}\library\doc_latex.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\pldoc.html
+  File ${SWIPL}\doc\packages\pldoc.html
   SetOutPath $INSTDIR\doc
-  File /r pl\doc\Manual
+  File /r ${SWIPL}\doc\Manual
   SetOutPath $INSTDIR\doc\packages\examples
-  File /r pl\doc\packages\examples\pldoc
+  File /r ${SWIPL}\doc\packages\examples\pldoc
 SectionEnd
 
 Section "C Debugging Symbols (.pdb files)"
   SectionIn 3
   SetOutPath $INSTDIR\bin
-  File pl\bin\cgi.pdb
-  File pl\bin\swipl.pdb
-  File pl\bin\memfile.pdb
-  File pl\bin\mime.pdb
-  File pl\bin\odbc4pl.pdb
-  File pl\bin\plterm.pdb
-  File pl\bin\swipl-win.pdb
-  File pl\bin\sgml2pl.pdb
-  File pl\bin\socket.pdb
-  File pl\bin\time.pdb
-  File pl\bin\readutil.pdb
-  File pl\bin\process.pdb
-  File pl\bin\ssl4pl.pdb
-  File pl\bin\zlib4pl.pdb
-  File pl\bin\archive4pl.pdb
-  File pl\bin\sha4pl.pdb
-  File pl\bin\uri.pdb
-  File pl\bin\files.pdb
-  File pl\bin\http_stream.pdb
-  File pl\bin\json.pdb
-  File pl\bin\snowball.pdb
-  File pl\bin\isub.pdb
-  File pl\bin\protobufs.pdb
-  File pl\bin\plregtry.pdb
-  File pl\bin\unicode4pl.pdb
+  File ${SWIPL}\bin\cgi.pdb
+  File ${SWIPL}\bin\swipl.pdb
+  File ${SWIPL}\bin\memfile.pdb
+  File ${SWIPL}\bin\mime.pdb
+  File ${SWIPL}\bin\odbc4pl.pdb
+  File ${SWIPL}\bin\plterm.pdb
+  File ${SWIPL}\bin\swipl-win.pdb
+  File ${SWIPL}\bin\sgml2pl.pdb
+  File ${SWIPL}\bin\socket.pdb
+  File ${SWIPL}\bin\time.pdb
+  File ${SWIPL}\bin\readutil.pdb
+  File ${SWIPL}\bin\process.pdb
+  File ${SWIPL}\bin\ssl4pl.pdb
+  File ${SWIPL}\bin\zlib4pl.pdb
+  File ${SWIPL}\bin\archive4pl.pdb
+  File ${SWIPL}\bin\sha4pl.pdb
+  File ${SWIPL}\bin\uri.pdb
+  File ${SWIPL}\bin\files.pdb
+  File ${SWIPL}\bin\http_stream.pdb
+  File ${SWIPL}\bin\json.pdb
+  File ${SWIPL}\bin\snowball.pdb
+  File ${SWIPL}\bin\isub.pdb
+  File ${SWIPL}\bin\protobufs.pdb
+  File ${SWIPL}\bin\plregtry.pdb
+  File ${SWIPL}\bin\unicode4pl.pdb
 SectionEnd
 
 Section "Sources for system predicates"
   SectionIn 1 3
   SetOutPath $INSTDIR
-  File /r pl\boot
+  File /r ${SWIPL}\boot
   SetOutPath $INSTDIR\bin
-  File pl\bin\mkboot.bat
+  File ${SWIPL}\bin\mkboot.bat
 SectionEnd
 
 Section "Shell Extensions" SecShell

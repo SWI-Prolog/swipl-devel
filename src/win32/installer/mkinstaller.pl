@@ -289,7 +289,8 @@ already_covered(Dir) :-
 check_files :-
 	parse_script('pl.nsi'),
 	flag(errors, Old, 0),
-	check_covered(pl),
+	def('SWIPL', SWIPL),
+	check_covered(SWIPL),
 	flag(errors, New, Old),
 	New == 0.
 

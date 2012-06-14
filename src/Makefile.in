@@ -590,6 +590,22 @@ html-install::
 		  done; \
 		fi
 
+################################################################
+# WINDOWS INSTALLER
+################################################################
+
+NSISDEFS+=/DSWIPL=swipl /DPTHREAD=pthreadGC2 /DZLIB=zlib1 /DBOOT=boot32.prc
+NSIS=C:/Program Files/NSIS/makensis.exe
+SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
+WINE=wine
+
+installer::
+		$(INSTALL_DATA) $(srcdir)/win32/installer/options.ini "$(PLBASE)/.."
+		$(INSTALL_DATA) $(srcdir)/win32/installer/pl.nsi "$(PLBASE)/.."
+		$(INSTALL_DATA) $(srcdir)/win32/installer/mkinstaller.pl "$(PLBASE)/.."
+		$(WINE) "$(NSIS)" $(NSISDEFS) "$(SWIPLNSI)"
+
+
 #
 # Export (Linux binary distribution
 #
