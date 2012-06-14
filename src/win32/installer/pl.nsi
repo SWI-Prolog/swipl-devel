@@ -411,7 +411,6 @@ SectionEnd
 Section "Documentation and Help-system"
   SectionIn 1 3
   SetOutPath $INSTDIR
-  File ${SWIPL}\RelNotes-5.10.TXT
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\MANUAL
   File ${SWIPL}\library\helpidx.pl

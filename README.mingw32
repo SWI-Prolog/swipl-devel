@@ -55,7 +55,14 @@ JPEG_VERSION=8d
 ZLIB_VERSION=1.2.5
 ARCHIVE_VERSION=3.0.4
 
-CROSS=${CROSS-i586-mingw32msvc}
+if [ -z "$CROSS" ]; then
+  if [ -r /usr/bin/i686-w64-mingw32-gcc ]; then
+    CROSS=i686-w64-mingw32
+  else
+    CROSS=i586-mingw32msvc
+  fi
+fi
+
 
 ################
 # Create target directories
@@ -269,6 +276,7 @@ build_swipl_packages()
     ./configure --host=$CROSS --prefix=$install
     make
     make install
+    make html-install
   )
 }
 
