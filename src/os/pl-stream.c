@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -3474,7 +3472,7 @@ void
 SinitStreams(void)
 { if ( !S__initialised )
   { int i;
-    IOENC enc = initEncoding();
+    IOENC enc;
 
     S__initialised = TRUE;
     enc = initEncoding();
@@ -3506,7 +3504,7 @@ SinitStreams(void)
 
 
 IOSTREAM *
-S__getiob()
+S__getiob(void)
 { return S__iob;
 }
 
