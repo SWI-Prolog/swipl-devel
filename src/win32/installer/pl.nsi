@@ -15,7 +15,11 @@ Var /GLOBAL cmdLineParams  ; Command Line Options
 !define REGKEY SOFTWARE\SWI\Prolog
 !endif
 
+!ifdef MINGW
+!system "${SWIPL}\bin\swipl-win.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMINGW=1" = 0
+!else
 !system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
+!endif
 !include "version.nsi"
 !include "FileFunc.nsh"
 
@@ -253,10 +257,25 @@ Section "Base system (required)"
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\swipl.exe
   File ${SWIPL}\bin\swipl-win.exe
-  File ${SWIPL}\bin\swipl.dll
   File ${SWIPL}\bin\plterm.dll
   File ${SWIPL}\bin\plregtry.dll
   File ${SWIPL}\bin\${PTHREAD}.dll
+!ifdef MINGW
+  File ${SWIPL}\bin\libswipl.dll
+  File ${SWIPL}\bin\libeay32.dll
+  File ${SWIPL}\bin\libgmp-10.dll
+  File ${SWIPL}\bin\libjpeg-8.dll
+  File ${SWIPL}\bin\ssleay32.dll
+!else
+  File ${SWIPL}\bin\swipl.dll
+!endif
+
+#ifdef MINGW
+  SetOutPath $INSTDIR\lib
+  File ${SWIPL}\lib\libswipl.a
+  File ${SWIPL}\lib\libswipl.dll.a
+  File ${SWIPL}\lib\plterm.dll.a
+#endif
 
   SetOutPath $INSTDIR
   File /r ${SWIPL}\customize
@@ -548,6 +567,7 @@ Section "Package CLIB"
   File ${SWIPL}\bin\time.dll
   File ${SWIPL}\bin\readutil.dll
   File ${SWIPL}\bin\process.dll
+  File ${SWIPL}\bin\streaminfo.dll
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\cgi.pl
   File ${SWIPL}\library\crypt.pl
@@ -562,6 +582,7 @@ Section "Package CLIB"
   File ${SWIPL}\library\time.pl
   File ${SWIPL}\library\process.pl
   File ${SWIPL}\library\udp_broadcast.pl
+  File ${SWIPL}\library\streaminfo.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\clib.html
 SectionEnd

@@ -1,6 +1,5 @@
 ################################################################
-# Makefile for SWI-Prolog 5.x
-# $Id$
+# Makefile for SWI-Prolog 6.x
 #
 # Author:	Jan Wielemaker
 #		J.Wielemake@cs.vu.nl
@@ -594,7 +593,7 @@ html-install::
 # WINDOWS INSTALLER
 ################################################################
 
-NSISDEFS+=/DSWIPL=swipl /DPTHREAD=pthreadGC2 /DZLIB=zlib1 /DBOOT=boot32.prc
+NSISDEFS+=/DSWIPL=swipl /DPTHREAD=pthreadGC2 /DZLIB=zlib1 /DBOOT=boot32.prc /DMINGW=1
 NSIS=C:/Program Files/NSIS/makensis.exe
 SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
 WINE=wine
