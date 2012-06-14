@@ -727,7 +727,7 @@ PL_record_external(term_t t, size_t *len)
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = (int)sizeOfBuffer(&hdr);
 
-  rec = PL_malloc_atomic(shdr + scode);
+  rec = PL_malloc_atomic_unmanaged(shdr + scode);
   memcpy(rec, hdr.base, shdr);
   memcpy(rec+shdr, info.code.base, scode);
 
@@ -1542,7 +1542,6 @@ PL_recorded_external(const char *rec, term_t t)
 int
 PL_erase_external(char *rec)
 { copy_info b;
-  uint scode;
   uchar m;
 
   b.base = b.data = rec;
@@ -1551,20 +1550,8 @@ PL_erase_external(char *rec)
   { Sdprintf("PL_erase_external(): incompatible version\n");
     fail;
   }
-  if (  m & (REC_INT|REC_ATOM) )
-  { if (  m & REC_INT )
-      skipLong(&b);
-    else
-      skipAtom(&b);
-  } else
-  { scode = fetchSizeInt(&b);
-    skipSizeInt(&b);			/* gsize */
-    if ( !(m & REC_GROUND) )
-      skipSizeInt(&b);			/* nvars */
-    b.data += scode;
-  }
 
-  freeHeap(rec, b.data-b.base);
+  PL_free(rec);
   return TRUE;
 }
 
