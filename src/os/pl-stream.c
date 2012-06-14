@@ -2765,7 +2765,11 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   s->functions     = functions;
   s->timeout       = -1;		/* infinite */
   s->posbuf.lineno = 1;
-  s->encoding      = ENC_ISO_LATIN_1;
+  if ( (flags&SIO_TEXT) )
+  { s->encoding    = initEncoding();
+  } else
+  { s->encoding	   = ENC_OCTET;
+  }
 #if CRLF_MAPPING
   s->newline       = SIO_NL_DOS;
 #endif
