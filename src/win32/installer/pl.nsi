@@ -16,7 +16,7 @@ Var /GLOBAL cmdLineParams  ; Command Line Options
 !endif
 
 !ifdef MINGW
-!system "${SWIPL}\bin\swipl-win.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMINGW=1" = 0
+!system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMINGW=1" = 0
 !else
 !system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
 !endif
@@ -266,6 +266,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libgmp-10.dll
   File ${SWIPL}\bin\libjpeg-8.dll
   File ${SWIPL}\bin\ssleay32.dll
+  File ${SWIPL}\bin\libarchive-12.dll
 !else
   File ${SWIPL}\bin\swipl.dll
 !endif
@@ -515,9 +516,15 @@ SectionEnd
 Section "C/C++ Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\lib
+!ifdef MINGW
+  File ${SWIPL}\lib\libswipl.dll.a
+  File ${SWIPL}\lib\plterm.dll.a
+  File ${SWIPL}\lib\libpthreadGC2.dll.a
+!else
   File ${SWIPL}\lib\swipl.lib
   File ${SWIPL}\lib\plterm.lib
   File ${SWIPL}\lib\${PTHREAD}.lib
+!endif
   SetOutPath $INSTDIR
   File /r ${SWIPL}\include
   SetOutPath $INSTDIR\bin

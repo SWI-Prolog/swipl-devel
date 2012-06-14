@@ -335,6 +335,8 @@ check_files :-
 	New == 0.
 
 ignore_file('INDEX.pl').
+ignore_file('Makefile').
+ignore_file('swipl.home').
 ignore_file('plwin.opt').
 ignore_file('pl2xpce.pdb').
 ignore_file('dlltest.pdb').
