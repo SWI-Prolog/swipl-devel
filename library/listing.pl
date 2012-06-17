@@ -301,6 +301,7 @@ portray_clause(Term) :-
 	portray_clause(Out, Term).
 
 portray_clause(Stream, Term) :-
+	must_be(stream, Stream),
 	portray_clause(Stream, Term, []).
 
 portray_clause(Stream, Term, M:Options) :-
