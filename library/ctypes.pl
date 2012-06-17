@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -102,21 +101,22 @@ is_paren(0'{, 0'}).
 %	Succeeds  if  `U'  is  upper  case  character  and  `L'  is  the
 %	corresponding lower case character or `U' is an ascii character,
 %	but not an upper case letter and `L' is equal to `U'.
+%
+%	@see code_type/2.  Notable, code_type(L, to_lower(U)) translates
+%	L into its uppercase version if L is a lower case letter and
+%	unifies U with L otherwise.
 
 to_lower(U, L) :-
 	(   nonvar(U)
-	->  code_type(U, upper),
-	    code_type(L, to_lower(U))
-	;   code_type(L, lower),
-	    code_type(U, to_upper(L))
+	->  code_type(L, lower(U))
+	;   code_type(U, upper(L))
 	).
 
 to_upper(L, U) :-
 	(   nonvar(L)
-	->  code_type(L, lower),
-	    code_type(U, to_upper(L))
+	->  code_type(U, upper(L))
 	;   code_type(U, upper),
-	    code_type(L, to_lower(U))
+	    code_type(L, lower(U))
 	).
 
 
