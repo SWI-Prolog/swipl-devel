@@ -104,10 +104,21 @@ is_paren(0'{, 0'}).
 %	but not an upper case letter and `L' is equal to `U'.
 
 to_lower(U, L) :-
-	code_type(L, to_lower(U)).
+	(   nonvar(U)
+	->  code_type(U, upper),
+	    code_type(L, to_lower(U))
+	;   code_type(L, lower),
+	    code_type(U, to_upper(L))
+	).
 
-to_upper(U, L) :-
-	code_type(L, to_upper(U)).
+to_upper(L, U) :-
+	(   nonvar(L)
+	->  code_type(L, lower),
+	    code_type(U, to_upper(L))
+	;   code_type(U, upper),
+	    code_type(L, to_lower(U))
+	).
+
 
 %%	is_digit(+C, +Base, -Weight) is det.
 %%	is_digit(-C, +Base, +Weight) is det.
