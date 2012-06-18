@@ -37,7 +37,7 @@
 
 install=$HOME/mingw
 export BUILDARCH=mingw		# build in mingw directory next to src
-src=$(pwd)
+export JAVAPREFIX="/home/jan/.wine/drive_c/Program Files/Java/jdk1.7.0_05/jre/bin src=$(pwd)"
 
 case $(uname) in
     MINGW*)
