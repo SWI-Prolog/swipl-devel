@@ -76,7 +76,7 @@ EXTRAHDR=""
 INSTALLTARGET=dv-install
 if test -z "$PL"; then PL=swipl; fi
 PLLIB=libswipl.a
-MKLIBS=staticlib
+MKLIBS=""
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
 DEFSTARTUP=.plrc
@@ -161,7 +161,6 @@ changequote([,])dnl
 SWI_PROG_CC_FOR_BUILD
 SWI_PROG_EXEEXT_FOR_BUILD
 
-
 AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
 	      [case "$enableval" in
 		   yes) MKSHARED=yes
@@ -170,6 +169,24 @@ AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
 			;;
 		   *)   ;;
 	       esac])
+
+AC_ARG_ENABLE(static, [  --disable-static	  Do not install static library],
+	      [case "$enableval" in
+		   yes) MKSTATIC=yes
+			;;
+		   no)  MKSTATIC=no
+			;;
+		   *)   ;;
+	       esac],
+               MKSTATIC=yes)
+
+if test "$MKSHARED" != yes -a "$MKSTATIC" != yes; then
+  AC_MSG_ERROR("--disable-static selected without explicitly selecting --enable-shared")
+fi
+
+if test "$MKSTATIC" = yes; then
+  MKLIBS=staticlib
+fi
 
 AC_ARG_ENABLE(mt, [  --disable-mt		  Disable Multi-threading],
 	      [case "$enableval" in

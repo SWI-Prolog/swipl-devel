@@ -448,8 +448,10 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) demo boot libra
 		library/dialect/ifprolog
 
 iruntime:	idirs
-		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
-		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)/$(PLLIB)
+		if [ -f $(RUNTIME) ]; then \
+		  $(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH); \
+		  $(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)/$(PLLIB); \
+		fi
 ifeq ($(SOEXT),dylib)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
