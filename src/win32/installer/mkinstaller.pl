@@ -187,6 +187,12 @@ process_file_decl -->
 	;   asserta(in_skip(Id, true))
 	}.
 process_file_decl -->
+	"!ifndef", ws, identifier(Id), ws, !,
+	{   def(Id, _)
+	->  asserta(in_skip(Id, true))
+	;   asserta(in_skip(Id, false))
+	}.
+process_file_decl -->
 	"!else", ws, !,
 	{   retract(in_skip(Id, Skip))
 	->  negate(Skip, NewSkip),

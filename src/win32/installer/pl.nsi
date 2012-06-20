@@ -625,6 +625,8 @@ Section "Google protocol buffers"
   File ${SWIPL}\library\protobufs.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\protobufs.html
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r ${SWIPL}\doc\packages\examples\protobufs
 SectionEnd
 
 Section "SGML/XML/HTML parser"
@@ -754,6 +756,7 @@ Section "Documentation package"
   File /r ${SWIPL}\doc\packages\examples\pldoc
 SectionEnd
 
+!ifndef MINGW
 Section "C Debugging Symbols (.pdb files)"
   SectionIn 3
   SetOutPath $INSTDIR\bin
@@ -783,6 +786,7 @@ Section "C Debugging Symbols (.pdb files)"
   File ${SWIPL}\bin\plregtry.pdb
   File ${SWIPL}\bin\unicode4pl.pdb
 SectionEnd
+!endif
 
 Section "Sources for system predicates"
   SectionIn 1 3
