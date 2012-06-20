@@ -400,7 +400,7 @@ ln-install::
 install:	@INSTALLTARGET@
 
 ifeq ($(MINGW),true)
-dv-install:	dv-install-common install-plterm install-plwin install-readme
+dv-install:	dv-install-common install-mingw install-readme
 else
 dv-install:	dv-install-common install-bins install-pkgconfig install-man
 endif
@@ -426,6 +426,8 @@ install-libs:	idirs iboot ilib iruntime iinclude icustom install-demo
 			-g 'make_library_index(library)' \
 			-t halt
 
+install-mingw:	install-plterm install-plwin install-mkboot
+
 install-plterm:	idirs
 		if [ -f $(RUNTIMEDIR)/plterm.$(SOEXT) ]; then \
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/plterm.$(SOEXT) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
@@ -435,6 +437,9 @@ install-plterm:	idirs
 
 install-plwin:	idirs iruntime
 		$(INSTALL_PROGRAM) $(PLWIN)$(EXEEXT) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
+
+install-mkboot:	idirs
+		$(INSTALL_DATA) $(srcdir)/win32/misc/mkboot.bat $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
 
 install-demo:	idirs
 		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
