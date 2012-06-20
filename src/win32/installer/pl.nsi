@@ -42,7 +42,11 @@ DirText "This program will install SWI-Prolog on your computer.\
 LicenseData ${SWIPL}\COPYING.TXT
 LicenseText "SWI-Prolog is governed by the LGPL"
 
+!ifdef MINGW
+InstType "Typical"				# 1
+!else
 InstType "Typical (all except debug symbols)"	# 1
+!endif
 InstType "Minimal (no graphics)"		# 2
 InstType "Full"					# 3
 
@@ -70,6 +74,7 @@ Exch $0
 Call FindFiles
 !macroend
 
+!ifndef MINGW
 Section "Microsoft VC runtime libraries"
   SectionIn 1 2 3
   ; Only checking the Windows Side-by-Side folder for occurences of mcvcr90.dll
@@ -210,6 +215,7 @@ Function FindFiles
   Pop $R5
   Pop $R4
 FunctionEnd
+!endif
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; End MSVCRT check/install
