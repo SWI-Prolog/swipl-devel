@@ -117,7 +117,8 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 %	sequences for setting character attributes.
 
 %:- (   stream_property(user_output, tty(true)),
-%       getenv('TERM', xterm)
+%       getenv('TERM', Terminal),
+%       sub_atom(Terminal, _, _, _, xterm)
 %   ->  load_files(library(ansi_term), [silent(true)])
 %   ;   true
 %   ).
