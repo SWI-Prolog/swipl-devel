@@ -47,7 +47,13 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 %	other tools while you  are  running   a  (long)  query  from the
 %	toplevel.
 %
-%	HIGHLY EXPERIMENTAL
+%	Works fairly well on Unix systems, but you cannot run or develop
+%	XPCE applications this way. Occasionally deadlocks (in partcular
+%	when  using  XPCE  applications  that  are   not  aware  of  the
+%	possibility that XPCE runs  in   another  thread). Please report
+%	reproducable deadlocks. You typically  have   a  deadlock if the
+%	interface or toplevel becomes unresponsive while  no CPU time is
+%	being used.
 
 % :- set_prolog_flag(xpce_threaded, true).
 
@@ -104,9 +110,6 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 
 % :- leash(-exit).
 
-%	If you like ?- spy(Class<-Method) to set spy-points for XPCE
-
-% :- op(100, xfx, (<-)).
 
 		 /*******************************
 		 *	   MISC SETTINGS	*
