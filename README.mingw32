@@ -35,7 +35,7 @@
 # This script has been tested for   cross-compilation  on a Linux system
 # with the mingw cross-compiler and wine installed.
 
-install=$HOME/mingw
+install=${install-$HOME/mingw}
 export BUILDARCH=mingw		# build in mingw directory next to src
 export JAVAPREFIX="$HOME/.wine/drive_c/Program Files/Java/jdk1.7.0_05/jre/bin"
 src=$(pwd)
