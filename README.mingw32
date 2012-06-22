@@ -130,7 +130,16 @@ download_ssl()
 build_ssl()
 { ( cd openssl-$SSL_VERSION
     export CC=$CROSS-gcc
-    ./Configure mingw --prefix=$install shared threads
+    case $CROSS in
+	i?86*)	 MINGW=mingw
+		 ;;
+	x86_64*) MINGW=mingw64
+		 ;;
+	*)	 echo "SSL: Unknown CROSS: $CROSS"
+		 exit 1
+		 ;;
+    esac;
+    ./Configure $MINGW --prefix=$install shared threads
     make CROSS_COMPILE=$CROSS- depend
     make CROSS_COMPILE=$CROSS-
     make CROSS_COMPILE=$CROSS- install
