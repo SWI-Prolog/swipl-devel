@@ -47,6 +47,8 @@ most modern terminals using ANSI escape sequences.
 :- meta_predicate
 	keep_line_pos(+, 0).
 
+:- multifile user:message_severity_color/2.
+
 %%	ansi_format(+Attributes, +Format, +Args) is det.
 %
 %	Format text with ANSI  attributes.   This  predicate  behaves as
@@ -96,6 +98,45 @@ ansi_format(Stream, Attr, Format, Args) :-
 	).
 ansi_format(Stream, _Attr, Format, Args) :-
 	format(Stream, Format, Args).
+
+%%	sgr_code(+Name, -Code)
+%
+%	True when code is the Select   Graphic  Rendition code for Name.
+%	The defined names are given below. Note that most terminals only
+%	implement this partially.
+%
+%	  | reset			| all attributes off	|
+%	  | bold			|			|
+%	  | faint			|	|
+%	  | italic			|	|
+%	  | underline			|	|
+%	  | blink(slow)			|	|
+%	  | blink(rapid)		|	|
+%	  | negative			|	|
+%	  | conceal			|	|
+%	  | crossed_out			|	|
+%	  | font(primary)		|	|
+%	  | font(N)			| Alternate font (1..8)	|
+%	  | franktur			|	|
+%	  | underline(double)		|	|
+%	  | intensity(normal)		|	|
+%	  | fg(Name)			| Color name	|
+%	  | bg(Name)			| Color name	|
+%	  | framed			|	|
+%	  | encircled			|	|
+%	  | overlined			|	|
+%	  | ideogram(underline)		|	|
+%	  | right_side_line		|	|
+%	  | ideogram(underline(double))	|	|
+%	  | right_side_line(double)	|	|
+%	  | ideogram(overlined)		|	|
+%	  | left_side_line		|	|
+%	  | ideogram(stress_marking)	|	|
+%	  | -Off			| Switch attributes off	|
+%	  | hfg(Name)			| Color name	|
+%	  | hbg(Name)			| Color name	|
+%
+%	@see http://en.wikipedia.org/wiki/ANSI_escape_code
 
 sgr_code(reset, 0).
 sgr_code(bold,  1).
@@ -186,6 +227,8 @@ prolog:message_line_element(S, end(Ctx)) :-
 	Ctx = ansi(Reset),
 	keep_line_pos(S, write(S, Reset)).
 
+level_attrs(Level,	   Attrs) :-
+	user:message_severity_color(Level, Attrs).
 level_attrs(informational, fg(green)).
 level_attrs(information,   fg(green)).
 level_attrs(warning,	   fg(red)).
@@ -199,3 +242,14 @@ keep_line_pos(S, G) :-
 keep_line_pos(_, G) :-
 	G.
 
+%%	user:message_severity_color(+Severity, -Attributes).
+%
+%	This hook is called from prolog:message_line_element/2 if the
+%	library(ansi_term) is loaded to colourise messages printed using
+%	print_message(Severity, Message).
+%
+%	@see print_message/2.
+%	@param Severity is one of =informational=, =information=,
+%	=banner=, =warning=, =error= or =help=.
+%	@param Attributes is a valid attribute specification for
+%	ansi_format/3.

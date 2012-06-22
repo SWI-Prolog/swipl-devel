@@ -1337,7 +1337,7 @@ term_colours((prolog:Head --> _),
 				       expanded - [ identifier
 						  ]
 				     ],
-			  classify
+			  dcg_body(prolog:Head)
 			]) :-
 	prolog_message_hook(Head).
 
@@ -1466,6 +1466,8 @@ specified_item(extern(M), Term, TB, Pos) :- !,
 					% classify as body
 specified_item(body, Term, TB, Pos) :- !,
 	colourise_body(Term, TB, Pos).
+specified_item(dcg_body(Head), Term, TB, Pos) :- !,
+	colourise_dcg(Term, Head, TB, Pos).
 specified_item(setof, Term, TB, Pos) :- !,
 	colourise_setof(Term, TB, Pos).
 specified_item(meta(MetaSpec), Term, TB, Pos) :- !,

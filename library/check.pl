@@ -232,9 +232,13 @@ prolog:message(check(undefined_predicates)) -->
 	  'at runtime using assert/1, use :- dynamic Name/Arity.', nl, nl
 	].
 prolog:message(check(undefined(Pred, Refs))) -->
+	{ map_list_to_pairs(sort_reference_key, Refs, Keyed),
+	  keysort(Keyed, KeySorted),
+	  pairs_values(KeySorted, SortedRefs)
+	},
 	predicate(Pred),
 	[ ', which is referenced by', nl ],
-	referenced_by(Refs).
+	referenced_by(SortedRefs).
 prolog:message(check(undefined_unreferenced_predicates)) -->
 	[ 'The predicates below are not defined, and are not', nl,
 	  'referenced.', nl, nl
@@ -294,6 +298,20 @@ autoload([Lib-Pred|T]) -->
 	short_filename(Lib),
 	[ nl ],
 	autoload(T).
+
+%%	sort_reference_key(+Reference, -Key) is det.
+%
+%	Create a stable key for sorting references to predicates.
+
+sort_reference_key(Term, key(M:Name/Arity, N, ClausePos)) :-
+	clause_ref(Term, ClauseRef, ClausePos),
+	nth_clause(Pred, N, ClauseRef),
+	strip_module(Pred, M, Head),
+	functor(Head, Name, Arity).
+
+clause_ref(clause_char_count(ClauseRef, ClausePos), ClauseRef, ClausePos).
+clause_ref(clause(ClauseRef), ClauseRef, 0).
+
 
 referenced_by([]) -->
 	[].
