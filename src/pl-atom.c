@@ -933,11 +933,14 @@ PL_unregister_atom(atom_t a)
       { oldref = p->references;
 	newref = oldref == 1 ? ATOM_MARKED_REFERENCE : oldref-1;
       } while( !COMPARE_AND_SWAP(&p->references, oldref, newref) );
+      refs = newref;
 
       if ( newref == ATOM_MARKED_REFERENCE )
 	ATOMIC_INC(&GD->atoms.unregistered);
     } else
-    { LD->atoms.unregistered = a;
+    { GET_LD
+
+      LD->atoms.unregistering = a;
       if ( (refs=ATOMIC_DEC(&p->references)) == 0 )
 	ATOMIC_INC(&GD->atoms.unregistered);
     }

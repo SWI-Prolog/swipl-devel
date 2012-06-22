@@ -65,9 +65,11 @@ MSB(size_t i)
 #define MSB(i) (sizeof(long)*8 - 1 - __builtin_clzl(i)) /* GCC builtin */
 #endif
 
-#if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE___SYNC_SYNCHRONIZE)
+#if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE__SYNC_SYNCHRONIZE)
 #define HAVE_MEMORY_BARRIER 1
+#ifndef MemoryBarrier
 #define MemoryBarrier()			__sync_synchronize()
+#endif
 #define ATOMIC_ADD(ptr, v)		__sync_add_and_fetch(ptr, v)
 #define ATOMIC_SUB(ptr, v)		__sync_sub_and_fetch(ptr, v)
 #define ATOMIC_INC(ptr)			ATOMIC_ADD(ptr, 1) /* ++(*ptr) */

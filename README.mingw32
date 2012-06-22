@@ -35,7 +35,7 @@
 # This script has been tested for   cross-compilation  on a Linux system
 # with the mingw cross-compiler and wine installed.
 
-install=$HOME/mingw
+install=${install-$HOME/mingw}
 export BUILDARCH=mingw		# build in mingw directory next to src
 export JAVAPREFIX="$HOME/.wine/drive_c/Program Files/Java/jdk1.7.0_05/bin"
 src=$(pwd)
@@ -130,7 +130,16 @@ download_ssl()
 build_ssl()
 { ( cd openssl-$SSL_VERSION
     export CC=$CROSS-gcc
-    ./Configure mingw --prefix=$install shared threads
+    case $CROSS in
+	i?86*)	 MINGW=mingw
+		 ;;
+	x86_64*) MINGW=mingw64
+		 ;;
+	*)	 echo "SSL: Unknown CROSS: $CROSS"
+		 exit 1
+		 ;;
+    esac;
+    ./Configure $MINGW --prefix=$install shared threads
     make CROSS_COMPILE=$CROSS- depend
     make CROSS_COMPILE=$CROSS-
     make CROSS_COMPILE=$CROSS- install
