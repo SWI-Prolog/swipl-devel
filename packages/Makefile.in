@@ -99,11 +99,13 @@ rpm-install: html-install
 	$(FORCE_MKINDEX)
 
 pdf-install::
+	mkdir -p $(DESTDIR)$(PKGDOC)
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
 
 html-install::
+	mkdir -p $(DESTDIR)$(PKGDOC)
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
