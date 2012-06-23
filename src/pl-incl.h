@@ -2163,6 +2163,10 @@ decrease).
 #include "os/pl-files.h"		/* File management */
 #include "os/pl-string.h"		/* Basic string functions */
 
+#ifdef ATOMIC_INC
+#define ATOMIC_REFERENCES 1		/* Use atomic +/- for atom references */
+#endif
+
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave
 #undef except

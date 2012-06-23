@@ -147,10 +147,6 @@ static void	rehashAtoms(void);
 #undef LD
 #define LD LOCAL_LD
 
-#ifdef ATOMIC_INC
-#define ATOMIC_REFERENCES
-#endif
-
 
 		 /*******************************
 		 *	      TYPES		*
