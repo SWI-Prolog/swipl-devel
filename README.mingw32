@@ -37,14 +37,15 @@
 
 install=${install-$HOME/mingw}
 export BUILDARCH=mingw		# build in mingw directory next to src
-export JAVAPREFIX="$HOME/.wine/drive_c/Program Files/Java/jdk1.7.0_05/bin"
 src=$(pwd)
 
 case $(uname) in
     MINGW*)
 	export PATH=$install/bin:$PATH
+	DRIVEC="/C"
 	;;
     *)
+	DRIVEC="$HOME/.wine/drive_c"
 	export WINEPATH="$(winepath -w $install/bin)"
 	;;
 esac
@@ -64,6 +65,16 @@ if [ -z "$CROSS" ]; then
   fi
 fi
 
+case $CROSS in
+    x86_64*)
+	JAVAROOT="$DRIVEC/Program Files/Java"
+	;;
+    i?86*)
+	JAVAROOT="$DRIVEC/Program Files (x86)/Java"
+	;;
+esac
+JAVAPREFIX="$(echo "$JAVAROOT"/jdk*)/bin"
+export JAVAPREFIX
 
 ################
 # Create target directories
@@ -284,9 +295,9 @@ build_swipl_packages()
     export PKGLDFLAGS=-I$install/lib
     [ -z "$1" ] || export PKG="$1"
     ./configure --host=$CROSS --prefix=$install
-    make
-    make install
-    make html-install
+    make || exit 1
+    make install || exit 1
+    make html-install || exit 1
   )
 }
 
