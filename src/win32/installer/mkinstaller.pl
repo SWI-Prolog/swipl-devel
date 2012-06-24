@@ -39,6 +39,7 @@ name :-
 
 name :-
 	version(Major, Minor, Patch),
+	format('!define _VERSION "~w.~w.~w.0"~n', [Major, Minor, Patch]),
 	get_time(X),
 	format_time(string(Date), '%F', X),
 	format('Name "SWI-Prolog ~w.~w.~w (~s)"~n',
@@ -67,6 +68,7 @@ outarch(w32).
 
 outfile :-
 	outfile(File),
+	format('!define _OUTFILE "~w"~n', [File]),
 	format('OutFile "~w"~n', [File]).
 
 %packages :-
@@ -343,6 +345,7 @@ check_files :-
 ignore_file('INDEX.pl').
 ignore_file('Makefile').
 ignore_file('swipl.home').
+ignore_file('swipl.ico').
 ignore_file('plwin.opt').
 ignore_file('pl2xpce.pdb').
 ignore_file('dlltest.pdb').

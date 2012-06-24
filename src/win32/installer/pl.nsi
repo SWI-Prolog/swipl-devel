@@ -32,13 +32,23 @@ ReserveFile "${NSISDIR}\Plugins\UserInfo.dll"
 ReserveFile "${NSISDIR}\Plugins\InstallOptions.dll"
 ReserveFile "options.ini"
 
-InstallDir $PROGRAMFILES\pl
+InstallDir $PROGRAMFILES\swipl
 InstallDirRegKey HKLM ${REGKEY} "home"
 ComponentText "This will install the SWI-Prolog on your computer. \
                Select which optional components you want installed."
 DirText "This program will install SWI-Prolog on your computer.\
          Choose a directory"
 
+VIProductVersion "${_VERSION}"
+VIAddVersionKey Comments "SWI-Prolog installer for Windows"
+VIAddVersionKey ProductName "SWI-Prolog"
+VIAddVersionKey ProductVersion "${_VERSION}"
+VIAddVersionKey CompanyName "swi-prolog.org"
+VIAddVersionKey LegalCopyright "LGPL"
+VIAddVersionKey FileVersion "${_VERSION}"
+VIAddVersionKey OriginalFilename "${_OUTFILE}"
+
+Icon ${SWIPL}\swipl.ico
 LicenseData ${SWIPL}\COPYING.TXT
 LicenseText "SWI-Prolog is governed by the LGPL"
 
@@ -277,13 +287,6 @@ Section "Base system (required)"
   File ${SWIPL}\bin\swipl.dll
 !endif
 
-#ifdef MINGW
-  SetOutPath $INSTDIR\lib
-  File ${SWIPL}\lib\libswipl.a
-  File ${SWIPL}\lib\libswipl.dll.a
-  File ${SWIPL}\lib\plterm.dll.a
-#endif
-
   SetOutPath $INSTDIR
   File /r ${SWIPL}\customize
   File ${SWIPL}\${BOOT}
@@ -291,6 +294,7 @@ Section "Base system (required)"
   File ${SWIPL}\README.TXT
   File ${SWIPL}\VERSION
   File ${SWIPL}\swipl.home
+  File ${SWIPL}\swipl.ico
 
   SetOutPath $INSTDIR\library
 ; SYSTEM STUFF
@@ -543,7 +547,11 @@ SectionEnd
 Section "JPL -- Java <-> Prolog"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
+!ifdef MINGW
+  File ${SWIPL}\bin\libjpl.dll
+!else
   File ${SWIPL}\bin\jpl.dll
+!endif
   SetOutPath $INSTDIR\lib
   File ${SWIPL}\lib\jpl.jar
   SetOutPath $INSTDIR\library
