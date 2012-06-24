@@ -547,11 +547,7 @@ SectionEnd
 Section "JPL -- Java <-> Prolog"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
-!ifdef MINGW
-  File ${SWIPL}\bin\libjpl.dll
-!else
   File ${SWIPL}\bin\jpl.dll
-!endif
   SetOutPath $INSTDIR\lib
   File ${SWIPL}\lib\jpl.jar
   SetOutPath $INSTDIR\library
