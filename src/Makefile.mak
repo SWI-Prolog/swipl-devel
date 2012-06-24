@@ -306,7 +306,6 @@ install-readme::
 		$(INSTALL_DATA) ..\README "$(PLBASE)\README.TXT"
 		$(INSTALL_DATA) ..\VERSION "$(PLBASE)"
 		$(INSTALL_DATA) swipl.ico "$(PLBASE)"
-		$(INSTALL_DATA) ..\ReleaseNotes\relnotes-5.10 "$(PLBASE)\RelNotes-5.10.TXT"
 		$(INSTALL_DATA) ..\COPYING "$(PLBASE)\COPYING.TXT"
 		$(INSTALL_DATA) ..\man\windows.html "$(PLBASE)\doc"
 

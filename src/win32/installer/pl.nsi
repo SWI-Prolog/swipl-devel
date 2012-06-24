@@ -773,6 +773,7 @@ Section "C Debugging Symbols (.pdb files)"
   File ${SWIPL}\bin\cgi.pdb
   File ${SWIPL}\bin\swipl.pdb
   File ${SWIPL}\bin\memfile.pdb
+  File ${SWIPL}\bin\streaminfo.pdb
   File ${SWIPL}\bin\mime.pdb
   File ${SWIPL}\bin\odbc4pl.pdb
   File ${SWIPL}\bin\plterm.pdb
