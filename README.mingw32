@@ -223,8 +223,15 @@ download_libarchive()
   tar xzf $ARCHIVE_FILE
 }
 
+# lt_cv_deplibs_check_method=pass_all works around a bug in libtool
+# causing: "linker path does not have real file for library" error on MinGW
+# See http://lists.cairographics.org/archives/cairo/2009-July/017686.html
+
 build_libarchive()
 { ( cd libarchive-$ARCHIVE_VERSION
+    export CFLAGS="-I$install/include"
+    export LDFLAGS="-L$install/lib"
+    export lt_cv_deplibs_check_method='pass_all'
     ./configure --host=$CROSS --prefix=$install --with-pic \
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib
@@ -255,6 +262,7 @@ build_prerequisites()
   build_jpeg
   build_libxpm
   build_zlib
+  build_libarchive
 }
 
 ###########################
