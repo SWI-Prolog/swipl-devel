@@ -426,7 +426,7 @@ install-libs:	idirs iboot ilib iruntime iinclude icustom install-demo
 			-g 'make_library_index(library)' \
 			-t halt
 
-install-mingw:	install-plterm install-plwin install-mkboot
+install-mingw:	install-plterm install-plwin install-mkboot install-icon
 
 install-plterm:	idirs
 		if [ -f $(RUNTIMEDIR)/plterm.$(SOEXT) ]; then \
@@ -440,6 +440,9 @@ install-plwin:	idirs iruntime
 
 install-mkboot:	idirs
 		$(INSTALL_DATA) $(srcdir)/win32/misc/mkboot.bat $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
+
+install-icon::
+		$(INSTALL_DATA) $(srcdir)/swipl.ico "$(DESTDIR)$(PLBASE)"
 
 install-demo:	idirs
 		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
@@ -600,8 +603,8 @@ html-install::
 # WINDOWS INSTALLER
 ################################################################
 
-NSISDEFS+=/DSWIPL=swipl /DPTHREAD=pthreadGC2 /DZLIB=zlib1 /DBOOT=boot32.prc /DMINGW=1
-NSIS=C:/Program Files/NSIS/makensis.exe
+NSISDEFS+=/DSWIPL=swipl /DPTHREAD=pthreadGC2 /DZLIB=zlib1 /DBOOT=$(BOOTFILE) /DMINGW=1
+NSISEXE=C:/Program Files (x86)/NSIS/makensis.exe
 SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
 WINE=wine
 
@@ -609,7 +612,7 @@ installer::
 		$(INSTALL_DATA) $(srcdir)/win32/installer/options.ini "$(PLBASE)/.."
 		$(INSTALL_DATA) $(srcdir)/win32/installer/pl.nsi "$(PLBASE)/.."
 		$(INSTALL_DATA) $(srcdir)/win32/installer/mkinstaller.pl "$(PLBASE)/.."
-		$(WINE) "$(NSIS)" $(NSISDEFS) "$(SWIPLNSI)"
+		$(WINE) "$(NSISEXE)" $(NSISDEFS) "$(SWIPLNSI)"
 
 
 #
