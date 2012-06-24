@@ -292,6 +292,7 @@ build_swipl_core()
 
 copy_dlls()
 { cp $install/bin/*.dll $install/swipl/bin
+  cp $install/lib/libpthreadGC2.dll.a $install/swipl/lib
 }
 
 
