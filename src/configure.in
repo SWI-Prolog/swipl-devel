@@ -677,8 +677,8 @@ AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic",
 		   [Flags for compiling position-independent small object])
 AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
-AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
-		   [Name of the SWI-Prolog executable (normally pl)])
+AC_DEFINE_UNQUOTED(PROG_PL,    "$PL$EXEEXT",
+		   [Name of the SWI-Prolog executable (normally swipl[.exe])])
 case "$PLARCH" in
   *cygwin*)
 	PLSO=cygpl.$SO_EXT

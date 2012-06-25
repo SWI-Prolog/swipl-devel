@@ -99,7 +99,6 @@ embedded application.
 #define PROG_PL DEF_PROG_PL
 #endif
 
-
 #if defined(HOST_TOOLCHAIN_MSC)
 
 #define PROG_CC "cl.exe /MD"
