@@ -406,7 +406,7 @@ esac
 dnl Set swipl-ld host parameters
 case "$PLARCH" in
     *-win32|*-win64)
-        HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MSC
+        HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MINGW
         HOST_OS_FLAG=-DHOST_OS_WINDOWS
        ;;
 esac

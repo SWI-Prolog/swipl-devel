@@ -47,6 +47,11 @@ embedded application.
     compiler to produce shared objects and executables.
   #endif
 
+  #ifdef HOST_TOOLCHAIN_MINGW
+    The generated swipl-ld* executable will use the MinGW compilers
+    to produce shared objects and executables.
+  #endif
+
   #ifdef HOST_OS_WINDOWS
     The generated swipl-ld* executable will produce shared objects
     and executable that will run under Windows.
@@ -117,7 +122,16 @@ embedded application.
 #define LIB_PL_DEBUG "swiplD.lib"
 #define OPT_DEBUG "/DEBUG"
 
-#else /* !defined(HOST_TOOLCHAIN_MSC) */
+#elif defined(HOST_TOOLCHAIN_MINGW)
+
+#define PROG_CC    "gcc"
+#define PROG_CXX   "g++"
+#define PROG_LD    PROG_CC
+#define EXT_OBJ    "obj"
+#define OPT_DEBUG  "-g"
+#define SO_LDFLAGS "-shared"
+
+#else /*Native*/
 
 #define PROG_CC C_CC
 #define PROG_CXX C_CC " -x c++"
@@ -137,7 +151,7 @@ embedded application.
 #define SO_LDFLAGS "-shared"
 #endif
 
-#endif /* !defined(HOST_TOOLCHAIN_MSC) */
+#endif /*Toolchain selection*/
 
 
 #include <stdio.h>
