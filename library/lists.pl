@@ -200,11 +200,12 @@ nextto(X, Y, [X,Y|_]).
 nextto(X, Y, [_|Zs]) :-
 	nextto(X, Y, Zs).
 
-%%	delete(?List1, @Elem, ?List2) is det.
+%%	delete(+List1, @Elem, -List2) is det.
 %
 %	Is true when List2 is a list with all elements from List1 except
-%	those that unify with Elem. Matching Elem with elements of List1
-%	is uses =|\+ Elem = H|=, which implies that Elem is not changed.
+%	for those that unify with Elem.   Matching Elem with elements of
+%	List1 is uses =|\+ Elem \= H|=,   which implies that Elem is not
+%	changed.
 %
 %	@deprecated There are too many ways in which one might want to
 %		    delete elements from a list to justify the name.
