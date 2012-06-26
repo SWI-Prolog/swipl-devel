@@ -54,7 +54,15 @@
 #else
 #define C_PLLIB	    "swipl.lib"
 #endif
-#else
+#else					/* !_MSC_VER  */
+#ifdef __WINDOWS__			/* I.e., MinGW */
+#define C_LIBS	     ""
+#define C_STATICLIBS ""
+#define C_CC	     "gcc"
+#define C_CFLAGS     ""
+#define C_PLLIB	     "-lswipl"
+#define C_LDFLAGS    ""
+#endif
 #include <parms.h>			/* pick from the working dir */
 #endif
 

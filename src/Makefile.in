@@ -333,9 +333,15 @@ parms.h:	Makefile
 		@echo "#endif"				       >> $@%
 		@echo "#define C_LIBS	    \"$(LNLIBS)\""     >> $@%
 		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
+		@echo "#ifndef C_CC"			       >> $@%
 		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
+		@echo "#endif"				       >> $@%
+		@echo "#ifndef C_CFLAGS"		       >> $@%
 		@echo "#define C_CFLAGS	    \"$(CMFLAGS) $(CIFLAGS)\"" >> $@%
+		@echo "#endif"				       >> $@%
+		@echo "#ifndef C_LDFLAGS"		       >> $@%
 		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> $@%
+		@echo "#endif"				       >> $@%
 		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 
 gitversion::

@@ -130,6 +130,8 @@ embedded application.
 #define EXT_OBJ    "obj"
 #define OPT_DEBUG  "-g"
 #define SO_LDFLAGS "-shared"
+#undef SO_LD
+#define SO_LD	   PROG_LD
 
 #else /*Native*/
 
@@ -1012,7 +1014,7 @@ fillDefaultOptions()
   defaultProgram(&plinitfile, "none");
   defaultProgram(&plsysinit,  "none");
 
-#if defined(HOST_TOOLCHAIN_MSC)
+#ifdef __WINDOWS__
   sprintf(tmp, "%s/lib", plbase);
 #else
   sprintf(tmp, "%s/lib/%s", plbase, plarch);
