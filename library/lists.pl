@@ -1,6 +1,4 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
@@ -202,10 +200,11 @@ nextto(X, Y, [X,Y|_]).
 nextto(X, Y, [_|Zs]) :-
 	nextto(X, Y, Zs).
 
-%%	delete(?List1, ?Elem, ?List2) is det.
+%%	delete(?List1, @Elem, ?List2) is det.
 %
-%	Is true when List1,  with  all   occurrences  of  Elem  deleted,
-%	results in List2.
+%	Is true when List2 is a list with all elements from List1 except
+%	those that unify with Elem. Matching Elem with elements of List1
+%	is uses =|\+ Elem = H|=, which implies that Elem is not changed.
 %
 %	@deprecated There are too many ways in which one might want to
 %		    delete elements from a list to justify the name.
@@ -213,11 +212,14 @@ nextto(X, Y, [_|Zs]) :-
 %		    be deterministic or not.
 %	@see select/3, subtract/3.
 
-delete([], _, []) :- !.
-delete([Elem|Tail], Elem, Result) :- !,
-	delete(Tail, Elem, Result).
-delete([Head|Tail], Elem, [Head|Rest]) :-
-	delete(Tail, Elem, Rest).
+delete([], _, []).
+delete([Elem|Tail], Del, Result) :-
+	(   \+ Elem \= Del
+	->  delete(Tail, Del, Result)
+	;   Result = [Elem|Rest],
+	    delete(Tail, Del, Rest)
+	).
+
 
 /*  nth0/3, nth1/3 are improved versions from
     Martin Jansche <martin@pc03.idf.uni-heidelberg.de>
