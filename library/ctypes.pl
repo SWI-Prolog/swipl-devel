@@ -52,7 +52,8 @@
 	    is_upper/1,
 	    is_white/1,
 	    to_lower/2,
-	    to_upper/2
+	    to_upper/2,
+	    upper_lower/2
 	  ]).
 
 /** <module> Character code classification
@@ -96,28 +97,34 @@ is_paren(0'[, 0']).
 is_paren(0'{, 0'}).
 
 %%	to_lower(+U, -L) is det.
-%%	to_lower(-U, +L) is det.
 %
-%	Succeeds  if  `U'  is  upper  case  character  and  `L'  is  the
-%	corresponding lower case character or `U' is an ascii character,
-%	but not an upper case letter and `L' is equal to `U'.
-%
-%	@see code_type/2.  Notable, code_type(L, to_lower(U)) translates
-%	L into its uppercase version if L is a lower case letter and
-%	unifies U with L otherwise.
+%	Downcase a character code. If U  is   the  character  code of an
+%	uppercase character, unify L with  the   character  code  of the
+%	lowercase version. Else unify L with U.
 
 to_lower(U, L) :-
-	(   nonvar(U)
-	->  code_type(L, lower(U))
-	;   code_type(U, upper(L))
-	).
+	code_type(L, to_lower(U)).
+
+%%	to_upper(+L, -U) is det.
+%
+%	Upcase a character code.  If  L  is   the  character  code  of a
+%	lowercase character, unify L with  the   character  code  of the
+%	uppercase version. Else unify U with L.
 
 to_upper(L, U) :-
-	(   nonvar(L)
-	->  code_type(U, upper(L))
-	;   code_type(U, upper),
-	    code_type(L, lower(U))
-	).
+	code_type(U, to_upper(L)).
+
+%%	upper_lower(?U, ?L) is det.
+%
+%	True when U is the character code  of an uppercase character and
+%	L  is  the  character  code    of  the  corresponding  lowercase
+%	character.
+
+upper_lower(Upper, Lower) :-
+	nonvar(Upper), !,
+	code_type(Lower, lower(Upper)).
+upper_lower(Upper, Lower) :-
+	code_type(Upper, upper(Lower)).
 
 
 %%	is_digit(+C, +Base, -Weight) is det.
