@@ -610,7 +610,7 @@ html-install::
 ################################################################
 
 NSISDEFS=/DSWIPL=swipl /DPTHREAD=pthreadGC2 /DZLIB=zlib1 /DBOOT=$(BOOTFILE) /DMINGW=1
-ifneq (,$(findstring(64,$(PLARCH))))
+ifneq (,$(findstring 64,$(PLARCH)))
 NSISDEFS+=/DWIN64
 endif
 NSISEXE=C:/Program Files (x86)/NSIS/makensis.exe
