@@ -103,8 +103,13 @@ user:file_search_path(autoload, library(.)).
 		*          UPDATE INDEX		*
 		********************************/
 
+%%	'$update_library_index'
+%
+%	Called from make/0 to update the index   of the library for each
+%	library directory that has a writable index.
+
 '$update_library_index' :-
-	setof(Dir, indexed_directory(Dir), Dirs), !,
+	setof(Dir, writable_indexed_directory(Dir), Dirs), !,
 	guarded_make_library_index(Dirs),
 	(   flag('$modified_index', true, false)
 	->  reload_library_index
@@ -121,11 +126,15 @@ guarded_make_library_index([Dir|Dirs]) :-
 	),
 	guarded_make_library_index(Dirs).
 
+%%	writable_indexed_directory(-Dir) is nondet.
+%
+%	True when Dir is an indexed   library  directory with a writable
+%	index, i.e., an index that can be updated.
 
-indexed_directory(Dir) :-
+writable_indexed_directory(Dir) :-
 	index_file_name(IndexFile, [access(read), access(write)]),
 	file_directory_name(IndexFile, Dir).
-indexed_directory(Dir) :-
+writable_indexed_directory(Dir) :-
 	absolute_file_name(library('MKINDEX'),
 			   [ file_type(prolog),
 			     access(read),
