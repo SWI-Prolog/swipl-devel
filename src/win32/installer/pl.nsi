@@ -32,7 +32,11 @@ ReserveFile "${NSISDIR}\Plugins\UserInfo.dll"
 ReserveFile "${NSISDIR}\Plugins\InstallOptions.dll"
 ReserveFile "options.ini"
 
+!ifdef WIN64
+InstallDir $PROGRAMFILES64\swipl
+!else
 InstallDir $PROGRAMFILES\swipl
+!endif
 InstallDirRegKey HKLM ${REGKEY} "home"
 ComponentText "This will install the SWI-Prolog on your computer. \
                Select which optional components you want installed."
