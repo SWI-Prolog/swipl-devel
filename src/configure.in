@@ -712,7 +712,7 @@ case "$PLARCH" in
 	AC_CHECK_LIB(wsock32, main)
 	AC_CHECK_LIB(gdi32, main, [XLIBS="$XLIBS -lgdi32"])
 	AC_CHECK_LIB(comdlg32, main, [XLIBS="$XLIBS -lcomdlg32"])
-	EXTRAOBJ="pl-nt.o pl-dde.o"
+	EXTRAOBJ="pl-nt.o pl-ntconsole.o pl-dde.o"
 	;;
 esac
 
