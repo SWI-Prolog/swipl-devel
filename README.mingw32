@@ -295,7 +295,7 @@ download_zlib()
 
 build_zlib()
 { ( cd zlib-$ZLIB_VERSION
-    make -f win32/Makefile.gcc PREFIX=$CROSS- BINARY_PATH=$install/bin INCLUDE_PATH=$install/include LIBRARY_PATH=$install/lib SHARED_MODE=1 install
+    make -f win32/Makefile.gcc PREFIX=$CROSS- BINARY_PATH=$install/bin INCLUDE_PATH=$install/include LIBRARY_PATH=$install/lib SHARED_MODE=1 IMPLIB=libz.dll.a install
   )
 }
 
