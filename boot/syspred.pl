@@ -834,17 +834,19 @@ module_property(Module, Property) :-
 	current_module(Module),
 	property_module(Property, Module).
 
-property_module(exported_operators(List), Module) :- !,
-	'$exported_ops'(Module, List, []),
-	List \== [].
 property_module(Property, Module) :-
 	module_property(Property),
-	'$module_property'(Module, Property).
+	(   Property = exported_operators(List)
+	->  '$exported_ops'(Module, List, []),
+	    List \== []
+	;   '$module_property'(Module, Property)
+	).
 
 module_property(class(_)).
 module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
+module_property(exported_operators(_)).
 
 %%	module(+Module) is det.
 %
