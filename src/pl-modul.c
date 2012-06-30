@@ -1020,7 +1020,10 @@ PRED_IMPL("$module_property", 2, module_property, 0)
 		    ATOM_module_property, A2);
 
   if ( PL_is_functor(A2, FUNCTOR_line_count1) )
-  { return PL_unify_integer(a, m->line_no);
+  { if ( m->line_no > 0 )
+      return PL_unify_integer(a, m->line_no);
+    else
+      fail;
   } else if ( PL_is_functor(A2, FUNCTOR_file1) )
   { if ( m->file )
       return PL_unify_atom(a, m->file->name);

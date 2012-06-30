@@ -2823,6 +2823,29 @@ delModuleSourceFile(SourceFile sf, Module m)
 }
 
 
+static void
+delAllModulesSourceFile__unlocked(SourceFile sf)
+{ ListCell c = sf->modules, n;
+
+  sf->modules = NULL;
+
+  for(; c; c = n)
+  { Module m = c->value;
+
+    n = c->next;
+    if ( m->file == sf )
+    { PL_LOCK(L_MODULE);
+      m->file = NULL;
+      m->line_no = 0;
+      clearHTable(m->public);
+      PL_UNLOCK(L_MODULE);
+    }
+
+    freeHeap(c, sizeof(*c));
+  }
+}
+
+
 /* Sf is the `owning' source-file
 */
 
@@ -3106,6 +3129,7 @@ unloadFile(SourceFile sf)
 #ifdef O_PLMT
   resumeThreads();
 #endif
+  delAllModulesSourceFile__unlocked(sf);
 
   unblockSignals(&set);
   PL_UNLOCK(L_THREAD);
