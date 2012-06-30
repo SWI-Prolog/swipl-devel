@@ -232,31 +232,29 @@ ord_del_element(Set, Element, NewSet) :-
 	oset_delel(Set, Element, NewSet).
 
 
-%%	ord_memberchk(+Element, +Set) is semidet.
+%%	ord_memberchk(+Element, +OrdSet) is semidet.
 %
-%	Check membership. This could stop comparing   we have passed the
-%	right value, saving scanning  (on  average)   half  the  list if
-%	Element is not in Set. Probably the built-in memberchk/2 will be
-%	faster.
+%	Same as ord_member/2.
 %
-%	@compat Not part of original Quintus library
+%	@deprecated Use ord_member/2.
 
 ord_memberchk(Element, Set) :-
-	memberchk(Element, Set).
+	ord_member(Element, Set).
 
-%%	ord_member(?Element, +Set) is nondet.
+%%	ord_member(+Element, +OrdSet) is semidet.
 %
-%	True if Element is a member of   Set.  Stops if further elements
-%	are behind Element in the standard order of terms.
-%
-%	@compat sicstus
+%	True if Element is a member of   OrdSet, compared using ==. Note
+%	that _enumerating_ elements of an ordered  set can be done using
+%	member/2.
 
-ord_member(Element, [H|T]) :-
-	(   Element = H
-	->  true
-	;   Element @>= H,
-	    ord_member(Element, T)
-	).
+ord_member(El,[H|T]):-
+	compare(Op,El,H),
+	ord_member(Op,El,T).
+
+ord_member(=,_,_).
+ord_member(>,El,[H|T]) :-
+	compare(Op,El,H),
+	ord_member(Op,El,T).
 
 
 %%	ord_subset(+Sub, +Super) is semidet.
