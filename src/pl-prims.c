@@ -3285,6 +3285,12 @@ PRED_IMPL("number_codes", 2, number_codes, PL_FA_ISO)
 }
 
 
+#if SIZEOF_WCHAR_T == 2
+#define CHARCODE_MAX 0xffff
+#else
+#define CHARCODE_MAX 0x10ffff
+#endif
+
 static
 PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 { PRED_LD
@@ -3315,7 +3321,7 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
   { if ( !PL_get_integer_ex(chr, &n) )
       fail;
 
-    if ( n >= 0 && n <= 0x10ffff )
+    if ( n >= 0 && n <= CHARCODE_MAX )
       cchr = n;
     else
       return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_character_code);
