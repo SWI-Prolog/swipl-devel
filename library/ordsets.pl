@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -50,7 +48,6 @@
 	    ord_memberchk/2,		% +Element, +Set,
 	    ord_symdiff/3,              % +Set1, +Set2, ?Diff
 					% SICSTus extensions
-	    ord_member/2,		% ?Element, +Set
 	    ord_seteq/2,		% +Set1, +Set2
 	    ord_intersection/2		% +PowerSet, -Intersection
 	  ]).
@@ -71,7 +68,15 @@ are advised to use library(ordsets).
 
 Some  of  these  predicates  match    directly   to  corresponding  list
 operations. It is advised to use the  versions from this library to make
-clear you are operating on ordered sets.
+clear you are operating on ordered sets.   An exception is member/2. See
+ord_memberchk/2.
+
+The ordsets library is based  on  the   standard  order  of  terms. This
+implies it can handle  all  Prolog   terms,  including  variables.  Note
+however, that the ordering is not stable  if   a  term inside the set is
+further instantiated. Note that variable   ordering changes if variables
+in the set are unified to each other or a variable in the set is unified
+to an older variable.
 */
 
 %%	is_ordset(@Term) is semidet.
@@ -234,27 +239,37 @@ ord_del_element(Set, Element, NewSet) :-
 
 %%	ord_memberchk(+Element, +OrdSet) is semidet.
 %
-%	Same as ord_member/2.
-%
-%	@deprecated Use ord_member/2.
-
-ord_memberchk(Element, Set) :-
-	ord_member(Element, Set).
-
-%%	ord_member(+Element, +OrdSet) is semidet.
-%
 %	True if Element is a member of   OrdSet, compared using ==. Note
 %	that _enumerating_ elements of an ordered  set can be done using
 %	member/2.
+%
+%	Some Prolog implementations also provide  ord_member/2, with the
+%	same semantics as ord_memberchk/2.  We   believe  that  having a
+%	semidet ord_member/2 is unacceptably inconsistent with the *_chk
+%	convention.  Portable  code  should    use   ord_memberchk/2  or
+%	member/2.
+%
+%	@author Richard O'Keefe
 
-ord_member(El,[H|T]):-
-	compare(Op,El,H),
-	ord_member(Op,El,T).
-
-ord_member(=,_,_).
-ord_member(>,El,[H|T]) :-
-	compare(Op,El,H),
-	ord_member(Op,El,T).
+ord_memberchk(Item, [X1,X2,X3,X4|Xs]) :- !,
+	compare(R4, Item, X4),
+	(   R4 = (>) -> ord_memberchk(Item, Xs)
+	;   R4 = (<) ->
+	    compare(R2, Item, X2),
+	    (   R2 = (>) -> Item == X3
+	    ;   R2 = (<) -> Item == X1
+	    ;/* R2 = (=),   Item == X2 */ true
+	    )
+	;/* R4 = (=) */ true
+	).
+ord_memberchk(Item, [X1,X2|Xs]) :- !,
+	compare(R2, Item, X2),
+	(   R2 = (>) -> ord_memberchk(Item, Xs)
+	;   R2 = (<) -> Item == X1
+	;/* R2 = (=) */ true
+	).
+ord_memberchk(Item, [X1]) :-
+	Item == X1.
 
 
 %%	ord_subset(+Sub, +Super) is semidet.
