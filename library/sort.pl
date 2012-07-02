@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -44,14 +43,19 @@
 %	Sorts similar to sort/2, but determines   the order of two terms
 %	by calling Compare(-Delta, +E1, +E2). This call must unify Delta
 %	with one of <, > or =.  If built-in predicate compare/3 is used,
-%	the result is the same as sort/2.
+%	the result is the same as sort/2 (but sort/2 is built using more
+%	low-level primitives and is considerably faster).
 %
-%	@see keysort/2.
+%	@see keysort/2 provides an more portable way to sort on
+%	arbitrary keys that is usually faster.
 
 predsort(P, L, R) :-
-	length(L, N),
-	predsort(P, N, L, _, R1), !,
-	R = R1.
+	'$skip_list'(N, L, Tail),
+	(   Tail == []
+	->  predsort(P, N, L, _, R1),
+	    R = R1
+	;   must_be(L, list)
+	).
 
 predsort(P, 2, [X1, X2|L], L, R) :- !,
 	call(P, Delta, X1, X2),
@@ -72,7 +76,7 @@ sort2(>, X1, X2, [X2, X1]).
 predmerge(_, [], R, R) :- !.
 predmerge(_, R, [], R) :- !.
 predmerge(P, [H1|T1], [H2|T2], Result) :-
-	call(P, Delta, H1, H2),
+	call(P, Delta, H1, H2), !,
 	predmerge(Delta, P, H1, H2, T1, T2, Result).
 
 predmerge(>, P, H1, H2, T1, T2, [H2|R]) :-
