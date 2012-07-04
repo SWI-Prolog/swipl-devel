@@ -2529,6 +2529,31 @@ are listed in \tabref{action}.
     \caption{PL_action() options}
     \label{tab:action}
 \end{table}
+
+    \cfunction{int}{PL_backtrace}{int depth, int flags}
+Print a Prolog backtrace to the standard error stream. The \arg{depth}
+argument specifies the maximum number of frames to print. The
+\arg{flags} argument is a bitwise or of the constants \const{PL_BT_SAFE}
+(0x1) and \const{PL_BT_USER} (0x2). \const{PL_BT_SAFE} causes frames not
+to be printed as normal Prolog goals, but using the predicate, program
+counter and clause-number. For example, the dump below indicates the
+frame is executing the 2nd clause of
+\verb|$autoload:load_library_index_p/0| at program pointer 25.  This
+can be interpreted by dumping the virtual machine code using vm_list/1.
+
+\begin{code}
+  [34] $autoload:load_library_index_p/0 [PC=19 in clause 2]
+\end{code}
+
+If the constant \const{PL_BT_USER} is specified, `no-debug' frames are
+ignored.  This predicate may be used from the C-debugger (e.g., gdb) to
+get the Prolog stack at a crash location.  Here is an example dumping
+the top 20 frames of the Prolog stack.
+
+\begin{code}
+(gdb) call PL_backtrace(20,0)
+\end{code}
+
 \end{description}
 
 \subsection{Querying Prolog}
