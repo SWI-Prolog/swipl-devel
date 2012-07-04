@@ -702,7 +702,7 @@ colourise_db(Module:Head, TB, term_position(_,_,_,_,[MP,HP])) :- !,
 	    colour_state_source_id(TB, SourceId),
 	    xref_module(SourceId, Module)
 	->  colourise_db(Head, TB, HP)
-	;   true			% TBD: Modifying in other module
+	;   colourise_db(Head, TB, HP)
 	).
 colourise_db(Head, TB, Pos) :-
 	colourise_goal(Head, '<db-change>', TB, Pos).
