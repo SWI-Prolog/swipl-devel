@@ -2343,13 +2343,25 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	size_t count = 0, i;
 
 	while(us<es)
-	{ const char *ec = us + UTF8_FBN(us[0]) + 1;
-
-	  if ( ec <= es )
+	{ if ( !(us[0]&0x80) )
 	  { count++;
-	    us=ec;
+	    us++;
 	  } else
-	    break;
+	  { int ex = UTF8_FBN(us[0]);
+
+	    if ( ex >= 0 )
+	    { const char *ec = us + ex + 1;
+
+	      if ( ec <= es )
+	      { count++;
+		us=ec;
+	      } else			/* incomplete multi-byte */
+		break;
+	    } else
+	    { Sseterr(s, SIO_WARN, "Illegal multibyte Sequence");
+	      goto failure;
+	    }
+	  }
 	}
 
 	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
