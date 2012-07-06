@@ -94,7 +94,7 @@ int
 atom_varnameW(const pl_wchar_t *s, size_t len)
 { if ( PlUpperW(*s) || *s == '_' )
   { for(s++; --len > 0; s++)
-    { int c = *s++;
+    { int c = *s;
 
       if ( !PlIdContW(c) )
 	return FALSE;
