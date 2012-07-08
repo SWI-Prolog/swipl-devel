@@ -230,6 +230,7 @@ valid_info_arg(Type, Arg) :-
 
 pack_info_term(name(atom)).			% Synopsis
 pack_info_term(title(atom)).
+pack_info_term(keywords(list(atom))).
 pack_info_term(description(list(atom))).
 pack_info_term(version(version)).
 pack_info_term(author(atom, email_or_url)).	% Persons
