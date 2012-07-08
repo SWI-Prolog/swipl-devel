@@ -803,7 +803,7 @@ file_sha1(File, Hash) :-
 	file_sha1(File, Hash, [type(binary)]).
 
 file_sha1(File, Hash, Options) :-
-	sha_new_ctx(Ctx0, []),
+	sha_new_ctx(Ctx0, [encoding(octet)]),
 	setup_call_cleanup(
 	    open(File, read, In, Options),
 	    update_hash(In, Ctx0, _Ctx, 0, HashCodes),
