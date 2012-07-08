@@ -28,8 +28,9 @@
 */
 
 :- module(prolog_pack,
-	  [ pack_list/0,
+	  [ pack_list_installed/0,
 	    pack_info/1,		% +Name
+	    pack_list/1,		% +Keyword
 	    pack_search/1,		% +Keyword
 	    pack_install/1,		% +Name
 	    pack_install/2,		% +Name, +Options
@@ -93,11 +94,15 @@ attach_packs/0 that makes installed packages available as libaries.
 current_pack(Pack) :-
 	'$pack':pack(Pack, _).
 
-%%	pack_list is det.
+%%	pack_list_installed is det.
 %
-%	List currently installed packages.
+%	List currently installed  packages.   Unlike  pack_list/1,  only
+%	locally installed packages are displayed   and  no connection is
+%	made to the internet.
+%
+%	@see Use pack_list/1 to find packages.
 
-pack_list :-
+pack_list_installed :-
 	findall(Pack, current_pack(Pack), Packages0),
 	Packages0 \== [], !,
 	sort(Packages0, Packages),
@@ -105,7 +110,7 @@ pack_list :-
 	format('Installed packages (~D):~n~n', [Count]),
 	maplist(pack_info(list), Packages),
 	validate_dependencies.
-pack_list :-
+pack_list_installed :-
 	print_message(informational, pack(no_packages_installed)).
 
 %%	pack_info(+Pack)
@@ -117,11 +122,17 @@ pack_info(Name) :-
 
 pack_info(Level, Name) :-
 	findall(Info, pack_info(Name, Level, Info), Infos0),
+	(   Infos0 == []
+	->  print_message(warning, pack(no_pack_installed(Name))),
+	    fail
+	;   true
+	),
 	update_dependency_db(Name, Infos0),
 	findall(Def,  pack_default(Level, Infos, Def), Defs),
 	append(Infos0, Defs, Infos1),
 	sort(Infos1, Infos),
 	show_info(Name, Infos, [info(Level)]).
+
 
 show_info(Name, Properties, Options) :-
 	option(info(list), Options), !,
@@ -266,9 +277,31 @@ version_data(Version, version(Data)) :-
 		 *	      SEARCH		*
 		 *******************************/
 
-%%	pack_search(+Query)
+%%	pack_search(+Query) is det.
+%%	pack_list(+Query) is det.
 %
 %	Query package server and installed packages and display results.
+%	Query is matches case-insensitively against   the name and title
+%	of known and installed packages. For   each  matching package, a
+%	single line is displayed that provides:
+%
+%	  - Installation status
+%	    - *p*: package, not installed
+%	    - *i*: installed package
+%	  - Name@Version
+%	  - Title
+%
+%	Hint: =|?- pack_list('').|= lists all packages.
+%
+%	The predicates pack_list/1 and pack_search/1  are synonyms. Both
+%	contact the package server at  http://www.swi-prolog.org to find
+%	available packages.
+%
+%	@see	pack_list_installed to list installed packages without
+%		contacting the server.
+
+pack_list(Query) :-
+	pack_search(Query).
 
 pack_search(Query) :-
 	query_pack_server(search(Query), Result),
@@ -1346,10 +1379,18 @@ message(directory_exists(Dir)) -->
 message(already_installed(Pack)) -->
 	[ 'Pack `~w'' is already installed. Package info:'-[Pack] ].
 message(invalid_name(File)) -->
-	[ '~w: A package archive must be named <pack>-<version>.<ext>'-[File] ].
-message(multi_extension(File)) -->
-	[ '~w: Multiple extensions are not allowed.'-[File], nl,
-	  'E.g., use .tgz rather than .tar.gz'-[] ].
+	[ '~w: A package archive must be named <pack>-<version>.<ext>'-[File] ],
+	no_tar_gz(File).
+
+no_tar_gz(File) -->
+	{ sub_atom(File, _, _, 0, '.tar.gz') }, !,
+	[ nl,
+	  'Package archive files must have a single extension.  E.g., \'.tgz\''-[]
+	].
+no_tar_gz(_) --> [].
+
+message(no_pack_installed(Pack)) -->
+	[ 'No pack ~q installed.  Use ?- pack_list(Pattern) to search'-[Pack] ].
 message(no_packages_installed) -->
 	{ setting(server, ServerBase) },
 	[ 'There are no extra packages installed.', nl,
