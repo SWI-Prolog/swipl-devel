@@ -1068,7 +1068,15 @@ case "$PLARCH" in
           )
         done
       fi
-      AC_CHECK_HEADERS(dbghelp.h)
+      AC_CHECK_LIB(dbghelp, StackWalk64,
+		   check_dbghelp_h=yes)
+      if test "$check_dbghelp_h" = yes; then
+	AC_CHECK_HEADERS(dbghelp.h,
+			 LIBS="-ldbghelp $LIBS",
+			 [],
+[#include <windows.h>
+])
+      fi
       ;;
 esac
 
