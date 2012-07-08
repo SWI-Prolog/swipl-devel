@@ -232,9 +232,9 @@ pack_info_term(name(atom)).			% Synopsis
 pack_info_term(title(atom)).
 pack_info_term(description(list(atom))).
 pack_info_term(version(version)).
-pack_info_term(author(atom, email)).		% Persons
-pack_info_term(maintainer(atom, email)).
-pack_info_term(packager(atom, email)).
+pack_info_term(author(atom, email_or_url)).	% Persons
+pack_info_term(maintainer(atom, email_or_url)).
+pack_info_term(packager(atom, email_or_url)).
 pack_info_term(home(atom)).			% Home page
 pack_info_term(download(atom)).			% Source
 pack_info_term(provides(atom)).			% Dependencies
@@ -249,9 +249,12 @@ pack_info_term(autoload(boolean)).		% Default installation options
 error:has_type(version, Version) :-
 	atom(Version),
 	version_data(Version, _Data).
-error:has_type(email, Email) :-
-	atom(Email),
-	sub_atom(Email, _, _, _, @), !.
+error:has_type(email_or_url, Address) :-
+	atom(Address),
+	(   sub_atom(Address, _, _, _, @)
+	->  true
+	;   uri_is_global(Address)
+	).
 
 version_data(Version, version(Data)) :-
 	atomic_list_concat(Parts, '.', Version),
@@ -340,8 +343,8 @@ search_info(download(_)).
 
 pack_install(Archive) :-		% Install from .tgz/.zip/... file
 	atom(Archive),
-	exists_file(Archive),
-	pack_version_file(Pack, _Version, Archive), !,
+	exists_file(Archive), !,
+	pack_version_file(Pack, _Version, Archive),
 	uri_file_name(FileURL, Archive),
 	pack_install(Pack, [url(FileURL)]).
 pack_install(URL) :-			% Install from URL
@@ -486,7 +489,8 @@ pack_archive_info(Archive, Pack, Info, Strip) :-
 	    archive_open_entry(Handle, Stream),
 	    read_stream_to_terms(Stream, Info),
 	    close(Stream)), !,
-	must_be(ground, Info).
+	must_be(ground, Info),
+	maplist(valid_info_term, Info).
 pack_archive_info(_, _, _, _) :-
 	existence_error(pack_file, 'pack.pl').
 
@@ -729,13 +733,23 @@ confirm_remove(Pack, Deps, Delete) :-
 		 *******************************/
 
 %%	pack_version_file(-Pack, -Version, +File) is semidet.
+%
+%	True if File is the  name  of  a   file  or  URL  of a file that
+%	contains Pack at Version. File must   have  an extension and the
+%	basename  must  be  of   the    form   <pack>-<n>{.<m>}*.  E.g.,
+%	=|mypack-1.5|=.
 
 pack_version_file(Pack, Version, Path) :-
 	atom(Path),
 	file_base_name(Path, File),
-	file_name_extension(Base, _, File),
+	file_name_extension(Base, Ext, File),
+	Ext \== '',
 	atom_codes(Base, Codes),
-	phrase(pack_version(Pack, Version), Codes).
+	(   phrase(pack_version(Pack, Version), Codes)
+	->  true
+	;   print_message(error, pack(invalid_name(File))),
+	    fail
+	).
 
 :- public
 	atom_version/2.
@@ -1330,6 +1344,11 @@ message(directory_exists(Dir)) -->
 	].
 message(already_installed(Pack)) -->
 	[ 'Pack `~w'' is already installed. Package info:'-[Pack] ].
+message(invalid_name(File)) -->
+	[ '~w: A package archive must be named <pack>-<version>.<ext>'-[File] ].
+message(multi_extension(File)) -->
+	[ '~w: Multiple extensions are not allowed.'-[File], nl,
+	  'E.g., use .tgz rather than .tar.gz'-[] ].
 message(no_packages_installed) -->
 	{ setting(server, ServerBase) },
 	[ 'There are no extra packages installed.', nl,
