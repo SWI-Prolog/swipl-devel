@@ -1594,6 +1594,10 @@ Raise \const{instantiation_error}.  \arg{Culprit} is ignored, but
 should be bound to the term that is not a variable.  See
 instantiation_error/1.
 
+    \cfunction{int}{PL_uninstantiation_error}{term_t culprit}
+Raise \exam{uninstantiation_error(culprit)}.  This should be called if
+an argument that must be unbound at entry is bound to \arg{culprit}.
+
     \cfunction{int}{PL_representation_error}{const char *resource}
 Raise \exam{representation_error(resource)}. See representation_error/1.
 

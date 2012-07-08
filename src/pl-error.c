@@ -662,6 +662,11 @@ PL_instantiation_error(term_t actual)
 }
 
 int
+PL_uninstantiation_error(term_t actual)
+{ return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 0, actual);
+}
+
+int
 PL_representation_error(const char *resource)
 { atom_t r = PL_new_atom(resource);
   int rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, r);
