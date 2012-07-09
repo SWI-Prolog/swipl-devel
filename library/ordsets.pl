@@ -76,11 +76,11 @@ implies it can handle  all  Prolog   terms,  including  variables.  Note
 however, that the ordering is not stable  if   a  term inside the set is
 further instantiated. Also  note  that   variable  ordering  changes  if
 variables in the set are unified with each   other  or a variable in the
-set is unified to a variable that is `older' than the newest variable in
-the set. In practice, this implies that   it is allowed to use member(X,
-OrdSet) on an ordered set that holds  variables   only  if  X is a fresh
-variable. In other cases one should cease  using it as an ordset because
-the order it relies on may have been changed.
+set is unified with a variable that  is `older' than the newest variable
+in the set. In  practice,  this  implies   that  it  is  allowed  to use
+member(X, OrdSet) on an ordered set that holds  variables only if X is a
+fresh variable. In other cases one should   cease  using it as an ordset
+because the order it relies on may have been changed.
 */
 
 %%	is_ordset(@Term) is semidet.
