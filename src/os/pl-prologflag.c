@@ -1051,9 +1051,10 @@ initPrologFlags(void)
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
   setPrologFlag("warn_override_implicit_import", FT_BOOL, TRUE,
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
-  setPrologFlag("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
-  setPrologFlag("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
-  setPrologFlag("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);
+  setPrologFlag("c_cc",	     FT_ATOM, C_CC);
+  setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
+  setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
+  setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif

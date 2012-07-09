@@ -1015,17 +1015,19 @@ Current break-level. The initial toplevel (started with
 \cmdlineoption{-t}) has value 0. See break/0. This flag is absent from
 threads that are not running a toplevel loop.
 
-    \prologflagitem{c_cc}{atom}{r}
+    \prologflagitem{c_cc}{atom}{rw}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
 or cc.  See \secref{plld}.
 
-    \prologflagitem{c_ldflags}{atom}{r}
-Special linker flags passed to link SWI-Prolog.  See \secref{plld}.
+    \prologflagitem{c_cflags}{atom}{rw}
+CFLAGS used to compile SWI-Prolog.  See \secref{plld}.
 
-    \prologflagitem{c_libs}{atom}{r}
-Libraries passed to the C-linker when SWI-Prolog was linked.  May be used
-to determine the libraries needed to create statically linked extensions
-for SWI-Prolog.  See \secref{plld}.
+    \prologflagitem{c_ldflags}{atom}{rw}
+LDFLAGS used to link SWI-Prolog. See \secref{plld}.
+
+    \prologflagitem{c_libs}{atom}{rw}
+Libraries needed to link extensions to SWI-Prolog.  Typically empty on
+ELF systems and \const{-lswipl} on COFF based systems. See \secref{plld}.
 
     \prologflagitem{char_conversion}{bool}{rw}
 Determines whether character-conversion takes place while reading terms.

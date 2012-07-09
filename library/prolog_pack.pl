@@ -35,6 +35,8 @@
 	    pack_install/1,		% +Name
 	    pack_install/2,		% +Name, +Options
 	    pack_upgrade/1,		% +Name
+	    pack_rebuild/1,		% +Name
+	    pack_rebuild/0,		% All packages
 	    pack_remove/1		% +Name
 	  ]).
 :- use_module(library(apply)).
@@ -479,6 +481,11 @@ pack_install(Name, PackDir, Options) :-
 pack_install_from_local(Source, PackTopDir, Name, Options) :-
 	exists_directory(Source), !,
 	directory_file_path(PackTopDir, Name, PackDir),
+	(   exists_directory(PackDir)
+	->  confirm(remove_existing_pack(PackDir), yes, []),
+	    delete_directory_and_contents(PackDir)
+	;   true
+	),
 	copy_directory(Source, PackDir),
 	pack_post_install(PackDir, Options).
 pack_install_from_local(Source, PackTopDir, Name, Options) :-
@@ -676,8 +683,124 @@ download_scheme(http).
 %	  - Attach the package
 
 pack_post_install(PackDir, Options) :-
+	post_install_foreign(PackDir, Options),
 	post_install_autoload(PackDir, Options),
 	'$pack_attach'(PackDir).
+
+%%	pack_rebuild(+Pack) is det.
+%
+%	Rebuilt possible foreign components of Pack.
+
+pack_rebuild(Pack) :-
+	'$pack':pack(Pack, BaseDir), !,
+	catch(pack_make(BaseDir, [distclean], []), E,
+	      print_message(warning, E)),
+	post_install_foreign(BaseDir, []).
+pack_rebuild(Pack) :-
+	existence_error(pack, Pack).
+
+%%	pack_rebuild is det.
+%
+%	Rebuild foreign components of all packages.
+
+pack_rebuild :-
+	forall(current_pack(Pack),
+	       pack_rebuild(Pack)).
+
+
+%%	post_install_foreign(+PackDir, +Options) is det.
+%
+%	Install foreign parts of the package.
+
+post_install_foreign(PackDir, Options) :-
+	configure_foreign(PackDir, Options),
+	make_foreign(PackDir, Options).
+
+%%	configure_foreign(+PackDir, +Options) is det.
+%
+%	Run configure if it exists.  If =|configure.in|= exists, first
+%	run =autoheader= and =autoconf=
+
+configure_foreign(PackDir, Options) :-
+	make_configure(PackDir, Options),
+	directory_file_path(PackDir, configure, Configure),
+	exists_file(Configure), !,
+	build_environment(BuildEnv),
+	run_process(path(bash), [Configure],
+		    [ env(BuildEnv)
+		    ]).
+configure_foreign(_, _).
+
+make_configure(PackDir, _Options) :-
+	directory_file_path(PackDir, 'configure', Configure),
+	exists_file(Configure), !.
+make_configure(PackDir, _Options) :-
+	directory_file_path(PackDir, 'configure.in', ConfigureIn),
+	exists_file(ConfigureIn), !,
+	run_process(path(autoheader), [], [directory(PackDir)]),
+	run_process(path(autoconf),   [], [directory(PackDir)]).
+make_configure(_, _).
+
+%%	make_foreign(+PackDir, +Options) is det.
+%
+%	Generate the foreign executable.
+
+make_foreign(PackDir, Options) :-
+	pack_make(PackDir, [all, check, install], Options).
+
+pack_make(PackDir, Targets, _Options) :-
+	directory_file_path(PackDir, 'Makefile', Makefile),
+	exists_file(Makefile), !,
+	build_environment(BuildEnv),
+	ProcessOptions = [ directory(PackDir), env(BuildEnv) ],
+	forall(member(Target, Targets),
+	       run_process(path(make), [Target], ProcessOptions)).
+pack_make(_, _, _).
+
+build_environment(Env) :-
+	findall(Name=Value, build_environment(Name, Value), Env).
+
+%%	build_environment(-Name, -Value) is nondet.
+%
+%	True if Name=Value must appear in   the environment for building
+%	foreign extensions.
+
+build_environment('PATH', Value) :-
+	getenv('PATH', PATH),
+	current_prolog_flag(executable, Exe),
+	file_directory_name(Exe, ExeDir),
+	prolog_to_os_filename(ExeDir, OsExeDir),
+	(   current_prolog_flag(windows, true)
+	->  Sep = (;)
+	;   Sep = (:)
+	),
+	atomic_list_concat([OsExeDir, Sep, PATH], Value).
+build_environment('SWIPL', Value) :-
+	current_prolog_flag(executable, Value).
+build_environment('SWIHOME', Value) :-
+	current_prolog_flag(home, Value).
+build_environment('SWIARCH', Value) :-
+	current_prolog_flag(arch, Value).
+build_environment('PACKSODIR', Value) :-
+	current_prolog_flag(arch, Arch),
+	atom_concat('lib/', Arch, Value).
+build_environment('SWISOLIB', Value) :-
+	current_prolog_flag(c_libs, Value).
+build_environment('SWILIB', '-lswipl').
+build_environment('CC', Value) :-
+	current_prolog_flag(c_cc, Value).
+build_environment('LD', Value) :-
+	current_prolog_flag(c_cc, Value).
+build_environment('CFLAGS', Value) :-
+	current_prolog_flag(c_cflags, Value0),
+	current_prolog_flag(home, Home),
+	atomic_list_concat([Value0, ' -I', Home, '/include'], Value).
+build_environment('LDSOFLAGS', Value) :-
+	current_prolog_flag(c_ldflags, LDFlags),
+	atom_concat(LDFlags, ' -shared', Value).
+build_environment('SOEXT', Value) :-
+	current_prolog_flag(shared_object_extension, Value).
+
 
 %%	post_install_autoload(+PackDir, +Options)
 %
@@ -1209,22 +1332,30 @@ version_pack(pack(VersionAtom,URLs,SubDeps),
 %	  with level =informational=.
 %	  * error(-Error)
 %	  As output(Out), but messages are printed at level =error=.
+%	  * env(+Environment)
+%	  Environment passed to the new process.
 
 run_process(Executable, Argv, Options) :-
 	option(directory(Dir), Options, .),
-	setup_call_cleanup(process_create(Executable, Argv,
-                                          [ stdout(pipe(Out)),
-                                            stderr(pipe(Error)),
-                                            process(PID),
-                                            cwd(Dir)
-                                          ]),
-                           (   read_stream_to_codes(Out, OutCodes, []),
-			       read_stream_to_codes(Error, ErrorCodes, []),
-                               process_wait(PID, Status)
-                           ),
-			   (   close(Out),
-			       close(Error)
-			   )),
+	(   option(env(Env), Options)
+	->  Extra = [env(Env)]
+	;   Extra = []
+	),
+	setup_call_cleanup(
+	    process_create(Executable, Argv,
+			   [ stdout(pipe(Out)),
+			     stderr(pipe(Error)),
+			     process(PID),
+			     cwd(Dir)
+			   | Extra
+			   ]),
+	    (   read_stream_to_codes(Out, OutCodes, []),
+		read_stream_to_codes(Error, ErrorCodes, []),
+		process_wait(PID, Status)
+	    ),
+	    (   close(Out),
+		close(Error)
+	    )),
 	print_error(ErrorCodes, Options),
 	print_output(OutCodes, Options),
 	(   Status == exit(0)
@@ -1407,6 +1538,8 @@ message(depends(Pack, Deps)) -->
 	pack_list(Deps).
 message(remove(PackDir)) -->
 	[ 'Removing ~q and contents'-[PackDir] ].
+message(remove_existing_pack(PackDir)) -->
+	[ 'Remove old installation in ~q'-[PackDir] ].
 message(install_from(Pack, Version, URL)) -->
 	[ 'Install ~w@~w from ~w'-[Pack, Version, URL] ].
 message(install_downloaded(File)) -->
