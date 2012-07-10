@@ -72,6 +72,9 @@ attach_packs/0 that makes installed packages available as libaries.
 :- meta_predicate
 	run_process_output(+, +, 1, +).
 
+:- multifile
+	environment/2.				% Name, Value
+
 :- dynamic
 	pack_requires/2,			% Pack, Requirement
 	pack_provides_db/2.			% Pack, Provided
@@ -705,7 +708,9 @@ pack_rebuild(Pack) :-
 
 pack_rebuild :-
 	forall(current_pack(Pack),
-	       pack_rebuild(Pack)).
+	       ( print_message(informational, pack(rebuild(Pack))),
+		 pack_rebuild(Pack)
+	       )).
 
 
 %%	post_install_foreign(+PackDir, +Options) is det.
@@ -758,14 +763,39 @@ pack_make(PackDir, Targets, _Options) :-
 pack_make(_, _, _).
 
 build_environment(Env) :-
-	findall(Name=Value, build_environment(Name, Value), Env).
+	findall(Name=Value, environment(Name, Value), UserEnv),
+	findall(Name=Value,
+		( def_environment(Name, Value),
+		  \+ memberchk(Name=_, UserEnv)
+		),
+		DefEnv),
+	append(UserEnv, DefEnv, Env).
 
-%%	build_environment(-Name, -Value) is nondet.
+
+%%	environment(-Name, -Value) is nondet.
+%
+%	Multifile hook to extend the   process  environment for building
+%	foreign extensions to SWI-Prolog. A value  provided by this hook
+%	overrules defaults provided by def_environment/2. In addition to
+%	changing the environment, this may be   used  to pass additional
+%	values to the environment, as in:
+%
+%	  ==
+%	  prolog_pack:environment('USER', User) :-
+%	      getenv('USER', User).
+%	  ==
+%
+%	@param Name is an atom denoting a valid variable name
+%	@param Value is either an atom or number representing the
+%	       value of the variable.
+
+
+%%	def_environment(-Name, -Value) is nondet.
 %
 %	True if Name=Value must appear in   the environment for building
 %	foreign extensions.
 
-build_environment('PATH', Value) :-
+def_environment('PATH', Value) :-
 	getenv('PATH', PATH),
 	current_prolog_flag(executable, Exe),
 	file_directory_name(Exe, ExeDir),
@@ -775,30 +805,40 @@ build_environment('PATH', Value) :-
 	;   Sep = (:)
 	),
 	atomic_list_concat([OsExeDir, Sep, PATH], Value).
-build_environment('SWIPL', Value) :-
+def_environment('SWIPL', Value) :-
 	current_prolog_flag(executable, Value).
-build_environment('SWIHOME', Value) :-
+def_environment('SWIPLVERSION', Value) :-
+	current_prolog_flag(version, Value).
+def_environment('SWIHOME', Value) :-
 	current_prolog_flag(home, Value).
-build_environment('SWIARCH', Value) :-
+def_environment('SWIARCH', Value) :-
 	current_prolog_flag(arch, Value).
-build_environment('PACKSODIR', Value) :-
+def_environment('PACKSODIR', Value) :-
 	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, Value).
-build_environment('SWISOLIB', Value) :-
+def_environment('SWISOLIB', Value) :-
 	current_prolog_flag(c_libs, Value).
-build_environment('SWILIB', '-lswipl').
-build_environment('CC', Value) :-
+def_environment('SWILIB', '-lswipl').
+def_environment('CC', Value) :-
 	current_prolog_flag(c_cc, Value).
-build_environment('LD', Value) :-
+def_environment('LD', Value) :-
 	current_prolog_flag(c_cc, Value).
-build_environment('CFLAGS', Value) :-
+def_environment('CFLAGS', Value) :-
+	(   getenv('CFLAGS', SystemFlags)
+	->  Extra = [' ', SystemFlags]
+	;   Extra = []
+	),
 	current_prolog_flag(c_cflags, Value0),
 	current_prolog_flag(home, Home),
-	atomic_list_concat([Value0, ' -I', Home, '/include'], Value).
-build_environment('LDSOFLAGS', Value) :-
+	atomic_list_concat([Value0, ' -I', Home, '/include' | Extra], Value).
+def_environment('LDSOFLAGS', Value) :-
+	(   getenv('LDFLAGS', SystemFlags)
+	->  Extra = [' ', SystemFlags]
+	;   Extra = []
+	),
 	current_prolog_flag(c_ldflags, LDFlags),
-	atom_concat(LDFlags, ' -shared', Value).
-build_environment('SOEXT', Value) :-
+	atomic_list_concat([LDFlags, ' -shared' | Extra], Value).
+def_environment('SOEXT', Value) :-
 	current_prolog_flag(shared_object_extension, Value).
 
 
@@ -1550,6 +1590,8 @@ message(inquiry(Server)) -->
 	[ 'Verify package status (anonymously)', nl,
 	  '\tat "~w"'-[Server]
 	].
+message(rebuild(Pack)) -->
+	[ 'Checking pack "~w" for rebuild ...'-[Pack] ].
 message(upgrade(Pack, From, To)) -->
 	[ 'Upgrade "~w" from '-[Pack] ],
 	msg_version(From), [' to '-[]], msg_version(To).
@@ -1574,7 +1616,9 @@ message(cannot_create_dir(Alias)) -->
 		absolute_file_name(Alias, PackDir, [solutions(all)]),
 		PackDirs)
 	},
-	[ 'Cannot find a place to create a package directory.  Considered:' ],
+	[ 'Cannot find a place to create a package directory.'-[],
+	  'Considered:'-[]
+	],
 	candidate_dirs(PackDirs).
 
 candidate_dirs([]) --> [].
