@@ -2522,13 +2522,6 @@ free_thread_message(thread_message *msg)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 queue_message() adds a message to a message queue.  The caller must hold
 the queue-mutex.
-
-(*) See also markAtomsThreads(). There  is   a  critical window where an
-atom is not reachable if some  other   thread  is executing AGC. The AGC
-thread  may  already  have  swept   this    queue.   If   we  now  leave
-queue_message(), the atom may no longer  be reachable. Therefore we lock
-and unlock L_AGC before leaving. Note that   locking  the whole call can
-deadlock if we are waiting for the queue to drain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2744,6 +2737,15 @@ called with queue->mutex locked.  It returns one of
 	  Got timeout while waiting
 	* MSG_WAIT_DESTROYED
 	  Queue was destroyed while waiting
+
+(*) We need to lock because AGC asks us  to mark our atoms and then lets
+the thread continue. The thread may pick   a  message containing an atom
+from the queue, which now has not  been   marked  by us and is no longer
+part of the queue, so it isn't marked in the queue either.
+
+Note that we only need  this  for   queues  that  are  not associated to
+threads. Those associated with a thread  mark   both  the stacks and the
+queue in one pass, marking the atoms in either.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2784,6 +2786,8 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       if ( rc )
       { DEBUG(MSG_THREAD, Sdprintf("%d: match\n", PL_thread_self()));
 
+	if ( queue->type == QTYPE_QUEUE )
+	  PL_LOCK(L_AGC);		/* See (*) */
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
@@ -2791,7 +2795,8 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
-	MemoryBarrier();
+	if ( queue->type == QTYPE_QUEUE )
+	  PL_UNLOCK(L_AGC);
 	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
