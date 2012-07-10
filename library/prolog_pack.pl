@@ -820,9 +820,15 @@ def_environment('SWISOLIB', Value) :-
 	current_prolog_flag(c_libs, Value).
 def_environment('SWILIB', '-lswipl').
 def_environment('CC', Value) :-
-	current_prolog_flag(c_cc, Value).
+	(   getenv('CC', value)
+	->  true
+	;   current_prolog_flag(c_cc, Value)
+	).
 def_environment('LD', Value) :-
-	current_prolog_flag(c_cc, Value).
+	(   getenv('LD', Value)
+	->  true
+	;   current_prolog_flag(c_cc, Value)
+	).
 def_environment('CFLAGS', Value) :-
 	(   getenv('CFLAGS', SystemFlags)
 	->  Extra = [' ', SystemFlags]
