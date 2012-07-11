@@ -1075,7 +1075,9 @@ query_pack_server(Query, Result) :-
 	    http_open(Server, In,
 		      [ post(codes(text/'x-prolog', Data))
 		      ]),
-	    read(In, Result),
+	    ( set_stream(In, encoding(utf8)),
+	      read(In, Result)
+	    ),
 	    close(In)),
 	print_message(informational, pack(server_reply(Result))).
 
