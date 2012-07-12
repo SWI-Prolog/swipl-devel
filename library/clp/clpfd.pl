@@ -3647,11 +3647,11 @@ run_propagator(scalar_product_eq(Cs0,Vs0,P0), MState) :-
 
 % X + Y = Z
 run_propagator(pplus(X,Y,Z), MState) :-
-        (   nonvar(X) ->
+        (   integer(X) ->
             (   X =:= 0 -> kill(MState), Y = Z
             ;   Y == Z -> kill(MState), X =:= 0
-            ;   nonvar(Y) -> kill(MState), Z is X + Y
-            ;   nonvar(Z) -> kill(MState), Y is Z - X
+            ;   integer(Y) -> kill(MState), Z is X + Y
+            ;   integer(Z) -> kill(MState), Y is Z - X
             ;   fd_get(Z, ZD, ZPs),
                 fd_get(Y, YD, _),
                 domain_shift(YD, X, Shifted_YD),
@@ -3665,8 +3665,8 @@ run_propagator(pplus(X,Y,Z), MState) :-
                 ;   true
                 )
             )
-        ;   nonvar(Y) -> run_propagator(pplus(Y,X,Z), MState)
-        ;   nonvar(Z) ->
+        ;   integer(Y) -> run_propagator(pplus(Y,X,Z), MState)
+        ;   integer(Z) ->
             (   X == Y -> kill(MState), even(Z), X is Z // 2
             ;   fd_get(X, XD, _),
                 fd_get(Y, YD, YPs),
@@ -3709,11 +3709,11 @@ run_propagator(pplus(X,Y,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(ptimes(X,Y,Z), MState) :-
-        (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Z is X * Y
+        (   integer(X) ->
+            (   integer(Y) -> kill(MState), Z is X * Y
             ;   X =:= 0 -> kill(MState), Z = 0
             ;   X =:= 1 -> kill(MState), Z = Y
-            ;   nonvar(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
+            ;   integer(Z) -> kill(MState), 0 =:= Z mod X, Y is Z // X
             ;   (   Y == Z -> kill(MState), Y = 0
                 ;   fd_get(Y, YD, _),
                     fd_get(Z, ZD, ZPs),
@@ -3728,8 +3728,8 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                     )
                 )
             )
-        ;   nonvar(Y) -> run_propagator(ptimes(Y,X,Z), MState)
-        ;   nonvar(Z) ->
+        ;   integer(Y) -> run_propagator(ptimes(Y,X,Z), MState)
+        ;   integer(Z) ->
             (   X == Y ->
                 kill(MState),
                 integer_kth_root(Z, 2, R),
@@ -3742,7 +3742,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
                     min_max_factor(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
-                ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
+                ;   (   Y =\= 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
                     )
                 )
