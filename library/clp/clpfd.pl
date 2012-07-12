@@ -3780,10 +3780,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 % X / Y = Z
 
 run_propagator(pdiv(X,Y,Z), MState) :-
-        (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X // Y
+        (   integer(X) ->
+            (   integer(Y) -> kill(MState), Y =\= 0, Z is X // Y
             ;   fd_get(Y, YD, YL, YU, YPs),
-                (   nonvar(Z) ->
+                (   integer(Z) ->
                     (   Z =:= 0 ->
                         NYL is -abs(X) - 1,
                         NYU is abs(X) + 1,
@@ -3820,12 +3820,12 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     )
                 )
             )
-        ;   nonvar(Y) ->
+        ;   integer(Y) ->
             Y =\= 0,
             (   Y =:= 1 -> kill(MState), X = Z
             ;   Y =:= -1 -> kill(MState), Z #= -X
             ;   fd_get(X, XD, XL, XU, XPs),
-                (   nonvar(Z) ->
+                (   integer(Z) ->
                     kill(MState),
                     (   sign(Z) =:= sign(Y) ->
                         NXL cis max(n(Z)*n(Y), XL),
@@ -3849,7 +3849,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     )
                 )
             )
-        ;   nonvar(Z) ->
+        ;   integer(Z) ->
             fd_get(X, XD, XL, XU, XPs),
             fd_get(Y, YD, YL, YU, YPs),
             (   YL cis_geq n(0), XL cis_geq n(0) ->
