@@ -84,6 +84,10 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #define setenv _xos_setenv
 #define fopen(p, m) _xos_fopen(p, m)
 
+#ifndef HAVE_SETENV
+#define HAVE_SETENV 1
+#endif
+
 #endif /*_UXNT_KERNEL*/
 
 #ifndef F_OK

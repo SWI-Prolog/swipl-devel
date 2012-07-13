@@ -144,6 +144,21 @@ utf8towcs(wchar_t *dest, const char *src, size_t len)
 }
 
 
+static size_t
+utf8_strlen(const char *s, size_t len)
+{ const char *e = &s[len];
+  unsigned int l = 0;
+
+  while(s<e)
+  { int chr;
+
+    s = utf8_get_char(s, &chr);
+    l++;
+  }
+
+  return l;
+}
+
 
 
 		 /*******************************
@@ -875,16 +890,27 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
 int
 _xos_setenv(const char *name, char *value, int overwrite)
 { TCHAR nm[PATH_MAX];
-  TCHAR val[PATH_MAX];
+  TCHAR buf[PATH_MAX];
+  TCHAR *val = buf;
+  int rc;
 
   if ( !utf8towcs(nm, name, PATH_MAX) )
     return -1;
   if ( !overwrite && GetEnvironmentVariable(nm, NULL, 0) > 0 )
     return 0;
   if ( !utf8towcs(val, value, PATH_MAX) )
-    return -1;
+  { size_t wlen = utf8_strlen(value, strlen(value)) + 1;
 
-  if ( SetEnvironmentVariable(nm, val) )
+    if ( (val = malloc(wlen*sizeof(TCHAR))) == NULL )
+      return -1;
+    utf8towcs(val, value, wlen);
+  }
+
+  rc = SetEnvironmentVariable(nm, val);
+  if ( val != buf )
+    free(val);
+
+  if ( rc )
     return 0;
 
   return -1;				/* TBD: convert error */
