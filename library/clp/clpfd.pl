@@ -4015,7 +4015,7 @@ run_propagator(prem(X,Y,Z), MState) :-
                 (   fd_get(Z, ZD, ZPs) ->
                     domains_intersection(ZD, from_to(n(ZL), n(ZU)), ZD1),
                     fd_put(Z, ZD1, ZPs)
-                ;   true
+                ;   ZD1 = from_to(n(Z), n(Z))
                 ),
                 (   fd_get(X, XD, _), domain_infimum(XD, n(Min)) ->
                     Z1 is Min rem Y,
