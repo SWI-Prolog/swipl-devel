@@ -69,6 +69,12 @@ on the GMP library.
 @see		Built-in function random/1: A is random(10)
 */
 
+check_gmp :-
+	current_arithmetic_function(random_float), !.
+check_gmp :-
+	print_message(warning, random(no_gmp)).
+
+:- initialization check_gmp.
 
 
 		 /*******************************
@@ -355,3 +361,11 @@ key_random([H|T0], [K-H|T]) :-
 partial_list(List) :-
 	'$skip_list'(_, List, Tail),
 	var(Tail).
+
+:- multifile
+	prolog:message//1.
+
+prolog:message(random(no_gmp)) -->
+	[ 'This version of SWI-Prolog is not compiled with GMP support.'-[], nl,
+	  'Floating point random operations are not supported.'-[]
+	].
