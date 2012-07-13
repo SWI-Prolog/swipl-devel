@@ -3742,7 +3742,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
                     min_max_factor(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
-                ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
+                ;   (   Y =\= 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
                     )
                 )
