@@ -422,49 +422,76 @@ member_eq(E, [H|T]) :-
 		 *******************************/
 
 :- thread_local
-	'$include_code'/1.
+	'$include_code'/3.
 
 '$including' :-
-	'$include_code'(X), !,
+	'$include_code'(X, _, _), !,
 	X == true.
 '$including'.
 
 cond_compilation((:- if(G)), []) :-
+	source_location(File, Line),
 	(   '$including'
 	->  (   catch('$eval_if'(G), E, (print_message(error, E), fail))
-	    ->  asserta('$include_code'(true))
-	    ;   asserta('$include_code'(false))
+	    ->  asserta('$include_code'(true, File, Line))
+	    ;   asserta('$include_code'(false, File, Line))
 	    )
-	;   asserta('$include_code'(else_false))
+	;   asserta('$include_code'(else_false, File, Line))
 	).
 cond_compilation((:- elif(G)), []) :-
-	(   retract('$include_code'(Old))
-	->  (   Old == true
-	    ->  asserta('$include_code'(else_false))
+	source_location(File, Line),
+	(   clause('$include_code'(Old, OF, _), _, Ref)
+	->  same_source(File, OF, elif),
+	    erase(Ref),
+	    (   Old == true
+	    ->  asserta('$include_code'(else_false, File, Line))
 	    ;   Old == false,
 		catch('$eval_if'(G), E, (print_message(error, E), fail))
-	    ->  asserta('$include_code'(true))
-	    ;	asserta('$include_code'(Old))
+	    ->  asserta('$include_code'(true, File, Line))
+	    ;	asserta('$include_code'(Old, File, Line))
 	    )
-	;    throw(error(context_error(no_if), _))
+	;   throw(error(conditional_compilation_error(no_if, elif), _))
 	).
 cond_compilation((:- else), []) :-
-	(   retract('$include_code'(X))
-	->  (   X == true
+	source_location(File, Line),
+	(   clause('$include_code'(X, OF, _), _, Ref)
+	->  same_source(File, OF, else),
+	    erase(Ref),
+	    (   X == true
 	    ->  X2 = false
 	    ;   X == false
 	    ->	X2 = true
 	    ;	X2 = X
 	    ),
-	    asserta('$include_code'(X2))
-	;   throw(error(context_error(no_if), _))
+	    asserta('$include_code'(X2, File, Line))
+	;   throw(error(conditional_compilation_error(no_if, else), _))
 	).
-cond_compilation(end_of_file, end_of_file) :- !. % TBD: Check completeness
-cond_compilation((:- endif), []) :-
-	retract('$include_code'(_)), !.
-
+cond_compilation(end_of_file, end_of_file) :- !, % TBD: Check completeness
+	source_location(File, _),
+	(   clause('$include_code'(_, OF, OL), _)
+	->  (   File == OF
+	    ->	throw(error(conditional_compilation_error(
+				unterminated,OF:OL), _))
+	    ;   true
+	    )
+	;   true
+	).
+cond_compilation((:- endif), []) :- !,
+	source_location(File, _),
+	(   (   clause('$include_code'(_, OF, _), _, Ref)
+	    ->  same_source(File, OF, endif),
+		erase(Ref)
+	    )
+	->  true
+	;   throw(error(conditional_compilation_error(no_if, endif), _))
+	).
 cond_compilation(_, []) :-
 	\+ '$including'.
+
+same_source(File, File, _) :- !.
+same_source(_,    _,    Op) :-
+	throw(error(conditional_compilation_error(no_if, Op), _)).
+
 
 '$eval_if'(G) :-
 	expand_goal(G, G2),

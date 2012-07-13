@@ -281,6 +281,15 @@ swi_message(format_argument_type(Fmt, Arg)) -->
 	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
 swi_message(format(Msg)) -->
 	[ 'Format error: ~w'-[Msg] ].
+swi_message(conditional_compilation_error(unterminated, Where)) -->
+	[ 'Unterminated conditional compilation from '-[] ],
+	cond_location(Where).
+swi_message(conditional_compilation_error(no_if, What)) -->
+	[ ':- ~w without :- if'-[What] ].
+
+cond_location(File:Line) -->
+	{ file_base_name(File, Base) },
+	[ '~w:~d'-[Base, Line] ].
 
 swi_location(X) -->
 	{ var(X)
