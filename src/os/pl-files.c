@@ -45,6 +45,7 @@
 General file operations and binding to Prolog
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef __WINDOWS__
 static void
 set_posix_error(int win_error)
 { int error = 0;
@@ -58,7 +59,7 @@ set_posix_error(int win_error)
 
   errno = error;
 }
-
+#endif /*__WINDOWS__*/
 
 
 		 /*******************************
@@ -121,7 +122,7 @@ LastModifiedFile(const char *name, double *tp)
   char tmp[MAXPATHLEN];
   statstruct buf;
 
-  if ( statfunc(OsPath(file, tmp), &buf) < 0 )
+  if ( statfunc(OsPath(name, tmp), &buf) < 0 )
     return FALSE;
 
   *tp = (double)buf.st_mtime;
