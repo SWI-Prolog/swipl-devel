@@ -156,8 +156,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 63			/* load all versions later >= X */
-#define VERSION 63			/* save version number */
+#define LOADVERSION 64			/* load all versions later >= X */
+#define VERSION 64			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -710,12 +710,12 @@ loadXRc(wic_state *state, int c ARG_LD)
       { case 'u':
 	case 's':
 	{ atom_t name   = loadXR(state);
-	  word   time   = getLong(fd);
+	  double time   = getFloat(fd);
 	  const char *s = stringAtom(name);
 	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(state, s), TRUE);
 
-	  if ( !sf->time )
-	  { sf->time   = time;
+	  if ( sf->mtime == 0.0 )
+	  { sf->mtime   = time;
 	    sf->system = (c == 's' ? TRUE : FALSE);
 	  }
 	  sf->count++;
@@ -1297,7 +1297,7 @@ static bool
 qlfLoadSource(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
   char *str = getString(fd, NULL);
-  intptr_t time = getLong(fd);
+  double time = getFloat(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
@@ -1307,7 +1307,7 @@ qlfLoadSource(wic_state *state)
 	     Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
 
   state->currentSource = lookupSourceFile(fname, TRUE);
-  state->currentSource->time = time;
+  state->currentSource->mtime = time;
   state->currentSource->system = issys;
   if ( GD->bootsession )		/* (**) */
     state->currentSource->count++;
@@ -1882,7 +1882,7 @@ saveXRSourceFile(wic_state *state, SourceFile f ARG_LD)
 		      state->savedXRTableId, stringAtom(f->name)));
     Sputc(f->system ? 's' : 'u', fd);
     saveXR(state, f->name);
-    putNum(f->time, fd);
+    putFloat(f->mtime, fd);
   } else
   { DEBUG(3, Sdprintf("XR(%d) = <no file>\n", state->savedXRTableId));
     Sputc('-', fd);
@@ -2612,7 +2612,7 @@ qlfSaveSource(wic_state *state, SourceFile f)
   sourceMark(state);
   Sputc('F', fd);
   putString(a->name, a->length, fd);
-  putNum(f->time, fd);
+  putFloat(f->mtime, fd);
   Sputc(f->system ? 's' : 'u', fd);
 
   state->currentSource = f;
@@ -3081,7 +3081,6 @@ compileFile(wic_state *state, const char *file)
   term_t f = PL_new_term_ref();
   SourceFile sf;
   atom_t nf;
-  double ftime;
 
   DEBUG(1, Sdprintf("Boot compilation of %s\n", file));
   if ( !(path = AbsoluteFile(file, tmp)) )
@@ -3096,9 +3095,7 @@ compileFile(wic_state *state, const char *file)
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);
-  if ( LastModifiedFile(path, &ftime) )
-    sf->time = ftime;
-  else
+  if ( !LastModifiedFile(path, &sf->mtime) )
     Sdprintf("Failed to get time from %s\n", path);
   qlfStartFile(state, sf);
 

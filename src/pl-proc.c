@@ -3012,7 +3012,7 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
       continue;
 
     if ( PL_unify_atom(file, f->name) &&
-	 unifyTime(time, f->time) &&
+	 PL_unify_float(time, f->mtime) &&
 	 PL_unify_atom(type, f->system ? ATOM_system : ATOM_user) )
     { PL_close_foreign_frame(fid);
       ForeignRedoInt(index+1);
@@ -3226,7 +3226,7 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
        PL_get_float_ex(modified, &time) )
   { SourceFile f = lookupSourceFile(name, TRUE);
 
-    f->time = (time_t)time;
+    f->mtime = time;
     startConsult(f);
 
     return TRUE;
