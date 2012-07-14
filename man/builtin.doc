@@ -6770,6 +6770,19 @@ If \arg{Mode} is \const{write} or \const{append}, this predicate also succeeds
 if the file does not exist and the user has write access to the
 directory of the specified location.
 
+On Windows, testing for \const{read} access is the same as testing
+existence. Testing for \const{write} access merely tests that the
+read-only flag is not set. I.e., access_file/2 does not take the
+security context into account and a subsequent open/3 call may still
+raise an exception, even if the file attributes have not changed in the
+meanwhile.\footnote{Windows cannot check rights without opening the file
+in the desired mode. Opening might create unwanted files, introduce
+unwanted sharing violations and update the file time stamps. The Windows
+AccessCheck() function in theory can provide this information, but the
+user has to mimick exactly the same security checking steps as
+implemented by CreateFile().} Portable applications must use catch/3 to
+deal with errors from open/3.
+
     \predicate{exists_file}{1}{+File}
 True if \arg{File} exists and is a regular file. This does not
 imply the user has read and/or write permission for the file.
