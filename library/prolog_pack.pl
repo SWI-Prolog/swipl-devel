@@ -718,6 +718,7 @@ pack_rebuild :-
 %	Install foreign parts of the package.
 
 post_install_foreign(PackDir, Options) :-
+	setup_path,
 	configure_foreign(PackDir, Options),
 	make_foreign(PackDir, Options).
 
@@ -817,7 +818,7 @@ def_environment('PACKSODIR', Value) :-
 	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, Value).
 def_environment('SWISOLIB', Value) :-
-	current_prolog_flag(c_libs, Value).
+	current_prolog_flag(c_libplso, Value).
 def_environment('SWILIB', '-lswipl').
 def_environment('CC', Value) :-
 	(   getenv('CC', value)
@@ -836,17 +837,84 @@ def_environment('CFLAGS', Value) :-
 	),
 	current_prolog_flag(c_cflags, Value0),
 	current_prolog_flag(home, Home),
-	atomic_list_concat([Value0, ' -I', Home, '/include' | Extra], Value).
+	atomic_list_concat([Value0, ' -I"', Home, '/include"' | Extra], Value).
 def_environment('LDSOFLAGS', Value) :-
 	(   getenv('LDFLAGS', SystemFlags)
-	->  Extra = [' ', SystemFlags]
-	;   Extra = []
+	->  Extra = [' ', SystemFlags|System]
+	;   Extra = System
+	),
+	(   current_prolog_flag(windows, true)
+	->  current_prolog_flag(home, Home),
+	    atomic_list_concat([' -L"', Home, '/bin"'], SystemLib),
+	    System = [SystemLib]
+	;   System = []
 	),
 	current_prolog_flag(c_ldflags, LDFlags),
 	atomic_list_concat([LDFlags, ' -shared' | Extra], Value).
 def_environment('SOEXT', Value) :-
 	current_prolog_flag(shared_object_extension, Value).
+def_environment(Pass, Value) :-
+	pass_env(Pass),
+	getenv(Pass, Value).
 
+pass_env('TMP').
+pass_env('TEMP').
+pass_env('USER').
+pass_env('HOME').
+
+		 /*******************************
+		 *	       PATHS		*
+		 *******************************/
+
+setup_path :-
+	has_program(path(make), _),
+	has_program(path(gcc), _), !.
+setup_path :-
+	current_prolog_flag(windows, true), !,
+	(   mingw_extend_path
+	->  true
+	;   print_message(error, pack(no_mingw))
+	).
+setup_path.
+
+has_program(Program, Path) :-
+	exe_options(ExeOptions),
+	absolute_file_name(Program, Path,
+			   [ file_errors(fail)
+			   | ExeOptions
+			   ]).
+
+exe_options(Options) :-
+	current_prolog_flag(windows, true), !,
+	Options = [ extensions(['',exe,com]), access(read) ].
+exe_options(Options) :-
+	Options = [ access(execute) ].
+
+mingw_extend_path :-
+	mingw_root(MinGW),
+	directory_file_path(MinGW, bin, MinGWBinDir),
+	atom_concat(MinGW, '/msys/*/bin', Pattern),
+	expand_file_name(Pattern, MsysDirs),
+	last(MsysDirs, MSysBinDir),
+	prolog_to_os_filename(MinGWBinDir, WinDirMinGW),
+	prolog_to_os_filename(MSysBinDir, WinDirMSYS),
+	getenv('PATH', Path0),
+	atomic_list_concat([WinDirMSYS, WinDirMinGW, Path0], ';', Path),
+	setenv('PATH', Path).
+
+mingw_root(MinGwRoot) :-
+	current_prolog_flag(executable, Exe),
+	sub_atom(Exe, 1, _, _, :),
+	sub_atom(Exe, 0, 1, _, PlDrive),
+	Drives = [PlDrive,c,d],
+	member(Drive, Drives),
+	format(atom(MinGwRoot), '~a:/MinGW', [Drive]),
+	exists_directory(MinGwRoot), !.
+
+
+		 /*******************************
+		 *	     AUTOLOAD		*
+		 *******************************/
 
 %%	post_install_autoload(+PackDir, +Options)
 %
@@ -1632,6 +1700,8 @@ message(cannot_create_dir(Alias)) -->
 candidate_dirs([]) --> [].
 candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).
 
+message(no_mingw) -->
+	[ 'Cannot find MinGW and/or MSYS.'-[] ].
 
 						% Questions
 message(resolve_remove) -->
