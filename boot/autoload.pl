@@ -371,7 +371,7 @@ do_make_library_index(Index, Dir, Files) :-
 
 index_error(E) :-
 	silent,
-	E = error(permission_error(open, file, _)), !.
+	E = error(permission_error(open, source_sink, _)), !.
 index_error(E) :-
 	print_message(error, E).
 
