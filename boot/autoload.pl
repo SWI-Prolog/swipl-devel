@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -103,14 +101,22 @@ user:file_search_path(autoload, library(.)).
 		*          UPDATE INDEX		*
 		********************************/
 
+:- thread_local
+	silent/0.
+
 %%	'$update_library_index'
 %
 %	Called from make/0 to update the index   of the library for each
-%	library directory that has a writable index.
+%	library directory that has a writable   index.  Note that in the
+%	Windows  version  access_file/2  is  mostly   bogus.  We  assert
+%	silent/0 to suppress error messages.
 
 '$update_library_index' :-
 	setof(Dir, writable_indexed_directory(Dir), Dirs), !,
-	guarded_make_library_index(Dirs),
+	setup_call_cleanup(
+	    asserta(silent, Ref),
+	    guarded_make_library_index(Dirs),
+	    erase(Ref)),
 	(   flag('$modified_index', true, false)
 	->  reload_library_index
 	;   true
@@ -280,9 +286,10 @@ make_library_index(Dir0) :-
 make_library_index2(Dir) :-
 	plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
 	access_file(AbsMkIndex, read), !,
-	setup_call_cleanup(working_directory(OldDir, Dir),
-			   load_files(user:MkIndex, [silent(true)]),
-			   working_directory(_, OldDir)).
+	setup_call_cleanup(
+	    working_directory(OldDir, Dir),
+	    load_files(user:MkIndex, [silent(true)]),
+	    working_directory(_, OldDir)).
 make_library_index2(Dir) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
 	make_library_index2(Dir, PatternList).
@@ -310,20 +317,19 @@ make_library_index(Dir0, Patterns) :-
 
 make_library_index2(Dir, Patterns) :-
 	plfile_in_dir(Dir, 'INDEX', _Index, AbsIndex),
-	access_file(AbsIndex, write), !,
+	ensure_slash(Dir, DirS),
+	pattern_files(Patterns, DirS, Files),
+	(   library_index_out_of_date(AbsIndex, Files)
+	->  do_make_library_index(AbsIndex, DirS, Files),
+	    flag('$modified_index', _, true)
+	;   true
+	).
+
+ensure_slash(Dir, DirS) :-
 	(   sub_atom(Dir, _, _, 0, /)
 	->  DirS = Dir
 	;   atom_concat(Dir, /, DirS)
-	),
-	pattern_files(Patterns, DirS, Files),
-	(   library_index_out_of_date(AbsIndex, Files)
-	->  print_message(informational, make(library_index(Dir))),
-	    flag('$modified_index', _, true),
-	    do_make_library_index(AbsIndex, DirS, Files)
-	;   true
 	).
-make_library_index2(Dir, _) :-
-	throw(error(permission_error(write, index_file, Dir), _)).
 
 source_file_pattern(Pattern) :-
 	user:prolog_file_type(PlExt, prolog),
@@ -345,21 +351,30 @@ library_index_out_of_date(Index, _Files) :-
 library_index_out_of_date(Index, Files) :-
 	time_file(Index, IndexTime),
 	(   time_file('.', DotTime),
-	    DotTime @> IndexTime
+	    DotTime > IndexTime
 	;   '$member'(File, Files),
 	    time_file(File, FileTime),
-	    FileTime @> IndexTime
+	    FileTime > IndexTime
 	), !.
 
 
-do_make_library_index(Index, DirS, Files) :-
+do_make_library_index(Index, Dir, Files) :-
+	ensure_slash(Dir, DirS),
 	catch(setup_call_cleanup(
 		  open(Index, write, Fd),
-		  ( index_header(Fd),
+		  ( print_message(informational, make(library_index(Dir))),
+		    index_header(Fd),
 		    index_files(Files, DirS, Fd)
 		  ),
 		  close(Fd)),
-	      E, print_message(error, E)).
+	      E, index_error(E)).
+
+index_error(E) :-
+	silent,
+	E = error(permission_error(open, source_sink, _)), !.
+index_error(E) :-
+	print_message(error, E).
+
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-

@@ -110,6 +110,11 @@ PLLIB=@PLLIB@
 LNLIBS=@LNLIBS@
 XLIBS=@XLIBS@
 USEPLLIB=@USEPLLIB@
+ifeq (@EXEFORMAT@,ELF)
+LIBPLSO=
+else
+LIBPLSO=@USEPLLIB@
+endif
 RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 SOEXT=@SO_EXT@
 SOLIB=@SOLIB@
@@ -333,6 +338,7 @@ parms.h:	Makefile
 		@echo "#endif"				       >> $@%
 		@echo "#define C_LIBS	    \"$(LNLIBS)\""     >> $@%
 		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
+		@echo "#define C_LIBPLSO    \"$(LIBPLSO)\""    >> $@%
 		@echo "#ifndef C_CC"			       >> $@%
 		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
 		@echo "#endif"				       >> $@%

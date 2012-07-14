@@ -1053,6 +1053,7 @@ initPrologFlags(void)
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
   setPrologFlag("c_cc",	     FT_ATOM, C_CC);
   setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
+  setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
   setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
   setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
