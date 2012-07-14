@@ -3081,13 +3081,14 @@ compileFile(wic_state *state, const char *file)
   term_t f = PL_new_term_ref();
   SourceFile sf;
   atom_t nf;
+  double ftime;
 
   DEBUG(1, Sdprintf("Boot compilation of %s\n", file));
   if ( !(path = AbsoluteFile(file, tmp)) )
     fail;
   DEBUG(2, Sdprintf("Expanded to %s\n", path));
 
-  nf = PL_new_atom(path);
+  nf = PL_new_atom(path);			/* NOTE: Only ISO-Latin-1 */
   PL_put_atom(f, nf);
   DEBUG(2, Sdprintf("Opening\n"));
   if ( !pl_see(f) )
@@ -3095,7 +3096,10 @@ compileFile(wic_state *state, const char *file)
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);
-  sf->time = LastModifiedFile(path);
+  if ( LastModifiedFile(path, &ftime) )
+    sf->time = ftime;
+  else
+    Sdprintf("Failed to get time from %s\n", path);
   qlfStartFile(state, sf);
 
   for(;;)
