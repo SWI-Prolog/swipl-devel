@@ -724,9 +724,22 @@ pack_rebuild :-
 %	Install foreign parts of the package.
 
 post_install_foreign(PackDir, Options) :-
+	is_foreign_pack(PackDir), !,
 	setup_path,
 	configure_foreign(PackDir, Options),
 	make_foreign(PackDir, Options).
+post_install_foreign(_, _).
+
+is_foreign_pack(PackDir) :-
+	foreign_file(File),
+	directory_file_path(PackDir, File, Path),
+	exists_file(Path), !.
+
+foreign_file('configure.in').
+foreign_file('configure').
+foreign_file('Makefile').
+foreign_file('makefile').
+
 
 %%	configure_foreign(+PackDir, +Options) is det.
 %
