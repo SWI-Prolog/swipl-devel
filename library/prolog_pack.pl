@@ -382,9 +382,10 @@ search_info(download(_)).
 
 pack_install(Archive) :-		% Install from .tgz/.zip/... file
 	atom(Archive),
-	exists_file(Archive), !,
-	pack_version_file(Pack, _Version, Archive),
-	uri_file_name(FileURL, Archive),
+	expand_file_name(Archive, [File]),
+	exists_file(File), !,
+	pack_version_file(Pack, _Version, File),
+	uri_file_name(FileURL, File),
 	pack_install(Pack, [url(FileURL)]).
 pack_install(URL) :-			% Install from URL
 	atom(URL),
@@ -484,18 +485,23 @@ pack_install(Name, PackDir, Options) :-
 pack_install_from_local(Source, PackTopDir, Name, Options) :-
 	exists_directory(Source), !,
 	directory_file_path(PackTopDir, Name, PackDir),
-	(   exists_directory(PackDir)
-	->  confirm(remove_existing_pack(PackDir), yes, []),
-	    delete_directory_and_contents(PackDir)
-	;   true
-	),
+	clean_old_pack(PackDir),
 	copy_directory(Source, PackDir),
 	pack_post_install(PackDir, Options).
 pack_install_from_local(Source, PackTopDir, Name, Options) :-
 	exists_file(Source),
 	directory_file_path(PackTopDir, Name, PackDir),
+	clean_old_pack(PackDir),
 	pack_unpack(Source, PackDir, Name, Options),
 	pack_post_install(PackDir, Options).
+
+clean_old_pack(PackDir) :-
+	(   exists_directory(PackDir)
+	->  confirm(remove_existing_pack(PackDir), yes, []),
+	    delete_directory_and_contents(PackDir)
+	;   true
+	).
+
 
 %%	pack_unpack(+SourceFile, +PackDir, +Pack, +Options)
 %
