@@ -354,7 +354,7 @@ COMMON(bool)		ChDir(const char *path);
 COMMON(atom_t)		TemporaryFile(const char *id, int *fdp);
 COMMON(int)		DeleteTemporaryFile(atom_t name);
 COMMON(int)		hasConsole(void);
-COMMON(struct tm *)	PL_localtime_r(long *t, struct tm *r);
+COMMON(struct tm *)	PL_localtime_r(const time_t *t, struct tm *r);
 COMMON(char *)		PL_asctime_r(const struct tm *tm, char *buf);
 COMMON(Char)		GetChar(void);
 COMMON(size_t)		getenv3(const char *, char *buf, size_t buflen);

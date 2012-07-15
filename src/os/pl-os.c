@@ -39,6 +39,8 @@ is supposed to give the POSIX standard one.
 #define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 
+#define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
+
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
@@ -1667,18 +1669,32 @@ ChDir(const char *path)
     time_t Time()
 
     Return time in seconds after Jan 1 1970 (Unix' time notion).
+
+Note: MinGW has localtime_r(),  but  it  is   not  locked  and  thus not
+thread-safe. MinGW does not have localtime_s(), but   we  test for it in
+configure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 struct tm *
-PL_localtime_r(long *t, struct tm *r)
+PL_localtime_r(const time_t *t, struct tm *r)
 {
 #ifdef HAVE_LOCALTIME_R
   return localtime_r(t, r);
 #else
+#ifdef HAVE_LOCALTIME_S
+  return localtime_s(r, t) == EINVAL ? NULL : t;
+#else
+  struct tm *rc;
+
   LOCK();
-  *r = *localtime((const time_t *) t);
+  if ( (rc = localtime(t)) )
+    *r = *rc;
+  else
+    r = NULL;
   UNLOCK();
+
   return r;
+#endif
 #endif
 }
 
@@ -1688,8 +1704,13 @@ PL_asctime_r(const struct tm *tm, char *buf)
 #ifdef HAVE_ASCTIME_R
   return asctime_r(tm, buf);
 #else
+  char *rc;
+
   LOCK();
-  strcpy(buf, asctime(tm));
+  if ( (rc = asctime(tm)) )
+    strcpy(buf, rc);
+  else
+    buf = NULL;
   UNLOCK();
 
   return buf;

@@ -23,6 +23,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
+
 #include <math.h>
 #include "pl-incl.h"
 #include "libtai/taia.h"
