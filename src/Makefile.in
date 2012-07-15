@@ -320,7 +320,7 @@ $(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 $(STREAMH):	$(srcdir)/os/SWI-Stream.h $(INCLUDEDIR)
 		cp $(srcdir)/os/SWI-Stream.h $@
 
-<parms.h:	Makefile
+parms.h:	Makefile
 		@echo "#ifndef PLHOME"				> $@%
 		@echo "#define PLHOME       \"$(PLBASE)\""     >> $@%
 		@echo "#endif"				       >> $@%
