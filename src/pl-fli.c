@@ -3518,6 +3518,9 @@ int
 PL_raise_exception(term_t exception)
 { GET_LD
 
+  if ( PL_is_variable(exception) )
+    fatalError("Cannot throw variable exception");
+
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
   { setVar(*valTermRef(exception_bin));
