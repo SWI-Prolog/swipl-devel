@@ -614,7 +614,6 @@ _xos_fopen(const char *path, const char *mode)
 }
 
 
-
 		 /*******************************
 		 *      FILE MANIPULATIONS	*
 		 *******************************/
@@ -622,11 +621,99 @@ _xos_fopen(const char *path, const char *mode)
 int
 _xos_access(const char *path, int mode)
 { TCHAR buf[PATH_MAX];
+  char sd_buf[512];
+  SECURITY_DESCRIPTOR *sd;
+  BOOL access_status;
+  DWORD desired_access = 0;
+  DWORD sd_size, granted_access;
+  HANDLE token = 0, imp_token = 0;
+  GENERIC_MAPPING generic_mapping;
+  PRIVILEGE_SET privelege_set;
+  DWORD  priv_set_len = sizeof(PRIVILEGE_SET);
+  int retval = -1;
+  SECURITY_INFORMATION sec_info =
+    DACL_SECURITY_INFORMATION |
+    OWNER_SECURITY_INFORMATION |
+    GROUP_SECURITY_INFORMATION;
 
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  return _waccess(buf, mode);
+  if ( mode == F_OK )
+    return _waccess(buf, F_OK);
+
+  sd = (SECURITY_DESCRIPTOR*)&sd_buf;
+  if ( !GetFileSecurity(buf, sec_info, sd, sizeof(sd_buf), &sd_size) )
+  { if ( GetLastError() != ERROR_INSUFFICIENT_BUFFER )
+    { errno = ENOENT;
+      return -1;
+    }
+
+    if ( !(sd = malloc(sd_size)) )
+    { errno = ENOMEM;
+      return -1;
+    }
+
+    if ( !GetFileSecurity(buf, sec_info, sd, sd_size, &sd_size) )
+      goto simple;
+  }
+
+  if ( mode & W_OK )
+  { if ( _waccess(buf, W_OK ) < 0 )		/* read-only bit set */
+      goto out;
+  }
+
+  if ( !OpenThreadToken(GetCurrentThread(),
+			TOKEN_DUPLICATE | TOKEN_READ,
+			TRUE,
+			&token) )
+  { if ( GetLastError() != ERROR_NO_TOKEN )
+      goto simple;
+
+    if ( !OpenProcessToken(GetCurrentProcess(),
+			   TOKEN_DUPLICATE | TOKEN_READ,
+			   &token) )
+      goto simple;
+  }
+
+  if ( !DuplicateToken(token,
+		       SecurityImpersonation,
+		       &imp_token) )
+    goto simple;
+
+  if (mode & R_OK) desired_access |= GENERIC_READ;
+  if (mode & W_OK) desired_access |= GENERIC_WRITE;
+  if (mode & X_OK) desired_access |= GENERIC_EXECUTE;
+
+  generic_mapping.GenericRead    = FILE_GENERIC_READ;
+  generic_mapping.GenericWrite   = FILE_GENERIC_WRITE;
+  generic_mapping.GenericExecute = FILE_GENERIC_EXECUTE;
+  generic_mapping.GenericAll     = FILE_ALL_ACCESS;
+  MapGenericMask(&desired_access, &generic_mapping);
+
+  if ( !AccessCheck(sd,
+		    imp_token,
+		    desired_access,
+		    &generic_mapping,
+		    &privelege_set,
+		    &priv_set_len,
+		    &granted_access,
+		    &access_status) )
+    goto simple;
+
+  if ( access_status )
+    retval  = 0;
+
+out:
+  if ( sd && (char*)sd != sd_buf ) free(sd);
+  if (imp_token) CloseHandle(token);
+  if (token) CloseHandle(token);
+
+  return retval;
+
+simple:
+  retval = _waccess(buf, mode);
+  goto out;
 }
 
 

@@ -91,9 +91,10 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #endif /*_UXNT_KERNEL*/
 
 #ifndef F_OK
-#define F_OK 00
-#define R_OK 04				/* access() fields */
-#define W_OK 06
+#define F_OK 00				/* access() fields */
+#define X_OK 01
+#define W_OK 02
+#define R_OK 04
 #endif
 
 		 /*******************************
