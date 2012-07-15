@@ -149,6 +149,12 @@ verum :-
 test(cut) :-
 	( !, fail ; true ) *-> fail ; true.
 
+test(cut2) :-
+	no_cut_cond.
+
+no_cut_cond :- (!, fail) *-> true.
+no_cut_cond.
+
 :- end_tests(snip).
 
 

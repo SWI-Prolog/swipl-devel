@@ -2070,6 +2070,11 @@ garbage collector won't see it. We use  a term-reference because using a
 relative address simplifies the stack-shifter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+VMI(C_SOFTIFTHEN, 0, 1, (CA1_CHP))
+{ SEPERATE_VMI;
+  VMI_GOTO(C_IFTHEN);
+}
+
 VMI(C_IFTHEN, 0, 1, (CA1_CHP))
 { varFrame(FR, *PC++) = consTermRef(BFR);
 
@@ -2202,6 +2207,10 @@ VMI(I_CUTCHP, 0, 0, ())
   }
 }
 
+
+VMI(C_SCUT, 0, 1, (CA1_CHP))
+{ NEXT_INSTRUCTION;
+}
 
 VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
 { SEPERATE_VMI;

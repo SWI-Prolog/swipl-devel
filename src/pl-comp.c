@@ -1461,32 +1461,28 @@ right_argument:
 	}
 
 	succeed;
-      } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
+      } else if ( fd == FUNCTOR_ifthen2 ||		/* A -> B */
+		  fd == FUNCTOR_softcut2 )
       { int var;
 	int rv;
+	int hard = (fd == FUNCTOR_ifthen2);
 	cutInfo cutsave = ci->cut;
 
 	if ( !(var=allocChoiceVar(ci)) )
 	  return FALSE;
 
-	Output_1(ci, C_IFTHEN, var);
+	Output_1(ci, hard ? C_IFTHEN : C_SOFTIFTHEN, var);
 	ci->cut.var = var;		/* Cut locally in the condition */
 	ci->cut.instruction = C_LCUTIFTHEN;
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
 	  return rv;
 	ci->cut = cutsave;
-	Output_1(ci, C_CUT, var);
+	Output_1(ci, hard ? C_CUT : C_SCUT, var);
 	if ( (rv=compileBody(argTermP(*body, 1), call, ci PASS_LD)) != TRUE )
 	  return rv;
 	Output_0(ci, C_END);
 
 	succeed;
-      } else if ( fd == FUNCTOR_softcut2 )		/* A *-> B */
-      { int rv;						/* compile as A,B */
-
-	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
-	  return rv;
-	return compileBody(argTermP(*body, 1), call, ci PASS_LD);
       } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
       { int var;
 	size_t tc_or;
@@ -4408,15 +4404,25 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
 			  }
+    { code cut;
+      functor_t f;
       case C_IFTHEN:				/* A -> B */
+			    cut = C_CUT;
+			    f = FUNCTOR_ifthen2;
+			    goto c_ifthen;
+      case C_SOFTIFTHEN:				/* A *->B */
+			    cut = C_SCUT;
+			    f = FUNCTOR_softcut2;
+			  c_ifthen:
 			    PC++;
-			    TRY_DECOMPILE(di, C_CUT, NULL);   /* A */
+			    TRY_DECOMPILE(di, cut, NULL);   /* A */
 			    PC += 2;
 			    TRY_DECOMPILE(di, C_END, NULL);   /* B */
 			    PC++;
-			    BUILD_TERM(FUNCTOR_ifthen2);
+			    BUILD_TERM(f);
 			    pushed++;
 			    continue;
+    }
 #endif /* O_COMPILE_OR */
       case I_EXITCATCH:
 	goto exit;

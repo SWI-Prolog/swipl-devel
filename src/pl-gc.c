@@ -1592,6 +1592,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
         goto again;
       }
       case C_IFTHEN:
+      case C_SOFTIFTHEN:
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { PC = walk_and_mark(state, PC+1, C_END PASS_LD);
