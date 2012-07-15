@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,20 +21,19 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include <stdio.h>
+#ifndef __WINDOWS__
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#define __WINDOWS__ 1
+#endif
+#endif
+
+#ifdef __WINDOWS__
 #include <winsock2.h>
 #include <windows.h>
 #include "os/SWI-Stream.h"
 #include "SWI-Prolog.h"
 #include <signal.h>
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is the simple main  program   of  swipl.exe; the SWI-Prolog console
-application. It can be used as   a  basis for console-based applications
-that have SWI-Prolog embedded.
-
-The default version does Control-C  processing   and  decodes ANSI color
-sequences to support colors in the console window.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef O_CTRLC
 #define O_CTRLC 1
@@ -43,6 +41,21 @@ sequences to support colors in the console window.
 #ifndef O_ANSI_COLORS
 #define O_ANSI_COLORS 1
 #endif
+
+#else /* non-Windows version */
+
+#include "SWI-Prolog.h"
+
+#define READLINE 1			/* use readline interface */
+
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is SWI-Prolog's main(),  creating   swipl  or  swipl.exe (Windows).
+SWI-Prolog itself is in  the   library  libswipl.{a,so,dll,...}, this is
+merely a main() routine that sets up I/O and uses SWI-Prolog's embedding
+interface to get the system going.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		 /*******************************
 		 *	     INTERRUPT		*
@@ -65,8 +78,21 @@ consoleHandlerRoutine(DWORD id)
 
 
 		 /*******************************
-		 *	       MAIN		*
+		 *	     READLINE		*
 		 *******************************/
+
+#ifdef READLINE
+static void
+install_readline(int argc, char**argv)
+{ PL_install_readline();
+}
+#endif
+
+
+		 /*******************************
+		 *		MAIN		*
+		 *******************************/
+
 
 int
 main(int argc, char **argv)
@@ -77,7 +103,10 @@ main(int argc, char **argv)
 #endif
 
 #if O_ANSI_COLORS
-  PL_w32_wrap_ansi_console();		/* decode ANSI color sequences (ESC[...m) */
+  PL_w32_wrap_ansi_console();	/* decode ANSI color sequences (ESC[...m) */
+#endif
+#ifdef READLINE
+  PL_initialise_hook(install_readline);
 #endif
 
   if ( !PL_initialise(argc, argv) )

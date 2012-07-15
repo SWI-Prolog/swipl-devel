@@ -100,9 +100,6 @@ Supported types:
 	case use make_foreign_wrapper_file/[1,2] to generate a
 	wrapper and use static embedding.
 
-*NOTE*	The generated linkN.c file may also be used for creating a
-	statically linked executable as described in pl-extend.c
-
 @bug	Only supports C-interface
 @bug	Insufficient checking for misusage.
 @bug	Documentation is too short and very outdated

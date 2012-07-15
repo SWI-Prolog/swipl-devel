@@ -98,11 +98,12 @@ banner:
 $(PLLIB):	$(OBJ) $(LOCALLIB)
 		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(GMPLIB) $(LIBS) winmm.lib $(DBGLIBS)
 
-# We first create plcon.exe to avoid overriding the debug files of swipl.dll.
-# Maybe using the same name for a dll and exe is a bad idea afterall?
+# We first create swipl.exe  to  avoid   overriding  the  debug files of
+# swipl.dll. Maybe using the same name for a   dll and exe is a bad idea
+# afterall?
 
-$(PLCON):	$(PLLIB) pl-ntcon.obj
-		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-ntcon.obj $(PLLIB)
+$(PLCON):	$(PLLIB) pl-main.obj
+		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-main.obj $(PLLIB)
 		editbin /stack:$(STACK) plcon.exe
 		copy plcon.exe $@
 		if exist plcon.exe.manifest copy plcon.exe.manifest $@.manifest

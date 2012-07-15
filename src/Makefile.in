@@ -139,7 +139,7 @@ TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
 	libtai/tai_unpack.o
 LIBOBJ= $(RCOBJ) $(TAIOBJ)
 
-PLOBJ=	pl-extend.o
+PLOBJ=	pl-main.o
 
 ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 
