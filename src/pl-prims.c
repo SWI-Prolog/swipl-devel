@@ -4776,8 +4776,8 @@ halfway a generic structure package ... Anyway, it is better then direct
 coded access, as the  indirect  approach   allows  us  to  enumerate the
 options and generalise the option processing from the saved-states.
 
-See also pl-main.c, which exploits set_pl_option()  to parse the options
-resource  member.  Please  note  this   code   doesn't   use   atoms  as
+See also pl-init.c, which exploits set_pl_option()  to parse the options
+resource  member.  Please  note  this   code    doesn't   use  atoms  as
 set_pl_option() is called before the Prolog system is initialised.
 
 This code should be moved into another file.

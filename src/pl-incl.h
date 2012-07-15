@@ -2153,7 +2153,7 @@ decrease).
 #include "pl-funct.ih"
 
 #include "pl-alloc.h"			/* Allocation primitives */
-#include "pl-main.h"			/* Declarations needed by pl-main.c */
+#include "pl-init.h"			/* Declarations needed by pl-init.c */
 #include "pl-error.h"			/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */
 #include "pl-data.h"			/* Access Prolog data */

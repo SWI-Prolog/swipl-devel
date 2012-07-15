@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam,
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -636,7 +635,7 @@ COMMON(char *)		format_float(double f, char *buf);
 /* pl-term.c */
 COMMON(void)		cleanupTerm(void);
 
-/* pl-main.c */
+/* pl-init.c */
 COMMON(int)		startProlog(int argc, char **argv);
 COMMON(bool)		sysError(const char *fm, ...);
 COMMON(void)		fatalError(const char *fm, ...) NORETURN;
