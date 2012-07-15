@@ -133,10 +133,10 @@ colourise_stream(Fd, TB) :-
 
 save_settings(TB, state(Style, Esc, OSM)) :-
 	(   source_module(TB, SM)
-	->  '$set_source_module'(OSM, SM)
-	;   '$set_source_module'(SM, SM),
-	    OSM = SM
+	->  true
+	;   SM = prolog_colour_ops
 	),
+	'$set_source_module'(OSM, SM),
 	colour_state_module(TB, SM),
 	push_operators([]),
 	current_prolog_flag(character_escapes, Esc),
@@ -1066,13 +1066,14 @@ goal_classification(TB, Goal, _, How) :-
 	colour_state_source_id(TB, SourceId),
 	xref_defined(SourceId, Goal, How),
 	How \= public(_), !.
+goal_classification(_TB, Goal, _, Class) :-
+	goal_classification(Goal, Class), !.
 goal_classification(TB, Goal, _, How) :-
 	colour_state_module(TB, Module),
 	atom(Module),
+	Module \== prolog_colour_ops,
 	predicate_property(Module:Goal, imported_from(From)), !,
 	How = imported(From).
-goal_classification(_TB, Goal, _, Class) :-
-	goal_classification(Goal, Class), !.
 goal_classification(_TB, _Goal, _, undefined).
 
 %	goal_classification(+Goal, -Class)
@@ -1082,8 +1083,7 @@ goal_classification(_TB, _Goal, _, undefined).
 goal_classification(Goal, built_in) :-
 	built_in_predicate(Goal), !.
 goal_classification(Goal, autoload) :-	% SWI-Prolog
-	functor(Goal, Name, Arity),
-	'$in_library'(Name, Arity, _Path), !.
+	predicate_property(Goal, autoload(_)).
 goal_classification(Goal, global) :-	% SWI-Prolog
 	current_predicate(_, user:Goal), !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
