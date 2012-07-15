@@ -2139,14 +2139,25 @@ choices created since the mark, but not   the mark itself. The test-case
 is  a  :-  \+  (b,  !,  fail),    which   should  succeed.  The  current
 implementation  walks  twice  over  the    choice-points,  but  cuts  in
 conditions should be rare (I hope :-).
+
+C_LSCUT does the same for the condition   part  of soft-cut (*->). Here,
+the choice argument is the new choice  created by the disjunction, so we
+must get its parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 BEGIN_SHAREDVARS
   Choice och;
   LocalFrame fr;
   Choice ch;
 
+VMI(C_LSCUT, 0, 1, (CA1_CHP))
+{ och = (Choice) valTermRef(varFrame(FR, *PC));
+  och = och->parent;
+  goto c_lcut_cont;
+}
+
 VMI(C_LCUT, 0, 1, (CA1_CHP))
 { och = (Choice) valTermRef(varFrame(FR, *PC));
+c_lcut_cont:
   PC++;
 
   for(ch=BFR; ch; ch = ch->parent)

@@ -146,6 +146,9 @@ test(indent, [all(Gnosc == [scio])]) :-
 verum :-
 	( false *-> true ; true ).
 
+test(cut) :-
+	( !, fail ; true ) *-> fail ; true.
+
 :- end_tests(snip).
 
 

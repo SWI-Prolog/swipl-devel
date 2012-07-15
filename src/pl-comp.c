@@ -1414,7 +1414,7 @@ right_argument:
 	  Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
 	  tc_or = PC(ci);
 	  ci->cut.var = var;		/* Cut locally in the condition */
-	  ci->cut.instruction = C_LCUT;
+	  ci->cut.instruction = hard ? C_LCUT : C_LSCUT;
 	  if ( (rv=compileBody(argTermP(*a0, 0), I_CALL, ci PASS_LD)) != TRUE )
 	    return rv;
 	  ci->cut = cutsave;
@@ -4274,6 +4274,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
       case C_LCUTIFTHEN:
+      case C_LSCUT:
       case C_LCUT:	    PC++;
 			    /*FALLTHROUGH*/
       case I_CUT:	    *ARGP++ = ATOM_cut;
