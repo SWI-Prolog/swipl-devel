@@ -22,16 +22,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is the source-file for  swipl-ld,   the  SWI-Prolog linker for embedded
-applications. See swipl-ld(1) for details.  Feel   free  to comment and send
-contributions.
-
-The    file    pl-extend.c,    copied    by    the    installation    to
-<home>/include/stub.c  contains  a  minimal  skeleton  for  creating  an
-embedded application.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 /*
   Preprocessor symbols that may be defined during the compilation
   of this file:

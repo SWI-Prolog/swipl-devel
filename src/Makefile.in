@@ -103,7 +103,6 @@ EXPORTS=$(INCLUDEDIR)/SWI-Exports
 DEF=$(PL).def
 CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
-STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).prc
 RUNTIMEDIR=../lib/$(PLARCH)
 PLLIB=@PLLIB@
@@ -185,7 +184,7 @@ prof:
 
 system:		$(PL)$(EXEEXT)
 startup:	$(STARTUPPATH)
-headers:	parms.h $(CINCLUDE) $(STREAMH) $(STUBC) @EXTRAHDR@
+headers:	parms.h $(CINCLUDE) $(STREAMH) @EXTRAHDR@
 staticlib:	$(RUNTIME)
 sharedlib:	$(RUNTIMEDIR)/$(SHARED)
 index:		../library/INDEX.pl
@@ -321,10 +320,7 @@ $(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 $(STREAMH):	$(srcdir)/os/SWI-Stream.h $(INCLUDEDIR)
 		cp $(srcdir)/os/SWI-Stream.h $@
 
-$(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
-		$(SED) 's/"SWI-Prolog.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
-
-parms.h:	Makefile
+<parms.h:	Makefile
 		@echo "#ifndef PLHOME"				> $@%
 		@echo "#define PLHOME       \"$(PLBASE)\""     >> $@%
 		@echo "#endif"				       >> $@%
@@ -573,7 +569,7 @@ else
 endif
 
 iinclude:	idirs
-		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
+		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h; do \
 		    if [ -f ../include/$$f ]; then \
 			$(INSTALL_DATA) ../include/$$f $(DESTDIR)$(PLBASE)/include; \
 		    fi; \
