@@ -114,9 +114,10 @@ remove_dups([H|T0], [H|T], Seen) :-
 %	Attach packages from directory Dir.
 
 attach_packs(Dir) :-
-	directory_files(Dir, Entries),
+	catch(directory_files(Dir, Entries), _, fail), !,
 	ensure_slash(Dir, SDir),
 	attach_packages(Entries, SDir).
+attach_packs(_).
 
 attach_packages([], _).
 attach_packages([H|T], Dir) :-
