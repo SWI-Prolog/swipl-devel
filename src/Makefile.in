@@ -201,7 +201,7 @@ banner::
 # be overruled using LD_LIBRARY_PATH, which is what we need to be able
 # to run our local copy of SWI-Prolog.
 
-$(PL)$(EXEEXT):	$(MKLIBS) $(PLOBJ)
+$(PL)$(EXEEXT):	$(MKLIBS) $(PLOBJ) $(OSLIB)
 		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB)
 		$(CHRPATH) -c $@ || true
 
@@ -227,7 +227,7 @@ $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
 ifeq ($(SOEXT),dll)
-$(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ) $(OSLIB)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(OSLIB) $(LIBS)
 else
@@ -242,10 +242,8 @@ endif
 
 ifeq ($(MINGW),true)
 OSLIB=	../lib/$(PLARCH)/libuxnt.a
-ifeq ($(PLBUILD),$(PLARCH))
-BUILD_OSLIB=$(OSLIB)
-endif
 
+$(OSLIB):	uxnt-lib
 uxnt-lib:
 		@(cd os/windows && $(MAKE) COFLAGS="$(COFLAGS)")
 
@@ -260,7 +258,7 @@ swipl-res.o:	$(srcdir)/swipl.rc $(srcdir)/swipl.ico
 pl-ntmain.o:	pl-ntmain.c
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc -I$(srcdir)/os $(CFLAGS) $< -o $@
 
-$(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o plterm-lib $(MKLIBS)
+$(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o plterm-lib $(MKLIBS) $(OSLIB)
 	$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) \
 		-o $@ swipl-res.o pl-ntmain.o -L../lib/$(PLARCH) -lplterm \
 		$(USEPLLIB) $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
@@ -388,7 +386,7 @@ $(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
 defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
-swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
+swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih $(OSLIB)
 	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
 		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
 
