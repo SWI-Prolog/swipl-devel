@@ -36,7 +36,7 @@
 	  list_redefined/0		% list redefinitions
 	]).
 :- use_module(library(lists)).
-:- use_module(library(system)).
+:- use_module(library(pairs)).
 :- use_module(library(option)).
 :- use_module(library(prolog_codewalk)).
 
@@ -304,10 +304,11 @@ autoload([Lib-Pred|T]) -->
 %	Create a stable key for sorting references to predicates.
 
 sort_reference_key(Term, key(M:Name/Arity, N, ClausePos)) :-
-	clause_ref(Term, ClauseRef, ClausePos),
+	clause_ref(Term, ClauseRef, ClausePos), !,
 	nth_clause(Pred, N, ClauseRef),
 	strip_module(Pred, M, Head),
 	functor(Head, Name, Arity).
+sort_reference_key(Term, Term).
 
 clause_ref(clause_char_count(ClauseRef, ClausePos), ClauseRef, ClausePos).
 clause_ref(clause(ClauseRef), ClauseRef, 0).
@@ -327,6 +328,8 @@ predicate_indicator(clause_char_count(ClauseRef, _)) -->
 predicate_indicator(clause(ClauseRef)) -->
 	{ clause_name(ClauseRef, Name) },
 	[ '~w'-[Name] ].
+predicate_indicator(file(_,_,_,_)) -->
+	[ '(:- initialization/1)' ].
 
 
 short_filename(Path) -->

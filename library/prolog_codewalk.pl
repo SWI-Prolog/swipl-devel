@@ -175,8 +175,8 @@ walk_from_initialization(OTerm) :-
 walk_from_initialization(File, Goal, OTerm) :-
 	module_property(Module, file(File)),
 	(   scan_module(Module, OTerm)
-	->  true
-	;   walk_called(Goal, Module, _, OTerm)
+	->  walk_called(Goal, Module, _, OTerm)
+	;   true
 	).
 walk_from_initialization(_, Goal, OTerm) :-
 	walk_called(Goal, user, _, OTerm).
@@ -685,6 +685,8 @@ prolog:message_location(clause(ClauseRef)) -->
 prolog:message_location(clause(ClauseRef)) -->
 	{ clause_name(ClauseRef, Name) },
 	[ '~w: '-[Name] ].
+prolog:message_location(file(Path, Line, _, _)) -->
+	[ '~w:~d '-[Path, Line] ].
 
 
 filepos_line(File, CharPos, Line, LinePos) :-
