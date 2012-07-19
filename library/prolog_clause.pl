@@ -346,8 +346,10 @@ a --> { x, y, z }.
 ubody(B, B, P, P) :-
 	does_not_dcg_after_binding(B, P), !.
 ubody(X, call(X),			% X = call(X)
-      From-To,
-      term_position(From, To, From, To, [From-To])) :- !.
+      Pos,
+      term_position(From, To, From, To, [Pos])) :- !,
+	arg(1, Pos, From),
+	arg(2, Pos, To).
 ubody(B0, B,
       brace_term_position(F,T,A0),
       Pos) :-
