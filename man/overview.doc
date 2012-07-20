@@ -1829,8 +1829,11 @@ Within quoted atoms (using single quotes: \exam{'<atom>'}) special
 characters are represented using escape sequences. An escape sequence is
 led in by the backslash (\chr{\}) character. The list of escape
 sequences is compatible with the ISO standard but contains some
-extensions, and the interpretation of numerically specified characters is
-slightly more flexible to improve compatibility.
+extensions, and the interpretation of numerically specified characters
+is slightly more flexible to improve compatibility.  Undefined escape
+characters raise a \const{syntax_error} exception.\footnote{Up to
+SWI-Prolog~6.1.9, undefined escape characters were copied verbatim,
+i.e., removing the backslash.}
 
 \begin{description}
     \escapeitem{a}
@@ -1901,22 +1904,24 @@ set.
     \escapeitem{40}
 Octal character specification.  The rules and remarks for hexadecimal
 specifications apply to octal specifications as well.
-    \escapeitem{<character>}
-Any character immediately preceded by a \chr{\} and not covered by the
-above escape sequences is copied verbatim. Thus, \verb$'\\'$ is an atom
-consisting of a single \chr{\} and \verb$'\''$ and \verb$''''$ both
-describe the atom with a single~\verb$'$.
+    \escapeitem{\}
+Escapes the backslash itself.  This, \verb$'\\'$ is an atom
+consisting of a single \chr{\}.
+    \escapeitem{quote}
+If the current quote (\chr{"} or \chr{'}) is preceeded by a backslash,
+it is copied verbatim. Thus, \verb$'\''$ and \verb$''''$ both describe
+the atom with a single~\verb$'$.
 \end{description}
 
 Character escaping is only available if
 \exam{current_prolog_flag(character_escapes, true)} is active (default).
 See current_prolog_flag/2. Character escapes conflict with writef/2 in
-two ways: \verb$\40$ is interpreted as decimal 40 by writef/2, but
-as octal 40 (decimal 32) by \verb$read$.
-Also, \fmtseq{\l} is translated to a single `l'. It is advised
-to use the more widely supported format/[2,3] predicate instead. If you
-insist upon using writef/2, either switch \prologflag{character_escapes} to
-\const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
+two ways: \verb$\40$ is interpreted as decimal 40 by writef/2, but as
+octal 40 (decimal 32) by \verb$read$. Also, the writef/2 sequence
+\fmtseq{\l} is illegal. It is advised to use the more widely supported
+format/[2,3] predicate instead. If you insist upon using writef/2,
+either switch \prologflag{character_escapes} to \const{false}, or use
+double \fmtseq{\\}, as in \verb$writef('\\l')$.
 
 \subsubsection{Syntax for non-decimal numbers}	\label{sec:nondecsyntax}
 

@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -468,7 +466,8 @@ isStringStream(IOSTREAM *s)
 
 
 static term_t
-makeErrorTerm(const char *id_str, term_t id_term, ReadData _PL_rd)
+makeErrorTerm(const char *id_str, const char *id_arg,
+	      term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex, loc=0;			/* keep compiler happy */
   unsigned char const *s, *ll = NULL;
@@ -479,9 +478,17 @@ makeErrorTerm(const char *id_str, term_t id_term, ReadData _PL_rd)
     rc = FALSE;
 
   if ( rc && !id_term )
-  { if ( !(id_term=PL_new_term_ref()) ||
-	 !PL_put_atom_chars(id_term, id_str) )
-      rc = FALSE;
+  { if ( (id_term=PL_new_term_ref()) )
+    { if ( id_arg )
+      { rc = PL_unify_term(id_term,
+			   PL_FUNCTOR_CHARS, id_str, 1,
+			     PL_CHARS, id_arg);
+      } else
+      { rc = PL_put_atom_chars(id_term, id_str);
+      }
+    } else
+    { rc = FALSE;
+    }
   }
 
   if ( rc )
@@ -555,7 +562,8 @@ makeErrorTerm(const char *id_str, term_t id_term, ReadData _PL_rd)
 
 
 static bool
-errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+errorWarningA1(const char *id_str, const char *id_arg,
+	       term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex;
 
@@ -564,7 +572,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 
   LD->exception.processing = TRUE;	/* allow using spare stack */
 
-  ex = makeErrorTerm(id_str, id_term, _PL_rd);
+  ex = makeErrorTerm(id_str, id_arg, id_term, _PL_rd);
 
   if ( _PL_rd )
   { _PL_rd->has_exception = TRUE;
@@ -578,6 +586,12 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
   }
 
   fail;
+}
+
+
+static bool
+errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+{ return errorWarningA1(id_str, NULL, id_term, _PL_rd);
 }
 
 
@@ -1791,8 +1805,19 @@ again:
 	if ( c != '\\' )
 	  in--;
 	OK(chr);
+      } else if ( c == quote )
+      { OK(c);
       } else
-	OK(c);
+      { if ( _PL_rd )
+	{ char tmp[2];
+
+	  tmp[0] = c;
+	  tmp[1] = EOS;
+	  last_token_start = (unsigned char*)(in-1);
+	  errorWarningA1("undefined_char_escape", tmp, 0, _PL_rd);
+	}
+	return ESC_ERROR;
+      }
   }
 
 #undef OK
@@ -1925,7 +1950,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
       { int chr;
 
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
-	{ chr = escape_char(in+3, end, 0, NULL);
+	{ chr = escape_char(in+3, end, '\'', NULL);
 	  if ( chr < 0 )
 	    return NUM_ERROR;
 	} else
