@@ -158,7 +158,7 @@ initialization(Goal) :-
 	initialization(Goal, after_load).
 
 :- multifile
-	prolog:initialization_now/2,
+	prolog:initialize_now/2,
 	prolog:message//1.
 
 prolog:initialize_now(load_foreign_library(_),
