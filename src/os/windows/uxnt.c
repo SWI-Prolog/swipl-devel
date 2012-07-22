@@ -706,7 +706,7 @@ _xos_access(const char *path, int mode)
 
 out:
   if ( sd && (char*)sd != sd_buf ) free(sd);
-  if (imp_token) CloseHandle(token);
+  if (imp_token) CloseHandle(imp_token);
   if (token) CloseHandle(token);
 
   return retval;
