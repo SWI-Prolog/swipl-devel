@@ -6036,7 +6036,7 @@ format specification.
 Give the next argument to write/1.
     \fmtchar{W}
 Give the next two arguments to write_term/2.  For example,
-\exam{format('~W', [Term, [numbervars(true)]])}.
+\verb$format('~W', [Term, [numbervars(true)]])$.
 This option is SWI-Prolog specific.
 \end{itemize}
 
