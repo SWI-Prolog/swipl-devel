@@ -154,7 +154,7 @@ PL_new_term_refs__LD(int n ARG_LD)
   FliFrame fr;
 
   if ( addPointer(lTop, n*sizeof(word)) > (void*) lMax )
-  { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
+  { int rc = ensureLocalSpace(n*sizeof(word), ALLOW_SHIFT);
 
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
