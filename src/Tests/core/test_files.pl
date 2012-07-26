@@ -41,7 +41,7 @@ test_files :-
 % this test verifies that atoms associated with temporary files
 % are properly deleted.
 
-test(tmp_cleanup, Atoms0 == Atoms1) :-
+test(tmp_cleanup, Atoms1 == Atoms0) :-
 	tmp_atoms(Atoms0),
 	(   between(1, 10, _),
 	    tmp_file(magic_sjwefrbas, Tmp),
@@ -53,6 +53,7 @@ test(tmp_cleanup, Atoms0 == Atoms1) :-
 	).
 
 tmp_atoms(List) :-
+	flush_unregistering,
 	agc,
 	findall(X, tmp_atom(X), Xs),
 	sort(Xs, List).
@@ -60,6 +61,17 @@ tmp_atoms(List) :-
 tmp_atom(X) :-
 	current_atom(X),
 	sub_atom(X, _, _, _, magic_sjwefrbas).
+
+:- dynamic a/1.
+
+%%	flush_unregistering
+%
+%	Register/unregister    an    arbitrary    atom      to     flush
+%	LD->atoms.unregistering.
+
+flush_unregistering :-
+	assertz(a(a)),
+	retractall(a(_)).
 
 %%	agc/0
 %
