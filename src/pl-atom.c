@@ -720,7 +720,7 @@ collectAtoms(void)
       } else
       {
 #ifdef ATOMIC_REFERENCES
-	ATOMIC_NAND(&a->references, ATOM_MARKED_REFERENCE);
+	ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
 #else
 	a->references &= ~ATOM_MARKED_REFERENCE;
 #endif

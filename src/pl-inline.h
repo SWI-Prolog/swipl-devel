@@ -75,7 +75,7 @@ MSB(size_t i)
 #define ATOMIC_INC(ptr)			ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
 #define ATOMIC_DEC(ptr)			ATOMIC_SUB(ptr, 1) /* --(*ptr) */
 #define ATOMIC_OR(ptr, v)		__sync_fetch_and_or(ptr, v)
-#define ATOMIC_NAND(ptr, v)		__sync_fetch_and_nand(ptr, v)
+#define ATOMIC_AND(ptr, v)		__sync_fetch_and_and(ptr, v)
 #define COMPARE_AND_SWAP(ptr,o,n)	__sync_bool_compare_and_swap(ptr,o,n)
 #endif
 
