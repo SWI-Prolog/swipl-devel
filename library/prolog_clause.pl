@@ -148,6 +148,12 @@ unify_args(I, Arity, T1, T2) :-
 %	Read a term from File at Line.
 
 read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
+	setup_call_cleanup(
+	    '$push_input_context'(clause_info),
+	    read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames),
+	    '$pop_input_context').
+
+read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
 	catch(open(File, read, In), _, fail),
 	call_cleanup(
 	    read_source_term_at_location(
