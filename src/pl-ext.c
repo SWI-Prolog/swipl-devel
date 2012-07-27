@@ -491,6 +491,7 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("thread_at_exit",   1, "system"), "0");
   PL_meta_predicate(PL_predicate("thread_signal",    2, "system"), "+0");
 #endif
+  PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);

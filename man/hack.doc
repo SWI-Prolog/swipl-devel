@@ -21,7 +21,7 @@ Unify \arg{Choice} with an integer provided a reference to the last
 choice-point.  Fails if the current environment has no choicepoints.
 See also prolog_choice_attribute/3.
 
-    \predicate{prolog_frame_attribute}{3}{+Frame, +Key, -Value}
+    \predicate{prolog_frame_attribute}{3}{+Frame, +Key, :Value}
 Obtain information about the local stack frame \arg{Frame}.  \arg{Frame}
 is a frame reference as obtained through prolog_current_frame/1,
 prolog_trace_interception/4 or this predicate.  The key values are
@@ -39,8 +39,8 @@ candidate for backtracking; \const{false} otherwise.
 
     \termitem{goal}{}
 \arg{Value} is unified with the goal associated with \arg{Frame}. If the
-definition module of the active predicate is not \const{user} the goal
-is represented as \mbox{\tt <module>:<goal>}. Do not instantiate
+definition module of the active predicate is not the calling context,
+the goal is represented as \mbox{\tt <module>:<goal>}. Do not instantiate
 variables in this goal unless you {\bf know} what you are doing!
 Note that the returned term may contain references to the frame and
 should be discarded before the frame terminates.%

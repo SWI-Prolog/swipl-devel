@@ -1995,20 +1995,22 @@ PRED_IMPL("prolog_current_choice", 1, prolog_current_choice, 0)
 
 
 static int
-prolog_frame_attribute(term_t frame, term_t what,
-		       term_t value)
+prolog_frame_attribute(term_t frame, term_t what, term_t value)
 { GET_LD
   LocalFrame fr;
   atom_t key;
   int arity;
   term_t result = PL_new_term_ref();
+  Module m = NULL;
 
   if ( !PL_get_frame(frame, &fr) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_frame_reference, frame);
   if ( !fr )
-    fail;				/* frame == 'none' */
+    return FALSE;				/* frame == 'none' */
   if ( !PL_get_name_arity(what, &key, &arity) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, what);
+  if ( !PL_strip_module(value, &m, value) )
+    return FALSE;
 
   set(fr, FR_WATCHED);			/* explicit call to do this? */
 
@@ -2091,7 +2093,7 @@ prolog_frame_attribute(term_t frame, term_t what,
     term_t arg = PL_new_term_ref();
     Definition def = fr->predicate;
 
-    if ( def->module != MODULE_user )
+    if ( def->module != m )
     { if ( !PL_put_functor(result, FUNCTOR_colon2) )
 	return FALSE;
       _PL_get_arg(1, result, arg);
@@ -2133,7 +2135,7 @@ prolog_frame_attribute(term_t frame, term_t what,
       }
     }
   } else if ( key == ATOM_predicate_indicator )
-  { if ( !unify_definition(MODULE_user, result, fr->predicate, 0, GP_NAMEARITY) )
+  { if ( !unify_definition(m, result, fr->predicate, 0, GP_NAMEARITY) )
       return FALSE;
   } else if ( key == ATOM_parent_goal )
   { Procedure proc;
@@ -2435,7 +2437,7 @@ callEventHook(int ev, ...)
 
 BeginPredDefs(trace)
   PRED_DEF("prolog_current_choice", 1, prolog_current_choice, 0)
-  PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
+  PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, PL_FA_TRANSPARENT)
   PRED_DEF("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
   PRED_DEF("prolog_skip_frame", 1, prolog_skip_frame, PL_FA_NOTRACE)
   PRED_DEF("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)
