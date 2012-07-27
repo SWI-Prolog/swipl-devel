@@ -209,7 +209,17 @@ week(W)		    --> int2digit(W), { between(1, 53, W) }.
 day(D)              --> int2digit(D), { between(1, 31, D) }.
 hour(N)             --> int2digit(N), { between(0, 23, N) }.
 minute(N)	    --> int2digit(N), { between(0, 59, N) }.
-second(N)           --> int2digit(N), { between(0, 60, N) }. % leap second
+second(S)           --> int2digit(N), { between(0, 60, N) }, % leap second
+			opt_fraction(N, S).
+
+opt_fraction(I, F) -->
+	( "." ; "," ), !,
+	digits(D),
+	{ length(D, N),
+	  N > 0,
+	  number_codes(FP, D),
+	  F is I + FP/(10^N)
+	}.
 
 int2digit(N) -->
 	digit(D0),
@@ -232,6 +242,12 @@ ordinal(N) --> % Nth day of the year, jan 1 = 1, dec 31 = 365 or 366
 digit(D) -->
 	[C],
 	{ code_type(C, digit(D)) }.
+
+digits([C|T]) -->
+	[C],
+	{ code_type(C, digit) }, !,
+	digits(T).
+digits([]) --> [].
 
 ws -->
 	" ", !,
