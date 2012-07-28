@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2846,8 +2845,14 @@ delAllModulesSourceFile__unlocked(SourceFile sf)
 }
 
 
-/* Sf is the `owning' source-file
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+redefineProcedure() is called when a procedure   needs to be defined and
+it seems to have a definition. The (*)   case occurs if this is actually
+false. This happens if a file holding   a  running predicate is reloaded
+because the clauses cannot be wiped.
+
+Sf is the `owning' source-file
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
@@ -2863,15 +2868,14 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 		   _PL_PREDICATE_INDICATOR, proc);
 			/* ... then abolish */
     abolishProcedure(proc, def->module);
-  }
-
-  if ( false(def, MULTIFILE) )
+  } else if ( false(def, MULTIFILE) )
   { ClauseRef first;
 
     def = getProcDefinition__LD(def PASS_LD);
-    first = hasClausesDefinition(def);
+    if ( !(first = hasClausesDefinition(def)) )
+      return TRUE;				/* (*) see above */
 
-    if ( first && first->value.clause->owner_no == sf->index )
+    if ( first->value.clause->owner_no == sf->index )
     { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
 	   false(def, DISCONTIGUOUS) )
 	printMessage(ATOM_warning,
