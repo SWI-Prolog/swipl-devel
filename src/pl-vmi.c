@@ -3783,14 +3783,24 @@ VMI(I_FEXITNDET, 0, 0, ())
 	setVar(*valTermRef(exception_bin));
       }
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
-      BFR = BFR->parent;
+#ifdef O_DEBUGGER
+      if ( unlikely(debugstatus.debugging) )
+	BFR->type = CHP_DEBUG;
+      else
+#endif
+	BFR = BFR->parent;
       FR->clause = NULL;
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
 	THROW_EXCEPTION;
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
-      BFR = BFR->parent;
+#ifdef O_DEBUGGER
+      if ( unlikely(debugstatus.debugging) )
+	BFR->type = CHP_DEBUG;
+      else
+#endif
+	BFR = BFR->parent;
       FRAME_FAILED;
     default:
     { /* TBD: call debugger */
