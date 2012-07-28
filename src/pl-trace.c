@@ -1169,7 +1169,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
     switch(port)
     { case CALL_PORT:	   portname = ATOM_call;         break;
-      case REDO_PORT:	   portname = ATOM_redo;         break;
+      case REDO_PORT:	   portfunc = FUNCTOR_redo1;     break;
       case EXIT_PORT:	   portname = ATOM_exit;         break;
       case FAIL_PORT:	   portname = ATOM_fail;         break;
       case UNIFY_PORT:	   portname = ATOM_unify;	 break;

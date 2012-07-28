@@ -863,6 +863,7 @@ F random_float		0
 F rational		1
 F rationalize		1
 F rdiv			2
+F redo			1
 F rem			2
 F reposition		1
 F representation_error	1

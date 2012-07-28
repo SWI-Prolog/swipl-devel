@@ -162,10 +162,15 @@ the normal Prolog debugger actions are performed.
     \termitem{call}{}
 Normal entry through the call-port of the 4-port debugger.
 
-    \termitem{redo}{}
-Normal entry through the call-port of the 4-port debugger. The
+    \termitem{redo}{PC}
+Normal entry through the redo-port of the 4-port debugger. The
 \const{redo} port signals resuming a predicate to generate alternative
-solutions.
+solutions. If \arg{PC} is 0 (zero), clause-indexing has found another
+clause that will be tried next. Otherwise, \arg{PC} is the program
+counter in the current clause where execution continues. This implies we
+are dealing with an in-clause choice point left by e.g., \predref{;}{2}.
+Note that non-determinism in foreign predicates are also handled using
+an in-clause choice point.
 
     \termitem{unify}{}
 The unify-port represents the \jargon{neck} instruction, signalling the

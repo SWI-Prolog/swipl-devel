@@ -2311,7 +2311,7 @@ next_choice:
 	{ int action;
 
 	  SAVE_REGISTERS(qid);
-	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
+	  action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
 	  LOAD_REGISTERS(qid);
 	  ch = BFR;			/* can be shifted */
 
