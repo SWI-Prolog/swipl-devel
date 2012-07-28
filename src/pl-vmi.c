@@ -2692,7 +2692,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
       {	LocalFrame fr;
 	CL = cref;
 
-	if ( (fr = dbgRedoFrame(FR PASS_LD)) )
+	if ( (fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD)) )
 	{ int action;
 
 	  SAVE_REGISTERS(qid);

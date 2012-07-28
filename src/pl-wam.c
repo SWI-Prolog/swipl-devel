@@ -1144,23 +1144,30 @@ non-debug code. We walk up the stack to   find  a debug frame. If we are
 already in the box of this frame, we   have  an internal retry of called
 system predicate, which we should not trace. If we are outside the `box'
 however, we must trace the toplevel visible predicate.
+
+FR_INBOX is maintained when the debugger is   active.  It is set on CALL
+and REDO and reset on EXIT. So, if we find this set, we are dealing with
+an internal retry and otherwise we have an external retry.
+
+The cht argument is one of CHP_CLAUSE   or CHP_JUMP, indicating the type
+of redo.  We always show redo for an external redo.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static LocalFrame
-dbgRedoFrame(LocalFrame fr ARG_LD)
+dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
 { DEBUG(1, Sdprintf("REDO on %s\n", predicateName(fr->predicate)));
 
   if ( SYSTEM_MODE )
-    return fr;
-  if ( isDebugFrame(fr) )
-    return true(fr->predicate, HIDE_CHILDS) ? NULL : fr;
+    return fr;				/* system mode; debug everything */
+  if ( isDebugFrame(fr) && false(fr->predicate, HIDE_CHILDS) )
+    return fr;				/* normal user code */
   for( ; fr && !isDebugFrame(fr); fr = fr->parent)
-    ;
+    ;					/* find top of hidden children */
   DEBUG(1, if ( fr )
 	Sdprintf("REDO user frame of %s\n",
 		 predicateName(fr->predicate)));
   if ( fr && false(fr, FR_INBOX) )
-  { set(fr, FR_INBOX);
+  { set(fr, FR_INBOX);			/* External retry */
     return fr;
   }
 
@@ -2298,7 +2305,7 @@ next_choice:
 			predicateName(DEF)));
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr = dbgRedoFrame(FR PASS_LD);
+      { LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP PASS_LD);
 
 	if ( fr )
 	{ int action;
@@ -2344,7 +2351,7 @@ next_choice:
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr = dbgRedoFrame(FR PASS_LD);
+      { LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD);
 
 	if ( fr )
 	{ int action;
