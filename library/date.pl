@@ -220,6 +220,8 @@ opt_fraction(I, F) -->
 	  number_codes(FP, D),
 	  F is I + FP/(10^N)
 	}.
+opt_fraction(I, I) -->
+	[].
 
 int2digit(N) -->
 	digit(D0),
