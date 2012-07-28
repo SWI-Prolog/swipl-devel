@@ -2598,7 +2598,7 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
   Clause clause;
   atom_t a;
 
-  if ( !PL_get_clref(ref, &clause) ||
+  if ( (PL_get_clref(ref, &clause) != TRUE) ||
        !PL_get_atom_ex(att, &a) )
     return FALSE;
 

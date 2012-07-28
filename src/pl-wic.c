@@ -3008,7 +3008,7 @@ PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
   { Clause clause;
     atom_t sclass;
 
-    if ( !PL_get_clref(A1, &clause) ||
+    if ( (PL_get_clref(A1, &clause) != TRUE) ||
 	 !PL_get_atom_ex(A2, &sclass) )
       fail;
 

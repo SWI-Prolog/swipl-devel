@@ -4656,7 +4656,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     { Clause clause;
 
       if ( ref && !PL_is_variable(ref) )
-      { if ( PL_get_clref(ref, &clause) )
+      { if ( PL_get_clref(ref, &clause) == TRUE )
 	{ term_t tmp;
 
 	  if ( decompile(clause, term, bindings) != TRUE )
@@ -4796,7 +4796,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   }
 
   if ( !PL_is_variable(ref) )
-  { if ( PL_get_clref(ref, &clause) )
+  { if ( PL_get_clref(ref, &clause) == TRUE )
     { int i;
 
       if ( true(clause, GOAL_CLAUSE) )
@@ -4931,7 +4931,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   if ( CTX_CNTRL == FRG_CUTTED )
     succeed;
 
-  if ( !PL_get_clref(A1, &clause) )
+  if ( PL_get_clref(A1, &clause) != TRUE )
     fail;
 
   PC  = clause->codes;
@@ -5281,7 +5281,7 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   term_t instruction = A4;
 
   if ( PL_is_dbref(from) )
-  { if ( !PL_get_clref(from, &clause) )
+  { if ( PL_get_clref(from, &clause) != TRUE )
       fail;
     base = clause->codes;
     len  = (size_t)clause->code_size;
@@ -5686,7 +5686,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   Code PC, loc, end;
   term_t tail = PL_copy_term_ref(A3);
 
-  if ( !PL_get_clref(A1, &clause) ||
+  if ( (PL_get_clref(A1, &clause) != TRUE) ||
        !PL_get_integer_ex(A2, &pcoffset) )
     fail;
   if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
@@ -5918,7 +5918,7 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
       offset = CTX_INT;
   }
 
-  if ( !PL_get_clref(A1, &clause) )
+  if ( PL_get_clref(A1, &clause) != TRUE )
     fail;
   PC = clause->codes + offset;
   end = clause->codes + clause->code_size;
@@ -6052,7 +6052,7 @@ PRED_IMPL("$break_at", 3, break_at, 0)
 { Clause clause = NULL;
   int offset, doit, rc;
 
-  if ( !PL_get_clref(A1, &clause) ||
+  if ( (PL_get_clref(A1, &clause) != TRUE) ||
        !PL_get_bool_ex(A3, &doit) ||
        !PL_get_integer_ex(A2, &offset) )
     fail;
