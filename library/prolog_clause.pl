@@ -679,4 +679,8 @@ clause_name(Ref, Name) :-
 	predicate_name(Head, PredName),
 	thaffix(N, Th),
 	format(string(Name), '~d-~w clause of ~w', [N, Th, PredName]).
+clause_name(Ref, Name) :-
+	clause_property(Ref, erased), !,
+	clause_property(Ref, predicate(M:PI)),
+	format(string(Name), 'erased clause from ~q', [M:PI]).
 clause_name(_, '<meta-call>').

@@ -2592,13 +2592,17 @@ pl_default_predicate(term_t d1, term_t d2)
 }
 
 
-word
-pl_get_clause_attribute(term_t ref, term_t att, term_t value)
+static
+PRED_IMPL("$get_clause_attribute", 3, get_clause_attribute, 0)
 { GET_LD
   Clause clause;
   atom_t a;
 
-  if ( (PL_get_clref(ref, &clause) != TRUE) ||
+  term_t ref   = A1;
+  term_t att   = A2;
+  term_t value = A3;
+
+  if ( !PL_get_clref(ref, &clause) ||
        !PL_get_atom_ex(att, &a) )
     return FALSE;
 
@@ -2628,6 +2632,11 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
       erased = ATOM_true;
 
     return PL_unify_atom(value, erased);
+  } else if ( a == ATOM_predicate_indicator )
+  { if ( unify_definition(MODULE_user, value,
+			  clause->procedure->definition, 0,
+			  GP_QUALIFY|GP_NAMEARITY) )
+      return TRUE;
   }
 
   fail;
@@ -3609,6 +3618,7 @@ BeginPredDefs(proc)
   PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
+  PRED_DEF("$get_clause_attribute", 3, get_clause_attribute, 0)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("$unload_file", 1, unload_file, 0)

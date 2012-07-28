@@ -746,6 +746,9 @@ hidden_system_predicate(_:Head) :-
 %	    Clause has body =true=.
 %	    * erased
 %	    Clause was erased.
+%	    * predicate(:PI)
+%	    Predicate indicator of the predicate this clause belongs
+%	    to.  Can be used to find the predicate of erased clauses.
 
 clause_property(Clause, Property) :-
 	'$clause_property'(Property, Clause).
@@ -760,6 +763,8 @@ clause_property(Clause, Property) :-
 	'$get_clause_attribute'(Clause, fact, true).
 '$clause_property'(erased, Clause) :-
 	'$get_clause_attribute'(Clause, erased, true).
+'$clause_property'(predicate(PI), Clause) :-
+	'$get_clause_attribute'(Clause, predicate_indicator, PI).
 
 
 		 /*******************************

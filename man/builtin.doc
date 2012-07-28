@@ -2937,11 +2937,15 @@ Head = lists:append([_G23|_G24], _G21, [_G23|_G27]),
 Body = append(_G24, _G21, _G27).
 \end{code}
     \predicate{clause_property}{2}{+ClauseRef, -Property}
-Queries properties of a clause.  \arg{ClauseRef} is a reference to a
-clause as produced by clause/3, nth_clause/3 or prolog_frame_attribute/3.
-\arg{Property} is one of the following:
-\begin{description}
 
+Queries properties of a clause. \arg{ClauseRef} is a reference to a
+clause as produced by clause/3, nth_clause/3 or
+prolog_frame_attribute/3. Unlike most other predicates that access
+clause references, clause_property/2 may be used to get information
+about erased clauses that have not yet been reclaimed. \arg{Property} is
+one of the following:
+
+\begin{description}
     \termitem{file}{FileName}
 Unify \arg{FileName} with the name of the file in which the clause
 textually appears. Fails if the clause is created by loading a file
@@ -2960,6 +2964,11 @@ True if the clause has no body.
     \termitem{erased}{}
 True if the clause has been erased, but not yet reclaimed because
 it is referenced.
+    \termitem{predicate}{PredicateIndicator}
+\arg{PredicateIndicator} denotes the predicate to which this clause
+belongs. This is needed to obtain information on erased clauses because
+the usual way to obtain this information using clause/3 fails for erased
+clauses.
 \end{description}
 \end{description}
 

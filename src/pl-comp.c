@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -4656,8 +4654,13 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     { Clause clause;
 
       if ( ref && !PL_is_variable(ref) )
-      { if ( PL_get_clref(ref, &clause) == TRUE )
+      { int rc;
+
+	if ( (rc=PL_get_clref(ref, &clause)) )
 	{ term_t tmp;
+
+	  if ( rc < 0 && CTX_ARITY < 4 )
+	    return FALSE;			/* erased clause */
 
 	  if ( decompile(clause, term, bindings) != TRUE )
 	    return FALSE;
@@ -5686,7 +5689,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   Code PC, loc, end;
   term_t tail = PL_copy_term_ref(A3);
 
-  if ( (PL_get_clref(A1, &clause) != TRUE) ||
+  if ( !PL_get_clref(A1, &clause) ||
        !PL_get_integer_ex(A2, &pcoffset) )
     fail;
   if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
