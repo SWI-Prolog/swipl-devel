@@ -1843,20 +1843,21 @@ Backspace character.
     \escapeitem{c}
 No output.  All input characters up to but not including the first
 non-layout character are skipped.  This allows for the specification
-of pretty-looking long lines.  For compatibility with Quintus Prolog.
-Not supported by ISO.  Example:
+of pretty-looking long lines.  Not supported by ISO.  Example:
 \begin{code}
 format('This is a long line that looks better if it was \c
        split across multiple physical lines in the input')
 \end{code}
-    \escapeitem{\bnfmeta{{\sc RETURN}}}
-No output.  Skips input to the next non-layout character or to the
-end of the next line.  ISO demands skipping only the newline.  We
-advise using \verb$\c$ or putting the layout \emph{before} the \chr{\},
-as shown below.  Using \verb$\c$ is supported by various other Prolog
-implementations and will remain supported by SWI-Prolog.  The style
-shown below is the most compatible solution.\footnote{Future versions
-are likely to interpret \chr{\}<return> according to ISO.}
+    \escapeitem{\bnfmeta{{\sc NEWLINE}}}
+When in ISO mode (see the Prolog flag \prologflag{iso}), only skip this
+sequence. In native mode, white-space that follows the newline are
+skipped as well and a warning is printed, indicating that this construct
+is deprecated and advicing to use \verb$\c$. We advise using \verb$\c$
+or putting the layout \emph{before} the \chr{\}, as shown below. Using
+\verb$\c$ is supported by various other Prolog implementations and will
+remain supported by SWI-Prolog. The style shown below is the most
+compatible solution.\footnote{Future versions will interpret
+\chr{\}<return> according to ISO.}
 
 \begin{code}
 format('This is a long line that looks better if it was \
