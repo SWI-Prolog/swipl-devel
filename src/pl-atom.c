@@ -936,7 +936,8 @@ PL_unregister_atom(atom_t a)
     } else
     { GET_LD
 
-      LD->atoms.unregistering = a;
+      if ( LD )
+	LD->atoms.unregistering = a;
       if ( (refs=ATOMIC_DEC(&p->references)) == 0 )
 	ATOMIC_INC(&GD->atoms.unregistered);
     }
