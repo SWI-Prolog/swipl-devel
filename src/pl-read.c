@@ -1717,11 +1717,15 @@ again:
       OK('c');
     case '\n':				/* \LF<blank>* */
       if ( _PL_rd )			/* quoted string, _not_ 0'\.. */
-      { e = in;
-	for( ; *in; in=e )
+      { if ( !_PL_rd->strictness )
+	{ e = in;
+	  for( ; *in; in=e )
+	  { e = utf8_get_uchar(in, &c);
+	    if ( c == '\n' || !PlBlankW(c) )
+	      break;
+	  }
+	} else
 	{ e = utf8_get_uchar(in, &c);
-	  if ( c == '\n' || !PlBlankW(c) )
-	    break;
 	}
 	goto skip_cont;
       }
