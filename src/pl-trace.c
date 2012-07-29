@@ -2221,7 +2221,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 */
 
 static
-PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
+PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, PL_FA_TRANSPARENT)
 { int rc = prolog_frame_attribute(A1, A2, A3);
 
   DEBUG(CHK_SECURE, scan_global(0));
