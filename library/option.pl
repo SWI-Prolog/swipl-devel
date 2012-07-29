@@ -40,6 +40,7 @@
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(error)).
+:- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Option list processing
 
