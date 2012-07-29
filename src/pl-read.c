@@ -1703,7 +1703,7 @@ again:
     case 'b':
       OK('\b');
     case 'c':				/* skip \c<blank>* */
-      if ( quote )
+      if ( _PL_rd )
       { in = skipSpaces(in);
 	e = utf8_get_uchar(in, &c);
       skip_cont:
