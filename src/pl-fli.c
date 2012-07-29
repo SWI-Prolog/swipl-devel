@@ -3320,7 +3320,8 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
   { if ( *m == NULL )
       *m = environment_frame ? contextModule(environment_frame)
 			     : MODULE_user;
-    setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
+    if ( raw != plain )
+      setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
   }
 
   succeed;
