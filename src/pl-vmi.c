@@ -2512,6 +2512,7 @@ VMI(S_UNDEF, 0, 0, ())
 	caller = NULL;
 
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+      newChoice(CHP_DEBUG, FR PASS_LD);
 
       SAVE_REGISTERS(qid);
       if ( (fid = PL_open_foreign_frame()) )
