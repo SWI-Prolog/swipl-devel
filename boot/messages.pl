@@ -148,6 +148,8 @@ iso_message(existence_error(Type, Object)) -->
 	[ '~w `~p'' does not exist'-[Type, Object] ].
 iso_message(busy(Type, Object)) -->
 	[ '~w `~p'' is busy'-[Type, Object] ].
+iso_message(syntax_error(swi_backslash_newline)) -->
+	[ 'Deprecated ... \\<newline><white>*.  Use \c' ].
 iso_message(syntax_error(Id)) -->
 	[ 'Syntax error: ' ],
 	syntax_error(Id).

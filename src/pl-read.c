@@ -622,7 +622,7 @@ singletonWarning(const char *which, const char **vars, int nvars)
 
     printMessage(ATOM_warning,
 		 PL_FUNCTOR_CHARS, which, 1,
-		   PL_TERM,    l);
+		   PL_TERM, l);
 
     PL_discard_foreign_frame(fid);
 
@@ -1718,11 +1718,24 @@ again:
     case '\n':				/* \LF<blank>* */
       if ( _PL_rd )			/* quoted string, _not_ 0'\.. */
       { if ( !_PL_rd->strictness )
-	{ e = in;
+	{ unsigned char *errpos = (unsigned char *)in;
+	  int skipped = 0;
+	  e = in;
 	  for( ; *in; in=e )
 	  { e = utf8_get_uchar(in, &c);
 	    if ( c == '\n' || !PlBlankW(c) )
+	    { if ( skipped )
+	      { term_t ex;
+		unsigned char *old_start = last_token_start;
+
+		last_token_start = errpos;
+		ex = makeErrorTerm("swi_backslash_newline", NULL, 0, _PL_rd);
+		last_token_start = old_start;
+		printMessage(ATOM_warning, PL_TERM, ex);
+	      }
 	      break;
+	    }
+	    skipped++;
 	  }
 	} else
 	{ e = utf8_get_uchar(in, &c);
