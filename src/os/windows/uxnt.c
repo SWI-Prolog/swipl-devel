@@ -959,6 +959,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
       size = GetEnvironmentVariable(nm, valp, size+1);
     }
 
+    size = wcslen(valp);		/* return sometimes holds 0-bytes */
     if ( wcstoutf8(buf, valp, buflen) )
       rc = strlen(buf);
     else
