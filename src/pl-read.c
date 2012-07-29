@@ -1716,7 +1716,7 @@ again:
       }
       OK('c');
     case '\n':				/* \LF<blank>* */
-      if ( quote )
+      if ( _PL_rd )			/* quoted string, _not_ 0'\.. */
       { e = in;
 	for( ; *in; in=e )
 	{ e = utf8_get_uchar(in, &c);
