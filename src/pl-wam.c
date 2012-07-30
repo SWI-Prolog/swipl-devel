@@ -192,7 +192,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 	  { relto = FR->clause->value.clause->codes;
 	  }
 
-	  Sdprintf("\t%s\n", codeTable[decode(*PC)].name);
+	  Sdprintf("\t%4ld %s\n", (long)(PC-relto), codeTable[decode(*PC)].name);
 	});
 }
 
@@ -1155,7 +1155,8 @@ of redo.  We always show redo for an external redo.
 
 static LocalFrame
 dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
-{ DEBUG(1, Sdprintf("REDO on %s\n", predicateName(fr->predicate)));
+{ DEBUG(MSG_TRACE, Sdprintf("REDO on [%d] %s\n",
+			    (int)levelFrame(fr), predicateName(fr->predicate)));
 
   if ( SYSTEM_MODE )
     return fr;				/* system mode; debug everything */
@@ -1163,9 +1164,11 @@ dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
     return fr;				/* normal user code */
   for( ; fr && !isDebugFrame(fr); fr = fr->parent)
     ;					/* find top of hidden children */
-  DEBUG(1, if ( fr )
-	Sdprintf("REDO user frame of %s\n",
-		 predicateName(fr->predicate)));
+  DEBUG(MSG_TRACE, if ( fr )
+	Sdprintf("REDO user frame of [%d] %s%s\n",
+		 (int)levelFrame(fr),
+		 predicateName(fr->predicate),
+		 true(fr, FR_INBOX) ? " (inbox)" : ""));
   if ( fr && false(fr, FR_INBOX) )
   { set(fr, FR_INBOX);			/* External retry */
     return fr;
@@ -2141,6 +2144,7 @@ do_retry:
   rframe->clause = NULL;
   environment_frame = FR = rframe;
   DEF = FR->predicate;
+  clear(FR, FR_SKIPPED);
   Undo(m);
   exception_term = 0;
 
@@ -2263,7 +2267,7 @@ next_choice:
 	{ case ACTION_RETRY:
 	    environment_frame = FR;
 	    DEF = FR->predicate;
-	    clear(FR, FR_CATCHED);
+	    clear(FR, FR_CATCHED|FR_SKIPPED);
 	    goto retry_continue;
 	    case ACTION_ABORT:
 	      THROW_EXCEPTION;

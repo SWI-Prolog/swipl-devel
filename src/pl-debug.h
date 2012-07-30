@@ -51,6 +51,8 @@
 #define MSG_INDEX_FIND		 21
 #define MSG_INDEX_UPDATE	 22
 #define MSG_JIT			 23
+#define MSG_TRACE		 24
+
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101
