@@ -3681,9 +3681,6 @@ garbageCollect(void)
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
 #endif
-#ifdef O_DEBUG
-  word key;
-#endif
 
   END_PROF();
   START_PROF(P_GC, "P_GC");
@@ -3729,7 +3726,7 @@ garbageCollect(void)
   { alloc_start_map();
     if ( !scan_global(FALSE|REGISTER_STARTS) )
       sysError("Stack not ok at gc entry");
-    key = checkStacks(&state);
+    checkStacks(&state);
     free(start_map);
     start_map = NULL;
 
