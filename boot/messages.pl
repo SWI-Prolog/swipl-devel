@@ -149,7 +149,7 @@ iso_message(existence_error(Type, Object)) -->
 iso_message(busy(Type, Object)) -->
 	[ '~w `~p'' is busy'-[Type, Object] ].
 iso_message(syntax_error(swi_backslash_newline)) -->
-	[ 'Deprecated ... \\<newline><white>*.  Use \c' ].
+	[ 'Deprecated ... \\<newline><white>*.  Use \\c' ].
 iso_message(syntax_error(Id)) -->
 	[ 'Syntax error: ' ],
 	syntax_error(Id).
@@ -274,8 +274,8 @@ swi_message(context_error(nodirective, Goal)) -->
 	[ 'Wrong context: ~p can only be used in a directive'-[PI] ].
 swi_message(context_error(edit, no_default_file)) -->
 	(   { current_prolog_flag(windows, true) }
-	->  [ 'Edit/0 can only be used after opening a \
-	      Prolog file by double-clicking it' ]
+	->  [ 'Edit/0 can only be used after opening a \c
+	       Prolog file by double-clicking it' ]
 	;   [ 'Edit/0 can only be used with the "-s file" commandline option'
 	    ]
 	).
