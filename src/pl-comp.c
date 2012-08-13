@@ -1925,26 +1925,22 @@ callatmv(code call)
 
 static Procedure
 lookupBodyProcedure(functor_t functor, Module tm)
-{ Procedure proc = lookupProcedure(functor, tm);
+{ Procedure proc;
 
-  if ( !isDefinedProcedure(proc) &&
-       !true(proc->definition, P_REDEFINED) &&
+  if ( (proc = isCurrentProcedure(functor, tm)) &&
+       ( isDefinedProcedure(proc) ||
+	 true(proc->definition, P_REDEFINED)
+       )
+     )
+    return proc;
+
+  if ( tm != MODULE_system &&
+       (proc = isCurrentProcedure(functor, MODULE_system)) &&
+       isDefinedProcedure(proc) &&
        !GD->bootsession )
-  { Procedure syspred;
+    return proc;
 
-    if ( (tm != MODULE_system &&
-	  (syspred=isCurrentProcedure(functor, MODULE_system)) &&
-	  isDefinedProcedure(syspred)) )
-    { assert(false(proc->definition, P_DIRTYREG));
-					/* TBD: use GC_LINGER() */
-      unshareDefinition(proc->definition);
-      freeHeap(proc->definition, sizeof(struct definition));
-      proc->definition = syspred->definition;
-      shareDefinition(proc->definition);
-    }
-  }
-
-  return proc;
+  return lookupProcedure(functor, tm);
 }
 
 
