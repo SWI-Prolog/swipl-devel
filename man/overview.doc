@@ -2440,7 +2440,7 @@ relatively cheap, removing it is harder.
     \item[Atoms and Strings]
 SWI-Prolog has no limits on the sizes of atoms and strings.  read/1 and
 its derivatives however normally limit the number of newlines in an atom
-or string to 5 to improve error detection and recovery.  This can be
+or string to 6 to improve error detection and recovery.  This can be
 switched off with style_check/1.
 
 The number of atoms is limited to 16777216 (16M) on 32-bit machines.  On
