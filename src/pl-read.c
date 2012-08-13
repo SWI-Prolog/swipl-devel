@@ -852,10 +852,8 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  { addToBuffer(c, _PL_rd);
 	    c = getchrq();
 	  }
-	  if ( c == EOF )
-	    goto eofinstr;
-	  if ( c == q )
-	    return TRUE;
+	  if ( c == EOF || c == q )
+	    goto out;
 	  goto next;
 	default:
 	  addToBuffer(c, _PL_rd);
@@ -879,6 +877,8 @@ raw_read_quoted(int q, ReadData _PL_rd)
     }
     addToBuffer(c, _PL_rd);
   }
+
+out:
   if (c == EOF)
   {
   eofinstr:
