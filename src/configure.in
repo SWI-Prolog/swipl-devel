@@ -1292,7 +1292,7 @@ if test "$configgmp" = "yes"; then
   fi
 
   AC_MSG_CHECKING("For gmp_randinit_mt()");
-  AC_TRY_COMPILE(
+  AC_TRY_LINK(
       [#include <gmp.h>
       ],
       [ gmp_randstate_t state;
