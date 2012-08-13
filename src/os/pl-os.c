@@ -1067,8 +1067,8 @@ canoniseFileName(char *path)
     out = start = in;
   }
 #ifdef __MINGW32__ /* /c/ in MINGW is the same as c: */
-  if ( in[0] == '/' && isLetter(in[1]) &&
-       in[2] == '/' )
+  else if ( in[0] == '/' && isLetter(in[1]) &&
+	    in[2] == '/' )
   {
     out[0] = in[1];
     out[1] = ':';
@@ -1076,8 +1076,8 @@ canoniseFileName(char *path)
     out = start = in;
   }
 #endif
-
 #endif
+
 #ifdef O_HASSHARES			/* //host/ */
   if ( in[0] == '/' && in[1] == '/' && isAlpha(in[2]) )
   { char *s;
