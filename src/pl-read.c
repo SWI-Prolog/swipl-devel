@@ -809,7 +809,9 @@ raw_read_quoted(int q, ReadData _PL_rd)
 
   addToBuffer(q, _PL_rd);
   while((c=getchrq()) != EOF && c != q)
-  { if ( c == '\\' && DO_CHARESCAPE )
+  {
+  next:
+    if ( c == '\\' && DO_CHARESCAPE )
     { int base;
 
       addToBuffer(c, _PL_rd);
@@ -843,6 +845,18 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  if ( c == q )
 	    return TRUE;
 	  continue;
+	case 'c':			/* \c<whitespace>* */
+	  addToBuffer(c, _PL_rd);	/* 'c' */
+	  c = getchrq();
+	  while( PlBlankW(c) )
+	  { addToBuffer(c, _PL_rd);
+	    c = getchrq();
+	  }
+	  if ( c == EOF )
+	    goto eofinstr;
+	  if ( c == q )
+	    return TRUE;
+	  goto next;
 	default:
 	  addToBuffer(c, _PL_rd);
 	  if ( digitValue(8, c) >= 0 )	/* \NNN\ */
