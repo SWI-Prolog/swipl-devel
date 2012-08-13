@@ -1376,23 +1376,21 @@ AC_TRY_RUN(
 [
 #include <inttypes.h>
   main()
-  { intptr_t l[10];
-    double *p;
-    uintptr_t x = (uintptr_t) l;
+  { void *l[10];
+    double *p = (double*)l;
 
     if ( sizeof(double) == sizeof(void*) )
-      exit(0);
+      return 0;
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
-    exit(1);
+    return 1;
 #endif
 
-    if ( x % sizeof(double) == 0 )
-      x += sizeof(intptr_t);
-    p = (double  *) x;
+    if ( (intptr_t)p % sizeof(double) == 0 )
+      p += sizeof(void*);
     *p = 1.0;
 
-    exit(0);
+    return 0;
   }
 ],
 AC_MSG_RESULT(as void*),
@@ -1407,23 +1405,21 @@ AC_TRY_RUN(
 [
 #include <inttypes.h>
   main()
-  { intptr_t l[10];
-    int64_t *p;
-    uintptr_t x = (uintptr_t) l;
+  { void *l[10];
+    int64_t *p = (int64_t*)l;
 
     if ( sizeof(int64_t) == sizeof(void*) )
-      exit(0);
+      return 0;
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
-    exit(1);
+    return 1;
 #endif
 
-    if ( x % sizeof(int64_t) == 0 )
-      x += sizeof(intptr_t);
-    p = (int64_t *) x;
+    if ( (intptr_t)p % sizeof(int64_t) == 0 )
+      p += sizeof(void*);
     *p = 0x123456789abcdefLL;
 
-    exit(0);
+    return 0;
   }
 ],
 AC_MSG_RESULT(as void*),
