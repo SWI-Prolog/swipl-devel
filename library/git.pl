@@ -48,6 +48,8 @@
 :- use_module(library(option)).
 :- use_module(library(dcg/basics)).
 :- use_module(library(record)).
+:- use_module(library(lists)).
+:- use_module(library(error)).
 
 :- meta_predicate
 	git_process_output(+, 1, +).
@@ -328,20 +330,27 @@ url_codes(Tag, Rest) -->
 %	  * tags(Boolean)
 %	  * refs(List)
 %
+%	For example, to find the hash of the remote =HEAD=, one can use
+%
+%	  ==
+%	  ?- git_ls_remote('git://www.swi-prolog.org/home/pl/git/pl-devel.git',
+%			   Refs, [refs(['HEAD'])]).
+%	  Refs = ['5d596c52aa969d88e7959f86327f5c7ff23695f3'-'HEAD'].
+%	  ==
+%
 %	@param Refs is a list of pairs hash-name.
 
 git_ls_remote(GitURL, Refs, Options) :-
-	findall(O, ls_remote_option(Options, O), OL),
-	append(OL, RemoteOptions),
-	append([ 'ls-remote' | RemoteOptions], [GitURL], Argv),
+	findall(O, ls_remote_option(Options, O), RemoteOptions),
+	option(refs(LimitRefs), Options, []),
+	must_be(list(atom), LimitRefs),
+	append([ 'ls-remote' | RemoteOptions], [GitURL|LimitRefs], Argv),
 	git_process_output(Argv, remote_refs(Refs), []).
 
-ls_remote_option(Options, ['--heads']) :-
+ls_remote_option(Options, '--heads') :-
 	option(heads(true), Options).
-ls_remote_option(Options, ['--tags']) :-
+ls_remote_option(Options, '--tags') :-
 	option(tags(true), Options).
-ls_remote_option(Options, Refs) :-
-	option(refs(Refs), Options).
 
 remote_refs(Refs, Out) :-
 	read_line_to_codes(Out, Line0),
