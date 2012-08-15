@@ -405,6 +405,10 @@ Section "Base system (required)"
   File ${SWIPL}\library\ansi_term.pl
   File ${SWIPL}\library\optparse.pl
 
+; DCG
+  SetOutPath $INSTDIR\library\dcg
+  File ${SWIPL}\library\dcg_basics.pl
+
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
   File ${SWIPL}\library\unicode\blocks.pl

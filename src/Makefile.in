@@ -154,7 +154,6 @@ SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-init.h pl-os.h pl-data.h
 
-CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
 UNICODE=blocks.pl unicode_data.pl
 builddirs=../lib ../lib/$(PLARCH) os
@@ -459,7 +458,7 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) demo boot libra
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/ciao library/dialect/ciao/engine \
 		library/dialect/sicstus library/dialect/swi \
-		library/dialect/ifprolog
+		library/dialect/ifprolog library/dcg
 
 iruntime:	idirs
 		if [ -f $(RUNTIME) ]; then \
@@ -500,7 +499,7 @@ idirs::
 iboot:		idirs
 		for f in $(PLINIT) $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
-ilib:		idirs iclp idialect iunicode
+ilib:		idirs iclp idcg idialect iunicode
 		for f in $(PLLIBS) $(PLOSLIBS); do \
 			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
 		done
@@ -508,6 +507,11 @@ ilib:		idirs iclp idialect iunicode
 iclp:		idirs
 		for f in $(CLP); do \
 			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
+		done
+
+idcg:		idirs
+		for f in $(DCG); do \
+			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
 idialect:	idirs iswi iyap iiso isicstus iciao iifprolog

@@ -52,6 +52,9 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl \
 	prolog_pack.pl
 
+CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+DCG=	basics.pl
+
 # Dialect library files
 
 DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl bim.pl ifprolog.pl

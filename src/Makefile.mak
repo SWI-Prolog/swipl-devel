@@ -242,7 +242,9 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\library\dialect\sicstus" \
 		"$(PLBASE)\library\dialect\ciao" \
 		"$(PLBASE)\library\dialect\ciao\engine" \
-		"$(PLBASE)\library\unicode" $(MANDIR)
+		"$(PLBASE)\library\unicode" \
+		"$(PLBASE)\library\dcg" \
+		$(MANDIR)
 
 $(IDIRS):
 		if not exist $@/$(NULL) $(MKDIR) $@
@@ -253,13 +255,17 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idialect iswi iyap isicstus iciao iiso iunicode
+ilib:		iclp idcg idialect iswi iyap isicstus iciao iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
 iclp::
 		chdir $(PLHOME)\library\clp & \
 			for %f in ($(CLP)) do copy %f "$(PLBASE)\library\clp"
+
+idcg::
+		chdir $(PLHOME)\library\dcg & \
+			for %f in ($(DCG)) do copy %f "$(PLBASE)\library\dcg"
 
 idialect:	iyap
 		chdir $(PLHOME)\library\dialect & \
