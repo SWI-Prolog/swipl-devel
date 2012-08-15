@@ -387,6 +387,10 @@ pack_install(Archive) :-		% Install from .tgz/.zip/... file
 	pack_version_file(Pack, _Version, File),
 	uri_file_name(FileURL, File),
 	pack_install(Pack, [url(FileURL)]).
+pack_install(URL) :-
+	atom(URL),
+	git_url(URL, Pack), !,
+	pack_install(Pack, [git(true), url(URL)]).
 pack_install(URL) :-			% Install from URL
 	atom(URL),
 	pack_version_file(Pack, _Version, URL),
@@ -630,8 +634,8 @@ special(..).
 %	built-in HTTP client. For complete  coverage, we should consider
 %	using an external (e.g., curl) if available.
 
-pack_install_from_url(Scheme, URL, PackTopDir, Name, Options) :-
-	git_scheme_url(Scheme, URL), !,
+pack_install_from_url(_, URL, PackTopDir, Name, Options) :-
+	option(git(true), Options), !,
 	directory_file_path(PackTopDir, Name, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
@@ -655,10 +659,6 @@ pack_install_from_url(http, URL, PackTopDir, Pack, Options) :-
 	show_info(Pack, Info, Options),
 	confirm(install_downloaded(DownloadFile), yes, Options),
 	pack_install_from_local(DownloadFile, PackTopDir, Pack, Options).
-
-git_scheme_url(git, _).
-git_scheme_url(http,  URL) :- file_name_extension(_, git, URL).
-git_scheme_url(https, URL) :- file_name_extension(_, git, URL).
 
 pack_download_dir(PackTopDir, DownLoadDir) :-
 	directory_file_path(PackTopDir, 'Downloads', DownLoadDir),
@@ -1016,6 +1016,33 @@ confirm_remove(Pack, Deps, Delete) :-
 	       []          = cancel
 	     ], [], Delete),
 	Delete \== [].
+
+
+		 /*******************************
+		 *	       GIT URL		*
+		 *******************************/
+
+%%	git_url(+URL, -Pack) is semidet.
+%
+%	True if URL describes a git url for Pack
+
+git_url(URL, Pack) :-
+	uri_components(URL, Components),
+	uri_data(scheme, Components, Scheme),
+	uri_data(path, Components, Path),
+	(   Scheme == git
+	->  true
+	;   git_download_scheme(Scheme),
+	    file_name_extension(_, git, Path)
+	),
+	file_base_name(Path, PackExt),
+	(   file_name_extension(Pack, git, PackExt)
+	->  true
+	;   Pack = PackExt
+	).
+
+git_download_scheme(http).
+git_download_scheme(https).
 
 
 		 /*******************************
