@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -241,17 +240,16 @@ load_foreign_library(LibFile, Module, DefEntry) :-
 	    fail
 	;   delete_foreign_lib(Delete, Path)
 	), !,
-	(   (	entry(LibFile, DefEntry, Entry),
-		Module:call_shared_object_function(Handle, Entry)
-	    ->	true
-	    ;	DefEntry == default(install)
-	    )
+	(   entry(LibFile, DefEntry, Entry),
+	    Module:call_shared_object_function(Handle, Entry)
 	->  retractall(loading(LibFile)),
 	    assert_shlib(LibFile, Entry, Path, Module, Handle)
 	;   retractall(loading(LibFile)),
 	    close_shared_object(Handle),
-	    print_message(error, shlib(LibFile, call_entry(DefEntry))),
-	    fail
+	    findall(Entry, entry(LibFile, DefEntry, Entry), Entries),
+	    throw(error(existence_error(foreign_install_function,
+					install(Path, Entries)),
+			_))
 	).
 load_foreign_library(LibFile, _, _) :-
 	retractall(loading(LibFile)),
@@ -418,11 +416,16 @@ unload_foreign(File) :-
 		 *******************************/
 
 :- multifile
-	prolog:message/3.
+	prolog:message//1,
+	prolog:error_message//1.
 
-prolog:message(shlib(LibFile, call_entry(DefEntry))) -->
-	[ '~w: Failed to call entry-point ~w'-[LibFile, DefEntry] ].
 prolog:message(shlib(LibFile, load_failed)) -->
 	[ '~w: Failed to load file'-[LibFile] ].
 prolog:message(shlib(not_supported)) -->
 	[ 'Emulator does not support foreign libraries' ].
+
+prolog:error_message(existence_error(foreign_install_function,
+				     install(Lib, List))) -->
+	[ 'No install function in ~q'-[Lib], nl,
+	  '\tTried: ~q'-[List]
+	].
