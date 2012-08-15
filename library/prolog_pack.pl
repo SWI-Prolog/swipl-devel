@@ -956,6 +956,14 @@ post_install_autoload(_, _).
 %	Try to upgrade the package Pack.
 
 pack_upgrade(Pack) :-
+	pack_info(Pack, _, directory(Dir)),
+	directory_file_path(Dir, '.git', GitDir),
+	exists_directory(GitDir), !,
+	print_message(informational, pack(git_fetch(Dir))),
+	run_process(path(git), [fetch],
+		    [ directory(Dir) ]).
+						% FIXME: Decide on merge
+pack_upgrade(Pack) :-
 	once(pack_info(Pack, _, version(VersionAtom))),
 	atom_version(VersionAtom, Version),
 	pack_info(Pack, _, download(URL)),
@@ -970,22 +978,8 @@ pack_upgrade(Pack) :-
 	;   print_message(informational, pack(up_to_date(Pack)))
 	).
 pack_upgrade(Pack) :-
-	pack_info(Pack, _, download(URL)),
-	git_url(URL), !,
-	pack_info(Pack, _, directory(Dir)),
-	run_process(path(git), [fetch],
-		    [ directory(Dir) ]).
-						% FIXME: Decide on merge
-pack_upgrade(Pack) :-
 	print_message(warning, pack(no_upgrade_info(Pack))).
 
-
-git_url(URL) :-
-	uri_components(URL, Components),
-	uri_data(scheme, Components, Scheme),
-	Scheme == git, !.
-git_url(URL) :-
-	file_name_extension(_, git, URL).
 
 		 /*******************************
 		 *	      REMOVE		*
@@ -1019,7 +1013,7 @@ confirm_remove(Pack, Deps, Delete) :-
 
 
 		 /*******************************
-		 *	       GIT URL		*
+		 *	       GIT		*
 		 *******************************/
 
 %%	git_url(+URL, -Pack) is semidet.
@@ -1816,6 +1810,9 @@ label(install_deps) -->
 label(install_no_deps) -->
 	[ 'Only install requested package' ].
 
+
+message(git_fetch(Dir)) -->
+	[ 'Running "git fetch" in ~q'-[Dir] ].
 
 % inquiry is blank
 
