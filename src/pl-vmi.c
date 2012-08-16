@@ -4035,7 +4035,9 @@ b_throw:
     LOAD_REGISTERS(qid);
 
     if ( !rc )
-    { SAVE_REGISTERS(qid);
+    { atom_t a;
+
+      SAVE_REGISTERS(qid);
       if ( LD->outofstack == (Stack)&LD->stacks.global )
 	garbageCollect();
       LD->critical++;			/* do not handle signals */
@@ -4048,7 +4050,7 @@ b_throw:
 	{ trimStacks(FALSE PASS_LD);	/* restore spare stacks */
 	  printMessage(ATOM_error, PL_TERM, exception_term);
 	}
-      } else
+      } else if ( !(PL_get_atom(exception_term, &a) && a == ATOM_aborted) )
       { printMessage(ATOM_error,
 		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
 		       PL_TERM, exception_term);
