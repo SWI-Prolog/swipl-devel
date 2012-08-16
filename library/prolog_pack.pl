@@ -726,6 +726,7 @@ pack_rebuild :-
 post_install_foreign(PackDir, Options) :-
 	is_foreign_pack(PackDir), !,
 	setup_path,
+	save_build_environment(PackDir),
 	configure_foreign(PackDir, Options),
 	make_foreign(PackDir, Options).
 post_install_foreign(_, _).
@@ -781,6 +782,34 @@ pack_make(PackDir, Targets, _Options) :-
 	forall(member(Target, Targets),
 	       run_process(path(make), [Target], ProcessOptions)).
 pack_make(_, _, _).
+
+%%	save_build_environment(+PackDir)
+%
+%	Create  a  shell-script  build.env  that    contains  the  build
+%	environment.
+
+save_build_environment(PackDir) :-
+	directory_file_path(PackDir, 'buildenv.sh', EnvFile),
+	build_environment(Env),
+	setup_call_cleanup(
+	    open(EnvFile, write, Out),
+	    write_env_script(Out, Env),
+	    close(Out)).
+
+write_env_script(Out, Env) :-
+	format(Out,
+	       '# This file contains the environment that can be used to\n\c
+	        # build the foreign pack outside Prolog.  This file must\n\c
+		# be loaded into a bourne-compatible shell using\n\c
+		#\n\c
+		#   $ source buildenv.sh\n\n',
+	       []),
+	forall(member(Var=Value, Env),
+	       format(Out, '~w=\'~w\'\n', [Var, Value])),
+	format(Out, '\nexport ', []),
+	forall(member(Var=_, Env),
+	       format(Out, ' ~w', [Var])),
+	format(Out, '\n', []).
 
 build_environment(Env) :-
 	findall(Name=Value, environment(Name, Value), UserEnv),
