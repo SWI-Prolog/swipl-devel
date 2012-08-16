@@ -983,15 +983,23 @@ post_install_autoload(_, _).
 %%	pack_upgrade(+Pack) is semidet.
 %
 %	Try to upgrade the package Pack.
+%
+%	@tbd	Update dependencies when updating a pack from git?
 
 pack_upgrade(Pack) :-
 	pack_info(Pack, _, directory(Dir)),
 	directory_file_path(Dir, '.git', GitDir),
 	exists_directory(GitDir), !,
 	print_message(informational, pack(git_fetch(Dir))),
-	run_process(path(git), [fetch],
-		    [ directory(Dir) ]).
-						% FIXME: Decide on merge
+	git([fetch], [ directory(Dir) ]),
+	git_describe(V0, [ directory(Dir) ]),
+	git_describe(V1, [ directory(Dir), commit('origin/master') ]),
+	(   V0 == V1
+	->  print_message(informational, pack(up_to_date(Pack)))
+	;   confirm(upgrade(Pack, V0, V1), yes, []),
+	    git([merge, 'origin/master'], [ directory(Dir) ]),
+	    pack_rebuild(Pack)
+	).
 pack_upgrade(Pack) :-
 	once(pack_info(Pack, _, version(VersionAtom))),
 	atom_version(VersionAtom, Version),
