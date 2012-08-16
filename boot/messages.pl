@@ -62,6 +62,11 @@
 
 translate_message(Term) -->
 	translate_message2(Term), !.
+translate_message(Term) -->
+	{ Term = error(_, _) },
+	[ 'Unknown exception: ~p'-[Term] ].
+translate_message(Term) -->
+	[ 'Unknown message: ~p'-[Term] ].
 
 translate_message2(Term) -->
 	{var(Term)}, !,
@@ -84,11 +89,6 @@ translate_message2(message_lines(Lines), L, T) :- % deal with old C-warning()
 	make_message_lines(Lines, L, T).
 translate_message2(format(Fmt, Args)) -->
 	[ Fmt-Args ].
-translate_message2(Term) -->
-	{ Term = error(_, _) },
-	[ 'Unknown exception: ~p'-[Term] ].
-translate_message2(Term) -->
-	[ 'Unknown message: ~p'-[Term] ].
 
 make_message_lines([], T, T) :- !.
 make_message_lines([Last],  ['~w'-[Last]|T], T) :- !.
@@ -383,7 +383,10 @@ prolog_message(initialization_exception(E)) -->
 	translate_message(E).
 prolog_message(unhandled_exception(E)) -->
 	[ 'Unhandled exception: ' ],
-	translate_message(E).
+	(   translate_message2(E)
+	->  []
+	;   [ '~p'-[E] ]
+	).
 prolog_message(goal_failed(Goal, Context)) -->
 	[ 'Goal (~w) failed: ~p'-[Goal, Context] ].
 prolog_message(no_current_module(Module)) -->
