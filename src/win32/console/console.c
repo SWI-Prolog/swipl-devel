@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -182,6 +181,7 @@ static HICON    _rlc_hicon;		/* Global icon */
 
 static LRESULT WINAPI rlc_wnd_proc(HWND win, UINT msg, WPARAM wP, LPARAM lP);
 
+static void	rcl_setup_ansi_colors(RlcData b);
 static void	rlc_place_caret(RlcData b);
 static void	rlc_resize_pixel_units(RlcData b, int w, int h);
 static RlcData	rlc_make_buffer(int w, int h);
@@ -209,7 +209,8 @@ static void	rlc_redraw(RlcData b);
 static int	rlc_breakargs(TCHAR *line, TCHAR **argv);
 static void	rlc_resize(RlcData b, int w, int h);
 static void	rlc_adjust_line(RlcData b, int line);
-static int	text_width(RlcData b, HDC hdc, const TCHAR *text, int len);
+static int	text_width(RlcData b, HDC hdc, const text_char *text, int len);
+static int	tchar_width(RlcData b, HDC hdc, const TCHAR *text, int len);
 static void	rlc_queryfont(RlcData b);
 static void     rlc_do_write(RlcData b, TCHAR *buf, int count);
 static void     rlc_reinit_line(RlcData b, int line);
@@ -495,6 +496,7 @@ rlc_create_window(RlcData b)
   b->sb_lines = rlc_count_lines(b, b->first, b->last);
   b->sb_start = rlc_count_lines(b, b->first, b->window_start);
 
+  rcl_setup_ansi_colors(b);
   b->foreground = GetSysColor(COLOR_WINDOWTEXT);
   b->background = GetSysColor(COLOR_WINDOW);
   b->sel_foreground = GetSysColor(COLOR_HIGHLIGHTTEXT);
@@ -835,6 +837,38 @@ rlc_breakargs(TCHAR *line, TCHAR **argv)
 
   return argc;
 }
+
+
+		 /*******************************
+		 *	    ANSI COLORS		*
+		 *******************************/
+
+/* See http://en.wikipedia.org/wiki/ANSI_escape_code */
+
+static void
+rcl_setup_ansi_colors(RlcData b)
+{ b->sgr_flags = TF_DEFAULT;
+
+					/* normal versions */
+  b->ansi_color[0]  = RGB(  0,  0,  0);	/* black */
+  b->ansi_color[1]  = RGB(170,  0,  0);	/* red */
+  b->ansi_color[2]  = RGB(0,  170,  0);	/* green */
+  b->ansi_color[3]  = RGB(170, 85,  0);	/* yellow */
+  b->ansi_color[4]  = RGB(  0,  0,170);	/* blue */
+  b->ansi_color[5]  = RGB(170,  0,170);	/* magenta */
+  b->ansi_color[6]  = RGB(  0,170,170);	/* cyan */
+  b->ansi_color[7]  = RGB(170,170,170);	/* white */
+					/* bright/light versions */
+  b->ansi_color[8]  = RGB( 85, 85, 85);	/* black */
+  b->ansi_color[9]  = RGB(255, 85, 85);	/* red */
+  b->ansi_color[10] = RGB( 85,255, 85);	/* green */
+  b->ansi_color[11] = RGB(255,255, 85);	/* yellow */
+  b->ansi_color[12] = RGB( 85, 85,255);	/* blue */
+  b->ansi_color[13] = RGB(255, 85,255);	/* magenta */
+  b->ansi_color[14] = RGB( 85,255,255);	/* cyan */
+  b->ansi_color[15] = RGB(255,255,255);	/* white */
+}
+
 
 
 		 /*******************************
@@ -1530,7 +1564,7 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
   } else if ( tl->size == 0 )
   { *chr = 0;
   } else
-  { TCHAR *s = tl->text;
+  { text_char *s = tl->text;
     HDC hdc = GetDC(b->window);
     int f = 0;
     int t = tl->size;
@@ -1546,7 +1580,7 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
       if ( x > w )
       { int cw;
 
-	GetCharWidth32(hdc, s[m], s[m], &cw);
+	GetCharWidth32(hdc, s[m].code, s[m].code, &cw);
 	if ( x < w+cw )
 	{ *chr = m;
 	  return;
@@ -1594,12 +1628,12 @@ rlc_word_selection(RlcData b, int x, int y)
   if ( rlc_between(b, b->first, b->last, l) )
   { TextLine tl = &b->lines[l];
 
-    if ( c < tl->size && rlc_is_word_char(tl->text[c]) )
+    if ( c < tl->size && rlc_is_word_char(tl->text[c].code) )
     { int f, t;
 
-      for(f=c; f>0 && rlc_is_word_char(tl->text[f-1]); f--)
+      for(f=c; f>0 && rlc_is_word_char(tl->text[f-1].code); f--)
 	;
-      for(t=c; t<tl->size && rlc_is_word_char(tl->text[t]); t++)
+      for(t=c; t<tl->size && rlc_is_word_char(tl->text[t].code); t++)
 	;
       rlc_set_selection(b, l, f, l, t);
     }
@@ -1621,15 +1655,15 @@ rlc_extend_selection(RlcData b, int x, int y)
     { if ( rlc_between(b, b->first, b->last, l) )
       { TextLine tl = &b->lines[l];
 
-	if ( c < tl->size && rlc_is_word_char(tl->text[c]) )
-	  for(; c > 0 && rlc_is_word_char(tl->text[c-1]); c--)
+	if ( c < tl->size && rlc_is_word_char(tl->text[c].code) )
+	  for(; c > 0 && rlc_is_word_char(tl->text[c-1].code); c--)
 	    ;
       }
       if ( rlc_between(b, b->first, b->last, el) )
       { TextLine tl = &b->lines[el];
 
-	if ( ec < tl->size && rlc_is_word_char(tl->text[ec]) )
-	  for(; ec < tl->size && rlc_is_word_char(tl->text[ec]); ec++)
+	if ( ec < tl->size && rlc_is_word_char(tl->text[ec].code) )
+	  for(; ec < tl->size && rlc_is_word_char(tl->text[ec].code); ec++)
 	    ;
       }
     } else if ( b->sel_unit == SEL_LINE )
@@ -1640,15 +1674,15 @@ rlc_extend_selection(RlcData b, int x, int y)
     { if ( rlc_between(b, b->first, b->last, l) )
       { TextLine tl = &b->lines[l];
 
-	if ( c < tl->size && rlc_is_word_char(tl->text[c]) )
-	  for(; c < tl->size && rlc_is_word_char(tl->text[c]); c++)
+	if ( c < tl->size && rlc_is_word_char(tl->text[c].code) )
+	  for(; c < tl->size && rlc_is_word_char(tl->text[c].code); c++)
 	    ;
       }
       if ( rlc_between(b, b->first, b->last, el) )
       { TextLine tl = &b->lines[el];
 
-	if ( ec < tl->size && rlc_is_word_char(tl->text[ec]) )
-	  for(; ec > 0 && rlc_is_word_char(tl->text[ec-1]); ec--)
+	if ( ec < tl->size && rlc_is_word_char(tl->text[ec].code) )
+	  for(; ec > 0 && rlc_is_word_char(tl->text[ec-1].code); ec--)
 	    ;
       }
     } else if ( b->sel_unit == SEL_LINE )
@@ -1683,7 +1717,7 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
 	  if ( !(buf = rlc_realloc(buf, bufsize * sizeof(TCHAR))) )
 	    return NULL;		/* not enough memory */
 	}
-	buf[i++] = tl->text[sc++];
+	buf[i++] = tl->text[sc++].code;
       }
     }
 
@@ -1774,16 +1808,16 @@ rlc_place_caret(RlcData b)
       { SetCaretPos((b->caret_x + 1) * b->cw, line * b->ch);
       } else
       { HDC hdc = GetDC(b->window);
-	SIZE tsize;
+	int tw;
 	TextLine tl = &b->lines[b->caret_y];
 	HFONT old;
 
 	old = SelectObject(hdc, b->hfont);
-	GetTextExtentPoint32(hdc, tl->text, b->caret_x, &tsize);
+	tw = text_width(b, hdc, tl->text, b->caret_x);
 	SelectObject(hdc, old);
 	ReleaseDC(b->window, hdc);
 
-	SetCaretPos(b->cw + tsize.cx, line * b->ch);
+	SetCaretPos(b->cw + tw, line * b->ch);
       }
       if ( !b->caret_is_shown )
       { ShowCaret(b->window);
@@ -1816,6 +1850,80 @@ rlc_update_scrollbar(RlcData b)
 
       b->sb_lines = nsb_lines;
       b->sb_start = nsb_start;
+    }
+  }
+}
+
+
+static void
+rcl_paint_text(RlcData b, HDC hdc,
+	       TextLine tl, int from, int to,
+	       int ty, int *cx, int insel)
+{ text_char *chars, *s;
+  text_char buf[MAXLINE];
+  TCHAR text[MAXLINE];
+  TCHAR *t;
+  int len = to-from;
+  int i;
+
+  if ( len <= 0 )
+    return;
+
+  if ( tl->text && to <= tl->size )
+  { chars = &tl->text[from];
+  } else
+  { text_char *o;
+    int copy;
+
+    o = chars = buf;
+    s = &tl->text[from];
+    copy = tl->text ? tl->size-from : 0;
+    for(i=0; i<copy; i++)
+      *o++ = *s++;
+    for(; i<len; i++, o++)
+    { o->code = ' ';
+      o->flags = TF_DEFAULT;
+    }
+  }
+
+  for(t=text, s=chars, i=0; i < len; i++, t++, s++)
+    *t = s->code;
+
+  if ( insel )					/* TBD: Cache */
+  { SetBkColor(hdc, b->sel_background);
+    SetTextColor(hdc, b->sel_foreground);
+    TextOut(hdc, *cx, ty, text, len);
+    *cx += tchar_width(b, hdc, text, len);
+  } else
+  { int start, segment;
+
+    for(start=0, s=chars, t=text;
+	start<len;
+	start+=segment, s+=segment, t+=segment)
+    { text_flags flags = s->flags;
+      int left = len-start;
+
+      for(segment=0; s[segment].flags == flags && segment<left; segment++)
+	;
+
+      if ( TF_FG(flags) == ANSI_COLOR_DEFAULT )
+	SetTextColor(hdc, b->foreground);
+      else
+	SetTextColor(hdc, b->ansi_color[TF_FG(flags)]);
+
+      if ( TF_BG(flags) == ANSI_COLOR_DEFAULT )
+	SetBkColor(hdc, b->background);
+      else
+	SetBkColor(hdc, b->ansi_color[TF_BG(flags)]);
+
+      TextOut(hdc, *cx, ty, t, segment);
+      if ( TF_BOLD(flags) )
+      { SetBkMode(hdc, TRANSPARENT);
+	TextOut(hdc, (*cx)+1, ty, t, segment);
+	TextOut(hdc, *cx, ty+1, t, segment);
+	SetBkMode(hdc, OPAQUE);
+      }
+      *cx += tchar_width(b, hdc, t, segment);
     }
   }
 }
@@ -1864,26 +1972,8 @@ rlc_redraw(RlcData b)
 
   for(; pl <= el; l = NextLine(b, l), pl++)
   { TextLine tl = &b->lines[l];
-    TCHAR text[MAXLINE];
     int ty = b->ch * pl;
     int cx = b->cw;
-
-    if ( !tl->text )
-    { int i;
-      TCHAR *t;
-
-      tl->size = 0;
-      for(i=0, t=text; i<b->width; i++)
-	*t++ = ' ';
-    } else
-    { int i;
-      TCHAR *t, *s;
-
-      for(i=0, t=text, s=tl->text; i<tl->size; i++)
-	*t++ = *s++;
-      for(; i<b->width; i++)
-	*t++ = ' ';
-    }
 
     rect.top    = ty;
     rect.bottom = rect.top + b->ch;
@@ -1893,34 +1983,23 @@ rlc_redraw(RlcData b)
     { int cf = b->sel_start_char;
       int ce = (b->sel_end_line != b->sel_start_line ? b->width
 						     : b->sel_end_char);
-      if ( cf > 0 )
-      {	TextOut(hdc, cx, ty, text, cf);
-	cx += text_width(b, hdc, text, cf);
-      }
-      SetBkColor(hdc, b->sel_background);
-      SetTextColor(hdc, b->sel_foreground);
-      TextOut(hdc, cx, ty, &text[cf], ce-cf);
-      cx += text_width(b, hdc, &text[cf], ce-cf);
+
+      rcl_paint_text(b, hdc, tl,  0, cf, ty, &cx, insel);
+      insel = TRUE;
+      rcl_paint_text(b, hdc, tl, cf, ce, ty, &cx, insel);
       if ( l == b->sel_end_line )
-      { SetBkColor(hdc, b->background);
-	SetTextColor(hdc, b->foreground);
-	TextOut(hdc, cx, ty, &text[ce], b->width - ce);
-	cx += text_width(b, hdc, &text[ce], b->width - ce);
+      { insel = FALSE;
+	rcl_paint_text(b, hdc, tl, ce, b->width, ty, &cx, insel);
       } else
 	insel = TRUE;
     } else if ( l == b->sel_end_line )	/* end of selection */
     { int ce = b->sel_end_char;
 
+      rcl_paint_text(b, hdc, tl, 0, ce, ty, &cx, insel);
       insel = FALSE;
-      TextOut(hdc, cx, ty, text, ce);
-      cx += text_width(b, hdc, text, ce);
-      SetBkColor(hdc, b->background);
-      SetTextColor(hdc, b->foreground);
-      TextOut(hdc, cx, ty, &text[ce], b->width - ce);
-      cx += text_width(b, hdc, &text[ce], b->width - ce);
+      rcl_paint_text(b, hdc, tl, ce, b->width, ty, &cx, insel);
     } else				/* entire line in/out selection */
-    { TextOut(hdc, cx, ty, text, b->width);
-      cx += text_width(b, hdc, text, b->width);
+    { rcl_paint_text(b, hdc, tl, 0, b->width, ty, &cx, insel);
     }
 
 					/* clear remainder of line */
@@ -1966,7 +2045,6 @@ rlc_request_redraw(RlcData b)
     int y = 0;
     RECT rect;
     int first = TRUE;
-    int clear = FALSE;
 
     rect.left = b->cw;
     rect.right = (b->width+1) * b->cw;
@@ -1981,16 +2059,13 @@ rlc_request_redraw(RlcData b)
 	  first = FALSE;
 	} else
 	  rect.bottom = (y+1) * b->ch;
-
-	if ( l->changed & CHG_CLEAR )
-	  clear = TRUE;
       }
       if ( i == b->last )
 	break;
     }
 
     if ( !first && b->window )
-      InvalidateRect(b->window, &rect, FALSE); /*clear);*/
+      InvalidateRect(b->window, &rect, FALSE);
     else if ( b->changed & CHG_CARET )
       rlc_place_caret(b);
   }
@@ -2089,7 +2164,25 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
 
 
 static int
-text_width(RlcData b, HDC hdc, const TCHAR *text, int len)
+text_width(RlcData b, HDC hdc, const text_char *text, int len)
+{ if ( b->fixedfont )
+  { return len * b->cw;
+  } else
+  { SIZE size;
+    TCHAR tmp[MAXLINE];
+    int i;
+
+    for(i=0; i<len; i++)
+      tmp[i] = text[i].code;
+
+    GetTextExtentPoint32(hdc, tmp, len, &size);
+    return size.cx;
+  }
+}
+
+
+static int
+tchar_width(RlcData b, HDC hdc, const TCHAR *text, int len)
 { if ( b->fixedfont )
   { return len * b->cw;
   } else
@@ -2260,15 +2353,15 @@ rlc_resize(RlcData b, int w, int h)
 	DEBUG(Dprint_lines(b, b->first, b->first));
 	DEBUG(Dprintf(_T("b->first = %d, b->last = %d\n"), b->first, b->last));
 	pl = &b->lines[PrevLine(b, i)];	/* this is the moved line */
-	tl->text = rlc_malloc((pl->size - w)*sizeof(TCHAR));
-	memmove(tl->text, &pl->text[w], (pl->size - w)*sizeof(TCHAR));
+	tl->text = rlc_malloc((pl->size - w)*sizeof(text_char));
+	memmove(tl->text, &pl->text[w], (pl->size - w)*sizeof(text_char));
 	DEBUG(Dprintf(_T("Copied %d chars from line %d to %d\n"),
 		      pl->size - w, pl - b->lines, i));
 	tl->size = pl->size - w;
 	tl->adjusted = TRUE;
 	tl->softreturn = FALSE;
 	pl->softreturn = TRUE;
-	pl->text = rlc_realloc(pl->text, w * sizeof(TCHAR));
+	pl->text = rlc_realloc(pl->text, w * sizeof(text_char));
 	pl->size = w;
 	pl->adjusted = TRUE;
 	i = (int)(pl - b->lines);
@@ -2280,9 +2373,9 @@ rlc_resize(RlcData b, int w, int h)
 	if ( i == b->last )
 	  rlc_add_line(b);
 	nl = &b->lines[NextLine(b, i)];
-	nl->text = rlc_realloc(nl->text, (nl->size + move)*sizeof(TCHAR));
-	memmove(&nl->text[move], nl->text, nl->size*sizeof(TCHAR));
-	memmove(nl->text, &tl->text[w], move*sizeof(TCHAR));
+	nl->text = rlc_realloc(nl->text, (nl->size + move)*sizeof(text_char));
+	memmove(&nl->text[move], nl->text, nl->size*sizeof(text_char));
+	memmove(nl->text, &tl->text[w], move*sizeof(text_char));
 	nl->size += move;
 	tl->size = w;
       }
@@ -2293,9 +2386,9 @@ rlc_resize(RlcData b, int w, int h)
 	rlc_add_line(b);
       nl = &b->lines[NextLine(b, i)];
 
-      nl->text = rlc_realloc(nl->text, (nl->size + tl->size)*sizeof(TCHAR));
-      memmove(&nl->text[tl->size], nl->text, nl->size*sizeof(TCHAR));
-      memmove(nl->text, tl->text, tl->size*sizeof(TCHAR));
+      nl->text = rlc_realloc(nl->text, (nl->size + tl->size)*sizeof(text_char));
+      memmove(&nl->text[tl->size], nl->text, nl->size*sizeof(text_char));
+      memmove(nl->text, tl->text, tl->size*sizeof(text_char));
       nl->size += tl->size;
       nl->adjusted = TRUE;
       rlc_shift_lines_up(b, i);
@@ -2349,8 +2442,8 @@ rlc_adjust_line(RlcData b, int line)
 
   if ( tl->text && !tl->adjusted )
   { tl->text = rlc_realloc(tl->text, tl->size == 0
-				? sizeof(TCHAR)
-				: tl->size * sizeof(TCHAR));
+				? sizeof(text_char)
+				: tl->size * sizeof(text_char));
     tl->adjusted = TRUE;
   }
 }
@@ -2362,11 +2455,11 @@ rlc_unadjust_line(RlcData b, int line)
 
   if ( tl->text )
   { if ( tl->adjusted )
-    { tl->text = rlc_realloc(tl->text, (b->width + 1)*sizeof(TCHAR));
+    { tl->text = rlc_realloc(tl->text, (b->width + 1)*sizeof(text_char));
       tl->adjusted = FALSE;
     }
   } else
-  { tl->text = rlc_malloc((b->width + 1)*sizeof(TCHAR));
+  { tl->text = rlc_malloc((b->width + 1)*sizeof(text_char));
     tl->adjusted = FALSE;
     tl->size = 0;
   }
@@ -2384,7 +2477,7 @@ rlc_open_line(RlcData b)
     b->first = NextLine(b, b->first);
   }
 
-  b->lines[i].text       = rlc_malloc((b->width + 1)*sizeof(TCHAR));
+  b->lines[i].text       = rlc_malloc((b->width + 1)*sizeof(text_char));
   b->lines[i].adjusted   = FALSE;
   b->lines[i].size       = 0;
   b->lines[i].softreturn = FALSE;
@@ -2510,7 +2603,7 @@ rlc_tab(RlcData b)
   { rlc_unadjust_line(b, b->caret_y);
 
     while ( tl->size < b->caret_x )
-      tl->text[tl->size++] = ' ';
+      tl->text[tl->size++].code = ' ';
   }
 
   b->changed |= CHG_CARET;
@@ -2573,13 +2666,44 @@ rlc_erase_line(RlcData b)
 
 
 static void
+rlc_sgr(RlcData b, int sgr)
+{ if ( sgr == 0 )
+  { b->sgr_flags = TF_DEFAULT;
+  } else if ( sgr >= 30 && sgr <= 39 )
+  { b->sgr_flags = TF_SET_FG(b->sgr_flags,
+			     sgr == 39 ? ANSI_COLOR_DEFAULT : sgr-30);
+  } else if ( sgr >= 40 && sgr <= 49 )
+  { b->sgr_flags = TF_SET_BG(b->sgr_flags,
+			     sgr == 49 ? ANSI_COLOR_DEFAULT : sgr-40);
+  } else if ( sgr >= 90 && sgr <= 99 )
+  { b->sgr_flags = TF_SET_FG(b->sgr_flags,
+			     sgr == 99 ? ANSI_COLOR_DEFAULT : sgr-90+8);
+  } else if ( sgr >= 100 && sgr <= 109 )
+  { b->sgr_flags = TF_SET_BG(b->sgr_flags,
+			     sgr == 109 ? ANSI_COLOR_DEFAULT : sgr-100+8);
+  } else if ( sgr == 1 )
+  { b->sgr_flags = TF_SET_BOLD(b->sgr_flags, 1);
+  } else if ( sgr == 4 )
+  { b->sgr_flags = TF_SET_UNDERLINE(b->sgr_flags, 1);
+  }
+}
+
+
+static void
 rlc_put(RlcData b, int chr)
 { TextLine tl = &b->lines[b->caret_y];
+  text_char *tc;
 
   rlc_unadjust_line(b, b->caret_y);
   while( tl->size < b->caret_x )
-    tl->text[tl->size++] = ' ';
-  tl->text[b->caret_x] = chr;
+  { tc = &tl->text[tl->size++];
+
+    tc->code  = ' ';
+    tc->flags = b->sgr_flags;
+  }
+  tc = &tl->text[b->caret_x];
+  tc->code = chr;
+  tc->flags = b->sgr_flags;
   if ( tl->size <= b->caret_x )
     tl->size = b->caret_x + 1;
   tl->changed |= CHG_CHANGED;
@@ -2697,6 +2821,14 @@ rlc_putansi(RlcData b, int chr)
 	case 'K':
 	  CMD(rlc_erase_line(b));
 	  break;
+	case 'm':
+	  { int i;
+	    rlc_need_arg(b, 1, 0);
+
+	    for(i=0; i<b->argc; i++)
+	      CMD(rlc_sgr(b, b->argv[i]));
+	    break;
+	  }
       }
       b->cmdstat = CMD_INITIAL;
   }

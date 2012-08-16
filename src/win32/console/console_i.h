@@ -45,7 +45,7 @@ typedef struct _history
 
 #define ANSI_MAX_ARGC     10		/* Ansi-escape sequence argv */
 #define MAXPROMPT         80		/* max size of prompt */
-#define OQSIZE	     	4096		/* output queue size */
+#define OQSIZE		4096		/* output queue size */
 #define MAX_USER_VALUES	  10		/* max user data-handles */
 
 typedef struct lqueued
@@ -53,8 +53,29 @@ typedef struct lqueued
   struct lqueued* next;			/* Next in queue */
 } lqueued, *LQueued;
 
+typedef unsigned short text_flags;
+
+#define ANSI_COLOR_DEFAULT 31
+
+#define TF_FG(f)	((f)&0x1f)	/* foreground */
+#define TF_BG(f)	(((f)>>5)&0x1f)	/* background */
+#define TF_BOLD(f)	((f)&(1<<10))	/* bold */
+#define TF_UNDERLINE(f)	((f)&(1<<11))	/* underline */
+
+#define TF_DEFAULT (ANSI_COLOR_DEFAULT | ANSI_COLOR_DEFAULT<<5)
+
+#define TF_SET_FG(f,c)		(((f)&~0x1f)|(c))
+#define TF_SET_BG(f,c)		(((f)&~(0x1f<<5))|((c)<<5))
+#define TF_SET_BOLD(f,v)	(((f)&~(1<<10))|((v)<<10))
+#define TF_SET_UNDERLINE(f,v)	(((f)&~(1<<11))|((v)<<11))
+
 typedef struct
-{ TCHAR *	 text;			/* the storage */
+{ TCHAR		 code;			/* character code */
+  text_flags	 flags;			/* flags for the text */
+} text_char;
+
+typedef struct
+{ text_char     *text;			/* the storage */
   unsigned short size;			/* #characters in line */
   unsigned	 adjusted : 1;		/* line has been adjusted? */
   unsigned	 changed : 1;		/* line needs redraw */
@@ -78,7 +99,7 @@ typedef struct
   int		caret_y;		/* its line */
   int		window_start;		/* start line of the window */
   int		window_size;		/* #lines on the window */
-  TextLine 	lines;			/* the actual lines */
+  TextLine	lines;			/* the actual lines */
   int		sel_unit;		/* SEL_CHAR, SEL_WORD, SEL_LINE */
   int		sel_org_line;		/* line origin of the selection */
   int		sel_org_char;		/* char origin of the selection */
@@ -100,6 +121,8 @@ typedef struct
   COLORREF	background;		/* Background color */
   COLORREF	sel_foreground;		/* Selection foreground */
   COLORREF	sel_background;		/* Selection background */
+  COLORREF	ansi_color[16];		/* ANSI colors (8 normal + 8 bright) */
+  text_flags	sgr_flags;		/* Current SGR flags */
   int		cw;			/* character width */
   int		ch;			/* character height */
   int		cb;			/* baseline */
