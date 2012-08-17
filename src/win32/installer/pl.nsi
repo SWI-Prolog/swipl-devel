@@ -408,7 +408,7 @@ Section "Base system (required)"
 
 ; DCG
   SetOutPath $INSTDIR\library\dcg
-  File ${SWIPL}\library\dcg_basics.pl
+  File ${SWIPL}\library\dcg\basics.pl
 
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
