@@ -96,10 +96,11 @@ html.sty:	../packages/ltx2htm/html.sty
 
 clean:
 		rm -f *~ *% tmp.* *.aux *.idx *.ind *.log *.toc *.ilg
-		rm -f lib/*~ lib/*.tex lib/*.aux
-		rm -f online.* *.tex
+		rm -f lib/*~ lib/*.aux
+		rm -f online.*
 
 distclean:	clean
+		rm -f *.tex lib/*.tex
 		rm -f SWI-Prolog-*.???
 		rm -f $(DVITOTTY)
 		rm -rf Manual.tmp
