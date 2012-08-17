@@ -53,9 +53,9 @@ typedef unsigned long uintptr_t;
 #define RLC_APPTIMER_ID	100		/* >=100: application timer */
 
 typedef struct
-{ int	 	 first;
-  int	 	 last;
-  int	 	 size;			/* size of the buffer */
+{ int		 first;
+  int		 last;
+  int		 size;			/* size of the buffer */
   TCHAR	        *buffer;		/* character buffer */
   int		 flags;			/* flags for the queue */
 } rlc_queue, *RlcQueue;
@@ -75,7 +75,7 @@ typedef struct
   int		x;			/* # pixels (0: default) */
   int		y;			/* # pixels (0: default) */
   int		savelines;		/* # lines to save (0: default) */
-  TCHAR 	face_name[32];		/* font name */
+  TCHAR		face_name[32];		/* font name */
   int		font_family;		/* family id */
   int		font_size;
   int		font_weight;
@@ -182,9 +182,9 @@ _export int		rlc_set(rlc_console c, int what,
 
 typedef struct _line
 { rlc_mark	origin;			/* origin of edit */
-  size_t   	point;			/* location of the caret */
+  size_t	point;			/* location of the caret */
   size_t	size;			/* # characters in buffer */
-  size_t   	allocated;		/* # characters allocated */
+  size_t	allocated;		/* # characters allocated */
   size_t	change_start;		/* start of change */
   int		complete;		/* line is completed */
   int		reprompt;		/* repeat the prompt */
@@ -223,5 +223,9 @@ _export int	rlc_complete_file_function(RlcCompleteData data);
 _export void	rlc_init_history(rlc_console c, int size);
 _export void	rlc_add_history(rlc_console c, const TCHAR *line);
 _export int	rlc_bind(int chr, const char *fname);
+_export int	rlc_for_history(
+		    rlc_console b,
+		    int (*handler)(void *ctx, int no, const TCHAR *line),
+		    void *ctx);
 
 #endif /* _CONSOLE_H_INCLUDED */

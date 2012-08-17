@@ -121,6 +121,25 @@ rlc_add_history(rlc_console c, const TCHAR *line)
 
 
 int
+rlc_for_history(rlc_console c,
+		int (*handler)(void *ctx, int no, const TCHAR *line),
+		void *ctx)
+{ RlcData b = rlc_get_data(c);
+  int here = b->history.head;
+  int no = 1;
+
+  for( ; here != b->history.tail; here = prev(b, here))
+  { int rc;
+
+    if ( (rc=(*handler)(ctx, no++, b->history.lines[here])) != 0 )
+      return rc;
+  }
+
+  return 0;
+}
+
+
+int
 rlc_at_head_history(RlcData b)
 { return b->history.current == -1 ? TRUE : FALSE;
 }
