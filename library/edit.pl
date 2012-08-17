@@ -108,7 +108,7 @@ locate(Path, file(Path), [file(Path)]) :-
 	\+ exists_directory(Path).
 locate(Pattern, file(Path), [file(Path)]) :-
 	atom(Pattern),
-	expand_file_name(Pattern, Files),
+	catch(expand_file_name(Pattern, Files), _, fail),
 	member(Path, Files),
 	exists_file(Path),
 	\+ exists_directory(Path).
