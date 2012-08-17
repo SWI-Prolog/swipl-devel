@@ -489,22 +489,15 @@ pack_install(Name, PackDir, Options) :-
 pack_install_from_local(Source, PackTopDir, Name, Options) :-
 	exists_directory(Source), !,
 	directory_file_path(PackTopDir, Name, PackDir),
-	clean_old_pack(PackDir),
+	prepare_pack_dir(PackDir, Options),
 	copy_directory(Source, PackDir),
 	pack_post_install(PackDir, Options).
 pack_install_from_local(Source, PackTopDir, Name, Options) :-
 	exists_file(Source),
 	directory_file_path(PackTopDir, Name, PackDir),
-	clean_old_pack(PackDir),
+	prepare_pack_dir(PackDir, Options),
 	pack_unpack(Source, PackDir, Name, Options),
 	pack_post_install(PackDir, Options).
-
-clean_old_pack(PackDir) :-
-	(   exists_directory(PackDir)
-	->  confirm(remove_existing_pack(PackDir), yes, []),
-	    delete_directory_and_contents(PackDir)
-	;   true
-	).
 
 
 %%	pack_unpack(+SourceFile, +PackDir, +Pack, +Options)
@@ -607,8 +600,8 @@ prepare_pack_dir(Dir, Options) :-
 	->  true
 	;   option(upgrade(true), Options)
 	->  delete_directory_contents(Dir)
-	;   print_message(warning, pack(directory_exists(Dir))),
-	    fail
+	;   confirm(remove_existing_pack(Dir), yes, []),
+	    delete_directory_contents(Dir)
 	).
 prepare_pack_dir(Dir, _) :-
 	make_directory(Dir).
