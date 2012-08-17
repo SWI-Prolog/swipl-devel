@@ -377,6 +377,7 @@ initialise_prolog :-
 	'$option'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
+	setup_colors,
 	start_pldoc,
 	attach_packs,
 	'$load_script_file',
@@ -396,6 +397,26 @@ init_debug_flags :-
 	create_prolog_flag(toplevel_extra_white_line, true, []),
 	create_prolog_flag(toplevel_print_factorized, false, []),
 	'$set_debugger_print_options'(print).
+
+%%	setup_colors is det.
+%
+%	Setup  interactive  usage  by  enabling    colored   output.
+
+setup_colors :-
+	(   stream_property(user_output, tty(true)),
+	    \+ current_prolog_flag(color_term, false)
+	->  load_files(user:library(ansi_term), [silent(true)])
+	;   true
+	).
+
+setup_history :-
+	(   stream_property(user_input, tty(true)),
+	    current_predicate(rl_add_history/1),
+	    \+ current_prolog_flag(save_history, false)
+	->  load_files(library(prolog_history), [silent(true)]),
+	    prolog_history(enable)
+	;   true
+	).
 
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
@@ -452,6 +473,7 @@ toplevel_goal(Goal, Goal).
 %	environment.
 
 prolog :-
+	setup_history,
 	break.
 
 %%	'$query_loop'
