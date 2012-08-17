@@ -2624,7 +2624,11 @@ rlc_tab(RlcData b)
   { rlc_unadjust_line(b, b->caret_y);
 
     while ( tl->size < b->caret_x )
-      tl->text[tl->size++].code = ' ';
+    { text_char *tc = &tl->text[tl->size++];
+
+      tc->code = ' ';
+      tc->flags = b->sgr_flags;
+    }
   }
 
   b->changed |= CHG_CARET;
