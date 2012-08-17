@@ -6466,25 +6466,28 @@ Date = date(2007, 1, 30)
 \end{code}
 
 When computing a time stamp from a local time specification, the UTC
-offset (arg~7) and DST (arg~9) argument may be left unbound and are
-unified with the proper information. The example below, executed in
-Amsterdam, illustrates this behaviour. On the 25th of March at 01:00,
+offset (arg~7), TZ (arg~8) and DST (arg~9) argument may be left unbound
+and are unified with the proper information. The example below, executed
+in Amsterdam, illustrates this behaviour. On the 25th of March at 01:00,
 DST does not apply. At 02.00, the clock is advanced by one hour and thus
 both 02:00 and 03:00 represent the same time stamp.
 
 \begin{code}
-1 ?- date_time_stamp(date(2012,3,25,1,0,0,UTCOff,-,DST), Stamp).
+1 ?- date_time_stamp(date(2012,3,25,1,0,0,UTCOff,TZ,DST), Stamp).
 UTCOff = -3600,
+TZ = 'CET',
 DST = false,
 Stamp = 1332633600.0.
 
-2 ?- date_time_stamp(date(2012,3,25,2,0,0,UTCOff,-,DST), Stamp).
+2 ?- date_time_stamp(date(2012,3,25,2,0,0,UTCOff,TZ,DST), Stamp).
 UTCOff = -7200,
+TZ = 'CEST',
 DST = true,
 Stamp = 1332637200.0.
 
-3 ?- date_time_stamp(date(2012,3,25,3,0,0,UTCOff,-,DST), Stamp).
+3 ?- date_time_stamp(date(2012,3,25,3,0,0,UTCOff,TZ,DST), Stamp).
 UTCOff = -7200,
+TZ = 'CEST',
 DST = true,
 Stamp = 1332637200.0.
 \end{code}

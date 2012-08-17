@@ -207,10 +207,12 @@ get_tz_arg(int i, term_t t, term_t a, atom_t *tz)
   atom_t name;
 
   _PL_get_arg(i, t, a);
-  if ( !PL_get_atom_ex(a, &name) )
-    fail;
-  if ( name != ATOM_minus )
-    *tz = name;
+  if ( !PL_is_variable(a) )
+  { if ( !PL_get_atom_ex(a, &name) )
+      fail;
+    if ( name != ATOM_minus )
+      *tz = name;
+  }
 
   succeed;
 }
@@ -331,6 +333,7 @@ get_ftm(term_t t, ftm *ftm)
 	  { ftm->utcoff = offset;
 	  }
 	}
+
 	if ( ftm->isdst == -2 )
 	{ ftm->isdst = ftm->tm.tm_isdst;
 	  _PL_get_arg(9, t, tmp);
@@ -341,6 +344,14 @@ get_ftm(term_t t, ftm *ftm)
 	  { if ( !PL_unify_bool(tmp, ftm->isdst) )
 	      return FALSE;
 	  }
+	}
+
+	if ( !ftm->tzname )
+	{ ftm->tzname = tz_name_as_atom(ftm->isdst);
+	  _PL_get_arg(8, t, tmp);
+	  if ( PL_is_variable(tmp) &&
+	       !PL_unify_atom(tmp, ftm->tzname) )
+	    return FALSE;
 	}
       }
 
