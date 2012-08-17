@@ -106,6 +106,12 @@ locate(Path, file(Path), [file(Path)]) :-
 	atom(Path),
 	exists_file(Path),
 	\+ exists_directory(Path).
+locate(Pattern, file(Path), [file(Path)]) :-
+	atom(Pattern),
+	expand_file_name(Pattern, Files),
+	member(Path, Files),
+	exists_file(Path),
+	\+ exists_directory(Path).
 locate(FileBase, file(File), [file(File)]) :-
 	atom(FileBase),
 	absolute_file_name(FileBase,
