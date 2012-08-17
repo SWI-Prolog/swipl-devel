@@ -94,6 +94,39 @@ dir_history_file(Dir, File) :-
 	base32(Dir, Base32),
 	atomic_list_concat([Dir, Base32], /, File).
 
+% Realise write/read of history for the swipl-win.exe console.
+
+:- if((\+current_predicate(rl_read_history/1),
+       current_predicate('$rl_history'/1))).
+:- use_module(library(readutil)).
+
+system:rl_read_history(File) :-
+	access_file(File, read), !,
+	setup_call_cleanup(
+	    open(File, read, In, [encoding(utf8)]),
+	    read_history(In),
+	    close(In)).
+system:rl_read_history(_).
+
+read_history(In) :-
+	repeat,
+	read_line_to_codes(In, Codes),
+	(   Codes == end_of_file
+	->  !
+	;   atom_codes(Line, Codes),
+	    rl_add_history(Line),
+	    fail
+	).
+
+system:rl_write_history(File) :-
+	'$rl_history'(Lines),
+	setup_call_cleanup(
+	    open(File, write, Out, [encoding(utf8)]),
+	    forall(member(Line, Lines),
+		   format(Out, '~w~n', [Line])),
+	    close(Out)).
+
+:- endif.
 
 %%	prolog_history(+Action) is det.
 %
