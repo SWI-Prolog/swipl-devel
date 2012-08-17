@@ -432,3 +432,14 @@ build_all()
   build_prerequisites
   build_swipl
 }
+
+######################
+# Create a new release
+
+build_release()
+{ clean_swipl
+  uninstall_swipl
+  download_swipl
+  build_swipl
+  build_installer
+}
