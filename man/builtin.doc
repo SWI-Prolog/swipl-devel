@@ -6465,6 +6465,34 @@ the date 200 days after 2006-7-14:
 Date = date(2007, 1, 30)
 \end{code}
 
+When computing a time stamp from a local time specification, the UTC
+offset (arg~7) and DST (arg~9) argument may be left unbound and are
+unified with the proper information. The example below, executed in
+Amsterdam, illustrates this behaviour. On the 25th of March at 01:00,
+DST does not apply. At 02.00, the clock is advanced by one hour and thus
+both 02:00 and 03:00 represent the same time stamp.
+
+\begin{code}
+1 ?- date_time_stamp(date(2012,3,25,1,0,0,UTCOff,-,DST), Stamp).
+UTCOff = -3600,
+DST = false,
+Stamp = 1332633600.0.
+
+2 ?- date_time_stamp(date(2012,3,25,2,0,0,UTCOff,-,DST), Stamp).
+UTCOff = -7200,
+DST = true,
+Stamp = 1332637200.0.
+
+3 ?- date_time_stamp(date(2012,3,25,3,0,0,UTCOff,-,DST), Stamp).
+UTCOff = -7200,
+DST = true,
+Stamp = 1332637200.0.
+\end{code}
+
+Note that DST and offset calculation are based on the POSIX function
+mktime().  If mktime() returns an error, a representation_error
+\const{dst} is generated.
+
     \predicate{date_time_value}{3}{?Key, +DateTime, ?Value}
 Extract values from a {date}/9 term.  Provided keys are:
 
