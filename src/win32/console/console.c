@@ -849,6 +849,7 @@ static void
 rcl_setup_ansi_colors(RlcData b)
 { b->sgr_flags = TF_DEFAULT;
 
+#ifdef ANSI_VGA_COLORS
 					/* normal versions */
   b->ansi_color[0]  = RGB(  0,  0,  0);	/* black */
   b->ansi_color[1]  = RGB(170,  0,  0);	/* red */
@@ -867,6 +868,26 @@ rcl_setup_ansi_colors(RlcData b)
   b->ansi_color[13] = RGB(255, 85,255);	/* magenta */
   b->ansi_color[14] = RGB( 85,255,255);	/* cyan */
   b->ansi_color[15] = RGB(255,255,255);	/* white */
+#else /*XTERM*/
+					/* normal versions */
+  b->ansi_color[0]  = RGB(  0,  0,  0);	/* black */
+  b->ansi_color[1]  = RGB(205,  0,  0);	/* red */
+  b->ansi_color[2]  = RGB(0,  205,  0);	/* green */
+  b->ansi_color[3]  = RGB(205,205,  0);	/* yellow */
+  b->ansi_color[4]  = RGB(  0,  0,238);	/* blue */
+  b->ansi_color[5]  = RGB(205,  0,205);	/* magenta */
+  b->ansi_color[6]  = RGB(  0,205,205);	/* cyan */
+  b->ansi_color[7]  = RGB(229,229,229);	/* white */
+					/* bright/light versions */
+  b->ansi_color[8]  = RGB(127,127,127);	/* black */
+  b->ansi_color[9]  = RGB(255,  0,  0);	/* red */
+  b->ansi_color[10] = RGB(  0,255,  0);	/* green */
+  b->ansi_color[11] = RGB(255,255,  0);	/* yellow */
+  b->ansi_color[12] = RGB( 92, 92,255);	/* blue */
+  b->ansi_color[13] = RGB(255,  0,255);	/* magenta */
+  b->ansi_color[14] = RGB(  0,255,255);	/* cyan */
+  b->ansi_color[15] = RGB(255,255,255);	/* white */
+#endif
 }
 
 
