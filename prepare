@@ -155,6 +155,7 @@ download_docs()
      rm $doc
      echo "ok"
   else
+     rm $doc
      echo "Unpack failed."
   fi
   eval_doc
