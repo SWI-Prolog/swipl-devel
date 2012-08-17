@@ -471,7 +471,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  if ( !PL_get_text(argv, &txt, CVT_ATOMIC) )
 		    FMT_ARG("a", argv);
 		  SHIFT;
-		  outtext(&state, &txt);
+		  rc = outtext(&state, &txt);
+                  if ( !rc )
+		    goto out;
 		  here++;
 		  break;
 		}
@@ -484,7 +486,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 		    SHIFT;
 		    while(times-- > 0)
-		    { outchr(&state, chr);
+		    { rc = outchr(&state, chr);
+		      if ( !rc )
+		        goto out;
 		    }
 		  } else
 		    FMT_ARG("c", argv);
@@ -515,8 +519,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  initBuffer(&u.b);
 		  formatFloat(c, arg, &n, &u.b1);
 		  clearNumber(&n);
-		  outstring0(&state, baseBuffer(&u.b, char));
+		  rc = outstring0(&state, baseBuffer(&u.b, char));
 		  discardBuffer(&u.b);
+                  if ( !rc )
+		    goto out;
 		  here++;
 		  break;
 		}
@@ -554,8 +560,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    formatNumber(FALSE, 0, arg, c == 'r', &i, (Buffer)&b);
 		  }
 		  clearNumber(&i);
-		  outstring0(&state, baseBuffer(&b, char));
+		  rc = outstring0(&state, baseBuffer(&b, char));
 		  discardBuffer(&b);
+		  if ( !rc )
+		    goto out;
 		  here++;
 		  break;
 		}
@@ -566,8 +574,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  if ( !PL_get_text(argv, &txt, CVT_LIST|CVT_STRING) &&
 		       !PL_get_text(argv, &txt, CVT_ATOM) ) /* SICStus compat */
 		    FMT_ARG("s", argv);
-		  outtext(&state, &txt);
+		  rc = outtext(&state, &txt);
 		  SHIFT;
+		  if ( !rc )
+		    goto out;
 		  here++;
 		  break;
 		}
@@ -600,8 +610,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 		    str = buf;
 		    tellString(&str, &bufsize, ENC_UTF8);
-		    (*f)(argv);
+		    rc = (*f)(argv);
 		    toldString();
+		    if ( !rc )
+		      goto out;
 		    oututf8(&state, str, bufsize);
 		    if ( str != buf )
 		      free(str);
@@ -622,8 +634,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 		      str = buf;
 		      tellString(&str, &bufsize, ENC_UTF8);
-		      (*f)(argv);
+		      rc = (*f)(argv);
 		      toldString();
+		      if ( !rc )
+		        goto out;
 		      oututf8(&state, str, bufsize);
 		      if ( str != buf )
 			free(str);
@@ -714,7 +728,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  break;
 	        }
 	      case '~':			/* ~ */
-		{ outchr(&state, '~');
+		{ rc = outchr(&state, '~');
+		  if ( !rc )
+		    goto out;
 		  here++;
 		  break;
 		}
@@ -725,7 +741,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  if ( c == 'N' && state.column == 0 )
 		    arg--;
 		  while( arg-- > 0 )
-		    outchr(&state, '\n');
+                  { rc = outchr(&state, '\n');
+		    if ( !rc )
+		      goto out;
+                  }
 		  here++;
 		  break;
 		}
@@ -780,7 +799,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	  break;			/* the '~' switch */
 	}
       default:
-	{ outchr(&state, c);
+	{ rc = outchr(&state, c);
+	  if ( !rc )
+	    goto out;
 	  here++;
 	  break;
 	}

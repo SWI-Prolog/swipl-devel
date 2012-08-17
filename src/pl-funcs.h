@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam,
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -65,7 +64,7 @@ COMMON(void)		unallocStream(IOSTREAM *s);
 
 /* pl-supervisor.c */
 
-COMMON(void)		freeCodesDefinition(Definition def);
+COMMON(void)		freeCodesDefinition(Definition def, int linger);
 COMMON(int)		createForeignSupervisor(Definition def, Func f);
 COMMON(int)		createUndefSupervisor(Definition def);
 COMMON(int)		createSupervisor(Definition def);
@@ -133,7 +132,7 @@ COMMON(int)		get_head_and_body_clause(term_t clause,
 					 Module *m ARG_LD);
 COMMON(int)		compileClause(Clause *cp, Word head, Word body,
 				      Procedure proc, Module module ARG_LD);
-COMMON(Clause)		assert_term(term_t term, int where,
+COMMON(Clause)		assert_term(term_t term, int where, atom_t owner,
 				    SourceLoc loc ARG_LD);
 COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
 COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
@@ -319,6 +318,7 @@ COMMON(int)		declareModule(atom_t name, atom_t class, atom_t super,
 COMMON(word)		pl_module(term_t old, term_t new);
 COMMON(word)		pl_set_source_module(term_t old, term_t new);
 COMMON(word)		pl_context_module(term_t module);
+COMMON(int)		atomToImportStrength(atom_t a);
 COMMON(word)		pl_import(term_t pred);
 #ifdef O_PROLOG_HOOK
 COMMON(word)		pl_set_prolog_hook(term_t module, term_t old, term_t new);
@@ -353,7 +353,8 @@ COMMON(bool)		ChDir(const char *path);
 COMMON(atom_t)		TemporaryFile(const char *id, int *fdp);
 COMMON(int)		DeleteTemporaryFile(atom_t name);
 COMMON(int)		hasConsole(void);
-COMMON(struct tm *)	LocalTime(long *t, struct tm *r);
+COMMON(struct tm *)	PL_localtime_r(const time_t *t, struct tm *r);
+COMMON(char *)		PL_asctime_r(const struct tm *tm, char *buf);
 COMMON(Char)		GetChar(void);
 COMMON(size_t)		getenv3(const char *, char *buf, size_t buflen);
 COMMON(char *)		Getenv(const char *, char *buf, size_t buflen);
@@ -420,7 +421,8 @@ COMMON(atom_t)		accessLevel(void);
 COMMON(Procedure)	lookupProcedure(functor_t f, Module m);
 COMMON(void)		unallocProcedure(Procedure proc);
 COMMON(Procedure)	isCurrentProcedure(functor_t f, Module m);
-COMMON(int)		importDefinitionModule(Module m, Definition def);
+COMMON(int)		importDefinitionModule(Module m,
+					       Definition def, int flags);
 COMMON(Procedure)	lookupProcedureToDefine(functor_t def, Module m);
 COMMON(ClauseRef)	hasClausesDefinition(Definition def);
 COMMON(bool)		isDefinedProcedure(Procedure proc);
@@ -432,10 +434,12 @@ COMMON(int)		get_functor(term_t descr, functor_t *fdef,
 				    Module *m, term_t h, int how);
 COMMON(int)		get_procedure(term_t descr, Procedure *proc,
 				      term_t he, int f);
+COMMON(int)		checkModifySystemProc(functor_t f);
+COMMON(int)		overruleImportedProcedure(Procedure proc, Module target);
 COMMON(word)		pl_current_predicate(term_t name, term_t functor, control_t h);
 COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
-				int where ARG_LD);
+					int where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
 COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
 COMMON(void)		freeClause(Clause c);
@@ -452,7 +456,6 @@ COMMON(Definition)	trapUndefined(Definition undef ARG_LD);
 COMMON(word)		pl_retractall(term_t head);
 COMMON(word)		pl_abolish(term_t atom, term_t arity);
 COMMON(word)		pl_abolish1(term_t pred);
-COMMON(word)		pl_get_clause_attribute(term_t ref, term_t att, term_t value);
 COMMON(word)		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(word)		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(int)		redefineProcedure(Procedure proc, SourceFile sf,
@@ -506,7 +509,7 @@ COMMON(word)		pl_read_term3(term_t stream, term_t term, term_t pos);
 COMMON(void)		initCharConversion(void);
 COMMON(foreign_t)	pl_char_conversion(term_t in, term_t out);
 COMMON(foreign_t)	pl_current_char_conversion(term_t in, term_t out, control_t h);
-COMMON(int)		read_clause(IOSTREAM *s, term_t term ARG_LD);
+COMMON(int)		read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD);
 
 /* pl-rec.c */
 COMMON(void)		initRecords(void);
@@ -568,8 +571,7 @@ COMMON(word)		pl_get_pid(term_t pid);
 /* pl-trace.c */
 COMMON(int)		isDebugFrame(LocalFrame FR);
 COMMON(int)		tracePort(LocalFrame frame, Choice bfr,
-			  int port, Code PC ARG_LD);
-COMMON(void)		backTrace(int depth);
+				  int port, Code PC ARG_LD);
 COMMON(void)		initTracer(void);
 COMMON(void)		resetTracer(void);
 COMMON(int)		tracemode(int new, int *old);
@@ -632,7 +634,7 @@ COMMON(char *)		format_float(double f, char *buf);
 /* pl-term.c */
 COMMON(void)		cleanupTerm(void);
 
-/* pl-main.c */
+/* pl-init.c */
 COMMON(int)		startProlog(int argc, char **argv);
 COMMON(bool)		sysError(const char *fm, ...);
 COMMON(void)		fatalError(const char *fm, ...) NORETURN;

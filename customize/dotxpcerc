@@ -1,23 +1,19 @@
-/*  $Id$ -*- Prolog -*-
+/*  -*- Prolog -*-
 
     Part of SWI-Prolog
 
     Author:  Jan Wielemaker
-    E-mail:  jan@swi.psy.uva.nl
-    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
-    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
-
-    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
+    E-mail:  J.Wielemaker@vu.nl
+    WWW:     http://www.swi-prolog.org/projects/xpce/
+    Copying: This file is in the public domain.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Loaded from .plrc (pl.ini on MS-Windows) for additional initialisation on
-XPCE.  It should be installed in one of the following places:
+XPCE.  It should be installed next to .plrc/pl.ini
 
 	Unix:			~/.xpcerc
 	Windows-NT/2000:	%USERPROFILE%/xpce.ini
-	Windows-95/98/ME:	C:\Program Files\pl\xpce.ini
-				(or whereever you installed SWI-Prolog)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	Make PceEmacs your default editor.  Can also be done from the

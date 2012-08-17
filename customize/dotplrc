@@ -47,7 +47,13 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 %	other tools while you  are  running   a  (long)  query  from the
 %	toplevel.
 %
-%	HIGHLY EXPERIMENTAL
+%	Works fairly well on Unix systems, but you cannot run or develop
+%	XPCE applications this way. Occasionally deadlocks (in partcular
+%	when  using  XPCE  applications  that  are   not  aware  of  the
+%	possibility that XPCE runs  in   another  thread). Please report
+%	reproducable deadlocks. You typically  have   a  deadlock if the
+%	interface or toplevel becomes unresponsive while  no CPU time is
+%	being used.
 
 % :- set_prolog_flag(xpce_threaded, true).
 
@@ -104,28 +110,37 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 
 % :- leash(-exit).
 
-%	If you like ?- spy(Class<-Method) to set spy-points for XPCE
-
-% :- op(100, xfx, (<-)).
 
 		 /*******************************
 		 *	   MISC SETTINGS	*
 		 *******************************/
 
-%	Uncomment if you want to use color output on capable terminals.
-%	This module may be enabled on any terminal that accepts ANSI
-%	sequences for setting character attributes.
+%	Use the flag below to  disable   coloured  output  in all cases.
+%	Normally,  coloured  output  is  enabled  if  the  output  is  a
+%	terminal.
 
-%:- (   stream_property(user_output, tty(true)),
-%       getenv('TERM', xterm)
-%   ->  load_files(library(ansi_term), [silent(true)])
-%   ;   true
-%   ).
+% :- set_prolog_flag(color_term, false).
+
+%	Specify colors for the above, based  on the message severity See
+%	ansi_format/3 for specifying visual  effects.   The  table below
+%	duplicates the default behavior.  Notably   on  terminals with a
+%	dark background, yellow might be a   better  choice for warnings
+%	and errors.
+
+%:- multifile user:message_severity_color/2.
+%
+%user:message_severity_color(informational, fg(green)).
+%user:message_severity_color(information,   fg(green)).
+%user:message_severity_color(warning,       fg(red)).
+%user:message_severity_color(error,         [fg(red),bold]).
 
 %	If you want to access the command-history like a Unix shell,
-%	set this to the number of commands to remember.  Systems that
-%	use GNU readline (Unix) can enable saving the history on a
-%	per-directory bases using the call to prolog_history/1.
+%	set =history= to the number of commands to remember.
 
 % :- set_prolog_flag(history, 50).
-% :- prolog_history(enable).
+
+% Set =save_history= to =false= if you never want to save/restore the
+% command history.   Normally, the history is enabled if the system
+% provides a history and the input comes from a terminal.
+
+% :- set_prolog_flag(save_history, false).

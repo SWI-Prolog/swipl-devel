@@ -17,7 +17,7 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-sys.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
 	pl-term.o pl-thread.o pl-xterm.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
-	pl-main.o pl-gmp.o pl-segstack.o pl-hash.o \
+	pl-init.o pl-gmp.o pl-segstack.o pl-hash.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
 	pl-dbref.o pl-termhash.o pl-variant.o \
 	pl-copyterm.o pl-debug.o
@@ -26,7 +26,7 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
-	../boot/history.pl ../boot/attvar.pl \
+	../boot/history.pl ../boot/attvar.pl ../boot/packs.pl \
 	../boot/dwim.pl ../boot/rc.pl ../boot/predopts.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
@@ -49,7 +49,11 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	coinduction.pl ansi_term.pl base32.pl prolog_history.pl \
 	optparse.pl arithmetic.pl writef.pl predicate_options.pl \
 	random.pl prolog_breakpoints.pl prolog_autoload.pl \
-	prolog_colour.pl varnumbers.pl codesio.pl
+	prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl \
+	prolog_pack.pl git.pl
+
+CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+DCG=	basics.pl
 
 # Dialect library files
 

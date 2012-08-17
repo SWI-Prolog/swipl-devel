@@ -40,5 +40,9 @@ test_misc :-
 
 test(read_only_flag, Access == read) :-
 	'$current_prolog_flag'(arch, _, _Global, Access, _Type).
+test(cut_to, all(X == [1])) :-
+	prolog_current_choice(Ch),
+	between(1, 5, X),
+	prolog_cut_to(Ch).
 
 :- end_tests(misc).

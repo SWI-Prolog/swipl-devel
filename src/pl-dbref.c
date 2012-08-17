@@ -200,6 +200,12 @@ PL_get_dbref(term_t t, db_ref_type *type_ptr)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns FALSE: error
+         TRUE: existing clause
+           -1: erased clause
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 PL_get_clref(term_t t, Clause *cl)
 { struct clref *ref;
@@ -209,10 +215,11 @@ PL_get_clref(term_t t, Clause *cl)
        type != &clause_blob )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_db_reference, t);
 
-  if ( true(ref->clause, ERASED) )
-    return FALSE;
-
   *cl = ref->clause;
+
+  if ( true(ref->clause, ERASED) )
+    return -1;
+
   return TRUE;
 }
 

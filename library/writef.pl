@@ -224,7 +224,7 @@ swritef(String, Format) :-
 	name(Atom, String),
 	'$padout'(Atom, Size, Just).
 '$padout'(Term, Size, Just) :-
-	term_to_atom(Term, Atom),
+	format(string(Atom), Term, Atom),
 	atom_length(Atom, Length),
 	'$padout'(Just, Size, Length, Left, Right),
 	tab(Left),

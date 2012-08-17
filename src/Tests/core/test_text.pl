@@ -167,7 +167,7 @@ test_float(E) :-
 	    number_codes(X2, Codes),
 	    (   X == X2
 	    ->  true
-	    ;   format(user_error, '~w \== ~w~n', [X, X2]),
+	    ;   format(user_error, '~w \\== ~w~n', [X, X2]),
 		fail
 	    )
 	;   true

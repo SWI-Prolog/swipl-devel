@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -415,9 +413,14 @@ PL_release_stream(IOSTREAM *s)
 		 *	      ERRORS		*
 		 *******************************/
 
+static int symbol_no_stream(atom_t symbol);
+
 static int
-no_stream(term_t t)
-{ return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+no_stream(term_t t, atom_t name)
+{ if ( t )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+  else
+    return symbol_no_stream(name);
 }
 
 static int
@@ -428,9 +431,13 @@ not_a_stream(term_t t)
 static int
 symbol_no_stream(atom_t symbol)
 { GET_LD
-  term_t t = PL_new_term_ref();
-  PL_put_atom(t, symbol);
-  return no_stream(t);
+  term_t t;
+
+  if ( (t = PL_new_term_ref()) )
+  { PL_put_atom(t, symbol);
+    return no_stream(t, 0);
+  } else
+    return FALSE;
 }
 
 static int
@@ -747,7 +754,7 @@ getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { if ( (s = getStream(Scurout)) )
       goto ok;
-    return no_stream(t);
+    return no_stream(t, ATOM_current_output);
   }
 
   if ( !PL_get_atom(t, &a) )
@@ -756,7 +763,7 @@ getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( a == ATOM_user )
   { if ( (s = getStream(Suser_output)) )
       goto ok;
-    return no_stream(t);
+    return no_stream(t, ATOM_user);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_OUTPUT) )
@@ -771,6 +778,12 @@ ok:
   }
 
   releaseStream(s);
+  if ( t == 0 )
+  { if ( (t = PL_new_term_ref()) )
+      PL_put_atom(t, ATOM_current_output);
+    else
+      return FALSE;				/* resource error */
+  }
   return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		  ATOM_output, tp, t);
 }
@@ -797,7 +810,7 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { if ( (s = getStream(Scurin)) )
       goto ok;
-    return no_stream(t);
+    return no_stream(t, ATOM_current_input);
   }
 
   if ( !PL_get_atom(t, &a) )
@@ -806,7 +819,7 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   if ( a == ATOM_user )
   { if ( (s = getStream(Suser_input)) )
       goto ok;
-    return no_stream(t);
+    return no_stream(t, ATOM_user);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
@@ -821,6 +834,12 @@ ok:
   }
 
   releaseStream(s);
+  if ( t == 0 )
+  { if ( (t = PL_new_term_ref()) )
+      PL_put_atom(t, ATOM_current_input);
+    else
+      return FALSE;				/* resource error */
+  }
   return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		  ATOM_input, tp, t);
 }
@@ -1004,6 +1023,7 @@ typedef struct output_context * OutputContext;
 
 struct input_context
 { IOSTREAM *    stream;                 /* pushed input */
+  atom_t	type;			/* Type of input */
   atom_t        term_file;              /* old term_position file */
   int           term_line;              /* old term_position line */
   InputContext  previous;               /* previous context */
@@ -1112,12 +1132,15 @@ protocol(const char *str, size_t n)
 		 *******************************/
 
 
-static int
-push_input_context(void)
+int
+push_input_context(atom_t type)
 { GET_LD
   InputContext c = allocHeapOrHalt(sizeof(struct input_context));
 
+  PL_register_atom(type);
+
   c->stream           = Scurin;
+  c->type	      = type;
   c->term_file        = source_file_name;
   c->term_line        = source_line_no;
   c->previous         = input_context_stack;
@@ -1127,7 +1150,7 @@ push_input_context(void)
 }
 
 
-static int
+int
 pop_input_context(void)
 { GET_LD
   InputContext c = input_context_stack;
@@ -1137,6 +1160,7 @@ pop_input_context(void)
     source_file_name    = c->term_file;
     source_line_no      = c->term_line;
     input_context_stack = c->previous;
+    PL_unregister_atom(c->type);
     freeHeap(c, sizeof(struct input_context));
 
     return TRUE;
@@ -1148,14 +1172,49 @@ pop_input_context(void)
 
 
 static
-PRED_IMPL("$push_input_context", 0, push_input_context, 0)
-{ return push_input_context();
+PRED_IMPL("$push_input_context", 1, push_input_context, 0)
+{ PRED_LD
+  atom_t type;
+
+  if ( PL_get_atom_ex(A1, &type) )
+    return push_input_context(type);
+
+  return FALSE;
 }
 
 
 static
 PRED_IMPL("$pop_input_context", 0, pop_input_context, 0)
 { return pop_input_context();
+}
+
+
+/** '$input_context'(-List) is det.
+
+True if List is a  list   of  input(Type,File,Line) terms describing the
+current input context.
+*/
+
+static
+PRED_IMPL("$input_context", 1, input_context, 0)
+{ PRED_LD
+  term_t tail = PL_copy_term_ref(A1);
+  term_t head = PL_new_term_ref();
+  InputContext c = input_context_stack;
+
+  for(c=input_context_stack; c; c=c->previous)
+  { atom_t file = c->term_file ? c->term_file : ATOM_minus;
+    int line = c->term_file ? c->term_line : 0;
+
+    if ( !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_input3,
+			PL_ATOM, c->type,
+			PL_ATOM, file,
+			PL_INT,  line) )
+      return FALSE;
+  }
+
+  return PL_unify_nil(tail);
 }
 
 
@@ -1199,12 +1258,12 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
 
   if ( to == 0 )
   { if ( !(ctx->stream = getStream(Scurout)) )
-      return no_stream(to);
+      return no_stream(to, ATOM_current_output);
     ctx->is_stream = TRUE;
   } else if ( PL_get_atom(to, &a) )
   { if ( a == ATOM_user )
     { if ( !(ctx->stream = getStream(Suser_output)) )
-	return no_stream(to);
+	return no_stream(to, ATOM_user);
       ctx->is_stream = TRUE;
     } else if ( get_stream_handle(a, &ctx->stream, SH_OUTPUT|SH_ERRORS) )
     { if ( !(ctx->stream->flags &SIO_OUTPUT) )
@@ -1299,6 +1358,12 @@ closeOutputRedirect(redir_context *ctx)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+discardOutputRedirect() is called if the `implementation' failed. One of
+the reasons for failure  can  be   that  the  implementation  detected a
+pending I/O stream error, in which case continuation is meaningless.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 discardOutputRedirect(redir_context *ctx)
 { if ( ctx->magic != REDIR_MAGIC )
@@ -1310,7 +1375,7 @@ discardOutputRedirect(redir_context *ctx)
     popOutputContext();
 
   if ( ctx->is_stream )
-  { releaseStream(ctx->stream);
+  { streamStatus(ctx->stream);
   } else
   { closeStream(ctx->stream);
     if ( ctx->data != ctx->buffer )
@@ -2278,13 +2343,25 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	size_t count = 0, i;
 
 	while(us<es)
-	{ const char *ec = us + UTF8_FBN(us[0]) + 1;
-
-	  if ( ec <= es )
+	{ if ( !(us[0]&0x80) )
 	  { count++;
-	    us=ec;
+	    us++;
 	  } else
-	    break;
+	  { int ex = UTF8_FBN(us[0]);
+
+	    if ( ex >= 0 )
+	    { const char *ec = us + ex + 1;
+
+	      if ( ec <= es )
+	      { count++;
+		us=ec;
+	      } else			/* incomplete multi-byte */
+		break;
+	    } else
+	    { Sseterr(s, SIO_WARN, "Illegal multibyte Sequence");
+	      goto failure;
+	    }
+	  }
 	}
 
 	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
@@ -3189,7 +3266,7 @@ pl_see(term_t f)
   }
 
   set(getStreamContext(s), IO_SEE);
-  push_input_context();
+  push_input_context(ATOM_see);
   Scurin = s;
 
 ok:
@@ -4555,8 +4632,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   int wrapin = FALSE;
   int i;
 
-  if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) ||
-       !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
+  if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) )
     goto out;
 
   wrapin = (LD->IO.streams[0] != in);
@@ -4564,6 +4640,9 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   { if ( !(in = getStream(in)) )	/* lock it */
       goto out;
   }
+
+  if ( !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
+    goto out;
 
   if ( PL_compare(A2, A3) == 0 )	/* == */
   { error = getStream(Snew(out->handle, out->flags, out->functions));
@@ -4782,7 +4861,8 @@ BeginPredDefs(file)
   PRED_DEF("set_end_of_stream", 1, set_end_of_stream, 0)
 
 					/* SWI internal */
-  PRED_DEF("$push_input_context", 0, push_input_context, 0)
+  PRED_DEF("$push_input_context", 1, push_input_context, 0)
   PRED_DEF("$pop_input_context", 0, pop_input_context, 0)
+  PRED_DEF("$input_context", 1, input_context, 0)
   PRED_DEF("$size_stream", 2, size_stream, 0)
 EndPredDefs

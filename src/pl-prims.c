@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -2360,11 +2358,11 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 	      n++;			/* to averflow this */
 	    }
 	  }
-	} else if ( options->numbered_check )
+	} else
 	{ Word p = &f->arguments[0];
 
 	  deRef(p);
-	  if ( isInteger(*p) )
+	  if ( options->numbered_check && isInteger(*p) )
 	  { intptr_t i = (intptr_t)valInteger(*p); /* cannot be bigger */
 
 	    if ( i >= (intptr_t)start )
@@ -2372,10 +2370,13 @@ do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 	      goto out;
 	    }
 	  }
+	  if ( isVar(*p) || isTerm(*p) )
+	    goto do_number;		/* number '$VAR'(_) */
 	}
 	continue;
       }
 
+    do_number:
       if ( !options->singletons && visited(f PASS_LD) )
 	continue;
 
@@ -2718,7 +2719,21 @@ subsumes(term_t general, term_t specific ARG_LD)
   int rc;
   int omode;
 
-  n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
+  for(;;)
+  { n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
+    if ( n == TV_EXCEPTION )
+      return FALSE;
+    if ( n == TV_NOSPACE )
+    { PL_reset_term_refs(v0);
+      if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )
+	return FALSE;			/* GC does not help */
+      continue;
+    }
+    if ( n == TV_NOMEM )
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
+    break;
+  }
+
   omode = LD->prolog_flag.occurs_check;
   LD->prolog_flag.occurs_check = OCCURS_CHECK_FALSE;
   rc = PL_unify(general, specific);
@@ -3175,9 +3190,14 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
     flags2 |= CVT_VARNOFAIL;
     PL_discard_foreign_frame(fid);
   } else if ( !PL_is_variable(atom) )
-  { return PL_error(pred, 2, NULL, ERR_TYPE,
-		    (how & X_NUMBER) ? ATOM_number : ATOM_atom,
-		    atom);
+  { atom_t type;
+
+    how &= X_MASK;
+    type = (how == X_ATOM   ? ATOM_atom :
+	    how == X_NUMBER ? ATOM_number :
+			      ATOM_atomic);
+
+    return PL_error(pred, 2, NULL, ERR_TYPE, type, atom);
   }
 
   if ( PL_get_text(string, &stext, flags2) != TRUE )
@@ -3265,6 +3285,12 @@ PRED_IMPL("number_codes", 2, number_codes, PL_FA_ISO)
 }
 
 
+#if SIZEOF_WCHAR_T == 2
+#define CHARCODE_MAX 0xffff
+#else
+#define CHARCODE_MAX 0x10ffff
+#endif
+
 static
 PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 { PRED_LD
@@ -3295,7 +3321,7 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
   { if ( !PL_get_integer_ex(chr, &n) )
       fail;
 
-    if ( n >= 0 && n <= 0x10ffff )
+    if ( n >= 0 && n <= CHARCODE_MAX )
       cchr = n;
     else
       return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_character_code);
@@ -3334,11 +3360,11 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
       } else
       { clearNumber(&n);
         AR_END();
-        return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
+	return FALSE;
       }
     } else
     { AR_END();
-      return PL_error(NULL, 0, NULL, ERR_SYNTAX, str_number_error(rc));
+      return FALSE;
     }
   } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
   { return PL_unify_atom_nchars(A1, len, s);
@@ -4750,8 +4776,8 @@ halfway a generic structure package ... Anyway, it is better then direct
 coded access, as the  indirect  approach   allows  us  to  enumerate the
 options and generalise the option processing from the saved-states.
 
-See also pl-main.c, which exploits set_pl_option()  to parse the options
-resource  member.  Please  note  this   code   doesn't   use   atoms  as
+See also pl-init.c, which exploits set_pl_option()  to parse the options
+resource  member.  Please  note  this   code    doesn't   use  atoms  as
 set_pl_option() is called before the Prolog system is initialised.
 
 This code should be moved into another file.

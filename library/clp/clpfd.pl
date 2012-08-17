@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2011 Markus Triska
+    Copyright (C): 2007-2012 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -384,12 +384,14 @@ X in inf..sup.
 You can cite this library in your publications as:
 
 ==
-@inproceedings{Triska08,
+@inproceedings{Triska12,
   author    = {Markus Triska},
-  title     = {Generalising Constraint Solving over Finite Domains},
-  booktitle = {ICLP},
-  year      = {2008},
-  pages     = {820-821}
+  title     = {The Finite Domain Constraint Solver of {SWI-Prolog}},
+  booktitle = {FLOPS},
+  series    = {LNCS},
+  volume    = {7294},
+  year      = {2012},
+  pages     = {307-316}
 }
 ==
 
@@ -3742,7 +3744,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
                     min_max_factor(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
-                ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
+                ;   (   Y =\= 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
                     )
                 )
@@ -4015,7 +4017,7 @@ run_propagator(prem(X,Y,Z), MState) :-
                 (   fd_get(Z, ZD, ZPs) ->
                     domains_intersection(ZD, from_to(n(ZL), n(ZU)), ZD1),
                     fd_put(Z, ZD1, ZPs)
-                ;   true
+                ;   ZD1 = from_to(n(Z), n(Z))
                 ),
                 (   fd_get(X, XD, _), domain_infimum(XD, n(Min)) ->
                     Z1 is Min rem Y,

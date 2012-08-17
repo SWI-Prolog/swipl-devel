@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -50,7 +48,6 @@
 	    ord_memberchk/2,		% +Element, +Set,
 	    ord_symdiff/3,              % +Set1, +Set2, ?Diff
 					% SICSTus extensions
-	    ord_member/2,		% ?Element, +Set
 	    ord_seteq/2,		% +Set1, +Set2
 	    ord_intersection/2		% +PowerSet, -Intersection
 	  ]).
@@ -67,11 +64,23 @@ number of Prolog implementations. Our  predicates   are  designed  to be
 compatible  with  common  practice   in    the   Prolog  community.  The
 implementation is incomplete and  relies   partly  on  library(oset), an
 older ordered set library distributed  with SWI-Prolog. New applications
-are advices to use library(ordsets).
+are advised to use library(ordsets).
 
 Some  of  these  predicates  match    directly   to  corresponding  list
-operations. It is adviced to use the  versions from this library to make
-clear you are operating on ordered sets.
+operations. It is advised to use the  versions from this library to make
+clear you are operating on ordered sets.   An exception is member/2. See
+ord_memberchk/2.
+
+The ordsets library is based  on  the   standard  order  of  terms. This
+implies it can handle  all  Prolog   terms,  including  variables.  Note
+however, that the ordering is not stable  if   a  term inside the set is
+further instantiated. Also  note  that   variable  ordering  changes  if
+variables in the set are unified with each   other  or a variable in the
+set is unified with a variable that  is `older' than the newest variable
+in the set. In  practice,  this  implies   that  it  is  allowed  to use
+member(X, OrdSet) on an ordered set that holds  variables only if X is a
+fresh variable. In other cases one should   cease  using it as an ordset
+because the order it relies on may have been changed.
 */
 
 %%	is_ordset(@Term) is semidet.
@@ -232,36 +241,44 @@ ord_del_element(Set, Element, NewSet) :-
 	oset_delel(Set, Element, NewSet).
 
 
-%%	ord_memberchk(+Element, +Set) is semidet.
+%%	ord_memberchk(+Element, +OrdSet) is semidet.
 %
-%	Check membership. This could stop comparing   we have passed the
-%	right value, saving scanning  (on  average)   half  the  list if
-%	Element is not in Set. Probably the built-in memberchk/2 will be
-%	faster.
+%	True if Element is a member of   OrdSet, compared using ==. Note
+%	that _enumerating_ elements of an ordered  set can be done using
+%	member/2.
 %
-%	@compat Not part of original Quintus library
+%	Some Prolog implementations also provide  ord_member/2, with the
+%	same semantics as ord_memberchk/2.  We   believe  that  having a
+%	semidet ord_member/2 is unacceptably inconsistent with the *_chk
+%	convention.  Portable  code  should    use   ord_memberchk/2  or
+%	member/2.
+%
+%	@author Richard O'Keefe
 
-ord_memberchk(Element, Set) :-
-	memberchk(Element, Set).
-
-%%	ord_member(?Element, +Set) is nondet.
-%
-%	True if Element is a member of   Set.  Stops if further elements
-%	are behind Element in the standard order of terms.
-%
-%	@compat sicstus
-
-ord_member(Element, [H|T]) :-
-	(   Element = H
-	->  true
-	;   Element @>= H,
-	    ord_member(Element, T)
+ord_memberchk(Item, [X1,X2,X3,X4|Xs]) :- !,
+	compare(R4, Item, X4),
+	(   R4 = (>) -> ord_memberchk(Item, Xs)
+	;   R4 = (<) ->
+	    compare(R2, Item, X2),
+	    (   R2 = (>) -> Item == X3
+	    ;   R2 = (<) -> Item == X1
+	    ;/* R2 = (=),   Item == X2 */ true
+	    )
+	;/* R4 = (=) */ true
 	).
+ord_memberchk(Item, [X1,X2|Xs]) :- !,
+	compare(R2, Item, X2),
+	(   R2 = (>) -> ord_memberchk(Item, Xs)
+	;   R2 = (<) -> Item == X1
+	;/* R2 = (=) */ true
+	).
+ord_memberchk(Item, [X1]) :-
+	Item == X1.
 
 
 %%	ord_subset(+Sub, +Super) is semidet.
 %
-%	Is true if all element of Sub are in Super
+%	Is true if all elements of Sub are in Super
 
 ord_subset([], _).
 ord_subset([H1|T1], [H2|T2]) :-
@@ -321,7 +338,7 @@ ord_union(Set1, Set2, Union) :-
 
 %%	ord_union(+Set1, +Set2, -Union,	-New) is det.
 %
-%	True if Union iff ord_union(Set1, Set2, Union) and
+%	True iff ord_union(Set1, Set2, Union) and
 %	ord_subtract(Set2, Set1, New).
 
 ord_union([], Set2, Set2, Set2).

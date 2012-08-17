@@ -103,6 +103,8 @@ bit(Pred, Name, Bits) :-
 bit(_:Pred, Name, _) :-
 	throw(error(domain_error(Pred, Name), _)).
 
+:- public port_name/2.			% used by library(test_cover)
+
 port_name(      call, 2'000000001).
 port_name(      exit, 2'000000010).
 port_name(      fail, 2'000000100).
@@ -249,7 +251,7 @@ spy(M:[H|T]) :- !,
 	spy(M:H),
 	spy(M:T).
 spy(Spec) :-
-	prolog:debug_control_hook(spy(Spec)), !.
+	notrace(prolog:debug_control_hook(spy(Spec))), !.
 spy(Spec) :-
 	'$find_predicate'(Spec, Preds),
 	'$member'(PI, Preds),
@@ -267,7 +269,7 @@ nospy(M:[H|T]) :- !,
 	nospy(M:H),
 	nospy(M:T).
 nospy(Spec) :-
-	prolog:debug_control_hook(nospy(Spec)), !.
+	notrace(prolog:debug_control_hook(nospy(Spec))), !.
 nospy(Spec) :-
 	'$find_predicate'(Spec, Preds),
 	'$member'(PI, Preds),
@@ -277,7 +279,7 @@ nospy(Spec) :-
 nospy(_).
 
 nospyall :-
-	prolog:debug_control_hook(nospyall),
+	notrace(prolog:debug_control_hook(nospyall)),
 	fail.
 nospyall :-
 	spy_point(Head),
@@ -295,7 +297,7 @@ pi_to_head(Name/Arity, Head) :-
 %	Report current status of the debugger.
 
 debugging :-
-	prolog:debug_control_hook(debugging), !.
+	notrace(prolog:debug_control_hook(debugging)), !.
 debugging :-
 	current_prolog_flag(debug, true), !,
 	print_message(informational, debugging(on)),
@@ -328,9 +330,10 @@ trace_ports(Head, Ports) :-
 		 *	      RATIONAL		*
 		 *******************************/
 
-%	rational(+Rat, -M, -N)
+%%	rational(+Rat, -Numerator, -Denominator) is semidet.
 %
-%	Get parts of a rational number.
+%	True when Rat is a  rational   number  with  given Numerator and
+%	Denominator.
 
 rational(Rat, M, N) :-
 	rational(Rat),
@@ -402,16 +405,18 @@ property_source_file(module(M), File) :-
 	    )
 	;   '$current_module'(M, File)
 	).
-property_source_file(load_context(Module, Location), File) :-
+property_source_file(load_context(Module, Location, Options), File) :-
 	'$time_source_file'(File, _, user),
-	clause(system:'$load_context_module'(File, Module), true, Ref),
+	clause(system:'$load_context_module'(File, Module, Options), true, Ref),
 	(   clause_property(Ref, file(FromFile)),
 	    clause_property(Ref, line_count(FromLine))
 	->  Location = FromFile:FromLine
 	;   Location = user
 	).
-property_source_file(includes(File2, Stamp), File) :-
-	system:'$included'(File, File2, Stamp).
+property_source_file(includes(Master, Stamp), File) :-
+	system:'$included'(File, _Line, Master, Stamp).
+property_source_file(included_in(Master, Line), File) :-
+	system:'$included'(Master, Line, File, _).
 property_source_file(derived_from(DerivedFrom, Stamp), File) :-
 	system:'$derived_source'(File, DerivedFrom, Stamp).
 
@@ -421,7 +426,11 @@ property_source_file(derived_from(DerivedFrom, Stamp), File) :-
 %	File is the canonical representation of the source-file Spec.
 
 canonical_source_file(Spec, File) :-
-	source_file(Spec), !,
+	atom(Spec),
+	'$time_source_file'(Spec, _, _), !,
+	File = Spec.
+canonical_source_file(Spec, File) :-
+	system:'$included'(_Master, _Line, Spec, _), !,
 	File = Spec.
 canonical_source_file(Spec, File) :-
 	absolute_file_name(Spec,
@@ -444,7 +453,9 @@ prolog_load_context(module, Module) :-
 prolog_load_context(file, F) :-
 	source_location(F, _).
 prolog_load_context(source, F) :-	% SICStus compatibility
-	source_location(F, _).
+	source_location(F0, _),
+	'$input_context'(Context),
+	'$top_file'(Context, F0, F).
 prolog_load_context(stream, S) :-
 	source_location(F, _),
 	(   system:'$load_input'(F, S0)
@@ -463,7 +474,6 @@ prolog_load_context(script, Bool) :-
 	->  Bool = true
 	;   Bool = false
 	).
-
 
 %%	unload_file(+File) is det.
 %
@@ -662,7 +672,7 @@ define_or_generate(Pred) :-
 '$predicate_property'(meta_predicate(Pattern), Pred) :-
 	'$get_predicate_attribute'(Pred, meta_predicate, Pattern).
 '$predicate_property'(file(File), Pred) :-
-	source_file(Pred, File).
+	'$get_predicate_attribute'(Pred, file, File).
 '$predicate_property'(line_count(LineNumber), Pred) :-
 	'$get_predicate_attribute'(Pred, line_count, LineNumber).
 '$predicate_property'(notrace, Pred) :-
@@ -729,10 +739,16 @@ hidden_system_predicate(_:Head) :-
 %	    Line from which the clause is loaded.
 %	    * file(-File)
 %	    File from which the clause is loaded.
+%	    * source(-File)
+%	    File that `owns' the clause: reloading this file wipes
+%	    the clause.
 %	    * fact
 %	    Clause has body =true=.
 %	    * erased
 %	    Clause was erased.
+%	    * predicate(:PI)
+%	    Predicate indicator of the predicate this clause belongs
+%	    to.  Can be used to find the predicate of erased clauses.
 
 clause_property(Clause, Property) :-
 	'$clause_property'(Property, Clause).
@@ -741,10 +757,14 @@ clause_property(Clause, Property) :-
 	'$get_clause_attribute'(Clause, line_count, LineNumber).
 '$clause_property'(file(File), Clause) :-
 	'$get_clause_attribute'(Clause, file, File).
+'$clause_property'(source(File), Clause) :-
+	'$get_clause_attribute'(Clause, owner, File).
 '$clause_property'(fact, Clause) :-
 	'$get_clause_attribute'(Clause, fact, true).
 '$clause_property'(erased, Clause) :-
 	'$get_clause_attribute'(Clause, erased, true).
+'$clause_property'(predicate(PI), Clause) :-
+	'$get_clause_attribute'(Clause, predicate_indicator, PI).
 
 
 		 /*******************************
@@ -819,17 +839,19 @@ module_property(Module, Property) :-
 	current_module(Module),
 	property_module(Property, Module).
 
-property_module(exported_operators(List), Module) :- !,
-	'$exported_ops'(Module, List, []),
-	List \== [].
 property_module(Property, Module) :-
 	module_property(Property),
-	'$module_property'(Module, Property).
+	(   Property = exported_operators(List)
+	->  '$exported_ops'(Module, List, []),
+	    List \== []
+	;   '$module_property'(Module, Property)
+	).
 
 module_property(class(_)).
 module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
+module_property(exported_operators(_)).
 
 %%	module(+Module) is det.
 %

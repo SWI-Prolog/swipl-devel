@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -94,7 +92,7 @@ int
 atom_varnameW(const pl_wchar_t *s, size_t len)
 { if ( PlUpperW(*s) || *s == '_' )
   { for(s++; --len > 0; s++)
-    { int c = *s++;
+    { int c = *s;
 
       if ( !PlIdContW(c) )
 	return FALSE;
@@ -468,7 +466,8 @@ isStringStream(IOSTREAM *s)
 
 
 static term_t
-makeErrorTerm(const char *id_str, term_t id_term, ReadData _PL_rd)
+makeErrorTerm(const char *id_str, const char *id_arg,
+	      term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex, loc=0;			/* keep compiler happy */
   unsigned char const *s, *ll = NULL;
@@ -479,9 +478,17 @@ makeErrorTerm(const char *id_str, term_t id_term, ReadData _PL_rd)
     rc = FALSE;
 
   if ( rc && !id_term )
-  { if ( !(id_term=PL_new_term_ref()) ||
-	 !PL_put_atom_chars(id_term, id_str) )
-      rc = FALSE;
+  { if ( (id_term=PL_new_term_ref()) )
+    { if ( id_arg )
+      { rc = PL_unify_term(id_term,
+			   PL_FUNCTOR_CHARS, id_str, 1,
+			     PL_CHARS, id_arg);
+      } else
+      { rc = PL_put_atom_chars(id_term, id_str);
+      }
+    } else
+    { rc = FALSE;
+    }
   }
 
   if ( rc )
@@ -555,7 +562,8 @@ makeErrorTerm(const char *id_str, term_t id_term, ReadData _PL_rd)
 
 
 static bool
-errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+errorWarningA1(const char *id_str, const char *id_arg,
+	       term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex;
 
@@ -564,7 +572,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 
   LD->exception.processing = TRUE;	/* allow using spare stack */
 
-  ex = makeErrorTerm(id_str, id_term, _PL_rd);
+  ex = makeErrorTerm(id_str, id_arg, id_term, _PL_rd);
 
   if ( _PL_rd )
   { _PL_rd->has_exception = TRUE;
@@ -578,6 +586,12 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
   }
 
   fail;
+}
+
+
+static bool
+errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+{ return errorWarningA1(id_str, NULL, id_term, _PL_rd);
 }
 
 
@@ -608,7 +622,7 @@ singletonWarning(const char *which, const char **vars, int nvars)
 
     printMessage(ATOM_warning,
 		 PL_FUNCTOR_CHARS, which, 1,
-		   PL_TERM,    l);
+		   PL_TERM, l);
 
     PL_discard_foreign_frame(fid);
 
@@ -620,7 +634,7 @@ singletonWarning(const char *which, const char **vars, int nvars)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	FAIL	return false
+	FALSE	return false
 	TRUE	redo
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -628,15 +642,14 @@ static int
 reportReadError(ReadData rd)
 { if ( rd->on_error == ATOM_error )
     return PL_raise_exception(rd->exception);
-  if ( rd->on_error == ATOM_quiet )
-    fail;
-
-  printMessage(ATOM_error, PL_TERM, rd->exception);
+  if ( rd->on_error != ATOM_quiet )
+    printMessage(ATOM_error, PL_TERM, rd->exception);
+  PL_clear_exception();
 
   if ( rd->on_error == ATOM_dec10 )
-    succeed;
+    return TRUE;
 
-  fail;
+  return FALSE;
 }
 
 
@@ -796,7 +809,9 @@ raw_read_quoted(int q, ReadData _PL_rd)
 
   addToBuffer(q, _PL_rd);
   while((c=getchrq()) != EOF && c != q)
-  { if ( c == '\\' && DO_CHARESCAPE )
+  {
+  next:
+    if ( c == '\\' && DO_CHARESCAPE )
     { int base;
 
       addToBuffer(c, _PL_rd);
@@ -830,6 +845,16 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  if ( c == q )
 	    return TRUE;
 	  continue;
+	case 'c':			/* \c<whitespace>* */
+	  addToBuffer(c, _PL_rd);	/* 'c' */
+	  c = getchrq();
+	  while( PlBlankW(c) )
+	  { addToBuffer(c, _PL_rd);
+	    c = getchrq();
+	  }
+	  if ( c == EOF || c == q )
+	    goto out;
+	  goto next;
 	default:
 	  addToBuffer(c, _PL_rd);
 	  if ( digitValue(8, c) >= 0 )	/* \NNN\ */
@@ -852,6 +877,8 @@ raw_read_quoted(int q, ReadData _PL_rd)
     }
     addToBuffer(c, _PL_rd);
   }
+
+out:
   if (c == EOF)
   {
   eofinstr:
@@ -1690,7 +1717,7 @@ again:
     case 'b':
       OK('\b');
     case 'c':				/* skip \c<blank>* */
-      if ( quote )
+      if ( _PL_rd )
       { in = skipSpaces(in);
 	e = utf8_get_uchar(in, &c);
       skip_cont:
@@ -1703,12 +1730,29 @@ again:
       }
       OK('c');
     case '\n':				/* \LF<blank>* */
-      if ( quote )
-      { e = in;
-	for( ; *in; in=e )
+      if ( _PL_rd )			/* quoted string, _not_ 0'\.. */
+      { if ( !_PL_rd->strictness )
+	{ unsigned char *errpos = (unsigned char *)in;
+	  int skipped = 0;
+	  e = in;
+	  for( ; *in; in=e )
+	  { e = utf8_get_uchar(in, &c);
+	    if ( c == '\n' || !PlBlankW(c) )
+	    { if ( skipped )
+	      { term_t ex;
+		unsigned char *old_start = last_token_start;
+
+		last_token_start = errpos;
+		ex = makeErrorTerm("swi_backslash_newline", NULL, 0, _PL_rd);
+		last_token_start = old_start;
+		printMessage(ATOM_warning, PL_TERM, ex);
+	      }
+	      break;
+	    }
+	    skipped++;
+	  }
+	} else
 	{ e = utf8_get_uchar(in, &c);
-	  if ( c == '\n' || !PlBlankW(c) )
-	    break;
 	}
 	goto skip_cont;
       }
@@ -1792,8 +1836,19 @@ again:
 	if ( c != '\\' )
 	  in--;
 	OK(chr);
+      } else if ( c == quote )
+      { OK(c);
       } else
-	OK(c);
+      { if ( _PL_rd )
+	{ char tmp[2];
+
+	  tmp[0] = c;
+	  tmp[1] = EOS;
+	  last_token_start = (unsigned char*)(in-1);
+	  errorWarningA1("undefined_char_escape", tmp, 0, _PL_rd);
+	}
+	return ESC_ERROR;
+      }
   }
 
 #undef OK
@@ -1926,7 +1981,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
       { int chr;
 
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
-	{ chr = escape_char(in+3, end, 0, NULL);
+	{ chr = escape_char(in+3, end, '\'', NULL);
 	  if ( chr < 0 )
 	    return NUM_ERROR;
 	} else
@@ -3505,23 +3560,112 @@ pl_read(term_t term)
 }
 
 
-/* read_clause([+Stream, ]-Clause) */
+static int
+unify_read_term_position(term_t tpos ARG_LD)
+{ if ( tpos && source_line_no > 0 )
+  { return PL_unify_term(tpos,
+			 PL_FUNCTOR, FUNCTOR_stream_position4,
+			   PL_INT64, source_char_no,
+			   PL_INT, source_line_no,
+			   PL_INT, source_line_pos,
+			   PL_INT64, source_byte_no);
+  } else
+  { return TRUE;
+  }
+}
+
+
+/** read_clause(+Stream, -Clause, +Options)
+
+Options:
+	* process_comment(+Boolean)
+	* syntax_errors(+Atom)
+	* term_position(-Position)
+*/
+
+static const opt_spec read_clause_options[] =
+{ { ATOM_term_position,	  OPT_TERM },
+  { ATOM_process_comment, OPT_BOOL },
+  { ATOM_syntax_errors,   OPT_ATOM },
+  { NULL_ATOM,		  0 }
+};
+
+
+static void
+callCommentHook(predicate_t comment_hook,
+		term_t comments, term_t tpos, term_t term)
+{ GET_LD
+  fid_t fid;
+  term_t av;
+
+  if ( (fid = PL_open_foreign_frame()) &&
+       (av = PL_new_term_refs(3)) )
+  { qid_t qid;
+
+    PL_put_term(av+0, comments);
+    PL_put_term(av+1, tpos);
+    PL_put_term(av+2, term);
+
+    if ( (qid = PL_open_query(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+			      comment_hook, av)) )
+    { term_t ex;
+
+      if ( !PL_next_solution(qid) && (ex=PL_exception(qid)) )
+	printMessage(ATOM_error, PL_TERM, ex);
+
+      PL_close_query(qid);
+    }
+
+    PL_discard_foreign_frame(fid);
+  }
+}
+
 
 int
-read_clause(IOSTREAM *s, term_t term ARG_LD)
+read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
 { read_data rd;
   int rval;
   fid_t fid;
+  term_t tpos = 0;
+  term_t comments = 0;
+  int process_comment;
+  atom_t syntax_errors = ATOM_dec10;
+  predicate_t comment_hook;
+
+  comment_hook = _PL_predicate("comment_hook", 3, "prolog",
+			       &GD->procedures.comment_hook3);
+  process_comment = (comment_hook->definition->impl.any != NULL);
+  if ( process_comment )
+  { if ( !tpos )
+      tpos = PL_new_term_ref();
+    comments = PL_new_term_ref();
+  }
+
+  if ( options &&
+       !scan_options(options, 0, ATOM_read_option, read_clause_options,
+		     &tpos,
+		     &process_comment,
+		     &syntax_errors) )
+    return FALSE;
 
   if ( !(fid=PL_open_foreign_frame()) )
     return FALSE;
 
 retry:
   init_read_data(&rd, s PASS_LD);
-  rd.on_error = ATOM_dec10;
+  if ( comments )
+    rd.comments = PL_copy_term_ref(comments);
+  rd.on_error = syntax_errors;
   rd.singles = rd.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
-  if ( !(rval = read_term(term, &rd PASS_LD)) && rd.has_exception )
-  { if ( reportReadError(&rd) )
+  if ( (rval = read_term(term, &rd PASS_LD)) )
+  { if ( tpos &&
+	 (rval = unify_read_term_position(tpos PASS_LD)) &&
+	 comments &&
+	 (rval = PL_unify_nil(rd.comments)) &&
+	 !PL_get_nil(comments) )
+      callCommentHook(comment_hook, comments, tpos, term);
+  } else
+  { if ( rd.has_exception && reportReadError(&rd) )
     { PL_rewind_foreign_frame(fid);
       free_read_data(&rd);
       goto retry;
@@ -3533,35 +3677,21 @@ retry:
 }
 
 
-static int
-read_clause_pred(term_t from, term_t term ARG_LD)
-{ int rval;
+static
+PRED_IMPL("read_clause", 3, read_clause, 0)
+{ PRED_LD
+  int rc;
   IOSTREAM *s;
 
-  if ( !getTextInputStream(from, &s) )
-    fail;
-  rval = read_clause(s, term PASS_LD);
+  if ( !getTextInputStream(A1, &s) )
+    return FALSE;
+  rc = read_clause(s, A2, A3 PASS_LD);
   if ( Sferror(s) )
     return streamStatus(s);
   else
     PL_release_stream(s);
 
-  return rval;
-}
-
-
-static
-PRED_IMPL("read_clause", 1, read_clause, 0)
-{ PRED_LD
-
-  return read_clause_pred(0, A2 PASS_LD);
-}
-
-static
-PRED_IMPL("read_clause", 2, read_clause, 0)
-{ PRED_LD
-
-  return read_clause_pred(A1, A2 PASS_LD);
+  return rc;
 }
 
 
@@ -3646,13 +3776,8 @@ retry:
     PL_release_stream(s);
 
   if ( rval )
-  { if ( tpos && source_line_no > 0 )
-      rval = PL_unify_term(tpos,
-			   PL_FUNCTOR, FUNCTOR_stream_position4,
-			   PL_INT64, source_char_no,
-			   PL_INT, source_line_no,
-			   PL_INT, source_line_pos,
-			   PL_INT64, source_byte_no);
+  { if ( tpos )
+      rval = unify_read_term_position(tpos PASS_LD);
     if ( rval && tcomments )
     { if ( !PL_unify_nil(rd.comments) )
 	rval = FALSE;
@@ -3840,9 +3965,8 @@ PRED_IMPL("$code_class", 2, code_class, 0)
 		 *******************************/
 
 BeginPredDefs(read)
-  PRED_DEF("read_clause", 1, read_clause, 0)
-  PRED_DEF("read_clause", 2, read_clause, 0)
+  PRED_DEF("read_clause",  3, read_clause,  0)
   PRED_DEF("atom_to_term", 3, atom_to_term, 0)
   PRED_DEF("term_to_atom", 2, term_to_atom, 0)
-  PRED_DEF("$code_class", 2, code_class, 0)
+  PRED_DEF("$code_class",  2, code_class,   0)
 EndPredDefs

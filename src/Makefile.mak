@@ -98,21 +98,22 @@ banner:
 $(PLLIB):	$(OBJ) $(LOCALLIB)
 		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(GMPLIB) $(LIBS) winmm.lib $(DBGLIBS)
 
-# We first create plcon.exe to avoid overriding the debug files of swipl.dll.
-# Maybe using the same name for a dll and exe is a bad idea afterall?
+# We first create swipl.exe  to  avoid   overriding  the  debug files of
+# swipl.dll. Maybe using the same name for a   dll and exe is a bad idea
+# afterall?
 
-$(PLCON):	$(PLLIB) pl-ntcon.obj
-		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-ntcon.obj $(PLLIB)
+$(PLCON):	$(PLLIB) pl-main.obj
+		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-main.obj $(PLLIB)
 		editbin /stack:$(STACK) plcon.exe
 		copy plcon.exe $@
 		if exist plcon.exe.manifest copy plcon.exe.manifest $@.manifest
 
-$(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
-		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
+$(PLWIN):	$(PLLIB) pl-ntmain.obj swipl.res
+		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) swipl.res $(LIBS)
 		editbin /stack:$(STACK) $(PLWIN)
 
-pl.res:		pl.rc pl.ico xpce.ico
-		$(RSC) /fo$@ pl.rc
+swipl.res:	swipl.rc swipl.ico
+		$(RSC) /fo$@ swipl.rc
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PLCON)
 		$(PLCON) -O -o $(STARTUPPATH) -b $(PLINIT)
@@ -232,6 +233,7 @@ install-demo:	idirs
 
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\include\sicstus" \
+		"$(PLBASE)\include\Yap" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
@@ -240,7 +242,9 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\library\dialect\sicstus" \
 		"$(PLBASE)\library\dialect\ciao" \
 		"$(PLBASE)\library\dialect\ciao\engine" \
-		"$(PLBASE)\library\unicode" $(MANDIR)
+		"$(PLBASE)\library\unicode" \
+		"$(PLBASE)\library\dcg" \
+		$(MANDIR)
 
 $(IDIRS):
 		if not exist $@/$(NULL) $(MKDIR) $@
@@ -251,13 +255,17 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idialect iswi iyap isicstus iciao iiso iunicode
+ilib:		iclp idcg idialect iswi iyap isicstus iciao iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
 iclp::
 		chdir $(PLHOME)\library\clp & \
 			for %f in ($(CLP)) do copy %f "$(PLBASE)\library\clp"
+
+idcg::
+		chdir $(PLHOME)\library\dcg & \
+			for %f in ($(DCG)) do copy %f "$(PLBASE)\library\dcg"
 
 idialect:	iyap
 		chdir $(PLHOME)\library\dialect & \
@@ -270,6 +278,7 @@ iswi::
 iyap::
 		chdir $(PLHOME)\library\dialect\yap & \
 			for %f in ($(YAP)) do copy %f "$(PLBASE)\library\dialect\yap"
+		copy compat\YapInterface.h "$(PLBASE)\include\Yap\YapInterface.h"
 
 isicstus::
 		chdir $(PLHOME)\library\dialect\sicstus & \
@@ -303,7 +312,7 @@ iinclude:
 install-readme::
 		$(INSTALL_DATA) ..\README "$(PLBASE)\README.TXT"
 		$(INSTALL_DATA) ..\VERSION "$(PLBASE)"
-		$(INSTALL_DATA) ..\ReleaseNotes\relnotes-5.10 "$(PLBASE)\RelNotes-5.10.TXT"
+		$(INSTALL_DATA) swipl.ico "$(PLBASE)"
 		$(INSTALL_DATA) ..\COPYING "$(PLBASE)\COPYING.TXT"
 		$(INSTALL_DATA) ..\man\windows.html "$(PLBASE)\doc"
 

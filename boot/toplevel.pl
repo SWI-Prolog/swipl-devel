@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemakjan@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -51,7 +50,8 @@
 user:file_search_path(user_profile, '.').
 user:file_search_path(user_profile, app_preferences('.')).
 :- if(current_prolog_flag(windows, true)).
-user:file_search_path(app_preferences, PrologAppData) :-
+user:file_search_path(app_preferences, app_data('.')).
+user:file_search_path(app_data, PrologAppData) :-
 	current_prolog_flag(windows, true),
 	catch(win_folder(appdata, AppData), _, fail),
 	atom_concat(AppData, '/SWI-Prolog', PrologAppData),
@@ -59,6 +59,9 @@ user:file_search_path(app_preferences, PrologAppData) :-
 	->  true
 	;   catch(make_directory(PrologAppData), _, fail)
 	).
+:- else.
+user:file_search_path(app_data, UserLibDir) :-
+	catch(expand_file_name('~/lib/swipl', [UserLibDir]), _, fail).
 :- endif.
 user:file_search_path(app_preferences, UserHome) :-
 	catch(expand_file_name(~, [UserHome]), _, fail).
@@ -155,7 +158,7 @@ initialization(Goal) :-
 	initialization(Goal, after_load).
 
 :- multifile
-	prolog:initialization_now/2,
+	prolog:initialize_now/2,
 	prolog:message//1.
 
 prolog:initialize_now(load_foreign_library(_),
@@ -368,18 +371,15 @@ initialise_prolog :-
 	'$clean_history',
 	set_associated_file,
 	'$set_file_search_paths',
-	once(print_predicate(_, [print], PrintOptions)),
-	create_prolog_flag(toplevel_print_options, PrintOptions, []),
-	create_prolog_flag(prompt_alternatives_on, determinism, []),
-	create_prolog_flag(toplevel_extra_white_line, true, []),
-	create_prolog_flag(toplevel_print_factorized, false, []),
-	'$set_debugger_print_options'(print),
+	init_debug_flags,
 	'$run_initialization',
 	'$load_system_init_file',
 	'$option'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
+	setup_colors,
 	start_pldoc,
+	attach_packs,
 	'$load_script_file',
 	load_associated_file,
 	'$option'(goal, GoalAtom),
@@ -389,6 +389,35 @@ initialise_prolog :-
 	;   TheGoal = Goal
 	),
 	ignore(user:TheGoal).
+
+init_debug_flags :-
+	once(print_predicate(_, [print], PrintOptions)),
+	create_prolog_flag(toplevel_print_options, PrintOptions, []),
+	create_prolog_flag(prompt_alternatives_on, determinism, []),
+	create_prolog_flag(toplevel_extra_white_line, true, []),
+	create_prolog_flag(toplevel_print_factorized, false, []),
+	'$set_debugger_print_options'(print).
+
+%%	setup_colors is det.
+%
+%	Setup  interactive  usage  by  enabling    colored   output.
+
+setup_colors :-
+	(   stream_property(user_output, tty(true)),
+	    \+ current_prolog_flag(color_term, false)
+	->  load_files(user:library(ansi_term), [silent(true)])
+	;   true
+	).
+
+setup_history :-
+	(   stream_property(user_input, tty(true)),
+	    current_predicate(rl_add_history/1),
+	    \+ current_prolog_flag(save_history, false)
+	->  load_files(library(prolog_history), [silent(true)]),
+	    prolog_history(enable)
+	;   true
+	).
+
 
 :- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
 
@@ -427,9 +456,9 @@ toplevel_goal(Goal, Goal).
 %	Toplevel called when invoked with -c option.
 
 '$compile' :-
-	'$run_initialization',
-	'$load_system_init_file',
 	'$set_file_search_paths',
+	init_debug_flags,
+	'$run_initialization',
 	catch('$compile_wic', E, (print_message(error, E), halt(1))).
 
 
@@ -444,6 +473,7 @@ toplevel_goal(Goal, Goal).
 %	environment.
 
 prolog :-
+	setup_history,
 	break.
 
 %%	'$query_loop'
@@ -467,11 +497,12 @@ prolog :-
 		    prompt(Old, '')
 		),
 		trim_stacks,
-		read_query(Prompt, Goal, Bindings),
+		read_query(Prompt, Query, Bindings),
 		prompt(_, Old),
-		call_expand_query(Goal, ExpandedGoal,
+		call_expand_query(Query, ExpandedQuery,
 				  Bindings, ExpandedBindings)
-	    ->  '$execute'(ExpandedGoal, ExpandedBindings)
+	    ->  expand_goal(ExpandedQuery, Goal),
+	        '$execute'(Goal, ExpandedBindings)
 	    ), !.
 
 

@@ -3,23 +3,12 @@
 # Compiling SWI-Prolog using MinGW
 # --------------------------------
 #
-# Below are some notes from Roberto Bagnara  to compile a static version
-# of SWI-Prolog using the  MinGW  cross-compiler   on  a  Linux  system.
-# Roberto submitted patches to  5.11.22  and   5.11.23  to  get the core
-# Prolog system compiled using MinGW.
+# This file provides an overview for building SWI-Prolog using MinGW, in
+# particular using the cross-compilers that   are  distributed with most
+# todays Linux distributions. This  work  is   mostly  done  by  Roberto
+# Bagnara (initial port of the Prolog   kernel), Abramo Bagnara and Keri
+# Harris.
 #
-# Ideally, it should be  possible  to   compile  the  entire suite using
-# MinGW, either natively on  Windows  or   cross-compile  it  from e.g.,
-# Linux. Using MinGW would eliminate the need   to  maintain two sets of
-# Makefiles  and  achieves  a  much  more  lightweight  and  truly  free
-# development toolchain for SWI-Prolog on Windows.   What  remains to be
-# done is:
-#
-#     - Make more packages portable.  Most of the work is similar as for
-#       the kernel: identify the places where the __WINDOWS__ preprocessor
-#       symbol is used for MSVC rather than Windows and replace this by
-#       _MSC_VER and/or __MINGW32__.
-
 # USAGE
 #
 # The remainder of the  file  is   an  executable  specification  of the
@@ -34,31 +23,170 @@
 #
 # This script has been tested for   cross-compilation  on a Linux system
 # with the mingw cross-compiler and wine installed.
+#
+# PREREQUISITES
+#
+# The open source libraries on which   SWI-Prolog  depends are dowloaded
+# and   built   using   the   functions   download_prerequisites()   and
+# build_prerequisites().  In  addition,  the  following    need   to  be
+# installed:
+#
+#   - The Oracle Java SDK for building JPL
+#	- jdk-<version>-windows-i586.exe into
+#	  /C/Program Files (x86)/... (default on 64-bit Windows)
+#	- jdk-<version>-windows-x64.exe into
+#	  /C/Program Files/... (default on 64-bit Windows)
+#   - NSIS installer generator for generating the installer.
+#       - nsis-<version>-setup.exe into /C/Program Files (x86)/...
+#
+# UBUNTU PACKAGES
+#
+# Tested on Ubuntu 12.04 on AMD64. Installing   wine  in this version is
+# broken, but can be get  te  work   using  the  following  commands. In
+# particular WINE-GECKO MUST BE INSTALLED FIRST.
+#
+#   - Remove all wine and wingw packages
+#   - apt-get install wine-gecko1.5
+#   - apt-get install wine
+#   - apt-get install mingw-w64
+#
+# If you cannot run Win64 executables with   your  wine, .wine is out of
+# date. The only working advice I found   sofar is to (re)move .wine and
+# start wine to create a fresh installation.
 
-install=$HOME/mingw
-export BUILDARCH=mingw		# build in mingw directory next to src
-src=$(pwd)
+TARGETHOST="$1"
+MAKE="make -j 4"
 
-case $(uname) in
+case "$TARGETHOST" in
+    win64) BITS=64
+	 ;;
+    win32) BITS=32
+	 ;;
+    *)	   echo "Please run as . $BASH_SOURCE 'win32|win64'"
+	   return
+esac
+
+# Versions of prerequisite packages. Used to  download the right release
+# file.
+
+GMP_VERSION=5.0.5
+PTHREADS_VERSION=2-9-1-release
+SSL_VERSION=1.0.1c
+JPEG_VERSION=8d
+ZLIB_VERSION=1.2.5
+ARCHIVE_VERSION=3.0.4
+
+# installation prefix.  This path should not have spaces in one of the
+# directory names.
+
+install="${install-$HOME/mingw$BITS}"
+src="$(pwd)"
+PATH=$install/swipl/bin:$PATH
+
+# Check whether we are cross-compiling or running under MSYS in Windows.
+# Note that the MSYS version has not yet been tested.
+
+case "$(uname)" in
     MINGW*)
+	CROSSCOMPILING=no
 	export PATH=$install/bin:$PATH
+	DRIVEC="/C"
 	;;
     *)
+	CROSSCOMPILING=yes
+	export WINEDEBUG=-all
+	DRIVEC="$HOME/.wine/drive_c"
 	export WINEPATH="$(winepath -w $install/bin)"
 	;;
 esac
+
+if [ "$CROSSCOMPILING" = yes ]; then
+  if [ -z "$CROSS" ]; then
+    case $TARGETHOST in
+      win64)
+	CROSS=x86_64-w64-mingw32
+	;;
+      win32)
+        if [ -r /usr/bin/i686-w64-mingw32-gcc ]; then
+	  CROSS=i686-w64-mingw32
+	else
+	  CROSS=i586-mingw32msvc
+	fi
+	;;
+    esac
+  fi
+fi
+
+# Java configuration
+# Note that Win64 javac and javadoc crash under Wine (1.5.6).  But, we
+# can use the native Linux versions
+
+if [ -z "$JAVAROOT" ]; then
+  case $TARGETHOST in
+    win64)
+      JAVAROOT="$DRIVEC/Program Files/Java"
+      if [ "$CROSSCOMPILING" = yes ]; then
+        export JAVAC=javac
+	export JAVADOC=javadoc
+      fi
+      ;;
+    win32)
+      JAVAROOT="$DRIVEC/Program Files (x86)/Java"
+      ;;
+  esac
+fi
+JAVAPREFIX="$(echo "$JAVAROOT"/jdk*)/bin"
+export JAVAPREFIX
+
+# Set some variables to find the Windows libraries and include files
+
+export CIFLAGS="-I$install/include"
+export CPPFLAGS=-I$install/include
+export LDFLAGS="-L$install/lib"
+export PKGLDFLAGS=-I$install/lib
+
+
+################################################################
+# end of gathering info about the environment; the remainder are
+# functions that perform steps of the build process
+################################################################
+
+################
+# Handy for running autoconf from a directory
+
+config()
+{ if [ -r ./configure ]; then
+    ./configure --host=$CROSS --prefix=$install
+  elif  [ -r ../src/configure ]; then
+    ./configure --host=$CROSS --prefix=$install
+  fi
+}
+
+
+################
+# Create target directories
+
+make_mingw_dirs()
+{ mkdir -p $install/include
+  mkdir -p $install/lib
+  mkdir -p $install/bin
+}
+
 
 ###########################
 # Download and install the GMP library.
 
 download_gmp()
-{ [ -f gmp-5.0.2.tar.bz2 ] || wget ftp://ftp.gmplib.org/pub/gmp-5.0.2/gmp-5.0.2.tar.bz2
-  tar jxf gmp-5.0.2.tar.bz2
+{ GMP_FILE=gmp-$GMP_VERSION.tar.bz2
+
+  [ -f $GMP_FILE ] || \
+    wget ftp://ftp.gmplib.org/pub/gmp-$GMP_VERSION/$GMP_FILE
+  tar jxf $GMP_FILE
 }
 
 build_gmp()
-{ ( cd gmp-5.0.2
-    ./configure --host=i586-mingw32msvc --prefix=$install \
+{ ( cd gmp-$GMP_VERSION
+    ./configure --host=$CROSS --prefix=$install \
        --enable-shared --disable-static
     make
     make install
@@ -69,15 +197,18 @@ build_gmp()
 # Download and install the Pthreads-win32 library.
 
 download_pthread_win32()
-{ cd $src
-  [ -f pthreads-w32-2-8-0-release.tar.gz ] || wget ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-8-0-release.tar.gz
+{ PTHREADS_FILE=pthreads-w32-$PTHREADS_VERSION.tar.gz
 
-  tar xzf pthreads-w32-2-8-0-release.tar.gz
+  cd $src
+  [ -f $PTHREADS_FILE ] || \
+    wget ftp://sourceware.org/pub/pthreads-win32/$PTHREADS_FILE
+
+  tar xzf $PTHREADS_FILE
 }
 
 build_pthread_win32()
-{ ( cd pthreads-w32-2-8-0-release
-    make -f GNUmakefile CROSS=i586-mingw32msvc- \
+{ ( cd pthreads-w32-$PTHREADS_VERSION
+    make -f GNUmakefile CROSS=$CROSS- \
         LFLAGS="-lwsock32 -Wl,--out-implib=libpthreadGC2.dll.a" GC
     cp pthread.h semaphore.h sched.h $install/include/
     cp pthreadGC2.dll $install/bin/
@@ -89,17 +220,27 @@ build_pthread_win32()
 # Download and install ssl
 
 download_ssl()
-{ [ -f openssl-1.0.0e.tar.gz ] || wget http://www.openssl.org/source/openssl-1.0.0e.tar.gz
-  tar xzf openssl-1.0.0e.tar.gz
+{ SSL_FILE=openssl-$SSL_VERSION.tar.gz
+  [ -f $SSL_FILE ] || wget http://www.openssl.org/source/$SSL_FILE
+  tar xzf $SSL_FILE
 }
 
 build_ssl()
-{ ( cd openssl-1.0.0e
-    export CC=i586-mingw32msvc-gcc
-    ./Configure mingw --prefix=$install shared threads
-    make CROSS_COMPILE=i586-mingw32msvc- depend
-    make CROSS_COMPILE=i586-mingw32msvc
-    make CROSS_COMPILE=i586-mingw32msvc install
+{ ( cd openssl-$SSL_VERSION
+    export CC=$CROSS-gcc
+    case $CROSS in
+	i?86*)	 MINGW=mingw
+		 ;;
+	x86_64*) MINGW=mingw64
+		 ;;
+	*)	 echo "SSL: Unknown CROSS: $CROSS"
+		 exit 1
+		 ;;
+    esac;
+    ./Configure $MINGW --prefix=$install shared threads
+    make CROSS_COMPILE=$CROSS- depend
+    make CROSS_COMPILE=$CROSS-
+    make CROSS_COMPILE=$CROSS- install
   )
 }
 
@@ -107,13 +248,15 @@ build_ssl()
 # Download and install jpeg
 
 download_jpeg()
-{ [ -f jpegsrc.v8c.tar.gz ] || wget http://www.ijg.org/files/jpegsrc.v8c.tar.gz
-  tar xzf jpegsrc.v8c.tar.gz
+{ JPEG_FILE=jpegsrc.v$JPEG_VERSION.tar.gz
+
+  [ -f $JPEG_FILE ] || wget http://www.ijg.org/files/$JPEG_FILE
+  tar xzf $JPEG_FILE
 }
 
 build_jpeg()
-{ ( cd jpeg-8c
-    ./configure --host=i586-mingw32msvc --prefix=$install --enable-shared
+{ ( cd jpeg-$JPEG_VERSION
+    ./configure --host=$CROSS --prefix=$install --enable-shared
     make
     make install
   )
@@ -124,7 +267,7 @@ build_jpeg()
 
 download_libxpm()
 { if [ -d libXpm ]; then
-     (cd $libXpm && git pull)
+     (cd libXpm && git pull)
   else
      git clone git://www.swi-prolog.org/home/pl/git/misc/libXpm.git
   fi
@@ -133,7 +276,7 @@ download_libxpm()
 build_libxpm()
 { ( cd libXpm/lib
     autoconf
-    ./configure --host=i586-mingw32msvc --prefix=$install
+    ./configure --host=$CROSS --prefix=$install
     make -f Makefile.mingw
     make -f Makefile.mingw install
   )
@@ -143,15 +286,48 @@ build_libxpm()
 # Download and install zlib
 
 download_zlib()
-{ [ -f zlib-1.2.5.tar.bz2 ] || wget http://garr.dl.sourceforge.net/project/libpng/zlib/1.2.5/zlib-1.2.5.tar.bz2
-  tar xjf zlib-1.2.5.tar.bz2
+{ ZLIB_FILE=zlib-$ZLIB_VERSION.tar.bz2
+
+  [ -f $ZLIB_FILE ] || \
+    wget http://garr.dl.sourceforge.net/project/libpng/zlib/$ZLIB_VERSION/$ZLIB_FILE
+  tar xjf $ZLIB_FILE
 }
 
 build_zlib()
-{ ( cd zlib-1.2.5
-    make -f win32/Makefile.gcc PREFIX=i586-mingw32msvc- BINARY_PATH=$install/bin INCLUDE_PATH=$install/include LIBRARY_PATH=$install/lib SHARED_MODE=1 install
+{ ( cd zlib-$ZLIB_VERSION
+    make -f win32/Makefile.gcc PREFIX=$CROSS- BINARY_PATH=$install/bin INCLUDE_PATH=$install/include LIBRARY_PATH=$install/lib SHARED_MODE=1 IMPLIB=libz.dll.a install
   )
 }
+
+#################################
+# Download and install libarchive
+
+download_libarchive()
+{ ARCHIVE_FILE=libarchive-$ARCHIVE_VERSION.tar.gz
+
+  [ -f $ARCHIVE_FILE ] || \
+    wget https://github.com/downloads/libarchive/libarchive/$ARCHIVE_FILE
+  tar xzf $ARCHIVE_FILE
+}
+
+# lt_cv_deplibs_check_method=pass_all works around a bug in libtool
+# causing: "linker path does not have real file for library" error on MinGW
+# See http://lists.cairographics.org/archives/cairo/2009-July/017686.html
+
+build_libarchive()
+{ ( cd libarchive-$ARCHIVE_VERSION
+    export CFLAGS="-I$install/include"
+    export LDFLAGS="-L$install/lib"
+    export lt_cv_deplibs_check_method='pass_all'
+    ./configure --host=$CROSS --prefix=$install --with-pic \
+    --without-iconv --without-openssl --without-nettle --without-xml2 \
+    --without-expat --without-libregex --without-bz2lib
+    make
+    make install
+  )
+}
+
+
 
 ###########################
 # Do the whole lot for all prerequisites
@@ -163,6 +339,7 @@ download_prerequisites()
   download_jpeg
   download_libxpm
   download_zlib
+  download_libarchive
 }
 
 build_prerequisites()
@@ -172,6 +349,7 @@ build_prerequisites()
   build_jpeg
   build_libxpm
   build_zlib
+  build_libarchive
 }
 
 ###########################
@@ -192,12 +370,19 @@ build_swipl_core()
 { export CIFLAGS="-I$install/include"
   export LDFLAGS="-L$install/lib"
   ( cd pl-devel
-    ./configure --host=i586-mingw32msvc --prefix=$install \
-        --disable-readline --disable-libdirversion --enable-shared
-    make
+    ./configure --host=$CROSS --prefix=$install \
+        --disable-readline --disable-libdirversion \
+        --enable-shared --disable-static
+    $MAKE
     make install
   )
 }
+
+copy_dlls()
+{ cp $install/bin/*.dll $install/swipl/bin
+  cp $install/lib/libpthreadGC2.dll.a $install/swipl/lib
+}
+
 
 # Usage: build_swipl_packages [pkg ...]
 
@@ -206,21 +391,41 @@ build_swipl_packages()
     export CPPFLAGS=-I$install/include
     export PKGLDFLAGS=-I$install/lib
     [ -z "$1" ] || export PKG="$1"
-    ./configure --host=i586-mingw32msvc --prefix=$install
-    make
-    make install
+    ./configure --host=$CROSS --prefix=$install
+    $MAKE || exit 1
+    make install || exit 1
+    make html-install || exit 1
   )
 }
 
 build_swipl()
 { build_swipl_core
+  copy_dlls
   build_swipl_packages
+}
+
+clean_swipl()
+{ ( cd pl-devel
+    make distclean
+  )
+}
+
+uninstall_swipl()
+{ rm -rf $install/swipl
+}
+
+
+build_installer()
+{ ( cd pl-devel/${BUILDARCH-src}
+    make installer
+  )
 }
 
 ###########################
 # Do the whole lot
 
 build_all()
-{ build_prerequisites
+{ make_mingw_dirs
+  build_prerequisites
   build_swipl
 }

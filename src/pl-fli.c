@@ -154,7 +154,7 @@ PL_new_term_refs__LD(int n ARG_LD)
   FliFrame fr;
 
   if ( addPointer(lTop, n*sizeof(word)) > (void*) lMax )
-  { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
+  { int rc = ensureLocalSpace(n*sizeof(word), ALLOW_SHIFT);
 
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
@@ -523,11 +523,14 @@ compareUCSAtom(atom_t h1, atom_t h2)
 
   for( ; len-- > 0; s1++, s2++)
   { if ( *s1 != *s2 )
-      return *s1 - *s2;
+    { int d = *s1 - *s2;
+
+      return d<0 ? CMP_LESS : d>0 ? CMP_GREATER : CMP_EQUAL;
+    }
   }
 
-  return a1->length >  a2->length ? 1 :
-	 a1->length == a2->length ? 0 : -1;
+  return a1->length >  a2->length ? CMP_GREATER :
+	 a1->length == a2->length ? CMP_EQUAL : CMP_LESS;
 }
 
 
@@ -3317,7 +3320,8 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
   { if ( *m == NULL )
       *m = environment_frame ? contextModule(environment_frame)
 			     : MODULE_user;
-    setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
+    if ( raw != plain )
+      setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
   }
 
   succeed;
@@ -3437,20 +3441,16 @@ _PL_predicate(const char *name, int arity, const char *module,
 
 int
 PL_predicate_info(predicate_t pred, atom_t *name, int *arity, module_t *m)
-{ if ( pred->type == PROCEDURE_TYPE )
-  { Definition def = pred->definition;
+{ Definition def = pred->definition;
 
-    if ( name )
-      *name  = def->functor->name;
-    if ( arity )
-      *arity = def->functor->arity;
-    if ( m )
-      *m     = def->module;
+  if ( name )
+    *name  = def->functor->name;
+  if ( arity )
+    *arity = def->functor->arity;
+  if ( m )
+    *m     = def->module;
 
-    succeed;
-  }
-
-  fail;
+  return TRUE;
 }
 
 
@@ -3518,6 +3518,9 @@ PL_foreign_control(control_t h)
 int
 PL_raise_exception(term_t exception)
 { GET_LD
+
+  if ( PL_is_variable(exception) )
+    fatalError("Cannot throw variable exception");
 
   LD->exception.processing = TRUE;
   if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
@@ -4210,7 +4213,6 @@ PL_action(int action, ...)
 #ifdef O_DEBUGGER
     { GET_LD
       int a = va_arg(args, int);
-      access_level_t alevel;
 
       if ( gc_status.active )
       { Sfprintf(Serror,
@@ -4225,9 +4227,7 @@ PL_action(int action, ...)
 	rval = FALSE;
 	break;
       }
-      alevel = setAccessLevel(ACCESS_LEVEL_SYSTEM); /* Also show hidden frames */
-      backTrace(a);
-      setAccessLevel(alevel);
+      PL_backtrace(a, 0);
     }
 #else
       warning("No Prolog backtrace in runtime version");

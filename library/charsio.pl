@@ -74,7 +74,7 @@ alternative for this library.
 format_to_chars(Format, Args, Codes) :-
 	format(codes(Codes), Format, Args).
 
-%%	format_to_chars(+Format, +Args, -Codes) is det.
+%%	format_to_chars(+Format, +Args, -Codes,	?Tail) is det.
 %
 %	Use format/2 to write to a difference list of character codes.
 
@@ -90,7 +90,8 @@ write_to_chars(Term, Codes) :-
 
 %%	write_to_chars(+Term, -Codes, ?Tail)
 %
-%	Codes is a difference-list of character codes produced by write/1 on Term.
+%	Codes is a difference  list  of   character  codes  produced  by
+%	write/1 on Term.
 
 write_to_chars(Term, Codes, Tail) :-
 	format(codes(Codes, Tail), '~w', [Term]).
@@ -106,7 +107,7 @@ atom_to_chars(Atom, Codes) :-
 
 %%	atom_to_chars(+Atom, -Codes, ?Tail) is det.
 %
-%	Convert Atom into a difference-list of character codes.
+%	Convert Atom into a difference list of character codes.
 
 atom_to_chars(Atom, Codes, Tail) :-
 	format(codes(Codes, Tail), '~a', [Atom]).
@@ -120,9 +121,9 @@ atom_to_chars(Atom, Codes, Tail) :-
 number_to_chars(Number, Codes) :-
 	number_codes(Number, Codes).
 
-%%	number_to_chars(+Atom, -Codes, ?Tail) is det.
+%%	number_to_chars(+Number, -Codes, ?Tail) is det.
 %
-%	Convert Number into a difference-list of character codes.
+%	Convert Number into a difference list of character codes.
 
 number_to_chars(Number, Codes, Tail) :-
 	must_be(number, Number),
@@ -175,7 +176,7 @@ open_chars_stream(Codes, Stream, Postfix) :-
 
 %%	with_output_to_chars(:Goal, -Codes) is det.
 %
-%	Run Goal with as once/1.  Output written to =current_output=
+%	Run Goal as with once/1.  Output written to =current_output=
 %	is collected in Codes.
 
 with_output_to_chars(Goal, Codes) :-
@@ -183,7 +184,7 @@ with_output_to_chars(Goal, Codes) :-
 
 %%	with_output_to_chars(:Goal, -Codes, ?Tail) is det.
 %
-%	Run Goal with as once/1.  Output written to =current_output=
+%	Run Goal as with once/1.  Output written to =current_output=
 %	is collected in Codes\Tail.
 
 with_output_to_chars(Goal, Codes, Tail) :-
@@ -191,7 +192,7 @@ with_output_to_chars(Goal, Codes, Tail) :-
 
 %%	with_output_to_chars(:Goal, -Stream, -Codes, ?Tail) is det.
 %
-%	As  with_output_to_chars/2,  but  Stream  is  unified  with  the
+%	As  with_output_to_chars/3,  but  Stream  is  unified  with  the
 %	temporary stream.
 
 with_output_to_chars(Goal, Stream, Codes, Tail) :-

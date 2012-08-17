@@ -203,8 +203,8 @@ must_be(Type, X) :-
 
 is_not(list, X) :- !,
 	not_a_list(list, X).
-is_not(list(_), X) :- !,
-	not_a_list(list, X).
+is_not(list(Of), X) :- !,
+	not_a_list(list(Of), X).
 is_not(list_or_partial_list, X) :- !,
 	type_error(list, X).
 is_not(chars, X) :- !,
@@ -237,8 +237,21 @@ not_a_list(Type, X) :-
 	'$skip_list'(_, X, Rest),
 	(   var(Rest)
 	->  instantiation_error(X)
-	;   type_error(Type, X)
+	;   Rest == []
+	->  Type = list(Of),
+	    element_is_not(X, Of)
+	;   functor(Type, Name, _),
+	    type_error(Name, X)
 	).
+
+
+element_is_not([H|T], Of) :-
+	has_type(Of, H), !,
+	element_is_not(T, Of).
+element_is_not([H|_], Of) :- !,
+	is_not(Of, H).
+element_is_not(_List, _Of) :-
+	assertion(fail).
 
 not_a_rational(X) :-
 	(   var(X)
@@ -325,7 +338,7 @@ text(X) :-
 
 element_types([], _).
 element_types([H|T], Type) :-
-	must_be(Type, H),
+	has_type(Type, H),
 	element_types(T, Type).
 
 is_list_or_partial_list(L0) :-

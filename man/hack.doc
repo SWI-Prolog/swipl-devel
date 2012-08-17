@@ -10,13 +10,18 @@ Prolog system by misusing them.
 \section{Examining the Environment Stack}	\label{sec:manipstack}
 
 \begin{description}
-    \predicate{prolog_current_frame}{1}{-Frame}
+    \predicate[det]{prolog_current_frame}{1}{-Frame}
 Unify \arg{Frame} with an integer providing a reference to the parent of
 the current local stack frame.  A pointer to the current local frame
 cannot be provided as the predicate succeeds deterministically and
 therefore its frame is destroyed immediately after succeeding.
 
-    \predicate{prolog_frame_attribute}{3}{+Frame, +Key, -Value}
+    \predicate[semidet]{prolog_current_choice}{1}{-Choice}
+Unify \arg{Choice} with an integer provided a reference to the last
+choice-point.  Fails if the current environment has no choicepoints.
+See also prolog_choice_attribute/3.
+
+    \predicate{prolog_frame_attribute}{3}{+Frame, +Key, :Value}
 Obtain information about the local stack frame \arg{Frame}.  \arg{Frame}
 is a frame reference as obtained through prolog_current_frame/1,
 prolog_trace_interception/4 or this predicate.  The key values are
@@ -34,8 +39,8 @@ candidate for backtracking; \const{false} otherwise.
 
     \termitem{goal}{}
 \arg{Value} is unified with the goal associated with \arg{Frame}. If the
-definition module of the active predicate is not \const{user} the goal
-is represented as \mbox{\tt <module>:<goal>}. Do not instantiate
+definition module of the active predicate is not the calling context,
+the goal is represented as \mbox{\tt <module>:<goal>}. Do not instantiate
 variables in this goal unless you {\bf know} what you are doing!
 Note that the returned term may contain references to the frame and
 should be discarded before the frame terminates.%
@@ -100,7 +105,8 @@ refer to local variables. Fails silently if \arg{N} is out of range.
     \predicate{prolog_choice_attribute}{3}{+ChoicePoint, +Key, -Value}
 Extract attributes of a choice-point.  \arg{ChoicePoint} is a reference
 to a choice-point as passed to prolog_trace_interception/4 on the 3-th
-argument.  \arg{Key} specifies the requested information:
+argumentm or obtained using prolog_current_choice/1. \arg{Key} specifies
+the requested information:
 
 \begin{description}
     \termitem{parent}{}
@@ -127,6 +133,17 @@ alternatives. Similar results can be achieved in a more portable fashion
 using call_cleanup/2.
 \end{description}
 
+\section{Global cuts}				\label{sec:globalcut}
+
+\begin{description}
+    \predicate{prolog_cut_to}{1}{+Choice}
+Prunes all choice-points created since \arg{Choice}. Can be used
+together with prolog_current_choice/1 to implement \jargon{parent} cuts.
+This predicate is in the hackers corner because it should not be used
+in normal Prolog code. It may be used to create new high level control
+structures, particularly for compatibility purposes.
+\end{description}
+
 
 \section{Intercepting the Tracer}		\label{sec:tracehook}
 
@@ -145,10 +162,15 @@ the normal Prolog debugger actions are performed.
     \termitem{call}{}
 Normal entry through the call-port of the 4-port debugger.
 
-    \termitem{redo}{}
-Normal entry through the call-port of the 4-port debugger. The
+    \termitem{redo}{PC}
+Normal entry through the redo-port of the 4-port debugger. The
 \const{redo} port signals resuming a predicate to generate alternative
-solutions.
+solutions. If \arg{PC} is 0 (zero), clause-indexing has found another
+clause that will be tried next. Otherwise, \arg{PC} is the program
+counter in the current clause where execution continues. This implies we
+are dealing with an in-clause choice point left by e.g., \predref{;}{2}.
+Note that non-determinism in foreign predicates are also handled using
+an in-clause choice point.
 
     \termitem{unify}{}
 The unify-port represents the \jargon{neck} instruction, signalling the

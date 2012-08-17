@@ -51,10 +51,14 @@ freeCodes(Code codes)
 freeCodesDefinition() destroys the supervisor of  a predicate, replacing
 it  by  the  statically  allocated  S_VIRGIN  supervisor.  Note  that  a
 predicate *always* has non-NULL def->codes.
+
+If linger == FALSE, we  are  absolutely   sure  that  it  is harmless to
+deallocate the old supervisor. If TRUE,   there may be references. I.e.,
+other threads may have started executing this predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-freeCodesDefinition(Definition def)
+freeCodesDefinition(Definition def, int linger)
 { Code codes;
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
@@ -63,7 +67,11 @@ freeCodesDefinition(Definition def)
 
       def->codes = SUPERVISOR(virgin);
       if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-	freeHeap(&codes[-1], (size+1)*sizeof(code));
+      { if ( linger )
+	  PL_linger(&codes[-1]);
+	else
+	  freeHeap(&codes[-1], (size+1)*sizeof(code));
+      }
     } else
       def->codes = SUPERVISOR(virgin);
   }
@@ -133,18 +141,38 @@ createForeignSupervisor(Definition def, Func f)
 		 *	   PROLOG CASES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+getClauses() finds alive clauses and stores them into the array refp. It
+stores at most `max' clauses and returns   the total number of candidate
+clauses. This code is only executed on   static code and in theory there
+should be no reason to validate the  counts, but reconsulting files must
+make us careful.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-getClauses(Definition def, ClauseRef *refp0)
-{ ClauseRef cref, *refp = refp0;
+getClauses(Definition def, ClauseRef *refp, int max)
+{ ClauseRef cref;
+  int found = 0;
 
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
   { if ( visibleClause(cref->value.clause, GD->generation) )
-      *refp++ = cref;
+    { if ( found < max )
+	refp[found] = cref;
+      found++;
+    }
   }
 
-  return (int)(refp - refp0);
+  return found;
 }
 
+
+static Code
+undefSupervisor(Definition def)
+{ if ( def->impl.clauses.number_of_clauses == 0 && false(def, PROC_DEFINED) )
+    return SUPERVISOR(undef);
+
+  return NULL;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 createSingleClauseSupervisor() creates a supervisor to call the one and
@@ -158,15 +186,17 @@ singleClauseSupervisor(Definition def)
 { if ( def->impl.clauses.number_of_clauses == 1 )
   { ClauseRef cref;
     Code codes = allocCodes(2);
+    int found = getClauses(def, &cref, 1);
 
-    getClauses(def, &cref);
-    DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
-		      predicateName(def)));
+    if ( found == 1 )
+    { DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
+			predicateName(def)));
 
-    codes[0] = encode(S_TRUSTME);
-    codes[1] = (code)cref;
+      codes[0] = encode(S_TRUSTME);
+      codes[1] = (code)cref;
 
-    return codes;
+      return codes;
+    }
   }
 
   return NULL;
@@ -190,9 +220,10 @@ listSupervisor(Definition def)
 { if ( def->impl.clauses.number_of_clauses == 2 )
   { ClauseRef cref[2];
     word c[2];
+    int found = getClauses(def, cref, 2);
 
-    getClauses(def, cref);
-    if ( argKey(cref[0]->value.clause->codes, 0, TRUE, &c[0]) &&
+    if ( found == 2 &&
+	 argKey(cref[0]->value.clause->codes, 0, TRUE, &c[0]) &&
 	 argKey(cref[1]->value.clause->codes, 0, TRUE, &c[1]) &&
 	 ( (c[0] == ATOM_nil && c[1] == FUNCTOR_dot2) ||
 	   (c[1] == ATOM_nil && c[0] == FUNCTOR_dot2) ) )
@@ -269,7 +300,7 @@ chainMetaPredicateSupervisor(Definition def, Code post)
     for(i=0; i < def->functor->arity; i++)
     { int ma = MA_INFO(def, i);
 
-      if ( ma <= 9 || ma == MA_META || ma == MA_HAT ) /* 0..9, : or ^ */
+      if ( ma <= 9 || ma == MA_META || ma == MA_HAT || ma == MA_DCG ) /* 0..9, :, ^ or // */
       { addBuffer(&buf, encode(S_MQUAL), code);
 	addBuffer(&buf, VAROFFSET(i), code);
 	count++;
@@ -300,31 +331,38 @@ chainMetaPredicateSupervisor(Definition def, Code post)
 
 int
 createUndefSupervisor(Definition def)
-{ if ( def->impl.clauses.number_of_clauses == 0 && false(def, PROC_DEFINED) )
-  { def->codes = SUPERVISOR(undef);
+{ Code codes;
 
-    succeed;
+  if ( (codes = undefSupervisor(def)) )
+  { def->codes = codes;
+
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+createSupervisor()  is  synchronised  with  unloadFile()  (reconsult/1).
+Seems this is not yet enough to   stop all racer conditions between this
+code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 createSupervisor(Definition def)
 { Code codes;
+  int has_codes;
 
-  if ( createUndefSupervisor(def))
-    succeed;
-
-  if ( !((codes = multifileSupervisor(def)) ||
-	 (codes = singleClauseSupervisor(def)) ||
-	 (codes = listSupervisor(def)) ||
-	 (codes = staticSupervisor(def))) )
-  { fatalError("Failed to create supervisor for %s\n",
-	       predicateName(def));
-  }
+  PL_LOCK(L_PREDICATE);
+  has_codes = ((codes = undefSupervisor(def)) ||
+	       (codes = multifileSupervisor(def)) ||
+	       (codes = singleClauseSupervisor(def)) ||
+	       (codes = listSupervisor(def)) ||
+	       (codes = staticSupervisor(def)));
+  assert(has_codes);
   def->codes = chainMetaPredicateSupervisor(def, codes);
+  PL_UNLOCK(L_PREDICATE);
 
   succeed;
 }

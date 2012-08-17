@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@ca.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -64,6 +62,11 @@
 
 translate_message(Term) -->
 	translate_message2(Term), !.
+translate_message(Term) -->
+	{ Term = error(_, _) },
+	[ 'Unknown exception: ~p'-[Term] ].
+translate_message(Term) -->
+	[ 'Unknown message: ~p'-[Term] ].
 
 translate_message2(Term) -->
 	{var(Term)}, !,
@@ -86,11 +89,6 @@ translate_message2(message_lines(Lines), L, T) :- % deal with old C-warning()
 	make_message_lines(Lines, L, T).
 translate_message2(format(Fmt, Args)) -->
 	[ Fmt-Args ].
-translate_message2(Term) -->
-	{ Term = error(_, _) },
-	[ 'Unknown exception: ~p'-[Term] ].
-translate_message2(Term) -->
-	[ 'Unknown message: ~p'-[Term] ].
 
 make_message_lines([], T, T) :- !.
 make_message_lines([Last],  ['~w'-[Last]|T], T) :- !.
@@ -134,6 +132,11 @@ iso_message(permission_error(Action, built_in_procedure, Pred)) -->
 	    ]
 	;   []
 	).
+iso_message(permission_error(import_into(Dest), procedure, Pred)) -->
+	[ 'No permission to import ~p into ~w'-[Pred, Dest] ].
+iso_message(permission_error(Action, static_procedure, Proc)) -->
+	[ 'No permission to ~w static procedure `~p'''-[Action, Proc] ],
+	defined_definition('Defined', Proc).
 iso_message(permission_error(Action, Type, Object)) -->
 	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
 iso_message(evaluation_error(Which)) -->
@@ -145,6 +148,8 @@ iso_message(existence_error(Type, Object)) -->
 	[ '~w `~p'' does not exist'-[Type, Object] ].
 iso_message(busy(Type, Object)) -->
 	[ '~w `~p'' is busy'-[Type, Object] ].
+iso_message(syntax_error(swi_backslash_newline)) -->
+	[ 'Deprecated ... \\<newline><white>*.  Use \\c' ].
 iso_message(syntax_error(Id)) -->
 	[ 'Syntax error: ' ],
 	syntax_error(Id).
@@ -208,6 +213,8 @@ syntax_error(cannot_start_term) -->
 	[ 'Illegal start of term' ].
 syntax_error(punct(Punct, End)) -->
 	[ 'Unexpected `~w\' before `~w\''-[Punct, End] ].
+syntax_error(undefined_char_escape(C)) -->
+	[ 'Undefined character escape in quoted atom or string: `\\~w\''-[C] ].
 syntax_error(Message) -->
 	[ '~w'-[Message] ].
 
@@ -267,8 +274,8 @@ swi_message(context_error(nodirective, Goal)) -->
 	[ 'Wrong context: ~p can only be used in a directive'-[PI] ].
 swi_message(context_error(edit, no_default_file)) -->
 	(   { current_prolog_flag(windows, true) }
-	->  [ 'Edit/0 can only be used after opening a \
-	      Prolog file by double-clicking it' ]
+	->  [ 'Edit/0 can only be used after opening a \c
+	       Prolog file by double-clicking it' ]
 	;   [ 'Edit/0 can only be used with the "-s file" commandline option'
 	    ]
 	).
@@ -276,6 +283,15 @@ swi_message(format_argument_type(Fmt, Arg)) -->
 	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
 swi_message(format(Msg)) -->
 	[ 'Format error: ~w'-[Msg] ].
+swi_message(conditional_compilation_error(unterminated, Where)) -->
+	[ 'Unterminated conditional compilation from '-[] ],
+	cond_location(Where).
+swi_message(conditional_compilation_error(no_if, What)) -->
+	[ ':- ~w without :- if'-[What] ].
+
+cond_location(File:Line) -->
+	{ file_base_name(File, Base) },
+	[ '~w:~d'-[Base, Line] ].
 
 swi_location(X) -->
 	{ var(X)
@@ -322,7 +338,7 @@ swi_extra(context(_, Msg)) -->
 	{ nonvar(Msg),
 	  Msg \== ''
 	}, !,
-	[ ' (~w)'-[Msg] ].
+	swi_comment(Msg).
 swi_extra(string(String, CharPos)) -->
 	{ sub_string(String, 0, CharPos, _, Before),
 	  sub_string(String, CharPos, _, 0, After)
@@ -330,6 +346,12 @@ swi_extra(string(String, CharPos)) -->
 	[ nl, '~w'-[Before], nl, '** here **', nl, '~w'-[After] ].
 swi_extra(_) -->
 	[].
+
+swi_comment(already_from(Module)) --> !,
+	[ ' (already imported from ~q)'-[Module] ].
+swi_comment(Msg) -->
+	[ ' (~w)'-[Msg] ].
+
 
 thread_context -->
 	{ thread_self(Me), Me \== main }, !,
@@ -361,7 +383,10 @@ prolog_message(initialization_exception(E)) -->
 	translate_message(E).
 prolog_message(unhandled_exception(E)) -->
 	[ 'Unhandled exception: ' ],
-	translate_message(E).
+	(   translate_message2(E)
+	->  []
+	;   [ '~p'-[E] ]
+	).
 prolog_message(goal_failed(Goal, Context)) -->
 	[ 'Goal (~w) failed: ~p'-[Goal, Context] ].
 prolog_message(no_current_module(Module)) -->
@@ -425,9 +450,18 @@ prolog_message(cannot_redefine_comma) -->
 prolog_message(illegal_autoload_index(Dir, Term)) -->
 	[ 'Illegal term in INDEX file of directory ~w: ~w'-[Dir, Term] ].
 prolog_message(redefined_procedure(Type, Proc)) -->
-	[ 'Redefined ~w procedure ~p'-[Type, Proc] ].
+	[ 'Redefined ~w procedure ~p'-[Type, Proc] ],
+	defined_definition('Previously defined', Proc).
 prolog_message(declare_module(Module, abolish(Predicates))) -->
 	[ 'Loading module ~w abolished: ~p'-[Module, Predicates] ].
+prolog_message(import_private(Module, Private)) -->
+	[ 'import/1: ~p is not exported (still imported into ~q)'-
+	  [Private, Module]
+	].
+prolog_message(ignored_weak_import(Into, From:PI)) -->
+	[ 'Local definition of ~p overrides weak import from ~q'-
+	  [Into:PI, From]
+	].
 prolog_message(undefined_export(Module, PI)) -->
 	[ 'Exported procedure ~q:~q is not defined'-[Module, PI] ].
 prolog_message(no_exported_op(Module, Op)) -->
@@ -440,6 +474,13 @@ prolog_message(load_file(start(Level, File))) -->
 	[ '~|~t~*+Loading '-[Level] ],
 	load_file(File),
 	[ ' ...' ].
+prolog_message(include_file(start(Level, File))) -->
+	[ '~|~t~*+include '-[Level] ],
+	load_file(File),
+	[ ' ...' ].
+prolog_message(include_file(done(Level, File))) -->
+	[ '~|~t~*+included '-[Level] ],
+	load_file(File).
 prolog_message(load_file(done(Level, File, Action, Module, Time, Clauses))) -->
 	[ '~|~t~*+'-[Level] ],
 	load_file(File),
@@ -475,6 +516,15 @@ prolog_message(redefine_module_reply) -->
 prolog_message(reloaded_in_module(Absolute, OldContext, LM)) -->
 	[ '~w was previously loaded in module ~w'-[Absolute, OldContext], nl,
 	  '\tnow it is reloaded into module ~w'-[LM] ].
+
+defined_definition(Message, Spec) -->
+	{ strip_module(user:Spec, M, Name/Arity),
+	  functor(Head, Name, Arity),
+	  predicate_property(M:Head, file(File)),
+	  predicate_property(M:Head, line_count(Line))
+	}, !,
+	[ nl, '~w at ~w:~d'-[Message, File,Line] ].
+defined_definition(_, _) --> [].
 
 used_search([]) -->
 	[].
@@ -595,7 +645,7 @@ prolog_message(threads) -->
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
-	[ 'Copyright (c) 1990-2011 University of Amsterdam, VU Amsterdam', nl,
+	[ 'Copyright (c) 1990-2012 University of Amsterdam, VU Amsterdam', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
@@ -952,8 +1002,22 @@ prolog_message(abnormal_thread_completion(Goal, exception(Ex))) --> !,
 	translate_message(Ex).
 prolog_message(abnormal_thread_completion(Goal, fail)) -->
 	[ 'Thread running "~p" died due to failure'-[Goal] ].
-prolog_message(threads_not_died(Count)) -->
-	[ '~D threads wouldn\'t die'-[Count] ].
+prolog_message(threads_not_died(Running)) -->
+	[ 'The following threads wouldn\'t die: ~p'-[Running] ].
+
+
+		 /*******************************
+		 *	       PACKS		*
+		 *******************************/
+
+prolog_message(pack(attached(Pack, BaseDir))) -->
+	[ 'Attached package ~w at ~q'-[Pack, BaseDir] ].
+prolog_message(pack(duplicate(Entry, OldDir, Dir))) -->
+	[ 'Package ~w already attached at ~q.'-[Entry,OldDir], nl,
+	  '\tIgnoring version from ~q'- [Entry, OldDir, Dir]
+	].
+prolog_message(pack(no_arch(Entry, Arch))) -->
+	[ 'Package ~w: no binary for architecture ~w'-[Entry, Arch] ].
 
 
 		 /*******************************

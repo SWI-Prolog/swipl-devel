@@ -98,7 +98,7 @@ MS-Windows version
 
 static void profile(intptr_t ticks, PL_local_data_t *ld);
 
-#if (_MSC_VER < 1400)
+#if (_MSC_VER < 1400) && !defined(__MINGW32__)
 typedef DWORD DWORD_PTR;
 #endif
 

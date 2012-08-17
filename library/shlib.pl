@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -51,12 +50,12 @@ describe the procedure for using a foreign  resource (DLL in Windows and
 shared object in Unix) called =mylib=.
 
 First, one must  assemble  the  resource   and  make  it  compatible  to
-SWI-Prolog. The details for this  vary   between  platforms. The plld(1)
-utility can be used to deal with this in a portable manner.  The typical
+SWI-Prolog. The details for this vary between platforms. The swipl-ld(1)
+utility can be used to deal with this  in a portable manner. The typical
 commandline is:
 
 	==
-	plld -o mylib file.{c,o,cc,C} ...
+	swipl-ld -o mylib file.{c,o,cc,C} ...
 	==
 
 Make  sure  that  one  of   the    files   provides  a  global  function
@@ -131,19 +130,8 @@ predicate defined in C.
 %	Find a foreign library from LibSpec.  If LibSpec is available as
 %	a resource, the content of the resource is copied to a temporary
 %	file and Delete is unified with =true=.
-%
-%	On Windows, if =|swipl.dll|= is   compiled for debugging, prefer
-%	loading <lib>D.dll to allow for debugging.
 
-find_library(Spec, Lib, Delete) :-
-	current_prolog_flag(windows, true),
-	current_prolog_flag(kernel_compile_mode, debug),
-	libd_spec(Spec, SpecD),
-	catch(find_library2(SpecD, Lib, Delete), _, fail).
-find_library(Spec, Lib, Delete) :-
-	find_library2(Spec, Lib, Delete).
-
-find_library2(Spec, TmpFile, true) :-
+find_library(Spec, TmpFile, true) :-
 	'$rc_handle'(RC),
 	term_to_atom(Spec, Name),
 	setup_call_cleanup(
@@ -153,30 +141,18 @@ find_library2(Spec, TmpFile, true) :-
 		copy_stream_data(In, Out),
 		close(Out)),
 	    close(In)), !.
-find_library2(Spec, Lib, false) :-
+find_library(Spec, Lib, false) :-
 	absolute_file_name(Spec, Lib,
 			   [ file_type(executable),
 			     access(read),
 			     file_errors(fail)
 			   ]), !.
-find_library2(Spec, Spec, false) :-
+find_library(Spec, Spec, false) :-
 	atom(Spec), !.			% use machines finding schema
-find_library2(foreign(Spec), Spec, false) :-
+find_library(foreign(Spec), Spec, false) :-
 	atom(Spec), !.			% use machines finding schema
-find_library2(Spec, _, _) :-
+find_library(Spec, _, _) :-
 	throw(error(existence_error(source_sink, Spec), _)).
-
-libd_spec(Name, NameD) :-
-	atomic(Name),
-	file_name_extension(Base, Ext, Name),
-	atom_concat(Base, 'D', BaseD),
-	file_name_extension(BaseD, Ext, NameD).
-libd_spec(Spec, SpecD) :-
-	compound(Spec),
-	Spec =.. [Alias,Name],
-	libd_spec(Name, NameD),
-	SpecD =.. [Alias,NameD].
-libd_spec(Spec, Spec).			% delay errors
 
 base(Path, Base) :-
 	atomic(Path), !,
@@ -241,17 +217,16 @@ load_foreign_library(LibFile, Module, DefEntry) :-
 	    fail
 	;   delete_foreign_lib(Delete, Path)
 	), !,
-	(   (	entry(LibFile, DefEntry, Entry),
-		Module:call_shared_object_function(Handle, Entry)
-	    ->	true
-	    ;	DefEntry == default(install)
-	    )
+	(   entry(LibFile, DefEntry, Entry),
+	    Module:call_shared_object_function(Handle, Entry)
 	->  retractall(loading(LibFile)),
 	    assert_shlib(LibFile, Entry, Path, Module, Handle)
 	;   retractall(loading(LibFile)),
 	    close_shared_object(Handle),
-	    print_message(error, shlib(LibFile, call_entry(DefEntry))),
-	    fail
+	    findall(Entry, entry(LibFile, DefEntry, Entry), Entries),
+	    throw(error(existence_error(foreign_install_function,
+					install(Path, Entries)),
+			_))
 	).
 load_foreign_library(LibFile, _, _) :-
 	retractall(loading(LibFile)),
@@ -418,11 +393,16 @@ unload_foreign(File) :-
 		 *******************************/
 
 :- multifile
-	prolog:message/3.
+	prolog:message//1,
+	prolog:error_message//1.
 
-prolog:message(shlib(LibFile, call_entry(DefEntry))) -->
-	[ '~w: Failed to call entry-point ~w'-[LibFile, DefEntry] ].
 prolog:message(shlib(LibFile, load_failed)) -->
 	[ '~w: Failed to load file'-[LibFile] ].
 prolog:message(shlib(not_supported)) -->
 	[ 'Emulator does not support foreign libraries' ].
+
+prolog:error_message(existence_error(foreign_install_function,
+				     install(Lib, List))) -->
+	[ 'No install function in ~q'-[Lib], nl,
+	  '\tTried: ~q'-[List]
+	].

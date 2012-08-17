@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -30,7 +29,7 @@
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 
 static RecordList lookupRecordList(word);
-static RecordList isCurrentRecordList(word);
+static RecordList isCurrentRecordList(word, int must_be_non_empty);
 static void freeRecordRef(RecordRef r);
 static void unallocRecordList(RecordList rl);
 
@@ -86,7 +85,6 @@ lookupRecordList(word key)
       PL_register_atom(key);
     l = allocHeapOrHalt(sizeof(*l));
     l->key = key;
-    l->type = RECORD_TYPE;
     l->references = 0;
     l->flags = 0;
     l->firstRecord = l->lastRecord = NULL;
@@ -105,11 +103,26 @@ lookupRecordList(word key)
 
 
 static RecordList
-isCurrentRecordList(word key)
+isCurrentRecordList(word key, int must_be_non_empty)
 { Symbol s;
 
   if ( (s = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
-    return s->value;
+  { RecordList rl = s->value;
+
+    if ( must_be_non_empty )
+    { RecordRef record;
+
+      LOCK();
+      for(record = rl->firstRecord; record; record = record->next)
+      { if ( false(record->record, R_ERASED) )
+	  break;
+      }
+      UNLOCK();
+      return record ? rl : NULL;
+    } else
+    { return rl;
+    }
+  }
 
   return NULL;
 }
@@ -714,7 +727,7 @@ PL_record_external(term_t t, size_t *len)
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = (int)sizeOfBuffer(&hdr);
 
-  rec = PL_malloc_atomic(shdr + scode);
+  rec = PL_malloc_atomic_unmanaged(shdr + scode);
   memcpy(rec, hdr.base, shdr);
   memcpy(rec+shdr, info.code.base, scode);
 
@@ -1529,7 +1542,6 @@ PL_recorded_external(const char *rec, term_t t)
 int
 PL_erase_external(char *rec)
 { copy_info b;
-  uint scode;
   uchar m;
 
   b.base = b.data = rec;
@@ -1538,20 +1550,8 @@ PL_erase_external(char *rec)
   { Sdprintf("PL_erase_external(): incompatible version\n");
     fail;
   }
-  if (  m & (REC_INT|REC_ATOM) )
-  { if (  m & REC_INT )
-      skipLong(&b);
-    else
-      skipAtom(&b);
-  } else
-  { scode = fetchSizeInt(&b);
-    skipSizeInt(&b);			/* gsize */
-    if ( !(m & REC_GROUND) )
-      skipSizeInt(&b);			/* nvars */
-    b.data += scode;
-  }
 
-  freeHeap(rec, b.data-b.base);
+  PL_free(rec);
   return TRUE;
 }
 
@@ -1605,7 +1605,7 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
       { rl = GD->recorded_db.head;
 	break;
       } else if ( getKeyEx(A1, &k PASS_LD) &&
-		  isCurrentRecordList(k) )
+		  isCurrentRecordList(k, TRUE) )
 	succeed;
 
       fail;
@@ -1739,7 +1739,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	  fail;
 	varkey = TRUE;
       } else if ( getKeyEx(key, &k PASS_LD) )
-      { if ( !(rl = isCurrentRecordList(k)) )
+      { if ( !(rl = isCurrentRecordList(k, FALSE)) )
 	  fail;
 	varkey = FALSE;
       } else

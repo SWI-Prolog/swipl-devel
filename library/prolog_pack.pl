@@ -1,0 +1,1914 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 2012, VU University Amsterdam
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+*/
+
+:- module(prolog_pack,
+	  [ pack_list_installed/0,
+	    pack_info/1,		% +Name
+	    pack_list/1,		% +Keyword
+	    pack_search/1,		% +Keyword
+	    pack_install/1,		% +Name
+	    pack_install/2,		% +Name, +Options
+	    pack_upgrade/1,		% +Name
+	    pack_rebuild/1,		% +Name
+	    pack_rebuild/0,		% All packages
+	    pack_remove/1		% +Name
+	  ]).
+:- use_module(library(apply)).
+:- use_module(library(error)).
+:- use_module(library(process)).
+:- use_module(library(option)).
+:- use_module(library(readutil)).
+:- use_module(library(lists)).
+:- use_module(library(filesex)).
+:- use_module(library(archive)).
+:- use_module(library(xpath)).
+:- use_module(library(settings)).
+:- use_module(library(uri)).
+:- use_module(library(http/http_open)).
+:- use_module(library(http/http_client), []).	% plugin for POST support
+
+
+/** <module> A package manager for Prolog
+
+The  library(prolog_pack)  defines  a   simple    package   manager  for
+SWI-Prolog. This library lets you   inspect  installed packages, install
+packages, remove packages, etc.  It  is   complemented  by  the built-in
+attach_packs/0 that makes installed packages available as libaries.
+
+@tbd	Version logic
+@tbd	Find and resolve conflicts
+@tbd	Upgrade git packages
+@tbd	Validate packages (git: signatures, others: SHA1)
+@tbd	Build foreign resources
+@tbd	Test packages: run tests from directory `test'.
+*/
+
+:- meta_predicate
+	run_process_output(+, +, 1, +).
+
+:- multifile
+	environment/2.				% Name, Value
+
+:- dynamic
+	pack_requires/2,			% Pack, Requirement
+	pack_provides_db/2.			% Pack, Provided
+
+
+		 /*******************************
+		 *	    CONSTANTS		*
+		 *******************************/
+
+:- setting(server, atom, 'http://www.swi-prolog.org/pack/',
+	   'Server to exchange pack information').
+
+
+		 /*******************************
+		 *	   PACKAGE INFO		*
+		 *******************************/
+
+%%	current_pack(?Pack) is nondet.
+%
+%	True if Pack is a currently installed pack.
+
+current_pack(Pack) :-
+	'$pack':pack(Pack, _).
+
+%%	pack_list_installed is det.
+%
+%	List currently installed  packages.   Unlike  pack_list/1,  only
+%	locally installed packages are displayed   and  no connection is
+%	made to the internet.
+%
+%	@see Use pack_list/1 to find packages.
+
+pack_list_installed :-
+	findall(Pack, current_pack(Pack), Packages0),
+	Packages0 \== [], !,
+	sort(Packages0, Packages),
+	length(Packages, Count),
+	format('Installed packages (~D):~n~n', [Count]),
+	maplist(pack_info(list), Packages),
+	validate_dependencies.
+pack_list_installed :-
+	print_message(informational, pack(no_packages_installed)).
+
+%%	pack_info(+Pack)
+%
+%	Print more detailed information about Pack.
+
+pack_info(Name) :-
+	pack_info(info, Name).
+
+pack_info(Level, Name) :-
+	findall(Info, pack_info(Name, Level, Info), Infos0),
+	(   Infos0 == []
+	->  print_message(warning, pack(no_pack_installed(Name))),
+	    fail
+	;   true
+	),
+	update_dependency_db(Name, Infos0),
+	findall(Def,  pack_default(Level, Infos, Def), Defs),
+	append(Infos0, Defs, Infos1),
+	sort(Infos1, Infos),
+	show_info(Name, Infos, [info(Level)]).
+
+
+show_info(Name, Properties, Options) :-
+	option(info(list), Options), !,
+	memberchk(title(Title), Properties),
+	memberchk(version(Version), Properties),
+	format('i ~w@~w ~28|- ~w~n', [Name, Version, Title]).
+show_info(Name, Properties, _) :- !,
+	print_property_value('Package'-'~w', [Name]),
+	findall(Term, pack_level_info(info, Term, _, _), Terms),
+	maplist(print_property(Properties), Terms).
+
+print_property(_, nl) :- !,
+	format('~n').
+print_property(Properties, Term) :-
+	findall(Term, member(Term, Properties), Terms),
+	Terms \== [], !,
+	pack_level_info(_, Term, LabelFmt, _Def),
+	(   LabelFmt = Label-FmtElem
+	->  true
+	;   Label = LabelFmt,
+	    FmtElem = '~w'
+	),
+	multi_valued(Terms, FmtElem, FmtList, Values),
+	atomic_list_concat(FmtList, ', ', Fmt),
+	print_property_value(Label-Fmt, Values).
+print_property(_, _).
+
+multi_valued([H], LabelFmt, [LabelFmt], Values) :- !,
+	H =.. [_|Values].
+multi_valued([H|T], LabelFmt, [LabelFmt|LT], Values) :-
+	H =.. [_|VH],
+	append(VH, MoreValues, Values),
+	multi_valued(T, LabelFmt, LT, MoreValues).
+
+
+pvalue_column(24).
+print_property_value(Prop-Fmt, Values) :- !,
+	pvalue_column(C),
+	atomic_list_concat(['~w:~t~*|', Fmt, '~n'], Format),
+	format(Format, [Prop,C|Values]).
+
+pack_info(Name, Level, Info) :-
+	'$pack':pack(Name, BaseDir),
+	(   Info = directory(BaseDir)
+	;   pack_info_term(BaseDir, Info)
+	),
+	pack_level_info(Level, Info, _Format, _Default).
+
+:- public pack_level_info/4.			% used by web-server
+
+pack_level_info(_,    title(_),		'Title',	           '<no title>').
+pack_level_info(_,    version(_),	'Installed version',       '<unknown>').
+pack_level_info(info, directory(_),	'Installed in directory',  -).
+pack_level_info(info, author(_, _),	'Author'-'~w <~w>',        -).
+pack_level_info(info, maintainer(_, _),	'Maintainer'-'~w <~w>',    -).
+pack_level_info(info, packager(_, _),	'Packager'-'~w <~w>',      -).
+pack_level_info(info, home(_),		'Home page',               -).
+pack_level_info(info, download(_),	'Download URL',            -).
+pack_level_info(_,    provides(_),	'Provides',                -).
+pack_level_info(_,    requires(_),	'Requires',                -).
+pack_level_info(_,    conflicts(_),	'Conflicts with',          -).
+pack_level_info(_,    replaces(_),	'Replaces packages',       -).
+
+pack_default(Level, Infos, Def) :-
+	pack_level_info(Level, ITerm, _Format, Def),
+	Def \== (-),
+	\+ memberchk(ITerm, Infos).
+
+%%	pack_info_term(+PackDir, ?Info) is nondet.
+%
+%	True when Info is meta-data for the package PackName.
+
+pack_info_term(BaseDir, Info) :-
+	directory_file_path(BaseDir, 'pack.pl', InfoFile),
+	setup_call_cleanup(
+	    open(InfoFile, read, In),
+	    term_in_stream(In, Info),
+	    close(In)).
+
+term_in_stream(In, Term) :-
+	repeat,
+	    read_term(In, Term0, []),
+	    (	Term0 == end_of_file
+	    ->	!, fail
+	    ;	Term = Term0,
+		valid_info_term(Term0)
+	    ).
+
+valid_info_term(Term) :-
+	Term =.. [Name|Args],
+	same_length(Args, Types),
+	Decl =.. [Name|Types],
+	(   pack_info_term(Decl)
+	->  maplist(valid_info_arg, Types, Args)
+	;   print_message(warning, pack(invalid_info(Term))),
+	    fail
+	).
+
+valid_info_arg(Type, Arg) :-
+	must_be(Type, Arg).
+
+%%	pack_info_term(?Term) is nondet.
+%
+%	True when Term describes name and   arguments of a valid package
+%	info term.
+
+pack_info_term(name(atom)).			% Synopsis
+pack_info_term(title(atom)).
+pack_info_term(keywords(list(atom))).
+pack_info_term(description(list(atom))).
+pack_info_term(version(version)).
+pack_info_term(author(atom, email_or_url)).	% Persons
+pack_info_term(maintainer(atom, email_or_url)).
+pack_info_term(packager(atom, email_or_url)).
+pack_info_term(home(atom)).			% Home page
+pack_info_term(download(atom)).			% Source
+pack_info_term(provides(atom)).			% Dependencies
+pack_info_term(requires(atom)).
+pack_info_term(conflicts(atom)).		% Conflicts with package
+pack_info_term(replaces(atom)).			% Replaces another package
+pack_info_term(autoload(boolean)).		% Default installation options
+
+:- multifile
+	error:has_type/2.
+
+error:has_type(version, Version) :-
+	atom(Version),
+	version_data(Version, _Data).
+error:has_type(email_or_url, Address) :-
+	atom(Address),
+	(   sub_atom(Address, _, _, _, @)
+	->  true
+	;   uri_is_global(Address)
+	).
+
+version_data(Version, version(Data)) :-
+	atomic_list_concat(Parts, '.', Version),
+	maplist(atom_number, Parts, Data).
+
+
+		 /*******************************
+		 *	      SEARCH		*
+		 *******************************/
+
+%%	pack_search(+Query) is det.
+%%	pack_list(+Query) is det.
+%
+%	Query package server and installed packages and display results.
+%	Query is matches case-insensitively against   the name and title
+%	of known and installed packages. For   each  matching package, a
+%	single line is displayed that provides:
+%
+%	  - Installation status
+%	    - *p*: package, not installed
+%	    - *i*: installed package
+%	  - Name@Version
+%	  - Title
+%
+%	Hint: =|?- pack_list('').|= lists all packages.
+%
+%	The predicates pack_list/1 and pack_search/1  are synonyms. Both
+%	contact the package server at  http://www.swi-prolog.org to find
+%	available packages.
+%
+%	@see	pack_list_installed to list installed packages without
+%		contacting the server.
+
+pack_list(Query) :-
+	pack_search(Query).
+
+pack_search(Query) :-
+	query_pack_server(search(Query), Result),
+	(   Result == false
+	->  (   local_search(Query, Packs),
+	        Packs \== []
+	    ->  forall(member(pack(Pack, Stat, Title, Version, _), Packs),
+		       format('~w ~w@~w ~28|- ~w~n',
+			      [Stat, Pack, Version, Title]))
+	    ;	print_message(warning, pack(search_no_matches(Query)))
+	    )
+	;   Result = true(Hits),
+	    local_search(Query, Local),
+	    append(Hits, Local, All),
+	    sort(All, Sorted),
+	    list_hits(Sorted)
+	).
+
+list_hits([]).
+list_hits([ pack(Pack, i, Title, Version, _),
+	    pack(Pack, p, Title, Version, _)
+	  | More
+	  ]) :- !,
+	format('i ~w@~w ~28|- ~w~n', [Pack, Version, Title]),
+	list_hits(More).
+list_hits([pack(Pack, Stat, Title, Version, _)|More]) :-
+	format('~w ~w@~w ~28|- ~w~n', [Stat, Pack, Version, Title]),
+	list_hits(More).
+
+
+local_search(Query, Packs) :-
+	findall(Pack, matching_installed_pack(Query, Pack), Packs).
+
+matching_installed_pack(Query, pack(Pack, i, Title, Version, URL)) :-
+	current_pack(Pack),
+	findall(Term,
+		( pack_info(Pack, _, Term),
+		  search_info(Term)
+		), Info),
+	(   '$apropos_match'(Query, Pack)
+	->  true
+	;   memberchk(title(Title), Info),
+	    '$apropos_match'(Query, Title)
+	),
+	option(title(Title), Info, '<no title>'),
+	option(version(Version), Info, '<no version>'),
+	option(download(URL), Info, '<no download url>').
+
+search_info(title(_)).
+search_info(version(_)).
+search_info(download(_)).
+
+
+		 /*******************************
+		 *	      INSTALL		*
+		 *******************************/
+
+%%	pack_install(+Spec) is det.
+%
+%	Install a package.  Spec is one of
+%
+%	  * Archive file name
+%	  * HTTP URL of an archive file name.  This URL may contain a
+%	    star (*) for the version.  In this case pack_install asks
+%	    for the deirectory content and selects the latest version.
+%	  * GIT URL (not well supported yet)
+%	  * A local directory name
+%	  * A package name.  This queries the package repository
+%	    at http://www.swi-prolog.org
+%
+%	After resolving the type of package,   pack_install/2 is used to
+%	do the actual installation.
+
+pack_install(Archive) :-		% Install from .tgz/.zip/... file
+	atom(Archive),
+	expand_file_name(Archive, [File]),
+	exists_file(File), !,
+	pack_version_file(Pack, _Version, File),
+	uri_file_name(FileURL, File),
+	pack_install(Pack, [url(FileURL)]).
+pack_install(URL) :-
+	atom(URL),
+	git_url(URL, Pack), !,
+	pack_install(Pack, [git(true), url(URL)]).
+pack_install(URL) :-			% Install from URL
+	atom(URL),
+	pack_version_file(Pack, _Version, URL),
+	download_url(URL), !,
+	available_download_versions(URL, [_-LatestURL|_]),
+	pack_install(Pack, [url(LatestURL)]).
+pack_install(Dir) :-			% Install from directory
+	atom(Dir),
+	exists_directory(Dir),
+	pack_info_term(Dir, name(Name)), !,
+	uri_file_name(DirURL, Dir),
+	pack_install(Name, [url(DirURL)]).
+pack_install(Pack) :-			% Install from a pack name
+	query_pack_server(locate(Pack), true([Version-[URL|_]|_])),
+	confirm(install_from(Pack, Version, URL), yes, []),
+	pack_install(Pack, [url(URL), inquiry(true)]).
+
+
+%%	pack_install(+Name, +Options) is det.
+%
+%	Install package Name.  Options:
+%
+%	  * url(+URL)
+%	  Source for downloading the package
+%	  * package_directory(+Dir)
+%	  Directory into which to install the package
+%	  * interactive(+Boolean)
+
+pack_install(Name, Options) :-
+	update_dependency_db,
+	pack_install_dir(PackDir, Options),
+	pack_install(Name, PackDir, Options).
+
+pack_install_dir(PackDir, Options) :-
+	option(package_directory(PackDir), Options), !.
+pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
+	absolute_file_name(pack(.), PackDir,
+			   [ file_type(directory),
+			     access(write),
+			     file_errors(fail)
+			   ]), !.
+pack_install_dir(PackDir, _Options) :-		% TBD: global/user?
+	findall(Candidate = create_dir(Candidate),
+		( absolute_file_name(pack(.), Candidate, [solutions(all)]),
+		  \+ exists_file(Candidate),
+		  \+ exists_directory(Candidate),
+		  file_directory_name(Candidate, Super),
+		  (   exists_directory(Super)
+		  ->  access_file(Super, write)
+		  ;   true
+		  )
+		),
+		Candidates0),
+	list_to_set(Candidates0, Candidates),	% keep order
+	Candidates = [Default=_|_], !,
+	append(Candidates, [cancel=cancel], Menu),
+	menu(pack(create_pack_dir), Menu, Default, PackDir),
+	make_directory_path(PackDir).
+pack_install_dir(_, _) :-
+	print_message(error, pack(cannot_create_dir(pack(.)))),
+	fail.
+
+
+%%	pack_install(+Pack, +PackDir, +Options)
+%
+%	Install package Pack into PackDir.  Options:
+%
+%	  - url(URL)
+%	  Install from the given URL, URL is either a file://, a git URL
+%	  or a download URL.
+
+pack_install(Name, _, Options) :-
+	current_pack(Name),
+	option(update(true), Options, false),
+	print_message(error, pack(already_installed(Name))),
+	pack_info(Name),
+	print_message(information, pack(remove_with(Name))),
+	fail.
+pack_install(Name, PackDir, Options) :-
+	option(url(URL), Options),
+	uri_file_name(URL, Source), !,
+	pack_install_from_local(Source, PackDir, Name, Options).
+pack_install(Name, PackDir, Options) :-
+	option(url(URL), Options),
+	uri_components(URL, Components),
+	uri_data(scheme, Components, Scheme),
+	pack_install_from_url(Scheme, URL, PackDir, Name, Options).
+
+%%	pack_install_from_local(+Source, +PackTopDir, +Name, +Options)
+%
+%	Install a package from a local media.
+%
+%	@tbd	Provide an option to install directories using a
+%		link (or file-links).
+
+pack_install_from_local(Source, PackTopDir, Name, Options) :-
+	exists_directory(Source), !,
+	directory_file_path(PackTopDir, Name, PackDir),
+	prepare_pack_dir(PackDir, Options),
+	copy_directory(Source, PackDir),
+	pack_post_install(PackDir, Options).
+pack_install_from_local(Source, PackTopDir, Name, Options) :-
+	exists_file(Source),
+	directory_file_path(PackTopDir, Name, PackDir),
+	prepare_pack_dir(PackDir, Options),
+	pack_unpack(Source, PackDir, Name, Options),
+	pack_post_install(PackDir, Options).
+
+
+%%	pack_unpack(+SourceFile, +PackDir, +Pack, +Options)
+%
+%	Unpack an archive to the given package dir.
+
+pack_unpack(Source, PackDir, Pack, Options) :-
+	pack_archive_info(Source, Pack, _Info, StripOptions),
+	prepare_pack_dir(PackDir, Options),
+	archive_extract(Source, PackDir, StripOptions).
+
+%%	pack_archive_info(+Archive, +Pack, -Info, -Strip)
+%
+%	True when Archive archives Pack. Info  is unified with the terms
+%	from pack.pl in the  pack  and   Strip  is  the strip-option for
+%	archive_extract/3.
+%
+%	@error	existence_error(pack_file, 'pack.pl') if the archive
+%		doesn't contain pack.pl
+%	@error	Syntax errors if pack.pl cannot be parsed.
+
+pack_archive_info(Archive, Pack, Info, Strip) :-
+	setup_call_cleanup(
+	    archive_open(Archive, Handle, []),
+	    (	repeat,
+		(   archive_next_header(Handle, InfoFile)
+		->  true
+		;   !, fail
+		)
+	    ),
+	    archive_close(Handle)),
+	file_base_name(InfoFile, 'pack.pl'),
+	atom_concat(Prefix, 'pack.pl', InfoFile),
+	strip_option(Prefix, Pack, Strip),
+	setup_call_cleanup(
+	    archive_open_entry(Handle, Stream),
+	    read_stream_to_terms(Stream, Info),
+	    close(Stream)), !,
+	must_be(ground, Info),
+	maplist(valid_info_term, Info).
+pack_archive_info(_, _, _, _) :-
+	existence_error(pack_file, 'pack.pl').
+
+strip_option('', _, []) :- !.
+strip_option('./', _, []) :- !.
+strip_option(Prefix, Pack, [remove_prefix(Prefix)]) :-
+	atom_concat(PrefixDir, /, Prefix),
+	file_base_name(PrefixDir, Base),
+	(   Base == Pack
+	->  true
+	;   pack_version_file(Pack, _, Base)
+	).
+
+read_stream_to_terms(Stream, Terms) :-
+	read(Stream, Term0),
+	read_stream_to_terms(Term0, Stream, Terms).
+
+read_stream_to_terms(end_of_file, _, []) :- !.
+read_stream_to_terms(Term0, Stream, [Term0|Terms]) :-
+	read(Stream, Term1),
+	read_stream_to_terms(Term1, Stream, Terms).
+
+
+%%	download_file_sanity_check(+Archive, +Pack, +Info) is semidet.
+%
+%	Perform basic sanity checks on DownloadFile
+
+download_file_sanity_check(Archive, Pack, Info) :-
+	info_field(name(Name), Info),
+	info_field(version(VersionAtom), Info),
+	atom_version(VersionAtom, Version),
+	pack_version_file(PackA, VersionA, Archive),
+	must_match([Pack, PackA, Name], name),
+	must_match([Version, VersionA], version).
+
+info_field(Field, Info) :-
+	memberchk(Field, Info),
+	ground(Field), !.
+info_field(Field, _Info) :-
+	functor(Field, FieldName, _),
+	print_message(error, pack(missing(FieldName))),
+	fail.
+
+must_match(Values, _Field) :-
+	sort(Values, [_]), !.
+must_match(Values, Field) :-
+	print_message(error, pack(conflict(Field, Values))),
+	fail.
+
+
+%%	prepare_pack_dir(+Dir, +Options)
+%
+%	Prepare for installing the package into  Dir. This should create
+%	Dir if it does not  exist  and   warn  if  the directory already
+%	exists, asking to make it empty.
+
+prepare_pack_dir(Dir, Options) :-
+	exists_directory(Dir), !,
+	(   empty_directory(Dir)
+	->  true
+	;   option(upgrade(true), Options)
+	->  delete_directory_contents(Dir)
+	;   confirm(remove_existing_pack(Dir), yes, []),
+	    delete_directory_contents(Dir)
+	).
+prepare_pack_dir(Dir, _) :-
+	make_directory(Dir).
+
+%%	empty_directory(+Directory) is semidet.
+%
+%	True if Directory is empty (holds no files or sub-directories).
+
+empty_directory(Dir) :-
+	\+ ( directory_files(Dir, Entries),
+	     member(Entry, Entries),
+	     \+ special(Entry)
+	   ).
+
+special(.).
+special(..).
+
+
+%%	pack_install_from_url(+Scheme, +URL, +PackDir, +Pack, +Options)
+%
+%	Install a package from a remote source. For git repositories, we
+%	simply clone. Archives are  downloaded.   We  currently  use the
+%	built-in HTTP client. For complete  coverage, we should consider
+%	using an external (e.g., curl) if available.
+
+pack_install_from_url(_, URL, PackTopDir, Name, Options) :-
+	option(git(true), Options), !,
+	directory_file_path(PackTopDir, Name, PackDir),
+	prepare_pack_dir(PackDir, Options),
+	run_process(path(git), [clone, URL, PackDir], []),
+	pack_post_install(PackDir, Options).
+pack_install_from_url(http, URL, PackTopDir, Pack, Options) :-
+	directory_file_path(PackTopDir, Pack, PackDir),
+	prepare_pack_dir(PackDir, Options),
+	pack_download_dir(PackTopDir, DownLoadDir),
+	file_base_name(URL, DownloadBase),
+	directory_file_path(DownLoadDir, DownloadBase, DownloadFile),
+	setup_call_cleanup(
+	    http_open(URL, In, []),
+	    setup_call_cleanup(
+		open(DownloadFile, write, Out, [type(binary)]),
+		copy_stream_data(In, Out),
+		close(Out)),
+	    close(In)),
+	pack_archive_info(DownloadFile, Pack, Info, _),
+	download_file_sanity_check(DownloadFile, Pack, Info),
+	pack_inquiry(URL, DownloadFile, Info, Options),
+	show_info(Pack, Info, Options),
+	confirm(install_downloaded(DownloadFile), yes, Options),
+	pack_install_from_local(DownloadFile, PackTopDir, Pack, Options).
+
+pack_download_dir(PackTopDir, DownLoadDir) :-
+	directory_file_path(PackTopDir, 'Downloads', DownLoadDir),
+	(   exists_directory(DownLoadDir)
+	->  true
+	;   make_directory(DownLoadDir)
+	),
+	(   access_file(DownLoadDir, write)
+	->  true
+	;   permission_error(write, directory, DownLoadDir)
+	).
+
+%%	download_url(+URL) is det.
+%
+%	True if URL looks like a URL we can download from.
+
+download_url(URL) :-
+	atom(URL),
+	uri_components(URL, Components),
+	uri_data(scheme, Components, Scheme),
+	download_scheme(Scheme).
+
+download_scheme(http).
+
+%%	pack_post_install(+PackDir, +Options) is det.
+%
+%	Process post installation work.  Steps:
+%
+%	  - Create foreign resources [TBD]
+%	  - Register directory as autoload library
+%	  - Attach the package
+
+pack_post_install(PackDir, Options) :-
+	post_install_foreign(PackDir, Options),
+	post_install_autoload(PackDir, Options),
+	'$pack_attach'(PackDir).
+
+%%	pack_rebuild(+Pack) is det.
+%
+%	Rebuilt possible foreign components of Pack.
+
+pack_rebuild(Pack) :-
+	'$pack':pack(Pack, BaseDir), !,
+	catch(pack_make(BaseDir, [distclean], []), E,
+	      print_message(warning, E)),
+	post_install_foreign(BaseDir, []).
+pack_rebuild(Pack) :-
+	existence_error(pack, Pack).
+
+%%	pack_rebuild is det.
+%
+%	Rebuild foreign components of all packages.
+
+pack_rebuild :-
+	forall(current_pack(Pack),
+	       ( print_message(informational, pack(rebuild(Pack))),
+		 pack_rebuild(Pack)
+	       )).
+
+
+%%	post_install_foreign(+PackDir, +Options) is det.
+%
+%	Install foreign parts of the package.
+
+post_install_foreign(PackDir, Options) :-
+	is_foreign_pack(PackDir), !,
+	setup_path,
+	save_build_environment(PackDir),
+	configure_foreign(PackDir, Options),
+	make_foreign(PackDir, Options).
+post_install_foreign(_, _).
+
+is_foreign_pack(PackDir) :-
+	foreign_file(File),
+	directory_file_path(PackDir, File, Path),
+	exists_file(Path), !.
+
+foreign_file('configure.in').
+foreign_file('configure').
+foreign_file('Makefile').
+foreign_file('makefile').
+
+
+%%	configure_foreign(+PackDir, +Options) is det.
+%
+%	Run configure if it exists.  If =|configure.in|= exists, first
+%	run =autoheader= and =autoconf=
+
+configure_foreign(PackDir, Options) :-
+	make_configure(PackDir, Options),
+	directory_file_path(PackDir, configure, Configure),
+	exists_file(Configure), !,
+	build_environment(BuildEnv),
+	run_process(path(bash), [Configure],
+		    [ env(BuildEnv)
+		    ]).
+configure_foreign(_, _).
+
+make_configure(PackDir, _Options) :-
+	directory_file_path(PackDir, 'configure', Configure),
+	exists_file(Configure), !.
+make_configure(PackDir, _Options) :-
+	directory_file_path(PackDir, 'configure.in', ConfigureIn),
+	exists_file(ConfigureIn), !,
+	run_process(path(autoheader), [], [directory(PackDir)]),
+	run_process(path(autoconf),   [], [directory(PackDir)]).
+make_configure(_, _).
+
+%%	make_foreign(+PackDir, +Options) is det.
+%
+%	Generate the foreign executable.
+
+make_foreign(PackDir, Options) :-
+	pack_make(PackDir, [all, check, install], Options).
+
+pack_make(PackDir, Targets, _Options) :-
+	directory_file_path(PackDir, 'Makefile', Makefile),
+	exists_file(Makefile), !,
+	build_environment(BuildEnv),
+	ProcessOptions = [ directory(PackDir), env(BuildEnv) ],
+	forall(member(Target, Targets),
+	       run_process(path(make), [Target], ProcessOptions)).
+pack_make(_, _, _).
+
+%%	save_build_environment(+PackDir)
+%
+%	Create  a  shell-script  build.env  that    contains  the  build
+%	environment.
+
+save_build_environment(PackDir) :-
+	directory_file_path(PackDir, 'buildenv.sh', EnvFile),
+	build_environment(Env),
+	setup_call_cleanup(
+	    open(EnvFile, write, Out),
+	    write_env_script(Out, Env),
+	    close(Out)).
+
+write_env_script(Out, Env) :-
+	format(Out,
+	       '# This file contains the environment that can be used to\n\c
+	        # build the foreign pack outside Prolog.  This file must\n\c
+		# be loaded into a bourne-compatible shell using\n\c
+		#\n\c
+		#   $ source buildenv.sh\n\n',
+	       []),
+	forall(member(Var=Value, Env),
+	       format(Out, '~w=\'~w\'\n', [Var, Value])),
+	format(Out, '\nexport ', []),
+	forall(member(Var=_, Env),
+	       format(Out, ' ~w', [Var])),
+	format(Out, '\n', []).
+
+build_environment(Env) :-
+	findall(Name=Value, environment(Name, Value), UserEnv),
+	findall(Name=Value,
+		( def_environment(Name, Value),
+		  \+ memberchk(Name=_, UserEnv)
+		),
+		DefEnv),
+	append(UserEnv, DefEnv, Env).
+
+
+%%	environment(-Name, -Value) is nondet.
+%
+%	Multifile hook to extend the   process  environment for building
+%	foreign extensions to SWI-Prolog. A value  provided by this hook
+%	overrules defaults provided by def_environment/2. In addition to
+%	changing the environment, this may be   used  to pass additional
+%	values to the environment, as in:
+%
+%	  ==
+%	  prolog_pack:environment('USER', User) :-
+%	      getenv('USER', User).
+%	  ==
+%
+%	@param Name is an atom denoting a valid variable name
+%	@param Value is either an atom or number representing the
+%	       value of the variable.
+
+
+%%	def_environment(-Name, -Value) is nondet.
+%
+%	True if Name=Value must appear in   the environment for building
+%	foreign extensions.
+
+def_environment('PATH', Value) :-
+	getenv('PATH', PATH),
+	current_prolog_flag(executable, Exe),
+	file_directory_name(Exe, ExeDir),
+	prolog_to_os_filename(ExeDir, OsExeDir),
+	(   current_prolog_flag(windows, true)
+	->  Sep = (;)
+	;   Sep = (:)
+	),
+	atomic_list_concat([OsExeDir, Sep, PATH], Value).
+def_environment('SWIPL', Value) :-
+	current_prolog_flag(executable, Value).
+def_environment('SWIPLVERSION', Value) :-
+	current_prolog_flag(version, Value).
+def_environment('SWIHOME', Value) :-
+	current_prolog_flag(home, Value).
+def_environment('SWIARCH', Value) :-
+	current_prolog_flag(arch, Value).
+def_environment('PACKSODIR', Value) :-
+	current_prolog_flag(arch, Arch),
+	atom_concat('lib/', Arch, Value).
+def_environment('SWISOLIB', Value) :-
+	current_prolog_flag(c_libplso, Value).
+def_environment('SWILIB', '-lswipl').
+def_environment('CC', Value) :-
+	(   getenv('CC', value)
+	->  true
+	;   current_prolog_flag(c_cc, Value)
+	).
+def_environment('LD', Value) :-
+	(   getenv('LD', Value)
+	->  true
+	;   current_prolog_flag(c_cc, Value)
+	).
+def_environment('CFLAGS', Value) :-
+	(   getenv('CFLAGS', SystemFlags)
+	->  Extra = [' ', SystemFlags]
+	;   Extra = []
+	),
+	current_prolog_flag(c_cflags, Value0),
+	current_prolog_flag(home, Home),
+	atomic_list_concat([Value0, ' -I"', Home, '/include"' | Extra], Value).
+def_environment('LDSOFLAGS', Value) :-
+	(   getenv('LDFLAGS', SystemFlags)
+	->  Extra = [' ', SystemFlags|System]
+	;   Extra = System
+	),
+	(   current_prolog_flag(windows, true)
+	->  current_prolog_flag(home, Home),
+	    atomic_list_concat([' -L"', Home, '/bin"'], SystemLib),
+	    System = [SystemLib]
+	;   System = []
+	),
+	current_prolog_flag(c_ldflags, LDFlags),
+	atomic_list_concat([LDFlags, ' -shared' | Extra], Value).
+def_environment('SOEXT', Value) :-
+	current_prolog_flag(shared_object_extension, Value).
+def_environment(Pass, Value) :-
+	pass_env(Pass),
+	getenv(Pass, Value).
+
+pass_env('TMP').
+pass_env('TEMP').
+pass_env('USER').
+pass_env('HOME').
+
+		 /*******************************
+		 *	       PATHS		*
+		 *******************************/
+
+setup_path :-
+	has_program(path(make), _),
+	has_program(path(gcc), _), !.
+setup_path :-
+	current_prolog_flag(windows, true), !,
+	(   mingw_extend_path
+	->  true
+	;   print_message(error, pack(no_mingw))
+	).
+setup_path.
+
+has_program(Program, Path) :-
+	exe_options(ExeOptions),
+	absolute_file_name(Program, Path,
+			   [ file_errors(fail)
+			   | ExeOptions
+			   ]).
+
+exe_options(Options) :-
+	current_prolog_flag(windows, true), !,
+	Options = [ extensions(['',exe,com]), access(read) ].
+exe_options(Options) :-
+	Options = [ access(execute) ].
+
+mingw_extend_path :-
+	mingw_root(MinGW),
+	directory_file_path(MinGW, bin, MinGWBinDir),
+	atom_concat(MinGW, '/msys/*/bin', Pattern),
+	expand_file_name(Pattern, MsysDirs),
+	last(MsysDirs, MSysBinDir),
+	prolog_to_os_filename(MinGWBinDir, WinDirMinGW),
+	prolog_to_os_filename(MSysBinDir, WinDirMSYS),
+	getenv('PATH', Path0),
+	atomic_list_concat([WinDirMSYS, WinDirMinGW, Path0], ';', Path),
+	setenv('PATH', Path).
+
+mingw_root(MinGwRoot) :-
+	current_prolog_flag(executable, Exe),
+	sub_atom(Exe, 1, _, _, :),
+	sub_atom(Exe, 0, 1, _, PlDrive),
+	Drives = [PlDrive,c,d],
+	member(Drive, Drives),
+	format(atom(MinGwRoot), '~a:/MinGW', [Drive]),
+	exists_directory(MinGwRoot), !.
+
+
+		 /*******************************
+		 *	     AUTOLOAD		*
+		 *******************************/
+
+%%	post_install_autoload(+PackDir, +Options)
+%
+%	Create an autoload index if the package demands such.
+
+post_install_autoload(PackDir, Options) :-
+	option(autoload(true), Options, true),
+	pack_info_term(PackDir, autoload(true)), !,
+	directory_file_path(PackDir, prolog, PrologLibDir),
+	make_library_index(PrologLibDir).
+post_install_autoload(_, _).
+
+
+		 /*******************************
+		 *	      UPGRADE		*
+		 *******************************/
+
+%%	pack_upgrade(+Pack) is semidet.
+%
+%	Try to upgrade the package Pack.
+%
+%	@tbd	Update dependencies when updating a pack from git?
+
+pack_upgrade(Pack) :-
+	pack_info(Pack, _, directory(Dir)),
+	directory_file_path(Dir, '.git', GitDir),
+	exists_directory(GitDir), !,
+	print_message(informational, pack(git_fetch(Dir))),
+	git([fetch], [ directory(Dir) ]),
+	git_describe(V0, [ directory(Dir) ]),
+	git_describe(V1, [ directory(Dir), commit('origin/master') ]),
+	(   V0 == V1
+	->  print_message(informational, pack(up_to_date(Pack)))
+	;   confirm(upgrade(Pack, V0, V1), yes, []),
+	    git([merge, 'origin/master'], [ directory(Dir) ]),
+	    pack_rebuild(Pack)
+	).
+pack_upgrade(Pack) :-
+	once(pack_info(Pack, _, version(VersionAtom))),
+	atom_version(VersionAtom, Version),
+	pack_info(Pack, _, download(URL)),
+	wildcard_pattern(URL), !,
+	available_download_versions(URL, [Latest-LatestURL|_Versions]),
+	(   Latest @> Version
+	->  confirm(upgrade(Pack, Version, Latest), yes, []),
+	    pack_install(Pack,
+			 [ url(LatestURL),
+			   upgrade(true)
+			 ])
+	;   print_message(informational, pack(up_to_date(Pack)))
+	).
+pack_upgrade(Pack) :-
+	print_message(warning, pack(no_upgrade_info(Pack))).
+
+
+		 /*******************************
+		 *	      REMOVE		*
+		 *******************************/
+
+%%	pack_remove(+Name) is det.
+%
+%	Remove the indicated package.
+
+pack_remove(Pack) :-
+	update_dependency_db,
+	(   setof(Dep, pack_depends_on(Dep, Pack), Deps)
+	->  confirm_remove(Pack, Deps, Delete),
+	    forall(member(P, Delete), pack_remove_forced(P))
+	;   pack_remove_forced(Pack)
+	).
+
+pack_remove_forced(Pack) :-
+	'$pack_detach'(Pack, BaseDir),
+	print_message(informational, pack(remove(BaseDir))),
+	delete_directory_and_contents(BaseDir).
+
+confirm_remove(Pack, Deps, Delete) :-
+	print_message(warning, pack(depends(Pack, Deps))),
+	menu(pack(resolve_remove),
+	     [ [Pack]      = remove_only(Pack),
+	       [Pack|Deps] = remove_deps(Pack, Deps),
+	       []          = cancel
+	     ], [], Delete),
+	Delete \== [].
+
+
+		 /*******************************
+		 *	       GIT		*
+		 *******************************/
+
+%%	git_url(+URL, -Pack) is semidet.
+%
+%	True if URL describes a git url for Pack
+
+git_url(URL, Pack) :-
+	uri_components(URL, Components),
+	uri_data(scheme, Components, Scheme),
+	uri_data(path, Components, Path),
+	(   Scheme == git
+	->  true
+	;   git_download_scheme(Scheme),
+	    file_name_extension(_, git, Path)
+	),
+	file_base_name(Path, PackExt),
+	(   file_name_extension(Pack, git, PackExt)
+	->  true
+	;   Pack = PackExt
+	).
+
+git_download_scheme(http).
+git_download_scheme(https).
+
+
+		 /*******************************
+		 *	   VERSION LOGIC	*
+		 *******************************/
+
+%%	pack_version_file(-Pack, -Version, +File) is semidet.
+%
+%	True if File is the  name  of  a   file  or  URL  of a file that
+%	contains Pack at Version. File must   have  an extension and the
+%	basename  must  be  of   the    form   <pack>-<n>{.<m>}*.  E.g.,
+%	=|mypack-1.5|=.
+
+pack_version_file(Pack, Version, Path) :-
+	atom(Path),
+	file_base_name(Path, File),
+	file_name_extension(Base, Ext, File),
+	Ext \== '',
+	atom_codes(Base, Codes),
+	(   phrase(pack_version(Pack, Version), Codes)
+	->  true
+	;   print_message(error, pack(invalid_name(File))),
+	    fail
+	).
+
+:- public
+	atom_version/2.
+
+atom_version(Atom, version(Parts)) :-
+	(   atom(Atom)
+	->  atom_codes(Atom, Codes),
+	    phrase(version(Parts), Codes)
+	;   atomic_list_concat(Parts, '.', Atom)
+	).
+
+pack_version(Pack, version(Parts)) -->
+	string(Codes), "-",
+	version(Parts), !,
+	{ atom_codes(Pack, Codes)
+	}.
+
+version([_]) -->
+	"*", !,
+	(   "."
+	->  version(T)
+	;   { T = [] }
+	).
+version([H|T]) -->
+	integer(H),
+	(   "."
+	->  version(T)
+	;   { T = [] }
+	).
+
+integer(H)    --> digit(D0), digits(L), { number_codes(H, [D0|L]) }.
+digit(D)      --> [D], { code_type(D, digit) }.
+digits([H|T]) --> digit(H), !, digits(T).
+digits([])    --> [].
+
+
+		 /*******************************
+		 *	     SIGNATURES		*
+		 *******************************/
+
+%%	file_sha1(+File, -SHA1) is det.
+%%	file_sha1(+File, -SHA1, Options) is det.
+%
+%	True when SHA1 is the SHA1 hash for the content of File. Options
+%	is passed to open/4 and typically used to control whether binary
+%	or text encoding must be used. The   output is compatible to the
+%	=sha1sum= program found in many systems.
+
+file_sha1(File, Hash) :-
+	file_sha1(File, Hash, [type(binary)]).
+
+file_sha1(File, Hash, Options) :-
+	sha_new_ctx(Ctx0, [encoding(octet)]),
+	setup_call_cleanup(
+	    open(File, read, In, Options),
+	    update_hash(In, Ctx0, _Ctx, 0, HashCodes),
+	    close(In)),
+	hash_atom(HashCodes, Hash).
+
+update_hash(In, Ctx0, Ctx, Hash0, Hash) :-
+	at_end_of_stream(In), !,
+	Ctx = Ctx0,
+	Hash = Hash0.
+update_hash(In, Ctx0, Ctx, _Hash0, Hash) :-
+	read_pending_input(In, Data, []),
+	sha_hash_ctx(Ctx0, Data, Ctx1, Hash1),
+	update_hash(In, Ctx1, Ctx, Hash1, Hash).
+
+
+		 /*******************************
+		 *	 QUERY CENTRAL DB	*
+		 *******************************/
+
+%%	pack_inquiry(+URL, +DownloadFile, +Info, +Options) is semidet.
+%
+%	Query the status of a package with the central repository. To do
+%	this, we POST a Prolog document containing the URL, info and the
+%	SHA1 hash to  http://www.swi-prolog.org/pack/eval.   The  server
+%	replies using a list of Prolog terms, described below.  The only
+%	member that is always is downloads (which may be 0).
+%
+%	  - alt_hash(Count, URLs, Hash)
+%	    A file with the same base-name, but a different hash was
+%	    found at URLs and downloaded Count times.
+%	  - downloads(Count)
+%	    Number of times a file with this hash was downloaded.
+%	  - rating(VoteCount, Rating)
+%	    User rating (1..5), provided based on VoteCount votes.
+%	  - dependency(Token, Pack, Version, URLs, SubDeps)
+%	    Required tokens can be provided by the given provides.
+
+pack_inquiry(_, _, _, Options) :-
+	option(inquiry(false), Options), !.
+pack_inquiry(URL, DownloadFile, Info, Options) :-
+	setting(server, ServerBase),
+	ServerBase \== '',
+	atom_concat(ServerBase, query, Server),
+	(   option(inquiry(true), Options)
+	->  true
+	;   confirm(inquiry(Server), yes, Options)
+	), !,
+	file_sha1(DownloadFile, SHA1),
+	query_pack_server(install(URL, SHA1, Info), Reply),
+	inquiry_result(Reply, URL).
+pack_inquiry(_, _, _, _).
+
+
+%%	query_pack_server(+Query, -Result)
+%
+%	Send a Prolog query  to  the   package  server  and  process its
+%	results.
+
+query_pack_server(Query, Result) :-
+	setting(server, ServerBase),
+	ServerBase \== '',
+	atom_concat(ServerBase, query, Server),
+	format(codes(Data), '~q.~n', Query),
+	print_message(informational, pack(contacting_server(Server))),
+	setup_call_cleanup(
+	    http_open(Server, In,
+		      [ post(codes(text/'x-prolog', Data))
+		      ]),
+	    ( set_stream(In, encoding(utf8)),
+	      read(In, Result)
+	    ),
+	    close(In)),
+	print_message(informational, pack(server_reply(Result))).
+
+
+%%	inquiry_result(+Reply, +File) is semidet.
+%
+%	Analyse the results  of  the  inquiry   and  decide  whether  to
+%	continue or not.
+
+inquiry_result(Reply, File) :-
+	findall(Eval, eval_inquiry(Reply, File, Eval), Evaluation),
+	\+ member(cancel, Evaluation),
+	forall(member(install_dependencies(Resolution), Evaluation),
+	       maplist(install_dependency, Resolution)).
+
+eval_inquiry(true(Reply), URL, Eval) :-
+	include(alt_hash, Reply, Alts),
+	Alts \== [],
+	file_base_name(URL, File),
+	print_message(warning, pack(alt_hashes(File, Alts))),
+	(   memberchk(downloads(Count), Reply),
+	    confirm(continue_with_alt_hashes(Count, URL), no, [])
+	->  Eval = with_alt_hashes
+	;   !,				% Stop other rules
+	    Eval = cancel
+	).
+eval_inquiry(true(Reply), _, Eval) :-
+	include(dependency, Reply, Deps),
+	Deps \== [],
+	select_dependency_resolution(Deps, Eval),
+	(   Eval == cancel
+	->  !
+	;   true
+	).
+eval_inquiry(true(Reply), URL, true) :-
+	file_base_name(URL, File),
+	print_message(informational, pack(inquiry_ok(Reply, File))).
+
+alt_hash(alt_hash(_,_,_)).
+dependency(dependency(_,_,_,_,_)).
+
+
+%%	select_dependency_resolution(+Deps, -Eval)
+%
+%	Select a resolution.
+%
+%	@tbd	Exploit backtracking over resolve_dependencies/2.
+
+select_dependency_resolution(Deps, Eval) :-
+	resolve_dependencies(Deps, Resolution),
+	exclude(local_dep, Resolution, ToBeDone),
+	(   ToBeDone == []
+	->  !, Eval = true
+	;   print_message(warning, pack(install_dependencies(Resolution))),
+	    (   memberchk(_-unresolved, Resolution)
+	    ->  Default = cancel
+	    ;   Default = install_deps
+	    ),
+	    menu(pack(resolve_deps),
+		 [ install_deps    = install_deps,
+		   install_no_deps = install_no_deps,
+		   cancel          = cancel
+		 ], Default, Choice),
+	    (   Choice == cancel
+	    ->  !, Eval = cancel
+	    ;   Choice == install_no_deps
+	    ->  !, Eval = install_no_deps
+	    ;   !, Eval = install_dependencies(Resolution)
+	    )
+	).
+
+local_dep(_-resolved(_)).
+
+
+%%	install_dependency(+TokenResolution)
+%
+%	Install dependencies for the given resolution.
+%
+%	@tbd: Query URI to use
+
+install_dependency(_Token-resolve(Pack, _Version, [URL|_], SubResolve)) :- !,
+	pack_install(Pack,
+		     [ url(URL),
+		       interactive(false),
+		       inquiry(false),
+		       info(list)
+		     ]),
+	maplist(install_dependency, SubResolve).
+install_dependency(_-_).
+
+
+		 /*******************************
+		 *	  WILDCARD URIs		*
+		 *******************************/
+
+%%	available_download_versions(+URL, -Versions) is det.
+%
+%	Deal with wildcard URLs, returning a  list of Version-URL pairs,
+%	sorted by version.
+%
+%	@tbd	Deal with protocols other than HTTP
+
+available_download_versions(URL, Versions) :-
+	wildcard_pattern(URL), !,
+	file_directory_name(URL, DirURL0),
+	ensure_slash(DirURL0, DirURL),
+	print_message(informational, pack(query_versions(DirURL))),
+	setup_call_cleanup(
+	    http_open(DirURL, In, []),
+	    load_html_file(stream(In), DOM),
+	    close(In)),
+	findall(MatchingURL,
+		absolute_matching_href(DOM, URL, MatchingURL),
+		MatchingURLs),
+	versioned_urls(MatchingURLs, VersionedURLs),
+	keysort(VersionedURLs, SortedVersions),
+	reverse(SortedVersions, Versions).
+available_download_versions(URL, [Version-URL]) :-
+	file_base_name(URL, File),
+	(   pack_version_file(_Pack, Version0, File)
+	->  Version = Version0
+	;   Version = unknown
+	).
+
+wildcard_pattern(URL) :- sub_atom(URL, _, _, _, *).
+wildcard_pattern(URL) :- sub_atom(URL, _, _, _, ?).
+
+ensure_slash(Dir, DirS) :-
+	(   sub_atom(Dir, _, _, 0, /)
+	->  DirS = Dir
+	;   atom_concat(Dir, /, DirS)
+	).
+
+absolute_matching_href(DOM, Pattern, Match) :-
+	xpath(DOM, //a(@href), HREF),
+	uri_normalized(HREF, Pattern, Match),
+	wildcard_match(Pattern, Match).
+
+versioned_urls([], []).
+versioned_urls([H|T0], List) :-
+	file_base_name(H, File),
+	(   pack_version_file(_Pack, Version, File)
+	->  List = [Version-H|T]
+	;   List = T
+	),
+	versioned_urls(T0, T).
+
+
+		 /*******************************
+		 *	    DEPENDENCIES	*
+		 *******************************/
+
+%%	update_dependency_db
+%
+%	Reload dependency declarations between packages.
+
+update_dependency_db :-
+	retractall(pack_requires(_,_)),
+	retractall(pack_provides_db(_,_)),
+	forall(current_pack(Pack),
+	       (   findall(Info, pack_info(Pack, dependency, Info), Infos),
+		   update_dependency_db(Pack, Infos)
+	       )).
+
+update_dependency_db(Name, Info) :-
+	retractall(pack_requires(Name, _)),
+	retractall(pack_provides_db(Name, _)),
+	maplist(assert_dep(Name), Info).
+
+assert_dep(Pack, provides(Token)) :- !,
+	assertz(pack_provides_db(Pack, Token)).
+assert_dep(Pack, requires(Token)) :- !,
+	assertz(pack_requires(Pack, Token)).
+assert_dep(_, _).
+
+%%	validate_dependencies is det.
+%
+%	Validate all dependencies, reporting on failures
+
+validate_dependencies :-
+	unsatisfied_dependencies(Unsatisfied), !,
+	print_message(warning, pack(unsatisfied(Unsatisfied))).
+validate_dependencies.
+
+
+unsatisfied_dependencies(Unsatisfied) :-
+	findall(Req-Pack, pack_requires(Pack, Req), Reqs0),
+	keysort(Reqs0, Reqs1),
+	group_pairs_by_key(Reqs1, GroupedReqs),
+	exclude(satisfied_dependency, GroupedReqs, Unsatisfied),
+	Unsatisfied \== [].
+
+satisfied_dependency(Needed-_By) :-
+	pack_provides(_, Needed).
+
+%%	pack_provides(?Package, ?Token) is multi.
+%
+%	True if Pack provides Token.  A package always provides itself.
+
+pack_provides(Pack, Pack) :-
+	current_pack(Pack).
+pack_provides(Pack, Token) :-
+	pack_provides_db(Pack, Token).
+
+%%	pack_depends_on(?Pack, ?Dependency) is nondet.
+%
+%	True if Pack requires Dependency, direct or indirect.
+
+pack_depends_on(Pack, Dependency) :-
+	(   atom(Pack)
+	->  pack_depends_on_fwd(Pack, Dependency, [Pack])
+	;   pack_depends_on_bwd(Pack, Dependency, [Dependency])
+	).
+
+pack_depends_on_fwd(Pack, Dependency, Visited) :-
+	pack_depends_on_1(Pack, Dep1),
+	\+ memberchk(Dep1, Visited),
+	(   Dependency = Dep1
+	;   pack_depends_on_fwd(Dep1, Dependency, [Dep1|Visited])
+	).
+
+pack_depends_on_bwd(Pack, Dependency, Visited) :-
+	pack_depends_on_1(Dep1, Dependency),
+	\+ memberchk(Dep1, Visited),
+	(   Pack = Dep1
+	;   pack_depends_on_bwd(Pack, Dep1, [Dep1|Visited])
+	).
+
+pack_depends_on_1(Pack, Dependency) :-
+	atom(Dependency), !,
+	pack_provides(Dependency, Token),
+	pack_requires(Pack, Token).
+pack_depends_on_1(Pack, Dependency) :-
+	pack_requires(Pack, Token),
+	pack_provides(Dependency, Token).
+
+
+%%	resolve_dependencies(+Dependencies, -Resolution) is multi.
+%
+%	Resolve dependencies as reported by the remote package server.
+%
+%	@param	Dependencies is a list of
+%		dependency(Token, Pack, Version, URLs, SubDeps)
+%	@param	Resolution is a list of items
+%		- Token-resolved(Pack)
+%		- Token-resolve(Pack, Version, URLs, SubResolve)
+%		- Token-unresolved
+%	@tbd	Watch out for conflicts
+%	@tbd	If there are different packs that resolve a token,
+%		make an intelligent choice instead of using the first
+
+resolve_dependencies(Dependencies, Resolution) :-
+	maplist(dependency_pair, Dependencies, Pairs0),
+	keysort(Pairs0, Pairs1),
+	group_pairs_by_key(Pairs1, ByToken),
+	maplist(resolve_dep, ByToken, Resolution).
+
+dependency_pair(dependency(Token, Pack, Version, URLs, SubDeps),
+		Token-(Pack-pack(Version,URLs, SubDeps))).
+
+resolve_dep(Token-Pairs, Token-Resolution) :-
+	(   resolve_dep2(Token-Pairs, Resolution)
+	*-> true
+	;   Resolution = unresolved
+	).
+
+resolve_dep2(Token-_, resolved(Pack)) :-
+	pack_provides(Pack, Token).
+resolve_dep2(_-Pairs, resolve(Pack, VersionAtom, URLs, SubResolves)) :-
+	keysort(Pairs, Sorted),
+	group_pairs_by_key(Sorted, ByPack),
+	member(Pack-Versions, ByPack),
+	Pack \== (-),
+	maplist(version_pack, Versions, VersionData),
+	sort(VersionData, ByVersion),
+	reverse(ByVersion, ByVersionLatest),
+	member(pack(Version,URLs,SubDeps), ByVersionLatest),
+	atom_version(VersionAtom, Version),
+	include(dependency, SubDeps, Deps),
+	resolve_dependencies(Deps, SubResolves).
+
+version_pack(pack(VersionAtom,URLs,SubDeps),
+	     pack(Version,URLs,SubDeps)) :-
+	atom_version(VersionAtom, Version).
+
+
+		 /*******************************
+		 *	    RUN PROCESSES	*
+		 *******************************/
+
+%%	run_process(+Executable, +Argv, +Options) is det.
+%
+%	Run Executable.  Defined options:
+%
+%	  * directory(+Dir)
+%	  Execute in the given directory
+%	  * output(-Out)
+%	  Unify Out with a list of codes representing stdout of the
+%	  command.  Otherwise the output is handed to print_message/2
+%	  with level =informational=.
+%	  * error(-Error)
+%	  As output(Out), but messages are printed at level =error=.
+%	  * env(+Environment)
+%	  Environment passed to the new process.
+
+run_process(Executable, Argv, Options) :-
+	option(directory(Dir), Options, .),
+	(   option(env(Env), Options)
+	->  Extra = [env(Env)]
+	;   Extra = []
+	),
+	setup_call_cleanup(
+	    process_create(Executable, Argv,
+			   [ stdout(pipe(Out)),
+			     stderr(pipe(Error)),
+			     process(PID),
+			     cwd(Dir)
+			   | Extra
+			   ]),
+	    (   read_stream_to_codes(Out, OutCodes, []),
+		read_stream_to_codes(Error, ErrorCodes, []),
+		process_wait(PID, Status)
+	    ),
+	    (   close(Out),
+		close(Error)
+	    )),
+	print_error(ErrorCodes, Options),
+	print_output(OutCodes, Options),
+	(   Status == exit(0)
+	->  true
+	;   throw(error(process_error(process(Executable, Argv), Status), _))
+	).
+
+%%	run_process_output(+Executable, +Argv, :OnOutput, +Options) is det.
+%
+%	Run a Executable and process the  output with OnOutput, which is
+%	called as call(OnOutput, Stream).
+
+run_process_output(Executable, Argv, OnOutput, Options) :-
+	option(directory(Dir), Options, .),
+	setup_call_cleanup(process_create(Executable, Argv,
+                                          [ stdout(pipe(Out)),
+                                            stderr(pipe(Error)),
+                                            process(PID),
+                                            cwd(Dir)
+                                          ]),
+                           (   call(OnOutput, Out),
+			       read_stream_to_codes(Error, ErrorCodes, []),
+                               process_wait(PID, Status)
+                           ),
+			   (   close(Out),
+			       close(Error)
+			   )),
+	print_error(ErrorCodes, Options),
+	(   Status = exit(0)
+	->  true
+	;   throw(error(process_error(process(Executable, Argv), Status)))
+	).
+
+
+print_output(OutCodes, Options) :-
+	option(output(Codes), Options), !,
+	Codes = OutCodes.
+print_output(OutCodes, _) :-
+	print_message(informational, pack(process_output(OutCodes))).
+
+print_error(OutCodes, Options) :-
+	option(error(Codes), Options), !,
+	Codes = OutCodes.
+print_error(OutCodes, _) :-
+	phrase(classify_message(Level), OutCodes, _),
+	print_message(Level, pack(process_output(OutCodes))).
+
+classify_message(error) -->
+	string(_), "fatal:", !.
+classify_message(error) -->
+	string(_), "error:", !.
+classify_message(warning) -->
+	string(_), "warning:", !.
+classify_message(informational) -->
+	[].
+
+string([]) --> [].
+string([H|T]) --> [H], string(T).
+
+
+		 /*******************************
+		 *	  USER INTERACTION	*
+		 *******************************/
+
+:- multifile prolog:message//1.
+
+%%	menu(Question, +Options, +Default, -Selection)
+
+menu(Question, Options, Default, Selection) :-
+	length(Options, N),
+	between(1, 5, _),
+	   print_message(query, Question),
+	   print_menu(Options, Default, 1),
+	   print_message(query, pack(menu(select))),
+	   read_selection(N, Choice), !,
+	(   Choice == default
+	->  Selection = Default
+	;   nth1(Choice, Options, Selection=_)
+	->  true
+	).
+
+print_menu([], _, _).
+print_menu([Value=Label|T], Default, I) :-
+	(   Value == Default
+	->  print_message(query, pack(menu(default_item(I, Label))))
+	;   print_message(query, pack(menu(item(I, Label))))
+	),
+	I2 is I + 1,
+	print_menu(T, Default, I2).
+
+read_selection(Max, Choice) :-
+	get_single_char(Code),
+	(   answered_default(Code)
+	->  Choice = default
+	;   code_type(Code, digit(Choice)),
+	    between(1, Max, Choice)
+	->  true
+	;   print_message(warning, menu(reply(1,Max)))
+	).
+
+%%	confirm(+Question, +Default, +Options) is semidet.
+%
+%	Ask for confirmation.
+%
+%	@param Default is one of =yes=, =no= or =none=.
+
+confirm(_Question, Default, Options) :-
+	Default \== none,
+	option(interactive(false), Options, true), !,
+	Default == yes.
+confirm(Question, Default, _) :-
+	between(1, 5, _),
+	   print_message(query, pack(confirm(Question, Default))),
+	   read_yes_no(YesNo, Default), !,
+        YesNo == yes.
+
+read_yes_no(YesNo, Default) :-
+	get_single_char(Code),
+	code_yes_no(Code, Default, YesNo), !.
+
+code_yes_no(0'y, _, yes).
+code_yes_no(0'Y, _, yes).
+code_yes_no(0'n, _, no).
+code_yes_no(0'N, _, no).
+code_yes_no(_, none, _) :- !, fail.
+code_yes_no(C, Default, Default) :-
+	answered_default(C).
+
+answered_default(C) :-
+	memberchk(C, "\r\n ").
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile prolog:message//1.
+
+prolog:message(pack(Message)) -->
+	message(Message).
+
+:- discontiguous
+	message//1,
+	label//1.
+
+message(invalid_info(Term)) -->
+	[ 'Invalid package description: ~q'-[Term] ].
+message(directory_exists(Dir)) -->
+	[ 'Package target directory exists and is not empty:', nl,
+	  '\t~q'-[Dir]
+	].
+message(already_installed(Pack)) -->
+	[ 'Pack `~w'' is already installed. Package info:'-[Pack] ].
+message(invalid_name(File)) -->
+	[ '~w: A package archive must be named <pack>-<version>.<ext>'-[File] ],
+	no_tar_gz(File).
+
+no_tar_gz(File) -->
+	{ sub_atom(File, _, _, 0, '.tar.gz') }, !,
+	[ nl,
+	  'Package archive files must have a single extension.  E.g., \'.tgz\''-[]
+	].
+no_tar_gz(_) --> [].
+
+message(no_pack_installed(Pack)) -->
+	[ 'No pack ~q installed.  Use ?- pack_list(Pattern) to search'-[Pack] ].
+message(no_packages_installed) -->
+	{ setting(server, ServerBase) },
+	[ 'There are no extra packages installed.', nl,
+	  'Please visit ~wlist.'-[ServerBase]
+	].
+message(remove_with(Pack)) -->
+	[ 'The package can be removed using: ?- ~q.'-[pack_remove(Pack)]
+	].
+message(unsatisfied(Packs)) -->
+	[ 'The following dependencies are not satisfied:', nl ],
+	unsatisfied(Packs).
+message(depends(Pack, Deps)) -->
+	[ 'The following packages depend on `~w\':'-[Pack], nl ],
+	pack_list(Deps).
+message(remove(PackDir)) -->
+	[ 'Removing ~q and contents'-[PackDir] ].
+message(remove_existing_pack(PackDir)) -->
+	[ 'Remove old installation in ~q'-[PackDir] ].
+message(install_from(Pack, Version, URL)) -->
+	[ 'Install ~w@~w from ~w'-[Pack, Version, URL] ].
+message(install_downloaded(File)) -->
+	{ file_base_name(File, Base),
+	  size_file(File, Size) },
+	[ 'Install "~w" (~D bytes)'-[Base, Size] ].
+message(inquiry(Server)) -->
+	[ 'Verify package status (anonymously)', nl,
+	  '\tat "~w"'-[Server]
+	].
+message(rebuild(Pack)) -->
+	[ 'Checking pack "~w" for rebuild ...'-[Pack] ].
+message(upgrade(Pack, From, To)) -->
+	[ 'Upgrade "~w" from '-[Pack] ],
+	msg_version(From), [' to '-[]], msg_version(To).
+message(up_to_date(Pack)) -->
+	[ 'Package "~w" is up-to-date'-[Pack] ].
+message(query_versions(URL)) -->
+	[ 'Querying "~w" to find new versions ...'-[URL] ].
+message(process_output(Codes)) -->
+	{ split_lines(Codes, Lines) },
+	process_lines(Lines).
+message(contacting_server(Server)) -->
+	[ 'Contacting server at ~w ...'-[Server], flush ].
+message(server_reply(true(_))) -->
+	[ at_same_line, ' ok'-[] ].
+message(server_reply(false)) -->
+	[ at_same_line, ' done'-[] ].
+message(server_reply(exception(E))) -->
+	[ at_same_line, ' server error:'-[], nl ],
+	prolog:message(E).
+message(cannot_create_dir(Alias)) -->
+	{ setof(PackDir,
+		absolute_file_name(Alias, PackDir, [solutions(all)]),
+		PackDirs)
+	},
+	[ 'Cannot find a place to create a package directory.'-[],
+	  'Considered:'-[]
+	],
+	candidate_dirs(PackDirs).
+
+candidate_dirs([]) --> [].
+candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).
+
+message(no_mingw) -->
+	[ 'Cannot find MinGW and/or MSYS.'-[] ].
+
+						% Questions
+message(resolve_remove) -->
+	[ nl, 'Please select an action:', nl, nl ].
+message(create_pack_dir) -->
+	[ nl, 'Create directory for packages', nl ].
+message(menu(item(I, Label))) -->
+	[ '~t(~d)~6|   '-[I] ],
+	label(Label).
+message(menu(default_item(I, Label))) -->
+	[ '~t(~d)~6| * '-[I] ],
+	label(Label).
+message(menu(select)) -->
+	[ nl, 'Your choice? ', flush ].
+message(confirm(Question, Default)) -->
+	message(Question),
+	confirm_default(Default),
+	[ flush ].
+
+% Alternate hashes for found for the same file
+
+message(alt_hashes(File, Alts)) -->
+	[ 'Found multiple versions of "~w".'-[File], nl,
+	  'This could indicate a compromised or corrupted file', nl
+	],
+	alt_hashes(Alts).
+message(continue_with_alt_hashes(Count, URL)) -->
+	[ 'Continue installation from "~w" (downloaded ~D times)'-[URL, Count] ].
+
+
+alt_hashes([]) --> [].
+alt_hashes([H|T]) --> alt_hash(H), ( {T == []} -> [] ; [nl], alt_hashes(T) ).
+
+alt_hash(alt_hash(Count, URLs, Hash)) -->
+	[ '~t~d~8| ~w ~w'-[Count, Hash, URLs] ].
+
+% Installation dependencies gathered from inquiry server.
+
+message(install_dependencies(Resolution)) -->
+	[ 'Package depends on the following:' ],
+	msg_res_tokens(Resolution, 1).
+
+msg_res_tokens([], _) --> [].
+msg_res_tokens([H|T], L) --> msg_res_token(H, L), msg_res_tokens(T, L).
+
+msg_res_token(Token-unresolved, L) -->
+	res_indent(L),
+	[ '"~w" cannot be satisfied'-[Token] ].
+msg_res_token(Token-resolve(Pack, Version, [URL|_], SubResolves), L) --> !,
+	res_indent(L),
+	[ '"~w", provided by ~w@~w from ~w'-[Token, Pack, Version, URL] ],
+	{ L2 is L+1 },
+	msg_res_tokens(SubResolves, L2).
+msg_res_token(Token-resolved(Pack), L) --> !,
+	res_indent(L),
+	[ '"~w", provided by installed pack ~w'-[Token,Pack] ].
+
+res_indent(L) -->
+	{ I is L*2 },
+	[ nl, '~*c'-[I,0'\s] ].
+
+message(resolve_deps) -->
+	[ nl, 'What do you wish to do' ].
+label(install_deps) -->
+	[ 'Install proposed dependencies' ].
+label(install_no_deps) -->
+	[ 'Only install requested package' ].
+
+
+message(git_fetch(Dir)) -->
+	[ 'Running "git fetch" in ~q'-[Dir] ].
+
+% inquiry is blank
+
+message(inquiry_ok(Reply, File)) -->
+	{ memberchk(downloads(Count), Reply),
+	  memberchk(rating(VoteCount, Rating), Reply), !,
+	  length(Stars, Rating),
+	  maplist(=(0'*), Stars)
+	},
+	[ '"~w" was downloaded ~D times.  Package rated ~s (~D votes)'-
+	  [ File, Count, Stars, VoteCount ]
+	].
+message(inquiry_ok(Reply, File)) -->
+	{ memberchk(downloads(Count), Reply)
+	},
+	[ '"~w" was downloaded ~D times'-[ File, Count ] ].
+
+						% support predicates
+unsatisfied([]) --> [].
+unsatisfied([Needed-[By]|T]) -->
+	[ '\t`~q\', needed by package `~w\''-[Needed, By] ],
+	unsatisfied(T).
+unsatisfied([Needed-By|T]) -->
+	[ '\t`~q\', needed by packages'-[Needed], nl ],
+	pack_list(By),
+	unsatisfied(T).
+
+pack_list([]) --> [].
+pack_list([H|T]) -->
+	[ '\t\tPackage `~w\''-[H], nl ],
+	pack_list(T).
+
+process_lines([]) --> [].
+process_lines([H|T]) -->
+	[ '~s'-[H] ],
+	(   {T==[]}
+	->  []
+	;   [nl], process_lines(T)
+	).
+
+split_lines([], []) :- !.
+split_lines(All, [Line1|More]) :-
+	append(Line1, [0'\n|Rest], All), !,
+	split_lines(Rest, More).
+split_lines(Line, [Line]).
+
+label(remove_only(Pack)) -->
+	[ 'Only remove package ~w (break dependencies)'-[Pack] ].
+label(remove_deps(Pack, Deps)) -->
+	{ length(Deps, Count) },
+	[ 'Remove package ~w and ~D dependencies'-[Pack, Count] ].
+label(create_dir(Dir)) -->
+	[ '~w'-[Dir] ].
+label(cancel) -->
+	[ 'Cancel' ].
+
+confirm_default(yes) -->
+	[ ' Y/n? ' ].
+confirm_default(no) -->
+	[ ' y/N? ' ].
+confirm_default(none) -->
+	[ ' y/n? ' ].
+
+msg_version(Version) -->
+	{ atom(Version) }, !,
+	[ '~w'-[Version] ].
+msg_version(VersionData) --> !,
+	{ atom_version(Atom, VersionData) },
+	[ '~w'-[Atom] ].

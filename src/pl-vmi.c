@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1740,6 +1739,18 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 }
 
 
+#ifdef O_CALL_AT_MODULE
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_DEPARTATM: procedure-module, context-module, procedure
+See I_CALLATM for details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+VMI(I_DEPARTATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
+{ PC++;						/* Ignore :-qualifier */
+  VMI_GOTO(I_DEPARTM);
+}
+#endif
+
+
 VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
 { if ( (void *)BFR > (void *)FR || !truePrologFlag(PLFLAG_LASTCALL) )
   { VMI_GOTO(I_CALLM);
@@ -2059,6 +2070,11 @@ garbage collector won't see it. We use  a term-reference because using a
 relative address simplifies the stack-shifter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+VMI(C_SOFTIFTHEN, 0, 1, (CA1_CHP))
+{ SEPERATE_VMI;
+  VMI_GOTO(C_IFTHEN);
+}
+
 VMI(C_IFTHEN, 0, 1, (CA1_CHP))
 { varFrame(FR, *PC++) = consTermRef(BFR);
 
@@ -2112,8 +2128,8 @@ VMI(C_VAR_N, 0, 2, (CA1_VAR,CA1_INTEGER))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_CUT will  destroy  all  backtrack  points  created  after  the  C_IFTHEN
-instruction in this clause.  It assumes the value of BFR has been stored
+C_CUT  destroys  all  backtrack  points    created  after  the  C_IFTHEN
+instruction in this clause. It assumes the  value of BFR has been stored
 in the nth-variable slot of the current local frame.
 
 We can dereference all frames that are older that the old backtrackframe
@@ -2128,14 +2144,25 @@ choices created since the mark, but not   the mark itself. The test-case
 is  a  :-  \+  (b,  !,  fail),    which   should  succeed.  The  current
 implementation  walks  twice  over  the    choice-points,  but  cuts  in
 conditions should be rare (I hope :-).
+
+C_LSCUT does the same for the condition   part  of soft-cut (*->). Here,
+the choice argument is the new choice  created by the disjunction, so we
+must get its parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 BEGIN_SHAREDVARS
   Choice och;
   LocalFrame fr;
   Choice ch;
 
+VMI(C_LSCUT, 0, 1, (CA1_CHP))
+{ och = (Choice) valTermRef(varFrame(FR, *PC));
+  och = och->parent;
+  goto c_lcut_cont;
+}
+
 VMI(C_LCUT, 0, 1, (CA1_CHP))
 { och = (Choice) valTermRef(varFrame(FR, *PC));
+c_lcut_cont:
   PC++;
 
   for(ch=BFR; ch; ch = ch->parent)
@@ -2148,6 +2175,42 @@ VMI(C_LCUT, 0, 1, (CA1_CHP))
   NEXT_INSTRUCTION;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_CUTCHP cuts all  choice-points  after   the  specified  argument. This
+instruction is generated for $cut(Var), used by prolog_cut_to(Choice).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_CUTCHP, 0, 0, ())
+{ Word a = argFrameP(FR, 0);
+
+#define valid_choice(ch) \
+	(  (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG && \
+	   onStack(local, ch->frame) \
+	)
+
+  deRef(a);
+  if ( isInteger(*a) && storage(*a) == STG_INLINE )
+  { intptr_t i = valInt(*a);
+    och = ((Choice)((Word)lBase + i));
+
+    if ( !(och >= (Choice)lBase && och < (Choice)lTop) ||
+	 !valid_choice(och) )
+    { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, consTermRef(a));
+      THROW_EXCEPTION;
+    }
+
+    goto c_cut;
+  } else
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_choice, consTermRef(a));
+    THROW_EXCEPTION;
+  }
+}
+
+
+VMI(C_SCUT, 0, 1, (CA1_CHP))
+{ NEXT_INSTRUCTION;
+}
 
 VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
 { SEPERATE_VMI;
@@ -2196,7 +2259,7 @@ c_cut:
       if ( true(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
 
-	BFR = ch->parent;
+	BFR = ch;
 	SAVE_REGISTERS(qid);
 	frameFinished(fr2, FINISH_CUT PASS_LD);
 	LOAD_REGISTERS(qid);
@@ -2205,7 +2268,7 @@ c_cut:
 
 	  fr2 = addPointer(fr2, offset);
 	  ch  = addPointer(ch,  offset);
-	  ch->parent = BFR;
+	  assert(ch == BFR);
 	  och = addPointer(och, offset);
 	  fr  = addPointer(fr,  offset);
 	  delto = addPointer(delto, offset);
@@ -2449,6 +2512,7 @@ VMI(S_UNDEF, 0, 0, ())
 	caller = NULL;
 
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+      newChoice(CHP_DEBUG, FR PASS_LD);
 
       SAVE_REGISTERS(qid);
       if ( (fid = PL_open_foreign_frame()) )
@@ -2629,7 +2693,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
       {	LocalFrame fr;
 	CL = cref;
 
-	if ( (fr = dbgRedoFrame(FR PASS_LD)) )
+	if ( (fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD)) )
 	{ int action;
 
 	  SAVE_REGISTERS(qid);
@@ -3233,6 +3297,7 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       }
     }
 
+  can_bind:
     ARGP++;				/* new_args must become 1 in */
     SAVE_REGISTERS(qid);		/* get_vmi_state() */
     rc = put_number(&c, n, ALLOW_GC PASS_LD);
@@ -3241,7 +3306,20 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
 
     if ( rc == TRUE )
     { deRef2(ARGP, k);			/* may be shifted */
-      bindConst(k, c);
+      if ( !isTerm(c) )
+      { bindConst(k, c);
+      } else
+      { SAVE_REGISTERS(qid);
+	rc = unify_ptrs(k, &c, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+	LOAD_REGISTERS(qid);
+	if ( rc == FALSE )
+	{ popArgvArithStack(1 PASS_LD);
+	  AR_END();
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	  BODY_FAILED;
+	}
+      }
     } else
     { raiseStackOverflow(rc);
       popArgvArithStack(1 PASS_LD);
@@ -3266,6 +3344,10 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       clearNumber(&left);
     } else if ( isFloat(*k) && floatNumber(n) )
     { rc = (valFloat(*k) == n->value.f);
+#ifdef O_GMP
+    } else if ( n->type == V_MPQ )
+    { goto can_bind;
+#endif
     } else
     { rc = FALSE;
     }
@@ -3702,14 +3784,24 @@ VMI(I_FEXITNDET, 0, 0, ())
 	setVar(*valTermRef(exception_bin));
       }
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
-      BFR = BFR->parent;
+#ifdef O_DEBUGGER
+      if ( unlikely(debugstatus.debugging) )
+	BFR->type = CHP_DEBUG;
+      else
+#endif
+	BFR = BFR->parent;
       FR->clause = NULL;
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
 	THROW_EXCEPTION;
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
-      BFR = BFR->parent;
+#ifdef O_DEBUGGER
+      if ( unlikely(debugstatus.debugging) )
+	BFR->type = CHP_DEBUG;
+      else
+#endif
+	BFR = BFR->parent;
       FRAME_FAILED;
     default:
     { /* TBD: call debugger */
@@ -3934,9 +4026,7 @@ b_throw:
 #if O_DEBUGGER
   start_tracer = FALSE;
   if ( !catchfr_ref &&
-       PL_is_functor(exception_term, FUNCTOR_error2) &&
        !PL_same_term(exception_term, exception_printed) &&
-       truePrologFlag(PLFLAG_DEBUG_ON_ERROR) &&
        false(QueryFromQid(qid), PL_Q_CATCH_EXCEPTION) )
   { int rc;
 
@@ -3945,16 +4035,25 @@ b_throw:
     LOAD_REGISTERS(qid);
 
     if ( !rc )
-    { SAVE_REGISTERS(qid);
+    { atom_t a;
+
+      SAVE_REGISTERS(qid);
       if ( LD->outofstack == (Stack)&LD->stacks.global )
 	garbageCollect();
       LD->critical++;			/* do not handle signals */
-      debugmode(TRUE, NULL);
-      if ( !trace_if_space() )		/* see (*) */
-      { start_tracer = TRUE;
-      } else
-      { trimStacks(FALSE PASS_LD);	/* restore spare stacks */
-	printMessage(ATOM_error, PL_TERM, exception_term);
+      if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
+	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
+      { debugmode(TRUE, NULL);
+	if ( !trace_if_space() )		/* see (*) */
+	{ start_tracer = TRUE;
+	} else
+	{ trimStacks(FALSE PASS_LD);	/* restore spare stacks */
+	  printMessage(ATOM_error, PL_TERM, exception_term);
+	}
+      } else if ( !(PL_get_atom(exception_term, &a) && a == ATOM_aborted) )
+      { printMessage(ATOM_error,
+		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+		       PL_TERM, exception_term);
       }
       LD->critical--;
       LOAD_REGISTERS(qid);
@@ -4011,6 +4110,7 @@ b_throw:
 	    resumeAfterException();	/* reinstantiate spare stacks */
 	    LOAD_REGISTERS(qid);
 	    DEF = FR->predicate;
+	    FR->clause = NULL;
 	    goto retry_continue;
 	  case ACTION_ABORT:
 	    THROW_EXCEPTION;
@@ -4169,6 +4269,73 @@ BEGIN_SHAREDVARS
   int arity;
   Word args;
 
+#ifdef O_CALL_AT_MODULE
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_CALLATM: procedure-module, context-module, procedure
+The procedure-module is provided to support the compiler.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_CALLATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
+{ PC++;
+  VMI_GOTO(I_CALLM);
+}
+
+VMI(I_DEPARTATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
+{ if ( (void *)BFR > (void *)FR || !truePrologFlag(PLFLAG_LASTCALL) )
+  { VMI_GOTO(I_CALLATMV);
+  } else
+  { Word ap;
+    int iv;
+
+    PC++;
+    iv = (int)*PC++;
+
+    ap = varFrameP(FR, iv);
+    deRef(ap);
+    if ( isTextAtom(*ap) )
+    { Module m = lookupModule(*ap);
+
+      setContextModule(FR, m);
+      VMI_GOTO(I_DEPART);
+    } else
+    { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_module,
+	       pushWordAsTermRef(ap));
+      popTermRef();
+      THROW_EXCEPTION;
+    }
+  }
+}
+
+
+VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
+{ Word ap;
+  int iv;
+  Procedure proc;
+
+  PC++;
+  iv = (int)*PC++;
+  proc = (Procedure)*PC++;
+
+  ap = varFrameP(FR, iv);
+  deRef(ap);
+  if ( isTextAtom(*ap) )
+  { module = lookupModule(*ap);
+    DEF = proc->definition;
+    NFR = lTop;
+
+    goto mcall_cont;
+  } else
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_module,
+	     pushWordAsTermRef(ap));
+    popTermRef();
+    THROW_EXCEPTION;
+  }
+
+  VMI_GOTO(I_CALLM);
+}
+
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CALLM deals with qualified calls. The unfortunate  task is to sort out
 the context module for calling a transparent  procedure. This job is the
@@ -4236,11 +4403,7 @@ atom is referenced by the goal-term anyway.
       goto call_type_error;
 
     fd = valueFunctor(functor);
-    if ( false(fd, CONTROL_F)
-#if O_DEBUG
-	 || GD->bootsession || !GD->initialised
-#endif
-       )
+    if ( false(fd, CONTROL_F) )
     { args    = argTermP(goal, 0);
       arity   = fd->arity;
     } else

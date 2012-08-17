@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -2033,43 +2031,53 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  case 'u':
 	  case 'x':
 	  case 'X':
-	  { intptr_t v = 0;			/* make compiler silent */
-	    int64_t vl = 0;
+	  { int      vi = 0;
+	    long     vl = 0;			/* make compiler silent */
+	    int64_t vll = 0;
 	    char fmbuf[8], *fp=fmbuf;
 
 	    switch( islong )
 	    { case 0:
-		v = va_arg(args, int);
+		vi = va_arg(args, int);
 	        break;
 	      case 1:
-		v = va_arg(args, long);
+		vl = va_arg(args, long);
 	        break;
 	      case 2:
-	        vl = va_arg(args, int64_t);
+	        vll = va_arg(args, int64_t);
 		break;
+	      default:
+		assert(0);
 	    }
 
 	    *fp++ = '%';
 	    if ( modified )
 	      *fp++ = '#';
-	    if ( islong < 2 )
-	    { *fp++ = 'l';
-	      *fp++ = *fm;
-	      *fp   = '\0';
-	      SNPRINTF3(fmbuf, v);
-	    } else
-	    {
+	    switch( islong )
+	    { case 0:
+		*fp++ = *fm;
+	        *fp   = '\0';
+		SNPRINTF3(fmbuf, vi);
+		break;
+	      case 1:
+		*fp++ = 'l';
+	        *fp++ = *fm;
+		*fp   = '\0';
+		SNPRINTF3(fmbuf, vl);
+		break;
+	      case 2:
 #ifdef __WINDOWS__
-	      *fp++ = 'I';		/* Synchronise with INT64_FORMAT! */
-	      *fp++ = '6';
-	      *fp++ = '4';
+	        *fp++ = 'I';		/* Synchronise with INT64_FORMAT! */
+	        *fp++ = '6';
+		*fp++ = '4';
 #else
-	      *fp++ = 'l';
-	      *fp++ = 'l';
+	        *fp++ = 'l';
+	        *fp++ = 'l';
 #endif
-	      *fp++ = *fm;
-	      *fp   = '\0';
-	      SNPRINTF3(fmbuf, vl);
+	        *fp++ = *fm;
+	        *fp   = '\0';
+	        SNPRINTF3(fmbuf, vll);
+		break;
 	    }
 
 	    break;
@@ -2757,7 +2765,11 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   s->functions     = functions;
   s->timeout       = -1;		/* infinite */
   s->posbuf.lineno = 1;
-  s->encoding      = ENC_ISO_LATIN_1;
+  if ( (flags&SIO_TEXT) )
+  { s->encoding    = initEncoding();
+  } else
+  { s->encoding	   = ENC_OCTET;
+  }
 #if CRLF_MAPPING
   s->newline       = SIO_NL_DOS;
 #endif
@@ -3464,7 +3476,7 @@ void
 SinitStreams(void)
 { if ( !S__initialised )
   { int i;
-    IOENC enc = initEncoding();
+    IOENC enc;
 
     S__initialised = TRUE;
     enc = initEncoding();
@@ -3496,7 +3508,7 @@ SinitStreams(void)
 
 
 IOSTREAM *
-S__getiob()
+S__getiob(void)
 { return S__iob;
 }
 

@@ -39,17 +39,15 @@ This module implements  persistency  of   the  commandline  history over
 Prolog sessions on Prolog  installations  that   are  based  on  the GNU
 readline library (default for the development version on Unix systems).
 
-This facility is normally enabled using   the  following command in your
-personal initialization file (e.g., ~/.plrc or ~/pl.ini on Windows).
-
-  ==
-  :- prolog_history(enable).
-  ==
-
 The history is stored  in   the  directory =|~/.swipl-dir-history|=. For
-each directory for which it keeps the index  there is file whose name is
-the base32 encoding of the directory path.
+each directory for which it keeps the  history, there is file whose name
+is the base32 encoding of the directory path.
+
+This file is normally loaded when Prolog is started if =user_input= is a
+terminal and the system supports history.
 */
+
+:- create_prolog_flag(save_history, true, [type(boolean)]).
 
 %%	history_directory(-Dir) is semidet.
 %
@@ -94,20 +92,76 @@ dir_history_file(Dir, File) :-
 	base32(Dir, Base32),
 	atomic_list_concat([Dir, Base32], /, File).
 
+% Realise write/read of history for the swipl-win.exe console.
+
+:- if((\+current_predicate(rl_read_history/1),
+       current_predicate('$rl_history'/1))).
+:- use_module(library(readutil)).
+
+system:rl_read_history(File) :-
+	access_file(File, read), !,
+	setup_call_cleanup(
+	    open(File, read, In, [encoding(utf8)]),
+	    read_history(In),
+	    close(In)).
+system:rl_read_history(_).
+
+read_history(In) :-
+	repeat,
+	read_line_to_codes(In, Codes),
+	(   Codes == end_of_file
+	->  !
+	;   atom_codes(Line, Codes),
+	    rl_add_history(Line),
+	    fail
+	).
+
+system:rl_write_history(File) :-
+	'$rl_history'(Lines),
+	(   Lines \== []
+	->  setup_call_cleanup(
+		open(File, write, Out, [encoding(utf8)]),
+		forall(member(Line, Lines),
+		       format(Out, '~w~n', [Line])),
+		close(Out))
+	;   true
+	).
+
+:- endif.
+
+:- if(current_predicate(rl_write_history/1)).
+write_history(File) :-
+	current_prolog_flag(save_history, true), !,
+	rl_write_history(File).
+:- endif.
+write_history(_).
+
 
 %%	prolog_history(+Action) is det.
 %
-%	Execute Action on the history. Currently only suppors the action
-%	=enable= to enable save and restore   of  the Prolog commandline
-%	history per-directory.
+%	Execute Action on  the  history.   Action is one of
+%
+%	  * enable
+%	  Enable history. First loads history for the current directory.
+%	  Loading the history is done at most once.
+%	  * disable
+%	  Sets the Prolog flag =save_history= to =false=, such that the
+%	  history is not saved on halt.
 
 :- if(current_predicate(rl_read_history/1)).
+:- dynamic
+	history_loaded/1.
+prolog_history(enable) :-
+	history_loaded(_), !.
 prolog_history(enable) :- !,
 	dir_history_file('.', File),
 	(   exists_file(File)
-	->  rl_read_history(File)
+	->  rl_read_history(File),
+	    assertz(history_loaded(File))
 	;   true
 	),
-	at_halt(rl_write_history(File)).
+	at_halt(write_history(File)),
+	set_prolog_flag(save_history, true).
 :- endif.
-prolog_history(_).
+prolog_history(_) :-
+	set_prolog_flag(save_history, false).

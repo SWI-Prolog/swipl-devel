@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -48,6 +46,7 @@ in this array.
 #include <float.h>
 #ifdef _MSC_VER
 #define isnan(x) _isnan(x)
+#define copysign(x,y) _copysign(x,y)
 #endif
 #endif
 #ifdef HAVE_IEEEFP_H
@@ -56,6 +55,10 @@ in this array.
 
 #ifdef fpclassify
 #define HAVE_FPCLASSIFY 1
+#endif
+
+#ifdef __WINDOWS__
+#include <wincrypt.h>
 #endif
 
 #undef LD
@@ -1030,6 +1033,8 @@ promoteIntNumber(Number n)
 		*     ARITHMETIC FUNCTIONS      *
 		*********************************/
 
+static int ar_u_minus(Number n1, Number r);
+
 int
 ar_add_ui(Number n, intptr_t add)
 { switch(n->type)
@@ -1139,8 +1144,8 @@ ar_minus(Number n1, Number n2, Number r)
   { case V_INTEGER:
     { r->value.i = n1->value.i - n2->value.i;
 
-      if ( (n1->value.i > 0 && n2->value.i < 0 && r->value.i <= 0) ||
-	   (n1->value.i < 0 && n2->value.i > 0 && r->value.i >= 0) )
+      if ( (n1->value.i >= 0 && n2->value.i < 0 && r->value.i <= 0) ||
+	   (n1->value.i < 0  && n2->value.i > 0 && r->value.i >= 0) )
       {					/* overflow */
 	if ( !promoteIntNumber(n1) ||
 	     !promoteIntNumber(n2) )
@@ -1820,6 +1825,49 @@ ar_div(Number n1, Number n2, Number r)
 }
 
 
+#ifndef HAVE_SIGNBIT				/* differs for -0.0 */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+signbit() and copysign() are part of C99.   These  should be provided by
+most C compilers, but Microsoft decided  not   to  adopt  C99 (it is now
+2012).
+
+Note that there is no autoconf support  to verify that floats conform to
+the IEE754 representation,  but  they  typically   do  these  days.  See
+http://www.gnu.org/software/autoconf/manual/autoconf-2.67/html_node/Floating-Point-Portability.html
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#define IEEE754 1
+
+#ifdef IEEE754
+static inline int
+signbit(double f)
+{ union
+  { double f;
+    int64_t i;
+  } v;
+
+  v.f = f;
+  return v.i < 0;
+}
+
+#ifndef copysign
+double
+copysign(double x, double y)
+{ union { double f; uint64_t i; } ux, uy;
+  const uint64_t smask = (uint64_t)1<<(sizeof(uint64_t)*8-1);
+
+  ux.f = x;
+  uy.f = y;
+  ux.i &= ~smask;
+  ux.i |= (uy.i & smask);
+
+  return ux.f;
+}
+#endif
+#else
+#error "Don't know how to support signbit() and copysign()"
+#endif
+#endif
+
 int
 ar_sign_i(Number n1)
 { switch(n1->type)
@@ -1831,8 +1879,6 @@ ar_sign_i(Number n1)
     case V_MPQ:
       return mpq_sgn(n1->value.mpq);
 #endif
-    case V_FLOAT:
-      return (n1->value.f < 0.0 ? -1 : n1->value.f > 0.0 ? 1 : 0);
     default:
       assert(0);
       fail;
@@ -1841,9 +1887,56 @@ ar_sign_i(Number n1)
 
 static int
 ar_sign(Number n1, Number r)
-{ r->value.i = ar_sign_i(n1);
-  r->type = V_INTEGER;
+{ if ( n1->type == V_FLOAT )
+  { r->value.f = n1->value.f < 0 ? -1.0 : n1->value.f > 0.0 ? 1.0 : 0.0;
+    r->type = V_FLOAT;
+  } else
+  { r->value.i = ar_sign_i(n1);
+    r->type = V_INTEGER;
+  }
+
   succeed;
+}
+
+
+static int
+ar_signbit(Number n)
+{ switch(n->type)
+  { case V_INTEGER:
+      return n->value.i	< 0 ? -1 : 1;
+#ifdef O_GMP
+    case V_MPZ:
+    { int i = mpz_sgn(n->value.mpz);
+      return i < 0 ? -1 : 1;
+    }
+    case V_MPQ:
+    { int i = mpq_sgn(n->value.mpq);
+      return i < 0 ? -1 : 1;
+    }
+#endif
+    case V_FLOAT:
+      return signbit(n->value.f) ? -1 : 1;
+    default:
+      assert(0);
+      return 0;
+  }
+}
+
+
+static int
+ar_copysign(Number n1, Number n2, Number r)
+{
+  if ( n1->type == V_FLOAT && n2->type == V_FLOAT )
+  { r->value.f = copysign(n1->value.f, n2->value.f);
+    r->type = V_FLOAT;
+  } else
+  { if ( ar_signbit(n1) != ar_signbit(n2) )
+      return ar_u_minus(n1, r);
+    else
+      cpNumber(r, n1);
+  }
+
+  return TRUE;
 }
 
 
@@ -2477,7 +2570,10 @@ ar_abs(Number n1, Number r)
       break;
 #endif
     case V_FLOAT:
-    { r->value.f = abs(n1->value.f);
+    { if ( signbit(n1->value.f) )
+	r->value.f = -n1->value.f;
+      else
+	r->value.f = n1->value.f;
       r->type = V_FLOAT;
       break;
     }
@@ -2782,7 +2878,7 @@ ar_truncate(Number n1, Number r)
 static int
 seed_from_dev(const char *dev ARG_LD)
 { int done = FALSE;
-#ifdef S_ISCHR
+#if defined(S_ISCHR) && !defined(__WINDOWS__)
   int fd;
 
   if ( (fd=open(dev, O_RDONLY)) )
@@ -2828,7 +2924,7 @@ seed_from_dev(const char *dev ARG_LD)
 static int
 seed_from_crypt_context(ARG1_LD)
 {
-#ifdef _MSC_VER
+#ifdef __WINDOWS__
   HCRYPTPROV hCryptProv;
   char *user_name = "seed_random";
   BYTE seedarray[RAND_SEED_LEN];
@@ -2896,7 +2992,12 @@ init_random(ARG1_LD)
 #ifdef O_GMP
   if ( !LD->arith.random.initialised )
   { LD->gmp.persistent++;
+#ifdef HAVE_GMP_RANDINIT_MT
+#define O_RANDOM_STATE 1
     gmp_randinit_mt(LD->arith.random.state);
+#else
+    gmp_randinit_default(LD->arith.random.state);
+#endif
     LD->arith.random.initialised = TRUE;
     seed_random(PASS_LD1);
     LD->gmp.persistent--;
@@ -2950,7 +3051,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_seed, arg);
 	}
       }
-#ifdef O_GMP
+#ifdef O_RANDOM_STATE
     } else if ( name == ATOM_state )
     { number n;
 
@@ -2972,7 +3073,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 }
 
 
-#ifdef O_GMP
+#ifdef O_RANDOM_STATE
 static
 PRED_IMPL("random_property", 1, random_property, 0)
 { PRED_LD
@@ -3231,6 +3332,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_ceiling1,		ar_ceil, F_ISO),
   ADD(FUNCTOR_float_fractional_part1, ar_float_fractional_part, F_ISO),
   ADD(FUNCTOR_float_integer_part1, ar_float_integer_part, F_ISO),
+  ADD(FUNCTOR_copysign2,	ar_copysign, 0),
 
   ADD(FUNCTOR_sqrt1,		ar_sqrt, F_ISO),
   ADD(FUNCTOR_sin1,		ar_sin, F_ISO),
@@ -3471,7 +3573,7 @@ BeginPredDefs(arith)
   PRED_DEF("plus", 3, plus, 0)
   PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
   PRED_DEF("set_random", 1, set_random, 0)
-#ifdef O_GMP
+#ifdef O_RANDOM_STATE
   PRED_DEF("random_property", 1, random_property, 0)
 #endif
 EndPredDefs

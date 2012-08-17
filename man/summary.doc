@@ -16,6 +16,7 @@ The predicate summary is used by the Prolog predicate apropos/1 to
 suggest predicates from a keyword.
 
 \begin{summarylist}{ll}
+\predicatesummary{@}{2}{Call using calling context}
 \predicatesummary{!}{0}{Cut (discard choicepoints)}
 \oppredsummary{,}{2}{xfy}{1000}{Conjunction of goals}
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}
@@ -296,6 +297,7 @@ suggest predicates from a keyword.
 \predicatesummary{interactor}{0}{Start new thread with console and top-level}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
+\predicatesummary{is_assoc}{1}{Verify association list}
 \predicatesummary{is_list}{1}{Type check for a list}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{join_threads}{0}{Join all terminated threads interactively}
@@ -419,7 +421,9 @@ suggest predicates from a keyword.
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
 \predicatesummary{prolog}{0}{Run interactive top-level}
 \predicatesummary{prolog_choice_attribute}{3}{Examine the choice-point stack}
+\predicatesummary{prolog_current_choice}{1}{Reference to most recent choice point}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
+\predicatesummary{prolog_cut_to}{1}{Realise global cuts}
 \predicatesummary{prolog_edit:locate}{2}{Locate targets for edit/1}
 \predicatesummary{prolog_edit:locate}{3}{Locate targets for edit/1}
 \predicatesummary{prolog_edit:edit_source}{1}{Call editor for edit/1}
@@ -463,8 +467,7 @@ suggest predicates from a keyword.
 \predicatesummary{rational}{3}{Decompose a rational}
 \predicatesummary{read}{1}{Read Prolog term}
 \predicatesummary{read}{2}{Read Prolog term from stream}
-\predicatesummary{read_clause}{1}{Read clause}
-\predicatesummary{read_clause}{2}{Read clause from stream}
+\predicatesummary{read_clause}{3}{Read clause from stream}
 \predicatesummary{read_history}{6}{Read using history substitution}
 \predicatesummary{read_link}{3}{Read a symbolic link}
 \predicatesummary{read_pending_input}{3}{Fetch buffered input from a stream}
@@ -681,6 +684,7 @@ suggest predicates from a keyword.
 \functionsummary{ceil}{1}{Smallest integer larger than arg}
 \functionsummary{ceiling}{1}{Smallest integer larger than arg}
 \functionsummary{cos}{1}{Cosine}
+\functionsummary{copysign}{2}{Apply sign of N2 to N1}
 \functionsummary{cputime}{0}{Get CPU time}
 \functionsummary{div}{2}{Integer division}
 \functionsummary{e}{0}{Mathematical constant}

@@ -145,15 +145,15 @@ ext_separator(tsv, 0'\t).
 %
 %	    * strip(+Boolean)
 %	    If =true= (default =false=), strip leading and trailing
-%	    blank-space.  RFC4180 says that blank space is part of the
+%	    blank space.  RFC4180 says that blank space is part of the
 %	    data.
 %
 %	    * convert(+Boolean)
-%	    if =true= (Default), use name/2 on the field-data.  This
+%	    If =true= (default), use name/2 on the field data.  This
 %	    translates the field into a number if possible.
 %
 %	    * functor(+Atom)
-%	    Functor to use for creating row-terms.  Default is =row=.
+%	    Functor to use for creating row terms.  Default is =row=.
 %
 %	    * arity(?Arity)
 %	    Number of fields in each row.  This predicate raises

@@ -144,11 +144,11 @@ is_assoc(t,X,X,0) :- !.
 is_assoc(t(K,_,-,t,t),K,K,1) :- !, ground(K).
 is_assoc(t(K,_,>,t,t(RK,_,-,t,t)),K,RK,2) :-
 	% Ensure right side Key is 'greater' than K
-	!, ground((K,RK)), K < RK.
+	!, ground((K,RK)), K @< RK.
 
 is_assoc(t(K,_,<,t(LK,_,-,t,t),t),LK,K,2) :-
 	% Ensure left side Key is 'less' than K
-	!, ground((LK,K)), LK < K.
+	!, ground((LK,K)), LK @< K.
 
 is_assoc(t(K,_,B,L,R),Min,Max,Depth) :-
 	is_assoc(L,Min,LMax,LDepth),
@@ -158,8 +158,8 @@ is_assoc(t(K,_,B,L,R),Min,Max,Depth) :-
 	balance(Rel,B),
 	% Ensure ordering
 	ground((LMax,K,RMin)),
-	LMax < K,
-	K < RMin,
+	LMax @< K,
+	K @< RMin,
 	Depth is max(LDepth, RDepth)+1.
 
 % Private lookup table matching comparison operators to Balance operators used in tree

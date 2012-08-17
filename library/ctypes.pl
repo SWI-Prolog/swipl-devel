@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -53,7 +52,8 @@
 	    is_upper/1,
 	    is_white/1,
 	    to_lower/2,
-	    to_upper/2
+	    to_upper/2,
+	    upper_lower/2
 	  ]).
 
 /** <module> Character code classification
@@ -97,17 +97,35 @@ is_paren(0'[, 0']).
 is_paren(0'{, 0'}).
 
 %%	to_lower(+U, -L) is det.
-%%	to_lower(-U, +L) is det.
 %
-%	Succeeds  if  `U'  is  upper  case  character  and  `L'  is  the
-%	corresponding lower case character or `U' is an ascii character,
-%	but not an upper case letter and `L' is equal to `U'.
+%	Downcase a character code. If U  is   the  character  code of an
+%	uppercase character, unify L with  the   character  code  of the
+%	lowercase version. Else unify L with U.
 
 to_lower(U, L) :-
 	code_type(L, to_lower(U)).
 
-to_upper(U, L) :-
-	code_type(L, to_upper(U)).
+%%	to_upper(+L, -U) is det.
+%
+%	Upcase a character code.  If  L  is   the  character  code  of a
+%	lowercase character, unify L with  the   character  code  of the
+%	uppercase version. Else unify U with L.
+
+to_upper(L, U) :-
+	code_type(U, to_upper(L)).
+
+%%	upper_lower(?U, ?L) is det.
+%
+%	True when U is the character code  of an uppercase character and
+%	L  is  the  character  code    of  the  corresponding  lowercase
+%	character.
+
+upper_lower(Upper, Lower) :-
+	nonvar(Upper), !,
+	code_type(Lower, lower(Upper)).
+upper_lower(Upper, Lower) :-
+	code_type(Upper, upper(Lower)).
+
 
 %%	is_digit(+C, +Base, -Weight) is det.
 %%	is_digit(-C, +Base, +Weight) is det.

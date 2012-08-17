@@ -297,9 +297,9 @@ pt_popen(const char *cmd, const char *mode)
   }
 
   if ( pc->mode == 'r' )
-    fptr = _fdopen(_open_osfhandle((long)pc->out[0],_O_BINARY),"r");
+    fptr = _fdopen(_open_osfhandle((intptr_t)pc->out[0],_O_BINARY),"r");
   else
-    fptr = _fdopen(_open_osfhandle((long)pc->in[1],_O_BINARY),"w");
+    fptr = _fdopen(_open_osfhandle((intptr_t)pc->in[1],_O_BINARY),"w");
 
 finito:
   if ( fptr )

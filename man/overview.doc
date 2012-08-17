@@ -754,26 +754,25 @@ vs.\ Windows).
 
 \subsubsection{Using PrologScript}	\label{sec:plscript}
 
-New in version 4.0.5 is the possibility to use a Prolog source file
-directly as a Unix script-file.  The same mechanism is useful to
-specify additional parameters for running a Prolog file on Windows.
-
-If the first letter of a Prolog file is \verb$#$, the first line is
-treated as comment.%
-	\footnote{The \texttt{\#}-sign can be the legal start of a
-	normal Prolog clause. In the unlikely case this is required,
-	leave the first line blank or add a header-comment.}
-To create a Prolog script, make the first line start like this:
+A Prolog source file can be used directly as a Unix program using the
+Unix \verb$#!$ magic start. The same mechanism is useful for specifying
+additional parameters for running a Prolog file on Windows. The Unix
+\verb$#!$ magic is allowed because if the first letter of a Prolog file
+is \verb$#$, the first line is treated as comment.\footnote{The
+\texttt{\#}-sign can be the legal start of a normal Prolog clause. In
+the unlikely case this is required, leave the first line blank or add a
+header-comment.} To create a Prolog script, make the first line start
+like this:
 
 \begin{quote}
-\verb$#!/path/to/pl$ <options> \verb$-s$
+\verb$#!/path/to/swipl$ <options> \verb$-s$
 \end{quote}
 
 Prolog recognises this starting sequence and causes the interpreter
 to receive the following argument-list:
 
 \begin{quote}
-\verb$/path/to/pl$ <options> \verb$-s$ <script> \verb$--$ <ScriptArguments>
+\verb$/path/to/swipl$ <options> \verb$-s$ <script> \verb$--$ <ScriptArguments>
 \end{quote}
 
 Instead of \cmdlineoption{-s}, the user may use \cmdlineoption{-f} to
@@ -782,7 +781,7 @@ stop Prolog from looking for a personal initialisation file.
 Here is a simple script doing expression evaluation:
 
 \begin{code}
-#!/usr/bin/pl -q -t main -f
+#!/usr/bin/swipl -q -t main -f
 
 eval :-
 	current_prolog_flag(argv, Argv),
@@ -810,24 +809,23 @@ ERROR: Arithmetic: `foo/0' is not a function
 \end{code}
 
 \paragraph{The Windows version} supports the \verb$#!$ construct too,
-but here it serves a rather different role.  The Windows shell already
+but here it serves a rather different role. The Windows shell already
 allows the user to start Prolog source files directly through the
-Windows file-type association.  Windows however makes it rather
-complicated to provide additional parameters, such as the required
-stack-size for an individual Prolog file.  The \verb$#!$ line provides
-for this, providing a more flexible approach than changing the global
-defaults.  The following starts Prolog with unlimited stack-size on
-the given source file:
+Windows file-type association. However, Windows makes it rather
+complicated to provide additional parameters for opening an individual
+Prolog file. If the file starts with \verb$#!$, the first line is
+analysed to obtain additional commandline arguments. The example below
+runs the system in `quiet' mode.
 
 \begin{code}
-#!/usr/bin/pl -L0 -T0 -G0 -s
+#!/usr/bin/swipl -q -s
 
 ....
 \end{code}
 
-Note the use of \verb$/usr/bin/pl$, which specifies the interpreter.
-This argument is ignored in the Windows version, but required to ensure
-best cross-platform compatibility.
+Note the use of \verb$/usr/bin/swipl$, which specifies the interpreter.
+This argument is ignored in the Windows version, but must be present to
+ensure best cross-platform compatibility.
 
 
 \subsubsection{Creating a shell-script}		\label{sec:shellscript}
@@ -846,7 +844,7 @@ arguments.
 #!/bin/sh
 
 base=<absolute-path-to-source>
-PL=pl
+PL=swipl
 
 exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" \
 	 -t go -- $*
@@ -1017,17 +1015,19 @@ Current break-level. The initial toplevel (started with
 \cmdlineoption{-t}) has value 0. See break/0. This flag is absent from
 threads that are not running a toplevel loop.
 
-    \prologflagitem{c_cc}{atom}{r}
+    \prologflagitem{c_cc}{atom}{rw}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
 or cc.  See \secref{plld}.
 
-    \prologflagitem{c_ldflags}{atom}{r}
-Special linker flags passed to link SWI-Prolog.  See \secref{plld}.
+    \prologflagitem{c_cflags}{atom}{rw}
+CFLAGS used to compile SWI-Prolog.  See \secref{plld}.
 
-    \prologflagitem{c_libs}{atom}{r}
-Libraries passed to the C-linker when SWI-Prolog was linked.  May be used
-to determine the libraries needed to create statically linked extensions
-for SWI-Prolog.  See \secref{plld}.
+    \prologflagitem{c_ldflags}{atom}{rw}
+LDFLAGS used to link SWI-Prolog. See \secref{plld}.
+
+    \prologflagitem{c_libs}{atom}{rw}
+Libraries needed to link extensions to SWI-Prolog.  Typically empty on
+ELF systems and \const{-lswipl} on COFF based systems. See \secref{plld}.
 
     \prologflagitem{char_conversion}{bool}{rw}
 Determines whether character-conversion takes place while reading terms.
@@ -1037,6 +1037,11 @@ See also char_conversion/2.
 If \const{true} (default), read/1 interprets \verb$\$ escape sequences
 in quoted atoms and strings. May be changed. This flag is local to the
 module in which it is changed.
+
+    \prologflagitem{colon_sets_calling_context}{bool}{ro}
+Using the construct <module>:<goal> sets the \jargon{calling context}
+for executing <goal>.  This flag is defined by ISO/IEC 13211-2 (Prolog
+modules standard).  See \secref{modules}.
 
     \prologflagitem{compile_meta_arguments}{atom}{rw}
 Experimental flag that controls compilation of arguments passed to
@@ -1508,9 +1513,10 @@ If \const{true} the normal consult message will be printed if a library
 is autoloaded. By default this message is suppressed. Intended to be
 used for debugging purposes.
 
-    \prologflagitem{verbose_load}{bool}{rw}
-If \const{false} normal consult messages will be suppressed.  Default is
-\const{true}.  The value of this flag is normally controlled by the
+    \prologflagitem{verbose_load}{atom}{rw}
+Determines messages printed for loading (compiling) Prolog files.
+Current values are \const{full}, \const{normal} (default) and
+\const{silent}. The value of this flag is normally controlled by the
 option \term{silent}{Bool} provided by load_files/2.
 
     \prologflagitem{verbose_file_search}{bool}{rw}
@@ -1534,6 +1540,11 @@ to \const{[]}.
     \prologflagitem{version_git}{atom}{r}
 Available if created from a git repository.  See \program{git-describe}
 for details.
+
+    \prologflagitem{warn_override_implicit_import}{bool}{rw}
+If \const{true} (default), a warning is printed if an implicitly
+imported predicate is clobbered by a local definition.  See
+use_module/1 for details.
 
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
@@ -1818,8 +1829,11 @@ Within quoted atoms (using single quotes: \exam{'<atom>'}) special
 characters are represented using escape sequences. An escape sequence is
 led in by the backslash (\chr{\}) character. The list of escape
 sequences is compatible with the ISO standard but contains some
-extensions, and the interpretation of numerically specified characters is
-slightly more flexible to improve compatibility.
+extensions, and the interpretation of numerically specified characters
+is slightly more flexible to improve compatibility.  Undefined escape
+characters raise a \const{syntax_error} exception.\footnote{Up to
+SWI-Prolog~6.1.9, undefined escape characters were copied verbatim,
+i.e., removing the backslash.}
 
 \begin{description}
     \escapeitem{a}
@@ -1829,20 +1843,21 @@ Backspace character.
     \escapeitem{c}
 No output.  All input characters up to but not including the first
 non-layout character are skipped.  This allows for the specification
-of pretty-looking long lines.  For compatibility with Quintus Prolog.
-Not supported by ISO.  Example:
+of pretty-looking long lines.  Not supported by ISO.  Example:
 \begin{code}
 format('This is a long line that looks better if it was \c
        split across multiple physical lines in the input')
 \end{code}
-    \escapeitem{\bnfmeta{{\sc RETURN}}}
-No output.  Skips input to the next non-layout character or to the
-end of the next line.  ISO demands skipping only the newline.  We
-advise using \verb$\c$ or putting the layout \emph{before} the \chr{\},
-as shown below.  Using \verb$\c$ is supported by various other Prolog
-implementations and will remain supported by SWI-Prolog.  The style
-shown below is the most compatible solution.\footnote{Future versions
-are likely to interpret \chr{\}<return> according to ISO.}
+    \escapeitem{\bnfmeta{{\sc NEWLINE}}}
+When in ISO mode (see the Prolog flag \prologflag{iso}), only skip this
+sequence. In native mode, white-space that follows the newline are
+skipped as well and a warning is printed, indicating that this construct
+is deprecated and advicing to use \verb$\c$. We advise using \verb$\c$
+or putting the layout \emph{before} the \chr{\}, as shown below. Using
+\verb$\c$ is supported by various other Prolog implementations and will
+remain supported by SWI-Prolog. The style shown below is the most
+compatible solution.\footnote{Future versions will interpret
+\chr{\}<return> according to ISO.}
 
 \begin{code}
 format('This is a long line that looks better if it was \
@@ -1890,22 +1905,24 @@ set.
     \escapeitem{40}
 Octal character specification.  The rules and remarks for hexadecimal
 specifications apply to octal specifications as well.
-    \escapeitem{<character>}
-Any character immediately preceded by a \chr{\} and not covered by the
-above escape sequences is copied verbatim. Thus, \verb$'\\'$ is an atom
-consisting of a single \chr{\} and \verb$'\''$ and \verb$''''$ both
-describe the atom with a single~\verb$'$.
+    \escapeitem{\}
+Escapes the backslash itself.  This, \verb$'\\'$ is an atom
+consisting of a single \chr{\}.
+    \escapeitem{quote}
+If the current quote (\chr{"} or \chr{'}) is preceeded by a backslash,
+it is copied verbatim. Thus, \verb$'\''$ and \verb$''''$ both describe
+the atom with a single~\verb$'$.
 \end{description}
 
 Character escaping is only available if
 \exam{current_prolog_flag(character_escapes, true)} is active (default).
 See current_prolog_flag/2. Character escapes conflict with writef/2 in
-two ways: \verb$\40$ is interpreted as decimal 40 by writef/2, but
-as octal 40 (decimal 32) by \verb$read$.
-Also, \fmtseq{\l} is translated to a single `l'. It is advised
-to use the more widely supported format/[2,3] predicate instead. If you
-insist upon using writef/2, either switch \prologflag{character_escapes} to
-\const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
+two ways: \verb$\40$ is interpreted as decimal 40 by writef/2, but as
+octal 40 (decimal 32) by \verb$read$. Also, the writef/2 sequence
+\fmtseq{\l} is illegal. It is advised to use the more widely supported
+format/[2,3] predicate instead. If you insist upon using writef/2,
+either switch \prologflag{character_escapes} to \const{false}, or use
+double \fmtseq{\\}, as in \verb$writef('\\l')$.
 
 \subsubsection{Syntax for non-decimal numbers}	\label{sec:nondecsyntax}
 
@@ -2119,25 +2136,30 @@ reference). Calls with an instantiated first argument and less than
 this index key.
 
     \item [Hash lookup]
-If none of the above applies, the system considers the available
-hash tables for which the corresponding argument is instantiated. If one
-or more of such tables exist, it selects the most selective one. If no
-such table exists, it iterates over all instantiated arguments and
-computes the hash-opportunity for each argument by processing the
-virtual machine code for each clause. If the best table has acceptable
-characteristics, this table is created and associated with the
-predicate.
-
-If an argument is considered unsuitable for indexing, it is added to a
-bit vector to avoid repeated re-evaluation. This also indicates the
-worst case scenario: a call where it is not possible to create an index
-for any of the instantiated argument(s) will continuously scan the
-instantiation pattern of the call and test the bit vector.
+If none of the above applies, the system considers the available hash
+tables for which the corresponding argument is instantiated. If a table
+is found with acceptable characteristics, it is used. Otherwise, there
+are two cases. First, if no hash table is available for the instantiated
+arguments, it assesses the clauses for all instantiated arguments and
+selects the best candidate for creating a hash table. Arguments that
+cannot be indexed are flagged to avoid repeated scanning. Second, if
+there is a hash table for an indexed argument but it has poor
+characteristics, the system scans other instantiated arguments to see
+whether it can create a better hash table. The system maintains a bit
+vector on each table in which is marks arguments that are less suitable
+than the argument to which the table belongs.
 
 Clauses that have a variable at an otherwise indexable argument must be
 linked into all hash buckets. Currently, predicates that have more than
 10\% such clauses for a specific argument are not considered for
 indexing on that argument.
+
+Disregarding variables, the suitability of an argument for hashing is
+expressed as the number of unique indexable values devided by the
+standard deviation of the number of duplicate values for each value plus
+one.\footnote{Earlier versions simply used the number of unique values,
+but poor distribution of values makes a table less suitable.  This was
+analysed by Fabien Noth and G\"unter Kniesel.}
 
 The indexes of dynamic predicates are deleted if the number of clauses
 is doubled since its creation or reduced below 1/4th. The JIT approach
@@ -2418,7 +2440,7 @@ relatively cheap, removing it is harder.
     \item[Atoms and Strings]
 SWI-Prolog has no limits on the sizes of atoms and strings.  read/1 and
 its derivatives however normally limit the number of newlines in an atom
-or string to 5 to improve error detection and recovery.  This can be
+or string to 6 to improve error detection and recovery.  This can be
 switched off with style_check/1.
 
 The number of atoms is limited to 16777216 (16M) on 32-bit machines.  On

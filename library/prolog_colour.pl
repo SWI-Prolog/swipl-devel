@@ -41,7 +41,6 @@
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
-:- use_module(library(edit)).
 :- use_module(library(error)).
 :- use_module(library(option)).
 :- use_module(library(record)).
@@ -76,6 +75,8 @@ This module defines reusable code to colourise Prolog source.
 
 :- record
 	colour_state(source_id,
+		     module,
+		     stream,
 		     closure,
 		     singletons).
 
@@ -94,11 +95,12 @@ This module defines reusable code to colourise Prolog source.
 
 prolog_colourise_stream(Fd, SourceId, ColourItem) :-
 	make_colour_state([ source_id(SourceId),
+			    stream(Fd),
 			    closure(ColourItem)
 			  ],
 			  TB),
 	setup_call_cleanup(
-	    save_settings(State),
+	    save_settings(TB, State),
 	    colourise_stream(Fd, TB),
 	    restore_settings(State)).
 
@@ -108,7 +110,7 @@ colourise_stream(Fd, TB) :-
 	;   true
 	),
 	repeat,
-	    '$set_source_module'(SM, SM),
+	    colour_state_module(TB, SM),
 	    character_count(Fd, Start),
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
@@ -129,28 +131,65 @@ colourise_stream(Fd, TB) :-
 	    ),
 	    Term == end_of_file, !.
 
-save_settings(state(Style, Esc)) :-
+save_settings(TB, state(Style, Esc, OSM)) :-
+	(   source_module(TB, SM)
+	->  true
+	;   SM = prolog_colour_ops
+	),
+	'$set_source_module'(OSM, SM),
+	colour_state_module(TB, SM),
 	push_operators([]),
 	current_prolog_flag(character_escapes, Esc),
 	'$style_check'(Style, Style).
 
-restore_settings(state(Style, Esc)) :-
+restore_settings(state(Style, Esc, OSM)) :-
 	set_prolog_flag(character_escapes, Esc),
 	'$style_check'(_, Style),
-	pop_operators.
+	pop_operators,
+	'$set_source_module'(_, OSM).
+
+%%	source_module(+State, -Module) is semidet.
+%
+%	True when Module is the module context   into  which the file is
+%	loaded. This is the module of the file if File is a module file,
+%	or the load context of  File  if   File  is  not included or the
+%	module context of the file into which the file was included.
+
+source_module(TB, Module) :-
+	(   colour_state_source_id(TB, File),
+	    atom(File)
+	;   colour_state_stream(TB, Fd),
+	    stream_property(Fd, file_name(File))
+	),
+	module_context(File, [], Module).
+
+module_context(File, _, Module) :-
+	source_file_property(File, module(Module)), !.
+module_context(File, Seen, Module) :-
+	source_file_property(File, included_in(File2, _Line)),
+	\+ memberchk(File, Seen), !,
+	module_context(File2, [File|Seen], Module).
+module_context(File, _, Module) :-
+	source_file_property(File, load_context(Module, _, _)).
+
 
 %%	read_error(+Error, +TB, +Stream, +Start) is failure.
 %
 %	If this is a syntax error, create a syntax-error fragment.
 
 read_error(Error, TB, Stream, Start) :-
-	(   Error = error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo))
+	(   syntax_error(Error, Id, CharNo)
 	->  message_to_string(error(syntax_error(Id), _), Msg),
 	    character_count(Stream, End),
 	    show_syntax_error(TB, CharNo:Msg, Start-End),
 	    fail
 	;   throw(Error)
 	).
+
+syntax_error(error(syntax_error(Id), stream(_S, _Line, _LinePos, CharNo)),
+	     Id, CharNo).
+syntax_error(error(syntax_error(Id), file(_S, _Line, _LinePos, CharNo)),
+	     Id, CharNo).
 
 %%	colour_item(+Class, +TB, +Pos) is det.
 
@@ -162,21 +201,21 @@ colour_item(Class, TB, Pos) :-
 	call(Closure, Class, Start, Len).
 
 
-%%	safe_push_op(+Prec, +Type, :Name)
+%%	safe_push_op(+Prec, +Type, :Name, +State)
 %
 %	Define operators into the default source module and register
 %	them to be undone by pop_operators/0.
 
-safe_push_op(P, T, N0) :-
+safe_push_op(P, T, N0, State) :-
 	(   N0 = _:_
 	->  N = N0
-	;   '$set_source_module'(M, M),
+	;   colour_state_module(State, M),
 	    N = M:N0
 	),
 	push_op(P, T, N),
 	debug(colour, ':- ~w.', [op(P,T,N)]).
 
-%%	fix_operators(+Term, +Src) is det.
+%%	fix_operators(+Term, +State) is det.
 %
 %	Fix flags that affect the  syntax,   such  as operators and some
 %	style checking options. Src is the  canonical source as required
@@ -188,11 +227,11 @@ fix_operators(_, _).
 
 process_directive(style_check(X), _) :- !,
 	style_check(X).
-process_directive(op(P,T,N), _) :- !,
-	safe_push_op(P, T, N).
-process_directive(module(_Name, Export), _) :- !,
+process_directive(op(P,T,N), Src) :- !,
+	safe_push_op(P, T, N, Src).
+process_directive(module(_Name, Export), Src) :- !,
 	forall(member(op(P,A,N), Export),
-	       safe_push_op(P,A,N)).
+	       safe_push_op(P,A,N, Src)).
 process_directive(use_module(Spec), Src) :- !,
 	catch(process_use_module(Spec, Src), _, true).
 process_directive(Directive, Src) :-
@@ -209,7 +248,7 @@ process_use_module([H|T], Src) :- !,
 process_use_module(File, Src) :-
 	(   xref_public_list(File, _Path, Public, Src)
 	->  forall(member(op(P,T,N), Public),
-		   safe_push_op(P,T,N))
+		   safe_push_op(P,T,N,Src))
 	;   true
 	).
 
@@ -228,15 +267,20 @@ process_use_module(File, Src) :-
 
 prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 	make_colour_state([ source_id(SourceId),
+			    stream(Stream),
 			    closure(ColourItem)
 			  ],
 			  TB),
 	option(subterm_positions(TermPos), Options, _),
 	findall(Op, xref_op(SourceId, Op), Ops),
 	character_count(Stream, Start),
+	(   source_module(TB, Module)
+	->  true
+	;   Module = prolog_colour_ops
+	),
 	read_source_term_at_location(
 	    Stream, Term,
-	    [ module(prolog_colour),
+	    [ module(Module),
 	      operators(Ops),
 	      error(Error),
 	      subterm_positions(TermPos),
@@ -355,22 +399,22 @@ colourise_clause_head(Head, TB, Pos) :-
 	->  classify_head(TB, Head, Class)
 	;   Class = ClassSpec
 	),
-	colour_item(head(Class), TB, FPos),
+	colour_item(head(Class, Head), TB, FPos),
 	specified_items(ArgSpecs, Head, TB, ArgPos).
 colourise_clause_head(Head, TB, Pos) :-
 	functor_position(Pos, FPos, _),
 	classify_head(TB, Head, Class),
-	colour_item(head(Class), TB, FPos),
+	colour_item(head(Class, Head), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
-%	colourise_extern_head(+Head, +Module, +TB, +Pos)
+%%	colourise_extern_head(+Head, +Module, +TB, +Pos)
 %
 %	Colourise the head specified as Module:Head. Normally used for
 %	adding clauses to multifile predicates in other modules.
 
 colourise_extern_head(Head, M, TB, Pos) :-
 	functor_position(Pos, FPos, _),
-	colour_item(head(extern(M)), TB, FPos),
+	colour_item(head(extern(M), Head), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
 colour_method_head(SGHead, TB, Pos) :-
@@ -530,7 +574,7 @@ colourise_goal(Goal, _, TB, list_position(F,T,Elms,_)) :- !,
 	AT is T - 1,
 	colour_item(goal(built_in, Goal), TB, F-FT),
 	colour_item(goal(built_in, Goal), TB, AT-T),
-	colourise_file_list(Goal, TB, Elms).
+	colourise_file_list(Goal, TB, Elms, any).
 colourise_goal(Goal, Origin, TB, Pos) :-
 	nonvar(Goal),
 	goal_colours(Goal, ClassSpec-ArgSpecs), !, % specified
@@ -584,6 +628,9 @@ colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
 colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
 	expand_meta(MetaSpec, Arg, Expanded), !,
 	colourise_goal(Expanded, [], TB, Pos). % TBD: recursion
+colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
+	MetaSpec == //, !,
+	colourise_dcg_goals(Arg, //, TB, Pos).
 colourise_meta_arg(_, Arg, TB, Pos) :-
 	colourise_term_arg(Arg, TB, Pos).
 
@@ -613,7 +660,7 @@ instantiate_meta([H|T]) :-
 	),
 	instantiate_meta(T).
 
-%	expand_meta(+MetaSpec, +Goal, -Expanded)
+%%	expand_meta(+MetaSpec, +Goal, -Expanded) is semidet.
 %
 %	Add extra arguments to the goal if the meta-specifier is an
 %	integer (see above).
@@ -655,7 +702,7 @@ colourise_db(Module:Head, TB, term_position(_,_,_,_,[MP,HP])) :- !,
 	    colour_state_source_id(TB, SourceId),
 	    xref_module(SourceId, Module)
 	->  colourise_db(Head, TB, HP)
-	;   true			% TBD: Modifying in other module
+	;   colourise_db(Head, TB, HP)
 	).
 colourise_db(Head, TB, Pos) :-
 	colourise_goal(Head, '<db-change>', TB, Pos).
@@ -729,6 +776,9 @@ colour_option_values([], [], _, _).
 colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 	(   (   var(V0)
 	    ;	is_of_type(T0, V0)
+	    ;	T0 = list(_),
+		member(E, V0),
+		var(E)
 	    )
 	->  colourise_term_arg(V0, TB, P0)
 	;   callable(V0),
@@ -742,32 +792,47 @@ colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 	colour_option_values(TV, TT, TB, TP).
 
 
-%%	colourise_files(+Arg, +TB, +Pos)
+%%	colourise_files(+Arg, +TB, +Pos, +Why)
 %
 %	Colourise the argument list of one of the file-loading predicates.
+%
+%	@param Why is one of =any= or =imported=
 
-colourise_files(List, TB, list_position(_,_,Elms,_)) :- !,
-	colourise_file_list(List, TB, Elms).
-colourise_files(M:Spec, TB, term_position(_,_,_,_,[MP,SP])) :- !,
+colourise_files(List, TB, list_position(_,_,Elms,_), Why) :- !,
+	colourise_file_list(List, TB, Elms, Why).
+colourise_files(M:Spec, TB, term_position(_,_,_,_,[MP,SP]), Why) :- !,
 	colour_item(module(M), TB, MP),
-	colourise_files(Spec, TB, SP).
-colourise_files(Var, TB, P) :-
+	colourise_files(Spec, TB, SP, Why).
+colourise_files(Var, TB, P, _) :-
 	var(Var), !,
 	colour_item(var, TB, P).
-colourise_files(Spec0, TB, Pos) :-
+colourise_files(Spec0, TB, Pos, Why) :-
 	strip_module(Spec0, _, Spec),
 	(   colour_state_source_id(TB, Source),
 	    prolog_canonical_source(Source, SourceId),
 	    catch(xref_source_file(Spec, Path, SourceId), _, fail)
-	->  colour_item(file(Path), TB, Pos)
+	->  (   Why = imported,
+	        \+ resolves_anything(TB, Path),
+		exports_something(TB, Path)
+	    ->	colour_item(file_no_depend(Path), TB, Pos)
+	    ;	colour_item(file(Path), TB, Pos)
+	    )
 	;   colour_item(nofile, TB, Pos)
 	).
 
-colourise_file_list([], _, _).
-colourise_file_list([H|T], TB, [PH|PT]) :-
-	colourise_files(H, TB, PH),
-	colourise_file_list(T, TB, PT).
+colourise_file_list([], _, _, _).
+colourise_file_list([H|T], TB, [PH|PT], Why) :-
+	colourise_files(H, TB, PH, Why),
+	colourise_file_list(T, TB, PT, Why).
 
+resolves_anything(TB, Path) :-
+	colour_state_source_id(TB, SourceId),
+	xref_defined(SourceId, Head, imported(Path)),
+	xref_called(SourceId, Head, _), !.
+
+exports_something(TB, Path) :-
+	colour_state_source_id(TB, SourceId),
+	xref_defined(SourceId, _, imported(Path)), !.
 
 %%	colourise_directory(+Arg, +TB, +Pos)
 %
@@ -905,6 +970,14 @@ colourise_import(PI as Name, File, TB, term_position(_,_,FF,FT,[PP,NP])) :-
 	goal_classification(TB, NewGoal, [], Class),
 	colour_item(goal(Class, NewGoal), TB, NP),
 	colour_item(keyword(as), TB, FF-FT).
+colourise_import(PI, File, TB, Pos) :-
+	pi_to_term(PI, Goal),
+	colour_state_source_id(TB, SourceID),
+	(   \+ xref_defined(SourceID, Goal, imported(File))
+	->  colour_item(undefined_import, TB, Pos)
+	;   \+ xref_called(SourceID, Goal, _)
+	->  colour_item(unused_import, TB, Pos)
+	), !.
 colourise_import(PI, _, TB, Pos) :-
 	colourise_declaration(PI, TB, Pos).
 
@@ -914,12 +987,19 @@ colourise_import(PI, _, TB, Pos) :-
 %	Colourise the Predicate indicator lists of dynamic, multifile, etc
 %	declarations.
 
+colourise_declarations(List, TB, list_position(_,_,Elms,none)) :- !,
+	colourise_list_declarations(List, TB, Elms).
 colourise_declarations((Head,Tail), TB,
 		       term_position(_,_,_,_,[PH,PT])) :- !,
 	colourise_declaration(Head, TB, PH),
 	colourise_declarations(Tail, TB, PT).
 colourise_declarations(Last, TB, Pos) :-
 	colourise_declaration(Last, TB, Pos).
+
+colourise_list_declarations([], _, []).
+colourise_list_declarations([H|T], TB, [HP|TP]) :-
+	colourise_declaration(H, TB, HP),
+	colourise_list_declarations(T, TB, TP).
 
 colourise_declaration(PI, TB, Pos) :-
 	pi_to_term(PI, Goal), !,
@@ -971,10 +1051,10 @@ body_compiled((_*->_)).
 body_compiled((_;_)).
 body_compiled(\+_).
 
-%	goal_classification(+TB, +Goal, +Origin, -Class)
+%%	goal_classification(+TB, +Goal, +Origin, -Class)
 %
 %	Classify Goal appearing in TB and called from a clause with head
-%	Origin.  For directives Origin is [].
+%	Origin.  For directives, Origin is [].
 
 goal_classification(_, Goal, _, meta) :-
 	var(Goal), !.
@@ -988,6 +1068,12 @@ goal_classification(TB, Goal, _, How) :-
 	How \= public(_), !.
 goal_classification(_TB, Goal, _, Class) :-
 	goal_classification(Goal, Class), !.
+goal_classification(TB, Goal, _, How) :-
+	colour_state_module(TB, Module),
+	atom(Module),
+	Module \== prolog_colour_ops,
+	predicate_property(Module:Goal, imported_from(From)), !,
+	How = imported(From).
 goal_classification(_TB, _Goal, _, undefined).
 
 %	goal_classification(+Goal, -Class)
@@ -997,8 +1083,7 @@ goal_classification(_TB, _Goal, _, undefined).
 goal_classification(Goal, built_in) :-
 	built_in_predicate(Goal), !.
 goal_classification(Goal, autoload) :-	% SWI-Prolog
-	functor(Goal, Name, Arity),
-	'$in_library'(Name, Arity, _Path), !.
+	predicate_property(Goal, autoload(_)).
 goal_classification(Goal, global) :-	% SWI-Prolog
 	current_predicate(_, user:Goal), !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
@@ -1017,34 +1102,59 @@ classify_head(TB, Goal, hook) :-
 	colour_state_source_id(TB, SourceId),
 	xref_module(SourceId, M),
 	xref_hook(M:Goal), !.
+classify_head(TB, Goal, Class) :-
+	built_in_predicate(Goal),
+	(   system_module(TB)
+	->  (   predicate_property(system:Goal, iso)
+	    ->	Class = def_iso
+	    ;	goal_name(Goal, Name),
+		\+ sub_atom(Name, 0, _, _, $)
+	    ->	Class = def_swi
+	    )
+	;   (   predicate_property(system:Goal, iso)
+	    ->  Class = iso
+	    ;   Class = built_in
+	    )
+	).
 classify_head(TB, Goal, unreferenced) :-
 	colour_state_source_id(TB, SourceId),
 	\+ (xref_called(SourceId, Goal, By), By \= Goal), !.
 classify_head(TB, Goal, How) :-
 	colour_state_source_id(TB, SourceId),
-	xref_defined(SourceId, Goal, How), !.
-classify_head(_TB, Goal, built_in) :-
-	built_in_predicate(Goal), !.
+	(   xref_defined(SourceId, Goal, imported(From))
+	->  How = imported(From)
+	;   xref_defined(SourceId, Goal, How)
+	), !.
 classify_head(_TB, _Goal, undefined).
 
 built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
-built_in_predicate(module(_, _)).
+built_in_predicate(module(_, _)).	% reserved expanded constructs
 built_in_predicate(if(_)).
 built_in_predicate(elif(_)).
 built_in_predicate(else).
 built_in_predicate(endif).
 
+goal_name(_:G, Name) :- nonvar(G), !, goal_name(G, Name).
+goal_name(G, Name) :- callable(G), functor(G, Name, _).
+
+system_module(TB) :-
+	colour_state_source_id(TB, SourceId),
+	xref_module(SourceId, M),
+	module_property(M, class(system)).
+
+
 %	Specify colours for individual goals.
 
 goal_colours(module(_,_),	     built_in-[identifier,exports]).
-goal_colours(use_module(_),	     built_in-[file]).
+goal_colours(use_module(_),	     built_in-[imported_file]).
 goal_colours(use_module(File,_),     built_in-[file,imports(File)]).
 goal_colours(reexport(_),	     built_in-[file]).
 goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
 goal_colours(dynamic(_),	     built_in-[predicates]).
 goal_colours(thread_local(_),	     built_in-[predicates]).
 goal_colours(module_transparent(_),  built_in-[predicates]).
+goal_colours(discontiguous(_),	     built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(public(_),		     built_in-[predicates]).
@@ -1142,16 +1252,22 @@ def_style(goal(constraint(_),_),   [colour(darkcyan)]).
 def_style(option_name,		   [colour('#3434ba')]).
 def_style(no_option_name,	   [colour(red)]).
 
-def_style(head(exported),	   [colour(blue), bold(true)]).
-def_style(head(public(_)),	   [colour('#016300'), bold(true)]).
-def_style(head(extern(_)),	   [colour(blue), bold(true)]).
-def_style(head(dynamic),	   [colour(magenta), bold(true)]).
-def_style(head(multifile),	   [colour(navy_blue), bold(true)]).
-def_style(head(unreferenced),	   [colour(red), bold(true)]).
-def_style(head(hook),		   [colour(blue), underline(true)]).
-def_style(head(meta),		   []).
-def_style(head(constraint(_)),	   [colour(darkcyan), bold(true)]).
-def_style(head(_),		   [bold(true)]).
+def_style(head(exported,_),	   [colour(blue), bold(true)]).
+def_style(head(public(_),_),	   [colour('#016300'), bold(true)]).
+def_style(head(extern(_),_),	   [colour(blue), bold(true)]).
+def_style(head(dynamic,_),	   [colour(magenta), bold(true)]).
+def_style(head(multifile,_),	   [colour(navy_blue), bold(true)]).
+def_style(head(unreferenced,_),	   [colour(red), bold(true)]).
+def_style(head(hook,_),		   [colour(blue), underline(true)]).
+def_style(head(meta,_),		   []).
+def_style(head(constraint(_),_),   [colour(darkcyan), bold(true)]).
+def_style(head(imported(_),_),	   [colour(darkgoldenrod4), bold(true)]).
+def_style(head(built_in,_),	   [background(orange), bold(true)]).
+def_style(head(iso,_),		   [background(orange), bold(true)]).
+def_style(head(def_iso,_),	   [colour(blue), bold(true)]).
+def_style(head(def_swi,_),	   [colour(blue), bold(true)]).
+def_style(head(_,_),		   [bold(true)]).
+
 def_style(module(_),		   [colour(dark_slate_blue)]).
 def_style(comment,		   [colour(dark_green)]).
 
@@ -1165,6 +1281,7 @@ def_style(quoted_atom,		   [colour(navy_blue)]).
 def_style(string,		   [colour(navy_blue)]).
 def_style(nofile,		   [colour(red)]).
 def_style(file(_),		   [colour(blue), underline(true)]).
+def_style(file_no_depend(_),	   [colour(blue), underline(true), background(pink)]).
 def_style(directory(_),		   [colour(blue)]).
 def_style(class(built_in,_),	   [colour(blue), underline(true)]).
 def_style(class(library(_),_),	   [colour(navy_blue), underline(true)]).
@@ -1175,6 +1292,8 @@ def_style(class(undefined,_),	   [colour(red), underline(true)]).
 def_style(prolog_data,		   [colour(blue), underline(true)]).
 def_style(flag_name(_),		   [colour(blue)]).
 def_style(no_flag_name(_),	   [colour(red)]).
+def_style(unused_import,	   [colour(blue), background(pink)]).
+def_style(undefined_import,	   [colour(red)]).
 
 def_style(keyword(_),		   [colour(blue)]).
 def_style(identifier,		   [bold(true)]).
@@ -1218,7 +1337,7 @@ term_colours((prolog:Head --> _),
 				       expanded - [ identifier
 						  ]
 				     ],
-			  classify
+			  dcg_body(prolog:Head)
 			]) :-
 	prolog_message_hook(Head).
 
@@ -1347,6 +1466,8 @@ specified_item(extern(M), Term, TB, Pos) :- !,
 					% classify as body
 specified_item(body, Term, TB, Pos) :- !,
 	colourise_body(Term, TB, Pos).
+specified_item(dcg_body(Head), Term, TB, Pos) :- !,
+	colourise_dcg(Term, Head, TB, Pos).
 specified_item(setof, Term, TB, Pos) :- !,
 	colourise_setof(Term, TB, Pos).
 specified_item(meta(MetaSpec), Term, TB, Pos) :- !,
@@ -1359,7 +1480,9 @@ specified_item(db, Term, TB, Pos) :- !,
 	colourise_db(Term, TB, Pos).
 					% files
 specified_item(file, Term, TB, Pos) :- !,
-	colourise_files(Term, TB, Pos).
+	colourise_files(Term, TB, Pos, any).
+specified_item(imported_file, Term, TB, Pos) :- !,
+	colourise_files(Term, TB, Pos, imported).
 					% directory
 specified_item(directory, Term, TB, Pos) :- !,
 	colourise_directory(Term, TB, Pos).

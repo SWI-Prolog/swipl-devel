@@ -129,8 +129,8 @@ check_break(Ref) :-
 	'$clause_term_position'(Ref, NextPC, CrPath),
 	(   CrPath == OkPath
 	->  true
-	;   format('~N~w: Subclause location mismatch:~n\
-		    \tok: ~q~n\
+	;   format('~N~w: Subclause location mismatch:~n\c
+		    \tok: ~q~n\c
 		    \tfound: ~q~n', [Name, OkPath, CrPath]),
 	    assert(error(Name))
 	).

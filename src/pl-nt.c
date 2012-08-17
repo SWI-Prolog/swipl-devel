@@ -24,7 +24,7 @@
 
 #ifdef __WINDOWS__
 #define WINVER 0x0501
-#if (_MSC_VER >= 1300)
+#if (_MSC_VER >= 1300) || __MINGW32__
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
 #else
@@ -33,7 +33,9 @@
 #endif
 
 #ifdef __MINGW32__
+#ifndef _WIN32_IE
 #define _WIN32_IE 0x0400
+#endif
 /* FIXME: these are copied from SWI-Prolog.h. */
 #define PL_MSG_EXCEPTION_RAISED -1
 #define PL_MSG_IGNORED 0
@@ -556,7 +558,7 @@ win_shell(term_t op, term_t file, term_t how)
   { const shell_error *se;
 
     for(se = se_errors; se->message; se++)
-    { if ( se->eno == (int)instance )
+      { if ( se->eno == (int)(intptr_t)instance )
 	return PL_error(NULL, 0, se->message, ERR_SHELL_FAILED, file);
     }
     PL_error(NULL, 0, NULL, ERR_SHELL_FAILED, file);

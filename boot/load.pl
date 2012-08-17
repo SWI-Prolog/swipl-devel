@@ -43,7 +43,8 @@
 :- abolish('$expand_goal'/2),
    asserta(('$expand_goal'(In, Out) :- expand_goal(In, Out))),
    abolish('$expand_term'/2),
-   asserta(('$expand_term'(In, Out) :- expand_term(In, Out))).
+   asserta(('$expand_term'(In, Out) :- expand_term(In, Out))),
+   compile_predicates(['$expand_goal'/2, '$expand_term'/2]).
 
 :- consult([ license,			% requires DCG
 	     syspred,
@@ -59,5 +60,6 @@
 	     qlf,
 	     rc,
 	     predopts,
+	     packs,
 	     user:topvars
 	   ]).

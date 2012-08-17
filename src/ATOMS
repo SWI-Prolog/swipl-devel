@@ -122,6 +122,7 @@ A compound		"compound"
 A context		"context"
 A context_module	"context_module"
 A continue		"continue"
+A copysign		"copysign"
 A core			"core"
 A core_left		"core_left"
 A cos			"cos"
@@ -295,6 +296,8 @@ A history_depth		"history_depth"
 A ifthen		"->"
 A ignore		"ignore"
 A ignore_ops		"ignore_ops"
+A import_into		"import_into"
+A import_type		"import_type"
 A imported		"imported"
 A imported_procedure	"imported_procedure"
 A index			"index"
@@ -427,6 +430,7 @@ A optimise		"optimise"
 A or			"or"
 A order			"order"
 A output		"output"
+A owner			"owner"
 A pair			"pair"
 A paren			"paren"
 A parent		"parent"
@@ -456,6 +460,7 @@ A print_message		"print_message"
 A priority		"priority"
 A private_procedure	"private_procedure"
 A procedure		"procedure"
+A process_comment	"process_comment"
 A process_cputime	"process_cputime"
 A profile_mode		"profile_mode"
 A profile_no_cpu_time	"profile_no_cpu_time"
@@ -515,6 +520,7 @@ A running		"running"
 A runtime		"runtime"
 A save_class		"save_class"
 A save_option		"save_option"
+A see			"see"
 A seed			"seed"
 A seek_method		"seek_method"
 A select		"select"
@@ -571,6 +577,7 @@ A stream_type_check	"stream_type_check"
 A strict_equal		"=="
 A string		"string"
 A string_position	"string_position"
+A strong		"strong"
 A subterm_positions	"subterm_positions"
 A suffix		"suffix"
 A syntax_error		"syntax_error"
@@ -670,6 +677,7 @@ A wait			"wait"
 A wakeup		"wakeup"
 A walltime		"walltime"
 A warning		"warning"
+A weak			"weak"
 A wchar_t		"wchar_t"
 A when_condition	"when_condition"
 A white			"white"
@@ -729,6 +737,7 @@ F codes			2
 F colon			2
 F comma			2
 F context		2
+F copysign		2
 F cos			1
 F cputime		0
 F curl			1
@@ -797,7 +806,9 @@ F goal_expansion	2
 F ground		1
 F hat			2
 F ifthen		2
+F import_into		1
 F input			0
+F input			3
 F integer		1
 F interrupt		1
 F io_error		2
@@ -852,6 +863,7 @@ F random_float		0
 F rational		1
 F rationalize		1
 F rdiv			2
+F redo			1
 F rem			2
 F reposition		1
 F representation_error	1

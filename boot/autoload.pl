@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -103,9 +101,22 @@ user:file_search_path(autoload, library(.)).
 		*          UPDATE INDEX		*
 		********************************/
 
+:- thread_local
+	silent/0.
+
+%%	'$update_library_index'
+%
+%	Called from make/0 to update the index   of the library for each
+%	library directory that has a writable   index.  Note that in the
+%	Windows  version  access_file/2  is  mostly   bogus.  We  assert
+%	silent/0 to suppress error messages.
+
 '$update_library_index' :-
-	setof(Dir, indexed_directory(Dir), Dirs), !,
-	guarded_make_library_index(Dirs),
+	setof(Dir, writable_indexed_directory(Dir), Dirs), !,
+	setup_call_cleanup(
+	    asserta(silent, Ref),
+	    guarded_make_library_index(Dirs),
+	    erase(Ref)),
 	(   flag('$modified_index', true, false)
 	->  reload_library_index
 	;   true
@@ -121,11 +132,15 @@ guarded_make_library_index([Dir|Dirs]) :-
 	),
 	guarded_make_library_index(Dirs).
 
+%%	writable_indexed_directory(-Dir) is nondet.
+%
+%	True when Dir is an indexed   library  directory with a writable
+%	index, i.e., an index that can be updated.
 
-indexed_directory(Dir) :-
+writable_indexed_directory(Dir) :-
 	index_file_name(IndexFile, [access(read), access(write)]),
 	file_directory_name(IndexFile, Dir).
-indexed_directory(Dir) :-
+writable_indexed_directory(Dir) :-
 	absolute_file_name(library('MKINDEX'),
 			   [ file_type(prolog),
 			     access(read),
@@ -220,9 +235,13 @@ read_index([H|T]) :- !,
 read_index(Index) :-
 	print_message(silent, autoload(read_index(Dir))),
 	file_directory_name(Index, Dir),
-	setup_call_cleanup(open(Index, read, In),
-			   read_index_from_stream(Dir, In),
-			   close(In)).
+	setup_call_cleanup(
+	    '$push_input_context'(autoload_index),
+	    setup_call_cleanup(
+		open(Index, read, In),
+		read_index_from_stream(Dir, In),
+		close(In)),
+	    '$pop_input_context').
 
 read_index_from_stream(Dir, In) :-
 	repeat,
@@ -256,15 +275,21 @@ assert_index(Term, Dir) :-
 %	@see make_library_index/2
 
 make_library_index(Dir0) :-
-	absolute_file_name(Dir0, Dir),
-	make_library_index2(Dir).
+	forall(absolute_file_name(Dir0, Dir,
+				  [ expand(true),
+				    file_type(directory),
+				    file_errors(fail),
+				    solutions(all)
+				  ]),
+	       make_library_index2(Dir)).
 
 make_library_index2(Dir) :-
 	plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
 	access_file(AbsMkIndex, read), !,
-	setup_call_cleanup(working_directory(OldDir, Dir),
-			   load_files(user:MkIndex, [silent(true)]),
-			   working_directory(_, OldDir)).
+	setup_call_cleanup(
+	    working_directory(OldDir, Dir),
+	    load_files(user:MkIndex, [silent(true)]),
+	    working_directory(_, OldDir)).
 make_library_index2(Dir) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
 	make_library_index2(Dir, PatternList).
@@ -282,79 +307,92 @@ make_library_index2(Dir) :-
 %	@see make_library_index/1.
 
 make_library_index(Dir0, Patterns) :-
-	absolute_file_name(Dir0, Dir),
-	make_library_index2(Dir, Patterns).
+	forall(absolute_file_name(Dir0, Dir,
+				  [ expand(true),
+				    file_type(directory),
+				    file_errors(fail),
+				    solutions(all)
+				  ]),
+	       make_library_index2(Dir, Patterns)).
 
 make_library_index2(Dir, Patterns) :-
-	plfile_in_dir(Dir, 'INDEX', Index, AbsIndex),
-	access_file(AbsIndex, write), !,
-	working_directory(OldDir, Dir),
-	working_directory(NewDir, NewDir),
-	expand_index_file_patterns(Patterns, Files),
-	(   library_index_out_of_date(Index, Files)
-	->  print_message(informational, make(library_index(NewDir))),
-	    flag('$modified_index', _, true),
-	    call_cleanup(do_make_library_index(Index, Files),
-			 working_directory(_, OldDir))
-	;   working_directory(_, OldDir)
+	plfile_in_dir(Dir, 'INDEX', _Index, AbsIndex),
+	ensure_slash(Dir, DirS),
+	pattern_files(Patterns, DirS, Files),
+	(   library_index_out_of_date(AbsIndex, Files)
+	->  do_make_library_index(AbsIndex, DirS, Files),
+	    flag('$modified_index', _, true)
+	;   true
 	).
-make_library_index2(Dir, _) :-
-	throw(error(permission_error(write, index_file, Dir), _)).
+
+ensure_slash(Dir, DirS) :-
+	(   sub_atom(Dir, _, _, 0, /)
+	->  DirS = Dir
+	;   atom_concat(Dir, /, DirS)
+	).
 
 source_file_pattern(Pattern) :-
 	user:prolog_file_type(PlExt, prolog),
 	atom_concat('*.', PlExt, Pattern).
 
 plfile_in_dir(Dir, Base, PlBase, File) :-
-	once(user:prolog_file_type(PlExt, prolog)),
-	file_name_extension(Base, PlExt, PlBase),
+	file_name_extension(Base, pl, PlBase),
 	atomic_list_concat([Dir, '/', PlBase], File).
 
-expand_index_file_patterns(Patterns, Files) :-
-	phrase(files_from_patterns(Patterns), Files).
-
-files_from_patterns([]) -->
-	[].
-files_from_patterns([P0|PT]) -->
-	{ expand_file_name(P0, Files)
-	},
-	Files,
-	files_from_patterns(PT).
-
+pattern_files([], _, []).
+pattern_files([H|T], DirS, Files) :-
+	atom_concat(DirS, H, P0),
+	expand_file_name(P0, Files0),
+	'$append'(Files0, Rest, Files),
+	pattern_files(T, DirS, Rest).
 
 library_index_out_of_date(Index, _Files) :-
 	\+ exists_file(Index), !.
 library_index_out_of_date(Index, Files) :-
 	time_file(Index, IndexTime),
 	(   time_file('.', DotTime),
-	    DotTime @> IndexTime
+	    DotTime > IndexTime
 	;   '$member'(File, Files),
 	    time_file(File, FileTime),
-	    FileTime @> IndexTime
+	    FileTime > IndexTime
 	), !.
 
 
-do_make_library_index(Index, Files) :-
-	setup_call_cleanup(open(Index, write, Fd),
-			   ( index_header(Fd),
-			     index_files(Files, Fd)
-			   ),
-			   close(Fd)).
+do_make_library_index(Index, Dir, Files) :-
+	ensure_slash(Dir, DirS),
+	catch(setup_call_cleanup(
+		  open(Index, write, Fd),
+		  ( print_message(informational, make(library_index(Dir))),
+		    index_header(Fd),
+		    index_files(Files, DirS, Fd)
+		  ),
+		  close(Fd)),
+	      E, index_error(E)).
+
+index_error(E) :-
+	silent,
+	E = error(permission_error(open, source_sink, _)), !.
+index_error(E) :-
+	print_message(error, E).
 
 
-index_files([], _).
-index_files([File|Files], Fd) :-
-	open(File, read, In),
-	call_cleanup(read(In, Term),
-		     close(In)),
-	(   Term = (:- module(Module, Public))
-	->  file_name_extension(Base, _, File),
+index_files([], _, _).
+index_files([File|Files], DirS, Fd) :-
+	catch(setup_call_cleanup(
+		  open(File, read, In),
+		  read(In, Term),
+		  close(In)),
+	      E, print_message(warning, E)),
+	(   Term = (:- module(Module, Public)),
+	    is_list(Public)
+	->  atom_concat(DirS, Local, File),
+	    file_name_extension(Base, _, Local),
 	    forall(public_predicate(Public, Name/Arity),
 		   format(Fd, 'index((~k), ~k, ~k, ~k).~n',
 			  [Name, Arity, Module, Base]))
 	;   true
 	),
-	index_files(Files, Fd).
+	index_files(Files, DirS, Fd).
 
 public_predicate(Public, PI) :-
 	'$member'(PI0, Public),
@@ -368,9 +406,7 @@ canonical_pi(Name//A0,   Name/Arity) :-
 
 
 index_header(Fd):-
-	format(Fd, '/*  $Id', []),
-	format(Fd, '$~n~n', []),
-	format(Fd, '    Creator: make/0~n~n', []),
+	format(Fd, '/*  Creator: make/0~n~n', []),
 	format(Fd, '    Purpose: Provide index for autoload~n', []),
 	format(Fd, '*/~n~n', []).
 

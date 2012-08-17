@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -33,10 +31,10 @@ Implementation issues
 
 There are two parts in the atom   administration. One is a dynamic array
 (called buffer) atom_array, which is there to   find  the atoms back. An
-atom as it appears is a intptr_t   of the form (n<<LMASK_BITS)|TAG_ATOM. The
-atom  structure  is  located  by  getting  the  n-th  pointer  from  the
-atom_array dynamic array.  See atomValue() for translating the intptr_t into
-the address of the structure.
+atom   as   it   appears   is   of   type   word   and   of   the   form
+(n<<LMASK_BITS)|TAG_ATOM. The atom structure is   located by getting the
+n-th pointer from the atom_array  dynamic   array.  See  atomValue() for
+translating the word into the address of the structure.
 
 Next, there is a hash-table, which is a normal `open' hash-table mapping
 char * to the atom structure. This   thing is dynamically rehashed. This
@@ -45,112 +43,96 @@ table is used by lookupAtom() below.
 Atom garbage collection
 -----------------------
 
-There is no such thing, but below is an outline of what in entails.
-
 There are various categories of atoms:
 
-	# Built-in atoms
+	* Built-in atoms
 	These are used directly in the C-source of the system and cannot
 	be removed. These are the atoms upto a certain number. This
 	number is sizeof(atoms)/sizeof(char *).
 
-	# Foreign referenced atoms
+	* Foreign referenced atoms
 	These are references hold in foreign code by means of
 	PL_new_atom() or other calls returning an atom. The system has
-	no way to determine the lifetime of them. Most probably the best
-	approach is to offer a locking/unlocking flag to deal this type
-	of atoms. The lock/unlock may be nested. The proposed functions
-	are:
+	no way to determine the lifetime of them.  Foreign code must
+	keep track of references to atoms using these two functions:
 
-		PL_register_atom(atom_t atom)
-		PL_unregister_atom(atom_t atom)
+	      - PL_register_atom(atom_t atom)
+	      - PL_unregister_atom(atom_t atom)
 
-	# References from the Prolog stacks
-	Reference counting is unacceptable here, which implies a pass
-	similar to the normal garbage-collector is required to deal with
-	them. It might be worthwhile to include the atom
-	garbage-collection in the normal garbage collector.
+	* References from the Prolog stacks
+	Reference counting is unacceptable here, which implies we must
+	mark atoms that are accessible from the stacks.  This is done
+	by markAtomsOnStacks().
 
-	# References from other structures
+	* References from other structures
 	Various of the structures contain or may contain atom
 	references.  There are two options: lock/unlock them using
 	PL_register_atom() on creation/destruction of the structure
-	or enumerate them and flag the atoms.  The choice depends a
-	bit on the structure.  FunctorDef for example is not garbage
-	collected itself, so simply locking it makes sence.
+	or enumerate them and flag the atoms.  Currently, we use
+	registration everywhere, except for temporary structures
+	used by findall/3 and message queues, which are marked
+	by markAtomsThreads().
 
-	# References from compiled code and records
-	Again both aproaches are feasible.  Reference counting is
-	easy, except that the destruction of clauses and records
-	will be more slowly as the code needs to be analysed for
-	atom-references.
+	* References from compiled code and records
+	This uses PL_register_atom(), except for the cases mentioned
+	above.
 
 Reclaiming
 ----------
 
-To reclaim an atom, it needs to be   deleted from the hash-table, a NULL
-pointer should be set in the dynamic array and the structure needs to be
-disposed using unalloc(). Basically, this is not a hard job.
+To reclaim an atom, it is deleted   from  the hash-table, a NULL pointer
+should be set in the dynamic array and the structure is disposed.
 
-The dynamic array will get holes   and  registerAtom() should first spot
-for a hole (probably using a globally   defined index that points to the
-first location that might be a hole   to avoid repetive scanning for the
-array while there is no place anyway).   It cannot be shrunk, unless all
-atoms above a certain index are gone. There is simply no way to find all
-atom references (that why we need the PL_register_atom()).
-
-In an advanced form, the hash-table could be shrunk, but it is debatable
-whether this is worth the trouble. So, alltogether the system will waist
-an average 1.5 machine word per reclaimed  atom, which will be reused as
-the atom-space grows again.
-
-
-Status
-------
-
-Some prelimary parts of atom garbage   collection  have been implemented
-and flagged using #ifdef O_ATOMGC  ...   #endif.  The foreign code hooks
-have been defined as well.
-
+The dynamic array gets holes and  we   remember  the  first free hole to
+avoid too much search. Alternatively, we could  turn the holes into some
+form of linked list, for example by   encoding an integer that expresses
+the location of the next hole. We   cannot  shrink the array, unless all
+atoms above a certain index are gone.
 
 Atom GC and multi-threading
 ---------------------------
 
-This is a hard problem. I think the   best  solution is to add something
-like PL_thread_signal_async(int tid, void (*f)(void)) and call this from
-the invoking thread on all other threads.   These  thread will then scan
-their stacks and mark any references from their. Next they can carry on,
-as intptr_t as the invoking thread keeps   the  atom mutex locked during the
-whole atom garbage collection process. This   implies  the thread cannot
-create any atoms as intptr_t as the collection is going on.
+This is a hard problem. Atom-GC cannot   run  while some thread performs
+normal GC because the pointer relocation makes it extremely hard to find
+referenced atoms. Otherwise, ask all  threads   to  mark their reachable
+atoms and run collectAtoms() to reclaim the unreferenced atoms.
 
-We do have to define some mechanism to   know  all threads are done with
-their marking.
+On Unix, we signal all threads. Upon receiving the signal, they mark all
+accessible atoms and continue.  On  Windows,   we  have  no asynchronous
+signals, so we silence the threads one-by-one   and do the marking. This
+is realised by forThreadLocalData().  Note  that   this  means  only one
+thread is collecting  in  Windows.  This   could  be  enhanced  by using
+multiple threads during the collection phase.
 
-Don't know yet about Windows.  They   can't  do anything asynchronously.
-Maybe they have ways to ensure  all   other  threads  are sleeping for a
-while, so we can control the whole  process from the invoking thread. If
-this is the case we could also do this in Unix:
+Note that threads can mark their atoms and continue execution because:
 
-	thread_kill(<thread>, SIG_STOP);
-	<mark from thread>;
-	thread_kill(<thread>, SIG_CONT);
-
-Might be wise  to  design  the  marking   routine  suitable  to  take  a
-PL_local_data term as argument, so it can be called from any thread.
-
-All this will only work if we can call the atom garbage synchronously!!!
-
-Measures to allow for asynchronous atom GC
-------------------------------------------
-
-	* lookupAtom() returns a referenced atom
-	If not, it can be collected right-away!  Actually this might be
-	a good idea anyway to avoid foreign-code that caches atoms from
-	having to be updated.
+  - If a marked atom is no longer needed it is merely not reclaimed this
+    time (but might be in the next collection).
+  - If a new atom is referenced from the stack it is either a
+    - builtin atom (no problem)
+    - an atom from a structure using reference counting (is referenced
+      by this structure, so no problem, unless the reference count drops
+      to zero in PL_unregister_atom().  See PL_unregister_atom() for
+      handling the no-locking case.
+    - It is created.  This case blocks on L_ATOM being locked from
+      lookupBlob().
+  - Finally, message queues and bags as used by findall/3 complicate
+    the issue.  An atom sent to these structures subsequently may
+    become inaccessible from the stack (the normal case for findall/3,
+    which backtracks).  If the atom is copied back from the structure
+    to the stack ('$collect_findall_bag'/3 or thread_get_message/1,2),
+    the atom can no longer be marked from the structure but is added
+    to the stacks without locking.   We resolve this issue as follows:
+    - Run marking from queues/bags after marking the stack.  This
+      ensures that atoms added to the these structures get marked,
+      also if the atom is no longer on the stack.
+    - If an atom is copied to the stack from such a structure while
+      AGC is running, we are ok, because this is merely the same issue
+      as atoms living on the stack.  TBD: redesign the structures such
+      that they can safely be walked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void	rehashAtoms();
+static void	rehashAtoms(void);
 
 #define atom_buckets GD->atoms.buckets
 #define atomTable    GD->atoms.table
@@ -164,6 +146,7 @@ static void	rehashAtoms();
 #define UNLOCK() PL_UNLOCK(L_ATOM)
 #undef LD
 #define LD LOCAL_LD
+
 
 		 /*******************************
 		 *	      TYPES		*
@@ -408,7 +391,12 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	{
 #ifdef O_ATOMGC
 	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
-	  { if ( a->references++ == 0 )
+	  {
+#ifdef ATOMIC_REFERENCES
+	    if ( ATOMIC_INC(&a->references) == 1 )
+#else
+	    if ( ++a->references == 1 )
+#endif
 	      GD->atoms.unregistered--;
 	  }
 #endif
@@ -426,7 +414,11 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	     s == a->name )
 	{
 #ifdef O_ATOMGC
+#ifdef ATOMIC_REFERENCES
+	  if ( ATOMIC_INC(&a->references) == 1 )
+#else
 	  if ( a->references++ == 0 )
+#endif
 	    GD->atoms.unregistered--;
 #endif
           UNLOCK();
@@ -625,7 +617,11 @@ markAtom(atom_t a)
     if ( atomLogFd )
       Sfprintf(atomLogFd, "Marked `%s' at (#%d)\n", ap->name, i);
 #endif
+#ifdef ATOMIC_REFERENCES
+    ATOMIC_OR(&ap->references, ATOM_MARKED_REFERENCE);
+#else
     ap->references |= ATOM_MARKED_REFERENCE;
+#endif
   }
 }
 
@@ -722,7 +718,12 @@ collectAtoms(void)
 	  }
 	}
       } else
-      { a->references &= ~ATOM_MARKED_REFERENCE;
+      {
+#ifdef ATOMIC_REFERENCES
+	ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
+#else
+	a->references &= ~ATOM_MARKED_REFERENCE;
+#endif
       }
     }
   }
@@ -733,12 +734,13 @@ collectAtoms(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pl_garbage_collect_atoms() realised the atom   garbage  collector (AGC).
-This is a tricky beast that   needs  careful synchronisation with normal
-GC. These issues are described with enterGC() in pl-gc.c.
+
+Issues around the design of the atom  garbage collector are explained at
+the start of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_garbage_collect_atoms()
+foreign_t
+pl_garbage_collect_atoms(void)
 { GET_LD
   int64_t oldcollected;
   int verbose;
@@ -767,11 +769,8 @@ pl_garbage_collect_atoms()
   {
 #ifdef O_DEBUG_ATOMGC
 /*
-    access_level_t old;
     Sdprintf("Starting ATOM-GC.  Stack:\n");
-    old = setAccessLevel(ACCESS_LEVEL_SYSTEM);
-    backTrace(5);
-    setAccessLevel(old);
+    PL_backtrace(5, 0);
 */
 #endif
     printMessage(ATOM_informational,
@@ -782,15 +781,17 @@ pl_garbage_collect_atoms()
   PL_LOCK(L_THREAD);
   PL_LOCK(L_AGC);
   LOCK();
+  GD->atoms.gc_active = TRUE;
   blockSignals(&set);
   t = CpuTime(CPU_USER);
   markAtomsOnStacks(LD);
 #ifdef O_PLMT
-  markAtomsThreads();
   forThreadLocalData(markAtomsOnStacks, 0);
+  markAtomsMessageQueues();
 #endif
   oldcollected = GD->atoms.collected;
   reclaimed = collectAtoms();
+  GD->atoms.gc_active = FALSE;
   GD->atoms.collected += reclaimed;
   GD->statistics.atoms -= reclaimed;
   GD->atoms.unregistered -= reclaimed;
@@ -836,6 +837,29 @@ resetAtoms()
 {
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(un)register atoms. If  possible,  this   is  implemented  using  atomic
+operations. This should be safe because:
+
+    - When we register an atom, it must be referenced from somewhere
+      else.
+    - When we unregister an atom, it must have at least one reference.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+register_atom(Atom p)
+{
+#ifdef ATOMIC_REFERENCES
+  if ( ATOMIC_INC(&p->references) == 1 )
+    ATOMIC_DEC(&GD->atoms.unregistered);
+#else
+  LOCK();
+  if ( p->references++ == 0 )
+    GD->atoms.unregistered--;
+  UNLOCK();
+#endif
+}
+
 
 void
 PL_register_atom(atom_t a)
@@ -844,16 +868,47 @@ PL_register_atom(atom_t a)
   size_t index = indexAtom(a);
 
   if ( index >= GD->atoms.builtin )
-  { Atom p;
+  { Atom p = fetchAtomArray(index);
 
-    LOCK();
-    p = fetchAtomArray(index);
-    if ( p->references++ == 0 )
-      GD->atoms.unregistered--;
-    UNLOCK();
+    register_atom(p);
   }
 #endif
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Foreign code reduces the reference count. This is safe, unless we are in
+the following scenario:
+
+  - A threads has done its atom-marking during a GC and is continued.
+  - Now, it fetches an atom from foreign code and the foreign code calls
+    PL_unregister_atom() which drops the reference count to zero. We can
+    now get into the position where the atom is no longer accessible
+    from foreign code and has not be seen while marking atoms from the
+    stack.
+
+The locking version of this code  is   not  a  problem, as the reference
+count cannot be dropped as  long  as   AGC  is  running. In the unlocked
+version, we need  to  replace  1   by  ATOM_MARKED_REFERENCE  if  AGC is
+running. We can be a bit sloppy here:  if   we  do this while AGC is not
+running we merely prevent the atom to be  collected in the next AGC. The
+next AGC resets the flag  and  thus   the  atom  becomes a candidate for
+collection afterwards.  So, basically we must do something like this:
+
+  if ( agc_running )
+  { do
+    { unsigned int oldref = p->references;
+      unsigned int newref = oldref == 1 ? ATOM_MARKED_REFERENCE : oldref-1;
+    } while( !compare_and_swap(&p->references, oldref, newref) );
+  } else
+  { atomic_dec(&p->references);
+  }
+
+But, this fails because AGC might kick in between agc_running was tested
+FALSE the atomic decrement. This is  fixed   by  putting the atom we are
+unregistering  in  LD->atoms.unregistered  and  mark    this  atom  from
+markAtomsOnStacks().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 PL_unregister_atom(atom_t a)
@@ -863,16 +918,39 @@ PL_unregister_atom(atom_t a)
 
   if ( index >= GD->atoms.builtin )
   { Atom p;
+    unsigned int refs;
 
-    LOCK();
     p = fetchAtomArray(index);
-    if ( --p->references == 0 )
+#ifdef ATOMIC_REFERENCES
+    if ( GD->atoms.gc_active )
+    { unsigned int oldref, newref;
+
+      do
+      { oldref = p->references;
+	newref = oldref == 1 ? ATOM_MARKED_REFERENCE : oldref-1;
+      } while( !COMPARE_AND_SWAP(&p->references, oldref, newref) );
+      refs = newref;
+
+      if ( newref == ATOM_MARKED_REFERENCE )
+	ATOMIC_INC(&GD->atoms.unregistered);
+    } else
+    { GET_LD
+
+      if ( LD )
+	LD->atoms.unregistering = a;
+      if ( (refs=ATOMIC_DEC(&p->references)) == 0 )
+	ATOMIC_INC(&GD->atoms.unregistered);
+    }
+#else
+    LOCK();
+    if ( (refs = --p->references) == 0 )
       GD->atoms.unregistered++;
-    if ( p->references == (unsigned)-1 )
+    UNLOCK();
+#endif
+    if ( refs == (unsigned int)-1 )
     { Sdprintf("OOPS: -1 references to '%s'\n", p->name);
       trap_gdb();
     }
-    UNLOCK();
   }
 #endif
 }

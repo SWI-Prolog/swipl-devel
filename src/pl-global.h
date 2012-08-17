@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -271,6 +270,7 @@ struct PL_global_data
 #ifdef O_CALL_RESIDUE
     Procedure	call_residue_vars2;	/* $attvar:call_residue_vars/2 */
 #endif
+    Procedure   comment_hook3;		/* prolog:comment_hook/3 */
 
     SourceFile  reloading;		/* source file we are re-loading */
     int		active_marked;		/* #prodedures marked active */
@@ -455,6 +455,7 @@ struct PL_local_data
 
   struct
   { intptr_t	generator;		/* See PL_atom_generator() */
+    atom_t	unregistering;		/* See PL_unregister_atom() */
   } atoms;
 
   struct
@@ -526,9 +527,10 @@ struct PL_local_data
 
   struct				/* Local IO stuff */
   { IOSTREAM *streams[6];		/* handles for standard streams */
+    st_check stream_type_check;		/* Check bin/text streams? */
+					/* do not copy from parent */
     struct input_context *input_stack;	/* maintain input stream info */
     struct output_context *output_stack; /* maintain output stream info */
-    st_check stream_type_check;		/* Check bin/text streams? */
   } IO;
 
   struct

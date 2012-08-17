@@ -45,26 +45,89 @@
 General file operations and binding to Prolog
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef __WINDOWS__
+static void
+set_posix_error(int win_error)
+{ int error = 0;
+
+  switch(win_error)
+  { case ERROR_ACCESS_DENIED:	  error = EACCES; break;
+    case ERROR_FILE_NOT_FOUND:    error = ENOENT; break;
+    case ERROR_SHARING_VIOLATION: error = EAGAIN; break;
+    case ERROR_ALREADY_EXISTS:    error = EEXIST; break;
+  }
+
+  errno = error;
+}
+#endif /*__WINDOWS__*/
+
+
 		 /*******************************
 		 *	      OS STUFF		*
 		 *******************************/
 
-/** time_t LastModifiedFile(const char *file)
+/** int LastModifiedFile(const char *file, double *t)
 
 Return the last modification time of file  as a POSIX timestamp. Returns
 (time_t)-1 on failure.
+
+Contains a 64-bit value representing the number of 100-nanosecond
+intervals since January 1, 1601 (UTC).
 */
 
+int
+LastModifiedFile(const char *name, double *tp)
+{
+#ifdef __WINDOWS__
+  HANDLE hFile;
+  wchar_t wfile[MAXPATHLEN];
 
-time_t
-LastModifiedFile(const char *file)
-{ char tmp[MAXPATHLEN];
+#define nano * 0.000000001
+#define ntick 100.0
+#define SEC_TO_UNIX_EPOCH 11644473600.0
+
+  if ( !_xos_os_filenameW(name, wfile, MAXPATHLEN) )
+    return FALSE;
+
+  if ( (hFile=CreateFileW(wfile,
+			  0,
+			  FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
+			  NULL,
+			  OPEN_EXISTING,
+			  FILE_FLAG_BACKUP_SEMANTICS,
+			  NULL)) != INVALID_HANDLE_VALUE )
+  { FILETIME wt;
+    int rc;
+
+    rc = GetFileTime(hFile, NULL, NULL, &wt);
+    CloseHandle(hFile);
+
+    if ( rc )
+    { double t;
+
+      t  = (double)wt.dwHighDateTime * (4294967296.0 * ntick nano);
+      t += (double)wt.dwLowDateTime  * (ntick nano);
+      t -= SEC_TO_UNIX_EPOCH;
+
+      *tp = t;
+
+      return TRUE;
+    }
+  }
+
+  set_posix_error(GetLastError());
+
+  return FALSE;
+#else
+  char tmp[MAXPATHLEN];
   statstruct buf;
 
-  if ( statfunc(OsPath(file, tmp), &buf) < 0 )
-    return (time_t)-1;
+  if ( statfunc(OsPath(name, tmp), &buf) < 0 )
+    return FALSE;
 
-  return buf.st_mtime;
+  *tp = (double)buf.st_mtime;
+  return TRUE;
+#endif
 }
 
 
@@ -527,13 +590,13 @@ PRED_IMPL("time_file", 2, time_file, 0)
 { char *fn;
 
   if ( PL_get_file_name(A1, &fn, 0) )
-  { time_t time;
+  { double time;
 
-    if ( (time = LastModifiedFile(fn)) == (time_t)-1 )
-      return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
-		      ATOM_time, ATOM_file, A1);
+    if ( LastModifiedFile(fn, &time) )
+      return PL_unify_float(A2, time);
 
-    return unifyTime(A2, time);
+    return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
+		    ATOM_time, ATOM_file, A1);
   }
 
   return FALSE;
@@ -864,12 +927,13 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
 static
 PRED_IMPL("working_directory", 2, working_directory, 0)
 { PRED_LD
+  char buf[MAXPATHLEN];
   const char *wd;
 
   term_t old = A1;
   term_t new = A2;
 
-  if ( !(wd = PL_cwd()) )
+  if ( !(wd = PL_cwd(buf, sizeof(buf))) )
     return FALSE;
 
   if ( PL_unify_chars(old, PL_ATOM|REP_FN, -1, wd) )

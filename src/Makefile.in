@@ -1,6 +1,5 @@
 ################################################################
-# Makefile for SWI-Prolog 5.x
-# $Id$
+# Makefile for SWI-Prolog 6.x
 #
 # Author:	Jan Wielemaker
 #		J.Wielemake@cs.vu.nl
@@ -104,13 +103,17 @@ EXPORTS=$(INCLUDEDIR)/SWI-Exports
 DEF=$(PL).def
 CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
-STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).prc
 RUNTIMEDIR=../lib/$(PLARCH)
 PLLIB=@PLLIB@
 LNLIBS=@LNLIBS@
 XLIBS=@XLIBS@
 USEPLLIB=@USEPLLIB@
+ifeq (@EXEFORMAT@,ELF)
+LIBPLSO=
+else
+LIBPLSO=@USEPLLIB@
+endif
 RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 SOEXT=@SO_EXT@
 SOLIB=@SOLIB@
@@ -136,7 +139,7 @@ TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
 	libtai/tai_unpack.o
 LIBOBJ= $(RCOBJ) $(TAIOBJ)
 
-PLOBJ=	pl-extend.o
+PLOBJ=	pl-main.o
 
 ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 
@@ -149,9 +152,8 @@ endif
 INCSRC=	pl-index.c pl-alloc.c pl-fli.c
 SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
-	pl-main.h pl-os.h pl-data.h
+	pl-init.h pl-os.h pl-data.h
 
-CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
 UNICODE=blocks.pl unicode_data.pl
 builddirs=../lib ../lib/$(PLARCH) os
@@ -163,7 +165,7 @@ OPTIMISE=@OPTIMISE@
 PROFILE_SRC=../bench/run.pl
 PROFILE_GOAL=run(0.5)
 
-all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
+all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT)
 
 noprof:	uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS) system headers plwin startup index
 prof:
@@ -181,7 +183,7 @@ prof:
 
 system:		$(PL)$(EXEEXT)
 startup:	$(STARTUPPATH)
-headers:	parms.h $(CINCLUDE) $(STREAMH) $(STUBC) @EXTRAHDR@
+headers:	parms.h $(CINCLUDE) $(STREAMH) @EXTRAHDR@
 staticlib:	$(RUNTIME)
 sharedlib:	$(RUNTIMEDIR)/$(SHARED)
 index:		../library/INDEX.pl
@@ -198,7 +200,7 @@ banner::
 # be overruled using LD_LIBRARY_PATH, which is what we need to be able
 # to run our local copy of SWI-Prolog.
 
-$(PL)$(EXEEXT):	$(MKLIBS) $(PLOBJ)
+$(PL)$(EXEEXT):	$(MKLIBS) $(PLOBJ) $(OSLIB)
 		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB)
 		$(CHRPATH) -c $@ || true
 
@@ -224,7 +226,7 @@ $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
 ifeq ($(SOEXT),dll)
-$(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ) $(OSLIB)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(OSLIB) $(LIBS)
 else
@@ -239,10 +241,8 @@ endif
 
 ifeq ($(MINGW),true)
 OSLIB=	../lib/$(PLARCH)/libuxnt.a
-ifeq ($(PLBUILD),$(PLARCH))
-BUILD_OSLIB=$(OSLIB)
-endif
 
+$(OSLIB):	uxnt-lib
 uxnt-lib:
 		@(cd os/windows && $(MAKE) COFLAGS="$(COFLAGS)")
 
@@ -251,15 +251,15 @@ plterm-lib:
 
 plwin:		$(PLWIN)$(EXEEXT)
 
-pl-res.o:	$(srcdir)/pl.rc $(srcdir)/pl.ico $(srcdir)/xpce.ico
+swipl-res.o:	$(srcdir)/swipl.rc $(srcdir)/swipl.ico
 		$(WINDRES) -o $@ $<
 
 pl-ntmain.o:	pl-ntmain.c
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc -I$(srcdir)/os $(CFLAGS) $< -o $@
 
-$(PLWIN)$(EXEEXT):	pl-res.o pl-ntmain.o plterm-lib $(MKLIBS)
+$(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o plterm-lib $(MKLIBS) $(OSLIB)
 	$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) \
-		-o $@ pl-res.o pl-ntmain.o -L../lib/$(PLARCH) -lplterm \
+		-o $@ swipl-res.o pl-ntmain.o -L../lib/$(PLARCH) -lplterm \
 		$(USEPLLIB) $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
 
 else
@@ -317,9 +317,6 @@ $(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 $(STREAMH):	$(srcdir)/os/SWI-Stream.h $(INCLUDEDIR)
 		cp $(srcdir)/os/SWI-Stream.h $@
 
-$(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
-		$(SED) 's/"SWI-Prolog.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
-
 parms.h:	Makefile
 		@echo "#ifndef PLHOME"				> $@%
 		@echo "#define PLHOME       \"$(PLBASE)\""     >> $@%
@@ -334,9 +331,16 @@ parms.h:	Makefile
 		@echo "#endif"				       >> $@%
 		@echo "#define C_LIBS	    \"$(LNLIBS)\""     >> $@%
 		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
+		@echo "#define C_LIBPLSO    \"$(LIBPLSO)\""    >> $@%
+		@echo "#ifndef C_CC"			       >> $@%
 		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
+		@echo "#endif"				       >> $@%
+		@echo "#ifndef C_CFLAGS"		       >> $@%
 		@echo "#define C_CFLAGS	    \"$(CMFLAGS) $(CIFLAGS)\"" >> $@%
+		@echo "#endif"				       >> $@%
+		@echo "#ifndef C_LDFLAGS"		       >> $@%
 		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> $@%
+		@echo "#endif"				       >> $@%
 		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 
 gitversion::
@@ -381,14 +385,9 @@ $(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
 defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
-swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
+swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih $(OSLIB)
 	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
 		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
-
-swipl-ld-build$(EXEEXT_FOR_BUILD):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih
-	$(CC_FOR_BUILD) $(HOST_OS_FLAG) \
-		-DPLBASE="\"@abs_top_builddir@/..\"" \
-		-I. -I$(srcdir) -g -O2 -o $@ $(srcdir)/swipl-ld.c $(BUILD_OSLIB)
 
 tags::
 		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
@@ -406,7 +405,7 @@ ln-install::
 install:	@INSTALLTARGET@
 
 ifeq ($(MINGW),true)
-dv-install:	dv-install-common install-plterm install-plwin install-readme
+dv-install:	dv-install-common install-mingw install-readme
 else
 dv-install:	dv-install-common install-bins install-pkgconfig install-man
 endif
@@ -432,6 +431,8 @@ install-libs:	idirs iboot ilib iruntime iinclude icustom install-demo
 			-g 'make_library_index(library)' \
 			-t halt
 
+install-mingw:	install-plterm install-plwin install-mkboot install-icon
+
 install-plterm:	idirs
 		if [ -f $(RUNTIMEDIR)/plterm.$(SOEXT) ]; then \
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/plterm.$(SOEXT) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
@@ -442,20 +443,28 @@ install-plterm:	idirs
 install-plwin:	idirs iruntime
 		$(INSTALL_PROGRAM) $(PLWIN)$(EXEEXT) $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
 
+install-mkboot:	idirs
+		$(INSTALL_DATA) $(srcdir)/win32/misc/mkboot.bat $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
+
+install-icon::
+		$(INSTALL_DATA) $(srcdir)/swipl.ico "$(DESTDIR)$(PLBASE)"
+
 install-demo:	idirs
 		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
 		$(INSTALL_DATA) ../demo/README $(DESTDIR)$(PLBASE)/demo/README$(TXTEXT)
 
 installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) demo boot library \
-		library/clp library/unicode include include/sicstus customize \
+		library/clp library/unicode include include/sicstus include/Yap customize \
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/ciao library/dialect/ciao/engine \
 		library/dialect/sicstus library/dialect/swi \
-		library/dialect/ifprolog
+		library/dialect/ifprolog library/dcg
 
 iruntime:	idirs
-		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
-		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)/$(PLLIB)
+		if [ -f $(RUNTIME) ]; then \
+		  $(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH); \
+		  $(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)/$(PLLIB); \
+		fi
 ifeq ($(SOEXT),dylib)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
@@ -490,7 +499,7 @@ idirs::
 iboot:		idirs
 		for f in $(PLINIT) $(PLSRC); do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
-ilib:		idirs iclp idialect iunicode
+ilib:		idirs iclp idcg idialect iunicode
 		for f in $(PLLIBS) $(PLOSLIBS); do \
 			$(INSTALL_DATA) ../library/$$f $(DESTDIR)$(PLBASE)/library; \
 		done
@@ -498,6 +507,11 @@ ilib:		idirs iclp idialect iunicode
 iclp:		idirs
 		for f in $(CLP); do \
 			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
+		done
+
+idcg:		idirs
+		for f in $(DCG); do \
+			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
 idialect:	idirs iswi iyap iiso isicstus iciao iifprolog
@@ -514,6 +528,7 @@ iyap:		idirs
 		for f in $(YAP); do \
 			$(INSTALL_DATA) ../library/dialect/yap/$$f $(DESTDIR)$(PLBASE)/library/dialect/yap; \
 		done
+		$(INSTALL_DATA) $(srcdir)/compat/YapInterface.h $(DESTDIR)$(PLBASE)/include/Yap/YapInterface.h
 
 iifprolog:	idirs
 		for f in $(IFPROLOG); do \
@@ -556,7 +571,7 @@ else
 endif
 
 iinclude:	idirs
-		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
+		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h; do \
 		    if [ -f ../include/$$f ]; then \
 			$(INSTALL_DATA) ../include/$$f $(DESTDIR)$(PLBASE)/include; \
 		    fi; \
@@ -593,6 +608,25 @@ html-install::
 		    $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/doc/Manual; \
 		  done; \
 		fi
+
+################################################################
+# WINDOWS INSTALLER
+################################################################
+
+NSISDEFS=/DSWIPL=swipl /DPTHREAD=pthreadGC2 /DZLIB=zlib1 /DBOOT=$(BOOTFILE) /DMINGW=1
+ifneq (,$(findstring 64,$(PLARCH)))
+NSISDEFS+=/DWIN64
+endif
+NSISEXE=C:/Program Files (x86)/NSIS/makensis.exe
+SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
+WINE=wine
+
+installer::
+		$(INSTALL_DATA) $(srcdir)/win32/installer/options.ini "$(PLBASE)/.."
+		$(INSTALL_DATA) $(srcdir)/win32/installer/pl.nsi "$(PLBASE)/.."
+		$(INSTALL_DATA) $(srcdir)/win32/installer/mkinstaller.pl "$(PLBASE)/.."
+		$(WINE) "$(NSISEXE)" $(NSISDEFS) "$(SWIPLNSI)"
+
 
 #
 # Export (Linux binary distribution
@@ -634,7 +668,7 @@ distclean:	clean profclean
 		rm -f Makefile config.h config.status parms.h version.h
 		rm -f $(DEVPL) swipl.home swiplbin $(STARTUPPATH)
 		rm -f $(PL)$(EXEEXT)
-		rm -f  swipl-ld$(EXEEXT) swipl-ld-build$(EXEEXT_FOR_BUILD)
+		rm -f  swipl-ld$(EXEEXT)
 		rm -f  swipl.1 libswiplimp.a $(DEF)
 		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)

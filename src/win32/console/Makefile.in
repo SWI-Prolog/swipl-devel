@@ -41,6 +41,8 @@ $(INCLDIR):
 $(PLHOME)/include/console.h: $(srcdir)/console.h
 	cp -f $< $@
 
+console.o: $(srcdir)/console_i.h $(srcdir)/console.h
+
 clean:
 	rm -f *.o
 	rm -f *~

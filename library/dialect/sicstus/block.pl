@@ -161,6 +161,12 @@ wrap_block(Pred, Term, [Wrapper,FirstClause]) :-
 	Wrapper = (GenHead :- Coroute),
 	rename_clause(Term, 'block ', FirstClause).
 
+block_wrapper((_Head :- Coroute)) :-
+	simplify_coroute(when(_,Wrapped), Coroute),
+	compound(Wrapped),
+	functor(Wrapped, Name, _),
+	sub_atom(Name, 0, _, _, 'block ').
+
 block_declarations(M:P, Modes) :-
 	functor(P, Name, Arity),
 	functor(H, Name, Arity),
@@ -216,5 +222,6 @@ system:term_expansion((:- block(Spec)), Clauses) :-
 system:term_expansion(Term, Wrapper) :-
 	head(Term, Module:Head),
 	block_declaration(Head, Module),
+	\+ block_wrapper(Term),		% avoid recursion
 	wrap_block(Module:Head, Term, Wrapper).
 

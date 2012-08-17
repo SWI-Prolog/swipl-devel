@@ -5,7 +5,7 @@ technical impossible to satisfy the LGPL   demand  that the LGPL'ed code
 must be replaceable in the final product.
 
 From the practical point of view you can use the Prolog libraries in
-propriertary code, provided you distribute the source to _changes_ you
+proprietary code, provided you distribute the source to _changes_ you
 make to the libraries. This has been debated with Richard Stallman.
 
 SWI-Prolog extra clause:

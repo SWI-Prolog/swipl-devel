@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      Vu University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -52,11 +51,6 @@
 #define FALSE 0
 #endif
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 256
-#endif
-
-
 #ifdef __LCC__
 #define _close close
 #define _read read
@@ -71,6 +65,10 @@
 
 #define XENOMAP 1
 #define XENOMEM 2
+
+#ifndef PATH_MAX
+#define PATH_MAX 260
+#endif
 
 
 		 /*******************************
@@ -146,6 +144,21 @@ utf8towcs(wchar_t *dest, const char *src, size_t len)
 }
 
 
+static size_t
+utf8_strlen(const char *s, size_t len)
+{ const char *e = &s[len];
+  unsigned int l = 0;
+
+  while(s<e)
+  { int chr;
+
+    s = utf8_get_char(s, &chr);
+    l++;
+  }
+
+  return l;
+}
+
 
 
 		 /*******************************
@@ -169,11 +182,11 @@ existsAndWriteableDir(const TCHAR *name)
 
 char *
 _xos_home()				/* expansion of ~ */
-{ static char home[MAXPATHLEN];
+{ static char home[PATH_MAX];
   static int done = FALSE;
 
   if ( !done )
-  { TCHAR h[MAXPATHLEN];
+  { TCHAR h[PATH_MAX];
 
 					/* Unix, set by user */
     if ( GetEnvironmentVariable(_T("HOME"), h, sizeof(h)) &&
@@ -184,8 +197,8 @@ _xos_home()				/* expansion of ~ */
     { _xos_canonical_filenameW(h, home, sizeof(home), 0);
     } else
     { TCHAR d[100];
-      TCHAR p[MAXPATHLEN];
-      TCHAR tmp[MAXPATHLEN];
+      TCHAR p[PATH_MAX];
+      TCHAR tmp[PATH_MAX];
       int haved, havep;
 
       haved = GetEnvironmentVariable(_T("HOMEDRIVE"), d, sizeof(d));
@@ -601,7 +614,6 @@ _xos_fopen(const char *path, const char *mode)
 }
 
 
-
 		 /*******************************
 		 *      FILE MANIPULATIONS	*
 		 *******************************/
@@ -609,11 +621,99 @@ _xos_fopen(const char *path, const char *mode)
 int
 _xos_access(const char *path, int mode)
 { TCHAR buf[PATH_MAX];
+  char sd_buf[512];
+  SECURITY_DESCRIPTOR *sd;
+  BOOL access_status;
+  DWORD desired_access = 0;
+  DWORD sd_size, granted_access;
+  HANDLE token = 0, imp_token = 0;
+  GENERIC_MAPPING generic_mapping;
+  PRIVILEGE_SET privelege_set;
+  DWORD  priv_set_len = sizeof(PRIVILEGE_SET);
+  int retval = -1;
+  SECURITY_INFORMATION sec_info =
+    DACL_SECURITY_INFORMATION |
+    OWNER_SECURITY_INFORMATION |
+    GROUP_SECURITY_INFORMATION;
 
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  return _waccess(buf, mode);
+  if ( mode == F_OK )
+    return _waccess(buf, F_OK);
+
+  sd = (SECURITY_DESCRIPTOR*)&sd_buf;
+  if ( !GetFileSecurity(buf, sec_info, sd, sizeof(sd_buf), &sd_size) )
+  { if ( GetLastError() != ERROR_INSUFFICIENT_BUFFER )
+    { errno = ENOENT;
+      return -1;
+    }
+
+    if ( !(sd = malloc(sd_size)) )
+    { errno = ENOMEM;
+      return -1;
+    }
+
+    if ( !GetFileSecurity(buf, sec_info, sd, sd_size, &sd_size) )
+      goto simple;
+  }
+
+  if ( mode & W_OK )
+  { if ( _waccess(buf, W_OK ) < 0 )		/* read-only bit set */
+      goto out;
+  }
+
+  if ( !OpenThreadToken(GetCurrentThread(),
+			TOKEN_DUPLICATE | TOKEN_READ,
+			TRUE,
+			&token) )
+  { if ( GetLastError() != ERROR_NO_TOKEN )
+      goto simple;
+
+    if ( !OpenProcessToken(GetCurrentProcess(),
+			   TOKEN_DUPLICATE | TOKEN_READ,
+			   &token) )
+      goto simple;
+  }
+
+  if ( !DuplicateToken(token,
+		       SecurityImpersonation,
+		       &imp_token) )
+    goto simple;
+
+  if (mode & R_OK) desired_access |= GENERIC_READ;
+  if (mode & W_OK) desired_access |= GENERIC_WRITE;
+  if (mode & X_OK) desired_access |= GENERIC_EXECUTE;
+
+  generic_mapping.GenericRead    = FILE_GENERIC_READ;
+  generic_mapping.GenericWrite   = FILE_GENERIC_WRITE;
+  generic_mapping.GenericExecute = FILE_GENERIC_EXECUTE;
+  generic_mapping.GenericAll     = FILE_ALL_ACCESS;
+  MapGenericMask(&desired_access, &generic_mapping);
+
+  if ( !AccessCheck(sd,
+		    imp_token,
+		    desired_access,
+		    &generic_mapping,
+		    &privelege_set,
+		    &priv_set_len,
+		    &granted_access,
+		    &access_status) )
+    goto simple;
+
+  if ( access_status )
+    retval  = 0;
+
+out:
+  if ( sd && (char*)sd != sd_buf ) free(sd);
+  if (imp_token) CloseHandle(imp_token);
+  if (token) CloseHandle(token);
+
+  return retval;
+
+simple:
+  retval = _waccess(buf, mode);
+  goto out;
 }
 
 
@@ -859,6 +959,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
       size = GetEnvironmentVariable(nm, valp, size+1);
     }
 
+    size = wcslen(valp);		/* return sometimes holds 0-bytes */
     if ( wcstoutf8(buf, valp, buflen) )
       rc = strlen(buf);
     else
@@ -877,16 +978,27 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
 int
 _xos_setenv(const char *name, char *value, int overwrite)
 { TCHAR nm[PATH_MAX];
-  TCHAR val[PATH_MAX];
+  TCHAR buf[PATH_MAX];
+  TCHAR *val = buf;
+  int rc;
 
   if ( !utf8towcs(nm, name, PATH_MAX) )
     return -1;
   if ( !overwrite && GetEnvironmentVariable(nm, NULL, 0) > 0 )
     return 0;
   if ( !utf8towcs(val, value, PATH_MAX) )
-    return -1;
+  { size_t wlen = utf8_strlen(value, strlen(value)) + 1;
 
-  if ( SetEnvironmentVariable(nm, val) )
+    if ( (val = malloc(wlen*sizeof(TCHAR))) == NULL )
+      return -1;
+    utf8towcs(val, value, wlen);
+  }
+
+  rc = SetEnvironmentVariable(nm, val);
+  if ( val != buf )
+    free(val);
+
+  if ( rc )
     return 0;
 
   return -1;				/* TBD: convert error */

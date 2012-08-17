@@ -74,6 +74,10 @@ expected time (and worst-case time) operation.
 		\arg{Value}. This can be used to insert and change
 		associations.
 
+	\predicate{is_assoc}{1}{+Assoc}
+		True if Assoc is a valid associations list.  This
+		predicate verifies the vaidity of each node in the AVL
+		tree.
 \end{description}
 
 %end-of-file

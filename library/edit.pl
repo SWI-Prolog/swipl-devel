@@ -58,9 +58,12 @@ an editor.
 %	Edit indicated object.
 
 edit(Spec) :-
+	notrace(edit_no_trace(Spec)).
+
+edit_no_trace(Spec) :-
 	var(Spec), !,
 	throw(error(instantiation_error, _)).
-edit(Spec) :-
+edit_no_trace(Spec) :-
 	load_extensions,
 	findall(Location-FullSpec,
 		locate(Spec, FullSpec, Location),
@@ -96,8 +99,17 @@ edit :-
 
 %%	locate(+Spec, -FullSpec, -Location)
 
+locate(FileSpec:Line, file(Path, line(Line)), [file(Path), line(Line)]) :-
+	integer(Line), Line >= 1, ground(FileSpec),
+	locate(FileSpec, _, [file(Path)]).
 locate(Path, file(Path), [file(Path)]) :-
 	atom(Path),
+	exists_file(Path),
+	\+ exists_directory(Path).
+locate(Pattern, file(Path), [file(Path)]) :-
+	atom(Pattern),
+	catch(expand_file_name(Pattern, Files), _, fail),
+	member(Path, Files),
 	exists_file(Path),
 	\+ exists_directory(Path).
 locate(FileBase, file(File), [file(File)]) :-
@@ -121,7 +133,13 @@ locate(FileBase, source_file(Path), [file(Path)]) :-
 	atom(FileBase),
 	source_file(Path),
 	file_base_name(Path, File),
-	file_name_extension(FileBase, pl, File).
+	file_name_extension(FileBase, _, File).
+locate(FileBase, include_file(Path), [file(Path)]) :-
+	atom(FileBase),
+	setof(Path, include_file(Path), Paths),
+	member(Path, Paths),
+	file_base_name(Path, File),
+	file_name_extension(FileBase, _, File).
 locate(Name, FullSpec, Location) :-
 	atom(Name),
 	locate(Name/_, FullSpec, Location).
@@ -161,6 +179,10 @@ locate(Spec, module(Spec), Location) :-
 	locate(module(Spec), Location).
 locate(Spec, Spec, Location) :-
 	locate(Spec, Location).
+
+include_file(Path) :-
+	source_file_property(Path, included_in(_,_)).
+
 
 %%	locate(+Spec, -Location)
 %
@@ -465,12 +487,14 @@ prolog:message(edit(make)) -->
 prolog:message(edit(canceled)) -->
 	[ 'Editor returned failure; skipped make/0 to reload files' ].
 
-edit_specifier(Module:Name/Arity) -->
+edit_specifier(Module:Name/Arity) --> !,
 	[ '~w:~w/~w'-[Module, Name, Arity] ].
-edit_specifier(file(_Path)) -->
+edit_specifier(file(_Path)) --> !,
 	[ '<file>' ].
-edit_specifier(source_file(_Path)) -->
+edit_specifier(source_file(_Path)) --> !,
 	[ '<loaded file>' ].
+edit_specifier(include_file(_Path)) --> !,
+	[ '<included file>' ].
 edit_specifier(Term) -->
 	[ '~p'-[Term] ].
 

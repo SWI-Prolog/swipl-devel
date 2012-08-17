@@ -1020,7 +1020,10 @@ PRED_IMPL("$module_property", 2, module_property, 0)
 		    ATOM_module_property, A2);
 
   if ( PL_is_functor(A2, FUNCTOR_line_count1) )
-  { return PL_unify_integer(a, m->line_no);
+  { if ( m->line_no > 0 )
+      return PL_unify_integer(a, m->line_no);
+    else
+      fail;
   } else if ( PL_is_functor(A2, FUNCTOR_file1) )
   { if ( m->file )
       return PL_unify_atom(a, m->file->name);
@@ -1180,16 +1183,35 @@ fixExport(Definition old, Definition new)
 }
 
 
-word
-pl_import(term_t pred)
-{ GET_LD
-  Module source = NULL;
+int
+atomToImportStrength(atom_t a)
+{ if ( a == ATOM_weak )
+    return PROC_WEAK;
+  else if ( a == ATOM_strong )
+    return 0;
+  else
+    return -1;				/* domain error */
+}
+
+
+static int
+import(term_t pred, term_t strength ARG_LD)
+{ Module source = NULL;
   Module destination = contextModule(environment_frame);
   functor_t fd;
   Procedure proc, old;
+  int pflags = 0;
 
   if ( !get_functor(pred, &fd, &source, 0, GF_PROCEDURE) )
-    fail;
+    return FALSE;
+  if ( strength )
+  { atom_t a;
+
+    if ( !PL_get_atom_ex(strength, &a) )
+      return FALSE;
+    if ( (pflags=atomToImportStrength(a)) < 0 )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_import_type, strength);
+  }
 
   proc = lookupProcedure(fd, source);
 
@@ -1204,28 +1226,41 @@ pl_import(term_t pred)
     if ( !isDefinedProcedure(old) )
     { Definition odef = old->definition;
 
-
       old->definition = proc->definition;
       shareDefinition(proc->definition);
       if ( odef->shared > 1 )
 	fixExport(odef, proc->definition);
       shareDefinition(odef);
       GC_LINGER(odef);
+      set(old, pflags);
 
       succeed;
     }
 
     if ( old->definition->module == destination )
-      return warning("Cannot import %s into module %s: name clash",
-		     procedureName(proc),
-		     stringAtom(destination->name) );
+    { if ( (pflags & PROC_WEAK) )
+      { if ( truePrologFlag(PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT) )
+	{ term_t pi = PL_new_term_ref();
 
-    if ( old->definition->module != source )
-    { warning("Cannot import %s into module %s: already imported from %s",
-	      procedureName(proc),
-	      stringAtom(destination->name),
-	      stringAtom(old->definition->module->name) );
-      fail;
+	  if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
+	    return FALSE;
+
+	  printMessage(ATOM_warning,
+		       PL_FUNCTOR_CHARS, "ignored_weak_import", 2,
+		         PL_ATOM, destination->name,
+		         PL_TERM, pi);
+	}
+
+	return TRUE;
+      } else
+	return PL_error("import", 1, "name clash", ERR_IMPORT_PROC,
+			proc, destination->name, 0);
+    }
+
+    if ( old->definition->module != source )	/* already imported */
+    { return PL_error("import", 1, NULL, ERR_IMPORT_PROC,
+		      proc, destination->name,
+		      old->definition->module->name);
     }
 
     sysError("Unknown problem importing %s into module %s",
@@ -1235,13 +1270,19 @@ pl_import(term_t pred)
   }
 
   if ( !isPublicModule(source, proc) )
-  { warning("import/1: %s is not exported (still imported)",
-	    procedureName(proc));
+  { term_t pi = PL_new_term_ref();
+
+    if ( !PL_unify_predicate(pi, proc, GP_NAMEARITY) )
+      return FALSE;
+    printMessage(ATOM_warning,
+		 PL_FUNCTOR_CHARS, "import_private", 2,
+		   PL_ATOM, destination->name,
+		   PL_TERM, pi);
   }
 
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
 
-    nproc->type = PROCEDURE_TYPE;
+    nproc->flags = pflags;
     nproc->definition = proc->definition;
     shareDefinition(proc->definition);
 
@@ -1252,6 +1293,20 @@ pl_import(term_t pred)
   }
 
   succeed;
+}
+
+static
+PRED_IMPL("import", 1, import, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return import(A1, 0 PASS_LD);
+}
+
+static
+PRED_IMPL("$import", 2, import, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return import(A1, A2 PASS_LD);
 }
 
 		 /*******************************
@@ -1269,6 +1324,8 @@ BeginPredDefs(module)
   PRED_DEF("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$module_property", 2, module_property, 0)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
+  PRED_DEF("import", 1, import, PL_FA_TRANSPARENT)
+  PRED_DEF("$import", 2, import, PL_FA_TRANSPARENT)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
   PRED_DEF("$undefined_export", 2, undefined_export, 0)
 EndPredDefs

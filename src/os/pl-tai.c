@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -23,14 +21,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Solaris has asctime_r() with 3 arguments. Using _POSIX_PTHREAD_SEMANTICS
-is supposed to give the POSIX standard one.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(__sun__) || defined(__sun)
-#define _POSIX_PTHREAD_SEMANTICS 1
-#endif
+#define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
 
 #include <math.h>
 #include "pl-incl.h"
@@ -62,7 +53,6 @@ extern long timezone;
 #endif
 #endif
 
-
 #define TAI_UTC_OFFSET LL(4611686018427387914)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -71,6 +61,8 @@ struct ftm is a `floating' version of the system struct tm.
 
 #define		HAS_STAMP	0x0001
 #define		HAS_WYDAY	0x0002
+
+#define		NO_UTC_OFFSET	0x7fffffff
 
 typedef struct ftm
 { struct	tm tm;			/* System time structure */
@@ -117,7 +109,7 @@ tz_offset(void)
   { time_t t = time(NULL);
     struct tm tm;
 
-    localtime_r(&t, &tm);
+    PL_localtime_r(&t, &tm);
 
     offset = -tm.tm_gmtoff;
     if ( tm.tm_isdst > 0 )
@@ -147,7 +139,7 @@ static atom_t
 tz_name_as_atom(int dst)
 { static atom_t a[2];
 
-  dst = (dst != 0);			/* 0 or 1 */
+  dst = (dst > 0);			/* 0 or 1 */
 
   if ( !a[dst] )
   { wchar_t wbuf[256];
@@ -215,10 +207,12 @@ get_tz_arg(int i, term_t t, term_t a, atom_t *tz)
   atom_t name;
 
   _PL_get_arg(i, t, a);
-  if ( !PL_get_atom_ex(a, &name) )
-    fail;
-  if ( name != ATOM_minus )
-    *tz = name;
+  if ( !PL_is_variable(a) )
+  { if ( !PL_get_atom_ex(a, &name) )
+      fail;
+    if ( name != ATOM_minus )
+      *tz = name;
+  }
 
   succeed;
 }
@@ -235,6 +229,21 @@ get_int_arg(int i, term_t t, term_t a, int *val)
 
 
 static int
+get_voff_arg(int i, term_t t, term_t a, int *val)
+{ GET_LD
+
+  _PL_get_arg(i, t, a);
+
+  if ( PL_is_variable(a) )
+  { *val = NO_UTC_OFFSET;
+    return TRUE;
+  } else
+  { return PL_get_integer_ex(a, val);
+  }
+}
+
+
+static int
 get_float_arg(int i, term_t t, term_t a, double *val)
 { GET_LD
 
@@ -245,7 +254,7 @@ get_float_arg(int i, term_t t, term_t a, double *val)
 
 
 static int
-get_bool_arg(int i, term_t t, term_t a, int *val)
+get_dst_arg(int i, term_t t, term_t a, int *val)
 { GET_LD
   atom_t name;
 
@@ -254,10 +263,16 @@ get_bool_arg(int i, term_t t, term_t a, int *val)
   { if ( name == ATOM_true )
     { *val = TRUE;
       return TRUE;
-    } else if ( name == ATOM_false || name == ATOM_minus )
+    } else if ( name == ATOM_false )
     { *val = FALSE;
       return TRUE;
+    } else if ( name == ATOM_minus )
+    { *val = -1;
+      return TRUE;
     }
+  } else if ( PL_is_variable(a) )
+  { *val = -2;
+    return TRUE;
   }
 
   return PL_get_bool_ex(a, val);	/* generate an error */
@@ -267,22 +282,24 @@ get_bool_arg(int i, term_t t, term_t a, int *val)
 static int
 get_ftm(term_t t, ftm *ftm)
 { GET_LD
+  term_t tmp = PL_new_term_ref();
+  int date9;
 
-  if ( PL_is_functor(t, FUNCTOR_date9) )
-  { term_t tmp = PL_new_term_ref();
+  memset(ftm, 0, sizeof(*ftm));
 
-    memset(ftm, 0, sizeof(*ftm));
-
-    if ( get_int_arg  (1, t, tmp, &ftm->tm.tm_year) &&
+  if ( (date9=PL_is_functor(t, FUNCTOR_date9)) )
+  { if ( get_int_arg  (1, t, tmp, &ftm->tm.tm_year) &&
 	 get_int_arg  (2, t, tmp, &ftm->tm.tm_mon)  &&
 	 get_int_arg  (3, t, tmp, &ftm->tm.tm_mday) &&
 	 get_int_arg  (4, t, tmp, &ftm->tm.tm_hour) &&
 	 get_int_arg  (5, t, tmp, &ftm->tm.tm_min)  &&
 	 get_float_arg(6, t, tmp, &ftm->sec)	    &&
-	 get_int_arg  (7, t, tmp, &ftm->utcoff)     &&
+	 get_voff_arg (7, t, tmp, &ftm->utcoff)     &&
 	 get_tz_arg   (8, t, tmp, &ftm->tzname)     &&
-	 get_bool_arg (9, t, tmp, &ftm->isdst) )
+	 get_dst_arg  (9, t, tmp, &ftm->isdst) )
     { double fp, ip;
+
+      ftm->tm.tm_isdst = (ftm->isdst == -2 ? -1 : ftm->isdst);
 
     fixup:
       fp = modf(ftm->sec, &ip);
@@ -295,20 +312,62 @@ get_ftm(term_t t, ftm *ftm)
       ftm->tm.tm_year -= 1900;		/* 1900 based */
       ftm->tm.tm_mon--;			/* 0-based */
 
+      if ( ftm->utcoff == NO_UTC_OFFSET )
+      { if ( ftm->tm.tm_isdst < 0 )	/* unknown DST */
+	{ int offset;
+
+	  if ( mktime(&ftm->tm) == (time_t)-1 )
+	    return PL_representation_error("dst");
+	  ftm->flags |= HAS_WYDAY;
+
+	  offset = tz_offset();
+	  if ( ftm->tm.tm_isdst > 0 )
+	    offset -= 3600;
+	  ftm->utcoff = offset;
+
+	  if ( date9 ) /* variable */
+	  { _PL_get_arg(7, t, tmp);
+	    if ( !PL_unify_integer(tmp, ftm->utcoff) )
+	      return FALSE;
+	  } else
+	  { ftm->utcoff = offset;
+	  }
+	}
+
+	if ( ftm->isdst == -2 )
+	{ ftm->isdst = ftm->tm.tm_isdst;
+	  _PL_get_arg(9, t, tmp);
+	  if ( ftm->isdst < 0 )
+	  { if ( !PL_unify_atom(tmp, ATOM_minus) )
+	      return FALSE;
+	  } else
+	  { if ( !PL_unify_bool(tmp, ftm->isdst) )
+	      return FALSE;
+	  }
+	}
+
+	if ( !ftm->tzname )
+	{ ftm->tzname = tz_name_as_atom(ftm->isdst);
+	  _PL_get_arg(8, t, tmp);
+	  if ( PL_is_variable(tmp) &&
+	       !PL_unify_atom(tmp, ftm->tzname) )
+	    return FALSE;
+	}
+      }
+
       succeed;
     }
   } else if ( PL_is_functor(t, FUNCTOR_date3) )
-  { term_t tmp = PL_new_term_ref();
-
-    memset(ftm, 0, sizeof(*ftm));
-
-    if ( get_int_arg  (1, t, tmp, &ftm->tm.tm_year) &&
+  { if ( get_int_arg  (1, t, tmp, &ftm->tm.tm_year) &&
 	 get_int_arg  (2, t, tmp, &ftm->tm.tm_mon)  &&
 	 get_int_arg  (3, t, tmp, &ftm->tm.tm_mday) )
+    { ftm->tm.tm_isdst = -1;
+      ftm->utcoff = NO_UTC_OFFSET;
       goto fixup;
+    }
   }
 
-  fail;
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_time, time);
 }
 
 
@@ -377,7 +436,7 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
 	if ( (int64_t)unixt == ut64 )
 	{ double ip;
 
-	  localtime_r(&unixt, &tm);
+	  PL_localtime_r(&unixt, &tm);
 	  sec = (double)tm.tm_sec + modf(argsec, &ip);
 	  ct.date.year  = tm.tm_year+1900;
 	  ct.date.month = tm.tm_mon+1;
@@ -825,7 +884,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    { char buf[26];
 
 	      cal_ftm(ftm, HAS_WYDAY);
-	      asctime_r(&ftm->tm, buf);
+	      PL_asctime_r(&ftm->tm, buf);
 	      buf[24] = EOS;
 	      OUTSTRA(buf);
 	    }
@@ -889,7 +948,7 @@ pl_format_time(term_t out, term_t format, term_t time, int posix)
 
     if ( (int64_t)unixt == ut64 )
     { tb.utcoff = tz_offset();
-      localtime_r(&unixt, &tb.tm);
+      PL_localtime_r(&unixt, &tb.tm);
       tb.sec = (double)tb.tm.tm_sec + modf(tb.stamp, &ip);
       if ( tb.tm.tm_isdst > 0 )
       { tb.utcoff -= 3600;
@@ -911,7 +970,7 @@ pl_format_time(term_t out, term_t format, term_t time, int posix)
       tb.utcoff     = 0;
     }
   } else if ( !get_ftm(time, &tb) )
-  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_time, time);
+  { return FALSE;
   }
 
   if ( !setupOutputRedirect(out, &ctx, FALSE) )

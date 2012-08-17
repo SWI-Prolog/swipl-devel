@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,8 +36,9 @@
 	  list_redefined/0		% list redefinitions
 	]).
 :- use_module(library(lists)).
-:- use_module(library(system)).
+:- use_module(library(pairs)).
 :- use_module(library(option)).
+:- use_module(library(prolog_codewalk)).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -59,7 +59,7 @@ loaded Prolog program.
 check :-
 	print_message(informational,
 		      check(pass(1, 'Undefined predicates'))),
-	list_undefined(silent, global, false),
+	list_undefined,
 	print_message(informational,
 		      check(pass(2, 'Redefined system and global predicates'))),
 	list_redefined,
@@ -74,107 +74,48 @@ check :-
 %	defined.  This forms a "Quick and Dirty" alternative for a cross
 %	referencing tool.  Options:
 %
-%	    * scan(+Scan)
-%	    If =local=, only scan the module holding the undefined
-%	    predicate for references; if =global= (default), scan the
-%	    whole program.  Global scanning finds references through
-%	    qualified goals (i.e., M:G), but can take long on big
-%	    programs.
-%
-%	    * unreferenced(+Boolean)
-%	    If =true= (default), report undefined predicates that are
-%	    not referenced by any clause body.
+%	    * module_class(+Class)
+%	    Process modules of the given Class.
 %
 %	@see gxref/0 provides a graphical cross-referencer.
-%	@see make/0 calls list_undefined/1 using scan(local)
+%	@see make/0 calls list_undefined/0
+
+:- thread_local
+	undef/2.
 
 list_undefined :-
-	list_undefined(informational, global, false).
+	list_undefined([]).
 
 list_undefined(Options) :-
-	option(scan(Scan), Options, global),
-	option(unreferenced(Unreferenced), Options, false),
-	list_undefined(informational, Scan, Unreferenced).
-
-
-list_undefined(Level, How, Unreferenced) :-
-	setup_call_cleanup(
-	    ( current_prolog_flag(access_level, OldLevel),
-	      set_prolog_flag(access_level, system)
-	    ),
-	    list_undefined_(Level, How, Unreferenced),
-	    set_prolog_flag(access_level, OldLevel)).
-
-list_undefined_(Level, How, Unreferenced) :-
-	findall(Pred, undefined_predicate(Pred), Preds),
-	(   Preds == []
+	merge_options(Options,
+		      [ module_class(user)
+		      ],
+		      WalkOptions),
+	prolog_walk_code([ undefined(trace),
+			   on_trace(found_undef)
+			 | WalkOptions
+			 ]),
+	findall(PI-From, retract(undef(PI, From)), Pairs),
+	(   Pairs == []
 	->  true
-	;   print_message(Level, check(find_references(Preds))),
-	    find_references(Preds, How, Pairs, Unrefs),
-	    (	Pairs == []
-	    ->	true
-	    ;   print_message(warning, check(undefined_predicates)),
-		(   member((Module:Head)-Refs, Pairs),
-		    print_message(warning,
-				  check(undefined(Module:Head, Refs))),
-		    fail
-		;   true
-		)
-	    ),
-	    (	Unreferenced == true,
-		Unrefs \== []
-	    ->  print_message(warning, check(undefined_unreferenced_predicates)),
-		(   member(Module:Head, Unrefs),
-		    print_message(warning,
-				  check(undefined_unreferenced(Module:Head))),
-		    fail
-		;   true
-		)
-	    ;   true
-	    )
+	;   print_message(warning, check(undefined_predicates)),
+	    keysort(Pairs, Sorted),
+	    group_pairs_by_key(Sorted, Grouped),
+	    maplist(report_undefined, Grouped)
 	).
 
-undefined_predicate(Module:Head) :-
-	predicate_property(Module:Head, undefined),
-	\+ predicate_property(Module:Head, imported_from(_)).
+:- public found_undef/1.
 
+found_undef(To-From) :-
+	goal_pi(To, PI),
+	assertz(undef(PI,From)).
 
-%%	find_references(+Heads, +How, -HeadRefs:list, -UnrefHeads:list) is det.
-%
-%	Find references to the given  predicates.   For  speedup we only
-%	look for references from the  same   module.  This  isn't really
-%	correct, but as Module:Head  is  at   the  moment  only  handled
-%	through meta-calls, it isn't too bad either.
-%
-%	@param HeadRefs List of Head-Refs
-%	@param UnrefHeads List of Head
-%	@param How is one of =local= or =global=
+goal_pi(M:Head, M:Name/Arity) :-
+	functor(Head, Name, Arity).
 
-find_references([], _, [], []).
-find_references([H|T0], How, [H-Refs|T1], T2) :-
-	(   ignore(H = M:_),
-	    findall(Ref, referenced(H, M, Ref), Refs)
-	;   How == global,
-	    findall(Ref, referenced(H, _, Ref), Refs)
-	),
-	Refs \== [], !,
-	find_references(T0, How, T1, T2).
-find_references([H|T0], How, T1, [H|T2]) :-
-	find_references(T0, How, T1, T2).
+report_undefined(PI-FromList) :-
+	print_message(warning, check(undefined(PI, FromList))).
 
-%%	referenced(+Predicate, ?Module, -ClauseRef) is nondet.
-%
-%	True if clause ClauseRef references Predicate.
-
-referenced(Term, Module, Ref) :-
-	Goal = Module:_Head,
-	current_predicate(_, Goal),
-%	\+ predicate_property(Goal, built_in),
-%	\+ predicate_property(Goal, imported_from(_)),
-	'$get_predicate_attribute'(Goal, system, 0),
-	\+ '$get_predicate_attribute'(Goal, imported, _),
-	nth_clause(Goal, _, Ref),
-	'$xr_member'(Ref, Term).
 
 %%	list_autoload
 %
@@ -222,6 +163,17 @@ check_module_enabled(_, system) :- !.
 check_module_enabled(Module, _) :-
 	\+ import_module(Module, system).
 
+%%      referenced(+Predicate, ?Module, -ClauseRef) is nondet.
+%
+%       True if clause ClauseRef references Predicate.
+
+referenced(Term, Module, Ref) :-
+        Goal = Module:_Head,
+        current_predicate(_, Goal),
+        '$get_predicate_attribute'(Goal, system, 0),
+        \+ '$get_predicate_attribute'(Goal, imported, _),
+        nth_clause(Goal, _, Ref),
+        '$xr_member'(Ref, Term).
 
 %%	list_redefined
 %
@@ -280,9 +232,13 @@ prolog:message(check(undefined_predicates)) -->
 	  'at runtime using assert/1, use :- dynamic Name/Arity.', nl, nl
 	].
 prolog:message(check(undefined(Pred, Refs))) -->
+	{ map_list_to_pairs(sort_reference_key, Refs, Keyed),
+	  keysort(Keyed, KeySorted),
+	  pairs_values(KeySorted, SortedRefs)
+	},
 	predicate(Pred),
 	[ ', which is referenced by', nl ],
-	referenced_by(Refs).
+	referenced_by(SortedRefs).
 prolog:message(check(undefined_unreferenced_predicates)) -->
 	[ 'The predicates below are not defined, and are not', nl,
 	  'referenced.', nl, nl
@@ -343,27 +299,38 @@ autoload([Lib-Pred|T]) -->
 	[ nl ],
 	autoload(T).
 
+%%	sort_reference_key(+Reference, -Key) is det.
+%
+%	Create a stable key for sorting references to predicates.
+
+sort_reference_key(Term, key(M:Name/Arity, N, ClausePos)) :-
+	clause_ref(Term, ClauseRef, ClausePos), !,
+	nth_clause(Pred, N, ClauseRef),
+	strip_module(Pred, M, Head),
+	functor(Head, Name, Arity).
+sort_reference_key(Term, Term).
+
+clause_ref(clause_char_count(ClauseRef, ClausePos), ClauseRef, ClausePos).
+clause_ref(clause(ClauseRef), ClauseRef, 0).
+
+
 referenced_by([]) -->
 	[].
 referenced_by([Ref|T]) -->
-	{ nth_clause(M:Head, N, Ref)
-	},
-	(   { clause_property(Ref, file(Path)),
-	      clause_property(Ref, line_count(Line))
-	    }
-	->  ['\t'-[] ], predicate(M:Head),
-	    [' at ~w:~w'-[Path, Line] ]
-	;   { suffix(N, Suff)
-	    },
-	    [ '\t~d-~w clause of '-[N, Suff] ],
-	    predicate(M:Head)
-	),
+	['\t'], prolog:message_location(Ref),
+	        predicate_indicator(Ref),
 	[ nl ],
 	referenced_by(T).
 
-suffix(1, st) :- !.
-suffix(2, nd) :- !.
-suffix(_, th).
+predicate_indicator(clause_char_count(ClauseRef, _)) -->
+	{ nonvar(ClauseRef) }, !,
+	predicate_indicator(clause(ClauseRef)).
+predicate_indicator(clause(ClauseRef)) -->
+	{ clause_name(ClauseRef, Name) },
+	[ '~w'-[Name] ].
+predicate_indicator(file(_,_,_,_)) -->
+	[ '(:- initialization/1)' ].
+
 
 short_filename(Path) -->
 	{ short_filename(Path, Spec)

@@ -3,8 +3,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-PLBASE=${libdir}/@PL@-@PLVERSION@
+PLBASE=@PLBASE@
 PLARCH=@PLARCH@
+INSTALL_PLARCH=@INSTALL_PLARCH@
 PLLIBS=@LNLIBS@
 PLLIB=@USEPLLIB@
 PLCFLAGS=@CMFLAGS@ @CIFLAGS@
@@ -14,5 +15,5 @@ PLSOEXT=@SO_EXT@
 Name: swipl
 Description: ISO/Edinburgh-style Prolog compiler
 Version: @PLVERSION@
-Libs: ${PLLDFLAGS} -L${libdir}/@PL@-@PLVERSION@/lib/@PLARCH@ -lswipl
-Cflags: ${PLCFLAGS} -I${libdir}/@PL@-@PLVERSION@/include
+Libs: ${PLLDFLAGS}  -L@PLBASE@/lib/@INSTALL_PLARCH@ -lswipl
+Cflags: ${PLCFLAGS} -I@PLBASE@/include

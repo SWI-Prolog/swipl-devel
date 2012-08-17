@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -43,6 +41,9 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 
+:- dynamic stack_guard/1.
+:- multifile stack_guard/1.
+
 :- predicate_options(print_prolog_backtrace/3, 3,
 		     [ subgoal_positions(boolean)
 		     ]).
@@ -50,23 +51,39 @@
 /** <module> Examine the Prolog stack
 
 This module defines  high-level  primitives   for  examining  the Prolog
-stack.  It provides the following functionality:
+stack,  primarily  intended  to  support   debugging.  It  provides  the
+following functionality:
 
     * get_prolog_backtrace/2 gets a Prolog representation of the
     Prolog stack.  This can be used for printing, but also to enrich
-    exceptions (see prolog_exception_hook/4).
+    exceptions using prolog_exception_hook/4.  Decorating exceptions
+    is provided by this library and controlled by the hook
+    stack_guard/1.
 
     * print_prolog_backtrace/2 prints a backtrace as returned by
     get_prolog_backtrace/2
 
     * The shorthand backtrace/1 fetches and prints a backtrace.
 
-@see	library(http/http_error) exploits these to print a backtrace
-	for HTTP server handlers that throw an exception.  Use this
-	as a template for your own application specific handlers.
+This library may be enabled by default to improve interactive debugging,
+for example by adding the lines below to your ~/plrc (pl.ini in Windows)
+to decorate uncaught exceptions:
+
+  ==
+  :- load_files(library(prolog_stack), [silent(true)]).
+  prolog_stack:stack_guard(none).
+  ==
+
+@bug	Use of this library may negatively impact performance of
+	applications that process (error-)exceptions frequently
+	as part of their normal processing.
 */
 
-%%	get_prolog_backtrace(+MaxDepth, -Backtrace)
+:- create_prolog_flag(backtrace_depth,      20,   [type(integer)]).
+:- create_prolog_flag(backtrace_show_lines, true, [type(boolean)]).
+
+%%	get_prolog_backtrace(+MaxDepth, -Backtrace) is det.
+%%	get_prolog_backtrace(+Frame, +MaxDepth, -Backtrace) is det.
 %
 %	Return a Prolog structure representing a backtrace from the
 %	current location.  The backtrace is a list of frames.  Each
@@ -75,7 +92,12 @@ stack.  It provides the following functionality:
 %		* frame(Level, Clause, PC)
 %		* frame(Level, foreign(Name/Arity), foreign)
 %
-%	MaxDepth defines the maximum number of frames returned.
+%	The  predicate  prolog_stack_frame_property/2  can  be  used  to
+%	extract information from these frames.   Most use scenarios will
+%	pass the stack to print_prolog_backtrace/2.
+%
+%	@param Frame is the frame to start from. See prolog_current_frame/1.
+%	@param MaxDepth defines the maximum number of frames returned.
 
 get_prolog_backtrace(MaxDepth, Stack) :-
 	prolog_current_frame(Fr),
@@ -160,7 +182,11 @@ print_prolog_backtrace(Stream, Backtrace, Options) :-
 	message//1.
 
 message(Backtrace) -->
-	message(Backtrace, []).
+	{   current_prolog_flag(backtrace_show_lines, true)
+	->  Options = []
+	;   Options = [subgoal_positions(false)]
+	},
+	message(Backtrace, Options).
 
 message([], _) -->
 	[].
@@ -227,10 +253,10 @@ backtrace(MaxDepth) :-
 
 
 subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
-	debug(clause, 'Term-position in ~w at PC=~w:', [ClauseRef, PC]),
+	debug(backtrace, 'Term-position in ~p at PC=~w:', [ClauseRef, PC]),
 	clause_info(ClauseRef, File, TPos, _),
 	'$clause_term_position'(ClauseRef, PC, List),
-	debug(clause, '\t~w~n', [List]),
+	debug(backtrace, '\t~p~n', [List]),
 	find_subgoal(List, TPos, PosTerm),
 	arg(1, PosTerm, CharA),
 	arg(2, PosTerm, CharZ).
@@ -260,3 +286,100 @@ lineno_(Fd, Char, L) :-
 lineno_(Fd, Char, L) :-
 	skip(Fd, 0'\n),
 	lineno_(Fd, Char, L).
+
+
+		 /*******************************
+		 *	  DECORATE ERRORS	*
+		 *******************************/
+
+%%	prolog_stack:stack_guard(+PI) is semidet.
+%
+%	Dynamic multifile hook that is normally not defined. The hook is
+%	called with PI equal to =none= if   the  exception is not caught
+%	and with a fully qualified   (e.g., Module:Name/Arity) predicate
+%	indicator of the predicate that called  catch/3 if the exception
+%	is caught.
+%
+%	The the exception is of the form error(Formal, ImplDef) and this
+%	hook    succeeds,    ImplDef    is    unified    to    a    term
+%	context(prolog_stack(StackData),    Message).    This    context
+%	information is used by the message   printing  system to print a
+%	human readable representation of the   stack  when the exception
+%	was raised.
+%
+%	For example, using a clause   stack_guard(none)  prints contexts
+%	for uncaught exceptions only.  Using   a  clause  stack_guard(_)
+%	prints a full  stack-trace  for  any   error  exception  if  the
+%	exception   is   given    to     print_message/2.    See    also
+%	library(http/http_error), which limits printing of exceptions to
+%	exceptions in user-code called from the HTTP server library.
+%
+%	Details of the exception decoration is  controlled by two Prolog
+%	flags:
+%
+%	    * backtrace_depth
+%	    Integer that controls the maximum number of frames
+%	    collected.  Default is 20.  If a guard is specified, callers
+%	    of the guard are removed from the stack-trace.
+%
+%	    * backtrace_show_lines
+%	    Boolean that indicates whether the library tries to find
+%	    line numbers for the calls.  Default is =true=.
+
+:- multifile
+	user:prolog_exception_hook/4.
+:- dynamic
+	user:prolog_exception_hook/4.
+
+user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
+			   error(E, context(prolog_stack(Stack),Msg)),
+			   Fr, Guard) :-
+	(   Guard == none
+	->  stack_guard(none)
+	;   prolog_frame_attribute(Guard, predicate_indicator, PI),
+	    debug(backtrace, 'Got exception ~p (Ctx0=~p, Catcher=~p)',
+		  [E, Ctx0, PI]),
+	    stack_guard(PI)
+	),
+	(   current_prolog_flag(backtrace_depth, Depth)
+	->  true
+	;   Depth = 20			% Thread created before lib was loaded
+	),
+	Depth > 0,
+	get_prolog_backtrace(Fr, Depth, Stack0),
+	debug(backtrace, 'Stack = ~p', [Stack0]),
+	clean_stack(Stack0, Stack).
+
+clean_stack(List, List) :-
+	stack_guard(X), var(X), !.	% Do not stop if we catch all
+clean_stack(List, Clean) :-
+	clean_stack2(List, Clean).
+
+clean_stack2([], []).
+clean_stack2([H|_], [H]) :-
+	guard_frame(H), !.
+clean_stack2([H|T0], [H|T]) :-
+	clean_stack2(T0, T).
+
+guard_frame(frame(_,clause(ClauseRef, _))) :-
+	nth_clause(M:Head, _, ClauseRef),
+	functor(Head, Name, Arity),
+	stack_guard(M:Name/Arity).
+
+
+		 /*******************************
+		 *	     MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(error(Error, context(Stack, Message))) -->
+	{ is_stack(Stack, Frames) }, !,
+	'$messages':translate_message(error(Error, context(_, Message))),
+	[ nl, 'In:', nl ],
+	message(Frames).
+
+is_stack(Stack, Frames) :-
+	nonvar(Stack),
+	Stack = prolog_stack(Frames).

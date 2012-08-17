@@ -205,10 +205,10 @@ rlc_add_menu_bar(HWND cwin)
 
   append_builtin(run,  IDM_BREAK);
 
-  AppendMenu(menu, MF_POPUP, (UINT)file,     _T("&File"));
-  AppendMenu(menu, MF_POPUP, (UINT)edit,     _T("&Edit"));
-  AppendMenu(menu, MF_POPUP, (UINT)settings, _T("&Settings"));
-  AppendMenu(menu, MF_POPUP, (UINT)run,      _T("&Run"));
+  AppendMenu(menu, MF_POPUP, (UINT_PTR)file,     _T("&File"));
+  AppendMenu(menu, MF_POPUP, (UINT_PTR)edit,     _T("&Edit"));
+  AppendMenu(menu, MF_POPUP, (UINT_PTR)settings, _T("&Settings"));
+  AppendMenu(menu, MF_POPUP, (UINT_PTR)run,      _T("&Run"));
 
   SetMenu(cwin, menu);
 }

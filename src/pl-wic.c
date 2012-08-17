@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -70,6 +69,7 @@ Below is an informal description of the format of a `.qlf' file:
 			<version-number>
 			<bits-per-word>
 			'F' <string>			% path of qlf file
+			{'I' <include>}
 			'Q' <qlf-part>
 <qlf-magic>	::=	<string>
 <qlf-module>	::=	<qlf-header>
@@ -102,14 +102,18 @@ Below is an informal description of the format of a `.qlf' file:
 		        <lineno>			% source line number
 			<term>				% directive
 		      | 'E' <XR/functor>		% export predicate
-		      | 'I' <XR/procedure>		% import predicate
+		      | 'I' <XR/procedure> <flags>	% import predicate
 		      | 'Q' <qlf-module>		% include module
 		      | 'M' <XR/modulename>		% load-in-module
 		            {<statement>}
 			    'X'
 <flags>		::=	<num>				% Bitwise or of PRED_*
 <clause>	::=	'C' <#codes>
-			    <line_no> <# var>
+			    <line_no>
+			    <owner_file>
+			    <source_file>
+			    <# prolog vars> <# vars>
+			    <is_fact>			% 0 or 1
 			    <#n subclause> <codes>
 		      | 'X'				% end of list
 <XR>		::=	XR_REF     <num>		% XR id from table
@@ -137,6 +141,7 @@ Below is an informal description of the format of a `.qlf' file:
 <codes>		::=	<num> {<code>}
 <string>	::=	{<non-zero byte>} <0>
 <word>		::=	<4 byte entity>
+<include>	::=	<owner> <parent> <line> <file> <time>
 
 Numbers are stored in  a  packed  format  to  reduce  the  size  of  the
 intermediate  code  file  as  99%  of  them  is  normally  small, but in
@@ -150,8 +155,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 61			/* load all versions later >= X */
-#define VERSION 61			/* save version number */
+#define LOADVERSION 64			/* load all versions later >= X */
+#define VERSION 64			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -170,7 +175,7 @@ bits) as well as machines with different byte order.
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
 
-static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
+static char saveMagic[] = "SWI-Prolog state (www.swi-prolog.org)\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
 
 typedef struct source_mark
@@ -704,12 +709,12 @@ loadXRc(wic_state *state, int c ARG_LD)
       { case 'u':
 	case 's':
 	{ atom_t name   = loadXR(state);
-	  word   time   = getLong(fd);
+	  double time   = getFloat(fd);
 	  const char *s = stringAtom(name);
 	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(state, s), TRUE);
 
-	  if ( !sf->time )
-	  { sf->time   = time;
+	  if ( sf->mtime == 0.0 )
+	  { sf->mtime   = time;
 	    sf->system = (c == 's' ? TRUE : FALSE);
 	  }
 	  sf->count++;
@@ -1072,13 +1077,16 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
-	{ SourceFile sf = (void *) loadXR(state);
+	{ SourceFile of = (void *) loadXR(state);
+	  SourceFile sf = (void *) loadXR(state);
+	  int ono = (of ? of->index : 0);
 	  int sno = (sf ? sf->index : 0);
 
+	  clause->owner_no = ono;
 	  clause->source_no = sno;
-	  if ( sf && sf != csf )
+	  if ( of && of != csf )
 	  { addProcedureSourceFile(sf, proc);
-	    csf = sf;
+	    csf = of;
 	  }
 	}
 
@@ -1239,9 +1247,10 @@ runInitialization(SourceFile sf)
 static bool
 loadImport(wic_state *state, int skip ARG_LD)
 { Procedure proc = (Procedure) loadXR(state);
+  int flags = getInt(state->wicFd);
 
   if ( !skip )
-    return importDefinitionModule(LD->modules.source, proc->definition);
+    return importDefinitionModule(LD->modules.source, proc->definition, flags);
 
   succeed;
 }
@@ -1287,7 +1296,7 @@ static bool
 qlfLoadSource(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
   char *str = getString(fd, NULL);
-  intptr_t time = getLong(fd);
+  double time = getFloat(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
@@ -1297,7 +1306,7 @@ qlfLoadSource(wic_state *state)
 	     Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
 
   state->currentSource = lookupSourceFile(fname, TRUE);
-  state->currentSource->time = time;
+  state->currentSource->mtime = time;
   state->currentSource->system = issys;
   if ( GD->bootsession )		/* (**) */
     state->currentSource->count++;
@@ -1479,6 +1488,42 @@ loadInModule(wic_state *state, int skip ARG_LD)
 	loadStatement(state, c, skip PASS_LD);
     }
   }
+}
+
+
+static bool
+loadInclude(wic_state *state ARG_LD)
+{ IOSTREAM *fd = state->wicFd;
+  atom_t owner, pn, fn;
+  int line;
+  double time;
+  fid_t fid = PL_open_foreign_frame();
+  term_t t = PL_new_term_ref();
+  sourceloc loc;
+
+  owner = loadXR(state);
+  pn    = loadXR(state);
+  line  = getInt(fd);
+  fn    = loadXR(state);
+  time  = getFloat(fd);
+
+  if ( !PL_unify_term(t,
+		      PL_FUNCTOR, FUNCTOR_colon2,
+			PL_ATOM, ATOM_system,
+			PL_FUNCTOR_CHARS, "$included", 4,
+			  PL_ATOM, pn,
+			  PL_INT, line,
+			  PL_ATOM, fn,
+			  PL_FLOAT, time) )
+    return FALSE;
+
+  loc.file = pn;
+  loc.line = line;
+
+  assert_term(t, CL_END, owner, &loc PASS_LD);
+
+  PL_discard_foreign_frame(fid);
+  return TRUE;
 }
 
 
@@ -1836,7 +1881,7 @@ saveXRSourceFile(wic_state *state, SourceFile f ARG_LD)
 		      state->savedXRTableId, stringAtom(f->name)));
     Sputc(f->system ? 's' : 'u', fd);
     saveXR(state, f->name);
-    putNum(f->time, fd);
+    putFloat(f->mtime, fd);
   } else
   { DEBUG(3, Sdprintf("XR(%d) = <no file>\n", state->savedXRTableId));
     Sputc('-', fd);
@@ -1928,6 +1973,7 @@ saveWicClause(wic_state *state, Clause clause)
   Sputc('C', fd);
   putNum(clause->code_size, fd);
   putNum(clause->line_no, fd);
+  saveXRSourceFile(state, indexToSourceFile(clause->owner_no) PASS_LD);
   saveXRSourceFile(state, indexToSourceFile(clause->source_no) PASS_LD);
   putNum(clause->prolog_vars, fd);
   putNum(clause->variables, fd);
@@ -2136,6 +2182,9 @@ writeWicTrailer(wic_state *state)
   succeed;
 }
 
+/* FIXME: Deal with owner/real location in saved state
+*/
+
 static bool
 addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
 { Clause clause;
@@ -2144,7 +2193,7 @@ addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
   loc.file = file;
   loc.line = source_line_no;
 
-  if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
+  if ( (clause = assert_term(term, CL_END, file, &loc PASS_LD)) )
   { openProcedureWic(state, clause->procedure, ATOM_development PASS_LD);
     saveWicClause(state, clause);
 
@@ -2168,11 +2217,15 @@ addDirectiveWic(wic_state *state, term_t term ARG_LD)
 
 
 static bool
-importWic(wic_state *state, Procedure proc ARG_LD)
-{ closeProcedureWic(state);
+importWic(wic_state *state, Procedure proc, atom_t strength ARG_LD)
+{ int flags = atomToImportStrength(strength);
+
+  assert(flags >= 0);
+  closeProcedureWic(state);
 
   Sputc('I', state->wicFd);
   saveXRProc(state, proc PASS_LD);
+  putNum(flags, state->wicFd);
 
   succeed;
 }
@@ -2285,6 +2338,7 @@ qlfInfo(const char *file,
   TRY(PL_unify_integer(version, lversion));
 
   vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
+  (void)vm_signature;
   saved_wsize = getInt(s);		/* word-size of file */
   TRY(PL_unify_integer(wsize, saved_wsize));
 
@@ -2523,10 +2577,24 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
 
   pushPathTranslation(state, absloadname, 0);
   state->load_state->saved_version = lversion;
-  if ( Qgetc(fd) != 'Q' )
-    return qlfLoadError(state);
 
   pushXrIdTable(state);
+  for(;;)
+  { int c = Qgetc(fd);
+
+    switch(c)
+    { case 'Q':
+        break;
+      case 'I':
+	loadInclude(state PASS_LD);
+        continue;
+      default:
+	qlfLoadError(state);
+    }
+
+    break;
+  }
+
   rval = loadPart(state, module, FALSE PASS_LD);
   popXrIdTable(state);
   popPathTranslation(state);
@@ -2543,7 +2611,7 @@ qlfSaveSource(wic_state *state, SourceFile f)
   sourceMark(state);
   Sputc('F', fd);
   putString(a->name, a->length, fd);
-  putNum(f->time, fd);
+  putFloat(f->mtime, fd);
   Sputc(f->system ? 's' : 'u', fd);
 
   state->currentSource = f;
@@ -2685,6 +2753,51 @@ PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
   }
 
   succeed;
+}
+
+
+static
+PRED_IMPL("$qlf_current_source", 1, qlf_current_source, 0)
+{ PRED_LD
+  wic_state *state;
+  SourceFile sf;
+
+  if ( (state=LD->qlf.current_state) &&
+       (sf = state->currentSource) )
+  { return PL_unify_atom(A1, sf->name);
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("$qlf_include", 5, qlf_include, 0)
+{ PRED_LD
+  atom_t owner, pn, fn;
+  int line;
+  double time;
+  wic_state *state;
+
+  if ( PL_get_atom_ex(A1, &owner) &&
+       PL_get_atom_ex(A2, &pn) &&
+       PL_get_integer_ex(A3, &line) &&
+       PL_get_atom_ex(A4, &fn) &&
+       PL_get_float(A5, &time) &&
+       (state=LD->qlf.current_state) )
+  { IOSTREAM *fd = state->wicFd;
+
+    Sputc('I', fd);
+    putAtom(state, owner);
+    putAtom(state, pn);
+    putNum(line, fd);
+    putAtom(state, fn);
+    putFloat(time, fd);
+
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -2857,23 +2970,25 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 }
 
 
-/** '$import_wic'(+Module, +PredicateIndicator)
+/** '$import_wic'(+Module, +PredicateIndicator, +Strength)
 */
 
 static
-PRED_IMPL("$import_wic", 2, import_wic, 0)
+PRED_IMPL("$import_wic", 3, import_wic, 0)
 { PRED_LD
   wic_state *state;
 
   if ( (state=LD->qlf.current_state) )
   { Module m = NULL;
     functor_t fd;
+    atom_t strength;
 
     if ( !PL_get_module(A1, &m) ||
-	 !get_functor(A2, &fd, &m, 0, GF_PROCEDURE) )
+	 !get_functor(A2, &fd, &m, 0, GF_PROCEDURE) ||
+	 !PL_get_atom_ex(A3, &strength) )
       fail;
 
-    return importWic(state, lookupProcedure(fd, m) PASS_LD);
+    return importWic(state, lookupProcedure(fd, m), strength PASS_LD);
   }
 
   succeed;
@@ -2892,7 +3007,7 @@ PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
   { Clause clause;
     atom_t sclass;
 
-    if ( !PL_get_clref(A1, &clause) ||
+    if ( (PL_get_clref(A1, &clause) != TRUE) ||
 	 !PL_get_atom_ex(A2, &sclass) )
       fail;
 
@@ -2971,7 +3086,7 @@ compileFile(wic_state *state, const char *file)
     fail;
   DEBUG(2, Sdprintf("Expanded to %s\n", path));
 
-  nf = PL_new_atom(path);
+  nf = PL_new_atom(path);			/* NOTE: Only ISO-Latin-1 */
   PL_put_atom(f, nf);
   DEBUG(2, Sdprintf("Opening\n"));
   if ( !pl_see(f) )
@@ -2979,7 +3094,8 @@ compileFile(wic_state *state, const char *file)
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);
-  sf->time = LastModifiedFile(path);
+  if ( !LastModifiedFile(path, &sf->mtime) )
+    Sdprintf("Failed to get time from %s\n", path);
   qlfStartFile(state, sf);
 
   for(;;)
@@ -2990,7 +3106,7 @@ compileFile(wic_state *state, const char *file)
 
     DEBUG(2, Sdprintf("pl_read_clause() -> "));
     PL_put_variable(t);
-    if ( !read_clause(Scurin, t PASS_LD) ) /* syntax error */
+    if ( !read_clause(Scurin, t, 0 PASS_LD) ) /* syntax error */
     { Sdprintf("%s:%d: Syntax error\n",
 	       PL_atom_chars(source_file_name),
 	       source_line_no);
@@ -3136,11 +3252,13 @@ BeginPredDefs(wic)
   PRED_DEF("$qlf_start_module",	    1, qlf_start_module,     0)
   PRED_DEF("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
   PRED_DEF("$qlf_start_file",	    1, qlf_start_file,	     0)
+  PRED_DEF("$qlf_current_source",   1, qlf_current_source,   0)
+  PRED_DEF("$qlf_include",          5, qlf_include,          0)
   PRED_DEF("$qlf_end_part",	    0, qlf_end_part,	     0)
   PRED_DEF("$qlf_open",		    1, qlf_open,	     0)
   PRED_DEF("$qlf_close",	    0, qlf_close,	     0)
   PRED_DEF("$qlf_assert_clause",    2, qlf_assert_clause,    0)
   PRED_DEF("$open_wic",		    1, open_wic,	     0)
   PRED_DEF("$close_wic",	    0, close_wic,	     0)
-  PRED_DEF("$import_wic",	    2, import_wic,	     0)
+  PRED_DEF("$import_wic",	    3, import_wic,	     0)
 EndPredDefs

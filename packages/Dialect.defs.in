@@ -17,6 +17,9 @@
 #   create subdirectories
 #   * SO
 #   Extension used for shared objects.  E.g., .so, .dylib, .dll, ...
+#   * LIBPLSO
+#   Library to include for linking shared objects to the Prolog kernel.
+#   Added after the user files.
 
 PL=../swipl.sh
 PLBASE=@PLBASE@
@@ -42,7 +45,13 @@ DEFS=@DEFS@ -D__SWI_PROLOG__
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) $(PKGCFLAGS) $(DEFS)
 CXXFLAGS=$(CFLAGS) -I../cpp
 
-PLLDFLAGS=@LDFLAGS@ -L@abs_top_builddir@/../lib/$(PLARCH) -lswipl
+ifeq (@EXEFORMAT@,ELF)
+LIBPLSO=
+else
+LIBPLSO=-lswipl
+endif
+
+PLLDFLAGS=@LDFLAGS@ -L@abs_top_builddir@/../lib/$(PLARCH)
 LDSOFLAGS=@SO_LDFLAGS@ $(PLLDFLAGS) $(PKGLDFLAGS)
 LDFLAGS=$(PLLDFLAGS) $(PKGLDFLAGS)
 

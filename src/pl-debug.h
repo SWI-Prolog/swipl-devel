@@ -45,6 +45,14 @@
 #define MSG_THROW		 16
 #define MSG_SRCLOC		 17
 #define MSG_PROC		 18
+
+#define MSG_COMP_ARGVAR		 19
+#define MSG_UNLOAD		 20
+#define MSG_INDEX_FIND		 21
+#define MSG_INDEX_UPDATE	 22
+#define MSG_JIT			 23
+#define MSG_TRACE		 24
+
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101

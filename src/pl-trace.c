@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -392,7 +390,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   }
 
   if ( !debugstatus.tracing &&
-       (false(def, SPY_ME) || (port & CUT_PORT)) )
+       (false(def, SPY_ME) || (port & (CUT_PORT|REDO_PORT))) )
     return ACTION_CONTINUE;		/* not tracing and no spy-point */
   if ( debugstatus.skiplevel < levelFrame(frame) )
     return ACTION_CONTINUE;		/* skipped */
@@ -404,7 +402,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   if ( (!(debugstatus.visible & port)) )
     return ACTION_CONTINUE;		/* wrong port */
   if ( (true(def, HIDE_CHILDS) && !SYSTEM_MODE) &&
-       (port & (/*REDO_PORT|*/CUT_PORT)) )
+       (port & CUT_PORT) )
     return ACTION_CONTINUE;		/* redo or ! in system predicates */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -728,7 +726,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		debugmode(DBG_OFF, NULL);
 		return ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
-		backTrace(num_arg == Default ? 5 : num_arg);
+		PL_backtrace(num_arg == Default ? 5 : num_arg, PL_BT_USER);
 		return ACTION_AGAIN;
     case 'A':	FeedBack("alternatives\n");
 		alternatives(bfr);
@@ -1062,10 +1060,8 @@ listGoal(LocalFrame frame)
 
 
 static void
-writeContextFrame(pl_context_t *ctx)
-{ GET_LD
-
-  if ( gc_status.active )
+writeContextFrame(pl_context_t *ctx, int flags)
+{ if ( (flags&PL_BT_SAFE) )
   { char buf[256];
 
     PL_describe_context(ctx, buf, sizeof(buf));
@@ -1077,7 +1073,7 @@ writeContextFrame(pl_context_t *ctx)
 
 
 void
-backTrace(int depth)
+PL_backtrace(int depth, int flags)
 { pl_context_t ctx;
 
   if ( PL_get_context(&ctx, 0) )
@@ -1085,7 +1081,13 @@ backTrace(int depth)
     Definition def = NULL;
     int same_proc = 0;
     pl_context_t rctx;			/* recursive context */
-    int show_all = (gc_status.active || SYSTEM_MODE);
+
+    if ( gc_status.active )
+    { flags |= PL_BT_SAFE;
+      flags &= ~PL_BT_USER;
+    }
+    if ( SYSTEM_MODE )
+      flags &= ~PL_BT_USER;
 
     for(; depth > 0; PL_step_context(&ctx))
     { LocalFrame frame;
@@ -1102,8 +1104,8 @@ backTrace(int depth)
 	}
       } else
       { if ( same_proc >= 10 )
-	{ if ( isDebugFrame(rctx.fr) || show_all )
-	  { writeContextFrame(&rctx);
+	{ if ( isDebugFrame(rctx.fr) || !(flags&PL_BT_USER) )
+	  { writeContextFrame(&rctx, flags);
 	    depth--;
 	  }
 	  same_proc = 0;
@@ -1111,8 +1113,8 @@ backTrace(int depth)
 	def = frame->predicate;
       }
 
-      if ( isDebugFrame(frame) || show_all )
-      { writeContextFrame(&ctx);
+      if ( isDebugFrame(frame) || !(flags&PL_BT_USER) )
+      { writeContextFrame(&ctx, flags);
 	depth--;
       }
     }
@@ -1167,7 +1169,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
     switch(port)
     { case CALL_PORT:	   portname = ATOM_call;         break;
-      case REDO_PORT:	   portname = ATOM_redo;         break;
+      case REDO_PORT:	   portfunc = FUNCTOR_redo1;     break;
       case EXIT_PORT:	   portname = ATOM_exit;         break;
       case FAIL_PORT:	   portname = ATOM_fail;         break;
       case UNIFY_PORT:	   portname = ATOM_unify;	 break;
@@ -1298,7 +1300,7 @@ gets the context of the calling   thread. The current implementation can
 only deal with extracting the stack for  the calling thread, but the API
 is prepared to generalise this.
 
-See also backTrace() and os/pl-cstack.c.
+See also PL_backtrace() and os/pl-cstack.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -1634,7 +1636,7 @@ again:
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfputs("goals\n", Sdout);
-		backTrace(5);
+		PL_backtrace(5, PL_BT_USER);
 		goto again;
 #endif /*O_DEBUGGER*/
     case 'h':
@@ -1973,21 +1975,42 @@ pl_prolog_current_frame(term_t frame)
 }
 
 
+/** prolog_current_choice(-Choice) is semidet.
+
+True when Choice refers to the most recent choice-point.
+*/
+
+static
+PRED_IMPL("prolog_current_choice", 1, prolog_current_choice, 0)
+{ PRED_LD
+  Choice ch = LD->choicepoints;
+
+  while(ch && ch->type == CHP_DEBUG)
+    ch = ch->parent;
+  if ( ch )
+    return PL_unify_choice(A1, ch);
+
+  return FALSE;
+}
+
+
 static int
-prolog_frame_attribute(term_t frame, term_t what,
-		       term_t value)
+prolog_frame_attribute(term_t frame, term_t what, term_t value)
 { GET_LD
   LocalFrame fr;
   atom_t key;
   int arity;
   term_t result = PL_new_term_ref();
+  Module m = NULL;
 
   if ( !PL_get_frame(frame, &fr) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_frame_reference, frame);
   if ( !fr )
-    fail;				/* frame == 'none' */
+    return FALSE;				/* frame == 'none' */
   if ( !PL_get_name_arity(what, &key, &arity) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, what);
+  if ( !PL_strip_module(value, &m, value) )
+    return FALSE;
 
   set(fr, FR_WATCHED);			/* explicit call to do this? */
 
@@ -2070,7 +2093,7 @@ prolog_frame_attribute(term_t frame, term_t what,
     term_t arg = PL_new_term_ref();
     Definition def = fr->predicate;
 
-    if ( def->module != MODULE_user )
+    if ( def->module != m )
     { if ( !PL_put_functor(result, FUNCTOR_colon2) )
 	return FALSE;
       _PL_get_arg(1, result, arg);
@@ -2112,7 +2135,7 @@ prolog_frame_attribute(term_t frame, term_t what,
       }
     }
   } else if ( key == ATOM_predicate_indicator )
-  { if ( !unify_definition(MODULE_user, result, fr->predicate, 0, GP_NAMEARITY) )
+  { if ( !unify_definition(m, result, fr->predicate, 0, GP_NAMEARITY) )
       return FALSE;
   } else if ( key == ATOM_parent_goal )
   { Procedure proc;
@@ -2198,7 +2221,7 @@ prolog_frame_attribute(term_t frame, term_t what,
 */
 
 static
-PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
+PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, PL_FA_TRANSPARENT)
 { int rc = prolog_frame_attribute(A1, A2, A3);
 
   DEBUG(CHK_SECURE, scan_global(0));
@@ -2241,8 +2264,12 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
     fail;
 
   if ( key == ATOM_parent )
-  { if ( ch->parent )
-      return PL_unify_choice(A3, ch->parent);
+  { do
+    { ch = ch->parent;
+    } while(ch && ch->type == CHP_DEBUG);
+
+    if ( ch )
+      return PL_unify_choice(A3, ch);
     fail;
   } else if ( key == ATOM_frame )
   { return PL_unify_frame(A3, ch->frame);
@@ -2409,7 +2436,8 @@ callEventHook(int ev, ...)
 		 *******************************/
 
 BeginPredDefs(trace)
-  PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
+  PRED_DEF("prolog_current_choice", 1, prolog_current_choice, 0)
+  PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, PL_FA_TRANSPARENT)
   PRED_DEF("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
   PRED_DEF("prolog_skip_frame", 1, prolog_skip_frame, PL_FA_NOTRACE)
   PRED_DEF("prolog_skip_level", 2, prolog_skip_level, PL_FA_NOTRACE)

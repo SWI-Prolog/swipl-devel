@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -40,6 +39,7 @@ name :-
 
 name :-
 	version(Major, Minor, Patch),
+	format('!define _VERSION "~w.~w.~w.0"~n', [Major, Minor, Patch]),
 	get_time(X),
 	format_time(string(Date), '%F', X),
 	format('Name "SWI-Prolog ~w.~w.~w (~s)"~n',
@@ -68,6 +68,7 @@ outarch(w32).
 
 outfile :-
 	outfile(File),
+	format('!define _OUTFILE "~w"~n', [File]),
 	format('OutFile "~w"~n', [File]).
 
 %packages :-
@@ -158,7 +159,8 @@ expand_defs([H|T0], [H|T]) :-
 
 :- dynamic
 	install_file/1,
-	install_dir/1.
+	install_dir/1,
+	in_skip/2.
 
 parse_script(Script) :-
 	retractall(install_file(_)),
@@ -170,11 +172,43 @@ parse_script(Script) :-
 
 process_file_decls(end_of_file, _) :- !.
 process_file_decls(Line, In) :-
-%	format('~s~n', [Line]),
-	phrase(process_file_decl, Line),
+	(   phrase(process_file_decl, Line)
+	->  true
+	;   format('ERROR: Failed to process ~s~n', [Line]),
+	    portray_text(true),
+	    gtrace,
+	    phrase(process_file_decl, Line)
+	),
 	read_line_to_codes(In, Line1),
 	process_file_decls(Line1, In).
 
+process_file_decl -->
+	"!ifdef", ws, identifier(Id), ws, !,
+	{   def(Id, _)
+	->  asserta(in_skip(Id, false))
+	;   asserta(in_skip(Id, true))
+	}.
+process_file_decl -->
+	"!ifndef", ws, identifier(Id), ws, !,
+	{   def(Id, _)
+	->  asserta(in_skip(Id, true))
+	;   asserta(in_skip(Id, false))
+	}.
+process_file_decl -->
+	"!else", ws, !,
+	{   retract(in_skip(Id, Skip))
+	->  negate(Skip, NewSkip),
+	    asserta(in_skip(Id, NewSkip))
+	}.
+process_file_decl -->
+	"!endif", ws, !,
+	{ retract(in_skip(_,_)) -> true }.
+process_file_decl -->
+	{  in_skip(_, Skip)
+	-> Skip == true
+	}, !,
+	string(_),
+	eos.
 process_file_decl -->
 	ws, "File", blank, ws, !,
 	(   "/r", ws
@@ -213,6 +247,17 @@ token(Value) -->
 	  name(Value, Expanded)
 	}.
 
+identifier(Id) -->
+	idcharf(C0),
+	idchars(T),
+	{ atom_codes(Id, [C0|T]) }.
+
+idchars([H|T]) --> idchar(H), idchars(T).
+idchars([]) --> [].
+
+idchar(C)  --> [C], { code_type(C, csym) }.
+idcharf(C) --> [C], { code_type(C, csymf) }.
+
 sep -->
 	peek_blank, !.
 sep -->
@@ -242,6 +287,9 @@ peek_blank -->
 
 peek(C, X, X) :-
 	X = [C|_].
+
+negate(true, false).
+negate(false, true).
 
 %	check_covered(+Dir)
 %
@@ -289,11 +337,15 @@ already_covered(Dir) :-
 check_files :-
 	parse_script('pl.nsi'),
 	flag(errors, Old, 0),
-	check_covered(pl),
+	def('SWIPL', SWIPL),
+	check_covered(SWIPL),
 	flag(errors, New, Old),
 	New == 0.
 
 ignore_file('INDEX.pl').
+ignore_file('Makefile').
+ignore_file('swipl.home').
+ignore_file('swipl.ico').
 ignore_file('plwin.opt').
 ignore_file('pl2xpce.pdb').
 ignore_file('dlltest.pdb').

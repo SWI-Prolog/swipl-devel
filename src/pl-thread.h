@@ -119,6 +119,7 @@ typedef struct message_queue
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
   int		       wait_for_drain;	/* # threads waiting for write */
+  unsigned	initialized : 1;	/* Queue is initialised */
   unsigned	destroyed : 1;		/* Thread is being destroyed */
   unsigned	type : 2;		/* QTYPE_* */
 } message_queue;
@@ -312,7 +313,6 @@ COMMON(int)		exitPrologThreads(void);
 COMMON(bool)		aliasThread(int tid, atom_t name);
 COMMON(word)		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
-COMMON(word)		pl_thread_join(term_t thread, term_t retcode);
 COMMON(word)		pl_thread_exit(term_t retcode);
 COMMON(foreign_t)	pl_thread_signal(term_t thread, term_t goal);
 
@@ -341,14 +341,16 @@ COMMON(void)		cleanupThreads();
 COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
+
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
 		 *******************************/
 
-void		forThreadLocalData(void (*func)(struct PL_local_data *),
+COMMON(void)	forThreadLocalData(void (*func)(struct PL_local_data *),
 				   unsigned flags);
-void		resumeThreads(void);
-void		markAtomsThreads(void);
+COMMON(void)	resumeThreads(void);
+COMMON(void)	markAtomsMessageQueues(void);
+COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
 

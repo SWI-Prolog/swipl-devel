@@ -24,6 +24,7 @@
 ./packages/space/space.pdf
 ./packages/PDT/pdt.pdf
 ./packages/utf8proc/utf8proc.pdf
+./packages/archive/archive.pdf
 ./packages/R/R.html
 ./packages/db/db4pl.html
 ./packages/cpp/pl2cpp.html
@@ -47,3 +48,4 @@
 ./packages/protobufs/protobufs.html
 ./packages/PDT/pdt.html
 ./packages/utf8proc/utf8proc.html
+./packages/archive/archive.html

@@ -50,8 +50,8 @@ can coexist in the pool. The   call  thread_create_in_pool/4 allocates a
 thread in the pool, just like  thread_create/3.   If  the  pool is fully
 allocated it can be asked to wait or raise an error.
 
-The library has been  designed  to   deal  with  server application that
-recieve a variety of requests, such as   HTTP servers. Simply starting a
+The library has been designed  to   deal  with  server applications that
+receive a variety of requests, such as   HTTP servers. Simply starting a
 thread for each request is a bit too simple minded for such servers:
 
     * Creating many CPU intensive threads often leads to a slow-down
@@ -317,7 +317,7 @@ diff_list_length(List, Tail, Size) :-
 %	pool.  There are two messages:
 %
 %	    * create(PoolName, Goal, ForThread, Wait, Options)
-%	    Create a new thread on behalve of ForThread.  There are
+%	    Create a new thread on behalf of ForThread.  There are
 %	    two cases:
 %	         * Free slots: create the thread
 %	         * No free slots: error or add to waiting

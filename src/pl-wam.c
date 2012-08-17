@@ -192,7 +192,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 	  { relto = FR->clause->value.clause->codes;
 	  }
 
-	  Sdprintf("\t%s\n", codeTable[decode(*PC)].name);
+	  Sdprintf("\t%4ld %s\n", (long)(PC-relto), codeTable[decode(*PC)].name);
 	});
 }
 
@@ -399,27 +399,21 @@ fid_t
 PL_open_signal_foreign_frame(int sync)
 { GET_LD
   FliFrame fr;
-  size_t margin = sizeof(struct localFrame);
+  size_t minspace = sizeof(struct localFrame) + MINFOREIGNSIZE*sizeof(word);
+  size_t margin   = sync ? 0 : MAXARITY*sizeof(word);
 
-  if ( sync )
-    margin += MINFOREIGNSIZE*sizeof(word);
-  else
-    margin += MAXARITY*sizeof(word);
-
-  if ( (char*)lTop + margin > (char*)lMax )
+  if ( (char*)lTop + minspace + margin  > (char*)lMax )
   { if ( sync )
     { int rc;
 
-      if ( (rc=ensureLocalSpace(margin, ALLOW_SHIFT)) != TRUE )
-	return FALSE;
+      if ( (rc=ensureLocalSpace(minspace, ALLOW_SHIFT)) != TRUE )
+	return 0;
     } else
-    { return FALSE;
+    { return 0;
     }
   }
 
-  fr = (FliFrame) lTop;
-  lTop = addPointer(fr, margin);
-
+  fr = addPointer(lTop, margin);
   fr->magic = FLI_MAGIC;
   fr->size = 0;
   Mark(fr->mark);
@@ -756,6 +750,10 @@ do_undo(mark *m)
 		 *	    PROCEDURES		*
 		 *******************************/
 
+/* Note that we use PL_malloc_uncollectable() here because the pointer in
+   our block is not the real memory pointer.
+*/
+
 static Definition
 localDefinition(Definition def ARG_LD)
 { unsigned int tid = LD->thread.info->pl_tid;
@@ -766,10 +764,9 @@ localDefinition(Definition def ARG_LD)
   { LOCKDYNDEF(def);
     if ( !v->blocks[idx] )
     { size_t bs = (size_t)1<<idx;
-      Definition *newblock = allocHeapOrHalt(bs*sizeof(Definition));
+      Definition *newblock = PL_malloc_uncollectable(bs*sizeof(Definition));
 
       memset(newblock, 0, bs*sizeof(Definition));
-
       v->blocks[idx] = newblock-bs;
     }
     UNLOCKDYNDEF(def);
@@ -1147,23 +1144,33 @@ non-debug code. We walk up the stack to   find  a debug frame. If we are
 already in the box of this frame, we   have  an internal retry of called
 system predicate, which we should not trace. If we are outside the `box'
 however, we must trace the toplevel visible predicate.
+
+FR_INBOX is maintained when the debugger is   active.  It is set on CALL
+and REDO and reset on EXIT. So, if we find this set, we are dealing with
+an internal retry and otherwise we have an external retry.
+
+The cht argument is one of CHP_CLAUSE   or CHP_JUMP, indicating the type
+of redo.  We always show redo for an external redo.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static LocalFrame
-dbgRedoFrame(LocalFrame fr ARG_LD)
-{ DEBUG(1, Sdprintf("REDO on %s\n", predicateName(fr->predicate)));
+dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
+{ DEBUG(MSG_TRACE, Sdprintf("REDO on [%d] %s\n",
+			    (int)levelFrame(fr), predicateName(fr->predicate)));
 
   if ( SYSTEM_MODE )
-    return fr;
-  if ( isDebugFrame(fr) )
-    return true(fr->predicate, HIDE_CHILDS) ? NULL : fr;
+    return fr;				/* system mode; debug everything */
+  if ( isDebugFrame(fr) && false(fr->predicate, HIDE_CHILDS) )
+    return fr;				/* normal user code */
   for( ; fr && !isDebugFrame(fr); fr = fr->parent)
-    ;
-  DEBUG(1, if ( fr )
-	Sdprintf("REDO user frame of %s\n",
-		 predicateName(fr->predicate)));
+    ;					/* find top of hidden children */
+  DEBUG(MSG_TRACE, if ( fr )
+	Sdprintf("REDO user frame of [%d] %s%s\n",
+		 (int)levelFrame(fr),
+		 predicateName(fr->predicate),
+		 true(fr, FR_INBOX) ? " (inbox)" : ""));
   if ( fr && false(fr, FR_INBOX) )
-  { set(fr, FR_INBOX);
+  { set(fr, FR_INBOX);			/* External retry */
     return fr;
   }
 
@@ -1608,12 +1615,13 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */
+  qf = (QueryFrame)lTop;
 #ifdef JMPBUF_ALIGNMENT
-  while ( (uintptr_t)lTop % JMPBUF_ALIGNMENT )
-    lTop = addPointer(lTop, sizeof(word));
+  while ( (uintptr_t)qf % JMPBUF_ALIGNMENT )
+    qf = addPointer(qf, sizeof(word));
 #endif
+  qf->saved_ltop = lTop;
 
-  qf	             = (QueryFrame) lTop;
 					/* fill top-frame */
   top	             = &qf->top_frame;
   top->parent        = NULL;
@@ -1757,7 +1765,7 @@ restore_after_query(QueryFrame qf)
   environment_frame = qf->saved_environment;
   PL_UNLOCK(L_AGC);
   aTop		    = qf->aSave;
-  lTop		    = (LocalFrame)qf;
+  lTop		    = qf->saved_ltop;
   if ( true(qf, PL_Q_NODEBUG) )
   { suspendTrace(FALSE);
     debugstatus.debugging = qf->debugSave;
@@ -2133,8 +2141,10 @@ do_retry:
 	   predicateName(rframe->predicate));
 
   discardChoicesAfter(rframe, FINISH_CUT PASS_LD);
+  rframe->clause = NULL;
   environment_frame = FR = rframe;
   DEF = FR->predicate;
+  clear(FR, FR_SKIPPED);
   Undo(m);
   exception_term = 0;
 
@@ -2257,7 +2267,7 @@ next_choice:
 	{ case ACTION_RETRY:
 	    environment_frame = FR;
 	    DEF = FR->predicate;
-	    clear(FR, FR_CATCHED);
+	    clear(FR, FR_CATCHED|FR_SKIPPED);
 	    goto retry_continue;
 	    case ACTION_ABORT:
 	      THROW_EXCEPTION;
@@ -2299,13 +2309,13 @@ next_choice:
 			predicateName(DEF)));
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr = dbgRedoFrame(FR PASS_LD);
+      { LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP PASS_LD);
 
 	if ( fr )
 	{ int action;
 
 	  SAVE_REGISTERS(qid);
-	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
+	  action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
 	  LOAD_REGISTERS(qid);
 	  ch = BFR;			/* can be shifted */
 
@@ -2345,7 +2355,7 @@ next_choice:
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr = dbgRedoFrame(FR PASS_LD);
+      { LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD);
 
 	if ( fr )
 	{ int action;

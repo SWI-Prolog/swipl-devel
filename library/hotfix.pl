@@ -167,7 +167,7 @@ load_hotfix(File, Loaded) :-
 load_hotfix_from_stream(Loaded, In, Modified) :-
 	Options = [stream(In), modified(Modified)],
 	set_stream(In, file_name(Loaded)),
-	findall(M, source_file_property(Loaded, load_context(M, _)), Modules),
+	findall(M, source_file_property(Loaded, load_context(M, _, _)), Modules),
 	(   Modules = [First|Rest]
 	->  load_files(First:Loaded, Options),
 	    forall('$member'(Context, Rest),

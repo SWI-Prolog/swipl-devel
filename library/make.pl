@@ -35,6 +35,8 @@
 	  ]).
 :- use_module(library(check)).
 :- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library(debug)).
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module>  Reload modified source files
@@ -61,12 +63,13 @@ make_no_trace :-
 	'$update_library_index',
 	findall(File, modified_file(File), Reload),
 	print_message(silent, make(reload(Reload))),
-	reload(Reload),
+	maplist(reload_file, Reload),
 	print_message(silent, make(done(Reload))),
 	list_undefined([scan(local)]).
 
 modified_file(File) :-
 	source_file_property(Source, modified(Time)),
+	\+ source_file_property(Source, included_in(_,_)),
 	Time > 0.0,			% See source_file/1
 	(   source_file_property(Source, derived_from(File, LoadTime))
 	->  true
@@ -83,17 +86,10 @@ modified_file(File) :-
 	).
 
 
-reload([]).
-reload([H|T]) :-
-	reload_file(H),
-	reload(T).
-
 %%	reload_file(File)
 %
 %	Reload file into the proper module.
 %
-%	@bug	If the module was loaded using use_module/2, importing only
-%		some of the predicates, this is not know.
 %	@bug	If modules import each other, we must load them in the
 %		proper order for import/export dependencies.
 
@@ -101,11 +97,18 @@ reload([H|T]) :-
 
 reload_file(File) :-
 	source_base_name(File, Compile),
-	findall(M, source_file_property(File, load_context(M, _)), Modules),
-	(   Modules = [First|Rest]
-	->  load_files(First:Compile),
-	    forall(member(Context, Rest),
-		   load_files(Context:Compile, [if(not_loaded)]))
+	findall(M-Opts,
+		source_file_property(File, load_context(M, _, Opts)),
+		Modules),
+	(   Modules = [First-OptsFirst|Rest]
+	->  merge_options([if(true), silent(false)], OptsFirst, OFirst),
+	    debug(make, 'Make: First load ~q', [load_files(First:Compile, OFirst)]),
+	    load_files(First:Compile, OFirst),
+	    forall(member(Context-Opts, Rest),
+		   ( merge_options([if(not_loaded), silent(false)], Opts, O),
+		     debug(make, 'Make: re-import: ~q', [load_files(Context:Compile, O)]),
+		     load_files(Context:Compile, O)
+		   ))
 	;   load_files(user:Compile)
 	).
 

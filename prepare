@@ -25,7 +25,7 @@ COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
 COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
 COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
 COREMODULES+=" packages/nlp packages/cpp packages/windows packages/PDT"
-COREMODULES+=" packages/utf8proc"
+COREMODULES+=" packages/utf8proc packages/archive"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"
@@ -310,5 +310,42 @@ _EOM_
     echo 'WARNING: Cannot find GNU autoconf in $PATH.'
     echo 'WARNING: configure scripts cannot be created.'
     echo 'WARNING: Please install autoconf and re-run this script.'
+  fi
+fi
+
+gettarget()
+{ while true; do
+    printf "$1"
+    read answer
+    case "$answer" in
+          [xX]64)
+		echo "X64"
+		return 0
+                ;;
+	  [xX]86)
+		echo "X86"
+		return 0;
+                ;;
+          *)
+                echo "Please answer X64 (for 64-bits) or X86 (for 32-bits)"
+                ;;
+    esac
+  done
+}
+
+if is_mingw; then
+  if [ -d "X64/lib" ]; then
+    echo
+    echo "Found prerequisites for X64 (64-bit) version"
+  elif [ -d "X86/lib" ]; then
+    echo
+    echo "Found prerequisites for X86 (32-bit) version"
+  else
+    target=`gettarget "What is your target OS (x64 or X86)? "`
+    if [ ! -z "$target" ]; then
+      echo "Running git submodule init $target ..."
+      git submodule init $target
+      echo "ok"
+    fi
   fi
 fi

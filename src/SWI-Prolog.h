@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@cs.vu.nl
+    E-mail:        J.Wielemak@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -56,7 +55,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 60002
+#define PLVERSION 60200
 #endif
 
 		 /*******************************
@@ -551,6 +550,7 @@ PL_EXPORT(int)		PL_get_list_ex(term_t l, term_t h, term_t t);
 PL_EXPORT(int)		PL_get_nil_ex(term_t l);
 
 PL_EXPORT(int)		PL_instantiation_error(term_t culprit);
+PL_EXPORT(int)		PL_uninstantiation_error(term_t culprit);
 PL_EXPORT(int)		PL_representation_error(const char *resource);
 PL_EXPORT(int)		PL_type_error(const char *expected, term_t culprit);
 PL_EXPORT(int)		PL_domain_error(const char *expected, term_t culprit);
@@ -646,7 +646,7 @@ PL_EXPORT(int)	PL_unify_mpq(term_t t, mpq_t mpq) WUNUSED;
 PL_EXPORT(int)		PL_get_file_name(term_t n, char **name, int flags);
 PL_EXPORT(int)		PL_get_file_nameW(term_t n, wchar_t **name, int flags);
 PL_EXPORT(void)		PL_changed_cwd(void); /* foreign code changed CWD */
-PL_EXPORT(const char *) PL_cwd(void);
+PL_EXPORT(char *)	PL_cwd(char *buf, size_t buflen);
 
 
 		 /*******************************
@@ -938,8 +938,12 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 #define PL_ACTION_ATTACH_CONSOLE 11	/* MT: Attach a console */
 #define PL_GMP_SET_ALLOC_FUNCTIONS 12	/* GMP: do not change allocation functions */
 
-PL_EXPORT(int)	 PL_action(int, ...);	/* perform some action */
+#define PL_BT_SAFE		0x1	/* Do not try to print goals */
+#define PL_BT_USER		0x2	/* Only show user-goals */
+
+PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
+PL_EXPORT(void) PL_backtrace(int depth, int flags);
 
 		/********************************
 		*         QUERY PROLOG          *

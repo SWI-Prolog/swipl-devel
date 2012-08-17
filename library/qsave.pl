@@ -183,10 +183,11 @@ convert_option(Stack, Val, NewVal) :-	% stack-sizes are in K-bytes
 	->  NewVal = Val
 	;   NewVal is max(Min, Val*1024)
 	).
-convert_option(goal, Callable, Atom) :-
+convert_option(goal, Callable, Atom) :- !,
 	term_to_atom(Callable, Atom).
-convert_option(toplevel, Callable, Atom) :-
+convert_option(toplevel, Callable, Atom) :- !,
 	term_to_atom(Callable, Atom).
+convert_option(_, Value, Value).
 
 doption(Name) :- min_stack(Name, _).
 doption(goal).

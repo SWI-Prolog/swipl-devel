@@ -119,10 +119,6 @@ query_loop(atom_t goal)
         callEventHook(PLEV_ABORT);
 #endif
         printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
-      } else if ( !PL_is_functor(except, FUNCTOR_error2) )
-      { printMessage(ATOM_error,
-		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		       PL_TERM, except);
       }
     }
 

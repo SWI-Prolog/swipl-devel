@@ -27,7 +27,7 @@ INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\customize
 
 # Get extra include files from here
-EXTRAINCDIR=$(HOME)\include
+EXTRAINCDIR=$(HOME)\$(TARGET_OS_ARCH)\include
 
 # The OpenSSL library and include files
 # http://www.slproweb.com/products/Win32OpenSSL.html
@@ -36,7 +36,7 @@ OPENSSLLIBDIR=$(OPENSSL)\lib;$(OPENSSL)\lib\VC
 OPENSSLINCDIR=$(OPENSSL)\include
 
 # NullSoft installer
-NSISDEFS=$(NSISDEFS) /DPTHREAD=$(LIBPTHREAD) /DZLIB=$(LIBZLIB) /DBOOT=$(PLBOOTFILE)
+NSISDEFS=$(NSISDEFS) /DSWIPL=pl /DPTHREAD=$(LIBPTHREAD) /DZLIB=$(LIBZLIB) /DBOOT=$(PLBOOTFILE)
 
 # Configuration selection
 
@@ -73,7 +73,7 @@ BINDIR=$(PLBASE)\runtime
 # Makefile also checks whether the package directory exists.
 
 PLPKG=chr clpqr http plunit pldoc R
-PKGS=$(PLPKG) cpp odbc clib table sgml RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL) $(BUILD_SPACE) protobufs windows PDT utf8proc
+PKGS=$(PLPKG) cpp odbc clib table sgml RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL) $(BUILD_SPACE) protobufs windows PDT utf8proc archive
 
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages

@@ -126,7 +126,6 @@ static const PL_extension foreigns[] = {
   FRG("current_predicate",	1, pl_current_predicate1, NDET|META|ISO),
   FRG("$set_predicate_attribute", 3, pl_set_predicate_attribute,META),
   FRG("$get_predicate_attribute", 3, pl_get_predicate_attribute,META),
-  FRG("$get_clause_attribute",  3, pl_get_clause_attribute,	0),
   FRG("$require",		1, pl_require,		     META),
   FRG("source_file",		2, pl_source_file,      NDET|META),
   FRG("$make_system_source_files",0,pl_make_system_source_files,0),
@@ -161,7 +160,6 @@ static const PL_extension foreigns[] = {
   FRG("$module",		2, pl_module,			0),
   FRG("$set_source_module",	2, pl_set_source_module,	0),
   FRG("context_module",		1, pl_context_module,	     META),
-  FRG("import",			1, pl_import,		     META),
 
 #if O_STRING
   FRG("sub_string",		5, pl_sub_string,	     NDET),
@@ -199,7 +197,6 @@ static const PL_extension foreigns[] = {
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
-  FRG("thread_join",		2, pl_thread_join,	      ISO),
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
   FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
@@ -479,6 +476,7 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("assertz",          2, "system"), ":-");
   PL_meta_predicate(PL_predicate("retract",          1, "system"), ":");
   PL_meta_predicate(PL_predicate("retractall",       1, "system"), ":");
+  PL_meta_predicate(PL_predicate("clause",           2, "system"), ":?");
 
   PL_meta_predicate(PL_predicate("format",           2, "system"), "+:");
   PL_meta_predicate(PL_predicate("format",           3, "system"), "++:");
@@ -492,6 +490,7 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("thread_at_exit",   1, "system"), "0");
   PL_meta_predicate(PL_predicate("thread_signal",    2, "system"), "+0");
 #endif
+  PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);

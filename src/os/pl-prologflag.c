@@ -1049,9 +1049,13 @@ initPrologFlags(void)
   setPrologFlag("generate_debug_info", FT_BOOL,
 		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
-  setPrologFlag("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
-  setPrologFlag("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
-  setPrologFlag("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);
+  setPrologFlag("warn_override_implicit_import", FT_BOOL, TRUE,
+		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
+  setPrologFlag("c_cc",	     FT_ATOM, C_CC);
+  setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
+  setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
+  setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
+  setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
@@ -1116,6 +1120,7 @@ initPrologFlags(void)
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
   setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
   setPrologFlag("answer_format", FT_ATOM, "~p");
+  setPrologFlag("colon_sets_calling_context", FT_BOOL, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
   setPrologFlag("backquoted_string", FT_BOOL, FALSE, PLFLAG_BACKQUOTED_STRING);
@@ -1127,7 +1132,7 @@ initPrologFlags(void)
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");
-  setPrologFlag("verbose_load", FT_BOOL, TRUE, 0);
+  setPrologFlag("verbose_load", FT_ATOM, "normal");
   setPrologFlag("verbose_autoload", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose_file_search", FT_BOOL, FALSE, 0);
   setPrologFlag("allow_variable_name_as_functor", FT_BOOL, FALSE,

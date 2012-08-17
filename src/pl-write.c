@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -257,6 +255,15 @@ PutComma(write_options *options)
 
 
 static bool
+PutBar(write_options *options)
+{ if ( options->spacing == ATOM_next_argument )
+    return PutString("| ", options->out);
+  else
+    return PutString("|", options->out);
+}
+
+
+static bool
 PutStringN(const char *str, size_t length, IOSTREAM *s)
 { size_t i;
   const unsigned char *q = (const unsigned char *)str;
@@ -271,12 +278,16 @@ PutStringN(const char *str, size_t length, IOSTREAM *s)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PutOpenToken() inserts a space in the output stream if the last-written
+PutOpenToken() inserts a space in the  output stream if the last-written
 and given character require a space to ensure a token-break.
+
+The C_* flags denote special cases handled  using a flag. The first flag
+is 0x200000, which is above the Unicode range.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LAST_C_RESERVED		0x110000 /* Above Unicode range */
-#define PREFIX_SIGN		(LAST_C_RESERVED+1)
+#define C_PREFIX_SIGN		0x00200000	/* +/- as prefix op */
+#define C_PREFIX_OP		0x00400000	/* any prefix op */
+#define C_MASK			0xffe00000
 
 #define isquote(c) ((c) == '\'' || (c) == '"')
 
@@ -286,15 +297,17 @@ needSpace(int c, IOSTREAM *s)
   { s->lastc = EOF;
     return FALSE;
   }
-
-  if ( s->lastc == PREFIX_SIGN )	/* avoid passing to is*W() functions */
-  { if ( isDigit(c) || isSymbolW(c) )
-      return TRUE;
+  if ( s->lastc == EOF )
     return FALSE;
-  }
 
-  if ( s->lastc != EOF &&
-       ((isAlphaW(s->lastc) && isAlphaW(c)) ||
+  if ( (s->lastc&C_PREFIX_SIGN) && (isDigit(c) || isSymbolW(c)) )
+    return TRUE;
+  if ( (s->lastc&C_PREFIX_OP) && c == '(' )
+    return TRUE;				/* avoid op(...) */
+
+  s->lastc &= ~C_MASK;
+
+  if ( ((isAlphaW(s->lastc) && isAlphaW(c)) ||
 	(isSymbolW(s->lastc) && isSymbolW(c)) ||
 	(s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
 	(c == '\'' && (isDigit(s->lastc))) ||
@@ -1161,8 +1174,9 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  TRY(writeAtom(functor, options));
 
 				/* +/-(Number) : avoid parsing as number */
+	  options->out->lastc |= C_PREFIX_OP;
 	  if ( functor == ATOM_minus || functor == ATOM_plus )
-	    options->out->lastc = PREFIX_SIGN;
+	    options->out->lastc |= C_PREFIX_SIGN;
 
 	  TRY(writeTerm(arg,
 			op_type == OP_FX ? op_pri-1 : op_pri,
@@ -1212,6 +1226,8 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 			options));
 	  if ( functor == ATOM_comma )
 	  { TRY(PutComma(options));
+	  } else if ( functor == ATOM_bar )
+	  { TRY(PutBar(options));
 	  } else
 	  { switch(writeAtom(functor, options))
 	    { case FALSE:

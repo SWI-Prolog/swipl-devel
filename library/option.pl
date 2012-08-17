@@ -39,13 +39,15 @@
 	    meta_options/3		% :IsMeta, :OptionsIn, -OptionsOut
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(error)).
+:- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Option list processing
 
 The library(option) provides some utilities for processing option lists.
 Option lists are commonly used  as   an  alternative for many arguments.
-Examples built-in predicates are  open/4   and  write_term/3. Naming the
-arguments results in more readable code  and   the  list nature makes it
+Examples of built-in predicates are open/4  and write_term/3. Naming the
+arguments results in more readable code, and   the  list nature makes it
 easy to extend the list of options accepted by a predicate. Option lists
 come in two styles, both of which are handled by this library.
 
@@ -55,7 +57,7 @@ come in two styles, both of which are handled by this library.
 	$ Name = Value :
 	This is often used, but deprecated.
 
-Processing options inside time critical code   (loops) can cause serious
+Processing options inside time-critical code   (loops) can cause serious
 overhead. One possibility is to define   a  record using library(record)
 and initialise this using make_<record>/2. In addition to providing good
 performance, this also provides type-checking and central declaration of
@@ -74,7 +76,7 @@ defaults.
   ==
 
 Options typically have exactly one argument.   The  library does support
-options  with  0  or  more  than    one  arguments  with  the  following
+options  with  0  or  more  than    one   argument  with  the  following
 restrictions:
 
   - The predicate option/3 and select_option/4, involving default are
@@ -92,7 +94,7 @@ restrictions:
 
 %%	option(?Option, +OptionList, +Default) is semidet.
 %
-%	Get  an  option  from  a  OptionList.  OptionList  can  use  the
+%	Get  an  Option  Qfrom  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention.
 %
 %	@param Option	Term of the form Name(?Value).
@@ -108,9 +110,9 @@ option(Opt, Options, Default) :-	% make option processing stead-fast
 
 %%	option(?Option, +OptionList) is semidet.
 %
-%	Get  an  option  from  a  OptionList.  OptionList  can  use  the
-%	Name=Value as well as the Name(Value) convention. Fails silently
-%	if the option does not appear in OptionList.
+%	Get an Option from OptionList. OptionList can use the Name=Value
+%	as well as the Name(Value)  convention.   Fails  silently if the
+%	option does not appear in OptionList.
 %
 %	@param Option	Term of the form Name(?Value).
 
@@ -130,7 +132,7 @@ get_option(Opt, Options) :-
 
 %%	select_option(?Option, +Options, -RestOptions) is semidet.
 %
-%	Get and remove option from an option list. As option/2, removing
+%	Get and remove Option from an option list. As option/2, removing
 %	the matching option from  Options   and  unifying  the remaining
 %	options with RestOptions.
 
@@ -149,7 +151,7 @@ get_option(Opt, Options0, Options) :-
 
 %%	select_option(?Option, +Options, -RestOptions, +Default) is det.
 %
-%	Get and remove option with   default  value. As select_option/3,
+%	Get and remove Option with   default  value. As select_option/3,
 %	but if Option is not  in  Options,   its  value  is unified with
 %	Default and RestOptions with Options.
 
@@ -231,9 +233,9 @@ canonise_options2([H|T0], [H|T]) :- !,
 
 %%	meta_options(+IsMeta, :Options0, -Options) is det.
 %
-%	Perform meta-expansion on options that are module-sensitive.
-%	Whether an option name is module sensitive is determined by
-%	calling call(IsMeta, Name).  Here is an example:
+%	Perform meta-expansion on  options   that  are module-sensitive.
+%	Whether an option name  is   module-sensitive  is  determined by
+%	calling call(IsMeta, Name). Here is an example:
 %
 %	==
 %		meta_options(is_meta, OptionsIn, Options),
@@ -252,6 +254,7 @@ canonise_options2([H|T0], [H|T]) :- !,
 	meta_options(1, :, -).
 
 meta_options(IsMeta, Context:Options0, Options) :-
+	must_be(list, Options0),
 	meta_options(Options0, IsMeta, Context, Options).
 
 meta_options([], _, _, []).

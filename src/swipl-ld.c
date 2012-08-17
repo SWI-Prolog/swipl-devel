@@ -22,16 +22,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is the source-file for  swipl-ld,   the  SWI-Prolog linker for embedded
-applications. See swipl-ld(1) for details.  Feel   free  to comment and send
-contributions.
-
-The    file    pl-extend.c,    copied    by    the    installation    to
-<home>/include/stub.c  contains  a  minimal  skeleton  for  creating  an
-embedded application.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 /*
   Preprocessor symbols that may be defined during the compilation
   of this file:
@@ -45,6 +35,11 @@ embedded application.
   #ifdef HOST_TOOLCHAIN_MSC
     The generated swipl-ld* executable will use the Microsoft C/C++
     compiler to produce shared objects and executables.
+  #endif
+
+  #ifdef HOST_TOOLCHAIN_MINGW
+    The generated swipl-ld* executable will use the MinGW compilers
+    to produce shared objects and executables.
   #endif
 
   #ifdef HOST_OS_WINDOWS
@@ -86,7 +81,8 @@ embedded application.
 
 #endif /*__WINDOWS__*/
 
-#if defined(__WINDOWS__) || defined(HOST_OS_WINDOWS)
+#if defined(__WINDOWS__)
+#define HOST_OS_WINDOWS 1
 #define DEF_PROG_PL "swipl.exe"
 #define PROG_OUT "a.exe"
 #else
@@ -97,7 +93,6 @@ embedded application.
 #ifndef PROG_PL
 #define PROG_PL DEF_PROG_PL
 #endif
-
 
 #if defined(HOST_TOOLCHAIN_MSC)
 
@@ -117,7 +112,18 @@ embedded application.
 #define LIB_PL_DEBUG "swiplD.lib"
 #define OPT_DEBUG "/DEBUG"
 
-#else /* !defined(HOST_TOOLCHAIN_MSC) */
+#elif defined(HOST_TOOLCHAIN_MINGW)
+
+#define PROG_CC    "gcc"
+#define PROG_CXX   "g++"
+#define PROG_LD    PROG_CC
+#define EXT_OBJ    "obj"
+#define OPT_DEBUG  "-g"
+#define SO_LDFLAGS "-shared"
+#undef SO_LD
+#define SO_LD	   PROG_LD
+
+#else /*Native*/
 
 #define PROG_CC C_CC
 #define PROG_CXX C_CC " -x c++"
@@ -137,7 +143,7 @@ embedded application.
 #define SO_LDFLAGS "-shared"
 #endif
 
-#endif /* !defined(HOST_TOOLCHAIN_MSC) */
+#endif /*Toolchain selection*/
 
 
 #include <stdio.h>
@@ -975,9 +981,9 @@ fillDefaultOptions()
   free(ctmp);
   ctmp = strdup(tmp);
 #endif
-#if defined(HOST_OS_WINDOWS) || /* FIXME: remove this */ defined(__CYGWIN__)
+#if defined(HOST_OS_WINDOWS)
 /* Saved states have the .exe extension under Windows */
-  replaceExtension(pltmp, embed_shared ? "dll" : "exe", tmp);
+  replaceExtension(pltmp, "exe", tmp);
   free(pltmp);
   pltmp = strdup(tmp);
 #endif
@@ -985,11 +991,9 @@ fillDefaultOptions()
   { fprintf(stderr, "%s: \"-o out\" required for linking shared object\n", plld);
     exit(1);
   }
-#if defined(__CYGWIN__)
-  /* Tack correct suffix to out, otherwise cat in createOutput fails. */
+#if defined(HOST_OS_WINDOWS)
   if ( out && !nolink )
   { replaceExtension(out, shared || embed_shared ? "dll" : "exe", tmp);
-    /* Dont call free(out), it could be an argv member. */
     out = strdup(tmp);
   }
 #endif
@@ -1000,7 +1004,7 @@ fillDefaultOptions()
   defaultProgram(&plinitfile, "none");
   defaultProgram(&plsysinit,  "none");
 
-#if defined(HOST_TOOLCHAIN_MSC)
+#ifdef __WINDOWS__
   sprintf(tmp, "%s/lib", plbase);
 #else
   sprintf(tmp, "%s/lib/%s", plbase, plarch);

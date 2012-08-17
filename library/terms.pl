@@ -173,7 +173,7 @@ lgg_safe(I0, Arity, S1, S2, G, Map0, Map) :-
 %	Skeleton. Term may be cyclic. For example:
 %
 %	  ==
-%	  ?- X = a(X), common_subterms(b(X,X), Y, S).
+%	  ?- X = a(X), term_factorized(b(X,X), Y, S).
 %	  Y = b(_G255, _G255),
 %	  S = [_G255=a(_G255)].
 %	  ==

@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam,
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,7 +18,8 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+    MA  02110-1301  USA
 */
 
 #ifndef _PL_INCLUDE_H
@@ -54,7 +54,15 @@
 #else
 #define C_PLLIB	    "swipl.lib"
 #endif
-#else
+#else					/* !_MSC_VER  */
+#ifdef __WINDOWS__			/* I.e., MinGW */
+#define C_LIBS	     ""
+#define C_STATICLIBS ""
+#define C_CC	     "gcc"
+#define C_CFLAGS     ""
+#define C_PLLIB	     "-lswipl"
+#define C_LDFLAGS    ""
+#endif
 #include <parms.h>			/* pick from the working dir */
 #endif
 
@@ -89,6 +97,8 @@ handy for it someone wants to add a data type to the system.
       Include arithmetic compiler (compiles is/2, >/2, etc. into WAM).
   O_COMPILE_IS
       Compile Var = Value in the body.
+  O_CALL_AT_MODULE
+      Support the Goal@Module control-structure
   O_LABEL_ADDRESSES
       Means we can pick up the address of a label in  a function using
       the var  = `&&label' construct  and jump to  it using goto *var;
@@ -125,6 +135,7 @@ handy for it someone wants to add a data type to the system.
 #define O_SOFTCUT		1
 #define O_COMPILE_ARITH		1
 #define O_COMPILE_IS		1
+#define O_CALL_AT_MODULE	1
 #define O_STRING		1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
@@ -224,7 +235,9 @@ gcc.
 
 /* AIX requires this to be the first thing in the file.  */
 #ifdef __GNUC__
-# define alloca __builtin_alloca
+# ifndef alloca
+#  define alloca __builtin_alloca
+# endif
 #else
 # if HAVE_ALLOCA_H
 #  include <alloca.h>
@@ -246,6 +259,9 @@ void *alloca ();
 #endif
 
 #include <sys/types.h>
+#if __MINGW32__
+typedef _sigset_t sigset_t;
+#endif
 #include <setjmp.h>
 #ifdef ASSERT_H_REQUIRES_STDIO_H
 #include <stdio.h>
@@ -503,14 +519,9 @@ Operator types.  NOTE: if you change OP_*, check operatorTypeToAtom()!
 #define OP_YFX	(0x70|OP_INFIX)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Type fields.  These codes are  included  in  a  number  of  the  runtime
-structures  at  a  fixed  point, so the runtime environment can tell the
-difference.
+Magic for assertions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define HeapMagic(n)	((n) | 0x25678000)
-#define PROCEDURE_TYPE	HeapMagic(1)	/* a procedure */
-#define RECORD_TYPE	HeapMagic(2)	/* a record list */
 #define StackMagic(n)	((n) | 0x98765000)
 #define QID_MAGIC	StackMagic(1)	/* Query frame */
 
@@ -1083,6 +1094,7 @@ struct clause
   unsigned int		prolog_vars;	/* # real Prolog variables */
   unsigned int		line_no;	/* Source line-number */
   unsigned short	source_no;	/* Index of source-file */
+  unsigned short	owner_no;	/* Index of owning source-file */
   unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */
 		/* UNIT_CLAUSE     Clause has no body */
@@ -1182,6 +1194,7 @@ struct clause_index
   unsigned	 is_list : 1;		/* Index with lists */
   unsigned int	 dirty;			/* # chains that are dirty */
   float		 speedup;		/* Estimated speedup */
+  struct bit_vector *tried_better;	/* We tried to access for better hash */
   ClauseIndex	 next;			/* Next index */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
@@ -1198,6 +1211,12 @@ typedef struct local_definitions
   Definition preallocated[7];
 } local_definitions;
 
+#ifdef _MSC_VER
+typedef __int64 meta_mask;		/* MSVC cannot do typedef of typedef!? */
+#else
+typedef uint64_t meta_mask;
+#endif
+
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */
   Module	module;			/* module of the predicate */
@@ -1213,8 +1232,8 @@ struct definition
 #endif
   ClauseIndexList old_clause_indexes;	/* Outdated hash indexes */
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
+  meta_mask	meta_info;		/* meta-predicate info */
   int		references;		/* reference count */
-  unsigned int  meta_info;		/* meta-predicate info */
   unsigned int  flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
 		/*	PROFILE_TICKED	   has been ticked this time? */
@@ -1249,9 +1268,11 @@ struct definition_chain
   DefinitionChain	next;		/* next in chain */
 };
 
+#define	PROC_WEAK	(0x0001)	/* implicit import */
+
 struct procedure
-{ Definition	definition;	/* definition of procedure */
-  int		type;		/* PROCEDURE_TYPE */
+{ Definition	definition;		/* definition of procedure */
+  unsigned int	flags;			/* PROC_WEAK */
 };
 
 struct localFrame
@@ -1368,6 +1389,7 @@ struct queryFrame
   int		solutions;		/* # of solutions produced */
   Word	       *aSave;			/* saved argument-stack */
   Choice	saved_bfr;		/* Saved choice-point */
+  LocalFrame	saved_ltop;		/* Saved lTop */
   QueryFrame	parent;			/* Parent queryFrame */
   struct choice	choice;			/* First (dummy) choice-point */
   LocalFrame	saved_environment;	/* Parent local-frame */
@@ -1410,13 +1432,12 @@ struct record
 };
 
 struct recordList
-{ int		type;			/* RECORD_TYPE */
-  int		references;		/* choicepoints reference count */
-  word		key;			/* key of record */
-  RecordRef	firstRecord;		/* first record associated with key */
+{ RecordRef	firstRecord;		/* first record associated with key */
   RecordRef	lastRecord;		/* last record associated with key */
   struct recordList *next;		/* Next recordList */
-  unsigned int  flags;			/* RL_DIRTY */
+  word		key;			/* key of record */
+  unsigned int	flags;			/* RL_DIRTY */
+  int		references;		/* choicepoints reference count */
 };
 
 struct recordRef
@@ -1427,7 +1448,7 @@ struct recordRef
 
 struct sourceFile
 { atom_t	name;			/* name of source file */
-  time_t	time;			/* load time of file */
+  double	mtime;			/* modification time when loaded */
   ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   ListCell	modules;		/* Modules associated to this file */
@@ -1487,10 +1508,13 @@ struct gc_trail_entry
 #define MA_ANY		12		/* ? */
 #define MA_NONVAR	13		/* + */
 #define MA_HAT		14		/* ^ */
+#define MA_DCG		15		/* // */
 
-#define MA_INFO(def, n)		(((def)->meta_info >> ((n)*4)) & 0xf)
-#define MA_SETINFO(def, n, i)	((def)->meta_info &= ~(0xf << (n)*4), \
-				 (def)->meta_info |= (i << (n)*4))
+#define MA_INFO(def, n) \
+	(((def)->meta_info >> ((n)*4)) & 0xf)
+#define MA_SETINFO(def, n, i) \
+	((def)->meta_info &= ~((meta_mask)0xf << (n)*4), \
+	 (def)->meta_info |= ((meta_mask)(i) << (n)*4))
 
 
 		 /*******************************
@@ -2052,6 +2076,7 @@ typedef struct debuginfo
 #define PLFLAG_SIGNALS		    0x040000 /* Handle signals */
 #define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
 #define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
+#define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x200000 /* Warn overriding weak symbols */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */
@@ -2128,7 +2153,7 @@ decrease).
 #include "pl-funct.ih"
 
 #include "pl-alloc.h"			/* Allocation primitives */
-#include "pl-main.h"			/* Declarations needed by pl-main.c */
+#include "pl-init.h"			/* Declarations needed by pl-init.c */
 #include "pl-error.h"			/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */
 #include "pl-data.h"			/* Access Prolog data */
@@ -2145,6 +2170,12 @@ decrease).
 #include "os/pl-option.h"		/* Option processing */
 #include "os/pl-files.h"		/* File management */
 #include "os/pl-string.h"		/* Basic string functions */
+
+#if 1
+#ifdef ATOMIC_INC
+#define ATOMIC_REFERENCES 1		/* Use atomic +/- for atom references */
+#endif
+#endif
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave

@@ -80,6 +80,15 @@ test(error, error(type_error(callable, 1))) :-
 
 test(error, error(type_error(callable, 1))) :-
 	call(1, a, b).
+test(if_then_else, all(X==[a])) :-		% Not that I like it ...
+	call(;(true->X=a),
+	     X=b).
+test(disj, all(X==[a,b])) :-
+	call(;(X=a),
+	     X=b).
+test(conj, all(X==[])) :-
+	call(','(X=a),
+	     X=b).
 
 :- end_tests(callN).
 
@@ -136,6 +145,15 @@ test(indent, [all(Gnosc == [scio])]) :-
 
 verum :-
 	( false *-> true ; true ).
+
+test(cut) :-
+	( !, fail ; true ) *-> fail ; true.
+
+test(cut2) :-
+	no_cut_cond.
+
+no_cut_cond :- (!, fail) *-> true.
+no_cut_cond.
 
 :- end_tests(snip).
 

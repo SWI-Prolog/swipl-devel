@@ -78,7 +78,7 @@ varnumbers(Term, Copy) :-
 
 %%	varnumbers(+Term, +Start, -Copy) is det.
 %
-%	Inverse of numbervars/3. True when copy is   a copy of Term with
+%	Inverse of numbervars/3. True when Copy is   a copy of Term with
 %	all variables numbered >= Start   consistently replaced by fresh
 %	variables. Variables in Term are _shared_  with Copy rather than
 %	replaced by fresh variables.

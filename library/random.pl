@@ -69,6 +69,12 @@ on the GMP library.
 @see		Built-in function random/1: A is random(10)
 */
 
+check_gmp :-
+	current_arithmetic_function(random_float), !.
+check_gmp :-
+	print_message(warning, random(no_gmp)).
+
+:- initialization check_gmp.
 
 
 		 /*******************************
@@ -79,7 +85,7 @@ on the GMP library.
 %
 %	Binds R to a new random float in the _open_ interval (0.0,1.0).
 %
-%	@see setrand/1, getrand/1 maye be used to fetch/set the state.
+%	@see setrand/1, getrand/1 may be used to fetch/set the state.
 %	@see In SWI-Prolog, random/1 is implemented by the function
 %	     random_float/0.
 
@@ -321,7 +327,7 @@ randseq(K, N, Si, So) :-
 %
 %	Permutation is a random permutation of List. This is intended to
 %	process the elements of List in   random order. The predicate is
-%	symetric.
+%	symmetric.
 %
 %	@error instantiation_error, type_error(list, _).
 
@@ -355,3 +361,11 @@ key_random([H|T0], [K-H|T]) :-
 partial_list(List) :-
 	'$skip_list'(_, List, Tail),
 	var(Tail).
+
+:- multifile
+	prolog:message//1.
+
+prolog:message(random(no_gmp)) -->
+	[ 'This version of SWI-Prolog is not compiled with GMP support.'-[], nl,
+	  'Floating point random operations are not supported.'-[]
+	].

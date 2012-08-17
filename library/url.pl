@@ -279,8 +279,8 @@ cfragment(_) -->
 %%	parse_url(+URL, -Attributes) is det.
 %
 %	Construct or analyse a URL. URL is an   atom  holding a URL or a
-%	variable. Parts is a list of   components.  Each component is of
-%	the format Name(Value). Defined components are:
+%	variable. Attributes is a list of  components. Each component is
+%	of the format Name(Value). Defined components are:
 %
 %	    * protocol(Protocol)
 %	    The used protocol. This is, after  the optional =|url:|=, an
@@ -317,7 +317,7 @@ cfragment(_) -->
 %	    Fragment specification of HTTP URL. This   is the part after
 %	    the =|#|= character.
 %
-%	The example below illustrates the all this for an HTTP URL.
+%	The example below illustrates all of this for an HTTP URL.
 %
 %	    ==
 %	    ?- parse_url('http://swi.psy.uva.nl/message.cgi?msg=Hello+World%21#x', P).
@@ -712,7 +712,7 @@ search_value_char(C) --> fragment_char(C).
 
 %%	search_sep// is semidet.
 %
-%	Matches a search-parameter separator.  Traditonally, this is the
+%	Matches a search-parameter separator.  Traditionally, this is the
 %	&-char, but these days there are `newstyle' ;-char separators.
 %
 %	@see http://perldoc.perl.org/CGI.html
@@ -813,7 +813,7 @@ sub_delim(0'=).
 
 %%	unreserved(+C)
 %
-%	Characters that can be represented without procent escaping
+%	Characters that can be represented without percent escaping
 %	RFC 3986, section 2.3
 
 term_expansion(unreserved(map), Clauses) :-

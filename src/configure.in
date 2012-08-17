@@ -53,6 +53,7 @@ AC_SUBST(WINEPATHEXE)
 AC_SUBST(HOST_TOOLCHAIN_FLAG)
 AC_SUBST(HOST_OS_FLAG)
 AC_SUBST(DEFSTARTUP)
+AC_SUBST(EXEFORMAT)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -75,7 +76,7 @@ EXTRAHDR=""
 INSTALLTARGET=dv-install
 if test -z "$PL"; then PL=swipl; fi
 PLLIB=libswipl.a
-MKLIBS=staticlib
+MKLIBS=""
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
 DEFSTARTUP=.plrc
@@ -160,7 +161,6 @@ changequote([,])dnl
 SWI_PROG_CC_FOR_BUILD
 SWI_PROG_EXEEXT_FOR_BUILD
 
-
 AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
 	      [case "$enableval" in
 		   yes) MKSHARED=yes
@@ -169,6 +169,24 @@ AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
 			;;
 		   *)   ;;
 	       esac])
+
+AC_ARG_ENABLE(static, [  --disable-static	  Do not install static library],
+	      [case "$enableval" in
+		   yes) MKSTATIC=yes
+			;;
+		   no)  MKSTATIC=no
+			;;
+		   *)   ;;
+	       esac],
+               MKSTATIC=yes)
+
+if test "$MKSHARED" != yes -a "$MKSTATIC" != yes; then
+  AC_MSG_ERROR("--disable-static selected without explicitly selecting --enable-shared")
+fi
+
+if test "$MKSTATIC" = yes; then
+  MKLIBS=staticlib
+fi
 
 AC_ARG_ENABLE(mt, [  --disable-mt		  Disable Multi-threading],
 	      [case "$enableval" in
@@ -292,6 +310,25 @@ AC_ISC_POSIX
 AC_HEADER_STDC
 AC_SYS_LARGEFILE
 
+dnl ****************************************************************
+dnl * Test for ELF
+dnl ****************************************************************
+
+AC_RUN_IFELSE(
+    [ AC_LANG_PROGRAM(
+	  [],
+	  [
+#ifdef __ELF__
+return 0;
+#else
+return 1;
+#endif
+	  ])
+    ],
+    [EXEFORMAT=ELF],
+    [EXEFORMAT=unknown],
+    [EXEFORMAT=unknown])
+
 if test "x$useprofile" = "xyes"; then
   AC_MSG_CHECKING("whether to use GCC -fprofile-use")
   if test "$GCC" = "yes"; then
@@ -369,7 +406,7 @@ esac
 dnl Set swipl-ld host parameters
 case "$PLARCH" in
     *-win32|*-win64)
-        HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MSC
+        HOST_TOOLCHAIN_FLAG=-DHOST_TOOLCHAIN_MINGW
         HOST_OS_FLAG=-DHOST_OS_WINDOWS
        ;;
 esac
@@ -640,8 +677,8 @@ AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic",
 		   [Flags for compiling position-independent small object])
 AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
-AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
-		   [Name of the SWI-Prolog executable (normally pl)])
+AC_DEFINE_UNQUOTED(PROG_PL,    "$PL$EXEEXT",
+		   [Name of the SWI-Prolog executable (normally swipl[.exe])])
 case "$PLARCH" in
   *cygwin*)
 	PLSO=cygpl.$SO_EXT
@@ -675,7 +712,7 @@ case "$PLARCH" in
 	AC_CHECK_LIB(wsock32, main)
 	AC_CHECK_LIB(gdi32, main, [XLIBS="$XLIBS -lgdi32"])
 	AC_CHECK_LIB(comdlg32, main, [XLIBS="$XLIBS -lcomdlg32"])
-	EXTRAOBJ="pl-nt.o pl-dde.o"
+	EXTRAOBJ="pl-nt.o pl-ntconsole.o pl-dde.o"
 	;;
 esac
 
@@ -948,10 +985,10 @@ AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan isinf tcsetattr cfmakeraw getpid)
 AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
-AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r)
+AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r asctime_r)
 AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclassify fpclass)
 AC_CHECK_FUNCS(setenv posix_openpt wcsxfrm sysctlbyname mbsnrtowcs)
-AC_CHECK_FUNCS(mallinfo ftruncate)
+AC_CHECK_FUNCS(mallinfo ftruncate localtime_s)
 AC_CHECK_DECLS([mbsnrtowcs])
 AC_HEADER_TIME
 AC_HEADER_DIRENT
@@ -975,6 +1012,14 @@ AC_TRY_LINK([],
 	    [ AC_MSG_RESULT(yes)
 	      AC_DEFINE(HAVE__SYNC_SYNCHRONIZE, 1,
 			[Define if you have __sync_synchronize])
+	    ],
+	    [ AC_MSG_RESULT(no) ])
+AC_MSG_CHECKING(for signbit)
+AC_TRY_LINK([#include <math.h>],
+	    [ signbit(0.0); ],
+	    [ AC_MSG_RESULT(yes)
+	      AC_DEFINE(HAVE_SIGNBIT, 1,
+			[Define if you have signbit])
 	    ],
 	    [ AC_MSG_RESULT(no) ])
 
@@ -1023,7 +1068,15 @@ case "$PLARCH" in
           )
         done
       fi
-      AC_CHECK_HEADERS(dbghelp.h)
+      AC_CHECK_LIB(dbghelp, StackWalk64,
+		   check_dbghelp_h=yes)
+      if test "$check_dbghelp_h" = yes; then
+	AC_CHECK_HEADERS(dbghelp.h,
+			 LIBS="-ldbghelp $LIBS",
+			 [],
+[#include <windows.h>
+])
+      fi
       ;;
 esac
 
@@ -1237,6 +1290,18 @@ if test "$configgmp" = "yes"; then
 		    LIBS="-lgmp $LIBS",
 		    WARN_NO_GMP=yes)
   fi
+
+  AC_MSG_CHECKING("For gmp_randinit_mt()");
+  AC_TRY_LINK(
+      [#include <gmp.h>
+      ],
+      [ gmp_randstate_t state;
+	gmp_randinit_mt(&state);
+      ],
+      AC_MSG_RESULT(yes)
+      AC_DEFINE(HAVE_GMP_RANDINIT_MT, 1,
+		[ Define you you have gmp_randinit_mt (gmp > 4.2.0) ]),
+      AC_MSG_RESULT(no))
 fi
 
 dnl Setup DMALLOC
@@ -1284,7 +1349,7 @@ AC_CHECK_MEMBER(struct tm.tm_gmtoff,
 		[#include <time.h>])
 
 AC_MSG_CHECKING("Boot filename");
-BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
+BOOTFILE=boot`expr ${ac_cv_sizeof_voidp} \* 8`.prc
 AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE",
 		   [Name of the file to boot from])
 AC_MSG_RESULT($BOOTFILE)
@@ -1311,23 +1376,21 @@ AC_TRY_RUN(
 [
 #include <inttypes.h>
   main()
-  { intptr_t l[10];
-    double *p;
-    uintptr_t x = (uintptr_t) l;
+  { void *l[10];
+    double *p = (double*)l;
 
     if ( sizeof(double) == sizeof(void*) )
-      exit(0);
+      return 0;
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
-    exit(1);
+    return 1;
 #endif
 
-    if ( x % sizeof(double) == 0 )
-      x += sizeof(intptr_t);
-    p = (double  *) x;
+    if ( (intptr_t)p % sizeof(double) == 0 )
+      p += sizeof(void*);
     *p = 1.0;
 
-    exit(0);
+    return 0;
   }
 ],
 AC_MSG_RESULT(as void*),
@@ -1342,23 +1405,21 @@ AC_TRY_RUN(
 [
 #include <inttypes.h>
   main()
-  { intptr_t l[10];
-    int64_t *p;
-    uintptr_t x = (uintptr_t) l;
+  { void *l[10];
+    int64_t *p = (int64_t*)l;
 
     if ( sizeof(int64_t) == sizeof(void*) )
-      exit(0);
+      return 0;
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
-    exit(1);
+    return 1;
 #endif
 
-    if ( x % sizeof(int64_t) == 0 )
-      x += sizeof(intptr_t);
-    p = (int64_t *) x;
+    if ( (intptr_t)p % sizeof(int64_t) == 0 )
+      p += sizeof(void*);
     *p = 0x123456789abcdefLL;
 
-    exit(0);
+    return 0;
   }
 ],
 AC_MSG_RESULT(as void*),

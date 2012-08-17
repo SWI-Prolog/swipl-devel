@@ -144,7 +144,7 @@ flip_pairs([Key-Val|Pairs], [Val-Key|Flipped]) :-
 
 %%	map_list_to_pairs(:Function, +List, -Keyed)
 %
-%	Create a key-value list by mapping each element of List.
+%	Create a Key-Value list by mapping each element of List.
 %	For example, if we have a list of lists we can create a
 %	list of Length-List using
 %

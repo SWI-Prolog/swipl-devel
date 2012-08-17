@@ -148,6 +148,12 @@ unify_args(I, Arity, T1, T2) :-
 %	Read a term from File at Line.
 
 read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
+	setup_call_cleanup(
+	    '$push_input_context'(clause_info),
+	    read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames),
+	    '$pop_input_context').
+
+read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
 	catch(open(File, read, In), _, fail),
 	call_cleanup(
 	    read_source_term_at_location(
@@ -346,8 +352,10 @@ a --> { x, y, z }.
 ubody(B, B, P, P) :-
 	does_not_dcg_after_binding(B, P), !.
 ubody(X, call(X),			% X = call(X)
-      From-To,
-      term_position(From, To, From, To, [From-To])) :- !.
+      Pos,
+      term_position(From, To, From, To, [Pos])) :- !,
+	arg(1, Pos, From),
+	arg(2, Pos, To).
 ubody(B0, B,
       brace_term_position(F,T,A0),
       Pos) :-
@@ -671,4 +679,8 @@ clause_name(Ref, Name) :-
 	predicate_name(Head, PredName),
 	thaffix(N, Th),
 	format(string(Name), '~d-~w clause of ~w', [N, Th, PredName]).
+clause_name(Ref, Name) :-
+	clause_property(Ref, erased), !,
+	clause_property(Ref, predicate(M:PI)),
+	format(string(Name), 'erased clause from ~q', [M:PI]).
 clause_name(_, '<meta-call>').

@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -32,7 +30,9 @@ typedef struct hash_hints
   unsigned	list : 1;		/* Use a list per key */
 } hash_hints;
 
-static int		bestHash(Word av, Definition def, hash_hints *hints);
+static int		bestHash(Word av, Definition def,
+				 float minbest, struct bit_vector *tried,
+				 hash_hints *hints);
 static ClauseIndex	hashDefinition(Definition def, int arg, hash_hints *h);
 static void		replaceIndex(Definition def,
 				     ClauseIndex old, ClauseIndex ci);
@@ -184,7 +184,7 @@ nextClauseFromBucket(ClauseChoice chp, uintptr_t generation, int is_list)
   word key = chp->key;
 
   if ( is_list )
-  { DEBUG(1, Sdprintf("Searching for %s\n", keyName(key)));
+  { DEBUG(MSG_INDEX_FIND, Sdprintf("Searching for %s\n", keyName(key)));
 
   non_indexed:
     for(cref = chp->cref; cref; cref = cref->next)
@@ -205,10 +205,10 @@ nextClauseFromBucket(ClauseChoice chp, uintptr_t generation, int is_list)
 
     if ( key )
     { key = 0;
-      DEBUG(1, Sdprintf("Not found; trying non-indexed\n"));
+      DEBUG(MSG_INDEX_FIND, Sdprintf("Not found; trying non-indexed\n"));
       goto non_indexed;
     } else
-    { DEBUG(1, Sdprintf("Not found\n"));
+    { DEBUG(MSG_INDEX_FIND, Sdprintf("Not found\n"));
     }
 
     return NULL;
@@ -277,8 +277,35 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     }
 
     if ( best_index )
-    { int hi = hashIndex(chp->key, best_index->buckets);
+    { int hi;
 
+      if ( def->impl.clauses.number_of_clauses > 10 &&
+	   def->impl.clauses.number_of_clauses/best_index->speedup > 10 )
+      { DEBUG(MSG_JIT,
+	      Sdprintf("Poor index in arg %d of %s (try to find better)\n",
+		       best_index->arg, predicateName(def)));
+
+	if ( !best_index->tried_better )
+	{ best_index->tried_better = new_bitvector(def->functor->arity);
+
+	  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
+	    set_bit(best_index->tried_better, ci->arg-1);
+	}
+
+	if ( (best=bestHash(argv, def,
+			    best_index->speedup, best_index->tried_better,
+			    &hints)) >= 0 )
+	{ DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best+1));
+
+	  if ( (ci=hashDefinition(def, best+1, &hints)) )
+	  { chp->key = indexOfWord(argv[ci->arg-1] PASS_LD);
+	    assert(chp->key);
+	    best_index = ci;
+	  }
+	}
+      }
+
+      hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
       return nextClauseFromBucket(chp, generationFrame(fr), best_index->is_list);
     }
@@ -293,7 +320,8 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     return nextClauseArg1(chp, generationFrame(fr));
   }
 
-  if ( (best=bestHash(argv, def, &hints)) >= 0 )
+
+  if ( (best=bestHash(argv, def, 0.0, NULL, &hints)) >= 0 )
   { if ( (ci=hashDefinition(def, best+1, &hints)) )
     { int hi;
 
@@ -476,7 +504,8 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
     { for(cref=ch->head; cref; cref=cref->next)
       { if ( cref->key == key )
 	{ addClauseList(cref, cl, where);
-	  DEBUG(1, Sdprintf("Adding to existing %s\n", keyName(key)));
+	  DEBUG(MSG_INDEX_UPDATE,
+		Sdprintf("Adding to existing %s\n", keyName(key)));
 	  return 0;
 	} else if ( !cref->key )
 	{ vars = &cref->value.clauses;
@@ -492,7 +521,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
 	return 0;
     }
 
-    DEBUG(1, Sdprintf("Adding new %s\n", keyName(key)));
+    DEBUG(MSG_INDEX_UPDATE, Sdprintf("Adding new %s\n", keyName(key)));
     cr = newClauseListRef(key);
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
@@ -501,8 +530,8 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
 	}
-	DEBUG(1, Sdprintf("Preparing var to clause-list for %s\n",
-			  keyName(key)));
+	DEBUG(MSG_INDEX_UPDATE, Sdprintf("Preparing var to clause-list for %s\n",
+					 keyName(key)));
       }
       if ( cr->value.clauses.erased_clauses )
 	ch->dirty++;
@@ -803,11 +832,7 @@ unallocOldClauseIndexes(Definition def)
     }
 
     if ( def->tried_index )
-    { bit_vector *old = def->tried_index;
-
-      def->tried_index = NULL;
-      free_bitvector(old);
-    }
+      clear_bitvector(def->tried_index);
   }
 }
 
@@ -996,7 +1021,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where)
   } else
   { int hi = hashIndex(key, ci->buckets);
 
-    DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
+    DEBUG(MSG_INDEX_UPDATE, Sdprintf("Storing in bucket %d\n", hi));
     ci->size += addClauseBucket(&ch[hi], cl, key, where, ci->is_list);
   }
 }
@@ -1069,9 +1094,9 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   ClauseIndex *cip;
   int dyn_or_multi;
 
-  DEBUG(2, Sdprintf("hashDefinition(%s, %d, %d) (%s)\n",
-		    predicateName(def), arg, hints->buckets,
-		    hints->list ? "lists" : "clauses"));
+  DEBUG(MSG_JIT, Sdprintf("hashDefinition(%s, %d, %d) (%s)\n",
+			  predicateName(def), arg, hints->buckets,
+			  hints->list ? "lists" : "clauses"));
 
   ci = newClauseIndexTable(arg, hints);
 
@@ -1126,10 +1151,10 @@ replaceIndex(Definition def, ClauseIndex old, ClauseIndex ci)
       cip = &(*cip)->next)
     ;
 
-  DEBUG(2, Sdprintf("%d: replaceIndex(%s) %p-->%p\n",
-		    PL_thread_self(),
-		    predicateName(def),
-		    old, ci));
+  DEBUG(MSG_JIT, Sdprintf("%d: replaceIndex(%s) %p-->%p\n",
+			  PL_thread_self(),
+			  predicateName(def),
+			  old, ci));
 
   if ( ci )
   { ci->next = old->next;
@@ -1252,6 +1277,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 
     a->speedup =            (float)(clause_count*a->size) /
 	      (float)(clause_count - a->var_count + a->var_count*a->size);
+    a->speedup /= 1.0+a->stdev;			/* punish bad distributions */
 
     a->space = ( a->size * sizeof(struct clause_bucket) +
 		 clause_count * SIZEOF_CREF_CLAUSE +
@@ -1326,7 +1352,9 @@ expected speedup is
 #define MIN_SPEEDUP 1.5
 
 static int
-bestHash(Word av, Definition def, hash_hints *hints)
+bestHash(Word av, Definition def,
+	 float minbest, struct bit_vector *tried,
+	 hash_hints *hints)
 { GET_LD
   int i;
   ClauseRef cref;
@@ -1346,7 +1374,9 @@ bestHash(Word av, Definition def, hash_hints *hints)
   for(i=0; i<(int)def->functor->arity; i++)
   { word k;
 
-    if ( !true_bit(def->tried_index, i) && (k=indexOfWord(av[i] PASS_LD)) )
+    if ( !true_bit(def->tried_index, i) &&	/* non-indexable */
+	 !(tried && true_bit(tried, i)) &&	/* already tried, not better */
+	 (k=indexOfWord(av[i] PASS_LD)) )
     { if ( assess_count	>= assess_allocated )
       { size_t newbytes = sizeof(*assessments)*2*assess_allocated;
 
@@ -1396,15 +1426,20 @@ bestHash(Word av, Definition def, hash_hints *hints)
   for(i=0, a=assessments; i<assess_count; i++, a++)
   {
     if ( assess_remove_duplicates(a, clause_count) )
-    { DEBUG(2, Sdprintf("Assess arg %d of %s: speedup %f\n",
-			a->arg+1, predicateName(def), a->speedup));
+    { DEBUG(MSG_JIT,
+	    Sdprintf("Assess arg %d of %s: speedup %f, stdev=%f\n",
+		     a->arg+1, predicateName(def), a->speedup, a->stdev));
 
-      if ( !best || a->speedup > best->speedup )
-	best = a;
+      if ( a->speedup > minbest )
+      { best = a;
+	minbest = a->speedup;
+      } else if ( tried )
+      { set_bit(tried, a->arg);
+      }
     } else
     { set_bit(def->tried_index, a->arg);
-      DEBUG(2, Sdprintf("Assess arg %d of %s: not indexable\n",
-			a->arg+1, predicateName(def)));
+      DEBUG(MSG_JIT, Sdprintf("Assess arg %d of %s: not indexable\n",
+			      a->arg+1, predicateName(def)));
     }
 
     if ( a->keys )

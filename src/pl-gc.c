@@ -1150,10 +1150,10 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 	Sdprintf("Scanning %d trailed assignments\n", assignments));
 
   for(te=mark; te <= top; te++)
-  { if ( ttag(te[1].address) == TAG_TRAILVAL )
-    { Word p = val_ptr(te->address);
+  { Word p = val_ptr(te->address);
 
-      assignments--;
+    if ( ttag(te[1].address) == TAG_TRAILVAL )
+    { assignments--;
       if ( is_first(p) )
       {	DEBUG(MSG_GC_ASSIGNMENTS_MERGE,
 	      Sdprintf("Delete duplicate trailed assignment at %p\n", p));
@@ -1163,6 +1163,11 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
       } else
       { mark_first(p);
 	push_marked(p PASS_LD);
+      }
+    } else
+    { if ( is_first(p) )
+      { te->address = 0;
+	trailcells_deleted++;
       }
     }
   }
@@ -1268,7 +1273,8 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       } else if ( !is_marked(tard) )
       { DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64];
-	      Sdprintf("Early reset at %s (%s)\n", print_adr(tard, b1), print_val(*tard, b2)));
+	      Sdprintf("Early reset at %s (%s)\n",
+		       print_adr(tard, b1), print_val(*tard, b2)));
 	setVar(*tard);
 	te->address = 0;
 	trailcells_deleted++;
@@ -1277,7 +1283,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
   }
 
 #if O_DESTRUCTIVE_ASSIGNMENT
-  if ( assignments >= 2 )
+  if ( assignments >= 1 )
     mergeTrailedAssignments(te0, tm, assignments PASS_LD);
 #endif
 
@@ -1586,6 +1592,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
         goto again;
       }
       case C_IFTHEN:
+      case C_SOFTIFTHEN:
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { PC = walk_and_mark(state, PC+1, C_END PASS_LD);
@@ -1669,6 +1676,15 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
 	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
 	  break;
+	case I_CUTCHP:
+	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* choice-point */
+	  break;
+#ifdef O_CALL_AT_MODULE
+	case I_CALLATM:
+	case I_DEPARTATMV:
+	  mark_frame_var(state, PC[1] PASS_LD);
+	  break;
+#endif
 #ifdef MARK_ALT_CLAUSES
 	case H_FIRSTVAR:
 	  if ( (state->flags & GCM_CLEAR) )
@@ -2938,6 +2954,9 @@ setStartOfVMI(vm_state *state)
   { Clause clause = fr->clause->value.clause;
     Code PC, ep, next;
 
+    if ( fr->predicate == PROCEDURE_dcall1->definition )
+      state->in_body = TRUE;		/* There is no head code */
+
     PC = clause->codes;
     ep = PC + clause->code_size;
 
@@ -3201,7 +3220,7 @@ alloc_start_map()
   size_t gsize = gTop+1-gBase;
   size_t ints = (gsize+INTBITS-1)/INTBITS;
 
-  start_map = PL_malloc(ints*sizeof(int));
+  start_map = malloc(ints*sizeof(int));
   memset(start_map, 0, ints*sizeof(int));
 }
 #endif
@@ -3662,9 +3681,6 @@ garbageCollect(void)
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
 #endif
-#ifdef O_DEBUG
-  word key;
-#endif
 
   END_PROF();
   START_PROF(P_GC, "P_GC");
@@ -3710,7 +3726,7 @@ garbageCollect(void)
   { alloc_start_map();
     if ( !scan_global(FALSE|REGISTER_STARTS) )
       sysError("Stack not ok at gc entry");
-    key = checkStacks(&state);
+    checkStacks(&state);
     free(start_map);
     start_map = NULL;
 
@@ -3776,7 +3792,11 @@ garbageCollect(void)
   gc_status.global_left      += usedStack(global);
   gc_status.trail_left       += usedStack(trail);
 
-  DEBUG(CHK_SECURE, checkStacks(&state));
+  DEBUG(CHK_SECURE,
+	{ memset(gTop, 0xFB, (char*)gMax-(char*)gTop);
+	  memset(tTop, 0xFB, (char*)tMax-(char*)tTop);
+	  checkStacks(&state);
+	});
 
   if ( verbose )
     printMessage(ATOM_informational,
@@ -4135,6 +4155,7 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
       if ( ls )
       { update_pointer(&query->parent, ls);
         update_pointer(&query->saved_bfr, ls);
+        update_pointer(&query->saved_ltop, ls);
 	update_pointer(&query->saved_environment, ls);
 	update_pointer(&query->registers.fr, ls);
 	update_local_pointer(&query->registers.pc, ls);
@@ -4924,10 +4945,17 @@ markAtomsOnStacks(PL_local_data_t *ld)
 { assert(!ld->gc.status.active);
 
   DEBUG(MSG_AGC, save_backtrace("AGC"));
-
+#ifdef O_MAINTENANCE
+  save_backtrace("AGC");
+#endif
+#ifdef ATOMIC_REFERENCES
+  markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
+#endif
   markAtomsOnGlobalStack(ld);
   markAtomsInEnvironments(ld);
   markAtomsInTermReferences(ld);
+  markAtomsFindall(ld);
+  markAtomsThreadMessageQueue(ld);
 }
 
 #endif /*O_ATOMGC*/
@@ -4951,7 +4979,9 @@ the next clause. Amoung these are retract/1, clause/2, etc.
 (*) we must *not* use  getProcDefinition()  here   because  we  are in a
 signal handler and thus the locking there for thread-local predicates is
 not safe. That is no problem however,  because we are only interested in
-static predicates.
+static predicates. Note that clause/2,  etc.   use  the choice point for
+searching clauses and thus chp->cref may become NULL if all clauses have
+been searched.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -4969,9 +4999,13 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 
 					/* P_FOREIGN_CREF: clause, etc. choicepoints */
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
-    { ClauseRef cref = (ClauseRef)fr->clause;
+    { ClauseChoice chp = (ClauseChoice)fr->clause;
+      ClauseRef cref;
 
-      def = cref->value.clause->procedure->definition; /* See (*) above */
+      if ( chp && (cref=chp->cref) )
+	def = cref->value.clause->procedure->definition; /* See (*) above */
+      else
+	def = NULL;
     } else
       def = fr->predicate;
 

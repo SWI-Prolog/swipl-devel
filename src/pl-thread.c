@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam,
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -29,7 +28,9 @@
 					/* this do any harm? */
 
 #if defined(__MINGW32__)
-#define __SEH_NOOP 1
+#define __try
+#define __except(_) if (0)
+#define __finally
 #endif
 
 #include "pl-incl.h"
@@ -297,6 +298,7 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
   { case DLL_PROCESS_ATTACH:
       GD->thread.instance = hinstDll;
       initMutexes();
+      TLD_alloc(&PL_ldata);
       break;
     case DLL_PROCESS_DETACH:
       deleteMutexes();
@@ -674,8 +676,8 @@ initPrologThreads()
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
 
-#ifdef USE_CRITICAL_SECTIONS
-  initMutexes();
+#if defined(USE_CRITICAL_SECTIONS) && !defined(O_SHARED_KERNEL)
+  initMutexes();		/* see also DllMain() */
 #endif
 
 #ifdef PTW32_STATIC_LIB
@@ -694,8 +696,10 @@ initPrologThreads()
 
   if ( !init_ldata_key )
   { init_ldata_key = TRUE;
+#if !(defined(USE_CRITICAL_SECTIONS) && defined(O_SHARED_KERNEL))
 #ifndef HAVE___THREAD
     TLD_alloc(&PL_ldata);		/* see also alloc_thread() */
+#endif
 #endif
   }
   TLD_set_LD(&PL_local_data);
@@ -781,7 +785,7 @@ There are a lot of problems however.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-exitPrologThreads()
+exitPrologThreads(void)
 { int rc;
   int i;
   int me = PL_thread_self();
@@ -841,9 +845,42 @@ exitPrologThreads()
   }
 
   if ( canceled )
-  { printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "threads_not_died", 1,
-		   PL_INT, canceled);
+  { GET_LD
+    fid_t fid;
+
+    if ( (fid = PL_open_foreign_frame()) )
+    { term_t head    = PL_new_term_ref();
+      term_t running = PL_new_term_ref();
+      term_t tail    = PL_copy_term_ref(running);
+
+      rc = TRUE;
+      for(i = 1; i <= thread_highest_id; i++)
+      { PL_thread_info_t *info = GD->thread.threads[i];
+
+	if ( info && info->thread_data && i != me )
+	{ if ( info->status == PL_THREAD_RUNNING )
+	  { if ( !PL_unify_list(tail, head, tail) ||
+		 !unify_thread_id(head, info) )
+	    { rc = FALSE;
+	      break;
+	    }
+	  }
+	}
+      }
+
+      if ( rc )
+      { rc = ( PL_unify_nil(tail) &&
+	       printMessage(ATOM_informational,
+			    PL_FUNCTOR_CHARS, "threads_not_died", 1,
+			      PL_TERM, running)
+	     );
+      }
+    } else
+    { rc = FALSE;
+    }
+
+    if ( !rc )
+      Sdprintf("%d threads wouldn't die\n", canceled);
     rc = FALSE;
   } else
   { DEBUG(MSG_THREAD, Sdprintf("done\n"));
@@ -1391,6 +1428,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   ldnew->modules		  = LD->modules;
   ldnew->IO			  = LD->IO;
+  ldnew->IO.input_stack		  = NULL;
+  ldnew->IO.output_stack	  = NULL;
   ldnew->encoding		  = LD->encoding;
   ldnew->_debugstatus		  = LD->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
@@ -1479,6 +1518,18 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
   *info = GD->thread.threads[i];
 
   return TRUE;
+}
+
+
+static int
+get_thread_sync(term_t t, PL_thread_info_t **info, int warn)
+{ int rc;
+
+  LOCK();
+  rc = get_thread(t, info, warn);
+  UNLOCK();
+
+  return rc;
 }
 
 
@@ -1604,16 +1655,20 @@ free_thread_info(PL_thread_info_t *info)
 }
 
 
-word
-pl_thread_join(term_t thread, term_t retcode)
-{ GET_LD
+static
+PRED_IMPL("thread_join", 2, thread_join, 0)
+{ PRED_LD
   PL_thread_info_t *info;
   void *r;
   word rval;
   int rc;
 
-  if ( !get_thread(thread, &info, TRUE) )
+  term_t thread = A1;
+  term_t retcode = A2;
+
+  if ( !get_thread_sync(thread, &info, TRUE) )
     fail;
+
   if ( info == LD->thread.info || info->detached )
   { return PL_error("thread_join", 2,
 		    info->detached ? "Cannot join detached thread"
@@ -1827,7 +1882,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
 	  case -1:
 	    fail;
 	}
-      } else if ( get_thread(thread, &info, TRUE) )
+      } else if ( get_thread_sync(thread, &info, TRUE) )
       { state->tid = info->pl_tid;
 
 	switch( get_prop_def(property, ATOM_thread_property,
@@ -1839,7 +1894,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
 	    state->enum_properties = TRUE;
 	    goto enumerate;
 	  case -1:
-      fail;
+	    fail;
 	}
       } else
       { fail;
@@ -2222,7 +2277,7 @@ executeThreadSignals(int sig)
       DEBUG(MSG_THREAD,
 	    { print_trace(8);
 	      Sdprintf("[%d]: Prolog backtrace:\n", PL_thread_self());
-	      backTrace(5);
+	      PL_backtrace(5, 0);
 	      Sdprintf("[%d]: end Prolog backtrace:\n", PL_thread_self());
 	    });
 
@@ -2467,13 +2522,6 @@ free_thread_message(thread_message *msg)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 queue_message() adds a message to a message queue.  The caller must hold
 the queue-mutex.
-
-(*) See also markAtomsThreads(). There  is   a  critical window where an
-atom is not reachable if some  other   thread  is executing AGC. The AGC
-thread  may  already  have  swept   this    queue.   If   we  now  leave
-queue_message(), the atom may no longer  be reachable. Therefore we lock
-and unlock L_AGC before leaving. Note that   locking  the whole call can
-deadlock if we are waiting for the queue to drain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2500,7 +2548,6 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
     queue->wait_for_drain--;
   }
 
-  PL_LOCK(L_AGC);
   msgp->sequence_id = ++queue->sequence_next;
   if ( !queue->head )
   { queue->head = queue->tail = msgp;
@@ -2509,7 +2556,6 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
     queue->tail = msgp;
   }
   queue->size++;
-  PL_UNLOCK(L_AGC);
 
   if ( queue->waiting )
   { if ( queue->waiting > queue->waiting_var && queue->waiting > 1 )
@@ -2691,6 +2737,15 @@ called with queue->mutex locked.  It returns one of
 	  Got timeout while waiting
 	* MSG_WAIT_DESTROYED
 	  Queue was destroyed while waiting
+
+(*) We need to lock because AGC asks us  to mark our atoms and then lets
+the thread continue. The thread may pick   a  message containing an atom
+from the queue, which now has not  been   marked  by us and is no longer
+part of the queue, so it isn't marked in the queue either.
+
+Note that we only need  this  for   queues  that  are  not associated to
+threads. Those associated with a thread  mark   both  the stacks and the
+queue in one pass, marking the atoms in either.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2731,7 +2786,8 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       if ( rc )
       { DEBUG(MSG_THREAD, Sdprintf("%d: match\n", PL_thread_self()));
 
-	PL_LOCK(L_AGC);
+	if ( queue->type == QTYPE_QUEUE )
+	  PL_LOCK(L_AGC);		/* See (*) */
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
@@ -2739,7 +2795,8 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
-	PL_UNLOCK(L_AGC);
+	if ( queue->type == QTYPE_QUEUE )
+	  PL_UNLOCK(L_AGC);
 	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
@@ -2828,8 +2885,9 @@ destroy_message_queue(message_queue *queue)
 { thread_message *msgp;
   thread_message *next;
 
-  if ( GD->cleaning )
+  if ( GD->cleaning || !queue->initialized )
     return;				/* deallocation is centralised */
+  queue->initialized = FALSE;
 
   assert(!queue->waiting && !queue->wait_for_drain);
 
@@ -2855,6 +2913,7 @@ init_message_queue(message_queue *queue, long max_size)
   queue->max_size = max_size;
   if ( queue->max_size > 0 )
     cv_init(&queue->drain_var, NULL);
+  queue->initialized = TRUE;
 }
 
 					/* Prolog predicates */
@@ -4273,6 +4332,8 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->prompt			 = ldmain->prompt;
   ldnew->modules		 = ldmain->modules;
   ldnew->IO			 = ldmain->IO;
+  ldnew->IO.input_stack		 = NULL;
+  ldnew->IO.output_stack	 = NULL;
   ldnew->encoding		 = ldmain->encoding;
   ldnew->_debugstatus		 = ldmain->_debugstatus;
   ldnew->_debugstatus.retryFrame = NULL;
@@ -5269,20 +5330,15 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We do not register atoms  in   message  queues as the PL_register_atom()
-calls seriously hard concurrency  due  to   contention  on  L_ATOM.  So,
+calls seriously harms concurrency  due  to   contention  on  L_ATOM. So,
 instead we must sweep atoms in records  in the message queues. Note that
 atom-gc runs with the L_THREAD mutex  locked.   As  both he thread mutex
-queue   tables   are   guarded   by   this     mutex,   the   loops   in
-markAtomsThreads() are safe.
+queue tables are guarded by this  mutex, the loops in markAtomsThreads()
+are safe.
 
 We must lock the individual queues before   processing. This is safe, as
 these mutexes are never helt long  and   the  other  threads are not yet
 silenced.
-
-This means however that messages can still   be added to the queues that
-are subsequently not marked. Note that deletion  is not an issue. To fix
-this, we introduced L_AGC that protects   the atom garbage collector and
-the queue_message().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -5296,20 +5352,14 @@ markAtomsMessageQueue(message_queue *queue)
 
 
 void
-markAtomsThreads(void)
-{ int i;
+markAtomsThreadMessageQueue(PL_local_data_t *ld)
+{ markAtomsMessageQueue(&ld->thread.messages);
+}
 
-  for(i=1; i<=thread_highest_id; i++)
-  { PL_local_data_t *ld;
 
-    if ( (GD->thread.threads[i]->status != PL_THREAD_UNUSED) &&
-	 (ld=GD->thread.threads[i]->thread_data) )
-    { markAtomsMessageQueue(&ld->thread.messages);
-      markAtomsFindall(ld);
-    }
-  }
-
-  if ( queueTable )
+void
+markAtomsMessageQueues(void)
+{ if ( queueTable )
   { Symbol s;
     TableEnum e = newTableEnum(queueTable);
 
@@ -5557,6 +5607,7 @@ pl_with_mutex(term_t mutex, term_t goal)
 BeginPredDefs(thread)
 #ifdef O_PLMT
   PRED_DEF("thread_detach", 1, thread_detach, PL_FA_ISO)
+  PRED_DEF("thread_join", 2, thread_join, 0)
   PRED_DEF("thread_statistics", 3, thread_statistics, 0)
   PRED_DEF("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("message_queue_create", 1, message_queue_create, 0)

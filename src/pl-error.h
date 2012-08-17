@@ -66,6 +66,7 @@ typedef enum
   ERR_MODIFY_THREAD_LOCAL_PROC,	/* Procedure proc */
   ERR_NOT_EVALUABLE,		/* functor_t func */
   ERR_NOT_IMPLEMENTED_PROC,	/* name, arity */
+  ERR_IMPORT_PROC,		/* proc, dest, [already-from] */
   ERR_OCCURS_CHECK,		/* Word, Word */
   ERR_PERMISSION_PROC,		/* op, type, Definition */
   ERR_SHARED_OBJECT_OP,		/* op, error */

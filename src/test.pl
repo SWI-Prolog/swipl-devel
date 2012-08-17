@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -153,6 +152,8 @@ syntax(latin-1) :-
 		 *	       WRITE		*
 		 *******************************/
 
+:- op(200, fx, op_fa).
+
 write_test(q-1) :-
 	T = -(0),
 	term_to_atom(T, X),
@@ -172,9 +173,15 @@ write_test(q-5) :-
 write_test(q-6) :-
 	term_to_atom('*/*', X), X == '*/*'.
 write_test(q-7) :-
-	term_to_atom(p((0|a)), X), X == 'p((0 \'|\' a))'.
+	term_to_atom(p((0|a)), X), X == 'p((0|a))'.
 write_test(q-8) :-
-	term_to_atom(p((a|b)), X), X == 'p((a\'|\'b))'.
+	term_to_atom(p((a|b)), X), X == 'p((a|b))'.
+write_test(op-1) :-
+	term_to_atom(-((a,b)), X), X == '- (a,b)'.
+write_test(op-2) :-
+	term_to_atom(op_fa((a,b)), X), X == 'op_fa (a,b)'.
+write_test(op-3) :-
+	term_to_atom(dynamic((a,b)), X), X == 'dynamic a,b'.
 write_test(c-1) :-
 	T = [a,b,c|T],
 	term_to_atom(T, X),
@@ -375,8 +382,23 @@ arithmetic(arith-12) :-
 arithmetic(arith-13) :-
 	1.0 =:= sin(pi/2).
 arithmetic(sign-1) :-
-	-1 =:= sign(-1),   0 =:= sign(0),   1 =:= sign(1),
-	-1 =:= sign(-1.5), 0 =:= sign(0.0), 1 =:= sign(pi).
+	-1   is sign(-1),   0   is sign(0),   1   is sign(1).
+arithmetic(sign-2) :-
+	-1.0 is sign(-1.5), 0.0 is sign(0.0), 1.0 is sign(pi).
+arithmetic(sign-3) :-
+	0.0 is sign(-0.0).
+arithmetic(copysign-1) :-
+	-1 is copysign(1, -0.0),
+	 1 is copysign(1, 0.0).
+arithmetic(copysign-2) :-
+	-2.0 is copysign(2.0, -0.0),
+	2.0 is copysign(2.0, 0.0).
+arithmetic(copysign-3) :-
+	1  is copysign(1, 1),
+	-1 is copysign(1, -1).
+arithmetic(abs-1) :-
+	A is abs(-0.0),
+	A == 0.0.
 arithmetic(floor-1) :-
 	0 is floor(0.0),
 	0 is floor(0.9),
@@ -506,6 +528,9 @@ gmp(neg-1) :-				% check conversion of PLMININT
 	-A =:= 9223372036854775808.
 gmp(neg-2) :-
 	A is -(1<<63+1), A == -9223372036854775809.
+gmp(neg-promote) :-
+	A is 0 - -9223372036854775808,
+	A =:= 9223372036854775808.
 gmp(abs-1) :-
 	A is -9223372036854775808,
 	abs(A) =:= 9223372036854775808.
@@ -612,6 +637,14 @@ gmp(rational-2) :-
 gmp(rational-3) :-
 	dec(6 rdiv 5, X),
 	X == 1 rdiv 5.
+gmp(rational-4) :-
+	X is 5 rdiv 3,
+	X == (5 rdiv 3).
+gmp(rational-5) :-
+	5 rdiv 3 is 5 rdiv 3.
+gmp(rational-6) :-
+	5 rdiv X is 5 rdiv 3,
+	X == 3.
 gmp(rationalize-1) :-
 	A is rationalize(0.0), A == 0,
 	B is rationalize(0.1), B == 1 rdiv 10,
@@ -2413,7 +2446,7 @@ thread(status-1) :-
 	thread_join(Id2, _).
 thread(create_error-1) :-
 	catch(thread_create(true, _, [local(a)]), E, true),
-	E = error(domain_error(thread_option, local(a)), _).
+	E = error(type_error(integer, a), _).
 
 
 		 /*******************************

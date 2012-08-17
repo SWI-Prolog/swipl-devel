@@ -40,10 +40,14 @@
 	    sub_var/2			% -SubTerm, +Term (SWI extra)
 	  ]).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Finding and counting sub-terms
+
 This  is  a  SWI-Prolog  implementation  of  the  corresponding  Quintus
 library, based on the generalised arg/3 predicate of SWI-Prolog.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+@see library(terms) provides similar predicates and is probably
+     more wide-spread than this library.
+*/
 
 %%	contains_term(+Sub, +Term) is semidet.
 %

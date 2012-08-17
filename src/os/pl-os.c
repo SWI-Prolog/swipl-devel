@@ -30,6 +30,17 @@
 #include <os2.h>                /* this has to appear before pl-incl.h */
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Solaris has asctime_r() with 3 arguments. Using _POSIX_PTHREAD_SEMANTICS
+is supposed to give the POSIX standard one.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if defined(__sun__) || defined(__sun)
+#define _POSIX_PTHREAD_SEMANTICS 1
+#endif
+
+#define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
+
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
@@ -1056,8 +1067,8 @@ canoniseFileName(char *path)
     out = start = in;
   }
 #ifdef __MINGW32__ /* /c/ in MINGW is the same as c: */
-  if ( in[0] == '/' && isLetter(in[1]) &&
-       in[2] == '/' )
+  else if ( in[0] == '/' && isLetter(in[1]) &&
+	    in[2] == '/' )
   {
     out[0] = in[1];
     out[1] = ':';
@@ -1065,8 +1076,8 @@ canoniseFileName(char *path)
     out = start = in;
   }
 #endif
-
 #endif
+
 #ifdef O_HASSHARES			/* //host/ */
   if ( in[0] == '/' && in[1] == '/' && isAlpha(in[2]) )
   { char *s;
@@ -1165,15 +1176,18 @@ canonisePath(char *path)
 #ifdef O_CANONISE_DIRS
 { char *e;
   char dirname[MAXPATHLEN];
+  size_t plen = strlen(path);
 
-  e = path + strlen(path) - 1;
-  for( ; *e != '/' && e > path; e-- )
-    ;
-  strncpy(dirname, path, e-path);
-  dirname[e-path] = EOS;
-  canoniseDir(dirname);
-  strcat(dirname, e);
-  strcpy(path, dirname);
+  if ( plen > 0 )
+  { e = path + plen - 1;
+    for( ; *e != '/' && e > path; e-- )
+      ;
+    strncpy(dirname, path, e-path);
+    dirname[e-path] = EOS;
+    canoniseDir(dirname);
+    strcat(dirname, e);
+    strcpy(path, dirname);
+  }
 }
 #endif
 
@@ -1453,7 +1467,7 @@ AbsoluteFile(const char *spec, char *path)
   }
 #endif /*O_HASDRIVES*/
 
-  if ( !PL_cwd() )
+  if ( !PL_cwd(path, MAXPATHLEN) )
     return NULL;
 
   if ( (GD->paths.CWDlen + strlen(file) + 1) >= MAXPATHLEN )
@@ -1473,15 +1487,17 @@ AbsoluteFile(const char *spec, char *path)
 
 void
 PL_changed_cwd(void)
-{ if ( GD->paths.CWDdir )
+{ LOCK();
+  if ( GD->paths.CWDdir )
     remove_string(GD->paths.CWDdir);
   GD->paths.CWDdir = NULL;
   GD->paths.CWDlen = 0;
+  UNLOCK();
 }
 
 
-const char *
-PL_cwd(void)
+static char *
+cwd_unlocked(char *cwd, size_t cwdlen)
 { GET_LD
 
   if ( GD->paths.CWDlen == 0 )
@@ -1523,7 +1539,25 @@ to be implemented directly.  What about other Unixes?
     GD->paths.CWDdir = store_string(buf);
   }
 
-  return (const char *)GD->paths.CWDdir;
+  if ( GD->paths.CWDlen < cwdlen )
+  { memcpy(cwd, GD->paths.CWDdir, GD->paths.CWDlen+1);
+    return cwd;
+  } else
+  { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+    return NULL;
+  }
+}
+
+
+char *
+PL_cwd(char *cwd, size_t cwdlen)
+{ char *rc;
+
+  LOCK();
+  rc = cwd_unlocked(cwd, cwdlen);
+  UNLOCK();
+
+  return rc;
 }
 
 
@@ -1592,10 +1626,12 @@ ChDir(const char *path)
     { tmp[len++] = '/';
       tmp[len] = EOS;
     }
-    GD->paths.CWDlen = len;
+    LOCK();					/* Lock with PL_changed_cwd() */
+    GD->paths.CWDlen = len;			/* and PL_cwd() */
     if ( GD->paths.CWDdir )
       remove_string(GD->paths.CWDdir);
     GD->paths.CWDdir = store_string(tmp);
+    UNLOCK();
 
     succeed;
   }
@@ -1609,7 +1645,7 @@ ChDir(const char *path)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    struct tm *LocalTime(time_t time, struct tm *r)
+    struct tm *PL_localtime_r(time_t time, struct tm *r)
 
     Convert time in Unix internal form (seconds since Jan 1 1970) into a
     structure providing easier access to the time.
@@ -1633,16 +1669,51 @@ ChDir(const char *path)
     time_t Time()
 
     Return time in seconds after Jan 1 1970 (Unix' time notion).
+
+Note: MinGW has localtime_r(),  but  it  is   not  locked  and  thus not
+thread-safe. MinGW does not have localtime_s(), but   we  test for it in
+configure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 struct tm *
-LocalTime(long *t, struct tm *r)
+PL_localtime_r(const time_t *t, struct tm *r)
 {
-#if defined(_REENTRANT) && defined(HAVE_LOCALTIME_R)
+#ifdef HAVE_LOCALTIME_R
   return localtime_r(t, r);
 #else
-  *r = *localtime((const time_t *) t);
+#ifdef HAVE_LOCALTIME_S
+  return localtime_s(r, t) == EINVAL ? NULL : t;
+#else
+  struct tm *rc;
+
+  LOCK();
+  if ( (rc = localtime(t)) )
+    *r = *rc;
+  else
+    r = NULL;
+  UNLOCK();
+
   return r;
+#endif
+#endif
+}
+
+char *
+PL_asctime_r(const struct tm *tm, char *buf)
+{
+#ifdef HAVE_ASCTIME_R
+  return asctime_r(tm, buf);
+#else
+  char *rc;
+
+  LOCK();
+  if ( (rc = asctime(tm)) )
+    strcpy(buf, rc);
+  else
+    buf = NULL;
+  UNLOCK();
+
+  return buf;
 #endif
 }
 

@@ -33,8 +33,12 @@
 	  [ date_time_value/3,		% ?Field, ?DaTime, ?Value
 	    parse_time/2,		% +Date, -Stamp
 	    parse_time/3,		% +Date, ?Format, -Stamp
-	    day_of_the_week/2           % +Date, -DayOfTheWeek
+	    day_of_the_week/2,		% +Date, -DayOfTheWeek
+	    day_of_the_year/2		% +Date, -DayOfTheYear
 	  ]).
+
+/** <module> Process dates and times
+*/
 
 %%	date_time_value(?Field:atom, +Struct:datime, -Value) is nondet.
 %
@@ -205,7 +209,19 @@ week(W)		    --> int2digit(W), { between(1, 53, W) }.
 day(D)              --> int2digit(D), { between(1, 31, D) }.
 hour(N)             --> int2digit(N), { between(0, 23, N) }.
 minute(N)	    --> int2digit(N), { between(0, 59, N) }.
-second(N)           --> int2digit(N), { between(0, 60, N) }. % leap second
+second(S)           --> int2digit(N), { between(0, 60, N) }, % leap second
+			opt_fraction(N, S).
+
+opt_fraction(I, F) -->
+	( "." ; "," ), !,
+	digits(D),
+	{ length(D, N),
+	  N > 0,
+	  number_codes(FP, D),
+	  F is I + FP/(10^N)
+	}.
+opt_fraction(I, I) -->
+	[].
 
 int2digit(N) -->
 	digit(D0),
@@ -229,6 +245,12 @@ digit(D) -->
 	[C],
 	{ code_type(C, digit(D)) }.
 
+digits([C|T]) -->
+	[C],
+	{ code_type(C, digit) }, !,
+	digits(T).
+digits([]) --> [].
+
 ws -->
 	" ", !,
 	ws.
@@ -237,9 +259,9 @@ ws -->
 
 %%	day_of_the_week(+Date, -DayOfTheWeek) is det.
 %
-%	Computes the day of the week for a given date.
-%	Days of the week are numbered from one to seven:
-%       monday = 1, tuesday = 2, ..., sunday = 7.
+%	Computes the day of the week for a  given date. Days of the week
+%	are numbered from one to seven: monday   =  1, tuesday = 2, ...,
+%	sunday = 7.
 %
 %       @param Date is a term of the form date(+Year, +Month, +Day)
 
@@ -252,3 +274,13 @@ week_ordinal(Year, Week, Day, Ordinal) :-
 	atom_number(A, DotW0),
 	Ordinal is ((Week-1) * 7) - DotW0 + Day + 1.
 
+%%	day_of_the_year(+Date, -DayOfTheYear) is det.
+%
+%	Computes the day of the year for a  given date. Days of the year
+%	are numbered from 1 to 365 (366 for a leap year).
+%
+%       @param Date is a term of the form date(+Year, +Month, +Day)
+
+day_of_the_year(date(Year, Mon, Day), DotY) :-
+	format_time(atom(A), '%j', date(Year, Mon, Day, 0, 0, 0, 0, -, -)),
+	atom_number(A, DotY).

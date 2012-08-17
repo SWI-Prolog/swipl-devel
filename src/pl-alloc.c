@@ -31,6 +31,11 @@
 #undef LD
 #define LD LOCAL_LD
 
+#if ALLOC_DEBUG
+#define ALLOC_FREE_MAGIC 0xFB
+#define ALLOC_NEW_MAGIC  0xF9
+#endif
+
 
 		 /*******************************
 		 *	    USE BOEHM GC	*
@@ -44,13 +49,18 @@ void *
 allocHeap(size_t n)
 { void *mem = GC_MALLOC(n);
 
+#if ALLOC_DEBUG
+  if ( mem )
+    memset(mem, ALLOC_NEW_MAGIC, n);
+#endif
+
   return mem;
 }
 
 
 void *
 allocHeapOrHalt(size_t n)
-{ void *mem = GC_MALLOC(n);
+{ void *mem = allocHeap(n);
 
   if ( !mem )
     outOfCore();
@@ -61,7 +71,13 @@ allocHeapOrHalt(size_t n)
 
 void
 freeHeap(void *mem, size_t n)
-{ GC_FREE(mem);
+{
+#if ALLOC_DEBUG
+  if ( mem )
+    memset(mem, ALLOC_FREE_MAGIC, n);
+#endif
+
+  GC_FREE(mem);
 }
 
 
@@ -117,14 +133,21 @@ GC_linger(void *ptr)
 
 void *
 allocHeap(size_t n)
-{ return malloc(n);
+{ void *mem = malloc(n);
+
+#if ALLOC_DEBUG
+  if ( mem )
+    memset((char *) mem, ALLOC_NEW_MAGIC, n);
+#endif
+
+  return mem;
 }
 
 
 void *
 allocHeapOrHalt(size_t n)
 { if ( n )
-  { void *mem = malloc(n);
+  { void *mem = allocHeap(n);
 
     if ( !mem )
       outOfCore();
@@ -819,7 +842,7 @@ PL_malloc_unmanaged(size_t size)
   if ( (mem = GC_MALLOC(size)) )
   {
 #if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
-    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+    GC_SET_FLAGS(mem, GC_FLAG_UNCOLLECTABLE);
 #endif
     return mem;
   }
@@ -837,7 +860,7 @@ PL_malloc_atomic_unmanaged(size_t size)
   if ( (mem = GC_MALLOC_ATOMIC(size)) )
   {
 #if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
-    GC_set_flags(mem, GC_FLAG_UNCOLLECTABLE);
+    GC_SET_FLAGS(mem, GC_FLAG_UNCOLLECTABLE);
 #endif
     return mem;
   }
@@ -870,7 +893,11 @@ PL_linger(void *mem)
 {
 #if defined(HAVE_BOEHM_GC) && defined(GC_FLAG_UNCOLLECTABLE)
   if ( mem )
-    GC_clear_flags(mem, GC_FLAG_UNCOLLECTABLE);
+  { GC_CLEAR_FLAGS(mem, GC_FLAG_UNCOLLECTABLE);
+#ifdef GC_DEBUG
+    GC_linger(mem);
+#endif
+  }
   return TRUE;
 #else
   return FALSE;
@@ -885,9 +912,12 @@ PL_linger(void *mem)
 #ifdef HAVE_BOEHM_GC
 static void
 heap_gc_warn_proc(char *msg, GC_word arg)
-{ Sdprintf(msg, arg);
+{
+#if ALLOC_DEBUG
+  Sdprintf(msg, arg);
   save_backtrace("heap-gc-warning");
   print_backtrace_named("heap-gc-warning");
+#endif
 }
 #endif
 

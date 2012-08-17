@@ -416,6 +416,35 @@ pl_rl_add_history(term_t text)
 }
 
 
+static int
+add_line(void *h, int no, const TCHAR *line)
+{ term_t tail = (term_t)h;
+  term_t head = PL_new_term_ref();
+
+  if ( !PL_unify_wchars(head, PL_ATOM, (size_t)-1, line) ||
+       !PL_cons_list(tail, head, tail) )
+    return -1;
+
+  PL_reset_term_refs(head);
+
+  return 0;
+}
+
+
+static foreign_t
+pl_rl_history(term_t list)
+{ term_t tail = PL_new_term_ref();
+
+  if ( !PL_unify_nil(tail) )
+    return FALSE;
+
+  if ( rlc_for_history(PL_current_console(), add_line, tail) == 0 )
+    return PL_unify(tail, list);
+
+  return FALSE;
+}
+
+
 static foreign_t
 pl_rl_read_init_file(term_t file)
 { PL_succeed;
@@ -880,7 +909,7 @@ menu_select(rlc_console c, const TCHAR *name)
   { uintptr_t hwnd;
 
     if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
-      PostMessage((HWND)hwnd, WM_MENU, 0, (LONG)name);
+      PostMessage((HWND)hwnd, WM_MENU, 0, (LPARAM)name);
   }
 }
 
@@ -946,8 +975,12 @@ install_readline(rlc_console c)
 { rlc_init_history(c, 50);
   file_completer = rlc_complete_hook(do_complete);
 
-  PL_register_foreign_in_module("system", "rl_add_history",    1, pl_rl_add_history,    0);
-  PL_register_foreign_in_module("system", "rl_read_init_file", 1, pl_rl_read_init_file, 0);
+  PL_register_foreign_in_module(
+      "system", "rl_add_history",    1, pl_rl_add_history,    0);
+  PL_register_foreign_in_module(
+      "system", "rl_read_init_file", 1, pl_rl_read_init_file, 0);
+  PL_register_foreign_in_module(
+      "system", "$rl_history",       1, pl_rl_history,        0);
 
   PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
   PL_set_prolog_flag("readline",    PL_BOOL, TRUE);

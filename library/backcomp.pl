@@ -46,8 +46,10 @@
 	    concat/3,
 	    concat_atom/2,		% +List, -Atom
 	    concat_atom/3,		% +List, +Sep, -Atom
-	    read_variables/2,
-	    read_variables/3,
+	    read_clause/1,		% -Term
+	    read_clause/2,		% +Stream, -Term
+	    read_variables/2,		% -Term, -VariableNames
+	    read_variables/3,		% +Stream, -Term, -VariableNames
 	    feature/2,
 	    set_feature/2,
 	    substring/4,
@@ -60,6 +62,7 @@
 	    hash_term/2,		% +Term, -Hash
 	    checklist/2,		% :Goal, +List
 	    sublist/3,			% :Goal, +List, -Sublist
+	    sumlist/2,			% +List, -Sum
 	    convert_time/2,		% +Stamp, -String
 	    convert_time/8,		% +String, -YMDmhs.ms
 	    'C'/3,			% +List, -Head, -Tail
@@ -78,8 +81,9 @@
 	    hash/1,			% :PI
 	    set_base_module/1		% :Base
 	  ]).
-:- use_module(apply, [maplist/2]).
+:- use_module(apply,  [maplist/2]).
 :- use_module(system, [lock_predicate/1, unlock_predicate/1]).
+:- use_module(lists,  [sum_list/2]).
 
 :- meta_predicate
 	at_initialization(0),
@@ -210,6 +214,19 @@ concat_atom(L, Atom) :-
 concat_atom(L, Sep, Atom) :-
 	atomic_list_concat(L, Sep, Atom).
 
+%%	read_clause(-Term) is det.
+%
+%	@deprecated Use read_clause/2 or read_term/2.
+
+read_clause(Term) :-
+	read_clause(current_input, Term).
+
+%%	read_clause(+Stream, -Term) is det.
+%
+%	@deprecated Use read_clause/3 or read_term/3.
+
+read_clause(Stream, Term) :-
+	read_clause(Stream, Term, [process_comments(false)]).
 
 %%	read_variables(-Term, -Bindings) is det.
 %%	read_variables(+In:stream, -Term, -Bindings) is det.
@@ -338,6 +355,14 @@ sublist(Goal, [H|T], Sub) :-
 sublist(Goal, [_|T], R) :-
 	sublist(Goal, T, R).
 
+%%	sumlist(+List, -Sum) is det.
+%
+%	True when Sum is the list of all numbers in List.
+%
+%	@deprecated Use sum_list/2
+
+sumlist(List, Sum) :-
+	sum_list(List, Sum).
 
 %%	'$strip_module'(+Term, -Module, -Plain)
 %
