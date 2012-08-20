@@ -405,16 +405,16 @@ init_debug_flags :-
 setup_colors :-
 	(   stream_property(user_output, tty(true)),
 	    \+ current_prolog_flag(color_term, false)
-	->  load_files(user:library(ansi_term), [silent(true)])
+	->  catch(load_files(user:library(ansi_term), [silent(true)]), _, true)
 	;   true
 	).
 
 setup_history :-
 	(   stream_property(user_input, tty(true)),
 	    current_predicate(rl_add_history/1),
-	    \+ current_prolog_flag(save_history, false)
-	->  load_files(library(prolog_history), [silent(true)]),
-	    prolog_history(enable)
+	    \+ current_prolog_flag(save_history, false),
+	    catch(load_files(library(prolog_history), [silent(true)]), _, fail)
+	->  prolog_history(enable)
 	;   true
 	).
 
