@@ -2076,6 +2076,12 @@ message_to_string/2.
 This predicate must be defined dynamic and multifile to allow other
 modules defining clauses for it too.
 
+    \predicate{thread_message_hook}{3}{+Term, +Kind, +Lines}
+As message_hook/3, but this predicate is local to the calling thread
+(see thread_local/1).  This hook is called \emph{before} message_hook/3.
+The `pre-hook' is indented to catch messages they may be produced by
+calling some goal without affecting other threads.
+
     \predicate{prolog:message_line_element}{2}{+Stream, +Term}
 This hook is called to print the individual elements of a message from
 print_message_lines/3. This hook is used by e.g., library
