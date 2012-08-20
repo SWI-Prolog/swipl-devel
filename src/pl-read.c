@@ -1738,7 +1738,7 @@ again:
 	  for( ; *in; in=e )
 	  { e = utf8_get_uchar(in, &c);
 	    if ( c == '\n' || !PlBlankW(c) )
-	    { if ( skipped )
+	    { if ( skipped && (_PL_rd->styleCheck & LONGATOM_CHECK) )
 	      { term_t ex;
 		unsigned char *old_start = last_token_start;
 
@@ -1762,7 +1762,10 @@ again:
     case 'f':
       OK('\f');
     case '\\':
-      OK('\\');
+    case '\'':
+    case '"':
+    case '`':
+      OK(c);
     case 'n':
       OK('\n');
     case 'r':

@@ -7288,8 +7288,13 @@ Name & Default & Description \\
 			underscore. See \secref{singleton} for details
 			on variable handling and warnings. \\
 \const{atom}       & on & read/1 and derivatives will produce an
-                        error message on quoted atoms or strings longer
-                        than 5 lines. \\
+                        error message on quoted atoms or strings with
+			more than 6 unescaped newlines.  Newlines may
+			be escaped with \chr{\} or \chr{\}\chr{c}. \\
+
+			This flag also enables warnings on
+			\chr{\}<newline> followed by blank space in
+			native mode.  See \secref{charescapes}.
 \const{discontiguous} & on & Warn if the clauses for a predicate are not
                         together in the same source file. \\
 \const{string}     & off & Backward compatibility.  See the Prolog flag
