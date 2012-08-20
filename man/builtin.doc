@@ -2076,6 +2076,12 @@ message_to_string/2.
 This predicate must be defined dynamic and multifile to allow other
 modules defining clauses for it too.
 
+    \predicate{thread_message_hook}{3}{+Term, +Kind, +Lines}
+As message_hook/3, but this predicate is local to the calling thread
+(see thread_local/1).  This hook is called \emph{before} message_hook/3.
+The `pre-hook' is indented to catch messages they may be produced by
+calling some goal without affecting other threads.
+
     \predicate{prolog:message_line_element}{2}{+Stream, +Term}
 This hook is called to print the individual elements of a message from
 print_message_lines/3. This hook is used by e.g., library
@@ -7282,8 +7288,13 @@ Name & Default & Description \\
 			underscore. See \secref{singleton} for details
 			on variable handling and warnings. \\
 \const{atom}       & on & read/1 and derivatives will produce an
-                        error message on quoted atoms or strings longer
-                        than 5 lines. \\
+                        error message on quoted atoms or strings with
+			more than 6 unescaped newlines.  Newlines may
+			be escaped with \chr{\} or \chr{\}\chr{c}. \\
+
+			This flag also enables warnings on
+			\chr{\}<newline> followed by blank space in
+			native mode.  See \secref{charescapes}.
 \const{discontiguous} & on & Warn if the clauses for a predicate are not
                         together in the same source file. \\
 \const{string}     & off & Backward compatibility.  See the Prolog flag

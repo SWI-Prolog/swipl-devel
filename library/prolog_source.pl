@@ -277,12 +277,14 @@ read_source_term_at_location(Stream, Term, Options) :-
 	debug(read, 'Using syntax ~w (c=~w)', [Syntax, X]),
 	push_operators(Module:Ops),
 	Setup,
+	asserta(user:thread_message_hook(_,_,_), Ref), % silence messages
 	catch(read_term(Stream, Term,
 			[ module(Module)
 			| Options
 			]),
 	      Error,
 	      true),
+	erase(Ref),
 	Restore,
 	pop_operators,
 	(   var(Error)

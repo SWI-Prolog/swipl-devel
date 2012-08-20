@@ -1028,6 +1028,8 @@ prolog_message(pack(no_arch(Entry, Arch))) -->
 	user:message_hook/3.
 :- dynamic
 	user:message_hook/3.
+:- thread_local
+	user:thread_message_hook/3.
 
 %%	print_message(+Kind, +Term)
 %
@@ -1038,7 +1040,10 @@ print_message(Level, Term) :-
 	(   must_print(Level, Term)
 	->  (   translate_message(Term, Lines, [])
 	    ->  (   nonvar(Term),
-		    notrace(user:message_hook(Term, Level, Lines))
+		    (	notrace(user:thread_message_hook(Term, Level, Lines))
+		    ->  true
+		    ;   notrace(user:message_hook(Term, Level, Lines))
+		    )
 		->  true
 		;   print_system_message(Term, Level, Lines)
 		)

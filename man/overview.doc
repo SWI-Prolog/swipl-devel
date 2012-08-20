@@ -1241,6 +1241,8 @@ SWI-Prolog behaviour.  Currently it has the following effect:
 		\item Operators appearing as operands must be bracketed.
 		      Instead of \exam{X == -, true.} write \exam{X == (-), true.}
 		      Currently, this is not entirely enforced.
+		\item Backslash-escaped newlines are interpreted according to
+		      the ISO standard.  See \secref{charescapes}.
 	  \end{itemize}
 \end{itemize}
 
