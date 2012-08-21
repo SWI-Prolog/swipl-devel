@@ -1324,8 +1324,9 @@ AC_TRY_RUN(
   #include <stdlib.h>
   #if defined(__CYGWIN__) || defined(__MINGW32__)
   #define timezone _timezone
-  #endif
+  #else
   extern long timezone;
+  #endif
 
   main()
   { tzset();
