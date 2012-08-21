@@ -260,8 +260,8 @@ esac
 
 confdir()
 { if grep AC_INIT configure.in 2>&1 >/dev/null; then
-    for dep in ../ac_swi_c.m4 ../ac_swi_noc.m4; do
-      if [ -f configure -a -f $dep -a $dep -nt configure ]; then
+    for dep in "$2/ac_swi_c.m4" "$2/ac_swi_noc.m4"; do
+      if [ -f configure -a -f "$dep" -a "$dep" -nt configure ]; then
         rm configure;
       fi
     done
@@ -292,8 +292,9 @@ is_mingw()
 
 if findexe autoconf; then
   for f in `find . -name configure.in`; do
+    pkgdir="$(cd packages && pwd)"
     d=`dirname $f`
-    (cd $d && confdir $d)
+    (cd $d && confdir $d $pkgdir)
   done
   echo "Your kit is prepared."
   echo "Please consult INSTALL for further instructions."
