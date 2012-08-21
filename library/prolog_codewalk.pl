@@ -541,7 +541,7 @@ subterm_pos(_, _, _, _).
 %	Walk a DCG body that is meta-called.
 
 walk_dcg_body(Var, _Module, TermPos, OTerm) :-
-	var(var), !,
+	var(Var), !,
 	undecided(Var, TermPos, OTerm).
 walk_dcg_body([], _Module, _, _) :- !.
 walk_dcg_body([_|_], _Module, _, _) :- !.
