@@ -1322,10 +1322,11 @@ AC_MSG_CHECKING("variable timezone in tzset")
 AC_TRY_RUN(
 [ #include <time.h>
   #include <stdlib.h>
-  #ifdef __CYGWIN__
+  #if defined(__CYGWIN__) || defined(__MINGW32__)
   #define timezone _timezone
-  #endif
+  #else
   extern long timezone;
+  #endif
 
   main()
   { tzset();
