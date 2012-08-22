@@ -438,7 +438,7 @@ pl_rl_history(term_t list)
   if ( !PL_unify_nil(tail) )
     return FALSE;
 
-  if ( rlc_for_history(PL_current_console(), add_line, tail) == 0 )
+  if ( rlc_for_history(PL_current_console(), add_line, (void*)tail) == 0 )
     return PL_unify(tail, list);
 
   return FALSE;
