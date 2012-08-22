@@ -1026,8 +1026,15 @@ CFLAGS used to compile SWI-Prolog.  See \secref{plld}.
 LDFLAGS used to link SWI-Prolog. See \secref{plld}.
 
     \prologflagitem{c_libs}{atom}{rw}
-Libraries needed to link extensions to SWI-Prolog.  Typically empty on
-ELF systems and \const{-lswipl} on COFF based systems. See \secref{plld}.
+Libraries needed to link executables that embed SWI-Prolog.  Typically
+\const{-lswipl} if the SWI-Prolog kernel is a shared (DLL).  If the
+SWI-Prolog kernel is in a static library, this flag also contains the
+dependencies.
+
+    \prologflagitem{c_libplso}{atom}{rw}
+Libraries needed to link extensions (shared object, DLL) to SWI-Prolog.
+Typically empty on ELF systems and \const{-lswipl} on COFF based
+systems.  See \secref{plld}.
 
     \prologflagitem{char_conversion}{bool}{rw}
 Determines whether character-conversion takes place while reading terms.
