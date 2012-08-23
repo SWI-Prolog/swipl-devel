@@ -1811,8 +1811,9 @@ again:
       { base = 16;
 	goto numchar;
       } else
-      { in--;
-	OK('x');
+      { in -= 2;
+	c = *in++;
+	goto undef;
       }
     default:
       if ( c >= '0' && c <= '7' )	/* octal number */
@@ -1842,7 +1843,8 @@ again:
       } else if ( c == quote )
       { OK(c);
       } else
-      { if ( _PL_rd )
+      { undef:
+	if ( _PL_rd )
 	{ char tmp[2];
 
 	  tmp[0] = c;

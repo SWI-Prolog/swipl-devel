@@ -109,8 +109,9 @@ syntax(string-1) :-
 	'\c ' == ''.
 syntax(string-2) :-
 	'x\c y' == xy.
-syntax(quote-1) :-			% not really clear this is ok
-	'\x' == x.
+syntax(quote-1) :-
+	catch(atom_to_term('\'\\x\'', _, _), E, true),
+	E = error(syntax_error(undefined_char_escape(x)), _).
 syntax(quote-2) :-
 	'\x61' == a.
 syntax(quote-3) :-
