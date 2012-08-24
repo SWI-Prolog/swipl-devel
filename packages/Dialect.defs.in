@@ -20,6 +20,8 @@
 #   * LIBPLSO
 #   Library to include for linking shared objects to the Prolog kernel.
 #   Added after the user files.
+#   * LIBPLEMBED
+#   Library containing the Prolog kernel.  Needed for embedding Prolog.
 
 PL=../swipl.sh
 PLBASE=@PLBASE@
@@ -45,10 +47,11 @@ DEFS=@DEFS@ -D__SWI_PROLOG__
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) $(PKGCFLAGS) $(DEFS)
 CXXFLAGS=$(CFLAGS) -I../cpp
 
+LIBPLEMBED=@USEPLLIB@
 ifeq (@EXEFORMAT@,ELF)
 LIBPLSO=
 else
-LIBPLSO=-lswipl
+LIBPLSO=$(LIBPL)
 endif
 
 PLLDFLAGS=@LDFLAGS@ -L@abs_top_builddir@/../lib/$(PLARCH)
