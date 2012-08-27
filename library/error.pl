@@ -299,7 +299,7 @@ has_type(positive_integer, X)	  :- integer(X), X > 0.
 has_type(negative_integer, X)	  :- integer(X), X < 0.
 has_type(nonvar, X)	  :- nonvar(X).
 has_type(number, X)	  :- number(X).
-has_type(oneof(L), X)	  :- ground(X), memberchk(X, L).
+has_type(oneof(L), X)	  :- ground(X), \+ \+ memberchk(X, L).
 has_type(proper_list, X)  :- is_list(X).
 has_type(list, X)	  :- is_list(X).
 has_type(list_or_partial_list, X)  :- is_list_or_partial_list(X).
