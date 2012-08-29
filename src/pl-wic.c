@@ -1113,7 +1113,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  DEBUG(3, Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
 	  *bp++ = encode(op);
 	  DEBUG(0,
-		{ const char ca1_float[] = {CA1_FLOAT};
+		{ const char ca1_float[2] = {CA1_FLOAT};
 		  assert(codeTable[op].arguments == VM_DYNARGC ||
 			 (size_t)codeTable[op].arguments == strlen(ats) ||
 			 (streq(ats, ca1_float) &&
