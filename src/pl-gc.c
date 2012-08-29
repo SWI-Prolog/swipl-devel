@@ -4410,9 +4410,15 @@ nextStackSizeAbove(size_t n)
     { size_t sz;
 
       if ( increment == 1 )
-        sz = n+rand_r(&LD->gc.incr_seed)%10000;
-      else
-        sz = n+increment;
+      {
+#ifdef __WINDOWS__
+	sz = n+rand()%10000;
+#else
+	sz = n+rand_r(&LD->gc.incr_seed)%10000;
+#endif
+      } else
+      { sz = n+increment;
+      }
 
       return sz & ~(size_t)(sizeof(word)-1); /* align on words */
     }
