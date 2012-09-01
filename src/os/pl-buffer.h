@@ -49,7 +49,7 @@ int	growBuffer(Buffer b, size_t minfree);
 	  { if ( !growBuffer((Buffer)b, sizeof(type)) ) \
 	      outOfCore(); \
 	  } \
- 	  *((type *)(b)->top) = obj; \
+	  *((type *)(b)->top) = obj; \
           (b)->top += sizeof(type); \
 	} while(0)
 
@@ -67,6 +67,24 @@ int	growBuffer(Buffer b, size_t minfree);
 	    *_d++ = *_s++; \
 	  (b)->top = (char *)_d; \
 	} while(0)
+
+#define allocFromBuffer(b, bytes) \
+	f__allocFromBuffer((Buffer)(b), (bytes))
+
+static inline void*
+f__allocFromBuffer(Buffer b, size_t bytes)
+{ if ( b->top + bytes <= b->max ||
+       growBuffer(b, bytes) )
+  { void *top = b->top;
+
+    b->top += bytes;
+
+    return top;
+  }
+
+  return NULL;
+}
+
 
 #define baseBuffer(b, type)	 ((type *) (b)->base)
 #define topBuffer(b, type)       ((type *) (b)->top)
@@ -99,6 +117,6 @@ int	growBuffer(Buffer b, size_t minfree);
 
 COMMON(Buffer)		findBuffer(int flags);
 COMMON(int)		unfindBuffer(int flags);
-COMMON(char *) 		buffer_string(const char *s, int flags);
+COMMON(char *)		buffer_string(const char *s, int flags);
 
 #endif /*BUFFER_H_INCLUDED*/

@@ -2500,11 +2500,18 @@ typedef struct thread_message
 static thread_message *
 create_thread_message(term_t msg ARG_LD)
 { thread_message *msgp;
+  record_t rec;
 
-  msgp = allocHeapOrHalt(sizeof(*msgp));
-  msgp->next    = NULL;
-  msgp->message = compileTermToHeap(msg, R_NOLOCK);
-  msgp->key     = getIndexOfTerm(msg);
+  if ( !(rec=compileTermToHeap(msg, R_NOLOCK)) )
+    return NULL;
+
+  if ( (msgp = allocHeap(sizeof(*msgp))) )
+  { msgp->next    = NULL;
+    msgp->message = rec;
+    msgp->key     = getIndexOfTerm(msg);
+  } else
+  { freeRecord(rec);
+  }
 
   return msgp;
 }
@@ -2925,7 +2932,7 @@ PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
   int rc;
 
   if ( !(msg = create_thread_message(A2 PASS_LD)) )
-    return FALSE;
+    return PL_no_memory();
 
   for(;;)
   { if ( !get_message_queue__LD(A1, &q PASS_LD) )

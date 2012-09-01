@@ -70,14 +70,14 @@ findall(Templ, Goal, List) :-
 
 findall(Templ, Goal, List, Tail) :-
 	setup_call_cleanup(
-	    '$new_findall_bag'(Bag),
-	    findall_loop(Templ, Goal, Bag, List, Tail),
-	    '$destroy_findall_bag'(Bag)).
+	    '$new_findall_bag',
+	    findall_loop(Templ, Goal, List, Tail),
+	    '$destroy_findall_bag').
 
-findall_loop(Templ, Goal, Bag, List, Tail) :-
+findall_loop(Templ, Goal, List, Tail) :-
 	(   Goal,
-	    '$add_findall_bag'(Bag, Templ)	% fails
-	;   '$collect_findall_bag'(Bag, List, Tail)
+	    '$add_findall_bag'(Templ)	% fails
+	;   '$collect_findall_bag'(List, Tail)
 	).
 
 %%      bagof(+Var, +Goal, -Bag) is semidet.

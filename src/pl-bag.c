@@ -27,69 +27,139 @@
 #undef LD
 #define LD LOCAL_LD
 
+		 /*******************************
+		 *	    TEMP MALLOC		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Allocate memory for  findall  bags  in   chunks  that  can  be discarded
+together  and  preallocate  the  first    chunk.  This  approach  avoids
+fragmentation and reduces the number of  allocation calls. The latter is
+notably needed to reduce allocation contention   due to intensive use of
+findall/3.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define FIRST_CHUNK_SIZE (64*sizeof(void*))
+
+typedef struct mem_chunk
+{ struct mem_chunk *prev;
+  size_t	size;
+  size_t	used;
+} mem_chunk;
+
+typedef struct mem_pool
+{ mem_chunk    *chunks;
+  mem_chunk	first;
+  char		first_data[FIRST_CHUNK_SIZE];
+} mem_pool;
+
+static void
+init_mem_pool(mem_pool *mp)
+{ mp->chunks = &mp->first;
+  mp->first.size = FIRST_CHUNK_SIZE;
+  mp->first.used = 0;
+}
+
+static void *
+alloc_mem_pool(mem_pool *mp, size_t bytes)
+{ char *ptr;
+
+  if ( mp->chunks->used + bytes <= mp->chunks->size )
+  { ptr = &((char *)(mp->chunks+1))[mp->chunks->used];
+    mp->chunks->used += bytes;
+  } else
+  { size_t chunksize = (bytes < 1000 ? 4000 : bytes);
+    mem_chunk *c = PL_malloc_atomic_unmanaged(chunksize+sizeof(mem_chunk));
+
+    if ( c )
+    { c->size    = chunksize;
+      c->used    = bytes;
+      c->prev    = mp->chunks;
+      mp->chunks = c;
+      ptr        = (char *)(mp->chunks+1);
+    } else
+      return NULL;
+  }
+
+  return ptr;
+}
+
+static void
+clear_mem_pool(mem_pool *mp)
+{ mem_chunk *c, *p;
+
+  for(c=mp->chunks; c != &mp->first; c=p)
+  { p = c->prev;
+    PL_free(c);
+  }
+}
+
 
 		 /*******************************
-		 *      NEW IMPLEMENTATION	*
+		 *        FINDALL SUPPORT	*
 		 *******************************/
 
 #define FINDALL_MAGIC	0x37ac78fe
 
 typedef struct findall_bag
 { struct findall_bag *parent;		/* parent bag */
-  long		magic;			/* FINDALL_MAGIC */
-  segstack	answers;		/* list of ansers */
+  intptr_t	magic;			/* FINDALL_MAGIC */
   size_t	solutions;		/* count # solutions */
   size_t	gsize;			/* required size on stack */
+  mem_pool	records;		/* stored records */
+  segstack	answers;		/* list of answers */
+  Record	answer_buf[64];		/* tmp space */
 } findall_bag;
 
 
-static int
-get_bag(term_t t, findall_bag **bag ARG_LD)
-{ findall_bag *b;
-
-  if ( PL_get_pointer(t, (void**)&b) && b->magic == FINDALL_MAGIC )
-  { *bag = b;
-    return TRUE;
-  } else
-  { PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, "pointer", t);
-    return FALSE;
-  }
-}
-
-
 static
-PRED_IMPL("$new_findall_bag", 1, new_findall_bag, 0)
+PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
 { PRED_LD
-  findall_bag *bag = allocHeap(sizeof(*bag));
+  findall_bag *bag;
+
+  if ( !LD->bags.bags )			/* outer one */
+  { if ( !LD->bags.default_bag )
+      LD->bags.default_bag = PL_malloc(sizeof(*bag));
+    bag = LD->bags.default_bag;
+  } else
+  { bag = PL_malloc(sizeof(*bag));
+  }
 
   if ( !bag )
     return PL_no_memory();
 
-  memset(bag, 0, sizeof(*bag));
-  bag->magic = FINDALL_MAGIC;
-  bag->answers.unit_size = sizeof(Record);
-  bag->parent = LD->bags.bags;
+  bag->magic     = FINDALL_MAGIC;
+  bag->solutions = 0;
+  bag->gsize     = 0;
+  bag->parent    = LD->bags.bags;
+  init_mem_pool(&bag->records);
+  initSegStack(&bag->answers, sizeof(Record),
+	       sizeof(bag->answer_buf), bag->answer_buf);
   MemoryBarrier();
   LD->bags.bags = bag;
 
-  return PL_unify_pointer(A1, bag);
+  return TRUE;
+}
+
+
+static void *
+alloc_record(void *ctx, size_t bytes)
+{ findall_bag *bag = ctx;
+
+  return alloc_mem_pool(&bag->records, bytes);
 }
 
 
 static
-PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
+PRED_IMPL("$add_findall_bag", 1, add_findall_bag, 0)
 { PRED_LD
-  findall_bag *bag;
+  findall_bag *bag = LD->bags.bags;
   Record r;
 
-  if ( !get_bag(A1, &bag PASS_LD) )
-    return FALSE;
-
-  r = compileTermToHeap(A2, R_NOLOCK);
-  if ( !pushRecordSegStack(&bag->answers, r) )
-  { freeRecord(r);
+  if ( !(r = compileTermToHeap__LD(A1, alloc_record, bag, R_NOLOCK PASS_LD)) )
     return PL_no_memory();
-  }
+  if ( !pushRecordSegStack(&bag->answers, r) )
+    return PL_no_memory();
   bag->gsize += r->gsize;
   bag->solutions++;
 
@@ -100,69 +170,52 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
 }
 
 
-static inline void
-freeBag(findall_bag *bag)
-{ bag->magic = 0;
-  clearSegStack(&bag->answers);
-  freeHeap(bag, sizeof(*bag));
-}
-
-
 static
-PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
+PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 { PRED_LD
-  findall_bag *bag;
-  Record *rp;
-  term_t list = PL_copy_term_ref(A3);
-  term_t answer = PL_new_term_ref();
-  size_t space;
-  int rc;
+  findall_bag *bag = LD->bags.bags;
 
-  if ( !get_bag(A1, &bag PASS_LD) )
-    return FALSE;
-  space = bag->gsize + bag->solutions*3;
+  if ( bag->solutions )
+  { size_t space = bag->gsize + bag->solutions*3;
+    term_t list = PL_copy_term_ref(A2);
+    term_t answer = PL_new_term_ref();
+    Record *rp;
+    int rc;
 
-  if ( !hasGlobalSpace(space) )
-  { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != TRUE )
-      return raiseStackOverflow(rc);
-  }
-
-  while ( (rp=topOfSegStack(&bag->answers)) )
-  { Record r = *rp;
-    copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
-    PL_cons_list(list, answer, list);
-    popTopOfSegStack(&bag->answers);
-    freeRecord(r);
-  }
-  DEBUG(CHK_SECURE, assert(emptySegStack(&bag->answers)));
-
-  return PL_unify(A2, list);
-}
-
-
-static
-PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
-{ PRED_LD
-  findall_bag *bag;
-
-  if ( PL_get_pointer(A1, (void**)&bag) && bag->magic == FINDALL_MAGIC )
-  { Record *rp;
+    if ( !hasGlobalSpace(space) )
+    { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+    }
 
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;
-
+      copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
+      PL_cons_list(list, answer, list);
       popTopOfSegStack(&bag->answers);
-      freeRecord(r);
     }
+    DEBUG(CHK_SECURE, assert(emptySegStack(&bag->answers)));
 
-    assert(LD->bags.bags == bag);
-    LD->bags.bags = bag->parent;
-    freeBag(bag);
-    succeed;
-  }
+    return PL_unify(A1, list);
+  } else
+    return PL_unify(A1, A2);
+}
 
-  assert(0);
-  fail;
+
+static
+PRED_IMPL("$destroy_findall_bag", 0, destroy_findall_bag, 0)
+{ PRED_LD
+  findall_bag *bag = LD->bags.bags;
+
+  assert(bag);
+  assert(bag->magic == FINDALL_MAGIC);
+  bag->magic = 0;
+  clearSegStack(&bag->answers);
+  clear_mem_pool(&bag->records);
+  LD->bags.bags = bag->parent;
+  if ( bag != LD->bags.default_bag )
+    PL_free(bag);
+
+  return TRUE;
 }
 
 
@@ -192,8 +245,8 @@ markAtomsFindall(PL_local_data_t *ld)
 		 *******************************/
 
 BeginPredDefs(bag)
-  PRED_DEF("$new_findall_bag", 1, new_findall_bag, 0)
-  PRED_DEF("$add_findall_bag", 2, add_findall_bag, 0)
-  PRED_DEF("$collect_findall_bag", 3, collect_findall_bag, 0)
-  PRED_DEF("$destroy_findall_bag", 1, destroy_findall_bag, 0)
+  PRED_DEF("$new_findall_bag", 0, new_findall_bag, 0)
+  PRED_DEF("$add_findall_bag", 1, add_findall_bag, 0)
+  PRED_DEF("$collect_findall_bag", 2, collect_findall_bag, 0)
+  PRED_DEF("$destroy_findall_bag", 0, destroy_findall_bag, 0)
 EndPredDefs

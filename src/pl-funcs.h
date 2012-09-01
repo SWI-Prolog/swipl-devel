@@ -514,7 +514,10 @@ COMMON(int)		read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD);
 /* pl-rec.c */
 COMMON(void)		initRecords(void);
 COMMON(void)		cleanupRecords(void);
-COMMON(Record)		compileTermToHeap__LD(term_t term, int flags ARG_LD);
+COMMON(Record)		compileTermToHeap__LD(term_t term,
+					      void* (*allocate)(void *ctx, size_t size),
+					      void* ctx,
+					      int flags ARG_LD);
 COMMON(int)		copyRecordToGlobal(term_t copy, Record term,
 					   int flags ARG_LD);
 COMMON(int)		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
