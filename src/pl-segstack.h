@@ -74,19 +74,24 @@ emptySegStack(segstack *s)
 		: pushSegStack_((stack), &data)			\
 	)
 
-COMMON(void)	initSegStack(segstack *stack, size_t unit_size,
-			     size_t len, void *data);
 COMMON(int)	pushSegStack_(segstack *stack, void* data) WUNUSED;
 COMMON(int)	pushRecordSegStack(segstack *stack, Record r) WUNUSED;
 COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
 COMMON(void)	popTopOfSegStack(segstack *stack);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));
-COMMON(void)	clearSegStack(segstack *s);
+COMMON(void)	clearSegStack_(segstack *s);
 
 		 /*******************************
 		 *	       INLINE		*
 		 *******************************/
+
+static inline void
+clearSegStack(segstack *s)
+{ if ( s->first )
+    clearSegStack_(s);
+}
+
 
 static inline void
 topsOfSegStack(segstack *stack, int count, void **tops)
@@ -110,5 +115,24 @@ topsOfSegStack(segstack *stack, int count, void **tops)
   }
 }
 
+
+static inline void
+initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
+{ stack->unit_size = unit_size;
+
+  if ( len )
+  { segchunk *chunk = data;
+
+    DEBUG(CHK_SECURE, assert(len > sizeof(*chunk)));
+    chunk->size = len;
+    stack->base = stack->top = chunk->top = chunk->data;
+    stack->last = stack->first = chunk;
+    stack->max  = addPointer(chunk, len);
+    memset(&chunk->allocated, 0,
+	   offsetof(segchunk,data)-offsetof(segchunk,allocated));
+  } else
+  { memset(&stack->first, 0, sizeof(*stack)-offsetof(segstack,first));
+  }
+}
 
 #endif /*PL_SEGSTACK_H_INCLUDED*/

@@ -42,26 +42,6 @@ data before updating the pointers.
 TBD: Avoid instruction/cache write reordering in push/pop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
-initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
-{ stack->unit_size = unit_size;
-
-  if ( len )
-  { segchunk *chunk = data;
-
-    DEBUG(CHK_SECURE, assert(len > sizeof(*chunk)));
-    chunk->size = len;
-    stack->base = stack->top = chunk->top = chunk->data;
-    stack->last = stack->first = chunk;
-    stack->max  = addPointer(chunk, len);
-    memset(&chunk->allocated, 0,
-	   offsetof(segchunk,data)-offsetof(segchunk,allocated));
-  } else
-  { memset(&stack->first, 0, sizeof(*stack)-offsetof(segstack,first));
-  }
-}
-
-
 int
 pushSegStack_(segstack *stack, void *data)
 { if ( stack->top + stack->unit_size <= stack->max )
@@ -235,30 +215,27 @@ scanSegStack(segstack *stack, void (*func)(void *cell))
 
 
 void
-clearSegStack(segstack *s)
-{ segchunk *c;
+clearSegStack_(segstack *s)
+{ segchunk *c = s->first;
+  segchunk *n;
 
-  if ( (c = s->first) )
-  { segchunk *n;
+  if ( !c->allocated )		/* statically allocated first chunk */
+  { n = c->next;
 
-    if ( !c->allocated )		/* statically allocated first chunk */
+    c->next = NULL;
+    s->last = c;
+    s->base = s->top = c->top;
+    s->max  = addPointer(c, c->size);
+
+    for(c=n; c; c = n)
     { n = c->next;
-
-      c->next = NULL;
-      s->last = c;
-      s->base = s->top = c->top;
-      s->max  = addPointer(c, c->size);
-
-      for(c=n; c; c = n)
-      { n = c->next;
-	PL_free(c);
-      }
-    } else				/* all dynamic chunks */
-    { for(; c; c = n)
-      { n = c->next;
-	PL_free(c);
-      }
-      memset(s, 0, sizeof(*s));
+      PL_free(c);
     }
+  } else				/* all dynamic chunks */
+  { for(; c; c = n)
+    { n = c->next;
+      PL_free(c);
+    }
+    memset(s, 0, sizeof(*s));
   }
 }
