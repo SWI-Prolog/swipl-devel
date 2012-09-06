@@ -810,7 +810,7 @@ with one operation, it turns out to be faster as well.
 #define SYSTEM			(0x00000100L) /* predicate, module */
 #define TRACE_ME		(0x00000200L) /* predicate */
 #define P_TRANSPARENT		(0x00000400L) /* predicate */
-#define GC_SAFE			(0x00000800L) /* predicate */
+				/* (0x00000800L) */
 #define TRACE_CALL		(0x00001000L) /* predicate */
 #define TRACE_REDO		(0x00002000L) /* predicate */
 #define TRACE_EXIT		(0x00004000L) /* predicate */
@@ -819,7 +819,7 @@ with one operation, it turns out to be faster as well.
 #define LOCKED			(SYSTEM)      /* predicate */
 #define FILE_ASSIGNED		(0x00010000L) /* predicate */
 #define VOLATILE		(0x00020000L) /* predicate */
-#define AUTOINDEX		(0x00040000L) /* predicate */
+				/* (0x00040000L) */
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
 		      /* unused (0x00100000L) */
 #define P_VARARG		(0x00200000L) /* predicate */

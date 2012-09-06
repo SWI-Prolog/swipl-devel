@@ -196,8 +196,6 @@ resetProcedure(Procedure proc, bool isnew)
   if ( isnew )
   { ClauseIndex ci;
 
-    set(def, AUTOINDEX);
-
     if ( (ci=def->impl.clauses.clause_indexes) )
     { ClauseIndex next;
 
