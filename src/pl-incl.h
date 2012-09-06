@@ -114,11 +114,10 @@ handy for it someone wants to add a data type to the system.
       Use `logical' update-view for dynamic predicates rather then the
       `immediate' update-view of older Prolog systems.
   O_PLMT
-      Include support for multi-threaded Prolog application.  Currently
-      very incomplete and only for the POSIX thread library.
+      Include support for multi-threading. Too much of the system relies
+      on this now, so it cannot be disabled without significant work.
   O_LARGEFILES
-      Supports files >2GB (if the OS provides it, currently requires
-      the GNU c library).
+      Supports files >2GB on 32-bit systems (if the OS provides it).
   O_ATTVAR
       Include support for attributes variables.
       This option requires O_DESTRUCTIVE_ASSIGNMENT.
