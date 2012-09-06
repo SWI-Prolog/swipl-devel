@@ -1572,7 +1572,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   if ( !top_initialized )
   { clause.procedure = PROCEDURE_dc_call_prolog;
-    clause.generation.erased = ~0L;
+    clause.generation.erased = ~(gen_t)0;
     clause.code_size = 1;
     clause.codes[0] = encode(I_EXITQUERY);
     cref.value.clause = &clause;

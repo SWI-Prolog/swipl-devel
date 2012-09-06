@@ -905,6 +905,7 @@ Handling environment (or local stack) frames.
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
 #ifdef O_LOGICAL_UPDATE
+typedef uint64_t gen_t;
 #define generationFrame(f)	((f)->generation)
 #else
 #define generationFrame(f)	(0)
@@ -1086,8 +1087,8 @@ struct clause
 { Procedure	procedure;		/* procedure we belong to */
 #ifdef O_LOGICAL_UPDATE
   struct
-  { uintptr_t created;		/* Generation that created me */
-    uintptr_t erased;		/* Generation I was erased */
+  { gen_t created;		/* Generation that created me */
+    gen_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
   unsigned int		variables;	/* # of variables for frame */
@@ -1285,7 +1286,7 @@ struct localFrame
   struct call_node *prof_node;		/* Profiling node */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  uintptr_t	generation;		/* generation of the database */
+  gen_t		generation;		/* generation of the database */
 #endif
   unsigned long	flags;			/* packed long holding: */
 		/*	LEVEL	   recursion level (28 bits) */

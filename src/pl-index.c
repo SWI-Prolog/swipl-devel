@@ -138,7 +138,7 @@ getIndexOfTerm(term_t t)
 
 
 static inline ClauseRef
-nextClauseArg1(ClauseChoice chp, uintptr_t generation)
+nextClauseArg1(ClauseChoice chp, gen_t generation)
 { ClauseRef cref = chp->cref;
   word key = chp->key;
 
@@ -179,7 +179,7 @@ TBD: Keep a flag telling is whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-nextClauseFromBucket(ClauseChoice chp, uintptr_t generation, int is_list)
+nextClauseFromBucket(ClauseChoice chp, gen_t generation, int is_list)
 { ClauseRef cref;
   word key = chp->key;
 

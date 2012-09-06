@@ -4446,7 +4446,7 @@ atom is referenced by the goal-term anyway.
       NFR->prof_node      = FR->prof_node;
 #endif
 #ifdef O_LOGICAL_UPDATE
-      cl->generation.erased = ~0L;
+      cl->generation.erased = ~(gen_t)0;
       cl->generation.created = NFR->generation = GD->generation;
 #endif
       PC = cl->codes;
