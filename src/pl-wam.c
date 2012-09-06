@@ -1634,9 +1634,11 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     top->prof_node = NULL;
 #endif
   if ( environment_frame )
-    setNextFrameFlags(top, environment_frame);
-  else
-    top->flags	     = 0;
+  { setNextFrameFlags(top, environment_frame);
+  } else
+  { top->flags	     = 0;
+    top->level	     = 0;
+  }
   fr                 = &qf->frame;
   fr->parent         = top;
   setNextFrameFlags(fr, top);

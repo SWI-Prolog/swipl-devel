@@ -869,7 +869,6 @@ with one operation, it turns out to be faster as well.
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_BITS			8	/* mask-bits */
 #define FR_HIDE_CHILDS		(0x01L)	/* flag of pred after I_DEPART */
 #define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
 #define FR_MARKED		(0x04L)	/* GC */
@@ -879,21 +878,11 @@ Handling environment (or local stack) frames.
 #define FR_INBOX		(0x40L) /* Inside box (for REDO in built-in) */
 #define FR_CONTEXT		(0x80L)	/* fr->context is set */
 
-/* FR_LEVEL now handles levels upto 16M.  This is a bit low, but as it is
-   only used for the debugger (skip, etc) it is most likely acceptable.
-   We must consider using a seperate slot in the localFrame
-*/
-
-#define FR_LEVEL		(((uintptr_t)1<<FR_BITS)-1)
-
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
 
-#define setLevelFrame(fr, l)	{ (fr)->flags &= ~FR_LEVEL;   \
-				  (fr)->flags |= ((l) << FR_BITS); \
-				}
-#define levelFrame(fr)		(fr->flags >> FR_BITS)
-#define FR_LEVEL_STEP		((1<<FR_BITS))
+#define setLevelFrame(fr, l)	do { (fr)->level = (l); } while(0)
+#define levelFrame(fr)		((fr)->level)
 #define argFrameP(f, n)		((Word)((f)+1) + (n))
 #define argFrame(f, n)		(*argFrameP((f), (n)) )
 #define varFrameP(f, n)		((Word)(f) + (n))
@@ -911,9 +900,12 @@ typedef uint64_t gen_t;
 #define generationFrame(f)	(0)
 #endif
 
+#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS
 #define setNextFrameFlags(next, fr) \
-        (next)->flags = ((fr)->flags + FR_LEVEL_STEP) & \
-                        (~(FR_CONTEXT|FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS))
+	do \
+	{ (next)->level = (fr)->level+1; \
+	  (next)->flags = ((fr)->flags) & ~(FR_CLEAR_NEXT|FR_CONTEXT); \
+	} while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Predicate reference counting. The aim  of   this  mechanism  is to avoid
@@ -1288,8 +1280,8 @@ struct localFrame
 #ifdef O_LOGICAL_UPDATE
   gen_t		generation;		/* generation of the database */
 #endif
-  unsigned long	flags;			/* packed long holding: */
-		/*	LEVEL	   recursion level (28 bits) */
+  unsigned int	level;			/* recursion level */
+  unsigned int	flags;			/* packed long holding: */
 		/*	FR_HIDE_CHILDS don't debug this frame ? */
 		/*	FR_SKIPPED skipped in the tracer */
 		/*	FR_MARKED  Marked by GC */
