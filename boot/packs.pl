@@ -143,7 +143,7 @@ attach_package(PackDir) :-
 	access_file(InfoFile, read),
 	file_base_name(PackDir, Pack),
 	check_existing(Pack, PackDir),
-	foreign_dir(PackDir, ForeignDir),
+	foreign_dir(Pack, PackDir, ForeignDir),
 	prolog_dir(PackDir, PrologDir), !,
 	assertz(pack(Pack, PackDir)),
 	assertz(pack_dir(Pack, prolog, PrologDir)),
@@ -180,17 +180,17 @@ update_autoload(PrologDir) :-
 	;   true
 	).
 
-foreign_dir(PackDir, ForeignDir) :-
+foreign_dir(Pack, PackDir, ForeignDir) :-
 	current_prolog_flag(arch, Arch),
 	atomic_list_concat([PackDir, '/lib'], ForeignBaseDir),
 	exists_directory(ForeignBaseDir), !,
 	atomic_list_concat([PackDir, '/lib/', Arch], ForeignDir),
 	(   exists_directory(ForeignDir)
-	->  assertz(pack_dir(Entry, foreign, ForeignDir))
-	;   print_message(warning, pack(no_arch(Entry, Arch))),
+	->  assertz(pack_dir(Pack, foreign, ForeignDir))
+	;   print_message(warning, pack(no_arch(Pack, Arch))),
 	    fail
 	).
-foreign_dir(_, (-)).
+foreign_dir(_, _, (-)).
 
 ensure_slash(Dir, SDir) :-
 	(   sub_atom(Dir, _, _, 0, /)
