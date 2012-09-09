@@ -373,6 +373,7 @@ build_swipl_core()
 { export CIFLAGS="-I$install/include"
   export LDFLAGS="-L$install/lib"
   ( cd $PLDIR
+    wineserver || true
     ./configure --host=$CROSS --prefix=$install \
         --disable-readline --disable-libdirversion \
         --enable-shared --disable-static
@@ -437,9 +438,13 @@ build_all()
 # Create a new release
 
 build_release()
-{ clean_swipl
-  uninstall_swipl
-  download_swipl
-  build_swipl
-  build_installer
+{ if [ -r README.mingw32 ]; then
+    ( cd .. && build_release )
+  else
+    clean_swipl
+    uninstall_swipl
+    download_swipl
+    build_swipl
+    build_installer
+  fi
 }
