@@ -591,8 +591,19 @@ restoreVars(compile_info *info)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compileTermToHeap__LD() is the core of the recorded database.
+
+Returns NULL if there is insufficient   memory.  Otherwise the result of
+the  allocation  function.   The   default    allocation   function   is
+PL_malloc_atomic_unmanaged().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 Record
-compileTermToHeap__LD(term_t t, int flags ARG_LD)
+compileTermToHeap__LD(term_t t,
+		      void* (*allocate)(void *closure, size_t size),
+		      void* closure,
+		      int flags ARG_LD)
 { compile_info info;
   Record record;
   size_t size;
@@ -616,18 +627,25 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   unvisit(PASS_LD1);
 
   size = rsize + sizeOfBuffer(&info.code);
-  record = PL_malloc_atomic_unmanaged(size);
+  if ( allocate )
+    record = (*allocate)(closure, size);
+  else
+    record = PL_malloc_atomic_unmanaged(size);
+
+  if ( record )
+  {
 #ifdef REC_MAGIC
-  record->magic = REC_MAGIC;
+    record->magic = REC_MAGIC;
 #endif
-  record->gsize = (unsigned int)info.size; /* only 28-bit */
-  record->nvars = info.nvars;
-  record->size  = (int)size;
-  record->flags = flags;
-  if ( flags & R_DUPLICATE )
-  { record->references = 1;
+    record->gsize = (unsigned int)info.size; /* only 28-bit */
+    record->nvars = info.nvars;
+    record->size  = (int)size;
+    record->flags = flags;
+    if ( flags & R_DUPLICATE )
+    { record->references = 1;
+    }
+    memcpy(addPointer(record, rsize), info.code.base, sizeOfBuffer(&info.code));
   }
-  memcpy(addPointer(record, rsize), info.code.base, sizeOfBuffer(&info.code));
   discardBuffer(&info.code);
 
   DEBUG(3, Sdprintf("--> record at %p\n", record));
@@ -1655,7 +1673,8 @@ record(term_t key, term_t term, term_t ref, int az)
   if ( ref && !PL_is_variable(ref) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
-  copy = compileTermToHeap(term, 0);
+  if ( !(copy = compileTermToHeap(term, 0)) )
+    return PL_no_memory();
   r = allocHeapOrHalt(sizeof(*r));
   r->record = copy;
   if ( ref && !PL_unify_recref(ref, r) )
@@ -1869,7 +1888,7 @@ PRED_IMPL("instance", 2, instance, 0)
 
   if ( type == DB_REF_CLAUSE )
   { Clause clause = ptr;
-    uintptr_t generation = environment_frame->generation;
+    gen_t generation = environment_frame->generation;
 
     if ( true(clause, GOAL_CLAUSE) ||
 	 !visibleClause(clause, generation) )

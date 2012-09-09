@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -39,7 +37,8 @@
 #define valFloat(w)		valFloat__LD(w PASS_LD)
 #define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
 #define getCharsWString(s, l)	getCharsWString__LD(s, l PASS_LD)
-#define compileTermToHeap(t, f)	compileTermToHeap__LD(t, f PASS_LD)
+#define compileTermToHeap(t, f)	\
+	compileTermToHeap__LD(t, NULL, NULL, f PASS_LD)
 #define linkVal(p)		linkVal__LD(p PASS_LD)
 #define TrailAssignment(p)	TrailAssignment__LD(p PASS_LD)
 #define bindConst(p, c)		bindConst__LD(p, c PASS_LD)

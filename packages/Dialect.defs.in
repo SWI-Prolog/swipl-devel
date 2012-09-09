@@ -28,6 +28,7 @@ PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PLINCL=$(PLBASE)/include
 PLLIBDIR=$(PLBASE)/library
+XPCEBASE=$(PLBASE)/xpce
 SOLIBDIR=$(PLBASE)/@SOLIB@/$(INSTALL_PLARCH)
 PKGDOCDIR=$(PLBASE)/doc/packages
 PKGEXDIR=$(PLBASE)/doc/packages/examples
@@ -63,3 +64,6 @@ MKPKGINDEX=$(PL) -C "$(DESTDIR)$(PLBASE)/library/$(PACKAGE)" -f none -F none -g 
 
 PUBLICPL=swipl
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
+
+.txt.tex:
+	$(PUBLICPL) -q -s txttotex.pl -g txttotex,halt -t 'halt(1)' -- $*.txt

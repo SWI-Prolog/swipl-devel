@@ -367,7 +367,7 @@ get_ftm(term_t t, ftm *ftm)
     }
   }
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_time, time);
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_time, t);
 }
 
 

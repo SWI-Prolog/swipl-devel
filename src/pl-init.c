@@ -327,7 +327,7 @@ initPaths(int argc, const char **argv)
   { systemDefaults.home	       = findHome(NULL, argc, argv);
     GD->options.systemInitFile = store_string("none");
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
-    GD->paths.module	       = store_string("libpl.dll");
+    GD->paths.module	       = store_string("libswipl.dll");
 #endif
   }
 

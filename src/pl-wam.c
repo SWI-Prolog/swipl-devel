@@ -1572,7 +1572,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   if ( !top_initialized )
   { clause.procedure = PROCEDURE_dc_call_prolog;
-    clause.generation.erased = ~0L;
+    clause.generation.erased = ~(gen_t)0;
     clause.code_size = 1;
     clause.codes[0] = encode(I_EXITQUERY);
     cref.value.clause = &clause;
@@ -1634,9 +1634,11 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     top->prof_node = NULL;
 #endif
   if ( environment_frame )
-    setNextFrameFlags(top, environment_frame);
-  else
-    top->flags	     = 0;
+  { setNextFrameFlags(top, environment_frame);
+  } else
+  { top->flags	     = 0;
+    top->level	     = 0;
+  }
   fr                 = &qf->frame;
   fr->parent         = top;
   setNextFrameFlags(fr, top);

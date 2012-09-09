@@ -4780,7 +4780,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   Definition def;
   Cref cr;
 #ifdef O_LOGICAL_UPDATE
-  uintptr_t generation = environment_frame->generation;
+  gen_t generation = environment_frame->generation;
 #endif
 
   if ( ForeignControl(h) == FRG_CUTTED )

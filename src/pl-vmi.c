@@ -1630,7 +1630,7 @@ retry_continue:
 #endif
 
 #ifdef O_LIMIT_DEPTH
-    { uintptr_t depth = levelFrame(FR);
+    { unsigned int depth = levelFrame(FR);
 
       if ( depth > depth_reached )
 	depth_reached = depth;
@@ -1719,8 +1719,9 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     DEF = proc->definition;
     if ( true(DEF, P_TRANSPARENT) )
     { FR->context = contextModule(FR);
-      FR->flags = (((FR->flags+FR_LEVEL_STEP) | FR_CONTEXT) &
-                   ~(FR_SKIPPED|FR_WATCHED|FR_CATCHED));
+      FR->level++;
+      clear(FR, FR_CLEAR_NEXT);
+      set(FR, FR_CONTEXT);
     } else
     { setNextFrameFlags(FR, FR);
     }
@@ -4446,7 +4447,7 @@ atom is referenced by the goal-term anyway.
       NFR->prof_node      = FR->prof_node;
 #endif
 #ifdef O_LOGICAL_UPDATE
-      cl->generation.erased = ~0L;
+      cl->generation.erased = ~(gen_t)0;
       cl->generation.created = NFR->generation = GD->generation;
 #endif
       PC = cl->codes;

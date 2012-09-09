@@ -2,7 +2,7 @@
 # Share Prolog-independent bits of the package makefiles.
 ################################################################
 
-.SUFFIXES: .tex .dvi .doc .pl
+.SUFFIXES: .tex .dvi .doc .txt .pl
 
 # This is to have a simple 'make' build `all' instead of the local
 # targets.

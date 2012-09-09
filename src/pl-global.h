@@ -91,7 +91,7 @@ struct PL_global_data
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  uintptr_t generation;			/* generation of the database */
+  gen_t		generation;		/* generation of the database */
 #endif
 
   struct
@@ -508,11 +508,10 @@ struct PL_local_data
   { FindData	find;			/* /<ports> <goal> in tracer */
   } trace;
 
-#ifdef O_ATOMGC
   struct
   { struct findall_bag *bags;		/* Known bags */
+    struct findall_bag *default_bag;	/* Bag we keep around */
   } bags;
-#endif
 
   struct
   { AbortHandle	_abort_head;		/* PL_abort_hook() */

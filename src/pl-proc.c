@@ -196,8 +196,6 @@ resetProcedure(Procedure proc, bool isnew)
   if ( isnew )
   { ClauseIndex ci;
 
-    set(def, AUTOINDEX);
-
     if ( (ci=def->impl.clauses.clause_indexes) )
     { ClauseIndex next;
 
@@ -233,12 +231,12 @@ hasClausesDefinition(Definition def)
     } else
     { GET_LD
       ClauseRef c;
-      uintptr_t generation;
+      gen_t generation;
       LocalFrame fr = environment_frame;
       if ( fr )
 	generation = generationFrame(fr);
       else
-	generation = ~0L-1;		/* any non-erased clause */
+	generation = (~(gen_t)0)-1;		/* any non-erased clause */
 
       LOCK();				/* Avoid race with unloadFile() */
       for(c = def->impl.clauses.first_clause; c; c = c->next)
@@ -929,7 +927,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   PL_LOCK(L_MISC);
   clause->generation.created = ++GD->generation;
   PL_UNLOCK(L_MISC);
-  clause->generation.erased  = ~0L;	/* infinite */
+  clause->generation.erased  = ~(gen_t)0;	/* infinite */
 #endif
 
   if ( false(def, DYNAMIC) )		/* see (*) above */
@@ -2154,7 +2152,7 @@ pl_retractall(term_t head)
 
   DEBUG(CHK_SECURE, checkDefinition(def));
   if ( allvars )
-  { uintptr_t gen = generationFrame(environment_frame);
+  { gen_t gen = generationFrame(environment_frame);
 
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( visibleClause(cref->value.clause, gen) )
@@ -3302,7 +3300,7 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
   Procedure from, to;
   Definition def, copy_def;
   ClauseRef cref;
-  uintptr_t generation;
+  gen_t generation;
 
   if ( !get_procedure(A1, &from, 0, GP_NAMEARITY|GP_RESOLVE) )
     fail;
@@ -3419,7 +3417,7 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
 static void
 listGenerations(Definition def)
 { GET_LD
-  uintptr_t gen = generationFrame(environment_frame);
+  gen_t gen = generationFrame(environment_frame);
   ClauseRef cref;
   int i;
 

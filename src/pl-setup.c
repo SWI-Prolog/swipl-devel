@@ -1480,6 +1480,9 @@ freePrologLocalData(PL_local_data_t *ld)
     destroyHTable(ld->gvar.nb_vars);
 #endif
 
+  if ( ld->bags.default_bag )
+    PL_free(ld->bags.default_bag);
+
 #ifdef O_CYCLIC
   clearSegStack(&ld->cycle.lstack);
   clearSegStack(&ld->cycle.vstack);

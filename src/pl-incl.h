@@ -114,11 +114,10 @@ handy for it someone wants to add a data type to the system.
       Use `logical' update-view for dynamic predicates rather then the
       `immediate' update-view of older Prolog systems.
   O_PLMT
-      Include support for multi-threaded Prolog application.  Currently
-      very incomplete and only for the POSIX thread library.
+      Include support for multi-threading. Too much of the system relies
+      on this now, so it cannot be disabled without significant work.
   O_LARGEFILES
-      Supports files >2GB (if the OS provides it, currently requires
-      the GNU c library).
+      Supports files >2GB on 32-bit systems (if the OS provides it).
   O_ATTVAR
       Include support for attributes variables.
       This option requires O_DESTRUCTIVE_ASSIGNMENT.
@@ -810,7 +809,7 @@ with one operation, it turns out to be faster as well.
 #define SYSTEM			(0x00000100L) /* predicate, module */
 #define TRACE_ME		(0x00000200L) /* predicate */
 #define P_TRANSPARENT		(0x00000400L) /* predicate */
-#define GC_SAFE			(0x00000800L) /* predicate */
+				/* (0x00000800L) */
 #define TRACE_CALL		(0x00001000L) /* predicate */
 #define TRACE_REDO		(0x00002000L) /* predicate */
 #define TRACE_EXIT		(0x00004000L) /* predicate */
@@ -819,7 +818,7 @@ with one operation, it turns out to be faster as well.
 #define LOCKED			(SYSTEM)      /* predicate */
 #define FILE_ASSIGNED		(0x00010000L) /* predicate */
 #define VOLATILE		(0x00020000L) /* predicate */
-#define AUTOINDEX		(0x00040000L) /* predicate */
+				/* (0x00040000L) */
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
 		      /* unused (0x00100000L) */
 #define P_VARARG		(0x00200000L) /* predicate */
@@ -869,7 +868,6 @@ with one operation, it turns out to be faster as well.
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_BITS			8	/* mask-bits */
 #define FR_HIDE_CHILDS		(0x01L)	/* flag of pred after I_DEPART */
 #define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
 #define FR_MARKED		(0x04L)	/* GC */
@@ -879,21 +877,11 @@ Handling environment (or local stack) frames.
 #define FR_INBOX		(0x40L) /* Inside box (for REDO in built-in) */
 #define FR_CONTEXT		(0x80L)	/* fr->context is set */
 
-/* FR_LEVEL now handles levels upto 16M.  This is a bit low, but as it is
-   only used for the debugger (skip, etc) it is most likely acceptable.
-   We must consider using a seperate slot in the localFrame
-*/
-
-#define FR_LEVEL		(((uintptr_t)1<<FR_BITS)-1)
-
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
 
-#define setLevelFrame(fr, l)	{ (fr)->flags &= ~FR_LEVEL;   \
-				  (fr)->flags |= ((l) << FR_BITS); \
-				}
-#define levelFrame(fr)		(fr->flags >> FR_BITS)
-#define FR_LEVEL_STEP		((1<<FR_BITS))
+#define setLevelFrame(fr, l)	do { (fr)->level = (l); } while(0)
+#define levelFrame(fr)		((fr)->level)
 #define argFrameP(f, n)		((Word)((f)+1) + (n))
 #define argFrame(f, n)		(*argFrameP((f), (n)) )
 #define varFrameP(f, n)		((Word)(f) + (n))
@@ -905,14 +893,18 @@ Handling environment (or local stack) frames.
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
 #ifdef O_LOGICAL_UPDATE
+typedef uint64_t gen_t;
 #define generationFrame(f)	((f)->generation)
 #else
 #define generationFrame(f)	(0)
 #endif
 
+#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS
 #define setNextFrameFlags(next, fr) \
-        (next)->flags = ((fr)->flags + FR_LEVEL_STEP) & \
-                        (~(FR_CONTEXT|FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS))
+	do \
+	{ (next)->level = (fr)->level+1; \
+	  (next)->flags = ((fr)->flags) & ~(FR_CLEAR_NEXT|FR_CONTEXT); \
+	} while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Predicate reference counting. The aim  of   this  mechanism  is to avoid
@@ -1086,8 +1078,8 @@ struct clause
 { Procedure	procedure;		/* procedure we belong to */
 #ifdef O_LOGICAL_UPDATE
   struct
-  { uintptr_t created;		/* Generation that created me */
-    uintptr_t erased;		/* Generation I was erased */
+  { gen_t created;		/* Generation that created me */
+    gen_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
   unsigned int		variables;	/* # of variables for frame */
@@ -1285,10 +1277,10 @@ struct localFrame
   struct call_node *prof_node;		/* Profiling node */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  uintptr_t	generation;		/* generation of the database */
+  gen_t		generation;		/* generation of the database */
 #endif
-  unsigned long	flags;			/* packed long holding: */
-		/*	LEVEL	   recursion level (28 bits) */
+  unsigned int	level;			/* recursion level */
+  unsigned int	flags;			/* packed long holding: */
 		/*	FR_HIDE_CHILDS don't debug this frame ? */
 		/*	FR_SKIPPED skipped in the tracer */
 		/*	FR_MARKED  Marked by GC */

@@ -585,8 +585,12 @@ setupFind(char *buf)
     } else if ( PL_get_atom(t, &find->goal.name) )
     { find->type = TRACE_FIND_NAME;
     } else if ( PL_get_functor(t, &find->goal.term.functor) )
-    { find->type = TRACE_FIND_TERM;
-      find->goal.term.term = compileTermToHeap(t, 0);
+    { if ( (find->goal.term.term = compileTermToHeap(t, 0)) )
+      { find->type = TRACE_FIND_TERM;
+      } else
+      { Sfputs("ERROR: no memory to safe find target\n", Sdout);
+	fail;
+      }
     } else
     { Sfputs("[Illegal goal specification]\n", Sdout);
       fail;
