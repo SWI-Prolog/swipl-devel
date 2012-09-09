@@ -377,7 +377,6 @@ initialise_prolog :-
 	'$option'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
-	setup_colors,
 	start_pldoc,
 	attach_packs,
 	'$load_script_file',
@@ -405,7 +404,9 @@ init_debug_flags :-
 setup_colors :-
 	(   stream_property(user_output, tty(true)),
 	    \+ current_prolog_flag(color_term, false)
-	->  catch(load_files(user:library(ansi_term), [silent(true)]), _, true)
+	->  catch(load_files(user:library(ansi_term),
+			     [silent(true), if(not_loaded)]),
+		  _, true)
 	;   true
 	).
 
@@ -473,6 +474,7 @@ toplevel_goal(Goal, Goal).
 %	environment.
 
 prolog :-
+	setup_colors,
 	setup_history,
 	break.
 
