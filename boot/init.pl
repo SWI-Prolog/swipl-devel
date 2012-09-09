@@ -2195,7 +2195,8 @@ load_files(Module:Files, Options) :-
 		'$ifcompiling'('$add_directive_wic'(export(Context:Conj)))
 	    ;	true
 	    ),
-	    '$export_ops'(ImpOps, Context, Source)
+	    source_location(File, _Line),
+	    '$export_ops'(ImpOps, Context, File)
 	;   true
 	).
 
@@ -2298,11 +2299,18 @@ load_files(Module:Files, Options) :-
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
 	op(Pri, Assoc, Module:Name),
-	catch('$store_clause'('$exported_op'(Pri, Assoc, Name), File), E,
-	      '$print_message'(error, E)),
+	catch('$export_op'(Pri, Assoc, Name, File),
+	      E, '$print_message'(error, E)),
 	'$export_ops'(T, Module, File).
 '$export_ops'([], _, _).
 
+'$export_op'(Pri, Assoc, Name, File) :-
+	(   '$current_module'(LM, LM),
+	    '$get_predicate_attribute'(LM:'$exported_op'(_,_,_), defined, 1)
+	->  true
+	;   '$execute_directive'(discontiguous(LM:'$exported_op'/3), File)
+	),
+	'$store_clause'('$exported_op'(Pri, Assoc, Name), File).
 
 %%	'$execute_directive'(:Goal, +File) is det.
 %
