@@ -132,7 +132,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   assert(t>=OP_PREFIX && t<=OP_POSTFIX);
 
   if ( !force && !SYSTEM_MODE )
-  { if ( name == ATOM_comma || name == ATOM_nil || name == ATOM_curl ||
+  { if ( name == ATOM_comma ||
 	 (name == ATOM_bar && ((t&OP_MASK) != OP_INFIX ||
 			       (priority < 1001 && priority != 0))) )
     { GET_LD
