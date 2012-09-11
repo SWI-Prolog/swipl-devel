@@ -254,7 +254,8 @@ typedef struct term_stack
 
 typedef struct
 { atom_t op;			/* Name of the operator */
-  short	kind;			/* kind (prefix/postfix/infix) */
+  char	isblock;		/* [...] or {...} operator */
+  char	kind;			/* kind (prefix/postfix/infix) */
   short	left_pri;		/* priority at left-hand */
   short	right_pri;		/* priority at right hand */
   short	op_pri;			/* priority of operator */
@@ -2895,6 +2896,7 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
     { switch(token->value.character)
       { case '[':
 	case '{':
+	  return TRUE;
 	case '(':
 	  return FALSE;
 	case ')':
@@ -2924,11 +2926,20 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 
 
 static inline atom_t
-name_token(Token token, ReadData _PL_rd)
+name_token(Token token, char *isblock, ReadData _PL_rd)
 { switch(token->type)
   { case T_PUNCTUATION:
       need_unlock(0, _PL_rd);
-      return codeToAtom(token->value.character);
+      switch(token->value.character)
+      { case '[':
+	  *isblock = TRUE;
+	  return ATOM_nil;
+	case '{':
+	  *isblock = TRUE;
+	  return ATOM_curl;
+	default:
+	  return codeToAtom(token->value.character);
+      }
     case T_FULLSTOP:
       need_unlock(0, _PL_rd);
       return ATOM_dot;
@@ -3003,14 +3014,14 @@ complex_term(const char *stop, short maxpri, term_t positions,
     }
 
     if ( (rc=is_name_token(token, rmo == 1, _PL_rd)) == TRUE )
-    { in_op.op          = name_token(token, _PL_rd);
+    { in_op.op          = name_token(token, &in_op.isblock, _PL_rd);
       in_op.tpos        = pin;
       in_op.token_start = last_token_start;
 
       DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(in_op.op), rmo));
 
       if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
-      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
+      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(in_op.op)));
 
       push_op:
 	Unlock(in_op.op);		/* ok; part of an operator */
@@ -3091,6 +3102,7 @@ exit:
 	 SideOp(0)->op == ATOM_semicolon
        ))
   { term_t ex;
+    char isblock;
 
     LD->exception.processing = TRUE;
 
@@ -3098,7 +3110,7 @@ exit:
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
 		         PL_ATOM, SideOp(side_p)->op,
-		         PL_ATOM, name_token(token, _PL_rd)) )
+		         PL_ATOM, name_token(token, &isblock, _PL_rd)) )
       return errorWarning(NULL, ex, _PL_rd);
 
     return FALSE;
