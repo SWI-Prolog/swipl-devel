@@ -2706,8 +2706,20 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
     return FALSE;
 
   e = out_op(-arity, _PL_rd);
-  if ( (rc = build_term(op->op.atom, arity, _PL_rd PASS_LD)) != TRUE )
-    return rc;
+  if ( !op->isblock )
+  { if ( (rc = build_term(op->op.atom, arity, _PL_rd PASS_LD)) != TRUE )
+      return rc;
+  } else
+  { term_t term = alloc_term(_PL_rd PASS_LD);
+    atom_t func;
+
+    PL_put_term(term, op->op.block);
+    if ( !PL_get_name_arity(term, &func, NULL) )
+    { assert(0);
+    }
+    if ( (rc = build_term(func, arity+1, _PL_rd PASS_LD)) != TRUE )
+      return rc;
+  }
 
   e->pri  = op->op_pri;
   e->tpos = opPos(op, e PASS_LD);
@@ -3038,7 +3050,19 @@ complex_term(const char *stop, short maxpri, term_t positions,
       { DEBUG(9, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
 
       push_op:
-	Unlock(in_op.op.atom);	/*TBD*/	/* ok; part of an operator */
+	Unlock(in_op.op.atom);		/* ok; part of an operator */
+	if ( in_op.isblock )
+	{ term_t *top;
+
+	  if ( (rc = simple_term(token, pin, _PL_rd PASS_LD)) != TRUE )
+	    return rc;			/* TBD: need cleanup? */
+	  top = term_av(-1, _PL_rd);
+	  in_op.op.block = PL_new_term_ref();
+	  PL_put_term(in_op.op.block, *top);
+	  truncate_term_stack(top, _PL_rd);
+	}
+
+					/* TBD: What if a block? */
 	if ( !unify_atomic_position(pin, token) )
 	  return FALSE;
 	PushOp();
