@@ -2733,13 +2733,12 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD);
 
 
 static bool
-isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
+isOp(op_entry *e, int kind, ReadData _PL_rd)
 { int pri;
   int type;
 
-  if ( !currentOperator(_PL_rd->module, atom, kind, &type, &pri) )
+  if ( !currentOperator(_PL_rd->module, e->op, kind, &type, &pri) )
     fail;
-  e->op     = atom;
   e->kind   = kind;
   e->op_pri = pri;
 
@@ -2780,7 +2779,7 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
 	    out_n++; \
 	    PopOp(); \
 	  } else if ( op->kind == OP_INFIX && out_n > 0 && \
-		      isOp(op->op, OP_POSTFIX, op, _PL_rd) ) \
+		      isOp(op, OP_POSTFIX, _PL_rd) ) \
 	  { int rc; \
 	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
 			      stringAtom(op->op))); \
@@ -3004,26 +3003,25 @@ complex_term(const char *stop, short maxpri, term_t positions,
     }
 
     if ( (rc=is_name_token(token, rmo == 1, _PL_rd)) == TRUE )
-    { atom_t name = name_token(token, _PL_rd);
-
-      in_op.tpos = pin;
+    { in_op.op          = name_token(token, _PL_rd);
+      in_op.tpos        = pin;
       in_op.token_start = last_token_start;
 
-      DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
+      DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(in_op.op), rmo));
 
-      if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op, _PL_rd) )
+      if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
       { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
 
       push_op:
-	Unlock(name);			/* ok; part of an operator */
+	Unlock(in_op.op);		/* ok; part of an operator */
 	if ( !unify_atomic_position(pin, token) )
 	  return FALSE;
 	PushOp();
 
 	continue;
       }
-      if ( isOp(name, OP_INFIX, &in_op, _PL_rd) )
-      { DEBUG(9, Sdprintf("Infix op: %s\n", stringAtom(name)));
+      if ( isOp(&in_op, OP_INFIX, _PL_rd) )
+      { DEBUG(9, Sdprintf("Infix op: %s\n", stringAtom(in_op.op)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -3032,8 +3030,8 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  goto push_op;
 	}
       }
-      if ( isOp(name, OP_POSTFIX, &in_op, _PL_rd) )
-      { DEBUG(9, Sdprintf("Postfix op: %s\n", stringAtom(name)));
+      if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
+      { DEBUG(9, Sdprintf("Postfix op: %s\n", stringAtom(in_op.op)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
