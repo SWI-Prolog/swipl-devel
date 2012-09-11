@@ -257,7 +257,8 @@ typedef struct
   { atom_t atom;		/* Normal operator */
     term_t block;		/* [...] or {...} operator */
   } op;				/* Name of the operator */
-  char	isblock;		/* [...] or {...} operator */
+  unsigned isblock : 1;		/* [...] or {...} operator */
+  unsigned isterm : 1;		/* Union is a term */
   char	kind;			/* kind (prefix/postfix/infix) */
   short	left_pri;		/* priority at left-hand */
   short	right_pri;		/* priority at right hand */
@@ -2695,6 +2696,26 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 }
 
 
+static inline atom_t
+op_name(op_entry *e)
+{ if ( !e->isterm )
+  { return e->op.atom;
+  } else
+  { atom_t name;
+
+    if ( PL_get_name_arity(e->op.block, &name, NULL) )
+    { if ( name == ATOM_dot )
+	name = ATOM_nil;
+    } else
+    { assert(0);
+      name = ATOM_nil;
+    }
+
+    return name;
+  }
+}
+
+
 static int
 build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
 { term_t tmp;
@@ -2711,16 +2732,9 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
       return rc;
   } else
   { term_t term = alloc_term(_PL_rd PASS_LD);
-    atom_t func;
 
     PL_put_term(term, op->op.block);
-    if ( PL_get_name_arity(term, &func, NULL) )
-    { if ( func == ATOM_dot )
-	func = ATOM_nil;
-    } else
-    { assert(0);
-    }
-    if ( (rc = build_term(func, arity+1, _PL_rd PASS_LD)) != TRUE )
+    if ( (rc = build_term(op_name(op), arity+1, _PL_rd PASS_LD)) != TRUE )
       return rc;
   }
 
@@ -2756,8 +2770,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 { int pri;
   int type;
 
-  assert(isAtom(e->op.atom));
-  if ( !currentOperator(_PL_rd->module, e->op.atom, kind, &type, &pri) )
+  if ( !currentOperator(_PL_rd->module, op_name(e), kind, &type, &pri) )
     fail;
   e->kind   = kind;
   e->op_pri = pri;
@@ -2776,13 +2789,8 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 }
 
 
-static char *
-stringOp(op_entry *e)
-{ if ( isAtom(e->op.atom) )
-    return stringAtom(e->op.atom);
-  return "??";
-}
-
+#define stringOp(e) \
+	stringAtom(op_name(e))
 #define PushOp() \
 	queue_side_op(&in_op, _PL_rd); \
 	side_n++, side_p++;
@@ -2953,18 +2961,18 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 
 
 static inline atom_t
-name_token(Token token, char *isblock, ReadData _PL_rd)
-{ *isblock = FALSE;
-
-  switch(token->type)
+name_token(Token token, op_entry *e, ReadData _PL_rd)
+{ switch(token->type)
   { case T_PUNCTUATION:
       need_unlock(0, _PL_rd);
       switch(token->value.character)
       { case '[':
-	  *isblock = TRUE;
+	  if ( e )
+	    e->isblock = TRUE;
 	  return ATOM_nil;
 	case '{':
-	  *isblock = TRUE;
+	  if ( e )
+	    e->isblock = TRUE;
 	  return ATOM_curl;
 	default:
 	  return codeToAtom(token->value.character);
@@ -3043,7 +3051,9 @@ complex_term(const char *stop, short maxpri, term_t positions,
     }
 
     if ( (rc=is_name_token(token, rmo == 1, _PL_rd)) == TRUE )
-    { in_op.op.atom     = name_token(token, &in_op.isblock, _PL_rd);
+    { in_op.isblock     = FALSE;
+      in_op.isterm      = FALSE;
+      in_op.op.atom     = name_token(token, &in_op, _PL_rd);
       in_op.tpos        = pin;
       in_op.token_start = last_token_start;
 
@@ -3061,6 +3071,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	    return rc;			/* TBD: need cleanup? */
 	  top = term_av(-1, _PL_rd);
 	  in_op.op.block = PL_new_term_ref();
+	  in_op.isterm = TRUE;
 	  PL_put_term(in_op.op.block, *top);
 	  truncate_term_stack(top, _PL_rd);
 	}
@@ -3148,7 +3159,6 @@ exit:
 	 SideOp(0)->op.atom == ATOM_semicolon
        ))
   { term_t ex;
-    char isblock;
 
     LD->exception.processing = TRUE;
 
@@ -3156,7 +3166,7 @@ exit:
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
 		         PL_ATOM, SideOp(side_p)->op.atom,
-		         PL_ATOM, name_token(token, &isblock, _PL_rd)) )
+		         PL_ATOM, name_token(token, NULL, _PL_rd)) )
       return errorWarning(NULL, ex, _PL_rd);
 
     return FALSE;
