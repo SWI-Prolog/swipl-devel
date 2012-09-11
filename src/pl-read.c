@@ -253,7 +253,10 @@ typedef struct term_stack
 
 
 typedef struct
-{ atom_t op;			/* Name of the operator */
+{ union
+  { atom_t atom;		/* Normal operator */
+    term_t block;		/* [...] or {...} operator */
+  } op;				/* Name of the operator */
   char	isblock;		/* [...] or {...} operator */
   char	kind;			/* kind (prefix/postfix/infix) */
   short	left_pri;		/* priority at left-hand */
@@ -2703,7 +2706,7 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
     return FALSE;
 
   e = out_op(-arity, _PL_rd);
-  if ( (rc = build_term(op->op, arity, _PL_rd PASS_LD)) != TRUE )
+  if ( (rc = build_term(op->op.atom, arity, _PL_rd PASS_LD)) != TRUE )
     return rc;
 
   e->pri  = op->op_pri;
@@ -2738,7 +2741,8 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 { int pri;
   int type;
 
-  if ( !currentOperator(_PL_rd->module, e->op, kind, &type, &pri) )
+  assert(isAtom(e->op.atom));
+  if ( !currentOperator(_PL_rd->module, e->op.atom, kind, &type, &pri) )
     fail;
   e->kind   = kind;
   e->op_pri = pri;
@@ -2757,6 +2761,13 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 }
 
 
+static char *
+stringOp(op_entry *e)
+{ if ( isAtom(e->op.atom) )
+    return stringAtom(e->op.atom);
+  return "??";
+}
+
 #define PushOp() \
 	queue_side_op(&in_op, _PL_rd); \
 	side_n++, side_p++;
@@ -2769,13 +2780,13 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 #define Modify(cpri) \
 	if ( side_n > 0 && rmo == 0 && cpri > SideOp(side_p)->right_pri ) \
 	{ op_entry *op = SideOp(side_p); \
-	  if ( op->kind == OP_PREFIX ) \
+	  if ( op->kind == OP_PREFIX && !op->isblock ) \
 	  { term_t tmp; \
 	    DEBUG(9, Sdprintf("Prefix %s to atom\n", \
-			      stringAtom(op->op))); \
+			      stringOp(op))); \
 	    rmo++; \
 	    if ( !(tmp = alloc_term(_PL_rd PASS_LD)) ) return FALSE; \
-	    PL_put_atom(tmp, op->op); \
+	    PL_put_atom(tmp, op->op.atom); \
 	    queue_out_op(0, op->tpos, _PL_rd); \
 	    out_n++; \
 	    PopOp(); \
@@ -2783,7 +2794,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 		      isOp(op, OP_POSTFIX, _PL_rd) ) \
 	  { int rc; \
 	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
-			      stringAtom(op->op))); \
+			      stringOp(op))); \
 	    rmo++; \
 	    rc = build_op_term(op, _PL_rd PASS_LD); \
 	    if ( rc != TRUE ) return rc; \
@@ -2795,7 +2806,8 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 static int
 bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 { /*term_t t;*/
-  char *opname = stringAtom(op->op);
+  assert(isAtom(op->op.atom));
+  char *opname = stringOp(op);
 
   last_token_start = op->token_start;
 
@@ -2866,7 +2878,7 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
   }
 
   DEBUG(9, if ( rc ) Sdprintf("Reducing %s/%d\n",
-			      stringAtom(op->op), arity));
+			      stringOp(op), arity));
 
   return rc;
 }
@@ -2927,7 +2939,9 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 
 static inline atom_t
 name_token(Token token, char *isblock, ReadData _PL_rd)
-{ switch(token->type)
+{ *isblock = FALSE;
+
+  switch(token->type)
   { case T_PUNCTUATION:
       need_unlock(0, _PL_rd);
       switch(token->value.character)
@@ -3014,17 +3028,17 @@ complex_term(const char *stop, short maxpri, term_t positions,
     }
 
     if ( (rc=is_name_token(token, rmo == 1, _PL_rd)) == TRUE )
-    { in_op.op          = name_token(token, &in_op.isblock, _PL_rd);
+    { in_op.op.atom     = name_token(token, &in_op.isblock, _PL_rd);
       in_op.tpos        = pin;
       in_op.token_start = last_token_start;
 
-      DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(in_op.op), rmo));
+      DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringOp(&in_op), rmo));
 
       if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
-      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(in_op.op)));
+      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
 
       push_op:
-	Unlock(in_op.op);		/* ok; part of an operator */
+	Unlock(in_op.op.atom);	/*TBD*/	/* ok; part of an operator */
 	if ( !unify_atomic_position(pin, token) )
 	  return FALSE;
 	PushOp();
@@ -3032,7 +3046,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	continue;
       }
       if ( isOp(&in_op, OP_INFIX, _PL_rd) )
-      { DEBUG(9, Sdprintf("Infix op: %s\n", stringAtom(in_op.op)));
+      { DEBUG(9, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -3042,7 +3056,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	}
       }
       if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
-      { DEBUG(9, Sdprintf("Postfix op: %s\n", stringAtom(in_op.op)));
+      { DEBUG(9, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -3089,17 +3103,22 @@ exit:
     term_t term = alloc_term(_PL_rd PASS_LD);
     int rc;
 
-    PL_put_atom(term, op->op);
+    if ( !op->isblock )
+      PL_put_atom(term, op->op.atom);
+    else
+      PL_put_term(term, op->op.block);
+
     if ( positions && (rc=PL_unify(positions, op->tpos)) != TRUE )
       return rc;
+
     PopOp();
 
     return TRUE;
   }
 
-  if ( side_n == 1 &&
-       ( SideOp(0)->op == ATOM_comma ||
-	 SideOp(0)->op == ATOM_semicolon
+  if ( side_n == 1 && !SideOp(0)->isblock &&
+       ( SideOp(0)->op.atom == ATOM_comma ||
+	 SideOp(0)->op.atom == ATOM_semicolon
        ))
   { term_t ex;
     char isblock;
@@ -3109,7 +3128,7 @@ exit:
     if ( (ex = PL_new_term_ref()) &&
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
-		         PL_ATOM, SideOp(side_p)->op,
+		         PL_ATOM, SideOp(side_p)->op.atom,
 		         PL_ATOM, name_token(token, &isblock, _PL_rd)) )
       return errorWarning(NULL, ex, _PL_rd);
 
