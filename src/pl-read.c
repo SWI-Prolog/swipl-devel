@@ -2714,7 +2714,10 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
     atom_t func;
 
     PL_put_term(term, op->op.block);
-    if ( !PL_get_name_arity(term, &func, NULL) )
+    if ( PL_get_name_arity(term, &func, NULL) )
+    { if ( func == ATOM_dot )
+	func = ATOM_nil;
+    } else
     { assert(0);
     }
     if ( (rc = build_term(func, arity+1, _PL_rd PASS_LD)) != TRUE )
