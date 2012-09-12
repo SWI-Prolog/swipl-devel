@@ -2732,8 +2732,14 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
       return rc;
   } else
   { term_t term = alloc_term(_PL_rd PASS_LD);
+    term_t *av = term_av(-(arity+1), _PL_rd);
+    int i;
 
+    for(i=arity; i>0; i--)
+      av[i] = av[i-1];
+    av[0] = term;
     PL_put_term(term, op->op.block);
+
     if ( (rc = build_term(op_name(op), arity+1, _PL_rd PASS_LD)) != TRUE )
       return rc;
   }
