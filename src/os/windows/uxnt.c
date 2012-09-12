@@ -644,7 +644,9 @@ _xos_access(const char *path, int mode)
 
   sd = (SECURITY_DESCRIPTOR*)&sd_buf;
   if ( !GetFileSecurity(buf, sec_info, sd, sizeof(sd_buf), &sd_size) )
-  { if ( GetLastError() != ERROR_INSUFFICIENT_BUFFER )
+  { if ( GetLastError() == ERROR_INVALID_FUNCTION )
+    { goto simple;
+    } else if ( GetLastError() != ERROR_INSUFFICIENT_BUFFER )
     { errno = ENOENT;
       return -1;
     }
