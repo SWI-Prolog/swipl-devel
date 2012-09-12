@@ -2659,15 +2659,28 @@ opPos(op_entry *op, out_entry *args ARG_LD)
     { intptr_t s = get_int_arg(args[0].tpos, 1 PASS_LD);
       intptr_t e = get_int_arg(args[1].tpos, 2 PASS_LD);
 
-      if ( !PL_unify_term(r,
-			  PL_FUNCTOR,	FUNCTOR_term_position5,
-			  PL_INTPTR, s,
-			  PL_INTPTR, e,
-			  PL_INTPTR, fs,
-			  PL_INTPTR, fe,
-			  PL_LIST, 2, PL_TERM, args[0].tpos,
-				      PL_TERM, args[1].tpos) )
-	return (term_t)0;
+      if ( !op->isblock )
+      { if ( !PL_unify_term(r,
+			    PL_FUNCTOR,	FUNCTOR_term_position5,
+			    PL_INTPTR, s,
+			    PL_INTPTR, e,
+			    PL_INTPTR, fs,
+			    PL_INTPTR, fe,
+			    PL_LIST, 2, PL_TERM, args[0].tpos,
+					PL_TERM, args[1].tpos) )
+	  return (term_t)0;
+      } else
+      { if ( !PL_unify_term(r,
+			    PL_FUNCTOR,	FUNCTOR_term_position5,
+			    PL_INTPTR, s,
+			    PL_INTPTR, e,
+			    PL_INT, 0,
+			    PL_INT, 0,
+			    PL_LIST, 3, PL_TERM, op->tpos,
+					PL_TERM, args[0].tpos,
+					PL_TERM, args[1].tpos) )
+	  return (term_t)0;
+      }
     } else
     { intptr_t s, e;
 
@@ -2679,14 +2692,26 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 	e = fe;
       }
 
-      if ( !PL_unify_term(r,
-			  PL_FUNCTOR,	FUNCTOR_term_position5,
-			  PL_INTPTR, s,
-			  PL_INTPTR, e,
-			  PL_INTPTR, fs,
-			  PL_INTPTR, fe,
-			    PL_LIST, 1, PL_TERM, args[0].tpos) )
-	return (term_t)0;
+      if ( !op->isblock )
+      { if ( !PL_unify_term(r,
+			    PL_FUNCTOR,	FUNCTOR_term_position5,
+			    PL_INTPTR, s,
+			    PL_INTPTR, e,
+			    PL_INTPTR, fs,
+			    PL_INTPTR, fe,
+			      PL_LIST, 1, PL_TERM, args[0].tpos) )
+	  return (term_t)0;
+      } else
+      { if ( !PL_unify_term(r,
+			    PL_FUNCTOR,	FUNCTOR_term_position5,
+			    PL_INTPTR, s,
+			    PL_INTPTR, e,
+			    PL_INT, 0,
+			    PL_INT, 0,
+			      PL_LIST, 2, PL_TERM, op->tpos,
+					  PL_TERM, args[0].tpos) )
+	  return (term_t)0;
+      }
     }
 
     return r;
@@ -3079,11 +3104,10 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  in_op.isterm = TRUE;
 	  PL_put_term(in_op.op.block, *top);
 	  truncate_term_stack(top, _PL_rd);
+	} else
+	{ if ( !unify_atomic_position(pin, token) )
+	    return FALSE;
 	}
-
-					/* TBD: What if a block? */
-	if ( !unify_atomic_position(pin, token) )
-	  return FALSE;
 	PushOp();
 
 	continue;
