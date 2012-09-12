@@ -1114,6 +1114,19 @@ writeList(term_t list, write_options *options)
 }
 
 
+static int
+isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
+{ if ( functor == ATOM_nil || functor == ATOM_curl )
+  { _PL_get_arg(1, t, arg);
+    if ( (functor == ATOM_nil  && PL_is_pair(arg)) ||
+	 (functor == ATOM_curl && PL_is_functor(arg, FUNCTOR_curl1)) )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static bool
 writeTerm2(term_t t, int prec, write_options *options, bool arg)
 { GET_LD
@@ -1158,18 +1171,25 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
     }
 
     if ( false(options, PL_WRT_IGNOREOPS) )
-    { term_t arg = PL_new_term_ref();
+    { term_t arg;
 
-      if ( arity == 1 )
-      { if ( functor == ATOM_curl )	/* {a,b,c} */
-	{ _PL_get_arg(1, t, arg);
-	  TRY(Putc('{', out));
-	  TRY(writeTerm(arg, 1200, options) &&
-	      Putc('}', out));
+      if ( !(arg=PL_new_term_ref()) )
+	return FALSE;
 
-	  succeed;
-	}
+      if ( arity == 1 && functor == ATOM_curl )	/* {a,b,c} */
+      { _PL_get_arg(1, t, arg);
+	TRY(Putc('{', out));
+	TRY(writeTerm(arg, 1200, options) &&
+	    Putc('}', out));
 
+	succeed;
+      }
+      if ( arity == 2 && functor == ATOM_dot ) /* list */
+	return writeList(t, options);
+
+      if ( arity == 1 ||
+	  (arity == 2 && isBlockOp(t, arg, functor PASS_LD)) )
+      {
 					  /* op <term> */
 	if ( currentOperator(options->module, functor, OP_PREFIX,
 			     &op_type, &op_pri) )
@@ -1178,16 +1198,20 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
 	  embrace = ( op_pri > prec );
 
-	  _PL_get_arg(1, t, arg);
 	  if ( embrace )
 	    TRY(PutOpenBrace(out));
-	  TRY(writeAtom(functor, options));
-
+	  if ( arity == 1 )
+	  { TRY(writeAtom(functor, options));
+	  } else
+	  { _PL_get_arg(1, t, arg);
+	    TRY(writeTerm(arg, 1200, options));
+	  }
 				/* +/-(Number) : avoid parsing as number */
 	  options->out->lastc |= C_PREFIX_OP;
 	  if ( functor == ATOM_minus || functor == ATOM_plus )
 	    options->out->lastc |= C_PREFIX_SIGN;
 
+	  _PL_get_arg(arity, t, arg);
 	  TRY(writeTerm(arg,
 			op_type == OP_FX ? op_pri-1 : op_pri,
 			options));
@@ -1203,34 +1227,32 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 			     &op_type, &op_pri) )
 	{ term_t arg = PL_new_term_ref();
 
-	  _PL_get_arg(1, t, arg);
 	  if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
+	  _PL_get_arg(arity, t, arg);
 	  TRY(writeTerm(arg,
 			op_type == OP_XF ? op_pri-1 : op_pri,
 			options));
-	  TRY(writeAtom(functor, options));
+	  if ( arity == 1 )
+	  { TRY(writeAtom(functor, options));
+	  } else
+	  { _PL_get_arg(1, t, arg);
+	    TRY(writeTerm(arg, 1200, options));
+	  }
 	  if (op_pri > prec)
 	    TRY(PutCloseBrace(out));
 
 	  succeed;
 	}
-      } else if ( arity == 2 )
-      { if ( functor == ATOM_dot )	/* [...] */
-	  return writeList(t, options);
-
-					  /* <term> op <term> */
+      } else if ( arity == 2 ||
+		 (arity == 3 && isBlockOp(t, arg, functor PASS_LD)) )
+      {					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
 			     &op_type, &op_pri) )
-	{ term_t l = PL_new_term_ref();
-	  term_t r = PL_new_term_ref();
-
-	  _PL_get_arg(1, t, l);
-	  _PL_get_arg(2, t, r);
-
-	  if ( op_pri > prec )
+	{ if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
-	  TRY(writeTerm(l,
+	  _PL_get_arg(arity-1, t, arg);
+	  TRY(writeTerm(arg,
 			op_type == OP_XFX || op_type == OP_XFY
 				? op_pri-1 : op_pri,
 			options));
@@ -1238,15 +1260,19 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  { TRY(PutComma(options));
 	  } else if ( functor == ATOM_bar )
 	  { TRY(PutBar(options));
-	  } else
+	  } else if ( arity == 2 )
 	  { switch(writeAtom(functor, options))
 	    { case FALSE:
 		fail;
 	      case TRUE_WITH_SPACE:
 		TRY(Putc(' ', out));
 	    }
+	  } else			/* block operator */
+	  { _PL_get_arg(1, t, arg);
+	    TRY(writeTerm(arg, 1200, options));
 	  }
-	  TRY(writeTerm(r,
+	  _PL_get_arg(arity, t, arg);
+	  TRY(writeTerm(arg,
 			op_type == OP_XFX || op_type == OP_YFX
 				? op_pri-1 : op_pri,
 			options));
