@@ -2829,7 +2829,6 @@ isOp(op_entry *e, int kind, ReadData _PL_rd)
 static int
 bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 { /*term_t t;*/
-  assert(isAtom(op->op.atom));
   char *opname = stringOp(op);
 
   last_token_start = op->token_start;
