@@ -459,7 +459,10 @@ skip_rest(_,_).
 %	    * limit(+Count)
 %	    Maximum number of commits to show (default is 10)
 %	    * path(+Path)
-%	    Only show commits that affect Path
+%	    Only show commits that affect Path.  Path is the path of
+%	    a checked out file.
+%	    * git_path(+Path)
+%	    Similar to =path=, but Path is relative to the repository.
 %
 %	@param ShortLog is a list of =git_log= records.
 
@@ -467,12 +470,16 @@ skip_rest(_,_).
 	git_log(commit_hash:atom,
 		author_name:atom,
 		author_date_relative:atom,
+		committer_name:atom,
+		committer_date_relative:atom,
 		subject:atom,
 		ref_names:list).
 
 git_shortlog(Dir, ShortLog, Options) :-
 	option(limit(Limit), Options, 10),
-	(   option(path(Path), Options)
+	(   option(git_path(Path), Options)
+	->  Extra = ['--', Path]
+	;   option(path(Path), Options)
 	->  relative_file_name(Path, Dir, RelPath),
 	    Extra = ['--', RelPath]
 	;   Extra = []
