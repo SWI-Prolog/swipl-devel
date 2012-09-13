@@ -432,8 +432,8 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 	walk_option_clause(OTerm, Clause), nonvar(Clause), !,
 	(   compound(TermPos),
 	    arg(1, TermPos, CharCount),
-	    integer(CharCount)
-	->  From = clause_char_count(Clause, TermPos)
+	    integer(CharCount)		% test it is valid
+	->  From = clause_term_position(Clause, TermPos)
 	;   walk_option_source(OTerm, false)
 	->  From = clause(Clause)
 	;   throw(missing(subterm_positions))
@@ -672,7 +672,7 @@ prolog:message(trace_call_to(PI, Context)) -->
 	[ 'Call to ~q at '-[PI] ],
 	prolog:message_location(Context).
 
-prolog:message_location(clause_char_count(ClauseRef, TermPos)) -->
+prolog:message_location(clause_term_position(ClauseRef, TermPos)) -->
 	{ clause_property(ClauseRef, file(File)),
 	  arg(1, TermPos, CharCount),
 	  filepos_line(File, CharCount, Line, LinePos)
