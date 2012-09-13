@@ -43,12 +43,12 @@ important new things are available to the user:
 
 \begin{itemize}
     \item A folder (called {\em directory} in the remainder of this
-	  document) called \file{pl} containing the executables,
+	  document) called \file{swipl} containing the executables,
 	  libraries, etc. of the system.  No files are installed
 	  outside this directory.
     \item A program \program{swipl-win.exe}, providing a window for interaction
           with Prolog. The program \program{swipl.exe} is a version of
-	  SWI-Prolog that runs in a DOS-box.
+	  SWI-Prolog that runs in a console window.
     \item The file-extension \fileext{pl} is associated with the program
           \program{swipl-win.exe}.  Opening a \fileext{pl} file will cause
 	  \program{swipl-win.exe} to start, change directory to the
@@ -246,11 +246,15 @@ flag \prologflag{argv} for obtaining the command-line arguments.
 
 As of SWI-Prolog 5.9.8, the default limit for the stack-sizes is 128Mb
 on 32-bit and 256Mb on 64-bit hardware. The 128Mb limit on 32-bit system
-is the highest possible value and this option can thus only be used to
-lower the limit. On 64-bit systems, the limit can both be reduced and
-enlarged. See \secref{limits}. Here are two examples, the first reducing
-the local stack limit to catch unbounded recursion really quickly and
-the second using a really big (32Gb) global limit on a 64-bit machine:
+is the highest possible value and the commandline options can thus only
+be used to lower the limit. On 64-bit systems, the limit can both be
+reduced and enlarged. See \secref{limits}. Below are two examples, the
+first reducing the local stack limit to catch unbounded recursion
+quickly and the second using a big (32Gb) global limit, which is only
+possible on 64-bit hardware. Note that setting the limit using the
+commandline only sets a \emph{soft} limit. Stack parameters can be
+changed (both reduced and enlarged) at any time using the predicate
+set_prolog_stack/2.
 
 \begin{code}
 $ swipl -L8m
@@ -375,21 +379,6 @@ only.
 \section{GNU Emacs Interface}			\label{sec:gemacs}
 
 \index{GNU-Emacs}\index{Emacs}
-The default Prolog mode for GNU-Emacs can be activated by adding
-the following rules to your Emacs initialisation file:
-
-\begin{code}
-(setq auto-mode-alist
-      (append
-       '(("\\.pl" . prolog-mode))
-       auto-mode-alist))
-(setq prolog-program-name "swipl")
-(setq prolog-consult-string "[user].\n")
-;If you want this.  Indentation is either poor or I don't use
-;it as intended.
-;(setq prolog-indent-width 8)
-\end{code}
-
 Unfortunately the default Prolog mode of GNU-Emacs is not very good.
 There are several alternatives though:
 
@@ -403,28 +392,17 @@ There are several alternatives though:
 
 \section{Online Help}				\label{sec:help}
 
-Online help provides a fast lookup and browsing facility to this
-manual. The online manual can show predicate definitions as well as
-entire sections of the manual.
-
-The online help is displayed from the file \pllib{'MANUAL'}. The file
-\pllib{helpidx} provides an index into this file. \pllib{'MANUAL'} is
-created from the \LaTeX{} sources with a modified version of
-\program{dvitty}, using overstrike for printing bold text and
-underlining for rendering italic text. XPCE is shipped with
-\pllib{swi_help}, presenting the information from the online help in a
-hypertext window. The Prolog flag \prologflag{write_help_with_overstrike}
-controls whether or not help/1 writes its output using overstrike to
-realise bold and underlined output or not. If this Prolog flag is not set it
-is initialised by the help library to \const{true} if the \const{TERM}
-variable equals \const{xterm} and \const{false} otherwise. If this
-default does not satisfy you, add the following line to your personal
-startup file (see \secref{initfile}):
-
-\begin{code}
-:- set_prolog_flag(write_help_with_overstrike, true).
-\end{code}
-
+SWI-Prolog provides an online help system that covers this manual. If
+the XPCE graphics system is available, online help opens a graphical
+window. Otherwise the documentation is shown in the Prolog console. The
+help system is controlled by the predicates below. Note that this only
+help system only covers the core SWI-Prolog manual. The
+website\footnote{\url{http://www.swi-prolog.org}} provides an integrated
+manual that covers the core system as well as all standard extension
+packages. It is possible to install the SWI-Prolog website locally by
+cloning the website repository
+\url{git://www.swi-prolog.org/home/pl/git/plweb.git} and follow the
+instructions in the \file{README} file.
 
 \begin{description}
     \predicate{help}{0}{}
@@ -1086,15 +1064,11 @@ Set to \const{true} in \program{swipl-win.exe} to indicate the console
 supports menus.  See also \secref{plwin}.
 
     \prologflagitem{cpu_count}{integer}{rw}
-Number of physical CPUs in the system. Unfortunately there is no
-standard to get this number, so on most operating systems this flag is
-not available. It is marked read-write both to allow obtaining this
-value later and to allow pretending the system has more or less
+Number of physical CPUs or cores in the system. The flag is marked
+read-write both to allow pretending the system has more or less
 processors. See also thread_setconcurrency/2 and the library
-\pllib{thread}. Currently this flag is supported in Windows and Linux if
-\file{/proc} is enabled. If you can provide us with a C-code fragment
-getting the number for a specific OS, please submit an enhancement
-report at \url{http://gollem.science.uva.nl/bugzilla/}
+\pllib{thread}. This flag is not available on systems were we do not
+know how to get the number of CPUs.
 
     \prologflagitem{dde}{bool}{r}
 Set to \const{true} if this instance of Prolog supports DDE as
