@@ -124,7 +124,7 @@ undefined predicates than list_undefined/0:
 %	  If a reference to =trace_reference= is found, call
 %	  call(Callable, Goal-From), where From is one of
 %
-%	    - clause_char_count(+ClauseRef, +CharOffsetInFile)
+%	    - clause_term_position(+ClauseRef, +TermPos)
 %	    - clause(+ClauseRef)
 %	    - file(+File, +Line, -1, _)
 %	    - a variable (unknown)
@@ -433,7 +433,7 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 	(   compound(TermPos),
 	    arg(1, TermPos, CharCount),
 	    integer(CharCount)
-	->  From = clause_char_count(Clause, CharCount)
+	->  From = clause_char_count(Clause, TermPos)
 	;   walk_option_source(OTerm, false)
 	->  From = clause(Clause)
 	;   throw(missing(subterm_positions))
@@ -672,8 +672,9 @@ prolog:message(trace_call_to(PI, Context)) -->
 	[ 'Call to ~q at '-[PI] ],
 	prolog:message_location(Context).
 
-prolog:message_location(clause_char_count(ClauseRef, CharCount)) -->
+prolog:message_location(clause_char_count(ClauseRef, TermPos)) -->
 	{ clause_property(ClauseRef, file(File)),
+	  arg(1, TermPos, CharCount),
 	  filepos_line(File, CharCount, Line, LinePos)
 	},
 	[ '~w:~d:~d: '-[File, Line, LinePos] ].

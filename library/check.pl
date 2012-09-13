@@ -310,7 +310,8 @@ sort_reference_key(Term, key(M:Name/Arity, N, ClausePos)) :-
 	functor(Head, Name, Arity).
 sort_reference_key(Term, Term).
 
-clause_ref(clause_char_count(ClauseRef, ClausePos), ClauseRef, ClausePos).
+clause_ref(clause_term_position(ClauseRef, TermPos), ClauseRef, ClausePos) :-
+	arg(1, TermPos, ClausePos).
 clause_ref(clause(ClauseRef), ClauseRef, 0).
 
 
@@ -322,7 +323,7 @@ referenced_by([Ref|T]) -->
 	[ nl ],
 	referenced_by(T).
 
-predicate_indicator(clause_char_count(ClauseRef, _)) -->
+predicate_indicator(clause_term_position(ClauseRef, _)) -->
 	{ nonvar(ClauseRef) }, !,
 	predicate_indicator(clause(ClauseRef)).
 predicate_indicator(clause(ClauseRef)) -->
