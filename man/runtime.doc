@@ -379,11 +379,11 @@ configuration.  Then use the code below to load this file:
 
 \begin{code}
 configure_gnat :-
-	(   absolute_file_name(gnatdir('config.pl'), ConfigFile)
-	    ->  consult(ConfigFile)
-	    ;   format(user_error, 'gnat: Cannot locate config.pl~n'),
-	    halt(1)
-	    ).
+   (   absolute_file_name(gnatdir('config.pl'), ConfigFile)
+   ->  consult(ConfigFile)
+   ;   format(user_error, 'gnat: Cannot locate config.pl~n'),
+       halt(1)
+   ).
 \end{code}
 
 \subsection{Passing a path to the application}

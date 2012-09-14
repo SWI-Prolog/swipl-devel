@@ -1,4 +1,15 @@
+#ifdef BOOK
+\documentclass[9pt,b5thesispaper]{swipl}
+\setlength\voffset        {-15mm}
+\setlength\paperheight    {220mm}
+\setlength\textheight     {170mm}
+\setlength\textwidth      {130mm}
+\setlength\paperwidth     {170mm}
+\setlength\oddsidemargin  {0mm}
+\setlength\evensidemargin {-10mm}
+#else
 \documentclass[11pt,twoside]{report}
+#endif
 \usepackage{pl}
 \usepackage{html}
 \usepackage{logo}
@@ -203,9 +214,9 @@ This work is licensed under the Creative Commons Attribution-ShareAlike
 Creative Commons, 444 Castro Street, Suite 900, Mountain View,
 California, 94041, USA.
 \end{quote}
-\setcounter{page}{1}
 \end{titlepage}
 
+\setcounter{page}{1}
 \tableofcontents
 
 \include{intro}

@@ -232,9 +232,7 @@ value:
 
 \begin{code}
 ?- A = B, A = a.
-
-A = a,
-B = a
+A = B, B = a.
 \end{code}
 
     \glossitem{singleton [variable]}\index{singleton}%
@@ -273,9 +271,8 @@ example:
 
 \begin{code}
 ?- foo(a, B) = foo(A, b).
-
 A = a,
-B = b
+B = b.
 \end{code}
 
 Unlike assignment (which does not exist in Prolog), unification is
@@ -296,12 +293,12 @@ variable:
 
 \begin{code}
 ?- A = b, A = c.
-No
+false.
+
 ?- (A = b; true; A = c).
 A = b ;
-A = _G283 ;
-A = c ;
-No
+true ;
+A = c .
 \end{code}
 
 See also \g{unify}.

@@ -30,6 +30,7 @@ INDEX=		makeindex
 LATEX=		latex
 PDFTEX=		pdflatex
 DOC=		SWI-Prolog-$(VERSION)
+BOOK=		SWI-Prolog-book-$(VERSION)
 PDF=		$(DOC).pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
@@ -84,6 +85,7 @@ html:		$(TEXFILES) $(STYFILES) $(DOC).bbl
 		env TEXINPUTS=lib:$$TEXINPUTS latex2html $(DOC)
 
 pdf:		$(PDF)
+book:		$(BOOK).pdf
 
 online:		$(ONLINE) online_index
 online_index:	$(ONLINE_INDEX)
@@ -110,6 +112,9 @@ distclean:	clean
 $(PDF):		$(DOC).tex $(TEXFILES) $(DOC).bbl
 		env TEXINPUTS=lib:$$TEXINPUTS ./runtex --pdf $(DOC)
 
+$(BOOK).pdf:	$(BOOK).tex $(TEXFILES) $(BOOK).bbl
+		env TEXINPUTS=lib:$$TEXINPUTS ./runtex --pdf $(BOOK)
+
 tex:		$(TEXFILES)
 
 $(TEXFILES):	doc2tex
@@ -118,6 +123,9 @@ $(TEXFILES):	doc2tex
 		./doc2tex $*.doc > $*.tex
 
 $(DOC).bbl:	biblio.doc
+		cp  biblio.doc $@
+
+$(BOOK).bbl:	biblio.doc
 		cp  biblio.doc $@
 
 htmldoc.bbl:	biblio.doc
@@ -144,6 +152,10 @@ online.doc:	main.doc
 $(DOC).doc:	main.doc
 		cp main.doc main.h
 		$(CCCP) -UONLINE main.h | cat -s > $(DOC).doc
+		rm -f main.h
+$(BOOK).doc:	main.doc
+		cp main.doc main.h
+		$(CCCP) -UONLINE -DBOOK main.h | cat -s > $(BOOK).doc
 		rm -f main.h
 
 $(ONLINE_INDEX):	$(ONLINE)

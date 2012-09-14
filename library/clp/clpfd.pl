@@ -254,20 +254,20 @@ puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
         M #\= 0, S #\= 0.
 ==
 
-Sample query and its result:
+Sample query and its result (actual variables replaced for readability):
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [9, _G10107, _G10110, _G10113],
-Bs = [1, 0, _G10128, _G10107],
-Cs = [1, 0, _G10110, _G10107, _G10152],
-_G10107 in 4..7,
-1000*9+91*_G10107+ -90*_G10110+_G10113+ -9000*1+ -900*0+10*_G10128+ -1*_G10152#=0,
-all_different([_G10107, _G10110, _G10113, _G10128, _G10152, 0, 1, 9]),
-_G10110 in 5..8,
-_G10113 in 2..8,
-_G10128 in 2..8,
-_G10152 in 2..8.
+As = [9, _A2, _A3, _A4],
+Bs = [1, 0, _B3, _A2],
+Cs = [1, 0, _A3, _A2, _C5],
+_A2 in 4..7,
+all_different([9, _A2, _A3, _A4, 1, 0, _B3, _C5]),
+1000*9+91*_A2+ -90*_A3+_A4+ -9000*1+ -900*0+10*_B3+ -1*_C5#=0,
+_A3 in 5..8,
+_A4 in 2..8,
+_B3 in 2..8,
+_C5 in 2..8.
 ==
 
 Here, the constraint solver has deduced more stringent bounds for all
@@ -298,7 +298,9 @@ for ordinary integer arithmetic with is/2, >/2 etc. For example:
 :- use_module(library(clpfd)).
 
 n_factorial(0, 1).
-n_factorial(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, n_factorial(N1, F1).
+n_factorial(N, F) :-
+	N #> 0, N1 #= N - 1, F #= N * F1,
+	n_factorial(N1, F1).
 ==
 
 This predicate can be used in all directions. For example:
@@ -1556,7 +1558,8 @@ all_different([X|Right], Left, Orig) :-
 %  values given the following domains:
 %
 %  ==
-%  ?- maplist(in, Vs, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]), all_distinct(Vs).
+%  ?- maplist(in, V, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
+%     all_distinct(V).
 %  false.
 %  ==
 
@@ -2427,9 +2430,13 @@ X #> Y  :- X #>= Y + 1.
 % matches between pairs built from four players in total:
 %
 % ==
-% ?- Vs = [A,B,C,D], Vs ins 1..4, all_different(Vs), A #< B, C #< D, A #< C,
+% ?- Vs = [A,B,C,D], Vs ins 1..4,
+%         all_different(Vs),
+%         A #< B, C #< D, A #< C,
 %    findall(pair(A,B)-pair(C,D), label(Vs), Ms).
-% Ms = [pair(1, 2)-pair(3, 4), pair(1, 3)-pair(2, 4), pair(1, 4)-pair(2, 3)]
+% Ms = [ pair(1, 2)-pair(3, 4),
+%        pair(1, 3)-pair(2, 4),
+%	 pair(1, 4)-pair(2, 3)].
 % ==
 
 X #< Y  :- Y #> X.
@@ -2548,7 +2555,10 @@ conjunctive_neqs_vals(A #/\ B) -->
 % that are multiples of 3 or 5:
 %
 % ==
-% ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999, indomain(N)), Ns), sum(Ns, #=, Sum).
+% ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999,
+%		 indomain(N)),
+%            Ns),
+%    sum(Ns, #=, Sum).
 % Ns = [0, 3, 5, 6, 9, 10, 12, 15, 18|...],
 % Sum = 233168.
 % ==
@@ -3252,7 +3262,12 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % ==
 % :- use_module(library(clpfd)).
 %
-% trains([[1,2,0,1],[2,3,4,5],[2,3,0,1],[3,4,5,6],[3,4,2,3],[3,4,8,9]]).
+% trains([[1,2,0,1],
+%         [2,3,4,5],
+%         [2,3,0,1],
+%         [3,4,5,6],
+%         [3,4,2,3],
+%         [3,4,8,9]]).
 %
 % threepath(A, D, Ps) :-
 %         Ps = [[A,B,_T0,T1],[B,C,T2,T3],[C,D,T4,_T5]],
@@ -4988,7 +5003,10 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 %   S_i for all 1 =< i < j =< n. Example:
 %
 %   ==
-%   ?- length(Vs, 3), Vs ins 0..3, serialized(Vs, [1,2,3]), label(Vs).
+%   ?- length(Vs, 3),
+%      Vs ins 0..3,
+%      serialized(Vs, [1,2,3]),
+%      label(Vs).
 %   Vs = [0, 1, 3] ;
 %   Vs = [2, 0, 3] ;
 %   false.
@@ -5705,7 +5723,9 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %                    [source(s),sink(i),sink(j),sink(s)],
 %                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),
 %                     arc(i,0,i), arc(i,1,j,[C+1]), arc(i,2,i),
-%                     arc(j,0,j), arc(j,1,j), arc(j,2,i,[C+1])], [C], [0], [N]).
+%                     arc(j,0,j), arc(j,1,j),
+%		      arc(j,2,i,[C+1])],
+%		     [C], [0], [N]).
 %
 %  variables_signature([], []).
 %  variables_signature([V|Vs], Sigs) :-
@@ -5725,7 +5745,8 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  ?- sequence_inflexions([1,2,3,3,2,1,3,0], N).
 %  N = 3.
 %
-%  ?- length(Ls, 5), Ls ins 0..1, sequence_inflexions(Ls, 3), label(Ls).
+%  ?- length(Ls, 5), Ls ins 0..1,
+%     sequence_inflexions(Ls, 3), label(Ls).
 %  Ls = [0, 1, 0, 1, 0] ;
 %  Ls = [1, 0, 1, 0, 1].
 %  ==
@@ -5853,7 +5874,8 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %          length(Rows, 9), maplist(length_(9), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
 %          maplist(all_distinct, Rows),
-%          transpose(Rows, Columns), maplist(all_distinct, Columns),
+%          transpose(Rows, Columns),
+%	   maplist(all_distinct, Columns),
 %          Rows = [A,B,C,D,E,F,G,H,I],
 %          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
 %
@@ -5922,7 +5944,9 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 %          n_factorial_(C, N, F).
 %
 %  n_factorial_(=, _, 1).
-%  n_factorial_(>, N, F) :- F #= F0*N, N1 #= N - 1, n_factorial(N1, F0).
+%  n_factorial_(>, N, F) :-
+%	F #= F0*N, N1 #= N - 1,
+%	n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:

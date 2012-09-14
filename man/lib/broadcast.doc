@@ -58,8 +58,7 @@ It is commonly used to debug usage of the library.
 ?- listen(Term, (writeln(Term),fail)).
 ?- broadcast(hello(world)).
 hello(world)
-
-Yes
+true.
 \end{code}
 
     \predicate{listen}{3}{+Listener, +Template, :Goal}

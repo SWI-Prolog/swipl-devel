@@ -69,12 +69,12 @@ with \mbox{\tt X = <value>} if it can prove the goal for a certain
 \arg{X}. The user can type the semi-colon (;) or spacebar%
 	\footnote{On most installations, single-character commands are
 		  executed without waiting for the {\sc return} key.}
-if you want another solution. Use the \textsc{return} key if you do not
-want to see the more answers. Prolog completes the output a full stop
-(.) if the user uses the \textsc{return} key or Prolog \emph{knowns}
-there are no more answers. If Prolog cannot find (more) answers, it
-writes \textbf{false.} Finally, Prolog can answer using an error message
-to indicate the query or program contains an error.
+if (s)he wants another solution. Use the \textsc{return} key if you do
+not want to see the more answers. Prolog completes the output a full
+stop (.) if the user uses the \textsc{return} key or Prolog
+\emph{knowns} there are no more answers. If Prolog cannot find (more)
+answers, it writes \textbf{false.} Finally, Prolog can answer using an
+error message to indicate the query or program contains an error.
 
 \begin{code}
 ?- likes(sam, X).
@@ -513,14 +513,12 @@ variable with the latest binding. Example:
 \begin{figure}
 \begin{code}
 1 ?- maplist(plus(1), "hello", X).
+X = [105,102,109,109,112].
 
-X = [105,102,109,109,112]
-
-Yes
 2 ?- format('~s~n', [$X]).
 ifmmp
+true.
 
-Yes
 3 ?-
 \end{code}
     \caption{Reusing top-level bindings}
@@ -531,10 +529,8 @@ Note that variables may be set by executing \predref{=}{2}:
 
 \begin{code}
 6 ?- X = statistics.
+X = statistics.
 
-X = statistics
-
-Yes
 7 ?- $X.
 28.00 seconds cpu time for 183,128 inferences
 4,016 atoms, 1,904 functors, 2,042 predicates, 52 modules
@@ -545,9 +541,7 @@ Heap         :                                624,820 Bytes
 Local  stack :    2,048,000        8,192          404 Bytes
 Global stack :    4,096,000       16,384          968 Bytes
 Trail  stack :    4,096,000        8,192          432 Bytes
-
-Yes
-8 ?-
+true.
 \end{code}
 
 \section{Overview of the Debugger}		\label{sec:debugoverview}
@@ -721,8 +715,8 @@ This file is often called \file{load.pl}. If the entry-point is called
 
 1 ?- [load].
 <compilation messages>
+true.
 
-Yes
 2 ?- go.
 <program interaction>
 \end{code}
@@ -1426,7 +1420,7 @@ R = s(s(R)).
 
     \prologflagitem{toplevel_print_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing results
-of queries. Default is \exam{[quoted(true), portray(true),
+of queries. Default is \texttt{[quoted(true), portray(true),
 max_depth(10), attributes(portray)]}.
 
     \prologflagitem{toplevel_prompt}{atom}{rw}
@@ -1454,15 +1448,17 @@ variable in a top-level query that is saved for re-use using the
 \chr{$} variable reference.  See \secref{topvars}.
 
     \prologflagitem{trace_gc}{bool}{rw}
-If true (false is the default), garbage collections and stack-shifts
-will be reported on the terminal. May be changed. Values are reported in
-bytes as $G$+$T$, where $G$ is the global stack value and $T$ the trail
-stack value. `Gained' describes the number of bytes reclaimed. `used'
-the number of bytes on the stack after GC and `free' the number of bytes
-allocated, but not in use. Below is an example output.
+If \const{true} (\const{false} is the default), garbage collections and
+stack-shifts will be reported on the terminal. May be changed. Values
+are reported in bytes as $G$+$T$, where $G$ is the global stack value
+and $T$ the trail stack value. `Gained' describes the number of bytes
+reclaimed. `used' the number of bytes on the stack after GC and `free'
+the number of bytes allocated, but not in use. Below is an example
+output.
 
 \begin{code}
-% GC: gained 236,416+163,424 in 0.00 sec; used 13,448+5,808; free 72,568+47,440
+% GC: gained 236,416+163,424 in 0.00 sec;
+      used 13,448+5,808; free 72,568+47,440
 \end{code}
 
     \prologflagitem{tty_control}{bool}{rw}

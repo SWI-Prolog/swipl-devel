@@ -42,7 +42,7 @@ irrelevant (built-in predicate) or can be inferred from the context it
 is often omitted. Compliant to the ISO standard draft on DCG (see
 \secref{DCG}), SWI-Prolog also allows for [<module>]:<name>//<arity> to
 refer to a grammar rule. For all non-negative arity, <name>//<arity> is
-the same as <name>/<arity+2>, regardless of whether or not the
+the same as <name>/<arity>+2, regardless of whether or not the
 referenced predicate is defined or can be used as a grammar rule.
 The //-notation can be used in all places that traditionally allow
 for a predicate indicator, e.g., the module declaration, spy/1,
@@ -633,7 +633,7 @@ the file being loaded. See also source_location/2 and if/1. The
 following keys are defined:
 
 \begin{center}
-\begin{tabular}{|l|p{4in}|}
+\begin{tabular}{|l|p{\linewidth-35mm}|}
 \hline
 \bf Key               & \bf Description \\
 \hline
@@ -669,10 +669,10 @@ E.g.:
 :- prolog_load_context(directory, Dir),
    asserta(user:file_search_path(my_program_home, Dir)).
 
-	...
-	absolute_file_name(my_program_home('README.TXT'), ReadMe,
-			   [ access(read) ]),
-	...
+    ...
+    absolute_file_name(my_program_home('README.TXT'), ReadMe,
+		       [ access(read) ]),
+    ...
 \end{code}
 
     \predicate{source_location}{2}{-File, -Line}
@@ -1309,10 +1309,13 @@ the issues in the example queries below.
 \begin{code}
 ?- write("hello").
 [104, 101, 108, 108, 111]
+true.
+
 ?- string("hello").
-No
+false.
+
 ?- is_list("hello").
-Yes
+true.
 \end{code}
 
     \predicate[ISO]{atomic}{1}{@Term}
@@ -2089,8 +2092,6 @@ print_message_lines/3. This hook is used by e.g., library
 
     \predicate{message_to_string}{2}{+Term, -String}
 Translates a message term into a string object (see \secref{strings}).
-Primarily intended to write messages to Windows in XPCE (see
-\secref{xpce}) or other GUI environments.
 \end{description}
 
 
@@ -2776,9 +2777,9 @@ can be achieved using the code below:
 
 \begin{code}
 generate_built_in(Name/Arity) :-
-	predicate_property(system:Head, built_in),
-	functor(Head, Name, Arity),
-	\+ sub_atom(Name, 0, _, _, $).	% discard reserved names
+    predicate_property(system:Head, built_in),
+    functor(Head, Name, Arity),
+    \+ sub_atom(Name, 0, _, _, $).   % discard reserved names
 \end{code}
 
 \arg{Property} is one of:
@@ -3680,12 +3681,12 @@ terms.  The following code makes the server immune for clients that
 write an incomplete term:
 
 \begin{code}
-	...,
-	tcp_accept(Server, Socket, _Peer),
-	tcp_open(Socket, In, Out),
-	set_stream(In, timeout(10)),
-	catch(read(In, Term), _, (close(Out), close(In), fail)),
-	...,
+    ...,
+    tcp_accept(Server, Socket, _Peer),
+    tcp_open(Socket, In, Out),
+    set_stream(In, timeout(10)),
+    catch(read(In, Term), _, (close(Out), close(In), fail)),
+    ...,
 \end{code}
 
     \predicate{byte_count}{2}{+Stream, -Count}
@@ -3975,10 +3976,10 @@ as ellipses (\ldots).  A 0 (zero) value (default) imposes no depth limit.
 This option also delimits the number of printed items in a list.  Example:
 
 \begin{code}
-?- write_term(a(s(s(s(s(0)))), [a,b,c,d,e,f]), [max_depth(3)]).
+?- write_term(a(s(s(s(s(0)))), [a,b,c,d,e,f]),
+	      [max_depth(3)]).
 a(s(s(...)), [a, b|...])
-
-Yes
+true.
 \end{code}
 
 Used by the top-level and debugger to limit screen output.  See also
@@ -5738,27 +5739,22 @@ The example below illustrates bagof/3 and the \op{^} operator. The
 variable bindings are printed together on one line to save paper.
 \begin{code}
 2 ?- listing(foo).
-
 foo(a, b, c).
 foo(a, b, d).
 foo(b, c, e).
 foo(b, c, f).
 foo(c, c, g).
+true.
 
-Yes
 3 ?- bagof(C, foo(A, B, C), Cs).
-
 A = a, B = b, C = G308, Cs = [c, d] ;
 A = b, B = c, C = G308, Cs = [e, f] ;
-A = c, B = c, C = G308, Cs = [g] ;
+A = c, B = c, C = G308, Cs = [g].
 
-No
 4 ?- bagof(C, A^foo(A, B, C), Cs).
-
 A = G324, B = b, C = G326, Cs = [c, d] ;
-A = G324, B = c, C = G326, Cs = [e, f, g] ;
+A = G324, B = c, C = G326, Cs = [e, f, g].
 
-No
 5 ?-
 \end{code}
 
@@ -6266,9 +6262,10 @@ can be specified explicitly as \const{HKEY_CLASSES_ROOT},
 for Prolog files (see \file{README.TXT} on the Windows version):
 
 \begin{code}
-?- win_registry_get_value('HKEY_LOCAL_MACHINE/Software/SWI/Prolog',
-			  fileExtension,
-			  Ext).
+?- win_registry_get_value(
+       'HKEY_LOCAL_MACHINE/Software/SWI/Prolog',
+       fileExtension,
+       Ext).
 
 Ext = pl
 \end{code}
@@ -6479,19 +6476,22 @@ DST does not apply. At 02.00, the clock is advanced by one hour and thus
 both 02:00 and 03:00 represent the same time stamp.
 
 \begin{code}
-1 ?- date_time_stamp(date(2012,3,25,1,0,0,UTCOff,TZ,DST), Stamp).
+1 ?- date_time_stamp(date(2012,3,25,1,0,0,UTCOff,TZ,DST),
+		     Stamp).
 UTCOff = -3600,
 TZ = 'CET',
 DST = false,
 Stamp = 1332633600.0.
 
-2 ?- date_time_stamp(date(2012,3,25,2,0,0,UTCOff,TZ,DST), Stamp).
+2 ?- date_time_stamp(date(2012,3,25,2,0,0,UTCOff,TZ,DST),
+		     Stamp).
 UTCOff = -7200,
 TZ = 'CEST',
 DST = true,
 Stamp = 1332637200.0.
 
-3 ?- date_time_stamp(date(2012,3,25,3,0,0,UTCOff,TZ,DST), Stamp).
+3 ?- date_time_stamp(date(2012,3,25,3,0,0,UTCOff,TZ,DST),
+		     Stamp).
 UTCOff = -7200,
 TZ = 'CEST',
 DST = true,
@@ -7275,36 +7275,36 @@ be loaded, the user can start the file with:
 :- style_check(-atom).
 \end{code}
 
-Currently available options are:
+The currently available options are given below with their default
+between brackets.
 
-\begin{center}
-\begin{tabular}{|l|c|p{3.5in}|}
-\hline
-Name & Default & Description \\
-\hline
-\const{singleton}  & on & read_clause/1 (used by consult/1) warns
-                        on variables appearing only once in a term (clause)
-                        which have a name not starting with an
-			underscore. See \secref{singleton} for details
-			on variable handling and warnings. \\
-\const{atom}       & on & read/1 and derivatives will produce an
-                        error message on quoted atoms or strings with
-			more than 6 unescaped newlines.  Newlines may
-			be escaped with \chr{\} or \chr{\}\chr{c}. \\
+\begin{description}
+    \termitem{singleton}{true}
+The predicate read_clause/1 (used by the compiler to read source code)
+warns on variables appearing only once in a term (clause) which have a
+name not starting with an underscore. See \secref{singleton} for details
+on variable handling and warnings.
 
-			This flag also enables warnings on
-			\chr{\}<newline> followed by blank space in
-			native mode.  See \secref{charescapes}.
-\const{discontiguous} & on & Warn if the clauses for a predicate are not
-                        together in the same source file. \\
-\const{string}     & off & Backward compatibility.  See the Prolog flag
-			\prologflag{double_quotes} (current_prolog_flag/2). \\
-\const{charset}	   & off & Warn on atoms and variables holding non-ASCII
-			   characters that are not quoted. See also
-			   \secref{processorcharset}. \\
-\hline
-\end{tabular}
-\end{center}
+    \termitem{atom}{true}
+The predicate read/1 and derived predicates produce an error message on
+quoted atoms or strings with more than 6 unescaped newlines. Newlines
+may be escaped with \chr{\} or \chr{\}\chr{c}. This flag also enables
+warnings on \chr{\}<newline> followed by blank space in native mode. See
+\secref{charescapes}.
+
+    \termitem{discontiguous}{true}
+Warn if the clauses for a predicate are not together in the same source file.
+In is adviced to disable the warning for discontiguous predicates using
+the discontiguous/1 directive.
+
+    \termitem{string}{false}
+Backward compatibility.  See the Prolog flag \prologflag{double_quotes}
+(current_prolog_flag/2).
+
+    \termitem{charset}{false}
+Warn on atoms and variables holding non-ASCII characters that are not
+quoted. See also \secref{processorcharset}.
+\end{description}
 \end{description}
 
 \section{Obtaining Runtime Statistics}	\label{sec:statistics}
@@ -7312,18 +7312,15 @@ Name & Default & Description \\
 \begin{description}
     \predicate{statistics}{2}{+Key, -Value}
 Unify system statistics determined by \arg{Key} with \arg{Value}. The
-possible keys are given in the \tabref{statistics}.  The last part of
-the table contains keys for compatibility with other Prolog implementations
-(Quintus) for improved portability.  Note that the ISO standard does not
-define methods to collect system statistics. Space unit is bytes.%
-	\footnote{This may change to `cells' to enhance compatibility
-		  between the 32- and 64-bit versions.}
-Times are in seconds, represented as a floating point number. The
-Quintus compatibility keys express times in milliseconds.
+possible keys are given in the \tabref{statistics}.  This predicate
+supports additional keys for compatibility reasons.  These keys are
+described in \tabref{qpstatistics}.
 
 \begin{table}
 \begin{center}
-\begin{tabular}{|l|p{4in}|}
+\begin{tabular}{|l|p{\linewidth-35mm}|}
+\hline
+\multicolumn{2}{|c|}{Native keys (times as float in seconds)} \\
 \hline
 agc		& Number of atom garbage collections performed \\
 agc_gained	& Number of atoms removed \\
@@ -7363,6 +7360,19 @@ thread_cputime  & MT-version: seconds CPU time used by finished threads.
 		  a few more.  Verify it gives plausible results before
 		  using. \\
 \hline
+\end{tabular}
+\end{center}
+    \caption{Keys for statistics/2. Space is expressed in bytes.
+	     Time is expressed in seconds, represented as a
+	     floating point number.}
+    \label{tab:statistics}
+\end{table}
+
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|p{\linewidth-35mm}|}
+\hline
 \multicolumn{2}{|c|}{Compatibility keys (times in milliseconds)} \\
 \hline
 runtime		& [ CPU time, CPU time since last ]
@@ -7395,8 +7405,9 @@ core		& Same as memory \\
 \hline
 \end{tabular}
 \end{center}
-    \caption{Keys for statistics/2}
-    \label{tab:statistics}
+    \caption{Compatibility keys for statistics/2. Time is expressed in
+	     milliseconds.}
+    \label{tab:qpstatistics}
 \end{table}
 
     \predicate{statistics}{0}{}
@@ -7538,12 +7549,10 @@ C = 0
 --> Unifies X with description of groups
 
 3 ?- dde_execute(0, '[CreateGroup("DDE Demo")]').
-
-Yes
+true.
 
 4 ?- close_dde_conversation(0).
-
-Yes
+true.
 \end{code}
 
 
@@ -7681,8 +7690,7 @@ Example:
 
 \begin{code}
 ?- wildcard_match('[a-z]*.{pro,pl}[%~]', 'a_hello.pl%').
-
-Yes
+true.
 \end{code}
 
     \predicate{sleep}{1}{+Time}

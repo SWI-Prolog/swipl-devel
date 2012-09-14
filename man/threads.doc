@@ -433,8 +433,9 @@ additional synchronisation.
 \begin{code}
 %%	create_workers(?Id, +N)
 %
-%	Create a pool with Id and number of workers.  After the pool is
-%	created, post_job/1 can be used to send jobs to the pool.
+%	Create a pool with Id and number of workers.
+%	After the pool is created, post_job/1 can be used to
+%	send jobs to the pool.
 
 create_workers(Id, N) :-
 	message_queue_create(Id),

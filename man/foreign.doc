@@ -607,7 +607,7 @@ or
         }
 \end{code}
 
-\begin{tabular}{|p{\tableft}|p{3.5in}|}
+\begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
 \const{PL_VARIABLE} & An unbound variable. The value of term as such
 		      is a unique identifier for the variable. \\
@@ -708,7 +708,7 @@ all atoms can be converted into a \ctype{char*}.  This function fails
 if \arg{t} is of the wrong type, but also if the text cannot be
 represented.  See the \const{REP_*} flags below for details.
 
-\begin{tabular}{|p{\tableft}|p{3.5in}|}
+\begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
 \const{CVT_ATOM}    & Convert if term is an atom \\
 \const{CVT_STRING}  & Convert if term is a string \\
@@ -914,8 +914,8 @@ atoms, each on a line:
 \begin{code}
 foreign_t
 pl_write_atoms(term_t l)
-{ term_t head = PL_new_term_ref();      /* variable for the elements */
-  term_t list = PL_copy_term_ref(l);    /* copy as we need to write */
+{ term_t head = PL_new_term_ref();   /* the elements */
+  term_t list = PL_copy_term_ref(l); /* copy (we modify list) */
 
   while( PL_get_list(list, head, list) )
   { char *s;
@@ -926,7 +926,7 @@ pl_write_atoms(term_t l)
       PL_fail;
   }
 
-  return PL_get_nil(list);              /* test end for [] */
+  return PL_get_nil(list);            /* test end for [] */
 }
 \end{code}
 
@@ -1421,7 +1421,7 @@ static functor_t FUNCTOR_language1;
 
 static void
 init_constants()
-{ FUNCTOR_language1 = PL_new_functor(PL_new_atom("language"), 1);
+{ FUNCTOR_language1 = PL_new_functor(PL_new_atom("language"),1);
 }
 
 foreign_t
@@ -1652,13 +1652,13 @@ displayed below. The structure contains additional fields at the
 
 \begin{code}
 typedef struct PL_blob_t
-{ unsigned long		magic;		/* PL_BLOB_MAGIC */
-  unsigned long		flags;		/* Bitwise or of PL_BLOB_* */
-  char *		name;		/* name of the type */
-  int			(*release)(atom_t a);
-  int			(*compare)(atom_t a, atom_t b);
-  int			(*write)(IOSTREAM *s, atom_t a, int flags);
-  void			(*acquire)(atom_t a);
+{ uintptr_t	magic;		/* PL_BLOB_MAGIC */
+  uintptr_t	flags;		/* Bitwise or of PL_BLOB_* */
+  char *	name;		/* name of the type */
+  int		(*release)(atom_t a);
+  int		(*compare)(atom_t a, atom_t b);
+  int		(*write)(IOSTREAM *s, atom_t a, int flags);
+  void		(*acquire)(atom_t a);
   ...
 } PL_blob_t;
 \end{code}
@@ -2574,7 +2574,7 @@ The  options are given in \tabref{query}.
 
 
 \begin{table}
-\begin{quote}\begin{tabular}{|p{\tableft}|p{3.5in}|}
+\begin{quote}\begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
 \const{PL_QUERY_ARGC}       & Return an integer holding the number of
                               arguments given to Prolog from Unix. \\
@@ -2621,7 +2621,7 @@ of the calling context, or if no context is present in the module
 When called in Prolog, Prolog will call \arg{function}. \arg{flags}
 form a bitwise \emph{or}'ed list of options for the installation. These are:
 
-\begin{tabular}{|p{\tableft}|p{3.5in}|}
+\begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
 \const{PL_FA_META}	       & Provide meta-predicate info (see below) \\
 \const{PL_FA_TRANSPARENT}      & Predicate is module transparent (deprecated) \\
@@ -2699,10 +2699,10 @@ The \ctype{PL_extension} type is defined as
 
 \begin{code}
 typedef struct PL_extension
-{ char		*predicate_name;	/* Name of the predicate */
-  short		arity;			/* Arity of the predicate */
-  pl_function_t	function;		/* Implementing functions */
-  short		flags;			/* Or of PL_FA_... */
+{ char		*predicate_name; /* Name of the predicate */
+  short		arity;		 /* Arity of the predicate */
+  pl_function_t	function;	 /* Implementing functions */
+  short		flags;		 /* Or of PL_FA_... */
 } PL_extension;
 \end{code}
 
@@ -3511,13 +3511,10 @@ Welcome to SWI-Prolog (Version \plversion)
 ...
 
 1 ?- load_foreign_library(lowercase).
+true.
 
-Yes
 2 ?- lowercase('Hello World!', L).
-
-L = 'hello world!'
-
-Yes
+L = 'hello world!'.
 \end{code}
     \caption{Compiling the C source and loading the object file}
     \label{fig:load-foreign}

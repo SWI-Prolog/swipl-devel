@@ -68,29 +68,27 @@ exist.
 After loading a program, one can ask Prolog queries about the program.
 The query below asks Prolog what food `sam' likes. The system responds
 with \mbox{\tt X = <value>} if it can prove the goal for a certain
-\arg{X}. The user can type the semi-colon (;)%
-	\footnote{On most installations, single-character commands are
-		  executed without waiting for the {\sc return} key.}
-if (s)he wants another solution, or {\sc return} if (s)he is satisfied,
-after which Prolog will say {\bf Yes}. If Prolog answers {\bf No}, it
-indicates it cannot find any (more) answers to the query. Finally,
-Prolog can answer using an error message to indicate that the query or
-program contains an error.
+\arg{X}. The user can type the semi-colon (;) or spacebar. If you want
+another solution. Use the \textsc{return} key if you do not want to see
+the more answers. Prolog completes the output a full stop (.) if the
+user uses the \textsc{return} key or Prolog \emph{knowns} there are no
+more answers. If Prolog cannot find (more) answers, it writes
+\textbf{false.} Finally, Prolog can answer using an error message to
+indicate the query or program contains an error.
 
 \begin{code}
 ?- likes(sam, X).
-
 X = dahl ;
-
 X = tandoori ;
-
 ...
+X = chips.
 
-X = chips ;
-
-No
 ?-
 \end{code}
+
+Note that the answer written by Prolog is a valid Prolog program that,
+when executed, produces the same set of answers as the original
+program.
 
 
 \subsection{Menu commands}		\label{sec:menu}

@@ -183,7 +183,7 @@ development of new features or seek for opportunities to cooperate with
 the developers or other commercial users.
 
 
-\section{Implementation history}		\label{sec:history}
+\section{Implementation history}		\label{sec:implhistory}
 
 
 SWI-Prolog started back in 1986 with the requirement for a Prolog that
