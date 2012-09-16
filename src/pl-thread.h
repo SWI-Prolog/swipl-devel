@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -216,7 +215,7 @@ compile-time
 	if ( GD->thread.enabled ) \
 	{ if ( def->mutex ) \
 	  { countingMutexLock(def->mutex); \
-	  } else if ( false(def, DYNAMIC) ) \
+	  } else if ( false(def, P_DYNAMIC) ) \
 	  { countingMutexLock(&_PL_mutexes[L_PREDICATE]); \
 	  } \
 	}
@@ -225,7 +224,7 @@ compile-time
 	if ( GD->thread.enabled ) \
 	{ if ( def->mutex ) \
 	  { countingMutexUnlock(def->mutex); \
-	  } else if ( false(def, DYNAMIC) ) \
+	  } else if ( false(def, P_DYNAMIC) ) \
 	  { countingMutexUnlock(&_PL_mutexes[L_PREDICATE]); \
 	  } \
 	}
@@ -328,7 +327,6 @@ COMMON(foreign_t)	pl_mutex_unlock_all(void);
 COMMON(const char *)	threadName(int id);
 COMMON(void)		executeThreadSignals(int sig);
 COMMON(foreign_t)	pl_attach_xterm(term_t in, term_t out);
-COMMON(size_t)		threadLocalHeapUsed(void);
 COMMON(int)		attachConsole(void);
 COMMON(Definition)	localiseDefinition(Definition def);
 COMMON(LocalDefinitions) new_ldef_vector(void);

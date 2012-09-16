@@ -199,7 +199,7 @@ clauseNo(Definition def, Clause cl)
 
 static bool
 isUserSystemPredicate(Definition def)
-{ if ( true(def, SYSTEM) &&
+{ if ( true(def, P_LOCKED) &&
        isCurrentProcedure(def->functor->functor, MODULE_user) )
     succeed;
 

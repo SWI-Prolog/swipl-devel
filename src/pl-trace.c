@@ -847,7 +847,7 @@ put_frame_goal(term_t goal, LocalFrame frame)
   }
 
   if ( def->module != MODULE_user &&
-       (false(def->module, SYSTEM) || SYSTEM_MODE))
+       (false(def->module, M_SYSTEM) || SYSTEM_MODE))
   { term_t a;
 
     if ( !(a=PL_new_term_ref()) )
@@ -902,7 +902,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     term_t pc   = PL_new_term_ref();
     const portname *pn = portnames;
 
-    if ( true(def, FOREIGN) )
+    if ( true(def, P_FOREIGN) )
       PL_put_atom(pc, ATOM_foreign);
     else if ( PC && frame->clause )
       rc = PL_put_intptr(pc, PC-frame->clause->value.clause->codes);
@@ -1196,7 +1196,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     } else if ( portfunc )
     { int pcn;
 
-      if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
+      if ( PC && false(frame->predicate, P_FOREIGN) && frame->clause )
 	pcn = (int)(PC - frame->clause->value.clause->codes);
       else
 	pcn = 0;
@@ -1380,7 +1380,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
 			      (c->pc - fr->predicate->codes));
     }
 
-    if ( false(fr->predicate, FOREIGN) )
+    if ( false(fr->predicate, P_FOREIGN) )
     { int clause_no = 0;
       intptr_t pc = -1;
 
@@ -2027,7 +2027,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
     if ( argn < 1 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, arg);
 
-    if ( true(fr->predicate, FOREIGN) || !fr->clause )
+    if ( true(fr->predicate, P_FOREIGN) || !fr->clause )
     { if ( argn > fr->predicate->functor->arity )
 	fail;
     } else
@@ -2084,7 +2084,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   } else if (key == ATOM_context_module)
   { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
-  { if ( false(fr->predicate, FOREIGN) &&
+  { if ( false(fr->predicate, P_FOREIGN) &&
 	 fr->clause &&
 	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
     { if ( !PL_unify_clref(result, fr->clause->value.clause) )
@@ -2178,7 +2178,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   } else if ( key == ATOM_pc )
   { if ( fr->programPointer &&
 	 fr->parent &&
-	 false(fr->parent->predicate, FOREIGN) &&
+	 false(fr->parent->predicate, P_FOREIGN) &&
 	 fr->parent->clause &&
 	 fr->parent->predicate != PROCEDURE_dcall1->definition )
     { intptr_t pc = fr->programPointer - fr->parent->clause->value.clause->codes;
@@ -2246,7 +2246,7 @@ in_clause_jump(Choice ch)
 { Clause cl;
 
   if ( ch->type == CHP_JUMP &&
-       false(ch->frame->predicate, FOREIGN) &&
+       false(ch->frame->predicate, P_FOREIGN) &&
        ch->frame->clause &&
        (cl=ch->frame->clause->value.clause) &&
        ch->value.PC >= cl->codes &&

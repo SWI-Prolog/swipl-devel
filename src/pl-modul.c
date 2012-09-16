@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -72,7 +71,7 @@ _lookupModule(atom_t name)
   m->mutex = allocSimpleMutex(PL_atom_chars(m->name));
 #endif
   clearFlags(m);
-  set(m, CHARESCAPE);
+  set(m, M_CHARESCAPE);
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);
@@ -87,11 +86,11 @@ _lookupModule(atom_t name)
   if ( name == ATOM_user )
   { super = MODULE_system;
   } else if ( name == ATOM_system )
-  { set(m, SYSTEM|UNKNOWN_ERROR);
+  { set(m, M_SYSTEM|UNKNOWN_ERROR);
     super = NULL;
     m->class = ATOM_system;
   } else if ( stringAtom(name)[0] == '$' )
-  { set(m, SYSTEM);
+  { set(m, M_SYSTEM);
     super = MODULE_system;
     m->class = ATOM_system;
   } else
@@ -910,7 +909,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
 	    { Procedure proc = s->value;
 	      Definition def = proc->definition;
 	      if ( /*def->module == module &&*/
-		   !true(def, DYNAMIC|MULTIFILE|FOREIGN) )
+		   !true(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
 	      { if ( def->module == module &&
 		     hasClausesDefinition(def) )
 		{ if ( !rdef )

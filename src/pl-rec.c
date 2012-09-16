@@ -1936,7 +1936,7 @@ PRED_IMPL("erase", 1, erase, 0)
   { Clause clause = ptr;
     Definition def = getProcDefinition(clause->procedure);
 
-    if ( !true(def, DYNAMIC) )
+    if ( !true(def, P_DYNAMIC) )
       return PL_error("erase", 1, NULL, ERR_PERMISSION,
 		      ATOM_clause, ATOM_erase, ref);
 

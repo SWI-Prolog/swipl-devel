@@ -296,10 +296,7 @@ struct PL_global_data
   } terminal;
 #endif
 
-  struct alloc_pool alloc_pool;		/* Main allocation pool */
 #ifdef O_PLMT
-  FreeChunk	    left_over_pool;	/* Left-over from threads */
-
   struct
   { struct _at_exit_goal *exit_goals;	/* Global thread_at_exit/1 goals */
     int			enabled;	/* threads are enabled */
@@ -559,8 +556,6 @@ struct PL_local_data
     struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
   } thread;
-
-  struct alloc_pool alloc_pool;		/* Thread allocation pool */
 #endif
 
   struct

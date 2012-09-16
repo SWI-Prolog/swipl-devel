@@ -1393,12 +1393,13 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error("thread_create", 3, NULL, ERR_UNINSTANTIATION, 2, id);
   }
 
-#define MK_KBYTES(v, n) if ( !mk_kbytes(&v, n PASS_LD) ) return FALSE
-
-  MK_KBYTES(info->local_size, ATOM_local);
-  MK_KBYTES(info->global_size, ATOM_global);
-  MK_KBYTES(info->trail_size, ATOM_trail);
-  MK_KBYTES(stack, ATOM_c_stack);
+  if ( !mk_kbytes(&info->local_size,  ATOM_local   PASS_LD) ||
+       !mk_kbytes(&info->global_size, ATOM_global  PASS_LD) ||
+       !mk_kbytes(&info->trail_size,  ATOM_trail   PASS_LD) ||
+       !mk_kbytes(&stack,             ATOM_c_stack PASS_LD) )
+  { free_thread_info(info);
+    return FALSE;
+  }
 
   if ( alias )
   { if ( !aliasThread(info->pl_tid, alias) )
@@ -1956,30 +1957,6 @@ enumerate:
       }
     }
   }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Sum the amount of heap allocated through all threads allocation-pools.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-size_t
-threadLocalHeapUsed(void)
-{ int i;
-  PL_thread_info_t **info;
-  intptr_t heap = 0;
-
-  LOCK();
-  for(i=1, info=&GD->thread.threads[1]; i<=thread_highest_id; i++, info++)
-  { PL_local_data_t *ld;
-
-    if ( (ld = (*info)->thread_data) )
-    { heap += ld->alloc_pool.allocated;
-    }
-  }
-  UNLOCK();
-
-  return heap;
 }
 
 
@@ -5442,7 +5419,7 @@ localiseDefinition(Definition def)
 
   *local = *def;
   local->mutex = NULL;
-  clear(local, P_THREAD_LOCAL);		/* remains DYNAMIC */
+  clear(local, P_THREAD_LOCAL);		/* remains P_DYNAMIC */
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
 

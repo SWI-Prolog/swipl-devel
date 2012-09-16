@@ -53,6 +53,9 @@ checkCodeTable(void)
 { const code_info *ci;
   int n;
 
+  if ( sizeof(struct clause) % sizeof(word) != 0 )
+    sysError("Invalid alignment of struct clause");
+
   for(ci = codeTable, n = 0; ci->name != NULL; ci++, n++ )
   { if ( (int)ci->code != n )
       sysError("Wrong entry in codeTable: %d", n);
@@ -1099,9 +1102,6 @@ compileClause(Clause *cp, Word head, Word body,
   struct clause clause;
   Clause cl;
   int rc;
-
-					/* See declaration of struct clause */
-  DEBUG(0, assert(sizeof(clause) % sizeof(word) == 0));
 
   if ( head )
   { ci.islocal      = FALSE;
@@ -3000,8 +3000,8 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
     if ( !isDefinedProcedure(proc) )
     { if ( SYSTEM_MODE )
-      { if ( false(def, SYSTEM) )
-	  set(def, SYSTEM|HIDE_CHILDS|LOCKED);
+      { if ( false(def, P_LOCKED) )
+	  set(def, HIDE_CHILDS|P_LOCKED);
       } else
       { if ( truePrologFlag(PLFLAG_DEBUGINFO) )
 	  clear(def, HIDE_CHILDS);
@@ -3017,7 +3017,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   /* assert[az]/1 */
 
-  if ( false(def, DYNAMIC) )
+  if ( false(def, P_DYNAMIC) )
   { if ( !setDynamicProcedure(proc, TRUE) )
     { freeClause(clause);
       return NULL;
@@ -3236,7 +3236,7 @@ PRED_IMPL("$predefine_foreign",  1, predefine_foreign, PL_FA_TRANSPARENT)
 
   if ( !get_procedure(A1, &proc, 0, GP_NAMEARITY|GP_DEFINE) )
     return FALSE;
-  set(proc->definition, FOREIGN);
+  set(proc->definition, P_FOREIGN);
 
   return TRUE;
 }
@@ -3835,7 +3835,7 @@ decompile(Clause clause, term_t term, term_t bindings)
     di->variables = 0;
 
 #ifdef O_RUNTIME
-  if ( false(getProcDefinition(clause->procedure), DYNAMIC|P_THREAD_LOCAL) )
+  if ( false(getProcDefinition(clause->procedure), P_DYNAMIC|P_THREAD_LOCAL) )
     fail;
 #endif
 
@@ -4546,7 +4546,7 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
   if ( PL_is_variable(head) )
   { if ( !(how&GP_QUALIFY) &&
 	 (def->module == ctx ||
-	  ((how&GP_HIDESYSTEM) && true(def->module, SYSTEM))) )
+	  ((how&GP_HIDESYSTEM) && true(def->module, M_SYSTEM))) )
     { if ( !unify_functor(head, def->functor->functor, how) )
 	return FALSE;
       if ( thehead )
@@ -4681,9 +4681,9 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	fail;
       def = getProcDefinition(proc);
 
-      if ( true(def, FOREIGN) ||
+      if ( true(def, P_FOREIGN) ||
 	   (   truePrologFlag(PLFLAG_ISO) &&
-	       false(def, DYNAMIC)
+	       false(def, P_DYNAMIC)
 	   ) )
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 			ATOM_access, ATOM_private_procedure, proc);
@@ -4823,7 +4823,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   { int i;
 
     if ( !get_procedure(p, &proc, 0, GP_FIND) ||
-         true(proc->definition, FOREIGN) )
+         true(proc->definition, P_FOREIGN) )
       fail;
 
     def = getProcDefinition(proc);

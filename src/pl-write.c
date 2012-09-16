@@ -1462,7 +1462,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   options.module = lookupModule(mname);
   if ( charescape == TRUE ||
-       (charescape == -1 && true(options.module, CHARESCAPE)) )
+       (charescape == -1 && true(options.module, M_CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
   if ( gportray )
   { options.portray_goal = gportray;
@@ -1531,7 +1531,7 @@ do_write2(term_t stream, term_t term, int flags)
     options.flags     = flags;
     options.out	      = s;
     options.module    = MODULE_user;
-    if ( options.module && true(options.module, CHARESCAPE) )
+    if ( options.module && true(options.module, M_CHARESCAPE) )
       options.flags |= PL_WRT_CHARESCAPES;
     if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
