@@ -4388,11 +4388,7 @@ term_variables/3. For example:
 
 \begin{code}
 ?- term_variables(a(X, b(Y, X), Z), L).
-
-L = [G367, G366, G371]
-X = G367
-Y = G366
-Z = G371
+L = [X, Y, Z].
 \end{code}
 
     \predicate{term_variables}{3}{+Term, -List, ?Tail}
