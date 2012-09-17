@@ -49,9 +49,10 @@ The syntax and set of built-in predicates is based on the ISO standard
 (DEC10 Prolog and C-Prolog) and Quintus Prolog \cite{QUINTUS:manual}.
 The infrastructure for constraint programming is based on hProlog
 \cite{Demoen:CW350}. Some libraries are copied from the
-YAP\footnote{\url{http://www.dcc.fc.up.pt/~vsc/Yap/}} system. Together
-with YAP we developed a portability framework (see \secref{dialect}).
-This framework has been filled for SICStus Prolog, YAP and IF/Prolog.
+YAP\footnote{\url{http://www.dcc.fc.up.pt/\~{}vsc/Yap/}} system.
+Together with YAP we developed a portability framework (see
+\secref{dialect}). This framework has been filled for SICStus Prolog,
+YAP and IF/Prolog.
 
 \section{Status and releases}			\label{sec:status}
 

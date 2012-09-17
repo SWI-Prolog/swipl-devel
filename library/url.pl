@@ -320,12 +320,11 @@ cfragment(_) -->
 %	The example below illustrates all of this for an HTTP URL.
 %
 %	    ==
-%	    ?-
-%	    parse_url('http://www.swi-prolog.org/hello?msg=Hello+World%21#x',
-%	              P).
+%	    ?- parse_url('http://www.xyz.org/hello?msg=Hello+World%21#x',
+%		   P).
 %
 %	    P = [ protocol(http),
-%		  host('www.swi-prolog.org'),
+%		  host('www.xyz.org'),
 %		  fragment(x),
 %		  search([ msg = 'Hello World!'
 %			 ]),

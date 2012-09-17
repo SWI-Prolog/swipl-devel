@@ -20,7 +20,7 @@ Windows defines the following roots for the registry:
 
 
 \begin{description}
-    \predicate{registry_get_key}{2}{+Path, -Value} 
+    \predicate{registry_get_key}{2}{+Path, -Value}
 Get the principal (default) value associated to this key. Fails silently
 if the key does not exist.
 
@@ -62,12 +62,14 @@ the above predicates, it is given as an example:
 \begin{code}
 shell_register_prolog(Ext) :-
 	current_prolog_flag(argv, [Me|_]),
-	concat_atom(['"', Me, '" "%1"'], OpenCommand),
-	shell_register_file_type(Ext, 'prolog.type', 'Prolog Source',
-				 OpenCommand),
-	shell_register_dde('prolog.type', consult,
-			   prolog, control, 'consult(''%1'')', Me), 
-	shell_register_dde('prolog.type', edit,
-			   prolog, control, 'edit(''%1'')', Me).
+	atomic_list_concat(['"', Me, '" "%1"'], OpenCommand),
+	shell_register_file_type(
+	    Ext, 'prolog.type', 'Prolog Source', OpenCommand),
+	shell_register_dde(
+	    'prolog.type', consult,
+	    prolog, control, 'consult(''%1'')', Me),
+	shell_register_dde(
+	    'prolog.type', edit,
+	    prolog, control, 'edit(''%1'')', Me).
 \end{code}
 \end{description}

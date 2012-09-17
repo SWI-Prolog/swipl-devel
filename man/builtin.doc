@@ -448,7 +448,7 @@ found with the following predicates:
     \item clause_property/2 provides access to both source and ownership.
     \item source_file_property/2 can be used to query include relationships
           between files.
-<    \end{itemize}
+    \end{itemize}
 
     \predicate{require}{1}{+ListOfNameAndArity}
 Declare that this file/module requires the specified predicates to be

@@ -207,7 +207,7 @@ PL_extension PL_extensions [] =
 /*{ "name",     arity,  function,       PL_FA_<flags> },*/
 
   { "install",  0,      pl_install,     0 },
-  { NULL,       0,      NULL,           0 }     /* terminating line */
+  { NULL,       0,      NULL,           0 } /* terminating line */
 };
 \end{code}
 

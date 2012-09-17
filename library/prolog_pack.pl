@@ -821,11 +821,12 @@ build_environment(Env) :-
 
 %%	environment(-Name, -Value) is nondet.
 %
-%	Multifile hook to extend the   process  environment for building
-%	foreign extensions to SWI-Prolog. A value  provided by this hook
-%	overrules defaults provided by def_environment/2. In addition to
-%	changing the environment, this may be   used  to pass additional
-%	values to the environment, as in:
+%	Hook  to  define  the  environment   for  building  packs.  This
+%	Multifile hook extends the  process   environment  for  building
+%	foreign extensions. A value  provided   by  this  hook overrules
+%	defaults provided by def_environment/2. In  addition to changing
+%	the environment, this may be used   to pass additional values to
+%	the environment, as in:
 %
 %	  ==
 %	  prolog_pack:environment('USER', User) :-

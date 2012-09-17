@@ -708,44 +708,70 @@ all atoms can be converted into a \ctype{char*}.  This function fails
 if \arg{t} is of the wrong type, but also if the text cannot be
 represented.  See the \const{REP_*} flags below for details.
 
-\begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
-\hline
-\const{CVT_ATOM}    & Convert if term is an atom \\
-\const{CVT_STRING}  & Convert if term is a string \\
-\const{CVT_LIST}    & Convert if term is a list of integers between
-		      1 and 255 \\
-\const{CVT_INTEGER} & Convert if term is an integer (using \const{\%d}) \\
-\const{CVT_FLOAT}   & Convert if term is a float (using \const{\%f}) \\
-\const{CVT_NUMBER}  & Convert if term is an integer or float \\
-\const{CVT_ATOMIC}  & Convert if term is atomic \\
-\const{CVT_VARIABLE}& Convert variable to print-name \\
-\const{CVT_WRITE}   & Convert any term that is not converted by
-		      any of the other flags using write/1.  If
-		      no \const{BUF_*} is provided, \const{BUF_RING}
-		      is implied. \\
-\const{CVT_WRITE_CANONICAL} & As \const{CVT_WRITE}, but use write_canonical/2. \\
-\const{CVT_ALL}     & Convert if term is any of the above, except for
-                      \const{CVT_VARIABLE} and \const{CVT_WRITE} \\
-\hline
-\const{CVT_EXCEPTION}&If conversion fails due to a type error, raise
-		      a Prolog type error exception in addition to
-		      failure \\
-\hline
-\const{BUF_DISCARDABLE}     & Data must copied immediately \\
-\const{BUF_RING}    & Data is stored in a ring of buffers \\
-\const{BUF_MALLOC}  & Data is copied to a new buffer returned by
-		      \manref{PL_malloc}{3}.  When no longer needed
-		      the user must call PL_free() on the data. \\
-\hline
-\const{REP_ISO_LATIN_1}	& (0, default).  Text is in ISO Latin-1 encoding
-		      and the call fails if text cannot be represented. \\
-\const{REP_UTF8}	& Convert the text to a UTF-8 string.  This works
-		      for all text. \\
-\const{REP_MB}		& Convert to default locale-defined 8-bit string.
-		      Success depends on the locale.  Conversion is done
-		      using the wcrtomb() C library function. \\
-\hline
-\end{tabular}
+\begin{description}
+    \termitem{CVT_ATOM}{}
+Convert if term is an atom.
+
+    \termitem{CVT_STRING}{}
+Convert if term is a string.
+
+    \termitem{CVT_LIST}{}
+Convert if term is a list of of character codes.
+
+    \termitem{CVT_INTEGER}{}
+Convert if term is an integer.
+
+    \termitem{CVT_FLOAT}{}
+Convert if term is a float.  The characters returned are the same as
+write/1 would write for the floating point number.
+
+    \termitem{CVT_NUMBER}{}
+Convert if term is an integer or float.
+
+    \termitem{CVT_ATOMIC}{}
+Convert if term is atomic.
+
+    \termitem{CVT_VARIABLE}{}
+Convert variable to print-name
+
+    \termitem{CVT_WRITE}{}
+Convert any term that is not converted by any of the other flags using
+write/1. If no \const{BUF_*} is provided, \const{BUF_RING} is implied.
+
+    \termitem{CVT_WRITE_CANONICAL}{}
+As \const{CVT_WRITE}, but using write_canonical/2.
+
+    \termitem{CVT_ALL}{}
+Convert if term is any of the above, except for \const{CVT_VARIABLE} and
+\const{CVT_WRITE}.
+
+    \termitem{CVT_EXCEPTION}{}
+If conversion fails due to a type error, raise a Prolog type error
+exception in addition to failure
+
+    \termitem{BUF_DISCARDABLE}{}
+Data must copied immediately
+
+    \termitem{BUF_RING}{}
+Data is stored in a ring of buffers
+
+    \termitem{BUF_MALLOC}{}
+Data is copied to a new buffer returned by \manref{PL_malloc}{3}. When
+no longer needed the user must call PL_free() on the data.
+
+    \termitem{REP_ISO_LATIN_1}{}
+Text is in ISO Latin-1 encoding and the call fails if text
+cannot be represented.  This flag has the value 0 and is thus the
+default.
+
+    \termitem{REP_UTF8}{}
+Convert the text to a UTF-8 string. This works for all text.
+
+    \termitem{REP_MB}{}
+Convert to default locale-defined 8-bit string. Success depends on the
+locale. Conversion is done using the wcrtomb() C library function.
+\end{description}
+
 
 \cfunction{int}{PL_get_list_chars}{+term_t l, char **s, unsigned flags}
 Same as \exam{PL_get_chars(\arg{l}, \arg{s}, CVT_LIST|\arg{flags})},

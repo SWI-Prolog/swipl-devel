@@ -34,7 +34,7 @@ compilation scheme and runtime environment of CHR in SICStus.
 In this documentation we restrict ourselves to giving a short overview
 of CHR in general and mainly focus on elements specific to this
 implementation. For a more thorough review of CHR we refer the reader to
-\cite{Freuhwirth:98}. More background on CHR can be found at
+\cite{Freuhwirth:2009}. More background on CHR can be found at
 \cite{chrSite}.
 
 In \secref{SyntaxAndSemantics} we present the syntax of CHR in Prolog and
@@ -55,13 +55,11 @@ practical guidelines for using CHR.
 %-----------------
 
 \begin{code}
-rules --> rule, rules.
-rules --> [].
+rules --> rule, rules ; [].
 
 rule --> name, actual_rule, pragma, [atom('.')].
 
-name --> atom, [atom('@')].
-name --> [].
+name --> atom, [atom('@')] ; [].
 
 actual_rule --> simplification_rule.
 actual_rule --> propagation_rule.
@@ -75,7 +73,8 @@ simpagation_rule --> head, [atom('\')], head, [atom('<=>')],
 head --> constraints.
 
 constraints --> constraint, constraint_id.
-constraints --> constraint, constraint_id, [atom(',')], constraints.
+constraints --> constraint, constraint_id,
+	        [atom(',')], constraints.
 
 constraint --> compound_term.
 
@@ -83,8 +82,7 @@ constraint_id --> [].
 constraint_id --> [atom('#')], variable.
 constraint_id --> [atom('#')], [atom('passive')] .
 
-guard --> [].
-guard --> goal, [atom('|')].
+guard --> [] ; goal, [atom('|')].
 
 body --> goal.
 
@@ -95,7 +93,6 @@ actual_pragmas --> actual_pragma.
 actual_pragmas --> actual_pragma, [atom(',')], actual_pragmas.
 
 actual_pragma --> [atom('passive(')], variable, [atom(')')].
-
 \end{code}
 
 Note that the guard of a rule may not contain any goal that binds a variable

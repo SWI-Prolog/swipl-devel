@@ -1,6 +1,4 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Markus Triska
     E-mail:        triska@gmx.at
@@ -1119,11 +1117,11 @@ label(Vs) :- labeling([], Vs).
 
 %% labeling(+Options, +Vars)
 %
-% Labeling means systematically trying out values for the finite
-% domain variables Vars until all of them are ground. The domain of
-% each variable in Vars must be finite. Options is a list of options
-% that let you exhibit some control over the search process. Several
-% categories of options exist:
+% Find values for each variable in   Vars. Labeling means systematically
+% trying out values for the finite domain   variables  Vars until all of
+% them are ground. The domain of each   variable in Vars must be finite.
+% Options is a list of options that   let  you exhibit some control over
+% the search process. Several categories of options exist:
 %
 % The variable selection strategy lets you specify which variable of
 % Vars is labeled next and is one of:
@@ -1558,7 +1556,8 @@ all_different([X|Right], Left, Orig) :-
 %  values given the following domains:
 %
 %  ==
-%  ?- maplist(in, V, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
+%  ?- maplist(in, V,
+%	      [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
 %     all_distinct(V).
 %  false.
 %  ==
@@ -1572,8 +1571,8 @@ all_distinct(Ls) :-
 
 %% sum(+Vars, +Rel, ?Expr)
 %
-% The sum of elements of the list Vars is in relation Rel to Expr,
-% where Rel is #=, #\=, #<, #>, #=< or #>=. For example:
+% The sum of elements of the list Vars is in relation Rel to Expr.
+% Rel is one of #=, #\=, #<, #>, #=< or #>=. For example:
 %
 % ==
 % ?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
@@ -5126,7 +5125,8 @@ integers_remaining([V|Vs], N0, Dom, D0, D) :-
 
 %%    global_cardinality(+Vs, +Pairs)
 %
-%     Equivalent to global_cardinality(Vs, Pairs, []). Example:
+%     Global      Cardinality      constraint.        Equivalent      to
+%     global_cardinality(Vs, Pairs, []). Example:
 %
 %     ==
 %     ?- Vs = [_,_,_], global_cardinality(Vs, [1-2,3-_]), label(Vs).
@@ -5139,12 +5139,12 @@ global_cardinality(Xs, Pairs) :- global_cardinality(Xs, Pairs, []).
 
 %%    global_cardinality(+Vs, +Pairs, +Options)
 %
-%     Vs is a list of finite domain variables, Pairs is a list of
-%     Key-Num pairs, where Key is an integer and Num is a finite
-%     domain variable. The constraint holds iff each V in Vs is equal
-%     to some key, and for each Key-Num pair in Pairs, the number of
-%     occurrences of Key in Vs is Num. Options is a list of options.
-%     Supported options are:
+%     Global Cardinality constraint. Vs  is  a   list  of  finite domain
+%     variables, Pairs is a list  of  Key-Num   pairs,  where  Key is an
+%     integer and Num is a finite  domain variable. The constraint holds
+%     iff each V in Vs is equal to   some key, and for each Key-Num pair
+%     in Pairs, the number of occurrences of   Key in Vs is Num. Options
+%     is a list of options. Supported options are:
 %
 %     * consistency(value)
 %     A weaker form of consistency is used.
@@ -5507,9 +5507,9 @@ all_neq([X|Xs], C) :-
 
 %%    circuit(+Vs)
 %
-%     True if the list Vs of finite domain variables induces a
-%     Hamiltonian circuit, where the k-th element of Vs denotes the
-%     successor of node k. Node indexing starts with 1. Examples:
+%     True  if  the  list  Vs  of  finite  domain  variables  induces  a
+%     Hamiltonian circuit. The k-th element of  Vs denotes the successor
+%     of node k. Node indexing starts with 1. Examples:
 %
 %     ==
 %     ?- length(Vs, _), circuit(Vs), label(Vs).
@@ -5663,10 +5663,11 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 
 %% automaton(+Signature, +Nodes, +Arcs)
 %
-%  Equivalent to automaton(_, _, Signature, Nodes, Arcs, [], [], _), a
-%  common use case of automaton/8. In the following example, a list of
-%  binary finite domain variables is constrained to contain at least
-%  two consecutive ones:
+%  Constraint  variable  with  a   finite    automaton.   Equivalent  to
+%  automaton(_, _, Signature, Nodes, Arcs, [], [], _), a common use case
+%  of automaton/8. In the following  example,   a  list of binary finite
+%  domain variables is constrained to contain   at least two consecutive
+%  ones:
 %
 %  ==
 %  :- use_module(library(clpfd)).
@@ -5688,24 +5689,24 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
-%  True if the finite automaton induced by Nodes and Arcs (extended
-%  with Counters) accepts Signature. Sequence is a list of terms, all
-%  of the same shape. Additional constraints must link Sequence to
-%  Signature, if necessary. Nodes is a list of source(Node) and
-%  sink(Node) terms. Arcs is a list of arc(Node,Integer,Node) and
-%  arc(Node,Integer,Node,Exprs) terms that denote the automaton's
-%  transitions. Each node is represented by an arbitrary term.
-%  Transitions that are not mentioned go to an implicit failure node.
-%  Exprs is a list of arithmetic expressions, of the same length as
-%  Counters. In each expression, variables occurring in Counters
-%  correspond to old counter values, and variables occurring in
-%  Template correspond to the current element of Sequence. When a
-%  transition containing expressions is taken, counters are updated as
-%  stated. By default, counters remain unchanged. Counters is a list
-%  of variables that must not occur anywhere outside of the constraint
-%  goal. Initials is a list of the same length as Counters. Counter
-%  arithmetic on the transitions relates the counter values in
-%  Initials to Finals.
+%  Constraint variable with a  finite  automaton.   True  if  the finite
+%  automaton induced by Nodes and Arcs  (extended with Counters) accepts
+%  Signature. Sequence is a list  of  terms,   all  of  the  same shape.
+%  Additional constraints must link Sequence to Signature, if necessary.
+%  Nodes is a list of source(Node) and  sink(Node) terms. Arcs is a list
+%  of arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
+%  denote the automaton's transitions. Each node   is  represented by an
+%  arbitrary term. Transitions that are not  mentioned go to an implicit
+%  failure node. Exprs is a list of  arithmetic expressions, of the same
+%  length as Counters.  In  each   expression,  variables  occurring  in
+%  Counters correspond to old counter values, and variables occurring in
+%  Template correspond to the  current  element   of  Sequence.  When  a
+%  transition containing expressions is taken,   counters are updated as
+%  stated. By default, counters remain unchanged.  Counters is a list of
+%  variables that must not occur  anywhere   outside  of  the constraint
+%  goal. Initials is a list of  the   same  length  as Counters. Counter
+%  arithmetic on the transitions relates the  counter values in Initials
+%  to Finals.
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
@@ -5971,9 +5972,10 @@ zcompare_(>, A, B) :- A #> B.
 
 %% chain(+Zs, +Relation)
 %
-% Zs is a list of finite domain variables that are a chain with
-% respect to the partial order Relation, in the order they appear in
-% the list. Relation must be #=, #=<, #>=, #< or #>. For example:
+% Constraint variables to be a chain based on  Relation. Zs is a list of
+% finite domain variables that are a chain   with respect to the partial
+% order Relation, in the order they appear in the list. Relation must be
+% #=, #=<, #>=, #< or #>. For example:
 %
 % ==
 % ?- chain([X,Y,Z], #>=).
@@ -6041,8 +6043,8 @@ fd_sup(X, Sup) :-
 
 %% fd_size(+Var, -Size)
 %
-%  Size is the number of elements of the current domain of Var, or the
-%  atom *sup* if the domain is unbounded.
+%  Determine the size of a domain. Size is the number of elements of the
+%  current domain of Var, or the atom *sup* if the domain is unbounded.
 
 fd_size(X, S) :-
         (   fd_get(X, XD, _) ->

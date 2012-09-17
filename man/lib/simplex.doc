@@ -120,7 +120,8 @@ radiation(S) :-
 
 An example query:
 \begin{code}
-?- radiation(S), variable_value(S, x1, Val1), variable_value(S, x2, Val2).
+?- radiation(S), variable_value(S, x1, Val1),
+		 variable_value(S, x2, Val2).
 
 Val1 = 15 rdiv 2
 Val2 = 9 rdiv 2 ;
@@ -146,7 +147,8 @@ knapsack(S) :-
 
 An example query yields:
 \begin{code}
-?- knapsack(S), variable_value(S, x(1), X1), variable_value(S, x(2), X2).
+?- knapsack(S), variable_value(S, x(1), X1),
+	        variable_value(S, x(2), X2).
 
 X1 = 1
 X2 = 1 rdiv 2 ;
@@ -168,7 +170,8 @@ knapsack_integral(S) :-
 Now the result is different:
 
 \begin{code}
-?- knapsack_integral(S), variable_value(S, x(1), X1), variable_value(S, x(2), X2).
+?- knapsack_integral(S), variable_value(S, x(1), X1),
+			 variable_value(S, x(2), X2).
 
 X1 = 0
 X2 = 2
@@ -206,7 +209,9 @@ coins(S) :-
 An example query:
 
 \begin{code}
-?- coins(S), variable_value(S, c(1), C1), variable_value(S, c(5), C5), variable_value(S, c(20), C20).
+?- coins(S), variable_value(S, c(1), C1),
+	     variable_value(S, c(5), C5),
+	     variable_value(S, c(20), C20).
 
 C1 = 1
 C5 = 2
