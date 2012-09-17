@@ -1583,11 +1583,10 @@ the value is an integer that can be expressed as a 64-bit signed value.
 Any other initial value results in an untyped flag that can represent
 any valid Prolog term.
 
-Originally, SWI-Prolog's set_prolog_flag/2 created a new Prolog flag if
-the flag \arg{Key} did not exist. It still does this, but now prints a
-warning. New code must use create_prolog_flag/3 to introduce new flags.
-Future versions are likely to replace this printed warning with an
-existence error.
+The behaviour when \arg{Key} denotes a non-existent key depends on the
+Prolog flag \prologflag{user_flags}. The default is to define them
+silently. New code is encouraged to use create_prolog_flag/3 for
+portability.
 
     \predicate[YAP]{create_prolog_flag}{3}{+Key, +Value, +Options}
 Create a new Prolog flag.  The ISO standard does not foresee creation
