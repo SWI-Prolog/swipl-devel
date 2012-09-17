@@ -291,7 +291,7 @@ ci_expand(Read, Compiled, Module) :-
 	      E,
 	      expand_failed(E, Read)).
 
-match_module((H1 :- B1), Module, (H2 :- B2), Pos0, Pos) :- !,
+match_module((H1 :- B1), (H2 :- B2), Module, Pos0, Pos) :- !,
 	unify_clause_head(H1, H2),
 	unify_body(B1, B2, Module, Pos0, Pos).
 match_module(H1, H2, _, Pos, Pos) :-	% deal with facts
