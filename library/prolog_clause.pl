@@ -270,11 +270,11 @@ unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
 					     term_position(_,_,_,_,[_,BP])
 					   ]), !,
 	TermPos1 = term_position(F,T,FF,FT,[ HP, BP ]),
-	match_module(Compiled2, Compiled1, TermPos1, TermPos).
+	match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
 					% general term-expansion
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
 	ci_expand(Read, Compiled2, Module),
-	match_module(Compiled2, Compiled1, TermPos0, TermPos).
+	match_module(Compiled2, Compiled1, Module, TermPos0, TermPos).
 					% I don't know ...
 unify_clause(_, _, _, _, _) :-
 	debug(clause_info, 'Could not unify clause', []),
@@ -291,10 +291,10 @@ ci_expand(Read, Compiled, Module) :-
 	      E,
 	      expand_failed(E, Read)).
 
-match_module((H1 :- B1), (H2 :- B2), Pos0, Pos) :- !,
+match_module((H1 :- B1), Module, (H2 :- B2), Pos0, Pos) :- !,
 	unify_clause_head(H1, H2),
-	unify_body(B1, B2, Pos0, Pos).
-match_module(H1, H2, Pos, Pos) :-	% deal with facts
+	unify_body(B1, B2, Module, Pos0, Pos).
+match_module(H1, H2, _, Pos, Pos) :-	% deal with facts
 	unify_clause_head(H1, H2).
 
 %%	expand_failed(+Exception, +Term)
@@ -307,19 +307,19 @@ expand_failed(E, Read) :-
 	debug(clause_info, 'Term-expand ~p failed: ~w', [Read, Msg]),
 	fail.
 
-%%	unify_body(+Read, +Decompiled, +Pos0, -Pos)
+%%	unify_body(+Read, +Decompiled, +Module, +Pos0, -Pos)
 %
 %	Deal with translations implied by the compiler.  For example,
 %	compiling (a,b),c yields the same code as compiling a,b,c.
 %
 %	Pos0 and Pos still include the term-position of the head.
 
-unify_body(B, B, Pos, Pos) :-
+unify_body(B, B, _, Pos, Pos) :-
 	does_not_dcg_after_binding(B, Pos), !.
-unify_body(R, D,
+unify_body(R, D, Module,
 	   term_position(F,T,FF,FT,[HP,BP0]),
 	   term_position(F,T,FF,FT,[HP,BP])) :-
-	ubody(R, D, BP0, BP).
+	ubody(R, D, Module, BP0, BP).
 
 %%	does_not_dcg_after_binding(+ReadBody, +ReadPos) is semidet.
 %
@@ -343,11 +343,18 @@ a --> { x, y, z }.
     which the compiler creates "a(X,Y) :- x, y, z, X=Y".
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%%	ubody(+Read, +Decompiled, +TermPosRead, -TermPosForDecompiled)
+%%	ubody(+Read, +Decompiled, +Module, +TermPosRead, -TermPosForDecompiled)
 %
 %	@param Read		Clause read _after_ expand_term/2
 %	@param Decompiled	Decompiled clause
+%	@param Module		Load module
 %	@param TermPosRead	Sub-term positions of source
+
+ubody(M:R, D, M, term_position(_,_,_,_,[_,RP]), TPOut) :-
+	ubody(R, D, RP, TPOut).
+ubody(R, D, _, TPIn, TPOut) :-
+	ubody(R, D, TPIn, TPOut).
+
 
 ubody(B, B, P, P) :-
 	does_not_dcg_after_binding(B, P), !.
