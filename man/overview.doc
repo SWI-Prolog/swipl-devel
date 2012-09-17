@@ -447,7 +447,7 @@ of the manual for online browsing, and HTML and PDF versions for downloading.
 Display all predicates, functions and sections that have {\em
 Pattern} in their name or summary description.  Lowercase letters in
 \arg{Pattern} also match a corresponding uppercase letter. Example:
-\begin{center}\begin{tabular}{lp{3.5in}}
+\begin{center}\begin{tabular}{lp{\linewidth-3in}}
 \exam{?- apropos(file).}   & Display predicates, functions and sections
                             that have `file' (or `File', etc.) in their
                             summary description. \\
