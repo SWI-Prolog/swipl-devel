@@ -1348,7 +1348,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	}
       } else
       { if ( shift >= (long)sizeof(int64_t)*8 )
-	  r->value.i = (r->value.i >= 0 ? 0 : -1);
+	  r->value.i = (n1->value.i >= 0 ? 0 : -1);
 	else
 	  r->value.i = n1->value.i >> shift;
       }
