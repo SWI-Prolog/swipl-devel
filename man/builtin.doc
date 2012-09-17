@@ -5933,8 +5933,8 @@ precision for printing rational numbers in decimal form.  E.g., the
 following will write as many 3's as you want by changing the `70'.
 
 \begin{code}
-?- format('~70f', [10 rdiv 3]).
-3.3333333333333333333333333333333333333333333333333333333333333333333333
+?- format('~50f', [10 rdiv 3]).
+3.33333333333333333333333333333333333333333333333333
 \end{code}
 
 

@@ -29,18 +29,16 @@ sub-projects, each using its own directory.
 \subsubsection{File Name Extensions}		\label{sec:fileext}
 
 \index{.pl}\index{.pro}%
+
 The first consideration is what extension to use for the source files.
 Tradition calls for \fileext{pl}, but conflicts with Perl force the use
 of another extension on systems where extensions have global meaning,
 such as MS-Windows. On such systems \fileext{pro} is the common
-alternative.%
-    \footnote{On MS-Windows, the alternative extension is stored in
-	      the registry key
-	      \const{HKEY_CURRENT_USER/Software/SWI/Prolog/fileExtension}
-	      or
-	      \const{HKEY_LOCAL_MACHINE/Software/SWI/Prolog/fileExtension}}
-
-All versions of SWI-Prolog load files with the extension \fileext{pl} as
+alternative. On MS-Windows, the alternative extension is stored in the
+registry key
+\texttt{HKEY_CURRENT_USER/Software/SWI/Prolog/fileExtension} or
+\texttt{HKEY_LOCAL_MACHINE/Software/SWI/Prolog/fileExtension}. All
+versions of SWI-Prolog load files with the extension \fileext{pl} as
 well as with the registered alternative extension without explicitly
 specifying the extension. For portability reasons we propose the
 following convention:
@@ -326,7 +324,7 @@ editor. One is to set the Prolog flag \prologflag{editor} to
 \const{pce_emacs} and the other is by starting the editor explicitly
 using the emacs/[0,1] predicates.
 
-\subsection{Bluffing through PceEmacs} 	\label{sec:emacsbluff}
+\subsection{Bluffing through PceEmacs}	\label{sec:emacsbluff}
 
 PceEmacs closely mimics Richard Stallman's GNU-Emacs commands, adding
 features from modern window-based editors to make it more acceptable for
