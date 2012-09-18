@@ -3,26 +3,12 @@
 % Test for PDF generation using pdflatex
 
 \usepackage{ifpdf}
-%Old tex versions
-%\newif\ifpdf
-%\ifx\pdfoutput\undefined
-%   \pdffalse
-%\else
-%   \pdfoutput=1
-%   \pdftrue
-%\fi
-
-% Get hyperrefs to work
-
 \usepackage{makeidx}
 \usepackage{url}
 
 \ifpdf
-  \usepackage[pdftex,colorlinks=true,urlcolor=blue]{hyperref}
+  \setuphyperref
   \pdfcompresslevel=9
-%  \pdfcatalog{
-%    /PageMode /UseOutLines
-%  }
   \usepackage[pdftex]{graphicx}
   \DeclareGraphicsExtensions{.pdf,.jpg,.png}
 \else

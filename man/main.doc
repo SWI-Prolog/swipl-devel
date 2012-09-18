@@ -7,8 +7,10 @@
 \setlength\paperwidth     {170mm}
 \setlength\oddsidemargin  {0mm}
 \setlength\evensidemargin {-10mm}
+\def\setuphyperref{\relax}
 #else
 \documentclass[11pt,twoside]{report}
+\def\setuphyperref{\usepackage[pdftex,colorlinks=true,urlcolor=blue]{hyperref}}
 #endif
 \usepackage{pl}
 \usepackage{html}
