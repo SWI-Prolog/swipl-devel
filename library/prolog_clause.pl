@@ -383,10 +383,16 @@ ubody(C0, C, M, P0, P) :-
 ubody(X0, X, M,
       term_position(F,T,FF,TT,PA0),
       term_position(F,T,FF,TT,PA)) :-
-	meta(X0), !,
+	meta(M, X0, S), !,
 	X0 =.. [_|A0],
 	X  =.. [_|A],
-	ubody_list(A0, A, M, PA0, PA).
+	S =.. [_|AS],
+	ubody_list(A0, A, AS, M, PA0, PA).
+ubody(X0, X, _,
+      term_position(F,T,FF,TT,PA0),
+      term_position(F,T,FF,TT,PA)) :-
+	expand_goal(X0, X, PA0, PA).
+
 					% 5.7.X optimizations
 ubody(_=_, true, _,			% singleton = Any
       term_position(F,T,_FF,_TT,_PA),
@@ -408,11 +414,14 @@ ubody(A is B - C, A is B + C2, _, Pos, Pos) :-
 	integer(C),
 	C2 =:= -C, !.
 
-ubody_list([], [], _, [], []).
-ubody_list([G0|T0], [G|T], M, [PA0|PAT0], [PA|PAT]) :-
-	ubody(G0, G, M, PA0, PA),
-	ubody_list(T0, T, M, PAT0, PAT).
+ubody_list([], [], [], _, [], []).
+ubody_list([G0|T0], [G|T], [AS|ASL], M, [PA0|PAT0], [PA|PAT]) :-
+	ubody_elem(AS, G0, G, M, PA0, PA),
+	ubody_list(T0, T, ASL, M, PAT0, PAT).
 
+ubody_elem(0, G0, G, M, PA0, PA) :- !,
+	ubody(G0, G, M, PA0, PA).
+ubody_elem(_, G, G, _, PA, PA).
 
 conj(Goal, Pos, GoalList, PosList) :-
 	conj(Goal, Pos, GoalList, [], PosList, []).
@@ -573,35 +582,31 @@ expand_goal(G, call(G), P, term_position(0,0,0,0,[P])) :-
 expand_goal(G, G, P, P) :-
         var(G), !.
 expand_goal(M0, M, P0, P) :-
-	meta(M0), !,
+	meta(system, M0, S), !,
 	P0 = term_position(F,T,FF,FT,PL0),
 	P  = term_position(F,T,FF,FT,PL),
 	functor(M0, Functor, Arity),
 	functor(M,  Functor, Arity),
-	expand_meta_args(PL0, PL, 1, M0, M).
+	expand_meta_args(PL0, PL, 1, S, M0, M).
 expand_goal(A, B, P0, P) :-
         goal_expansion(A, B0, P0, P1), !,
 	expand_goal(B0, B, P1, P).
 expand_goal(A, A, P, P).
 
-expand_meta_args([], [], _, _, _).
-expand_meta_args([P0|T0], [P|T], I, M0, M) :-
+expand_meta_args([], [], _, _, _, _).
+expand_meta_args([P0|T0], [P|T], I, S, M0, M) :-
 	arg(I, M0, A0),
 	arg(I, M,  A),
-	expand_goal(A0, A, P0, P),
+	arg(I, S,  AS),
+	expand_arg(AS, A0, A, P0, P),
 	NI is I + 1,
-	expand_meta_args(T0, T, NI, M0, M).
+	expand_meta_args(T0, T, NI, S, M0, M).
 
-meta((_  ,  _)).
-meta((_  ;  _)).
-meta((_  -> _)).
-meta((_ *-> _)).
-meta((\+ _)).
-meta((not(_))).
-meta((call(_))).
-meta((once(_))).
-meta((ignore(_))).
-meta((forall(_, _))).
+expand_arg(0, A0, A, P0, P) :- !,
+	expand_goal(A0, A, P0, P).
+expand_arg(_, A, A, P, P).
+
+meta(M, G, S) :- predicate_property(M:G, meta_predicate(S)).
 
 goal_expansion(send(R, Msg), send_class(R, _, SuperMsg), P, P) :-
 	compound(Msg),
