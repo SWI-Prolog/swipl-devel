@@ -50,5 +50,12 @@ test(bad_precedence, error(type_error(integer, x))) :-
 	current_op(x, _, _).
 test(bad_precedence, error(type_error(integer, 1.2))) :-
 	current_op(1.2, _, _).
+test(inherit, true) :-
+	current_op(500, yfx, +),
+	op(0, xfx, +),
+	(   current_op(_, yfx, +)
+	->  fail
+	;   op(500, yfx, +)
+	).
 
 :- end_tests(current_op).

@@ -392,7 +392,7 @@ addOpToBuffer(Buffer b, atom_t name, int type, int priority)
   opdef new;
 
   for(i = 0; i<mx; op++, i++)
-  { if ( op->name == name && op->type == type )
+  { if ( op->name == name && (op->type&OP_MASK) == (type&OP_MASK) )
       return;				/* got this one already */
   }
 
@@ -419,7 +419,7 @@ addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
 	assert(kind >= OP_PREFIX && kind <= OP_POSTFIX);
 
 	if ( op->priority[kind] < 0 ||
-	     op->type[kind] != type )
+	     (op->type[kind]&OP_MASK) != (type&OP_MASK) )
 	  continue;
 
 	if ( !priority ||
