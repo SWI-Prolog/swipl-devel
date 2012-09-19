@@ -1117,7 +1117,7 @@ label(Vs) :- labeling([], Vs).
 
 %% labeling(+Options, +Vars)
 %
-% Find values for each variable in   Vars. Labeling means systematically
+% Assign a value to each variable in Vars. Labeling means systematically
 % trying out values for the finite domain   variables  Vars until all of
 % them are ground. The domain of each   variable in Vars must be finite.
 % Options is a list of options that   let  you exhibit some control over
@@ -5663,7 +5663,7 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 
 %% automaton(+Signature, +Nodes, +Arcs)
 %
-%  Constraint  variable  with  a   finite    automaton.   Equivalent  to
+%  Constrain  variables  with  a   finite    automaton.   Equivalent  to
 %  automaton(_, _, Signature, Nodes, Arcs, [], [], _), a common use case
 %  of automaton/8. In the following  example,   a  list of binary finite
 %  domain variables is constrained to contain   at least two consecutive
@@ -5689,7 +5689,7 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
-%  Constraint variable with a  finite  automaton.   True  if  the finite
+%  Constrain variables with a  finite  automaton.   True  if  the finite
 %  automaton induced by Nodes and Arcs  (extended with Counters) accepts
 %  Signature. Sequence is a list  of  terms,   all  of  the  same shape.
 %  Additional constraints must link Sequence to Signature, if necessary.
@@ -5972,10 +5972,10 @@ zcompare_(>, A, B) :- A #> B.
 
 %% chain(+Zs, +Relation)
 %
-% Constraint variables to be a chain based on  Relation. Zs is a list of
-% finite domain variables that are a chain   with respect to the partial
-% order Relation, in the order they appear in the list. Relation must be
-% #=, #=<, #>=, #< or #>. For example:
+% Constrain variables to be a chain with respect to Relation. Zs is a
+% list of finite domain variables that are a chain with respect to the
+% partial order Relation, in the order they appear in the list.
+% Relation must be #=, #=<, #>=, #< or #>. For example:
 %
 % ==
 % ?- chain([X,Y,Z], #>=).
@@ -6043,8 +6043,9 @@ fd_sup(X, Sup) :-
 
 %% fd_size(+Var, -Size)
 %
-%  Determine the size of a domain. Size is the number of elements of the
-%  current domain of Var, or the atom *sup* if the domain is unbounded.
+%  Determine the size of a variable's domain. Size is the number of
+%  elements of the current domain of Var, or the atom *sup* if the
+%  domain is unbounded.
 
 fd_size(X, S) :-
         (   fd_get(X, XD, _) ->
