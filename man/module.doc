@@ -135,7 +135,8 @@ Loading the above file prints the following message:
 
 \begin{code}
 Warning: /home/janw/Bugs/Import/t.pl:5:
-	Local definition of shapes:flatten/2 overrides weak import from lists
+	Local definition of shapes:flatten/2
+	overrides weak import from lists
 \end{code}
 
 This warning can be avoided by (1) using use_module/2 to only import the
@@ -387,8 +388,7 @@ of file_of_label/2 in the module \const{tex}.
 
 \begin{code}
 1 ?- module(tex).
-
-Yes
+true.
 tex: 2 ?- listing(file_of_label/2).
 ...
 \end{code}

@@ -2255,7 +2255,7 @@ c_cut:
     for(fr2 = ch->frame;
 	fr2 > delto;
 	fr2 = fr2->parent)
-    { assert(fr2->clause || true(fr2->predicate, FOREIGN));
+    { assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
 
       if ( true(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
@@ -2290,7 +2290,7 @@ c_cut:
   if ( (void *)och > (void *)fr )
   { lTop = (LocalFrame)(och+1);
   } else
-  { int nvar = (true(fr->predicate, FOREIGN)
+  { int nvar = (true(fr->predicate, P_FOREIGN)
 			? fr->predicate->functor->arity
 			: fr->clause->value.clause->variables);
     lTop = (LocalFrame) argFrameP(fr, nvar);

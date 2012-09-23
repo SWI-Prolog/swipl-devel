@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemake@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1082,7 +1081,7 @@ static inline int
 slotsInFrame(LocalFrame fr, Code PC)
 { Definition def = fr->predicate;
 
-  if ( !PC || true(def, FOREIGN) || !fr->clause )
+  if ( !PC || true(def, P_FOREIGN) || !fr->clause )
     return def->functor->arity;
 
   return fr->clause->value.clause->prolog_vars;
@@ -1894,7 +1893,7 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
     { state.flags = 0;
     }
 
-    if ( true(fr->predicate, FOREIGN) || PC == NULL || !fr->clause )
+    if ( true(fr->predicate, P_FOREIGN) || PC == NULL || !fr->clause )
     { DEBUG(MSG_GC_MARK_ARGS,
 	    Sdprintf("Marking arguments for [%d] %s\n",
 		     levelFrame(fr), predicateName(fr->predicate)));
@@ -2950,7 +2949,7 @@ static void
 setStartOfVMI(vm_state *state)
 { LocalFrame fr = state->frame;
 
-  if ( fr->clause && false(fr->predicate, FOREIGN) && state->pc )
+  if ( fr->clause && false(fr->predicate, P_FOREIGN) && state->pc )
   { Clause clause = fr->clause->value.clause;
     Code PC, ep, next;
 
@@ -3361,7 +3360,7 @@ check_environments(LocalFrame fr, Code PC, Word key)
 	  Sdprintf("Check [%ld] %s (PC=%d):",
 		   levelFrame(fr),
 		   predicateName(fr->predicate),
-		   (false(fr->predicate, FOREIGN) && PC)
+		   (false(fr->predicate, P_FOREIGN) && PC)
 		   ? (PC-fr->clause->value.clause->codes)
 		   : 0));
 
@@ -4865,7 +4864,7 @@ mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
 	 fr->clause )
       forAtomsInClause(fr->clause->value.clause, markAtom);
 
-    if ( true(fr->predicate, FOREIGN) ||
+    if ( true(fr->predicate, P_FOREIGN) ||
 	 !fr->clause )
       slots = fr->predicate->functor->arity;
     else
@@ -5016,7 +5015,7 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
       def = fr->predicate;
 
     if ( def &&
-	 false(def, DYNAMIC) &&
+	 false(def, P_DYNAMIC) &&
 	 def->references == 0 )		/* already done */
     { if ( GD->procedures.reloading )
       { ListCell cell;			/* startConsult() */

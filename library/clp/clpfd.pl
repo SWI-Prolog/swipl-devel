@@ -1,6 +1,4 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Markus Triska
     E-mail:        triska@gmx.at
@@ -254,20 +252,20 @@ puzzle([S,E,N,D] + [M,O,R,E] = [M,O,N,E,Y]) :-
         M #\= 0, S #\= 0.
 ==
 
-Sample query and its result:
+Sample query and its result (actual variables replaced for readability):
 
 ==
 ?- puzzle(As+Bs=Cs).
-As = [9, _G10107, _G10110, _G10113],
-Bs = [1, 0, _G10128, _G10107],
-Cs = [1, 0, _G10110, _G10107, _G10152],
-_G10107 in 4..7,
-1000*9+91*_G10107+ -90*_G10110+_G10113+ -9000*1+ -900*0+10*_G10128+ -1*_G10152#=0,
-all_different([_G10107, _G10110, _G10113, _G10128, _G10152, 0, 1, 9]),
-_G10110 in 5..8,
-_G10113 in 2..8,
-_G10128 in 2..8,
-_G10152 in 2..8.
+As = [9, _A2, _A3, _A4],
+Bs = [1, 0, _B3, _A2],
+Cs = [1, 0, _A3, _A2, _C5],
+_A2 in 4..7,
+all_different([9, _A2, _A3, _A4, 1, 0, _B3, _C5]),
+1000*9+91*_A2+ -90*_A3+_A4+ -9000*1+ -900*0+10*_B3+ -1*_C5#=0,
+_A3 in 5..8,
+_A4 in 2..8,
+_B3 in 2..8,
+_C5 in 2..8.
 ==
 
 Here, the constraint solver has deduced more stringent bounds for all
@@ -298,7 +296,9 @@ for ordinary integer arithmetic with is/2, >/2 etc. For example:
 :- use_module(library(clpfd)).
 
 n_factorial(0, 1).
-n_factorial(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, n_factorial(N1, F1).
+n_factorial(N, F) :-
+	N #> 0, N1 #= N - 1, F #= N * F1,
+	n_factorial(N1, F1).
 ==
 
 This predicate can be used in all directions. For example:
@@ -1117,11 +1117,11 @@ label(Vs) :- labeling([], Vs).
 
 %% labeling(+Options, +Vars)
 %
-% Labeling means systematically trying out values for the finite
-% domain variables Vars until all of them are ground. The domain of
-% each variable in Vars must be finite. Options is a list of options
-% that let you exhibit some control over the search process. Several
-% categories of options exist:
+% Assign a value to each variable in Vars. Labeling means systematically
+% trying out values for the finite domain   variables  Vars until all of
+% them are ground. The domain of each   variable in Vars must be finite.
+% Options is a list of options that   let  you exhibit some control over
+% the search process. Several categories of options exist:
 %
 % The variable selection strategy lets you specify which variable of
 % Vars is labeled next and is one of:
@@ -1556,7 +1556,9 @@ all_different([X|Right], Left, Orig) :-
 %  values given the following domains:
 %
 %  ==
-%  ?- maplist(in, Vs, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]), all_distinct(Vs).
+%  ?- maplist(in, V,
+%	      [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
+%     all_distinct(V).
 %  false.
 %  ==
 
@@ -1569,8 +1571,8 @@ all_distinct(Ls) :-
 
 %% sum(+Vars, +Rel, ?Expr)
 %
-% The sum of elements of the list Vars is in relation Rel to Expr,
-% where Rel is #=, #\=, #<, #>, #=< or #>=. For example:
+% The sum of elements of the list Vars is in relation Rel to Expr.
+% Rel is one of #=, #\=, #<, #>, #=< or #>=. For example:
 %
 % ==
 % ?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
@@ -2427,9 +2429,13 @@ X #> Y  :- X #>= Y + 1.
 % matches between pairs built from four players in total:
 %
 % ==
-% ?- Vs = [A,B,C,D], Vs ins 1..4, all_different(Vs), A #< B, C #< D, A #< C,
+% ?- Vs = [A,B,C,D], Vs ins 1..4,
+%         all_different(Vs),
+%         A #< B, C #< D, A #< C,
 %    findall(pair(A,B)-pair(C,D), label(Vs), Ms).
-% Ms = [pair(1, 2)-pair(3, 4), pair(1, 3)-pair(2, 4), pair(1, 4)-pair(2, 3)]
+% Ms = [ pair(1, 2)-pair(3, 4),
+%        pair(1, 3)-pair(2, 4),
+%	 pair(1, 4)-pair(2, 3)].
 % ==
 
 X #< Y  :- Y #> X.
@@ -2548,7 +2554,10 @@ conjunctive_neqs_vals(A #/\ B) -->
 % that are multiples of 3 or 5:
 %
 % ==
-% ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999, indomain(N)), Ns), sum(Ns, #=, Sum).
+% ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999,
+%		 indomain(N)),
+%            Ns),
+%    sum(Ns, #=, Sum).
 % Ns = [0, 3, 5, 6, 9, 10, 12, 15, 18|...],
 % Sum = 233168.
 % ==
@@ -3252,7 +3261,12 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % ==
 % :- use_module(library(clpfd)).
 %
-% trains([[1,2,0,1],[2,3,4,5],[2,3,0,1],[3,4,5,6],[3,4,2,3],[3,4,8,9]]).
+% trains([[1,2,0,1],
+%         [2,3,4,5],
+%         [2,3,0,1],
+%         [3,4,5,6],
+%         [3,4,2,3],
+%         [3,4,8,9]]).
 %
 % threepath(A, D, Ps) :-
 %         Ps = [[A,B,_T0,T1],[B,C,T2,T3],[C,D,T4,_T5]],
@@ -4988,7 +5002,10 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 %   S_i for all 1 =< i < j =< n. Example:
 %
 %   ==
-%   ?- length(Vs, 3), Vs ins 0..3, serialized(Vs, [1,2,3]), label(Vs).
+%   ?- length(Vs, 3),
+%      Vs ins 0..3,
+%      serialized(Vs, [1,2,3]),
+%      label(Vs).
 %   Vs = [0, 1, 3] ;
 %   Vs = [2, 0, 3] ;
 %   false.
@@ -5108,7 +5125,8 @@ integers_remaining([V|Vs], N0, Dom, D0, D) :-
 
 %%    global_cardinality(+Vs, +Pairs)
 %
-%     Equivalent to global_cardinality(Vs, Pairs, []). Example:
+%     Global      Cardinality      constraint.        Equivalent      to
+%     global_cardinality(Vs, Pairs, []). Example:
 %
 %     ==
 %     ?- Vs = [_,_,_], global_cardinality(Vs, [1-2,3-_]), label(Vs).
@@ -5121,12 +5139,12 @@ global_cardinality(Xs, Pairs) :- global_cardinality(Xs, Pairs, []).
 
 %%    global_cardinality(+Vs, +Pairs, +Options)
 %
-%     Vs is a list of finite domain variables, Pairs is a list of
-%     Key-Num pairs, where Key is an integer and Num is a finite
-%     domain variable. The constraint holds iff each V in Vs is equal
-%     to some key, and for each Key-Num pair in Pairs, the number of
-%     occurrences of Key in Vs is Num. Options is a list of options.
-%     Supported options are:
+%     Global Cardinality constraint. Vs  is  a   list  of  finite domain
+%     variables, Pairs is a list  of  Key-Num   pairs,  where  Key is an
+%     integer and Num is a finite  domain variable. The constraint holds
+%     iff each V in Vs is equal to   some key, and for each Key-Num pair
+%     in Pairs, the number of occurrences of   Key in Vs is Num. Options
+%     is a list of options. Supported options are:
 %
 %     * consistency(value)
 %     A weaker form of consistency is used.
@@ -5489,9 +5507,9 @@ all_neq([X|Xs], C) :-
 
 %%    circuit(+Vs)
 %
-%     True if the list Vs of finite domain variables induces a
-%     Hamiltonian circuit, where the k-th element of Vs denotes the
-%     successor of node k. Node indexing starts with 1. Examples:
+%     True  if  the  list  Vs  of  finite  domain  variables  induces  a
+%     Hamiltonian circuit. The k-th element of  Vs denotes the successor
+%     of node k. Node indexing starts with 1. Examples:
 %
 %     ==
 %     ?- length(Vs, _), circuit(Vs), label(Vs).
@@ -5645,10 +5663,11 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 
 %% automaton(+Signature, +Nodes, +Arcs)
 %
-%  Equivalent to automaton(_, _, Signature, Nodes, Arcs, [], [], _), a
-%  common use case of automaton/8. In the following example, a list of
-%  binary finite domain variables is constrained to contain at least
-%  two consecutive ones:
+%  Constrain  variables  with  a   finite    automaton.   Equivalent  to
+%  automaton(_, _, Signature, Nodes, Arcs, [], [], _), a common use case
+%  of automaton/8. In the following  example,   a  list of binary finite
+%  domain variables is constrained to contain   at least two consecutive
+%  ones:
 %
 %  ==
 %  :- use_module(library(clpfd)).
@@ -5670,24 +5689,24 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
-%  True if the finite automaton induced by Nodes and Arcs (extended
-%  with Counters) accepts Signature. Sequence is a list of terms, all
-%  of the same shape. Additional constraints must link Sequence to
-%  Signature, if necessary. Nodes is a list of source(Node) and
-%  sink(Node) terms. Arcs is a list of arc(Node,Integer,Node) and
-%  arc(Node,Integer,Node,Exprs) terms that denote the automaton's
-%  transitions. Each node is represented by an arbitrary term.
-%  Transitions that are not mentioned go to an implicit failure node.
-%  Exprs is a list of arithmetic expressions, of the same length as
-%  Counters. In each expression, variables occurring in Counters
-%  correspond to old counter values, and variables occurring in
-%  Template correspond to the current element of Sequence. When a
-%  transition containing expressions is taken, counters are updated as
-%  stated. By default, counters remain unchanged. Counters is a list
-%  of variables that must not occur anywhere outside of the constraint
-%  goal. Initials is a list of the same length as Counters. Counter
-%  arithmetic on the transitions relates the counter values in
-%  Initials to Finals.
+%  Constrain variables with a  finite  automaton.   True  if  the finite
+%  automaton induced by Nodes and Arcs  (extended with Counters) accepts
+%  Signature. Sequence is a list  of  terms,   all  of  the  same shape.
+%  Additional constraints must link Sequence to Signature, if necessary.
+%  Nodes is a list of source(Node) and  sink(Node) terms. Arcs is a list
+%  of arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
+%  denote the automaton's transitions. Each node   is  represented by an
+%  arbitrary term. Transitions that are not  mentioned go to an implicit
+%  failure node. Exprs is a list of  arithmetic expressions, of the same
+%  length as Counters.  In  each   expression,  variables  occurring  in
+%  Counters correspond to old counter values, and variables occurring in
+%  Template correspond to the  current  element   of  Sequence.  When  a
+%  transition containing expressions is taken,   counters are updated as
+%  stated. By default, counters remain unchanged.  Counters is a list of
+%  variables that must not occur  anywhere   outside  of  the constraint
+%  goal. Initials is a list of  the   same  length  as Counters. Counter
+%  arithmetic on the transitions relates the  counter values in Initials
+%  to Finals.
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
@@ -5705,7 +5724,9 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %                    [source(s),sink(i),sink(j),sink(s)],
 %                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),
 %                     arc(i,0,i), arc(i,1,j,[C+1]), arc(i,2,i),
-%                     arc(j,0,j), arc(j,1,j), arc(j,2,i,[C+1])], [C], [0], [N]).
+%                     arc(j,0,j), arc(j,1,j),
+%		      arc(j,2,i,[C+1])],
+%		     [C], [0], [N]).
 %
 %  variables_signature([], []).
 %  variables_signature([V|Vs], Sigs) :-
@@ -5725,7 +5746,8 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  ?- sequence_inflexions([1,2,3,3,2,1,3,0], N).
 %  N = 3.
 %
-%  ?- length(Ls, 5), Ls ins 0..1, sequence_inflexions(Ls, 3), label(Ls).
+%  ?- length(Ls, 5), Ls ins 0..1,
+%     sequence_inflexions(Ls, 3), label(Ls).
 %  Ls = [0, 1, 0, 1, 0] ;
 %  Ls = [1, 0, 1, 0, 1].
 %  ==
@@ -5853,7 +5875,8 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %          length(Rows, 9), maplist(length_(9), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
 %          maplist(all_distinct, Rows),
-%          transpose(Rows, Columns), maplist(all_distinct, Columns),
+%          transpose(Rows, Columns),
+%	   maplist(all_distinct, Columns),
 %          Rows = [A,B,C,D,E,F,G,H,I],
 %          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
 %
@@ -5922,7 +5945,9 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 %          n_factorial_(C, N, F).
 %
 %  n_factorial_(=, _, 1).
-%  n_factorial_(>, N, F) :- F #= F0*N, N1 #= N - 1, n_factorial(N1, F0).
+%  n_factorial_(>, N, F) :-
+%	F #= F0*N, N1 #= N - 1,
+%	n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:
@@ -5947,9 +5972,10 @@ zcompare_(>, A, B) :- A #> B.
 
 %% chain(+Zs, +Relation)
 %
-% Zs is a list of finite domain variables that are a chain with
-% respect to the partial order Relation, in the order they appear in
-% the list. Relation must be #=, #=<, #>=, #< or #>. For example:
+% Constrain variables to be a chain with respect to Relation. Zs is a
+% list of finite domain variables that are a chain with respect to the
+% partial order Relation, in the order they appear in the list.
+% Relation must be #=, #=<, #>=, #< or #>. For example:
 %
 % ==
 % ?- chain([X,Y,Z], #>=).
@@ -6017,8 +6043,9 @@ fd_sup(X, Sup) :-
 
 %% fd_size(+Var, -Size)
 %
-%  Size is the number of elements of the current domain of Var, or the
-%  atom *sup* if the domain is unbounded.
+%  Determine the size of a variable's domain. Size is the number of
+%  elements of the current domain of Var, or the atom *sup* if the
+%  domain is unbounded.
 
 fd_size(X, S) :-
         (   fd_get(X, XD, _) ->

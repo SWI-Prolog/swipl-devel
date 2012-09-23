@@ -526,7 +526,7 @@ addClauseBucket(ClauseBucket ch, Clause cl, word key, int where, int is_list)
     if ( vars )				/* (**) */
     { for(cref=vars->first_clause; cref; cref=cref->next)
       { addClauseList(cr, cref->value.clause, CL_END);
-	if ( true(cref->value.clause, ERASED) )	/* or do not add? */
+	if ( true(cref->value.clause, CL_ERASED) )	/* or do not add? */
 	{ cr->value.clauses.number_of_clauses--;
 	  cr->value.clauses.erased_clauses++;
 	}
@@ -675,7 +675,7 @@ gcClauseList(ClauseList cl)
 { ClauseRef cref=cl->first_clause, prev = NULL;
 
   while(cref && cl->erased_clauses)
-  { if ( true(cref->value.clause, ERASED) )
+  { if ( true(cref->value.clause, CL_ERASED) )
     { ClauseRef c = cref;
 
       cl->erased_clauses--;
@@ -700,7 +700,7 @@ gcClauseList(ClauseList cl)
 
   DEBUG(CHK_SECURE,
 	{ for(cref=cl->first_clause; cref; cref=cref->next)
-	  { assert(false(cref->value.clause, ERASED));
+	  { assert(false(cref->value.clause, CL_ERASED));
 	  }
 	});
 
@@ -730,7 +730,7 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list)
 	  goto delete;
       }
     } else
-    { if ( true(cref->value.clause, ERASED) )
+    { if ( true(cref->value.clause, CL_ERASED) )
       { ClauseRef c;
 
 	dirty--;
@@ -767,7 +767,7 @@ gcClauseBucket(ClauseBucket ch, unsigned int dirty, int is_list)
   DEBUG(CHK_SECURE,
 	{ if ( !is_list )
 	  { for(cref=ch->head; cref; cref=cref->next)
-	    { assert(false(cref->value.clause, ERASED));
+	    { assert(false(cref->value.clause, CL_ERASED));
 	    }
 	  }
 	});
@@ -901,7 +901,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 	  unsigned int count = 0;
 
 	  for(cr=cl->first_clause; cr; cr=cr->next)
-	  { if ( true(cr->value.clause, ERASED) )
+	  { if ( true(cr->value.clause, CL_ERASED) )
 	      erased++;
 	    else
 	      count++;
@@ -985,7 +985,7 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
   for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
   { next = ci->next;
 
-    if ( true(def, DYNAMIC) )
+    if ( true(def, P_DYNAMIC) )
     { if ( ci->size - def->impl.clauses.erased_clauses < ci->resize_below )
 	replaceIndex(def, ci, NULL);
       else
@@ -1100,10 +1100,10 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
 
   ci = newClauseIndexTable(arg, hints);
 
-  if ( (dyn_or_multi=true(def, DYNAMIC|MULTIFILE)) )
+  if ( (dyn_or_multi=true(def, P_DYNAMIC|P_MULTIFILE)) )
     LOCKDEF(def);
   for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
-  { if ( false(cref->value.clause, ERASED) )
+  { if ( false(cref->value.clause, CL_ERASED) )
       addClauseToIndex(ci, cref->value.clause, CL_END);
   }
   ci->resize_above = ci->size*2;
@@ -1403,7 +1403,7 @@ bestHash(Word av, Definition def,
     Code pc = cref->value.clause->codes;
     int carg = 0;
 
-    if ( true(cl, ERASED) )
+    if ( true(cl, CL_ERASED) )
       continue;
 
     for(i=0, a=assessments; i<assess_count; i++, a++)

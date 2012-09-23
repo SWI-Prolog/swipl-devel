@@ -181,8 +181,7 @@ maplist_([Elem|Tail], Goal) :-
 
 %%	maplist(:Goal, ?List1, ?List2)
 %
-%	True if Goal can successfully be applied to all successive pairs
-%	of elements of List1 and List2.
+%	As maplist/2, operating on pairs of elements from two lists.
 
 maplist(Goal, List1, List2) :-
 	maplist_(List1, List2, Goal).
@@ -194,8 +193,7 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], Goal) :-
 
 %%	maplist(:Goal, ?List1, ?List2, ?List3)
 %
-%	True if Goal can  successfully  be   applied  to  all successive
-%	triples of elements of List1..List3.
+%	As maplist/2, operating on triples of elements from three lists.
 
 maplist(Goal, List1, List2, List3) :-
 	maplist_(List1, List2, List3, Goal).
@@ -208,8 +206,8 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
 
 %%	maplist(:Goal, ?List1, ?List2, ?List3, ?List4)
 %
-%	True if Goal can  successfully  be   applied  to  all successive
-%	quadruples of elements of List1..List4
+%	As maplist/2, operating on  quadruples   of  elements  from four
+%	lists.
 
 maplist(Goal, List1, List2, List3, List4) :-
 	maplist_(List1, List2, List3, List4, Goal).
@@ -288,7 +286,8 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 %	operations is defined by:
 %
 %	  ==
-%	  scanl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0, [V0,V1,...,Vn]) :-
+%	  scanl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0,
+%		[V0,V1,...,Vn]) :-
 %		P(X11, ..., Xmn, V0, V1),
 %		...
 %	        P(X1n, ..., Xmn, V', Vn).

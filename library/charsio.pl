@@ -83,15 +83,16 @@ format_to_chars(Format, Args, Codes, Tail) :-
 
 %%	write_to_chars(+Term, -Codes)
 %
-%	Codes is a list of character codes produced by write/1 on Term.
+%	Write a term to a code  list.  True   when  Codes  is  a list of
+%	character codes written by write/1 on Term.
 
 write_to_chars(Term, Codes) :-
 	format(codes(Codes), '~w', [Term]).
 
 %%	write_to_chars(+Term, -Codes, ?Tail)
 %
-%	Codes is a difference  list  of   character  codes  produced  by
-%	write/1 on Term.
+%	Write a term to a code list.  Codes\Tail is a difference list of
+%	character codes produced by write/1 on Term.
 
 write_to_chars(Term, Codes, Tail) :-
 	format(codes(Codes, Tail), '~w', [Term]).
@@ -192,8 +193,9 @@ with_output_to_chars(Goal, Codes, Tail) :-
 
 %%	with_output_to_chars(:Goal, -Stream, -Codes, ?Tail) is det.
 %
-%	As  with_output_to_chars/3,  but  Stream  is  unified  with  the
-%	temporary stream.
+%	Same as with_output_to_chars/3 using  an   explicit  stream. The
+%	difference list Codes\Tail contains  the   character  codes that
+%	Goal has written to Stream.
 
 with_output_to_chars(Goal, Stream, Codes, Tail) :-
 	with_output_to(codes(Codes, Tail), with_stream(Stream, Goal)).

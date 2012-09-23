@@ -69,7 +69,7 @@ Below is a simple example:
 ==
 :- module(user_db,
 	  [ attach_user_db/1,		% +File
-	    user_role/2,		% ?User, ?Role
+	    current_user_role/2,	% ?User, ?Role
 	    add_user/2,			% +User, +Role
 	    set_user_role/2		% +User, +Role
 	  ]).
@@ -80,9 +80,9 @@ Below is a simple example:
 attach_user_db(File) :-
 	db_attach(File, []).
 
-%%	user_role(+Name, -Role) is semidet.
+%%	current_user_role(+Name, -Role) is semidet.
 
-user_role(Name, Role) :-
+current_user_role(Name, Role) :-
 	with_mutex(user_db, user_role(Name, Role)).
 
 add_user(Name, Role) :-
@@ -92,7 +92,7 @@ set_user_role(Name, Role) :-
 	user_role(Name, Role), !.
 set_user_role(Name, Role) :-
 	with_mutex(user_db,
-		   (  retractall_user_rule(Name, _),
+		   (  retractall_user_role(Name, _),
 		      assert_user_role(Name, Role))).
 ==
 

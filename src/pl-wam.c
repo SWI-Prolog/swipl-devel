@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1126,7 +1125,7 @@ static inline int
 slotsInFrame(LocalFrame fr, Code PC)
 { Definition def = fr->predicate;
 
-  if ( !PC || true(def, FOREIGN) || !fr->clause )
+  if ( !PC || true(def, P_FOREIGN) || !fr->clause )
     return def->functor->arity;
 
   return fr->clause->value.clause->prolog_vars;
@@ -1376,7 +1375,7 @@ discardFrame(LocalFrame fr ARG_LD)
 		    loffset(fr),
 		    predicateName(fr->predicate)));
 
-  if ( true(def, FOREIGN) )
+  if ( true(def, P_FOREIGN) )
   { if ( fr->clause )
     { discardForeignFrame(fr PASS_LD);
       fr->clause = NULL;
@@ -1446,7 +1445,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
       for(fr2 = me->frame;
 	  fr2 > delto;
 	  fr2 = fr2->parent)
-      { assert(fr2->clause || true(fr2->predicate, FOREIGN));
+      { assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
 
 	if ( true(fr2, FR_WATCHED) )
 	{ char *lSave = (char*)lBase;

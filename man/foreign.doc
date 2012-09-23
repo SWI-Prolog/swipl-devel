@@ -167,7 +167,7 @@ PL_extension predicates[] =
 /*{ "name",      arity,  function,      PL_FA_<flags> },*/
 
   { "lowercase", 2       pl_lowercase,  0 },
-  { NULL,        0,      NULL,          0 }     /* terminating line */
+  { NULL,        0,      NULL,          0 } /* terminating line */
 };
 
 
@@ -607,7 +607,7 @@ or
         }
 \end{code}
 
-\begin{tabular}{|p{\tableft}|p{3.5in}|}
+\begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
 \const{PL_VARIABLE} & An unbound variable. The value of term as such
 		      is a unique identifier for the variable. \\
@@ -708,44 +708,70 @@ all atoms can be converted into a \ctype{char*}.  This function fails
 if \arg{t} is of the wrong type, but also if the text cannot be
 represented.  See the \const{REP_*} flags below for details.
 
-\begin{tabular}{|p{\tableft}|p{3.5in}|}
-\hline
-\const{CVT_ATOM}    & Convert if term is an atom \\
-\const{CVT_STRING}  & Convert if term is a string \\
-\const{CVT_LIST}    & Convert if term is a list of integers between
-		      1 and 255 \\
-\const{CVT_INTEGER} & Convert if term is an integer (using \const{\%d}) \\
-\const{CVT_FLOAT}   & Convert if term is a float (using \const{\%f}) \\
-\const{CVT_NUMBER}  & Convert if term is an integer or float \\
-\const{CVT_ATOMIC}  & Convert if term is atomic \\
-\const{CVT_VARIABLE}& Convert variable to print-name \\
-\const{CVT_WRITE}   & Convert any term that is not converted by
-		      any of the other flags using write/1.  If
-		      no \const{BUF_*} is provided, \const{BUF_RING}
-		      is implied. \\
-\const{CVT_WRITE_CANONICAL} & As \const{CVT_WRITE}, but use write_canonical/2. \\
-\const{CVT_ALL}     & Convert if term is any of the above, except for
-                      \const{CVT_VARIABLE} and \const{CVT_WRITE} \\
-\hline
-\const{CVT_EXCEPTION}&If conversion fails due to a type error, raise
-		      a Prolog type error exception in addition to
-		      failure \\
-\hline
-\const{BUF_DISCARDABLE}     & Data must copied immediately \\
-\const{BUF_RING}    & Data is stored in a ring of buffers \\
-\const{BUF_MALLOC}  & Data is copied to a new buffer returned by
-		      \manref{PL_malloc}{3}.  When no longer needed
-		      the user must call PL_free() on the data. \\
-\hline
-\const{REP_ISO_LATIN_1}	& (0, default).  Text is in ISO Latin-1 encoding
-		      and the call fails if text cannot be represented. \\
-\const{REP_UTF8}	& Convert the text to a UTF-8 string.  This works
-		      for all text. \\
-\const{REP_MB}		& Convert to default locale-defined 8-bit string.
-		      Success depends on the locale.  Conversion is done
-		      using the wcrtomb() C library function. \\
-\hline
-\end{tabular}
+\begin{description}
+    \termitem{CVT_ATOM}{}
+Convert if term is an atom.
+
+    \termitem{CVT_STRING}{}
+Convert if term is a string.
+
+    \termitem{CVT_LIST}{}
+Convert if term is a list of of character codes.
+
+    \termitem{CVT_INTEGER}{}
+Convert if term is an integer.
+
+    \termitem{CVT_FLOAT}{}
+Convert if term is a float.  The characters returned are the same as
+write/1 would write for the floating point number.
+
+    \termitem{CVT_NUMBER}{}
+Convert if term is an integer or float.
+
+    \termitem{CVT_ATOMIC}{}
+Convert if term is atomic.
+
+    \termitem{CVT_VARIABLE}{}
+Convert variable to print-name
+
+    \termitem{CVT_WRITE}{}
+Convert any term that is not converted by any of the other flags using
+write/1. If no \const{BUF_*} is provided, \const{BUF_RING} is implied.
+
+    \termitem{CVT_WRITE_CANONICAL}{}
+As \const{CVT_WRITE}, but using write_canonical/2.
+
+    \termitem{CVT_ALL}{}
+Convert if term is any of the above, except for \const{CVT_VARIABLE} and
+\const{CVT_WRITE}.
+
+    \termitem{CVT_EXCEPTION}{}
+If conversion fails due to a type error, raise a Prolog type error
+exception in addition to failure
+
+    \termitem{BUF_DISCARDABLE}{}
+Data must copied immediately
+
+    \termitem{BUF_RING}{}
+Data is stored in a ring of buffers
+
+    \termitem{BUF_MALLOC}{}
+Data is copied to a new buffer returned by \manref{PL_malloc}{3}. When
+no longer needed the user must call PL_free() on the data.
+
+    \termitem{REP_ISO_LATIN_1}{}
+Text is in ISO Latin-1 encoding and the call fails if text
+cannot be represented.  This flag has the value 0 and is thus the
+default.
+
+    \termitem{REP_UTF8}{}
+Convert the text to a UTF-8 string. This works for all text.
+
+    \termitem{REP_MB}{}
+Convert to default locale-defined 8-bit string. Success depends on the
+locale. Conversion is done using the wcrtomb() C library function.
+\end{description}
+
 
 \cfunction{int}{PL_get_list_chars}{+term_t l, char **s, unsigned flags}
 Same as \exam{PL_get_chars(\arg{l}, \arg{s}, CVT_LIST|\arg{flags})},
@@ -914,8 +940,8 @@ atoms, each on a line:
 \begin{code}
 foreign_t
 pl_write_atoms(term_t l)
-{ term_t head = PL_new_term_ref();      /* variable for the elements */
-  term_t list = PL_copy_term_ref(l);    /* copy as we need to write */
+{ term_t head = PL_new_term_ref();   /* the elements */
+  term_t list = PL_copy_term_ref(l); /* copy (we modify list) */
 
   while( PL_get_list(list, head, list) )
   { char *s;
@@ -926,7 +952,7 @@ pl_write_atoms(term_t l)
       PL_fail;
   }
 
-  return PL_get_nil(list);              /* test end for [] */
+  return PL_get_nil(list);            /* test end for [] */
 }
 \end{code}
 
@@ -1421,7 +1447,7 @@ static functor_t FUNCTOR_language1;
 
 static void
 init_constants()
-{ FUNCTOR_language1 = PL_new_functor(PL_new_atom("language"), 1);
+{ FUNCTOR_language1 = PL_new_functor(PL_new_atom("language"),1);
 }
 
 foreign_t
@@ -1652,13 +1678,13 @@ displayed below. The structure contains additional fields at the
 
 \begin{code}
 typedef struct PL_blob_t
-{ unsigned long		magic;		/* PL_BLOB_MAGIC */
-  unsigned long		flags;		/* Bitwise or of PL_BLOB_* */
-  char *		name;		/* name of the type */
-  int			(*release)(atom_t a);
-  int			(*compare)(atom_t a, atom_t b);
-  int			(*write)(IOSTREAM *s, atom_t a, int flags);
-  void			(*acquire)(atom_t a);
+{ uintptr_t	magic;		/* PL_BLOB_MAGIC */
+  uintptr_t	flags;		/* Bitwise or of PL_BLOB_* */
+  char *	name;		/* name of the type */
+  int		(*release)(atom_t a);
+  int		(*compare)(atom_t a, atom_t b);
+  int		(*write)(IOSTREAM *s, atom_t a, int flags);
+  void		(*acquire)(atom_t a);
   ...
 } PL_blob_t;
 \end{code}
@@ -2477,62 +2503,56 @@ for \manref{printf}{2}. Always returns \const{FALSE}.
 \cfunction{int}{PL_action}{int, ...}
 Perform some action on the Prolog system. \arg{int} describes the
 action. Remaining arguments depend on the requested action. The actions
-are listed in \tabref{action}.
+are listed below:
 
-\begin{table}
-\begin{quote}\begin{tabular}{|p{\tableft}|p{3.5in}|}
-\hline
-\const{PL_ACTION_TRACE}     & Start Prolog tracer (trace/0).
-			      Requires no arguments. \\
-\const{PL_ACTION_DEBUG}     & Switch on Prolog debug mode (debug/0).
-			      Requires no arguments. \\
-\const{PL_ACTION_BACKTRACE} & Print backtrace on current output stream.
-                              The argument (an \ctype{int}) is the number of frames
-			      printed. \\
-\const{PL_ACTION_HALT}      & Halt Prolog execution. This action should be
-                              called rather than Unix exit() to give Prolog
-                              the opportunity to clean up. This call does
-                              not return. The argument (an \ctype{int}) is the
-			      exit code. See halt/1. \\
-\const{PL_ACTION_ABORT}     & Generate a Prolog abort (abort/0).
-			      This call does not return.
-			      Requires no arguments. \\
-\const{PL_ACTION_BREAK}     & Create a standard Prolog break environment
-			      (break/0). Returns after the user types
-			      the end-of-file character.
-			      Requires no arguments. \\
-\const{PL_ACTION_GUIAPP}    & Win32: Used to indicate to the kernel that the
-			      application is a GUI application if the
-			      argument is not 0, and a console
-			      application if the argument is 0.
-			      If a fatal error occurs, the system uses a
-			      windows messagebox to report this on a GUI
-			      application, and otherwise simply prints the error
-			      and exits. \\
-\const{PL_ACTION_WRITE}	    & Write the argument, a \ctype{char *} to the
-			      current output stream. \\
-\const{PL_ACTION_FLUSH}	    & Flush the current output stream.
-			      Requires no arguments. \\
-\const{PL_ACTION_ATTACH_CONSOLE} &
-			      Attach a console to a thread if it does
-			      not have one.  See attach_console/0. \\
-\const{PL_GMP_SET_ALLOC_FUNCTIONS} &
-			      Takes an integer argument. If
-			      \const{TRUE}, the GMP allocations are
-			      immediately bound to the Prolog
-			      functions.  If \const{FALSE}, SWI-Prolog
-			      will never rebind the GMP allocation
-			      functions.  See mp_set_memory_functions()
-			      in the GMP documentation.
-			      The action returns \const{FALSE} if there
-			      is no GMP support or GMP is already
-			      initialised. \\
-\hline
-\end{tabular}\end{quote}
+\begin{description}
+    \termitem{PL_ACTION_TRACE}{}
+Start Prolog tracer (trace/0).  Requires no arguments.
 
-    \caption{PL_action() options}
-    \label{tab:action}
-\end{table}
+    \termitem{PL_ACTION_DEBUG}{}
+Switch on Prolog debug mode (debug/0).  Requires no arguments.
+
+    \termitem{PL_ACTION_BACKTRACE}{}
+Print backtrace on current output stream.  The argument (an \ctype{int})
+is the number of frames printed.
+
+    \termitem{PL_ACTION_HALT}{}
+Halt Prolog execution. This action should be called rather than Unix
+exit() to give Prolog the opportunity to clean up. This call does not
+return. The argument (an \ctype{int}) is the exit code. See halt/1.
+
+    \termitem{PL_ACTION_ABORT}{}
+Generate a Prolog abort (abort/0). This call does not return. Requires
+no arguments.
+
+    \termitem{PL_ACTION_BREAK}{}
+Create a standard Prolog break environment (break/0). Returns after the
+user types the end-of-file character. Requires no arguments.
+
+    \termitem{PL_ACTION_GUIAPP}{}
+Windows: Used to indicate to the kernel that the application is a GUI
+application if the argument is not 0, and a console application if the
+argument is 0. If a fatal error occurs, the system uses a windows
+messagebox to report this on a GUI application, and otherwise simply
+prints the error and exits.
+
+    \termitem{PL_ACTION_WRITE}{}
+Write the argument, a \ctype{char *} to the current output stream.
+
+    \termitem{PL_ACTION_FLUSH}{}
+Flush the current output stream.  Requires no arguments.
+
+    \termitem{PL_ACTION_ATTACH_CONSOLE}{}
+Attach a console to a thread if it does not have one. See
+attach_console/0.
+
+    \termitem{PL_GMP_SET_ALLOC_FUNCTIONS}{}
+Takes an integer argument. If \const{TRUE}, the GMP allocations are
+immediately bound to the Prolog functions. If \const{FALSE}, SWI-Prolog
+will never rebind the GMP allocation functions. See
+mp_set_memory_functions() in the GMP documentation. The action returns
+\const{FALSE} if there is no GMP support or GMP is already initialised.
+\end{description}
 
     \cfunction{int}{PL_backtrace}{int depth, int flags}
 Print a Prolog backtrace to the standard error stream. The \arg{depth}
@@ -2574,7 +2594,7 @@ The  options are given in \tabref{query}.
 
 
 \begin{table}
-\begin{quote}\begin{tabular}{|p{\tableft}|p{3.5in}|}
+\begin{quote}\begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
 \const{PL_QUERY_ARGC}       & Return an integer holding the number of
                               arguments given to Prolog from Unix. \\
@@ -2607,21 +2627,21 @@ The  options are given in \tabref{query}.
 \subsection{Registering Foreign Predicates}
 
 \begin{description}
-\cfunction{int}{PL_register_foreign_in_module}{const char *module,
-					       const char *name, int arity,
-					       foreign_t (*function)(),
+\cfunction{int}{PL_register_foreign_in_module}{char *mod,
+					       char *name, int arity,
+					       foreign_t (*f)(),
 					       int flags, ...}
-Register a C function to implement a Prolog predicate. After this call
-returns successfully a predicate with name \arg{name} (a \ctype{char *}) and
-arity \arg{arity} (a C \ctype{int}) is created in module \arg{module}.  If
-\arg{module} is \const{NULL}, the predicate is created in the module
-of the calling context, or if no context is present in the module
-\const{user}.
+Register the C function \arg{f} to implement a Prolog predicate. After
+this call returns successfully a predicate with name \arg{name} (a
+\ctype{char *}) and arity \arg{arity} (a C \ctype{int}) is created in
+module \arg{mod}. If \arg{mod} is \const{NULL}, the predicate is created
+in the module of the calling context, or if no context is present in the
+module \const{user}.
 
 When called in Prolog, Prolog will call \arg{function}. \arg{flags}
 form a bitwise \emph{or}'ed list of options for the installation. These are:
 
-\begin{tabular}{|p{\tableft}|p{3.5in}|}
+\begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
 \const{PL_FA_META}	       & Provide meta-predicate info (see below) \\
 \const{PL_FA_TRANSPARENT}      & Predicate is module transparent (deprecated) \\
@@ -2679,7 +2699,8 @@ atom_checksum(term_t a0, int arity, void* context)
 
 install_t
 install()
-{ PL_register_foreign("atom_checksum", 2, atom_checksum, PL_FA_VARARGS);
+{ PL_register_foreign("atom_checksum", 2,
+		      atom_checksum, PL_FA_VARARGS);
 }
 \end{code}
 
@@ -2699,10 +2720,10 @@ The \ctype{PL_extension} type is defined as
 
 \begin{code}
 typedef struct PL_extension
-{ char		*predicate_name;	/* Name of the predicate */
-  short		arity;			/* Arity of the predicate */
-  pl_function_t	function;		/* Implementing functions */
-  short		flags;			/* Or of PL_FA_... */
+{ char		*predicate_name; /* Name of the predicate */
+  short		arity;		 /* Arity of the predicate */
+  pl_function_t	function;	 /* Implementing functions */
+  short		flags;		 /* Or of PL_FA_... */
 } PL_extension;
 \end{code}
 
@@ -3511,13 +3532,10 @@ Welcome to SWI-Prolog (Version \plversion)
 ...
 
 1 ?- load_foreign_library(lowercase).
+true.
 
-Yes
 2 ?- lowercase('Hello World!', L).
-
-L = 'hello world!'
-
-Yes
+L = 'hello world!'.
 \end{code}
     \caption{Compiling the C source and loading the object file}
     \label{fig:load-foreign}
@@ -3659,7 +3677,8 @@ differ from Prolog to Prolog, a simple macro layer dealing with the
 names can also deal with this detail.  For example:
 
 \begin{code}
-#define QP_put_functor(t, n, a) PL_put_functor(t, PL_new_functor(n, a))
+#define QP_put_functor(t, n, a) \
+	PL_put_functor(t, PL_new_functor(n, a))
 \end{code}
 
 The {\tt PL_unify_*()} functions are lacking from the Quintus and

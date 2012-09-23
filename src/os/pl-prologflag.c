@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -566,9 +564,9 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       }
       if ( k == ATOM_character_escapes )
       { if ( val )
-	  set(m, CHARESCAPE);
+	  set(m, M_CHARESCAPE);
 	else
-	  clear(m, CHARESCAPE);
+	  clear(m, M_CHARESCAPE);
       } else if ( k == ATOM_debug )
       { if ( val )
 	{ debugmode(DBG_ALL, NULL);
@@ -753,7 +751,7 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
 { GET_LD
 
   if ( key == ATOM_character_escapes )
-  { atom_t v = (true(m, CHARESCAPE) ? ATOM_true : ATOM_false);
+  { atom_t v = (true(m, M_CHARESCAPE) ? ATOM_true : ATOM_false);
 
     return PL_unify_atom(val, v);
   } else if ( key == ATOM_double_quotes )

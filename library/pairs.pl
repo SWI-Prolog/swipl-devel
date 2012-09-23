@@ -130,8 +130,8 @@ same_key(_, L, [], L).
 
 %%	transpose_pairs(+Pairs, -Transposed) is det.
 %
-%	Swap Key-Value to Value-Key and sort the result on Value
-%	(the new key) using keysort/2.
+%	Swap Key-Value to Value-Key. The resulting  list is sorted using
+%	keysort/2 on the new key.
 
 transpose_pairs(Pairs, Transposed) :-
 	flip_pairs(Pairs, Flipped),

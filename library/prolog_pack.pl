@@ -404,9 +404,14 @@ pack_install(Dir) :-			% Install from directory
 	uri_file_name(DirURL, Dir),
 	pack_install(Name, [url(DirURL)]).
 pack_install(Pack) :-			% Install from a pack name
-	query_pack_server(locate(Pack), true([Version-[URL|_]|_])),
-	confirm(install_from(Pack, Version, URL), yes, []),
-	pack_install(Pack, [url(URL), inquiry(true)]).
+	query_pack_server(locate(Pack), true(Results)),
+	(   Results = [Version-[URL|_]|_]
+	->  confirm(install_from(Pack, Version, URL), yes, []),
+	    pack_install(Pack, [url(URL), inquiry(true)])
+	;   print_message(warning, pack(no_match(Pack))),
+	    fail
+	).
+
 
 
 %%	pack_install(+Name, +Options) is det.
@@ -816,11 +821,12 @@ build_environment(Env) :-
 
 %%	environment(-Name, -Value) is nondet.
 %
-%	Multifile hook to extend the   process  environment for building
-%	foreign extensions to SWI-Prolog. A value  provided by this hook
-%	overrules defaults provided by def_environment/2. In addition to
-%	changing the environment, this may be   used  to pass additional
-%	values to the environment, as in:
+%	Hook  to  define  the  environment   for  building  packs.  This
+%	Multifile hook extends the  process   environment  for  building
+%	foreign extensions. A value  provided   by  this  hook overrules
+%	defaults provided by def_environment/2. In  addition to changing
+%	the environment, this may be used   to pass additional values to
+%	the environment, as in:
 %
 %	  ==
 %	  prolog_pack:environment('USER', User) :-
@@ -1214,9 +1220,10 @@ query_pack_server(Query, Result) :-
 		      [ post(codes(text/'x-prolog', Data))
 		      ]),
 	    ( set_stream(In, encoding(utf8)),
-	      read(In, Result)
+	      read(In, Result0)
 	    ),
 	    close(In)),
+	Result = Result0,
 	print_message(informational, pack(server_reply(Result))).
 
 
@@ -1766,6 +1773,8 @@ message(cannot_create_dir(Alias)) -->
 	  'Considered:'-[]
 	],
 	candidate_dirs(PackDirs).
+message(no_match(Name)) -->
+	[ 'No registered pack matches "~w"'-[Name] ].
 
 candidate_dirs([]) --> [].
 candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).

@@ -314,8 +314,9 @@ the hook definition below.  Run the program in debug mode (see debug/0)
 to preserve as much as possible of the error context.
 
 \begin{code}
-user:prolog_exception_hook(error(evaluation_error(zero_divisor), _),
-			   _, _, _) :-
+user:prolog_exception_hook(
+	 error(evaluation_error(zero_divisor), _),
+	 _, _, _) :-
 	trace, fail.
 \end{code}
 \end{description}

@@ -184,19 +184,20 @@ typedef struct source_mark
 } source_mark, *SourceMark;
 
 
+#define XR_ARRAYS 16000
 typedef struct xr_table
 { int		id;			/* next id to give out */
-  Word	       *table;			/* main table */
   int		tablesize;		/* # sub-arrays */
   struct xr_table* previous;		/* stack */
+  Word	        table[XR_ARRAYS];	/* main table */
 } xr_table, *XrTable;
 
 
 typedef struct qlf_state
-{ int	has_moved;			/* Paths must be translated */
-  char *save_dir;			/* Directory saved */
+{ char *save_dir;			/* Directory saved */
   char *load_dir;			/* Directory loading */
   int   saved_version;			/* Version saved */
+  int	has_moved;			/* Paths must be translated */
   struct qlf_state *previous;		/* previous saved state (reentrance) */
 } qlf_state;
 
@@ -258,23 +259,20 @@ static void	popPathTranslation(wic_state *state);
 
 #define loadedXRTableId		(loadedXrs->id)
 
-#define SUBENTRIES ((ALLOCSIZE)/sizeof(word))
+#define SUBENTRIES (8000)
+#define ALLOCSIZE  (SUBENTRIES*sizeof(word))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-XR reference handling during loading.  This   is arranged as an array-of
-arrays.  These arrays are of size ALLOCSIZE,   so they will be reused on
-perfect-fit basis the pl-alloc.c.  With ALLOCSIZE   = 64K, this requires
-minimal 128K memory.   Maximum  allowed  references   is  16K^2  or  32M
-references.  That will normally overflow other system limits first.
+XR reference handling during loading. This   is  arranged as an array-of
+arrays. The main array has size  XR_ARRAYS. Each subarray has SUBENTRIES
+constants, allowing for a total of 96M constants per QLF file or state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 pushXrIdTable(wic_state *state)
 { XrTable t = allocHeapOrHalt(sizeof(struct xr_table));
 
-  if ( !(t->table = allocHeapOrHalt(ALLOCSIZE)) )
-    outOfCore();
-  DEBUG(CHK_SECURE, memset(t->table, 0, ALLOCSIZE));
+  DEBUG(CHK_SECURE, memset(t->table, 0xbf, XR_ARRAYS*sizeof(Word)));
   t->tablesize = 0;
   t->id = 0;
 
@@ -293,7 +291,6 @@ popXrIdTable(wic_state *state)
   for(i=0; i<t->tablesize; i++)		/* destroy obsolete table */
     freeHeap(t->table[i], ALLOCSIZE);
 
-  freeHeap(t->table, ALLOCSIZE);
   freeHeap(t, sizeof(*t));
 }
 
@@ -317,13 +314,14 @@ storeXrId(wic_state *state, long id, word value)
   long i = id/SUBENTRIES;
 
   while ( i >= t->tablesize )
-  { Word a = allocHeapOrHalt(ALLOCSIZE);
+  { if ( t->tablesize < XR_ARRAYS-1 )
+    { Word a = allocHeapOrHalt(ALLOCSIZE);
 
-    if ( !a )
-      outOfCore();
-
-    DEBUG(CHK_SECURE, memset(a, 0, ALLOCSIZE));
-    t->table[t->tablesize++] = a;
+      DEBUG(CHK_SECURE, memset(a, 0xbf, ALLOCSIZE));
+      t->table[t->tablesize++] = a;
+    } else
+    { fatalError("Too many constants in QLF file");
+    }
   }
 
   t->table[i][id%SUBENTRIES] = value;
@@ -1025,7 +1023,7 @@ loadPredicateFlags(wic_state *state, Definition def, int skip)
   { unsigned long lflags = 0L;
 
     if ( flags & PRED_SYSTEM )
-      lflags |= SYSTEM;
+      lflags |= P_LOCKED;
     if ( flags & PRED_HIDE_CHILDS )
       lflags |= HIDE_CHILDS;
 
@@ -2097,12 +2095,12 @@ predicateFlags(Definition def, atom_t sclass)
 { int flags = 0;
 
   if ( sclass == ATOM_kernel )
-  { if ( true(def, SYSTEM) && false(def, HIDE_CHILDS) )
+  { if ( true(def, P_LOCKED) && false(def, HIDE_CHILDS) )
       return PRED_SYSTEM;
     return (PRED_SYSTEM|PRED_HIDE_CHILDS);
   }
 
-  if ( true(def, SYSTEM) )
+  if ( true(def, P_LOCKED) )
     flags |= PRED_SYSTEM;
   if ( true(def, HIDE_CHILDS) )
     flags |= PRED_HIDE_CHILDS;

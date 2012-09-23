@@ -82,7 +82,8 @@ Unify \arg{NewGraph} with a new graph obtained by deleting the list of
 
 \begin{code}
 ?- del_vertices([2,1],
-		[1-[3,5],2-[4],3-[],4-[5],5-[],6-[],7-[2,6],8-[]],
+		[1-[3,5],2-[4],3-[],4-[5],
+		 5-[],6-[],7-[2,6],8-[]],
 		NL).
 NL = [3-[],4-[5],5-[],6-[],7-[6],8-[]]
 \end{code}
@@ -92,10 +93,12 @@ Unify \arg{NewGraph} with a new graph obtained by adding the list of
 \arg{Edges} to \arg{Graph}. Example:
 
 \begin{code}
-?- add_edges([1-[3,5],2-[4],3-[],4-[5],5-[],6-[],7-[],8-[]],
+?- add_edges([1-[3,5],2-[4],3-[],4-[5],
+	      5-[],6-[],7-[],8-[]],
 	     [1-6,2-3,3-2,5-7,3-2,4-5],
 	     NL).
-NL = [1-[3,5,6], 2-[3,4], 3-[2], 4-[5], 5-[7], 6-[], 7-[], 8-[]]
+NL = [1-[3,5,6], 2-[3,4], 3-[2], 4-[5],
+      5-[7], 6-[], 7-[], 8-[]]
 \end{code}
 
     \predicate{del_edges}{3}{+Graph, +Edges, -NewGraph}
@@ -116,7 +119,8 @@ cost is $O(|V|^2)$. Notice that an undirected graph is its own transpose.
 Example:
 
 \begin{code}
-?- transpose([1-[3,5],2-[4],3-[],4-[5],5-[],6-[],7-[],8-[]], NL).
+?- transpose([1-[3,5],2-[4],3-[],4-[5],
+	      5-[],6-[],7-[],8-[]], NL).
 NL = [1-[],2-[],3-[1],4-[2],5-[1,4],6-[],7-[],8-[]]
 \end{code}
 

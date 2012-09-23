@@ -110,7 +110,7 @@ result in an exception.
 
 \begin{table}
 \begin{center}
-\begin{tabular}{|lrl|p{0.5\linewidth}|}
+\begin{tabular}{|lrl|l|}
 \hline
 <Constraints> \isa <Constraint>				& single constraint \\
 	      \ora <Constraint> , <Constraints>		& conjunction \\
@@ -126,7 +126,7 @@ result in an exception.
 	     \ora <Expression> = <Expression>		& equal \\
 
 <Expression> \isa <Variable>				& Prolog variable \\
-	     \ora <Number>				& Prolog number (float, integer) \\
+	     \ora <Number>				& Prolog number \\
 	     \ora +<Expression>				& unary plus \\
 	     \ora -<Expression>				& unary minus \\
 	     \ora <Expression> + <Expression>		& addition \\

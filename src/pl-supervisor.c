@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@uva.nl
+    E-mail:        J.Wielemak@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2006-2008, University of Amsterdam
+    Copyright (C): 2006-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -92,7 +91,7 @@ static int prof_foreign_index = (I_HIGHEST+20);
 
 int
 createForeignSupervisor(Definition def, Func f)
-{ assert(true(def, FOREIGN));
+{ assert(true(def, P_FOREIGN));
 
   if ( false(def, P_VARARG) )
   { if ( def->functor->arity > MAX_FLI_ARGS )
@@ -100,7 +99,7 @@ createForeignSupervisor(Definition def, Func f)
 	       predicateName(def), MAX_FLI_ARGS); \
   }
 
-  if ( false(def, NONDETERMINISTIC) )
+  if ( false(def, P_NONDET) )
   { Code codes = allocCodes(4);
 
     codes[0] = encode(I_FOPEN);
@@ -250,8 +249,8 @@ listSupervisor(Definition def)
 
 static Code
 multifileSupervisor(Definition def)
-{ if ( true(def, (DYNAMIC|MULTIFILE)) )
-  { if ( true(def, DYNAMIC) )
+{ if ( true(def, (P_DYNAMIC|P_MULTIFILE)) )
+  { if ( true(def, P_DYNAMIC) )
       return SUPERVISOR(dynamic);
     else
       return SUPERVISOR(multifile);

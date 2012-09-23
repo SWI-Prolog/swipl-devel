@@ -257,6 +257,7 @@ unify_clause((Head :- Read),
 				 [ PH,
 				   term_position(0,0,0,0,[0-0,PB])
 				 ]).
+					% DCG rules
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
 	Read = (_ --> List, _),
 	is_list(List),
@@ -270,11 +271,11 @@ unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
 					     term_position(_,_,_,_,[_,BP])
 					   ]), !,
 	TermPos1 = term_position(F,T,FF,FT,[ HP, BP ]),
-	match_module(Compiled2, Compiled1, TermPos1, TermPos).
+	match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
 					% general term-expansion
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
 	ci_expand(Read, Compiled2, Module),
-	match_module(Compiled2, Compiled1, TermPos0, TermPos).
+	match_module(Compiled2, Compiled1, Module, TermPos0, TermPos).
 					% I don't know ...
 unify_clause(_, _, _, _, _) :-
 	debug(clause_info, 'Could not unify clause', []),
@@ -285,16 +286,17 @@ unify_clause_head(H1, H2) :-
 	strip_module(H2, _, H).
 
 ci_expand(Read, Compiled, Module) :-
-	catch(setup_call_cleanup('$set_source_module'(Old, Module),
-				 expand_term(Read, Compiled),
-				 '$set_source_module'(_, Old)),
+	catch(setup_call_cleanup(
+		  '$set_source_module'(Old, Module),
+		  expand_term(Read, Compiled),
+		  '$set_source_module'(_, Old)),
 	      E,
 	      expand_failed(E, Read)).
 
-match_module((H1 :- B1), (H2 :- B2), Pos0, Pos) :- !,
+match_module((H1 :- B1), (H2 :- B2), Module, Pos0, Pos) :- !,
 	unify_clause_head(H1, H2),
-	unify_body(B1, B2, Pos0, Pos).
-match_module(H1, H2, Pos, Pos) :-	% deal with facts
+	unify_body(B1, B2, Module, Pos0, Pos).
+match_module(H1, H2, _, Pos, Pos) :-	% deal with facts
 	unify_clause_head(H1, H2).
 
 %%	expand_failed(+Exception, +Term)
@@ -307,19 +309,19 @@ expand_failed(E, Read) :-
 	debug(clause_info, 'Term-expand ~p failed: ~w', [Read, Msg]),
 	fail.
 
-%%	unify_body(+Read, +Decompiled, +Pos0, -Pos)
+%%	unify_body(+Read, +Decompiled, +Module, +Pos0, -Pos)
 %
 %	Deal with translations implied by the compiler.  For example,
 %	compiling (a,b),c yields the same code as compiling a,b,c.
 %
 %	Pos0 and Pos still include the term-position of the head.
 
-unify_body(B, B, Pos, Pos) :-
+unify_body(B, B, _, Pos, Pos) :-
 	does_not_dcg_after_binding(B, Pos), !.
-unify_body(R, D,
+unify_body(R, D, Module,
 	   term_position(F,T,FF,FT,[HP,BP0]),
 	   term_position(F,T,FF,FT,[HP,BP])) :-
-	ubody(R, D, BP0, BP).
+	ubody(R, D, Module, BP0, BP).
 
 %%	does_not_dcg_after_binding(+ReadBody, +ReadPos) is semidet.
 %
@@ -343,71 +345,83 @@ a --> { x, y, z }.
     which the compiler creates "a(X,Y) :- x, y, z, X=Y".
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%%	ubody(+Read, +Decompiled, +TermPosRead, -TermPosForDecompiled)
+%%	ubody(+Read, +Decompiled, +Module, +TermPosRead, -TermPosForDecompiled)
 %
 %	@param Read		Clause read _after_ expand_term/2
 %	@param Decompiled	Decompiled clause
+%	@param Module		Load module
 %	@param TermPosRead	Sub-term positions of source
 
-ubody(B, B, P, P) :-
+ubody(B, B, _, P, P) :-
 	does_not_dcg_after_binding(B, P), !.
-ubody(X, call(X),			% X = call(X)
+ubody(M:R, D, M, term_position(_,_,_,_,[_,RP]), TPOut) :-
+	ubody(R, D, M, RP, TPOut).
+ubody(X, call(X), _,			% X = call(X)
       Pos,
       term_position(From, To, From, To, [Pos])) :- !,
 	arg(1, Pos, From),
 	arg(2, Pos, To).
-ubody(B0, B,
+ubody(B0, B, M,
       brace_term_position(F,T,A0),
       Pos) :-
 	B0 = (_,_=_), !,
 	T1 is T - 1,
-	ubody(B0, B,
+	ubody(B0, B, M,
 	      term_position(F,T,
 			    F,T,
 			    [A0,T1-T]),
 	      Pos).
-ubody(B0, B,
+ubody(B0, B, M,
       brace_term_position(F,T,A0),
       term_position(F,T,F,T,[A])) :- !,
-	ubody(B0, B, A0, A).
-ubody(C0, C, P0, P) :-
+	ubody(B0, B, M, A0, A).
+ubody(C0, C, M, P0, P) :-
 	nonvar(C0), nonvar(C),
 	C0 = (_,_), C = (_,_), !,
 	conj(C0, P0, GL, PL),
-	mkconj(C, P, GL, PL).
-ubody(X0, X,
+	mkconj(C, M, P, GL, PL).
+ubody(X0, X, M,
       term_position(F,T,FF,TT,PA0),
       term_position(F,T,FF,TT,PA)) :-
-	meta(X0), !,
+	meta(M, X0, S), !,
 	X0 =.. [_|A0],
 	X  =.. [_|A],
-	ubody_list(A0, A, PA0, PA).
+	S =.. [_|AS],
+	ubody_list(A0, A, AS, M, PA0, PA).
+ubody(X0, X, _,
+      term_position(F,T,FF,TT,PA0),
+      term_position(F,T,FF,TT,PA)) :-
+	expand_goal(X0, X, PA0, PA).
+
 					% 5.7.X optimizations
-ubody(_=_, true,			% singleton = Any
+ubody(_=_, true, _,			% singleton = Any
       term_position(F,T,_FF,_TT,_PA),
       F-T) :- !.
-ubody(_==_, fail,			% singleton/firstvar == Any
+ubody(_==_, fail, _,			% singleton/firstvar == Any
       term_position(F,T,_FF,_TT,_PA),
       F-T) :- !.
-ubody(A1=B1, B2=A2,			% Term = Var --> Var = Term
+ubody(A1=B1, B2=A2, _,			% Term = Var --> Var = Term
       term_position(F,T,FF,TT,[PA1,PA2]),
       term_position(F,T,FF,TT,[PA2,PA1])) :-
 	(A1==B1) =@= (B2==A2), !,
 	A1 = A2, B1=B2.
-ubody(A1==B1, B2==A2,			% const == Var --> Var == const
+ubody(A1==B1, B2==A2, _,		% const == Var --> Var == const
       term_position(F,T,FF,TT,[PA1,PA2]),
       term_position(F,T,FF,TT,[PA2,PA1])) :-
 	(A1==B1) =@= (B2==A2), !,
 	A1 = A2, B1=B2.
-ubody(A is B - C, A is B + C2, Pos, Pos) :-
+ubody(A is B - C, A is B + C2, _, Pos, Pos) :-
 	integer(C),
 	C2 =:= -C, !.
 
-ubody_list([], [], [], []).
-ubody_list([G0|T0], [G|T], [PA0|PAT0], [PA|PAT]) :-
-	ubody(G0, G, PA0, PA),
-	ubody_list(T0, T, PAT0, PAT).
+ubody_list([], [], [], _, [], []).
+ubody_list([G0|T0], [G|T], [AS|ASL], M, [PA0|PAT0], [PA|PAT]) :-
+	ubody_elem(AS, G0, G, M, PA0, PA),
+	ubody_list(T0, T, ASL, M, PAT0, PAT).
 
+ubody_elem(0, G0, G, M, PA0, PA) :- !,
+	ubody(G0, G, M, PA0, PA).
+ubody_elem(_, G, G, _, PA, PA).
 
 conj(Goal, Pos, GoalList, PosList) :-
 	conj(Goal, Pos, GoalList, [], PosList, []).
@@ -426,16 +440,16 @@ conj((!,(S=SR)), F-T, [!,S=SR|TG], TG, [F-T,F1-T1|TP], TP) :-
 conj(A, P, [A|TG], TG, [P|TP], TP).
 
 
-mkconj(Goal, Pos, GoalList, PosList) :-
-	mkconj(Goal, Pos, GoalList, [], PosList, []).
+mkconj(Goal, M, Pos, GoalList, PosList) :-
+	mkconj(Goal, M, Pos, GoalList, [], PosList, []).
 
-mkconj(Conj, term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :-
+mkconj(Conj, M, term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :-
 	nonvar(Conj),
 	Conj = (A,B), !,
-	mkconj(A, PA, GL, TGA, PL, TPA),
-	mkconj(B, PB, TGA, TG, TPA, TP).
-mkconj(A0, P0, [A|TG], TG, [P|TP], TP) :-
-	ubody(A, A0, P, P0).
+	mkconj(A, M, PA, GL, TGA, PL, TPA),
+	mkconj(B, M, PB, TGA, TG, TPA, TP).
+mkconj(A0, M, P0, [A|TG], TG, [P|TP], TP) :-
+	ubody(A, A0, M, P, P0).
 
 
 		 /*******************************
@@ -568,35 +582,31 @@ expand_goal(G, call(G), P, term_position(0,0,0,0,[P])) :-
 expand_goal(G, G, P, P) :-
         var(G), !.
 expand_goal(M0, M, P0, P) :-
-	meta(M0), !,
+	meta(system, M0, S), !,
 	P0 = term_position(F,T,FF,FT,PL0),
 	P  = term_position(F,T,FF,FT,PL),
 	functor(M0, Functor, Arity),
 	functor(M,  Functor, Arity),
-	expand_meta_args(PL0, PL, 1, M0, M).
+	expand_meta_args(PL0, PL, 1, S, M0, M).
 expand_goal(A, B, P0, P) :-
         goal_expansion(A, B0, P0, P1), !,
 	expand_goal(B0, B, P1, P).
 expand_goal(A, A, P, P).
 
-expand_meta_args([], [], _, _, _).
-expand_meta_args([P0|T0], [P|T], I, M0, M) :-
+expand_meta_args([], [], _, _, _, _).
+expand_meta_args([P0|T0], [P|T], I, S, M0, M) :-
 	arg(I, M0, A0),
 	arg(I, M,  A),
-	expand_goal(A0, A, P0, P),
+	arg(I, S,  AS),
+	expand_arg(AS, A0, A, P0, P),
 	NI is I + 1,
-	expand_meta_args(T0, T, NI, M0, M).
+	expand_meta_args(T0, T, NI, S, M0, M).
 
-meta((_  ,  _)).
-meta((_  ;  _)).
-meta((_  -> _)).
-meta((_ *-> _)).
-meta((\+ _)).
-meta((not(_))).
-meta((call(_))).
-meta((once(_))).
-meta((ignore(_))).
-meta((forall(_, _))).
+expand_arg(0, A0, A, P0, P) :- !,
+	expand_goal(A0, A, P0, P).
+expand_arg(_, A, A, P, P).
+
+meta(M, G, S) :- predicate_property(M:G, meta_predicate(S)).
 
 goal_expansion(send(R, Msg), send_class(R, _, SuperMsg), P, P) :-
 	compound(Msg),

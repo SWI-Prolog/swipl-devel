@@ -150,19 +150,22 @@ following options to be read from the  command line (long flag(s), short
 flag(s), meta:type=default, help)
 
 ==
---mode                  -m     atom=SCAN       data gathering mode, one of
-                                                   SCAN: do this
-                                                   READ: do that
-                                                   MAKE: fabricate some numbers
-                                                   WAIT: don't do anything
---rebuild-cache         -r     boolean=true    rebuild cache in each iteration
+--mode                  -m     atom=SCAN       data gathering mode,
+					       one of
+                                                SCAN: do this
+                                                READ: do that
+                                                MAKE: make numbers
+                                                WAIT: do nothing
+--rebuild-cache         -r     boolean=true    rebuild cache in
+					       each iteration
 --heisenberg-threshold  -t,-h  float=0.1       heisenberg threshold
---depths, --iters       -i,-d  K:integer=3     stop after K iterations
+--depths, --iters       -i,-d  K:integer=3     stop after K
+					       iterations
 --distances                    term=[1,2,3,5]  initial prolog term
 --output-file           -o     FILE:atom=_     write output to FILE
 --label                 -l     atom=REPORT     report label
---verbosity             -v     V:integer=2     verbosity level, 1 <= V <= 3
-
+--verbosity             -v     V:integer=2     verbosity level,
+					       1 <= V <= 3
 ==
 
 We may also have some configuration  parameters which we currently think
@@ -329,6 +332,7 @@ parameter style above (perhaps with asserting appl_config/2).
 
 %%   opt_arguments(+OptsSpec, -Opts, -PositionalArgs) is det
 %
+%    Extract  commandline  options   according    to   a  specification.
 %    Convenience predicate, assuming that command-line  arguments can be
 %    accessed by current_prolog_flag/2 (as  in   swi-prolog).  For other
 %    access mechanisms and/or more control, get   the args and pass them
@@ -401,10 +405,9 @@ opt_parse(OptsSpec, ApplArgs, Opts, PositionalArgs, ParseOptions) :-
       opt_parse_(OptsSpec, ApplArgs, Opts, PositionalArgs, ParseOptions).
 
 
-%%   opt_help(+OptsSpec, -Help) is det
+%%   opt_help(+OptsSpec, -Help:atom) is det
 %
-%    Returns  a  help  string   (atom),    synthesized   from  the  help
-%    descriptions in OptsSpec.
+%    True when Help is a help string synthesized from OptsSpec.
 
 opt_help(OptsSpec, Help) :-
     opt_help(OptsSpec, Help, []).

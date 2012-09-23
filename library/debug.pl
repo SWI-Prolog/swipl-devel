@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -86,8 +84,20 @@ program explicit, trapping the debugger if the condition does not hold.
 %%	debugging(-Topic) is nondet.
 %%	debugging(?Topic, ?Bool) is nondet.
 %
-%	Check whether we are debugging Topic or enumerate the topics we
-%	are debugging.
+%	Examine debug topics. The form debugging(+Topic)  may be used to
+%	perform more complex debugging tasks.   A typical usage skeleton
+%	is:
+%
+%	  ==
+%		(   debugging(mytopic)
+%		->  <perform debugging actions>
+%		;   true
+%		),
+%		...
+%	  ==
+%
+%	The other two calls are intended to examine existing and enabled
+%	debugging tokens and are typically not used in user programs.
 
 debugging(Topic) :-
 	debugging(Topic, true, _To).
@@ -201,9 +211,10 @@ valid_topic(X, _, _) :-
 
 %%	debug(+Topic, +Format, :Args) is det.
 %
-%	Similar to format/3 to =user_error=, but only prints if Topic is
-%	activated through debug/1. Args is a  meta-argument to deal with
-%	goal for the @-command.  Output  is   first  handed  to the hook
+%	Format a message if debug topic  is enabled. Similar to format/3
+%	to =user_error=, but only prints if   Topic is activated through
+%	debug/1. Args is a  meta-argument  to   deal  with  goal for the
+%	@-command.   Output   is   first    handed     to    the    hook
 %	prolog:debug_print_hook/3.  If  this  fails,    Format+Args   is
 %	translated  to  text   using    the   message-translation   (see
 %	print_message/2) for the  term  debug(Format,   Args)  and  then

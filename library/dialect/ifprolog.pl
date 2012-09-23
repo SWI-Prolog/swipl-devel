@@ -55,6 +55,8 @@
 	    atom_prefix/3,			% +Atom, +Len, -Sub
 	    atom_suffix/3,			% +Atom, +Len, -Sub
 	    atom_split/3,			% +Atom, +Delimiter, ?Subatoms
+	    if_concat_atom/2,			% +List, ?Atom
+	    if_concat_atom/3,			% +List, +Delimiter, ?Atom
 	    getchar/3,				% +Atom, +Pos, -Char
 	    parse_atom/6,			% +Atom, +StartPos, ?EndPos,
 						% ?Term, ?VarList, ?Error
@@ -104,6 +106,7 @@
 :- use_module(library(debug)).
 :- use_module(library(arithmetic)).
 :- use_module(library(memfile)).
+:- use_module(library(apply)).
 
 /** <module> IF/Prolog compatibility package
 
@@ -212,6 +215,8 @@ if_goal_expansion(retract(Head,Body),
 if_goal_expansion(Call@Module, call((Module:Goal)@Module)) :-
 	nonvar(Call),
 	Call = call(Goal).
+if_goal_expansion(concat_atom(L,A), if_concat_atom(L,A)).
+if_goal_expansion(concat_atom(L,D,A), if_concat_atom(L,D,A)).
 
 
 head_pi(M:Head, M:PI) :- !,
@@ -858,6 +863,35 @@ atom_suffix(Atom, Len, Sub) :-
 
 atom_split(Atom, Delimiter, Subatoms)  :-
 	atomic_list_concat(Subatoms, Delimiter, Atom).
+
+%%	if_concat_atom(+List, +Delimiter, -Atom) is det.
+%
+%	True when Atom is the concatenation of   the lexical form of all
+%	elements from List, using Delimiter to delimit the elements.
+%
+%	The behavior of this  ifprolog   predicate  is  different w.r.t.
+%	SWI-Prolog in two respect: it supports   arbitrary terms in List
+%	rather than only atomic and it does _not_ work in mode -,+,+.
+
+if_concat_atom(List, Delimiter, Atom) :-
+	maplist(write_term_to_atom, List, AtomList),
+	atomic_list_concat(AtomList, Delimiter, Atom).
+
+write_term_to_atom(Term, Atom) :-
+	(   atomic(Term)
+	->  Atom = Term
+	;   with_output_to(string(Atom), write(Term))
+	).
+
+%%	if_concat_atom(+List, -Atom) is det.
+%
+%	True when Atom is the concatenation of   the lexical form of all
+%	elements  from  List.  Same  as  if_concat_atom/3  using  ''  as
+%	delimiter.
+
+if_concat_atom(List, Atom) :-
+	maplist(write_term_to_atom, List, AtomList),
+	atomic_list_concat(AtomList, Atom).
 
 %%	getchar(+Atom, +Pos, -Char)
 %

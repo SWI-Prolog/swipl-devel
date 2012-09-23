@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -3629,17 +3627,15 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   if ( def->impl.any )
     PL_linger(def->impl.any);
   def->impl.function = f;
-  def->flags &= ~(DYNAMIC|P_THREAD_LOCAL|P_TRANSPARENT|NONDETERMINISTIC|P_VARARG);
-  def->flags |= (FOREIGN|TRACE_ME);
+  def->flags &= ~(P_DYNAMIC|P_THREAD_LOCAL|P_TRANSPARENT|P_NONDET|P_VARARG);
+  def->flags |= (P_FOREIGN|TRACE_ME);
 
-  if ( m == MODULE_system )
-    set(def, SYSTEM|HIDE_CHILDS);
-  else if ( SYSTEM_MODE )
-    set(def, SYSTEM|HIDE_CHILDS);
+  if ( m == MODULE_system || SYSTEM_MODE )
+    set(def, P_LOCKED|HIDE_CHILDS);
 
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
   if ( (flags & PL_FA_TRANSPARENT) )	  set(def, P_TRANSPARENT);
-  if ( (flags & PL_FA_NONDETERMINISTIC) ) set(def, NONDETERMINISTIC);
+  if ( (flags & PL_FA_NONDETERMINISTIC) ) set(def, P_NONDET);
   if ( (flags & PL_FA_VARARGS) )	  set(def, P_VARARG);
 
   createForeignSupervisor(def, f);

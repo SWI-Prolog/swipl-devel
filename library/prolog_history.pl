@@ -55,14 +55,14 @@ terminal and the system supports history.
 %	are stored.
 
 history_directory(Dir) :-
-	absolute_file_name(user_profile('.swipl-dir-history'),
+	absolute_file_name(app_preferences('.swipl-dir-history'),
 			   Dir,
 			   [ access(write),
 			     file_type(directory),
 			     file_errors(fail)
 			   ]), !.
 history_directory(Dir) :-
-	absolute_file_name(user_profile('.'),
+	absolute_file_name(app_preferences('.'),
 			   Home,
 			   [ access(write),
 			     file_type(directory),

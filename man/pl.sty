@@ -3,26 +3,16 @@
 % Test for PDF generation using pdflatex
 
 \usepackage{ifpdf}
-%Old tex versions
-%\newif\ifpdf
-%\ifx\pdfoutput\undefined
-%   \pdffalse
-%\else
-%   \pdfoutput=1
-%   \pdftrue
-%\fi
-
-% Get hyperrefs to work
-
 \usepackage{makeidx}
 \usepackage{url}
 
 \ifpdf
-  \usepackage[pdftex,colorlinks=true,urlcolor=blue]{hyperref}
+  \ifdefined\setuphyperref
+    \setuphyperref
+  \else
+    \usepackage[pdftex,colorlinks=true,urlcolor=blue]{hyperref}
+  \fi
   \pdfcompresslevel=9
-%  \pdfcatalog{
-%    /PageMode /UseOutLines
-%  }
   \usepackage[pdftex]{graphicx}
   \DeclareGraphicsExtensions{.pdf,.jpg,.png}
 \else
@@ -335,7 +325,7 @@
 \newcommand{\texenv}[1]{{\tt #1}}
 \newcommand{\texmode}[1]{{\tt #1}}
 \newcommand{\HTML}[1]{{\bf #1}}
-\newcommand{\libdoc}[2]{\section{\pllib{#1}: #2}}
+\newcommand{\libdoc}[2]{\section{library(#1): #2}}
 \newcommand{\key}[1]{{\sf #1}}
 \newcommand{\menu}[2]{%
 	{\sf #1}%

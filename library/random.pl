@@ -109,9 +109,10 @@ random_between(L, U, _) :-
 %%	random(+L:int, +U:int, -R:int) is det.
 %%	random(+L:float, +U:float, -R:float) is det.
 %
-%	If L and U are both integers, R  is a random integer in the half
-%	open interval [L,U). If L and U are both floats, R is a float in
-%	the open interval (L,U).
+%	Generate a random integer or float in a   range.  If L and U are
+%	both integers, R is a random integer   in the half open interval
+%	[L,U). If L and U are both  floats,   R  is  a float in the open
+%	interval (L,U).
 %
 %	@deprecated Please use random/1 for   generating  a random float
 %	and random_between/3 for generating a  random integer. Note that

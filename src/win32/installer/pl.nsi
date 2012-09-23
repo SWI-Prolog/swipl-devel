@@ -9,11 +9,7 @@
 !define SXSLEN $8 ; The length of the string of the location of the SideBySide directory
 Var /GLOBAL cmdLineParams  ; Command Line Options
 
-!ifdef WIN64
-!define REGKEY SOFTWARE\SWI\Prolog64
-!else
 !define REGKEY SOFTWARE\SWI\Prolog
-!endif
 
 !ifdef MINGW
 !system "${SWIPL}\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DSWIPL=${SWIPL} /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMINGW=1" = 0
@@ -33,11 +29,13 @@ ReserveFile "${NSISDIR}\Plugins\InstallOptions.dll"
 ReserveFile "options.ini"
 
 !ifdef WIN64
+!define BITS 64
 InstallDir $PROGRAMFILES64\swipl
 !else
+!define BITS 32
 InstallDir $PROGRAMFILES\swipl
 !endif
-InstallDirRegKey HKLM ${REGKEY} "home"
+
 ComponentText "This will install the SWI-Prolog on your computer. \
                Select which optional components you want installed."
 DirText "This program will install SWI-Prolog on your computer.\
@@ -420,11 +418,13 @@ Section "Base system (required)"
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\index.html
 
+  SetRegView ${BITS}
   WriteRegStr HKLM ${REGKEY} "home" "$INSTDIR"
 
   ; Write uninstaller
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog" "DisplayName" "SWI-Prolog (remove only)"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog" "UninstallString" '"$INSTDIR\uninstall.exe"'
+  SetRegView lastused
   WriteUninstaller "uninstall.exe"
 SectionEnd
 
@@ -856,7 +856,9 @@ Section "Shell Extensions" SecShell
   WriteRegStr HKCR "PrologFile\shell\consult\ddeexec" "Topic" "control"
 !endif
 
+  SetRegView ${BITS}
   WriteRegStr HKLM ${REGKEY} fileExtension ${EXT}
+  SetRegView lastused
 
   IfErrors 0 NoError
     MessageBox MB_OK "Could not write registry to register filetypes\n \
@@ -905,9 +907,12 @@ Section "Start Menu shortcuts"
 		 "$INSTDIR\uninstall.exe" \
 		 0
 
+
+  SetRegView ${BITS}
   WriteRegStr HKLM ${REGKEY} group   ${GRP}
   WriteRegStr HKLM ${REGKEY} cwd     ${CWD}
   WriteRegStr HKLM ${REGKEY} context ${SHCTX}
+  SetRegView lastused
 SectionEnd
 
 Section "Update library index"
@@ -983,20 +988,23 @@ Function .onInit
   InitPluginsDir
   File /oname=$PLUGINSDIR\options.ini "options.ini"
 
-!ifdef WIN64
-# We are a 32-bit app, the real path for 64-bit apps is in ProgramW6432
-  ReadEnvStr $INSTDIR ProgramW6432
-  StrCpy $INSTDIR "$INSTDIR\pl"
-!endif
+  SetRegView ${BITS}
+  ClearErrors
+  Push $R0
+  ReadRegStr $R0 HKLM ${REGKEY} "home"
+  IfErrors +2 0
+    StrCpy $INSTDIR $R0
+  Pop $R0
+  SetRegView lastused
 
-Push $R0
-${GetParameters} $cmdLineParams
-ClearErrors
-${GetOptions} $cmdLineParams '/?' $R0
-IfErrors +3 0
-  MessageBox MB_OK "/S /GRP='SWI-Prolog' /EXT='pl' /INSTDIR='<Install Directory>'"
-  Abort
-Pop $R0
+  Push $R0
+  ${GetParameters} $cmdLineParams
+  ClearErrors
+  ${GetOptions} $cmdLineParams '/?' $R0
+  IfErrors +3 0
+    MessageBox MB_OK "/S /GRP='SWI-Prolog' /EXT='pl' /INSTDIR='<Install Directory>'"
+    Abort
+  Pop $R0
 
 FunctionEnd
 

@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -53,7 +52,7 @@ Link all foreign language predicates.  The arguments to FRG are:
 Flags almost always is TRACE_ME.  Additional common flags:
 
 	P_TRANSPARENT		Predicate is module transparent
-	NONDETERMINISTIC	Predicate can be resatisfied
+	P_NONDET	Predicate can be resatisfied
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define NOTRACE PL_FA_NOTRACE
@@ -325,11 +324,11 @@ registerBuiltins(const PL_extension *f)
 
     PL_unregister_atom(name);
     def = lookupProcedure(fdef, m)->definition;
-    set(def, FOREIGN|SYSTEM|HIDE_CHILDS|LOCKED);
+    set(def, P_FOREIGN|HIDE_CHILDS|P_LOCKED);
 
     if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
     if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
-    if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, NONDETERMINISTIC);
+    if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, P_NONDET);
     if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
     if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
     if ( f->flags & PL_FA_ISO )		     set(def, P_ISO);
@@ -466,7 +465,7 @@ initBuildIns(void)
 	PL_predicate("prolog_exception_hook", 4, "user");
 					/* allow debugging in call/1 */
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
-  set(PROCEDURE_dcall1->definition, DYNAMIC|SYSTEM);
+  set(PROCEDURE_dcall1->definition, P_DYNAMIC|P_LOCKED);
 
   PL_meta_predicate(PL_predicate("assert",           1, "system"), ":");
   PL_meta_predicate(PL_predicate("asserta",          1, "system"), ":");

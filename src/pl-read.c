@@ -307,7 +307,7 @@ typedef struct
   size_t	posi;			/* position number */
 
   Module	module;			/* Current source module */
-  unsigned int	flags;			/* Module syntax flags */
+  unsigned int	flags;			/* Module syntax flags (M_*) */
   int		styleCheck;		/* style-checking mask */
   bool		backquoted_string;	/* Read `hello` as string */
   int	       *char_conversion_table;	/* active conversion table */
@@ -406,9 +406,6 @@ unlock(atom_t a, ReadData _PL_rd)
     PL_unregister_atom(a);
   }
 }
-
-
-#define DO_CHARESCAPE true(_PL_rd, CHARESCAPE)
 
 
 		/********************************
@@ -811,7 +808,7 @@ raw_read_quoted(int q, ReadData _PL_rd)
   while((c=getchrq()) != EOF && c != q)
   {
   next:
-    if ( c == '\\' && DO_CHARESCAPE )
+    if ( c == '\\' && true(_PL_rd, M_CHARESCAPE) )
     { int base;
 
       addToBuffer(c, _PL_rd);
@@ -1903,7 +1900,7 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
       { in++;
       } else
 	break;
-    } else if ( c == '\\' && DO_CHARESCAPE )
+    } else if ( c == '\\' && true(_PL_rd, M_CHARESCAPE) )
     { c = escape_char(in, &in, quote, _PL_rd);
       if ( c >= 0 )
       { addUTF8Buffer(buf, c);
@@ -2213,8 +2210,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case DI:	{ number value;
 		  strnumstat rc;
 
-		  if ( (rc=str_number(&rdhere[-1],
-				      &rdhere, &value, DO_CHARESCAPE)) == NUM_OK )
+		  if ( (rc=str_number(&rdhere[-1], &rdhere, &value,
+				      true(_PL_rd, M_CHARESCAPE))) == NUM_OK )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
 		    break;
@@ -3759,9 +3756,9 @@ retry:
 
   if ( charescapes != -1 )
   { if ( charescapes )
-      set(&rd, CHARESCAPE);
+      set(&rd, M_CHARESCAPE);
     else
-      clear(&rd, CHARESCAPE);
+      clear(&rd, M_CHARESCAPE);
   }
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )

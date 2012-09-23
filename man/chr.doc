@@ -34,7 +34,7 @@ compilation scheme and runtime environment of CHR in SICStus.
 In this documentation we restrict ourselves to giving a short overview
 of CHR in general and mainly focus on elements specific to this
 implementation. For a more thorough review of CHR we refer the reader to
-\cite{Freuhwirth:98}. More background on CHR can be found at
+\cite{Freuhwirth:2009}. More background on CHR can be found at
 \cite{chrSite}.
 
 In \secref{SyntaxAndSemantics} we present the syntax of CHR in Prolog and
@@ -51,19 +51,15 @@ practical guidelines for using CHR.
 \section{Syntax and Semantics}		\label{sec:SyntaxAndSemantics}
 %=============================
 
-\subsection{Syntax}
+\subsection{Syntax of CHR rules}
 %-----------------
 
-The syntax of CHR rules is the following:
-
 \begin{code}
-rules --> rule, rules.
-rules --> [].
+rules --> rule, rules ; [].
 
 rule --> name, actual_rule, pragma, [atom('.')].
 
-name --> atom, [atom('@')].
-name --> [].
+name --> atom, [atom('@')] ; [].
 
 actual_rule --> simplification_rule.
 actual_rule --> propagation_rule.
@@ -77,7 +73,8 @@ simpagation_rule --> head, [atom('\')], head, [atom('<=>')],
 head --> constraints.
 
 constraints --> constraint, constraint_id.
-constraints --> constraint, constraint_id, [atom(',')], constraints.
+constraints --> constraint, constraint_id,
+	        [atom(',')], constraints.
 
 constraint --> compound_term.
 
@@ -85,8 +82,7 @@ constraint_id --> [].
 constraint_id --> [atom('#')], variable.
 constraint_id --> [atom('#')], [atom('passive')] .
 
-guard --> [].
-guard --> goal, [atom('|')].
+guard --> [] ; goal, [atom('|')].
 
 body --> goal.
 
@@ -97,7 +93,6 @@ actual_pragmas --> actual_pragma.
 actual_pragmas --> actual_pragma, [atom(',')], actual_pragmas.
 
 actual_pragma --> [atom('passive(')], variable, [atom(')')].
-
 \end{code}
 
 Note that the guard of a rule may not contain any goal that binds a variable
@@ -373,27 +368,32 @@ Currently two complementary forms of type checking are performed:
 
 foobar @ abc(X) <=> def(X).
 \end{code}
-      the variable \texttt{X} has to be of both type \texttt{foo} and \texttt{bar}.
-      This is reported as a type clash error:
-      \begin{code}
+
+the variable \texttt{X} has to be of both type \texttt{foo} and \texttt{bar}.
+This is reported as a type clash error:
+
+\begin{code}
 CHR compiler ERROR:
-    `--> Type clash for variable _G5398 in rule foobar:
-                expected type foo in body goal def(_G5398, _G5448)
-                expected type bar in head def(_G5448, _G5398)
+    `--> Type clash for variable _ in rule foobar:
+                expected type foo in body goal def(_, _)
+                expected type bar in head def(_, _)
 \end{code}
 
-      The second kind of error is where a functor is used that does not belong
-      to the declared type. For example in:
-\begin{code}
-:-chr_type foo ---> foo.
-:-chr_type bar ---> bar.
+The second kind of error is where a functor is used that does not belong
+to the declared type. For example in:
 
-:-chr_constraint abc(?foo).
+\begin{code}
+:- chr_type foo ---> foo.
+:- chr_type bar ---> bar.
+
+:- chr_constraint abc(?foo).
 
 foo @ abc(bar) <=> true.
 \end{code}
-\texttt{bar} appears in the head of the rule where something of type \texttt{foo}
-is expected. This is reported as:
+
+\const{bar} appears in the head of the rule where something of
+type \const{foo} is expected. This is reported as:
+
 \begin{code}
 CHR compiler ERROR:
     `--> Invalid functor in head abc(bar) of rule foo:
@@ -402,7 +402,7 @@ CHR compiler ERROR:
 \end{code}
 
 
-      No runtime overhead is incurred in static type checking.
+No runtime overhead is incurred in static type checking.
 
 \item Dynamic type checking checks at runtime, during program execution,
       whether the arguments of CHR constraints respect their declared types.
@@ -416,29 +416,32 @@ CHR compiler ERROR:
 
 :-chr_constraint abc(?foo).
 \end{code}
-      we get the following error in an erroneous query:
+
+we get the following error in an erroneous query:
+
 \begin{code}
 ?- abc(bar).
-ERROR: Type error: `foo' expected, found `bar' (CHR Runtime Type Error)
+ERROR: Type error: `foo' expected, found `bar'
+       (CHR Runtime Type Error)
 \end{code}
 
-      Dynamic type checking is weaker than static type checking in the sense
-      that it only checks the particular program execution at hand rather than
-      all possible executions. It is stronger in the sense that it tracks types
-      throughout the whole program.
+Dynamic type checking is weaker than static type checking in the sense
+that it only checks the particular program execution at hand rather than
+all possible executions. It is stronger in the sense that it tracks
+types throughout the whole program.
 
-      Note that it is enabled only in debug mode, as it incurs some (minor)
-      runtime overhead.
+Note that it is enabled only in debug mode, as it incurs some (minor)
+runtime overhead.
 \end{enumerate}
 
 \subsection{Compilation}
 %--------------------
 
-The SWI-Prolog CHR compiler exploits term_expansion/2 rules to
-translate the constraint handling rules to plain Prolog. These rules are
-loaded from the library \pllib{chr}. They are activated if the compiled
-file has the \fileext{chr} extension or after finding a declaration in
-the following format:
+The SWI-Prolog CHR compiler exploits term_expansion/2 rules to translate
+the constraint handling rules to plain Prolog. These rules are loaded
+from the library \pllib{chr}. They are activated if the compiled file
+has the \fileext{chr} extension or after finding a declaration in the
+following format:
 
 \begin{code}
 :- chr_constraint ...
@@ -626,12 +629,7 @@ call the \nopredref{leq}{2} constraints in a query, e.g.:
 leq(_G23837, _G23841)
 leq(_G23838, _G23841)
 leq(_G23837, _G23838)
-
-X = _G23837{leq = ...}
-Y = _G23838{leq = ...}
-Z = _G23841{leq = ...}
-
-Yes
+true .
 \end{code}
 
 When the query succeeds, the SWI-Prolog top-level prints the content of
@@ -661,10 +659,7 @@ call the \nopredref{dom}{2} constraints in a query, e.g.:
 
 \begin{code}
 ?- dom(A,[1,2,3]), dom(A,[3,4,5]).
-
-A = 3
-
-Yes
+A = 3.
 \end{code}
 
 \end{itemize}

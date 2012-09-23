@@ -165,8 +165,9 @@ selectchk(Elem, List, Rest) :-
 
 %%	select(?X, ?XList, ?Y, ?YList) is nondet.
 %
-%	Is true when select(X, XList) and   select(Y, YList) are true, X
-%	and Y appear in the same locations of their respective lists and
+%	Select two elements from two lists at  the same place. True when
+%	select(X, XList) and select(Y, YList) are   true, X and Y appear
+%	in  the  same  locations   of    their   respective   lists  and
 %	same_length(XList, YList) is  true.  A   typical  use  for  this
 %	predicate is to _replace_ an element:
 %
@@ -202,10 +203,10 @@ nextto(X, Y, [_|Zs]) :-
 
 %%	delete(+List1, @Elem, -List2) is det.
 %
-%	Is true when List2 is a list with all elements from List1 except
-%	for those that unify with Elem.   Matching Elem with elements of
-%	List1 is uses =|\+ Elem \= H|=,   which implies that Elem is not
-%	changed.
+%	Delete matching elements from a list. True  when List2 is a list
+%	with all elements from List1 except   for  those that unify with
+%	Elem. Matching Elem with elements of List1  is uses =|\+ Elem \=
+%	H|=, which implies that Elem is not changed.
 %
 %	@deprecated There are too many ways in which one might want to
 %		    delete elements from a list to justify the name.
@@ -666,8 +667,7 @@ subset([E|R], Set) :-
 
 %%	subtract(+Set, +Delete, -Result) is det.
 %
-%	Delete all elements from Set that   occur  in Delete (a set)
-%	and unify the  result  with  Result.   Deletion  is  based  on
+%	Delete all elements in Delete  from   Set.  Deletion is based on
 %	unification using memberchk/2. The complexity is |Delete|*|Set|.
 %
 %	@see ord_subtract/3.

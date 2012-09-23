@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, VU University Amsterdam
+    Copyright (C): 2010-2012, VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -180,7 +178,7 @@ PL_get_dbref(term_t t, db_ref_type *type_ptr)
   if ( type == &clause_blob )
   { clref *ref = data;
 
-    if ( false(ref->clause, ERASED) )
+    if ( false(ref->clause, CL_ERASED) )
     { *type_ptr = DB_REF_CLAUSE;
       return ref->clause;
     }
@@ -217,7 +215,7 @@ PL_get_clref(term_t t, Clause *cl)
 
   *cl = ref->clause;
 
-  if ( true(ref->clause, ERASED) )
+  if ( true(ref->clause, CL_ERASED) )
     return -1;
 
   return TRUE;

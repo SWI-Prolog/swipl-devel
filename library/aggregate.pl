@@ -422,9 +422,8 @@ state1(_,   X, X, _).
 
 %%	foreach(:Generator, :Goal)
 %
-%	True if the conjunction of instances  of Goal using the bindings
-%	from  Generator  is  true.  Unlike    forall/2,   which  runs  a
-%	failure-driven loop that  proves  Goal   for  each  solution  of
+%	True if conjunction of results is   true. Unlike forall/2, which
+%	runs a failure-driven loop that proves Goal for each solution of
 %	Generator, foreach/2 creates a conjunction.   Each member of the
 %	conjunction is a copy of  Goal,   where  the variables it shares
 %	with Generator are filled with the values from the corresponding
@@ -468,9 +467,10 @@ prove_list([H|T], Templ, SharedTempl, Goal) :-
 
 %%	free_variables(:Generator, +Template, +VarList0, -VarList) is det.
 %
-%	In order to handle variables properly, we   have to find all the
-%	universally quantified variables in the Generator. All variables
-%	as yet unbound are universally quantified, unless
+%	Find free variables in bagof/setof template.  In order to handle
+%	variables  properly,  we  have  to   find  all  the  universally
+%	quantified variables in the  Generator.   All  variables  as yet
+%	unbound are universally quantified, unless
 %
 %	    1. they occur in the template
 %	    2. they are bound by X^P, setof/3, or bagof/3

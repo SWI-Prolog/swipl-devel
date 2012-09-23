@@ -266,8 +266,9 @@ current_predicate_option(Module:PI, Arg, Option) :-
 
 %%	check_predicate_option(:PI, +Arg, +Option) is det.
 %
-%	Similar to current_predicate_option/3, but   intended to support
-%	runtime checking.
+%	Verify   predicate   options    at     runtime.    Similar    to
+%	current_predicate_option/3,  but  intended  to  support  runtime
+%	checking.
 %
 %	@error	existence_error(option, OptionName) if the option is not
 %		supported by PI.
@@ -408,8 +409,9 @@ define_predicate(_).
 
 %%	derived_predicate_options(:PI, ?Arg, ?Options) is nondet.
 %
-%	True  when  Options  is  the  current  _derived_  active  option
-%	declaration for PI on Arg.
+%	Derive option arguments using static analysis. True when Options
+%	is the current _derived_ active  option   declaration  for PI on
+%	Arg.
 
 derived_predicate_options(PI, Arg, Options) :-
 	define_predicate(PI),
@@ -460,8 +462,8 @@ list([H|T]) --> [H], list(T).
 
 %%	derived_predicate_options(+Module) is det.
 %
-%	Derive predicate option declarations for   the  given module and
-%	print them to the current output.
+%	Derive predicate option declarations for   a module. The derived
+%	options are printed to the =current_output= stream.
 
 derived_predicate_options(Module) :-
 	var(Module), !,
