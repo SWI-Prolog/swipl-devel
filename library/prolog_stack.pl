@@ -151,7 +151,9 @@ backtrace(MaxDepth, Fr, PC, GoalDepth,
 	->  true
 	;   PC2 = foreign
 	),
-	(   prolog_frame_attribute(Fr, parent, Parent)
+	(   prolog_frame_attribute(Fr, parent, Parent),
+	    prolog_frame_attribute(Parent, predicate_indicator, PI),
+	    PI \= '$toplevel':_
 	->  D2 is MaxDepth - 1,
 	    backtrace(D2, Parent, PC2, GoalDepth, Stack)
 	;   Stack = []
