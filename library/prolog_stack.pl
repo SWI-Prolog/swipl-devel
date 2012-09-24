@@ -160,11 +160,8 @@ prolog_stack_frame_property(frame(_,clause(Clause,PC)), location(File:Line)) :-
 
 frame_predicate(foreign(PI), PI).
 frame_predicate(call(PI), PI).
-frame_predicate(clause(Clause, _PC), M:Name/Arity) :-
-	nth_clause(Head, _, Clause), !,
-	Head = M:H,
-	functor(H, Name, Arity).
-
+frame_predicate(clause(Clause, _PC), PI) :-
+	clause_property(Clause, PI).
 
 
 %%	print_prolog_backtrace(+Stream, +Backtrace)
