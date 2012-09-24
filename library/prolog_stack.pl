@@ -38,6 +38,7 @@
 	  ]).
 :- use_module(library(prolog_clause)).
 :- use_module(library(debug)).
+:- use_module(library(error)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 
@@ -80,6 +81,7 @@ to decorate uncaught exceptions:
 */
 
 :- create_prolog_flag(backtrace_depth,      20,   [type(integer)]).
+:- create_prolog_flag(backtrace_goal_depth, 2,    [type(integer)]).
 :- create_prolog_flag(backtrace_show_lines, true, [type(boolean)]).
 
 %%	get_prolog_backtrace(+MaxDepth, -Backtrace) is det.
@@ -94,6 +96,11 @@ to decorate uncaught exceptions:
 %
 %	  * frame(Frame)
 %	  Start at Frame instead of the current frame.
+%	  * goal_depth(+Depth)
+%	  If Depth > 0, include a shallow copy of the goal arguments
+%	  into the stack.  Default is set by the Prolog flag
+%	  =backtrace_goal_depth=, set to =2= initially, showing the
+%	  goal and toplevel of any argument.
 %
 %	@param Frame is the frame to start from. See prolog_current_frame/1.
 %	@param MaxDepth defines the maximum number of frames returned.
@@ -115,10 +122,16 @@ get_prolog_backtrace(MaxDepth, Stack, Options) :-
 	    prolog_frame_attribute(Fr0, pc, PC),
 	    prolog_frame_attribute(Fr0, parent, Fr)
 	),
-	backtrace(MaxDepth, Fr, PC, Stack).
+	(   option(goal_term_depth(GoalDepth), Options)
+	->  true
+	;   current_prolog_flag(backtrace_goal_depth, GoalDepth)
+	),
+	must_be(nonneg, GoalDepth),
+	backtrace(MaxDepth, Fr, PC, GoalDepth, Stack).
 
-backtrace(0, _, _, []) :- !.
-backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
+backtrace(0, _, _, _, []) :- !.
+backtrace(MaxDepth, Fr, PC, GoalDepth,
+	  [frame(Level, Where, Goal)|Stack]) :-
 	prolog_frame_attribute(Fr, level, Level),
 	(   PC == foreign
 	->  prolog_frame_attribute(Fr, predicate_indicator, Pred),
@@ -130,15 +143,71 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 	->  Where = clause(Clause, PC)
 	;   Where = meta_call
 	),
+	(   Where == meta_call
+	->  Goal = 0
+	;   copy_goal(GoalDepth, Fr, Goal)
+	),
 	(   prolog_frame_attribute(Fr, pc, PC2)
 	->  true
 	;   PC2 = foreign
 	),
 	(   prolog_frame_attribute(Fr, parent, Parent)
 	->  D2 is MaxDepth - 1,
-	    backtrace(D2, Parent, PC2, Stack)
+	    backtrace(D2, Parent, PC2, GoalDepth, Stack)
 	;   Stack = []
 	).
+
+%%	copy_goal(+TermDepth, +Frame, -Goal) is det.
+%
+%	Create a shallow copy of the frame's  goal to help debugging. In
+%	addition to shallow copying, high-arity   terms  are represented
+%	as below.  Currently the 16 first arguments are hardcoded.
+%
+%	  ==
+%	  name(A1, ..., A16, <skipped Skipped of Arity>, An)
+%	  ==
+
+copy_goal(0, _, 0) :- !.			% 0 is not a valid goal
+copy_goal(D, Fr, Goal) :-
+	prolog_frame_attribute(Fr, goal, Goal0),
+	(   Goal0 = Module:Goal1
+	->  copy_term_limit(D, Goal1, Goal2),
+	    Goal = Module:Goal2
+	;   copy_term_limit(D, Goal0, Goal)
+	).
+
+copy_term_limit(0, In, '...') :-
+	compound(In), !.
+copy_term_limit(N, In, Out) :-
+	compound(In), !,
+	functor(In, Functor, Arity),
+	N2 is N - 1,
+	MaxArity = 16,
+	(   Arity =< MaxArity
+	->  functor(Out, Functor, Arity),
+	    copy_term_args(0, Arity, N2, In, Out)
+	;   OutArity is MaxArity+2,
+	    copy_term_args(0, MaxArity, N2, In, Out),
+	    SkipArg is MaxArity+1,
+	    Skipped is Arity - MaxArity - 1,
+	    format(atom(Msg), '<skipped ~D of ~D>', [Skipped, Arity]),
+	    arg(SkipArg, Out, Msg),
+	    arg(Arity, In, InA),
+	    arg(MaxArity, OutArity, OutA),
+	    copy_term_limit(N2, InA, OutA)
+	).
+copy_term_limit(_, In, In).
+
+copy_term_args(I, Arity, Depth, In, Out) :-
+	I < Arity, !,
+	I2 is I + 1,
+	arg(I2, In, InA),
+	arg(I2, Out, OutA),
+	copy_term_limit(Depth, InA, OutA),
+	copy_term_args(I2, Arity, Depth, In, Out).
+copy_term_args(_, _, _, _, _).
+
+
 
 %%	prolog_stack_frame_property(+Frame, ?Property) is nondet.
 %
@@ -150,13 +219,16 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 %	  * predicate(PI)
 %	  * location(File:Line)
 
-prolog_stack_frame_property(frame(Level,_), level(Level)).
-prolog_stack_frame_property(frame(_,Where), predicate(PI)) :-
+prolog_stack_frame_property(frame(Level,_,_), level(Level)).
+prolog_stack_frame_property(frame(_,Where,_), predicate(PI)) :-
 	frame_predicate(Where, PI).
-prolog_stack_frame_property(frame(_,clause(Clause,PC)), location(File:Line)) :-
+prolog_stack_frame_property(frame(_,clause(Clause,PC),_), location(File:Line)) :-
 	subgoal_position(Clause, PC, File, CharA, _CharZ),
 	File \= @(_),			% XPCE Object reference
 	lineno(File, CharA, Line).
+prolog_stack_frame_property(frame(_,_,_,Goal), goal(Goal)) :-
+	Goal \== 0.
+
 
 frame_predicate(foreign(PI), PI).
 frame_predicate(call(PI), PI).
@@ -204,15 +276,19 @@ message([H|T], Options) -->
 	    message(T, Options)
 	).
 
-message(frame(Level, Where), Options) -->
+message(frame(Level, Where, 0), Options) --> !,
 	level(Level),
-	where(Where, Options).
+	where_no_goal(Where, Options).
+message(frame(Level, Where, Goal), Options) -->
+	level(Level),
+	[ '~q'-[Goal] ],
+	where_goal(Where, Options).
 
-where(foreign(PI), _) -->
+where_no_goal(foreign(PI), _) -->
 	[ '~w <foreign>'-[PI] ].
-where(call(PI), _) -->
+where_no_goal(call(PI), _) -->
 	[ '~w'-[PI] ].
-where(clause(Clause, PC), Options) -->
+where_no_goal(clause(Clause, PC), Options) -->
 	{ option(subgoal_positions(true), Options, true),
 	  subgoal_position(Clause, PC, File, CharA, _CharZ),
 	  File \= @(_),			% XPCE Object reference
@@ -220,21 +296,42 @@ where(clause(Clause, PC), Options) -->
 	  clause_predicate_name(Clause, PredName)
 	}, !,
 	[ '~w at ~w:~d'-[PredName, File, Line] ].
-where(clause(Clause, _PC), _) -->
+where_no_goal(clause(Clause, _PC), _) -->
 	{ clause_property(Clause, file(File)),
 	  clause_property(Clause, line_count(Line)),
 	  clause_predicate_name(Clause, PredName)
 	}, !,
 	[ '~w at ~w:~d'-[PredName, File, Line] ].
-where(clause(Clause, _PC), _) -->
+where_no_goal(clause(Clause, _PC), _) -->
 	{ clause_name(Clause, ClauseName)
 	},
 	[ '~w <no source>'-[ClauseName] ].
-where(meta_call, _) -->
+where_no_goal(meta_call, _) -->
 	[ '<meta call>' ].
 
+where_goal(foreign(_), _) -->
+	[ ' <foreign>'-[] ].
+where_goal(clause(Clause, PC), Options) -->
+	{ option(subgoal_positions(true), Options, true),
+	  subgoal_position(Clause, PC, File, CharA, _CharZ),
+	  File \= @(_),			% XPCE Object reference
+	  lineno(File, CharA, Line)
+	}, !,
+	[ ' at ~w:~d'-[File, Line] ].
+where_goal(clause(Clause, _PC), _) -->
+	{ clause_property(Clause, file(File)),
+	  clause_property(Clause, line_count(Line))
+	}, !,
+	[ ' at ~w:~d'-[ File, Line] ].
+where_goal(clause(Clause, _PC), _) -->
+	{ clause_name(Clause, ClauseName)
+	},
+	[ ' ~w <no source>'-[ClauseName] ].
+where_goal(_, _) -->
+	[].
+
 level(Level) -->
-	[ '~|~t[~D]~8+ '-[Level] ].
+	[ '~|~t[~D]~6+ '-[Level] ].
 
 
 %%	clause_predicate_name(+ClauseRef, -Predname) is det.
@@ -350,10 +447,9 @@ user:prolog_exception_hook(error(E, context(Ctx0,Msg)),
 	    stack_guard(PI)
 	),
 	(   current_prolog_flag(backtrace_depth, Depth)
-	->  true
+	->  Depth > 0
 	;   Depth = 20			% Thread created before lib was loaded
 	),
-	Depth > 0,
 	get_prolog_backtrace(Fr, Depth, Stack0),
 	debug(backtrace, 'Stack = ~p', [Stack0]),
 	clean_stack(Stack0, Stack).
@@ -369,7 +465,7 @@ clean_stack2([H|_], [H]) :-
 clean_stack2([H|T0], [H|T]) :-
 	clean_stack2(T0, T).
 
-guard_frame(frame(_,clause(ClauseRef, _))) :-
+guard_frame(frame(_,clause(ClauseRef, _, _))) :-
 	nth_clause(M:Head, _, ClauseRef),
 	functor(Head, Name, Arity),
 	stack_guard(M:Name/Arity).
