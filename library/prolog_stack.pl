@@ -83,30 +83,39 @@ to decorate uncaught exceptions:
 :- create_prolog_flag(backtrace_show_lines, true, [type(boolean)]).
 
 %%	get_prolog_backtrace(+MaxDepth, -Backtrace) is det.
-%%	get_prolog_backtrace(+Frame, +MaxDepth, -Backtrace) is det.
+%%	get_prolog_backtrace(+MaxDepth, -Backtrace, +Options) is det.
 %
-%	Return a Prolog structure representing a backtrace from the
-%	current location.  The backtrace is a list of frames.  Each
-%	frame is represented as one of
+%	Obtain a backtrace from the current location. The backtrace is a
+%	list of frames. Each  frame  is  an   opaque  term  that  can be
+%	inspected using the predicate  prolog_stack_frame_property/2 can
+%	be used to extract  information  from   these  frames.  Most use
+%	scenarios will pass the stack   to print_prolog_backtrace/2. The
+%	following options are provided:
 %
-%		* frame(Level, Clause, PC)
-%		* frame(Level, foreign(Name/Arity), foreign)
-%
-%	The  predicate  prolog_stack_frame_property/2  can  be  used  to
-%	extract information from these frames.   Most use scenarios will
-%	pass the stack to print_prolog_backtrace/2.
+%	  * frame(Frame)
+%	  Start at Frame instead of the current frame.
 %
 %	@param Frame is the frame to start from. See prolog_current_frame/1.
 %	@param MaxDepth defines the maximum number of frames returned.
+%	@compat get_prolog_backtrace/3 used to have the parameters
+%	+Frame, +MaxDepth, -Backtrace. A call that matches this
+%	signature is mapped to get_prolog_backtrace(MaxDepth, Backtrace,
+%	[frame(Frame)]).
 
 get_prolog_backtrace(MaxDepth, Stack) :-
-	prolog_current_frame(Fr),
-	prolog_frame_attribute(Fr, pc, PC),
-	prolog_frame_attribute(Fr, parent, Parent),
-	backtrace(MaxDepth, Parent, PC, Stack).
+	get_prolog_backtrace(MaxDepth, Stack, []).
 
 get_prolog_backtrace(Fr, MaxDepth, Stack) :-
-	backtrace(MaxDepth, Fr, call, Stack).
+	integer(Fr), integer(MaxDepth), var(Stack), !,
+	get_prolog_backtrace(MaxDepth, Stack, [frame(Fr)]).
+get_prolog_backtrace(MaxDepth, Stack, Options) :-
+	(   option(frame(Fr), Options)
+	->  PC = call
+	;   prolog_current_frame(Fr0),
+	    prolog_frame_attribute(Fr0, pc, PC),
+	    prolog_frame_attribute(Fr0, parent, Fr)
+	),
+	backtrace(MaxDepth, Fr, PC, Stack).
 
 backtrace(0, _, _, []) :- !.
 backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
