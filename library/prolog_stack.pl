@@ -174,9 +174,15 @@ copy_goal(D, Fr, Goal) :-
 	prolog_frame_attribute(Fr, goal, Goal0),
 	(   Goal0 = Module:Goal1
 	->  copy_term_limit(D, Goal1, Goal2),
-	    Goal = Module:Goal2
+	    (	hidden_module(Module)
+	    ->	Goal = Goal2
+	    ;	Goal = Module:Goal2
+	    )
 	;   copy_term_limit(D, Goal0, Goal)
 	).
+
+hidden_module(system).
+hidden_module(user).
 
 copy_term_limit(0, In, '...') :-
 	compound(In), !.
