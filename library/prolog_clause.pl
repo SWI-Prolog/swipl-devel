@@ -68,6 +68,10 @@ clause_info/4 as below can be slow.
 %	source layout in a format   compatible  to the subterm_positions
 %	option of read_term/2.  VarNames provides access to the variable
 %	allocation in a stack-frame.  See make_varnames/5 for details.
+%
+%	Note that positions are  _|character   positions|_,  i.e., _not_
+%	bytes. Line endings count as a   single character, regardless of
+%	whether the actual ending is =|\n|= or =|\r\n|_.
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	(   debugging(clause_info)
@@ -155,6 +159,7 @@ read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
 
 read_term_at_line_2(File, Line, Module, Clause, TermPos, VarNames) :-
 	catch(open(File, read, In), _, fail),
+	set_stream(In, newline(detect)),
 	call_cleanup(
 	    read_source_term_at_location(
 		In, Clause,
