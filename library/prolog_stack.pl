@@ -282,7 +282,9 @@ find_subgoal([A|T], term_position(_, _, _, _, PosL), SPos) :-
 
 lineno(File, Char, Line) :-
 	setup_call_cleanup(
-	    open(File, read, Fd),
+	    ( open(File, read, Fd),
+	      set_stream(Fd, newline(detect))
+	    ),
 	    lineno_(Fd, Char, Line),
 	    close(Fd)).
 
