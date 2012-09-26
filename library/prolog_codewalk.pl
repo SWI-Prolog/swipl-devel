@@ -44,11 +44,27 @@ turned into a seperate module to  facilitate operations that require the
 same reachability analysis, such as finding   references to a predicate,
 finding unreachable code, etc.
 
-For example, the following  performs  a   more  extensive  analysis  for
-undefined predicates than list_undefined/0:
+For example, the following  determins  the   call  graph  of  the loaded
+program. By using source(true), The exact location   of  the call in the
+source file is passed into _Where.
 
   ==
-  ?- prolog_walk_code([undefined(error)]).
+  :- dynamic
+	  calls/2.
+
+  assert_call_graph :-
+	  retractall(calls(_, _)),
+	  prolog_walk_code([ trace_reference(_),
+			     on_trace(assert_edge),
+			     source(false)
+			   ]),
+	  predicate_property(calls(_,_), number_of_clauses(N)),
+	  format('Got ~D edges~n', [N]).
+
+  assert_edge(Callee, Caller, _Where) :-
+	  calls(Caller, Callee), !.
+  assert_edge(Callee, Caller, _Where) :-
+	  assertz(calls(Caller, Callee)).
   ==
 */
 
