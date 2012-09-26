@@ -50,7 +50,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	optparse.pl arithmetic.pl writef.pl predicate_options.pl \
 	random.pl prolog_breakpoints.pl prolog_autoload.pl \
 	prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl \
-	prolog_pack.pl git.pl
+	prolog_pack.pl git.pl prolog_metainference.pl
 
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 DCG=	basics.pl
