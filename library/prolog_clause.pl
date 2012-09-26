@@ -292,11 +292,21 @@ unify_clause_head(H1, H2) :-
 
 ci_expand(Read, Compiled, Module) :-
 	catch(setup_call_cleanup(
-		  '$set_source_module'(Old, Module),
+		  ( set_xref_flag(OldXRef),
+		    '$set_source_module'(Old, Module)
+		  ),
 		  expand_term(Read, Compiled),
-		  '$set_source_module'(_, Old)),
+		  ( '$set_source_module'(_, Old),
+		    set_prolog_flag(xref, OldXRef)
+		  )),
 	      E,
 	      expand_failed(E, Read)).
+
+set_xref_flag(Value) :-
+	current_prolog_flag(xref, Value), !,
+	set_prolog_flag(xref, true).
+set_xref_flag(false) :-
+	create_prolog_flag(xref, true, [type(boolean)]).
 
 match_module((H1 :- B1), (H2 :- B2), Module, Pos0, Pos) :- !,
 	unify_clause_head(H1, H2),
