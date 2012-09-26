@@ -321,6 +321,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\prolog_breakpoints.pl
   File ${SWIPL}\library\prolog_autoload.pl
   File ${SWIPL}\library\prolog_codewalk.pl
+  File ${SWIPL}\library\prolog_metainference.pl
   File ${SWIPL}\library\prolog_colour.pl
   File ${SWIPL}\library\predicate_options.pl
   File ${SWIPL}\library\git.pl
