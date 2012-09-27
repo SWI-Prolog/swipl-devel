@@ -104,11 +104,14 @@ list_undefined(Options) :-
 	    maplist(report_undefined, Grouped)
 	).
 
-:- public found_undef/1.
+:- public found_undef/3.
 
-found_undef(To-From) :-
+found_undef(To, _Caller, From) :-
 	goal_pi(To, PI),
-	assertz(undef(PI,From)).
+	(   undef(PI, From)
+	->  true
+	;   assertz(undef(PI,From))
+	).
 
 goal_pi(M:Head, M:Name/Arity) :-
 	functor(Head, Name, Arity).

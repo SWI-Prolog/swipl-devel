@@ -44,11 +44,27 @@ turned into a seperate module to  facilitate operations that require the
 same reachability analysis, such as finding   references to a predicate,
 finding unreachable code, etc.
 
-For example, the following  performs  a   more  extensive  analysis  for
-undefined predicates than list_undefined/0:
+For example, the following  determins  the   call  graph  of  the loaded
+program. By using source(true), The exact location   of  the call in the
+source file is passed into _Where.
 
   ==
-  ?- prolog_walk_code([undefined(error)]).
+  :- dynamic
+	  calls/2.
+
+  assert_call_graph :-
+	  retractall(calls(_, _)),
+	  prolog_walk_code([ trace_reference(_),
+			     on_trace(assert_edge),
+			     source(false)
+			   ]),
+	  predicate_property(calls(_,_), number_of_clauses(N)),
+	  format('Got ~D edges~n', [N]).
+
+  assert_edge(Callee, Caller, _Where) :-
+	  calls(Caller, Callee), !.
+  assert_edge(Callee, Caller, _Where) :-
+	  assertz(calls(Caller, Callee)).
   ==
 */
 
@@ -77,6 +93,7 @@ undefined predicates than list_undefined/0:
 		    on_trace:callable,		% Call-back on trace hits
 						% private stuff
 		    clause,			% Processed clause
+		    caller,			% Head of the caller
 		    initialization,		% Initialization source
 		    undecided,			% Error to throw error
 		    evaluate:boolean).		% Do partial evaluation
@@ -120,18 +137,25 @@ undefined predicates than list_undefined/0:
 %	  represented as Module:Callable (i.e., they are always
 %	  qualified).  See also subsumes_term/2.
 %
-%	  * on_trace(:Callable)
+%	  * on_trace(:OnTrace)
 %	  If a reference to =trace_reference= is found, call
-%	  call(Callable, Goal-From), where From is one of
+%	  call(OnTrace, Callee, Caller, Location), where Location is one
+%	  of these:
 %
 %	    - clause_term_position(+ClauseRef, +TermPos)
 %	    - clause(+ClauseRef)
 %	    - file(+File, +Line, -1, _)
 %	    - a variable (unknown)
 %
+%	  Caller is the qualified head of the calling clause or the
+%	  atom '<initialization>'.
+%
 %	  * source(+Boolean)
 %	  If =false= (default =true=), to not try to obtain detailed
 %	  source information for printed messages.
+%
+%	  @compat OnTrace was called using Caller-Location in older
+%		  versions.
 
 prolog_walk_code(Options) :-
 	meta_options(is_meta, Options, QOptions),
@@ -167,6 +191,7 @@ scan_module_class(library).
 %	@bug	Relies on private '$init_goal'/3 database.
 
 walk_from_initialization(OTerm) :-
+	walk_option_caller(OTerm, '<initialization>'),
 	forall('$init_goal'(File, Goal, SourceLocation),
 	       ( walk_option_initialization(OTerm, SourceLocation),
 		 walk_from_initialization(File, Goal, OTerm))).
@@ -200,9 +225,10 @@ walk_called_by_pred(Module:Name/Arity, _) :-
 	assertz(multifile_predicate(Name, Arity, Module)).
 walk_called_by_pred(Module:Name/Arity, OTerm) :-
 	functor(Head, Name, Arity),
+	walk_option_caller(OTerm, Module:Head),
+	walk_option_clause(OTerm, ClauseRef),
 	forall(catch(clause(Module:Head, Body, ClauseRef), _, fail),
-	       ( walk_option_clause(OTerm, ClauseRef),
-		 walk_called_by_body(Body, Module, OTerm))).
+	       walk_called_by_body(Body, Module, OTerm)).
 
 
 %%	walk_from_multifile(+OTerm)
@@ -219,6 +245,7 @@ walk_called_by_multifile(Module:Name/Arity, OTerm) :-
 			 Module:Head, Body, ClauseRef, OTerm),
 		     _, fail),
 	       ( walk_option_clause(OTerm, ClauseRef),
+		 walk_option_caller(OTerm, Module:Head),
 		 walk_called_by_body(Body, Module, OTerm)
 	       )).
 
@@ -448,8 +475,9 @@ print_reference(Goal, _, Why, OTerm) :-
 
 print_reference2(Goal, From, trace, OTerm) :-
 	walk_option_on_trace(OTerm, Closure),
+	walk_option_caller(OTerm, Caller),
 	nonvar(Closure),
-	call(Closure, Goal-From), !.
+	call(Closure, Goal, Caller, From), !.
 print_reference2(Goal, From, Why, _OTerm) :-
 	make_message(Why, Goal, From, Message, Level),
 	print_message(Level, Message).
