@@ -108,7 +108,10 @@ list_undefined(Options) :-
 
 found_undef(To, _Caller, From) :-
 	goal_pi(To, PI),
-	assertz(undef(PI,From)).
+	(   undef(PI, From)
+	->  true
+	;   assertz(undef(PI,From))
+	).
 
 goal_pi(M:Head, M:Name/Arity) :-
 	functor(Head, Name, Arity).
