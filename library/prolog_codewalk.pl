@@ -152,6 +152,7 @@ source file is passed into _Where.
 %
 %	    - clause_term_position(+ClauseRef, +TermPos)
 %	    - clause(+ClauseRef)
+%           - file_term_position(+Path, +TermPos)
 %	    - file(+File, +Line, -1, _)
 %	    - a variable (unknown)
 %
@@ -214,20 +215,33 @@ scan_module_class(library).
 
 walk_from_initialization(OTerm) :-
 	walk_option_caller(OTerm, '<initialization>'),
-	forall('$init_goal'(File, Goal, SourceLocation),
+	forall('$init_goal'(_File, Goal, SourceLocation),
 	       ( walk_option_initialization(OTerm, SourceLocation),
-		 walk_from_initialization(File, Goal, OTerm))).
+		 walk_from_initialization(SourceLocation, Goal, OTerm))).
 
 
-walk_from_initialization(File, Goal, OTerm) :-
-	module_property(Module, file(File)),
-	(   scan_module(Module, OTerm)
-	->  walk_called(Goal, Module, _, OTerm)
+walk_from_initialization(SourceLocation, M:Goal0, OTerm) :-
+	(   scan_module(M, OTerm)
+	->
+	    get_term_position(SourceLocation, M, Goal0, Goal, TermPos),
+	    walk_called(Goal, M, TermPos, OTerm)
 	;   true
 	).
 walk_from_initialization(_, Goal, OTerm) :-
 	walk_called(Goal, user, _, OTerm).
 
+get_term_position(SourceLocation, M, Goal0, Goal, TermPos) :-
+	nonvar(SourceLocation),
+	SourceLocation = File:Line,
+	prolog_clause:read_term_at_line(File, Line, M, (:- Term0),
+					TermPos0, _),
+	arg(1, Term0, Term),
+	TermPos0 = term_position(_, _, _, _, [TermPos1]),
+	TermPos1 = term_position(_, _, _, _, [TermPos2]),
+	(Term = M:_ -> Goal= M:Goal0 ; Goal = Goal0),
+	prolog_clause:unify_body(Term, Goal, M, TermPos2, TermPos),
+	!.
+get_term_position(_, _, Goal, Goal, _).
 
 %%	find_walk_from_module(+Module, +OTerm) is det.
 %
@@ -492,10 +506,16 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 	;   throw(missing(subterm_positions))
 	),
 	print_reference2(Goal, From, Why, OTerm).
-print_reference(Goal, _, Why, OTerm) :-
+print_reference(Goal, TermPos, Why, OTerm) :-
 	walk_option_initialization(OTerm, Init), nonvar(Init),
 	Init = File:Line, !,
-	print_reference2(Goal, file(File, Line, -1, _), Why, OTerm).
+	(  compound(TermPos),
+	   arg(1, TermPos, CharCount),
+	   integer(CharCount)		% test it is valid
+	-> From = file_term_position(File, TermPos)
+	;  From = file(File, Line, -1, _)
+	),
+	print_reference2(Goal, From, Why, OTerm).
 print_reference(Goal, _, Why, OTerm) :-
 	print_reference2(Goal, _, Why, OTerm).
 
@@ -764,12 +784,15 @@ prolog:message(trace_call_to(PI, Context)) -->
 	[ 'Call to ~q at '-[PI] ],
 	prolog:message_location(Context).
 
-prolog:message_location(clause_term_position(ClauseRef, TermPos)) -->
-	{ clause_property(ClauseRef, file(File)),
-	  arg(1, TermPos, CharCount),
+message_location_file_term_position(File, TermPos) -->
+	{ arg(1, TermPos, CharCount),
 	  filepos_line(File, CharCount, Line, LinePos)
 	},
 	[ '~w:~d:~d: '-[File, Line, LinePos] ].
+
+prolog:message_location(clause_term_position(ClauseRef, TermPos)) -->
+	{ clause_property(ClauseRef, file(File)) },
+	message_location_file_term_position(File, TermPos).
 prolog:message_location(clause(ClauseRef)) -->
 	{ clause_property(ClauseRef, file(File)),
 	  clause_property(ClauseRef, line_count(Line))
@@ -778,8 +801,10 @@ prolog:message_location(clause(ClauseRef)) -->
 prolog:message_location(clause(ClauseRef)) -->
 	{ clause_name(ClauseRef, Name) },
 	[ '~w: '-[Name] ].
+prolog:message_location(file_term_position(Path, TermPos)) -->
+	message_location_file_term_position(Path, TermPos).
 prolog:message_location(file(Path, Line, _, _)) -->
-	[ '~w:~d '-[Path, Line] ].
+	[ '~w:~d: '-[Path, Line] ].
 prolog:message(codewalk(reiterate(New, Iteration, CPU))) -->
 	[ 'Found new meta-predicates in iteration ~w (~3f sec)'-
 	  [Iteration, CPU], nl ],
