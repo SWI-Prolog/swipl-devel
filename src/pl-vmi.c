@@ -2209,7 +2209,7 @@ VMI(I_CUTCHP, 0, 0, ())
 }
 
 
-VMI(C_SCUT, 0, 1, (CA1_CHP))
+VMI(C_SCUT, 0, 0, ())
 { NEXT_INSTRUCTION;
 }
 

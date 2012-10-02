@@ -155,6 +155,9 @@ test(cut2) :-
 no_cut_cond :- (!, fail) *-> true.
 no_cut_cond.
 
+test(cut3) :-				% success handling (wrong C_SCUT decl)
+	true *-> true.
+
 :- end_tests(snip).
 
 
