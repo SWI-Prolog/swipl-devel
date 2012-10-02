@@ -1460,7 +1460,7 @@ right_argument:
 
 	succeed;
       } else if ( fd == FUNCTOR_ifthen2 ||		/* A -> B */
-		  fd == FUNCTOR_softcut2 )
+		  fd == FUNCTOR_softcut2 )		/* A *-> B */
       { int var;
 	int rv;
 	int hard = (fd == FUNCTOR_ifthen2);
@@ -1475,7 +1475,10 @@ right_argument:
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
 	  return rv;
 	ci->cut = cutsave;
-	Output_1(ci, hard ? C_CUT : C_SCUT, var);
+	if ( hard )
+	  Output_1(ci, C_CUT, var);
+	else
+	  Output_0(ci, C_SCUT);
 	if ( (rv=compileBody(argTermP(*body, 1), call, ci PASS_LD)) != TRUE )
 	  return rv;
 	Output_0(ci, C_END);
