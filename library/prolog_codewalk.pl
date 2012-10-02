@@ -570,7 +570,7 @@ pi_head(_, _, _) :-
 
 %%	infer_new_meta_predicates(-MetaSpecs, +OTerm) is det.
 
-infer_new_meta_predicates(_, OTerm) :-
+infer_new_meta_predicates([], OTerm) :-
 	walk_option_infer_meta_predicates(OTerm, false), !.
 infer_new_meta_predicates(MetaSpecs, _OTerm) :-
 	findall(Module:MetaSpec,
