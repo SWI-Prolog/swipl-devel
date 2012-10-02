@@ -59,7 +59,7 @@ pushSegStack_(segstack *stack, void *data)
     chunk->size = SEGSTACK_CHUNKSIZE;
     chunk->next = NULL;
     chunk->previous = stack->last;
-    chunk->top = chunk->data;		/* async scanning */
+    chunk->top = CHUNK_DATA(chunk);	/* async scanning */
     if ( stack->last )
     { stack->last->next = chunk;
       stack->last->top = stack->top;
@@ -70,10 +70,10 @@ pushSegStack_(segstack *stack, void *data)
       stack->last = stack->first = chunk;
     }
 
-    stack->base = chunk->data;
+    stack->base = CHUNK_DATA(chunk);
     stack->max  = addPointer(chunk, chunk->size);
-    memcpy(chunk->data, data, stack->unit_size);
-    stack->top  = chunk->data + stack->unit_size;
+    memcpy(CHUNK_DATA(chunk), data, stack->unit_size);
+    stack->top  = CHUNK_DATA(chunk) + stack->unit_size;
 
     return TRUE;
   }
@@ -120,7 +120,7 @@ popSegStack_(segstack *stack, void *data)
 	  PL_free(chunk);
 
 	chunk = stack->last;
-	stack->base = chunk->data;
+	stack->base = CHUNK_DATA(chunk);
 	stack->max  = addPointer(chunk, chunk->size);
 	stack->top  = chunk->top;
 	goto again;
@@ -139,7 +139,7 @@ topOfSegStack(segstack *stack)
   if ( stack->top >= stack->base + stack->unit_size )
   { return stack->top - stack->unit_size;
   } else if ( stack->last && (chunk=stack->last->previous) )
-  { assert(chunk->top - stack->unit_size >= chunk->data);
+  { assert(chunk->top - stack->unit_size >= CHUNK_DATA(chunk));
     return chunk->top - stack->unit_size;
   }
 
@@ -165,7 +165,7 @@ popTopOfSegStack(segstack *stack)
 	chunk = stack->last;
 	stack->top  = chunk->top;
 	MemoryBarrier();		/* Sync with scanSegStack() */
-	stack->base = chunk->data;
+	stack->base = CHUNK_DATA(chunk);
 	stack->max  = addPointer(chunk, chunk->size);
 
 	if ( del->allocated )
@@ -206,10 +206,10 @@ scanSegStack(segstack *stack, void (*func)(void *cell))
 { segchunk *chunk;
 
   if ( (chunk=stack->last) )		/* something there */
-  { if ( stack->base == chunk->data )
+  { if ( stack->base == CHUNK_DATA(chunk) )
       chunk->top = stack->top;		/* close last chunk */
     for(; chunk; chunk=chunk->previous)
-      scan_chunk(stack, chunk->top, chunk->data, func);
+      scan_chunk(stack, chunk->top, CHUNK_DATA(chunk), func);
   }
 }
 
