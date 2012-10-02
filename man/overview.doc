@@ -1248,9 +1248,9 @@ installations built using \program{configure} that support it and may be
 switched off using the configure option \const{--disable-largefile}.
 
     \prologflagitem{last_call_optimisation}{bool}{rw}
-Determines whether or not last-call optimisation is enabled.
-Normally the value of this flag is equal to the \prologflag{debug} flag.  As
-programs may run out of stack if last-call optimisation is omitted,
+Determines whether or not last-call optimisation is enabled. Normally
+the value of this flag is the negation of the \prologflag{debug} flag.
+As programs may run out of stack if last-call optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
 
     \prologflagitem{max_arity}{unbounded}{r}
@@ -1313,7 +1313,7 @@ Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
     \prologflagitem{preprocessor}{atom}{rw}
-Current preprocessor.  See preprocessor/2.  The reserved atom =none=
+Current preprocessor. See preprocessor/2. The reserved atom \const{none}
 (default) implies no preprocessor.
 
     \prologflagitem{prompt_alternatives_on}{atom}{rw}
