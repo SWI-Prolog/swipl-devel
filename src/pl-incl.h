@@ -892,12 +892,48 @@ Handling environment (or local stack) frames.
 #define slotsFrame(f)		(true((f)->predicate, FOREIGN) ? \
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Generations must be 64-bit to  avoid   overflow  in realistic scenarios.
+This makes them the only 64-bit value in struct localFrame. Stack frames
+mix with variables on the stacks and  are thus word-aligned. We have two
+options here. One is to represent a  generation as a struct (used below)
+or we must align frame at 8-byte  boundaries. The latter is probably the
+best solution, but merely aligning lTop in   I_ENTER  doesn't seem to be
+doing the trick: it causes failure of the  test suite for which I failed
+to find the reason. Enabling the structure   on x86 causes a slowdown of
+about 5%. I'd assume the difference is smaller on real 32-bit hardware.
+
+We   enable   this   if   sizeof(void*)   is   not   sizeof(gen_t)   and
+DOUBLE_ALIGNMENT is set by configure. Here,   we  assume that double and
+uint64_t have the same alignment restrictions. Is this realistic?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #ifdef O_LOGICAL_UPDATE
 typedef uint64_t gen_t;
-#define generationFrame(f)	((f)->generation)
+
+#if SIZEOF_VOIDP != 8 && defined(DOUBLE_ALIGNMENT)
+typedef struct lgen_t
+{ uint32_t	gen_l;
+  uint32_t	gen_u;
+} lgen_t;
+
+#define generationFrame(f) \
+	((gen_t)(f)->generation.gen_u<<32 | (gen_t)(f)->generation.gen_l)
+#define setGenerationFrame(f, gen) \
+	do { (f)->generation.gen_u = (uint32_t)(gen>>32); \
+	     (f)->generation.gen_l = (uint32_t)(gen); \
+	   } while(0)
 #else
-#define generationFrame(f)	(0)
+typedef uint64_t lgen_t;
+#define generationFrame(f)	((f)->generation)
+#define setGenerationFrame(f, gen) \
+	do { (f)->generation = (gen); } while(0)
 #endif
+#else /*O_LOGICAL_UPDATE*/
+#define generationFrame(f)	(0)
+#define setGenerationFrame(f)	(void)0
+#endif /*O_LOGICAL_UPDATE*/
 
 #define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS
 #define setNextFrameFlags(next, fr) \
@@ -1277,7 +1313,7 @@ struct localFrame
   struct call_node *prof_node;		/* Profiling node */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  gen_t		generation;		/* generation of the database */
+  lgen_t	generation;		/* generation of the database */
 #endif
   unsigned int	level;			/* recursion level */
   unsigned int	flags;			/* packed long holding: */
