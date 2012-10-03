@@ -55,7 +55,7 @@ typedef struct aWork
 typedef struct argPairs
 { aWork	work;				/* current work */
   segstack	stack;
-  char		first_chunk[sizeof(aWork)*25];
+  aWork		first_chunk[16];
 } argPairs;
 
 

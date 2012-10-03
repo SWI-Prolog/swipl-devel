@@ -460,7 +460,7 @@ entry.  Returns one of
 static int
 var_occurs_in(Word v, Word t ARG_LD)
 { segstack visited;
-  void *tmp[256];
+  Functor tmp[256];
   term_agenda agenda;
   int compound = FALSE;
   int rc = FALSE;

@@ -338,7 +338,7 @@ typedef struct
 { int		var_count;
   sha1_ctx	ctx[1];			/* The SHA1 Context */
   segstack	vars;
-  char		vars_first_chunk[256];
+  Word		vars_first_chunk[64];
 } sha1_state;
 
 typedef enum
