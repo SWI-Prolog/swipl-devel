@@ -75,7 +75,7 @@ do_infer_meta_predicate(Module:AHead, MetaSpec):-
 	functor(AHead, Functor, Arity),
 	functor(Head, Functor, Arity),	% Generalise the head
 	findall(MetaArgs,
-		find_meta_pred_args_in_clause(Module, Head, MetaArgs),
+		meta_pred_args_in_clause(Module, Head, MetaArgs),
 		AllMetaArgs),
 	(   AllMetaArgs = []
 	->  fail
@@ -84,8 +84,10 @@ do_infer_meta_predicate(Module:AHead, MetaSpec):-
 	).
 
 
-find_meta_pred_args_in_clause(Module, Head, MetaArgs):-
-	clause(Module:Head, Body), !,	% JW: Seems wrong?
+%%	meta_pred_args_in_clause(+Module, +Head, -MetaSpec) is nondet.
+
+meta_pred_args_in_clause(Module, Head, MetaArgs) :-
+	clause(Module:Head, Body),
 	find_meta_vars_in_body(Body, Module, [],  MetaVars),
 	find_meta_vars_in_head(Head, MetaVars, MetaArgs).
 
