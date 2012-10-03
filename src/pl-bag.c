@@ -60,26 +60,32 @@ init_mem_pool(mem_pool *mp)
   mp->first.used = 0;
 }
 
+#define ROUNDUP(n,m) (((n) + (m - 1)) & ~(m-1))
+
 static void *
 alloc_mem_pool(mem_pool *mp, size_t bytes)
 { char *ptr;
 
   if ( mp->chunks->used + bytes <= mp->chunks->size )
   { ptr = &((char *)(mp->chunks+1))[mp->chunks->used];
-    mp->chunks->used += bytes;
+    mp->chunks->used += ROUNDUP(bytes, sizeof(void*));
   } else
   { size_t chunksize = (bytes < 1000 ? 4000 : bytes);
     mem_chunk *c = PL_malloc_atomic_unmanaged(chunksize+sizeof(mem_chunk));
 
     if ( c )
     { c->size    = chunksize;
-      c->used    = bytes;
+      c->used    = ROUNDUP(bytes, sizeof(void*));
       c->prev    = mp->chunks;
       mp->chunks = c;
       ptr        = (char *)(mp->chunks+1);
     } else
       return NULL;
   }
+
+#ifdef O_DEBUG
+  assert((uintptr_t)ptr%sizeof(void*) == 0);
+#endif
 
   return ptr;
 }
