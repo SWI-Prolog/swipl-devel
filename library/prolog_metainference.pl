@@ -5,7 +5,7 @@
  * Mail: pdt@lists.iai.uni-bonn.de
  * Copyright (C): 2004-2012, CS Dept. III, University of Bonn
  *
- * Authors: Eva Stöwe, Günter Kniesel and Jan Wielemaker
+ * Authors: Eva Stoewe, Guenter Kniesel and Jan Wielemaker
  *
  * All rights reserved. This program is  made available under the terms
  * of the Eclipse Public License v1.0 which accompanies this distribution,
@@ -321,8 +321,8 @@ is_metaterm(Module, Literal, MetaArguments) :-
 	MetaTerm =.. [Functor|MetaArgs],
 	collect_meta_args(Args,MetaArgs, MetaArguments ).
 
-is_meta_pred(Module, Literal, MetaTerm) :-	%TODO: auf built_in einschr�nken!
-	predicate_property(Module:Literal,meta_predicate(MetaTerm)).
+is_meta_pred(Module, Literal, MetaTerm) :-
+	predicate_property(Module:Literal, meta_predicate(MetaTerm)).
 is_meta_pred(Module, Literal, MetaTerm) :-
 	(   inferred_meta_pred(Literal, Module, MetaTerm)
 	;   predicate_property(Module:Literal, imported_from(From)),
