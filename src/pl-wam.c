@@ -1701,10 +1701,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->prof_node = NULL;			/* true? */
 #endif
   Mark(qf->choice.mark);
-
-#ifdef O_LOGICAL_UPDATE
-  fr->generation = GD->generation;
-#endif
+  setGenerationFrame(fr, GD->generation);
 					/* context module */
   if ( true(def, P_TRANSPARENT) )
   { if ( ctx )
