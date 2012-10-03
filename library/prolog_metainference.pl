@@ -47,7 +47,7 @@ inferred_meta_predicate(M:Head, MetaSpec) :-
 	inferred_meta_pred(Head, M, MetaSpec).
 inferred_meta_predicate(M:Head, MetaSpec) :-
 	predicate_property(M:Head, imported_from(From)),
-	inferred_meta_pred(From, M, MetaSpec).
+	inferred_meta_pred(Head, From, MetaSpec).
 
 
 %%	infer_meta_predicate(:Head, -MetaSpec) is semidet
