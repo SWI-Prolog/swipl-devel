@@ -1762,7 +1762,7 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
   DEBUG(MSG_GC_WALK,
 	Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate)));
   for(; cref && state.unmarked > 0; cref=cref->next)
-  { if ( visibleClause(cref->value.clause, fr->generation) )
+  { if ( visibleClause(cref->value.clause, generationFrame(fr)) )
     { COUNT(c_scanned);
       state.c0 = cref->value.clause->codes;
       DEBUG(MSG_GC_WALK, Sdprintf("Scanning clause %p\n", cref->value.clause));

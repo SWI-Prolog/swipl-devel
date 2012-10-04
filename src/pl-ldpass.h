@@ -34,7 +34,6 @@
 #define getOutputStream(t, k, s)	getOutputStream__LD(t, k, s PASS_LD)
 #define getTextOutputStream(t, s)	getTextOutputStream__LD(t, s PASS_LD)
 #define getBinaryOutputStream(t, s)	getBinaryOutputStream__LD(t, s PASS_LD)
-#define valFloat(w)		valFloat__LD(w PASS_LD)
 #define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
 #define getCharsWString(s, l)	getCharsWString__LD(s, l PASS_LD)
 #define compileTermToHeap(t, f)	\

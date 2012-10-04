@@ -1586,9 +1586,7 @@ possible to be able to call-back to Prolog.
 
 depart_continue:
 retry_continue:
-#ifdef O_LOGICAL_UPDATE
-  FR->generation     = GD->generation;
-#endif
+  setGenerationFrame(FR, GD->generation);
 #ifdef O_PROFILE
   FR->prof_node = NULL;
 #endif
@@ -2209,7 +2207,7 @@ VMI(I_CUTCHP, 0, 0, ())
 }
 
 
-VMI(C_SCUT, 0, 1, (CA1_CHP))
+VMI(C_SCUT, 0, 0, ())
 { NEXT_INSTRUCTION;
 }
 
@@ -2673,7 +2671,7 @@ VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
 next_clause:
   ARGP = argFrameP(FR, 0);
   for(; cref; cref = cref->next)
-  { if ( visibleClause(cref->value.clause, FR->generation) )
+  { if ( visibleClause(cref->value.clause, generationFrame(FR)) )
     { TRY_CLAUSE(cref, cref->next, PC);
     }
   }
@@ -2690,7 +2688,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
     lTop = (LocalFrame)ARGP + FR->predicate->functor->arity;
 
     for(; cref; cref = cref->next)
-    { if ( visibleClause(cref->value.clause, FR->generation) )
+    { if ( visibleClause(cref->value.clause, generationFrame(FR)) )
       {	LocalFrame fr;
 	CL = cref;
 
@@ -4448,7 +4446,8 @@ atom is referenced by the goal-term anyway.
 #endif
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = ~(gen_t)0;
-      cl->generation.created = NFR->generation = GD->generation;
+      cl->generation.created = GD->generation;
+      setGenerationFrame(NFR, GD->generation);
 #endif
       PC = cl->codes;
 

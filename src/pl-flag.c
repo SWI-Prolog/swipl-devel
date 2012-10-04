@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -132,18 +131,9 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
 	goto out;
       break;
     case FLG_FLOAT:
-    {
-#ifdef DOUBLE_ALIGNMENT
-      double v;
-      doublecpy(&v, &f->value.f);
-      if ( !PL_unify_float(old, v) )
-	goto out;
-#else
       if ( !PL_unify_float(old, f->value.f) )
 	goto out;
-#endif
       break;
-    }
     default:
       assert(0);
   }
@@ -170,11 +160,7 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
       case V_FLOAT:
       { freeFlagValue(f);
 	f->type = FLG_FLOAT;
-#ifdef DOUBLE_ALIGNMENT
-        doublecpy(&f->value.f, &n.value.f);
-#else
         f->value.f = n.value.f;
-#endif
 	break;
       }
     }

@@ -27,6 +27,13 @@
 
 #define SEGSTACK_CHUNKSIZE (1*1024)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The segchunk struct has its data attached   to  its back. The data field
+itself is typed double to ensure that   the  data is properly aligned to
+allow access of doubles. This is needed to get properly aligned pointers
+after topsOfSegStack() in evalExpression().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 typedef struct segchunk
 { char  *top;				/* top when closed */
   size_t size;				/* size of the chunk */
@@ -34,8 +41,10 @@ typedef struct segchunk
   int	 allocated;			/* must call free on it */
   struct segchunk *next;		/* double linked list */
   struct segchunk *previous;
-  char	 data[1];			/* data on my back */
+  double data[1];			/* data on my back */
 } segchunk;
+
+#define CHUNK_DATA(c)	((char *)(c)->data)
 
 typedef struct
 { size_t   unit_size;
@@ -109,7 +118,7 @@ topsOfSegStack(segstack *stack, int count, void **tops)
     { segchunk *chunk = stack->last->previous;
 
       p = chunk->top - stack->unit_size;
-      base = chunk->data;
+      base = CHUNK_DATA(chunk);
     } else
       break;
   }
@@ -125,9 +134,10 @@ initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
 
 #if O_DEBUG
     assert(len > sizeof(*chunk));
+    assert(unit_size%sizeof(void*) == 0);
 #endif
     chunk->size = len;
-    stack->base = stack->top = chunk->top = chunk->data;
+    stack->base = stack->top = chunk->top = CHUNK_DATA(chunk);
     stack->last = stack->first = chunk;
     stack->max  = addPointer(chunk, len);
     memset(&chunk->allocated, 0,

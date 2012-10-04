@@ -1888,7 +1888,7 @@ PRED_IMPL("instance", 2, instance, 0)
 
   if ( type == DB_REF_CLAUSE )
   { Clause clause = ptr;
-    gen_t generation = environment_frame->generation;
+    gen_t generation = generationFrame(environment_frame);
 
     if ( true(clause, GOAL_CLAUSE) ||
 	 !visibleClause(clause, generation) )

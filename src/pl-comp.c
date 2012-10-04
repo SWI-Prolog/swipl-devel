@@ -1253,6 +1253,7 @@ Finish up the clause.
     space = ( clause.variables*sizeof(word) +
 	      sizeofClause(clause.code_size) +
 	      SIZEOF_CREF_CLAUSE +
+	      sizeof(word) +		/* possible alignment */
 	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY) +
 	      sizeof(struct choice)
 	    );
@@ -1263,6 +1264,12 @@ Finish up the clause.
 
     cref = (ClauseRef)p;
     p = addPointer(p, SIZEOF_CREF_CLAUSE);
+#if SIZEOF_VOIDP != 8 && defined(DOUBLE_ALIGNMENT)
+    if ( (uintptr_t)p % sizeof(gen_t) != 0 )
+    { p = addPointer(p, sizeof(word));
+      assert((uintptr_t)p % sizeof(gen_t) == 0);
+    }
+#endif
     cref->next = NULL;
     cref->value.clause = cl = (Clause)p;
     memcpy(cl, &clause, sizeofClause(0));
@@ -1460,7 +1467,7 @@ right_argument:
 
 	succeed;
       } else if ( fd == FUNCTOR_ifthen2 ||		/* A -> B */
-		  fd == FUNCTOR_softcut2 )
+		  fd == FUNCTOR_softcut2 )		/* A *-> B */
       { int var;
 	int rv;
 	int hard = (fd == FUNCTOR_ifthen2);
@@ -1475,7 +1482,10 @@ right_argument:
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
 	  return rv;
 	ci->cut = cutsave;
-	Output_1(ci, hard ? C_CUT : C_SCUT, var);
+	if ( hard )
+	  Output_1(ci, C_CUT, var);
+	else
+	  Output_0(ci, C_SCUT);
 	if ( (rv=compileBody(argTermP(*body, 1), call, ci PASS_LD)) != TRUE )
 	  return rv;
 	Output_0(ci, C_END);
@@ -4780,7 +4790,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   Definition def;
   Cref cr;
 #ifdef O_LOGICAL_UPDATE
-  gen_t generation = environment_frame->generation;
+  gen_t generation = generationFrame(environment_frame);
 #endif
 
   if ( ForeignControl(h) == FRG_CUTTED )
