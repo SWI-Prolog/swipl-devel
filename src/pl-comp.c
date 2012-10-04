@@ -1253,6 +1253,7 @@ Finish up the clause.
     space = ( clause.variables*sizeof(word) +
 	      sizeofClause(clause.code_size) +
 	      SIZEOF_CREF_CLAUSE +
+	      sizeof(word) +		/* possible alignment */
 	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY) +
 	      sizeof(struct choice)
 	    );
@@ -1263,6 +1264,12 @@ Finish up the clause.
 
     cref = (ClauseRef)p;
     p = addPointer(p, SIZEOF_CREF_CLAUSE);
+#if SIZEOF_VOIDP != 8 && defined(DOUBLE_ALIGNMENT)
+    if ( (uintptr_t)p % sizeof(gen_t) != 0 )
+    { p = addPointer(p, sizeof(word));
+      assert((uintptr_t)p % sizeof(gen_t) == 0);
+    }
+#endif
     cref->next = NULL;
     cref->value.clause = cl = (Clause)p;
     memcpy(cl, &clause, sizeofClause(0));
