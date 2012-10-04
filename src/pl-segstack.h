@@ -134,6 +134,7 @@ initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
 
 #if O_DEBUG
     assert(len > sizeof(*chunk));
+    assert(unit_size%sizeof(void*) == 0);
 #endif
     chunk->size = len;
     stack->base = stack->top = chunk->top = CHUNK_DATA(chunk);
