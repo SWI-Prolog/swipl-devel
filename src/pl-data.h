@@ -281,6 +281,11 @@ and while loading .wic files.  It comes at no price.
 #else
 #define valBignum(w)	valBignum__LD(w PASS_LD)
 #endif
+#ifndef DOUBLE_ALIGNMENT
+#define valFloat(w)	(*(double *)valIndirectP(w))
+#else
+#define valFloat(w)	valFloat__LD(w PASS_LD)
+#endif
 
 #define isBString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'B')
 #define isWString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'W')

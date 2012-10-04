@@ -567,49 +567,14 @@ getCharsWString__LD(word w, size_t *len ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Storage of floats (doubles) on the  stacks   and  heap.  Such values are
-packed into two `guards words'.  An   intermediate  structure is used to
-ensure the possibility of  word-aligned  copy   of  the  data. Structure
-assignment is used here  to  avoid  a   loop  for  different  values  of
-WORDS_PER_DOUBLE.
+packed into two `guards words'. We  cannot   just  copy the double as it
+might not be properly aligned.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef struct
-{ word w[WORDS_PER_DOUBLE];
-} fword;
-
-
-void
-doublecpy(void *to, void *from)
-{ fword *t = to;
-  fword *f = from;
-
-  *t = *f;
-}
-
-
-double					/* take care of alignment! */
-valFloat__LD(word w ARG_LD)
-{ fword *v = (fword *)valIndirectP(w);
-  union
-  { double d;
-    fword  l;
-  } val;
-
-  val.l = *v;
-
-  return val.d;
-}
-
 
 int
 put_double(Word at, double d, int flags ARG_LD)
 { Word p;
   word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-  union
-  { double d;
-    fword  l;
-  } val;
-  fword *v;
 
   if ( flags != ALLOW_CHECKED && !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
   { int rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, flags);
@@ -622,11 +587,9 @@ put_double(Word at, double d, int flags ARG_LD)
 
   *at = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 
-  val.d = d;
   *p++ = m;
-  v = (fword *)p;
-  *v++ = val.l;
-  p = (Word) v;
+  memcpy(p, &d, sizeof(d));
+  p += WORDS_PER_DOUBLE;
   *p = m;
 
   return TRUE;
