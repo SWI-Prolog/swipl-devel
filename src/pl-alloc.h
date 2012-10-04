@@ -80,7 +80,6 @@ COMMON(word)		globalWString(size_t len, const pl_wchar_t *s);
 COMMON(char *)		getCharsString__LD(word w, size_t *len ARG_LD);
 COMMON(pl_wchar_t *)	getCharsWString__LD(word w, size_t *len ARG_LD);
 COMMON(Word)		newTerm(void);
-COMMON(void)		doublecpy(void *to, void *from);
 COMMON(int)		put_double(Word p, double f, int flags ARG_LD);
 COMMON(int)		put_int64(Word p, int64_t i, int flags ARG_LD);
 COMMON(double)		valFloat__LD(word w ARG_LD);

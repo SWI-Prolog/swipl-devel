@@ -260,4 +260,16 @@ consPtr__LD(void *p, word ts ARG_LD)
 }
 
 
+#ifdef DOUBLE_ALIGNMENT
+static inline double
+valFloat__LD(word w ARG_LD)
+{ Word p = valIndirectP(w);
+  double d;
+
+  memcpy(&d, p, sizeof(d));
+  return d;
+}
+#endif
+
+
 #endif /*PL_INLINE_H_INCLUDED*/
