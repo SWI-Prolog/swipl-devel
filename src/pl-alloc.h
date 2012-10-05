@@ -82,7 +82,6 @@ COMMON(pl_wchar_t *)	getCharsWString__LD(word w, size_t *len ARG_LD);
 COMMON(Word)		newTerm(void);
 COMMON(int)		put_double(Word p, double f, int flags ARG_LD);
 COMMON(int)		put_int64(Word p, int64_t i, int flags ARG_LD);
-COMMON(double)		valFloat__LD(word w ARG_LD);
 #ifdef INT64_ALIGNMENT
 COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 #endif
