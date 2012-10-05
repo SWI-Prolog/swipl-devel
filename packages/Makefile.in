@@ -144,7 +144,7 @@ distclean::
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 	rm -f swipl.sh swipl-ld.sh
-	rm -f Makefile configure
+	rm -f Makefile configure Dialect.defs Makefile.defs
 
 clean::
 	for p in $(PKG); do \
