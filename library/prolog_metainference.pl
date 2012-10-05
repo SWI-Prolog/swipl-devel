@@ -75,7 +75,7 @@ do_infer_meta_predicate(Module:AHead, MetaSpec):-
 	functor(AHead, Functor, Arity),
 	functor(Head, Functor, Arity),	% Generalise the head
 	findall(MetaArgs,
-		find_meta_pred_args_in_clause(Module, Head, MetaArgs),
+		meta_pred_args_in_clause(Module, Head, MetaArgs),
 		AllMetaArgs),
 	(   AllMetaArgs = []
 	->  fail
@@ -84,25 +84,28 @@ do_infer_meta_predicate(Module:AHead, MetaSpec):-
 	).
 
 
-find_meta_pred_args_in_clause(Module, Head, MetaArgs):-
-	clause(Module:Head, Body), !,	% JW: Seems wrong?
+%%	meta_pred_args_in_clause(+Module, +Head, -MetaSpec) is nondet.
+
+meta_pred_args_in_clause(Module, Head, MetaArgs) :-
+	clause(Module:Head, Body),
 	find_meta_vars_in_body(Body, Module, [],  MetaVars),
 	find_meta_vars_in_head(Head, MetaVars, MetaArgs).
 
 
-/**
- * find_meta_vars_in_body(+Term, +Context, +MetaVars, -MetaVars) is det
- *
- * Analyses the code of Term for calls to known meta_predicates (in the
- * module Context).
- * If such a meta-call is found, all terms that appear
- *  - as arguments of those meta-calls,
- *  - are unified / aliased to them,
- *  - are part of those terms,
- *  - or are connected to them via term-manupilation
- * previously in the code of Arg1, are stored in Arg4.
- * Arg3 helps as an accumulator of previously found arguments / terms.
- */
+%%	find_meta_vars_in_body(+Term, +Context, +MetaVarsIn, -MetaVars) is det
+%
+%	Analyses the code of Term for calls to known meta_predicates (in
+%	the module Context). If such  a   meta-call  is found, all terms
+%	that appear
+%
+%	  - as arguments of those meta-calls,
+%	  - are unified / aliased to them,
+%	  - are part of those terms,
+%	  - or are connected to them via term-manupilation
+%
+%	previously  in  the  code  of  Term,  are  stored  in  MetaVars.
+%	MetaVarsIn  helps  as  an  accumulator    of   previously  found
+%	arguments.
 
 find_meta_vars_in_body(A, _, MetaVars, MetaVars) :-
 	(   atomic(A)
@@ -167,8 +170,6 @@ find_meta_vars_in_body(arg(_,Term,Arg), _Context, KnownMetaVars, MetaVars) :- !,
 	->  add_var_to_set(Term, KnownMetaVars, MetaVars)
 	;   MetaVars = KnownMetaVars
 	).
-
-
 find_meta_vars_in_body(Term, Context, KnownMetaVars, MetaVars):-
 	is_metaterm(Context, Term, MetaCombos), !,
 	extract_vars(MetaCombos, MetaArgs),
