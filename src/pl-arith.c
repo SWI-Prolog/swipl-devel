@@ -3541,6 +3541,7 @@ PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
 #endif
 	default:
 	  assert(0);
+          return FALSE;
       }
     } else
     { rval = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer_expression, t);

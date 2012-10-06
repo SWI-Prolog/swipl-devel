@@ -406,7 +406,6 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
   char symbolScratch[sizeof(SYMBOL_INFO) + MAX_SYMBOL_LEN];
   SYMBOL_INFO* symbol = (SYMBOL_INFO*)&symbolScratch;
   IMAGEHLP_MODULE64 moduleInfo;
-  EXCEPTION_POINTERS *pExp = NULL;
   DWORD64 offset;
   DWORD imageType;
   int skip = 0;
