@@ -1266,7 +1266,6 @@ qlfFixSourcePath(wic_state *state, const char *raw)
 
     strcpy(buf, state->load_state->load_dir);
     s = &buf[strlen(buf)];
-    *s++ = '/';
     strcpy(s, tail);
   } else
   { if ( strlen(raw)+1 > MAXPATHLEN )
