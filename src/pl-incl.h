@@ -321,6 +321,16 @@ typedef _sigset_t sigset_t;
 #endif
 #include <OS.h>
 
+/* MAXPATHLEN is an optional POSIX feature (Bug#63).  As SWI-Prolog has
+   no length limits on text except for representing paths, we should
+   rewrite all file handling code to avoid MAXPATHLEN.  For now we just
+   define it.
+*/
+
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+
 #undef true
 #undef false
 #undef bool
