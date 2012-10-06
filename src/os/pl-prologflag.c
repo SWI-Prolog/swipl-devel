@@ -782,6 +782,7 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
         break;
       default:
 	assert(0);
+        return FALSE;
     }
 
     return PL_unify_atom(val, v);

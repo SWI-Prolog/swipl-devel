@@ -1910,6 +1910,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
+      fail;
   }
 
 enumerate:
@@ -3367,6 +3368,7 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
+      fail;
   }
 
 enumerate:
@@ -4202,6 +4204,7 @@ PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
+      fail;
   }
 
 enumerate:
