@@ -983,13 +983,10 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 	      Sdprintf("\n"));
 	if ( !skip )
 	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
-	  { Sfprintf(Serror,
-		     "[WARNING: %s:%d: (loading %s) directive failed: ",
-		     source_file_name ? stringAtom(source_file_name)
-				      : "<no file>",
-		     source_line_no, state->wicFile);
-	    PL_write_term(Serror, goal, 1200, 0);
-	    Sfprintf(Serror, "]\n");
+	  { printMessage(ATOM_warning,
+			 PL_FUNCTOR_CHARS, "goal_failed", 2,
+			   PL_CHARS, "directive",
+			   PL_TERM, goal);
 	  }
 	}
 	PL_discard_foreign_frame(cid);
