@@ -53,6 +53,8 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_INDEX_UPDATE),
   DEBUG_TOPIC(MSG_JIT),
   DEBUG_TOPIC(MSG_TRACE),
+
+  DEBUG_TOPIC(MSG_QLF_PATH),
 						/* GC messages */
   DEBUG_TOPIC(MSG_AGC),
   DEBUG_TOPIC(MSG_CLAUSE_GC),
