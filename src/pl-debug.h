@@ -53,6 +53,8 @@
 #define MSG_JIT			 23
 #define MSG_TRACE		 24
 
+#define MSG_QLF_PATH		 25
+
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101

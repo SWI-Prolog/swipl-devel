@@ -1255,7 +1255,8 @@ static atom_t
 qlfFixSourcePath(wic_state *state, const char *raw)
 { char buf[MAXPATHLEN];
 
-  if ( state->load_state->has_moved && strprefix(raw, state->load_state->save_dir) )
+  if ( state->load_state->has_moved &&
+       strprefix(raw, state->load_state->save_dir) )
   { char *s;
     size_t lensave = strlen(state->load_state->save_dir);
     const char *tail = &raw[lensave];
@@ -2497,9 +2498,10 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 
     new->load_dir = store_string(l);
     new->save_dir = store_string(s);
-    DEBUG(1, Sdprintf("QLF file has moved; replacing %s --> %s\n",
-		      state->load_state->save_dir,
-		      state->load_state->load_dir));
+    DEBUG(MSG_QLF_PATH,
+	  Sdprintf("QLF file has moved; replacing %s --> %s\n",
+		   state->load_state->save_dir,
+		   state->load_state->load_dir));
   }
 
   succeed;
