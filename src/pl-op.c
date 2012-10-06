@@ -541,7 +541,10 @@ current_op(Module m, int inherit,
 	 PL_unify_integer(prec, match->priority) &&
 	 PL_unify_atom(type, operatorTypeToAtom(match->type)) )
     { if ( e->index == mx )
+      { discardBuffer(&e->buffer);
+        freeHeap(e, sizeof(*e));
 	return TRUE;
+      }
       ForeignRedoPtr(e);
     }
 
