@@ -152,8 +152,11 @@ backtrace(MaxDepth, Fr, PC, GoalDepth,
 	;   PC2 = foreign
 	),
 	(   prolog_frame_attribute(Fr, parent, Parent),
-	    prolog_frame_attribute(Parent, predicate_indicator, PI),
-	    PI \= '$toplevel':_
+	    (	prolog_frame_attribute(Parent, predicate_indicator, PI),
+		PI \= '$toplevel':_
+	    ;	current_prolog_flag(break_level, Break),
+		Break >= 1
+	    )
 	->  D2 is MaxDepth - 1,
 	    backtrace(D2, Parent, PC2, GoalDepth, Stack)
 	;   Stack = []
@@ -318,7 +321,7 @@ where_no_goal(meta_call, _) -->
 	[ '<meta call>' ].
 
 where_goal(foreign(_), _) -->
-	[ ' <foreign>'-[] ].
+	[ ' <foreign>'-[] ], !.
 where_goal(clause(Clause, PC), Options) -->
 	{ option(subgoal_positions(true), Options, true),
 	  subgoal_position(Clause, PC, File, CharA, _CharZ),
@@ -333,7 +336,7 @@ where_goal(clause(Clause, _PC), _) -->
 	[ ' at ~w:~d'-[ File, Line] ].
 where_goal(clause(Clause, _PC), _) -->
 	{ clause_name(Clause, ClauseName)
-	},
+	}, !,
 	[ ' ~w <no source>'-[ClauseName] ].
 where_goal(_, _) -->
 	[].
