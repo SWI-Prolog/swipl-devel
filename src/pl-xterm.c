@@ -22,7 +22,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__GLIBC__)
 #define _XOPEN_SOURCE 600
 #endif
 

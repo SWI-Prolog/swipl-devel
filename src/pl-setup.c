@@ -372,13 +372,15 @@ dispatch_signal(int sig, int sync)
     return;				/* what else?? */
   }
 
-  DEBUG(1, Sdprintf("Got signal %d in thread %d (=%d) %s\n",
-		    sig, LD->thread.info->pl_tid,
-		    pthread_self(),
-		    sync ? " (sync)" : " (async)"));
+  DEBUG(MSG_SIGNAL,
+	Sdprintf("Got signal %d in thread %d (=%d) %s\n",
+		 sig, LD->thread.info->pl_tid,
+		 pthread_self(),
+		 sync ? " (sync)" : " (async)"));
 #else
-  DEBUG(1, Sdprintf("Got signal %d %s\n",
-		    sig, sync ? " (sync)" : " (async)"));
+  DEBUG(MSG_SIGNAL,
+	Sdprintf("Got signal %d %s\n",
+		 sig, sync ? " (sync)" : " (async)"));
 #endif
 
   if ( true(sh, PLSIG_NOFRAME) && sh->handler )
@@ -420,8 +422,9 @@ dispatch_signal(int sig, int sync)
   LD->signal.current = sig;
   LD->signal.is_sync = sync;
 
-  DEBUG(1, Sdprintf("Handling signal %d, pred = %p, handler = %p\n",
-		    sig, sh->predicate, sh->handler));
+  DEBUG(MSG_SIGNAL,
+	Sdprintf("Handling signal %d, pred = %p, handler = %p\n",
+		 sig, sh->predicate, sh->handler));
 
   if ( sh->predicate )
   { term_t sigterm = PL_new_term_ref();
@@ -465,6 +468,10 @@ dispatch_signal(int sig, int sync)
     return;				/* make sure! */
   } else if ( sh->handler )
   { (*sh->handler)(sig);
+
+    DEBUG(MSG_SIGNAL,
+	  Sdprintf("Handler %p finished (pending=%lld)\n",
+		   sh->handler, LD->signal.pending));
 
     if ( exception_term && !sync )	/* handler: PL_raise_exception() */
     { LD->signal.exception = PL_record(exception_term);

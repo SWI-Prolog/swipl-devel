@@ -1910,6 +1910,7 @@ PRED_IMPL("thread_property", 2, thread_property, PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
+      fail;
   }
 
 enumerate:
@@ -2749,26 +2750,37 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
     if ( queue->destroyed )
       return MSG_WAIT_DESTROYED;
 
-    DEBUG(MSG_THREAD, Sdprintf("%d: scanning queue\n", PL_thread_self()));
+    DEBUG(MSG_QUEUE,
+	  if ( queue->size > 0 )
+	    Sdprintf("%d: scanning queue (size=%ld)\n",
+		     PL_thread_self(), queue->size));
+
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { int rc;
 
       if ( msgp->sequence_id < seen )
       { QSTAT(skipped);
+	DEBUG(MSG_QUEUE, Sdprintf("Already seen %ld (<%ld)\n",
+				  (long)msgp->sequence_id, (long)seen));
 	continue;
       }
       seen = msgp->sequence_id;
 
       if ( key && msgp->key && key != msgp->key )
+      { DEBUG(MSG_QUEUE, Sdprintf("Message key mismatch\n"));
 	continue;			/* fast search */
+      }
 
       QSTAT(unified);
       if ( !PL_recorded(msgp->message, tmp) )
         return raiseStackOverflow(GLOBAL_OVERFLOW);
       rc = PL_unify(msg, tmp);
+      DEBUG(MSG_QUEUE, { pl_writeln(tmp);
+			 pl_writeln(msg);
+		       });
 
       if ( rc )
-      { DEBUG(MSG_THREAD, Sdprintf("%d: match\n", PL_thread_self()));
+      { DEBUG(MSG_QUEUE, Sdprintf("%d: match\n", PL_thread_self()));
 
 	if ( queue->type == QTYPE_QUEUE )
 	  PL_LOCK(L_AGC);		/* See (*) */
@@ -2784,7 +2796,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
-	{ DEBUG(MSG_THREAD, Sdprintf("Queue drained. wakeup writers\n"));
+	{ DEBUG(MSG_QUEUE, Sdprintf("Queue drained. wakeup writers\n"));
 	  cv_signal(&queue->drain_var);
 	}
 
@@ -2798,7 +2810,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 
     queue->waiting++;
     queue->waiting_var += isvar;
-    DEBUG(MSG_THREAD, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
+    DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
     switch ( dispatch_cond_wait(queue, QUEUE_WAIT_READ, deadline) )
     { case EINTR:
       { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
@@ -2821,11 +2833,12 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	return MSG_WAIT_TIMEOUT;
       }
       case 0:
+	DEBUG(MSG_QUEUE_WAIT,
+	      Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
 	break;
       default:
 	assert(0);
     }
-    DEBUG(MSG_THREAD, Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
     queue->waiting--;
     queue->waiting_var -= isvar;
   }
@@ -3367,6 +3380,7 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
+      fail;
   }
 
 enumerate:
@@ -4202,6 +4216,7 @@ PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
+      fail;
   }
 
 enumerate:

@@ -1741,7 +1741,7 @@ Sclose(IOSTREAM *s)
 #ifdef __WINDOWS__
   if ( (s->flags & SIO_ADVLOCK) )
   { OVERLAPPED ov;
-    HANDLE h = (HANDLE)_get_osfhandle((int)s->handle);
+    HANDLE h = (HANDLE)_get_osfhandle((int)((uintptr_t)s->handle));
 
     memset(&ov, 0, sizeof(ov));
     UnlockFileEx(h, 0, 0, 0xffffffff, &ov);

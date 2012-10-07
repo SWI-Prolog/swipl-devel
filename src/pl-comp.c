@@ -4716,6 +4716,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
+      fail;
   }
 
   if ( def->functor->arity > 0 )

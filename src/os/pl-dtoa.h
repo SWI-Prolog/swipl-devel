@@ -25,6 +25,7 @@
 #ifndef PL_DTOA_H_INCLUDED
 #define PL_DTOA_H_INCLUDED
 
+#define dtoa   PL_dtoa			/* avoid library conflicts */
 #define strtod PL_strtod		/* avoid library conflicts */
 
 COMMON(char *)	dtoa(double dd, int mode, int ndigits,

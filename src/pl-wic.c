@@ -983,13 +983,10 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 	      Sdprintf("\n"));
 	if ( !skip )
 	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
-	  { Sfprintf(Serror,
-		     "[WARNING: %s:%d: (loading %s) directive failed: ",
-		     source_file_name ? stringAtom(source_file_name)
-				      : "<no file>",
-		     source_line_no, state->wicFile);
-	    PL_write_term(Serror, goal, 1200, 0);
-	    Sfprintf(Serror, "]\n");
+	  { printMessage(ATOM_warning,
+			 PL_FUNCTOR_CHARS, "goal_failed", 2,
+			   PL_CHARS, "directive",
+			   PL_TERM, goal);
 	  }
 	}
 	PL_discard_foreign_frame(cid);
@@ -1258,7 +1255,8 @@ static atom_t
 qlfFixSourcePath(wic_state *state, const char *raw)
 { char buf[MAXPATHLEN];
 
-  if ( state->load_state->has_moved && strprefix(raw, state->load_state->save_dir) )
+  if ( state->load_state->has_moved &&
+       strprefix(raw, state->load_state->save_dir) )
   { char *s;
     size_t lensave = strlen(state->load_state->save_dir);
     const char *tail = &raw[lensave];
@@ -1268,7 +1266,6 @@ qlfFixSourcePath(wic_state *state, const char *raw)
 
     strcpy(buf, state->load_state->load_dir);
     s = &buf[strlen(buf)];
-    *s++ = '/';
     strcpy(s, tail);
   } else
   { if ( strlen(raw)+1 > MAXPATHLEN )
@@ -2500,9 +2497,10 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 
     new->load_dir = store_string(l);
     new->save_dir = store_string(s);
-    DEBUG(1, Sdprintf("QLF file has moved; replacing %s --> %s\n",
-		      state->load_state->save_dir,
-		      state->load_state->load_dir));
+    DEBUG(MSG_QLF_PATH,
+	  Sdprintf("QLF file has moved; replacing %s --> %s\n",
+		   state->load_state->save_dir,
+		   state->load_state->load_dir));
   }
 
   succeed;
