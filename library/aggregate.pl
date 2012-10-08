@@ -113,7 +113,7 @@ for X.
 	* bag(X)
 	A list of all solutions for X.
 
----+++ Acknowledgements
+*Acknowledgements*
 
 _|The development of this library was sponsored by SecuritEase,
   http://www.securitease.com
