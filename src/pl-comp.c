@@ -4647,7 +4647,6 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   term_t term = PL_new_term_ref();
   term_t h    = PL_new_term_ref();
   term_t b    = PL_new_term_ref();
-  LocalFrame fr = environment_frame;
   fid_t fid;
 
   term_t head     = A1;
@@ -4729,9 +4728,9 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 
   if ( !chp )
   { chp = &chp_buf;
-    cref = firstClause(argv, fr, def, chp PASS_LD);
+    cref = firstClause(argv, environment_frame, def, chp PASS_LD);
   } else
-  { cref = nextClause(chp, argv, fr, def);
+  { cref = nextClause(chp, argv, environment_frame, def);
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
@@ -4766,7 +4765,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       deRef(argv);
       argv = argTermP(*argv, 0);
     }
-    cref = nextClause(chp, argv, fr, def);
+    cref = nextClause(chp, argv, environment_frame, def);
   }
 
   if ( chp != &chp_buf )
