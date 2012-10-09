@@ -36,6 +36,10 @@ have incomplete or incorrect meta-predicate information.
 
 @see	This library is used by prolog_walk_code/1 to improve the
 	accuracy of this analysis.
+@tbd	Re-introduce some alias-analysis
+@tbd	Not all missing meta-declarations are interesting.  Notably,
+	meta-predicates that are private and only pass meta-arguments
+	on behalve of a public meta-predicates do not need a declaration.
 */
 
 
@@ -56,8 +60,6 @@ inferred_meta_predicate(M:Head, MetaSpec) :-
 %	True  when  MetaSpec  is  a  meta-predicate  specifier  for  the
 %	predicate Head. Derived meta-predicates are   collected and made
 %	available through inferred_meta_predicate/2.
-%
-%	@tbd	Currently only infers ? and 0.
 
 infer_meta_predicate(Head, MetaSpec) :-
 	inferred_meta_predicate(Head, MetaSpec), !.
