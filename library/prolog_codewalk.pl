@@ -81,7 +81,7 @@ source file is passed into _Where.
 		       source(boolean),
 		       trace_reference(any),
 		       on_trace(callable),
-		       infer_meta_predicates(boolean)
+		       infer_meta_predicates(oneof([false,true,all]))
 		     ]).
 
 :- record
@@ -91,7 +91,7 @@ source file is passed into _Where.
 		    module:atom,		% Only analyse given module
 		    module_class:oneof([default,user,system,
 					library,test,development])=default,
-		    infer_meta_predicates:boolean=true,
+		    infer_meta_predicates:oneof([false,true,all])=true,
 		    trace_reference:any=(-),
 		    on_trace:callable,		% Call-back on trace hits
 						% private stuff
@@ -135,10 +135,13 @@ source file is passed into _Where.
 %	  module_property/2 for details on module classes.  Default
 %	  is to scan the classes =user= and =library=.
 %
-%	  * infer_meta_predicates(+Boolean)
+%	  * infer_meta_predicates(+BooleanOrAll)
 %	  Use infer_meta_predicate/2 on predicates with clauses that
 %	  call known meta-predicates.  The analysis is restarted until
-%	  a fixed point is reached.
+%	  a fixed point is reached.  If =true= (default), analysis is
+%	  only restarted if the inferred meta-predicate contains a
+%	  callable argument.  If =all=, it will be restarted until no
+%	  more new meta-predicates can be found.
 %
 %	  * trace_reference(Callable)
 %	  Print all calls to goals that subsume Callable. Goals are
@@ -572,12 +575,29 @@ pi_head(_, _, _) :-
 
 infer_new_meta_predicates([], OTerm) :-
 	walk_option_infer_meta_predicates(OTerm, false), !.
-infer_new_meta_predicates(MetaSpecs, _OTerm) :-
+infer_new_meta_predicates(MetaSpecs, OTerm) :-
 	findall(Module:MetaSpec,
 		( retract(possible_meta_predicate(Head, Module)),
-		  infer_meta_predicate(Module:Head, MetaSpec)
+		  infer_meta_predicate(Module:Head, MetaSpec),
+		  (   walk_option_infer_meta_predicates(OTerm, all)
+		  ->  true
+		  ;   calling_metaspec(MetaSpec)
+		  )
 		),
 		MetaSpecs).
+
+%%	calling_metaspec(+Head) is semidet.
+%
+%	True if this is a meta-specification  that makes a difference to
+%	the code walker.
+
+calling_metaspec(Head) :-
+	arg(_, Head, Arg),
+	calling_metaarg(Arg), !.
+
+calling_metaarg(I) :- integer(I), !.
+calling_metaarg(^).
+calling_metaarg(//).
 
 
 %%	walk_meta_call(+Index, +GoalHead, +MetaHead, +Module,
@@ -688,6 +708,10 @@ walk_dcg_body(G, M, TermPos, OTerm) :-
 %	TermPosition describes the term layout   of  Term and SubTermPos
 %	describes the term layout of SubTerm.   Cmp  is typically one of
 %	=same_term=, =|==|=, =|=@=|= or =|=|=
+
+:- meta_predicate
+	subterm_pos(+, +, 2, +, -),
+	sublist_pos(+, +, +, +, 2, -).
 
 subterm_pos(_, _, _, Pos, _) :-
 	var(Pos), !, fail.
