@@ -33,6 +33,7 @@
 
 :- module(prolog_clause,
 	  [ clause_info/4,		% +ClauseRef, -File, -TermPos, -VarNames
+	    initialization_layout/4,	% +SourceLoc, +Goal, -Term, -TermPos
 	    predicate_name/2,		% +Head, -Name
 	    clause_name/2		% +ClauseRef, -Name
 	  ]).
@@ -656,6 +657,28 @@ goal_expansion(GetN, get(R, Msg, Answer), P, P) :-
 goal_expansion(G0, G, P, P) :-
 	user:goal_expansion(G0, G),	% TBD: we need the module!
 	G0 \== G.			% \=@=?
+
+
+		 /*******************************
+		 *	  INITIALIZATION	*
+		 *******************************/
+
+%%	initialization_layout(+SourceLocation, ?InitGoal,
+%%			      -ReadGoal, -TermPos) is semidet.
+%
+%	Find term-layout of :- initialization directives.
+
+initialization_layout(File:Line, M:Goal0, Goal, TermPos) :-
+	read_term_at_line(File, Line, M, Directive, DirectivePos, _),
+	arg(1, Directive, Initialization),
+	arg(1, Initialization, ReadGoal),
+	DirectivePos = term_position(_, _, _, _, [InitPos]),
+	InitPos      = term_position(_, _, _, _, [GoalPos]),
+	(   ReadGoal = M:_
+	->  Goal = M:Goal0
+	;   Goal = Goal0
+	),
+	unify_body(ReadGoal, Goal, M, GoalPos, TermPos), !.
 
 
 		 /*******************************

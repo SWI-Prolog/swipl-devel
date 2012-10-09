@@ -225,8 +225,7 @@ walk_from_initialization(OTerm) :-
 
 walk_from_initialization(SourceLocation, M:Goal0, OTerm) :-
 	(   scan_module(M, OTerm)
-	->
-	    get_term_position(SourceLocation, M, Goal0, Goal, TermPos),
+	->  get_term_position(SourceLocation, M, Goal0, Goal, TermPos),
 	    walk_called(Goal, M, TermPos, OTerm)
 	;   true
 	).
@@ -234,17 +233,11 @@ walk_from_initialization(_, Goal, OTerm) :-
 	walk_called(Goal, user, _, OTerm).
 
 get_term_position(SourceLocation, M, Goal0, Goal, TermPos) :-
-	nonvar(SourceLocation),
-	SourceLocation = File:Line,
-	prolog_clause:read_term_at_line(File, Line, M, (:- Term0),
-					TermPos0, _),
-	arg(1, Term0, Term),
-	TermPos0 = term_position(_, _, _, _, [TermPos1]),
-	TermPos1 = term_position(_, _, _, _, [TermPos2]),
-	(Term = M:_ -> Goal= M:Goal0 ; Goal = Goal0),
-	prolog_clause:unify_body(Term, Goal, M, TermPos2, TermPos),
-	!.
+	ground(SourceLocation),
+	SourceLocation = _File:_Line,
+	initialization_layout(SourceLocation, M:Goal0, Goal, TermPos), !.
 get_term_position(_, _, Goal, Goal, _).
+
 
 %%	find_walk_from_module(+Module, +OTerm) is det.
 %
