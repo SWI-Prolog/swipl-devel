@@ -18,6 +18,7 @@
 	    inferred_meta_predicate/2		% :Head, ?MetaSpec
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(apply)).
 
 :- meta_predicate
 	inferred_meta_predicate(:, ?),
@@ -74,296 +75,163 @@ infer_meta_predicate(M:Head, MetaSpec) :-
 do_infer_meta_predicate(Module:AHead, MetaSpec):-
 	functor(AHead, Functor, Arity),
 	functor(Head, Functor, Arity),	% Generalise the head
-	findall(MetaArgs,
-		meta_pred_args_in_clause(Module, Head, MetaArgs),
-		AllMetaArgs),
-	(   AllMetaArgs = []
-	->  fail
-	;   combine_meta_args(AllMetaArgs,CombinedArgs),
-	    MetaSpec =.. [Functor|CombinedArgs]
-	).
+	findall(MetaSpec,
+		meta_pred_args_in_clause(Module, Head, MetaSpec),
+		MetaSpecs),
+	MetaSpecs \== [],
+	combine_meta_args(MetaSpecs, MetaSpec).
 
 
 %%	meta_pred_args_in_clause(+Module, +Head, -MetaSpec) is nondet.
 
 meta_pred_args_in_clause(Module, Head, MetaArgs) :-
 	clause(Module:Head, Body),
-	find_meta_vars_in_body(Body, Module, [],  MetaVars),
-	find_meta_vars_in_head(Head, MetaVars, MetaArgs).
+	annotate_meta_vars_in_body(Body, Module),
+	meta_annotation(Head, MetaArgs).
 
 
-%%	find_meta_vars_in_body(+Term, +Context, +MetaVarsIn, -MetaVars) is det
+%%	annotate_meta_vars_in_body(+Term, +Module) is det
 %
-%	Analyses the code of Term for calls to known meta_predicates (in
-%	the module Context). If such  a   meta-call  is found, all terms
-%	that appear
+%	Annotate variables in Term if they appear as meta-arguments.
 %
-%	  - as arguments of those meta-calls,
-%	  - are unified / aliased to them,
-%	  - are part of those terms,
-%	  - or are connected to them via term-manupilation
-%
-%	previously  in  the  code  of  Term,  are  stored  in  MetaVars.
-%	MetaVarsIn  helps  as  an  accumulator    of   previously  found
-%	arguments.
+%	@tbd	Aliasing.  Previous code detected aliasing for
+%		- =/2
+%		- functor/3
+%		- atom_concat/3
+%		- =../2
+%		- arg/3
 
-find_meta_vars_in_body(A, _, MetaVars, MetaVars) :-
-	(   atomic(A)
-	;   var(A)
-	), !.
-find_meta_vars_in_body(Module:Term, _, KnownMetaVars, MetaVars) :- !,
-	find_meta_vars_in_body(Term, Module, KnownMetaVars, MetaVars).
-find_meta_vars_in_body((Cond->Then;Else), Context, KnownMetaVars, MetaVars) :- !,
-	find_meta_vars_in_body(Then, Context, KnownMetaVars, MetaVarsA),
-	(   KnownMetaVars \= MetaVarsA
-	->  find_meta_vars_in_body(Cond, Context, MetaVarsA, MetaVars)
-	;   find_meta_vars_in_body(Else, Context, KnownMetaVars, MetaVars)
-	).
-find_meta_vars_in_body((TermA, TermB), Context, KnownMetaVars, MetaVars) :- !,
-	find_meta_vars_in_body(TermB, Context, KnownMetaVars, MetaVarsB),
-	find_meta_vars_in_body(TermA, Context, MetaVarsB, MetaVars).
-find_meta_vars_in_body((TermA; TermB), Context, KnownMetaVars, MetaVars) :- !,
-	find_meta_vars_in_body(TermB, Context, KnownMetaVars, MetaVarsB),
-	find_meta_vars_in_body(TermA, Context, MetaVarsB, MetaVars).
-find_meta_vars_in_body((TermA = TermB), _Context, KnownMetaVars, MetaVars) :- !,
-	(   occurs_in(TermA, KnownMetaVars)
-	->  add_var_to_set(TermB, KnownMetaVars, OwnMetaVars2)
-	;   OwnMetaVars2 = KnownMetaVars
-	),
-	(   occurs_in(TermB, OwnMetaVars2)
-	->  add_var_to_set(TermA, OwnMetaVars2, MetaVars3)
-	;   MetaVars3 = OwnMetaVars2
-	),
-	check_inner_vars(TermA, TermB, MetaVars3, MetaVars).
-find_meta_vars_in_body(functor(Term,Functor,_),
-		       _Context, KnownMetaVars, MetaVars) :- !,
-	(   occurs_in(Term,KnownMetaVars)
-	->  add_var_to_set(Functor, KnownMetaVars, MetaVars)
-	;   (   occurs_in(Functor,KnownMetaVars)
-	    ->  add_var_to_set(Term, KnownMetaVars, MetaVars)
-	    ;   MetaVars = KnownMetaVars
-	    )
-	).
-find_meta_vars_in_body(atom_concat(A,B,C), _Context, KnownMetaVars, AllMeta) :- !,
-	free_vars_of([A,B,C],Candidates),
-	add_meta_vars(Candidates,KnownMetaVars,AllMeta).
-find_meta_vars_in_body((Term =.. List), _Context, KnownMetaVars, MetaVars) :- !,
-	(   occurs_in(Term,KnownMetaVars)
-	->  add_var_to_set(List, KnownMetaVars, MetaVars1),
-	    (	nonvar(List),
-		List = [Functor|_]
-	    ->	add_var_to_set(Functor, MetaVars1, MetaVars)
-	    ;	MetaVars = MetaVars1
-	    )
-	;   occurs_in(List,KnownMetaVars)
-	->  add_var_to_set(Term, KnownMetaVars, MetaVars)
-	;   nonvar(List),
-	    List = [Functor|_],
-	    occurs_in(Functor, KnownMetaVars)
-	->  add_var_to_set(Term, KnownMetaVars, MetaVars)
-	;   MetaVars = KnownMetaVars
-	).
-find_meta_vars_in_body(arg(_,Term,Arg), _Context, KnownMetaVars, MetaVars) :- !,
-	(   occurs_in(Term,KnownMetaVars)
-	->  add_var_to_set(Arg, KnownMetaVars, MetaVars)
-	;   occurs_in(Arg,KnownMetaVars)
-	->  add_var_to_set(Term, KnownMetaVars, MetaVars)
-	;   MetaVars = KnownMetaVars
-	).
-find_meta_vars_in_body(Term, Context, KnownMetaVars, MetaVars):-
-	is_metaterm(Context, Term, MetaCombos), !,
-	extract_vars(MetaCombos, MetaArgs),
-	handel_meta_args(MetaArgs, Context, KnownMetaVars, MetaVars).
-find_meta_vars_in_body(_Term, _Context, MetaVars, MetaVars).
+annotate_meta_vars_in_body(A, _) :-
+	atomic(A), !.
+annotate_meta_vars_in_body(Var, _) :-
+	var(Var), !,
+	annotate(Var, 0).
+annotate_meta_vars_in_body(Module:Term, _) :- !,
+	annotate_meta_vars_in_body(Term, Module).
+annotate_meta_vars_in_body((TermA, TermB), Module) :- !,
+	annotate_meta_vars_in_body(TermB, Module),
+	annotate_meta_vars_in_body(TermA, Module).
+annotate_meta_vars_in_body((TermA; TermB), Module) :- !,
+	annotate_meta_vars_in_body(TermB, Module),
+	annotate_meta_vars_in_body(TermA, Module).
+annotate_meta_vars_in_body((TermA->TermB), Module) :- !,
+	annotate_meta_vars_in_body(TermB, Module),
+	annotate_meta_vars_in_body(TermA, Module).
+annotate_meta_vars_in_body((TermA*->TermB), Module) :- !,
+	annotate_meta_vars_in_body(TermB, Module),
+	annotate_meta_vars_in_body(TermA, Module).
+annotate_meta_vars_in_body(Goal, Module) :- % TBD: do we trust this?
+	predicate_property(Module:Goal, meta_predicate(Head)), !,
+	functor(Goal, _, Arity),
+	annotate_meta_args(1, Arity, Goal, Head, Module).
+annotate_meta_vars_in_body(Goal, Module) :-
+	inferred_meta_predicate(Module:Goal, Head), !,
+	functor(Goal, _, Arity),
+	annotate_meta_args(1, Arity, Goal, Head, Module).
+annotate_meta_vars_in_body(_, _).
 
 
-/**
- * find_meta_vars_in_head(+Head, +MetaVars, ?MetaArgs) is det
- *
- * Succeeds if Arg1 is the head of a meta-predicate-clause and Arg2 all
- * possible bindings for meta-arguments used in the body in the clause.
- * In this case, Arg3 is bound to a list that represents the
- * meta-argument-binding of the arguments of the Clause.
- *
- * (Currently only working with ? and 0, but should work for each
- *  number and +, - in the futuroe.)
- */
+%%	annotate_meta_args(+Arg, +Arity, +Goal, +MetaSpec, +Module)
 
-find_meta_vars_in_head(Head, MetaVars, MetaArgs) :-
-	Head =.. [_Functor|Args],
-	find_args_in_list(Args, MetaVars, MetaArgs, IsMeta),
-	IsMeta = true.
+annotate_meta_args(I, Arity, Goal, MetaSpec, Module) :-
+	I =< Arity, !,
+	arg(I, MetaSpec, MetaArg),
+	arg(I, Goal, Arg),
+	annotate_meta_arg(MetaArg, Arg, Module),
+	I2 is I + 1,
+	annotate_meta_args(I2, Arity, Goal, MetaSpec, Module).
+annotate_meta_args(_, _, _, _, _).
 
-find_args_in_list([], _, [], false).
-find_args_in_list([Arg|Rest], MetaVars, MetaArgs, IsMeta) :-
-	find_args_in_list(Rest,MetaVars,RestMetaArgs, MetaFound),
-	(   occurs_in(Arg,MetaVars)
-	->  MetaArgs=[0|RestMetaArgs],
-	    IsMeta = true
-	;   MetaArgs=[?|RestMetaArgs],
-	    IsMeta = MetaFound
-	).
-
-
-extract_vars([],[]).
-extract_vars([(_,Var)|RestCombo], [Var|RestVars]) :-
-	extract_vars(RestCombo, RestVars).
-
-handel_meta_args([], _, Known, Known).
-handel_meta_args([A|Rest], Context, Known, MetaVars) :-
-	var(A), !,
-	add_var_to_set(A, Known, OwnMetaVars),
-	handel_meta_args(Rest, Context, OwnMetaVars, MetaVars).
-handel_meta_args([A|Rest], Context, Known, MetaVars) :-
-	handel_meta_args(Rest, Context, Known, AllOthers),
-	find_meta_vars_in_body(A, Context, AllOthers, MetaVars).
-
-
-%%	check_inner_vars(+TermA, +TermB, +OldMetaVars, -NewMetaVars) is det
-%
-%	@tbd This solution only works for variables not in OldMetaVars
-
-check_inner_vars(TermA,TermB,OldMetaVars,NewMetaVars):-
-	unifiable(TermA, TermB, Unifiers), !,
-	check_unifier_list(Unifiers,OldMetaVars,NewMetaVars).
-check_inner_vars(_, _, MetaVars, MetaVars).
-
-
-%%	check_unifier_list(+Unifiers, +MetasIn, -MetasOut)
-%
-%	@tbd	p(A):- term(A,B)= term(C,C), call(B)
-
-check_unifier_list([], Metas, Metas).
-check_unifier_list([A=B|Rest], OldMetas, Metas) :-
-	(   occurs_in(A, OldMetas)
-	->  add_var_to_set(B, OldMetas, Metas1)
-	;   Metas1 = OldMetas
-	),
-	(   occurs_in(B, OldMetas)
-	->  add_var_to_set(A, Metas1, Metas2)
-	;   Metas2 = Metas1
-	),
-	check_unifier_list(Rest, Metas2, Metas).
-
-
-free_vars_of(List,Free) :-
-	include(var, List, Free).
-
-
-%%	add_meta_vars(+Candidates, +KnownMeta, ?AllMeta)
-%
-%	Candidates and KnownMeta are lists of   free  variables. If some
-%	variable from Candidates is in AllMeta  all the other candidates
-%	that do not occur  in  KnownMeta   are  prepended  to  KnownMeta
-%	yielding AllMeta.
-
-add_meta_vars(Candidates,KnownMeta,AllMeta) :-
-	select(Var,Candidates,OtherCandidates),
-	occurs_in(Var,KnownMeta),
-	combine_sets_nonbinding(OtherCandidates, KnownMeta, AllMeta), !.
-
-combine_sets_nonbinding([],Set,Set).
-combine_sets_nonbinding([E|Rest],OldSet,NewSet) :-
-	add_var_to_set(E,OldSet,Set),
-	combine_sets_nonbinding(Rest,Set,NewSet).
-
-
-%%	add_var_to_set(?Var, +Set, ?NewSet) is det.
-%
-%	True when NewSet is the union of Set and {Var}.
-
-add_var_to_set(Var, Set, NewSet) :-
-	(   occurs_in(Var, Set)
-	->  NewSet = Set
-	;   NewSet = [Var|Set]
-	).
-
-
-%%	occurs_in(?Var, +Set) is semidet.
-%
-%	True if Var is a member of Set.
-
-occurs_in(Var, Set) :-
-	member(OldVar, Set),
-	OldVar == Var, !.
-
-combine_meta_args([],[]) :- !.
-combine_meta_args([List],List) :- !.
-combine_meta_args([MetaArgs|RestMetaArgs],CombinedArgs) :-
-	combine_meta_args(RestMetaArgs,RestCombinedArgs),
-	combine_two_arg_lists(MetaArgs, RestCombinedArgs, CombinedArgs).
-
-combine_two_arg_lists([], [], []) :- !.
-combine_two_arg_lists([ArgA|ArgsA], [ArgB|ArgsB], [CombinedArg|CombinedRest]) :-
-	combine_two_arg_lists(ArgsA,ArgsB,CombinedRest),
-	(   integer(ArgA)
-	->  (	integer(ArgB)
-	    ->	CombinedArg is max(ArgA, ArgB)
-	    ;	CombinedArg = ArgA
-	    )
-	;   (	integer(ArgB)
-	    ->	CombinedArg = ArgB
-	    ;	CombinedArg = ?
-	    )
-	).
-
-
-/* *
- * is_metaterm(?Module, -Literal, ?MetaArguments ) is non_det
- * is_metaterm(?Module, +Literal, ?MetaArguments ) is det
- *  Arg1 is a literal representing a metacall and
- *  Arg2 is the list of its meta-arguments each of the form:
- *      (Original_argument_position, Argument).
- */
-is_metaterm(Module, Literal, MetaArguments) :-
-	must_be(callable, Literal),
-	is_meta_pred(Module, Literal, MetaTerm),
-	Literal  =.. [Functor|Args],
-	MetaTerm =.. [Functor|MetaArgs],
-	collect_meta_args(Args,MetaArgs, MetaArguments ).
-
-is_meta_pred(Module, Literal, MetaTerm) :-
-	predicate_property(Module:Literal, meta_predicate(MetaTerm)).
-is_meta_pred(Module, Literal, MetaTerm) :-
-	(   inferred_meta_pred(Literal, Module, MetaTerm)
-	;   predicate_property(Module:Literal, imported_from(From)),
-	    inferred_meta_pred(Literal, From, MetaTerm)
-	).
-
-/* *
-* collect_meta_args(+Args,+MetaArgs,?MetaArguments) is det
-*
-* MetaArguments is unified to a list of all elements of Args that are defined
-* as meta-arguments via the corresponding elements of MetaArgs.
-* (extract_meta_args/3 is used to select the corresponding elements and to
-* build the entries of MetaArguments.)
-* Fails if no MetaArguments can be found.
-*/
-
-collect_meta_args(Args, MetaArgs, MetaArguments ) :-
-	bagof(Meta, extract_meta_argument(Args, MetaArgs, Meta), MetaArguments).
-
-extract_meta_argument(Args, MetaArgs, (N,NewArg)) :-
-	nth1(N, MetaArgs, MArg),
-	nth1(N, Args, Arg),
-	additonal_parameters(MArg, Arg, NewArg).
-
-%%	additonal_parameters(+MetaSpec, +ArgIn, -ArgOut) is semidet.
-%
-%	If the meta-argument is not a   variable, add as many parameters
-%	to it as indicated by the   meta-argument  specifier (0-9). Fail
-%	for (skip) parameters marked as ':'  (= module-aware) but not as
-%	meta:
-
-additonal_parameters(0, Arg, Arg) :- !.
-additonal_parameters(N, Arg, Arg) :-
+annotate_meta_arg(Spec, Arg, _) :-
+	var(Arg), !,
+	annotate(Arg, Spec).
+annotate_meta_arg(0, Arg, Module) :- !,
+	annotate_meta_vars_in_body(Arg, Module).
+annotate_meta_arg(N, Arg, Module) :-
 	integer(N),
-	var(Arg), !.
-additonal_parameters(N, Arg, NewArg) :-
-	integer(N),
-	Arg =.. [Functor|Params],
-	length(N_Elems, N),
-	append(Params, N_Elems, NewParams),
-	NewArg =.. [Functor | NewParams].
+	callable(Arg), !,
+	Arg =.. List,
+	length(Extra, N),
+	append(List, Extra, ListX),
+	ArgX =.. ListX,
+	annotate_meta_vars_in_body(ArgX, Module).
+annotate_meta_arg(_,_,_).
+
+annotate(Var, Annotation) :-
+	get_attr(Var, prolog_metainference, Annot0), !,
+	join_annotation(Annot0, Annotation, Joined),
+	put_attr(Var, prolog_metainference, Joined).
+annotate(Var, Annotation) :-
+	put_attr(Var, prolog_metainference, Annotation).
+
+join_annotation(A, A, A) :- !.
+join_annotation(A, B, C) :-
+	(   is_meta(A), \+ is_meta(B)
+	->  C = A
+	;   \+ is_meta(A), is_meta(B)
+	->  C = B
+	;   is_meta(A), is_meta(B)
+	->  C = (:)
+	;   C = *
+	).
+
+attr_unify_hook(A0, Other) :-
+	get_attr(Other, prolog_metainference, A1), !,
+	join_annotation(A0, A1, A),
+	put_attr(Other, prolog_metainference, A).
+
+
+%%	meta_annotation(+Head, -Annotation) is semidet.
+%
+%	True when Annotation is an   appropriate  meta-specification for
+%	Head.
+
+meta_annotation(Head, Meta) :-
+	functor(Head, Name, Arity),
+	functor(Meta, Name, Arity),
+	meta_args(1, Arity, Head, Meta, HasMeta),
+	HasMeta == true.
+
+meta_args(I, Arity, Head, Meta, HasMeta) :-
+	I =< Arity, !,
+	arg(I, Head, HeadArg),
+	arg(I, Meta, MetaArg),
+	meta_arg(HeadArg, MetaArg),
+	(   is_meta(MetaArg)
+	->  HasMeta = true
+	;   true
+	),
+	I2 is I + 1,
+	meta_args(I2, Arity, Head, Meta, HasMeta).
+meta_args(_, _, _, _, _).
+
+is_meta(I) :- integer(I), !.
+is_meta(:).
+is_meta(^).
+is_meta(//).
+
+meta_arg(HeadArg, MetaArg) :-
+	get_attr(HeadArg, prolog_metainference, MetaArg), !.
+meta_arg(HeadArg, :) :-
+	term_variables(HeadArg, Vars),
+	member(Var, Vars),
+	get_attr(Var, prolog_metainference, Meta),
+	is_meta(Meta), !.
+meta_arg(_, *).
+
+%%	combine_meta_args(+Heads, -Head) is det.
+%
+%	Combine multiple meta-specifications.
+
+combine_meta_args([], []) :- !.
+combine_meta_args([List], List) :- !.
+combine_meta_args([Spec,Spec|Specs], CombinedArgs) :- !,
+	combine_meta_args([Spec|Specs], CombinedArgs).
+combine_meta_args([Spec1,Spec2|Specs], CombinedArgs) :-
+	Spec1 =.. [Name|Args1],
+	Spec2 =.. [Name|Args2],
+	maplist(join_annotation, Args1, Args2, Args),
+	Spec =.. [Name|Args],
+	combine_meta_args([Spec|Specs], CombinedArgs).
 
 
