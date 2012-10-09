@@ -42,6 +42,9 @@
 :- use_module(library(error)).
 :- set_prolog_flag(generate_debug_info, false).
 
+:- meta_predicate
+	meta_options(1, :, -).
+
 /** <module> Option list processing
 
 The library(option) provides some utilities for processing option lists.
@@ -249,9 +252,6 @@ canonise_options2([H|T0], [H|T]) :- !,
 %
 %	@tbd	Should be integrated with declarations from
 %		predicate_options/3.
-
-:- meta_predicate
-	meta_options(1, :, -).
 
 meta_options(IsMeta, Context:Options0, Options) :-
 	must_be(list, Options0),
