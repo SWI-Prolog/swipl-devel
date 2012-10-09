@@ -100,6 +100,8 @@ meta_pred_args_in_clause(Module, Head, MetaArgs) :-
 %		- atom_concat/3
 %		- =../2
 %		- arg/3
+%	@tbd	We can make this nondet, exploring multiple aliasing
+%		paths in disjunctions.
 
 annotate_meta_vars_in_body(A, _) :-
 	atomic(A), !.
@@ -107,7 +109,12 @@ annotate_meta_vars_in_body(Var, _) :-
 	var(Var), !,
 	annotate(Var, 0).
 annotate_meta_vars_in_body(Module:Term, _) :- !,
-	annotate_meta_vars_in_body(Term, Module).
+	(   atom(Module)
+	->  annotate_meta_vars_in_body(Term, Module)
+	;   var(Module)
+	->  annotate(Module, m)
+	;   true			% may continue if Term is a system
+	).				% predicate?
 annotate_meta_vars_in_body((TermA, TermB), Module) :- !,
 	annotate_meta_vars_in_body(TermB, Module),
 	annotate_meta_vars_in_body(TermA, Module).
@@ -155,6 +162,12 @@ annotate_meta_arg(N, Arg, Module) :-
 	append(List, Extra, ListX),
 	ArgX =.. ListX,
 	annotate_meta_vars_in_body(ArgX, Module).
+annotate_meta_arg(Spec, Arg, _) :-
+	is_meta(Spec),
+	compound(Arg),
+	Arg = Module:_,
+	var(Module), !,
+	annotate(Module, m).
 annotate_meta_arg(_,_,_).
 
 annotate(Var, Annotation) :-
@@ -210,13 +223,22 @@ is_meta(:).
 is_meta(^).
 is_meta(//).
 
+%%	meta_arg(+AnnotatedArg, -MetaSpec) is det.
+%
+%	True when MetaSpec is  a  proper   annotation  for  the argument
+%	AnnotatedArg. This is simple if the argument is a plain argument
+%	in the head (first clause). If it   is  a compound term, it must
+%	unify to _:_, otherwise there is no point turning it into a meta
+%	argument. If the  module  part  is   then  passed  to  a  module
+%	sensitive predicate, we assume it is a meta-predicate.
+
 meta_arg(HeadArg, MetaArg) :-
-	get_attr(HeadArg, prolog_metainference, MetaArg), !.
+	get_attr(HeadArg, prolog_metainference, MetaArg),
+	MetaArg \== m, !.
 meta_arg(HeadArg, :) :-
-	term_variables(HeadArg, Vars),
-	member(Var, Vars),
-	get_attr(Var, prolog_metainference, Meta),
-	is_meta(Meta), !.
+	compound(HeadArg),
+	HeadArg = M:_,
+	get_attr(M, prolog_metainference, m), !.
 meta_arg(_, *).
 
 %%	combine_meta_args(+Heads, -Head) is det.
