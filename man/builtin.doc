@@ -348,6 +348,11 @@ associated with a terminal.
 If \const{true} re-export the imported predicate.  Used by reexport/1
 and reexport/2.
 
+    \termitem{register}{Bool}
+If \const{false}, do not register the load location and options.  This
+option is used by make/0 and load_hotfixes/1 to avoid polluting the
+load-context database.  See source_file_property/2.
+
     \termitem{silent}{Bool}
 If \const{true}, load the file without printing a message. The
 specified value is the default for all files loaded as a result of

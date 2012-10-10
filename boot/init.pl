@@ -1529,8 +1529,7 @@ load_files(Module:Files, Options) :-
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
 	memberchk(stream(_), Options), !,
-	'$delete'(Options, stream(_), CtxOptions),
-	'$assert_load_context_module'(File, Module, CtxOptions),
+	'$assert_load_context_module'(File, Module, Options),
 	'$qdo_load_file'(File, File, Module, Options).
 '$load_file'(File, Module, Options) :-
 	absolute_file_name(File,
@@ -1874,27 +1873,49 @@ load_files(Module:Files, Options) :-
 :- multifile
 	'$load_context_module'/3.
 
+'$assert_load_context_module'(_, _, Options) :-
+	memberchk(register(false), Options), !.
 '$assert_load_context_module'(File, Module, Options) :-
 	source_location(FromFile, _Line), !,
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
+	'$load_ctx_options'(Options1, Options2),
 	'$compile_aux_clauses'(
-	     system:'$load_context_module'(File, Module, Options1),
+	     system:'$load_context_module'(File, Module, Options2),
 	     FromFile).
 '$assert_load_context_module'(File, Module, Options) :-
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
+	'$load_ctx_options'(Options1, Options2),
 	(   clause('$load_context_module'(File, Module, _), true, Ref),
 	    \+ clause_property(Ref, file(_))
 	->  erase(Ref)
 	;   true
 	),
-	assertz('$load_context_module'(File, Module, Options1)).
+	assertz('$load_context_module'(File, Module, Options2)).
 
 '$add_dialect'(Options0, Options) :-
 	current_prolog_flag(emulated_dialect, Dialect), Dialect \== swi, !,
 	Options = [dialect(Dialect)|Options0].
 '$add_dialect'(Options, Options).
+
+%%	'$load_ctx_options'(+Options, -CtxOptions) is det.
+%
+%	Select the load options that  determine   the  load semantics to
+%	perform a proper reload. Delete the others.
+
+'$load_ctx_options'([], []).
+'$load_ctx_options'([H|T0], [H|T]) :-
+	'$load_ctx_option'(H), !,
+	'$load_ctx_options'(T0, T).
+'$load_ctx_options'([_|T0], T) :-
+	'$load_ctx_options'(T0, T).
+
+'$load_ctx_option'(derived_from(_)).
+'$load_ctx_option'(dialect(_)).
+'$load_ctx_option'(encoding(_)).
+'$load_ctx_option'(imports(_)).
+'$load_ctx_option'(reexport(_)).
 
 
 %%	'$check_load_non_module'(+File) is det.
