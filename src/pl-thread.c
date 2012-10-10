@@ -1455,7 +1455,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   {
 #ifdef HAVE_GETRLIMIT
     struct rlimit rlim;
-    if ( getrlimit(RLIMIT_STACK, &rlim) == 0 )
+    if ( !stack && getrlimit(RLIMIT_STACK, &rlim) == 0 )
     { if ( rlim.rlim_cur != RLIM_INFINITY )
 	stack = rlim.rlim_cur;
 					/* What is an infinite stack!? */
