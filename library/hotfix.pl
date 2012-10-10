@@ -34,6 +34,7 @@
 	  [ load_hotfixes/1		% +Directory
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(option)).
 :- use_module(library(readutil)).
 :- use_module(library(apply)).
 :- use_module(library(prolog_source)).
@@ -165,16 +166,30 @@ load_hotfix(File, Loaded) :-
 	    close(In)).
 
 load_hotfix_from_stream(Loaded, In, Modified) :-
-	Options = [stream(In), modified(Modified)],
+	FixOptions = [ stream(In),
+		       modified(Modified),
+		       register(false)
+		     ],
 	set_stream(In, file_name(Loaded)),
-	findall(M, source_file_property(Loaded, load_context(M, _, _)), Modules),
-	(   Modules = [First|Rest]
-	->  load_files(First:Loaded, Options),
-	    forall('$member'(Context, Rest),
-		   load_files(Context:Loaded, [if(not_loaded)|Options]))
-	;   load_files(user:Loaded, Options)
+	findall(M-Opts,
+		source_file_property(Loaded, load_context(M, _, Opts)),
+		Modules),
+	(   Modules = [First-OptsFirst|Rest]
+	->  merge_options(FixOptions, OptsFirst, FirstOptions),
+	    load_stream(First:Loaded, FirstOptions),
+	    forall(member(Context-Opts, Rest),
+		   ( merge_options([if(not_loaded)|FirstOptions], Opts, ORest),
+		     load_stream(Context:Loaded, ORest)
+		   ))
+	;   load_stream(user:Loaded, FixOptions)
 	).
 
+load_stream(Source, Options) :-
+	option(stream(In), Options),
+	setup_call_cleanup(
+	    stream_property(In, position(Pos)),
+	    load_files(Source, Options),
+	    set_stream_position(In, Pos)).
 
 %%	select_file_to_reload(+Pairs, +Local, -Pair) is det.
 
