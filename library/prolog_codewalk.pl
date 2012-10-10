@@ -220,23 +220,12 @@ walk_from_initialization(OTerm) :-
 	walk_option_caller(OTerm, '<initialization>'),
 	forall('$init_goal'(_File, Goal, SourceLocation),
 	       ( walk_option_initialization(OTerm, SourceLocation),
-		 walk_from_initialization(SourceLocation, Goal, OTerm))).
+		 walk_from_initialization(Goal, OTerm))).
 
-
-walk_from_initialization(SourceLocation, M:Goal0, OTerm) :-
-	(   scan_module(M, OTerm)
-	->  get_term_position(SourceLocation, M, Goal0, Goal, TermPos),
-	    walk_called(Goal, M, TermPos, OTerm)
-	;   true
-	).
-walk_from_initialization(_, Goal, OTerm) :-
-	walk_called(Goal, user, _, OTerm).
-
-get_term_position(SourceLocation, M, Goal0, Goal, TermPos) :-
-	ground(SourceLocation),
-	SourceLocation = _File:_Line,
-	initialization_layout(SourceLocation, M:Goal0, Goal, TermPos), !.
-get_term_position(_, _, Goal, Goal, _).
+walk_from_initialization(M:Goal, OTerm) :-
+	scan_module(M, OTerm), !,
+	walk_called_by_body(Goal, M, OTerm).
+walk_from_initialization(_, _).
 
 
 %%	find_walk_from_module(+Module, +OTerm) is det.
@@ -334,10 +323,15 @@ walk_called_by_body(undecided_call, Body, Module, OTerm) :-
 	      missing(Missing),
 	      walk_called_by_body(Missing, Body, Module, OTerm)).
 walk_called_by_body(subterm_positions, Body, Module, OTerm) :-
-	walk_option_clause(OTerm, ClauseRef), nonvar(ClauseRef),
-	(   clause_info(ClauseRef, _File, TermPos, _NameOffset),
-	    TermPos = term_position(_,_,_,_,[_,BodyPos])
-	->  catch(forall(walk_called(Body, Module, BodyPos, OTerm),
+	(   (   walk_option_clause(OTerm, ClauseRef), nonvar(ClauseRef),
+		clause_info(ClauseRef, _, TermPos, _NameOffset),
+		TermPos = term_position(_,_,_,_,[_,BodyPos])
+	    ->	WBody = Body
+	    ;	walk_option_initialization(OTerm, SrcLoc),
+		ground(SrcLoc), SrcLoc = _File:_Line,
+		initialization_layout(SrcLoc, Module:Body, WBody, BodyPos)
+	    )
+	->  catch(forall(walk_called(WBody, Module, BodyPos, OTerm),
 			 true),
 		  missing(subterm_positions),
 		  walk_called_by_body(no_positions, Body, Module, OTerm))
@@ -505,11 +499,13 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 print_reference(Goal, TermPos, Why, OTerm) :-
 	walk_option_initialization(OTerm, Init), nonvar(Init),
 	Init = File:Line, !,
-	(  compound(TermPos),
-	   arg(1, TermPos, CharCount),
-	   integer(CharCount)		% test it is valid
-	-> From = file_term_position(File, TermPos)
-	;  From = file(File, Line, -1, _)
+	(   compound(TermPos),
+	    arg(1, TermPos, CharCount),
+	    integer(CharCount)		% test it is valid
+	->  From = file_term_position(File, TermPos)
+	;   walk_option_source(OTerm, false)
+	->  From = file(File, Line, -1, _)
+	;   throw(missing(subterm_positions))
 	),
 	print_reference2(Goal, From, Why, OTerm).
 print_reference(Goal, _, Why, OTerm) :-
@@ -801,12 +797,6 @@ prolog:message(trace_call_to(PI, Context)) -->
 	[ 'Call to ~q at '-[PI] ],
 	prolog:message_location(Context).
 
-message_location_file_term_position(File, TermPos) -->
-	{ arg(1, TermPos, CharCount),
-	  filepos_line(File, CharCount, Line, LinePos)
-	},
-	[ '~w:~d:~d: '-[File, Line, LinePos] ].
-
 prolog:message_location(clause_term_position(ClauseRef, TermPos)) -->
 	{ clause_property(ClauseRef, file(File)) },
 	message_location_file_term_position(File, TermPos).
@@ -833,13 +823,23 @@ meta_decls([H|T]) -->
 	[ ':- meta_predicate ~q.'-[H], nl ],
 	meta_decls(T).
 
+message_location_file_term_position(File, TermPos) -->
+	{ arg(1, TermPos, CharCount),
+	  filepos_line(File, CharCount, Line, LinePos)
+	},
+	[ '~w:~d:~d: '-[File, Line, LinePos] ].
+
+%%	filepos_line(+File, +CharPos, -Line, -Column) is det.
+%
+%	@param CharPos is 0-based character offset in the file.
+%	@param Column is the current column, counting tabs as 8 spaces.
+
 filepos_line(File, CharPos, Line, LinePos) :-
 	setup_call_cleanup(
 	    ( open(File, read, In),
 	      open_null_stream(Out)
 	    ),
-	    ( Skip is CharPos-1,
-	      copy_stream_data(In, Out, Skip),
+	    ( copy_stream_data(In, Out, CharPos),
 	      stream_property(In, position(Pos)),
 	      stream_position_data(line_count, Pos, Line),
 	      stream_position_data(line_position, Pos, LinePos)
