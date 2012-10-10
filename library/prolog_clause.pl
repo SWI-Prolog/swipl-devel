@@ -670,8 +670,7 @@ goal_expansion(G0, G, P, P) :-
 
 initialization_layout(File:Line, M:Goal0, Goal, TermPos) :-
 	read_term_at_line(File, Line, M, Directive, DirectivePos, _),
-	arg(1, Directive, Initialization),
-	arg(1, Initialization, ReadGoal),
+	Directive    = (:- initialization(ReadGoal)),
 	DirectivePos = term_position(_, _, _, _, [InitPos]),
 	InitPos      = term_position(_, _, _, _, [GoalPos]),
 	(   ReadGoal = M:_
