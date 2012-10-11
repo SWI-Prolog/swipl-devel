@@ -73,6 +73,8 @@ test(simple, true) :-
 	test_answer('A=1', ['A=1']).
 test(simple, true) :-
 	test_answer('A=1, B=2', ['A=1, B=2']).
+test(separated, true) :-
+	test_answer('X = 2, Y = 1, Z = 2', ['X = Z, Z = 2, Y = 1']).
 test(same, true) :-
 	test_answer('A=1, B=1', ['A=B, B=1']).
 test(same, true) :-

@@ -732,15 +732,16 @@ write_bindings2(Bindings, Residuals, _Det) :-
 %	of VN.
 
 join_same_bindings([], []).
-join_same_bindings([Name=Val|T0], [[Name|Names]=V|T]) :-
-	take_same_bindings(Val, V, T0, Names, T1),
+join_same_bindings([Name=V0|T0], [[Name|Names]=V|T]) :-
+	take_same_bindings(T0, V0, V, Names, T1),
 	join_same_bindings(T1, T).
 
-take_same_bindings(Val, V, [Name=V1|T0], L, T) :-
-	V1 == Val, !,
-	L = [Name|Names],
-	take_same_bindings(V1, V, T0, Names, T).
-take_same_bindings(V, V, L, [], L).
+take_same_bindings([], Val, Val, [], []).
+take_same_bindings([Name=V1|T0], V0, V, [Name|Names], T) :-
+	V0 == V1, !,
+	take_same_bindings(T0, V1, V, Names, T).
+take_same_bindings([Pair|T0], V0, V, Names, [Pair|T]) :-
+	take_same_bindings(T0, V0, V, Names, T).
 
 
 %%	omit_qualifiers(+QGoals, +TypeIn, -Goals) is det.
