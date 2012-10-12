@@ -4995,7 +4995,7 @@ independent of operator changes to the \const{user} module.
 	    \op{module_transparent}, \op{multifile}, \op{thread_local},
 	    \op{volatile} \\
 1100 & xfy & \op{;}, \op{|} \\
-1050 & xfy & \op{->}, op{*->} \\
+1050 & xfy & \op{->}, \op{*->} \\
 1000 & xfy & \op{,} \\
 900 & fy & \op{\+} \\
 900 & fx & \op{~} \\
