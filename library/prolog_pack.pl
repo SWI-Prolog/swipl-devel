@@ -496,13 +496,13 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
 	directory_file_path(PackTopDir, Name, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	copy_directory(Source, PackDir),
-	pack_post_install(PackDir, Options).
+	pack_post_install(Name, PackDir, Options).
 pack_install_from_local(Source, PackTopDir, Name, Options) :-
 	exists_file(Source),
 	directory_file_path(PackTopDir, Name, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	pack_unpack(Source, PackDir, Name, Options),
-	pack_post_install(PackDir, Options).
+	pack_post_install(Name, PackDir, Options).
 
 
 %%	pack_unpack(+SourceFile, +PackDir, +Pack, +Options)
@@ -637,7 +637,7 @@ pack_install_from_url(_, URL, PackTopDir, Name, Options) :-
 	directory_file_path(PackTopDir, Name, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
-	pack_post_install(PackDir, Options).
+	pack_post_install(Name, PackDir, Options).
 pack_install_from_url(http, URL, PackTopDir, Pack, Options) :-
 	directory_file_path(PackTopDir, Pack, PackDir),
 	prepare_pack_dir(PackDir, Options),
@@ -681,7 +681,7 @@ download_url(URL) :-
 
 download_scheme(http).
 
-%%	pack_post_install(+PackDir, +Options) is det.
+%%	pack_post_install(+Pack, +PackDir, +Options) is det.
 %
 %	Process post installation work.  Steps:
 %
@@ -689,8 +689,8 @@ download_scheme(http).
 %	  - Register directory as autoload library
 %	  - Attach the package
 
-pack_post_install(PackDir, Options) :-
-	post_install_foreign(PackDir, Options),
+pack_post_install(Pack, PackDir, Options) :-
+	post_install_foreign(Pack, PackDir, Options),
 	post_install_autoload(PackDir, Options),
 	'$pack_attach'(PackDir).
 
@@ -717,17 +717,32 @@ pack_rebuild :-
 	       )).
 
 
-%%	post_install_foreign(+PackDir, +Options) is det.
+%%	post_install_foreign(+Pack, +PackDir, +Options) is det.
 %
 %	Install foreign parts of the package.
 
-post_install_foreign(PackDir, Options) :-
+post_install_foreign(Pack, PackDir, Options) :-
 	is_foreign_pack(PackDir), !,
-	setup_path,
-	save_build_environment(PackDir),
-	configure_foreign(PackDir, Options),
-	make_foreign(PackDir, Options).
+	(   option(build_foreign(if_absent), Options),
+	    foreign_present(PackDir)
+	->  print_message(informational, pack(kept_foreign(Pack)))
+	;   setup_path,
+	    save_build_environment(PackDir),
+	    configure_foreign(PackDir, Options),
+	    make_foreign(PackDir, Options)
+	).
 post_install_foreign(_, _).
+
+foreign_present(PackDir) :-
+	current_prolog_flag(arch, Arch),
+	atomic_list_concat([PackDir, '/lib'], ForeignBaseDir),
+	exists_directory(ForeignBaseDir), !,
+	atomic_list_concat([PackDir, '/lib/', Arch], ForeignDir),
+	exists_directory(ForeignDir),
+	current_prolog_flag(shared_object_extension, Ext),
+	atomic_list_concat([ForeignDir, '/*.', Ext], Pattern),
+	expand_file_name(Pattern, Files),
+	Files \== [].
 
 is_foreign_pack(PackDir) :-
 	foreign_file(File),
@@ -1713,6 +1728,10 @@ no_tar_gz(File) -->
 	].
 no_tar_gz(_) --> [].
 
+message(kept_foreign(Pack)) -->
+	[ 'Found foreign libraries for target platform.'-[], nl,
+	  'Use ?- pack_rebuild(~q). to rebuild from sources'-[Pack]
+	].
 message(no_pack_installed(Pack)) -->
 	[ 'No pack ~q installed.  Use ?- pack_list(Pattern) to search'-[Pack] ].
 message(no_packages_installed) -->
