@@ -921,33 +921,35 @@ if test "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
   fi
 
   if test -z "$RLPREFIX"; then
-    oldlibs="$LIBS"
-    AC_CHECK_LIB(readline, main)
+    AC_CHECK_LIB(readline, main,
+		 have_libreadline=yes)
 
-    AC_CHECK_HEADERS(readline/readline.h)
-    if test "$ac_cv_header_readline_readline_h" = no; then
-	unset ac_cv_header_readline_readline_h
-	CFLAGS="$CFLAGS -I/usr/local/include"
-	AC_CHECK_HEADERS(readline/readline.h)
-	if test "$ac_cv_header_readline_readline_h" = yes; then
-	    CIFLAGS="$CIFLAGS -I/usr/local/include"
-	else
-	    LIBS="$oldlibs"
+    if test "$have_libreadline" = yes; then
+      AC_CHECK_HEADERS(readline/readline.h)
+      if test "$ac_cv_header_readline_readline_h" = no; then
+	  unset ac_cv_header_readline_readline_h
+	  CFLAGS="$CFLAGS -I/usr/local/include"
+	  AC_CHECK_HEADERS(readline/readline.h)
+	  if test "$ac_cv_header_readline_readline_h" = yes; then
+	      CIFLAGS="$CIFLAGS -I/usr/local/include"
+	  fi
+      fi
+
+      if test "$ac_cv_header_readline_readline_h" = yes; then
+	AC_CHECK_HEADERS(readline/history.h)
+	if test "$ac_cv_header_readline_history_h" = yes; then
+	  readline_ok=yes
+	  LIBS="-lreadline $LIBS"
+	  AC_DEFINE(HAVE_LIBREADLINE, 1,
+		    [ Define if you have libreadline and headers ])
+	  AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
+	  AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
+	  AC_CHECK_FUNCS(rl_cleanup_after_signal)
+	  AC_CHECK_FUNCS(rl_filename_completion_function)
+	  pl_RL_CHECK_VAR([rl_readline_state])
+	  pl_RL_CHECK_VAR([rl_done])
+	  pl_RL_CHECK_VAR([rl_event_hook])
 	fi
-    fi
-
-    if test "$ac_cv_lib_readline_main" = "yes"; then
-      dnl rl_readline_state and rl_done are a variables!
-      AC_CHECK_HEADERS(readline/history.h)
-      if test "$ac_cv_header_readline_history_h" = yes; then
-	readline_ok=yes
-	AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
-	AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
-	AC_CHECK_FUNCS(rl_cleanup_after_signal)
-	AC_CHECK_FUNCS(rl_filename_completion_function)
-    pl_RL_CHECK_VAR([rl_readline_state])
-    pl_RL_CHECK_VAR([rl_done])
-    pl_RL_CHECK_VAR([rl_event_hook])
       fi
     fi
   fi
