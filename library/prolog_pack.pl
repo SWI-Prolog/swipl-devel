@@ -690,7 +690,10 @@ download_scheme(http).
 %	  - Attach the package
 
 pack_post_install(Pack, PackDir, Options) :-
-	post_install_foreign(Pack, PackDir, Options),
+	post_install_foreign(Pack, PackDir,
+			     [ build_foreign(if_absent)
+			     | Options
+			     ]),
 	post_install_autoload(PackDir, Options),
 	'$pack_attach'(PackDir).
 
