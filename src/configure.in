@@ -836,6 +836,8 @@ dnl	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int])
 dnl   AC_MSG_RESULT(no),
 dnl   AC_MSG_RESULT(assuming no))
 
+AC_CHECK_FUNCS(sysconf)
+
 AC_MSG_CHECKING("copy stack size")
 AC_TRY_RUN(
 [
