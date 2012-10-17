@@ -702,7 +702,7 @@ pack_rebuild(Pack) :-
 	'$pack':pack(Pack, BaseDir), !,
 	catch(pack_make(BaseDir, [distclean], []), E,
 	      print_message(warning, E)),
-	post_install_foreign(BaseDir, []).
+	post_install_foreign(Pack, BaseDir, []).
 pack_rebuild(Pack) :-
 	existence_error(pack, Pack).
 
@@ -731,7 +731,7 @@ post_install_foreign(Pack, PackDir, Options) :-
 	    configure_foreign(PackDir, Options),
 	    make_foreign(PackDir, Options)
 	).
-post_install_foreign(_, _).
+post_install_foreign(_, _, _).
 
 foreign_present(PackDir) :-
 	current_prolog_flag(arch, Arch),
