@@ -1453,7 +1453,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   if ( rc == 0 )
   {
-#ifdef HAVE_GETRLIMIT
+#ifdef USE_COPY_STACK_SIZE
     struct rlimit rlim;
     if ( !stack && getrlimit(RLIMIT_STACK, &rlim) == 0 )
     { if ( rlim.rlim_cur != RLIM_INFINITY )

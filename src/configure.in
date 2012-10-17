@@ -836,6 +836,67 @@ dnl	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int])
 dnl   AC_MSG_RESULT(no),
 dnl   AC_MSG_RESULT(assuming no))
 
+AC_MSG_CHECKING("copy stack size")
+AC_TRY_RUN(
+[
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <pthread.h>
+
+#define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
+
+static void *
+dummy(void *closure)
+{ return closure;
+}
+
+static size_t
+round_pages(size_t n)
+{ size_t psize;
+
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  if ( (psize = sysconf(_SC_PAGESIZE)) == (size_t)-1 )
+    psize = 8192;
+#else
+  psize = 8192;
+#endif
+
+  return ROUND(n, psize);
+}
+
+int
+main()
+{ pthread_attr_t attr;
+  struct rlimit rlim;
+  size_t stack;
+  pthread_t tid;
+  void *r;
+
+  pthread_attr_init(&attr);
+  if ( getrlimit(RLIMIT_STACK, &rlim) != 0 )
+    exit(1);
+  if ( rlim.rlim_cur != RLIM_INFINITY )
+    stack = rlim.rlim_cur;
+  stack = round_pages(stack);
+  if ( pthread_attr_setstacksize(&attr, stack) != 0 )
+    exit(1);
+  if ( pthread_create(&tid, &attr, dummy, NULL) != 0 )
+    exit(1);
+  if ( pthread_join(tid, &r) != 0 )
+    exit(1);
+
+  return 0;
+}
+],
+AC_MSG_RESULT(yes)
+AC_DEFINE(USE_COPY_STACK_SIZE, 1,
+	  [Define if to copy thread stack size from main]),
+AC_MSG_RESULT(no),
+AC_MSG_RESULT(assuming no))
+
+
 fi	dnl End of MT configuration
 
 
