@@ -629,22 +629,47 @@ need. They are used  by  pl-load.c,   which  defines  the  actual Prolog
 interface.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
+#define LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR 0x00000100
+#endif
+#ifndef LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
+#define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS 0x00001000
+#endif
+
 static const char *dlmsg;
 
+static int
+is_windows_abs_path(const wchar_t *path)
+{ if ( path[1] == ':' && path[0] < 0x80 && iswalpha(path[0]) )
+    return TRUE;			/* drive */
+  if ( path[0] == '\\' && path[1] == '\\' )
+    return TRUE;			/* UNC */
+
+  return FALSE;
+}
+
 void *
-dlopen(const char *file, int flags)	/* file is in UTF-8 */
+dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
 { HINSTANCE h;
+  DWORD llflags = 0;
   size_t len = utf8_strlen(file, strlen(file));
-  wchar_t *wfile = alloca((len+1)*sizeof(wchar_t));
+  wchar_t *wfile = alloca((len+10)*sizeof(wchar_t));
 
   if ( !wfile )
   { dlmsg = "No memory";
     return NULL;
   }
 
-  utf8towcs(wfile, file);
+  if ( _xos_os_filenameW(file, wfile, len+10) == NULL )
+  { dlmsg = "Name too long";
+    return NULL;
+  }
 
-  if ( (h = LoadLibraryW(wfile)) )
+  if ( is_windows_abs_path(wfile) )
+    llflags |= (LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR|
+	      LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+
+  if ( (h = LoadLibraryExW(wfile, NULL, llflags)) )
   { dlmsg = "No Error";
     return (void *)h;
   }
