@@ -1625,6 +1625,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   top	             = &qf->top_frame;
   top->parent        = NULL;
   top->predicate     = PROCEDURE_dc_call_prolog->definition;
+  top->programPointer= NULL;
   top->clause        = &cref;
 #ifdef O_PROFILE
   if ( LD->profile.active )

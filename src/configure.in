@@ -836,6 +836,69 @@ dnl	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int])
 dnl   AC_MSG_RESULT(no),
 dnl   AC_MSG_RESULT(assuming no))
 
+AC_CHECK_FUNCS(sysconf)
+
+AC_MSG_CHECKING("copy stack size")
+AC_TRY_RUN(
+[
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <pthread.h>
+
+#define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
+
+static void *
+dummy(void *closure)
+{ return closure;
+}
+
+static size_t
+round_pages(size_t n)
+{ size_t psize;
+
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  if ( (psize = sysconf(_SC_PAGESIZE)) == (size_t)-1 )
+    psize = 8192;
+#else
+  psize = 8192;
+#endif
+
+  return ROUND(n, psize);
+}
+
+int
+main()
+{ pthread_attr_t attr;
+  struct rlimit rlim;
+  size_t stack;
+  pthread_t tid;
+  void *r;
+
+  pthread_attr_init(&attr);
+  if ( getrlimit(RLIMIT_STACK, &rlim) != 0 )
+    exit(1);
+  if ( rlim.rlim_cur != RLIM_INFINITY )
+    stack = rlim.rlim_cur;
+  stack = round_pages(stack);
+  if ( pthread_attr_setstacksize(&attr, stack) != 0 )
+    exit(1);
+  if ( pthread_create(&tid, &attr, dummy, NULL) != 0 )
+    exit(1);
+  if ( pthread_join(tid, &r) != 0 )
+    exit(1);
+
+  return 0;
+}
+],
+AC_MSG_RESULT(yes)
+AC_DEFINE(USE_COPY_STACK_SIZE, 1,
+	  [Define if to copy thread stack size from main]),
+AC_MSG_RESULT(no),
+AC_MSG_RESULT(assuming no))
+
+
 fi	dnl End of MT configuration
 
 
@@ -921,33 +984,35 @@ if test "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
   fi
 
   if test -z "$RLPREFIX"; then
-    oldlibs="$LIBS"
-    AC_CHECK_LIB(readline, main)
+    AC_CHECK_LIB(readline, main,
+		 have_libreadline=yes)
 
-    AC_CHECK_HEADERS(readline/readline.h)
-    if test "$ac_cv_header_readline_readline_h" = no; then
-	unset ac_cv_header_readline_readline_h
-	CFLAGS="$CFLAGS -I/usr/local/include"
-	AC_CHECK_HEADERS(readline/readline.h)
-	if test "$ac_cv_header_readline_readline_h" = yes; then
-	    CIFLAGS="$CIFLAGS -I/usr/local/include"
-	else
-	    LIBS="$oldlibs"
+    if test "$have_libreadline" = yes; then
+      AC_CHECK_HEADERS(readline/readline.h)
+      if test "$ac_cv_header_readline_readline_h" = no; then
+	  unset ac_cv_header_readline_readline_h
+	  CFLAGS="$CFLAGS -I/usr/local/include"
+	  AC_CHECK_HEADERS(readline/readline.h)
+	  if test "$ac_cv_header_readline_readline_h" = yes; then
+	      CIFLAGS="$CIFLAGS -I/usr/local/include"
+	  fi
+      fi
+
+      if test "$ac_cv_header_readline_readline_h" = yes; then
+	AC_CHECK_HEADERS(readline/history.h)
+	if test "$ac_cv_header_readline_history_h" = yes; then
+	  readline_ok=yes
+	  LIBS="-lreadline $LIBS"
+	  AC_DEFINE(HAVE_LIBREADLINE, 1,
+		    [ Define if you have libreadline and headers ])
+	  AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
+	  AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
+	  AC_CHECK_FUNCS(rl_cleanup_after_signal)
+	  AC_CHECK_FUNCS(rl_filename_completion_function)
+	  pl_RL_CHECK_VAR([rl_readline_state])
+	  pl_RL_CHECK_VAR([rl_done])
+	  pl_RL_CHECK_VAR([rl_event_hook])
 	fi
-    fi
-
-    if test "$ac_cv_lib_readline_main" = "yes"; then
-      dnl rl_readline_state and rl_done are a variables!
-      AC_CHECK_HEADERS(readline/history.h)
-      if test "$ac_cv_header_readline_history_h" = yes; then
-	readline_ok=yes
-	AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
-	AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
-	AC_CHECK_FUNCS(rl_cleanup_after_signal)
-	AC_CHECK_FUNCS(rl_filename_completion_function)
-    pl_RL_CHECK_VAR([rl_readline_state])
-    pl_RL_CHECK_VAR([rl_done])
-    pl_RL_CHECK_VAR([rl_event_hook])
       fi
     fi
   fi
