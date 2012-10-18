@@ -2893,13 +2893,23 @@ Sopen_file(const char *path, const char *how)
     struct flock buf;
 
     memset(&buf, 0, sizeof(buf));
-    buf.l_type = (lock == lread ? F_RDLCK : F_WRLCK);
+    buf.l_whence = SEEK_SET;
+    buf.l_type   = (lock == lread ? F_RDLCK : F_WRLCK);
 
-    if ( fcntl(fd, wait ? F_SETLKW : F_SETLK, &buf) < 0 )
-    { int save = errno;
-      close(fd);
-      errno = save;
-      return NULL;
+    while( fcntl(fd, wait ? F_SETLKW : F_SETLK, &buf) != 0 )
+    { if ( errno == EINTR )
+      { if ( PL_handle_signals() < 0 )
+	{ close(fd);
+	  return NULL;
+	}
+	continue;
+      } else
+      { int save = errno;
+
+	close(fd);
+	errno = save;
+	return NULL;
+      }
     }
 #else					/* we don't have locking */
 #if __WINDOWS__
