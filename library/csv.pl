@@ -58,6 +58,7 @@ have the same name and arity.
 :- predicate_options(csv//2, 2,
 		     [ separator(nonneg),	% mustv be code
 		       strip(boolean),
+		       ignore_quotes(boolean),
 		       convert(boolean),
 		       functor(atom),
 		       arity(-nonneg),		% actually ?nonneg
@@ -83,6 +84,7 @@ have the same name and arity.
 :- record
 	csv_options(separator:integer=0',,
 		    strip:boolean=false,
+		    ignore_quotes:boolean=false,
 		    convert:boolean=true,
 		    functor:atom=row,
 		    arity:integer,
@@ -142,6 +144,10 @@ ext_separator(tsv, 0'\t).
 %	    The comma-separator.  Must be a character code.  Default is
 %	    (of course) the comma. Character codes can be specified
 %	    using the 0' notion. E.g., =|separator(0';)|=.
+%
+%	    * ignore_quotes(+Boolean)
+%	    If =true= (default false), threat double quotes as a normal
+%	    character.
 %
 %	    * strip(+Boolean)
 %	    If =true= (default =false=), strip leading and trailing
@@ -212,12 +218,13 @@ fields([F|T], Options) -->
 	).
 
 field(Value, Options) -->
-	{ csv_options_strip(Options, true) }, !,
-	stripped_field(Value, Options).
-field(Value, Options) -->
-	"\"", !,
+	"\"",
+	{ csv_options_ignore_quotes(Options, false) }, !,
 	string_codes(Codes),
 	{ make_value(Codes, Value, Options) }.
+field(Value, Options) -->
+	{ csv_options_strip(Options, true) }, !,
+	stripped_field(Value, Options).
 field(Value, Options) -->
 	{ csv_options_separator(Options, Sep) },
 	field_codes(Codes, Sep),
@@ -226,7 +233,8 @@ field(Value, Options) -->
 
 stripped_field(Value, Options) -->
 	ws,
-	(   "\""
+	(   "\"",
+	    { csv_options_strip(Options, false) }
 	->  string_codes(Codes),
 	    ws
 	;   { csv_options_separator(Options, Sep) },
