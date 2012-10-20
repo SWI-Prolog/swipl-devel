@@ -638,14 +638,17 @@ pack_install_from_url(_, URL, PackTopDir, Name, Options) :-
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
 	pack_post_install(Name, PackDir, Options).
-pack_install_from_url(http, URL, PackTopDir, Pack, Options) :-
+pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
+	download_scheme(Scheme),
 	directory_file_path(PackTopDir, Pack, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	pack_download_dir(PackTopDir, DownLoadDir),
 	file_base_name(URL, DownloadBase),
 	directory_file_path(DownLoadDir, DownloadBase, DownloadFile),
 	setup_call_cleanup(
-	    http_open(URL, In, []),
+	    http_open(URL, In,
+		      [ cert_verify_hook(ssl_verify)
+		      ]),
 	    setup_call_cleanup(
 		open(DownloadFile, write, Out, [type(binary)]),
 		copy_stream_data(In, Out),
@@ -657,6 +660,18 @@ pack_install_from_url(http, URL, PackTopDir, Pack, Options) :-
 	show_info(Pack, Info, Options),
 	confirm(install_downloaded(DownloadFile), yes, Options),
 	pack_install_from_local(DownloadFile, PackTopDir, Pack, Options).
+
+:- public ssl_verify/5.
+
+%%	ssl_verify(+SSL, +ProblemCert, +AllCerts, +FirstCert, +Error)
+%
+%	Currently we accept  all  certificates.   We  organise  our  own
+%	security using SHA1 signatures, so  we   do  not  care about the
+%	source of the data.
+
+ssl_verify(_SSL,
+	   _ProblemCertificate, _AllCertificates, _FirstCertificate,
+	   _Error).
 
 pack_download_dir(PackTopDir, DownLoadDir) :-
 	directory_file_path(PackTopDir, 'Downloads', DownLoadDir),
@@ -680,6 +695,9 @@ download_url(URL) :-
 	download_scheme(Scheme).
 
 download_scheme(http).
+download_scheme(https) :-
+	catch(use_module(library(http/http_ssl_plugin)),
+	      E, (print_message(warning, E), fail)).
 
 %%	pack_post_install(+Pack, +PackDir, +Options) is det.
 %
