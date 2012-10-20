@@ -218,13 +218,13 @@ fields([F|T], Options) -->
 	).
 
 field(Value, Options) -->
-	{ csv_options_strip(Options, true) }, !,
-	stripped_field(Value, Options).
-field(Value, Options) -->
 	"\"",
-	{ csv_options_strip(Options, false) }, !,
+	{ csv_options_ignore_quotes(Options, false) }, !,
 	string_codes(Codes),
 	{ make_value(Codes, Value, Options) }.
+field(Value, Options) -->
+	{ csv_options_strip(Options, true) }, !,
+	stripped_field(Value, Options).
 field(Value, Options) -->
 	{ csv_options_separator(Options, Sep) },
 	field_codes(Codes, Sep),
