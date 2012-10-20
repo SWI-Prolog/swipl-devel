@@ -47,7 +47,8 @@ most modern terminals using ANSI escape sequences.
 :- meta_predicate
 	keep_line_pos(+, 0).
 
-:- multifile user:message_severity_color/2.
+:- multifile
+	user:message_property/2.
 
 %%	ansi_format(+Attributes, +Format, +Args) is det.
 %
@@ -228,10 +229,10 @@ prolog:message_line_element(S, end(Ctx)) :-
 	keep_line_pos(S, write(S, Reset)).
 
 level_attrs(Level,	   Attrs) :-
-	user:message_severity_color(Level, Attrs).
+	user:message_property(Level, color(Attrs)).
 level_attrs(informational, fg(green)).
 level_attrs(information,   fg(green)).
-level_attrs(debug,	   fg(blue)).
+level_attrs(debug(_),	   fg(blue)).
 level_attrs(warning,	   fg(red)).
 level_attrs(error,	   [fg(red),bold]).
 
@@ -242,15 +243,3 @@ keep_line_pos(S, G) :-
 	set_stream(S, line_position(LPos)).
 keep_line_pos(_, G) :-
 	G.
-
-%%	user:message_severity_color(+Severity, -Attributes).
-%
-%	This hook is called from prolog:message_line_element/2 if the
-%	library(ansi_term) is loaded to colourise messages printed using
-%	print_message(Severity, Message).
-%
-%	@see print_message/2.
-%	@param Severity is one of =informational=, =information=,
-%	=banner=, =warning=, =error= or =help=.
-%	@param Attributes is a valid attribute specification for
-%	ansi_format/3.

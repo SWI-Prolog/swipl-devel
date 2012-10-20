@@ -1068,49 +1068,59 @@ print_system_message(Term, Kind, Lines) :-
 	flush_output(user_output),
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
-	prefix(Kind, Prefix, LinePrefix, Wait, Stream), !,
+	msg_property(Kind, location_prefix(File:Line, LocPrefix, LinePrefix)), !,
 	insert_prefix(Lines, LinePrefix, PrefixLines),
 	'$append'([ begin(Kind, Ctx),
-		    Prefix-[File,Line],
+		    LocPrefix,
 		    nl
 		  | PrefixLines
 		  ],
 		  [ end(Ctx)
 		  ],
 		  AllLines),
+	msg_property(Kind, stream(Stream)),
 	print_message_lines(Stream, AllLines),
-	(   Wait > 0
+	(   msg_property(Kind, wait(Wait)),
+	    Wait > 0
 	->  sleep(Wait)
 	;   true
 	).
 print_system_message(_, Kind, Lines) :-
-	(   prefix(Kind, _Prefix, Stream)
-	->  print_message_lines(Stream, kind(Kind), Lines)
-	;   throw(error(domain_error(message_kind, Kind), _))
-	).
+	msg_property(Kind, stream(Stream)),
+	print_message_lines(Stream, kind(Kind), Lines).
 
-prefix(error,	      '~NERROR: ~w:~d:',   '~N\t', 0.1, user_error).
-prefix(warning,	      '~NWarning: ~w:~d:', '~N\t', 0,   user_error).
+:- multifile
+	user:message_property/2.
 
-prefix(help,	      '~N',	   user_error).
-prefix(query,	      '~N',        user_error).
-prefix(trace,	      '~N',        user_error).
-prefix(debug,	      '~N% ',      user_error).
-prefix(warning,	      Prefix,      user_error) :-
+msg_property(Kind, Property) :-
+	user:message_property(Kind, Property), !.
+msg_property(Kind, prefix(Prefix)) :-
+	prefix(Kind, Prefix), !.
+msg_property(_, prefix('~N')) :- !.
+msg_property(_, stream(user_error)) :- !.
+msg_property(error,
+	     location_prefix(File:Line,
+			     '~NERROR: ~w:~d:'-[File,Line], '~N\t')) :- !.
+msg_property(warning,
+	     location_prefix(File:Line,
+			     '~NWarning: ~w:~d:'-[File,Line], '~N\t')) :- !.
+msg_property(error,   wait(0.1)) :- !.
+
+prefix(debug(_),      '~N% ').
+prefix(warning,	      Prefix) :-
 	thread_self(Id),
 	(   Id == main
 	->  Prefix = '~NWarning: '
 	;   Prefix = '~NWarning: [Thread ~w] '-Id
 	).
-prefix(error,	      Prefix,      user_error) :-
+prefix(error,	      Prefix) :-
 	thread_self(Id),
 	(   Id == main
 	->  Prefix = '~NERROR: '
 	;   Prefix = '~NERROR: [Thread ~w] '-Id
 	).
-prefix(banner,	      '~N',	   user_error).
-prefix(informational, '~N% ',	   user_error).
-prefix(information,   '~N% ',	   user_error).
+prefix(informational, '~N% ').
+prefix(information,   '~N% ').
 
 %%	print_message_lines(+Stream, +PrefixOrKind, +Lines)
 %
@@ -1118,7 +1128,7 @@ prefix(information,   '~N% ',	   user_error).
 %	a prefix.
 
 print_message_lines(Stream, kind(Kind), Lines) :- !,
-	prefix(Kind, Prefix, _Stream),
+	msg_property(Kind, prefix(Prefix)),
 	insert_prefix(Lines, Prefix, PrefixLines),
 	'$append'([ begin(Kind, Ctx)
 		  | PrefixLines
