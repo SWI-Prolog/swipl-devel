@@ -231,6 +231,7 @@ level_attrs(Level,	   Attrs) :-
 	user:message_severity_color(Level, Attrs).
 level_attrs(informational, fg(green)).
 level_attrs(information,   fg(green)).
+level_attrs(debug,	   fg(blue)).
 level_attrs(warning,	   fg(red)).
 level_attrs(error,	   [fg(red),bold]).
 

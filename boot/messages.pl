@@ -1051,7 +1051,7 @@ print_message(Level, Term) :-
 	;   true
 	).
 
-%%	print_system_message(+Term, +Level, +Lines)
+%%	print_system_message(+Term, +Kind, +Lines)
 %
 %	Print the message if the user did not intecept the message.
 %	The first is used for errors and warnings that can be related
@@ -1064,13 +1064,13 @@ print_system_message(_, informational, _) :-
 print_system_message(_, banner, _) :-
 	current_prolog_flag(verbose, silent), !.
 print_system_message(_, _, []) :- !.
-print_system_message(Term, Level, Lines) :-
+print_system_message(Term, Kind, Lines) :-
 	flush_output(user_output),
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
-	prefix(Level, Prefix, LinePrefix, Wait, Stream), !,
+	prefix(Kind, Prefix, LinePrefix, Wait, Stream), !,
 	insert_prefix(Lines, LinePrefix, PrefixLines),
-	'$append'([ begin(Level, Ctx),
+	'$append'([ begin(Kind, Ctx),
 		    Prefix-[File,Line],
 		    nl
 		  | PrefixLines
@@ -1083,26 +1083,19 @@ print_system_message(Term, Level, Lines) :-
 	->  sleep(Wait)
 	;   true
 	).
-print_system_message(_, Level, Lines) :-
-	prefix(Level, LinePrefix, Stream), !,
-	insert_prefix(Lines, LinePrefix, PrefixLines),
-	'$append'([ begin(Level, Ctx)
-		  | PrefixLines
-		  ],
-		  [ end(Ctx)
-		  ],
-		  AllLines),
-	print_message_lines(Stream, AllLines).
-print_system_message(_, Level, _) :-
-	\+ prefix(Level, _, _),
-	throw(error(domain_error(message_kind, Level), _)).
+print_system_message(_, Kind, Lines) :-
+	(   prefix(Kind, _Prefix, Stream)
+	->  print_message_lines(Stream, kind(Kind), Lines)
+	;   throw(error(domain_error(message_kind, Kind), _))
+	).
 
 prefix(error,	      '~NERROR: ~w:~d:',   '~N\t', 0.1, user_error).
 prefix(warning,	      '~NWarning: ~w:~d:', '~N\t', 0,   user_error).
 
 prefix(help,	      '~N',	   user_error).
 prefix(query,	      '~N',        user_error).
-prefix(debug,	      '~N',        user_output).
+prefix(trace,	      '~N',        user_error).
+prefix(debug,	      '~N% ',      user_error).
 prefix(warning,	      Prefix,      user_error) :-
 	thread_self(Id),
 	(   Id == main
@@ -1119,11 +1112,21 @@ prefix(banner,	      '~N',	   user_error).
 prefix(informational, '~N% ',	   user_error).
 prefix(information,   '~N% ',	   user_error).
 
-%%	print_message_lines(+Stream, +Prefix, +Lines)
+%%	print_message_lines(+Stream, +PrefixOrKind, +Lines)
 %
 %	Quintus compatibility predicate to print message lines using
 %	a prefix.
 
+print_message_lines(Stream, kind(Kind), Lines) :- !,
+	prefix(Kind, Prefix, _Stream),
+	insert_prefix(Lines, Prefix, PrefixLines),
+	'$append'([ begin(Kind, Ctx)
+		  | PrefixLines
+		  ],
+		  [ end(Ctx)
+		  ],
+		  AllLines),
+	print_message_lines(Stream, AllLines).
 print_message_lines(Stream, Prefix, Lines) :-
 	insert_prefix(Lines, Prefix, PrefixLines),
 	print_message_lines(Stream, PrefixLines).

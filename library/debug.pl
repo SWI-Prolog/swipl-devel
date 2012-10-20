@@ -250,7 +250,7 @@ print_debug(_, To, Format, Args) :-
 	phrase('$messages':translate_message(debug(Format, Args)), Lines),
 	(   member(T, To),
 	    debug_output(T, Stream),
-	    print_message_lines(Stream, '% ', Lines),
+	    print_message_lines(Stream, kind(debug), Lines),
 	    fail
 	;   true
 	).
