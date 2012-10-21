@@ -924,7 +924,7 @@ instantiated, it unifies the value of the Prolog flag. Flag values are
 typed. Flags marked as \const{bool} can have the values \const{true} and
 \const{false}. Some Prolog flags are not defined in all versions, which
 is normally indicated in the documentation below as \textit{``if present
-and true''}. A Boolean Prolog flag is true iff the Prolog flag is
+and true''}. A boolean Prolog flag is true iff the Prolog flag is
 present {\bf and} the \arg{Value} is the atom \const{true}. Tests for
 such flags should be written as below.
 
@@ -935,6 +935,16 @@ such flags should be written as below.
 	)
 \end{code}
 
+Some Prolog flags are scoped to a source file. This implies that if they
+are set using a directive inside a file, the flag value encountered when
+loading of the file started is restored when loading of the file is
+completed. Currently, the following flags are scoped to the source file:
+\prologflag{generate_debug_info} and \prologflag{optimise}.
+
+A new thread (see \secref{threads}) \emph{copies} all flags from the
+thread that created the new thread (its \jargon{parent}).\footnote{This
+is implemented using the copy-on-write tecnhnique.} As a consequence,
+modifying a flag inside a thread does not affect other threads.
 
 
 \begin{description}
@@ -1161,15 +1171,14 @@ explicit request.  May be changed.
     \prologflagitem{generate_debug_info}{bool}{rw}
 If \const{true} (default) generate code that can be debugged using
 trace/0, spy/1, etc. Can be set to \const{false} using the
-\cmdlineoption{-nodebug}. The predicate load_files/2 restores the value
-of this flag after loading a file, causing modifications to be local
-to a source file.  Many of the libraries have
+\cmdlineoption{-nodebug}.   This flag is scoped within a source file.
+Many of the libraries have
 \verb$:- set_prolog_flag(generate_debug_info, false)$ to hide their
 details from a normal trace.%
 	\footnote{In the current implementation this only causes a flag
 		  to be set on the predicate that causes children to be
 		  hidden from the debugger. The name anticipates on
-		  anticipated changes to the compiler.}
+		  further changes to the compiler.}
 
     \prologflagitem{gmp_version}{integer}{r}
 If Prolog is linked with GMP, this flag gives the major version of the
@@ -1292,7 +1301,8 @@ libraries (\fileext{DLL} files).
     \prologflagitem{optimise}{bool}{rw}
 If \const{true}, compile in optimised mode. The initial value is
 \const{true} if Prolog was started with the \cmdlineoption{-O}
-command-line option.
+command-line option.  The \prologflag{optimise} flag is scoped to
+a source file.
 
 Currently optimise compilation implies compilation of arithmetic,
 and deletion of redundant true/0 that may result from expand_goal/2.

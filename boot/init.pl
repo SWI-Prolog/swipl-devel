@@ -1664,8 +1664,7 @@ load_files(Module:Files, Options) :-
 
 	'$set_verbose_load'(Options, OldVerbose),
 	'$update_autoload_level'(Options, OldAutoLevel),
-
-	current_prolog_flag(generate_debug_info, DebugInfo),
+	'$save_file_scoped_flags'(ScopedFlags),
 
 	'$compilation_level'(Level),
 	'$load_msg_level'(load_file, StartMsgLevel, DoneMsgLevel),
@@ -1715,7 +1714,29 @@ load_files(Module:Files, Options) :-
 					ClausesCreated))),
 	'$set_autoload_level'(OldAutoLevel),
 	set_prolog_flag(verbose_load, OldVerbose),
-	set_prolog_flag(generate_debug_info, DebugInfo).
+	'$restore_file_scoped_flags'(ScopedFlags).
+
+%%	'$save_file_scoped_flags'(-State) is det.
+%%	'$restore_file_scoped_flags'(-State) is det.
+%
+%	Save/restore flags that are scoped to a compilation unit.
+
+'$save_file_scoped_flags'(State) :-
+	current_predicate(findall/3), !,	% Not when doing boot compile
+	findall(SavedFlag, '$save_file_scoped_flag'(SavedFlag), State).
+'$save_file_scoped_flags'([]).
+
+'$save_file_scoped_flag'(Flag-Value) :-
+	'$file_scoped_flag'(Flag),
+	current_prolog_flag(Flag, Value).
+
+'$file_scoped_flag'(generate_debug_info).
+'$file_scoped_flag'(optimise).
+
+'$restore_file_scoped_flags'([]).
+'$restore_file_scoped_flags'([Flag-Value|T]) :-
+	set_prolog_flag(Flag, Value),
+	'$restore_file_scoped_flags'(T).
 
 
 %%	'$import_from_loaded_module'(LoadedModule, Module, Options) is det.
