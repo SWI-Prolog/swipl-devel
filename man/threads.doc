@@ -14,8 +14,9 @@ Such applications often have need for communication between services
 and/or fast non-blocking service to multiple concurrent clients.  The
 shared heap provides fast communication, and thread creation is
 relatively cheap.%
-    \footnote{On a dual AMD-Athlon 1600, SWI-Prolog 5.1.0
-	      creates and joins 4,957 threads per second elapsed time.}
+    \footnote{On an Intel i7-2600K, running Ubuntu Linux 12.04,
+	      SWI-Prolog 6.2 creates and joins 32,000 threads per
+	      second elapsed time.}
 
     \item[Interactive applications]
 Interactive applications often need to perform extensive computation.
