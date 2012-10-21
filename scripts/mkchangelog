@@ -115,7 +115,7 @@ BEGIN		{ doprint="false";
 		  doprint="true";
 		  next;
 		}
-/.*/ 		{ if ( doprint == "true" )
+/.*/		{ if ( doprint == "true" )
 		  { if ( $0 != "<unknown>" )
 		    { printf("   %s\n", $0);
 		    } else
@@ -130,7 +130,8 @@ BEGIN		{ doprint="false";
 
 if [ "$modules" = true ]; then
   if [ -z "$since" ]; then
-    since=`git show --quiet --pretty=format:%cd "$tag^{commit}"`
+    since=`git show --pretty=format:%cd "$tag^{commit}" | head -1`
+    # echo "Including commits in modules using --since=$since"
   fi
 
   echo
