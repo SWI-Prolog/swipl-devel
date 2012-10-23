@@ -143,9 +143,7 @@ typedef struct
 
 static stream_context *
 getStreamContext(IOSTREAM *s)
-{ Symbol symb;
-
-  if ( !(symb = lookupHTable(streamContext, s)) )
+{ if ( !s->context )
   { stream_context *ctx = allocHeapOrHalt(sizeof(*ctx));
 
     DEBUG(1, Sdprintf("Created ctx=%p for stream %p\n", ctx, s));
@@ -154,11 +152,10 @@ getStreamContext(IOSTREAM *s)
     ctx->filename = NULL_ATOM;
     ctx->flags = 0;
     addHTable(streamContext, s, ctx);
-
-    return ctx;
+    s->context = ctx;
   }
 
-  return symb->value;
+  return (stream_context*)s->context;
 }
 
 
