@@ -94,7 +94,8 @@ predicates), or the system has no trace-me attribute.
 
     \termitem{pc}{}
 \arg{Value} is unified with the program-pointer saved on behalf of the
-parent-goal if the parent-goal is not owned by a foreign predicate.
+parent-goal if the parent-goal is not owned by a foreign predicate or
+belongs to a compound meta-call (e.g., call((a,b))).
 
     \termitem{argument}{N}
 \arg{Value} is unified with the \arg{N}-th slot of the frame. Argument
