@@ -110,7 +110,12 @@ to decorate uncaught exceptions:
 %	[frame(Frame)]).
 
 get_prolog_backtrace(MaxDepth, Stack) :-
-	get_prolog_backtrace(MaxDepth, Stack, []).
+	get_prolog_backtrace(MaxDepth, Stack, []),
+	nlc.		% avoid last-call-optimization, such that
+			% the top of the stack is always a nice Prolog
+			% frame
+
+nlc.
 
 get_prolog_backtrace(Fr, MaxDepth, Stack) :-
 	integer(Fr), integer(MaxDepth), var(Stack), !,
@@ -362,7 +367,7 @@ clause_predicate_name(Clause, PredName) :-
 %	Get and print a stacktrace to the user_error stream.
 
 backtrace(MaxDepth) :-
-	get_prolog_backtrace(MaxDepth, Stack),
+	get_prolog_backtrace(MaxDepth, Stack, []),
 	print_prolog_backtrace(user_error, Stack).
 
 
