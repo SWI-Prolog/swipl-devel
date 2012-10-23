@@ -159,7 +159,9 @@ getStreamContext(IOSTREAM *s)
 }
 
 
-void
+/* MT: Must be called locked */
+
+static void
 aliasStream(IOSTREAM *s, atom_t name)
 { stream_context *ctx;
   Symbol symb;
@@ -2996,6 +2998,8 @@ static const opt_spec open4_options[] =
 };
 
 
+/* MT: openStream() must be called unlocked */
+
 IOSTREAM *
 openStream(term_t file, term_t mode, term_t options)
 { GET_LD
@@ -3158,7 +3162,10 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   if ( alias != NULL_ATOM )
+  { LOCK();
     aliasStream(s, alias);
+    UNLOCK();
+  }
   if ( !reposition )
     s->position = NULL;
 
@@ -3241,7 +3248,7 @@ pl_see(term_t f)
   if ( !PL_get_atom_ex(f, &a) )
     return FALSE;
 
-  LOCK();
+  PL_LOCK(L_SEETELL);
   if ( get_stream_handle(a, &s, SH_ALIAS|SH_UNLOCKED) )
   { Scurin = s;
     goto ok;
@@ -3258,7 +3265,7 @@ pl_see(term_t f)
   mode = PL_new_term_ref();
   PL_put_atom(mode, ATOM_read);
   if ( !(s = openStream(f, mode, 0)) )
-  { UNLOCK();
+  { PL_UNLOCK(L_SEETELL);
     return FALSE;
   }
 
@@ -3267,7 +3274,7 @@ pl_see(term_t f)
   Scurin = s;
 
 ok:
-  UNLOCK();
+  PL_UNLOCK(L_SEETELL);
 
   return TRUE;
 }
@@ -3324,7 +3331,7 @@ do_tell(term_t f, atom_t m)
   if ( !PL_get_atom_ex(f, &a) )
     return FALSE;
 
-  LOCK();
+  PL_LOCK(L_SEETELL);
   if ( get_stream_handle(a, &s, SH_UNLOCKED) )
   { Scurout = s;
     goto ok;
@@ -3341,7 +3348,7 @@ do_tell(term_t f, atom_t m)
   mode = PL_new_term_ref();
   PL_put_atom(mode, m);
   if ( !(s = openStream(f, mode, 0)) )
-  { UNLOCK();
+  { PL_UNLOCK(L_SEETELL);
     return FALSE;
   }
 
@@ -3350,7 +3357,7 @@ do_tell(term_t f, atom_t m)
   Scurout = s;
 
 ok:
-  UNLOCK();
+  PL_UNLOCK(L_SEETELL);
   return TRUE;
 }
 
