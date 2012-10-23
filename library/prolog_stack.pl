@@ -110,7 +110,7 @@ to decorate uncaught exceptions:
 %	[frame(Frame)]).
 
 get_prolog_backtrace(MaxDepth, Stack) :-
-	get_prolog_backtrace_lc(MaxDepth, Stack, []).
+	get_prolog_backtrace(MaxDepth, Stack, []).
 
 get_prolog_backtrace(Fr, MaxDepth, Stack) :-
 	integer(Fr), integer(MaxDepth), var(Stack), !,
