@@ -129,6 +129,9 @@ annotate_meta_vars_in_body((TermA->TermB), Module) :- !,
 annotate_meta_vars_in_body((TermA*->TermB), Module) :- !,
 	annotate_meta_vars_in_body(TermB, Module),
 	annotate_meta_vars_in_body(TermA, Module).
+annotate_meta_vars_in_body(A=B, _) :-
+	var(A), var(B), !,
+	A = B.
 annotate_meta_vars_in_body(Goal, Module) :- % TBD: do we trust this?
 	predicate_property(Module:Goal, meta_predicate(Head)), !,
 	functor(Goal, _, Arity),
