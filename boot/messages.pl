@@ -1095,7 +1095,7 @@ print_system_message(_, Kind, Lines) :-
 msg_property(Kind, Property) :-
 	user:message_property(Kind, Property), !.
 msg_property(Kind, prefix(Prefix)) :-
-	prefix(Kind, Prefix), !.
+	msg_prefix(Kind, Prefix), !.
 msg_property(_, prefix('~N')) :- !.
 msg_property(_, stream(user_error)) :- !.
 msg_property(error,
@@ -1106,21 +1106,21 @@ msg_property(warning,
 			     '~NWarning: ~w:~d:'-[File,Line], '~N\t')) :- !.
 msg_property(error,   wait(0.1)) :- !.
 
-prefix(debug(_),      '~N% ').
-prefix(warning,	      Prefix) :-
+msg_prefix(debug(_),      '~N% ').
+msg_prefix(warning,	      Prefix) :-
 	thread_self(Id),
 	(   Id == main
 	->  Prefix = '~NWarning: '
 	;   Prefix = '~NWarning: [Thread ~w] '-Id
 	).
-prefix(error,	      Prefix) :-
+msg_prefix(error,	      Prefix) :-
 	thread_self(Id),
 	(   Id == main
 	->  Prefix = '~NERROR: '
 	;   Prefix = '~NERROR: [Thread ~w] '-Id
 	).
-prefix(informational, '~N% ').
-prefix(information,   '~N% ').
+msg_prefix(informational, '~N% ').
+msg_prefix(information,   '~N% ').
 
 %%	print_message_lines(+Stream, +PrefixOrKind, +Lines)
 %
