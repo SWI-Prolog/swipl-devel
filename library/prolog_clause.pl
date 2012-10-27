@@ -40,6 +40,7 @@
 :- use_module(library(lists), [append/3]).
 :- use_module(library(occurs), [sub_term/2]).
 :- use_module(library(debug)).
+:- use_module(library(option)).
 :- use_module(library(listing)).
 :- use_module(library(prolog_source)).
 
@@ -62,19 +63,32 @@ dynamic predicates using listing to  XPCE   objects  to  this. Note that
 clause_info/4 as below can be slow.
 */
 
-%%	clause_info(+ClauseRef, -File, -TermPos, -VarNames)
+%%	clause_info(+ClauseRef, -File, -TermPos, -VarOffsets) is semidet.
+%%	clause_info(+ClauseRef, -File, -TermPos, -VarOffsets, +Options) is semidet.
 %
 %	Fetches source information for the  given   clause.  File is the
 %	file from which the clause  was   loaded.  TermPos describes the
 %	source layout in a format   compatible  to the subterm_positions
-%	option of read_term/2.  VarNames provides access to the variable
-%	allocation in a stack-frame.  See make_varnames/5 for details.
+%	option  of  read_term/2.  VarOffsets  provides   access  to  the
+%	variable allocation in a stack-frame.   See  make_varnames/5 for
+%	details.
 %
 %	Note that positions are  _|character   positions|_,  i.e., _not_
 %	bytes. Line endings count as a   single character, regardless of
 %	whether the actual ending is =|\n|= or =|\r\n|_.
+%
+%	Defined options are:
+%
+%	  * variable_names(-Names)
+%	  Unify Names with the variable names list (Name=Var) as
+%	  returned by read_term/3.  This argument is intended for
+%	  reporting source locations and refactoring based on
+%	  analysis of the compiled code.
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
+	clause_info(ClauseRef, File, TermPos, NameOffset, []).
+
+clause_info(ClauseRef, File, TermPos, NameOffset, Options) :-
 	(   debugging(clause_info)
 	->  clause_name(ClauseRef, Name),
 	    debug(clause_info, 'clause_info(~w) (~w)... ',
@@ -95,6 +109,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	),
 	debug(clause_info, 'from ~w:~d ... ', [File, LineNo]),
 	read_term_at_line(File, LineNo, Module, Clause, TermPos0, VarNames),
+	option(variable_names(VarNames), Options, _),
 	debug(clause_info, 'read ...', []),
 	unify_clause(Clause, DecompiledClause, Module, TermPos0, TermPos),
 	debug(clause_info, 'unified ...', []),
