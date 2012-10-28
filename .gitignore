@@ -35,6 +35,8 @@ include
 lib
 bin
 linux
+win32
+win64
 mingw
 man/MANUAL.pdf
 man/dvi2tty
