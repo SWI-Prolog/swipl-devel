@@ -4,7 +4,7 @@ cat >> version.h.new <<_EOM_
 /*  Generated file that contains the version identifier from
     the "git describe" command.
 
-    DO NOTE EDIT.   Check Makefile and mkversion.sh in src.
+    DO NOT EDIT.   Check Makefile and mkversion.sh in src.
 */
 
 _EOM_
