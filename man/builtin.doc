@@ -3478,7 +3478,9 @@ form
 
     \termitem{type}{Type}
 Set the type of the stream to one of \const{text} or \const{binary}.
-See also open/4 and the \const{encoding} property of streams.
+See also open/4 and the \const{encoding} property of streams. Switching
+to \const{binary} sets the encoding to \const{octet}.  Switching to
+\const{text} sets the encoding to the default text encoding.
 
     \termitem{record_position}{Bool}
 Do/do not record the line count and line position (see line_count/2

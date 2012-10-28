@@ -1747,9 +1747,20 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	if ( !PL_get_atom_ex(a, &type) )
 	  return FALSE;
 	if ( type == ATOM_text )
-	{ s->flags |= SIO_TEXT;
+	{ if ( false(s, SIO_TEXT) && Ssetenc(s, LD->encoding, NULL) != 0 )
+	  { PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		     ATOM_encoding, ATOM_stream, stream);
+	    goto error;
+	  }
+	  s->flags |= SIO_TEXT;
 	} else if ( type == ATOM_binary )
-	{ s->flags &= ~SIO_TEXT;
+	{ if ( true(s, SIO_TEXT) && Ssetenc(s, ENC_OCTET, NULL) != 0 )
+	  { PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		     ATOM_encoding, ATOM_stream, stream);
+	    goto error;
+	  }
+
+	  s->flags &= ~SIO_TEXT;
 	} else
 	{ PL_error("set_stream", 2, NULL, ERR_DOMAIN,
 		   ATOM_type, a);
