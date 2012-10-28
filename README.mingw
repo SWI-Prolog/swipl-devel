@@ -457,7 +457,7 @@ build_all()
 # Create a new release
 
 build_release()
-{ if [ -r README.mingw32 ]; then
+{ if [ -r README.mingw ]; then
     ( cd .. && build_release )
   else
     clean_swipl

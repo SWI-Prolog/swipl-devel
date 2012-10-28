@@ -42,4 +42,4 @@ case "$1" in
    *) ;;
 esac
 
-$bdir/@PL@@EXEEXT@ "$@"
+$bdir/@PL@@EXEEXT@ "$@" || exit 1
