@@ -335,7 +335,7 @@ build_libarchive()
 download_libuuid()
 { UUID_FILE=uuid-$UUID_VERSION.tar.gz
 
-  [ if $UUID_FILE ] || \
+  [ -f $UUID_FILE ] || \
   curl ftp://ftp.ossp.org/pkg/lib/uuid/$UUID_FILE > $UUID_FILE
   tar zxvf $UUID_FILE
 }
