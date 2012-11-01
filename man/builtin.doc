@@ -2943,6 +2943,13 @@ Do not show ports of this predicate in the debugger.
 Unify \arg{ClauseCount} to the number of clauses associated with the
 predicate.  Fails for foreign predicates.
 
+    \termitem{number_of_rules}{RuleCount}
+Unify \arg{RuleCount} to the number of clauses associated with the
+predicate. A \jargon{rule} is defined as a clauses that has a body that
+is not just \const{true} (i.e., a \jargon{fact}). Fails for foreign
+predicates. This property is used to avoid analysing predicates with
+only facts in \pllib{prolog_codewalk}.
+
     \termitem{public}{}
 Predicate is declared public using public/1.  Note that without further
 definition, public predicates are considered undefined and this property

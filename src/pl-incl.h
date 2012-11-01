@@ -1146,6 +1146,7 @@ typedef struct clause_list
   ClauseIndex	clause_indexes;		/* Hash index(es) */
   unsigned int	number_of_clauses;	/* number of associated clauses */
   unsigned int	erased_clauses;		/* number of erased clauses in set */
+  unsigned int	number_of_rules;	/* number of real rules */
 } clause_list, *ClauseList;
 
 typedef struct clause_ref

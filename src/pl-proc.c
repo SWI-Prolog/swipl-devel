@@ -922,6 +922,8 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   }
 
   def->impl.clauses.number_of_clauses++;
+  if ( false(clause, UNIT_CLAUSE) )
+    def->impl.clauses.number_of_rules++;
   GD->statistics.clauses++;
 #ifdef O_LOGICAL_UPDATE
   PL_LOCK(L_MISC);
@@ -1044,6 +1046,8 @@ removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 #endif
       def->impl.clauses.number_of_clauses--;
       def->impl.clauses.erased_clauses++;
+      if ( false(cl, UNIT_CLAUSE) )
+	def->impl.clauses.number_of_rules--;
     }
   }
 
@@ -1076,9 +1080,11 @@ unlinkClause(Definition def, Clause clause)
 	  def->impl.clauses.last_clause = prev;
       }
 
+      def->impl.clauses.number_of_clauses--;
+      if ( false(clause, UNIT_CLAUSE) )
+	def->impl.clauses.number_of_rules--;
 
       freeClauseRef(c);
-      def->impl.clauses.number_of_clauses--;
 
       break;
     }
@@ -2368,6 +2374,14 @@ pl_get_predicate_attribute(term_t pred,
     if ( def->impl.clauses.number_of_clauses == 0 && false(def, P_DYNAMIC) )
       fail;
     return PL_unify_integer(value, def->impl.clauses.number_of_clauses);
+  } else if ( key == ATOM_number_of_rules )
+  { if ( def->flags & P_FOREIGN )
+      fail;
+
+    def = getProcDefinition(proc);
+    if ( def->impl.clauses.number_of_clauses == 0 && false(def, P_DYNAMIC) )
+      fail;
+    return PL_unify_integer(value, def->impl.clauses.number_of_rules);
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else

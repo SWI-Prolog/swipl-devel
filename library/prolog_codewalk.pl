@@ -246,10 +246,13 @@ walk_called_by_pred(Module:Name/Arity, _) :-
 	assertz(multifile_predicate(Name, Arity, Module)).
 walk_called_by_pred(Module:Name/Arity, OTerm) :-
 	functor(Head, Name, Arity),
-	walk_option_caller(OTerm, Module:Head),
-	walk_option_clause(OTerm, ClauseRef),
-	forall(catch(clause(Module:Head, Body, ClauseRef), _, fail),
-	       walk_called_by_body(Body, Module, OTerm)).
+	(   predicate_property(Module:Head, number_of_rules(0))
+	->  true
+	;   walk_option_caller(OTerm, Module:Head),
+	    walk_option_clause(OTerm, ClauseRef),
+	    forall(catch(clause(Module:Head, Body, ClauseRef), _, fail),
+		   walk_called_by_body(Body, Module, OTerm))
+	).
 
 
 %%	walk_from_multifile(+OTerm)
