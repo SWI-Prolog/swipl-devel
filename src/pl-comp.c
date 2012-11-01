@@ -900,10 +900,7 @@ pushTargetModule(target_module *tm, CompileInfo ci)
   } else					/* TBD: Handle islocal */
   { int index = tm->var_index;
 
-    if ( index < 3 )
-      Output_0(ci, B_VAR0+index);
-    else
-      Output_1(ci, B_VAR, VAROFFSET(index));
+    Output_1(ci, B_ARGVAR, VAROFFSET(index));   /* Writing to a @ or : term */
   }
 
   return TRUE;
