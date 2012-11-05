@@ -522,10 +522,18 @@ pattern_goal([star|T], Codes, [Atom|Replacements], Goal) :-
 	append(Replacement, Rest, Codes),
 	Goal = (atom_codes(Atom, Replacement),Goal2),
 	pattern_goal(T, Rest, Replacements, Goal2).
+pattern_goal([set(S)|T], [C|Rest], [Atom|Replacements], Goal) :-
+	memberchk(C, S), !,
+	Goal = (char_code(Atom, C),Goal2),
+	pattern_goal(T, Rest, Replacements, Goal2).
 pattern_goal([any|T], [C|Rest], [Atom|Replacements], Goal) :-
 	Goal = (char_code(Atom, C),Goal2),
 	pattern_goal(T, Rest, Replacements, Goal2).
 
+match_pattern([set(S)|T]) -->
+	"[",
+	match_set(S), !,
+	match_pattern(T).
 match_pattern([string(List)|T]) -->
 	non_special(List),
 	{ List \== [] }, !,
@@ -538,6 +546,18 @@ match_pattern([any|T]) -->
 	match_pattern(T).
 match_pattern([]) --> [].
 
+match_set([]) --> "]", !.
+match_set(L) -->
+	[C0], "-", [C1],
+	{ C0 =< C1,
+	  numlist(C0, C1, Range),
+	  append(Range, T, L)
+	},
+	match_set(T).
+match_set([C|L]) -->
+	[C],
+	match_set(L).
+
 non_special([H|T]) -->
 	[H],
 	{ \+ special(H) }, !,
@@ -546,6 +566,7 @@ non_special([]) --> [].
 
 special(0'*).
 special(0'?).
+special(0'[).
 
 %%	lower_upper(+Lower, -Upper) is det.
 %%	lower_upper(-Lower, +Upper) is det.
