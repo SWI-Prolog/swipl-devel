@@ -1243,7 +1243,8 @@ letter(A) :-
 :- arithmetic_function(system:cosh/1).
 
 system:time(Time) :-
-	get_time(Time).
+	get_time(GetTime),
+	Time is round(GetTime).  % Time in seconds since 1970-01-01 00:00:00 UTC
 system:trunc(Val, Trunc) :-
 	Trunc is truncate(Val).
 system:ln(Val, Log) :-
