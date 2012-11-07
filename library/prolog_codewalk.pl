@@ -545,13 +545,16 @@ goal_pi(Goal, Goal).
 
 %%	register_possible_meta_clause(+ClauseRef) is det.
 %
-%	ClausesRef contains as call to a meta-predicate.  Remember to
-%	analyse this predicate.
+%	ClausesRef contains as call  to   a  meta-predicate. Remember to
+%	analyse this predicate. We only analyse   the predicate if it is
+%	loaded from a user module. I.e.,  system and library modules are
+%	trusted.
 
 register_possible_meta_clause(ClausesRef) :-
 	nonvar(ClausesRef),
 	clause_property(ClausesRef, predicate(PI)),
 	pi_head(PI, Head, Module),
+	module_property(Module, class(user)),
 	\+ predicate_property(Module:Head, meta_predicate(_)),
 	\+ inferred_meta_predicate(Module:Head, _),
 	\+ possible_meta_predicate(Head, Module), !,
