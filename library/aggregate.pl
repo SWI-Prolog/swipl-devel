@@ -284,7 +284,7 @@ aggregate_list(bag, List0, List) :- !,
 aggregate_list(set, List, Set) :- !,
 	sort(List, Set).
 aggregate_list(sum, List, Sum) :-
-	sumlist(List, Sum).
+	sum_list(List, Sum).
 aggregate_list(count, List, Count) :-
 	length(List, Count).
 aggregate_list(max, List, Sum) :-
