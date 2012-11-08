@@ -635,6 +635,7 @@ property_predicate(Property, Pred) :-
 
 define_or_generate(M:Head) :-
 	callable(Head),
+	atom(M),
 	'$get_predicate_attribute'(M:Head, defined, 1), !.
 define_or_generate(M:Head) :-
 	callable(Head),
