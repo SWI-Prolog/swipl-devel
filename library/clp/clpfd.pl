@@ -196,8 +196,8 @@ following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
 Here is an example session with a few queries and their answers:
 
 ==
-?- [library(clpfd)].
-% library(clpfd) compiled into clpfd 0.06 sec, 3,308 bytes
+?- use_module(library(clpfd)).
+% library(clpfd) compiled into clpfd 0.06 sec, 633,732 bytes
 true.
 
 ?- X #> 3.
