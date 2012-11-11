@@ -1965,10 +1965,11 @@ load_files(Module:Files, Options) :-
 %	      Module:atom,
 %	      AtEnd:atom,
 %	      Stop:boolean,
-%	      Id:atom)
+%	      Id:atom,
+%	      Dialect:atom)
 
 '$load_file'(Path, Id, Module, Options) :-
-	State = state(true, _, true, false, Id),
+	State = state(true, _, true, false, Id, -),
 	(   '$source_term'(Path, _Read, Term, _Stream, Options),
 	    '$valid_term'(Term),
 	    (	arg(1, State, true)
@@ -2017,7 +2018,7 @@ load_files(Module:Files, Options) :-
 	    '$start_module'(Name, Public, State, Options)
 	;   Directive = expects_dialect(Dialect)
 	->  !,
-	    expects_dialect(Dialect),	% Autoloaded from library
+	    '$set_dialect'(Dialect, State),
 	    fail			% Still consider next term as first
 	).
 '$first_term'(Term, Id, State, Options) :-
@@ -2038,8 +2039,34 @@ load_files(Module:Files, Options) :-
 '$start_non_module'(Id, State, _Options) :-
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(Id)),
+	'$qset_dialect'(State),
 	nb_setarg(2, State, Module),
 	nb_setarg(3, State, end_non_module).
+
+%%	'$set_dialect'(+Dialect, +State)
+%
+%	Sets the expected dialect. This is difficult if we are compiling
+%	a .qlf file using qcompile/1 because   the file is already open,
+%	while we are looking for the first term to decide wether this is
+%	a module or not. We save the   dialect  and set it after opening
+%	the file or module.
+%
+%	Note that expects_dialect/1 itself may   be  autoloaded from the
+%	library.
+
+'$set_dialect'(Dialect, State) :-
+	'$compilation_mode'(qlf, database), !,
+	expects_dialect(Dialect),
+	'$compilation_mode'(_, qlf),
+	nb_setarg(6, State, Dialect).
+'$set_dialect'(Dialect, _) :-
+	expects_dialect(Dialect).
+
+'$qset_dialect'(State) :-
+	'$compilation_mode'(qlf),
+	arg(6, State, Dialect), Dialect \== (-), !,
+	'$add_directive_wic'(expects_dialect(Dialect)).
+'$qset_dialect'(_).
 
 
 		 /*******************************
@@ -2065,6 +2092,7 @@ load_files(Module:Files, Options) :-
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
+	'$qset_dialect'(State),
 	nb_setarg(3, State, end_module).
 
 
