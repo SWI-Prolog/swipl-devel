@@ -157,6 +157,15 @@ aggregate(Template, Discriminator, Goal0, Result) :-
 %	Aggregate  bindings  in  Goal   according    to   Template.  The
 %	aggregate_all/3 version performs findall/3 on Goal.
 
+aggregate_all(count, Goal, Count) :- !,
+	State = state(0, _),
+	(   Goal,
+	    arg(1, State, C0),
+	    C1 is C0+1,
+	    nb_setarg(1, State, C1),
+	    fail
+	;   arg(1, State, Count)
+	).
 aggregate_all(Template, Goal0, Result) :-
 	template_to_pattern(all, Template, Pattern, Goal0, Goal, Aggregate),
 	findall(Pattern, Goal, List),
