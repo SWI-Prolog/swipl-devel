@@ -158,6 +158,11 @@ getStreamContext(IOSTREAM *s)
   return (stream_context*)s->context;
 }
 
+static stream_context *
+getExistingStreamContext(IOSTREAM *s)
+{ return (stream_context*)s->context;
+}
+
 
 /* MT: Must be called locked */
 
@@ -196,11 +201,12 @@ unaliasStream(IOSTREAM *s, atom_t name)
 
   if ( name )
   { if ( (symb = lookupHTable(streamAliases, (void *)name)) )
-    { deleteSymbolHTable(streamAliases, symb);
+    { stream_context *ctx;
 
-      if ( (symb=lookupHTable(streamContext, s)) )
-      { stream_context *ctx = symb->value;
-	alias **a;
+      deleteSymbolHTable(streamAliases, symb);
+
+      if ( (ctx=getExistingStreamContext(s)) )
+      { alias **a;
 
 	for(a = &ctx->alias_head; *a; a = &(*a)->next)
 	{ if ( (*a)->name == name )
@@ -219,9 +225,10 @@ unaliasStream(IOSTREAM *s, atom_t name)
       PL_unregister_atom(name);
     }
   } else				/* delete them all */
-  { if ( (symb=lookupHTable(streamContext, s)) )
-    { stream_context *ctx = symb->value;
-      alias *a, *n;
+  { stream_context *ctx;
+
+    if ( (ctx=getExistingStreamContext(s)) )
+    { alias *a, *n;
 
       for(a = ctx->alias_head; a; a=n)
       { Symbol s2;
