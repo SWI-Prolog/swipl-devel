@@ -33,12 +33,14 @@
 
 :- module(prolog_clause,
 	  [ clause_info/4,		% +ClauseRef, -File, -TermPos, -VarNames
+	    initialization_layout/4,	% +SourceLoc, +Goal, -Term, -TermPos
 	    predicate_name/2,		% +Head, -Name
 	    clause_name/2		% +ClauseRef, -Name
 	  ]).
 :- use_module(library(lists), [append/3]).
 :- use_module(library(occurs), [sub_term/2]).
 :- use_module(library(debug)).
+:- use_module(library(option)).
 :- use_module(library(listing)).
 :- use_module(library(prolog_source)).
 
@@ -61,19 +63,32 @@ dynamic predicates using listing to  XPCE   objects  to  this. Note that
 clause_info/4 as below can be slow.
 */
 
-%%	clause_info(+ClauseRef, -File, -TermPos, -VarNames)
+%%	clause_info(+ClauseRef, -File, -TermPos, -VarOffsets) is semidet.
+%%	clause_info(+ClauseRef, -File, -TermPos, -VarOffsets, +Options) is semidet.
 %
 %	Fetches source information for the  given   clause.  File is the
 %	file from which the clause  was   loaded.  TermPos describes the
 %	source layout in a format   compatible  to the subterm_positions
-%	option of read_term/2.  VarNames provides access to the variable
-%	allocation in a stack-frame.  See make_varnames/5 for details.
+%	option  of  read_term/2.  VarOffsets  provides   access  to  the
+%	variable allocation in a stack-frame.   See  make_varnames/5 for
+%	details.
 %
 %	Note that positions are  _|character   positions|_,  i.e., _not_
 %	bytes. Line endings count as a   single character, regardless of
 %	whether the actual ending is =|\n|= or =|\r\n|_.
+%
+%	Defined options are:
+%
+%	  * variable_names(-Names)
+%	  Unify Names with the variable names list (Name=Var) as
+%	  returned by read_term/3.  This argument is intended for
+%	  reporting source locations and refactoring based on
+%	  analysis of the compiled code.
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
+	clause_info(ClauseRef, File, TermPos, NameOffset, []).
+
+clause_info(ClauseRef, File, TermPos, NameOffset, Options) :-
 	(   debugging(clause_info)
 	->  clause_name(ClauseRef, Name),
 	    debug(clause_info, 'clause_info(~w) (~w)... ',
@@ -94,6 +109,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	),
 	debug(clause_info, 'from ~w:~d ... ', [File, LineNo]),
 	read_term_at_line(File, LineNo, Module, Clause, TermPos0, VarNames),
+	option(variable_names(VarNames), Options, _),
 	debug(clause_info, 'read ...', []),
 	unify_clause(Clause, DecompiledClause, Module, TermPos0, TermPos),
 	debug(clause_info, 'unified ...', []),
@@ -237,13 +253,13 @@ find_varname(Var, [_|T], Name) :-
 
 unify_clause(Read, Read, _, TermPos, TermPos) :- !.
 					% XPCE send-methods
-unify_clause(Read, Decompiled, Module, TermPoso, TermPos) :-
-	unify_clause_hook(Read, Decompiled, Module, TermPoso, TermPos), !.
-unify_clause(:->(Head, Body), (PlHead :- PlBody), _, TermPos0, TermPos) :- !,
-	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
+unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
+	unify_clause_hook(Read, Decompiled, Module, TermPos0, TermPos), !.
+unify_clause(:->(Head, Body), (PlHead :- PlBody), M, TermPos0, TermPos) :- !,
+	pce_method_clause(Head, Body, PlHead, PlBody, M, TermPos0, TermPos).
 					% XPCE get-methods
-unify_clause(:<-(Head, Body), (PlHead :- PlBody), _, TermPos0, TermPos) :- !,
-	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
+unify_clause(:<-(Head, Body), (PlHead :- PlBody), M, TermPos0, TermPos) :- !,
+	pce_method_clause(Head, Body, PlHead, PlBody, M, TermPos0, TermPos).
 					% Unit test clauses
 unify_clause((TH :- Body),
 	     (_:'unit body'(_, _) :- !, Body), _,
@@ -403,10 +419,10 @@ ubody(X0, X, M,
 	X  =.. [_|A],
 	S =.. [_|AS],
 	ubody_list(A0, A, AS, M, PA0, PA).
-ubody(X0, X, _,
+ubody(X0, X, M,
       term_position(F,T,FF,TT,PA0),
       term_position(F,T,FF,TT,PA)) :-
-	expand_goal(X0, X, PA0, PA).
+	expand_goal(X0, X, M, PA0, PA).
 
 					% 5.7.X optimizations
 ubody(_=_, true, _,			% singleton = Any
@@ -481,20 +497,20 @@ mapped to:
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-pce_method_clause(Head, Body, _:PlHead, PlBody, TermPos0, TermPos) :- !,
-	pce_method_clause(Head, Body, PlBody, PlHead, TermPos0, TermPos).
+pce_method_clause(Head, Body, M:PlHead, PlBody, _, TermPos0, TermPos) :- !,
+	pce_method_clause(Head, Body, PlBody, PlHead, M, TermPos0, TermPos).
 pce_method_clause(Head, Body,
 		  send_implementation(_Id, Msg, Receiver), PlBody,
-		  TermPos0, TermPos) :- !,
+		  M, TermPos0, TermPos) :- !,
 	debug(clause_info, 'send method ...', []),
 	arg(1, Head, Receiver),
 	functor(Head, _, Arity),
 	pce_method_head_arguments(2, Arity, Head, Msg),
 	debug(clause_info, 'head ...', []),
-	pce_method_body(Body, PlBody, TermPos0, TermPos).
+	pce_method_body(Body, PlBody, M, TermPos0, TermPos).
 pce_method_clause(Head, Body,
 		  get_implementation(_Id, Msg, Receiver, Result), PlBody,
-		  TermPos0, TermPos) :- !,
+		  M, TermPos0, TermPos) :- !,
 	debug(clause_info, 'get method ...', []),
 	arg(1, Head, Receiver),
 	debug(clause_info, 'receiver ...', []),
@@ -505,7 +521,7 @@ pce_method_clause(Head, Body,
 	Ar is Arity - 1,
 	pce_method_head_arguments(2, Ar, Head, Msg),
 	debug(clause_info, 'head ...', []),
-	pce_method_body(Body, PlBody, TermPos0, TermPos).
+	pce_method_body(Body, PlBody, M, TermPos0, TermPos).
 
 pce_method_head_arguments(N, Arity, Head, Msg) :-
 	N =< Arity, !,
@@ -524,7 +540,7 @@ pce_unify_head_arg(V, A) :-
 pce_unify_head_arg(A:_=_, A) :- !.
 pce_unify_head_arg(A:_, A).
 
-%	pce_method_body(+SrcBody, +DbBody, +TermPos0, -TermPos
+%	pce_method_body(+SrcBody, +DbBody, +M, +TermPos0, -TermPos
 %
 %	Unify the body of an XPCE method.  Goal-expansion makes this
 %       rather tricky, especially as we cannot call XPCE's expansion
@@ -537,7 +553,7 @@ pce_unify_head_arg(A:_, A).
 %	starts with an I_CONTEXT call. This implies we need a
 %	hypothetical term-position for the module-qualifier.
 
-pce_method_body(A0, A, TermPos0, TermPos) :-
+pce_method_body(A0, A, M, TermPos0, TermPos) :-
 	TermPos0 = term_position(F, T, FF, FT,
 				 [ HeadPos,
 				   BodyPos0
@@ -546,14 +562,14 @@ pce_method_body(A0, A, TermPos0, TermPos) :-
 				 [ HeadPos,
 				   term_position(0,0,0,0, [0-0,BodyPos])
 				 ]),
-	pce_method_body2(A0, A, BodyPos0, BodyPos).
+	pce_method_body2(A0, A, M, BodyPos0, BodyPos).
 
 
-pce_method_body2(::(_,A0), A, TermPos0, TermPos) :- !,
+pce_method_body2(::(_,A0), A, M, TermPos0, TermPos) :- !,
 	TermPos0 = term_position(_, _, _, _, [_Cmt,BodyPos0]),
 	TermPos  = BodyPos,
-	expand_goal(A0, A, BodyPos0, BodyPos).
-pce_method_body2(A0, A, TermPos0, TermPos) :-
+	expand_goal(A0, A, M, BodyPos0, BodyPos).
+pce_method_body2(A0, A, M, TermPos0, TermPos) :-
 	A0 =.. [Func,B0,C0],
 	control_op(Func), !,
 	A =.. [Func,B,C],
@@ -565,10 +581,10 @@ pce_method_body2(A0, A, TermPos0, TermPos) :-
 				 [ BP,
 				   CP
 				 ]),
-	pce_method_body2(B0, B, BP0, BP),
-	expand_goal(C0, C, CP0, CP).
-pce_method_body2(A0, A, TermPos0, TermPos) :-
-	expand_goal(A0, A, TermPos0, TermPos).
+	pce_method_body2(B0, B, M, BP0, BP),
+	expand_goal(C0, C, M, CP0, CP).
+pce_method_body2(A0, A, M, TermPos0, TermPos) :-
+	expand_goal(A0, A, M, TermPos0, TermPos).
 
 control_op(',').
 control_op((;)).
@@ -592,34 +608,34 @@ To keep track of the source-locations, we   have to redo the analysis of
 the clause as defined in init.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-expand_goal(G, call(G), P, term_position(0,0,0,0,[P])) :-
+expand_goal(G, call(G), _, P, term_position(0,0,0,0,[P])) :-
         var(G), !.
-expand_goal(G, G, P, P) :-
+expand_goal(G, G, _, P, P) :-
         var(G), !.
-expand_goal(M0, M, P0, P) :-
-	meta(system, M0, S), !,
+expand_goal(M0, M, Module, P0, P) :-
+	meta(Module, M0, S), !,
 	P0 = term_position(F,T,FF,FT,PL0),
 	P  = term_position(F,T,FF,FT,PL),
 	functor(M0, Functor, Arity),
 	functor(M,  Functor, Arity),
-	expand_meta_args(PL0, PL, 1, S, M0, M).
-expand_goal(A, B, P0, P) :-
+	expand_meta_args(PL0, PL, 1, S, Module, M0, M).
+expand_goal(A, B, Module, P0, P) :-
         goal_expansion(A, B0, P0, P1), !,
-	expand_goal(B0, B, P1, P).
-expand_goal(A, A, P, P).
+	expand_goal(B0, B, Module, P1, P).
+expand_goal(A, A, _, P, P).
 
-expand_meta_args([], [], _, _, _, _).
-expand_meta_args([P0|T0], [P|T], I, S, M0, M) :-
+expand_meta_args([],      [],   _,  _, _,      _,  _).
+expand_meta_args([P0|T0], [P|T], I, S, Module, M0, M) :-
 	arg(I, M0, A0),
 	arg(I, M,  A),
 	arg(I, S,  AS),
-	expand_arg(AS, A0, A, P0, P),
+	expand_arg(AS, A0, A, Module, P0, P),
 	NI is I + 1,
-	expand_meta_args(T0, T, NI, S, M0, M).
+	expand_meta_args(T0, T, NI, S, Module, M0, M).
 
-expand_arg(0, A0, A, P0, P) :- !,
-	expand_goal(A0, A, P0, P).
-expand_arg(_, A, A, P, P).
+expand_arg(0, A0, A, Module, P0, P) :- !,
+	expand_goal(A0, A, Module, P0, P).
+expand_arg(_, A, A, _, P, P).
 
 meta(M, G, S) :- predicate_property(M:G, meta_predicate(S)).
 
@@ -656,6 +672,27 @@ goal_expansion(GetN, get(R, Msg, Answer), P, P) :-
 goal_expansion(G0, G, P, P) :-
 	user:goal_expansion(G0, G),	% TBD: we need the module!
 	G0 \== G.			% \=@=?
+
+
+		 /*******************************
+		 *	  INITIALIZATION	*
+		 *******************************/
+
+%%	initialization_layout(+SourceLocation, ?InitGoal,
+%%			      -ReadGoal, -TermPos) is semidet.
+%
+%	Find term-layout of :- initialization directives.
+
+initialization_layout(File:Line, M:Goal0, Goal, TermPos) :-
+	read_term_at_line(File, Line, M, Directive, DirectivePos, _),
+	Directive    = (:- initialization(ReadGoal)),
+	DirectivePos = term_position(_, _, _, _, [InitPos]),
+	InitPos      = term_position(_, _, _, _, [GoalPos]),
+	(   ReadGoal = M:_
+	->  Goal = M:Goal0
+	;   Goal = Goal0
+	),
+	unify_body(ReadGoal, Goal, M, GoalPos, TermPos), !.
 
 
 		 /*******************************

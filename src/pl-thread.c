@@ -1339,6 +1339,27 @@ start_thread(void *closure)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The pthread stacksize must be  a  multiple   of  the  page  size on some
+systems. We do the rounding here. If we do not know the page size we use
+8192, which should typically be a multiple of the page size.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static size_t
+round_pages(size_t n)
+{ size_t psize;
+
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  if ( (psize = sysconf(_SC_PAGESIZE)) == (size_t)-1 )
+    psize = 8192;
+#else
+  psize = 8192;
+#endif
+
+  return ROUND(n, psize);
+}
+
+
 word
 pl_thread_create(term_t goal, term_t id, term_t options)
 { GET_LD
@@ -1463,7 +1484,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     }
 #endif
     if ( stack )
-    { func = "pthread_attr_setstacksize";
+    { stack = round_pages(stack);
+      func = "pthread_attr_setstacksize";
       rc = pthread_attr_setstacksize(&attr, stack);
       info->stack_size = stack;
     } else

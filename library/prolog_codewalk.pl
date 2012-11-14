@@ -35,6 +35,7 @@
 :- use_module(library(debug)).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
+:- use_module(library(prolog_metainference)).
 
 /** <module> Prolog code walker
 
@@ -79,7 +80,8 @@ source file is passed into _Where.
 					   library,test,development])),
 		       source(boolean),
 		       trace_reference(any),
-		       on_trace(callable)
+		       on_trace(callable),
+		       infer_meta_predicates(oneof([false,true,all]))
 		     ]).
 
 :- record
@@ -89,6 +91,7 @@ source file is passed into _Where.
 		    module:atom,		% Only analyse given module
 		    module_class:oneof([default,user,system,
 					library,test,development])=default,
+		    infer_meta_predicates:oneof([false,true,all])=true,
 		    trace_reference:any=(-),
 		    on_trace:callable,		% Call-back on trace hits
 						% private stuff
@@ -132,6 +135,14 @@ source file is passed into _Where.
 %	  module_property/2 for details on module classes.  Default
 %	  is to scan the classes =user= and =library=.
 %
+%	  * infer_meta_predicates(+BooleanOrAll)
+%	  Use infer_meta_predicate/2 on predicates with clauses that
+%	  call known meta-predicates.  The analysis is restarted until
+%	  a fixed point is reached.  If =true= (default), analysis is
+%	  only restarted if the inferred meta-predicate contains a
+%	  callable argument.  If =all=, it will be restarted until no
+%	  more new meta-predicates can be found.
+%
 %	  * trace_reference(Callable)
 %	  Print all calls to goals that subsume Callable. Goals are
 %	  represented as Module:Callable (i.e., they are always
@@ -144,6 +155,7 @@ source file is passed into _Where.
 %
 %	    - clause_term_position(+ClauseRef, +TermPos)
 %	    - clause(+ClauseRef)
+%           - file_term_position(+Path, +TermPos)
 %	    - file(+File, +Line, -1, _)
 %	    - a variable (unknown)
 %
@@ -159,14 +171,28 @@ source file is passed into _Where.
 
 prolog_walk_code(Options) :-
 	meta_options(is_meta, Options, QOptions),
-	make_walk_option(QOptions, OTerm, _),
+	prolog_walk_code(1, QOptions).
+
+prolog_walk_code(Iteration, Options) :-
+	statistics(cputime, CPU0),
+	make_walk_option(Options, OTerm, _),
 	forall(( walk_option_module(OTerm, M),
 		 current_module(M),
 		 scan_module(M, OTerm)
 	       ),
 	       find_walk_from_module(M, OTerm)),
 	walk_from_multifile(OTerm),
-	walk_from_initialization(OTerm).
+	walk_from_initialization(OTerm),
+	infer_new_meta_predicates(New, OTerm),
+	statistics(cputime, CPU1),
+	(   New \== []
+	->  CPU is CPU1-CPU0,
+	    print_message(informational,
+			  codewalk(reiterate(New, Iteration, CPU))),
+	    succ(Iteration, Iteration2),
+	    prolog_walk_code(Iteration2, Options)
+	;   true
+	).
 
 is_meta(on_trace).
 
@@ -192,19 +218,14 @@ scan_module_class(library).
 
 walk_from_initialization(OTerm) :-
 	walk_option_caller(OTerm, '<initialization>'),
-	forall('$init_goal'(File, Goal, SourceLocation),
+	forall('$init_goal'(_File, Goal, SourceLocation),
 	       ( walk_option_initialization(OTerm, SourceLocation),
-		 walk_from_initialization(File, Goal, OTerm))).
+		 walk_from_initialization(Goal, OTerm))).
 
-
-walk_from_initialization(File, Goal, OTerm) :-
-	module_property(Module, file(File)),
-	(   scan_module(Module, OTerm)
-	->  walk_called(Goal, Module, _, OTerm)
-	;   true
-	).
-walk_from_initialization(_, Goal, OTerm) :-
-	walk_called(Goal, user, _, OTerm).
+walk_from_initialization(M:Goal, OTerm) :-
+	scan_module(M, OTerm), !,
+	walk_called_by_body(Goal, M, OTerm).
+walk_from_initialization(_, _).
 
 
 %%	find_walk_from_module(+Module, +OTerm) is det.
@@ -225,10 +246,13 @@ walk_called_by_pred(Module:Name/Arity, _) :-
 	assertz(multifile_predicate(Name, Arity, Module)).
 walk_called_by_pred(Module:Name/Arity, OTerm) :-
 	functor(Head, Name, Arity),
-	walk_option_caller(OTerm, Module:Head),
-	walk_option_clause(OTerm, ClauseRef),
-	forall(catch(clause(Module:Head, Body, ClauseRef), _, fail),
-	       walk_called_by_body(Body, Module, OTerm)).
+	(   predicate_property(Module:Head, number_of_rules(0))
+	->  true
+	;   walk_option_caller(OTerm, Module:Head),
+	    walk_option_clause(OTerm, ClauseRef),
+	    forall(catch(clause(Module:Head, Body, ClauseRef), _, fail),
+		   walk_called_by_body(Body, Module, OTerm))
+	).
 
 
 %%	walk_from_multifile(+OTerm)
@@ -302,10 +326,15 @@ walk_called_by_body(undecided_call, Body, Module, OTerm) :-
 	      missing(Missing),
 	      walk_called_by_body(Missing, Body, Module, OTerm)).
 walk_called_by_body(subterm_positions, Body, Module, OTerm) :-
-	walk_option_clause(OTerm, ClauseRef), nonvar(ClauseRef),
-	(   clause_info(ClauseRef, _File, TermPos, _NameOffset),
-	    TermPos = term_position(_,_,_,_,[_,BodyPos])
-	->  catch(forall(walk_called(Body, Module, BodyPos, OTerm),
+	(   (   walk_option_clause(OTerm, ClauseRef), nonvar(ClauseRef),
+		clause_info(ClauseRef, _, TermPos, _NameOffset),
+		TermPos = term_position(_,_,_,_,[_,BodyPos])
+	    ->	WBody = Body
+	    ;	walk_option_initialization(OTerm, SrcLoc),
+		ground(SrcLoc), SrcLoc = _File:_Line,
+		initialization_layout(SrcLoc, Module:Body, WBody, BodyPos)
+	    )
+	->  catch(forall(walk_called(WBody, Module, BodyPos, OTerm),
 			 true),
 		  missing(subterm_positions),
 		  walk_called_by_body(no_positions, Body, Module, OTerm))
@@ -391,7 +420,11 @@ walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
 	    '$get_predicate_attribute'(Module:Meta, defined, 1)
 	;   true
 	),
-	predicate_property(M:Meta, meta_predicate(Head)), !, % this may autoload
+	(   predicate_property(M:Meta, meta_predicate(Head))
+	;   inferred_meta_predicate(M:Meta, Head)
+	), !,
+	walk_option_clause(OTerm, ClauseRef),
+	register_possible_meta_clause(ClauseRef),
 	walk_meta_call(1, Head, Meta, M, ArgPosList, OTerm).
 walk_called(Goal, Module, _, _) :-
 	nonvar(Module),
@@ -466,10 +499,18 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 	;   throw(missing(subterm_positions))
 	),
 	print_reference2(Goal, From, Why, OTerm).
-print_reference(Goal, _, Why, OTerm) :-
+print_reference(Goal, TermPos, Why, OTerm) :-
 	walk_option_initialization(OTerm, Init), nonvar(Init),
 	Init = File:Line, !,
-	print_reference2(Goal, file(File, Line, -1, _), Why, OTerm).
+	(   compound(TermPos),
+	    arg(1, TermPos, CharCount),
+	    integer(CharCount)		% test it is valid
+	->  From = file_term_position(File, TermPos)
+	;   walk_option_source(OTerm, false)
+	->  From = file(File, Line, -1, _)
+	;   throw(missing(subterm_positions))
+	),
+	print_reference2(Goal, From, Why, OTerm).
 print_reference(Goal, _, Why, OTerm) :-
 	print_reference2(Goal, _, Why, OTerm).
 
@@ -499,6 +540,60 @@ goal_pi(Goal, M:Name/Arity) :-
 	functor(Head, Name, Arity).
 goal_pi(Goal, Goal).
 
+:- dynamic
+	possible_meta_predicate/2.
+
+%%	register_possible_meta_clause(+ClauseRef) is det.
+%
+%	ClausesRef contains as call  to   a  meta-predicate. Remember to
+%	analyse this predicate. We only analyse   the predicate if it is
+%	loaded from a user module. I.e.,  system and library modules are
+%	trusted.
+
+register_possible_meta_clause(ClausesRef) :-
+	nonvar(ClausesRef),
+	clause_property(ClausesRef, predicate(PI)),
+	pi_head(PI, Head, Module),
+	module_property(Module, class(user)),
+	\+ predicate_property(Module:Head, meta_predicate(_)),
+	\+ inferred_meta_predicate(Module:Head, _),
+	\+ possible_meta_predicate(Head, Module), !,
+	assertz(possible_meta_predicate(Head, Module)).
+register_possible_meta_clause(_).
+
+pi_head(Module:Name/Arity, Head, Module)  :- !,
+	functor(Head, Name, Arity).
+pi_head(_, _, _) :-
+	assertion(fail).
+
+%%	infer_new_meta_predicates(-MetaSpecs, +OTerm) is det.
+
+infer_new_meta_predicates([], OTerm) :-
+	walk_option_infer_meta_predicates(OTerm, false), !.
+infer_new_meta_predicates(MetaSpecs, OTerm) :-
+	findall(Module:MetaSpec,
+		( retract(possible_meta_predicate(Head, Module)),
+		  infer_meta_predicate(Module:Head, MetaSpec),
+		  (   walk_option_infer_meta_predicates(OTerm, all)
+		  ->  true
+		  ;   calling_metaspec(MetaSpec)
+		  )
+		),
+		MetaSpecs).
+
+%%	calling_metaspec(+Head) is semidet.
+%
+%	True if this is a meta-specification  that makes a difference to
+%	the code walker.
+
+calling_metaspec(Head) :-
+	arg(_, Head, Arg),
+	calling_metaarg(Arg), !.
+
+calling_metaarg(I) :- integer(I), !.
+calling_metaarg(^).
+calling_metaarg(//).
+
 
 %%	walk_meta_call(+Index, +GoalHead, +MetaHead, +Module,
 %%		       +ArgPosList, +OTerm)
@@ -514,8 +609,8 @@ walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
 	    walk_called(Goal, M, ArgPosEx, OTerm)
 	;   AS == (^)
 	->  arg(I, Meta, MA),
-	    remove_quantifier(MA, Goal, ArgPos, ArgPosEx, OTerm),
-	    walk_called(Goal, M, ArgPosEx, OTerm)
+	    remove_quantifier(MA, Goal, ArgPos, ArgPosEx, M, MG, OTerm),
+	    walk_called(Goal, MG, ArgPosEx, OTerm)
 	;   AS == (//)
 	->  arg(I, Meta, DCG),
 	    walk_dcg_body(DCG, M, ArgPos, OTerm)
@@ -525,14 +620,18 @@ walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
 	walk_meta_call(I2, Head, Meta, M, ArgPosList, OTerm).
 walk_meta_call(_, _, _, _, _, _).
 
-remove_quantifier(Goal, _, TermPos, TermPos, OTerm) :-
+remove_quantifier(Goal, _, TermPos, TermPos, M, M, OTerm) :-
 	var(Goal), !,
 	undecided(Goal, TermPos, OTerm).
 remove_quantifier(_^Goal0, Goal,
 		  term_position(_,_,_,_,[_,GPos]),
-		  TermPos, OTerm) :- !,
-	remove_quantifier(Goal0, Goal, GPos, TermPos, OTerm).
-remove_quantifier(Goal, Goal, TermPos, TermPos, _).
+		  TermPos, M0, M, OTerm) :- !,
+	remove_quantifier(Goal0, Goal, GPos, TermPos, M0, M, OTerm).
+remove_quantifier(M1:Goal0, Goal,
+		  term_position(_,_,_,_,[_,GPos]),
+		  TermPos, _, M, OTerm) :- !,
+	remove_quantifier(Goal0, Goal, GPos, TermPos, M1, M, OTerm).
+remove_quantifier(Goal, Goal, TermPos, TermPos, M, M, _).
 
 
 %%	walk_called_by(+Called:list, +Module, +Goal, +TermPos, +OTerm)
@@ -604,6 +703,10 @@ walk_dcg_body(G, M, TermPos, OTerm) :-
 %	TermPosition describes the term layout   of  Term and SubTermPos
 %	describes the term layout of SubTerm.   Cmp  is typically one of
 %	=same_term=, =|==|=, =|=@=|= or =|=|=
+
+:- meta_predicate
+	subterm_pos(+, +, 2, +, -),
+	sublist_pos(+, +, +, +, 2, -).
 
 subterm_pos(_, _, _, Pos, _) :-
 	var(Pos), !, fail.
@@ -701,11 +804,8 @@ prolog:message(trace_call_to(PI, Context)) -->
 	prolog:message_location(Context).
 
 prolog:message_location(clause_term_position(ClauseRef, TermPos)) -->
-	{ clause_property(ClauseRef, file(File)),
-	  arg(1, TermPos, CharCount),
-	  filepos_line(File, CharCount, Line, LinePos)
-	},
-	[ '~w:~d:~d: '-[File, Line, LinePos] ].
+	{ clause_property(ClauseRef, file(File)) },
+	message_location_file_term_position(File, TermPos).
 prolog:message_location(clause(ClauseRef)) -->
 	{ clause_property(ClauseRef, file(File)),
 	  clause_property(ClauseRef, line_count(Line))
@@ -714,17 +814,38 @@ prolog:message_location(clause(ClauseRef)) -->
 prolog:message_location(clause(ClauseRef)) -->
 	{ clause_name(ClauseRef, Name) },
 	[ '~w: '-[Name] ].
+prolog:message_location(file_term_position(Path, TermPos)) -->
+	message_location_file_term_position(Path, TermPos).
 prolog:message_location(file(Path, Line, _, _)) -->
-	[ '~w:~d '-[Path, Line] ].
+	[ '~w:~d: '-[Path, Line] ].
+prolog:message(codewalk(reiterate(New, Iteration, CPU))) -->
+	[ 'Found new meta-predicates in iteration ~w (~3f sec)'-
+	  [Iteration, CPU], nl ],
+	meta_decls(New),
+	[ 'Restarting analysis ...'-[], nl ].
 
+meta_decls([]) --> [].
+meta_decls([H|T]) -->
+	[ ':- meta_predicate ~q.'-[H], nl ],
+	meta_decls(T).
+
+message_location_file_term_position(File, TermPos) -->
+	{ arg(1, TermPos, CharCount),
+	  filepos_line(File, CharCount, Line, LinePos)
+	},
+	[ '~w:~d:~d: '-[File, Line, LinePos] ].
+
+%%	filepos_line(+File, +CharPos, -Line, -Column) is det.
+%
+%	@param CharPos is 0-based character offset in the file.
+%	@param Column is the current column, counting tabs as 8 spaces.
 
 filepos_line(File, CharPos, Line, LinePos) :-
 	setup_call_cleanup(
 	    ( open(File, read, In),
 	      open_null_stream(Out)
 	    ),
-	    ( Skip is CharPos-1,
-	      copy_stream_data(In, Out, Skip),
+	    ( copy_stream_data(In, Out, CharPos),
 	      stream_property(In, position(Pos)),
 	      stream_position_data(line_count, Pos, Line),
 	      stream_position_data(line_position, Pos, LinePos)

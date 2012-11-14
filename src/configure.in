@@ -473,6 +473,20 @@ else
 fi
 rm -f testconf.args
 
+dnl ****************************************************************
+dnl See whether we can use git versions
+dnl ****************************************************************
+
+AC_MSG_CHECKING([Use git-based version stamps])
+if "$srcdir/mkversion.sh" && \
+   test -r version.h && \
+   grep GIT_VERSION version.h > /dev/null; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(USE_GIT_VERSION_H, 1,
+	    [Define to use include actual git version])
+else
+  AC_MSG_RESULT(no)
+fi
 
 dnl ****************************************************************
 dnl Setup shared library and dynamic linking

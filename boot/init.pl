@@ -1529,8 +1529,7 @@ load_files(Module:Files, Options) :-
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
 	memberchk(stream(_), Options), !,
-	'$delete'(Options, stream(_), CtxOptions),
-	'$assert_load_context_module'(File, Module, CtxOptions),
+	'$assert_load_context_module'(File, Module, Options),
 	'$qdo_load_file'(File, File, Module, Options).
 '$load_file'(File, Module, Options) :-
 	absolute_file_name(File,
@@ -1895,27 +1894,49 @@ load_files(Module:Files, Options) :-
 :- multifile
 	'$load_context_module'/3.
 
+'$assert_load_context_module'(_, _, Options) :-
+	memberchk(register(false), Options), !.
 '$assert_load_context_module'(File, Module, Options) :-
 	source_location(FromFile, _Line), !,
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
+	'$load_ctx_options'(Options1, Options2),
 	'$compile_aux_clauses'(
-	     system:'$load_context_module'(File, Module, Options1),
+	     system:'$load_context_module'(File, Module, Options2),
 	     FromFile).
 '$assert_load_context_module'(File, Module, Options) :-
 	'$check_load_non_module'(File, Module),
 	'$add_dialect'(Options, Options1),
+	'$load_ctx_options'(Options1, Options2),
 	(   clause('$load_context_module'(File, Module, _), true, Ref),
 	    \+ clause_property(Ref, file(_))
 	->  erase(Ref)
 	;   true
 	),
-	assertz('$load_context_module'(File, Module, Options1)).
+	assertz('$load_context_module'(File, Module, Options2)).
 
 '$add_dialect'(Options0, Options) :-
 	current_prolog_flag(emulated_dialect, Dialect), Dialect \== swi, !,
 	Options = [dialect(Dialect)|Options0].
 '$add_dialect'(Options, Options).
+
+%%	'$load_ctx_options'(+Options, -CtxOptions) is det.
+%
+%	Select the load options that  determine   the  load semantics to
+%	perform a proper reload. Delete the others.
+
+'$load_ctx_options'([], []).
+'$load_ctx_options'([H|T0], [H|T]) :-
+	'$load_ctx_option'(H), !,
+	'$load_ctx_options'(T0, T).
+'$load_ctx_options'([_|T0], T) :-
+	'$load_ctx_options'(T0, T).
+
+'$load_ctx_option'(derived_from(_)).
+'$load_ctx_option'(dialect(_)).
+'$load_ctx_option'(encoding(_)).
+'$load_ctx_option'(imports(_)).
+'$load_ctx_option'(reexport(_)).
 
 
 %%	'$check_load_non_module'(+File) is det.
@@ -1944,10 +1965,11 @@ load_files(Module:Files, Options) :-
 %	      Module:atom,
 %	      AtEnd:atom,
 %	      Stop:boolean,
-%	      Id:atom)
+%	      Id:atom,
+%	      Dialect:atom)
 
 '$load_file'(Path, Id, Module, Options) :-
-	State = state(true, _, true, false, Id),
+	State = state(true, _, true, false, Id, -),
 	(   '$source_term'(Path, _Read, Term, _Stream, Options),
 	    '$valid_term'(Term),
 	    (	arg(1, State, true)
@@ -1996,7 +2018,7 @@ load_files(Module:Files, Options) :-
 	    '$start_module'(Name, Public, State, Options)
 	;   Directive = expects_dialect(Dialect)
 	->  !,
-	    expects_dialect(Dialect),	% Autoloaded from library
+	    '$set_dialect'(Dialect, State),
 	    fail			% Still consider next term as first
 	).
 '$first_term'(Term, Id, State, Options) :-
@@ -2017,8 +2039,34 @@ load_files(Module:Files, Options) :-
 '$start_non_module'(Id, State, _Options) :-
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(Id)),
+	'$qset_dialect'(State),
 	nb_setarg(2, State, Module),
 	nb_setarg(3, State, end_non_module).
+
+%%	'$set_dialect'(+Dialect, +State)
+%
+%	Sets the expected dialect. This is difficult if we are compiling
+%	a .qlf file using qcompile/1 because   the file is already open,
+%	while we are looking for the first term to decide wether this is
+%	a module or not. We save the   dialect  and set it after opening
+%	the file or module.
+%
+%	Note that expects_dialect/1 itself may   be  autoloaded from the
+%	library.
+
+'$set_dialect'(Dialect, State) :-
+	'$compilation_mode'(qlf, database), !,
+	expects_dialect(Dialect),
+	'$compilation_mode'(_, qlf),
+	nb_setarg(6, State, Dialect).
+'$set_dialect'(Dialect, _) :-
+	expects_dialect(Dialect).
+
+'$qset_dialect'(State) :-
+	'$compilation_mode'(qlf),
+	arg(6, State, Dialect), Dialect \== (-), !,
+	'$add_directive_wic'(expects_dialect(Dialect)).
+'$qset_dialect'(_).
 
 
 		 /*******************************
@@ -2044,6 +2092,7 @@ load_files(Module:Files, Options) :-
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
+	'$qset_dialect'(State),
 	nb_setarg(3, State, end_module).
 
 

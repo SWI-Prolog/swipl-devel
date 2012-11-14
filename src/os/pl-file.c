@@ -158,6 +158,10 @@ getStreamContext(IOSTREAM *s)
   return (stream_context*)s->context;
 }
 
+static stream_context *
+getExistingStreamContext(IOSTREAM *s)
+{ return (stream_context*)s->context;
+}
 
 /* MT: Must be called locked */
 
@@ -196,11 +200,12 @@ unaliasStream(IOSTREAM *s, atom_t name)
 
   if ( name )
   { if ( (symb = lookupHTable(streamAliases, (void *)name)) )
-    { deleteSymbolHTable(streamAliases, symb);
+    { stream_context *ctx;
 
-      if ( (symb=lookupHTable(streamContext, s)) )
-      { stream_context *ctx = symb->value;
-	alias **a;
+      deleteSymbolHTable(streamAliases, symb);
+
+      if ( (ctx=getExistingStreamContext(s)) )
+      { alias **a;
 
 	for(a = &ctx->alias_head; *a; a = &(*a)->next)
 	{ if ( (*a)->name == name )
@@ -219,9 +224,10 @@ unaliasStream(IOSTREAM *s, atom_t name)
       PL_unregister_atom(name);
     }
   } else				/* delete them all */
-  { if ( (symb=lookupHTable(streamContext, s)) )
-    { stream_context *ctx = symb->value;
-      alias *a, *n;
+  { stream_context *ctx;
+
+    if ( (ctx=getExistingStreamContext(s)) )
+    { alias *a, *n;
 
       for(a = ctx->alias_head; a; a=n)
       { Symbol s2;
@@ -1747,9 +1753,20 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	if ( !PL_get_atom_ex(a, &type) )
 	  return FALSE;
 	if ( type == ATOM_text )
-	{ s->flags |= SIO_TEXT;
+	{ if ( false(s, SIO_TEXT) && Ssetenc(s, LD->encoding, NULL) != 0 )
+	  { PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		     ATOM_encoding, ATOM_stream, stream);
+	    goto error;
+	  }
+	  s->flags |= SIO_TEXT;
 	} else if ( type == ATOM_binary )
-	{ s->flags &= ~SIO_TEXT;
+	{ if ( true(s, SIO_TEXT) && Ssetenc(s, ENC_OCTET, NULL) != 0 )
+	  { PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		     ATOM_encoding, ATOM_stream, stream);
+	    goto error;
+	  }
+
+	  s->flags &= ~SIO_TEXT;
 	} else
 	{ PL_error("set_stream", 2, NULL, ERR_DOMAIN,
 		   ATOM_type, a);

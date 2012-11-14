@@ -278,7 +278,7 @@ read_source_term_at_location(Stream, Term, Options) :-
 	push_operators(Module:Ops),
 	Setup,
 	asserta(user:thread_message_hook(_,_,_), Ref), % silence messages
-	catch(read_term(Stream, Term,
+	catch(read_term(Stream, Term0,
 			[ module(Module)
 			| Options
 			]),
@@ -288,7 +288,7 @@ read_source_term_at_location(Stream, Term, Options) :-
 	Restore,
 	pop_operators,
 	(   var(Error)
-	->  !
+	->  Term = Term0
 	;   assert_error(Error, Options),
 	    fail
 	).

@@ -332,8 +332,10 @@ predicate_indicator(clause_term_position(ClauseRef, _)) -->
 predicate_indicator(clause(ClauseRef)) -->
 	{ clause_name(ClauseRef, Name) },
 	[ '~w'-[Name] ].
+predicate_indicator(file_term_position(_,_)) -->
+	[ '(initialization)' ].
 predicate_indicator(file(_,_,_,_)) -->
-	[ '(:- initialization/1)' ].
+	[ '(initialization)' ].
 
 
 short_filename(Path) -->

@@ -101,12 +101,16 @@ reload_file(File) :-
 		source_file_property(File, load_context(M, _, Opts)),
 		Modules),
 	(   Modules = [First-OptsFirst|Rest]
-	->  merge_options([if(true), silent(false)], OptsFirst, OFirst),
+	->  Extra = [ silent(false),
+		      register(false)
+		    ],
+	    merge_options([if(true)|Extra], OptsFirst, OFirst),
 	    debug(make, 'Make: First load ~q', [load_files(First:Compile, OFirst)]),
 	    load_files(First:Compile, OFirst),
 	    forall(member(Context-Opts, Rest),
-		   ( merge_options([if(not_loaded), silent(false)], Opts, O),
-		     debug(make, 'Make: re-import: ~q', [load_files(Context:Compile, O)]),
+		   ( merge_options([if(not_loaded)|Extra], Opts, O),
+		     debug(make, 'Make: re-import: ~q',
+			   [load_files(Context:Compile, O)]),
 		     load_files(Context:Compile, O)
 		   ))
 	;   load_files(user:Compile)

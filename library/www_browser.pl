@@ -186,6 +186,9 @@ has_command(Command) :-
 	user:url_path/2.
 
 user:url_path(swipl,	      'http://www.swi-prolog.org').
+user:url_path(swipl_book,     'http://books.google.nl/books/about/\c
+			       SWI_Prolog_Reference_Manual_6_2_2.html?\c
+			       id=q6R3Q3B-VC4C&redir_esc=y').
 
 user:url_path(swipl_faq,      swipl('FAQ')).
 user:url_path(swipl_man,      swipl('pldoc/index.html')).

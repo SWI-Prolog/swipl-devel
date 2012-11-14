@@ -1634,6 +1634,9 @@ Hook into write_term/3 to alter the way terms are printed (ISO).
     \item [message_hook/3]
 Hook into print_message/2 to alter the way system messages are printed
 (Quintus/SICStus).
+    \item [message_property/2]
+Hook into print_message/2 that defines prefix, output stream, color,
+etc.
     \item [library_directory/1]
 Hook into absolute_file_name/3 to define new library directories
 (most Prolog systems).

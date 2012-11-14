@@ -95,7 +95,7 @@ destroyHTable(Table ht)
   if ( ht->mutex )
   { simpleMutexDelete(ht->mutex);
     freeHeap(ht->mutex, sizeof(*ht->mutex));
-	ht->mutex = NULL;
+    ht->mutex = NULL;
   }
 #endif
 

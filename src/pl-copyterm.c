@@ -548,10 +548,11 @@ again:
   rc = copy_term(from, to, flags PASS_LD);
   exitCyclicCopy(flags PASS_LD);
   cp_unmark(from, flags PASS_LD);
-  DEBUG(0, if ( rc == TRUE )
+/*DEBUG(0, if ( rc == TRUE )		May lead to "Reference to higher address"
 	   { checkData(from);
              checkData(to);
 	   });
+*/
 
   return rc;
 }

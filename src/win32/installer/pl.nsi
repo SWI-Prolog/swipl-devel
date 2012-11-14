@@ -321,6 +321,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\prolog_breakpoints.pl
   File ${SWIPL}\library\prolog_autoload.pl
   File ${SWIPL}\library\prolog_codewalk.pl
+  File ${SWIPL}\library\prolog_metainference.pl
   File ${SWIPL}\library\prolog_colour.pl
   File ${SWIPL}\library\predicate_options.pl
   File ${SWIPL}\library\git.pl
@@ -586,6 +587,7 @@ Section "Package CLIB"
   File ${SWIPL}\bin\files.dll
   File ${SWIPL}\bin\sha4pl.dll
   File ${SWIPL}\bin\uri.dll
+  File ${SWIPL}\bin\uuid.dll
   File ${SWIPL}\bin\memfile.dll
   File ${SWIPL}\bin\mime.dll
   File ${SWIPL}\bin\socket.dll
@@ -599,6 +601,7 @@ Section "Package CLIB"
   File ${SWIPL}\library\filesex.pl
   File ${SWIPL}\library\sha.pl
   File ${SWIPL}\library\uri.pl
+  File ${SWIPL}\library\uuid.pl
   File ${SWIPL}\library\memfile.pl
   File ${SWIPL}\library\mime.pl
   File ${SWIPL}\library\socket.pl

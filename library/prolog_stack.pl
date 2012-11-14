@@ -216,7 +216,8 @@ copy_term_limit(N, In, Out) :-
 	    arg(MaxArity, OutArity, OutA),
 	    copy_term_limit(N2, InA, OutA)
 	).
-copy_term_limit(_, In, In).
+copy_term_limit(_, In, Out) :-
+	copy_term_nat(In, Out).
 
 copy_term_args(I, Arity, Depth, In, Out) :-
 	I < Arity, !,

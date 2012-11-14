@@ -21,6 +21,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+:- use_module(library(dcg/basics)).
 :- prolog_load_context(directory, Dir),
    working_directory(_, Dir).
 
@@ -33,13 +34,14 @@ daily :-
 
 name :-
 	daily, !,
+	version(Major, Minor, Patch, Rev),
+	format('!define _VERSION "~w.~w.~w.~w"~n', [Major, Minor, Patch, Rev]),
 	get_time(X),
 	format_time(string(Date), '%F', X),
 	format('Name "SWI-Prolog ~w"~n', [Date]).
-
 name :-
-	version(Major, Minor, Patch),
-	format('!define _VERSION "~w.~w.~w.0"~n', [Major, Minor, Patch]),
+	version(Major, Minor, Patch, Rev),
+	format('!define _VERSION "~w.~w.~w.~w"~n', [Major, Minor, Patch, Rev]),
 	get_time(X),
 	format_time(string(Date), '%F', X),
 	format('Name "SWI-Prolog ~w.~w.~w (~s)"~n',
@@ -58,7 +60,7 @@ outfile(File) :-
 		[Arch, Date]).
 outfile(File) :-
 	outarch(Arch),
-	version(Major, Minor, Patch),
+	version(Major, Minor, Patch, _Rev),
 	format(atom(File), '~wpl~w~w~w.exe',
 	       [Arch, Major, Minor, Patch]).
 
@@ -71,32 +73,27 @@ outfile :-
 	format('!define _OUTFILE "~w"~n', [File]),
 	format('OutFile "~w"~n', [File]).
 
-%packages :-
-%	exists_source(library(space/space)),
-%	format('!define PKG_SPATIAL 1~n').
-packages.
-
-copy_script :-
-	daily, !,
-	tell('copypl.bat'),
-	outfile(File),
-	format('rsync "~s" gollem:MS-Windows/DailyBuilds~n', [File]),
-	told.
-copy_script.
-
-version(Major, Minor, Patch) :-
+version(Major, Minor, Patch, Rev) :-
+	current_prolog_flag(version_git, V),
+	atom_codes(V, Codes),
+	phrase(version(Major, Minor, Patch, Rev), Codes, _), !.
+version(Major, Minor, Patch, 0) :-
 	current_prolog_flag(version, V),
 	Major is V//10000,
 	Minor is V//100 mod 100,
 	Patch is V mod 100.
 
+version(Major, Minor, Patch, Rev) -->
+	number(Major), ".",
+	number(Minor), ".",
+	number(Patch), "-",
+	number(Rev).
+
 run :-
 	tell('version.nsi'),
 	name,
 	outfile,
-	forall(packages, true),
-	told,
-	copy_script.
+	told.
 
 
 		 /*******************************

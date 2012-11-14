@@ -900,10 +900,7 @@ pushTargetModule(target_module *tm, CompileInfo ci)
   } else					/* TBD: Handle islocal */
   { int index = tm->var_index;
 
-    if ( index < 3 )
-      Output_0(ci, B_VAR0+index);
-    else
-      Output_1(ci, B_VAR, VAROFFSET(index));
+    Output_1(ci, B_ARGVAR, VAROFFSET(index));   /* Writing to a @ or : term */
   }
 
   return TRUE;
@@ -3255,18 +3252,26 @@ PRED_IMPL("$predefine_foreign",  1, predefine_foreign, PL_FA_TRANSPARENT)
 static
 PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 { PRED_LD
-  term_t tail = PL_copy_term_ref(A1);
+  term_t tail = PL_new_term_ref();
   term_t head = PL_new_term_ref();
+  term_t desc = PL_new_term_ref();
+  term_t modm = PL_new_term_ref();
+  Module m = NULL;
+
+  if ( !PL_strip_module_ex(A1, &m, tail) )
+    return FALSE;
+  PL_put_atom(modm, m->name);
 
   while( PL_get_list(tail, head, tail) )
   { Procedure proc;
 
-    if ( !get_procedure(head, &proc, 0,
+    if ( !PL_cons_functor(desc, FUNCTOR_colon2, modm, head) ||
+	 !get_procedure(head, &proc, 0,
 			GP_NAMEARITY|GP_FINDHERE|GP_EXISTENCE_ERROR) )
-      fail;
+      return FALSE;
 
     if ( !setDynamicProcedure(proc, FALSE) )
-      fail;
+      return FALSE;
   }
 
   return PL_get_nil_ex(tail);

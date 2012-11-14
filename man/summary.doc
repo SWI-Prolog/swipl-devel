@@ -329,6 +329,7 @@ suggest predicates from a keyword.
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
 \predicatesummary{message_line_element}{2}{\hook{prolog} Intercept print_message_lines/3}
+\predicatesummary{message_property}{2}{\hook{user} Define display of a message}
 \predicatesummary{message_queue_create}{1}{Create queue for thread communication}
 \predicatesummary{message_queue_create}{2}{Create queue for thread communication}
 \predicatesummary{message_queue_destroy}{1}{Destroy queue for thread communication}

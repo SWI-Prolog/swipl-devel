@@ -4371,6 +4371,15 @@ VMI(I_USERCALL0, VIF_BREAK, 0, ())
   a = argFrameP(NFR, 0);		/* get the goal */
   a = stripModule(a, &module PASS_LD);
 
+  DEBUG(MSG_CALL,
+	{ term_t g = pushWordAsTermRef(a);
+	  LocalFrame ot = lTop;
+	  lTop += 100;
+	  pl_writeln(g);
+	  popTermRef();
+	  lTop = ot;
+	});
+  DEBUG(CHK_SECURE, checkStacks(NULL));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Determine the functor definition associated with the goal as well as the
@@ -4409,13 +4418,6 @@ atom is referenced by the goal-term anyway.
     { Clause cl;
       int rc;
 
-      DEBUG(1, { term_t g = pushWordAsTermRef(a);
-		 LocalFrame ot = lTop;
-		 lTop += 100;
-		 pl_writeln(g);
-		 popTermRef();
-		 lTop = ot;
-	       });
       lTop = NFR;
       setNextFrameFlags(NFR, FR);
       rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module PASS_LD);
@@ -4460,6 +4462,7 @@ atom is referenced by the goal-term anyway.
   } else
   {
   call_type_error:
+    DEBUG(CHK_SECURE, checkStacks(NULL));
     PL_error(NULL, 0, NULL, ERR_TYPE,
 	     ATOM_callable, pushWordAsTermRef(argFrameP(NFR, 0)));
     popTermRef();

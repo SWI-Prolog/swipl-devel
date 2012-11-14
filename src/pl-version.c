@@ -23,7 +23,7 @@
 */
 
 #include "pl-incl.h"
-#ifndef __WINDOWS__
+#ifdef USE_GIT_VERSION_H
 #include <version.h>
 #endif
 

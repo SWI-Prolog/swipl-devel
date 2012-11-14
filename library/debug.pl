@@ -246,11 +246,11 @@ debug(_, _, _).
 print_debug(Topic, _To, Format, Args) :-
 	prolog:debug_print_hook(Topic, Format, Args), !.
 print_debug(_, [], _, _) :- !.
-print_debug(_, To, Format, Args) :-
+print_debug(Topic, To, Format, Args) :-
 	phrase('$messages':translate_message(debug(Format, Args)), Lines),
 	(   member(T, To),
 	    debug_output(T, Stream),
-	    print_message_lines(Stream, '% ', Lines),
+	    print_message_lines(Stream, kind(debug(Topic)), Lines),
 	    fail
 	;   true
 	).

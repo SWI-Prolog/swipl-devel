@@ -348,6 +348,11 @@ associated with a terminal.
 If \const{true} re-export the imported predicate.  Used by reexport/1
 and reexport/2.
 
+    \termitem{register}{Bool}
+If \const{false}, do not register the load location and options.  This
+option is used by make/0 and load_hotfixes/1 to avoid polluting the
+load-context database.  See source_file_property/2.
+
     \termitem{silent}{Bool}
 If \const{true}, load the file without printing a message. The
 specified value is the default for all files loaded as a result of
@@ -1999,19 +2004,52 @@ messages or make something happen in addition to printing the message.
 
 \begin{description}
     \predicate{print_message}{2}{+Kind, +Term}
-The predicate print_message/2 is used to print messages, notably from
-exceptions, in a human-readable format. \arg{Kind} is one of
-\const{informational}, \const{information}, \const{banner},
-\const{warning}, \const{error}, \const{help} or \const{silent}. A
-human-readable message is printed to the stream \const{user_error}.
+The predicate print_message/2 is used by the system and libraries to
+print messages. \arg{Kind} describes the nature of the message, while
+\arg{Term} is a Prolog term that describes the content. Printing
+messages through this indirection instead of using format/3 to the
+stream \const{user_error} allows displaying the message appropriate
+to the application (terminal, logfile, graphics), acting on messages
+based on their content instead of a string (see message_hook/3) and
+creating language specific versions of the messages.  See also
+\secref{libprintmsg}.  The following message kinds are known:
 
-\index{silent}\index{quiet}%
-If the Prolog flag \prologflag{verbose} is \const{silent}, messages with
-\arg{Kind} \const{informational} or \const{banner} are treated as
-\const{silent}. See \cmdlineoption{-q}. The \arg{Kind}
-\const{information} is intended for informational messages that should
-also be printed in silent mode, typically because the user requests
-the information. The predicate time/1 is an example.
+\begin{description}
+    \termitem{banner}{}
+The system banner message. Banner messages can be suppressed by setting
+the Prolog flag \prologflag{verbose} to \const{silent}.
+
+    \termitem{debug}{Topic}
+Message from library(debug).  See debug/3.
+
+    \termitem{error}{}
+The message indicates an errornous situation.  This kind is used to
+print uncaught exceptions of type \term{error}{Formal, Context}. See
+section introduction (\secref{printmsg}).
+
+    \termitem{help}{}
+User requested help message, for example after entering `h' or `?' to
+a prompt.
+
+    \termitem{information}{}
+Information that is requested by the user.  An example is statistics/0.
+
+    \termitem{informational}{}
+Typically messages of events are progres that are considered useful
+to a developer.  Such messages can be suppressed by setting the
+Prolog flag \prologflag{verbose} to \const{silent}.
+
+    \termitem{silent}{}
+Message that is normally not printed. Applications may define
+message_hook/3 to act upon such messages.
+
+    \termitem{trace}{}
+Messages from the (commandline) tracer.
+
+    \termitem{warning}{}
+The message indicates something dubious that is not considered fatal.
+For example, discontiguous predicates (see discontiguous/1).
+\end{description}
 
 The predicate print_message/2 first translates the \arg{Term} into a
 list of `message lines' (see print_message_lines/3 for details). Next,
@@ -2084,6 +2122,46 @@ As message_hook/3, but this predicate is local to the calling thread
 (see thread_local/1).  This hook is called \emph{before} message_hook/3.
 The `pre-hook' is indented to catch messages they may be produced by
 calling some goal without affecting other threads.
+
+    \predicate{message_property}{2}{+Kind, ?Property}
+This hook can be used to define additional message kinds and the way
+they are displayed.  The following properties are defined:
+
+    \begin{description}
+	\termitem{color}{-Attributes}
+Print message using ANSI terminal attributes.  See ansi_format/3
+for details.  Here is an example, printing help messages in blue:
+
+\begin{code}
+:- multifile user:message_property/2.
+
+user:message_property(help, color([fg(blue)])).
+\end{code}
+
+	\termitem{prefix}{-Prefix}
+Prefix printed before each line.  This argument is handed to format/3.
+The default is \verb$'~N'$. For example, messages of kind
+\const{warning} use \verb$'~NWarning: '$.
+
+	\termitem{location_prefix}{+Location, -FirstPrefix, -ContinuePrefix}
+Used for printing messages that are related to a source location.
+Currently, \arg{Location} is a term \mbox{\arg{File}:\arg{Line}}.
+\arg{FirstPrefix} is the prefix for the first line and
+\arg{-ContinuePrefix} is the prefix for continuation lines.  For
+example, the default for errors is
+
+\begin{code}
+    location_prefix(File:Line, '~NERROR: ~w:~d:'-[File,Line], '~N\t')).
+\end{code}
+
+	\termitem{stream}{-Stream}
+Stream to which to print the message. Default is \const{user_error}.
+
+	\termitem{wait}{-Seconds}
+Amount of time to wait after printing the message. Default is not to
+wait.
+    \end{description}
+
 
     \predicate{prolog:message_line_element}{2}{+Stream, +Term}
 This hook is called to print the individual elements of a message from
@@ -2865,6 +2943,13 @@ Do not show ports of this predicate in the debugger.
 Unify \arg{ClauseCount} to the number of clauses associated with the
 predicate.  Fails for foreign predicates.
 
+    \termitem{number_of_rules}{RuleCount}
+Unify \arg{RuleCount} to the number of clauses associated with the
+predicate. A \jargon{rule} is defined as a clauses that has a body that
+is not just \const{true} (i.e., a \jargon{fact}). Fails for foreign
+predicates. This property is used to avoid analysing predicates with
+only facts in \pllib{prolog_codewalk}.
+
     \termitem{public}{}
 Predicate is declared public using public/1.  Note that without further
 definition, public predicates are considered undefined and this property
@@ -3400,7 +3485,9 @@ form
 
     \termitem{type}{Type}
 Set the type of the stream to one of \const{text} or \const{binary}.
-See also open/4 and the \const{encoding} property of streams.
+See also open/4 and the \const{encoding} property of streams. Switching
+to \const{binary} sets the encoding to \const{octet}.  Switching to
+\const{text} sets the encoding to the default text encoding.
 
     \termitem{record_position}{Bool}
 Do/do not record the line count and line position (see line_count/2

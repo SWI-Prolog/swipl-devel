@@ -125,9 +125,11 @@ sub_var(X, Term) :-
 		 *		UTIL		*
 		 *******************************/
 
-%%	count(+Goal, -Count)
+%%	count(:Goal, -Count)
 %
 %	Count number of times Goal succeeds.
+
+:- meta_predicate count(0,-).
 
 count(Goal, Count) :-
 	State = count(0),

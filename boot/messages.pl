@@ -1051,7 +1051,7 @@ print_message(Level, Term) :-
 	;   true
 	).
 
-%%	print_system_message(+Term, +Level, +Lines)
+%%	print_system_message(+Term, +Kind, +Lines)
 %
 %	Print the message if the user did not intecept the message.
 %	The first is used for errors and warnings that can be related
@@ -1064,66 +1064,79 @@ print_system_message(_, informational, _) :-
 print_system_message(_, banner, _) :-
 	current_prolog_flag(verbose, silent), !.
 print_system_message(_, _, []) :- !.
-print_system_message(Term, Level, Lines) :-
+print_system_message(Term, Kind, Lines) :-
 	flush_output(user_output),
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
-	prefix(Level, Prefix, LinePrefix, Wait, Stream), !,
+	msg_property(Kind, location_prefix(File:Line, LocPrefix, LinePrefix)), !,
 	insert_prefix(Lines, LinePrefix, PrefixLines),
-	'$append'([ begin(Level, Ctx),
-		    Prefix-[File,Line],
+	'$append'([ begin(Kind, Ctx),
+		    LocPrefix,
 		    nl
 		  | PrefixLines
 		  ],
 		  [ end(Ctx)
 		  ],
 		  AllLines),
+	msg_property(Kind, stream(Stream)),
 	print_message_lines(Stream, AllLines),
-	(   Wait > 0
+	(   msg_property(Kind, wait(Wait)),
+	    Wait > 0
 	->  sleep(Wait)
 	;   true
 	).
-print_system_message(_, Level, Lines) :-
-	prefix(Level, LinePrefix, Stream), !,
-	insert_prefix(Lines, LinePrefix, PrefixLines),
-	'$append'([ begin(Level, Ctx)
+print_system_message(_, Kind, Lines) :-
+	msg_property(Kind, stream(Stream)),
+	print_message_lines(Stream, kind(Kind), Lines).
+
+:- multifile
+	user:message_property/2.
+
+msg_property(Kind, Property) :-
+	user:message_property(Kind, Property), !.
+msg_property(Kind, prefix(Prefix)) :-
+	msg_prefix(Kind, Prefix), !.
+msg_property(_, prefix('~N')) :- !.
+msg_property(_, stream(user_error)) :- !.
+msg_property(error,
+	     location_prefix(File:Line,
+			     '~NERROR: ~w:~d:'-[File,Line], '~N\t')) :- !.
+msg_property(warning,
+	     location_prefix(File:Line,
+			     '~NWarning: ~w:~d:'-[File,Line], '~N\t')) :- !.
+msg_property(error,   wait(0.1)) :- !.
+
+msg_prefix(debug(_),      '~N% ').
+msg_prefix(warning,	      Prefix) :-
+	thread_self(Id),
+	(   Id == main
+	->  Prefix = '~NWarning: '
+	;   Prefix = '~NWarning: [Thread ~w] '-Id
+	).
+msg_prefix(error,	      Prefix) :-
+	thread_self(Id),
+	(   Id == main
+	->  Prefix = '~NERROR: '
+	;   Prefix = '~NERROR: [Thread ~w] '-Id
+	).
+msg_prefix(informational, '~N% ').
+msg_prefix(information,   '~N% ').
+
+%%	print_message_lines(+Stream, +PrefixOrKind, +Lines)
+%
+%	Quintus compatibility predicate to print message lines using
+%	a prefix.
+
+print_message_lines(Stream, kind(Kind), Lines) :- !,
+	msg_property(Kind, prefix(Prefix)),
+	insert_prefix(Lines, Prefix, PrefixLines),
+	'$append'([ begin(Kind, Ctx)
 		  | PrefixLines
 		  ],
 		  [ end(Ctx)
 		  ],
 		  AllLines),
 	print_message_lines(Stream, AllLines).
-print_system_message(_, Level, _) :-
-	\+ prefix(Level, _, _),
-	throw(error(domain_error(message_kind, Level), _)).
-
-prefix(error,	      '~NERROR: ~w:~d:',   '~N\t', 0.1, user_error).
-prefix(warning,	      '~NWarning: ~w:~d:', '~N\t', 0,   user_error).
-
-prefix(help,	      '~N',	   user_error).
-prefix(query,	      '~N',        user_error).
-prefix(debug,	      '~N',        user_output).
-prefix(warning,	      Prefix,      user_error) :-
-	thread_self(Id),
-	(   Id == main
-	->  Prefix = '~NWarning: '
-	;   Prefix = '~NWarning: [Thread ~w] '-Id
-	).
-prefix(error,	      Prefix,      user_error) :-
-	thread_self(Id),
-	(   Id == main
-	->  Prefix = '~NERROR: '
-	;   Prefix = '~NERROR: [Thread ~w] '-Id
-	).
-prefix(banner,	      '~N',	   user_error).
-prefix(informational, '~N% ',	   user_error).
-prefix(information,   '~N% ',	   user_error).
-
-%%	print_message_lines(+Stream, +Prefix, +Lines)
-%
-%	Quintus compatibility predicate to print message lines using
-%	a prefix.
-
 print_message_lines(Stream, Prefix, Lines) :-
 	insert_prefix(Lines, Prefix, PrefixLines),
 	print_message_lines(Stream, PrefixLines).

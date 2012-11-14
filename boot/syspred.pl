@@ -635,6 +635,7 @@ property_predicate(Property, Pred) :-
 
 define_or_generate(M:Head) :-
 	callable(Head),
+	atom(M),
 	'$get_predicate_attribute'(M:Head, defined, 1), !.
 define_or_generate(M:Head) :-
 	callable(Head),
@@ -686,6 +687,8 @@ define_or_generate(Pred) :-
 	N \== 0.			% show negative for debugging!
 '$predicate_property'(number_of_clauses(N), Pred) :-
 	'$get_predicate_attribute'(Pred, number_of_clauses, N).
+'$predicate_property'(number_of_rules(N), Pred) :-
+	'$get_predicate_attribute'(Pred, number_of_rules, N).
 '$predicate_property'(indexed(Indices), Pred) :-
 	'$get_predicate_attribute'(Pred, indexed, Indices).
 '$predicate_property'(noprofile, Pred) :-
