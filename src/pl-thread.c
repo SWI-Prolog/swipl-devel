@@ -3452,6 +3452,8 @@ enumerate:
 
 	if ( state != &statebuf )
 	  free_qstate(state);
+        else if ( state->e )
+          freeTableEnum(state->e);
 	succeed;
       }
 
@@ -3459,6 +3461,8 @@ enumerate:
       { error:
 	if ( state != &statebuf )
 	  free_qstate(state);
+        else if ( state->e )
+          freeTableEnum(state->e);
 	fail;
       }
     }

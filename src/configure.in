@@ -290,6 +290,7 @@ AC_CHECK_PROG(CHRPATH, chrpath, chrpath, ":")
 AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_PROG_AWK
 AC_PATH_PROG(SED, sed, /bin/sed)
+AC_PATH_PROG(PERL, perl, /usr/bin/perl)
 AC_PROG_INSTALL
 dnl Make all paths absolute as we are running some of these scripts
 dnl from different locations.  Note this can also be ../src/install-sh
@@ -1938,7 +1939,7 @@ echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
 echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
-OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
+OutputFiles="Makefile rc/Makefile libtai/Makefile ../man/Makefile ../man/correctindex swipl.1 swipl.sh swipl.pc"
 
 case "$PLARCH" in
     i386-win32|x64-win64)
@@ -1949,7 +1950,7 @@ esac
 # Prepare the package configuration if present
 
 if test -r ../packages/Makefile.in; then
-  OutputFiles="$OutputFiles ../man/Makefile ../packages/Makefile ../packages/swipl-ld.sh ../packages/swipl.sh"
+  OutputFiles="$OutputFiles ../packages/Makefile ../packages/swipl-ld.sh ../packages/swipl.sh"
 fi
 
 if test -r ../packages/configure.in; then
