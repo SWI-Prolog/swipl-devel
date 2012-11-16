@@ -1115,6 +1115,8 @@ initPrologStacks(size_t local, size_t global, size_t trail)
   base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
   base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
   *gBase++ = MARK_MASK;			/* see sweep_global_mark() */
+  gMax--;				/*  */
+  tMax--;
   emptyStacks();
 
   DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
@@ -1184,14 +1186,18 @@ emptyStacks(void)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Malloc/realloc/free based stack allocation
+init_stack() initializes the stack straucture. Params:
+
+  - name is the name of the stack (for diagnostic purposes)
+  - size is the allocated size
+  - limit is the maximum to which the stack is allowed to grow
+  - spare is the amount of spare stack we reserve
+  - gc indicates whether gc can collect data on the stack
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare)
-{ GET_LD
-
-  s->name	= name;
+init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare, int gc)
+{ s->name	= name;
   s->top	= s->base;
   s->size_limit	= limit;
   s->spare      = spare;
@@ -1199,8 +1205,7 @@ init_stack(Stack s, char *name, size_t size, size_t limit, size_t spare)
   s->min_free   = 256*sizeof(word);
   s->max	= addPointer(s->base, size - spare);
   s->gced_size  = 0L;			/* size after last gc */
-  s->gc	        = ((s == (Stack) &LD->stacks.global ||
-		    s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
+  s->gc	        = gc;
   gcPolicy(s, GC_FAST_POLICY);
 }
 
@@ -1233,13 +1238,13 @@ allocStacks(size_t local, size_t global, size_t trail)
   lBase = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, global, 512*SIZEOF_VOIDP);
+	     "global",   iglobal, global, 512*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  local,  512*SIZEOF_VOIDP);
+	     "local",    ilocal,  local,  512*SIZEOF_VOIDP, FALSE);
   init_stack((Stack)&LD->stacks.trail,
-	     "trail",    itrail,  trail,  256*SIZEOF_VOIDP);
+	     "trail",    itrail,  trail,  256*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.argument,
-	     "argument", argument, argument, 0);
+	     "argument", argument, argument, 0, FALSE);
 
   LD->stacks.local.min_free = LOCAL_MARGIN;
 

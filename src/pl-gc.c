@@ -3647,14 +3647,6 @@ gcEnsureSpace(vm_state *state ARG_LD)
     { enableSpareStack((Stack)&LD->stacks.local);
     }
   }
-  if ( gTop+1 > gMax )
-  { assert(LD->stacks.global.spare);
-    enableSpareStack((Stack)&LD->stacks.global);
-  }
-  if ( tTop+1 > tMax )
-  { assert(LD->stacks.trail.spare);
-    enableSpareStack((Stack)&LD->stacks.trail);
-  }
 
   return rc;
 }
@@ -3751,10 +3743,8 @@ garbageCollect(void)
   marks_unswept	    = 0;
   LD->gc.marked_attvars = FALSE;
 
-  assert(gTop+1 <= gMax);
-  assert(tTop+1 <= tMax);
-  setVar(*gTop);
-  tTop->address = 0;
+  setVar(*gTop);	/* always one space; see initPrologStacks() */
+  tTop->address = 0;	/* gMax-- and tMax-- */
 
   astack = argument_stack_to_term_refs(&state);
   gvars = gvars_to_term_refs(&saved_bar_at);
@@ -3889,14 +3879,15 @@ makeMoreStackSpace(int overflow, int flags)
     return raiseStackOverflow(overflow);
 
   if ( LD->exception.processing )
-  { if ( overflow == GLOBAL_OVERFLOW &&
-	 enableSpareStack((Stack)&LD->stacks.global) )
-      return TRUE;
-    if ( overflow == TRAIL_OVERFLOW &&
-	 enableSpareStack((Stack)&LD->stacks.trail) )
-      return TRUE;
-    if ( overflow == LOCAL_OVERFLOW &&
-	 enableSpareStack((Stack)&LD->stacks.local) )
+  { Stack s = NULL;
+
+    switch(overflow)
+    { case LOCAL_OVERFLOW:  s = (Stack)&LD->stacks.local;  break;
+      case GLOBAL_OVERFLOW: s = (Stack)&LD->stacks.global; break;
+      case TRAIL_OVERFLOW:  s = (Stack)&LD->stacks.trail;  break;
+    }
+
+    if ( s && enableSpareStack(s) )
       return TRUE;
   }
 
@@ -4715,7 +4706,7 @@ growStacks(size_t l, size_t g, size_t t)
   save_backtrace("SHIFT");
 #endif
 
-  gBase--;
+  gBase--; gMax++; tMax++;
   include_spare_stack((Stack)&LD->stacks.local,  &l);
   include_spare_stack((Stack)&LD->stacks.global, &g);
   include_spare_stack((Stack)&LD->stacks.trail,  &t);
@@ -4725,7 +4716,7 @@ growStacks(size_t l, size_t g, size_t t)
   trim_stack((Stack)&LD->stacks.trail);
   trim_stack((Stack)&LD->stacks.global);
   trim_stack((Stack)&LD->stacks.local);
-  gBase++;
+  gBase++; gMax--; tMax--;
 
   return rc;
 }
