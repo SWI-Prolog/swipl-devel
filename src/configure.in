@@ -1962,6 +1962,7 @@ AC_CONFIG_COMMANDS([exe],
 		       chmod +x ../packages/configure
 		       chmod +x ../packages/swipl-ld.sh
 		       chmod +x ../packages/swipl.sh
+		       chmod +x ../man/correctindex
 		     fi
 		     chmod +x swipl.sh
 		   ])
