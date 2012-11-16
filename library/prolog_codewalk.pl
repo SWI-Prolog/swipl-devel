@@ -246,7 +246,8 @@ walk_called_by_pred(Module:Name/Arity, _) :-
 	assertz(multifile_predicate(Name, Arity, Module)).
 walk_called_by_pred(Module:Name/Arity, OTerm) :-
 	functor(Head, Name, Arity),
-	(   predicate_property(Module:Head, number_of_rules(0))
+	(   no_walk_property(Property),
+	    predicate_property(Module:Head, Property)
 	->  true
 	;   walk_option_caller(OTerm, Module:Head),
 	    walk_option_clause(OTerm, ClauseRef),
@@ -254,6 +255,8 @@ walk_called_by_pred(Module:Name/Arity, OTerm) :-
 		   walk_called_by_body(Body, Module, OTerm))
 	).
 
+no_walk_property(number_of_rules(0)).	% no point walking only facts
+no_walk_property(foreign).		% cannot walk foreign code
 
 %%	walk_from_multifile(+OTerm)
 %
