@@ -59,11 +59,6 @@
 #define MSG_QUEUE_WAIT		 28
 #define MSG_SIGNAL		 29
 
-#define MSG_QLF_PATH		 25
-#define MSG_QUEUE		 26
-#define MSG_QUEUE_WAIT		 27
-#define MSG_SIGNAL		 28
-
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101
