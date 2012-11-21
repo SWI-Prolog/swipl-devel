@@ -414,7 +414,8 @@ portray_body(\+(Goal), Indent, _, _Pri, Out, Options) :- !,
 	portray_body(Goal, ArgIndent, noindent, ArgPri, Out, Options).
 portray_body(Call, _, _, _, Out, Options) :- % requires knowledge on the module!
 	m_callable(Call),
-	predicate_property(Call, meta_predicate(Meta)), !,
+	option(module(M), Options, user),
+	predicate_property(M:Call, meta_predicate(Meta)), !,
 	portray_meta(Out, Call, Meta, Options).
 portray_body(Clause, _, _, Pri, Out, Options) :-
 	pprint(Out, Clause, Pri, Options).
