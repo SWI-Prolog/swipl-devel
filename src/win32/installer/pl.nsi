@@ -947,7 +947,7 @@ Section "Uninstall"
                        Install dir: $INSTDIR$\r$\n \
 		       Extension: ${EXT}$\r$\n \
 		       Program Group ${GRP}" \
-		      IDNO Done
+		      /SD IDYES IDNO Done
 
   StrCmp ".${EXT}" "" NoExt
     ReadRegStr $1 HKCR .${EXT} ""
@@ -963,7 +963,7 @@ Section "Uninstall"
   NoExt:
 
   StrCmp "${GRP}" "" NoGrp
-    MessageBox MB_OK "Deleting $SMPROGRAMS\${GRP}"
+    MessageBox MB_OK "Deleting $SMPROGRAMS\${GRP}" /SD IDOK
     RMDir /r "$SMPROGRAMS\${GRP}"
   NoGrp:
 
@@ -972,7 +972,7 @@ Section "Uninstall"
     goto Done
 
   NoDir:
-    MessageBox MB_OK "Folder $INSTDIR doesn't seem to contain Prolog"
+    MessageBox MB_OK "Folder $INSTDIR doesn't seem to contain Prolog" /SD IDOK
 
   Done:
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog"
