@@ -638,6 +638,24 @@ interface.
 
 static const char *dlmsg;
 
+static DWORD
+load_library_search_flags(void)
+{ static int done = FALSE;
+  static DWORD flags = 0;
+
+  if ( !done )
+  { if ( GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")),
+			"AddDllDirectory") )
+    { flags = ( LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR|
+		LOAD_LIBRARY_SEARCH_DEFAULT_DIRS );
+    }
+    done = TRUE;
+  }
+
+  return flags;
+}
+
+
 static int
 is_windows_abs_path(const wchar_t *path)
 { if ( path[1] == ':' && path[0] < 0x80 && iswalpha(path[0]) )
@@ -666,8 +684,7 @@ dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
   }
 
   if ( is_windows_abs_path(wfile) )
-    llflags |= (LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR|
-	      LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    llflags |= load_library_search_flags();
 
   if ( (h = LoadLibraryExW(wfile, NULL, llflags)) )
   { dlmsg = "No Error";

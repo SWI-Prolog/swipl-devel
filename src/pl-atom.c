@@ -394,10 +394,11 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	  {
 #ifdef ATOMIC_REFERENCES
 	    if ( ATOMIC_INC(&a->references) == 1 )
+	      ATOMIC_DEC(&GD->atoms.unregistered);
 #else
 	    if ( ++a->references == 1 )
-#endif
 	      GD->atoms.unregistered--;
+#endif
 	  }
 #endif
           UNLOCK();
@@ -416,10 +417,11 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 #ifdef O_ATOMGC
 #ifdef ATOMIC_REFERENCES
 	  if ( ATOMIC_INC(&a->references) == 1 )
+	    ATOMIC_DEC(&GD->atoms.unregistered);
 #else
 	  if ( a->references++ == 0 )
-#endif
 	    GD->atoms.unregistered--;
+#endif
 #endif
           UNLOCK();
 	  *new = FALSE;
@@ -686,6 +688,7 @@ static size_t
 collectAtoms(void)
 { int hole_seen = FALSE;
   size_t reclaimed = 0;
+  size_t unregistered = 0;
   size_t index;
   int i, last=FALSE;
 
@@ -724,9 +727,13 @@ collectAtoms(void)
 #else
 	a->references &= ~ATOM_MARKED_REFERENCE;
 #endif
+        if ( a->references == 0 )
+	  unregistered++;
       }
     }
   }
+
+  GD->atoms.unregistered = GD->atoms.non_garbage = unregistered;
 
   return reclaimed;
 }
@@ -794,8 +801,6 @@ pl_garbage_collect_atoms(void)
   GD->atoms.gc_active = FALSE;
   GD->atoms.collected += reclaimed;
   GD->statistics.atoms -= reclaimed;
-  GD->atoms.unregistered -= reclaimed;
-  GD->atoms.non_garbage = GD->atoms.unregistered;
   t = CpuTime(CPU_USER) - t;
   GD->atoms.gc_time += t;
   GD->atoms.gc++;
