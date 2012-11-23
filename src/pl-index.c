@@ -863,6 +863,14 @@ unallocClauseIndexes(Definition def)
 }
 
 
+void
+clearTriedIndexes(Definition def)
+{ struct bit_vector *v;
+
+  if ( (v=def->tried_index) )
+    clear_bitvector(v);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 deleteActiveClauseFromBucket() maintains dirty  count   on  the  bucket,

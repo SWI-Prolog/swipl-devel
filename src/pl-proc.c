@@ -3132,7 +3132,10 @@ unloadFile(SourceFile sf)
 		     predicateName(def), def->impl.clauses.number_of_clauses));
 
     if ( deleted )
-    { if ( def->references == 0 )
+    { if ( false(def, P_MULTIFILE|P_DYNAMIC) )
+	clearTriedIndexes(def);
+
+      if ( def->references == 0 )
       { freeCodesDefinition(def, FALSE);
 	garbage = cleanDefinition(def, garbage);
       } else if ( false(def, P_DYNAMIC) )
