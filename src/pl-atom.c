@@ -1288,7 +1288,7 @@ typedef struct match
 
 static bool
 allAlpha(const char *s, size_t len)
-{ for( ; --len>=0; s++)
+{ for( ; len-- > 0; s++)
   { if ( !*s || !isAlpha(*s) )
       fail;
   }
