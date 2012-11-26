@@ -1299,7 +1299,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
     }
 #endif
 
-    if ( (float)a->var_count/(float)a->size * 0.1 )
+    if ( (float)a->var_count/(float)a->size > 0.1 )
       return FALSE;			/* not indexable */
   }
 
