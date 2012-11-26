@@ -1492,7 +1492,7 @@ unify_clause_index(term_t t, ClauseIndex ci)
 bool
 unify_index_pattern(Procedure proc, term_t value)
 { GET_LD
-  Definition def = proc->definition;
+  Definition def = getProcDefinition__LD(proc->definition PASS_LD);
   ClauseIndex ci;
 
   if ( (ci=def->impl.clauses.clause_indexes) )
