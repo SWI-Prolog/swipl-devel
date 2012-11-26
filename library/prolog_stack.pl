@@ -207,13 +207,14 @@ copy_term_limit(N, In, Out) :-
 	->  functor(Out, Functor, Arity),
 	    copy_term_args(0, Arity, N2, In, Out)
 	;   OutArity is MaxArity+2,
+	    functor(Out, Functor, OutArity),
 	    copy_term_args(0, MaxArity, N2, In, Out),
 	    SkipArg is MaxArity+1,
 	    Skipped is Arity - MaxArity - 1,
 	    format(atom(Msg), '<skipped ~D of ~D>', [Skipped, Arity]),
 	    arg(SkipArg, Out, Msg),
 	    arg(Arity, In, InA),
-	    arg(MaxArity, OutArity, OutA),
+	    arg(OutArity, Out, OutA),
 	    copy_term_limit(N2, InA, OutA)
 	).
 copy_term_limit(_, In, Out) :-
