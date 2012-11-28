@@ -1008,8 +1008,9 @@ reportStreamError(IOSTREAM *s)
 int
 streamStatus(IOSTREAM *s)
 { if ( (s->flags & (SIO_FERR|SIO_WARN)) )
-  { releaseStream(s);
-    return reportStreamError(s);
+  { int ret = reportStreamError(s);
+    releaseStream(s);
+    return ret;
   }
 
   releaseStream(s);
