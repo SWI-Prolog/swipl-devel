@@ -763,7 +763,10 @@ localDefinition(Definition def ARG_LD)
   { LOCKDYNDEF(def);
     if ( !v->blocks[idx] )
     { size_t bs = (size_t)1<<idx;
-      Definition *newblock = PL_malloc_uncollectable(bs*sizeof(Definition));
+      Definition *newblock;
+
+      if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(Definition))) )
+	outOfCore();
 
       memset(newblock, 0, bs*sizeof(Definition));
       v->blocks[idx] = newblock-bs;

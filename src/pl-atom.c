@@ -285,8 +285,12 @@ putAtomArray(size_t where, Atom a)
   { PL_LOCK(L_MISC);
     if ( !GD->atoms.array.blocks[idx] )
     { size_t bs = (size_t)1<<idx;
-      Atom *newblock = PL_malloc_uncollectable(bs*sizeof(Atom));
+      Atom *newblock;
 
+      if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(Atom))) )
+	outOfCore();
+
+      memset(newblock, 0, bs*sizeof(Atom));
       GD->atoms.array.blocks[idx] = newblock-bs;
     }
     PL_UNLOCK(L_MISC);
