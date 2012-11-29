@@ -999,7 +999,7 @@ rehashAtoms(void)
     for(; index<upto; index++)
     { Atom a = b[index];
 
-      if ( a )
+      if ( a && true(a->type, PL_BLOB_UNIQUE) )
       { size_t v = a->hash_value & mask;
 
 	a->next = atomTable[v];
