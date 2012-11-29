@@ -770,6 +770,7 @@ Section "Documentation package"
   File ${SWIPL}\library\pldoc.pl
   File ${SWIPL}\library\doc_http.pl
   File ${SWIPL}\library\doc_latex.pl
+  File ${SWIPL}\library\doc_files.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\pldoc.html
   SetOutPath $INSTDIR\doc
