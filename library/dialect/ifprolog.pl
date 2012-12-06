@@ -549,7 +549,8 @@ match_pattern([]) --> [].
 match_set([]) --> "]", !.
 match_set(L) -->
 	[C0], "-", [C1],
-	{ C0 =< C1,
+	{ C1 \= 0'],
+	  C0 =< C1,
 	  numlist(C0, C1, Range),
 	  append(Range, T, L)
 	},
