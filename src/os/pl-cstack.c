@@ -94,10 +94,14 @@ save_backtrace(const char *why)
 { btrace *bt = get_trace_store();
 
   if ( bt )
-  { btrace_stack *s = &bt->dumps[bt->current];
+  { btrace_stack *s;
     unw_cursor_t cursor; unw_context_t uc;
     int depth;
+    int current = bt->current++ % SAVE_TRACES;
 
+    if ( bt->current >= SAVE_TRACES )
+      bt->current %= SAVE_TRACES;
+    s = &bt->dumps[current];
     unw_getcontext(&uc);
     unw_init_local(&cursor, &uc);
     for(depth=0; unw_step(&cursor) > 0 && depth < MAX_DEPTH; depth++)
@@ -107,9 +111,6 @@ save_backtrace(const char *why)
     }
     s->name = why;
     s->depth = depth;
-
-    if ( ++bt->current == SAVE_TRACES )
-      bt->current = 0;
   }
 
 }
@@ -235,15 +236,16 @@ save_backtrace(const char *why)
   if ( bt )
   { void *array[100];
     size_t frames;
+    int current = bt->current++ % SAVE_TRACES;
 
+    if ( bt->current >= SAVE_TRACES )
+      bt->current %= SAVE_TRACES;
     frames = backtrace(array, sizeof(array)/sizeof(void *));
-    bt->sizes[bt->current] = frames;
-    if ( bt->symbols[bt->current] )
-      free(bt->symbols[bt->current]);
-    bt->symbols[bt->current] = backtrace_symbols(array, frames);
-    bt->why[bt->current] = why;
-    if ( ++bt->current == SAVE_TRACES )
-      bt->current = 0;
+    bt->sizes[current] = frames;
+    if ( bt->symbols[current] )
+      free(bt->symbols[current]);
+    bt->symbols[current] = backtrace_symbols(array, frames);
+    bt->why[current] = why;
   }
 }
 
@@ -528,11 +530,12 @@ void
 win_save_backtrace(const char *why, PEXCEPTION_POINTERS pExceptionInfo)
 { btrace *bt = get_trace_store();
   if ( bt )
-  { btrace_stack *s = &bt->dumps[bt->current];
+  { int current = bt->current++ % SAVE_TRACES;
+    btrace_stack *s = &bt->dumps[current];
+    if ( bt->current >= SAVE_TRACES )
+      bt->current %= SAVE_TRACES;
     s->depth = backtrace(s, pExceptionInfo);
     s->name = why;
-    if ( ++bt->current == SAVE_TRACES )
-      bt->current = 0;
   }
 }
 
