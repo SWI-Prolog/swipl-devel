@@ -89,12 +89,33 @@ get_trace_store(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+next_btrace_id() produces the  id  for  the   next  backtrace  and  sets
+bt->current to the subsequent id. Although bt is thread-local, it may be
+called from a signal  handler  or   (Windows)  exception.  We cannot use
+locking because the mutex functions are not   async  signal safe. So, we
+use atomic instructions if possible. Otherwise, we ensure consistency of
+the datastructures, but we may overwrite an older stack trace.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 next_btrace_id(btrace *bt)
-{ int current = bt->current++ % SAVE_TRACES;
+{ int current;
+#ifdef COMPARE_AND_SWAP
+  int next;
+
+  do
+  { current = bt->current;
+    next = current+1;
+    if ( next == SAVE_TRACES )
+      next = 0;
+  } while ( !COMPARE_AND_SWAP(&bt->current, current, next) );
+#else
+  current = bt->current++ % SAVE_TRACES;
 
   if ( bt->current >= SAVE_TRACES )
     bt->current %= SAVE_TRACES;
+#endif
 
   return current;
 }
