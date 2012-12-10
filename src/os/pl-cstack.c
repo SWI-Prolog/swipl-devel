@@ -360,6 +360,9 @@ initBackTrace(void)
 */
 #define MAX_MODULE_NAME_LENGTH 64
 
+#define LOCK()   PL_LOCK(L_CSTACK)
+#define UNLOCK() PL_UNLOCK(L_CSTACK)
+
 typedef struct
 { char name[MAX_FUNCTION_NAME_LENGTH];	/* function called */
   DWORD64 offset;			/* offset in function */
@@ -534,7 +537,9 @@ win_save_backtrace(const char *why, PEXCEPTION_POINTERS pExceptionInfo)
     btrace_stack *s = &bt->dumps[current];
     if ( bt->current >= SAVE_TRACES )
       bt->current %= SAVE_TRACES;
+    LOCK();
     s->depth = backtrace(s, pExceptionInfo);
+    UNLOCK();
     s->name = why;
   }
 }
