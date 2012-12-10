@@ -89,6 +89,17 @@ get_trace_store(void)
 }
 
 
+static int
+next_btrace_id(btrace *bt)
+{ int current = bt->current++ % SAVE_TRACES;
+
+  if ( bt->current >= SAVE_TRACES )
+    bt->current %= SAVE_TRACES;
+
+  return current;
+}
+
+
 void
 save_backtrace(const char *why)
 { btrace *bt = get_trace_store();
@@ -97,10 +108,8 @@ save_backtrace(const char *why)
   { btrace_stack *s;
     unw_cursor_t cursor; unw_context_t uc;
     int depth;
-    int current = bt->current++ % SAVE_TRACES;
+    int current = next_btrace_id(bt);
 
-    if ( bt->current >= SAVE_TRACES )
-      bt->current %= SAVE_TRACES;
     s = &bt->dumps[current];
     unw_getcontext(&uc);
     unw_init_local(&cursor, &uc);
@@ -236,10 +245,8 @@ save_backtrace(const char *why)
   if ( bt )
   { void *array[100];
     size_t frames;
-    int current = bt->current++ % SAVE_TRACES;
+    int current = next_btrace_id(bt);
 
-    if ( bt->current >= SAVE_TRACES )
-      bt->current %= SAVE_TRACES;
     frames = backtrace(array, sizeof(array)/sizeof(void *));
     bt->sizes[current] = frames;
     if ( bt->symbols[current] )
