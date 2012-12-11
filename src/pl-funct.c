@@ -52,8 +52,12 @@ putFunctorArray(size_t where, FunctorDef fd)
   { PL_LOCK(L_MISC);
     if ( !GD->functors.array.blocks[idx] )
     { size_t bs = (size_t)1<<idx;
-      FunctorDef *newblock = PL_malloc_uncollectable(bs*sizeof(FunctorDef));
+      FunctorDef *newblock;
 
+      if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(FunctorDef))) )
+	outOfCore();
+
+      memset(newblock, 0, bs*sizeof(FunctorDef));
       GD->functors.array.blocks[idx] = newblock-bs;
     }
     PL_UNLOCK(L_MISC);

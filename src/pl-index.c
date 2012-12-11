@@ -863,6 +863,56 @@ unallocClauseIndexes(Definition def)
 }
 
 
+void
+clearTriedIndexes(Definition def)
+{ struct bit_vector *v;
+
+  if ( (v=def->tried_index) )
+    clear_bitvector(v);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Clear the ->tried_index  vector  occasionally   for  dynamic  predicates
+because evaluation may change. We  do  this   if  the  number of clauses
+reaches the next  power  of  two.   We  use  P_SHRUNKPOW2  to inttroduce
+histerases into the system, such that asserting/retracting around a pow2
+boundery  does  not  lead  to  repeated    re-evaluation  of  the  index
+capabilities.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+has_pow2_clauses(Definition def)
+{ unsigned int nc = def->impl.clauses.number_of_clauses;
+
+  return 1<<MSB(nc) == nc;
+}
+
+
+static void
+reconsider_index(Definition def)
+{ if ( true(def, P_DYNAMIC) )
+  { struct bit_vector *tried;
+
+    if ( (tried=def->tried_index) && has_pow2_clauses(def) )
+    { if ( true(def, P_SHRUNKPOW2) )
+      { clear(def, P_SHRUNKPOW2);
+      } else
+      { clear_bitvector(tried);
+      }
+    }
+  }
+}
+
+
+static void
+shrunkpow2(Definition def)
+{ if ( true(def, P_DYNAMIC) )
+  { if ( false(def, P_SHRUNKPOW2) && has_pow2_clauses(def) )
+      set(def, P_SHRUNKPOW2);
+  }
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 deleteActiveClauseFromBucket() maintains dirty  count   on  the  bucket,
@@ -982,6 +1032,8 @@ void
 deleteActiveClauseFromIndexes(Definition def, Clause cl)
 { ClauseIndex ci, next;
 
+  shrunkpow2(def);
+
   for(ci=def->impl.clauses.clause_indexes; ci; ci=next)
   { next = ci->next;
 
@@ -1045,6 +1097,8 @@ addClauseToIndexes(Definition def, Clause cl, int where)
       addClauseToIndex(ci, cl, where);
   }
 
+  reconsider_index(def);
+
   DEBUG(CHK_SECURE, checkDefinition(def));
 }
 
@@ -1058,6 +1112,8 @@ other cases, deleteActiveClauseFromIndex() is called.
 void
 delClauseFromIndex(Definition def, Clause cl)
 { ClauseIndex ci;
+
+  shrunkpow2(def);
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
   { ClauseBucket ch = ci->entries;
@@ -1291,7 +1347,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
     }
 #endif
 
-    if ( (float)a->var_count/(float)a->size * 0.1 )
+    if ( (float)a->var_count/(float)a->size > 0.1 )
       return FALSE;			/* not indexable */
   }
 
@@ -1484,7 +1540,7 @@ unify_clause_index(term_t t, ClauseIndex ci)
 bool
 unify_index_pattern(Procedure proc, term_t value)
 { GET_LD
-  Definition def = proc->definition;
+  Definition def = getProcDefinition__LD(proc->definition PASS_LD);
   ClauseIndex ci;
 
   if ( (ci=def->impl.clauses.clause_indexes) )

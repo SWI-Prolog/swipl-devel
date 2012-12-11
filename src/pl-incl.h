@@ -810,6 +810,7 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
+#define P_SHRUNKPOW2		(0x00000010) /* See reconsider_index() */
 #define P_FOREIGN		(0x00000020) /* Implemented in C */
 #define P_NONDET		(0x00000040) /* Foreign: nondet */
 #define P_VARARG		(0x00000080) /* Foreign: use alt calling API */

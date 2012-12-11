@@ -48,7 +48,7 @@
 	findall/3,
 	bagof/3,
 	setof/3,
-	fa_loop/5)).
+	findall_loop/4)).
 
 :- '$iso'((findall/3,
 	   bagof/3,

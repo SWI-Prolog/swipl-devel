@@ -1607,9 +1607,14 @@ scan_decimal(cucharp *sp, Number n)
 
       while(isDigit(*s))
 	s++;
+      if ( *s == '.' && isDigit(s[1]) )
+      { s++;
+        while( isDigit(*s) )
+          s++;
+      }
       errno = 0;
-      n->value.f = strtod(*sp, &end);
-      if ( s != end )
+      n->value.f = strtod((char*)*sp, &end);
+      if ( ((char*)s != end) && !(*s == '.' && (char*)s+1 == end) )
 	return NUM_ERROR;
       if ( errno == ERANGE )
 	return NUM_FOVERFLOW;
@@ -2071,7 +2076,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
     errno = 0;
     value->value.f = strtod((char*)start, &e);
-    if ( e != (char*)in )
+    if ( e != (char*)in && !(*in == '.' && (char*)in+1 == e) )
       return NUM_ERROR;
     if ( errno == ERANGE && abs(value->value.f) > 1.0 )
       return NUM_FOVERFLOW;

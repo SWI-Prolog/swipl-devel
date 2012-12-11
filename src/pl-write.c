@@ -940,14 +940,14 @@ pl_nl__LD(term_t stream ARG_LD)
 
 
 static
-PRED_IMPL("nl", 1, nl, 0)
+PRED_IMPL("nl", 1, nl, PL_FA_ISO)
 { PRED_LD
 
   return pl_nl__LD(A1 PASS_LD);
 }
 
 static
-PRED_IMPL("nl", 0, nl, 0)
+PRED_IMPL("nl", 0, nl, PL_FA_ISO)
 { PRED_LD
 
   return pl_nl__LD(0 PASS_LD);
@@ -1767,8 +1767,8 @@ PRED_IMPL("write_length", 3, write_length, 0)
 		 *******************************/
 
 BeginPredDefs(write)
-  PRED_DEF("nl", 0, nl, 0)
-  PRED_DEF("nl", 1, nl, 0)
+  PRED_DEF("nl", 0, nl, PL_FA_ISO)
+  PRED_DEF("nl", 1, nl, PL_FA_ISO)
   PRED_DEF("$put_token", 2, put_token, 0)
   PRED_DEF("$put_quoted", 4, put_quoted_codes, 0)
   PRED_DEF("write_length", 3, write_length, 0)

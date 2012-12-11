@@ -285,8 +285,12 @@ putAtomArray(size_t where, Atom a)
   { PL_LOCK(L_MISC);
     if ( !GD->atoms.array.blocks[idx] )
     { size_t bs = (size_t)1<<idx;
-      Atom *newblock = PL_malloc_uncollectable(bs*sizeof(Atom));
+      Atom *newblock;
 
+      if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(Atom))) )
+	outOfCore();
+
+      memset(newblock, 0, bs*sizeof(Atom));
       GD->atoms.array.blocks[idx] = newblock-bs;
     }
     PL_UNLOCK(L_MISC);
@@ -995,7 +999,7 @@ rehashAtoms(void)
     for(; index<upto; index++)
     { Atom a = b[index];
 
-      if ( a )
+      if ( a && true(a->type, PL_BLOB_UNIQUE) )
       { size_t v = a->hash_value & mask;
 
 	a->next = atomTable[v];
@@ -1288,7 +1292,7 @@ typedef struct match
 
 static bool
 allAlpha(const char *s, size_t len)
-{ for( ; --len>=0; s++)
+{ for( ; len-- > 0; s++)
   { if ( !*s || !isAlpha(*s) )
       fail;
   }

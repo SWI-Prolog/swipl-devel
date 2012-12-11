@@ -1182,6 +1182,10 @@ atom_handling(current-1) :-
 	member(foobar, Atoms),
 	length(Atoms, L),
 	L > 100.			% else something is wrong!
+atom_handling(complete-1) :-
+	'$atom_completions'(stat, List),
+	length(List, Len),
+	Len > 2.
 
 
 		 /*******************************
