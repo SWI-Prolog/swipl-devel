@@ -259,6 +259,33 @@ get_trace_store(void)
 }
 
 
+/* Copy of same function above.  Relies on a different btrace structure.
+   Ideally, this should be shared :-(
+*/
+
+static int
+next_btrace_id(btrace *bt)
+{ int current;
+#ifdef COMPARE_AND_SWAP
+  int next;
+
+  do
+  { current = bt->current;
+    next = current+1;
+    if ( next == SAVE_TRACES )
+      next = 0;
+  } while ( !COMPARE_AND_SWAP(&bt->current, current, next) );
+#else
+  current = bt->current++ % SAVE_TRACES;
+
+  if ( bt->current >= SAVE_TRACES )
+    bt->current %= SAVE_TRACES;
+#endif
+
+  return current;
+}
+
+
 void
 save_backtrace(const char *why)
 { btrace *bt = get_trace_store();
