@@ -457,6 +457,32 @@ get_trace_store(void)
   return LD->btrace_store;
 }
 
+/* Copy of same function above.  Relies on a different btrace structure.
+   Ideally, this should be shared :-(
+*/
+
+static int
+next_btrace_id(btrace *bt)
+{ int current;
+#ifdef COMPARE_AND_SWAP
+  int next;
+
+  do
+  { current = bt->current;
+    next = current+1;
+    if ( next == SAVE_TRACES )
+      next = 0;
+  } while ( !COMPARE_AND_SWAP(&bt->current, current, next) );
+#else
+  current = bt->current++ % SAVE_TRACES;
+
+  if ( bt->current >= SAVE_TRACES )
+    bt->current %= SAVE_TRACES;
+#endif
+
+  return current;
+}
+
 int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
 { STACKFRAME64 frame;
   CONTEXT context;
@@ -588,10 +614,8 @@ void
 win_save_backtrace(const char *why, PEXCEPTION_POINTERS pExceptionInfo)
 { btrace *bt = get_trace_store();
   if ( bt )
-  { int current = bt->current++ % SAVE_TRACES;
+  { int current = next_btrace_id(bt);
     btrace_stack *s = &bt->dumps[current];
-    if ( bt->current >= SAVE_TRACES )
-      bt->current %= SAVE_TRACES;
     LOCK();
     s->depth = backtrace(s, pExceptionInfo);
     UNLOCK();
