@@ -216,15 +216,15 @@ typedef struct
 #define PL_REC_CYCLE		(14)	/* cyclic reference */
 #define PL_REC_MPZ		(15)	/* GMP integer */
 
-#define addUnalignedBuf(b, ptr, type) \
-	do \
-	{ if ( (b)->top + sizeof(type) > (b)->max ) \
-	  { if ( !growBuffer((Buffer)b, sizeof(type)) ) \
-	      outOfCore(); \
-	  } \
-	  memcpy((b)->top, ptr, sizeof(type)); \
-	  (b)->top += sizeof(type); \
-	} while(0)
+static inline void
+addUnalignedBuf(TmpBuffer b, void *ptr, size_t bytes)
+{ if ( b->top + bytes > b->max )
+  { if ( !growBuffer((Buffer)b, bytes) )
+      outOfCore();
+  }
+  memcpy(b->top, ptr, bytes);
+  b->top += bytes;
+}
 
 static inline void
 addOpCode(CompileInfo info, int code)
@@ -325,14 +325,14 @@ addFloat(CompileInfo info, void *val)
   } else
   { addOpCode(info, PL_TYPE_FLOAT);
 
-    addUnalignedBuf(&info->code, val, double);
+    addUnalignedBuf(&info->code, val, sizeof(double));
   }
 }
 
 
 static inline void
 addWord(CompileInfo info, word w)
-{ addUnalignedBuf(&info->code, &w, word);
+{ addUnalignedBuf(&info->code, &w, sizeof(word));
 }
 
 
