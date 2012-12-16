@@ -37,7 +37,8 @@
 	    pack_upgrade/1,		% +Name
 	    pack_rebuild/1,		% +Name
 	    pack_rebuild/0,		% All packages
-	    pack_remove/1		% +Name
+	    pack_remove/1,		% +Name
+	    pack_property/2		% ?Name, ?Property
 	  ]).
 :- use_module(library(apply)).
 :- use_module(library(error)).
@@ -1082,6 +1083,31 @@ confirm_remove(Pack, Deps, Delete) :-
 	       []          = cancel
 	     ], [], Delete),
 	Delete \== [].
+
+
+		 /*******************************
+		 *	     PROPERTIES		*
+		 *******************************/
+
+%%	pack_property(?Pack, ?Property) is nondet.
+%
+%	True when Property is a  property   of  Pack.  This interface is
+%	intended for programs that wish  to   interact  with the package
+%	manager.  Defined properties are:
+%
+%	  - directory(Directory)
+%	  Directory into which the package is installed
+%	  - version(Version)
+%	  Installed version
+%	  - title(Title)
+%	  Full title of the package
+%	  - author(Author)
+%	  Registered author
+%	  - download(URL)
+%	  Official download URL
+
+pack_property(Pack, Property) :-
+	pack_info(Pack, _, Property).
 
 
 		 /*******************************
