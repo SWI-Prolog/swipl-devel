@@ -3476,7 +3476,7 @@ listGenerations(Definition def)
     { unsigned int i;
 
       Sdprintf("\nHash %sindex for arg %d (%d dirty)\n",
-	       ci->is_list ? "list-" : "", ci->arg, ci->dirty);
+	       ci->is_list ? "list-" : "", ci->args[0], ci->dirty);
 
       for(i=0; i<ci->buckets; i++)
       { if ( !ci->entries[i].head &&
