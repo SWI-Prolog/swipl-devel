@@ -899,7 +899,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   word key;
   ClauseRef cref;
 
-  argKey(clause->codes, 0, FALSE, &key);
+  argKey(clause->codes, 0, &key);
   cref = newClauseRef(clause, key);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )

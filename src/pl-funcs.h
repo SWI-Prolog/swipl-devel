@@ -138,7 +138,8 @@ COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
 COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
 COMMON(bool)		decompileHead(Clause clause, term_t head);
 COMMON(Code)		skipArgs(Code PC, int skip);
-COMMON(int)		argKey(Code PC, int skip, int constonly, word *key);
+COMMON(int)		argKey(Code PC, int skip, word *key);
+COMMON(int)		arg1Key(Code PC, word *key);
 COMMON(bool)		decompile(Clause clause, term_t term, term_t bindings);
 COMMON(word)		pl_nth_clause(term_t p, term_t n, term_t ref,
 				      control_t h);

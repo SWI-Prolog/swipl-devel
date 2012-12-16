@@ -992,7 +992,7 @@ static void
 deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
 { word key;
 
-  argKey(cl->codes, ci->args[0]-1, FALSE, &key);
+  argKey(cl->codes, ci->args[0]-1, &key);
 
   if ( key == 0 )			/* not indexed */
   { int i;
@@ -1069,7 +1069,7 @@ addClauseToIndex(ClauseIndex ci, Clause cl, int where)
 { ClauseBucket ch = ci->entries;
   word key;
 
-  argKey(cl->codes, ci->args[0]-1, FALSE, &key);
+  argKey(cl->codes, ci->args[0]-1, &key);
 
   if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
@@ -1125,7 +1125,7 @@ delClauseFromIndex(Definition def, Clause cl)
   { ClauseBucket ch = ci->entries;
     word key;
 
-    argKey(cl->codes, ci->args[0]-1, FALSE, &key);
+    argKey(cl->codes, ci->args[0]-1, &key);
 
     if ( key == 0 )			/* a non-indexable field */
     { int n = ci->buckets;
@@ -1475,7 +1475,7 @@ bestHash(Word av, Definition def,
       { pc = skipArgs(pc, a->arg-carg);
 	carg = a->arg;
       }
-      if ( argKey(pc, 0, FALSE, &k) )
+      if ( argKey(pc, 0, &k) )
       { assessAddKey(a, k);
       } else
       { a->var_count++;
