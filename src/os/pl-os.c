@@ -1057,8 +1057,7 @@ cleanupExpand(void)
 char *
 canoniseFileName(char *path)
 { char *out = path, *in = path, *start = path;
-  char *osave[100];
-  int  osavep = 0;
+  tmp_buffer saveb;
 
 #ifdef O_HASDRIVES			/* C: */
   if ( in[1] == ':' && isLetter(in[0]) )
@@ -1097,7 +1096,8 @@ canoniseFileName(char *path)
     in += 2;
   if ( in[0] == '/' )
     *out++ = '/';
-  osave[osavep++] = out;
+  initBuffer(&saveb);
+  addBuffer(&saveb, out, char*);
 
   while(*in)
   { if (*in == '/')
@@ -1113,15 +1113,15 @@ canoniseFileName(char *path)
 	  }
 	  if ( in[2] == EOS )		/* delete trailing /. */
 	  { *out = EOS;
-	    return path;
+	    goto out;
 	  }
 	  if ( in[2] == '.' && (in[3] == '/' || in[3] == EOS) )
-	  { if ( osavep > 0 )		/* delete /foo/../ */
-	    { out = osave[--osavep];
+	  { if ( !isEmptyBuffer(&saveb) )		/* delete /foo/../ */
+	    { out = popBuffer(&saveb, char*);
 	      in += 3;
 	      if ( in[0] == EOS && out > start+1 )
 	      { out[-1] = EOS;		/* delete trailing / */
-		return path;
+		goto out;
 	      }
 	      goto again;
 	    } else if (	start[0] == '/' && out == start+1 )
@@ -1135,11 +1135,14 @@ canoniseFileName(char *path)
 	in++;
       if ( out > path && out[-1] != '/' )
 	*out++ = '/';
-      osave[osavep++] = out;
+      addBuffer(&saveb, out, char*);
     } else
       *out++ = *in++;
   }
   *out++ = *in++;
+
+out:
+  discardBuffer(&saveb);
 
   return path;
 }
