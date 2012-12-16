@@ -424,6 +424,7 @@ expand(const char *pattern, GlobInfo info)
   compiled_pattern cbuf;
   char prefix[MAXPATHLEN];		/* before first pattern */
   char patbuf[MAXPATHLEN];		/* pattern buffer */
+  size_t prefix_len;
   int end, dot;
 
   initBuffer(&info->files);
@@ -442,20 +443,25 @@ expand(const char *pattern, GlobInfo info)
       switch( (c=*s++) )
       { case EOS:
 	  if ( s > pat )		/* something left and expanded */
-	  { un_escape(prefix, pat, s);
+	  { size_t prefix_len;
+
+	    un_escape(prefix, pat, s);
+	    prefix_len = strlen(prefix);
 
 	    end = info->end;
 	    for( ; info->start < end; info->start++ )
 	    { char path[MAXPATHLEN];
-	      size_t plen;
+	      const char *entry = expand_entry(info, info->start);
+	      size_t plen = strlen(entry);
 
-	      strcpy(path, expand_entry(info, info->start));
-	      plen = strlen(path);
-	      if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
-		path[plen++] = '/';
-	      strcpy(&path[plen], prefix);
-	      if ( end == 1 || AccessFile(path, ACCESS_EXIST) )
-		add_path(path, info);
+	      if ( plen+prefix_len+2 <= MAXPATHLEN )
+	      { strcpy(path, entry);
+		if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
+		  path[plen++] = '/';
+		strcpy(&path[plen], prefix);
+		if ( end == 1 || AccessFile(path, ACCESS_EXIST) )
+		  add_path(path, info);
+	      }
 	    }
 	  }
 	  succeed;
@@ -490,8 +496,9 @@ expand(const char *pattern, GlobInfo info)
 */
     un_escape(prefix, pat, head);
     un_escape(patbuf, head, tail);
+    prefix_len = strlen(prefix);
 
-    if ( !compilePattern(patbuf, &cbuf) )		/* syntax error */
+    if ( !compilePattern(patbuf, &cbuf) )	/* syntax error */
       fail;
     dot = (patbuf[0] == '.');			/* do dots as well */
 
@@ -503,12 +510,16 @@ expand(const char *pattern, GlobInfo info)
       char path[MAXPATHLEN];
       char tmp[MAXPATHLEN];
       const char *current = expand_entry(info, info->start);
+      size_t clen = strlen(current);
+
+      if ( clen+prefix_len+1 > sizeof(path) )
+	continue;
 
       strcpy(path, current);
-      strcat(path, prefix);
+      strcpy(&path[clen], prefix);
 
       if ( (d=opendir(path[0] ? OsPath(path, tmp) : ".")) )
-      { size_t plen = strlen(path);
+      { size_t plen = clen+prefix_len;
 
 	if ( plen > 0 && path[plen-1] != '/' )
 	  path[plen++] = '/';
@@ -522,12 +533,11 @@ expand(const char *pattern, GlobInfo info)
 	       matchPattern(e->d_name, &cbuf) )
 	  { char newp[MAXPATHLEN];
 
-	    strcpy(newp, path);
-	    strcpy(&newp[plen], e->d_name);
-/*	    if ( !tail[0] || ExistsDirectory(newp) )
-	    Saves memory, but involves one more file-access
-*/
+	    if ( plen+strlen(e->d_name)+1 < sizeof(newp) )
+	    { strcpy(newp, path);
+	      strcpy(&newp[plen], e->d_name);
 	      add_path(newp, info);
+	    }
 	  }
 	}
 	closedir(d);
