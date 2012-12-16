@@ -975,6 +975,15 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 }
 
 
+static inline word
+indexKeyFromClause(ClauseIndex ci, Clause cl)
+{ word key;
+
+  argKey(cl->codes, ci->args[0]-1, &key);
+  return key;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deal with deletion of an active  clause   from  the indexes. This clause
 cannot really be deleted as it might  still   be  alive  for goals of an
@@ -990,9 +999,7 @@ bucket.
 
 static void
 deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
-{ word key;
-
-  argKey(cl->codes, ci->args[0]-1, &key);
+{ word key = indexKeyFromClause(ci, cl);
 
   if ( key == 0 )			/* not indexed */
   { int i;
@@ -1067,9 +1074,7 @@ indexed. This is needed for resizing the index.
 static void
 addClauseToIndex(ClauseIndex ci, Clause cl, int where)
 { ClauseBucket ch = ci->entries;
-  word key;
-
-  argKey(cl->codes, ci->args[0]-1, &key);
+  word key = indexKeyFromClause(ci, cl);
 
   if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
@@ -1123,9 +1128,7 @@ delClauseFromIndex(Definition def, Clause cl)
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
   { ClauseBucket ch = ci->entries;
-    word key;
-
-    argKey(cl->codes, ci->args[0]-1, &key);
+    word key = indexKeyFromClause(ci, cl);
 
     if ( key == 0 )			/* a non-indexable field */
     { int n = ci->buckets;
