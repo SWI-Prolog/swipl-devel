@@ -1106,9 +1106,32 @@ confirm_remove(Pack, Deps, Delete) :-
 %	  Registered author
 %	  - download(URL)
 %	  Official download URL
+%	  - readme(File)
+%	  Package README file (if present)
+%	  - todo(File)
+%	  Package TODO file (if present)
 
 pack_property(Pack, Property) :-
+	findall(Property, pack_property_(Pack, Property), List),
+	member(Property, List).		% make det if applicable
+
+pack_property_(Pack, Property) :-
 	pack_info(Pack, _, Property).
+pack_property_(Pack, Property) :-
+	\+ \+ info_file(Property, _),
+	'$pack':pack(Pack, BaseDir),
+	access_file(BaseDir, read),
+	directory_files(BaseDir, Files),
+	member(File, Files),
+	info_file(Property, Pattern),
+	downcase_atom(File, Pattern),
+	directory_file_path(BaseDir, File, InfoFile),
+	arg(1, Property, InfoFile).
+
+info_file(readme(_), 'readme.txt').
+info_file(readme(_), 'readme').
+info_file(todo(_),   'todo.txt').
+info_file(todo(_),   'todo').
 
 
 		 /*******************************
