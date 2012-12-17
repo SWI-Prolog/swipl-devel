@@ -787,7 +787,8 @@ configure_foreign(PackDir, Options) :-
 	exists_file(Configure), !,
 	build_environment(BuildEnv),
 	run_process(path(bash), [Configure],
-		    [ env(BuildEnv)
+		    [ env(BuildEnv),
+		      directory(PackDir)
 		    ]).
 configure_foreign(_, _).
 
