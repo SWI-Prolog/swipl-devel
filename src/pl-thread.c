@@ -226,6 +226,10 @@ Some remarks:
    0L \
  }
 
+/* NOTE: These must be kept in sequence such that they align with
+   the #defines for L_* in pl-thread.h
+*/
+
 counting_mutex _PL_mutexes[] =
 { COUNT_MUTEX_INITIALIZER("L_MISC"),
   COUNT_MUTEX_INITIALIZER("L_ALLOC"),
@@ -248,8 +252,9 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_AGC"),
   COUNT_MUTEX_INITIALIZER("L_FOREIGN"),
   COUNT_MUTEX_INITIALIZER("L_OS")
-#ifdef L_DDE
+#ifdef __WINDOWS__
 , COUNT_MUTEX_INITIALIZER("L_DDE")
+, COUNT_MUTEX_INITIALIZER("L_CSTACK")
 #endif
 };
 
