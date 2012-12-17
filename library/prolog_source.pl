@@ -101,10 +101,7 @@ users of the library are:
 %%	prolog_read_source_term(+In, -Term, -Expanded, +Options) is det.
 %
 %	Read a term from a Prolog source-file.  Options is a option list
-%	that is forwarded to read_term/3.  In addition, it accepts:
-%
-%	    * process_comment(+Boolean)
-%	    If =true=, process structured comments for PlDoc
+%	that is forwarded to read_clause/3.
 %
 %	This predicate is intended to read the   file from the start. It
 %	tracks directives to update its notion of the currently effectie
