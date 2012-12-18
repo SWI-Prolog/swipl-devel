@@ -1423,6 +1423,10 @@ available_download_versions(URL, Versions) :-
 	findall(MatchingURL,
 		absolute_matching_href(DOM, URL, MatchingURL),
 		MatchingURLs),
+	(   MatchingURLs == []
+	->  print_message(warning, pack(no_matching_urls(URL)))
+	;   true
+	),
 	versioned_urls(MatchingURLs, VersionedURLs),
 	keysort(VersionedURLs, SortedVersions),
 	reverse(SortedVersions, Versions).
@@ -1842,6 +1846,8 @@ message(up_to_date(Pack)) -->
 	[ 'Package "~w" is up-to-date'-[Pack] ].
 message(query_versions(URL)) -->
 	[ 'Querying "~w" to find new versions ...'-[URL] ].
+message(no_matching_urls(URL)) -->
+	[ 'Could not find any matching URL: ~q'-[URL] ].
 message(process_output(Codes)) -->
 	{ split_lines(Codes, Lines) },
 	process_lines(Lines).
