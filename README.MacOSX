@@ -1,6 +1,16 @@
 SWI-Prolog on MacOS X
 ---------------------
 
+Last updated:
+
+	- Dec 18, 2012
+	- SWI-Prolog 6.3.5
+	- Xcode 4.5.1
+	- MacOS 10.7 (Lion)
+
+Option 1: Install using Macports
+--------------------------------
+
 SWI-Prolog is provided as a Macports  (www.macports.org/) project. It is
 adviced to install Macports, after  which   you  can  install the latest
 submitted port using
@@ -11,16 +21,30 @@ submitted port using
 This installs the binary as /opt/local/bin/swipl   and the actual system
 in /opt/local/lib/swipl-<version>
 
-If  you  install  from  source,  you    still   need  Macports  for  the
-dependencies. SWI-Prolog has the  following   dependencies  (updated for
-SWI-Prolog 6.3.5, Xcode 4.5.1 and MacOS 10.7 (Lion)).
+
+Option 2: Install from source
+-----------------------------
+
+If you install from source (e.g.,  from   the  SWI-Prolog tarball or the
+SWI-Prolog  git  repositories),  you  still    need   Macports  for  the
+dependencies.
+
+You have two options to install  the dependencies. Installing SWI-Prolog
+as in option 1  also  installs   the  dependencies.  Unfurtunately, this
+installs lots of Macport  alternatives  for   MacOS  libraries  that are
+prefectly suitable for running SWI-Prolog. If   you  want lean Macports,
+you can restrict the installation to the following dependencies.
 
 	% sudo port install readline ncurses jpeg libmcrypt gmp zlib
 	% sudo port install libarchive ossp-uuid
 
-In addition, you need some development tools
+Regardless of which way you used to install the dependent libraries, you
+need to install some development tools that are not in Xcode:
 
 	% sudo port install pkgconfig autoconf
+
+Finally, you need to install  the  Oracle's   Java  SDK  or  you need to
+disable JPL in the build[.templ] script.
 
 LLVM
 ----
