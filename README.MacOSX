@@ -11,12 +11,22 @@ submitted port using
 This installs the binary as /opt/local/bin/swipl   and the actual system
 in /opt/local/lib/swipl-<version>
 
-Even if you wish to install from the  source the above is recommended as
-it installs all requirements on your system. Next fetch the source, copy
-build.templ  to  build  and  edit  according  to  the  instructions.
+If  you  install  from  source,  you    still   need  Macports  for  the
+dependencies. SWI-Prolog has the  following   dependencies  (updated for
+SWI-Prolog 6.3.5, Xcode 4.5.1 and MacOS 10.7 (Lion)).
 
-Lion
+	% sudo port install readline ncurses jpeg libmcrypt gmp zlib
+	% sudo port install libarchive ossp-uuid
+
+In addition, you need some development tools
+
+	% sudo port install pkgconfig autoconf
+
+LLVM
 ----
 
-Lion's Xcode binds gcc to  llvm-gcc.   SWI-Prolog  does not compile with
-this version at this moment. Make sure to edit CC=gcc-4.2 in build.
+SWI-Prolog compiles both with native gcc   and llvm-gcc. llvm-gcc is the
+distributed with recent versions of  xcode. Originally, gcc-4.2 provided
+better performance than llvm-gcc. We  do   not  have recent comparisons.
+Please share information with info@swi-prolog.org if  you decide to do a
+comparison.
