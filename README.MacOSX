@@ -54,3 +54,10 @@ distributed with recent versions of  xcode. Originally, gcc-4.2 provided
 better performance than llvm-gcc. We  do   not  have recent comparisons.
 Please share information with info@swi-prolog.org if  you decide to do a
 comparison.
+
+Development tools (X11)
+-----------------------
+
+No matter how you  install  SWI-Prolog,  in   order  to  run  the Prolog
+development    tools    you    need    X11      installed.    See    the
+http://xquartz.macosforge.org/
