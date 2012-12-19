@@ -561,7 +561,7 @@ parts_to_path(List, More/T) :-
 %	loaded(true) is passed.
 
 directory_source_files(Dir, SrcFiles, Options) :-
-	option(loaded(true), Options), !,
+	option(if(loaded), Options, loaded), !,
 	absolute_file_name(Dir, AbsDir, [file_type(directory), access(read)]),
 	(   option(recursive(true), Options)
 	->  ensure_slash(AbsDir, Prefix),
