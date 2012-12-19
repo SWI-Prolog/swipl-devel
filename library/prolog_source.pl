@@ -39,7 +39,8 @@
 
 	    file_name_on_path/2,	% +File, -PathSpec
 	    file_alias_path/2,		% ?Alias, ?Dir
-	    path_segments_atom/2	% ?Segments, ?Atom
+	    path_segments_atom/2,	% ?Segments, ?Atom
+	    directory_source_files/3	% +Dir, -Files, +Options
 	  ]).
 :- use_module(operators).
 :- use_module(lists).
@@ -91,6 +92,11 @@ users of the library are:
 		       operators(list),
 		       error(-any),
 		       pass_to(system:read_term/3, 3)
+		     ]).
+:- predicate_options(directory_source_files/3, 3,
+		     [ recursive(boolean),
+		       loaded(boolean),
+		       pass_to(system:absolute_file_name/3,3)
 		     ]).
 
 
@@ -543,4 +549,62 @@ parts_to_path(List, More/T) :-
 	->  parts_to_path(H, More)
 	).
 
+%%	directory_source_files(+Dir, -Files, +Options) is det.
+%
+%	True when Files is a sorted list  of Prolog source files in Dir.
+%	Options:
+%
+%	  * recursive(boolean)
+%	  If =true= (default =false=), recurse into subdirectories
+%	  * loaded(boolean)
+%	  If =true= (default =false=), only report loaded files.
+%
+%	Other  options  are  passed    to  absolute_file_name/3,  unless
+%	loaded(true) is passed.
 
+directory_source_files(Dir, SrcFiles, Options) :-
+	option(loaded(true), Options), !,
+	absolute_file_name(Dir, AbsDir),
+	(   option(recursive(true), Options)
+	->  ensure_slash(AbsDir, Prefix),
+	    findall(F, (  source_file(F),
+			  sub_atom(F, 0, _, _, Prefix)
+		       ),
+		    SrcFiles)
+	;   findall(F, ( source_file(F),
+			 file_directory_name(F, AbsDir)
+		       ),
+		    SrcFiles)
+	).
+directory_source_files(Dir, SrcFiles, Options) :-
+	directory_files(Dir, Files),
+	phrase(src_files(Files, Dir, Options), SrcFiles).
+
+src_files([], _, _) -->
+	[].
+src_files([H|T], Dir, Options) -->
+	{ file_name_extension(_, Ext, H),
+	  user:prolog_file_type(Ext, prolog),
+	  \+ user:prolog_file_type(Ext, qlf),
+	  directory_file_path(Dir, H, File0),
+	  absolute_file_name(File0, File,
+			     [ file_errors(fail)
+			     | Options
+			     ])
+	}, !,
+	[File],
+	src_files(T, Dir, Options).
+src_files([H|T], Dir, Options) -->
+	{ \+ special(H),
+	  option(recursive(true), Options),
+	  directory_file_path(Dir, H, SubDir),
+	  exists_directory(SubDir), !,
+	  catch(directory_files(SubDir, Files), _, fail)
+	}, !,
+	src_files(Files, SubDir, Options),
+	src_files(T, Dir, Options).
+src_files([_|T], Dir, Options) -->
+	src_files(T, Dir, Options).
+
+special(.).
+special(..).
