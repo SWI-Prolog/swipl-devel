@@ -95,7 +95,7 @@ users of the library are:
 		     ]).
 :- predicate_options(directory_source_files/3, 3,
 		     [ recursive(boolean),
-		       loaded(boolean),
+		       if(oneof([true,loaded])),
 		       pass_to(system:absolute_file_name/3,3)
 		     ]).
 
@@ -556,15 +556,15 @@ parts_to_path(List, More/T) :-
 %
 %	  * recursive(boolean)
 %	  If =true= (default =false=), recurse into subdirectories
-%	  * loaded(boolean)
-%	  If =true= (default =false=), only report loaded files.
+%	  * if(Condition)
+%	  If =true= (default =loaded=), only report loaded files.
 %
 %	Other  options  are  passed    to  absolute_file_name/3,  unless
 %	loaded(true) is passed.
 
 directory_source_files(Dir, SrcFiles, Options) :-
 	option(loaded(true), Options), !,
-	absolute_file_name(Dir, AbsDir),
+	absolute_file_name(Dir, AbsDir, [file_type(directory), access(read)]),
 	(   option(recursive(true), Options)
 	->  ensure_slash(AbsDir, Prefix),
 	    findall(F, (  source_file(F),
@@ -577,8 +577,9 @@ directory_source_files(Dir, SrcFiles, Options) :-
 		    SrcFiles)
 	).
 directory_source_files(Dir, SrcFiles, Options) :-
-	directory_files(Dir, Files),
-	phrase(src_files(Files, Dir, Options), SrcFiles).
+	absolute_file_name(Dir, AbsDir, [file_type(directory), access(read)]),
+	directory_files(AbsDir, Files),
+	phrase(src_files(Files, AbsDir, Options), SrcFiles).
 
 src_files([], _, _) -->
 	[].
