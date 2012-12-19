@@ -129,7 +129,7 @@ broadcast(Templ) :-
 	).
 
 
-%%	broadcast_request(+Templ) is nonet.
+%%	broadcast_request(+Templ) is nondet.
 %
 %	Broadcast given event till accepted.  Succeeds then, fail if no
 %	listener accepts the call.  Bindings made by the listener goal
