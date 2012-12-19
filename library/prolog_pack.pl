@@ -57,16 +57,16 @@
 
 /** <module> A package manager for Prolog
 
-The  library(prolog_pack)  defines  a   simple    package   manager  for
-SWI-Prolog. This library lets you   inspect  installed packages, install
-packages, remove packages, etc.  It  is   complemented  by  the built-in
-attach_packs/0 that makes installed packages available as libaries.
+The library(prolog_pack) provides the SWI-Prolog   package manager. This
+library lets you inspect installed   packages,  install packages, remove
+packages, etc. It is complemented by   the  built-in attach_packs/0 that
+makes installed packages available as libaries.
 
+@see	Installed packages can be inspected using =|?- doc_browser.|=
 @tbd	Version logic
 @tbd	Find and resolve conflicts
 @tbd	Upgrade git packages
-@tbd	Validate packages (git: signatures, others: SHA1)
-@tbd	Build foreign resources
+@tbd	Validate git packages
 @tbd	Test packages: run tests from directory `test'.
 */
 
