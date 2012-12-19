@@ -1112,8 +1112,8 @@ confirm_remove(Pack, Deps, Delete) :-
 %	  Package TODO file (if present)
 
 pack_property(Pack, Property) :-
-	findall(Property, pack_property_(Pack, Property), List),
-	member(Property, List).		% make det if applicable
+	findall(Pack-Property, pack_property_(Pack, Property), List),
+	member(Pack-Property, List).		% make det if applicable
 
 pack_property_(Pack, Property) :-
 	pack_info(Pack, _, Property).
