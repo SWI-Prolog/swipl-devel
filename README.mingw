@@ -323,6 +323,8 @@ build_libarchive()
     export CFLAGS="-I$install/include"
     export LDFLAGS="-L$install/lib"
     export lt_cv_deplibs_check_method='pass_all'
+    export ac_cv_func__localtime64_s='no'
+    export ac_cv_func__ctime64_s='no'
     ./configure --host=$CROSS --prefix=$install --with-pic \
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib
