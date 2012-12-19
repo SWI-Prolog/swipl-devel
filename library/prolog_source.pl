@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -414,7 +412,7 @@ prolog_close_source(In) :-
 	close(In).
 
 
-%%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is det.
+%%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is semidet.
 %
 %	Given a user-specification of a source,   generate  a unique and
 %	indexable  identifier  for   it.   For    files   we   use   the
