@@ -378,7 +378,12 @@ initIO()
 static inline IOSTREAM *
 getStream(IOSTREAM *s)
 { if ( s && s->magic == SIO_MAGIC && Slock(s) == 0 )
+  { if ( unlikely(s->magic == SIO_CMAGIC) )
+    { Sunlock(s);
+      return NULL;
+    }
     return s;
+  }
 
   return NULL;
 }
@@ -386,7 +391,12 @@ getStream(IOSTREAM *s)
 static inline IOSTREAM *
 tryGetStream(IOSTREAM *s)
 { if ( s && s->magic == SIO_MAGIC && StryLock(s) == 0 )
+  { if ( unlikely(s->magic == SIO_CMAGIC) )
+    { Sunlock(s);
+      return NULL;
+    }
     return s;
+  }
 
   return NULL;
 }
