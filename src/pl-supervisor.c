@@ -222,8 +222,8 @@ listSupervisor(Definition def)
     int found = getClauses(def, cref, 2);
 
     if ( found == 2 &&
-	 argKey(cref[0]->value.clause->codes, 0, TRUE, &c[0]) &&
-	 argKey(cref[1]->value.clause->codes, 0, TRUE, &c[1]) &&
+	 arg1Key(cref[0]->value.clause->codes, &c[0]) &&
+	 arg1Key(cref[1]->value.clause->codes, &c[1]) &&
 	 ( (c[0] == ATOM_nil && c[1] == FUNCTOR_dot2) ||
 	   (c[1] == ATOM_nil && c[0] == FUNCTOR_dot2) ) )
     { Code codes = allocCodes(3);

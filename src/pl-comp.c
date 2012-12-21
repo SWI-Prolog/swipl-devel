@@ -3359,16 +3359,14 @@ skipArgs(Code PC, int skip)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 argKey() determines the indexing key for the  argument at the given code
 position after skipping skip argument terms   by  inspecting the virtual
-machine code. If constonly is  non-zero,  it   creates  a  key for large
-integers and floats. Otherwise it only succeeds on atoms, small integers
-and functors.
+machine code.
 
 NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
-pl-index.c!
+pl-index.c and arg1Key() below.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-argKey(Code PC, int skip, int constonly, word *key)
+argKey(Code PC, int skip, word *key)
 { if ( skip > 0 )
     PC = skipArgs(PC, skip);
 
@@ -3394,19 +3392,16 @@ argKey(Code PC, int skip, int constonly, word *key)
       case H_RLIST:
 	*key = FUNCTOR_dot2;
         succeed;
+#if SIZEOF_VOIDP == 4
       case H_INT64:			/* only on 32-bit hardware! */
-	if ( !constonly )
 	{ word k = (word)PC[0] ^ (word)PC[1];
 	  if ( !k )
 	    k++;
 	  *key = k;
           succeed;
-	} else
-	{ *key = 0;
-	  fail;
 	}
+#endif
       case H_INTEGER:
-	if ( !constonly )
 	{ word k;
 #if SIZEOF_VOIDP == 4
 	  k = (word)*PC;			/* indexOfWord() picks 64-bits */
@@ -3420,12 +3415,8 @@ argKey(Code PC, int skip, int constonly, word *key)
 	    k++;
 	  *key = k;
 	  succeed;
-	} else
-	{ *key = 0;
-	  fail;
 	}
       case H_FLOAT:			/* tbd */
-      if ( !constonly )
       { word k;
 	switch(WORDS_PER_DOUBLE)
 	{ case 2:
@@ -3467,6 +3458,67 @@ argKey(Code PC, int skip, int constonly, word *key)
         fail;
     }
   }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Similar to argKey(), but does not do   imprecise  keys and only does the
+first argument. This is used  by   listSupervisor().  This used to share
+with argKey(), but argKey() is time critical and merging complicates it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+arg1Key(Code PC, word *key)
+{ for(;;)
+  { code c = decode(*PC++);
+
+#if O_DEBUGGER
+  again:
+#endif
+    switch(c)
+    { case H_FUNCTOR:
+      case H_RFUNCTOR:
+	*key = (functor_t)*PC;
+        succeed;
+      case H_CONST:
+	*key = *PC;
+	succeed;
+      case H_NIL:
+	*key = ATOM_nil;
+        succeed;
+      case H_LIST_FF:
+      case H_LIST:
+      case H_RLIST:
+	*key = FUNCTOR_dot2;
+        succeed;
+      case H_INT64:
+      case H_INTEGER:
+      case H_FLOAT:
+      case H_STRING:
+      case H_MPZ:
+      case H_FIRSTVAR:
+      case H_VAR:
+      case H_VOID:
+      case H_VOID_N:
+      case I_EXITCATCH:
+      case I_EXITFACT:
+      case I_EXIT:			/* fact */
+      case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+	*key = 0;
+	fail;
+      case I_NOP:
+	continue;
+#ifdef O_DEBUGGER
+      case D_BREAK:
+        c = decode(replacedBreak(PC-1));
+	goto again;
+#endif
+      default:
+	assert(0);
+        fail;
+    }
+  }
+
 }
 
 

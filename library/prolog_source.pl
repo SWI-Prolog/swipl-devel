@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -39,7 +37,8 @@
 
 	    file_name_on_path/2,	% +File, -PathSpec
 	    file_alias_path/2,		% ?Alias, ?Dir
-	    path_segments_atom/2	% ?Segments, ?Atom
+	    path_segments_atom/2,	% ?Segments, ?Atom
+	    directory_source_files/3	% +Dir, -Files, +Options
 	  ]).
 :- use_module(operators).
 :- use_module(lists).
@@ -92,6 +91,11 @@ users of the library are:
 		       error(-any),
 		       pass_to(system:read_term/3, 3)
 		     ]).
+:- predicate_options(directory_source_files/3, 3,
+		     [ recursive(boolean),
+		       if(oneof([true,loaded])),
+		       pass_to(system:absolute_file_name/3,3)
+		     ]).
 
 
 		 /*******************************
@@ -101,10 +105,7 @@ users of the library are:
 %%	prolog_read_source_term(+In, -Term, -Expanded, +Options) is det.
 %
 %	Read a term from a Prolog source-file.  Options is a option list
-%	that is forwarded to read_term/3.  In addition, it accepts:
-%
-%	    * process_comment(+Boolean)
-%	    If =true=, process structured comments for PlDoc
+%	that is forwarded to read_clause/3.
 %
 %	This predicate is intended to read the   file from the start. It
 %	tracks directives to update its notion of the currently effectie
@@ -411,7 +412,7 @@ prolog_close_source(In) :-
 	close(In).
 
 
-%%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is det.
+%%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is semidet.
 %
 %	Given a user-specification of a source,   generate  a unique and
 %	indexable  identifier  for   it.   For    files   we   use   the
@@ -546,4 +547,63 @@ parts_to_path(List, More/T) :-
 	->  parts_to_path(H, More)
 	).
 
+%%	directory_source_files(+Dir, -Files, +Options) is det.
+%
+%	True when Files is a sorted list  of Prolog source files in Dir.
+%	Options:
+%
+%	  * recursive(boolean)
+%	  If =true= (default =false=), recurse into subdirectories
+%	  * if(Condition)
+%	  If =true= (default =loaded=), only report loaded files.
+%
+%	Other  options  are  passed    to  absolute_file_name/3,  unless
+%	loaded(true) is passed.
 
+directory_source_files(Dir, SrcFiles, Options) :-
+	option(if(loaded), Options, loaded), !,
+	absolute_file_name(Dir, AbsDir, [file_type(directory), access(read)]),
+	(   option(recursive(true), Options)
+	->  ensure_slash(AbsDir, Prefix),
+	    findall(F, (  source_file(F),
+			  sub_atom(F, 0, _, _, Prefix)
+		       ),
+		    SrcFiles)
+	;   findall(F, ( source_file(F),
+			 file_directory_name(F, AbsDir)
+		       ),
+		    SrcFiles)
+	).
+directory_source_files(Dir, SrcFiles, Options) :-
+	absolute_file_name(Dir, AbsDir, [file_type(directory), access(read)]),
+	directory_files(AbsDir, Files),
+	phrase(src_files(Files, AbsDir, Options), SrcFiles).
+
+src_files([], _, _) -->
+	[].
+src_files([H|T], Dir, Options) -->
+	{ file_name_extension(_, Ext, H),
+	  user:prolog_file_type(Ext, prolog),
+	  \+ user:prolog_file_type(Ext, qlf),
+	  directory_file_path(Dir, H, File0),
+	  absolute_file_name(File0, File,
+			     [ file_errors(fail)
+			     | Options
+			     ])
+	}, !,
+	[File],
+	src_files(T, Dir, Options).
+src_files([H|T], Dir, Options) -->
+	{ \+ special(H),
+	  option(recursive(true), Options),
+	  directory_file_path(Dir, H, SubDir),
+	  exists_directory(SubDir), !,
+	  catch(directory_files(SubDir, Files), _, fail)
+	}, !,
+	src_files(Files, SubDir, Options),
+	src_files(T, Dir, Options).
+src_files([_|T], Dir, Options) -->
+	src_files(T, Dir, Options).
+
+special(.).
+special(..).

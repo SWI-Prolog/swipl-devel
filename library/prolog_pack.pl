@@ -37,7 +37,8 @@
 	    pack_upgrade/1,		% +Name
 	    pack_rebuild/1,		% +Name
 	    pack_rebuild/0,		% All packages
-	    pack_remove/1		% +Name
+	    pack_remove/1,		% +Name
+	    pack_property/2		% ?Name, ?Property
 	  ]).
 :- use_module(library(apply)).
 :- use_module(library(error)).
@@ -56,16 +57,16 @@
 
 /** <module> A package manager for Prolog
 
-The  library(prolog_pack)  defines  a   simple    package   manager  for
-SWI-Prolog. This library lets you   inspect  installed packages, install
-packages, remove packages, etc.  It  is   complemented  by  the built-in
-attach_packs/0 that makes installed packages available as libaries.
+The library(prolog_pack) provides the SWI-Prolog   package manager. This
+library lets you inspect installed   packages,  install packages, remove
+packages, etc. It is complemented by   the  built-in attach_packs/0 that
+makes installed packages available as libaries.
 
+@see	Installed packages can be inspected using =|?- doc_browser.|=
 @tbd	Version logic
 @tbd	Find and resolve conflicts
 @tbd	Upgrade git packages
-@tbd	Validate packages (git: signatures, others: SHA1)
-@tbd	Build foreign resources
+@tbd	Validate git packages
 @tbd	Test packages: run tests from directory `test'.
 */
 
@@ -787,7 +788,8 @@ configure_foreign(PackDir, Options) :-
 	exists_file(Configure), !,
 	build_environment(BuildEnv),
 	run_process(path(bash), [Configure],
-		    [ env(BuildEnv)
+		    [ env(BuildEnv),
+		      directory(PackDir)
 		    ]).
 configure_foreign(_, _).
 
@@ -1085,6 +1087,54 @@ confirm_remove(Pack, Deps, Delete) :-
 
 
 		 /*******************************
+		 *	     PROPERTIES		*
+		 *******************************/
+
+%%	pack_property(?Pack, ?Property) is nondet.
+%
+%	True when Property is a  property   of  Pack.  This interface is
+%	intended for programs that wish  to   interact  with the package
+%	manager.  Defined properties are:
+%
+%	  - directory(Directory)
+%	  Directory into which the package is installed
+%	  - version(Version)
+%	  Installed version
+%	  - title(Title)
+%	  Full title of the package
+%	  - author(Author)
+%	  Registered author
+%	  - download(URL)
+%	  Official download URL
+%	  - readme(File)
+%	  Package README file (if present)
+%	  - todo(File)
+%	  Package TODO file (if present)
+
+pack_property(Pack, Property) :-
+	findall(Pack-Property, pack_property_(Pack, Property), List),
+	member(Pack-Property, List).		% make det if applicable
+
+pack_property_(Pack, Property) :-
+	pack_info(Pack, _, Property).
+pack_property_(Pack, Property) :-
+	\+ \+ info_file(Property, _),
+	'$pack':pack(Pack, BaseDir),
+	access_file(BaseDir, read),
+	directory_files(BaseDir, Files),
+	member(File, Files),
+	info_file(Property, Pattern),
+	downcase_atom(File, Pattern),
+	directory_file_path(BaseDir, File, InfoFile),
+	arg(1, Property, InfoFile).
+
+info_file(readme(_), 'readme.txt').
+info_file(readme(_), 'readme').
+info_file(todo(_),   'todo.txt').
+info_file(todo(_),   'todo').
+
+
+		 /*******************************
 		 *	       GIT		*
 		 *******************************/
 
@@ -1373,6 +1423,10 @@ available_download_versions(URL, Versions) :-
 	findall(MatchingURL,
 		absolute_matching_href(DOM, URL, MatchingURL),
 		MatchingURLs),
+	(   MatchingURLs == []
+	->  print_message(warning, pack(no_matching_urls(URL)))
+	;   true
+	),
 	versioned_urls(MatchingURLs, VersionedURLs),
 	keysort(VersionedURLs, SortedVersions),
 	reverse(SortedVersions, Versions).
@@ -1792,6 +1846,8 @@ message(up_to_date(Pack)) -->
 	[ 'Package "~w" is up-to-date'-[Pack] ].
 message(query_versions(URL)) -->
 	[ 'Querying "~w" to find new versions ...'-[URL] ].
+message(no_matching_urls(URL)) -->
+	[ 'Could not find any matching URL: ~q'-[URL] ].
 message(process_output(Codes)) -->
 	{ split_lines(Codes, Lines) },
 	process_lines(Lines).

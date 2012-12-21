@@ -791,6 +791,7 @@ pl_garbage_collect_atoms(void)
 
   PL_LOCK(L_THREAD);
   PL_LOCK(L_AGC);
+  PL_LOCK(L_STOPTHEWORLD);
   LOCK();
   GD->atoms.gc_active = TRUE;
   blockSignals(&set);
@@ -810,6 +811,7 @@ pl_garbage_collect_atoms(void)
   GD->atoms.gc++;
   unblockSignals(&set);
   UNLOCK();
+  PL_UNLOCK(L_STOPTHEWORLD);
   PL_UNLOCK(L_AGC);
   PL_UNLOCK(L_THREAD);
   gc_status.blocked--;

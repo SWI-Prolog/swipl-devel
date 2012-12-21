@@ -3080,6 +3080,49 @@ in the spirit of the traditional Edinburgh standard. These predicates
 are layered on top of the ISO predicates. Both packages are fully
 integrated; the user may switch freely between them.
 
+\subsection{Predefined stream aliases}			\label{sec:streamalias}
+
+Each thread has five stream aliases: \const{user_input},
+\const{user_output}, \const{user_error}, \const{current_input}, and
+\const{current_output}. Newly created threads inherit these stream
+aliases from theyr parent. The \const{user_input}, \const{user_output}
+and \const{user_error} aliases of the \const{main} thread are initially
+bound to the standard operating system I/O streams (\jargon{stdin},
+\jargon{stdout} and \jargon{stderr}, normally bound to the POSIX file
+handles 0,~1 and~2). These aliases may be re-bound, for example if
+standard I/O refers to a window such as in the \program{swipl-win.exe}
+GUI executable for Windows. They can be re-bound by the user using
+set_prolog_IO/3 and set_stream/2 by setting the alias of a stream (e.g,
+\exam{set_stream(S, alias(user_output))}). An example of rebinding can
+be found in library \pllib{prolog_server}, providing a \program{telnet}
+service. The aliases \const{current_input} and \const{current_output}
+define the source and destination for predicates that do not take a
+stream argument (e.g., read/1, write/1, get_code/1, \ldots). Initially,
+these are bound to the same stream as \const{user_input} and
+\const{user_error}. They are re-bound by see/1, tell/1, set_input/1 and
+set_output/1. The \const{current_output} stream is also temporary
+re-bound by with_output_to/2 or format/3 using e.g.,
+\exam{format(atom(A), ...}. Note that code which explicitly writes to
+the streams \const{user_output} and \const{user_error} will not be
+redirected by with_output_to/2.
+
+\paragraph{Compatibility}
+
+Note that the ISO standard only defines the \const{user_*} streams. The
+`current' streams can be accessed using current_input/1 and
+current_output/1.  For example, an ISO compatible implementation of
+write/1 is
+
+\begin{code}
+write(Term) :- current_output(Out), write_term(Out, Term).
+\end{code}
+
+while SWI-Prolog additionally allows for
+
+\begin{code}
+write(Term) :- write(current_output, Term).
+\end{code}
+
 
 \subsection{ISO Input and Output Streams}		\label{sec:isoIO}
 

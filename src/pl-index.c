@@ -40,7 +40,7 @@ static void		replaceIndex(Definition def,
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Maximum number of clauses we  look  ahead   on  indexed  clauses  for an
-alternative clause. If the choice is committed   this is lost effort, it
+alternative clause. If the choice is committed   this is lost effort, if
 it reaches the end of the clause list   without  finding one the call is
 deterministic.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -239,6 +239,12 @@ nextClauseFromBucket(ClauseChoice chp, gen_t generation, int is_list)
 }
 
 
+static inline word
+indexKeyFromArgv(ClauseIndex ci, Word argv ARG_LD)
+{ return indexOfWord(argv[ci->args[0]-1] PASS_LD);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 firstClause() finds the first applicable   clause  and leave information
 for finding the next clause in chp.
@@ -258,7 +264,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   int best;
 
   if ( def->functor->arity == 0 )
-    goto simple;
+    goto simple;				/* TBD: alt supervisor */
 
   if ( def->impl.clauses.clause_indexes )
   { float speedup = 0.0;
@@ -268,7 +274,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
     { if ( ci->speedup > speedup )
       { word k;
 
-	if ( (k=indexOfWord(argv[ci->arg-1] PASS_LD)) )
+	if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
 	{ chp->key = k;
 	  speedup = ci->speedup;
 	  best_index = ci;
@@ -289,7 +295,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 	{ best_index->tried_better = new_bitvector(def->functor->arity);
 
 	  for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
-	    set_bit(best_index->tried_better, ci->arg-1);
+	    set_bit(best_index->tried_better, ci->args[0]-1);
 	}
 
 	if ( (best=bestHash(argv, def,
@@ -298,7 +304,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 	{ DEBUG(MSG_JIT, Sdprintf("Found better at arg %d\n", best+1));
 
 	  if ( (ci=hashDefinition(def, best+1, &hints)) )
-	  { chp->key = indexOfWord(argv[ci->arg-1] PASS_LD);
+	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
 	    assert(chp->key);
 	    best_index = ci;
 	  }
@@ -325,7 +331,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   { if ( (ci=hashDefinition(def, best+1, &hints)) )
     { int hi;
 
-      chp->key = indexOfWord(argv[ci->arg-1] PASS_LD);
+      chp->key = indexKeyFromArgv(ci, argv PASS_LD);
       assert(chp->key);
       hi = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
@@ -388,7 +394,7 @@ newClauseIndexTable(int arg, hash_hints *hints)
   bytes = sizeof(struct clause_bucket) * hints->buckets;
 
   memset(ci, 0, sizeof(*ci));
-  ci->arg     = arg;
+  ci->args[0] = arg;
   ci->buckets = hints->buckets;
   ci->is_list = hints->list;
   ci->speedup = hints->speedup;
@@ -969,6 +975,15 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 }
 
 
+static inline word
+indexKeyFromClause(ClauseIndex ci, Clause cl)
+{ word key;
+
+  argKey(cl->codes, ci->args[0]-1, &key);
+  return key;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deal with deletion of an active  clause   from  the indexes. This clause
 cannot really be deleted as it might  still   be  alive  for goals of an
@@ -984,9 +999,7 @@ bucket.
 
 static void
 deleteActiveClauseFromIndex(ClauseIndex ci, Clause cl)
-{ word key;
-
-  argKey(cl->codes, ci->arg-1, FALSE, &key);
+{ word key = indexKeyFromClause(ci, cl);
 
   if ( key == 0 )			/* not indexed */
   { int i;
@@ -1061,9 +1074,7 @@ indexed. This is needed for resizing the index.
 static void
 addClauseToIndex(ClauseIndex ci, Clause cl, int where)
 { ClauseBucket ch = ci->entries;
-  word key;
-
-  argKey(cl->codes, ci->arg-1, FALSE, &key);
+  word key = indexKeyFromClause(ci, cl);
 
   if ( key == 0 )			/* a non-indexable field */
   { int n = ci->buckets;
@@ -1117,9 +1128,7 @@ delClauseFromIndex(Definition def, Clause cl)
 
   for(ci=def->impl.clauses.clause_indexes; ci; ci=ci->next)
   { ClauseBucket ch = ci->entries;
-    word key;
-
-    argKey(cl->codes, ci->arg-1, FALSE, &key);
+    word key = indexKeyFromClause(ci, cl);
 
     if ( key == 0 )			/* a non-indexable field */
     { int n = ci->buckets;
@@ -1168,7 +1177,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   if ( !dyn_or_multi )
     LOCKDEF(def);
   for(old=def->impl.clauses.clause_indexes; old; old=old->next)
-  { if ( old->arg == arg )
+  { if ( old->args[0] == arg )
       break;
   }
 
@@ -1176,7 +1185,7 @@ hashDefinition(Definition def, int arg, hash_hints *hints)
   { ClauseIndex conc;
 
     for(conc=def->impl.clauses.clause_indexes; conc; conc=conc->next)
-    { if ( conc->arg == arg )
+    { if ( conc->args[0] == arg )
       { UNLOCKDEF(def);
 	unallocClauseIndexTable(ci);
 	return conc;
@@ -1469,7 +1478,7 @@ bestHash(Word av, Definition def,
       { pc = skipArgs(pc, a->arg-carg);
 	carg = a->arg;
       }
-      if ( argKey(pc, 0, FALSE, &k) )
+      if ( argKey(pc, 0, &k) )
       { assessAddKey(a, k);
       } else
       { a->var_count++;
@@ -1530,7 +1539,7 @@ static int
 unify_clause_index(term_t t, ClauseIndex ci)
 { return PL_unify_term(t,
 		       PL_FUNCTOR, FUNCTOR_minus2,
-			 PL_INT, (int)ci->arg,
+			 PL_INT, (int)ci->args[0],
 			 PL_FUNCTOR_CHARS, "hash", 3,
 			   PL_INT, (int)ci->buckets,
 			   PL_DOUBLE, (double)ci->speedup,

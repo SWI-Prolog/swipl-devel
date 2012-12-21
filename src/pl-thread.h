@@ -153,11 +153,12 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TERM	       16
 #define L_GC	       17
 #define L_AGC	       18
-#define L_FOREIGN      19
-#define L_OS	       20
+#define L_STOPTHEWORLD 19
+#define L_FOREIGN      20
+#define L_OS	       21
 #ifdef __WINDOWS__
-#define L_DDE	       21
-#define L_CSTACK       22
+#define L_DDE	       22
+#define L_CSTACK       23
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

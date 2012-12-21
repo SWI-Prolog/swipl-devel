@@ -899,7 +899,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   word key;
   ClauseRef cref;
 
-  argKey(clause->codes, 0, FALSE, &key);
+  argKey(clause->codes, 0, &key);
   cref = newClauseRef(clause, key);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
@@ -1623,6 +1623,7 @@ pl_garbage_collect_clauses(void)
     LOCK();
     PL_LOCK(L_GC);
     PL_LOCK(L_THREAD);
+    PL_LOCK(L_STOPTHEWORLD);
     blockSignals(&set);
 
 					/* sanity-check */
@@ -1673,6 +1674,7 @@ pl_garbage_collect_clauses(void)
 #endif
 
     unblockSignals(&set);
+    PL_UNLOCK(L_STOPTHEWORLD);
     PL_UNLOCK(L_THREAD);
     PL_UNLOCK(L_GC);
     UNLOCK();
@@ -3101,6 +3103,7 @@ unloadFile(SourceFile sf)
 
   LOCK();
   PL_LOCK(L_THREAD);
+  PL_LOCK(L_STOPTHEWORLD);
   blockSignals(&set);
 
   GD->procedures.active_marked = 0;
@@ -3174,6 +3177,7 @@ unloadFile(SourceFile sf)
   delAllModulesSourceFile__unlocked(sf);
 
   unblockSignals(&set);
+  PL_UNLOCK(L_STOPTHEWORLD);
   PL_UNLOCK(L_THREAD);
   UNLOCK();
 
@@ -3476,7 +3480,7 @@ listGenerations(Definition def)
     { unsigned int i;
 
       Sdprintf("\nHash %sindex for arg %d (%d dirty)\n",
-	       ci->is_list ? "list-" : "", ci->arg, ci->dirty);
+	       ci->is_list ? "list-" : "", ci->args[0], ci->dirty);
 
       for(i=0; i<ci->buckets; i++)
       { if ( !ci->entries[i].head &&

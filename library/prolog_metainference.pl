@@ -43,7 +43,7 @@ have incomplete or incorrect meta-predicate information.
 */
 
 
-%%	inferred_meta_predicate(:Head, ?MetaSpec) is nodet.
+%%	inferred_meta_predicate(:Head, ?MetaSpec) is nondet.
 %
 %	True when MetaSpec is an   inferred meta-predicate specification
 %	for Head.

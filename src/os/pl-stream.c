@@ -1762,9 +1762,9 @@ Sclose(IOSTREAM *s)
   if ( rval < 0 )
     reportStreamError(s);
   run_close_hooks(s);			/* deletes Prolog registration */
+  s->magic = SIO_CMAGIC;
   SUNLOCK(s);
 
-  s->magic = SIO_CMAGIC;
   if ( s->message )
     free(s->message);
   if ( s->references == 0 )

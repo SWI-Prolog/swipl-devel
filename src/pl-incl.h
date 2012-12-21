@@ -1221,14 +1221,16 @@ struct clause_bucket
   unsigned int	dirty;			/* # of garbage clauses */
 };
 
+#define MAX_MULTI_INDEX 1
+
 struct clause_index
 { unsigned int	 buckets;		/* # entries */
   unsigned int	 size;			/* # clauses */
   unsigned int	 resize_above;		/* consider resize > #clauses */
   unsigned int	 resize_below;		/* consider resize < #clauses */
-  unsigned short arg;			/* Indexed argument */
-  unsigned	 is_list : 1;		/* Index with lists */
   unsigned int	 dirty;			/* # chains that are dirty */
+  unsigned short args[MAX_MULTI_INDEX];	/* Indexed arguments */
+  unsigned	 is_list : 1;		/* Index with lists */
   float		 speedup;		/* Estimated speedup */
   struct bit_vector *tried_better;	/* We tried to access for better hash */
   ClauseIndex	 next;			/* Next index */
