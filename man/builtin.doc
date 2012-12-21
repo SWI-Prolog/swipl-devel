@@ -2023,7 +2023,7 @@ the Prolog flag \prologflag{verbose} to \const{silent}.
 Message from library(debug).  See debug/3.
 
     \termitem{error}{}
-The message indicates an errornous situation.  This kind is used to
+The message indicates an erroneous situation.  This kind is used to
 print uncaught exceptions of type \term{error}{Formal, Context}. See
 section introduction (\secref{printmsg}).
 
@@ -5921,7 +5921,7 @@ makes it explicit which part of the construct is the generator and which
 part creates the side effects. Also, unexpected failure of the side
 effect causes the construct to fail. Failure makes it evident that there
 is an issue with the code, while a failure driven loop would succeed
-with an errornous result.
+with an erroneous result.
 
 \begin{code}
 	...,
@@ -5932,7 +5932,7 @@ with an errornous result.
 	)
 \end{code}
 
-If your indent is to create variable bindings, the forall/2 control
+If your intent is to create variable bindings, the forall/2 control
 structure is inadequate.  Possibly you are looking for maplist/2,
 findall/3 or foreach/2.
 \end{description}
