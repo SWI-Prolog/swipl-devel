@@ -576,10 +576,9 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
     if ( s->erased )
        goto noent;
 
-    assert(s->magic == SIO_MAGIC);
-
     if ( flags & SH_UNLOCKED )
-    { *sp = s;
+    { assert( s->magic == SIO_MAGIC || s->magic == SIO_CMAGIC );
+      *sp = s;
       return TRUE;
     } else if ( (s=getStream(s)) )
     { *sp = s;
