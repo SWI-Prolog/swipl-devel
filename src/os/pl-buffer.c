@@ -28,6 +28,7 @@ int
 growBuffer(Buffer b, size_t minfree)
 { size_t osz = b->max - b->base, sz = osz;
   size_t top = b->top - b->base;
+  char *new;
 
   if ( b->max - b->top >= (int)minfree )
     return TRUE;
@@ -37,24 +38,17 @@ growBuffer(Buffer b, size_t minfree)
   while( top + minfree > sz )
     sz *= 2;
 
-  if ( b->base != b->static_buffer )
-  { char *new;
-
-    if ( (new=realloc(b->base, sz)) )
-    { b->base = new;
-    } else
-    { return FALSE;
-    }
-  } else			/* from static buffer */
-  { char *new;
-
-    if ( !(new = malloc(sz)) )
+  if ( b->base == b->static_buffer )
+  { if ( !(new = malloc(sz)) )
       return FALSE;
 
     memcpy(new, b->static_buffer, osz);
-    b->base = new;
+  } else
+  { if ( !(new = realloc(b->base, sz)) )
+      return FALSE;
   }
 
+  b->base = new;
   b->top = b->base + top;
   b->max = b->base + sz;
 
