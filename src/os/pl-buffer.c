@@ -42,8 +42,6 @@ growBuffer(Buffer b, size_t minfree)
 
     if ( (new=realloc(b->base, sz)) )
     { b->base = new;
-
-      return TRUEl
     } else
     { return FALSE;
     }
