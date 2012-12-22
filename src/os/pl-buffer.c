@@ -28,6 +28,7 @@ int
 growBuffer(Buffer b, size_t minfree)
 { size_t osz = b->max - b->base, sz = osz;
   size_t top = b->top - b->base;
+  char *new;
 
   if ( b->max - b->top >= (int)minfree )
     return TRUE;
@@ -37,20 +38,17 @@ growBuffer(Buffer b, size_t minfree)
   while( top + minfree > sz )
     sz *= 2;
 
-  if ( b->base != b->static_buffer )
-  { b->base = realloc(b->base, sz);
-    if ( !b->base )
-      return FALSE;
-  } else			/* from static buffer */
-  { char *new;
-
-    if ( !(new = malloc(sz)) )
+  if ( b->base == b->static_buffer )
+  { if ( !(new = malloc(sz)) )
       return FALSE;
 
     memcpy(new, b->static_buffer, osz);
-    b->base = new;
+  } else
+  { if ( !(new = realloc(b->base, sz)) )
+      return FALSE;
   }
 
+  b->base = new;
   b->top = b->base + top;
   b->max = b->base + sz;
 
@@ -62,7 +60,7 @@ growBuffer(Buffer b, size_t minfree)
 		 *	    BUFFER RING		*
 		 *******************************/
 
-#define discardable_buffer 	(LD->fli._discardable_buffer)
+#define discardable_buffer	(LD->fli._discardable_buffer)
 #define buffer_ring		(LD->fli._buffer_ring)
 #define current_buffer_id	(LD->fli._current_buffer_id)
 
