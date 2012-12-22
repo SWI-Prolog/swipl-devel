@@ -38,9 +38,15 @@ growBuffer(Buffer b, size_t minfree)
     sz *= 2;
 
   if ( b->base != b->static_buffer )
-  { b->base = realloc(b->base, sz);
-    if ( !b->base )
-      return FALSE;
+  { char *new;
+
+    if ( (new=realloc(b->base, sz)) )
+    { b->base = new;
+
+      return TRUEl
+    } else
+    { return FALSE;
+    }
   } else			/* from static buffer */
   { char *new;
 
@@ -62,7 +68,7 @@ growBuffer(Buffer b, size_t minfree)
 		 *	    BUFFER RING		*
 		 *******************************/
 
-#define discardable_buffer 	(LD->fli._discardable_buffer)
+#define discardable_buffer	(LD->fli._discardable_buffer)
 #define buffer_ring		(LD->fli._buffer_ring)
 #define current_buffer_id	(LD->fli._current_buffer_id)
 
