@@ -6342,74 +6342,6 @@ Start an interactive Unix shell.  Default is \file{/bin/sh}; the
 environment variable \env{SHELL} overrides this default.  Not available
 for Win32 platforms.
 
-    \predicate{win_exec}{2}{+Command, +Show}
-Win32 systems only. Spawns a Windows task without waiting for its
-completion.  \arg{Show} is one of the Win32 \const{SW_*} constants
-written in lowercase without the \const{SW_*}:
-\const{hide}
-\const{maximize}
-\const{minimize}
-\const{restore}
-\const{show}
-\const{showdefault}
-\const{showmaximized}
-\const{showminimized}
-\const{showminnoactive}
-\const{showna}
-\const{shownoactive}
-\const{shownormal}.
-In addition, \const{iconic} is a synonym for \const{minimize} and
-\const{normal} for \const{shownormal}.
-
-    \predicate{win_shell}{2}{+Operation, +File, +Show}
-Win32 systems only. Opens the document \arg{File} using the Windows
-shell rules for doing so. \arg{Operation} is one of \const{open}, \const{print}
-or \const{explore} or another operation registered with the shell for the given document type.  On modern systems it is also
-possible to pass a \index{URL}URL as \arg{File}, opening the URL in
-Windows default browser. This call interfaces to the Win32 API
-ShellExecute().  The \arg{Show} argument determines the initial
-state of the opened window (if any).  See win_exec/2 for defined
-values.
-
-    \predicate{win_shell}{2}{+Operation, +File}
-Same as \term{win_shell}{Operation, File, normal}
-
-    \predicate{win_registry_get_value}{3}{+Key, +Name, -Value}
-Win32 systems only. Fetches the value of a Win32 registry key.
-\arg{Key} is an atom formed as a path name describing the desired
-registry key. \arg{Name} is the desired attribute name of the key.
-\arg{Value} is unified with the value. If the value is of type
-\type{DWORD}, the value is returned as an integer. If the value is a
-string, it is returned as a Prolog atom. Other types are currently not
-supported. The default `root' is \const{HKEY_CURRENT_USER}. Other roots
-can be specified explicitly as \const{HKEY_CLASSES_ROOT},
-\const{HKEY_CURRENT_USER}, \const{HKEY_LOCAL_MACHINE} or
-\const{HKEY_USERS}.  The example below fetches the extension to use
-for Prolog files (see \file{README.TXT} on the Windows version):
-
-\begin{code}
-?- win_registry_get_value(
-       'HKEY_LOCAL_MACHINE/Software/SWI/Prolog',
-       fileExtension,
-       Ext).
-
-Ext = pl
-\end{code}
-
-    \predicate{win_folder}{2}{?Name, -Directory}
-True if \arg{Name} is the Windows `CSIDL' of \arg{Directory}.  If
-\arg{Name} is unbound, all known Windows special paths are generated.
-\arg{Name} is the CSIDL after deleting the leading \const{CSIDL_} and
-mapping the constant to lowercase.  Check the Windows documentation
-for the function SHGetSpecialFolderPath() for a description of the
-defined constants.  This example extracts the `My Documents' folder:
-
-\begin{code}
-?- win_folder(personal, MyDocuments).
-
-MyDocuments = 'C:/Documents and Settings/jan/My Documents'
-\end{code}
-
     \predicate{getenv}{2}{+Name, -Value}
 Get environment variable. Fails silently if the variable does not exist.
 Please note that environment variable names are case-sensitive on Unix
@@ -6486,6 +6418,122 @@ main :-
 	main(AppArgs).
 \end{code}
 \end{description}
+\end{description}
+
+\subsection{Windows-specific Operating System Interaction}
+\label{sec:winsystem}
+
+The predicates in this section are only available on the Windows version
+of SWI-Prolog. Their use is discouraged if there are portably
+alternatives. For example, win_exec/2 and will_shell/2 can often be
+replaced by the more portable shell/2 or the more powerful
+process_create/3.
+
+\begin{description}
+    \predicate{win_exec}{2}{+Command, +Show}
+Windows only. Spawns a Windows task without waiting for its
+completion.  \arg{Show} is one of the Win32 \const{SW_*} constants
+written in lowercase without the \const{SW_*}:
+\const{hide}
+\const{maximize}
+\const{minimize}
+\const{restore}
+\const{show}
+\const{showdefault}
+\const{showmaximized}
+\const{showminimized}
+\const{showminnoactive}
+\const{showna}
+\const{shownoactive}
+\const{shownormal}.
+In addition, \const{iconic} is a synonym for \const{minimize} and
+\const{normal} for \const{shownormal}.
+
+    \predicate{win_shell}{2}{+Operation, +File, +Show}
+Windows only. Opens the document \arg{File} using the Windows shell
+rules for doing so. \arg{Operation} is one of \const{open},
+\const{print} or \const{explore} or another operation registered with
+the shell for the given document type. On modern systems it is also
+possible to pass a \index{URL}URL as \arg{File}, opening the URL in
+Windows default browser. This call interfaces to the Win32 API
+ShellExecute(). The \arg{Show} argument determines the initial state of
+the opened window (if any). See win_exec/2 for defined values.
+
+    \predicate{win_shell}{2}{+Operation, +File}
+Same as \term{win_shell}{Operation, File, normal}
+
+    \predicate{win_registry_get_value}{3}{+Key, +Name, -Value}
+Windows only. Fetches the value of a Windows registry key. \arg{Key} is
+an atom formed as a path name describing the desired registry key.
+\arg{Name} is the desired attribute name of the key. \arg{Value} is
+unified with the value. If the value is of type \type{DWORD}, the value
+is returned as an integer. If the value is a string, it is returned as a
+Prolog atom. Other types are currently not supported. The default `root'
+is \const{HKEY_CURRENT_USER}. Other roots can be specified explicitly as
+\const{HKEY_CLASSES_ROOT}, \const{HKEY_CURRENT_USER},
+\const{HKEY_LOCAL_MACHINE} or \const{HKEY_USERS}. The example below
+fetches the extension to use for Prolog files (see \file{README.TXT} on
+the Windows version):
+
+\begin{code}
+?- win_registry_get_value(
+       'HKEY_LOCAL_MACHINE/Software/SWI/Prolog',
+       fileExtension,
+       Ext).
+
+Ext = pl
+\end{code}
+
+    \predicate{win_folder}{2}{?Name, -Directory}
+True if \arg{Name} is the Windows `CSIDL' of \arg{Directory}.  If
+\arg{Name} is unbound, all known Windows special paths are generated.
+\arg{Name} is the CSIDL after deleting the leading \const{CSIDL_} and
+mapping the constant to lowercase.  Check the Windows documentation
+for the function SHGetSpecialFolderPath() for a description of the
+defined constants.  This example extracts the `My Documents' folder:
+
+\begin{code}
+?- win_folder(personal, MyDocuments).
+
+MyDocuments = 'C:/Documents and Settings/jan/My Documents'
+\end{code}
+
+    \predicate{win_add_dll_directory}{1}{+AbsDir}
+This predicate adds a directory to the search path for dependent DLL
+files.  If possible, this is achieved with win_add_dll_directory/2.
+Otherwise, \const{\%PATH\%} is extended with the provided directory.
+\arg{AbsDir} may be specified in the Prolog canonical syntax.  See
+prolog_to_os_filename/2.  Note that use_foreign_library/1 passes an
+absolute path to the DLL if the destination DLL can be located from
+the specification using absolute_file_name/3.
+
+    \predicate{win_add_dll_directory}{2}{+AbsDir, -Cookie}
+This predicate adds a directory to the search path for dependent DLL
+files. If the call is successful it unifies \arg{Cookie} with a handle
+that must be passed to win_remove_dll_directory/1 to remove the
+directory from the search path. Error conditions:
+
+    \begin{itemize}
+    \item This predicate is available in the Windows port of SWI-Prolog
+	  starting from 6.3.8/6.2.6.
+    \item This predicate \emph{fails} if Windows does not yet support the
+          underlying primitives.  These are available in recently
+	  patched Windows~7 systems and later.
+    \item This predicate throws an acception if the provided path is
+          invalid or the underlying Windows API returns an error.
+    \end{itemize}
+
+If open_shared_object/2 is passed an \emph{absolute} path to a DLL on a
+Windows installation that supports AddDllDirectory() and
+friends,\footnote{Windows~7 with up-to-date patches or Windows~8.}
+SWI-Prolog uses LoadLibraryEx() with the flags
+\const{LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR} and
+\const{LOAD_LIBRARY_SEARCH_DEFAULT_DIRS}. In this scenario, directories
+from \const{\%PATH\%} and \emph{not} searched. Additional directories
+can be added using win_add_dll_directory/2.
+
+    \predicate{win_remove_dll_directory}{1}{-Cookie}
+Remove a DLL search directory installed using win_add_dll_directory/2.
 \end{description}
 
 
