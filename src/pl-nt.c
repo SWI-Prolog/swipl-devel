@@ -629,14 +629,21 @@ need. They are used  by  pl-load.c,   which  defines  the  actual Prolog
 interface.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef HAVE_LIBLOADERAPI_H
+#include <LibLoaderAPI.h>
+#else
 #ifndef LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
 #define LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR 0x00000100
 #endif
 #ifndef LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
 #define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS 0x00001000
 #endif
+typedef void * DLL_DIRECTORY_COOKIE;
+#endif
 
 static const char *dlmsg;
+static DLL_DIRECTORY_COOKIE WINAPI (*f_AddDllDirectoryW)(wchar_t* dir);
+static BOOL WINAPI (*f_RemoveDllDirectory)(DLL_DIRECTORY_COOKIE);
 
 static DWORD
 load_library_search_flags(void)
@@ -644,8 +651,10 @@ load_library_search_flags(void)
   static DWORD flags = 0;
 
   if ( !done )
-  { if ( GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")),
-			"AddDllDirectory") )
+  { HMODULE kernel = GetModuleHandle(TEXT("kernel32.dll"));
+
+    if ( (f_AddDllDirectoryW   = (void*)GetProcAddress(kernel, "AddDllDirectory")) &&
+	 (f_RemoveDllDirectory = (void*)GetProcAddress(kernel, "RemoveDllDirectory")) )
     { flags = ( LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR|
 		LOAD_LIBRARY_SEARCH_DEFAULT_DIRS );
     }
@@ -653,6 +662,46 @@ load_library_search_flags(void)
   }
 
   return flags;
+}
+
+
+static
+PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
+{ PRED_LD
+  char *dirs;
+
+  if ( PL_get_file_name(A1, &dirs, REP_UTF8) )
+  { size_t len = utf8_strlen(dirs, strlen(dirs));
+    wchar_t *dirw = alloca((len+10)*sizeof(wchar_t));
+    DLL_DIRECTORY_COOKIE cookie;
+
+    if ( _xos_os_filenameW(dirs, dirw, len+10) == NULL )
+      return PL_representation_error("file_name");
+    if ( load_library_search_flags() )
+    { if ( (cookie = (*f_AddDllDirectoryW)(dirw)) )
+	return PL_unify_int64(A2, (int64_t)cookie);
+      return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "AddDllDirectory()");
+    } else
+      return FALSE;
+  } else
+    return FALSE;
+}
+
+
+static
+PRED_IMPL("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
+{ int64_t icookie;
+
+  if ( PL_get_int64_ex(A1, &icookie) )
+  { if ( f_RemoveDllDirectory )
+    { if ( (*f_RemoveDllDirectory)((DLL_DIRECTORY_COOKIE)icookie) )
+	return TRUE;
+
+      return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "RemoveDllDirectory()");
+    } else
+      return FALSE;
+  } else
+    return FALSE;
 }
 
 
@@ -1055,6 +1104,8 @@ BeginPredDefs(win)
   PRED_DEF("win_shell", 3, win_shell3, 0)
   PRED_DEF("win_registry_get_value", 3, win_registry_get_value, 0)
   PRED_DEF("win_folder", 2, win_folder, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("win_add_dll_directory", 2, win_add_dll_directory, 0)
+  PRED_DEF("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
 EndPredDefs
 
 #endif /*__WINDOWS__*/

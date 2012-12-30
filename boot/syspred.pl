@@ -885,6 +885,22 @@ shell :-
 shell :-
 	shell('/bin/sh').
 
+%%	win_add_dll_directory(+AbsDir) is det.
+%
+%	Add AbsDir to the directories where  dependent DLLs are searched
+%	on Windows systems.
+
+:- if(current_prolog_flag(windows, true)).
+:- export(win_add_dll_directory/1).
+win_add_dll_directory(Dir) :-
+	win_add_dll_directory(Dir, _), !.
+win_add_dll_directory(Dir) :-
+	prolog_to_os_filename(Dir, OSDir),
+	getenv('PATH', Path0),
+	atomic_list_concat([Path0, OSDir], ';', Path),
+	setenv('PATH', Path).
+:- endif.
+
 		 /*******************************
 		 *	      SIGNALS		*
 		 *******************************/
