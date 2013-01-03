@@ -785,9 +785,11 @@ PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
 
 PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #ifndef PL_KERNEL
-#define Suser_input  (_PL_streams()[0])
-#define Suser_output (_PL_streams()[1])
-#define Suser_error  (_PL_streams()[2])
+#define Suser_input     (_PL_streams()[0])
+#define Suser_output    (_PL_streams()[1])
+#define Suser_error     (_PL_streams()[2])
+#define Scurrent_input  (_PL_streams()[3])
+#define Scurrent_output (_PL_streams()[4])
 #endif
 
 #define PL_WRT_QUOTED		0x01	/* quote atoms */
