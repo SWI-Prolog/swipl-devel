@@ -34,7 +34,8 @@ Tests that are hard to classify
 
 test_write :-
 	run_tests([ portray,
-		    write_canonical
+		    write_canonical,
+		    write_variable_names
 		  ]).
 
 :- begin_tests(portray).
@@ -71,3 +72,30 @@ test(numbervars, X = 'x(\'$VAR\'(1),_)') :-
 		       write_canonical(x('$VAR'(1),_))).
 
 :- end_tests(write_canonical).
+
+:- begin_tests(write_variable_names).
+
+test(variable_names, X = 'a(B)') :-
+	with_output_to(
+	    atom(X),
+	    write_term(a(A), [variable_names([A='B'])])).
+test(variable_names, error(type_error(atom, 1))) :-
+	with_output_to(
+	    atom(_),
+	    write_term(a(A), [variable_names([A=1])])).
+test(variable_names, error(domain_error(variable_name, '1'))) :-
+	with_output_to(
+	    atom(_),
+	    write_term(a(A), [variable_names([A='1'])])).
+test(variable_names, X = 'a(\'$VAR\'(1),B)') :-
+	with_output_to(
+	    atom(X),
+	    write_term(a('$VAR'(1), A),
+		       [variable_names([A='B']), quoted(true)])).
+test(variable_names, X = 'a(A,B)') :-
+	with_output_to(
+	    atom(X),
+	    write_term(a('$VAR'(0), A),
+		       [variable_names([A='B']), numbervars(true)])).
+
+:- end_tests(write_variable_names).

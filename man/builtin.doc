@@ -4177,6 +4177,29 @@ readability. The default is \const{standard}, adding only space where
 needed for proper tokenization by read_term/3.  Currently, the only
 other value is \const{next_argument}, adding a space after a comma
 used to separate arguments in a term or list.
+
+    \termitem{variable_names}{+List}
+Assign names to variables in \arg{Term}. \arg{List} is a list of terms
+\mbox{\arg{Var} = \arg{Name}}, where \arg{Name} is an atom that
+represents a valid Prolog variable name. Terms where \arg{Var} is bound
+or is a variable that does not appear in \arg{Term} are ignored. Raises
+an error if \arg{List} is not a list, one of the members is not a term
+\mbox{\arg{Var} = \arg{Name}}, \arg{Name} is not an atom or \arg{Name}
+does not represent a valid Prolog variable name.
+
+The implementation binds the variables from \arg{List} to a term
+\verb"'$VAR'"(\arg{Name}).  Like write_canonical/1, terms that
+where already bound to \verb"'$VAR'"(\arg{X}) before write_term/2
+are printed normally, unless the option \term{numbervars}{true} is
+also provided.  If the option \term{numbervars}{true} is used, the
+user is responsible for avoiding collisions between assigned names
+and numbered names. See also the \const{variable_names} option of
+read_term/2.
+
+Possible variable attributes (see \secref{extvar}) are ignored.  In
+most cases one should use copy_term/3 to obtain a copy that is free
+of attributed variables and handle the associated constraints as
+appropriate for the use-case.
 \end{description}
 
     \predicate[ISO]{write_term}{3}{+Stream, +Term, +Options}
@@ -6538,7 +6561,7 @@ directory from the search path. Error conditions:
 
 If open_shared_object/2 is passed an \emph{absolute} path to a DLL on a
 Windows installation that supports AddDllDirectory() and
-friends,\footnote(Windows~7 with up-to-date patches or Windows~8.}
+friends,\footnote{Windows~7 with up-to-date patches or Windows~8.}
 SWI-Prolog uses LoadLibraryEx() with the flags
 \const{LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR} and
 \const{LOAD_LIBRARY_SEARCH_DEFAULT_DIRS}. In this scenario, directories

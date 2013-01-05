@@ -58,7 +58,8 @@
 		       portray_goal(callable+2), % as in meta_predicate
 		       priority(between(0,1200)),
 		       quoted(boolean),
-		       spacing(oneof([standard,next_argument]))
+		       spacing(oneof([standard,next_argument])),
+		       variable_names(list)
 		     ]).
 :- predicate_options(system:write_term/2, 2,
 		     [ pass_to(system:write_term/3, 3)
