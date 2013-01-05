@@ -36,7 +36,8 @@ test_bips :-
 		    bips_occurs_check_error,
 		    coroutining,
 		    arg,
-		    eq
+		    eq,
+		    length
 		  ]).
 
 has_occurs_check_flag :-
@@ -91,37 +92,6 @@ test(iso_8_11_8, [ condition(null_file(Null)),
 		   E == at
 		 ]) :-
 	stream_property(S, end_of_stream(E)).
-
-/* draft examples: */
-test(iso_8_18_2_4,[Length==3]) :-
-	length([1, 2, 3], Length).
-test(iso_8_18_2_4,[List =@= [_,_,_]]) :-
-	length(List, 3).
-test(iso_8_18_2_4,[fail]) :- % maybe disagreement error(domain_error(not_less_than_zero, -2))
-	length(_List, -2).
-test(iso_8_18_2_4,[all(List-Length =@= [[]-0, [_]-1, [_,_]-2])]) :-
-	length(List,Length),
-	( Length >= 2 -> ! ; true ).
-/* addendum in (probable) agreement */
-test(iso_8_18_2_3,[error(type_error(integer,a))]) :-
-	length(_, a).
-test(iso_8_18_2_3,[sto(rational_trees),Length==3]) :-
-	List = [List,List,List],
-	length(List,Length).
-test(iso_8_18_2_3,[error(type_error(integer,(1+2)))]) :-
-	length(_,1+2).
-
-/* (current) disagreement with draft */
-test(noniso, [error(type_error(list,a))]) :-
-	length(a,_).
-test(noniso, [error(type_error(list,_))]) :-
-	length([_,_|a],_).
-test(noniso, [sto(rational_trees),error(type_error(list,List))]) :-
-	List = [List,List,List|List],
-	length(List, _).
-
-test(swi, [fail, condition(current_prolog_flag(bounded, false))]) :- % Item#285
-	length(_,-300000000000000000).
 
 :- end_tests(bips).
 
@@ -194,3 +164,43 @@ test(eq_ff, true) :-
 	a.
 
 :- end_tests(eq).
+
+:- begin_tests(length).
+
+test(comp_len,[Length==3]) :-
+	length([1, 2, 3], Length).
+test(gen_list,[List =@= [_,_,_]]) :-
+	length(List, 3).
+test(neg_len,[error(domain_error(not_less_than_zero, -2))]) :-
+	length(_List, -2).
+test(gen_unbound,[all(List-Length =@= [[]-0, [_]-1, [_,_]-2])]) :-
+	length(List,Length),
+	( Length >= 2 -> ! ; true ).
+test(no_integer,[error(type_error(integer,a))]) :-
+	length(_, a).
+test(no_integer,[error(type_error(integer,0.1))]) :-
+	length(_, 0.1).
+test(no_integer,[error(type_error(integer,-0.1))]) :-
+	length(_, -0.1).
+test(cycle,[sto(rational_trees),Length==3]) :-
+	List = [List,List,List],
+	length(List,Length).
+test(expression,[error(type_error(integer,(1+2)))]) :-
+	length(_,1+2).
+
+/* disagreement with ISO */
+test(no_list, [error(type_error(list,a))]) :-
+	length(a,_).
+test(no_list, [error(type_error(list,_))]) :-
+	length([_,_|a],_).
+test(no_list, [sto(rational_trees),error(type_error(list,List))]) :-
+	List = [List,List,List|List],
+	length(List, _).
+
+test(swi, [ error(domain_error(not_less_than_zero, -300000000000000000)),
+	    condition(current_prolog_flag(bounded, false))
+	  ]) :- % Item#285
+	length(_,-300000000000000000).
+
+
+:- end_tests(length).

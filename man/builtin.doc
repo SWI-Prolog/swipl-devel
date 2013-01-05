@@ -5786,14 +5786,27 @@ is_list([_|T]) :-
     \predicate{memberchk}{2}{?Elem, +List}
 Same as \exam{once(member(\arg{Elem}, \arg{List}))}.  See member/2.
 
-    \predicate{length}{2}{?List, ?Int}
+    \predicate[ISO]{length}{2}{?List, ?Int}
 True if \arg{Int} represents the number of elements in \arg{List}.
 This predicate is a true relation and can be used to find the length of
 a list or produce a list (holding variables) of length \arg{Int}.  The
 predicate is non-deterministic, producing lists of increasing length if
 \arg{List} is a \jargon{partial list} and \arg{Int} is unbound. It
-raises errors if \arg{List} is not a list or partial list or \arg{Int}
-is not an integer or unbound.
+raises errors if
+
+    \begin{itemize}
+    \item \arg{Int} is bound to a non-integer.
+    \item \arg{Int} is a negative integer.
+    \item \arg{List} is neither a list nor a partial list.  This
+	  error condition includes cyclic lists.\footnote{ISO
+	  demands failure here. We think an error is more appropriate.}
+    \end{itemize}
+
+This predicate fails if the tail of \arg{List} is equivalent to
+\arg{Int} (e.g., \exam{length(L,L)}).\footnote{This is logically
+correct. An exception would be more appropriate, but to our best
+knowledge, current practice in Prolog does not describe a suitable
+candidate exception term.}
 
     \predicate[ISO]{sort}{2}{+List, -Sorted}
 True if \arg{Sorted} can be unified with a list holding the
