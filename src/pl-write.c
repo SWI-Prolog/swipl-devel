@@ -1360,8 +1360,8 @@ bind_varnames(term_t names ARG_LD)
   { if ( PL_is_functor(head, FUNCTOR_equals2) )
     { atom_t name;
 
-      _PL_get_arg(1, head, var);
-      _PL_get_arg(2, head, namet);
+      _PL_get_arg(2, head, var);
+      _PL_get_arg(1, head, namet);
 
       if ( !PL_get_atom_ex(namet, &name) )
 	return FALSE;
