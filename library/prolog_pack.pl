@@ -515,6 +515,11 @@ pack_unpack(Source, PackDir, Pack, Options) :-
 	prepare_pack_dir(PackDir, Options),
 	archive_extract(Source, PackDir, StripOptions).
 
+
+		 /*******************************
+		 *	       INFO		*
+		 *******************************/
+
 %%	pack_archive_info(+Archive, +Pack, -Info, -Strip)
 %
 %	True when Archive archives Pack. Info  is unified with the terms
@@ -525,7 +530,8 @@ pack_unpack(Source, PackDir, Pack, Options) :-
 %		doesn't contain pack.pl
 %	@error	Syntax errors if pack.pl cannot be parsed.
 
-pack_archive_info(Archive, Pack, Info, Strip) :-
+pack_archive_info(Archive, Pack, [archive_size(Bytes)|Info], Strip) :-
+	size_file(Archive, Bytes),
 	setup_call_cleanup(
 	    archive_open(Archive, Handle, []),
 	    (	repeat,
@@ -593,6 +599,10 @@ must_match(Values, Field) :-
 	print_message(error, pack(conflict(Field, Values))),
 	fail.
 
+
+		 /*******************************
+		 *	   INSTALLATION		*
+		 *******************************/
 
 %%	prepare_pack_dir(+Dir, +Options)
 %
