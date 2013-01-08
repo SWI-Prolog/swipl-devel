@@ -76,8 +76,8 @@ source file is passed into _Where.
 		     [ undefined(oneof([ignore,error,trace])),
 		       autoload(boolean),
 		       module(atom),
-		       module_class(oneof([default,user,system,
-					   library,test,development])),
+		       module_class(list(oneof([user,system,library,
+						test,development]))),
 		       source(boolean),
 		       trace_reference(any),
 		       on_trace(callable),
@@ -89,8 +89,8 @@ source file is passed into _Where.
 		    autoload:boolean=true,
 		    source:boolean=true,
 		    module:atom,		% Only analyse given module
-		    module_class:oneof([default,user,system,
-					library,test,development])=default,
+		    module_class:list(oneof([user,system,library,
+					     test,development]))=[user,library],
 		    infer_meta_predicates:oneof([false,true,all])=true,
 		    trace_reference:any=(-),
 		    on_trace:callable,		% Call-back on trace hits
@@ -196,18 +196,14 @@ prolog_walk_code(Iteration, Options) :-
 
 is_meta(on_trace).
 
+%%	scan_module(+Module, +OTerm) is semidet.
+%
+%	True if we must scan Module according to OTerm.
 
 scan_module(M, OTerm) :-
-	walk_option_module_class(OTerm, Class),
-	Class \== default, !,
-	module_property(M, class(Class)).
-scan_module(M, _) :-
+	walk_option_module_class(OTerm, Classes),
 	module_property(M, class(Class)),
-	scan_module_class(Class).
-
-scan_module_class(user).
-scan_module_class(library).
-
+	memberchk(Class, Classes).
 
 %%	walk_from_initialization(+OTerm)
 %

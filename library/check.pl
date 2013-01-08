@@ -88,7 +88,7 @@ list_undefined :-
 
 list_undefined(Options) :-
 	merge_options(Options,
-		      [ module_class(user)
+		      [ module_class([user])
 		      ],
 		      WalkOptions),
 	prolog_walk_code([ undefined(trace),
