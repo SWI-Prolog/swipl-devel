@@ -64,6 +64,9 @@ CIFLAGS="$(dialectvar CIFLAGS)"
 
 CPPFLAGS="$CIFLAGS $CPPFLAGS"
 CFLAGS="$COFLAGS $CWFLAGS $CMFLAGS $CIFLAGS"
+
+# Assume thread support
+MT=yes
 fi
 
 case "$PLARCH" in
@@ -93,10 +96,13 @@ else
     COFLAGS="${COFLAGS--O}"
 fi
 
+if test "x$MT" = "xyes"; then
 dnl Get MinGW thread support.  Note that this may change if we move to
 dnl winpthreads.h.  We could also consider handling this through $PLLIBS,
 dnl but in theory it should be possible to compile external packages with
 dnl different thread libraries.
+
+AC_DEFINE(_REENTRANT, 1, "Define for multi-threaded support")
 
 case "$PLARCH" in
      *-win32|*-win64)
@@ -109,3 +115,9 @@ case "$PLARCH" in
         fi
         ;;
 esac
+
+else dnl MT=yes
+
+AC_MSG_WARN([Seems that SWI-Prolog is not compiled with threads enabled])
+
+fi dnl MT=yes
