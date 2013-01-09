@@ -66,6 +66,8 @@ case "$TARGETHOST" in
 	   return
 esac
 
+PS1=W$BITS' (\W\[\e[36m\]$(__git_ps1 "; %s")\[\e[0m\]) \!_> '
+
 export BUILDARCH=$TARGETHOST
 
 # Versions of prerequisite packages. Used to  download the right release
