@@ -1158,10 +1158,15 @@ prefix_nl([H|T0], Prefix, [H|T]) :-
 
 %%	print_message_lines(+Stream, +Lines)
 
-print_message_lines(_, []) :- !.
-print_message_lines(S, [H|T]) :-
+print_message_lines(Stream, Lines) :-
+	with_output_to(
+	    Stream,
+	    print_message_lines_guarded(current_output, Lines)).
+
+print_message_lines_guarded(_, []) :- !.
+print_message_lines_guarded(S, [H|T]) :-
 	line_element(S, H),
-	print_message_lines(S, T).
+	print_message_lines_guarded(S, T).
 
 line_element(S, E) :-
 	notrace(prolog:message_line_element(S, E)), !.
