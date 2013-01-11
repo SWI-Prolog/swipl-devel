@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -363,7 +362,7 @@ CpuCount()
 #include <sys/sysctl.h>
 
 int
-CpuCount()
+CpuCount(void)
 { int     count ;
   size_t  size=sizeof(count) ;
 
@@ -389,7 +388,7 @@ setOSPrologFlags(void)
 { int cpu_count = CpuCount();
 
   if ( cpu_count > 0 )
-    PL_set_prolog_flag("cpu_count", PL_INTEGER|FF_READONLY, cpu_count);
+    PL_set_prolog_flag("cpu_count", PL_INTEGER, cpu_count);
 }
 #endif
 
