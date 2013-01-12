@@ -135,7 +135,7 @@ True if we are running under valgrind.
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
 #else
-#define RUNNING_ON_VALGRIND (getenv(VALGRIND_OPTS) != NULL)
+#define RUNNING_ON_VALGRIND (getenv("VALGRIND_OPTS") != NULL)
 #endif
 
 static int
