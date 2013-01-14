@@ -1525,6 +1525,12 @@ ar_gcd(Number n1, Number n2, Number r)
 UNAIRY_FLOAT_FUNCTION(ar_sin, sin)
 UNAIRY_FLOAT_FUNCTION(ar_cos, cos)
 UNAIRY_FLOAT_FUNCTION(ar_tan, tan)
+UNAIRY_FLOAT_FUNCTION(ar_sinh, sinh)
+UNAIRY_FLOAT_FUNCTION(ar_cosh, cosh)
+UNAIRY_FLOAT_FUNCTION(ar_tanh, tanh)
+UNAIRY_FLOAT_FUNCTION(ar_asinh, asinh)
+UNAIRY_FLOAT_FUNCTION(ar_acosh, acosh)
+UNAIRY_FLOAT_FUNCTION(ar_atanh, atanh)
 UNAIRY_FLOAT_FUNCTION(ar_atan, atan)
 UNAIRY_FLOAT_FUNCTION(ar_exp, exp)
 
@@ -3343,6 +3349,12 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_atan1,		ar_atan, F_ISO),
   ADD(FUNCTOR_atan2,		ar_atan2, 0),
   ADD(FUNCTOR_atan22,		ar_atan2, F_ISO),
+  ADD(FUNCTOR_sinh1,		ar_sinh, 0),
+  ADD(FUNCTOR_cosh1,		ar_cosh, 0),
+  ADD(FUNCTOR_tanh1,		ar_tanh, 0),
+  ADD(FUNCTOR_asinh1,		ar_asinh, 0),
+  ADD(FUNCTOR_acosh1,		ar_acosh, 0),
+  ADD(FUNCTOR_atanh1,		ar_atanh, 0),
   ADD(FUNCTOR_log1,		ar_log, F_ISO),
   ADD(FUNCTOR_exp1,		ar_exp, F_ISO),
   ADD(FUNCTOR_log101,		ar_log10, 0),

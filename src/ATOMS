@@ -16,6 +16,7 @@ A abs			"abs"
 A access		"access"
 A access_level		"access_level"
 A acos			"acos"
+A acosh			"acosh"
 A acyclic_term		"acyclic_term"
 A add_import		"add_import"
 A address		"address"
@@ -39,6 +40,7 @@ A argumentlimit		"argumentlimit"
 A as			"as"
 A ascii			"ascii"
 A asin			"asin"
+A asinh			"asinh"
 A assert		"assert"
 A asserta		"asserta"
 A at			"at"
@@ -50,6 +52,7 @@ A at_not_equals		"\\=@="
 A at_smaller		"@<"
 A at_smaller_eq		"@=<"
 A atan			"atan"
+A atanh			"atanh"
 A atan2			"atan2"
 A atom			"atom"
 A atom_garbage_collection	"atom_garbage_collection"
@@ -126,6 +129,7 @@ A copysign		"copysign"
 A core			"core"
 A core_left		"core_left"
 A cos			"cos"
+A cosh			"cosh"
 A cputime		"cputime"
 A create		"create"
 A csym			"csym"
@@ -541,6 +545,7 @@ A signal_handler	"signal_handler"
 A silent		"silent"
 A sin			"sin"
 A singletons		"singletons"
+A sinh			"sinh"
 A size			"size"
 A size_t		"size_t"
 A skip			"skip"
@@ -589,6 +594,7 @@ A system_init_file	"system_init_file"
 A system_thread_id	"system_thread_id"
 A system_time		"system_time"
 A tan			"tan"
+A tanh			"tanh"
 A temporary_files	"temporary_files"
 A term			"term"
 A term_expansion	"term_expansion"
@@ -699,15 +705,18 @@ A zero_divisor		"zero_divisor"
 F abs			1
 F access		1
 F acos			1
+F acosh			1
 F alias			1
 F and			2
 F ar_equals		2
 F ar_not_equal		2
 F asin			1
+F asinh			1
 F assert		1
 F asserta		1
 F atan			1
 F atan			2
+F atanh			1
 F atan2			2
 F atom			1
 F att			3
@@ -740,6 +749,7 @@ F comma			2
 F context		2
 F copysign		2
 F cos			1
+F cosh			1
 F cputime		0
 F curl			1
 F cut_call		1
@@ -882,6 +892,7 @@ F signal		1
 F signal		2
 F sin			1
 F singletons		1
+F sinh			1
 F size			1
 F smaller		2
 F smaller_equal		2
@@ -899,6 +910,7 @@ F string_position	2
 F syntax_error		1
 F syntax_error		3
 F tan			1
+F tanh			1
 F term_expansion	2
 F term_position		5
 F timeout		1

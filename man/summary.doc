@@ -679,13 +679,17 @@ suggest predicates from a keyword.
 \opfuncsummary{^}{2}{xfy}{200}{Power function}
 \functionsummary{abs}{1}{Absolute value}
 \functionsummary{acos}{1}{Inverse (arc) cosine}
+\functionsummary{acosh}{1}{Inverse hyperbolic cosine}
 \functionsummary{asin}{1}{Inverse (arc) sine}
-\functionsummary{atan}{1}{Inverse (arc) tangent}
+\functionsummary{asinh}{1}{Inverse (arc) sine}
+\functionsummary{atan}{1}{Inverse hyperbolic sine}
 \functionsummary{atan}{2}{Rectangular to polar conversion}
+\functionsummary{atanh}{1}{Inverse hyperbolic tangent}
 \functionsummary{atan2}{2}{Rectangular to polar conversion}
 \functionsummary{ceil}{1}{Smallest integer larger than arg}
 \functionsummary{ceiling}{1}{Smallest integer larger than arg}
 \functionsummary{cos}{1}{Cosine}
+\functionsummary{cosh}{1}{Hyperbolic cosine}
 \functionsummary{copysign}{2}{Apply sign of N2 to N1}
 \functionsummary{cputime}{0}{Get CPU time}
 \functionsummary{div}{2}{Integer division}
@@ -719,8 +723,10 @@ suggest predicates from a keyword.
 \functionsummary{popcount}{1}{Count 1s in a bitvector}
 \functionsummary{sign}{1}{Extract sign of value}
 \functionsummary{sin}{1}{Sine}
+\functionsummary{sinh}{1}{Hyperbolic sine}
 \functionsummary{sqrt}{1}{Square root}
 \functionsummary{tan}{1}{Tangent}
+\functionsummary{tanh}{1}{Hyperbolic tangent}
 \opfuncsummary{xor}{2}{yfx}{400}{Bitwise exclusive or}
 \end{summarylist}
 

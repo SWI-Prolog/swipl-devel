@@ -40,7 +40,8 @@ test_arith :-
 		    shift,
 		    errors,
 		    ar_builtin,
-		    eval
+		    eval,
+		    hyperbolic
 		  ]).
 
 :- begin_tests(div).
@@ -182,3 +183,16 @@ test(ref, R==6) :-			% Bug#12
 	Expr = (_,R is _).
 
 :- end_tests(eval).
+
+:- begin_tests(hyperbolic).
+
+round(X, R) :- R is round(X*1000)/1000.
+
+test(sinh, V =:= 1.175) :- X is sinh(1.0), round(X,V).
+test(cosh, V =:= 1.543) :- X is cosh(1.0), round(X,V).
+test(tanh, V =:= 0.762) :- X is tanh(1.0), round(X,V).
+test(asinh, V =:= 1.0) :- X is asinh(sinh(1.0)), round(X,V).
+test(acosh, V =:= 1.0) :- X is acosh(cosh(1.0)), round(X,V).
+test(atanh, V =:= 1.0) :- X is atanh(tanh(1.0)), round(X,V).
+
+:- end_tests(hyperbolic).

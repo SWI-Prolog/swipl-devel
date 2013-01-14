@@ -5648,6 +5648,24 @@ angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
     \function{atan}{2}{+YExpr, +XExpr}
 Same as \funcref{atan2}{2} (backward compatibility).
+
+    \function{sinh}{1}{+Expr}
+$\arg{Result} = \sinh{\arg{Expr}}$. The hyperbolic sine of $X$ is
+defined as $\frac{\pow{e}{X} - \pow{e}{-X}}{2}$.
+    \function{cosh}{1}{+Expr}
+$\arg{Result} = \cosh{\arg{Expr}}$. The hyperbolic cosine of $X$ is
+defined as $\frac{\pow{e}{X} + \pow{e}{-X}}{2}$.
+    \function{tanh}{1}{+Expr}
+$\arg{Result} = \tanh{\arg{Expr}}$. The hyperbolic tangent of $X$ is
+defined as $\frac{\sinh{X}}{\cosh{X}}$.
+
+    \function{asinh}{1}{+Expr}
+$\arg{Result} = arcsinh(\arg{Expr})$ (inverse hyperbolic sine).
+    \function{acosh}{1}{+Expr}
+$\arg{Result} = arccosh(\arg{Expr})$ (inverse hyperbolic cosine).
+    \function{atanh}{1}{+Expr}
+$\arg{Result} = arctanh(\arg{Expr})$. (inverse hyperbolic tangent).
+
     \function[ISO]{log}{1}{+Expr}
 Natural logarithm.  $\arg{Result} = \ln{\arg{Expr}}$
     \function{log10}{1}{+Expr}
