@@ -442,6 +442,7 @@ PRED_IMPL("$trap_gdb", 0, trap_gdb, 0)
 }
 
 #if O_DEBUG || defined(O_MAINTENANCE)
+#define HAVE_CHECK_DATA 1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 checkData(p) verifies p points to valid  Prolog  data  and  generates  a
@@ -685,6 +686,20 @@ checkData(Word p)
 }
 
 #endif /* TEST */
+
+int
+PL_check_data(term_t data)
+{
+#ifdef HAVE_CHECK_DATA
+  GET_LD
+
+  (void)checkData(valTermRef(data));
+  return TRUE;
+#else
+  return FALSE;
+#endif
+}
+
 
 		 /*******************************
 		 *         LLVM-GCC HACK	*

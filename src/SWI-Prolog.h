@@ -947,6 +947,8 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
 PL_EXPORT(void) PL_backtrace(int depth, int flags);
+PL_EXPORT(int)	PL_check_data(term_t data);
+
 
 		/********************************
 		*         QUERY PROLOG          *
