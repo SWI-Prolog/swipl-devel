@@ -629,6 +629,9 @@ suggest predicates from a keyword.
 \predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
 \predicatesummary{when}{2}{Execute goal when condition becomes true}
 \predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
+\predicatesummary{win_add_dll_directory}{1}{Add directory to DLL search path}
+\predicatesummary{win_add_dll_directory}{2}{Add directory to DLL search path}
+\predicatesummary{win_remove_dll_directory}{2}{Remove directory from DLL search path}
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
 \predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
 \predicatesummary{win_folder}{2}{Win32: get special folder by CSIDL}
