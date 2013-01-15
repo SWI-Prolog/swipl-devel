@@ -205,8 +205,14 @@ $(PL)$(EXEEXT):	$(MKLIBS) $(PLOBJ) $(OSLIB)
 		$(CHRPATH) -c $@ || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)
+		rm -f $(STARTUPPATH)
 		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
-
+ifeq ($(MINGW),true)
+		if [ ! -r $(STARTUPPATH) ]; then \
+		  echo "No $(STARTUPPATH); retrying ..."; \
+		  $(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT); \
+		fi
+endif
 
 dirs::
 		@for d in $(builddirs); do \
