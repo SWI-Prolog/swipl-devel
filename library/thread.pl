@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2002-2011, University of Amsterdam
+    Copyright (C): 2002-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -32,16 +30,23 @@
 
 :- module(thread,
 	  [ concurrent/3,		% +Threads, :Goals, +Options
+	    concurrent_maplist/2,	% :Goal, +List
+	    concurrent_maplist/3,	% :Goal, ?List1, ?List2
+	    concurrent_maplist/4,	% :Goal, ?List1, ?List2, ?List3
 	    first_solution/3		% -Var, :Goals, +Options
 	  ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
+:- use_module(library(apply)).
 
 %:- debug(concurrent).
 
 :- meta_predicate
 	concurrent(+, :, +),
+	concurrent_maplist(1, +),
+	concurrent_maplist(2, ?, ?),
+	concurrent_maplist(3, ?, ?, ?),
 	first_solution(-, :, +).
 
 :- predicate_options(concurrent/3, 3,
@@ -126,6 +131,9 @@ following consequences:
 %	       workers.  Only options changing the stack-sizes can
 %	       be used. In particular, do not pass the detached or alias
 %	       options.
+%	@see In many cases, concurrent_maplist/2 and friends
+%	     is easier to program and is tractable to program
+%	     analysis.
 
 concurrent(1, M:List, _) :- !,
 	maplist(M:call, List).
@@ -246,6 +254,67 @@ join_all([]).
 join_all([Id|T]) :-
 	thread_join(Id, _),
 	join_all(T).
+
+
+		 /*******************************
+		 *	       MAPLIST		*
+		 *******************************/
+
+%%	concurrent_maplist(:Goal, +List).
+%%	concurrent_maplist(:Goal, +List1, +List2).
+%%	concurrent_maplist(:Goal, +List1, +List2, +List3).
+%
+%	Concurrent   version   of   maplist/2.   This   predicate   uses
+%	concurrent/3, using multiple _worker_  threads.   The  number of
+%	threads is the minimum of the  list   length  and  the number of
+%	cores available. The number of  cores   is  determined using the
+%	prolog flag =cpu_count=. If this flag is absent or 1 or List has
+%	less  than  two  elements,  this   predicate  simply  calls  the
+%	corresponding maplist/N version.
+%
+%	Note that the the overhead of this predicate is considerable and
+%	therefore Goal must be fairly  expensive   before  one reaches a
+%	speedup.
+
+concurrent_maplist(Goal, List) :-
+	workers(List, WorkerCount), !,
+	maplist(ml_goal(Goal), List, Goals),
+	concurrent(WorkerCount, Goals, []).
+concurrent_maplist(Goal, List) :-
+	maplist(Goal, List).
+
+ml_goal(Goal, Elem, call(Goal, Elem)).
+
+concurrent_maplist(Goal, List1, List2) :-
+	same_length(List1, List2),
+	workers(List1, WorkerCount), !,
+	maplist(ml_goal(Goal), List1, List2, Goals),
+	concurrent(WorkerCount, Goals, []).
+concurrent_maplist(Goal, List1, List2) :-
+	maplist(Goal, List1, List2).
+
+ml_goal(Goal, Elem1, Elem2, call(Goal, Elem1, Elem2)).
+
+concurrent_maplist(Goal, List1, List2, List3) :-
+	same_length(List1, List2, List3),
+	workers(List1, WorkerCount), !,
+	maplist(ml_goal(Goal), List1, List2, List3, Goals),
+	concurrent(WorkerCount, Goals, []).
+concurrent_maplist(Goal, List1, List2, List3) :-
+	maplist(Goal, List1, List2, List3).
+
+ml_goal(Goal, Elem1, Elem2, Elem3, call(Goal, Elem1, Elem2, Elem3)).
+
+workers(List, Count) :-
+	current_prolog_flag(cpu_count, Cores),
+	Cores > 1,
+	length(List, Len),
+	Count is min(Cores,Len),
+	Count > 1, !.
+
+same_length([], [], []).
+same_length([_|T1], [_|T2], [_|T3]) :-
+	same_length(T1, T2, T3).
 
 
 		 /*******************************
