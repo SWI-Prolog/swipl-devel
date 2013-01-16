@@ -1034,6 +1034,10 @@ Libraries needed to link extensions (shared object, DLL) to SWI-Prolog.
 Typically empty on ELF systems and \const{-lswipl} on COFF based
 systems.  See \secref{plld}.
 
+    \prologflagitem{callable_is_module_aware}{bool}{rw}
+If \const{true} (default), the predicate callable/1 is module aware.
+See callable/1 for details.
+
     \prologflagitem{char_conversion}{bool}{rw}
 Determines whether character-conversion takes place while reading terms.
 See also char_conversion/2.

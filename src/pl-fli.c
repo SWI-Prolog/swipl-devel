@@ -1880,9 +1880,33 @@ PL_is_compound(term_t t)
 int
 PL_is_callable(term_t t)
 { GET_LD
-  word w = valHandle(t);
+  Word p = valHandleP(t);
 
-  return (isTerm(w) || isTextAtom(w)) ? TRUE : FALSE;
+  deRef(p);
+
+  if ( truePrologFlag(PLFLAG_CALLABLE_IS_MODULE_AWARE) )
+  { int iterations = 0;
+
+    while( hasFunctor(*p, FUNCTOR_colon2) )
+    { Word mp;
+      mp = argTermP(*p, 0);
+      deRef(mp);
+      if ( !isTextAtom(*mp) )
+	return FALSE;
+      p = argTermP(*p, 1);
+      deRef(p);
+      if ( ++iterations == 100 )
+      { switch ( is_acyclic(p PASS_LD) )
+	{ case FALSE:
+	    return FALSE;		/* cyclic term */
+	  case MEMORY_OVERFLOW:
+	    return PL_no_memory();
+	}
+      }
+    }
+  }
+
+  return (isTerm(*p) || isTextAtom(*p)) ? TRUE : FALSE;
 }
 
 

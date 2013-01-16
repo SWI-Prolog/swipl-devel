@@ -1334,8 +1334,33 @@ True if \arg{Term} is bound to a compound term.  See also functor/3
 and =../2.
 
     \predicate[ISO]{callable}{1}{@Term}
-True if \arg{Term} is bound to an atom or a compound term, so it can
-be handed without type-error to call/1, functor/3 and =../2.
+True if \arg{Term} can be handed without a type-error to call/1 or
+call/[2..]. This implies that \arg{Term} is an atom or compound term
+(see atom/1 and compound/1). \arg{Term} may optionally be qualified with
+a module. This predicate acts as if defined by the following
+rules.\footnote{The actual implementation also checks for cycles.}
+
+\begin{code}
+callable(T) :-
+	atom(T), !.
+callable(T) :-
+	compound(T),
+	(   T = M:T2
+	->  atom(M),
+	    callable(T2)
+	;   true
+	).
+\end{code}
+
+Earlier versions of this predicate simply checked for atom or compound,
+claiming that e.g., \verb$a:22$ is a callable term. This behaviour can
+be restored by setting the Prolog flag
+\prologflag{callable_is_module_aware} to \const{false}. The new
+semantics may lead to incompatibilities if callable is used as a
+type-check prior to functor/3 or \predref{=..}{2} in situations where
+\funcref{:}{2} is not a special term. The above flag is intended to help
+indentifying and resolving such problems, \emph{not} as a permanent
+solution.
 
     \predicate[ISO]{ground}{1}{@Term}
 True if \arg{Term} holds no free variables.

@@ -1120,6 +1120,8 @@ initPrologFlags(void)
   setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
   setPrologFlag("answer_format", FT_ATOM, "~p");
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("callable_is_module_aware", FT_BOOL, TRUE,
+		PLFLAG_CALLABLE_IS_MODULE_AWARE);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
   setPrologFlag("backquoted_string", FT_BOOL, FALSE, PLFLAG_BACKQUOTED_STRING);
