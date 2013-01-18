@@ -2738,8 +2738,7 @@ IOFUNCTIONS Sttyfunctions =
 application instead of returning EINVAL on  wrong   values  of fd. As we
 provide  the  socket-id  through   Sfileno,    this   code   crashes  on
 tcp_open_socket(). As ttys and its detection is   of no value on Windows
-anyway, we skip this. Second, Windows doesn't have fork(), so FD_CLOEXEC
-is of no value.
+anyway, we skip this.
 
 For now, we use PL_malloc_uncollectable(). In   the  end, this is really
 one of the object-types we want to leave to GC.
@@ -2785,17 +2784,22 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   }
 #endif
 
-#ifndef __WINDOWS__			/* (*) */
 { int fd;
   if ( (fd = Sfileno(s)) >= 0 )
-  { if ( isatty(fd) )
+  {
+#ifndef __WINDOWS__			/* (*) */
+    if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
-#ifdef F_SETFD
+#endif
+
+#if defined(F_SETFD)
     fcntl(fd, F_SETFD, FD_CLOEXEC);
+#elif defined(__WINDOWS__)
+    SetHandleInformation((HANDLE)_get_osfhandle(fd),
+			 HANDLE_FLAG_INHERIT, 0) )
 #endif
   }
 }
-#endif
 
   return s;
 }
