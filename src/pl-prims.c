@@ -4030,8 +4030,12 @@ next:
   if ( match )
   { ForeignRedoPtr(state);
   } else
-  { PL_rewind_foreign_frame(fid);
-    goto again;
+  { if ( !PL_exception(0) )
+    { PL_rewind_foreign_frame(fid);
+      goto again;
+    } else
+    { goto exit_fail;
+    }
   }
 
 #undef la
