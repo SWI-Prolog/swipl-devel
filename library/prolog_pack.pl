@@ -47,12 +47,14 @@
 :- use_module(library(readutil)).
 :- use_module(library(lists)).
 :- use_module(library(filesex)).
-:- use_module(library(archive)).
 :- use_module(library(xpath)).
 :- use_module(library(settings)).
 :- use_module(library(uri)).
 :- use_module(library(http/http_open)).
 :- use_module(library(http/http_client), []).	% plugin for POST support
+:- if(exists_source(library(archive))).
+:- use_module(library(archive)).
+:- endif.
 
 
 /** <module> A package manager for Prolog
@@ -510,11 +512,15 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
 %
 %	Unpack an archive to the given package dir.
 
+:- if(current_predicate(archive_extract/3)).
 pack_unpack(Source, PackDir, Pack, Options) :-
 	pack_archive_info(Source, Pack, _Info, StripOptions),
 	prepare_pack_dir(PackDir, Options),
 	archive_extract(Source, PackDir, StripOptions).
-
+:- else.
+pack_unpack(_,_,_,_) :-
+	existence_error(library, archive).
+:- endif.
 
 		 /*******************************
 		 *	       INFO		*
@@ -530,6 +536,7 @@ pack_unpack(Source, PackDir, Pack, Options) :-
 %		doesn't contain pack.pl
 %	@error	Syntax errors if pack.pl cannot be parsed.
 
+:- if(current_predicate(archive_open/3)).
 pack_archive_info(Archive, Pack, [archive_size(Bytes)|Info], Strip) :-
 	size_file(Archive, Bytes),
 	setup_call_cleanup(
@@ -550,6 +557,10 @@ pack_archive_info(Archive, Pack, [archive_size(Bytes)|Info], Strip) :-
 	    close(Stream)), !,
 	must_be(ground, Info),
 	maplist(valid_info_term, Info).
+:- else.
+pack_archive_info(_, _, _, _) :-
+	existence_error(library, archive).
+:- endif.
 pack_archive_info(_, _, _, _) :-
 	existence_error(pack_file, 'pack.pl').
 
