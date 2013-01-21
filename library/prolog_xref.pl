@@ -209,7 +209,7 @@ xref_setup(Src, In, state(In, Dialect, Xref, [SRef|HRefs])) :-
 	set_xref(Xref),
 	(   verbose
 	->  HRefs = []
-	;   asserta(user:message_hook(_,_,_), Ref),
+	;   asserta(user:thread_message_hook(_,_,_), Ref),
 	    HRefs = [Ref]
 	).
 
