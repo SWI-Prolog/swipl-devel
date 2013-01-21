@@ -30,6 +30,7 @@
 
 :- module(prolog_xref,
 	  [ xref_source/1,		% +Source
+	    xref_source/2,		% +Source, +Options
 	    xref_called/3,		% ?Source, ?Callable, ?By
 	    xref_called/4,		% ?Source, ?Callable, ?By, ?Cond
 	    xref_defined/3,		% ?Source. ?Callable, -How
@@ -144,6 +145,28 @@ This code is used in two places:
 		 *	     BUILT-INS		*
 		 *******************************/
 
+%%	hide_called(+Callable) is semidet.
+%
+%	True when the cross-referencer should   not  include Callable as
+%	being   called.   This   is    determined     by    the   option
+%	=register_called=.
+
+hide_called(Callable) :-
+	xref_option(register_called(Which)), !,
+	hide_called(Which, Callable).
+hide_called(Callable) :-
+	hide_called(non_built_in, Callable).
+
+hide_called(all, _) :- !, fail.
+hide_called(non_iso, Goal) :-
+	functor(Goal, Name, Arity),
+	current_predicate(system:Name/Arity),
+	predicate_property(system:Goal, iso).
+hide_called(non_built_in, Goal) :-
+	functor(Goal, Name, Arity),
+	current_predicate(system:Name/Arity),
+	predicate_property(system:Goal, built_in).
+
 %%	built_in_predicate(+Callable)
 %
 %	True if Callable is a built-in
@@ -159,38 +182,50 @@ system_predicate(Goal) :-
 		********************************/
 
 verbose :-
-	debugging(xref).
+	\+ xref_option(silent(true)).
 
 :- thread_local
-	xref_input/2.			% File, Stream
+	xref_input/2,			% File, Stream
+	xref_option/1.
 
 
 %%	xref_source(+Source) is det.
+%%	xref_source(+Source, +Options) is det.
 %
 %	Generate the cross-reference data  for   Source  if  not already
 %	done and the source is not modified.  Checking for modifications
-%	is only done for files.
+%	is only done for files.  Options processed:
+%
+%	  * silent(+Boolean)
+%	  If =true= (default =false=), emit warning messages.
+%	  * register_called(+Which)
+%	  Determines which calls are registerd.  Which is one of
+%	  =all=, =non_iso= or =non_built_in=.
 %
 %	@param Source	File specification or XPCE buffer
 
 xref_source(Source) :-
+	xref_source(Source, []).
+
+xref_source(Source, Options) :-
 	prolog_canonical_source(Source, Src),
 	(   last_modified(Source, Modified)
 	->  (   source(Src, Modified)
 	    ->	true
 	    ;	xref_clean(Src),
 		assert(source(Src, Modified)),
-		do_xref(Src)
+		do_xref(Src, Options)
 	    )
 	;   xref_clean(Src),
 	    get_time(Now),
 	    assert(source(Src, Now)),
-	    do_xref(Src)
+	    do_xref(Src, Options)
 	).
 
-do_xref(Src) :-
+do_xref(Src, Options) :-
+	must_be(list, Options),
 	setup_call_cleanup(
-	    xref_setup(Src, In, State),
+	    xref_setup(Src, In, Options, State),
 	    collect(Src, Src, In),
 	    xref_cleanup(State)).
 
@@ -201,7 +236,8 @@ last_modified(Source, Modified) :-
 	exists_file(Source),
 	time_file(Source, Modified).
 
-xref_setup(Src, In, state(In, Dialect, Xref, [SRef|HRefs])) :-
+xref_setup(Src, In, Options, state(In, Dialect, Xref, [SRef|HRefs])) :-
+	maplist(assert_option, Options),
 	current_prolog_flag(emulated_dialect, Dialect),
 	prolog_open_source(Src, In),
 	set_initial_mode(In),
@@ -213,11 +249,22 @@ xref_setup(Src, In, state(In, Dialect, Xref, [SRef|HRefs])) :-
 	    HRefs = [Ref]
 	).
 
+assert_option(Var) :-
+	var(Var), !,
+	instantiation_error(Var).
+assert_option(silent(Boolean)) :- !,
+	must_be(boolean, Boolean),
+	assert(xref_option(silent(Boolean))).
+assert_option(register_called(Which)) :- !,
+	must_be(oneof([all,non_iso,non_built_in]), Which),
+	assert(xref_option(register_called(Which))).
+
 xref_cleanup(state(In, Dialect, Xref, Refs)) :-
 	prolog_close_source(In),
 	set_prolog_flag(emulated_dialect, Dialect),
 	set_prolog_flag(xref, Xref),
-	maplist(erase, Refs).
+	maplist(erase, Refs),
+	retractall(xref_option(_)).
 
 set_xref(Xref) :-
 	current_prolog_flag(xref, Xref),
@@ -1427,7 +1474,7 @@ assert_called(Src, From, Goal) :-
 	var(From), !,
 	assert_called(Src, '<unknown>', Goal).
 assert_called(_, _, Goal) :-
-	hide_called(Goal), !.
+	expand_hide_called(Goal), !.
 assert_called(Src, Origin, M:G) :- !,
 	(   atom(M),
 	    callable(G)
@@ -1436,7 +1483,7 @@ assert_called(Src, Origin, M:G) :- !,
 	    ->  assert_called(Src, Origin, G)
 	    ;   called(M:G, Src, Origin, Cond) % already registered
 	    ->  true
-	    ;	system_predicate(G)	% not interesting (now)
+	    ;	hide_called(G)		% not interesting (now)
 	    ->	true
 	    ;   generalise(Origin, OTerm),
 		generalise(G, GTerm)
@@ -1446,7 +1493,7 @@ assert_called(Src, Origin, M:G) :- !,
 	;   true                        % call to variable module
 	).
 assert_called(Src, _, Goal) :-
-	system_predicate(Goal),
+	hide_called(Goal),
 	\+ xmodule(system, Src), !.
 assert_called(Src, Origin, Goal) :-
 	current_condition(Cond),
@@ -1459,15 +1506,15 @@ assert_called(Src, Origin, Goal) :-
 	).
 
 
-%%	hide_called(:Callable) is semidet.
+%%	expand_hide_called(:Callable) is semidet.
 %
 %	Goals that should not turn up as being called. Hack. Eventually
 %	we should deal with that using an XPCE plugin.
 
-hide_called(pce_principal:send_implementation(_, _, _)).
-hide_called(pce_principal:get_implementation(_, _, _, _)).
-hide_called(pce_principal:pce_lazy_get_method(_,_,_)).
-hide_called(pce_principal:pce_lazy_send_method(_,_,_)).
+expand_hide_called(pce_principal:send_implementation(_, _, _)).
+expand_hide_called(pce_principal:get_implementation(_, _, _, _)).
+expand_hide_called(pce_principal:pce_lazy_get_method(_,_,_)).
+expand_hide_called(pce_principal:pce_lazy_send_method(_,_,_)).
 
 assert_defined(Src, Goal) :-
 	defined(Goal, Src, _), !.
