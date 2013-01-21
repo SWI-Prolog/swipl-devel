@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -956,19 +956,7 @@ type_test(type-1) :-
 type_test(type-2) :-
 	atom(hello), \+ atom(10), \+ atom("hello").
 type_test(type-3) :-
-	callable(atom),
-	callable(term(a)),
-	\+ callable(_Var),
-	\+ callable(22).
-type_test(type-4) :-
-	(   current_prolog_flag(callable_is_module_aware, true)
-	->  \+ callable(a:22),
-	    \+ callable(22:a),
-	    \+ callable(_:a),
-	    \+ callable(a:_),
-	    A=m:A, \+ callable(A)
-	;   true
-	).
+	callable(atom), callable(term(a)), \+ callable(_Var).
 
 
 		 /*******************************

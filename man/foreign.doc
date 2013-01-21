@@ -642,9 +642,6 @@ Returns non-zero if \arg{term} is a string.
 Returns non-zero if \arg{term} is an integer.
 \cfunction{int}{PL_is_float}{term_t}
 Returns non-zero if \arg{term} is a float.
-\cfunction{int}{PL_is_callable}{term_t}
-Returns non-zero if \arg{term} is a callable term.  See callable/1
-for details.
 \cfunction{int}{PL_is_compound}{term_t}
 Returns non-zero if \arg{term} is a compound term.
 \cfunction{int}{PL_is_functor}{term_t, functor_t}
