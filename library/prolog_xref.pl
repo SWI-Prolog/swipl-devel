@@ -45,6 +45,7 @@
 	    xref_built_in/1,		% ?Callable
 	    xref_source_file/3,		% +Spec, -Path, +Source
 	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
+	    xref_public_list/3,		% +File, +Src, +Options
 	    xref_public_list/4,		% +File, -Path, -Export, +Src
 	    xref_public_list/6,		% +File, -Path, -Module, -Export, -Meta, +Src
 	    xref_public_list/7,		% +File, -Path, -Module, -Export, -Public, -Meta, +Src
@@ -102,7 +103,16 @@ This code is used in two places:
 */
 
 :- predicate_options(xref_source_file/4, 4,
-		     [ file_type(oneof([txt,prolog,directory]))
+		     [ file_type(oneof([txt,prolog,directory])),
+		       silent(boolean)
+		     ]).
+:- predicate_options(xref_public_list/3, 3,
+		     [ path(-atom),
+		       module(-atom),
+		       exports(-list(any)),
+		       public(-list(any)),
+		       meta(-list(any)),
+		       silent(boolean)
 		     ]).
 
 
@@ -1165,6 +1175,37 @@ process_use_module2(File, Import, Src, Reexport) :-
 	).
 
 
+%%	xref_public_list(+Spec, +Source, +Options) is semidet.
+%
+%	Find meta-information about File. This predicate reads all terms
+%	upto the first term that is not  a directive. It uses the module
+%	and  meta_predicate  directives  to   assemble  the  information
+%	in Options.  Options processed:
+%
+%	  * path(-Path)
+%	  Path is the full path name of the referenced file.
+%	  * module(-Module)
+%	  Module is the module defines in Spec.
+%	  * exports(-Exports)
+%	  Exports is a list of predicate indicators and operators
+%	  collected from the module/2 term and reexport declarations.
+%	  * meta(-Meta)
+%	  Meta is a list of heads as they appear in meta_predicate/1
+%	  declarations.
+%	  * silent(+Boolean)
+%	  Do not print any messages or raise exceptions on errors.
+%
+%	@param Source is the file from which Spec is referenced.
+
+xref_public_list(File, Src, Options) :-
+	option(path(Path), Options, _),
+	option(module(Module), Options, _),
+	option(exports(Exports), Options, _),
+	option(public(Public), Options, _),
+	option(meta(Meta), Options, _),
+	xref_source_file(File, Path, Src, Options),
+	public_list(Path, Module, Meta, Exports, Public).
+
 %%	xref_public_list(+File, -Path, -Export, +Src) is semidet.
 %%	xref_public_list(+File, -Path, -Module, -Export, -Meta, +Src) is semidet.
 %%	xref_public_list(+File, -Path, -Module, -Export, -Public, -Meta, +Src) is semidet.
@@ -1177,11 +1218,13 @@ process_use_module2(File, Import, Src, Reexport) :-
 %	These predicates fail if File is not a module-file.
 %
 %	@param	Path is the canonical path to File
-%	@param	Module is the module defines in Path
+%	@param	Module is the module defined in Path
 %	@param	Export is a list of predicate indicators.
 %	@param	Meta is a list of heads as they appear in
 %		meta_predicate/1 declarations.
 %	@param	Src is the place from which File is referenced.
+%	@deprecated New code should use xref_public_list/3, which
+%		unifies all variations using an option list.
 
 xref_public_list(File, Path, Export, Src) :-
 	xref_source_file(File, Path, Src),
@@ -1797,7 +1840,9 @@ xref_source_file(Plain, File, Source, Options) :-
 	do_xref_source_file(Spec, File, Options), !.
 xref_source_file(Spec, File, _, Options) :-
 	do_xref_source_file(Spec, File, Options), !.
-xref_source_file(Spec, _, _, _) :-
+xref_source_file(_, _, _, Options) :-
+	option(silent(true), Options), !.
+xref_source_file(Spec, _, _, _Options) :-
 	verbose,
 	print_message(warning, error(existence_error(file, Spec), _)),
 	fail.

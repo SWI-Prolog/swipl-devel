@@ -246,8 +246,11 @@ process_use_module([H|T], Src) :- !,
 	process_use_module(H, Src),
 	process_use_module(T, Src).
 process_use_module(File, Src) :-
-	(   xref_public_list(File, _Path, Public, Src)
-	->  forall(member(op(P,T,N), Public),
+	(   xref_public_list(File, Src,
+			     [ exports(Exports),
+			       silent(true)
+			     ])
+	->  forall(member(op(P,T,N), Exports),
 		   safe_push_op(P,T,N,Src))
 	;   true
 	).
@@ -810,7 +813,7 @@ colourise_files(Spec0, TB, Pos, Why) :-
 	strip_module(Spec0, _, Spec),
 	(   colour_state_source_id(TB, Source),
 	    prolog_canonical_source(Source, SourceId),
-	    catch(xref_source_file(Spec, Path, SourceId), _, fail)
+	    catch(xref_source_file(Spec, Path, SourceId, [silent(true)]), _, fail)
 	->  (   Why = imported,
 	        \+ resolves_anything(TB, Path),
 		exports_something(TB, Path)
@@ -841,7 +844,9 @@ exports_something(TB, Path) :-
 colourise_directory(Spec, TB, Pos) :-
 	(   colour_state_source_id(TB, SourceId),
 	    catch(xref_source_file(Spec, Path, SourceId,
-				   [file_type(directory)]),
+				   [ file_type(directory),
+				     silent(true)
+				   ]),
 		  _, fail)
 	->  colour_item(directory(Path), TB, Pos)
 	;   colour_item(nofile, TB, Pos)
