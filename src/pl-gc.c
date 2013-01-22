@@ -4978,6 +4978,10 @@ not safe. That is no problem however,  because we are only interested in
 static predicates. Note that clause/2,  etc.   use  the choice point for
 searching clauses and thus chp->cref may become NULL if all clauses have
 been searched.
+
+(**) This avoids duplicate marks. Note that we   have no option if we do
+not have atomic instructions because we  cannot   use  mutexes as we are
+inside a signal handler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -4993,7 +4997,8 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
     set(fr, FR_MARKED_PRED);
     ld->gc._local_frames++;
 
-					/* P_FOREIGN_CREF: clause, etc. choicepoints */
+				/* P_FOREIGN_CREF: clause, etc. choicepoints */
+
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
     { ClauseChoice chp = (ClauseChoice)fr->clause;
       ClauseRef cref;
@@ -5016,15 +5021,20 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 
 	  if ( proc->definition == def )
 	  { DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
-	    def->references++;
-	    GD->procedures.active_marked++;
+#ifdef COMPARE_AND_SWAP			/* See (**) above */
+	    if ( COMPARE_AND_SWAP(&def->references, 0, 1) )
+	      GD->procedures.active_marked++;
+#else
+	    if ( ++def->references == 1 )
+	      GD->procedures.active_marked++;
+#endif
 	    break;
 	  }
 	}
       } else				/* pl_garbage_collect_clauses() */
       { if ( true(def, NEEDSCLAUSEGC) )
 	{ DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
-	  def->references++;
+	  def->references = 1;
 	}
       }
     }
