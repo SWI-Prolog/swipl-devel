@@ -198,13 +198,23 @@ atomType(atom_t a, IOSTREAM *fd)
     return AT_FULLSTOP;
 
   if ( isSymbol(*s) )
-  { if ( len >= 2 && s[0] == '/' && s[1] == '*' )
+  { size_t left = len;
+
+    if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
 
-    for(++s; --len > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++)
-      ;
+    for(; left-- > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++)
+    { if ( *s == '`' )
+      { GET_LD
 
-    return len == 0 ? AT_SYMBOL : AT_QUOTE;
+	if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
+	  return AT_QUOTE;
+      }
+    }
+    if ( left > 0 )
+      return AT_QUOTE;
+
+    return AT_SYMBOL;
   }
 
 					/* % should be quoted! */
