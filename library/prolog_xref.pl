@@ -522,7 +522,7 @@ collect(Src, File, In) :-
 					  [ process_comment(true),
 					    term_position(TermPos)
 					  ]),
-		  E, report_syntax_error(E)),
+		  E, report_syntax_error(E, [])),
 	    update_condition(Term),
 	    (	is_list(Expanded)
 	    ->	member(T, Expanded)
@@ -538,7 +538,10 @@ collect(Src, File, In) :-
 		fail
 	    ).
 
-report_syntax_error(E) :-
+report_syntax_error(_, Options) :-
+	option(silent(true), Options), !,
+	fail.
+report_syntax_error(E, _Options) :-
 	(   verbose
 	->  print_message(error, E)
 	;   true
@@ -1167,7 +1170,7 @@ process_pce_import(op(P,T,N), Src, _, _) :-
 process_use_module2(File, Import, Src, Reexport) :-
 	(   xref_source_file(File, Path, Src)
 	->  assert(uses_file(File, Src, Path)),
-	    (	catch(public_list(Path, _, _, Export, _Public), _, fail)
+	    (	catch(public_list(Path, _, _, Export, _Public, []), _, fail)
 	    ->	assert_import(Src, Import, Export, Path, Reexport)
 	    ;	true
 	    )
@@ -1204,7 +1207,7 @@ xref_public_list(File, Src, Options) :-
 	option(public(Public), Options, _),
 	option(meta(Meta), Options, _),
 	xref_source_file(File, Path, Src, Options),
-	public_list(Path, Module, Meta, Exports, Public).
+	public_list(Path, Module, Meta, Exports, Public, Options).
 
 %%	xref_public_list(+File, -Path, -Export, +Src) is semidet.
 %%	xref_public_list(+File, -Path, -Module, -Export, -Meta, +Src) is semidet.
@@ -1228,36 +1231,36 @@ xref_public_list(File, Src, Options) :-
 
 xref_public_list(File, Path, Export, Src) :-
 	xref_source_file(File, Path, Src),
-	public_list(Path, _, _, Export, _).
+	public_list(Path, _, _, Export, _, []).
 xref_public_list(File, Path, Module, Export, Meta, Src) :-
 	xref_source_file(File, Path, Src),
-	public_list(Path, Module, Meta, Export, _).
+	public_list(Path, Module, Meta, Export, _, []).
 xref_public_list(File, Path, Module, Export, Public, Meta, Src) :-
 	xref_source_file(File, Path, Src),
-	public_list(Path, Module, Meta, Export, Public).
+	public_list(Path, Module, Meta, Export, Public, []).
 
-public_list(Path, Module, Meta, Export, Public) :-
-	public_list(Path, Module, Meta, [], Export, [], Public, []).
+public_list(Path, Module, Meta, Export, Public, Options) :-
+	public_list_diff(Path, Module, Meta, [], Export, [], Public, [], Options).
 
-public_list(Path, Module, Meta, MT, Export, Rest, Public, PT) :-
+public_list_diff(Path, Module, Meta, MT, Export, Rest, Public, PT, Options) :-
 	setup_call_cleanup(
 	    ( prolog_open_source(Path, In),
 	      set_xref(Old)
 	    ),
-	    phrase(read_directives(In), Directives),
+	    phrase(read_directives(In, Options), Directives),
 	    ( set_prolog_flag(xref, Old),
 	      prolog_close_source(In)
 	    )),
 	public_list(Directives, Path, Module, Meta, MT, Export, Rest, Public, PT).
 
 
-read_directives(In) -->
+read_directives(In, Options) -->
 	{  repeat,
 	     catch(prolog_read_source_term(In, Term, Expanded,
 					   [ process_comment(true),
 					     syntax_errors(error)
 					   ]),
-		   E, report_syntax_error(E))
+		   E, report_syntax_error(E, Options))
 	-> nonvar(Term),
 	   Term = (:-_)
 	}, !,
