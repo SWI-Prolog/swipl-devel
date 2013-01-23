@@ -203,7 +203,7 @@ atomType(atom_t a, IOSTREAM *fd)
     if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
 
-    for(; left-- > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++)
+    for(; left > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++, left--)
     { if ( *s == '`' )
       { GET_LD
 
