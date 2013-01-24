@@ -179,11 +179,24 @@ static PL_blob_t locale_blob =
 
 static int
 unify_locale(term_t t, PL_locale *l ARG_LD)
-{ if ( l->alias )
+{ term_t b;
+
+  if ( l->alias )
     return PL_unify_atom(t, l->alias);
-  else
+
+  if ( l->symbol )
     return PL_unify_atom(t, l->symbol);
+
+  if ( (b=PL_new_term_ref()) &&
+       PL_put_blob(b, &l, sizeof(l), &locale_blob) )
+  { PL_get_atom(b, &l->symbol);
+    assert(l->symbol);
+    return PL_unify(t, b);
+  }
+
+  return FALSE;
 }
+
 
 static int
 get_locale(term_t t, PL_locale **lp ARG_LD)
@@ -194,7 +207,11 @@ get_locale(term_t t, PL_locale **lp ARG_LD)
     PL_blob_t *bt;
     locale_ref *ref;
 
-    if ( (ref=PL_blob_data(a, NULL, &bt)) && bt == &locale_blob )
+    if ( a == ATOM_current )
+    { GET_LD
+
+      l = LD->locale.current;
+    } else if ( (ref=PL_blob_data(a, NULL, &bt)) && bt == &locale_blob )
     { l = ref->data;
     } else if ( GD->locale.localeTable )
     { Symbol s;
@@ -212,6 +229,7 @@ get_locale(term_t t, PL_locale **lp ARG_LD)
 
   return FALSE;
 }
+
 
 static int
 get_locale_ex(term_t t, PL_locale **lp ARG_LD)
@@ -475,12 +493,133 @@ enumerate:
 }
 
 
-/** locale_create(-Locale, +Options) is det.
+static int
+set_chars(term_t t, char **valp)
+{ char *s;
+
+  if ( PL_get_chars(t, &s, PL_ATOM|CVT_EXCEPTION) )
+  { free(*valp);
+    if ( (*valp = strdup(s)) )
+      return TRUE;
+    return PL_no_memory();
+  }
+
+  return FALSE;
+}
+
+
+#define MAX_GROUPING 10
+
+static int
+get_group_size_ex(term_t t, int *s)
+{ int i;
+
+  if ( PL_get_integer_ex(t, &i) )
+  { if ( i > 0 && i < CHAR_MAX )
+    { *s = i;
+      return TRUE;
+    }
+    return PL_domain_error("digit_group_size", t);
+  }
+
+  return FALSE;
+}
+
+
+static int
+set_grouping(term_t t, char **valp)
+{ GET_LD
+  char s[MAX_GROUPING];
+  term_t tail = PL_copy_term_ref(t);
+  term_t head = PL_new_term_ref();
+  char *o = s;
+
+  while(PL_get_list_ex(tail, head, tail))
+  { int g;
+
+    if ( o-s+2 >= MAX_GROUPING )
+      return PL_representation_error("digit_groups");
+
+    if ( PL_is_functor(head, FUNCTOR_repeat1) )
+    { _PL_get_arg(1, head, head);
+      if ( get_group_size_ex(head, &g) )
+      { *o++ = g;
+	*o++ = CHAR_MAX;
+	break;					/* must be last in list */
+      }
+      return FALSE;
+    }
+    if ( get_group_size_ex(head, &g) )
+    { *o++ = g;
+    } else
+      return FALSE;
+  }
+  if ( PL_get_nil_ex(tail) )
+  { *o++ = '\0';
+    free(*valp);
+    if ( (*valp = strdup(s)) )
+      return TRUE;
+    return PL_no_memory();
+  }
+
+  return FALSE;
+}
+
+
+/** locale_create(-Locale, +Default, +Options) is det.
 */
 
 static
-PRED_IMPL("locale_create", 2, locale_create, 0)
-{ return FALSE;
+PRED_IMPL("locale_create", 3, locale_create, 0)
+{ PRED_LD
+  PL_locale *def, *new;
+
+  if ( !get_locale_ex(A2, &def PASS_LD) )
+    return FALSE;
+  if ( (new=new_locale(def)) )
+  { atom_t alias = 0;
+    term_t tail = PL_copy_term_ref(A3);
+    term_t head = PL_new_term_ref();
+    term_t arg  = PL_new_term_ref();
+
+    while(PL_get_list_ex(tail, head, tail))
+    { atom_t pname;
+      int parity;
+
+      if ( !PL_get_name_arity(head, &pname, &parity) ||
+	   parity != 1 ||
+	   !PL_get_arg(1, head, arg) )
+      { PL_type_error("locale_property", head);
+	goto error;
+      }
+      if ( pname == ATOM_alias )
+      { if ( !PL_get_atom_ex(arg, &alias) )
+	  goto error;
+      } else if ( pname == ATOM_decimal_point )
+      { if ( !set_chars(arg, &new->decimal_point) )
+	  goto error;
+      } else if ( pname == ATOM_thousands_sep )
+      { if ( !set_chars(arg, &new->thousands_sep) )
+	  goto error;
+      } else if ( pname == ATOM_grouping )
+      { if ( !set_grouping(arg, &new->grouping) )
+	  goto error;
+      }
+    }
+    if ( !PL_get_nil_ex(tail) )
+    {
+    error:
+      free_locale(new);
+      return FALSE;
+    }
+
+    if ( alias && !alias_locale(new, alias) )
+      goto error;
+
+    return unify_locale(A1, def PASS_LD);
+  } else
+  { return PL_no_memory();
+  }
 }
 
 
@@ -495,6 +634,7 @@ initLocale(void)
 
   if ( (def = new_locale(NULL)) )
   { alias_locale(def, ATOM_default);
+    def->references++;
     LD->locale.current = def;
   }
 }
@@ -506,7 +646,7 @@ initLocale(void)
 
 BeginPredDefs(locale)
   PRED_DEF("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("locale_create",   2, locale_create,   0)
+  PRED_DEF("locale_create",   3, locale_create,   0)
 EndPredDefs
 
 #endif /*O_LOCALE*/
