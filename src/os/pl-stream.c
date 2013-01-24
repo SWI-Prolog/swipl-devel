@@ -2796,7 +2796,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     fcntl(fd, F_SETFD, FD_CLOEXEC);
 #elif defined(__WINDOWS__)
     SetHandleInformation((HANDLE)_get_osfhandle(fd),
-			 HANDLE_FLAG_INHERIT, 0) )
+			 HANDLE_FLAG_INHERIT, 0);
 #endif
   }
 }
