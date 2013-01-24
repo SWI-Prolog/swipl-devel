@@ -126,6 +126,8 @@ handy for it someone wants to add a data type to the system.
       requires O_DESTRUCTIVE_ASSIGNMENT.
   O_CYCLIC
       Provide support for cyclic terms.
+  O_LOCALE
+      Provide locale support on streams.
   O_GMP
       Use GNU gmp library for infinite precision arthmetic
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -144,6 +146,7 @@ handy for it someone wants to add a data type to the system.
 #define O_LIMIT_DEPTH		1
 #define O_SAFE_SIGNALS		1
 #define O_LOGICAL_UPDATE	1
+#define O_LOCALE		1
 #define O_ATOMGC		1
 #define O_CLAUSEGC		1
 #define O_ATTVAR		1
@@ -2139,6 +2142,7 @@ decrease).
 #include "pl-data.h"			/* Access Prolog data */
 #include "pl-segstack.h"		/* Segmented stacks */
 #include "pl-gmp.h"			/* GNU-GMP support */
+#include "os/pl-locale.h"		/* Locale objects */
 #include "os/pl-file.h"			/* Stream management */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */

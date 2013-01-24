@@ -7,7 +7,7 @@ OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-file.o os/pl-files.o \
 	os/pl-glob.o os/pl-os.o os/pl-stream.o os/pl-string.o os/pl-table.o \
 	os/pl-text.o os/pl-utf8.o os/pl-fmt.o os/pl-dtoa.o os/pl-option.o \
 	os/pl-cstack.o os/pl-codelist.o os/pl-prologflag.o os/pl-rl.o \
-	os/pl-tai.o
+	os/pl-tai.o os/pl-locale.o
 
 OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-flag.o \

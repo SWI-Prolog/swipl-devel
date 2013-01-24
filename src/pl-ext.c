@@ -384,6 +384,7 @@ DECL_PLIST(termhash);
 DECL_PLIST(dde);
 DECL_PLIST(term);
 DECL_PLIST(debug);
+DECL_PLIST(locale);
 
 void
 initBuildIns(void)
@@ -435,6 +436,9 @@ initBuildIns(void)
 #ifdef __WINDOWS__
   REG_PLIST(win);
   REG_PLIST(dde);
+#endif
+#ifdef O_LOCALE
+  REG_PLIST(locale);
 #endif
   REG_PLIST(debug);
 

@@ -310,6 +310,12 @@ struct PL_global_data
     PL_thread_info_t  **threads;	/* Pointers to thread-info */
   } thread;
 #endif /*O_PLMT*/
+
+#ifdef O_LOCALE
+  struct
+  { Table		localeTable;	/* Name --> locale table */
+  } locale;
+#endif
 };
 
 
@@ -556,6 +562,12 @@ struct PL_local_data
     struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
   } thread;
+#endif
+
+#ifdef O_LOCALE
+  struct
+  { PL_locale *current;			/* Current locale */
+  } locale;
 #endif
 
   struct

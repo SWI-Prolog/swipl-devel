@@ -164,6 +164,7 @@ A debugger_print_options "debugger_print_options"
 A debugger_show_context "debugger_show_context"
 A debugging		"debugging"
 A dec10			"dec10"
+A decimal_point		"decimal_point"
 A default		"default"
 A defined		"defined"
 A delete		"delete"
@@ -285,6 +286,7 @@ A goal_expansion	"goal_expansion"
 A grammar		"-->"
 A graph			"graph"
 A ground		"ground"
+A grouping		"grouping"
 A gvar			"gvar"
 A halt			"halt"
 A has_alternatives	"has_alternatives"
@@ -348,6 +350,7 @@ A local			"local"
 A local_shifts		"local_shifts"
 A local_stack		"local_stack"
 A locale		"locale"
+A locale_property	"locale_property"
 A locallimit		"locallimit"
 A localused		"localused"
 A lock			"lock"
@@ -511,6 +514,7 @@ A redo_in_skip		"redo_in_skip"
 A references		"references"
 A rem			"rem"
 A rename		"rename"
+A repeat		"repeat"
 A report_error		"report_error"
 A reposition		"reposition"
 A representation_error	"representation_error"
@@ -604,6 +608,7 @@ A terminal_capability	"terminal_capability"
 A test			"test"
 A text			"text"
 A text_stream		"text_stream"
+A thousands_sep		"thousands_sep"
 A thread		"thread"
 A thread_cputime	"thread_cputime"
 A thread_get_message_option "thread_get_message_option"
@@ -762,6 +767,7 @@ F dcall			1
 F dcut			1
 F dde_error		2
 F debugging		1
+F decimal_point		1
 F detached		1
 F dexit			2
 F dforeign_registered   2
@@ -815,6 +821,7 @@ F frame_finished	1
 F gcd			2
 F goal_expansion	2
 F ground		1
+F grouping		1
 F hat			2
 F ifthen		2
 F import_into		1
@@ -876,6 +883,7 @@ F rationalize		1
 F rdiv			2
 F redo			1
 F rem			2
+F repeat		1
 F reposition		1
 F representation_error	1
 F representation_errors 1
@@ -913,6 +921,7 @@ F tan			1
 F tanh			1
 F term_expansion	2
 F term_position		5
+F thousands_sep		1
 F timeout		1
 F timeout_error		2
 F trace			1

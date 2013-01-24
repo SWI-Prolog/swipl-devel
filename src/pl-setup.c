@@ -114,6 +114,9 @@ setupProlog(void)
   initFiles();
   initIO();
   initCharConversion();
+#ifdef O_LOCALE
+  initLocale();
+#endif
   GD->io_initialised = TRUE;
 
   if ( !endCritical )

@@ -682,7 +682,7 @@ so we ignore possible problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-initLocale(void)
+init_locale(void)
 { int rc = TRUE;
 
   if ( !setlocale(LC_CTYPE, "") )
@@ -754,7 +754,7 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
 
 #else
 
-#define initLocale() 1
+#define init_locale() 1
 
 static
 PRED_IMPL("setlocale", 3, setlocale, 0)
@@ -837,7 +837,7 @@ initEncoding(void)
   { if ( !LD->encoding )
     { char *enc;
 
-      if ( !initLocale() )
+      if ( !init_locale() )
       { LD->encoding = ENC_ISO_LATIN_1;
       } else if ( (enc = setlocale(LC_CTYPE, NULL)) )
       { LD->encoding = ENC_ANSI;		/* text encoding */
