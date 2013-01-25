@@ -1109,10 +1109,13 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  *bp++ = encode(op);
 	  DEBUG(0,
 		{ const char ca1_float[2] = {CA1_FLOAT};
+		  const char ca1_int64[2] = {CA1_INT64};
 		  assert(codeTable[op].arguments == VM_DYNARGC ||
 			 (size_t)codeTable[op].arguments == strlen(ats) ||
 			 (streq(ats, ca1_float) &&
-			  codeTable[op].arguments == WORDS_PER_DOUBLE));
+			  codeTable[op].arguments == WORDS_PER_DOUBLE) ||
+			 (streq(ats, ca1_int64) &&
+			  codeTable[op].arguments == WORDS_PER_INT64));
 		});
 
 	  for(n=0; ats[n]; n++)
