@@ -541,6 +541,9 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   { btrace_destroy(ld->btrace_store);
     ld->btrace_store = NULL;
   }
+#ifdef O_LOCALE
+  releaseLocale(ld->locale.current);
+#endif
   info->thread_data = NULL;
   info->has_tid = FALSE;		/* needed? */
   ld->thread.info = NULL;		/* avoid a loop */
@@ -1461,6 +1464,9 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->IO.input_stack		  = NULL;
   ldnew->IO.output_stack	  = NULL;
   ldnew->encoding		  = LD->encoding;
+#ifdef O_LOCALE
+  ldnew->locale.current		  = acquireLocale(LD->locale.current);
+#endif
   ldnew->_debugstatus		  = LD->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
   ldnew->prolog_flag.mask	  = LD->prolog_flag.mask;
