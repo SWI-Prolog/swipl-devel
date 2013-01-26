@@ -51,6 +51,24 @@ ls_to_wcs(const char *in, const wchar_t *on_error)
 }
 
 
+static int
+init_locale_strings(PL_locale *l, struct lconv *conv)
+{ if ( conv )
+  { l->decimal_point = ls_to_wcs(conv->decimal_point, L".");
+    l->thousands_sep = ls_to_wcs(conv->thousands_sep, L",");
+    l->grouping      = strdup(conv->grouping);
+
+    return TRUE;
+  } else
+  { l->decimal_point = wcsdup(L".");
+    l->thousands_sep = wcsdup(L",");
+    l->grouping      = strdup("\003");
+
+    return FALSE;
+  }
+}
+
+
 static PL_locale *
 new_locale(PL_locale *proto)
 { PL_locale *new = PL_malloc(sizeof(*new));
@@ -64,29 +82,25 @@ new_locale(PL_locale *proto)
       new->thousands_sep = wcsdup(proto->thousands_sep);
       new->grouping      = strdup(proto->grouping);
     } else
-    { struct lconv *l = localeconv();
-
-      if ( l )
-      { new->decimal_point = ls_to_wcs(l->decimal_point, L".");
-	new->thousands_sep = ls_to_wcs(l->thousands_sep, L",");
-	new->grouping      = strdup(l->grouping);
-      } else
-      { new->decimal_point = wcsdup(L".");
-	new->thousands_sep = wcsdup(L",");
-	new->grouping      = strdup("\003");
-      }
+    { init_locale_strings(new, localeconv());
     }
   }
 
   return new;
 }
 
+
+static void
+free_locale_strings(PL_locale *l)
+{ free(l->decimal_point);
+  free(l->thousands_sep);
+  free(l->grouping);
+}
+
 static void
 free_locale(PL_locale *l)
 { if ( l )
-  { free(l->decimal_point);
-    free(l->thousands_sep);
-    free(l->grouping);
+  { free_locale_strings(l);
 
     if ( l->alias )
       PL_unregister_atom(l->alias);
@@ -94,6 +108,13 @@ free_locale(PL_locale *l)
     PL_free(l);
   }
 }
+
+static void
+update_locale(PL_locale *l, int category, const char *locale)
+{ free_locale_strings(l);
+  init_locale_strings(l, localeconv());
+}
+
 
 static int
 alias_locale(PL_locale *l, atom_t alias)
@@ -653,8 +674,15 @@ initLocale(void)
   if ( (def = new_locale(NULL)) )
   { alias_locale(def, ATOM_default);
     def->references++;
+    GD->locale.default_locale = def;
     LD->locale.current = def;
   }
+}
+
+
+void
+updateLocale(int category, const char *locale)
+{ update_locale(GD->locale.default_locale, category, locale);
 }
 
 

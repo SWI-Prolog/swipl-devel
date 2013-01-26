@@ -314,6 +314,7 @@ struct PL_global_data
 #ifdef O_LOCALE
   struct
   { Table		localeTable;	/* Name --> locale table */
+    PL_locale	       *default_locale;	/* System wide default */
   } locale;
 #endif
 };

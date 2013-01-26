@@ -38,5 +38,6 @@ typedef struct PL_locale
 } PL_locale;
 
 COMMON(void)		initLocale(void);
+COMMON(void)		updateLocale(int category, const char *locale);
 
 #endif /*PL_LOCALE_H_INCLUDED*/
