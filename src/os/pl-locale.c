@@ -716,11 +716,15 @@ updateLocale(int category, const char *locale)
 int
 initStreamLocale(IOSTREAM *s)
 { GET_LD
+  PL_locale *l;
 
   if ( LD )					/* a Prolog thread */
-    s->locale = acquireLocale(LD->locale.current);
+    l = LD->locale.current;
   else
-    s->locale = acquireLocale(GD->locale.default_locale);
+    l = GD->locale.default_locale;
+
+  if ( l )
+    s->locale = acquireLocale(l);
 
   return TRUE;
 }

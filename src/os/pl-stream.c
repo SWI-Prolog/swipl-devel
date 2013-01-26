@@ -53,6 +53,7 @@ locking is required.
 #endif
 
 #define PL_KERNEL 1
+#define O_LOCALE 1
 #include <wchar.h>
 #define NEEDS_SWINSOCK
 #include "SWI-Stream.h"
@@ -131,7 +132,9 @@ STRYLOCK(IOSTREAM *s)
 #endif
 
 #include "pl-error.h"
+#ifdef O_LOCALE
 #include "os/pl-locale.h"
+#endif
 
 extern int			fatalError(const char *fm, ...);
 extern int			PL_handle_signals();
@@ -1474,6 +1477,7 @@ Ssetenc(IOSTREAM *s, IOENC enc, IOENC *old)
   return 0;
 }
 
+#ifdef O_LOCALE
 int
 Ssetlocale(IOSTREAM *s, PL_locale *new, PL_locale **old)
 { PL_locale *lo = s->locale;
@@ -1492,6 +1496,7 @@ Ssetlocale(IOSTREAM *s, PL_locale *new, PL_locale **old)
 
   return 0;
 }
+#endif
 
 		 /*******************************
 		 *	      FLUSH		*
@@ -1787,6 +1792,8 @@ Sclose(IOSTREAM *s)
 
   if ( s->message )
     free(s->message);
+  if ( s->locale )
+    releaseLocale(s->locale);
   if ( s->references == 0 )
     unallocStream(s);
   else
