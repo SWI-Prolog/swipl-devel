@@ -536,7 +536,7 @@ static int
 set_chars(term_t t, wchar_t **valp)
 { wchar_t *s;
 
-  if ( PL_get_wchars(t, NULL, &s, PL_ATOM|CVT_EXCEPTION) )
+  if ( PL_get_wchars(t, NULL, &s, CVT_ATOM|CVT_EXCEPTION) )
   { free(*valp);
     if ( (*valp = wcsdup(s)) )
       return TRUE;
@@ -655,7 +655,7 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     if ( alias && !alias_locale(new, alias) )
       goto error;
 
-    return unify_locale(A1, def PASS_LD);
+    return unify_locale(A1, new PASS_LD);
   } else
   { return PL_no_memory();
   }
