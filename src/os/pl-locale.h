@@ -32,8 +32,8 @@ typedef struct PL_locale
   int		references;	/* Reference count */
   int		erased;		/* Locale is erased */
 				/* POSIX locale properties */
-  char	       *decimal_point;	/* Radix character */
-  char	       *thousands_sep;	/* Separator for digit group left of radix character */
+  wchar_t      *decimal_point;	/* Radix character */
+  wchar_t      *thousands_sep;	/* Separator for digit group left of radix character */
   char	       *grouping;	/* Grouping  */
 } PL_locale;
 

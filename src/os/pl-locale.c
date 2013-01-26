@@ -33,6 +33,24 @@
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
 
+#define LSTR_MAX 16
+
+static wchar_t *
+ls_to_wcs(const char *in, const wchar_t *on_error)
+{ wchar_t buf[LSTR_MAX];
+  mbstate_t state;
+
+  memset(&state, 0, sizeof(state));
+  mbsrtowcs(buf, &in, LSTR_MAX, &state);
+  if ( in == NULL )
+  { return wcsdup(buf);
+  } else
+  { Sdprintf("Illegal locale string: %s\n", in);
+    return wcsdup(on_error);
+  }
+}
+
+
 static PL_locale *
 new_locale(PL_locale *proto)
 { PL_locale *new = PL_malloc(sizeof(*new));
@@ -42,19 +60,19 @@ new_locale(PL_locale *proto)
     new->magic = LOCALE_MAGIC;
 
     if ( proto )
-    { new->decimal_point = strdup(proto->decimal_point);
-      new->thousands_sep = strdup(proto->thousands_sep);
+    { new->decimal_point = wcsdup(proto->decimal_point);
+      new->thousands_sep = wcsdup(proto->thousands_sep);
       new->grouping      = strdup(proto->grouping);
     } else
     { struct lconv *l = localeconv();
 
       if ( l )
-      { new->decimal_point = strdup(l->decimal_point);
-	new->thousands_sep = strdup(l->thousands_sep);
+      { new->decimal_point = ls_to_wcs(l->decimal_point, L".");
+	new->thousands_sep = ls_to_wcs(l->thousands_sep, L",");
 	new->grouping      = strdup(l->grouping);
       } else
-      { new->decimal_point = strdup(".");
-	new->thousands_sep = strdup(",");
+      { new->decimal_point = wcsdup(L".");
+	new->thousands_sep = wcsdup(L",");
 	new->grouping      = strdup("\003");
       }
     }
@@ -258,7 +276,7 @@ locale_alias_property(PL_locale *l, term_t prop ARG_LD)
 static int		/* locale_property(Locale, decimal_point(Atom)) */
 locale_decimal_point_property(PL_locale *l, term_t prop ARG_LD)
 { if ( l->decimal_point && l->decimal_point[0] )
-    return PL_unify_atom_chars(prop, l->decimal_point);
+    return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->decimal_point);
 
   return FALSE;
 }
@@ -266,7 +284,7 @@ locale_decimal_point_property(PL_locale *l, term_t prop ARG_LD)
 static int		/* locale_property(Locale, thousands_sep(Atom)) */
 locale_thousands_sep_property(PL_locale *l, term_t prop ARG_LD)
 { if ( l->thousands_sep && l->thousands_sep[0] )
-    return PL_unify_atom_chars(prop, l->thousands_sep);
+    return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->thousands_sep);
 
   return FALSE;
 }
@@ -494,12 +512,12 @@ enumerate:
 
 
 static int
-set_chars(term_t t, char **valp)
-{ char *s;
+set_chars(term_t t, wchar_t **valp)
+{ wchar_t *s;
 
-  if ( PL_get_chars(t, &s, PL_ATOM|CVT_EXCEPTION) )
+  if ( PL_get_wchars(t, NULL, &s, PL_ATOM|CVT_EXCEPTION) )
   { free(*valp);
-    if ( (*valp = strdup(s)) )
+    if ( (*valp = wcsdup(s)) )
       return TRUE;
     return PL_no_memory();
   }
