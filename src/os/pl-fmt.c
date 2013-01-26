@@ -529,6 +529,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'D':			/* grouped integer */
 	      case 'r':			/* radix number */
 	      case 'R':			/* Radix number */
+	      case 'I':			/* Prolog 1_000_000 */
 		{ number i;
 		  tmp_buffer b;
 
@@ -542,14 +543,26 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    FMT_ARG(f, argv);
 		  }
 		  SHIFT;
-		  if ( arg == DEFAULT )
-		    arg = 0;
 		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
-		  { formatNumber(c == 'D' ? fd->locale : NULL,
+		  { if ( arg == DEFAULT )
+		      arg = 0;
+		    formatNumber(c == 'D' ? fd->locale : NULL,
 				 arg, 10, TRUE, &i, (Buffer)&b);
-		  } else
-		  { if ( arg < 1 || arg > 36 )
+		  } else if ( c == 'I' )
+		  { PL_locale ltmp;
+		    char grouping[2];
+
+		    grouping[0] = (arg == DEFAULT ? 3 : arg);
+		    grouping[1] = '\0';
+		    ltmp.thousands_sep = L"_";
+		    ltmp.grouping = grouping;
+
+		    formatNumber(&ltmp, 0, 10, TRUE, &i, (Buffer)&b);
+		  } else			/* r,R */
+		  { if ( arg == DEFAULT )
+		      FMT_ERROR("r,R requires radix specifier");
+		    if ( arg < 1 || arg > 36 )
 		    { term_t r = PL_new_term_ref();
 
 		      PL_put_integer(r, arg);
