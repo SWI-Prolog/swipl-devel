@@ -413,7 +413,7 @@ emit_codes([H|T]) --> [H], emit_codes(T).
 %	    setup_call_cleanup(
 %		open(File, write, Out),
 %		forall(data(C1,C2,C3),
-%		       csv_write_file(Out, [row(C1,C2,C3)], [])),
+%		       csv_write_stream(Out, [row(C1,C2,C3)], [])),
 %		close(Out)),
 %        ==
 
