@@ -962,15 +962,11 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
       { int before = FALSE;			/* before decimal point */
 	int negative = FALSE;
 	int gsize = 0;
+	int dweight;
 
-	if ( n >= 0 )
-	{ negative = FALSE;
-	} else					/* TBD: INT_MIN? */
-	{ n = -n;
-	  negative = TRUE;
-	}
+	negative = (n < 0);
 
-	while( n > 0 || div >= 0 )
+	while( n != 0 || div >= 0 )
 	{ if ( div-- == 0 && !before )
 	  { if ( !isEmptyBuffer(out) )
 	      lappend(locale->decimal_point, '.', out);
@@ -979,10 +975,15 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
 	      gsize = grouping[0];
 	  }
 
-	  addBuffer(out, digitName((int)(n % radix), smll), char);
+	  if ( !negative )
+	    dweight = (int)(n % radix);
+	  else
+	    dweight = -(int)(n % -radix);
+
+	  addBuffer(out, digitName(dweight, smll), char);
 	  n /= radix;
 
-	  if ( --gsize == 0 && n > 0 )
+	  if ( --gsize == 0 && n != 0 )
 	  { lappend(locale->thousands_sep, ',', out);
 	    if ( grouping[1] == 0 )
 	      gsize = grouping[0];
