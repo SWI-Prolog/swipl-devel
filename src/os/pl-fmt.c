@@ -32,7 +32,7 @@ source should also use format() to produce error messages, etc.
 #include "pl-utf8.h"
 #include <ctype.h>
 
-static char *	formatNumber(bool split, int div, int radix,
+static char *	formatNumber(PL_locale *locale, int div, int radix,
 			     bool smll, Number n, Buffer out);
 static char *	formatFloat(int how, int arg, Number f, Buffer out);
 
@@ -547,7 +547,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    arg = 0;
 		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
-		  { formatNumber(c == 'D', arg, 10, TRUE, &i, (Buffer)&b);
+		  { formatNumber(c == 'D' ? fd->locale : NULL,
+				 arg, 10, TRUE, &i, (Buffer)&b);
 		  } else
 		  { if ( arg < 1 || arg > 36 )
 		    { term_t r = PL_new_term_ref();
@@ -557,7 +558,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 				      ATOM_radix, r);
 		    }
-		    formatNumber(FALSE, 0, arg, c == 'r', &i, (Buffer)&b);
+		    formatNumber(NULL, 0, arg, c == 'r', &i, (Buffer)&b);
 		  }
 		  clearNumber(&i);
 		  rc = outstring0(&state, baseBuffer(&b, char));
@@ -887,52 +888,98 @@ emit_rubber(format_state *state)
 
  ** Fri Aug 19 22:26:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
+static void
+lappend(const wchar_t *l, int def, Buffer out)
+{ if ( l )
+  { int c;
+
+    for ( ; (c = *l); l++ )
+    { if ( c < 128 )
+      { addBuffer(out, c, char);
+      } else
+      { char buf[6];
+	char *e8, *s;
+
+	e8=_PL__utf8_put_char(buf, c);
+	for(s=buf; s<e8; s++)
+	{ addBuffer(out, *s, char);
+	}
+      }
+    }
+  } else
+  { addBuffer(out, def, char);
+  }
+}
+
+static void
+revert_string(char *s, size_t len)
+{ char *e = &s[len-1];
+
+  for(; e>s; s++,e--)
+  { int c = *e;
+
+    *e = *s;
+    *s = c;
+  }
+}
+
 static char *
-formatNumber(bool split, int div, int radix, bool smll, Number i,
+formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
 	     Buffer out)
-{ switch(i->type)
+{ static PL_locale no_locale = {0};
+
+  if ( !locale )
+  { if ( !no_locale.decimal_point )
+    { no_locale.decimal_point = L".";
+    }
+    locale = &no_locale;
+  }
+
+  switch(i->type)
   { case V_INTEGER:
     { int64_t n = i->value.i;
-      char buf[100];
-      char *tmp, *end, *s;
-      int before = (div == 0);
-      int digits = 0;
-      bool negative = FALSE;
 
-      if ( div+3 > (int)sizeof(buf) )	/* 0.000NNNN with div digits after 0. */
-      { tmp = PL_malloc(div+3);
-	end = tmp+div+3;
-      } else
-      { tmp = buf;
-	end = tmp+sizeof(buf);
-      }
-
-      s = end;				/* i.e. start at the end */
-      *--s = EOS;
-      if ( n < 0 )
-      { n = -n;
-	negative = TRUE;
-      }
       if ( n == 0 && div == 0 )
-      { *--s = '0';
+      { addBuffer(out, '0', char);
       } else
-      { while( n > 0 || div >= 0 )
+      { int before = FALSE;			/* before decimal point */
+	int negative = FALSE;
+	const char *grouping = locale->grouping;
+	int gsize = 0;
+
+	if ( n >= 0 )
+	{ negative = FALSE;
+	} else					/* TBD: INT_MIN? */
+	{ n = -n;
+	  negative = TRUE;
+	}
+
+	while( n > 0 || div >= 0 )
 	{ if ( div-- == 0 && !before )
-	  { *--s = '.';
-	    before = 1;
+	  { if ( !isEmptyBuffer(out) )
+	      lappend(locale->decimal_point, '.', out);
+	    before = TRUE;
+	    if ( grouping && grouping[0] &&
+		 locale->thousands_sep && locale->thousands_sep[0] )
+	    { gsize = grouping[0];
+	    }
 	  }
-	  if ( split && before && (digits++ % 3) == 0 && digits != 1 )
-	    *--s = ',';
-	  *--s = digitName((int)(n % radix), smll);
+	  addBuffer(out, digitName((int)(n % radix), smll), char);
 	  n /= radix;
+	  if ( --gsize == 0 && n > 0 )
+	  { lappend(locale->thousands_sep, ',', out);
+	    if ( grouping[1] == CHAR_MAX )
+	      gsize = grouping[0];
+	    else
+	      gsize = *grouping++;
+	  }
 	}
 	if ( negative )
-	  *--s = '-';
+	  addBuffer(out, '-', char);
       }
 
-      addMultipleBuffer(out, s, end-s, char);
-      if ( tmp != buf )
-	PL_free(tmp);
+      revert_string(baseBuffer(out, char), entriesBuffer(out, char));
+      addBuffer(out, EOS, char);
 
       return baseBuffer(out, char);
     }
@@ -941,6 +988,7 @@ formatNumber(bool split, int div, int radix, bool smll, Number i,
     { size_t len = mpz_sizeinbase(i->value.mpz, radix);
       char tmp[256];
       char *buf;
+      int split = (locale->grouping != NULL);	/* TBD */
 
       if ( len+2 > sizeof(tmp) )
 	buf = PL_malloc(len+2);
