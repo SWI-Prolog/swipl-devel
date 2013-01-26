@@ -30,7 +30,6 @@ typedef struct PL_locale
   atom_t	symbol;		/* blob handle */
   int		magic;		/* LOCALE_MAGIC */
   int		references;	/* Reference count */
-  int		erased;		/* Locale is erased */
 				/* POSIX locale properties */
   wchar_t      *decimal_point;	/* Radix character */
   wchar_t      *thousands_sep;	/* Separator for digit group left of radix character */
@@ -39,5 +38,7 @@ typedef struct PL_locale
 
 COMMON(void)		initLocale(void);
 COMMON(void)		updateLocale(int category, const char *locale);
+COMMON(PL_locale *)	acquireLocale(PL_locale *l);
+COMMON(void)		releaseLocale(PL_locale *l);
 
 #endif /*PL_LOCALE_H_INCLUDED*/

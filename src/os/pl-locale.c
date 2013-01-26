@@ -167,7 +167,7 @@ static void
 acquire_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
-  ref->data->references++;
+  (void)ref;
 }
 
 
@@ -175,8 +175,12 @@ static int
 release_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
-  if ( --ref->data->references == 0 && ref->data->erased )
+  LOCK();
+  if ( ref->data->references == 0 )
     free_locale(ref->data);
+  else
+    ref->data->symbol = 0;
+  UNLOCK();
 
   return TRUE;
 }
@@ -662,6 +666,10 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 }
 
 
+		 /*******************************
+		 *	     C INTERFACE	*
+		 *******************************/
+
 void
 initLocale(void)
 { GET_LD
@@ -675,7 +683,7 @@ initLocale(void)
   { alias_locale(def, ATOM_default);
     def->references++;
     GD->locale.default_locale = def;
-    LD->locale.current = def;
+    LD->locale.current = acquireLocale(def);
   }
 }
 
@@ -684,6 +692,27 @@ void
 updateLocale(int category, const char *locale)
 { update_locale(GD->locale.default_locale, category, locale);
 }
+
+
+PL_locale *
+acquireLocale(PL_locale *l)
+{ LOCK();
+  l->references++;
+  UNLOCK();
+
+  return l;
+}
+
+
+void
+releaseLocale(PL_locale *l)
+{ LOCK();
+  if ( --l->references == 0 && l->symbol == 0 && l->alias == 0 )
+    free_locale(l);
+  UNLOCK();
+}
+
+
 
 
 		 /*******************************
