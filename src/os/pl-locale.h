@@ -36,9 +36,15 @@ typedef struct PL_locale
   char	       *grouping;	/* Grouping  */
 } PL_locale;
 
+#define PL_HAVE_PL_LOCALE 1
+
 COMMON(void)		initLocale(void);
 COMMON(void)		updateLocale(int category, const char *locale);
 COMMON(PL_locale *)	acquireLocale(PL_locale *l);
 COMMON(void)		releaseLocale(PL_locale *l);
+COMMON(int)		initStreamLocale(IOSTREAM *s);
+COMMON(int)		unifyLocale(term_t t, PL_locale *l);
+COMMON(int)		getLocale(term_t t, PL_locale **lp);
+COMMON(int)		getLocaleEx(term_t t, PL_locale **lp);
 
 #endif /*PL_LOCALE_H_INCLUDED*/

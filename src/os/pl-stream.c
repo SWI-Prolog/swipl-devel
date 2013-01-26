@@ -131,6 +131,7 @@ STRYLOCK(IOSTREAM *s)
 #endif
 
 #include "pl-error.h"
+#include "os/pl-locale.h"
 
 extern int			fatalError(const char *fm, ...);
 extern int			PL_handle_signals();
@@ -1473,6 +1474,25 @@ Ssetenc(IOSTREAM *s, IOENC enc, IOENC *old)
   return 0;
 }
 
+int
+Ssetlocale(IOSTREAM *s, PL_locale *new, PL_locale **old)
+{ PL_locale *lo = s->locale;
+
+  if ( old )
+    *old = s->locale;
+  if ( new == s->locale )
+    return 0;
+
+  if ( new )
+    s->locale = acquireLocale(new);
+  else
+    s->locale = NULL;
+  if ( lo )
+    releaseLocale(lo);
+
+  return 0;
+}
+
 		 /*******************************
 		 *	      FLUSH		*
 		 *******************************/
@@ -2800,6 +2820,10 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #endif
   }
 }
+
+#ifdef O_LOCALE
+  initStreamLocale(s);
+#endif
 
   return s;
 }

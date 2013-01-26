@@ -220,9 +220,10 @@ static PL_blob_t locale_blob =
 		 *	   PROLOG HANDLE	*
 		 *******************************/
 
-static int
-unify_locale(term_t t, PL_locale *l ARG_LD)
-{ term_t b;
+int
+unifyLocale(term_t t, PL_locale *l)
+{ GET_LD
+  term_t b;
 
   if ( l->alias )
     return PL_unify_atom(t, l->alias);
@@ -241,9 +242,10 @@ unify_locale(term_t t, PL_locale *l ARG_LD)
 }
 
 
-static int
-get_locale(term_t t, PL_locale **lp ARG_LD)
-{ atom_t a;
+int
+getLocale(term_t t, PL_locale **lp)
+{ GET_LD
+  atom_t a;
 
   if ( PL_get_atom(t, &a) )
   { PL_locale *l = NULL;
@@ -274,9 +276,11 @@ get_locale(term_t t, PL_locale **lp ARG_LD)
 }
 
 
-static int
-get_locale_ex(term_t t, PL_locale **lp ARG_LD)
-{ if ( get_locale(t, lp PASS_LD) )
+int
+getLocaleEx(term_t t, PL_locale **lp)
+{ GET_LD
+
+  if ( getLocale(t, lp) )
     return TRUE;
 
   if ( PL_is_atom(t) )
@@ -450,7 +454,7 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 	  case -1:
 	    return FALSE;
 	}
-      } else if ( get_locale(locale, &state->l PASS_LD) )
+      } else if ( getLocale(locale, &state->l) )
       { switch( get_prop_def(property, ATOM_locale_property,
 			     lprop_list, &state->p) )
 	{ case 1:
@@ -505,7 +509,7 @@ enumerate:
 	    goto error;
 	}
 	if ( state->e )
-	{ if ( !unify_locale(locale, state->l PASS_LD) )
+	{ if ( !unifyLocale(locale, state->l) )
 	    goto error;
 	}
 
@@ -617,7 +621,7 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 { PRED_LD
   PL_locale *def, *new;
 
-  if ( !get_locale_ex(A2, &def PASS_LD) )
+  if ( !getLocaleEx(A2, &def) )
     return FALSE;
   if ( (new=new_locale(def)) )
   { atom_t alias = 0;
@@ -659,7 +663,7 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     if ( alias && !alias_locale(new, alias) )
       goto error;
 
-    return unify_locale(A1, new PASS_LD);
+    return unifyLocale(A1, new);
   } else
   { return PL_no_memory();
   }
@@ -669,6 +673,19 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 		 /*******************************
 		 *	     C INTERFACE	*
 		 *******************************/
+
+
+static void
+initDefaultsStreamsLocale(PL_locale *l)
+{ IOSTREAM *s = S__getiob();
+  int i;
+
+  for(i=0; i<2; i++, s++)
+  { if ( !s->locale )
+      s->locale = acquireLocale(l);
+  }
+}
+
 
 void
 initLocale(void)
@@ -684,6 +701,8 @@ initLocale(void)
     def->references++;
     GD->locale.default_locale = def;
     LD->locale.current = acquireLocale(def);
+
+    initDefaultsStreamsLocale(def);
   }
 }
 
@@ -691,6 +710,19 @@ initLocale(void)
 void
 updateLocale(int category, const char *locale)
 { update_locale(GD->locale.default_locale, category, locale);
+}
+
+
+int
+initStreamLocale(IOSTREAM *s)
+{ GET_LD
+
+  if ( LD )					/* a Prolog thread */
+    s->locale = acquireLocale(LD->locale.current);
+  else
+    s->locale = acquireLocale(GD->locale.default_locale);
+
+  return TRUE;
 }
 
 

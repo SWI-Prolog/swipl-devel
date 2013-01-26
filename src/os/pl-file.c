@@ -1880,6 +1880,19 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		 ATOM_encoding, ATOM_stream, stream);
 	goto error;
+#ifdef O_LOCALE
+      } else if ( aname == ATOM_locale )	/* locale(Locale) */
+      {	PL_locale *val;
+
+	if ( !getLocaleEx(a, &val) )
+	  goto error;
+	if ( Ssetlocale(s, val, NULL) == 0 )
+	  goto ok;
+
+	PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		 ATOM_locale, ATOM_stream, stream);
+	goto error;
+#endif
       } else if ( aname == ATOM_representation_errors )
       { atom_t val;
 
@@ -3812,6 +3825,15 @@ stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#ifdef O_LOCALE
+static int
+stream_locale_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ if ( s->locale )
+    return unifyLocale(prop, s->locale);
+  return FALSE;
+}
+#endif
+
 static int
 stream_reperror_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t a;
@@ -3930,6 +3952,9 @@ static const sprop sprop_list [] =
   { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
   { FUNCTOR_tty1,	    stream_tty_prop },
   { FUNCTOR_encoding1,	    stream_encoding_prop },
+#ifdef O_LOCALE
+  { FUNCTOR_locale1,	    stream_locale_prop },
+#endif
   { FUNCTOR_bom1,	    stream_bom_prop },
   { FUNCTOR_newline1,	    stream_newline_prop },
   { FUNCTOR_representation_errors1, stream_reperror_prop },

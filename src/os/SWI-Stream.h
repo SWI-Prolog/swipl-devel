@@ -210,7 +210,10 @@ typedef struct io_stream
   int			io_errno;	/* Save errno value */
   void *		exception;	/* pending exception (record_t) */
   void *		context;	/* getStreamContext() */
-  intptr_t		reserved[1];	/* reserved for extension */
+  struct PL_locale *	locale;		/* Locale associated to stream */
+#if 0 /* We used them all :-( */
+  intptr_t		reserved[0];	/* reserved for extension */
+#endif
 } IOSTREAM;
 
 
@@ -382,6 +385,9 @@ PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
 PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
 PL_EXPORT(void)		Sset_exception(IOSTREAM *s, term_t ex);
 PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new_enc, IOENC *old_enc);
+PL_EXPORT(int)		Ssetlocale(IOSTREAM *s,
+				   struct PL_locale *new_loc,
+				   struct PL_locale **old_loc);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
 PL_EXPORT(int64_t)	Ssize(IOSTREAM *s);
 PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence);
