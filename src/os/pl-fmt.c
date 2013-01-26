@@ -926,12 +926,17 @@ static char *
 formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
 	     Buffer out)
 { static PL_locale no_locale = {0};
+  const char *grouping = NULL;
 
   if ( !locale )
   { if ( !no_locale.decimal_point )
     { no_locale.decimal_point = L".";
     }
     locale = &no_locale;
+  } else
+  { if ( locale->grouping && locale->grouping[0] &&
+	 locale->thousands_sep && locale->thousands_sep[0] )
+      grouping = locale->grouping;
   }
 
   switch(i->type)
@@ -943,7 +948,6 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
       } else
       { int before = FALSE;			/* before decimal point */
 	int negative = FALSE;
-	const char *grouping = locale->grouping;
 	int gsize = 0;
 
 	if ( n >= 0 )
@@ -958,13 +962,13 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
 	  { if ( !isEmptyBuffer(out) )
 	      lappend(locale->decimal_point, '.', out);
 	    before = TRUE;
-	    if ( grouping && grouping[0] &&
-		 locale->thousands_sep && locale->thousands_sep[0] )
-	    { gsize = grouping[0];
-	    }
+	    if ( grouping )
+	      gsize = grouping[0];
 	  }
+
 	  addBuffer(out, digitName((int)(n % radix), smll), char);
 	  n /= radix;
+
 	  if ( --gsize == 0 && n > 0 )
 	  { lappend(locale->thousands_sep, ',', out);
 	    if ( grouping[1] == CHAR_MAX )
@@ -987,7 +991,6 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
     { size_t len = mpz_sizeinbase(i->value.mpz, radix);
       char tmp[256];
       char *buf;
-      int split = (locale->grouping != NULL);	/* TBD */
 
       if ( len+2 > sizeof(tmp) )
 	buf = PL_malloc(len+2);
@@ -1001,40 +1004,41 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
 	for(s=buf; *s; s++)
 	  *s = toupper(*s);
       }
-      if ( split || div > 0 )
-      { int before = (int)(len-div);
-	int leading;
-	char *s = buf;
 
-	if ( *s == '-' )
-	{ addBuffer(out, *s, char);
-	  s++;
-	}
-	if ( split )
-	{ leading = before % 3;
-	  if ( leading == 0 )
-	    leading = 3;
-	} else
-	{ leading = (int)len;
-	}
-	for(; *s; s++)
-	{ if ( before-- == 0 && div > 0 )
-	  { addBuffer(out, '.', char);
-	  } else if ( leading-- == 0 && before > 0 )
-	  { addBuffer(out, ',', char);
-	    leading = 2;
+      if ( grouping || div > 0 )
+      { int before = FALSE;			/* before decimal point */
+	int gsize = 0;
+	char *e = buf+strlen(buf)-1;
+
+	while(e >= buf || div >= 0)
+	{ if ( div-- == 0 && !before )
+	  { if ( !isEmptyBuffer(out) )
+	      lappend(locale->decimal_point, '.', out);
+	    before = TRUE;
+	    if ( grouping )
+	      gsize = grouping[0];
 	  }
-	  addBuffer(out, *s, char);
+
+	  addBuffer(out, *e, char);
+	  e--;
+
+	  if ( --gsize == 0 && e >= buf && *e != '-' )
+	  { lappend(locale->thousands_sep, ',', out);
+	    if ( grouping[1] == CHAR_MAX )
+	      gsize = grouping[0];
+	    else
+	      gsize = *grouping++;
+	  }
 	}
-	addBuffer(out, EOS, char);
+	revert_string(baseBuffer(out, char), entriesBuffer(out, char));
       } else
       { addMultipleBuffer(out, buf, strlen(buf), char);
-	addBuffer(out, EOS, char);
       }
 
       if ( buf != tmp )
 	PL_free(buf);
 
+      addBuffer(out, EOS, char);
       return baseBuffer(out, char);
     }
 #endif /*O_GMP*/
