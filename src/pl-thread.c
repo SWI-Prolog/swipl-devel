@@ -542,7 +542,8 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     ld->btrace_store = NULL;
   }
 #ifdef O_LOCALE
-  releaseLocale(ld->locale.current);
+  if ( ld->locale.current )
+    releaseLocale(ld->locale.current);
 #endif
   info->thread_data = NULL;
   info->has_tid = FALSE;		/* needed? */
