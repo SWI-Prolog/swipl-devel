@@ -971,10 +971,12 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
 
 	  if ( --gsize == 0 && n > 0 )
 	  { lappend(locale->thousands_sep, ',', out);
-	    if ( grouping[1] == CHAR_MAX )
+	    if ( grouping[1] == 0 )
 	      gsize = grouping[0];
+	    else if ( grouping[1] == CHAR_MAX )
+	      gsize = 0;
 	    else
-	      gsize = *grouping++;
+	      gsize = *++grouping;
 	  }
 	}
 	if ( negative )
@@ -1024,10 +1026,12 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
 
 	  if ( --gsize == 0 && e >= buf && *e != '-' )
 	  { lappend(locale->thousands_sep, ',', out);
-	    if ( grouping[1] == CHAR_MAX )
+	    if ( grouping[1] == 0 )
 	      gsize = grouping[0];
+	    else if ( grouping[1] == CHAR_MAX )
+	      gsize = 0;
 	    else
-	      gsize = *grouping++;
+	      gsize = *++grouping;
 	  }
 	}
 	revert_string(baseBuffer(out, char), entriesBuffer(out, char));
