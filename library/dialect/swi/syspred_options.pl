@@ -41,7 +41,8 @@
 		       buffer(oneof([full,line,false])),
 		       close_on_abort(boolean),
 		       lock(oneof([none,read,shared,write,exclusive])),
-		       wait(boolean)
+		       wait(boolean),
+		       locale(any)		% no type-check yet
 		     ]).
 :- predicate_options(system:write_term/3, 3,
 		     [ attributes(oneof([ignore,dots,write,portray])),
@@ -164,5 +165,11 @@
 :- predicate_options(system:thread_get_message/3, 3,
 		     [ timeout(number),
 		       deadline(number)
+		     ]).
+:- predicate_options(system:locale_create/3, 3,
+		     [ alias(atom),
+		       decimal_point(atom),
+		       thousands_sep(atom),
+		       grouping(list(any))
 		     ]).
 
