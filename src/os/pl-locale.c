@@ -611,11 +611,13 @@ set_grouping(term_t t, char **valp)
       return PL_representation_error("digit_groups");
 
     if ( PL_is_functor(head, FUNCTOR_repeat1) )
-    { _PL_get_arg(1, head, head);
+    { if ( !PL_get_nil_ex(tail) )
+	return FALSE;
+
+      _PL_get_arg(1, head, head);
       if ( get_group_size_ex(head, &g) )
       { *o++ = g;
-	*o++ = CHAR_MAX;
-	break;					/* must be last in list */
+	goto end;
       }
       return FALSE;
     }
@@ -624,8 +626,11 @@ set_grouping(term_t t, char **valp)
     } else
       return FALSE;
   }
+
   if ( PL_get_nil_ex(tail) )
-  { *o++ = '\0';
+  { *o++ = CHAR_MAX;				/* no more grouping */
+  end:
+    *o++ = '\0';
     free(*valp);
     if ( (*valp = strdup(s)) )
       return TRUE;
@@ -714,6 +719,31 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
   } else
   { return PL_no_memory();
   }
+}
+
+
+static
+PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
+{ PL_locale *l;
+
+  if ( getLocaleEx(A1, &l) )
+  { if ( l->alias )
+    { Symbol s;
+      atom_t alias = l->alias;
+
+      LOCK();
+      if ( (s=lookupHTable(GD->locale.localeTable, (void*)alias)) )
+	deleteSymbolHTable(GD->locale.localeTable, s);
+      l->alias = 0;
+      PL_unregister_atom(alias);
+      UNLOCK();
+    }
+
+    releaseLocale(l);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -853,6 +883,7 @@ releaseLocale(PL_locale *l)
 BeginPredDefs(locale)
   PRED_DEF("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
   PRED_DEF("locale_create",   3, locale_create,   0)
+  PRED_DEF("locale_destroy",  1, locale_destroy,  0)
   PRED_DEF("set_locale",      1, set_locale,      0)
   PRED_DEF("current_locale",  1, current_locale,  0)
 EndPredDefs
