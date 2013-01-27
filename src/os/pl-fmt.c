@@ -64,6 +64,7 @@ typedef struct
 #define FMT_ARG(c, a)	return (void)Sunlock(fd), \
 			       PL_error(NULL, 0, NULL, \
 					ERR_FORMAT_ARG, c, a)
+#define FMT_EXEPTION()	return (void)Sunlock(fd), FALSE
 
 
 static int
@@ -547,8 +548,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  if ( c == 'd' || c == 'D' )
 		  { if ( arg == DEFAULT )
 		      arg = 0;
-		    formatNumber(c == 'D' ? fd->locale : NULL,
-				 arg, 10, TRUE, &i, (Buffer)&b);
+		    if ( !formatNumber(c == 'D' ? fd->locale : NULL,
+				       arg, 10, TRUE, &i, (Buffer)&b) )
+		      FMT_EXEPTION();
 		  } else if ( c == 'I' )
 		  { PL_locale ltmp;
 		    char grouping[2];
@@ -558,7 +560,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    ltmp.thousands_sep = L"_";
 		    ltmp.grouping = grouping;
 
-		    formatNumber(&ltmp, 0, 10, TRUE, &i, (Buffer)&b);
+		    if ( !formatNumber(&ltmp, 0, 10, TRUE, &i, (Buffer)&b) )
+		      FMT_EXEPTION();
 		  } else			/* r,R */
 		  { if ( arg == DEFAULT )
 		      FMT_ERROR("r,R requires radix specifier");
@@ -570,7 +573,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 				      ATOM_radix, r);
 		    }
-		    formatNumber(NULL, 0, arg, c == 'r', &i, (Buffer)&b);
+		    if ( !formatNumber(NULL, 0, arg, c == 'r', &i, (Buffer)&b) )
+		      FMT_EXEPTION();
 		  }
 		  clearNumber(&i);
 		  rc = outstring0(&state, baseBuffer(&b, char));
@@ -1004,16 +1008,27 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
     }
 #ifdef O_GMP
     case V_MPZ:
-    { size_t len = mpz_sizeinbase(i->value.mpz, radix);
+    { GET_LD
+      size_t len = mpz_sizeinbase(i->value.mpz, radix);
       char tmp[256];
       char *buf;
+      int rc = TRUE;
 
       if ( len+2 > sizeof(tmp) )
 	buf = PL_malloc(len+2);
       else
 	buf = tmp;
 
-      mpz_get_str(buf, radix, i->value.mpz);
+      EXCEPTION_GUARDED({ LD->gmp.persistent++;
+			  mpz_get_str(buf, radix, i->value.mpz);
+			  LD->gmp.persistent--;
+			},
+			{ LD->gmp.persistent--;
+			  rc = PL_rethrow();
+			});
+      if ( !rc )
+	return NULL;
+
       if ( !smll && radix > 10 )
       { char *s;
 
