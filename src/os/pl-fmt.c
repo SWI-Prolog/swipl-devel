@@ -33,7 +33,8 @@ source should also use format() to produce error messages, etc.
 
 static char *	formatNumber(PL_locale *locale, int div, int radix,
 			     bool smll, Number n, Buffer out);
-static char *	formatFloat(int how, int arg, Number f, Buffer out);
+static char *	formatFloat(PL_locale *locale, int how, int arg,
+			    Number f, Buffer out);
 
 #define MAXRUBBER 100
 
@@ -511,6 +512,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  tmp_buffer b;
 		    buffer b1;
 		  } u;
+		  PL_locale *l;
 
 		  NEED_ARG;
 		  if ( !valueExpression(argv, &n PASS_LD) )
@@ -522,10 +524,16 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  }
 		  SHIFT;
 
+		  if ( c == 'f' && mod_colon )
+		    l = fd->locale;
+		  else
+		    l = NULL;
+
 		  initBuffer(&u.b);
-		  formatFloat(c, arg, &n, &u.b1);
+		  rc = formatFloat(l, c, arg, &n, &u.b1) != NULL;
 		  clearNumber(&n);
-		  rc = outstring0(&state, baseBuffer(&u.b, char));
+		  if ( rc )
+		    rc = outstring0(&state, baseBuffer(&u.b, char));
 		  discardBuffer(&u.b);
                   if ( !rc )
 		    goto out;
@@ -935,7 +943,7 @@ lappend(const wchar_t *l, int def, Buffer out)
       { char buf[6];
 	char *e8, *s;
 
-	e8=_PL__utf8_put_char(buf, c);
+	e8=utf8_put_char(buf, c);
 	for(s=buf; s<e8; s++)
 	{ addBuffer(out, *s, char);
 	}
@@ -1101,8 +1109,107 @@ formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
 }
 
 
+static int
+countGroups(const char *grouping, int len)
+{ int groups = 0;
+  int gsize = grouping[0];
+
+  while(len>0)
+  { len -= gsize;
+
+    if ( len > 0 )
+      groups++;
+
+    if ( grouping[1] == 0 )
+    { if ( len > 1 )
+	groups += (len-1)/grouping[0];
+      return groups;
+    } else if ( grouping[1] == CHAR_MAX )
+    { return groups;
+    } else
+    { gsize = *++grouping;
+    }
+  }
+
+  return groups;
+}
+
+
+static int
+ths_to_utf8(char *u8, const wchar_t *s, size_t len)
+{ char *e = u8+len-7;
+
+  for( ; u8<e && *s; s++)
+    u8 = utf8_put_char(u8,*s);
+  *u8 = EOS;
+
+  return *s == 0;
+}
+
+
 static char *
-formatFloat(int how, int arg, Number f, Buffer out)
+groupDigits(PL_locale *locale, Buffer b)
+{ if ( locale->thousands_sep && locale->thousands_sep[0] &&
+       locale->grouping && locale->grouping[0] )
+  { char *s = baseBuffer(b, char);
+    char *e;
+    int groups;
+
+    if ( *s == '-' )
+      s++;
+    for(e=s; *e && isDigit(*e); e++)
+      ;
+
+    groups = countGroups(locale->grouping, (int)(e-s));
+
+    if ( groups > 0 )
+    { char *o;
+      char *grouping = locale->grouping;
+      int gsize = grouping[0];
+      char ths[20];
+      int thslen;
+
+      if ( !ths_to_utf8(ths, locale->thousands_sep, sizeof(ths)) )
+	return NULL;
+      thslen = strlen(ths);
+
+      if ( !growBuffer(b, thslen*groups) )
+      { PL_no_memory();
+	return NULL;
+      }
+      memmove(&e[groups*thslen], e, strlen(e)+1);
+
+      e--;
+      for(o=e+groups*thslen; e>=s; )
+      { *o-- = *e--;
+	if ( --gsize == 0 && e>=s )
+	{ o -= thslen-1;
+	  memcpy(o, ths, thslen);
+	  o--;
+	  if ( grouping[1] == 0 )
+	    gsize = grouping[0];
+	  else if ( grouping[1] == CHAR_MAX )
+	    gsize = 0;
+	  else
+	    gsize = *++grouping;
+	}
+      }
+    }
+  }
+
+  return baseBuffer(b, char);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
+
+formats a floating point  number  to  a   buffer.  `How'  is  the format
+specifier ([eEfgG]), `arg' the argument.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 { if ( arg == DEFAULT )
     arg = 6;
 
@@ -1147,13 +1254,15 @@ formatFloat(int how, int arg, Number f, Buffer out)
       { size = written+1;
 
 	if ( !growBuffer(out, size) )	/* reserve for -.e<null> */
-	  outOfCore();
+	{ PL_no_memory();
+	  return NULL;
+	}
 	written = gmp_snprintf(baseBuffer(out, char), size, tmp, mpf);
       }
       mpf_clear(mpf);
       out->top = out->base + written;
 
-      return baseBuffer(out, char);
+      break;
     }
 #endif
     case V_INTEGER:
@@ -1169,14 +1278,22 @@ formatFloat(int how, int arg, Number f, Buffer out)
       { size = written+1;
 
 	if ( !growBuffer(out, size) )
-	  outOfCore();
+	{ PL_no_memory();
+	  return NULL;
+	}
 	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
       }
       out->top = out->base + written;
 
-      return baseBuffer(out, char);
+      break;
     }
+    default:
+      assert(0);
+      return NULL;
   }
 
-  return NULL;
+  if ( !locale )
+    return baseBuffer(out, char);
+  else
+    return groupDigits(locale, out);
 }
