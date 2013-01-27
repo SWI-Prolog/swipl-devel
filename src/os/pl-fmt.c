@@ -390,6 +390,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
     switch(c)
     { case '~':
 	{ int arg = DEFAULT;		/* Numeric argument */
+	  int mod_colon = FALSE;	/* Used colon modifier */
 					/* Get the numeric argument */
 	  c = get_chr_from_text(fmt, ++here);
 
@@ -421,6 +422,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	    c = get_chr_from_text(fmt, ++here);
 	  } else if ( c == '`' && here < fmt->length )
 	  { arg = get_chr_from_text(fmt, ++here);
+	    c = get_chr_from_text(fmt, ++here);
+	  }
+
+	  if ( c == ':' )
+	  { mod_colon = TRUE;
 	    c = get_chr_from_text(fmt, ++here);
 	  }
 
@@ -546,10 +552,23 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  SHIFT;
 		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
-		  { if ( arg == DEFAULT )
+		  { PL_locale ltmp;
+		    PL_locale *l;
+		    static char grouping[] = {3,0};
+
+		    if ( c == 'D' )
+		    { ltmp.thousands_sep = L",";
+		      ltmp.grouping = grouping;
+		      l = &ltmp;
+		    } else if ( mod_colon )
+		    { l = fd->locale;
+		    } else
+		    { l = NULL;
+		    }
+
+		    if ( arg == DEFAULT )
 		      arg = 0;
-		    if ( !formatNumber(c == 'D' ? fd->locale : NULL,
-				       arg, 10, TRUE, &i, (Buffer)&b) )
+		    if ( !formatNumber(l, arg, 10, TRUE, &i, (Buffer)&b) )
 		      FMT_EXEPTION();
 		  } else if ( c == 'I' )
 		  { PL_locale ltmp;
