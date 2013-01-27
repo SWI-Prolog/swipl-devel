@@ -153,6 +153,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_functor}{2}{Examine existing name/arity pairs}
 \predicatesummary{current_input}{1}{Get current input stream}
 \predicatesummary{current_key}{1}{Examine existing database keys}
+\predicatesummary{current_locale}{1}{Get the current locale}
 \predicatesummary{current_module}{1}{Examine existing modules}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
@@ -318,6 +319,9 @@ suggest predicates from a keyword.
 \predicatesummary{load_files}{2}{Load source files with options}
 \predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared library (.so file)}
+\predicatesummary{locale_create}{3}{Create a new locale object}
+\predicatesummary{locale_destroy}{1}{Destroy a locale object}
+\predicatesummary{locale_property}{2}{Query properties of locale objects}
 \predicatesummary{locale_sort}{2}{Language dependent sort of atoms}
 \predicatesummary{make}{0}{Reconsult all changed source files}
 \predicatesummary{make_directory}{1}{Create a folder on the file system}
@@ -502,6 +506,7 @@ suggest predicates from a keyword.
 \predicatesummary{seen}{0}{Close the current input stream}
 \predicatesummary{set_end_of_stream}{1}{Set physical end of an open file}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
+\predicatesummary{set_locale}{1}{Set the default local}
 \predicatesummary{set_module}{1}{Set properties of a module}
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
 \predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}

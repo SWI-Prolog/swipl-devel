@@ -3236,6 +3236,10 @@ stream, however, it will be flushed.  Useful for logfiles and if the
 stream is associated to a process (using the \functor{pipe}{1}
 construct).
 
+    \termitem{locale}{+Locale}
+Set the locale that is used by notably format/2 for output on this
+stream.  See \secref{locale}.
+
     \termitem{lock}{LockingMode}
 Try to obtain a lock on the open file.  Default is \const{none}, which
 does not lock the file.  The value \const{read} or \const{shared} means
@@ -3358,6 +3362,10 @@ primarily for integration with foreign code.  See also Sfileno() from
 
     \termitem{input}{}
 True if \arg{Stream} has mode \const{read}.
+
+    \termitem{locale}{Locale}
+True when \arg{Locale} is the current locale associated with the
+stream. See \secref{locale}.
 
     \termitem{mode}{IOMode}
 Unify \arg{IOMode} to the mode given to open/4 for opening the stream.
@@ -3526,6 +3534,9 @@ a terminal escape sequence (e.g., setting ANSI character attributes).
 Setting this attribute raises a permission error if the stream does
 not record positions. See line_position/2 and stream_property/2
 (property \const{position}).
+
+    \termitem{locale}{+Locale}
+Change the locale of the stream.  See \secref{locale}.
 
     \termitem{newline}{NewlineMode}
 Set input or output translation for newlines. See corresponding
@@ -4839,6 +4850,98 @@ suffix-matching, etc.
 \end{description}
 
 
+\section{Localization (locale) support}		\label{sec:locale}
+
+SWI-Prolog provides (currently limited) support for localized
+applications.
+
+\begin{itemize}
+    \item
+The predicates char_type/2 and code_type/2 query character classes
+depending on the locale.
+    \item
+The predicates collation_key/2 and locale_sort/2 can be used for
+locale dependent sorting of atoms.
+    \item
+The predicate format_time/3 can be used to format time and date
+representations, where some of the specifiers are locale dependent.
+    \item
+The predicate format/2 provides locale-specific formating of numbers.
+This functionality is based on a more fine-grained localization model
+that is the subject of this section.
+\end{itemize}
+
+A locale is a (optionally named) read-only object that provides
+information to locale specific functions.\footnote{The locale interface
+described in this section and its effect on format/2 and reading
+integers from digit groups was discussed on the SWI-Prolog mailinglist.
+Most input in this discussion is from Ulrich Neumerkel and Richard
+O'Keefe. The predicates in this section were designed by Jan
+Wielemaker.} The system creates a default locale object named
+\const{default} from the system locale. This locale is used as the
+initial locale for the three standard streams as well as the
+\const{main} thread. Locale sensitive output predicates such as format/3
+get their locale from the stream to which they deliver their output. New
+streams get their locale from the thread that created the stream.
+Threads get their locale from the thread that created them.
+
+\begin{description}
+    \predicate{locale_create}{3}{-Locale, +Default, +Options}
+Create a new locale object.  \arg{Default} is either an existing
+locale or a string that denotes the name of a locale provided by
+the system, such as \verb$"en_EN.UTF-8"$.  The values read from
+the default locale can be modified using \arg{Options}.  \arg{Options}
+provided are:
+
+    \begin{description}
+	\termitem{alias}{+Atom}
+    Give the locale a name.
+	\termitem{decimal_point}{+Atom}
+    Specify the decimal point to use.
+	\termitem{thousands_sep}{+Atom}
+    Specify the string that delimits digit groups.  Only
+    effective is \const{grouping} is also specified.
+	\termitem{grouping}{+List}
+    Specify the grouping of digits.  Groups are created from
+    the right (least significant) digits, left of the decimal
+    point.  \arg{List} is a list of integers, specifying the
+    number of digits in each group, counting from the right.
+    If the last element is \term{repeat}{Count}, the remaining
+    digits are grouped in groups of size \arg{Count}.  If the
+    last element is a normal integer, digits further to the left
+    are not grouped.
+    \end{description}
+
+For example, the English locale uses
+\begin{code}
+[ decimal_point('.'), thousands_sep(','), grouping([repeat(3)]) ]
+\end{code}
+
+Named locales exists until they are destroyed using locale_destroy/1
+and they are no longer referenced.  Unnamed locales are subject to
+(atom) garbage collection.
+
+    \predicate{locale_destroy}{1}{+Locale}
+Destroy a locale.  If the locale is named, this removes the name
+association from the locale, after which the locale is left to be
+reclaimed by garbage collection.
+
+    \predicate{locale_property}{2}{?Locale, ?Property}
+True when \arg{Locale} has \arg{Property}.  Properties are the same
+as the \arg{Options} described with locale_create/3.
+
+    \predicate{set_locale}{1}{+Locale}
+Set the default locale for the current thread, as well as the locale
+for the standard streams (\const{user_input}, \const{user_output},
+\const{user_error}, \const{current_output} and \const{current_input}.
+This locale is used for new streams, unless overruled using the
+\term{locale}{Locale} option of open/4 or set_stream/2.
+
+    \predicate{current_locale}{1}{-Locale}
+True when \arg{Locale} is the locale of the calling thread.
+\end{description}
+
+
 \section{Character properties}		\label{sec:chartype}
 
 SWI-Prolog offers two comprehensive predicates for classifying
@@ -6114,14 +6217,16 @@ is not a list, the argument need not be put in a list. Otherwise the
 arguments are put in a list.
 
 Special sequences start with the tilde (\chr{~}), followed by an
-optional numeric argument, followed by a character describing the action
-to be undertaken. A numeric argument is either a sequence of digits,
+optional numeric argument, optionally followed by a colon modifier (:),
+\footnote{The colon modifiers is a SWI-Prolog extension, proposed by
+Richard O'Keefe.} followed by a character describing the action to be
+undertaken. A numeric argument is either a sequence of digits,
 representing a positive decimal number, a sequence \exam{`<character>},
-representing the character code value of the character (only useful
-for \fmtseq{~t}) or a asterisk (\chr{*}), in which case the numeric
-argument is taken from the next argument of the argument list, which
-should be a positive integer. E.g., the following three examples all
-pass 46 (\chr{.}) to \verb$~t$:
+representing the character code value of the character (only useful for
+\fmtseq{~t}) or a asterisk (\chr{*}), in which case the numeric argument
+is taken from the next argument of the argument list, which should be a
+positive integer. E.g., the following three examples all pass 46
+(\chr{.}) to \verb$~t$:
 
 \begin{code}
 ?- format('~w ~46t ~w~72|~n', ['Title', 'Page']).
@@ -6165,9 +6270,13 @@ a numeric argument is specified, a dot is inserted \arg{argument}
 positions from the right (useful for doing fixed point arithmetic with
 integers, such as handling amounts of money).
 
+The colon modifier (e.g., \verb$~:d$) causes the number to be printed
+according to the locale of the output stream.  See \secref{locale}.
+
     \fmtchar{D}
 Same as {\bf d}, but makes large values easier to read by inserting a
-comma every three digits left or right of the dot.
+comma every three digits left or right of the dot.  This is the same
+as \verb$~:d$, but using the fixed English locale.
 
     \fmtchar{e}
 Output next argument as a floating point number in exponential
@@ -6180,14 +6289,31 @@ printf(). This function is invoked with the format
 Equivalent to {\bf e}, but outputs a capital E to indicate the exponent.
 
     \fmtchar{f}
-Floating point in non-exponential notation. See C library function
-printf().
+Floating point in non-exponential notation. The numeric argument defines
+the number of digits right of the decimal point.  If the colon modifier
+(:) is used, the float is formatted using conventions from the current
+locale, which may define the decimal point as well as grouping of digits
+left of the decimal point.
+
     \fmtchar{g}
 Floating point in {\bf e} or {\bf f} notation, whichever is shorter.
+
     \fmtchar{G}
 Floating point in {\bf E} or {\bf f} notation, whichever is shorter.
+
     \fmtchar{i}
 Ignore next argument of the argument list. Produces no output.
+
+    \fmtchar{I}
+Emit a decimal number using Prolog digit grouping (the underscore,
+\verb$_$).  The argument describes the size of each digit group.
+The default is 3.  See also \secref{digitgroupsyntax}.  For example:
+
+\begin{code}
+?- A is 1<<100, format('~10I', [A]).
+1_2676506002_2822940149_6703205376
+\end{code}
+
     \fmtchar{k}
 Give the next argument to write_canonical/1.
     \fmtchar{n}
@@ -6199,11 +6325,14 @@ not a newline. Not properly implemented yet.
 Give the next argument to print/1.
     \fmtchar{q}
 Give the next argument to writeq/1.
+
     \fmtchar{r}
 Print integer in radix numeric argument notation. Thus
 \fmtseq{~16r} prints its argument hexadecimal. The argument should
 be in the range $[2, \ldots, 36]$. Lowercase letters are used for
-digits above 9.
+digits above 9.  The colon modifier may be used to form locale-specific
+digit groups.
+
     \fmtchar{R}
 Same as {\bf r}, but uses uppercase letters for digits above 9.
     \fmtchar{s}

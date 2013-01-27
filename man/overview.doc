@@ -1940,6 +1940,31 @@ and 36. ISO defines binary, octal and hexadecimal numbers using
 \exam{0{\em [bxo]}<number>}. For example: \verb$A is 0b100 \/ 0xf00$ is
 a valid expression. Such numbers are always unsigned.
 
+\subsubsection{Using digit groups in large integers} \label{sec:digitgroupsyntax}
+
+SWI-Prolog supports splitting long integers into \jargon{digit groups}.
+Digit groups can be separated with the sequence \bnfmeta{underscore},
+\bnfmeta{optional white space}. If the \bnfmeta{radix} is 10 or lower,
+they may also be separated with exactly one space. The following all
+express the integer 1~million:
+
+\begin{code}
+1_000_000
+1 000 000
+1_000_/*more*/000
+\end{code}
+
+Integers can be printed using this notation with format/2, using the
+\verb$~I$ format specifier.  For example:
+
+\begin{code}
+?- format('~I', [1000000]).
+1_000_000
+\end{code}
+
+The current syntax has been proposed by Ulrich Neumerkel on the
+SWI-Prolog mailinglist.
+
 
 \subsubsection{Unicode Prolog source}		\label{sec:unicodesyntax}
 
