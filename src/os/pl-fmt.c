@@ -142,12 +142,6 @@ outstring(format_state *state, const char *s, size_t len)
 
 
 static int
-outstring0(format_state *state, const char *s)
-{ return outstring(state, s, strlen(s));
-}
-
-
-static int
 oututf8(format_state *state, const char *s, size_t len)
 { const char *e = &s[len];
 
@@ -160,6 +154,12 @@ oututf8(format_state *state, const char *s, size_t len)
   }
 
   return TRUE;
+}
+
+
+static int
+oututf80(format_state *state, const char *s)
+{ return oututf8(state, s, strlen(s));
 }
 
 
@@ -533,7 +533,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  rc = formatFloat(l, c, arg, &n, &u.b1) != NULL;
 		  clearNumber(&n);
 		  if ( rc )
-		    rc = outstring0(&state, baseBuffer(&u.b, char));
+		    rc = oututf80(&state, baseBuffer(&u.b, char));
 		  discardBuffer(&u.b);
                   if ( !rc )
 		    goto out;
@@ -566,6 +566,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 		    if ( c == 'D' )
 		    { ltmp.thousands_sep = L",";
+		      ltmp.decimal_point = L".";
 		      ltmp.grouping = grouping;
 		      l = &ltmp;
 		    } else if ( mod_colon )
@@ -604,7 +605,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      FMT_EXEPTION();
 		  }
 		  clearNumber(&i);
-		  rc = outstring0(&state, baseBuffer(&b, char));
+		  rc = oututf80(&state, baseBuffer(&b, char));
 		  discardBuffer(&b);
 		  if ( !rc )
 		    goto out;
@@ -934,18 +935,20 @@ emit_rubber(format_state *state)
 static void
 lappend(const wchar_t *l, int def, Buffer out)
 { if ( l )
-  { int c;
+  { const wchar_t *e = l+wcslen(l);
 
-    for ( ; (c = *l); l++ )
-    { if ( c < 128 )
+    while (--e >= l)
+    { int c = *e;
+
+      if ( c < 128 )
       { addBuffer(out, c, char);
       } else
       { char buf[6];
 	char *e8, *s;
 
 	e8=utf8_put_char(buf, c);
-	for(s=buf; s<e8; s++)
-	{ addBuffer(out, *s, char);
+	for(s=e8; --s>=buf; )		/* must be reversed as we reverse */
+	{ addBuffer(out, *s, char);	/* in the end */
 	}
       }
     }
@@ -1147,7 +1150,42 @@ ths_to_utf8(char *u8, const wchar_t *s, size_t len)
 }
 
 
-static char *
+static int
+localizeDecimalPoint(PL_locale *locale, Buffer b)
+{ if ( locale->decimal_point && locale->decimal_point[0] &&
+       !(locale->decimal_point[0] == '.' &&
+	 locale->decimal_point[1] == 0) )
+  { char *s = baseBuffer(b, char);
+    char *e;
+    char dp[20];
+    int dplen;
+
+    if ( !ths_to_utf8(dp, locale->decimal_point, sizeof(dp)) )
+      return FALSE;
+    dplen = strlen(dp);
+
+    if ( *s == '-' )
+      s++;
+    for(e=s; *e && isDigit(*e); e++)
+      ;
+
+    if ( *e == '.' )				/* always? */
+    { if ( dplen == 1 )
+      { *e = dp[0];
+      } else if ( growBuffer(b, dplen-1) )
+      { memmove(&e[dplen-1], e, strlen(e)+1);
+	memcpy(e, dp, dplen);
+      } else
+      { return PL_no_memory();
+      }
+    }
+  }
+
+  return TRUE;
+}
+
+
+static int
 groupDigits(PL_locale *locale, Buffer b)
 { if ( locale->thousands_sep && locale->thousands_sep[0] &&
        locale->grouping && locale->grouping[0] )
@@ -1170,13 +1208,11 @@ groupDigits(PL_locale *locale, Buffer b)
       int thslen;
 
       if ( !ths_to_utf8(ths, locale->thousands_sep, sizeof(ths)) )
-	return NULL;
+	return FALSE;
       thslen = strlen(ths);
 
       if ( !growBuffer(b, thslen*groups) )
-      { PL_no_memory();
-	return NULL;
-      }
+	return PL_no_memory();
       memmove(&e[groups*thslen], e, strlen(e)+1);
 
       e--;
@@ -1197,7 +1233,7 @@ groupDigits(PL_locale *locale, Buffer b)
     }
   }
 
-  return baseBuffer(b, char);
+  return TRUE;
 }
 
 
@@ -1292,8 +1328,11 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
       return NULL;
   }
 
-  if ( !locale )
-    return baseBuffer(out, char);
-  else
-    return groupDigits(locale, out);
+  if ( locale )
+  { if ( !localizeDecimalPoint(locale, out) ||
+	 !groupDigits(locale, out) )
+      return NULL;
+  }
+
+  return baseBuffer(out, char);
 }
