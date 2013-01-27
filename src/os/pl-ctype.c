@@ -740,7 +740,10 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
 
       if ( PL_compare(A2, A3) != 0 )
       { if ( !setlocale(lcp->category, locale) )
+	{ if ( errno == ENOENT )
+	    return PL_existence_error("locale", A3);
 	  return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setlocale");
+	}
       }
 
 #ifdef O_LOCALE

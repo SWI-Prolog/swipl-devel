@@ -643,11 +643,32 @@ static
 PRED_IMPL("locale_create", 3, locale_create, 0)
 { PRED_LD
   PL_locale *def, *new;
+  char *lname;
 
-  if ( !getLocaleEx(A2, &def) )
-    return FALSE;
-  new = new_locale(def);
-  releaseLocale(def);
+  if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|REP_MB) )
+  { const char *old;
+
+    LOCK();
+    if ( (old=setlocale(LC_NUMERIC, lname)) )
+    { new = new_locale(NULL);
+      setlocale(LC_NUMERIC, old);
+    } else
+    { assert(0);				/* keep compiler happy */
+      return FALSE;
+    }
+    UNLOCK();
+    if ( !old )
+    { if ( errno == ENOENT )
+	return PL_existence_error("locale", A2);
+      else
+	return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setlocale");
+    }
+  } else
+  { if ( !getLocaleEx(A2, &def) )
+      return FALSE;
+    new = new_locale(def);
+    releaseLocale(def);
+  }
 
   if ( new )
   { atom_t alias = 0;
