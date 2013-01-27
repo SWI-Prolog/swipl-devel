@@ -729,9 +729,18 @@ PRED_IMPL("set_locale", 1, set_locale, 0)
   { PL_locale *ol = LD->locale.current;
 
     if ( l != ol )
-    { LD->locale.current = l;			/* already acquired */
+    { IOSTREAM **sp;
+
+      LD->locale.current = l;		/* already acquired */
       if ( ol )
 	releaseLocale(ol);
+
+      if ( (sp=_PL_streams()) )		/* set locale of standard streams */
+      { int i;
+
+	for(i=0; i<5; i++)
+	  Ssetlocale(sp[i], l, NULL);
+      }
     }
 
     return TRUE;
