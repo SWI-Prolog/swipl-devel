@@ -221,11 +221,11 @@ static PL_blob_t locale_blob =
 		 *******************************/
 
 int
-unifyLocale(term_t t, PL_locale *l)
+unifyLocale(term_t t, PL_locale *l, int alias)
 { GET_LD
   term_t b;
 
-  if ( l->alias )
+  if ( l->alias && alias )
     return PL_unify_atom(t, l->alias);
 
   if ( l->symbol )
@@ -426,6 +426,15 @@ free_lstate(lprop_enum *state)
 }
 
 
+static int
+get_atom_arg(term_t t, atom_t *a)
+{ GET_LD
+  term_t t2 = PL_new_term_ref();
+
+  return PL_get_arg(1, t, t2) && PL_get_atom(t2, a);
+}
+
+
 /** locale_property(?Locale, ?Property) is nondet.
 */
 
@@ -446,8 +455,20 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
       { switch( get_prop_def(property, ATOM_locale_property,
 			     lprop_list, &state->p) )
 	{ case 1:
+	  { atom_t alias;
+
+	    if ( state->p->functor == FUNCTOR_alias1 &&
+		 get_atom_arg(property, &alias) )
+	    { Symbol s;
+
+	      if ( (s=lookupHTable(GD->locale.localeTable, (void*)alias)) )
+		return unifyLocale(locale, s->value, FALSE);
+	      else
+		return FALSE;
+	    }
 	    state->e = newTableEnum(GD->locale.localeTable);
 	    goto enumerate;
+	  }
 	  case 0:
 	    state->e = newTableEnum(GD->locale.localeTable);
 	    state->p = lprop_list;
@@ -511,7 +532,7 @@ enumerate:
 	    goto error;
 	}
 	if ( state->e )
-	{ if ( !unifyLocale(locale, state->l) )
+	{ if ( !unifyLocale(locale, state->l, TRUE) )
 	    goto error;
 	}
 
@@ -668,7 +689,7 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     if ( alias && !alias_locale(new, alias) )
       goto error;
 
-    return unifyLocale(A1, new);
+    return unifyLocale(A1, new, TRUE);
   } else
   { return PL_no_memory();
   }
@@ -707,7 +728,7 @@ PRED_IMPL("current_locale", 1, current_locale, 0)
 { PRED_LD
 
   if ( LD->locale.current )
-    return unifyLocale(A1, LD->locale.current);
+    return unifyLocale(A1, LD->locale.current, TRUE);
 
   return FALSE;
 }

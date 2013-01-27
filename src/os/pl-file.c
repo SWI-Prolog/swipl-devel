@@ -3846,7 +3846,7 @@ stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
 static int
 stream_locale_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( s->locale )
-    return unifyLocale(prop, s->locale);
+    return unifyLocale(prop, s->locale, TRUE);
   return FALSE;
 }
 #endif

@@ -43,7 +43,7 @@ COMMON(void)		updateLocale(int category, const char *locale);
 COMMON(PL_locale *)	acquireLocale(PL_locale *l);
 COMMON(void)		releaseLocale(PL_locale *l);
 COMMON(int)		initStreamLocale(IOSTREAM *s);
-COMMON(int)		unifyLocale(term_t t, PL_locale *l);
+COMMON(int)		unifyLocale(term_t t, PL_locale *l, int alias);
 COMMON(int)		getLocale(term_t t, PL_locale **lp);
 COMMON(int)		getLocaleEx(term_t t, PL_locale **lp);
 
