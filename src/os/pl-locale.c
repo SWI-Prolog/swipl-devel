@@ -252,7 +252,7 @@ getLocale(term_t t, PL_locale **lp)
     PL_blob_t *bt;
     locale_ref *ref;
 
-    if ( a == ATOM_current )
+    if ( a == ATOM_current_locale )
     { GET_LD
 
       l = LD->locale.current;
@@ -675,6 +675,31 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 }
 
 
+/** set_locale(+Locale) is det.
+*/
+
+static
+PRED_IMPL("set_locale", 1, set_locale, 0)
+{ PRED_LD
+  PL_locale *l;
+
+  if ( getLocaleEx(A1, &l) )
+  { PL_locale *ol = LD->locale.current;
+
+    if ( l != ol )
+    { LD->locale.current = l;			/* already acquired */
+      if ( ol )
+	releaseLocale(ol);
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+
 		 /*******************************
 		 *	     C INTERFACE	*
 		 *******************************/
@@ -763,6 +788,7 @@ releaseLocale(PL_locale *l)
 BeginPredDefs(locale)
   PRED_DEF("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
   PRED_DEF("locale_create",   3, locale_create,   0)
+  PRED_DEF("set_locale",      1, set_locale,      0)
 EndPredDefs
 
 #endif /*O_LOCALE*/
