@@ -154,6 +154,17 @@ scan_options(term_t options, int flags, atom_t optype,
 	    *values[n].a = a;
 	    break;
 	  }
+#ifdef O_LOCALE
+	  case OPT_LOCALE:
+	  { PL_locale *l;
+	    PL_locale **lp = values[n].ptr;
+
+	    if ( !getLocaleEx(val, &l) )
+	      return FALSE;
+	    *lp = l;
+	    break;
+	  }
+#endif
 	  case OPT_TERM:
 	  { *values[n].t = val;
 	    val = PL_new_term_ref();	/* can't reuse anymore */

@@ -34,6 +34,7 @@
 #define OPT_NATLONG	(6)		/* > 0 */
 #define OPT_SIZE	(7)		/* size_t */
 #define OPT_DOUBLE	(8)
+#define OPT_LOCALE	(9)
 #define OPT_TYPE_MASK	0xff
 #define OPT_INF		0x100		/* allow 'inf' */
 

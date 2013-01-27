@@ -267,7 +267,7 @@ getLocale(term_t t, PL_locale **lp)
 
     if ( l )
     { assert(l->magic == LOCALE_MAGIC);
-      *lp = l;
+      *lp = acquireLocale(l);
       return TRUE;
     }
   }
@@ -419,6 +419,8 @@ static void
 free_lstate(lprop_enum *state)
 { if ( state->e )
     freeTableEnum(state->e);
+  else if ( state->l )
+    releaseLocale(state->l);
 
   freeForeignState(state, sizeof(*state));
 }
@@ -623,7 +625,10 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
 
   if ( !getLocaleEx(A2, &def) )
     return FALSE;
-  if ( (new=new_locale(def)) )
+  new = new_locale(def);
+  releaseLocale(def);
+
+  if ( new )
   { atom_t alias = 0;
     term_t tail = PL_copy_term_ref(A3);
     term_t head = PL_new_term_ref();

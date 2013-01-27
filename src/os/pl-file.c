@@ -3035,6 +3035,9 @@ static const opt_spec open4_options[] =
   { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
+#ifdef O_LOCALE
+  { ATOM_locale,	 OPT_LOCALE },
+#endif
   { NULL_ATOM,	         0 }
 };
 
@@ -3053,6 +3056,9 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t lock		= ATOM_none;
   int	 wait		= TRUE;
   atom_t encoding	= NULL_ATOM;
+#ifdef O_LOCALE
+  PL_locale *locale	= NULL;
+#endif
   int    close_on_abort = TRUE;
   int	 bom		= -1;
   char   how[10];
@@ -3064,7 +3070,12 @@ openStream(term_t file, term_t mode, term_t options)
   if ( options )
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
-		       &close_on_abort, &buffer, &lock, &wait, &encoding, &bom) )
+		       &close_on_abort, &buffer, &lock, &wait,
+		       &encoding, &bom
+#ifdef O_LOCALE
+		       , &locale
+#endif
+		      ) )
       return FALSE;
   }
 
@@ -3170,6 +3181,12 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   s->encoding = enc;
+#ifdef O_LOCALE
+  if ( locale )
+  { Ssetlocale(s, locale, NULL);
+    releaseLocale(locale);			/* acquired by scan_options() */
+  }
+#endif
   if ( !close_on_abort )
     s->flags |= SIO_NOCLOSE;
 
