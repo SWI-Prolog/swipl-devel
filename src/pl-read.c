@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -38,7 +38,7 @@ typedef       unsigned char * ucharp;
 #define LD LOCAL_LD
 
 static void	  addUTF8Buffer(Buffer b, int c);
-static strnumstat scan_decimal(cucharp *sp, Number n);
+static strnumstat scan_decimal(cucharp *sp, Number n, int *grouped);
 
 
 		 /*******************************
@@ -1577,8 +1577,34 @@ uint64_to_double(uint64_t i)
 #endif
 
 
+/* skip_digit_separator() skips a digit separator as defined by Ulrich
+   Neumerkel in the SWI-Prolog mailinglist.  That is, for numbers that
+   only include digits, this is _<blank>* or ' '; while for for other
+   numbers (e.g., hexadecimal), it is only _<blank>*.
+*/
+
+static int
+skip_digit_separator(cucharp *sp, int base, int *grouped)
+{ cucharp s = *sp;
+
+  if ( *s == '_' )
+    s = skipSpaces(s+1);
+  else if ( *s == ' ' && base <= 10 )
+    s++;
+
+  if ( isDigit(*s) )
+  { *sp = s;
+    if ( grouped )
+      *grouped = TRUE;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static strnumstat
-scan_decimal(cucharp *sp, Number n)
+scan_decimal(cucharp *sp, Number n, int *grouped)
 { uint64_t maxi = PLMAXINT/10;
   uint64_t t = 0;
   cucharp s = *sp;
@@ -1587,45 +1613,52 @@ scan_decimal(cucharp *sp, Number n)
   if ( !isDigit(c) )
     return NUM_ERROR;
 
-  for(; isDigit(c); c = *++s)
-  { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
-    {
+  *grouped = FALSE;
+
+  do
+  { for(c = *s; isDigit(c); c = *++s)
+    { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
+      {
 #ifdef O_GMP
-      n->value.i = (int64_t)t;
-      n->type = V_INTEGER;
-      promoteToMPZNumber(n);
+	n->value.i = (int64_t)t;
+	n->type = V_INTEGER;
+	promoteToMPZNumber(n);
 
-      for(c = *s; isDigit(c); c = *++s)
-      { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
-	mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
-      }
-      *sp = s;
+	do
+	{ for(c = *s; isDigit(c); c = *++s)
+	  { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
+	    mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
+	  }
+	} while ( skip_digit_separator(&s, 10, grouped) );
 
-      return NUM_OK;
+	*sp = s;
+
+	return NUM_OK;
 #else
-      char *end;
+	char *end;
 
-      while(isDigit(*s))
-	s++;
-      if ( *s == '.' && isDigit(s[1]) )
-      { s++;
-        while( isDigit(*s) )
-          s++;
-      }
-      errno = 0;
-      n->value.f = strtod((char*)*sp, &end);
-      if ( ((char*)s != end) && !(*s == '.' && (char*)s+1 == end) )
-	return NUM_ERROR;
-      if ( errno == ERANGE )
-	return NUM_FOVERFLOW;
-      *sp = s;
+	while(isDigit(*s))
+	  s++;
+	if ( *s == '.' && isDigit(s[1]) )
+	{ s++;
+	  while( isDigit(*s) )
+	    s++;
+	}
+	errno = 0;
+	n->value.f = strtod((char*)*sp, &end);
+	if ( ((char*)s != end) && !(*s == '.' && (char*)s+1 == end) )
+	  return NUM_ERROR;
+	if ( errno == ERANGE )
+	  return NUM_FOVERFLOW;
+	*sp = s;
 
-      n->type = V_FLOAT;
-      return NUM_OK;
+	n->type = V_FLOAT;
+	return NUM_OK;
 #endif
-    } else
-      t = t * 10 + c - '0';
-  }
+      } else
+	t = t * 10 + c - '0';
+    }
+  } while ( skip_digit_separator(&s, 10, grouped) );
 
   *sp = s;
 
@@ -1647,43 +1680,50 @@ scan_number(cucharp *s, int b, Number n)
   t = d;
   q++;
 
-  while((d = digitValue(b, *q)) >= 0)
-  { if ( t > maxi || t * b + d > PLMAXINT )
-    {
+  do
+  { while((d = digitValue(b, *q)) >= 0)
+    { if ( t > maxi || t * b + d > PLMAXINT )
+      {
 #ifdef O_GMP
-      n->value.i = (int64_t)t;
-      n->type = V_INTEGER;
-      promoteToMPZNumber(n);
+	n->value.i = (int64_t)t;
+	n->type = V_INTEGER;
+	promoteToMPZNumber(n);
 
-      while((d = digitValue(b, *q)) >= 0)
-      { q++;
-	mpz_mul_ui(n->value.mpz, n->value.mpz, b);
-	mpz_add_ui(n->value.mpz, n->value.mpz, d);
-      }
-      *s = q;
+	do
+	{ while((d = digitValue(b, *q)) >= 0)
+	  { q++;
+	    mpz_mul_ui(n->value.mpz, n->value.mpz, b);
+	    mpz_add_ui(n->value.mpz, n->value.mpz, d);
+	  }
+	} while ( skip_digit_separator(&q, b, NULL) );
 
-      return NUM_OK;
+	*s = q;
+
+	return NUM_OK;
 #else
-      double maxf = MAXREAL / (double) b - (double) b;
-      double tf = uint64_to_double(t);
+	double maxf = MAXREAL / (double) b - (double) b;
+	double tf = uint64_to_double(t);
 
-      tf = tf * (double)b + (double)d;
-      while((d = digitValue(b, *q)) >= 0)
-      { q++;
-        if ( tf > maxf )
-	  fail;				/* number too large */
-        tf = tf * (double)b + (double)d;
-      }
-      n->value.f = tf;
-      n->type = V_FLOAT;
-      *s = q;
-      return NUM_OK;
+	tf = tf * (double)b + (double)d;
+	do
+	{ while((d = digitValue(b, *q)) >= 0)
+	  { q++;
+	    if ( tf > maxf )
+	      fail;				/* number too large */
+	    tf = tf * (double)b + (double)d;
+	  }
+	} while ( skip_digit_separator(&q, b, NULL) );
+	n->value.f = tf;
+	n->type = V_FLOAT;
+	*s = q;
+	return NUM_OK;
 #endif
-    } else
-    { q++;
-      t = t * b + d;
+      } else
+      { q++;
+	t = t * b + d;
+      }
     }
-  }
+  } while ( skip_digit_separator(&q, b, NULL) );
 
   n->value.i = t;
   n->type = V_INTEGER;
@@ -1973,6 +2013,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
   cucharp start = in;
   strnumstat rc;
+  int grouped;
 
   if ( *in == '-' )			/* skip optional sign */
   { negative = TRUE;
@@ -2028,9 +2069,12 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     }
   }
 
-  if ( (rc=scan_decimal(&in, value)) != NUM_OK )
+  if ( (rc=scan_decimal(&in, value, &grouped)) != NUM_OK )
     return rc;				/* too large? */
-
+  if ( grouped )
+  { *end = (ucharp)in;
+    return NUM_OK;
+  }
 					/* base'value number */
   if ( *in == '\'' &&
        value->type == V_INTEGER &&
