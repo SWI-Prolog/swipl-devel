@@ -699,6 +699,20 @@ PRED_IMPL("set_locale", 1, set_locale, 0)
 }
 
 
+/** current_locale(-Locale) is det.
+*/
+
+static
+PRED_IMPL("current_locale", 1, current_locale, 0)
+{ PRED_LD
+
+  if ( LD->locale.current )
+    return unifyLocale(A1, LD->locale.current);
+
+  return FALSE;
+}
+
+
 
 		 /*******************************
 		 *	     C INTERFACE	*
@@ -789,6 +803,7 @@ BeginPredDefs(locale)
   PRED_DEF("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
   PRED_DEF("locale_create",   3, locale_create,   0)
   PRED_DEF("set_locale",      1, set_locale,      0)
+  PRED_DEF("current_locale",  1, current_locale,  0)
 EndPredDefs
 
 #endif /*O_LOCALE*/
