@@ -31,7 +31,7 @@ source should also use format() to produce error messages, etc.
 #include "pl-utf8.h"
 #include <ctype.h>
 
-static char *	formatNumber(PL_locale *locale, int div, int radix,
+static char *	formatInteger(PL_locale *locale, int div, int radix,
 			     bool smll, Number n, Buffer out);
 static char *	formatFloat(PL_locale *locale, int how, int arg,
 			    Number f, Buffer out);
@@ -576,7 +576,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 		    if ( arg == DEFAULT )
 		      arg = 0;
-		    if ( !formatNumber(l, arg, 10, TRUE, &i, (Buffer)&b) )
+		    if ( !formatInteger(l, arg, 10, TRUE, &i, (Buffer)&b) )
 		      FMT_EXEPTION();
 		  } else if ( c == 'I' )
 		  { PL_locale ltmp;
@@ -587,7 +587,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    ltmp.thousands_sep = L"_";
 		    ltmp.grouping = grouping;
 
-		    if ( !formatNumber(&ltmp, 0, 10, TRUE, &i, (Buffer)&b) )
+		    if ( !formatInteger(&ltmp, 0, 10, TRUE, &i, (Buffer)&b) )
 		      FMT_EXEPTION();
 		  } else			/* r,R */
 		  { if ( arg == DEFAULT )
@@ -600,7 +600,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 				      ATOM_radix, r);
 		    }
-		    if ( !formatNumber(NULL, 0, arg, c == 'r', &i, (Buffer)&b) )
+		    if ( !formatInteger(NULL, 0, arg, c == 'r', &i, (Buffer)&b) )
 		      FMT_EXEPTION();
 		  }
 		  clearNumber(&i);
@@ -967,7 +967,7 @@ revert_string(char *s, size_t len)
 }
 
 static char *
-formatNumber(PL_locale *locale, int div, int radix, bool smll, Number i,
+formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
 	     Buffer out)
 { static PL_locale no_locale = {0};
   const char *grouping = NULL;
