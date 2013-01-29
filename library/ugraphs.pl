@@ -297,7 +297,10 @@ graph_subtract(<, Head1, Tail1, Head2, Tail2, [Head1|Difference]) :-
 graph_subtract(>, Head1, Tail1, _,     Tail2, Difference) :-
 	graph_subtract([Head1|Tail1], Tail2, Difference).
 
-
+%%	edges(+UGraph, -Edges) is det.
+%
+%	Edges is the set of edges in UGraph. Each edge is represented as
+%	a pair From-To, where From and To are vertices in the graph.
 
 edges(Graph, Edges) :-
 	s_to_p_graph(Graph, Edges).
