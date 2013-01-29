@@ -216,9 +216,10 @@ module_decl(Spec, Decl) :-
 			     file_errors(fail),
 			     access(read)
 			   ]),
-	setup_call_cleanup(prolog_open_source(Path, In),
-			   read(In, (:- module(_, Decl))),
-			   close(In)).
+	setup_call_cleanup(
+	    prolog_open_source(Path, In),
+	    read(In, (:- module(_, Decl))),
+	    prolog_close_source(In)).
 
 
 %%	read_source_term_at_location(+Stream, -Term, +Options) is semidet.
@@ -376,6 +377,7 @@ seek_to_line(_, _).
 %	==
 
 prolog_open_source(Src, Fd) :-
+	'$push_input_context'(source),
 	(   prolog:xref_open_source(Src, Fd)
 	->  true
 	;   open(Src, read, Fd)
@@ -409,7 +411,8 @@ prolog_close_source(In) :-
 	    '$set_source_module'(_, SM)
 	;   assertion(fail)
 	),
-	close(In).
+	close(In),
+	'$pop_input_context'.
 
 
 %%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is semidet.
