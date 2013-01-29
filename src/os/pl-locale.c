@@ -35,6 +35,26 @@
 
 #define LSTR_MAX 16
 
+#ifndef HAVE_LOCALECONV
+typedef struct
+{ char *decimal_point;
+  char *thousands_sep;
+  char *grouping;
+} lconv;
+
+struct lconv *
+localeconv(void)
+{ static struct lconv defl =
+  { ".",
+    ",",
+    "\003\003"
+  };
+
+  return &defl;
+}
+#endif
+
+
 static wchar_t *
 ls_to_wcs(const char *in, const wchar_t *on_error)
 { wchar_t buf[LSTR_MAX];
