@@ -813,7 +813,8 @@ colourise_files(Spec0, TB, Pos, Why) :-
 	strip_module(Spec0, _, Spec),
 	(   colour_state_source_id(TB, Source),
 	    prolog_canonical_source(Source, SourceId),
-	    catch(xref_source_file(Spec, Path, SourceId, [silent(true)]), _, fail)
+	    catch(xref_source_file(Spec, Path, SourceId, [silent(true)]),
+		  _, fail)
 	->  (   Why = imported,
 	        \+ resolves_anything(TB, Path),
 		exports_something(TB, Path)

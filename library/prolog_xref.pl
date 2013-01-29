@@ -1844,7 +1844,8 @@ xref_source_file(Plain, File, Source, Options) :-
 xref_source_file(Spec, File, _, Options) :-
 	do_xref_source_file(Spec, File, Options), !.
 xref_source_file(_, _, _, Options) :-
-	option(silent(true), Options), !.
+	option(silent(true), Options), !,
+	fail.
 xref_source_file(Spec, _, _, _Options) :-
 	verbose,
 	print_message(warning, error(existence_error(file, Spec), _)),
