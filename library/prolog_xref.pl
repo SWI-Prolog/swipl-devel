@@ -72,6 +72,7 @@
 	(multifile)/3,			% Head, Src, Line
 	(public)/3,			% Head, Src, Line
 	defined/3,			% Head, Src, Line
+	meta_goal/3,			% Head, Called, Src
 	foreign/3,			% Head, Src, Line
 	constraint/3,			% Head, Src, Line
 	imported/3,			% Head, Src, From
@@ -334,6 +335,7 @@ xref_clean(Source) :-
 	retractall(multifile(_, Src, Line)),
 	retractall(public(_, Src, Line)),
 	retractall(defined(_, Src, Line)),
+	retractall(meta_goal(_, _, Src)),
 	retractall(foreign(_, Src, Line)),
 	retractall(constraint(_, Src, Line)),
 	retractall(imported(_, Src, _From)),
@@ -676,8 +678,8 @@ process_directive(pce_expansion:push_compile_operators, _) :-
 	call(pce_expansion:push_compile_operators(SM)). % call to avoid xref
 process_directive(pce_expansion:pop_compile_operators, _) :-
 	call(pce_expansion:pop_compile_operators).
-process_directive(meta_predicate(Meta), _) :-
-	process_meta_predicate(Meta).
+process_directive(meta_predicate(Meta), Src) :-
+	process_meta_predicate(Meta, Src).
 process_directive(arithmetic_function(FSpec), Src) :-
 	arith_callable(FSpec, Goal), !,
 	current_source_line(Line),
@@ -697,18 +699,17 @@ process_directive(Goal, Src) :-
 	current_source_line(Line),
 	process_body(Goal, '<directive>'(Line), Src).
 
-%%	process_meta_predicate(+Decl)
+%%	process_meta_predicate(+Decl, +Src)
 %
-%	Create  a  prolog:meta_goal/2  declaration  from  the  meta-goal
-%	declaration.
+%	Create meta_goal/3 facts from the meta-goal declaration.
 
-process_meta_predicate((A,B)) :- !,
-	process_meta_predicate(A),
-	process_meta_predicate(B).
-process_meta_predicate(Decl) :-
-	process_meta_head(Decl).
+process_meta_predicate((A,B), Src) :- !,
+	process_meta_predicate(A, Src),
+	process_meta_predicate(B, Src).
+process_meta_predicate(Decl, Src) :-
+	process_meta_head(Src, Decl).
 
-process_meta_head(Decl) :-
+process_meta_head(Src, Decl) :-		% swapped arguments for maplist
 	functor(Decl, Name, Arity),
 	functor(Head, Name, Arity),
 	meta_args(1, Arity, Decl, Head, Meta),
@@ -717,7 +718,7 @@ process_meta_head(Decl) :-
 	    ;   meta_goal(Head, _)
 	    )
 	->  true
-	;   assert(meta_goal(Head, Meta))
+	;   assert(meta_goal(Head, Meta, Src))
 	).
 
 meta_args(I, Arity, _, _, []) :-
@@ -747,6 +748,23 @@ meta_args(I, Arity, Decl, Head, Meta) :-
 	      /********************************
 	      *             BODY	      *
 	      ********************************/
+
+%%	xref_meta(+Head, -Called) is semidet.
+%%	xref_meta(+Head, -Called, +Src) is semidet.
+%
+%	True when Called is a  list  of   terms  called  from Head. Each
+%	element in Called can be of the  form Term+Int, which means that
+%	Term must be extended with Int additional arguments. The variant
+%	xref_meta/3 first queries the local context.
+%
+%	@tbd	Split predifined in several categories.  E.g., the ISO
+%		predicates cannot be redefined.
+%	@tbd	Rely on the meta_predicate property for many predicates.
+
+xref_meta(Head, Called, Src) :-
+	meta_goal(Head, Called, Src), !.
+xref_meta(Head, Called, _) :-
+	xref_meta(Head, Called).
 
 xref_meta((A, B),		[A, B]).
 xref_meta((A; B),		[A, B]).
@@ -959,7 +977,7 @@ process_goal(use_foreign_library(File), _Origin, Src) :-
 process_goal(use_foreign_library(File, _Init), _Origin, Src) :-
 	process_foreign(File, Src).
 process_goal(Goal, Origin, Src) :-
-	xref_meta(Goal, Metas), !,
+	xref_meta(Goal, Metas, Src), !,
 	assert_called(Src, Origin, Goal),
 	process_called_list(Metas, Origin, Src).
 process_goal(Goal, Origin, Src) :-
@@ -1143,7 +1161,7 @@ process_use_module(File, Src, Reexport) :-
 	    assert_import(Src, Exports, _, Path, Reexport),
 	    assert_xmodule_callable(Exports, M, Src, Path),
 	    assert_xmodule_callable(Public, M, Src, Path),
-	    maplist(process_meta_head, Meta),
+	    maplist(process_meta_head(Src), Meta),
 	    (	File = library(chr)	% hacky
 	    ->	assert(mode(chr, Src))
 	    ;	true
@@ -1170,8 +1188,12 @@ process_pce_import(op(P,T,N), Src, _, _) :-
 process_use_module2(File, Import, Src, Reexport) :-
 	(   xref_source_file(File, Path, Src)
 	->  assert(uses_file(File, Src, Path)),
-	    (	catch(public_list(Path, _, _, Export, _Public, []), _, fail)
-	    ->	assert_import(Src, Import, Export, Path, Reexport)
+	    (	catch(public_list(Path, _, Meta, Export, _Public, []), _, fail)
+	    ->	assert_import(Src, Import, Export, Path, Reexport),
+		forall((  member(Head, Meta),
+			  imported(Head, _, Path)
+		       ),
+		       process_meta_head(Src, Head))
 	    ;	true
 	    )
 	;   assert(uses_file(File, Src, '<not_found>'))
@@ -1265,8 +1287,8 @@ read_directives(In, Options) -->
 	   Term = (:-_)
 	}, !,
 	terms(Expanded),
-	read_directives(In).
-read_directives(_) --> [].
+	read_directives(In, Options).
+read_directives(_, _) --> [].
 
 terms(Var) --> { var(Var) }, !.
 terms([H|T]) --> [H], terms(T).
