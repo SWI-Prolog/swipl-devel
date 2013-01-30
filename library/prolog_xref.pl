@@ -1296,11 +1296,11 @@ public_list_1(public(Decl), _Path, Meta, Meta, Export, Export, Public, PT) :-
 reexport_files([], _, Meta, Meta, Export, Export, Public, Public) :- !.
 reexport_files([H|T], Src, Meta, MT, Export, Rest, Public, PT) :- !,
 	xref_source_file(H, Path, Src),
-	public_list(Path, _, Meta, MT0, Export, Rest0, Public, PT0),
+	public_list(Path, _, Meta, MT0, Export, Rest0, Public, PT0, []),
 	reexport_files(T, Src, MT0, MT, Rest0, Rest, PT0, PT).
 reexport_files(Spec, Src, Meta, MT, Export, Rest, Public, PT) :-
 	xref_source_file(Spec, Path, Src),
-	public_list(Path, _, Meta, MT, Export, Rest, Public, PT).
+	public_list(Path, _, Meta, MT, Export, Rest, Public, PT, []).
 
 public_from_import(except(Map), Path, Src, Export, Rest) :- !,
 	xref_public_list(Path, _, Export, Src),
