@@ -93,6 +93,8 @@ error:has_type(record(M:Name), X) :-
 %	  * user:current_record(:<constructor>)
 
 record(Record) :-
+	Record == '<compiled>', !.
+record(Record) :-
 	throw(error(context_error(nodirective, record(Record)), _)).
 
 
@@ -100,7 +102,10 @@ record(Record) :-
 %
 %	Compile a record specification into a list of clauses.
 
-compile_records(Spec, Clauses) :-
+compile_records(Spec,
+		[ (:- record('<compiled>')) % call to make xref aware of
+		| Clauses		    % the dependency
+		]) :-
 	phrase(compile_records(Spec), Clauses).
 %	maplist(portray_clause, Clauses).
 
