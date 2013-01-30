@@ -143,7 +143,8 @@ ext_separator(tsv, 0'\t).
 %	    * separator(+Code)
 %	    The comma-separator.  Must be a character code.  Default is
 %	    (of course) the comma. Character codes can be specified
-%	    using the 0' notion. E.g., =|separator(0';)|=.
+%	    using the 0' notion. E.g., using =|separator(0';)|= parses
+%	    a semicolon separated file.
 %
 %	    * ignore_quotes(+Boolean)
 %	    If =true= (default false), threat double quotes as a normal
