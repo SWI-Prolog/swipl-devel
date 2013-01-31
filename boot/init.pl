@@ -561,7 +561,11 @@ user:file_search_path(swi, Home) :-
 user:file_search_path(foreign, swi(ArchLib)) :-
 	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, ArchLib).
-user:file_search_path(foreign, swi(lib)).
+user:file_search_path(foreign, swi(SoLib)) :-
+	(   current_prolog_flag(windows, true)
+	->  SoLib = bin
+	;   SoLib = lib
+	).
 user:file_search_path(path, Dir) :-
 	getenv('PATH', Path),
 	(   current_prolog_flag(windows, true)
