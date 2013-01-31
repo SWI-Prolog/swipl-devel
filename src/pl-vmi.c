@@ -3585,7 +3585,7 @@ VMI(I_FEXITDET, 0, 0, ())
   switch(rc)
   { case TRUE:
       if ( exception_term )		/* false alarm */
-	PL_clear_exception();
+	PL_clear_foreign_exception(FR);
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
@@ -3779,9 +3779,7 @@ VMI(I_FEXITNDET, 0, 0, ())
   switch(rc)
   { case TRUE:
       if ( exception_term )		/* false alarm */
-      { exception_term = 0;
-	setVar(*valTermRef(exception_bin));
-      }
+	PL_clear_foreign_exception(FR);
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
 #ifdef O_DEBUGGER
       if ( unlikely(debugstatus.debugging) )

@@ -3571,6 +3571,15 @@ PL_clear_exception(void)
 }
 
 
+void
+PL_clear_foreign_exception(LocalFrame fr)
+{ PL_warning("Foreign predicate %s did not clear exception", fr->predicate);
+
+  PL_clear_exception();
+}
+
+
+
 		/********************************
 		*      REGISTERING FOREIGNS     *
 		*********************************/
