@@ -359,7 +359,18 @@ warshall([X-Neibs|G], V, Y, [X-Neibs|NewG]) :- !,
 	warshall(G, V, Y, NewG).
 warshall([], _, _, []).
 
-
+%%	transpose(Graph, NewGraph) is det.
+%
+%	Unify NewGraph with a new graph obtained from Graph by replacing
+%	all edges of the form V1-V2 by edges of the form V2-V1. The cost
+%	is  O(|V|^2).  Notice  that  an  undirected  graph  is  its  own
+%	transpose. Example:
+%
+%	  ==
+%	  ?- transpose([1-[3,5],2-[4],3-[],4-[5],
+%	                5-[],6-[],7-[],8-[]], NL).
+%	  NL = [1-[],2-[],3-[1],4-[2],5-[1,4],6-[],7-[],8-[]]
+%	  ==
 
 transpose(S_Graph, Transpose) :-
 	s_transpose(S_Graph, Base, Base, Transpose).
