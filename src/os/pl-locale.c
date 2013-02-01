@@ -55,6 +55,20 @@ localeconv(void)
 #endif
 
 
+#ifndef HAVE_WCSDUP
+static wchar_t *
+my_wcsdup(const wchar_t *in)
+{ wchar_t *copy = malloc((wcslen(in)+1)*sizeof(wchar_t));
+
+  if ( copy )
+    return wcscpy(copy, in);
+
+  return NULL;
+}
+#define wcsdup(ws) my_wcsdup(ws)
+#endif
+
+
 static wchar_t *
 ls_to_wcs(const char *in, const wchar_t *on_error)
 { wchar_t buf[LSTR_MAX];
