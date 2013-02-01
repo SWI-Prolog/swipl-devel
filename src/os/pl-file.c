@@ -3535,7 +3535,8 @@ do_close(IOSTREAM *s, int force)
       Sclearerr(s);
     } else
     { Sflush(s);
-      Sclose(s);
+      if ( Sclose(s) < 0 )
+	PL_clear_exception();
     }
 
     return TRUE;
