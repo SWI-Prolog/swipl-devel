@@ -4210,9 +4210,7 @@ b_throw:
     } else
     { argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
     }
-    *valTermRef(exception_printed) = 0;   /* consider it handled */
-    *valTermRef(exception_bin)     = 0;
-    exception_term		   = 0;
+    PL_clear_exception();
 
     PC = findCatchExit();
     { word lSafe = consTermRef(lTop);
