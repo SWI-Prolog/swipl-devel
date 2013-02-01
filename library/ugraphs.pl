@@ -363,7 +363,7 @@ warshall([], _, _, []).
 %
 %	Unify NewGraph with a new graph obtained from Graph by replacing
 %	all edges of the form V1-V2 by edges of the form V2-V1. The cost
-%	is  O(|V|^2).  Notice  that  an  undirected  graph  is  its  own
+%	is O(|V|*log(|V|)). Notice that an undirected   graph is its own
 %	transpose. Example:
 %
 %	  ==
@@ -372,20 +372,15 @@ warshall([], _, _, []).
 %	  NL = [1-[],2-[],3-[1],4-[2],5-[1,4],6-[],7-[],8-[]]
 %	  ==
 
-transpose(S_Graph, Transpose) :-
-	s_transpose(S_Graph, Base, Base, Transpose).
+transpose(Graph, NewGraph) :-
+	edges(Graph, Edges),
+	vertices(Graph, Vertices),
+	flip_edges(Edges, TransposedEdges),
+	vertices_edges_to_ugraph(Vertices, TransposedEdges, NewGraph).
 
-s_transpose([], [], Base, Base) :- !.
-s_transpose([Vertex-Neibs|Graph], [Vertex-[]|RestBase], Base, Transpose) :-
-	s_transpose(Graph, RestBase, Base, SoFar),
-	transpose_s(SoFar, Neibs, Vertex, Transpose).
-
-transpose_s([Neib-Trans|SoFar], [Neib|Neibs], Vertex,
-		[Neib-[Vertex|Trans]|Transpose]) :- !,
-	transpose_s(SoFar, Neibs, Vertex, Transpose).
-transpose_s([Head|SoFar], Neibs, Vertex, [Head|Transpose]) :- !,
-	transpose_s(SoFar, Neibs, Vertex, Transpose).
-transpose_s([], [], _, []).
+flip_edges([], []).
+flip_edges([Key-Val|Pairs], [Val-Key|Flipped]) :-
+	flip_edges(Pairs, Flipped).
 
 
 %%	compose(G1, G2, Composition)
