@@ -3637,6 +3637,7 @@ Options:
 static const opt_spec read_clause_options[] =
 { { ATOM_term_position,	  OPT_TERM },
   { ATOM_process_comment, OPT_BOOL },
+  { ATOM_comments,	  OPT_TERM },
   { ATOM_syntax_errors,   OPT_ATOM },
   { NULL_ATOM,		  0 }
 };
@@ -3679,6 +3680,7 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
   fid_t fid;
   term_t tpos = 0;
   term_t comments = 0;
+  term_t opt_comments = 0;
   int process_comment;
   atom_t syntax_errors = ATOM_dec10;
   predicate_t comment_hook;
@@ -3686,18 +3688,22 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
   comment_hook = _PL_predicate("comment_hook", 3, "prolog",
 			       &GD->procedures.comment_hook3);
   process_comment = (comment_hook->definition->impl.any != NULL);
-  if ( process_comment )
-  { if ( !tpos )
-      tpos = PL_new_term_ref();
-    comments = PL_new_term_ref();
-  }
 
   if ( options &&
        !scan_options(options, 0, ATOM_read_option, read_clause_options,
 		     &tpos,
 		     &process_comment,
+		     &opt_comments,
 		     &syntax_errors) )
     return FALSE;
+
+  if ( opt_comments )
+  { comments = PL_new_term_ref();
+  } else if ( process_comment )
+  { if ( !tpos )
+      tpos = PL_new_term_ref();
+    comments = PL_new_term_ref();
+  }
 
   if ( !(fid=PL_open_foreign_frame()) )
     return FALSE;
@@ -3708,13 +3714,15 @@ retry:
     rd.comments = PL_copy_term_ref(comments);
   rd.on_error = syntax_errors;
   rd.singles = rd.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
-  if ( (rval = read_term(term, &rd PASS_LD)) )
-  { if ( tpos &&
-	 (rval = unify_read_term_position(tpos PASS_LD)) &&
-	 comments &&
-	 (rval = PL_unify_nil(rd.comments)) &&
-	 !PL_get_nil(comments) )
-      callCommentHook(comment_hook, comments, tpos, term);
+  if ( (rval=read_term(term, &rd PASS_LD)) &&
+       (!tpos || (rval=unify_read_term_position(tpos PASS_LD))) )
+  { if ( rd.comments &&
+	 (rval = PL_unify_nil(rd.comments)) )
+    { if ( opt_comments )
+	rval = PL_unify(opt_comments, comments);
+      else if ( !PL_get_nil(comments) )
+	callCommentHook(comment_hook, comments, tpos, term);
+    }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
     { PL_rewind_foreign_frame(fid);

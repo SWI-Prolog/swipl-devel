@@ -4318,13 +4318,20 @@ options:
         \termitem{syntax_errors}{+Atom}
 	See read_term/3, but the default is \const{dec10} (report
 	and restart).
+
 	\termitem{term_position}{-TermPos}
 	Same as for read_term/3.
+
 	\termitem{process_comment}{+Boolean}
 	If \const{true} (default), call
 	\term{prolog:comment_hook}{Comments, TermPos, Term} if this
 	multifile hook is defined (see prolog:comment_hook/3).  This
 	is used to drive PlDoc.
+
+	\termitem{comments}{-Comments}
+	If provided, unify \arg{Comments} with the comments encountered
+	while reading \arg{Term}. This option implies
+	\term{process_comment}{false}.
     \end{description}
 
 The \const{singletons} option of read_term/3 is initialised from the
