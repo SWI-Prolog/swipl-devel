@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -55,7 +55,7 @@
 	    xref_used_class/2,		% ?Source, ?ClassName
 	    xref_defined_class/3	% ?Source, ?ClassName, -How
 	  ]).
-:- use_module(library(debug), [debug/3, debugging/1]).
+:- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [append/3, member/2, select/3]).
 :- use_module(library(operators), [push_op/3]).
 :- use_module(library(shlib), [current_foreign_library/2]).
