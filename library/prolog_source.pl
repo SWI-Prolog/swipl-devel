@@ -108,8 +108,8 @@ users of the library are:
 %	that is forwarded to read_clause/3.
 %
 %	This predicate is intended to read the   file from the start. It
-%	tracks directives to update its notion of the currently effectie
-%	syntax (e.g., declared operators).
+%	tracks  directives  to  update  its   notion  of  the  currently
+%	effective syntax (e.g., declared operators).
 %
 %	@param Term	Term read
 %	@param Expanded	Result of term-expansion on the term
