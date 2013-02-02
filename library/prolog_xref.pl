@@ -679,14 +679,22 @@ assert_comments([H|T], Src) :-
 assert_comment(section(_Id, Title, Comment), Src) :-
 	assertz(module_comment(Src, Title, Comment)).
 assert_comment(predicate(PI, Summary, Comment), Src) :-
-	pi_to_head(PI, Head),
+	pi_to_head(PI, Src, Head),
 	assertz(pred_comment(Head, Src, Summary, Comment)).
 assert_comment(link(PI, PITo), Src) :-
-	pi_to_head(PI, Head),
-	pi_to_head(PITo, HeadTo),
+	pi_to_head(PI, Src, Head),
+	pi_to_head(PITo, Src, HeadTo),
 	assertz(pred_comment_link(Head, Src, HeadTo)).
 assert_comment(mode(Head, Det), Src) :-
 	assertz(pred_mode(Head, Src, Det)).
+
+pi_to_head(PI, Src, Head) :-
+	pi_to_head(PI, Head0),
+	strip_module(Head0, M, Plain),
+	(   xmodule(M, Src)
+	->  Head = Plain
+	;   Head = M:Plain
+	).
 
 :- endif.
 
