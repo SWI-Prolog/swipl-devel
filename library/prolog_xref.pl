@@ -39,6 +39,9 @@
 	    xref_module/2,		% ?Source, ?Module
 	    xref_uses_file/3,		% ?Source, ?Spec, ?Path
 	    xref_op/2,			% ?Source, ?Op
+	    xref_comment/3,		% ?Source, ?Title, ?Comment
+	    xref_comment/4,		% ?Source, ?Head, ?Summary, ?Comment
+	    xref_mode/3,		% ?Source, ?Mode, ?Det
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
 	    xref_done/2,		% +Source, -When
@@ -64,6 +67,17 @@
 :- use_module(library(error)).
 :- use_module(library(apply)).
 :- use_module(library(debug)).
+:- if(exists_source(library(pldoc))).
+:- use_module(library(pldoc), []).	% Must be loaded before doc_process
+:- use_module(library(pldoc/doc_process)).
+:- endif.
+
+:- predicate_options(xref_source/2, 2,
+		     [ silent(boolean),
+		       register_called(oneof([all,non_iso,non_built_in])),
+		       comments(oneof([store,collect,ignore]))
+		     ]).
+
 
 :- dynamic
 	called/4,			% Head, Src, From, Cond
@@ -83,7 +97,12 @@
 	source/2,			% Src, Time
 	used_class/2,			% Name, Src
 	defined_class/5,		% Name, Super, Summary, Src, Line
-	(mode)/2.			% Mode, Src
+	(mode)/2,			% Mode, Src
+
+	module_comment/3,		% Src, Title, Comment
+	pred_comment/4,			% Head, Src, Summary, Comment
+	pred_comment_link/3,		% Head, Src, HeadTo
+	pred_mode/3.			% Head, Src, Det
 
 :- create_prolog_flag(xref, false, [type(boolean)]).
 
@@ -212,6 +231,12 @@ verbose :-
 %	  * register_called(+Which)
 %	  Determines which calls are registerd.  Which is one of
 %	  =all=, =non_iso= or =non_built_in=.
+%	  * comments(+CommentHandling)
+%	  How to handle comments.  If =store=, comments are stored into
+%	  the database as if the file was compiled. If =collect=,
+%	  comments are entered to the xref database and made available
+%	  through xref_mode/2 and xref_comment/4.  If =ignore=,
+%	  comments are simply ignored.
 %
 %	@param Source	File specification or XPCE buffer
 
@@ -237,7 +262,7 @@ do_xref(Src, Options) :-
 	must_be(list, Options),
 	setup_call_cleanup(
 	    xref_setup(Src, In, Options, State),
-	    collect(Src, Src, In),
+	    collect(Src, Src, In, Options),
 	    xref_cleanup(State)).
 
 last_modified(Source, Modified) :-
@@ -269,6 +294,9 @@ assert_option(silent(Boolean)) :- !,
 assert_option(register_called(Which)) :- !,
 	must_be(oneof([all,non_iso,non_built_in]), Which),
 	assert(xref_option(register_called(Which))).
+assert_option(comments(CommentHandling)) :- !,
+	must_be(oneof([store,collect,ignore]), CommentHandling),
+	assert(xref_option(comments(CommentHandling))).
 
 xref_cleanup(state(In, Dialect, Xref, Refs)) :-
 	prolog_close_source(In),
@@ -346,7 +374,11 @@ xref_clean(Source) :-
 	retractall(source(Src, _)),
 	retractall(used_class(_, Src)),
 	retractall(defined_class(_, _, _, Src, _)),
-	retractall(mode(_, Src)).
+	retractall(mode(_, Src)),
+	retractall(module_comment(Src, _, _)),
+	retractall(pred_comment(_, Src, _, _)),
+	retractall(pred_comment_link(_, Src, _)),
+	retractall(pred_mode(_, Src, _)).
 
 
 		 /*******************************
@@ -380,10 +412,7 @@ xref_called(Source, Called, By) :-
 	xref_called(Source, Called, By, _).
 
 xref_called(Source, Called, By, Cond) :-
-	(   ground(Source)
-	->  prolog_canonical_source(Source, Src)
-	;   Source = Src
-	),
+	canonical_source(Source, Src),
 	called(Called, Src, By, Cond).
 
 
@@ -407,10 +436,7 @@ xref_called(Source, Called, By, Cond) :-
 %	  * imported(From)
 
 xref_defined(Source, Called, How) :-
-	(   ground(Source)
-	->  prolog_canonical_source(Source, Src)
-	;   Source = Src
-	),
+	canonical_source(Source, Src),
 	xref_defined2(How, Src, Called).
 
 xref_defined2(dynamic(Line), Src, Called) :-
@@ -508,22 +534,30 @@ current_source_line(Line) :-
 	source_line(Var), !,
 	Line = Var.
 
-%%	collect(+Source, +File, +Stream)
+%%	collect(+Source, +File, +Stream, +Options)
 %
 %	Process data from Source. If File  \== Source, we are processing
 %	an included file. Stream is the stream   from  shich we read the
 %	program.
 
-collect(Src, File, In) :-
+collect(Src, File, In, Options) :-
 	(   Src == File
 	->  SrcSpec = Line
 	;   SrcSpec = (File:Line)
 	),
+	option(comments(CommentHandling), Options, collect),
+	(   CommentHandling == ignore
+	->  CommentOptions = []
+	;   CommentOptions == store
+	->  CommentOptions = [ process_comment(true) ]
+	;   CommentOptions = [ comments(Comments) ]
+	),
 	repeat,
-	    catch(prolog_read_source_term(In, Term, Expanded,
-					  [ process_comment(true),
-					    term_position(TermPos)
-					  ]),
+	    catch(prolog_read_source_term(
+		      In, Term, Expanded,
+		      [ term_position(TermPos)
+		      | CommentOptions
+		      ]),
 		  E, report_syntax_error(E, [])),
 	    update_condition(Term),
 	    (	is_list(Expanded)
@@ -535,7 +569,8 @@ collect(Src, File, In) :-
 	    ;   stream_position_data(line_count, TermPos, Line),
 		setup_call_cleanup(
 		    asserta(source_line(SrcSpec), Ref),
-		    catch(process(T, Src), E, print_message(error, E)),
+		    catch(process(T, Comments, TermPos, Src),
+			  E, print_message(error, E)),
 		    erase(Ref)),
 		fail
 	    ).
@@ -593,6 +628,12 @@ list_to_conj([H|T], (H,C)) :-
 		 *	     PROCESS		*
 		 *******************************/
 
+%%	process(+Term, +Comments, +TermPos, +Src) is det.
+
+process(Term, Comments, TermPos, Src) :-
+	process(Term, Src),
+	xref_comments(Comments, TermPos, Src).
+
 process(Var, _) :-
 	var(Var), !.			% Warn?
 process((:- Directive), Src) :- !,
@@ -611,7 +652,74 @@ process(M:(Head :- Body), Src) :- !,
 process(Head, Src) :-
 	assert_defined(Src, Head).
 
-		/********************************
+
+		 /*******************************
+		 *	      COMMENTS		*
+		 *******************************/
+
+%%	xref_comments(+Comments, +FilePos, +Src) is det.
+
+xref_comments([], _Pos, _Src) :- !.	% also deals with unbound Comments
+:- if(current_predicate(parse_comment/3)).
+xref_comments([Pos-Comment|T], TermPos, Src) :-
+	(   Pos @> TermPos		% comments inside term
+	->  true
+	;   stream_position_data(line_count, Pos, Line),
+	    FilePos = Src:Line,
+	    parse_comment(Comment, FilePos, Parsed),
+	    assert_comments(Parsed, Src),
+	    xref_comments(T, TermPos, Src)
+	).
+
+assert_comments([], _).
+assert_comments([H|T], Src) :-
+	assert_comment(H, Src),
+	assert_comments(T, Src).
+
+assert_comment(section(_Id, Title, Comment), Src) :-
+	assertz(module_comment(Src, Title, Comment)).
+assert_comment(predicate(PI, Summary, Comment), Src) :-
+	pi_to_head(PI, Head),
+	assertz(pred_comment(Head, Src, Summary, Comment)).
+assert_comment(link(PI, PITo), Src) :-
+	pi_to_head(PI, Head),
+	pi_to_head(PITo, HeadTo),
+	assertz(pred_comment_link(Head, Src, HeadTo)).
+assert_comment(mode(Head, Det), Src) :-
+	assertz(pred_mode(Head, Src, Det)).
+
+:- endif.
+
+%%	xref_comment(?Source, ?Title, ?Comment) is nondet.
+%
+%	Is true when Source has a section comment with Title and Comment
+
+xref_comment(Source, Title, Comment) :-
+	canonical_source(Source, Src),
+	module_comment(Src, Title, Comment).
+
+%%	xref_comment(?Source, ?Head, ?Summary, ?Comment) is nondet.
+%
+%	Is true when Head in Source has the given PlDoc comment.
+
+xref_comment(Source, Head, Summary, Comment) :-
+	canonical_source(Source, Src),
+	(   pred_comment(Head, Src, Summary, Comment)
+	;   pred_comment_link(Head, Src, HeadTo),
+	    pred_comment(HeadTo, Src, Summary, Comment)
+	).
+
+%%	xref_mode(?Source, ?Mode, ?Det) is nondet.
+%
+%	Is  true  when  Source  provides  a   predicate  with  Mode  and
+%	determinism.
+
+xref_mode(Source, Mode, Det) :-
+	canonical_source(Source, Src),
+	pred_mode(Mode, Src, Det).
+
+
+		 /********************************
 		 *           DIRECTIVES		*
 		 ********************************/
 
@@ -1887,3 +1995,12 @@ do_xref_source_file(Spec, File, Options) :-
 			     file_errors(fail)
 			   ]), !.
 
+%%	canonical_source(?Source, ?Src) is det.
+%
+%	Src is the canonical version of Source if Source is given.
+
+canonical_source(Source, Src) :-
+	(   ground(Source)
+	->  prolog_canonical_source(Source, Src)
+	;   Source = Src
+	).
