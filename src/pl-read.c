@@ -3879,15 +3879,17 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
 
     stream = Sopenmem(&s, &bufsize, "w");
     stream->encoding = ENC_UTF8;
-    PL_write_term(stream, term, 1200, PL_WRT_QUOTED);
-    Sflush(stream);
+    rval = PL_write_term(stream, term, 1200, PL_WRT_QUOTED);
+    if (rval)
+    { Sflush(stream);
 
-    txt.text.t = s;
-    txt.length = bufsize;
-    txt.storage = PL_CHARS_HEAP;
-    txt.encoding = ENC_UTF8;
-    txt.canonical = FALSE;
-    rval = PL_unify_text(atom, 0, &txt, PL_ATOM);
+      txt.text.t = s;
+      txt.length = bufsize;
+      txt.storage = PL_CHARS_HEAP;
+      txt.encoding = ENC_UTF8;
+      txt.canonical = FALSE;
+      rval = PL_unify_text(atom, 0, &txt, PL_ATOM);
+    }
 
     Sclose(stream);
     if ( s != buf )
