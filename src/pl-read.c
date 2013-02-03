@@ -3710,6 +3710,7 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
 
 retry:
   init_read_data(&rd, s PASS_LD);
+  rd.module = LD->modules.source;
   if ( comments )
     rd.comments = PL_copy_term_ref(comments);
   rd.on_error = syntax_errors;
