@@ -185,10 +185,17 @@ gen_assoc(Key, t(_,_,_,_,R), Val) :-
 %%	get_assoc(+Key, +Assoc, -Value) is semidet.
 %
 %	True if Key-Value is an association in Assoc.
+%
+%	@error type_error(assoc, Assoc) if Assoc is not an assoc.
 
-get_assoc(Key, t(K,V,_,L,R), Val) :-
+get_assoc(_, Var, _) :-
+	var(Var), !,
+	instantiation_error(Var).
+get_assoc(Key, t(K,V,_,L,R), Val) :- !,
 	compare(Rel, Key, K),
 	get_assoc(Rel, Key, V, L, R, Val).
+get_assoc(_, Assoc, _) :-
+	type_error(assoc, Assoc).
 
 get_assoc(=, _, Val, _, _, Val).
 get_assoc(<, Key, _, Tree, _, Val) :-
