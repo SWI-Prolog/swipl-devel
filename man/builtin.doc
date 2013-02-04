@@ -1618,22 +1618,27 @@ Always succeed. The predicate true/0 is translated into a single virtual
 machine instruction.
     \predicate[ISO]{repeat}{0}{}
 Always succeed, provide an infinite number of choice points.
+
     \predicate[ISO]{!}{0}{}
-Cut. Discard choice points of parent frame and of frames created after the
-parent frame. As of SWI-Prolog 3.3, the semantics of the cut are
-compliant with the ISO standard.  This implies that the cut is
-transparent to \predref{;}{2}, \predref{->}{2} and \predref{*->}{2}.
-Cuts appearing in the {\em condition} part of \predref{->}{2} and
-\predref{*->}{2} as well as in \predref{\+}{1} are local to the
-condition.%
-    \footnote{Up to version 4.0.6, the sequence X=!, X acted as a true
-	      cut.  This feature has been deleted for ISO compliance.}
+Cut. Discard all choice points created since entering the predicate in
+which the cut appears. In other words, \jargon{commit} to the clause in
+which the cut appears \emph{and} discard choice points that have been
+created by goals to the left of the cut in the current clause. Meta
+calling is opaque to the cut. This implies that cuts that appear in a
+term that is subject to meta-calling (call/1) only affect choice-points
+created by the meta-called term. The following control structures are
+transparent to the cut: \predref{;}{2}, \predref{->}{2} and
+\predref{*->}{2}. Cuts appearing in the {\em condition} part of
+\predref{->}{2} and \predref{*->}{2} are opaque to the cut. The
+table below explains the scope of the cut with examples. \textit{Prunes}
+here means ``prunes $X$ choice point created by $X$''.
 
 \begin{center}\begin{tabular}{ll}
-\exam{t1 :- (a, !, fail ; b).}          & \% cuts {a}/0 and {t1}/0 \\
-\exam{t2 :- (a -> b, ! ; c).}           & \% cuts {b}/0 and {t2}/0 \\
-\exam{t3 :- call((a, !, fail ; b)).}    & \% cuts {a}/0 \\
-\exam{t4 :- \Snot (a, !, fail ; b).}    & \% cuts {a}/0 \\
+\exam{t0 :- (a, !, b).}                 & \% prunes {a}/0 and {t0}/0 \\
+\exam{t1 :- (a, !, fail ; b).}          & \% prunes {a}/0 and {t1}/0 \\
+\exam{t2 :- (a -> b, ! ; c).}           & \% prunes {b}/0 and {t2}/0 \\
+\exam{t3 :- call((a, !, fail ; b)).}    & \% prunes {a}/0 \\
+\exam{t4 :- \Snot (a, !, fail).}        & \% prunes {a}/0 \\
 \end{tabular}\end{center}
 
 \infixop[ISO]{,}{:Goal1}{:Goal2}
