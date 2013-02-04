@@ -372,12 +372,16 @@ atom_prefix(Atom, Prefix) :-
 %	to create a file record without being interested in the time.
 
 source_file(File) :-
+	(   current_prolog_flag(access_level, user)
+	->  Level = user
+	;   true
+	),
 	(   ground(File)
-	->  (	'$time_source_file'(File, Time, user)
+	->  (	'$time_source_file'(File, Time, Level)
 	    ;	absolute_file_name(File, Abs),
-		'$time_source_file'(Abs, Time, user)
+		'$time_source_file'(Abs, Time, Level)
 	    ), !
-	;   '$time_source_file'(File, Time, user)
+	;   '$time_source_file'(File, Time, Level)
 	),
 	Time > 0.0.
 
