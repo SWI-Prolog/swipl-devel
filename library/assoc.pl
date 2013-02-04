@@ -66,6 +66,7 @@ TODO: exploit order in ord_list_to_assoc/2
 	    del_min_assoc/4,            % +Assoc, ?Key, ?Value, ?NewAssoc
 	    del_max_assoc/4             % +Assoc, ?Key, ?Value, ?NewAssoc
 	  ]).
+:- use_module(library(error)).
 
 /** <module> Binary associations
 
@@ -188,14 +189,11 @@ gen_assoc(Key, t(_,_,_,_,R), Val) :-
 %
 %	@error type_error(assoc, Assoc) if Assoc is not an assoc.
 
-get_assoc(_, Var, _) :-
-	var(Var), !,
-	instantiation_error(Var).
-get_assoc(Key, t(K,V,_,L,R), Val) :- !,
+get_assoc(Key, Assoc, Val) :-
+	must_be(assoc, Assoc),
+	Assoc = t(K,V,_,L,R),
 	compare(Rel, Key, K),
 	get_assoc(Rel, Key, V, L, R, Val).
-get_assoc(_, Assoc, _) :-
-	type_error(assoc, Assoc).
 
 get_assoc(=, _, Val, _, _, Val).
 get_assoc(<, Key, _, Tree, _, Val) :-
@@ -438,3 +436,18 @@ avl_geq(t(B,VB,<,t(A,VA,>,Alpha,t(X,VX,B1,Beta,Gamma)),Delta),
 table2(< ,- ,> ).
 table2(> ,< ,- ).
 table2(- ,- ,- ).
+
+
+		 /*******************************
+		 *	      ERRORS		*
+		 *******************************/
+
+:- multifile
+	error:has_type/2.
+
+error:has_type(assoc, X) :-
+	(   X == t
+	->  true
+	;   compound(X),
+	    functor(X, t, 5)
+	).
