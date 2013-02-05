@@ -82,6 +82,7 @@ all:
 		$(MAKE) windows.html macosx/macosx.html
 
 html:		$(TEXFILES) $(STYFILES) $(DOC).bbl
+		rm -f Manual/*.html Manual/*.gif
 		env TEXINPUTS=lib:$$TEXINPUTS latex2html $(DOC)
 
 pdf:		$(PDF)
