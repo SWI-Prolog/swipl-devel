@@ -151,6 +151,7 @@ download_docs()
   curl $serverurl/generated/$doc > $doc
   ls -l $doc
   printf "Unpacking $doc ..."
+  rm -f man/Manual/*.html man/Manual/*.gif
   if $tar zxf $doc; then
      rm $doc
      echo "ok"
