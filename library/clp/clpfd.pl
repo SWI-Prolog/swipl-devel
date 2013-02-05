@@ -2209,7 +2209,7 @@ clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 expr_conds(E, E)                 --> { var(E) }, !, [integer(E)].
-expr_conds(E, E)                 --> { integer(E) }, !, [].
+expr_conds(E, E)                 --> { integer(E) }, !.
 expr_conds(-E0, -E)              --> expr_conds(E0, E).
 expr_conds(abs(E0), abs(E))      --> expr_conds(E0, E).
 expr_conds(A0+B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
