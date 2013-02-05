@@ -3869,27 +3869,28 @@ makeMoreStackSpace(int overflow, int flags)
 
 Used in loops where the  low-level   implementation  does  not allow for
 stack-shifts.  Returns TRUE or FALSE and raises an exception.
+
+(*) growStacks() may return  TRUE  without   having  created  more stack
+space. This can  occur  when  if   a  'tight-stacks'  situation  when we
+generally have roomStackP(s)  >  1   and  thus  nextStackSize()  returns
+sizeStackP(s). i.e. we can't increase the stacks  but the 1 byte request
+is seen as satisfiable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 makeMoreStackSpace(int overflow, int flags)
 { GET_LD
+  Stack s = NULL;
 
-  if ( overflow == MEMORY_OVERFLOW )
-    return raiseStackOverflow(overflow);
-
-  if ( LD->exception.processing )
-  { Stack s = NULL;
-
-    switch(overflow)
-    { case LOCAL_OVERFLOW:  s = (Stack)&LD->stacks.local;  break;
-      case GLOBAL_OVERFLOW: s = (Stack)&LD->stacks.global; break;
-      case TRAIL_OVERFLOW:  s = (Stack)&LD->stacks.trail;  break;
-    }
-
-    if ( s && enableSpareStack(s) )
-      return TRUE;
+  switch(overflow)
+  { case LOCAL_OVERFLOW:  s = (Stack)&LD->stacks.local;  break;
+    case GLOBAL_OVERFLOW: s = (Stack)&LD->stacks.global; break;
+    case TRAIL_OVERFLOW:  s = (Stack)&LD->stacks.trail;  break;
+    case MEMORY_OVERFLOW: return raiseStackOverflow(overflow);
   }
+
+  if ( LD->exception.processing && s && enableSpareStack(s) )
+      return TRUE;
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
        (flags & ALLOW_GC) &&
@@ -3898,6 +3899,7 @@ makeMoreStackSpace(int overflow, int flags)
 
   if ( (flags & ALLOW_SHIFT) )
   { size_t l=0, g=0, t=0;
+    size_t oldsize;
     int rc;
 
     switch(overflow)
@@ -3908,9 +3910,14 @@ makeMoreStackSpace(int overflow, int flags)
 	return raiseStackOverflow(overflow);
     }
 
+    oldsize = sizeStackP(s);
+
     if ( (rc = growStacks(l, g, t)) == TRUE )
-      return rc;
-    else if ( rc < 0 )
+    { size_t newsize = sizeStackP(s);
+
+      if ( newsize > oldsize )		/* See (*) */
+        return rc;
+    } else if ( rc < 0 )
       return raiseStackOverflow(rc);
   }
 
