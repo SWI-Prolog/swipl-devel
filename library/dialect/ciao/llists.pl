@@ -29,40 +29,20 @@
 
 %% Migrated from Ciao to SWI-Prolog
 
-:- package(isomodes).
-:- use_module(engine(hiord_rt)).
+:- module(llists, [collect_singletons/2], [assertions]).
 
-%% The ISO standard is unfortunately not very clear/formal in the
-%% description of modes, but these interpretations seem the most
-%% sensible. 
+:- reexport(library(lists), [append/2, flatten/2]).
 
-:- op(200, fy, [(?),(@)]).
+%% :- reexport(library(clpfd), [transpose/2]). % BUG: this cause
+%%                                             % problems, I do not know
+%%                                             % why --EMM
 
-%% Basic ISO-modes
-:- modedef '+'(A) : nonvar(A).
-:- modedef '-'(A) : var(A). 
-%% The standard says that this should be:
-% :- modedef '-'(A) : var(A) => nonvar(A).
-%% but then it says that the only error possible is for not 
-%% meeting the : var... what to do?
-:- modedef '?'(_).
-:- modedef '@'(A) + not_further_inst(A).
-%% Only in older versions of standard? It is obsolete now.
-%% :- modedef '*'(_).
+:- pred collect_singletons(+list(list), ?(list))
+        # "Collects in a list the singletons lists appearing in a list
+          of lists.".
 
-% :- push_prolog_flag(read_hiord,on).
-
-
-%% Parametric versions of above
-:- modedef +(A,X) :  call(X, A).
-:- modedef -(A,X) :  var(A) => call(X, A).
-%% Version in standard supports this simple interpretation:
-% :- modedef ?(A,X) :: X(A).
-%% but all builtins conform to:
-:- modedef ?(A,X) :: call(X, A) => call(X, A).
-%% ..what to do??
-:- modedef @(A,X) :  call(X, A) => call(X, A) + not_further_inst(A).
-%% Only in older versions of standard? It is obsolete now.
-%% :- modedef *(A,X) :: X(A).
-
-% :- pop_prolog_flag(read_hiord).
+collect_singletons([],[]).
+collect_singletons([[X]|Xss],[X|Ys]):- !,
+	collect_singletons(Xss,Ys).
+collect_singletons([_|Xss],Ys):-
+	collect_singletons(Xss,Ys).

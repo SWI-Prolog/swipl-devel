@@ -27,42 +27,42 @@
     the GNU General Public License.
 */
 
-%% Migrated from Ciao to SWI-Prolog
+:- module(terms_vars, [varset/2, intersect_vars/3, member_var/2, diff_vars/3,
+		       term_variables/2],
+	  [assertions]).
 
-:- package(isomodes).
-:- use_module(engine(hiord_rt)).
+varset(Term, List) :- term_variables(Term, List).
 
-%% The ISO standard is unfortunately not very clear/formal in the
-%% description of modes, but these interpretations seem the most
-%% sensible. 
+%-------------------------------------------------------------------------
 
-:- op(200, fy, [(?),(@)]).
+:- pred varset_in_args(T, LL) : nonvar(T) => list(LL, list(var)) # "Each
+   list of @var{LL} contains the variables of an argument of @var{T},
+   for each argument, and in left to right order.".
 
-%% Basic ISO-modes
-:- modedef '+'(A) : nonvar(A).
-:- modedef '-'(A) : var(A). 
-%% The standard says that this should be:
-% :- modedef '-'(A) : var(A) => nonvar(A).
-%% but then it says that the only error possible is for not 
-%% meeting the : var... what to do?
-:- modedef '?'(_).
-:- modedef '@'(A) + not_further_inst(A).
-%% Only in older versions of standard? It is obsolete now.
-%% :- modedef '*'(_).
+varset_in_args(Term, Xss) :-
+	Term =.. [_|Args],
+	vars_in_args(Args, Xss).
 
-% :- push_prolog_flag(read_hiord,on).
+vars_in_args([],         []).
+vars_in_args([Arg|Rest], [Arg_list|Rest_list]) :-
+	varset(Arg, Arg_list),
+	vars_in_args(Rest, Rest_list).
 
+intersect_vars([],     _,  []).
+intersect_vars([X|S1], S2, S) :-
+	( member_var(S2, X) ->
+	    S = [X|SList] ;
+	    S = SList ),
+	intersect_vars(S1, S2, SList).
 
-%% Parametric versions of above
-:- modedef +(A,X) :  call(X, A).
-:- modedef -(A,X) :  var(A) => call(X, A).
-%% Version in standard supports this simple interpretation:
-% :- modedef ?(A,X) :: X(A).
-%% but all builtins conform to:
-:- modedef ?(A,X) :: call(X, A) => call(X, A).
-%% ..what to do??
-:- modedef @(A,X) :  call(X, A) => call(X, A) + not_further_inst(A).
-%% Only in older versions of standard? It is obsolete now.
-%% :- modedef *(A,X) :: X(A).
+diff_vars([],     _L, []).
+diff_vars([H|L1], L2, L3) :-
+	member_var(L2, H),
+	!,
+	diff_vars(L1, L2, L3).
+diff_vars([H|L1], L2, [H|L3]) :-
+	diff_vars(L1, L2, L3).
 
-% :- pop_prolog_flag(read_hiord).
+% member_var([],       _) :- fail.
+member_var([E|List], Ele) :-
+	E == Ele -> true ; member_var(List, Ele).

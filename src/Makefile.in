@@ -459,12 +459,17 @@ install-demo:	idirs
 		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
 		$(INSTALL_DATA) ../demo/README $(DESTDIR)$(PLBASE)/demo/README$(TXTEXT)
 
-installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) demo boot library \
-		library/clp library/unicode include include/sicstus include/Yap customize \
+installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
+		demo customize \
+		include include/sicstus include/Yap \
+		library \
+		library/clp library/unicode library/dcg \
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/ciao library/dialect/ciao/engine \
-		library/dialect/sicstus library/dialect/swi \
-		library/dialect/ifprolog library/dcg
+		library/dialect/ciao/regtypes \
+		library/dialect/sicstus \
+		library/dialect/swi \
+		library/dialect/ifprolog
 
 iruntime:	idirs
 		if [ -f $(RUNTIME) ]; then \
@@ -553,6 +558,9 @@ iciao:		idirs
 		done
 		for f in $(CIAO_ENGINE); do \
 			$(INSTALL_DATA) ../library/dialect/ciao/engine/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/engine; \
+		done
+		for f in $(CIAO_REGTYPES); do \
+			$(INSTALL_DATA) ../library/dialect/ciao/regtypes/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/regtypes; \
 		done
 
 iiso:		idirs

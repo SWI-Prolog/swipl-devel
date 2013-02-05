@@ -61,11 +61,14 @@ DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl bim.pl ifprolog.pl
 YAP=	README.TXT
 SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl terms.pl \
 	sockets.pl swipl-lfr.pl
-CIAO=	assertions.pl isomodes.pl regtypes.pl sockets.pl \
-	read.pl write.pl strings.pl format.pl lists.pl \
-	terms.pl system.pl iso_misc.pl aggregates.pl \
-	classic.pl
-CIAO_ENGINE=internals.pl hiord_rt.pl
+CIAO=	assertions.pl basicmodes.pl isomodes.pl regtypes.pl sockets.pl \
+	read.pl write.pl strings.pl format.pl lists.pl dcg.pl freeze.pl \
+	terms.pl system.pl iso_misc.pl aggregates.pl hiordlib.pl \
+	hiord.pl classic.pl llists.pl nativeprops.pl nortchecks.pl \
+	terms_check.pl terms_vars.pl unittestdecls.pl unittestprops.pl
+CIAO_REGTYPES=regtypes_tr.pl
+CIAO_ENGINE=attributes.pl basic_props.pl exceptions_db.pl exceptions.pl \
+	internals.pl hiord_rt.pl
 ISO=	iso_predicates.pl
 SWI=	syspred_options.pl
 IFPROLOG=

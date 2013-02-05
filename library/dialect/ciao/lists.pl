@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    Author:        Jan Wielemaker, Edison Mera
+    E-mail:        J.Wielemaker@uva.nl, efmera@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, University of Amsterdam
+    Copyright (C): 2010, University of Amsterdam and
+                   2013, Process Design Center, Breda, The Netherlands.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -32,6 +33,7 @@
 	    list_insert/2		% -List, +Term
 	  ]).
 :- reexport('../../lists').
+:- reexport('../../lists', [subtract/3 as difference]).
 
 %%	nth(?Index, ?List, ?Element) is nondet.
 %

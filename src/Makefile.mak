@@ -290,6 +290,8 @@ iciao::
 			for %f in ($(CIAO)) do copy %f "$(PLBASE)\library\dialect\ciao"
 		chdir $(PLHOME)\library\dialect\ciao\engine & \
 			for %f in ($(CIAO_ENGINE)) do copy %f "$(PLBASE)\library\dialect\ciao\engine"
+		chdir $(PLHOME)\library\dialect\ciao\regtypes & \
+			for %f in ($(CIAO_REGTYPES)) do copy %f "$(PLBASE)\library\dialect\ciao\regtypes"
 
 iiso::
 		chdir $(PLHOME)\library\dialect\iso & \
