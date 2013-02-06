@@ -1515,9 +1515,10 @@ process_include(File, Src) :-
 	(   xref_input(ParentSrc, _),
 	    xref_source_file(File, Path, ParentSrc)
 	->  assert(uses_file(File, Src, Path)),
+	    findall(O, xref_option(O), Options),
 	    setup_call_cleanup(
 		open_include_file(Path, In, Refs),
-		collect(Src, Path, In),
+		collect(Src, Path, In, Options),
 		close_include(In, Refs))
 	;   assert(uses_file(File, Src, '<not_found>'))
 	).
