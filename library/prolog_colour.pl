@@ -936,13 +936,18 @@ colourise_exports2([G0|GT], TB, [P0|PT]) :- !,
 colourise_exports2(_, _, _).
 
 
-%	colourise_imports(+List, +File, +TB, +Pos)
+%%	colourise_imports(+List, +File, +TB, +Pos)
 %
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
 	(   colour_state_source_id(TB, SourceId),
-	    catch(xref_public_list(File, Path, Public, SourceId), _, fail)
+	    ground(File),
+	    catch(xref_public_list(File, SourceId,
+				   [ path(Path),
+				     public(Public),
+				     silent(true)
+				   ] ), _, fail)
 	->  true
 	;   Public = []
 	),
