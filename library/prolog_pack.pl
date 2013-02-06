@@ -1241,39 +1241,6 @@ digits([])    --> [].
 
 
 		 /*******************************
-		 *	     SIGNATURES		*
-		 *******************************/
-
-%%	file_sha1(+File, -SHA1) is det.
-%%	file_sha1(+File, -SHA1, Options) is det.
-%
-%	True when SHA1 is the SHA1 hash for the content of File. Options
-%	is passed to open/4 and typically used to control whether binary
-%	or text encoding must be used. The   output is compatible to the
-%	=sha1sum= program found in many systems.
-
-file_sha1(File, Hash) :-
-	file_sha1(File, Hash, [type(binary)]).
-
-file_sha1(File, Hash, Options) :-
-	sha_new_ctx(Ctx0, [encoding(octet)]),
-	setup_call_cleanup(
-	    open(File, read, In, Options),
-	    update_hash(In, Ctx0, _Ctx, 0, HashCodes),
-	    close(In)),
-	hash_atom(HashCodes, Hash).
-
-update_hash(In, Ctx0, Ctx, Hash0, Hash) :-
-	at_end_of_stream(In), !,
-	Ctx = Ctx0,
-	Hash = Hash0.
-update_hash(In, Ctx0, Ctx, _Hash0, Hash) :-
-	read_pending_input(In, Data, []),
-	sha_hash_ctx(Ctx0, Data, Ctx1, Hash1),
-	update_hash(In, Ctx1, Ctx, Hash1, Hash).
-
-
-		 /*******************************
 		 *	 QUERY CENTRAL DB	*
 		 *******************************/
 
