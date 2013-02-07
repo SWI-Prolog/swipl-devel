@@ -419,15 +419,16 @@ prolog_close_source(In) :-
 %
 %	Given a user-specification of a source,   generate  a unique and
 %	indexable  identifier  for   it.   For    files   we   use   the
-%	prolog_canonical absolute filename.
+%	prolog_canonical absolute filename. Id must   be valid input for
+%	prolog_open_source/2.
 
-prolog_canonical_source(Src, Id) :-		% Call hook
-	prolog:xref_source_identifier(Src, Id), !.
-prolog_canonical_source(User, user) :-
-	User == user, !.
 prolog_canonical_source(Source, Src) :-
 	var(Source), !,
 	Src = Source.
+prolog_canonical_source(User, user) :-
+	User == user, !.
+prolog_canonical_source(Src, Id) :-		% Call hook
+	prolog:xref_source_identifier(Src, Id), !.
 prolog_canonical_source(Source, Src) :-
 	absolute_file_name(Source, Src,
 			   [ file_type(prolog),
