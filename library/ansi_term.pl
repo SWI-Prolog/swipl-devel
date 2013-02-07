@@ -118,7 +118,7 @@ ansi_format(Stream, _Attr, Format, Args) :-
 %	  | crossed_out			|	|
 %	  | font(primary)		|	|
 %	  | font(N)			| Alternate font (1..8)	|
-%	  | franktur			|	|
+%	  | fraktur			|	|
 %	  | underline(double)		|	|
 %	  | intensity(normal)		|	|
 %	  | fg(Name)			| Color name	|
@@ -152,7 +152,7 @@ sgr_code(crossed_out, 9).
 sgr_code(font(primary), 10) :- !.
 sgr_code(font(N), C) :-
 	C is 10+N.
-sgr_code(franktur, 20).
+sgr_code(fraktur, 20).
 sgr_code(underline(double), 21).
 sgr_code(intensity(normal), 22).
 sgr_code(fg(Name), C) :-
