@@ -75,7 +75,7 @@ most modern terminals using ANSI escape sequences.
 %
 %	  - black, red, green, yellow, blue, magenta, cyan, white
 %
-%	ANSI sequences are omitted if and only if
+%	ANSI sequences are sent if and only if
 %
 %	  - The =current_output= has the property tty(true) (see
 %	    stream_property/2).
