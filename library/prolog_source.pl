@@ -180,18 +180,23 @@ update_state([]) :- !.
 update_state([H|T]) :- !,
 	update_state(H),
 	update_state(T).
-update_state((:- Directive)) :- !,
-	update_directive(Directive).
+update_state((:- Directive)) :-
+	ground(Directive), !,
+	catch(update_directive(Directive), _, true).
 update_state((?- Directive)) :- !,
-	update_directive(Directive).
+	update_state((:- Directive)).
 update_state(_).
 
 update_directive(module(Module, Public)) :- !,
 	'$set_source_module'(_, Module),
 	public_operators(Public).
+update_directive(M:op(P,T,N)) :-
+	atom(M), !,
+	update_directive(op(P,T,N)).
 update_directive(op(P,T,N)) :- !,
 	'$set_source_module'(SM, SM),
-	push_op(P,T,SM:N).
+	strip_module(SM:N, M, PN),
+	push_op(P,T,M:PN).
 update_directive(style_check(Style)) :-
 	style_check(Style), !.
 update_directive(expects_dialect(sicstus)) :-

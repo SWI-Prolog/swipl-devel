@@ -207,13 +207,10 @@ colour_item(Class, TB, Pos) :-
 %	them to be undone by pop_operators/0.
 
 safe_push_op(P, T, N0, State) :-
-	(   N0 = _:_
-	->  N = N0
-	;   colour_state_module(State, M),
-	    N = M:N0
-	),
-	push_op(P, T, N),
-	debug(colour, ':- ~w.', [op(P,T,N)]).
+	colour_state_module(State, CM),
+	strip_module(CM:N0, M, N),
+	push_op(P, T, M:N),
+	debug(colour, ':- ~w.', [op(P,T,M:N)]).
 
 %%	fix_operators(+Term, +State) is det.
 %
@@ -222,11 +219,14 @@ safe_push_op(P, T, N0, State) :-
 %	by the cross-referencer.
 
 fix_operators((:- Directive), Src) :-
+	ground(Directive),
 	catch(process_directive(Directive, Src), _, true), !.
 fix_operators(_, _).
 
 process_directive(style_check(X), _) :- !,
 	style_check(X).
+process_directive(M:op(P,T,N), Src) :- !,
+	process_directive(op(P,T,M:N), Src).
 process_directive(op(P,T,N), Src) :- !,
 	safe_push_op(P, T, N, Src).
 process_directive(module(_Name, Export), Src) :- !,
