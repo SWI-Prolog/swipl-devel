@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -1019,7 +1019,7 @@ promoteIntNumber(Number n)
   GET_LD
 
     if ( truePrologFlag(PLFLAG_ISO) )
-      return PL_error("+", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+      return PL_error(NULL, 0, NULL, ERR_EVALUATION, ATOM_int_overflow);
 
   return promoteToFloatNumber(n);
 #endif
@@ -1227,7 +1227,10 @@ ar_mod(Number n1, Number n2, Number r)
       if ( n2->value.i == 0 )
 	return PL_error("mod", 2, NULL, ERR_DIV_BY_ZERO);
 
-      r->value.i = mod(n1->value.i, n2->value.i);
+      if ( n2->value.i != -1 || n1->value.i != INT64_MIN )
+	r->value.i = mod(n1->value.i, n2->value.i);
+      else
+	r->value.i = 0;
       r->type = V_INTEGER;
       break;
 #ifdef O_GMP
@@ -1959,7 +1962,10 @@ ar_rem(Number n1, Number n2, Number r)
       if ( n2->value.i == 0 )
 	return PL_error("rem", 2, NULL, ERR_DIV_BY_ZERO);
 
-      r->value.i = n1->value.i % n2->value.i;
+      if ( n2->value.i != -1 || n1->value.i != INT64_MIN )
+	r->value.i = n1->value.i % n2->value.i;
+      else
+	r->value.i = 0;
       r->type = V_INTEGER;
 
       break;
