@@ -1980,8 +1980,11 @@ xref_source_file(Plain, File, Source, Options) :-
 	),
 	atomic_list_concat([Dir, /, Plain], Spec),
 	do_xref_source_file(Spec, File, Options), !.
-xref_source_file(Spec, File, _, Options) :-
-	do_xref_source_file(Spec, File, Options), !.
+xref_source_file(Spec, File, Source, Options) :-
+	do_xref_source_file(Spec, File,
+			    [ relative_to(Source)
+			    | Options
+			    ]), !.
 xref_source_file(_, _, _, Options) :-
 	option(silent(true), Options), !,
 	fail.
