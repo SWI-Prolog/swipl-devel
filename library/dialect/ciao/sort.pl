@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    Author:        Edison Mera
+    E-mail:        efmera@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, University of Amsterdam
+    Copyright (C): 2013, Process Design Center, Breda, The Netherlands.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -27,7 +27,24 @@
     the GNU General Public License.
 */
 
-:- module(iso_misc,
-	  [
-	   compound/1
-	  ]).
+%% Migrated from Ciao to SWI-Prolog
+
+:- module(ciao_sort,
+	  [ sort/2,		% +List, -Sorted
+	    keysort/2,		% +List, -Sorted
+	    keylist/1,
+	    keypair/1
+	  ], [assertions, nortchecks]).
+
+:- prop keylist(L) + regtype
+   # "@var{L} is a list of pairs of the form @tt{Key-Value}.".
+
+keylist([]).
+keylist([_-_|KL]) :- keylist(KL).
+
+:- doc(doinclude,keypair/1).
+:- prop keypair(P) + regtype
+   # "@var{P} is a pair of the form ""@tt{K-_}"",
+      where @tt{K} is considered the @em{key}.".
+
+keypair(_-_).

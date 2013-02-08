@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    Author:        Edison Mera
+    E-mail:        efmera@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, University of Amsterdam
+    Copyright (C): 2013, Process Design Center, Breda, The Netherlands.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(iso_misc,
-	  [
-	   compound/1
-	  ]).
+:- module(odd, [
+		setarg/3
+		% undo/1
+	       ]).

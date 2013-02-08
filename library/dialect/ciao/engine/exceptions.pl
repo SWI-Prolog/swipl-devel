@@ -135,10 +135,3 @@ throw_action(Handler, _, _, Ref) :-
 	'$metachoice'(AfterChoice),
 	retract_disabled(Ref),
 	(BeforeChoice = AfterChoice -> ! ; true).
-
-cut_to(Choice) :-
-	current_fact(catching(C, _, _), Ref),
-	erase(Ref),
-	retractall_fact(disabled(Ref)),
-	C = Choice,
-	'$metacut'(Choice).

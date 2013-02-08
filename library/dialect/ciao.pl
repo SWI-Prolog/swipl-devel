@@ -88,7 +88,7 @@ user:file_search_path(engine, library(dialect/ciao/engine)).
 
 :- dynamic
 	lock_expansion/0,
-	flag_stack/3.
+	old_flag/3.
 
 compilation_module(CM) :-	% Kludge: compilations module must be
 				% imported in a separated module and
@@ -176,7 +176,7 @@ ciao_term_expansion((:- Decl), Exp) :-
 %	Map a Ciao meta-predicate to a SWI-Prolog one.
 %
 %	@see http://ciao-lang.org/docs/branches/1.14/13646/CiaoDE-1.14.2-13646_ciao.html/modules.html#meta_predicate/1
-
+%       TODO: list(Spec) not supported yet
 map_metaspecs(Var, _) -->
 	{ var(Var), !,
 	  instantiation_error(Var)
@@ -185,23 +185,21 @@ map_metaspecs((A0,B0), (A,B)) --> !,
 	map_metaspecs(A0, A),
 	map_metaspecs(B0, B).
 map_metaspecs(Head0, Head) -->
-	{ \+ (arg(_, Head0, S), S==addmodule), !,
-	  Head0 =.. [Name|Args0],
-	  maplist(map_metaspec, Args0, Args),
-	  Head =.. [Name|Args]
-	}.
-map_metaspecs(Head0, Head) -->
-	{ functor(Head0, Name, Arity),
+	{ functor(Head0,  Name, Arity),
+	  functor(Head,   Name, Arity),
 	  functor(HeadIn, Name, Arity),
 	  HeadIn =.. [Name|ArgsIn],
-	  Head0 =.. [Name|Args0],
-	  map_mspec_list(Args0, Args, M, ArgsIn, ArgsOut),
-	  Head =.. [Name|Args],
-	  HeadOut =.. [Name|ArgsOut]
+	  meta_expansion(Head0, Head, HeadIn, M, RequiresModule, ArgsOut, [])
 	},
-	[ (:- module_transparent(Name/Arity)),
-	  (HeadIn :- context_module(M), HeadOut)
-	].
+	( { ArgsIn == ArgsOut } -> []
+	; { HeadOut =.. [Name|ArgsOut] },
+	  ( {RequiresModule==1} ->
+	    [ (:- module_transparent(Name/Arity)) ],
+	    { Body = (context_module(M), HeadOut) }
+	  ; { Body = HeadOut }
+	  ),
+	  [ (HeadIn :- Body) ]
+	).
 
 map_metaspec(Var, ?) :-
 	var(Var), !.
@@ -214,12 +212,42 @@ map_metaspec(?, ?).
 map_metaspec(+, +).
 map_metaspec(-, -).
 
-map_mspec_list([], [], _, [], []).
-map_mspec_list([S0|TA0], [S|TA], M, [O|OT0], [O|OT]) :-
-	map_metaspec(S0, S), !,
-	map_mspec_list(TA0, TA, M, OT0, OT).
-map_mspec_list([addmodule|TA0], TA, M, [O|OT0], [O,M|OT]) :- !,
-	map_mspec_list(TA0, TA, M, OT0, OT).
+module_sensitive(goal).
+module_sensitive(clause).
+module_sensitive(fact).
+module_sensitive(spec).
+module_sensitive(pred(_)).
+
+meta_expansion(Head0, Head, HeadIn, M, RequiresModule) -->
+	meta_expansion_args(1, Head0, Head, HeadIn, M, RequiresModule).
+
+meta_expansion_arg(Spec, TSpec, Arg, _, _) -->
+	{map_metaspec(Spec, TSpec)}, !,
+	[Arg].
+meta_expansion_arg(addmodule(Spec), TSpec, Arg, M, 1) --> !,
+	meta_expansion_arg(Spec, TSpec, Arg, M),
+	[M].
+meta_expansion_arg(addterm(Spec), TSpec, Arg0, M, R) --> !,
+	meta_expansion_arg(Spec, TSpec, Arg0, M, R),
+	{ module_sensitive(Spec) -> Arg0 = _:Arg
+	; Arg0 = Arg
+	},
+	[Arg].
+meta_expansion_arg(addmodule, TSpec, Arg, M, R) --> !,
+	meta_expansion_arg(addmodule(?), TSpec, Arg, M, R).
+meta_expansion_arg(addterm, TSpec, Arg, M, R) --> !,
+	meta_expansion_arg(addterm(?), TSpec, Arg, M, R).
+meta_expansion_arg(Spec, Spec, Arg, _, _) --> [Arg].
+
+meta_expansion_args(N, Meta, Head, HeadIn, M, R) -->
+	{arg(N, Meta, Spec)},
+	{arg(N, Head, TSpec)},
+	{arg(N, HeadIn, Arg)},
+	meta_expansion_arg(Spec, TSpec, Arg, M, R),
+	{N1 is N + 1},
+	!,
+	meta_expansion_args(N1, Meta, Head, HeadIn, M, R).
+meta_expansion_args(_, _, _, _, _, _) --> [].
 
 ciao_term_expansion((:- use_module(CiaoName)), (:- use_module(SWIName))) :-
 	map_ciaoname(CiaoName, SWIName).
@@ -262,6 +290,35 @@ ciao_term_expansion((:- add_goal_trans(F/A, P)),
 	( current_predicate(CM:F/A) -> true
 	; throw(error(existence_error(add_goal_trans, F/A), _))
 	).
+ciao_term_expansion((:- impl_defined(L)), Clauses) :-
+	'$set_source_module'(M, M),
+	findall(H, ( sequence_contains(L, bad_spec_error(impl_defined), F, A),
+		     \+ current_predicate(M:F/A),
+		     functor(H, F, A)
+		   ),
+		Clauses). % Define dummy implementations to the
+		          % impl_defined predicates that do not have a
+		          % real implementation to avoid warnings.
+
+bad_spec_error(impl_defined, Spec) :-
+	throw(error(domain_error(predname, Spec), _)).
+
+:- meta_predicate sequence_contains(+,1,-,-).
+sequence_contains(V, BadP, _, _) :- var(V), !,
+	call(BadP, V), fail.
+sequence_contains([], _, _, _) :- !, fail.
+sequence_contains([S|Ss], BadP, F, A) :- !,
+        ( sequence_contains(S, BadP, F, A)
+        ; sequence_contains(Ss, BadP, F, A)
+        ).
+sequence_contains((S,Ss), BadP, F, A) :- !,
+        ( sequence_contains(S, BadP, F, A)
+        ; sequence_contains(Ss, BadP, F, A)
+        ).
+sequence_contains(F/A, _, F, A) :-
+        atom(F), integer(A), !.
+sequence_contains(S, BadP, _, _) :-
+        call(BadP, S), fail.
 
 get_expansor(F, A, M, Dict, Term0, Term, TR) :-
 	functor(TR, F, A),
@@ -406,6 +463,8 @@ ciao_goal_expansion('$exit'(Code),              halt(Code)) :- !.
 ciao_goal_expansion('$metachoice'(Choice),      prolog_current_choice(Choice)) :- !.
 ciao_goal_expansion('$metacut'(Choice),         prolog_cut_to(Choice)) :- !.
 ciao_goal_expansion('$meta_call'(Goal),         call(Goal)) :- !.
+ciao_goal_expansion('$setarg'(Arg, Term, Value, on), setarg(Arg, Term, Value)) :- !.
+ciao_goal_expansion('$setarg'(Arg, Term, Value, true), nb_setarg(Arg, Term, Value)) :- !.
 ciao_goal_expansion(instance(A, B),             subsumes_term(B, A)) :- !.
 ciao_goal_expansion(varset(A, B),               term_variables(A, B)) :- !.
 ciao_goal_expansion(foldl(L, S, O, R),          ciao_foldl(L, S, O, R)) :- !.
@@ -413,6 +472,7 @@ ciao_goal_expansion(attach_attribute(V, A),     put_attr(V, attributes, A)) :- !
 ciao_goal_expansion(detach_attribute(V),        del_attr(V, attributes)) :- !.
 ciao_goal_expansion(update_attribute(V, A),     put_attr(V, attributes, A)) :- !.
 ciao_goal_expansion(get_attribute(V, A),        get_attr(V, attributes, A)) :- !.
+
 ciao_goal_expansion(current_prolog_flag(F, V),  G) :-
 	F == discontiguous_warnings,
 	!,
@@ -423,21 +483,33 @@ ciao_goal_expansion(set_prolog_flag(F, V), G) :-
 	( V == on  -> G = style_check(+(discontiguous))
 	; V == off -> G = style_check(-(discontiguous))
 	).
-ciao_goal_expansion(push_prolog_flag(Flag, Value), G) :- !,
-	'$set_source_module'(M, M),
-	G = ( current_prolog_flag(Flag, Old),
-	      asserta(ciao:flag_stack(M, Flag, Old)),
-	      set_prolog_flag(Flag, Value)).
+ciao_goal_expansion(push_prolog_flag(Flag, NewValue), G) :- !,
+	expand_push_prolog_flag(Flag, NewValue, G).
+ciao_goal_expansion(push_ciao_flag(Flag, NewValue), G) :- !,
+	expand_push_prolog_flag(Flag, NewValue, G).
 ciao_goal_expansion(pop_prolog_flag(Flag), G) :- !,
-	'$set_source_module'(M, M),
-	G = ( retract(ciao:flag_stack(M, Flag, Value)),
-	      set_prolog_flag(Flag, Value)).
+	expand_pop_prolog_flag(Flag, G).
+ciao_goal_expansion(pop_ciao_flag(Flag), G) :- !,
+	expand_pop_prolog_flag(Flag, G).
+
 ciao_goal_expansion(CiaoGoal, SWIGoal) :-
 	\+ functor(CiaoGoal, '$ciao_meta', _),
 	'$set_source_module'(M, M),
 	predicate_property(M:CiaoGoal, meta_predicate(Spec)),
 	swi_meta_args(Spec, CiaoGoal, SWIGoal),
 	CiaoGoal \= SWIGoal.
+
+expand_push_prolog_flag(Flag, NewValue, G) :-
+	'$set_source_module'(M, M),
+	G = ( nonvar(Flag),
+	      prolog_flag(Flag, OldValue, NewValue),
+	      asserta(ciao:old_flag(M, Flag, OldValue))).
+
+expand_pop_prolog_flag(Flag, G) :-
+	'$set_source_module'(M, M),
+	G = ( nonvar(Flag),
+	      once(retract(ciao:old_flag(M, Flag, OldValue))),
+	      prolog_flag(Flag, _, OldValue)).
 
 		 /*******************************
 		 *	    LIBRARY SETUP	*

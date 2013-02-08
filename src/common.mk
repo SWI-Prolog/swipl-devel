@@ -65,10 +65,11 @@ CIAO=	assertions.pl basicmodes.pl isomodes.pl regtypes.pl sockets.pl \
 	read.pl write.pl strings.pl format.pl lists.pl dcg.pl freeze.pl \
 	terms.pl system.pl iso_misc.pl aggregates.pl hiordlib.pl \
 	hiord.pl classic.pl llists.pl nativeprops.pl nortchecks.pl \
-	terms_check.pl terms_vars.pl unittestdecls.pl unittestprops.pl
+	terms_check.pl terms_vars.pl unittestdecls.pl unittestprops.pl \
+	sort.pl streams.pl file_utils.pl odd.pl prolog_flags.pl
 CIAO_REGTYPES=regtypes_tr.pl
 CIAO_ENGINE=attributes.pl basic_props.pl exceptions_db.pl exceptions.pl \
-	internals.pl hiord_rt.pl
+	internals.pl hiord_rt.pl basiccontrol.pl
 ISO=	iso_predicates.pl
 SWI=	syspred_options.pl
 IFPROLOG=

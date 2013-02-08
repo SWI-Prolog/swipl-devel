@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    Author:        Edison Mera
+    E-mail:        efmera@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, University of Amsterdam
+    Copyright (C): 2013, Process Design Center, Breda, The Netherlands.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -26,8 +26,21 @@
     invalidate any other reasons why the executable file might be covered by
     the GNU General Public License.
 */
+:- module(basiccontrol, [
+			 '$metachoice'/1,
+			 '$metacut'/1,
+			 true/0,
+			 fail/0,
+			 repeat/0,
+			 false/0,
+			 if/3,
+			 !/0,
+			 '->'/2,
+			 ';'/2,
+			 ','/2,
+			 (\+)/1
+			]).
 
-:- module(iso_misc,
-	  [
-	   compound/1
-	  ]).
+'$metachoice'(C) :- prolog_current_choice(C).
+
+'$metacut'(C) :- prolog_cut_to(C).
