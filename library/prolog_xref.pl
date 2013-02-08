@@ -1410,9 +1410,9 @@ terms(Var) --> { var(Var) }, !.
 terms([H|T]) --> [H], terms(T).
 terms(H) --> [H].
 
-public_list([(:- module(Module, Export))|Decls], Path,
+public_list([(:- module(Module, Export0))|Decls], Path,
 	    Module, Meta, MT, Export, Rest, Public, PT) :-
-	append(Export, Reexport, Export),
+	append(Export0, Reexport, Export),
 	public_list_(Decls, Path, Meta, MT, Reexport, Rest, Public, PT).
 
 public_list_([], _, Meta, Meta, Export, Export, Public, Public).
@@ -1434,30 +1434,32 @@ public_list_1(public(Decl), _Path, Meta, Meta, Export, Export, Public, PT) :-
 reexport_files([], _, Meta, Meta, Export, Export, Public, Public) :- !.
 reexport_files([H|T], Src, Meta, MT, Export, Rest, Public, PT) :- !,
 	xref_source_file(H, Path, Src),
-	public_list(Path, _, Meta, MT0, Export, Rest0, Public, PT0, []),
+	public_list_diff(Path, _, Meta, MT0, Export, Rest0, Public, PT0, []),
 	reexport_files(T, Src, MT0, MT, Rest0, Rest, PT0, PT).
 reexport_files(Spec, Src, Meta, MT, Export, Rest, Public, PT) :-
 	xref_source_file(Spec, Path, Src),
-	public_list(Path, _, Meta, MT, Export, Rest, Public, PT, []).
+	public_list_diff(Path, _, Meta, MT, Export, Rest, Public, PT, []).
 
 public_from_import(except(Map), Path, Src, Export, Rest) :- !,
-	xref_public_list(Path, _, Export, Src),
-	except(Map, Export, Export, Rest).
+	xref_public_list(Path, _, AllExports, Src),
+	except(Map, AllExports, NewExports),
+	append(NewExports, Rest, Export).
 public_from_import(Import, _, _, Export, Rest) :-
 	import_name_map(Import, Export, Rest).
 
 
-except([], Export, Export, Rest) :-
-	append(Export, Rest, Export).
-except([PI0 as NewName|Map], Export, Export, Rest) :- !,
+%%	except(+Remove, +AllExports, -Exports)
+
+except([], Exports, Exports).
+except([PI0 as NewName|Map], Exports0, Exports) :- !,
 	canonical_pi(PI0, PI),
-	map_as(Export, PI, NewName, Export2),
-	except(Map, Export2, Export, Rest).
-except([PI0|Map], Export, Export, Rest) :-
+	map_as(Exports0, PI, NewName, Exports1),
+	except(Map, Exports1, Exports).
+except([PI0|Map], Exports0, Exports) :-
 	canonical_pi(PI0, PI),
-	select(PI2, Export, Export2),
+	select(PI2, Exports0, Exports1),
 	same_pi(PI, PI2), !,
-	except(Map, Export2, Export, Rest).
+	except(Map, Exports1, Exports).
 
 
 map_as([PI|T], Repl, As, [PI2|T])  :-
@@ -1731,7 +1733,7 @@ assert_import(Src, [H|T], Export, From, Reexport) :- !,
 	assert_import(Src, T, Export, From, Reexport).
 assert_import(Src, except(Except), Export, From, Reexport) :- !,
 	is_list(Export), !,
-	except(Except, Export, Import, []),
+	except(Except, Export, Import),
 	assert_import(Src, Import, _All, From, Reexport).
 assert_import(Src, Import as Name, Export, From, Reexport) :- !,
 	pi_to_head(Import, Term0),
