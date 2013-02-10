@@ -3,7 +3,7 @@
 \section{Notation of Predicate Descriptions}	\label{sec:preddesc}
 
 We have tried to keep the predicate descriptions clear and concise.
-First the predicate name is printed in bold face, followed by the
+First, the predicate name is printed in bold face, followed by the
 arguments in italics.  Arguments are preceded by a mode indicator.
 There is no complete agreement on mode indicators in the Prolog
 community.  We use the following definitions:%
@@ -22,7 +22,7 @@ community.  We use the following definitions:%
 ? &	Argument must be bound to a \emph{partial term} of the indicated
 	type.  Note that a variable is a partial term for any type.
 	Think of the argument as either \jargon{input} or \jargon{output} or
-	\emph{both} input and output.  E.g., in
+	\emph{both} input and output.  For example, in
 	\exam{stream_property(S, reposition(Bool))}, the \const{reposition}
 	part of the term is input and the uninstantiated \arg{Bool} is output. \\
 : &	Argument is a meta-argument.  Implies \chr{+}. See \chapref{modules}
@@ -53,7 +53,7 @@ and dynamic/1.
 
 In traditional (Edinburgh-) Prolog, characters are represented using
 \jargon{character codes}. Character codes are integer indices into
-a specific character set.  Traditionally the character set was 7-bits
+a specific character set.  Traditionally the character set was 7-bit
 US-ASCII. 8-bit character sets have been allowed for a long time, providing
 support for national character sets, of which iso-latin-1 (ISO 8859-1)
 is applicable to many Western languages.
@@ -79,7 +79,7 @@ Bytes are used for accessing binary streams.
 In SWI-Prolog, character codes are \emph{always} the Unicode equivalent
 of the encoding. That is, if get_code/1 reads from a stream encoded as
 \const{KOI8-R} (used for the Cyrillic alphabet), it returns the
-corresponding Unicode code-points. Similarly, assembling or disassembling
+corresponding Unicode code points. Similarly, assembling or disassembling
 atoms using atom_codes/2 interprets the codes as Unicode points.  See
 \secref{encoding} for details.
 
@@ -104,7 +104,7 @@ number_chars/2 and number_codes/2. For character I/O on streams there are
 get_char/[1,2], get_code/[1,2], get_byte/[1,2], peek_char/[1,2],
 peek_code/[1,2], peek_byte/[1,2], put_code/[1,2], put_char/[1,2] and
 put_byte/[1,2]. The Prolog flag \prologflag{double_quotes} controls how
-text between double-quotes is interpreted.
+text between double quotes is interpreted.
 
 
 \section{Loading Prolog source files}	\label{sec:consulting}
@@ -197,7 +197,7 @@ Reconsulting is implied automatically by the fact that a file is
 consulted which is already loaded.
 
 Advanced topics are handled in subsequent sections: mutually dependent
-files (\secref{depload}), multi-threaded loading (\secref{mtload}) and
+files (\secref{depload}), multithreaded loading (\secref{mtload}) and
 reloading running code (\secref{reload}).
 
 The core of the family of loading predicates is load_files/2.  The predicates
@@ -319,7 +319,7 @@ How to deal with quick-load-file compilation by qcompile/1.  Values are:
 
     \begin{description}
 	\termitem{never}{}
-Default.  Do not use qcompile, unless called explicitly
+Default.  Do not use qcompile, unless called explicitly.
 	\termitem{auto}{}
 Use qcompile for all writeable files.  See comment below.
 	\termitem{large}{}
@@ -626,7 +626,7 @@ module, clear the module's export list and disassociate it from the
 file.  \arg{File} is a canonical filename or a file indicator that is
 valid for load_files/2.
 
-This predicare should be used with care. The multi-threaded nature of
+This predicare should be used with care. The multithreaded nature of
 SWI-Prolog makes removing static code unsafe. Attempts to do this should
 be reserved to development or situations where the application can
 guarantee that none of the clauses associated to \arg{File} are active.
@@ -1039,7 +1039,7 @@ running goals for $P$ continue to run the old definition, but new
 recursive calls will use the new definition!  Many similar cases
 can be constructed with dependent predicates.
 
-It provides some basic security for reloading files in multi-threaded
+It provides some basic security for reloading files in multithreaded
 applications during development.  In the above scenario the system
 does not crash uncontrolled, but behaves like any broken program:
 it may return the wrong bindings, wrong truth value or raise an
@@ -1074,7 +1074,7 @@ will load the file. When no extension is specified, it will load the
     \predicate{qcompile}{1}{:File}
 Takes a file specification as consult/1, etc., and, in addition to the
 normal compilation, creates a \emph{Quick Load File} from \arg{File}.
-The file-extension of this file is \fileext{qlf}. The base name of the
+The file extension of this file is \fileext{qlf}. The basename of the
 Quick Load File is the same as the input file.
 
 If the file contains `\exam{:- consult(\arg{+File})}', `\exam{:-
@@ -1160,7 +1160,7 @@ multifile predicate is used to enumerate locations where an object
 satisfying the given \arg{Spec} can be found.  \arg{FullSpec} is unified
 with the complete specification for the object.  This distinction is used
 to allow for ambiguous specifications.  For example, if \arg{Spec} is
-an atom, which appears as the base-name of a loaded file and as the
+an atom, which appears as the basename of a loaded file and as the
 name of a predicate, \arg{FullSpec} will be bound to \term{file}{Path}
 or \arg{Name}/\arg{Arity}.
 
@@ -1625,7 +1625,7 @@ which the cut appears. In other words, \jargon{commit} to the clause in
 which the cut appears \emph{and} discard choice points that have been
 created by goals to the left of the cut in the current clause. Meta
 calling is opaque to the cut. This implies that cuts that appear in a
-term that is subject to meta-calling (call/1) only affect choice-points
+term that is subject to meta-calling (call/1) only affect choice points
 created by the meta-called term. The following control structures are
 transparent to the cut: \predref{;}{2}, \predref{->}{2} and
 \predref{*->}{2}. Cuts appearing in the {\em condition} part of
@@ -1661,9 +1661,9 @@ should use \predref{;}{2}.
 
 \infixop[ISO]{->}{:Condition}{:Action}
 If-then and If-Then-Else. The \predref{->}{2} construct commits to
-the choices made at its left-hand side, destroying choice-points created
+the choices made at its left-hand side, destroying choice points created
 inside the clause (by \predref{;}{2}), or by goals called by
-this clause. Unlike \predref{!}{0}, the choice-point of the predicate as
+this clause. Unlike \predref{!}{0}, the choice point of the predicate as
 a whole (due to multiple clauses) is \strong{not} destroyed. The
 combination \predref{;}{2} and \predref{->}{2} acts as if
 defined as:
@@ -1802,7 +1802,7 @@ call_with_time_limit/2 (package clib) or thread_signal/2. In most uses,
 \arg{Setup} will perform temporary side-effects required by \arg{Goal}
 that are finally undone by \arg{Cleanup}.
 
-Success or failure of \arg{Cleanup} is ignored, and choice-points it
+Success or failure of \arg{Cleanup} is ignored, and choice points it
 created are destroyed (as once/1). If \arg{Cleanup} throws an exception,
 this is executed as normal.\bug{During the execution of \arg{Cleanup},
 garbage collection and stack-shifts are disabled.}
@@ -1830,7 +1830,7 @@ term_in_stream(Term, In) :-
 Note that it is impossible to implement this predicate in Prolog.  The
 closest approximation would be to read all terms into a list, close
 the file and call member/2.  Without setup_call_cleanup/3 there is no
-way to gain control if the choice-point left by repeat/0 is removed by a
+way to gain control if the choice point left by repeat/0 is removed by a
 cut or an exception.
 
 setup_call_cleanup/3 can also be used to test determinism of a goal,
@@ -1857,13 +1857,13 @@ code (see below).  If this unification fails, \arg{Cleanup} is
 
 \begin{description}
     \termitem{exit}{}
-\arg{Goal} succeeded without leaving any choice-points.
+\arg{Goal} succeeded without leaving any choice points.
 
     \termitem{fail}{}
 \arg{Goal} failed.
 
     \termitem{!}{}
-\arg{Goal} succeeded with choice-points and these are now discarded
+\arg{Goal} succeeded with choice points and these are now discarded
 by the execution of a cut (or other pruning of the search tree such as
 if-then-else).
 
@@ -1871,7 +1871,7 @@ if-then-else).
 \arg{Goal} raised the given \arg{Exception}.
 
     \termitem{external_exception}{Exception}
-\arg{Goal} succeeded with choice-points and these are now discarded
+\arg{Goal} succeeded with choice points and these are now discarded
 due to an exception.  For example:
 
 \begin{code}
@@ -1913,7 +1913,7 @@ exceptions.
 Behaves as call/1 if no exception is raised when executing \arg{Goal}.
 If an exception is raised using throw/1 while \arg{Goal} executes, and
 the \arg{Goal} is the innermost goal for which \arg{Catcher} unifies
-with the argument of throw/1, all choice-points generated by \arg{Goal}
+with the argument of throw/1, all choice points generated by \arg{Goal}
 are cut, the system backtracks to the start of catch/3 while preserving
 the thrown exception term, and \arg{Recover} is called as in call/1.
 
@@ -2069,7 +2069,7 @@ Message that is normally not printed. Applications may define
 message_hook/3 to act upon such messages.
 
     \termitem{trace}{}
-Messages from the (commandline) tracer.
+Messages from the (command line) tracer.
 
     \termitem{warning}{}
 The message indicates something dubious that is not considered fatal.
@@ -2262,7 +2262,7 @@ message_hook(download_url(URL, I, Total), _Kind, _Lines) :-
 	<send this information to a GUI component>
 \end{code}
 
-In addition, using the commandline option \cmdlineoption{-q}, the user
+In addition, using the command line option \cmdlineoption{-q}, the user
 can disable all \jargon{informational} messages.
 
 
@@ -2761,7 +2761,7 @@ you want to maintain portability to other Prolog implementations.
     \prefixop[ISO]{dynamic}{:PredicateIndicator, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1). In the
-multi-threaded version, the clauses of dynamic predicates are shared
+multithreaded version, the clauses of dynamic predicates are shared
 between the threads. The directive thread_local/1 provides an
 alternative where each thread has its own clause list for the
 predicate.  Dynamic predicates can be turned into static ones using
@@ -2778,7 +2778,7 @@ of the program execution.%
 	\footnote{The specification of this predicate is from
 		  Richard O'Keefe.  The implementation is allowed to
 		  optimise the predicate.  This is not yet implemented.
-		  In multi-threaded Prolog, however, static code runs
+		  In multithreaded Prolog, however, static code runs
 		  faster as it does not require synchronisation.  This
 		  is particularly true on SMP hardware.}
 
@@ -2981,7 +2981,7 @@ definition, public predicates are considered undefined and this property
 is \emph{not} reported.
 
     \termitem{thread_local}{}
-If true (only possible on the multi-threaded version) each thread has
+If true (only possible on the multithreaded version) each thread has
 its own clauses for the predicate. This property is set using
 thread_local/1.
 
@@ -3297,7 +3297,7 @@ write_length(Term, Len) :-
     \predicate[ISO]{close}{1}{+Stream}
 Close the specified stream. If \arg{Stream} is not open, an existence
 error is raised.  However, closing a stream multiple times may crash
-Prolog.  This is particularly true for multi-threaded applications.
+Prolog.  This is particularly true for multithreaded applications.
 
 If the closed stream is the current input or output stream, the
 terminal is made the current input or output.
@@ -3760,7 +3760,7 @@ predicate format/3 accepts the same terms as output argument.
 Applications should generally avoid creating atoms by breaking and
 concatenating other atoms, as the creation of large numbers of
 intermediate atoms generally leads to poor performance, even more so in
-multi-threaded applications.  This predicate supports creating
+multithreaded applications.  This predicate supports creating
 difference lists from character data efficiently.  The example below
 defines the DCG rule term//1 to insert a term in the output:
 
@@ -6510,7 +6510,7 @@ not updated after a user-initiated resize of the terminal.
     \item[Windows]
 Getting the size of the terminal is provided for \program{swipl-win.exe}.
 The requested value reflects the current size. For the
-multi-threaded version the console that is associated with the
+multithreaded version the console that is associated with the
 \const{user_input} stream is used.
 \end{description}
 \end{description}
@@ -6586,7 +6586,7 @@ consult the C library locale documentation. See also \secref{encoding}.
 Please note that the locale is shared between all threads and
 thread-safe usage of setlocale/3 is in general not possible. Do locale
 operations before starting threads or thoroughly study threading aspects
-of locale support in your environment before using in multi-threaded
+of locale support in your environment before using in multithreaded
 environments. Locale settings are used by format_time/3, collation_key/2
 and locale_sort/2.
 
@@ -7299,8 +7299,8 @@ if the file cannot be found.  If \const{fail}, stay silent.%
 	\footnote{Silent operation was the default up to version 3.2.6.}
 
     \termitem{solutions}{first/all}
-If \const{first} (default), the predicate leaves no choice-point.
-Otherwise a choice-point will be left and backtracking may yield
+If \const{first} (default), the predicate leaves no choice point.
+Otherwise a choice point will be left and backtracking may yield
 more solutions.
 
     \termitem{expand}{true/false}
@@ -7463,7 +7463,7 @@ started instead of entering the default interactive top-level.
 
 Aborting is implemented by throwing the reserved exception
 \verb=$aborted=. This exception can be caught using catch/3, but the
-recovery goal is wrapped with a predicate that prunes the choice-points
+recovery goal is wrapped with a predicate that prunes the choice points
 of the recovery goal (i.e., as once/1) and re-throws the exception.
 This is illustrated in the example below, where we press control-C
 and `a'.
@@ -7480,7 +7480,7 @@ line option \cmdlineoption{-tty} is not active the terminal status (see Unix
 stty(1)) is restored.  Hooks may be registered both in Prolog and in
 foreign code.  Prolog hooks are registered using at_halt/1.  halt/0
 is equivalent to \exam{halt(0)}.%
-	\bug{In the multi-threaded version, halt/0 does not work when
+	\bug{In the multithreaded version, halt/0 does not work when
 	     not called from the \emph{main} thread.  In the current
 	     system a \const{permission_error} exception is raised.
 	     Future versions may enable halt/0 from any thread.}
@@ -7569,15 +7569,15 @@ Revert back to the textual tracer.
     \predicate{trace}{1}{+Pred}
 Equivalent to \exam{trace(\arg{Pred}, +all)}.
     \predicate{trace}{2}{+Pred, +Ports}
-Put a trace-point on all predicates satisfying the predicate specification
+Put a trace point on all predicates satisfying the predicate specification
 \arg{Pred}. \arg{Ports} is a list of port names (\const{call},
 \const{redo}, \const{exit}, \const{fail}). The atom \const{all} refers
 to all ports. If the port is preceded by a \const{-} sign, the
-trace-point is cleared for the port. If it is preceded by a \const{+},
-the trace-point is set.
+trace point is cleared for the port. If it is preceded by a \const{+},
+the trace point is set.
 
 The predicate trace/2 activates debug mode (see debug/0).  Each time
-a port (of the 4-port model) is passed that has a trace-point set, the
+a port (of the 4-port model) is passed that has a trace point set, the
 goal is printed as with trace/0.  Unlike trace/0, however, the execution
 is continued without asking for further information.  Examples:
 
@@ -7590,16 +7590,16 @@ is continued without asking for further information.  Examples:
 \end{tabular}
 \end{center}
 
-The predicate debugging/0 shows all currently defined trace-points.
+The predicate debugging/0 shows all currently defined trace points.
 
     \predicate{notrace}{1}{:Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.
-The current implementation cuts the choice-points of \arg{Goal} after
+The current implementation cuts the choice points of \arg{Goal} after
 successful completion. See once/1.  Later implementations may have the
 same semantics as call/1.
 
     \predicate{debug}{0}{}
-Start debugger. In debug mode, Prolog stops at spy- and trace-points,
+Start debugger. In debug mode, Prolog stops at spy and trace points,
 disables last-call optimisation and aggressive destruction of
 choice points to make debugging information accessible.  Implemented
 by the Prolog flag \prologflag{debug}.
@@ -7727,15 +7727,15 @@ stack		& Total memory in use for stacks in all threads \\
 local           & Allocated size of the local stack in bytes \\
 localused       & Number of bytes in use on the local stack \\
 locallimit      & Size to which the local stack is allowed to grow \\
-local_shifts	& Number of local-stack expansions \\
+local_shifts	& Number of local stack expansions \\
 global          & Allocated size of the global stack in bytes \\
 globalused      & Number of bytes in use on the global stack \\
 globallimit     & Size to which the global stack is allowed to grow \\
-global_shifts	& Number of global-stack expansions \\
+global_shifts	& Number of global stack expansions \\
 trail           & Allocated size of the trail stack in bytes \\
 trailused       & Number of bytes in use on the trail stack \\
 traillimit      & Size to which the trail stack is allowed to grow \\
-trail_shifts	& Number of trail-stack expansions \\
+trail_shifts	& Number of trail stack expansions \\
 shift_time	& Time spent in stack-shifts \\
 atoms           & Total number of defined atoms \\
 functors        & Total number of defined name/arity pairs \\
@@ -7834,7 +7834,7 @@ trim_stacks/0 is invoked to release the collected memory resources.
 
     \predicate{garbage_collect_atoms}{0}{}
 Reclaim unused atoms. Normally invoked after \prologflag{agc_margin} (a
-Prolog flag) atoms have been created. On multi-threaded versions the
+Prolog flag) atoms have been created. On multithreaded versions the
 actual collection is delayed until there are no threads performing
 normal garbage collection. In this case garbage_collect_atoms/0 returns
 immediately. Note that there is no guarantee it will \emph{ever}

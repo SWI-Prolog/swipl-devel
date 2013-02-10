@@ -192,7 +192,7 @@ copy_term/3 and its hook attribute_goals//1.
     \dcg{attribute_goals}{1}{+Var}
 This nonterminal, if it is defined in a module, is used by copy_term/3
 to project attributes of that module to residual goals. It is also
-used by the toplevel to obtain residual goals after executing a query.
+used by the top-level to obtain residual goals after executing a query.
 \end{description}
 
 \subsection{Operations on terms with attributed variables}
@@ -205,7 +205,7 @@ The goal maplist(call,\arg{Gs}) recreates the attributes for \arg{Copy}.
 The nonterminal attribute_goals//1, as defined in the modules the
 attributes stem from, is used to convert attributes to lists of goals.
 
-This building block is used by the toplevel to report pending attributes
+This building block is used by the top-level to report pending attributes
 in a portable and understandable fashion. This predicate is the
 preferred way to reason about and communicate terms with constraints.
 

@@ -125,7 +125,7 @@ these tasks.  Here is a tentative list:
     \item [\file{load.pl}]
 Use this file to set up the environment (Prolog flags and file search
 paths) and load the sources.  Quite commonly this file also provides
-convenient predicates to parse command-line options and start the
+convenient predicates to parse command line options and start the
 application.
 
     \item [\file{run.pl}]
@@ -343,7 +343,7 @@ provided through \menu{Help/Show key bindings}{Control-h Control-b}.
 \subsubsection{Edit modes}
 
 Modes are the heart of (Pce)Emacs. Modes define dedicated editing
-support for a particular kind of (source-)text. For our purpose we want
+support for a particular kind of (source) text. For our purpose we want
 \jargon{Prolog mode}. There are various ways to make PceEmacs use Prolog
 mode for a file.
 
@@ -602,7 +602,7 @@ functionality described in \chapref{hack}.
 
 Window-based tracing provides a much better overview due to the eminent
 relation to your source code, a clear list of named variables and their
-bindings as well as a graphical overview of the call and choice-point
+bindings as well as a graphical overview of the call and choice point
 stack. There are some drawbacks though. Using a textual trace on the
 console, one can scroll back and examine the past, while the graphical
 debugger just presents a (much better) overview of the current state.
@@ -626,7 +626,7 @@ used from a background thread.
 This predicate installs the above-mentioned hooks that redirect tracing
 to the window-based environment. No window appears. The debugger window
 appears as actual tracing is started through trace/0, by hitting a
-spy-point defined by spy/1 or a break-point defined using the PceEmacs
+spy point defined by spy/1 or a break point defined using the PceEmacs
 command \menu{Prolog/Break at}{Control-c b}.
 
     \predicate{noguitracer}{0}{}
@@ -676,7 +676,7 @@ Open the Prolog Navigator (see \secref{navigator}) in the given
 \arg{Directory}.
 
     \termitem{open_debug_status}{}
-Open a window to edit spy- and trace-points.
+Open a window to edit spy and trace points.
 
     \termitem{open_query_window}{}
 Open a little window to run Prolog queries from a GUI component.
@@ -734,7 +734,7 @@ the trace/0, spy/1 or menu items from PceEmacs or the Prolog Navigator.
 
     \item [The Prolog Navigator]
 Shows the file structure and structure inside the file.  It allows for
-loading files, editing, setting spy-points, etc.
+loading files, editing, setting spy points, etc.
 \end{itemlist}
 
 

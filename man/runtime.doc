@@ -19,7 +19,7 @@ the two parts. This can be achieved using external commands (Unix:
 attach a startup script in front of the resource that starts the
 emulator with the proper options. This is the default under Unix.
 Finally, an emulator can be told to use a specified resource file
-using the \cmdlineoption{-x}{} command-line switch.
+using the \cmdlineoption{-x}{} command line switch.
 
 
 \begin{description}
@@ -59,7 +59,7 @@ One of \const{save} (default) to save the current operator table
 or \const{standard} to use the initial table of the emulator.
 	\termitem{stand_alone}{+Boolean}
 If \const{true}, the emulator is the first part of the state. If the
-emulator is started it will test whether a boot-file (state) is attached
+emulator is started it will test whether a boot file (state) is attached
 to the emulator itself and load this state. Provided the application has
 all libraries loaded, the resulting executable is completely independent
 of the runtime environment or location where it was built. See also
@@ -89,7 +89,7 @@ appropriate libraries.
 This predicate is used by qsave_program/[1,2] to ensure the saved state
 does not depend on availability of the libraries. The predicate
 autoload/0 examines all clauses of the loaded program (obtained with
-clause/2) and analyses the body for referenced goals. Such an analysis
+clause/2) and analyzes the body for referenced goals. Such an analysis
 cannot be complete in Prolog, which allows for the creation of arbitrary terms at
 runtime and the use of them as a goal. The current analysis is limited to the
 following:
@@ -287,7 +287,7 @@ unbound.
 Dynamic rules are useful to turn all files in a certain directory
 into resources, without specifying a resource for each file.  For
 example, assume the file_search_path/2 \const{icons} refers to the
-resource directory containing icon-files.  The following definition
+resource directory containing icon files.  The following definition
 makes all these images available as resources:
 
 \begin{code}
@@ -359,7 +359,7 @@ This command is also described in the \manref{pl}{1} Unix manual page.
 If your application uses files that are not part of the saved program
 such as database files, configuration files, etc., the runtime version
 has to be able to locate these files. The file_search_path/2 mechanism
-in combination with the \cmdlineoption{-p}{alias} command-line argument
+in combination with the \cmdlineoption{-p}{alias} command line argument
 is the preferred way to locate runtime files. The first step is to
 define an alias for the top-level directory of your application. We will
 call this directory \file{gnatdir} in our examples.

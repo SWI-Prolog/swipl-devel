@@ -121,7 +121,7 @@ settings in comments.
 Allows for defining the maximum size to which the various Prolog stacks are
 allowed to grow. The system defaults are chosen to make erroneous
 programs fail quickly on modest hardware.  Programs with large data
-structures or many choice-points often need larger stacks.  Note that
+structures or many choice points often need larger stacks.  Note that
 an active Prolog process growing over the size of the physical memory of
 your computer can make the system extremely slow.
 
@@ -137,12 +137,12 @@ execution.  This may be used to inspect the database or program
 while the main task continues.
 
     \definition{Debug/Edit spy points ...}
-Edit break-points on predicates. From the PceEmacs editor (see
-\secref{edit}) break-points can also be set on specific calls from
+Edit break points on predicates. From the PceEmacs editor (see
+\secref{edit}) break points can also be set on specific calls from
 specific clauses.
 
     \definition{Debug/Graphical debugger ...}
-Use the source-level debugger on the next spy- or break-point or
+Use the source-level debugger on the next spy or break point or
 other call that enables the debugger.
 
     \definition{Help}
@@ -274,7 +274,7 @@ Please send your comments to the SWI-Prolog mailinglist, and/or
 First of all, add the \file{include} folder of the installation to the
 search path for headers and the \file{lib} folder to the search path for
 libraries. Both DLLs (extensions) or embedded executables should link to
-\file{libswipl.dll.a} and, if appropriate, to the multi-threaded DLL
+\file{libswipl.dll.a} and, if appropriate, to the multithreaded DLL
 version of the MSVC runtime library.
 
 To create extensions, create a Win32 DLL. To embed Prolog, care should
@@ -459,7 +459,7 @@ later) to be able to write shortcuts and registry keys.
 
 If you want a desktop entry for SWI-Prolog, right-drag
 \program{swipl-win.exe} to the desktop and select `Create shortcut'. Then
-edit the properties and add \const{--win_app} to the commandline to make
+edit the properties and add \const{--win_app} to the command line to make
 the application start in \file{My Documents\bsl{}Prolog}.
 
 

@@ -22,10 +22,10 @@ C and use Prolog as an embedded logical engine.
 \section{Overview of the Interface}		\label{sec:foreignoverview}
 
 A special include file called \file{SWI-Prolog.h} should be included
-with each C-source file that is to be loaded via the foreign interface.
+with each C source file that is to be loaded via the foreign interface.
 The installation process installs this file in the directory
 \file{include} in the SWI-Prolog home directory (\exam{?-
-current_prolog_flag(home, Home).}). This C-header file defines various
+current_prolog_flag(home, Home).}). This C header file defines various
 data types, macros and functions that can be used to communicate with
 SWI-Prolog. Functions and macros can be divided into the following
 categories:
@@ -46,8 +46,8 @@ categories:
 
 Foreign modules may be linked to Prolog in two ways. Using
 \jargon{static linking}, the extensions, a (short) file defining main()
-which attaches the extensions calls to Prolog, and the SWI-Prolog kernel
-distributed as a C library are linked together to form a new executable.
+which attaches the extension calls to Prolog, and the SWI-Prolog kernel
+distributed as a C library, are linked together to form a new executable.
 Using \jargon{dynamic linking}, the extensions are linked to a shared
 library (\fileext{so} file on most Unix systems) or dynamic link library
 (\fileext{DLL} file on Microsoft platforms) and loaded into the
@@ -82,7 +82,7 @@ from the user.
 Loading shared objects (DLL files on Windows) provides sharing and
 protection and is generally the best choice. If a saved state is created
 using qsave_program/[1,2], an initialization/1 directive may be used to
-load the appropriate library at start-up.
+load the appropriate library at startup.
 
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
@@ -102,7 +102,7 @@ predicates from \secref{shlib} in your application.
 
 \begin{description}
     \predicate{open_shared_object}{2}{+File, -Handle}
-\arg{File} is the name of a shared object file (DLL in MS-Windows). This file is attached to the current process and
+\arg{File} is the name of a shared object file (DLL in MS-Windows). This file is attached to the current process, and
 \arg{Handle} is unified with a handle to the library. Equivalent to
 \exam{open_shared_object(File, Handle, [])}. See also
 open_shared_object/3 and load_foreign_library/1.
@@ -133,7 +133,7 @@ PL_register_foreign().
 
 \subsection{Static Linking} \label{sec:staticl}
 
-Below is an outline of the files structure required for statically
+Below is an outline of the file structure required for statically
 linking SWI-Prolog with foreign extensions. \file{.../swipl} refers to
 the SWI-Prolog home directory (see the Prolog flag \prologflag{home}).
 \file{<arch>} refers to the architecture identifier that may be obtained
@@ -150,7 +150,7 @@ using the Prolog flag \prologflag{arch}.
 \end{center}
 
 The definition of the foreign predicates is the same as for dynamic
-linking.  Unlike with dynamic linking however, there is no
+linking.  Unlike with dynamic linking, however, there is no
 initialisation function.  Instead, the file \file{.../swipl/include/stub.c}
 may be copied to your project and modified to define the foreign
 extensions.  Below is \file{stub.c}, modified to link the lowercase example
@@ -193,7 +193,7 @@ option \const{-dump-runtime-variables} (see \secref{cmdline}) can be
 used to obtain the required paths, libraries and linking options to link
 the new executable.
 
-\section{Interface Data types}		\label{sec:foreigntypes}
+\section{Interface Data Types}		\label{sec:foreigntypes}
 
 \subsection{Type \ctype{term_t}: a reference to a Prolog term}
 
@@ -516,7 +516,7 @@ Return a C-string for the text represented by the given atom. The
 returned text will not be changed by Prolog. It is not allowed to modify
 the contents, not even `temporary' as the string may reside in read-only
 memory. The returned string becomes invalid if the atom is
-garbage-collected (see \secref{atomgc}).  Foreign functions that require
+garbage collected (see \secref{atomgc}).  Foreign functions that require
 the text from an atom passed in a \ctype{term_t} normally use
 PL_get_atom_chars() or PL_get_atom_nchars().
 
@@ -536,7 +536,7 @@ With the introduction of atom garbage collection in version 3.3.0, atoms
 no longer live as long as the process. Instead, their lifetime is
 guaranteed only as long as they are referenced. In the single-threaded
 version, atom garbage collections are only invoked at the
-\jargon{call-port}. In the multi-threaded version (see \chapref{threads}),
+\jargon{call-port}. In the multithreaded version (see \chapref{threads}),
 they appear asynchronously, except for the invoking thread.
 
 For dealing with atom garbage collection, two additional functions are
@@ -2845,7 +2845,7 @@ There are four options for storing such data:
 \begin{itemlist}
     \item[Natural Prolog data]
 Uses the representation one would choose if no foreign interface was
-required. E.g., a bitvector representing a list of small integers can be
+required. For example, a bitvector representing a list of small integers can be
 represented as a Prolog list of integers.
 
     \item[Opaque packed data on the stacks]
@@ -3187,18 +3187,18 @@ thread other than the main one.%
 \label{sec:sigembedded}
 
 This section applies to Unix-based environments that have signals or
-multi-threading.  The Windows version is compiled for multi-threading,
+multithreading.  The Windows version is compiled for multithreading,
 and Windows lacks proper signals.
 
 We can distinguish two classes of embedded executables. There are small
-C/C++-programs that act as an interfacing layer around Prolog. Most of
+C/C++ programs that act as an interfacing layer around Prolog. Most of
 these programs can be replaced using the normal Prolog executable
 extended with a dynamically loaded foreign extension and in most cases
 this is the preferred route. In other cases, Prolog is embedded in a
 complex application that---like Prolog---wants to control the process
 environment. A good example is Java. Embedding Prolog is generally the
 only way to get these environments together in one process image. Java
-applications, however, are by nature multi-threaded and appear to do
+applications, however, are by nature multithreaded and appear to do
 signal handling (software interrupts).
 
 On Unix systems, SWI-Prolog uses three signals:

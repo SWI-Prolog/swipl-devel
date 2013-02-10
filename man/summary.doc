@@ -47,7 +47,7 @@ suggest predicates from a keyword.
 \predicatesummary{{}}{1}{DCG escape; constraints}
 \predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
-\predicatesummary{abort}{0}{Abort execution, return to top level}
+\predicatesummary{abort}{0}{Abort execution, return to top-level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
 \predicatesummary{access_file}{2}{Check access permissions of a file}
@@ -425,7 +425,7 @@ suggest predicates from a keyword.
 \predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
 \predicatesummary{prolog}{0}{Run interactive top-level}
-\predicatesummary{prolog_choice_attribute}{3}{Examine the choice-point stack}
+\predicatesummary{prolog_choice_attribute}{3}{Examine the choice point stack}
 \predicatesummary{prolog_current_choice}{1}{Reference to most recent choice point}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
 \predicatesummary{prolog_cut_to}{1}{Realise global cuts}
@@ -601,8 +601,8 @@ suggest predicates from a keyword.
 \predicatesummary{told}{0}{Close current output}
 \predicatesummary{tprofile}{1}{Profile a thread for some period}
 \predicatesummary{trace}{0}{Start the tracer}
-\predicatesummary{trace}{1}{Set trace-point on predicate}
-\predicatesummary{trace}{2}{Set/Clear trace-point on ports}
+\predicatesummary{trace}{1}{Set trace point on predicate}
+\predicatesummary{trace}{2}{Set/Clear trace point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
 \predicatesummary{trim_stacks}{0}{Release unused memory resources}
 \predicatesummary{true}{0}{Succeed}
@@ -617,7 +617,7 @@ suggest predicates from a keyword.
 \predicatesummary{unifiable}{3}{Determining binding required for unification}
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
-\predicatesummary{unload_file}{1}{Unload a source-file}
+\predicatesummary{unload_file}{1}{Unload a source file}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}

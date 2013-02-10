@@ -200,14 +200,14 @@ This option controls whether guards should be checked for (illegal) variable
 bindings or not. Possible values for this option are \texttt{on} to enable
 the checks, and \texttt{off} to disable the checks. If this option is on,
 any guard fails when it binds a variable that appears in the head of the rule.
-When the option is off (default), the behavior of a binding in the guard is undefined.
+When the option is off (default), the behaviour of a binding in the guard is undefined.
 
         \termitem{optimize}{}
 This option controls the degree of optimization.
 Possible values are \texttt{full} to enable all available
 optimizations, and \texttt{off} (default) to disable all optimizations.
 The default is derived from the SWI-Prolog flag \prologflag{optimise}, where
-\const{true} is mapped to \const{full}.  Therefore the command-line
+\const{true} is mapped to \const{full}.  Therefore the command line
 option \cmdlineoption{-O} provides full CHR optimization.
 If optimization is enabled, debugging must be disabled.
 
@@ -256,7 +256,7 @@ constraint, e.g.:
 In its extended form, a constraint specifier is
 \texttt{$c$($A_1$,\ldots,$A_n$)} where $c$ is the constraint's functor,
 $n$ its arity and the $A_i$ are argument specifiers. An argument
-specifier is a mode, optionally followed by a type. E.g.
+specifier is a mode, optionally followed by a type. Example:
 
 \begin{code}
 :- chr_constraint get_value(+,?).
@@ -410,7 +410,7 @@ No runtime overhead is incurred in static type checking.
       checks until variables are instantiated.
 
       The kind of error detected by dynamic type checking is where a functor
-      is used that does not belong to the declared type. E.g. for the program:
+      is used that does not belong to the declared type. For example, for the program:
 \begin{code}
 :-chr_type foo ---> foo.
 

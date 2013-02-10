@@ -1,6 +1,6 @@
-\chapter{Multi-threaded applications} \label{sec:threads}
+\chapter{Multithreaded applications} \label{sec:threads}
 
-SWI-Prolog multithreading is based on standard C-language multithreading
+SWI-Prolog multithreading is based on standard C language multithreading
 support. It is not like {\em ParLog} or other parallel implementations of
 the Prolog language. Prolog threads have their own stacks and only share
 the Prolog \emph{heap}: predicates, records, flags and other global
@@ -8,7 +8,7 @@ non-backtrackable data.  SWI-Prolog thread support is designed with the
 following goals in mind.
 
 \begin{itemlist}
-    \item[Multi-threaded server applications]
+    \item[Multithreaded server applications]
 Today's computing services often focus on (internet) server applications.
 Such applications often have need for communication between services
 and/or fast non-blocking service to multiple concurrent clients.  The
@@ -27,9 +27,9 @@ input from a distinct group of windows.  See also \secref{mt-xpce}.
 
     \item[Natural integration with foreign code]
 Each Prolog thread runs in a native thread of the operating system,
-automatically making them cooperate with \jargon{MT-safe} foreign-code.
+automatically making them cooperate with \jargon{MT-safe} foreign code.
 In addition, any foreign thread can create its own Prolog engine for
-dealing with calling Prolog from C-code.
+dealing with calling Prolog from C code.
 \end{itemlist}
 
 SWI-Prolog multithreading is based on the POSIX thread standard
@@ -45,9 +45,9 @@ faster operation.
 
 \begin{description}
     \predicate{thread_create}{3}{:Goal, -Id, +Options}
-Create a new Prolog thread (and underlying C-thread) and start it
+Create a new Prolog thread (and underlying C thread) and start it
 by executing \arg{Goal}.  If the thread is created successfully, the
-thread-identifier of the created thread is unified to \arg{Id}.
+thread identifier of the created thread is unified to \arg{Id}.
 \arg{Options} is a list of options.  The currently defined options are
 below.  Stack size options can also take the value \const{inf} or
 \const{infinite}, which is mapped to the maximum stack size supported
@@ -83,12 +83,12 @@ ignore/1 and/or catch/3 to ensure successful completion.
     \termitem{global}{K-Bytes}
 Set the limit to which the global stack of this thread may grow.  If
 omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-G} command-line option.
+\cmdlineoption{-G} command line option.
 
     \termitem{local}{K-Bytes}
 Set the limit to which the local stack of this thread may grow.  If
 omitted, the limit of the calling thread is used.  See also the
-\cmdlineoption{-L} command-line option.
+\cmdlineoption{-L} command line option.
 
     \termitem{c_stack}{K-Bytes}
 Set the limit to which the system stack of this thread may grow.  The
@@ -98,7 +98,7 @@ versions used \const{stack}.  This is still accepted as a synonym.}.
     \termitem{trail}{K-Bytes}
 Set the limit to which the trail stack of this thread may grow.  If
 omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-T} command-line option.
+\cmdlineoption{-T} command line option.
 \end{description}
 
 The \arg{Goal} argument is \emph{copied} to the new Prolog engine.
@@ -118,7 +118,7 @@ with the thread are reclaimed.  Note that threads with the attribute
 \term{detached}{true} cannot be joined.  See also thread_property/2.
 
 A thread that has been completed without thread_join/2 being called on
-it is partly reclaimed: the Prolog stacks are released and the C-thread
+it is partly reclaimed: the Prolog stacks are released and the C thread
 is destroyed. A small data structure representing the exit status of the
 thread is retained until thread_join/2 is called on the thread.  Defined
 values for \arg{Status} are:
@@ -156,7 +156,7 @@ Terminates the thread immediately, leaving \term{exited}{Term} as
 result state for thread_join/2.  If the thread has the attribute
 \term{detached}{true} it terminates, but its exit status cannot be
 retrieved using thread_join/2, making the value of \arg{Term} irrelevant.
-The Prolog stacks and C-thread are reclaimed.
+The Prolog stacks and C thread are reclaimed.
 
 The current implementation does not guarantee proper releasing of all
 mutexes and proper cleanup in setup_call_cleanup/3, etc. Please use the
@@ -477,13 +477,13 @@ exceptions at any point.
     \predicate{thread_signal}{2}{+ThreadId, :Goal}
 Make thread \arg{ThreadId} execute \arg{Goal} at the first
 opportunity.  In the current implementation, this implies at the first
-pass through the \jargon{Call-port}. The predicate thread_signal/2
+pass through the \jargon{Call port}. The predicate thread_signal/2
 itself places \arg{Goal} into the signalled thread's signal queue
 and returns immediately.
 
 Signals (interrupts) do not cooperate well with the world of
 multithreading, mainly because the status of mutexes cannot be
-guaranteed easily.  At the call-port, the Prolog virtual machine
+guaranteed easily.  At the call port, the Prolog virtual machine
 holds no locks and therefore the asynchronous execution is safe.
 
 \arg{Goal} can be any valid Prolog goal, including throw/1 to make
@@ -492,7 +492,7 @@ tracing the receiving thread.
 
 In the Windows version, the receiving thread immediately executes
 the signal if it reaches a Windows GetMessage() call, which generally
-happens if the thread is waiting for (user-)input.
+happens if the thread is waiting for (user) input.
 \end{description}
 
 
@@ -552,7 +552,7 @@ All internal Prolog operations are thread-safe. This implies that two Prolog
 threads can operate on the same dynamic predicate without corrupting the
 consistency of the predicate. This section deals with user-level
 \jargon{mutexes} (called \jargon{monitors} in ADA or
-\jargon{critical-sections} by Microsoft).  A mutex is a
+\jargon{critical sections} by Microsoft).  A mutex is a
 {\bf MUT}ual {\bf EX}clusive device, which implies that at most one thread
 can \jargon{hold} a mutex.
 
@@ -600,7 +600,7 @@ further references yield an \except{existence_error} exception.
 
     \predicate{with_mutex}{2}{+MutexId, :Goal}
 Execute \arg{Goal} while holding \arg{MutexId}.  If \arg{Goal} leaves
-choice-points, these are destroyed (as in once/1).  The mutex is unlocked
+choice points, these are destroyed (as in once/1).  The mutex is unlocked
 regardless of whether \arg{Goal} succeeds, fails or raises an exception.
 An exception thrown by \arg{Goal} is re-thrown after the mutex has been
 successfully unlocked.  See also mutex_create/1 and setup_call_cleanup/3.
@@ -694,7 +694,7 @@ Support for debugging threads is still very limited. Debug and trace
 mode are flags that are local to each thread. Individual threads can be
 debugged either using the graphical debugger described in
 \secref{guitracer} (see tspy/1 and friends) or by attaching a console to
-the thread and running the traditional command-line debugger (see
+the thread and running the traditional command line debugger (see
 attach_console/0).  When using the graphical debugger, the debugger
 must be \emph{loaded} from the main thread (for example using guitracer)
 before gtrace/0 can be called from a thread.
@@ -735,16 +735,16 @@ Disable debugging thread \arg{ThreadId}.
 Disable debugging in all threads.
 
     \predicate{tspy}{2}{:Spec, +ThreadId}
-Set a spy-point as spy/1 and enable the thread for debugging using
-tdebug/1.  Note that a spy-point is a global flag on a predicate that
+Set a spy point as spy/1 and enable the thread for debugging using
+tdebug/1.  Note that a spy point is a global flag on a predicate that
 is visible from all threads.  Spy points are honoured in all threads
 that are in debug mode and ignored in threads that are in nodebug
 mode.
 
     \predicate{tspy}{1}{:Spec}
-Set a spy-point as spy/1 and enable debugging in all threads using
-tdebug/0.  Note that removing spy-points can be done using nospy/1.
-Disabling spy-points in	a specific thread is achieved by tnodebug/1.
+Set a spy point as spy/1 and enable debugging in all threads using
+tdebug/0.  Note that removing spy points can be done using nospy/1.
+Disabling spy points in	a specific thread is achieved by tnodebug/1.
 \end{description}
 
 \subsection{Profiling threads}
@@ -771,14 +771,14 @@ execution profiler.
 systems, because every thread uses a considerable amount of \emph{virtual}
 address space. SWI-Prolog threads claim the stack \emph{limit} in
 virtual address space for each of the runtime stacks, while on 32-bit
-systems this resource is generally limited somewhere between 1 GB and 3.5
-GB, depending on the operating system and operating configuration.
+systems this resource is generally limited somewhere between 1~GB and
+3.5~GB, depending on the operating system and operating configuration.
 
 If SWI-Prolog starts a thread it copies the initial goal and starts a
 POSIX thread which allocates a new Prolog engine that starts proving
 the given goal.  If allocation of the engine fails, typically due to
 lack of virtual memory space, the thread is still created with minimal
-(8 Kbyte) stacks and immediately calls its exit handlers. See the option
+(8~Kbyte) stacks and immediately calls its exit handlers. See the option
 \term{at_exit}{Goal}. Although this mechanism allows for handling this
 type of error gracefully it is not safe to rely on it.  Allocating an
 engine that nearly exhausts virtual address space may cause failures
@@ -791,7 +791,7 @@ consider this issue and avoid ungraceful termination, being conservative
 with the dynamic creation of new threads.
 
 
-\section{Multi-threaded mixed C and Prolog applications}
+\section{Multithreaded mixed C and Prolog applications}
 \label{sec:foreignthread}
 
 All foreign code linked to the multithreading version of SWI-Prolog
@@ -817,7 +817,7 @@ threads temporarily use a Prolog engine.
 \label{sec:threadoneone}
 
 In the one-to-one model, the thread that called PL_initialise() has a
-Prolog engine attached. If another C-thread in the system wishes to call
+Prolog engine attached. If another C thread in the system wishes to call
 Prolog it must first attach an engine using PL_thread_attach_engine()
 and call PL_thread_destroy_engine() after all Prolog work is finished.
 This model is especially suitable with long running threads that need
@@ -848,7 +848,7 @@ pthread_cancel() is used.
 
 \begin{code}
 typedef struct
-{ unsigned long	    local_size;	   /* Stack sizes (K-bytes) */
+{ unsigned long	    local_size;	   /* Stack sizes (Kbytes) */
   unsigned long	    global_size;
   unsigned long	    trail_size;
   unsigned long	    argument_size;
@@ -949,7 +949,7 @@ thread.
 
 Engines can be changed at any time.  For example, it is allowed to
 select an engine to initiate a Prolog goal, detach it and at a later
-moment execute the goal from another thread. Note however that the
+moment execute the goal from another thread. Note, however, that the
 \ctype{term_t}, \ctype{qid_t} and \ctype{fid_t} types are interpreted
 relative to the engine for which they are created. Behaviour when
 passing one of these types from one engine to another is undefined.
@@ -962,7 +962,7 @@ refers to the main engine.
 \subsubsection{Engines in single-threaded SWI-Prolog}
 
 In theory it is possible to port the API of \secref{threadmanymany} to
-the single-threaded version of SWI-Prolog.  This allows C-programs to
+the single-threaded version of SWI-Prolog.  This allows C programs to
 control multiple Prolog engines concurrently.  This has not yet been
 realised.
 
@@ -1018,7 +1018,7 @@ runs at approximately 50,000 calls per second (AMD Phenom 9600B, Ubuntu
 
     \predicate{pce_dispatch}{1}{+Options}
 Create a Prolog thread with the alias name \const{pce} for XPCE
-event-handling. In the X11 version this call creates a thread that
+event handling. In the X11 version this call creates a thread that
 executes the X11 event-dispatch loop. In MS-Windows it creates a thread
 that executes a windows event-dispatch loop.  The XPCE event-handling
 thread has the alias \const{pce}. \arg{Options} specifies the

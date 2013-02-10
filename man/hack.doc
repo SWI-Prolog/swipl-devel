@@ -18,7 +18,7 @@ therefore its frame is destroyed immediately after succeeding.
 
     \predicate[semidet]{prolog_current_choice}{1}{-Choice}
 Unify \arg{Choice} with an integer provided a reference to the last
-choice-point.  Fails if the current environment has no choicepoints.
+choice point.  Fails if the current environment has no choice points.
 See also prolog_choice_attribute/3.
 
     \predicate{prolog_frame_attribute}{3}{+Frame, +Key, :Value}
@@ -45,7 +45,7 @@ variables in this goal unless you {\bf know} what you are doing!
 Note that the returned term may contain references to the frame and
 should be discarded before the frame terminates.%
 	\footnote{The returned term is actually an illegal Prolog term
-		  that may hold references from the global- to the local
+		  that may hold references from the global to the local
 		  stack to preserve the variable names.}
 
     \termitem{parent_goal}{}
@@ -81,7 +81,7 @@ environment.
 
     \termitem{top}{}
 \arg{Value} is unified with \const{true} if \arg{Frame} is the top Prolog
-goal from a recursive call back from the foreign language. \const{false}
+goal from a recursive call back from the foreign language; \const{false}
 otherwise.
 
     \termitem{hidden}{}
@@ -93,8 +93,8 @@ predicates), or the system has no trace-me attribute.
 \arg{Value} is \const{true} if this frame was skipped in the debugger.
 
     \termitem{pc}{}
-\arg{Value} is unified with the program-pointer saved on behalf of the
-parent-goal if the parent-goal is not owned by a foreign predicate or
+\arg{Value} is unified with the program pointer saved on behalf of the
+parent goal if the parent goal is not owned by a foreign predicate or
 belongs to a compound meta-call (e.g., call((a,b))).
 
     \termitem{argument}{N}
@@ -104,32 +104,32 @@ refer to local variables. Fails silently if \arg{N} is out of range.
 \end{description}
 
     \predicate{prolog_choice_attribute}{3}{+ChoicePoint, +Key, -Value}
-Extract attributes of a choice-point.  \arg{ChoicePoint} is a reference
-to a choice-point as passed to prolog_trace_interception/4 on the 3-th
-argumentm or obtained using prolog_current_choice/1. \arg{Key} specifies
+Extract attributes of a choice point.  \arg{ChoicePoint} is a reference
+to a choice point as passed to prolog_trace_interception/4 on the 3rd
+argument or obtained using prolog_current_choice/1. \arg{Key} specifies
 the requested information:
 
 \begin{description}
     \termitem{parent}{}
-Requests a reference to the first older choice-point.
+Requests a reference to the first older choice point.
     \termitem{frame}{}
-Requests a reference to the frame to which the choice-point refers.
+Requests a reference to the frame to which the choice point refers.
     \termitem{type}{}
 Requests the type.  Defined values are \const{clause} (the goal has
 alternative clauses), \const{foreign} (non-deterministic foreign
-predicate), \const{jump} (clause internal choice-point), \const{top}
-(first dummy choice-point), \const{catch} (catch/3 to allow for undo),
+predicate), \const{jump} (clause internal choice point), \const{top}
+(first dummy choice point), \const{catch} (catch/3 to allow for undo),
 \const{debug} (help the debugger), or \const{none} (has been deleted).
 \end{description}
 
 This predicate is used for the graphical debugger to show the
-choice-point stack.
+choice point stack.
 
     \predicate{deterministic}{1}{-Boolean}
-Unifies its argument with \const{true} if no choicepoint exists that is
+Unifies its argument with \const{true} if no choice point exists that is
 more recent than the entry of the clause in which it appears. There are
 few realistic situations for using this predicate. It is used by the
-prolog/0 toplevel to check whether Prolog should prompt the user for
+prolog/0 top-level to check whether Prolog should prompt the user for
 alternatives. Similar results can be achieved in a more portable fashion
 using call_cleanup/2.
 \end{description}
@@ -138,7 +138,7 @@ using call_cleanup/2.
 
 \begin{description}
     \predicate{prolog_cut_to}{1}{+Choice}
-Prunes all choice-points created since \arg{Choice}. Can be used
+Prunes all choice points created since \arg{Choice}. Can be used
 together with prolog_current_choice/1 to implement \jargon{parent} cuts.
 This predicate is in the hackers corner because it should not be used
 in normal Prolog code. It may be used to create new high level control
@@ -152,7 +152,7 @@ structures, particularly for compatibility purposes.
     \predicate{prolog_trace_interception}{4}{+Port, +Frame, +Choice, -Action}
 Dynamic predicate, normally not defined. This predicate is called from
 the SWI-Prolog debugger just before it would show a port. If this
-predicate succeeds the debugger assumes the trace action has been taken
+predicate succeeds, the debugger assumes that the trace action has been taken
 care of and continues execution as described by \arg{Action}. Otherwise
 the normal Prolog debugger actions are performed.
 
@@ -161,30 +161,30 @@ the normal Prolog debugger actions are performed.
 
 \begin{description}
     \termitem{call}{}
-Normal entry through the call-port of the 4-port debugger.
+Normal entry through the call port of the 4-port debugger.
 
     \termitem{redo}{PC}
-Normal entry through the redo-port of the 4-port debugger. The
+Normal entry through the redo port of the 4-port debugger. The
 \const{redo} port signals resuming a predicate to generate alternative
-solutions. If \arg{PC} is 0 (zero), clause-indexing has found another
+solutions. If \arg{PC} is 0 (zero), clause indexing has found another
 clause that will be tried next. Otherwise, \arg{PC} is the program
 counter in the current clause where execution continues. This implies we
-are dealing with an in-clause choice point left by e.g., \predref{;}{2}.
+are dealing with an in-clause choice point left by, e.g., \predref{;}{2}.
 Note that non-determinism in foreign predicates are also handled using
 an in-clause choice point.
 
     \termitem{unify}{}
-The unify-port represents the \jargon{neck} instruction, signalling the
+The unify port represents the \jargon{neck} instruction, signalling the
 end of the head-matching process.  This port is normally invisible.  See
 leash/1 and visible/1.
 
     \termitem{exit}{}
-The exit-port signals the goal is proved.  It is possible for the goal
+The exit port signals the goal is proved.  It is possible for the goal
 to have alternatives. See prolog_frame_attribute/3 to examine the
-goal-stack.
+goal stack.
 
     \termitem{fail}{}
-The fail-port signals final failure of the goal.
+The fail port signals final failure of the goal.
 
     \termitem{exception}{Except}
 An exception is raised and still pending.  This port is activated on
@@ -206,7 +206,7 @@ A cut has been executed.  See \term{cut_call}{PC} for more information.
 
 \arg{Frame} is a reference to the current local stack frame, which can
 be examined using prolog_frame_attribute/3. \arg{Choice} is a reference
-to the last choice-point and can be examined using
+to the last choice point and can be examined using
 prolog_choice_attribute/3. \arg{Action} must be unified with a term that
 specifies how execution must continue. The following actions are
 defined:
@@ -215,7 +215,7 @@ defined:
     \termitem{abort}{}
 Abort execution.  See abort/0.
     \termitem{continue}{}
-Continue (i.e., \jargon{creep} in the commandline debugger).
+Continue (i.e., \jargon{creep} in the command line debugger).
     \termitem{fail}{}
 Make the current goal fail.
     \termitem{ignore}{}
@@ -228,11 +228,11 @@ Retry the current frame.
 Retry the given frame.  This must be a parent of the current
 frame.
     \termitem{skip}{}
-Skip over the current goal (i.e., \jargon{skip} in the commandline debugger).
+Skip over the current goal (i.e., \jargon{skip} in the command line debugger).
 \end{description}
 
 Together with the predicates described in \secref{debugger}
-and the other predicates of this chapter this predicate enables the
+and the other predicates of this chapter, this predicate enables the
 Prolog user to define a complete new debugger in Prolog. Besides this, it
 enables the Prolog programmer to monitor the execution of a program. The
 example below records all goals trapped by the tracer in the database.
@@ -256,8 +256,8 @@ Indicate \arg{Frame} as a skipped frame and set the `skip level' (see
 prolog_skip_level/2 to the recursion depth of \arg{Frame}.  The effect
 of the skipped flag is that a redo on a child of this frame is handled
 differently.  First, a \const{redo} trace is called for the child, where
-the skip-level is set to \const{redo_in_skip}.  Next, the skip level is
-set to skip-level of the skipped frame.
+the skip level is set to \const{redo_in_skip}.  Next, the skip level is
+set to skip level of the skipped frame.
 
     \predicate{prolog_skip_level}{2}{-Old, +New}
 Unify \arg{Old} with the old value of `skip level' and then set this
@@ -308,7 +308,7 @@ Applications that use exceptions as part of normal processing must
 do a quick test of the environment before starting expensive gathering
 information on the state of the program.
 
-The hook can call trace/0 to enter trace mode immediately. For example
+The hook can call trace/0 to enter trace mode immediately. For example,
 imagine an application performing an unwanted division by zero while all
 other errors are expected and handled.  We can force the debugger using
 the hook definition below.  Run the program in debug mode (see debug/0)
@@ -350,8 +350,8 @@ operation can now succeed without error.
 
 \begin{description}
     \termitem{undefined_predicate}{}
-\arg{Context} is instantiated to a predicate-indicator
-([module]:<name>/<arity>). If the predicate fails Prolog will generate
+\arg{Context} is instantiated to a predicate indicator
+([module]:<name>/<arity>). If the predicate fails, Prolog will generate
 an \except{existence_error} exception. The hook is intended to implement
 alternatives to the built-in autoloader, such as autoloading code from
 a database.  Do \emph{not} use this hook to suppress existence errors on
@@ -368,7 +368,7 @@ with the action \const{retry}.
 \section{Hooks for integrating libraries}	\label{sec:intlibs}
 
 Some libraries realise an entirely new programming paradigm on top of
-Prolog.  An example is XPCE which adds an object-system to Prolog as
+Prolog.  An example is XPCE which adds an object system to Prolog as
 well as an extensive set of graphical primitives.  SWI-Prolog provides
 several hooks to improve the integration of such libraries.  See also
 \secref{listing} for editing hooks and \secref{printmsg} for hooking
@@ -383,7 +383,7 @@ indicated \arg{Goal} and/or show the actual source code in an editor.
 See also portray/1 and multifile/1.
 
     \predicate{prolog:debug_control_hook}{1}{:Action}
-Hook for the debugger-control predicates that allows the creator of
+Hook for the debugger control predicates that allows the creator of
 more high-level programming languages to use the common front-end
 predicates to control the debugger.  For example, XPCE uses these hooks
 to allow for spying methods rather than predicates. \arg{Action} is one
@@ -397,7 +397,7 @@ Hook in nospy/1.  If the hook succeeds nospy/1 takes no further action.
 If spy/1 is hooked, it is advised to place a complementary hook for
 nospy/1.
     \termitem{nospyall}{}
-Hook in nospyall/0.  Should remove all spy-points.  This hook is
+Hook in nospyall/0.  Should remove all spy points.  This hook is
 called in a failure-driven loop.
     \termitem{debugging}{}
 Hook in debugging/0.  It can be used in two ways.  It can report
@@ -409,7 +409,7 @@ overruling the entire behaviour of debugging/0.
     \predicate{prolog:help_hook}{1}{+Action}
 Hook into help/0 and help/1.  If the hook succeeds, the built-in actions
 are not executed. For example, \exam{?- help(picture).} is caught by the
-XPCE help-hook to give help on the class {\em picture}.  Defined actions
+XPCE help hook to give help on the class {\em picture}.  Defined actions
 are:
 
 \begin{description}
