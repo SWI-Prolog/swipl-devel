@@ -3513,11 +3513,29 @@ PL_foreign_control(control_t h)
 }
 
 
+static int
+is_resource_error(term_t ex)
+{ GET_LD
+  Word p = valTermRef(ex);
+
+  deRef(p);
+  if ( hasFunctor(*p, FUNCTOR_error2) )
+  { p = argTermP(*p, 0);
+    deRef(p);
+
+    return hasFunctor(*p, FUNCTOR_resource_error1);
+  }
+
+  return FALSE;
+}
+
+
 int
 PL_raise_exception(term_t exception)
 { GET_LD
 
-  save_backtrace("exception");
+  if ( is_resource_error(exception) )
+    save_backtrace("exception");
 
   if ( PL_is_variable(exception) )
     fatalError("Cannot throw variable exception");
@@ -3581,8 +3599,9 @@ PL_clear_foreign_exception(LocalFrame fr)
 	   predicateName(fr->predicate));
   PL_write_term(Serror, ex, 1200, 0);
   Sdprintf("\n");
-  print_backtrace_named("exception");
-	   
+  if ( is_resource_error(ex) )
+    print_backtrace_named("exception");
+
   PL_clear_exception();
 }
 
