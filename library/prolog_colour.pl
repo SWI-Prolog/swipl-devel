@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -1172,6 +1172,7 @@ goal_colours(public(_),		     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
+goal_colours(load_files(_),	     built_in-[file]).
 goal_colours(load_files(_,_),	     built_in-[file,classify]).
 goal_colours(setof(_,_,_),	     built_in-[classify,setof,classify]).
 goal_colours(bagof(_,_,_),	     built_in-[classify,setof,classify]).
