@@ -626,7 +626,7 @@ module, clear the module's export list and disassociate it from the
 file.  \arg{File} is a canonical filename or a file indicator that is
 valid for load_files/2.
 
-This predicare should be used with care. The multithreaded nature of
+This predicate should be used with care. The multithreaded nature of
 SWI-Prolog makes removing static code unsafe. Attempts to do this should
 be reserved to development or situations where the application can
 guarantee that none of the clauses associated to \arg{File} are active.
