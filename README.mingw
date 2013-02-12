@@ -381,12 +381,24 @@ build_prerequisites()
 ###########################
 # Download and unpack a SWI-Prolog source distribution.
 
+enter_topdir()
+{ if [ ! -r build.templ ]; then
+    if [ -r $PLDIR/build.templ ]; then
+      cd $PLDIR
+    else
+      echo "ERROR: Cannot find SWI-Prolog sources"
+      return 1
+    fi
+  fi
+}
+
+
 download_swipl()
-{ if [ ! -d $PLDIR ]; then
+{ if [ ! -d $PLDIR -a ! -r build.templ ]; then
     git clone git://www.swi-prolog.org/home/pl/git/$PLDIR.git
   fi
 
-  ( cd $PLDIR
+  ( enter_topdir
     git pull
     ./prepare --yes
   )
@@ -395,7 +407,7 @@ download_swipl()
 build_swipl_core()
 { export CIFLAGS="-I$install/include"
   export LDFLAGS="-L$install/lib"
-  ( cd $PLDIR
+  ( enter_topdir
     wineserver || true
     ./configure --host=$CROSS --prefix=$install \
         --disable-readline --disable-libdirversion \
@@ -414,7 +426,8 @@ copy_dlls()
 # Usage: build_swipl_packages [pkg ...]
 
 build_swipl_packages()
-{ ( cd $PLDIR/packages
+{ ( enter_topdir
+    cd packages
     export CPPFLAGS=-I$install/include
     export PKGLDFLAGS=-I$install/lib
     [ -z "$1" ] || export PKG="$1"
@@ -432,7 +445,7 @@ build_swipl()
 }
 
 clean_swipl()
-{ ( cd $PLDIR
+{ ( enter_topdir
     make distclean
   )
 }
@@ -443,7 +456,8 @@ uninstall_swipl()
 
 
 build_installer()
-{ ( cd $PLDIR/${BUILDARCH-src}
+{ ( enter_topdir
+    cd ${BUILDARCH-src}
     make installer
   )
 }
@@ -461,13 +475,9 @@ build_all()
 # Create a new release
 
 build_release()
-{ if [ -r README.mingw ]; then
-    ( cd .. && build_release )
-  else
-    clean_swipl
-    uninstall_swipl
-    download_swipl
-    build_swipl
-    build_installer
-  fi
+{ clean_swipl
+  uninstall_swipl
+  download_swipl
+  build_swipl
+  build_installer
 }
