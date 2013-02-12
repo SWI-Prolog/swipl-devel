@@ -367,7 +367,7 @@ search_info(download(_)).
 		 *	      INSTALL		*
 		 *******************************/
 
-%%	pack_install(+Spec) is det.
+%%	pack_install(+Spec:atom) is det.
 %
 %	Install a package.  Spec is one of
 %
@@ -384,24 +384,21 @@ search_info(download(_)).
 %	do the actual installation.
 
 pack_install(Archive) :-		% Install from .tgz/.zip/... file
-	atom(Archive),
+	must_be(atom, Archive),
 	expand_file_name(Archive, [File]),
 	exists_file(File), !,
 	pack_version_file(Pack, _Version, File),
 	uri_file_name(FileURL, File),
 	pack_install(Pack, [url(FileURL)]).
 pack_install(URL) :-
-	atom(URL),
 	git_url(URL, Pack), !,
 	pack_install(Pack, [git(true), url(URL)]).
 pack_install(URL) :-			% Install from URL
-	atom(URL),
 	pack_version_file(Pack, _Version, URL),
 	download_url(URL), !,
 	available_download_versions(URL, [_-LatestURL|_]),
 	pack_install(Pack, [url(LatestURL)]).
 pack_install(Dir) :-			% Install from directory
-	atom(Dir),
 	exists_directory(Dir),
 	pack_info_term(Dir, name(Name)), !,
 	uri_file_name(DirURL, Dir),
