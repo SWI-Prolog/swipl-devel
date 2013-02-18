@@ -69,6 +69,7 @@
 	  subtract/3			% +Set, +Delete, -Remaining
 	]).
 :- use_module(library(error)).
+:- use_module(library(pairs)).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -600,25 +601,45 @@ is_set(Set) :-
 
 %%	list_to_set(+List, ?Set) is det.
 %
-%	True when Set has the same elements  as  List in the same order.
-%	The left-most copy of the duplicate  is retained. The complexity
-%	of this operation is |List|^2.
+%	True when Set has the same elements   as List in the same order.
+%	The left-most copy of  the  duplicate   is  retained.  List  may
+%	contain  variables.  Elements  _E1_  and   _E2_  are  considered
+%	duplicates iff _E1_  ==  _E2_  holds.   The  complexity  of  the
+%	implementation is N*log(N).
 %
-%	@see sort/2.
+%	@see	sort/2 can be used to create an ordered set.  Many
+%		set operations on ordered sets are order N rather than
+%		order N**2.  The list_to_set/2 predicate is is more
+%		expensive than sort/2 because it involves two sorting
+%		operations and three linear scans of the list.
+%	@compat	Up to version 6.3.11, list_to_set/2 had complexity
+%		N**2 and equality was tested using =/2.
+%	@error	List is type-checked.
 
 list_to_set(List, Set) :-
-	list_to_set_(List, Set0),
-	Set = Set0.
+	must_be(list, List),
+	tag_index(List, 0, Indexed),
+	keysort(Indexed, ByValue),
+	remove_duplicate_keys(ByValue, UniqueValuePair),
+	transpose_pairs(UniqueValuePair, Transposed),
+	pairs_values(Transposed, Set).
 
-list_to_set_([], R) :-
-	close_list(R).
-list_to_set_([H|T], R) :-
-	memberchk(H, R), !,
-	list_to_set_(T, R).
+tag_index([], _, []).
+tag_index([H|T0], I, [H-I|T]) :-
+	I2 is I+1,
+	tag_index(T0, I2, T).
 
-close_list([]) :- !.
-close_list([_|T]) :-
-	close_list(T).
+remove_duplicate_keys([], []).
+remove_duplicate_keys([H|T0], [H|T]) :-
+	H = (K-_),
+	remove_same_key(T0, K, T1),
+	remove_duplicate_keys(T1, T).
+
+remove_same_key([], _, []).
+remove_same_key([K-_|T0], KT, List) :-
+	KT == K,
+	remove_same_key(T0, KT, List).
+remove_same_key(List, _, List).
 
 
 %%	intersection(+Set1, +Set2, -Set3) is det.
