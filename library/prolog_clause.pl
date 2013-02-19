@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -50,6 +48,8 @@
 	do_make_varnames/3.
 
 :- multifile
+	unify_goal/5,			% +Read, +Decomp, +M, +Pos, -Pos
+	unify_clause_hook/5,
 	make_varnames_hook/5.
 
 /** <module> Get detailed source-information about a clause
@@ -248,9 +248,6 @@ find_varname(Var, [_|T], Name) :-
 %		more complex source-translations,  falling   back  to  a
 %		heuristic method locating as much as possible.
 
-:- multifile
-	unify_clause_hook/5.
-
 unify_clause(Read, Read, _, TermPos, TermPos) :- !.
 					% XPCE send-methods
 unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
@@ -376,6 +373,12 @@ a --> { x, y, z }.
     which the compiler creates "a(X,Y) :- x, y, z, X=Y".
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+%%	unify_goal(+Read, +Decompiled, +Module,
+%%		   +TermPosRead, -TermPosDecompiled) is semidet.
+%
+%	This hook is called to  fix   up  source code manipulations that
+%	result from goal expansions.
+
 %%	ubody(+Read, +Decompiled, +Module, +TermPosRead, -TermPosForDecompiled)
 %
 %	@param Read		Clause read _after_ expand_term/2
@@ -411,6 +414,8 @@ ubody(C0, C, M, P0, P) :-
 	C0 = (_,_), C = (_,_), !,
 	conj(C0, P0, GL, PL),
 	mkconj(C, M, P, GL, PL).
+ubody(Read, Decompiled, Module, TermPosRead, TermPosDecompiled) :-
+	unify_goal(Read, Decompiled, Module, TermPosRead, TermPosDecompiled), !.
 ubody(X0, X, M,
       term_position(F,T,FF,TT,PA0),
       term_position(F,T,FF,TT,PA)) :-
