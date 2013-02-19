@@ -42,6 +42,7 @@
 	    xref_comment/3,		% ?Source, ?Title, ?Comment
 	    xref_comment/4,		% ?Source, ?Head, ?Summary, ?Comment
 	    xref_mode/3,		% ?Source, ?Mode, ?Det
+	    xref_option/2,		% ?Source, ?Option
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
 	    xref_done/2,		% +Source, -When
@@ -98,6 +99,7 @@
 	used_class/2,			% Name, Src
 	defined_class/5,		% Name, Super, Summary, Src, Line
 	(mode)/2,			% Mode, Src
+	xoption/2,			% Src, Option
 
 	module_comment/3,		% Src, Title, Comment
 	pred_comment/4,			% Head, Src, Summary, Comment
@@ -175,24 +177,24 @@ This code is used in two places:
 		 *	     BUILT-INS		*
 		 *******************************/
 
-%%	hide_called(+Callable) is semidet.
+%%	hide_called(+Callable, +Src) is semidet.
 %
 %	True when the cross-referencer should   not  include Callable as
 %	being   called.   This   is    determined     by    the   option
 %	=register_called=.
 
-hide_called(Callable) :-
-	xref_option(register_called(Which)), !,
-	hide_called(Which, Callable).
-hide_called(Callable) :-
-	hide_called(non_built_in, Callable).
+hide_called(Callable, Src) :-
+	xoption(Src, register_called(Which)), !,
+	mode_hide_called(Which, Callable).
+hide_called(Callable, _) :-
+	mode_hide_called(non_built_in, Callable).
 
-hide_called(all, _) :- !, fail.
-hide_called(non_iso, Goal) :-
+mode_hide_called(all, _) :- !, fail.
+mode_hide_called(non_iso, Goal) :-
 	functor(Goal, Name, Arity),
 	current_predicate(system:Name/Arity),
 	predicate_property(system:Goal, iso).
-hide_called(non_built_in, Goal) :-
+mode_hide_called(non_built_in, Goal) :-
 	functor(Goal, Name, Arity),
 	current_predicate(system:Name/Arity),
 	predicate_property(system:Goal, built_in).
@@ -211,12 +213,11 @@ system_predicate(Goal) :-
 		*            TOPLEVEL		*
 		********************************/
 
-verbose :-
-	\+ xref_option(silent(true)).
+verbose(Src) :-
+	\+ xoption(Src, silent(true)).
 
 :- thread_local
-	xref_input/2,			% File, Stream
-	xref_option/1.
+	xref_input/2.			% File, Stream
 
 
 %%	xref_source(+Source) is det.
@@ -236,7 +237,7 @@ verbose :-
 %	  the database as if the file was compiled. If =collect=,
 %	  comments are entered to the xref database and made available
 %	  through xref_mode/2 and xref_comment/4.  If =ignore=,
-%	  comments are simply ignored.
+%	  comments are simply ignored. Default is to =collect= comments.
 %
 %	@param Source	File specification or XPCE buffer
 
@@ -273,37 +274,57 @@ last_modified(Source, Modified) :-
 	time_file(Source, Modified).
 
 xref_setup(Src, In, Options, state(In, Dialect, Xref, [SRef|HRefs])) :-
-	maplist(assert_option, Options),
+	maplist(assert_option(Src), Options),
+	assert_default_options(Src),
 	current_prolog_flag(emulated_dialect, Dialect),
 	prolog_open_source(Src, In),
 	set_initial_mode(In),
 	asserta(xref_input(Src, In), SRef),
 	set_xref(Xref),
-	(   verbose
+	(   verbose(Src)
 	->  HRefs = []
 	;   asserta(user:thread_message_hook(_,_,_), Ref),
 	    HRefs = [Ref]
 	).
 
-assert_option(Var) :-
+assert_option(_, Var) :-
 	var(Var), !,
 	instantiation_error(Var).
-assert_option(silent(Boolean)) :- !,
+assert_option(Src, silent(Boolean)) :- !,
 	must_be(boolean, Boolean),
-	assert(xref_option(silent(Boolean))).
-assert_option(register_called(Which)) :- !,
+	assert(xoption(Src, silent(Boolean))).
+assert_option(Src, register_called(Which)) :- !,
 	must_be(oneof([all,non_iso,non_built_in]), Which),
-	assert(xref_option(register_called(Which))).
-assert_option(comments(CommentHandling)) :- !,
+	assert(xoption(Src, register_called(Which))).
+assert_option(Src, comments(CommentHandling)) :- !,
 	must_be(oneof([store,collect,ignore]), CommentHandling),
-	assert(xref_option(comments(CommentHandling))).
+	assert(xoption(Src, comments(CommentHandling))).
+
+assert_default_options(Src) :-
+	(   xref_option_default(Opt),
+	    functor(Opt, Name, Arity),
+	    functor(Gen, Name, Arity),
+	    (   xoption(Src, Gen)
+	    ->  true
+	    ;   assertz(xoption(Src, Opt))
+	    ),
+	    fail
+	;   true
+	).
+
+xref_option_default(silent(false)).
+xref_option_default(register_called(non_built_in)).
+xref_option_default(comments(collect)).
+
+%%	xref_cleanup(+State) is det.
+%
+%	Restore processing state according to the saved State.
 
 xref_cleanup(state(In, Dialect, Xref, Refs)) :-
 	prolog_close_source(In),
 	set_prolog_flag(emulated_dialect, Dialect),
 	set_prolog_flag(xref, Xref),
-	maplist(erase, Refs),
-	retractall(xref_option(_)).
+	maplist(erase, Refs).
 
 set_xref(Xref) :-
 	current_prolog_flag(xref, Xref),
@@ -371,6 +392,7 @@ xref_clean(Source) :-
 	retractall(uses_file(_, Src, _)),
 	retractall(xmodule(_, Src)),
 	retractall(xop(Src, _)),
+	retractall(xoption(Src, _)),
 	retractall(source(Src, _)),
 	retractall(used_class(_, Src)),
 	retractall(defined_class(_, _, _, Src, _)),
@@ -558,7 +580,7 @@ collect(Src, File, In, Options) :-
 		      [ term_position(TermPos)
 		      | CommentOptions
 		      ]),
-		  E, report_syntax_error(E, [])),
+		  E, report_syntax_error(E, Src, [])),
 	    update_condition(Term),
 	    (	is_list(Expanded)
 	    ->	member(T, Expanded)
@@ -575,11 +597,11 @@ collect(Src, File, In, Options) :-
 		fail
 	    ).
 
-report_syntax_error(_, Options) :-
+report_syntax_error(_, _, Options) :-
 	option(silent(true), Options), !,
 	fail.
-report_syntax_error(E, _Options) :-
-	(   verbose
+report_syntax_error(E, Src, _Options) :-
+	(   verbose(Src)
 	->  print_message(error, E)
 	;   true
 	),
@@ -727,6 +749,15 @@ xref_comment(Source, Head, Summary, Comment) :-
 xref_mode(Source, Mode, Det) :-
 	canonical_source(Source, Src),
 	pred_mode(Mode, Src, Det).
+
+%%	xref_option(?Source, ?Option) is nondet.
+%
+%	True when Source was processed using Option. Options are defined
+%	with xref_source/2.
+
+xref_option(Source, Option) :-
+	canonical_source(Source, Src),
+	xoption(Src, Option).
 
 
 		 /********************************
@@ -1400,7 +1431,7 @@ read_directives(In, Options) -->
 					   [ process_comment(true),
 					     syntax_errors(error)
 					   ]),
-		   E, report_syntax_error(E, Options))
+		   E, report_syntax_error(E, -, Options))
 	-> nonvar(Term),
 	   Term = (:-_)
 	}, !,
@@ -1519,7 +1550,7 @@ process_include(File, Src) :-
 	(   xref_input(ParentSrc, _),
 	    xref_source_file(File, Path, ParentSrc)
 	->  assert(uses_file(File, Src, Path)),
-	    findall(O, xref_option(O), Options),
+	    findall(O, xoption(Src, O), Options),
 	    setup_call_cleanup(
 		open_include_file(Path, In, Refs),
 		collect(Src, Path, In, Options),
@@ -1672,7 +1703,7 @@ assert_called(Src, Origin, M:G) :- !,
 	    ->  assert_called(Src, Origin, G)
 	    ;   called(M:G, Src, Origin, Cond) % already registered
 	    ->  true
-	    ;	hide_called(G)		% not interesting (now)
+	    ;	hide_called(G, Src)		% not interesting (now)
 	    ->	true
 	    ;   generalise(Origin, OTerm),
 		generalise(G, GTerm)
@@ -1682,7 +1713,7 @@ assert_called(Src, Origin, M:G) :- !,
 	;   true                        % call to variable module
 	).
 assert_called(Src, _, Goal) :-
-	hide_called(Goal),
+	hide_called(Goal, Src),
 	\+ xmodule(system, Src), !.
 assert_called(Src, Origin, Goal) :-
 	current_condition(Cond),
@@ -1992,8 +2023,8 @@ xref_source_file(Spec, File, Source, Options) :-
 xref_source_file(_, _, _, Options) :-
 	option(silent(true), Options), !,
 	fail.
-xref_source_file(Spec, _, _, _Options) :-
-	verbose,
+xref_source_file(Spec, _, Src, _Options) :-
+	verbose(Src),
 	print_message(warning, error(existence_error(file, Spec), _)),
 	fail.
 
