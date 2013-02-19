@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -197,6 +196,30 @@ contains_illegal_dcgnt(NT) :-
 illegal_dcgnt(!).
 illegal_dcgnt(phrase(_,_,_)).
 illegal_dcgnt((_->_)).
+
+
+		 /*******************************
+		 *	      DEBUGGER		*
+		 *******************************/
+
+:- multifile
+	prolog_clause:unify_goal/5.
+
+prolog_clause:unify_goal(Maplist, Expanded, _Module, Pos0, Pos) :-
+	is_maplist(Maplist),
+	maplist_expansion(Expanded),
+	Pos0 = term_position(F,T,FF,FT,[_MapPos|ArgsPos]),
+	Pos  = term_position(F,T,FF,FT,ArgsPos).
+
+is_maplist(Goal) :-
+	compound(Goal),
+	functor(Goal, maplist, A),
+	A >= 2.
+
+maplist_expansion(Expanded) :-
+	compound(Expanded),
+	functor(Expanded, Name, _),
+	sub_atom(Name, 0, _, _, '__aux_maplist/').
 
 
 		 /*******************************
