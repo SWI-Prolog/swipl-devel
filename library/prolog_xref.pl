@@ -548,7 +548,7 @@ collect(Src, File, In, Options) :-
 	option(comments(CommentHandling), Options, collect),
 	(   CommentHandling == ignore
 	->  CommentOptions = []
-	;   CommentOptions == store
+	;   CommentHandling == store
 	->  CommentOptions = [ process_comment(true) ]
 	;   CommentOptions = [ comments(Comments) ]
 	),
@@ -666,8 +666,10 @@ xref_comments([Pos-Comment|T], TermPos, Src) :-
 	->  true
 	;   stream_position_data(line_count, Pos, Line),
 	    FilePos = Src:Line,
-	    parse_comment(Comment, FilePos, Parsed),
-	    assert_comments(Parsed, Src),
+	    (	parse_comment(Comment, FilePos, Parsed)
+	    ->	assert_comments(Parsed, Src)
+	    ;	true
+	    ),
 	    xref_comments(T, TermPos, Src)
 	).
 
