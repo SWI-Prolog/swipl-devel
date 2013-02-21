@@ -5533,6 +5533,14 @@ For systems using bounded integer arithmetic (default is unbounded,
 see \secref{artypes} for details), integer operations that would cause
 overflow automatically convert to floating point arithmetic.
 
+SWI-Prolog provides many extensions to the set of floating point
+functions defined by the ISO standard. The current policy is to provide
+such functions on `as-needed' basis if the function is widely supported
+elsewhere and notably if it is part of the
+\url[C99]{http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf}
+mathematical library.  In addition, we try to maintain compatibility
+with \url[YAP]{http://www.dcc.fc.up.pt/~vsc/Yap/}.
+
 \begin{description}
     \prefixfunction[ISO]{-}{+Expr}
 $\arg{Result} = -\arg{Expr}$
