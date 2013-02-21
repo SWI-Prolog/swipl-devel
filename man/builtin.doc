@@ -7214,7 +7214,7 @@ Extracts the directory part of \arg{File}. The returned \arg{Directory}
 name does not end in \const{/}. There are two special cases. The
 directory name of \const{/} is \const{/} itself, and the directory name
 is \const{.} if \arg{File} does not contain any \const{/} characters.
-See also directory_file_path/3 from \pllib{filesex). The system ensures
+See also directory_file_path/3 from \pllib{filesex}. The system ensures
 that for every valid \arg{Path} using the Prolog (POSIX) directory
 separators, following is true on systems with a sound implementation
 of same_file/2.\footnote{On some systems, \arg{Path} and
