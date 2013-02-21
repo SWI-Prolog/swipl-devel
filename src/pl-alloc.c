@@ -209,6 +209,13 @@ outOfStack(void *stack, stack_overflow_action how)
 
   save_backtrace(msg);
 
+  if ( s->spare != s->def_spare )
+  { Sdprintf("[Thread %d]: %s-overflow: spare=%ld\n"
+	     "Last resource exception:\n",
+	     PL_thread_self(), s->name, (long)s->spare);
+    print_backtrace_named("exception");
+  }
+
   LD->trim_stack_requested = TRUE;
   LD->exception.processing = TRUE;
   LD->outofstack = stack;
