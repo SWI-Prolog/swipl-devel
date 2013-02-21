@@ -218,6 +218,8 @@ A equal			"equal"
 A equals		"="
 A erase			"erase"
 A erased		"erased"
+A erf			"erf"
+A erfc			"erfc"
 A error			"error"
 A eval			"eval"
 A evaluable		"evaluable"
@@ -338,6 +340,7 @@ A key			"key"
 A larger		">"
 A larger_equal		">="
 A level			"level"
+A lgamma		"lgamma"
 A li			"li"
 A library		"library"
 A limit			"limit"
@@ -796,6 +799,8 @@ F eof_action		1
 F epsilon		0
 F equals		2
 F erased		1
+F erf			1
+F erfc			1
 F error			2
 F eval			1
 F evaluation_error	1
@@ -835,6 +840,7 @@ F is			2
 F isovar		1
 F larger		2
 F larger_equal		2
+F lgamma		1
 F line_count		1
 F list_position		4
 F listing		1

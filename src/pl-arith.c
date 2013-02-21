@@ -1536,6 +1536,9 @@ UNAIRY_FLOAT_FUNCTION(ar_acosh, acosh)
 UNAIRY_FLOAT_FUNCTION(ar_atanh, atanh)
 UNAIRY_FLOAT_FUNCTION(ar_atan, atan)
 UNAIRY_FLOAT_FUNCTION(ar_exp, exp)
+UNAIRY_FLOAT_FUNCTION(ar_erf, erf)
+UNAIRY_FLOAT_FUNCTION(ar_erfc, erfc)
+UNAIRY_FLOAT_FUNCTION(ar_lgamma, lgamma)
 
 BINAIRY_FLOAT_FUNCTION(ar_atan2, atan2)
 
@@ -3361,7 +3364,10 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_asinh1,		ar_asinh, 0),
   ADD(FUNCTOR_acosh1,		ar_acosh, 0),
   ADD(FUNCTOR_atanh1,		ar_atanh, 0),
+  ADD(FUNCTOR_lgamma1,		ar_lgamma, 0),
   ADD(FUNCTOR_log1,		ar_log, F_ISO),
+  ADD(FUNCTOR_erf1,		ar_erf, 0),
+  ADD(FUNCTOR_erfc1,		ar_erfc, 0),
   ADD(FUNCTOR_exp1,		ar_exp, F_ISO),
   ADD(FUNCTOR_log101,		ar_log10, 0),
   ADD(FUNCTOR_hat2,		ar_pow, F_ISO),

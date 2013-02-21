@@ -5822,6 +5822,24 @@ formula is required for Diffie-Hellman key-exchange, a technique where
 two parties can establish a secret key over a public network.
     \infixfunction{^}{+Expr1}{+Expr2}
 Same as \funcref{**}{2} (backward compatibility).
+
+    \function{lgamma}{1}{+Expr}
+Return the natural logarithm of the absolute value of the Gamma
+function.\footnote{Some interfaces also provide the sign of the Gamma
+function. We canot do that in an arithmetic function. Future versions
+may provide a \emph{predicate} \nopredref{lgamma}{3} that returns both
+the value and the sign.}
+
+    \function{erf}{1}{+Expr}
+\url[WikipediA]{http://en.wikipedia.org/wiki/Error_function}: ``In
+mathematics, the error function (also called the Gauss error function)
+is a special function (non-elementary) of sigmoid shape which occurs in
+probability, statistics and partial differential equations.''
+
+    \function{erfc}{1}{+Expr}
+\url[WikipediA]{http://en.wikipedia.org/wiki/Error_function}: ``The
+complementary error function.''
+
     \function[ISO]{pi}{0}{}
 Evaluate to the mathematical constant $\pi$ (3.14159\ldots).
     \function{e}{0}{}
