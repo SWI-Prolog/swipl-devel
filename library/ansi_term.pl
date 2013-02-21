@@ -92,11 +92,8 @@ ansi_format(Stream, Attr, Format, Args) :-
 	    atomic_list_concat(Codes, ;, Code)
 	;   sgr_code(Attr, Code)
 	),
-	(   Args == []
-	->  format(Stream, '\e[~wm~w\e[0m', [Code, Format])
-	;   format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
-	    format(Stream, Fmt, [Code|Args])
-	).
+	format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
+	format(Stream, Fmt, [Code|Args]).
 ansi_format(Stream, _Attr, Format, Args) :-
 	format(Stream, Format, Args).
 
