@@ -637,7 +637,7 @@ remove_duplicate_keys([H|T0], [H|T]) :-
 
 remove_same_key([], _, []).
 remove_same_key([K-_|T0], KT, List) :-
-	KT == K,
+	KT == K, !,
 	remove_same_key(T0, KT, List).
 remove_same_key(List, _, List).
 
