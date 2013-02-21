@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, VU University Amsterdam
+    Copyright (C): 2010-2013, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +31,7 @@
 	  [ ansi_format/3		% +Attr, +Format, +Args
 	  ]).
 :- use_module(library(apply)).
+:- use_module(library(error)).
 
 /** <module> Print decorated text to ANSI consoles
 
@@ -88,14 +89,20 @@ ansi_format(Stream, Attr, Format, Args) :-
 	stream_property(Stream, tty(true)),
 	current_prolog_flag(color_term, true), !,
 	(   is_list(Attr)
-	->  maplist(sgr_code, Attr, Codes),
+	->  maplist(sgr_code_ex, Attr, Codes),
 	    atomic_list_concat(Codes, ;, Code)
-	;   sgr_code(Attr, Code)
+	;   sgr_code_ex(Attr, Code)
 	),
 	format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
-	format(Stream, Fmt, [Code|Args]).
+	format(Stream, Fmt, [Code|Args]),
+	flush_output.
 ansi_format(Stream, _Attr, Format, Args) :-
 	format(Stream, Format, Args).
+
+sgr_code_ex(Attr, Code) :-
+	sgr_code(Attr, Code), !.
+sgr_code_ex(Attr, _) :-
+	domain_error(sgr_code, Attr).
 
 %%	sgr_code(+Name, -Code)
 %
