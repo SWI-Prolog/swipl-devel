@@ -3,8 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      Vu University Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -630,9 +630,10 @@ absolute_file_name(Spec, Path, Args) :-
 	;   throw(error(type_error(list, Args), _))
 	),
 	(   '$select'(extensions(Exts), Args, Conditions)
-	->  true
+	->  '$must_be'(list, Exts)
 	;   memberchk(file_type(Type), Args)
-	->  '$file_type_extensions'(Type, Exts),
+	->  '$must_be'(atom, Type),
+	    '$file_type_extensions'(Type, Exts),
 	    Conditions = Args
 	;   Conditions = Args,
 	    Exts = ['']
@@ -643,17 +644,18 @@ absolute_file_name(Spec, Path, Args) :-
 	;   C0 = [file_type(regular)|Conditions] % ask for a regular file
 	),
 	(   '$select'(solutions(Sols), C0, C1)
-	->  true
+	->  '$must_be'(oneof(atom, solutions, [first,all]), Sols)
 	;   Sols = first,
 	    C1 = C0
 	),
 	(   '$select'(file_errors(FileErrors), C1, C2)
-	->  true
+	->  '$must_be'(oneof(atom, file_errors, [error,fail]), FileErrors)
 	;   FileErrors = error,
 	    C2 = C1
 	),
 	(   atomic(Spec),
-	    '$select'(expand(true), C2, C3)
+	    '$select'(expand(Expand), C2, C3),
+	    '$must_be'(boolean, Expand)
 	->  expand_file_name(Spec, List),
 	    '$member'(Spec1, List)
 	;   Spec1 = Spec,
@@ -675,10 +677,19 @@ absolute_file_name(Spec, Path, Args) :-
 '$file_type_extensions'(Type, Exts) :-
 	'$current_module'('$bags', _File), !,
 	findall(Ext, user:prolog_file_type(Ext, Type), Exts0),
+	(   Exts0 == [],
+	    \+ '$ft_no_ext'(Type)
+	->  '$domain_error'(file_type, Type)
+	;   true
+	),
 	'$append'(Exts0, [''], Exts).
 '$file_type_extensions'(prolog, [pl, '']). % findall is not yet defined ...
 
-%	user:prolog_file_type/2
+'$ft_no_ext'(txt).
+'$ft_no_ext'(executable).
+'$ft_no_ext'(directory).
+
+%%	user:prolog_file_type/2
 %
 %	Define type of file based on the extension.  This is used by
 %	absolute_file_name/3 and may be used to extend the list of
@@ -852,6 +863,7 @@ extensions to .ext
 
 '$canonise_extensions'([], []) :- !.
 '$canonise_extensions'([H|T], [CH|CT]) :- !,
+	'$must_be'(atom, H),
 	'$canonise_extension'(H, CH),
 	'$canonise_extensions'(T, CT).
 '$canonise_extensions'(E, [CE]) :-
@@ -859,7 +871,7 @@ extensions to .ext
 
 '$canonise_extension'('', '') :- !.
 '$canonise_extension'(DotAtom, DotAtom) :-
-	atom_concat('.', _, DotAtom), !.
+	sub_atom(DotAtom, 0, _, _, '.'), !.
 '$canonise_extension'(Atom, DotAtom) :-
 	atom_concat('.', Atom, DotAtom).
 
@@ -2660,6 +2672,43 @@ saved state.
 '$convert_option_value'(callable, Chars, Value) :-
 	atom_chars(Atom, Chars),
 	term_to_atom(Value, Atom).
+
+
+		 /*******************************
+		 *	   TYPE SUPPORT		*
+		 *******************************/
+
+'$type_error'(Type, Value) :-
+	(   var(Value)
+	->  throw(error(instantiation_error, _))
+	;   throw(error(type_error(Type, Value), _))
+	).
+
+'$domain_error'(Type, Value) :-
+	throw(error(domain_error(Type, Value), _)).
+
+'$must_be'(list, X) :-
+	'$skip_list'(_, X, Tail),
+	(   Tail == []
+	->  true
+	;   '$type_error'(list, Tail)
+	).
+'$must_be'(atom, X) :-
+	(   atom(X)
+	->  true
+	;   '$type_error'(atom, X)
+	).
+'$must_be'(oneof(Type, Domain, List), X) :-
+	'$must_be'(Type, X),
+	(   memberchk(X, List)
+	->  true
+	;   '$domain_error'(Domain, X)
+	).
+'$must_be'(boolean, X) :-
+	(   (X == true ; X == false)
+	->  true
+	;   '$type_error'(boolean, X)
+	).
 
 
 		/********************************
