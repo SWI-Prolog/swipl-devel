@@ -1259,6 +1259,11 @@ cleanupProlog(int rval, int reclaim_memory)
     return FALSE;
 #endif
 
+#ifdef __WINDOWS__
+  if ( rval != 0 && !hasConsole() )
+    PlMessage("Exit status is %d", rval);
+#endif
+
   LOCK();
   GD->cleaning = CLN_ACTIVE;
   emptyStacks();			/* no need for this and we may be */
@@ -1287,11 +1292,6 @@ cleanupProlog(int rval, int reclaim_memory)
 
   GD->cleaning = CLN_FOREIGN;
   run_on_halt(rval);
-
-#ifdef __WINDOWS__
-  if ( rval != 0 && !hasConsole() )
-    PlMessage("Exit status is %d", rval);
-#endif
 
   dieIO();				/* streams may refer to foreign code */
 					/* Standard I/O is only flushed! */
