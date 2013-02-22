@@ -71,7 +71,6 @@ too much.
 static void setArgvPrologFlag(void);
 static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
-static atom_t lookupAtomFlag(atom_t key);
 static void initPrologFlagTable(void);
 
 
@@ -93,6 +92,8 @@ following arguments are to be provided:
 
     FT_BOOL	TRUE/FALSE, *PLFLAG_
     FT_INTEGER  intptr_t
+    FT_INT64    int64_t
+    FT_FLOAT	double
     FT_ATOM	const char *
     FT_TERM	a term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -536,14 +537,16 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
     succeed;
   } else
-  { atom_t how = lookupAtomFlag(ATOM_user_flags);
+  { atom_t how;
 
-    if ( how == ATOM_error )
-      return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
-		      ATOM_prolog_flag, key);
-    else if ( how == ATOM_warning )
-      Sdprintf("WARNING: Flag %s: new Prolog flags must be created using "
-	       "create_prolog_flag/3\n", stringAtom(k));
+    if ( PL_current_prolog_flag(ATOM_user_flags, PL_ATOM, &how) )
+    { if ( how == ATOM_error )
+	return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+			ATOM_prolog_flag, key);
+      else if ( how == ATOM_warning )
+	Sdprintf("WARNING: Flag %s: new Prolog flags must be created using "
+		 "create_prolog_flag/3\n", stringAtom(k));
+    }
 
     goto anyway;
   }
@@ -721,8 +724,8 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
 }
 
 
-static atom_t
-lookupAtomFlag(atom_t key)
+static prolog_flag *
+lookupFlag(atom_t key)
 { GET_LD
   Symbol s;
   prolog_flag *f = NULL;
@@ -737,13 +740,51 @@ lookupAtomFlag(atom_t key)
       f = s->value;
   }
 
-  if ( f )
-  { assert((f->flags&FT_MASK) == FT_ATOM);
-    return f->value.a;
+  return f;
+}
+
+
+int
+PL_current_prolog_flag(atom_t name, int type, void *value)
+{ prolog_flag *f;
+
+  if ( (f=lookupFlag(name)) )
+  { switch(type)
+    { case PL_ATOM:
+	if ( (f->flags&FT_MASK) == FT_ATOM )
+	{ atom_t *vp = value;
+	  *vp = f->value.a;
+	  return TRUE;
+	}
+        return FALSE;
+      case PL_INTEGER:
+	if ( (f->flags&FT_MASK) == FT_INTEGER )
+	{ int64_t *vp = value;
+	  *vp = f->value.i;
+	  return TRUE;
+	}
+        return FALSE;
+      case PL_FLOAT:
+	if ( (f->flags&FT_MASK) == FT_FLOAT )
+	{ double *vp = value;
+	  *vp = f->value.f;
+	  return TRUE;
+	}
+        return FALSE;
+      case PL_TERM:
+	if ( (f->flags&FT_MASK) == FT_TERM )
+	{ term_t *vp = value;
+	  term_t t = *vp;
+
+	  return PL_recorded(f->value.t, t);
+	}
+        return FALSE;
+    }
   }
 
-  return NULL_ATOM;
+  return FALSE;
 }
+
 
 
 static int
