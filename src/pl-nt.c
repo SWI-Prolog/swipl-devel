@@ -129,9 +129,18 @@ PlMessage(const char *fm, ...)
     Sfprintf(Serror, "\n");
   } else
   { char buf[1024];
+    int64_t hwndi;
+    HWND hwnd = NULL;
+    static atom_t ATOM_hwnd = 0;
+
+    if ( !ATOM_hwnd )
+      ATOM_hwnd = PL_new_atom("hwnd");
+
+    if ( PL_current_prolog_flag(ATOM_hwnd, PL_INTEGER, &hwndi) )
+      hwnd = (HWND)hwndi;
 
     vsprintf(buf, fm, args);
-    MessageBox(NULL, buf, "SWI-Prolog", MB_OK|MB_TASKMODAL);
+    MessageBox(hwnd, buf, "SWI-Prolog", MB_OK|MB_TASKMODAL);
   }
 
   va_end(args);
