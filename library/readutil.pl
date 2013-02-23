@@ -60,6 +60,7 @@ implementation if the shared object cannot be found.
 :- predicate_options(read_file_to_terms/3, 3,
 		     [ tail(list_or_partial_list),
 		       pass_to(read_stream_to_terms/4, 4),
+		       pass_to(system:absolute_file_name/3, 3),
 		       pass_to(system:open/4, 4)
 		     ]).
 
