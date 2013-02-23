@@ -369,6 +369,12 @@ initialization(Goal, When) :-
 
 
 '$run_initialization'(File) :-
+	setup_call_cleanup(
+	    '$push_input_context'(initialization),
+	    '$run_initialization_2'(File),
+	    '$pop_input_context').
+
+'$run_initialization_2'(File) :-
 	(   '$init_goal'(File, Goal, Ctx),
 	    (   catch(Goal, E, '$initialization_error'(E, Goal, Ctx))
 	    ->  fail
