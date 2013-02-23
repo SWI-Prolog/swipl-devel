@@ -8,8 +8,12 @@ printdate=true
 directory=.
 since=
 modules=true
-quiet=false;
+quiet=false
 moduleoptions=
+[ -z "$wiki"  ] && wiki=false
+[ -z "$level" ] && level=+
+
+export wiki level
 
 done=false
 while [ $done = false ]; do
@@ -25,6 +29,10 @@ while [ $done = false ]; do
 		;;
 	--quiet)
 		quiet=true
+		shift
+		;;
+	--wiki)
+		wiki=true
 		shift
 		;;
 	--nomodules)
@@ -83,10 +91,17 @@ fi
 
 header ()
 { hdr="$*"
-  eq=`echo $hdr | sed 's/./=/g'`
-  echo $eq
-  echo $hdr
-  echo $eq
+
+  if [ "$wiki" = true ]; then
+    echo ---$level $hdr
+  else
+    hdr="$*"
+    eq=`echo $hdr | sed 's/./=/g'`
+    echo $eq
+    echo $hdr
+    echo $eq
+  fi
+
   echo
 }
 
@@ -129,6 +144,8 @@ BEGIN		{ doprint="false";
 # Include submodules
 
 if [ "$modules" = true ]; then
+  level="$level+"
+
   if [ -z "$since" ]; then
     since=`git show --pretty=format:%cd "$tag^{commit}" | head -1`
     # echo "Including commits in modules using --since=$since"
@@ -147,7 +164,5 @@ if [ "$modules" = true ]; then
 fi
 
 if [ "$footer" = true ]; then
-   echo ==============
-   echo VERSION $tag
-   echo ==============
+   header VERSION $tag
 fi
