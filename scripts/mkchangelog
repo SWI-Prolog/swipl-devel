@@ -7,6 +7,7 @@ footer=false
 printdate=true
 directory=.
 since=
+until=
 modules=true
 quiet=false
 moduleoptions=
@@ -48,6 +49,10 @@ while [ $done = false ]; do
 		since="`echo $1 | sed 's/--since=//'`"
 		shift
 		;;
+	--until=*)
+		until="`echo $1 | sed 's/--until=//'`"
+		shift
+		;;
 	*)	done=true
 		;;
     esac
@@ -70,16 +75,38 @@ fi
 LANG=C
 
 case "$tag" in
+   [0-9].[0-9]*.[0-9]*..[0-9].[0-9]*.[0-9]*)
+	vfrom="$(echo $tag | sed 's/\.\..*//')"
+	vto="$(echo $tag | sed 's/.*\.\.//')"
+	;;
+   V[0-9].[0-9]*.[0-9]*..V[0-9].[0-9]*.[0-9]*)
+	vfrom="$(echo $tag | sed -e s/V//g -e 's/\.\..*//')"
+	vto="$(echo $tag | sed -e s/V//g -e 's/.*\.\.//')"
+	;;
    [0-9].[0-9]*.[0-9]*)
-	tag=V${tag}
+        vfrom="$tag"
+	vto=
+	;;
+   V[0-9].[0-9]*.[0-9]*)
+        vfrom="$(echo $tag | sed s/V//)"
+	vto=
 	;;
 esac
 
+# --no-color is just a no-op option
+optx=--no-color
 if [ ! -z "$since" ]; then
   opt="--since=$since"
+  if [ ! -z "$until" ]; then
+    optx="--until=$until"
+  fi
 else
   shift
-  opt="$tag.."
+  if [ -z "$vto" ]; then
+    opt="V$vfrom.."
+  else
+    opt="V$vfrom..V$vto"
+  fi
 fi
 
 cd $directory
@@ -107,12 +134,16 @@ header ()
 
 (
 if [ "$directory" = "." ]; then
-  header "SWI-Prolog Changelog since $tag"
+  if [ -z "$vto" ]; then
+    header "SWI-Prolog Changelog since version $vfrom"
+  else
+    header "SWI-Prolog Changelog from version $vfrom to $vto"
+  fi
 else
   header "Package `basename $directory`"
 fi
 
-git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
+git log "$opt" "$optx" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
 BEGIN		{ doprint="false";
 		  dateprinted="";
 		}
@@ -147,16 +178,23 @@ if [ "$modules" = true ]; then
   level="$level+"
 
   if [ -z "$since" ]; then
-    since=`git show --pretty=format:%cd "$tag^{commit}" | head -1`
-    # echo "Including commits in modules using --since=$since"
+    since="'"$(git show --pretty=format:%cd "V$vfrom^{commit}" | head -1)"'"
+  fi
+  if [ -z "$until" -a ! -z "$vto" ]; then
+    until="'"$(git show --pretty=format:%cd "V$vto^{commit}" | head -1)"'"
+  fi
+
+  subopts=--since="$since"
+  if [ ! -z "$since" ]; then
+    subopts="$subopts --until=$until"
   fi
 
   echo
 
   for d in `git submodule -q foreach pwd`; do
-    if $0 --dir="$d" --since="$since" --quiet; then
+    if $0 --dir="$d" "$subopts" --quiet; then
       echo
-      $0 --dir="$d" --since="$since" $moduleoptions
+      $0 --dir="$d" "$subopts" $moduleoptions
 #   else
 #     echo "Package `basename $d`: no changes"
     fi
