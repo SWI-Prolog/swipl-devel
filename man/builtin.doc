@@ -5825,7 +5825,7 @@ to work for any integer $I$. Other integer base values generate a
 \const{resource} error if the result does not fit in memory.
 
 The ISO standard demands a float result for all inputs and introduces
-\funcref{^}{2} for $Int \times{} NonNeg$ exponentiation. The function
+\funcref{^}{2} for integer exponentiation. The function
 \funcref{float}{1} can be used on one or both arguments to force a
 floating point result. Note that casting the \emph{input} result in a
 floating point computation, while casting the \emph{output} performs
@@ -5833,8 +5833,28 @@ integer exponentiation followed by a conversion to float.
 
     \infixfunction[ISO]{^}{+Expr1}{+Expr2}
 In SWI-Prolog, \funcref{^}{2} is equivalent to \funcref{**}{2}. The ISO
-version demands the inputs to be integers, where \arg{Expr2} must be
-non-negative.
+version	is similar, except that it produces a evaluation error if both
+\arg{Expr1} and \arg{Expr2} are integers and the result is not an
+integer.  The table below illustrates the behaviour of the exponentiation
+functions in ISO and SWI.
+
+\begin{center}
+\begin{tabular}{|ll|l|l|l|}
+\hline
+\arg{Expr1}   & \arg{Expr2}  & Function &  SWI          & ISO \\
+\hline
+Int	      & Int	     & \funcref{**}{2} &  Int or Float & Float \\
+Int	      & Float	     & \funcref{**}{2} &  Float        & Float \\
+Float	      & Int	     & \funcref{**}{2} &  Float        & Float \\
+Float         & Float        & \funcref{**}{2} &  Float        & Float \\
+\hline
+Int	      & Int	     & \funcref{^}{2}  &  Int or Float & Int or error \\
+Int	      & Float	     & \funcref{^}{2}  &  Float        & Float \\
+Float	      & Int	     & \funcref{^}{2}  &  Float        & Float \\
+Float         & Float        & \funcref{^}{2}  &  Float        & Float \\
+\hline
+\end{tabular}
+\end{center}
 
     \function{powm}{3}{+IntExprBase, +IntExprExp, +IntExprMod}
 $\arg{Result} = (\pow{\arg{IntExprBase}}{\arg{IntExprExp}})
