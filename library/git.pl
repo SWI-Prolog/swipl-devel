@@ -418,7 +418,7 @@ git_tags_on_branch(Dir, Branch, Tags) :-
 			   log_to_tags(Tags),
 			   [ directory(Dir) ]).
 
-log_to_tags(Out, Tags) :-
+log_to_tags(Tags, Out) :-
 	read_line_to_codes(Out, Line0),
 	log_to_tags(Line0, Out, Tags, []).
 
