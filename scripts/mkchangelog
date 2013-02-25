@@ -6,8 +6,6 @@
 footer=false
 printdate=true
 directory=.
-since=
-until=
 modules=true
 quiet=false
 moduleoptions=
@@ -45,14 +43,6 @@ while [ $done = false ]; do
 		shift
 		modules=false
 		;;
-	--since=*)
-		since="`echo $1 | sed 's/--since=//'`"
-		shift
-		;;
-	--until=*)
-		until="`echo $1 | sed 's/--until=//'`"
-		shift
-		;;
 	*)	done=true
 		;;
     esac
@@ -60,13 +50,12 @@ done
 
 tag="$1"
 
-if [ -z "$tag" -a -z "$since" ]; then
-   echo "Usage: `basename $0` option ... [version] [path ...]"
+if [ -z "$tag" ]; then
+   echo "Usage: `basename $0` option ... [version][..version] [path ...]"
    echo "Options:"
    echo "    --footer"
    echo "    --nodate"
    echo "    --nomodules"
-   echo "    --since=<date>"
    echo "    --dir=<dir>"
    exit 1
 fi
@@ -91,28 +80,35 @@ case "$tag" in
         vfrom="$(echo $tag | sed s/V//)"
 	vto=
 	;;
+   *..*)
+	vfrom="$(echo $tag | sed 's/\.\..*//')"
+	vto="$(echo $tag | sed 's/.*\.\.//')"
+	;;
 esac
+shift
 
-# --no-color is just a no-op option
-optx=--no-color
-if [ ! -z "$since" ]; then
-  opt="--since=$since"
-  if [ ! -z "$until" ]; then
-    optx="--until=$until"
-  fi
+vvtag()
+{ case $1 in
+    [0-9].[0-9]*.[0-9]*)
+      echo V$1
+      ;;
+    *)
+      echo $1
+      ;;
+  esac
+}
+
+if [ -z "$vto" ]; then
+  opt=$(vvtag $vfrom)..
 else
-  shift
-  if [ -z "$vto" ]; then
-    opt="V$vfrom.."
-  else
-    opt="V$vfrom..V$vto"
-  fi
+  opt="$(vvtag $vfrom)..$(vvtag $vto)"
 fi
 
 cd $directory
 
 if [ "$quiet" = true ]; then
-  git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | grep -q '^[A-Z][A-Z]*:'
+  git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | \
+	grep -q '^[A-Z][A-Z]*:'
   exit $?
 fi
 
@@ -143,7 +139,7 @@ else
   header "Package `basename $directory`"
 fi
 
-git log "$opt" "$optx" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
+git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
 BEGIN		{ doprint="false";
 		  dateprinted="";
 		}
@@ -174,25 +170,25 @@ BEGIN		{ doprint="false";
 
 # Include submodules
 
+mtag()
+{ git ls-tree $1 $2 | awk '{print $3}'
+}
+
 if [ "$modules" = true ]; then
   level="$level+"
-
-  if [ -z "$since" ]; then
-    since="'"$(git show --pretty=format:%cd "V$vfrom^{commit}" | head -1)"'"
-  fi
-  if [ -z "$until" -a ! -z "$vto" ]; then
-    until="'"$(git show --pretty=format:%cd "V$vto^{commit}" | head -1)"'"
-  fi
-
-  subopts=--since="$since"
-  if [ ! -z "$since" ]; then
-    subopts="$subopts --until=$until"
-  fi
 
   echo
 
   for d in `git submodule -q foreach pwd`; do
-    if $0 --dir="$d" "$subopts" --quiet; then
+    mfrom=$(mtag V$vfrom $d)
+    if [ ! -z "$vto" ]; then
+      mto=$(mtag V$vto $d)
+    else
+      mto=$(mtag HEAD $d)
+    fi
+    subopts=$mfrom..$mto
+
+    if $0 --dir="$d" --quiet "$subopts"; then
       echo
       $0 --dir="$d" "$subopts" $moduleoptions
 #   else
