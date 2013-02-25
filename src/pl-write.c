@@ -1325,6 +1325,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
 { GET_LD
   int rc;
 
+  Slock(options->out);
   if ( (!(options->flags&PL_WRT_NO_CYCLES) && options->max_depth) ||
        PL_is_acyclic(term) )
   { rc = writeTerm(term, prec, options);
@@ -1350,6 +1351,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
     rc = writeTerm(at_term, prec, options);
     PL_discard_foreign_frame(fid);
   }
+  Sunlock(options->out);
 
   return rc;
 }
