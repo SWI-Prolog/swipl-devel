@@ -195,6 +195,10 @@ The flushing code will remember `half'   characters  and re-send them as
 more data comes ready. This means however  that after a put_byte(X), the
 wchar_t stream is out-of-sync and produces   unreadable  output. We will
 therefore pad it with '?' characters to re-sync the stream.
+
+The downside of this is  that  Sputc()   and  Sputcode()  do not work on
+unbuffered streams and thus Serror  must   be  locked before using these
+functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ssize_t
