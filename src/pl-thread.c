@@ -551,14 +551,13 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   if ( !after_fork )
     UNLOCK();
 
-  if ( info->detached )
+  if ( info->detached || acknowledge )
     free_thread_info(info);
 
   freeHeap(ld, sizeof(*ld));
 
   if ( acknowledge )			/* == canceled */
-  { free_thread_info(info);
-    pthread_detach(pthread_self());
+  { pthread_detach(pthread_self());
     sem_post(sem_canceled_ptr);
   }
 }
