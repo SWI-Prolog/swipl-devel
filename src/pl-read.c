@@ -1771,6 +1771,15 @@ again:
 	OK(c);
       }
       OK('c');
+    case '\r':				/* \\\r\n is the same as \\\n */
+    { int c2;
+      cucharp in2 = utf8_get_uchar(in, &c2);
+      if ( c2 == '\n' )
+      { c = c2;
+	in = in2;
+      }
+    }
+    /*FALLTHROUGH*/
     case '\n':				/* \LF<blank>* */
       if ( _PL_rd )			/* quoted string, _not_ 0'\.. */
       { if ( !_PL_rd->strictness )
