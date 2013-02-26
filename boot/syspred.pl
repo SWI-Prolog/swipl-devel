@@ -241,7 +241,16 @@ tag_list([H0|T0], F, [H1|T1]) :-
 %%	nospy(:Spec) is det.
 %%	nospyall is det.
 %
-%	Set/clear spy-points.
+%	Set/clear spy-points. A successfully set or cleared spy-point is
+%	reported using print_message/2, level  =informational=, with one
+%	of the following terms, where Spec is of the form M:Head.
+%
+%	    - spy(Spec)
+%	    - nospy(Spec)
+%
+%	@see	spy/1 and nospy/1 call the hook prolog:debug_control_hook/1
+%		to allow for alternative specifications of the thing to
+%		debug.
 
 spy(_:X) :-
 	var(X),
