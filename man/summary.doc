@@ -343,6 +343,7 @@ suggest predicates from a keyword.
 \predicatesummary{min_assoc}{3}{Lowest key in association tree}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
+\predicatesummary{module}{3}{Declare a module with language options}
 \predicatesummary{module_property}{2}{Find properties of a module}
 \oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta-predicate}
 \predicatesummary{msort}{2}{Sort, do not remove duplicates}

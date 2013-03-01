@@ -90,6 +90,17 @@ importing this module. See also \secref{operators}.
 
 Compatible to Ciao Prolog, if \arg{Module} is unbound, it is unified
 with the basename without extension of the file being loaded.
+
+    \directive{module}{3}{+Module, +PublicList, +Dialect}
+Same as module/2.  The additional \arg{Dialect} argument provides a list
+of \jargon{language options}.  Each atom in the list \arg{Dialect} is
+mapped to a use_module/1 goal as given below. See also \secref{dialect}.
+The third argument is supported for compatibility with the
+\url[Prolog Commons project]{http://prolog-commons.org/}.
+
+\begin{code}
+:- use_module(library(dialect/LangOption)).
+\end{code}
 \end{description}
 
 
