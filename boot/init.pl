@@ -2034,10 +2034,14 @@ load_files(Module:Files, Options) :-
 	'$first_term'(:-(Directive), Id, State, Options).
 '$first_term'(:-(Directive), Id, State, Options) :-
 	nonvar(Directive),
-	(   Directive = module(Name, Public)
+	(   (   Directive = module(Name, Public)
+	    ->	Imports = []
+	    ;	Directive = module(Name, Public, Imports)
+	    )
 	->  !,
 	    '$module_name'(Name, Id),
-	    '$start_module'(Name, Public, State, Options)
+	    '$start_module'(Name, Public, State, Options),
+	    '$module3'(Imports)
 	;   Directive = expects_dialect(Dialect)
 	->  !,
 	    '$set_dialect'(Dialect, State),
@@ -2117,6 +2121,20 @@ load_files(Module:Files, Options) :-
 	'$qset_dialect'(State),
 	nb_setarg(3, State, end_module).
 
+
+%%	'$module3'(+Spec) is det.
+%
+%	Handle the 3th argument of a module declartion.
+
+'$module3'(Var) :-
+	var(Var), !,
+	'$instantiation_error'(Var).
+'$module3'([]) :- !.
+'$module3'([H|T]) :- !,
+	'$module3'(H),
+	'$module3'(T).
+'$module3'(Id) :-
+	use_module(library(dialect/Id)).
 
 %%	'$module_name'(?Name, +Id) is det.
 %
@@ -2692,6 +2710,9 @@ saved state.
 
 '$domain_error'(Type, Value) :-
 	throw(error(domain_error(Type, Value), _)).
+
+'$instantiation_error'(_Var) :-
+	throw(error(instantiation_error, _)).
 
 '$must_be'(list, X) :-
 	'$skip_list'(_, X, Tail),
