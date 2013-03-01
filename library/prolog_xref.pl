@@ -804,6 +804,10 @@ process_directive(export(Export), Src) :-
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_module_export(Src, Export).
+process_directive(module(Module, Export, Import), Src) :-
+	assert_module(Src, Module),
+	assert_module_export(Src, Export),
+	assert_module3(Import, Src).
 process_directive('$set_source_module'(_, system), Src) :-
 	assert_module(Src, system).	% hack for handling boot/init.pl
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
@@ -1845,6 +1849,18 @@ assert_module_export(Src, PI) :-
 	assert(exported(Term, Src)).
 assert_module_export(Src, op(P, A, N)) :-
 	xref_push_op(Src, P, A, N).
+
+%%	assert_module3(+Import, +Src)
+%
+%	Handle 3th argument of module/3 declaration.
+
+assert_module3([], _) :- !.
+assert_module3([H|T], Src) :- !,
+	assert_module3(H, Src),
+	assert_module3(T, Src).
+assert_module3(Option, Src) :-
+	process_use_module(library(dialect/Option), Src, false).
+
 
 %%	process_predicates(:Closure, +Predicates, +Src)
 %

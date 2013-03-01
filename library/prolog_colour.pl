@@ -853,6 +853,16 @@ colourise_directory(Spec, TB, Pos) :-
 	;   colour_item(nofile, TB, Pos)
 	).
 
+%%	colourise_langoptions(+Term, +TB, +Pos) is det.
+%
+%	Colourise the 3th argument of module/3
+
+colourise_langoptions([], _, _) :- !.
+colourise_langoptions([H|T], TB, list_position(_,_,[HP|TP],_)) :- !,
+	colourise_langoptions(H, TB, HP),
+	colourise_langoptions(T, TB, TP).
+colourise_langoptions(Spec, TB, Pos) :-
+	colourise_files(library(dialect/Spec), TB, Pos, imported).
 
 %%	colourise_class(ClassName, TB, Pos)
 %
@@ -1141,6 +1151,7 @@ classify_head(_TB, _Goal, undefined).
 built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
 built_in_predicate(module(_, _)).	% reserved expanded constructs
+built_in_predicate(module(_, _, _)).
 built_in_predicate(if(_)).
 built_in_predicate(elif(_)).
 built_in_predicate(else).
@@ -1158,6 +1169,7 @@ system_module(TB) :-
 %	Specify colours for individual goals.
 
 goal_colours(module(_,_),	     built_in-[identifier,exports]).
+goal_colours(module(_,_,_),	     built_in-[identifier,exports,langoptions]).
 goal_colours(use_module(_),	     built_in-[imported_file]).
 goal_colours(use_module(File,_),     built_in-[file,imports(File)]).
 goal_colours(reexport(_),	     built_in-[file]).
@@ -1495,6 +1507,9 @@ specified_item(file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos, any).
 specified_item(imported_file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos, imported).
+specified_item(langoptions, Term, TB, Pos) :- !,
+	colourise_langoptions(Term, TB, Pos).
+
 					% directory
 specified_item(directory, Term, TB, Pos) :- !,
 	colourise_directory(Term, TB, Pos).
