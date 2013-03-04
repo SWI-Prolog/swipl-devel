@@ -2356,7 +2356,7 @@ qlfInfo(const char *file,
     return warning("qlf_info/4: seek failed: %s", OsError());
   nqlf = (int)getInt32(s);
   DEBUG(MSG_QLF_SECTION, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (size_t*)allocHeapOrHalt(sizeof(long) * nqlf);
+  qlfstart = (size_t*)allocHeapOrHalt(sizeof(size_t) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
   { qlfstart[i] = (size_t)getInt32(s);
