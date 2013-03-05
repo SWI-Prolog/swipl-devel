@@ -295,8 +295,12 @@ version_data(Version, version(Data)) :-
 %
 %	  - Installation status
 %	    - *p*: package, not installed
-%	    - *i*: installed package
+%	    - *i*: installed package; up-to-date with public version
+%	    - *U*: installed package; can be upgraded
+%	    - *A*: installed package; newer than publically available
+%	    - *l*: installed package; not on server
 %	  - Name@Version
+%	  - Name@Version(ServerVersion)
 %	  - Title
 %
 %	Hint: =|?- pack_list('').|= lists all packages.
@@ -305,7 +309,7 @@ version_data(Version, version(Data)) :-
 %	contact the package server at  http://www.swi-prolog.org to find
 %	available packages.
 %
-%	@see	pack_list_installed to list installed packages without
+%	@see	pack_list_installed/0 to list installed packages without
 %		contacting the server.
 
 pack_list(Query) :-
@@ -334,6 +338,23 @@ list_hits([ pack(Pack, i, Title, Version, _),
 	  | More
 	  ]) :- !,
 	format('i ~w@~w ~28|- ~w~n', [Pack, Version, Title]),
+	list_hits(More).
+list_hits([ pack(Pack, i, Title, VersionI, _),
+	    pack(Pack, p, _,     VersionS, _)
+	  | More
+	  ]) :- !,
+	version_data(VersionI, VDI),
+	version_data(VersionS, VDS),
+	(   VDI @< VDS
+	->  Tag = ('U')
+	;   Tag = ('A')
+	),
+	format('~w ~w@~w(~w) ~28|- ~w~n', [Tag, Pack, VersionI, VersionS, Title]),
+	list_hits(More).
+list_hits([ pack(Pack, i, Title, VersionI, _)
+	  | More
+	  ]) :- !,
+	format('l ~w@~w ~28|- ~w~n', [Pack, VersionI, Title]),
 	list_hits(More).
 list_hits([pack(Pack, Stat, Title, Version, _)|More]) :-
 	format('~w ~w@~w ~28|- ~w~n', [Stat, Pack, Version, Title]),
