@@ -2818,7 +2818,7 @@ length(_, Length) :-
 
 '$length3'([], N, N).
 '$length3'([_|List], N, N0) :-
-        succ(N0, N1),
+	N1 is N0+1,
         '$length3'(List, N, N1).
 
 
