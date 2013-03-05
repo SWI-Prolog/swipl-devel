@@ -7877,7 +7877,8 @@ core		& Same as memory \\
 \end{table}
 
     \predicate{statistics}{0}{}
-Display a table of system statistics on the current output stream.
+Display a table of system statistics on the stream \const{user_error}.
+
     \predicate{time}{1}{:Goal}
 Execute \arg{Goal} just like call/1 and print time used, number of
 logical inferences and the average number of \arg{lips} (logical
