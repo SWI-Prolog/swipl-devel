@@ -51,7 +51,7 @@ and dynamic/1.
 
 \section{Character representation}		\label{sec:chars}
 
-In traditional (Edinburgh-) Prolog, characters are represented using
+In traditional (Edinburgh) Prolog, characters are represented using
 \jargon{character codes}. Character codes are integer indices into
 a specific character set.  Traditionally the character set was 7-bit
 US-ASCII. 8-bit character sets have been allowed for a long time, providing
@@ -150,8 +150,8 @@ locate_prolog_file(Spec, Path) :-
 
 The \term{file_type}{prolog} option is used to determine the extension
 of the file using prolog_file_type/2. The default extension is
-\fileext{pl}.  \arg{Spec} allows for the \jargon{path-alias} construct
-defined by absolute_file_name/3.  The most commonly used path-alias
+\fileext{pl}.  \arg{Spec} allows for the \jargon{path alias} construct
+defined by absolute_file_name/3.  The most commonly used path alias
 is \term{library}{LibraryFile}.  The example below loads the library
 file \file{ordsets.pl} (containing predicates for manipulating ordered
 sets).
@@ -186,7 +186,7 @@ The directive initialization/1 can be used to run arbitrary Prolog
 goals.  The specified goal is started \emph{after} loading the file
 in which it appears has completed.
 
-SWI-Prolog compiles code as it is read from the file and directives are
+SWI-Prolog compiles code as it is read from the file, and directives are
 executed as \jargon{goals}. This implies that directives may call any
 predicate that has been defined before the point where the directive
 appears. It also accepts \mbox{\texttt{?-} <term>.} as a synonym.
@@ -231,7 +231,7 @@ reexport/2	& \const{not_loaded} & \const{true}  & specified \\
 The predicate load_files/2 is the parent of all the other loading
 predicates except for include/1. It currently supports a subset
 of the options of Quintus load_files/2. \arg{Files} is either
-a single source file, or a list of source files. The specification for a
+a single source file or a list of source files. The specification for a
 source file is handed to absolute_file_name/2. See this predicate for
 the supported expansions. \arg{Options} is a list of options using the
 format
@@ -253,7 +253,7 @@ make/0 to time-check and load the original file rather than the derived
 file.
 
     \termitem{dialect}{+Dialect}
-Loads \arg{Files} with enhanced compatibility with the target Prolog
+Load \arg{Files} with enhanced compatibility with the target Prolog
 system identified by \arg{Dialect}.  See expects_dialect/1 and
 \secref{dialect} for details.
 
@@ -319,7 +319,7 @@ How to deal with quick-load-file compilation by qcompile/1.  Values are:
 
     \begin{description}
 	\termitem{never}{}
-Default.  Do not use qcompile, unless called explicitly.
+Default.  Do not use qcompile unless called explicitly.
 	\termitem{auto}{}
 Use qcompile for all writeable files.  See comment below.
 	\termitem{large}{}
@@ -363,7 +363,7 @@ loading the specified files. This option writes the Prolog flag
 This SWI-Prolog extension compiles the data from the stream
 \arg{Input}.  If this option is used, \arg{Files} must be a single atom
 which is used to identify the source location of the loaded clauses as
-well as to remove all clauses if the data is re-consulted.
+well as to remove all clauses if the data is reconsulted.
 
 This option is added to allow compiling from non-file locations such as
 databases, the web, the \jargon{user} (see consult/1) or other servers.
@@ -425,7 +425,7 @@ times. Including a file holding clauses multiple times into the same
 module is rather meaningless as it just duplicates the same clauses.
 Including a file holding clauses in multiple modules does not suffer
 from this problem, but leads to multiple equivalent \emph{copies} of
-predicates. Using use_module/1 can achieve the same result, while
+predicates. Using use_module/1 can achieve the same result while
 \emph{sharing} the predicates.
 
 Despite these observations, various projects seem to be using include/1
@@ -496,7 +496,7 @@ assertz/1, asserta/1 or remove system defaults using retract/1.
 Deprecated. New code should use file_search_path/2.
 
     \predicate{file_search_path}{2}{+Alias, ?Path}
-Dynamic predicate used to specify `path-aliases'.  This feature is
+Dynamic predicate used to specify `path aliases'.  This feature is
 best described using an example.  Given the definition:
 
 \begin{code}
@@ -544,7 +544,7 @@ specification \arg{Spec}.  See also absolute_file_name/3.
     \predicate{prolog_file_type}{2}{?Extension, ?Type}
 This dynamic multifile predicate defined in module \module{user}
 determines the extensions considered by file_search_path/2.
-\arg{Extension} is the filename extension without the leading dot,
+\arg{Extension} is the filename extension without the leading dot, and
 \arg{Type} denotes the type as used by the \term{file_type}{Type}
 option of file_search_path/2.  Here is the initial definition of
 prolog_file_type/2:
@@ -570,7 +570,7 @@ True if \arg{File} is a loaded Prolog source file.  \arg{File} is
 the absolute and canonical path to the source file.
 
     \predicate{source_file}{2}{?Pred, ?File}
-Is true if the predicate specified by \arg{Pred} was loaded from file
+True if the predicate specified by \arg{Pred} was loaded from file
 \arg{File}, where \arg{File} is an absolute path name (see
 absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
@@ -580,14 +580,14 @@ describes the \jargon{owner} of the predicate.  See include/1 for
 details.
 
     \predicate{source_file_property}{2}{?File, ?Property}
-Is true when \arg{Property} is a property of the loaded file \arg{File}.
+True when \arg{Property} is a property of the loaded file \arg{File}.
 If \arg{File} is non-var, it can be a file specification that is valid
 for load_files/2.  Defined properties are:
 
     \begin{description}
 	\termitem{derived_from}{Original, OriginalModified}
 \arg{File} was generated from the file \arg{Original}, which was
-last modified at \arg{OriginalModified} at the time it was loaded.
+last modified at time \arg{OriginalModified} at the time it was loaded.
 This property is available if \arg{File} was loaded using the
 \term{derived_from}{Original} option to load_files/2.
 
@@ -612,12 +612,12 @@ all predicates to load files are mapped to load_files/2, using the
 option argument to specify the exact behaviour.
 
 	\termitem{modified}{Stamp}
-File-modification time when \arg{File} was loaded.  This is used by
+File modification time when \arg{File} was loaded.  This is used by
 make/0 to find files whose modification time is different from when
 it was loaded.
 
 	\termitem{module}{Module}
-\arg{File} is a module file that declares the modules \arg{Module}.
+\arg{File} is a module file that declares the module \arg{Module}.
     \end{description}
 
     \predicate{unload_file}{1}{+File}
@@ -628,7 +628,7 @@ valid for load_files/2.
 
 This predicate should be used with care. The multithreaded nature of
 SWI-Prolog makes removing static code unsafe. Attempts to do this should
-be reserved to development or situations where the application can
+be reserved for development or situations where the application can
 guarantee that none of the clauses associated to \arg{File} are active.
 
     \predicate{prolog_load_context}{2}{?Key, ?Value}
@@ -649,23 +649,23 @@ following keys are defined:
 			\fileext{qlf} file. \\
 \const{file}          & Similar to \const{source}, but returns the file
 			being included when called while an include file
-			is being processed. \\
+			is being processed \\
 \const{stream}        & Stream identifier (see current_input/1) \\
-\const{directory}     & Directory in which \const{source} lives. \\
+\const{directory}     & Directory in which \const{source} lives \\
 \const{dialect}	      & Compatibility mode.  See expects_dialect/1. \\
 \const{term_position} & Position of last term read.  Term of the form
 			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
 			See also stream_position_data/3. \\
 \const{script}	      & Boolean that indicates whether the file is
 			loaded as a script file (see
-			\cmdlineoption{-s}). \\
+			\cmdlineoption{-s}) \\
 \hline
 \end{tabular}
 \end{center}
 
 The \const{directory} is commonly used to add rules to file_search_path/2,
 setting up a search path for finding files with absolute_file_name/3.
-E.g.:
+For example:
 
 \begin{code}
 :- dynamic user:file_search_path/2.
@@ -722,7 +722,7 @@ directive \exam{:- initialization(load_foreign_library(...))}, it will
 load the foreign library immediately and issue a warning to update your
 code. This behaviour can be extended by providing clauses for the
 multifile hook predicate \term{prolog:initialize_now}{Term, Advice},
-where \arg{Advice} is an atom that gives advice how to resolve the
+where \arg{Advice} is an atom that gives advice on how to resolve the
 compatibility issue.
 
     \predicate{initialization}{2}{:Goal, +When}
@@ -772,7 +772,7 @@ a term of the form \exam{?- Goal.} or \exam{:- Goal}. \arg{Goal} is
 then treated as a directive. If \arg{Term2} is a list, all terms of the
 list are stored in the database or called (for directives). If
 \arg{Term2} is of the form below, the system will assert \arg{Clause}
-and record the indicated source location with it.
+and record the indicated source location with it:
 
 \begin{quote}
 \mbox{\tt '\$source_location'(<File>, <Line>):<Clause>}
@@ -789,7 +789,7 @@ expand_goal/2.
 
     \predicate{expand_term}{2}{+Term1, -Term2}
 This predicate is normally called by the compiler on terms read from the
-input to perform preprocessing.  It consists of three steps, where each
+input to perform preprocessing.  It consists of four steps, where each
 step processes the output of the previous step.
 
     \begin{enumerate}
@@ -801,7 +801,7 @@ step processes the output of the previous step.
 	the module that is being compiled and then in the module
 	\const{user}.
 
-	\item Call DCG expansion (dcg_translate_rule/2)
+	\item Call DCG expansion (dcg_translate_rule/2).
 
 	\item Call expand_goal/2 on each body term that appears in
 	the output of the previous steps.
@@ -888,8 +888,8 @@ Note that these directives can only appear as separate terms in the
 input.  Typical usage scenarios include:
 
 \begin{shortlist}
-    \item Load different libraries on different dialects
-    \item Define a predicate if it is missing as a system predicate
+    \item Load different libraries on different dialects.
+    \item Define a predicate if it is missing as a system predicate.
     \item Realise totally different implementations for a particular
     part of the code due to different capabilities.
     \item Realise different configuration options for your software.
@@ -906,7 +906,7 @@ If an error occurs, the error is printed and processing proceeds as if
     \directive{elif}{1}{:Goal}
 Equivalent to \exam{:- else. :-if(Goal).} ... \exam{:- endif.}  In a sequence as below,
 the section below the first matching \const{elif} is processed. If no test
-succeeds the else branch is processed.
+succeeds, the else branch is processed.
 
 \begin{code}
 :- if(test1).
@@ -987,7 +987,7 @@ between files must be a proper tree.
 \subsubsection{Compilation with multiple threads} \label{sec:mtload}
 
 This section discusses compiling files for the first time. For
-re-loading see \secref{reload}.
+reloading, see \secref{reload}.
 
 In older versions, compilation was thread-safe due to a global
 \jargon{lock} in load_files/2 and the code dealing with
@@ -1078,8 +1078,8 @@ The file extension of this file is \fileext{qlf}. The basename of the
 Quick Load File is the same as the input file.
 
 If the file contains `\exam{:- consult(\arg{+File})}', `\exam{:-
-[\arg{+File}]}' or \exam{:- load_files(\arg{+File}, [qcompile(part),
-...])} statements, the referred files are compiled into the
+[\arg{+File}]}' or `\exam{:- load_files(\arg{+File}, [qcompile(part),
+...])}' statements, the referred files are compiled into the
 same \fileext{qlf} file. Other directives will be stored in the
 \fileext{qlf} file and executed in the same fashion as when loading the
 \fileext{pl} file.
@@ -1108,14 +1108,14 @@ editor interface is implemented by edit/1 and consists of three parts:
 Any of these parts may be customized.  See \secref{customedit}.
 
 The built-in edit specifications for edit/1 (see prolog_edit:locate/3)
-are described in the table below.
+are described in the table below:
 
 \begin{center}
 \begin{tabular}{|l|p{3.5in}|}
 \hline
 \multicolumn{2}{|c|}{\bf Fully specified objects} \\
 \hline
-<Module>:<Name>/<Arity>	& Refers a predicate \\
+<Module>:<Name>/<Arity>	& Refers to a predicate \\
 module(<Module>)	& Refers to a module \\
 file(<Path>)		& Refers to a file \\
 source_file(<Path>)	& Refers to a loaded source file \\
@@ -1133,7 +1133,7 @@ source_file(<Path>)	& Refers to a loaded source file \\
 
 \begin{description}
     \predicate{edit}{1}{+Specification}
-First exploits prolog_edit:locate/3 to translate \arg{Specification}
+First, exploit prolog_edit:locate/3 to translate \arg{Specification}
 into a list of \jargon{Locations}. If there is more than one `hit', the
 user is asked to select from the locations found. Finally,
 prolog_edit:edit_source/1 is used to invoke the user's preferred editor.
@@ -1193,7 +1193,7 @@ See the default user preferences file \file{dotfiles/dotplrc} for examples.
 Determines how \arg{Editor} is to be invoked using shell/1. \arg{Editor}
 is the determined editor (see edit_source/1), without the full path
 specification, and without a possible (\fileext{exe}) extension. \arg{Command} is an
-atom describing the command. The following \%-sequences are relaced in
+atom describing the command. The following \%-sequences are replaced in
 \arg{Command} before the result is handed to shell/1:
 
 \begin{center}
@@ -1957,13 +1957,13 @@ trace information is generally sufficient to locate the error.
 
 With exception handling, things are different. A programmer may wish to
 trap an exception using catch/3 to avoid it reaching the user. If the
-exception is not handled by user code, the interactive top-level will
+exception is not handled by user code, the interactive top level will
 trap it to prevent termination.
 
 If we do not take special precautions, the context information
 associated with an unexpected exception (i.e., a programming error) is
 lost. Therefore, if an exception is raised which is not caught using
-catch/3 and the top-level is running, the error will be printed, and the
+catch/3 and the top level is running, the error will be printed, and the
 system will enter trace mode.
 
 If the system is in a non-interactive call-back from foreign code and
@@ -2443,7 +2443,7 @@ Minor = 4.
 \end{code}
 
 See also portray_text/1, which can be used to print lists of character
-codes as a string to the top-level and debugger to facilitate debugging
+codes as a string to the top level and debugger to facilitate debugging
 DCGs that process character codes. The library \pllib{apply_macros}
 compiles phrase/3 if the argument is sufficiently instantiated,
 eliminating the runtime overhead of translating \arg{DCGBody} and
@@ -4148,7 +4148,7 @@ a(s(s(...)), [a, b|...])
 true.
 \end{code}
 
-Used by the top-level and debugger to limit screen output.  See also
+Used by the top level and debugger to limit screen output.  See also
 the Prolog flags \prologflag{toplevel_print_options} and
 \prologflag{debugger_print_options}.
 
@@ -4453,7 +4453,7 @@ Read term with options from \arg{Stream}.  See read_term/2.
 
     \predicate{read_history}{6}{+Show, +Help, +Special, +Prompt, -Term, -Bindings}
 Similar to read_term/2 using the option \const{variable_names}, but
-allows for history substitutions. read_history/6 is used by the top-level
+allows for history substitutions. read_history/6 is used by the top level
 to read the user's actions. \arg{Show} is the command the user
 should type to show the saved events. \arg{Help} is the command to get
 an overview of the capabilities. \arg{Special} is a list of commands
@@ -7524,19 +7524,19 @@ Compatibility predicate.  New code should use working_directory/2.
 
 \begin{description}
     \predicate{break}{0}{}
-Recursively start a new Prolog top-level. This Prolog top-level has its
-own stacks, but shares the heap with all break environments and the top-level.
+Recursively start a new Prolog top level. This Prolog top level has its
+own stacks, but shares the heap with all break environments and the top level.
 Debugging is switched off on entering a break and restored on
 leaving one. The break environment is terminated by typing the system's
 \mbox{end-of-file} character (control-D). If the
 \argoption{-t}{toplevel} command line option is given, this goal is
-started instead of entering the default interactive top-level
+started instead of entering the default interactive top level
 (prolog/0).
 
     \predicate{abort}{0}{}
-Abort the Prolog execution and restart the top-level. If the
+Abort the Prolog execution and restart the top level. If the
 \argoption{-t}{toplevel} command line option is given, this goal is
-started instead of entering the default interactive top-level.
+started instead of entering the default interactive top level.
 
 Aborting is implemented by throwing the reserved exception
 \verb=$aborted=. This exception can be caught using catch/3, but the
@@ -7567,14 +7567,14 @@ Terminate Prolog execution with the given status.  Status is an integer.
 See also halt/0.
 
     \predicate{prolog}{0}{}
-This goal starts the default interactive top-level. Queries are read
+This goal starts the default interactive top level. Queries are read
 from the stream \const{user_input}. See also the Prolog flag
 \prologflag{history}. The prolog/0 predicate is terminated (succeeds) by
 typing the end-of-file character (typically control-D).
 \end{description}
 
 The following two hooks allow for expanding queries and handling the
-result of a query.  These hooks are used by the top-level variable
+result of a query.  These hooks are used by the top level variable
 expansion mechanism described in \secref{topvars}.
 
 \begin{description}
@@ -7583,8 +7583,8 @@ Hook in module \const{user}, normally not defined.  \arg{Query} and
 \arg{Bindings} represents the query read from the user and the names
 of the free variables as obtained using read_term/3.  If this predicate
 succeeds, it should bind \arg{Expanded} and \arg{ExpandedBindings} to
-the query and bindings to be executed by the top-level.  This predicate
-is used by the top-level (prolog/0).  See also expand_answer/2 and
+the query and bindings to be executed by the top level.  This predicate
+is used by the top level (prolog/0).  See also expand_answer/2 and
 term_expansion/2.
 
     \predicate{expand_answer}{2}{+Bindings, -ExpandedBindings}
@@ -7592,7 +7592,7 @@ Hook in
 module \const{user}, normally not defined. Expand the result of a
 successfully executed top-level query. \arg{Bindings} is the query
 $<Name>=<Value>$ binding list from the query. \arg{ExpandedBindings}
-must be unified with the bindings the top-level should print.
+must be unified with the bindings the top level should print.
 \end{description}
 
 \section{Creating a Protocol of the User Interaction}	\label{sec:protocol}
@@ -7630,7 +7630,7 @@ tracer.  This front-end is installed using the predicate guitracer/0.
 \begin{description}
     \predicate{trace}{0}{}
 Start the tracer. trace/0 itself cannot be seen in the tracer.  Note that
-the Prolog top-level treats trace/0 special; it means `trace the next goal'.
+the Prolog top level treats trace/0 special; it means `trace the next goal'.
     \predicate{tracing}{0}{}
 True if the tracer is currently switched on.  tracing/0 itself cannot
 be seen in the tracer.
@@ -7686,7 +7686,7 @@ Note that the \const{min_free} parameter of all stacks is enlarged to
 complicates tracing because it renames the \textit{_G<NNN>} variables
 and replaces unreachable variables with the atom
 \verb$<garbage_collected>$. Calling nodebug/0 does \emph{not} reset the
-initial free-margin because several parts of the top-level and debugger
+initial free-margin because several parts of the top level and debugger
 disable debugging of system code regions.  See also set_prolog_stack/2.
 
     \predicate{nodebug}{0}{}
@@ -7760,7 +7760,7 @@ warnings on \chr{\}<newline> followed by blank space in native mode. See
 
     \termitem{discontiguous}{true}
 Warn if the clauses for a predicate are not together in the same source file.
-In is adviced to disable the warning for discontiguous predicates using
+It is advised to disable the warning for discontiguous predicates using
 the discontiguous/1 directive.
 
     \termitem{string}{false}

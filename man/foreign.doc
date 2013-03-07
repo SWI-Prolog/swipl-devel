@@ -2776,7 +2776,7 @@ typedef int  (*PL_dispatch_hook_t)(void);
 Install a hook when abort/0 is executed. SWI-Prolog abort/0 is
 implemented using C setjmp()/longjmp() construct.  The hooks are
 executed in the reverse order of their registration after the longjmp()
-took place and before the Prolog top-level is reinvoked. The type
+took place and before the Prolog top level is reinvoked. The type
     \ctype{PL_abort_hook_t} is defined as:
 \begin{code}
 typedef void (*PL_abort_hook_t)(void);
@@ -3128,7 +3128,7 @@ for the argument vector \arg{argv}.
 
     \cfunction{void}{PL_install_readline}{}
 Installs the GNU readline line editor.  Embedded applications that do not
-use the Prolog top-level should normally delete this line, shrinking the
+use the Prolog top level should normally delete this line, shrinking the
 Prolog kernel significantly.  Note that the Windows version does not use
 GNU readline.
 
@@ -3214,7 +3214,7 @@ On Unix systems, SWI-Prolog uses three signals:
     with \const{EINTR}, which gives them the opportunity to react
     to thread-signals.
 
-    \item[SIGINT] is used by the top-level to activate the tracer
+    \item[SIGINT] is used by the top level to activate the tracer
     (typically bound to control-C).  The first control-C posts a
     request for	starting the tracer in a safe, synchronous fashion.
     If control-C is hit again before the safe route is executed,

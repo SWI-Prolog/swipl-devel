@@ -550,9 +550,9 @@ Print list of ancestor call and wake ports.
 	\termitem{nodebug}{}
 Disable the tracer.
 	\termitem{break}{}
-Enter a recursive Prolog top-level.  See break/0.
+Enter a recursive Prolog top level.  See break/0.
 	\termitem{abort}{}
-Exit to the top-level.  See abort/0.
+Exit to the top level.  See abort/0.
 	\termitem{fail}{}
 Insert failure in execution.
 	\termitem{help}{}
@@ -587,9 +587,9 @@ See also leash/1.
 
     \predicate{chr_show_store}{1}{+Mod}
 Prints all suspended constraints of module \arg{Mod} to the standard
-output. This predicate is automatically called by the SWI-Prolog top-level at
+output. This predicate is automatically called by the SWI-Prolog top level at
 the end of each query for every CHR module currently loaded.  The Prolog flag
-\const{chr_toplevel_show_store} controls whether the top-level shows the
+\const{chr_toplevel_show_store} controls whether the top level shows the
 constraint stores. The value \const{true} enables it.  Any other value
 disables it.
 
@@ -632,7 +632,7 @@ leq(_G23837, _G23838)
 true .
 \end{code}
 
-When the query succeeds, the SWI-Prolog top-level prints the content of
+When the query succeeds, the SWI-Prolog top level prints the content of
 the CHR constraint store and displays the bindings generated during the
 query. Some of the query variables may have been bound to attributed
 variables, as you see in the above example.

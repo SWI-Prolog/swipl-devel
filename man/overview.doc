@@ -88,8 +88,8 @@ X = chips.
 
 Note that the answer written by Prolog is a valid Prolog program that,
 when executed, produces the same set of answers as the original
-program.\footnote{The SWI-Prolog top-level differs in several ways from
-traditional Prolog top-level. The current top-level was designed in
+program.\footnote{The SWI-Prolog top level differs in several ways from
+traditional Prolog top level. The current top level was designed in
 cooperation with Ulrich Neumerkel.}
 
 
@@ -156,7 +156,7 @@ machine% swipl -s load.pl -g go -t halt
 
 It tells SWI-Prolog to load \file{load.pl}, start the application using
 the \jargon{entry point} \nopredref{go}{0} and ---instead of entering
-the interactive top-level--- exit after completing \nopredref{go}{0}. The
+the interactive top level--- exit after completing \nopredref{go}{0}. The
 \cmdlineoption{-q} may be used to suppress all informational messages.
 
 In MS-Windows, the same can be achieved using a short-cut with
@@ -293,7 +293,7 @@ so we can rollback on backtracking or exceptions.
 
 \begin{description}
     \cmdlineoptionitem{-g}{goal}
-\arg{Goal} is executed just before entering the top-level. Default is a
+\arg{Goal} is executed just before entering the top level. Default is a
 predicate which prints the welcome message. The welcome message can be
 suppressed with \cmdlineoption{--quiet}, but also with
 \argoption{-g}{true}. \arg{goal} can be a complex term. In this case
@@ -305,14 +305,14 @@ shell. A safe way to run a goal non-interactively is here:
 \end{code}
 
     \cmdlineoptionitem{-t}{goal}
-Use \arg{goal} as interactive top-level instead of the default goal
+Use \arg{goal} as interactive top level instead of the default goal
 prolog/0. \arg{goal} can be a complex term. If the top-level goal
 succeeds SWI-Prolog exits with status 0. If it fails the exit status is
-1. If the top-level raises an exception, this is printed as an uncaught
-error and the top-level is restarted. This flag also determines the goal
+1. If the top level raises an exception, this is printed as an uncaught
+error and the top level is restarted. This flag also determines the goal
 started by break/0 and abort/0. If you want to stop the user from
 entering interactive mode, start the application with
-`\argoption{-g}{goal}' and give `halt' as top-level.
+`\argoption{-g}{goal}' and give `halt' as top level.
 \end{description}
 
 
@@ -724,7 +724,7 @@ true.
 When using Windows, the user may open \file{load.pl} from the Windows
 explorer, which will cause \program{swipl-win.exe} to be started in the
 directory holding \file{load.pl}.  Prolog loads \file{load.pl} before
-entering the top-level.  If Prolog is started from an interactive shell,
+entering the top level.  If Prolog is started from an interactive shell,
 one may choose the type \texttt{swipl -s load.pl}.
 
 
@@ -1009,7 +1009,7 @@ integers can be arbitrarily large and the \prologflag{min_integer} and
 \prologflag{max_integer} are not present. See \secref{artypes}.
 
     \prologflagitem{break_level}{integer}{r}
-Current break-level. The initial top-level (started with
+Current break-level. The initial top level (started with
 \cmdlineoption{-t}) has value 0. See break/0. This flag is absent from
 threads that are not running a top-level loop.
 
@@ -1328,7 +1328,7 @@ Current preprocessor. See preprocessor/2. The reserved atom \const{none}
 
     \prologflagitem{prompt_alternatives_on}{atom}{rw}
 \index{prompt, alternatives}%
-Determines prompting for alternatives in the Prolog top-level. Default is
+Determines prompting for alternatives in the Prolog top level. Default is
 \const{determinism}, which implies the system prompts for alternatives
 if the goal succeeded while leaving choice points.  Many classical Prolog
 systems behave as \const{groundness}: they prompt for alternatives if
@@ -1401,7 +1401,7 @@ the POSIX tzset() function. See also convert_time/2.
     \prologflagitem{toplevel_print_anon}{bool}{rw}
 If \const{true}, top-level variables starting with an underscore
 (\chr{_}) are printed normally.  If \const{false} they are hidden.
-This may be used to hide bindings in complex queries from the top-level.
+This may be used to hide bindings in complex queries from the top level.
 
     \prologflagitem{toplevel_print_factorized}{bool}{rw}
 If \const{true} (default \const{false}) show the internal sharing of
@@ -1434,7 +1434,7 @@ of queries. Default is \texttt{[quoted(true), portray(true),
 max_depth(10), attributes(portray)]}.
 
     \prologflagitem{toplevel_prompt}{atom}{rw}
-Define the prompt that is used by the interactive top-level. The
+Define the prompt that is used by the interactive top level. The
 following \verb$~$ (tilde) sequences are replaced:
 
 \begin{center}

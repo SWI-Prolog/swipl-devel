@@ -322,7 +322,7 @@ The module system described so far is sufficient to distribute programs
 over multiple modules. There are, however, cases in which we would like
 to be able to overrule this schema and explicitly call a predicate in
 some module or assert explicitly into some module. Calling in a
-particular module is useful for debugging from the user's top-level or
+particular module is useful for debugging from the user's top level or
 to access multiple implementations of the same interface that reside in
 multiple modules. Accessing the same interface from multiple modules
 cannot be achieved using importing because importing a predicate with
@@ -375,7 +375,7 @@ systems define this construct using \exam{op(900, xfx, @)}.
 \end{description}
 
 
-\section{Interacting with modules from the top-level}
+\section{Interacting with modules from the top level}
 \label{sec:mtoplevel}
 
 Debugging often requires interaction with predicates that reside in
@@ -388,12 +388,12 @@ spy point on any predicate with that name in any module. Editing
 Mean) mechanism, which generally suggests the correct qualified query.
 
 Mainly for compatibility, we provide module/1 to switch the module
-with which the interactive top-level interacts:
+with which the interactive top level interacts:
 
 \begin{description}
     \predicate{module}{1}{+Module}
 The call \exam{module(\arg{Module})} may be used to switch the default
-working module for the interactive top-level (see prolog/0).  This may
+working module for the interactive top level (see prolog/0).  This may
 be used when debugging a module. The example below lists the clauses
 of file_of_label/2 in the module \const{tex}.
 

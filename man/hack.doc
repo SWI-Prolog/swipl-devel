@@ -129,7 +129,7 @@ choice point stack.
 Unifies its argument with \const{true} if no choice point exists that is
 more recent than the entry of the clause in which it appears. There are
 few realistic situations for using this predicate. It is used by the
-prolog/0 top-level to check whether Prolog should prompt the user for
+prolog/0 top level to check whether Prolog should prompt the user for
 alternatives. Similar results can be achieved in a more portable fashion
 using call_cleanup/2.
 \end{description}

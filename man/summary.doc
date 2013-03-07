@@ -47,7 +47,7 @@ suggest predicates from a keyword.
 \predicatesummary{{}}{1}{DCG escape; constraints}
 \predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
-\predicatesummary{abort}{0}{Abort execution, return to top-level}
+\predicatesummary{abort}{0}{Abort execution, return to top level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
 \predicatesummary{access_file}{2}{Check access permissions of a file}
@@ -94,7 +94,7 @@ suggest predicates from a keyword.
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
 \predicatesummary{blob}{2}{Type check for a blob}
-\predicatesummary{break}{0}{Start interactive top-level}
+\predicatesummary{break}{0}{Start interactive top level}
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
 \predicatesummary{call}{[2..]}{Call with additional arguments}
@@ -295,7 +295,7 @@ suggest predicates from a keyword.
 \predicatesummary{initialization}{2}{Initialization directive}
 \predicatesummary{instance}{2}{Fetch clause or record from reference}
 \predicatesummary{integer}{1}{Type check for integer}
-\predicatesummary{interactor}{0}{Start new thread with console and top-level}
+\predicatesummary{interactor}{0}{Start new thread with console and top level}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_assoc}{1}{Verify association list}
@@ -425,7 +425,7 @@ suggest predicates from a keyword.
 \predicatesummary{profile}{3}{Obtain execution statistics}
 \predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
-\predicatesummary{prolog}{0}{Run interactive top-level}
+\predicatesummary{prolog}{0}{Run interactive top level}
 \predicatesummary{prolog_choice_attribute}{3}{Examine the choice point stack}
 \predicatesummary{prolog_current_choice}{1}{Reference to most recent choice point}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}

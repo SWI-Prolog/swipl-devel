@@ -302,7 +302,7 @@ reveals there is something wrong with \nopredref{prove}{3}, you do:
 Now edit the source, possibly switching to other files and making
 multiple changes.  After finishing, invoke make/0, either through
 the editor UI (\menu{Compile/Make}{Control-C Control-M}) or on
-the top-level, and watch the files being reloaded.%
+the top level, and watch the files being reloaded.%
     \footnote{Watching these files is a good habit.  If expected
 	      files are not reloaded you may have forgotten to save
 	      them from the editor or you may have been editing the
