@@ -30,7 +30,8 @@
 
 :- module(ciao_lists,
 	  [ nth/3,			% ?Index, ?List, ?Element
-	    list_insert/2		% -List, +Term
+	    list_insert/2,		% -List, +Term
+	    sublist/2			% ?List1, +List2
 	  ]).
 :- reexport('../../lists').
 :- reexport('../../lists', [subtract/3 as difference]).
@@ -57,3 +58,12 @@ list_insert([Term0|_], Term) :-
         Term0==Term, !.
 list_insert([_|List], Term) :-
         list_insert(List, Term).
+
+%%      sublist(?List1, +List2)
+%
+%       List2 contains all the elements of List1.
+
+sublist([], _).
+sublist([Element|Residue], List) :-
+	member(Element, List),
+	sublist(Residue, List).

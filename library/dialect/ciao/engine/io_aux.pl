@@ -27,16 +27,16 @@
     the GNU General Public License.
 */
 
-%% Migrated from Ciao to SWI-Prolog
+:- module(io_aux, [
+		   display_string/1 % +String
+		  ],
+	  [assertions, nativeprops, nortchecks]).
 
-:- package(regtypes).
-:- load_compilation_module(library(regtypes(regtypes_tr))).
-:- add_sentence_trans(expand_regtypes/2, 210).
 
-:- new_declaration((regtype)/1).
-:- new_declaration((regtype)/2).
+%%	display_string(+String) is det.
+%
+%	Writes String onto Standard Output.
 
-:- op(1150, fx,(regtype)).
-:- op(1150,xfx,(regtype)).
+:- pred display_string(String) : string.
 
-%% in basic_props: :- meta_predicate regtype(goal).
+display_string(String) :- format('~s', [String]).

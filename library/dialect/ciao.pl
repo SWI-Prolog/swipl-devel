@@ -134,6 +134,7 @@ ciao_term_expansion((:- module(Name, Public, Packages)),
 			(:- style_check(-singleton)),
 			(:- expects_dialect(ciao)),
 			(:- use_module(engine(basic_props))),
+			(:- use_module(engine(io_aux))),
 			(:- use_module(engine(exceptions)))
 		      |	Directives
 		      ]) :-
@@ -372,18 +373,14 @@ ciao_trans(CM, Trans, Term0, Term) :-
 	get_dictionary(Term0, M, Dict),
 	call_expansion(Trans, PIs, CM, M, Dict, Term0, Term).
 
-swi_meta_arg(N, CiaoArg, SWIArg) :-
-	integer(N),
-	N > 0,
-	!,
-	( atom(CiaoArg) -> SWIArg = CiaoArg
-	; var(CiaoArg) -> SWIArg = CiaoArg
-	; functor(CiaoArg, '$ciao_meta', _) ->
-	  SWIArg = CiaoArg   % Already applied
-	; %% compound(CiaoArg) -> % TODO: static ???
-	  SWIArg = '$ciao_meta'(CiaoArg)
-	).
-swi_meta_arg(_, Arg, Arg).
+swi_meta_arg(_,    Arg,   Arg) :-
+	(var(Arg) ; atom(Arg)), !.
+swi_meta_arg(_,    M:Arg, M:Arg) :-
+	(var(M)   ; atom(M)),
+	(var(Arg) ; atom(Arg)), !.
+swi_meta_arg(_,    '$ciao_meta'(Arg), '$ciao_meta'(Arg)) :- !.
+swi_meta_arg(Meta, Arg, '$ciao_meta'(Arg)) :- integer(Meta), Meta > 0, !.
+swi_meta_arg(_, _, Arg, Arg).
 
 swi_meta_args(Spec, CiaoGoal, SWIGoal) :-
 	functor(CiaoGoal, F, A),
@@ -472,6 +469,7 @@ ciao_goal_expansion(attach_attribute(V, A),     put_attr(V, attributes, A)) :- !
 ciao_goal_expansion(detach_attribute(V),        del_attr(V, attributes)) :- !.
 ciao_goal_expansion(update_attribute(V, A),     put_attr(V, attributes, A)) :- !.
 ciao_goal_expansion(get_attribute(V, A),        get_attr(V, attributes, A)) :- !.
+ciao_goal_expansion(mktemp_in_tmp(T, F),        tmp_file(T, F)) :- !.
 
 ciao_goal_expansion(current_prolog_flag(F, V),  G) :-
 	F == discontiguous_warnings,

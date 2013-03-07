@@ -28,7 +28,7 @@
 */
 
 :- module(terms_vars, [varset/2, intersect_vars/3, member_var/2, diff_vars/3,
-		       term_variables/2],
+		       varsbag/3, term_variables/2],
 	  [assertions]).
 
 varset(Term, List) :- term_variables(Term, List).
@@ -66,3 +66,26 @@ diff_vars([H|L1], L2, [H|L3]) :-
 % member_var([],       _) :- fail.
 member_var([E|List], Ele) :-
 	E == Ele -> true ; member_var(List, Ele).
+
+%%      varsbag(+Term, -Vs, ?Xs)
+%
+%       Vs is the list of all the variables in Term ordered as they
+%       appear in Term right-to-left depth-first (including
+%       duplicates) plus Xs.
+
+varsbag(X, Vars, Tail) :-
+	var(X), !,
+	Vars = [X|Tail].
+varsbag([H|T], Vars, Tail) :- !,
+	varsbag(H, Vars,  Tail0),
+	varsbag(T, Tail0, Tail).
+varsbag(Term, Vars, Tail) :-
+	functor(Term, _, A),
+	go_inside(A, Term, Vars, Tail).
+
+go_inside(0, _, Tail, Tail) :- !.
+go_inside(N, T, Bag,  Tail) :-
+	Nth is N-1,
+	arg(N, T, ARG),
+	varsbag(ARG, Bag, Tail0),
+	go_inside(Nth, T, Tail0, Tail).
