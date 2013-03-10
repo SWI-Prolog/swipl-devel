@@ -284,7 +284,7 @@ var_or_integer(term_t t, number *n, int which, int *mask ARG_LD)
     *mask |= which;
     succeed;
   }
-  if ( isVar(*p) )
+  if ( canBind(*p) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
