@@ -2279,10 +2279,12 @@ PL_put_list(term_t l)
 }
 
 
-void
+int
 PL_put_nil(term_t l)
 { GET_LD
   setHandle(l, ATOM_nil);
+
+  return TRUE;
 }
 
 

@@ -1111,8 +1111,8 @@ a term with instantiated arguments, either instantiate the arguments
 using the {\tt PL_unify_*()} functions or use PL_cons_functor().
 \cfunction{int}{PL_put_list}{term_t -l}
 Same as \exam{PL_put_functor(l, PL_new_functor(PL_new_atom("."), 2))}.
-\cfunction{void}{PL_put_nil}{term_t -l}
-Same as \exam{PL_put_atom_chars("[]")}.
+\cfunction{int}{PL_put_nil}{term_t -l}
+Same as \exam{PL_put_atom_chars("[]")}.  Always returns \const{TRUE}.
 \cfunction{void}{PL_put_term}{term_t -t1, term_t +t2}
 Make \arg{t1} point to the same term as \arg{t2}.
 \cfunction{int}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
