@@ -1316,7 +1316,12 @@ query_pack_server(Query, Result) :-
 	    ),
 	    close(In)),
 	Result = Result0,
-	print_message(informational, pack(server_reply(Result))).
+	message_severity(Result, Level),
+	print_message(Level, pack(server_reply(Result))).
+
+message_severity(true(_), informational).
+message_severity(false, warning).
+message_severity(exception(_), error).
 
 
 %%	inquiry_result(+Reply, +File) is semidet.
@@ -1352,7 +1357,12 @@ eval_inquiry(true(Reply), _, Eval) :-
 eval_inquiry(true(Reply), URL, true) :-
 	file_base_name(URL, File),
 	print_message(informational, pack(inquiry_ok(Reply, File))).
-
+eval_inquiry(exception(pack(modified_hash(_SHA1-URL, _SHA2-[URL]))),
+	     URL, Eval) :-
+	(   confirm(continue_with_modified_hash(URL), no, [])
+	->  Eval = true
+	;   Eval = cancel
+	).
 alt_hash(alt_hash(_,_,_)).
 dependency(dependency(_,_,_,_,_)).
 
@@ -1864,8 +1874,8 @@ message(server_reply(true(_))) -->
 message(server_reply(false)) -->
 	[ at_same_line, ' done'-[] ].
 message(server_reply(exception(E))) -->
-	[ at_same_line, ' server error:'-[], nl ],
-	prolog:message(E).
+	[ 'Server reported the following error:'-[], nl ],
+	'$messages':translate_message(E).
 message(cannot_create_dir(Alias)) -->
 	{ setof(PackDir,
 		absolute_file_name(Alias, PackDir, [solutions(all)]),
@@ -1911,6 +1921,12 @@ message(alt_hashes(File, Alts)) -->
 	alt_hashes(Alts).
 message(continue_with_alt_hashes(Count, URL)) -->
 	[ 'Continue installation from "~w" (downloaded ~D times)'-[URL, Count] ].
+message(continue_with_modified_hash(_URL)) -->
+	[ 'Pack may be compromised.  Continue anyway'
+	].
+message(modified_hash(_SHA1-URL, _SHA2-[URL])) -->
+	[ 'Content of ~q has changed.'-[URL]
+	].
 
 
 alt_hashes([]) --> [].
