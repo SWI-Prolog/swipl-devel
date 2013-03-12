@@ -84,7 +84,8 @@ user:file_search_path(engine, library(dialect/ciao/engine)).
 :- create_prolog_flag(discontiguous_warnings, on,  [type(atom)]).
 
 :- multifile
-	declaration/1.			% Head
+	declaration/1,		 % +Head
+	ciao:declaration_hook/2. % +Head,-Exp
 
 :- dynamic
 	lock_expansion/0,
@@ -165,7 +166,9 @@ ciao_term_expansion((:- new_declaration(Name/Arity)),
 ciao_term_expansion((:- package(_Package)), []).
 ciao_term_expansion((:- Decl), Exp) :-
 	declaration(Decl),
-	(   functor(Decl, Name, Arity),
+	(   ciao:declaration_hook(Decl, Exp)
+	->  true
+	;   functor(Decl, Name, Arity),
 	    prolog_load_context(module, Module),
 	    current_predicate(Module:Name/Arity)
 	->  Exp = (:- Decl)
@@ -291,6 +294,12 @@ ciao_term_expansion((:- add_goal_trans(F/A, P)),
 	( current_predicate(CM:F/A) -> true
 	; throw(error(existence_error(add_goal_trans, F/A), _))
 	).
+ciao_term_expansion((H :- B), Clause) :-
+				% In Ciao, A :- A is one of the ways
+				% to tell the system A is a built-in.
+	H == B, !,
+	functor(H, F, A),
+	Clause = (:- export(F/A)).
 ciao_term_expansion((:- impl_defined(L)), Clauses) :-
 	'$set_source_module'(M, M),
 	findall(H, ( sequence_contains(L, bad_spec_error(impl_defined), F, A),
