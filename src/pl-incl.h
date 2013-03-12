@@ -2103,6 +2103,7 @@ typedef struct
 		*********************************/
 
 #define PROCEDURE_catch3		(GD->procedures.catch3)
+#define PROCEDURE_reset3		(GD->procedures.reset3)
 #define PROCEDURE_true0			(GD->procedures.true0)
 #define PROCEDURE_fail0			(GD->procedures.fail0)
 #define PROCEDURE_event_hook1		(GD->procedures.event_hook1)

@@ -20,7 +20,7 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-init.o pl-gmp.o pl-segstack.o pl-hash.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
 	pl-dbref.o pl-termhash.o pl-variant.o \
-	pl-copyterm.o pl-debug.o pl-ressymbol.o pl-dict.o
+	pl-copyterm.o pl-debug.o pl-cont.o pl-ressymbol.o pl-dict.o
 
 # Prolog library
 

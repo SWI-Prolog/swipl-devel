@@ -88,6 +88,7 @@ A busy			"busy"
 A byte			"byte"
 A c_stack		"c_stack"
 A call			"call"
+A call_continuation	"call_continuation"
 A callable		"callable"
 A canceled		"canceled"
 A case_sensitive_file_names "case_sensitive_file_names"
@@ -158,6 +159,7 @@ A dc_call_prolog	"$c_call_prolog"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
 A dcatch		"$catch"
+A dcont			"$cont$"
 A dcut			"$cut"
 A dde_error		"dde_error"
 A dde_handle		"dde_handle"
@@ -790,6 +792,8 @@ F buffer		1
 F buffer_size		1
 F busy			2
 F call			1
+F call_continuation	1
+F callpred		2
 F catch			3
 F ceil			1
 F ceiling		1
@@ -816,6 +820,7 @@ F date			3
 F date			9
 F dc_call_prolog	0
 F dcall			1
+F dcont			3
 F dcut			1
 F dde_error		2
 F debug			1
@@ -960,6 +965,7 @@ F repeat		1
 F reposition		1
 F representation_error	1
 F representation_errors 1
+F reset			3
 F resource_error	1
 F retry			1
 F round			1
