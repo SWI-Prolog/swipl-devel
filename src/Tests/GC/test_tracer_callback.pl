@@ -159,20 +159,20 @@ action(3) :- trim_stacks.
 %
 %       Force a stack-shift of the global, trail or local stack.
 
-gshift :- shift(global_shifts).
-tshift :- shift(trail_shifts).
+gshift :- shift_stack(global_shifts).
+tshift :- shift_stack(trail_shifts).
 
-shift(Stat) :-
+shift_stack(Stat) :-
 	statistics(Stat, S0),
-	shift(S0, Stat, X),
+	shift_stack(S0, Stat, X),
 	a(X).				% ensure term is used.
 
 a(_).
 
-shift(S0, Stat, s(X)) :-
+shift_stack(S0, Stat, s(X)) :-
 	statistics(Stat, S0), !,
-	shift(S0, Stat, X).
-shift(_, _, _).
+	shift_stack(S0, Stat, X).
+shift_stack(_, _, _).
 
 lshift :-
 	statistics(local_shifts, S0),
