@@ -266,12 +266,12 @@ string_codes(List) -->
 	[H],
 	(   { H == 0'" }
 	->  (   "\""
-	->  { List = [H|T] },
-	string_codes(T)
-	;   { List = [] }
-	)
+	    ->  { List = [H|T] },
+	        string_codes(T)
+	    ;   { List = [] }
+	    )
 	;   { List = [H|T] },
-	string_codes(T)
+	    string_codes(T)
 	).
 
 field_codes([], Sep), [Sep] --> [Sep], !.
