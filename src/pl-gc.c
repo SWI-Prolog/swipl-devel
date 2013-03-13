@@ -1399,6 +1399,8 @@ typedef struct walk_state
   Code c0;				/* start of code list */
   Word envtop;				/* just above environment */
   int unmarked;				/* left when marking alt clauses */
+  bit_vector *active;			/* When marking active */
+  bit_vector *clear;			/* When marking active */
 #ifdef MARK_ALT_CLAUSES
   Word ARGP;				/* head unify instructions */
   int  adepth;				/* ARGP nesting */
@@ -1407,6 +1409,7 @@ typedef struct walk_state
 
 #define GCM_CLEAR	0x1		/* Clear uninitialised data */
 #define GCM_ALTCLAUSE	0x2		/* Marking alternative clauses */
+#define GCM_ACTIVE	0x4		/* Mark active environment */
 
 #define NO_ADEPTH 1234567
 
@@ -1518,18 +1521,31 @@ See decompileBody for details on handling the branch instructions.
 
 static inline void
 mark_frame_var(walk_state *state, code v ARG_LD)
-{ Word sp = varFrameP(state->frame, v);
+{ if ( state->active )
+  { int i = (int)v - sizeof(struct localFrame)/sizeof(word);
 
-  if ( sp < state->envtop && !is_marked(sp) )
-  { mark_local_variable(sp PASS_LD);
-    state->unmarked--;
+    DEBUG(MSG_CONTINUE, Sdprintf("Access %d\n", i));
+    if ( !true_bit(state->clear, i) )
+      set_bit(state->active, i);
+  } else
+  { Word sp = varFrameP(state->frame, v);
+
+    if ( sp < state->envtop && !is_marked(sp) )
+    { mark_local_variable(sp PASS_LD);
+      state->unmarked--;
+    }
   }
 }
 
 
 static inline void
 clear_frame_var(walk_state *state, code var, Code PC)
-{ if ( (state->flags & GCM_CLEAR) )
+{ if ( state->clear )
+  { int i = (int)var - sizeof(struct localFrame)/sizeof(word);
+
+    DEBUG(MSG_CONTINUE, Sdprintf("Clear %d\n", i));
+    set_bit(state->clear, i);
+  } else if ( (state->flags & GCM_CLEAR) )
   { LocalFrame fr = state->frame;
     DEBUG(MSG_GC_CLEAR,
 	  Sdprintf("Clear var %d at %d\n",
@@ -1558,7 +1574,7 @@ static inline void
 mark_argp(walk_state *state ARG_LD)
 {
 #ifdef MARK_ALT_CLAUSES
-  if ( state->adepth == 0 )
+  if ( !(state->flags & GCM_ACTIVE) && state->adepth == 0 )
   { if ( state->ARGP < state->envtop && !is_marked(state->ARGP) )
     { mark_local_variable(state->ARGP PASS_LD);
       state->unmarked--;
@@ -1813,6 +1829,32 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 }
 
 
+void
+mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
+{ GET_LD
+  walk_state state;
+  size_t bv_bytes = sizeof_bitvector(active->size);
+  union
+  { char       bv_store[bv_bytes];
+    bit_vector bv;
+  } store;
+  bit_vector *clear = &store.bv;
+
+  init_bitvector(clear, active->size);
+
+  state.frame  = fr;
+  state.flags  = GCM_ACTIVE;
+  state.adepth = 0;
+  state.ARGP   = argFrameP(fr, 0);
+  state.active = active;
+  state.clear  = clear;
+  state.envtop = NULL;
+  state.c0     = fr->clause->value.clause->codes;
+
+  walk_and_mark(&state, PC, I_EXIT PASS_LD);
+}
+
+
 #ifdef MARK_ALT_CLAUSES
 static void
 mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
@@ -1834,6 +1876,8 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
   state.flags        = GCM_ALTCLAUSE;
   state.adepth       = 0;
   state.ARGP	     = argFrameP(fr, 0);
+  state.active	     = NULL;
+  state.clear	     = NULL;
   state.envtop	     = state.ARGP + argc;
 
   DEBUG(MSG_GC_WALK,
@@ -1980,6 +2024,8 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
       state.frame    = fr;
       state.unmarked = slotsInFrame(fr, PC);
       state.envtop   = argFrameP(fr, state.unmarked);
+      state.active   = NULL;
+      state.clear    = NULL;
       state.c0       = fr->clause->value.clause->codes;
 
       if ( fr == mstate->vm_state->frame &&
