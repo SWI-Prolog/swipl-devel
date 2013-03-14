@@ -70,6 +70,7 @@ CIAO=	assertions.pl basicmodes.pl isomodes.pl regtypes.pl sockets.pl \
 CIAO_REGTYPES=regtypes_tr.pl
 CIAO_ENGINE=attributes.pl basic_props.pl exceptions_db.pl exceptions.pl \
 	internals.pl hiord_rt.pl basiccontrol.pl io_aux.pl
+HPROLOG=format.pl
 ISO=	iso_predicates.pl
 SWI=	syspred_options.pl
 IFPROLOG=

@@ -476,7 +476,8 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
 		library/dialect/ciao/regtypes \
 		library/dialect/sicstus \
 		library/dialect/swi \
-		library/dialect/ifprolog
+		library/dialect/ifprolog \
+		library/dialect/hprolog
 
 .PHONY: iruntime install-implib
 
@@ -506,7 +507,7 @@ endif
 install-implib:	idirs
 		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
-.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog isicstus iciao iiso iunicode \
+.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso iunicode \
 	icustom iinclude install-pkgconfig install-man install-lman install-readme html-install
 
 idirs:
@@ -537,7 +538,7 @@ idcg:		idirs
 			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
-idialect:	idirs iswi iyap iiso isicstus iciao iifprolog
+idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -556,6 +557,11 @@ iyap:		idirs
 iifprolog:	idirs
 		for f in $(IFPROLOG); do \
 			$(INSTALL_DATA) ../library/dialect/ifprolog/$$f $(DESTDIR)$(PLBASE)/library/dialect/ifprolog; \
+		done
+
+ihprolog:	idirs
+		for f in $(HPROLOG); do \
+			$(INSTALL_DATA) ../library/dialect/hprolog/$$f $(DESTDIR)$(PLBASE)/library/dialect/hprolog; \
 		done
 
 isicstus:	idirs
