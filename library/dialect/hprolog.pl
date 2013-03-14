@@ -3,7 +3,7 @@
     Author:        Tom Schrijvers, Bart Demoen, Jan Wielemaker
     E-mail:        Tom.Schrijvers@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2008, K.U. Leuven
+    Copyright (C): 2004-2013, K.U. Leuven
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -73,6 +73,32 @@ This library has been developed mainly for porting the CHR package.
 	must be moved to their appropriate library.  Others must be moved
 	into the CHR utilities.
 */
+
+                 /*******************************
+                 *          LIBRARY SETUP       *
+                 *******************************/
+
+%%      push_hprolog_library
+%
+%	Pushes searching for dialect/hprolog in front of every
+%	library directory that contains such as sub-directory.
+
+push_hprolog_library :-
+        (   absolute_file_name(library(dialect/hprolog), Dir,
+                               [ file_type(directory),
+                                 access(read),
+                                 solutions(all),
+                                 file_errors(fail)
+                               ]),
+            asserta((user:file_search_path(library, Dir) :-
+                    prolog_load_context(dialect, hprolog))),
+            fail
+        ;   true
+        ).
+
+
+:- push_hprolog_library.
+
 
 empty_ds(DS) :- empty_assoc(DS).
 ds_to_list(DS,LIST) :- assoc_to_list(DS,LIST).
