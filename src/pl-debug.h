@@ -86,6 +86,9 @@
 #define MSG_REC_ATTVAR		 55
 
 #define MSG_READ_TOKEN		 60
+
+#define MSG_CONTINUE		 70
+
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101
