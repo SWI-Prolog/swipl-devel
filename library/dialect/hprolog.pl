@@ -51,11 +51,16 @@
 	    empty_ds/1,
 	    ds_to_list/2,
 	    get_ds/3,
-	    put_ds/4
+	    put_ds/4,
+
+	    time/3
 %	    lookup_ht1/4
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(assoc)).
+
+:- meta_predicate
+	time(0, -, -).
 
 /** <module> hProlog compatibility library
 
@@ -263,3 +268,15 @@ chr_delete([H|T], X, L) :-
             chr_delete(T, X, RT)
         ).
 
+%%	time(:Goal, -CPU, -Wall)
+%
+%	hProlog compatible predicate to for statistical purposes
+
+time(Goal, CPU, Wall) :-
+	get_time(T0),
+	statistics(cputime, CPU0),
+	call(Goal),
+	statistics(cputime, CPU1),
+	get_time(T1),
+	Wall is T1-T0,
+	CPU is CPU1-CPU0.
