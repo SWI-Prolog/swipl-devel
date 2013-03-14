@@ -4396,12 +4396,15 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
 
       update_local_pointer(&fr->programPointer, ls);
 					/* I_USERCALL0 compiled clause */
-      if ( fr->predicate == PROCEDURE_dcall1->definition && fr->clause )
-      { assert(onStackArea(local, fr->clause));
-	update_pointer(&fr->clause, ls);
-	update_pointer(&fr->clause->value.clause, ls);
-      } else
-      { assert(!onStackArea(local, fr->clause));
+      if ( fr->clause )
+      { if ( fr->predicate == PROCEDURE_dcall1->definition )
+	{ assert(onStackArea(local, fr->clause));
+	  update_pointer(&fr->clause, ls);
+	  update_pointer(&fr->clause->value.clause, ls);
+	} else
+	{ if ( onStackArea(local, fr->clause) ) /* reset/shift. See call_continuation/1 */
+	    update_pointer(&fr->clause, ls);
+	}
       }
 
       DEBUG(MSG_SHIFT_FRAME, Sdprintf("ok\n"));
