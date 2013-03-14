@@ -121,6 +121,8 @@ unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
     long pcoffset = pc - cl->codes;
     term_t fr_ref = consTermRef(fr);
 
+    assert(!onStackArea(local, cl));
+
     if ( !PL_put_clref(argv+0, cl) ||
 	 !PL_put_integer(argv+1, pcoffset) ||
 	 !put_environment(argv+2, fr, pc) ||
