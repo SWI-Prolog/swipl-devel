@@ -224,11 +224,11 @@ retry:
 
       lneeded = SIZEOF_CREF_CLAUSE +
 	        (size_t)argFrameP((LocalFrame)NULL, cl->variables);
-      lroom   = roomStack(local);
+      lroom   = (char*)lMax - (char*)top;
       if ( lroom < lneeded )		/* resize the stack */
       { int rc;
 
-	if ( (rc = ensureLocalSpace(lroom*2, ALLOW_SHIFT)) != TRUE )
+	if ( (rc = ensureLocalSpace(roomStack(local)*2, ALLOW_SHIFT)) != TRUE )
 	  return raiseStackOverflow(rc);
 	PL_put_term(tail, A1);
 	goto retry;
