@@ -917,6 +917,7 @@ Macros for environment frames (local stack frames)
 #define FR_INBOX		(0x0040) /* Inside box (for REDO in built-in) */
 #define FR_CONTEXT		(0x0080) /* fr->context is set */
 #define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4: marked for cleanup */
+#define FR_KEEPLTOP		(0x0200) /* Continuations: to not reset lTop */
 #define FR_MAGIC_MASK		(0xfffff000)
 #define FR_MAGIC_MASK2		(0xffff0000)
 #define FR_MAGIC		(0x549d5000)
@@ -986,11 +987,16 @@ typedef uint64_t lgen_t;
 #define setGenerationFrame(f)	(void)0
 #endif /*O_LOGICAL_UPDATE*/
 
+<<<<<<< 2e62dc93cabfb39de38a740e9f5020958e27617c
 #define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS|FR_CLEANUP
+=======
+#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS
+#define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CONTEXT|FR_KEEPLTOP)
+>>>>>>> Added FR_KEEPLTOP flag to avoid destroying the stack on deterministic
 #define setNextFrameFlags(next, fr) \
 	do \
 	{ (next)->level = (fr)->level+1; \
-	  (next)->flags = ((fr)->flags) & ~(FR_CLEAR_NEXT|FR_CONTEXT); \
+	  (next)->flags = ((fr)->flags) & ~FR_CLEAR_FLAGS; \
 	} while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
