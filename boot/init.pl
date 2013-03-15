@@ -195,6 +195,35 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 (If *-> Then)     :-    call((If *-> Then)).
 @(Goal,Module)	  :-    @(Goal,Module).
 
+%%	'$meta_call'(:Goal)
+%
+%	Meta call handling when we are inside reset/3
+%
+%	@tbd: move reset/3, etc into a library?
+%	@tbd: deal with the !
+
+'$meta_call'((A,B)) :-
+	call(A), call(B).
+'$meta_call'((I->T;E)) :- !,
+	(   call(I)
+	->  call(T)
+	;   call(E)
+	).
+'$meta_call'((I*->T;E)) :- !,
+	(   call(I)
+	*-> call(T)
+	;   call(E)
+	).
+'$meta_call'((I->T)) :- !,
+	(   call(I)
+	->  call(T)
+	).
+'$meta_call'((A;B)) :-
+	(   call(A)
+	;   call(B)
+	).
+
+
 %%	call(Closure, Arg, ...)
 %
 %	Arity 2..8 is demanded by the   ISO standard. Higher arities are
@@ -287,6 +316,7 @@ prolog_cut_to(_Choice) :-
 %	Delimited continuation support.
 
 reset(Goal, Cont, Ball) :-
+	'$start_reset',
 	call(Goal),
 	Cont = 0,
 	Ball = 0.			% only reached if there is no shift

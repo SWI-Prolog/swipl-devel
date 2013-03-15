@@ -194,6 +194,7 @@ A div			"div"
 A divide		"/"
 A dload			"$load"
 A dmessage_queue	"$message_queue"
+A dmeta_call		"$meta_call"
 A dmutex		"$mutex"
 A domain_error		"domain_error"
 A dos			"dos"
@@ -836,6 +837,7 @@ F gdiv			2
 F getbit		2
 F divide		2
 F dmessage_queue	1
+F dmeta_call		1
 F dmutex		1
 F domain_error		2
 F dot			2

@@ -918,6 +918,7 @@ Macros for environment frames (local stack frames)
 #define FR_CONTEXT		(0x0080) /* fr->context is set */
 #define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4: marked for cleanup */
 #define FR_KEEPLTOP		(0x0200) /* Continuations: to not reset lTop */
+#define FR_INRESET		(0x0400) /* Continuations: inside reset/3 */
 #define FR_MAGIC_MASK		(0xfffff000)
 #define FR_MAGIC_MASK2		(0xffff0000)
 #define FR_MAGIC		(0x549d5000)

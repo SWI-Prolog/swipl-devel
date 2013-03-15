@@ -36,6 +36,18 @@ reset/3 is simply implemented as
 	call(Goal).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static
+PRED_IMPL("$start_reset", 0, start_reset, 0)
+{ PRED_LD
+  LocalFrame fr = environment_frame;
+
+  assert(fr->parent);
+  set(fr->parent, FR_INRESET);
+
+  return TRUE;
+}
+
+
 static term_t
 findReset(LocalFrame fr, term_t ball ARG_LD)
 { Definition reset3  = PROCEDURE_reset3->definition;
@@ -316,6 +328,7 @@ retry:
 		 *******************************/
 
 BeginPredDefs(cont)
+  PRED_DEF("$start_reset",      0, start_reset,       0)
   PRED_DEF("shift",             1, shift,             0)
   PRED_DEF("call_continuation", 1, call_continuation, 0)
 EndPredDefs

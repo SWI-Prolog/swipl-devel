@@ -455,6 +455,7 @@ initBuildIns(void)
   LOOKUPPROC(dgarbage_collect1);
   LOOKUPPROC(catch3);
   LOOKUPPROC(reset3);
+  LOOKUPPROC(dmeta_call1);
   LOOKUPPROC(true0);
   LOOKUPPROC(fail0);
   LOOKUPPROC(equals2);
