@@ -83,7 +83,7 @@ intercept(Goal, Signal, Handler) :-
 	asserta_catching(Choice, Signal, Handler),
 	current_fact(catching(Choice, S, H)), % avoid unifs with Goal
 	'$metachoice'(BeforeChoice),
-	'$meta_call'(Goal),
+	catch(Goal, E, (cut_to(Choice), throw(E))), % cleanup
 	'$metachoice'(AfterChoice),
 	retract_catching(Choice, S, H),
 	( BeforeChoice = AfterChoice -> % no more solutions
@@ -135,3 +135,10 @@ throw_action(Handler, _, _, Ref) :-
 	'$metachoice'(AfterChoice),
 	retract_disabled(Ref),
 	(BeforeChoice = AfterChoice -> ! ; true).
+
+cut_to(Choice) :-
+	current_fact(catching(C, _, _), Ref),
+	erase(Ref),
+	retractall_fact(disabled(Ref)),
+	C = Choice,
+	'$metacut'(Choice).
