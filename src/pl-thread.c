@@ -5507,6 +5507,50 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
 }
 
 
+/** '"$thread_local_clause_count'(:Head, +Thread, -NumberOfClauses) is semidet.
+
+True when NumberOfClauses is the number  of clauses for the thread-local
+predicate Head in Thread.  Fails silently if
+
+  - Head does not refer to an existing predicate
+  - The predicate exists, but is not thread local (should
+    this be an error?)
+  - The thread does not exist
+  - The definition was never localised for Thread. One
+    could argue to return 0 for this case.
+
+@author	Keri Harris
+*/
+
+static
+PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
+{ PRED_LD
+  Procedure proc;
+  Definition def;
+  PL_thread_info_t *info;
+  int number_of_clauses = 0;
+
+  term_t pred = A1;
+  term_t thread = A2;
+  term_t count  = A3;
+
+  if ( !get_procedure(pred, &proc, 0, GP_RESOLVE) )
+    fail;
+
+  def = proc->definition;
+  if ( false(def, P_THREAD_LOCAL) )
+    fail;
+
+  if ( !get_thread_sync(thread, &info, FALSE) )
+    fail;
+
+  if ( (def = getProcDefinitionForThread(proc->definition, info->pl_tid)) )
+    number_of_clauses = def->impl.clauses.number_of_clauses;
+
+  return PL_unify_integer(count, number_of_clauses);
+}
+
+
 		 /*******************************
 		 *	DEBUGGING SUPPORT	*
 		 *******************************/
@@ -5664,5 +5708,6 @@ BeginPredDefs(thread)
   PRED_DEF("mutex_create", 1, mutex_create1, 0)
   PRED_DEF("mutex_create", 2, mutex_create2, PL_FA_ISO)
   PRED_DEF("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
+  PRED_DEF("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 #endif
 EndPredDefs

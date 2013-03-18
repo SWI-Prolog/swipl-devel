@@ -806,6 +806,18 @@ getProcDefinition__LD(Definition def ARG_LD)
 }
 
 
+Definition
+getProcDefinitionForThread(Definition def, unsigned int tid)
+{ size_t idx = MSB(tid);
+  LocalDefinitions v = def->impl.local;
+
+  if ( !v->blocks[idx] )
+    return NULL;
+
+  return v->blocks[idx][tid];
+}
+
+
 static inline Definition
 getProcDefinedDefinition(Definition def ARG_LD)
 { if ( !def->impl.any && false(def, PROC_DEFINED) )
