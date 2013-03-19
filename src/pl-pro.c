@@ -519,14 +519,16 @@ last_arg:
   while(isRef(*p))
   { assert(!is_marked(p));
     p2 = unRef(*p);
-    if ( p2 > p )
-    {
+    DEBUG(CHK_HIGHER_ADDRESS,
+          { if ( p2 > p )
+            {
 #ifdef O_ATTVAR
-      if ( !isAttVar(*p2) )
+              if ( !isAttVar(*p2) )
 #endif
-	if ( !gc_status.blocked )
-	  printk("Reference to higher address");
-    }
+                if ( !gc_status.blocked )
+                  printk("Reference to higher address");
+            }
+          });
     if ( p2 == p )
       printk("Reference to same address");
     if ( !onLocal(p2) && !onGlobal(p2) )
@@ -660,8 +662,11 @@ last_arg:
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk("Illegal arity (%d)", arity);
-    else if ( arity > 256 && !is_ht_capacity(arity) )
-      printk("Dubious arity (%d)", arity);
+    else
+      DEBUG(CHK_HIGH_ARITY,
+            { if ( arity > 256 && !is_ht_capacity(arity) )
+                printk("Dubious arity (%d)", arity);
+            });
 
     mark(p);
     for(n=0; n<arity-1; n++)

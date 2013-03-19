@@ -101,6 +101,8 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_STACK_OVERFLOW),
 
   DEBUG_TOPIC(CHK_SECURE),
+  DEBUG_TOPIC(CHK_HIGH_ARITY),
+  DEBUG_TOPIC(CHK_HIGHER_ADDRESS),
 						/* end-of-list */
   { 0, NULL }
 };

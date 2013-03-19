@@ -100,7 +100,9 @@
 #define	MSG_SHIFT_FRAME		 125
 #define	MSG_STACK_OVERFLOW	 126
 
-#define CHK_SECURE    1000
+#define CHK_SECURE              1000
+#define CHK_HIGH_ARITY          1001
+#define CHK_HIGHER_ADDRESS      1002
 
 typedef struct debug_topic
 { unsigned	code;
