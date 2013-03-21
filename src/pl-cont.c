@@ -60,6 +60,15 @@ findReset(LocalFrame fr, term_t ball ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+put_environment() puts a term into env   that represents the environment
+for fr when started from pc.
+
+Note that if the environment contains a  variable on the local stack, we
+must trail this. This is not needed   for  variables on the global stack
+because the environment structure we create is newer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 put_environment(term_t env, LocalFrame fr, Code pc)
 { GET_LD
@@ -79,7 +88,11 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   for(i=0; i<slots; i++)
   { if ( true_bit(active, i) )
     { term_t fr_ref = consTermRef(fr);
+      Word p = argFrameP(fr, i);
 
+      deRef(p);
+      if ( isVar(*p) && p > (Word)lBase )
+	LTrail(p);
 					/* internal one is void */
       PL_put_term(argv+1, consTermRef(argFrameP(fr, i)));
 
