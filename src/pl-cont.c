@@ -178,6 +178,7 @@ PRED_IMPL("shift", 1, shift, 0)
   if ( (reset=findReset(environment_frame, ball PASS_LD)) )
   { term_t cont = PL_new_term_ref();
     LocalFrame resetfr;
+    LocalFrame fr;
 
     DEBUG(MSG_CONTINUE, Sdprintf("Found reset/3 at %ld\n", reset));
     PL_put_nil(cont);
@@ -200,9 +201,29 @@ PRED_IMPL("shift", 1, shift, 0)
     }
     resetfr = (LocalFrame)valTermRef(reset);
 
+					/* leave (dynamic) predicates */
+    for(fr = environment_frame->parent;
+	(fr > (LocalFrame)LD->choicepoints &&
+	 fr > resetfr
+	);
+	fr = fr->parent)
+    { leaveDefinition(fr->predicate);
+    }
+					/* trim lTop.  Note that I_EXIT */
+					/* does not touch this due to FR_KEEPLTOP */
+    if ( fr <= (LocalFrame)LD->choicepoints )
+    { lTop = (LocalFrame)(LD->choicepoints+1);
+    } else
+    { assert(fr == resetfr);
+      lTop = (LocalFrame)argFrameP(fr, fr->clause->value.clause->variables);
+    }
+
 					/* return as from reset/3 */
-    environment_frame->programPointer = resetfr->programPointer;
-    environment_frame->parent         = resetfr->parent;
+    fr = environment_frame;
+    fr->programPointer = resetfr->programPointer;
+    fr->parent         = resetfr->parent;
+    set(fr, FR_KEEPLTOP);
+
     return TRUE;
   }
 
@@ -309,9 +330,12 @@ retry:
   }
 
   if ( PL_get_nil_ex(tail) )
-  { fr = environment_frame;
+  { LocalFrame fr2;
+    fr = environment_frame;
     lTop = top;
 
+    for(fr2=parent; fr2 != fr->parent; fr2 = fr2->parent)
+      enterDefinition(fr2->predicate);
     fr->parent = parent;
     fr->programPointer = pc;
     set(fr, FR_KEEPLTOP);
