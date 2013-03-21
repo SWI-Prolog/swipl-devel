@@ -3177,7 +3177,11 @@ term is to be written.
       return rc;
     if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
       return rc;
-    argp = allocGlobal(3);
+    if ( !hasGlobalSpace(3) &&
+         (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+      return rc;
+    argp = gTop;
+    gTop += 3;
     *unRef(*valTermRef(tail)) = consPtr(argp,
 					TAG_COMPOUND|STG_GLOBAL);
     *argp++ = FUNCTOR_dot2;
