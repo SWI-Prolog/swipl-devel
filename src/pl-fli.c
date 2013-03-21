@@ -876,7 +876,7 @@ PL_cons_functor(term_t h, functor_t fd, ...)
     { int rc;
 
       if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != TRUE )
-	return FALSE;
+	return raiseStackOverflow(rc);
     }
 
     a = t = gTop;
@@ -910,7 +910,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
     { int rc;
 
       if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != TRUE )
-	return FALSE;
+	return raiseStackOverflow(rc);
     }
 
     a = t = gTop;
@@ -936,7 +936,7 @@ PL_cons_list__LD(term_t l, term_t head, term_t tail ARG_LD)
   { int rc;
 
     if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
-      return FALSE;
+      return raiseStackOverflow(rc);
   }
 
   a = gTop;
