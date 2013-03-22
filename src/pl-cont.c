@@ -124,11 +124,20 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 static int
 unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 { GET_LD
-  term_t frame     = PL_new_term_ref();
   term_t argv      = PL_new_term_refs(3);
   term_t reset_ref = consTermRef(resetfr);
+  term_t contv;
+  LocalFrame fr2;
+  int depth = 0;
 
-  for( ; fr != resetfr; pc = fr->programPointer, fr=fr->parent)
+  for(fr2=fr; fr2 != resetfr; fr2=fr2->parent)
+    depth++;
+  if ( !(contv = PL_new_term_refs(depth)) )
+    return FALSE;
+
+  for( depth=0;
+       fr != resetfr;
+       pc = fr->programPointer, fr=fr->parent, depth++)
   { Clause     cl = fr->clause->value.clause;
     long pcoffset = pc - cl->codes;
     term_t fr_ref = consTermRef(fr);
@@ -138,15 +147,16 @@ unify_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
     if ( !PL_put_clref(argv+0, cl) ||
 	 !PL_put_integer(argv+1, pcoffset) ||
 	 !put_environment(argv+2, fr, pc) ||
-	 !PL_cons_functor_v(frame, FUNCTOR_dcont3, argv) ||
-	 !PL_cons_list(cont, frame, cont) )
+	 !PL_cons_functor_v(contv+depth, FUNCTOR_dcont3, argv)  )
       return FALSE;
 
     resetfr = (LocalFrame)valTermRef(reset_ref);
     fr      = (LocalFrame)valTermRef(fr_ref);
   }
 
-  return PL_cons_functor_v(cont, FUNCTOR_call_continuation1, cont);
+  return ( PL_cons_list_v(cont, depth, contv) &&
+	   PL_cons_functor_v(cont, FUNCTOR_call_continuation1, cont)
+	 );
 }
 
 
@@ -231,128 +241,115 @@ PRED_IMPL("shift", 1, shift, 0)
 }
 
 
-/** call_continuation(+Cont)
+/** '$call_one_tail_body'(+Cont)
 
-Reactivate a continuation. See shift for the representation of the
-continuation.
+Reactivate a single tail body from a continuation. See shift for the
+representation of the continuation.
 */
 
+
 static
-PRED_IMPL("call_continuation", 1, call_continuation, 0)
+PRED_IMPL("$call_one_tail_body", 1, call_one_tail_body, 0)
 { PRED_LD
-  term_t tail = PL_copy_term_ref(A1);
-  term_t head = PL_new_term_ref();
-  term_t env  = PL_new_term_ref();
-  term_t arg  = PL_new_term_ref();
-  LocalFrame top, fr, parent;
+  term_t cont = A1;
+  LocalFrame me, top, fr;
   Code pc;
 
 retry:
   top    = lTop;
-  fr     = environment_frame;
-  parent = fr->parent;
-  pc     = fr->programPointer;
+  me     = environment_frame;
 
-  while( PL_get_list_ex(tail, head, tail) )
-  { if ( PL_is_functor(head, FUNCTOR_dcont3) )
-    { Clause cl;
-      ClauseRef cref;
-      long pcoffset;
-      size_t lneeded, lroom;
-      Word ap;
-      int i;
+  if ( PL_is_functor(cont, FUNCTOR_dcont3) )
+  { term_t env  = PL_new_term_ref();
+    term_t arg  = PL_new_term_ref();
+    term_t head = PL_new_term_ref();
+    Clause cl;
+    ClauseRef cref;
+    long pcoffset;
+    size_t lneeded, lroom;
+    Word ap;
+    int i;
+
+    _PL_get_arg(1, cont, arg);
+    if ( !PL_get_clref(arg, &cl) )
+      return FALSE;
+    _PL_get_arg(2, cont, arg);
+    if ( !PL_get_long_ex(arg, &pcoffset) )
+      return FALSE;
+    _PL_get_arg(3, cont, env);
+
+    lneeded = SIZEOF_CREF_CLAUSE +
+	      (size_t)argFrameP((LocalFrame)NULL, cl->variables);
+    lroom   = roomStack(local);
+    if ( lroom < lneeded )		/* resize the stack */
+    { int rc;
+
+      if ( (rc = ensureLocalSpace(roomStack(local)*2, ALLOW_SHIFT)) != TRUE )
+	return raiseStackOverflow(rc);
+      goto retry;
+    }
+
+    cref = (ClauseRef)top;
+    fr   = addPointer(cref, SIZEOF_CREF_CLAUSE);
+    top  = addPointer(top, lneeded);
+
+    for(ap = argFrameP(fr, 0), i=cl->prolog_vars; i-- > 0; )
+      *ap++ = ATOM_garbage_collected;
+    for(i=cl->variables-cl->prolog_vars; i-- > 0; )
+      *ap++ = 0;
+
+    while( PL_get_list_ex(env, head, env) )
+    { int offset;
+
+      if ( !PL_is_functor(head, FUNCTOR_minus2) )
+	return PL_type_error("pair", head);
 
       _PL_get_arg(1, head, arg);
-      if ( !PL_get_clref(arg, &cl) )
+      if ( !PL_get_integer_ex(arg, &offset) )
 	return FALSE;
       _PL_get_arg(2, head, arg);
-      if ( !PL_get_long_ex(arg, &pcoffset) )
-	return FALSE;
-      _PL_get_arg(3, head, env);
-
-      lneeded = SIZEOF_CREF_CLAUSE +
-	        (size_t)argFrameP((LocalFrame)NULL, cl->variables);
-      lroom   = (char*)lMax - (char*)top;
-      if ( lroom < lneeded )		/* resize the stack */
-      { int rc;
-
-	if ( (rc = ensureLocalSpace(roomStack(local)*2, ALLOW_SHIFT)) != TRUE )
-	  return raiseStackOverflow(rc);
-	PL_put_term(tail, A1);
-	goto retry;
-      }
-
-      cref = (ClauseRef)top;
-      fr   = addPointer(cref, SIZEOF_CREF_CLAUSE);
-      top  = addPointer(top, lneeded);
-
-      for(ap = argFrameP(fr, 0), i=cl->prolog_vars; i-- > 0; )
-	*ap++ = ATOM_garbage_collected;
-      for(i=cl->variables-cl->prolog_vars; i-- > 0; )
-	*ap++ = 0;
-
-      while( PL_get_list_ex(env, head, env) )
-      { int offset;
-
-	if ( !PL_is_functor(head, FUNCTOR_minus2) )
-	  return PL_type_error("pair", head);
-
-	_PL_get_arg(1, head, arg);
-	if ( !PL_get_integer_ex(arg, &offset) )
-	  return FALSE;
-	_PL_get_arg(2, head, arg);
-	argFrame(fr, offset) = linkVal(valTermRef(arg));
-      }
-      if ( !PL_get_nil_ex(env) )
-	return FALSE;
-
-      cref->next = NULL;
-      cref->key  = 0;
-      cref->value.clause = cl;
-
-      fr->programPointer = pc;
-      fr->parent         = parent;
-      fr->clause         = cref;
-      fr->predicate      = cl->procedure->definition;
-      fr->context	 = fr->predicate->module;
-      fr->level          = parent->level+1;
-      fr->flags          = 0;		/* TBD: anything needed? */
-#ifdef O_PROFILE
-      fr->prof_node      = NULL;
-#endif
-      setGenerationFrame(fr, GD->generation);
-
-      pc     = cl->codes+pcoffset;
-      parent = fr;
-    } else
-    { return PL_type_error("continuation", head);
+      argFrame(fr, offset) = linkVal(valTermRef(arg));
     }
-  }
+    if ( !PL_get_nil_ex(env) )
+      return FALSE;
 
-  if ( PL_get_nil_ex(tail) )
-  { LocalFrame fr2;
-    fr = environment_frame;
     lTop = top;
 
-    for(fr2=parent; fr2 != fr->parent; fr2 = fr2->parent)
-      enterDefinition(fr2->predicate);
-    fr->parent = parent;
-    fr->programPointer = pc;
-    set(fr, FR_KEEPLTOP);
+    cref->next         = NULL;
+    cref->key          = 0;
+    cref->value.clause = cl;
+
+    fr->programPointer = me->programPointer;
+    fr->parent         = me->parent;
+    fr->level          = me->level;
+    fr->clause         = cref;
+    fr->predicate      = cl->procedure->definition;
+    fr->context	       = fr->predicate->module;
+    fr->flags          = 0;		/* TBD: anything needed? */
+#ifdef O_PROFILE
+    fr->prof_node      = NULL;
+#endif
+    setGenerationFrame(fr, GD->generation);
+    enterDefinition(fr->predicate);
+
+    pc     = cl->codes+pcoffset;
+
+    me->parent = fr;
+    me->programPointer = pc;
+    set(me, FR_KEEPLTOP);
 
     return TRUE;
+  } else
+  { return PL_type_error("continuation", cont);
   }
-
-  return FALSE;
 }
-
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(cont)
-  PRED_DEF("$start_reset",      0, start_reset,       0)
-  PRED_DEF("shift",             1, shift,             0)
-  PRED_DEF("call_continuation", 1, call_continuation, 0)
+  PRED_DEF("$start_reset",        0, start_reset,        0)
+  PRED_DEF("shift",               1, shift,              0)
+  PRED_DEF("$call_one_tail_body", 1, call_one_tail_body, 0)
 EndPredDefs

@@ -321,6 +321,23 @@ reset(Goal, Cont, Ball) :-
 	Cont = 0,
 	Ball = 0.			% only reached if there is no shift
 
+%%	call_continuation(+Continuation:list)
+%
+%	Call a continuation as created by shift/1. The continuation is a
+%	lost  of  '$cont$'(Clause,  PC,   Environment)  structures.  The
+%	predicate  '$call_one_tail_body'/1  creates  a  frame  from  the
+%	continuation and calls this.
+%
+%	Note that we can technically also   push the entire continuation
+%	onto the environment and call  it.   Doing  it  incrementally as
+%	below exploits last-call  optimization   and  therefore possible
+%	quadratic expansion of the continuation.
+
+call_continuation([]).
+call_continuation([TB|Rest]) :-
+	'$call_one_tail_body'(TB),
+	call_continuation(Rest).
+
 
 %%	'$recover_and_rethrow'(:Goal, +Term)
 %
