@@ -1033,6 +1033,43 @@ PL_cons_list(term_t l, term_t head, term_t tail)
 }
 #define PL_cons_list(l, h, t) PL_cons_list__LD(l, h, t PASS_LD)
 
+/* PL_cons_list_v() creates a list from a vector of term-references
+*/
+
+int
+PL_cons_list_v(term_t list, size_t count, term_t elems)
+{ GET_LD
+
+  if ( count > 0 )
+  { Word p;
+
+    if ( !hasGlobalSpace(3*count) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(3*count, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+    }
+
+    p = gTop;
+    for( ; count-- > 0; p += 3, elems++ )
+    { p[0] = FUNCTOR_dot2;
+      bindConsVal(&p[1], valHandleP(elems) PASS_LD);
+      if ( count > 0 )
+      { p[2] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+      } else
+      { p[2] = ATOM_nil;
+      }
+    }
+
+    setHandle(list, consPtr(gTop, TAG_COMPOUND|STG_GLOBAL));
+    gTop = p;
+  } else
+  { setHandle(list, ATOM_nil);
+  }
+
+  return TRUE;
+}
+
 
 		 /*******************************
 		 *     POINTER <-> PROLOG INT	*

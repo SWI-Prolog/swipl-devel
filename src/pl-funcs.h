@@ -252,6 +252,7 @@ COMMON(int)		PL_is_atom__LD(term_t t ARG_LD);
 COMMON(int)		PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD);
 COMMON(int)		PL_cons_list__LD(term_t l, term_t head, term_t tail
 					 ARG_LD);
+COMMON(int)		PL_cons_list_v(term_t list, size_t count, term_t elems);
 COMMON(int)		PL_is_inf(term_t t);
 COMMON(int)		PL_same_term__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int)		isUCSAtom(Atom a);
