@@ -4205,10 +4205,8 @@ PRED_IMPL("is_stream", 1, is_stream, 0)
   atom_t a;
 
   if ( PL_get_atom(A1, &a) &&
-       get_stream_handle(a, &s, 0) )
-  { releaseStream(s);
+       get_stream_handle(a, &s, SH_UNLOCKED) )
     return TRUE;
-  }
 
   return FALSE;
 }
