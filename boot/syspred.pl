@@ -931,11 +931,7 @@ on_signal(Signal, Old, New) :-
 	integer(Signal), !,
 	'$on_signal'(Signal, _Name, Old, New).
 on_signal(Signal, _Old, _New) :-
-	(   var(Signal)
-	->  Err = instantiation_error
-	;   Err = type_error(signal_name, Signal)
-	),
-	throw(error(Err, context(on_signal/3, _))).
+	'$type_error'(signal_name, Signal).
 
 %%	current_signal(?Name, ?SignalNumber, :Handler) is nondet.
 
