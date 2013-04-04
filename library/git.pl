@@ -435,15 +435,33 @@ tags_on_line(Tags, Tail) -->
 
 tags(Tags, Tail) -->
 	whites,
-	"(tag: ",
-	string(Codes),
-	")", !,
-	{ atom_codes(Tag, Codes),
-	  Tags = [Tag|Rest]
-	},
+	"(",
+	tag_list(Tags, Rest), !,
 	tags(Rest, Tail).
 tags(Tags, Tags) -->
 	skip_rest.
+
+tag_list([H|T], Rest) -->
+	"tag:", !, whites,
+	string(Codes),
+	(   ")"
+	->  { atom_codes(H, Codes),
+	      T = Rest
+	    }
+	;   ","
+	->  { atom_codes(H, Codes)
+	    },
+	    whites,
+	    tag_list(T, Rest)
+	).
+tag_list(List, Rest) -->
+	string(_),
+	(   ")"
+	->  { List = Rest }
+	;   ","
+	->  whites,
+	    tag_list(List, Rest)
+	).
 
 skip_rest(_,_).
 
