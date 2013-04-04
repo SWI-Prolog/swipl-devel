@@ -190,7 +190,7 @@ if [ "$modules" = true ]; then
 
     if $0 --dir="$d" --quiet "$subopts"; then
       echo
-      $0 --dir="$d" "$subopts" $moduleoptions
+      $0 --dir="$d" $moduleoptions "$subopts"
 #   else
 #     echo "Package `basename $d`: no changes"
     fi
