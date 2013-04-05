@@ -51,7 +51,10 @@ test(mod, true) :-
 	       forall((between(-10, 10, Y), Y =\= 0),
 		      (	  Q is div(X, Y),
 			  M is mod(X, Y),
-			  X =:= Y*Q+M
+			  (   X =:= Y*Q+M
+			  ->  true
+			  ;   format(user_error, 'Failed for X=~w,Y=~w~n', [X,Y])
+			  )
 		      ))).
 
 :- end_tests(div).
