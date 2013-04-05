@@ -1812,7 +1812,10 @@ ar_div(Number n1, Number n2, Number r)
       return PL_error("div", 2, NULL, ERR_DIV_BY_ZERO);
 
     if ( !(n2->value.i == -1 && n1->value.i == PLMININT) )
-    { r->value.i = (n1->value.i - mod(n1->value.i, n2->value.i)) / n2->value.i;
+    { r->value.i = n1->value.i / n2->value.i;
+      if ((n1->value.i > 0) != (n2->value.i > 0) &&
+          n1->value.i % n2->value.i != 0)
+        --r->value.i;
       r->type = V_INTEGER;
 
       succeed;

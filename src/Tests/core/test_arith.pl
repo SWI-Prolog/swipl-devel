@@ -46,16 +46,22 @@ test_arith :-
 
 :- begin_tests(div).
 
+div_ok(X, Y) :-
+	Q is div(X, Y),
+	M is mod(X, Y),
+	(   X =:= Y*Q+M
+	->  true
+	;   format(user_error, 'Failed for X=~w,Y=~w~n', [X,Y])
+	).
+
 test(mod, true) :-
 	forall(between(-10, 10, X),
 	       forall((between(-10, 10, Y), Y =\= 0),
-		      (	  Q is div(X, Y),
-			  M is mod(X, Y),
-			  (   X =:= Y*Q+M
-			  ->  true
-			  ;   format(user_error, 'Failed for X=~w,Y=~w~n', [X,Y])
-			  )
-		      ))).
+		      div_ok(X, Y))).
+
+test(minint, A == -2147483648) :-
+	assertion(div_ok(-9223372036854775808, 4294967297)),
+	A is -9223372036854775808 div 4294967297.
 
 :- end_tests(div).
 
