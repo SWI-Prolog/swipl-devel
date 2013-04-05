@@ -1801,9 +1801,9 @@ Result is rnd_i(IntExpr1/IntExpr2), rounded towards -infinity
 static int
 ar_div(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
-    return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+    return PL_error("div", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
   if ( !toIntegerNumber(n2, 0) )
-    return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
+    return PL_error("div", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
 #ifdef O_GMP
   if ( n1->type == V_INTEGER && n2->type == V_INTEGER )
@@ -1824,7 +1824,7 @@ ar_div(Number n1, Number n2, Number r)
   promoteToMPZNumber(n2);
 
   if ( mpz_sgn(n2->value.mpz) == 0 )
-    return PL_error("//", 2, NULL, ERR_DIV_BY_ZERO);
+    return PL_error("div", 2, NULL, ERR_DIV_BY_ZERO);
 
   r->type = V_MPZ;
   mpz_init(r->value.mpz);
@@ -3321,8 +3321,8 @@ static const ar_funcdef ar_funcdefs[] = {
 
   ADD(FUNCTOR_mod2,		ar_mod, F_ISO),
   ADD(FUNCTOR_rem2,		ar_rem, F_ISO),
-  ADD(FUNCTOR_div2,		ar_div, F_ISO),
-  ADD(FUNCTOR_gdiv2,		ar_tdiv, 0),
+  ADD(FUNCTOR_div2,		ar_div, F_ISO),		/* div/2 */
+  ADD(FUNCTOR_gdiv2,		ar_tdiv, 0),		/* (//)/2 */
   ADD(FUNCTOR_gcd2,		ar_gcd, 0),
   ADD(FUNCTOR_sign1,		ar_sign, F_ISO),
 
