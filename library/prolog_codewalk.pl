@@ -81,7 +81,8 @@ source file is passed into _Where.
 		       source(boolean),
 		       trace_reference(any),
 		       on_trace(callable),
-		       infer_meta_predicates(oneof([false,true,all]))
+		       infer_meta_predicates(oneof([false,true,all])),
+		       evaluate(boolean)
 		     ]).
 
 :- record
