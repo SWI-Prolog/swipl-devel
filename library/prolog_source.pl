@@ -117,9 +117,29 @@ users of the library are:
 %	       arbitrary location.
 
 prolog_read_source_term(In, Term, Expanded, Options) :-
+	maplist(read_clause_option, Options), !,
 	read_clause(In, Term, Options),
 	expand(Term, In, Expanded),
 	update_state(Expanded).
+prolog_read_source_term(In, Term, Expanded, Options) :-
+	'$set_source_module'(M, M),
+	select_option(syntax_errors(SE), Options, RestOptions, dec10),
+	(   style_check(?(singleton))
+	->  FinalOptions = [ singletons(warning) | RestOptions ]
+	;   FinalOptions = RestOptions
+	),
+	read_term(In, Term,
+		  [ module(M),
+		    syntax_errors(SE)
+		  | FinalOptions
+		  ]),
+	expand(Term, In, Expanded),
+	update_state(Expanded).
+
+read_clause_option(systax_errors(_)).
+read_clause_option(term_position(_)).
+read_clause_option(process_comment(_)).
+read_clause_option(comments(_)).
 
 :- public
 	expand/3.			% Used by Prolog colour
