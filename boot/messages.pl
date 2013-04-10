@@ -1223,6 +1223,7 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 	append_args([Term], Args1, Args).
 
 action_skip(at_same_line).
+action_skip(flush).
 action_skip(ansi(_Attrs, _Fmt, _Args)).
 action_skip(begin(_Level, _Ctx)).
 action_skip(end(_Ctx)).
