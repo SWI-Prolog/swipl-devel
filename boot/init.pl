@@ -672,11 +672,46 @@ absolute_file_name(Spec, Path, Args) :-
 	    ->	true
 	    ;	(   FileErrors == fail
 		->  fail
-		;   throw(error(existence_error(source_sink, Spec), _))
+		;   findall(P,
+			    '$chk_file'(Spec1, Extensions, [access(exist)],
+					false, P),
+			    Candidates),
+		    '$abs_file_error'(Spec, Candidates, C3)
 		)
 	    )
 	;   '$chk_file'(Spec1, Extensions, C3, false, Path)
 	).
+
+'$abs_file_error'(Spec, Candidates, Conditions) :-
+	'$member'(F, Candidates),
+	'$member'(C, Conditions),
+	'$file_condition'(C),
+	'$file_error'(C, Spec, F, E, Comment), !,
+	throw(error(E, context(_, Comment))).
+'$abs_file_error'(Spec, _, _) :-
+	'$existence_error'(source_sink, Spec).
+
+'$file_error'(file_type(directory), Spec, File, Error, Comment) :-
+	\+ exists_directory(File), !,
+	Error = existence_error(directory, Spec),
+	Comment = not_a_directory(File).
+'$file_error'(file_type(_), Spec, File, Error, Comment) :-
+	exists_directory(File), !,
+	Error = existence_error(file, Spec),
+	Comment = directory(File).
+'$file_error'(access(OneOrList), Spec, File, Error, _) :-
+	'$one_or_member'(Access, OneOrList),
+	\+ access_file(File, Access),
+	Error = permission_error(Access, source_sink, Spec).
+
+'$one_or_member'(_, Var) :-
+	var(Var), !,
+	'$instantiation_error'(Var).
+'$one_or_member'(E, [H|T]) :- !,
+	'$one_or_member'(E, H),
+	'$one_or_member'(E, T).
+'$one_or_member'(_, []) :- !, fail.
+'$one_or_member'(E, E).
 
 '$file_type_extensions'(source, Exts) :- !,	% SICStus 3.9 compatibility
 	'$file_type_extensions'(prolog, Exts).
@@ -730,17 +765,17 @@ user:prolog_file_type(Ext,	executable) :-
 '$chk_file'(File, Exts, Cond, _, FullName) :-
 	is_absolute_file_name(File), !,
 	'$extend_file'(File, Exts, Extended),
-	'$file_condition'(Cond, Extended),
+	'$file_conditions'(Cond, Extended),
 	'$absolute_file_name'(Extended, FullName).
 '$chk_file'(File, Exts, Cond, _, FullName) :-
 	'$relative_to'(Cond, source, Dir),
 	atomic_list_concat([Dir, /, File], AbsFile),
 	'$extend_file'(AbsFile, Exts, Extended),
-	'$file_condition'(Cond, Extended), !,
+	'$file_conditions'(Cond, Extended), !,
 	'$absolute_file_name'(Extended, FullName).
 '$chk_file'(File, Exts, Cond, _, FullName) :-
 	'$extend_file'(File, Exts, Extended),
-	'$file_condition'(Cond, Extended),
+	'$file_conditions'(Cond, Extended),
 	'$absolute_file_name'(Extended, FullName).
 
 '$segments_to_atom'(Atom, Atom) :-
@@ -795,11 +830,11 @@ user:prolog_file_type(Ext,	executable) :-
 	Cache = cache(Exts, Cond, CWD, Expansions),
 	term_hash(Cache, Hash),
 	(   '$search_path_file_cache'(Spec, Hash, Cache, FullFile),
-	    '$file_condition'(Cond, FullFile)
+	    '$file_conditions'(Cond, FullFile)
 	->  '$search_message'(file_search(cache(Spec, Cond), FullFile))
 	;   '$member'(Expanded, Expansions),
 	    '$extend_file'(Expanded, Exts, LibFile),
-	    (   '$file_condition'(Cond, LibFile),
+	    (   '$file_conditions'(Cond, LibFile),
 		'$absolute_file_name'(LibFile, FullFile),
 		\+ '$search_path_file_cache'(Spec, Hash, Cache, FullFile),
 		assert('$search_path_file_cache'(Spec, Hash, Cache, FullFile))
@@ -811,7 +846,7 @@ user:prolog_file_type(Ext,	executable) :-
 '$chk_alias_file'(Spec, Exts, Cond, false, _CWD, FullFile) :-
 	expand_file_search_path(Spec, Expanded),
 	'$extend_file'(Expanded, Exts, LibFile),
-	'$file_condition'(Cond, LibFile),
+	'$file_conditions'(Cond, LibFile),
 	'$absolute_file_name'(LibFile, FullFile).
 
 
@@ -822,27 +857,32 @@ user:prolog_file_type(Ext,	executable) :-
 
 
 
-%	'$file_condition'(+Condition, +Path)
+%	'$file_conditions'(+Condition, +Path)
 %
 %	Verify Path satisfies Condition.
 
-'$file_condition'([], _) :- !.
-'$file_condition'([H|T], File) :- !,
-	'$file_condition'(H, File),
-	'$file_condition'(T, File).
+'$file_conditions'([], _) :- !.
+'$file_conditions'([H|T], File) :- !,
+	(   '$file_condition'(H)
+	->  '$file_condition'(H, File)
+	;   true
+	),
+	'$file_conditions'(T, File).
+
 '$file_condition'(exists, File) :- !,
 	exists_file(File).
 '$file_condition'(file_type(directory), File) :- !,
 	exists_directory(File).
 '$file_condition'(file_type(_), File) :- !,
 	\+ exists_directory(File).
-'$file_condition'(access([A1|AT]), File) :- !,
-	'$file_condition'(access(A1), File),
-	'$file_condition'(access(AT), File).
-'$file_condition'(access([]), _) :- !.
-'$file_condition'(access(Access), File) :- !,
-	access_file(File, Access).
-'$file_condition'(_, _File).		% This isn't a condition
+'$file_condition'(access(Accesses), File) :- !,
+	\+ (  '$one_or_member'(Access, Accesses),
+	      \+ access_file(File, Access)
+	   ).
+
+'$file_condition'(exists).
+'$file_condition'(file_type(_)).
+'$file_condition'(access(_)).
 
 '$extend_file'(File, Exts, FileEx) :-
 	'$ensure_extensions'(Exts, File, Fs),
@@ -2710,6 +2750,9 @@ saved state.
 
 '$domain_error'(Type, Value) :-
 	throw(error(domain_error(Type, Value), _)).
+
+'$existence_error'(Type, Object) :-
+	throw(error(existence_error(Type, Object), _)).
 
 '$instantiation_error'(_Var) :-
 	throw(error(instantiation_error, _)).

@@ -349,6 +349,10 @@ swi_extra(_) -->
 
 swi_comment(already_from(Module)) --> !,
 	[ ' (already imported from ~q)'-[Module] ].
+swi_comment(directory(_Dir)) --> !,
+	[ ' (is a directory)' ].
+swi_comment(not_a_directory(_Dir)) --> !,
+	[ ' (is not a directory)' ].
 swi_comment(Msg) -->
 	[ ' (~w)'-[Msg] ].
 
