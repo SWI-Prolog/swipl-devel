@@ -33,6 +33,7 @@
 	  [ git/2,			% +Argv, +Options
 	    git_process_output/3,	% +Argv, :OnOutput, +Options
 	    git_open_file/4,		% +Dir, +File, +Branch, -Stream
+	    is_git_directory/1,		% +Dir
 	    git_describe/2,		% -Version, +Options
 	    git_hash/2,			% -Hash, +Options
 	    git_ls_tree/2,		% -Content, +Options
@@ -71,7 +72,8 @@ into the core Prolog library to support the Prolog package manager.
 :- predicate_options(git/2, 2,
 		     [ directory(atom),
 		       error(-codes),
-		       output(-codes)
+		       output(-codes),
+		       status(-any)
 		     ]).
 :- predicate_options(git_default_branch/2, 2,
 		     [ pass_to(git_process_output/3, 3)
@@ -135,7 +137,9 @@ git(Argv, Options) :-
 			   )),
 	print_error(ErrorCodes, Options),
 	print_output(OutCodes, Options),
-	(   Status == exit(0)
+	(   option(status(Status0), Options)
+	->  Status = Status0
+	;   Status == exit(0)
 	->  true
 	;   throw(error(process_error(git(Argv), Status), _))
 	).
@@ -206,6 +210,25 @@ git_open_file(Dir, File, Branch, In) :-
 		       ]),
 	set_stream(In, file_name(File)).
 
+
+%%	is_git_directory(+Directory) is semidet.
+%
+%	True if Directory is a  git   directory  (Either  checked out or
+%	bare).
+
+is_git_directory(Directory) :-
+	directory_file_path(Directory, '.git', GitDir),
+	exists_directory(GitDir).
+is_git_directory(Directory) :-
+	exists_directory(Directory),
+	git(['rev-parse', '--git-dir'],
+	    [ output(Codes),
+	      error(_),
+	      status(Status),
+	      directory(Directory)
+	    ]),
+	Status == exit(0),
+	Codes == ".\n".
 
 %%	git_describe(-Version, +Options) is semidet.
 %
