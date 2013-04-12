@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010-2012, University of Amsterdam,
+    Copyright (C): 2010-2013, University of Amsterdam,
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -34,6 +34,8 @@
 	    git_process_output/3,	% +Argv, :OnOutput, +Options
 	    git_open_file/4,		% +Dir, +File, +Branch, -Stream
 	    git_describe/2,		% -Version, +Options
+	    git_hash/2,			% -Hash, +Options
+	    git_ls_tree/2,		% -Content, +Options
 	    git_remote_url/3,		% +Remote, -URL, +Options
 	    git_ls_remote/3,		% +GitURL, -Refs, +Options
 	    git_remote_branches/2,	% +GitURL, -Branches
@@ -78,6 +80,14 @@ into the core Prolog library to support the Prolog package manager.
 		     [ commit(atom),
 		       directory(atom),
 		       match(atom)
+		     ]).
+:- predicate_options(git_hash/2, 2,
+		     [ commit(atom),
+		       directory(atom)
+		     ]).
+:- predicate_options(git_ls_tree/2, 2,
+		     [ commit(atom),
+		       directory(atom)
 		     ]).
 :- predicate_options(git_process_output/3, 3,
 		     [ directory(atom),
@@ -298,6 +308,62 @@ stream_char_count(Out, Count) :-
 			       character_count(Null, Count)
 			   ),
 			   close(Null)).
+
+
+%%	git_hash(-Hash, +Options) is det.
+%
+%	Return the hash of the indicated object.
+
+git_hash(Hash, Options) :-
+	option(commit(Commit), Options, 'HEAD'),
+	git_process_output(['rev-parse', '--verify', Commit],
+			   read_hash(Hash),
+			   Options).
+
+read_hash(Hash, Stream) :-
+	read_line_to_codes(Stream, Line),
+	atom_codes(Hash, Line).
+
+
+%%	git_ls_tree(-Entries, +Options) is det.
+%
+%	True  when  Entries  is  a  list  of  entries  in  the  the  GIT
+%	repository, Each entry is a term:
+%
+%	  ==
+%	  object(Mode, Type, Hash, Size, Name)
+%	  ==
+
+git_ls_tree(Entries, Options) :-
+	option(commit(Commit), Options, 'HEAD'),
+	git_process_output(['ls-tree', '-z', '-r', '-l', Commit],
+			   read_tree(Entries),
+			   Options).
+
+read_tree(Entries, Stream) :-
+	read_stream_to_codes(Stream, Codes),
+	phrase(ls_tree(Entries), Codes).
+
+ls_tree([H|T]) -->
+	ls_entry(H), !,
+	ls_tree(T).
+ls_tree([]) --> [].
+
+ls_entry(object(Mode, Type, Hash, Size, Name)) -->
+	string(MS), " ",
+	string(TS), " ",
+	string(HS), " ",
+	string(SS), "\t",
+	string(NS), [0], !,
+	{ number_codes(Mode, [0'0,0'o|MS]),
+	  atom_codes(Type, TS),
+	  atom_codes(Hash, HS),
+	  (   Type == blob
+	  ->  number_codes(Size, SS)
+	  ;   Size = 0		% actually '-', but 0 sums easier
+	  ),
+	  atom_codes(Name, NS)
+	}.
 
 
 %%	git_remote_url(+Remote, -URL, +Options) is det.
