@@ -1214,10 +1214,30 @@ git_url(URL, Pack) :-
 	(   file_name_extension(Pack, git, PackExt)
 	->  true
 	;   Pack = PackExt
+	),
+	(   safe_pack_name(Pack)
+	->  true
+	;   domain_error(pack_name, Pack)
 	).
 
 git_download_scheme(http).
 git_download_scheme(https).
+
+%%	safe_pack_name(+Name:atom) is semidet.
+%
+%	Verifies that Name is a valid   pack  name. This avoids trickery
+%	with pack file names to make shell commands behave unexpectly.
+
+safe_pack_name(Name) :-
+	atom_length(Name, Len),
+	Len >= 3,				% demand at least three length
+	atom_codes(Name, Codes),
+	maplist(safe_pack_char, Codes), !.
+
+safe_pack_char(C) :- between(0'a, 0'z, C), !.
+safe_pack_char(C) :- between(0'A, 0'Z, C), !.
+safe_pack_char(C) :- between(0'0, 0'9, C), !.
+safe_pack_char(C) :- memberchk(C, "_").
 
 
 		 /*******************************
@@ -1237,7 +1257,8 @@ pack_version_file(Pack, Version, Path) :-
 	file_name_extension(Base, Ext, File),
 	Ext \== '',
 	atom_codes(Base, Codes),
-	(   phrase(pack_version(Pack, Version), Codes)
+	(   phrase(pack_version(Pack, Version), Codes),
+	    safe_pack_name(Pack)
 	->  true
 	;   print_message(error, pack(invalid_name(File))),
 	    fail
