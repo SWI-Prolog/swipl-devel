@@ -696,7 +696,7 @@ pack_install_from_url(_, URL, PackTopDir, Pack, Options) :-
 	pack_git_info(PackDir, Hash, Info),
 	pack_inquiry(URL, git(Hash), Info, Options),
 	show_info(Pack, Info, Options),
-	confirm(install_downloaded(Pack), yes, Options),
+	confirm(git_post_install(PackDir, Pack), yes, Options),
 	pack_post_install(Pack, PackDir, Options).
 pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	download_scheme(Scheme),
@@ -1893,6 +1893,11 @@ message(install_downloaded(File)) -->
 	{ file_base_name(File, Base),
 	  size_file(File, Size) },
 	[ 'Install "~w" (~D bytes)'-[Base, Size] ].
+message(git_post_install(PackDir, Pack)) -->
+	(   { is_foreign_pack(PackDir) }
+	->  [ 'Run post installation scripts for pack "~w"'-[Pack] ]
+	;   [ 'Activate pack "~w"'-[Pack] ]
+	).
 message(inquiry(Server)) -->
 	[ 'Verify package status (anonymously)', nl,
 	  '\tat "~w"'-[Server]
