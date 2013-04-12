@@ -425,8 +425,9 @@ pack_install(Dir) :-			% Install from directory
 	uri_file_name(DirURL, Dir),
 	pack_install(Name, [url(DirURL)]).
 pack_install(Pack) :-			% Install from a pack name
-	query_pack_server(locate(Pack), true(Results)),
-	(   Results = [Version-[URL|_]|_]
+	query_pack_server(locate(Pack), Reply),
+	(   Reply = true(Results),
+	    Results = [Version-[URL|_]|_]
 	->  confirm(install_from(Pack, Version, URL), yes, []),
 	    pack_install(Pack, [url(URL), inquiry(true)])
 	;   print_message(warning, pack(no_match(Pack))),
