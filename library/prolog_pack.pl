@@ -602,6 +602,22 @@ read_stream_to_terms(Term0, Stream, [Term0|Terms]) :-
 	read_stream_to_terms(Term1, Stream, Terms).
 
 
+%%	pack_git_info(+GitDir, -Hash, -Info) is det.
+%
+%	Retrieve info from a cloned git   repository  that is compatible
+%	with pack_archive_info/4.
+
+pack_git_info(GitDir, Hash, [git(true), installed_size(Bytes)|Info]) :-
+	exists_directory(GitDir), !,
+	git_ls_tree(Entries, [directory(GitDir)]),
+	git_hash(Hash, [directory(GitDir)]),
+	maplist(arg(4), Entries, Sizes),
+	sum_list(Sizes, Bytes),
+	directory_file_path(GitDir, 'pack.pl', InfoFile),
+	read_file_to_terms(InfoFile, Info, [encoding(utf8)]),
+	must_be(ground, Info),
+	maplist(valid_info_term, Info).
+
 %%	download_file_sanity_check(+Archive, +Pack, +Info) is semidet.
 %
 %	Perform basic sanity checks on DownloadFile
@@ -677,6 +693,10 @@ pack_install_from_url(_, URL, PackTopDir, Pack, Options) :-
 	directory_file_path(PackTopDir, Pack, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
+	pack_git_info(PackDir, Hash, Info),
+	pack_inquiry(URL, git(Hash), Info, Options),
+	show_info(Pack, Info, Options),
+	confirm(install_downloaded(Pack), yes, Options),
 	pack_post_install(Pack, PackDir, Options).
 pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	download_scheme(Scheme),
@@ -1290,7 +1310,10 @@ pack_inquiry(URL, DownloadFile, Info, Options) :-
 	->  true
 	;   confirm(inquiry(Server), yes, Options)
 	), !,
-	file_sha1(DownloadFile, SHA1),
+	(   DownloadFile = git(SHA1)
+	->  true
+	;   file_sha1(DownloadFile, SHA1)
+	),
 	query_pack_server(install(URL, SHA1, Info), Reply),
 	inquiry_result(Reply, URL).
 pack_inquiry(_, _, _, _).
