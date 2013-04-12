@@ -672,12 +672,12 @@ special(..).
 %	built-in HTTP client. For complete  coverage, we should consider
 %	using an external (e.g., curl) if available.
 
-pack_install_from_url(_, URL, PackTopDir, Name, Options) :-
+pack_install_from_url(_, URL, PackTopDir, Pack, Options) :-
 	option(git(true), Options), !,
-	directory_file_path(PackTopDir, Name, PackDir),
+	directory_file_path(PackTopDir, Pack, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
-	pack_post_install(Name, PackDir, Options).
+	pack_post_install(Pack, PackDir, Options).
 pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	download_scheme(Scheme),
 	directory_file_path(PackTopDir, Pack, PackDir),
