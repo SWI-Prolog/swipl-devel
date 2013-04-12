@@ -278,7 +278,8 @@ swi_message(context_error(edit, no_default_file)) -->
 	       Prolog file by double-clicking it' ]
 	;   [ 'Edit/0 can only be used with the "-s file" commandline option'
 	    ]
-	).
+	),
+	[ nl, 'Use "?- edit(Topic)." or "?- emacs."' ].
 swi_message(format_argument_type(Fmt, Arg)) -->
 	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
 swi_message(format(Msg)) -->
