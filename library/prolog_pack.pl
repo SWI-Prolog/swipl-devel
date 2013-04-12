@@ -426,14 +426,39 @@ pack_install(Dir) :-			% Install from directory
 	pack_install(Name, [url(DirURL)]).
 pack_install(Pack) :-			% Install from a pack name
 	query_pack_server(locate(Pack), Reply),
-	(   Reply = true(Results),
-	    Results = [Version-[URL|_]|_]
-	->  confirm(install_from(Pack, Version, URL), yes, []),
-	    pack_install(Pack, [url(URL), inquiry(true)])
+	(   Reply = true(Results)
+	->  (   pack_select_candidate(Pack, Results, InstallOptions)
+	    ->	pack_install(Pack, InstallOptions)
+	    ;	fail
+	    )
 	;   print_message(warning, pack(no_match(Pack))),
 	    fail
 	).
 
+pack_select_candidate(Pack, [Version-[URL]|_],
+		      [url(URL), git(true), inquiry(true)]) :-
+	git_url(URL, Pack), !,
+	confirm(install_from(Pack, Version, git(URL)), yes, []).
+pack_select_candidate(Pack, [Version-[URL]|_],
+		      [url(URL), inquiry(true)]) :-
+	confirm(install_from(Pack, Version, URL), yes, []).
+pack_select_candidate(Pack, [Version-URLs|_],
+		      [url(URL), inquiry(true)|Rest]) :-
+	maplist(url_menu_item, URLs, Tagged),
+	append(Tagged, [cancel=cancel], Menu),
+	Menu = [Default=_|_],
+	menu(pack(select_install_from(Pack, Version)), Menu, Default, Choice),
+	(   Choice == cancel
+	->  fail
+	;   Choice = git(URL)
+	->  Rest = [git(true)]
+	;   Choice = URL,
+	    Rest = []
+	).
+
+url_menu_item(URL, git(URL)=install_from(git(URL))) :-
+	git_url(URL, _), !.
+url_menu_item(URL, URL=install_from(URL)).
 
 
 %%	pack_install(+Name, +Options) is det.
@@ -1814,6 +1839,7 @@ confirm(Question, Default, _) :-
 	between(1, 5, _),
 	   print_message(query, pack(confirm(Question, Default))),
 	   read_yes_no(YesNo, Default), !,
+	format(user_error, '~N', []),
         YesNo == yes.
 
 read_yes_no(YesNo, Default) :-
@@ -1888,8 +1914,12 @@ message(remove(PackDir)) -->
 	[ 'Removing ~q and contents'-[PackDir] ].
 message(remove_existing_pack(PackDir)) -->
 	[ 'Remove old installation in ~q'-[PackDir] ].
+message(install_from(Pack, Version, git(URL))) -->
+	[ 'Install ~w@~w from GIT at ~w'-[Pack, Version, URL] ].
 message(install_from(Pack, Version, URL)) -->
 	[ 'Install ~w@~w from ~w'-[Pack, Version, URL] ].
+message(select_install_from(Pack, Version)) -->
+	[ 'Select download location for ~w@~w'-[Pack, Version] ].
 message(install_downloaded(File)) -->
 	{ file_base_name(File, Base),
 	  size_file(File, Size) },
@@ -2073,6 +2103,10 @@ label(remove_deps(Pack, Deps)) -->
 	[ 'Remove package ~w and ~D dependencies'-[Pack, Count] ].
 label(create_dir(Dir)) -->
 	[ '~w'-[Dir] ].
+label(install_from(git(URL))) --> !,
+	[ 'GIT repository at ~w'-[URL] ].
+label(install_from(URL)) -->
+	[ '~w'-[URL] ].
 label(cancel) -->
 	[ 'Cancel' ].
 
