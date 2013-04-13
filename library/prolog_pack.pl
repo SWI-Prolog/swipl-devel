@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2012, VU University Amsterdam
+    Copyright (C): 2013, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -1408,8 +1408,7 @@ inquiry_result(Reply, File) :-
 eval_inquiry(true(Reply), URL, Eval) :-
 	include(alt_hash, Reply, Alts),
 	Alts \== [],
-	file_base_name(URL, File),
-	print_message(warning, pack(alt_hashes(File, Alts))),
+	print_message(warning, pack(alt_hashes(URL, Alts))),
 	(   memberchk(downloads(Count), Reply),
 	    confirm(continue_with_alt_hashes(Count, URL), no, [])
 	->  Eval = with_alt_hashes
@@ -1994,7 +1993,13 @@ message(confirm(Question, Default)) -->
 
 % Alternate hashes for found for the same file
 
-message(alt_hashes(File, Alts)) -->
+message(alt_hashes(URL, _Alts)) -->
+	{ git_url(URL, _)
+	}, !,
+	[ 'GIT repository was updated without updating version' ].
+message(alt_hashes(URL, Alts)) -->
+	{ file_base_name(URL, File)
+	},
 	[ 'Found multiple versions of "~w".'-[File], nl,
 	  'This could indicate a compromised or corrupted file', nl
 	],
@@ -2008,12 +2013,17 @@ message(modified_hash(_SHA1-URL, _SHA2-[URL])) -->
 	[ 'Content of ~q has changed.'-[URL]
 	].
 
-
 alt_hashes([]) --> [].
 alt_hashes([H|T]) --> alt_hash(H), ( {T == []} -> [] ; [nl], alt_hashes(T) ).
 
 alt_hash(alt_hash(Count, URLs, Hash)) -->
-	[ '~t~d~8| ~w ~w'-[Count, Hash, URLs] ].
+	[ '~t~d~8| ~w'-[Count, Hash] ],
+	alt_urls(URLs).
+
+alt_urls([]) --> [].
+alt_urls([H|T]) -->
+	[ nl, '    ~w'-[H] ],
+	alt_urls(T).
 
 % Installation dependencies gathered from inquiry server.
 
