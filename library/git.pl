@@ -39,6 +39,7 @@
 	    git_ls_tree/2,		% -Content, +Options
 	    git_remote_url/3,		% +Remote, -URL, +Options
 	    git_ls_remote/3,		% +GitURL, -Refs, +Options
+	    git_branches/2,		% -Branches, +Options
 	    git_remote_branches/2,	% +GitURL, -Branches
 	    git_default_branch/2,	% -DefaultBranch, +Options
 	    git_tags_on_branch/3,	% +Dir, +Branch, -Tags
@@ -475,7 +476,7 @@ git_remote_branches(GitURL, Branches) :-
 
 %%	git_default_branch(-BranchName, +Options) is det.
 %
-%	True if BranchName is the default branch of a repository.
+%	True when BranchName is the default branch of a repository.
 
 git_default_branch(BranchName, Options) :-
 	git_process_output([branch],
@@ -493,6 +494,34 @@ read_default_branch(BranchName, In) :-
 
 default_branch(Rest) -->
 	"*", whites, string(Rest).
+
+%%	git_branches(-Branches, +Options) is det.
+%
+%	True when Branches is the list of branches in the repository.
+%	In addition to the usual options, this processes:
+%
+%	  - contains(Commit)
+%	  Return only branches that contain Commit.
+
+git_branches(Branches, Options) :-
+	(   select_option(commit(Commit), Options, GitOptions)
+	->  Extra = ['--contains', Commit]
+	;   Extra = [],
+	    GitOptions = Options
+	),
+	git_process_output([branch|Extra],
+			   read_branches(Branches),
+			   GitOptions).
+
+read_branches(Branches, In) :-
+	read_line_to_codes(In, Line),
+	(   Line == end_of_file
+	->  Branches = []
+	;   Line = [_,_|Codes],
+	    atom_codes(H, Codes),
+	    Branches = [H|T],
+	    read_branches(T, In)
+	).
 
 
 %%	git_tags_on_branch(+Dir, +Branch, -Tags) is det.
