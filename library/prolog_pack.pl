@@ -1410,8 +1410,14 @@ eval_inquiry(true(Reply), URL, Eval) :-
 	Alts \== [],
 	print_message(warning, pack(alt_hashes(URL, Alts))),
 	(   memberchk(downloads(Count), Reply),
-	    confirm(continue_with_alt_hashes(Count, URL), no, [])
-	->  Eval = with_alt_hashes
+	    (	git_url(URL, _)
+	    ->	Default = yes,
+		Eval = with_git_commits_in_same_version
+	    ;	Default = no,
+		Eval = with_alt_hashes
+	    ),
+	    confirm(continue_with_alt_hashes(Count, URL), Default, [])
+	->  true
 	;   !,				% Stop other rules
 	    Eval = cancel
 	).
