@@ -496,10 +496,21 @@
 
 
 %	\begin{parameters} ... \end{parameters}
+%
+%	Deprecated.  New generater uses arguments
 
 \newenvironment{parameters}%
 	{\par%
 	 \makebox[\linewidth]{\hfill\footnotesize Parameters}
+	 \begin{tabular*}{\linewidth}{lp{0.7\linewidth}}
+	 \hline}%
+	{\end{tabular*}}
+
+%	\begin{arguments} ... \end{arguments}
+
+\newenvironment{arguments}%
+	{\par%
+	 \makebox[\linewidth]{\hfill\footnotesize Arguments}
 	 \begin{tabular*}{\linewidth}{lp{0.7\linewidth}}
 	 \hline}%
 	{\end{tabular*}}
