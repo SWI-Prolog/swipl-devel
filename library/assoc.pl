@@ -234,8 +234,24 @@ list_to_assoc([Key-Val|List], Assoc0, Assoc) :-
 %
 %	Create an assoc from an ordered pair-list.
 
-ord_list_to_assoc(Keys, Assoc) :-
-	list_to_assoc(Keys, Assoc).
+ord_list_to_assoc(List, Assoc) :-
+	length(List, N),
+	ord_list_to_assoc(N, List, [], _Depth, Assoc).
+
+ord_list_to_assoc(0, List, List, 0, t) :- !.
+ord_list_to_assoc(1, [K-V|More], More, 1, t(K,V,-,t,t)) :- !.
+ord_list_to_assoc(2, [K1-V1,K2-V2|More], More,
+		  2, t(K1,V1,>,t,t(K2,V2,-,t,t))) :- !.
+ord_list_to_assoc(N, List, More, Depth, t(K,V,Balance,L,R)) :-
+	N0 is N - 1,
+	RN is N0 div 2,
+	Rem is N0 mod 2,
+	LN is RN + Rem,
+	ord_list_to_assoc(LN, List, [K-V|Upper], LDepth, L),
+	ord_list_to_assoc(RN, Upper, More, RDepth, R),
+	Depth is LDepth + 1,
+	compare(B, RDepth, LDepth), balance(B, Balance).
+
 
 %%	map_assoc(:Pred, +Assoc) is semidet.
 %
