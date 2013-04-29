@@ -1079,8 +1079,9 @@ body_compiled(\+_).
 
 goal_classification(_, Goal, _, meta) :-
 	var(Goal), !.
+goal_classification(_, Goal, _, not_callable) :-
+	\+ callable(Goal), !.
 goal_classification(_, Goal, Origin, recursion) :-
-	callable(Goal),
 	functor(Goal, Name, Arity),
 	functor(Origin, Name, Arity), !.
 goal_classification(TB, Goal, _, How) :-
@@ -1272,6 +1273,7 @@ def_style(goal(meta,_),		   [colour(red4)]).
 def_style(goal(foreign(_),_),	   [colour(darkturquoise)]).
 def_style(goal(local(_),_),	   []).
 def_style(goal(constraint(_),_),   [colour(darkcyan)]).
+def_style(goal(not_callable,_),	   [background(orange)]).
 
 def_style(option_name,		   [colour('#3434ba')]).
 def_style(no_option_name,	   [colour(red)]).
@@ -1644,6 +1646,8 @@ goal_message(meta, _) -->
 	[ 'Meta call' ].
 goal_message(recursion, _) -->
 	[ 'Recursive call' ].
+goal_message(not_callable, _) -->
+	[ 'Goal is not callable (type error)' ].
 goal_message(undefined, _) -->
 	[ 'Call to undefined predicate' ].
 goal_message(expanded, _) -->
