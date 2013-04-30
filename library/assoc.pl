@@ -34,8 +34,6 @@ Tree is either:
 
 TODO: get_next_assoc/4, get_prev_assoc/4 for SICStus compatibility
 
-TODO: exploit order in ord_list_to_assoc/2
-
 */
 
 /*
