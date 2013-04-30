@@ -3802,6 +3802,8 @@ VMI(I_FEXITNDET, 0, 0, ())
       FRAME_FAILED;
     default:
     { /* TBD: call debugger */
+      if ( exception_term )		/* false alarm */
+	PL_clear_foreign_exception(FR);
 
       if ( (rc & FRG_REDO_MASK) == REDO_INT )
       { rc = (word)(((intptr_t)rc)>>FRG_REDO_BITS);
