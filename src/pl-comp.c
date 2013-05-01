@@ -1943,7 +1943,7 @@ lookupBodyProcedure(functor_t functor, Module tm)
 
   if ( tm != MODULE_system &&
        (proc = isCurrentProcedure(functor, MODULE_system)) &&
-       isDefinedProcedure(proc) &&
+       true(proc->definition, P_ISO) &&
        !GD->bootsession )
     return proc;
 
