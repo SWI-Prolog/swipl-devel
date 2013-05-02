@@ -218,38 +218,56 @@ get_assoc(>, Key, V, L, R, Val, V, L, NR, NVal) :-
 %%	list_to_assoc(+List:list(Key-Value), -Assoc) is det.
 %
 %	Create an assoc from a pair-list.
+%
+%	@error domain_error(unique_key_pairs, List) if List contains duplicate keys
 
 list_to_assoc(List, Assoc) :-
-	list_to_assoc(List, t, Assoc).
+	(  List = [] -> Assoc = t
+	;  keysort(List, Sorted),
+	   (  ord_pairs(Sorted)
+	   -> length(Sorted, N),
+	      list_to_assoc(N, Sorted, [], _, Assoc)
+	   ;  domain_error(unique_key_pairs, List)
+	   )
+	).
 
-list_to_assoc([], Assoc, Assoc).
-list_to_assoc([Key-Val|List], Assoc0, Assoc) :-
-	put_assoc(Key, Assoc0, Val, AssocI),
-	list_to_assoc(List, AssocI, Assoc).
-
-
-%%	ord_list_to_assoc(+List:list(Key-Value), -Assoc) is det.
-%
-%	Create an assoc from an ordered pair-list.
-
-ord_list_to_assoc(List, Assoc) :-
-	length(List, N),
-	ord_list_to_assoc(N, List, [], _Depth, Assoc).
-
-ord_list_to_assoc(0, List, List, 0, t) :- !.
-ord_list_to_assoc(1, [K-V|More], More, 1, t(K,V,-,t,t)) :- !.
-ord_list_to_assoc(2, [K1-V1,K2-V2|More], More,
-		  2, t(K1,V1,>,t,t(K2,V2,-,t,t))) :- !.
-ord_list_to_assoc(N, List, More, Depth, t(K,V,Balance,L,R)) :-
+list_to_assoc(1, [K-V|More], More, 1, t(K,V,-,t,t)) :- !.
+list_to_assoc(2, [K1-V1,K2-V2|More], More, 2, t(K2,V2,<,t(K1,V1,-,t,t),t)) :- !.
+list_to_assoc(N, List, More, Depth, t(K,V,Balance,L,R)) :-
 	N0 is N - 1,
 	RN is N0 div 2,
 	Rem is N0 mod 2,
 	LN is RN + Rem,
-	ord_list_to_assoc(LN, List, [K-V|Upper], LDepth, L),
-	ord_list_to_assoc(RN, Upper, More, RDepth, R),
+	list_to_assoc(LN, List, [K-V|Upper], LDepth, L),
+	list_to_assoc(RN, Upper, More, RDepth, R),
 	Depth is LDepth + 1,
 	compare(B, RDepth, LDepth), balance(B, Balance).
 
+%%	ord_list_to_assoc(+List:list(Key-Value), -Assoc) is det.
+%
+%	Create an assoc from an ordered pair-list without duplicate keys.
+%
+%	@error domain_error(key_ordered_pairs, List) if pairs are not ordered.
+
+ord_list_to_assoc(Sorted, Assoc) :-
+	(  Sorted = [] -> Assoc = t
+	;  (  ord_pairs(Sorted)
+	   -> length(Sorted, N),
+	      list_to_assoc(N, Sorted, [], _, Assoc)
+	   ;  domain_error(key_ordered_pairs, Sorted)
+	   )
+	).
+
+%%	ord_pairs(+List:list(Key-Value)) is semidet
+%
+%	True if Pairs is a list of Key-Val pairs strictly ordered by key.
+
+ord_pairs([K-_V|Rest]) :-
+	ord_pairs(Rest, K).
+ord_pairs([], _K).
+ord_pairs([K-_V|Rest], K0) :-
+	K0 @< K,
+	ord_pairs(Rest, K).
 
 %%	map_assoc(:Pred, +Assoc) is semidet.
 %
