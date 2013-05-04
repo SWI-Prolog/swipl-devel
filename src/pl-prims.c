@@ -1134,6 +1134,7 @@ scan_shared(Word t, Word vart, size_t *count ARG_LD)
 	  vart = &v[2];
 
 	  set_first(d);
+	  shared++;			/* this is already the second one */
 	}
 	shared++;
       } else
