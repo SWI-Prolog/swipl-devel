@@ -309,7 +309,9 @@ swi_location(file(Path, Line, -1, _CharNo)) --> !,
 swi_location(file(Path, Line, LinePos, _CharNo)) -->
 	[ '~w:~d:~d: '-[Path, Line, LinePos] ].
 swi_location(stream(Stream, Line, LinePos, CharNo)) -->
-	(   { stream_property(Stream, file_name(File)) }
+	(   { is_stream(Stream),
+	      stream_property(Stream, file_name(File))
+	    }
 	->  swi_location(file(File, Line, LinePos, CharNo))
         ;   [ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ]
 	).
