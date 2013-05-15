@@ -4216,12 +4216,12 @@ used to separate arguments in a term or list.
 
     \termitem{variable_names}{+List}
 Assign names to variables in \arg{Term}. \arg{List} is a list of terms
-\mbox{\arg{Var} = \arg{Name}}, where \arg{Name} is an atom that
+\mbox{\arg{Name} = \arg{Var}}, where \arg{Name} is an atom that
 represents a valid Prolog variable name. Terms where \arg{Var} is bound
 or is a variable that does not appear in \arg{Term} are ignored. Raises
 an error if \arg{List} is not a list, one of the members is not a term
-\mbox{\arg{Var} = \arg{Name}}, \arg{Name} is not an atom or \arg{Name}
-does not represent a valid Prolog variable name.
+\mbox{\arg{Name} = \arg{Var}}, \arg{Name} is not an atom or
+\arg{Name} does not represent a valid Prolog variable name.
 
 The implementation binds the variables from \arg{List} to a term
 \verb"'$VAR'"(\arg{Name}).  Like write_canonical/1, terms that
