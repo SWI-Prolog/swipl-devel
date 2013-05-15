@@ -526,33 +526,46 @@ discardForeignFrame(LocalFrame fr ARG_LD)
 }
 
 
+typedef struct finish_reason
+{ atom_t	name;			/* name of the reason */
+  int		is_exception;		/* is an exception reason */
+} finish_reason;
+
 enum finished
-{ FINISH_EXIT = 0,
+{ FINISH_EXIT = 0,			/* keep consistent with reason_decls[] */
   FINISH_FAIL,
   FINISH_CUT,
+  FINISH_EXITCLEANUP,
   FINISH_EXTERNAL_EXCEPT_UNDO,
   FINISH_EXTERNAL_EXCEPT,
-  FINISH_EXCEPT,
-  FINISH_EXITCLEANUP
+  FINISH_EXCEPT
 };
+
+static const finish_reason reason_decls[] =
+{ { ATOM_exit,               FALSE },	/* keep consistent with enum finished */
+  { ATOM_fail,               FALSE },
+  { ATOM_cut,                FALSE },
+  { ATOM_exit,               FALSE },
+  { ATOM_external_exception, TRUE },
+  { ATOM_external_exception, TRUE },
+  { ATOM_exception,          TRUE }
+};
+
+
+static inline int
+is_exception_finish(enum finished reason)
+{ return reason_decls[reason].is_exception;
+}
 
 
 static int
 unify_finished(term_t catcher, enum finished reason)
 { GET_LD
 
-  static atom_t reasons[] =
-  { ATOM_exit,
-    ATOM_fail,
-    ATOM_cut,
-    ATOM_exception,
-    ATOM_external_exception,
-    ATOM_exit
-  };
+  /* make sure declaration is consistent */
+  DEBUG(0, assert(reason_decls[FINISH_EXCEPT].name == ATOM_exception));
 
-  if ( reason == FINISH_EXCEPT ||
-       reason == FINISH_EXTERNAL_EXCEPT ||
-       reason == FINISH_EXTERNAL_EXCEPT_UNDO )
+  if ( is_exception_finish(reason) )
   { functor_t f = (reason == FINISH_EXCEPT ? FUNCTOR_exception1
 					   : FUNCTOR_external_exception1);
 
@@ -564,7 +577,7 @@ unify_finished(term_t catcher, enum finished reason)
   } else if ( reason == FINISH_EXIT )
   { fail;
   } else
-  { return PL_unify_atom(catcher, reasons[reason]);
+  { return PL_unify_atom(catcher, reason_decls[reason].name);
   }
 }
 
@@ -1430,8 +1443,10 @@ chp_chars(Choice ch)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 discardChoicesAfter() discards all choicepoints created  after fr, while
-calling possible hooks on the frames.   It return the oldest choicepoint
-created after fr was created or NULL if this doesn't exist.
+calling  possible  hooks  on   the   frames.    If   the   `reason`   is
+FINISH_EXTERNAL_EXCEPT_UNDO, Undo() is called  on   the  oldest  removed
+choicepoint (before it is  actually   removed).  Older versions returned
+this choicepoint, but as it is already removed, this is not safe.
 
 GC interaction is tricky here. See also   C_CUT.  The loop needs to call
 the  cleanup  handlers  and  call   discardFrame().  The  latter  resets
@@ -1444,7 +1459,7 @@ before calling frameFinished() such that the discarded frames are really
 invisible to GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Choice
+static void
 discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 { if ( (LocalFrame)BFR > fr )
   { Choice me;
@@ -1469,10 +1484,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	if ( true(fr2, FR_WATCHED) )
 	{ char *lSave = (char*)lBase;
 
-	  if ( !me_undone &&
-	       ( reason == FINISH_EXCEPT ||
-		 reason == FINISH_EXTERNAL_EXCEPT ||
-	         reason == FINISH_EXTERNAL_EXCEPT_UNDO ) )
+	  if ( !me_undone && is_exception_finish(reason) )
 	  { me_undone = TRUE;
 	    Undo(me->mark);
 	  }
@@ -1505,12 +1517,10 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	    DiscardMark(me->mark);
 	}
 	BFR = me->parent;
-	return me;
+	return;
       }
     }
   }
-
-  return NULL;
 }
 
 
@@ -1519,12 +1529,11 @@ Discard choicepoints in debugging mode.  As we might be doing callbacks
 on behalf of the debugger we need to preserve the pending exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Choice
+static void
 dbg_discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 { if ( exception_term )
   { Word p = valTermRef(exception_term);
     word w;
-    Choice ch;
 
     DEBUG(3, Sdprintf("dbg_discardChoicesAfter(): saving exception: ");
 	     pl_writeln(exception_term));
@@ -1533,14 +1542,13 @@ dbg_discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
     assert(!isVar(w));
     PushVal(w);
     exception_term = 0;
-    ch = discardChoicesAfter(fr, reason PASS_LD);
+    discardChoicesAfter(fr, reason PASS_LD);
     PopVal(w);
     *valTermRef(exception_bin) = w;
     exception_term = exception_bin;
-
-    return ch;
   } else
-    return discardChoicesAfter(fr, reason PASS_LD);
+  { discardChoicesAfter(fr, reason PASS_LD);
+  }
 }
 
 
