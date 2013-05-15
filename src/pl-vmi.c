@@ -4161,14 +4161,10 @@ b_throw:
   { DEBUG(3, Sdprintf("Unwinding for exception\n"));
 
     for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
-    { Choice ch;
-
-      environment_frame = FR;
+    { environment_frame = FR;
       SAVE_REGISTERS(qid);
-      ch = dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
+      dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO PASS_LD);
       LOAD_REGISTERS(qid);
-      if ( ch )
-	Undo(ch->mark);
 
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
@@ -4184,17 +4180,14 @@ b_throw:
   DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
 
   if ( catchfr_ref )
-  { Choice ch;
-    word w;
+  { word w;
 
     assert(FR == (LocalFrame)valTermRef(catchfr_ref));
 
     SAVE_REGISTERS(qid);
-    ch = dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
+    dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO PASS_LD);
     LOAD_REGISTERS(qid);
-    assert(ch && ch->type == CHP_CATCH);
     environment_frame = FR;
-    Undo(ch->mark);
 					/* re-unify */
     PL_unify(consTermRef(argFrameP(FR, 1)), exception_term);
     lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */

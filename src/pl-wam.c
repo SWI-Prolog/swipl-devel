@@ -530,6 +530,7 @@ enum finished
 { FINISH_EXIT = 0,
   FINISH_FAIL,
   FINISH_CUT,
+  FINISH_EXTERNAL_EXCEPT_UNDO,
   FINISH_EXTERNAL_EXCEPT,
   FINISH_EXCEPT,
   FINISH_EXITCLEANUP
@@ -550,7 +551,8 @@ unify_finished(term_t catcher, enum finished reason)
   };
 
   if ( reason == FINISH_EXCEPT ||
-       reason == FINISH_EXTERNAL_EXCEPT )
+       reason == FINISH_EXTERNAL_EXCEPT ||
+       reason == FINISH_EXTERNAL_EXCEPT_UNDO )
   { functor_t f = (reason == FINISH_EXCEPT ? FUNCTOR_exception1
 					   : FUNCTOR_external_exception1);
 
@@ -1450,6 +1452,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
     for(me = BFR; ; me=me->parent)
     { LocalFrame fr2;
       LocalFrame delto;
+      int me_undone = FALSE;
 
       if ( me->parent && me->parent->frame > fr )
 	delto = me->parent->frame;
@@ -1457,6 +1460,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	delto = fr;
 
       DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(me)));
+
       for(fr2 = me->frame;
 	  fr2 > delto;
 	  fr2 = fr2->parent)
@@ -1465,9 +1469,13 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	if ( true(fr2, FR_WATCHED) )
 	{ char *lSave = (char*)lBase;
 
-	  if ( reason == FINISH_EXCEPT ||
-	       reason == FINISH_EXTERNAL_EXCEPT )
+	  if ( !me_undone &&
+	       ( reason == FINISH_EXCEPT ||
+		 reason == FINISH_EXTERNAL_EXCEPT ||
+	         reason == FINISH_EXTERNAL_EXCEPT_UNDO ) )
+	  { me_undone = TRUE;
 	    Undo(me->mark);
+	  }
 	  BFR = me->parent;
 	  frameFinished(fr2, reason PASS_LD);
 	  if ( lSave != (char*)lBase )	/* shifted */
@@ -1490,7 +1498,12 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
       }
 
       if ( (LocalFrame)me->parent <= fr )
-      { DiscardMark(me->mark);
+      { if ( !me_undone )
+	{ if ( reason == FINISH_EXTERNAL_EXCEPT_UNDO )
+	    Undo(me->mark);
+	  else
+	    DiscardMark(me->mark);
+	}
 	BFR = me->parent;
 	return me;
       }
