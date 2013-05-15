@@ -1507,7 +1507,7 @@ on behalf of the debugger we need to preserve the pending exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
-dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
+dbg_discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 { if ( exception_term )
   { Word p = valTermRef(exception_term);
     word w;
@@ -1520,14 +1520,14 @@ dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
     assert(!isVar(w));
     PushVal(w);
     exception_term = 0;
-    ch = discardChoicesAfter(fr, FINISH_EXTERNAL_EXCEPT PASS_LD);
+    ch = discardChoicesAfter(fr, reason PASS_LD);
     PopVal(w);
     *valTermRef(exception_bin) = w;
     exception_term = exception_bin;
 
     return ch;
   } else
-    return discardChoicesAfter(fr, FINISH_CUT PASS_LD);
+    return discardChoicesAfter(fr, reason PASS_LD);
 }
 
 

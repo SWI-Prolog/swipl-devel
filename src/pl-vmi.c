@@ -1980,13 +1980,13 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     if ( (ch = findStartChoice(FR, BFR)) )
     { m = ch->mark;
       SAVE_REGISTERS(qid);
-      dbg_discardChoicesAfter(FR PASS_LD);
+      dbg_discardChoicesAfter(FR, FINISH_CUT PASS_LD);
       LOAD_REGISTERS(qid);
       lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
       ch = newChoice(CHP_DEBUG, FR PASS_LD);
       ch->mark = m;
     } else
-    { dbg_discardChoicesAfter(FR PASS_LD);
+    { dbg_discardChoicesAfter(FR, FINISH_CUT PASS_LD);
       lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
     }
     ARGP = argFrameP(lTop, 0);
@@ -4082,7 +4082,7 @@ b_throw:
 		LOAD_REGISTERS(qid);
 	      });
 	SAVE_REGISTERS(qid);
-	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
+	dbg_discardChoicesAfter((LocalFrame)ch, FINISH_EXTERNAL_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
 	ch = (Choice)valTermRef(chref);
 	Undo(ch->mark);
@@ -4124,7 +4124,7 @@ b_throw:
       lTop = l_top;
 
       SAVE_REGISTERS(qid);
-      dbg_discardChoicesAfter(FR PASS_LD);
+      dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
       LOAD_REGISTERS(qid);
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
@@ -4165,7 +4165,7 @@ b_throw:
 
       environment_frame = FR;
       SAVE_REGISTERS(qid);
-      ch = dbg_discardChoicesAfter(FR PASS_LD);
+      ch = dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
       LOAD_REGISTERS(qid);
       if ( ch )
 	Undo(ch->mark);
@@ -4190,7 +4190,7 @@ b_throw:
     assert(FR == (LocalFrame)valTermRef(catchfr_ref));
 
     SAVE_REGISTERS(qid);
-    ch = dbg_discardChoicesAfter(FR PASS_LD);
+    ch = dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
     LOAD_REGISTERS(qid);
     assert(ch && ch->type == CHP_CATCH);
     environment_frame = FR;
