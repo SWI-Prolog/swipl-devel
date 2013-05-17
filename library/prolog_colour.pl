@@ -344,6 +344,17 @@ colourise_term((Head :- Body), TB,
 	colour_item(neck(clause),   TB,	FF-FT),
 	colourise_clause_head(Head, TB,	HP),
 	colourise_body(Body, Head,  TB,	BP).
+colourise_term(((Head,RHC) --> Body), TB,
+	       term_position(F,T,FF,FT,
+			     [ term_position(_,_,_,_,[HP,RHCP]),
+			       BP
+			     ])) :- !,
+	colour_item(grammar_rule,	TB, F-T),
+	colour_item(dcg_right_hand_ctx, TB, RHCP),
+	colourise_term_arg(RHC, TB, RHCP),
+	colour_item(neck(grammar_rule),	TB, FF-FT),
+	colourise_extended_head(Head, 2, TB, HP),
+	colourise_dcg(Body, Head,	TB, BP).
 colourise_term((Head --> Body), TB,			% TBD: expansion!
 	       term_position(F,T,FF,FT,[HP,BP])) :- !,
 	colour_item(grammar_rule,	TB, F-T),
@@ -1327,6 +1338,7 @@ def_style(delimiter,		   [bold(true)]).
 def_style(expanded,		   [colour(blue), underline(true)]).
 
 def_style(hook,			   [colour(blue), underline(true)]).
+def_style(dcg_right_hand_ctx,	   [background('#d4ffe3')]).
 
 def_style(error,		   [background(orange)]).
 def_style(type_error(_),	   [background(orange)]).
