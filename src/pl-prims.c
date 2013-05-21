@@ -3373,8 +3373,10 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 
   if ( !PL_is_variable(A2) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, A2);
-  else
+  else if ( !PL_is_atom(A1) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, A1);
+  else
+    return FALSE;
 }
 
 
