@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -41,7 +39,8 @@ test_arith :-
 		    errors,
 		    ar_builtin,
 		    eval,
-		    hyperbolic
+		    hyperbolic,
+		    rationalize
 		  ]).
 
 :- begin_tests(div).
@@ -205,3 +204,10 @@ test(acosh, V =:= 1.0) :- X is acosh(cosh(1.0)), round(X,V).
 test(atanh, V =:= 1.0) :- X is atanh(tanh(1.0)), round(X,V).
 
 :- end_tests(hyperbolic).
+
+:- begin_tests(rationalize).
+
+test(trip, R = 51 rdiv 10) :-
+	R is rationalize(5.1).
+
+:- end_tests(rationalize).
