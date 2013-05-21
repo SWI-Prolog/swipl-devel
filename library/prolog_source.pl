@@ -120,7 +120,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
 	maplist(read_clause_option, Options), !,
 	read_clause(In, Term, Options),
 	expand(Term, In, Expanded),
-	update_state(Expanded).
+	update_state(Term, Expanded).
 prolog_read_source_term(In, Term, Expanded, Options) :-
 	'$set_source_module'(M, M),
 	select_option(syntax_errors(SE), Options, RestOptions, dec10),
@@ -134,7 +134,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
 		  | FinalOptions
 		  ]),
 	expand(Term, In, Expanded),
-	update_state(Expanded).
+	update_state(Term, Expanded).
 
 read_clause_option(systax_errors(_)).
 read_clause_option(term_position(_)).
@@ -196,6 +196,12 @@ requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
 %
 %	Update operators and style-check options from the expanded term.
 
+update_state(Raw, _) :-
+	Raw == (:- pce_end_class), !,
+	pce_expansion:pop_compile_operators.
+update_state(_Raw, Expanded) :-
+	update_state(Expanded).
+
 update_state([]) :- !.
 update_state([H|T]) :- !,
 	update_state(H),
@@ -224,6 +230,10 @@ update_directive(expects_dialect(sicstus)) :-
 update_directive(use_module(Spec)) :-
 	catch(module_decl(Spec, Public), _, fail), !,
 	public_operators(Public).
+update_directive(pce_begin_class_definition(_,_,_,_)) :-
+	'$set_source_module'(SM, SM),
+	current_predicate(pce_expansion:push_compile_operators/1), !,
+	pce_expansion:push_compile_operators(SM).
 update_directive(_).
 
 public_operators([]).
