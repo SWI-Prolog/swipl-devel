@@ -1311,8 +1311,18 @@ process_use_module(library(pce), Src, Reexport) :- !,	% bit special
 	forall(member(Import, Exports),
 	       process_pce_import(Import, Src, Path, Reexport)).
 process_use_module(File, Src, Reexport) :-
-	(   catch(xref_public_list(File, Path, M, Exports, Public, Meta, Src),
-		  _, fail)
+	(   xoption(Src, silent(Silent))
+	->  Extra = [silent(Silent)]
+	;   Extra = [silent(true)]
+	),
+	(   xref_public_list(File, Src,
+			     [ path(Path),
+			       module(M),
+			       exports(Exports),
+			       public(Public),
+			       meta(Meta)
+			     | Extra
+			     ])
 	->  assert(uses_file(File, Src, Path)),
 	    assert_import(Src, Exports, _, Path, Reexport),
 	    assert_xmodule_callable(Exports, M, Src, Path),
@@ -1370,6 +1380,8 @@ process_use_module2(File, Import, Src, Reexport) :-
 %	  * exports(-Exports)
 %	  Exports is a list of predicate indicators and operators
 %	  collected from the module/2 term and reexport declarations.
+%	  * public(-Public)
+%	  Public declarations of the file.
 %	  * meta(-Meta)
 %	  Meta is a list of heads as they appear in meta_predicate/1
 %	  declarations.
