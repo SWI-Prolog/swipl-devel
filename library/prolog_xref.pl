@@ -766,6 +766,9 @@ xref_option(Source, Option) :-
 
 process_directive(Var, _) :-
 	var(Var), !.			% error, but that isn't our business
+process_directive(Dir, _Src) :-
+	debug(xref(directive), 'Processing :- ~q', [Dir]),
+	fail.
 process_directive((A,B), Src) :- !,	% TBD: what about other control
 	process_directive(A, Src),	% structures?
 	process_directive(B, Src).
