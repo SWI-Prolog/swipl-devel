@@ -190,7 +190,10 @@ add_mode(Stream, Mode) :-
 %	known expansion hooks.  May be expanded as multifile predicate.
 
 requires_library((:- emacs_begin_mode(_,_,_,_,_)), library(emacs_extend)).
-requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
+requires_library((:- draw_begin_shape(_,_,_,_)),   library(pcedraw)).
+requires_library((:- use_module(library(pce))),	   library(pce)).
+requires_library((:- pce_begin_class(_,_)),	   library(pce)).
+requires_library((:- pce_begin_class(_,_,_)),	   library(pce)).
 
 %%	update_state(+Expanded) is det.
 %
