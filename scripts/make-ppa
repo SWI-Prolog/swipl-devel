@@ -18,13 +18,13 @@ usage()
 { cat << EOM
 Usage: $(basename $program) [option ...]
 Options:
-    * --distro=Distro [default: $TARGET_DISTRO]
+    --distro=Distro [default: $TARGET_DISTRO]
       Set the target distribution
-    * --no-build
+    --no-build
       Only create the ppa directory, do not build a source deb
-    * --push
+    --push
       Push the result to launchpad using dput(1)
-    * --key=Key [default: $pgpkey]
+    --key=Key [default: $pgpkey]
       Set the PGP key for signing the package
 EOM
 exit 1
@@ -56,6 +56,8 @@ while [ $done = false ]; do
 	*)	if [ x"$*" != x"" ]; then
 		  usage
 		  exit 1
+		else
+		  done=true
 		fi
 		;;
     esac
@@ -68,15 +70,18 @@ echo " - Adding entry to changelog"
 
 dch --distribution=$TARGET_DISTRO -v $VERSION "New upstream release (from GIT)"
 
-echo " - Building source tarball"
-
 buildbase=swi-prolog-$PL_VERSION-$GIT_SHORT_HASH
 builddir=build-ppa-tmp/$buildbase
 rm -rf build-ppa-tmp/*
 mkdir -p $builddir
-rsync -Ca --exclude=build-ppa-tmp ./ $builddir
 
-tar -C build-ppa-tmp czf $buildbase.orig.tar.gz $buildbase
+echo " - Copying files into $builddir"
+
+rsync -Ca --exclude=build-ppa-tmp --filter=':- .gitignore' ./ $builddir
+
+echo " - Building source tarball"
+
+( cd build-ppa-tmp && tar czf $buildbase.orig.tar.gz $buildbase )
 
 if [ $build = true ]; then
   echo " - Building source package"
