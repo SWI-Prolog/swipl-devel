@@ -6,8 +6,7 @@
 # Author: Yves Raimond and Jan Wielemaker
 
 PL_VERSION=`cat VERSION`
-GIT_SHORT_HASH=`git describe | sed 's/[^-]*-//'`
-VERSION=$PL_VERSION-$GIT_SHORT_HASH-ubuntu1
+VTAG=HEAD
 TARGET_DISTRO=precise
 build=true
 push=false
@@ -45,6 +44,10 @@ while [ $done = false ]; do
 		pgpkey="`echo $1 | sed 's/--[^=]*=//'`"
 		shift
 		;;
+	--tag=*)
+		VTAG="`echo $1 | sed 's/--[^=]*=//'`"
+		shift
+		;;
 	--no-build)
 		build=false
 		shift
@@ -63,32 +66,49 @@ while [ $done = false ]; do
     esac
 done
 
+GIT_SHORT_HASH=`git describe $VTAG | sed 's/[^-]*-//'`
+VERSION=$PL_VERSION-$GIT_SHORT_HASH-ubuntu1
 
 echo "Building package $VERSION for $TARGET_DISTRO"
 
 echo " - Adding entry to changelog"
 
 dch --distribution=$TARGET_DISTRO -v $VERSION "New upstream release (from GIT)"
+( cd debian && git commit changelog -m "Updated version" )
+git commit debian -m "Updated debian (version)"
 
 buildbase=swi-prolog_$PL_VERSION-$GIT_SHORT_HASH
-builddir=build-ppa-tmp/$buildbase
-rm -rf build-ppa-tmp/*
-mkdir -p $builddir
 
-echo " - Copying files into $builddir"
+echo " - Generating archive $buildbase"
 
-rsync -Ca --exclude=build-ppa-tmp --filter=':- .gitignore' ./ $builddir
+./scripts/make-src-tape \
+	--quiet \
+	--tag=$VTAG \
+	--name=swi-prolog --sep=_ \
+	--version=$PL_VERSION-$GIT_SHORT_HASH \
+	--submodule=debian
 
-echo " - Building source tarball"
+builddir=swi-prolog_$PL_VERSION-$GIT_SHORT_HASH
+archive=$builddir.tar.gz
+orig_archive=$builddir.orig.tar.gz
 
-( cd build-ppa-tmp && tar czf $buildbase.orig.tar.gz $buildbase )
+if [ -d build-ppa-tmp ]; then
+  rm -rf build-ppa-tmp/*
+else
+  mkdir build-ppa-tmp
+fi
+
+echo " - Unpacking $archive into build-ppa-tmp"
+
+mv ../$archive build-ppa-tmp/$orig_archive
+(cd build-ppa-tmp && tar xf $orig_archive)
 
 if [ $build = true ]; then
   echo " - Building source package"
 
-  ( cd $builddir && debuild -S -sa -k$pgpkey )
+  ( cd build-ppa-tmp/$builddir && debuild -S -sa -k$pgpkey )
 else
-  echo " - Created $builddir; skipped building of source deb"
+  echo " - Created build-ppa-tmp/$builddir; skipped building of source deb"
   exit 0
 fi
 
