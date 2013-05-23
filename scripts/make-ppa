@@ -11,7 +11,7 @@ VERSION=$PL_VERSION-$GIT_SHORT_HASH-ubuntu1
 TARGET_DISTRO=precise
 build=true
 push=false
-pgpkey=E6CB0ADE
+pgpkey=EC812A29
 program="$0"
 
 usage()
@@ -70,7 +70,7 @@ echo " - Adding entry to changelog"
 
 dch --distribution=$TARGET_DISTRO -v $VERSION "New upstream release (from GIT)"
 
-buildbase=swi-prolog-$PL_VERSION-$GIT_SHORT_HASH
+buildbase=swi-prolog_$PL_VERSION-$GIT_SHORT_HASH
 builddir=build-ppa-tmp/$buildbase
 rm -rf build-ppa-tmp/*
 mkdir -p $builddir
