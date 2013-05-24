@@ -443,7 +443,7 @@ Error term:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-#define syntaxError(what, rd) { errorWarning(what, 0, rd); fail; }
+#define syntaxError(what, rd) do { errorWarning(what, 0, rd); fail; } while(0)
 
 const char *
 str_number_error(strnumstat rc)
@@ -1513,6 +1513,18 @@ bind_variables(ReadData _PL_rd ARG_LD)
 		*           TOKENISER           *
 		*********************************/
 
+static inline int
+void_allowed(ReadData _PL_rd)
+{ int type, priority;
+
+  if ( !_PL_rd->strictness &&
+       currentOperator(_PL_rd->module, ATOM_void, OP_POSTFIX, &type, &priority) )
+    return TRUE;
+
+  return FALSE;
+}
+
+
 static inline ucharp
 skipSpaces(cucharp in)
 { int chr;
@@ -2240,8 +2252,14 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
 
-		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
+		  if ( *rdhere == '(' )
+		  { cur_token.type = T_FUNCTOR;
+		  } else
+		  { cur_token.type = T_NAME;
+		  }
+
+		  DEBUG(9, Sdprintf("%s: %s\n",
+				    cur_token.type == T_FUNCTOR ? "FUNC" : "NAME",
 				    stringAtom(cur_token.value.atom)));
 
 		  break;
@@ -2316,13 +2334,22 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		goto symbol;
     case PU:	{ switch(c)
-		  { case '{':
+		  { case '(':
+		    case '{':
 		    case '[':
-		      while( isBlank(*rdhere) )
-			rdhere++;
+		      rdhere = skipSpaces(rdhere);
 		      if (rdhere[0] == matchingBracket(c))
 		      { rdhere++;
-			cur_token.value.atom = (c == '[' ? ATOM_nil : ATOM_curl);
+			switch(c)
+			{ case '{': cur_token.value.atom = ATOM_curl; break;
+			  case '[': cur_token.value.atom = ATOM_nil;  break;
+			  case '(':
+			    if ( void_allowed(_PL_rd) )
+			      cur_token.value.atom = ATOM_void;
+			    else
+			      syntaxError("void_not_allowed", _PL_rd);
+			    break;
+			}
 			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
 			DEBUG(9, Sdprintf("NAME: %s\n",
 					  stringAtom(cur_token.value.atom)));
@@ -3216,6 +3243,23 @@ set_range_position(term_t positions, intptr_t start, intptr_t end ARG_LD)
 }
 
 
+static void
+swap_functor_position(term_t positions, intptr_t *sp, intptr_t *ep ARG_LD)
+{ Word p = valTermRef(positions);
+  intptr_t s, e;
+
+  deRef(p);
+  p = argTermP(*p, 0);
+  s = valInt(p[2]);
+  e = valInt(p[3]);
+  p[2] = consInt(*sp);
+  p[3] = consInt(*ep);
+  *sp = s;
+  *ep = e;
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 read_list(-positions)  reads  a  list  and  places    the  list  on  the
 term-stack. Token is the [-token. The idea was that moving this function
@@ -3402,7 +3446,32 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   functor = token->value.atom;
   unlock = (_PL_rd->locked == functor);
   _PL_rd->locked = 0;
-  get_token(FALSE, _PL_rd);			/* skip '(' */
+
+  if ( (token=get_token(FALSE, _PL_rd)) &&
+       token->type == T_NAME &&
+       token->value.atom == ATOM_void )
+  { term_t term;
+
+    if ( positions )
+    { intptr_t fs = token->start, fe = token->end;
+
+      set_range_position(positions, -1, token->end PASS_LD);
+      swap_functor_position(positions, &fs, &fe PASS_LD);
+      if ( !PL_unify_term(P_ARG, PL_LIST, 1,
+			  PL_FUNCTOR, FUNCTOR_minus2,
+			    PL_INTPTR, fs,
+			    PL_INTPTR, fe) )
+	return FALSE;
+    }
+
+    term = alloc_term(_PL_rd PASS_LD);
+    PL_put_atom(term, functor);
+    rc = build_term(ATOM_void, 1, _PL_rd PASS_LD);
+    if ( unlock )
+      PL_unregister_atom(functor);
+
+    return rc;
+  }
 
   do
   { if ( positions )

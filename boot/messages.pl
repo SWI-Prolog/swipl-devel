@@ -215,6 +215,8 @@ syntax_error(punct(Punct, End)) -->
 	[ 'Unexpected `~w\' before `~w\''-[Punct, End] ].
 syntax_error(undefined_char_escape(C)) -->
 	[ 'Undefined character escape in quoted atom or string: `\\~w\''-[C] ].
+syntax_error(void_not_allowed) -->
+	[ 'Empty argument list "()"' ].
 syntax_error(Message) -->
 	[ '~w'-[Message] ].
 
