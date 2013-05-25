@@ -9,6 +9,7 @@ PL_VERSION=`cat VERSION`
 VTAG=HEAD
 TARGET_DISTRO=precise
 build=true
+buildbin=false
 push=false
 pgpkey=7C11B85B
 program="$0"
@@ -21,6 +22,8 @@ Options:
       Set the target distribution
     --no-build
       Only create the ppa directory, do not build a source deb
+    --build-bin
+      Also build the binary package
     --push
       Push the result to launchpad using dput(1)
     --key=Key [default: $pgpkey]
@@ -50,6 +53,10 @@ while [ $done = false ]; do
 		;;
 	--no-build)
 		build=false
+		shift
+		;;
+	--build-bin)
+		buildbin=true
 		shift
 		;;
 	--push)
@@ -106,7 +113,20 @@ mv ../$archive build-ppa-tmp/$orig_archive
 if [ $build = true ]; then
   echo " - Building source package"
 
-  ( cd build-ppa-tmp/$builddir && debuild -S -sa -k$pgpkey )
+  ( cd build-ppa-tmp/$builddir &&
+    debuild -S -sa -k$pgpkey
+  )
+else
+  echo " - Created build-ppa-tmp/$builddir; skipped building of source deb"
+  exit 0
+fi
+
+if [ $buildbin = true ]; then
+  echo " - Building binary source package"
+
+  ( cd build-ppa-tmp/$builddir &&
+    debuild -k$pgpkey
+  )
 else
   echo " - Created build-ppa-tmp/$builddir; skipped building of source deb"
   exit 0
@@ -115,7 +135,9 @@ fi
 if [ $push = true ]; then
   echo " - Pushing source package to PPA"
 
-  dput ppa:swi-prolog/devel swi-prolog_${VERSION}_source.changes
+  ( cd build-ppa-tmp/$builddir &&
+    dput ppa:swi-prolog/devel swi-prolog_${VERSION}_source.changes
+  )
 else
   echo " - Skipped pushing to PPA"
 fi
