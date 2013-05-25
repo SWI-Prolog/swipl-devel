@@ -112,7 +112,7 @@ doc=$name-doc-$version.tar
 git archive --format=tar --prefix=$prefix/ "$TAG" > ../$out
 
 #add the submodules
-for sm in `git submodule $SUBMODULES | awk '{printf "%s:%s\n", $1, $2}'`; do
+for sm in `git submodule status $SUBMODULES | awk '{printf "%s:%s\n", $1, $2}'`; do
     sha1=`echo $sm | awk -F: '{print $1}'`
     path=`echo $sm | awk -F: '{print $2}'`
     [ $quiet = true ] || echo -n "adding module $path at $sha1 ... "
