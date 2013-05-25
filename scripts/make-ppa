@@ -10,7 +10,7 @@ VTAG=HEAD
 TARGET_DISTRO=precise
 build=true
 push=false
-pgpkey=EC812A29
+pgpkey=7C11B85B
 program="$0"
 
 usage()
