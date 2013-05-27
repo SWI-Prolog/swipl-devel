@@ -160,7 +160,7 @@ exist for JavaScript. The primitives described in this section allow for
 capturing a significant part of the syntax is the \jargon{curly bracket
 languages} (i.e., C-derived languages) in Prolog. This allows us writing
 expressions such as below using the library \pllib{http/js_write}, a
-suplement to the above mentioned \pllib{http/html_write}.
+supplement to the above mentioned \pllib{http/html_write}.
 
 \begin{code}
 on_tag_added(URL, ObjectID) -->
