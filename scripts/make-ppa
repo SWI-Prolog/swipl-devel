@@ -73,6 +73,11 @@ while [ $done = false ]; do
     esac
 done
 
+if [ $push = true -a $buildbin = true ]; then
+  echo "Only one of --push or --buildbin is allowed"
+  exit 1
+fi
+
 GIT_SHORT_HASH=`git describe $VTAG | sed 's/[^-]*-//'`
 VERSION=$PL_VERSION-$GIT_SHORT_HASH-ubuntu1
 
@@ -127,8 +132,6 @@ if [ $buildbin = true ]; then
   ( cd build-ppa-tmp/$builddir &&
     debuild -k$pgpkey
   )
-else
-  echo " - Created build-ppa-tmp/$builddir; skipped building of source deb"
   exit 0
 fi
 
@@ -138,6 +141,4 @@ if [ $push = true ]; then
   ( cd build-ppa-tmp/$builddir &&
     dput ppa:swi-prolog/devel swi-prolog_${VERSION}_source.changes
   )
-else
-  echo " - Skipped pushing to PPA"
 fi
