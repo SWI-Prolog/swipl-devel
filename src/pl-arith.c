@@ -2014,6 +2014,22 @@ Method for Robust Geometric Algorithms'' by John Canny, Bruce Donald and
 Eugene K. Ressler.  Found at
 
 http://www.cs.dartmouth.edu/~brd/papers/rotations-scg92.pdf
+
+(*) Comment by Keri Harris:
+
+The result of p1/q1 is retained  in  a   FP  stack  register at a higher
+precision (80 bits); it  is  not  stored   in  a  variable.  This  extra
+precision skews the results when  preforming   the  subtraction,  as one
+operand contains extra precision:
+
+        (extended double precision)     (double precision)
+    d =           p1/q1              -     n1->value.f;
+
+Forcing the result of p1/q1 to be stored in a variable produces expected
+results with rationalize/1:
+
+    volatile double p1_q1 = p1/q1;
+    d = p1_q1 - n1->value.f;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef DBL_EPSILON			/* normal for IEEE 64-bit double */
@@ -2037,6 +2053,7 @@ ar_rationalize(Number n1, Number r)
       do
       { double r = floor(e0/e1);
 	double e00 = e0, p00 = p0, q00 = q0;
+	volatile double p1_q1;		/* see (*) */
 
 	e0 = e1;
 	p0 = p1;
@@ -2048,7 +2065,8 @@ ar_rationalize(Number n1, Number r)
 	DEBUG(2, Sdprintf("e = %.20f, r = %f, p1/q1 = %f/%f\n",
 			  DBL_EPSILON, r, p1, q1));
 
-	d = p1/q1 - n1->value.f;
+	p1_q1 = p1/q1;
+	d = p1_q1 - n1->value.f;
       } while(abs(d) > DBL_EPSILON);
 
       r->type = V_MPQ;
