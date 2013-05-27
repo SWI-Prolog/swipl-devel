@@ -3155,9 +3155,9 @@ Sopen_pipe(const char *command, const char *type)
   { int flags;
 
     if ( *type == 'r' )
-      flags = SIO_INPUT|SIO_FBUF;
+      flags = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
     else
-      flags = SIO_OUTPUT|SIO_FBUF;
+      flags = SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF;
 
     return Snew((void *)fd, flags, &Spipefunctions);
   }
