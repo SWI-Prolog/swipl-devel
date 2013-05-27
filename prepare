@@ -292,7 +292,7 @@ is_mingw()
 
 
 if findexe autoconf; then
-  for f in `find . -name configure.in`; do
+  for f in ./src/configure.in $(find packages -name configure.in); do
     pkgdir="$(cd packages && pwd)"
     d=`dirname $f`
     (cd $d && confdir $d $pkgdir)
