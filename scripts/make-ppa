@@ -78,8 +78,16 @@ if [ $push = true -a $buildbin = true ]; then
   exit 1
 fi
 
+# Avoid typos ...
+case $TARGET_DISTRO in
+  precise|raring)
+    ;;
+  *) echo "Unsupported target distro ($TARGET_DISTRO)"
+     exit 1
+esac
+
 GIT_SHORT_HASH=`git describe $VTAG | sed 's/[^-]*-//'`
-VERSION=$PL_VERSION-$GIT_SHORT_HASH-ubuntu1
+VERSION=$PL_VERSION-$GIT_SHORT_HASH-${TARGET_DISTRO}ppa2
 
 echo "Building package $VERSION for $TARGET_DISTRO"
 
@@ -138,7 +146,7 @@ fi
 if [ $push = true ]; then
   echo " - Pushing source package to PPA"
 
-  ( cd build-ppa-tmp/$builddir &&
+  ( cd build-ppa-tmp &&
     dput ppa:swi-prolog/devel swi-prolog_${VERSION}_source.changes
   )
 fi
