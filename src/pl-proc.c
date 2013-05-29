@@ -2267,26 +2267,28 @@ typedef struct patt_mask
 #define TRACE_ANY (TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL)
 
 static const patt_mask patt_masks[] =
-{ { ATOM_dynamic,	P_DYNAMIC },
-  { ATOM_multifile,	P_MULTIFILE },
-  { ATOM_locked,	P_LOCKED },
-  { ATOM_system,	P_LOCKED },		/* compatibility */
-  { ATOM_spy,		SPY_ME },
-  { ATOM_trace,		TRACE_ME },
-  { ATOM_trace_call,	TRACE_CALL },
-  { ATOM_trace_redo,	TRACE_REDO },
-  { ATOM_trace_exit,	TRACE_EXIT },
-  { ATOM_trace_fail,	TRACE_FAIL },
-  { ATOM_trace_any,	TRACE_ANY },
-  { ATOM_hide_childs,	HIDE_CHILDS },
-  { ATOM_transparent,	P_TRANSPARENT },
-  { ATOM_discontiguous,	P_DISCONTIGUOUS },
-  { ATOM_volatile,	P_VOLATILE },
-  { ATOM_thread_local,	P_THREAD_LOCAL },
-  { ATOM_noprofile,	P_NOPROFILE },
-  { ATOM_iso,		P_ISO },
-  { ATOM_public,	P_PUBLIC },
-  { (atom_t)0,		0 }
+{ { ATOM_dynamic,	   P_DYNAMIC },
+  { ATOM_multifile,	   P_MULTIFILE },
+  { ATOM_locked,	   P_LOCKED },
+  { ATOM_system,	   P_LOCKED },		/* compatibility */
+  { ATOM_spy,		   SPY_ME },
+  { ATOM_trace,		   TRACE_ME },
+  { ATOM_trace_call,	   TRACE_CALL },
+  { ATOM_trace_redo,	   TRACE_REDO },
+  { ATOM_trace_exit,	   TRACE_EXIT },
+  { ATOM_trace_fail,	   TRACE_FAIL },
+  { ATOM_trace_any,	   TRACE_ANY },
+  { ATOM_hide_childs,	   HIDE_CHILDS },
+  { ATOM_transparent,	   P_TRANSPARENT },
+  { ATOM_discontiguous,	   P_DISCONTIGUOUS },
+  { ATOM_volatile,	   P_VOLATILE },
+  { ATOM_thread_local,	   P_THREAD_LOCAL },
+  { ATOM_noprofile,	   P_NOPROFILE },
+  { ATOM_iso,		   P_ISO },
+  { ATOM_public,	   P_PUBLIC },
+  { ATOM_non_terminal,	   P_NON_TERMINAL },
+  { ATOM_quasi_quotation_type, P_QUASI_QUOTATION_TYPE },
+  { (atom_t)0,		   0 }
 };
 
 static unsigned int

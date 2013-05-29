@@ -1164,6 +1164,9 @@ initPrologFlags(void)
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
   setPrologFlag("backquoted_string", FT_BOOL, FALSE, PLFLAG_BACKQUOTED_STRING);
+#ifdef O_QUASIQUOTATIONS
+  setPrologFlag("quasi_quotations", FT_BOOL, FALSE, PLFLAG_QUASI_QUOTES);
+#endif
   setPrologFlag("write_attributes", FT_ATOM, "ignore");
   setPrologFlag("stream_type_check", FT_ATOM, "loose");
   setPrologFlag("occurs_check", FT_ATOM, "false");

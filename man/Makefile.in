@@ -50,7 +50,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
 		lib/csv.tex lib/optparse.tex \
 		lib/predicateoptions.tex lib/predopts.tex lib/random.tex \
-		lib/varnumbers.tex
+		lib/varnumbers.tex lib/quasiquotations.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -216,6 +216,8 @@ lib/varnumbers.tex: ../library/varnumbers.pl
 		$(LIBTOTEX) 'library(varnumbers)'
 lib/predopts.tex: lib/predopts.txt ../library/predicate_options.pl
 		$(LIBTOTEX) --lib=predicate_options lib/predopts.txt
+lib/quasiquotations.tex: ../library/quasi_quotations.pl
+		$(LIBTOTEX) 'library(quasi_quotations)'
 
 
 ################################################################

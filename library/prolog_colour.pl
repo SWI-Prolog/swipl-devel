@@ -910,18 +910,27 @@ colourise_term_args([Pos|T], N, Term, TB) :-
 	colourise_term_args(T, NN, Term, TB).
 
 colourise_term_arg(Var, TB, Pos) :-			% variable
-	var(Var), !,
+	var(Var), Pos = _-_, !,
 	(   singleton(Var, TB)
 	->  colour_item(singleton, TB, Pos)
 	;   colour_item(var, TB, Pos)
 	).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
+colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
+	colour_item(string, TB, F-T).
+colourise_term_arg(_, TB,
+		   quasi_quotation_position(F,T,QQType,QQTypePos,CPos)) :- !,
+	colourise_qq_type(QQType, TB, QQTypePos),
+	functor(QQType, Type, _),
+	colour_item(qq_content(Type), TB, CPos),
+	FE is F+3,
+	TS is T-3,
+	colour_item(qq, TB, F-FE),
+	colour_item(qq, TB, TS-T).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
 	compound(Compound), !,
 	colourise_term_args(Compound, TB, Pos).
-colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
-	colour_item(string, TB, F-T).
 colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	atom(Atom), !,
 	colour_item(atom, TB, Pos).
@@ -934,6 +943,17 @@ colourise_list_args([HP|TP], Tail, [H|T], TB, How) :-
 colourise_list_args([], none, _, _, _) :- !.
 colourise_list_args([], TP, T, TB, How) :-
 	specified_item(How, T, TB, TP).
+
+%%	colourise_qq_type(+QQType, +TB, +QQTypePos)
+%
+%	Colouring the type part of a quasi quoted term
+
+colourise_qq_type(QQType, TB, QQTypePos) :-
+	functor_position(QQTypePos, FPos, _),
+	colour_item(qq_type, TB, FPos),
+	colourise_term_args(QQType, TB, QQTypePos).
+
+qq_position(quasi_quotation_position(_,_,_,_,_)).
 
 
 %	colourise_exports(+List, +TB, +Pos)
@@ -1337,6 +1357,10 @@ def_style(identifier,		   [bold(true)]).
 def_style(delimiter,		   [bold(true)]).
 def_style(expanded,		   [colour(blue), underline(true)]).
 
+def_style(qq_type,		   [bold(true)]).
+def_style(qq,			   [colour(blue)]).
+def_style(qq_content(_),	   [colour(navy_blue)]).
+
 def_style(hook,			   [colour(blue), underline(true)]).
 def_style(dcg_right_hand_ctx,	   [background('#d4ffe3')]).
 
@@ -1487,7 +1511,9 @@ term_colours((_,_),
 		     ]).
 
 specified_item(_, Var, TB, Pos) :-
-	var(Var), !,
+	(   var(Var)
+	;   qq_position(Pos)
+	), !,
 	colourise_term_arg(Var, TB, Pos).
 					% generic classification
 specified_item(classify, Term, TB, Pos) :- !,
@@ -1649,6 +1675,12 @@ specified_list(Spec, Tail, TB, [], TailPos) :-
 
 syntax_message(Class) -->
 	message(Class), !.
+syntax_message(qq) -->
+	[ 'Quasi quote delimiter' ].
+syntax_message(qq_type) -->
+	[ 'Quasi quote type term' ].
+syntax_message(qq_content(Type)) -->
+	[ 'Quasi quote content (~w syntax)'-[Type] ].
 syntax_message(goal(Class, Goal)) --> !,
 	goal_message(Class, Goal).
 syntax_message(class(Type, Class)) --> !,

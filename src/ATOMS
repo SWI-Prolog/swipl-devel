@@ -192,7 +192,9 @@ A dot			"."
 A dots			"dots"
 A double_quotes		"double_quotes"
 A doublestar		"**"
+A dparse_quasi_quotations "$parse_quasi_quotations"
 A dprof_node		"$profile_node"
+A dquasi_quotation	"$quasi_quotation"
 A dquery_loop		"$query_loop"
 A drecover_and_rethrow	"$recover_and_rethrow"
 A dstream		"$stream"
@@ -413,6 +415,7 @@ A nlink			"nlink"
 A no_memory		"no_memory"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
+A non_terminal		"non_terminal"
 A none			"none"
 A nonvar		"nonvar"
 A noprofile		"noprofile"
@@ -494,6 +497,10 @@ A protocol		"protocol"
 A prove			":-"
 A public		"public"
 A punct			"punct"
+A quasi_quotation	"quasi_quotation"
+A quasi_quotation_type	"quasi_quotation_type"
+A quasi_quotations	"quasi_quotations"
+A quasi_quotation_position  "quasi_quotation_position"
 A query			"?-"
 A question_mark		"?"
 A queue_option		"queue_option"
@@ -746,7 +753,7 @@ F buffer		1
 F buffer_size		1
 F busy			2
 F call			1
-F callpred		2
+<F callpred		2
 F catch			3
 F ceil			1
 F ceiling		1
@@ -789,7 +796,9 @@ F dmutex		1
 F domain_error		2
 F dot			2
 F doublestar		2
+F dparse_quasi_quotations 2
 F dprof_node		1
+F dquasi_quotation	3
 F drecover_and_rethrow	2
 F dstream		1
 F dthread_init		0
@@ -837,7 +846,7 @@ F hat			2
 F ifthen		2
 F import_into		1
 F input			0
-F input			3
+F input			4
 F integer		1
 F interrupt		1
 F io_error		2
@@ -889,6 +898,8 @@ F procedure		2
 F prove			1
 F prove			2
 F punct			2
+F quasi_quotation	4
+F quasi_quotation_position  5
 F random		1
 F random_float		0
 F rational		1

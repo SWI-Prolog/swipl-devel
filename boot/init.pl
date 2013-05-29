@@ -987,11 +987,12 @@ extensions to .ext
 	'$compilation_level'(Stack, Level).
 
 '$compilation_level'([], 0).
-'$compilation_level'([input(see,_,_)|T], Level) :-
-	'$compilation_level'(T, Level).
-'$compilation_level'([input(_,_,_)|T], Level) :-
-	'$compilation_level'(T, Level0),
-	Level is Level0+1.
+'$compilation_level'([Input|T], Level) :-
+	(   arg(1, Input, see)
+	->  '$compilation_level'(T, Level)
+	;   '$compilation_level'(T, Level0),
+	    Level is Level0+1
+	).
 
 
 %%	compiling

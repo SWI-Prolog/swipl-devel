@@ -89,6 +89,8 @@ handy for it someone wants to add a data type to the system.
       of the predicates operating on strings might change.
       (NOTE: Currently some of the boot files rely on strings. It is NOT
       suggested to leave them out).
+  O_QUASIQUOTATIONS
+      Support quasi quoted content in read_term/3 and friends.
   O_COMPILE_OR
       Compile ->/2, ;/2 and |/2 into WAM.  This  no  longer  is  a  real
       option.   the mechanism to handle cuts without compiling ;/2, etc.
@@ -138,6 +140,7 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_IS		1
 #define O_CALL_AT_MODULE	1
 #define O_STRING		1
+#define O_QUASIQUOTATIONS		1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
@@ -813,6 +816,8 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
+#define P_QUASI_QUOTATION_TYPE	(0x00000004) /* <![Type[Quasi Quote]]> */
+#define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */
 #define P_SHRUNKPOW2		(0x00000010) /* See reconsider_index() */
 #define P_FOREIGN		(0x00000020) /* Implemented in C */
 #define P_NONDET		(0x00000040) /* Foreign: nondet */
@@ -1275,7 +1280,7 @@ struct definition
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   meta_mask	meta_info;		/* meta-predicate info */
   int		references;		/* reference count */
-  unsigned int  flags;			/* booleans: */
+  unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
@@ -2060,6 +2065,7 @@ typedef struct debuginfo
 #define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
 #define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
 #define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x200000 /* Warn overriding weak symbols */
+#define PLFLAG_QUASI_QUOTES	    0x400000 /* Support quasi quotes */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

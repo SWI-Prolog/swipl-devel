@@ -298,7 +298,7 @@ freeStream(IOSTREAM *s)
 /* name must be registered by the caller */
 
 static void
-setFileNameStream(IOSTREAM *s, atom_t name)
+setFileNameStream_unlocked(IOSTREAM *s, atom_t name)
 { stream_context *ctx = getStreamContext(s);
 
   if ( ctx->filename )
@@ -307,6 +307,17 @@ setFileNameStream(IOSTREAM *s, atom_t name)
   }
   if ( !(name == NULL_ATOM || name == ATOM_) )
     ctx->filename = name;
+}
+
+
+int
+setFileNameStream(IOSTREAM *s, atom_t name)
+{ LOCK();
+  setFileNameStream_unlocked(s, name);
+  PL_register_atom(name);
+  UNLOCK();
+
+  return TRUE;
 }
 
 
@@ -1214,19 +1225,24 @@ current input context.
 static
 PRED_IMPL("$input_context", 1, input_context, 0)
 { PRED_LD
-  term_t tail = PL_copy_term_ref(A1);
-  term_t head = PL_new_term_ref();
+  term_t tail   = PL_copy_term_ref(A1);
+  term_t head   = PL_new_term_ref();
+  term_t stream = PL_new_term_ref();
   InputContext c = input_context_stack;
 
   for(c=input_context_stack; c; c=c->previous)
   { atom_t file = c->term_file ? c->term_file : ATOM_minus;
     int line = c->term_file ? c->term_line : 0;
 
-    if ( !PL_unify_list(tail, head, tail) ||
-	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_input3,
+    PL_put_variable(stream);
+
+    if ( !PL_unify_stream_or_alias(stream, c->stream) ||
+	 !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_input4,
 			PL_ATOM, c->type,
 			PL_ATOM, file,
-			PL_INT,  line) )
+			PL_INT,  line,
+			PL_TERM, stream) )
       return FALSE;
   }
 
@@ -1830,10 +1846,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	if ( !PL_get_atom_ex(a, &fn) )
 	  goto error;
 
-	PL_register_atom(fn);
-	LOCK();
 	setFileNameStream(s, fn);
-	UNLOCK();
 
 	goto ok;
       } else if ( aname == ATOM_timeout )
@@ -3175,7 +3188,7 @@ openStream(term_t file, term_t mode, term_t options)
 	       ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
-    setFileNameStream(s, fn_to_atom(path));
+    setFileNameStream_unlocked(s, fn_to_atom(path));
   } else
   { return NULL;
   }

@@ -2017,9 +2017,10 @@ PL_put_variable(term_t t)
 #define PL_put_variable(t) PL_put_variable__LD(t PASS_LD)
 
 
-void
+int
 PL_put_atom__LD(term_t t, atom_t a ARG_LD)
 { setHandle(t, a);
+  return TRUE;
 }
 
 
@@ -2288,11 +2289,12 @@ PL_put_nil(term_t l)
 }
 
 
-void
+int
 PL_put_term__LD(term_t t1, term_t t2 ARG_LD)
 { Word p2 = valHandleP(t2);
 
   setHandle(t1, linkVal(p2));
+  return TRUE;
 }
 
 
@@ -2965,6 +2967,9 @@ cont:
       txt.storage   = PL_CHARS_HEAP;
       txt.encoding  = ENC_WCHAR;
       txt.canonical = FALSE;
+
+      if ( txt.length == (size_t)-1 )
+	txt.length = wcslen(txt.text.w );
 
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_NWCHARS ? PL_ATOM :

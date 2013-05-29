@@ -112,9 +112,10 @@ phrase_from_file(Grammar, File, Options) :-
 
 
 qphrase_file(QGrammar, File, BS, Options) :-
-	setup_call_cleanup(open(File, read, In, Options),
-			       qphrase_stream(QGrammar, In, BS),
-			       close(In)).
+	setup_call_cleanup(
+	    open(File, read, In, Options),
+	    qphrase_stream(QGrammar, In, BS),
+	    close(In)).
 
 qphrase_stream(QGrammar, In, BuffserSize) :-
 	 set_stream(In, buffer_size(BuffserSize)),
