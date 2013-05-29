@@ -52,5 +52,7 @@ packages/utf8proc/config.h.in
 packages/utf8proc/configure
 packages/archive/config.h.in
 packages/archive/configure
+packages/tipc/config.h.in
+packages/tipc/configure
 src/config.h.in
 src/configure
