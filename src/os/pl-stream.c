@@ -1130,9 +1130,10 @@ Speekcode(IOSTREAM *s)
 
   start = s->bufp;
   if ( s->position )
-  { IOPOS psave = *s->position;
+  { IOPOS *psave = s->position;
+    s->position = NULL;
     c = Sgetcode(s);
-    *s->position = psave;
+    s->position = psave;
   } else
   { c = Sgetcode(s);
   }
