@@ -31,7 +31,7 @@
 	  [ with_quasi_quotation_input/3,	% +Content, -Stream, :Goal
 	    phrase_from_quasi_quotation/2,	% :Grammar, +Content
 	    quasi_quotation_syntax_error/1,	% +Error
-	    quasi_quotation_type/1		% :Type
+	    quasi_quotation_syntax/1		% :Type
 	  ]).
 :- use_module(library(error)).
 :- use_module(library(pure_input)).
@@ -116,7 +116,7 @@ Below is a simple but functional example that defines the =html= type.
   :- use_module(library(lists)).
   :- use_module(library(quasi_quotations)).
 
-  :- quasi_quotation_type(html).
+  :- quasi_quotation_syntax(html).
 
   html(Content, Vars, Dict, DOM) :-
 	  include(qq_var(Vars), Dict, QQDict),
@@ -152,7 +152,7 @@ Below is a simple but functional example that defines the =html= type.
 
 :- meta_predicate
 	with_quasi_quotation_input(+, -, 0),
-	quasi_quotation_type(4),
+	quasi_quotation_syntax(4),
 	phrase_from_quasi_quotation(//, +).
 
 :- set_prolog_flag(quasi_quotations, true).
@@ -210,14 +210,14 @@ phrase_quasi_quotation(_, Stream) :-
 	    quasi_quotation_parser_failed,
 	    Stream).
 
-%%	quasi_quotation_type(:TypeName) is det.
+%%	quasi_quotation_syntax(:TypeName) is det.
 %
 %	Declare the predicate TypeName/4  to   implement  the  the quasi
 %	quote type TypeName.  Normally used as a directive.
 
-quasi_quotation_type(M:Type) :-
+quasi_quotation_syntax(M:Type) :-
 	must_be(atom, Type),
-	'$set_predicate_attribute'(M:Type/4, quasi_quotation_type, 1).
+	'$set_predicate_attribute'(M:Type/4, quasi_quotation_syntax, 1).
 
 %%	quasi_quotation_syntax_error(+Error)
 %

@@ -2287,7 +2287,7 @@ static const patt_mask patt_masks[] =
   { ATOM_iso,		   P_ISO },
   { ATOM_public,	   P_PUBLIC },
   { ATOM_non_terminal,	   P_NON_TERMINAL },
-  { ATOM_quasi_quotation_type, P_QUASI_QUOTATION_TYPE },
+  { ATOM_quasi_quotation_syntax, P_QUASI_QUOTATION_SYNTAX },
   { (atom_t)0,		   0 }
 };
 

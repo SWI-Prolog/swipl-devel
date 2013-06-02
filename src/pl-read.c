@@ -1703,7 +1703,7 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
   { Procedure proc;
 
     if ( (proc=resolveProcedure(PL_new_functor(name, 4), m)) &&
-	 true(proc->definition, P_QUASI_QUOTATION_TYPE) )
+	 true(proc->definition, P_QUASI_QUOTATION_SYNTAX) )
       return TRUE;
 
     if ( (ex = PL_new_term_ref()) &&
