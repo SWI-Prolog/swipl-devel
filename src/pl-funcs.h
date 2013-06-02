@@ -496,6 +496,10 @@ COMMON(void)		profSetHandle(struct call_node *node, void *handle);
 
 /* pl-read.c */
 COMMON(void)		resetRead(void);
+COMMON(int)		f_is_prolog_var_start(wint_t c);
+COMMON(int)		f_is_prolog_atom_start(wint_t c);
+COMMON(int)		f_is_prolog_identifier_continue(wint_t c);
+COMMON(int)		f_is_prolog_symbol(wint_t c);
 COMMON(int)		unicode_separator(pl_wchar_t c);
 COMMON(int)		unquoted_atomW(const pl_wchar_t *s, size_t len,
 				       IOSTREAM *fd);

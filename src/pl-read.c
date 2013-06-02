@@ -60,6 +60,26 @@ static strnumstat scan_decimal(cucharp *sp, Number n, int *grouped);
 #define PlInvalidW(c)   (uflagsW(c) == 0)
 
 int
+f_is_prolog_var_start(wint_t c)
+{ return PlIdStartW(c) && (PlUpperW(c) || c == '_');
+}
+
+int
+f_is_prolog_atom_start(wint_t c)
+{ return PlIdStartW(c) != 0;
+}
+
+int
+f_is_prolog_identifier_continue(wint_t c)
+{ return PlIdContW(c) || c == '_';
+}
+
+int
+f_is_prolog_symbol(wint_t c)
+{ return PlSymbolW(c) != 0;
+}
+
+int
 unicode_separator(pl_wchar_t c)
 { return PlBlankW(c);
 }

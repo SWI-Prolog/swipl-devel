@@ -5038,6 +5038,16 @@ etc.).
     \termitem{paren}{Close}
 \arg{Char} is an open parenthesis and \arg{Close} is the corresponding
 close parenthesis.
+    \termitem{prolog_var_start}{}
+\arg{Char} can start a Prolog variable name.
+    \termitem{prolog_atom_start}{}
+\arg{Char} can start a unquoted Prolog atom that is not a symbol.
+    \termitem{prolog_identifier_continue}{}
+\arg{Char} can continue a Prolog variable name or atom.
+    \termitem{prolog_prolog_symbol}{}
+\arg{Char} is a Prolog symbol character.  Sequences of Prolog
+symbol characters glue together to form an unquoted atom.  Examples
+are \const{=..}, \const{\=}, etc.
 \end{description}
 
     \predicate{code_type}{2}{?Code, ?Type}
