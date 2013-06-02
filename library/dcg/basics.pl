@@ -50,6 +50,8 @@
 	    xdigits//1,			% [0-9a-f]* --> 0-15*
 	    xdigit//1,			% [0-9a-f] --> 0-15
 	    xinteger//1,		% [0-9a-f]+ --> integer
+
+	    prolog_var_name//1,		% Read a Prolog variable name
 					% generation (TBD)
 	    atom//1			% generate atom
 	  ]).
@@ -352,6 +354,26 @@ mkval([H|T], Base, W0, W) :-
 %	True if at end of input list.
 
 eos([], []).
+
+		 /*******************************
+		 *	   PROLOG SYNTAX		*
+		 *******************************/
+
+%%	prolog_var_name(-Name:atom)// is semidet.
+%
+%	Matches a Prolog variable name. Primarily  intended to deal with
+%	quasi quotations that embed Prolog variables.
+
+prolog_var_name(Name) -->
+	[C0], { code_type(C0, prolog_var_start) }, !,
+	prolog_id_cont(CL),
+	{ atom_codes(Name, [C0|CL]) }.
+
+prolog_id_cont([H|T]) -->
+	[H], { code_type(H, prolog_identifier_continue) }, !,
+	prolog_id_cont(T).
+prolog_id_cont([]) --> "".
+
 
 		 /*******************************
 		 *	     GENERATION		*
