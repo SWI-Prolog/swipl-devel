@@ -1,11 +1,11 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2013, University of Amsterdam
+			      VU University Amsterdam
+			      Vienna University of Technology
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
