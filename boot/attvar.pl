@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 2004-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,13 +36,14 @@
 	    copy_term/3                 % +Term, -Copy, -Residue
 	  ]).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Attributed variable handling
+
 Attributed  variable  and  coroutining  support    based  on  attributed
 variables. This module is complemented with C-defined predicates defined
 in pl-attvar.c
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
-%	'$wakeup'(+List)
+%%	'$wakeup'(+List)
 %
 %	Called from the kernel if assignments have been made to
 %	attributed variables.
@@ -59,7 +59,7 @@ call_all_attr_uhooks(att(Module, AttVal, Rest), Value) :-
 	call_all_attr_uhooks(Rest, Value).
 
 
-%	uhook(+AttributeName, +AttributeValue, +Value)
+%%	uhook(+AttributeName, +AttributeValue, +Value)
 %
 %	Run the unify hook for attributed named AttributeName after
 %	assigning an attvar with attribute AttributeValue the value
@@ -80,7 +80,7 @@ uhook(Module, AttVal, Value) :-
 	Module:attr_unify_hook(AttVal, Value).
 
 
-%	unfreeze(+ConjunctionOrGoal)
+%%	unfreeze(+ConjunctionOrGoal)
 %
 %	Handle  unfreezing  of  conjunctions.  As  meta-calling  control
 %	structures is slower than meta-interpreting them   we do this in
@@ -95,7 +95,7 @@ unfreeze('$and'(A,B)) :- !,
 unfreeze(Goal) :-
 	Goal.
 
-%	freeze(@Var, :Goal)
+%%	freeze(@Var, :Goal)
 %
 %	Suspend execution of Goal until Var is unbound.
 
@@ -107,7 +107,7 @@ freeze(Var, Goal) :-
 freeze(_, Goal) :-
 	Goal.
 
-%	frozen(@Var, -Goals)
+%%	frozen(@Var, -Goals)
 %
 %	Unify Goals with the goals frozen on Var or true if no
 %	goals are grozen on Var.
@@ -127,11 +127,14 @@ make_conjunction(G, G).
 		 *	       PORTRAY		*
 		 *******************************/
 
-%	portray_attvar(@Var)
+%%	portray_attvar(@Var)
 %
 %	Called from write_term/3 using the option attributes(portray) or
 %	when the prolog flag write_attributes   equals portray. Its task
 %	is the write the attributes in a human readable format.
+
+:- public
+	portray_attvar/1.
 
 portray_attvar(Var) :-
 	write('{'),
