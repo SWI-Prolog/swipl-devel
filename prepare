@@ -35,6 +35,9 @@ yes=ask
 man=auto
 tar=tar
 
+# avoid surprises and printing paths.
+unset CDPATH
+
 usage()
 {
 cat << _EOM_
