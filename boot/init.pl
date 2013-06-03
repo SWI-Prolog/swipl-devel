@@ -393,7 +393,7 @@ initialization(Goal, When) :-
 	    File = (-)
 	).
 
-'$top_file'([input(include, F1, _)|T], _, F) :- !,
+'$top_file'([input(include, F1, _, _)|T], _, F) :- !,
 	'$top_file'(T, F1, F).
 '$top_file'(_, F, F).
 
