@@ -544,7 +544,7 @@ colourise_dcg_goals(List, _, TB, Pos) :-
 	colour_item(dcg(list), TB, Pos),
 	colourise_term_args(List, TB, Pos).
 colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
-	body_compiled(Body), !,
+	dcg_body_compiled(Body), !,
 	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
 colourise_dcg_goals(Goal, Origin, TB, Pos) :-
 	colourise_dcg_goal(Goal, Origin, TB, Pos),
@@ -566,6 +566,10 @@ dcg_extend(Term, Goal) :-
 	Term =.. List,
 	append(List, [_,_], List2),
 	Goal =.. List2.
+
+dcg_body_compiled(G) :-
+	body_compiled(G), !.
+dcg_body_compiled((_|_)).
 
 %	colourise_dcg_goal(+Goal, +Origin, +TB, +Pos).
 
