@@ -1177,6 +1177,9 @@ process_dcg_goal((A,B), Origin, Src) :-
 process_dcg_goal((A;B), Origin, Src) :-
 	process_dcg_goal(A, Origin, Src),
 	process_dcg_goal(B, Origin, Src).
+process_dcg_goal((A|B), Origin, Src) :-
+	process_dcg_goal(A, Origin, Src),
+	process_dcg_goal(B, Origin, Src).
 process_dcg_goal((A->B), Origin, Src) :-
 	process_dcg_goal(A, Origin, Src),
 	process_dcg_goal(B, Origin, Src).
