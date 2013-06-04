@@ -890,6 +890,11 @@ meta_args(I, Arity, Decl, Head, [H|T]) :-		% ^
 	setof_goal(EH, H),
 	I2 is I + 1,
 	meta_args(I2, Arity, Decl, Head, T).
+meta_args(I, Arity, Decl, Head, [//(H)|T]) :-
+	arg(I, Decl, //), !,
+	arg(I, Head, H),
+	I2 is I + 1,
+	meta_args(I2, Arity, Decl, Head, T).
 meta_args(I, Arity, Decl, Head, [H+A|T]) :-		% I --> H+I
 	arg(I, Decl, A),
 	integer(A), A > 0, !,
@@ -1154,8 +1159,37 @@ process_meta(A+N, Origin, Src) :- !,
 	->  process_goal(AX, Origin, Src)
 	;   true
 	).
+process_meta(//(A), Origin, Src) :- !,
+	process_dcg_goal(A, Origin, Src).
 process_meta(G, Origin, Src) :-
 	process_goal(G, Origin, Src).
+
+%%	process_dcg_goal(+Grammar, +Origin, +Src) is det.
+%
+%	Process  meta-arguments  that  are  tagged   with  //,  such  as
+%	phrase/3.
+
+process_dcg_goal(Var, _, _) :-
+	var(Var), !.
+process_dcg_goal((A,B), Origin, Src) :-
+	process_dcg_goal(A, Origin, Src),
+	process_dcg_goal(B, Origin, Src).
+process_dcg_goal((A;B), Origin, Src) :-
+	process_dcg_goal(A, Origin, Src),
+	process_dcg_goal(B, Origin, Src).
+process_dcg_goal((A->B), Origin, Src) :-
+	process_dcg_goal(A, Origin, Src),
+	process_dcg_goal(B, Origin, Src).
+process_dcg_goal((A*->B), Origin, Src) :-
+	process_dcg_goal(A, Origin, Src),
+	process_dcg_goal(B, Origin, Src).
+process_dcg_goal(List, _Origin, _Src) :-
+	is_list(List), !.		% terminal
+process_dcg_goal(Callable, Origin, Src) :-
+	extend(Callable, 2, Goal), !,
+	process_goal(Goal, Origin, Src).
+process_dcg_goal(_, _, _).
+
 
 extend(Var, _, _) :-
 	var(Var), !, fail.
