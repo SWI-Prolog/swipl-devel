@@ -347,6 +347,7 @@ csv_write_file(File, Data) :-
 	csv_write_file(File, Data, []).
 
 csv_write_file(File, Data, Options) :-
+	must_be(list, Data),
 	default_separator(File, Options, Options1),
 	make_csv_options(Options1, Record, RestOptions),
 	phrase(emit_csv(Data, Record), String),
