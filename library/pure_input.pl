@@ -35,6 +35,7 @@
 	    syntax_error//1,		% +ErrorTerm
 					% Low level interface
 	    lazy_list_location//1,	% -Location
+	    lazy_list_character_count//1, % -CharacterCount
 	    phrase_from_stream/2,	% :Grammar, +Stream
 	    stream_to_lazy_list/2	% :Stream -List
 	  ]).
@@ -153,7 +154,9 @@ syntax_error(Error) -->
 %		stream(Stream, Line, LinePos, CharNo) if no file is
 %		associated to the stream RestLazyList.  Finally, if the
 %		Lazy list is fully materialized (ends in =|[]|=), Location
-%		is unified with `end_of_file`.
+%		is unified with `end_of_file-CharCount`.
+%	@see	lazy_list_character_count//1 only provides the character
+%		count.
 
 lazy_list_location(Location, Here, Here) :-
 	lazy_list_location(Here, Location).
@@ -179,7 +182,35 @@ lazy_list_location(Here, Location) :-
 	    stream_position_data(line_count, ErrorPos, Line),
 	    stream_position_data(line_position, ErrorPos, LinePos)
 	;   Tail == []
-	->  Location = end_of_file
+	->  Location = end_of_file-Skipped
+	;   type_error(lazy_list, Here)
+	).
+
+
+%%	lazy_list_character_count(-CharCount)//
+%
+%	True when CharCount is the current   character count in the Lazy
+%	list. The character count is computed by finding the distance to
+%	the next frozen tail of the lazy list. CharCount is one of:
+%
+%	  - An integer
+%	  - A term end_of_file-Count
+%
+%	@see	lazy_list_location//1 provides full details of the location
+%		for error reporting.
+
+lazy_list_character_count(Location, Here, Here) :-
+	lazy_list_character_count(Here, Location).
+
+lazy_list_character_count(Here, CharNo) :-
+	'$skip_list'(Skipped, Here, Tail),
+	(   attvar(Tail)
+	->  frozen(Tail,
+		   pure_input:read_to_input_stream(_Stream, _PrevPos, Pos, _List)),
+	    stream_position_data(char_count, Pos, EndRecordCharNo),
+	    CharNo is EndRecordCharNo - Skipped
+	;   Tail == []
+	->  CharNo = end_of_file-Skipped
 	;   type_error(lazy_list, Here)
 	).
 
