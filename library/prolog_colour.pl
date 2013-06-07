@@ -652,11 +652,12 @@ colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
 colourise_meta_arg(_, Arg, TB, Pos) :-
 	colourise_term_arg(Arg, TB, Pos).
 
-%	meta_args(+Goal, -ArgSpec)
+%%	meta_args(+Goal, -ArgSpec)
 %
-%	Return a copy of Goal, where each meta-argument is an integer
-%	representing the number of extra arguments. The non-meta
-%	arguments are unbound variables.
+%	Return a copy of Goal, where   each  meta-argument is an integer
+%	representing the number of extra arguments   or  the atom // for
+%	indicating a DCG  body.  The   non-meta  arguments  are  unbound
+%	variables.
 %
 %	E.g. meta_args(maplist(foo,x,y), X) --> X = maplist(2,_,_)
 %
@@ -675,6 +676,8 @@ instantiate_meta([H|T]) :-
 	->  H = 0
 	;   H = V+N
 	->  V = N
+	;   H = //(V)
+	->  V = (//)
 	),
 	instantiate_meta(T).
 
