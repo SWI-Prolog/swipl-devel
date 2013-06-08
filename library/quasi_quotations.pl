@@ -31,7 +31,7 @@
 	  [ with_quasi_quotation_input/3,	% +Content, -Stream, :Goal
 	    phrase_from_quasi_quotation/2,	% :Grammar, +Content
 	    quasi_quotation_syntax_error/1,	% +Error
-	    quasi_quotation_syntax/1		% :Type
+	    quasi_quotation_syntax/1		% :Syntax
 	  ]).
 :- use_module(library(error)).
 :- use_module(library(pure_input)).
@@ -47,40 +47,40 @@ syntax. At the same time,  quasi   quotation  provides an alternative to
 represent long strings and atoms in Prolog.
 
 The basic form of a quasi quotation is   inspired  by XML and defined as
-below. Here, `Type` is an arbitrary Prolog   term that must parse into a
+below. Here, `Syntax` is an arbitrary Prolog term that must parse into a
 _callable_ (atom or  compound)  term  and   Quotation  is  an  arbitrary
 sequence of characters, not including  the   sequence  =|]]>|=.  If this
 sequence needs to be embedded, it must be escaped according to the rules
 of the target language.
 
     ==
-    <![Type[Quotation]]>
+    <![Syntax[Quotation]]>
     ==
 
 While reading a Prolog term, and if   the  Prolog flag =quasi_quotes= is
 set to =true= (which is the case if  this library is loaded), the parser
 collects quasi quotations. After reading the final full stop, the parser
-makes the call below. Here, `TypeName`  is   the  functor name of `Type`
-above and `TypeArgs` is a list holding   the  arguments, i.e., `Type =..
-[TypeName|TypeArgs]`. Splitting the type into its  name and arguments is
-done to make the quasi quotation parser   a  predicate with a consistent
-arity 4, regardless of the number of additional arguments.
+makes the call below. Here, `SyntaxName` is the functor name of `Syntax`
+above and `SyntaxArgs` is a list   holding  the arguments, i.e., `Syntax
+=.. [SyntaxName|SyntaxArgs]`. Splitting the  syntax   into  its name and
+arguments is done to make the quasi  quotation parser a predicate with a
+consistent arity 4, regardless of the number of additional arguments.
 
     ==
-    call(+TypeName, +Content, +TypeArgs, +VariableNames, -Result)
+    call(+SyntaxName, +Content, +SyntaxArgs, +VariableNames, -Result)
     ==
 
 The arguments are defined as
 
-  - `TypeName` is the principal functor of the quasi quotation type.
-  This must be declared using quasi_quote_type/1 and there must be a
-  predicate TypeName/4.
+  - `SyntaxName` is the principal functor of the quasi quotation syntax.
+  This must be declared using quasi_quotation_syntax/1 and there must be
+  a predicate SyntaxName/4.
 
   - `Content` is an opaque term that carries the content of the quasi
   quoted material and position information about the source code. It is
   passed to with_quasi_quote_input/3.
 
-  - `TypeArgs` carries the additional arguments of the `Type`. These are
+  - `SyntaxArgs` carries the additional arguments of the `Syntax`. These are
   commonly used to make the parameter passing between the clause and the
   quasi quotation explicit. For example:
 
@@ -105,7 +105,7 @@ The arguments are defined as
   library(http/html_write)). Examples of languages that may be embedded
   for processing in Prolog are SPARQL, RuleML or regular expressions.
 
-Below is a simple but functional example that defines the =html= type.
+Below is a simple but functional example that defines the =html= syntax.
 
   ==
   :- module(qq_html,
@@ -210,14 +210,14 @@ phrase_quasi_quotation(_, Stream) :-
 	    quasi_quotation_parser_failed,
 	    Stream).
 
-%%	quasi_quotation_syntax(:TypeName) is det.
+%%	quasi_quotation_syntax(:SyntaxName) is det.
 %
-%	Declare the predicate TypeName/4  to   implement  the  the quasi
-%	quote type TypeName.  Normally used as a directive.
+%	Declare the predicate SyntaxName/4  to   implement  the  the quasi
+%	quote syntax SyntaxName.  Normally used as a directive.
 
-quasi_quotation_syntax(M:Type) :-
-	must_be(atom, Type),
-	'$set_predicate_attribute'(M:Type/4, quasi_quotation_syntax, 1).
+quasi_quotation_syntax(M:Syntax) :-
+	must_be(atom, Syntax),
+	'$set_predicate_attribute'(M:Syntax/4, quasi_quotation_syntax, 1).
 
 %%	quasi_quotation_syntax_error(+Error)
 %
@@ -268,7 +268,7 @@ position_context(Stream, LineNo, LinePos, CharNo) :-
 %
 %	@arg	Quotations is a list of terms
 %
-%		    quasi_quotation(Type, Quotation, VarNames, Result)
+%		    quasi_quotation(Syntax, Quotation, VarNames, Result)
 
 :- public
 	system:'$parse_quasi_quotes'/2.
@@ -278,13 +278,13 @@ system:'$parse_quasi_quotations'([H|T], M) :-
 	qq_call(H, M),
 	system:'$parse_quasi_quotations'(T, M).
 
-qq_call(quasi_quotation(Type, Content, VariableNames, Result), M) :-
-	Type =.. [TypeName|TypeArgs],
+qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
+	Syntax =.. [SyntaxName|SyntaxArgs],
 	setup_call_cleanup(
 	    '$push_input_context'(quasi_quoted),
-	    call(M:TypeName, Content, TypeArgs, VariableNames, Result),
+	    call(M:SyntaxName, Content, SyntaxArgs, VariableNames, Result),
 	    '$pop_input_context'), !.
-qq_call(quasi_quotation(_Type, Content, _VariableNames, _Result), _M) :-
+qq_call(quasi_quotation(_Syntax, Content, _VariableNames, _Result), _M) :-
 	setup_call_cleanup(
 	    '$push_input_context'(quasi_quoted),
 	    with_quasi_quotation_input(
