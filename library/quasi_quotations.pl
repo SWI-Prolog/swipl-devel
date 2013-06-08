@@ -54,7 +54,7 @@ sequence needs to be embedded, it must be escaped according to the rules
 of the target language.
 
     ==
-    <![Type][Quotation]]>
+    <![Type[Quotation]]>
     ==
 
 While reading a Prolog term, and if   the  Prolog flag =quasi_quotes= is
