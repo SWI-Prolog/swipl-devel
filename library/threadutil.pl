@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1999-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,6 +33,7 @@
 	    threads/0,			% List available threads
 	    join_threads/0,		% Join all terminated threads
 	    interactor/0,		% Create a new interactor
+	    thread_has_console/0,	% Test whether calling thread has a console
 	    attach_console/0,		% Create an xterm-console for thread.
 
 	    tspy/1,			% :Spec
@@ -96,26 +96,32 @@ thread_run_interactor :-
 	print_message(banner, thread_welcome),
 	prolog.
 
-%%	attach_console
+%%	thread_has_console is semidet.
 %
-%	Create an xterm-console and make the standard Prolog streams point to
-%	it.
+%	True when the calling thread has an attached console.
+%
+%	@see attach_console/0
 
 :- dynamic
 	has_console/4.			% Id, In, Out, Err
 
-has_console(main) :- !.			% we assume main has one.
-has_console(Id) :-
+thread_has_console(main) :- !.			% we assume main has one.
+thread_has_console(Id) :-
 	has_console(Id, _, _, _).
 
-has_console :-
+thread_has_console :-
 	current_prolog_flag(break_level, _), !.
-has_console :-
+thread_has_console :-
 	thread_self(Id),
-	has_console(Id), !.
+	thread_has_console(Id), !.
+
+%%	attach_console is det.
+%
+%	Create an xterm-console and make the standard Prolog streams point to
+%	it.
 
 attach_console :-
-	has_console, !.
+	thread_has_console, !.
 attach_console :-
 	thread_self(Id),
 	current_prolog_flag(system_thread_id, SysId),
@@ -248,7 +254,7 @@ init_pce.
 	user:message_hook/3.
 
 user:message_hook(trace_mode(on), _, Lines) :-
-	\+ has_console,
+	\+ thread_has_console,
 	\+ current_prolog_flag(gui_tracer, true),
 	catch(attach_console, _, fail),
 	print_message_lines(user_error, '% ', Lines).
