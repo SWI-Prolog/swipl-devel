@@ -87,7 +87,7 @@ The arguments are defined as
     ==
 	...,
 	<![html(Name, Address)
-	   [ <tr><td>##Name<td>##Address</tr>
+	   [ <tr><td>Name<td>Address</tr>
 	   ]]>
     ==
 
@@ -105,43 +105,8 @@ The arguments are defined as
   library(http/html_write)). Examples of languages that may be embedded
   for processing in Prolog are SPARQL, RuleML or regular expressions.
 
-Below is a simple but functional example that defines the =html= syntax.
-
-  ==
-  :- module(qq_html,
-	    [ html/4
-	    ]).
-  :- use_module(library(sgml)).
-  :- use_module(library(apply)).
-  :- use_module(library(lists)).
-  :- use_module(library(quasi_quotations)).
-
-  :- quasi_quotation_syntax(html).
-
-  html(Content, Vars, Dict, DOM) :-
-	  include(qq_var(Vars), Dict, QQDict),
-	  with_quasi_quotation_input(
-	      Content, In,
-	      load_html(In, DOM0,
-			[ max_errors(0)
-			])),
-	  dom_vars(QQDict, DOM0, DOM).
-
-  qq_var(Vars, _=Var) :-
-	  member(V, Vars),
-	  V == Var, !.
-
-  dom_vars(Dict, Ref, Var) :-
-	  atom(Ref),
-	  atom_concat('##', VarName, Ref),
-	  memberchk(VarName=Var, Dict), !.
-  dom_vars(Dict, DOM0, DOM) :-
-	  compound(DOM0), !,
-	  DOM0 =.. [Name|Args0],
-	  maplist(dom_vars(Dict), Args0, Args),
-	  DOM =.. [Name|Args].
-  dom_vars(_, DOM, DOM).
-  ==
+The file library(http/http_quasiquotations) provides   the,  suprisingly
+simple, quasi quotation parser for HTML.
 
 @author Jan Wielemaker.  Introduction of Quasi Quotation was suggested
 	by Michael Hendricks.
