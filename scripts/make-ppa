@@ -86,7 +86,13 @@ case $TARGET_DISTRO in
      exit 1
 esac
 
-GIT_SHORT_HASH=`git describe $VTAG | sed 's/[^-]*-//'`
+case "$(git describe $VTAG)" in
+  *-*) GIT_SHORT_HASH=`git describe $VTAG | sed 's/[^-]*-//'`
+       ;;
+  *)   GIT_SHORT_HASH=0
+       ;;
+esac
+
 VERSION=$PL_VERSION-$GIT_SHORT_HASH-${TARGET_DISTRO}ppa2
 
 echo "Building package $VERSION for $TARGET_DISTRO"
