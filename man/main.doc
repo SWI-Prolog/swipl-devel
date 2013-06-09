@@ -59,8 +59,8 @@
 
 \newcommand{\vmajor}{6}
 \newcommand{\vminor}{3}
-\newcommand{\vpatch}{15}
-\newcommand{\vmonth}{May}
+\newcommand{\vpatch}{16}
+\newcommand{\vmonth}{June}
 \newcommand{\vyear}{2013}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
