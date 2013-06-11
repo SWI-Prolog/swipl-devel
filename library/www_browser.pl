@@ -90,6 +90,7 @@ www_open_url(Spec) :-			% something we know
 
 open_command('gnome-open').
 open_command(open).
+open_command('xdg-open').
 
 %%	www_open_url(+Browser, +URL) is det.
 %
