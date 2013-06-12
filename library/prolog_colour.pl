@@ -931,8 +931,8 @@ colourise_term_arg(_, TB,
 	colourise_qq_type(QQType, TB, QQTypePos),
 	functor(QQType, Type, _),
 	colour_item(qq_content(Type), TB, CPos),
-	FE is F+3,
-	TS is T-3,
+	FE is F+2,
+	TS is T-2,
 	colour_item(qq, TB, F-FE),
 	colour_item(qq, TB, TS-T).
 colourise_term_arg(Compound, TB, Pos) :-		% compound

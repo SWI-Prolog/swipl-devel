@@ -307,7 +307,7 @@ typedef struct
 #define T_STRING	5	/* "string" */
 #define T_PUNCTUATION	6	/* punctuation character */
 #define T_FULLSTOP	7	/* Prolog end of clause */
-#define T_QUASI_QUOTED  8	/* <![type[....]]> stuff */
+#define T_QUASI_QUOTED  8	/* {|type|....|} stuff */
 
 #define E_SILENT	0	/* Silently fail */
 #define E_EXCEPTION	1	/* Generate an exception */
@@ -965,9 +965,8 @@ raw_read_quasi_quotation(int c, ReadData _PL_rd)
 
   while((c=getchrq()) != EOF)
   { addToBuffer(c, _PL_rd);
-    if ( c == '>' &&
-	 rb.here[-2] == ']' &&
-	 rb.here[-3] == ']' )
+    if ( c == '}' &&
+	 rb.here[-2] == '|' )
       return TRUE;
   }
 
@@ -1337,14 +1336,10 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      dotseen = FALSE;
 		      goto handle_c;
 		    default:
-#ifdef O_QUASIQUOTATIONS				/* detect <![ */
-		      if ( c == '[' &&
-			   rb.here - rb.base >= 2 &&
-			   rb.here[-1] == '!' &&
-			   rb.here[-2] == '<' &&
-			   ( rb.here - rb.base == 2 ||
-			     !isSymbol(rb.here[-3])
-			   ) &&
+#ifdef O_QUASIQUOTATIONS				/* detect {| */
+		      if ( c == '|' &&
+			   rb.here - rb.base >= 1 &&
+			   rb.here[-1] == '{' &&
 			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
 		      { if ( !raw_read_quasi_quotation(c, _PL_rd) )
 			  return FALSE;
@@ -2222,15 +2217,14 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
 #ifdef O_QUASIQUOTATIONS
 static int
 get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
-		ReadData _PL_rd)
+		    ReadData _PL_rd)
 { unsigned char *in, *start = *here;
 
   for(in=start; in <= ein; in++)
-  { if ( in[0] == '>' &&
-	 in[-1] == ']' &&
-	 in[-2] == ']' )
-    { *here = in+1;			/* after > */
-      in -= 2;				/* Before ] */
+  { if ( in[0] == '}' &&
+	 in[-1] == '|' )
+    { *here = in+1;			/* after } */
+      in--;				/* Before | */
 
       if ( _PL_rd->quasi_quotations )	/* option; must return strings */
       { PL_chars_t txt;
@@ -2587,20 +2581,21 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		      break;
 		    }
 		  }
-#ifdef O_QUASIQUOTATIONS
-		  if ( c == '<' && rdhere[0] == '!' && rdhere[1] == '[' &&
-		       truePrologFlag(PLFLAG_QUASI_QUOTES) )
-		  { rdhere += 2;
-		    cur_token.type = T_QUASI_QUOTED;
-		    break;
-		  }
-#endif
 		}
 
 		goto symbol;
     case PU:	{ switch(c)
-		  { case '(':
-		    case '{':
+		  { case '{':
+#ifdef O_QUASIQUOTATIONS
+		      if ( rdhere[0] == '|' &&
+			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
+		      { rdhere++;
+			cur_token.type = T_QUASI_QUOTED;
+			goto out;
+		      }
+		    /*FALLTHROUGH*/
+#endif
+		    case '(':
 		    case '[':
 		      rdhere = skipSpaces(rdhere);
 		      if (rdhere[0] == matchingBracket(c))
@@ -3368,11 +3363,6 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  if ( stop != NULL && strchr(stop, token->value.character) )
 	    goto exit;
 	  break;
-#ifdef O_QUASIQUOTATIONS
-        case T_NAME:
-	  if ( stop && *stop == '[' && token->value.atom == ATOM_nil )
-	    goto exit;
-#endif
       }
     }
 
@@ -3872,16 +3862,12 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
       } else
 	pv = 0;
 						/* push type */
-      rc = complex_term("[", OP_MAXPRIORITY+1,
+      rc = complex_term("|", OP_MAXPRIORITY+1,
 			positions ? pv+1 : 0,
 			_PL_rd PASS_LD);
       if ( rc != TRUE )
 	return rc;
-      token = get_token(FALSE, _PL_rd);		/* get the '[' */
-      if ( token->type == T_NAME )		/* got [<whitespace>*] :-( */
-      { assert(token->value.atom);
-	rdhere = last_token_start+1;
-      }
+      token = get_token(FALSE, _PL_rd);		/* get the '|' */
 
       argv = term_av(-1, _PL_rd);
       PL_put_term(av+0, argv[0]);		/* Arg 0: the type */
@@ -3900,8 +3886,8 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 	set_range_position(positions, -1, qqend PASS_LD);
 	if ( !PL_unify_term(pv+2,
 			    PL_FUNCTOR, FUNCTOR_minus2,
-			      PL_INTPTR, token->end,	/* end of [ token */
-			      PL_INTPTR, qqend-3) )     /* end minus "]]>" */
+			      PL_INTPTR, token->end,	/* end of | token */
+			      PL_INTPTR, qqend-2) )     /* end minus "|}" */
 	  return FALSE;
       }
 
