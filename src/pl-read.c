@@ -1241,6 +1241,15 @@ raw_read2(ReadData _PL_rd ARG_LD)
 				else
 				  goto handle_c;
 			      }
+#ifdef O_QUASIQUOTATIONS
+			    } else if ( c == '|' )	/* 0'|| */
+			    { if ( (c=getchr()) != EOF )
+			      { if ( c == '|' )
+				  addToBuffer(c, _PL_rd);
+				else
+				  goto handle_c;
+			      }
+#endif
 			    }
 			    break;
 			  }
