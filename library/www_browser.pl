@@ -203,6 +203,9 @@ user:url_path(swipl_quick,    swipl('man/quickstart.html')).
 %
 %	Expand URL specifications similar   to absolute_file_name/3. The
 %	predicate url_path/2 plays the role of file_search_path/2.
+%
+%	@error	existence_error(url_path, Spec) if the location is not
+%		defined.
 
 expand_url_path(URL, URL) :-
 	atomic(URL), !.			% Allow atom and string
