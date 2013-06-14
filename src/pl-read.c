@@ -307,7 +307,8 @@ typedef struct
 #define T_STRING	5	/* "string" */
 #define T_PUNCTUATION	6	/* punctuation character */
 #define T_FULLSTOP	7	/* Prolog end of clause */
-#define T_QUASI_QUOTED  8	/* {|type|....|} stuff */
+#define T_QQ_OPEN	8	/* "{|" of {|Syntax||Quotation|} stuff */
+#define T_QQ_BAR	9	/* "||" of {|Syntax||Quotation|} stuff */
 
 #define E_SILENT	0	/* Silently fail */
 #define E_EXCEPTION	1	/* Generate an exception */
@@ -1336,10 +1337,10 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      dotseen = FALSE;
 		      goto handle_c;
 		    default:
-#ifdef O_QUASIQUOTATIONS				/* detect {| */
+#ifdef O_QUASIQUOTATIONS		/* detect || from {|Syntax||Quotation|} */
 		      if ( c == '|' &&
 			   rb.here - rb.base >= 1 &&
-			   rb.here[-1] == '{' &&
+			   rb.here[-1] == '|' &&
 			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
 		      { if ( !raw_read_quasi_quotation(c, _PL_rd) )
 			  return FALSE;
@@ -2590,7 +2591,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		      if ( rdhere[0] == '|' &&
 			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
 		      { rdhere++;
-			cur_token.type = T_QUASI_QUOTED;
+			cur_token.type = T_QQ_OPEN;
 			goto out;
 		      }
 		    /*FALLTHROUGH*/
@@ -2615,6 +2616,15 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 					  stringAtom(cur_token.value.atom)));
 			goto out;
 		      }
+#ifdef O_QUASIQUOTATIONS
+		    case '|':
+		      if ( rdhere[0] == '|' &&
+			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
+		      { rdhere++;
+			cur_token.type = T_QQ_BAR;
+			goto out;
+		      }
+#endif
 		  }
 		  cur_token.value.character = c;
 		  cur_token.type = T_PUNCTUATION;
@@ -3362,6 +3372,9 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	case T_PUNCTUATION:
 	  if ( stop != NULL && strchr(stop, token->value.character) )
 	    goto exit;
+      case T_QQ_BAR:
+	  if ( stop != NULL && stop[0] == '|' )
+	    goto exit;
 	  break;
       }
     }
@@ -3824,7 +3837,7 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    case T_QUASI_QUOTED:
+    case T_QQ_OPEN:
     { int rc;
       term_t result, t, *argv, pv, av;
 
@@ -3868,6 +3881,8 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
       if ( rc != TRUE )
 	return rc;
       token = get_token(FALSE, _PL_rd);		/* get the '|' */
+      if ( token->type != T_QQ_BAR )
+	syntaxError("double_bar_expected", _PL_rd);
 
       argv = term_av(-1, _PL_rd);
       PL_put_term(av+0, argv[0]);		/* Arg 0: the type */
@@ -3905,6 +3920,8 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 
       return TRUE;
     }
+    case T_QQ_BAR:
+      syntaxError("double_bar_outside_quasiquotation", _PL_rd);
 #endif
     default:;
       sysError("read/1: Illegal token type (%d)", token->type);
