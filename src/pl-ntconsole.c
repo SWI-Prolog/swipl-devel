@@ -360,7 +360,14 @@ control_ansi(void *handle, int op, void *data)
     case SIO_SETENCODING:
       return -1;			/* We cannot change the encoding! */
     case SIO_LASTERROR:
-      return 0;				/* TBD */
+    { const char *s;
+      if ( (s = WinError()) );
+      { const char **sp = data;
+	*sp = s;
+	return 0;
+      }
+      return -1;
+    }
     case SIO_GETFILENO:
     { int *fp = data;
 
