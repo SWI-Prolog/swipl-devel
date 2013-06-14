@@ -46,12 +46,12 @@ Prolog text and syntax-aware  embedding  of   Prolog  variables  in this
 syntax. At the same time,  quasi   quotation  provides an alternative to
 represent long strings and atoms in Prolog.
 
-The basic form of a quasi quotation is   inspired  by XML and defined as
-below. Here, `Syntax` is an arbitrary Prolog term that must parse into a
-_callable_ (atom or  compound)  term  and   Quotation  is  an  arbitrary
-sequence of characters, not including  the   sequence  =|]]>|=.  If this
-sequence needs to be embedded, it must be escaped according to the rules
-of the target language.
+The basic form of a quasi quotation  is defined below. Here, `Syntax` is
+an arbitrary Prolog term that must  parse   into  a  _callable_ (atom or
+compound) term and Quotation is an arbitrary sequence of characters, not
+including the sequence =||}|=. If this sequence needs to be embedded, it
+must be escaped according to the  rules   of  the target language or the
+`quoter' must provide an escaping mechanism.
 
     ==
     {|Syntax||Quotation|}
