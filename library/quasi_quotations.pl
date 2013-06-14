@@ -54,7 +54,7 @@ sequence needs to be embedded, it must be escaped according to the rules
 of the target language.
 
     ==
-    <![Syntax[Quotation]]>
+    {|Syntax||Quotation|}
     ==
 
 While reading a Prolog term, and if   the  Prolog flag =quasi_quotes= is
@@ -86,9 +86,9 @@ The arguments are defined as
 
     ==
 	...,
-	<![html(Name, Address)
-	   [ <tr><td>Name<td>Address</tr>
-	   ]]>
+	{|html(Name, Address)||
+	 <tr><td>Name<td>Address</tr>
+	 |}
     ==
 
   - `VariableNames` is the complete variable dictionary of the clause as
