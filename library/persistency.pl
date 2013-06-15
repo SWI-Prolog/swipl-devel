@@ -73,6 +73,7 @@ Below is a simple example:
 	    add_user/2,			% +User, +Role
 	    set_user_role/2		% +User, +Role
 	  ]).
+:- use_module(library(persistency)).
 
 :- persistent
 	user_role(name:atom, role:oneof([user,administrator])).
