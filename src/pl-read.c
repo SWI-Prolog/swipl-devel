@@ -1829,7 +1829,7 @@ skip_digit_separator(cucharp *sp, int base, int *grouped)
   else if ( *s == ' ' && base <= 10 )
     s++;
 
-  if ( isDigit(*s) )
+  if ( digitValue(base, *s) >= 0 )
   { *sp = s;
     if ( grouped )
       *grouped = TRUE;
