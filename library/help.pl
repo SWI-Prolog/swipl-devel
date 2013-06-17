@@ -288,8 +288,8 @@ section_apropos(Pattern) :-
 	       (user_index(Index, UserIndex),
 		format('Section ~w~t~30|"~w"~n', [UserIndex, Name]))).
 
-apropos_match(A, B) :-
-	'$apropos_match'(A, B).			% C defined for performance
+apropos_match(Needle, Haystack) :-
+	sub_atom_icasechk(Haystack, _, Needle).
 
 user_index(List, Index) :-
 	is_list(List), !,

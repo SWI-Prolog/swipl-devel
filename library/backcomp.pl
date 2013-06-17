@@ -46,6 +46,7 @@
 	    concat/3,
 	    concat_atom/2,		% +List, -Atom
 	    concat_atom/3,		% +List, +Sep, -Atom
+	    '$apropos_match'/2,		% +Needle, +Hashstack
 	    read_clause/1,		% -Term
 	    read_clause/2,		% +Stream, -Term
 	    read_variables/2,		% -Term, -VariableNames
@@ -213,6 +214,14 @@ concat_atom(L, Atom) :-
 
 concat_atom(L, Sep, Atom) :-
 	atomic_list_concat(L, Sep, Atom).
+
+%%	'$apropos_match'(+Needle, +Haystack) is semidet.
+%
+%	True if Needle is a sub atom of Haystack.  Ignores the case
+%	of Haystack.
+
+'$apropos_match'(Needle, Haystack) :-
+	sub_atom_icasechk(Needle, _, Haystack).
 
 %%	read_clause(-Term) is det.
 %

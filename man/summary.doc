@@ -558,6 +558,7 @@ suggest predicates from a keyword.
 \predicatesummary{strip_module}{3}{Extract context module and term}
 \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
+\predicatesummary{sub_atom_icasechk}{3}{Case insensitive substring match}
 \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{subsumes_term}{2}{One-sided unification test}
 \predicatesummary{succ}{2}{Logical integer successor relation}

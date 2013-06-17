@@ -77,7 +77,6 @@ static const PL_extension foreigns[] = {
   FRG("getenv",			2, pl_getenv,			0),
   FRG("setenv",			2, pl_setenv,			0),
   FRG("unsetenv",		1, pl_unsetenv,			0),
-  FRG("$apropos_match",		2, pl_apropos_match,		0),
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),

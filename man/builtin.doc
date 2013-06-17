@@ -4859,6 +4859,17 @@ A = 1, S = b
 The implementation minimises non-determinism and creation of atoms.
 This is a very flexible predicate that can do search, prefix- and
 suffix-matching, etc.
+
+    \predicate[semidet]{sub_atom_icasechk}{3}{+Haystack, ?Start, +Needle}
+True when \arg{Needle} is a sub atom of \arg{Haystack} starting at
+\arg{Start}. The match is `half case insensitive', i.e., uppercase
+letters in \arg{Needle} only match themselves, while lowercase letters
+in \arg{Needle} match case insensitively.  \arg{Start} is the first
+0-based offset inside \arg{Haystack} where \arg{Needle}
+matches.\footnote{This predicate replaces \$apropos_match/2, used by the
+help system, while extending it with locating the (first) match and
+performing case insensitive prefix matching. We are still not happy
+with the name and interface.}
 \end{description}
 
 

@@ -370,10 +370,10 @@ matching_installed_pack(Query, pack(Pack, i, Title, Version, URL)) :-
 		( pack_info(Pack, _, Term),
 		  search_info(Term)
 		), Info),
-	(   '$apropos_match'(Query, Pack)
+	(   sub_atom_icasechk(Pack, _, Query)
 	->  true
 	;   memberchk(title(Title), Info),
-	    '$apropos_match'(Query, Title)
+	    sub_atom_icasechk(Title, _, Query)
 	),
 	option(title(Title), Info, '<no title>'),
 	option(version(Version), Info, '<no version>'),

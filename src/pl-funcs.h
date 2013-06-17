@@ -378,7 +378,6 @@ COMMON(int)		is_acyclic(Word p ARG_LD);
 COMMON(int)		numberVars(term_t t, nv_options *opts, int n ARG_LD);
 COMMON(int)		duplicate_term(term_t in, term_t copy ARG_LD);
 COMMON(word)		stringToList(char *s);
-COMMON(word)		pl_apropos_match(term_t a1, term_t a2);
 COMMON(foreign_t)	pl_sub_atom(term_t atom,
 				    term_t before, term_t len, term_t after,
 				    term_t sub, control_t h);

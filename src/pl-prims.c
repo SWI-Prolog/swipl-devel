@@ -3694,45 +3694,77 @@ PRED_IMPL("atomic_list_concat", 2, atomic_list_concat, 0)
 }
 
 
-word
-pl_apropos_match(term_t a1, term_t a2)
-{ char *s1=NULL, *s2=NULL;
-  pl_wchar_t *w1=NULL, *w2=NULL;
-  size_t l1, l2;
+/** sub_atom_icasechk(+Haystack, ?Start, +Needle) is semidet.
+*/
 
-  if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
-       PL_get_chars(a2, &s2, CVT_ALL) )
-  { char *s, *q;
+static
+PRED_IMPL("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
+{ PRED_LD
+  char       *needleA=NULL, *haystackA=NULL;
+  pl_wchar_t *needleW=NULL, *haystackW=NULL;
+  size_t l1, l2, offset;
+  int has_offset;
 
-    for (; *s2; s2++)
-    { for(q=s1, s=s2; *q && *s; q++, s++)
+  term_t haystack = A1;
+  term_t start	  = A2;
+  term_t needle   = A3;
+
+  if ( PL_is_variable(start) )
+    has_offset = FALSE, offset = 0;
+  else if ( PL_get_size_ex(start, &offset) )
+    has_offset = TRUE;
+  else
+    return FALSE;
+
+  if ( PL_get_nchars(needle,   &l1, &needleA, CVT_ALL|BUF_RING) &&
+       PL_get_nchars(haystack, &l2, &haystackA, CVT_ALL) )
+  { char *s, *q, *s2 = haystackA + offset;
+    const char *eq = (const char *)&needleA[l1];
+    const char *es = (const char *)&haystackA[l2];
+
+    for (; s2<=es-l1; s2++)
+    { for(q=needleA, s=s2; q<eq && s<es; q++, s++)
       { if ( *q != *s && *q != toLower(*s) )
 	  break;
       }
-      if ( *q == EOS )
-	succeed;
+      if ( q == eq )
+      { offset = s2-haystackA;
+	goto found;
+      }
+      if ( has_offset )
+	break;
     }
     fail;
   }
-  if ( PL_get_wchars(a1, &l1, &w1, CVT_ALL|BUF_RING) &&
-       PL_get_wchars(a2, &l2, &w2, CVT_ALL) )
-  { pl_wchar_t *s, *q;
-    pl_wchar_t *eq = &w1[l1];
-    pl_wchar_t *es = &w2[l2];
-    unsigned int i2;
 
-    for (i2=0; i2<l2; i2++)
-    { for(q=w1, s=w2+i2; q<eq && s<es; q++, s++)
+  if ( PL_get_wchars(needle,   &l1, &needleW, CVT_ALL|CVT_EXCEPTION|BUF_RING) &&
+       PL_get_wchars(haystack, &l2, &haystackW, CVT_ALL|CVT_EXCEPTION) )
+  { pl_wchar_t *s, *q, *s2 = haystackW + offset;
+    pl_wchar_t *eq = &needleW[l1];
+    pl_wchar_t *es = &haystackW[l2];
+
+    for (; s2<=es-l1; s2++)
+    { for(q=needleW, s=s2; q<eq && s<es; q++, s++)
       { if ( *q != *s && *q != (pl_wchar_t)towlower(*s) )
 	  break;
       }
       if ( q == eq )
-	succeed;
+      { offset = s2-haystackW;
+	goto found;
+      }
+      if ( has_offset )
+	break;
     }
     fail;
   }
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, (s1||w1) ? a2 : a1);
+  return FALSE;
+
+found:
+  if ( !has_offset )
+    return PL_unify_integer(start, offset);
+
+  return TRUE;
 }
 
 
@@ -4961,6 +4993,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_length", 2, string_length, 0)
   PRED_DEF("string_to_atom", 2, string_to_atom, 0)
   PRED_DEF("string_to_list", 2, string_to_list, 0)
+  PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$option", 2, option, 0)
   PRED_DEF("$style_check", 2, style_check, 0)
