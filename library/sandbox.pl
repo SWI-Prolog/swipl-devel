@@ -130,7 +130,7 @@ def_module(M:G, MD:QG) :-
 def_module(M:G, M:QG) :-
 	meta_qualify(M:G, M, QG).
 
-%%	meta_qualify(MD:G, M, QG) is det.
+%%	meta_qualify(:G, M, QG) is det.
 %
 %	Perform meta-qualification of the goal-argument
 
