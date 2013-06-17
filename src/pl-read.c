@@ -1705,17 +1705,22 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
   PL_strip_module(type, &m, plain);
 
   if ( PL_get_name_arity(plain, &name, &arity) )
-  { Procedure proc;
+  { if ( _PL_rd->quasi_quotations )
+    { return TRUE;
+    } else
+    { Procedure proc;
 
-    if ( (proc=resolveProcedure(PL_new_functor(name, 4), m)) &&
-	 true(proc->definition, P_QUASI_QUOTATION_SYNTAX) )
-      return TRUE;
+      if ( (proc=resolveProcedure(PL_new_functor(name, 4), m)) &&
+	   true(proc->definition, P_QUASI_QUOTATION_SYNTAX) )
+	return TRUE;
 
-    if ( (ex = PL_new_term_ref()) &&
-	 PL_unify_term(ex, PL_FUNCTOR_CHARS, "unknown_quasi_quotation_syntax", 2,
-		       PL_TERM, type,
-		       PL_ATOM, m->name) )
-      return errorWarning(NULL, ex, _PL_rd);
+      if ( (ex = PL_new_term_ref()) &&
+	   PL_unify_term(ex,
+			 PL_FUNCTOR_CHARS, "unknown_quasi_quotation_syntax", 2,
+			   PL_TERM, type,
+			   PL_ATOM, m->name) )
+	return errorWarning(NULL, ex, _PL_rd);
+    }
   } else
   { if ( (ex = PL_new_term_ref()) &&
 	 PL_unify_term(ex, PL_FUNCTOR_CHARS, "invalid_quasi_quotation_syntax", 1,
