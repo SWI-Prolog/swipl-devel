@@ -4389,6 +4389,17 @@ and \prologflag{double_quotes} flag. The value of the latter two is overruled
 if the corresponding read_term/3 option is provided.  If no module is
 specified, the current `source module' is used.  (SWI-Prolog).
 
+    \termitem{quasi_quotations}{-List}
+If present, unify \arg{List} with the quasi quotations (see
+\secref{quasiquotations} instead of evaluating quasi quotations.
+Each quasi quotation is a term \term{quasi_quotation}{+Syntax,
++Quotation, +VarDict, -Result}, where \arg{Syntax} is the term in
+\verb${|Syntax||$, \arg{Quotation} is a list of character codes that
+represent the quotation, \arg{VarDict} is a list of
+\arg{Name}=\arg{Variable} and \arg{Result} is a variable that shares
+with the place where the quotation must be inserted.  This option is
+intended to support tools that manipulate Prolog source text.
+
     \termitem{singletons}{Vars}
 As \const{variable_names}, but only reports the variables occurring only
 once in the \arg{Term} read. Variables starting with an underscore
