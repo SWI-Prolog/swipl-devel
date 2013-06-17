@@ -29,7 +29,7 @@
 */
 
 :- module(apply_macros,
-	  [
+	  [ expand_phrase/2		% :PhraseGoal, -Goal
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(occurs)).
@@ -139,6 +139,21 @@ expand_apply(ignore(Goal), (Goal->true;true)).
 expand_apply(Phrase, Expanded) :-
 	expand_phrase(Phrase, Expanded), !.
 
+%%	expand_phrase(+PhraseGoal, -Goal) is semidet.
+%
+%	Provide goal-expansion for  PhraseGoal.   PhraseGoal  is  either
+%	phrase(NonTerminals, List) or phrase(NonTerminals,  List, Tail).
+%	This predicate is intended to inline calls to phrase and support
+%	code analysis.
+%
+%	For example:
+%
+%	  ==
+%	  ?- expand_phrase(phrase(("ab", rule)), List), Goal).
+%	  Goal = (List=[97, 98|_G121], rule(_G121, [])).
+%	  ==
+%
+%	@throws	Re-throws errors from dcg_translate_rule/2
 
 expand_phrase(phrase(NT,Xs), NTXsNil) :- !,
 	expand_apply(phrase(NT,Xs,[]), NTXsNil).
@@ -152,7 +167,7 @@ expand_phrase(Goal, NewGoal) :-
 	      )),
 	Rule = (pseudo_nt(Xs0c,Xsc) :- NewGoal0),
 	Goal \== NewGoal0,
-	\+ contains_illegal_dcgnt(NT), !,	% apply translation only if we are safe
+	\+ contains_illegal_dcgnt(NT), !, % apply translation only if we are safe
 	(   var(Xsc), Xsc \== Xs0c
 	->  Xs = Xsc, NewGoal1 = NewGoal0
 	;   NewGoal1 = (NewGoal0, Xsc = Xs)

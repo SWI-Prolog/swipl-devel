@@ -365,6 +365,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\pio.pl
   File ${SWIPL}\library\coinduction.pl
   File ${SWIPL}\library\quasi_quotations.pl
+  File ${SWIPL}\library\sandbox.pl
 
 ; WINDOWS
   File ${SWIPL}\library\dde.pl
