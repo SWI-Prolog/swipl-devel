@@ -1359,6 +1359,10 @@ If present and \const{true}, SWI-Prolog is compiled with -DO_RUNTIME,
 disabling various useful development features (currently the tracer and
 profiler).
 
+    \prologflagitem{sandboxed_load}{bool}{rw}
+If \const{true} (default \const{false}), load_files/2 calls hooks to
+allow library(sandbox) to verify the safety of directives.
+
     \prologflagitem{saved_program}{bool}{r}
 If present and \const{true}, Prolog has been started from a state saved
 with qsave_program/[1,2].

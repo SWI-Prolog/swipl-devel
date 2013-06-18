@@ -1725,6 +1725,7 @@ load_files(Module:Files, Options) :-
 	statistics(clauses, OldClauses),
 	statistics(cputime, OldTime),
 
+	'$set_sandboxed_load'(Options, OldSandBoxed),
 	'$set_verbose_load'(Options, OldVerbose),
 	'$update_autoload_level'(Options, OldAutoLevel),
 	'$save_file_scoped_flags'(ScopedFlags),
@@ -1777,6 +1778,7 @@ load_files(Module:Files, Options) :-
 					ClausesCreated))),
 	'$set_autoload_level'(OldAutoLevel),
 	set_prolog_flag(verbose_load, OldVerbose),
+	set_prolog_flag(sandboxed_load, OldSandBoxed),
 	'$restore_file_scoped_flags'(ScopedFlags).
 
 %%	'$save_file_scoped_flags'(-State) is det.
@@ -1833,6 +1835,33 @@ load_files(Module:Files, Options) :-
 
 '$negate'(true, false).
 '$negate'(false, true).
+
+%%	'$set_sandboxed_load'(+Options, -Old) is det.
+%
+%	Update the Prolog flag  =sandboxed_load=   from  Options. Old is
+%	unified with the old flag.
+%
+%	@error permission_error(leave, sandbox, -)
+
+'$set_sandboxed_load'(Options, Old) :-
+	current_prolog_flag(sandboxed_load, Old),
+	(   memberchk(sandboxed(SandBoxed), Options),
+	    '$enter_sandboxed'(Old, SandBoxed, New),
+	    New \== Old
+	->  set_prolog_flag(sandboxed_load, New)
+	;   true
+	).
+
+'$enter_sandboxed'(Old, New, SandBoxed) :-
+	(   Old == false, New == true
+	->  SandBoxed = true
+	;   Old == true, New == false
+	->  throw(error(permission_error(leave, sandbox, -), _))
+	;   SandBoxed = Old
+	).
+
+'$enter_sandboxed'(false, true, true).
+
 
 %%	'$update_autoload_level'(+Options, -OldLevel)
 %

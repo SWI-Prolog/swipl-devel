@@ -1178,6 +1178,7 @@ initPrologFlags(void)
   setPrologFlag("verbose_load", FT_ATOM, "normal");
   setPrologFlag("verbose_autoload", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose_file_search", FT_BOOL, FALSE, 0);
+  setPrologFlag("sandboxed_load", FT_BOOL, FALSE, 0);
   setPrologFlag("allow_variable_name_as_functor", FT_BOOL, FALSE,
 	     ALLOW_VARNAME_FUNCTOR);
   setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
