@@ -48,13 +48,15 @@ it is easy to write programs that can   harm your computer. On the other
 hand, Prolog is a logic based _query language_ which can be exploited to
 query data interactively from, e.g.,  the   web.  This  library provides
 safe_goal/1, which determines whether it is safe to call its argument.
+
+@tbd	Handling of ^ and // meta predicates
 */
 
 
 :- meta_predicate
 	safe_goal(0).
 
-%%	safe_goal(:Goal) is semidet.
+%%	safe_goal(:Goal) is det.
 %
 %	True if calling Goal provides  no   security  risc. This implies
 %	that:
@@ -65,21 +67,25 @@ safe_goal/1, which determines whether it is safe to call its argument.
 %
 %	  - All predicates  referenced  from   the  fully  expanded  are
 %	  whitelisted by the predicate safe_primitive/1 and safe_meta/2.
+%
+%	@error	instantiation_error if the analysis encounters a term in
+%		a callable position that is insufficiently instantiated
+%		to determine the predicate called.
+%	@error	permission_error(call, sandboxed, Goal) if Goal is in
+%		the call-tree and not white-listed.
 
 safe_goal(M:Goal) :-
 	empty_assoc(Safe0),
-	catch(safe(Goal, M, [], Safe0, _), E,
-	      (	  print_message(error, E),
-		  fail
-	      )).
+	safe(Goal, M, [], Safe0, _).
 
 
 %%	safe(+Goal, +Module, +Parents, +Safe0, -Safe) is semidet.
 %
 %	Is true if Goal can only call safe code.
 
-safe(V, _, _, _, _) :-
-	var(V), !, fail.
+safe(V, _, Parents, _, _) :-
+	var(V), !,
+	throw(error(instantiation_error, sandbox(V, Parents))).
 safe(M:G, _, Parent, Safe0, Safe) :- !,
 	safe(G, M, Parent, Safe0, Safe).
 safe(G, _, Parents, _, _) :-
@@ -114,8 +120,8 @@ safe_clauses(G, M, Parents, Safe0, Safe) :-
 	findall(Body, clause(MD:QG, Body), Bodies),
 	safe_list(Bodies, MD, Parents, Safe0, Safe).
 safe_clauses(_, _M, [G|Parents], _, _) :-
-	debug(sandbox, 'Unsafe: ~q (parents = ~q)', [G, Parents]),
-	fail.
+	throw(error(permission_error(call, sandboxed, G),
+		    sandbox(G, Parents))).
 
 safe_list([], _, _, Safe, Safe).
 safe_list([H|T], M, Parents, Safe0, Safe) :-
@@ -130,7 +136,7 @@ def_module(M:G, MD:QG) :-
 def_module(M:G, M:QG) :-
 	meta_qualify(M:G, M, QG).
 
-%%	meta_qualify(:G, M, QG) is det.
+%%	meta_qualify(:G, +M, -QG) is det.
 %
 %	Perform meta-qualification of the goal-argument
 
@@ -377,7 +383,7 @@ safe_meta(forall(0,0)).
 safe_meta(catch(0,_,0)).
 safe_meta(findall(_,0,_)).
 safe_meta(findall(_,0,_,_)).
-safe_meta(setof(_,0,_)).
+safe_meta(setof(_,0,_)).		% TBD
 safe_meta(bagof(_,0,_)).
 safe_meta(^(_,0)).
 safe_meta(\+(0)).
