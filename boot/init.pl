@@ -2525,6 +2525,7 @@ load_files(Module:Files, Options) :-
 
 '$execute_directive_3'(Goal) :-
 	'$set_source_module'(Module, Module),
+	'$valid_directive'(Module:Goal), !,
 	(   '$pattr_directive'(Goal, Module)
 	->  true
 	;   catch(Module:Goal, Term, '$exception_in_directive'(Term))
@@ -2532,6 +2533,29 @@ load_files(Module:Files, Options) :-
 	;   print_message(warning, goal_failed(directive, Module:Goal)),
 	    fail
 	).
+'$execute_directive_3'(_).
+
+
+%%	'$valid_directive'(:Directive) is det.
+%
+%	If   the   flag   =sandboxed_load=   is   =true=,   this   calls
+%	prolog:sandbox_allowed_directive/1. This call can deny execution
+%	of the directive by throwing an exception.
+
+:- multifile prolog:sandbox_allowed_directive/1.
+
+'$valid_directive'(_) :-
+	current_prolog_flag(sandboxed_load, false), !.
+'$valid_directive'(Goal) :-
+	catch(prolog:sandbox_allowed_directive(Goal), Error, true),
+	(   var(Error)
+	->  fail
+	;   !,
+	    print_message(error, Error),
+	    fail
+	).
+'$valid_directive'(_).
+
 
 '$exception_in_directive'(Term) :-
 	print_message(error, Term),
