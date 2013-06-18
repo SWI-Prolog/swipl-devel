@@ -396,3 +396,59 @@ safe_meta(call(2, _, _)).
 safe_meta(call(3, _, _, _)).
 safe_meta(call(4, _, _, _, _)).
 safe_meta(call(5, _, _, _, _, _)).
+
+
+		 /*******************************
+		 *    SAFE COMPILATION HOOKS	*
+		 *******************************/
+
+:- multifile
+	prolog:sandbox_allowed_directive/1,
+	prolog:sandbox_allowed_expansion/1.
+
+%%	prolog:sandbox_allowed_directive(:G) is det.
+%
+%	Throws an exception if G is not considered a safe directive.
+
+prolog:sandbox_allowed_directive(M:PredAttr) :-
+	safe_directive(PredAttr),
+	(   prolog_load_context(module, M)
+	->  PredAttr =.. [Attr, Preds],
+	    safe_pattr(Preds, Attr)
+	;   permission_error(directive, sandboxed, (:- M:PredAttr))
+	).
+prolog:sandbox_allowed_directive(G) :-
+	safe_goal(G).
+
+safe_directive(dynamic(_)).
+safe_directive(thread_local(_)).
+safe_directive(discontiguous(_)).
+safe_directive(public(_)).
+
+safe_pattr(Var, _) :-
+	var(Var), !,
+	instantiation_error(Var).
+safe_pattr((A,B), Attr) :- !,
+	safe_pattr(A, Attr),
+	safe_pattr(B, Attr).
+safe_pattr(M:G, Attr) :- !,
+	(   atom(M),
+	    prolog_load_context(module, M)
+	->  true
+	;   Goal =.. [Attr,M:G],
+	    permission_error(directive, sandboxed, (:- Goal))
+	).
+safe_pattr(_, _).
+
+
+%%	prolog:sandbox_allowed_expansion(:G) is det.
+%
+%	Throws an exception if G  is   not  considered  a safe expansion
+%	goal. This deals with call-backs from the compiler for
+%
+%	  - goal_expansion/2
+%	  - term_expansion/2
+%	  - Quasi quotations.
+
+prolog:sandbox_allowed_expansion(G) :-
+	safe_goal(G).
