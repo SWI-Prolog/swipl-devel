@@ -244,10 +244,21 @@ system:'$parse_quasi_quotations'([H|T], M) :-
 	system:'$parse_quasi_quotations'(T, M).
 
 qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
+	current_prolog_flag(sandboxed_load, false),
 	Syntax =.. [SyntaxName|SyntaxArgs],
 	setup_call_cleanup(
 	    '$push_input_context'(quasi_quoted),
 	    call(M:SyntaxName, Content, SyntaxArgs, VariableNames, Result),
+	    '$pop_input_context'), !.
+qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
+	current_prolog_flag(sandboxed_load, true),
+	Syntax =.. [SyntaxName|SyntaxArgs],
+	Expand =.. [SyntaxName, Content, SyntaxArgs, VariableNames, Result],
+	QExpand = M:Expand,
+	'$extend':allowed_expansion(QExpand),
+	setup_call_cleanup(
+	    '$push_input_context'(quasi_quoted),
+	    call(QExpand),
 	    '$pop_input_context'), !.
 qq_call(quasi_quotation(_Syntax, Content, _VariableNames, _Result), _M) :-
 	setup_call_cleanup(
