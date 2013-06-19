@@ -1018,8 +1018,6 @@ compiling :-
 		*         READ SOURCE           *
 		*********************************/
 
-:- create_prolog_flag(preprocessor, none, [type(atom)]).
-
 '$load_msg_level'(Action, Start, Done) :-
 	'$update_autoload_level'([], 0), !,
 	current_prolog_flag(verbose_load, Type0),
@@ -1095,21 +1093,10 @@ compiling :-
 	'$prepare_load_stream'(In, Id, StreamState),
 	asserta('$load_input'(stream(Id), In), Ref).
 '$open_source'(Path, In, close(In, Ref), Parents, Options) :-
-	preprocessor(none, none), !,
 	'$context_type'(Parents, ContextType),
 	'$push_input_context'(ContextType),
 	open(Path, read, In),
 	'$set_encoding'(In, Options),
-	asserta('$load_input'(Path, In), Ref).
-'$open_source'(Path, In, close(In, Ref), Parents, Options) :-
-	preprocessor(Pre, Pre),
-	'$context_type'(Parents, ContextType),
-	(   '$substitute_atom'('%f', Path, Pre, Command)
-	->  '$push_input_context'(ContextType),
-	    open(pipe(Command), read, In),
-	    '$set_encoding'(In, Options)
-	;   throw(error(domain_error(preprocessor, Pre), _))
-	),
 	asserta('$load_input'(Path, In), Ref).
 
 '$context_type'([], load_file) :- !.
@@ -1241,13 +1228,6 @@ compiling :-
 	->  skip(In, 10)
 	;   true
 	).
-
-preprocessor(Old, New) :-
-	(   current_prolog_flag(preprocessor, OldP)
-	->  Old = OldP
-	;   Old = none
-	),
-	set_prolog_flag(preprocessor, New).
 
 '$set_encoding'(Stream, Options) :-
 	memberchk(encoding(Enc), Options), !,

@@ -851,24 +851,6 @@ and therefore discontiguous warnings.
 This predicate performs the translation of a term \exam{Head-->Body}
 into a normal Prolog clause.  Normally this functionality should be
 accessed using expand_term/2.
-
-    \predicate{preprocessor}{2}{-Old, +New}
-Read the input file via an external process that acts as preprocessor. A
-preprocessor is specified as an atom. The first occurrence of the string
-`\const{\%f}' is replaced by the name of the file to be loaded. The
-standard output of the resulting command is loaded. To use the Unix C
-preprocessor one should define:
-
-\begin{code}
-?- preprocessor(Old, '/lib/cpp -C -P %f'), consult(...).
-
-Old = none
-\end{code}
-
-Using \program{cpp} for Prolog preprocessing is not ideal as the
-tokenization rules for comment and quoted strings differ between C and
-Prolog.  Another problem is availability and compatibility with regard
-to option processing of \program{cpp}.
 \end{description}
 
 \subsubsection{Conditional compilation}

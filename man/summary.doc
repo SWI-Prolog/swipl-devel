@@ -416,7 +416,6 @@ suggest predicates from a keyword.
 \predicatesummary{portray_clause}{2}{Pretty print a clause to a stream}
 \predicatesummary{predicate_property}{2}{Query predicate attributes}
 \predicatesummary{predsort}{3}{Sort, using a predicate to determine the order}
-\predicatesummary{preprocessor}{2}{Install a preprocessor before the compiler}
 \predicatesummary{print}{1}{Print a term}
 \predicatesummary{print}{2}{Print a term on a stream}
 \predicatesummary{print_message}{2}{Print message from (exception) term}

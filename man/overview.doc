@@ -1322,10 +1322,6 @@ If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
-    \prologflagitem{preprocessor}{atom}{rw}
-Current preprocessor. See preprocessor/2. The reserved atom \const{none}
-(default) implies no preprocessor.
-
     \prologflagitem{prompt_alternatives_on}{atom}{rw}
 \index{prompt, alternatives}%
 Determines prompting for alternatives in the Prolog top level. Default is
