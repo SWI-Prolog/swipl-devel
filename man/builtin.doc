@@ -341,8 +341,8 @@ already loaded from another file. \arg{Action} is one of \const{false}
 (default), which prints an error and refuses to load the file, or
 \const{true}, which uses unload_file/1 on the old file and then proceeds
 loading the new file. Finally, there is \const{ask}, which starts
-interaction with the user. \const{ask} is only provided if user_input is
-associated with a terminal.
+interaction with the user. \const{ask} is only provided if the
+stream \const{user_input} is associated with a terminal.
 
     \termitem{reexport}{Bool}
 If \const{true} re-export the imported predicate.  Used by reexport/1
@@ -379,7 +379,8 @@ stream.
 
 The load_files/2 predicate can be hooked to load other data or data from
 objects other than files.  See prolog_load_file/2 for a description and
-\pllib{http_load} for an example.
+\pllib{http/http_load} for an example. All hooks for load_files/2 are
+documented in \secref{loadfilehook}.
 
     \predicate{consult}{1}{:File}
 Read \arg{File} as a Prolog source file. Calls to consult/1 may be
