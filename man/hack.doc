@@ -541,13 +541,25 @@ files without decompressing them first. There is currently no example of
 that.
 
     \predicate{prolog:comment_hook}{3}{+Comments, +Pos, +Term}
-This hook allows for processing ---structured--- comments encountered
-by the compiler.  The reader collects all comments found from the
-current position to the end of the next term.  It calls this hook
-providing a list of \arg{Position}-\arg{Comment} in \arg{Comments},
-the start position of the next term in \arg{Pos}, and the next term
-itself in \arg{Term}.  All positions are stream position terms.
-This hook is exploited by the documentation system.  See
+This hook allows for processing comments encountered by the compiler. If
+this hook is defined, the compiler calls read_term/2 with the option
+\term{comments}{Comments}.  If the list of comments returned by
+read_term/2 is not empty it calls this comment hook with the
+following arguments.
+
+\begin{itemize}
+    \item \arg{Comments} is the non-empty list of comments.  Each
+	  comment is a pair \arg{Position}-\arg{String}, where
+	  \arg{String} is a string object (see \secref{strings})
+	  that contains the comment \emph{including} delimiters.
+	  Consecutive line comments are returned as a single
+	  comment.
+    \item \arg{Pos} is a stream-position term that describes the
+	  starting position of \arg{Term}
+    \item \arg{Term} is the term read.
+\end{itemize}
+
+This hook is exploited by the documentation system. See
 stream_position_data/3. See also read_term/3.
 \end{description}
 
