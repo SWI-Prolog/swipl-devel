@@ -2183,18 +2183,12 @@ instruction is generated for $cut(Var), used by prolog_cut_to(Choice).
 VMI(I_CUTCHP, 0, 0, ())
 { Word a = argFrameP(FR, 0);
 
-#define valid_choice(ch) \
-	(  (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG && \
-	   onStack(local, ch->frame) \
-	)
-
   deRef(a);
   if ( isInteger(*a) && storage(*a) == STG_INLINE )
   { intptr_t i = valInt(*a);
     och = ((Choice)((Word)lBase + i));
 
-    if ( !(och >= (Choice)lBase && och < (Choice)lTop) ||
-	 !valid_choice(och) )
+    if ( !existingChoice(och PASS_LD) )
     { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, consTermRef(a));
       THROW_EXCEPTION;
     }

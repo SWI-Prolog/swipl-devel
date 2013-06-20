@@ -1441,6 +1441,22 @@ chp_chars(Choice ch)
 #endif
 
 
+static int
+existingChoice(Choice ch ARG_LD)
+{ if ( onStack(local, ch) && onStack(local, ch->frame) &&
+       (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG )
+  { Choice ch2;
+
+    for(ch2 = BFR; ch2 > ch; ch2 = ch2->parent)
+      ;
+    if ( ch2 == ch )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 discardChoicesAfter() discards all choicepoints created  after fr, while
 calling  possible  hooks  on   the   frames.    If   the   `reason`   is
