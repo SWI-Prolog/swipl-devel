@@ -389,7 +389,7 @@ a --> { x, y, z }.
 ubody(B, B, _, P, P) :-
 	does_not_dcg_after_binding(B, P), !.
 ubody(B, D, _, term_position(_,_,_,_,[_,RP]), TPOut) :-
-	nonvar(B), B = M:R, !,
+	nonvar(B), B = M:R,
 	ubody(R, D, M, RP, TPOut).
 ubody(X, call(X), _,			% X = call(X)
       Pos,
