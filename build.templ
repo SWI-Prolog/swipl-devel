@@ -56,10 +56,14 @@ MAKE=make
 # alternatives. If you want the last bit   of performance and don't mind
 # some extra work, get a recent  native   GCC,  set  CC below and enable
 # --enable-useprofile (see below).
+#
+# Recent versions of Quartz  (X11)  seem   to  install  the headers into
+# /opt/X11/include. We put this  after   /opt/local/include,  to use the
+# Macport version of X11 if this is installed.
 
 if [ "`uname`" = Darwin ]; then
   export LIBRARY_PATH=/usr/lib:/opt/local/lib
-  export CPATH=/usr/include:/opt/local/include
+  export CPATH=/usr/include:/opt/local/include:/opt/X11/include
   export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
   # export CC="gcc-4.2"
   # export CXX="g++-4.2"
