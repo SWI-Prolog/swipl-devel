@@ -416,8 +416,8 @@ walk_called(Goal, M, TermPos, OTerm) :-
 	walk_called_by(Called, M, Goal, TermPos, OTerm).
 walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
 	(   walk_option_autoload(OTerm, false)
-	->  nonvar(Module),
-	    '$get_predicate_attribute'(Module:Meta, defined, 1)
+	->  nonvar(M),
+	    '$get_predicate_attribute'(M:Meta, defined, 1)
 	;   true
 	),
 	(   predicate_property(M:Meta, meta_predicate(Head))
