@@ -935,6 +935,8 @@ colourise_term_arg(_, TB,
 	TS is T-2,
 	colour_item(qq, TB, F-FE),
 	colour_item(qq, TB, TS-T).
+colourise_term_arg({Term}, TB, brace_term_position(_F,_T,Arg)) :- !,
+	colourise_term_arg(Term, TB, Arg).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
 	compound(Compound), !,
 	colourise_term_args(Compound, TB, Pos).
