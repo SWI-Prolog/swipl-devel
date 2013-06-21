@@ -1325,6 +1325,8 @@ ScheckBOM(IOSTREAM *s)
       { s->encoding = bd->encoding;
 	s->bufp += bd->bomlen;
 	s->flags |= SIO_BOM;
+	if ( s->position )
+	  s->position->byteno += bd->bomlen;
 	return 0;
       }
     }
