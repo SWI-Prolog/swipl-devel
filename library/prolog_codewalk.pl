@@ -414,7 +414,7 @@ walk_called(Goal, M, TermPos, OTerm) :-
 	prolog:called_by(Goal, Called),
 	Called \== [], !,
 	walk_called_by(Called, M, Goal, TermPos, OTerm).
-walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
+walk_called(Meta, M, term_position(_,E,_,_,ArgPosList), OTerm) :-
 	(   walk_option_autoload(OTerm, false)
 	->  nonvar(M),
 	    '$get_predicate_attribute'(M:Meta, defined, 1)
@@ -425,7 +425,7 @@ walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
 	), !,
 	walk_option_clause(OTerm, ClauseRef),
 	register_possible_meta_clause(ClauseRef),
-	walk_meta_call(1, Head, Meta, M, ArgPosList, OTerm).
+	walk_meta_call(1, Head, Meta, M, ArgPosList, E-E, OTerm).
 walk_called(Goal, Module, _, _) :-
 	nonvar(Module),
 	'$get_predicate_attribute'(Module:Goal, defined, 1), !.
@@ -596,13 +596,22 @@ calling_metaarg(//).
 
 
 %%	walk_meta_call(+Index, +GoalHead, +MetaHead, +Module,
-%%		       +ArgPosList, +OTerm)
+%%		       +ArgPosList, +EndPos, +OTerm)
 %
 %	Walk a call to a meta-predicate.   This walks all meta-arguments
 %	labeled with an integer, ^ or //.
+%
+%	@arg	EndPos reflects the end of the term.  This is used if the
+%		number of arguments in the compiled form exceeds the
+%		number of arguments in the term read.
 
-walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
+walk_meta_call(I, Head, Meta, M, ArgPosList, EPos, OTerm) :-
 	arg(I, Head, AS), !,
+	(   ArgPosList = [ArgPos|ArgPosTail]
+	->  true
+	;   ArgPos = EPos,
+	    ArgPosTail = []
+	),
 	(   integer(AS)
 	->  arg(I, Meta, MA),
 	    extend(MA, AS, Goal, ArgPos, ArgPosEx, OTerm),
@@ -617,8 +626,8 @@ walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
 	;   true
 	),
 	succ(I, I2),
-	walk_meta_call(I2, Head, Meta, M, ArgPosList, OTerm).
-walk_meta_call(_, _, _, _, _, _).
+	walk_meta_call(I2, Head, Meta, M, ArgPosTail, EPos, OTerm).
+walk_meta_call(_, _, _, _, _, _, _).
 
 remove_quantifier(Goal, _, TermPos, TermPos, M, M, OTerm) :-
 	var(Goal), !,
