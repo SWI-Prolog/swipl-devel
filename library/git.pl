@@ -62,8 +62,8 @@
 /** <module> Run GIT commands
 
 This module performs common GIT tasks by calling git as a remote process
-through process_create/3. It that the =git= executable is in the current
-PATH.
+through process_create/3. It requires that the =git= executable is in the
+current PATH.
 
 This module started life in ClioPatria and   has been used by the Prolog
 web-server to provide information on git   repositories. It is now moved
@@ -219,7 +219,7 @@ git_open_file(Dir, File, Branch, In) :-
 
 is_git_directory(Directory) :-
 	directory_file_path(Directory, '.git', GitDir),
-	exists_directory(GitDir).
+	exists_directory(GitDir), !.
 is_git_directory(Directory) :-
 	exists_directory(Directory),
 	git(['rev-parse', '--git-dir'],
