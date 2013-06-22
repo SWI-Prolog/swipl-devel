@@ -37,6 +37,7 @@ After this point, Unix and Windows users unite, so if you are using
 Unix please continue at \secref{execquery}.
 
 \subsubsection{Starting SWI-Prolog on Windows}
+\label{sec:startwin}
 
 After SWI-Prolog has been installed on a Windows system, the following
 important new things are available to the user:
@@ -2208,6 +2209,7 @@ garbage_collect_clauses/0.
 \end{itemlist}
 
 \subsection{Future directions}
+\label{sec:indexfut}
 
 \begin{itemize}
     \item
@@ -2224,6 +2226,7 @@ hash lookup is too costly.
 \end{itemize}
 
 \subsection{Indexing and portability}
+\label{sec:indexport}
 
 The base-line functionality of Prolog implementations provides indexing
 on constants and functor (name/arity) on the first argument. This must

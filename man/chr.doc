@@ -52,6 +52,7 @@ practical guidelines for using CHR.
 %=============================
 
 \subsection{Syntax of CHR rules}
+\label{sec:chr-syntax}
 %-----------------
 
 \begin{code}
@@ -101,6 +102,7 @@ head of the rule. It may, however, bind variables that do not appear in the
 head of the rule, e.g. an auxiliary variable introduced in the guard.
 
 \subsection{Semantics}
+\label{sec:chr-semantics}
 %--------------------
 
 In this subsection the operational semantics of CHR in Prolog are presented
@@ -229,12 +231,14 @@ If debugging is enabled, optimization must be disabled.
 
 
 \subsection{Embedding in Prolog Programs}
+\label{sec:chr-embedding}
 
 The CHR constraints defined in a \fileext{pl} file are
 associated with a module. The default module is \const{user}. One should
 never load different \fileext{pl} files with the same CHR module name.
 
 \subsection{Constraint declaration}
+\label{sec:chr-declarations}
 
 \begin{description}
     \directive{chr_constraint}{1}{+Specifier}
@@ -435,6 +439,7 @@ runtime overhead.
 \end{enumerate}
 
 \subsection{Compilation}
+\label{sec:chr-compilation}
 %--------------------
 
 The SWI-Prolog CHR compiler exploits term_expansion/2 rules to translate
@@ -514,6 +519,7 @@ store.
 \end{description}
 
 \subsection{Tracing}
+\label{sec:chr-tracing}
 %=================
 
 Tracing is enabled with the chr_trace/0 predicate
@@ -668,6 +674,7 @@ A = 3.
 %==================
 
 \subsection{The Old SICStus CHR implemenation}
+\label{sec:chr-sicstus}
 
 There are small differences between the current K.U.Leuven CHR system
 in SWI-Prolog, older versions of the same system, and SICStus' CHR system.
@@ -712,6 +719,7 @@ Prolog goals used in guards and bodies of CHR rules.
 \end{itemlist}
 
 \subsection{The Old ECLiPSe CHR implemenation}
+\label{sec:chr-eclipse}
 
 The old ECLiPSe CHR implementation features a \nopredref{label_with}{1} construct
 for labeling variables in CHR constraints. This feature has long since been abandoned.
@@ -788,6 +796,7 @@ In this section we summarize the most important error and warning messages
 of the CHR compiler.
 
 \subsection{CHR Compiler Errors}
+\label{sec:chr-errors}
 
 \begin{description}
 \item[Type clash] for variable ... in rule ...

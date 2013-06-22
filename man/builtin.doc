@@ -918,6 +918,7 @@ End of conditional compilation.
 
 
 \subsection{Loading files, active code and threads}
+\label{sec:loadrunningcode}
 
 Traditionally, Prolog environments allow for reloading files holding
 currently active code.  In particular, the following sequence is a valid
@@ -1935,6 +1936,7 @@ the exception context can be retrieved using PL_exception().
 
 
 \subsection{Debugging and exceptions}
+\label{sec:debugexceptions}
 
 \index{exceptions,debugging}%
 \index{debugging,exceptions}%
@@ -2317,6 +2319,7 @@ is the currently defined handler (see on_signal/3).
 
 
 \subsection{Notes on signal handling}
+\label{sec:signalhandling}
 
 Before deciding to deal with signals in your application, please
 consider the following:
@@ -3716,6 +3719,7 @@ Close the current output stream. The new output stream becomes
 
 
 \subsection{Switching between Edinburgh and ISO I/O}
+\label{sec:edinburgh-iso-io}
 
 The predicates below can be used for switching between the implicit
 and the explicit stream-based I/O predicates.
@@ -3736,6 +3740,7 @@ Get the current output stream.
 
 
 \subsection{Write onto atoms, code-lists, etc.}
+\label{sec:write-on-atom}
 
 \begin{description}
     \predicate{with_output_to}{2}{+Output, :Goal}
@@ -5355,6 +5360,7 @@ functions are described in \secref{functions}.
 
 
 \subsection{Special purpose integer arithmetic}
+\label{sec:logic-int-arith}
 
 The predicates in this section provide more logical operations between
 integers. They are not covered by the ISO standard, although they are
@@ -6291,6 +6297,7 @@ Equivalent to \exam{swritef(String, Format, []).}
 \end{description}
 
 \subsection{Format}
+\label{sec:format-predicates}
 
 The format family of predicates is the most versatile and
 portable\footnote{Unfortunately not covered by any standard.} way to
@@ -6508,6 +6515,7 @@ A = '1,000,000'
 
 
 \subsection{Programming Format}
+\label{sec:format-hook}
 
 \begin{description}
     \predicate{format_predicate}{2}{+Char, +Head}
@@ -8023,6 +8031,7 @@ errors, \arg{Context} provides additional comments.
 
 
 \subsection{DDE client interface}
+\label{sec:dde-client}
 
 The DDE client interface allows Prolog to talk to DDE server programs.
 We will demonstrate the use of the DDE interface using the Windows
@@ -8078,6 +8087,7 @@ Issue a \const{POKE} command to the server on the specified \arg{Item}.
 
 
 \subsection{DDE server mode}
+\label{sec:dde-server}
 
 The \file{library(dde)} defines primitives to realise simple
 DDE server applications in SWI-Prolog.  These features are provided as

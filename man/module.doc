@@ -349,6 +349,7 @@ are qualified with the calling context, the resulting call is the same
 as the first example.
 
 \subsection{Explicit manipulation of the calling context}
+\label{sec:set-calling-context}
 
 Quintus' derived module systems have no means to separate the lookup
 module (for finding predicates) from the calling context (for qualifying

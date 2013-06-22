@@ -462,6 +462,7 @@ post_job(Id, Goal) :-
 
 
 \subsection{Signalling threads}
+\label{sec:thread-signal}
 
 These predicates provide a mechanism to make another thread execute some
 goal as an \jargon{interrupt}.  Signalling threads is safe as these
@@ -957,15 +958,6 @@ passing one of these types from one engine to another is undefined.
 In the single-threaded version this call only succeeds if \arg{engine}
 refers to the main engine.
 \end{description}
-
-
-\subsubsection{Engines in single-threaded SWI-Prolog}
-
-In theory it is possible to port the API of \secref{threadmanymany} to
-the single-threaded version of SWI-Prolog.  This allows C programs to
-control multiple Prolog engines concurrently.  This has not yet been
-realised.
-
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
