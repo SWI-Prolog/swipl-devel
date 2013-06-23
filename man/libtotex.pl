@@ -9,7 +9,7 @@
 :- use_module(library(lists)).
 
 libtotex(Lib, Out, Options) :-
-	use_module(user:Lib),		% we want the operators in user
+	load_files(user:Lib, [if(true)]),	% we want the operators in user
 	doc_latex(Lib, Out,
 		  [ stand_alone(false)
 		  | Options
