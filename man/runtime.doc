@@ -264,7 +264,8 @@ the saved state, the stream will actually be a stream opened on the
 program resource file, taking care of the offset and length of the
 resource.
 
-\subsection{Predicate Definitions}
+\subsection{Resource manipulation predicates}
+\label{sec:runtime-predicates}
 
 \begin{description}
     \predicate{resource}{3}{+Name, +Class, +FileSpec}
@@ -386,7 +387,8 @@ configure_gnat :-
    ).
 \end{code}
 
-\subsection{Passing a path to the application}
+\subsection{Specifying a file search path from the command line}
+\label{sec:runtime-file-search-path}
 
 Suppose the system administrator has installed the SWI-Prolog runtime
 environment in \file{/usr/local/lib/rt-pl-3.2.0}. A user wants to
