@@ -57,6 +57,7 @@ be made available.
 
 
 \subsection{The SWI-Prolog Prolog libraries}
+\label{sec:license-lib}
 
 Lacking a satisfactory technical solution to handle article \textbf{6} of the
 LGPL, this license cannot be used for the Prolog source code that is part

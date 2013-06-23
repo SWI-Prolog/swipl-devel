@@ -36,6 +36,7 @@ or
 \end{code}
 
 \subsection{Solver predicates}
+\label{sec:clpqr-predicates}
 %=============================
 
 The following predicates are provided to work with constraints:
@@ -102,6 +103,7 @@ have been replaced by atoms x, y and z.
 \end{description}
 
 \subsection{Syntax of the predicate arguments}
+\label{sec:clpqr-arg-syntax}
 %=============================================
 
 The arguments of the predicates defined in the subsection above are
@@ -151,6 +153,7 @@ result in an exception.
 
 
 \subsection{Use of unification}
+\label{sec:clpqr-unification}
 
 Instead of using the \predref{{}}{1} predicate, you can also use the standard
 unification mechanism to store constraints. The following code samples
@@ -177,6 +180,7 @@ X = 5.0
 \end{itemlist}
 
 \subsection{Non-linear constraints}
+\label{sec:clpqr-non-linear}
 %==================================
 
 The CLP(Q,R) system deals only passively with non-linear constraints. They
@@ -213,6 +217,7 @@ $X = tan(Y)$    && \\
 \end{table}
 
 \subsection{Status and known problems}
+\label{sec:clpqr-status}
 
 The clpq and clpr libraries are `orphaned', i.e., they currently have
 no maintainer.
