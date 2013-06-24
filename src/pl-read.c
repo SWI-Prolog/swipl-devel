@@ -38,7 +38,6 @@ typedef       unsigned char * ucharp;
 #define LD LOCAL_LD
 
 static void	  addUTF8Buffer(Buffer b, int c);
-static strnumstat scan_decimal(cucharp *sp, Number n, int *grouped);
 
 
 		 /*******************************
@@ -1802,22 +1801,6 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
 
 #define unget_token()	{ unget = TRUE; }
 
-#ifndef O_GMP
-static double
-uint64_to_double(uint64_t i)
-{
-#ifdef __WINDOWS__
-  int64_t s = (int64_t)i;
-  if ( s >= 0 )
-    return (double)s;
-  else
-    return (double)s + 18446744073709551616.0;
-#else
-  return (double)i;
-#endif
-}
-#endif
-
 
 /* skip_digit_separator() skips a digit separator as defined by Ulrich
    Neumerkel in the SWI-Prolog mailinglist.  That is, for numbers that
@@ -1846,9 +1829,12 @@ skip_digit_separator(cucharp *sp, int base, int *grouped)
 
 
 static strnumstat
-scan_decimal(cucharp *sp, Number n, int *grouped)
-{ uint64_t maxi = PLMAXINT/10;
-  uint64_t t = 0;
+scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
+{ int64_t maxi = PLMAXINT/10;
+  int maxlastdigit = PLMAXINT % 10;
+  int64_t mini = PLMININT/10;
+  int minlastdigit = PLMININT % 10;
+  int64_t t = 0;
   cucharp s = *sp;
   int c = *s;
 
@@ -1859,17 +1845,21 @@ scan_decimal(cucharp *sp, Number n, int *grouped)
 
   do
   { for(c = *s; isDigit(c); c = *++s)
-    { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
+    { if (    (  negative && ( (t < mini) || (t == mini && '0' - c < minlastdigit) ))
+           || ( !negative && ( (t > maxi) || (t == maxi && c - '0' > maxlastdigit) )) )
       {
 #ifdef O_GMP
-	n->value.i = (int64_t)t;
+	n->value.i = t;
 	n->type = V_INTEGER;
 	promoteToMPZNumber(n);
 
 	do
 	{ for(c = *s; isDigit(c); c = *++s)
 	  { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
-	    mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
+            if (negative)
+	      mpz_sub_ui(n->value.mpz, n->value.mpz, c - '0');
+            else
+              mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
 	  }
 	} while ( skip_digit_separator(&s, 10, grouped) );
 
@@ -1877,28 +1867,33 @@ scan_decimal(cucharp *sp, Number n, int *grouped)
 
 	return NUM_OK;
 #else
-	char *end;
-
-	while(isDigit(*s))
-	  s++;
-	if ( *s == '.' && isDigit(s[1]) )
-	{ s++;
-	  while( isDigit(*s) )
-	    s++;
-	}
-	errno = 0;
-	n->value.f = strtod((char*)*sp, &end);
-	if ( ((char*)s != end) && !(*s == '.' && (char*)s+1 == end) )
-	  return NUM_ERROR;
-	if ( errno == ERANGE )
-	  return NUM_FOVERFLOW;
-	*sp = s;
-
+	double maxf =  MAXREAL / 10.0 - 10.0;
+	double minf = -MAXREAL / 10.0 + 10.0;
+	double tf = (double)t;
+	do
+        { for(c = *s; isDigit(c); c = *++s)
+	  { if (negative)
+            { if ( tf < minf )
+	        fail;				/* number too large */
+              tf = tf * 10.0 - (double)(c - '0');
+            } else
+            { if ( tf > maxf )
+	        fail;				/* number too large */
+              tf = tf * 10.0 + (double)(c - '0');
+            }
+	  }
+	} while ( skip_digit_separator(&s, 10, grouped) );
+	n->value.f = tf;
 	n->type = V_FLOAT;
+	*sp = s;
 	return NUM_OK;
 #endif
       } else
-	t = t * 10 + c - '0';
+      { if (negative)
+          t = t * 10 - c + '0';
+        else
+          t = t * 10 + c - '0';
+      }
     }
   } while ( skip_digit_separator(&s, 10, grouped) );
 
@@ -1911,23 +1906,25 @@ scan_decimal(cucharp *sp, Number n, int *grouped)
 
 
 static strnumstat
-scan_number(cucharp *s, int b, Number n)
+scan_number(cucharp *s, int negative, int b, Number n)
 { int d;
-  uint64_t maxi = PLMAXINT/b;		/* cache? */
-  uint64_t t;
+  int64_t maxi = PLMAXINT/b;		/* cache? */
+  int maxlastdigit = PLMAXINT % b;
+  int64_t mini = PLMININT/b;
+  int minlastdigit = PLMININT % b;
+  int64_t t = 0;
   cucharp q = *s;
 
   if ( (d = digitValue(b, *q)) < 0 )
     return NUM_ERROR;			/* syntax error */
-  t = d;
-  q++;
 
   do
   { while((d = digitValue(b, *q)) >= 0)
-    { if ( t > maxi || t * b + d > PLMAXINT )
+    { if (    (  negative && ( (t < mini) || (t == mini && d > minlastdigit) ))
+           || ( !negative && ( (t > maxi) || (t == maxi && d > maxlastdigit) )) )
       {
 #ifdef O_GMP
-	n->value.i = (int64_t)t;
+	n->value.i = t;
 	n->type = V_INTEGER;
 	promoteToMPZNumber(n);
 
@@ -1935,7 +1932,10 @@ scan_number(cucharp *s, int b, Number n)
 	{ while((d = digitValue(b, *q)) >= 0)
 	  { q++;
 	    mpz_mul_ui(n->value.mpz, n->value.mpz, b);
-	    mpz_add_ui(n->value.mpz, n->value.mpz, d);
+            if (negative)
+              mpz_sub_ui(n->value.mpz, n->value.mpz, d);
+            else
+              mpz_add_ui(n->value.mpz, n->value.mpz, d);
 	  }
 	} while ( skip_digit_separator(&q, b, NULL) );
 
@@ -1943,16 +1943,22 @@ scan_number(cucharp *s, int b, Number n)
 
 	return NUM_OK;
 #else
-	double maxf = MAXREAL / (double) b - (double) b;
-	double tf = uint64_to_double(t);
 
-	tf = tf * (double)b + (double)d;
+	double maxf =  MAXREAL / (double) b - (double) b;
+	double minf = -MAXREAL / (double) b + (double) b;
+	double tf = (double)t;
 	do
 	{ while((d = digitValue(b, *q)) >= 0)
 	  { q++;
-	    if ( tf > maxf )
-	      fail;				/* number too large */
-	    tf = tf * (double)b + (double)d;
+            if (negative)
+            { if ( tf < minf )
+	        fail;				/* number too large */
+	      tf = tf * (double)b - (double)d;
+            } else
+            { if ( tf > maxf )
+	        fail;				/* number too large */
+	      tf = tf * (double)b + (double)d;
+            }
 	  }
 	} while ( skip_digit_separator(&q, b, NULL) );
 	n->value.f = tf;
@@ -1962,7 +1968,10 @@ scan_number(cucharp *s, int b, Number n)
 #endif
       } else
       { q++;
-	t = t * b + d;
+        if (negative)
+	  t = t * b - d;
+        else
+	  t = t * b + d;
       }
     }
   } while ( skip_digit_separator(&q, b, NULL) );
@@ -2269,36 +2278,6 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 #endif /*O_QUASIQUOTATIONS*/
 
 
-static void
-neg_number(Number n)
-{ switch(n->type)
-  { case V_INTEGER:
-      if ( n->value.i == PLMININT )
-      {
-#ifdef O_GMP
-	promoteToMPZNumber(n);
-	mpz_neg(n->value.mpz, n->value.mpz);
-#else
-	n->type = V_FLOAT;
-	n->value.f = -(double)n->value.i;
-#endif
-      } else
-      { n->value.i = -n->value.i;
-      }
-      break;
-#ifdef O_GMP
-    case V_MPZ:
-      mpz_neg(n->value.mpz, n->value.mpz);
-      break;
-    case V_MPQ:
-      assert(0);			/* are not read directly */
-#endif
-    case V_FLOAT:
-      n->value.f = -n->value.f;
-  }
-}
-
-
 strnumstat
 str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
@@ -2350,17 +2329,15 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     if ( base )				/* 0b<binary>, 0x<hex>, 0o<oct> */
     { in += 2;
 
-      if ( (rc = scan_number(&in, base, value)) != NUM_OK )
+      if ( (rc = scan_number(&in, negative, base, value)) != NUM_OK )
 	return rc;
       *end = (ucharp)in;
-      if ( negative )
-	neg_number(value);
 
       return NUM_OK;
     }
   }
 
-  if ( (rc=scan_decimal(&in, value, &grouped)) != NUM_OK )
+  if ( (rc=scan_decimal(&in, negative, value, &grouped)) != NUM_OK )
     return rc;				/* too large? */
   if ( grouped )
   { *end = (ucharp)in;
@@ -2374,11 +2351,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
        digitValue((int)value->value.i, in[1]) >= 0 )
   { in++;
 
-    if ( !(rc=scan_number(&in, (int)value->value.i, value)) )
+    if ( !(rc=scan_number(&in, negative, (int)value->value.i, value)) )
       return rc;			/* number too large */
-
-    if ( negative )
-      neg_number(value);
 
     *end = (ucharp)in;
 
@@ -2420,9 +2394,6 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
     return NUM_OK;
   }
-
-  if ( negative )
-    neg_number(value);
 
   *end = (ucharp)in;
 
