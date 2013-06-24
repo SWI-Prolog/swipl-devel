@@ -211,7 +211,7 @@ test(neg, C = '\235\') :-		% test signed char handling
 :- begin_tests(atomic_list_concat).
 
 test(int64, X == 'x-9223372036854775808') :-
-	N is -(1<<63),
+	N is -1<<63,
 	atomic_list_concat([x, N], X).
 
 :- end_tests(atomic_list_concat).

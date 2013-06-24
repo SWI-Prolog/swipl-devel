@@ -73,7 +73,7 @@ test(minint, X == 9223372036854775808) :-
 
 :- else.
 
-test(minint, error(evaluation_error(integer_overflow))) :-
+test(minint, error(evaluation_error(int_overflow))) :-
 	X is -9223372036854775808 // -1,
 	writeln(X).
 
@@ -207,7 +207,11 @@ test(atanh, V =:= 1.0) :- X is atanh(tanh(1.0)), round(X,V).
 
 :- begin_tests(rationalize).
 
+:- if(current_prolog_flag(bounded,false)).
+
 test(trip, R = 51 rdiv 10) :-
 	R is rationalize(5.1).
+
+:- endif.
 
 :- end_tests(rationalize).
