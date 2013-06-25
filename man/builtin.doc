@@ -6223,6 +6223,7 @@ format/[1,2], as this predicate is defined in C.  Otherwise
 compatibility reasons might tell you which predicate to use.
 
 \subsection{Writef}
+\label{sec:writef}
 
 \begin{description}
     \predicate{writeln}{1}{+Term}
