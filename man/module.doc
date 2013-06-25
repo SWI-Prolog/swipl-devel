@@ -8,7 +8,7 @@ concrete Prolog implementation. The SWI-Prolog module system syntax is
 derived from the Quintus Prolog module system. The Quintus module system
 has been the starting point for the module systems of a number of
 mainstream Prolog systems, such as SICStus, Ciao and YAP. The underlying
-primitives of the SWI-Prolog module system differs from the mentioned
+primitives of the SWI-Prolog module system differ from the mentioned
 systems. These primitives allow for multiple modules in a file,
 hierarchical modules, emulation of other modules interfaces, etc.
 
@@ -20,7 +20,7 @@ that call or manage other predicates dynamically (e.g., use call/1,
 assert/1, etc.). Such predicates are called \jargon{meta predicates} and
 are discussed in \secref{metapred}. \Secref{overrule} to \secref{moduleop}
 describe more advanced issues. Starting with \secref{importmodule}, we
-discuss more low-level aspects of the SWI-Prolog module systems that
+discuss more low-level aspects of the SWI-Prolog module system that
 are used to implement the visible module system, and can be used to
 build other code reuse mechanisms.
 
@@ -114,18 +114,18 @@ the module in which it has been defined.
 
 Importing the predicates from another module is achieved using the
 directives use_module/1 or use_module/2. Note that both directives take
-\arg{file name(s)} as arguments. I.e., modules are imported based on
-their file name rather than their module name.
+\arg{filename(s)} as arguments. That is, modules are imported based on
+their filename rather than their module name.
 
 \begin{description}
     \predicate{use_module}{1}{+Files}
-Load the file(s) specified with \arg{File} just like ensure_loaded/1.
+Load the file(s) specified with \arg{Files} just like ensure_loaded/1.
 The files must all be module files. All exported predicates from the
 loaded files are imported into the module from which this predicate is
 called. This predicate is equivalent to ensure_loaded/1, except that it
-raises an error if \arg{File} is not a module file.
+raises an error if \arg{Files} are not module files.
 
-The imported predicates acts as \jargon{weak symbols} in the module into
+The imported predicates act as \jargon{weak symbols} in the module into
 which they are imported. This implies that a local definition of a
 predicate overrides (clobbers) the imported definition. If the flag
 \prologflag{warn_override_implicit_import} is \const{true} (default), a
@@ -151,7 +151,7 @@ Warning: /home/janw/Bugs/Import/t.pl:5:
 \end{code}
 
 This warning can be avoided by (1) using use_module/2 to only import the
-predicates from list that are actually used in the `shapes' module, (2)
+predicates from the \const{lists} library that are actually used in the `shapes' module, (2)
 using the \exam{except([flatten/2])} option of use_module/2, (3) use
 \exam{:- abolish(flatten/2).} before the local definition or (4) setting
 \prologflag{warn_override_implicit_import} to \const{false}. Globally
@@ -164,17 +164,17 @@ that export the same predicate.  Such conflicts must be resolved with
 use_module/2 as described above.
 
     \predicate{use_module}{2}{+File, +ImportList}
-Load \arg{File}, which must be a module file and import the predicates
+Load \arg{File}, which must be a module file, and import the predicates
 as specified by \arg{ImportList}. \arg{ImportList} is a list of
 predicate indicators specifying the predicates that will be imported
 from the loaded module. \arg{ImportList} also allows for renaming or
-import-everything-except. See also \const{import} option of
+import-everything-except. See also the \const{import} option of
 load_files/2. The first example below loads member/2 from the \const{lists}
 library and append/2 under the name \const{list_concat}, which is how this
 predicate is named in YAP. The second example loads all exports from
-library \const{option}, except for meta_options/3. These renaming facilities are
-generally used to deal with portability issues with as few as possible
-changes to the actual code. See also \secref{dialect} and
+library \const{option} except for meta_options/3. These renaming facilities are
+generally used to deal with portability issues with as few changes as possible
+to the actual code. See also \secref{dialect} and
 \secref{reexport}.
 
 \begin{code}
@@ -185,7 +185,7 @@ changes to the actual code. See also \secref{dialect} and
 \end{code}
 \end{description}
 
-The module/2 directive, use_module/1 and use_module/2 are sufficient to
+The module/2, use_module/1 and use_module/2 directives are sufficient to
 partition a simple Prolog program into modules. The SWI-Prolog graphical
 cross-referencing tool gxref/0 can be used to analyse the dependencies
 between non-module files and propose module declarations for each file.
@@ -195,7 +195,7 @@ between non-module files and propose module declarations for each file.
 \label{sec:metapred}
 
 A meta-predicate is a predicate that calls other predicates dynamically,
-modifies a predicate or reasons about properties of a predicate. Such
+modifies a predicate, or reasons about properties of a predicate. Such
 predicates use either a compound term or a \jargon{predicate indicator}
 to describe the predicate they address, e.g., \exam{assert(name(jan))}
 or \exam{abolish(name/1)}. With modules, this simple schema no longer
@@ -204,16 +204,16 @@ predicate. This is resolved by wrapping the original description in a
 term <module>:<term>, e.g., \exam{assert(person:name(jan))} or
 \exam{abolish(person:name/1)}.
 
-Of course, calling assert/1 from inside a module, we expect to assert to
+Of course, when calling assert/1 from inside a module, we expect to assert to
 a predicate local to this module. In other words, we do not wish to
 provide this \functor{:}{2} wrapper by hand. The meta_predicate/1
 directive tells the compiler that certain arguments are terms that will
-be used to lookup a predicate and thus need to be wrapped (qualified)
+be used to look up a predicate and thus need to be wrapped (qualified)
 with <module>:<term>, unless they are already wrapped.
 
 In the example below, we use this to define maplist/3 inside a module.
 The argument `2' in the meta_predicate declaration means that the
-argument is module sensitive and refers to a predicate with an arity
+argument is module-sensitive and refers to a predicate with an arity
 that is two more than the term that is passed in. The compiler only
 distinguishes the values 0..9 and \chr{:}, which denote module-sensitive
 arguments, from \chr{+}, \chr{-} and \chr{?}, which denote
@@ -256,19 +256,19 @@ The argument is a term that is used to reference a predicate
 with $N$ more arguments than the given argument term.  For
 example: \exam{call(0)} or \exam{maplist(1, +)}.
         \termitem{:}{}
-The argument is module sensitive, but does not directly refer
+The argument is module-sensitive, but does not directly refer
 to a predicate.  For example: \exam{consult(:)}.
         \termitem{-}{}
-The argument is not module sensitive and unbound on entry.
+The argument is not module-sensitive and unbound on entry.
         \termitem{?}{}
-The argument is not module sensitive and the mode is unspecified.
+The argument is not module-sensitive and the mode is unspecified.
         \termitem{*}{}
-The argument is not module sensitive and the mode is unspecified.
+The argument is not module-sensitive and the mode is unspecified.
 The specification \chr{*} is equivalent to \chr{?}.  It is accepted
 for compatibility reasons.  The predicate predicate_property/2 reports
 arguments declared using \chr{*} with \chr{?}.
         \termitem{+}{}
-The argument is not module sensitive and bound (i.e., nonvar)
+The argument is not module-sensitive and bound (i.e., nonvar)
 on entry.
         \termitem{^}{}
 This extension is used to denote the possibly \verb$^$-annotated goal of
@@ -278,7 +278,7 @@ to `0', but leaving the \chr{^}/2 intact.
 The argument is a DCG body.  See phrase/3.
     \end{description}
 
-Each argument that is module sensitive (i.e., marked 0..9, \chr{:} or
+Each argument that is module-sensitive (i.e., marked 0..9, \chr{:} or
 \chr{^}) is qualified with the context module of the caller if it is not
 already qualified. The implementation ensures that the argument is
 passed as <module>:<term>, where <module> is an atom denoting the name
