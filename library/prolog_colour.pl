@@ -627,7 +627,7 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 
 colourise_goal_args(Goal, TB, term_position(_,_,_,_,ArgPos)) :-
 	colourise_options(Goal, TB, ArgPos),
-	meta_args(Goal, MetaArgs), !,
+	meta_args(Goal, TB, MetaArgs), !,
 	colourise_meta_args(1, Goal, MetaArgs, TB, ArgPos).
 colourise_goal_args(Goal, TB, Pos) :-
 	Pos = term_position(_,_,_,_,ArgPos), !,
@@ -652,7 +652,7 @@ colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
 colourise_meta_arg(_, Arg, TB, Pos) :-
 	colourise_term_arg(Arg, TB, Pos).
 
-%%	meta_args(+Goal, -ArgSpec)
+%%	meta_args(+Goal, +TB, -ArgSpec) is semidet.
 %
 %	Return a copy of Goal, where   each  meta-argument is an integer
 %	representing the number of extra arguments   or  the atom // for
@@ -663,11 +663,12 @@ colourise_meta_arg(_, Arg, TB, Pos) :-
 %
 %	NOTE: this could be cached if performance becomes an issue.
 
-meta_args(Goal, VarGoal) :-
-	xref_meta(Goal, _),
+meta_args(Goal, TB, VarGoal) :-
+	colour_state_source_id(TB, SourceId),
+	xref_meta(SourceId, Goal, _),
 	functor(Goal, Name, Arity),
 	functor(VarGoal, Name, Arity),
-	xref_meta(VarGoal, MetaArgs),
+	xref_meta(SourceId, VarGoal, MetaArgs),
 	instantiate_meta(MetaArgs).
 
 instantiate_meta([]).

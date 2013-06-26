@@ -53,6 +53,7 @@
 	    xref_public_list/4,		% +File, -Path, -Export, +Src
 	    xref_public_list/6,		% +File, -Path, -Module, -Export, -Meta, +Src
 	    xref_public_list/7,		% +File, -Path, -Module, -Export, -Public, -Meta, +Src
+	    xref_meta/3,		% +Source, +Goal, -Called
 	    xref_meta/2,		% +Goal, -Called
 	    xref_hook/1,		% ?Callable
 					% XPCE class references
@@ -910,8 +911,19 @@ meta_args(I, Arity, Decl, Head, Meta) :-
 	      *             BODY	      *
 	      ********************************/
 
+%%	xref_meta(+Source, +Head, -Called) is semidet.
+%
+%	True when Head calls Called in Source.
+%
+%	@arg	Called is a list of called terms, terms of the form
+%		Term+Extra or terms of the form //(Term).
+
+xref_meta(Source, Head, Called) :-
+	canonical_source(Source, Src),
+	xref_meta_src(Head, Called, Src).
+
 %%	xref_meta(+Head, -Called) is semidet.
-%%	xref_meta(+Head, -Called, +Src) is semidet.
+%%	xref_meta_src(+Head, -Called, +Src) is semidet.
 %
 %	True when Called is a  list  of   terms  called  from Head. Each
 %	element in Called can be of the  form Term+Int, which means that
@@ -921,10 +933,11 @@ meta_args(I, Arity, Decl, Head, Meta) :-
 %	@tbd	Split predifined in several categories.  E.g., the ISO
 %		predicates cannot be redefined.
 %	@tbd	Rely on the meta_predicate property for many predicates.
+%	@deprecated	New code should use xref_meta/3.
 
-xref_meta(Head, Called, Src) :-
+xref_meta_src(Head, Called, Src) :-
 	meta_goal(Head, Called, Src), !.
-xref_meta(Head, Called, _) :-
+xref_meta_src(Head, Called, _) :-
 	xref_meta(Head, Called).
 
 xref_meta((A, B),		[A, B]).
@@ -1138,7 +1151,7 @@ process_goal(use_foreign_library(File), _Origin, Src) :-
 process_goal(use_foreign_library(File, _Init), _Origin, Src) :-
 	process_foreign(File, Src).
 process_goal(Goal, Origin, Src) :-
-	xref_meta(Goal, Metas, Src), !,
+	xref_meta_src(Goal, Metas, Src), !,
 	assert_called(Src, Origin, Goal),
 	process_called_list(Metas, Origin, Src).
 process_goal(Goal, Origin, Src) :-
