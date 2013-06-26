@@ -238,6 +238,7 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_FUNCTOR"),
   COUNT_MUTEX_INITIALIZER("L_RECORD"),
   COUNT_MUTEX_INITIALIZER("L_THREAD"),
+  COUNT_MUTEX_INITIALIZER("L_MUTEX"),
   COUNT_MUTEX_INITIALIZER("L_PREDICATE"),
   COUNT_MUTEX_INITIALIZER("L_MODULE"),
   COUNT_MUTEX_INITIALIZER("L_TABLE"),
@@ -334,7 +335,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
   Sdprintf("Name                               locked\n"
 	   "-----------------------------------------\n");
 #endif
-  PL_LOCK(L_THREAD);
+  PL_LOCK(L_MUTEX);
   for(cm = GD->thread.mutexes; cm; cm = cm->next)
   { if ( cm->count == 0 )
       continue;
@@ -355,7 +356,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 	Sdprintf("\n");
     }
   }
-  PL_UNLOCK(L_THREAD);
+  PL_UNLOCK(L_MUTEX);
 
   succeed;
 }
@@ -3764,10 +3765,10 @@ allocSimpleMutex(const char *name)
     m->name = store_string(name);
   else
     m->name = NULL;
-  LOCK();
+  PL_LOCK(L_MUTEX);
   m->next = GD->thread.mutexes;
   GD->thread.mutexes = m;
-  UNLOCK();
+  PL_UNLOCK(L_MUTEX);
 
   return m;
 }
@@ -3778,7 +3779,7 @@ freeSimpleMutex(counting_mutex *m)
 { counting_mutex *cm;
 
   simpleMutexDelete(&m->mutex);
-  LOCK();
+  PL_LOCK(L_MUTEX);
   if ( m == GD->thread.mutexes )
   { GD->thread.mutexes = m->next;
   } else
@@ -3787,7 +3788,7 @@ freeSimpleMutex(counting_mutex *m)
 	cm->next = m->next;
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_MUTEX);
 
   remove_string((char *)m->name);
   freeHeap(m, sizeof(*m));
