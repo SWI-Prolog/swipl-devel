@@ -146,6 +146,7 @@ export JAVAPREFIX
 
 # Set some variables to find the Windows libraries and include files
 
+# export COFLAGS=-g
 export CIFLAGS="-I$install/include"
 export CPPFLAGS=-I$install/include
 export LDFLAGS="-L$install/lib"
