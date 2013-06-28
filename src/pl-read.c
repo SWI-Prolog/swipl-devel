@@ -3357,10 +3357,13 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	case T_PUNCTUATION:
 	  if ( stop != NULL && strchr(stop, token->value.character) )
 	    goto exit;
-      case T_QQ_BAR:
+	  break;
+#ifdef O_QUASIQUOTATIONS
+        case T_QQ_BAR:
 	  if ( stop != NULL && stop[0] == '|' )
 	    goto exit;
 	  break;
+#endif
       }
     }
 
