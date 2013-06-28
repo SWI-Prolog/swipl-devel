@@ -2118,7 +2118,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
       if ( tTop+arity > tMax )
       { int rc;
 
-	if ( !(rc=ensureTrailSpace(arity)) != TRUE )
+	if ( (rc=ensureTrailSpace(arity)) != TRUE )
 	  return raiseStackOverflow(rc);
       }
 
