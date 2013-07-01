@@ -1648,12 +1648,13 @@ gc(agc-2) :-		% not if concurrent: this is too simple.  There
 	    Margin > 0,
 	    \+ current_prolog_flag(test_concurrent, true)
 	->  garbage_collect_atoms,
-	    UpTo is Margin*2+10,
+	    UpTo is Margin*2+400,
 	    statistics(agc_gained, Gained0),
 	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
 	    statistics(agc_gained, Gained1),
 	    Gained is Gained1 - Gained0,
-	    Gained > UpTo - 20		% might be some junk
+	    writeln(Gained),
+	    Gained > UpTo - 400		% might be some junk
 	;   true			% no atom-gc
 	).
 

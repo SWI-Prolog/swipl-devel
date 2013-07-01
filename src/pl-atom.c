@@ -470,9 +470,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 #ifdef O_ATOMGC
   if ( GD->atoms.margin != 0 &&
        GD->atoms.unregistered >= GD->atoms.non_garbage + GD->atoms.margin )
-  { intptr_t x = GD->atoms.unregistered - (GD->atoms.non_garbage + GD->atoms.margin);
-
-    if ( x % 128 == 0 )			/* see (*) above */
+  { if ( GD->statistics.atoms % 128 == 0 ) /* see (*) above */
       PL_raise(SIG_ATOM_GC);
   }
 #endif

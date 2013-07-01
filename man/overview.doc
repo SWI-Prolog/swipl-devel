@@ -963,10 +963,13 @@ the maximum stack limit, this has few implications to the user.  See
 also the Prolog flag \prologflag{arch}.
 
     \prologflagitem{agc_margin}{integer}{rw}
-If this amount of atoms has been created since the last atom garbage
-collection, perform atom garbage collection at the first opportunity.
-Initial value is 10,000.   May be changed.  A value of 0 (zero) disables
-atom garbage collection.  See also PL_register_atom().
+If this amount of atoms possible garbage atoms exist perform atom
+garbage collection at the first opportunity.  Initial value is 10,000.
+May be changed. A value of 0 (zero) disables atom garbage collection.
+See also PL_register_atom().\footnote{Given that SWI-Prolog has no
+limit on the length of atoms, 10,000 atoms may still occupy a lot of
+memory.  Applications using extremely large atoms may wish to call
+garbage_collect_atoms/0 explicitly or lower the margin.}
 
     \prologflagitem{allow_variable_name_as_functor}{bool}{rw}
 If true (default is false), \exam{Functor(arg)} is read as if it were
