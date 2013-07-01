@@ -212,5 +212,9 @@ if [ "$setvars" = "false" ]; then
     if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
   fi
 
+  # Parse build log for warnings that may indicate serious runtime issues
+  if [ "$make" = "true" ]; then
+    [ -f make.out ] && scripts/check_build_log.sh make.out
+  fi
 fi # setvars
 

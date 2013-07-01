@@ -413,8 +413,10 @@ build_swipl_core()
     ./configure --host=$CROSS --prefix=$install \
         --disable-readline --disable-libdirversion \
         --enable-shared --disable-static
-    $MAKE
-    make install
+    $MAKE 2>&1 | tee make.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
+    make install 2>&1 | tee make-install.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
   )
 }
 
@@ -433,9 +435,17 @@ build_swipl_packages()
     export PKGLDFLAGS=-I$install/lib
     [ -z "$1" ] || export PKG="$1"
     ./configure --host=$CROSS --prefix=$install
-    $MAKE || exit 1
-    make install || exit 1
+    $MAKE 2>&1 | tee -a ../make.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
+    make install 2>&1 | tee -a ../make-install.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
     make html-install || exit 1
+  )
+}
+
+check_build()
+{ ( enter_topdir
+    [ -f make.out ] && scripts/check_build_log.sh make.out
   )
 }
 
@@ -443,6 +453,7 @@ build_swipl()
 { build_swipl_core
   copy_dlls
   build_swipl_packages
+  check_build
 }
 
 clean_swipl()
