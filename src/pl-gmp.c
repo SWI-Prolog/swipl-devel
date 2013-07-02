@@ -208,7 +208,8 @@ saved version is the _mp_size field, followed by the limps.
 
 static size_t
 mpz_wsize(mpz_t mpz, size_t *s)
-{ size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
+{ DEBUG(0, assert(sizeof(mpz->_mp_size) == sizeof(int)));
+  size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
   size_t wsz  = (size+sizeof(word)-1)/sizeof(word);
 
   if ( s )

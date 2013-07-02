@@ -37,10 +37,7 @@ in this array.
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#undef abs			/* avoid abs() problem with MSVC++ */
 #include <math.h>
-#undef abs
-#define abs(a) ((a) < 0 ? -(a) : (a))
 #include <limits.h>
 #ifdef HAVE_FLOAT_H
 #include <float.h>
@@ -2067,7 +2064,7 @@ ar_rationalize(Number n1, Number r)
 
 	p1_q1 = p1/q1;
 	d = p1_q1 - n1->value.f;
-      } while(abs(d) > DBL_EPSILON);
+      } while(fabs(d) > DBL_EPSILON);
 
       r->type = V_MPQ;
       mpz_init_set_d(mpq_numref(r->value.mpq), p1);
@@ -2589,7 +2586,7 @@ ar_abs(Number n1, Number r)
 #endif
 	/*FALLTHROUGH*/
       } else
-      { r->value.i = abs(n1->value.i);
+      { r->value.i = llabs(n1->value.i);
 	r->type = V_INTEGER;
 	break;
       }

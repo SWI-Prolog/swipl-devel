@@ -422,9 +422,6 @@ typedef void *			caddress;
 #define ESC			((char) 27)
 #define streq(s, q)		((strcmp((s), (q)) == 0))
 
-#ifndef abs
-#define abs(x)			((x) < 0 ? -(x) : (x))
-#endif
 				/* n is 2^m !!! */
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
 #define addPointer(p, n)	((void *) ((intptr_t)(p) + (intptr_t)(n)))

@@ -43,8 +43,7 @@ is supposed to give the POSIX standard one.
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
-#undef abs
-#include <math.h>		/* avoid abs() problem with msvc++ */
+#include <math.h>
 #include <stdio.h>		/* rename() and remove() prototypes */
 
 #if TIME_WITH_SYS_TIME
