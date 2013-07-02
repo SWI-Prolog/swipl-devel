@@ -1377,7 +1377,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
     if ( c->pc >= fr->predicate->codes &&
 	 c->pc < &fr->predicate->codes[fr->predicate->codes[-1]] )
     { return printed+snprintf(buf, len, "[PC=%ld in supervisor]",
-			      (c->pc - fr->predicate->codes));
+			      (long)(c->pc - fr->predicate->codes));
     }
 
     if ( false(fr->predicate, P_FOREIGN) )
