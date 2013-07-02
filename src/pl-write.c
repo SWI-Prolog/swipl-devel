@@ -21,8 +21,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <math.h>
 #include "pl-incl.h"
+#include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
 #include <stdio.h>			/* sprintf() */
