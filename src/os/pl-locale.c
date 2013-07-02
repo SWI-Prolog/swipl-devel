@@ -23,6 +23,10 @@
 #include "pl-incl.h"
 #include "pl-locale.h"
 
+#ifdef __sun
+#undef HAVE_WCSDUP			/* No prototype, so better use our own */
+#endif
+
 #ifdef O_LOCALE
 
 #include <locale.h>
