@@ -55,6 +55,7 @@ handling times must be cleaned, but that not only holds for this module.
 #endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#include <fcntl.h>
 #endif
 #ifdef HAVE_BSTRING_H
 #include <bstring.h>
@@ -3941,7 +3942,7 @@ stream_close_on_exec_prop(IOSTREAM *s, term_t prop ARG_LD)
    if ( (fd = Sfileno(s)) < 0)
      return FALSE;
 
-#if defined(F_SETFD) && defined(FD_CLOEXEC)
+#if defined(F_GETFD) && defined(FD_CLOEXEC)
 
    if ( (fd_flags = fcntl(fd, F_GETFD)) == -1)
      return FALSE;
