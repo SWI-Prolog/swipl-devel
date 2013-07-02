@@ -497,6 +497,7 @@ last_arg:
 }
 
 
+#ifdef O_DEBUG
 static int				/* avoid false alarm in CHR */
 is_ht_capacity(int arity)
 { int cap = 89;				/* chr_hashtable_store.pl */
@@ -506,7 +507,7 @@ is_ht_capacity(int arity)
 
   return cap == arity;
 }
-
+#endif
 
 static word
 check_data(Word p, int *recursive ARG_LD)
