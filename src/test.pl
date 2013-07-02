@@ -1653,7 +1653,6 @@ gc(agc-2) :-		% not if concurrent: this is too simple.  There
 	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
 	    statistics(agc_gained, Gained1),
 	    Gained is Gained1 - Gained0,
-	    writeln(Gained),
 	    Gained > UpTo - 400		% might be some junk
 	;   true			% no atom-gc
 	).
