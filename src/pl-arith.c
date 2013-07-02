@@ -1836,6 +1836,13 @@ ar_div(Number n1, Number n2, Number r)
 #endif
 }
 
+/* Broken, at least on SunOS 5.11, gcc 4.8.  No clue under what conditions.
+   The results of configure and final linking differ.  Anyway, just doing
+   our own is most likely the safe solution.
+ */
+#ifdef __sun
+#undef HAVE_SIGNBIT
+#endif
 
 #ifndef HAVE_SIGNBIT				/* differs for -0.0 */
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
