@@ -108,7 +108,7 @@ distclean:	clean
 		rm -f $(DVITOTTY)
 		rm -rf Manual.tmp
 		rm -f Makefile
-		make -C$(DVITOTTY-HOME) distclean
+		$(MAKE) -C$(DVITOTTY-HOME) distclean
 
 $(PDF):		$(DOC).tex $(TEXFILES) $(DOC).bbl
 		env TEXINPUTS=lib:$$TEXINPUTS ./runtex --pdf $(DOC)
