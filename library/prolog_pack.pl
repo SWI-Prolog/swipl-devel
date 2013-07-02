@@ -42,6 +42,7 @@
 	  ]).
 :- use_module(library(apply)).
 :- use_module(library(error)).
+:- use_module(library(git)).
 :- use_module(library(process)).
 :- use_module(library(option)).
 :- use_module(library(readutil)).
@@ -262,6 +263,7 @@ pack_info_term(requires(atom)).
 pack_info_term(conflicts(atom)).		% Conflicts with package
 pack_info_term(replaces(atom)).			% Replaces another package
 pack_info_term(autoload(boolean)).		% Default installation options
+pack_info_term(branch(atom)).			% Need to checkout this branch.
 
 :- multifile
 	error:has_type/2.
@@ -707,6 +709,18 @@ special(.).
 special(..).
 
 
+%%	on_the_right_git_branch(+Info) is det.
+%
+%	Make sure the proper branch is checked out.
+
+on_the_right_git_branch(Info):-
+	memberchk(branch(Branch), Info), !,
+	(   git_default_branch(Branch, [])
+	->  true
+	;   git([checkout,Branch], [])
+	).
+on_the_right_git_branch(_).
+
 %%	pack_install_from_url(+Scheme, +URL, +PackDir, +Pack, +Options)
 %
 %	Install a package from a remote source. For git repositories, we
@@ -720,6 +734,7 @@ pack_install_from_url(_, URL, PackTopDir, Pack, Options) :-
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
 	pack_git_info(PackDir, Hash, Info),
+	on_the_right_git_branch(Info),
 	pack_inquiry(URL, git(Hash), Info, Options),
 	show_info(Pack, Info, Options),
 	confirm(git_post_install(PackDir, Pack), yes, Options),
