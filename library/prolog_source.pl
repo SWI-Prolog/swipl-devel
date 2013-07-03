@@ -296,7 +296,7 @@ module_decl(Spec, Decl) :-
 %	  If no correct parse can be found, unify Error with a term
 %	  Offset:Message that indicates the (character) location of
 %	  the error and the related message.  Adding this option
-%	  makes read_source_term_at_location/3 deterministic.
+%	  makes read_source_term_at_location/3 deterministic (=det=).
 %
 %	@see Use read_source_term/4 to read a file from the start.
 %	@see prolog:alternate_syntax/4 for locally scoped operators.
@@ -313,10 +313,9 @@ read_source_term_at_location(Stream, Term, Options) :-
 	option(operators(Ops), Options, []),
 	alternate_syntax(Syntax, Module, Setup, Restore),
 	set_stream_position(Stream, Here),
-	peek_char(Stream, X),
-	debug(read, 'Using syntax ~w (c=~w)', [Syntax, X]),
+	debug(read, 'Trying with syntax ~w', [Syntax]),
 	push_operators(Module:Ops),
-	Setup,
+	call(Setup),
 	asserta(user:thread_message_hook(_,_,_), Ref), % silence messages
 	catch(read_term(Stream, Term0,
 			[ module(Module)
@@ -325,10 +324,10 @@ read_source_term_at_location(Stream, Term, Options) :-
 	      Error,
 	      true),
 	erase(Ref),
-	Restore,
+	call(Restore),
 	pop_operators,
 	(   var(Error)
-	->  Term = Term0
+	->  !, Term = Term0
 	;   assert_error(Error, Options),
 	    fail
 	).
