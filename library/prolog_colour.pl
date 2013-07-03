@@ -248,10 +248,17 @@ process_use_module([H|T], Src) :- !,
 process_use_module(File, Src) :-
 	(   xref_public_list(File, Src,
 			     [ exports(Exports),
-			       silent(true)
+			       silent(true),
+			       path(Path)
 			     ])
 	->  forall(member(op(P,T,N), Exports),
-		   safe_push_op(P,T,N,Src))
+		   safe_push_op(P,T,N,Src)),
+	    colour_state_module(Src, SM),
+	    (	member(Syntax/4, Exports),
+		load_quasi_quotation_syntax(SM:Path, Syntax),
+		fail
+	    ;	true
+	    )
 	;   true
 	).
 

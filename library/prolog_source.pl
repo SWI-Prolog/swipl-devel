@@ -35,6 +35,8 @@
 	    prolog_close_source/1,	% +Stream
 	    prolog_canonical_source/2,	% +Spec, -Id
 
+	    load_quasi_quotation_syntax/2, % :Path, +Syntax
+
 	    file_name_on_path/2,	% +File, -PathSpec
 	    file_alias_path/2,		% ?Alias, ?Dir
 	    path_segments_atom/2,	% ?Segments, ?Atom
@@ -44,6 +46,8 @@
 :- use_module(lists).
 :- use_module(debug).
 :- use_module(option).
+:- use_module(error).
+:- use_module(apply).
 
 /** <module> Examine Prolog source-files
 
@@ -77,7 +81,8 @@ users of the library are:
 	prolog:xref_source_identifier/2, % +Source, -Id
 	prolog:xref_source_time/2,	 % +Source, -Modified
 	prolog:xref_open_source/2,	 % +SourceId, -Stream
-	prolog:alternate_syntax/4.	 % Syntax, +Module, -Setup, -Restore
+	prolog:alternate_syntax/4,	 % Syntax, +Module, -Setup, -Restore
+	prolog:quasi_quotation_syntax/2. % Syntax, Library
 
 
 :- predicate_options(prolog_read_source_term/4, 4,
@@ -120,7 +125,8 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
 	maplist(read_clause_option, Options), !,
 	read_clause(In, Term, Options),
 	expand(Term, In, Expanded),
-	update_state(Term, Expanded).
+	'$set_source_module'(M, M),
+	update_state(Term, Expanded, M).
 prolog_read_source_term(In, Term, Expanded, Options) :-
 	'$set_source_module'(M, M),
 	select_option(syntax_errors(SE), Options, RestOptions, dec10),
@@ -134,7 +140,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
 		  | FinalOptions
 		  ]),
 	expand(Term, In, Expanded),
-	update_state(Term, Expanded).
+	update_state(Term, Expanded, M).
 
 read_clause_option(syntax_errors(_)).
 read_clause_option(term_position(_)).
@@ -195,60 +201,95 @@ requires_library((:- use_module(library(pce))),	   library(pce)).
 requires_library((:- pce_begin_class(_,_)),	   library(pce)).
 requires_library((:- pce_begin_class(_,_,_)),	   library(pce)).
 
-%%	update_state(+Expanded) is det.
+%%	update_state(+Term, +Expanded, +Module) is det.
 %
 %	Update operators and style-check options from the expanded term.
 
-update_state(Raw, _) :-
+update_state(Raw, _, _) :-
 	Raw == (:- pce_end_class), !,
 	pce_expansion:pop_compile_operators.
-update_state(_Raw, Expanded) :-
-	update_state(Expanded).
+update_state(_Raw, Expanded, M) :-
+	update_state(Expanded, M).
 
-update_state([]) :- !.
-update_state([H|T]) :- !,
-	update_state(H),
-	update_state(T).
-update_state((:- Directive)) :-
+update_state([], _) :- !.
+update_state([H|T], M) :- !,
+	update_state(H, M),
+	update_state(T, M).
+update_state((:- Directive), M) :-
 	ground(Directive), !,
-	catch(update_directive(Directive), _, true).
-update_state((?- Directive)) :- !,
-	update_state((:- Directive)).
-update_state(_).
+	catch(update_directive(Directive, M), _, true).
+update_state((?- Directive), M) :- !,
+	update_state((:- Directive), M).
+update_state(_, _).
 
-update_directive(module(Module, Public)) :- !,
+update_directive(module(Module, Public), _) :- !,
 	'$set_source_module'(_, Module),
-	public_operators(Public).
-update_directive(M:op(P,T,N)) :-
+	maplist(import_syntax(_,Module), Public).
+update_directive(M:op(P,T,N), SM) :-
 	atom(M), !,
-	update_directive(op(P,T,N)).
-update_directive(op(P,T,N)) :- !,
-	'$set_source_module'(SM, SM),
+	update_directive(op(P,T,N), SM).
+update_directive(op(P,T,N), SM) :- !,
 	strip_module(SM:N, M, PN),
 	push_op(P,T,M:PN).
-update_directive(style_check(Style)) :-
+update_directive(style_check(Style), _) :-
 	style_check(Style), !.
-update_directive(expects_dialect(sicstus)) :-
+update_directive(expects_dialect(sicstus), _) :-
 	style_check(-atom), !.
-update_directive(use_module(Spec)) :-
-	catch(module_decl(Spec, Public), _, fail), !,
-	public_operators(Public).
-update_directive(pce_begin_class_definition(_,_,_,_)) :-
-	'$set_source_module'(SM, SM),
+update_directive(use_module(Spec), SM) :-
+	catch(module_decl(Spec, Path, Public), _, fail), !,
+	maplist(import_syntax(Path, SM), Public).
+update_directive(pce_begin_class_definition(_,_,_,_), SM) :-
 	current_predicate(pce_expansion:push_compile_operators/1), !,
 	pce_expansion:push_compile_operators(SM).
-update_directive(_).
+update_directive(_, _).
 
-public_operators([]).
-public_operators([H|T]) :- !,
-	(   nonvar(H),
-	    H = op(_,_,_)
-	->  update_directive(H)
-	;   true
-	),
-	public_operators(T).
+%%	import_syntax(+Path, +Module, +ExportStatement) is det.
+%
+%	Import syntax affecting aspects  of   a  declaration. Deals with
+%	op/3 terms and Syntax/4  quasi   quotation  declarations.
 
-module_decl(Spec, Decl) :-
+import_syntax(_, _, Var) :-
+	var(Var), !.
+import_syntax(_, M, Op) :-
+	Op = op(_,_,_), !,
+	update_directive(Op, M).
+import_syntax(Path, SM, Syntax/4) :-
+	load_quasi_quotation_syntax(SM:Path, Syntax), !.
+import_syntax(_,_,_).
+
+
+%%	load_quasi_quotation_syntax(:Path, +Syntax) is semidet.
+%
+%	Import quasi quotation syntax Syntax from   Path into the module
+%	specified by the  first  argument.   Quasi  quotation  syntax is
+%	imported iff:
+%
+%	  - It is already loaded
+%	  - It is declared with prolog:quasi_quotation_syntax/2
+%
+%	@tbd	We need a better way to know that an import affects the
+%		syntax or compilation process.  This is also needed for
+%		better compatibility with systems that provide a
+%		separate compiler.
+
+load_quasi_quotation_syntax(SM:Path, Syntax) :-
+	atom(Path), atom(Syntax),
+	source_file_property(Path, module(M)),
+	functor(ST, Syntax, 4),
+	predicate_property(M:ST, quasi_quotation_syntax), !,
+	use_module(SM:Path, [Syntax/4]).
+load_quasi_quotation_syntax(SM:Path, Syntax) :-
+	atom(Path), atom(Syntax),
+	prolog:quasi_quotation_syntax(Syntax, Spec),
+	absolute_file_name(Spec, Path2,
+			   [ file_type(prolog),
+			     file_errors(fail),
+			     access(read)
+			   ]),
+	Path == Path2, !,
+	use_module(SM:Path, [Syntax/4]).
+
+module_decl(Spec, Path, Decl) :-
 	absolute_file_name(Spec, Path,
 			   [ file_type(prolog),
 			     file_errors(fail),
@@ -317,10 +358,10 @@ read_source_term_at_location(Stream, Term, Options) :-
 	push_operators(Module:Ops),
 	call(Setup),
 	asserta(user:thread_message_hook(_,_,_), Ref), % silence messages
-	catch(read_term(Stream, Term0,
-			[ module(Module)
-			| Options
-			]),
+	catch(qq_read_term(Stream, Term0,
+			   [ module(Module)
+			   | Options
+			   ]),
 	      Error,
 	      true),
 	erase(Ref),
@@ -392,6 +433,72 @@ seek_to_line(Fd, N) :-
 	NN is N - 1,
 	seek_to_line(Fd, NN).
 seek_to_line(_, _).
+
+
+		 /*******************************
+		 *	 QUASI QUOTATIONS	*
+		 *******************************/
+
+%%	qq_read_term(+Stream, -Term, +Options)
+%
+%	Same  as  read_term/3,  but  dynamically    loads   known  quasi
+%	quotations. Quasi quotations that  can   be  autoloaded  must be
+%	defined using prolog:quasi_quotation_syntax/2.
+
+qq_read_term(Stream, Term, Options) :-
+	select(syntax_errors(ErrorMode), Options, Options1),
+	ErrorMode \== error, !,
+	(   ErrorMode == dec10
+	->  repeat,
+	    qq_read_syntax_ex(Stream, Term, Options1, Error),
+	    (	var(Error)
+	    ->	!
+	    ;	print_message(error, Error),
+		fail
+	    )
+	;   qq_read_syntax_ex(Stream, Term, Options1, Error),
+	    (	ErrorMode == fail
+	    ->	print_message(error, Error),
+		fail
+	    ;	ErrorMode == quiet
+	    ->	fail
+	    ;	domain_error(syntax_errors, ErrorMode)
+	    )
+	).
+qq_read_term(Stream, Term, Options) :-
+	qq_read_term_ex(Stream, Term, Options).
+
+qq_read_syntax_ex(Stream, Term, Options, Error) :-
+	catch(qq_read_term_ex(Stream, Term, Options),
+	      error(syntax_error(Syntax), Context),
+	      Error = error(Syntax, Context)).
+
+qq_read_term_ex(Stream, Term, Options) :-
+	stream_property(Stream, position(Here)),
+	catch(read_term(Stream, Term, Options),
+	      error(syntax_error(unknown_quasi_quotation_syntax(Syntax, Module)), Context),
+	      load_qq_and_retry(Here, Syntax, Module, Context, Stream, Term, Options)).
+
+load_qq_and_retry(Here, Syntax, Module, _, Stream, Term, Options) :-
+	set_stream_position(Stream, Here),
+	prolog:quasi_quotation_syntax(Syntax, Library), !,
+	use_module(Module:Library, [Syntax/4]),
+	read_term(Stream, Term, Options).
+load_qq_and_retry(_Pos, Syntax, Module, Context, _Stream, _Term, _Options) :-
+	print_message(warning, quasi_quotation(undeclared, Syntax)),
+	throw(error(syntax_error(unknown_quasi_quotation_syntax(Syntax, Module)), Context)).
+
+%%	prolog:quasi_quotation_syntax(+Syntax, -Library) is semidet.
+%
+%	True when the quasi quotation syntax   Syntax can be loaded from
+%	Library.  Library  must  be   a    valid   first   argument  for
+%	use_module/2.
+%
+%	This multifile hook is used   by  library(prolog_source) to load
+%	quasi quotation handlers on demand.
+
+prolog:quasi_quotation_syntax(html,	  library(http/html_write)).
+prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 
 
 		 /*******************************
@@ -648,3 +755,16 @@ src_files([_|T], Dir, Options) -->
 
 special(.).
 special(..).
+
+
+		 /*******************************
+		 *	     MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message//1.
+
+prolog:message(quasi_quotation(undeclared, Syntax)) -->
+	[ 'Undeclared quasi quotation syntax: ~w'-[Syntax], nl,
+	  'Autoloading can be defined using prolog:quasi_quotation_syntax/2'
+	].
