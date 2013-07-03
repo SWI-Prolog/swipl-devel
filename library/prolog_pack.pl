@@ -629,6 +629,14 @@ read_stream_to_terms(Term0, Stream, [Term0|Terms]) :-
 	read(Stream, Term1),
 	read_stream_to_terms(Term1, Stream, Terms).
 
+%%	pack_git_info(+GitDir, -Info) is det.
+
+pack_git_info(GitDir, Info) :-
+	exists_directory(GitDir),
+	directory_file_path(GitDir, 'pack.pl', InfoFile),
+	read_file_to_terms(InfoFile, Info, [encoding(utf8)]),
+	must_be(ground, Info),
+	maplist(valid_info_term, Info).
 
 %%	pack_git_info(+GitDir, -Hash, -Info) is det.
 %
@@ -636,15 +644,11 @@ read_stream_to_terms(Term0, Stream, [Term0|Terms]) :-
 %	with pack_archive_info/4.
 
 pack_git_info(GitDir, Hash, [git(true), installed_size(Bytes)|Info]) :-
-	exists_directory(GitDir), !,
+	pack_git_info(GitDir, Info),
 	git_ls_tree(Entries, [directory(GitDir)]),
 	git_hash(Hash, [directory(GitDir)]),
 	maplist(arg(4), Entries, Sizes),
-	sum_list(Sizes, Bytes),
-	directory_file_path(GitDir, 'pack.pl', InfoFile),
-	read_file_to_terms(InfoFile, Info, [encoding(utf8)]),
-	must_be(ground, Info),
-	maplist(valid_info_term, Info).
+	sum_list(Sizes, Bytes).
 
 %%	download_file_sanity_check(+Archive, +Pack, +Info) is semidet.
 %
@@ -709,18 +713,24 @@ special(.).
 special(..).
 
 
-%%	on_the_right_git_branch(+Info, +PackDir) is det.
+%%	on_the_right_git_branch(+Info, +PackDir, -Switched) is det.
 %
-%	Make sure the proper branch is checked out
-%       in the package directory.
+%	Make sure the proper  branch  is   checked  out  in  the package
+%	directory. Switched is unified  with   a  boolean that indicates
+%	whether we switched branches or not.
+%
+%	@tbd:	It is possible that the branch contains different
+%		info that asks for another switch.  How to deal
+%		with that?
 
-on_the_right_git_branch(Info, PackDir):-
+on_the_right_git_branch(Info, PackDir, Switched):-
 	memberchk(branch(Branch), Info), !,
 	(   git_default_branch(Branch, [directory(PackDir)])
-	->  true
-	;   git([checkout,Branch], [directory(PackDir)])
+	->  Switched = false
+	;   git([checkout,Branch], [directory(PackDir)]),
+	    Switched = true
 	).
-on_the_right_git_branch(_, _).
+on_the_right_git_branch(_, _, false).
 
 %%	pack_install_from_url(+Scheme, +URL, +PackDir, +Pack, +Options)
 %
@@ -734,8 +744,13 @@ pack_install_from_url(_, URL, PackTopDir, Pack, Options) :-
 	directory_file_path(PackTopDir, Pack, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
-	pack_git_info(PackDir, Hash, Info),
-	on_the_right_git_branch(Info, PackDir),
+	pack_git_info(PackDir, Hash0, Info0),
+	on_the_right_git_branch(Info0, PackDir, Switched),
+	(   Switched == true
+	->  pack_git_info(PackDir, Hash, Info)
+	;   Info = Info0,
+	    Hash = Hash0
+	),
 	pack_inquiry(URL, git(Hash), Info, Options),
 	show_info(Pack, Info, Options),
 	confirm(git_post_install(PackDir, Pack), yes, Options),
