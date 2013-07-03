@@ -709,17 +709,18 @@ special(.).
 special(..).
 
 
-%%	on_the_right_git_branch(+Info) is det.
+%%	on_the_right_git_branch(+Info, +PackDir) is det.
 %
-%	Make sure the proper branch is checked out.
+%	Make sure the proper branch is checked out
+%       in the package directory.
 
-on_the_right_git_branch(Info):-
+on_the_right_git_branch(Info, PackDir):-
 	memberchk(branch(Branch), Info), !,
-	(   git_default_branch(Branch, [])
+	(   git_default_branch(Branch, [directory(PackDir)])
 	->  true
-	;   git([checkout,Branch], [])
+	;   git([checkout,Branch], [directory(PackDir)])
 	).
-on_the_right_git_branch(_).
+on_the_right_git_branch(_, _).
 
 %%	pack_install_from_url(+Scheme, +URL, +PackDir, +Pack, +Options)
 %
@@ -734,7 +735,7 @@ pack_install_from_url(_, URL, PackTopDir, Pack, Options) :-
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
 	pack_git_info(PackDir, Hash, Info),
-	on_the_right_git_branch(Info),
+	on_the_right_git_branch(Info, PackDir),
 	pack_inquiry(URL, git(Hash), Info, Options),
 	show_info(Pack, Info, Options),
 	confirm(git_post_install(PackDir, Pack), yes, Options),
