@@ -136,7 +136,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
 	expand(Term, In, Expanded),
 	update_state(Term, Expanded).
 
-read_clause_option(systax_errors(_)).
+read_clause_option(syntax_errors(_)).
 read_clause_option(term_position(_)).
 read_clause_option(process_comment(_)).
 read_clause_option(comments(_)).
