@@ -255,7 +255,7 @@ qq_call(quasi_quotation(Syntax, Content, VariableNames, Result), M) :-
 	Syntax =.. [SyntaxName|SyntaxArgs],
 	Expand =.. [SyntaxName, Content, SyntaxArgs, VariableNames, Result],
 	QExpand = M:Expand,
-	'$extend':allowed_expansion(QExpand),
+	'$expand':allowed_expansion(QExpand),
 	setup_call_cleanup(
 	    '$push_input_context'(quasi_quoted),
 	    call(QExpand),
