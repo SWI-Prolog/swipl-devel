@@ -2699,7 +2699,7 @@ Sclose_file(void *handle)
 
   do
   { rc = close((int) h);
-  }  while ( rc == -1 && errno == EINTR );
+  } while ( rc == -1 && errno == EINTR );
 
   return rc;
 }
