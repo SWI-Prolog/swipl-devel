@@ -4286,6 +4286,9 @@ operator declarations are identical.
     \predicate[ISO]{writeq}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}, inserting quotes.
 
+    \predicate{writeln}{1}{+Term}
+Equivalent to \exam{write(Term), nl.}.
+
     \predicate{print}{1}{+Term}
 Prints \arg{Term} on the current output stream similar to write/1,
 but for each (sub)term of \arg{Term}, the dynamic predicate
@@ -6218,26 +6221,23 @@ findall/3 or foreach/2.
 
 \section{Formatted Write}		\label{sec:format}
 
-The current version of SWI-Prolog provides two formatted
-write predicates.  The first is writef/[1,2], which is compatible with
-Edinburgh C-Prolog.  The second is format/[1,2], which is compatible
-with Quintus Prolog.  We hope the Prolog community will once define a
-standard formatted write predicate.  If you want performance use
-format/[1,2], as this predicate is defined in C.  Otherwise
-compatibility reasons might tell you which predicate to use.
+The current version of SWI-Prolog provides two formatted write
+predicates. The `writef' family (writef/1, writef/2, swritef/3), is
+compatible with Edinburgh C-Prolog and should be considered
+\emph{deprecated}. The `format' family (format/1, format/2, format/3),
+was defined by Quintus Prolog and currently available in many Prolog
+systems, although the details vary.
 
 \subsection{Writef}
 \label{sec:writef}
 
 \begin{description}
-    \predicate{writeln}{1}{+Term}
-Equivalent to \exam{write(Term), nl.}
-    \predicate{writef}{1}{+Atom}
-Equivalent to \exam{writef(Atom, []).}
-    \predicate{writef}{2}{+Format, +Arguments}
+    \predicate[deprecated]{writef}{1}{+Atom}
+Equivalent to \exam{writef(Atom, []).}  See writef/2 for details.
+    \predicate[deprecated]{writef}{2}{+Format, +Arguments}
 Formatted write.  \arg{Format} is an atom whose characters will be printed.
 \arg{Format} may contain certain special character sequences which specify
-certain formatting and substitution actions.  \arg{Arguments} then provides
+certain formatting and substitution actions.  \arg{Arguments} provides
 all the terms required to be output.
 
 Escape sequences to generate a single special character:
@@ -6289,7 +6289,7 @@ Escape sequences to include arguments from \arg{Arguments}. Each time a
 \hline
 \end{tabular}
 \end{center}
-    \predicate{swritef}{3}{-String, +Format, +Arguments}
+    \predicate[deprecated]{swritef}{3}{-String, +Format, +Arguments}
 Equivalent to writef/2, but ``writes'' the result on \arg{String} instead
 of the current output stream. Example:
 \begin{code}
@@ -6297,7 +6297,7 @@ of the current output stream. Example:
 
 S = "Hello          World"
 \end{code}
-    \predicate{swritef}{2}{-String, +Format}
+    \predicate[deprecated]{swritef}{2}{-String, +Format}
 Equivalent to \exam{swritef(String, Format, []).}
 \end{description}
 
@@ -6310,7 +6310,8 @@ produce textual output.
 
 \begin{description}
     \predicate{format}{1}{+Format}
-Defined as `\exam{format(Format) :- format(Format, []).}'
+Defined as `\exam{format(Format) :- format(Format, []).}'.  See
+format/2 for details.
 
     \predicate{format}{2}{+Format, :Arguments}
 \arg{Format} is an atom, list of character codes, or a Prolog string.
