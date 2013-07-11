@@ -326,7 +326,10 @@ member_var(V, [_|T]) :-
 
 colourise_term(Term, TB, TermPos, Comments) :-
 	colourise_comments(Comments, TB),
-	colourise_term(Term, TB, TermPos).
+	colourise_term(Term, TB, TermPos),
+	arg(2, TermPos, End),
+	Start is End - 1,
+	colour_item(fullstop, TB, Start-End).
 
 colourise_comments(-, _).
 colourise_comments([], _).
