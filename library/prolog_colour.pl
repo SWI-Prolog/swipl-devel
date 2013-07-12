@@ -396,6 +396,9 @@ colourise_term(:<-(Head, Body), TB,
 	colourise_method_body(Body,    TB, BP).
 colourise_term((:- Directive), TB, Pos) :- !,
 	colour_item(directive, TB, Pos),
+	arg(1, Pos, F),
+	arg(2, Pos, T),
+	colour_item(neck(directive), TB, F-T),
 	arg(5, Pos, [ArgPos]),
 	colourise_directive(Directive, TB, ArgPos).
 colourise_term((?- Directive), TB, Pos) :- !,
