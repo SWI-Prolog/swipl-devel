@@ -323,13 +323,24 @@ member_var(V, [_|T]) :-
 	member_var(V, T).
 
 %%	colourise_term(+Term, +TB, +Termpos, +Comments)
+%
+%	Colourise the next Term.
+%
+%	@bug	The colour spec is closed with =fullstop=, but the
+%		position information does not include the full stop
+%		location, so all we can do is assume it is behind the
+%		term.
 
 colourise_term(Term, TB, TermPos, Comments) :-
 	colourise_comments(Comments, TB),
-	colourise_term(Term, TB, TermPos),
-	arg(2, TermPos, End),
-	Start is End - 1,
-	colour_item(fullstop, TB, Start-End).
+	(   Term == end_of_file
+	->  true
+	;   colourise_term(Term, TB, TermPos),
+	    arg(2, TermPos, EndTerm),
+	    Start is EndTerm + 1,
+	    End is Start+1,
+	    colour_item(fullstop, TB, Start-End)
+	).
 
 colourise_comments(-, _).
 colourise_comments([], _).
@@ -933,7 +944,8 @@ colourise_term_arg(Var, TB, Pos) :-			% variable
 	->  colour_item(singleton, TB, Pos)
 	;   colour_item(var, TB, Pos)
 	).
-colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
+colourise_term_arg(List, TB, list_position(F, T, Elms, Tail)) :- !,
+	colour_item(list, TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
 colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
 	colour_item(string, TB, F-T).
@@ -946,7 +958,8 @@ colourise_term_arg(_, TB,
 	TS is T-2,
 	colour_item(qq, TB, F-FE),
 	colour_item(qq, TB, TS-T).
-colourise_term_arg({Term}, TB, brace_term_position(_F,_T,Arg)) :- !,
+colourise_term_arg({Term}, TB, brace_term_position(F,T,Arg)) :- !,
+	colour_item(brace_term, TB, F-T),
 	colourise_term_arg(Term, TB, Arg).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
 	compound(Compound), !,
@@ -954,6 +967,12 @@ colourise_term_arg(Compound, TB, Pos) :-		% compound
 colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	atom(Atom), !,
 	colour_item(atom, TB, Pos).
+colourise_term_arg(Integer, TB, Pos) :-
+	integer(Integer), !,
+	colour_item(int, TB, Pos).
+colourise_term_arg(Float, TB, Pos) :-
+	integer(Float), !,
+	colour_item(float, TB, Pos).
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
 
