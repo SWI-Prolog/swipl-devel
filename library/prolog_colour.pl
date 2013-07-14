@@ -661,21 +661,34 @@ colourise_goal_args(Goal, TB, Pos) :-
 
 colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
 	meta_args(Goal, TB, MetaArgs), !,
-	colourise_option_args(Goal, M, TB, ArgPos),
-	colourise_meta_args(1, Goal, MetaArgs, TB, ArgPos).
-colourise_goal_args(Goal, M, TB, Pos) :-
-	Pos = term_position(_,_,_,_,ArgPos), !,
-	colourise_option_args(Goal, M, TB, ArgPos),
-	colourise_term_args(Goal, TB, Pos).
+	colourise_meta_args(1, Goal, M, MetaArgs, TB, ArgPos).
+colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
+	colourise_goal_args(1, Goal, M, TB, ArgPos).
 colourise_goal_args(_, _, _, _).		% no arguments
 
-colourise_meta_args(_, _, _, _, []) :- !.
-colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
+colourise_goal_args(_, _, _, _, []) :- !.
+colourise_goal_args(N, Goal, Module, TB, [P0|PT]) :-
+	colourise_option_arg(Goal, Module, N, TB, P0), !,
+	NN is N + 1,
+	colourise_goal_args(NN, Goal, Module, TB, PT).
+colourise_goal_args(N, Goal, Module, TB, [P0|PT]) :-
+	arg(N, Goal, Arg),
+	colourise_term_arg(Arg, TB, P0),
+	NN is N + 1,
+	colourise_goal_args(NN, Goal, Module, TB, PT).
+
+
+colourise_meta_args(_, _, _, _, _, []) :- !.
+colourise_meta_args(N, Goal, Module, MetaArgs, TB, [P0|PT]) :-
+	colourise_option_arg(Goal, Module, N, TB, P0), !,
+	NN is N + 1,
+	colourise_meta_args(NN, Goal, Module, MetaArgs, TB, PT).
+colourise_meta_args(N, Goal, Module, MetaArgs, TB, [P0|PT]) :-
 	arg(N, Goal, Arg),
 	arg(N, MetaArgs, MetaSpec),
 	colourise_meta_arg(MetaSpec, Arg, TB, P0),
 	NN is N + 1,
-	colourise_meta_args(NN, Goal, MetaArgs, TB, PT).
+	colourise_meta_args(NN, Goal, Module, MetaArgs, TB, PT).
 
 colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
 	expand_meta(MetaSpec, Arg, Expanded), !,
@@ -764,22 +777,20 @@ colourise_db(Head, TB, Pos) :-
 	colourise_goal(Head, '<db-change>', TB, Pos).
 
 
-%%	colourise_option_args(+Goal, +Module, +TB, +ArgPos)
+%%	colourise_option_args(+Goal, +Module, +Arg:integer,
+%			      +TB, +ArgPos) is semidet.
 %
-%	Colourise predicate options
+%	Colourise  predicate  options  for  the    Arg-th   argument  of
+%	Module:Goal
 
-colourise_option_args(Goal, Module, TB, ArgPos) :-
-	(   compound(Goal),
-	    functor(Goal, Name, Arity),
-	    current_predicate_options(Module:Name/Arity, Arg, OptionDecl),
-	    debug(emacs, 'Colouring option-arg ~w of ~p',
-		  [Arg, Module:Name/Arity]),
-	    arg(Arg, Goal, Options0),
-	    nth1(Arg, ArgPos, Pos0),
-	    colourise_option(Options0, Module, Goal, Arg, OptionDecl, TB, Pos0),
-	    fail
-	;   true
-	).
+colourise_option_arg(Goal, Module, Arg, TB, ArgPos) :-
+	functor(Goal, Name, Arity),
+	current_option_arg(Module:Name/Arity, Arg),
+	current_predicate_options(Module:Name/Arity, Arg, OptionDecl),
+	debug(emacs, 'Colouring option-arg ~w of ~p',
+	      [Arg, Module:Name/Arity]),
+	arg(Arg, Goal, Options),
+	colourise_option(Options, Module, Goal, Arg, OptionDecl, TB, ArgPos).
 
 colourise_option(Options0, Module, Goal, Arg, OptionDecl, TB, Pos0) :-
 	strip_option_module_qualifier(Goal, Module, Arg, TB,
