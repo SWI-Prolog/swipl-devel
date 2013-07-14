@@ -636,7 +636,7 @@ colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,_,_,[PM,PG])) :- !,
 	;   FP = PG
 	),
 	colour_item(goal(extern(Module), Goal), TB, FP),
-	colourise_goal_args(Goal, TB, PG).
+	colourise_goal_args(Goal, Module, TB, PG).
 colourise_goal(Goal, Origin, TB, Pos) :-
 	goal_classification(TB, Goal, Origin, Class),
 	(   Pos = term_position(_,_,FF,FT,_ArgPos)
@@ -651,15 +651,23 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 %	Colourise the arguments to a goal. This predicate deals with
 %	meta- and database-access predicates.
 
-colourise_goal_args(Goal, TB, term_position(_,_,_,_,ArgPos)) :-
-	meta_args(Goal, TB, MetaArgs), !,
-	colourise_options(Goal, TB, ArgPos),
-	colourise_meta_args(1, Goal, MetaArgs, TB, ArgPos).
 colourise_goal_args(Goal, TB, Pos) :-
+	(   colour_state_source_id(TB, SourceId),
+	    xref_module(SourceId, Module)
+	->  true
+	;   Module = user
+	),
+	colourise_goal_args(Goal, Module, TB, Pos).
+
+colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
+	meta_args(Goal, TB, MetaArgs), !,
+	colourise_option_args(Goal, M, TB, ArgPos),
+	colourise_meta_args(1, Goal, MetaArgs, TB, ArgPos).
+colourise_goal_args(Goal, M, TB, Pos) :-
 	Pos = term_position(_,_,_,_,ArgPos), !,
-	colourise_options(Goal, TB, ArgPos),
+	colourise_option_args(Goal, M, TB, ArgPos),
 	colourise_term_args(Goal, TB, Pos).
-colourise_goal_args(_, _, _).		% no arguments
+colourise_goal_args(_, _, _, _).		% no arguments
 
 colourise_meta_args(_, _, _, _, []) :- !.
 colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
@@ -756,36 +764,34 @@ colourise_db(Head, TB, Pos) :-
 	colourise_goal(Head, '<db-change>', TB, Pos).
 
 
-%%	colourise_options(+Goal, +TB, +ArgPos)
+%%	colourise_option_args(+Goal, +Module, +TB, +ArgPos)
 %
 %	Colourise predicate options
 
-colourise_options(Goal, TB, ArgPos) :-
+colourise_option_args(Goal, Module, TB, ArgPos) :-
 	(   compound(Goal),
 	    functor(Goal, Name, Arity),
-	    (	colour_state_source_id(TB, SourceId),
-		xref_module(SourceId, Module)
-	    ->	true
-	    ;	Module = user
-	    ),
 	    current_predicate_options(Module:Name/Arity, Arg, OptionDecl),
 	    debug(emacs, 'Colouring option-arg ~w of ~p',
 		  [Arg, Module:Name/Arity]),
 	    arg(Arg, Goal, Options0),
 	    nth1(Arg, ArgPos, Pos0),
-	    strip_option_module_qualifier(Goal, Module, Arg, TB,
-					  Options0, Pos0, Options, Pos),
-	    (	Pos = list_position(F, T, ElmPos, TailPos)
-	    ->	colour_item(list, TB, F-T),
-	        colourise_option_list(Options, OptionDecl, TB, ElmPos, TailPos)
-	    ;	(   var(Options)
-		;   Options == []
-		)
-	    ->	colourise_term_arg(Options, TB, Pos)
-	    ;	colour_item(type_error(list), TB, Pos)
-	    ),
+	    colourise_option(Options0, Module, Goal, Arg, OptionDecl, TB, Pos0),
 	    fail
 	;   true
+	).
+
+colourise_option(Options0, Module, Goal, Arg, OptionDecl, TB, Pos0) :-
+	strip_option_module_qualifier(Goal, Module, Arg, TB,
+				      Options0, Pos0, Options, Pos),
+	(   Pos = list_position(F, T, ElmPos, TailPos)
+	->  colour_item(list, TB, F-T),
+	    colourise_option_list(Options, OptionDecl, TB, ElmPos, TailPos)
+	;   (   var(Options)
+	    ;   Options == []
+	    )
+	->  colourise_term_arg(Options, TB, Pos)
+	;   colour_item(type_error(list), TB, Pos)
 	).
 
 strip_option_module_qualifier(Goal, Module, Arg, TB,
