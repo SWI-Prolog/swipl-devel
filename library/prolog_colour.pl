@@ -519,10 +519,11 @@ colourise_method_body(::(_Comment,Body), TB,
 colourise_method_body(Body, TB, Pos) :-		% deal with pri(::) < 1000
 	Body =.. [F,A,B],
 	control_op(F), !,
-	Pos = term_position(_F,_T,_FF,_FT,
+	Pos = term_position(_F,_T,FF,FT,
 			    [ AP,
 			      BP
 			    ]),
+	colour_item(control, TB, FF-FT),
 	colourise_method_body(A, TB, AP),
 	colourise_body(B, TB, BP).
 colourise_method_body(Body, TB, Pos) :-
@@ -533,8 +534,9 @@ control_op((;)).
 control_op((->)).
 control_op((*->)).
 
-colourise_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
+colourise_goals(Body, Origin, TB, term_position(_,_,FF,FT,ArgPos)) :-
 	body_compiled(Body), !,
+	colour_item(control, TB, FF-FT),
 	colourise_subgoals(ArgPos, 1, Body, Origin, TB).
 colourise_goals(Goal, Origin, TB, Pos) :-
 	colourise_goal(Goal, Origin, TB, Pos).
