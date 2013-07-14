@@ -652,8 +652,8 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 %	meta- and database-access predicates.
 
 colourise_goal_args(Goal, TB, term_position(_,_,_,_,ArgPos)) :-
-	colourise_options(Goal, TB, ArgPos),
 	meta_args(Goal, TB, MetaArgs), !,
+	colourise_options(Goal, TB, ArgPos),
 	colourise_meta_args(1, Goal, MetaArgs, TB, ArgPos).
 colourise_goal_args(Goal, TB, Pos) :-
 	Pos = term_position(_,_,_,_,ArgPos), !,
@@ -798,8 +798,8 @@ strip_option_module_qualifier(_, _, _, _,
 			      Options, Pos, Options, Pos).
 
 
-colourise_option_list(_, _, _, [], none).
-colourise_option_list(Tail, _, TB, [], TailPos) :-
+colourise_option_list(_, _, _, [], none) :- !.
+colourise_option_list(Tail, _, TB, [], TailPos) :- !,
 	colourise_term_arg(Tail, TB, TailPos).
 colourise_option_list([H|T], OptionDecl, TB, [HPos|TPos], TailPos) :-
 	colourise_option(H, OptionDecl, TB, HPos),
