@@ -969,10 +969,17 @@ colourise_term_arg({Term}, TB, brace_term_position(F,T,Arg)) :- !,
 	colourise_term_arg(Term, TB, Arg).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
 	compound(Compound), !,
+	(   Pos = term_position(_F,_T,FF,FT,_ArgPos)
+	->  colour_item(functor, TB, FF-FT)		% TBD: Infix/Postfix?
+	;   true					% TBD: When is this
+	),
 	colourise_term_args(Compound, TB, Pos).
 colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	atom(Atom), !,
-	colour_item(atom, TB, Pos).
+	(   Atom == []
+	->  colour_item(empty_list, TB, Pos)
+	;   colour_item(atom, TB, Pos)
+	).
 colourise_term_arg(Integer, TB, Pos) :-
 	integer(Integer), !,
 	colour_item(int, TB, Pos).
