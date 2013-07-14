@@ -773,8 +773,9 @@ colourise_options(Goal, TB, ArgPos) :-
 	    nth1(Arg, ArgPos, Pos0),
 	    strip_option_module_qualifier(Goal, Module, Arg, TB,
 					  Options0, Pos0, Options, Pos),
-	    (	Pos = list_position(_, _, ElmPos, TailPos)
-	    ->	colourise_option_list(Options, OptionDecl, TB, ElmPos, TailPos)
+	    (	Pos = list_position(F, T, ElmPos, TailPos)
+	    ->	colour_item(list, TB, F-T),
+	        colourise_option_list(Options, OptionDecl, TB, ElmPos, TailPos)
 	    ;	(   var(Options)
 		;   Options == []
 		)
@@ -844,7 +845,8 @@ colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 %
 %	@param Why is one of =any= or =imported=
 
-colourise_files(List, TB, list_position(_,_,Elms,_), Why) :- !,
+colourise_files(List, TB, list_position(F,T,Elms,_), Why) :- !,
+	colour_item(list, TB, F-T),
 	colourise_file_list(List, TB, Elms, Why).
 colourise_files(M:Spec, TB, term_position(_,_,_,_,[MP,SP]), Why) :- !,
 	colour_item(module(M), TB, MP),
@@ -901,7 +903,8 @@ colourise_directory(Spec, TB, Pos) :-
 %	Colourise the 3th argument of module/3
 
 colourise_langoptions([], _, _) :- !.
-colourise_langoptions([H|T], TB, list_position(_,_,[HP|TP],_)) :- !,
+colourise_langoptions([H|T], TB, list_position(PF,PT,[HP|TP],_)) :- !,
+	colour_item(list, TB, PF-PT),
 	colourise_langoptions(H, TB, HP),
 	colourise_langoptions(T, TB, TP).
 colourise_langoptions(Spec, TB, Pos) :-
@@ -1004,7 +1007,8 @@ qq_position(quasi_quotation_position(_,_,_,_,_)).
 %	terms of the form Name/Arity referring to predicates).
 
 colourise_exports([], _, _) :- !.
-colourise_exports(List, TB, list_position(_,_,ElmPos,Tail)) :- !,
+colourise_exports(List, TB, list_position(F,T,ElmPos,Tail)) :- !,
+	colour_item(list, TB, F-T),
 	(   Tail == none
 	->  true
 	;   colour_item(type_error(list), TB, Tail)
@@ -1037,7 +1041,8 @@ colourise_imports(List, File, TB, Pos) :-
 	colourise_imports(List, Path, Public, TB, Pos).
 
 colourise_imports([], _, _, _, _).
-colourise_imports(List, File, Public, TB, list_position(_,_,ElmPos,Tail)) :- !,
+colourise_imports(List, File, Public, TB, list_position(F,T,ElmPos,Tail)) :- !,
+	colour_item(list, TB, F-T),
 	(   Tail == none
 	->  true
 	;   colour_item(type_error(list), TB, Tail)
@@ -1081,7 +1086,8 @@ colourise_import(PI, _, TB, Pos) :-
 %	Colourise the Predicate indicator lists of dynamic, multifile, etc
 %	declarations.
 
-colourise_declarations(List, TB, list_position(_,_,Elms,none)) :- !,
+colourise_declarations(List, TB, list_position(F,T,Elms,none)) :- !,
+	colour_item(list, TB, F-T),
 	colourise_list_declarations(List, TB, Elms).
 colourise_declarations((Head,Tail), TB,
 		       term_position(_,_,_,_,[PH,PT])) :- !,
@@ -1642,7 +1648,8 @@ specified_item(pce_arg, Term, TB, Pos) :-
 specified_item(pce_arg, Term, TB, Pos) :- !,
 	colourise_term_arg(Term, TB, Pos).
 					% List of XPCE arguments
-specified_item(pce_arg_list, List, TB, list_position(_,_,Elms,Tail)) :- !,
+specified_item(pce_arg_list, List, TB, list_position(F,T,Elms,Tail)) :- !,
+	colour_item(list, TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, pce_arg).
 specified_item(pce_arg_list, Term, TB, Pos) :- !,
 	specified_item(pce_arg, Term, TB, Pos).
@@ -1664,6 +1671,7 @@ specified_item(FuncSpec-[ArgSpec], {Term}, TB,
 	specified_item(ArgSpec, Term, TB, ArgPos).
 					% Specified
 specified_item(FuncSpec-ElmSpec, List, TB, list_position(F,T,ElmPos,TailPos)) :- !,
+	colour_item(list, TB, F-T),
 	FT is F + 1,
 	AT is T - 1,
 	colour_item(FuncSpec, TB, F-FT),
