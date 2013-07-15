@@ -213,10 +213,11 @@ typedef struct wic_state
   Table	savedXRTable;			/* saved XR entries */
   intptr_t savedXRTableId;		/* next id to hand out */
 
-  int	     has_source_marks;
   SourceMark source_mark_head;		/* Locations of sources */
   SourceMark source_mark_tail;
+  int	     has_source_marks;
 
+  int	     load_nesting;		/* Nesting level of loadPart() */
   qlf_state *load_state;		/* current load-state */
 
   xr_table *XR;				/* external references */
@@ -1004,8 +1005,14 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
     }
 
     case 'Q':
-      return loadPart(state, NULL, skip PASS_LD);
+    { bool rc;
 
+      state->load_nesting++;
+      rc = loadPart(state, NULL, skip PASS_LD);
+      state->load_nesting--;
+
+      return rc;
+    }
     case 'M':
       return loadInModule(state, skip PASS_LD);
 
@@ -1457,8 +1464,10 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 
     switch(c)
     { case 'X':
-      { if ( !GD->bootsession )
+      { if ( !GD->bootsession && state->load_nesting > 0 )
+	{ /* top-level '$run_initialization'/1 is called from boot/init.pl */
 	  runInitialization(state->currentSource);
+	}
 	LD->modules.source = om;
 	state->currentSource  = of;
 	debugstatus.styleCheck = stchk;
