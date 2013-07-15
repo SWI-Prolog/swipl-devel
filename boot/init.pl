@@ -1477,7 +1477,7 @@ load_files(Module:Files, Options) :-
 	'$modified_id'(FullFile, Modified, Options),
 	Modified @=< LoadTime, !.
 
-%%	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options)
+%%	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options) is det.
 %
 %	Return the QLF file if it exists.  Might check for modification
 %	time, version, etc.
