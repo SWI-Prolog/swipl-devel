@@ -146,7 +146,7 @@ ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 PLINIT=	$(PB)/init.pl
 ifeq ($(MINGW),true)
 PLSRC+= ../boot/menu.pl
-PLOSLIBS=wise.pl dde.pl progman.pl win_menu.pl
+PLOSLIBS=wise.pl dde.pl progman.pl
 endif
 
 INCSRC=	pl-index.c pl-alloc.c pl-fli.c
