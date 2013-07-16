@@ -754,9 +754,12 @@ write/1. If no \const{BUF_*} is provided, \const{BUF_RING} is implied.
     \termitem{CVT_WRITE_CANONICAL}{}
 As \const{CVT_WRITE}, but using write_canonical/2.
 
+    \termitem{CVT_WRITEQ}{}
+As \const{CVT_WRITE}, but using writeq/2.
+
     \termitem{CVT_ALL}{}
 Convert if term is any of the above, except for \const{CVT_VARIABLE} and
-\const{CVT_WRITE}.
+\const{CVT_WRITE*}.
 
     \termitem{CVT_EXCEPTION}{}
 If conversion fails due to a type error, raise a Prolog type error

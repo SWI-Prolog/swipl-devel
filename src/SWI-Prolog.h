@@ -739,6 +739,7 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_ATOMIC	(CVT_NUMBER|CVT_ATOM|CVT_STRING)
 #define CVT_WRITE	0x0040
 #define CVT_WRITE_CANONICAL 0x0080
+#define CVT_WRITEQ	0x00C0
 #define CVT_ALL		(CVT_ATOMIC|CVT_LIST)
 #define CVT_MASK	0x00ff
 
