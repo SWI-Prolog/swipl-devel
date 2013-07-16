@@ -147,8 +147,15 @@ init_win_menus :-
 	;   insert_associated_file
 	).
 
+associated_file(File) :-
+	current_prolog_flag(associated_file, File), !.
+associated_file(File) :-
+	'$option'(script_file, OsFiles),
+	OsFiles = [OsFile], !,
+	prolog_to_os_filename(File, OsFile).
+
 insert_associated_file :-
-	current_prolog_flag(associated_file, File),
+	associated_file(File), !,
 	file_base_name(File, Base),
 	atom_concat('Edit &', Base, Label),
 	win_insert_menu_item('&File', Label, '&New ...', edit(file(File))).
