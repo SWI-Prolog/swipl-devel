@@ -103,9 +103,10 @@ init_win_menus :-
 	    ;	Before = (-)
 	    ),
 	    (	memberchk(before_menu(BM), Options)
-	    ->	win_insert_menu(Menu, BM)
-	    ;	true
+	    ->	true
+	    ;	BM = (-)
 	    ),
+	    win_insert_menu(Menu, BM),
 	    (   '$member'(Item, Items),
 		(   Item = (Label = Action)
 		->  true
