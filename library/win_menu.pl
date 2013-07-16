@@ -35,10 +35,36 @@
 :- op(200, fy, @).
 :- op(990, xfx, :=).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This library sets up the menu of PLWIN.EXE. It is called from the system
-initialisation file plwin.rc, predicate gui_setup_/0.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/** <module> Console window menu
+
+This library sets up the menu of  *swipl-win.exe*. It is called from the
+system initialisation file =plwin-win.rc=, predicate gui_setup_/0.
+*/
+
+:- if(current_prolog_flag(console_menu_version, qt)).
+% The traditional swipl-win.exe predefines some menus.  The Qt version
+% does not.  Here, we predefine the same menus to make the remainder
+% compatiple.
+menu('&File',
+     [ '&Exit' = pqConsole:quit_console
+     ],
+     [
+     ]).
+menu('&Edit',
+     [ '&Copy'  = copy,
+       '&Paste' = paste
+     ],
+     []).
+menu('&Settings',
+     [ '&Font' = pqConsole:select_font
+     ],
+     []).
+menu('&Run',
+     [ '&Interrupt' = interrupt,
+       '&New thread' = new_thread
+     ],
+     []).
+:- endif.
 
 menu('&File',
      [ '&Consult ...' = action(user:consult(+file(open,
