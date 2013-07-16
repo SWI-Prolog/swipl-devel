@@ -181,9 +181,7 @@ selectchk(Elem, List, Rest) :-
 select(X, XList, Y, YList) :-
 	select_(XList, X, Y, YList).
 
-select_([], _, _, []).
-select_([X|XList], X, Y, [Y|YList]) :-
-	select_(XList, X, Y, YList).
+select_([X|List], X, Y, [Y|List]).
 select_([X0|XList], X, Y, [X0|YList]) :-
 	select_(XList, X, Y, YList).
 
