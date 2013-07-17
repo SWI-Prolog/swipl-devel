@@ -1290,7 +1290,7 @@ typedef struct match
 } *Match;
 
 
-static inline
+static inline int
 completion_candidate(Atom a)
 { return (a->references || indexAtom(a->atom) < GD->atoms.builtin);
 }
@@ -1502,7 +1502,7 @@ alnum_text(PL_chars_t *txt)
       const unsigned char *e = &s[txt->length];
 
       for(; s<e; s++)
-      { if ( !isAlpha(*s) )
+      { if ( !f_is_prolog_identifier_continue(*s) )
 	  return FALSE;
       }
       return TRUE;
@@ -1512,7 +1512,7 @@ alnum_text(PL_chars_t *txt)
       const pl_wchar_t *e = &s[txt->length];
 
       for(; s<e; s++)
-      { if ( !isAlphaW(*s) )
+      { if ( !f_is_prolog_identifier_continue(*s) )
 	  return FALSE;
       }
       return TRUE;
