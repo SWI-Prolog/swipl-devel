@@ -79,9 +79,6 @@ COMMON(word)		lookupBlob(const char *s, size_t len,
 COMMON(word)		pl_atom_hashstat(term_t i, term_t n);
 COMMON(void)		initAtoms(void);
 COMMON(void)		cleanupAtoms(void);
-COMMON(word)		pl_complete_atom(term_t prefix, term_t common,
-					 term_t unique);
-COMMON(word)		pl_atom_completions(term_t prefix, term_t alts);
 COMMON(void)		markAtom(atom_t a);
 COMMON(foreign_t)	pl_garbage_collect_atoms(void);
 COMMON(void)		resetAtoms(void);

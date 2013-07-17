@@ -1350,9 +1350,14 @@ extendAtom(char *prefix, bool *unique, char *common)
 }
 
 
-word
-pl_complete_atom(term_t prefix, term_t common, term_t unique)
-{ char *p;
+static
+PRED_IMPL("$complete_atom", 3, complete_atom, 0)
+{ PRED_LD
+  term_t prefix = A1;
+  term_t common = A2;
+  term_t unique = A3;
+
+  char *p;
   bool u;
   char buf[LINESIZ];
   char cmm[LINESIZ];
@@ -1362,9 +1367,7 @@ pl_complete_atom(term_t prefix, term_t common, term_t unique)
   strcpy(buf, p);
 
   if ( extendAtom(p, &u, cmm) )
-  { GET_LD
-
-    strcat(buf, cmm);
+  { strcat(buf, cmm);
     if ( PL_unify_list_codes(common, buf) &&
 	 PL_unify_atom(unique, u ? ATOM_unique
 				 : ATOM_not_unique) )
@@ -1421,9 +1424,12 @@ out:
 }
 
 
-word
-pl_atom_completions(term_t prefix, term_t alternatives)
-{ GET_LD
+static
+PRED_IMPL("$atom_completions", 2, atom_completions, 0)
+{ PRED_LD
+  term_t prefix = A1;
+  term_t alternatives = A2;
+
   char *p;
   char buf[LINESIZ];
   struct match altv[ALT_MAX];
@@ -1614,4 +1620,6 @@ BeginPredDefs(atom)
   PRED_DEF("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
   PRED_DEF("blob", 2, blob, 0)
   PRED_DEF("$atom_references", 2, atom_references, 0)
+  PRED_DEF("$atom_completions", 2, atom_completions, 0)
+  PRED_DEF("$complete_atom", 3, complete_atom, 0)
 EndPredDefs

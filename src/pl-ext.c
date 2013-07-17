@@ -96,8 +96,6 @@ static const PL_extension foreigns[] = {
   FRG("$raw_read",		1, pl_raw_read,			0),
   FRG("$raw_read",		2, pl_raw_read2,		0),
   FRG("current_functor",	2, pl_current_functor,	     NDET),
-  FRG("$complete_atom",		3, pl_complete_atom,		0),
-  FRG("$atom_completions",	2, pl_atom_completions,		0),
   FRG("char_conversion",	2, pl_char_conversion,	      ISO),
   FRG("current_char_conversion",2, pl_current_char_conversion, NDET|ISO),
 
