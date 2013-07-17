@@ -7,7 +7,7 @@ OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-file.o os/pl-files.o \
 	os/pl-glob.o os/pl-os.o os/pl-stream.o os/pl-string.o os/pl-table.o \
 	os/pl-text.o os/pl-utf8.o os/pl-fmt.o os/pl-dtoa.o os/pl-option.o \
 	os/pl-cstack.o os/pl-codelist.o os/pl-prologflag.o os/pl-rl.o \
-	os/pl-tai.o
+	os/pl-tai.o os/pl-locale.o
 
 OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-flag.o \
@@ -35,7 +35,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	qsave.pl shlib.pl statistics.pl system.pl error.pl \
 	backcomp.pl gensym.pl listing.pl debug.pl vm.pl \
 	quintus.pl edinburgh.pl ctypes.pl files.pl \
-	edit.pl shell.pl check.pl heaps.pl \
+	edit.pl shell.pl check.pl heaps.pl win_menu.pl \
 	tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
 	www_browser.pl url.pl utf8.pl main.pl assoc.pl nb_set.pl \
@@ -50,7 +50,8 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	optparse.pl arithmetic.pl writef.pl predicate_options.pl \
 	random.pl prolog_breakpoints.pl prolog_autoload.pl \
 	prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl \
-	prolog_pack.pl git.pl prolog_metainference.pl
+	prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl \
+	sandbox.pl
 
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 DCG=	basics.pl
@@ -61,11 +62,16 @@ DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl bim.pl ifprolog.pl
 YAP=	README.TXT
 SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl terms.pl \
 	sockets.pl swipl-lfr.pl
-CIAO=	assertions.pl isomodes.pl regtypes.pl sockets.pl \
-	read.pl write.pl strings.pl format.pl lists.pl \
-	terms.pl system.pl iso_misc.pl aggregates.pl \
-	classic.pl
-CIAO_ENGINE=internals.pl hiord_rt.pl
+CIAO=	assertions.pl basicmodes.pl isomodes.pl regtypes.pl sockets.pl \
+	read.pl write.pl strings.pl format.pl lists.pl dcg.pl freeze.pl \
+	terms.pl system.pl iso_misc.pl aggregates.pl hiordlib.pl \
+	hiord.pl classic.pl llists.pl nativeprops.pl nortchecks.pl \
+	terms_check.pl terms_vars.pl unittestdecls.pl unittestprops.pl \
+	sort.pl streams.pl file_utils.pl odd.pl prolog_flags.pl
+CIAO_REGTYPES=regtypes_tr.pl
+CIAO_ENGINE=attributes.pl basic_props.pl exceptions_db.pl exceptions.pl \
+	internals.pl hiord_rt.pl basiccontrol.pl io_aux.pl
+HPROLOG=format.pl
 ISO=	iso_predicates.pl
 SWI=	syspred_options.pl
 IFPROLOG=

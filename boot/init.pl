@@ -3,8 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
-			      Vu University Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -369,6 +369,12 @@ initialization(Goal, When) :-
 
 
 '$run_initialization'(File) :-
+	setup_call_cleanup(
+	    '$push_input_context'(initialization),
+	    '$run_initialization_2'(File),
+	    '$pop_input_context').
+
+'$run_initialization_2'(File) :-
 	(   '$init_goal'(File, Goal, Ctx),
 	    (   catch(Goal, E, '$initialization_error'(E, Goal, Ctx))
 	    ->  fail
@@ -387,7 +393,7 @@ initialization(Goal, When) :-
 	    File = (-)
 	).
 
-'$top_file'([input(include, F1, _)|T], _, F) :- !,
+'$top_file'([input(include, F1, _, _)|T], _, F) :- !,
 	'$top_file'(T, F1, F).
 '$top_file'(_, F, F).
 
@@ -561,7 +567,11 @@ user:file_search_path(swi, Home) :-
 user:file_search_path(foreign, swi(ArchLib)) :-
 	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, ArchLib).
-user:file_search_path(foreign, swi(lib)).
+user:file_search_path(foreign, swi(SoLib)) :-
+	(   current_prolog_flag(windows, true)
+	->  SoLib = bin
+	;   SoLib = lib
+	).
 user:file_search_path(path, Dir) :-
 	getenv('PATH', Path),
 	(   current_prolog_flag(windows, true)
@@ -626,9 +636,10 @@ absolute_file_name(Spec, Path, Args) :-
 	;   throw(error(type_error(list, Args), _))
 	),
 	(   '$select'(extensions(Exts), Args, Conditions)
-	->  true
+	->  '$must_be'(list, Exts)
 	;   memberchk(file_type(Type), Args)
-	->  '$file_type_extensions'(Type, Exts),
+	->  '$must_be'(atom, Type),
+	    '$file_type_extensions'(Type, Exts),
 	    Conditions = Args
 	;   Conditions = Args,
 	    Exts = ['']
@@ -639,17 +650,18 @@ absolute_file_name(Spec, Path, Args) :-
 	;   C0 = [file_type(regular)|Conditions] % ask for a regular file
 	),
 	(   '$select'(solutions(Sols), C0, C1)
-	->  true
+	->  '$must_be'(oneof(atom, solutions, [first,all]), Sols)
 	;   Sols = first,
 	    C1 = C0
 	),
 	(   '$select'(file_errors(FileErrors), C1, C2)
-	->  true
+	->  '$must_be'(oneof(atom, file_errors, [error,fail]), FileErrors)
 	;   FileErrors = error,
 	    C2 = C1
 	),
 	(   atomic(Spec),
-	    '$select'(expand(true), C2, C3)
+	    '$select'(expand(Expand), C2, C3),
+	    '$must_be'(boolean, Expand)
 	->  expand_file_name(Spec, List),
 	    '$member'(Spec1, List)
 	;   Spec1 = Spec,
@@ -660,21 +672,65 @@ absolute_file_name(Spec, Path, Args) :-
 	    ->	true
 	    ;	(   FileErrors == fail
 		->  fail
-		;   throw(error(existence_error(source_sink, Spec), _))
+		;   findall(P,
+			    '$chk_file'(Spec1, Extensions, [access(exist)],
+					false, P),
+			    Candidates),
+		    '$abs_file_error'(Spec, Candidates, C3)
 		)
 	    )
 	;   '$chk_file'(Spec1, Extensions, C3, false, Path)
 	).
+
+'$abs_file_error'(Spec, Candidates, Conditions) :-
+	'$member'(F, Candidates),
+	'$member'(C, Conditions),
+	'$file_condition'(C),
+	'$file_error'(C, Spec, F, E, Comment), !,
+	throw(error(E, context(_, Comment))).
+'$abs_file_error'(Spec, _, _) :-
+	'$existence_error'(source_sink, Spec).
+
+'$file_error'(file_type(directory), Spec, File, Error, Comment) :-
+	\+ exists_directory(File), !,
+	Error = existence_error(directory, Spec),
+	Comment = not_a_directory(File).
+'$file_error'(file_type(_), Spec, File, Error, Comment) :-
+	exists_directory(File), !,
+	Error = existence_error(file, Spec),
+	Comment = directory(File).
+'$file_error'(access(OneOrList), Spec, File, Error, _) :-
+	'$one_or_member'(Access, OneOrList),
+	\+ access_file(File, Access),
+	Error = permission_error(Access, source_sink, Spec).
+
+'$one_or_member'(_, Var) :-
+	var(Var), !,
+	'$instantiation_error'(Var).
+'$one_or_member'(E, [H|T]) :- !,
+	'$one_or_member'(E, H),
+	'$one_or_member'(E, T).
+'$one_or_member'(_, []) :- !, fail.
+'$one_or_member'(E, E).
 
 '$file_type_extensions'(source, Exts) :- !,	% SICStus 3.9 compatibility
 	'$file_type_extensions'(prolog, Exts).
 '$file_type_extensions'(Type, Exts) :-
 	'$current_module'('$bags', _File), !,
 	findall(Ext, user:prolog_file_type(Ext, Type), Exts0),
+	(   Exts0 == [],
+	    \+ '$ft_no_ext'(Type)
+	->  '$domain_error'(file_type, Type)
+	;   true
+	),
 	'$append'(Exts0, [''], Exts).
 '$file_type_extensions'(prolog, [pl, '']). % findall is not yet defined ...
 
-%	user:prolog_file_type/2
+'$ft_no_ext'(txt).
+'$ft_no_ext'(executable).
+'$ft_no_ext'(directory).
+
+%%	user:prolog_file_type/2
 %
 %	Define type of file based on the extension.  This is used by
 %	absolute_file_name/3 and may be used to extend the list of
@@ -709,17 +765,17 @@ user:prolog_file_type(Ext,	executable) :-
 '$chk_file'(File, Exts, Cond, _, FullName) :-
 	is_absolute_file_name(File), !,
 	'$extend_file'(File, Exts, Extended),
-	'$file_condition'(Cond, Extended),
+	'$file_conditions'(Cond, Extended),
 	'$absolute_file_name'(Extended, FullName).
 '$chk_file'(File, Exts, Cond, _, FullName) :-
 	'$relative_to'(Cond, source, Dir),
 	atomic_list_concat([Dir, /, File], AbsFile),
 	'$extend_file'(AbsFile, Exts, Extended),
-	'$file_condition'(Cond, Extended), !,
+	'$file_conditions'(Cond, Extended), !,
 	'$absolute_file_name'(Extended, FullName).
 '$chk_file'(File, Exts, Cond, _, FullName) :-
 	'$extend_file'(File, Exts, Extended),
-	'$file_condition'(Cond, Extended),
+	'$file_conditions'(Cond, Extended),
 	'$absolute_file_name'(Extended, FullName).
 
 '$segments_to_atom'(Atom, Atom) :-
@@ -774,11 +830,11 @@ user:prolog_file_type(Ext,	executable) :-
 	Cache = cache(Exts, Cond, CWD, Expansions),
 	term_hash(Cache, Hash),
 	(   '$search_path_file_cache'(Spec, Hash, Cache, FullFile),
-	    '$file_condition'(Cond, FullFile)
+	    '$file_conditions'(Cond, FullFile)
 	->  '$search_message'(file_search(cache(Spec, Cond), FullFile))
 	;   '$member'(Expanded, Expansions),
 	    '$extend_file'(Expanded, Exts, LibFile),
-	    (   '$file_condition'(Cond, LibFile),
+	    (   '$file_conditions'(Cond, LibFile),
 		'$absolute_file_name'(LibFile, FullFile),
 		\+ '$search_path_file_cache'(Spec, Hash, Cache, FullFile),
 		assert('$search_path_file_cache'(Spec, Hash, Cache, FullFile))
@@ -790,7 +846,7 @@ user:prolog_file_type(Ext,	executable) :-
 '$chk_alias_file'(Spec, Exts, Cond, false, _CWD, FullFile) :-
 	expand_file_search_path(Spec, Expanded),
 	'$extend_file'(Expanded, Exts, LibFile),
-	'$file_condition'(Cond, LibFile),
+	'$file_conditions'(Cond, LibFile),
 	'$absolute_file_name'(LibFile, FullFile).
 
 
@@ -801,27 +857,32 @@ user:prolog_file_type(Ext,	executable) :-
 
 
 
-%	'$file_condition'(+Condition, +Path)
+%	'$file_conditions'(+Condition, +Path)
 %
 %	Verify Path satisfies Condition.
 
-'$file_condition'([], _) :- !.
-'$file_condition'([H|T], File) :- !,
-	'$file_condition'(H, File),
-	'$file_condition'(T, File).
+'$file_conditions'([], _) :- !.
+'$file_conditions'([H|T], File) :- !,
+	(   '$file_condition'(H)
+	->  '$file_condition'(H, File)
+	;   true
+	),
+	'$file_conditions'(T, File).
+
 '$file_condition'(exists, File) :- !,
 	exists_file(File).
 '$file_condition'(file_type(directory), File) :- !,
 	exists_directory(File).
 '$file_condition'(file_type(_), File) :- !,
 	\+ exists_directory(File).
-'$file_condition'(access([A1|AT]), File) :- !,
-	'$file_condition'(access(A1), File),
-	'$file_condition'(access(AT), File).
-'$file_condition'(access([]), _) :- !.
-'$file_condition'(access(Access), File) :- !,
-	access_file(File, Access).
-'$file_condition'(_, _File).		% This isn't a condition
+'$file_condition'(access(Accesses), File) :- !,
+	\+ (  '$one_or_member'(Access, Accesses),
+	      \+ access_file(File, Access)
+	   ).
+
+'$file_condition'(exists).
+'$file_condition'(file_type(_)).
+'$file_condition'(access(_)).
 
 '$extend_file'(File, Exts, FileEx) :-
 	'$ensure_extensions'(Exts, File, Fs),
@@ -848,6 +909,7 @@ extensions to .ext
 
 '$canonise_extensions'([], []) :- !.
 '$canonise_extensions'([H|T], [CH|CT]) :- !,
+	'$must_be'(atom, H),
 	'$canonise_extension'(H, CH),
 	'$canonise_extensions'(T, CT).
 '$canonise_extensions'(E, [CE]) :-
@@ -855,7 +917,7 @@ extensions to .ext
 
 '$canonise_extension'('', '') :- !.
 '$canonise_extension'(DotAtom, DotAtom) :-
-	atom_concat('.', _, DotAtom), !.
+	sub_atom(DotAtom, 0, _, _, '.'), !.
 '$canonise_extension'(Atom, DotAtom) :-
 	atom_concat('.', Atom, DotAtom).
 
@@ -925,11 +987,12 @@ extensions to .ext
 	'$compilation_level'(Stack, Level).
 
 '$compilation_level'([], 0).
-'$compilation_level'([input(see,_,_)|T], Level) :-
-	'$compilation_level'(T, Level).
-'$compilation_level'([input(_,_,_)|T], Level) :-
-	'$compilation_level'(T, Level0),
-	Level is Level0+1.
+'$compilation_level'([Input|T], Level) :-
+	(   arg(1, Input, see)
+	->  '$compilation_level'(T, Level)
+	;   '$compilation_level'(T, Level0),
+	    Level is Level0+1
+	).
 
 
 %%	compiling
@@ -954,8 +1017,6 @@ compiling :-
 		/********************************
 		*         READ SOURCE           *
 		*********************************/
-
-:- create_prolog_flag(preprocessor, none, [type(atom)]).
 
 '$load_msg_level'(Action, Start, Done) :-
 	'$update_autoload_level'([], 0), !,
@@ -1032,21 +1093,10 @@ compiling :-
 	'$prepare_load_stream'(In, Id, StreamState),
 	asserta('$load_input'(stream(Id), In), Ref).
 '$open_source'(Path, In, close(In, Ref), Parents, Options) :-
-	preprocessor(none, none), !,
 	'$context_type'(Parents, ContextType),
 	'$push_input_context'(ContextType),
 	open(Path, read, In),
 	'$set_encoding'(In, Options),
-	asserta('$load_input'(Path, In), Ref).
-'$open_source'(Path, In, close(In, Ref), Parents, Options) :-
-	preprocessor(Pre, Pre),
-	'$context_type'(Parents, ContextType),
-	(   '$substitute_atom'('%f', Path, Pre, Command)
-	->  '$push_input_context'(ContextType),
-	    open(pipe(Command), read, In),
-	    '$set_encoding'(In, Options)
-	;   throw(error(domain_error(preprocessor, Pre), _))
-	),
 	asserta('$load_input'(Path, In), Ref).
 
 '$context_type'([], load_file) :- !.
@@ -1178,13 +1228,6 @@ compiling :-
 	->  skip(In, 10)
 	;   true
 	).
-
-preprocessor(Old, New) :-
-	(   current_prolog_flag(preprocessor, OldP)
-	->  Old = OldP
-	;   Old = none
-	),
-	set_prolog_flag(preprocessor, New).
 
 '$set_encoding'(Stream, Options) :-
 	memberchk(encoding(Enc), Options), !,
@@ -1434,7 +1477,7 @@ load_files(Module:Files, Options) :-
 	'$modified_id'(FullFile, Modified, Options),
 	Modified @=< LoadTime, !.
 
-%%	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options)
+%%	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options) is det.
 %
 %	Return the QLF file if it exists.  Might check for modification
 %	time, version, etc.
@@ -1662,6 +1705,7 @@ load_files(Module:Files, Options) :-
 	statistics(clauses, OldClauses),
 	statistics(cputime, OldTime),
 
+	'$set_sandboxed_load'(Options, OldSandBoxed),
 	'$set_verbose_load'(Options, OldVerbose),
 	'$update_autoload_level'(Options, OldAutoLevel),
 	'$save_file_scoped_flags'(ScopedFlags),
@@ -1714,6 +1758,7 @@ load_files(Module:Files, Options) :-
 					ClausesCreated))),
 	'$set_autoload_level'(OldAutoLevel),
 	set_prolog_flag(verbose_load, OldVerbose),
+	set_prolog_flag(sandboxed_load, OldSandBoxed),
 	'$restore_file_scoped_flags'(ScopedFlags).
 
 %%	'$save_file_scoped_flags'(-State) is det.
@@ -1770,6 +1815,33 @@ load_files(Module:Files, Options) :-
 
 '$negate'(true, false).
 '$negate'(false, true).
+
+%%	'$set_sandboxed_load'(+Options, -Old) is det.
+%
+%	Update the Prolog flag  =sandboxed_load=   from  Options. Old is
+%	unified with the old flag.
+%
+%	@error permission_error(leave, sandbox, -)
+
+'$set_sandboxed_load'(Options, Old) :-
+	current_prolog_flag(sandboxed_load, Old),
+	(   memberchk(sandboxed(SandBoxed), Options),
+	    '$enter_sandboxed'(Old, SandBoxed, New),
+	    New \== Old
+	->  set_prolog_flag(sandboxed_load, New)
+	;   true
+	).
+
+'$enter_sandboxed'(Old, New, SandBoxed) :-
+	(   Old == false, New == true
+	->  SandBoxed = true
+	;   Old == true, New == false
+	->  throw(error(permission_error(leave, sandbox, -), _))
+	;   SandBoxed = Old
+	).
+
+'$enter_sandboxed'(false, true, true).
+
 
 %%	'$update_autoload_level'(+Options, -OldLevel)
 %
@@ -2012,10 +2084,14 @@ load_files(Module:Files, Options) :-
 	'$first_term'(:-(Directive), Id, State, Options).
 '$first_term'(:-(Directive), Id, State, Options) :-
 	nonvar(Directive),
-	(   Directive = module(Name, Public)
+	(   (   Directive = module(Name, Public)
+	    ->	Imports = []
+	    ;	Directive = module(Name, Public, Imports)
+	    )
 	->  !,
 	    '$module_name'(Name, Id),
-	    '$start_module'(Name, Public, State, Options)
+	    '$start_module'(Name, Public, State, Options),
+	    '$module3'(Imports)
 	;   Directive = expects_dialect(Dialect)
 	->  !,
 	    '$set_dialect'(Dialect, State),
@@ -2095,6 +2171,20 @@ load_files(Module:Files, Options) :-
 	'$qset_dialect'(State),
 	nb_setarg(3, State, end_module).
 
+
+%%	'$module3'(+Spec) is det.
+%
+%	Handle the 3th argument of a module declartion.
+
+'$module3'(Var) :-
+	var(Var), !,
+	'$instantiation_error'(Var).
+'$module3'([]) :- !.
+'$module3'([H|T]) :- !,
+	'$module3'(H),
+	'$module3'(T).
+'$module3'(Id) :-
+	use_module(library(dialect/Id)).
 
 %%	'$module_name'(?Name, +Id) is det.
 %
@@ -2415,6 +2505,7 @@ load_files(Module:Files, Options) :-
 
 '$execute_directive_3'(Goal) :-
 	'$set_source_module'(Module, Module),
+	'$valid_directive'(Module:Goal), !,
 	(   '$pattr_directive'(Goal, Module)
 	->  true
 	;   catch(Module:Goal, Term, '$exception_in_directive'(Term))
@@ -2422,6 +2513,29 @@ load_files(Module:Files, Options) :-
 	;   print_message(warning, goal_failed(directive, Module:Goal)),
 	    fail
 	).
+'$execute_directive_3'(_).
+
+
+%%	'$valid_directive'(:Directive) is det.
+%
+%	If   the   flag   =sandboxed_load=   is   =true=,   this   calls
+%	prolog:sandbox_allowed_directive/1. This call can deny execution
+%	of the directive by throwing an exception.
+
+:- multifile prolog:sandbox_allowed_directive/1.
+
+'$valid_directive'(_) :-
+	current_prolog_flag(sandboxed_load, false), !.
+'$valid_directive'(Goal) :-
+	catch(prolog:sandbox_allowed_directive(Goal), Error, true),
+	(   var(Error)
+	->  fail
+	;   !,
+	    print_message(error, Error),
+	    fail
+	).
+'$valid_directive'(_).
+
 
 '$exception_in_directive'(Term) :-
 	print_message(error, Term),
@@ -2658,6 +2772,49 @@ saved state.
 	term_to_atom(Value, Atom).
 
 
+		 /*******************************
+		 *	   TYPE SUPPORT		*
+		 *******************************/
+
+'$type_error'(Type, Value) :-
+	(   var(Value)
+	->  throw(error(instantiation_error, _))
+	;   throw(error(type_error(Type, Value), _))
+	).
+
+'$domain_error'(Type, Value) :-
+	throw(error(domain_error(Type, Value), _)).
+
+'$existence_error'(Type, Object) :-
+	throw(error(existence_error(Type, Object), _)).
+
+'$instantiation_error'(_Var) :-
+	throw(error(instantiation_error, _)).
+
+'$must_be'(list, X) :-
+	'$skip_list'(_, X, Tail),
+	(   Tail == []
+	->  true
+	;   '$type_error'(list, Tail)
+	).
+'$must_be'(atom, X) :-
+	(   atom(X)
+	->  true
+	;   '$type_error'(atom, X)
+	).
+'$must_be'(oneof(Type, Domain, List), X) :-
+	'$must_be'(Type, X),
+	(   memberchk(X, List)
+	->  true
+	;   '$domain_error'(Domain, X)
+	).
+'$must_be'(boolean, X) :-
+	(   (X == true ; X == false)
+	->  true
+	;   '$type_error'(boolean, X)
+	).
+
+
 		/********************************
 		*       LIST PROCESSING         *
 		*********************************/
@@ -2706,26 +2863,39 @@ saved state.
 :- '$iso'((length/2)).
 
 length(List, Length) :-
+	var(Length), !,
+	'$skip_list'(Length0, List, Tail),
+	(   Tail == []
+	->  Length = Length0			% +,-
+	;   var(Tail)
+	->  Tail \== Length,			% avoid length(L,L)
+	    '$length3'(Tail, Length, Length0)	% -,-
+	;   throw(error(type_error(list, List),
+			context(length/2, _)))
+	).
+length(List, Length) :-
+	integer(Length),
+	Length >= 0, !,
 	'$skip_list'(Length0, List, Tail),
 	(   Tail == []				% proper list
 	->  Length = Length0
 	;   var(Tail)
-	->  (   integer(Length)
-	    ->	Extra is Length-Length0,
-		'$length'(Tail, Extra)
-	    ;   var(Length)
-	    ->	'$length3'(Tail, Length, Length0)
-	    ;	throw(error(type_error(integer,Length),
-			    context(length/2, _)))
-	    )
-	;   throw(error(type_error(list,Tail),
+	->  Extra is Length-Length0,
+	    '$length'(Tail, Extra)
+	;   throw(error(type_error(list, List),
 			context(length/2, _)))
 	).
-
+length(_, Length) :-
+	integer(Length), !,
+	throw(error(domain_error(not_less_than_zero, Length),
+		    context(length/2, _))).
+length(_, Length) :-
+	throw(error(type_error(integer, Length),
+		    context(length/2, _))).
 
 '$length3'([], N, N).
 '$length3'([_|List], N, N0) :-
-        succ(N0, N1),
+	N1 is N0+1,
         '$length3'(List, N, N1).
 
 

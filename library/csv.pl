@@ -143,7 +143,8 @@ ext_separator(tsv, 0'\t).
 %	    * separator(+Code)
 %	    The comma-separator.  Must be a character code.  Default is
 %	    (of course) the comma. Character codes can be specified
-%	    using the 0' notion. E.g., =|separator(0';)|=.
+%	    using the 0' notion. E.g., using =|separator(0';)|= parses
+%	    a semicolon separated file.
 %
 %	    * ignore_quotes(+Boolean)
 %	    If =true= (default false), threat double quotes as a normal
@@ -265,12 +266,12 @@ string_codes(List) -->
 	[H],
 	(   { H == 0'" }
 	->  (   "\""
-	->  { List = [H|T] },
-	string_codes(T)
-	;   { List = [] }
-	)
+	    ->  { List = [H|T] },
+	        string_codes(T)
+	    ;   { List = [] }
+	    )
 	;   { List = [H|T] },
-	string_codes(T)
+	    string_codes(T)
 	).
 
 field_codes([], Sep), [Sep] --> [Sep], !.
@@ -346,6 +347,7 @@ csv_write_file(File, Data) :-
 	csv_write_file(File, Data, []).
 
 csv_write_file(File, Data, Options) :-
+	must_be(list, Data),
 	default_separator(File, Options, Options1),
 	make_csv_options(Options1, Record, RestOptions),
 	phrase(emit_csv(Data, Record), String),
@@ -413,7 +415,7 @@ emit_codes([H|T]) --> [H], emit_codes(T).
 %	    setup_call_cleanup(
 %		open(File, write, Out),
 %		forall(data(C1,C2,C3),
-%		       csv_write_file(Out, [row(C1,C2,C3)], [])),
+%		       csv_write_stream(Out, [row(C1,C2,C3)], [])),
 %		close(Out)),
 %        ==
 

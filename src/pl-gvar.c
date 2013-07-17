@@ -205,7 +205,7 @@ auto_define_gvar(atom_t name)
 
 
 static int
-getval(term_t var, term_t value ARG_LD)
+getval(term_t var, term_t value, int raise_error ARG_LD)
 { atom_t name;
   int i;
 
@@ -245,8 +245,11 @@ getval(term_t var, term_t value ARG_LD)
   }
 
 error:
-  return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
-		  ATOM_variable, var);
+  if ( raise_error )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+		    ATOM_variable, var);
+  else
+    return FALSE;
 }
 
 
@@ -262,7 +265,7 @@ static
 PRED_IMPL("nb_getval", 2, nb_getval, 0)
 { PRED_LD
 
-  return getval(A1, A2 PASS_LD);
+  return getval(A1, A2, TRUE PASS_LD);
 }
 
 
@@ -277,7 +280,7 @@ static
 PRED_IMPL("b_getval", 2, b_getval, 0)
 { PRED_LD
 
-  return getval(A1, A2 PASS_LD);
+  return getval(A1, A2, TRUE PASS_LD);
 }
 
 
@@ -311,6 +314,10 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
+      if ( PL_is_atom(A1) )
+	return getval(A1, A2, FALSE PASS_LD);
+      if ( !PL_is_variable(A1) )
+	return PL_type_error("atom", A1);
       if ( LD->gvar.nb_vars )
       { e = newTableEnum(LD->gvar.nb_vars);
 	break;

@@ -241,7 +241,16 @@ tag_list([H0|T0], F, [H1|T1]) :-
 %%	nospy(:Spec) is det.
 %%	nospyall is det.
 %
-%	Set/clear spy-points.
+%	Set/clear spy-points. A successfully set or cleared spy-point is
+%	reported using print_message/2, level  =informational=, with one
+%	of the following terms, where Spec is of the form M:Head.
+%
+%	    - spy(Spec)
+%	    - nospy(Spec)
+%
+%	@see	spy/1 and nospy/1 call the hook prolog:debug_control_hook/1
+%		to allow for alternative specifications of the thing to
+%		debug.
 
 spy(_:X) :-
 	var(X),
@@ -372,12 +381,16 @@ atom_prefix(Atom, Prefix) :-
 %	to create a file record without being interested in the time.
 
 source_file(File) :-
+	(   current_prolog_flag(access_level, user)
+	->  Level = user
+	;   true
+	),
 	(   ground(File)
-	->  (	'$time_source_file'(File, Time, user)
+	->  (	'$time_source_file'(File, Time, Level)
 	    ;	absolute_file_name(File, Abs),
-		'$time_source_file'(Abs, Time, user)
+		'$time_source_file'(Abs, Time, Level)
 	    ), !
-	;   '$time_source_file'(File, Time, user)
+	;   '$time_source_file'(File, Time, Level)
 	),
 	Time > 0.0.
 
@@ -695,6 +708,8 @@ define_or_generate(Pred) :-
 	'$get_predicate_attribute'(Pred, noprofile, 1).
 '$predicate_property'(iso, Pred) :-
 	'$get_predicate_attribute'(Pred, iso, 1).
+'$predicate_property'(quasi_quotation_syntax, Pred) :-
+	'$get_predicate_attribute'(Pred, quasi_quotation_syntax, 1).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).
@@ -918,11 +933,7 @@ on_signal(Signal, Old, New) :-
 	integer(Signal), !,
 	'$on_signal'(Signal, _Name, Old, New).
 on_signal(Signal, _Old, _New) :-
-	(   var(Signal)
-	->  Err = instantiation_error
-	;   Err = type_error(signal_name, Signal)
-	),
-	throw(error(Err, context(on_signal/3, _))).
+	'$type_error'(signal_name, Signal).
 
 %%	current_signal(?Name, ?SignalNumber, :Handler) is nondet.
 

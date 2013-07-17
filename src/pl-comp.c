@@ -1943,7 +1943,7 @@ lookupBodyProcedure(functor_t functor, Module tm)
 
   if ( tm != MODULE_system &&
        (proc = isCurrentProcedure(functor, MODULE_system)) &&
-       isDefinedProcedure(proc) &&
+       true(proc->definition, P_ISO) &&
        !GD->bootsession )
     return proc;
 
@@ -4814,6 +4814,9 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       { PL_put_variable(h);		/* otherwise they point into */
 	PL_put_variable(b);		/* term, which is removed */
       }
+    } else if ( exception_term )
+    { PL_discard_foreign_frame(fid);
+      return FALSE;
     }
 
     PL_rewind_foreign_frame(fid);

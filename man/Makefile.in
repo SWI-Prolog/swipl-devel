@@ -50,7 +50,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
 		lib/csv.tex lib/optparse.tex \
 		lib/predicateoptions.tex lib/predopts.tex lib/random.tex \
-		lib/varnumbers.tex
+		lib/varnumbers.tex lib/quasiquotations.tex
 TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -82,6 +82,7 @@ all:
 		$(MAKE) windows.html macosx/macosx.html
 
 html:		$(TEXFILES) $(STYFILES) $(DOC).bbl
+		rm -f Manual/*.html Manual/*.gif
 		env TEXINPUTS=lib:$$TEXINPUTS latex2html $(DOC)
 
 pdf:		$(PDF)
@@ -107,7 +108,7 @@ distclean:	clean
 		rm -f $(DVITOTTY)
 		rm -rf Manual.tmp
 		rm -f Makefile
-		make -C$(DVITOTTY-HOME) distclean
+		$(MAKE) -C$(DVITOTTY-HOME) distclean
 
 $(PDF):		$(DOC).tex $(TEXFILES) $(DOC).bbl
 		env TEXINPUTS=lib:$$TEXINPUTS ./runtex --pdf $(DOC)
@@ -215,6 +216,8 @@ lib/varnumbers.tex: ../library/varnumbers.pl
 		$(LIBTOTEX) 'library(varnumbers)'
 lib/predopts.tex: lib/predopts.txt ../library/predicate_options.pl
 		$(LIBTOTEX) --lib=predicate_options lib/predopts.txt
+lib/quasiquotations.tex: ../library/quasi_quotations.pl
+		$(LIBTOTEX) 'library(quasi_quotations)'
 
 
 ################################################################

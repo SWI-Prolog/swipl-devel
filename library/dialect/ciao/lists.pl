@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    Author:        Jan Wielemaker, Edison Mera
+    E-mail:        J.Wielemaker@uva.nl, efmera@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, University of Amsterdam
+    Copyright (C): 2010, University of Amsterdam and
+                   2013, Process Design Center, Breda, The Netherlands.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -29,9 +30,11 @@
 
 :- module(ciao_lists,
 	  [ nth/3,			% ?Index, ?List, ?Element
-	    list_insert/2		% -List, +Term
+	    list_insert/2,		% -List, +Term
+	    sublist/2			% ?List1, +List2
 	  ]).
 :- reexport('../../lists').
+:- reexport('../../lists', [subtract/3 as difference]).
 
 %%	nth(?Index, ?List, ?Element) is nondet.
 %
@@ -55,3 +58,12 @@ list_insert([Term0|_], Term) :-
         Term0==Term, !.
 list_insert([_|List], Term) :-
         list_insert(List, Term).
+
+%%      sublist(?List1, +List2)
+%
+%       List2 contains all the elements of List1.
+
+sublist([], _).
+sublist([Element|Residue], List) :-
+	member(Element, List),
+	sublist(Residue, List).

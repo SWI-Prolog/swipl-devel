@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2012, VU University Amsterdam
+    Copyright (C): 2013, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -47,12 +47,14 @@
 :- use_module(library(readutil)).
 :- use_module(library(lists)).
 :- use_module(library(filesex)).
-:- use_module(library(archive)).
 :- use_module(library(xpath)).
 :- use_module(library(settings)).
 :- use_module(library(uri)).
 :- use_module(library(http/http_open)).
 :- use_module(library(http/http_client), []).	% plugin for POST support
+:- if(exists_source(library(archive))).
+:- use_module(library(archive)).
+:- endif.
 
 
 /** <module> A package manager for Prolog
@@ -293,8 +295,12 @@ version_data(Version, version(Data)) :-
 %
 %	  - Installation status
 %	    - *p*: package, not installed
-%	    - *i*: installed package
+%	    - *i*: installed package; up-to-date with public version
+%	    - *U*: installed package; can be upgraded
+%	    - *A*: installed package; newer than publically available
+%	    - *l*: installed package; not on server
 %	  - Name@Version
+%	  - Name@Version(ServerVersion)
 %	  - Title
 %
 %	Hint: =|?- pack_list('').|= lists all packages.
@@ -303,7 +309,7 @@ version_data(Version, version(Data)) :-
 %	contact the package server at  http://www.swi-prolog.org to find
 %	available packages.
 %
-%	@see	pack_list_installed to list installed packages without
+%	@see	pack_list_installed/0 to list installed packages without
 %		contacting the server.
 
 pack_list(Query) :-
@@ -333,6 +339,23 @@ list_hits([ pack(Pack, i, Title, Version, _),
 	  ]) :- !,
 	format('i ~w@~w ~28|- ~w~n', [Pack, Version, Title]),
 	list_hits(More).
+list_hits([ pack(Pack, i, Title, VersionI, _),
+	    pack(Pack, p, _,     VersionS, _)
+	  | More
+	  ]) :- !,
+	version_data(VersionI, VDI),
+	version_data(VersionS, VDS),
+	(   VDI @< VDS
+	->  Tag = ('U')
+	;   Tag = ('A')
+	),
+	format('~w ~w@~w(~w) ~28|- ~w~n', [Tag, Pack, VersionI, VersionS, Title]),
+	list_hits(More).
+list_hits([ pack(Pack, i, Title, VersionI, _)
+	  | More
+	  ]) :- !,
+	format('l ~w@~w ~28|- ~w~n', [Pack, VersionI, Title]),
+	list_hits(More).
 list_hits([pack(Pack, Stat, Title, Version, _)|More]) :-
 	format('~w ~w@~w ~28|- ~w~n', [Stat, Pack, Version, Title]),
 	list_hits(More).
@@ -347,10 +370,10 @@ matching_installed_pack(Query, pack(Pack, i, Title, Version, URL)) :-
 		( pack_info(Pack, _, Term),
 		  search_info(Term)
 		), Info),
-	(   '$apropos_match'(Query, Pack)
+	(   sub_atom_icasechk(Pack, _, Query)
 	->  true
 	;   memberchk(title(Title), Info),
-	    '$apropos_match'(Query, Title)
+	    sub_atom_icasechk(Title, _, Query)
 	),
 	option(title(Title), Info, '<no title>'),
 	option(version(Version), Info, '<no version>'),
@@ -365,7 +388,7 @@ search_info(download(_)).
 		 *	      INSTALL		*
 		 *******************************/
 
-%%	pack_install(+Spec) is det.
+%%	pack_install(+Spec:atom) is det.
 %
 %	Install a package.  Spec is one of
 %
@@ -382,37 +405,60 @@ search_info(download(_)).
 %	do the actual installation.
 
 pack_install(Archive) :-		% Install from .tgz/.zip/... file
-	atom(Archive),
+	must_be(atom, Archive),
 	expand_file_name(Archive, [File]),
 	exists_file(File), !,
 	pack_version_file(Pack, _Version, File),
 	uri_file_name(FileURL, File),
 	pack_install(Pack, [url(FileURL)]).
 pack_install(URL) :-
-	atom(URL),
 	git_url(URL, Pack), !,
 	pack_install(Pack, [git(true), url(URL)]).
 pack_install(URL) :-			% Install from URL
-	atom(URL),
 	pack_version_file(Pack, _Version, URL),
 	download_url(URL), !,
 	available_download_versions(URL, [_-LatestURL|_]),
 	pack_install(Pack, [url(LatestURL)]).
 pack_install(Dir) :-			% Install from directory
-	atom(Dir),
 	exists_directory(Dir),
 	pack_info_term(Dir, name(Name)), !,
 	uri_file_name(DirURL, Dir),
 	pack_install(Name, [url(DirURL)]).
 pack_install(Pack) :-			% Install from a pack name
-	query_pack_server(locate(Pack), true(Results)),
-	(   Results = [Version-[URL|_]|_]
-	->  confirm(install_from(Pack, Version, URL), yes, []),
-	    pack_install(Pack, [url(URL), inquiry(true)])
+	query_pack_server(locate(Pack), Reply),
+	(   Reply = true(Results)
+	->  (   pack_select_candidate(Pack, Results, InstallOptions)
+	    ->	pack_install(Pack, InstallOptions)
+	    ;	fail
+	    )
 	;   print_message(warning, pack(no_match(Pack))),
 	    fail
 	).
 
+pack_select_candidate(Pack, [Version-[URL]|_],
+		      [url(URL), git(true), inquiry(true)]) :-
+	git_url(URL, Pack), !,
+	confirm(install_from(Pack, Version, git(URL)), yes, []).
+pack_select_candidate(Pack, [Version-[URL]|_],
+		      [url(URL), inquiry(true)]) :-
+	confirm(install_from(Pack, Version, URL), yes, []).
+pack_select_candidate(Pack, [Version-URLs|_],
+		      [url(URL), inquiry(true)|Rest]) :-
+	maplist(url_menu_item, URLs, Tagged),
+	append(Tagged, [cancel=cancel], Menu),
+	Menu = [Default=_|_],
+	menu(pack(select_install_from(Pack, Version)), Menu, Default, Choice),
+	(   Choice == cancel
+	->  fail
+	;   Choice = git(URL)
+	->  Rest = [git(true)]
+	;   Choice = URL,
+	    Rest = []
+	).
+
+url_menu_item(URL, git(URL)=install_from(git(URL))) :-
+	git_url(URL, _), !.
+url_menu_item(URL, URL=install_from(URL)).
 
 
 %%	pack_install(+Name, +Options) is det.
@@ -510,10 +556,19 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
 %
 %	Unpack an archive to the given package dir.
 
+:- if(current_predicate(archive_extract/3)).
 pack_unpack(Source, PackDir, Pack, Options) :-
 	pack_archive_info(Source, Pack, _Info, StripOptions),
 	prepare_pack_dir(PackDir, Options),
 	archive_extract(Source, PackDir, StripOptions).
+:- else.
+pack_unpack(_,_,_,_) :-
+	existence_error(library, archive).
+:- endif.
+
+		 /*******************************
+		 *	       INFO		*
+		 *******************************/
 
 %%	pack_archive_info(+Archive, +Pack, -Info, -Strip)
 %
@@ -525,7 +580,9 @@ pack_unpack(Source, PackDir, Pack, Options) :-
 %		doesn't contain pack.pl
 %	@error	Syntax errors if pack.pl cannot be parsed.
 
-pack_archive_info(Archive, Pack, Info, Strip) :-
+:- if(current_predicate(archive_open/3)).
+pack_archive_info(Archive, Pack, [archive_size(Bytes)|Info], Strip) :-
+	size_file(Archive, Bytes),
 	setup_call_cleanup(
 	    archive_open(Archive, Handle, []),
 	    (	repeat,
@@ -544,6 +601,10 @@ pack_archive_info(Archive, Pack, Info, Strip) :-
 	    close(Stream)), !,
 	must_be(ground, Info),
 	maplist(valid_info_term, Info).
+:- else.
+pack_archive_info(_, _, _, _) :-
+	existence_error(library, archive).
+:- endif.
 pack_archive_info(_, _, _, _) :-
 	existence_error(pack_file, 'pack.pl').
 
@@ -566,6 +627,22 @@ read_stream_to_terms(Term0, Stream, [Term0|Terms]) :-
 	read(Stream, Term1),
 	read_stream_to_terms(Term1, Stream, Terms).
 
+
+%%	pack_git_info(+GitDir, -Hash, -Info) is det.
+%
+%	Retrieve info from a cloned git   repository  that is compatible
+%	with pack_archive_info/4.
+
+pack_git_info(GitDir, Hash, [git(true), installed_size(Bytes)|Info]) :-
+	exists_directory(GitDir), !,
+	git_ls_tree(Entries, [directory(GitDir)]),
+	git_hash(Hash, [directory(GitDir)]),
+	maplist(arg(4), Entries, Sizes),
+	sum_list(Sizes, Bytes),
+	directory_file_path(GitDir, 'pack.pl', InfoFile),
+	read_file_to_terms(InfoFile, Info, [encoding(utf8)]),
+	must_be(ground, Info),
+	maplist(valid_info_term, Info).
 
 %%	download_file_sanity_check(+Archive, +Pack, +Info) is semidet.
 %
@@ -593,6 +670,10 @@ must_match(Values, Field) :-
 	print_message(error, pack(conflict(Field, Values))),
 	fail.
 
+
+		 /*******************************
+		 *	   INSTALLATION		*
+		 *******************************/
 
 %%	prepare_pack_dir(+Dir, +Options)
 %
@@ -633,12 +714,16 @@ special(..).
 %	built-in HTTP client. For complete  coverage, we should consider
 %	using an external (e.g., curl) if available.
 
-pack_install_from_url(_, URL, PackTopDir, Name, Options) :-
+pack_install_from_url(_, URL, PackTopDir, Pack, Options) :-
 	option(git(true), Options), !,
-	directory_file_path(PackTopDir, Name, PackDir),
+	directory_file_path(PackTopDir, Pack, PackDir),
 	prepare_pack_dir(PackDir, Options),
 	run_process(path(git), [clone, URL, PackDir], []),
-	pack_post_install(Name, PackDir, Options).
+	pack_git_info(PackDir, Hash, Info),
+	pack_inquiry(URL, git(Hash), Info, Options),
+	show_info(Pack, Info, Options),
+	confirm(git_post_install(PackDir, Pack), yes, Options),
+	pack_post_install(Pack, PackDir, Options).
 pack_install_from_url(Scheme, URL, PackTopDir, Pack, Options) :-
 	download_scheme(Scheme),
 	directory_file_path(PackTopDir, Pack, PackDir),
@@ -1155,10 +1240,30 @@ git_url(URL, Pack) :-
 	(   file_name_extension(Pack, git, PackExt)
 	->  true
 	;   Pack = PackExt
+	),
+	(   safe_pack_name(Pack)
+	->  true
+	;   domain_error(pack_name, Pack)
 	).
 
 git_download_scheme(http).
 git_download_scheme(https).
+
+%%	safe_pack_name(+Name:atom) is semidet.
+%
+%	Verifies that Name is a valid   pack  name. This avoids trickery
+%	with pack file names to make shell commands behave unexpectly.
+
+safe_pack_name(Name) :-
+	atom_length(Name, Len),
+	Len >= 3,				% demand at least three length
+	atom_codes(Name, Codes),
+	maplist(safe_pack_char, Codes), !.
+
+safe_pack_char(C) :- between(0'a, 0'z, C), !.
+safe_pack_char(C) :- between(0'A, 0'Z, C), !.
+safe_pack_char(C) :- between(0'0, 0'9, C), !.
+safe_pack_char(C) :- memberchk(C, "_").
 
 
 		 /*******************************
@@ -1178,7 +1283,8 @@ pack_version_file(Pack, Version, Path) :-
 	file_name_extension(Base, Ext, File),
 	Ext \== '',
 	atom_codes(Base, Codes),
-	(   phrase(pack_version(Pack, Version), Codes)
+	(   phrase(pack_version(Pack, Version), Codes),
+	    safe_pack_name(Pack)
 	->  true
 	;   print_message(error, pack(invalid_name(File))),
 	    fail
@@ -1220,39 +1326,6 @@ digits([])    --> [].
 
 
 		 /*******************************
-		 *	     SIGNATURES		*
-		 *******************************/
-
-%%	file_sha1(+File, -SHA1) is det.
-%%	file_sha1(+File, -SHA1, Options) is det.
-%
-%	True when SHA1 is the SHA1 hash for the content of File. Options
-%	is passed to open/4 and typically used to control whether binary
-%	or text encoding must be used. The   output is compatible to the
-%	=sha1sum= program found in many systems.
-
-file_sha1(File, Hash) :-
-	file_sha1(File, Hash, [type(binary)]).
-
-file_sha1(File, Hash, Options) :-
-	sha_new_ctx(Ctx0, [encoding(octet)]),
-	setup_call_cleanup(
-	    open(File, read, In, Options),
-	    update_hash(In, Ctx0, _Ctx, 0, HashCodes),
-	    close(In)),
-	hash_atom(HashCodes, Hash).
-
-update_hash(In, Ctx0, Ctx, Hash0, Hash) :-
-	at_end_of_stream(In), !,
-	Ctx = Ctx0,
-	Hash = Hash0.
-update_hash(In, Ctx0, Ctx, _Hash0, Hash) :-
-	read_pending_input(In, Data, []),
-	sha_hash_ctx(Ctx0, Data, Ctx1, Hash1),
-	update_hash(In, Ctx1, Ctx, Hash1, Hash).
-
-
-		 /*******************************
 		 *	 QUERY CENTRAL DB	*
 		 *******************************/
 
@@ -1284,7 +1357,10 @@ pack_inquiry(URL, DownloadFile, Info, Options) :-
 	->  true
 	;   confirm(inquiry(Server), yes, Options)
 	), !,
-	file_sha1(DownloadFile, SHA1),
+	(   DownloadFile = git(SHA1)
+	->  true
+	;   file_sha1(DownloadFile, SHA1)
+	),
 	query_pack_server(install(URL, SHA1, Info), Reply),
 	inquiry_result(Reply, URL).
 pack_inquiry(_, _, _, _).
@@ -1310,7 +1386,12 @@ query_pack_server(Query, Result) :-
 	    ),
 	    close(In)),
 	Result = Result0,
-	print_message(informational, pack(server_reply(Result))).
+	message_severity(Result, Level),
+	print_message(Level, pack(server_reply(Result))).
+
+message_severity(true(_), informational).
+message_severity(false, warning).
+message_severity(exception(_), error).
 
 
 %%	inquiry_result(+Reply, +File) is semidet.
@@ -1327,11 +1408,16 @@ inquiry_result(Reply, File) :-
 eval_inquiry(true(Reply), URL, Eval) :-
 	include(alt_hash, Reply, Alts),
 	Alts \== [],
-	file_base_name(URL, File),
-	print_message(warning, pack(alt_hashes(File, Alts))),
+	print_message(warning, pack(alt_hashes(URL, Alts))),
 	(   memberchk(downloads(Count), Reply),
-	    confirm(continue_with_alt_hashes(Count, URL), no, [])
-	->  Eval = with_alt_hashes
+	    (	git_url(URL, _)
+	    ->	Default = yes,
+		Eval = with_git_commits_in_same_version
+	    ;	Default = no,
+		Eval = with_alt_hashes
+	    ),
+	    confirm(continue_with_alt_hashes(Count, URL), Default, [])
+	->  true
 	;   !,				% Stop other rules
 	    Eval = cancel
 	).
@@ -1346,7 +1432,12 @@ eval_inquiry(true(Reply), _, Eval) :-
 eval_inquiry(true(Reply), URL, true) :-
 	file_base_name(URL, File),
 	print_message(informational, pack(inquiry_ok(Reply, File))).
-
+eval_inquiry(exception(pack(modified_hash(_SHA1-URL, _SHA2-[URL]))),
+	     URL, Eval) :-
+	(   confirm(continue_with_modified_hash(URL), no, [])
+	->  Eval = true
+	;   Eval = cancel
+	).
 alt_hash(alt_hash(_,_,_)).
 dependency(dependency(_,_,_,_,_)).
 
@@ -1753,6 +1844,7 @@ confirm(Question, Default, _) :-
 	between(1, 5, _),
 	   print_message(query, pack(confirm(Question, Default))),
 	   read_yes_no(YesNo, Default), !,
+	format(user_error, '~N', []),
         YesNo == yes.
 
 read_yes_no(YesNo, Default) :-
@@ -1827,12 +1919,21 @@ message(remove(PackDir)) -->
 	[ 'Removing ~q and contents'-[PackDir] ].
 message(remove_existing_pack(PackDir)) -->
 	[ 'Remove old installation in ~q'-[PackDir] ].
+message(install_from(Pack, Version, git(URL))) -->
+	[ 'Install ~w@~w from GIT at ~w'-[Pack, Version, URL] ].
 message(install_from(Pack, Version, URL)) -->
 	[ 'Install ~w@~w from ~w'-[Pack, Version, URL] ].
+message(select_install_from(Pack, Version)) -->
+	[ 'Select download location for ~w@~w'-[Pack, Version] ].
 message(install_downloaded(File)) -->
 	{ file_base_name(File, Base),
 	  size_file(File, Size) },
 	[ 'Install "~w" (~D bytes)'-[Base, Size] ].
+message(git_post_install(PackDir, Pack)) -->
+	(   { is_foreign_pack(PackDir) }
+	->  [ 'Run post installation scripts for pack "~w"'-[Pack] ]
+	;   [ 'Activate pack "~w"'-[Pack] ]
+	).
 message(inquiry(Server)) -->
 	[ 'Verify package status (anonymously)', nl,
 	  '\tat "~w"'-[Server]
@@ -1858,8 +1959,8 @@ message(server_reply(true(_))) -->
 message(server_reply(false)) -->
 	[ at_same_line, ' done'-[] ].
 message(server_reply(exception(E))) -->
-	[ at_same_line, ' server error:'-[], nl ],
-	prolog:message(E).
+	[ 'Server reported the following error:'-[], nl ],
+	'$messages':translate_message(E).
 message(cannot_create_dir(Alias)) -->
 	{ setof(PackDir,
 		absolute_file_name(Alias, PackDir, [solutions(all)]),
@@ -1898,20 +1999,37 @@ message(confirm(Question, Default)) -->
 
 % Alternate hashes for found for the same file
 
-message(alt_hashes(File, Alts)) -->
+message(alt_hashes(URL, _Alts)) -->
+	{ git_url(URL, _)
+	}, !,
+	[ 'GIT repository was updated without updating version' ].
+message(alt_hashes(URL, Alts)) -->
+	{ file_base_name(URL, File)
+	},
 	[ 'Found multiple versions of "~w".'-[File], nl,
 	  'This could indicate a compromised or corrupted file', nl
 	],
 	alt_hashes(Alts).
 message(continue_with_alt_hashes(Count, URL)) -->
 	[ 'Continue installation from "~w" (downloaded ~D times)'-[URL, Count] ].
-
+message(continue_with_modified_hash(_URL)) -->
+	[ 'Pack may be compromised.  Continue anyway'
+	].
+message(modified_hash(_SHA1-URL, _SHA2-[URL])) -->
+	[ 'Content of ~q has changed.'-[URL]
+	].
 
 alt_hashes([]) --> [].
 alt_hashes([H|T]) --> alt_hash(H), ( {T == []} -> [] ; [nl], alt_hashes(T) ).
 
 alt_hash(alt_hash(Count, URLs, Hash)) -->
-	[ '~t~d~8| ~w ~w'-[Count, Hash, URLs] ].
+	[ '~t~d~8| ~w'-[Count, Hash] ],
+	alt_urls(URLs).
+
+alt_urls([]) --> [].
+alt_urls([H|T]) -->
+	[ nl, '    ~w'-[H] ],
+	alt_urls(T).
 
 % Installation dependencies gathered from inquiry server.
 
@@ -2001,6 +2119,10 @@ label(remove_deps(Pack, Deps)) -->
 	[ 'Remove package ~w and ~D dependencies'-[Pack, Count] ].
 label(create_dir(Dir)) -->
 	[ '~w'-[Dir] ].
+label(install_from(git(URL))) --> !,
+	[ 'GIT repository at ~w'-[URL] ].
+label(install_from(URL)) -->
+	[ '~w'-[URL] ].
 label(cancel) -->
 	[ 'Cancel' ].
 

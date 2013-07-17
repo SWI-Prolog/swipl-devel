@@ -52,6 +52,7 @@ practical guidelines for using CHR.
 %=============================
 
 \subsection{Syntax of CHR rules}
+\label{sec:chr-syntax}
 %-----------------
 
 \begin{code}
@@ -101,6 +102,7 @@ head of the rule. It may, however, bind variables that do not appear in the
 head of the rule, e.g. an auxiliary variable introduced in the guard.
 
 \subsection{Semantics}
+\label{sec:chr-semantics}
 %--------------------
 
 In this subsection the operational semantics of CHR in Prolog are presented
@@ -200,14 +202,14 @@ This option controls whether guards should be checked for (illegal) variable
 bindings or not. Possible values for this option are \texttt{on} to enable
 the checks, and \texttt{off} to disable the checks. If this option is on,
 any guard fails when it binds a variable that appears in the head of the rule.
-When the option is off (default), the behavior of a binding in the guard is undefined.
+When the option is off (default), the behaviour of a binding in the guard is undefined.
 
         \termitem{optimize}{}
 This option controls the degree of optimization.
 Possible values are \texttt{full} to enable all available
 optimizations, and \texttt{off} (default) to disable all optimizations.
 The default is derived from the SWI-Prolog flag \prologflag{optimise}, where
-\const{true} is mapped to \const{full}.  Therefore the command-line
+\const{true} is mapped to \const{full}.  Therefore the command line
 option \cmdlineoption{-O} provides full CHR optimization.
 If optimization is enabled, debugging must be disabled.
 
@@ -229,12 +231,14 @@ If debugging is enabled, optimization must be disabled.
 
 
 \subsection{Embedding in Prolog Programs}
+\label{sec:chr-embedding}
 
 The CHR constraints defined in a \fileext{pl} file are
 associated with a module. The default module is \const{user}. One should
 never load different \fileext{pl} files with the same CHR module name.
 
 \subsection{Constraint declaration}
+\label{sec:chr-declarations}
 
 \begin{description}
     \directive{chr_constraint}{1}{+Specifier}
@@ -256,7 +260,7 @@ constraint, e.g.:
 In its extended form, a constraint specifier is
 \texttt{$c$($A_1$,\ldots,$A_n$)} where $c$ is the constraint's functor,
 $n$ its arity and the $A_i$ are argument specifiers. An argument
-specifier is a mode, optionally followed by a type. E.g.
+specifier is a mode, optionally followed by a type. Example:
 
 \begin{code}
 :- chr_constraint get_value(+,?).
@@ -410,7 +414,7 @@ No runtime overhead is incurred in static type checking.
       checks until variables are instantiated.
 
       The kind of error detected by dynamic type checking is where a functor
-      is used that does not belong to the declared type. E.g. for the program:
+      is used that does not belong to the declared type. For example, for the program:
 \begin{code}
 :-chr_type foo ---> foo.
 
@@ -435,6 +439,7 @@ runtime overhead.
 \end{enumerate}
 
 \subsection{Compilation}
+\label{sec:chr-compilation}
 %--------------------
 
 The SWI-Prolog CHR compiler exploits term_expansion/2 rules to translate
@@ -514,6 +519,7 @@ store.
 \end{description}
 
 \subsection{Tracing}
+\label{sec:chr-tracing}
 %=================
 
 Tracing is enabled with the chr_trace/0 predicate
@@ -550,9 +556,9 @@ Print list of ancestor call and wake ports.
 	\termitem{nodebug}{}
 Disable the tracer.
 	\termitem{break}{}
-Enter a recursive Prolog top-level.  See break/0.
+Enter a recursive Prolog top level.  See break/0.
 	\termitem{abort}{}
-Exit to the top-level.  See abort/0.
+Exit to the top level.  See abort/0.
 	\termitem{fail}{}
 Insert failure in execution.
 	\termitem{help}{}
@@ -587,9 +593,9 @@ See also leash/1.
 
     \predicate{chr_show_store}{1}{+Mod}
 Prints all suspended constraints of module \arg{Mod} to the standard
-output. This predicate is automatically called by the SWI-Prolog top-level at
+output. This predicate is automatically called by the SWI-Prolog top level at
 the end of each query for every CHR module currently loaded.  The Prolog flag
-\const{chr_toplevel_show_store} controls whether the top-level shows the
+\const{chr_toplevel_show_store} controls whether the top level shows the
 constraint stores. The value \const{true} enables it.  Any other value
 disables it.
 
@@ -632,7 +638,7 @@ leq(_G23837, _G23838)
 true .
 \end{code}
 
-When the query succeeds, the SWI-Prolog top-level prints the content of
+When the query succeeds, the SWI-Prolog top level prints the content of
 the CHR constraint store and displays the bindings generated during the
 query. Some of the query variables may have been bound to attributed
 variables, as you see in the above example.
@@ -668,6 +674,7 @@ A = 3.
 %==================
 
 \subsection{The Old SICStus CHR implemenation}
+\label{sec:chr-sicstus}
 
 There are small differences between the current K.U.Leuven CHR system
 in SWI-Prolog, older versions of the same system, and SICStus' CHR system.
@@ -712,6 +719,7 @@ Prolog goals used in guards and bodies of CHR rules.
 \end{itemlist}
 
 \subsection{The Old ECLiPSe CHR implemenation}
+\label{sec:chr-eclipse}
 
 The old ECLiPSe CHR implementation features a \nopredref{label_with}{1} construct
 for labeling variables in CHR constraints. This feature has long since been abandoned.
@@ -788,6 +796,7 @@ In this section we summarize the most important error and warning messages
 of the CHR compiler.
 
 \subsection{CHR Compiler Errors}
+\label{sec:chr-errors}
 
 \begin{description}
 \item[Type clash] for variable ... in rule ...

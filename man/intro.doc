@@ -17,14 +17,14 @@ Most implementations of the Prolog language are designed to serve a
 limited set of use cases. SWI-Prolog is no exception to this rule.
 SWI-Prolog positions itself primarily as a Prolog environment for
 `programming in the large' and use cases where it plays a central role
-in an application, i.e., were it acts as `glue' between components. At
+in an application, i.e., where it acts as `glue' between components. At
 the same time, SWI-Prolog aims at providing a productive rapid
 prototyping environment. Its orientation towards programming in the
 large is backed up by scalability, compiler speed, program structuring
-(modules), support for multi threading to accommodate servers, Unicode
+(modules), support for multithreading to accommodate servers, Unicode
 and interfaces to a large number of document formats, protocols and
 programming languages. Prototyping is facilitated by good development
-tools, both for commandline usage as for usage with graphical
+tools, both for command line usage as for usage with graphical
 development tools. Demand loading of predicates from the library and a
 `make' facility avoids the \emph{requirement} for using declarations and
 reduces typing.
@@ -41,7 +41,7 @@ because SWI-Prolog has features that are required in the application,
 such as threading or Unicode support. In general though, for example,
 GNU-Prolog is more suited for embedding because it is small and can
 compile to native code, XSB is better for deductive databases because it
-provides advanced resolution techniques (tabling) and ECLiPSe is better
+provides advanced resolution techniques (tabling), and ECLiPSe is better
 at constraint handling.
 
 The syntax and set of built-in predicates is based on the ISO standard
@@ -67,15 +67,15 @@ manual data and downloads each month.  SWI-Prolog applications range
 from student assignments to commercial applications that count more
 than one million lines of Prolog code.
 
-SWI-Prolog is has two development tracks. \emph{Stable} releases have an
+SWI-Prolog has two development tracks. \emph{Stable} releases have an
 even \emph{minor} version number (e.g., 6.2.1) and are released as a
-branch from the development version at a moment that the development
+branch from the development version when the development
 version is considered stable and there is sufficient new functionality
 to justify a stable release. Stable releases often get a few patch
 updates to deal with installation issues or major flaws. A new
 \emph{Development} version is typically released every couple of weeks
 as a snapshot of the public git repository. `Extra editions' of the
-development version may be released after problems that severely hinder
+development version may be released after problems that severely hindered the
 user in their progress have been fixed.
 
 Known bugs that are not likely to be fixed soon are described as
@@ -85,15 +85,15 @@ footnotes in this manual.
 \section{Should I be using SWI-Prolog?}		\label{sec:swiorother}
 
 There are a number of reasons why it might be better to choose a
-commercial, or another free Prolog system:
+commercial, or another free, Prolog system:
 
 \begin{itemlist}
     \item [SWI-Prolog comes with no warranties]
 Although the developers or the community often provide a work-around or
 a fix for a bug, there is no place you can go to for guaranteed support.
 However, the full source archive is available and can be used to compile
-and debug SWI-Prolog using free tools on all major platforms.  Depending
-users should ensure access to knowledgeable developers.
+and debug SWI-Prolog using free tools on all major platforms.
+Users requiring more support should ensure access to knowledgeable developers.
 
     \item [Performance is your first concern]
 Various free and commercial systems have better performance. But,
@@ -107,9 +107,9 @@ performance.
 
     \item [You need features not offered by SWI-Prolog]
 Although SWI-Prolog has many features, it also lacks some important
-features.  The most well know is probably \jargon{tabling}
+features.  The most well known is probably \jargon{tabling}
 \cite{oai:CiteSeerPSU:36493}.  If you require additional features
-and you have resources, being it financial or expertise, please
+and you have resources, be it financial or expertise, please
 contact the developers.
 \end{itemlist}
 
@@ -118,12 +118,12 @@ appreciated by users:
 
 \begin{itemlist}
     \item [Nice environment]
-SWI-Prolog provides a good commandline environment, including `Do What I
+SWI-Prolog provides a good command line environment, including `Do What I
 Mean', autocompletion, history and a tracer that operates on single
-key-strokes.  The system automatically recompiles modifies parts of the
+key strokes.  The system automatically recompiles modified parts of the
 source code using the make/0 command.  The system can be instructed to
 open an arbitrary editor on the right file and line based on its source
-database. In ships with various graphical tools and can be combined with
+database. It ships with various graphical tools and can be combined with the
 SWI-Prolog editor, PDT (Eclipse plugin for Prolog) or GNU-Emacs.
 
     \item [Fast compiler]
@@ -134,14 +134,14 @@ and qsave_program/2.
     \item [Transparent compiled code]
 SWI-Prolog compiled code can be treated just as interpreted code: you
 can list it, trace it, etc. This implies you do not have to decide
-beforehand whether a module should be loaded for debugging or not and
+beforehand whether a module should be loaded for debugging or not, and
 the performance of debugged code is close to that of normal operation.
 
     \item [Source level debugger]
 The source level debugger provides a good overview of your current
 location in the search tree, variable bindings, your source code and
-open choicepoints. Choicepoint inspection provide meaningful insight to
-both novices and experienced users. Avoiding unintended choicepoints
+open choice points. Choice point inspection provides meaningful insight to
+both novices and experienced users. Avoiding unintended choice points
 often provides a huge increase in performance and a huge saving in
 memory usage.
 
@@ -199,20 +199,20 @@ environment.
 
 SWI-Prolog is based on a simple Prolog virtual machine called ZIP
 \cite{Bowen:83,Neumerkel:93} which defines only 7 instructions. Prolog
-can easily be compiled into this language and the abstract machine code
+can easily be compiled into this language, and the abstract machine code
 is easily decompiled back into Prolog. As it is also possible to wire a
-standard 4-port debugger in the virtual machine there is no need for a
+standard 4-port debugger in the virtual machine, there is no need for a
 distinction between compiled and interpreted code. Besides simplifying
-the design of the Prolog system itself this approach has advantages for
+the design of the Prolog system itself, this approach has advantages for
 program development: the compiler is simple and fast, the user does not
-have to decide in advance whether debugging is required and the system
+have to decide in advance whether debugging is required, and the system
 only runs slightly slower in debug mode compared to normal execution.
 The price we have to pay is some performance degradation (taking out the
 debugger from the VM interpreter improves performance by about 20\%) and
 somewhat additional memory usage to help the decompiler and debugger.
 
 SWI-Prolog extends the minimal set of instructions described in
-\cite{Bowen:83} to improve performance. While extending this set care
+\cite{Bowen:83} to improve performance. While extending this set, care
 has been taken to maintain the advantages of decompilation and tracing
 of compiled code. The extensions include specialised instructions for
 unification, predicate invocation, some frequently used built-in
@@ -231,7 +231,7 @@ style and techniques originate from C-Prolog and Richard O'Keefe's {\em
 thief} editor. An important source of inspiration are the programming
 techniques introduced by Anjo Anjewierden in PCE version~1 and~2.
 
-Our special thanks goes to those who had the fate of using the early
+Our special thanks go to those who had the fate of using the early
 versions of this system, suggested extensions or reported bugs. Among
 them are Anjo Anjewierden, Huub Knops, Bob Wielinga, Wouter Jansweijer,
 Luc Peerdeman, Eric Nombden, Frank van Harmelen, Bert Rengel.

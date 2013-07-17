@@ -21,8 +21,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <math.h>
 #include "pl-incl.h"
+#include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
 #include <stdio.h>			/* sprintf() */
@@ -198,13 +198,23 @@ atomType(atom_t a, IOSTREAM *fd)
     return AT_FULLSTOP;
 
   if ( isSymbol(*s) )
-  { if ( len >= 2 && s[0] == '/' && s[1] == '*' )
+  { size_t left = len;
+
+    if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
 
-    for(++s; --len > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++)
-      ;
+    for(; left > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++, left--)
+    { if ( *s == '`' )
+      { GET_LD
 
-    return len == 0 ? AT_SYMBOL : AT_QUOTE;
+	if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
+	  return AT_QUOTE;
+      }
+    }
+    if ( left > 0 )
+      return AT_QUOTE;
+
+    return AT_SYMBOL;
   }
 
 					/* % should be quoted! */
@@ -1104,6 +1114,19 @@ writeList(term_t list, write_options *options)
 }
 
 
+static int
+isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
+{ if ( functor == ATOM_nil || functor == ATOM_curl )
+  { _PL_get_arg(1, t, arg);
+    if ( (functor == ATOM_nil  && PL_is_pair(arg)) ||
+	 (functor == ATOM_curl && PL_is_functor(arg, FUNCTOR_curl1)) )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static bool
 writeTerm2(term_t t, int prec, write_options *options, bool arg)
 { GET_LD
@@ -1138,7 +1161,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
   if ( !PL_get_name_arity(t, &functor, &arity) )
   { return writePrimitive(t, options);
   } else
-  { if ( true(options, PL_WRT_NUMBERVARS) )
+  { if ( true(options, PL_WRT_NUMBERVARS|PL_WRT_VARNAMES) )
     { switch( writeNumberVar(t, options PASS_LD) )
       { case -1:
 	  return FALSE;
@@ -1148,18 +1171,25 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
     }
 
     if ( false(options, PL_WRT_IGNOREOPS) )
-    { term_t arg = PL_new_term_ref();
+    { term_t arg;
 
-      if ( arity == 1 )
-      { if ( functor == ATOM_curl )	/* {a,b,c} */
-	{ _PL_get_arg(1, t, arg);
-	  TRY(Putc('{', out));
-	  TRY(writeTerm(arg, 1200, options) &&
-	      Putc('}', out));
+      if ( !(arg=PL_new_term_ref()) )
+	return FALSE;
 
-	  succeed;
-	}
+      if ( arity == 1 && functor == ATOM_curl )	/* {a,b,c} */
+      { _PL_get_arg(1, t, arg);
+	TRY(Putc('{', out));
+	TRY(writeTerm(arg, 1200, options) &&
+	    Putc('}', out));
 
+	succeed;
+      }
+      if ( arity == 2 && functor == ATOM_dot ) /* list */
+	return writeList(t, options);
+
+      if ( arity == 1 ||
+	  (arity == 2 && isBlockOp(t, arg, functor PASS_LD)) )
+      {
 					  /* op <term> */
 	if ( currentOperator(options->module, functor, OP_PREFIX,
 			     &op_type, &op_pri) )
@@ -1168,16 +1198,20 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
 	  embrace = ( op_pri > prec );
 
-	  _PL_get_arg(1, t, arg);
 	  if ( embrace )
 	    TRY(PutOpenBrace(out));
-	  TRY(writeAtom(functor, options));
-
+	  if ( arity == 1 )
+	  { TRY(writeAtom(functor, options));
+	  } else
+	  { _PL_get_arg(1, t, arg);
+	    TRY(writeTerm(arg, 1200, options));
+	  }
 				/* +/-(Number) : avoid parsing as number */
 	  options->out->lastc |= C_PREFIX_OP;
 	  if ( functor == ATOM_minus || functor == ATOM_plus )
 	    options->out->lastc |= C_PREFIX_SIGN;
 
+	  _PL_get_arg(arity, t, arg);
 	  TRY(writeTerm(arg,
 			op_type == OP_FX ? op_pri-1 : op_pri,
 			options));
@@ -1193,34 +1227,32 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 			     &op_type, &op_pri) )
 	{ term_t arg = PL_new_term_ref();
 
-	  _PL_get_arg(1, t, arg);
 	  if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
+	  _PL_get_arg(arity, t, arg);
 	  TRY(writeTerm(arg,
 			op_type == OP_XF ? op_pri-1 : op_pri,
 			options));
-	  TRY(writeAtom(functor, options));
+	  if ( arity == 1 )
+	  { TRY(writeAtom(functor, options));
+	  } else
+	  { _PL_get_arg(1, t, arg);
+	    TRY(writeTerm(arg, 1200, options));
+	  }
 	  if (op_pri > prec)
 	    TRY(PutCloseBrace(out));
 
 	  succeed;
 	}
-      } else if ( arity == 2 )
-      { if ( functor == ATOM_dot )	/* [...] */
-	  return writeList(t, options);
-
-					  /* <term> op <term> */
+      } else if ( arity == 2 ||
+		 (arity == 3 && isBlockOp(t, arg, functor PASS_LD)) )
+      {					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
 			     &op_type, &op_pri) )
-	{ term_t l = PL_new_term_ref();
-	  term_t r = PL_new_term_ref();
-
-	  _PL_get_arg(1, t, l);
-	  _PL_get_arg(2, t, r);
-
-	  if ( op_pri > prec )
+	{ if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
-	  TRY(writeTerm(l,
+	  _PL_get_arg(arity-1, t, arg);
+	  TRY(writeTerm(arg,
 			op_type == OP_XFX || op_type == OP_XFY
 				? op_pri-1 : op_pri,
 			options));
@@ -1228,15 +1260,19 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  { TRY(PutComma(options));
 	  } else if ( functor == ATOM_bar )
 	  { TRY(PutBar(options));
-	  } else
+	  } else if ( arity == 2 )
 	  { switch(writeAtom(functor, options))
 	    { case FALSE:
 		fail;
 	      case TRUE_WITH_SPACE:
 		TRY(Putc(' ', out));
 	    }
+	  } else			/* block operator */
+	  { _PL_get_arg(1, t, arg);
+	    TRY(writeTerm(arg, 1200, options));
 	  }
-	  TRY(writeTerm(r,
+	  _PL_get_arg(arity, t, arg);
+	  TRY(writeTerm(arg,
 			op_type == OP_XFX || op_type == OP_YFX
 				? op_pri-1 : op_pri,
 			options));
@@ -1315,6 +1351,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
 { GET_LD
   int rc;
 
+  Slock(options->out);
   if ( (!(options->flags&PL_WRT_NO_CYCLES) && options->max_depth) ||
        PL_is_acyclic(term) )
   { rc = writeTerm(term, prec, options);
@@ -1340,8 +1377,50 @@ writeTopTerm(term_t term, int prec, write_options *options)
     rc = writeTerm(at_term, prec, options);
     PL_discard_foreign_frame(fid);
   }
+  Sunlock(options->out);
 
   return rc;
+}
+
+
+static int
+bind_varnames(term_t names ARG_LD)
+{ term_t tail, head, var, namet;
+  int check_cycle_after = 1000;
+
+  if ( !(tail = PL_copy_term_ref(names)) ||
+       !(head = PL_new_term_ref()) ||
+       !(var  = PL_new_term_ref()) ||
+       !(namet = PL_new_term_ref()) )
+    return FALSE;
+
+  while(PL_get_list_ex(tail, head, tail))
+  { if ( PL_is_functor(head, FUNCTOR_equals2) )
+    { atom_t name;
+
+      _PL_get_arg(2, head, var);
+      _PL_get_arg(1, head, namet);
+
+      if ( !PL_get_atom_ex(namet, &name) )
+	return FALSE;
+      if ( !atomIsVarName(name) )
+	return PL_domain_error("variable_name", namet);
+
+      if ( PL_is_variable(var) )
+      { if ( !PL_unify_term(var,
+			    PL_FUNCTOR, FUNCTOR_isovar1,
+			      PL_ATOM, name) )
+	  return FALSE;
+      }
+    } else
+      return PL_type_error("variable_assignment", head);
+
+    if ( --check_cycle_after == 0 &&
+	 lengthList(tail, FALSE) == -1 )
+      return PL_type_error("list", head);
+  }
+
+  return PL_get_nil_ex(tail);
 }
 
 
@@ -1391,6 +1470,7 @@ static const opt_spec write_term_options[] =
   { ATOM_spacing,	    OPT_ATOM },
   { ATOM_blobs,		    OPT_ATOM },
   { ATOM_cycles,	    OPT_BOOL },
+  { ATOM_variable_names,    OPT_TERM },
   { NULL_ATOM,		    0 }
 };
 
@@ -1410,7 +1490,9 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int  priority   = 1200;
   bool partial    = FALSE;
   bool cycles     = TRUE;
-  IOSTREAM *s;
+  term_t varnames = 0;
+  int local_varnames;
+  IOSTREAM *s = NULL;
   write_options options;
   int rc;
 
@@ -1421,7 +1503,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 		     &quoted, &ignore_ops, &numbervars, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
 		     &bqstring, &attr, &priority, &partial, &options.spacing,
-		     &blobs, &cycles) )
+		     &blobs, &cycles, &varnames) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1481,8 +1563,18 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
   if ( !cycles )    options.flags |= PL_WRT_NO_CYCLES;
 
-  if ( !getTextOutputStream(stream, &s) )
-    fail;
+  local_varnames = (varnames && false(&options, PL_WRT_NUMBERVARS));
+
+  BEGIN_NUMBERVARS(local_varnames);
+  if ( varnames )
+  { if ( (rc=bind_varnames(varnames PASS_LD)) )
+      options.flags |= PL_WRT_VARNAMES;
+    else
+      goto out;
+  }
+  if ( !(rc=getTextOutputStream(stream, &s)) )
+    goto out;
+
   options.out = s;
   if ( !partial )
     PutOpenToken(EOF, s);		/* reset this */
@@ -1494,7 +1586,10 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   { rc = writeTopTerm(term, priority, &options);
   }
 
-  return streamStatus(s) && rc;
+out:
+  END_NUMBERVARS(local_varnames);
+
+  return (!s || streamStatus(s)) && rc;
 }
 
 
@@ -1570,7 +1665,7 @@ pl_write_canonical2(term_t stream, term_t term)
   nv_options options;
   word rc;
 
-  BEGIN_NUMBERVARS();
+  BEGIN_NUMBERVARS(TRUE);
 
   options.functor = FUNCTOR_isovar1;
   options.on_attvar = AV_SKIP;
@@ -1582,7 +1677,7 @@ pl_write_canonical2(term_t stream, term_t term)
 		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS)
        );
 
-  END_NUMBERVARS();
+  END_NUMBERVARS(TRUE);
 
   return rc;
 }

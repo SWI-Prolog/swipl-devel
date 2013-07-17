@@ -238,6 +238,7 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_FUNCTOR"),
   COUNT_MUTEX_INITIALIZER("L_RECORD"),
   COUNT_MUTEX_INITIALIZER("L_THREAD"),
+  COUNT_MUTEX_INITIALIZER("L_MUTEX"),
   COUNT_MUTEX_INITIALIZER("L_PREDICATE"),
   COUNT_MUTEX_INITIALIZER("L_MODULE"),
   COUNT_MUTEX_INITIALIZER("L_TABLE"),
@@ -252,7 +253,8 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_AGC"),
   COUNT_MUTEX_INITIALIZER("L_STOPTHEWORLD"),
   COUNT_MUTEX_INITIALIZER("L_FOREIGN"),
-  COUNT_MUTEX_INITIALIZER("L_OS")
+  COUNT_MUTEX_INITIALIZER("L_OS"),
+  COUNT_MUTEX_INITIALIZER("L_LOCALE")
 #ifdef __WINDOWS__
 , COUNT_MUTEX_INITIALIZER("L_DDE")
 , COUNT_MUTEX_INITIALIZER("L_CSTACK")
@@ -333,7 +335,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
   Sdprintf("Name                               locked\n"
 	   "-----------------------------------------\n");
 #endif
-  PL_LOCK(L_THREAD);
+  PL_LOCK(L_MUTEX);
   for(cm = GD->thread.mutexes; cm; cm = cm->next)
   { if ( cm->count == 0 )
       continue;
@@ -354,7 +356,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 	Sdprintf("\n");
     }
   }
-  PL_UNLOCK(L_THREAD);
+  PL_UNLOCK(L_MUTEX);
 
   succeed;
 }
@@ -540,20 +542,23 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   { btrace_destroy(ld->btrace_store);
     ld->btrace_store = NULL;
   }
+#ifdef O_LOCALE
+  if ( ld->locale.current )
+    releaseLocale(ld->locale.current);
+#endif
   info->thread_data = NULL;
   info->has_tid = FALSE;		/* needed? */
   ld->thread.info = NULL;		/* avoid a loop */
   if ( !after_fork )
     UNLOCK();
 
-  if ( info->detached )
+  if ( info->detached || acknowledge )
     free_thread_info(info);
 
   freeHeap(ld, sizeof(*ld));
 
   if ( acknowledge )			/* == canceled */
-  { free_thread_info(info);
-    pthread_detach(pthread_self());
+  { pthread_detach(pthread_self());
     sem_post(sem_canceled_ptr);
   }
 }
@@ -1460,6 +1465,9 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->IO.input_stack		  = NULL;
   ldnew->IO.output_stack	  = NULL;
   ldnew->encoding		  = LD->encoding;
+#ifdef O_LOCALE
+  ldnew->locale.current		  = acquireLocale(LD->locale.current);
+#endif
   ldnew->_debugstatus		  = LD->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
   ldnew->prolog_flag.mask	  = LD->prolog_flag.mask;
@@ -3757,10 +3765,10 @@ allocSimpleMutex(const char *name)
     m->name = store_string(name);
   else
     m->name = NULL;
-  LOCK();
+  PL_LOCK(L_MUTEX);
   m->next = GD->thread.mutexes;
   GD->thread.mutexes = m;
-  UNLOCK();
+  PL_UNLOCK(L_MUTEX);
 
   return m;
 }
@@ -3771,7 +3779,7 @@ freeSimpleMutex(counting_mutex *m)
 { counting_mutex *cm;
 
   simpleMutexDelete(&m->mutex);
-  LOCK();
+  PL_LOCK(L_MUTEX);
   if ( m == GD->thread.mutexes )
   { GD->thread.mutexes = m->next;
   } else
@@ -3780,7 +3788,7 @@ freeSimpleMutex(counting_mutex *m)
 	cm->next = m->next;
     }
   }
-  UNLOCK();
+  PL_UNLOCK(L_MUTEX);
 
   remove_string((char *)m->name);
   freeHeap(m, sizeof(*m));
@@ -5500,6 +5508,50 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
 }
 
 
+/** '"$thread_local_clause_count'(:Head, +Thread, -NumberOfClauses) is semidet.
+
+True when NumberOfClauses is the number  of clauses for the thread-local
+predicate Head in Thread.  Fails silently if
+
+  - Head does not refer to an existing predicate
+  - The predicate exists, but is not thread local (should
+    this be an error?)
+  - The thread does not exist
+  - The definition was never localised for Thread. One
+    could argue to return 0 for this case.
+
+@author	Keri Harris
+*/
+
+static
+PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
+{ PRED_LD
+  Procedure proc;
+  Definition def;
+  PL_thread_info_t *info;
+  int number_of_clauses = 0;
+
+  term_t pred = A1;
+  term_t thread = A2;
+  term_t count  = A3;
+
+  if ( !get_procedure(pred, &proc, 0, GP_RESOLVE) )
+    fail;
+
+  def = proc->definition;
+  if ( false(def, P_THREAD_LOCAL) )
+    fail;
+
+  if ( !get_thread_sync(thread, &info, FALSE) )
+    fail;
+
+  if ( (def = getProcDefinitionForThread(proc->definition, info->pl_tid)) )
+    number_of_clauses = def->impl.clauses.number_of_clauses;
+
+  return PL_unify_integer(count, number_of_clauses);
+}
+
+
 		 /*******************************
 		 *	DEBUGGING SUPPORT	*
 		 *******************************/
@@ -5657,5 +5709,6 @@ BeginPredDefs(thread)
   PRED_DEF("mutex_create", 1, mutex_create1, 0)
   PRED_DEF("mutex_create", 2, mutex_create2, PL_FA_ISO)
   PRED_DEF("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
+  PRED_DEF("$thread_local_clause_count", 3, thread_local_clause_count, 0)
 #endif
 EndPredDefs

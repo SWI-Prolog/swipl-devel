@@ -1,11 +1,11 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2013, University of Amsterdam
+			      VU University Amsterdam
+			      Vienna University of Technology
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -32,9 +32,15 @@
 :- module(pure_input,
 	  [ phrase_from_file/2,		% :Grammar, +File
 	    phrase_from_file/3,		% :Grammar, +File, +Options
-	    stream_to_lazy_list/2
+	    syntax_error//1,		% +ErrorTerm
+					% Low level interface
+	    lazy_list_location//1,	% -Location
+	    lazy_list_character_count//1, % -CharacterCount
+	    phrase_from_stream/2,	% :Grammar, +Stream
+	    stream_to_lazy_list/2	% :Stream -List
 	  ]).
 :- use_module(library(option)).
+:- use_module(library(error)).
 
 /** <module> Pure Input from files
 
@@ -102,24 +108,111 @@ phrase_from_file(Grammar, File) :-
 %	and =encoding=.
 
 phrase_from_file(Grammar, File, Options) :-
-	strip_module(Grammar, M, G),
 	(   select_option(buffer_size(BS), Options, OpenOptions)
 	->  true
 	;   BS=512,
 	    OpenOptions = Options
 	),
-	qphrase_file(M:G, File, BS, OpenOptions).
+	setup_call_cleanup(
+	    open(File, read, In, OpenOptions),
+	    phrase_stream(Grammar, In, BS),
+	    close(In)).
 
-
-qphrase_file(QGrammar, File, BS, Options) :-
-	setup_call_cleanup(open(File, read, In, Options),
-			       qphrase_stream(QGrammar, In, BS),
-			       close(In)).
-
-qphrase_stream(QGrammar, In, BuffserSize) :-
+phrase_stream(Grammar, In, BuffserSize) :-
 	 set_stream(In, buffer_size(BuffserSize)),
+	 phrase_from_stream(Grammar, In).
+
+
+%%	phrase_from_stream(:Grammer, +Stream)
+%
+%	Helper for phrase_from_file/3. This   predicate  cooperates with
+%	syntax_error//1 to generate syntax error locations for grammars.
+
+phrase_from_stream(Grammar, In) :-
 	 stream_to_lazy_list(In, List),
-	 phrase(QGrammar, List).
+	 phrase(Grammar, List).
+
+%%	syntax_error(+Error)//
+%
+%	Throw the syntax error Error  at   the  current  location of the
+%	input. This predicate is designed to  be called from the handler
+%	of phrase_from_file/3.
+%
+%	@throws	error(syntax_error(Error), Location)
+
+syntax_error(Error) -->
+	lazy_list_location(Location),
+	{ throw(error(syntax_error(Error), Location))
+	}.
+
+%%	lazy_list_location(-Location)// is det.
+%
+%	True when Location is an (error)   location term that represents
+%	the current location in the DCG list.
+%
+%	@arg	Location is a term file(Name, Line, LinePos, CharNo) or
+%		stream(Stream, Line, LinePos, CharNo) if no file is
+%		associated to the stream RestLazyList.  Finally, if the
+%		Lazy list is fully materialized (ends in =|[]|=), Location
+%		is unified with `end_of_file-CharCount`.
+%	@see	lazy_list_character_count//1 only provides the character
+%		count.
+
+lazy_list_location(Location, Here, Here) :-
+	lazy_list_location(Here, Location).
+
+lazy_list_location(Here, Location) :-
+	'$skip_list'(Skipped, Here, Tail),
+	(   attvar(Tail)
+	->  frozen(Tail,
+		   pure_input:read_to_input_stream(Stream, PrevPos, Pos, _List)),
+	    Details = [Line, LinePos, CharNo],
+	    (	stream_property(Stream, file_name(File))
+	    ->	PosParts = [file, File|Details]
+	    ;	PosParts = [stream, Stream|Details]
+	    ),
+	    Location =.. PosParts,
+	    stream_position_data(char_count, Pos, EndRecordCharNo),
+	    CharNo is EndRecordCharNo - Skipped,
+	    set_stream_position(Stream, PrevPos),
+	    stream_position_data(char_count, PrevPos, StartRecordCharNo),
+	    Skip is CharNo-StartRecordCharNo,
+	    forall(between(1, Skip, _), get_code(Stream, _)),
+	    stream_property(Stream, position(ErrorPos)),
+	    stream_position_data(line_count, ErrorPos, Line),
+	    stream_position_data(line_position, ErrorPos, LinePos)
+	;   Tail == []
+	->  Location = end_of_file-Skipped
+	;   type_error(lazy_list, Here)
+	).
+
+
+%%	lazy_list_character_count(-CharCount)//
+%
+%	True when CharCount is the current   character count in the Lazy
+%	list. The character count is computed by finding the distance to
+%	the next frozen tail of the lazy list. CharCount is one of:
+%
+%	  - An integer
+%	  - A term end_of_file-Count
+%
+%	@see	lazy_list_location//1 provides full details of the location
+%		for error reporting.
+
+lazy_list_character_count(Location, Here, Here) :-
+	lazy_list_character_count(Here, Location).
+
+lazy_list_character_count(Here, CharNo) :-
+	'$skip_list'(Skipped, Here, Tail),
+	(   attvar(Tail)
+	->  frozen(Tail,
+		   pure_input:read_to_input_stream(_Stream, _PrevPos, Pos, _List)),
+	    stream_position_data(char_count, Pos, EndRecordCharNo),
+	    CharNo is EndRecordCharNo - Skipped
+	;   Tail == []
+	->  CharNo = end_of_file-Skipped
+	;   type_error(lazy_list, Here)
+	).
 
 
 %%	stream_to_lazy_list(+Stream, -List) is det.
@@ -137,13 +230,16 @@ qphrase_stream(QGrammar, In, BuffserSize) :-
 %	@tbd	Enhance of lazy list throughout the system.
 
 stream_to_lazy_list(Stream, List) :-
-	stream_property(Stream, position(Pos)),
-	freeze(List, read_to_input_stream(Stream, Pos, List)).
+	stream_to_lazy_list(Stream, -, List).
 
-read_to_input_stream(Stream, Pos, List) :-
+stream_to_lazy_list(Stream, PrevPos, List) :-
+	stream_property(Stream, position(Pos)),
+	freeze(List, read_to_input_stream(Stream, PrevPos, Pos, List)).
+
+read_to_input_stream(Stream, _PrevPos, Pos, List) :-
 	set_stream_position(Stream, Pos),
 	(   at_end_of_stream(Stream)
 	->  List = []
 	;   read_pending_input(Stream, List, Tail),
-	    stream_to_lazy_list(Stream, Tail)
+	    stream_to_lazy_list(Stream, Pos, Tail)
 	).

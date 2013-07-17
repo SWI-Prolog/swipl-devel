@@ -38,11 +38,20 @@ test_misc :-
 
 :- begin_tests(misc).
 
+p(_).
+p(C) :- prolog_cut_to(C).
+
 test(read_only_flag, Access == read) :-
 	'$current_prolog_flag'(arch, _, _Global, Access, _Type).
 test(cut_to, all(X == [1])) :-
 	prolog_current_choice(Ch),
 	between(1, 5, X),
 	prolog_cut_to(Ch).
+test(cut_to, error(existence_error(choice,_))) :-
+	(   prolog_current_choice(C),
+	    p(C)
+	*-> fail
+	;   fail
+	).
 
 :- end_tests(misc).

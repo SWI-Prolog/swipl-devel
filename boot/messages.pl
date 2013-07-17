@@ -215,6 +215,8 @@ syntax_error(punct(Punct, End)) -->
 	[ 'Unexpected `~w\' before `~w\''-[Punct, End] ].
 syntax_error(undefined_char_escape(C)) -->
 	[ 'Undefined character escape in quoted atom or string: `\\~w\''-[C] ].
+syntax_error(void_not_allowed) -->
+	[ 'Empty argument list "()"' ].
 syntax_error(Message) -->
 	[ '~w'-[Message] ].
 
@@ -278,7 +280,8 @@ swi_message(context_error(edit, no_default_file)) -->
 	       Prolog file by double-clicking it' ]
 	;   [ 'Edit/0 can only be used with the "-s file" commandline option'
 	    ]
-	).
+	),
+	[ nl, 'Use "?- edit(Topic)." or "?- emacs."' ].
 swi_message(format_argument_type(Fmt, Arg)) -->
 	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
 swi_message(format(Msg)) -->
@@ -308,7 +311,9 @@ swi_location(file(Path, Line, -1, _CharNo)) --> !,
 swi_location(file(Path, Line, LinePos, _CharNo)) -->
 	[ '~w:~d:~d: '-[Path, Line, LinePos] ].
 swi_location(stream(Stream, Line, LinePos, CharNo)) -->
-	(   { stream_property(Stream, file_name(File)) }
+	(   { is_stream(Stream),
+	      stream_property(Stream, file_name(File))
+	    }
 	->  swi_location(file(File, Line, LinePos, CharNo))
         ;   [ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ]
 	).
@@ -349,6 +354,10 @@ swi_extra(_) -->
 
 swi_comment(already_from(Module)) --> !,
 	[ ' (already imported from ~q)'-[Module] ].
+swi_comment(directory(_Dir)) --> !,
+	[ ' (is a directory)' ].
+swi_comment(not_a_directory(_Dir)) --> !,
+	[ ' (is not a directory)' ].
 swi_comment(Msg) -->
 	[ ' (~w)'-[Msg] ].
 
@@ -645,7 +654,7 @@ prolog_message(threads) -->
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
-	[ 'Copyright (c) 1990-2012 University of Amsterdam, VU Amsterdam', nl,
+	[ 'Copyright (c) 1990-2013 University of Amsterdam, VU Amsterdam', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
@@ -1158,10 +1167,15 @@ prefix_nl([H|T0], Prefix, [H|T]) :-
 
 %%	print_message_lines(+Stream, +Lines)
 
-print_message_lines(_, []) :- !.
-print_message_lines(S, [H|T]) :-
+print_message_lines(Stream, Lines) :-
+	with_output_to(
+	    Stream,
+	    print_message_lines_guarded(current_output, Lines)).
+
+print_message_lines_guarded(_, []) :- !.
+print_message_lines_guarded(S, [H|T]) :-
 	line_element(S, H),
-	print_message_lines(S, T).
+	print_message_lines_guarded(S, T).
 
 line_element(S, E) :-
 	notrace(prolog:message_line_element(S, E)), !.
@@ -1218,6 +1232,7 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 	append_args([Term], Args1, Args).
 
 action_skip(at_same_line).
+action_skip(flush).
 action_skip(ansi(_Attrs, _Fmt, _Args)).
 action_skip(begin(_Level, _Ctx)).
 action_skip(end(_Ctx)).

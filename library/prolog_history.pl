@@ -31,7 +31,6 @@
 	  [ prolog_history/1
 	  ]).
 :- use_module(library(base32)).
-:- use_module(library(lists)).
 
 /** <module> Per-directory persistent commandline history
 
@@ -88,7 +87,7 @@ dir_history_file(Dir, File) :-
 dir_history_file(Dir, File) :-
 	history_directory(HDir),
 	directory_files(HDir, Files),
-	member(Base32, Files),
+	'$member'(Base32, Files),
 	base32(Dir, Base32),
 	atomic_list_concat([Dir, Base32], /, File).
 

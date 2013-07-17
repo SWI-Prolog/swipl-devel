@@ -35,7 +35,7 @@ licenses from the Free Software Foundation, the
 (GPL) and the
 \url[Lesser GNU General Public License]{http://www.gnu.org/copyleft/lesser.html}
 (LGPL),
-after which we add a proven (used by the GNU-C compiler runtime library
+after which we add a proven (used by the GNU C compiler runtime library
 as well as the GNU \emph{ClassPath} project) exception to deal with the
 specific nature of compiled virtual machine code in a saved state.
 
@@ -49,20 +49,21 @@ the %href(lgpl, Lesser GNU Public License), also called the
 \program{swipl-rc} utility allows for disassembling and re-assembling these
 parts, a process satisfying article \textbf{6b} of the LGPL.
 
-Under the LGPL SWI-Prolog can be linked to code distributed under
+Under the LGPL, SWI-Prolog can be linked to code distributed under
 arbitrary licenses, provided a number of requirements are fulfilled.
-The most important requirement is that, if an application relies on a
+The most important requirement is that if an application relies on a
 \emph{modified} version of SWI-Prolog, the modified sources must
 be made available.
 
 
 \subsection{The SWI-Prolog Prolog libraries}
+\label{sec:license-lib}
 
 Lacking a satisfactory technical solution to handle article \textbf{6} of the
 LGPL, this license cannot be used for the Prolog source code that is part
 of the SWI-Prolog system (both libraries and kernel code).  This situation
 is comparable to \file{libgcc}, the runtime library used
-with the GNU C-compiler. Therefore, we use the same proven license terms
+with the GNU C compiler. Therefore, we use the same proven license terms
 as this library. The libgcc license is the %href(gpl, GPL), accompanied
 with a special exception. Below we rephrase this exception adjusted to
 our needs:
@@ -71,7 +72,7 @@ our needs:
 As a special exception, if you link this library with other files,
 compiled with a Free Software compiler, to produce an executable, this
 library does not by itself cause the resulting executable to be covered
-by the GNU General Public License. This exception does not however
+by the GNU General Public License. This exception does not, however,
 invalidate any other reasons why the executable file might be covered by
 the GNU General Public License.
 \end{quote}
@@ -95,10 +96,10 @@ code under strict GPL compliant licenses.
 Given the above, it is possible that SWI-Prolog packages and extensions
 will rely on the GPL.%
     \footnote{On the Unix version, the default toplevel uses the
-	      GNU readline library for command-line editing.  This
+	      GNU readline library for command line editing.  This
 	      library is distributed under the GPL.  In practice this
 	      problem is small as most final applications have Prolog
-	      embedded, without direct access to the commandline and
+	      embedded, without direct access to the command line and
 	      therefore without need for \file{libreadline}.}
 The predicates below allow for registering license requirements for
 Prolog files and foreign modules.  The predicate eval_license/0 reports
@@ -124,14 +125,14 @@ identified by \arg{LicenseId}. The most important \arg{LicenseId}'s are:
 Indicates this module is distributed under the GNU General Public
 License (GPL) with the SWI-Prolog exception:%
     \footnote{This exception is a straight re-phrasing of the license
-	      used for \file{libgcc}, the GNU-C runtime library facing
+	      used for \file{libgcc}, the GNU C runtime library facing
 	      similar technical issues.}
 
 \begin{quote}\it
 As a special exception, if you link this library with other files,
 compiled with SWI-Prolog, to produce an executable, this library does
 not by itself cause the resulting executable to be covered by the GNU
-General Public License. This exception does not however invalidate any
+General Public License. This exception does not, however, invalidate any
 other reasons why the executable file might be covered by the GNU
 General Public License.
 \end{quote}
@@ -192,7 +193,7 @@ be made \emph{before} PL_initialise().
 \subsection{Cryptographic routines}		\label{sec:cryptlicense}
 
 Cryptographic routines are used in variant_sha1/2 and \pllib{crypt}.
-These routines are provided under the following conditions.
+These routines are provided under the following conditions:
 
 \begin{verbatim}
 Copyright (c) 2002, Dr Brian Gladman, Worcester, UK.   All rights reserved.

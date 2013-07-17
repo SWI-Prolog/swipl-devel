@@ -160,11 +160,12 @@ static ssize_t
 Srlc_read(void *handle, char *buffer, size_t size)
 { rlc_console c = handle;
   size_t bytes;
+  int is_user_input = (Suser_input && Suser_input->handle == c);
+  term_t ex;
 
   PL_write_prompt(TRUE);
 
-  if ( Suser_input &&
-       Suser_input->handle == c &&
+  if ( is_user_input &&
        PL_ttymode(Suser_input) == PL_RAWTTY )
   { int chr = getkey(c);
     TCHAR *tbuf = (TCHAR*)buffer;
@@ -178,6 +179,11 @@ Srlc_read(void *handle, char *buffer, size_t size)
   } else
   { bytes = rlc_read(c, (TCHAR*)buffer, size/sizeof(TCHAR));
     bytes *= sizeof(TCHAR);
+  }
+
+  if ( is_user_input && (ex=PL_exception(0)) )
+  { Sset_exception(Suser_input, ex);
+    return -1;
   }
 
   if ( bytes == 0 || buffer[bytes-1] == '\n' )
@@ -195,6 +201,10 @@ The flushing code will remember `half'   characters  and re-send them as
 more data comes ready. This means however  that after a put_byte(X), the
 wchar_t stream is out-of-sync and produces   unreadable  output. We will
 therefore pad it with '?' characters to re-sync the stream.
+
+The downside of this is  that  Sputc()   and  Sputcode()  do not work on
+unbuffered streams and thus Serror  must   be  locked before using these
+functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ssize_t

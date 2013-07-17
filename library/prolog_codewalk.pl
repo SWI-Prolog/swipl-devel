@@ -76,12 +76,13 @@ source file is passed into _Where.
 		     [ undefined(oneof([ignore,error,trace])),
 		       autoload(boolean),
 		       module(atom),
-		       module_class(oneof([default,user,system,
-					   library,test,development])),
+		       module_class(list(oneof([user,system,library,
+						test,development]))),
 		       source(boolean),
 		       trace_reference(any),
 		       on_trace(callable),
-		       infer_meta_predicates(oneof([false,true,all]))
+		       infer_meta_predicates(oneof([false,true,all])),
+		       evaluate(boolean)
 		     ]).
 
 :- record
@@ -89,8 +90,8 @@ source file is passed into _Where.
 		    autoload:boolean=true,
 		    source:boolean=true,
 		    module:atom,		% Only analyse given module
-		    module_class:oneof([default,user,system,
-					library,test,development])=default,
+		    module_class:list(oneof([user,system,library,
+					     test,development]))=[user,library],
 		    infer_meta_predicates:oneof([false,true,all])=true,
 		    trace_reference:any=(-),
 		    on_trace:callable,		% Call-back on trace hits
@@ -196,18 +197,14 @@ prolog_walk_code(Iteration, Options) :-
 
 is_meta(on_trace).
 
+%%	scan_module(+Module, +OTerm) is semidet.
+%
+%	True if we must scan Module according to OTerm.
 
 scan_module(M, OTerm) :-
-	walk_option_module_class(OTerm, Class),
-	Class \== default, !,
-	module_property(M, class(Class)).
-scan_module(M, _) :-
+	walk_option_module_class(OTerm, Classes),
 	module_property(M, class(Class)),
-	scan_module_class(Class).
-
-scan_module_class(user).
-scan_module_class(library).
-
+	memberchk(Class, Classes).
 
 %%	walk_from_initialization(+OTerm)
 %
@@ -417,10 +414,10 @@ walk_called(Goal, M, TermPos, OTerm) :-
 	prolog:called_by(Goal, Called),
 	Called \== [], !,
 	walk_called_by(Called, M, Goal, TermPos, OTerm).
-walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
+walk_called(Meta, M, term_position(_,E,_,_,ArgPosList), OTerm) :-
 	(   walk_option_autoload(OTerm, false)
-	->  nonvar(Module),
-	    '$get_predicate_attribute'(Module:Meta, defined, 1)
+	->  nonvar(M),
+	    '$get_predicate_attribute'(M:Meta, defined, 1)
 	;   true
 	),
 	(   predicate_property(M:Meta, meta_predicate(Head))
@@ -428,7 +425,7 @@ walk_called(Meta, M, term_position(_,_,_,_,ArgPosList), OTerm) :-
 	), !,
 	walk_option_clause(OTerm, ClauseRef),
 	register_possible_meta_clause(ClauseRef),
-	walk_meta_call(1, Head, Meta, M, ArgPosList, OTerm).
+	walk_meta_call(1, Head, Meta, M, ArgPosList, E-E, OTerm).
 walk_called(Goal, Module, _, _) :-
 	nonvar(Module),
 	'$get_predicate_attribute'(Module:Goal, defined, 1), !.
@@ -599,13 +596,22 @@ calling_metaarg(//).
 
 
 %%	walk_meta_call(+Index, +GoalHead, +MetaHead, +Module,
-%%		       +ArgPosList, +OTerm)
+%%		       +ArgPosList, +EndPos, +OTerm)
 %
 %	Walk a call to a meta-predicate.   This walks all meta-arguments
 %	labeled with an integer, ^ or //.
+%
+%	@arg	EndPos reflects the end of the term.  This is used if the
+%		number of arguments in the compiled form exceeds the
+%		number of arguments in the term read.
 
-walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
+walk_meta_call(I, Head, Meta, M, ArgPosList, EPos, OTerm) :-
 	arg(I, Head, AS), !,
+	(   ArgPosList = [ArgPos|ArgPosTail]
+	->  true
+	;   ArgPos = EPos,
+	    ArgPosTail = []
+	),
 	(   integer(AS)
 	->  arg(I, Meta, MA),
 	    extend(MA, AS, Goal, ArgPos, ArgPosEx, OTerm),
@@ -620,8 +626,8 @@ walk_meta_call(I, Head, Meta, M, [ArgPos|ArgPosList], OTerm) :-
 	;   true
 	),
 	succ(I, I2),
-	walk_meta_call(I2, Head, Meta, M, ArgPosList, OTerm).
-walk_meta_call(_, _, _, _, _, _).
+	walk_meta_call(I2, Head, Meta, M, ArgPosTail, EPos, OTerm).
+walk_meta_call(_, _, _, _, _, _, _).
 
 remove_quantifier(Goal, _, TermPos, TermPos, M, M, OTerm) :-
 	var(Goal), !,
@@ -691,6 +697,10 @@ walk_dcg_body((A*->B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
 	walk_dcg_body(A, M, PA, OTerm),
 	walk_dcg_body(B, M, PB, OTerm).
 walk_dcg_body((A;B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
+	(   walk_dcg_body(A, M, PA, OTerm)
+	;   walk_dcg_body(B, M, PB, OTerm)
+	).
+walk_dcg_body((A|B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
 	(   walk_dcg_body(A, M, PA, OTerm)
 	;   walk_dcg_body(B, M, PB, OTerm)
 	).

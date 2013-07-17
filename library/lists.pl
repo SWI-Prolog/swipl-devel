@@ -69,6 +69,7 @@
 	  subtract/3			% +Set, +Delete, -Remaining
 	]).
 :- use_module(library(error)).
+:- use_module(library(pairs)).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -180,9 +181,7 @@ selectchk(Elem, List, Rest) :-
 select(X, XList, Y, YList) :-
 	select_(XList, X, Y, YList).
 
-select_([], _, _, []).
-select_([X|XList], X, Y, [Y|YList]) :-
-	select_(XList, X, Y, YList).
+select_([X|List], X, Y, [Y|List]).
 select_([X0|XList], X, Y, [X0|YList]) :-
 	select_(XList, X, Y, YList).
 
@@ -600,25 +599,49 @@ is_set(Set) :-
 
 %%	list_to_set(+List, ?Set) is det.
 %
-%	True when Set has the same elements  as  List in the same order.
-%	The left-most copy of the duplicate  is retained. The complexity
-%	of this operation is |List|^2.
+%	True when Set has the same elements   as List in the same order.
+%	The left-most copy of duplicate elements   is retained. List may
+%	contain  variables.  Elements  _E1_  and   _E2_  are  considered
+%	duplicates iff _E1_  ==  _E2_  holds.   The  complexity  of  the
+%	implementation is N*log(N).
 %
-%	@see sort/2.
+%	@see	sort/2 can be used to create an ordered set.  Many
+%		set operations on ordered sets are order N rather than
+%		order N**2.  The list_to_set/2 predicate is is more
+%		expensive than sort/2 because it involves, in addition
+%		to a sort, three linear scans of the list.
+%	@compat	Up to version 6.3.11, list_to_set/2 had complexity
+%		N**2 and equality was tested using =/2.
+%	@error	List is type-checked.
+%	@author	Ulrich Neumerkel
 
 list_to_set(List, Set) :-
-	list_to_set_(List, Set0),
-	Set = Set0.
+	must_be(list, List),
+	pairs_keys(Indexed, List),	% Create pairs Value-Var
+	keysort(Indexed, ByValue),
+	equalize(ByValue),		% Unify vars of same value
+        pairs_to_keyset(Indexed,Set).	% Select the first one
 
-list_to_set_([], R) :-
-	close_list(R).
-list_to_set_([H|T], R) :-
-	memberchk(H, R), !,
-	list_to_set_(T, R).
+equalize([]).
+equalize([K-I|KIs]) :-
+	equalize_to(KIs, K, I).
 
-close_list([]) :- !.
-close_list([_|T]) :-
-	close_list(T).
+equalize_to([], _, _).
+equalize_to([K-I|KIs], Kr, Ir) :-
+	(   K == Kr
+	->  I = Ir,
+	    equalize_to(KIs, Kr, Ir)
+	;   equalize_to(KIs, K, I)
+	).
+
+pairs_to_keyset([], []).
+pairs_to_keyset([K-I|KIs], Ks0) :-
+	var(I), !,
+	I = v,
+	Ks0 = [K|Ks],
+	pairs_to_keyset(KIs, Ks).
+pairs_to_keyset([_KI|KIs], Ks) :-
+	pairs_to_keyset(KIs, Ks).
 
 
 %%	intersection(+Set1, +Set2, -Set3) is det.

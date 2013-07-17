@@ -66,6 +66,7 @@
 %	    fmode/2,
 %	    chmod/2,
 %	    chmod/3,
+	    mktemp_in_tmp/2,
 	    delete_file/1,
 	    delete_directory/1,
 	    rename_file/2
@@ -117,3 +118,9 @@ current_host(Host) :-
 
 popen(Command, Mode, Stream) :-
 	open(pipe(Command), Mode, Stream).
+
+%% mktemp_in_tmp(+Template:atom,+FileName:atom) is det.
+%
+%	Same as tmp_file/2.
+
+mktemp_in_tmp(Template, FileName) :- tmp_file(Template, FileName).

@@ -425,6 +425,7 @@
 
 %	Prolog predicate summary
 
+\newcommand{\libsummary}[1]{\subsection{library(#1)}}
 \newenvironment{summarylist}[1]{\begin{longtable}[l]{#1}}{\end{longtable}}
 \newcommand{\predicatesummary}[3]{#1/#2 & #3 \\}
 \newcommand{\oppredsummary}[5]{#1/#2 & #5 \\}
@@ -496,10 +497,21 @@
 
 
 %	\begin{parameters} ... \end{parameters}
+%
+%	Deprecated.  New generater uses arguments
 
 \newenvironment{parameters}%
 	{\par%
 	 \makebox[\linewidth]{\hfill\footnotesize Parameters}
+	 \begin{tabular*}{\linewidth}{lp{0.7\linewidth}}
+	 \hline}%
+	{\end{tabular*}}
+
+%	\begin{arguments} ... \end{arguments}
+
+\newenvironment{arguments}%
+	{\par%
+	 \makebox[\linewidth]{\hfill\footnotesize Arguments}
 	 \begin{tabular*}{\linewidth}{lp{0.7\linewidth}}
 	 \hline}%
 	{\end{tabular*}}

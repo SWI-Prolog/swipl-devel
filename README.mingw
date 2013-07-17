@@ -66,6 +66,8 @@ case "$TARGETHOST" in
 	   return
 esac
 
+PS1=W$BITS' (\W\[\e[36m\]$(__git_ps1 "; %s")\[\e[0m\]) \!_> '
+
 export BUILDARCH=$TARGETHOST
 
 # Versions of prerequisite packages. Used to  download the right release
@@ -145,6 +147,7 @@ export JAVAPREFIX
 
 # Set some variables to find the Windows libraries and include files
 
+# export COFLAGS=-g
 export CIFLAGS="-I$install/include"
 export CPPFLAGS=-I$install/include
 export LDFLAGS="-L$install/lib"
@@ -380,12 +383,24 @@ build_prerequisites()
 ###########################
 # Download and unpack a SWI-Prolog source distribution.
 
+enter_topdir()
+{ if [ ! -r build.templ ]; then
+    if [ -r $PLDIR/build.templ ]; then
+      cd $PLDIR
+    else
+      echo "ERROR: Cannot find SWI-Prolog sources"
+      return 1
+    fi
+  fi
+}
+
+
 download_swipl()
-{ if [ ! -d $PLDIR ]; then
+{ if [ ! -d $PLDIR -a ! -r build.templ ]; then
     git clone git://www.swi-prolog.org/home/pl/git/$PLDIR.git
   fi
 
-  ( cd $PLDIR
+  ( enter_topdir
     git pull
     ./prepare --yes
   )
@@ -394,13 +409,15 @@ download_swipl()
 build_swipl_core()
 { export CIFLAGS="-I$install/include"
   export LDFLAGS="-L$install/lib"
-  ( cd $PLDIR
+  ( enter_topdir
     wineserver || true
     ./configure --host=$CROSS --prefix=$install \
         --disable-readline --disable-libdirversion \
         --enable-shared --disable-static
-    $MAKE
-    make install
+    $MAKE 2>&1 | tee make.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
+    make install 2>&1 | tee make-install.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
   )
 }
 
@@ -413,14 +430,23 @@ copy_dlls()
 # Usage: build_swipl_packages [pkg ...]
 
 build_swipl_packages()
-{ ( cd $PLDIR/packages
+{ ( enter_topdir
+    cd packages
     export CPPFLAGS=-I$install/include
     export PKGLDFLAGS=-I$install/lib
     [ -z "$1" ] || export PKG="$1"
     ./configure --host=$CROSS --prefix=$install
-    $MAKE || exit 1
-    make install || exit 1
+    $MAKE 2>&1 | tee -a ../make.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
+    make install 2>&1 | tee -a ../make-install.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
     make html-install || exit 1
+  )
+}
+
+check_build()
+{ ( enter_topdir
+    [ -f make.out ] && scripts/check_build_log.sh make.out
   )
 }
 
@@ -428,10 +454,11 @@ build_swipl()
 { build_swipl_core
   copy_dlls
   build_swipl_packages
+  check_build
 }
 
 clean_swipl()
-{ ( cd $PLDIR
+{ ( enter_topdir
     make distclean
   )
 }
@@ -442,7 +469,8 @@ uninstall_swipl()
 
 
 build_installer()
-{ ( cd $PLDIR/${BUILDARCH-src}
+{ ( enter_topdir
+    cd ${BUILDARCH-src}
     make installer
   )
 }
@@ -460,13 +488,9 @@ build_all()
 # Create a new release
 
 build_release()
-{ if [ -r README.mingw ]; then
-    ( cd .. && build_release )
-  else
-    clean_swipl
-    uninstall_swipl
-    download_swipl
-    build_swipl
-    build_installer
-  fi
+{ clean_swipl
+  uninstall_swipl
+  download_swipl
+  build_swipl
+  build_installer
 }

@@ -23,8 +23,8 @@
 
 #define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
 
-#include <math.h>
 #include "pl-incl.h"
+#include <math.h>
 #include "libtai/taia.h"
 #include "libtai/caltime.h"
 #include <stdio.h>

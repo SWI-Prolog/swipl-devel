@@ -278,7 +278,7 @@ Opts =    [ appl_config(verbose, 2),
 This representation may be preferable  with the empty-flag configuration
 parameter style above (perhaps with asserting appl_config/2).
 
----++ Notes and tips
+## Notes and tips {#optparse-notes}
 
     * In the example we were mostly explicit about the types. Since the
     default is =|term|=, which subsumes =|integer, float, atom|=, it

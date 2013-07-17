@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, VU University Amsterdam
+    Copyright (C): 2010-2013, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +31,7 @@
 	  [ ansi_format/3		% +Attr, +Format, +Args
 	  ]).
 :- use_module(library(apply)).
+:- use_module(library(error)).
 
 /** <module> Print decorated text to ANSI consoles
 
@@ -75,7 +76,7 @@ most modern terminals using ANSI escape sequences.
 %
 %	  - black, red, green, yellow, blue, magenta, cyan, white
 %
-%	ANSI sequences are omitted if and only if
+%	ANSI sequences are sent if and only if
 %
 %	  - The =current_output= has the property tty(true) (see
 %	    stream_property/2).
@@ -88,17 +89,20 @@ ansi_format(Stream, Attr, Format, Args) :-
 	stream_property(Stream, tty(true)),
 	current_prolog_flag(color_term, true), !,
 	(   is_list(Attr)
-	->  maplist(sgr_code, Attr, Codes),
+	->  maplist(sgr_code_ex, Attr, Codes),
 	    atomic_list_concat(Codes, ;, Code)
-	;   sgr_code(Attr, Code)
+	;   sgr_code_ex(Attr, Code)
 	),
-	(   Args == []
-	->  format(Stream, '\e[~wm~w\e[0m', [Code, Format])
-	;   format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
-	    format(Stream, Fmt, [Code|Args])
-	).
+	format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
+	format(Stream, Fmt, [Code|Args]),
+	flush_output.
 ansi_format(Stream, _Attr, Format, Args) :-
 	format(Stream, Format, Args).
+
+sgr_code_ex(Attr, Code) :-
+	sgr_code(Attr, Code), !.
+sgr_code_ex(Attr, _) :-
+	domain_error(sgr_code, Attr).
 
 %%	sgr_code(+Name, -Code)
 %
@@ -118,7 +122,7 @@ ansi_format(Stream, _Attr, Format, Args) :-
 %	  | crossed_out			|	|
 %	  | font(primary)		|	|
 %	  | font(N)			| Alternate font (1..8)	|
-%	  | franktur			|	|
+%	  | fraktur			|	|
 %	  | underline(double)		|	|
 %	  | intensity(normal)		|	|
 %	  | fg(Name)			| Color name	|
@@ -152,7 +156,7 @@ sgr_code(crossed_out, 9).
 sgr_code(font(primary), 10) :- !.
 sgr_code(font(N), C) :-
 	C is 10+N.
-sgr_code(franktur, 20).
+sgr_code(fraktur, 20).
 sgr_code(underline(double), 21).
 sgr_code(intensity(normal), 22).
 sgr_code(fg(Name), C) :-

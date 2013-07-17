@@ -336,12 +336,11 @@ load_associated_file :-
 	load_files(user:File, [expand(false)]).
 load_associated_file.
 
-
+:- if(current_predicate(system:win_registry_get_value/3)).
 hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
 hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 
 '$set_prolog_file_extension' :-
-	'$c_current_predicate'(_, system:win_registry_get_value(_,_,_)),
 	hkey(Key),
 	catch(win_registry_get_value(Key, fileExtension, Ext0),
 	      _, fail), !,
@@ -350,6 +349,7 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 	;   Ext = Ext0
 	),
 	create_prolog_flag(associate, Ext, []).
+:- endif.
 '$set_prolog_file_extension'.
 
 
@@ -374,11 +374,11 @@ initialise_prolog :-
 	init_debug_flags,
 	'$run_initialization',
 	'$load_system_init_file',
+	start_pldoc,
+	attach_packs,
 	'$option'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
-	start_pldoc,
-	attach_packs,
 	'$load_script_file',
 	load_associated_file,
 	'$option'(goal, GoalAtom),

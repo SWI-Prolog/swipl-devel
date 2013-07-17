@@ -53,6 +53,7 @@ locking is required.
 #endif
 
 #define PL_KERNEL 1
+#define O_LOCALE 1
 #include <wchar.h>
 #define NEEDS_SWINSOCK
 #include "SWI-Stream.h"
@@ -131,6 +132,9 @@ STRYLOCK(IOSTREAM *s)
 #endif
 
 #include "pl-error.h"
+#ifdef O_LOCALE
+#include "os/pl-locale.h"
+#endif
 
 extern int			fatalError(const char *fm, ...);
 extern int			PL_handle_signals();
@@ -1126,9 +1130,10 @@ Speekcode(IOSTREAM *s)
 
   start = s->bufp;
   if ( s->position )
-  { IOPOS psave = *s->position;
+  { IOPOS *psave = s->position;
+    s->position = NULL;
     c = Sgetcode(s);
-    *s->position = psave;
+    s->position = psave;
   } else
   { c = Sgetcode(s);
   }
@@ -1320,6 +1325,8 @@ ScheckBOM(IOSTREAM *s)
       { s->encoding = bd->encoding;
 	s->bufp += bd->bomlen;
 	s->flags |= SIO_BOM;
+	if ( s->position )
+	  s->position->byteno += bd->bomlen;
 	return 0;
       }
     }
@@ -1472,6 +1479,27 @@ Ssetenc(IOSTREAM *s, IOENC enc, IOENC *old)
 
   return 0;
 }
+
+#ifdef O_LOCALE
+int
+Ssetlocale(IOSTREAM *s, PL_locale *new, PL_locale **old)
+{ PL_locale *lo = s->locale;
+
+  if ( old )
+    *old = s->locale;
+  if ( new == s->locale )
+    return 0;
+
+  if ( new )
+    s->locale = acquireLocale(new);
+  else
+    s->locale = NULL;
+  if ( lo )
+    releaseLocale(lo);
+
+  return 0;
+}
+#endif
 
 		 /*******************************
 		 *	      FLUSH		*
@@ -1767,6 +1795,8 @@ Sclose(IOSTREAM *s)
 
   if ( s->message )
     free(s->message);
+  if ( s->locale )
+    releaseLocale(s->locale);
   if ( s->references == 0 )
     unallocStream(s);
   else
@@ -2669,7 +2699,7 @@ Sclose_file(void *handle)
 
   do
   { rc = close((int) h);
-  }  while ( rc == -1 && errno == EINTR );
+  } while ( rc == -1 && errno == EINTR );
 
   return rc;
 }
@@ -2738,8 +2768,7 @@ IOFUNCTIONS Sttyfunctions =
 application instead of returning EINVAL on  wrong   values  of fd. As we
 provide  the  socket-id  through   Sfileno,    this   code   crashes  on
 tcp_open_socket(). As ttys and its detection is   of no value on Windows
-anyway, we skip this. Second, Windows doesn't have fork(), so FD_CLOEXEC
-is of no value.
+anyway, we skip this.
 
 For now, we use PL_malloc_uncollectable(). In   the  end, this is really
 one of the object-types we want to leave to GC.
@@ -2785,16 +2814,25 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   }
 #endif
 
-#ifndef __WINDOWS__			/* (*) */
 { int fd;
   if ( (fd = Sfileno(s)) >= 0 )
-  { if ( isatty(fd) )
+  {
+#ifndef __WINDOWS__			/* (*) */
+    if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
-#ifdef F_SETFD
+#endif
+
+#if defined(F_SETFD)
     fcntl(fd, F_SETFD, FD_CLOEXEC);
+#elif defined(__WINDOWS__)
+    SetHandleInformation((HANDLE)_get_osfhandle(fd),
+			 HANDLE_FLAG_INHERIT, 0);
 #endif
   }
 }
+
+#ifdef O_LOCALE
+  initStreamLocale(s);
 #endif
 
   return s;
@@ -3120,9 +3158,9 @@ Sopen_pipe(const char *command, const char *type)
   { int flags;
 
     if ( *type == 'r' )
-      flags = SIO_INPUT|SIO_FBUF;
+      flags = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
     else
-      flags = SIO_OUTPUT|SIO_FBUF;
+      flags = SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF;
 
     return Snew((void *)fd, flags, &Spipefunctions);
   }
@@ -3149,7 +3187,8 @@ typedef struct
   size_t	size;			/* size of buffer */
   size_t       *sizep;			/* pointer to size */
   size_t	allocated;		/* allocated size */
-  char	      **buffer;			/* allocated buffer */
+  char	       *buffer;			/* allocated buffer */
+  char	      **bufferp;		/* Write-back location */
   int		malloced;		/* malloc() maintained */
 } memfile;
 
@@ -3185,29 +3224,29 @@ Swrite_memfile(void *handle, char *buf, size_t size)
 	return -1;
       }
       if ( !mf->malloced )
-      { if ( *mf->buffer )
-	  memcpy(nb, *mf->buffer, mf->allocated);
+      { if ( mf->buffer )
+	  memcpy(nb, mf->buffer, mf->allocated);
 	mf->malloced = TRUE;
       }
     } else
-    { if ( !(nb = realloc(*mf->buffer, ns)) )
+    { if ( !(nb = realloc(mf->buffer, ns)) )
       { errno = ENOMEM;
 	return -1;
       }
     }
 
     mf->allocated = ns;
-    *mf->buffer = nb;
+    *mf->bufferp = mf->buffer = nb;
   }
 
-  memcpy(&(*mf->buffer)[mf->here], buf, size);
+  memcpy(&mf->buffer[mf->here], buf, size);
   mf->here += size;
 
   if ( mf->here > mf->size )
   { mf->size = mf->here;
     if ( mf->sizep )			/* make externally known */
       *mf->sizep = mf->size;
-    (*mf->buffer)[mf->size] = '\0';
+    mf->buffer[mf->size] = '\0';
   }
 
   return size;
@@ -3225,7 +3264,7 @@ Sread_memfile(void *handle, char *buf, size_t size)
       size = mf->size - mf->here;
   }
 
-  memcpy(buf, &(*mf->buffer)[mf->here], size);
+  memcpy(buf, &mf->buffer[mf->here], size);
   mf->here += size;
 
   return size;
@@ -3311,7 +3350,7 @@ and other output predicates to create strings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 IOSTREAM *
-Sopenmem(char **buffer, size_t *sizep, const char *mode)
+Sopenmem(char **bufp, size_t *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
   int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX;
   size_t size;
@@ -3322,12 +3361,14 @@ Sopenmem(char **buffer, size_t *sizep, const char *mode)
   }
 
   mf->malloced = FALSE;
+  mf->bufferp  = bufp;
+  mf->buffer   = *bufp;
 
   switch(*mode)
   { case 'r':
       flags |= SIO_INPUT;
       if ( sizep == NULL || *sizep == (size_t)-1 )
-	size = (*buffer ? strlen(*buffer) : 0);
+	size = (mf->buffer ? strlen(mf->buffer) : 0);
       else
 	size = *sizep;
       mf->size = size;
@@ -3337,10 +3378,10 @@ Sopenmem(char **buffer, size_t *sizep, const char *mode)
       flags |= SIO_OUTPUT;
       mf->size = 0;
       mf->allocated = (sizep ? *sizep : 0);
-      if ( *buffer == NULL || mode[1] == 'a' )
+      if ( mf->buffer == NULL || mode[1] == 'a' )
 	mf->malloced = TRUE;
-      if ( *buffer )
-	*buffer[0] = '\0';
+      if ( mf->buffer )
+	mf->buffer[0] = '\0';
       if ( sizep )
 	*sizep = mf->size;
       break;
@@ -3352,7 +3393,6 @@ Sopenmem(char **buffer, size_t *sizep, const char *mode)
 
   mf->sizep	= sizep;
   mf->here      = 0;
-  mf->buffer    = buffer;
 
   return Snew(mf, flags, &Smemfunctions);
 }

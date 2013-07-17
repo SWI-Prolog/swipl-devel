@@ -28,10 +28,9 @@
 */
 
 :- module(ciao_internals,
-	  [ module_concat/3		% +Module, :Goal, -NewGoal
+	  [ module_concat/3,	% +Module, :Goal, -NewGoal
+	    '$setarg'/4		% +Arg, +Term, +Value, +Mode
 	  ]).
-
-:- new_declaration(impl_defined/1).
 
 :- meta_predicate
 	module_concat(+, :, -).
@@ -44,3 +43,6 @@
 
 module_concat(Module, Goal, Module:Plain) :-
 	strip_module(Goal, _, Plain).
+
+'$setarg'(Arg, Term, Value, true) :- nb_setarg(Arg, Term, Value).
+'$setarg'(Arg, Term, Value, on)   :- setarg(Arg, Term, Value).

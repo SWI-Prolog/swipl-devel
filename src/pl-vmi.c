@@ -1980,13 +1980,13 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     if ( (ch = findStartChoice(FR, BFR)) )
     { m = ch->mark;
       SAVE_REGISTERS(qid);
-      dbg_discardChoicesAfter(FR PASS_LD);
+      dbg_discardChoicesAfter(FR, FINISH_CUT PASS_LD);
       LOAD_REGISTERS(qid);
       lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
       ch = newChoice(CHP_DEBUG, FR PASS_LD);
       ch->mark = m;
     } else
-    { dbg_discardChoicesAfter(FR PASS_LD);
+    { dbg_discardChoicesAfter(FR, FINISH_CUT PASS_LD);
       lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
     }
     ARGP = argFrameP(lTop, 0);
@@ -2183,18 +2183,12 @@ instruction is generated for $cut(Var), used by prolog_cut_to(Choice).
 VMI(I_CUTCHP, 0, 0, ())
 { Word a = argFrameP(FR, 0);
 
-#define valid_choice(ch) \
-	(  (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG && \
-	   onStack(local, ch->frame) \
-	)
-
   deRef(a);
   if ( isInteger(*a) && storage(*a) == STG_INLINE )
   { intptr_t i = valInt(*a);
     och = ((Choice)((Word)lBase + i));
 
-    if ( !(och >= (Choice)lBase && och < (Choice)lTop) ||
-	 !valid_choice(och) )
+    if ( !existingChoice(och PASS_LD) )
     { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, consTermRef(a));
       THROW_EXCEPTION;
     }
@@ -3585,7 +3579,7 @@ VMI(I_FEXITDET, 0, 0, ())
   switch(rc)
   { case TRUE:
       if ( exception_term )		/* false alarm */
-	PL_clear_exception();
+	PL_clear_foreign_exception(FR);
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
@@ -3779,9 +3773,7 @@ VMI(I_FEXITNDET, 0, 0, ())
   switch(rc)
   { case TRUE:
       if ( exception_term )		/* false alarm */
-      { exception_term = 0;
-	setVar(*valTermRef(exception_bin));
-      }
+	PL_clear_foreign_exception(FR);
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
 #ifdef O_DEBUGGER
       if ( unlikely(debugstatus.debugging) )
@@ -3804,6 +3796,8 @@ VMI(I_FEXITNDET, 0, 0, ())
       FRAME_FAILED;
     default:
     { /* TBD: call debugger */
+      if ( exception_term )		/* false alarm */
+	PL_clear_foreign_exception(FR);
 
       if ( (rc & FRG_REDO_MASK) == REDO_INT )
       { rc = (word)(((intptr_t)rc)>>FRG_REDO_BITS);
@@ -4082,7 +4076,7 @@ b_throw:
 		LOAD_REGISTERS(qid);
 	      });
 	SAVE_REGISTERS(qid);
-	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
+	dbg_discardChoicesAfter((LocalFrame)ch, FINISH_EXTERNAL_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
 	ch = (Choice)valTermRef(chref);
 	Undo(ch->mark);
@@ -4124,7 +4118,7 @@ b_throw:
       lTop = l_top;
 
       SAVE_REGISTERS(qid);
-      dbg_discardChoicesAfter(FR PASS_LD);
+      dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
       LOAD_REGISTERS(qid);
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
@@ -4161,14 +4155,10 @@ b_throw:
   { DEBUG(3, Sdprintf("Unwinding for exception\n"));
 
     for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
-    { Choice ch;
-
-      environment_frame = FR;
+    { environment_frame = FR;
       SAVE_REGISTERS(qid);
-      ch = dbg_discardChoicesAfter(FR PASS_LD);
+      dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO PASS_LD);
       LOAD_REGISTERS(qid);
-      if ( ch )
-	Undo(ch->mark);
 
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
@@ -4184,17 +4174,14 @@ b_throw:
   DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
 
   if ( catchfr_ref )
-  { Choice ch;
-    word w;
+  { word w;
 
     assert(FR == (LocalFrame)valTermRef(catchfr_ref));
 
     SAVE_REGISTERS(qid);
-    ch = dbg_discardChoicesAfter(FR PASS_LD);
+    dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO PASS_LD);
     LOAD_REGISTERS(qid);
-    assert(ch && ch->type == CHP_CATCH);
     environment_frame = FR;
-    Undo(ch->mark);
 					/* re-unify */
     PL_unify(consTermRef(argFrameP(FR, 1)), exception_term);
     lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
@@ -4212,9 +4199,7 @@ b_throw:
     } else
     { argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
     }
-    *valTermRef(exception_printed) = 0;   /* consider it handled */
-    *valTermRef(exception_bin)     = 0;
-    exception_term		   = 0;
+    PL_clear_exception();
 
     PC = findCatchExit();
     { word lSafe = consTermRef(lTop);

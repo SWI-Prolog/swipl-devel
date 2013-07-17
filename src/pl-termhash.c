@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2012, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -215,7 +214,7 @@ termHashValue(Word p, unsigned int *hval ARG_LD)
     Functor t = valueTerm(*p);
 
     initBuffer(&tmp);
-    work = allocBuffer(b, sizeof(*work));
+    work = allocBuffer(b, sizeof(*work));	/* cannot fail */
     start_term(work, b, *p PASS_LD);
     work->parent_offset = (size_t)-1;
     t->definition = consInt(0);

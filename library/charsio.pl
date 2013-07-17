@@ -148,9 +148,14 @@ read_from_chars(List, Term) :-
 %	@compat sicstus
 
 read_term_from_chars(Codes, Term, Options) :-
-	setup_call_cleanup(open_chars_stream(Codes, Stream, '\n.\n'),
-			   read_term(Stream, Term0, Options),
-			   close(Stream)),
+	setup_call_cleanup(
+	    ( open_chars_stream(Codes, Stream, '\n.\n'),
+	      '$push_input_context'(read_from_chars)
+	    ),
+	    read_term(Stream, Term0, Options),
+	    ( '$pop_input_context',
+	      close(Stream)
+	    )),
 	Term = Term0.
 
 %%	open_chars_stream(+Codes, -Stream) is det.

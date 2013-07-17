@@ -272,9 +272,12 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     encodings[1] = ENC_WCHAR;
     encodings[2] = ENC_UNKNOWN;
 
-    wflags = ((flags&CVT_WRITE_CANONICAL)
-		? PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS
-		: PL_WRT_NUMBERVARS);
+    if ( (flags&CVT_WRITEQ) == CVT_WRITEQ )
+      wflags = PL_WRT_QUOTED|PL_WRT_NUMBERVARS;
+    else if ( (flags&CVT_WRITE_CANONICAL) )
+      wflags = PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS;
+    else
+      wflags = PL_WRT_NUMBERVARS;
 
     for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
     { size_t size;

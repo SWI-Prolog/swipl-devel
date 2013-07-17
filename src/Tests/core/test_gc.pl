@@ -149,6 +149,16 @@ loop(N) :-
 	N2 is N - 1,
 	loop(N2).
 
+trail_shift :-
+        statistics(trail_shifts, S0),
+        shift(S0, X),
+        nonvar(X).
+
+shift(S0, s(X)) :-
+        statistics(trail_shifts, S0), !,
+        shift(S0, X).
+shift(_, _).
+
 test(b_string) :-
 	t1.
 test(wakeup_two) :-
@@ -161,6 +171,13 @@ test(cut) :-
 	loop(10), !.
 test(c_cut) :-
 	loop(10) -> true.
+test(cleanup_shift, [throws(foo)]) :-
+        setup_call_catcher_cleanup(
+	    true,
+	    member(_,[a,b]),
+	    _Reason,
+	    trail_shift),
+        throw(foo).
 
 :- end_tests(gc_crash).
 

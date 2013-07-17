@@ -50,7 +50,7 @@ The installation folder (by default
 \file{demo} with the file \file{likes.pl}. This file can be opened in
 Prolog from the StartMenu, by opening \file{likes.pl} in the Windows
 explorer or by using the following command in the Prolog application. Be
-sure to get the quotes right and terminate the command with a full-stop
+sure to get the quotes right and terminate the command with a full stop
 (\chr{.}).
 
 \begin{code}
@@ -95,7 +95,7 @@ program.
 
 The SWI-Prolog console provided by \program{swipl-win.exe} has a menu for
 accessing the most commonly used commands. We assume not all menu
-entries need to be explained in details.  We make some exceptions:
+entries need to be explained in detail.  We make some exceptions:
 
 \begin{description}
     \definition{File/Reload modified files}
@@ -121,7 +121,7 @@ settings in comments.
 Allows for defining the maximum size to which the various Prolog stacks are
 allowed to grow. The system defaults are chosen to make erroneous
 programs fail quickly on modest hardware.  Programs with large data
-structures or many choice-points often need larger stacks.  Note that
+structures or many choice points often need larger stacks.  Note that
 an active Prolog process growing over the size of the physical memory of
 your computer can make the system extremely slow.
 
@@ -137,12 +137,12 @@ execution.  This may be used to inspect the database or program
 while the main task continues.
 
     \definition{Debug/Edit spy points ...}
-Edit break-points on predicates. From the PceEmacs editor (see
-\secref{edit}) break-points can also be set on specific calls from
+Edit break points on predicates. From the PceEmacs editor (see
+\secref{edit}) break points can also be set on specific calls from
 specific clauses.
 
     \definition{Debug/Graphical debugger ...}
-Use the source-level debugger on the next spy- or break-point or
+Use the source-level debugger on the next spy or break point or
 other call that enables the debugger.
 
     \definition{Help}
@@ -162,7 +162,7 @@ of choice for use with the edit/1 command, described below.  This is
 achieved by editing the personalisation file (see \secref{menu}) and
 following the instructions in the comments.
 
-The default editor is built-in editor called \emph{PceEmacs}. This
+The default editor is the built-in editor called \emph{PceEmacs}. This
 editor provides colourisation support based on real-time parsing and
 cross-reference analysis of the program.
 
@@ -218,7 +218,7 @@ Normally used after editing one or more files.
 
     \predicate{gtrace}{0}{}
 Start the graphical debugger. There are three ways to use
-this. Entered as a single goal at the top-level, the next query will be
+this. Entered as a single goal at the top level, the next query will be
 traced. Alternatively it can be used in conjunction with the goal to be
 debugged: \exam{?- gtrace, run.} and finally you can include it in your
 program to start tracing at a particular point or under a particular
@@ -274,7 +274,7 @@ Please send your comments to the SWI-Prolog mailinglist, and/or
 First of all, add the \file{include} folder of the installation to the
 search path for headers and the \file{lib} folder to the search path for
 libraries. Both DLLs (extensions) or embedded executables should link to
-\file{libswipl.dll.a} and, if appropriate, to the multi-threaded DLL
+\file{libswipl.dll.a} and, if appropriate, to the multithreaded DLL
 version of the MSVC runtime library.
 
 To create extensions, create a Win32 DLL. To embed Prolog, care should
@@ -355,7 +355,7 @@ other files.
 \subsection{Installed programs}
 
 The table below lists the installed components. Some components are
-marked (32-bits) or (64-bits). Most of this is because the 64-bits
+marked (32-bits) or (64-bits). Most of this is because the 64-bit
 version is built using more recent tools and from more recent versions
 of required libraries using different naming conventions.  This will
 probably be synchronised in the future.
@@ -409,8 +409,8 @@ probably be synchronised in the future.
 \verb$\bin\table.dll$		 & Access structured files as tables \\
 \verb$\bin\time.dll$		 & Timing and alarm library \\
 \verb$\bin\xpce2pl.dll$		 & The XPCE graphics system \\
-\verb$\bin\zlib1.dll$		 & Compression library (32-bit) \\
-\verb$\bin\zlibwapi.dll$	 & Compression library (64-bit) \\
+\verb$\bin\zlib1.dll$		 & Compression library (32-bits) \\
+\verb$\bin\zlibwapi.dll$	 & Compression library (64-bits) \\
 \verb$\bin\zlib4pl.dll$		 & Compression library interface \\
 \hline
 \end{tabular}
@@ -459,14 +459,14 @@ later) to be able to write shortcuts and registry keys.
 
 If you want a desktop entry for SWI-Prolog, right-drag
 \program{swipl-win.exe} to the desktop and select `Create shortcut'. Then
-edit the properties and add \const{--win_app} to the commandline to make
+edit the properties and add \const{--win_app} to the command line to make
 the application start in \file{My Documents\bsl{}Prolog}.
 
 
 \section{The SWI-Prolog community and foundation}
 
 
-\subsection{Web-site and mailing lists}
+\subsection{Website and mailing lists}
 
 The SWI-Prolog website is located at \url{http://www.swi-prolog.org/}.
 
@@ -486,8 +486,8 @@ an additional statement that allows for embedding in proprietary
 software:
 
 \begin{quote}
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
+    As a special exception, if you link this library with other files
+    compiled with a Free Software compiler to produce an executable, this
     library does not by itself cause the resulting executable to be covered
     by the GNU General Public License. This exception does not, however,
     invalidate any other reasons why the executable file might be covered by
@@ -512,11 +512,11 @@ There are several ways to support SWI-Prolog:
 	  Example projects from the part include adding the initial
 	  garbage collector, unbounded integer support, SSL interface,
 	  (re-)introduction of the stack-shifter, avoid C-recursion on
-	  Prolog datastructures, the PlUnit test environment and the
+	  Prolog data structures, the PlUnit test environment and the
 	  PlDoc documentation environment.
 
 	  Sponsoring development has several benefits: (1) it solves
-	  your bottlenecks, (2) others help debugging it and (3) it
+	  your bottlenecks, (2) others help debugging it, and (3) it
 	  strengthens SWI-Prolog's position, which gives you better
 	  guarantees that the system remains actively developed and
 	  makes it easier to find resources and programmers.

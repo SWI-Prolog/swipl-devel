@@ -368,11 +368,14 @@ shareDefinition(Definition def)
 }
 
 
-void
+int
 unshareDefinition(Definition def)
-{ LOCKDEF(def);
-  def->shared--;
+{ int times;
+  LOCKDEF(def);
+  times = --def->shared;
   UNLOCKDEF(def);
+
+  return times;
 }
 
 
@@ -1791,7 +1794,9 @@ autoImport(functor_t f, Module m)
     return proc->definition;
 
   for(c=m->supers; c; c=c->next)
-  { if ( (def = autoImport(f, c->value)) )
+  { Module s = c->value;
+
+    if ( (def = autoImport(f, s)) )
       goto found;
   }
   return NULL;
@@ -1799,26 +1804,35 @@ autoImport(functor_t f, Module m)
 found:
   if ( proc == NULL )			/* Create header if not there */
     proc = lookupProcedure(f, m);
-					/* Safe? See above */
-					/* TBD: find something better! */
-  odef = proc->definition;
-  proc->definition = def;
-  shareDefinition(def);
-  unshareDefinition(odef);
 
+					/* Now, take the lock also used */
+					/* by lookupProcedure().  Note */
+					/* that another thread may have */
+					/* done the job for us. */
+  LOCKMODULE(m);
+  if ( (odef=proc->definition) != def )	/* Nope, we must link the def */
+  { proc->definition = def;
+    shareDefinition(def);
+    unshareDefinition(odef);
+
+    if ( unshareDefinition(odef) == 0 )
+    {
 #ifdef O_PLMT
-  PL_LOCK(L_THREAD);
-  if ( (GD->statistics.threads_created -
-	GD->statistics.threads_finished) == 1 )
-  { assert(false(proc->definition, P_DIRTYREG));
-    freeHeap(odef, sizeof(struct definition));
-  } else
-  { GC_LINGER(odef);
-  }
-  PL_UNLOCK(L_THREAD);
+      PL_LOCK(L_THREAD);
+      if ( (GD->statistics.threads_created -
+	    GD->statistics.threads_finished) == 1 )
+      { assert(false(proc->definition, P_DIRTYREG));
+	freeHeap(odef, sizeof(struct definition));
+      } else
+      { GC_LINGER(odef);
+      }
+      PL_UNLOCK(L_THREAD);
 #else
-  freeHeap(odef, sizeof(struct definition));
+      freeHeap(odef, sizeof(struct definition));
 #endif
+    }
+  }
+  UNLOCKMODULE(m);
 
   return def;
 }
@@ -2267,26 +2281,28 @@ typedef struct patt_mask
 #define TRACE_ANY (TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL)
 
 static const patt_mask patt_masks[] =
-{ { ATOM_dynamic,	P_DYNAMIC },
-  { ATOM_multifile,	P_MULTIFILE },
-  { ATOM_locked,	P_LOCKED },
-  { ATOM_system,	P_LOCKED },		/* compatibility */
-  { ATOM_spy,		SPY_ME },
-  { ATOM_trace,		TRACE_ME },
-  { ATOM_trace_call,	TRACE_CALL },
-  { ATOM_trace_redo,	TRACE_REDO },
-  { ATOM_trace_exit,	TRACE_EXIT },
-  { ATOM_trace_fail,	TRACE_FAIL },
-  { ATOM_trace_any,	TRACE_ANY },
-  { ATOM_hide_childs,	HIDE_CHILDS },
-  { ATOM_transparent,	P_TRANSPARENT },
-  { ATOM_discontiguous,	P_DISCONTIGUOUS },
-  { ATOM_volatile,	P_VOLATILE },
-  { ATOM_thread_local,	P_THREAD_LOCAL },
-  { ATOM_noprofile,	P_NOPROFILE },
-  { ATOM_iso,		P_ISO },
-  { ATOM_public,	P_PUBLIC },
-  { (atom_t)0,		0 }
+{ { ATOM_dynamic,	   P_DYNAMIC },
+  { ATOM_multifile,	   P_MULTIFILE },
+  { ATOM_locked,	   P_LOCKED },
+  { ATOM_system,	   P_LOCKED },		/* compatibility */
+  { ATOM_spy,		   SPY_ME },
+  { ATOM_trace,		   TRACE_ME },
+  { ATOM_trace_call,	   TRACE_CALL },
+  { ATOM_trace_redo,	   TRACE_REDO },
+  { ATOM_trace_exit,	   TRACE_EXIT },
+  { ATOM_trace_fail,	   TRACE_FAIL },
+  { ATOM_trace_any,	   TRACE_ANY },
+  { ATOM_hide_childs,	   HIDE_CHILDS },
+  { ATOM_transparent,	   P_TRANSPARENT },
+  { ATOM_discontiguous,	   P_DISCONTIGUOUS },
+  { ATOM_volatile,	   P_VOLATILE },
+  { ATOM_thread_local,	   P_THREAD_LOCAL },
+  { ATOM_noprofile,	   P_NOPROFILE },
+  { ATOM_iso,		   P_ISO },
+  { ATOM_public,	   P_PUBLIC },
+  { ATOM_non_terminal,	   P_NON_TERMINAL },
+  { ATOM_quasi_quotation_syntax, P_QUASI_QUOTATION_SYNTAX },
+  { (atom_t)0,		   0 }
 };
 
 static unsigned int

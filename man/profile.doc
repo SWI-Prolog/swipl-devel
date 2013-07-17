@@ -14,6 +14,7 @@ library.  The latter can be hooked, which is used by the XPCE module
 representation of results.
 
 \subsection{Profiling predicates}
+\label{sec:profiling-predicates}
 
 Currently, the interface is kept compatible with the old profiler.
 As experience grows, it is likely that the old interface is replaced

@@ -78,20 +78,22 @@ error:has_type(record(M:Name), X) :-
 %	Used a directive, =|:- record Constructor(Arg, ...)|= is expanded
 %	info the following predicates:
 %
-%	  * <constructor>_<name>(Record, Value)
-%	  * <constructor>_data(?Name, ?Record, ?Value)
-%	  * default_<constructor>(-Record)
-%	  * is_<constructor>(@Term)
-%	  * make_<constructor>(+Fields, -Record)
-%	  * make_<constructor>(+Fields, -Record, -RestFields)
-%	  * set_<name>_of_<constructor>(+Value, +OldRecord, -New)
-%	  * set_<name>_of_<constructor>(+Value, !Record)
-%	  * nb_set_<name>_of_<constructor>(+Value, !Record)
-%	  * set_<constructor>_fields(+Fields, +Record0, -Record).
-%	  * set_<constructor>_fields(+Fields, +Record0, -Record, -RestFields).
-%	  * set_<constructor>_field(+Field, +Record0, -Record).
-%	  * user:current_record(:<constructor>)
+%	  * =|<constructor>_<name>|=(Record, Value)
+%	  * =|<constructor>_data|=(?Name, ?Record, ?Value)
+%	  * =|default_<constructor>|=(-Record)
+%	  * =|is_<constructor>|=(@Term)
+%	  * =|make_<constructor>|=(+Fields, -Record)
+%	  * =|make_<constructor>|=(+Fields, -Record, -RestFields)
+%	  * =|set_<name>_of_<constructor>|=(+Value, +OldRecord, -New)
+%	  * =|set_<name>_of_<constructor>|=(+Value, !Record)
+%	  * =|nb_set_<name>_of_<constructor>|=(+Value, !Record)
+%	  * =|set_<constructor>_fields|=(+Fields, +Record0, -Record).
+%	  * =|set_<constructor>_fields|=(+Fields, +Record0, -Record, -RestFields).
+%	  * =|set_<constructor>_field|=(+Field, +Record0, -Record).
+%	  * =|user:current_record|=(:<constructor>)
 
+record(Record) :-
+	Record == '<compiled>', !.
 record(Record) :-
 	throw(error(context_error(nodirective, record(Record)), _)).
 
@@ -100,7 +102,10 @@ record(Record) :-
 %
 %	Compile a record specification into a list of clauses.
 
-compile_records(Spec, Clauses) :-
+compile_records(Spec,
+		[ (:- record('<compiled>')) % call to make xref aware of
+		| Clauses		    % the dependency
+		]) :-
 	phrase(compile_records(Spec), Clauses).
 %	maplist(portray_clause, Clauses).
 

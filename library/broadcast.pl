@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -40,9 +39,9 @@
 	    broadcast_request/1	% Templ
 	  ]).
 :- meta_predicate
-	listen(+, :),
-	listen(+, +, :),
-	unlisten(+, +, :).
+	listen(+, 0),
+	listen(+, +, 0),
+	unlisten(+, +, 0).
 
 :- dynamic
 	listener/4.
@@ -75,14 +74,12 @@ change_workers(New) :-
 %
 %	Open a channel for listening for events of the given `Templ'.
 
-listen(Listener0, Templ, Goal) :-
+listen(Listener0, Templ, Module:Goal) :-
 	canonical_listener(Listener0, Listener),
-	strip_module(Goal, Module, TheGoal),
-	assert_listener(Templ, Listener, Module, TheGoal).
+	assert_listener(Templ, Listener, Module, Goal).
 
-listen(Templ, Goal) :-
-	strip_module(Goal, Module, TheGoal),
-	assert_listener(Templ, Module, Module, TheGoal).
+listen(Templ, Module:Goal) :-
+	assert_listener(Templ, Module, Module, Goal).
 
 
 %%	unlisten(+Listener) is det.
@@ -98,13 +95,9 @@ unlisten(Listener0) :-
 unlisten(Listener0, Templ) :-
 	canonical_listener(Listener0, Listener),
 	retractall(listener(Templ, Listener, _, _)).
-unlisten(Listener0, Templ, Goal) :-
+unlisten(Listener0, Templ, Module:Goal) :-
 	canonical_listener(Listener0, Listener),
-	(   var(Goal)
-	->  true
-	;   strip_module(Goal, Module, TheGoal)
-	),
-	retract_listener(Templ, Listener, Module, TheGoal).
+	retract_listener(Templ, Listener, Module, Goal).
 
 
 %%	listening(?Listener, ?Templ, ?Goal) is nondet.
@@ -159,19 +152,4 @@ retract_listener(Templ, Listener, Module, TheGoal) :-
 %	Entry for later optimization.
 
 canonical_listener(Templ, Templ).
-
-
-		 /*******************************
-		 *	  GOAL EXPANSION	*
-		 *******************************/
-
-:- multifile
-	user:goal_expansion/2.
-
-user:goal_expansion(listen(L,T,G0), listen(L,T,G)) :-
-	expand_goal(G0, G).
-user:goal_expansion(listen(T,G0), listen(T,G)) :-
-	expand_goal(G0, G).
-user:goal_expansion(unlisten(L,T,G0), unlisten(L,T,G)) :-
-	expand_goal(G0, G).
 

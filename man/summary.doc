@@ -94,7 +94,7 @@ suggest predicates from a keyword.
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
 \predicatesummary{blob}{2}{Type check for a blob}
-\predicatesummary{break}{0}{Start interactive top-level}
+\predicatesummary{break}{0}{Start interactive top level}
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
 \predicatesummary{call}{[2..]}{Call with additional arguments}
@@ -153,6 +153,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_functor}{2}{Examine existing name/arity pairs}
 \predicatesummary{current_input}{1}{Get current input stream}
 \predicatesummary{current_key}{1}{Examine existing database keys}
+\predicatesummary{current_locale}{1}{Get the current locale}
 \predicatesummary{current_module}{1}{Examine existing modules}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
@@ -294,7 +295,7 @@ suggest predicates from a keyword.
 \predicatesummary{initialization}{2}{Initialization directive}
 \predicatesummary{instance}{2}{Fetch clause or record from reference}
 \predicatesummary{integer}{1}{Type check for integer}
-\predicatesummary{interactor}{0}{Start new thread with console and top-level}
+\predicatesummary{interactor}{0}{Start new thread with console and top level}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_assoc}{1}{Verify association list}
@@ -318,6 +319,9 @@ suggest predicates from a keyword.
 \predicatesummary{load_files}{2}{Load source files with options}
 \predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared library (.so file)}
+\predicatesummary{locale_create}{3}{Create a new locale object}
+\predicatesummary{locale_destroy}{1}{Destroy a locale object}
+\predicatesummary{locale_property}{2}{Query properties of locale objects}
 \predicatesummary{locale_sort}{2}{Language dependent sort of atoms}
 \predicatesummary{make}{0}{Reconsult all changed source files}
 \predicatesummary{make_directory}{1}{Create a folder on the file system}
@@ -339,6 +343,7 @@ suggest predicates from a keyword.
 \predicatesummary{min_assoc}{3}{Lowest key in association tree}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
+\predicatesummary{module}{3}{Declare a module with language options}
 \predicatesummary{module_property}{2}{Find properties of a module}
 \oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta-predicate}
 \predicatesummary{msort}{2}{Sort, do not remove duplicates}
@@ -411,7 +416,6 @@ suggest predicates from a keyword.
 \predicatesummary{portray_clause}{2}{Pretty print a clause to a stream}
 \predicatesummary{predicate_property}{2}{Query predicate attributes}
 \predicatesummary{predsort}{3}{Sort, using a predicate to determine the order}
-\predicatesummary{preprocessor}{2}{Install a preprocessor before the compiler}
 \predicatesummary{print}{1}{Print a term}
 \predicatesummary{print}{2}{Print a term on a stream}
 \predicatesummary{print_message}{2}{Print message from (exception) term}
@@ -420,8 +424,8 @@ suggest predicates from a keyword.
 \predicatesummary{profile}{3}{Obtain execution statistics}
 \predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
-\predicatesummary{prolog}{0}{Run interactive top-level}
-\predicatesummary{prolog_choice_attribute}{3}{Examine the choice-point stack}
+\predicatesummary{prolog}{0}{Run interactive top level}
+\predicatesummary{prolog_choice_attribute}{3}{Examine the choice point stack}
 \predicatesummary{prolog_current_choice}{1}{Reference to most recent choice point}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
 \predicatesummary{prolog_cut_to}{1}{Realise global cuts}
@@ -502,6 +506,7 @@ suggest predicates from a keyword.
 \predicatesummary{seen}{0}{Close the current input stream}
 \predicatesummary{set_end_of_stream}{1}{Set physical end of an open file}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
+\predicatesummary{set_locale}{1}{Set the default local}
 \predicatesummary{set_module}{1}{Set properties of a module}
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
 \predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}
@@ -552,6 +557,7 @@ suggest predicates from a keyword.
 \predicatesummary{strip_module}{3}{Extract context module and term}
 \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
+\predicatesummary{sub_atom_icasechk}{3}{Case insensitive substring match}
 \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{subsumes_term}{2}{One-sided unification test}
 \predicatesummary{succ}{2}{Logical integer successor relation}
@@ -596,8 +602,8 @@ suggest predicates from a keyword.
 \predicatesummary{told}{0}{Close current output}
 \predicatesummary{tprofile}{1}{Profile a thread for some period}
 \predicatesummary{trace}{0}{Start the tracer}
-\predicatesummary{trace}{1}{Set trace-point on predicate}
-\predicatesummary{trace}{2}{Set/Clear trace-point on ports}
+\predicatesummary{trace}{1}{Set trace point on predicate}
+\predicatesummary{trace}{2}{Set/Clear trace point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
 \predicatesummary{trim_stacks}{0}{Release unused memory resources}
 \predicatesummary{true}{0}{Succeed}
@@ -612,7 +618,7 @@ suggest predicates from a keyword.
 \predicatesummary{unifiable}{3}{Determining binding required for unification}
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
-\predicatesummary{unload_file}{1}{Unload a source-file}
+\predicatesummary{unload_file}{1}{Unload a source file}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}
@@ -629,6 +635,9 @@ suggest predicates from a keyword.
 \predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
 \predicatesummary{when}{2}{Execute goal when condition becomes true}
 \predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
+\predicatesummary{win_add_dll_directory}{1}{Add directory to DLL search path}
+\predicatesummary{win_add_dll_directory}{2}{Add directory to DLL search path}
+\predicatesummary{win_remove_dll_directory}{2}{Remove directory from DLL search path}
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
 \predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
 \predicatesummary{win_folder}{2}{Win32: get special folder by CSIDL}
@@ -679,13 +688,17 @@ suggest predicates from a keyword.
 \opfuncsummary{^}{2}{xfy}{200}{Power function}
 \functionsummary{abs}{1}{Absolute value}
 \functionsummary{acos}{1}{Inverse (arc) cosine}
+\functionsummary{acosh}{1}{Inverse hyperbolic cosine}
 \functionsummary{asin}{1}{Inverse (arc) sine}
-\functionsummary{atan}{1}{Inverse (arc) tangent}
+\functionsummary{asinh}{1}{Inverse (arc) sine}
+\functionsummary{atan}{1}{Inverse hyperbolic sine}
 \functionsummary{atan}{2}{Rectangular to polar conversion}
+\functionsummary{atanh}{1}{Inverse hyperbolic tangent}
 \functionsummary{atan2}{2}{Rectangular to polar conversion}
 \functionsummary{ceil}{1}{Smallest integer larger than arg}
 \functionsummary{ceiling}{1}{Smallest integer larger than arg}
 \functionsummary{cos}{1}{Cosine}
+\functionsummary{cosh}{1}{Hyperbolic cosine}
 \functionsummary{copysign}{2}{Apply sign of N2 to N1}
 \functionsummary{cputime}{0}{Get CPU time}
 \functionsummary{div}{2}{Integer division}
@@ -719,8 +732,10 @@ suggest predicates from a keyword.
 \functionsummary{popcount}{1}{Count 1s in a bitvector}
 \functionsummary{sign}{1}{Extract sign of value}
 \functionsummary{sin}{1}{Sine}
+\functionsummary{sinh}{1}{Hyperbolic sine}
 \functionsummary{sqrt}{1}{Square root}
 \functionsummary{tan}{1}{Tangent}
+\functionsummary{tanh}{1}{Hyperbolic tangent}
 \opfuncsummary{xor}{2}{yfx}{400}{Bitwise exclusive or}
 \end{summarylist}
 

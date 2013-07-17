@@ -78,7 +78,7 @@ edit_no_trace(Spec) :-
 %	by double-clicking or the file loaded using
 %
 %	==
-%	% pl -s file.pl
+%	% swipl -s file.pl
 %	==
 
 edit :-

@@ -34,8 +34,6 @@ Tree is either:
 
 TODO: get_next_assoc/4, get_prev_assoc/4 for SICStus compatibility
 
-TODO: exploit order in ord_list_to_assoc/2
-
 */
 
 /*
@@ -66,6 +64,7 @@ TODO: exploit order in ord_list_to_assoc/2
 	    del_min_assoc/4,            % +Assoc, ?Key, ?Value, ?NewAssoc
 	    del_max_assoc/4             % +Assoc, ?Key, ?Value, ?NewAssoc
 	  ]).
+:- use_module(library(error)).
 
 /** <module> Binary associations
 
@@ -185,8 +184,12 @@ gen_assoc(Key, t(_,_,_,_,R), Val) :-
 %%	get_assoc(+Key, +Assoc, -Value) is semidet.
 %
 %	True if Key-Value is an association in Assoc.
+%
+%	@error type_error(assoc, Assoc) if Assoc is not an assoc.
 
-get_assoc(Key, t(K,V,_,L,R), Val) :-
+get_assoc(Key, Assoc, Val) :-
+	must_be(assoc, Assoc),
+	Assoc = t(K,V,_,L,R),
 	compare(Rel, Key, K),
 	get_assoc(Rel, Key, V, L, R, Val).
 
@@ -215,22 +218,56 @@ get_assoc(>, Key, V, L, R, Val, V, L, NR, NVal) :-
 %%	list_to_assoc(+List:list(Key-Value), -Assoc) is det.
 %
 %	Create an assoc from a pair-list.
+%
+%	@error domain_error(unique_key_pairs, List) if List contains duplicate keys
 
 list_to_assoc(List, Assoc) :-
-	list_to_assoc(List, t, Assoc).
+	(  List = [] -> Assoc = t
+	;  keysort(List, Sorted),
+	   (  ord_pairs(Sorted)
+	   -> length(Sorted, N),
+	      list_to_assoc(N, Sorted, [], _, Assoc)
+	   ;  domain_error(unique_key_pairs, List)
+	   )
+	).
 
-list_to_assoc([], Assoc, Assoc).
-list_to_assoc([Key-Val|List], Assoc0, Assoc) :-
-	put_assoc(Key, Assoc0, Val, AssocI),
-	list_to_assoc(List, AssocI, Assoc).
-
+list_to_assoc(1, [K-V|More], More, 1, t(K,V,-,t,t)) :- !.
+list_to_assoc(2, [K1-V1,K2-V2|More], More, 2, t(K2,V2,<,t(K1,V1,-,t,t),t)) :- !.
+list_to_assoc(N, List, More, Depth, t(K,V,Balance,L,R)) :-
+	N0 is N - 1,
+	RN is N0 div 2,
+	Rem is N0 mod 2,
+	LN is RN + Rem,
+	list_to_assoc(LN, List, [K-V|Upper], LDepth, L),
+	list_to_assoc(RN, Upper, More, RDepth, R),
+	Depth is LDepth + 1,
+	compare(B, RDepth, LDepth), balance(B, Balance).
 
 %%	ord_list_to_assoc(+List:list(Key-Value), -Assoc) is det.
 %
-%	Create an assoc from an ordered pair-list.
+%	Create an assoc from an ordered pair-list without duplicate keys.
+%
+%	@error domain_error(key_ordered_pairs, List) if pairs are not ordered.
 
-ord_list_to_assoc(Keys, Assoc) :-
-	list_to_assoc(Keys, Assoc).
+ord_list_to_assoc(Sorted, Assoc) :-
+	(  Sorted = [] -> Assoc = t
+	;  (  ord_pairs(Sorted)
+	   -> length(Sorted, N),
+	      list_to_assoc(N, Sorted, [], _, Assoc)
+	   ;  domain_error(key_ordered_pairs, Sorted)
+	   )
+	).
+
+%%	ord_pairs(+List:list(Key-Value)) is semidet
+%
+%	True if Pairs is a list of Key-Val pairs strictly ordered by key.
+
+ord_pairs([K-_V|Rest]) :-
+	ord_pairs(Rest, K).
+ord_pairs([], _K).
+ord_pairs([K-_V|Rest], K0) :-
+	K0 @< K,
+	ord_pairs(Rest, K).
 
 %%	map_assoc(:Pred, +Assoc) is semidet.
 %
@@ -431,3 +468,18 @@ avl_geq(t(B,VB,<,t(A,VA,>,Alpha,t(X,VX,B1,Beta,Gamma)),Delta),
 table2(< ,- ,> ).
 table2(> ,< ,- ).
 table2(- ,- ,- ).
+
+
+		 /*******************************
+		 *	      ERRORS		*
+		 *******************************/
+
+:- multifile
+	error:has_type/2.
+
+error:has_type(assoc, X) :-
+	(   X == t
+	->  true
+	;   compound(X),
+	    functor(X, t, 5)
+	).

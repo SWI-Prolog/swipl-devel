@@ -876,7 +876,7 @@ PL_cons_functor(term_t h, functor_t fd, ...)
     { int rc;
 
       if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != TRUE )
-	return FALSE;
+	return raiseStackOverflow(rc);
     }
 
     a = t = gTop;
@@ -910,7 +910,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
     { int rc;
 
       if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != TRUE )
-	return FALSE;
+	return raiseStackOverflow(rc);
     }
 
     a = t = gTop;
@@ -936,7 +936,7 @@ PL_cons_list__LD(term_t l, term_t head, term_t tail ARG_LD)
   { int rc;
 
     if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
-      return FALSE;
+      return raiseStackOverflow(rc);
   }
 
   a = gTop;
@@ -2017,9 +2017,10 @@ PL_put_variable(term_t t)
 #define PL_put_variable(t) PL_put_variable__LD(t PASS_LD)
 
 
-void
+int
 PL_put_atom__LD(term_t t, atom_t a ARG_LD)
 { setHandle(t, a);
+  return TRUE;
 }
 
 
@@ -2279,18 +2280,21 @@ PL_put_list(term_t l)
 }
 
 
-void
+int
 PL_put_nil(term_t l)
 { GET_LD
   setHandle(l, ATOM_nil);
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_term__LD(term_t t1, term_t t2 ARG_LD)
 { Word p2 = valHandleP(t2);
 
   setHandle(t1, linkVal(p2));
+  return TRUE;
 }
 
 
@@ -2964,6 +2968,9 @@ cont:
       txt.encoding  = ENC_WCHAR;
       txt.canonical = FALSE;
 
+      if ( txt.length == (size_t)-1 )
+	txt.length = wcslen(txt.text.w );
+
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_NWCHARS ? PL_ATOM :
 			   op == PL_NWCODES ? PL_CODE_LIST :
@@ -3513,9 +3520,29 @@ PL_foreign_control(control_t h)
 }
 
 
+static int
+is_resource_error(term_t ex)
+{ GET_LD
+  Word p = valTermRef(ex);
+
+  deRef(p);
+  if ( hasFunctor(*p, FUNCTOR_error2) )
+  { p = argTermP(*p, 0);
+    deRef(p);
+
+    return hasFunctor(*p, FUNCTOR_resource_error1);
+  }
+
+  return FALSE;
+}
+
+
 int
 PL_raise_exception(term_t exception)
 { GET_LD
+
+  if ( is_resource_error(exception) )
+    save_backtrace("exception");
 
   if ( PL_is_variable(exception) )
     fatalError("Cannot throw variable exception");
@@ -3569,6 +3596,22 @@ PL_clear_exception(void)
 
   LD->exception.processing = FALSE;
 }
+
+
+void
+PL_clear_foreign_exception(LocalFrame fr)
+{ term_t ex = PL_exception(0);
+
+  Sdprintf("Foreign predicate %s did not clear exception: ",
+	   predicateName(fr->predicate));
+  PL_write_term(Serror, ex, 1200, 0);
+  Sdprintf("\n");
+  if ( is_resource_error(ex) )
+    print_backtrace_named("exception");
+
+  PL_clear_exception();
+}
+
 
 
 		/********************************

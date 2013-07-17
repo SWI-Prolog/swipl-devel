@@ -138,6 +138,19 @@ typedef struct bit_vector
 #define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
 #endif
 
+static inline size_t
+sizeof_bitvector(size_t bits)
+{ return offset(bit_vector, chunk[(bits+BITSPERE-1)/BITSPERE]);
+}
+
+static inline void
+init_bitvector(bit_vector *v, size_t bits)
+{ size_t bytes = offset(bit_vector, chunk[(bits+BITSPERE-1)/BITSPERE]);
+
+  memset(v, 0, bytes);
+  v->size = bits;
+}
+
 static inline bit_vector *
 new_bitvector(size_t size)
 { size_t bytes = offset(bit_vector, chunk[(size+BITSPERE-1)/BITSPERE]);

@@ -1,0 +1,158 @@
+#!/bin/bash
+#
+# This script creates a source  deb  package   and  uploads  this to the
+# Lauchpad PPA build service.
+#
+# Author: Yves Raimond and Jan Wielemaker
+
+PL_VERSION=`cat VERSION`
+VTAG=HEAD
+TARGET_DISTRO=precise
+build=true
+buildbin=false
+push=false
+pgpkey=7C11B85B
+program="$0"
+
+usage()
+{ cat << EOM
+Usage: $(basename $program) [option ...]
+Options:
+    --distro=Distro [default: $TARGET_DISTRO]
+      Set the target distribution
+    --no-build
+      Only create the ppa directory, do not build a source deb
+    --build-bin
+      Also build the binary package
+    --push
+      Push the result to launchpad using dput(1)
+    --key=Key [default: $pgpkey]
+      Set the PGP key for signing the package
+EOM
+exit 1
+}
+
+done=false
+while [ $done = false ]; do
+    case "$1" in
+	--help)
+		usage
+		exit 0
+		;;
+	--distro=*)
+		TARGET_DISTRO="`echo $1 | sed 's/--[^=]*=//'`"
+		shift
+		;;
+	--key=*)
+		pgpkey="`echo $1 | sed 's/--[^=]*=//'`"
+		shift
+		;;
+	--tag=*)
+		VTAG="`echo $1 | sed 's/--[^=]*=//'`"
+		shift
+		;;
+	--no-build)
+		build=false
+		shift
+		;;
+	--build-bin)
+		buildbin=true
+		shift
+		;;
+	--push)
+		push=true
+		shift
+		;;
+	*)	if [ x"$*" != x"" ]; then
+		  usage
+		  exit 1
+		else
+		  done=true
+		fi
+		;;
+    esac
+done
+
+if [ $push = true -a $buildbin = true ]; then
+  echo "Only one of --push or --buildbin is allowed"
+  exit 1
+fi
+
+# Avoid typos ...
+case $TARGET_DISTRO in
+  precise|raring)
+    ;;
+  *) echo "Unsupported target distro ($TARGET_DISTRO)"
+     exit 1
+esac
+
+case "$(git describe $VTAG)" in
+  *-*) GIT_SHORT_HASH=`git describe $VTAG | sed 's/[^-]*-//'`
+       ;;
+  *)   GIT_SHORT_HASH=0
+       ;;
+esac
+
+VERSION=$PL_VERSION-$GIT_SHORT_HASH-${TARGET_DISTRO}ppa2
+
+echo "Building package $VERSION for $TARGET_DISTRO"
+
+echo " - Adding entry to changelog"
+
+dch --distribution=$TARGET_DISTRO -v $VERSION "New upstream release (from GIT)"
+( cd debian && git commit changelog -m "Updated version" )
+git commit debian -m "Updated debian (version)"
+
+buildbase=swi-prolog_$PL_VERSION-$GIT_SHORT_HASH
+
+echo " - Generating archive $buildbase"
+
+./scripts/make-src-tape \
+	--quiet \
+	--tag=$VTAG \
+	--name=swi-prolog --sep=_ \
+	--version=$PL_VERSION-$GIT_SHORT_HASH \
+	--submodule=debian
+
+builddir=swi-prolog_$PL_VERSION-$GIT_SHORT_HASH
+archive=$builddir.tar.gz
+orig_archive=$builddir.orig.tar.gz
+
+if [ -d build-ppa-tmp ]; then
+  rm -rf build-ppa-tmp/*
+else
+  mkdir build-ppa-tmp
+fi
+
+echo " - Unpacking $archive into build-ppa-tmp"
+
+mv ../$archive build-ppa-tmp/$orig_archive
+(cd build-ppa-tmp && tar xf $orig_archive)
+
+if [ $build = true ]; then
+  echo " - Building source package"
+
+  ( cd build-ppa-tmp/$builddir &&
+    debuild -S -sa -k$pgpkey
+  )
+else
+  echo " - Created build-ppa-tmp/$builddir; skipped building of source deb"
+  exit 0
+fi
+
+if [ $buildbin = true ]; then
+  echo " - Building binary source package"
+
+  ( cd build-ppa-tmp/$builddir &&
+    debuild -k$pgpkey
+  )
+  exit 0
+fi
+
+if [ $push = true ]; then
+  echo " - Pushing source package to PPA"
+
+  ( cd build-ppa-tmp &&
+    dput ppa:swi-prolog/devel swi-prolog_${VERSION}_source.changes
+  )
+fi

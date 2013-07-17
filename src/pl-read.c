@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -21,9 +21,9 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <math.h>
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include <math.h>
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-dtoa.h"
@@ -38,7 +38,6 @@ typedef       unsigned char * ucharp;
 #define LD LOCAL_LD
 
 static void	  addUTF8Buffer(Buffer b, int c);
-static strnumstat scan_decimal(cucharp *sp, Number n);
 
 
 		 /*******************************
@@ -58,6 +57,26 @@ static strnumstat scan_decimal(cucharp *sp, Number n);
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
 #define PlSoloW(c)	CharTypeW(c, == SO, U_OTHER)
 #define PlInvalidW(c)   (uflagsW(c) == 0)
+
+int
+f_is_prolog_var_start(wint_t c)
+{ return PlIdStartW(c) && (PlUpperW(c) || c == '_');
+}
+
+int
+f_is_prolog_atom_start(wint_t c)
+{ return PlIdStartW(c) != 0;
+}
+
+int
+f_is_prolog_identifier_continue(wint_t c)
+{ return PlIdContW(c) || c == '_';
+}
+
+int
+f_is_prolog_symbol(wint_t c)
+{ return PlSymbolW(c) != 0;
+}
 
 int
 unicode_separator(pl_wchar_t c)
@@ -233,7 +252,6 @@ struct read_buffer
   unsigned char *here;		/* current position in read buffer */
   unsigned char *end;		/* end of the valid buffer */
   IOSTREAM *stream;		/* stream we are reading from */
-  int64_t byte_pos_last_char;		/* Byte location of last char */
 					/* Buffer its NOT cleared */
   unsigned char fast[FASTBUFFERSIZE];	/* Quick internal buffer */
 };
@@ -253,8 +271,13 @@ typedef struct term_stack
 
 
 typedef struct
-{ atom_t op;			/* Name of the operator */
-  short	kind;			/* kind (prefix/postfix/infix) */
+{ union
+  { atom_t atom;		/* Normal operator */
+    term_t block;		/* [...] or {...} operator */
+  } op;				/* Name of the operator */
+  unsigned isblock : 1;		/* [...] or {...} operator */
+  unsigned isterm : 1;		/* Union is a term */
+  char	kind;			/* kind (prefix/postfix/infix) */
   short	left_pri;		/* priority at left-hand */
   short	right_pri;		/* priority at right hand */
   short	op_pri;			/* priority of operator */
@@ -283,6 +306,8 @@ typedef struct
 #define T_STRING	5	/* "string" */
 #define T_PUNCTUATION	6	/* punctuation character */
 #define T_FULLSTOP	7	/* Prolog end of clause */
+#define T_QQ_OPEN	8	/* "{|" of {|Syntax||Quotation|} stuff */
+#define T_QQ_BAR	9	/* "||" of {|Syntax||Quotation|} stuff */
 
 #define E_SILENT	0	/* Silently fail */
 #define E_EXCEPTION	1	/* Generate an exception */
@@ -295,14 +320,18 @@ interrupt and XPCE  call-backs  as   well  as  transparently  supporting
 multi-threading.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define RD_MAGIC 0xefebe128
+
 typedef struct
 { unsigned char *here;			/* current character */
   unsigned char *base;			/* base of clause */
   unsigned char *end;			/* end of the clause */
   unsigned char *token_start;		/* start of most recent read token */
-  struct token token;			/* current token */
-  bool _unget;				/* unget_token() */
+  struct token  token;			/* current token */
+  int	        _unget;			/* unget_token() */
+  int		magic;			/* RD_MAGIC */
 
+  source_location start_of_term;	/* Position of start of term */
   unsigned char *posp;			/* position pointer */
   size_t	posi;			/* position number */
 
@@ -321,6 +350,11 @@ typedef struct
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
   term_t	comments;		/* Report comments */
+#ifdef O_QUASIQUOTATIONS
+  term_t	quasi_quotations;	/* User option quasi_quotations(QQ) */
+  term_t	qq;			/* Quasi quoted list */
+  term_t	qq_tail;		/* Tail of the quoted stuff */
+#endif
   bool		cycles;			/* Re-establish cycles */
   int		strictness;		/* Strictness level */
 
@@ -362,6 +396,7 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   init_term_stack(_PL_rd);
   _PL_rd->exception = PL_new_term_ref();
   rb.stream = in;
+  _PL_rd->magic = RD_MAGIC;
   _PL_rd->module = MODULE_parse;
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
   _PL_rd->styleCheck = debugstatus.styleCheck;
@@ -438,7 +473,7 @@ Error term:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-#define syntaxError(what, rd) { errorWarning(what, 0, rd); fail; }
+#define syntaxError(what, rd) do { errorWarning(what, 0, rd); fail; } while(0)
 
 const char *
 str_number_error(strnumstat rc)
@@ -462,12 +497,102 @@ isStringStream(IOSTREAM *s)
 }
 
 
+static void
+ptr_to_location(const unsigned char *here, source_location *pos, ReadData _PL_rd)
+{ unsigned char const *s, *ll = NULL;
+  int c;
+
+  *pos = _PL_rd->start_of_term;
+
+						/* update line number */
+  for(s=rdbase; s<here; s = utf8_get_uchar(s, &c))
+  { pos->position.charno++;
+
+    if ( c == '\n' )
+    { pos->position.lineno++;
+      ll = s+1;
+    }
+  }
+						/* update line position */
+  if ( ll )
+  { s = ll;
+    pos->position.linepos = 0;
+  } else
+  { s = rdbase;
+  }
+
+  for(; s<here; s++)
+  { switch(*s)
+    { case '\b':
+	if ( pos->position.linepos > 0 )
+	  pos->position.linepos--;
+      break;
+    case '\t':
+      pos->position.linepos |= 7;		/* TBD: set tab distance */
+    default:
+      pos->position.linepos++;
+    }
+  }
+
+  pos->position.byteno = 0;			/* we do not know */
+}
+
+
+
+static int
+unify_location(term_t loc, const source_location *pos, ReadData _PL_rd)
+{ GET_LD
+  int rc = TRUE;
+
+  if ( pos->file )				/* reading a file */
+  { rc = PL_unify_term(loc,
+		       PL_FUNCTOR, FUNCTOR_file4,
+			 PL_ATOM,  pos->file,
+			 PL_INT,   pos->position.lineno,
+			 PL_INT,   pos->position.linepos,
+			 PL_INT64, pos->position.charno);
+  } else if ( isStringStream(rb.stream) )
+  { intptr_t charno;
+
+    charno = pos->position.charno - _PL_rd->start_of_term.position.charno;
+
+    rc = PL_unify_term(loc,
+		       PL_FUNCTOR, FUNCTOR_string2,
+			 PL_UTF8_STRING, rdbase,
+			 PL_INTPTR,      charno);
+  } else				/* any stream */
+  { term_t stream;
+
+    if ( !(stream=PL_new_term_ref()) ||
+	 !PL_unify_stream_or_alias(stream, rb.stream) ||
+	 !PL_unify_term(loc,
+			PL_FUNCTOR, FUNCTOR_stream4,
+			  PL_TERM,  stream,
+			  PL_INT,   pos->position.lineno,
+			  PL_INT,   pos->position.linepos,
+			  PL_INT64, pos->position.charno) )
+      rc = FALSE;
+  }
+
+  return rc;
+}
+
+
+static int
+unify_ptr_location(term_t loc, const unsigned char *here, ReadData _PL_rd)
+{ source_location pos;
+
+  ptr_to_location(here, &pos, _PL_rd);
+
+  return unify_location(loc, &pos, _PL_rd);
+}
+
+
 static term_t
 makeErrorTerm(const char *id_str, const char *id_arg,
 	      term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex, loc=0;			/* keep compiler happy */
-  unsigned char const *s, *ll = NULL;
   int rc = TRUE;
 
   if ( !(ex = PL_new_term_ref()) ||
@@ -488,74 +613,16 @@ makeErrorTerm(const char *id_str, const char *id_arg,
     }
   }
 
-  if ( rc )
-    rc = PL_unify_term(ex,
-		       PL_FUNCTOR, FUNCTOR_error2,
-		         PL_FUNCTOR, FUNCTOR_syntax_error1,
-		           PL_TERM, id_term,
-		         PL_TERM, loc);
-
-  source_char_no += last_token_start - rdbase;
-  for(s=rdbase; s<last_token_start; s++)
-  { if ( *s == '\n' )
-    { source_line_no++;
-      ll = s+1;
-    }
-  }
-
-  if ( ll )
-  { int lp = 0;
-
-    for(s = ll; s<last_token_start; s++)
-    { switch(*s)
-      { case '\b':
-	  if ( lp > 0 ) lp--;
-	  break;
-	case '\t':
-	  lp |= 7;
-	default:
-	  lp++;
-      }
-    }
-
-    source_line_pos = lp;
-  }
-
-  if ( rc )
-  { if ( ReadingSource )			/* reading a file */
-    { rc = PL_unify_term(loc,
-			 PL_FUNCTOR, FUNCTOR_file4,
-			   PL_ATOM, source_file_name,
-			   PL_INT, source_line_no,
-			   PL_INT, source_line_pos,
-			   PL_INT64, source_char_no);
-    } else if ( isStringStream(rb.stream) )
-    { size_t pos;
-
-      pos = utf8_strlen((char *)rdbase, last_token_start-rdbase);
-
-      rc = PL_unify_term(loc,
-			 PL_FUNCTOR, FUNCTOR_string2,
-			   PL_UTF8_STRING, rdbase,
-			   PL_INT, (int)pos);
-    } else				/* any stream */
-    { term_t stream;
-
-      if ( !(stream=PL_new_term_ref()) ||
-	   !PL_unify_stream_or_alias(stream, rb.stream) ||
-	   !PL_unify_term(loc,
-			  PL_FUNCTOR, FUNCTOR_stream4,
-			    PL_TERM, stream,
-			    PL_INT, source_line_no,
-			    PL_INT, source_line_pos,
-			    PL_INT64, source_char_no) )
-	rc = FALSE;
-    }
+  if ( rc && (rc = PL_unify_term(ex,
+				 PL_FUNCTOR, FUNCTOR_error2,
+				   PL_FUNCTOR, FUNCTOR_syntax_error1,
+				     PL_TERM, id_term,
+				   PL_TERM, loc)) )
+  { rc = unify_ptr_location(loc, last_token_start, _PL_rd);
   }
 
   return (rc ? ex : (term_t)0);
 }
-
 
 
 static bool
@@ -748,22 +815,24 @@ setCurrentSourceLocation(ReadData _PL_rd ARG_LD)
 { atom_t a;
   IOSTREAM *s = rb.stream;
 
+  if ( (a = fileNameStream(s)) )
+    _PL_rd->start_of_term.file = a;
+  else
+    _PL_rd->start_of_term.file = NULL_ATOM;
+
   if ( s->position )
-  { source_line_no  = s->position->lineno;
-    source_line_pos = s->position->linepos - 1;	/* char just read! */
-    source_char_no  = s->position->charno - 1;	/* char just read! */
-    source_byte_no  = rb.byte_pos_last_char;
+  { _PL_rd->start_of_term.position.lineno  = s->position->lineno;
+    _PL_rd->start_of_term.position.linepos = s->position->linepos - 1;
+    _PL_rd->start_of_term.position.charno  = s->position->charno - 1;
+    /* byteno maintained get getchr__() */
   } else
-  { source_line_no  = -1;
-    source_line_pos = -1;
-    source_char_no  = 0;
-    source_byte_no  = 0;
+  { _PL_rd->start_of_term.position.lineno  = -1;
+    _PL_rd->start_of_term.position.linepos = -1;
+    _PL_rd->start_of_term.position.charno  = 0;
+    _PL_rd->start_of_term.position.byteno  = 0;
   }
 
-  if ( (a = fileNameStream(s)) )
-    source_file_name = a;
-  else
-    source_file_name = NULL_ATOM;
+  LD->read_source = _PL_rd->start_of_term;
 }
 
 
@@ -772,7 +841,7 @@ getchr__(ReadData _PL_rd)
 { int c;
 
   if ( rb.stream->position )
-    rb.byte_pos_last_char = rb.stream->position->byteno;
+    _PL_rd->start_of_term.position.byteno = rb.stream->position->byteno;
   c = Sgetcode(rb.stream);
   if ( !_PL_rd->char_conversion_table || c < 0 || c >= 256 )
     return c;
@@ -889,6 +958,23 @@ out:
 }
 
 
+#ifdef O_QUASIQUOTATIONS
+static int
+raw_read_quasi_quotation(int c, ReadData _PL_rd)
+{ addToBuffer(c, _PL_rd);
+
+  while((c=getchrq()) != EOF)
+  { addToBuffer(c, _PL_rd);
+    if ( c == '}' &&
+	 rb.here[-2] == '|' )
+      return TRUE;
+  }
+
+  rawSyntaxError("end_of_file_in_quasi_quotation");
+}
+#endif
+
+
 static int
 add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 { term_t head = PL_new_term_ref();
@@ -924,9 +1010,7 @@ setErrorLocation(IOPOS *pos, ReadData _PL_rd)
 { if ( pos )
   { GET_LD
 
-    source_char_no = pos->charno;
-    source_line_pos = pos->linepos;
-    source_line_no = pos->lineno;
+    LD->read_source.position = *pos;
   }
   rb.here = rb.base+1;			/* see rawSyntaxError() */
 }
@@ -1156,6 +1240,15 @@ raw_read2(ReadData _PL_rd ARG_LD)
 				else
 				  goto handle_c;
 			      }
+#ifdef O_QUASIQUOTATIONS
+			    } else if ( c == '|' )	/* 0'|| */
+			    { if ( (c=getchr()) != EOF )
+			      { if ( c == '|' )
+				  addToBuffer(c, _PL_rd);
+				else
+				  goto handle_c;
+			      }
+#endif
 			    }
 			    break;
 			  }
@@ -1252,6 +1345,17 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      dotseen = FALSE;
 		      goto handle_c;
 		    default:
+#ifdef O_QUASIQUOTATIONS		/* detect || from {|Syntax||Quotation|} */
+		      if ( c == '|' &&
+			   rb.here - rb.base >= 1 &&
+			   rb.here[-1] == '|' &&
+			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
+		      { if ( !raw_read_quasi_quotation(c, _PL_rd) )
+			  return FALSE;
+			dotseen = FALSE;
+			break;
+		      }
+#endif
 		      addToBuffer(c, _PL_rd);
 		      dotseen = FALSE;
 		      set_start_line;
@@ -1504,9 +1608,146 @@ bind_variables(ReadData _PL_rd ARG_LD)
 }
 
 
+#ifdef O_QUASIQUOTATIONS
+/** '$qq_open'(+QQRange, -Stream) is det.
+
+Opens a quasi-quoted memory range.
+
+@arg QQRange is a term '$quasi_quotation'(ReadData, Start, Length)
+@arg Stream  is a UTF-8 encoded string, whose position indication
+	     reflects the location in the real file.
+*/
+
+static
+PRED_IMPL("$qq_open", 2, qq_open, 0)
+{ PRED_LD
+
+  if ( PL_is_functor(A1, FUNCTOR_dquasi_quotation3) )
+  { void *ptr;
+    size_t start, len;
+    term_t arg = PL_new_term_ref();
+
+    if ( PL_get_arg(1, A1, arg) && PL_get_pointer_ex(arg, &ptr) &&
+	 PL_get_arg(2, A1, arg) && PL_get_size_ex(arg, &start) &&
+	 PL_get_arg(3, A1, arg) && PL_get_size_ex(arg, &len) )
+    { ReadData _PL_rd = ptr;
+
+      if ( _PL_rd->magic == RD_MAGIC )
+      { char *s_start = (char*)rdbase+start;
+	IOSTREAM *s;
+
+	if ( (s=Sopenmem(&s_start, &len, "r")) )
+	{ source_location pos;
+
+	  s->encoding = ENC_UTF8;
+	  ptr_to_location((unsigned char*)s_start, &pos, _PL_rd);
+	  if ( pos.file )
+	    setFileNameStream(s, pos.file);
+	  if ( pos.position.lineno > 0 )
+	  { s->position = &s->posbuf;
+	    *s->position = pos.position;
+	  }
+
+	  return PL_unify_stream(A2, s);
+	}
+      } else
+	PL_existence_error("read_context", A1);
+    }
+  } else
+    PL_type_error("read_context", A1);
+
+  return FALSE;
+}
+
+
+static int
+parse_quasi_quotations(ReadData _PL_rd ARG_LD)
+{ if ( _PL_rd->qq_tail )
+  { term_t av;
+    int rc;
+
+    if ( !PL_unify_nil(_PL_rd->qq_tail) )
+      return FALSE;
+
+    if ( !_PL_rd->quasi_quotations )
+    { if ( (av = PL_new_term_refs(2)) &&
+	   PL_put_term(av+0, _PL_rd->qq) &&
+	   PL_put_atom(av+1, _PL_rd->module->name) &&
+	   PL_cons_functor_v(av, FUNCTOR_dparse_quasi_quotations2, av) )
+      { term_t ex;
+
+	rc = callProlog(MODULE_system, av+0, PL_Q_CATCH_EXCEPTION, &ex);
+	if ( rc )
+	  return TRUE;
+	_PL_rd->exception = ex;
+	return reportReadError(_PL_rd);
+      } else
+	return FALSE;
+    } else
+      return TRUE;
+  } else if ( _PL_rd->quasi_quotations )	/* user option, but no quotes */
+  { return PL_unify_nil(_PL_rd->quasi_quotations);
+  } else
+    return TRUE;
+}
+
+
+static int
+is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
+{ GET_LD
+  term_t plain = PL_new_term_ref();
+  term_t ex;
+  Module m = _PL_rd->module;
+  atom_t name;
+  int arity;
+
+  PL_strip_module(type, &m, plain);
+
+  if ( PL_get_name_arity(plain, &name, &arity) )
+  { if ( _PL_rd->quasi_quotations )
+    { return TRUE;
+    } else
+    { Procedure proc;
+
+      if ( (proc=resolveProcedure(PL_new_functor(name, 4), m)) &&
+	   true(proc->definition, P_QUASI_QUOTATION_SYNTAX) )
+	return TRUE;
+
+      if ( (ex = PL_new_term_ref()) &&
+	   PL_unify_term(ex,
+			 PL_FUNCTOR_CHARS, "unknown_quasi_quotation_syntax", 2,
+			   PL_TERM, type,
+			   PL_ATOM, m->name) )
+	return errorWarning(NULL, ex, _PL_rd);
+    }
+  } else
+  { if ( (ex = PL_new_term_ref()) &&
+	 PL_unify_term(ex, PL_FUNCTOR_CHARS, "invalid_quasi_quotation_syntax", 1,
+		       PL_TERM, type) )
+      return errorWarning(NULL, ex, _PL_rd);
+  }
+
+  return FALSE;
+}
+
+#endif /*O_QUASIQUOTATIONS*/
+
+
 		/********************************
 		*           TOKENISER           *
 		*********************************/
+
+static inline int
+void_allowed(ReadData _PL_rd)
+{ int type, priority;
+
+  if ( !_PL_rd->strictness &&
+       currentOperator(_PL_rd->module, ATOM_void, OP_POSTFIX, &type, &priority) )
+    return TRUE;
+
+  return FALSE;
+}
+
 
 static inline ucharp
 skipSpaces(cucharp in)
@@ -1560,72 +1801,101 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
 
 #define unget_token()	{ unget = TRUE; }
 
-#ifndef O_GMP
-static double
-uint64_to_double(uint64_t i)
-{
-#ifdef __WINDOWS__
-  int64_t s = (int64_t)i;
-  if ( s >= 0 )
-    return (double)s;
-  else
-    return (double)s + 18446744073709551616.0;
-#else
-  return (double)i;
-#endif
+
+/* skip_digit_separator() skips a digit separator as defined by Ulrich
+   Neumerkel in the SWI-Prolog mailinglist.  That is, for numbers that
+   only include digits, this is _<blank>* or ' '; while for for other
+   numbers (e.g., hexadecimal), it is only _<blank>*.
+*/
+
+static int
+skip_digit_separator(cucharp *sp, int base, int *grouped)
+{ cucharp s = *sp;
+
+  if ( *s == '_' )
+    s = skipSpaces(s+1);
+  else if ( *s == ' ' && base <= 10 )
+    s++;
+
+  if ( digitValue(base, *s) >= 0 )
+  { *sp = s;
+    if ( grouped )
+      *grouped = TRUE;
+    return TRUE;
+  }
+
+  return FALSE;
 }
-#endif
 
 
 static strnumstat
-scan_decimal(cucharp *sp, Number n)
-{ uint64_t maxi = PLMAXINT/10;
-  uint64_t t = 0;
+scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
+{ int64_t maxi = PLMAXINT/10;
+  int maxlastdigit = PLMAXINT % 10;
+  int64_t mini = PLMININT/10;
+  int minlastdigit = PLMININT % 10;
+  int64_t t = 0;
   cucharp s = *sp;
   int c = *s;
 
   if ( !isDigit(c) )
     return NUM_ERROR;
 
-  for(; isDigit(c); c = *++s)
-  { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
-    {
+  *grouped = FALSE;
+
+  do
+  { for(c = *s; isDigit(c); c = *++s)
+    { if (    (  negative && ( (t < mini) || (t == mini && '0' - c < minlastdigit) ))
+           || ( !negative && ( (t > maxi) || (t == maxi && c - '0' > maxlastdigit) )) )
+      {
 #ifdef O_GMP
-      n->value.i = (int64_t)t;
-      n->type = V_INTEGER;
-      promoteToMPZNumber(n);
+	n->value.i = t;
+	n->type = V_INTEGER;
+	promoteToMPZNumber(n);
 
-      for(c = *s; isDigit(c); c = *++s)
-      { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
-	mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
-      }
-      *sp = s;
+	do
+	{ for(c = *s; isDigit(c); c = *++s)
+	  { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
+            if (negative)
+	      mpz_sub_ui(n->value.mpz, n->value.mpz, c - '0');
+            else
+              mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
+	  }
+	} while ( skip_digit_separator(&s, 10, grouped) );
 
-      return NUM_OK;
+	*sp = s;
+
+	return NUM_OK;
 #else
-      char *end;
-
-      while(isDigit(*s))
-	s++;
-      if ( *s == '.' && isDigit(s[1]) )
-      { s++;
-        while( isDigit(*s) )
-          s++;
-      }
-      errno = 0;
-      n->value.f = strtod((char*)*sp, &end);
-      if ( ((char*)s != end) && !(*s == '.' && (char*)s+1 == end) )
-	return NUM_ERROR;
-      if ( errno == ERANGE )
-	return NUM_FOVERFLOW;
-      *sp = s;
-
-      n->type = V_FLOAT;
-      return NUM_OK;
+	double maxf =  MAXREAL / 10.0 - 10.0;
+	double minf = -MAXREAL / 10.0 + 10.0;
+	double tf = (double)t;
+	do
+        { for(c = *s; isDigit(c); c = *++s)
+	  { if (negative)
+            { if ( tf < minf )
+	        fail;				/* number too large */
+              tf = tf * 10.0 - (double)(c - '0');
+            } else
+            { if ( tf > maxf )
+	        fail;				/* number too large */
+              tf = tf * 10.0 + (double)(c - '0');
+            }
+	  }
+	} while ( skip_digit_separator(&s, 10, grouped) );
+	n->value.f = tf;
+	n->type = V_FLOAT;
+	*sp = s;
+	return NUM_OK;
 #endif
-    } else
-      t = t * 10 + c - '0';
-  }
+      } else
+      { if (negative)
+          t = t * 10 - c + '0';
+        else
+          t = t * 10 + c - '0';
+      }
+    }
+  } while ( skip_digit_separator(&s, 10, grouped) );
 
   *sp = s;
 
@@ -1636,54 +1906,75 @@ scan_decimal(cucharp *sp, Number n)
 
 
 static strnumstat
-scan_number(cucharp *s, int b, Number n)
+scan_number(cucharp *s, int negative, int b, Number n)
 { int d;
-  uint64_t maxi = PLMAXINT/b;		/* cache? */
-  uint64_t t;
+  int64_t maxi = PLMAXINT/b;		/* cache? */
+  int maxlastdigit = PLMAXINT % b;
+  int64_t mini = PLMININT/b;
+  int minlastdigit = PLMININT % b;
+  int64_t t = 0;
   cucharp q = *s;
 
   if ( (d = digitValue(b, *q)) < 0 )
     return NUM_ERROR;			/* syntax error */
-  t = d;
-  q++;
 
-  while((d = digitValue(b, *q)) >= 0)
-  { if ( t > maxi || t * b + d > PLMAXINT )
-    {
+  do
+  { while((d = digitValue(b, *q)) >= 0)
+    { if (    (  negative && ( (t < mini) || (t == mini && d > minlastdigit) ))
+           || ( !negative && ( (t > maxi) || (t == maxi && d > maxlastdigit) )) )
+      {
 #ifdef O_GMP
-      n->value.i = (int64_t)t;
-      n->type = V_INTEGER;
-      promoteToMPZNumber(n);
+	n->value.i = t;
+	n->type = V_INTEGER;
+	promoteToMPZNumber(n);
 
-      while((d = digitValue(b, *q)) >= 0)
-      { q++;
-	mpz_mul_ui(n->value.mpz, n->value.mpz, b);
-	mpz_add_ui(n->value.mpz, n->value.mpz, d);
-      }
-      *s = q;
+	do
+	{ while((d = digitValue(b, *q)) >= 0)
+	  { q++;
+	    mpz_mul_ui(n->value.mpz, n->value.mpz, b);
+            if (negative)
+              mpz_sub_ui(n->value.mpz, n->value.mpz, d);
+            else
+              mpz_add_ui(n->value.mpz, n->value.mpz, d);
+	  }
+	} while ( skip_digit_separator(&q, b, NULL) );
 
-      return NUM_OK;
+	*s = q;
+
+	return NUM_OK;
 #else
-      double maxf = MAXREAL / (double) b - (double) b;
-      double tf = uint64_to_double(t);
 
-      tf = tf * (double)b + (double)d;
-      while((d = digitValue(b, *q)) >= 0)
-      { q++;
-        if ( tf > maxf )
-	  fail;				/* number too large */
-        tf = tf * (double)b + (double)d;
-      }
-      n->value.f = tf;
-      n->type = V_FLOAT;
-      *s = q;
-      return NUM_OK;
+	double maxf =  MAXREAL / (double) b - (double) b;
+	double minf = -MAXREAL / (double) b + (double) b;
+	double tf = (double)t;
+	do
+	{ while((d = digitValue(b, *q)) >= 0)
+	  { q++;
+            if (negative)
+            { if ( tf < minf )
+	        fail;				/* number too large */
+	      tf = tf * (double)b - (double)d;
+            } else
+            { if ( tf > maxf )
+	        fail;				/* number too large */
+	      tf = tf * (double)b + (double)d;
+            }
+	  }
+	} while ( skip_digit_separator(&q, b, NULL) );
+	n->value.f = tf;
+	n->type = V_FLOAT;
+	*s = q;
+	return NUM_OK;
 #endif
-    } else
-    { q++;
-      t = t * b + d;
+      } else
+      { q++;
+        if (negative)
+	  t = t * b - d;
+        else
+	  t = t * b + d;
+      }
     }
-  }
+  } while ( skip_digit_separator(&q, b, NULL) );
 
   n->value.i = t;
   n->type = V_INTEGER;
@@ -1731,6 +2022,15 @@ again:
 	OK(c);
       }
       OK('c');
+    case '\r':				/* \\\r\n is the same as \\\n */
+    { int c2;
+      cucharp in2 = utf8_get_uchar(in, &c2);
+      if ( c2 == '\n' )
+      { c = c2;
+	in = in2;
+      }
+    }
+    /*FALLTHROUGH*/
     case '\n':				/* \LF<blank>* */
       if ( _PL_rd )			/* quoted string, _not_ 0'\.. */
       { if ( !_PL_rd->strictness )
@@ -1938,34 +2238,44 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
 }
 
 
-static void
-neg_number(Number n)
-{ switch(n->type)
-  { case V_INTEGER:
-      if ( n->value.i == PLMININT )
-      {
-#ifdef O_GMP
-	promoteToMPZNumber(n);
-	mpz_neg(n->value.mpz, n->value.mpz);
-#else
-	n->type = V_FLOAT;
-	n->value.f = -(double)n->value.i;
-#endif
+#ifdef O_QUASIQUOTATIONS
+static int
+get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
+		    ReadData _PL_rd)
+{ unsigned char *in, *start = *here;
+
+  for(in=start; in <= ein; in++)
+  { if ( in[0] == '}' &&
+	 in[-1] == '|' )
+    { *here = in+1;			/* after } */
+      in--;				/* Before | */
+
+      if ( _PL_rd->quasi_quotations )	/* option; must return strings */
+      { PL_chars_t txt;
+	int rc;
+
+	txt.text.t    = (char*)start;
+	txt.length    = in-start;
+	txt.storage   = PL_CHARS_HEAP;
+	txt.encoding  = ENC_UTF8;
+	txt.canonical = FALSE;
+
+	rc = PL_unify_text(t, 0, &txt, PL_CODE_LIST);
+	PL_free_text(&txt);
+
+	return rc;
       } else
-      { n->value.i = -n->value.i;
+      { return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_dquasi_quotation3,
+			          PL_POINTER, _PL_rd,
+				  PL_INTPTR, (intptr_t)(start-rdbase),
+			          PL_INTPTR, (intptr_t)(in-start));
       }
-      break;
-#ifdef O_GMP
-    case V_MPZ:
-      mpz_neg(n->value.mpz, n->value.mpz);
-      break;
-    case V_MPQ:
-      assert(0);			/* are not read directly */
-#endif
-    case V_FLOAT:
-      n->value.f = -n->value.f;
+    }
   }
+
+  return errorWarning("end_of_file_in_quasi_quotation", 0, _PL_rd);
 }
+#endif /*O_QUASIQUOTATIONS*/
 
 
 strnumstat
@@ -1973,6 +2283,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
   cucharp start = in;
   strnumstat rc;
+  int grouped;
 
   if ( *in == '-' )			/* skip optional sign */
   { negative = TRUE;
@@ -2018,19 +2329,20 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     if ( base )				/* 0b<binary>, 0x<hex>, 0o<oct> */
     { in += 2;
 
-      if ( (rc = scan_number(&in, base, value)) != NUM_OK )
+      if ( (rc = scan_number(&in, negative, base, value)) != NUM_OK )
 	return rc;
       *end = (ucharp)in;
-      if ( negative )
-	neg_number(value);
 
       return NUM_OK;
     }
   }
 
-  if ( (rc=scan_decimal(&in, value)) != NUM_OK )
+  if ( (rc=scan_decimal(&in, negative, value, &grouped)) != NUM_OK )
     return rc;				/* too large? */
-
+  if ( grouped )
+  { *end = (ucharp)in;
+    return NUM_OK;
+  }
 					/* base'value number */
   if ( *in == '\'' &&
        value->type == V_INTEGER &&
@@ -2039,11 +2351,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
        digitValue((int)value->value.i, in[1]) >= 0 )
   { in++;
 
-    if ( !(rc=scan_number(&in, (int)value->value.i, value)) )
+    if ( !(rc=scan_number(&in, negative, (int)value->value.i, value)) )
       return rc;			/* number too large */
-
-    if ( negative )
-      neg_number(value);
 
     *end = (ucharp)in;
 
@@ -2078,16 +2387,13 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     value->value.f = strtod((char*)start, &e);
     if ( e != (char*)in && !(*in == '.' && (char*)in+1 == e) )
       return NUM_ERROR;
-    if ( errno == ERANGE && abs(value->value.f) > 1.0 )
+    if ( errno == ERANGE && fabs(value->value.f) > 1.0 )
       return NUM_FOVERFLOW;
 
     *end = (ucharp)in;
 
     return NUM_OK;
   }
-
-  if ( negative )
-    neg_number(value);
 
   *end = (ucharp)in;
 
@@ -2147,6 +2453,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
   rdhere = skipSpaces(rdhere);
   start = last_token_start = rdhere;
   cur_token.start = source_char_no + ptr_to_pos(last_token_start, _PL_rd);
+					/* TBD: quadratic due to ptr_to_pos()? */
 
   rdhere = (unsigned char*)utf8_get_char((char *)rdhere, &c);
   if ( c > 0xff )
@@ -2182,8 +2489,14 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
 
-		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
+		  if ( *rdhere == '(' )
+		  { cur_token.type = T_FUNCTOR;
+		  } else
+		  { cur_token.type = T_NAME;
+		  }
+
+		  DEBUG(9, Sdprintf("%s: %s\n",
+				    cur_token.type == T_FUNCTOR ? "FUNC" : "NAME",
 				    stringAtom(cur_token.value.atom)));
 
 		  break;
@@ -2259,17 +2572,44 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		goto symbol;
     case PU:	{ switch(c)
 		  { case '{':
+#ifdef O_QUASIQUOTATIONS
+		      if ( rdhere[0] == '|' &&
+			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
+		      { rdhere++;
+			cur_token.type = T_QQ_OPEN;
+			goto out;
+		      }
+		    /*FALLTHROUGH*/
+#endif
+		    case '(':
 		    case '[':
-		      while( isBlank(*rdhere) )
-			rdhere++;
+		      rdhere = skipSpaces(rdhere);
 		      if (rdhere[0] == matchingBracket(c))
 		      { rdhere++;
-			cur_token.value.atom = (c == '[' ? ATOM_nil : ATOM_curl);
+			switch(c)
+			{ case '{': cur_token.value.atom = ATOM_curl; break;
+			  case '[': cur_token.value.atom = ATOM_nil;  break;
+			  case '(':
+			    if ( void_allowed(_PL_rd) )
+			      cur_token.value.atom = ATOM_void;
+			    else
+			      syntaxError("void_not_allowed", _PL_rd);
+			    break;
+			}
 			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
 			DEBUG(9, Sdprintf("NAME: %s\n",
 					  stringAtom(cur_token.value.atom)));
 			goto out;
 		      }
+#ifdef O_QUASIQUOTATIONS
+		    case '|':
+		      if ( rdhere[0] == '|' &&
+			   truePrologFlag(PLFLAG_QUASI_QUOTES) )
+		      { rdhere++;
+			cur_token.type = T_QQ_BAR;
+			goto out;
+		      }
+#endif
 		  }
 		  cur_token.value.character = c;
 		  cur_token.type = T_PUNCTUATION;
@@ -2601,15 +2941,28 @@ opPos(op_entry *op, out_entry *args ARG_LD)
     { intptr_t s = get_int_arg(args[0].tpos, 1 PASS_LD);
       intptr_t e = get_int_arg(args[1].tpos, 2 PASS_LD);
 
-      if ( !PL_unify_term(r,
-			  PL_FUNCTOR,	FUNCTOR_term_position5,
-			  PL_INTPTR, s,
-			  PL_INTPTR, e,
-			  PL_INTPTR, fs,
-			  PL_INTPTR, fe,
-			  PL_LIST, 2, PL_TERM, args[0].tpos,
-				      PL_TERM, args[1].tpos) )
-	return (term_t)0;
+      if ( !op->isblock )
+      { if ( !PL_unify_term(r,
+			    PL_FUNCTOR,	FUNCTOR_term_position5,
+			    PL_INTPTR, s,
+			    PL_INTPTR, e,
+			    PL_INTPTR, fs,
+			    PL_INTPTR, fe,
+			    PL_LIST, 2, PL_TERM, args[0].tpos,
+					PL_TERM, args[1].tpos) )
+	  return (term_t)0;
+      } else
+      { if ( !PL_unify_term(r,
+			    PL_FUNCTOR,	FUNCTOR_term_position5,
+			    PL_INTPTR, s,
+			    PL_INTPTR, e,
+			    PL_INT, 0,
+			    PL_INT, 0,
+			    PL_LIST, 3, PL_TERM, op->tpos,
+					PL_TERM, args[0].tpos,
+					PL_TERM, args[1].tpos) )
+	  return (term_t)0;
+      }
     } else
     { intptr_t s, e;
 
@@ -2621,20 +2974,52 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 	e = fe;
       }
 
-      if ( !PL_unify_term(r,
-			  PL_FUNCTOR,	FUNCTOR_term_position5,
-			  PL_INTPTR, s,
-			  PL_INTPTR, e,
-			  PL_INTPTR, fs,
-			  PL_INTPTR, fe,
-			    PL_LIST, 1, PL_TERM, args[0].tpos) )
-	return (term_t)0;
+      if ( !op->isblock )
+      { if ( !PL_unify_term(r,
+			    PL_FUNCTOR,	FUNCTOR_term_position5,
+			    PL_INTPTR, s,
+			    PL_INTPTR, e,
+			    PL_INTPTR, fs,
+			    PL_INTPTR, fe,
+			      PL_LIST, 1, PL_TERM, args[0].tpos) )
+	  return (term_t)0;
+      } else
+      { if ( !PL_unify_term(r,
+			    PL_FUNCTOR,	FUNCTOR_term_position5,
+			    PL_INTPTR, s,
+			    PL_INTPTR, e,
+			    PL_INT, 0,
+			    PL_INT, 0,
+			      PL_LIST, 2, PL_TERM, op->tpos,
+					  PL_TERM, args[0].tpos) )
+	  return (term_t)0;
+      }
     }
 
     return r;
   }
 
   return 0;
+}
+
+
+static inline atom_t
+op_name(op_entry *e)
+{ if ( !e->isterm )
+  { return e->op.atom;
+  } else
+  { atom_t name;
+
+    if ( PL_get_name_arity(e->op.block, &name, NULL) )
+    { if ( name == ATOM_dot )
+	name = ATOM_nil;
+    } else
+    { assert(0);
+      name = ATOM_nil;
+    }
+
+    return name;
+  }
 }
 
 
@@ -2649,8 +3034,22 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
     return FALSE;
 
   e = out_op(-arity, _PL_rd);
-  if ( (rc = build_term(op->op, arity, _PL_rd PASS_LD)) != TRUE )
-    return rc;
+  if ( !op->isblock )
+  { if ( (rc = build_term(op->op.atom, arity, _PL_rd PASS_LD)) != TRUE )
+      return rc;
+  } else
+  { term_t term = alloc_term(_PL_rd PASS_LD);
+    term_t *av = term_av(-(arity+1), _PL_rd);
+    int i;
+
+    for(i=arity; i>0; i--)
+      av[i] = av[i-1];
+    av[0] = term;
+    PL_put_term(term, op->op.block);
+
+    if ( (rc = build_term(op_name(op), arity+1, _PL_rd PASS_LD)) != TRUE )
+      return rc;
+  }
 
   e->pri  = op->op_pri;
   e->tpos = opPos(op, e PASS_LD);
@@ -2675,18 +3074,16 @@ functions:  complex_term()  which is involved with operator handling and
 simple_term() which reads everything, except for operators.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD);
+static int simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD);
 
 
 static bool
-isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
+isOp(op_entry *e, int kind, ReadData _PL_rd)
 { int pri;
   int type;
 
-  if ( !currentOperator(_PL_rd->module, atom, kind, &type, &pri) )
+  if ( !currentOperator(_PL_rd->module, op_name(e), kind, &type, &pri) )
     fail;
-  e->op     = atom;
   e->kind   = kind;
   e->op_pri = pri;
 
@@ -2704,6 +3101,8 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
 }
 
 
+#define stringOp(e) \
+	stringAtom(op_name(e))
 #define PushOp() \
 	queue_side_op(&in_op, _PL_rd); \
 	side_n++, side_p++;
@@ -2716,21 +3115,21 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
 #define Modify(cpri) \
 	if ( side_n > 0 && rmo == 0 && cpri > SideOp(side_p)->right_pri ) \
 	{ op_entry *op = SideOp(side_p); \
-	  if ( op->kind == OP_PREFIX ) \
+	  if ( op->kind == OP_PREFIX && !op->isblock ) \
 	  { term_t tmp; \
 	    DEBUG(9, Sdprintf("Prefix %s to atom\n", \
-			      stringAtom(op->op))); \
+			      stringOp(op))); \
 	    rmo++; \
 	    if ( !(tmp = alloc_term(_PL_rd PASS_LD)) ) return FALSE; \
-	    PL_put_atom(tmp, op->op); \
+	    PL_put_atom(tmp, op->op.atom); \
 	    queue_out_op(0, op->tpos, _PL_rd); \
 	    out_n++; \
 	    PopOp(); \
 	  } else if ( op->kind == OP_INFIX && out_n > 0 && \
-		      isOp(op->op, OP_POSTFIX, op, _PL_rd) ) \
+		      isOp(op, OP_POSTFIX, _PL_rd) ) \
 	  { int rc; \
 	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
-			      stringAtom(op->op))); \
+			      stringOp(op))); \
 	    rmo++; \
 	    rc = build_op_term(op, _PL_rd PASS_LD); \
 	    if ( rc != TRUE ) return rc; \
@@ -2742,7 +3141,7 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
 static int
 bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 { /*term_t t;*/
-  char *opname = stringAtom(op->op);
+  char *opname = stringOp(op);
 
   last_token_start = op->token_start;
 
@@ -2813,7 +3212,7 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
   }
 
   DEBUG(9, if ( rc ) Sdprintf("Reducing %s/%d\n",
-			      stringAtom(op->op), arity));
+			      stringOp(op), arity));
 
   return rc;
 }
@@ -2843,6 +3242,7 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
     { switch(token->value.character)
       { case '[':
 	case '{':
+	  return TRUE;
 	case '(':
 	  return FALSE;
 	case ')':
@@ -2872,11 +3272,22 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 
 
 static inline atom_t
-name_token(Token token, ReadData _PL_rd)
+name_token(Token token, op_entry *e, ReadData _PL_rd)
 { switch(token->type)
   { case T_PUNCTUATION:
       need_unlock(0, _PL_rd);
-      return codeToAtom(token->value.character);
+      switch(token->value.character)
+      { case '[':
+	  if ( e )
+	    e->isblock = TRUE;
+	  return ATOM_nil;
+	case '{':
+	  if ( e )
+	    e->isblock = TRUE;
+	  return ATOM_curl;
+	default:
+	  return codeToAtom(token->value.character);
+      }
     case T_FULLSTOP:
       need_unlock(0, _PL_rd);
       return ATOM_dot;
@@ -2944,33 +3355,52 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	    goto exit;			/* exit for-loop */
 	  break;
 	case T_PUNCTUATION:
-	{ if ( stop != NULL && strchr(stop, token->value.character) )
+	  if ( stop != NULL && strchr(stop, token->value.character) )
 	    goto exit;
-	}
+	  break;
+#ifdef O_QUASIQUOTATIONS
+        case T_QQ_BAR:
+	  if ( stop != NULL && stop[0] == '|' )
+	    goto exit;
+	  break;
+#endif
       }
     }
 
     if ( (rc=is_name_token(token, rmo == 1, _PL_rd)) == TRUE )
-    { atom_t name = name_token(token, _PL_rd);
-
-      in_op.tpos = pin;
+    { in_op.isblock     = FALSE;
+      in_op.isterm      = FALSE;
+      in_op.op.atom     = name_token(token, &in_op, _PL_rd);
+      in_op.tpos        = pin;
       in_op.token_start = last_token_start;
 
-      DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
+      DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringOp(&in_op), rmo));
 
-      if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op, _PL_rd) )
-      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
+      if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
+      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
 
       push_op:
-	Unlock(name);			/* ok; part of an operator */
-	if ( !unify_atomic_position(pin, token) )
-	  return FALSE;
+	Unlock(in_op.op.atom);		/* ok; part of an operator */
+	if ( in_op.isblock )
+	{ term_t *top;
+
+	  if ( (rc = simple_term(token, pin, _PL_rd PASS_LD)) != TRUE )
+	    return rc;			/* TBD: need cleanup? */
+	  top = term_av(-1, _PL_rd);
+	  in_op.op.block = PL_new_term_ref();
+	  in_op.isterm = TRUE;
+	  PL_put_term(in_op.op.block, *top);
+	  truncate_term_stack(top, _PL_rd);
+	} else
+	{ if ( !unify_atomic_position(pin, token) )
+	    return FALSE;
+	}
 	PushOp();
 
 	continue;
       }
-      if ( isOp(name, OP_INFIX, &in_op, _PL_rd) )
-      { DEBUG(9, Sdprintf("Infix op: %s\n", stringAtom(name)));
+      if ( isOp(&in_op, OP_INFIX, _PL_rd) )
+      { DEBUG(9, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -2979,8 +3409,8 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  goto push_op;
 	}
       }
-      if ( isOp(name, OP_POSTFIX, &in_op, _PL_rd) )
-      { DEBUG(9, Sdprintf("Postfix op: %s\n", stringAtom(name)));
+      if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
+      { DEBUG(9, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -3027,17 +3457,22 @@ exit:
     term_t term = alloc_term(_PL_rd PASS_LD);
     int rc;
 
-    PL_put_atom(term, op->op);
+    if ( !op->isblock )
+      PL_put_atom(term, op->op.atom);
+    else
+      PL_put_term(term, op->op.block);
+
     if ( positions && (rc=PL_unify(positions, op->tpos)) != TRUE )
       return rc;
+
     PopOp();
 
     return TRUE;
   }
 
-  if ( side_n == 1 &&
-       ( SideOp(0)->op == ATOM_comma ||
-	 SideOp(0)->op == ATOM_semicolon
+  if ( side_n == 1 && !SideOp(0)->isblock &&
+       ( SideOp(0)->op.atom == ATOM_comma ||
+	 SideOp(0)->op.atom == ATOM_semicolon
        ))
   { term_t ex;
 
@@ -3046,8 +3481,8 @@ exit:
     if ( (ex = PL_new_term_ref()) &&
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
-		         PL_ATOM, SideOp(side_p)->op,
-		         PL_ATOM, name_token(token, _PL_rd)) )
+		         PL_ATOM, SideOp(side_p)->op.atom,
+		         PL_ATOM, name_token(token, NULL, _PL_rd)) )
       return errorWarning(NULL, ex, _PL_rd);
 
     return FALSE;
@@ -3066,6 +3501,23 @@ set_range_position(term_t positions, intptr_t start, intptr_t end ARG_LD)
   if ( start >= 0 ) p[0] = consInt(start);
   if ( end   >= 0 ) p[1] = consInt(end);
 }
+
+
+static void
+swap_functor_position(term_t positions, intptr_t *sp, intptr_t *ep ARG_LD)
+{ Word p = valTermRef(positions);
+  intptr_t s, e;
+
+  deRef(p);
+  p = argTermP(*p, 0);
+  s = valInt(p[2]);
+  e = valInt(p[3]);
+  p[2] = consInt(*sp);
+  p[3] = consInt(*ep);
+  *sp = s;
+  *ep = e;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3124,7 +3576,11 @@ term is to be written.
       return rc;
     if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
       return rc;
-    argp = allocGlobal(3);
+    if ( !hasGlobalSpace(3) &&
+         (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+      return rc;
+    argp = gTop;
+    gTop += 3;
     *unRef(*valTermRef(tail)) = consPtr(argp,
 					TAG_COMPOUND|STG_GLOBAL);
     *argp++ = FUNCTOR_dot2;
@@ -3250,7 +3706,32 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   functor = token->value.atom;
   unlock = (_PL_rd->locked == functor);
   _PL_rd->locked = 0;
-  get_token(FALSE, _PL_rd);			/* skip '(' */
+
+  if ( (token=get_token(FALSE, _PL_rd)) &&
+       token->type == T_NAME &&
+       token->value.atom == ATOM_void )
+  { term_t term;
+
+    if ( positions )
+    { intptr_t fs = token->start, fe = token->end;
+
+      set_range_position(positions, -1, token->end PASS_LD);
+      swap_functor_position(positions, &fs, &fe PASS_LD);
+      if ( !PL_unify_term(P_ARG, PL_LIST, 1,
+			  PL_FUNCTOR, FUNCTOR_minus2,
+			    PL_INTPTR, fs,
+			    PL_INTPTR, fe) )
+	return FALSE;
+    }
+
+    term = alloc_term(_PL_rd PASS_LD);
+    PL_put_atom(term, functor);
+    rc = build_term(ATOM_void, 1, _PL_rd PASS_LD);
+    if ( unlock )
+      PL_unregister_atom(functor);
+
+    return rc;
+  }
 
   do
   { if ( positions )
@@ -3339,7 +3820,97 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 	  return unify_atomic_position(positions, token);
 	}
       }
-    } /* case T_PUNCTUATION */
+    }
+#ifdef O_QUASIQUOTATIONS
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    case T_QQ_OPEN:
+    { int rc;
+      term_t result, t, *argv, pv, av;
+
+      result = alloc_term(_PL_rd PASS_LD);
+
+				/* prepare (if we are the first in term) */
+      if ( !_PL_rd->varnames )
+	_PL_rd->varnames = PL_new_term_ref();
+      if ( !_PL_rd->qq )
+      { if ( _PL_rd->quasi_quotations )
+	{ _PL_rd->qq = _PL_rd->quasi_quotations;
+	} else
+	{ if ( !(_PL_rd->qq = PL_new_term_ref()) )
+	    return FALSE;
+	}
+
+	if ( !(_PL_rd->qq_tail = PL_copy_term_ref(_PL_rd->qq)) )
+	  return FALSE;
+      }
+
+					/* allocate for quasi_quotation/4 */
+      if ( !(av=PL_new_term_refs(4)) )
+	return FALSE;
+
+      if ( positions )
+      { if ( !(pv = PL_new_term_refs(3)) ||
+	     !PL_unify_term(positions,
+			    PL_FUNCTOR, FUNCTOR_quasi_quotation_position5,
+			      PL_INTPTR, token->start,
+			      PL_VARIABLE,
+			      PL_TERM, pv+0,
+			      PL_TERM, pv+1,
+			      PL_TERM, pv+2) )
+	  return FALSE;
+      } else
+	pv = 0;
+						/* push type */
+      rc = complex_term("|", OP_MAXPRIORITY+1,
+			positions ? pv+1 : 0,
+			_PL_rd PASS_LD);
+      if ( rc != TRUE )
+	return rc;
+      token = get_token(FALSE, _PL_rd);		/* get the '|' */
+      if ( token->type != T_QQ_BAR )
+	syntaxError("double_bar_expected", _PL_rd);
+
+      argv = term_av(-1, _PL_rd);
+      PL_put_term(av+0, argv[0]);		/* Arg 0: the type */
+      truncate_term_stack(argv, _PL_rd);
+      if ( !is_quasi_quotation_syntax(av, _PL_rd) )
+	return FALSE;
+						/* Arg 1: the content */
+      if ( !get_quasi_quotation(av+1, &rdhere, rdend, _PL_rd) )
+	return FALSE;
+
+      if ( positions )
+      { intptr_t qqend = source_char_no + ptr_to_pos(rdhere, _PL_rd);
+
+	if ( !PL_unify(pv+0, av+0) )
+	  return FALSE;
+	set_range_position(positions, -1, qqend PASS_LD);
+	if ( !PL_unify_term(pv+2,
+			    PL_FUNCTOR, FUNCTOR_minus2,
+			      PL_INTPTR, token->end,	/* end of | token */
+			      PL_INTPTR, qqend-2) )     /* end minus "|}" */
+	  return FALSE;
+      }
+
+      PL_put_term(av+2, _PL_rd->varnames);	/* Arg 2: the var dictionary */
+      if ( !PL_unify(av+3, result) )		/* Arg 3: the result */
+        return FALSE;
+
+      if ( !PL_cons_functor_v(av+0, FUNCTOR_quasi_quotation4, av) )
+        return FALSE;
+
+      if ( !(t = PL_new_term_ref()) ||
+	   !PL_unify_list(_PL_rd->qq_tail, t, _PL_rd->qq_tail) ||
+	   !PL_unify(t, av+0) )
+	return FALSE;
+
+      return TRUE;
+    }
+    case T_QQ_BAR:
+      syntaxError("double_bar_outside_quasiquotation", _PL_rd);
+#endif
     default:;
       sysError("read/1: Illegal token type (%d)", token->type);
       /*NOTREACHED*/
@@ -3407,7 +3978,8 @@ read_term(term_t term, ReadData rd ARG_LD)
 
   rd->here = rd->base;
   rd->strictness = truePrologFlag(PLFLAG_ISO);
-  if ( (rc2=complex_term(NULL, OP_MAXPRIORITY+1, rd->subtpos, rd PASS_LD)) != TRUE )
+  if ( (rc2=complex_term(NULL, OP_MAXPRIORITY+1,
+			 rd->subtpos, rd PASS_LD)) != TRUE )
   { rc = raiseStackOverflow(rc2);
     goto out;
   }
@@ -3438,11 +4010,15 @@ read_term(term_t term, ReadData rd ARG_LD)
   truncate_term_stack(result, rd);
   if ( !rc )
     goto out;
-  if ( rd->varnames && !bind_variable_names(rd PASS_LD) )
+  if ( rd->varnames && !(rc=bind_variable_names(rd PASS_LD)) )
     goto out;
-  if ( rd->variables && !bind_variables(rd PASS_LD) )
+#ifdef O_QUASIQUOTATIONS
+  if ( !(rc=parse_quasi_quotations(rd PASS_LD)) )
     goto out;
-  if ( rd->singles && !check_singletons(rd PASS_LD) )
+#endif
+  if ( rd->variables && !(rc=bind_variables(rd PASS_LD)) )
+    goto out;
+  if ( rd->singles && !(rc=check_singletons(rd PASS_LD)) )
     goto out;
 
   rc = TRUE;
@@ -3593,6 +4169,7 @@ Options:
 static const opt_spec read_clause_options[] =
 { { ATOM_term_position,	  OPT_TERM },
   { ATOM_process_comment, OPT_BOOL },
+  { ATOM_comments,	  OPT_TERM },
   { ATOM_syntax_errors,   OPT_ATOM },
   { NULL_ATOM,		  0 }
 };
@@ -3635,6 +4212,7 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
   fid_t fid;
   term_t tpos = 0;
   term_t comments = 0;
+  term_t opt_comments = 0;
   int process_comment;
   atom_t syntax_errors = ATOM_dec10;
   predicate_t comment_hook;
@@ -3642,35 +4220,42 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
   comment_hook = _PL_predicate("comment_hook", 3, "prolog",
 			       &GD->procedures.comment_hook3);
   process_comment = (comment_hook->definition->impl.any != NULL);
-  if ( process_comment )
-  { if ( !tpos )
-      tpos = PL_new_term_ref();
-    comments = PL_new_term_ref();
-  }
 
   if ( options &&
        !scan_options(options, 0, ATOM_read_option, read_clause_options,
 		     &tpos,
 		     &process_comment,
+		     &opt_comments,
 		     &syntax_errors) )
     return FALSE;
+
+  if ( opt_comments )
+  { comments = PL_new_term_ref();
+  } else if ( process_comment )
+  { if ( !tpos )
+      tpos = PL_new_term_ref();
+    comments = PL_new_term_ref();
+  }
 
   if ( !(fid=PL_open_foreign_frame()) )
     return FALSE;
 
 retry:
   init_read_data(&rd, s PASS_LD);
+  rd.module = LD->modules.source;
   if ( comments )
     rd.comments = PL_copy_term_ref(comments);
   rd.on_error = syntax_errors;
   rd.singles = rd.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
-  if ( (rval = read_term(term, &rd PASS_LD)) )
-  { if ( tpos &&
-	 (rval = unify_read_term_position(tpos PASS_LD)) &&
-	 comments &&
-	 (rval = PL_unify_nil(rd.comments)) &&
-	 !PL_get_nil(comments) )
-      callCommentHook(comment_hook, comments, tpos, term);
+  if ( (rval=read_term(term, &rd PASS_LD)) &&
+       (!tpos || (rval=unify_read_term_position(tpos PASS_LD))) )
+  { if ( rd.comments &&
+	 (rval = PL_unify_nil(rd.comments)) )
+    { if ( opt_comments )
+	rval = PL_unify(opt_comments, comments);
+      else if ( !PL_get_nil(comments) )
+	callCommentHook(comment_hook, comments, tpos, term);
+    }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
     { PL_rewind_foreign_frame(fid);
@@ -3714,6 +4299,9 @@ static const opt_spec read_term_options[] =
   { ATOM_syntax_errors,     OPT_ATOM },
   { ATOM_backquoted_string, OPT_BOOL },
   { ATOM_comments,	    OPT_TERM },
+#ifdef O_QUASIQUOTATIONS
+  { ATOM_quasi_quotations,  OPT_TERM },
+#endif
   { ATOM_cycles,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
@@ -3749,6 +4337,9 @@ retry:
 		     &rd.on_error,
 		     &rd.backquoted_string,
 		     &tcomments,
+#ifdef O_QUASIQUOTATIONS
+		     &rd.quasi_quotations,
+#endif
 		     &rd.cycles) )
   { PL_release_stream(s);
     fail;
@@ -3826,15 +4417,17 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
 
     stream = Sopenmem(&s, &bufsize, "w");
     stream->encoding = ENC_UTF8;
-    PL_write_term(stream, term, 1200, PL_WRT_QUOTED);
-    Sflush(stream);
+    rval = PL_write_term(stream, term, 1200, PL_WRT_QUOTED);
+    if (rval)
+    { Sflush(stream);
 
-    txt.text.t = s;
-    txt.length = bufsize;
-    txt.storage = PL_CHARS_HEAP;
-    txt.encoding = ENC_UTF8;
-    txt.canonical = FALSE;
-    rval = PL_unify_text(atom, 0, &txt, PL_ATOM);
+      txt.text.t = s;
+      txt.length = bufsize;
+      txt.storage = PL_CHARS_HEAP;
+      txt.encoding = ENC_UTF8;
+      txt.canonical = FALSE;
+      rval = PL_unify_text(atom, 0, &txt, PL_ATOM);
+    }
 
     Sclose(stream);
     if ( s != buf )
@@ -3976,4 +4569,7 @@ BeginPredDefs(read)
   PRED_DEF("atom_to_term", 3, atom_to_term, 0)
   PRED_DEF("term_to_atom", 2, term_to_atom, 0)
   PRED_DEF("$code_class",  2, code_class,   0)
+#ifdef O_QUASIQUOTATIONS
+  PRED_DEF("$qq_open",     2, qq_open,      0)
+#endif
 EndPredDefs

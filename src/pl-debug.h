@@ -54,10 +54,22 @@
 #define MSG_JIT			 24
 #define MSG_TRACE		 25
 
-#define MSG_QLF_PATH		 26
-#define MSG_QUEUE		 27
-#define MSG_QUEUE_WAIT		 28
-#define MSG_SIGNAL		 29
+#define MSG_QLF_INTEGER		 26
+#define MSG_QLF_FLOAT		 27
+#define MSG_QLF_XR		 28
+#define MSG_QLF_TERM		 29
+#define MSG_QLF_DIRECTIVE	 30
+#define MSG_QLF_PREDICATE	 31
+#define MSG_QLF_EXPORT		 32
+#define MSG_QLF_VMI		 33
+#define MSG_QLF_PATH		 34
+#define MSG_QLF_SECTION		 35
+#define MSG_QLF_BOOT		 36
+#define MSG_QLF_BOOT_READ	 37
+
+#define MSG_QUEUE		 40
+#define MSG_QUEUE_WAIT		 41
+#define MSG_SIGNAL		 42
 
 						/* GC messages */
 #define	MSG_AGC			 100
@@ -88,7 +100,9 @@
 #define	MSG_SHIFT_FRAME		 125
 #define	MSG_STACK_OVERFLOW	 126
 
-#define CHK_SECURE    1000
+#define CHK_SECURE              1000
+#define CHK_HIGH_ARITY          1001
+#define CHK_HIGHER_ADDRESS      1002
 
 typedef struct debug_topic
 { unsigned	code;

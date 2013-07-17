@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -40,18 +38,33 @@ test_arith :-
 		    shift,
 		    errors,
 		    ar_builtin,
-		    eval
+		    eval,
+		    hyperbolic,
+		    rationalize,
+                    minint,
+                    minint_promotion,
+                    maxint,
+                    maxint_promotion
 		  ]).
 
 :- begin_tests(div).
 
+div_ok(X, Y) :-
+	Q is div(X, Y),
+	M is mod(X, Y),
+	(   X =:= Y*Q+M
+	->  true
+	;   format(user_error, 'Failed for X=~w,Y=~w~n', [X,Y])
+	).
+
 test(mod, true) :-
 	forall(between(-10, 10, X),
 	       forall((between(-10, 10, Y), Y =\= 0),
-		      (	  Q is div(X, Y),
-			  M is mod(X, Y),
-			  X =:= Y*Q+M
-		      ))).
+		      div_ok(X, Y))).
+
+test(minint, A == -2147483648) :-
+	assertion(div_ok(-9223372036854775808, 4294967297)),
+	A is -9223372036854775808 div 4294967297.
 
 :- end_tests(div).
 
@@ -64,7 +77,7 @@ test(minint, X == 9223372036854775808) :-
 
 :- else.
 
-test(minint, error(evaluation_error(integer_overflow))) :-
+test(minint, error(evaluation_error(int_overflow))) :-
 	X is -9223372036854775808 // -1,
 	writeln(X).
 
@@ -182,3 +195,117 @@ test(ref, R==6) :-			% Bug#12
 	Expr = (_,R is _).
 
 :- end_tests(eval).
+
+:- begin_tests(hyperbolic).
+
+round(X, R) :- R is round(X*1000)/1000.
+
+test(sinh, V =:= 1.175) :- X is sinh(1.0), round(X,V).
+test(cosh, V =:= 1.543) :- X is cosh(1.0), round(X,V).
+test(tanh, V =:= 0.762) :- X is tanh(1.0), round(X,V).
+test(asinh, V =:= 1.0) :- X is asinh(sinh(1.0)), round(X,V).
+test(acosh, V =:= 1.0) :- X is acosh(cosh(1.0)), round(X,V).
+test(atanh, V =:= 1.0) :- X is atanh(tanh(1.0)), round(X,V).
+
+:- end_tests(hyperbolic).
+
+:- begin_tests(rationalize).
+
+:- if(current_prolog_flag(bounded,false)).
+
+test(trip, R = 51 rdiv 10) :-
+	R is rationalize(5.1).
+
+:- endif.
+
+:- end_tests(rationalize).
+
+:- begin_tests(minint).
+
+test_minint(N) :-
+        integer(N),
+        format(atom(A), '~w', [N]),
+        A == '-9223372036854775808'.
+
+test(decimal) :- test_minint(-9223372036854775808).
+test(spaced_decimal) :- test_minint(-9 223 372 036 854 775 808).
+
+test(binary) :- test_minint( -0b1000000000000000000000000000000000000000000000000000000000000000).
+test(spaced_binary) :- test_minint(-0b10000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000).
+
+test(octal) :- test_minint(-0o1000000000000000000000).
+test(spaced_octal) :- test_minint(-0o10 0000 0000 0000 0000 0000).
+
+test(hexadecimal) :- test_minint(-0x8000000000000000).
+test(spaced_hexadecimal) :- test_minint(-0x8000_0000_0000_0000).
+
+:- end_tests(minint).
+
+:- begin_tests(minint_promotion).
+
+test_minint_promotion(N) :-
+        (   current_prolog_flag(bounded,true)
+        ->  float(N)
+        ;   integer(N),
+            format(atom(A), '~w', [N]),
+            A == '-9223372036854775809'
+        ).
+
+test(decimal) :- test_minint_promotion(-9223372036854775809).
+test(spaced_decimal) :- test_minint_promotion(-9 223 372 036 854 775 809).
+
+test(binary) :- test_minint_promotion(-0b1000000000000000000000000000000000000000000000000000000000000001).
+test(spaced_binary) :- test_minint_promotion(-0b10000000 00000000 00000000 00000000 00000000 00000000 00000000 00000001).
+
+test(octal) :- test_minint_promotion(-0o1000000000000000000001).
+test(spaced_octal) :- test_minint_promotion(-0o10 0000 0000 0000 0000 0001).
+
+test(hexadecimal) :- test_minint_promotion(-0x8000000000000001).
+test(spaced_hexadecimal) :- test_minint_promotion(-0x8000_0000_0000_0001).
+
+:- end_tests(minint_promotion).
+
+:- begin_tests(maxint).
+
+test_maxint(N) :-
+        integer(N),
+        format(atom(A), '~w', [N]),
+        A == '9223372036854775807'.
+
+test(decimal) :- test_maxint(9223372036854775807).
+test(spaced_decimal) :- test_maxint(9 223 372 036 854 775 807).
+
+test(binary) :- test_maxint(0b111111111111111111111111111111111111111111111111111111111111111).
+test(spaced_binary) :- test_maxint(0b1111111 11111111 11111111 11111111 11111111 11111111 11111111 11111111).
+
+test(octal) :- test_maxint(0o777777777777777777777).
+test(spaced_octal) :- test_maxint(0o7 7777 7777 7777 7777 7777).
+
+test(hexadecimal) :- test_maxint(0x7fffffffffffffff).
+test(spaced_hexadecimal) :- test_maxint(0x7fff_ffff_ffff_ffff).
+
+:- end_tests(maxint).
+
+:- begin_tests(maxint_promotion).
+
+test_maxint_promotion(N) :-
+        (   current_prolog_flag(bounded,true)
+        ->  float(N)
+        ;   integer(N),
+            format(atom(A), '~w', [N]),
+            A == '9223372036854775808'
+        ).
+
+test(decimal) :- test_maxint_promotion(9223372036854775808).
+test(spaced_decimal) :- test_maxint_promotion(9 223 372 036 854 775 808).
+
+test(binary) :- test_maxint_promotion(0b1000000000000000000000000000000000000000000000000000000000000000).
+test(spaced_binary) :- test_maxint_promotion(0b10000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000).
+
+test(octal) :- test_maxint_promotion(0o1000000000000000000000).
+test(spaced_octal) :- test_maxint_promotion(0o10 0000 0000 0000 0000 0000).
+
+test(hexadecimal) :- test_maxint_promotion(0x8000000000000000).
+test(spaced_hexadecimal) :- test_maxint_promotion(0x8000_0000_0000_0000).
+
+:- end_tests(maxint_promotion).

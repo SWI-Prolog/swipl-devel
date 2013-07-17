@@ -32,7 +32,7 @@
 #	* LGPL (see file COPYING or http://www.swi-prolog.org/)
 ################################################################
 
-.SUFFIXES: .i
+.SUFFIXES: .i .pl
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
@@ -146,7 +146,7 @@ ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 PLINIT=	$(PB)/init.pl
 ifeq ($(MINGW),true)
 PLSRC+= ../boot/menu.pl
-PLOSLIBS=wise.pl dde.pl progman.pl win_menu.pl
+PLOSLIBS=wise.pl dde.pl progman.pl
 endif
 
 INCSRC=	pl-index.c pl-alloc.c pl-fli.c
@@ -181,6 +181,8 @@ prof:
 .c.i:
 	$(CC) -E -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
 
+.PHONY:	system startup headers starticlib sharedlib index banner
+
 system:		$(PL)$(EXEEXT)
 startup:	$(STARTUPPATH)
 headers:	parms.h $(CINCLUDE) $(STREAMH) @EXTRAHDR@
@@ -188,7 +190,7 @@ staticlib:	$(RUNTIME)
 sharedlib:	$(RUNTIMEDIR)/$(SHARED)
 index:		../library/INDEX.pl
 
-banner::
+banner:
 		@echo "****************"
 		@echo "Making SWI-Prolog $(PLVERSION) for $(PLARCH)"
 		@echo "To be installed in $(bindir)/$(PL)$(EXEEXT)"
@@ -205,10 +207,12 @@ $(PL)$(EXEEXT):	$(MKLIBS) $(PLOBJ) $(OSLIB)
 		$(CHRPATH) -c $@ || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)
+		rm -f $(STARTUPPATH)
 		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
+		ls -l $(STARTUPPATH)
 
-
-dirs::
+.PHONY: dirs
+dirs:
 		@for d in $(builddirs); do \
 		  if [ ! -d $$d ]; then mkdir $$d; fi; \
 		done
@@ -343,7 +347,8 @@ parms.h:	Makefile
 		@echo "#endif"				       >> $@%
 		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 
-gitversion::
+.PHONY: gitversion
+gitversion:
 		@$(srcdir)/mkversion.sh
 version.h:	gitversion
 pl-version.o:	version.h
@@ -389,15 +394,19 @@ swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-
 	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
 		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
 
-tags::
+.PHONY: tags
+tags:
 		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
 
 cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
-check::
+.PHONY: check
+check:
 		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test,halt -t 'halt(1)'
 
-ln-install::
+.PHONY: ln-install install dv-install
+
+ln-install:
 		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install \
 			 INSTALL_SHOBJ=`pwd`/../packages/ln-install \
 			 install
@@ -409,6 +418,8 @@ dv-install:	dv-install-common install-mingw install-readme
 else
 dv-install:	dv-install-common install-bins install-pkgconfig install-man
 endif
+
+.PHONY: dv-install-common install-arch install-libs html-install
 
 dv-install-common:	install-arch install-libs html-install
 
@@ -431,6 +442,8 @@ install-libs:	idirs iboot ilib iruntime iinclude icustom install-demo
 			-g 'make_library_index(library)' \
 			-t halt
 
+.PHONY:	install-mingw install-plterm install-plwin install-mkboot install-icon iruntime
+
 install-mingw:	install-plterm install-plwin install-mkboot install-icon
 
 install-plterm:	idirs
@@ -446,19 +459,27 @@ install-plwin:	idirs iruntime
 install-mkboot:	idirs
 		$(INSTALL_DATA) $(srcdir)/win32/misc/mkboot.bat $(DESTDIR)$(PLBASE)/bin/$(INSTALL_PLARCH)
 
-install-icon::
+install-icon:
 		$(INSTALL_DATA) $(srcdir)/swipl.ico "$(DESTDIR)$(PLBASE)"
 
 install-demo:	idirs
 		$(INSTALL_DATA) ../demo/likes.pl $(DESTDIR)$(PLBASE)/demo
 		$(INSTALL_DATA) ../demo/README $(DESTDIR)$(PLBASE)/demo/README$(TXTEXT)
 
-installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) demo boot library \
-		library/clp library/unicode include include/sicstus include/Yap customize \
+installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
+		demo customize \
+		include include/sicstus include/Yap \
+		library \
+		library/clp library/unicode library/dcg \
 		library/dialect library/dialect/yap library/dialect/iso \
 		library/dialect/ciao library/dialect/ciao/engine \
-		library/dialect/sicstus library/dialect/swi \
-		library/dialect/ifprolog library/dcg
+		library/dialect/ciao/regtypes \
+		library/dialect/sicstus \
+		library/dialect/swi \
+		library/dialect/ifprolog \
+		library/dialect/hprolog
+
+.PHONY: iruntime install-implib
 
 iruntime:	idirs
 		if [ -f $(RUNTIME) ]; then \
@@ -486,7 +507,10 @@ endif
 install-implib:	idirs
 		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
-idirs::
+.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso iunicode \
+	icustom iinclude install-pkgconfig install-man install-lman install-readme html-install
+
+idirs:
 		if [ ! -d $(DESTDIR)$(libdir)  ]; then $(MKDIR) $(DESTDIR)$(libdir); fi
 		if [ ! -d $(DESTDIR)$(PLBASE) ]; then $(MKDIR) $(DESTDIR)$(PLBASE); fi
 		for d in $(installdirs); do \
@@ -514,7 +538,7 @@ idcg:		idirs
 			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
-idialect:	idirs iswi iyap iiso isicstus iciao iifprolog
+idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -535,6 +559,11 @@ iifprolog:	idirs
 			$(INSTALL_DATA) ../library/dialect/ifprolog/$$f $(DESTDIR)$(PLBASE)/library/dialect/ifprolog; \
 		done
 
+ihprolog:	idirs
+		for f in $(HPROLOG); do \
+			$(INSTALL_DATA) ../library/dialect/hprolog/$$f $(DESTDIR)$(PLBASE)/library/dialect/hprolog; \
+		done
+
 isicstus:	idirs
 		for f in $(SICSTUS); do \
 			$(INSTALL_DATA) ../library/dialect/sicstus/$$f $(DESTDIR)$(PLBASE)/library/dialect/sicstus; \
@@ -547,6 +576,9 @@ iciao:		idirs
 		done
 		for f in $(CIAO_ENGINE); do \
 			$(INSTALL_DATA) ../library/dialect/ciao/engine/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/engine; \
+		done
+		for f in $(CIAO_REGTYPES); do \
+			$(INSTALL_DATA) ../library/dialect/ciao/regtypes/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/regtypes; \
 		done
 
 iiso:		idirs
@@ -600,7 +632,7 @@ install-readme:	idirs
 		$(INSTALL_DATA) ../COPYING $(DESTDIR)$(PLBASE)/COPYING$(TXTEXT)
 		$(INSTALL_DATA) ../man/windows.html $(DESTDIR)$(PLBASE)/doc
 
-html-install::
+html-install:
 		if [ -d ../man/Manual ]; then \
 		  if [ ! -d $(DESTDIR)$(PLBASE)/doc ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc; fi; \
 		  if [ ! -d $(DESTDIR)$(PLBASE)/doc/Manual ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc/Manual; fi; \
@@ -621,7 +653,8 @@ NSISEXE=C:/Program Files (x86)/NSIS/makensis.exe
 SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
 WINE=wine
 
-installer::
+.PHONY: installer
+installer:
 		$(INSTALL_DATA) $(srcdir)/win32/installer/options.ini "$(PLBASE)/.."
 		$(INSTALL_DATA) $(srcdir)/win32/installer/pl.nsi "$(PLBASE)/.."
 		$(INSTALL_DATA) $(srcdir)/win32/installer/mkinstaller.pl "$(PLBASE)/.."

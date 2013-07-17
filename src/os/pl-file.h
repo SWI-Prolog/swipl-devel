@@ -43,6 +43,7 @@ COMMON(int)		getTextOutputStream__LD(term_t t, IOSTREAM **s ARG_LD);
 COMMON(int)		getBinaryOutputStream__LD(term_t t, IOSTREAM **s ARG_LD);
 COMMON(int)	        reportStreamError(IOSTREAM *s);
 COMMON(int)		streamStatus(IOSTREAM *s);
+COMMON(int)		setFileNameStream(IOSTREAM *s, atom_t name);
 COMMON(atom_t)		fileNameStream(IOSTREAM *s);
 COMMON(int)		getSingleChar(IOSTREAM *s, int signals);
 COMMON(int)		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);

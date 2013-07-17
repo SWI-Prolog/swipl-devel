@@ -213,10 +213,11 @@ typedef struct wic_state
   Table	savedXRTable;			/* saved XR entries */
   intptr_t savedXRTableId;		/* next id to hand out */
 
-  int	     has_source_marks;
   SourceMark source_mark_head;		/* Locations of sources */
   SourceMark source_mark_tail;
+  int	     has_source_marks;
 
+  int	     load_nesting;		/* Nesting level of loadPart() */
   qlf_state *load_state;		/* current load-state */
 
   xr_table *XR;				/* external references */
@@ -478,14 +479,14 @@ getInt64(IOSTREAM *fd)
 { int64_t first;
   int bytes, shift, b;
 
-  DEBUG(4, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
+  DEBUG(MSG_QLF_INTEGER, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
 
   first = Snpgetc(fd);
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
 
-    DEBUG(4, Sdprintf(INT64_FORMAT "\n", first));
+    DEBUG(MSG_QLF_INTEGER, Sdprintf(INT64_FORMAT "\n", first));
     return first;
   }
 
@@ -515,7 +516,7 @@ getInt64(IOSTREAM *fd)
   first <<= shift;
   first >>= shift;
 
-  DEBUG(4, Sdprintf(INT64_FORMAT "\n", first));
+  DEBUG(MSG_QLF_INTEGER, Sdprintf(INT64_FORMAT "\n", first));
   return first;
 }
 
@@ -558,7 +559,7 @@ getFloat(IOSTREAM *fd)
     cl[double_byte_order[i]] = c;
   }
 
-  DEBUG(3, Sdprintf("getFloat() --> %f\n", f));
+  DEBUG(MSG_QLF_FLOAT, Sdprintf("getFloat() --> %f\n", f));
 
   return f;
 }
@@ -606,19 +607,20 @@ loadXRc(wic_state *state, int c ARG_LD)
     case XR_ATOM:
     { id = ++state->XR->id;
       xr = getAtom(fd, NULL);
-      DEBUG(3, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
+      DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
       break;
     }
     case XR_BLOB:
     { id = ++state->XR->id;
       xr = getBlob(state PASS_LD);
-      DEBUG(3, Sdprintf("XR(%d) = <blob>\n", id));
+      DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = <blob>\n", id));
       break;
     }
     case XR_BLOB_TYPE:
     { id = ++state->XR->id;
       xr = (word)getBlobType(fd);
-      DEBUG(3, Sdprintf("XR(%d) = <blob-type>%s", id, ((PL_blob_t*)xr)->name));
+      DEBUG(MSG_QLF_XR,
+	    Sdprintf("XR(%d) = <blob-type>%s", id, ((PL_blob_t*)xr)->name));
       break;
     }
     case XR_FUNCTOR:
@@ -629,7 +631,8 @@ loadXRc(wic_state *state, int c ARG_LD)
       name = loadXR(state);
       arity = getInt(fd);
       xr = (word) lookupFunctorDef(name, arity);
-      DEBUG(3, Sdprintf("XR(%d) = %s/%d\n", id, stringAtom(name), arity));
+      DEBUG(MSG_QLF_XR,
+	    Sdprintf("XR(%d) = %s/%d\n", id, stringAtom(name), arity));
       break;
     }
     case XR_PRED:
@@ -640,7 +643,8 @@ loadXRc(wic_state *state, int c ARG_LD)
       f = (functor_t) loadXR(state);
       m = (Module) loadXR(state);
       xr = (word) lookupProcedure(f, m);
-      DEBUG(3, Sdprintf("XR(%d) = proc %s\n", id, procedureName((Procedure)xr)));
+      DEBUG(MSG_QLF_XR,
+	    Sdprintf("XR(%d) = proc %s\n", id, procedureName((Procedure)xr)));
       break;
     }
     case XR_MODULE:
@@ -648,7 +652,7 @@ loadXRc(wic_state *state, int c ARG_LD)
       id = ++state->XR->id;
       name = loadXR(state);
       xr = (word) lookupModule(name);
-      DEBUG(3, Sdprintf("XR(%d) = module %s\n", id, stringAtom(name)));
+      DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = module %s\n", id, stringAtom(name)));
       break;
     }
     case XR_INT:
@@ -813,7 +817,7 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
   Word vars;
   int rc;
 
-  DEBUG(3, Sdprintf("Loading from %d ...", Stell(fd)));
+  DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %d ...", Stell(fd)));
 
   if ( (nvars = getInt(fd)) )
   { term_t *v;
@@ -827,7 +831,7 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
 
   PL_put_variable(term);
   rc = do_load_qlf_term(state, vars, term PASS_LD);
-  DEBUG(3,
+  DEBUG(MSG_QLF_TERM,
 	Sdprintf("Loaded ");
 	PL_write_term(Serror, term, 1200, 0);
 	Sdprintf(" to %d\n", Stell(fd)));
@@ -972,7 +976,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 
 	if ( !loadQlfTerm(state, goal PASS_LD) )
 	  return FALSE;
-	DEBUG(2,
+	DEBUG(MSG_QLF_DIRECTIVE,
 	      if ( source_file_name )
 	      { Sdprintf("%s:%d: Directive: ",
 			  PL_atom_chars(source_file_name), source_line_no);
@@ -1001,8 +1005,14 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
     }
 
     case 'Q':
-      return loadPart(state, NULL, skip PASS_LD);
+    { bool rc;
 
+      state->load_nesting++;
+      rc = loadPart(state, NULL, skip PASS_LD);
+      state->load_nesting--;
+
+      return rc;
+    }
     case 'M':
       return loadInModule(state, skip PASS_LD);
 
@@ -1039,9 +1049,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
   SourceFile csf = NULL;
 
   proc = lookupProcedureToDefine(f, LD->modules.source);
-  DEBUG(2, Sdprintf("Loading %s%s",
-		    procedureName(proc),
-		    skip ? " (skip)" : ""));
+  DEBUG(MSG_QLF_PREDICATE, Sdprintf("Loading %s%s",
+				    procedureName(proc),
+				    skip ? " (skip)" : ""));
 
   def = proc->definition;
   if ( !skip && state->currentSource )
@@ -1060,14 +1070,14 @@ loadPredicate(wic_state *state, int skip ARG_LD)
   for(;;)
   { switch(Sgetc(fd) )
     { case 'X':
-      { DEBUG(2, Sdprintf("ok\n"));
+      { DEBUG(MSG_QLF_PREDICATE, Sdprintf("ok\n"));
 	succeed;
       }
       case 'C':
       { Code bp, ep;
 	int ncodes = getInt(fd);
 
-	DEBUG(2, Sdprintf("."));
+	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
 	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
@@ -1105,14 +1115,18 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	    fatalError("Illegal op-code (%d) at %ld", op, Stell(fd));
 
 	  ats = codeTable[op].argtype;
-	  DEBUG(3, Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
+	  DEBUG(MSG_QLF_VMI,
+		Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
 	  *bp++ = encode(op);
 	  DEBUG(0,
 		{ const char ca1_float[2] = {CA1_FLOAT};
+		  const char ca1_int64[2] = {CA1_INT64};
 		  assert(codeTable[op].arguments == VM_DYNARGC ||
 			 (size_t)codeTable[op].arguments == strlen(ats) ||
 			 (streq(ats, ca1_float) &&
-			  codeTable[op].arguments == WORDS_PER_DOUBLE));
+			  codeTable[op].arguments == WORDS_PER_DOUBLE) ||
+			 (streq(ats, ca1_int64) &&
+			  codeTable[op].arguments == WORDS_PER_INT64));
 		});
 
 	  for(n=0; ats[n]; n++)
@@ -1168,7 +1182,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		int pad = (lw*sizeof(word) - l);
 		char *s = (char *)&bp[1];
 
-		DEBUG(3, Sdprintf("String of %ld bytes\n", l));
+		DEBUG(MSG_QLF_VMI, Sdprintf("String of %ld bytes\n", l));
 		*bp = mkStrHdr(lw, pad);
 		bp += lw;
 		*bp++ = 0L;
@@ -1178,7 +1192,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      }
 	      case CA1_MPZ:
 #ifdef O_GMP
-	      DEBUG(3, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
+	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
 	      { int mpsize = getInt(fd);
 		int l      = abs(mpsize)*sizeof(mp_limb_t);
 		int wsz	 = (l+sizeof(word)-1)/sizeof(word);
@@ -1193,7 +1207,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 
 		while(--l >= 0)
 		  *s++ = Sgetc(fd);
-		DEBUG(3, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
+		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 		break;
 	      }
 #else
@@ -1297,8 +1311,9 @@ qlfLoadSource(wic_state *state)
 
   fname = qlfFixSourcePath(state, str);
 
-  DEBUG(1, if ( !streq(stringAtom(fname), str) )
-	     Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
+  DEBUG(MSG_QLF_PATH,
+	if ( !streq(stringAtom(fname), str) )
+	  Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
 
   state->currentSource = lookupSourceFile(fname, TRUE);
   state->currentSource->mtime = time;
@@ -1385,13 +1400,14 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
     { atom_t mname = loadXR(state);
       int c = Qgetc(fd);
 
-      DEBUG(1, Sdprintf("Loading module %s\n", PL_atom_chars(mname)));
+      DEBUG(MSG_QLF_SECTION,
+	    Sdprintf("Loading module %s\n", PL_atom_chars(mname)));
 
       switch( c )
       { case '-':
 	{ LD->modules.source = lookupModule(mname);
 					/* TBD: clear module? */
-	  DEBUG(1, Sdprintf("\tNo source\n"));
+	  DEBUG(MSG_QLF_SECTION, Sdprintf("\tNo source\n"));
 	  break;
 	}
 	case 'F':
@@ -1400,8 +1416,9 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 
 	  qlfLoadSource(state);
 	  line = getInt(fd);
-	  DEBUG(1, Sdprintf("\tSource = %s:%d\n",
-			    PL_atom_chars(state->currentSource->name), line));
+	  DEBUG(MSG_QLF_SECTION,
+		Sdprintf("\tSource = %s:%d\n",
+			 PL_atom_chars(state->currentSource->name), line));
 
 	  m = lookupModule(mname);
 	  if ( m->file && m->file != state->currentSource )
@@ -1447,8 +1464,10 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 
     switch(c)
     { case 'X':
-      { if ( !GD->bootsession )
+      { if ( !GD->bootsession && state->load_nesting > 0 )
+	{ /* top-level '$run_initialization'/1 is called from boot/init.pl */
 	  runInitialization(state->currentSource);
+	}
 	LD->modules.source = om;
 	state->currentSource  = of;
 	debugstatus.styleCheck = stchk;
@@ -1612,7 +1631,7 @@ putNum(int64_t n, IOSTREAM *fd)
 { int m;
   int64_t absn = (n >= 0 ? n : -n);
 
-  DEBUG(8, Sdprintf("0x%x at %ld\n", (uintptr_t)n, Stell(fd)));
+  DEBUG(MSG_QLF_INTEGER, Sdprintf("0x%x at %ld\n", (uintptr_t)n, Stell(fd)));
 
   if ( n != PLMININT )
   { if ( absn < (1L << 5) )
@@ -1653,7 +1672,7 @@ putFloat(double f, IOSTREAM *fd)
 { unsigned char *cl = (unsigned char *)&f;
   unsigned int i;
 
-  DEBUG(3, Sdprintf("putFloat(%f)\n", f));
+  DEBUG(MSG_QLF_FLOAT, Sdprintf("putFloat(%f)\n", f));
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
     Sputc(cl[double_byte_order[i]], fd);
@@ -1740,7 +1759,7 @@ savedXRConstant(wic_state *state, word w)
   assert(tag(w) == TAG_ATOM);		/* Only functor_t and atom_t */
 
   if ( !(rc=savedXR(state, (void *)(w|0x1))) && isAtom(w) )
-  { DEBUG(5, Sdprintf("REG: %s\n", stringAtom(w)));
+  { DEBUG(MSG_QLF_XR, Sdprintf("REG: %s\n", stringAtom(w)));
     PL_register_atom(w);
   }
 
@@ -1793,7 +1812,8 @@ saveXR__LD(wic_state *state, word xr ARG_LD)
     return;
 
   if ( isAtom(xr) )
-  { DEBUG(3, Sdprintf("XR(%d) = '%s'\n", state->savedXRTableId, stringAtom(xr)));
+  { DEBUG(MSG_QLF_XR,
+	  Sdprintf("XR(%d) = '%s'\n", state->savedXRTableId, stringAtom(xr)));
     putAtom(state, xr);
     return;
   }
@@ -1823,8 +1843,9 @@ saveXRModule(wic_state *state, Module m ARG_LD)
     return;
 
   Sputc(XR_MODULE, fd);
-  DEBUG(3, Sdprintf("XR(%d) = module %s\n",
-		    state->savedXRTableId, stringAtom(m->name)));
+  DEBUG(MSG_QLF_XR,
+	Sdprintf("XR(%d) = module %s\n",
+		 state->savedXRTableId, stringAtom(m->name)));
   saveXR(state, m->name);
 }
 
@@ -1839,8 +1860,9 @@ saveXRFunctor(wic_state *state, functor_t f ARG_LD)
 
   fdef = valueFunctor(f);
 
-  DEBUG(3, Sdprintf("XR(%d) = %s/%d\n",
-		    state->savedXRTableId, stringAtom(fdef->name), fdef->arity));
+  DEBUG(MSG_QLF_XR,
+	Sdprintf("XR(%d) = %s/%d\n",
+		 state->savedXRTableId, stringAtom(fdef->name), fdef->arity));
   Sputc(XR_FUNCTOR, fd);
   saveXR(state, fdef->name);
   putNum(fdef->arity, fd);
@@ -1854,8 +1876,8 @@ saveXRProc(wic_state *state, Procedure p ARG_LD)
   if ( savedXRPointer(state, p) )
     return;
 
-  DEBUG(3, Sdprintf("XR(%d) = proc %s\n",
-		    state->savedXRTableId, procedureName(p)));
+  DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = proc %s\n",
+			     state->savedXRTableId, procedureName(p)));
   Sputc(XR_PRED, fd);
   saveXRFunctor(state, p->definition->functor->functor PASS_LD);
   saveXRModule(state, p->definition->module PASS_LD);
@@ -1872,13 +1894,13 @@ saveXRSourceFile(wic_state *state, SourceFile f ARG_LD)
   Sputc(XR_FILE, fd);
 
   if ( f )
-  { DEBUG(3, Sdprintf("XR(%d) = file %s\n",
-		      state->savedXRTableId, stringAtom(f->name)));
+  { DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = file %s\n",
+			       state->savedXRTableId, stringAtom(f->name)));
     Sputc(f->system ? 's' : 'u', fd);
     saveXR(state, f->name);
     putFloat(f->mtime, fd);
   } else
-  { DEBUG(3, Sdprintf("XR(%d) = <no file>\n", state->savedXRTableId));
+  { DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = <no file>\n", state->savedXRTableId));
     Sputc('-', fd);
   }
 }
@@ -1923,7 +1945,7 @@ saveQlfTerm(wic_state *state, term_t t ARG_LD)
 
   cid = PL_open_foreign_frame();
 
-  DEBUG(3,
+  DEBUG(MSG_QLF_TERM,
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
 	Sdprintf(" from %d ... ", Stell(fd)));
@@ -1936,7 +1958,7 @@ saveQlfTerm(wic_state *state, term_t t ARG_LD)
   if ( (nvars = numberVars(t, &options, 0 PASS_LD)) >= 0 )
   { putNum(nvars, fd);
     do_save_qlf_term(state, valTermRef(t) PASS_LD);	/* TBD */
-    DEBUG(3, Sdprintf("to %d\n", Stell(fd)));
+    DEBUG(MSG_QLF_TERM, Sdprintf("to %d\n", Stell(fd)));
   } else
   { rc = FALSE;
   }
@@ -1983,7 +2005,7 @@ saveWicClause(wic_state *state, Clause clause)
     int n;
 
     putNum(op, fd);
-    DEBUG(3, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));
+    DEBUG(MSG_QLF_VMI, Sdprintf("\t%s at %ld\n", codeTable[op].name, Stell(fd)));
     for(n=0; ats[n]; n++)
     { switch(ats[n])
       { case CA1_PROC:
@@ -2057,11 +2079,11 @@ saveWicClause(wic_state *state, Clause clause)
 	  char *s = (char*)&bp[1];
 	  bp += wn;
 
-	  DEBUG(3, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
+	  DEBUG(MSG_QLF_VMI, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
 	  putNum(mpsize, fd);
 	  while(--l >= 0)
 	    Sputc(*s++&0xff, fd);
-	  DEBUG(3, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
+	  DEBUG(MSG_QLF_VMI, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
 	  break;
 	}
 #endif
@@ -2154,7 +2176,7 @@ writeWicHeader(wic_state *state)
 
   initXR(state);
 
-  DEBUG(2, Sdprintf("Header complete ...\n"));
+  DEBUG(MSG_QLF_SECTION, Sdprintf("Header complete ...\n"));
   succeed;
 }
 
@@ -2260,19 +2282,19 @@ writeSourceMarks(wic_state *state)
 { long n = 0;
   SourceMark pn, pm = state->source_mark_head;
 
-  DEBUG(1, Sdprintf("Writing source marks: "));
+  DEBUG(MSG_QLF_SECTION, Sdprintf("Writing source marks: "));
 
   for( ; pm; pm = pn )
   { pn = pm->next;
 
-    DEBUG(1, Sdprintf(" %d", pm->file_index));
+    DEBUG(MSG_QLF_SECTION, Sdprintf(" %d", pm->file_index));
     putInt32(pm->file_index, state->wicFd);
     freeHeap(pm, sizeof(*pm));
     n++;
   }
   state->source_mark_head = state->source_mark_tail = NULL;
 
-  DEBUG(1, Sdprintf("\nWritten %d marks\n", n));
+  DEBUG(MSG_QLF_SECTION, Sdprintf("\nWritten %d marks\n", n));
   putInt32(n, state->wicFd);
 
   return 0;
@@ -2342,14 +2364,14 @@ qlfInfo(const char *file,
   if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
     return warning("qlf_info/4: seek failed: %s", OsError());
   nqlf = (int)getInt32(s);
-  DEBUG(1, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (size_t*)allocHeapOrHalt(sizeof(long) * nqlf);
+  DEBUG(MSG_QLF_SECTION, Sdprintf("Found %d sources at", nqlf));
+  qlfstart = (size_t*)allocHeapOrHalt(sizeof(size_t) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
   { qlfstart[i] = (size_t)getInt32(s);
-    DEBUG(1, Sdprintf(" %ld", qlfstart[i]));
+    DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
   }
-  DEBUG(1, Sdprintf("\n"));
+  DEBUG(MSG_QLF_SECTION, Sdprintf("\n"));
 
   for(i=0; i<nqlf; i++)
   { if ( !qlfSourceInfo(&state, qlfstart[i], files PASS_LD) )
@@ -2641,13 +2663,14 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
     saveXR(state, s->name);
   }
 
-  DEBUG(2, Sdprintf("MODULE %s\n", stringAtom(m->name)));
+  DEBUG(MSG_QLF_SECTION, Sdprintf("MODULE %s\n", stringAtom(m->name)));
   for_unlocked_table(m->public, s,
 		     { functor_t f = (functor_t)s->name;
 
-		       DEBUG(2, Sdprintf("Exported %s/%d\n",
-					 stringAtom(nameFunctor(f)),
-					 arityFunctor(f)));
+		       DEBUG(MSG_QLF_EXPORT,
+			     Sdprintf("Exported %s/%d\n",
+				      stringAtom(nameFunctor(f)),
+				      arityFunctor(f)));
 		       Sputc('E', fd);
 		       saveXRFunctor(state, f PASS_LD);
 		     })
@@ -3077,17 +3100,17 @@ compileFile(wic_state *state, const char *file)
   SourceFile sf;
   atom_t nf;
 
-  DEBUG(1, Sdprintf("Boot compilation of %s\n", file));
+  DEBUG(MSG_QLF_BOOT, Sdprintf("Boot compilation of %s\n", file));
   if ( !(path = AbsoluteFile(file, tmp)) )
     fail;
-  DEBUG(2, Sdprintf("Expanded to %s\n", path));
+  DEBUG(MSG_QLF_PATH, Sdprintf("Expanded to %s\n", path));
 
   nf = PL_new_atom(path);			/* NOTE: Only ISO-Latin-1 */
   PL_put_atom(f, nf);
-  DEBUG(2, Sdprintf("Opening\n"));
+  DEBUG(MSG_QLF_BOOT, Sdprintf("Opening\n"));
   if ( !pl_see(f) )
     fail;
-  DEBUG(2, Sdprintf("pl_start_consult()\n"));
+  DEBUG(MSG_QLF_BOOT, Sdprintf("pl_start_consult()\n"));
   sf = lookupSourceFile(nf, TRUE);
   startConsult(sf);
   if ( !LastModifiedFile(path, &sf->mtime) )
@@ -3111,11 +3134,12 @@ compileFile(wic_state *state, const char *file)
     if ( PL_get_atom(t, &eof) && eof == ATOM_end_of_file )
       break;
 
-    DEBUG(2, PL_write_term(Serror, t, 1200, PL_WRT_NUMBERVARS);
-	     Sdprintf("\n"));
+    DEBUG(MSG_QLF_BOOT_READ,
+	  PL_write_term(Serror, t, 1200, PL_WRT_NUMBERVARS);
+	  Sdprintf("\n"));
 
     if ( directiveClause(directive, t, ":-") )
-    { DEBUG(1,
+    { DEBUG(MSG_QLF_DIRECTIVE,
 	    Sdprintf(":- ");
 	    PL_write_term(Serror, directive, 1200, 0);
 	    Sdprintf(".\n") );
@@ -3125,7 +3149,7 @@ compileFile(wic_state *state, const char *file)
 		 PL_atom_chars(source_file_name),
 		 source_line_no);
     } else if ( directiveClause(directive, t, "$:-") )
-    { DEBUG(1,
+    { DEBUG(MSG_QLF_DIRECTIVE,
 	    Sdprintf("$:- ");
 	    PL_write_term(Serror, directive, 1200, 0);
 	    Sdprintf(".\n"));

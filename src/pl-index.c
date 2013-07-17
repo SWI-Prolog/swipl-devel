@@ -289,7 +289,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 	   def->impl.clauses.number_of_clauses/best_index->speedup > 10 )
       { DEBUG(MSG_JIT,
 	      Sdprintf("Poor index in arg %d of %s (try to find better)\n",
-		       best_index->arg, predicateName(def)));
+		       best_index->args[0], predicateName(def)));
 
 	if ( !best_index->tried_better )
 	{ best_index->tried_better = new_bitvector(def->functor->arity);

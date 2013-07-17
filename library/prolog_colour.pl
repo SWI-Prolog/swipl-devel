@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -207,13 +207,10 @@ colour_item(Class, TB, Pos) :-
 %	them to be undone by pop_operators/0.
 
 safe_push_op(P, T, N0, State) :-
-	(   N0 = _:_
-	->  N = N0
-	;   colour_state_module(State, M),
-	    N = M:N0
-	),
-	push_op(P, T, N),
-	debug(colour, ':- ~w.', [op(P,T,N)]).
+	colour_state_module(State, CM),
+	strip_module(CM:N0, M, N),
+	push_op(P, T, M:N),
+	debug(colour, ':- ~w.', [op(P,T,M:N)]).
 
 %%	fix_operators(+Term, +State) is det.
 %
@@ -222,11 +219,14 @@ safe_push_op(P, T, N0, State) :-
 %	by the cross-referencer.
 
 fix_operators((:- Directive), Src) :-
+	ground(Directive),
 	catch(process_directive(Directive, Src), _, true), !.
 fix_operators(_, _).
 
 process_directive(style_check(X), _) :- !,
 	style_check(X).
+process_directive(M:op(P,T,N), Src) :- !,
+	process_directive(op(P,T,M:N), Src).
 process_directive(op(P,T,N), Src) :- !,
 	safe_push_op(P, T, N, Src).
 process_directive(module(_Name, Export), Src) :- !,
@@ -246,9 +246,19 @@ process_use_module([H|T], Src) :- !,
 	process_use_module(H, Src),
 	process_use_module(T, Src).
 process_use_module(File, Src) :-
-	(   xref_public_list(File, _Path, Public, Src)
-	->  forall(member(op(P,T,N), Public),
-		   safe_push_op(P,T,N,Src))
+	(   xref_public_list(File, Src,
+			     [ exports(Exports),
+			       silent(true),
+			       path(Path)
+			     ])
+	->  forall(member(op(P,T,N), Exports),
+		   safe_push_op(P,T,N,Src)),
+	    colour_state_module(Src, SM),
+	    (	member(Syntax/4, Exports),
+		load_quasi_quotation_syntax(SM:Path, Syntax),
+		fail
+	    ;	true
+	    )
 	;   true
 	).
 
@@ -313,10 +323,24 @@ member_var(V, [_|T]) :-
 	member_var(V, T).
 
 %%	colourise_term(+Term, +TB, +Termpos, +Comments)
+%
+%	Colourise the next Term.
+%
+%	@bug	The colour spec is closed with =fullstop=, but the
+%		position information does not include the full stop
+%		location, so all we can do is assume it is behind the
+%		term.
 
 colourise_term(Term, TB, TermPos, Comments) :-
 	colourise_comments(Comments, TB),
-	colourise_term(Term, TB, TermPos).
+	(   Term == end_of_file
+	->  true
+	;   colourise_term(Term, TB, TermPos),
+	    arg(2, TermPos, EndTerm),
+	    Start is EndTerm + 1,
+	    End is Start+1,
+	    colour_item(fullstop, TB, Start-End)
+	).
 
 colourise_comments(-, _).
 colourise_comments([], _).
@@ -341,6 +365,17 @@ colourise_term((Head :- Body), TB,
 	colour_item(neck(clause),   TB,	FF-FT),
 	colourise_clause_head(Head, TB,	HP),
 	colourise_body(Body, Head,  TB,	BP).
+colourise_term(((Head,RHC) --> Body), TB,
+	       term_position(F,T,FF,FT,
+			     [ term_position(_,_,_,_,[HP,RHCP]),
+			       BP
+			     ])) :- !,
+	colour_item(grammar_rule,	TB, F-T),
+	colour_item(dcg_right_hand_ctx, TB, RHCP),
+	colourise_term_arg(RHC, TB, RHCP),
+	colour_item(neck(grammar_rule),	TB, FF-FT),
+	colourise_extended_head(Head, 2, TB, HP),
+	colourise_dcg(Body, Head,	TB, BP).
 colourise_term((Head --> Body), TB,			% TBD: expansion!
 	       term_position(F,T,FF,FT,[HP,BP])) :- !,
 	colour_item(grammar_rule,	TB, F-T),
@@ -361,6 +396,9 @@ colourise_term(:<-(Head, Body), TB,
 	colourise_method_body(Body,    TB, BP).
 colourise_term((:- Directive), TB, Pos) :- !,
 	colour_item(directive, TB, Pos),
+	arg(1, Pos, F),
+	arg(2, Pos, T),
+	colour_item(neck(directive), TB, F-T),
 	arg(5, Pos, [ArgPos]),
 	colourise_directive(Directive, TB, ArgPos).
 colourise_term((?- Directive), TB, Pos) :- !,
@@ -481,10 +519,11 @@ colourise_method_body(::(_Comment,Body), TB,
 colourise_method_body(Body, TB, Pos) :-		% deal with pri(::) < 1000
 	Body =.. [F,A,B],
 	control_op(F), !,
-	Pos = term_position(_F,_T,_FF,_FT,
+	Pos = term_position(_F,_T,FF,FT,
 			    [ AP,
 			      BP
 			    ]),
+	colour_item(control, TB, FF-FT),
 	colourise_method_body(A, TB, AP),
 	colourise_body(B, TB, BP).
 colourise_method_body(Body, TB, Pos) :-
@@ -495,8 +534,9 @@ control_op((;)).
 control_op((->)).
 control_op((*->)).
 
-colourise_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
+colourise_goals(Body, Origin, TB, term_position(_,_,FF,FT,ArgPos)) :-
 	body_compiled(Body), !,
+	colour_item(control, TB, FF-FT),
 	colourise_subgoals(ArgPos, 1, Body, Origin, TB).
 colourise_goals(Goal, Origin, TB, Pos) :-
 	colourise_goal(Goal, Origin, TB, Pos).
@@ -530,7 +570,7 @@ colourise_dcg_goals(List, _, TB, Pos) :-
 	colour_item(dcg(list), TB, Pos),
 	colourise_term_args(List, TB, Pos).
 colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
-	body_compiled(Body), !,
+	dcg_body_compiled(Body), !,
 	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
 colourise_dcg_goals(Goal, Origin, TB, Pos) :-
 	colourise_dcg_goal(Goal, Origin, TB, Pos),
@@ -552,6 +592,10 @@ dcg_extend(Term, Goal) :-
 	Term =.. List,
 	append(List, [_,_], List2),
 	Goal =.. List2.
+
+dcg_body_compiled(G) :-
+	body_compiled(G), !.
+dcg_body_compiled((_|_)).
 
 %	colourise_dcg_goal(+Goal, +Origin, +TB, +Pos).
 
@@ -592,7 +636,7 @@ colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,_,_,[PM,PG])) :- !,
 	;   FP = PG
 	),
 	colour_item(goal(extern(Module), Goal), TB, FP),
-	colourise_goal_args(Goal, TB, PG).
+	colourise_goal_args(Goal, Module, TB, PG).
 colourise_goal(Goal, Origin, TB, Pos) :-
 	goal_classification(TB, Goal, Origin, Class),
 	(   Pos = term_position(_,_,FF,FT,_ArgPos)
@@ -607,23 +651,44 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 %	Colourise the arguments to a goal. This predicate deals with
 %	meta- and database-access predicates.
 
-colourise_goal_args(Goal, TB, term_position(_,_,_,_,ArgPos)) :-
-	colourise_options(Goal, TB, ArgPos),
-	meta_args(Goal, MetaArgs), !,
-	colourise_meta_args(1, Goal, MetaArgs, TB, ArgPos).
 colourise_goal_args(Goal, TB, Pos) :-
-	Pos = term_position(_,_,_,_,ArgPos), !,
-	colourise_options(Goal, TB, ArgPos),
-	colourise_term_args(Goal, TB, Pos).
-colourise_goal_args(_, _, _).		% no arguments
+	(   colour_state_source_id(TB, SourceId),
+	    xref_module(SourceId, Module)
+	->  true
+	;   Module = user
+	),
+	colourise_goal_args(Goal, Module, TB, Pos).
 
-colourise_meta_args(_, _, _, _, []) :- !.
-colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
+colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
+	meta_args(Goal, TB, MetaArgs), !,
+	colourise_meta_args(1, Goal, M, MetaArgs, TB, ArgPos).
+colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
+	colourise_goal_args(1, Goal, M, TB, ArgPos).
+colourise_goal_args(_, _, _, _).		% no arguments
+
+colourise_goal_args(_, _, _, _, []) :- !.
+colourise_goal_args(N, Goal, Module, TB, [P0|PT]) :-
+	colourise_option_arg(Goal, Module, N, TB, P0), !,
+	NN is N + 1,
+	colourise_goal_args(NN, Goal, Module, TB, PT).
+colourise_goal_args(N, Goal, Module, TB, [P0|PT]) :-
+	arg(N, Goal, Arg),
+	colourise_term_arg(Arg, TB, P0),
+	NN is N + 1,
+	colourise_goal_args(NN, Goal, Module, TB, PT).
+
+
+colourise_meta_args(_, _, _, _, _, []) :- !.
+colourise_meta_args(N, Goal, Module, MetaArgs, TB, [P0|PT]) :-
+	colourise_option_arg(Goal, Module, N, TB, P0), !,
+	NN is N + 1,
+	colourise_meta_args(NN, Goal, Module, MetaArgs, TB, PT).
+colourise_meta_args(N, Goal, Module, MetaArgs, TB, [P0|PT]) :-
 	arg(N, Goal, Arg),
 	arg(N, MetaArgs, MetaSpec),
 	colourise_meta_arg(MetaSpec, Arg, TB, P0),
 	NN is N + 1,
-	colourise_meta_args(NN, Goal, MetaArgs, TB, PT).
+	colourise_meta_args(NN, Goal, Module, MetaArgs, TB, PT).
 
 colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
 	expand_meta(MetaSpec, Arg, Expanded), !,
@@ -634,21 +699,23 @@ colourise_meta_arg(MetaSpec, Arg, TB, Pos) :-
 colourise_meta_arg(_, Arg, TB, Pos) :-
 	colourise_term_arg(Arg, TB, Pos).
 
-%	meta_args(+Goal, -ArgSpec)
+%%	meta_args(+Goal, +TB, -ArgSpec) is semidet.
 %
-%	Return a copy of Goal, where each meta-argument is an integer
-%	representing the number of extra arguments. The non-meta
-%	arguments are unbound variables.
+%	Return a copy of Goal, where   each  meta-argument is an integer
+%	representing the number of extra arguments   or  the atom // for
+%	indicating a DCG  body.  The   non-meta  arguments  are  unbound
+%	variables.
 %
 %	E.g. meta_args(maplist(foo,x,y), X) --> X = maplist(2,_,_)
 %
 %	NOTE: this could be cached if performance becomes an issue.
 
-meta_args(Goal, VarGoal) :-
-	xref_meta(Goal, _),
+meta_args(Goal, TB, VarGoal) :-
+	colour_state_source_id(TB, SourceId),
+	xref_meta(SourceId, Goal, _),
 	functor(Goal, Name, Arity),
 	functor(VarGoal, Name, Arity),
-	xref_meta(VarGoal, MetaArgs),
+	xref_meta(SourceId, VarGoal, MetaArgs),
 	instantiate_meta(MetaArgs).
 
 instantiate_meta([]).
@@ -657,6 +724,8 @@ instantiate_meta([H|T]) :-
 	->  H = 0
 	;   H = V+N
 	->  V = N
+	;   H = //(V)
+	->  V = (//)
 	),
 	instantiate_meta(T).
 
@@ -708,35 +777,32 @@ colourise_db(Head, TB, Pos) :-
 	colourise_goal(Head, '<db-change>', TB, Pos).
 
 
-%%	colourise_options(+Goal, +TB, +ArgPos)
+%%	colourise_option_args(+Goal, +Module, +Arg:integer,
+%			      +TB, +ArgPos) is semidet.
 %
-%	Colourise predicate options
+%	Colourise  predicate  options  for  the    Arg-th   argument  of
+%	Module:Goal
 
-colourise_options(Goal, TB, ArgPos) :-
-	(   compound(Goal),
-	    functor(Goal, Name, Arity),
-	    (	colour_state_source_id(TB, SourceId),
-		xref_module(SourceId, Module)
-	    ->	true
-	    ;	Module = user
-	    ),
-	    current_predicate_options(Module:Name/Arity, Arg, OptionDecl),
-	    debug(emacs, 'Colouring option-arg ~w of ~p',
-		  [Arg, Module:Name/Arity]),
-	    arg(Arg, Goal, Options0),
-	    nth1(Arg, ArgPos, Pos0),
-	    strip_option_module_qualifier(Goal, Module, Arg, TB,
-					  Options0, Pos0, Options, Pos),
-	    (	Pos = list_position(_, _, ElmPos, TailPos)
-	    ->	colourise_option_list(Options, OptionDecl, TB, ElmPos, TailPos)
-	    ;	(   var(Options)
-		;   Options == []
-		)
-	    ->	colourise_term_arg(Options, TB, Pos)
-	    ;	colour_item(type_error(list), TB, Pos)
-	    ),
-	    fail
-	;   true
+colourise_option_arg(Goal, Module, Arg, TB, ArgPos) :-
+	functor(Goal, Name, Arity),
+	current_option_arg(Module:Name/Arity, Arg),
+	current_predicate_options(Module:Name/Arity, Arg, OptionDecl),
+	debug(emacs, 'Colouring option-arg ~w of ~p',
+	      [Arg, Module:Name/Arity]),
+	arg(Arg, Goal, Options),
+	colourise_option(Options, Module, Goal, Arg, OptionDecl, TB, ArgPos).
+
+colourise_option(Options0, Module, Goal, Arg, OptionDecl, TB, Pos0) :-
+	strip_option_module_qualifier(Goal, Module, Arg, TB,
+				      Options0, Pos0, Options, Pos),
+	(   Pos = list_position(F, T, ElmPos, TailPos)
+	->  colour_item(list, TB, F-T),
+	    colourise_option_list(Options, OptionDecl, TB, ElmPos, TailPos)
+	;   (   var(Options)
+	    ;   Options == []
+	    )
+	->  colourise_term_arg(Options, TB, Pos)
+	;   colour_item(type_error(list), TB, Pos)
 	).
 
 strip_option_module_qualifier(Goal, Module, Arg, TB,
@@ -749,8 +815,8 @@ strip_option_module_qualifier(_, _, _, _,
 			      Options, Pos, Options, Pos).
 
 
-colourise_option_list(_, _, _, [], none).
-colourise_option_list(Tail, _, TB, [], TailPos) :-
+colourise_option_list(_, _, _, [], none) :- !.
+colourise_option_list(Tail, _, TB, [], TailPos) :- !,
 	colourise_term_arg(Tail, TB, TailPos).
 colourise_option_list([H|T], OptionDecl, TB, [HPos|TPos], TailPos) :-
 	colourise_option(H, OptionDecl, TB, HPos),
@@ -798,7 +864,8 @@ colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 %
 %	@param Why is one of =any= or =imported=
 
-colourise_files(List, TB, list_position(_,_,Elms,_), Why) :- !,
+colourise_files(List, TB, list_position(F,T,Elms,_), Why) :- !,
+	colour_item(list, TB, F-T),
 	colourise_file_list(List, TB, Elms, Why).
 colourise_files(M:Spec, TB, term_position(_,_,_,_,[MP,SP]), Why) :- !,
 	colour_item(module(M), TB, MP),
@@ -810,7 +877,8 @@ colourise_files(Spec0, TB, Pos, Why) :-
 	strip_module(Spec0, _, Spec),
 	(   colour_state_source_id(TB, Source),
 	    prolog_canonical_source(Source, SourceId),
-	    catch(xref_source_file(Spec, Path, SourceId), _, fail)
+	    catch(xref_source_file(Spec, Path, SourceId, [silent(true)]),
+		  _, fail)
 	->  (   Why = imported,
 	        \+ resolves_anything(TB, Path),
 		exports_something(TB, Path)
@@ -841,12 +909,25 @@ exports_something(TB, Path) :-
 colourise_directory(Spec, TB, Pos) :-
 	(   colour_state_source_id(TB, SourceId),
 	    catch(xref_source_file(Spec, Path, SourceId,
-				   [file_type(directory)]),
+				   [ file_type(directory),
+				     silent(true)
+				   ]),
 		  _, fail)
 	->  colour_item(directory(Path), TB, Pos)
 	;   colour_item(nofile, TB, Pos)
 	).
 
+%%	colourise_langoptions(+Term, +TB, +Pos) is det.
+%
+%	Colourise the 3th argument of module/3
+
+colourise_langoptions([], _, _) :- !.
+colourise_langoptions([H|T], TB, list_position(PF,PT,[HP|TP],_)) :- !,
+	colour_item(list, TB, PF-PT),
+	colourise_langoptions(H, TB, HP),
+	colourise_langoptions(T, TB, TP).
+colourise_langoptions(Spec, TB, Pos) :-
+	colourise_files(library(dialect/Spec), TB, Pos, imported).
 
 %%	colourise_class(ClassName, TB, Pos)
 %
@@ -883,21 +964,47 @@ colourise_term_args([Pos|T], N, Term, TB) :-
 	colourise_term_args(T, NN, Term, TB).
 
 colourise_term_arg(Var, TB, Pos) :-			% variable
-	var(Var), !,
+	var(Var), Pos = _-_, !,
 	(   singleton(Var, TB)
 	->  colour_item(singleton, TB, Pos)
 	;   colour_item(var, TB, Pos)
 	).
-colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
+colourise_term_arg(List, TB, list_position(F, T, Elms, Tail)) :- !,
+	colour_item(list, TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
-colourise_term_arg(Compound, TB, Pos) :-		% compound
-	compound(Compound), !,
-	colourise_term_args(Compound, TB, Pos).
 colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
 	colour_item(string, TB, F-T).
+colourise_term_arg(_, TB,
+		   quasi_quotation_position(F,T,QQType,QQTypePos,CPos)) :- !,
+	colourise_qq_type(QQType, TB, QQTypePos),
+	functor(QQType, Type, _),
+	colour_item(qq_content(Type), TB, CPos),
+	FE is F+2,
+	TS is T-2,
+	colour_item(qq, TB, F-FE),
+	colour_item(qq, TB, TS-T).
+colourise_term_arg({Term}, TB, brace_term_position(F,T,Arg)) :- !,
+	colour_item(brace_term, TB, F-T),
+	colourise_term_arg(Term, TB, Arg).
+colourise_term_arg(Compound, TB, Pos) :-		% compound
+	compound(Compound), !,
+	(   Pos = term_position(_F,_T,FF,FT,_ArgPos)
+	->  colour_item(functor, TB, FF-FT)		% TBD: Infix/Postfix?
+	;   true					% TBD: When is this
+	),
+	colourise_term_args(Compound, TB, Pos).
 colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	atom(Atom), !,
-	colour_item(atom, TB, Pos).
+	(   Atom == []
+	->  colour_item(empty_list, TB, Pos)
+	;   colour_item(atom, TB, Pos)
+	).
+colourise_term_arg(Integer, TB, Pos) :-
+	integer(Integer), !,
+	colour_item(int, TB, Pos).
+colourise_term_arg(Float, TB, Pos) :-
+	integer(Float), !,
+	colour_item(float, TB, Pos).
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
 
@@ -908,6 +1015,17 @@ colourise_list_args([], none, _, _, _) :- !.
 colourise_list_args([], TP, T, TB, How) :-
 	specified_item(How, T, TB, TP).
 
+%%	colourise_qq_type(+QQType, +TB, +QQTypePos)
+%
+%	Colouring the type part of a quasi quoted term
+
+colourise_qq_type(QQType, TB, QQTypePos) :-
+	functor_position(QQTypePos, FPos, _),
+	colour_item(qq_type, TB, FPos),
+	colourise_term_args(QQType, TB, QQTypePos).
+
+qq_position(quasi_quotation_position(_,_,_,_,_)).
+
 
 %	colourise_exports(+List, +TB, +Pos)
 %
@@ -915,7 +1033,8 @@ colourise_list_args([], TP, T, TB, How) :-
 %	terms of the form Name/Arity referring to predicates).
 
 colourise_exports([], _, _) :- !.
-colourise_exports(List, TB, list_position(_,_,ElmPos,Tail)) :- !,
+colourise_exports(List, TB, list_position(F,T,ElmPos,Tail)) :- !,
+	colour_item(list, TB, F-T),
 	(   Tail == none
 	->  true
 	;   colour_item(type_error(list), TB, Tail)
@@ -930,20 +1049,26 @@ colourise_exports2([G0|GT], TB, [P0|PT]) :- !,
 colourise_exports2(_, _, _).
 
 
-%	colourise_imports(+List, +File, +TB, +Pos)
+%%	colourise_imports(+List, +File, +TB, +Pos)
 %
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
 	(   colour_state_source_id(TB, SourceId),
-	    catch(xref_public_list(File, Path, Public, SourceId), _, fail)
+	    ground(File),
+	    catch(xref_public_list(File, SourceId,
+				   [ path(Path),
+				     public(Public),
+				     silent(true)
+				   ] ), _, fail)
 	->  true
 	;   Public = []
 	),
 	colourise_imports(List, Path, Public, TB, Pos).
 
 colourise_imports([], _, _, _, _).
-colourise_imports(List, File, Public, TB, list_position(_,_,ElmPos,Tail)) :- !,
+colourise_imports(List, File, Public, TB, list_position(F,T,ElmPos,Tail)) :- !,
+	colour_item(list, TB, F-T),
 	(   Tail == none
 	->  true
 	;   colour_item(type_error(list), TB, Tail)
@@ -987,7 +1112,8 @@ colourise_import(PI, _, TB, Pos) :-
 %	Colourise the Predicate indicator lists of dynamic, multifile, etc
 %	declarations.
 
-colourise_declarations(List, TB, list_position(_,_,Elms,none)) :- !,
+colourise_declarations(List, TB, list_position(F,T,Elms,none)) :- !,
+	colour_item(list, TB, F-T),
 	colourise_list_declarations(List, TB, Elms).
 colourise_declarations((Head,Tail), TB,
 		       term_position(_,_,_,_,[PH,PT])) :- !,
@@ -1058,8 +1184,9 @@ body_compiled(\+_).
 
 goal_classification(_, Goal, _, meta) :-
 	var(Goal), !.
+goal_classification(_, Goal, _, not_callable) :-
+	\+ callable(Goal), !.
 goal_classification(_, Goal, Origin, recursion) :-
-	callable(Goal),
 	functor(Goal, Name, Arity),
 	functor(Origin, Name, Arity), !.
 goal_classification(TB, Goal, _, How) :-
@@ -1130,6 +1257,7 @@ classify_head(_TB, _Goal, undefined).
 built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
 built_in_predicate(module(_, _)).	% reserved expanded constructs
+built_in_predicate(module(_, _, _)).
 built_in_predicate(if(_)).
 built_in_predicate(elif(_)).
 built_in_predicate(else).
@@ -1147,6 +1275,7 @@ system_module(TB) :-
 %	Specify colours for individual goals.
 
 goal_colours(module(_,_),	     built_in-[identifier,exports]).
+goal_colours(module(_,_,_),	     built_in-[identifier,exports,langoptions]).
 goal_colours(use_module(_),	     built_in-[imported_file]).
 goal_colours(use_module(File,_),     built_in-[file,imports(File)]).
 goal_colours(reexport(_),	     built_in-[file]).
@@ -1161,6 +1290,7 @@ goal_colours(public(_),		     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
+goal_colours(load_files(_),	     built_in-[file]).
 goal_colours(load_files(_,_),	     built_in-[file,classify]).
 goal_colours(setof(_,_,_),	     built_in-[classify,setof,classify]).
 goal_colours(bagof(_,_,_),	     built_in-[classify,setof,classify]).
@@ -1248,6 +1378,7 @@ def_style(goal(meta,_),		   [colour(red4)]).
 def_style(goal(foreign(_),_),	   [colour(darkturquoise)]).
 def_style(goal(local(_),_),	   []).
 def_style(goal(constraint(_),_),   [colour(darkcyan)]).
+def_style(goal(not_callable,_),	   [background(orange)]).
 
 def_style(option_name,		   [colour('#3434ba')]).
 def_style(no_option_name,	   [colour(red)]).
@@ -1300,7 +1431,12 @@ def_style(identifier,		   [bold(true)]).
 def_style(delimiter,		   [bold(true)]).
 def_style(expanded,		   [colour(blue), underline(true)]).
 
+def_style(qq_type,		   [bold(true)]).
+def_style(qq,			   [colour(blue)]).
+def_style(qq_content(_),	   [colour(navy_blue)]).
+
 def_style(hook,			   [colour(blue), underline(true)]).
+def_style(dcg_right_hand_ctx,	   [background('#d4ffe3')]).
 
 def_style(error,		   [background(orange)]).
 def_style(type_error(_),	   [background(orange)]).
@@ -1449,7 +1585,9 @@ term_colours((_,_),
 		     ]).
 
 specified_item(_, Var, TB, Pos) :-
-	var(Var), !,
+	(   var(Var)
+	;   qq_position(Pos)
+	), !,
 	colourise_term_arg(Var, TB, Pos).
 					% generic classification
 specified_item(classify, Term, TB, Pos) :- !,
@@ -1483,6 +1621,9 @@ specified_item(file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos, any).
 specified_item(imported_file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos, imported).
+specified_item(langoptions, Term, TB, Pos) :- !,
+	colourise_langoptions(Term, TB, Pos).
+
 					% directory
 specified_item(directory, Term, TB, Pos) :- !,
 	colourise_directory(Term, TB, Pos).
@@ -1533,7 +1674,8 @@ specified_item(pce_arg, Term, TB, Pos) :-
 specified_item(pce_arg, Term, TB, Pos) :- !,
 	colourise_term_arg(Term, TB, Pos).
 					% List of XPCE arguments
-specified_item(pce_arg_list, List, TB, list_position(_,_,Elms,Tail)) :- !,
+specified_item(pce_arg_list, List, TB, list_position(F,T,Elms,Tail)) :- !,
+	colour_item(list, TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, pce_arg).
 specified_item(pce_arg_list, Term, TB, Pos) :- !,
 	specified_item(pce_arg, Term, TB, Pos).
@@ -1555,6 +1697,7 @@ specified_item(FuncSpec-[ArgSpec], {Term}, TB,
 	specified_item(ArgSpec, Term, TB, ArgPos).
 					% Specified
 specified_item(FuncSpec-ElmSpec, List, TB, list_position(F,T,ElmPos,TailPos)) :- !,
+	colour_item(list, TB, F-T),
 	FT is F + 1,
 	AT is T - 1,
 	colour_item(FuncSpec, TB, F-FT),
@@ -1608,6 +1751,12 @@ specified_list(Spec, Tail, TB, [], TailPos) :-
 
 syntax_message(Class) -->
 	message(Class), !.
+syntax_message(qq) -->
+	[ 'Quasi quote delimiter' ].
+syntax_message(qq_type) -->
+	[ 'Quasi quote type term' ].
+syntax_message(qq_content(Type)) -->
+	[ 'Quasi quote content (~w syntax)'-[Type] ].
 syntax_message(goal(Class, Goal)) --> !,
 	goal_message(Class, Goal).
 syntax_message(class(Type, Class)) --> !,
@@ -1617,6 +1766,8 @@ goal_message(meta, _) -->
 	[ 'Meta call' ].
 goal_message(recursion, _) -->
 	[ 'Recursive call' ].
+goal_message(not_callable, _) -->
+	[ 'Goal is not callable (type error)' ].
 goal_message(undefined, _) -->
 	[ 'Call to undefined predicate' ].
 goal_message(expanded, _) -->

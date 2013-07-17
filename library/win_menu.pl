@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,10 +35,36 @@
 :- op(200, fy, @).
 :- op(990, xfx, :=).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This library sets up the menu of PLWIN.EXE. It is called from the system
-initialisation file plwin.rc, predicate gui_setup_/0.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/** <module> Console window menu
+
+This library sets up the menu of  *swipl-win.exe*. It is called from the
+system initialisation file =plwin-win.rc=, predicate gui_setup_/0.
+*/
+
+:- if(current_prolog_flag(console_menu_version, qt)).
+% The traditional swipl-win.exe predefines some menus.  The Qt version
+% does not.  Here, we predefine the same menus to make the remainder
+% compatiple.
+menu('&File',
+     [ '&Exit' = pqConsole:quit_console
+     ],
+     [
+     ]).
+menu('&Edit',
+     [ '&Copy'  = copy,
+       '&Paste' = paste
+     ],
+     []).
+menu('&Settings',
+     [ '&Font' = pqConsole:select_font
+     ],
+     []).
+menu('&Run',
+     [ '&Interrupt' = interrupt,
+       '&New thread' = new_thread
+     ],
+     []).
+:- endif.
 
 menu('&File',
      [ '&Consult ...' = action(user:consult(+file(open,
@@ -104,9 +129,10 @@ init_win_menus :-
 	    ;	Before = (-)
 	    ),
 	    (	memberchk(before_menu(BM), Options)
-	    ->	win_insert_menu(Menu, BM)
-	    ;	true
+	    ->	true
+	    ;	BM = (-)
 	    ),
+	    win_insert_menu(Menu, BM),
 	    (   '$member'(Item, Items),
 		(   Item = (Label = Action)
 		->  true
@@ -121,8 +147,15 @@ init_win_menus :-
 	;   insert_associated_file
 	).
 
+associated_file(File) :-
+	current_prolog_flag(associated_file, File), !.
+associated_file(File) :-
+	'$option'(script_file, OsFiles),
+	OsFiles = [OsFile], !,
+	prolog_to_os_filename(File, OsFile).
+
 insert_associated_file :-
-	current_prolog_flag(associated_file, File),
+	associated_file(File), !,
 	file_base_name(File, Base),
 	atom_concat('Edit &', Base, Label),
 	win_insert_menu_item('&File', Label, '&New ...', edit(file(File))).
@@ -194,6 +227,8 @@ prolog_file_pattern(Pattern) :-
 	atom_concat('*.', Ext, Pattern).
 
 
+:- if(current_prolog_flag(windows, true)).
+
 		 /*******************************
 		 *	    APPLICATION		*
 		 *******************************/
@@ -229,6 +264,8 @@ ensure_dir(Dir) :-
 
 :- initialization
    init_win_app.
+
+:- endif. /*windows*/
 
 
 		 /*******************************

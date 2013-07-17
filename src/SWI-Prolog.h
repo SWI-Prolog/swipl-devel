@@ -55,7 +55,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 60206
+#define PLVERSION 60400
 #endif
 
 		 /*******************************
@@ -395,7 +395,7 @@ PL_EXPORT(int)		PL_get_bool(term_t t, int *value) WUNUSED;
 PL_EXPORT(int)		PL_get_atom_chars(term_t t, char **a) WUNUSED;
 #define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
 					/* PL_get_string() is deprecated */
-PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len); WUNUSED
+PL_EXPORT(int)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED;
 PL_EXPORT(int)		PL_get_chars(term_t t, char **s, unsigned int flags) WUNUSED;
 PL_EXPORT(int)		PL_get_list_chars(term_t l, char **s,
 					  unsigned int flags) WUNUSED;
@@ -457,7 +457,7 @@ PL_EXPORT(int)		PL_put_pointer(term_t t, void *ptr) WUNUSED;
 PL_EXPORT(int)		PL_put_float(term_t t, double f) WUNUSED;
 PL_EXPORT(int)		PL_put_functor(term_t t, functor_t functor) WUNUSED;
 PL_EXPORT(int)		PL_put_list(term_t l) WUNUSED;
-PL_EXPORT(void)		PL_put_nil(term_t l);
+PL_EXPORT(int)		PL_put_nil(term_t l);
 PL_EXPORT(int)		PL_put_term(term_t t1, term_t t2);
 
 			/* construct a functor or list-cell */
@@ -739,6 +739,7 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_ATOMIC	(CVT_NUMBER|CVT_ATOM|CVT_STRING)
 #define CVT_WRITE	0x0040
 #define CVT_WRITE_CANONICAL 0x0080
+#define CVT_WRITEQ	0x00C0
 #define CVT_ALL		(CVT_ATOMIC|CVT_LIST)
 #define CVT_MASK	0x00ff
 
@@ -812,6 +813,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_NO_CYCLES	0x800	/* Never emit @(Template,Subst) */
 #define PL_WRT_LIST	       0x1000	/* Write [...], even with ignoreops */
 #define PL_WRT_NEWLINE	       0x2000	/* Add a newline */
+#define PL_WRT_VARNAMES	       0x4000	/* Internal: variable_names(List)  */
 
 PL_EXPORT(int) PL_write_term(IOSTREAM *s,
 			     term_t term,
@@ -946,6 +948,9 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
 PL_EXPORT(void) PL_backtrace(int depth, int flags);
+PL_EXPORT(int)	PL_check_data(term_t data);
+PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
+
 
 		/********************************
 		*         QUERY PROLOG          *

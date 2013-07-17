@@ -87,5 +87,12 @@ test(string, throws(error(resource_error(stack), global))) :-
 test(length, throws(error(resource_error(stack), global))) :-
 	length(L, 10000000),
 	is_list(L).			% avoid GC
+test(tight_stacks, throws(error(resource_error(stack), global))) :-
+	between(1, 20, X),
+	trim_stacks,
+	Len is 1<<X,
+	length(List, Len),
+	numbervars(List, 0, _),
+	fail.
 
 :- end_tests(resource_error).

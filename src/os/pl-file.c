@@ -55,6 +55,7 @@ handling times must be cleaned, but that not only holds for this module.
 #endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#include <fcntl.h>
 #endif
 #ifdef HAVE_BSTRING_H
 #include <bstring.h>
@@ -297,7 +298,7 @@ freeStream(IOSTREAM *s)
 /* name must be registered by the caller */
 
 static void
-setFileNameStream(IOSTREAM *s, atom_t name)
+setFileNameStream_unlocked(IOSTREAM *s, atom_t name)
 { stream_context *ctx = getStreamContext(s);
 
   if ( ctx->filename )
@@ -306,6 +307,17 @@ setFileNameStream(IOSTREAM *s, atom_t name)
   }
   if ( !(name == NULL_ATOM || name == ATOM_) )
     ctx->filename = name;
+}
+
+
+int
+setFileNameStream(IOSTREAM *s, atom_t name)
+{ LOCK();
+  setFileNameStream_unlocked(s, name);
+  PL_register_atom(name);
+  UNLOCK();
+
+  return TRUE;
 }
 
 
@@ -1213,19 +1225,24 @@ current input context.
 static
 PRED_IMPL("$input_context", 1, input_context, 0)
 { PRED_LD
-  term_t tail = PL_copy_term_ref(A1);
-  term_t head = PL_new_term_ref();
+  term_t tail   = PL_copy_term_ref(A1);
+  term_t head   = PL_new_term_ref();
+  term_t stream = PL_new_term_ref();
   InputContext c = input_context_stack;
 
   for(c=input_context_stack; c; c=c->previous)
   { atom_t file = c->term_file ? c->term_file : ATOM_minus;
     int line = c->term_file ? c->term_line : 0;
 
-    if ( !PL_unify_list(tail, head, tail) ||
-	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_input3,
+    PL_put_variable(stream);
+
+    if ( !PL_unify_stream_or_alias(stream, c->stream) ||
+	 !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_input4,
 			PL_ATOM, c->type,
 			PL_ATOM, file,
-			PL_INT,  line) )
+			PL_INT,  line,
+			PL_TERM, stream) )
       return FALSE;
   }
 
@@ -1829,10 +1846,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	if ( !PL_get_atom_ex(a, &fn) )
 	  goto error;
 
-	PL_register_atom(fn);
-	LOCK();
 	setFileNameStream(s, fn);
-	UNLOCK();
 
 	goto ok;
       } else if ( aname == ATOM_timeout )
@@ -1879,6 +1893,19 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		 ATOM_encoding, ATOM_stream, stream);
 	goto error;
+#ifdef O_LOCALE
+      } else if ( aname == ATOM_locale )	/* locale(Locale) */
+      {	PL_locale *val;
+
+	if ( !getLocaleEx(a, &val) )
+	  goto error;
+	if ( Ssetlocale(s, val, NULL) == 0 )
+	  goto ok;
+
+	PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		 ATOM_locale, ATOM_stream, stream);
+	goto error;
+#endif
       } else if ( aname == ATOM_representation_errors )
       { atom_t val;
 
@@ -3021,6 +3048,9 @@ static const opt_spec open4_options[] =
   { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
+#ifdef O_LOCALE
+  { ATOM_locale,	 OPT_LOCALE },
+#endif
   { NULL_ATOM,	         0 }
 };
 
@@ -3039,6 +3069,9 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t lock		= ATOM_none;
   int	 wait		= TRUE;
   atom_t encoding	= NULL_ATOM;
+#ifdef O_LOCALE
+  PL_locale *locale	= NULL;
+#endif
   int    close_on_abort = TRUE;
   int	 bom		= -1;
   char   how[10];
@@ -3050,7 +3083,12 @@ openStream(term_t file, term_t mode, term_t options)
   if ( options )
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
-		       &close_on_abort, &buffer, &lock, &wait, &encoding, &bom) )
+		       &close_on_abort, &buffer, &lock, &wait,
+		       &encoding, &bom
+#ifdef O_LOCALE
+		       , &locale
+#endif
+		      ) )
       return FALSE;
   }
 
@@ -3150,12 +3188,18 @@ openStream(term_t file, term_t mode, term_t options)
 	       ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
-    setFileNameStream(s, fn_to_atom(path));
+    setFileNameStream_unlocked(s, fn_to_atom(path));
   } else
   { return NULL;
   }
 
   s->encoding = enc;
+#ifdef O_LOCALE
+  if ( locale )
+  { Ssetlocale(s, locale, NULL);
+    releaseLocale(locale);			/* acquired by scan_options() */
+  }
+#endif
   if ( !close_on_abort )
     s->flags |= SIO_NOCLOSE;
 
@@ -3504,7 +3548,8 @@ do_close(IOSTREAM *s, int force)
       Sclearerr(s);
     } else
     { Sflush(s);
-      Sclose(s);
+      if ( Sclose(s) < 0 )
+	PL_clear_exception();
     }
 
     return TRUE;
@@ -3811,6 +3856,15 @@ stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#ifdef O_LOCALE
+static int
+stream_locale_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ if ( s->locale )
+    return unifyLocale(prop, s->locale, TRUE);
+  return FALSE;
+}
+#endif
+
 static int
 stream_reperror_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t a;
@@ -3887,7 +3941,7 @@ stream_close_on_exec_prop(IOSTREAM *s, term_t prop ARG_LD)
    if ( (fd = Sfileno(s)) < 0)
      return FALSE;
 
-#if defined(F_SETFD) && defined(FD_CLOEXEC)
+#if defined(F_GETFD) && defined(FD_CLOEXEC)
 
    if ( (fd_flags = fcntl(fd, F_GETFD)) == -1)
      return FALSE;
@@ -3929,6 +3983,9 @@ static const sprop sprop_list [] =
   { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
   { FUNCTOR_tty1,	    stream_tty_prop },
   { FUNCTOR_encoding1,	    stream_encoding_prop },
+#ifdef O_LOCALE
+  { FUNCTOR_locale1,	    stream_locale_prop },
+#endif
   { FUNCTOR_bom1,	    stream_bom_prop },
   { FUNCTOR_newline1,	    stream_newline_prop },
   { FUNCTOR_representation_errors1, stream_reperror_prop },
@@ -4161,10 +4218,8 @@ PRED_IMPL("is_stream", 1, is_stream, 0)
   atom_t a;
 
   if ( PL_get_atom(A1, &a) &&
-       get_stream_handle(a, &s, 0) )
-  { releaseStream(s);
+       get_stream_handle(a, &s, SH_UNLOCKED) )
     return TRUE;
-  }
 
   return FALSE;
 }

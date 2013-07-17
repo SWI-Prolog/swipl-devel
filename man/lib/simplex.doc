@@ -98,6 +98,8 @@ versions, and non-negativity constraints should therefore be stated
 explicitly.
 
 \subsection{Example 1}
+\label{sec:simplex-ex-1}
+
 This is the "radiation therapy" example, taken from "Introduction to
 Operations Research" by Hillier and Lieberman. DCG notation is used to
 implicitly thread the state through posting the constraints:
@@ -128,6 +130,8 @@ Val2 = 9 rdiv 2 ;
 \end{code}
 
 \subsection{Example 2}
+\label{sec:simplex-ex-2}
+
 Here is an instance of the knapsack problem described above, where C = 8, and
 we have two types of items: One item with value 7 and size 6, and 2 items
 each having size 4 and value 4. We introduce two variables, x(1) and
@@ -182,6 +186,8 @@ particular that always choosing the remaining item with best performance
 yield an optimal solution in the presence of integrality constraints.
 
 \subsection{Example 3}
+\label{sec:simplex-ex-3}
+
 We are given 3 coins each worth 1, 20 coins each worth 5, and 10 coins each
 worth 20 units of money. The task is to find a minimal number of these coins
 that amount to 111 units of money. We introduce variables

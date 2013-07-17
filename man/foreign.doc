@@ -22,10 +22,10 @@ C and use Prolog as an embedded logical engine.
 \section{Overview of the Interface}		\label{sec:foreignoverview}
 
 A special include file called \file{SWI-Prolog.h} should be included
-with each C-source file that is to be loaded via the foreign interface.
+with each C source file that is to be loaded via the foreign interface.
 The installation process installs this file in the directory
 \file{include} in the SWI-Prolog home directory (\exam{?-
-current_prolog_flag(home, Home).}). This C-header file defines various
+current_prolog_flag(home, Home).}). This C header file defines various
 data types, macros and functions that can be used to communicate with
 SWI-Prolog. Functions and macros can be divided into the following
 categories:
@@ -46,8 +46,8 @@ categories:
 
 Foreign modules may be linked to Prolog in two ways. Using
 \jargon{static linking}, the extensions, a (short) file defining main()
-which attaches the extensions calls to Prolog, and the SWI-Prolog kernel
-distributed as a C library are linked together to form a new executable.
+which attaches the extension calls to Prolog, and the SWI-Prolog kernel
+distributed as a C library, are linked together to form a new executable.
 Using \jargon{dynamic linking}, the extensions are linked to a shared
 library (\fileext{so} file on most Unix systems) or dynamic link library
 (\fileext{DLL} file on Microsoft platforms) and loaded into the
@@ -62,6 +62,7 @@ running Prolog process.%
 	      not have shared libraries.}
 
 \subsection{What linking is provided?}
+\label{sec:foreign-linking}
 
 The \jargon{static linking} schema can be used on all versions of
 SWI-Prolog. Whether or not dynamic linking is supported can be deduced
@@ -71,6 +72,7 @@ open_shared_object/2 and related predicates are defined. See
 \secref{shlib} for a suitable high-level interface to these predicates.
 
 \subsection{What kind of loading should I be using?}
+\label{sec:foreign-linking-options}
 
 All described approaches have their advantages and disadvantages. Static
 linking is portable and allows for debugging on all platforms. It is
@@ -82,7 +84,7 @@ from the user.
 Loading shared objects (DLL files on Windows) provides sharing and
 protection and is generally the best choice. If a saved state is created
 using qsave_program/[1,2], an initialization/1 directive may be used to
-load the appropriate library at start-up.
+load the appropriate library at startup.
 
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
@@ -102,7 +104,7 @@ predicates from \secref{shlib} in your application.
 
 \begin{description}
     \predicate{open_shared_object}{2}{+File, -Handle}
-\arg{File} is the name of a shared object file (DLL in MS-Windows). This file is attached to the current process and
+\arg{File} is the name of a shared object file (DLL in MS-Windows). This file is attached to the current process, and
 \arg{Handle} is unified with a handle to the library. Equivalent to
 \exam{open_shared_object(File, Handle, [])}. See also
 open_shared_object/3 and load_foreign_library/1.
@@ -133,7 +135,7 @@ PL_register_foreign().
 
 \subsection{Static Linking} \label{sec:staticl}
 
-Below is an outline of the files structure required for statically
+Below is an outline of the file structure required for statically
 linking SWI-Prolog with foreign extensions. \file{.../swipl} refers to
 the SWI-Prolog home directory (see the Prolog flag \prologflag{home}).
 \file{<arch>} refers to the architecture identifier that may be obtained
@@ -150,7 +152,7 @@ using the Prolog flag \prologflag{arch}.
 \end{center}
 
 The definition of the foreign predicates is the same as for dynamic
-linking.  Unlike with dynamic linking however, there is no
+linking.  Unlike with dynamic linking, however, there is no
 initialisation function.  Instead, the file \file{.../swipl/include/stub.c}
 may be copied to your project and modified to define the foreign
 extensions.  Below is \file{stub.c}, modified to link the lowercase example
@@ -193,9 +195,10 @@ option \const{-dump-runtime-variables} (see \secref{cmdline}) can be
 used to obtain the required paths, libraries and linking options to link
 the new executable.
 
-\section{Interface Data types}		\label{sec:foreigntypes}
+\section{Interface Data Types}		\label{sec:foreigntypes}
 
 \subsection{Type \ctype{term_t}: a reference to a Prolog term}
+\label{sec:type-term-t}
 
 The principal data type is \ctype{term_t}. Type \ctype{term_t} is what
 Quintus calls \ctype{QP_term_ref}. This name indicates better what the
@@ -297,6 +300,7 @@ PL_discard_foreign_frame().
 
 
 \subsubsection{Interaction with the garbage collector and stack-shifter}
+\label{sec:foreign-gc}
 
 Prolog implements two mechanisms for avoiding stack overflow: garbage
 collection and stack expansion. On machines that allow for it, Prolog
@@ -310,6 +314,7 @@ special precautions from the C programmer.
 
 
 \subsection{Other foreign interface types}
+\label{sec:foreign-types}
 
 \begin{description}
     \item[atom_t]
@@ -363,6 +368,7 @@ to be an integer.
 \section{The Foreign Include File}	\label{sec:foreigninclude}
 
 \subsection{Argument Passing and Control}
+\label{sec:foreign-control}
 
 If Prolog encounters a foreign predicate at run time it will call a
 function specified in the predicate definition of the foreign predicate.
@@ -501,6 +507,7 @@ my_function(term_t a0, term_t a1, control_t handle)
 
 
 \subsection{Atoms and functors}
+\label{sec:foreign-atoms}
 
 The following functions provide for communication using atoms and
 functors.
@@ -516,7 +523,7 @@ Return a C-string for the text represented by the given atom. The
 returned text will not be changed by Prolog. It is not allowed to modify
 the contents, not even `temporary' as the string may reside in read-only
 memory. The returned string becomes invalid if the atom is
-garbage-collected (see \secref{atomgc}).  Foreign functions that require
+garbage collected (see \secref{atomgc}).  Foreign functions that require
 the text from an atom passed in a \ctype{term_t} normally use
 PL_get_atom_chars() or PL_get_atom_nchars().
 
@@ -536,7 +543,7 @@ With the introduction of atom garbage collection in version 3.3.0, atoms
 no longer live as long as the process. Instead, their lifetime is
 guaranteed only as long as they are referenced. In the single-threaded
 version, atom garbage collections are only invoked at the
-\jargon{call-port}. In the multi-threaded version (see \chapref{threads}),
+\jargon{call-port}. In the multithreaded version (see \chapref{threads}),
 they appear asynchronously, except for the invoking thread.
 
 For dealing with atom garbage collection, two additional functions are
@@ -570,6 +577,7 @@ applicable.
 
 
 \subsection{Analysing Terms via the Foreign Interface}
+\label{sec:foreign-term-analysis}
 
 Each argument of a foreign function (except for the control argument) is
 of type \ctype{term_t}, an opaque handle to a Prolog term. Three groups of
@@ -582,6 +590,7 @@ and a pointer to the appropriate C type and return \const{TRUE} or
 translation fails, the pointed-to data is never modified.
 
 \subsubsection{Testing the type of a term}
+\label{sec:foreign-term-type}
 
 \begin{description}
 \cfunction{int}{PL_term_type}{term_t}
@@ -642,6 +651,9 @@ Returns non-zero if \arg{term} is a string.
 Returns non-zero if \arg{term} is an integer.
 \cfunction{int}{PL_is_float}{term_t}
 Returns non-zero if \arg{term} is a float.
+\cfunction{int}{PL_is_callable}{term_t}
+Returns non-zero if \arg{term} is a callable term.  See callable/1
+for details.
 \cfunction{int}{PL_is_compound}{term_t}
 Returns non-zero if \arg{term} is a compound term.
 \cfunction{int}{PL_is_functor}{term_t, functor_t}
@@ -664,6 +676,7 @@ Returns non-zero if \arg{term} is acyclic (i.e.\ a finite tree).
 
 
 \subsubsection{Reading data from a term}
+\label{sec:foreign-extract-from-term}
 
 The functions {\tt PL_get_*()} read information from a Prolog term. Most
 of them take two arguments.  The first is the input term and the second
@@ -741,9 +754,12 @@ write/1. If no \const{BUF_*} is provided, \const{BUF_RING} is implied.
     \termitem{CVT_WRITE_CANONICAL}{}
 As \const{CVT_WRITE}, but using write_canonical/2.
 
+    \termitem{CVT_WRITEQ}{}
+As \const{CVT_WRITE}, but using writeq/2.
+
     \termitem{CVT_ALL}{}
 Convert if term is any of the above, except for \const{CVT_VARIABLE} and
-\const{CVT_WRITE}.
+\const{CVT_WRITE*}.
 
     \termitem{CVT_EXCEPTION}{}
 If conversion fails due to a type error, raise a Prolog type error
@@ -834,6 +850,7 @@ is actually a term nor whether \arg{index} is a valid argument index.
 
 
 \subsubsection{Exchanging text using length and string}
+\label{sec:foreign-text-with-length}
 
 All internal text representation in SWI-Prolog is represented using
 \type{char *} plus length and allow for \jargon{0-bytes} in them.
@@ -880,6 +897,7 @@ Extract the text and length of an atom.
 
 
 \subsubsection{Wide-character versions}
+\label{sec:foreign-unicode}
 
 Support for exchange of wide-character strings is still under
 consideration. The functions dealing with 8-bit character strings
@@ -932,6 +950,7 @@ source distribution.
 
 
 \subsubsection{Reading a list}
+\label{sec:foreign-read-list}
 
 The functions from this section are intended to read a Prolog list from
 C.  Suppose we expect a list of atoms; the following code will print the
@@ -1001,6 +1020,7 @@ It is allowed to pass 0 for \arg{tail} and \const{NULL} for \arg{len}.
 \end{description}
 
 \subsubsection{An example: defining write/1 in C}
+\label{sec:foreign-write}
 
 \Figref{pl-display} shows a simplified definition of write/1 to
 illustrate the described functions.  This simplified version does not
@@ -1055,6 +1075,7 @@ pl_display(term_t t)
 
 
 \subsection{Constructing Terms}
+\label{sec:foreign-term-construct}
 
 Terms can be constructed using functions from the {\tt PL_put_*()} and
 {\tt PL_cons_*()} families. This approach builds the term `inside-out',
@@ -1108,8 +1129,8 @@ a term with instantiated arguments, either instantiate the arguments
 using the {\tt PL_unify_*()} functions or use PL_cons_functor().
 \cfunction{int}{PL_put_list}{term_t -l}
 Same as \exam{PL_put_functor(l, PL_new_functor(PL_new_atom("."), 2))}.
-\cfunction{void}{PL_put_nil}{term_t -l}
-Same as \exam{PL_put_atom_chars("[]")}.
+\cfunction{int}{PL_put_nil}{term_t -l}
+Same as \exam{PL_put_atom_chars("[]")}.  Always returns \const{TRUE}.
 \cfunction{void}{PL_put_term}{term_t -t1, term_t +t2}
 Make \arg{t1} point to the same term as \arg{t2}.
 \cfunction{int}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
@@ -1167,6 +1188,7 @@ new value is set.
 
 
 \subsection{Unifying data}
+\label{sec:foreign-unify}
 
 The functions of this section \jargon{unify} terms with other terms or
 translated C data structures. Except for PL_unify(), these functions
@@ -1891,6 +1913,7 @@ the denominator is 1.  The \arg{mpq} argument is not changed.
 
 
 \subsection{Calling Prolog from C}
+\label{sec:calling-prolog-from-c}
 
 The Prolog engine can be called from C. There are two interfaces for
 this. For the first, a term is created that could be used as an argument
@@ -1904,6 +1927,7 @@ complicated to use.
 
 
 \subsubsection{Predicate references}
+\label{sec:foreign-predicate-handle}
 
 This section discusses the functions used to communicate about
 predicates. Though a Prolog predicate may be defined or not, redefined,
@@ -1935,6 +1959,7 @@ is defined. Any of the arguments \arg{n}, \arg{a} and \arg{m} can be
 
 
 \subsubsection{Initiating a query from C}
+\label{sec:foreign-create-query}
 
 This section discusses the functions for creating and manipulating
 queries from C.  Note that a foreign context can have at most one
@@ -2037,6 +2062,7 @@ defined atoms. All checks are omitted to improve readability.
 \end{description}
 
 \subsection{Discarding Data}
+\label{sec:foreign-discard-term-t}
 
 The Prolog data created and term references needed to set up the call
 and/or analyse the result can in most cases be discarded right after the
@@ -2097,6 +2123,7 @@ count_atoms()
 
 
 \subsection{Foreign Code and Modules}
+\label{sec:foreign-modules}
 
 Modules are identified via a unique handle.  The following functions
 are available to query and manipulate modules.
@@ -2137,6 +2164,7 @@ Find an existing module or create a new module with the name \arg{name}.
 
 
 \subsection{Prolog exceptions in foreign code}
+\label{sec:foreign-exceptions}
 
 This section discusses PL_exception(), PL_throw() and
 PL_raise_exception(), the interface functions to detect and generate
@@ -2336,8 +2364,10 @@ domain or instantiation error if the conversion fails.
 
 
 \subsection{Miscellaneous}
+\label{sec:foreign-misc}
 
 \subsubsection{Term Comparison}
+\label{sec:foreign-compare}
 
 \begin{description}
 \cfunction{int}{PL_compare}{term_t t1, term_t t2}
@@ -2349,6 +2379,7 @@ domain or instantiation error if the conversion fails.
 \end{description}
 
 \subsubsection{Recorded database}
+\label{sec:foreign-recorded}
 
 In some applications it is useful to store and retrieve Prolog terms
 from C code.  For example, the XPCE graphical environment does this for
@@ -2483,6 +2514,7 @@ notation.
 
 
 \subsection{Errors and warnings}
+\label{sec:foreign-print-warning}
 
 PL_warning() prints a standard Prolog warning message to the standard
 error (\const{user_error}) stream. Please note that new code should
@@ -2498,6 +2530,7 @@ for \manref{printf}{2}. Always returns \const{FALSE}.
 \end{description}
 
 \subsection{Environment Control from Foreign Code}
+\label{sec:foreign-control-prolog}
 
 \begin{description}
 \cfunction{int}{PL_action}{int, ...}
@@ -2581,6 +2614,7 @@ the top 20 frames of the Prolog stack.
 \end{description}
 
 \subsection{Querying Prolog}
+\label{sec:foreign-query}
 
 \begin{description}
 \cfunction{long}{PL_query}{int}
@@ -2625,6 +2659,7 @@ The  options are given in \tabref{query}.
 
 
 \subsection{Registering Foreign Predicates}
+\label{sec:foreign-register-predicate}
 
 \begin{description}
 \cfunction{int}{PL_register_foreign_in_module}{char *mod,
@@ -2754,6 +2789,7 @@ the \arg{module} argument.
 
 
 \subsection{Foreign Code Hooks}
+\label{sec:foreign-hooks}
 
 For various specific applications some hooks are provided.
 
@@ -2773,7 +2809,7 @@ typedef int  (*PL_dispatch_hook_t)(void);
 Install a hook when abort/0 is executed. SWI-Prolog abort/0 is
 implemented using C setjmp()/longjmp() construct.  The hooks are
 executed in the reverse order of their registration after the longjmp()
-took place and before the Prolog top-level is reinvoked. The type
+took place and before the Prolog top level is reinvoked. The type
     \ctype{PL_abort_hook_t} is defined as:
 \begin{code}
 typedef void (*PL_abort_hook_t)(void);
@@ -2842,7 +2878,7 @@ There are four options for storing such data:
 \begin{itemlist}
     \item[Natural Prolog data]
 Uses the representation one would choose if no foreign interface was
-required. E.g., a bitvector representing a list of small integers can be
+required. For example, a bitvector representing a list of small integers can be
 represented as a Prolog list of integers.
 
     \item[Opaque packed data on the stacks]
@@ -2904,6 +2940,7 @@ See \secref{foreignnondet}.
 
 
 \subsubsection{Examples for storing foreign data}
+\label{sec:foreign-store-data}
 
 In this section, we outline some examples, covering typical cases. In
 the first example, we will deal with extending Prolog's data
@@ -3058,7 +3095,7 @@ main(int argc, char **argv)
 \cfunction{int}{PL_initialise}{int argc, char **argv}
 Initialises the SWI-Prolog heap and stacks, restores the Prolog
 state, loads the system and personal initialisation files,
-runs the at_initialization/1 hooks and finally runs the
+runs the initialization/1 hooks and finally runs the
 \argoption{-g}{goal} hook.
 
 Special consideration is required for \verb$argv[0]$. On {\bf Unix},
@@ -3125,7 +3162,7 @@ for the argument vector \arg{argv}.
 
     \cfunction{void}{PL_install_readline}{}
 Installs the GNU readline line editor.  Embedded applications that do not
-use the Prolog top-level should normally delete this line, shrinking the
+use the Prolog top level should normally delete this line, shrinking the
 Prolog kernel significantly.  Note that the Windows version does not use
 GNU readline.
 
@@ -3184,18 +3221,18 @@ thread other than the main one.%
 \label{sec:sigembedded}
 
 This section applies to Unix-based environments that have signals or
-multi-threading.  The Windows version is compiled for multi-threading,
+multithreading.  The Windows version is compiled for multithreading,
 and Windows lacks proper signals.
 
 We can distinguish two classes of embedded executables. There are small
-C/C++-programs that act as an interfacing layer around Prolog. Most of
+C/C++ programs that act as an interfacing layer around Prolog. Most of
 these programs can be replaced using the normal Prolog executable
 extended with a dynamically loaded foreign extension and in most cases
 this is the preferred route. In other cases, Prolog is embedded in a
 complex application that---like Prolog---wants to control the process
 environment. A good example is Java. Embedding Prolog is generally the
 only way to get these environments together in one process image. Java
-applications, however, are by nature multi-threaded and appear to do
+applications, however, are by nature multithreaded and appear to do
 signal handling (software interrupts).
 
 On Unix systems, SWI-Prolog uses three signals:
@@ -3211,7 +3248,7 @@ On Unix systems, SWI-Prolog uses three signals:
     with \const{EINTR}, which gives them the opportunity to react
     to thread-signals.
 
-    \item[SIGINT] is used by the top-level to activate the tracer
+    \item[SIGINT] is used by the top level to activate the tracer
     (typically bound to control-C).  The first control-C posts a
     request for	starting the tracer in a safe, synchronous fashion.
     If control-C is hit again before the safe route is executed,
@@ -3353,6 +3390,7 @@ C compiler.
 
 
 \subsection{A simple example}
+\label{sec:foreign-example}
 
 The following is a very simple example going through all the steps
 outlined above. It provides an arithmetic expression evaluator. We will
@@ -3546,6 +3584,7 @@ L = 'hello world!'.
 \section{Notes on Using Foreign Code}	\label{sec:foreignnotes}
 
 \subsection{Memory Allocation}
+\label{sec:foreign-malloc}
 
 SWI-Prolog's heap memory allocation is based on the \manref{malloc}{3}
 library routines. SWI-Prolog provides the functions below as a wrapper
@@ -3577,6 +3616,7 @@ previous PL_malloc() or PL_realloc() call.
 \end{description}
 
 \subsubsection{Boehm-GC support}
+\label{sec:boehm-gc}
 
 \index{Boehm GC}%
 To accommodate future use of the Boehm garbage
@@ -3607,6 +3647,7 @@ will not change after PL_end_stubborn_change().
 
 
 \subsection{Compatibility between Prolog versions}
+\label{sec:foreign-compat}
 
 Great care is taken to ensure binary compatibility of foreign extensions
 between different Prolog versions. Only the much less frequently used stream
@@ -3621,6 +3662,7 @@ system. Both follow the same numbering schema explained with PL_query().
 
 
 \subsection{Debugging and profiling foreign code (valgrind)}
+\label{sec:foreign-debug-and-profile}
 
 \index{valgrind}\index{profiling,foreign code}%
 This section is only relevant for Unix users on platforms supported by
@@ -3646,6 +3688,7 @@ using \program{bash} as login shell:
 
 
 \subsection{Name Conflicts in C modules}
+\label{sec:foreign-name-conflicts}
 
 In the current version of the system all public C functions of
 SWI-Prolog are in the symbol table.  This can lead to name clashes with
@@ -3666,8 +3709,9 @@ symbols that are not defined in the library itself.
 
 
 \subsection{Compatibility of the Foreign Interface}
+\label{sec:foreign-quintus-sicstus}
 
-The term reference mechanism was first used by Quintus Prolog version 3.
+The term reference mechanism was first used by Quintus Prolog version~3.
 SICStus Prolog version 3 is strongly based on the Quintus interface. The
 described SWI-Prolog interface is similar to using the Quintus or
 SICStus interfaces, defining all foreign-predicate arguments of type

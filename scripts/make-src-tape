@@ -23,56 +23,117 @@ else
   SUBMODULES="$COREMODULES"
 fi
 
+name=pl
+namesep=-
 version=`cat VERSION`
-out=pl-$version.tar
-extra=pl-extra-$version.tar
-doc=pl-doc-$version.tar
 compress=gzip
 me=`basename $PWD`
+quiet=false
+gendoc=true
 
 TAG="V$version"
 
-case "$1" in
-    --tag=*)
-	TAG=`echo $1 | sed 's/--tag=//'`
-	shift
-	;;
-    --*)
-	echo "Usage: make-source-tape [--tag=TAG]"
-	exit 1
-	;;
-    *)
-esac
+usage()
+{ cat << _EOM_
+Usage: $(basename $0) [option ...]
+Options:
+  --tag=Tag
+    Create archive for the given version
+  --version=Version
+    Create archive for the given version
+  --name=Name [default $name]
+    Create archive for the given version
+  --sep=Sep [default $namesep]
+    Separator between name and version
+  --submodule=Module
+    Add an additional module (can be repeated)
+  --no-doc
+    Do not generate documentation archive
+  --quiet
+    Work silently
+  --help
+    Print this message
+_EOM_
+}
+
+while [ x"$1" != x"" ]; do
+  case "$1" in
+      --tag=*)
+	  TAG=`echo $1 | sed 's/--[^=]*=//'`
+	  shift
+	  ;;
+      --submodule=*)
+	  SUBMODULES+=" $(echo $1 | sed 's/--[^=]*=//')"
+	  shift
+	  ;;
+      --name=*)
+	  name=`echo $1 | sed 's/--[^=]*=//'`
+	  shift
+	  ;;
+      --sep=*)
+	  namesep=`echo $1 | sed 's/--[^=]*=//'`
+	  shift
+	  ;;
+      --version=*)
+	  version=`echo $1 | sed 's/--[^=]*=//'`
+	  shift
+	  ;;
+      --no-doc)
+	  gendoc=false
+	  shift
+	  ;;
+      --quiet)
+	  quiet=true
+	  shift
+	  ;;
+      --help)
+	  usage
+	  exit 0
+	  ;;
+      --*)
+	  usage
+	  exit 1
+	  ;;
+      *)
+  esac
+done
 
 if ! git diff --quiet; then
     echo "Fatal: directory is dirty"
     exit 1
 fi
 
+prefix=$name$namesep$version
+out=$prefix.tar
+extra=$name-extra-$version.tar
+doc=$name-doc-$version.tar
+
 # core SWI-Prolog snapshot from GIT
-git archive --format=tar --prefix=pl-$version/ "$TAG" > ../$out
+git archive --format=tar --prefix=$prefix/ "$TAG" > ../$out
 
 #add the submodules
-for sm in `git submodule $SUBMODULES | awk '{printf "%s:%s\n", $1, $2}'`; do
+for sm in `git submodule status $SUBMODULES | awk '{printf "%s:%s\n", $1, $2}'`; do
     sha1=`echo $sm | awk -F: '{print $1}'`
     path=`echo $sm | awk -F: '{print $2}'`
-    echo -n "adding module $path at $sha1 ... "
-    git --git-dir $path/.git archive --format=tar --prefix=pl-$version/$path/ $sha1 > tmp.tar
+    [ $quiet = true ] || echo -n "adding module $path at $sha1 ... "
+    git --git-dir $path/.git archive --format=tar --prefix=$prefix/$path/ $sha1 > tmp.tar
     tar -Af ../$out tmp.tar
     rm tmp.tar
-    echo ok
+    [ $quiet = true ] || echo ok
 done
 
 # generated documentation files
-echo $version > doc-version
-tar zcf ../$doc.gz ./doc-version `cat gen-files/doc`
+if [ $gendoc = true ]; then
+  echo $version > doc-version
+  tar zcf ../$doc.gz ./doc-version `cat gen-files/doc`
+fi
 
 cd ..
-ln -s $me pl-$version
+ln -s $me $prefix
 
-# Extras, also starting with pl-<version>
-tar cfh $extra `sed "s@^@pl-$version/@" $me/gen-files/config`
-tar cfh $doc `sed "s@^@pl-$version/@" $me/gen-files/doc`
+# Extras, also starting with $name-<version>
+tar cfh $extra `sed "s@^@$prefix/@" $me/gen-files/config`
+tar cfh $doc `sed "s@^@$prefix/@" $me/gen-files/doc`
 
 # Append them (needs GNU-tar)
 tar -Af $out $extra
@@ -81,7 +142,7 @@ tar -Af $out $doc
 # cleanup
 rm $extra
 rm $doc
-rm pl-$version
+rm $prefix
 
 # compress the result
 rm -f $out.gz

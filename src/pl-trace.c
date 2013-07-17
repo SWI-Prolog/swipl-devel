@@ -1377,7 +1377,7 @@ PL_describe_context(pl_context_t *c, char *buf, size_t len)
     if ( c->pc >= fr->predicate->codes &&
 	 c->pc < &fr->predicate->codes[fr->predicate->codes[-1]] )
     { return printed+snprintf(buf, len, "[PC=%ld in supervisor]",
-			      (c->pc - fr->predicate->codes));
+			      (long)(c->pc - fr->predicate->codes));
     }
 
     if ( false(fr->predicate, P_FOREIGN) )
@@ -2118,7 +2118,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
       if ( tTop+arity > tMax )
       { int rc;
 
-	if ( !(rc=ensureTrailSpace(arity)) != TRUE )
+	if ( (rc=ensureTrailSpace(arity)) != TRUE )
 	  return raiseStackOverflow(rc);
       }
 

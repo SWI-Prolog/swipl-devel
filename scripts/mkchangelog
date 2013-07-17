@@ -6,10 +6,13 @@
 footer=false
 printdate=true
 directory=.
-since=
 modules=true
-quiet=false;
+quiet=false
 moduleoptions=
+[ -z "$wiki"  ] && wiki=false
+[ -z "$level" ] && level=+
+
+export wiki level
 
 done=false
 while [ $done = false ]; do
@@ -27,6 +30,10 @@ while [ $done = false ]; do
 		quiet=true
 		shift
 		;;
+	--wiki)
+		wiki=true
+		shift
+		;;
 	--nomodules)
 		modules=false
 		shift
@@ -36,10 +43,6 @@ while [ $done = false ]; do
 		shift
 		modules=false
 		;;
-	--since=*)
-		since="`echo $1 | sed 's/--since=//'`"
-		shift
-		;;
 	*)	done=true
 		;;
     esac
@@ -47,13 +50,12 @@ done
 
 tag="$1"
 
-if [ -z "$tag" -a -z "$since" ]; then
-   echo "Usage: `basename $0` option ... [version] [path ...]"
+if [ -z "$tag" ]; then
+   echo "Usage: `basename $0` option ... [version][..version] [path ...]"
    echo "Options:"
    echo "    --footer"
    echo "    --nodate"
    echo "    --nomodules"
-   echo "    --since=<date>"
    echo "    --dir=<dir>"
    exit 1
 fi
@@ -62,37 +64,77 @@ fi
 LANG=C
 
 case "$tag" in
+   [0-9].[0-9]*.[0-9]*..[0-9].[0-9]*.[0-9]*)
+	vfrom="$(echo $tag | sed 's/\.\..*//')"
+	vto="$(echo $tag | sed 's/.*\.\.//')"
+	;;
+   V[0-9].[0-9]*.[0-9]*..V[0-9].[0-9]*.[0-9]*)
+	vfrom="$(echo $tag | sed -e s/V//g -e 's/\.\..*//')"
+	vto="$(echo $tag | sed -e s/V//g -e 's/.*\.\.//')"
+	;;
    [0-9].[0-9]*.[0-9]*)
-	tag=V${tag}
+        vfrom="$tag"
+	vto=
+	;;
+   V[0-9].[0-9]*.[0-9]*)
+        vfrom="$(echo $tag | sed s/V//)"
+	vto=
+	;;
+   *..*)
+	vfrom="$(echo $tag | sed 's/\.\..*//')"
+	vto="$(echo $tag | sed 's/.*\.\.//')"
 	;;
 esac
+shift
 
-if [ ! -z "$since" ]; then
-  opt="--since=$since"
+vvtag()
+{ case $1 in
+    [0-9].[0-9]*.[0-9]*)
+      echo V$1
+      ;;
+    *)
+      echo $1
+      ;;
+  esac
+}
+
+if [ -z "$vto" ]; then
+  opt=$(vvtag $vfrom)..
 else
-  shift
-  opt="$tag.."
+  opt="$(vvtag $vfrom)..$(vvtag $vto)"
 fi
 
 cd $directory
 
 if [ "$quiet" = true ]; then
-  git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | grep -q '^[A-Z][A-Z]*:'
+  git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | \
+	grep -q '^[A-Z][A-Z]*:'
   exit $?
 fi
 
 header ()
 { hdr="$*"
-  eq=`echo $hdr | sed 's/./=/g'`
-  echo $eq
-  echo $hdr
-  echo $eq
+
+  if [ "$wiki" = true ]; then
+    echo ---$level $hdr
+  else
+    hdr="$*"
+    eq=`echo $hdr | sed 's/./=/g'`
+    echo $eq
+    echo $hdr
+    echo $eq
+  fi
+
   echo
 }
 
 (
 if [ "$directory" = "." ]; then
-  header "SWI-Prolog Changelog since $tag"
+  if [ -z "$vto" ]; then
+    header "SWI-Prolog Changelog since version $vfrom"
+  else
+    header "SWI-Prolog Changelog from version $vfrom to $vto"
+  fi
 else
   header "Package `basename $directory`"
 fi
@@ -128,18 +170,27 @@ BEGIN		{ doprint="false";
 
 # Include submodules
 
+mtag()
+{ git ls-tree $1 $2 | awk '{print $3}'
+}
+
 if [ "$modules" = true ]; then
-  if [ -z "$since" ]; then
-    since=`git show --pretty=format:%cd "$tag^{commit}" | head -1`
-    # echo "Including commits in modules using --since=$since"
-  fi
+  level="$level+"
 
   echo
 
   for d in `git submodule -q foreach pwd`; do
-    if $0 --dir="$d" --since="$since" --quiet; then
+    mfrom=$(mtag V$vfrom $d)
+    if [ ! -z "$vto" ]; then
+      mto=$(mtag V$vto $d)
+    else
+      mto=$(mtag HEAD $d)
+    fi
+    subopts=$mfrom..$mto
+
+    if $0 --dir="$d" --quiet "$subopts"; then
       echo
-      $0 --dir="$d" --since="$since" $moduleoptions
+      $0 --dir="$d" $moduleoptions "$subopts"
 #   else
 #     echo "Package `basename $d`: no changes"
     fi
@@ -147,7 +198,5 @@ if [ "$modules" = true ]; then
 fi
 
 if [ "$footer" = true ]; then
-   echo ==============
-   echo VERSION $tag
-   echo ==============
+   header VERSION $tag
 fi

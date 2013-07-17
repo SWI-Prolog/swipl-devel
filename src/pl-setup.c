@@ -114,6 +114,9 @@ setupProlog(void)
   initFiles();
   initIO();
   initCharConversion();
+#ifdef O_LOCALE
+  initLocale();
+#endif
   GD->io_initialised = TRUE;
 
   if ( !endCritical )
@@ -1244,7 +1247,7 @@ allocStacks(size_t local, size_t global, size_t trail)
   init_stack((Stack)&LD->stacks.trail,
 	     "trail",    itrail,  trail,  256*SIZEOF_VOIDP, TRUE);
   init_stack((Stack)&LD->stacks.argument,
-	     "argument", argument, argument, 0, FALSE);
+	     "argument", minargument, argument, 0, FALSE);
 
   LD->stacks.local.min_free = LOCAL_MARGIN;
 

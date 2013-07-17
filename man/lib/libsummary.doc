@@ -1,13 +1,13 @@
 \pagebreak
 \section{Library predicates}		\label{sec:library}
 
-\subsection{\pllib{aggregate}}
+\libsummary{aggregate}
 \input{summaries.d/aggregate.tex}
 
-\subsection{\pllib{apply}}
+\libsummary{apply}
 \input{summaries.d/apply.tex}
 
-\subsection{\pllib{assoc}}
+\libsummary{assoc}
 
 \begin{summarylist}{ll}
 \predicatesummary{assoc_to_list}{2}{Translate assoc into a pairs list}
@@ -27,7 +27,7 @@
 \end{summarylist}
 
 
-\subsection{\pllib{broadcast}}
+\libsummary{broadcast}
 
 \begin{summarylist}{ll}
 \predicatesummary{broadcast}{1}{Send event notification}
@@ -40,10 +40,10 @@
 \predicatesummary{listening}{3}{Who is listening to event notifications?}
 \end{summarylist}
 
-\subsection{\pllib{charsio}}
+\libsummary{charsio}
 \input{summaries.d/charsio.tex}
 
-\subsection{\pllib{check}}
+\libsummary{check}
 
 \begin{summarylist}{ll}
 \predicatesummary{check}{0}{Program completeness and consistency}
@@ -52,31 +52,31 @@
 \predicatesummary{list_redefined}{0}{List locally redefined predicates}
 \end{summarylist}
 
-\subsection{\pllib{csv}}
+\libsummary{csv}
 \input{summaries.d/csv.tex}
 
-\subsection{\pllib{lists}}
+\libsummary{lists}
 \input{summaries.d/lists.tex}
 
-\subsection{\pllib{debug}}
+\libsummary{debug}
 \input{summaries.d/debug.tex}
 
-\subsection{\pllib{option}}
+\libsummary{option}
 \input{summaries.d/option.tex}
 
-\subsection{\pllib{optparse}}
+\libsummary{optparse}
 \input{summaries.d/optparse.tex}
 
-\subsection{\pllib{ordsets}}
+\libsummary{ordsets}
 \input{summaries.d/ordsets.tex}
 
-\subsection{\pllib{predicate_options}}
+\libsummary{predicate_options}
 \input{summaries.d/predopts.tex}
 
-\subsection{\pllib{prologpack}}
+\libsummary{prologpack}
 \input{summaries.d/prologpack.tex}
 
-\subsection{\pllib{prologxref}}
+\libsummary{prologxref}
 
 \begin{summarylist}{ll}
 \predicatesummary{prolog:called_by}{2}{\hook{prolog} Extend cross-referencer}
@@ -90,17 +90,18 @@
 \predicatesummary{xref_source}{1}{Cross-reference analysis of source}
 \end{summarylist}
 
-\subsection{\pllib{pairs}}
+\libsummary{pairs}
 \input{summaries.d/pairs.tex}
 
-\subsection{\pllib{pio}}
-\subsubsection{\pllib{pure_input}}
+\libsummary{pio}
+\subsubsection{library(pure_input)}
+\label{sec:summary-lib-pure-input}
 \input{summaries.d/pureinput.tex}
 
-\subsection{\pllib{random}}
+\libsummary{random}
 \input{summaries.d/random.tex}
 
-\subsection{\pllib{readutil}}
+\libsummary{readutil}
 
 \begin{summarylist}{ll}
 \predicatesummary{read_line_to_codes}{2}{Read line from a stream}
@@ -111,13 +112,13 @@
 \predicatesummary{read_file_to_terms}{3}{Read contents of file to Prolog terms}
 \end{summarylist}
 
-\subsection{\pllib{record}}
+\libsummary{record}
 
 \begin{summarylist}{ll}
 \predicatesummary{record}{1}{Define named fields in a term}
 \end{summarylist}
 
-\subsection{\pllib{registry}}
+\libsummary{registry}
 
 This library is only available on Windows systems.
 
@@ -132,7 +133,7 @@ This library is only available on Windows systems.
 \predicatesummary{shell_register_prolog}{1}{Register Prolog}
 \end{summarylist}
 
-\subsection{\pllib{ugraphs}}
+\libsummary{ugraphs}
 
 \begin{summarylist}{ll}
 \predicatesummary{vertices_edges_to_ugraph}{3}{Create unweighted graph}
@@ -154,19 +155,19 @@ This library is only available on Windows systems.
 \predicatesummary{ugraph_union}{3}{Union of two graphs}
 \end{summarylist}
 
-\subsection{\pllib{url}}
+\libsummary{url}
 \input{summaries.d/url.tex}
 
-\subsection{\pllib{www_browser}}
+\libsummary{www_browser}
 
 \begin{summarylist}{ll}
 \predicatesummary{www_open_url}{1}{Open a web-page in a browser}
 \end{summarylist}
 
-\subsection{\pllib{clp/clpfd}}
+\libsummary{clp/clpfd}
 \input{summaries.d/clpfd.tex}
 
-\subsection{\pllib{clpqr}}
+\libsummary{clpqr}
 
 \begin{summarylist}{ll}
 \predicatesummary{entailed}{1}{Check if constraint is entailed}
@@ -180,7 +181,7 @@ This library is only available on Windows systems.
 \predicatesummary{dump}{3}{Dump constraints on variables}
 \end{summarylist}
 
-\subsection{\pllib{clp/simplex}}
+\libsummary{clp/simplex}
 
 \begin{summarylist}{ll}
 \predicatesummary{assignment}{2}{Solve assignment problem}
@@ -196,8 +197,8 @@ This library is only available on Windows systems.
 \predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
 \end{summarylist}
 
-\subsection{\pllib{thread_pool}}
+\libsummary{thread_pool}
 \input{summaries.d/threadpool.tex}
 
-\subsection{\pllib{varnumbers}}
+\libsummary{varnumbers}
 \input{summaries.d/varnumbers.tex}

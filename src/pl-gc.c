@@ -3869,27 +3869,28 @@ makeMoreStackSpace(int overflow, int flags)
 
 Used in loops where the  low-level   implementation  does  not allow for
 stack-shifts.  Returns TRUE or FALSE and raises an exception.
+
+(*) growStacks() may return  TRUE  without   having  created  more stack
+space. This can  occur  when  if   a  'tight-stacks'  situation  when we
+generally have roomStackP(s)  >  1   and  thus  nextStackSize()  returns
+sizeStackP(s). i.e. we can't increase the stacks  but the 1 byte request
+is seen as satisfiable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 makeMoreStackSpace(int overflow, int flags)
 { GET_LD
+  Stack s = NULL;
 
-  if ( overflow == MEMORY_OVERFLOW )
-    return raiseStackOverflow(overflow);
-
-  if ( LD->exception.processing )
-  { Stack s = NULL;
-
-    switch(overflow)
-    { case LOCAL_OVERFLOW:  s = (Stack)&LD->stacks.local;  break;
-      case GLOBAL_OVERFLOW: s = (Stack)&LD->stacks.global; break;
-      case TRAIL_OVERFLOW:  s = (Stack)&LD->stacks.trail;  break;
-    }
-
-    if ( s && enableSpareStack(s) )
-      return TRUE;
+  switch(overflow)
+  { case LOCAL_OVERFLOW:  s = (Stack)&LD->stacks.local;  break;
+    case GLOBAL_OVERFLOW: s = (Stack)&LD->stacks.global; break;
+    case TRAIL_OVERFLOW:  s = (Stack)&LD->stacks.trail;  break;
+    case MEMORY_OVERFLOW: return raiseStackOverflow(overflow);
   }
+
+  if ( LD->exception.processing && s && enableSpareStack(s) )
+      return TRUE;
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
        (flags & ALLOW_GC) &&
@@ -3898,6 +3899,7 @@ makeMoreStackSpace(int overflow, int flags)
 
   if ( (flags & ALLOW_SHIFT) )
   { size_t l=0, g=0, t=0;
+    size_t oldsize;
     int rc;
 
     switch(overflow)
@@ -3908,9 +3910,14 @@ makeMoreStackSpace(int overflow, int flags)
 	return raiseStackOverflow(overflow);
     }
 
+    oldsize = sizeStackP(s);
+
     if ( (rc = growStacks(l, g, t)) == TRUE )
-      return rc;
-    else if ( rc < 0 )
+    { size_t newsize = sizeStackP(s);
+
+      if ( newsize > oldsize )		/* See (*) */
+        return rc;
+    } else if ( rc < 0 )
       return raiseStackOverflow(rc);
   }
 
@@ -4978,6 +4985,10 @@ not safe. That is no problem however,  because we are only interested in
 static predicates. Note that clause/2,  etc.   use  the choice point for
 searching clauses and thus chp->cref may become NULL if all clauses have
 been searched.
+
+(**) This avoids duplicate marks. Note that we   have no option if we do
+not have atomic instructions because we  cannot   use  mutexes as we are
+inside a signal handler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -4993,7 +5004,8 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
     set(fr, FR_MARKED_PRED);
     ld->gc._local_frames++;
 
-					/* P_FOREIGN_CREF: clause, etc. choicepoints */
+				/* P_FOREIGN_CREF: clause, etc. choicepoints */
+
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
     { ClauseChoice chp = (ClauseChoice)fr->clause;
       ClauseRef cref;
@@ -5016,15 +5028,20 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 
 	  if ( proc->definition == def )
 	  { DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
-	    def->references++;
-	    GD->procedures.active_marked++;
+#ifdef COMPARE_AND_SWAP			/* See (**) above */
+	    if ( COMPARE_AND_SWAP(&def->references, 0, 1) )
+	      GD->procedures.active_marked++;
+#else
+	    if ( ++def->references == 1 )
+	      GD->procedures.active_marked++;
+#endif
 	    break;
 	  }
 	}
       } else				/* pl_garbage_collect_clauses() */
       { if ( true(def, NEEDSCLAUSEGC) )
 	{ DEBUG(MSG_CLAUSE_GC, Sdprintf("Marking %s\n", predicateName(def)));
-	  def->references++;
+	  def->references = 1;
 	}
       }
     }

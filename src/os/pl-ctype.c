@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -206,32 +205,37 @@ mkfunction(iswpunct)
 mkfunction(iswspace)
 
 static const char_type char_types[] =
-{ { ATOM_alnum,		fiswalnum },
-  { ATOM_alpha,		fiswalpha },
-  { ATOM_csym,		fiscsym },
-  { ATOM_csymf,		fiscsymf },
-  { ATOM_ascii,		fisascii },
-  { ATOM_white,		iswhite },
-  { ATOM_cntrl,		fiswcntrl },
-  { ATOM_digit,		fiswdigit },
-  { ATOM_graph,		fiswgraph },
-  { ATOM_lower,		fiswlower },
-  { ATOM_upper,		fiswupper },
-  { ATOM_punct,		fiswpunct },
-  { ATOM_space,		fiswspace },
-  { ATOM_end_of_file,	iseof },
-  { ATOM_end_of_line,	iseol },
-  { ATOM_newline,	isnl },
-  { ATOM_period,	isperiod },
-  { ATOM_quote,	        isquote },
-  { ATOM_lower,		fupper,		flower,   1, CTX_CHAR },
-  { ATOM_upper,		flower,		fupper,   1, CTX_CHAR },
-  { ATOM_to_lower,	ftoupper,	ftolower, 1, CTX_CHAR },
-  { ATOM_to_upper,	ftolower,	ftoupper, 1, CTX_CHAR },
-  { ATOM_paren,		fparen,		rparen,   1, CTX_CHAR },
-  { ATOM_digit,		fdigit,		rdigit,   1, CTX_CODE  },
-  { ATOM_xdigit,	fxdigit,	rxdigit,  1, CTX_CODE  },
-  { NULL_ATOM,		NULL }
+{ { ATOM_alnum,			     fiswalnum },
+  { ATOM_alpha,			     fiswalpha },
+  { ATOM_csym,			     fiscsym },
+  { ATOM_csymf,			     fiscsymf },
+  { ATOM_prolog_var_start,	     f_is_prolog_var_start },
+  { ATOM_prolog_atom_start,	     f_is_prolog_atom_start },
+  { ATOM_prolog_identifier_continue, f_is_prolog_identifier_continue },
+  { ATOM_prolog_symbol,		     f_is_prolog_symbol },
+  { ATOM_csymf,			     fiscsymf },
+  { ATOM_ascii,			     fisascii },
+  { ATOM_white,			     iswhite },
+  { ATOM_cntrl,			     fiswcntrl },
+  { ATOM_digit,			     fiswdigit },
+  { ATOM_graph,			     fiswgraph },
+  { ATOM_lower,			     fiswlower },
+  { ATOM_upper,			     fiswupper },
+  { ATOM_punct,			     fiswpunct },
+  { ATOM_space,			     fiswspace },
+  { ATOM_end_of_file,		     iseof },
+  { ATOM_end_of_line,		     iseol },
+  { ATOM_newline,		     isnl },
+  { ATOM_period,		     isperiod },
+  { ATOM_quote,			     isquote },
+  { ATOM_lower,			     fupper,	flower,   1, CTX_CHAR },
+  { ATOM_upper,			     flower,	fupper,   1, CTX_CHAR },
+  { ATOM_to_lower,		     ftoupper,	ftolower, 1, CTX_CHAR },
+  { ATOM_to_upper,		     ftolower,	ftoupper, 1, CTX_CHAR },
+  { ATOM_paren,			     fparen,	rparen,   1, CTX_CHAR },
+  { ATOM_digit,			     fdigit,	rdigit,   1, CTX_CODE  },
+  { ATOM_xdigit,		     fxdigit,	rxdigit,  1, CTX_CODE  },
+  { NULL_ATOM,			     NULL }
 };
 
 
@@ -682,7 +686,7 @@ so we ignore possible problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-initLocale(void)
+init_locale(void)
 { int rc = TRUE;
 
   if ( !setlocale(LC_CTYPE, "") )
@@ -725,7 +729,6 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
   char *locale;
   const lccat *lcp;
 
-
   if ( !PL_get_chars(A1, &what, CVT_ATOM|CVT_EXCEPTION) )
     fail;
   if ( PL_is_variable(A3) )
@@ -742,8 +745,15 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
 
       if ( PL_compare(A2, A3) != 0 )
       { if ( !setlocale(lcp->category, locale) )
+	{ if ( errno == ENOENT )
+	    return PL_existence_error("locale", A3);
 	  return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setlocale");
+	}
       }
+
+#ifdef O_LOCALE
+      updateLocale(lcp->category, locale);
+#endif
 
       succeed;
     }
@@ -754,7 +764,7 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
 
 #else
 
-#define initLocale() 1
+#define init_locale() 1
 
 static
 PRED_IMPL("setlocale", 3, setlocale, 0)
@@ -837,7 +847,7 @@ initEncoding(void)
   { if ( !LD->encoding )
     { char *enc;
 
-      if ( !initLocale() )
+      if ( !init_locale() )
       { LD->encoding = ENC_ISO_LATIN_1;
       } else if ( (enc = setlocale(LC_CTYPE, NULL)) )
       { LD->encoding = ENC_ANSI;		/* text encoding */

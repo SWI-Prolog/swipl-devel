@@ -628,7 +628,6 @@ case "$PLARCH" in
 		  [Define if we must use sem_open() instead of the preferred sem_init()])
 	AC_DEFINE(LD_SYMBOL_PREFIX, "_",
 		  [String used to prefix all symbols requested through dlsym()])
-	CMFLAGS="$CMFLAGS -no-cpp-precomp"
 	;;
   *cygwin*)
 	SO_EXT="dll"
@@ -1052,6 +1051,7 @@ AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h mach/thread_act.h locale.h)
 AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
 AC_CHECK_HEADERS(crtdbg.h shlobj.h winsock2.h)
+AC_CHECK_HEADERS(valgrind/valgrind.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
@@ -1062,8 +1062,8 @@ AC_CHECK_FUNCS(rint aint floor ceil isnan isinf tcsetattr cfmakeraw getpid)
 AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r asctime_r)
 AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclassify fpclass)
-AC_CHECK_FUNCS(setenv posix_openpt wcsxfrm sysctlbyname mbsnrtowcs)
-AC_CHECK_FUNCS(mallinfo ftruncate localtime_s)
+AC_CHECK_FUNCS(setenv posix_openpt wcsxfrm sysctlbyname mbsnrtowcs wcsdup)
+AC_CHECK_FUNCS(mallinfo ftruncate localtime_s localeconv)
 AC_CHECK_DECLS([mbsnrtowcs])
 AC_HEADER_TIME
 AC_HEADER_DIRENT

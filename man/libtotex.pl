@@ -3,17 +3,30 @@
 	    libtotex/0
 	  ]).
 :- use_module(library(doc_latex)).
+:- use_module(library(pldoc/doc_process)).
 :- use_module(library(main)).
 :- use_module(library(error)).
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 
 libtotex(Lib, Out, Options) :-
-	use_module(user:Lib),		% we want the operators in user
+	use_module(user:Lib),			% we want the operators in user
+	ensure_doc_loaded(Lib),
 	doc_latex(Lib, Out,
 		  [ stand_alone(false)
 		  | Options
 		  ]).
+
+ensure_doc_loaded(File) :-
+	(   doc_file_has_comments(File)
+	->  true
+	;   load_files(user:File, [if(true)]),
+	    (	doc_file_has_comments(File)
+	    ->	true
+	    ;	format(user_error, 'WARNING: no comments for ~w~n', [File])
+	    )
+	    %xref_source(File, [comments(store)])
+	).
 
 libtotex(Options, TxtFile) :-
 	file_name_extension(Base, txt, TxtFile), !,
@@ -68,7 +81,7 @@ load_prolog([H|T0], [H|T]) :-
 
 %%	libtotex
 %
-%	Usage: pl -q -s libtotex.pl -g libtotex -- file ...
+%	Usage: swipl -q -s libtotex.pl -g libtotex -- file ...
 
 libtotex :-
 	main.

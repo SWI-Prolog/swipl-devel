@@ -364,6 +364,8 @@ Section "Base system (required)"
   File ${SWIPL}\library\pure_input.pl
   File ${SWIPL}\library\pio.pl
   File ${SWIPL}\library\coinduction.pl
+  File ${SWIPL}\library\quasi_quotations.pl
+  File ${SWIPL}\library\sandbox.pl
 
 ; WINDOWS
   File ${SWIPL}\library\dde.pl
@@ -672,6 +674,7 @@ Section "RDF and Semantic Web Library"
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\rdf_db.dll
   File ${SWIPL}\bin\turtle.dll
+  File ${SWIPL}\bin\ntriples.dll
 
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\rdf.pl

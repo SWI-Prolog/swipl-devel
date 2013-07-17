@@ -99,7 +99,7 @@ test(wirth_del, true) :-
    % Wirth's balance algorithm yields a different result for the above. Ours is 'more balanced' in this case.
    % but for the rest of the tests a closer structure is achieved by deleting node 3 (and changing 5 to 3
    % which I haven't done)
-   	test_del_assoc(3, Wd, 1, We),
+	test_del_assoc(3, Wd, 1, We),
 	We = t(5, 1, >, t(2, 3, <, t(1, 4, -, t, t), t), t(10, 9, <, t(7, 7, >, t, t(9, 10, -, t, t)), t(11, 11, -, t, t))),
 	test_del_assoc(2, We, 3, Wf),   % double rotation to rebalance
 	Wf = t(7, 7, -, t(5, 1, <, t(1, 4, -, t, t), t), t(10, 9, -, t(9, 10, -, t, t), t(11, 11, -, t, t))),
@@ -107,12 +107,13 @@ test(wirth_del, true) :-
 	Wg = t(7, 7, >, t(5, 1, -, t, t), t(10, 9, -, t(9, 10, -, t, t), t(11, 11, -, t, t))),
 	test_del_assoc(7, Wg, 7, Wh),
    % Again, Wirth's algorithm balances the tree differently, although both are correct.
-   	Wh = t(9, 10, >, t(5, 1, -, t, t), t(10, 9, >, t, t(11, 11, -, t, t))).
+	Wh = t(9, 10, >, t(5, 1, -, t, t), t(10, 9, >, t, t(11, 11, -, t, t))).
 
 % Ah, but the above doesn't test enough cases, possibly because our algorithm is slightly different from Wirth's. So try this:
 
 rand_list( N, L ) :-
-	rand_list( N, [], L ).
+	rand_list( N, [], L0 ),
+	sort(L0, L).
 
 rand_list( 0, L, L ) :- !.
 rand_list( N, Lin, Lout ) :-

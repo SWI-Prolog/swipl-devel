@@ -1,10 +1,11 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    Author:        Jan Wielemaker, Edison Mera
+    E-mail:        J.Wielemaker@uva.nl, efmera@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, University of Amsterdam
-
+    Copyright (C): 2010, University of Amsterdam and
+                   2013, Process Design Center, Breda, The Netherlands.
+    
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -32,8 +33,8 @@
 	    bagof/3,
 	    findall/3,
 	    findall/4,
-	    findnsols/4,		% +N, ?Template, :Generator, -List
-	    findnsols/5,		% +N, ?Template, :Generator, -List, -Tail
+	    findnsols/4,     % +N, ?Template, :Generator, -List
+	    findnsols/5,     % +N, ?Template, :Generator, -List, -Tail
 	    (^)/2
 	  ]).
 
@@ -73,3 +74,5 @@ maxsols(N, Generator) :-
 	->  !
 	;   nb_setarg(1, State, C1)
 	).
+
+(_X^Y) :- call(Y).

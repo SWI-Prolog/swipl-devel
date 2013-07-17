@@ -208,7 +208,8 @@ saved version is the _mp_size field, followed by the limps.
 
 static size_t
 mpz_wsize(mpz_t mpz, size_t *s)
-{ size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
+{ DEBUG(0, assert(sizeof(mpz->_mp_size) == sizeof(int)));
+  size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
   size_t wsz  = (size+sizeof(word)-1)/sizeof(word);
 
   if ( s )
@@ -220,32 +221,41 @@ mpz_wsize(mpz_t mpz, size_t *s)
 
 static int
 globalMPZ(Word at, mpz_t mpz, int flags ARG_LD)
-{ Word p;
-  size_t size;
-  size_t wsz = mpz_wsize(mpz, &size);
-  word m     = mkIndHdr(wsz+1, TAG_INTEGER);
+{ if ( mpz->_mp_alloc )
+  { Word p;
+    size_t size;
+    size_t wsz = mpz_wsize(mpz, &size);
+    word m     = mkIndHdr(wsz+1, TAG_INTEGER);
 
-  if ( wsizeofInd(m) != wsz+1 )
-  { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_integer);
-    return 0;
+    if ( wsizeofInd(m) != wsz+1 )
+    { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_integer);
+      return 0;
+    }
+
+    if ( !hasGlobalSpace(wsz+3) )
+    { int rc = ensureGlobalSpace(wsz+3, flags);
+
+      if ( rc != TRUE )
+	return rc;
+    }
+    p = gTop;
+    gTop += wsz+3;
+
+    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+
+    *p++     = m;
+    p[wsz]   = 0L;			/* pad out */
+    p[wsz+1] = m;
+    *p++     = (word)mpz->_mp_size;
+    memcpy(p, mpz->_mp_d, size);
+  } else				/* already on the stack */
+  { Word p = (Word)mpz->_mp_d - 2;
+    size_t size;
+    size_t wsz = mpz_wsize(mpz, &size);
+
+    assert(p[0] == mkIndHdr(wsz+1, TAG_INTEGER));
+    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
-
-  if ( !hasGlobalSpace(wsz+3) )
-  { int rc = ensureGlobalSpace(wsz+3, flags);
-
-    if ( rc != TRUE )
-      return rc;
-  }
-  p = gTop;
-  gTop += wsz+3;
-
-  *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-
-  *p++     = m;
-  p[wsz]   = 0L;			/* pad out */
-  p[wsz+1] = m;
-  *p++     = (word)mpz->_mp_size;
-  memcpy(p, mpz->_mp_d, size);
 
   return TRUE;
 }

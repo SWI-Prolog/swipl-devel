@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -44,8 +43,7 @@ is supposed to give the POSIX standard one.
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
-#undef abs
-#include <math.h>		/* avoid abs() problem with msvc++ */
+#include <math.h>
 #include <stdio.h>		/* rename() and remove() prototypes */
 
 #if TIME_WITH_SYS_TIME
@@ -363,7 +361,7 @@ CpuCount()
 #include <sys/sysctl.h>
 
 int
-CpuCount()
+CpuCount(void)
 { int     count ;
   size_t  size=sizeof(count) ;
 
@@ -389,7 +387,7 @@ setOSPrologFlags(void)
 { int cpu_count = CpuCount();
 
   if ( cpu_count > 0 )
-    PL_set_prolog_flag("cpu_count", PL_INTEGER|FF_READONLY, cpu_count);
+    PL_set_prolog_flag("cpu_count", PL_INTEGER, cpu_count);
 }
 #endif
 

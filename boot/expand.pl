@@ -90,7 +90,15 @@ expand_term(Term, Expanded) :-		% local term-expansion
 
 call_term_expansion([], Term, Term).
 call_term_expansion([M|T], Term0, Term) :-
+	current_prolog_flag(sandboxed_load, false), !,
 	(   M:term_expansion(Term0, Term1)
+	->  expand_terms(call_term_expansion(T), Term1, Term)
+	;   call_term_expansion(T, Term0, Term)
+	).
+call_term_expansion([M|T], Term0, Term) :-
+	(   Expand = M:term_expansion(Term0, Term1),
+	    allowed_expansion(Expand),
+	    call(Expand)
 	->  expand_terms(call_term_expansion(T), Term1, Term)
 	;   call_term_expansion(T, Term0, Term)
 	).
@@ -270,9 +278,39 @@ expand_setof_goal(G, EG, M, MList, Term) :- !,
 %	fixed-point is reached.
 
 call_goal_expansion(MList, G0, G) :-
+	current_prolog_flag(sandboxed_load, false), !,
+	(   '$member'(M, MList),
+	    M:goal_expansion(G0, G),
+	    G0 \== G
+	->  true
+	).
+call_goal_expansion(MList, G0, G) :-
 	'$member'(M, MList),
-	 M:goal_expansion(G0, G),
-	 G0 \== G, !.
+	Expand = M:goal_expansion(G0, G),
+	allowed_expansion(Expand),
+	call(Expand),
+	G0 \== G, !.
+
+%%	allowed_expansion(:Goal) is semidet.
+%
+%	Calls prolog:sandbox_allowed_expansion(:Goal) prior   to calling
+%	Goal for the purpose of term or   goal  expansion. This hook can
+%	prevent the expansion to take place by raising an exception.
+%
+%	@throws	exceptions from prolog:sandbox_allowed_expansion/1.
+
+:- multifile
+	prolog:sandbox_allowed_expansion/1.
+
+allowed_expansion(Goal) :-
+	catch(prolog:sandbox_allowed_expansion(Goal), E, true),
+	(   var(E)
+	->  fail
+	;   !,
+	    print_message(error, E),
+	    fail
+	).
+allowed_expansion(_).
 
 
 		 /*******************************

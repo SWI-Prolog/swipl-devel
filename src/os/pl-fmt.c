@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -32,9 +31,10 @@ source should also use format() to produce error messages, etc.
 #include "pl-utf8.h"
 #include <ctype.h>
 
-static char *	formatNumber(bool split, int div, int radix,
+static char *	formatInteger(PL_locale *locale, int div, int radix,
 			     bool smll, Number n, Buffer out);
-static char *	formatFloat(int how, int arg, Number f, Buffer out);
+static char *	formatFloat(PL_locale *locale, int how, int arg,
+			    Number f, Buffer out);
 
 #define MAXRUBBER 100
 
@@ -65,6 +65,7 @@ typedef struct
 #define FMT_ARG(c, a)	return (void)Sunlock(fd), \
 			       PL_error(NULL, 0, NULL, \
 					ERR_FORMAT_ARG, c, a)
+#define FMT_EXEPTION()	return (void)Sunlock(fd), FALSE
 
 
 static int
@@ -141,12 +142,6 @@ outstring(format_state *state, const char *s, size_t len)
 
 
 static int
-outstring0(format_state *state, const char *s)
-{ return outstring(state, s, strlen(s));
-}
-
-
-static int
 oututf8(format_state *state, const char *s, size_t len)
 { const char *e = &s[len];
 
@@ -159,6 +154,12 @@ oututf8(format_state *state, const char *s, size_t len)
   }
 
   return TRUE;
+}
+
+
+static int
+oututf80(format_state *state, const char *s)
+{ return oututf8(state, s, strlen(s));
 }
 
 
@@ -390,6 +391,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
     switch(c)
     { case '~':
 	{ int arg = DEFAULT;		/* Numeric argument */
+	  int mod_colon = FALSE;	/* Used colon modifier */
 					/* Get the numeric argument */
 	  c = get_chr_from_text(fmt, ++here);
 
@@ -421,6 +423,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	    c = get_chr_from_text(fmt, ++here);
 	  } else if ( c == '`' && here < fmt->length )
 	  { arg = get_chr_from_text(fmt, ++here);
+	    c = get_chr_from_text(fmt, ++here);
+	  }
+
+	  if ( c == ':' )
+	  { mod_colon = TRUE;
 	    c = get_chr_from_text(fmt, ++here);
 	  }
 
@@ -505,6 +512,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  tmp_buffer b;
 		    buffer b1;
 		  } u;
+		  PL_locale *l;
 
 		  NEED_ARG;
 		  if ( !valueExpression(argv, &n PASS_LD) )
@@ -516,10 +524,16 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  }
 		  SHIFT;
 
+		  if ( c == 'f' && mod_colon )
+		    l = fd->locale;
+		  else
+		    l = NULL;
+
 		  initBuffer(&u.b);
-		  formatFloat(c, arg, &n, &u.b1);
+		  rc = formatFloat(l, c, arg, &n, &u.b1) != NULL;
 		  clearNumber(&n);
-		  rc = outstring0(&state, baseBuffer(&u.b, char));
+		  if ( rc )
+		    rc = oututf80(&state, baseBuffer(&u.b, char));
 		  discardBuffer(&u.b);
                   if ( !rc )
 		    goto out;
@@ -530,6 +544,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case 'D':			/* grouped integer */
 	      case 'r':			/* radix number */
 	      case 'R':			/* Radix number */
+	      case 'I':			/* Prolog 1_000_000 */
 		{ number i;
 		  tmp_buffer b;
 
@@ -543,13 +558,42 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    FMT_ARG(f, argv);
 		  }
 		  SHIFT;
-		  if ( arg == DEFAULT )
-		    arg = 0;
 		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
-		  { formatNumber(c == 'D', arg, 10, TRUE, &i, (Buffer)&b);
-		  } else
-		  { if ( arg < 1 || arg > 36 )
+		  { PL_locale ltmp;
+		    PL_locale *l;
+		    static char grouping[] = {3,0};
+
+		    if ( c == 'D' )
+		    { ltmp.thousands_sep = L",";
+		      ltmp.decimal_point = L".";
+		      ltmp.grouping = grouping;
+		      l = &ltmp;
+		    } else if ( mod_colon )
+		    { l = fd->locale;
+		    } else
+		    { l = NULL;
+		    }
+
+		    if ( arg == DEFAULT )
+		      arg = 0;
+		    if ( !formatInteger(l, arg, 10, TRUE, &i, (Buffer)&b) )
+		      FMT_EXEPTION();
+		  } else if ( c == 'I' )
+		  { PL_locale ltmp;
+		    char grouping[2];
+
+		    grouping[0] = (arg == DEFAULT ? 3 : arg);
+		    grouping[1] = '\0';
+		    ltmp.thousands_sep = L"_";
+		    ltmp.grouping = grouping;
+
+		    if ( !formatInteger(&ltmp, 0, 10, TRUE, &i, (Buffer)&b) )
+		      FMT_EXEPTION();
+		  } else			/* r,R */
+		  { if ( arg == DEFAULT )
+		      FMT_ERROR("r,R requires radix specifier");
+		    if ( arg < 1 || arg > 36 )
 		    { term_t r = PL_new_term_ref();
 
 		      PL_put_integer(r, arg);
@@ -557,10 +601,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 				      ATOM_radix, r);
 		    }
-		    formatNumber(FALSE, 0, arg, c == 'r', &i, (Buffer)&b);
+		    if ( !formatInteger(NULL, 0, arg, c == 'r', &i, (Buffer)&b) )
+		      FMT_EXEPTION();
 		  }
 		  clearNumber(&i);
-		  rc = outstring0(&state, baseBuffer(&b, char));
+		  rc = oututf80(&state, baseBuffer(&b, char));
 		  discardBuffer(&b);
 		  if ( !rc )
 		    goto out;
@@ -887,107 +932,176 @@ emit_rubber(format_state *state)
 
  ** Fri Aug 19 22:26:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
+static void
+lappend(const wchar_t *l, int def, Buffer out)
+{ if ( l )
+  { const wchar_t *e = l+wcslen(l);
+
+    while (--e >= l)
+    { int c = *e;
+
+      if ( c < 128 )
+      { addBuffer(out, c, char);
+      } else
+      { char buf[6];
+	char *e8, *s;
+
+	e8=utf8_put_char(buf, c);
+	for(s=e8; --s>=buf; )		/* must be reversed as we reverse */
+	{ addBuffer(out, *s, char);	/* in the end */
+	}
+      }
+    }
+  } else
+  { addBuffer(out, def, char);
+  }
+}
+
+static void
+revert_string(char *s, size_t len)
+{ char *e = &s[len-1];
+
+  for(; e>s; s++,e--)
+  { int c = *e;
+
+    *e = *s;
+    *s = c;
+  }
+}
+
 static char *
-formatNumber(bool split, int div, int radix, bool smll, Number i,
+formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
 	     Buffer out)
-{ switch(i->type)
+{ static PL_locale no_locale = {0};
+  const char *grouping = NULL;
+
+  if ( !locale )
+  { if ( !no_locale.decimal_point )
+    { no_locale.decimal_point = L".";
+    }
+    locale = &no_locale;
+  } else
+  { if ( locale->grouping && locale->grouping[0] &&
+	 locale->thousands_sep && locale->thousands_sep[0] )
+      grouping = locale->grouping;
+  }
+
+  switch(i->type)
   { case V_INTEGER:
     { int64_t n = i->value.i;
-      char buf[100];
-      char *tmp, *end, *s;
-      int before = (div == 0);
-      int digits = 0;
-      bool negative = FALSE;
 
-      if ( div+3 > (int)sizeof(buf) )	/* 0.000NNNN with div digits after 0. */
-      { tmp = PL_malloc(div+3);
-	end = tmp+div+3;
-      } else
-      { tmp = buf;
-	end = tmp+sizeof(buf);
-      }
-
-      s = end;				/* i.e. start at the end */
-      *--s = EOS;
-      if ( n < 0 )
-      { n = -n;
-	negative = TRUE;
-      }
       if ( n == 0 && div == 0 )
-      { *--s = '0';
+      { addBuffer(out, '0', char);
       } else
-      { while( n > 0 || div >= 0 )
+      { int before = FALSE;			/* before decimal point */
+	int negative = FALSE;
+	int gsize = 0;
+	int dweight;
+
+	negative = (n < 0);
+
+	while( n != 0 || div >= 0 )
 	{ if ( div-- == 0 && !before )
-	  { *--s = '.';
-	    before = 1;
+	  { if ( !isEmptyBuffer(out) )
+	      lappend(locale->decimal_point, '.', out);
+	    before = TRUE;
+	    if ( grouping )
+	      gsize = grouping[0];
 	  }
-	  if ( split && before && (digits++ % 3) == 0 && digits != 1 )
-	    *--s = ',';
-	  *--s = digitName((int)(n % radix), smll);
+
+	  if ( !negative )
+	    dweight = (int)(n % radix);
+	  else
+	    dweight = -(int)(n % -radix);
+
+	  addBuffer(out, digitName(dweight, smll), char);
 	  n /= radix;
+
+	  if ( --gsize == 0 && n != 0 )
+	  { lappend(locale->thousands_sep, ',', out);
+	    if ( grouping[1] == 0 )
+	      gsize = grouping[0];
+	    else if ( grouping[1] == CHAR_MAX )
+	      gsize = 0;
+	    else
+	      gsize = *++grouping;
+	  }
 	}
 	if ( negative )
-	  *--s = '-';
+	  addBuffer(out, '-', char);
       }
 
-      addMultipleBuffer(out, s, end-s, char);
-      if ( tmp != buf )
-	PL_free(tmp);
+      revert_string(baseBuffer(out, char), entriesBuffer(out, char));
+      addBuffer(out, EOS, char);
 
       return baseBuffer(out, char);
     }
 #ifdef O_GMP
     case V_MPZ:
-    { size_t len = mpz_sizeinbase(i->value.mpz, radix);
+    { GET_LD
+      size_t len = mpz_sizeinbase(i->value.mpz, radix);
       char tmp[256];
       char *buf;
+      int rc = TRUE;
 
       if ( len+2 > sizeof(tmp) )
 	buf = PL_malloc(len+2);
       else
 	buf = tmp;
 
-      mpz_get_str(buf, radix, i->value.mpz);
+      EXCEPTION_GUARDED({ LD->gmp.persistent++;
+			  mpz_get_str(buf, radix, i->value.mpz);
+			  LD->gmp.persistent--;
+			},
+			{ LD->gmp.persistent--;
+			  rc = PL_rethrow();
+			});
+      if ( !rc )
+	return NULL;
+
       if ( !smll && radix > 10 )
       { char *s;
 
 	for(s=buf; *s; s++)
 	  *s = toupper(*s);
       }
-      if ( split || div > 0 )
-      { int before = (int)(len-div);
-	int leading;
-	char *s = buf;
 
-	if ( *s == '-' )
-	{ addBuffer(out, *s, char);
-	  s++;
-	}
-	if ( split )
-	{ leading = before % 3;
-	  if ( leading == 0 )
-	    leading = 3;
-	} else
-	{ leading = (int)len;
-	}
-	for(; *s; s++)
-	{ if ( before-- == 0 && div > 0 )
-	  { addBuffer(out, '.', char);
-	  } else if ( leading-- == 0 && before > 0 )
-	  { addBuffer(out, ',', char);
-	    leading = 2;
+      if ( grouping || div > 0 )
+      { int before = FALSE;			/* before decimal point */
+	int gsize = 0;
+	char *e = buf+strlen(buf)-1;
+
+	while(e >= buf || div >= 0)
+	{ if ( div-- == 0 && !before )
+	  { if ( !isEmptyBuffer(out) )
+	      lappend(locale->decimal_point, '.', out);
+	    before = TRUE;
+	    if ( grouping )
+	      gsize = grouping[0];
 	  }
-	  addBuffer(out, *s, char);
+
+	  addBuffer(out, *e, char);
+	  e--;
+
+	  if ( --gsize == 0 && e >= buf && *e != '-' )
+	  { lappend(locale->thousands_sep, ',', out);
+	    if ( grouping[1] == 0 )
+	      gsize = grouping[0];
+	    else if ( grouping[1] == CHAR_MAX )
+	      gsize = 0;
+	    else
+	      gsize = *++grouping;
+	  }
 	}
-	addBuffer(out, EOS, char);
+	revert_string(baseBuffer(out, char), entriesBuffer(out, char));
       } else
       { addMultipleBuffer(out, buf, strlen(buf), char);
-	addBuffer(out, EOS, char);
       }
 
       if ( buf != tmp )
 	PL_free(buf);
 
+      addBuffer(out, EOS, char);
       return baseBuffer(out, char);
     }
 #endif /*O_GMP*/
@@ -998,8 +1112,140 @@ formatNumber(bool split, int div, int radix, bool smll, Number i,
 }
 
 
+static int
+countGroups(const char *grouping, int len)
+{ int groups = 0;
+  int gsize = grouping[0];
+
+  while(len>0)
+  { len -= gsize;
+
+    if ( len > 0 )
+      groups++;
+
+    if ( grouping[1] == 0 )
+    { if ( len > 1 )
+	groups += (len-1)/grouping[0];
+      return groups;
+    } else if ( grouping[1] == CHAR_MAX )
+    { return groups;
+    } else
+    { gsize = *++grouping;
+    }
+  }
+
+  return groups;
+}
+
+
+static int
+ths_to_utf8(char *u8, const wchar_t *s, size_t len)
+{ char *e = u8+len-7;
+
+  for( ; u8<e && *s; s++)
+    u8 = utf8_put_char(u8,*s);
+  *u8 = EOS;
+
+  return *s == 0;
+}
+
+
+static int
+localizeDecimalPoint(PL_locale *locale, Buffer b)
+{ if ( locale->decimal_point && locale->decimal_point[0] &&
+       !(locale->decimal_point[0] == '.' &&
+	 locale->decimal_point[1] == 0) )
+  { char *s = baseBuffer(b, char);
+    char *e;
+    char dp[20];
+    int dplen;
+
+    if ( !ths_to_utf8(dp, locale->decimal_point, sizeof(dp)) )
+      return FALSE;
+    dplen = strlen(dp);
+
+    if ( *s == '-' )
+      s++;
+    for(e=s; *e && isDigit(*e); e++)
+      ;
+
+    if ( *e == '.' )				/* always? */
+    { if ( dplen == 1 )
+      { *e = dp[0];
+      } else if ( growBuffer(b, dplen-1) )
+      { memmove(&e[dplen-1], e, strlen(e)+1);
+	memcpy(e, dp, dplen);
+      } else
+      { return PL_no_memory();
+      }
+    }
+  }
+
+  return TRUE;
+}
+
+
+static int
+groupDigits(PL_locale *locale, Buffer b)
+{ if ( locale->thousands_sep && locale->thousands_sep[0] &&
+       locale->grouping && locale->grouping[0] )
+  { char *s = baseBuffer(b, char);
+    char *e;
+    int groups;
+
+    if ( *s == '-' )
+      s++;
+    for(e=s; *e && isDigit(*e); e++)
+      ;
+
+    groups = countGroups(locale->grouping, (int)(e-s));
+
+    if ( groups > 0 )
+    { char *o;
+      char *grouping = locale->grouping;
+      int gsize = grouping[0];
+      char ths[20];
+      int thslen;
+
+      if ( !ths_to_utf8(ths, locale->thousands_sep, sizeof(ths)) )
+	return FALSE;
+      thslen = strlen(ths);
+
+      if ( !growBuffer(b, thslen*groups) )
+	return PL_no_memory();
+      memmove(&e[groups*thslen], e, strlen(e)+1);
+
+      e--;
+      for(o=e+groups*thslen; e>=s; )
+      { *o-- = *e--;
+	if ( --gsize == 0 && e>=s )
+	{ o -= thslen-1;
+	  memcpy(o, ths, thslen);
+	  o--;
+	  if ( grouping[1] == 0 )
+	    gsize = grouping[0];
+	  else if ( grouping[1] == CHAR_MAX )
+	    gsize = 0;
+	  else
+	    gsize = *++grouping;
+	}
+      }
+    }
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
+
+formats a floating point  number  to  a   buffer.  `How'  is  the format
+specifier ([eEfgG]), `arg' the argument.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static char *
-formatFloat(int how, int arg, Number f, Buffer out)
+formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 { if ( arg == DEFAULT )
     arg = 6;
 
@@ -1044,13 +1290,15 @@ formatFloat(int how, int arg, Number f, Buffer out)
       { size = written+1;
 
 	if ( !growBuffer(out, size) )	/* reserve for -.e<null> */
-	  outOfCore();
+	{ PL_no_memory();
+	  return NULL;
+	}
 	written = gmp_snprintf(baseBuffer(out, char), size, tmp, mpf);
       }
       mpf_clear(mpf);
       out->top = out->base + written;
 
-      return baseBuffer(out, char);
+      break;
     }
 #endif
     case V_INTEGER:
@@ -1066,14 +1314,25 @@ formatFloat(int how, int arg, Number f, Buffer out)
       { size = written+1;
 
 	if ( !growBuffer(out, size) )
-	  outOfCore();
+	{ PL_no_memory();
+	  return NULL;
+	}
 	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
       }
       out->top = out->base + written;
 
-      return baseBuffer(out, char);
+      break;
     }
+    default:
+      assert(0);
+      return NULL;
   }
 
-  return NULL;
+  if ( locale )
+  { if ( !localizeDecimalPoint(locale, out) ||
+	 !groupDigits(locale, out) )
+      return NULL;
+  }
+
+  return baseBuffer(out, char);
 }

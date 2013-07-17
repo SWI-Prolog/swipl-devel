@@ -297,7 +297,10 @@ graph_subtract(<, Head1, Tail1, Head2, Tail2, [Head1|Difference]) :-
 graph_subtract(>, Head1, Tail1, _,     Tail2, Difference) :-
 	graph_subtract([Head1|Tail1], Tail2, Difference).
 
-
+%%	edges(+UGraph, -Edges) is det.
+%
+%	Edges is the set of edges in UGraph. Each edge is represented as
+%	a pair From-To, where From and To are vertices in the graph.
 
 edges(Graph, Edges) :-
 	s_to_p_graph(Graph, Edges).
@@ -356,22 +359,28 @@ warshall([X-Neibs|G], V, Y, [X-Neibs|NewG]) :- !,
 	warshall(G, V, Y, NewG).
 warshall([], _, _, []).
 
+%%	transpose(Graph, NewGraph) is det.
+%
+%	Unify NewGraph with a new graph obtained from Graph by replacing
+%	all edges of the form V1-V2 by edges of the form V2-V1. The cost
+%	is O(|V|*log(|V|)). Notice that an undirected   graph is its own
+%	transpose. Example:
+%
+%	  ==
+%	  ?- transpose([1-[3,5],2-[4],3-[],4-[5],
+%	                5-[],6-[],7-[],8-[]], NL).
+%	  NL = [1-[],2-[],3-[1],4-[2],5-[1,4],6-[],7-[],8-[]]
+%	  ==
 
+transpose(Graph, NewGraph) :-
+	edges(Graph, Edges),
+	vertices(Graph, Vertices),
+	flip_edges(Edges, TransposedEdges),
+	vertices_edges_to_ugraph(Vertices, TransposedEdges, NewGraph).
 
-transpose(S_Graph, Transpose) :-
-	s_transpose(S_Graph, Base, Base, Transpose).
-
-s_transpose([], [], Base, Base) :- !.
-s_transpose([Vertex-Neibs|Graph], [Vertex-[]|RestBase], Base, Transpose) :-
-	s_transpose(Graph, RestBase, Base, SoFar),
-	transpose_s(SoFar, Neibs, Vertex, Transpose).
-
-transpose_s([Neib-Trans|SoFar], [Neib|Neibs], Vertex,
-		[Neib-[Vertex|Trans]|Transpose]) :- !,
-	transpose_s(SoFar, Neibs, Vertex, Transpose).
-transpose_s([Head|SoFar], Neibs, Vertex, [Head|Transpose]) :- !,
-	transpose_s(SoFar, Neibs, Vertex, Transpose).
-transpose_s([], [], _, []).
+flip_edges([], []).
+flip_edges([Key-Val|Pairs], [Val-Key|Flipped]) :-
+	flip_edges(Pairs, Flipped).
 
 
 %%	compose(G1, G2, Composition)

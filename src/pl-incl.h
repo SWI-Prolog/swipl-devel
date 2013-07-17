@@ -89,6 +89,8 @@ handy for it someone wants to add a data type to the system.
       of the predicates operating on strings might change.
       (NOTE: Currently some of the boot files rely on strings. It is NOT
       suggested to leave them out).
+  O_QUASIQUOTATIONS
+      Support quasi quoted content in read_term/3 and friends.
   O_COMPILE_OR
       Compile ->/2, ;/2 and |/2 into WAM.  This  no  longer  is  a  real
       option.   the mechanism to handle cuts without compiling ;/2, etc.
@@ -126,6 +128,8 @@ handy for it someone wants to add a data type to the system.
       requires O_DESTRUCTIVE_ASSIGNMENT.
   O_CYCLIC
       Provide support for cyclic terms.
+  O_LOCALE
+      Provide locale support on streams.
   O_GMP
       Use GNU gmp library for infinite precision arthmetic
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -136,6 +140,7 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_IS		1
 #define O_CALL_AT_MODULE	1
 #define O_STRING		1
+#define O_QUASIQUOTATIONS		1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
@@ -144,6 +149,7 @@ handy for it someone wants to add a data type to the system.
 #define O_LIMIT_DEPTH		1
 #define O_SAFE_SIGNALS		1
 #define O_LOGICAL_UPDATE	1
+#define O_LOCALE		1
 #define O_ATOMGC		1
 #define O_CLAUSEGC		1
 #define O_ATTVAR		1
@@ -416,9 +422,6 @@ typedef void *			caddress;
 #define ESC			((char) 27)
 #define streq(s, q)		((strcmp((s), (q)) == 0))
 
-#ifndef abs
-#define abs(x)			((x) < 0 ? -(x) : (x))
-#endif
 				/* n is 2^m !!! */
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
 #define addPointer(p, n)	((void *) ((intptr_t)(p) + (intptr_t)(n)))
@@ -810,6 +813,8 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
+#define P_QUASI_QUOTATION_SYNTAX	(0x00000004) /* <![Type[Quasi Quote]]> */
+#define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */
 #define P_SHRUNKPOW2		(0x00000010) /* See reconsider_index() */
 #define P_FOREIGN		(0x00000020) /* Implemented in C */
 #define P_NONDET		(0x00000040) /* Foreign: nondet */
@@ -1272,7 +1277,7 @@ struct definition
   struct bit_vector *tried_index;	/* Arguments on which we tried to index */
   meta_mask	meta_info;		/* meta-predicate info */
   int		references;		/* reference count */
-  unsigned int  flags;			/* booleans: */
+  unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
@@ -1835,12 +1840,17 @@ typedef struct
   int	    numbered_check;		/* Check for already numbered */
 } nv_options;
 
-#define BEGIN_NUMBERVARS() \
-	{ fid_t _savedf = LD->var_names.numbervars_frame; \
-	  LD->var_names.numbervars_frame = PL_open_foreign_frame();
-#define END_NUMBERVARS() \
-	  PL_discard_foreign_frame(LD->var_names.numbervars_frame); \
-	  LD->var_names.numbervars_frame = _savedf; \
+#define BEGIN_NUMBERVARS(save) \
+	{ fid_t _savedf; \
+	  if ( save ) \
+	  { _savedf = LD->var_names.numbervars_frame; \
+	    LD->var_names.numbervars_frame = PL_open_foreign_frame(); \
+	  }
+#define END_NUMBERVARS(save) \
+          if ( save ) \
+	  { PL_discard_foreign_frame(LD->var_names.numbervars_frame); \
+	    LD->var_names.numbervars_frame = _savedf; \
+	  } \
 	}
 
 
@@ -2052,6 +2062,7 @@ typedef struct debuginfo
 #define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
 #define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
 #define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x200000 /* Warn overriding weak symbols */
+#define PLFLAG_QUASI_QUOTES	    0x400000 /* Support quasi quotes */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */
@@ -2134,6 +2145,7 @@ decrease).
 #include "pl-data.h"			/* Access Prolog data */
 #include "pl-segstack.h"		/* Segmented stacks */
 #include "pl-gmp.h"			/* GNU-GMP support */
+#include "os/pl-locale.h"		/* Locale objects */
 #include "os/pl-file.h"			/* Stream management */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010-2012, University of Amsterdam,
+    Copyright (C): 2010-2013, University of Amsterdam,
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -33,9 +33,13 @@
 	  [ git/2,			% +Argv, +Options
 	    git_process_output/3,	% +Argv, :OnOutput, +Options
 	    git_open_file/4,		% +Dir, +File, +Branch, -Stream
+	    is_git_directory/1,		% +Dir
 	    git_describe/2,		% -Version, +Options
+	    git_hash/2,			% -Hash, +Options
+	    git_ls_tree/2,		% -Content, +Options
 	    git_remote_url/3,		% +Remote, -URL, +Options
 	    git_ls_remote/3,		% +GitURL, -Refs, +Options
+	    git_branches/2,		% -Branches, +Options
 	    git_remote_branches/2,	% +GitURL, -Branches
 	    git_default_branch/2,	% -DefaultBranch, +Options
 	    git_tags_on_branch/3,	% +Dir, +Branch, -Tags
@@ -58,8 +62,8 @@
 /** <module> Run GIT commands
 
 This module performs common GIT tasks by calling git as a remote process
-through process_create/3. It that the =git= executable is in the current
-PATH.
+through process_create/3. It requires that the =git= executable is in the
+current PATH.
 
 This module started life in ClioPatria and   has been used by the Prolog
 web-server to provide information on git   repositories. It is now moved
@@ -69,7 +73,8 @@ into the core Prolog library to support the Prolog package manager.
 :- predicate_options(git/2, 2,
 		     [ directory(atom),
 		       error(-codes),
-		       output(-codes)
+		       output(-codes),
+		       status(-any)
 		     ]).
 :- predicate_options(git_default_branch/2, 2,
 		     [ pass_to(git_process_output/3, 3)
@@ -78,6 +83,14 @@ into the core Prolog library to support the Prolog package manager.
 		     [ commit(atom),
 		       directory(atom),
 		       match(atom)
+		     ]).
+:- predicate_options(git_hash/2, 2,
+		     [ commit(atom),
+		       directory(atom)
+		     ]).
+:- predicate_options(git_ls_tree/2, 2,
+		     [ commit(atom),
+		       directory(atom)
 		     ]).
 :- predicate_options(git_process_output/3, 3,
 		     [ directory(atom),
@@ -125,7 +138,9 @@ git(Argv, Options) :-
 			   )),
 	print_error(ErrorCodes, Options),
 	print_output(OutCodes, Options),
-	(   Status == exit(0)
+	(   option(status(Status0), Options)
+	->  Status = Status0
+	;   Status == exit(0)
 	->  true
 	;   throw(error(process_error(git(Argv), Status), _))
 	).
@@ -196,6 +211,25 @@ git_open_file(Dir, File, Branch, In) :-
 		       ]),
 	set_stream(In, file_name(File)).
 
+
+%%	is_git_directory(+Directory) is semidet.
+%
+%	True if Directory is a  git   directory  (Either  checked out or
+%	bare).
+
+is_git_directory(Directory) :-
+	directory_file_path(Directory, '.git', GitDir),
+	exists_directory(GitDir), !.
+is_git_directory(Directory) :-
+	exists_directory(Directory),
+	git(['rev-parse', '--git-dir'],
+	    [ output(Codes),
+	      error(_),
+	      status(Status),
+	      directory(Directory)
+	    ]),
+	Status == exit(0),
+	Codes == ".\n".
 
 %%	git_describe(-Version, +Options) is semidet.
 %
@@ -300,6 +334,62 @@ stream_char_count(Out, Count) :-
 			   close(Null)).
 
 
+%%	git_hash(-Hash, +Options) is det.
+%
+%	Return the hash of the indicated object.
+
+git_hash(Hash, Options) :-
+	option(commit(Commit), Options, 'HEAD'),
+	git_process_output(['rev-parse', '--verify', Commit],
+			   read_hash(Hash),
+			   Options).
+
+read_hash(Hash, Stream) :-
+	read_line_to_codes(Stream, Line),
+	atom_codes(Hash, Line).
+
+
+%%	git_ls_tree(-Entries, +Options) is det.
+%
+%	True  when  Entries  is  a  list  of  entries  in  the  the  GIT
+%	repository, Each entry is a term:
+%
+%	  ==
+%	  object(Mode, Type, Hash, Size, Name)
+%	  ==
+
+git_ls_tree(Entries, Options) :-
+	option(commit(Commit), Options, 'HEAD'),
+	git_process_output(['ls-tree', '-z', '-r', '-l', Commit],
+			   read_tree(Entries),
+			   Options).
+
+read_tree(Entries, Stream) :-
+	read_stream_to_codes(Stream, Codes),
+	phrase(ls_tree(Entries), Codes).
+
+ls_tree([H|T]) -->
+	ls_entry(H), !,
+	ls_tree(T).
+ls_tree([]) --> [].
+
+ls_entry(object(Mode, Type, Hash, Size, Name)) -->
+	string(MS), " ",
+	string(TS), " ",
+	string(HS), " ",
+	string(SS), "\t",
+	string(NS), [0], !,
+	{ number_codes(Mode, [0'0,0'o|MS]),
+	  atom_codes(Type, TS),
+	  atom_codes(Hash, HS),
+	  (   Type == blob
+	  ->  number_codes(Size, SS)
+	  ;   Size = 0		% actually '-', but 0 sums easier
+	  ),
+	  atom_codes(Name, NS)
+	}.
+
+
 %%	git_remote_url(+Remote, -URL, +Options) is det.
 %
 %	URL is the remote (fetch) URL for the given Remote.
@@ -386,7 +476,7 @@ git_remote_branches(GitURL, Branches) :-
 
 %%	git_default_branch(-BranchName, +Options) is det.
 %
-%	True if BranchName is the default branch of a repository.
+%	True when BranchName is the default branch of a repository.
 
 git_default_branch(BranchName, Options) :-
 	git_process_output([branch],
@@ -405,6 +495,34 @@ read_default_branch(BranchName, In) :-
 default_branch(Rest) -->
 	"*", whites, string(Rest).
 
+%%	git_branches(-Branches, +Options) is det.
+%
+%	True when Branches is the list of branches in the repository.
+%	In addition to the usual options, this processes:
+%
+%	  - contains(Commit)
+%	  Return only branches that contain Commit.
+
+git_branches(Branches, Options) :-
+	(   select_option(commit(Commit), Options, GitOptions)
+	->  Extra = ['--contains', Commit]
+	;   Extra = [],
+	    GitOptions = Options
+	),
+	git_process_output([branch|Extra],
+			   read_branches(Branches),
+			   GitOptions).
+
+read_branches(Branches, In) :-
+	read_line_to_codes(In, Line),
+	(   Line == end_of_file
+	->  Branches = []
+	;   Line = [_,_|Codes],
+	    atom_codes(H, Codes),
+	    Branches = [H|T],
+	    read_branches(T, In)
+	).
+
 
 %%	git_tags_on_branch(+Dir, +Branch, -Tags) is det.
 %
@@ -418,7 +536,7 @@ git_tags_on_branch(Dir, Branch, Tags) :-
 			   log_to_tags(Tags),
 			   [ directory(Dir) ]).
 
-log_to_tags(Out, Tags) :-
+log_to_tags(Tags, Out) :-
 	read_line_to_codes(Out, Line0),
 	log_to_tags(Line0, Out, Tags, []).
 
@@ -435,15 +553,33 @@ tags_on_line(Tags, Tail) -->
 
 tags(Tags, Tail) -->
 	whites,
-	"(tag: ",
-	string(Codes),
-	")", !,
-	{ atom_codes(Tag, Codes),
-	  Tags = [Tag|Rest]
-	},
+	"(",
+	tag_list(Tags, Rest), !,
 	tags(Rest, Tail).
 tags(Tags, Tags) -->
 	skip_rest.
+
+tag_list([H|T], Rest) -->
+	"tag:", !, whites,
+	string(Codes),
+	(   ")"
+	->  { atom_codes(H, Codes),
+	      T = Rest
+	    }
+	;   ","
+	->  { atom_codes(H, Codes)
+	    },
+	    whites,
+	    tag_list(T, Rest)
+	).
+tag_list(List, Rest) -->
+	string(_),
+	(   ")"
+	->  { List = Rest }
+	;   ","
+	->  whites,
+	    tag_list(List, Rest)
+	).
 
 skip_rest(_,_).
 

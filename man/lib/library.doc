@@ -48,6 +48,7 @@ documented at all.
 \input{predicateoptions}
 \input{prologpack}
 \input{prologxref}
+\input{quasiquotations}
 \input{random}
 \input{readutil}
 \input{record}

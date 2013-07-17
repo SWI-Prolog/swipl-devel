@@ -29,4 +29,5 @@
 
 :- module(iso_misc,
 	  [
+	   compound/1
 	  ]).

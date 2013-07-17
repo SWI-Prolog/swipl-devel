@@ -74,8 +74,10 @@ check :-
 %	defined.  This forms a "Quick and Dirty" alternative for a cross
 %	referencing tool.  Options:
 %
-%	    * module_class(+Class)
-%	    Process modules of the given Class.
+%	    * module_class(+Classes)
+%	    Process modules of the given Classes.  The default for
+%	    classes is =|[user]|=. For example, to include the
+%	    libraries into the examination, use =|[user,library]|=.
 %
 %	@see gxref/0 provides a graphical cross-referencer.
 %	@see make/0 calls list_undefined/0
@@ -88,7 +90,7 @@ list_undefined :-
 
 list_undefined(Options) :-
 	merge_options(Options,
-		      [ module_class(user)
+		      [ module_class([user])
 		      ],
 		      WalkOptions),
 	prolog_walk_code([ undefined(trace),

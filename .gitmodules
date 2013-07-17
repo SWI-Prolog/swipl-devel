@@ -97,3 +97,6 @@
 [submodule "packages/archive"]
 	path = packages/archive
 	url = ../packages/archive.git
+[submodule "debian"]
+	path = debian
+	url = ../distro/debian.git

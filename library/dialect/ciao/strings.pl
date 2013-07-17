@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(string,
+:- module(strings,
 	  [ get_line/2,			% +Stream, -Line
 	    get_line/1,			% -Line
 	    write_string/2,		% +Stream, +String

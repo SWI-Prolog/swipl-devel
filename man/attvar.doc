@@ -47,7 +47,7 @@ Using constraints generally makes your program more
 \end{itemize}
 
 
-\section{Attributed variables} 			\label{sec:attvar}
+\section{Attributed variables}			\label{sec:attvar}
 
 \jargon{Attributed variables} provide a technique for extending the
 Prolog unification algorithm \cite{holzbaur:1992} by hooking the binding
@@ -132,6 +132,7 @@ attribute_goals/3 is used to translate remaining attributes to
 user-readable goals that, when executed, reinstate these attributes.
 
 \subsection{Attribute manipulation predicates}
+\label{sec:attvar-predicates}
 
 \begin{description}
     \predicate{attvar}{1}{{@}Term}
@@ -163,6 +164,7 @@ present.
 
 
 \subsection{Attributed variable hooks}
+\label{sec:attvar-hooks}
 
 Attribute names are linked to modules. This means that certain
 operations on attributed variables cause \jargon{hooks} to be called in
@@ -170,7 +172,7 @@ the module whose name matches the attribute name.
 
 \begin{description}
     \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
-A hook that must be defined in the module to which an attributed variable 
+A hook that must be defined in the module to which an attributed variable
 refers. It is called \emph{after} the attributed variable has been
 unified with a non-var term, possibly another attributed variable.
 \arg{AttValue} is the attribute that was associated to the variable
@@ -192,10 +194,11 @@ copy_term/3 and its hook attribute_goals//1.
     \dcg{attribute_goals}{1}{+Var}
 This nonterminal, if it is defined in a module, is used by copy_term/3
 to project attributes of that module to residual goals. It is also
-used by the toplevel to obtain residual goals after executing a query.
+used by the top level to obtain residual goals after executing a query.
 \end{description}
 
 \subsection{Operations on terms with attributed variables}
+\label{sec:terms-with-attvars}
 
 \begin{description}
     \predicate{copy_term}{3}{+Term, -Copy, -Gs}
@@ -205,7 +208,7 @@ The goal maplist(call,\arg{Gs}) recreates the attributes for \arg{Copy}.
 The nonterminal attribute_goals//1, as defined in the modules the
 attributes stem from, is used to convert attributes to lists of goals.
 
-This building block is used by the toplevel to report pending attributes
+This building block is used by the top level to report pending attributes
 in a portable and understandable fashion. This predicate is the
 preferred way to reason about and communicate terms with constraints.
 
@@ -224,6 +227,7 @@ attributed variable is found.
 
 
 \subsection{Special purpose predicates for attributes}
+\label{sec:attvar-low-level-preds}
 
 Normal user code should deal with put_attr/3, get_attr/3 and del_attr/2.
 The routines in this section fetch or set the entire attribute list of a
@@ -343,7 +347,7 @@ or recorda/3.
           backtrackable assignment using b_setval/2.
 
     \item Only one value (which can be an arbitrary complex Prolog
-   	  term) can be associated to a variable at a time.
+	  term) can be associated to a variable at a time.
 
     \item Their value cannot be shared among threads.  Each thread
           has its own namespace and values for global variables.
@@ -364,7 +368,7 @@ its own set of global variables, starting with an empty set.  Using
 thread_initialization/1 to define a global variable it will be
 defined, restored after reloading a saved state and created in all
 threads that are created \emph{after} the registration.  Finally,
-global variables can be initialised using the exception hook 
+global variables can be initialised using the exception hook
 exception/3.  The latter technique is used by CHR (see \chapref{chr}).
 
 
@@ -430,6 +434,7 @@ Delete the named global variable.
 
 
 \subsection{Compatibility of SWI-Prolog Global Variables}
+\label{sec:gvars-compat}
 
 Global variables have been introduced by various Prolog implementations
 recently.  The implementation of them in SWI-Prolog is based on hProlog

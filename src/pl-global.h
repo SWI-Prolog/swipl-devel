@@ -64,10 +64,7 @@ typedef struct
 
 typedef struct
 { atom_t	file;			/* current source file */
-  int		line;			/* current line */
-  int		linepos;		/* position in the line */
-  int64_t	character;		/* current character location */
-  int64_t	byte;			/* byte offset of location */
+  IOPOS		position;		/* Line, line pos, char and byte */
 } source_location;
 
 		 /*******************************
@@ -310,6 +307,13 @@ struct PL_global_data
     PL_thread_info_t  **threads;	/* Pointers to thread-info */
   } thread;
 #endif /*O_PLMT*/
+
+#ifdef O_LOCALE
+  struct
+  { Table		localeTable;	/* Name --> locale table */
+    PL_locale	       *default_locale;	/* System wide default */
+  } locale;
+#endif
 };
 
 
@@ -558,6 +562,12 @@ struct PL_local_data
   } thread;
 #endif
 
+#ifdef O_LOCALE
+  struct
+  { PL_locale *current;			/* Current locale */
+  } locale;
+#endif
+
   struct
   { intptr_t _total_marked;		/* # marked global cells */
     intptr_t _trailcells_deleted;	/* # garbage trailcells */
@@ -610,10 +620,10 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define environment_frame	(LD->environment)
 #define fli_context		(LD->foreign_environment)
 #define source_file_name	(LD->read_source.file)
-#define source_line_no		(LD->read_source.line)
-#define source_line_pos		(LD->read_source.linepos)
-#define source_char_no		(LD->read_source.character)
-#define source_byte_no		(LD->read_source.byte)
+#define source_line_no		(LD->read_source.position.lineno)
+#define source_line_pos		(LD->read_source.position.linepos)
+#define source_char_no		(LD->read_source.position.charno)
+#define source_byte_no		(LD->read_source.position.byteno)
 #define exception_term		(LD->exception.term)
 #define exception_bin		(LD->exception.bin)
 #define exception_printed	(LD->exception.printed)

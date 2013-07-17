@@ -27,6 +27,7 @@ typedef enum db_ref_type
   DB_REF_RECORD
 } db_ref_type;
 
+COMMON(int)   PL_put_clref(term_t t, Clause clause);
 COMMON(int)   PL_unify_clref(term_t t, Clause clause);
 COMMON(int)   PL_unify_recref(term_t t, RecordRef rec);
 COMMON(void*) PL_get_dbref(term_t t, db_ref_type *type);

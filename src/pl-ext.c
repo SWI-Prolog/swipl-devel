@@ -77,7 +77,6 @@ static const PL_extension foreigns[] = {
   FRG("getenv",			2, pl_getenv,			0),
   FRG("setenv",			2, pl_setenv,			0),
   FRG("unsetenv",		1, pl_unsetenv,			0),
-  FRG("$apropos_match",		2, pl_apropos_match,		0),
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
@@ -97,8 +96,6 @@ static const PL_extension foreigns[] = {
   FRG("$raw_read",		1, pl_raw_read,			0),
   FRG("$raw_read",		2, pl_raw_read2,		0),
   FRG("current_functor",	2, pl_current_functor,	     NDET),
-  FRG("$complete_atom",		3, pl_complete_atom,		0),
-  FRG("$atom_completions",	2, pl_atom_completions,		0),
   FRG("char_conversion",	2, pl_char_conversion,	      ISO),
   FRG("current_char_conversion",2, pl_current_char_conversion, NDET|ISO),
 
@@ -384,6 +381,7 @@ DECL_PLIST(termhash);
 DECL_PLIST(dde);
 DECL_PLIST(term);
 DECL_PLIST(debug);
+DECL_PLIST(locale);
 
 void
 initBuildIns(void)
@@ -435,6 +433,9 @@ initBuildIns(void)
 #ifdef __WINDOWS__
   REG_PLIST(win);
   REG_PLIST(dde);
+#endif
+#ifdef O_LOCALE
+  REG_PLIST(locale);
 #endif
   REG_PLIST(debug);
 
