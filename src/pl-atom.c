@@ -1296,10 +1296,10 @@ completion_candidate(Atom a)
 }
 
 
-static bool
-allAlpha(const char *s, size_t len)
+static int
+is_prolog_identifier(const char *s, size_t len)
 { for( ; len-- > 0; s++)
-  { if ( !*s || !isAlpha(*s) )
+  { if ( !*s || !f_is_prolog_identifier_continue(*s) )
       fail;
   }
   succeed;
@@ -1349,6 +1349,18 @@ extendAtom(char *prefix, bool *unique, char *common)
   return !first;
 }
 
+
+/** '$complete_atom'(+Prefix, -Common, -Unique) is semidet.
+
+True when Prefix can be extended based on currently defined atoms.
+
+@arg Common is a code list consisting of the characters from Prefix
+     and the common text for all possible completions
+@arg Unique is either =unique= or =not_unique=.  In the second case,
+     this implies that there are longer atoms that have the prefix
+     Common.
+@see '$atom_completions'/2.
+*/
 
 static
 PRED_IMPL("$complete_atom", 3, complete_atom, 0)
@@ -1406,7 +1418,7 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
 	   completion_candidate(a) &&
 	   strprefix(a->name, prefix) &&
 	   a->length < ALT_SIZ &&
-	   allAlpha(a->name, a->length) )
+	   is_prolog_identifier(a->name, a->length) )
       { Match m = &altv[(*altn)++];
 
 	m->name = a;
@@ -1423,6 +1435,17 @@ out:
   succeed;
 }
 
+
+/** '$atom_completions'(+Prefix, -Alternatives:list(atom)) is det.
+
+True when Alternatives is a list of   all  atoms that have prefix Prefix
+and are considered completion  candidates.   Completions  candidates are
+atoms that
+
+  - Are built-in or referenced from some static datastructure
+  - All characters are legal characters for unquoted atoms
+  - The atom is at most 80 characters long
+*/
 
 static
 PRED_IMPL("$atom_completions", 2, atom_completions, 0)
