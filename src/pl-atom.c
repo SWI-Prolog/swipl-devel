@@ -1284,6 +1284,8 @@ PRED_IMPL("$atom_references", 2, atom_references, 0)
 #define ALT_MAX 256		/* maximum number of alternatives */
 #define stringMatch(m)	((m)->name->name)
 
+#define is_signalled() unlikely(LD && LD->signal.pending != 0)
+
 typedef struct match
 { Atom		name;
   size_t	length;
@@ -1297,12 +1299,42 @@ completion_candidate(Atom a)
 
 
 static int
-is_prolog_identifier(const char *s, size_t len)
+is_indentifier(const char *s, size_t len)
 { for( ; len-- > 0; s++)
   { if ( !*s || !f_is_prolog_identifier_continue(*s) )
       fail;
   }
   succeed;
+}
+
+
+static int
+is_identifier_text(PL_chars_t *txt)
+{ switch(txt->encoding)
+  { case ENC_ISO_LATIN_1:
+    { const unsigned char *s = (const unsigned char *)txt->text.t;
+      const unsigned char *e = &s[txt->length];
+
+      for(; s<e; s++)
+      { if ( !f_is_prolog_identifier_continue(*s) )
+	  return FALSE;
+      }
+      return TRUE;
+    }
+    case ENC_WCHAR:
+    { const pl_wchar_t *s = (const pl_wchar_t*)txt->text.w;
+      const pl_wchar_t *e = &s[txt->length];
+
+      for(; s<e; s++)
+      { if ( !f_is_prolog_identifier_continue(*s) )
+	  return FALSE;
+      }
+      return TRUE;
+    }
+    default:
+      assert(0);
+      return FALSE;
+  }
 }
 
 
@@ -1418,7 +1450,7 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
 	   completion_candidate(a) &&
 	   strprefix(a->name, prefix) &&
 	   a->length < ALT_SIZ &&
-	   is_prolog_identifier(a->name, a->length) )
+	   is_indentifier(a->name, a->length) )
       { Match m = &altv[(*altn)++];
 
 	m->name = a;
@@ -1492,38 +1524,6 @@ thread.
 static pthread_key_t key;
 #endif
 
-#define is_signalled() unlikely(LD && LD->signal.pending != 0)
-
-static int
-alnum_text(PL_chars_t *txt)
-{ switch(txt->encoding)
-  { case ENC_ISO_LATIN_1:
-    { const unsigned char *s = (const unsigned char *)txt->text.t;
-      const unsigned char *e = &s[txt->length];
-
-      for(; s<e; s++)
-      { if ( !f_is_prolog_identifier_continue(*s) )
-	  return FALSE;
-      }
-      return TRUE;
-    }
-    case ENC_WCHAR:
-    { const pl_wchar_t *s = (const pl_wchar_t*)txt->text.w;
-      const pl_wchar_t *e = &s[txt->length];
-
-      for(; s<e; s++)
-      { if ( !f_is_prolog_identifier_continue(*s) )
-	  return FALSE;
-      }
-      return TRUE;
-    }
-    default:
-      assert(0);
-      return FALSE;
-  }
-}
-
-
 static int
 atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 { GET_LD
@@ -1565,7 +1565,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 	   get_atom_ptr_text(a, hit) &&
 	   hit->length < ALT_SIZ &&
 	   PL_cmp_text(prefix, 0, hit, 0, prefix->length) == 0 &&
-	   alnum_text(hit) )
+	   is_identifier_text(hit) )
       {
 #ifdef O_PLMT
         pthread_setspecific(key, (void *)(index+1));
