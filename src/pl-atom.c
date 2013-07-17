@@ -1290,6 +1290,12 @@ typedef struct match
 } *Match;
 
 
+static inline
+completion_candidate(Atom a)
+{ return (a->references || indexAtom(a->atom) < GD->atoms.builtin);
+}
+
+
 static bool
 allAlpha(const char *s, size_t len)
 { for( ; len-- > 0; s++)
@@ -1322,6 +1328,7 @@ extendAtom(char *prefix, bool *unique, char *common)
     { Atom a = b[index];
 
       if ( a && a->type == &text_atom &&
+	   completion_candidate(a) &&
 	   strprefix(a->name, prefix) &&
 	   strlen(a->name) < LINESIZ )
       { if ( first == TRUE )
@@ -1393,6 +1400,7 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
     { Atom a = b[index];
 
       if ( a && a->type == &text_atom &&
+	   completion_candidate(a) &&
 	   strprefix(a->name, prefix) &&
 	   a->length < ALT_SIZ &&
 	   allAlpha(a->name, a->length) )
@@ -1524,10 +1532,11 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
       if ( is_signalled() )		/* Notably allow windows version */
 	PL_handle_signals();		/* to break out on ^C */
 
-      if ( a && get_atom_ptr_text(a, hit) &&
-	 hit->length < ALT_SIZ &&
-	 PL_cmp_text(prefix, 0, hit, 0, prefix->length) == 0 &&
-	 alnum_text(hit) )
+      if ( a && completion_candidate(a) &&
+	   get_atom_ptr_text(a, hit) &&
+	   hit->length < ALT_SIZ &&
+	   PL_cmp_text(prefix, 0, hit, 0, prefix->length) == 0 &&
+	   alnum_text(hit) )
       {
 #ifdef O_PLMT
         pthread_setspecific(key, (void *)(index+1));
