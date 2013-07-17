@@ -1299,23 +1299,19 @@ completion_candidate(Atom a)
 
 
 static int
-is_indentifier(const char *s, size_t len)
-{ for( ; len-- > 0; s++)
-  { if ( !*s || !f_is_prolog_identifier_continue(*s) )
-      fail;
-  }
-  succeed;
-}
-
-
-static int
 is_identifier_text(PL_chars_t *txt)
-{ switch(txt->encoding)
+{ if ( txt->length == 0 )
+    return FALSE;
+
+  switch(txt->encoding)
   { case ENC_ISO_LATIN_1:
     { const unsigned char *s = (const unsigned char *)txt->text.t;
       const unsigned char *e = &s[txt->length];
 
-      for(; s<e; s++)
+      if ( !f_is_prolog_atom_start(*s) )
+	return FALSE;
+
+      for(s++; s<e; s++)
       { if ( !f_is_prolog_identifier_continue(*s) )
 	  return FALSE;
       }
@@ -1325,7 +1321,10 @@ is_identifier_text(PL_chars_t *txt)
     { const pl_wchar_t *s = (const pl_wchar_t*)txt->text.w;
       const pl_wchar_t *e = &s[txt->length];
 
-      for(; s<e; s++)
+      if ( !f_is_prolog_atom_start(*s) )
+	return FALSE;
+
+      for(s++; s<e; s++)
       { if ( !f_is_prolog_identifier_continue(*s) )
 	  return FALSE;
       }
@@ -1392,6 +1391,7 @@ True when Prefix can be extended based on currently defined atoms.
      this implies that there are longer atoms that have the prefix
      Common.
 @see '$atom_completions'/2.
+@bug This version only handles ISO Latin 1 text
 */
 
 static
@@ -1428,8 +1428,8 @@ compareMatch(const void *m1, const void *m2)
 }
 
 
-static bool
-extend_alternatives(char *prefix, struct match *altv, int *altn)
+static int
+extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
 { size_t index;
   int i, last=FALSE;
 
@@ -1445,12 +1445,16 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
 
     for(; index<upto; index++)
     { Atom a = b[index];
+      PL_chars_t hit;
 
-      if ( a && a->type == &text_atom &&
-	   completion_candidate(a) &&
-	   strprefix(a->name, prefix) &&
-	   a->length < ALT_SIZ &&
-	   is_indentifier(a->name, a->length) )
+      if ( index % 256 == 0 && PL_handle_signals() < 0 )
+	return FALSE;			/* interrupted */
+
+      if ( a && completion_candidate(a) &&
+	   get_atom_ptr_text(a, &hit) &&
+	   hit.length < ALT_SIZ &&
+	   PL_cmp_text(prefix, 0, &hit, 0, prefix->length) == 0 &&
+	   is_identifier_text(&hit) )
       { Match m = &altv[(*altn)++];
 
 	m->name = a;
@@ -1464,7 +1468,7 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
 out:
   qsort(altv, *altn, sizeof(struct match), compareMatch);
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1485,24 +1489,23 @@ PRED_IMPL("$atom_completions", 2, atom_completions, 0)
   term_t prefix = A1;
   term_t alternatives = A2;
 
-  char *p;
-  char buf[LINESIZ];
+  PL_chars_t p_text;
   struct match altv[ALT_MAX];
   int altn;
   int i;
   term_t alts = PL_copy_term_ref(alternatives);
   term_t head = PL_new_term_ref();
 
-  if ( !PL_get_chars(prefix, &p, CVT_ALL|CVT_EXCEPTION) )
-    fail;
-  strcpy(buf, p);
+  if ( !PL_get_text(prefix, &p_text, CVT_ALL|CVT_EXCEPTION) )
+    return FALSE;
 
-  extend_alternatives(buf, altv, &altn);
+  if ( !extend_alternatives(&p_text, altv, &altn) )
+    return FALSE;			/* interrupt */
 
   for(i=0; i<altn; i++)
   { if ( !PL_unify_list(alts, head, alts) ||
 	 !PL_unify_atom(head, altv[i].name->atom) )
-      fail;
+      return FALSE;
   }
 
   return PL_unify_nil(alts);
