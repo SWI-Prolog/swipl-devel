@@ -430,6 +430,16 @@ extend(Head, N, ExtHead) :-
 extend(Head, _, Head).
 
 
+colourise_clause_head(M:Head, TB, term_position(_,_,_,_,[MPos,HeadPos])) :-
+	head_colours(M:Head, meta-[_, ClassSpec-ArgSpecs]), !,
+	colour_item(module(M), TB, MPos),
+	functor_position(HeadPos, FPos, ArgPos),
+	(   ClassSpec == classify
+	->  classify_head(TB, Head, Class)
+	;   Class = ClassSpec
+	),
+	colour_item(head(Class, Head), TB, FPos),
+	specified_items(ArgSpecs, Head, TB, ArgPos).
 colourise_clause_head(Head, TB, Pos) :-
 	head_colours(Head, ClassSpec-ArgSpecs), !,
 	functor_position(Pos, FPos, ArgPos),
@@ -1342,14 +1352,14 @@ head_colours(Var, _) :-
 	var(Var), !,
 	fail.
 head_colours(M:H, Colours) :-
-	atom(M), callable(H),
-	xref_hook(M:H), !,
-	Colours = hook - [ hook, hook-classify ].
-head_colours(M:H, Colours) :-
 	M == user,
 	head_colours(H, HC),
 	HC = hook - _, !,
-	Colours = hook - [ hook, HC ].
+	Colours = meta-[module(user), HC ].
+head_colours(M:H, Colours) :-
+	atom(M), callable(H),
+	xref_hook(M:H), !,
+	Colours = meta-[module(M), hook-classify ].
 head_colours(M:_, meta-[module(M),extern(M)]).
 
 
