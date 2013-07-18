@@ -4306,23 +4306,20 @@ static const opt_spec read_term_options[] =
   { NULL_ATOM,		    0 }
 };
 
-word
-pl_read_term3(term_t from, term_t term, term_t options)
-{ GET_LD
-  term_t tpos = 0;
+
+static foreign_t
+read_term_from_stream(IOSTREAM *s, term_t term, term_t options ARG_LD)
+{ term_t tpos = 0;
   term_t tcomments = 0;
   int rval;
   atom_t w;
   read_data rd;
-  IOSTREAM *s;
   bool charescapes = -1;
   atom_t dq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( !getTextInputStream(from, &s) )
-    fail;
   init_read_data(&rd, s PASS_LD);
 
   if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
@@ -4393,9 +4390,34 @@ retry:
   return rval;
 }
 
-word
-pl_read_term(term_t term, term_t options)
-{ return pl_read_term3(0, term, options);
+
+/** read_term(+Stream, -Term, +Options) is det.
+*/
+
+static
+PRED_IMPL("read_term", 3, read_term, PL_FA_ISO)
+{ PRED_LD
+  IOSTREAM *s;
+
+  if ( getTextInputStream(A1, &s) )
+    return read_term_from_stream(s, A2, A3 PASS_LD);
+
+  return FALSE;
+}
+
+
+/** read_term(-Term, +Options) is det.
+*/
+
+static
+PRED_IMPL("read_term", 2, read_term, PL_FA_ISO)
+{ PRED_LD
+  IOSTREAM *s;
+
+  if ( getTextInputStream(0, &s) )
+    return read_term_from_stream(s, A1, A2 PASS_LD);
+
+  return FALSE;
 }
 
 		 /*******************************
@@ -4565,6 +4587,8 @@ PRED_IMPL("$code_class", 2, code_class, 0)
 		 *******************************/
 
 BeginPredDefs(read)
+  PRED_DEF("read_term",    3, read_term,    PL_FA_ISO)
+  PRED_DEF("read_term",    2, read_term,    PL_FA_ISO)
   PRED_DEF("read_clause",  3, read_clause,  0)
   PRED_DEF("atom_to_term", 3, atom_to_term, 0)
   PRED_DEF("term_to_atom", 2, term_to_atom, 0)

@@ -90,8 +90,6 @@ static const PL_extension foreigns[] = {
   FRG("writeln",		1, pl_writeln,		        0),
   FRG("print",			1, pl_print,			0),
 
-  FRG("read_term",		2, pl_read_term,	      ISO),
-  FRG("read_term",		3, pl_read_term3,	      ISO),
   FRG("read",			1, pl_read,		      ISO),
   FRG("$raw_read",		1, pl_raw_read,			0),
   FRG("$raw_read",		2, pl_raw_read2,		0),
