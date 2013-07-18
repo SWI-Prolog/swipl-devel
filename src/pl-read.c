@@ -4338,9 +4338,7 @@ retry:
 		     &rd.quasi_quotations,
 #endif
 		     &rd.cycles) )
-  { PL_release_stream(s);
-    fail;
-  }
+    return FALSE;
 
   if ( mname )
   { rd.module = lookupModule(mname);
@@ -4355,9 +4353,7 @@ retry:
   }
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )
-    { PL_release_stream(s);
-      fail;
-    }
+      return FALSE;
   }
   if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )
     rd.singles = TRUE;
@@ -4366,9 +4362,7 @@ retry:
 
   rval = read_term(term, &rd PASS_LD);
   if ( Sferror(s) )
-    rval = streamStatus(s);
-  else
-    PL_release_stream(s);
+    return FALSE;
 
   if ( rval )
   { if ( tpos )
@@ -4400,7 +4394,13 @@ PRED_IMPL("read_term", 3, read_term, PL_FA_ISO)
   IOSTREAM *s;
 
   if ( getTextInputStream(A1, &s) )
-    return read_term_from_stream(s, A2, A3 PASS_LD);
+  { if ( read_term_from_stream(s, A2, A3 PASS_LD) )
+      return PL_release_stream(s);
+    if ( Sferror(s) )
+      return streamStatus(s);
+    PL_release_stream(s);
+    return FALSE;
+  }
 
   return FALSE;
 }
@@ -4415,14 +4415,51 @@ PRED_IMPL("read_term", 2, read_term, PL_FA_ISO)
   IOSTREAM *s;
 
   if ( getTextInputStream(0, &s) )
-    return read_term_from_stream(s, A1, A2 PASS_LD);
+  { if ( read_term_from_stream(s, A1, A2 PASS_LD) )
+      return PL_release_stream(s);
+    if ( Sferror(s) )
+      return streamStatus(s);
+    PL_release_stream(s);
+    return FALSE;
+  }
 
   return FALSE;
 }
 
+
 		 /*******************************
 		 *	   TERM <->ATOM		*
 		 *******************************/
+
+/** read_term_from_atom(+Atom, -Term, +Options) is det.
+
+Read a term from Atom using read_term/3.
+*/
+
+static
+PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
+{ PRED_LD
+  PL_chars_t txt;
+
+  if ( PL_get_text(A1, &txt, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
+  { int rc;
+    IOSTREAM *stream;
+    source_location oldsrc = LD->read_source;
+
+    if ( (stream = Sopen_text(&txt, "r")) )
+    { rc = read_term_from_stream(stream, A2, A3 PASS_LD);
+      Sclose(stream);
+    } else
+      rc = FALSE;
+
+    LD->read_source = oldsrc;
+
+    return rc;
+  }
+
+  return FALSE;
+}
+
 
 static int
 atom_to_term(term_t atom, term_t term, term_t bindings)
@@ -4587,13 +4624,14 @@ PRED_IMPL("$code_class", 2, code_class, 0)
 		 *******************************/
 
 BeginPredDefs(read)
-  PRED_DEF("read_term",    3, read_term,    PL_FA_ISO)
-  PRED_DEF("read_term",    2, read_term,    PL_FA_ISO)
-  PRED_DEF("read_clause",  3, read_clause,  0)
-  PRED_DEF("atom_to_term", 3, atom_to_term, 0)
-  PRED_DEF("term_to_atom", 2, term_to_atom, 0)
-  PRED_DEF("$code_class",  2, code_class,   0)
+  PRED_DEF("read_term",		  3, read_term,		  PL_FA_ISO)
+  PRED_DEF("read_term",		  2, read_term,		  PL_FA_ISO)
+  PRED_DEF("read_clause",	  3, read_clause,	  0)
+  PRED_DEF("read_term_from_atom", 3, read_term_from_atom, 0)
+  PRED_DEF("atom_to_term",	  3, atom_to_term,	  0)
+  PRED_DEF("term_to_atom",	  2, term_to_atom,	  0)
+  PRED_DEF("$code_class",	  2, code_class,	  0)
 #ifdef O_QUASIQUOTATIONS
-  PRED_DEF("$qq_open",     2, qq_open,      0)
+  PRED_DEF("$qq_open",            2, qq_open,             0)
 #endif
 EndPredDefs

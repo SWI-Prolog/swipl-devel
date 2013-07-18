@@ -4463,6 +4463,12 @@ variable that shares with the corresponding variable in \arg{Term}.
     \predicate[ISO]{read_term}{3}{+Stream, -Term, +Options}
 Read term with options from \arg{Stream}.  See read_term/2.
 
+    \predicate{read_term_from_atom}{3}{+Atom, -Term, +Options}
+Use read_term/3 to read the next term from \arg{Atom}.  \arg{Atom} is
+either an atom or a string object (see \secref{string}).  It is not
+required for \arg{Atom} to end with a full-stop.  This predicate
+supersedes atom_to_term/3.
+
     \predicate{read_history}{6}{+Show, +Help, +Special, +Prompt, -Term, -Bindings}
 Similar to read_term/2 using the option \const{variable_names}, but
 allows for history substitutions. read_history/6 is used by the top level
@@ -4795,13 +4801,14 @@ exception is raised. Otherwise \arg{Term} is ``written'' on \arg{Atom}
 using write_term/2 with the option \term{quoted}{true}.  See also
 format/3 and with_output_to/2.
 
-    \predicate{atom_to_term}{3}{+Atom, -Term, -Bindings}
+    \predicate[deprecated]{atom_to_term}{3}{+Atom, -Term, -Bindings}
 Use \arg{Atom} as input to read_term/2 using the option
 \const{variable_names} and return the read term in \arg{Term} and the
 variable bindings in \arg{Bindings}. \arg{Bindings} is a list of
 $\arg{Name} = \arg{Var}$ couples, thus providing access to the actual
 variable names. See also read_term/2. If \arg{Atom} has no valid syntax,
-a \except{syntax_error} exception is raised.
+a \except{syntax_error} exception is raised.  New code should use
+read_from_atom/3.
 
     \predicate[ISO]{atom_concat}{3}{?Atom1, ?Atom2, ?Atom3}
 \arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}. At
