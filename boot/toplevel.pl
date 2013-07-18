@@ -531,7 +531,11 @@ read_query(Prompt, Goal, Bindings) :-
 	    call(user:rl_add_history(CompleteLine))
 	;   true
 	),
-	catch(atom_to_term(Line, Goal, Bindings), E,
+	'$module'(TypeIn, TypeIn),
+	catch(read_term_from_atom(Line, Goal,
+				  [ variable_names(Bindings),
+				    module(TypeIn)
+				  ]), E,
 	      (   print_message(error, E),
 		  fail
 	      )), !,
