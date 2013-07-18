@@ -574,11 +574,11 @@ colourise_dcg_goals({Body}, Origin, TB,	brace_term_position(F,T,Arg)) :- !,
 	colour_item(dcg(plain), TB, F-T),
 	colourise_goals(Body, Origin, TB, Arg).
 colourise_dcg_goals([], _, TB, Pos) :- !,
-	colour_item(dcg(list), TB, Pos).
-colourise_dcg_goals(List, _, TB, Pos) :-
+	colour_item(dcg(terminal), TB, Pos).
+colourise_dcg_goals(List, _, TB, list_position(F,T,Elms,Tail)) :-
 	List = [_|_], !,
-	colour_item(dcg(list), TB, Pos),
-	colourise_term_args(List, TB, Pos).
+	colour_item(dcg(terminal), TB, F-T),
+	colourise_list_args(Elms, Tail, List, TB, classify).
 colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
 	dcg_body_compiled(Body), !,
 	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
