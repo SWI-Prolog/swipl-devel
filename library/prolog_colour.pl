@@ -580,11 +580,10 @@ colourise_dcg_goals(List, _, TB, list_position(F,T,Elms,Tail)) :-
 	colour_item(dcg(terminal), TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, classify).
 colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
-	dcg_body_compiled(Body), !,
+	dcg_body_compiled(Body), !,	% control structures
 	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
 colourise_dcg_goals(Goal, Origin, TB, Pos) :-
-	colourise_dcg_goal(Goal, Origin, TB, Pos),
-	colourise_term_args(Goal, TB, Pos).
+	colourise_dcg_goal(Goal, Origin, TB, Pos).
 
 colourise_dcg_subgoals([], _, _, _, _).
 colourise_dcg_subgoals([Pos|T], N, Body, Origin, TB) :-
