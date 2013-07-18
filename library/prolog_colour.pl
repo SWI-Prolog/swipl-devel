@@ -1158,6 +1158,41 @@ pi_to_term(Name//Arity0, Term) :-
 	Arity is Arity0 + 2,
 	functor(Term, Name, Arity).
 
+colourise_meta_declarations((Head,Tail), TB,
+			    term_position(_,_,_,_,[PH,PT])) :- !,
+	colourise_meta_declaration(Head, TB, PH),
+	colourise_meta_declarations(Tail, TB, PT).
+colourise_meta_declarations(Last, TB, Pos) :-
+	colourise_meta_declaration(Last, TB, Pos).
+
+colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :-
+	classify_head(TB, Head, Class),
+	colour_item(head(Class, Head), TB, FF-FT),
+	Head =.. [_|Args],
+	colourise_meta_args(Args, TB, ArgPos).
+
+colourise_meta_args([], _, []).
+colourise_meta_args([Arg|ArgT], TB, [PosH|PosT]) :-
+	colourise_meta_arg(Arg, TB, PosH),
+	colourise_meta_args(ArgT, TB, PosT).
+
+colourise_meta_arg(Arg, TB, Pos) :-
+	valid_meta_arg(Arg), !,
+	colour_item(meta(Arg), TB, Pos).
+colourise_meta_arg(_, TB, Pos) :-
+	colour_item(error, TB, Pos).
+
+valid_meta_arg(Var) :-
+	var(Var), !, fail.
+valid_meta_arg(:).
+valid_meta_arg(*).
+valid_meta_arg(//).
+valid_meta_arg(^).
+valid_meta_arg(?).
+valid_meta_arg(+).
+valid_meta_arg(-).
+valid_meta_arg(I) :- integer(I), between(0,9,I).
+
 %%	colourise_prolog_flag_name(+Name, +TB, +Pos)
 %
 %	Colourise the name of a Prolog flag
@@ -1296,6 +1331,7 @@ goal_colours(discontiguous(_),	     built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(public(_),		     built_in-[predicates]).
+goal_colours(meta_predicate(_),	     built_in-[meta_declarations]).
 goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
@@ -1648,6 +1684,9 @@ specified_item(predicates, Term, TB, Pos) :- !,
 					% Name/Arity
 specified_item(predicate, Term, TB, Pos) :- !,
 	colourise_declaration(Term, TB, Pos).
+					% head(Arg, ...)
+specified_item(meta_declarations, Term, TB, Pos) :- !,
+	colourise_meta_declarations(Term, TB, Pos).
 					% set_prolog_flag(Name, _)
 specified_item(prolog_flag_name, Term, TB, Pos) :- !,
 	colourise_prolog_flag_name(Term, TB, Pos).
