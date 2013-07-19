@@ -79,13 +79,12 @@ debugger.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-query_loop(atom_t goal)
+query_loop(atom_t goal, int loop)
 { GET_LD
   int rc;
-  int loop = TRUE;
   int clear_stacks = (LD->query == NULL);
 
-  while(loop)
+  do
   { fid_t fid;
     qid_t qid = 0;
     term_t except = 0;
@@ -126,7 +125,7 @@ query_loop(atom_t goal)
     if ( fid ) PL_discard_foreign_frame(fid);
     if ( !except )
       break;
-  }
+  } while(loop);
 
   return rc;
 }
@@ -165,7 +164,7 @@ pl_break1(atom_t goal)
 		   PL_INT,  LD->break_level);
   }
 
-  rc = query_loop(goal);
+  rc = query_loop(goal, TRUE);
 
   if ( LD->break_level > 0 )
   { printMessage(ATOM_informational,
@@ -395,11 +394,15 @@ prologToplevel(atom_t goal)
 { GET_LD
   int rc;
   int old_level = LD->break_level;
+  int loop;
 
   if ( goal == ATOM_dquery_loop ||
        goal == ATOM_dtoplevel )
-    LD->break_level++;
-  rc = query_loop(goal);
+  { LD->break_level++;
+    loop = TRUE;
+  } else
+    loop = FALSE;
+  rc = query_loop(goal, loop);
   LD->break_level = old_level;
 
   return rc;
