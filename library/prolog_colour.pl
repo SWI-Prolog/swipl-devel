@@ -992,10 +992,13 @@ colourise_term_arg(_, TB,
 	colourise_qq_type(QQType, TB, QQTypePos),
 	functor(QQType, Type, _),
 	colour_item(qq_content(Type), TB, CPos),
+	arg(1, CPos, SE),
+	SS is SE-2,
 	FE is F+2,
 	TS is T-2,
-	colour_item(qq, TB, F-FE),
-	colour_item(qq, TB, TS-T).
+	colour_item(qq(open),  TB, F-FE),
+	colour_item(qq(sep),   TB, SS-SE),
+	colour_item(qq(close), TB, TS-T).
 colourise_term_arg({Term}, TB, brace_term_position(F,T,Arg)) :- !,
 	colour_item(brace_term, TB, F-T),
 	colourise_term_arg(Term, TB, Arg).
@@ -1145,19 +1148,21 @@ colourise_list_declarations([H|T], TB, [HP|TP]) :-
 %	Colourise declaration sequences as used  by module/2, dynamic/1,
 %	etc.
 
-colourise_declaration(PI, TB, term_position(F,T,_,_,[NamePos,ArityPos])) :-
+colourise_declaration(PI, TB, term_position(F,T,FF,FT,[NamePos,ArityPos])) :-
 	pi_to_term(PI, Goal), !,
 	goal_classification(TB, Goal, [], Class),
 	colour_item(predicate_indicator(Class, Goal), TB, F-T),
 	colour_item(goal(Class, Goal), TB, NamePos),
+	colour_item(predicate_indicator, TB, FF-FT),
 	colour_item(arity, TB, ArityPos).
 colourise_declaration(Module:PI, TB,
 		      term_position(_,_,_,_,[PM,PG])) :-
 	atom(Module), pi_to_term(PI, Goal), !,
 	colour_item(module(M), TB, PM),
 	colour_item(predicate_indicator(extern(M), Goal), TB, PG),
-	PG = term_position(_,_,_,_,[NamePos,ArityPos]),
+	PG = term_position(_,_,FF,FT,[NamePos,ArityPos]),
 	colour_item(goal(extern, Goal), TB, NamePos),
+	colour_item(predicate_indicator, TB, FF-FT),
 	colour_item(arity, TB, ArityPos).
 colourise_declaration(op(N,T,P), TB, Pos) :-
 	colour_item(exported_operator, TB, Pos),
@@ -1166,10 +1171,10 @@ colourise_declaration(_, TB, Pos) :-
 	colour_item(type_error(export_declaration), TB, Pos).
 
 pi_to_term(Name/Arity, Term) :-
-	atom(Name), integer(Arity), !,
+	atom(Name), integer(Arity), Arity >= 0, !,
 	functor(Term, Name, Arity).
 pi_to_term(Name//Arity0, Term) :-
-	atom(Name), integer(Arity0), !,
+	atom(Name), integer(Arity0), Arity0 >= 0, !,
 	Arity is Arity0 + 2,
 	functor(Term, Name, Arity).
 
@@ -1181,8 +1186,8 @@ colourise_meta_declarations(Last, TB, Pos) :-
 	colourise_meta_declaration(Last, TB, Pos).
 
 colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :-
-	classify_head(TB, Head, Class),
-	colour_item(head(Class, Head), TB, FF-FT),
+	goal_classification(TB, Head, [], Class),
+	colour_item(goal(Class, Head), TB, FF-FT),
 	Head =.. [_|Args],
 	colourise_meta_args(Args, TB, ArgPos).
 
@@ -1537,8 +1542,8 @@ def_style(expanded,		   [colour(blue), underline(true)]).
 def_style(op_type(_),		   [colour(blue)]).
 
 def_style(qq_type,		   [bold(true)]).
-def_style(qq,			   [colour(blue)]).
-def_style(qq_content(_),	   [colour(navy_blue)]).
+def_style(qq(_),		   [colour(blue), bold(true)]).
+def_style(qq_content(_),	   [colour(red4)]).
 
 def_style(hook,			   [colour(blue), underline(true)]).
 def_style(dcg_right_hand_ctx,	   [background('#d4ffe3')]).
