@@ -3665,15 +3665,11 @@ read_brace_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 static inline int				/* read (...) */
 read_embraced_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 { int rc;
-  size_t start = token->start;
 
   rc = complex_term(")", OP_MAXPRIORITY+1, positions, _PL_rd PASS_LD);
   if ( rc != TRUE )
     return rc;
   token = get_token(FALSE, _PL_rd);	/* skip ')' */
-
-  if ( positions )
-    set_range_position(positions, start, token->end PASS_LD);
 
   succeed;
 }
