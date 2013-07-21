@@ -508,8 +508,6 @@ COMMON(word)		pl_raw_read(term_t term);
 COMMON(word)		pl_raw_read2(term_t stream, term_t term);
 COMMON(word)		pl_read(term_t term);
 COMMON(word)		pl_read2(term_t stream, term_t term);
-COMMON(word)		pl_read_term(term_t term, term_t pos);
-COMMON(word)		pl_read_term3(term_t stream, term_t term, term_t pos);
 COMMON(void)		initCharConversion(void);
 COMMON(foreign_t)	pl_char_conversion(term_t in, term_t out);
 COMMON(foreign_t)	pl_current_char_conversion(term_t in, term_t out, control_t h);

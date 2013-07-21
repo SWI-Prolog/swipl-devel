@@ -430,6 +430,16 @@ extend(Head, N, ExtHead) :-
 extend(Head, _, Head).
 
 
+colourise_clause_head(M:Head, TB, term_position(_,_,_,_,[MPos,HeadPos])) :-
+	head_colours(M:Head, meta-[_, ClassSpec-ArgSpecs]), !,
+	colour_item(module(M), TB, MPos),
+	functor_position(HeadPos, FPos, ArgPos),
+	(   ClassSpec == classify
+	->  classify_head(TB, Head, Class)
+	;   Class = ClassSpec
+	),
+	colour_item(head(Class, Head), TB, FPos),
+	specified_items(ArgSpecs, Head, TB, ArgPos).
 colourise_clause_head(Head, TB, Pos) :-
 	head_colours(Head, ClassSpec-ArgSpecs), !,
 	functor_position(Pos, FPos, ArgPos),
@@ -564,17 +574,16 @@ colourise_dcg_goals({Body}, Origin, TB,	brace_term_position(F,T,Arg)) :- !,
 	colour_item(dcg(plain), TB, F-T),
 	colourise_goals(Body, Origin, TB, Arg).
 colourise_dcg_goals([], _, TB, Pos) :- !,
-	colour_item(dcg(list), TB, Pos).
-colourise_dcg_goals(List, _, TB, Pos) :-
+	colour_item(dcg(terminal), TB, Pos).
+colourise_dcg_goals(List, _, TB, list_position(F,T,Elms,Tail)) :-
 	List = [_|_], !,
-	colour_item(dcg(list), TB, Pos),
-	colourise_term_args(List, TB, Pos).
+	colour_item(dcg(terminal), TB, F-T),
+	colourise_list_args(Elms, Tail, List, TB, classify).
 colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
-	dcg_body_compiled(Body), !,
+	dcg_body_compiled(Body), !,	% control structures
 	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
 colourise_dcg_goals(Goal, Origin, TB, Pos) :-
-	colourise_dcg_goal(Goal, Origin, TB, Pos),
-	colourise_term_args(Goal, TB, Pos).
+	colourise_dcg_goal(Goal, Origin, TB, Pos).
 
 colourise_dcg_subgoals([], _, _, _, _).
 colourise_dcg_subgoals([Pos|T], N, Body, Origin, TB) :-
@@ -637,6 +646,10 @@ colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,_,_,[PM,PG])) :- !,
 	),
 	colour_item(goal(extern(Module), Goal), TB, FP),
 	colourise_goal_args(Goal, Module, TB, PG).
+colourise_goal(Op, _Origin, TB, Pos) :-
+	nonvar(Op),
+	Op = op(_,_,_), !,
+	colourise_op_declaration(Op, TB, Pos).
 colourise_goal(Goal, Origin, TB, Pos) :-
 	goal_classification(TB, Goal, Origin, Class),
 	(   Pos = term_position(_,_,FF,FT,_ArgPos)
@@ -979,10 +992,13 @@ colourise_term_arg(_, TB,
 	colourise_qq_type(QQType, TB, QQTypePos),
 	functor(QQType, Type, _),
 	colour_item(qq_content(Type), TB, CPos),
+	arg(1, CPos, SE),
+	SS is SE-2,
 	FE is F+2,
 	TS is T-2,
-	colour_item(qq, TB, F-FE),
-	colour_item(qq, TB, TS-T).
+	colour_item(qq(open),  TB, F-FE),
+	colour_item(qq(sep),   TB, SS-SE),
+	colour_item(qq(close), TB, TS-T).
 colourise_term_arg({Term}, TB, brace_term_position(F,T,Arg)) :- !,
 	colour_item(brace_term, TB, F-T),
 	colourise_term_arg(Term, TB, Arg).
@@ -1127,27 +1143,119 @@ colourise_list_declarations([H|T], TB, [HP|TP]) :-
 	colourise_declaration(H, TB, HP),
 	colourise_list_declarations(T, TB, TP).
 
-colourise_declaration(PI, TB, Pos) :-
+%%	colourise_declaration(+Decl, +TB, +Pos) is det.
+%
+%	Colourise declaration sequences as used  by module/2, dynamic/1,
+%	etc.
+
+colourise_declaration(PI, TB, term_position(F,T,FF,FT,[NamePos,ArityPos])) :-
 	pi_to_term(PI, Goal), !,
 	goal_classification(TB, Goal, [], Class),
-	colour_item(goal(Class, Goal), TB, Pos).
+	colour_item(predicate_indicator(Class, Goal), TB, F-T),
+	colour_item(goal(Class, Goal), TB, NamePos),
+	colour_item(predicate_indicator, TB, FF-FT),
+	colour_item(arity, TB, ArityPos).
 colourise_declaration(Module:PI, TB,
 		      term_position(_,_,_,_,[PM,PG])) :-
 	atom(Module), pi_to_term(PI, Goal), !,
 	colour_item(module(M), TB, PM),
-	colour_item(goal(extern(M), Goal), TB, PG).
-colourise_declaration(op(_,_,_), TB, Pos) :-
-	colour_item(exported_operator, TB, Pos).
+	colour_item(predicate_indicator(extern(M), Goal), TB, PG),
+	PG = term_position(_,_,FF,FT,[NamePos,ArityPos]),
+	colour_item(goal(extern, Goal), TB, NamePos),
+	colour_item(predicate_indicator, TB, FF-FT),
+	colour_item(arity, TB, ArityPos).
+colourise_declaration(op(N,T,P), TB, Pos) :-
+	colour_item(exported_operator, TB, Pos),
+	colourise_op_declaration(op(N,T,P), TB, Pos).
 colourise_declaration(_, TB, Pos) :-
 	colour_item(type_error(export_declaration), TB, Pos).
 
 pi_to_term(Name/Arity, Term) :-
-	atom(Name), integer(Arity), !,
+	atom(Name), integer(Arity), Arity >= 0, !,
 	functor(Term, Name, Arity).
 pi_to_term(Name//Arity0, Term) :-
-	atom(Name), integer(Arity0), !,
+	atom(Name), integer(Arity0), Arity0 >= 0, !,
 	Arity is Arity0 + 2,
 	functor(Term, Name, Arity).
+
+colourise_meta_declarations((Head,Tail), TB,
+			    term_position(_,_,_,_,[PH,PT])) :- !,
+	colourise_meta_declaration(Head, TB, PH),
+	colourise_meta_declarations(Tail, TB, PT).
+colourise_meta_declarations(Last, TB, Pos) :-
+	colourise_meta_declaration(Last, TB, Pos).
+
+colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :-
+	goal_classification(TB, Head, [], Class),
+	colour_item(goal(Class, Head), TB, FF-FT),
+	Head =.. [_|Args],
+	colourise_meta_args(Args, TB, ArgPos).
+
+colourise_meta_args([], _, []).
+colourise_meta_args([Arg|ArgT], TB, [PosH|PosT]) :-
+	colourise_meta_arg(Arg, TB, PosH),
+	colourise_meta_args(ArgT, TB, PosT).
+
+colourise_meta_arg(Arg, TB, Pos) :-
+	valid_meta_arg(Arg), !,
+	colour_item(meta(Arg), TB, Pos).
+colourise_meta_arg(_, TB, Pos) :-
+	colour_item(error, TB, Pos).
+
+valid_meta_arg(Var) :-
+	var(Var), !, fail.
+valid_meta_arg(:).
+valid_meta_arg(*).
+valid_meta_arg(//).
+valid_meta_arg(^).
+valid_meta_arg(?).
+valid_meta_arg(+).
+valid_meta_arg(-).
+valid_meta_arg(I) :- integer(I), between(0,9,I).
+
+%%	colourise_op_declaration(Op, TB, Pos) is det.
+
+colourise_op_declaration(op(P,T,N), TB, term_position(_,_,FF,FT,[PP,TP,NP])) :-
+	colour_item(goal(built_in, op(N,T,P)), TB, FF-FT),
+	colour_op_priority(P, TB, PP),
+	colour_op_type(T, TB, TP),
+	colour_op_name(N, TB, NP).
+
+colour_op_name(Name, TB, Pos) :-
+	var(Name), !,
+	colour_item(var, TB, Pos).
+colour_op_name(Name, TB, Pos) :-
+	atom(Name), !,
+	colour_item(identifier, TB, Pos).
+colour_op_name(_, TB, Pos) :-
+	colour_item(error, TB, Pos).
+
+colour_op_type(Type, TB, Pos) :-
+	var(Type), !,
+	colour_item(var, TB, Pos).
+colour_op_type(Type, TB, Pos) :-
+	op_type(Type), !,
+	colour_item(op_type(Type), TB, Pos).
+colour_op_type(_, TB, Pos) :-
+	colour_item(error, TB, Pos).
+
+colour_op_priority(Priority, TB, Pos) :-
+	var(Priority), colour_item(var, TB, Pos).
+colour_op_priority(Priority, TB, Pos) :-
+	integer(Priority),
+	between(0, 1200, Priority), !,
+	colour_item(int, TB, Pos).
+colour_op_priority(_, TB, Pos) :-
+	colour_item(error, TB, Pos).
+
+op_type(fx).
+op_type(fy).
+op_type(xf).
+op_type(yf).
+op_type(xfy).
+op_type(xfx).
+op_type(yfx).
+
 
 %%	colourise_prolog_flag_name(+Name, +TB, +Pos)
 %
@@ -1287,6 +1395,7 @@ goal_colours(discontiguous(_),	     built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(public(_),		     built_in-[predicates]).
+goal_colours(meta_predicate(_),	     built_in-[meta_declarations]).
 goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
@@ -1342,14 +1451,14 @@ head_colours(Var, _) :-
 	var(Var), !,
 	fail.
 head_colours(M:H, Colours) :-
-	atom(M), callable(H),
-	xref_hook(M:H), !,
-	Colours = hook - [ hook, hook-classify ].
-head_colours(M:H, Colours) :-
 	M == user,
 	head_colours(H, HC),
 	HC = hook - _, !,
-	Colours = hook - [ hook, HC ].
+	Colours = meta-[module(user), HC ].
+head_colours(M:H, Colours) :-
+	atom(M), callable(H),
+	xref_hook(M:H), !,
+	Colours = meta-[module(M), hook-classify ].
 head_colours(M:_, meta-[module(M),extern(M)]).
 
 
@@ -1430,10 +1539,11 @@ def_style(keyword(_),		   [colour(blue)]).
 def_style(identifier,		   [bold(true)]).
 def_style(delimiter,		   [bold(true)]).
 def_style(expanded,		   [colour(blue), underline(true)]).
+def_style(op_type(_),		   [colour(blue)]).
 
 def_style(qq_type,		   [bold(true)]).
-def_style(qq,			   [colour(blue)]).
-def_style(qq_content(_),	   [colour(navy_blue)]).
+def_style(qq(_),		   [colour(blue), bold(true)]).
+def_style(qq_content(_),	   [colour(red4)]).
 
 def_style(hook,			   [colour(blue), underline(true)]).
 def_style(dcg_right_hand_ctx,	   [background('#d4ffe3')]).
@@ -1639,6 +1749,9 @@ specified_item(predicates, Term, TB, Pos) :- !,
 					% Name/Arity
 specified_item(predicate, Term, TB, Pos) :- !,
 	colourise_declaration(Term, TB, Pos).
+					% head(Arg, ...)
+specified_item(meta_declarations, Term, TB, Pos) :- !,
+	colourise_meta_declarations(Term, TB, Pos).
 					% set_prolog_flag(Name, _)
 specified_item(prolog_flag_name, Term, TB, Pos) :- !,
 	colourise_prolog_flag_name(Term, TB, Pos).

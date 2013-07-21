@@ -69,7 +69,11 @@ read_history_(Show, Help, _, Help, _, _) :-
 read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	expand_history(Raw, Expanded, Changed),
 	save_history_line(Expanded),
-	catch(atom_to_term(Expanded, Term0, Bindings0),
+	'$module'(TypeIn, TypeIn),
+	catch(read_term_from_atom(Expanded, Term0,
+				  [ variable_names(Bindings0),
+				    module(TypeIn)
+				  ]),
 	      E,
 	      (	  print_message(error, E),
 		  fail

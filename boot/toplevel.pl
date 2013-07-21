@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -510,16 +510,18 @@ prolog :-
 
 read_query(Prompt, Goal, Bindings) :-
 	current_prolog_flag(history, N),
-	integer(N),
-	N =< 0, !,
+	integer(N), N > 0, !,
+	read_history(h, '!h',
+		     [trace, end_of_file],
+		     Prompt, Goal, Bindings).
+read_query(Prompt, Goal, Bindings) :-
 	remove_history_prompt(Prompt, Prompt1),
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
-	catch('$raw_read'(user_input, Line), E,
-	      (   E = error(syntax_error(_), _)
-	      ->  print_message(error, E),
-		  fail
-	      ;   throw(E)
+	Catch = error(syntax_error(_), _),
+	catch('$raw_read'(user_input, Line), Catch,
+	      ( print_message(error, Catch),
+		fail
 	      )),
 	(   current_predicate(_, user:rl_add_history(_))
 	->  format(atom(CompleteLine), '~W~W',
@@ -529,15 +531,15 @@ read_query(Prompt, Goal, Bindings) :-
 	    call(user:rl_add_history(CompleteLine))
 	;   true
 	),
-	catch(atom_to_term(Line, Goal, Bindings), E,
+	'$module'(TypeIn, TypeIn),
+	catch(read_term_from_atom(Line, Goal,
+				  [ variable_names(Bindings),
+				    module(TypeIn)
+				  ]), E,
 	      (   print_message(error, E),
 		  fail
 	      )), !,
 	'$save_history'(Line).
-read_query(Prompt, Goal, Bindings) :-
-	read_history(h, '!h',
-		     [trace, end_of_file],
-		     Prompt, Goal, Bindings).
 
 
 remove_history_prompt('', '') :- !.

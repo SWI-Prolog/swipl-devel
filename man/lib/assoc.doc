@@ -76,8 +76,8 @@ expected time (and worst-case time) operation.
 		associations.
 
 	\predicate{is_assoc}{1}{+Assoc}
-		True if Assoc is a valid associations list.  This
-		predicate verifies the vaidity of each node in the AVL
+		True if Assoc is a valid association list.  This
+		predicate verifies the validity of each node in the AVL
 		tree.
 \end{description}
 

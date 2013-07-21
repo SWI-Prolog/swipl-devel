@@ -162,11 +162,13 @@ insert_associated_file :-
 insert_associated_file.
 
 
+:- if(current_predicate(win_has_menu/0)).
 :- initialization
    (   win_has_menu
    ->  init_win_menus
    ;   true
    ).
+:- endif.
 
 		 /*******************************
 		 *	      ACTIONS		*
