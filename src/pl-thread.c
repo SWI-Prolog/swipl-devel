@@ -369,6 +369,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 static PL_thread_info_t *alloc_thread(void);
 static void	unalloc_mutex(pl_mutex *m);
 static void	destroy_message_queue(message_queue *queue);
+static void	destroy_thread_message_queue(message_queue *queue);
 static void	init_message_queue(message_queue *queue, long max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
@@ -537,7 +538,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
     GD->statistics.thread_cputime += time;
   }
-  destroy_message_queue(&ld->thread.messages);
+  destroy_thread_message_queue(&ld->thread.messages);
   if ( ld->btrace_store )
   { btrace_destroy(ld->btrace_store);
     ld->btrace_store = NULL;
@@ -2936,6 +2937,32 @@ destroy_message_queue(message_queue *queue)
   cv_destroy(&queue->cond_var);
   if ( queue->max_size > 0 )
     cv_destroy(&queue->drain_var);
+}
+
+
+/* destroy the input queue of a thread.  We have to take care of the case
+   where our input queue is been waited for by another thread.  This is
+   similar to message_queue_destroy/1.
+ */
+
+static void
+destroy_thread_message_queue(message_queue *q)
+{ int done = FALSE;
+
+  while(!done)
+  { simpleMutexLock(&q->mutex);
+    q->destroyed = TRUE;
+    if ( q->waiting || q->wait_for_drain )
+    { if ( q->waiting )
+	cv_broadcast(&q->cond_var);
+      if ( q->wait_for_drain )
+	cv_broadcast(&q->drain_var);
+    } else
+      done = TRUE;
+    simpleMutexUnlock(&q->mutex);
+  }
+
+  destroy_message_queue(q);
 }
 
 
