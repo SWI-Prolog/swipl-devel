@@ -151,16 +151,19 @@ download_docs()
   fi
 
   printf "Downloading documentation for SWI-Prolog $version from $server ..."
-  curl $serverurl/generated/$doc > $doc
-  ls -l $doc
-  printf "Unpacking $doc ..."
-  rm -f man/Manual/*.html man/Manual/*.gif
-  if $tar zxf $doc; then
-     rm $doc
-     echo "ok"
+  if curl -f $serverurl/generated/$doc > $doc; then
+    ls -l $doc
+    printf "Unpacking $doc ..."
+    rm -f man/Manual/*.html man/Manual/*.gif
+    if $tar zxf $doc; then
+       rm $doc
+       echo "ok"
+    else
+       rm $doc
+       echo "Unpack failed."
+    fi
   else
-     rm $doc
-     echo "Unpack failed."
+    echo "Failed to download documentation from $serverurl/generated/$doc"
   fi
   eval_doc
 }
