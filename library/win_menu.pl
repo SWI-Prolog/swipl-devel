@@ -61,7 +61,7 @@ menu('&Settings',
      []).
 menu('&Run',
      [ '&Interrupt' = interrupt,
-       '&New thread' = new_thread
+       '&New thread' = interactor
      ],
      []).
 :- endif.

@@ -124,10 +124,7 @@ attach_console :-
 	thread_has_console, !.
 attach_console :-
 	thread_self(Id),
-	current_prolog_flag(system_thread_id, SysId),
-	format(atom(Title),
-	       'SWI-Prolog Thread ~w (~d) Interactor',
-	       [Id, SysId]),
+	console_title(Id, Title),
 	open_console(Title, In, Out, Err),
 	assert(has_console(Id, In, Out, Err)),
 	set_stream(In,  alias(user_input)),
@@ -136,6 +133,15 @@ attach_console :-
 	set_stream(In,  alias(current_input)),
 	set_stream(Out, alias(current_output)),
 	thread_at_exit(detach_console(Id)).
+
+console_title(Thread, Title) :-		% uses tabbed consoles
+	current_prolog_flag(console_menu_version, qt), !,
+	format(atom(Title), 'Thread ~w', [Thread]).
+console_title(Thread, Title) :-
+	current_prolog_flag(system_thread_id, SysId),
+	format(atom(Title),
+	       'SWI-Prolog Thread ~w (~d) Interactor',
+	       [Thread, SysId]).
 
 :- if(current_predicate(win_open_console/5)).
 
