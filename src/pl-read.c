@@ -4550,6 +4550,40 @@ PL_chars_to_term(const char *s, term_t t)
   return rval;
 }
 
+
+int
+PL_wchars_to_term(const wchar_t *s, term_t t)
+{ GET_LD
+  int rc;
+  IOSTREAM *stream;
+  PL_chars_t text;
+
+  text.text.w    = (pl_wchar_t *)s;
+  text.encoding  = ENC_WCHAR;
+  text.storage   = PL_CHARS_HEAP;
+  text.length    = wcslen(s);
+  text.canonical = FALSE;
+
+  if ( (stream = Sopen_text(&text, "r")) )
+  { read_data rd;
+
+    source_location oldsrc = LD->read_source;
+    init_read_data(&rd, stream PASS_LD);
+    PL_put_variable(t);
+    if ( !(rc = read_term(t, &rd PASS_LD)) && rd.has_exception )
+      PL_put_term(t, rd.exception);
+    free_read_data(&rd);
+    Sclose(stream);
+    LD->read_source = oldsrc;
+  } else
+    rc = FALSE;
+
+  PL_free_text(&text);
+
+  return rc;
+}
+
+
 		 /*******************************
 		 *	     CODE TYPE		*
 		 *******************************/

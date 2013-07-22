@@ -1519,6 +1519,9 @@ call_chars(const char *goal)
   ...
 \end{code}
 
+\cfunction{int}{PL_wchars_to_term}{const pl_wchar_t *chars, term_t -t}
+Wide character version of PL_chars_to_term().
+
 \cfunction{char *}{PL_quote}{int chr, const char *string}
     Return a quoted version of \arg{string}.  If \arg{chr} is
     \verb$'\''$, the result is a quoted atom.  If \arg{chr} is
