@@ -380,6 +380,9 @@ PL_new_atom_nchars(size_t len, const char *s)
 { if ( !GD->initialised )
     initAtoms();
 
+  if ( len == (size_t)-1 )
+    len = strlen(s);
+
   return (atom_t) lookupAtom(s, len);
 }
 
@@ -454,6 +457,9 @@ PL_new_atom_wchars(size_t len, const wchar_t *s)
 
   if ( !GD->initialised )
     initAtoms();
+
+  if ( len == (size_t)-1 )
+    len = wcslen(s);
 
   txt.text.w    = (wchar_t*)s;
   txt.length    = len;

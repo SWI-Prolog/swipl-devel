@@ -891,6 +891,9 @@ inspecting atoms:
 \begin{description}
     \cfunction{atom_t}{PL_new_atom_nchars}{size_t len, const char *s}
 Create a new atom as PL_new_atom(), but using the given length and characters.
+If \arg{len} is \exam{(size_t)-1}, it is computed from \arg{s} using
+strlen().
+
     \cfunction{const char *}{PL_atom_nchars}{atom_t a, size_t *len}
 Extract the text and length of an atom.
 \end{description}
@@ -913,7 +916,8 @@ using the GNU C library (glibc) this represents 32-bit UCS4 characters.
     \cfunction{atom_t}{PL_new_atom_wchars}{size_t len, const pl_wchar_t *s}
 Create atom from wide-character string as PL_new_atom_nchars() does for
 ISO-Latin-1 strings. If \arg{s} only contains ISO-Latin-1 characters a
-normal byte-array atom is created.
+normal byte-array atom is created. If \arg{len} is \exam{(size_t)-1}, it
+is computed from \arg{s} using wcslen().
 
     \cfunction{pl_wchar_t*}{PL_atom_wchars}{atom_t atom, int *len}
 Extract characters from a wide-character atom. Fails (returns
