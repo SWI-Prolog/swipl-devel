@@ -2080,6 +2080,9 @@ PL_put_atom_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, len);
 
+  if ( len == (size_t)-1 )
+    len = strlen(s);
+
   setHandle(t, a);
   PL_unregister_atom(a);
 
