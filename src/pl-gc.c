@@ -1017,7 +1017,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
   { code c;
 
     for( ; ; PC = stepPC(PC))
-    { c = decode(*PC);
+    { c = fetchop(PC);
 
     again:
       switch( c )
