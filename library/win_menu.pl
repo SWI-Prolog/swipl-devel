@@ -51,8 +51,8 @@ menu('&File',
      [
      ]).
 menu('&Edit',
-     [ '&Copy'  = copy,
-       '&Paste' = paste
+     [ '&Copy'  = pqConsole:copy,
+       '&Paste' = pqConsole:paste
      ],
      []).
 menu('&Settings',
@@ -210,6 +210,22 @@ gather_args([+H0|T0], [H|T]) :- !,
 gather_args([H|T0], [H|T]) :-
 	gather_args(T0, T).
 
+:- if(current_prolog_flag(console_menu_version, qt)).
+
+gather_arg(file(open, Title), File) :- !,
+	source_types_desc(Desc),
+	pqConsole:getOpenFileName(Title, _, Desc, File).
+gather_arg(file(save, Title), File) :-
+	source_types_desc(Desc),
+	pqConsole:getSaveFileName(Title, _, Desc, File).
+
+source_types_desc(Desc) :-
+	findall(Pattern, prolog_file_pattern(Pattern), Patterns),
+	atomic_list_concat(Patterns, ' ', Atom),
+	format(atom(Desc), 'Prolog Source (~w)', [Atom]).
+
+:- else.
+
 gather_arg(file(Mode, Title), File) :-
 	findall(tuple('Prolog Source', Pattern),
 		prolog_file_pattern(Pattern),
@@ -223,6 +239,8 @@ gather_arg(file(Mode, Title), File) :-
 		 directory := CWD,
 		 owner := HWND,
 		 File)).
+
+:- endif.
 
 prolog_file_pattern(Pattern) :-
 	user:prolog_file_type(Ext, prolog),
