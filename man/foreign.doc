@@ -920,13 +920,11 @@ normal byte-array atom is created. If \arg{len} is \exam{(size_t)-1}, it
 is computed from \arg{s} using wcslen().
 
     \cfunction{pl_wchar_t*}{PL_atom_wchars}{atom_t atom, int *len}
-Extract characters from a wide-character atom. Fails (returns
-\const{NULL}) if \arg{atom} is not a wide-character atom.  This is
-the wide-character version of PL_atom_nchars().  Note that only one
-of these functions succeeds on a particular atom.  Especially, after
-creating an atom with PL_new_atom_wchars(), extracting the text using
-PL_atom_wchars() will fail if the atom only contains ISO-Latin-1
-characters.
+Extract characters from a wide-character atom.  Succeeds on any atom
+marked as `text'.  If the underlying atom is a wide-character atom,
+the returned pointer is a pointer into the atom structure.  If it is
+an ISO-Latin-1 character, the returned pointer comes from Prolog's
+`buffer ring' (see PL_get_chars()).
 
     \cfunction{int}{PL_get_wchars}{term_t t, size_t *len,
 				   pl_wchar_t **s, unsigned flags}

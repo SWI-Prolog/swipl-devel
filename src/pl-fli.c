@@ -649,6 +649,20 @@ PL_atom_wchars(atom_t a, size_t *len)
       *len = x->length / sizeof(pl_wchar_t);
 
     return (const wchar_t *)x->name;
+  } else if ( true(x->type, PL_BLOB_TEXT) )
+  { Buffer b = findBuffer(BUF_RING);
+    const char *s = (const char*)x->name;
+    const char *e = &s[x->length];
+
+    for(; s<e; s++)
+    { addBuffer(b, *s, wchar_t);
+    }
+    addBuffer(b, 0, wchar_t);
+
+    if ( len )
+      *len = x->length;
+
+    return baseBuffer(b, const wchar_t);
   } else
     return NULL;
 }
