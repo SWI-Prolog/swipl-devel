@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -81,7 +81,7 @@ Virtual machine instruction names.  Prefixes:
   H_	Head specific versin
   A_	Arithmetic compilation specific
   C_	Control (compilation of ;/2, etc.)
-  S_   Supervisor instructions.  See pl-supervisor.c
+  S_    Supervisor instructions.  See pl-supervisor.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4256,7 +4256,7 @@ BEGIN_SHAREDVARS
 #ifdef O_CALL_AT_MODULE
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CALLATM: procedure-module, context-module, procedure
-The procedure-module is provided to support the compiler.
+The procedure-module is provided to support the decompiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
