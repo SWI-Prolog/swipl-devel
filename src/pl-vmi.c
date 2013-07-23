@@ -134,23 +134,56 @@ breakable instruction (which is what D_BREAK is supposed to replace).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(D_BREAK, 0, 0, ())
-{
-#if O_DEBUGGER
-  if ( debugstatus.debugging )
-  { debugstatus.tracing = TRUE;		/* HACK: avoid printMessage() */
-    tracemode(TRUE, NULL);		/* in tracemode() */
-    DEBUG(1, Sdprintf("Hit break\n"));
-  }
-#if VMCODE_IS_ADDRESS
-  { void *c = (void *)replacedBreak(PC-1);
+{ code c = replacedBreak(PC-1);
+  break_action a;
+  term_t lTopSave;
 
-    goto *c;
+  switch(c)
+  { case I_ENTER:
+      ARGP = argFrameP(lTop, 0);	/* enter body mode */
+      break;
+  }
+
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+  lTopSave = consTermRef(lTop);
+  SAVE_REGISTERS(qid);
+  setLTopInBody();
+  DEBUG(0, memset(lTop, 0xbf, sizeof(word)*100));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+  a = callBreakHook(FR, BFR, lTopSave, PC-1, decode(c) PASS_LD);
+  switch ( a )
+  { case BRK_ERROR:
+      break;
+    case BRK_TRACE:
+      tracemode(TRUE, NULL);
+      /*FALLTHROUGH*/
+    case BRK_DEBUG:
+      debugmode(TRUE, NULL);
+      /*FALLTHROUGH*/
+    case BRK_CONTINUE:
+      break;
+    case BRK_CALL:
+      LOAD_REGISTERS(qid);
+      lTop = (LocalFrame)valTermRef(lTopSave);
+      DEBUG(CHK_SECURE, checkStacks(NULL));
+      PC = stepPC(PC-1);
+      VMI_GOTO(I_USERCALL0);
+  }
+  LOAD_REGISTERS(qid);
+  lTop = (LocalFrame)valTermRef(lTopSave);
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+
+  if ( a == BRK_ERROR )
+    goto b_throw;
+
+#if VMCODE_IS_ADDRESS
+  { void *addr = (void *)c;
+    goto *addr;
   }
 #else
-  thiscode = replacedBreak(PC-1);
+  thiscode = c;
   goto resumebreak;
 #endif
-#endif /*O_DEBUGGER*/
 }
 
 
