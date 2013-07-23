@@ -107,7 +107,7 @@ PL_get_frame(term_t r, LocalFrame *fr)
 }
 
 
-static void
+void
 PL_put_choice(term_t t, Choice ch)
 { GET_LD
 
