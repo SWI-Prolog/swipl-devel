@@ -824,6 +824,18 @@ PL_unify_number__LD(term_t t, Number n ARG_LD)
 }
 
 
+int
+PL_put_number__LD(term_t t, Number n ARG_LD)
+{ word w;
+  int rc;
+
+  if ( (rc=put_number(&w, n, ALLOW_GC PASS_LD)) != TRUE )
+    return raiseStackOverflow(rc);
+
+  *valTermRef(t) = w;
+}
+
+
 void
 get_number(word w, Number n ARG_LD)
 { if ( isInteger(w) )

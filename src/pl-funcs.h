@@ -593,6 +593,7 @@ COMMON(word)		pl_debuglevel(term_t old, term_t new);
 COMMON(word)		pl_prolog_current_frame(term_t fr);
 COMMON(int)		callEventHook(int ev, ...);
 COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
+COMMON(void)		PL_put_choice(term_t t, Choice ch);
 
 /* pl-util.c */
 COMMON(char *)		procedureName(Procedure proc);
@@ -707,6 +708,7 @@ COMMON(int)		enableThreads(int enable);
 
 /* pl-gmp.c */
 COMMON(int)	PL_unify_number__LD(term_t t, Number n ARG_LD);
+COMMON(int)	PL_put_number__LD(term_t t, Number n ARG_LD);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);
