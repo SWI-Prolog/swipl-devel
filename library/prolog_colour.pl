@@ -1185,6 +1185,15 @@ colourise_meta_declarations((Head,Tail), TB,
 colourise_meta_declarations(Last, TB, Pos) :-
 	colourise_meta_declaration(Last, TB, Pos).
 
+colourise_meta_declaration(M:Head, TB,
+			   term_position(_,_,_,_,
+					 [ MP,
+					   term_position(_,_,FF,FT,ArgPos)
+					 ])) :- !,
+	colour_item(module(M), TB, MP),
+	colour_item(goal(extern(M,Head)), TB, FF-FT),
+	Head =.. [_|Args],
+	colourise_meta_args(Args, TB, ArgPos).
 colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :-
 	goal_classification(TB, Head, [], Class),
 	colour_item(goal(Class, Head), TB, FF-FT),
