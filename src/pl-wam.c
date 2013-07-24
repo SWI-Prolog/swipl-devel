@@ -849,7 +849,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
 	return FALSE;
 
       gt[0] = ftor;
-      gt[1] = linkVal(v1);
+      unify_gl(&gt[1], v1 PASS_LD);
       gt[2] = (word)PC[2];
       gt[3] = FUNCTOR_call1;
       gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
