@@ -137,6 +137,7 @@ VMI(D_BREAK, 0, 0, ())
 { code c = replacedBreak(PC-1);
   break_action a;
   term_t lTopSave;
+  int pop;				/* arithmetic stack to pop */
 
   switch(c)
   { case I_ENTER:
@@ -150,7 +151,7 @@ VMI(D_BREAK, 0, 0, ())
   setLTopInBody();
   DEBUG(0, memset(lTop, 0xbf, sizeof(word)*100));
   DEBUG(CHK_SECURE, checkStacks(NULL));
-  a = callBreakHook(FR, BFR, lTopSave, PC-1, decode(c) PASS_LD);
+  a = callBreakHook(FR, BFR, lTopSave, PC-1, decode(c), &pop PASS_LD);
   switch ( a )
   { case BRK_ERROR:
       break;
@@ -167,6 +168,10 @@ VMI(D_BREAK, 0, 0, ())
       lTop = (LocalFrame)valTermRef(lTopSave);
       DEBUG(CHK_SECURE, checkStacks(NULL));
       PC = stepPC(PC-1);
+      if ( pop )			/* reset arithmetic stack */
+      { popArgvArithStack(pop PASS_LD);
+	AR_END();
+      }
       VMI_GOTO(I_USERCALL0);
   }
   LOAD_REGISTERS(qid);

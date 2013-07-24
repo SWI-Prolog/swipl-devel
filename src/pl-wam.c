@@ -760,7 +760,8 @@ break applied.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-put_vm_call(term_t t, term_t frref, term_t ltopref, Code PC, code op ARG_LD)
+put_vm_call(term_t t, term_t frref, term_t ltopref,
+	    Code PC, code op, int *pop ARG_LD)
 { atom_t simple_goal;
   functor_t ftor;
   int clean;
@@ -920,7 +921,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref, Code PC, code op ARG_LD)
 	    PL_cons_functor_v(t, ftor, av) &&
 	    PL_cons_functor_v(t, FUNCTOR_call1, t));
 
-      popArgvArithStack(2 PASS_LD);
+      *pop = 2;
       return rc;
     }
     case A_IS:
@@ -936,7 +937,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref, Code PC, code op ARG_LD)
 	    PL_cons_functor_v(t, FUNCTOR_is2, av) &&
 	    PL_cons_functor_v(t, FUNCTOR_call1, t));
 
-      popArgvArithStack(1 PASS_LD);
+      *pop = 1;
       return rc;
     }
     case A_FIRSTVAR_IS:			/* call(A is B) */
@@ -954,7 +955,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref, Code PC, code op ARG_LD)
 	    PL_cons_functor_v(t, FUNCTOR_is2, av) &&
 	    PL_cons_functor_v(t, FUNCTOR_call1, t));
 
-      popArgvArithStack(1 PASS_LD);
+      *pop = 1;
       return rc;
     }
     case A_ADD_FC:
@@ -1007,12 +1008,14 @@ considered garbage.  How do we fix this?
 
 static break_action
 callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
-	      Code PC, code op ARG_LD)
+	      Code PC, code op, int *pop ARG_LD)
 { predicate_t proc;
   fid_t cid;
   term_t frameref, chref, pcref;
   wakeup_state wstate;
   size_t pc_offset = stepPC(PC)-PC;	/* might be moved later */
+
+  *pop = 0;
 
   proc = _PL_predicate("break_hook", 6, "prolog",
 		       &GD->procedures.prolog_break_hook6);
@@ -1042,7 +1045,7 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
       PL_put_intptr(argv+1, PC - clause->codes);
       PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
-      if ( put_vm_call(argv+4, frameref, ltopref, PC, op PASS_LD) )
+      if ( put_vm_call(argv+4, frameref, ltopref, PC, op, pop PASS_LD) )
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
@@ -1066,7 +1069,6 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
 	      } else
 		goto invalid_action;
 
-	    call_as_continue:
 	      PL_cut_query(qid);
 	      PL_close_foreign_frame(cid);
 	      restoreWakeup(&wstate PASS_LD);
@@ -1080,10 +1082,6 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
 	      assert(hasFunctor(p[0], FUNCTOR_call1));
 	      p = argTermP(*p, 0);
 	      deRef(p);
-	      if ( *p == ATOM_cut )	/* we cannot meta-call ! */
-	      { action = BRK_CONTINUE;
-		goto call_as_continue;
-	      }
 	      argFrame(NFR, 0) = *p;
 
 	      PL_cut_query(qid);
