@@ -871,8 +871,18 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
       if ( !gt )
 	return FALSE;
 
-      if ( clean&0b10 ) setVar(*v1);
-      if ( clean&0b01 ) setVar(*v2);
+      if ( clean&0b10 )
+      { setVar(*v1);
+      } else
+      { term_t t = PL_new_term_ref();
+	*valTermRef(t) = makeRefL(v1);
+      }
+      if ( clean&0b01 )
+      { setVar(*v2);
+      } else
+      { term_t t = PL_new_term_ref();
+	*valTermRef(t) = makeRefL(v2);
+      }
 
       gt[0] = ftor;
       unify_gl(&gt[1], v1 PASS_LD);
@@ -1004,6 +1014,10 @@ will reset these variables.  Therefore,  we   fake  GC  that  we already
 executed this instruction. Oops, this will not  work: it will also cause
 GC to consider arguments  last  referenced   by  this  instruction to be
 considered garbage.  How do we fix this?
+
+One option is to create a  term-reference   to  the local variable, such
+that it is marked from  the   foreign  environment.  See B_UNIFY_VV trap
+above.  Needs cleanup!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static break_action
