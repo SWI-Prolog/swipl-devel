@@ -992,8 +992,18 @@ put_vm_call(term_t t, term_t frref, term_t ltopref, Code PC, code op ARG_LD)
 }
 
 
-/** prolog:break_hook(+Clause, +PC, +Frame, +Choice, +Goal, -Action) is semidet.
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+callBreakHook() calls prolog:break_hook/6 as
+
+    prolog:break_hook(+Clause, +PC, +Frame, +Choice, +Goal, -Action) is semidet.
+
+(*) If put_vm_call() addresses  `F`  (first   var)  variables,  it  will
+initialise these to bind to the  goal.   However,  if GC comes along, it
+will reset these variables.  Therefore,  we   fake  GC  that  we already
+executed this instruction. Oops, this will not  work: it will also cause
+GC to consider arguments  last  referenced   by  this  instruction to be
+considered garbage.  How do we fix this?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static break_action
 callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
@@ -1002,6 +1012,7 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
   fid_t cid;
   term_t frameref, chref, pcref;
   wakeup_state wstate;
+  size_t pc_offset = stepPC(PC)-PC;	/* might be moved later */
 
   proc = _PL_predicate("break_hook", 6, "prolog",
 		       &GD->procedures.prolog_break_hook6);
@@ -1035,7 +1046,13 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
-	{ if ( PL_next_solution(qid) )
+	{ int rc;
+
+	  LD->query->parent->registers.pc += pc_offset; /* see (*) */
+	  rc = PL_next_solution(qid);
+	  LD->query->parent->registers.pc -= pc_offset;
+
+	  if ( rc )
 	  { atom_t a_action;
 	    break_action action;
 
