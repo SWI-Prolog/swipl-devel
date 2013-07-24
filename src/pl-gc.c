@@ -1034,7 +1034,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 
 	case C_JMP:			/* jumps */
 	  PC += (int)PC[1]+2;
-	  c = decode(*PC);
+	  c = fetchop(PC);
 	  goto again;
 
 	case H_FIRSTVAR:		/* Firstvar assignments */
