@@ -68,6 +68,12 @@ typedef struct
 #define FMT_EXEPTION()	return (void)Sunlock(fd), FALSE
 
 
+static PL_locale prolog_locale =
+{ 0,0,LOCALE_MAGIC,1,
+  L".", NULL
+};
+
+
 static int
 update_column(int col, int c)
 { switch(c)
@@ -527,7 +533,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  if ( c == 'f' && mod_colon )
 		    l = fd->locale;
 		  else
-		    l = NULL;
+		    l = &prolog_locale;
 
 		  initBuffer(&u.b);
 		  rc = formatFloat(l, c, arg, &n, &u.b1) != NULL;
@@ -972,14 +978,10 @@ revert_string(char *s, size_t len)
 static char *
 formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
 	     Buffer out)
-{ static PL_locale no_locale = {0};
-  const char *grouping = NULL;
+{ const char *grouping = NULL;
 
   if ( !locale )
-  { if ( !no_locale.decimal_point )
-    { no_locale.decimal_point = L".";
-    }
-    locale = &no_locale;
+  { locale = &prolog_locale;
   } else
   { if ( locale->grouping && locale->grouping[0] &&
 	 locale->thousands_sep && locale->thousands_sep[0] )
