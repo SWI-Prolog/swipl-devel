@@ -705,7 +705,6 @@ typedef enum
 	bfr   = (Choice)valTermRef(chref); \
 	PC    = (pcref ? (Code)valTermRef(pcref) : PC);
 
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Unify a pointer into a new  global  term   (g)  with  a  pointer into an
 environment as obtained from some instruction VAR argument. This assumes
@@ -724,8 +723,9 @@ protect_var(Word v ARG_LD)
 
 
 static void
-unify_gl(Word g, Word l ARG_LD)
-{ protect_var(l PASS_LD);
+unify_gl(Word g, Word l, int has_firstvar ARG_LD)
+{ if ( has_firstvar )
+    protect_var(l PASS_LD);
 
   deRef(l);
   if ( isVar(*l) )
@@ -757,7 +757,7 @@ put_call_goal(term_t t, Procedure proc, term_t ltopref ARG_LD)
 
     *gp++ = fd->functor;
     for(i=0; i<fd->arity; i++)
-      *gp++ = *ap++;
+      unify_gl(gp++, ap++, FALSE PASS_LD);
     *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
   } else
   { *valTermRef(t) = fd->name;
@@ -774,7 +774,7 @@ break applied.
 
 static int
 put_vm_call(term_t t, term_t frref, term_t ltopref,
-	    Code PC, code op, int *pop ARG_LD)
+	    Code PC, code op, int has_firstvar, int *pop ARG_LD)
 { atom_t simple_goal;
   functor_t ftor;
   int clean;
@@ -862,7 +862,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
 	return FALSE;
 
       gt[0] = ftor;
-      unify_gl(&gt[1], v1 PASS_LD);
+      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
       gt[2] = (word)PC[2];
       gt[3] = FUNCTOR_call1;
       gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
@@ -888,8 +888,8 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
       if ( clean&0x2 ) setVar(*v2);
 
       gt[0] = ftor;
-      unify_gl(&gt[1], v1 PASS_LD);
-      unify_gl(&gt[2], v2 PASS_LD);
+      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
+      unify_gl(&gt[2], v2, has_firstvar PASS_LD);
       gt[3] = FUNCTOR_call1;
       gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
       *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
@@ -907,7 +907,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
 	return FALSE;
 
       gt[0] = ftor;
-      unify_gl(&gt[1], v1 PASS_LD);
+      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
       gt[2] = FUNCTOR_call1;
       gt[3] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
       *valTermRef(t) = consPtr(&gt[2], STG_GLOBAL|TAG_COMPOUND);
@@ -983,10 +983,10 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
 
       setVar(*A);
       gt[0] = FUNCTOR_plus2;
-      unify_gl(&gt[1], B PASS_LD);
+      unify_gl(&gt[1], B, has_firstvar PASS_LD);
       gt[2] = consInt(add);
       gt[3] = FUNCTOR_is2;
-      unify_gl(&gt[4], A PASS_LD);
+      unify_gl(&gt[4], A, has_firstvar PASS_LD);
       gt[5] = consPtr(&gt[0], STG_GLOBAL|TAG_COMPOUND);
       gt[6] = FUNCTOR_call1;
       gt[7] = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
@@ -1027,7 +1027,7 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
   fid_t cid;
   term_t frameref, chref, pcref;
   wakeup_state wstate;
-  size_t pc_offset = stepPC(PC)-PC;	/* might be moved later */
+  size_t pc_offset;
 
   *pop = 0;
 
@@ -1035,6 +1035,11 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
 		       &GD->procedures.prolog_break_hook6);
   if ( !getProcDefinition(proc)->impl.any )
     goto default_action;
+
+  if ( strchr(codeTable[op].argtype, CA1_FVAR) )
+    pc_offset = stepPC(PC)-PC;
+  else
+    pc_offset = 0;
 
   SAVE_PTRS();
 
@@ -1059,7 +1064,7 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
       PL_put_intptr(argv+1, PC - clause->codes);
       PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
-      if ( put_vm_call(argv+4, frameref, ltopref, PC, op, pop PASS_LD) )
+      if ( put_vm_call(argv+4, frameref, ltopref, PC, op, pc_offset != 0, pop PASS_LD) )
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
