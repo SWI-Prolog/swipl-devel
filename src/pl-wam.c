@@ -857,11 +857,11 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
 
       return TRUE;
     }
-    case B_EQ_VV:    clean = 0b00; ftor = FUNCTOR_strict_equal2;     goto fa_2;
-    case B_NEQ_VV:   clean = 0b00; ftor = FUNCTOR_not_strict_equal2; goto fa_2;
-    case B_UNIFY_FF: clean = 0b11; ftor = FUNCTOR_equals2;	     goto fa_2;
-    case B_UNIFY_FV: clean = 0b10; ftor = FUNCTOR_equals2;           goto fa_2;
-    case B_UNIFY_VV: clean = 0b00; ftor = FUNCTOR_equals2;           goto fa_2;
+    case B_EQ_VV:    clean = 0x0; ftor = FUNCTOR_strict_equal2;     goto fa_2;
+    case B_NEQ_VV:   clean = 0x0; ftor = FUNCTOR_not_strict_equal2; goto fa_2;
+    case B_UNIFY_FF: clean = 0x3; ftor = FUNCTOR_equals2;	    goto fa_2;
+    case B_UNIFY_FV: clean = 0x1; ftor = FUNCTOR_equals2;           goto fa_2;
+    case B_UNIFY_VV: clean = 0x0; ftor = FUNCTOR_equals2;           goto fa_2;
     fa_2:
     { Word gt       = allocGlobal(2+1+2);	/* call(A=B) */
       LocalFrame fr = (LocalFrame)valTermRef(frref);
@@ -871,13 +871,13 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
       if ( !gt )
 	return FALSE;
 
-      if ( clean&0b10 )
+      if ( clean&0x1 )
       { setVar(*v1);
       } else
       { term_t t = PL_new_term_ref();
 	*valTermRef(t) = makeRefL(v1);
       }
-      if ( clean&0b01 )
+      if ( clean&0x2 )
       { setVar(*v2);
       } else
       { term_t t = PL_new_term_ref();
