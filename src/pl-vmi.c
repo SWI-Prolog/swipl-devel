@@ -556,7 +556,7 @@ writing in this frame. As ARGP is pointing   in the argument list, it is
 on the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(H_FIRSTVAR, 0, 1, (CA1_VAR))
+VMI(H_FIRSTVAR, 0, 1, (CA1_FVAR))
 { if ( umode == uwrite )
   { setVar(*ARGP);
     varFrame(FR, *PC++) = makeRefG(ARGP);
@@ -714,7 +714,7 @@ predicates:
 	pred([H|T], ...) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
+VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
 { Word p;
 
   if ( umode == uwrite )
@@ -1025,7 +1025,7 @@ Note  that  the  B_UNIFY_FIRSTVAR  assumes  write   mode,  but  this  is
 unimportant because the compiler generates write (B_*) instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_VAR))
+VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_FVAR))
 { ARGP = varFrameP(FR, (int)*PC++);
   setVar(*ARGP);			/* needed for GC */
   goto unify_var_cont;
@@ -1075,7 +1075,7 @@ VMI(B_UNIFY_EXIT, VIF_BREAK, 0, ())
 Unify two variables.  F stands for a first-var; V for any other var
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
+VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
@@ -1097,7 +1097,7 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 }
 
 
-VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
+VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
@@ -1154,7 +1154,7 @@ B_UNIFY_FC: Unify first variable with a constant.  Always succeeds, no
 need for wakeup.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
+VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
@@ -1338,7 +1338,7 @@ ARGP points to the argument of a term on the global stack. The reference
 should therefore go from k to ARGP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_ARGFIRSTVAR, 0, 1, (CA1_VAR))
+VMI(B_ARGFIRSTVAR, 0, 1, (CA1_FVAR))
 { setVar(*ARGP);
   varFrame(FR, *PC++) = makeRefG(ARGP++);
   NEXT_INSTRUCTION;
@@ -1352,7 +1352,7 @@ to be a variable (it is uninitialised   memory) and make a reference. No
 trailing needed as we are writing in this and the next frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_FIRSTVAR, 0, 1, (CA1_VAR))
+VMI(B_FIRSTVAR, 0, 1, (CA1_FVAR))
 { Word k = varFrameP(FR, *PC++);
 
   setVar(*k);
@@ -2108,14 +2108,14 @@ wired in the clause.  Its task is to make the n-th variable slot of  the
 current frame to be a variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(C_VAR, 0, 1, (CA1_VAR))
+VMI(C_VAR, 0, 1, (CA1_FVAR))
 { setVar(varFrame(FR, *PC++));
 
   NEXT_INSTRUCTION;
 }
 
 
-VMI(C_VAR_N, 0, 2, (CA1_VAR,CA1_INTEGER))
+VMI(C_VAR_N, 0, 2, (CA1_FVAR,CA1_INTEGER))
 { Word vp = varFrameP(FR, *PC++);
   size_t count = *PC++;
 
@@ -3078,7 +3078,7 @@ normal variable. This case is very   common,  especially with relatively
 small integers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
+VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
 { Word rp  = varFrameP(FR, *PC++);	/* A = */
   Word np  = varFrameP(FR, *PC++);	/* B + */
   intptr_t add = (intptr_t)*PC++;	/* <int> */
@@ -3365,7 +3365,7 @@ TBD: link with following B_VAR? How  frequent?   Likely  very: we are in
 body mode and in many cases the result is used only once.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_VAR)) /* A is B */
+VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_FVAR)) /* A is B */
 { Number n = argvArithStack(1 PASS_LD);
   word w;
   int rc;

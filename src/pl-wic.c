@@ -1156,6 +1156,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      case CA1_INTEGER:
 	      case CA1_JUMP:
 	      case CA1_VAR:
+	      case CA1_FVAR:
 	      case CA1_CHP:
 		*bp++ = (intptr_t)getInt64(fd);
 		break;
@@ -2036,6 +2037,7 @@ saveWicClause(wic_state *state, Clause clause)
 	case CA1_INTEGER:
 	case CA1_JUMP:
 	case CA1_VAR:
+	case CA1_FVAR:
 	case CA1_CHP:
 	{ putNum(*bp++, fd);
 	  break;

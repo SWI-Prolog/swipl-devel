@@ -1179,12 +1179,13 @@ typedef struct clause_ref
 #define CA1_STRING	7	/* inlined string */
 #define CA1_MODULE	8	/* a module */
 #define CA1_VAR		9	/* a variable(-offset) */
-#define CA1_CHP	       10	/* ChoicePoint (also variable(-offset)) */
-#define CA1_MPZ	       11	/* GNU mpz number */
-#define CA1_FOREIGN    12	/* Foreign function pointer */
-#define CA1_CLAUSEREF  13	/* Clause reference */
-#define CA1_JUMP       14	/* Instructions to skip */
-#define CA1_AFUNC      15	/* Number of arithmetic function */
+#define CA1_FVAR       10	/* a variable(-offset), used as `firstvar' */
+#define CA1_CHP	       11	/* ChoicePoint (also variable(-offset)) */
+#define CA1_MPZ	       12	/* GNU mpz number */
+#define CA1_FOREIGN    13	/* Foreign function pointer */
+#define CA1_CLAUSEREF  14	/* Clause reference */
+#define CA1_JUMP       15	/* Instructions to skip */
+#define CA1_AFUNC      16	/* Number of arithmetic function */
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
 

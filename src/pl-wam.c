@@ -64,6 +64,7 @@ count(code c, Code PC)
   counting[c].times++;
   switch(info->argtype)
   { case CA1_VAR:
+    case CA1_FVAR:
     case CA1_CHP:
     { int v = (int)*PC;
 

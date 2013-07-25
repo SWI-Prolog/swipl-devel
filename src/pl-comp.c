@@ -5199,6 +5199,7 @@ unify_vmi(term_t t, Code bp)
 
       switch(ats[an])
       { case CA1_VAR:
+        case CA1_FVAR:
 	case CA1_CHP:
 	{ int vn =  VARNUM(*bp++);
 
@@ -5451,6 +5452,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	  switch(ats[an])
 	  { case CA1_VAR:
+	    case CA1_FVAR:
 	    case CA1_CHP:
 	    { size_t vn, i;
 
@@ -5458,7 +5460,8 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 		fail;
 	      i = VAROFFSET(vn);
 	      Output_a(ci, i);
-	      if ( ats[an] == CA1_VAR && ci->clause->prolog_vars < i )
+	      if ( (ats[an] == CA1_VAR || ats[an] == CA1_FVAR) &&
+		   ci->clause->prolog_vars < i )
 		ci->clause->prolog_vars = (unsigned int)i;
 	      if ( ci->clause->variables < i )
 		ci->clause->variables = (unsigned int)i;
