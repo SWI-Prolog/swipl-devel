@@ -713,8 +713,21 @@ we have allocated enough trail stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
+protect_var(Word v ARG_LD)
+{ term_t t = PL_new_term_ref_noshift();
+
+  if ( t )
+    *valTermRef(t) = makeRefL(v);
+  else
+    assert(0);		/* cannot happen due to MINFOREIGNSIZE */
+}
+
+
+static void
 unify_gl(Word g, Word l ARG_LD)
-{ deRef(l);
+{ protect_var(l PASS_LD);
+
+  deRef(l);
   if ( isVar(*l) )
   { setVar(*g);
     *l = makeRefG(g);
@@ -871,18 +884,8 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
       if ( !gt )
 	return FALSE;
 
-      if ( clean&0x1 )
-      { setVar(*v1);
-      } else
-      { term_t t = PL_new_term_ref();
-	*valTermRef(t) = makeRefL(v1);
-      }
-      if ( clean&0x2 )
-      { setVar(*v2);
-      } else
-      { term_t t = PL_new_term_ref();
-	*valTermRef(t) = makeRefL(v2);
-      }
+      if ( clean&0x1 ) setVar(*v1);
+      if ( clean&0x2 ) setVar(*v2);
 
       gt[0] = ftor;
       unify_gl(&gt[1], v1 PASS_LD);
@@ -1011,13 +1014,10 @@ callBreakHook() calls prolog:break_hook/6 as
 (*) If put_vm_call() addresses  `F`  (first   var)  variables,  it  will
 initialise these to bind to the  goal.   However,  if GC comes along, it
 will reset these variables.  Therefore,  we   fake  GC  that  we already
-executed this instruction. Oops, this will not  work: it will also cause
-GC to consider arguments  last  referenced   by  this  instruction to be
-considered garbage.  How do we fix this?
-
-One option is to create a  term-reference   to  the local variable, such
-that it is marked from  the   foreign  environment.  See B_UNIFY_VV trap
-above.  Needs cleanup!
+executed this instruction. The price is   that  V (normal var) arguments
+are not marked as used, and GC migh   thus  clean them. We fix that with
+protect_var(), which creates a  term-reference   to  the local variable,
+such that it is marked from the foreign environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static break_action
