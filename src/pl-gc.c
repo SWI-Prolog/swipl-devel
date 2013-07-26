@@ -2589,6 +2589,8 @@ sweep_stacks(vm_state *state)
 
   while( fr )
   { QueryFrame qf = sweep_environments(fr, PC);
+    vm_state sub_state;
+
     assert(qf->magic == QID_MAGIC);
 
     sweep_choicepoints(ch PASS_LD);
@@ -2596,7 +2598,9 @@ sweep_stacks(vm_state *state)
     { QueryFrame pqf = qf->parent;
 
       if ( (fr = pqf->registers.fr) )
-      { PC = startOfVMI(pqf);
+      { get_vmi_state(pqf, &sub_state);
+	PC = sub_state.pc_start_vmi;
+	sweep_new_arguments(&sub_state PASS_LD);
       } else
       { fr = qf->saved_environment;
 	PC = NULL;
@@ -3114,7 +3118,8 @@ get_vmi_state(QueryFrame qf, vm_state *state)
 	  if ( ap > argFrameP(qlTop, 0) )
 	  { state->new_args = (int)(ap - argFrameP(qlTop, 0));
 	    state->lNext = qlTop;
-	    lTop = (LocalFrame)ap;
+	    if ( (LocalFrame)ap > lTop )
+	      lTop = (LocalFrame)ap;
 	  }
 	  break;
 	}
