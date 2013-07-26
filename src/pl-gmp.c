@@ -833,6 +833,8 @@ PL_put_number__LD(term_t t, Number n ARG_LD)
     return raiseStackOverflow(rc);
 
   *valTermRef(t) = w;
+
+  return TRUE;
 }
 
 

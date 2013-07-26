@@ -1393,6 +1393,7 @@ struct queryFrame
     Word	argp;
     Code	pc;
   } registers;
+  LocalFrame	next_environment;	/* See D_BREAK and get_vmi_state() */
 #ifdef O_LIMIT_DEPTH
   uintptr_t saved_depth_limit;		/* saved values of these */
   uintptr_t saved_depth_reached;

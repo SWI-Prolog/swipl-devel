@@ -742,12 +742,12 @@ unify_gl(Word g, Word l, int has_firstvar ARG_LD)
 
 
 static int
-put_call_goal(term_t t, Procedure proc, term_t ltopref ARG_LD)
+put_call_goal(term_t t, Procedure proc ARG_LD)
 { FunctorDef fd  = proc->definition->functor;
 
   if ( fd->arity > 0 )
   { Word        gt = allocGlobal(fd->arity+1);
-    LocalFrame NFR = (LocalFrame) valTermRef(ltopref);
+    LocalFrame NFR = LD->query->next_environment;
     Word ap        = argFrameP(NFR, 0);
     Word gp	   = gt;
     int i;
@@ -756,6 +756,7 @@ put_call_goal(term_t t, Procedure proc, term_t ltopref ARG_LD)
       return FALSE;			/* could not allocate */
 
     *gp++ = fd->functor;
+    Sdprintf("Copy %d call args from %p\n", fd->arity, ap);
     for(i=0; i<fd->arity; i++)
       unify_gl(gp++, ap++, FALSE PASS_LD);
     *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
@@ -773,8 +774,8 @@ break applied.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-put_vm_call(term_t t, term_t frref, term_t ltopref,
-	    Code PC, code op, int has_firstvar, int *pop ARG_LD)
+put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
+	    int *pop ARG_LD)
 { atom_t simple_goal;
   functor_t ftor;
   int clean;
@@ -782,7 +783,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
   switch(op)
   { case I_CALL:			/* procedure */
     case I_DEPART:
-    { return ( put_call_goal(t, (Procedure) PC[1], ltopref PASS_LD) &&
+    { return ( put_call_goal(t, (Procedure) PC[1] PASS_LD) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
     case I_CALLM:			/* module, procedure */
@@ -792,7 +793,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, m->name) &&
-	       put_call_goal(av+1, (Procedure) PC[2], ltopref PASS_LD) &&
+	       put_call_goal(av+1, (Procedure) PC[2] PASS_LD) &&
 	       PL_cons_functor_v(t, FUNCTOR_colon2, av) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
@@ -804,7 +805,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, procm->name) &&
-	       put_call_goal(av+1, (Procedure) PC[3], ltopref PASS_LD) &&
+	       put_call_goal(av+1, (Procedure) PC[3] PASS_LD) &&
 	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
 	       PL_put_atom(av+1, contextm->name) &&
 	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
@@ -819,14 +820,14 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, procm->name) &&
-	       put_call_goal(av+1, (Procedure) PC[3], ltopref PASS_LD) &&
+	       put_call_goal(av+1, (Procedure) PC[3] PASS_LD) &&
 	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
 	       PL_put_term(av+1, cmv) &&
 	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
     case I_USERCALL0:
-    { LocalFrame NFR = (LocalFrame) valTermRef(ltopref);
+    { LocalFrame NFR = LD->query->next_environment;
       term_t       g = consTermRef(argFrameP(NFR, 0));
 
       return PL_cons_functor_v(t, FUNCTOR_call1, g);
@@ -834,7 +835,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
     case I_USERCALLN:			/* call(call(G, ...)) */
     { int      extra = (int)PC[1];
       functor_t   cf = PL_new_functor(ATOM_call, 1+extra);
-      LocalFrame NFR = (LocalFrame) valTermRef(ltopref);
+      LocalFrame NFR = LD->query->next_environment;
       term_t       g = consTermRef(argFrameP(NFR, 0));
 
       return ( PL_cons_functor_v(t, cf, g) &&
@@ -939,7 +940,7 @@ put_vm_call(term_t t, term_t frref, term_t ltopref,
     }
     case A_IS:
     { Number     val = argvArithStack(1 PASS_LD);
-      LocalFrame NFR = (LocalFrame) valTermRef(ltopref);
+      LocalFrame NFR = LD->query->next_environment;
       term_t       r = consTermRef(argFrameP(NFR, 0));
       term_t av;
       int rc;
@@ -1021,7 +1022,7 @@ such that it is marked from the foreign environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static break_action
-callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
+callBreakHook(LocalFrame frame, Choice bfr,
 	      Code PC, code op, int *pop ARG_LD)
 { predicate_t proc;
   fid_t cid;
@@ -1064,7 +1065,7 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
       PL_put_intptr(argv+1, PC - clause->codes);
       PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
-      if ( put_vm_call(argv+4, frameref, ltopref, PC, op, pc_offset != 0, pop PASS_LD) )
+      if ( put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop PASS_LD) )
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
@@ -1094,7 +1095,7 @@ callBreakHook(LocalFrame frame, Choice bfr, term_t ltopref,
 
 	      return action;
 	    } else if ( PL_is_functor(argv+5, FUNCTOR_call1) )
-	    { LocalFrame NFR = (LocalFrame) valTermRef(ltopref);
+	    { LocalFrame NFR = LD->query->next_environment;
 	      Word p = valTermRef(argv+5);
 
 	      deRef(p);
@@ -2176,6 +2177,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->solutions         = 0;
   qf->exception		= 0;
   qf->registers.fr      = NULL;		/* invalid */
+  qf->next_environment  = NULL;		/* see D_BREAK */
 
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);

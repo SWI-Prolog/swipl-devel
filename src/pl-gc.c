@@ -177,6 +177,7 @@ typedef struct vm_state
   Word		argp0;			/* Arg-pointer for nested term */
   int		adepth;			/* FUNCTOR/POP nesting depth */
   LocalFrame	lSave;			/* Saved local top */
+  LocalFrame	lNext;			/* Next environment for new_args */
   int		save_argp;		/* Need to safe ARGP? */
   int		in_body;		/* Current frame is executing a body */
   int		new_args;		/* #new arguments */
@@ -1425,13 +1426,15 @@ mark_arguments(LocalFrame fr ARG_LD)
 
 static void
 mark_new_arguments(vm_state *state ARG_LD)
-{ Word sp = argFrameP(state->lSave, 0);
-  int slots = state->new_args;
+{ if ( state->lNext )
+  { Word sp = argFrameP(state->lNext, 0);
+    int slots = state->new_args;
 
-  for( ; slots-- > 0; sp++ )
-  { DEBUG(CHK_SECURE, assert(*sp != FLI_MAGIC));
-    if ( !is_marked(sp) )
-      mark_local_variable(sp PASS_LD);
+    for( ; slots-- > 0; sp++ )
+    { DEBUG(CHK_SECURE, assert(*sp != FLI_MAGIC));
+      if ( !is_marked(sp) )
+	mark_local_variable(sp PASS_LD);
+    }
   }
 }
 
@@ -2553,8 +2556,8 @@ sweep_choicepoints(Choice ch ARG_LD)
 
 static void
 sweep_new_arguments(vm_state *state ARG_LD)
-{ if ( state->new_args )
-  { Word sp = argFrameP(state->lSave, 0);
+{ if ( state->lNext )
+  { Word sp = argFrameP(state->lNext, 0);
     int slots = state->new_args;
 
     for( ; slots-- > 0; sp++ )
@@ -3070,13 +3073,21 @@ get_vmi_state(QueryFrame qf, vm_state *state)
   state->in_body     = FALSE;
   state->adepth	     = 0;
   state->new_args    = 0;
+  state->lNext       = NULL;
 
   if ( qf && qf->registers.fr )
-  { state->frame     = qf->registers.fr;
+  { LocalFrame qlTop;
 
-    if ( lTop <= state->frame )
+    state->frame     = qf->registers.fr;
+
+    if ( qf->next_environment )
+      qlTop = qf->next_environment;
+    else
+      qlTop = lTop;
+
+    if ( qlTop <= state->frame )
     { int arity = state->frame->predicate->functor->arity;
-      lTop = (LocalFrame)argFrameP(state->frame, arity);
+      qlTop = (LocalFrame)argFrameP(state->frame, arity);
       assert(!state->frame->clause);
     }
 
@@ -3095,8 +3106,9 @@ get_vmi_state(QueryFrame qf, vm_state *state)
       { if ( ap > (Word)lBase )
 	{ assert(ap >= argFrameP(state->frame, 0));
 
-	  if ( ap > argFrameP(lTop, 0) )
-	  { state->new_args = (int)(ap - argFrameP(lTop, 0));
+	  if ( ap > argFrameP(qlTop, 0) )
+	  { state->new_args = (int)(ap - argFrameP(qlTop, 0));
+	    state->lNext = qlTop;
 	    lTop = (LocalFrame)ap;
 	  }
 	  break;
@@ -3482,8 +3494,8 @@ static word
 check_new_arguments(vm_state *state)
 { word key = 0L;
 
-  if ( state->new_args )
-  { Word sp = argFrameP(state->lSave, 0);
+  if ( state->lNext )
+  { Word sp = argFrameP(state->lNext, 0);
     int slots = state->new_args;
 
     for( ; slots-- > 0; sp++ )
@@ -4158,6 +4170,7 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
         update_pointer(&query->saved_bfr, ls);
         update_pointer(&query->saved_ltop, ls);
 	update_pointer(&query->saved_environment, ls);
+	update_pointer(&query->next_environment, ls);
 	update_pointer(&query->registers.fr, ls);
 	update_local_pointer(&query->registers.pc, ls);
       }
@@ -4312,6 +4325,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
       update_pointer(&state->frame, ls);
       update_pointer(&state->choice, ls);
       update_pointer(&state->lSave, ls);
+      update_pointer(&state->lNext, ls);
       update_pointer(&LD->query, ls);
     }
 

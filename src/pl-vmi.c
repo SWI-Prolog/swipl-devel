@@ -136,7 +136,6 @@ breakable instruction (which is what D_BREAK is supposed to replace).
 VMI(D_BREAK, 0, 0, ())
 { code c = replacedBreak(PC-1);
   break_action a;
-  term_t lTopSave;
   int pop;				/* arithmetic stack to pop */
 
   switch(c)
@@ -146,12 +145,18 @@ VMI(D_BREAK, 0, 0, ())
   }
 
   DEBUG(CHK_SECURE, checkStacks(NULL));
-  lTopSave = consTermRef(lTop);
+
+  LD->query->next_environment = lTop;
   SAVE_REGISTERS(qid);
   setLTopInBody();
   DEBUG(0, memset(lTop, 0xbf, sizeof(word)*100));
   DEBUG(CHK_SECURE, checkStacks(NULL));
-  a = callBreakHook(FR, BFR, lTopSave, PC-1, decode(c), &pop PASS_LD);
+  a = callBreakHook(FR, BFR, PC-1, decode(c), &pop PASS_LD);
+  LOAD_REGISTERS(qid);
+  lTop = LD->query->next_environment;
+  LD->query->next_environment = NULL;
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+
   switch ( a )
   { case BRK_ERROR:
       break;
@@ -164,19 +169,13 @@ VMI(D_BREAK, 0, 0, ())
     case BRK_CONTINUE:
       break;
     case BRK_CALL:
-      LOAD_REGISTERS(qid);
-      lTop = (LocalFrame)valTermRef(lTopSave);
-      DEBUG(CHK_SECURE, checkStacks(NULL));
-      PC = stepPC(PC-1);
       if ( pop )			/* reset arithmetic stack */
       { popArgvArithStack(pop PASS_LD);
 	AR_END();
       }
+      PC = stepPC(PC-1);		/* skip the old calling instruction */
       VMI_GOTO(I_USERCALL0);
   }
-  LOAD_REGISTERS(qid);
-  lTop = (LocalFrame)valTermRef(lTopSave);
-  DEBUG(CHK_SECURE, checkStacks(NULL));
 
   if ( a == BRK_ERROR )
     goto b_throw;
