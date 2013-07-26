@@ -755,8 +755,10 @@ put_call_goal(term_t t, Procedure proc ARG_LD)
     if ( !gt )
       return FALSE;			/* could not allocate */
 
+    DEBUG(MSG_TRACE,
+	  Sdprintf("Copy %d call args from %p\n", fd->arity, ap));
+
     *gp++ = fd->functor;
-    Sdprintf("Copy %d call args from %p\n", fd->arity, ap);
     for(i=0; i<fd->arity; i++)
       unify_gl(gp++, ap++, FALSE PASS_LD);
     *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
