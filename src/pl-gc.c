@@ -4335,7 +4335,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     }
 
     DEBUG(MSG_SHIFT_PROGRESS,
-	  Sdprintf("%d frames, %d choice-points ...",
+	  Sdprintf("%d frames, %d choice-points ...\n",
 		   local_frames, choice_count));
 
     unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
@@ -4645,7 +4645,6 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	       });
     }
 
-    DEBUG(MSG_SHIFT_PROGRESS, Sdprintf("Updating stacks ..."));
     gBase++; gb++;
     update_stacks(&state, lb, gb, tb);
     gBase--; gb--;
