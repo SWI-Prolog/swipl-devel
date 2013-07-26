@@ -108,12 +108,16 @@ Marking, testing marks and extracting values from GC masked words.
 char tmp[256];				/* for calling print_val(), etc. */
 #define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__ PASS_LD)
 #define relocated_cell(p) do_relocated_cell(p PASS_LD)
-#define recordMark(p)   DEBUG(CHK_SECURE, \
-			      { if ( (char*)(p) < (char*)lBase ) \
-				{ assert(onStack(global, p)); \
-				  *mark_top++ = (p); \
-				} \
-			      })
+#define recordMark(p) recordMark__LD(p PASS_LD)
+static inline void
+recordMark__LD(Word p ARG_LD)
+{ if ( DEBUGGING(CHK_SECURE) )
+  { if ( (char*)p < (char*)lBase )
+    { assert(onStack(global, p));
+      *LD->gc._mark_top++ = p;		/* = mark_top */
+    }
+  }
+}
 #else
 #define recordMark(p)
 #define needsRelocation(p) { needs_relocation++; }
