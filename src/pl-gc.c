@@ -2384,6 +2384,8 @@ sweep_foreign()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
+    DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
+
     if ( isRealMark(fr->mark) )
       sweep_mark(&fr->mark PASS_LD);
     for( ; n-- > 0; sp++ )
