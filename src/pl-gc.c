@@ -1430,6 +1430,9 @@ mark_new_arguments(vm_state *state ARG_LD)
   { Word sp = argFrameP(state->lNext, 0);
     int slots = state->new_args;
 
+    DEBUG(MSG_GC_MARK_VAR,
+	  Sdprintf("mark_new_arguments(): %d args from %p\n", slots, sp));
+
     for( ; slots-- > 0; sp++ )
     { DEBUG(CHK_SECURE, assert(*sp != FLI_MAGIC));
       if ( !is_marked(sp) )
