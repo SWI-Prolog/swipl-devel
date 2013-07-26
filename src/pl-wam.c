@@ -169,31 +169,33 @@ loffset__LD(void *p ARG_LD)
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
 { GET_LD
-  static LocalFrame ofr = NULL;
+  static LocalFrame ofr = NULL;		/* not thread-safe */
 
-  DEBUG(3,
-	if ( ofr != FR )
-	{ Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
-		   loffset(FR),
-		   levelFrame(FR),
-		   predicateName(FR->predicate));
-	  ofr = FR;
-	});
+  if ( DEBUGGING(MSG_VMI) )
+  { if ( ofr != FR )
+    { Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
+	       loffset(FR),
+	       levelFrame(FR),
+	       predicateName(FR->predicate));
+      ofr = FR;
+    }
 
-  DEBUG(3,
-	{ Code relto = NULL;
+    { Code relto = NULL;
+      intptr_t offset;
 
-	  if ( FR->predicate->codes )
-	  { int offset = PC - FR->predicate->codes;
+      if ( FR->predicate->codes &&
+	   (offset = (PC - FR->predicate->codes)) >= 0 &&
+	   (offset < (intptr_t)FR->predicate->codes[-1] ||
+	    (offset == 0 && FR->predicate->codes[-1] == 0)) ) /* see initSupervisors() */
+      { relto = FR->predicate->codes;
+      } else if ( FR->clause )
+      { relto = FR->clause->value.clause->codes;
+      } else
+	relto = NULL;
 
-	    if ( offset >= 0 && offset < (int)FR->predicate->codes[-1] )
-	      relto = FR->predicate->codes;
-	  } else if ( FR->clause )
-	  { relto = FR->clause->value.clause->codes;
-	  }
-
-	  Sdprintf("\t%4ld %s\n", (long)(PC-relto), codeTable[decode(*PC)].name);
-	});
+      Sdprintf("\t%4ld %s\n", (long)(PC-relto), codeTable[decode(*PC)].name);
+    }
+  }
 }
 
 #else
