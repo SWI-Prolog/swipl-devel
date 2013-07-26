@@ -1074,6 +1074,7 @@ callBreakHook(LocalFrame frame, Choice bfr,
 	  LD->query->parent->registers.pc += pc_offset; /* see (*) */
 	  rc = PL_next_solution(qid);
 	  LD->query->parent->registers.pc -= pc_offset;
+	  PL_cut_query(qid);
 
 	  if ( rc )
 	  { atom_t a_action;
@@ -1089,7 +1090,6 @@ callBreakHook(LocalFrame frame, Choice bfr,
 	      } else
 		goto invalid_action;
 
-	      PL_cut_query(qid);
 	      PL_close_foreign_frame(cid);
 	      restoreWakeup(&wstate PASS_LD);
 
@@ -1104,7 +1104,6 @@ callBreakHook(LocalFrame frame, Choice bfr,
 	      deRef(p);
 	      argFrame(NFR, 0) = *p;
 
-	      PL_cut_query(qid);
 	      PL_close_foreign_frame(cid);
 	      restoreWakeup(&wstate PASS_LD);
 
@@ -1114,7 +1113,6 @@ callBreakHook(LocalFrame frame, Choice bfr,
 	      PL_warning("prolog:break_hook/6: invalid action");
 	    }
 	  }
-	  PL_close_query(qid);
 	}
       }
 
