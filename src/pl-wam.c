@@ -854,8 +854,10 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return TRUE;
     }
-    case B_EQ_VC:    ftor = FUNCTOR_strict_equal2;     goto vc_2;
-    case B_NEQ_VC:   ftor = FUNCTOR_not_strict_equal2; goto vc_2;
+    case B_EQ_VC:    clean = 0x0; ftor = FUNCTOR_strict_equal2;     goto vc_2;
+    case B_NEQ_VC:   clean = 0x0; ftor = FUNCTOR_not_strict_equal2; goto vc_2;
+    case B_UNIFY_VC: clean = 0x0; ftor = FUNCTOR_equals2;           goto vc_2;
+    case B_UNIFY_FC: clean = 0x1; ftor = FUNCTOR_equals2;           goto vc_2;
     vc_2:
     { Word gt       = allocGlobal(2+1+2);	/* call(f(V,C)) */
       LocalFrame fr = (LocalFrame)valTermRef(frref);
@@ -863,6 +865,8 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       if ( !gt )
 	return FALSE;
+
+      if ( clean&0x1 ) setVar(*v1);
 
       gt[0] = ftor;
       unify_gl(&gt[1], v1, has_firstvar PASS_LD);
@@ -1004,6 +1008,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
     case I_EXIT:
       return PL_put_atom(t, ATOM_exit);
     default:
+      assert(0);
       return PL_put_atom_chars(t, codeTable[op].name);
   }
 }
