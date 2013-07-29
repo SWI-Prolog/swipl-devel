@@ -6044,7 +6044,7 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
     *PC = encode(D_BREAK);
     set(clause, HAS_BREAKPOINTS);
 
-    return callEventHook(PLEV_BREAK, clause, offset);
+    return TRUE;
   } else
   { return not_breakable(ATOM_set, clause, offset);
   }
@@ -6077,7 +6077,7 @@ clearBreak(Clause clause, int offset)
   freeHeap(bp, sizeof(*bp));
   deleteSymbolHTable(breakTable, s);
 
-  return callEventHook(PLEV_NOBREAK, clause, offset);
+  return TRUE;
 }
 
 
@@ -6138,6 +6138,9 @@ PRED_IMPL("$break_at", 3, break_at, 0)
   else
     rc = clearBreak(clause, offset);
   PL_UNLOCK(L_BREAK);
+
+  if ( rc )
+    return callEventHook(doit ? PLEV_BREAK : PLEV_NOBREAK, clause, offset);
 
   return rc;
 }
