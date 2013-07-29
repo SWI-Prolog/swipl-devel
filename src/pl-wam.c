@@ -903,6 +903,14 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return TRUE;
     }
+    case B_UNIFY_EXIT:
+    { if ( debugstatus.debugging )
+      { return ( put_call_goal(t, GD->procedures.equals2 PASS_LD) &&
+		 PL_cons_functor_v(t, FUNCTOR_call1, t) );
+      } else
+      { return PL_put_atom_chars(t, "unify_exit");
+      }
+    }
     case I_VAR:		ftor = FUNCTOR_var1;    goto fa_1;
     case I_NONVAR:	ftor = FUNCTOR_nonvar1; goto fa_1;
     fa_1:

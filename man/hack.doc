@@ -411,6 +411,14 @@ interrupted, and is one of the following:
     The breakpoint is on the \jargon{exit} instruction, i.e., at the
     end of the clause. Note that the exit instruction may not be reached
     due to last-call optimisation.
+
+	\termitem{unify_exit}{}
+    The breakpoint is on the completion of an in-lined unification while
+    the system is not in debug mode.  If the system is in debug mode,
+    inlined unification is returned as call(Var=Term).\footnote{This
+    hack will disappear if we find a good solution for applying D_BREAK
+    to inlined unification.  Only option might be to place the break on
+    both the unification start and end instructions.}
     \end{description}
 
 If prolog:break_hook/6 succeeds, it must unify \arg{Action} with a value
