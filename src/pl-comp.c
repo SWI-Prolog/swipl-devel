@@ -5736,15 +5736,16 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
 static int
 not_breakable(atom_t op, Clause clause, int offset)
 { GET_LD
-  term_t brk;
+  term_t av;
 
-  if ( (brk=PL_new_term_ref()) &&
-       PL_unify_term(brk,
+  if ( (av=PL_new_term_refs(2)) &&
+       PL_put_clref(av+1, clause) &&
+       PL_unify_term(av,
 		     PL_FUNCTOR, FUNCTOR_break2,
-		       PL_POINTER, clause,
+		       PL_TERM, av+1,
 		       PL_INT, offset) )
     return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		    op, ATOM_break, brk);
+		    op, ATOM_break, av+0);
 
   return FALSE;
 }
