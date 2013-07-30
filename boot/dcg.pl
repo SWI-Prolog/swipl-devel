@@ -55,18 +55,18 @@ resulting code is simply the same), I've removed that.
 
 dcg_translate_rule(((LP,MNT)-->RP),(H:-B)) :- !,
 	'$set_source_module'(M, M),
-	'$extend'(LP, S0, SR, H),
-	'$t_body'(RP, M:M, S0, S1, B0),
-	'$t_body'(MNT, M:M, SR, S1, B1),
-	'$body_optimized'((B0,B1),B2,S0),
-	'$body_optimized'(B2,B,SR).
+	dcg_extend(LP, S0, SR, H),
+	dcg_body(RP, M:M, S0, S1, B0),
+	dcg_body(MNT, M:M, SR, S1, B1),
+	dcg_optimise((B0,B1),B2,S0),
+	dcg_optimise(B2,B,SR).
 dcg_translate_rule((LP-->RP), (H:-B)) :-
-	'$extend'(LP, S0, S, H),
+	dcg_extend(LP, S0, S, H),
 	'$set_source_module'(M, M),
-	'$t_body'(RP, M:M, S0, S, B0),
-	'$body_optimized'(B0,B,S0).
+	dcg_body(RP, M:M, S0, S, B0),
+	dcg_optimise(B0,B,S0).
 
-'$body_optimized'(B0,B,S0) :-
+dcg_optimise(B0,B,S0) :-
 	(   B0 = (S00=X, B),		% map a(H,T) :- H = [a,b|T], b(T)
 	    S00 == S0
 	->  S0 = X			% into a([a,b|T0]) :- b(T0, T).
@@ -77,74 +77,22 @@ dcg_translate_rule((LP-->RP), (H:-B)) :-
 	;   B0 = B
 	).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-On the DCG Translation of {}
+%%	dcg_body(:DCG, +Qualify, ?List, ?Tail, -Goal) is det.
+%
+%	Translate DCG body term.
 
-	a --> x, {y}.
-
-There are two options.  In traditional systems we see:
-
-	a(A, B) :- x(A, B), y.
-
-And in modern system we see:
-
-	a(A, B) :- x(A, C), y, B=C.
-
-
-Martin Sondergaard's grammar was breaking down on
-=================================================
-
-s --> v, star0, {write('You can not do that')}.
-star0 --> [].
-star0 --> [_], star0.
-
-meaning to write a  message  for  any   sentence  starting  with  a `v',
-skipping the remainder. With delayed binding  this causes a large number
-of messages as star0 only eats one token on backtracing.
-
-You can fix this using remaining as below rather then star0.
-
-remaining --> [_], !, remaining.
-remaining --> [].
-
-
-Without delayed unification of the tail we get the following trouble
-====================================================================
-(comment from Richard O'Keefe)
-
-Suppose I have
-
-    p --> [a], !, {fail}. p --> [].
-
-That is, p//0 is suppose to match the empty  string as long as it is not
-followed by a. Now consider
-
-    p([a], [a])
-
-If the first clause is translated as
-
-    p(S0, S) :- S0 = [a|S1], !, fail, S = S1.
-
-then it will work *correctly*, and the call  p([a], [a]) will fail as it
-is supposed to. If the first clause is translated as
-
-    p(S0, S) :- S0 = [a|S], !, fail.
-
-then the call p([a], [a]) will succeed, which is quite definitely wrong.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-'$t_body'(Var, Q, S, SR, phrase(QVar, S, SR)) :-
+dcg_body(Var, Q, S, SR, phrase(QVar, S, SR)) :-
 	var(Var), !,
 	qualify(Q, Var, QVar).
-'$t_body'(M:X, _:C, S, SR, Ct) :- !,
-	'$t_body'(X, M:C, S, SR, Ct).
+dcg_body(M:X, _:C, S, SR, Ct) :- !,
+	dcg_body(X, M:C, S, SR, Ct).
 
-'$t_body'([], _, S, SR, S=SR) :- !.		% inline lists
-'$t_body'(List, _, S, SR, C) :-
+dcg_body([], _, S, SR, S=SR) :- !.		% inline lists
+dcg_body(List, _, S, SR, C) :-
 	(   List = [_|_]
 	->  !,
 	    (   is_list(List)
-	    ->  '$append'(List, SR, OL),
+	    ->  '$append'(List, SR, OL),	% open the list
 		C = (S = OL)
 	    ;   C = '$append'(List, SR, S)	% Deals with [H|T] in body
 	    )
@@ -154,95 +102,106 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 	    '$append'(Codes, SR, OL),
 	    C = (S = OL)
 	).
-'$t_body'(!, _, S, SR, ( !, SR = S) ) :- !.
-'$t_body'({}, _, S, S, true) :- !.
-'$t_body'({T}, Q, S, SR, (QT, SR = S)) :- !,	% (*)
+dcg_body(!, _, S, SR, ( !, SR = S) ) :- !.
+dcg_body({}, _, S, S, true) :- !.
+dcg_body({T}, Q, S, SR, (QT, SR = S)) :- !,
 	qualify(Q, T, QT).
-%'$t_body'({T}, S, S, T) :- !.			% (*)
-'$t_body'((T, R), Q, S, SR, (Tt, Rt)) :- !,
-	'$t_body'(T, Q, S, SR1, Tt),
-	'$t_body'(R, Q, SR1, SR, Rt).
-'$t_body'((T;R), Q, S, SR, (Tt;Rt)) :- !,
-	'$t_body'(T, Q, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
-	'$t_body'(R, Q, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
-'$t_body'((T|R), Q, S, SR, (Tt;Rt)) :- !,
-	'$t_body'(T, Q, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
-	'$t_body'(R, Q, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
-'$t_body'((C->T), Q, S, SR, (Ct->Tt)) :- !,
-	'$t_body'(C, Q, S, SR1, Ct),
-	'$t_body'(T, Q, SR1, SR, Tt).
-'$t_body'((C*->T), Q, S, SR, (Ct*->Tt)) :- !,
-	'$t_body'(C, Q, S, SR1, Ct),
-	'$t_body'(T, Q, SR1, SR, Tt).
-'$t_body'((\+ C), Q, S, SR, (\+ Ct, SR = S)) :- !,
-	'$t_body'(C, Q, S, _, Ct).
-'$t_body'(T, Q, S, SR, QTt) :-
-	'$extend'(T, S, SR, Tt),
+dcg_body((T, R), Q, S, SR, (Tt, Rt)) :- !,
+	dcg_body(T, Q, S, SR1, Tt),
+	dcg_body(R, Q, SR1, SR, Rt).
+dcg_body((T;R), Q, S, SR, (Tt;Rt)) :- !,
+	dcg_body(T, Q, S, S1, T1), or_delay_bind(S, SR, S1, T1, Tt),
+	dcg_body(R, Q, S, S2, R1), or_delay_bind(S, SR, S2, R1, Rt).
+dcg_body((T|R), Q, S, SR, (Tt;Rt)) :- !,
+	dcg_body(T, Q, S, S1, T1), or_delay_bind(S, SR, S1, T1, Tt),
+	dcg_body(R, Q, S, S2, R1), or_delay_bind(S, SR, S2, R1, Rt).
+dcg_body((C->T), Q, S, SR, (Ct->Tt)) :- !,
+	dcg_body(C, Q, S, SR1, Ct),
+	dcg_body(T, Q, SR1, SR, Tt).
+dcg_body((C*->T), Q, S, SR, (Ct*->Tt)) :- !,
+	dcg_body(C, Q, S, SR1, Ct),
+	dcg_body(T, Q, SR1, SR, Tt).
+dcg_body((\+ C), Q, S, SR, (\+ Ct, SR = S)) :- !,
+	dcg_body(C, Q, S, _, Ct).
+dcg_body(T, Q, S, SR, QTt) :-
+	dcg_extend(T, S, SR, Tt),
 	qualify(Q, Tt, QTt).
 
-'$t_fill'(S, SR, S1, T, (T, SR=S)) :-
+or_delay_bind(S, SR, S1, T, (T, SR=S)) :-
 	S1 == S, !.
-'$t_fill'(_S, SR, SR, T, T).
+or_delay_bind(_S, SR, SR, T, T).
+
+%%	qualify(+QualifyInfo, +Goal, -QGoal) is det.
+%
+%	@arg QualifyInfo is a term Module:Context,   where Module is the
+%	module in which Goal must be called   and Context is the current
+%	source module.
 
 qualify(M:C, X0, X) :-
 	M == C, !,
 	X = X0.
 qualify(M:_, X, M:X).
 
-%	'$extend'(+Head, +Extra1, +Extra2, -NewHead)
+%%	dcg_extend(+Head, +Extra1, +Extra2, -NewHead)
 %
 %	Extend Head with two more arguments (on behalf DCG compilation).
 %	The solution below is one option. Using   =..  and append is the
 %	alternative. In the current version (5.3.2), the =.. is actually
 %	slightly faster, but it creates less garbage.
 
-:- dynamic  '$extend_cache'/4.
-:- volatile '$extend_cache'/4.
+:- dynamic  dcg_extend_cache/4.
+:- volatile dcg_extend_cache/4.
 
-'$dcg_reserved'([]).
-'$dcg_reserved'([_|_]).
-'$dcg_reserved'({_}).
-'$dcg_reserved'({}).
-'$dcg_reserved'(!).
-'$dcg_reserved'((\+_)).
-'$dcg_reserved'((_,_)).
-'$dcg_reserved'((_;_)).
-'$dcg_reserved'((_|_)).
-'$dcg_reserved'((_->_)).
-'$dcg_reserved'((_*->_)).
-'$dcg_reserved'((_-->_)).
+dcg_no_extend([]).
+dcg_no_extend([_|_]).
+dcg_no_extend({_}).
+dcg_no_extend({}).
+dcg_no_extend(!).
+dcg_no_extend((\+_)).
+dcg_no_extend((_,_)).
+dcg_no_extend((_;_)).
+dcg_no_extend((_|_)).
+dcg_no_extend((_->_)).
+dcg_no_extend((_*->_)).
+dcg_no_extend((_-->_)).
 
-'$extend'(V, _, _, _) :-
+dcg_extend(V, _, _, _) :-
 	var(V), !,
 	throw(error(instantiation_error,_)).
-'$extend'(M:OldT, A1, A2, M:NewT) :- !,
-	'$extend'(OldT, A1, A2, NewT).
-'$extend'(OldT, A1, A2, NewT) :-
-	'$extend_cache'(OldT, A1, A2, NewT), !.
-'$extend'(OldT, A1, A2, NewT) :-
-	( callable(OldT) -> true ; throw(error(type_error(callable,OldT),_)) ),
-	( '$dcg_reserved'(OldT) -> throw(error(permission_error(define,dcg_nonterminal,OldT),_)) ; true ),
+dcg_extend(M:OldT, A1, A2, M:NewT) :- !,
+	dcg_extend(OldT, A1, A2, NewT).
+dcg_extend(OldT, A1, A2, NewT) :-
+	dcg_extend_cache(OldT, A1, A2, NewT), !.
+dcg_extend(OldT, A1, A2, NewT) :-
+	(   callable(OldT)
+	->  true
+	;   throw(error(type_error(callable,OldT),_))
+	),
+	(   dcg_no_extend(OldT)
+	->  throw(error(permission_error(define,dcg_nonterminal,OldT),_))
+	;   true
+	),
 	functor(OldT, Name, Arity),
 	functor(CopT, Name, Arity),
 	NewArity is Arity+2,
 	functor(NewT, Name, NewArity),
-	'$copy_args'(1, Arity, CopT, NewT),
+	copy_args(1, Arity, CopT, NewT),
 	A1Pos is Arity+1,
 	A2Pos is Arity+2,
 	arg(A1Pos, NewT, A1C),
 	arg(A2Pos, NewT, A2C),
-	assert('$extend_cache'(CopT, A1C, A2C, NewT)),
+	assert(dcg_extend_cache(CopT, A1C, A2C, NewT)),
 	OldT = CopT,
 	A1C = A1,
 	A2C = A2.
 
-'$copy_args'(I, Arity, Old, New) :-
+copy_args(I, Arity, Old, New) :-
 	I =< Arity, !,
 	arg(I, Old, A),
 	arg(I, New, A),
 	I2 is I + 1,
-	'$copy_args'(I2, Arity, Old, New).
-'$copy_args'(_, _, _, _).
+	copy_args(I2, Arity, Old, New).
+copy_args(_, _, _, _).
 
 %%	phrase(:RuleSet, ?List).
 %%	phrase(:RuleSet, ?List, ?Rest).
@@ -261,7 +220,7 @@ phrase(RuleSet, Input, Rest) :-
 	(   strip_module(RuleSet, M, Plain),
 	    nonvar(Plain),
 	    dcg_special(Plain)
-	->  '$t_body'(Plain, M:M, S0, S, Body),
+	->  dcg_body(Plain, M:M, S0, S, Body),
 	    Input = S0, Rest = S,
 	    call(M:Body)
 	;   call(RuleSet, Input, Rest)
