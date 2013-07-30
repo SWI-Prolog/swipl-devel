@@ -663,6 +663,8 @@ following keys are defined:
 \const{term_position} & Position of last term read.  Term of the form
 			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
 			See also stream_position_data/3. \\
+\const{variable_names}& A list of `\arg{Name} = \arg{Var}' of the last
+			term read.  See read_term/2 for details. \\
 \const{script}	      & Boolean that indicates whether the file is
 			loaded as a script file (see
 			\cmdlineoption{-s}) \\
@@ -4328,6 +4330,12 @@ options:
 	\termitem{term_position}{-TermPos}
 	Same as for read_term/3.
 
+	\termitem{subterm_positions}{-TermPos}
+	Same as for read_term/3.
+
+	\termitem{variable_names}{-Bindings}
+	Same as for read_term/3.
+
 	\termitem{process_comment}{+Boolean}
 	If \const{true} (default), call
 	\term{prolog:comment_hook}{Comments, TermPos, Term} if this
@@ -4455,7 +4463,8 @@ appear in the order they have been read. See also term_variables/2.
 (ISO).
 
     \termitem{variable_names}{Vars}
-Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where \arg{Name} is an atom describing the variable name and \arg{Var} is a
+Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where
+\arg{Name} is an atom describing the variable name and \arg{Var} is a
 variable that shares with the corresponding variable in \arg{Term}.
 (ISO).
 \end{description}

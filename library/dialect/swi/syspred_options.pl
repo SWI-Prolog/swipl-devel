@@ -72,7 +72,9 @@
 :- predicate_options(system:read_clause/3, 3,
 		     [ syntax_errors(oneof([error,fail,quiet,dec10])),
 		       process_comment(boolean),
-		       term_position(-any)
+		       term_position(-any),
+		       variable_names(-list),
+		       subterm_positions(-any)
 		     ]).
 :- predicate_options(system:read_term/3, 3,
 		     [ backquoted_string(boolean),

@@ -756,6 +756,7 @@ typedef enum
 #define GP_TYPE_QUIET	0x400		/* don't throw errors on wrong types */
 #define GP_EXISTENCE_ERROR 0x800	/* throw error if proc is not found */
 #define GP_QUALIFY	0x1000		/* Always module-qualify */
+#define GP_NOT_QUALIFIED 0x2000		/* Demand unqualified name/arity */
 
 					/* get_functor() */
 #define GF_EXISTING	1

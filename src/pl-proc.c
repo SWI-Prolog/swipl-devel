@@ -413,10 +413,15 @@ get_arity(term_t t, int extra, int maxarity, int *arity)
 int
 get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 { GET_LD
-  term_t head = PL_new_term_ref();
+  term_t head;
   int dcgpi=FALSE;
 
-  PL_strip_module(descr, m, head);
+  if ( !(how&GP_NOT_QUALIFIED) )
+  { head = PL_new_term_ref();
+    PL_strip_module(descr, m, head);
+  } else
+  { head = descr;
+  }
 
   if ( PL_is_functor(head, FUNCTOR_divide2) ||
        (dcgpi=PL_is_functor(head, FUNCTOR_gdiv2)) )

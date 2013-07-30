@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -31,8 +29,10 @@
 */
 
 :- module('$expand',
-	  [ expand_term/2,
-	    expand_goal/2
+	  [ expand_term/2,		% +Term0, -Term
+	    expand_goal/2,		% +Goal0, -Goal
+	    expand_term/4,		% +Term0, ?Pos0, -Term, -Pos
+	    expand_goal/4		% +Goal0, ?Pos0, -Goal, -Pos
 	  ]).
 
 /** <module> Prolog source-code transformation
@@ -62,110 +62,189 @@ expansion.
 	system:term_expansion/2,
 	system:goal_expansion/2,
 	user:term_expansion/2,
-	user:goal_expansion/2.
+	user:goal_expansion/2,
+	system:term_expansion/4,
+	system:goal_expansion/4,
+	user:term_expansion/4,
+	user:goal_expansion/4.
 :- multifile
 	system:term_expansion/2,
 	system:goal_expansion/2,
 	user:term_expansion/2,
-	user:goal_expansion/2.
+	user:goal_expansion/2,
+	system:term_expansion/4,
+	system:goal_expansion/4,
+	user:term_expansion/4,
+	user:goal_expansion/4.
 
 :- meta_predicate
-	expand_terms(2, +, -).
+	expand_terms(4, +, ?, -, -).
 
 %%	expand_term(+Input, -Output) is det.
+%%	expand_term(+Input, +Pos0, -Output, -Pos) is det.
 %
 %	This predicate is used to translate terms  as they are read from
 %	a source-file before they are added to the Prolog database.
 
-expand_term(Var, Expanded) :-
+expand_term(Term0, Term) :-
+	expand_term(Term0, _, Term, _).
+
+expand_term(Var, Pos, Expanded, Pos) :-
 	var(Var), !,
 	Expanded = Var.
-expand_term(Term, []) :-
+expand_term(Term, Pos0, [], Pos) :-
 	cond_compilation(Term, X),
-	X == [], !.
-expand_term(Term, Expanded) :-		% local term-expansion
-	'$def_modules'(term_expansion/2, MList),
-	call_term_expansion(MList, Term, Term2),
-	expand_term_2(Term2, Expanded).
+	X == [], !,
+	atomic_pos(Pos0, Pos).
+expand_term(Term, Pos0, Expanded, Pos) :-
+	'$def_modules'([term_expansion/4,term_expansion/2], MList),
+	call_term_expansion(MList, Term, Pos0, Term2, Pos1),
+	expand_term_2(Term2, Pos1, Expanded, Pos).
 
-call_term_expansion([], Term, Term).
-call_term_expansion([M|T], Term0, Term) :-
+call_term_expansion([], Term, Pos, Term, Pos).
+call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-
 	current_prolog_flag(sandboxed_load, false), !,
-	(   M:term_expansion(Term0, Term1)
-	->  expand_terms(call_term_expansion(T), Term1, Term)
-	;   call_term_expansion(T, Term0, Term)
+	(   '$member'(Pred, Preds),
+	    (	Pred == term_expansion/2
+	    ->	M:term_expansion(Term0, Term1),
+		Pos1 = Pos0
+	    ;	M:term_expansion(Term0, Pos0, Term1, Pos1)
+	    )
+	->  expand_terms(call_term_expansion(T), Term1, Pos1, Term, Pos)
+	;   call_term_expansion(T, Term0, Pos0, Term, Pos)
 	).
-call_term_expansion([M|T], Term0, Term) :-
-	(   Expand = M:term_expansion(Term0, Term1),
-	    allowed_expansion(Expand),
-	    call(Expand)
-	->  expand_terms(call_term_expansion(T), Term1, Term)
-	;   call_term_expansion(T, Term0, Term)
+call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-
+	(   '$member'(Pred, Preds),
+	    (	Pred == term_expansion/2
+	    ->	allowed_expansion(M:term_expansion(Term0, Term1)),
+		call(M:term_expansion(Term0, Term1)),
+		Pos1 = Pos
+	    ;	allowed_expansion(M:term_expansion(Term0, Pos0, Term1, Pos1)),
+		call(M:term_expansion(Term0, Pos0, Term1, Pos1))
+	    )
+	->  expand_terms(call_term_expansion(T), Term1, Pos1, Term, Pos)
+	;   call_term_expansion(T, Term0, Pos0, Term, Pos)
 	).
 
-expand_term_2((Head --> Body), Expanded) :-
-	dcg_translate_rule((Head --> Body), Expanded0), !,
-	expand_bodies(Expanded0, Expanded).
-expand_term_2(Term0, Term) :-
-	expand_bodies(Term0, Term).
+expand_term_2((Head --> Body), Pos0, Expanded, Pos) :-
+	dcg_translate_rule((Head --> Body), Pos0, Expanded0, Pos1), !,
+	expand_bodies(Expanded0, Pos1, Expanded, Pos).
+expand_term_2(Term0, Pos0, Term, Pos) :-
+	expand_bodies(Term0, Pos0, Term, Pos).
 
-%%	expand_bodies(+Term, -Out) is det.
+%%	expand_bodies(+Term, +Pos0, -Out, -Pos) is det.
 %
 %	Find the body terms in Term and give them to expand_goal/2 for
 %	further processing.
 
-expand_bodies(Terms, Out) :-
-	'$def_modules'(goal_expansion/2, MList),
-	expand_terms(expand_body(MList), Terms, Out).
+expand_bodies(Terms, Pos0, Out, Pos) :-
+	'$def_modules'([goal_expansion/4,goal_expansion/2], MList),
+	expand_terms(expand_body(MList), Terms, Pos0, Out, Pos).
 
-expand_body(MList, (Head :- Body), (Head :- ExpandedBody)) :-
+expand_body(MList, (Head :- Body), Pos0, (Head :- ExpandedBody), Pos) :-
 	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody, MList, (Head :- Body)).
-expand_body(MList, (:- Body), (:- ExpandedBody)) :-
+	f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
+	expand_goal(Body, BPos0, ExpandedBody, BPos, MList, (Head :- Body)).
+expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
 	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody, MList, (:- Body)).
-expand_body(_, Head, Head).
+	f1_pos(Pos0, BPos0, Pos, BPos),
+	expand_goal(Body, BPos0, ExpandedBody, BPos, MList, (:- Body)).
+expand_body(_, Head, Pos, Head, Pos).
 
 
-%%	expand_terms(:Closure, +In, -Out)
+%%	expand_terms(:Closure, +In, +Pos0, -Out, -Pos)
 %
 %	Loop over two constructs that  can   be  added by term-expansion
-%	rules in order to  run  the   next  phase.  Term_expansion/2 can
-%	return a list and terms may be preceeded with a source-location.
+%	rules in order to run the   next phase: calling term_expansion/2
+%	can  return  a  list  and  terms    may   be  preceeded  with  a
+%	source-location.
 
-expand_terms(_, X, X) :-
+expand_terms(_, X, P, X, P) :-
 	var(X), !.
-expand_terms(C, [H0|T0], [H|T]) :- !,
-	expand_terms(C, H0, H),
-	expand_terms(C, T0, T).
-expand_terms(C, '$source_location'(File, Line):Clause0,
-		'$source_location'(File, Line):Clause) :- !,
-	expand_terms(C, Clause0, Clause).
-expand_terms(C, Term0, Term) :-
-	call(C, Term0, Term).
+expand_terms(C, List0, Pos0, List, Pos) :-
+	nonvar(List0),
+	List0 = [_|_], !,
+	(   is_list(List0)
+	->  list_pos(Pos0, Elems0, Pos, Elems),
+	    expand_term_list(C, List0, Elems0, List, Elems)
+	;   '$type_error'(list, List0)
+	).
+expand_terms(C, '$source_location'(File, Line):Clause0, Pos0,
+		'$source_location'(File, Line):Clause, Pos) :- !,
+	expand_terms(C, Clause0, Pos0, Clause, Pos).
+expand_terms(C, Term0, Pos0, Term, Pos) :-
+	call(C, Term0, Pos0, Term, Pos).
+
+%%	expand_term_list(:Expander, +TermList, +Pos, -NewTermList, -PosList)
+
+expand_term_list(_, [], _, [], []) :- !.
+expand_term_list(C, [H0|T0], [PH0], Terms, PosL) :- !,
+	call(C, H0, PH0, H, PH),
+	add_term(H, PH, Terms, TT, PosL, PT),
+	expand_term_list(C, T0, [PH0], TT, PT).
+expand_term_list(C, [H0|T0], [PH0|PT0], Terms, PosL) :- !,
+	call(C, H0, PH0, H, PH),
+	add_term(H, PH, Terms, TT, PosL, PT),
+	expand_term_list(C, T0, PT0, TT, PT).
+expand_term_list(C, [H0|T0], PH0, Terms, PosL) :-
+	expected_layout(list, PH0),
+	call(C, H0, PH0, H, PH),
+	add_term(H, PH, Terms, TT, PosL, PT),
+	expand_term_list(C, T0, [PH0], TT, PT).
+
+%%	add_term(+ExpandOut, ?ExpandPosOut, -Terms, ?TermsT, -PosL, ?PosLT)
+
+add_term(List, Pos, Terms, TermT, PosL, PosT) :-
+	nonvar(List), List = [_|_], !,
+	(   is_list(List)
+	->  append_tp(List, Terms, TermT, Pos, PosL, PosT)
+	;   '$type_error'(list, List)
+	).
+add_term(Term, Pos, [Term|Terms], Terms, [Pos|PosT], PosT).
+
+append_tp([], Terms, Terms, _, PosL, PosL).
+append_tp([H|T0], [H|T1], Terms, [HP], [HP|TP1], PosL) :- !,
+	append_tp(T0, T1, Terms, [HP], TP1, PosL).
+append_tp([H|T0], [H|T1], Terms, [HP0|TP0], [HP0|TP1], PosL) :- !,
+	append_tp(T0, T1, Terms, TP0, TP1, PosL).
+append_tp([H|T0], [H|T1], Terms, Pos, [Pos|TP1], PosL) :-
+	expected_layout(list, Pos),
+	append_tp(T0, T1, Terms, [Pos], TP1, PosL).
+
+
+list_pos(Var, _, _, _) :-
+	var(Var), !.
+list_pos(list_position(F,T,Elems0,none), Elems0,
+	 list_position(F,T,Elems,none),  Elems).
+list_pos(Pos, [Pos], Elems, Elems).
 
 
 		 /*******************************
 		 *   GOAL_EXPANSION/2 SUPPORT	*
 		 *******************************/
 
+%%	expand_goal(+BodyTerm, +Pos0, -Out, -Pos) is det.
 %%	expand_goal(+BodyTerm, -Out) is det.
 %
 %	Perform   macro-expansion   on    body     terms    by   calling
 %	goal_expansion/2.
 
 expand_goal(A, B) :-
-	'$def_modules'(goal_expansion/2, MList),
-	(   expand_goal(A, B, MList, _)
+	expand_goal(A, _, B, _).
+
+expand_goal(A, P0, B, P) :-
+	'$def_modules'([goal_expansion/4, goal_expansion/2], MList),
+	(   expand_goal(A, P0, B, P, MList, _)
 	->  A \== B
 	), !.
-expand_goal(A, A).
+expand_goal(A, P, A, P).
 
-expand_goal(G0, G, MList, Term) :-
+expand_goal(G0, P0, G, P, MList, Term) :-
 	'$set_source_module'(M, M),
-	expand_goal(G0, G, M, MList, Term).
+	expand_goal(G0, P0, G, P, M, MList, Term).
 
-%%	expand_goal(+GoalIn, -GoalOut, +Module, -ModuleList, +Term) is det.
+%%	expand_goal(+GoalIn, ?PosIn, -GoalOut, -PosOut,
+%%		    +Module, -ModuleList, +Term) is det.
 %
 %	@param Module is the current module to consider
 %	@param ModuleList are the other expansion modules
@@ -183,41 +262,47 @@ expand_goal(G0, G, MList, Term) :-
 %		catch_and_print(true).
 %	  ==
 
-expand_goal(G, G, _, _, _) :-
+expand_goal(G, P, G, P, _, _, _) :-
         var(G), !.
-expand_goal(G0, G, M, MList, Term) :-
-	call_goal_expansion(MList, G0, G1), !,
-	expand_goal(G1, G, M, MList, Term/G1).		% (*)
-expand_goal((A,B), Conj, M, MList, Term) :- !,
-        expand_goal(A, EA, M, MList, Term),
-        expand_goal(B, EB, M, MList, Term),
-	simplify((EA, EB), Conj).
-expand_goal((A;B), Or, M, MList, Term) :- !,
-        expand_goal(A, EA, M, MList, Term),
-        expand_goal(B, EB, M, MList, Term),
-	simplify((EA;EB), Or).
-expand_goal((A->B;C), ITE, M, MList, Term) :- !,
-        expand_goal(A, EA, M, MList, Term),
-        expand_goal(B, EB, M, MList, Term),
-        expand_goal(C, EC, M, MList, Term),
-	simplify((EA->EB;EC), ITE).
-expand_goal((A->B), (EA->EB), M, MList, Term) :- !,
-        expand_goal(A, EA, M, MList, Term),
-        expand_goal(B, EB, M, MList, Term).
-expand_goal((A*->B), (EA*->EB), M, MList, Term) :- !,
-        expand_goal(A, EA, M, MList, Term),
-        expand_goal(B, EB, M, MList, Term).
-expand_goal((\+A), (\+EA), M, MList, Term) :- !,
-        expand_goal(A, EA, M, MList, Term).
-expand_goal(call(A), call(EA), M, MList, Term) :- !,
-        expand_goal(A, EA, M, MList, Term).
-expand_goal(M:G, M:EG, _M, _MList, Term) :-
+expand_goal(G0, P0, G, P, M, MList, Term) :-
+	call_goal_expansion(MList, G0, P0, G1, P1), !,
+	expand_goal(G1, P1, G, P, M, MList, Term/G1).		% (*)
+expand_goal((A,B), P0, Conj, P, M, MList, Term) :- !,
+	f2_pos(P0, PA0, PB0, P1, PA, PB),
+        expand_goal(A, PA0, EA, PA, M, MList, Term),
+        expand_goal(B, PB0, EB, PB, M, MList, Term),
+	simplify((EA,EB), P1, Conj, P).
+expand_goal((A;B), P0, Or, P, M, MList, Term) :- !,
+	f2_pos(P0, PA0, PB0, P1, PA, PB),
+        expand_goal(A, PA0, EA, PA, M, MList, Term),
+        expand_goal(B, PB0, EB, PB, M, MList, Term),
+	simplify((EA;EB), P1, Or, P).
+expand_goal((A->B), P0, Goal, P, M, MList, Term) :- !,
+	f2_pos(P0, PA0, PB0, P1, PA, PB),
+        expand_goal(A, PA0, EA, PA, M, MList, Term),
+        expand_goal(B, PB0, EB, PB, M, MList, Term),
+	simplify((EA->EB), P1, Goal, P).
+expand_goal((A*->B), P0, Goal, P, M, MList, Term) :- !,
+	f2_pos(P0, PA0, PB0, P1, PA, PB),
+        expand_goal(A, PA0, EA, PA, M, MList, Term),
+        expand_goal(B, PB0, EB, PB, M, MList, Term),
+	simplify((EA*->EB), P1, Goal, P).
+expand_goal((\+A), P0, Goal, P, M, MList, Term) :- !,
+	f1_pos(P0, PA0, P1, PA),
+        expand_goal(A, PA0, EA, PA, M, MList, Term),
+	simplify(\+(EA), P1, Goal, P).
+expand_goal(call(A), P0, call(EA), P, M, MList, Term) :- !,
+	f1_pos(P0, PA0, P, PA),
+        expand_goal(A, PA0, EA, PA, M, MList, Term).
+expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
 	atom(M), !,
-	'$def_modules'(M:goal_expansion/2, MList),
-	setup_call_cleanup('$set_source_module'(Old, M),
-			   '$expand':expand_goal(G, EG, M, MList, Term),
-			   '$set_source_module'(_, Old)).
-expand_goal(G0, G, M, MList, Term) :-
+	f2_pos(P0, PA0, PB, P, PA, PB),
+	'$def_modules'(M:[goal_expansion/4,goal_expansion/2], MList),
+	setup_call_cleanup(
+	    '$set_source_module'(Old, M),
+	    '$expand':expand_goal(G, PA0, EG, PA, M, MList, Term),
+	    '$set_source_module'(_, Old)).
+expand_goal(G0, P0, G, P, M, MList, Term) :-
 	callable(G0),
 	(   default_module(M, M2),
 	    '$c_current_predicate'(_, M2:G0),
@@ -225,32 +310,40 @@ expand_goal(G0, G, M, MList, Term) :-
 	->  true		% is a meta-pred without clauses defined?
 	),
 	has_meta_arg(Head),
-	expand_meta(Head, G0, G, M, MList, Term),
+	expand_meta(Head, G0, P0, G, P, M, MList, Term),
 	G0 \== G, !.
-expand_goal(A, A, _, _, _).
+expand_goal(A, P, A, P, _, _, _).
 
-expand_meta(Spec, G0, G, M, MList, Term) :-
+%%	expand_meta(+MetaSpec, +G0, ?P0, -G, -P, +M, +Mlist, +Term)
+
+expand_meta(Spec, G0, P0, G, P, M, MList, Term) :-
 	functor(Spec, _, Arity),
 	functor(G0, Name, Arity),
 	functor(G, Name, Arity),
-	expand_meta(1, Arity, Spec, G0, G, M, MList, Term).
+	f_pos(P0, ArgPos0, P, ArgPos),
+	expand_meta(1, Arity, Spec, G0, ArgPos0, G, ArgPos, M, MList, Term).
 
-expand_meta(I, Arity, Spec, G0, G, M, MList, Term) :-
+expand_meta(I, Arity, Spec, G0, ArgPos0, G, [P|PT], M, MList, Term) :-
 	I =< Arity, !,
+	arg_pos(ArgPos0, P0, PT0),
 	arg(I, Spec, Meta),
 	arg(I, G0, A0),
 	arg(I, G, A),
-	expand_meta_arg(Meta, A0, A, M, MList, Term),
+	expand_meta_arg(Meta, A0, P0, A, P, M, MList, Term),
 	I2 is I + 1,
-	expand_meta(I2, Arity, Spec, G0, G, M, MList, Term).
-expand_meta(_, _, _, _, _, _, _, _).
+	expand_meta(I2, Arity, Spec, G0, PT0, G, PT, M, MList, Term).
+expand_meta(_, _, _, _, _, _, [], _, _, _).
 
-expand_meta_arg(0, A0, A, M, MList, Term) :- !,
-	expand_goal(A0, A1, M, MList, Term),
+arg_pos(List, _, _) :- var(List), !.	% no position info
+arg_pos([H|T], H, T) :- !.		% argument list
+arg_pos([], _, []).			% new has more
+
+expand_meta_arg(0, A0, PA0, A, PA, M, MList, Term) :- !,
+	expand_goal(A0, PA0, A1, PA, M, MList, Term),
 	compile_meta_call(A1, A, M, Term).
-expand_meta_arg(^, A0, A, M, MList, Term) :- !,
-	expand_setof_goal(A0, A, M, MList, Term).
-expand_meta_arg(_, A, A, _, _, _).
+expand_meta_arg(^, A0, PA0, A, PA, M, MList, Term) :- !,
+	expand_setof_goal(A0, PA0, A, PA, M, MList, Term).
+expand_meta_arg(_, A, P, A, P, _, _, _).
 
 has_meta_arg(Head) :-
 	arg(_, Head, Arg),
@@ -259,34 +352,46 @@ has_meta_arg(Head) :-
 meta_arg(0).
 meta_arg(^).
 
-expand_setof_goal(Var, Var, _, _, _) :-
+expand_setof_goal(Var, Pos, Var, Pos, _, _, _) :-
 	var(Var), !.
-expand_setof_goal(V^G, V^EG, M, MList, Term) :- !,
-        expand_setof_goal(G, EG, M, MList, Term).
-expand_setof_goal(M0:G, M0:EG, M, MList, Term) :- !,
-        expand_setof_goal(G, EG, M, MList, Term).
-expand_setof_goal(G, EG, M, MList, Term) :- !,
-        expand_goal(G, EG0, M, MList, Term),
-	compile_meta_call(EG0, EG, M, Term).
+expand_setof_goal(V^G, P0, V^EG, P, M, MList, Term) :- !,
+	f2_pos(P0, PA0, PB, P, PA, PB),
+        expand_setof_goal(G, PA0, EG, PA, M, MList, Term).
+expand_setof_goal(M0:G, P0, M0:EG, P, M, MList, Term) :- !,
+	f2_pos(P0, PA0, PB, P, PA, PB),
+        expand_setof_goal(G, PA0, EG, PA, M, MList, Term).
+expand_setof_goal(G, P0, EG, P, M, MList, Term) :- !,
+        expand_goal(G, P0, EG0, P, M, MList, Term),
+	compile_meta_call(EG0, EG, M, Term).		% TBD: Pos?
 
 
-%%	call_goal_expansion(+ExpandModules, +Goal0, -Goal) is semidet.
+%%	call_goal_expansion(+ExpandModules,
+%%			    +Goal0, ?Pos0, -Goal, -Pos) is semidet.
 %
 %	Succeeds  if  the   context   has    a   module   that   defines
 %	goal_expansion/2 this rule succeeds and  Goal   is  not equal to
 %	Goal0. Note that the translator is   called  recursively until a
 %	fixed-point is reached.
 
-call_goal_expansion(MList, G0, G) :-
+call_goal_expansion(MList, G0, P0, G, P) :-
 	current_prolog_flag(sandboxed_load, false), !,
-	(   '$member'(M, MList),
-	    M:goal_expansion(G0, G),
+	(   '$member'(M-Preds, MList),
+	    '$member'(Pred, Preds),
+	    (	Pred == goal_expansion/4
+	    ->	M:goal_expansion(G0, P0, G, P)
+	    ;	M:goal_expansion(G0, G),
+		P = P0
+	    ),
 	    G0 \== G
 	->  true
 	).
-call_goal_expansion(MList, G0, G) :-
-	'$member'(M, MList),
-	Expand = M:goal_expansion(G0, G),
+call_goal_expansion(MList, G0, P0, G, P) :-
+	'$member'(M-Preds, MList),
+	'$member'(Pred, Preds),
+	(   Pred == goal_expansion/4
+	->  Expand = M:goal_expansion(G0, P0, G, P),
+	    Expand = M:goal_expansion(G0, G)
+	),
 	allowed_expansion(Expand),
 	call(Expand),
 	G0 \== G, !.
@@ -314,39 +419,101 @@ allowed_expansion(_).
 
 
 		 /*******************************
+		 *	  POSITION LOGIC	*
+		 *******************************/
+
+%%	f2_pos(?TermPos0, ?PosArg10, ?PosArg20,
+%%	       ?TermPos,  ?PosArg1,  ?PosArg2) is det.
+%%	f1_pos(?TermPos0, ?PosArg10, ?TermPos,  ?PosArg1) is det.
+%%	f_pos(?TermPos0, ?PosArgs0, ?TermPos,  ?PosArgs) is det.
+%%	atomic_pos(?TermPos0, -AtomicPos) is det.
+%
+%	Position progapation routines.
+
+f2_pos(Var, _, _, _, _, _) :-
+	var(Var), !.
+f2_pos(term_position(F,T,FF,FT,[A10,A20]), A10, A20,
+       term_position(F,T,FF,FT,[A1, A2 ]), A1,  A2) :- !.
+f2_pos(Pos, _, _, _, _, _) :-
+	expected_layout(f2, Pos).
+
+f1_pos(Var, _, _, _) :-
+	var(Var), !.
+f1_pos(term_position(F,T,FF,FT,[A10]), A10,
+       term_position(F,T,FF,FT,[A1 ]),  A1) :- !.
+f1_pos(Pos, _, _, _) :-
+	expected_layout(f1, Pos).
+
+f_pos(Var, _, _, _) :-
+	var(Var), !.
+f_pos(term_position(F,T,FF,FT,ArgPos0), ArgPos0,
+      term_position(F,T,FF,FT,ArgPos),  ArgPos) :- !.
+f_pos(Pos, _, _, _) :-
+	expected_layout(compound, Pos).
+
+atomic_pos(Pos, _) :-
+	var(Pos), !.
+atomic_pos(Pos, F-T) :-
+	arg(1, Pos, F),
+	arg(2, Pos, T).
+
+%%	expected_layout(+Expected, +Found)
+%
+%	Print a message  if  the  layout   term  does  not  satisfy  our
+%	expectations.  This  means  that   the  transformation  requires
+%	support from term_expansion/4 and/or goal_expansion/4 to achieve
+%	proper source location information.
+
+:- create_prolog_flag(debug_term_position, false, []).
+
+expected_layout(Expected, Pos) :-
+	current_prolog_flag(debug_term_position, true), !,
+	'$print_message'(warning, expected_layout(Expected, Pos)).
+expected_layout(_, _).
+
+
+		 /*******************************
 		 *    SIMPLIFICATION ROUTINES	*
 		 *******************************/
 
-%%	simplify(+ControlIn, -ControlOut) is det.
+%%	simplify(+ControlIn, +Pos0, -ControlOut, -Pos) is det.
 %
-%	Try to simplify control structure.
+%	Simplify control structures
 %
 %	@tbd	Much more analysis
 %	@tbd	Turn this into a separate module
 
-simplify(Control, Control) :-
+simplify(Control, P, Control, P) :-
 	current_prolog_flag(optimise, false), !.
-simplify(Control, Simple) :-
-	simple(Control, Simple), !.
-simplify(Control, Control).
+simplify(Control, P0, Simple, P) :-
+	simple(Control, P0, Simple, P), !.
+simplify(Control, P, Control, P).
 
-simple((X, Y), Conj) :-
+simple((X,Y), P0, Conj, P) :-
 	(   true(X)
-	->  Conj = Y
+	->  Conj = Y,
+	    f2_pos(P0, _, P, _, _, _)
 	;   false(X)
-	->  Conj = fail
+	->  Conj = fail,
+	    f2_pos(P0, P1, _, _, _, _),
+	    atomic_pos(P1, P)
 	;   true(Y)
-	->  Conj = X
+	->  Conj = X,
+	    f2_pos(P0, P, _, _, _, _)
 	).
-simple((I->T;E), ITE) :-
+simple((I->T;E), P0, ITE, P) :-
 	(   true(I)
-	->  ITE = T
+	->  ITE = T,
+	    f2_pos(P0, P1, _, _, _, _),
+	    f2_pos(P1, _, P, _, _, _)
 	;   false(I)
-	->  ITE = E
+	->  ITE = E,
+	    f2_pos(P0, _, P, _, _, _)
 	).
-simple((X;Y), Or) :-
+simple((X;Y), P0, Or, P) :-
 	false(X),
-	Or = Y.
+	Or = Y,
+	f2_pos(P0, _, P, _, _, _).
 
 true(X) :-
 	nonvar(X),
@@ -427,7 +594,7 @@ compile_meta(CallIn, CallOut, M, Term, (CallOut :- Body)) :-
 	intersection_eq(InVars, AllVars, HeadVars),
 	variant_sha1(CallIn+HeadVars, Hash),
 	atom_concat('__aux_meta_call_', Hash, AuxName),
-	expand_goal(CallIn, Body, M, [], (CallOut:-CallIn)),
+	expand_goal(CallIn, _Pos0, Body, _Pos, M, [], (CallOut:-CallIn)),
 	length(HeadVars, Arity),
 	(   Arity > 256			% avoid 1024 arity limit
 	->  HeadArgs = [v(HeadVars)]

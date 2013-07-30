@@ -525,6 +525,8 @@ prolog_message(redefine_module_reply) -->
 prolog_message(reloaded_in_module(Absolute, OldContext, LM)) -->
 	[ '~w was previously loaded in module ~w'-[Absolute, OldContext], nl,
 	  '\tnow it is reloaded into module ~w'-[LM] ].
+prolog_message(expected_layout(Expected, Pos)) -->
+	[ 'Layout data: expected ~w, found: ~p'-[Expected, Pos] ].
 
 defined_definition(Message, Spec) -->
 	{ strip_module(user:Spec, M, Name/Arity),

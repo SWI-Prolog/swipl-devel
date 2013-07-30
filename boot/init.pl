@@ -524,7 +524,7 @@ default_module(Me, Super) :-
 		*        SYSTEM MESSAGES        *
 		*********************************/
 
-%	'$confirm'(Spec)
+%%	'$confirm'(Spec)
 %
 %	Ask the user to confirm a question.  Spec is a term as used for
 %	print_message/2.
@@ -577,7 +577,7 @@ user:file_search_path(path, Dir) :-
 	),
 	'$member'(Dir, Dirs).
 
-%	expand_file_search_path(+Spec, -Expanded) is nondet.
+%%	expand_file_search_path(+Spec, -Expanded) is nondet.
 %
 %	Expand a search path.  The system uses depth-first search upto a
 %	specified depth.  If this depth is exceeded an exception is raised.
@@ -1033,7 +1033,8 @@ compiling :-
 '$load_msg_level'(load_file,    silent, silent,        silent) :- !.
 '$load_msg_level'(include_file, silent, silent,        silent) :- !.
 
-%%	'$source_term'(+From, -Read, -Term, -Stream, +Options) is nondet.
+%%	'$source_term'(+From, -Read, -RLayout, -Term, -TLayout,
+%%		       -Stream, +Options) is nondet.
 %
 %	Read Prolog terms from the  input   From.  Terms are returned on
 %	backtracking. Associated resources (i.e.,   streams)  are closed
@@ -1053,20 +1054,20 @@ compiling :-
 %		* process_comments(+Boolean)
 %		* term_position(-Pos)
 
-'$source_term'(From, Read, Term, Stream, Options) :-
-	'$source_term'(From, Read, Term, Stream, [], Options),
+'$source_term'(From, Read, RLayout, Term, TLayout, Stream, Options) :-
+	'$source_term'(From, Read, RLayout, Term, TLayout, Stream, [], Options),
 	(   Term == end_of_file
 	->  !, fail
 	;   true
 	).
 
-'$source_term'(stream(Id, In), Read, Term, Stream, Parents, Options) :- !,
+'$source_term'(stream(Id, In), Read, RLayout, Term, TLayout, Stream, Parents, Options) :- !,
 	setup_call_cleanup(
 	    '$open_source'(stream(Id, In), In, State, Parents, Options),
-	    '$term_in_file'(In, Read, Term, Stream,
+	    '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream,
 			    [Id|Parents], Options),
 	    '$close_source'(State, true)).
-'$source_term'(File, Read, Term, Stream, Parents, Options) :-
+'$source_term'(File, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
 	absolute_file_name(File, Path,
 			   [ file_type(prolog),
 			     access(read)
@@ -1074,7 +1075,7 @@ compiling :-
 	'$record_included'(Parents, File, Path, Message),
 	setup_call_cleanup(
 	    '$open_source'(Path, In, State, Parents, Options),
-	    '$term_in_file'(In, Read, Term, Stream, [Path|Parents], Options),
+	    '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, [Path|Parents], Options),
 	    '$close_source'(State, Message)).
 
 :- thread_local
@@ -1117,18 +1118,35 @@ compiling :-
 '$close_message'(_).
 
 
-'$term_in_file'(In, Read, Term, Stream, Parents, Options) :-
+%%	'$term_in_file'(+In, -Read, -RLayout, -Term, -TLayout,
+%%			-Stream, +Parents, +Options) is multi.
+%
+%	True when Term is an expanded term from   In. Read is a raw term
+%	(before term-expansion). Stream is  the   actual  stream,  which
+%	starts at In, but may change due to processing included files.
+%
+%	@see '$source_term'/8 for details.
+
+'$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
 	'$skip_script_line'(In),
 	'$read_clause_options'(Options, ReadOptions),
 	repeat,
-	  read_clause(In, Raw, ReadOptions),
+	  read_clause(In, Raw,
+		      [ variable_names(Bindings),
+			subterm_positions(RawLayout)
+		      | ReadOptions
+		      ]),
+	  b_setval('$variable_names', Bindings),
 	  (   Raw == end_of_file
 	  ->  !,
 	      (	  Parents = [_,_|_]	% Included file
 	      ->  fail
-	      ;	  '$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options)
+	      ;	  '$expanded_term'(In,
+				   Raw, RawLayout, Read, RLayout, Term, TLayout,
+				   Stream, Parents, Options)
 	      )
-	  ;   '$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options)
+	  ;   '$expanded_term'(In, Raw, RawLayout, Read, RLayout, Term, TLayout,
+			       Stream, Parents, Options)
 	  ).
 
 '$read_clause_options'([], []).
@@ -1143,18 +1161,21 @@ compiling :-
 '$read_clause_option'(term_position(_)).
 '$read_clause_option'(process_comment(_)).
 
-'$expanded_term'(In, Raw, Read, Term, Stream, Parents, Options) :-
-	catch('$expand_term'(Raw, Expanded), E,
+'$expanded_term'(In, Raw, RawLayout, Read, RLayout, Term, TLayout,
+		 Stream, Parents, Options) :-
+	catch('$expand_term'(Raw, RawLayout, Expanded, ExpandedLayout), E,
 	      '$print_message_fail'(E)),
 	(   Expanded \== []
-	->  '$nested_member'(Expanded, Term1)
-	;   Term1 = Expanded
+	->  '$expansion_member'(Expanded, ExpandedLayout, Term1, Layout1)
+	;   Term1 = Expanded,
+	    Layout1 = ExpandedLayout
 	),
 	(   nonvar(Term1), Term1 = (:-Directive), nonvar(Directive)
 	->  (   Directive = include(File)
 	    ->	stream_property(In, encoding(Enc)),
 		'$add_encoding'(Enc, Options, Options1),
-		'$source_term'(File, Read, Term, Stream, Parents, Options1)
+		'$source_term'(File, Read, RLayout, Term, TLayout,
+			       Stream, Parents, Options1)
 	    ;	Directive = encoding(Enc)
 	    ->  set_stream(In, encoding(Enc)),
 		fail
@@ -1163,24 +1184,43 @@ compiling :-
 		Read = Raw
 	    )
 	;   Term = Term1,
+	    TLayout = Layout1,
 	    Stream = In,
-	    Read = Raw
+	    Read = Raw,
+	    RLayout = RawLayout
 	).
 
-'$nested_member'(Var, Var) :-
+'$expansion_member'(Var, Layout, Var, Layout) :-
 	var(Var), !.
-'$nested_member'([H|T], M) :- !,
-	(   '$nested_member'(H, M)
-	;   '$nested_member'(T, M)
+'$expansion_member'([], _, _, _) :- !, fail.
+'$expansion_member'(List, ListLayout, Term, Layout) :-
+	is_list(List), !,
+	(   var(ListLayout)
+	->  '$member'(Term, List)
+	;   is_list(ListLayout)
+	->  '$member_rep2'(Term, Layout, List, ListLayout)
+	;   Layout = ListLayout,
+	    '$member'(Term, List)
 	).
-'$nested_member'([], _) :- !, fail.
-'$nested_member'(X, X).
+'$expansion_member'(X, Layout, X, Layout).
+
+% pairwise member, repeating last element of the second
+% list.
+
+'$member_rep2'(H1, H2, [H1|_], [H2|_]).
+'$member_rep2'(H1, H2, [_|T1], [T2]) :- !,
+	'$member_rep2'(H1, H2, T1, [T2]).
+'$member_rep2'(H1, H2, [_|T1], [_|T2]) :-
+	'$member_rep2'(H1, H2, T1, T2).
+
+%%	'$add_encoding'(+Enc, +Options0, -Options)
 
 '$add_encoding'(Enc, Options0, Options) :-
 	(   Options0 = [encoding(Enc)|_]
 	->  Options = Options0
 	;   Options = [encoding(Enc)|Options0]
 	).
+
 
 :- multifile
 	'$included'/4.			% Into, Line, File, LastModified
@@ -1870,8 +1910,14 @@ load_files(Module:Files, Options) :-
 %	system might not yet be loaded.
 
 '$print_message'(Level, Term) :-
-	'$current_module'('$messages', _), !,
+	current_predicate(system:print_message/2), !,
 	print_message(Level, Term).
+'$print_message'(warning, Term) :-
+	source_location(File, Line), !,
+	format(user_error, 'WARNING: ~w:~w: ~p~n', [File, Line, Term]).
+'$print_message'(error, Term) :- !,
+	source_location(File, Line), !,
+	format(user_error, 'ERROR: ~w:~w: ~p~n', [File, Line, Term]).
 '$print_message'(_Level, _Term).
 
 '$print_message_fail'(E) :-
@@ -2039,12 +2085,13 @@ load_files(Module:Files, Options) :-
 
 '$load_file'(Path, Id, Module, Options) :-
 	State = state(true, _, true, false, Id, -),
-	(   '$source_term'(Path, _Read, Term, _Stream, Options),
+	(   '$source_term'(Path, _Read, _Layout, Term, Layout,
+			   _Stream, Options),
 	    '$valid_term'(Term),
 	    (	arg(1, State, true)
-	    ->	'$first_term'(Term, Id, State, Options),
+	    ->	'$first_term'(Term, Layout, Id, State, Options),
 		nb_setarg(1, State, false)
-	    ;	'$compile_term'(Term, Id)
+	    ;	'$compile_term'(Term, Layout, Id)
 	    ),
 	    arg(4, State, true)
 	;   '$end_load_file'(State)
@@ -2077,9 +2124,9 @@ load_files(Module:Files, Options) :-
 	'$ifcompiling'('$qlf_end_part').
 
 
-'$first_term'(?-(Directive), Id, State, Options) :- !,
-	'$first_term'(:-(Directive), Id, State, Options).
-'$first_term'(:-(Directive), Id, State, Options) :-
+'$first_term'(?-(Directive), Layout, Id, State, Options) :- !,
+	'$first_term'(:-(Directive), Layout, Id, State, Options).
+'$first_term'(:-(Directive), _Layout, Id, State, Options) :-
 	nonvar(Directive),
 	(   (   Directive = module(Name, Public)
 	    ->	Imports = []
@@ -2094,16 +2141,16 @@ load_files(Module:Files, Options) :-
 	    '$set_dialect'(Dialect, State),
 	    fail			% Still consider next term as first
 	).
-'$first_term'(Term, Id, State, Options) :-
+'$first_term'(Term, Layout, Id, State, Options) :-
 	'$start_non_module'(Id, State, Options),
-	'$compile_term'(Term, Id).
+	'$compile_term'(Term, Layout, Id).
 
-'$compile_term'((?-Directive), Id) :- !,
+'$compile_term'((?-Directive), _Layout, Id) :- !,
 	'$execute_directive'(Directive, Id).
-'$compile_term'((:-Directive), Id) :- !,
+'$compile_term'((:-Directive), _Layout, Id) :- !,
 	'$execute_directive'(Directive, Id).
-'$compile_term'(Clause, Id) :- !,
-	catch('$store_clause'(Clause, Id), E,
+'$compile_term'(Clause, Layout, Id) :- !,
+	catch('$store_clause'(Clause, Layout, Id), E,
 	      '$print_message'(error, E)).
 
 '$start_non_module'(Id, _State, Options) :-
@@ -2371,7 +2418,7 @@ load_files(Module:Files, Options) :-
 	;   true
 	),
 	(   source_location(File, _Line)
-	->  catch('$store_clause'((NewHead :- Source:Head), File), E,
+	->  catch('$store_clause'((NewHead :- Source:Head), _Layout, File), E,
 		  '$print_message'(error, E))
 	;   assertz((NewHead :- !, Source:Head)) % ! avoids problems with
 	),					 % duplicate load
@@ -2467,7 +2514,7 @@ load_files(Module:Files, Options) :-
 	->  true
 	;   '$execute_directive'(discontiguous(LM:'$exported_op'/3), File)
 	),
-	'$store_clause'('$exported_op'(Pri, Assoc, Name), File).
+	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File).
 
 %%	'$execute_directive'(:Goal, +File) is det.
 %
@@ -2613,14 +2660,14 @@ load_files(Module:Files, Options) :-
 		*        COMPILE A CLAUSE       *
 		*********************************/
 
-%%	'$store_clause'(+Clause, +SourceId) is det.
+%%	'$store_clause'(+Clause, ?Layout, +SourceId) is det.
 %
 %	Store a clause into the database.
 
-'$store_clause'((_, _), _) :- !,
+'$store_clause'((_, _), _, _) :- !,
 	print_message(error, cannot_redefine_comma),
 	fail.
-'$store_clause'(Term, File) :-
+'$store_clause'(Term, _Layout, File) :-
 	'$clause_source'(Term, Clause, SrcLoc),
 	(   '$compilation_mode'(database)
 	->  '$record_clause'(Clause, File, SrcLoc)
@@ -2631,6 +2678,11 @@ load_files(Module:Files, Options) :-
 '$clause_source'('$source_location'(File,Line):Clause, Clause, File:Line) :- !.
 '$clause_source'(Clause, Clause, -).
 
+:- public
+	'$store_clause'/2.
+
+'$store_clause'(Clause, Id) :-
+	'$store_clause'(Clause, _, Id).
 
 %%	compile_aux_clauses(+Clauses) is det.
 %
@@ -2648,6 +2700,8 @@ load_files(Module:Files, Options) :-
 %	  ==
 %	  expand_term_aux(Goal, NewGoal, Clauses)
 %	  ==
+%
+%	@tbd	Deal with source code layout?
 
 compile_aux_clauses(_Clauses) :-
 	current_prolog_flag(xref, true), !.
@@ -2664,9 +2718,9 @@ compile_aux_clauses(Clauses) :-
 '$store_aux_clauses'(Clauses, File) :-
 	is_list(Clauses), !,
 	forall('$member'(C,Clauses),
-	       '$compile_term'(C, File)).
+	       '$compile_term'(C, _Layout, File)).
 '$store_aux_clauses'(Clause, File) :-
-	'$compile_term'(Clause, File).
+	'$compile_term'(Clause, _Layout, File).
 
 
 		 /*******************************
@@ -2697,10 +2751,10 @@ compile_aux_clauses(Clauses) :-
 
 :- dynamic
 	'$expand_goal'/2,
-	'$expand_term'/2.
+	'$expand_term'/4.
 
 '$expand_goal'(In, In).
-'$expand_term'(In, In).
+'$expand_term'(In, Layout, In, Layout).
 
 
 		/********************************

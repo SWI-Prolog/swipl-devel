@@ -4157,17 +4157,22 @@ unify_read_term_position(term_t tpos ARG_LD)
 /** read_clause(+Stream, -Clause, +Options)
 
 Options:
+	* variable_names(-Names)
 	* process_comment(+Boolean)
+        * comments(-List)
 	* syntax_errors(+Atom)
 	* term_position(-Position)
+	* subterm_positions(-Layout)
 */
 
 static const opt_spec read_clause_options[] =
-{ { ATOM_term_position,	  OPT_TERM },
-  { ATOM_process_comment, OPT_BOOL },
-  { ATOM_comments,	  OPT_TERM },
-  { ATOM_syntax_errors,   OPT_ATOM },
-  { NULL_ATOM,		  0 }
+{ { ATOM_variable_names,    OPT_TERM },
+  { ATOM_term_position,	    OPT_TERM },
+  { ATOM_subterm_positions, OPT_TERM },
+  { ATOM_process_comment,   OPT_BOOL },
+  { ATOM_comments,	    OPT_TERM },
+  { ATOM_syntax_errors,     OPT_ATOM },
+  { NULL_ATOM,		    0 }
 };
 
 
@@ -4217,13 +4222,23 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
 			       &GD->procedures.comment_hook3);
   process_comment = (comment_hook->definition->impl.any != NULL);
 
+  if ( !(fid=PL_open_foreign_frame()) )
+    return FALSE;
+
+retry:
+  init_read_data(&rd, s PASS_LD);
+
   if ( options &&
        !scan_options(options, 0, ATOM_read_option, read_clause_options,
+		     &rd.varnames,
 		     &tpos,
+		     &rd.subtpos,
 		     &process_comment,
 		     &opt_comments,
 		     &syntax_errors) )
+  { PL_close_foreign_frame(fid);
     return FALSE;
+  }
 
   if ( opt_comments )
   { comments = PL_new_term_ref();
@@ -4233,11 +4248,6 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
     comments = PL_new_term_ref();
   }
 
-  if ( !(fid=PL_open_foreign_frame()) )
-    return FALSE;
-
-retry:
-  init_read_data(&rd, s PASS_LD);
   rd.module = LD->modules.source;
   if ( comments )
     rd.comments = PL_copy_term_ref(comments);
