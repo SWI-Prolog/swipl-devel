@@ -1197,11 +1197,14 @@ colourise_meta_declaration(M:Head, TB,
 	colour_item(goal(extern(M,Head)), TB, FF-FT),
 	Head =.. [_|Args],
 	colourise_meta_args(Args, TB, ArgPos).
-colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :-
+colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :- !,
 	goal_classification(TB, Head, [], Class),
 	colour_item(goal(Class, Head), TB, FF-FT),
 	Head =.. [_|Args],
 	colourise_meta_args(Args, TB, ArgPos).
+colourise_meta_declaration([H|T], TB, list_position(LF,LT,[HP],TP)) :-
+	colour_item(list, TB, LF-LT),
+	colourise_meta_args([H,T], TB, [HP,TP]).
 
 colourise_meta_args([], _, []).
 colourise_meta_args([Arg|ArgT], TB, [PosH|PosT]) :-
