@@ -436,9 +436,7 @@ default_module(Me, Super) :-
 	    ->  '$default_module'(Me, Super)
 	    ;   '$default_module'(Me, Super), !
 	    )
-	;   var(Me)
-	->  throw(error(instantiation_error, _))
-	;   throw(error(type_error(module, Me), _))
+	;   '$type_error'(module, Me)
 	).
 
 '$default_module'(Me, Me).
