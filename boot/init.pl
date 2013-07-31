@@ -155,7 +155,6 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 
 :- meta_predicate
 	';'(0,0),
-	'|'(0,0),
 	','(0,0),
 	@(0,+),
 	call(0),
