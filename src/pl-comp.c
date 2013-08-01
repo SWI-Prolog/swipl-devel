@@ -154,6 +154,36 @@ initWamTable()
 
 
 		 /*******************************
+		 *     WARNING DECLARATIONS	*
+		 *******************************/
+
+#define CW_MAX_ARGC 2
+
+typedef struct cw_def
+{ const char *name;
+  int	      argc;
+} cw_def;
+
+#define CW(name, argc) { name, argc }
+
+const static cw_def cw_defs[] =
+{ CW("eq_vv", 2),
+  CW(NULL,    0)
+};
+
+
+typedef struct c_warning
+{ const cw_def* def;	/* Warning definition */
+  size_t	pc;	/* PC offset in clause */
+  int		argc;	/* Argument count */
+  Word		argv[CW_MAX_ARGC]; /* context arguments */
+  term_t	av;	  /* handle argument vector */
+  struct c_warning *next; /* next warning */
+} c_warning;
+
+
+
+		 /*******************************
 		 *	     COMPILER		*
 		 *******************************/
 
@@ -258,9 +288,116 @@ typedef struct
 #ifdef O_CALL_AT_MODULE
   target_module	at_context;		/* Call@Context */
 #endif
+  term_t	warning_list;		/* see compiler_warning() */
+  c_warning    *warnings;
   tmp_buffer	codes;			/* scratch code table */
 } compileInfo, *CompileInfo;
 
+
+		 /*******************************
+		 *	      WARNINGS		*
+		 *******************************/
+
+static void
+compiler_warning(CompileInfo ci, const char *name, ...)
+{ c_warning *w;
+  const cw_def *def;
+
+  if ( !ci->warning_list )
+    return;
+
+  for(def = cw_defs; def->name; def++)
+  { if ( strcmp(def->name,name) == 0 )
+      break;
+  }
+
+  if ( !def->name )
+  { sysError("Undefined compiler warning: %s", name);
+    return;				/* not reached */
+  }
+
+  if ( (w=allocHeap(sizeof(*w))) )
+  { va_list args;
+    int i;
+
+    memset(w, 0, sizeof(*w));
+    w->def = def;
+    w->pc  = entriesBuffer(&ci->codes, code);
+    va_start(args, name);
+    for(i=0; i<def->argc; i++)
+      w->argv[w->argc++] = va_arg(args, Word);
+    va_end(args);
+
+    w->next = ci->warnings;
+    ci->warnings = w;
+  }
+}
+
+
+static void
+free_compiler_warnings(CompileInfo ci)
+{ c_warning *cw, *next;
+
+  for(cw=ci->warnings; cw; cw=next)
+  { next = cw->next;
+
+    free(cw);
+  }
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+push_compiler_warnings() turns compiler warning  terms   into  a  Prolog
+list. We do this in two steps.  First, we create term-references for the
+Word pointers. From that moment, we can perform   GC,  so we can use all
+normal functionality.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+push_compiler_warnings(CompileInfo ci ARG_LD)
+{ PL_put_nil(ci->warning_list);
+
+  if ( ci->warnings )
+  { c_warning *cw;
+    term_t tmp  = PL_new_term_ref();
+
+    for(cw=ci->warnings; cw; cw=cw->next)
+    { if ( (cw->av=PL_new_term_refs(cw->argc)) )
+      { int i;
+
+	for(i=0; i<cw->argc; i++)
+	  *valTermRef(cw->av+i) = linkVal(cw->argv[i]);
+      } else
+      { free_compiler_warnings(ci);
+	return LOCAL_OVERFLOW;
+      }
+    }
+
+    for(cw=ci->warnings; cw; cw=cw->next)
+    { functor_t f;
+      atom_t name = PL_new_atom(cw->def->name);
+      int rc;
+
+      rc = ((f=PL_new_functor(name, cw->def->argc)) &&
+	    PL_cons_functor_v(tmp, f, cw->av) &&
+	    PL_cons_list(ci->warning_list, tmp, ci->warning_list));
+
+      PL_unregister_atom(name);
+      if ( !rc )
+      { free_compiler_warnings(ci);
+	return FALSE;
+      }
+    }
+
+    free_compiler_warnings(ci);
+  }
+
+  return TRUE;
+}
+
+
+		 /*******************************
+		 *	    VARIABLES		*
+		 *******************************/
 
 static void	resetVars(ARG1_LD);
 
@@ -1094,7 +1231,7 @@ play around with variable tables.
 
 int
 compileClause(Clause *cp, Word head, Word body,
-	      Procedure proc, Module module ARG_LD)
+	      Procedure proc, Module module, term_t warnings ARG_LD)
 { compileInfo ci;			/* data base for the compiler */
   struct clause clause;
   Clause cl;
@@ -1129,6 +1266,8 @@ compileClause(Clause *cp, Word head, Word body,
 #ifdef O_CALL_AT_MODULE
   ci.at_context.type = TM_NONE;
 #endif
+  ci.warning_list    = warnings;
+  ci.warnings        = NULL;
 
   if ( (rc=analyse_variables(head, body, &ci PASS_LD)) < 0 )
   { switch ( rc )
@@ -1221,6 +1360,9 @@ that have an I_CONTEXT because we need to reset the context.
   }
 
   resetVars(PASS_LD1);
+
+  if ( ci.warning_list && (rc=push_compiler_warnings(&ci PASS_LD)) != TRUE )
+    goto exit_fail;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finish up the clause.
@@ -2605,7 +2747,11 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
 
     if ( f1 || f2 )
     { if ( truePrologFlag(PLFLAG_OPTIMISE) )
-      {	Output_0(ci, i1 == i2 ? I_TRUE : I_FAIL);
+      {	code op = (i1 == i2) ? I_TRUE : I_FAIL;
+
+	compiler_warning(ci, "eq_vv", a1, a2);
+	Output_0(ci, op);
+
 	return TRUE;
       }
     } else
@@ -2899,9 +3045,10 @@ assert_term(term_t term, int where, atom_t owner, SourceLoc loc ARG_LD)
   Module source_module = (loc ? LD->modules.source : (Module) NULL);
   Module module = source_module;
   Module mhead;
-  term_t tmp  = PL_new_term_refs(3);
-  term_t head = tmp+1;
-  term_t body = tmp+2;
+  term_t tmp      = PL_new_term_refs(4);
+  term_t head     = tmp+1;
+  term_t body     = tmp+2;
+  term_t warnings = (owner ? tmp+3 : 0);
   Word h, b;
   functor_t fdef;
 
@@ -2954,7 +3101,7 @@ assert_term(term_t term, int where, atom_t owner, SourceLoc loc ARG_LD)
   b = valTermRef(body);
   deRef(h);
   deRef(b);
-  if ( compileClause(&clause, h, b, proc, module PASS_LD) != TRUE )
+  if ( compileClause(&clause, h, b, proc, module, warnings PASS_LD) != TRUE )
     return NULL;
   DEBUG(2, Sdprintf("ok\n"));
   def = getProcDefinition(proc);
@@ -3019,7 +3166,21 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
     addProcedureSourceFile(of, proc);
     of->current_procedure = proc;
-    return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
+    if ( assertProcedure(proc, clause, where PASS_LD) )
+    { if ( warnings && !PL_get_nil(warnings) )
+      { fid_t fid = PL_open_foreign_frame();
+	term_t cl = PL_new_term_ref();
+
+	PL_put_clref(cl, clause);
+	printMessage(ATOM_warning, PL_FUNCTOR_CHARS, "compiler_warnings", 2,
+				     PL_TERM, cl,
+				     PL_TERM, warnings);
+	PL_discard_foreign_frame(fid);
+      }
+
+      return clause;
+    }
+    return NULL;
   }
 
   /* assert[az]/1 */

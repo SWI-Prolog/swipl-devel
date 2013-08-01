@@ -4442,7 +4442,7 @@ atom is referenced by the goal-term anyway.
 
       lTop = NFR;
       setNextFrameFlags(NFR, FR);
-      rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module PASS_LD);
+      rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module, 0 PASS_LD);
       if ( rc == FALSE )
 	THROW_EXCEPTION;
       if ( rc == LOCAL_OVERFLOW )

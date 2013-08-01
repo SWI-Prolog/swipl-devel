@@ -129,7 +129,8 @@ COMMON(int)		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
 					 Module *m ARG_LD);
 COMMON(int)		compileClause(Clause *cp, Word head, Word body,
-				      Procedure proc, Module module ARG_LD);
+				      Procedure proc, Module module,
+				      term_t warnings ARG_LD);
 COMMON(Clause)		assert_term(term_t term, int where, atom_t owner,
 				    SourceLoc loc ARG_LD);
 COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
