@@ -571,7 +571,7 @@ SO_pic="-fpic"
 SO_PIC="-fPIC"
 SO_LD="$CC"
 SO_EXT="so"
-SO_PATH="-Wl,-rpath=$PLBASE/lib/$PLARCH$RPATH_EXTRA"
+SO_RPATH="-Wl,-rpath=$PLBASE/lib/$PLARCH$RPATH_EXTRA"
 DLLIBVAR=LD_LIBRARY_PATH
 MINGW="false"
 
@@ -622,7 +622,7 @@ case "$PLARCH" in
 	SO_pic="-fno-common"
 	SO_PIC="-fno-common"
 	SO_LDFLAGS="-bundle -dynamic -flat_namespace -undefined suppress"
-	SO_PATH=""
+	SO_RPATH=""
 	DLLIBVAR=DYLD_LIBRARY_PATH
 	AC_DEFINE(USE_SEM_OPEN, 1,
 		  [Define if we must use sem_open() instead of the preferred sem_init()])
@@ -1917,7 +1917,7 @@ dnl by the static library.
 if test "$MKSHARED" = yes; then
   MKLIBS="$MKLIBS sharedlib"
   CMFLAGS="$CMFLAGS $SO_PIC"
-  LDFLAGS="$LDFLAGS $SO_PATH"
+  LDFLAGS="$LDFLAGS $SO_RPATH"
   LNLIBS=""
   AC_DEFINE(O_SHARED_KERNEL, 1,
 	    "Define if Prolog kernel is in shared object")
