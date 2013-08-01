@@ -639,6 +639,7 @@ case "$PLARCH" in
 	SO_EXT="dll"
 	SO_pic=""
 	SO_PIC=""
+	SO_PATH=PATH
 	case $(uname) in
 	    MINGW*)
 		DLLIBVAR=PATH
@@ -672,11 +673,12 @@ case "$PLARCH" in
 	;;
 esac
 
+if test "x$SO_PATH"     = "x"; then SO_PATH="$DLLIBVAR"; fi
 if test "x$WINEPATHEXE" = "x"; then WINEPATHEXE=":"; fi
 
 AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
 		   [Define to the extension of shared objects (often .so)])
-AC_DEFINE_UNQUOTED(SO_PATH,    "$DLLIBVAR",
+AC_DEFINE_UNQUOTED(SO_PATH,    "$SO_PATH",
 		   [Search path for shared objects (often LD_LIBRARY_PATH)])
 AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD",
 		   [Program to link shared objects])
