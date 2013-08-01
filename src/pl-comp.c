@@ -5199,6 +5199,7 @@ unify_vmi(term_t t, Code bp)
 
       switch(ats[an])
       { case CA1_VAR:
+        case CA1_FVAR:
 	case CA1_CHP:
 	{ int vn =  VARNUM(*bp++);
 
@@ -5451,6 +5452,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	  switch(ats[an])
 	  { case CA1_VAR:
+	    case CA1_FVAR:
 	    case CA1_CHP:
 	    { size_t vn, i;
 
@@ -5458,7 +5460,8 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 		fail;
 	      i = VAROFFSET(vn);
 	      Output_a(ci, i);
-	      if ( ats[an] == CA1_VAR && ci->clause->prolog_vars < i )
+	      if ( (ats[an] == CA1_VAR || ats[an] == CA1_FVAR) &&
+		   ci->clause->prolog_vars < i )
 		ci->clause->prolog_vars = (unsigned int)i;
 	      if ( ci->clause->variables < i )
 		ci->clause->variables = (unsigned int)i;
@@ -5733,15 +5736,16 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
 static int
 not_breakable(atom_t op, Clause clause, int offset)
 { GET_LD
-  term_t brk;
+  term_t av;
 
-  if ( (brk=PL_new_term_ref()) &&
-       PL_unify_term(brk,
+  if ( (av=PL_new_term_refs(2)) &&
+       PL_put_clref(av+1, clause) &&
+       PL_unify_term(av,
 		     PL_FUNCTOR, FUNCTOR_break2,
-		       PL_POINTER, clause,
+		       PL_TERM, av+1,
 		       PL_INT, offset) )
     return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		    op, ATOM_break, brk);
+		    op, ATOM_break, av+0);
 
   return FALSE;
 }
@@ -6040,7 +6044,7 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
     *PC = encode(D_BREAK);
     set(clause, HAS_BREAKPOINTS);
 
-    return callEventHook(PLEV_BREAK, clause, offset);
+    return TRUE;
   } else
   { return not_breakable(ATOM_set, clause, offset);
   }
@@ -6073,7 +6077,7 @@ clearBreak(Clause clause, int offset)
   freeHeap(bp, sizeof(*bp));
   deleteSymbolHTable(breakTable, s);
 
-  return callEventHook(PLEV_NOBREAK, clause, offset);
+  return TRUE;
 }
 
 
@@ -6134,6 +6138,9 @@ PRED_IMPL("$break_at", 3, break_at, 0)
   else
     rc = clearBreak(clause, offset);
   PL_UNLOCK(L_BREAK);
+
+  if ( rc )
+    return callEventHook(doit ? PLEV_BREAK : PLEV_NOBREAK, clause, offset);
 
   return rc;
 }

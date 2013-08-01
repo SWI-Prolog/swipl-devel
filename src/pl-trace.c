@@ -107,7 +107,7 @@ PL_get_frame(term_t r, LocalFrame *fr)
 }
 
 
-static void
+void
 PL_put_choice(term_t t, Choice ch)
 { GET_LD
 
@@ -1250,7 +1250,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	{ debugstatus.retryFrame = fr;
 	  rval = ACTION_RETRY;
 	} else
-	  PL_warning("prolog_trace_interception/3: bad argument to retry/1");
+	  PL_warning("prolog_trace_interception/4: bad argument to retry/1");
       }
     }
 

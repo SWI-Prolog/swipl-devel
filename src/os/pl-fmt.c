@@ -68,6 +68,12 @@ typedef struct
 #define FMT_EXEPTION()	return (void)Sunlock(fd), FALSE
 
 
+static PL_locale prolog_locale =
+{ 0,0,LOCALE_MAGIC,1,
+  L".", NULL
+};
+
+
 static int
 update_column(int col, int c)
 { switch(c)
@@ -527,7 +533,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  if ( c == 'f' && mod_colon )
 		    l = fd->locale;
 		  else
-		    l = NULL;
+		    l = &prolog_locale;
 
 		  initBuffer(&u.b);
 		  rc = formatFloat(l, c, arg, &n, &u.b1) != NULL;
@@ -972,14 +978,10 @@ revert_string(char *s, size_t len)
 static char *
 formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
 	     Buffer out)
-{ static PL_locale no_locale = {0};
-  const char *grouping = NULL;
+{ const char *grouping = NULL;
 
   if ( !locale )
-  { if ( !no_locale.decimal_point )
-    { no_locale.decimal_point = L".";
-    }
-    locale = &no_locale;
+  { locale = &prolog_locale;
   } else
   { if ( locale->grouping && locale->grouping[0] &&
 	 locale->thousands_sep && locale->thousands_sep[0] )
@@ -1151,32 +1153,71 @@ ths_to_utf8(char *u8, const wchar_t *s, size_t len)
 
 
 static int
+same_decimal_point(PL_locale *l1, PL_locale *l2)
+{ if ( l1->decimal_point && l2->decimal_point &&
+       wcscmp(l1->decimal_point, l2->decimal_point) == 0 )
+    return TRUE;
+  if ( !l1->decimal_point && !l2->decimal_point )
+    return TRUE;
+
+  return FALSE;
+}
+
+
+static int
+utf8_dp(PL_locale *l, char *s, int *len)
+{ if ( l->decimal_point )
+  { if ( !ths_to_utf8(s, l->decimal_point, 20) )
+      return FALSE;
+    *len = strlen(s);
+  } else
+  { *s++ = '.';
+    *s = EOS;
+    *len = 1;
+  }
+
+  return TRUE;
+}
+
+
+/* localizeDecimalPoint() replaces the decimal point as entered by the
+   local sensitive print functions by the one in the specified locale.
+   This is overly complicated. Needs more testing, in particular for
+   locales with (in UTF-8) multibyte decimal points.
+*/
+
+static int
 localizeDecimalPoint(PL_locale *locale, Buffer b)
-{ if ( locale->decimal_point && locale->decimal_point[0] &&
-       !(locale->decimal_point[0] == '.' &&
-	 locale->decimal_point[1] == 0) )
+{ if ( locale == GD->locale.default_locale ||
+       same_decimal_point(GD->locale.default_locale, locale) )
+    return TRUE;
+
+  if ( locale->decimal_point && locale->decimal_point[0] )
   { char *s = baseBuffer(b, char);
     char *e;
-    char dp[20];
-    int dplen;
+    char dp[20];  int dplen;
+    char ddp[20]; int ddplen;
 
-    if ( !ths_to_utf8(dp, locale->decimal_point, sizeof(dp)) )
+    if ( !utf8_dp(locale, dp, &dplen) ||
+	 !utf8_dp(GD->locale.default_locale, ddp, &ddplen) )
       return FALSE;
-    dplen = strlen(dp);
 
     if ( *s == '-' )
       s++;
     for(e=s; *e && isDigit(*e); e++)
       ;
 
-    if ( *e == '.' )				/* always? */
-    { if ( dplen == 1 )
-      { *e = dp[0];
-      } else if ( growBuffer(b, dplen-1) )
-      { memmove(&e[dplen-1], e, strlen(e)+1);
-	memcpy(e, dp, dplen);
+    if ( strncmp(e, ddp, ddplen) == 0 )
+    { if ( dplen == ddplen )
+      { memcpy(e, dp, dplen);
       } else
-      { return PL_no_memory();
+      { char *ob = baseBuffer(b, char);
+	if ( dplen > ddplen && !growBuffer(b, dplen-ddplen) )
+	  return PL_no_memory();
+	e += baseBuffer(b, char) - ob;
+
+	memmove(&e[dplen-ddplen], e, strlen(e)+1);
+	memcpy(e, dp, dplen);
       }
     }
   }

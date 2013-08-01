@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -81,7 +81,7 @@ Virtual machine instruction names.  Prefixes:
   H_	Head specific versin
   A_	Arithmetic compilation specific
   C_	Control (compilation of ;/2, etc.)
-  S_   Supervisor instructions.  See pl-supervisor.c
+  S_    Supervisor instructions.  See pl-supervisor.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -134,23 +134,60 @@ breakable instruction (which is what D_BREAK is supposed to replace).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(D_BREAK, 0, 0, ())
-{
-#if O_DEBUGGER
-  if ( debugstatus.debugging )
-  { debugstatus.tracing = TRUE;		/* HACK: avoid printMessage() */
-    tracemode(TRUE, NULL);		/* in tracemode() */
-    DEBUG(1, Sdprintf("Hit break\n"));
-  }
-#if VMCODE_IS_ADDRESS
-  { void *c = (void *)replacedBreak(PC-1);
+{ code c = replacedBreak(PC-1);
+  break_action a;
+  int pop;				/* arithmetic stack to pop */
 
-    goto *c;
+  switch(c)
+  { case I_ENTER:
+      ARGP = argFrameP(lTop, 0);	/* enter body mode */
+      break;
+  }
+
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+
+  LD->query->next_environment = lTop;
+  SAVE_REGISTERS(qid);
+  setLTopInBody();
+  DEBUG(0, memset(lTop, 0xbf, sizeof(word)*100));
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+  a = callBreakHook(FR, BFR, PC-1, decode(c), &pop PASS_LD);
+  LOAD_REGISTERS(qid);
+  lTop = LD->query->next_environment;
+  LD->query->next_environment = NULL;
+  DEBUG(CHK_SECURE, checkStacks(NULL));
+
+  switch ( a )
+  { case BRK_ERROR:
+      break;
+    case BRK_TRACE:
+      tracemode(TRUE, NULL);
+      /*FALLTHROUGH*/
+    case BRK_DEBUG:
+      debugmode(TRUE, NULL);
+      /*FALLTHROUGH*/
+    case BRK_CONTINUE:
+      break;
+    case BRK_CALL:
+      if ( pop )			/* reset arithmetic stack */
+      { popArgvArithStack(pop PASS_LD);
+	AR_END();
+      }
+      PC = stepPC(PC-1);		/* skip the old calling instruction */
+      VMI_GOTO(I_USERCALL0);
+  }
+
+  if ( a == BRK_ERROR )
+    goto b_throw;
+
+#if VMCODE_IS_ADDRESS
+  { void *addr = (void *)c;
+    goto *addr;
   }
 #else
-  thiscode = replacedBreak(PC-1);
+  thiscode = c;
   goto resumebreak;
 #endif
-#endif /*O_DEBUGGER*/
 }
 
 
@@ -556,7 +593,7 @@ writing in this frame. As ARGP is pointing   in the argument list, it is
 on the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(H_FIRSTVAR, 0, 1, (CA1_VAR))
+VMI(H_FIRSTVAR, 0, 1, (CA1_FVAR))
 { if ( umode == uwrite )
   { setVar(*ARGP);
     varFrame(FR, *PC++) = makeRefG(ARGP);
@@ -714,7 +751,7 @@ predicates:
 	pred([H|T], ...) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
+VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
 { Word p;
 
   if ( umode == uwrite )
@@ -1025,7 +1062,7 @@ Note  that  the  B_UNIFY_FIRSTVAR  assumes  write   mode,  but  this  is
 unimportant because the compiler generates write (B_*) instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_VAR))
+VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_FVAR))
 { ARGP = varFrameP(FR, (int)*PC++);
   setVar(*ARGP);			/* needed for GC */
   goto unify_var_cont;
@@ -1075,7 +1112,7 @@ VMI(B_UNIFY_EXIT, VIF_BREAK, 0, ())
 Unify two variables.  F stands for a first-var; V for any other var
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
+VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
@@ -1097,7 +1134,7 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 }
 
 
-VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
+VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
@@ -1154,7 +1191,7 @@ B_UNIFY_FC: Unify first variable with a constant.  Always succeeds, no
 need for wakeup.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
+VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
@@ -1338,7 +1375,7 @@ ARGP points to the argument of a term on the global stack. The reference
 should therefore go from k to ARGP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_ARGFIRSTVAR, 0, 1, (CA1_VAR))
+VMI(B_ARGFIRSTVAR, 0, 1, (CA1_FVAR))
 { setVar(*ARGP);
   varFrame(FR, *PC++) = makeRefG(ARGP++);
   NEXT_INSTRUCTION;
@@ -1352,7 +1389,7 @@ to be a variable (it is uninitialised   memory) and make a reference. No
 trailing needed as we are writing in this and the next frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_FIRSTVAR, 0, 1, (CA1_VAR))
+VMI(B_FIRSTVAR, 0, 1, (CA1_FVAR))
 { Word k = varFrameP(FR, *PC++);
 
   setVar(*k);
@@ -2108,14 +2145,14 @@ wired in the clause.  Its task is to make the n-th variable slot of  the
 current frame to be a variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(C_VAR, 0, 1, (CA1_VAR))
+VMI(C_VAR, 0, 1, (CA1_FVAR))
 { setVar(varFrame(FR, *PC++));
 
   NEXT_INSTRUCTION;
 }
 
 
-VMI(C_VAR_N, 0, 2, (CA1_VAR,CA1_INTEGER))
+VMI(C_VAR_N, 0, 2, (CA1_FVAR,CA1_INTEGER))
 { Word vp = varFrameP(FR, *PC++);
   size_t count = *PC++;
 
@@ -3078,7 +3115,7 @@ normal variable. This case is very   common,  especially with relatively
 small integers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
+VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
 { Word rp  = varFrameP(FR, *PC++);	/* A = */
   Word np  = varFrameP(FR, *PC++);	/* B + */
   intptr_t add = (intptr_t)*PC++;	/* <int> */
@@ -3365,7 +3402,7 @@ TBD: link with following B_VAR? How  frequent?   Likely  very: we are in
 body mode and in many cases the result is used only once.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_VAR)) /* A is B */
+VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_FVAR)) /* A is B */
 { Number n = argvArithStack(1 PASS_LD);
   word w;
   int rc;
@@ -3930,7 +3967,7 @@ VMI(I_CATCH, 0, 0, ())
 }
 
 
-VMI(I_EXITCATCH, VIF_BREAK, 0, ())
+VMI(I_EXITCATCH, 0, 0, ())
 { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
   { assert(BFR->type == CHP_CATCH);
     BFR = BFR->parent;
@@ -4256,7 +4293,7 @@ BEGIN_SHAREDVARS
 #ifdef O_CALL_AT_MODULE
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CALLATM: procedure-module, context-module, procedure
-The procedure-module is provided to support the compiler.
+The procedure-module is provided to support the decompiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))

@@ -366,6 +366,106 @@ than the level of the variable.  See also prolog_skip_frame/1.
 \end{description}
 
 
+\section{Breakpoint and watchpoint handling}
+\label{sec:breakpoint}
+
+SWI-Prolog support \jargon{breakpoints}.  Breakpoints can be manipulated
+with the library \pllib{prolog_breakpoints}. Setting a breakpoint
+replaces a virtual machine instruction with the \const{D_BREAK}
+instruction.  If the virtual machine executes a \const{D_BREAK}, it
+performs a callback to decide on the action to perform.  This section
+describes this callback, called prolog:break_hook/6.
+
+\begin{description}
+    \predicate[hook,semidet]{prolog:break_hook}{6}{+Clause, +PC, +FR,
+						   +BFR, +Expression, -Action}
+\emph{Experimental}
+This hook is called if the virtual machine executes a \const{D_BREAK},
+set using set_breakpoint/4. \arg{Clause} and \arg{PC} identify the
+breakpoint. \arg{FR} and \arg{BFR} provide the environment frame and
+current choicepoint.  \arg{Expression} identifies the action that is
+interrupted, and is one of the following:
+
+    \begin{description}
+	\termitem{call}{Goal}
+    The instruction will call \arg{Goal}.  This is generated for nearly
+    all instructions. Note that \arg{Goal} is semantically
+    equivalent to the compiled body term, but might differ
+    syntactically. This is notably the case when artithmetic expressions
+    are compiled in optimized mode (see \prologflag{optimise}).  In
+    particular, the arguments of arithmetic expressions have already
+    been evaluated.  Thus, \arg{A} is 3*\arg{B}, where \arg{B} equals
+    3 results in a term \exam{call(A is 9)} if the clause was compiled
+    with optimization enabled.
+
+        \termitem{!}{}
+    The instruction will call the cut. Because the semantics of
+    metacalling the cut differs from executing the cut in its
+    original context we do not wrap the cut in \funcref{call}{1}.
+
+	\termitem{:-}{}
+    The breakpoint is on the \jargon{neck} instruction, i.e., after
+    performing the head unifications.
+
+	\termitem{exit}{}
+    The breakpoint is on the \jargon{exit} instruction, i.e., at the
+    end of the clause. Note that the exit instruction may not be reached
+    due to last-call optimisation.
+
+	\termitem{unify_exit}{}
+    The breakpoint is on the completion of an in-lined unification while
+    the system is not in debug mode.  If the system is in debug mode,
+    inlined unification is returned as call(Var=Term).\footnote{This
+    hack will disappear if we find a good solution for applying D_BREAK
+    to inlined unification.  Only option might be to place the break on
+    both the unification start and end instructions.}
+    \end{description}
+
+If prolog:break_hook/6 succeeds, it must unify \arg{Action} with a value
+that describes how execution must continue. Possible values for
+\arg{Action} are:
+
+    \begin{description}
+	\termitem{continue}{}
+    Just continue as if no breakpoint was present.
+
+	\termitem{debug}{}
+    Continue in \jargon{debug mode}.  See debug/0.
+
+	\termitem{trace}{}
+    Continue in \jargon{trace mode}.  See trace/0.
+
+	\termitem{call}{Goal}
+    Execute \arg{Goal} instead of the goal that would be executed.
+    \arg{Goal} is executed as call/1, preserving (non-)determinism
+    and exceptions.
+    \end{description}
+
+If this hook throws an exception, the exception is propagated normally.
+If this hook is not defined or fails, the default action is executed.
+This implies that, if the thread is in debug mode, the tracer will be
+enabled (\const{trace}) and otherwise the breakpoint is ignored
+(\const{continue}).
+
+This hook allows for injecting various debugging scenarios into the
+executable without recompiling. The hook can access variables of the
+calling context using the frame inspection predicates. Here are some
+examples.
+
+    \begin{itemize}
+	\item Create \jargon{conditional} breakpoints by imposing
+	conditions before deciding the return \const{trace}.
+	\item Watch variables at a specific point in the execution.
+	Note that binding of these variables can be monitored
+	using \jargon{attributed variables}, see \secref{attvar}.
+	\item Dynamically add \jargon{assertions} on variables
+	using assertion/1.
+	\item Wrap the \arg{Goal} into a meta-call that traces
+	progress of the \arg{Goal}.
+    \end{itemize}
+\end{description}
+
+
 \section{Adding context to errors: prolog_exception_hook}
 \label{sec:excepthook}
 

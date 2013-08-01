@@ -891,6 +891,9 @@ inspecting atoms:
 \begin{description}
     \cfunction{atom_t}{PL_new_atom_nchars}{size_t len, const char *s}
 Create a new atom as PL_new_atom(), but using the given length and characters.
+If \arg{len} is \exam{(size_t)-1}, it is computed from \arg{s} using
+strlen().
+
     \cfunction{const char *}{PL_atom_nchars}{atom_t a, size_t *len}
 Extract the text and length of an atom.
 \end{description}
@@ -913,16 +916,15 @@ using the GNU C library (glibc) this represents 32-bit UCS4 characters.
     \cfunction{atom_t}{PL_new_atom_wchars}{size_t len, const pl_wchar_t *s}
 Create atom from wide-character string as PL_new_atom_nchars() does for
 ISO-Latin-1 strings. If \arg{s} only contains ISO-Latin-1 characters a
-normal byte-array atom is created.
+normal byte-array atom is created. If \arg{len} is \exam{(size_t)-1}, it
+is computed from \arg{s} using wcslen().
 
     \cfunction{pl_wchar_t*}{PL_atom_wchars}{atom_t atom, int *len}
-Extract characters from a wide-character atom. Fails (returns
-\const{NULL}) if \arg{atom} is not a wide-character atom.  This is
-the wide-character version of PL_atom_nchars().  Note that only one
-of these functions succeeds on a particular atom.  Especially, after
-creating an atom with PL_new_atom_wchars(), extracting the text using
-PL_atom_wchars() will fail if the atom only contains ISO-Latin-1
-characters.
+Extract characters from a wide-character atom.  Succeeds on any atom
+marked as `text'.  If the underlying atom is a wide-character atom,
+the returned pointer is a pointer into the atom structure.  If it is
+an ISO-Latin-1 character, the returned pointer comes from Prolog's
+`buffer ring' (see PL_get_chars()).
 
     \cfunction{int}{PL_get_wchars}{term_t t, size_t *len,
 				   pl_wchar_t **s, unsigned flags}
@@ -1516,6 +1518,9 @@ call_chars(const char *goal)
   call_chars("consult(load)");
   ...
 \end{code}
+
+\cfunction{int}{PL_wchars_to_term}{const pl_wchar_t *chars, term_t -t}
+Wide character version of PL_chars_to_term().
 
 \cfunction{char *}{PL_quote}{int chr, const char *string}
     Return a quoted version of \arg{string}.  If \arg{chr} is

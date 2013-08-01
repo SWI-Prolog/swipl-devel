@@ -380,6 +380,9 @@ PL_new_atom_nchars(size_t len, const char *s)
 { if ( !GD->initialised )
     initAtoms();
 
+  if ( len == (size_t)-1 )
+    len = strlen(s);
+
   return (atom_t) lookupAtom(s, len);
 }
 
@@ -454,6 +457,9 @@ PL_new_atom_wchars(size_t len, const wchar_t *s)
 
   if ( !GD->initialised )
     initAtoms();
+
+  if ( len == (size_t)-1 )
+    len = wcslen(s);
 
   txt.text.w    = (wchar_t*)s;
   txt.length    = len;
@@ -643,6 +649,20 @@ PL_atom_wchars(atom_t a, size_t *len)
       *len = x->length / sizeof(pl_wchar_t);
 
     return (const wchar_t *)x->name;
+  } else if ( true(x->type, PL_BLOB_TEXT) )
+  { Buffer b = findBuffer(BUF_RING);
+    const char *s = (const char*)x->name;
+    const char *e = &s[x->length];
+
+    for(; s<e; s++)
+    { addBuffer(b, *s, wchar_t);
+    }
+    addBuffer(b, 0, wchar_t);
+
+    if ( len )
+      *len = x->length;
+
+    return baseBuffer(b, const wchar_t);
   } else
     return NULL;
 }
@@ -2059,6 +2079,9 @@ int
 PL_put_atom_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, len);
+
+  if ( len == (size_t)-1 )
+    len = strlen(s);
 
   setHandle(t, a);
   PL_unregister_atom(a);

@@ -24,6 +24,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-inline.h"
+#include "pl-dbref.h"
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
 #endif
@@ -64,6 +65,7 @@ count(code c, Code PC)
   counting[c].times++;
   switch(info->argtype)
   { case CA1_VAR:
+    case CA1_FVAR:
     case CA1_CHP:
     { int v = (int)*PC;
 
@@ -168,31 +170,33 @@ loffset__LD(void *p ARG_LD)
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
 { GET_LD
-  static LocalFrame ofr = NULL;
+  static LocalFrame ofr = NULL;		/* not thread-safe */
 
-  DEBUG(3,
-	if ( ofr != FR )
-	{ Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
-		   loffset(FR),
-		   levelFrame(FR),
-		   predicateName(FR->predicate));
-	  ofr = FR;
-	});
+  if ( DEBUGGING(MSG_VMI) )
+  { if ( ofr != FR )
+    { Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
+	       loffset(FR),
+	       levelFrame(FR),
+	       predicateName(FR->predicate));
+      ofr = FR;
+    }
 
-  DEBUG(3,
-	{ Code relto = NULL;
+    { Code relto = NULL;
+      intptr_t offset;
 
-	  if ( FR->predicate->codes )
-	  { int offset = PC - FR->predicate->codes;
+      if ( FR->predicate->codes &&
+	   (offset = (PC - FR->predicate->codes)) >= 0 &&
+	   (offset < (intptr_t)FR->predicate->codes[-1] ||
+	    (offset == 0 && FR->predicate->codes[-1] == 0)) ) /* see initSupervisors() */
+      { relto = FR->predicate->codes;
+      } else if ( FR->clause )
+      { relto = FR->clause->value.clause->codes;
+      } else
+	relto = NULL;
 
-	    if ( offset >= 0 && offset < (int)FR->predicate->codes[-1] )
-	      relto = FR->predicate->codes;
-	  } else if ( FR->clause )
-	  { relto = FR->clause->value.clause->codes;
-	  }
-
-	  Sdprintf("\t%4ld %s\n", (long)(PC-relto), codeTable[decode(*PC)].name);
-	});
+      Sdprintf("\t%4ld %s\n", (long)(PC-relto), codeTable[decode(*PC)].name);
+    }
+  }
 }
 
 #else
@@ -679,6 +683,475 @@ mustBeCallable(term_t call ARG_LD)
   succeed;
 }
 
+
+		 /*******************************
+		 *	   BREAKPOINTS		*
+		 *******************************/
+
+typedef enum
+{ BRK_ERROR = 0,			/* Exception */
+  BRK_CONTINUE,				/* continue execution */
+  BRK_TRACE,				/* trace from here */
+  BRK_DEBUG,				/* debug from here */
+  BRK_CALL				/* Call returned term */
+} break_action;
+
+#define SAVE_PTRS() \
+	frameref = consTermRef(frame); \
+	chref    = consTermRef(bfr); \
+	pcref    = (onStack(local, PC) ? consTermRef(PC) : 0);
+#define RESTORE_PTRS() \
+	frame = (LocalFrame)valTermRef(frameref); \
+	bfr   = (Choice)valTermRef(chref); \
+	PC    = (pcref ? (Code)valTermRef(pcref) : PC);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unify a pointer into a new  global  term   (g)  with  a  pointer into an
+environment as obtained from some instruction VAR argument. This assumes
+we have allocated enough trail stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+protect_var(Word v ARG_LD)
+{ term_t t = PL_new_term_ref_noshift();
+
+  if ( t )
+    *valTermRef(t) = makeRefL(v);
+  else
+    assert(0);		/* cannot happen due to MINFOREIGNSIZE */
+}
+
+
+static void
+unify_gl(Word g, Word l, int has_firstvar ARG_LD)
+{ if ( has_firstvar )
+    protect_var(l PASS_LD);
+
+  deRef(l);
+  if ( isVar(*l) )
+  { setVar(*g);
+    *l = makeRefG(g);
+    assert(tTop+1 < tMax);
+    LTrail(l);
+  } else if ( needsRef(*l) )
+  { *g = makeRef(l);
+  } else
+  { *g = *l;
+  }
+}
+
+
+static int
+put_call_goal(term_t t, Procedure proc ARG_LD)
+{ FunctorDef fd  = proc->definition->functor;
+
+  if ( fd->arity > 0 )
+  { Word        gt = allocGlobal(fd->arity+1);
+    LocalFrame NFR = LD->query->next_environment;
+    Word ap        = argFrameP(NFR, 0);
+    Word gp	   = gt;
+    int i;
+
+    if ( !gt )
+      return FALSE;			/* could not allocate */
+
+    DEBUG(MSG_TRACE,
+	  Sdprintf("Copy %d call args from %p\n", fd->arity, ap));
+
+    *gp++ = fd->functor;
+    for(i=0; i<fd->arity; i++)
+      unify_gl(gp++, ap++, FALSE PASS_LD);
+    *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+  } else
+  { *valTermRef(t) = fd->name;
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+put_vm_call() creates a description of  the   instruction  to  which the
+break applied.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
+	    int *pop ARG_LD)
+{ atom_t simple_goal;
+  functor_t ftor;
+  int clean;
+
+  switch(op)
+  { case I_CALL:			/* procedure */
+    case I_DEPART:
+    { return ( put_call_goal(t, (Procedure) PC[1] PASS_LD) &&
+	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
+    }
+    case I_CALLM:			/* module, procedure */
+    case I_DEPARTM:
+    { Module m = (Module)PC[1];
+      term_t av;
+
+      return ( (av = PL_new_term_refs(2)) &&
+	       PL_put_atom(av+0, m->name) &&
+	       put_call_goal(av+1, (Procedure) PC[2] PASS_LD) &&
+	       PL_cons_functor_v(t, FUNCTOR_colon2, av) &&
+	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
+    }
+    case I_CALLATM:			/* procm, contextm, proc */
+    case I_DEPARTATM:			/* call(@(procm:g, contextm)) */
+    { Module procm    = (Module)PC[1];
+      Module contextm = (Module)PC[2];
+      term_t av;
+
+      return ( (av = PL_new_term_refs(2)) &&
+	       PL_put_atom(av+0, procm->name) &&
+	       put_call_goal(av+1, (Procedure) PC[3] PASS_LD) &&
+	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
+	       PL_put_atom(av+1, contextm->name) &&
+	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
+	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
+    }
+    case I_CALLATMV:			/* procm, contextm, proc */
+    case I_DEPARTATMV:			/* call(@(procm:g, contextm)) */
+    { Module procm    = (Module)PC[1];
+      LocalFrame   fr = (LocalFrame)valTermRef(frref);
+      term_t      cmv = consTermRef(varFrameP(fr, (int)PC[2]));
+      term_t av;
+
+      return ( (av = PL_new_term_refs(2)) &&
+	       PL_put_atom(av+0, procm->name) &&
+	       put_call_goal(av+1, (Procedure) PC[3] PASS_LD) &&
+	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
+	       PL_put_term(av+1, cmv) &&
+	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
+	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
+    }
+    case I_USERCALL0:
+    { LocalFrame NFR = LD->query->next_environment;
+      term_t       g = consTermRef(argFrameP(NFR, 0));
+
+      return PL_cons_functor_v(t, FUNCTOR_call1, g);
+    }
+    case I_USERCALLN:			/* call(call(G, ...)) */
+    { int      extra = (int)PC[1];
+      functor_t   cf = PL_new_functor(ATOM_call, 1+extra);
+      LocalFrame NFR = LD->query->next_environment;
+      term_t       g = consTermRef(argFrameP(NFR, 0));
+
+      return ( PL_cons_functor_v(t, cf, g) &&
+	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
+    }
+    case I_FAIL:	simple_goal = ATOM_fail; goto simple;
+    case I_TRUE:	simple_goal = ATOM_true; goto simple;
+    simple:
+    { Word gt = allocGlobal(2);
+
+      gt[0] = FUNCTOR_call1;
+      gt[1] = simple_goal;
+      *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+
+      return TRUE;
+    }
+    case B_EQ_VC:    clean = 0x0; ftor = FUNCTOR_strict_equal2;     goto vc_2;
+    case B_NEQ_VC:   clean = 0x0; ftor = FUNCTOR_not_strict_equal2; goto vc_2;
+    case B_UNIFY_VC: clean = 0x0; ftor = FUNCTOR_equals2;           goto vc_2;
+    case B_UNIFY_FC: clean = 0x1; ftor = FUNCTOR_equals2;           goto vc_2;
+    vc_2:
+    { Word gt       = allocGlobal(2+1+2);	/* call(f(V,C)) */
+      LocalFrame fr = (LocalFrame)valTermRef(frref);
+      Word       v1 = varFrameP(fr, (int)PC[1]);
+
+      if ( !gt )
+	return FALSE;
+
+      if ( clean&0x1 ) setVar(*v1);
+
+      gt[0] = ftor;
+      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
+      gt[2] = (word)PC[2];
+      gt[3] = FUNCTOR_call1;
+      gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+      *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
+
+      return TRUE;
+    }
+    case B_EQ_VV:    clean = 0x0; ftor = FUNCTOR_strict_equal2;     goto fa_2;
+    case B_NEQ_VV:   clean = 0x0; ftor = FUNCTOR_not_strict_equal2; goto fa_2;
+    case B_UNIFY_FF: clean = 0x3; ftor = FUNCTOR_equals2;	    goto fa_2;
+    case B_UNIFY_FV: clean = 0x1; ftor = FUNCTOR_equals2;           goto fa_2;
+    case B_UNIFY_VV: clean = 0x0; ftor = FUNCTOR_equals2;           goto fa_2;
+    fa_2:
+    { Word gt       = allocGlobal(2+1+2);	/* call(A=B) */
+      LocalFrame fr = (LocalFrame)valTermRef(frref);
+      Word v1       = varFrameP(fr, (int)PC[1]);
+      Word v2       = varFrameP(fr, (int)PC[2]);
+
+      if ( !gt )
+	return FALSE;
+
+      if ( clean&0x1 ) setVar(*v1);
+      if ( clean&0x2 ) setVar(*v2);
+
+      gt[0] = ftor;
+      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
+      unify_gl(&gt[2], v2, has_firstvar PASS_LD);
+      gt[3] = FUNCTOR_call1;
+      gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+      *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
+
+      return TRUE;
+    }
+    case B_UNIFY_EXIT:
+    { if ( debugstatus.debugging )
+      { return ( put_call_goal(t, GD->procedures.equals2 PASS_LD) &&
+		 PL_cons_functor_v(t, FUNCTOR_call1, t) );
+      } else
+      { return PL_put_atom_chars(t, "unify_exit");
+      }
+    }
+    case I_VAR:		ftor = FUNCTOR_var1;    goto fa_1;
+    case I_NONVAR:	ftor = FUNCTOR_nonvar1; goto fa_1;
+    fa_1:
+    { Word gt       = allocGlobal(1+1+2);	/* call(f(A)) */
+      LocalFrame fr = (LocalFrame)valTermRef(frref);
+      Word       v1 = varFrameP(fr, (int)PC[1]);
+
+      if ( !gt )
+	return FALSE;
+
+      gt[0] = ftor;
+      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
+      gt[2] = FUNCTOR_call1;
+      gt[3] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+      *valTermRef(t) = consPtr(&gt[2], STG_GLOBAL|TAG_COMPOUND);
+
+      return TRUE;
+    }
+    case A_LT:	ftor = FUNCTOR_smaller2;       goto ar_2;
+    case A_LE:	ftor = FUNCTOR_smaller_equal2; goto ar_2;
+    case A_GT:	ftor = FUNCTOR_larger2;        goto ar_2;
+    case A_GE:	ftor = FUNCTOR_larger_equal2;  goto ar_2;
+    case A_EQ:	ftor = FUNCTOR_ar_equals2;     goto ar_2;
+    case A_NE:	ftor = FUNCTOR_ar_not_equal2;  goto ar_2;
+    ar_2:
+    { Number n1, n2;
+      term_t av;
+      int rc;
+
+      n1 = argvArithStack(2 PASS_LD);
+      n2 = n1+1;
+
+      rc = ((av = PL_new_term_refs(2)) &&
+	    PL_put_number(av+0, n1) &&
+	    PL_put_number(av+1, n2) &&
+	    PL_cons_functor_v(t, ftor, av) &&
+	    PL_cons_functor_v(t, FUNCTOR_call1, t));
+
+      *pop = 2;
+      return rc;
+    }
+    case A_IS:
+    { Number     val = argvArithStack(1 PASS_LD);
+      LocalFrame NFR = LD->query->next_environment;
+      term_t       r = consTermRef(argFrameP(NFR, 0));
+      term_t av;
+      int rc;
+
+      rc = ((av = PL_new_term_refs(2)) &&
+	    PL_put_term(av+0, r) &&
+	    PL_put_number(av+1, val) &&
+	    PL_cons_functor_v(t, FUNCTOR_is2, av) &&
+	    PL_cons_functor_v(t, FUNCTOR_call1, t));
+
+      *pop = 1;
+      return rc;
+    }
+    case A_FIRSTVAR_IS:			/* call(A is B) */
+    { Number     val = argvArithStack(1 PASS_LD);
+      LocalFrame  fr = (LocalFrame)valTermRef(frref);
+      Word A         = varFrameP(fr, (int)PC[1]);
+      term_t       r = consTermRef(A);
+      term_t av;
+      int rc;
+
+      setVar(*A);
+      rc = ((av = PL_new_term_refs(2)) &&
+	    PL_put_term(av+0, r) &&
+	    PL_put_number(av+1, val) &&
+	    PL_cons_functor_v(t, FUNCTOR_is2, av) &&
+	    PL_cons_functor_v(t, FUNCTOR_call1, t));
+
+      *pop = 1;
+      return rc;
+    }
+    case A_ADD_FC:
+    { Word gt       = allocGlobal(2+1+2+1+2);	/* call(A is B+Int) */
+      LocalFrame fr = (LocalFrame)valTermRef(frref);
+      Word A        = varFrameP(fr, (int)PC[1]);
+      Word B        = varFrameP(fr, (int)PC[2]);
+      intptr_t add  = (intptr_t)PC[3];
+
+      if ( !gt )
+	return FALSE;
+
+      setVar(*A);
+      gt[0] = FUNCTOR_plus2;
+      unify_gl(&gt[1], B, has_firstvar PASS_LD);
+      gt[2] = consInt(add);
+      gt[3] = FUNCTOR_is2;
+      unify_gl(&gt[4], A, has_firstvar PASS_LD);
+      gt[5] = consPtr(&gt[0], STG_GLOBAL|TAG_COMPOUND);
+      gt[6] = FUNCTOR_call1;
+      gt[7] = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
+      *valTermRef(t) = consPtr(&gt[6], STG_GLOBAL|TAG_COMPOUND);
+
+      return TRUE;
+    }
+    case I_CUT:
+      return PL_put_atom(t, ATOM_cut);
+    case I_ENTER:
+      return PL_put_atom(t, ATOM_prove);
+    case I_EXIT:
+      return PL_put_atom(t, ATOM_exit);
+    default:
+      assert(0);
+      return PL_put_atom_chars(t, codeTable[op].name);
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+callBreakHook() calls prolog:break_hook/6 as
+
+    prolog:break_hook(+Clause, +PC, +Frame, +Choice, +Goal, -Action) is semidet.
+
+(*) If put_vm_call() addresses  `F`  (first   var)  variables,  it  will
+initialise these to bind to the  goal.   However,  if GC comes along, it
+will reset these variables.  Therefore,  we   fake  GC  that  we already
+executed this instruction. The price is   that  V (normal var) arguments
+are not marked as used, and GC migh   thus  clean them. We fix that with
+protect_var(), which creates a  term-reference   to  the local variable,
+such that it is marked from the foreign environment.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static break_action
+callBreakHook(LocalFrame frame, Choice bfr,
+	      Code PC, code op, int *pop ARG_LD)
+{ predicate_t proc;
+  fid_t cid;
+  term_t frameref, chref, pcref;
+  wakeup_state wstate;
+  size_t pc_offset;
+
+  *pop = 0;
+
+  proc = _PL_predicate("break_hook", 6, "prolog",
+		       &GD->procedures.prolog_break_hook6);
+  if ( !getProcDefinition(proc)->impl.any )
+    goto default_action;
+
+  if ( strchr(codeTable[op].argtype, CA1_FVAR) )
+    pc_offset = stepPC(PC)-PC;
+  else
+    pc_offset = 0;
+
+  SAVE_PTRS();
+
+  /* make enough space to avoid GC/shift in the	critical region*/
+  if ( !hasGlobalSpace(10) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(10, ALLOW_GC)) != TRUE )
+    { raiseStackOverflow(rc);
+      return BRK_ERROR;
+    }
+  }
+
+  if ( saveWakeup(&wstate, FALSE PASS_LD) )
+  { if ( (cid=PL_open_foreign_frame()) )
+    { term_t argv = PL_new_term_refs(6);
+      Clause clause = frame->clause->value.clause;
+      qid_t qid;
+
+      RESTORE_PTRS();
+      PL_put_clref(argv+0, clause);
+      PL_put_intptr(argv+1, PC - clause->codes);
+      PL_put_frame(argv+2, frame);
+      PL_put_choice(argv+3, bfr);
+      if ( put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop PASS_LD) )
+      { DEBUG(CHK_SECURE, checkStacks(NULL));
+	if ( (qid = PL_open_query(MODULE_user,
+				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
+	{ int rc;
+
+	  LD->query->parent->registers.pc += pc_offset; /* see (*) */
+	  rc = PL_next_solution(qid);
+	  LD->query->parent->registers.pc -= pc_offset;
+	  PL_cut_query(qid);
+
+	  if ( rc )
+	  { atom_t a_action;
+	    break_action action;
+
+	    if ( PL_get_atom(argv+5, &a_action) )
+	    { if ( a_action == ATOM_continue )
+	      { action = BRK_CONTINUE;
+	      } else if ( a_action == ATOM_trace )
+	      { action = BRK_TRACE;
+	      } else if ( a_action == ATOM_debug )
+	      { action = BRK_DEBUG;
+	      } else
+		goto invalid_action;
+
+	      PL_close_foreign_frame(cid);
+	      restoreWakeup(&wstate PASS_LD);
+
+	      return action;
+	    } else if ( PL_is_functor(argv+5, FUNCTOR_call1) )
+	    { LocalFrame NFR = LD->query->next_environment;
+	      Word p = valTermRef(argv+5);
+
+	      deRef(p);
+	      assert(hasFunctor(p[0], FUNCTOR_call1));
+	      p = argTermP(*p, 0);
+	      deRef(p);
+	      argFrame(NFR, 0) = *p;
+
+	      PL_close_foreign_frame(cid);
+	      restoreWakeup(&wstate PASS_LD);
+
+	      return BRK_CALL;
+	    } else
+	    { invalid_action:
+	      PL_warning("prolog:break_hook/6: invalid action");
+	    }
+	  }
+	}
+      }
+
+      PL_discard_foreign_frame(cid);
+    }
+    restoreWakeup(&wstate PASS_LD);
+  }
+
+default_action:
+  if ( exception_term )
+    return BRK_ERROR;
+  if ( debugstatus.debugging )
+    return BRK_TRACE;
+
+  return BRK_CONTINUE;
+}
+
+#undef SAVE_PTRS
+#undef RESTORE_PTRS
+
+
+		 /*******************************
+		 *    DESTRUCTIVE ASSIGNMENT	*
+		 *******************************/
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
@@ -1717,6 +2190,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->solutions         = 0;
   qf->exception		= 0;
   qf->registers.fr      = NULL;		/* invalid */
+  qf->next_environment  = NULL;		/* see D_BREAK */
 
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
