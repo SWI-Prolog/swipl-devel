@@ -61,7 +61,8 @@ make :-
 
 make_no_trace :-
 	'$update_library_index',
-	findall(File, modified_file(File), Reload),
+	findall(File, modified_file(File), Reload0),
+	list_to_set(Reload0, Reload),
 	print_message(silent, make(reload(Reload))),
 	maplist(reload_file, Reload),
 	print_message(silent, make(done(Reload))),
