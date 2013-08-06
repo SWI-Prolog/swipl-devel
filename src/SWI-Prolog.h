@@ -379,8 +379,8 @@ PL_EXPORT(atom_t)	PL_new_atom(const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_nchars(size_t len, const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const pl_wchar_t *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
-PL_EXPORT(const char *) PL_atom_nchars(atom_t a, size_t *len);
-PL_EXPORT(const wchar_t *) PL_atom_wchars(atom_t a, size_t *len);
+PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
+PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
 #ifndef O_DEBUG_ATOMGC
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
@@ -815,7 +815,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_NEWLINE	       0x2000	/* Add a newline */
 #define PL_WRT_VARNAMES	       0x4000	/* Internal: variable_names(List)  */
 
-PL_EXPORT(int) PL_write_term(IOSTREAM *s,
+PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 			     term_t term,
 			     int precedence,
 			     int flags);
@@ -829,7 +829,7 @@ PL_EXPORT(int)		PL_ttymode(IOSTREAM *s);
 
 #endif /*SIO_MAGIC*/
 
-PL_EXPORT(int) PL_chars_to_term(const char *chars,
+PL_EXPORT(int)	PL_chars_to_term(const char *chars,
 				term_t term);
 PL_EXPORT(int) PL_wchars_to_term(const pl_wchar_t *chars,
 				 term_t term);
@@ -873,7 +873,7 @@ PL_EXPORT(char *)	PL_prompt_string(int fd);
 PL_EXPORT(void)		PL_write_prompt(int dowrite);
 PL_EXPORT(void)		PL_prompt_next(int fd);
 PL_EXPORT(char *)	PL_atom_generator(const char *prefix, int state);
-PL_EXPORT(pl_wchar_t*)  PL_atom_generator_w(const pl_wchar_t *pref,
+PL_EXPORT(pl_wchar_t*)	PL_atom_generator_w(const pl_wchar_t *pref,
 					    pl_wchar_t *buffer,
 					    size_t buflen,
 					    int state);
@@ -921,9 +921,9 @@ PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 #define PL_SIGNOFRAME	0x00020000	/* Do not create a Prolog frame */
 
 PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
-PL_EXPORT(void) PL_interrupt(int sig);
-PL_EXPORT(int)  PL_raise(int sig);
-PL_EXPORT(int)  PL_handle_signals(void);
+PL_EXPORT(void)	PL_interrupt(int sig);
+PL_EXPORT(int)	PL_raise(int sig);
+PL_EXPORT(int)	PL_handle_signals(void);
 PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 
 
@@ -948,8 +948,8 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 #define PL_BT_USER		0x2	/* Only show user-goals */
 
 PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
-PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
-PL_EXPORT(void) PL_backtrace(int depth, int flags);
+PL_EXPORT(void)	PL_on_halt(void (*)(int, void *), void *);
+PL_EXPORT(void)	PL_backtrace(int depth, int flags);
 PL_EXPORT(int)	PL_check_data(term_t data);
 PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
 
@@ -992,7 +992,7 @@ typedef struct
 
 
 PL_EXPORT(int)	PL_thread_self(void);	/* Prolog thread id (-1 if none) */
-PL_EXPORT(int)  PL_unify_thread_id(term_t t, int i);
+PL_EXPORT(int)	PL_unify_thread_id(term_t t, int i);
 PL_EXPORT(int)	PL_get_thread_id_ex(term_t t, int *idp);
 PL_EXPORT(int)	PL_get_thread_alias(int tid, atom_t *alias);	/* Locks alias */
 PL_EXPORT(int)	PL_thread_attach_engine(PL_thread_attr_t *attr);
@@ -1002,9 +1002,9 @@ PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 				  int global);
 PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
 #if defined(_WINDOWS_) || defined(_WINDOWS_H)	/* <windows.h> is included */
-PL_EXPORT(int) PL_w32thread_raise(DWORD dwTid, int sig);
-PL_EXPORT(int) PL_wait_for_console_input(void *handle);
-PL_EXPORT(int) PL_w32_wrap_ansi_console(void);
+PL_EXPORT(int)	PL_w32thread_raise(DWORD dwTid, int sig);
+PL_EXPORT(int)	PL_wait_for_console_input(void *handle);
+PL_EXPORT(int)	PL_w32_wrap_ansi_console(void);
 #endif
 
 		 /*******************************
@@ -1067,10 +1067,10 @@ typedef struct
   } value;
 } xpceref_t;
 
-PL_EXPORT(int) _PL_get_xpce_reference(term_t t, xpceref_t *ref);
-PL_EXPORT(int) _PL_unify_xpce_reference(term_t t, xpceref_t *ref);
-PL_EXPORT(int) _PL_put_xpce_reference_i(term_t t, uintptr_t r);
-PL_EXPORT(int) _PL_put_xpce_reference_a(term_t t, atom_t name);
+PL_EXPORT(int)	_PL_get_xpce_reference(term_t t, xpceref_t *ref);
+PL_EXPORT(int)	_PL_unify_xpce_reference(term_t t, xpceref_t *ref);
+PL_EXPORT(int)	_PL_put_xpce_reference_i(term_t t, uintptr_t r);
+PL_EXPORT(int)	_PL_put_xpce_reference_a(term_t t, atom_t name);
 
 
 
