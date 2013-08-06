@@ -377,6 +377,7 @@ create_solvers([H|T], M, X, Done, [Id|IDs], Options) :-
 	create_solvers(T, M, X, Done, IDs, Options).
 
 solve(Goal, Var, Queue) :-
+	thread_self(Me),
 	(   catch(Goal, E, true)
 	->  (   var(E)
 	    ->  thread_send_message(Queue, done(Me, Var))
