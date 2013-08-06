@@ -74,6 +74,9 @@ case "$PLARCH" in
         SOLIB=bin
         TXTEXT=.TXT
         ;;
+    *-cygwin)
+        SOLIB=bin
+        ;;
     *)
         SOLIB=lib
         INSTALL_PLARCH=$PLARCH
