@@ -177,11 +177,11 @@ get_foreign_head(M:Spec, Func, M:Head) :-
 
 check_head(_:Head) :-
 	functor(Head, _, Arity),
-	(   arg(N, Head, [-T]),
+	(   arg(_, Head, [-T]),
 	    \+ valid_type(T)
 	->  warning('Bad return type ~w in ~w', [T, Head]),
 	    fail
-	;   arg(N, Head, [-T]),
+	;   arg(N, Head, [-_T]),
 	    N \== Arity
 	->  warning('Return type must be last in ~w', Head),
 	    fail
