@@ -43,6 +43,7 @@
 	, (rm)/1
 	]).
 :- use_module(library(lists), [nth1/3]).
+:- use_module(library(error)).
 :- set_prolog_flag(generate_debug_info, false).
 
 % :- op(900, fy, [ls, cd, pushd, rm, grep]).
@@ -188,17 +189,29 @@ rm(File) :-
 name_to_atom(Spec, File) :-
 	(   atom(Spec)
 	->  S1 = Spec
-	;   format(atom(S1), '~w', [Spec])
+	;   phrase(segments(Spec), L),
+	    atomic_list_concat(L, /, S1)
 	),
-	expand_file_name(Spec, Expanded),
+	expand_file_name(S1, Expanded),
 	(   Expanded = [File]
 	->  true
 	;   Expanded == []
-	->  print_message(warning, format('No match: ~w', [Spec])),
+	->  print_message(warning, format('No match: ~w', [S1])),
 	    fail
-	;   print_message(warning, format('Ambiguous: ~w', [Spec])),
+	;   print_message(warning, format('Ambiguous: ~w', [S1])),
 	    fail
 	).
+
+segments(Var) -->
+	{ var(Var), !,
+	  instantiation_error(Var)
+	}.
+segments(A/B) --> !,
+	segments(A),
+	segments(B).
+segments(A) -->
+	{ must_be(atomic, A) },
+	[ A ].
 
 
 %%	list_atoms(+List, +Width)
