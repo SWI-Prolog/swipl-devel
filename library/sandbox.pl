@@ -206,6 +206,7 @@ goal_id(Term, Skolem, Term) :-		% most specific form
 
 safe_primitive(true).
 safe_primitive(fail).
+safe_primitive(system:false).
 safe_primitive(repeat).
 safe_primitive(!).
 					% types
@@ -213,9 +214,19 @@ safe_primitive(var(_)).
 safe_primitive(nonvar(_)).
 safe_primitive(integer(_)).
 safe_primitive(float(_)).
+safe_primitive(system:rational(_)).
+safe_primitive(system:rational(_,_,_)).
+safe_primitive(number(_)).
 safe_primitive(atom(_)).
+safe_primitive(system:blob(_,_)).
+safe_primitive(system:string(_)).
+safe_primitive(atomic(_)).
 safe_primitive(compound(_)).
+safe_primitive(callable(_)).
 safe_primitive(ground(_)).
+safe_primitive(system:cyclic_term(_)).
+safe_primitive(acyclic_term(_)).
+safe_primitive(system:is_stream(_)).
 					% ordering
 safe_primitive(@>(_,_)).
 safe_primitive(@>=(_,_)).
@@ -244,8 +255,10 @@ safe_primitive(_ =.. _).
 safe_primitive(copy_term(_,_)).
 safe_primitive(numbervars(_,_,_)).
 					% atoms
-safe_primitive(atom_concat(_,_,_)).
 safe_primitive(atom_chars(_, _)).
+safe_primitive(atom_codes(_, _)).
+safe_primitive(system:atomic_list_concat(_,_,_)).
+safe_primitive(system:atom_length(_,_)).
 					% Lists
 safe_primitive(length(_,_)).
 					% exceptions
@@ -283,8 +296,13 @@ safe_primitive(system:get_attr(_,_,_)).
 safe_primitive(system:del_attr(_,_)).
 					% globals
 safe_primitive(system:b_getval(_,_)).
-safe_primitive(system:b_setval(_,_)).
+safe_primitive(system:b_setval(Var,_)) :-
+	safe_global_variable(Var).
+safe_primitive(system:nb_getval(_,_)).
+safe_primitive(system:nb_setval(Var,_)) :-
+	safe_global_variable(Var).
 safe_primitive(system:nb_current(_,_)).
+					% database
 safe_primitive(system:assert(X)) :-
 	safe_assert(X).
 
@@ -349,6 +367,19 @@ safe_assert(X) :- var(X), !, fail.
 safe_assert(_Head:-_Body) :- !, fail.
 safe_assert(_:_) :- !, fail.
 safe_assert(_).
+
+%%	safe_global_variable(+Name) is semidet.
+%
+%	True if Name  is  a  global   variable  to  which  assertion  is
+%	considered safe.
+
+safe_global_variable(Name) :-
+	var(Name), !,
+	fail.
+safe_global_variable('$clpfd_queue_status').
+safe_global_variable('$clpfd_current_propagator').
+safe_global_variable('$clpfd_queue').
+
 
 %%	safe_meta(+Goal, -Called) is semidet.
 %
