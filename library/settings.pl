@@ -229,7 +229,7 @@ eval_default(env(Name), _, Type, Value) :- !,
 eval_default(env(Name, Default), _, Type, Value) :- !,
 	(   getenv(Name, TextValue)
 	->  convert_setting_text(Type, TextValue, Val)
-	;   Value = Default
+	;   Val = Default
 	),
 	assert(setting_cache(env(Name), Type, Val)),
 	Value = Val.
