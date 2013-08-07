@@ -952,7 +952,7 @@ depth_limit(fail-1) :-
 		 *******************************/
 
 type_test(type-1) :-
-	var(_), X = Y, var(X), Y = a, nonvar(X).
+	X = Y, var(X), Y = a, nonvar(X).
 type_test(type-2) :-
 	atom(hello), \+ atom(10), \+ atom("hello").
 type_test(type-3) :-
@@ -1565,8 +1565,10 @@ control(ifthen-1) :-			% Must be the same
 		 *******************************/
 
 do_exception_1 :-
-	A = _,
+	unbound(A),
 	A.
+
+unbound(_).
 
 rethrow(G) :-
 	catch(G, E, throw(E)).

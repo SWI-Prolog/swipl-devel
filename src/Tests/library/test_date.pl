@@ -73,7 +73,7 @@ ok(1152794050, '%Z', 'CEST').
 ok(1152794050, '%+', 'Thu Jul 13 14:34:10 2006').
 ok(1152794050, '%%', '%').
 
-%	test_format/0
+%%	test_format/0
 %
 %	Extensively test the output of all supported formats.  We must
 %	run this in the C locale to get reproducable answers.
@@ -88,7 +88,7 @@ test_format :-
 		->  true
 		;   format('~q: got ~q, expected ~q~n', [Fmt, A, Atom])
 		)
-	    ;	format('format_time(~q, ~q, ~q) failed~n', [atom(A), Fmt, Time])
+	    ;	format('format_time(~q, ~q, ~q) failed~n', [atom(_), Fmt, Time])
 	    ),
 	    fail
 	;   true

@@ -52,12 +52,14 @@ test_prolog_clause :-
 
 :- begin_tests(prolog_clause).
 
+:- style_check(-no_effect).
 t0 :-	a(X), b(Y), X=Y.
 t1 :-	a, _ = hello, b.
 t2 :-	a(X), a(b) = X, b(X).
 t3 :-	a, _ == hello, b.
 t4 :-	a(X), x == X, b(X).
 t5 :-	i(A), B is A-1, b(B).
+:- style_check(+no_effect).
 
 a.
 b.

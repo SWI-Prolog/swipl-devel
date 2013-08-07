@@ -160,7 +160,7 @@ test(curlycut_b, [fail]) :-
 	phrase(ac,[x], Xs),
 	Xs = [].
 
-bx --> \+ {throw(executed)}.
+bx --> {\+ throw(executed)}.
 
 test(not1_a, [throws(executed)]) :-
 	phrase(bx, [a], []).
