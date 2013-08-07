@@ -396,8 +396,7 @@ insert2(black('',_,_,''), K, V, Nil, T, Status) :- !,
 	Status = not_done.
 insert2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 	( K @< K0
-	-> NR = R,
-	  NT = red(NL,K0,V0,R),
+	-> NT = red(NL,K0,V0,R),
 	  insert2(L, K, V, Nil, NL, Flag)
 	; K == K0 ->
 	  NT = red(L,K0,V,R),
@@ -441,8 +440,7 @@ insert_new_2(black('',_,_,''), K, V, Nil, T, Status) :- !,
 	Status = not_done.
 insert_new_2(red(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 	( K @< K0
-	-> NR = R,
-	  NT = red(NL,K0,V0,R),
+	-> NT = red(NL,K0,V0,R),
 	  insert_new_2(L, K, V, Nil, NL, Flag)
 	; K == K0 ->
 	  fail
