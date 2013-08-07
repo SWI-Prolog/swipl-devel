@@ -2950,7 +2950,7 @@ at_halt(Goal) :-
 	Files = Module:_,
 	'$execute_directive'('$set_source_module'(OldM, Module), []),
 	'$save_lex_state'(LexState),
-	'$style_check'(_, 2'1111),
+	'$style_check'(_, 0xC7),		% see style_name/2 in syspred.pl
 	'$compilation_mode'(OldC, wic),
 	consult(Files),
 	'$execute_directive'('$set_source_module'(_, OldM), []),
