@@ -166,6 +166,7 @@ suggest predicates from a keyword.
 \predicatesummary{date_time_stamp}{2}{Convert sate structure to time-stamp}
 \predicatesummary{date_time_value}{3}{Extract info from a date structure}
 \predicatesummary{dcg_translate_rule}{2}{Source translation of DCG rules}
+\predicatesummary{dcg_translate_rule}{4}{Source translation of DCG rules}
 \predicatesummary{dde_current_connection}{2}{Win32: Examine open DDE connections}
 \predicatesummary{dde_current_service}{2}{Win32: Examine DDE services provided}
 \predicatesummary{dde_execute}{2}{Win32: Execute command on DDE server}
@@ -214,8 +215,10 @@ suggest predicates from a keyword.
 \predicatesummary{expand_file_name}{2}{Wildcard expansion of file names}
 \predicatesummary{expand_file_search_path}{2}{Wildcard expansion of file paths}
 \predicatesummary{expand_goal}{2}{Compiler: expand goal in clause-body}
+\predicatesummary{expand_goal}{4}{Compiler: expand goal in clause-body}
 \predicatesummary{expand_query}{4}{Expanded entered query}
 \predicatesummary{expand_term}{2}{Compiler: expand read term into clause(s)}
+\predicatesummary{expand_term}{4}{Compiler: expand read term into clause(s)}
 \predicatesummary{expects_dialect}{1}{For which Prolog dialect is this code written?}
 \predicatesummary{explain}{1}{\pllib{explain} Explain argument}
 \predicatesummary{explain}{2}{\pllib{explain} 2nd argument is explanation of first}
@@ -271,6 +274,7 @@ suggest predicates from a keyword.
 \predicatesummary{get_time}{1}{Get current time}
 \predicatesummary{getenv}{2}{Get shell environment variable}
 \predicatesummary{goal_expansion}{2}{Hook for macro-expanding goals}
+\predicatesummary{goal_expansion}{4}{Hook for macro-expanding goals}
 \predicatesummary{ground}{1}{Verify term holds no unbound variables}
 \predicatesummary{gdebug}{0}{Debug using graphical tracer}
 \predicatesummary{gspy}{1}{Spy using graphical tracer}
@@ -571,6 +575,7 @@ suggest predicates from a keyword.
 \predicatesummary{tell}{1}{Change current output stream}
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
+\predicatesummary{term_expansion}{4}{\hook{user} Convert term before compilation}
 \predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}

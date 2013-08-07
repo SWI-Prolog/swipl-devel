@@ -855,6 +855,38 @@ into a normal Prolog clause.  Normally this functionality should be
 accessed using expand_term/2.
 \end{description}
 
+
+\subsubsection{Program transformation with source layout info}
+\label{sec:progtransform-layout}
+
+This sections documents extended versions of the program transformation
+predicates that also transform the source layout information.  Extended
+layout information is currently processed, but unused.  Future versions
+will use for the following enhancements:
+
+\begin{itemize}
+    \item More precise locations of warnings and errors
+    \item More reliable setting of breakpoints
+    \item More reliable source layout information in the graphical
+          debugger.
+\end{itemize}
+
+\begin{description}
+    \predicate{expand_goal}{+Goal1, ?Layout1, -Goal2, -Layout2}
+    \nodescription
+    \predicate{goal_expansion}{4}{+Goal1, ?Layout1, -Goal2, -Layout2}
+    \nodescription
+    \predicate{expand_term}{4}{+Term1, ?Layout1, -Term2, -Layout2}
+    \nodescription
+    \predicate{term_expansion}{4}{+Term1, ?Layout1, -Term2, -Layout2}
+    \predicate{dcg_translate_rule}{4}{+In, ?LayoutIn, -Out, -LayoutOut}
+These versions are called \emph{before} their 2-argument counterparts.
+The input layout term is either a variable (if no layout information is
+available) or a term carrying detailed layout information as returned by
+the \const{subterm_positions} of read_term/2.
+\end{description}
+
+
 \subsubsection{Conditional compilation}
 \label{sec:conditionalcompilation}
 
