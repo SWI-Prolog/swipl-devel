@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -225,7 +223,7 @@ concat_atom(L, Sep, Atom) :-
 
 %%	read_clause(-Term) is det.
 %
-%	@deprecated Use read_clause/2 or read_term/2.
+%	@deprecated Use read_clause/3 or read_term/3.
 
 read_clause(Term) :-
 	read_clause(current_input, Term).
@@ -235,12 +233,12 @@ read_clause(Term) :-
 %	@deprecated Use read_clause/3 or read_term/3.
 
 read_clause(Stream, Term) :-
-	read_clause(Stream, Term, [process_comments(false)]).
+	read_clause(Stream, Term, [process_comment(false)]).
 
 %%	read_variables(-Term, -Bindings) is det.
 %%	read_variables(+In:stream, -Term, -Bindings) is det.
 %
-%	@deprecated Use ISO read_term/[2,3].
+%	@deprecated Use ISO read_term/2 or read_term/3.
 
 read_variables(Term, Vars) :-
 	read_term(Term, [variable_names(Vars)]).
@@ -283,7 +281,7 @@ flush :-
 %	@deprecated Use writeln(X).
 
 write_ln(X) :-
-	write(X), nl.
+	writeln(X).
 
 %%	proper_list(+List)
 %
