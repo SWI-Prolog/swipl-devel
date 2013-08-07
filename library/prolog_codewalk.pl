@@ -339,7 +339,7 @@ walk_called_by_body(subterm_positions, Body, Module, OTerm) :-
 		  missing(subterm_positions),
 		  walk_called_by_body(no_positions, Body, Module, OTerm))
 	;   set_source_of_walk_option(false, OTerm, OTerm2),
-	    forall(walk_called(Body, Module, BodyPos, OTerm2),
+	    forall(walk_called(Body, Module, _BodyPos, OTerm2),
 		   true)
 	).
 walk_called_by_body(no_positions, Body, Module, OTerm) :-
@@ -509,7 +509,8 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 	->  From = file_term_position(File, TermPos)
 	;   walk_option_source(OTerm, false)
 	->  From = file(File, Line, -1, _)
-	;   throw(missing(subterm_positions))
+	;   From = _,
+	    throw(missing(subterm_positions))
 	),
 	print_reference2(Goal, From, Why, OTerm).
 print_reference(Goal, _, Why, OTerm) :-
@@ -657,7 +658,7 @@ walk_called_by([H|T], M, Goal, TermPos, OTerm) :-
 	    ->	walk_called(G2, M, GPosEx, OTerm)
 	    ;	true
 	    )
-	;   subterm_pos(G, Goal, TermPos, GPos),
+	;   subterm_pos(H, Goal, TermPos, GPos),
 	    walk_called(H, M, GPos, OTerm)
 	),
 	walk_called_by(T, M, Goal, TermPos, OTerm).
