@@ -2861,8 +2861,10 @@ compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
   { skippedVar(a1, ci PASS_LD);
     skippedVar(a2, ci PASS_LD);
 
+/* always results in a singleton warning anyway
     if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
       compiler_warning(ci, "unify_singleton", a1, a2);
+*/
     Output_0(ci, I_TRUE);
     return TRUE;
   }
