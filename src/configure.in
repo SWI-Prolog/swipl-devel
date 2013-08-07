@@ -237,6 +237,10 @@ case "$PLARCH" in
         SOLIB=bin
         TXTEXT=.TXT
         ;;
+    *-cygwin)
+        PLBASE=$libdir/$PLLIBDIR
+        SOLIB=bin
+	;;
     *)
         PLBASE=$libdir/$PLLIBDIR
         INSTALL_PLARCH=$PLARCH

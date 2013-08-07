@@ -1017,8 +1017,9 @@ PL_initialise(int argc, char **argv)
   }
 
   debugstatus.styleCheck = (LONGATOM_CHECK|
-			    SINGLETON_CHECK|
-			    DISCONTIGUOUS_STYLE);
+			    SINGLETON_CHECK|SEMSINGLETON_CHECK|
+			    DISCONTIGUOUS_STYLE|
+			    NOEFFECT_CHECK);
   setAccessLevel(ACCESS_LEVEL_USER);
   GD->initialised = TRUE;
   registerForeignLicenses();

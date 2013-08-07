@@ -4402,6 +4402,9 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->IO.input_stack		 = NULL;
   ldnew->IO.output_stack	 = NULL;
   ldnew->encoding		 = ldmain->encoding;
+#ifdef O_LOCALE
+  ldnew->locale.current		 = acquireLocale(ldmain->locale.current);
+#endif
   ldnew->_debugstatus		 = ldmain->_debugstatus;
   ldnew->_debugstatus.retryFrame = NULL;
   ldnew->prolog_flag.mask	 = ldmain->prolog_flag.mask;

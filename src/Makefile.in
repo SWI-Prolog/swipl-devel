@@ -301,6 +301,9 @@ $(EXPORTS):	Makefile $(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
 		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
+		    grep -v PL_w32_wrap_ansi_console | \
+		    grep -v PL_wait_for_console_input | \
+		    grep -v Swinsock | \
 		    sort -u >> $@
 
 # Create pl.def, required for exporting symbols from pl.exe for the Cygwin
@@ -313,6 +316,9 @@ $(DEF):		$(srcdir)/SWI-Prolog.h
 			   -e 's/.*[	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
 		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
+		    grep -v PL_w32_wrap_ansi_console | \
+		    grep -v PL_wait_for_console_input | \
+		    grep -v Swinsock | \
 		    sort -u >> $@
 
 $(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)

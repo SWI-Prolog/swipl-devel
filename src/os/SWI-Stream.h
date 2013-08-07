@@ -257,12 +257,12 @@ typedef struct io_stream
 
 PL_EXPORT(IOSTREAM *)	S__getiob(void);	/* get DLL's __iob[] address */
 
-PL_EXPORT_DATA(IOFUNCTIONS)  Sfilefunctions;	/* OS file functions */
-PL_EXPORT_DATA(int)	     Slinesize;		/* Sgets() linesize */
+PL_EXPORT_DATA(IOFUNCTIONS)	Sfilefunctions;	/* OS file functions */
+PL_EXPORT_DATA(int)		Slinesize;		/* Sgets() linesize */
 #if defined(__CYGWIN__) && !defined(PL_KERNEL)
 #define S__iob S__getiob()
 #else
-PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
+PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #endif
 
 #define Sinput  (&S__iob[0])		/* Stream Sinput */

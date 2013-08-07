@@ -629,10 +629,8 @@ find_foreign_library(FileSpec, SharedObject) :-
 	    format(atom(Cmd), '"~w" -o "~w" "~w"',
 		   [ Strip, Stripped, File ]),
 	    shell(Cmd)
-	->  SharedObject = Stripped,
-	    Delete = true
-	;   SharedObject = File,
-	    Delete = false
+	->  SharedObject = Stripped
+	;   SharedObject = File
 	).
 
 

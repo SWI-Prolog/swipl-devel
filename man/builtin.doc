@@ -7788,7 +7788,7 @@ between brackets.
 
 \begin{description}
     \termitem{singleton}{true}
-The predicate read_clause/1 (used by the compiler to read source code)
+The predicate read_clause/3 (used by the compiler to read source code)
 warns on variables appearing only once in a term (clause) which have a
 name not starting with an underscore. See \secref{singleton} for details
 on variable handling and warnings.

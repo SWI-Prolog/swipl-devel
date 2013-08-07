@@ -155,7 +155,6 @@ public(Spec)		 :- '$set_pattr'(Spec, pred, (public)).
 
 :- meta_predicate
 	';'(0,0),
-	'|'(0,0),
 	','(0,0),
 	@(0,+),
 	call(0),
@@ -436,9 +435,7 @@ default_module(Me, Super) :-
 	    ->  '$default_module'(Me, Super)
 	    ;   '$default_module'(Me, Super), !
 	    )
-	;   var(Me)
-	->  throw(error(instantiation_error, _))
-	;   throw(error(type_error(module, Me), _))
+	;   '$type_error'(module, Me)
 	).
 
 '$default_module'(Me, Me).
@@ -2953,7 +2950,7 @@ at_halt(Goal) :-
 	Files = Module:_,
 	'$execute_directive'('$set_source_module'(OldM, Module), []),
 	'$save_lex_state'(LexState),
-	'$style_check'(_, 2'1111),
+	'$style_check'(_, 0xC7),		% see style_name/2 in syspred.pl
 	'$compilation_mode'(OldC, wic),
 	consult(Files),
 	'$execute_directive'('$set_source_module'(_, OldM), []),

@@ -200,10 +200,10 @@ decode(Text) -->
 	            base32_char(B5, C5),
 	            A is (B0<<35) + (B1<<30) + (B2<<25) + (B3<<20) +
 			 (B4<<15) + (B5<<10),
-	    	    I0 is (A>>32) /\ 0xff,
+		    I0 is (A>>32) /\ 0xff,
 	            I1 is (A>>24) /\ 0xff,
 	            I2 is (A>>16) /\ 0xff,
-	            Text = [I0,I1,I2,I3|Rest]
+	            Text = [I0,I1,I2|Rest]
 	        )
 	    ;   base32_char(B2, C2),
 	        base32_char(B3, C3),

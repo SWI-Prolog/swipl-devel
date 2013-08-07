@@ -584,7 +584,7 @@ myplus(X,Y,Z,New) :-
 			NZL is max(ZL,X+YL),
 			NZU is min(ZU,X+YU),
 			put(Z,NZL,NZU,ZExp1),
-			( get(Y,YL2,YU2,YExp2) ->
+			( get(Y,_YL2,_YU2,YExp2) ->	% JW: YL2 and YU2?
 				NYL is max(YL,NZL-X),
 				NYU is min(YU,NZU-X),
 				put(Y,NYL,NYU,YExp2)

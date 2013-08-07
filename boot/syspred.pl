@@ -129,11 +129,13 @@ visible(Ports) :-
 	map_bits(port_name, Ports, Old, New),
 	'$visible'(_, New).
 
-style_name(atom,	    2'0000001).
-style_name(singleton,	    2'0000010).
-style_name(discontiguous,   2'0001000).
-style_name(dynamic,	    2'0010000).
-style_name(charset,	    2'0100000).
+style_name(atom,	    0x0001).
+style_name(singleton,	    0x0042).		% semantic and syntactic
+style_name(discontiguous,   0x0008).
+style_name(dynamic,	    0x0010).
+style_name(charset,	    0x0020).
+style_name(no_effect,	    0x0080).
+style_name(var_branches,    0x0100).
 
 style_check(+string) :- !,
 	set_prolog_flag(double_quotes, string).
@@ -146,7 +148,7 @@ style_check(Spec) :-
 	map_bits(style_name, Spec, Old, New),
 	'$style_check'(_, New).
 
-%	prolog:debug_control_hook(+Action)
+%%	prolog:debug_control_hook(+Action)
 %
 %	Allow user-hooks in the Prolog debugger interaction.  See the calls
 %	below for the provided hooks.  We use a single predicate with action

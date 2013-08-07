@@ -1306,11 +1306,11 @@ pack_version(Pack, version(Parts)) -->
 	{ atom_codes(Pack, Codes)
 	}.
 
-version([_]) -->
+version([_|T]) -->
 	"*", !,
 	(   "."
 	->  version(T)
-	;   { T = [] }
+	;   []
 	).
 version([H|T]) -->
 	integer(H),

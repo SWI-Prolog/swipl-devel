@@ -2173,8 +2173,9 @@ timeout(pipe-1) :-
 		 ]),
 	    set_stream(In, timeout(0.2)),
 	    wait_for_input([In], [In], infinite),
-	    catch(read(In, _), E1, true),
-	    (	E1 = error(timeout_error(read, _), _)
+	    catch(read(In, Term1), E1, true),
+	    (	nonvar(E1),
+		E1 = error(timeout_error(read, _), _)
 	    ->	wait_for_input([In], [In], infinite),
 		catch(read(In, Term), E2, true),
 		(   var(E2)
@@ -2187,13 +2188,13 @@ timeout(pipe-1) :-
 		    fail
 		)
 	    ;   var(E1)
-	    ->	(   Term == (+ xx)
+	    ->	(   Term1 == (+ xx)
 		->  close(In),
 		    format(user_error,
 			   'timeout(pipe-1): ~q (machine heavy loaded?)~n',
-			   [Term])
+			   [Term1])
 		;   format(user_error,
-			   'var(E1) && Term == ~q~n', [Term]),
+			   'var(E1) && Term == ~q~n', [Term1]),
 		    fail
 		)
 	    ;	format(user_error, 'E1 == ~q~n', [E1]),
