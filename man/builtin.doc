@@ -7851,6 +7851,34 @@ always_false(X) :-
 	write(Y).
 \end{code}
 
+    \termitem{var_branches}{false}
+Verifies that if a variable is introduced in a branch and used
+\emph{after} the branch, it is introduced in all branches. This code
+aims at bugs following the skeleton below, where \term{p}{Next} may be
+called with \arg{Next} unbound.
+
+\begin{code}
+p(Arg) :-
+	(  Cond
+        -> Next = value1
+        ;  true
+	),
+	p(Next).
+\end{code}
+
+If a variable \arg{V} is intended to be left unbound, one can use
+\exam{V=_}. This construct is removed by the compiler and thus has no
+implications for the performance of your program.
+
+This check was suggested together with \jargon{semantic} singleton
+checking. The SWI-Prolog libraries contain about a hundred clauses that
+are triggered by this style check. Unlike semantic singleton analysis,
+only a tiny fraction of these clauses proofed faulty. In most cases, the
+branches failing to bind the variable fail or raise an exception or the
+caller handles the case where the variable is unbound.  The status of
+this style check is unclear. It might be removed in the future or it
+might be enhanced with a deeper analysis to be more precise.
+
     \termitem{atom}{true}
 The predicate read/1 and derived predicates produce an error message on
 quoted atoms or strings with more than 6 \emph{unescaped} newlines.
