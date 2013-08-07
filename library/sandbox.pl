@@ -110,7 +110,12 @@ safe(G, M, Parents, Safe0, Safe) :-
 	(   get_assoc(Id, Safe0, _)
 	->  Safe = Safe0
 	;   put_assoc(Id, Safe0, true, Safe1),
-	    safe_clauses(Gen, M, [Id|Parents], Safe1, Safe)
+	    (	Gen == M:G
+	    ->	safe_clauses(Gen, M, [Id|Parents], Safe1, Safe)
+	    ;	catch(safe_clauses(Gen, M, [Id|Parents], Safe1, Safe),
+		      error(instantiation_error, _),
+		      fail)
+	    )
 	).
 
 safe_clauses(G, M, Parents, Safe0, Safe) :-
