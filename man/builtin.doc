@@ -162,14 +162,14 @@ sets).
 
 SWI-Prolog recognises grammar rules (\idx{DCG}) as defined in
 \cite{Clocksin:87}. The user may define additional compilation of the
-source file by defining the dynamic predicates term_expansion/2 and
-goal_expansion/2. Transformations by term_expansion/2 overrule the
-system's grammar rule transformations. It is not allowed to use assert/1,
-retract/1 or any other database predicate in term_expansion/2 other than
-for local computational purposes.%
-	\footnote{It does work for normal loading, but not for qcompile/1.}
-Code that needs to create additional clauses must use
-compile_aux_clauses/1. See \pllib{library(apply_macros)} for an example.
+source file by defining the dynamic multifile predicates
+term_expansion/2, term_expansion/4, goal_expansion/2 and
+goal_expansion/4. It is not allowed to use assert/1, retract/1 or any
+other database predicate in term_expansion/2 other than for local
+computational purposes.\footnote{It does work for normal loading, but
+not for qcompile/1.} Code that needs to create additional clauses must
+use compile_aux_clauses/1. See \pllib{library(apply_macros)} for an
+example.
 
 A \jargon{directive} is an instruction to the compiler. Directives are
 used to set (predicate) properties (see \secref{declare}), set flags
