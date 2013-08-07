@@ -176,7 +176,7 @@ current_clause(RecordDef) -->
 current_record_predicate(Record, M:PI) :-
 	(   ground(PI)
 	->  Det = true
-	;   true
+	;   Det = false
 	),
 	current_record(Record, M:RecordDef),
 	(   general_record_pred(Record, M:PI)

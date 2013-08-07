@@ -1081,7 +1081,8 @@ colourise_imports(List, File, TB, Pos) :-
 				     silent(true)
 				   ] ), _, fail)
 	->  true
-	;   Public = []
+	;   Public = [],
+	    Path = (-)
 	),
 	colourise_imports(List, Path, Public, TB, Pos).
 
