@@ -7809,21 +7809,21 @@ and \const{fail}. If the \prologflag{unknown} flag is set to
 \const{warning}, unknown/2 reports the value as \const{trace}.
 
     \predicate{style_check}{1}{+Spec}
-Set style checking options.  \arg{Spec} is either \mbox{\tt +<option>},
-\mbox{\tt -<option>}, \mbox{\tt ?(<option>)}
-or a list of such options. \mbox{\tt +<option>} sets a style checking
-option, \mbox{\tt -<option>} clears it and \mbox{\tt ?(<option>)}
-succeeds or fails according to the current setting. consult/1 and
-derivatives reset the style checking options to their value before
-loading the file. If, for example, a file containing long atoms should
-be loaded, the user can start the file with:
+Modify/query style checking options. \arg{Spec} is one of the terms
+below or a list of these.
 
-\begin{code}
-:- style_check(-atom).
-\end{code}
+\begin{itemize}
+    \item +\arg{Style} enables a style check
+    \item -\arg{Style} disables a style check
+    \item ?(\arg{Style}) queries a style check (note the brackets).
+	  If \arg{Style} is unbound, all active style check options
+	  are returned on backtracking.
+\end{itemize}
 
-The currently available options are given below with their default
-between brackets.
+Loading a file using load_files/2 or one of its derived predicates reset
+the style checking options to their value before loading the file,
+scoping the option to the remainder of the file and all files loaded
+\emph{after} changing the style checking.
 
 \begin{description}
     \termitem{singleton}{true}
@@ -7847,10 +7847,11 @@ always_false(X) :-
 
     \termitem{atom}{true}
 The predicate read/1 and derived predicates produce an error message on
-quoted atoms or strings with more than 6 unescaped newlines. Newlines
-may be escaped with \chr{\} or \chr{\}\chr{c}. This flag also enables
-warnings on \chr{\}<newline> followed by blank space in native mode. See
-\secref{charescapes}.
+quoted atoms or strings with more than 6 \emph{unescaped} newlines.
+Newlines may be escaped with \chr{\} or \chr{\}\chr{c}. This flag also
+enables warnings on \chr{\}<newline> followed by blank space in native
+mode. See \secref{charescapes}. Note that the ISO standard does not
+allow for unescaped newlines in quoted atoms.
 
     \termitem{discontiguous}{true}
 Warn if the clauses for a predicate are not together in the same source file.

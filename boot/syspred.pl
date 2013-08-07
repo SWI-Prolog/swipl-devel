@@ -135,16 +135,33 @@ style_name(charset,	    0x0020).
 style_name(no_effect,	    0x0080).
 style_name(var_branches,    0x0100).
 
+%%	style_check(+Spec) is nondet.
+
+style_check(Var) :-
+	var(Var), !,
+	'$instantiation_error'(Var).
 style_check(+string) :- !,
 	set_prolog_flag(double_quotes, string).
 style_check(-string) :- !,
 	set_prolog_flag(double_quotes, codes).
-style_check(?(string)) :- !,
-	current_prolog_flag(double_quotes, string).
+style_check(?(Style)) :- !,
+	(   var(Style)
+	->  enum_style_check(Style)
+	;   enum_style_check(Style)
+	->  true
+	).
 style_check(Spec) :-
 	'$style_check'(Old, Old),
 	map_bits(style_name, Spec, Old, New),
 	'$style_check'(_, New).
+
+enum_style_check(string) :-
+	current_prolog_flag(double_quotes, string).
+enum_style_check(Style) :-
+	'$style_check'(Bits, Bits),
+	style_name(Style, Bit),
+	Bit /\ Bits =\= 0.
+
 
 %%	prolog:debug_control_hook(+Action)
 %
