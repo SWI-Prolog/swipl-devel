@@ -40,7 +40,7 @@ COMMON(int)		PL_get_attr__LD(term_t t, term_t a ARG_LD);
 
 COMMON(void)		destroyGlobalVars();
 COMMON(void)		freezeGlobal(ARG1_LD);
-
+COMMON(int)		gvar_value__LD(atom_t name, Word p ARG_LD);
 
 /* pl-wam.c */
 COMMON(word)		pl_count(void);
@@ -501,6 +501,7 @@ COMMON(int)		unicode_separator(pl_wchar_t c);
 COMMON(int)		unquoted_atomW(const pl_wchar_t *s, size_t len,
 				       IOSTREAM *fd);
 COMMON(int)		atom_varnameW(const pl_wchar_t *s, size_t len);
+COMMON(int)		atom_is_named_var(atom_t name);
 COMMON(strnumstat)	str_number(const unsigned char *string,
 				   unsigned char **end,
 				   Number value, bool escape);

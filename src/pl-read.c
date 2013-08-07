@@ -124,6 +124,25 @@ atom_varnameW(const pl_wchar_t *s, size_t len)
 }
 
 
+int
+atom_is_named_var(atom_t name)		/* see warn_singleton() */
+{ const char *s;
+  const pl_wchar_t *w;
+
+  if ( (s=PL_atom_chars(name)) )
+  { if ( s[0] != '_' ) return TRUE;
+    if ( s[1] == '_' ) return FALSE;
+    if ( s[1] && !PlUpperW(s[1]) ) return TRUE;
+  } else if ( (w=PL_atom_wchars(name, NULL)) )
+  { if ( w[0] != '_' ) return TRUE;
+    if ( w[1] == '_' ) return FALSE;
+    if ( w[1] && !PlUpperW(w[1]) ) return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 		 /*******************************
 		 *	   CHAR-CONVERSION	*
 		 *******************************/

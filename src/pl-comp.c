@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -167,8 +167,16 @@ typedef struct cw_def
 #define CW(name, argc) { name, argc }
 
 const static cw_def cw_defs[] =
-{ CW("eq_vv", 2),
-  CW(NULL,    0)
+{ CW("eq_vv",              2),		/* Var == Var */
+  CW("eq_singleton",       2),		/* SingleTon == ? */
+  CW("neq_vv",             2),		/* Var \== Var */
+  CW("neq_singleton",	   2),		/* SingleTon \== ? */
+  CW("unify_singleton",    2),		/* SingleTon = ? */
+  CW("var_true",           1),		/* var(SingleTonOrFirst) */
+  CW("nonvar_false",       1),		/* nonvar(SingleTonOrFirst) */
+  CW("unbalanced_var",     1),		/* Var initialised in some disjunctions */
+  CW("semantic_singleton", 1),		/* Singleton in some branch */
+  CW(NULL,                 0)
 };
 
 
@@ -233,9 +241,15 @@ typedef struct _varDef
 { word		functor;		/* mimic a functor (FUNCTOR_dvard1) */
   word		saved;			/* saved value */
   Word		address;		/* address of the variable */
+  atom_t	name;			/* name (if available) */
   int		times;			/* occurences */
   int		offset;			/* offset in environment frame */
+  int		flags;			/* VD_* */
 } vardef;
+
+#define VD_MAYBE_SINGLETON  0x01
+#define VD_MAYBE_UNBALANCED 0x02
+#define VD_UNBALANCED	    0x04
 
 typedef struct
 { int	isize;
@@ -248,6 +262,12 @@ typedef struct
 
 #define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
 #define BITSPERINT (sizeof(int)*8)
+
+typedef struct branch_var
+{ VarDef	vdef;			/* Definition record */
+  int		saved_times;		/* Times saved from left branch */
+  int		saved_flags;		/* Flags saved from left branch */
+} branch_var;
 
 typedef struct
 { int		var;			/* Variable for local cuts */
@@ -281,15 +301,18 @@ typedef struct
   int		subclausearg;		/* processing subclausearg */
   int		argvars;		/* islocal argument pseudo vars */
   int		argvar;			/* islocal current pseudo var */
+  int		singletons;		/* Marked singletons in disjunctions */
   cutInfo	cut;			/* how to compile ! */
   merge_state	mstate;			/* Instruction merging state */
   VarTable	used_var;		/* boolean array of used variables */
+  Buffer	branch_vars;		/* We are in a branch */
   target_module colon_context;		/* Context:Goal */
 #ifdef O_CALL_AT_MODULE
   target_module	at_context;		/* Call@Context */
 #endif
   term_t	warning_list;		/* see compiler_warning() */
   c_warning    *warnings;
+  tmp_buffer	branch_varbuf;		/* Store for branch_vars */
   tmp_buffer	codes;			/* scratch code table */
 } compileInfo, *CompileInfo;
 
@@ -358,7 +381,7 @@ push_compiler_warnings(CompileInfo ci ARG_LD)
 
   if ( ci->warnings )
   { c_warning *cw;
-    term_t tmp  = PL_new_term_ref();
+    term_t tmp = PL_new_term_ref();
 
     for(cw=ci->warnings; cw; cw=cw->next)
     { if ( (cw->av=PL_new_term_refs(cw->argc)) )
@@ -484,6 +507,57 @@ freeVarDefs(PL_local_data_t *ld)
 }
 
 
+static void
+pushBranchVar(CompileInfo ci, VarDef v)
+{ branch_var bv;
+
+  bv.vdef = v;
+  bv.saved_times = 0;
+  bv.saved_flags = 0;
+  addBuffer(ci->branch_vars, bv, branch_var);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_variable_names() fetches the  global   variable  $variable_names and
+updates the vardef records that match.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+get_variable_names(CompileInfo ci ARG_LD)
+{ word w;
+  int found = 0;
+
+  if ( gvar_value__LD(ATOM_dvariable_names, &w PASS_LD) )
+  { Word p = &w;
+
+    deRef(p);
+    while(isList(*p))
+    { Word b = argTermP(*p, 0);
+
+      deRef(b);
+      if ( hasFunctor(*b, FUNCTOR_equals2) )
+      { Word n = argTermP(*b, 0);
+	Word v = argTermP(*b, 1);
+
+	deRef(n);
+	deRef(v);
+	if ( isAtom(*n) && isVarInfo(*v) )
+	{ VarDef vd = varInfo(*v);
+	  vd->name = *n;
+	  found++;
+	}
+      }
+
+      p = argTermP(*p, 1);
+      deRef(p);
+    }
+  }
+
+  return found;
+}
+
+
 int
 get_head_and_body_clause(term_t clause,
 			 term_t head, term_t body, Module *m ARG_LD)
@@ -541,6 +615,8 @@ inside these terms.
 
 Returns the number  of  variables  found   or  one  of  AVARS_CYCLIC  or
 AVARS_MAX
+
+@param control indicates we are processing toplevel control structures
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAX_VARIABLES 1000000000	/* stay safely under signed int */
@@ -549,8 +625,19 @@ AVARS_MAX
 #define AVARS_MAX      -12
 
 static int
+in_branch(const branch_var *from, const branch_var *to, const Word v)
+{ for(; from<to; from++)
+  { if ( from->vdef->address == v )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
 analyseVariables2(Word head, int nvars, int argn,
-		  CompileInfo ci, int depth ARG_LD)
+		  CompileInfo ci, int depth, int control ARG_LD)
 {
 right_recursion:
 
@@ -573,10 +660,14 @@ right_recursion:
     }
 
     vd = getVarDef(index PASS_LD);
-    vd->saved = *head;
+    vd->saved   = *head;
     vd->address = head;
-    vd->times = 1;
+    vd->name    = (atom_t)0;
+    vd->flags   = 0;
+    vd->times   = 1;
     setVarInfo(*head, index);
+    if ( ci->branch_vars )
+      pushBranchVar(ci, vd);
 
     return nvars;
   }
@@ -584,7 +675,26 @@ right_recursion:
   if ( isVarInfo(*head) )
   { VarDef vd = varInfo(*head);
 
-    vd->times++;
+    if ( vd->times++ == 0 && ci->branch_vars )
+    { pushBranchVar(ci, vd);
+    } else
+    { if ( (debugstatus.styleCheck&VARBRANCH_CHECK) )
+      { if ( true(vd, VD_MAYBE_UNBALANCED) && false(vd, VD_UNBALANCED) )
+	{ set(vd, VD_UNBALANCED);
+	  compiler_warning(ci, "unbalanced_var", vd->address);
+	}
+      }
+      if ( (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
+      { if ( true(vd, VD_MAYBE_SINGLETON) )
+	{ assert(vd->times > 1);
+	  DEBUG(MSG_COMP_VARS,
+		Sdprintf("Not a singleton: %p\n", vd->address));
+	  clear(vd, VD_MAYBE_SINGLETON);
+	  ci->singletons--;
+	}
+      }
+    }
+
     return nvars;
   }
 
@@ -612,7 +722,7 @@ right_recursion:
 
 	ci->subclausearg++;
 	for(head = f->arguments, argn = ci->arity; --ar >= 0; head++, argn++)
-	{ nvars = analyseVariables2(head, nvars, argn, ci, depth PASS_LD);
+	{ nvars = analyseVariables2(head, nvars, argn, ci, depth, FALSE PASS_LD);
 	  if ( nvars < 0 )
 	    break;			/* error */
 	}
@@ -622,13 +732,113 @@ right_recursion:
       } /* else fall through to normal case */
     }
 
+    if ( f->definition == FUNCTOR_semicolon2 && control && !ci->islocal )
+    { Buffer obv;
+      int start_vars, at_branch_vars, at_end_vars;
+
+      if ( (obv=ci->branch_vars) == NULL )
+      { initBuffer(&ci->branch_varbuf);
+	ci->branch_vars = (Buffer)&ci->branch_varbuf;
+	start_vars = 0;
+      } else
+	start_vars = entriesBuffer(ci->branch_vars, branch_var);
+
+      DEBUG(MSG_COMP_VARS, Sdprintf("Branch; start_vars = %d\n", start_vars));
+
+      nvars = analyseVariables2(&f->arguments[0], nvars, argn,
+				ci, depth, control PASS_LD);
+      if ( nvars < 0 )
+	goto error;
+
+      at_branch_vars = entriesBuffer(ci->branch_vars, branch_var);
+
+      if ( at_branch_vars > start_vars )
+      { branch_var *bv = baseBuffer(ci->branch_vars, branch_var);
+	branch_var *bve;
+
+	DEBUG(MSG_COMP_VARS, Sdprintf("Reset %d vars after left branch\n",
+				      at_branch_vars - start_vars));
+
+	bve = bv + at_branch_vars;
+	for(bv += start_vars; bv < bve; bv++)
+	{ bv->saved_times = bv->vdef->times;
+	  bv->saved_flags = bv->vdef->flags;
+	  DEBUG(MSG_COMP_VARS, Sdprintf("times=%d, flags = 0x%x\n",
+					bv->vdef->times, bv->vdef->flags));
+	  bv->vdef->times = 0;
+	  bv->vdef->flags = 0;
+	}
+      } else
+      { DEBUG(MSG_COMP_VARS, Sdprintf("No vars in left branch\n"));
+      }
+
+      nvars = analyseVariables2(&f->arguments[1], nvars, argn,
+				ci, depth, control PASS_LD);
+      if ( nvars < 0 )
+	goto error;
+
+      at_end_vars = entriesBuffer(ci->branch_vars, branch_var);
+
+      if ( at_end_vars > start_vars )
+      { branch_var *bv0 = baseBuffer(ci->branch_vars, branch_var);
+	branch_var *bv, *bve;
+
+	DEBUG(MSG_COMP_VARS, Sdprintf("Analyse %d vars\n",
+				      at_end_vars - start_vars));
+
+	bve = bv0 + at_end_vars;
+	for(bv = bv0+start_vars; bv < bve; bv++)
+	{ VarDef vd = bv->vdef;
+
+	  DEBUG(MSG_COMP_VARS,
+		Sdprintf("\t %p: saved: t/f=%d/%d; t/f=%d/%d\n",
+			 vd->address,
+			 bv->saved_times, bv->saved_flags,
+			 vd->times, vd->flags));
+
+	  if ( (debugstatus.styleCheck&VARBRANCH_CHECK) )
+	  { if ( bv->saved_times > 0 && vd->times == 0 )
+	      set(vd, VD_MAYBE_UNBALANCED); /* in left, not in right */
+	    if ( vd->times > 0 &&
+		 !in_branch(bv0+start_vars, bv0+at_branch_vars, vd->address) )
+	      set(vd, VD_MAYBE_UNBALANCED); /* in right, not in left */
+	  }
+	  if ( (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
+	  { if ( (bv->saved_times == 1) || (vd->times == 1) )
+	    { if ( false(vd, VD_MAYBE_SINGLETON) )
+	      { set(vd, VD_MAYBE_SINGLETON);
+		DEBUG(MSG_COMP_VARS,
+		      Sdprintf("Possible singleton: %p\n", vd->address));
+		ci->singletons++;
+	      }
+	    }
+	  }
+	  if ( vd->times < bv->saved_times )
+	    vd->times = bv->saved_times;
+	  vd->flags |= bv->saved_flags;		/* TBD: Dubious */
+	  bv->saved_times = 0;
+	  bv->saved_flags = 0;
+	}
+      }
+
+    error:
+      if ( obv == NULL )
+      { discardBuffer(ci->branch_vars);
+	ci->branch_vars = NULL;
+      }
+
+      return nvars;
+    } else
     { int ar = fd->arity;
 
       head = f->arguments;
       argn = ( argn < 0 ? 0 : ci->arity );
 
+      if ( control && false(fd, CONTROL_F) )
+	control = FALSE;
+
       for(; --ar > 0; head++, argn++)
-      { nvars = analyseVariables2(head, nvars, argn, ci, depth PASS_LD);
+      { nvars = analyseVariables2(head, nvars, argn, ci, depth, control PASS_LD);
 	if ( nvars < 0 )
 	  return nvars;
       }
@@ -667,14 +877,20 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
   if ( arity > 0 )
     resetVarDefs(arity PASS_LD);
 
+  ci->branch_vars = NULL;
+  ci->singletons  = 0;
+
   if ( head )
-  { if ( (nvars = analyseVariables2(head, 0, -1, ci, 0 PASS_LD)) < 0 )
+  { if ( (nvars = analyseVariables2(head, 0, -1, ci, 0, FALSE PASS_LD)) < 0 )
       return nvars == AVARS_CYCLIC ? CYCLIC_HEAD : nvars;
   }
   if ( body )
-  { if ( (nvars = analyseVariables2(body, nvars, arity, ci, 0 PASS_LD)) < 0 )
+  { if ( (nvars = analyseVariables2(body, nvars, arity, ci, 0, TRUE PASS_LD)) < 0 )
       return nvars == AVARS_CYCLIC ? CYCLIC_BODY : nvars;
   }
+
+  if ( ci->singletons && ci->warning_list )
+    get_variable_names(ci PASS_LD);
 
   for(n=0; n<arity+nvars; n++)
   { VarDef vd = LD->comp.vardefs[n];
@@ -682,6 +898,11 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
     assert(vd->functor == FUNCTOR_dvard1);
     if ( !vd->address )
       continue;
+    if ( (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
+    { if ( true(vd, VD_MAYBE_SINGLETON) && vd->name &&
+	   atom_is_named_var(vd->name) )
+	compiler_warning(ci, "semantic_singleton", vd->address);
+    }
     if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
     { *vd->address = vd->saved;
       vd->address = (Word) NULL;
@@ -2636,16 +2857,14 @@ compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
   a1 = argTermP(*arg, 0); deRef(a1);
   a2 = argTermP(*arg, 1); deRef(a2);
 
-  if ( isVar(*a1) )			/* Singleton = ? --> true */
-  { skippedVar(a2, ci PASS_LD);
-  unify_always_yields_true:
+  if ( isVar(*a1) || isVar(*a2) )	/* Singleton = ? --> true */
+  { skippedVar(a1, ci PASS_LD);
+    skippedVar(a2, ci PASS_LD);
+
+    if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+      compiler_warning(ci, "unify_singleton", a1, a2);
     Output_0(ci, I_TRUE);
     return TRUE;
-  }
-
-  if ( isVar(*a2) )
-  { skippedVar(a1, ci PASS_LD);
-    goto unify_always_yields_true;
   }
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
@@ -2720,11 +2939,12 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
-  a1 = argTermP(*arg, 0);
-  deRef(a1);
-  if ( isVar(*a1) )			/* Singleton == ?: always fail */
-  {
-  eq_always_false:
+  a1 = argTermP(*arg, 0); deRef(a1);
+  a2 = argTermP(*arg, 1); deRef(a2);
+
+  if ( isVar(*a1) || isVar(*a2) )	/* Singleton == ?: always fail */
+  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+      compiler_warning(ci, "eq_singleton", a1, a2);
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
     { Output_0(ci, I_FAIL);
       return TRUE;
@@ -2732,11 +2952,6 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
 
     return FALSE;			/* debugging: compile as normal code */
   }
-
-  a2 = argTermP(*arg, 1);
-  deRef(a2);
-  if ( isVar(*a2) )			/* ? = Singleton: no need to compile */
-    goto eq_always_false;
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   i2 = isIndexedVarTerm(*a2 PASS_LD);
@@ -2746,10 +2961,11 @@ compileBodyEQ(Word arg, compileInfo *ci ARG_LD)
     int f2 = isFirstVar(ci->used_var, i2);
 
     if ( f1 || f2 )
-    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+	compiler_warning(ci, "eq_vv", a1, a2);
+      if ( truePrologFlag(PLFLAG_OPTIMISE) )
       {	code op = (i1 == i2) ? I_TRUE : I_FAIL;
 
-	compiler_warning(ci, "eq_vv", a1, a2);
 	Output_0(ci, op);
 
 	return TRUE;
@@ -2801,11 +3017,12 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
-  a1 = argTermP(*arg, 0);
-  deRef(a1);
-  if ( isVar(*a1) )			/* Singleton == ?: always true */
-  {
-  eq_always_false:
+  a1 = argTermP(*arg, 0); deRef(a1);
+  a2 = argTermP(*arg, 1); deRef(a2);
+
+  if ( isVar(*a1) || isVar(*a2) )	/* Singleton \== ?: always true */
+  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+      compiler_warning(ci, "neq_singleton", a1, a2);
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
     { Output_0(ci, I_TRUE);
       return TRUE;
@@ -2813,11 +3030,6 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
 
     return FALSE;			/* debugging: compile as normal code */
   }
-
-  a2 = argTermP(*arg, 1);
-  deRef(a2);
-  if ( isVar(*a2) )			/* ? = Singleton: no need to compile */
-    goto eq_always_false;
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   i2 = isIndexedVarTerm(*a2 PASS_LD);
@@ -2827,7 +3039,9 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
     int f2 = isFirstVar(ci->used_var, i2);
 
     if ( f1 || f2 )
-    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+	compiler_warning(ci, "neq_vv", a1, a2);
+      if ( truePrologFlag(PLFLAG_OPTIMISE) )
       {	Output_0(ci, i1 == i2 ? I_FAIL : I_TRUE);
 	return TRUE;
       }
@@ -2874,7 +3088,9 @@ compileBodyVar1(Word arg, compileInfo *ci ARG_LD)
   a1 = argTermP(*arg, 0);
   deRef(a1);
   if ( isVar(*a1) )			/* Singleton == ?: always true */
-  { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+      compiler_warning(ci, "var_true", a1);
+    if ( truePrologFlag(PLFLAG_OPTIMISE) )
     { Output_0(ci, I_TRUE);
       return TRUE;
     }
@@ -2887,7 +3103,9 @@ compileBodyVar1(Word arg, compileInfo *ci ARG_LD)
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+	compiler_warning(ci, "var_true", a1);
+      if ( truePrologFlag(PLFLAG_OPTIMISE) )
       { Output_0(ci, I_TRUE);
 	return TRUE;
       }
@@ -2915,7 +3133,9 @@ compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD)
   a1 = argTermP(*arg, 0);
   deRef(a1);
   if ( isVar(*a1) )			/* Singleton == ?: always false */
-  { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+  { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+      compiler_warning(ci, "nonvar_false", a1);
+    if ( truePrologFlag(PLFLAG_OPTIMISE) )
     { Output_0(ci, I_FAIL);
       return TRUE;
     }
@@ -2928,7 +3148,9 @@ compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD)
   { int f1 = isFirstVar(ci->used_var, i1);
 
     if ( f1 )
-    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { if ( (debugstatus.styleCheck&NOEFFECT_CHECK) )
+	compiler_warning(ci, "nonvar_false", a1);
+      if ( truePrologFlag(PLFLAG_OPTIMISE) )
       { Output_0(ci, I_FAIL);
 	return TRUE;
       }
@@ -3137,35 +3359,35 @@ takes care of reconsult, redefinition, etc.
       def = getProcDefinition(proc);	/* may be changed */
     }
 
-    if ( proc == of->current_procedure )
-      return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
-
-    if ( def->impl.any )	/* i.e. is (might be) defined */
-    { if ( !redefineProcedure(proc, of, 0) )
-      { freeClause(clause);
-	return NULL;
+    if ( proc != of->current_procedure )
+    { if ( def->impl.any )	/* i.e. is (might be) defined */
+      { if ( !redefineProcedure(proc, of, 0) )
+	{ freeClause(clause);
+	  return NULL;
+	}
       }
-    }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This `if' locks predicates as system predicates  if  we  are  in  system
+This `if` locks predicates as system  predicates   if  we  are in system
 mode, the predicate is still undefined and is not dynamic or multifile.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    if ( !isDefinedProcedure(proc) )
-    { if ( SYSTEM_MODE )
-      { if ( false(def, P_LOCKED) )
-	  set(def, HIDE_CHILDS|P_LOCKED);
-      } else
-      { if ( truePrologFlag(PLFLAG_DEBUGINFO) )
-	  clear(def, HIDE_CHILDS);
-	else
-	  set(def, HIDE_CHILDS);
+      if ( !isDefinedProcedure(proc) )
+      { if ( SYSTEM_MODE )
+	{ if ( false(def, P_LOCKED) )
+	    set(def, HIDE_CHILDS|P_LOCKED);
+	} else
+	{ if ( truePrologFlag(PLFLAG_DEBUGINFO) )
+	    clear(def, HIDE_CHILDS);
+	  else
+	    set(def, HIDE_CHILDS);
+	}
       }
+
+      addProcedureSourceFile(of, proc);
+      of->current_procedure = proc;
     }
 
-    addProcedureSourceFile(of, proc);
-    of->current_procedure = proc;
     if ( assertProcedure(proc, clause, where PASS_LD) )
     { if ( warnings && !PL_get_nil(warnings) )
       { fid_t fid = PL_open_foreign_frame();

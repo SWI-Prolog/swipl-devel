@@ -632,6 +632,75 @@ prolog_message(autoload(read_index(Dir))) -->
 
 
 		 /*******************************
+		 *	 COMPILER WARNINGS	*
+		 *******************************/
+
+% print warnings about dubious code raised by the compiler.
+% TBD: pass in PC to produce exact error locations.
+
+prolog_message(compiler_warnings(Clause, Warnings)) -->
+	{   print_goal_options(DefOptions),
+	    (   prolog_load_context(variable_names, VarNames)
+	    ->	Options = [variable_names(VarNames)|DefOptions]
+	    ;	Options = DefOptions
+	    )
+	},
+	compiler_warnings(Warnings, Clause, Options).
+
+compiler_warnings([], _, _) --> [].
+compiler_warnings([H|T], Clause, Options) -->
+	(   compiler_warning(H, Clause, Options)
+	->  []
+	;   [ 'Unknown compiler warning: ~W'-[H,Options] ]
+	),
+	(   {T==[]}
+	->  []
+	;   [nl]
+	),
+	compiler_warnings(T, Clause, Options).
+
+% no named variable is involved in the message.  This must be
+% generated code.  DCG can do this in e.g. `t --> "x", !, {fail}.`
+compiler_warning(Term, _Clause, [variable_names(VarNames)|_]) -->
+	{ term_variables(Term, Vars),
+	  \+ ( '$member'(V1, Vars),
+	       '$member'(_=V2, VarNames),
+	       V1 == V2
+	     )
+	}, !.
+% the normal cases
+compiler_warning(eq_vv(A,B), _Clause, Options) -->
+	(   { A == B }
+	->  [ 'Test is always true: ~W'-[A==B, Options] ]
+	;   [ 'Test is always false: ~W'-[A==B, Options] ]
+	).
+compiler_warning(eq_singleton(A,B), _Clause, Options) -->
+	[ 'Test is always true: ~W'-[A==B, Options] ].
+compiler_warning(neq_vv(A,B), _Clause, Options) -->
+	(   { A \== B }
+	->  [ 'Test is always true: ~W'-[A\==B, Options] ]
+	;   [ 'Test is always false: ~W'-[A\==B, Options] ]
+	).
+compiler_warning(neq_singleton(A,B), _Clause, Options) -->
+	[ 'Test is always false: ~W'-[A\==B, Options] ].
+compiler_warning(unify_singleton(A,B), _Clause, Options) -->
+	[ 'Unified variable is not used: ~W'-[A=B, Options] ].
+compiler_warning(var_true(A), _Clause, Options) -->
+	[ 'Test is always true: ~W'-[var(A), Options] ].
+compiler_warning(nonvar_false(A), _Clause, Options) -->
+	[ 'Test is always false: ~W'-[nonvar(A), Options] ].
+compiler_warning(unbalanced_var(V), _Clause, Options) -->
+	[ 'Variable not introduced in all branches: ~W'-[V, Options] ].
+compiler_warning(semantic_singleton(V), _Clause, Options) -->
+	[ 'Singleton variable in branch: ~W'-[V, Options] ].
+
+print_goal_options(
+    [ quoted(true),
+      portray(true)
+    ]).
+
+
+		 /*******************************
 		 *	TOPLEVEL MESSAGES	*
 		 *******************************/
 
