@@ -583,7 +583,7 @@ gmp(shift-2) :-
 	A is 1<<55, B is A<<8,
 	B =:= 9223372036854775808.
 gmp(shift-3) :-
-	var(A),
+	unbound(A),
 	forall(between(1, 100, X),
 	       catch(A is 1<<(1<<X), error(resource_error(stack), _), true)).
 gmp(fac-1) :-
