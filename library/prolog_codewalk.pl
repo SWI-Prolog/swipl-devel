@@ -496,7 +496,8 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 	->  From = clause_term_position(Clause, TermPos)
 	;   walk_option_source(OTerm, false)
 	->  From = clause(Clause)
-	;   throw(missing(subterm_positions))
+	;   From = _,
+	    throw(missing(subterm_positions))
 	),
 	print_reference2(Goal, From, Why, OTerm).
 print_reference(Goal, TermPos, Why, OTerm) :-
