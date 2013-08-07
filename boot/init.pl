@@ -1951,7 +1951,7 @@ load_files(Module:Files, Options) :-
 	),
 	'$compile_type'(What),
 
-	'$save_lex_state'(LexState),
+	'$save_lex_state'(LexState, Options),
 	'$set_dialect'(Options),
 	'$load_file'(Absolute, Id, LM, Options),
 	'$restore_lex_state'(LexState),
@@ -1960,9 +1960,16 @@ load_files(Module:Files, Options) :-
 
 :- create_prolog_flag(emulated_dialect, swi, [type(atom)]).
 
-'$save_lex_state'(lexstate(Style, Dialect)) :-
+%%	'$save_lex_state'(-LexState, +Options) is det.
+
+'$save_lex_state'(State, Options) :-
+	memberchk(scope_settings(false), Options), !,
+	State = (-).
+'$save_lex_state'(lexstate(Style, Dialect), _) :-
 	'$style_check'(Style, Style),
 	current_prolog_flag(emulated_dialect, Dialect).
+
+'$restore_lex_state'(-) :- !.
 '$restore_lex_state'(lexstate(Style, Dialect)) :-
 	'$style_check'(_, Style),
 	set_prolog_flag(emulated_dialect, Dialect).
@@ -3003,7 +3010,7 @@ at_halt(Goal) :-
 '$load_wic_files'(Files) :-
 	Files = Module:_,
 	'$execute_directive'('$set_source_module'(OldM, Module), []),
-	'$save_lex_state'(LexState),
+	'$save_lex_state'(LexState, []),
 	'$style_check'(_, 0xC7),		% see style_name/2 in syspred.pl
 	'$compilation_mode'(OldC, wic),
 	consult(Files),

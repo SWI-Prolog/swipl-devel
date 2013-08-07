@@ -359,6 +359,12 @@ flag \prologflag{sandboxed_load}. The only meaningful value for
 \arg{Bool} is \const{true}.  Using \const{false} while the Prolog
 flag is set to \const{true} raises a permission error.
 
+    \termitem{scope_settings}{Bool}
+Scope style_check/1 and expects_dialect/1 to the file and files loaded
+from the file after the directive.  Default is \const{true}.  The system
+and user initialization files (see \cmdlineoption{-f} and
+\cmdlineoption{-F}) are loading with \term{scope_settings}{false}.
+
     \termitem{silent}{Bool}
 If \const{true}, load the file without printing a message. The
 specified value is the default for all files loaded as a result of

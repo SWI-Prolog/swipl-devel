@@ -92,7 +92,9 @@ user:file_search_path(app_preferences, UserHome) :-
 			     file_errors(fail)
 			   ], InitFile),
 	asserta(loaded_init_file(Base, InitFile)),
-	ensure_loaded(user:InitFile).
+	load_files(user:InitFile,
+		   [ scope_settings(false)
+		   ]).
 '$load_init_file'(_).
 
 '$load_system_init_file' :-
@@ -109,7 +111,10 @@ user:file_search_path(app_preferences, UserHome) :-
 			     file_errors(fail)
 			   ]),
 	asserta(loaded_init_file(system, Path)),
-	load_files(user:Path, [silent(true)]), !.
+	load_files(user:Path,
+		   [ silent(true),
+		     scope_settings(false)
+		   ]), !.
 '$load_system_init_file'.
 
 '$load_script_file' :-
