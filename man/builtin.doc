@@ -4474,7 +4474,7 @@ Read term with options from \arg{Stream}.  See read_term/2.
 
     \predicate{read_term_from_atom}{3}{+Atom, -Term, +Options}
 Use read_term/3 to read the next term from \arg{Atom}.  \arg{Atom} is
-either an atom or a string object (see \secref{string}).  It is not
+either an atom or a string object (see \secref{strings}).  It is not
 required for \arg{Atom} to end with a full-stop.  This predicate
 supersedes atom_to_term/3.
 
