@@ -191,9 +191,9 @@ include_file(Path) :-
 locate(file(File, line(Line)), [file(File), line(Line)]).
 locate(file(File), [file(File)]).
 locate(Module:Name/Arity, [file(File), line(Line)]) :-
-	(   nonvar(Arity)
+	(   atom(Name), integer(Arity)
 	->  functor(Head, Name, Arity)
-	;   true
+	;   Head = _			% leave unbound
 	),
 	(   (   var(Module)
 	    ;	var(Name)
