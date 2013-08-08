@@ -1938,7 +1938,7 @@ typedef struct set_stream_info
 #define SS_READ		0x01
 #define SS_WRITE	0x02
 #define SS_BOTH		(SS_READ|SS_WRITE)
-#define SS_NOPAIR	0x4
+#define SS_NOPAIR	(0x4|SS_BOTH)
 
 #define SS_INFO(name, flags) { name, flags }
 
@@ -1999,7 +1999,7 @@ found:
       return PL_error("set_stream", 2, NULL, ERR_PERMISSION,
 		      aname, ATOM_stream_pair, stream);
 
-    rc = FALSE;
+    rc = TRUE;
     if ( ref->read && (info->flags&SS_READ) )
     { rc = set_stream(getStream(ref->read), stream, aname, aval PASS_LD);
       releaseStream(ref->read);
