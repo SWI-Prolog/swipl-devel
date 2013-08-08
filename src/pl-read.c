@@ -1533,6 +1533,39 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 }
 
 
+/* is_singleton() is true if var is a singleton.  As quasi quotations
+   may insert the (named) variable into the quotation, we must scan
+   the quasi quotation list and check that the variable does not appear
+   in any of the terms.
+*/
+
+static int
+is_singleton(Variable var, ReadData _PL_rd ARG_LD)
+{ if ( var->times == 1 && warn_singleton(var->name) )
+  {
+#ifdef O_QUASIQUOTATIONS
+    if ( _PL_rd->qq )
+    { term_t tail = PL_copy_term_ref(_PL_rd->qq);
+      term_t head = PL_new_term_ref();
+      term_t result = PL_new_term_ref();
+
+      while(PL_get_list(tail, head, tail))
+      { if ( PL_get_arg(4, head, result) &&
+	     PL_var_occurs_in(var->variable, result) )
+	{ var->times++;			/* avoid a second scan */
+	  return FALSE;
+	}
+      }
+    }
+#endif
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static bool				/* TBD: new schema */
 check_singletons(ReadData _PL_rd ARG_LD)
 { if ( _PL_rd->singles != TRUE )	/* returns <name> = var bindings */
@@ -1540,7 +1573,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
     term_t head = PL_new_term_ref();
 
     for_vars(var,
-	     if ( var->times == 1 && warn_singleton(var->name) )
+	     if ( is_singleton(var, _PL_rd PASS_LD) )
 	     {	if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_term(head,
 				    PL_FUNCTOR,    FUNCTOR_equals2,
@@ -1556,7 +1589,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 
 					/* singletons */
     for_vars(var,
-	     if ( var->times == 1 && warn_singleton(var->name) )
+	     if ( is_singleton(var, _PL_rd PASS_LD) )
 	     { if ( i < MAX_SINGLETONS )
 		 singletons[i++] = var->name;
 	     });
@@ -1568,7 +1601,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 
     i = 0;				/* multiple _X* */
     for_vars(var,
-	     if ( var->times > 1 && !warn_singleton(var->name) )
+	     if ( is_singleton(var, _PL_rd PASS_LD) )
 	     { if ( i < MAX_SINGLETONS )
 		 singletons[i++] = var->name;
 	     });
