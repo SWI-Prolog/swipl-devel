@@ -35,10 +35,10 @@
 	  ]).
 
 :- multifile
-	prolog:message/3,		% entire message
-	prolog:error_message/3,		% 1-st argument of error term
-	prolog:message_context/3,	% Context of error messages
-	prolog:message_location/3,	% (File) location of error messages
+	prolog:message//1,		% entire message
+	prolog:error_message//1,	% 1-st argument of error term
+	prolog:message_context//1,	% Context of error messages
+	prolog:message_location//1,	% (File) location of error messages
 	prolog:message_line_element/2.	% Extend printing
 :- discontiguous
 	prolog_message/3.
