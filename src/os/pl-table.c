@@ -109,13 +109,15 @@ destroyHTable(Table ht)
 static int lookups;
 static int cmps;
 
-void
+int
 exitTables(int status, void *arg)
 { (void)status;
   (void)arg;
 
   Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
 	   lookups, cmps);
+
+  return 0;
 }
 #endif
 

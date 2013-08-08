@@ -1058,13 +1058,15 @@ registerBuiltinAtoms(void)
 
 
 #if O_DEBUG
-static void
+static int
 exitAtoms(int status, void *context)
 { (void)status;
   (void)context;
 
   Sdprintf("hashstat: %d lookupAtom() calls used %d strcmp() calls\n",
 	   lookups, cmps);
+
+  return 0;
 }
 #endif
 

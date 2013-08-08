@@ -134,7 +134,7 @@ registerConsole(rlc_console c)
 
 
 void
-closeConsoles()
+closeConsoles(void)
 { int i;
   rlc_console *p;
 
@@ -1003,7 +1003,7 @@ install_readline(rlc_console c)
 
 static rlc_console main_console;
 
-static void
+static int
 closeWin(int s, void *a)
 { rlc_console c = a;
 
@@ -1013,6 +1013,8 @@ closeWin(int s, void *a)
   { main_console = NULL;
     rlc_close(c);
   }
+
+  return 0;
 }
 
 #define MAX_ARGC 100
