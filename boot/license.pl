@@ -219,8 +219,8 @@ license_list([L|T]) -->
 	(   { memberchk(comment(C), Att)
 	    ; memberchk(url(C), Att)
 	    }
-	->  [ '    ~w~t16~|~w'-[X, C], nl ]
-	;   [ '	   ~w'-[X, C], nl ]
+	->  [ '  ~|~w~t~20+~w'-[L, C], nl ]
+	;   [ '  ~|~w'-[L], nl ]
 	),
 	license_list(T).
 
