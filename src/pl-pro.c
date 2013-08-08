@@ -78,7 +78,7 @@ This notably affects I/O  (reset  current  I/O   to  user  I/O)  and the
 debugger.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+int
 query_loop(atom_t goal, int loop)
 { GET_LD
   int rc;

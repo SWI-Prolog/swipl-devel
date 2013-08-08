@@ -3184,8 +3184,8 @@ the various termination hooks and indicates the \jargon{exit-status}.
 
 The function returns \const{TRUE} if successful and \const{FALSE}
 otherwise. Currently, \const{FALSE} is returned when an attempt is made
-to call PL_cleanup() recursively or if PL_cleanup() is not called from
-the main thread.
+to call PL_cleanup() recursively or if one of the exit handlers
+cancels the termination.
 
 In theory, this function allows deleting and restarting the Prolog
 system in the same process. In practice, SWI-Prolog's cleanup process is
@@ -3198,7 +3198,6 @@ If you want to be able to reset Prolog, your options are (again) a
 separate process, modules or threads.
 
     \cfunction{void}{PL_cleanup_fork}{}
-Close file descriptors associated to Prolog streams except for 0,1~and~2.
 Stop intervaltimer that may be running on behalf of profile/1.  The call
 is intended to be used in combination with fork():
 
@@ -3213,12 +3212,9 @@ The call behaves the same  on  Windows,   though  there  is  probably no
 meaningful application.
 
     \cfunction{int}{PL_halt}{int status}
-Clean up the Prolog environment using PL_cleanup() and call exit() with
-the status argument.  As PL_cleanup() can only be called from the main
-thread, this function returns \const{FALSE} when called from a
-thread other than the main one.%
-	\bug{Eventually it may become possible to call
-	     PL_halt() from any thread.}
+Clean up the Prolog environment using PL_cleanup() and if successful
+call exit() with the status argument.  Returns \const{FALSE} if exit
+was cancelled by PL_cleanup().
 \end{description}
 
 

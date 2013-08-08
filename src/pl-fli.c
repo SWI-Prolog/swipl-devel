@@ -3824,7 +3824,7 @@ PL_toplevel(void)
 }
 
 
-void
+int
 PL_halt(int status)
 { int reclaim_memory = FALSE;
 
@@ -3832,9 +3832,10 @@ PL_halt(int status)
   reclaim_memory = TRUE;
 #endif
 
-  cleanupProlog(status, reclaim_memory);
+  if ( cleanupProlog(status, reclaim_memory) )
+    exit(status);
 
-  exit(status);
+  return FALSE;
 }
 
 

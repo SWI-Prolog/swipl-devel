@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1205,7 +1204,7 @@ giveVersionInfo(const char *a)
 		 *	     CLEANUP		*
 		 *******************************/
 
-typedef void (*halt_function)(int, void*);
+typedef int (*halt_function)(int, void*);
 
 struct on_halt
 { halt_function	function;
@@ -1226,15 +1225,18 @@ PL_on_halt(halt_function f, void *arg)
   }
 }
 
-static void
+static int
 run_on_halt(int rval)
 { OnHalt h, next;
 
   for(h = GD->os.on_halt_list; h; h=next)
   { next = h->next;
-    (*h->function)(rval, h->argument);
+    if ( (*h->function)(rval, h->argument) == FALSE )
+      Sdprintf("Foreign halt function %p returned FALSE\n", h->function);
     freeHeap(h, sizeof(*h));
   }
+
+  return TRUE;				/* not yet cancelling */
 }
 
 
@@ -1255,10 +1257,6 @@ cleanupProlog(int rval, int reclaim_memory)
 
   if ( GD->cleaning != CLN_NORMAL )
     return FALSE;
-#ifdef O_PLMT
-  if ( PL_thread_self() != 1 )
-    return FALSE;
-#endif
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
@@ -1266,10 +1264,28 @@ cleanupProlog(int rval, int reclaim_memory)
 #endif
 
   LOCK();
-  GD->cleaning = CLN_ACTIVE;
+
+  GD->cleaning = CLN_PROLOG;
+  debugmode(FALSE, NULL);		/* avoid recursive tracing */
+
+  if ( GD->initialised )
+  { DEBUG(5, Sdprintf("Running at_halt hooks\n"));
+
+    PL_set_prolog_flag("exit_status", PL_INTEGER, rval);
+    if ( !query_loop(PL_new_atom("$run_at_halt"), FALSE) && rval == 0 )
+    { cancelled:
+      GD->cleaning = CLN_NORMAL;
+      UNLOCK();
+      return FALSE;
+    }
+
+    GD->cleaning = CLN_FOREIGN;
+    if ( !run_on_halt(rval) && rval == 0 )
+      goto cancelled;
+  }
+
   emptyStacks();			/* no need for this and we may be */
 					/* out of stack */
-  pl_notrace();				/* avoid recursive tracing */
 #ifdef O_PROFILE
   resetProfiler();			/* don't do profiling anymore */
 #endif
@@ -1279,21 +1295,7 @@ cleanupProlog(int rval, int reclaim_memory)
 
   Scurout = Soutput;			/* reset output stream to user */
 
-  GD->cleaning = CLN_PROLOG;
-
   qlfCleanup();				/* remove errornous .qlf files */
-  if ( GD->initialised )
-  { fid_t cid = PL_open_foreign_frame();
-    predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
-
-    DEBUG(5, Sdprintf("Running at_halt hooks\n"));
-    PL_call_predicate(MODULE_system, FALSE, proc, 0);
-    PL_discard_foreign_frame(cid);
-  }
-
-  GD->cleaning = CLN_FOREIGN;
-  run_on_halt(rval);
-
   dieIO();				/* streams may refer to foreign code */
 					/* Standard I/O is only flushed! */
 
@@ -1496,6 +1498,7 @@ vfatalError(const char *fm, va_list args)
 #endif
 
   PL_halt(2);
+  exit(2);				/* in case PL_halt() does not */
 }
 
 

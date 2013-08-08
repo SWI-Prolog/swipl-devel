@@ -412,6 +412,7 @@ COMMON(int)		currentBreakLevel(void);
 COMMON(int)		callProlog(Module module, term_t goal, int flags, term_t *ex);
 COMMON(int)		abortProlog(void);
 COMMON(bool)		prologToplevel(atom_t toplevel);
+COMMON(int)		query_loop(atom_t goal, int loop);
 COMMON(word)		pl_metacut(void);
 COMMON(int)		trap_gdb(void);
 COMMON(word)		checkData(Word p);

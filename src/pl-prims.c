@@ -4203,24 +4203,11 @@ word
 pl_halt(term_t code)
 { int status;
 
-#ifdef O_PLMT
-  if ( PL_thread_self() != 1 )
-  { GET_LD
-    term_t t = PL_new_term_ref();
-
-    pl_thread_self(t);
-    return PL_error("halt", 1, "Only from thread `main'",
-		    ERR_PERMISSION,
-		    ATOM_halt, ATOM_thread, t);
-  }
-#endif
-
   if ( !PL_get_integer_ex(code, &status) )
     fail;
 
   PL_halt(status);
-  /*NOTREACHED*/
-  fail;
+  fail;					/* exception? */
 }
 
 #ifdef O_LIMIT_DEPTH

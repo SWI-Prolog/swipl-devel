@@ -1923,6 +1923,9 @@ load_files(Module:Files, Options) :-
 '$print_message_fail'(E) :-
 	'$print_message'(error, E),
 	fail.
+'$print_message_fail'(Kind, E) :-
+	'$print_message'(Kind, E),
+	fail.
 
 %%	'$consult_file'(+Path, +Module, -Action, -LoadedIn, +Options)
 %
@@ -2993,11 +2996,20 @@ at_halt(Goal) :-
 :- public '$run_at_halt'/0.
 
 '$run_at_halt' :-
-	(   '$at_halt'(Goal),
-	    catch(Goal, E, print_message(error, E)),
+	forall(clause('$at_halt'(Goal), true, Ref),
+	       ( '$call_at_halt'(Goal),
+		 erase(Ref)
+	       )).
+
+'$call_at_halt'(Goal) :-
+	catch(Goal, E, true), !,
+	(   var(E)
+	->  true
+	;   '$print_message'(warning, halt_cancelled(E)),
 	    fail
-	;   true
 	).
+'$call_at_halt'(Goal) :-
+	'$print_message_fail'(warning, halt_cancelled(goal_failed(Goal))).
 
 
 		/********************************
