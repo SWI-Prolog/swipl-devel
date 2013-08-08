@@ -765,12 +765,8 @@ prolog_message(var_query(_)) -->
 	].
 prolog_message(close_on_abort(Stream)) -->
 	[ 'Abort: closed stream ~p'-[Stream] ].
-prolog_message(halt_cancelled(goal_failed(Goal0))) -->
-	{ clean_goal(Goal0, Goal) },
-	[ 'Halt cancelled: at_halt/1 failed for: ~p'-[Goal] ].
-prolog_message(halt_cancelled(Error)) -->
-	[ 'Halt cancelled: ' ],
-	translate_message(Error).
+prolog_message(cancel_halt(Reason)) -->
+	[ 'Halt cancelled: ~p'-[Reason] ].
 
 prolog_message(query(QueryResult)) -->
 	query_result(QueryResult).

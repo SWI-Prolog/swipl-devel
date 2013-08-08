@@ -3185,7 +3185,8 @@ the various termination hooks and indicates the \jargon{exit-status}.
 The function returns \const{TRUE} if successful and \const{FALSE}
 otherwise. Currently, \const{FALSE} is returned when an attempt is made
 to call PL_cleanup() recursively or if one of the exit handlers
-cancels the termination.
+cancels the termination using cancel_halt/1.  Exit handlers may only
+cancel termination if \arg{status} is 0.
 
 In theory, this function allows deleting and restarting the Prolog
 system in the same process. In practice, SWI-Prolog's cleanup process is

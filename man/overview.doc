@@ -1159,6 +1159,10 @@ details.
 Pathname of the running executable. Used by qsave_program/2 as
 default emulator.
 
+    \prologflagitem{exit_status}{integer}{r}
+Set by halt/1 to its argument, making the exit status available to
+hooks registered with at_halt/1.
+
     \prologflagitem{file_name_variables}{bool}{rw}
 If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
 and \chr{~} in arguments of built-in predicates that accept a file

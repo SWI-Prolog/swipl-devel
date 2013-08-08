@@ -706,7 +706,16 @@ Register \arg{Goal} to be run from PL_cleanup(), which is called when
 the system halts. The hooks are run in the reverse order they were
 registered (FIFO). Success or failure executing a hook is ignored. If
 the hook raises an exception this is printed using print_message/2. An
-attempt to call halt/[0,1] from a hook is ignored.
+attempt to call halt/[0,1] from a hook is ignored. Hooks may call
+cancel_halt/1, causing halt/0 and PL_halt(0) to print a message
+indicating that halting the system has been cancelled.
+
+    \predicate{cancel_halt}{1}{+Reason}
+If this predicate is called from a hook registered with at_halt/1,
+halting Prolog is cancelled and an informational message is printed
+that includes \arg{Reason}.  This is used by the development tools
+to cancel halting the system if the editor has unsafed data and the
+user decides to cancel.
 
     \directive[ISO]{initialization}{1}{:Goal}
 Call \arg{Goal} \emph{after} loading the source file in which this
@@ -7648,19 +7657,38 @@ and `a'.
 \end{code}
 
     \predicate[ISO]{halt}{0}{}
-Terminate Prolog execution.  Open files are closed, and if the command
-line option \cmdlineoption{-tty} is not active the terminal status (see Unix
-stty(1)) is restored.  Hooks may be registered both in Prolog and in
-foreign code.  Prolog hooks are registered using at_halt/1.  halt/0
-is equivalent to \exam{halt(0)}.%
-	\bug{In the multithreaded version, halt/0 does not work when
-	     not called from the \emph{main} thread.  In the current
-	     system a \const{permission_error} exception is raised.
-	     Future versions may enable halt/0 from any thread.}
+Terminate Prolog execution.  This is the same as \term{halt}{0}. See
+halt/1 for details.
 
     \predicate[ISO]{halt}{1}{+Status}
-Terminate Prolog execution with the given status.  Status is an integer.
-See also halt/0.
+Terminate Prolog execution with \arg{Status}. This predicate calls
+PL_halt() which preforms the following steps:
+
+    \begin{enumerate}
+    \item Set the Prolog flag \prologflag{exit_status} to \arg{Status}.
+
+    \item Call all hooks registered using at_halt/1.  If \arg{Status}
+    equals 0 (zero), any of these hooks calls cancel_halt/1,
+    termination is cancelled.
+
+    \item Call all hooks registered using PL_at_halt().  In the future,
+    if any of these hooks returns non-zero, termination will be
+    cancelled.  Currently, this only prints a warning.
+
+    \item Perform the following system cleanup actions:
+
+    \begin{itemize}
+    \item Cancel all threads, calling thread_at_exit/1 registered
+          termination hooks.  Threads not responding within 1 second
+	  are cancelled forcefully.
+    \item Flush I/O and close all streams except for standard I/O.
+    \item Reset the terminal if its properties were changed.
+    \item Remove temporary files and incomplete compilation output.
+    \item Reclaim memory.
+    \end{itemize}
+
+    \item Call exit(Status) to terminate the process
+    \end{enumerate}
 
     \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read

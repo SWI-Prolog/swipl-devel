@@ -3005,11 +3005,22 @@ at_halt(Goal) :-
 	catch(Goal, E, true), !,
 	(   var(E)
 	->  true
-	;   '$print_message'(warning, halt_cancelled(E)),
+	;   subsumes_term(cancel_halt(_), E)
+	->  '$print_message'(informational, E),
 	    fail
+	;   '$print_message'(error, E)
 	).
 '$call_at_halt'(Goal) :-
-	'$print_message_fail'(warning, halt_cancelled(goal_failed(Goal))).
+	'$print_message'(error, goal_failed(Goal)).
+
+%%	cancel_halt(+Reason)
+%
+%	This predicate may be called from   at_halt/1 handlers to cancel
+%	halting the program. If  causes  halt/0   to  fail  rather  than
+%	terminating the process.
+
+cancel_halt(Reason) :-
+	throw(cancel_halt(Reason)).
 
 
 		/********************************

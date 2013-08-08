@@ -1230,9 +1230,11 @@ run_on_halt(int rval)
 { OnHalt h, next;
 
   for(h = GD->os.on_halt_list; h; h=next)
-  { next = h->next;
-    if ( (*h->function)(rval, h->argument) == FALSE )
-      Sdprintf("Foreign halt function %p returned FALSE\n", h->function);
+  { int rc;
+
+    next = h->next;
+    if ( (rc=(*h->function)(rval, h->argument)) != 0 )
+      Sdprintf("Foreign halt function %p returned %d\n", h->function, rc);
     freeHeap(h, sizeof(*h));
   }
 
@@ -1251,6 +1253,8 @@ When called from PL_halt(),  reclaim_memory   is  FALSE, unless compiled
 with -DGC_DEBUG.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define MAX_HALT_CANCELLED 10
+
 int
 cleanupProlog(int rval, int reclaim_memory)
 { GET_LD
@@ -1264,6 +1268,17 @@ cleanupProlog(int rval, int reclaim_memory)
 #endif
 
   LOCK();
+  if ( GD->cleaning != CLN_NORMAL )
+  { UNLOCK();
+    return FALSE;
+  }
+
+  if ( !LD )
+  { PL_thread_attach_engine(NULL);
+    LD = GLOBAL_LD;
+    if ( !LD )
+      goto emergency;
+  }
 
   GD->cleaning = CLN_PROLOG;
   debugmode(FALSE, NULL);		/* avoid recursive tracing */
@@ -1273,15 +1288,21 @@ cleanupProlog(int rval, int reclaim_memory)
 
     PL_set_prolog_flag("exit_status", PL_INTEGER, rval);
     if ( !query_loop(PL_new_atom("$run_at_halt"), FALSE) && rval == 0 )
-    { cancelled:
-      GD->cleaning = CLN_NORMAL;
-      UNLOCK();
-      return FALSE;
+    { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
+      { GD->cleaning = CLN_NORMAL;
+	UNLOCK();
+	return FALSE;
+      }
     }
 
     GD->cleaning = CLN_FOREIGN;
     if ( !run_on_halt(rval) && rval == 0 )
-      goto cancelled;
+    { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
+      { GD->cleaning = CLN_NORMAL;
+	UNLOCK();
+	return FALSE;
+      }
+    }
   }
 
   emptyStacks();			/* no need for this and we may be */
@@ -1293,6 +1314,7 @@ cleanupProlog(int rval, int reclaim_memory)
   exitPrologThreads();
 #endif
 
+emergency:
   Scurout = Soutput;			/* reset output stream to user */
 
   qlfCleanup();				/* remove errornous .qlf files */
