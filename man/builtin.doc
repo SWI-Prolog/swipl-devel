@@ -3528,8 +3528,15 @@ Quintus Prolog, though the error conditions and signalling is ISO
 compliant. See also stream_property/2 and set_stream_position/2.
 
     \predicate{set_stream}{2}{+Stream, +Attribute}
-Modify an attribute of an existing stream. \arg{Attribute} specifies
-the stream property to set.  See also stream_property/2 and open/4.
+Modify an attribute of an existing stream. \arg{Attribute} specifies the
+stream property to set. If stream is a \emph{pair} (see stream_pair/3)
+both streams are modified, unless the property is only meaningful on
+one of the streams or setting both is not meaningful.  In particular,
+\const{eof_action} only applies to the \emph{read} stream,
+\const{representation_errors} only applies to the \emph{write} stream
+and trying to set \const{alias} or \const{line_position} on a pair
+results in a \const{permission_error} exception. See also
+stream_property/2 and open/4.
 
 \begin{description}
     \termitem{alias}{AliasName}
