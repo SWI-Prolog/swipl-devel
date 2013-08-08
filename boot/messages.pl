@@ -691,8 +691,10 @@ compiler_warning(nonvar_false(A), _Clause, Options) -->
 	[ 'Test is always false: ~W'-[nonvar(A), Options] ].
 compiler_warning(unbalanced_var(V), _Clause, Options) -->
 	[ 'Variable not introduced in all branches: ~W'-[V, Options] ].
-compiler_warning(semantic_singleton(V), _Clause, Options) -->
+compiler_warning(branch_singleton(V), _Clause, Options) -->
 	[ 'Singleton variable in branch: ~W'-[V, Options] ].
+compiler_warning(negation_singleton(V), _Clause, Options) -->
+	[ 'Singleton variable in \\+: ~W'-[V, Options] ].
 
 print_goal_options(
     [ quoted(true),

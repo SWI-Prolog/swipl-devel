@@ -1543,8 +1543,10 @@ control(cut-3) :-
 	c3.
 control(cut-4) :-
 	c4.
+:- style_check(-singleton).
 control(not-1) :-			% 2-nd call must generate FIRSTVAR
 	( fail ; \+ \+ p(f(X,Y)) ), p(f(X,Y)).
+:- style_check(+singleton).
 control(not-2) :-			% see comments with compileBody()
 	garbage_collect,		% may crash if wrong
 	prolog_current_frame(F),

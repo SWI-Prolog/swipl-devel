@@ -175,7 +175,8 @@ const static cw_def cw_defs[] =
   CW("var_true",           1),		/* var(SingleTonOrFirst) */
   CW("nonvar_false",       1),		/* nonvar(SingleTonOrFirst) */
   CW("unbalanced_var",     1),		/* Var initialised in some disjunctions */
-  CW("semantic_singleton", 1),		/* Singleton in some branch */
+  CW("branch_singleton",   1),		/* Singleton in some branch */
+  CW("negation_singleton", 1),		/* Singleton in \+(Goal) */
   CW(NULL,                 0)
 };
 
@@ -248,8 +249,9 @@ typedef struct _varDef
 } vardef;
 
 #define VD_MAYBE_SINGLETON  0x01
-#define VD_MAYBE_UNBALANCED 0x02
-#define VD_UNBALANCED	    0x04
+#define VD_SINGLETON        0x02
+#define VD_MAYBE_UNBALANCED 0x04
+#define VD_UNBALANCED	    0x08
 
 typedef struct
 { int	isize;
@@ -729,8 +731,13 @@ right_recursion:
 	ci->subclausearg--;
 
 	return nvars;
-      } /* else fall through to normal case */
+      } /* ci->local && control functor --> fall through to normal case */
     }
+
+    /* Check for singletons in branches (A;B).  These are variables
+       introduced in a branch, used only once in the branch and not
+       used in code after the branches re-unite.
+    */
 
     if ( f->definition == FUNCTOR_semicolon2 && control && !ci->islocal )
     { Buffer obv;
@@ -828,7 +835,57 @@ right_recursion:
       }
 
       return nvars;
-    } else
+    }
+
+    /* check \+ Goal for singletons on Goal.  These are variables introduced
+       inside the goal and only used once.
+    */
+
+    if ( f->definition == FUNCTOR_not_provable1 && control && !ci->islocal)
+    { Buffer obv;
+      int start_vars, at_end_vars;
+
+      if ( (obv=ci->branch_vars) == NULL )
+      { initBuffer(&ci->branch_varbuf);
+	ci->branch_vars = (Buffer)&ci->branch_varbuf;
+	start_vars = 0;
+      } else
+	start_vars = entriesBuffer(ci->branch_vars, branch_var);
+
+      nvars = analyseVariables2(&f->arguments[0], nvars, argn,
+				ci, depth, control PASS_LD);
+      if ( nvars < 0 )
+	goto error_in_not;
+
+      at_end_vars = entriesBuffer(ci->branch_vars, branch_var);
+      if ( at_end_vars > start_vars )
+      { branch_var *bv = baseBuffer(ci->branch_vars, branch_var);
+	branch_var *bve;
+
+	bve = bv + at_end_vars;
+	for(bv += start_vars; bv < bve; bv++)
+	{ VarDef vd = bv->vdef;
+
+	  if ( vd->times == 1 )
+	  { set(vd, VD_SINGLETON);
+	    ci->singletons++;
+	  }
+	}
+      }
+
+    error_in_not:
+      if ( obv == NULL )
+      { discardBuffer(ci->branch_vars);
+	ci->branch_vars = NULL;
+      } else
+      { seekBuffer(ci->branch_vars, start_vars, branch_var);
+      }
+
+      return nvars;
+    }
+
+    /* The default term processing case */
+
     { int ar = fd->arity;
 
       head = f->arguments;
@@ -899,9 +956,12 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
     if ( !vd->address )
       continue;
     if ( (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
-    { if ( true(vd, VD_MAYBE_SINGLETON) && vd->name &&
+    { if ( true(vd, VD_MAYBE_SINGLETON|VD_SINGLETON) && vd->name &&
 	   atom_is_named_var(vd->name) )
-	compiler_warning(ci, "semantic_singleton", vd->address);
+      { const char *type = ( true(vd, VD_MAYBE_SINGLETON) ?
+				  "branch_singleton" : "negation_singleton" );
+	compiler_warning(ci, type, vd->address);
+      }
     }
     if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
     { *vd->address = vd->saved;

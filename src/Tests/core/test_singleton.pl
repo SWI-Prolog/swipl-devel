@@ -76,7 +76,7 @@ message_singletons([H|T]) --> !,
 	message_singletons(T).
 message_singletons(compiler_warnings(_Clause, Messages)) --> !,
 	message_singletons(Messages).
-message_singletons(semantic_singleton(V)) --> !,
+message_singletons(branch_singleton(V)) --> !,
 	[V].
 message_singletons(singletons(Vars)) --> vars(Vars).
 
