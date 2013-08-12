@@ -1606,16 +1606,18 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	return FALSE;
     }
 
-    i = 0;				/* multiple _X* */
-    for_vars(var,
-	     if ( is_singleton(var, IS_MULTITON, _PL_rd PASS_LD) )
-	     { if ( i < MAX_SINGLETONS )
-		 singletons[i++] = var->name;
-	     });
+    if ( (_PL_rd->styleCheck&MULTITON_CHECK) )
+    { i = 0;				/* multiple _X* */
+      for_vars(var,
+	       if ( is_singleton(var, IS_MULTITON, _PL_rd PASS_LD) )
+	       { if ( i < MAX_SINGLETONS )
+		   singletons[i++] = var->name;
+	       });
 
-    if ( i > 0 )
-    { if ( !singletonWarning("multitons", singletons, i) )
-	return FALSE;
+      if ( i > 0 )
+      { if ( !singletonWarning("multitons", singletons, i) )
+	  return FALSE;
+      }
     }
 
     succeed;

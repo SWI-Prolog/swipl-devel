@@ -177,6 +177,7 @@ const static cw_def cw_defs[] =
   CW("unbalanced_var",     1),		/* Var initialised in some disjunctions */
   CW("branch_singleton",   1),		/* Singleton in some branch */
   CW("negation_singleton", 1),		/* Singleton in \+(Goal) */
+  CW("multiton",	   1),		/* Multiple _Name variables */
   CW(NULL,                 0)
 };
 
@@ -946,7 +947,7 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
       return nvars == AVARS_CYCLIC ? CYCLIC_BODY : nvars;
   }
 
-  if ( ci->singletons && ci->warning_list )
+  if ( ci->warning_list	)
     get_variable_names(ci PASS_LD);
 
   for(n=0; n<arity+nvars; n++)
@@ -955,13 +956,14 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
     assert(vd->functor == FUNCTOR_dvard1);
     if ( !vd->address )
       continue;
-    if ( (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
-    { if ( true(vd, VD_MAYBE_SINGLETON|VD_SINGLETON) && vd->name &&
+    if ( vd->name && (debugstatus.styleCheck&SEMSINGLETON_CHECK) )
+    { if ( true(vd, VD_MAYBE_SINGLETON|VD_SINGLETON) &&
 	   atom_is_named_var(vd->name) )
       { const char *type = ( true(vd, VD_MAYBE_SINGLETON) ?
 				  "branch_singleton" : "negation_singleton" );
 	compiler_warning(ci, type, vd->address);
-      }
+      } else if ( vd->times > 1 && !atom_is_named_var(vd->name) )
+	compiler_warning(ci, "multiton", vd->address);
     }
     if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
     { *vd->address = vd->saved;

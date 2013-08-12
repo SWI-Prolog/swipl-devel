@@ -2019,6 +2019,7 @@ Tracer communication declarations.
 
 #define LONGATOM_CHECK	    0x0001	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x0002	/* read/1: check singleton vars */
+#define MULTITON_CHECK	    0x0004	/* read/1: check multiton vars */
 #define DISCONTIGUOUS_STYLE 0x0008	/* warn on discontiguous predicates */
 #define DYNAMIC_STYLE	    0x0010	/* warn on assert/retract active */
 #define CHARSET_CHECK	    0x0020	/* warn on unquoted characters */

@@ -695,6 +695,8 @@ compiler_warning(branch_singleton(V), _Clause, Options) -->
 	[ 'Singleton variable in branch: ~W'-[V, Options] ].
 compiler_warning(negation_singleton(V), _Clause, Options) -->
 	[ 'Singleton variable in \\+: ~W'-[V, Options] ].
+compiler_warning(multiton(V), _Clause, Options) -->
+	[ 'Singleton-marked variable appears more than once: ~W'-[V, Options] ].
 
 print_goal_options(
     [ quoted(true),
