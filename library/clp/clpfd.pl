@@ -5556,9 +5556,9 @@ neq_index([X|Xs], N) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 propagate_circuit(Vs) :-
-        same_length(Vs, Ts),
         with_local_attributes([], [],
-            (circuit_graph(Vs, Ts, Ts),
+            (same_length(Vs, Ts),
+             circuit_graph(Vs, Ts, Ts),
              scc(Ts, circuit_successors),
              maplist(single_component, Ts)), _).
 
