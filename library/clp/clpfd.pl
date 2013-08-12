@@ -5463,9 +5463,10 @@ gcc_check_([Key-Num0|KNs]) :-
             Occ1 is Occ0 + Min,
             geq(Num, Occ1),
             % The queue is disabled for efficiency here in any case.
-            % If it were enabled, make sure to prevent gcc_global from
-            % running during an inconsistent state (after gcc_done/1
-            % but before all relevant constraints are posted).
+            % If it were enabled, make sure to retain the invariant
+            % that gcc_global is never triggered during an
+            % inconsistent state (after gcc_done/1 but before all
+            % relevant constraints are posted).
             (   Occ1 == Num -> all_neq(Os, Key), gcc_done(Num0)
             ;   Os == [] -> gcc_done(Num0), Num = Occ1
             ;   length(Os, L),
