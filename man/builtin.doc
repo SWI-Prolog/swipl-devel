@@ -887,7 +887,7 @@ will use for the following enhancements:
 \end{itemize}
 
 \begin{description}
-    \predicate{expand_goal}{+Goal1, ?Layout1, -Goal2, -Layout2}
+    \predicate{expand_goal}{4}{+Goal1, ?Layout1, -Goal2, -Layout2}
     \nodescription
     \predicate{goal_expansion}{4}{+Goal1, ?Layout1, -Goal2, -Layout2}
     \nodescription
