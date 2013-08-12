@@ -4763,8 +4763,22 @@ put_free(F) :- put_attr(F, free, true).
 
 free_node(F) :- get_attr(F, free, true).
 
+del_vars_attr(Vars, Attr) :- maplist(del_attr_(Attr), Vars).
+
+del_attr_(Attr, Var) :- del_attr(Var, Attr).
+
+with_local_attributes(Vars, Attrs, Goal, Result) :-
+        catch((maplist(del_vars_attr(Vars), Attrs),
+               Goal,
+               maplist(del_attrs, Vars),
+               % reset all attributes, only the result matters
+               throw(local_attributes(Result,Vars))),
+              local_attributes(Result,Vars),
+              true).
+
 distinct(Vars) :-
-        catch((difference_arcs(Vars, FreeLeft, FreeRight0),
+        with_local_attributes(Vars, [edges,parent,g0_edges],
+              (difference_arcs(Vars, FreeLeft, FreeRight0),
                length(FreeLeft, LFL),
                length(FreeRight0, LFR),
                LFL =< LFR,
@@ -4774,16 +4788,10 @@ distinct(Vars) :-
                maplist(g_g0, FreeLeft),
                scc(FreeLeft, g0_successors),
                maplist(dfs_used, FreeRight),
-               phrase(distinct_goals(FreeLeft), Gs),
-               maplist(del_attrs, Vars),
-               % reset all attributes, only the computed disequalities
-               % matter
-               throw(neqs(Gs,Vars))),
-             neqs(Gs,Vars),
-              (   disable_queue,
-                  maplist(call, Gs),
-                  enable_queue
-              )).
+               phrase(distinct_goals(FreeLeft), Gs)), Gs),
+        disable_queue,
+        maplist(call, Gs),
+        enable_queue.
 
 distinct_goals([]) --> [].
 distinct_goals([V|Vs]) -->
