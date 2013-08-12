@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2012 Markus Triska
+    Copyright (C): 2007-2013 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -3703,8 +3703,8 @@ run_propagator(pplus(X,Y,Z), MState) :-
         ;   (   X == Y -> kill(MState), 2*X #= Z
             ;   X == Z -> kill(MState), Y = 0
             ;   Y == Z -> kill(MState), X = 0
-            ;   fd_get(X, XD, XL, XU, XPs), fd_get(Y, YD, YL, YU, YPs),
-                fd_get(Z, ZD, ZL, ZU, _) ->
+            ;   fd_get(X, XD, XL, XU, XPs), fd_get(Y, _, YL, YU, _),
+                fd_get(Z, _, ZL, ZU, _) ->
                 NXL cis max(XL, ZL-YU),
                 NXU cis min(XU, ZU-YL),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
@@ -3754,7 +3754,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 NR is -R,
                 X in NR \/ R
             ;   fd_get(X, XD, XL, XU, XPs),
-                fd_get(Y, YD, YL, YU, _),
+                fd_get(Y, _, YL, YU, _),
                 min_max_factor(n(Z), n(Z), YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
@@ -3770,8 +3770,8 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             )
         ;   (   X == Y -> kill(MState), X^2#=Z
             ;   fd_get(X, XD, XL, XU, XPs),
-                fd_get(Y, YD, YL, YU, _),
-                fd_get(Z, ZD, ZL, ZU, _),
+                fd_get(Y, _, YL, YU, _),
+                fd_get(Z, _, ZL, ZU, _),
                 min_max_factor(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
@@ -3869,7 +3869,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             )
         ;   nonvar(Z) ->
             fd_get(X, XD, XL, XU, XPs),
-            fd_get(Y, YD, YL, YU, YPs),
+            fd_get(Y, _, YL, YU, _),
             (   YL cis_geq n(0), XL cis_geq n(0) ->
                 NXL cis max(YL*n(Z), XL),
                 NXU cis min(YU*(n(Z)+n(1))-n(1), XU)
@@ -3879,7 +3879,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
         ;   (   X == Y -> kill(MState), Z = 1
             ;   fd_get(X, _, XL, XU, _),
-                fd_get(Y, _, YL, YU, _),
+                fd_get(Y, _, YL, _, _),
                 fd_get(Z, ZD, ZPs),
                 NZU cis max(abs(XL), XU),
                 NZL cis -NZU,
@@ -4106,7 +4106,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
                 ;   Z > X -> Z = Y
                 ;   false % Z < X
                 )
-            ;   fd_get(Y, YD, YInf, YSup, _),
+            ;   fd_get(Y, _, YInf, YSup, _),
                 (   YInf cis_gt n(X) -> Z = Y
                 ;   YSup cis_lt n(X) -> Z = X
                 ;   YSup = n(M) ->
@@ -4119,7 +4119,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
         ;   nonvar(Y) -> run_propagator(pmax(Y,X,Z), MState)
         ;   fd_get(Z, ZD, ZPs) ->
             fd_get(X, _, XInf, XSup, _),
-            fd_get(Y, YD, YInf, YSup, _),
+            fd_get(Y, _, YInf, YSup, _),
             (   YInf cis_gt YSup -> kill(MState), Z = Y
             ;   YSup cis_lt XInf -> kill(MState), Z = X
             ;   n(M) cis max(XSup, YSup) ->
@@ -4141,7 +4141,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
                 ;   Z < X -> Z = Y
                 ;   false % Z > X
                 )
-            ;   fd_get(Y, YD, YInf, YSup, _),
+            ;   fd_get(Y, _, YInf, YSup, _),
                 (   YSup cis_lt n(X) -> Z = Y
                 ;   YInf cis_gt n(X) -> Z = X
                 ;   YInf = n(M) ->
@@ -4154,7 +4154,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
         ;   nonvar(Y) -> run_propagator(pmin(Y,X,Z), MState)
         ;   fd_get(Z, ZD, ZPs) ->
             fd_get(X, _, XInf, XSup, _),
-            fd_get(Y, YD, YInf, YSup, _),
+            fd_get(Y, _, YInf, YSup, _),
             (   YSup cis_lt YInf -> kill(MState), Z = Y
             ;   YInf cis_gt XSup -> kill(MState), Z = X
             ;   n(M) cis min(XInf, YInf) ->
@@ -4184,7 +4184,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 ;   true
                 )
             ;   fd_get(Y, _, YL, YU, _),
-                fd_get(Z, ZD, ZL, ZU, ZPs),
+                fd_get(Z, ZD, ZPs),
                 (   X > 0, YL cis_geq n(0) ->
                     NZL cis n(X)^YL,
                     NZU cis n(X)^YU,
