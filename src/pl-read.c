@@ -1539,30 +1539,37 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
    in any of the terms.
 */
 
-static int
-is_singleton(Variable var, ReadData _PL_rd ARG_LD)
-{ if ( var->times == 1 && warn_singleton(var->name) )
-  {
-#ifdef O_QUASIQUOTATIONS
-    if ( _PL_rd->qq )
-    { term_t tail = PL_copy_term_ref(_PL_rd->qq);
-      term_t head = PL_new_term_ref();
-      term_t result = PL_new_term_ref();
+#define IS_SINGLETON 0
+#define IS_MULTITON  1
 
-      while(PL_get_list(tail, head, tail))
-      { if ( PL_get_arg(4, head, result) &&
-	     PL_var_occurs_in(var->variable, result) )
-	{ var->times++;			/* avoid a second scan */
-	  return FALSE;
+static int
+is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
+{ if ( var->times == 1 )
+  { if ( (type == IS_SINGLETON &&  warn_singleton(var->name)) ||
+	 (type == IS_MULTITON  && !warn_singleton(var->name)) )
+    {
+#ifdef O_QUASIQUOTATIONS
+      if ( _PL_rd->qq )
+      { term_t tail = PL_copy_term_ref(_PL_rd->qq);
+	term_t head = PL_new_term_ref();
+	term_t result = PL_new_term_ref();
+
+	while(PL_get_list(tail, head, tail))
+	{ if ( PL_get_arg(4, head, result) &&
+	       PL_var_occurs_in(var->variable, result) )
+	  { var->times++;			/* avoid a second scan */
+	    break;
+	  }
 	}
       }
     }
 #endif
-
-    return TRUE;
   }
 
-  return FALSE;
+  if ( type == IS_SINGLETON )
+    return var->times == 1 &&  warn_singleton(var->name);
+  else
+    return var->times  > 1 && !warn_singleton(var->name);
 }
 
 
@@ -1573,7 +1580,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
     term_t head = PL_new_term_ref();
 
     for_vars(var,
-	     if ( is_singleton(var, _PL_rd PASS_LD) )
+	     if ( is_singleton(var, IS_SINGLETON, _PL_rd PASS_LD) )
 	     {	if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_term(head,
 				    PL_FUNCTOR,    FUNCTOR_equals2,
@@ -1589,7 +1596,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 
 					/* singletons */
     for_vars(var,
-	     if ( is_singleton(var, _PL_rd PASS_LD) )
+	     if ( is_singleton(var, IS_SINGLETON, _PL_rd PASS_LD) )
 	     { if ( i < MAX_SINGLETONS )
 		 singletons[i++] = var->name;
 	     });
@@ -1601,7 +1608,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 
     i = 0;				/* multiple _X* */
     for_vars(var,
-	     if ( is_singleton(var, _PL_rd PASS_LD) )
+	     if ( is_singleton(var, IS_MULTITON, _PL_rd PASS_LD) )
 	     { if ( i < MAX_SINGLETONS )
 		 singletons[i++] = var->name;
 	     });
