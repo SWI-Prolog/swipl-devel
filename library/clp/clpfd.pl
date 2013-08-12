@@ -5232,7 +5232,8 @@ gcc_global(Vs, KNs) :-
         gcc_check(KNs),
         % reach fix-point: all elements of clpfd_gcc_vs must be variables
         do_queue,
-        catch((gcc_arcs(KNs, S, Vals),
+        with_local_attributes(Vs, [edges,parent],
+              (gcc_arcs(KNs, S, Vals),
                variables_with_num_occurrences(Vs, VNs),
                maplist(target_to_v(T), VNs),
                (   get_attr(S, edges, Es) ->
@@ -5241,17 +5242,11 @@ gcc_global(Vs, KNs) :-
                    maximum_flow(S, T),      % only then, maximize it.
                    gcc_consistent(T),
                    scc(Vals, gcc_successors),
-                   phrase(gcc_goals(Vals), Gs),
-                   maplist(del_attrs, Vs),
-                   % reset all attributes used only for max-flow computation
-                   throw(neqs(Gs,Vs))
-               ;   true
-               )),
-              neqs(Gs,Vs),
-              (   disable_queue,
-                  maplist(call, Gs),
-                  enable_queue
-              )).
+                   phrase(gcc_goals(Vals), Gs)
+               ;   Gs = [] )), Gs),
+        disable_queue,
+        maplist(call, Gs),
+        enable_queue.
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
