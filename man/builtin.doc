@@ -6160,27 +6160,35 @@ Equivalent to sort/2, but does not remove duplicates. Raises a
 \except{type_error} if \arg{List} is a cyclic list or not a list.
 
     \predicate[ISO]{keysort}{2}{+List, -Sorted}
-List is a proper list whose elements are \exam{\arg{Key}-\arg{Value}},
-that is, terms whose principal functor is (-)/2, whose first argument is
-the sorting key, and whose second argument is the satellite data to be
-carried along with the key. keysort/2 sorts \arg{List} like msort/2, but
-only compares the keys. It is used to sort terms not on standard order,
-but on any criterion that can be expressed on a multi-dimensional scale.
-Sorting on more than one criterion can be done using terms as keys,
-putting the first criterion as argument 1, the second as argument 2,
-etc. The order of multiple elements that have the same \arg{Key} is not
-changed. The implementation is in C, using \jargon{natural merge sort}.
-Fails with a \except{type_error} if \arg{List} is a cyclic list or not
-a list, or one of the elements of \arg{List} is not a \jargon{pair}.
+Sort a list of \jargon{pairs}. \arg{List} must be a list of
+\exam{\arg{Key}-\arg{Value}} pairs, terms whose principal functor is
+(-)/2. \arg{List} is sorted on \arg{Key} according to the standard order
+of terms (see \secref{standardorder}). Duplicates are \emph{not}
+removed. Sorting is \jargon{stable} with regard to the order of the
+\arg{Values}, i.e., the order of multiple elements that have the same
+\arg{Key} is not changed.
+
+The keysort/2 predicate is often used together with library
+\pllib{pairs}. It can be used to sort lists on different or multiple
+criteria. For example, the following predicates sorts a list of atoms
+according to their length, maintaining the initial order for atoms that
+have the same length.
+
+\begin{code}
+:- use_module(library(pairs)).
+
+sort_atoms_by_length(Atoms, ByLength) :-
+	map_list_to_pairs(atom_length, Atoms, Pairs),
+	keysort(Pairs, Sorted),
+	pairs_values(Sorted, ByLength).
+\end{code}
 
     \predicate{predsort}{3}{+Pred, +List, -Sorted}
 Sorts similar to sort/2, but determines the order of two terms by
 calling \mbox{\arg{Pred}(-\arg{Delta}, +\arg{E1}, +\arg{E2})}.  This
 call must unify \arg{Delta} with one of \const{<}, \const{>} or
 \const{=}.  If the built-in predicate compare/3 is used, the result is
-the same as sort/2.  See also keysort/2.%
-	\footnote{Please note that the semantics have changed between
-		  3.1.1 and 3.1.2.}
+the same as sort/2.  See also keysort/2.
 \end{description}
 
 
