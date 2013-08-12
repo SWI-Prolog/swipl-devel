@@ -2985,23 +2985,33 @@ halt :-
 	halt(0).
 
 
-:- meta_predicate
-	at_halt(0).
-:- dynamic
-	'$at_halt'/1.
+%%	at_halt(:Goal)
+%
+%	Register Goal to be called if the system halts.
+%
+%	@tbd: get location into the error message
+
+:- meta_predicate at_halt(0).
+:- dynamic        system:term_expansion/2, '$at_halt'/2.
+:- multifile      system:term_expansion/2, '$at_halt'/2.
+
+system:term_expansion((:- at_halt(Goal)),
+		      system:'$at_halt'(Module:Goal, File:Line)) :-
+	source_location(File, Line),
+	'$set_source_module'(Module, Module).
 
 at_halt(Goal) :-
-	asserta('$at_halt'(Goal)).
+	asserta('$at_halt'(Goal, (-):0)).
 
 :- public '$run_at_halt'/0.
 
 '$run_at_halt' :-
-	forall(clause('$at_halt'(Goal), true, Ref),
-	       ( '$call_at_halt'(Goal),
+	forall(clause('$at_halt'(Goal, Src), true, Ref),
+	       ( '$call_at_halt'(Goal, Src),
 		 erase(Ref)
 	       )).
 
-'$call_at_halt'(Goal) :-
+'$call_at_halt'(Goal, _Src) :-
 	catch(Goal, E, true), !,
 	(   var(E)
 	->  true
@@ -3010,7 +3020,7 @@ at_halt(Goal) :-
 	    fail
 	;   '$print_message'(error, E)
 	).
-'$call_at_halt'(Goal) :-
+'$call_at_halt'(Goal, _Src) :-
 	'$print_message'(warning, goal_failed(at_halt, Goal)).
 
 %%	cancel_halt(+Reason)
