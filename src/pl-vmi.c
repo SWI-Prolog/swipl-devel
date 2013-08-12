@@ -1062,6 +1062,9 @@ Note  that  the  B_UNIFY_FIRSTVAR  assumes  write   mode,  but  this  is
 unimportant because the compiler generates write (B_*) instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define SLOW_UNIFY ( debugstatus.debugging || \
+		     LD->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+
 VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_FVAR))
 { ARGP = varFrameP(FR, (int)*PC++);
   setVar(*ARGP);			/* needed for GC */
@@ -1073,8 +1076,7 @@ VMI(B_UNIFY_VAR, 0, 1, (CA1_VAR))
 { ARGP = varFrameP(FR, (int)*PC++);
 
 unify_var_cont:
-#if O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { Word k = ARGP;
 
     ARGP = argFrameP(lTop, 0);
@@ -1083,7 +1085,6 @@ unify_var_cont:
     umode = uwrite;			/* must write for GC to work */
     NEXT_INSTRUCTION;
   }
-#endif
 
   umode = uread;			/* needed? */
   NEXT_INSTRUCTION;
@@ -1093,14 +1094,12 @@ unify_var_cont:
 VMI(B_UNIFY_EXIT, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
-#if O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { NFR = lTop;
     DEF = GD->procedures.equals2->definition;
     setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
-#endif
 
   CHECK_WAKEUP;				/* only for non-first-var */
   NEXT_INSTRUCTION;
@@ -1116,8 +1115,7 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { setVar(*v1);
     setVar(*v2);
     ARGP = argFrameP(lTop, 0);
@@ -1125,7 +1123,6 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
     *ARGP++ = linkVal(v2);
     goto debug_equals2;
   }
-#endif
 
   setVar(*v1);
   *v2 = makeRefL(v1);
@@ -1138,15 +1135,13 @@ VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { setVar(*v1);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
     *ARGP++ = linkVal(v2);
     goto debug_equals2;
   }
-#endif
 
   *v1 = linkVal(v2);
 
@@ -1159,8 +1154,7 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
     *ARGP++ = linkVal(v2);
@@ -1170,7 +1164,6 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
     setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
-#endif
 
   SAVE_REGISTERS(qid);
   rc = unify_ptrs(v1, v2, ALLOW_GC|ALLOW_SHIFT PASS_LD);
@@ -1195,15 +1188,13 @@ VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { setVar(*v1);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
     *ARGP++ = c;
     goto debug_equals2;
   }
-#endif
 
   *v1 = c;
   NEXT_INSTRUCTION;
@@ -1218,14 +1209,12 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
 { Word k = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(k);
     *ARGP++ = c;
     goto debug_equals2;
   }
-#endif
 
   deRef(k);
   if ( *k == c )
