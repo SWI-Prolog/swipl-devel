@@ -3011,7 +3011,7 @@ at_halt(Goal) :-
 	;   '$print_message'(error, E)
 	).
 '$call_at_halt'(Goal) :-
-	'$print_message'(error, goal_failed(Goal)).
+	'$print_message'(warning, goal_failed(at_halt, Goal)).
 
 %%	cancel_halt(+Reason)
 %
