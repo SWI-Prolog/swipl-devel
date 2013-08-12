@@ -4777,7 +4777,7 @@ with_local_attributes(Vars, Attrs, Goal, Result) :-
               true).
 
 distinct(Vars) :-
-        with_local_attributes(Vars, [edges,parent,g0_edges],
+        with_local_attributes(Vars, [edges,parent,g0_edges,index],
               (difference_arcs(Vars, FreeLeft, FreeRight0),
                length(FreeLeft, LFL),
                length(FreeRight0, LFR),
