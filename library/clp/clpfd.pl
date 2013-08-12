@@ -5232,7 +5232,7 @@ gcc_global(Vs, KNs) :-
         gcc_check(KNs),
         % reach fix-point: all elements of clpfd_gcc_vs must be variables
         do_queue,
-        with_local_attributes(Vs, [edges,parent],
+        with_local_attributes(Vs, [edges,parent,index],
               (gcc_arcs(KNs, S, Vals),
                variables_with_num_occurrences(Vs, VNs),
                maplist(target_to_v(T), VNs),
