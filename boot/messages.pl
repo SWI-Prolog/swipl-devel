@@ -675,14 +675,14 @@ compiler_warning(eq_vv(A,B), _Clause, Options) -->
 	;   [ 'Test is always false: ~W'-[A==B, Options] ]
 	).
 compiler_warning(eq_singleton(A,B), _Clause, Options) -->
-	[ 'Test is always true: ~W'-[A==B, Options] ].
+	[ 'Test is always false: ~W'-[A==B, Options] ].
 compiler_warning(neq_vv(A,B), _Clause, Options) -->
 	(   { A \== B }
 	->  [ 'Test is always true: ~W'-[A\==B, Options] ]
 	;   [ 'Test is always false: ~W'-[A\==B, Options] ]
 	).
 compiler_warning(neq_singleton(A,B), _Clause, Options) -->
-	[ 'Test is always false: ~W'-[A\==B, Options] ].
+	[ 'Test is always true: ~W'-[A\==B, Options] ].
 compiler_warning(unify_singleton(A,B), _Clause, Options) -->
 	[ 'Unified variable is not used: ~W'-[A=B, Options] ].
 compiler_warning(var_true(A), _Clause, Options) -->
