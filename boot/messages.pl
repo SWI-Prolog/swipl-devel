@@ -638,14 +638,27 @@ prolog_message(autoload(read_index(Dir))) -->
 % print warnings about dubious code raised by the compiler.
 % TBD: pass in PC to produce exact error locations.
 
-prolog_message(compiler_warnings(Clause, Warnings)) -->
+prolog_message(compiler_warnings(Clause, Warnings0)) -->
 	{   print_goal_options(DefOptions),
 	    (   prolog_load_context(variable_names, VarNames)
-	    ->	Options = [variable_names(VarNames)|DefOptions]
-	    ;	Options = DefOptions
+	    ->	warnings_with_named_vars(Warnings0, VarNames, Warnings),
+		Options = [variable_names(VarNames)|DefOptions]
+	    ;	Options = DefOptions,
+		Warnings = Warnings0
 	    )
 	},
 	compiler_warnings(Warnings, Clause, Options).
+
+warnings_with_named_vars([], _, []).
+warnings_with_named_vars([H|T0], VarNames, [H|T]) :-
+	term_variables(H, Vars),
+	'$member'(V1, Vars),
+	'$member'(_=V2, VarNames),
+	V1 == V2, !,
+	warnings_with_named_vars(T0, VarNames, T).
+warnings_with_named_vars([_|T0], VarNames, T) :-
+	warnings_with_named_vars(T0, VarNames, T).
+
 
 compiler_warnings([], _, _) --> [].
 compiler_warnings([H|T], Clause, Options) -->
@@ -659,16 +672,6 @@ compiler_warnings([H|T], Clause, Options) -->
 	),
 	compiler_warnings(T, Clause, Options).
 
-% no named variable is involved in the message.  This must be
-% generated code.  DCG can do this in e.g. `t --> "x", !, {fail}.`
-compiler_warning(Term, _Clause, [variable_names(VarNames)|_]) -->
-	{ term_variables(Term, Vars),
-	  \+ ( '$member'(V1, Vars),
-	       '$member'(_=V2, VarNames),
-	       V1 == V2
-	     )
-	}, !.
-% the normal cases
 compiler_warning(eq_vv(A,B), _Clause, Options) -->
 	(   { A == B }
 	->  [ 'Test is always true: ~W'-[A==B, Options] ]
