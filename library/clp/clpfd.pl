@@ -5171,7 +5171,7 @@ global_cardinality(Xs, Pairs, Options) :-
         maplist(fd_variable, Xs),
         maplist(gcc_pair, Pairs),
         pairs_keys_values(Pairs, Keys, Nums),
-        (   sort(Keys, Keys1), length(Keys, LK), length(Keys1, LK) -> true
+        (   sort(Keys, Keys1), same_length(Keys, Keys1) -> true
         ;   domain_error(gcc_unique_key_pairs, Pairs)
         ),
         length(Xs, L),
