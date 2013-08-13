@@ -134,12 +134,12 @@ alternatives. Similar results can be achieved in a more portable fashion
 using call_cleanup/2.
 \end{description}
 
-\section{Global cuts}				\label{sec:globalcut}
+\section{Ancestral cuts}		\label{sec:ancestral-cut}
 
 \begin{description}
     \predicate{prolog_cut_to}{1}{+Choice}
 Prunes all choice points created since \arg{Choice}. Can be used
-together with prolog_current_choice/1 to implement \jargon{parent} cuts.
+together with prolog_current_choice/1 to implement \jargon{ancestral} cuts.
 This predicate is in the hackers corner because it should not be used
 in normal Prolog code. It may be used to create new high level control
 structures, particularly for compatibility purposes.
