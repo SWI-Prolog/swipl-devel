@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -215,7 +215,7 @@ process_file_decl -->
 	;   "/oname="
 	->  path(_Oname),
 	    blank, ws,
-	    path(File)
+	    path(_File)			% Intended singleton?
 	;   path(File),
 	    { assert(install_file(File))
 	    }
@@ -265,15 +265,6 @@ ws -->
 	ws.
 ws -->
 	[].
-
-blank -->
-	[C],
-	{ nonvar(C),
-	  code_type(C, space)
-	}.
-
-string(String, In, Rest) :-
-	append(String, Rest, In).
 
 eos([], []).
 
