@@ -420,8 +420,11 @@ build_swipl_core()
   )
 }
 
+dist_dlls="libarchive-*.dll libeay32.dll libgmp-*.dll libjpeg-*.dll "
+dist_dlls+="pthread*.dll ssleay32.dll zlib*.dll"
+
 copy_dlls()
-{ cp $install/bin/*.dll $install/swipl/bin
+{ (cd $install/bin && cp $dist_dlls $install/swipl/bin)
   cp $install/lib/libpthreadGC2.dll.a $install/swipl/lib
 }
 
