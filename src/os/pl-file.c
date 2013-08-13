@@ -1367,21 +1367,23 @@ closeOutputRedirect(redir_context *ctx)
     term_t out  = PL_new_term_ref();
     term_t diff, tail;
 
-    closeStream(ctx->stream);
-    _PL_get_arg(1, ctx->term, out);
-    if ( ctx->out_arity == 2 )
-    { diff = PL_new_term_ref();
-      _PL_get_arg(2, ctx->term, diff);
-      tail = PL_new_term_ref();
-    } else
-    { diff = tail = 0;
-    }
+    if ( Sclose(ctx->stream) == 0 )
+    { _PL_get_arg(1, ctx->term, out);
+      if ( ctx->out_arity == 2 )
+      { diff = PL_new_term_ref();
+	_PL_get_arg(2, ctx->term, diff);
+	tail = PL_new_term_ref();
+      } else
+      { diff = tail = 0;
+      }
 
-    rval = PL_unify_wchars_diff(out, tail, ctx->out_format,
-				ctx->size/sizeof(wchar_t),
-				(wchar_t*)ctx->data);
-    if ( rval && tail )
-      rval = PL_unify(tail, diff);
+      rval = PL_unify_wchars_diff(out, tail, ctx->out_format,
+				  ctx->size/sizeof(wchar_t),
+				  (wchar_t*)ctx->data);
+      if ( rval && tail )
+	rval = PL_unify(tail, diff);
+    } else
+      rval = FALSE;
 
     if ( ctx->data != ctx->buffer )
       Sfree(ctx->data);
