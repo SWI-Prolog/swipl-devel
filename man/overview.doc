@@ -1052,6 +1052,20 @@ Using the construct <module>:<goal> sets the \jargon{calling context}
 for executing <goal>.  This flag is defined by ISO/IEC 13211-2 (Prolog
 modules standard).  See \secref{modules}.
 
+    \prologflagitem{color_term}{bool}{rw}
+This flag is managed by library \pllib{ansi_term}, which is loaded at
+startup if the two conditions below are both true. Note that this
+implies that setting this flag to \const{false} from the system or
+personal initialization file (see \secref{initfile} disables colored
+output.  The predicate message_property/2 can be used to control the
+actual color scheme depending in the message type passed to
+print_message/2.
+
+    \begin{itemize}
+    \item \verb$stream_property(current_output, tty(true))$
+    \item \verb$\+ current_prolog_flag(color_term, false)$
+    \end{itemize}
+
     \prologflagitem{compile_meta_arguments}{atom}{rw}
 Experimental flag that controls compilation of arguments passed to
 meta-calls marked `0' or `\chr{^}' (see meta_predicate/1). Supported
