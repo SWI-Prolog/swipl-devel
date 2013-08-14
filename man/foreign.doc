@@ -2819,15 +2819,20 @@ took place and before the Prolog top level is reinvoked. The type
 \begin{code}
 typedef void (*PL_abort_hook_t)(void);
 \end{code}
+
     \cfunction{int}{PL_abort_unhook}{PL_abort_hook_t}
 Remove a hook installed with PL_abort_hook(). Returns \const{FALSE} if no
 such hook is found, \const{TRUE} otherwise.
-    \cfunction{void}{PL_on_halt}{void (*f)(int, void *), void *closure}
-Register the function \arg{f} to be called if SWI-Prolog is halted.  The
+
+    \cfunction{void}{PL_on_halt}{int (*f)(int, void *), void *closure}
+Register the function \arg{f} to be called if SWI-Prolog is halted. The
 function is called with two arguments: the exit code of the process (0
-if this cannot be determined on your operating system) and the
-\arg{closure} argument passed to the PL_on_halt() call.  See also
-at_halt/1.
+if this cannot be determined) and the \arg{closure} argument passed to
+the PL_on_halt() call.  Handlers \emph{must} return 0.  Other return
+values are reserved for future use. See also at_halt/1.\bug{Although
+both PL_on_halt() and at_halt/1 are called in FIFO order, \emph{all}
+at_halt/1 handlers are called before \emph{all} PL_on_halt() handlers.}
+
     \cfunction{PL_agc_hook_t}{PL_agc_hook}{PL_agc_hook_t new}
 Register a hook with the atom-garbage collector (see
 garbage_collect_atoms/0) that is called on any atom that is reclaimed.
