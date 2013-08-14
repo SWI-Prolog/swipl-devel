@@ -3534,7 +3534,7 @@ SinitStreams(void)
     for(i=0; i<=2; i++)
     { IOSTREAM *s = &S__iob[i];
 
-      if ( !isatty(i) )
+      if ( !isatty(i) && s->functions == &Sttyfunctions )
       { s->flags &= ~SIO_ISATTY;
 	s->functions = &Sfilefunctions; /* Check for pipe? */
       }
