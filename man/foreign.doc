@@ -2832,6 +2832,12 @@ the PL_on_halt() call.  Handlers \emph{must} return 0.  Other return
 values are reserved for future use. See also at_halt/1.\bug{Although
 both PL_on_halt() and at_halt/1 are called in FIFO order, \emph{all}
 at_halt/1 handlers are called before \emph{all} PL_on_halt() handlers.}
+These handlers are called \emph{before} system cleanup and can therefore
+access all normal Prolog resources.  See also PL_exit_hook().
+
+    \cfunction{void}{PL_exit_hook}{int (*f)(int, void *), void *closure}
+Similar to PL_on_halt(), but the hooks are executed by PL_halt() instead
+of PL_cleanup() just before calling exit().
 
     \cfunction{PL_agc_hook_t}{PL_agc_hook}{PL_agc_hook_t new}
 Register a hook with the atom-garbage collector (see

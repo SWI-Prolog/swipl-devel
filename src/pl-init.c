@@ -1212,24 +1212,38 @@ struct on_halt
   OnHalt	next;
 };
 
-
 void
-PL_on_halt(halt_function f, void *arg)
+register_halt(OnHalt *where, halt_function f, void *arg)
 { if ( !GD->os.halting )
   { OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));
 
     h->function = f;
     h->argument = arg;
-    h->next = GD->os.on_halt_list;
-    GD->os.on_halt_list = h;
+    h->next = *where;
+    *where = h;
   }
 }
 
-static int
-run_on_halt(int rval)
+
+void
+PL_on_halt(halt_function f, void *arg)
+{ return register_halt(&GD->os.on_halt_list, f, arg);
+}
+
+void
+PL_exit_hook(halt_function f, void *arg)
+{ return register_halt(&GD->os.exit_hooks, f, arg);
+}
+
+
+int
+run_on_halt(OnHalt *handlers, int rval)
 { OnHalt h, next;
 
-  for(h = GD->os.on_halt_list; h; h=next)
+  h = *handlers;
+  *handlers = NULL;
+
+  for(; h; h=next)
   { int rc;
 
     next = h->next;
@@ -1240,7 +1254,6 @@ run_on_halt(int rval)
 
   return TRUE;				/* not yet cancelling */
 }
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Cleanup Prolog. The reclaim_memory  argument   says  whether  the system
@@ -1296,7 +1309,7 @@ cleanupProlog(int rval, int reclaim_memory)
     }
 
     GD->cleaning = CLN_FOREIGN;
-    if ( !run_on_halt(rval) && rval == 0 )
+    if ( !run_on_halt(&GD->os.on_halt_list, rval) && rval == 0 )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
 	UNLOCK();

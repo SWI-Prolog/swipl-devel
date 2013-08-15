@@ -233,6 +233,7 @@ struct PL_global_data
     char *		fred;		/* last expanded ~user */
     char *		fredshome;	/* home of fred */
     OnHalt		on_halt_list;	/* list of onhalt hooks */
+    OnHalt		exit_hooks;	/* how to exit from PL_halt() */
     int			halting;	/* process is shutting down */
     int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
