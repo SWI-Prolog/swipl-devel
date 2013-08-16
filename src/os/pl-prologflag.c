@@ -1203,11 +1203,7 @@ initPrologFlags(void)
 #endif
 
 #if defined(__DATE__) && defined(__TIME__)
-  { char buf[100];
-
-    Ssprintf(buf, "%s, %s", __DATE__, __TIME__);
-    setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, buf);
-  }
+  setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, __DATE__ ", " __TIME__);
 #endif
 
   setArgvPrologFlag();
