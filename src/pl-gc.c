@@ -1705,7 +1705,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case H_VAR:
 	  mark_frame_var(state, PC[0] PASS_LD);
 	  /*FALLTHROUGH*/
-	case H_CONST:
+	case H_ATOM:
+	case H_SMALLINT:
 	case H_NIL:
 	case H_INTEGER:
 	case H_INT64:
@@ -3010,7 +3011,8 @@ setStartOfVMI(vm_state *state)
 	case H_LIST_FF:
 	case H_FIRSTVAR:
 	case H_VAR:
-	case H_CONST:
+	case H_ATOM:
+	case H_SMALLINT:
 	case H_NIL:
 	case H_INTEGER:
 	case H_INT64:

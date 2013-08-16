@@ -1173,7 +1173,7 @@ typedef struct clause_ref
 
 #define CA1_PROC	1	/* code arg 1 is procedure */
 #define CA1_FUNC	2	/* code arg 1 is functor */
-#define CA1_DATA	3	/* code arg 2 is prolog data (H_CONST) */
+#define CA1_DATA	3	/* code arg 2 is prolog data (H_ATOM, H_SMALLINT) */
 #define CA1_INTEGER	4	/* intptr_t value */
 #define CA1_INT64	5	/* int64 value */
 #define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */

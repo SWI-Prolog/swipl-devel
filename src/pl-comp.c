@@ -1316,7 +1316,7 @@ getTargetModule(target_module *tm, Word t, CompileInfo ci ARG_LD)
 static int
 pushTargetModule(target_module *tm, CompileInfo ci)
 { if ( tm->type == TM_MODULE )
-  { Output_1(ci, B_CONST, tm->module->name);
+  { Output_1(ci, B_ATOM, tm->module->name);
   } else					/* TBD: Handle islocal */
   { int index = tm->var_index;
 
@@ -2099,7 +2099,7 @@ A void.  Generate either B_VOID or H_VOID.
 	}
 	return TRUE;
       }
-      Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
+      Output_1(ci, (where & A_BODY) ? B_SMALLINT : H_SMALLINT, *arg);
       return TRUE;
     case TAG_ATOM:
       if ( isNil(*arg) )
@@ -2107,7 +2107,7 @@ A void.  Generate either B_VOID or H_VOID.
       } else
       { if ( !ci->islocal )
 	  PL_register_atom(*arg);
-	Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
+	Output_1(ci, (where & A_BODY) ? B_ATOM : H_ATOM, *arg);
       }
       return TRUE;
     case TAG_FLOAT:
@@ -3252,8 +3252,8 @@ forAtomsInClause(Clause clause, void (func)(atom_t a))
   { c = fetchop(PC);
 
     switch(c)
-    { case H_CONST:
-      case B_CONST:
+    { case H_ATOM:
+      case B_ATOM:
       { word w = PC[1];
 
 	if ( isAtom(w) )
@@ -3762,7 +3762,8 @@ skipArgs(Code PC, int skip)
 	  return nextPC;
         assert(nested>=0);
         continue;
-      case H_CONST:
+      case H_ATOM:
+      case H_SMALLINT:
       case H_NIL:
       case H_INT64:
       case H_INTEGER:
@@ -3828,7 +3829,8 @@ argKey(Code PC, int skip, word *key)
       case H_RFUNCTOR:
 	*key = (functor_t)*PC;
         succeed;
-      case H_CONST:
+      case H_ATOM:
+      case H_SMALLINT:
 	*key = *PC;
 	succeed;
       case H_NIL:
@@ -3927,7 +3929,8 @@ arg1Key(Code PC, word *key)
       case H_RFUNCTOR:
 	*key = (functor_t)*PC;
         succeed;
-      case H_CONST:
+      case H_ATOM:
+      case H_SMALLINT:
 	*key = *PC;
 	succeed;
       case H_NIL:
@@ -4223,7 +4226,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  } else
 	    return FALSE;
 	}
-      case H_CONST:
+      case H_ATOM:
+      case H_SMALLINT:
 	  TRY(_PL_unify_atomic(argp, XR(*PC++)));
           NEXTARG;
 	  continue;
@@ -4498,8 +4502,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 #endif
         case A_ENTER:
         case I_NOP:	    continue;
-	case H_CONST:
-	case B_CONST:
+	case H_ATOM:
+	case B_ATOM:
+	case H_SMALLINT:
+	case B_SMALLINT:
 			    *ARGP++ = XR(*PC++);
 			    continue;
 	case H_NIL:
