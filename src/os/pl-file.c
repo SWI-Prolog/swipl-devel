@@ -335,7 +335,7 @@ fileNameStream(IOSTREAM *s)
 
 
 void
-initIO()
+initIO(void)
 { GET_LD
   const atom_t *np;
   int i;
@@ -343,14 +343,13 @@ initIO()
   streamAliases = newHTable(16);
   streamContext = newHTable(16);
   PL_register_blob_type(&stream_blob);
-#ifdef __unix__
-{ int fd;
 
-  if ( (fd=Sfileno(Sinput))  < 0 || !isatty(fd) ||
-       (fd=Sfileno(Soutput)) < 0 || !isatty(fd) )
+  if ( false(Sinput, SIO_ISATTY) ||
+       false(Soutput, SIO_ISATTY) )
+  { /* clear PLFLAG_TTY_CONTROL */
     PL_set_prolog_flag("tty_control", PL_BOOL, FALSE);
-}
-#endif
+  }
+
   ResetTty();
 
   Sclosehook(freeStream);
