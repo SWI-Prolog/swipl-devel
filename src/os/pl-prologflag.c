@@ -1189,6 +1189,9 @@ initPrologFlags(void)
 #ifdef __unix__
   setPrologFlag("unix", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
+#ifdef __APPLE__
+  setPrologFlag("apple", FT_BOOL|FF_READONLY, TRUE, 0);
+#endif
 
   setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
 
