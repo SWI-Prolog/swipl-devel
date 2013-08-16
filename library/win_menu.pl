@@ -56,7 +56,8 @@ menu('&Edit',
      ],
      []).
 menu('&Settings',
-     [ '&Font' = pqConsole:select_font
+     [ '&Font ...' = pqConsole:select_font,
+       '&Colors ...' = pqConsole:select_ANSI_term_colors
      ],
      []).
 menu('&Run',
@@ -188,8 +189,24 @@ html_open(Spec) :-
 	absolute_file_name(Spec, [access(read)], Path),
 	call(win_shell(open, Path)).
 
+:- if(current_predicate(win_message_box/2)).
+
+about :-
+	message_to_string(about, AboutSWI),
+	message_to_string(about_qt, AboutQt),
+	format(atom(About), '<p>~w\n<p>~w', [AboutSWI, AboutQt]),
+	win_message_box(
+	    About,
+	    [ title('About swipl-win'),
+	      image(':/swipl.png')
+	    ]).
+
+:- else.
+
 about :-
 	print_message(informational, about).
+
+:- endif.
 
 
 		 /*******************************
@@ -361,3 +378,7 @@ prolog:message(opened_url(_Url)) -->
 	[ at_same_line, 'ok' ].
 prolog:message(new_instance(Path)) -->
 	[ 'Opening new Prolog instance for ~p'-[Path] ].
+:- if(current_prolog_flag(console_menu_version, qt)).
+prolog:message(about_qt) -->
+	[ 'Qt-based console by Carlo Capelli' ].
+:- endif.
