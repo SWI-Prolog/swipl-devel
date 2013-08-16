@@ -351,6 +351,8 @@ COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 
 COMMON(void)	forThreadLocalData(void (*func)(struct PL_local_data *),
 				   unsigned flags);
+COMMON(void)	forThreadLocalDataUnsuspended(void (*func)(struct PL_local_data *),
+				   unsigned flags);
 COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);

@@ -5393,6 +5393,28 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 
 #endif /*__WINDOWS__*/
 
+void
+forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
+{ int me = PL_thread_self();
+  PL_thread_info_t **th;
+
+  for( th = &GD->thread.threads[1];
+       th <= &GD->thread.threads[thread_highest_id];
+       th++ )
+  { PL_thread_info_t *info = *th;
+
+    if ( info->thread_data && info->pl_tid != me &&
+	 info->status == PL_THREAD_RUNNING )
+    { PL_local_data_t *ld = info->thread_data;
+        (*func)(ld);
+
+    }
+  }
+
+  DEBUG(MSG_THREAD, Sdprintf(" All done!\n"));
+
+}
+
 
 		 /*******************************
 		 *	 ATOM MARK SUPPORT	*
