@@ -615,7 +615,7 @@ markAtom(atom_t a)
 
   ap = fetchAtomArray(i);
 
-  if ( ap )
+  if ( ap && !(ap->references & ATOM_MARKED_REFERENCE) )
   {
 #ifdef O_DEBUG_ATOMGC
     if ( atomLogFd )
@@ -646,15 +646,14 @@ unmarkAtoms(void)
     for(; index<upto; index++)
     { Atom a = b[index];
 
-      if ( !a )
-      { continue;
-      }
-
+      if ( a && (a->references & ATOM_MARKED_REFERENCE) )
+      {
 #ifdef ATOMIC_REFERENCES
-      ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
+        ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
 #else
-      a->references &= ~ATOM_MARKED_REFERENCE;
+        a->references &= ~ATOM_MARKED_REFERENCE;
 #endif
+      }
     }
   }
 }
