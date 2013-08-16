@@ -289,6 +289,66 @@ ensure_dir(Dir) :-
 
 
 		 /*******************************
+		 *	       MacOS		*
+		 *******************************/
+
+:- if(current_prolog_flag(console_menu_version, qt)).
+
+:- multifile
+	prolog:file_open_event/1.
+
+%%	prolog:file_open_event(+Name)
+%
+%	Called when opening a file from the MacOS finder. If this is the
+%	first file, we will switch the the   directory of the file, load
+%	it and register it as our primary   file. If this is the second,
+%	we open a new instance of Prolog using
+%
+%	    open -n -a <app> <file>
+
+:- if(current_prolog_flag(apple, true)).
+prolog:file_open_event(Path) :-
+	associated_file(_), !,
+	current_app(Me),
+	print_message(informational, new_instance(Path)),
+	process_create(path(open), [ '-n', '-a', Me, Path ], []).
+:- endif.
+prolog:file_open_event(Path) :-
+	file_directory_name(Path, Dir),
+	file_base_name(Path, File),
+	working_directory(_, Dir),
+	user:load_files(File),
+	set_prolog_flag(associated_file, Path),
+	insert_associated_file.
+
+:- if(current_prolog_flag(apple, true)).
+current_app(App) :-
+	current_prolog_flag(executable, Exe),
+	file_directory_name(Exe, MacOSDir),
+	atom_concat(App, '/Contents/MacOS/', MacOSDir).
+
+%%	go_home_on_plain_app_start is det.
+%
+%	On Apple, we start in the users   home dir if the application is
+%	started by opening the app directly.
+
+go_home_on_plain_app_start :-
+	current_prolog_flag(argv, [_Exe]),
+	current_app(App),
+	file_directory_name(App, Above),
+	working_directory(PWD, PWD),
+	same_file(PWD, Above),
+	expand_file_name(~, [Home]), !,
+	working_directory(_, Home).
+go_home_on_plain_app_start.
+
+:- initialization
+	go_home_on_plain_app_start.
+
+:- endif.
+:- endif.
+
+		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/
 
@@ -299,3 +359,5 @@ prolog:message(opening_url(Url)) -->
 	[ 'Opening ~w ... '-[Url], flush ].
 prolog:message(opened_url(_Url)) -->
 	[ at_same_line, 'ok' ].
+prolog:message(new_instance(Path)) -->
+	[ 'Opening new Prolog instance for ~p'-[Path] ].
