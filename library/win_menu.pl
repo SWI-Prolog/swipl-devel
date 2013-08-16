@@ -325,7 +325,7 @@ prolog:file_open_event(Path) :-
 current_app(App) :-
 	current_prolog_flag(executable, Exe),
 	file_directory_name(Exe, MacOSDir),
-	atom_concat(App, '/Contents/MacOS/', MacOSDir).
+	atom_concat(App, '/Contents/MacOS', MacOSDir).
 
 %%	go_home_on_plain_app_start is det.
 %
