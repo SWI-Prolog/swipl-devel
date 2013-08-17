@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam,
+    Copyright (C): 1985-2013, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -4434,7 +4434,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     if ( true(attr, PL_THREAD_NO_DEBUG) )
     { ldnew->_debugstatus.tracing   = FALSE;
       ldnew->_debugstatus.debugging = DBG_OFF;
-      setPrologFlagMask(PLFLAG_LASTCALL);
+      set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
     }
   }
 
