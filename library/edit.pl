@@ -100,7 +100,15 @@ edit :-
 %%	locate(+Spec, -FullSpec, -Location)
 
 locate(FileSpec:Line, file(Path, line(Line)), [file(Path), line(Line)]) :-
-	integer(Line), Line >= 1, ground(FileSpec),
+	integer(Line), Line >= 1,
+	ground(FileSpec), !,			% so specific; do not try alts
+	locate(FileSpec, _, [file(Path)]).
+locate(FileSpec:Line:LinePos,
+       file(Path, line(Line), linepos(LinePos)),
+       [file(Path), line(Line), linepos(LinePos)]) :-
+	integer(Line), Line >= 1,
+	integer(LinePos), LinePos >= 1,
+	ground(FileSpec), !,			% so specific; do not try alts
 	locate(FileSpec, _, [file(Path)]).
 locate(Path, file(Path), [file(Path)]) :-
 	atom(Path),
@@ -256,10 +264,13 @@ do_edit_source(Location) :-		% PceEmacs
 	current_prolog_flag(gui, true), !,
 	memberchk(file(File), Location),
 	(   memberchk(line(Line), Location)
-	->  Goal = in_pce_thread(emacs(File:Line))
-	;   Goal = in_pce_thread(emacs(File))
+	->  (   memberchk(linepos(LinePos), Location)
+	    ->	Pos = (File:Line:LinePos)
+	    ;	Pos = (File:Line)
+	    )
+	;   Pos = File
 	),
-	Goal.
+	in_pce_thread(emacs(Pos)).
 do_edit_source(Location) :-		% External editor
 	external_edit_command(Location, Command),
 	print_message(informational, edit(waiting_for_editor)),
