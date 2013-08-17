@@ -193,8 +193,11 @@ html_open(Spec) :-
 
 about :-
 	message_to_string(about, AboutSWI),
-	message_to_string(about_qt, AboutQt),
-	format(atom(About), '<p>~w\n<p>~w', [AboutSWI, AboutQt]),
+	(   current_prolog_flag(console_menu_version, qt)
+	->  message_to_string(about_qt, AboutQt),
+	    format(atom(About), '<p>~w\n<p>~w', [AboutSWI, AboutQt])
+	;   About = AboutSWI
+	),
 	win_message_box(
 	    About,
 	    [ title('About swipl-win'),
