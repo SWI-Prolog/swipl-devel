@@ -4422,13 +4422,23 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     return -1;
   }
   set_system_thread_id(info);
-  if ( attr && attr->alias )
-  { if ( !aliasThread(info->pl_tid, PL_new_atom(attr->alias)) )
-    { free_thread_info(info);
-      errno = EPERM;
-      return -1;
+
+  if ( attr )
+  { if ( attr->alias )
+    { if ( !aliasThread(info->pl_tid, PL_new_atom(attr->alias)) )
+      { free_thread_info(info);
+	errno = EPERM;
+	return -1;
+      }
+    }
+    if ( true(attr, PL_THREAD_NO_DEBUG) )
+    { ldnew->_debugstatus.tracing   = FALSE;
+      ldnew->_debugstatus.debugging = DBG_OFF;
+      setPrologFlagMask(PLFLAG_LASTCALL);
     }
   }
+
+  updateAlerted(ldnew);
   PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
 
   return info->pl_tid;

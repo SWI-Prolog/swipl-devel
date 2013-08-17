@@ -981,6 +981,8 @@ PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 		 *	  PROLOG THREADS	*
 		 *******************************/
 
+#define PL_THREAD_NO_DEBUG	0x01	/* Start thread in nodebug mode */
+
 typedef struct
 { long	    local_size;			/* Stack sizes (Kbytes) */
   long	    global_size;
@@ -988,7 +990,8 @@ typedef struct
   long	    argument_size;
   char *    alias;			/* alias name */
   int	  (*cancel)(int id);		/* cancel function */
-  void *    reserved[5];		/* reserved for extensions */
+  intptr_t  flags;			/* PL_THREAD_* flags */
+  void *    reserved[4];		/* reserved for extensions */
 } PL_thread_attr_t;
 
 
