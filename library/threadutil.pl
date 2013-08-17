@@ -92,6 +92,9 @@ interactor :-
 		      ]).
 
 thread_run_interactor :-
+	notrace,
+	set_prolog_flag(debug, false),
+	set_prolog_flag(query_debug_settings, debug(false, false)),
 	attach_console,
 	print_message(banner, thread_welcome),
 	prolog.
