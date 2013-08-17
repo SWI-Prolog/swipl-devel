@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -740,8 +738,10 @@ free_interactor(void *closure)
 static void *
 run_interactor(void *closure)
 { predicate_t pred;
+  PL_thread_attr_t attr = {0};
 
-  PL_thread_attach_engine(NULL);
+  attr.flags = PL_THREAD_NO_DEBUG;
+  PL_thread_attach_engine(&attr);
   pthread_cleanup_push(free_interactor, NULL);
 
 
