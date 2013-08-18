@@ -198,10 +198,13 @@ about :-
 	    format(atom(About), '<p>~w\n<p>~w', [AboutSWI, AboutQt])
 	;   About = AboutSWI
 	),
+	atomic_list_concat(Lines, '\n', About),
+	atomic_list_concat(Lines, '<br>', AboutHTML),
 	win_message_box(
-	    About,
+	    AboutHTML,
 	    [ title('About swipl-win'),
-	      image(':/swipl.png')
+	      image(':/swipl.png'),
+	      min_width(700)
 	    ]).
 
 :- else.
