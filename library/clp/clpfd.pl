@@ -3002,24 +3002,9 @@ reinforce(X) :-
         (   current_prolog_flag(clpfd_propagation, full) ->
             % full propagation propagates everything in any case
             true
-        ;   term_variables(X, Vs),
+        ;   term_attvars(X, Vs),
             maplist(reinforce_, Vs),
             do_queue
-        ).
-
-collect_variables(X, Vs0, Vs) :-
-        (   fd_get(X, _, Ps) ->
-            term_variables(Ps, Vs1),
-            %all_collect(Vs1, [X|Vs0], Vs)
-            Vs = [X|Vs1]
-        ;   Vs = Vs0
-        ).
-
-all_collect([], Vs, Vs).
-all_collect([X|Xs], Vs0, Vs) :-
-        (   member(V, Vs0), X == V -> all_collect(Xs, Vs0, Vs)
-        ;   collect_variables(X, Vs0, Vs1),
-            all_collect(Xs, Vs1, Vs)
         ).
 
 reinforce_(X) :-
