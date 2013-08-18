@@ -25,7 +25,7 @@ COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
 COREMODULES+=" packages/pldoc packages/RDF packages/semweb packages/ssl"
 COREMODULES+=" packages/R packages/zlib packages/tipc packages/table"
 COREMODULES+=" packages/nlp packages/cpp packages/windows packages/PDT"
-COREMODULES+=" packages/utf8proc packages/archive"
+COREMODULES+=" packages/utf8proc packages/archive packages/swipl-win"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"
