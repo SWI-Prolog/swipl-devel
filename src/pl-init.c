@@ -519,7 +519,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { char *s = &argv[0][1];
 
-    if ( streq(s, "-" ) )		/* pl <plargs> -- <app-args> */
+    if ( streq(s, "-" ) )		/* swipl <plargs> -- <app-args> */
       break;
 
     if ( streq(s, "tty") )	/* +/-tty */
@@ -593,7 +593,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	    case 'T':	GD->options.trailSize    = size; goto next;
 	    case 'H':
 	    case 'A':
-	      Sdprintf("%% WARNING: -%csize is no longer supported\n", *s);
+	      Sdprintf("% Warning: -%csize is no longer supported\n", *s);
 	      goto next;
 	  }
 	}
@@ -1029,7 +1029,7 @@ PL_initialise(int argc, char **argv)
   { int status = prologToplevel(PL_new_atom("$compile")) ? 0 : 1;
 
     PL_halt(status);
-    fail;				/* make compile happy */
+    fail;				/* make compiler happy */
   } else
   { int status = prologToplevel(PL_new_atom("$initialise"));
     return status;

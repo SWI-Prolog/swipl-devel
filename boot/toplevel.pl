@@ -29,7 +29,7 @@
 */
 
 :- module('$toplevel',
-	  [ '$initialise'/0,		% start Prolog (does not return)
+	  [ '$initialise'/0,		% start Prolog
 	    '$toplevel'/0,		% Prolog top-level (re-entrant)
 	    '$compile'/0,		% `-c' toplevel
 	    '$welcome'/0,		% banner
@@ -363,6 +363,12 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 		*********************************/
 
 :- flag('$banner_goal', _, '$welcome').
+
+%%	'$initialise' is semidet.
+%
+%	Called from PL_initialise()  to  do  the   Prolog  part  of  the
+%	initialization. If an exception  occurs,   this  is  printed and
+%	'$initialise' fails.
 
 '$initialise' :-
 	catch(initialise_prolog, E, initialise_error(E)).
