@@ -535,9 +535,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
   { char *s = &argv[0][1];
 
     if ( streq(s, "-" ) )		/* swipl <plargs> -- <app-args> */
-    { argc--;
-      argv++;
-      break;
+    { break;
     }
 
     if ( streq(s, "tty") )	/* +/-tty */
@@ -561,8 +559,14 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
     if ( *s == '-' )
     { const char *optval;
 
-      if ( (optval=is_longopt(s+1, "pldoc")) )
+      s++;
+
+      if ( (optval=is_longopt(s, "pldoc")) )
       { GD->options.pldoc_server = store_string(optval);
+#ifdef __WINDOWS__
+      } else if ( (optval=is_longopt(s, "win_app")) )
+      { GD->options.win_app = TRUE;
+#endif
       } else
 	return -1;
 
