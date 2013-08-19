@@ -24,8 +24,7 @@ edit the first line to reflect the location of SWI-Prolog.
 
 main :-
 	current_prolog_flag(argv, Argv),
-	append(_, [--|Av], Argv), !,
-	swipl_frl(Av).
+	swipl_frl(Argv).
 
 swipl_frl(Av) :-
 	partition(longoption, Av, LongOptions, Av2),

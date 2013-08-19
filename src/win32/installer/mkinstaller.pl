@@ -109,10 +109,8 @@ run :-
 %	def(Name, Value)
 
 get_defines :-
-	current_prolog_flag(argv, AV),
-	append(_, [--|Argv], AV), !,
+	current_prolog_flag(argv, Argv),
 	maplist(assert_defines, Argv).
-get_defines.
 
 assert_defines(Def) :-
 	atom_codes(Def, Codes),

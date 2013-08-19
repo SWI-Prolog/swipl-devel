@@ -481,18 +481,14 @@ float_format(Old, New) :-
 %	All command-line argument, including the executable,
 
 program_parameters(Argv) :-
-	current_prolog_flag(argv, Argv).
+	current_prolog_flag(os_argv, Argv).
 
 %%	user_parameters(-List:atom)
 %
 %	Parameters after =|--|=.
 
 user_parameters(Argv) :-
-	current_prolog_flag(argv, AllArgv),
-	(   append(_, [--|Argv], AllArgv)
-	->  true
-	;   assertion(fail)
-	).
+	current_prolog_flag(argv, Argv).
 
 %%	match(+Mask, +Atom) is semidet.
 %

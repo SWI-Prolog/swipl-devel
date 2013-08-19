@@ -350,10 +350,7 @@ parameter style above (perhaps with asserting appl_config/2).
 
 opt_arguments(OptsSpec, Opts, PositionalArgs) :-
       current_prolog_flag(argv, Argv),
-      ( append(_RTArgs, ['--'|ApplArgs], Argv)  %discard runtime args
-      -> opt_parse(OptsSpec, ApplArgs, Opts, PositionalArgs)
-      ; opt_parse(OptsSpec, Argv, Opts, PositionalArgs)
-      ).
+      opt_parse(OptsSpec, Argv, Opts, PositionalArgs).
 
 %%   opt_parse(+OptsSpec, +ApplArgs, -Opts, -PositionalArgs) is det
 %

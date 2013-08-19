@@ -119,7 +119,7 @@ wise_register_ext :-
 	(   get_wise_variable('EXT', Ext),
 	    Ext \== ''
 	->  shell_register_prolog(Ext),
-	    current_prolog_flag(argv, [Me|_]),
+	    current_prolog_flag(executable, Me),
 	    format('Registered "~w" files to start ~w~n', [Ext, Me])
 	;   true
 	).
