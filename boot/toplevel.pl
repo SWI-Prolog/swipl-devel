@@ -213,20 +213,22 @@ thread_initialization(Goal) :-
 		 *     FILE SEARCH PATH (-p)	*
 		 *******************************/
 
+%%	'$set_file_search_paths' is det.
+%
+%	Process -p PathSpec options.
+
 '$set_file_search_paths' :-
-	current_prolog_flag(argv, Argv),
-	'$append'(H, ['-p', Path|_], Argv),
-	\+ memberchk(--, H),
-	(   atom_chars(Path, Chars),
+	'$option'(search_paths, Paths),
+	(   '$member'(Path, Paths),
+	    atom_chars(Path, Chars),
 	    (	phrase('$search_path'(Name, Aliases), Chars)
 	    ->	'$reverse'(Aliases, Aliases1),
 	        forall('$member'(Alias, Aliases1),
 		       asserta(user:file_search_path(Name, Alias)))
 	    ;   print_message(error, commandline_arg_type(p, Path))
-	    )
-	->  true
-	),
-	fail ; true.
+	    ),
+	    fail ; true
+	).
 
 '$search_path'(Name, Aliases) -->
 	'$string'(NameChars),
@@ -312,20 +314,13 @@ load_option('-f').
 %	system.
 
 start_pldoc :-
-	current_prolog_flag(argv, Argv),
-	'$member'(Av, Argv),
-	(   Av == (--)
-	->  !
-	;   atom_concat('--pldoc', Rest, Av)
-	->  (   Rest == ''
-	    ->	call((doc_server(_),
-		      doc_browser))
-	    ;	atom_concat(=, PortAtom, Rest),
-		catch(atom_number(PortAtom, Port), _, fail)
-	    ->	call(doc_server(Port))
-	    ;	print_message(error, option_usage(pldoc)),
-		halt(1)
-	    )
+	'$option'(pldoc_server, Server),
+	(   Server == ''
+	->  call((doc_server(_), doc_browser))
+	;   catch(atom_number(Server, Port), _, fail)
+	->  call(doc_server(Port))
+	;   print_message(error, option_usage(pldoc)),
+	    halt(1)
 	).
 start_pldoc.
 

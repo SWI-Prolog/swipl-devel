@@ -4785,6 +4785,8 @@ static const optdef optdefs[] =
   { "script_file",	CMDOPT_LIST,	&GD->options.scriptFiles },
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
+  { "search_paths",	CMDOPT_LIST,	&GD->options.search_paths },
+  { "pldoc_server",	CMDOPT_STRING,	&GD->options.pldoc_server },
   { "home",		CMDOPT_STRING,	&GD->defaults.home },
 
   { NULL,		0,		NULL }
@@ -4813,7 +4815,9 @@ PRED_IMPL("$option", 2, option, 0)
 	  case CMDOPT_STRING:
 	  { char **sp = d->address;
 
-	    return PL_unify_atom_chars(val, *sp);
+	    if ( *sp )
+	      return PL_unify_atom_chars(val, *sp);
+	    return FALSE;
 	  }
 	  case CMDOPT_LIST:
 	  { opt_list **list = d->address;

@@ -53,6 +53,8 @@ typedef struct
   char *	initFile;		/* -f initialisation file */
   char *	systemInitFile;		/* -F initialisation file */
   opt_list     *scriptFiles;
+  opt_list     *search_paths;		/* -p path */
+  char *	pldoc_server;		/* --pldoc=Server */
   char *	compileOut;		/* file to store compiler output */
   char *	saveclass;		/* Type of saved state */
   bool		silent;			/* -q: quiet operation */

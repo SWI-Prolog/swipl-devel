@@ -114,6 +114,21 @@ longopt(const char *opt, int argc, const char **argv)
 }
 
 
+const char *
+is_longopt(const char *optstring, const char *name)
+{ size_t len = strlen(name);
+
+  if ( strncmp(optstring, name, len) == 0 )
+  { if ( optstring[len] == '=' )
+      return &optstring[len+1];
+    if ( optstring[len] == EOS )
+      return "";
+  }
+
+  return NULL;
+}
+
+
 static int
 opt_append(opt_list **l, char *s)
 { opt_list *n = allocHeapOrHalt(sizeof(*n));
@@ -544,7 +559,15 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
     }
 
     if ( *s == '-' )
+    { const char *optval;
+
+      if ( (optval=is_longopt(s+1, "pldoc")) )
+      { GD->options.pldoc_server = store_string(optval);
+      } else
+	return -1;
+
       continue;				/* don't handle --long=value */
+    }
 
     while(*s)
     { switch(*s)
@@ -554,9 +577,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 			} else
 			  return -1;
 			break;
-	case 'p':	if (!argc)	/* handled in Prolog */
-			  return -1;
-			argc--, argv++;
+	case 'p':	optionList(&GD->options.search_paths);
 			break;
 	case 'O':	GD->cmdline.optimise = TRUE; /* see initFeatures() */
 			break;
