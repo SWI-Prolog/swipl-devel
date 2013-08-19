@@ -990,10 +990,15 @@ binding the variables to their name. Using this feature, F(x) can be
 turned into valid syntax for such script languages. Suggested by Robert
 van Engelen.  SWI-Prolog specific.
 
-    \prologflagitem{argv}{list}{r}
-List is a list of atoms representing the command line arguments used to
-invoke SWI-Prolog.  Please note that {\bf all} arguments are included
-in the list returned.
+    \prologflagitem{argv}{list}{rw}
+List is a list of atoms representing the application command line
+arguments. Application command line arguments are those that have
+\emph{not} been processed by Prolog during its initialization. Note that
+Prolog's argument processing stops at \const{--} or the first non-option
+argument.  See also \prologflag{os_argv}.%footnote{Prior to version
+6.5.2, \prologflag{argv} was defined as \prologflag{os_argv} is now.
+The change was made for compatibility reasone and because the current
+definition is more practical.}
 
     \prologflagitem{arch}{atom}{r}
 Identifier for the hardware and operating system SWI-Prolog is running
@@ -1341,6 +1346,12 @@ integrating small predicates into their callers, eliminating constant
 expressions and other predictable constructs. Source code optimisation
 is never applied to predicates that are declared dynamic (see
 dynamic/1).
+
+    \prologflagitem{os_argv}{rw}
+List is a list of atoms representing the command line arguments used to
+invoke SWI-Prolog.  Please note that {\bf all} arguments are included
+in the list returned.  See \prologflag{argv} to get the application
+options.
 
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this

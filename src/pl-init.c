@@ -520,7 +520,10 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
   { char *s = &argv[0][1];
 
     if ( streq(s, "-" ) )		/* swipl <plargs> -- <app-args> */
+    { argc--;
+      argv++;
       break;
+    }
 
     if ( streq(s, "tty") )	/* +/-tty */
     { if ( s[-1] == '+' )
@@ -710,9 +713,9 @@ int
 PL_is_initialised(int *argc, char ***argv)
 { if ( GD->initialised )
   { if ( argc )
-      *argc = GD->cmdline.argc;
+      *argc = GD->cmdline.os_argc;
     if ( argv )
-      *argv = GD->cmdline.argv;
+      *argv = GD->cmdline.os_argv;
 
     return TRUE;
   }
@@ -794,8 +797,8 @@ script_argv(int argc, char **argv)
 	    for(; j<argc; j++)
 	      av[j+1] = argv[j];
 	    av[j+1] = NULL;
-	    GD->cmdline.argc = argc+1;
-	    GD->cmdline.argv = av;
+	    GD->cmdline.os_argc = argc+1;
+	    GD->cmdline.os_argv = av;
 
 	    return;
 	  }
@@ -869,17 +872,17 @@ script_argv(int argc, char **argv)
     av[an++] = "--";			/* separate arguments */
     for(; i<argc; i++)
       av[an++] = argv[i];
-    GD->cmdline.argc = an;
+    GD->cmdline.os_argc = an;
     av[an++] = NULL;
-    GD->cmdline.argv = allocHeapOrHalt(sizeof(char *) * an);
-    memcpy(GD->cmdline.argv, av, sizeof(char *) * an);
+    GD->cmdline.os_argv = allocHeapOrHalt(sizeof(char *) * an);
+    memcpy(GD->cmdline.os_argv, av, sizeof(char *) * an);
 
     fclose(fd);
   } else
 #endif /*SCRIPT_BREAKDOWN_ARGS*/
   { noscript:
-    GD->cmdline.argc = argc;
-    GD->cmdline.argv = argv;
+    GD->cmdline.os_argc = argc;
+    GD->cmdline.os_argv = argv;
   }
 }
 
@@ -898,9 +901,8 @@ PL_initialise(int argc, char **argv)
   SinitStreams();			/* before anything else */
 
   script_argv(argc, argv);		/* hande #! arguments */
-  argc = GD->cmdline.argc;
-  argv = GD->cmdline.argv;
-  GD->cmdline._c_argc = -1;
+  argc = GD->cmdline.os_argc;
+  argv = GD->cmdline.os_argv;
   DEBUG(1,
   { int i;
 
@@ -960,6 +962,9 @@ PL_initialise(int argc, char **argv)
     }
     argc -= done;
     argv += done;
+
+    GD->cmdline.appl_argc = argc;
+    GD->cmdline.appl_argv = argv;
   }
 
   if ( !setupProlog() )
@@ -969,8 +974,8 @@ PL_initialise(int argc, char **argv)
   enableThreads(TRUE);
 #endif
   PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
-  initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
-		    GD->cmdline.argv);
+  initialiseForeign(GD->cmdline.os_argc, /* PL_initialise_hook() functions */
+		    GD->cmdline.os_argv);
   setAccessLevel(ACCESS_LEVEL_SYSTEM);
 
   if ( GD->bootsession )
@@ -1075,8 +1080,8 @@ usage()
   const cline *lp = lines;
   char *prog;
 
-  if ( GD->cmdline.argc > 0 )
-    prog = BaseName(GD->cmdline.argv[0]);
+  if ( GD->cmdline.os_argc > 0 )
+    prog = BaseName(GD->cmdline.os_argv[0]);
   else
     prog = "swipl";
 
