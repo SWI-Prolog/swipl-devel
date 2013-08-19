@@ -114,6 +114,21 @@ longopt(const char *opt, int argc, const char **argv)
 }
 
 
+const char *
+is_longopt(const char *optstring, const char *name)
+{ size_t len = strlen(name);
+
+  if ( strncmp(optstring, name, len) == 0 )
+  { if ( optstring[len] == '=' )
+      return &optstring[len+1];
+    if ( optstring[len] == EOS )
+      return "";
+  }
+
+  return NULL;
+}
+
+
 static int
 opt_append(opt_list **l, char *s)
 { opt_list *n = allocHeapOrHalt(sizeof(*n));
@@ -519,8 +534,9 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { char *s = &argv[0][1];
 
-    if ( streq(s, "-" ) )		/* pl <plargs> -- <app-args> */
-      break;
+    if ( streq(s, "-" ) )		/* swipl <plargs> -- <app-args> */
+    { break;
+    }
 
     if ( streq(s, "tty") )	/* +/-tty */
     { if ( s[-1] == '+' )
@@ -541,7 +557,23 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
     }
 
     if ( *s == '-' )
+    { const char *optval;
+
+      s++;
+
+      if ( (optval=is_longopt(s, "pldoc")) )
+      { GD->options.pldoc_server = store_string(optval);
+      } else if ( is_longopt(s, "home") )
+      { /* already handled */
+#ifdef __WINDOWS__
+      } else if ( (optval=is_longopt(s, "win_app")) )
+      { GD->options.win_app = TRUE;
+#endif
+      } else
+	return -1;
+
       continue;				/* don't handle --long=value */
+    }
 
     while(*s)
     { switch(*s)
@@ -551,9 +583,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 			} else
 			  return -1;
 			break;
-	case 'p':	if (!argc)	/* handled in Prolog */
-			  return -1;
-			argc--, argv++;
+	case 'p':	optionList(&GD->options.search_paths);
 			break;
 	case 'O':	GD->cmdline.optimise = TRUE; /* see initFeatures() */
 			break;
@@ -593,7 +623,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	    case 'T':	GD->options.trailSize    = size; goto next;
 	    case 'H':
 	    case 'A':
-	      Sdprintf("%% WARNING: -%csize is no longer supported\n", *s);
+	      Sdprintf("% Warning: -%csize is no longer supported\n", *s);
 	      goto next;
 	  }
 	}
@@ -710,177 +740,14 @@ int
 PL_is_initialised(int *argc, char ***argv)
 { if ( GD->initialised )
   { if ( argc )
-      *argc = GD->cmdline.argc;
+      *argc = GD->cmdline.os_argc;
     if ( argv )
-      *argv = GD->cmdline.argv;
+      *argv = GD->cmdline.os_argv;
 
     return TRUE;
   }
 
   return FALSE;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Argument handling. This routine also takes care of a script-file launced
-with the first line
-
-#!/path/to/pl -L0 -f
-
-On Unix this is passed as below.  We   need  to break the first argument
-ourselves and we need to restore the argv[0]  path as pl might not be on
-$PATH!
-
-	{pl, '-L0 -f', <file>}
-
-On some unix systems, currently MacOS X  tiger, the arguments are passed
-as { pl, -L0, -f, <file> }, which   must be converted by adding -- after
-the script file. This  mode  is   selected  if  SCRIPT_BREAKDOWN_ARGS is
-defined by configure.
-
-On Windows this is simply passed as below.   We have to analyse the file
-ourselves. Unfortunately this needs to be done  in C as it might contain
-stack-parameters.
-
-	{swipl-win.exe <file>}
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef MAXLINE
-#define MAXLINE 1024
-#endif
-#ifndef MAXARGV
-#define MAXARGV 1024
-#endif
-
-static void
-script_argv(int argc, char **argv)
-{ FILE *fd;
-  int i;
-
-  DEBUG(1,
-	{ for(i=0; i< argc; i++)
-	    Sdprintf("argv[%d] = '%s'\n", i, argv[i]);
-	});
-
-#ifdef SCRIPT_BREAKDOWN_ARGS
-  for(i=1; i < argc-1; i++)
-  { if ( argv[i][0] == '-' && argv[i][2] == '\0' )
-    { switch(argv[i][1])
-      { case '-':
-	  goto noscript;
-	case 's':
-	case 'f':
-	  if ( (fd=fopen(argv[i+1], "r")) )
-	  { char buf[MAXLINE];
-	    char **av;
-	    int j;
-
-	    if ( !fgets(buf, sizeof(buf), fd) )
-	    { fclose(fd);
-	      goto noscript;
-	    }
-	    if ( !strprefix(buf, "#!") )
-	    { fclose(fd);
-	      goto noscript;
-	    }
-	    fclose(fd);
-
-	    DEBUG(1, Sdprintf("Got script %s\n", argv[i+1]));
-
-	    av = allocHeapOrHalt(sizeof(char*)*(argc+2));
-	    for(j=0; j<=i+1; j++)
-	      av[j] = argv[j];
-	    av[j] = "--";
-	    for(; j<argc; j++)
-	      av[j+1] = argv[j];
-	    av[j+1] = NULL;
-	    GD->cmdline.argc = argc+1;
-	    GD->cmdline.argv = av;
-
-	    return;
-	  }
-      }
-    }
-  }
-#else /*SCRIPT_BREAKDOWN_ARGS*/
-
-#ifdef __unix__
-  if ( argc >= 3 &&
-       (strpostfix(argv[1], "-f") || strpostfix(argv[1], "-s")) &&
-       (fd = fopen(argv[2], "r")) )	/* ok, this is a script invocation */
-#else
-  if ( argc >= 2 &&
-       (fd = fopen(argv[1], "r")) )
-#endif
-  { char buf[MAXLINE];
-    char *s;
-    char *av[MAXARGV];
-    int  an = 0;
-
-    if ( !fgets(buf, sizeof(buf), fd) ||
-	 !strprefix(buf, "#!") )
-    { fclose(fd);
-      goto noscript;
-    }
-
-    for(s = &buf[2]; *s; )
-    { while( *s && isBlank(*s) )
-	s++;
-
-      if ( *s )
-      { char *start = s;
-	char *o = s;
-
-	while( *s && !isBlank(*s) )
-	{ if ( *s == '\'' || *s == '"' )
-	  { int c0 = *s++;
-
-	    while(*s && *s != c0)
-	      *o++ = *s++;
-	    if ( *s )
-	      s++;
-	  } else
-	    *o++ = *s++;
-	}
-
-#ifndef __unix__
-	if ( an == 0 )
-	{ av[an++] = argv[0];		/* the original interpreter */
-	  if ( *o != '-' )		/* The interpreter */
-	    continue;
-	}
-#endif
-	av[an] = allocHeapOrHalt(o-start+1);
-	strncpy(av[an], start, o-start);
-	av[an][o-start] = EOS;
-	if ( ++an >= MAXARGV )
-	  fatalError("Too many script arguments");
-      }
-    }
-    if ( an+argc-2+2 > MAXARGV )	/* skip 2, add -- and NULL */
-      fatalError("Too many script arguments");
-
-#ifdef __unix__
-    i = 2;
-#else
-    i = 1;
-#endif
-    av[an++] = argv[i++];		/* the script file */
-    av[an++] = "--";			/* separate arguments */
-    for(; i<argc; i++)
-      av[an++] = argv[i];
-    GD->cmdline.argc = an;
-    av[an++] = NULL;
-    GD->cmdline.argv = allocHeapOrHalt(sizeof(char *) * an);
-    memcpy(GD->cmdline.argv, av, sizeof(char *) * an);
-
-    fclose(fd);
-  } else
-#endif /*SCRIPT_BREAKDOWN_ARGS*/
-  { noscript:
-    GD->cmdline.argc = argc;
-    GD->cmdline.argv = argv;
-  }
 }
 
 
@@ -895,20 +762,10 @@ PL_initialise(int argc, char **argv)
 
   initAlloc();
   initPrologThreads();			/* initialise thread system */
-  SinitStreams();			/* before anything else */
+  SinitStreams();
 
-  script_argv(argc, argv);		/* hande #! arguments */
-  argc = GD->cmdline.argc;
-  argv = GD->cmdline.argv;
-  GD->cmdline._c_argc = -1;
-  DEBUG(1,
-  { int i;
-
-    Sdprintf("argv =");
-    for(i=0; i<argc; i++)
-      Sdprintf(" %s", argv[i]);
-    Sdprintf("\n");
-  });
+  GD->cmdline.os_argc = argc;
+  GD->cmdline.os_argv = argv;
 
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
@@ -960,6 +817,9 @@ PL_initialise(int argc, char **argv)
     }
     argc -= done;
     argv += done;
+
+    GD->cmdline.appl_argc = argc;
+    GD->cmdline.appl_argv = argv;
   }
 
   if ( !setupProlog() )
@@ -969,8 +829,8 @@ PL_initialise(int argc, char **argv)
   enableThreads(TRUE);
 #endif
   PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
-  initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
-		    GD->cmdline.argv);
+  initialiseForeign(GD->cmdline.os_argc, /* PL_initialise_hook() functions */
+		    GD->cmdline.os_argv);
   setAccessLevel(ACCESS_LEVEL_SYSTEM);
 
   if ( GD->bootsession )
@@ -1029,7 +889,7 @@ PL_initialise(int argc, char **argv)
   { int status = prologToplevel(PL_new_atom("$compile")) ? 0 : 1;
 
     PL_halt(status);
-    fail;				/* make compile happy */
+    fail;				/* make compiler happy */
   } else
   { int status = prologToplevel(PL_new_atom("$initialise"));
     return status;
@@ -1049,24 +909,30 @@ usage()
     "    3) %s --arch     Display architecture\n",
     "    4) %s --dump-runtime-variables[=format]\n"
     "                     Dump link info in sh(1) format\n",
-    "    5) %s [options]\n",
-    "    6) %s [options] [-o output] -c file ...\n",
-    "    7) %s [options] [-o output] -b bootfile -c file ...\n",
+    "    5) %s [options] prolog-file ... [-- arg ...]\n",
+    "    6) %s [options] [-o output] -c prolog-file ...\n",
+    "    7) %s [options] [-o output] -b bootfile -c prolog-file ...\n",
+    "\n",
     "Options:\n",
     "    -x state         Start from state (must be first)\n",
-    "    -[LGTA]size[KMG] Specify {Local,Global,Trail,Argument} limits\n",
+    "    -[LGT]size[KMG]  Specify {Local,Global,Trail} limits\n",
     "    -t toplevel      Toplevel goal\n",
     "    -g goal          Initialisation goal\n",
     "    -f file          User initialisation file\n",
     "    -F file          System initialisation file\n",
     "    -l file          Script source file\n",
     "    -s file          Script source file\n",
+    "    -p alias=path    Define file search path 'alias'\n",
     "    [+/-]tty         Allow tty control\n",
     "    -O               Optimised compilation\n",
     "    --nosignals      Do not modify any signal handling\n",
     "    --nodebug        Omit generation of debug info\n",
     "    --quiet          Quiet operation (also -q)\n",
     "    --home=DIR       Use DIR as SWI-Prolog home\n",
+    "    --pldoc[=port]   Start PlDoc server [at port]\n",
+#ifdef __WINDOWS__
+    "    --win_app	  Behave as Windows application
+#endif
 #ifdef O_DEBUG
     "    -d level|topic   Enable maintenance debugging\n",
 #endif
@@ -1075,8 +941,8 @@ usage()
   const cline *lp = lines;
   char *prog;
 
-  if ( GD->cmdline.argc > 0 )
-    prog = BaseName(GD->cmdline.argv[0]);
+  if ( GD->cmdline.os_argc > 0 )
+    prog = BaseName(GD->cmdline.os_argv[0]);
   else
     prog = "swipl";
 

@@ -133,10 +133,11 @@ compatibility predicates.
 
 %%	'$argv'(-Argv:list) is det.
 %
-%	@deprecated use current_prolog_flag(argv, Argv)
+%	@deprecated use current_prolog_flag(os_argv, Argv) or
+%	current_prolog_flag(argv, Argv)
 
 '$argv'(Argv) :-
-	current_prolog_flag(argv, Argv).
+	current_prolog_flag(os_argv, Argv).
 
 %%	'$set_prompt'(+Prompt) is det.
 %

@@ -284,9 +284,7 @@ prolog_file_pattern(Pattern) :-
 init_win_app :-
 	current_prolog_flag(associated_file, _), !.
 init_win_app :-
-	current_prolog_flag(argv, Argv),
-	'$append'(Pre, ['--win_app'|_Post], Argv),
-	\+ '$member'(--, Pre), !,
+	'$option'(win_app, true), !,
 	catch(my_prolog, E, print_message(warning, E)).
 init_win_app.
 
@@ -356,7 +354,7 @@ current_app(App) :-
 %	started by opening the app directly.
 
 go_home_on_plain_app_start :-
-	current_prolog_flag(argv, [_Exe]),
+	current_prolog_flag(os_argv, [_Exe]),
 	current_app(App),
 	file_directory_name(App, Above),
 	working_directory(PWD, PWD),

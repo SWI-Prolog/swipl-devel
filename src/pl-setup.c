@@ -53,7 +53,7 @@ static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
 int
-setupProlog(void)
+setupProlog()
 { GET_LD
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 

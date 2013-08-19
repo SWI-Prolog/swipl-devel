@@ -116,9 +116,9 @@ unix(cd) :-
 unix(cd(Dir)) :-
 	working_directory(_, Dir).
 unix(args(L)) :-
-	current_prolog_flag(argv, L).
+	current_prolog_flag(os_argv, L).
 unix(argv(L)) :-
-	current_prolog_flag(argv, S),
+	current_prolog_flag(os_argv, S),
 	maplist(to_prolog, S, L).
 
 to_prolog(S, A) :-

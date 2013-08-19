@@ -111,8 +111,7 @@ main :-
 
 options :-
 	current_prolog_flag(argv, Argv),
-	append(_, [--|Args], Argv), !,
-	options(Args),
+	options(Argv),
 	(   setof(O, only(O), Types)
 	->  true
 	;   setof(T, F^target(F, T), Types)

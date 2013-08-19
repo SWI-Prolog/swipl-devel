@@ -68,7 +68,7 @@ we want to be able to have a lot of flags and don't harm thread_create/3
 too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void setArgvPrologFlag(void);
+static void setArgvPrologFlag(const char *flag, int argc, char **argv);
 static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static void initPrologFlagTable(void);
@@ -1209,21 +1209,20 @@ initPrologFlags(void)
   setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, __DATE__ ", " __TIME__);
 #endif
 
-  setArgvPrologFlag();
   setTZPrologFlag();
   setOSPrologFlags();
   setVersionPrologFlag();
+  setArgvPrologFlag("os_argv", GD->cmdline.os_argc,   GD->cmdline.os_argv);
+  setArgvPrologFlag("argv",    GD->cmdline.appl_argc, GD->cmdline.appl_argv);
 }
 
 
 static void
-setArgvPrologFlag(void)
+setArgvPrologFlag(const char *flag, int argc, char **argv)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
   term_t e = PL_new_term_ref();
   term_t l = PL_new_term_ref();
-  int argc    = GD->cmdline.argc;
-  char **argv = GD->cmdline.argv;
   int n;
 
   PL_put_nil(l);
@@ -1234,7 +1233,7 @@ setArgvPrologFlag(void)
       fatalError("Could not set Prolog flag argv: not enough stack");
   }
 
-  setPrologFlag("argv", FT_TERM, l);
+  setPrologFlag(flag, FT_TERM, l);
   PL_discard_foreign_frame(fid);
 }
 

@@ -525,6 +525,7 @@ save_prolog_flags :-
 save_prolog_flags.
 
 no_save_flag(argv).
+no_save_flag(os_argv).
 no_save_flag(access_level).
 no_save_flag(tty_control).
 no_save_flag(readline).

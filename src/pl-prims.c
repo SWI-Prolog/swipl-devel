@@ -4769,9 +4769,10 @@ typedef struct
   void	       *address;
 } optdef, *OptDef;
 
-#define CMDOPT_LONG   0
-#define CMDOPT_STRING 1
-#define CMDOPT_LIST   2
+#define CMDOPT_BOOL   0
+#define CMDOPT_LONG   1
+#define CMDOPT_STRING 2
+#define CMDOPT_LIST   3
 
 static const optdef optdefs[] =
 { { "local",		CMDOPT_LONG,	&GD->options.localSize },
@@ -4785,6 +4786,11 @@ static const optdef optdefs[] =
   { "script_file",	CMDOPT_LIST,	&GD->options.scriptFiles },
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
+  { "search_paths",	CMDOPT_LIST,	&GD->options.search_paths },
+  { "pldoc_server",	CMDOPT_STRING,	&GD->options.pldoc_server },
+#ifdef __WINDOWS__
+  { "win_app",		CMDOPT_BOOL,	&GD->options.win_app },
+#endif
   { "home",		CMDOPT_STRING,	&GD->defaults.home },
 
   { NULL,		0,		NULL }
@@ -4805,7 +4811,12 @@ PRED_IMPL("$option", 2, option, 0)
     for( ; d->name; d++ )
     { if ( streq(k, d->name) )
       { switch(d->type)
-	{ case CMDOPT_LONG:
+	{ case CMDOPT_BOOL:
+	  { bool *lp = d->address;
+
+	    return PL_unify_bool(val, *lp);
+	  }
+	  case CMDOPT_LONG:
 	  { long *lp = d->address;
 
 	    return PL_unify_integer(val, *lp);
@@ -4813,7 +4824,9 @@ PRED_IMPL("$option", 2, option, 0)
 	  case CMDOPT_STRING:
 	  { char **sp = d->address;
 
-	    return PL_unify_atom_chars(val, *sp);
+	    if ( *sp )
+	      return PL_unify_atom_chars(val, *sp);
+	    return FALSE;
 	  }
 	  case CMDOPT_LIST:
 	  { opt_list **list = d->address;

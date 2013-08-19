@@ -93,10 +93,10 @@ struct PL_global_data
 #endif
 
   struct
-  { int		argc;			/* main(int argc, char **argv) */
-    char **	argv;
-    int		_c_argc;		/* stripped options */
-    char **	_c_argv;
+  { int		os_argc;		/* main(int argc, char **argv) */
+    char **	os_argv;
+    int		appl_argc;		/* Application options */
+    char **	appl_argv;
     int		notty;			/* -tty: donot use ioctl() */
     int		optimise;		/* -O: optimised compilation */
   } cmdline;

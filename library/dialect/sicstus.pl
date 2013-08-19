@@ -433,12 +433,6 @@ prolog_flag(Flag, Value) :-
 	debug(prolog_flag, 'prolog_flag(~q, ~q)', [Flag, Value]),
 	sicstus_flag(Flag, Value).
 
-sicstus_flag(argv, Argv) :- !,
-	current_prolog_flag(argv, AllArgs),
-	(   append(_, [--|Argv0], AllArgs)
-	->  Argv = Argv0
-	;   Argv = []
-	).
 sicstus_flag(system_type, Type) :- !,
 	(   current_prolog_flag(saved_program, true)
 	->  Type = runtime
