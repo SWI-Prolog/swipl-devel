@@ -3002,7 +3002,7 @@ reinforce(X) :-
         (   current_prolog_flag(clpfd_propagation, full) ->
             % full propagation propagates everything in any case
             true
-        ;   term_attvars(X, Vs),
+        ;   term_variables(X, Vs),
             maplist(reinforce_, Vs),
             do_queue
         ).
