@@ -563,6 +563,8 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 
       if ( (optval=is_longopt(s, "pldoc")) )
       { GD->options.pldoc_server = store_string(optval);
+      } else if ( is_longopt(s, "home") )
+      { /* already handled */
 #ifdef __WINDOWS__
       } else if ( (optval=is_longopt(s, "win_app")) )
       { GD->options.win_app = TRUE;
@@ -1079,24 +1081,30 @@ usage()
     "    3) %s --arch     Display architecture\n",
     "    4) %s --dump-runtime-variables[=format]\n"
     "                     Dump link info in sh(1) format\n",
-    "    5) %s [options]\n",
-    "    6) %s [options] [-o output] -c file ...\n",
-    "    7) %s [options] [-o output] -b bootfile -c file ...\n",
+    "    5) %s [options] prolog-file ... [-- arg ...]\n",
+    "    6) %s [options] [-o output] -c prolog-file ...\n",
+    "    7) %s [options] [-o output] -b bootfile -c prolog-file ...\n",
+    "\n",
     "Options:\n",
     "    -x state         Start from state (must be first)\n",
-    "    -[LGTA]size[KMG] Specify {Local,Global,Trail,Argument} limits\n",
+    "    -[LGT]size[KMG]  Specify {Local,Global,Trail} limits\n",
     "    -t toplevel      Toplevel goal\n",
     "    -g goal          Initialisation goal\n",
     "    -f file          User initialisation file\n",
     "    -F file          System initialisation file\n",
     "    -l file          Script source file\n",
     "    -s file          Script source file\n",
+    "    -p alias=path    Define file search path 'alias'\n",
     "    [+/-]tty         Allow tty control\n",
     "    -O               Optimised compilation\n",
     "    --nosignals      Do not modify any signal handling\n",
     "    --nodebug        Omit generation of debug info\n",
     "    --quiet          Quiet operation (also -q)\n",
     "    --home=DIR       Use DIR as SWI-Prolog home\n",
+    "    --pldoc[=port]   Start PlDoc server [at port]\n",
+#ifdef __WINDOWS__
+    "    --win_app	  Behave as Windows application
+#endif
 #ifdef O_DEBUG
     "    -d level|topic   Enable maintenance debugging\n",
 #endif

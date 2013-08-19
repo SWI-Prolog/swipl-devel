@@ -272,40 +272,69 @@ path_sep -->
 		 *   LOADING ASSIOCIATED FILES	*
 		 *******************************/
 
-%%	set_associated_file
+%%	argv_files(-Files) is det.
+%
+%	Updated the prolog flag =argv=, extracting the leading directory
+%	and files.
+
+argv_files(Files) :-
+	current_prolog_flag(argv, Argv),
+	no_option_files(Argv, Argv1, Files),
+	(   Argv1 \== Argv
+	->  set_prolog_flag(argv, Argv1)
+	;   true
+	).
+
+no_option_files([--|Argv], Argv, []) :- !.
+no_option_files([OsFile|Argv0], Argv, [File|T]) :-
+	file_name_extension(_, Ext, OsFile),
+	user:prolog_file_type(Ext, prolog), !,
+	prolog_to_os_filename(File, OsFile),
+	no_option_files(Argv0, Argv, T).
+no_option_files(Argv, Argv, []).
+
+clean_argv :-
+	(   current_prolog_flag(argv, [--|Argv])
+	->  set_prolog_flag(argv, Argv)
+	;   true
+	).
+
+%%	associated_files(-Files)
 %
 %	If SWI-Prolog is started as <exe> <file>.<ext>, where <ext> is
 %	the extension registered for associated files, set the Prolog
 %	flag associated_file, switch to the directory holding the file
 %	and -if possible- adjust the window title.
 
-set_associated_file :-
-	current_prolog_flag(saved_program_class, runtime), !.
-set_associated_file :-
+associated_files([]) :-
+	current_prolog_flag(saved_program_class, runtime), !,
+	clean_argv.
+associated_files(Files) :-
 	'$set_prolog_file_extension',
-	current_prolog_flag(associate, Ext),
-	current_prolog_flag(argv, Argv),
-	'$append'(Pre, [OsFile], Argv),
-	\+ memberchk(--, Pre),
-	\+ ( '$append'(_, [LOpt], Pre),
-	     load_option(LOpt)		% Avoid loading twice
-	   ),
-	prolog_to_os_filename(File, OsFile),
-	file_name_extension(_, Ext, File),
-	access_file(File, read), !,
-	file_directory_name(File, Dir),
-	working_directory(_, Dir),
-	create_prolog_flag(associated_file, File, []),
-	(   current_predicate(system:window_title/2)
-	->  atom_concat('SWI-Prolog -- ', File, Title),
-	    system:window_title(_, Title)
+	argv_files(Files),
+	(   Files = [File|_]
+	->  set_prolog_flag(associated_file, File),
+	    set_working_directory(File),
+	    set_window_title(Files)
 	;   true
 	).
-set_associated_file.
 
-load_option('-s').
-load_option('-l').
-load_option('-f').
+set_working_directory(File) :-
+	'$option'(win_app, true),
+	access_file(File, read), !,
+	file_directory_name(File, Dir),
+	working_directory(_, Dir).
+set_working_directory(_).
+
+set_window_title([File|More]) :-
+	current_predicate(system:window_title/2), !,
+	(   More == []
+	->  Extra = []
+	;   Extra = ['...']
+	),
+	atomic_list_concat(['SWI-Prolog --', File | Extra], ' ', Title),
+	system:window_title(_, Title).
+set_window_title(_).
 
 
 %%	start_pldoc
@@ -325,16 +354,16 @@ start_pldoc :-
 start_pldoc.
 
 
-%%	load_associated_file
+%%	load_associated_files(+Files)
 %
-%	Load  the  file-name  set  by   set_associated_file/0  from  the
-%	commandline arguments. Note the expand(false) to avoid expanding
-%	special characters in the filename.
+%	Load Prolog files specified from the commandline.
 
-load_associated_file :-
-	current_prolog_flag(associated_file, File),
-	load_files(user:File, [expand(false)]).
-load_associated_file.
+load_associated_files(Files) :-
+	(   '$member'(File, Files),
+	    load_files(user:File, [expand(false)]),
+	    fail
+	;   true
+	).
 
 :- if(current_predicate(system:win_registry_get_value/3)).
 hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
@@ -348,7 +377,7 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 	->  true
 	;   Ext = Ext0
 	),
-	create_prolog_flag(associate, Ext, []).
+	assert(user:prolog_file_type(Ext, prolog)).
 :- endif.
 '$set_prolog_file_extension'.
 
@@ -375,7 +404,7 @@ initialise_error(E) :-
 
 initialise_prolog :-
 	'$clean_history',
-	set_associated_file,
+	associated_files(Files),
 	'$set_file_search_paths',
 	init_debug_flags,
 	'$run_initialization',
@@ -386,7 +415,7 @@ initialise_prolog :-
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
 	'$load_script_file',
-	load_associated_file,
+	load_associated_files(Files),
 	'$option'(goal, GoalAtom),
 	term_to_atom(Goal, GoalAtom),
 	(   Goal == '$welcome'

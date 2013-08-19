@@ -354,7 +354,7 @@ current_app(App) :-
 %	started by opening the app directly.
 
 go_home_on_plain_app_start :-
-	current_prolog_flag(argv, [_Exe]),
+	current_prolog_flag(os_argv, [_Exe]),
 	current_app(App),
 	file_directory_name(App, Above),
 	working_directory(PWD, PWD),
