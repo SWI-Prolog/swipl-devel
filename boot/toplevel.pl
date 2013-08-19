@@ -286,6 +286,16 @@ argv_files(Files) :-
 	).
 
 no_option_files([--|Argv], Argv, []) :- !.
+no_option_files([OsScript|Argv], Argv, [Script]) :-
+	prolog_to_os_filename(Script, OsScript),
+	access_file(Script, read),
+	catch(setup_call_cleanup(
+		  open(Script, read, In),
+		  ( get_char(In, '#'),
+		    get_char(In, '!')
+		  ),
+		  close(In)),
+	      _, fail), !.
 no_option_files([OsFile|Argv0], Argv, [File|T]) :-
 	file_name_extension(_, Ext, OsFile),
 	user:prolog_file_type(Ext, prolog), !,
