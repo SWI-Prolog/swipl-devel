@@ -1062,7 +1062,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   initSignals();
 #endif
   PL_register_foreign_in_module("system", "win_open_console", 5,
-		      pl_win_open_console, 0);
+				pl_win_open_console, 0);
 
   if ( argc > MAX_ARGC )
     argc = MAX_ARGC;
