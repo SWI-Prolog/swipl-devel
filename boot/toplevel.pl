@@ -329,8 +329,16 @@ associated_files(Files) :-
 	;   true
 	).
 
+%%	set_working_directory(+File)
+%
+%	When opening as a GUI application, e.g.,  by opening a file from
+%	the Finder/Explorer/..., we typically  want   to  change working
+%	directory to the location of  the   primary  file.  We currently
+%	detect that we are a GUI app  by the Prolog flag =console_menu=,
+%	which is set by swipl-win[.exe].
+
 set_working_directory(File) :-
-	'$option'(win_app, true),
+	current_prolog_flag(console_menu, true),
 	access_file(File, read), !,
 	file_directory_name(File, Dir),
 	working_directory(_, Dir).
