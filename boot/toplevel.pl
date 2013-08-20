@@ -387,7 +387,10 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 	->  true
 	;   Ext = Ext0
 	),
-	assert(user:prolog_file_type(Ext, prolog)).
+	(   user:prolog_file_type(Ext, prolog)
+	->  true
+	;   asserta(user:prolog_file_type(Ext, prolog))
+	).
 :- endif.
 '$set_prolog_file_extension'.
 
