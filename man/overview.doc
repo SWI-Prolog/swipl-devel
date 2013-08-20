@@ -202,9 +202,16 @@ Prolog flag \prologflag{argv}.
     \definition{\exam{swipl} [\arg{option} ...]
 		\arg{prolog-file} ...
 		[[\const{--}] \arg{arg} ...]}
-This is the normal way to start Prolog.  The options are described in
+This is the normal way to start Prolog. The options are described in
 \secref{running-options}, \secref{stacksizes} and \secref{runoptions}.
-The Prolog flag \prologflag{argc} provides access to \arg{arg} ...
+The Prolog flag \prologflag{argc} provides access to \arg{arg} ... If
+the \arg{options} are followed by one or more Prolog file names (i.e.,
+names with extension \fileext{pl}, \fileext{prolog} or (on Windows) the
+user preferred extension registered during installation), these files
+are loaded. The first file is registered in the Prolog flag
+\prologflag{associated_file}. In addition, \program{pl-win[.exe]}
+switches to the directory in which this primary source file is located
+using working_directory/2.
 
     \definition{\exam{swipl} -o \arg{output} -c \arg{prolog-file} ...}
 The \cmdlineoption{-c} option is used to compile a set of Prolog
@@ -1053,6 +1060,10 @@ definition is more practical.}
 Identifier for the hardware and operating system SWI-Prolog is running
 on. Used to select foreign files for the right architecture. See also
 \secref{shlib} and file_search_path/2.
+
+    \prologflagitem{associated_file}{atom}{r}
+Set if Prolog was started with a prolog file as argument.  Used by
+e.g., edit/0 to edit the initial file.
 
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
