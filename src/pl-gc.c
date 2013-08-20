@@ -1705,7 +1705,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case H_VAR:
 	  mark_frame_var(state, PC[0] PASS_LD);
 	  /*FALLTHROUGH*/
-	case H_CONST:
+	case H_ATOM:
+	case H_SMALLINT:
 	case H_NIL:
 	case H_INTEGER:
 	case H_INT64:
@@ -3010,7 +3011,8 @@ setStartOfVMI(vm_state *state)
 	case H_LIST_FF:
 	case H_FIRSTVAR:
 	case H_VAR:
-	case H_CONST:
+	case H_ATOM:
+	case H_SMALLINT:
 	case H_NIL:
 	case H_INTEGER:
 	case H_INT64:
@@ -4810,10 +4812,9 @@ shiftTightStacks(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The  routine  markAtomsOnStacks(PL_local_data_t  *ld)  marks  all  atoms
-reachable  from  the  global  stack,    environments,  choicepoints  and
-term-references  using  markAtom().  It  is    designed   to  allow  for
-asynchronous calling, even from different   threads (hence the argument,
-although the thread examined should be stopped).
+reachable from  the global stack, local stack and term-references  using
+markAtom().  It  is  designed  to  allow  for asynchronous calling, even
+from different threads (hence the argument).
 
 Asynchronous calling is in general not  possible,   but  here we make an
 exception. markAtom() is supposed  to  test   for  and  silently  ignore
@@ -4847,6 +4848,20 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
   Word current;
 
   for(current = gbase; current < gtop; current += (offset_cell(current)+1) )
+  { if ( isAtom(*current) )
+      markAtom(*current);
+  }
+}
+
+static void
+markAtomsOnLocalStack(PL_local_data_t *ld)
+{ Word lbase = (Word)ld->stacks.local.base;
+  Word ltop  = (Word)ld->stacks.local.top;
+  Word lmax  = (Word)ld->stacks.local.max;
+  Word lend  = ltop+LOCAL_MARGIN < lmax ? ltop+LOCAL_MARGIN : lmax;
+  Word current;
+
+  for(current = lbase; current < lend; current++ )
   { if ( isAtom(*current) )
       markAtom(*current);
   }
@@ -4982,8 +4997,7 @@ markAtomsOnStacks(PL_local_data_t *ld)
   markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
 #endif
   markAtomsOnGlobalStack(ld);
-  markAtomsInEnvironments(ld);
-  markAtomsInTermReferences(ld);
+  markAtomsOnLocalStack(ld);
   markAtomsFindall(ld);
   markAtomsThreadMessageQueue(ld);
 }

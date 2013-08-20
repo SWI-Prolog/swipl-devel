@@ -615,7 +615,7 @@ markAtom(atom_t a)
 
   ap = fetchAtomArray(i);
 
-  if ( ap )
+  if ( ap && !(ap->references & ATOM_MARKED_REFERENCE) )
   {
 #ifdef O_DEBUG_ATOMGC
     if ( atomLogFd )
@@ -626,6 +626,35 @@ markAtom(atom_t a)
 #else
     ap->references |= ATOM_MARKED_REFERENCE;
 #endif
+  }
+}
+
+void
+unmarkAtoms(void)
+{ size_t index;
+  int i, last=FALSE;
+
+  for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
+  { size_t upto = (size_t)2<<i;
+    Atom *b = GD->atoms.array.blocks[i];
+
+    if ( upto >= GD->atoms.highest )
+    { upto = GD->atoms.highest;
+      last = TRUE;
+    }
+
+    for(; index<upto; index++)
+    { Atom a = b[index];
+
+      if ( a && (a->references & ATOM_MARKED_REFERENCE) )
+      {
+#ifdef ATOMIC_REFERENCES
+        ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
+#else
+        a->references &= ~ATOM_MARKED_REFERENCE;
+#endif
+      }
+    }
   }
 }
 
@@ -794,9 +823,10 @@ pl_garbage_collect_atoms(void)
   GD->atoms.gc_active = TRUE;
   blockSignals(&set);
   t = CpuTime(CPU_USER);
+  unmarkAtoms();
   markAtomsOnStacks(LD);
 #ifdef O_PLMT
-  forThreadLocalData(markAtomsOnStacks, 0);
+  forThreadLocalDataUnsuspended(markAtomsOnStacks, 0);
   markAtomsMessageQueues();
 #endif
   oldcollected = GD->atoms.collected;

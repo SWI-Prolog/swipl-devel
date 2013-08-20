@@ -1496,7 +1496,11 @@ freePrologLocalData(PL_local_data_t *ld)
 #endif
 
   if ( ld->bags.default_bag )
-    PL_free(ld->bags.default_bag);
+  { PL_free(ld->bags.default_bag);
+#ifdef O_ATOMGC
+    simpleMutexDelete(&ld->bags.mutex);
+#endif
+  }
 
 #ifdef O_CYCLIC
   clearSegStack(&ld->cycle.lstack);

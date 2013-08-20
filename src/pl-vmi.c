@@ -204,16 +204,57 @@ VMI(I_NOP, 0, 0, ())
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-H_CONST is used for an atomic constant in   the head of the clause. ARGP
+H_ATOM is used for an atom in the head of the clause. ARGP points to the
+current argument to  be  matched.  ARGP is derefenced and unified with a
+constant argument.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(H_ATOM, 0, 1, (CA1_DATA))
+{ word c;
+  Word k;
+
+  IF_WRITE_MODE_GOTO(B_ATOM);
+
+  c = (word)*PC++;
+  if (GD->atoms.gc_active)
+    markAtom(c);
+  deRef2(ARGP, k);
+  if ( *k == c )
+  { ARGP++;
+    NEXT_INSTRUCTION;
+  }
+  if ( canBind(*k) )
+  { if ( !hasGlobalSpace(0) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(0, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	THROW_EXCEPTION;
+      }
+      deRef2(ARGP, k);
+    }
+    bindConst(k, c);
+    ARGP++;
+    NEXT_INSTRUCTION;
+  }
+  CLAUSE_FAILED;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+H_SMALLINT is used for  small integer  in the head  of the clause.  ARGP
 points to the current argument to  be   matched.  ARGP is derefenced and
 unified with a constant argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(H_CONST, 0, 1, (CA1_DATA))
+VMI(H_SMALLINT, 0, 1, (CA1_DATA))
 { word c;
   Word k;
 
-  IF_WRITE_MODE_GOTO(B_CONST);
+  IF_WRITE_MODE_GOTO(B_SMALLINT);
 
   c = (word)*PC++;
   deRef2(ARGP, k);
@@ -243,7 +284,7 @@ VMI(H_CONST, 0, 1, (CA1_DATA))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-H_NIL is used for [] in the head.  See H_CONST for details.
+H_NIL is used for [] in the head.  See H_ATOM for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_NIL, 0, 0, ())
@@ -281,7 +322,7 @@ VMI(H_NIL, 0, 0, ())
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 H_INTEGER: Long integer in  the  head.   Note  that  small  integers are
-handled through H_CONST. Copy to the  global   stack  if the argument is
+handled through H_SMALLINT. Copy to the  global stack if the argument is
 variable, compare the numbers otherwise.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -811,13 +852,21 @@ VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-B_CONST, B_NIL: An atomic constant in the body of a clause. We know that
-ARGP is pointing to a not yet   instantiated  argument of the next frame
-and therefore can just fill the argument. Trailing is not needed as this
-is above the stack anyway.
+B_ATOM, B_SMALLINT, B_NIL: An atomic constant in the body of a clause. We
+know that ARGP is pointing to a not yet instantiated argument of the next
+frame and therefore can just fill the argument. Trailing is not needed as
+this is above the stack anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_CONST, 0, 1, (CA1_DATA))
+VMI(B_ATOM, 0, 1, (CA1_DATA))
+{ word c = (word)*PC++;
+  if (GD->atoms.gc_active)
+    markAtom(c);
+  *ARGP++ = c;
+  NEXT_INSTRUCTION;
+}
+
+VMI(B_SMALLINT, 0, 1, (CA1_DATA))
 { *ARGP++ = (word)*PC++;
   NEXT_INSTRUCTION;
 }

@@ -2761,10 +2761,10 @@ called with queue->mutex locked.  It returns one of
 	* MSG_WAIT_DESTROYED
 	  Queue was destroyed while waiting
 
-(*) We need to lock because AGC asks us  to mark our atoms and then lets
-the thread continue. The thread may pick   a  message containing an atom
-from the queue, which now has not  been   marked  by us and is no longer
-part of the queue, so it isn't marked in the queue either.
+(*) We need  to lock  because AGC  marks our atoms  while the  thread is
+running.  The thread may pick   a  message containing  an atom  from the
+queue,  which now has not  been   marked  and is  no longer part  of the
+queue, so it isn't marked in the queue either.
 
 Note that we only need  this  for   queues  that  are  not associated to
 threads. Those associated with a thread  mark   both  the stacks and the
@@ -2820,8 +2820,10 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       if ( rc )
       { DEBUG(MSG_QUEUE, Sdprintf("%d: match\n", PL_thread_self()));
 
+#ifdef O_ATOMGC
 	if ( queue->type == QTYPE_QUEUE )
-	  PL_LOCK(L_AGC);		/* See (*) */
+          simpleMutexLock(&queue->gc_mutex);
+#endif
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
@@ -2829,8 +2831,10 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
+#ifdef O_ATOMGC
 	if ( queue->type == QTYPE_QUEUE )
-	  PL_UNLOCK(L_AGC);
+          simpleMutexUnlock(&queue->gc_mutex);
+#endif
 	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
@@ -2934,6 +2938,7 @@ destroy_message_queue(message_queue *queue)
   }
 
   simpleMutexDelete(&queue->mutex);
+  simpleMutexDelete(&queue->gc_mutex);
   cv_destroy(&queue->cond_var);
   if ( queue->max_size > 0 )
     cv_destroy(&queue->drain_var);
@@ -2970,6 +2975,7 @@ static void
 init_message_queue(message_queue *queue, long max_size)
 { memset(queue, 0, sizeof(*queue));
   simpleMutexInit(&queue->mutex);
+  simpleMutexInit(&queue->gc_mutex);
   cv_init(&queue->cond_var, NULL);
   queue->max_size = max_size;
   if ( queue->max_size > 0 )
@@ -5403,6 +5409,28 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 
 #endif /*__WINDOWS__*/
 
+void
+forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
+{ int me = PL_thread_self();
+  PL_thread_info_t **th;
+
+  for( th = &GD->thread.threads[1];
+       th <= &GD->thread.threads[thread_highest_id];
+       th++ )
+  { PL_thread_info_t *info = *th;
+
+    if ( info->thread_data && info->pl_tid != me &&
+	 info->status == PL_THREAD_RUNNING )
+    { PL_local_data_t *ld = info->thread_data;
+        (*func)(ld);
+
+    }
+  }
+
+  DEBUG(MSG_THREAD, Sdprintf(" All done!\n"));
+
+}
+
 
 		 /*******************************
 		 *	 ATOM MARK SUPPORT	*
@@ -5425,9 +5453,11 @@ static void
 markAtomsMessageQueue(message_queue *queue)
 { thread_message *msg;
 
+  simpleMutexLock(&queue->gc_mutex);
   for(msg=queue->head; msg; msg=msg->next)
   { markAtomsRecord(msg->message);
   }
+  simpleMutexUnlock(&queue->gc_mutex);
 }
 
 
