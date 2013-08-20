@@ -205,42 +205,22 @@ VMI(I_NOP, 0, 0, ())
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 H_ATOM is used for an atom in the head of the clause. ARGP points to the
-current argument to  be  matched.  ARGP is derefenced and unified with a
-constant argument.
+current argument to be matched. ARGP is   derefenced  and unified with a
+constant argument. This is the same as   H_SMALLINT, except that we must
+mark atoms if AGC is in progress because the AGC marker may already have
+visited our stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+BEGIN_SHAREDVARS
+word c;
+Word k;
 
 VMI(H_ATOM, 0, 1, (CA1_DATA))
-{ word c;
-  Word k;
-
-  IF_WRITE_MODE_GOTO(B_ATOM);
+{ IF_WRITE_MODE_GOTO(B_ATOM);
 
   c = (word)*PC++;
   if (GD->atoms.gc_active)
     markAtom(c);
-  deRef2(ARGP, k);
-  if ( *k == c )
-  { ARGP++;
-    NEXT_INSTRUCTION;
-  }
-  if ( canBind(*k) )
-  { if ( !hasGlobalSpace(0) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(0, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      deRef2(ARGP, k);
-    }
-    bindConst(k, c);
-    ARGP++;
-    NEXT_INSTRUCTION;
-  }
-  CLAUSE_FAILED;
+  goto h_const;
 }
 
 
@@ -251,12 +231,10 @@ unified with a constant argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_SMALLINT, 0, 1, (CA1_DATA))
-{ word c;
-  Word k;
-
-  IF_WRITE_MODE_GOTO(B_SMALLINT);
+{ IF_WRITE_MODE_GOTO(B_SMALLINT);
 
   c = (word)*PC++;
+h_const:
   deRef2(ARGP, k);
   if ( *k == c )
   { ARGP++;
@@ -281,6 +259,7 @@ VMI(H_SMALLINT, 0, 1, (CA1_DATA))
   }
   CLAUSE_FAILED;
 }
+END_SHAREDVARS
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
