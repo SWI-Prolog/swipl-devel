@@ -121,6 +121,9 @@ typedef struct message_queue
   unsigned	initialized : 1;	/* Queue is initialised */
   unsigned	destroyed : 1;		/* Thread is being destroyed */
   unsigned	type : 2;		/* QTYPE_* */
+#ifdef O_ATOMGC
+  simpleMutex          gc_mutex;	/* Atom GC scanning sychronization */
+#endif
 } message_queue;
 
 typedef struct pl_mutex
