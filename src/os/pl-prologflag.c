@@ -1119,9 +1119,6 @@ initPrologFlags(void)
 #else
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
 #endif
-#ifdef ASSOCIATE_SRC
-  setPrologFlag("associate", FT_ATOM, ASSOCIATE_SRC);
-#endif
 #ifdef O_DDE
   setPrologFlag("dde", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif

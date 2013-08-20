@@ -1054,11 +1054,6 @@ Identifier for the hardware and operating system SWI-Prolog is running
 on. Used to select foreign files for the right architecture. See also
 \secref{shlib} and file_search_path/2.
 
-    \prologflagitem{associate}{atom}{rw}
-On Windows systems, this is set to the filename extension (\const{pl}
-(default) or \const{pro} (can be selected in the installer)) associated
-with \program{swipl-win.exe}.
-
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
 

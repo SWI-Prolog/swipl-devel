@@ -732,14 +732,16 @@ absolute_file_name(Spec, Path, Args) :-
 %	Define type of file based on the extension.  This is used by
 %	absolute_file_name/3 and may be used to extend the list of
 %	extensions used for some type.
+%
+%	Note that =qlf= must be last   when  searching for Prolog files.
+%	Otherwise use_module/1 will consider  the   file  as  not-loaded
+%	because the .qlf file is not  the   loaded  file.  Must be fixed
+%	elsewhere.
 
 :- multifile(user:prolog_file_type/2).
 :- dynamic(user:prolog_file_type/2).
 
 user:prolog_file_type(pl,	prolog).
-user:prolog_file_type(Ext,	prolog) :-
-	current_prolog_flag(associate, Ext),
-	Ext \== pl.
 user:prolog_file_type(qlf,	prolog).
 user:prolog_file_type(qlf,	qlf).
 user:prolog_file_type(Ext,	executable) :-
