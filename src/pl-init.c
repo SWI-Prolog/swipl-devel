@@ -931,7 +931,7 @@ usage()
     "    --home=DIR       Use DIR as SWI-Prolog home\n",
     "    --pldoc[=port]   Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
-    "    --win_app	  Behave as Windows application
+    "    --win_app	  Behave as Windows application\n",
 #endif
 #ifdef O_DEBUG
     "    -d level|topic   Enable maintenance debugging\n",
