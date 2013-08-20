@@ -77,17 +77,17 @@ edit_no_trace(Spec) :-
 %	Edit associated or script file.  This is the Prolog file opened
 %	by double-clicking or the file loaded using
 %
-%	==
-%	% swipl -s file.pl
-%	==
+%	  ==
+%	  % swipl [-s] file.pl
+%	  ==
 
+edit :-
+	current_prolog_flag(associated_file, File), !,
+	edit(file(File)).
 edit :-
 	'$option'(script_file, OsFiles),
 	OsFiles = [OsFile], !,
 	prolog_to_os_filename(File, OsFile),
-	edit(file(File)).
-edit :-
-	current_prolog_flag(associated_file, File), !,
 	edit(file(File)).
 edit :-
 	throw(error(context_error(edit, no_default_file), _)).
