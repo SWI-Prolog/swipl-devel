@@ -742,6 +742,7 @@ absolute_file_name(Spec, Path, Args) :-
 :- dynamic(user:prolog_file_type/2).
 
 user:prolog_file_type(pl,	prolog).
+user:prolog_file_type(prolog,	prolog).
 user:prolog_file_type(qlf,	prolog).
 user:prolog_file_type(qlf,	qlf).
 user:prolog_file_type(Ext,	executable) :-
