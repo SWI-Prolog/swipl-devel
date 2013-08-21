@@ -1250,7 +1250,7 @@ prefix_nl([H|T0], Prefix, [H|T]) :-
 print_message_lines(Stream, Lines) :-
 	with_output_to(
 	    Stream,
-	    print_message_lines_guarded(current_output, Lines)).
+	    notrace(print_message_lines_guarded(current_output, Lines))).
 
 print_message_lines_guarded(_, []) :- !.
 print_message_lines_guarded(S, [H|T]) :-
@@ -1258,7 +1258,7 @@ print_message_lines_guarded(S, [H|T]) :-
 	print_message_lines_guarded(S, T).
 
 line_element(S, E) :-
-	notrace(prolog:message_line_element(S, E)), !.
+	prolog:message_line_element(S, E), !.
 line_element(S, full_stop) :- !,
 	'$put_token'(S, '.').		% insert space if needed.
 line_element(S, nl) :- !,
