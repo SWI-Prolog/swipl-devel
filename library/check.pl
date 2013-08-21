@@ -271,28 +271,25 @@ redefined(_, system) -->
 redefined(_, user) -->
 	[ '~t~30| Redefined global predicate' ].
 
-predicate(user:Name/Arity) -->
-	{ atom(Name),
-	  integer(Arity)
-	}, !,
-	[ '~q/~d'-[Name, Arity] ].
 predicate(Module:Name/Arity) -->
 	{ atom(Module),
 	  atom(Name),
-	  integer(Arity)
+	  integer(Arity),
+	  functor(Head, Name, Arity),
+	  predicate_name(Module:Head, PName)
 	}, !,
-	[ '~q:~q/~d'-[Module, Name, Arity] ].
+	[ '~w'-[PName] ].
 predicate(Module:Head) -->
 	{ atom(Module),
 	  callable(Head),
-	  functor(Head, Name, Arity)
+	  predicate_name(Module:Head, PName)
 	}, !,
-	predicate(Module:Name/Arity).
+	[ '~w'-[PName] ].
 predicate(Name/Arity) -->
 	{ atom(Name),
 	  integer(Arity)
 	}, !,
-	[ '~q/~d'-[Name, Arity] ].
+	predicate(user:Name/Arity).
 
 autoload([]) -->
 	[].
