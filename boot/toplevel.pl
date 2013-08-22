@@ -323,7 +323,8 @@ associated_files(Files) :-
 	'$set_prolog_file_extension',
 	argv_files(Files),
 	(   Files = [File|_]
-	->  set_prolog_flag(associated_file, File),
+	->  absolute_file_name(File, AbsFile),
+	    set_prolog_flag(associated_file, AbsFile),
 	    set_working_directory(File),
 	    set_window_title(Files)
 	;   true

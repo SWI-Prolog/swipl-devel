@@ -31,6 +31,9 @@
 :- module(win_menu,
 	  [ init_win_menus/0
 	  ]).
+:- use_module(library(lists)).
+:- use_module(library(apply)).
+:- use_module(library(error)).
 :- set_prolog_flag(generate_debug_info, false).
 :- op(200, fy, @).
 :- op(990, xfx, :=).
@@ -73,16 +76,17 @@ menu(File,
 					       'Edit existing file'))),
        '&New ...'     = action(edit_new(+file(save,
 					      'Create new Prolog source'))),
-       --,
-       Mru = true,
-       --,
-       '&Reload modified files' = user:make,
-       --,
-       '&Navigator ...' = prolog_ide(open_navigator),
        --
-     ],
-     [ before_item('E&xit')
-     ]) :- mru_info(File, Mru, _, _, _).
+     | MRU
+     ], []) :-
+	File = '&File',
+	findall(Mru=true, mru_info(File, Mru, _, _, _), MRU, MRUTail),
+	MRUTail = [ --,
+		    '&Reload modified files' = user:make,
+		    --,
+		    '&Navigator ...' = prolog_ide(open_navigator),
+		    --
+		  ].
 
 :- else.
 
@@ -166,6 +170,8 @@ init_win_menus :-
 	    ;	true
 	    ),
 	    fail
+	;   current_prolog_flag(associated_file, File),
+	    add_to_mru(load, File)
 	;   insert_associated_file
         ),
         refresh_mru.
@@ -236,6 +242,15 @@ about :-
 
 :- endif.
 
+load(Path) :-
+	(   \+ current_prolog_flag(associated_file, _)
+	->  file_directory_name(Path, Dir),
+	    working_directory(_, Dir),
+	    set_prolog_flag(associated_file, Path)
+	;   true
+	),
+	user:load_files(Path).
+
 
 		 /*******************************
 		 *	 HANDLE CALLBACK	*
@@ -246,7 +261,7 @@ action(Action) :-
 	Plain =.. [Name|Args],
 	gather_args(Args, Values),
 	Goal =.. [Name|Values],
-	Module:Goal.
+	call(Module:Goal).
 
 gather_args([], []).
 gather_args([+H0|T0], [H|T]) :- !,
@@ -260,12 +275,12 @@ gather_args([H|T0], [H|T]) :-
 gather_arg(file(open, Title), File) :- !,
 	source_types_desc(Desc),
         pqConsole:getOpenFileName(Title, _, Desc, File),
-        add_to_mru(File).
+        add_to_mru(edit, File).
 
 gather_arg(file(save, Title), File) :-
 	source_types_desc(Desc),
         pqConsole:getSaveFileName(Title, _, Desc, File),
-        add_to_mru(File).
+        add_to_mru(edit, File).
 
 source_types_desc(Desc) :-
 	findall(Pattern, prolog_file_pattern(Pattern), Patterns),
@@ -381,6 +396,7 @@ prolog:file_open_event(Path) :-
 file_open_event(edit, Path) :-
 	edit(Path).
 file_open_event(load, Path) :-
+	add_to_mru(load, Path),
 	user:load_files(Path).
 :- if(current_prolog_flag(apple, true)).
 file_open_event(new_instance, Path) :-
@@ -423,34 +439,41 @@ go_home_on_plain_app_start.
 
 :- if(current_predicate(win_current_preference/3)).
 
-mru_info('&File', 'Recent &Files', 'MRU2', path, edit).
+mru_info('&File', 'Edit &Recent', 'MRU2',    path, edit).
+mru_info('&File', 'Load &Recent', 'MRULoad', path, load).
 
-add_to_mru(File) :-
-    mru_info(_Top, _Menu, PrefGroup, PrefKey, _Action),
-    (   win_current_preference(PrefGroup, PrefKey, CPs), nonvar(CPs)
-    ->  (   select(File, CPs, Rest)
-        ->  Updated = [File|Rest]
-        ;   Updated = [File|CPs]
-        )
-    ;   Updated = [File]
-    ),
-    win_set_preference(PrefGroup, PrefKey, Updated),
-    refresh_mru.
+add_to_mru(Action, File) :-
+	mru_info(_Top, _Menu, PrefGroup, PrefKey, Action),
+	(   win_current_preference(PrefGroup, PrefKey, CPs), nonvar(CPs)
+	->  (   select(File, CPs, Rest)
+	    ->  Updated = [File|Rest]
+	    ;   length(CPs, Len),
+		Len > 10
+	    ->	append(CPs1, [_], CPs),
+		Updated = [File|CPs1]
+	    ;	Updated = [File|CPs]
+	    )
+	;   Updated = [File]
+	),
+	win_set_preference(PrefGroup, PrefKey, Updated),
+	refresh_mru.
 
 refresh_mru :-
-    mru_info(FileMenu, Menu, PrefGroup, PrefKey, Action),
-    win_current_preference(PrefGroup, PrefKey, CPs), !,
-    maplist(action_path_menu(Action), CPs, Labels, Actions),
-    win_insert_menu_item(FileMenu, Menu/Labels, -, Actions).
-refresh_mru.
+	(   mru_info(FileMenu, Menu, PrefGroup, PrefKey, Action),
+	    win_current_preference(PrefGroup, PrefKey, CPs),
+	    maplist(action_path_menu(Action), CPs, Labels, Actions),
+	    win_insert_menu_item(FileMenu, Menu/Labels, -, Actions),
+	    fail
+	;   true
+	).
 
-action_path_menu(ActionItem, Path, Label, Action) :-
-    file_base_name(Path, Label),
-    Action =.. [ActionItem, Path].
+action_path_menu(ActionItem, Path, Label, win_menu:Action) :-
+	file_base_name(Path, Label),
+	Action =.. [ActionItem, Path].
 
 :- else.
 
-add_to_mru(_).
+add_to_mru(_, _).
 refresh_mru.
 
 :- endif.
