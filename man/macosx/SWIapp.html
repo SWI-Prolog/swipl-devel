@@ -21,9 +21,11 @@ IDE</a>. </p>
 <p>
 The SWI-Prolog development tools, such as the source-level debugger, are
 based on xpce, SWI-Prolog's native graphics toolkit. This toolkit
-<b>requires X11</b>.  X11 is a default component of Mac OS X v10.5 to v10.7.
-As of v10.8 (<b>Mountain Lion</b>), X11 must be installed seperately and can
-be downloaded from <a href="http://xquartz.macosforge.org/">http://xquartz.macosforge.org</a>
+<b>requires X11</b>, and in particular <a
+href="http://xquartz.macosforge.org/">Xquartz</a>, <b>even</b> on Mac OS
+X v10.5 to v10.7 where X11 is preinstalled or can be installed as an
+option.  SWI-Prolog's XPCE toolkit is linked against the X11 libraries
+in <code>/opt/X11</code>, Xquartz version 2.7.4.
 </p>
 
 <p>
@@ -43,8 +45,13 @@ the app in a different location).
 </p>
 
 <p>
+The Qt based console for this app is developed by Carlo Capelli.
+</p>
+
+<p>
 SWI-Prolog is brought to you by
 many <a href="http://www.swi-prolog.org/Contributors.html">contributors</a>.
+</p>
 
 </body>
 </html>
