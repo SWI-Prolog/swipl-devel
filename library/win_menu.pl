@@ -46,7 +46,7 @@ system initialisation file =plwin-win.rc=, predicate gui_setup_/0.
 % does not.  Here, we predefine the same menus to make the remainder
 % compatiple.
 menu('&File',
-     [ '&Exit' = pqConsole:quit_console
+     [ 'E&xit' = pqConsole:quit_console
      ],
      [
      ]).
@@ -65,7 +65,26 @@ menu('&Run',
        '&New thread' = interactor
      ],
      []).
-:- endif.
+
+menu(File,
+     [ '&Consult ...' = action(user:consult(+file(open,
+						  'Load file into Prolog'))),
+       '&Edit ...'    = action(user:edit(+file(open,
+					       'Edit existing file'))),
+       '&New ...'     = action(edit_new(+file(save,
+					      'Create new Prolog source'))),
+       --,
+       Mru = true,
+       --,
+       '&Reload modified files' = user:make,
+       --,
+       '&Navigator ...' = prolog_ide(open_navigator),
+       --
+     ],
+     [ before_item('E&xit')
+     ]) :- mru_info(File, Mru, _, _, _).
+
+:- else.
 
 menu('&File',
      [ '&Consult ...' = action(user:consult(+file(open,
@@ -80,8 +99,10 @@ menu('&File',
        '&Navigator ...' = prolog_ide(open_navigator),
        --
      ],
-     [ before_item('&Exit')
+     [ before_item('E&xit')
      ]).
+:- endif.
+
 menu('&Settings',
      [ --,
        '&User init file ...'  = prolog_edit_preferences(prolog),
@@ -135,7 +156,7 @@ init_win_menus :-
 	    ),
 	    win_insert_menu(Menu, BM),
 	    (   '$member'(Item, Items),
-		(   Item = (Label = Action)
+                (   Item = (Label = Action)
 		->  true
 		;   Item == --
 		->  Label = --
@@ -146,7 +167,8 @@ init_win_menus :-
 	    ),
 	    fail
 	;   insert_associated_file
-	).
+        ),
+        refresh_mru.
 
 associated_file(File) :-
 	current_prolog_flag(associated_file, File), !.
@@ -237,10 +259,13 @@ gather_args([H|T0], [H|T]) :-
 
 gather_arg(file(open, Title), File) :- !,
 	source_types_desc(Desc),
-	pqConsole:getOpenFileName(Title, _, Desc, File).
+        pqConsole:getOpenFileName(Title, _, Desc, File),
+        add_to_mru(File).
+
 gather_arg(file(save, Title), File) :-
 	source_types_desc(Desc),
-	pqConsole:getSaveFileName(Title, _, Desc, File).
+        pqConsole:getSaveFileName(Title, _, Desc, File),
+        add_to_mru(File).
 
 source_types_desc(Desc) :-
 	findall(Pattern, prolog_file_pattern(Pattern), Patterns),
@@ -368,6 +393,41 @@ go_home_on_plain_app_start.
 
 :- endif.
 :- endif.
+
+:- if(current_predicate(win_current_preference/3)).
+
+mru_info('&File', 'Recent &Files', 'MRU2', path, edit).
+
+add_to_mru(File) :-
+    mru_info(_Top, _Menu, PrefGroup, PrefKey, _Action),
+    (   win_current_preference(PrefGroup, PrefKey, CPs), nonvar(CPs)
+    ->  (   select(File, CPs, Rest)
+        ->  Updated = [File|Rest]
+        ;   Updated = [File|CPs]
+        )
+    ;   Updated = [File]
+    ),
+    win_set_preference(PrefGroup, PrefKey, Updated),
+    refresh_mru.
+
+refresh_mru :-
+    mru_info(FileMenu, Menu, PrefGroup, PrefKey, Action),
+    win_current_preference(PrefGroup, PrefKey, CPs), !,
+    maplist(action_path_menu(Action), CPs, Labels, Actions),
+    win_insert_menu_item(FileMenu, Menu/Labels, -, Actions).
+refresh_mru.
+
+action_path_menu(ActionItem, Path, Label, Action) :-
+    file_base_name(Path, Label),
+    Action =.. [ActionItem, Path].
+
+:- else.
+
+add_to_mru(_).
+refresh_mru.
+
+:- endif.
+
 
 		 /*******************************
 		 *	      MESSAGES		*
