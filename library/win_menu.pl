@@ -343,29 +343,56 @@ ensure_dir(Dir) :-
 :- multifile
 	prolog:file_open_event/1.
 
+:- create_prolog_flag(app_open_first, load, []).
+:- create_prolog_flag(app_open,       edit, []).
+
 %%	prolog:file_open_event(+Name)
 %
-%	Called when opening a file from the MacOS finder. If this is the
-%	first file, we will switch the the   directory of the file, load
-%	it and register it as our primary   file. If this is the second,
-%	we open a new instance of Prolog using
+%	Called when opening a file  from   the  MacOS finder. The action
+%	depends on whether this is the first file or not, and defined by
+%	one of these flags:
 %
-%	    open -n -a <app> <file>
+%	  - =app_open_first= defines the action for the first open event
+%	  - =app_open= defines the action for subsequent open event
+%
+%	On the _first_ open event, the  working directory of the process
+%	is changed to the directory holding the   file. Action is one of
+%	the following:
+%
+%	  * load
+%	  Load the file into Prolog
+%	  * edit
+%	  Open the file in the editor
+%	  * new_instance
+%	  Open the file in a new instance of Prolog and load it there.
 
-:- if(current_prolog_flag(apple, true)).
 prolog:file_open_event(Path) :-
-	associated_file(_), !,
+	(   current_prolog_flag(associated_file, _)
+	->  current_prolog_flag(app_open, Action)
+	;   current_prolog_flag(app_open_first, Action),
+	    file_directory_name(Path, Dir),
+	    working_directory(_, Dir),
+	    set_prolog_flag(associated_file, Path),
+	    insert_associated_file
+	),
+	must_be(oneof([edit,load,new_instance]), Action),
+	file_open_event(Action, Path).
+
+file_open_event(edit, Path) :-
+	edit(Path).
+file_open_event(load, Path) :-
+	user:load_files(Path).
+:- if(current_prolog_flag(apple, true)).
+file_open_event(new_instance, Path) :-
 	current_app(Me),
 	print_message(informational, new_instance(Path)),
 	process_create(path(open), [ '-n', '-a', Me, Path ], []).
+:- else.
+file_open_event(new_instance, Path) :-
+	current_prolog_flag(executable, Exe),
+	process_create(Exe, [Path], [process(_Pid)]).
 :- endif.
-prolog:file_open_event(Path) :-
-	file_directory_name(Path, Dir),
-	file_base_name(Path, File),
-	working_directory(_, Dir),
-	user:load_files(File),
-	set_prolog_flag(associated_file, Path),
-	insert_associated_file.
+
 
 :- if(current_prolog_flag(apple, true)).
 current_app(App) :-
