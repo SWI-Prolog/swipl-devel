@@ -3042,7 +3042,6 @@ make_propagator(C, propagator(C, _)).
 propagator_state(propagator(_,S), S).
 
 trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
-        trigger_props_(Os),
         (   ground(X) ->
             trigger_props_(Gs),
             trigger_props_(Bs)
@@ -3058,8 +3057,8 @@ trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
             ;   trigger_props_(Bs)
             )
         ;   true
-        ).
-
+        ),
+        trigger_props_(Os).
 
 trigger_props(fd_props(Gs,Bs,Os), X) :-
         trigger_props_(Os),
