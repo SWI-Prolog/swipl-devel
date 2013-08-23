@@ -2783,7 +2783,7 @@ saved state.
 :- public '$compile_wic'/0.
 
 '$compile_wic' :-
-	current_prolog_flag(argv, Argv),
+	current_prolog_flag(os_argv, Argv),
 	'$get_files_argv'(Argv, Files),
 	'$translate_options'(Argv, Options),
 	'$option'(compileout, Out),
