@@ -1199,7 +1199,6 @@ initPrologFlags(void)
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
-  setPrologFlag("backquoted_string", FT_BOOL, FALSE, 0);
 #ifdef O_QUASIQUOTATIONS
   setPrologFlag("quasi_quotations", FT_BOOL, TRUE, PLFLAG_QUASI_QUOTES);
 #endif
