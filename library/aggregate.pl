@@ -445,9 +445,9 @@ state1(_,   X, X, _).
 %
 %	==
 %	?- foreach(between(1,4,X), dif(X,Y)), Y = 5.
-%	Y = 5
+%	Y = 5.
 %	?- foreach(between(1,4,X), dif(X,Y)), Y = 3.
-%	No
+%	false.
 %	==
 %
 %	@bug	Goal is copied repeatedly, which may cause problems if
