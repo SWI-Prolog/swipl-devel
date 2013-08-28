@@ -187,6 +187,12 @@ PL_register_blob_type(PL_blob_t *type)
       type->atom_name = PL_new_atom(type->name);
     }
 
+    if ( true(type, PL_BLOB_TEXT) )
+    { if ( true(type, PL_BLOB_WCHAR) )
+	type->padding = sizeof(pl_wchar_t);
+      else
+	type->padding = sizeof(char);
+    }
   }
 
   PL_UNLOCK(L_MISC);
@@ -345,16 +351,6 @@ registerAtom(Atom a)
 }
 
 
-static size_t
-paddingBlob(PL_blob_t *type)
-{ if ( true(type, PL_BLOB_TEXT) )
-  { return true(type, PL_BLOB_WCHAR) ? sizeof(pl_wchar_t) : sizeof(char);
-  } else
-  { return 0;
-  }
-}
-
-
 		 /*******************************
 		 *	  GENERAL LOOKUP	*
 		 *******************************/
@@ -439,8 +435,8 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   a->length = length;
   a->type = type;
   if ( false(type, PL_BLOB_NOCOPY) )
-  { if ( true(type, PL_BLOB_TEXT) )
-    { size_t pad = paddingBlob(type);
+  { if ( type->padding )
+    { size_t pad = type->padding;
 
       a->name = PL_malloc_atomic(length+pad);
       memcpy(a->name, s, length);
@@ -704,7 +700,7 @@ destroyAtom(Atom *ap, uintptr_t mask)
 
   *ap = NULL;			/* delete from index array */
   if ( false(a->type, PL_BLOB_NOCOPY) )
-  { size_t slen = a->length+paddingBlob(a->type);
+  { size_t slen = a->length + a->type->padding;
     GD->statistics.atom_string_space -= slen;
     GD->statistics.atom_string_space_freed += slen;
     PL_free(a->name);

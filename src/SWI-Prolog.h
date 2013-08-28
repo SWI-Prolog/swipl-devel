@@ -603,8 +603,9 @@ typedef struct PL_blob_t
   int			(*save)(atom_t a, void*);
   atom_t		(*load)(void *s);
 #endif
+  size_t		padding;	/* Required 0-padding */
 					/* private */
-  void *		reserved[10];	/* for future extension */
+  void *		reserved[9];	/* for future extension */
   int			registered;	/* Already registered? */
   int			rank;		/* Rank for ordering atoms */
   struct PL_blob_t *    next;		/* next in registered type-chain */

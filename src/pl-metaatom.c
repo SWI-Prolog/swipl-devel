@@ -40,7 +40,8 @@ static PL_blob_t meta_atom =
   writeMetaAtom,			/* write */
   NULL,					/* acquire */
   NULL,					/* save load to/from .qlf files */
-  NULL
+  NULL,
+  sizeof(char)				/* padding */
 };
 
 
@@ -69,11 +70,17 @@ isMetaAtom(word w)
 }
 
 
-atom_t
-PL_new_meta_atom(const char *s)
+static atom_t
+new_meta_atom(size_t len, const char *s)
 { int new;
 
-  return lookupBlob(s, strlen(s), &meta_atom, &new);
+  return lookupBlob(s, len, &meta_atom, &new);
+}
+
+
+atom_t
+PL_new_meta_atom(const char *s)
+{ return new_meta_atom(strlen(s), s);
 }
 
 
@@ -89,7 +96,7 @@ textToMetaAtom(PL_chars_t *text)
     return 0;
 
   if ( text->encoding == ENC_ISO_LATIN_1 )
-  { return PL_new_meta_atom(text->text.t);
+  { return new_meta_atom(text->length, text->text.t);
   } else
   { return 0;
   }
