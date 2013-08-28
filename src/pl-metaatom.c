@@ -45,7 +45,8 @@ static PL_blob_t meta_atom =
 
 
 static const atom_t meta_atoms[] =
-{ ATOM_nil,
+{ ATOM_nil,				/* [] */
+  ATOM_dot,				/* .(_|_) */
   (atom_t)0
 };
 
