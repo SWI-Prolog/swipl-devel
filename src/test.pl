@@ -1084,6 +1084,17 @@ sets(setof-2) :-
 		   [a, list]-[1, 2],
 		   compound(A, A)-[1, 2],
 		   compound(_A1, _B1)-[1, 2]]
+	->  true
+	;   R =@= [3.14-[1, 2],
+		   42-[1, 2],
+		   atom-[1, 2],
+		   S-[1, 2],
+		   compound(1)-[1, 2],
+		   compound(A, A)-[1, 2],
+		   compound(_A1, _B1)-[1, 2]],
+		   [a, list]-[1, 2]		% using `.`
+	->  true
+	;   format(user_error, 'ERROR: Got ~q~n', [R])
 	).
 sets(vars-1) :-
 	'$free_variable_set'(X^(m:Y^hello(X,Y)), G, V),
@@ -1198,14 +1209,18 @@ atom_handling(complete-1) :-
 		 *	      STRINGS		*
 		 *******************************/
 
-:- set_prolog_flag(backquoted_string, true).
+:- dynamic obq/1.
+:- current_prolog_flag(back_quotes, Old),
+   assertz(obq(Old)).
+:- set_prolog_flag(back_quotes, string).
 
 string_handling(sub-1) :-
 	\+ sub_string(`HTTP/1.1 404 Not Found`, _, _, _, `OK`).
 string_handling(cmp-1) :-
 	`hello` == `hello`.
 
-:- set_prolog_flag(backquoted_string, false).
+:- retract(obq(Old)),
+   set_prolog_flag(back_quotes, Old).
 
 string_handling(atom-1) :-
 	atom_string(X, an_atom),
