@@ -204,7 +204,6 @@ forwards void		sweep_trail(void);
 forwards bool		is_downward_ref(Word ARG_LD);
 forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
-static Code		startOfVMI(QueryFrame qf);
 static void		get_vmi_state(QueryFrame qf, vm_state *state);
 static size_t		tight(Stack s ARG_LD);
 
@@ -3059,6 +3058,7 @@ setStartOfVMI(vm_state *state)
 }
 
 
+#if O_DEBUG || defined(O_MAINTENANCE)
 static Code
 startOfVMI(QueryFrame qf)
 { vm_state state;
@@ -3073,6 +3073,7 @@ startOfVMI(QueryFrame qf)
 
   return state.pc_start_vmi;
 }
+#endif
 
 
 static void
@@ -4865,113 +4866,6 @@ markAtomsOnLocalStack(PL_local_data_t *ld)
   { if ( isAtom(*current) )
       markAtom(*current);
   }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is much like  check_environments(),  but   as  we  might  be called
-asynchronously, we have to be a bit careful about the first frame (if PC
-== NULL). The interpreter will  set  the   clause  field  to NULL before
-opening the frame, and we only have   to  consider the arguments. If the
-frame has a clause we must consider all variables of this clause.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static QueryFrame
-mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
-{ Code PC = NULL;
-
-  if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { int slots, n;
-    Word sp;
-
-    if ( true(fr, FR_MARKED) )
-      return NULL;			/* from choicepoints only */
-    set(fr, FR_MARKED);
-#ifdef O_DEBUG_ATOMGC
-    if ( atomLogFd )
-      Sfprintf(atomLogFd,
-	       "Marking atoms from [%d] %s\n",
-	       levelFrame(fr),
-	       predicateName(fr->predicate));
-#endif
-    ld->gc._local_frames++;
-    clearUninitialisedVarsFrame(fr, PC);
-
-    if ( fr->predicate == PROCEDURE_dcall1->definition &&
-	 fr->clause )
-      forAtomsInClause(fr->clause->value.clause, markAtom);
-
-    if ( true(fr->predicate, P_FOREIGN) ||
-	 !fr->clause )
-      slots = fr->predicate->functor->arity;
-    else
-      slots = fr->clause->value.clause->prolog_vars;
-
-    sp = argFrameP(fr, 0);
-    for( n=0; n < slots; n++, sp++ )
-    { if ( isAtom(*sp) )
-	markAtom(*sp);
-    }
-
-    PC = fr->programPointer;
-    if ( fr->parent )
-      fr = fr->parent;
-    else
-     return queryOfFrame(fr);
-  }
-}
-
-
-static void
-markAtomsInTermReferences(PL_local_data_t *ld)
-{ FliFrame   ff = ld->foreign_environment;
-
-  for(; ff; ff = ff->parent )
-  { Word sp = refFliP(ff, 0);
-    int n = ff->size;
-
-    for(n=0 ; n < ff->size; n++ )
-    { if ( isAtom(sp[n]) )
-	markAtom(sp[n]);
-    }
-  }
-}
-
-
-static void
-markAtomsInEnvironments(PL_local_data_t *ld)
-{ QueryFrame qf;
-  LocalFrame fr;
-  Choice ch;
-
-  ld->gc._local_frames = 0;
-
-  for( fr = ld->environment,
-       ch = ld->choicepoints
-     ; fr
-     ; fr = qf->saved_environment,
-       ch = qf->saved_bfr
-     )
-  { qf = mark_atoms_in_environments(ld, fr);
-    assert(qf->magic == QID_MAGIC);
-
-    for(; ch; ch = ch->parent)
-    {
-#ifdef O_DEBUG_ATOMGC
-      if ( atomLogFd )
-	Sfprintf(atomLogFd, "Marking atoms from choicepoint #%ld on %s\n",
-		 loffset(ch), predicateName(ch->frame->predicate));
-#endif
-      mark_atoms_in_environments(ld, ch->frame);
-    }
-  }
-
-  unmark_stacks(ld, ld->environment, ld->choicepoints, FR_MARKED);
-
-  assert(ld->gc._local_frames == 0);
 }
 
 
