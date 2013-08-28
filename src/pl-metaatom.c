@@ -81,4 +81,18 @@ compareMetaAtom(atom_t h1, atom_t h2)
 { return strcmp(stringAtom(h1), stringAtom(h2));
 }
 
+
+atom_t
+textToMetaAtom(PL_chars_t *text)
+{ if ( !PL_canonise_text(text) )
+    return 0;
+
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+  { return PL_new_meta_atom(text->text.t);
+  } else
+  { return 0;
+  }
+}
+
+
 #endif /* O_META_ATOMS */

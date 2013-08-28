@@ -867,9 +867,12 @@ with one operation, it turns out to be faster as well.
 #define DBLQ_ATOM		(0x0008) /* "ab" --> 'ab' */
 #define DBLQ_STRING		(0x0010) /* "ab" --> "ab" */
 #define DBLQ_MASK		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
-#define UNKNOWN_FAIL		(0x0020) /* module */
-#define UNKNOWN_WARNING		(0x0040) /* module */
-#define UNKNOWN_ERROR		(0x0080) /* module */
+#define BQ_STRING		(0x0020) /* `ab` --> "ab" */
+#define BQ_META_ATOM		(0x0040) /* `ab` --> `ab` */
+#define BQ_MASK			(BQ_STRING|BQ_META_ATOM)
+#define UNKNOWN_FAIL		(0x0080) /* module */
+#define UNKNOWN_WARNING		(0x0100) /* module */
+#define UNKNOWN_ERROR		(0x0200) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
 
 /* Flags on functors */
@@ -2066,7 +2069,7 @@ typedef struct debuginfo
 #define PLFLAG_AUTOLOAD		    0x004000 /* do autoloading */
 #define PLFLAG_CHARCONVERSION	    0x008000 /* do character-conversion */
 #define PLFLAG_LASTCALL		    0x010000 /* Last call optimization enabled? */
-#define PLFLAG_BACKQUOTED_STRING    0x020000 /* `a string` */
+//				    0x020000 /* not used */
 #define PLFLAG_SIGNALS		    0x040000 /* Handle signals */
 #define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
 #define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */

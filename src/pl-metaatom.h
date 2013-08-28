@@ -27,6 +27,7 @@
 
 COMMON(void)	initMetaAtoms(void);
 COMMON(int)	isMetaAtom(word w);
+COMMON(atom_t)	textToMetaAtom(PL_chars_t *text);
 
 #else /*O_META_ATOMS*/
 

@@ -357,7 +357,6 @@ typedef struct
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags (M_*) */
   int		styleCheck;		/* style-checking mask */
-  bool		backquoted_string;	/* Read `hello` as string */
   int	       *char_conversion_table;	/* active conversion table */
 
   atom_t	on_error;		/* Handling of syntax errors */
@@ -420,7 +419,6 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
   _PL_rd->styleCheck = debugstatus.styleCheck;
   _PL_rd->on_error = ATOM_error;
-  _PL_rd->backquoted_string = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
   if ( truePrologFlag(PLFLAG_CHARCONVERSION) )
     _PL_rd->char_conversion_table = char_conversion_table;
   else
@@ -1170,7 +1168,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  addToBuffer('/', _PL_rd);
 		  if ( isSymbolW(c) )
 		  { while( c != EOF && isSymbolW(c) &&
-			   !(c == '`' && _PL_rd->backquoted_string) )
+			   !(c == '`' && true(_PL_rd, BQ_MASK)) )
 		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
 		    }
@@ -1309,14 +1307,14 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		c = getchr();
 		if ( isSymbolW(c) )
 		{ while( c != EOF && isSymbolW(c) &&
-			 !(c == '`' && _PL_rd->backquoted_string) )
+			 !(c == '`' && true(_PL_rd, BQ_MASK)) )
 		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
 		  }
 		  dotseen = FALSE;
 		}
 		goto handle_c;
-      case '`': if ( _PL_rd->backquoted_string )
+      case '`': if ( true(_PL_rd, BQ_MASK) )
 		{ set_start_line;
 		  if ( !raw_read_quoted(c, _PL_rd) )
 		    fail;
@@ -1348,7 +1346,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      do
 		      { addToBuffer(c, _PL_rd);
 			c = getchr();
-			if ( c == '`' && _PL_rd->backquoted_string )
+			if ( c == '`' && true(_PL_rd, BQ_MASK) )
 			  break;
 		      } while( c != EOF && c <= 0xff && isSymbol(c) );
 					/* TBD: wide symbols? */
@@ -1852,7 +1850,7 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
 
     if ( !PlSymbolW(chr) )
       return in;
-    if ( chr == '`' && _PL_rd->backquoted_string )
+    if ( chr == '`' && true(_PL_rd, BQ_MASK) )
       return in;
   }
 
@@ -2609,7 +2607,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
     case_symbol:
-    case SY:	if ( c == '`' && _PL_rd->backquoted_string )
+    case SY:	if ( c == '`' && true(_PL_rd, BQ_MASK) )
 		  goto case_bq;
 
 	        rdhere = SkipSymbol(rdhere, _PL_rd);
@@ -2736,6 +2734,13 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case_bq:    { tmp_buffer b;
 		  term_t t = PL_new_term_ref();
 		  PL_chars_t txt;
+		  int type;
+
+#ifdef O_META_ATOMS
+		  type = true(_PL_rd, BQ_STRING) ? PL_STRING : PL_META_ATOM;
+#else
+		  type = PL_STRING;
+#endif
 
 		  initBuffer(&b);
 		  if ( !get_string(rdhere-1, rdend, &rdhere, (Buffer)&b, _PL_rd) )
@@ -2745,7 +2750,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  txt.storage   = PL_CHARS_HEAP;
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = FALSE;
-		  if ( !PL_unify_text(t, 0, &txt, PL_STRING) )
+		  if ( !PL_unify_text(t, 0, &txt, type) )
 		  { PL_free_text(&txt);
 		    return FALSE;
 		  }
@@ -4364,7 +4369,7 @@ static const opt_spec read_term_options[] =
   { ATOM_double_quotes,	    OPT_ATOM },
   { ATOM_module,	    OPT_ATOM },
   { ATOM_syntax_errors,     OPT_ATOM },
-  { ATOM_backquoted_string, OPT_BOOL },
+  { ATOM_back_quotes,       OPT_ATOM },
   { ATOM_comments,	    OPT_TERM },
 #ifdef O_QUASIQUOTATIONS
   { ATOM_quasi_quotations,  OPT_TERM },
@@ -4383,6 +4388,7 @@ read_term_from_stream(IOSTREAM *s, term_t term, term_t options ARG_LD)
   read_data rd;
   bool charescapes = -1;
   atom_t dq = NULL_ATOM;
+  atom_t bq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
   fid_t fid = PL_open_foreign_frame();
 
@@ -4399,7 +4405,7 @@ retry:
 		     &dq,
 		     &mname,
 		     &rd.on_error,
-		     &rd.backquoted_string,
+		     &bq,
 		     &tcomments,
 #ifdef O_QUASIQUOTATIONS
 		     &rd.quasi_quotations,
@@ -4420,6 +4426,10 @@ retry:
   }
   if ( dq )
   { if ( !setDoubleQuotes(dq, &rd.flags) )
+      return FALSE;
+  }
+  if ( bq )
+  { if ( !setBackQuotes(bq, &rd.flags) )
       return FALSE;
   }
   if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )

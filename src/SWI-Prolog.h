@@ -190,6 +190,7 @@ typedef union
 #define PL_FLOAT	 (4)		/* double */
 #define PL_STRING	 (5)		/* const char * */
 #define PL_TERM		 (6)
+#define PL_META_ATOM	 (7)
 
 					/* PL_unify_term() */
 #define PL_FUNCTOR	 (10)		/* functor_t, arg ... */
@@ -824,6 +825,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_LIST	       0x1000	/* Write [...], even with ignoreops */
 #define PL_WRT_NEWLINE	       0x2000	/* Add a newline */
 #define PL_WRT_VARNAMES	       0x4000	/* Internal: variable_names(List)  */
+#define PL_WRT_BQ_META_ATOM    0x8000	/* Write meta atoms as `...` */
 
 PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 			     term_t term,

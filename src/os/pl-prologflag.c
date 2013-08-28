@@ -264,6 +264,32 @@ setDoubleQuotes(atom_t a, unsigned int *flagp)
 }
 
 
+int
+setBackQuotes(atom_t a, unsigned int *flagp)
+{ GET_LD
+  unsigned int flags;
+
+  if ( a == ATOM_string )
+    flags = BQ_STRING;
+  else if ( a == ATOM_symbol_char )
+    flags = 0;
+  else if ( a == ATOM_meta_atom )
+    flags = BQ_META_ATOM;
+  else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_back_quotes, value);
+  }
+
+  *flagp &= ~BQ_MASK;
+  *flagp |= flags;
+
+  succeed;
+}
+
+
 static int
 setUnknown(term_t value, atom_t a, Module m)
 { unsigned int flags = m->flags & ~(UNKNOWN_MASK);
@@ -598,6 +624,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
       if ( k == ATOM_double_quotes )
       { rval = setDoubleQuotes(a, &m->flags);
+      } else if ( k == ATOM_back_quotes )
+      { rval = setBackQuotes(a, &m->flags);
       } else if ( k == ATOM_unknown )
       { rval = setUnknown(value, a, m);
       } else if ( k == ATOM_write_attributes )
@@ -806,6 +834,17 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
       v = ATOM_string;
     else
       v = ATOM_codes;
+
+    return PL_unify_atom(val, v);
+  } else if ( key == ATOM_back_quotes )
+  { atom_t v;
+
+    if ( true(m, BQ_STRING) )
+      v = ATOM_string;
+    else if ( true(m, BQ_META_ATOM) )
+      v = ATOM_meta_atom;
+    else
+      v = ATOM_symbol_char;
 
     return PL_unify_atom(val, v);
   } else if ( key == ATOM_unknown )
@@ -1160,7 +1199,7 @@ initPrologFlags(void)
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
-  setPrologFlag("backquoted_string", FT_BOOL, FALSE, PLFLAG_BACKQUOTED_STRING);
+  setPrologFlag("backquoted_string", FT_BOOL, FALSE, 0);
 #ifdef O_QUASIQUOTATIONS
   setPrologFlag("quasi_quotations", FT_BOOL, TRUE, PLFLAG_QUASI_QUOTES);
 #endif
@@ -1169,6 +1208,11 @@ initPrologFlags(void)
   setPrologFlag("occurs_check", FT_ATOM, "false");
   setPrologFlag("access_level", FT_ATOM, "user");
   setPrologFlag("double_quotes", FT_ATOM, "codes");
+#ifdef O_META_ATOMS
+  setPrologFlag("back_quotes", FT_ATOM, "meta_atom");
+#else
+  setPrologFlag("back_quotes", FT_ATOM, "symbol_char");
+#endif
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");

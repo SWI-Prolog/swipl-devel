@@ -386,6 +386,19 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
       }
       return FALSE;
     }
+#ifdef O_META_ATOMS
+    case PL_META_ATOM:
+    { atom_t a = textToMetaAtom(text);
+
+      if ( a )
+      { int rval = _PL_unify_atomic(term, a);
+
+	PL_unregister_atom(a);
+	return rval;
+      }
+      return FALSE;
+    }
+#endif
     case PL_STRING:
     { word w = textToString(text);
 

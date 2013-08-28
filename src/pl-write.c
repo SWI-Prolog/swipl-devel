@@ -180,10 +180,11 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
 */
 
 static int
-atomType(atom_t a, IOSTREAM *fd)
+atomType(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
   char *s = atom->name;
   size_t len = atom->length;
+  IOSTREAM *fd = options->out;
 
   if ( len == 0 )
     return AT_QUOTE;
@@ -204,12 +205,9 @@ atomType(atom_t a, IOSTREAM *fd)
       return AT_QUOTE;
 
     for(; left > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++, left--)
-    { if ( *s == '`' )
-      { GET_LD
-
-	if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
-	  return AT_QUOTE;
-      }
+    { if ( *s == '`' &&
+	   true(options, PL_WRT_BACKQUOTED_STRING|PL_WRT_BQ_META_ATOM) )
+	return AT_QUOTE;
     }
     if ( left > 0 )
       return AT_QUOTE;
@@ -574,7 +572,7 @@ writeAtom(atom_t a, write_options *options)
     return writeBlob(a, options);
 
   if ( true(options, PL_WRT_QUOTED) )
-  { switch( atomType(a, options->out) )
+  { switch( atomType(a, options) )
     { case AT_LOWER:
       case AT_SYMBOL:
       case AT_SOLO:
@@ -647,6 +645,9 @@ writeMetaAtom(IOSTREAM *fd, atom_t atom, int flags)
   const char *s = a->name;
   size_t len = a->length;
   const char *e = &s[len];
+
+  if ( atom == ATOM_nil )
+    return PutToken("[]", fd);
 
   if ( (flags&PL_WRT_QUOTED) )
   { char quote = '`';
@@ -1495,7 +1496,7 @@ static const opt_spec write_term_options[] =
   { ATOM_character_escapes, OPT_BOOL },
   { ATOM_max_depth,	    OPT_INT  },
   { ATOM_module,	    OPT_ATOM },
-  { ATOM_backquoted_string, OPT_BOOL },
+  { ATOM_back_quotes,	    OPT_ATOM },
   { ATOM_attributes,	    OPT_ATOM },
   { ATOM_priority,	    OPT_INT },
   { ATOM_partial,	    OPT_BOOL },
@@ -1514,7 +1515,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
   term_t gportray = 0;
-  bool bqstring   = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
+  atom_t bq       = 0;
   bool charescape = -1;			/* not set */
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
@@ -1534,7 +1535,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &numbervars, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
-		     &bqstring, &attr, &priority, &partial, &options.spacing,
+		     &bq, &attr, &priority, &partial, &options.spacing,
 		     &blobs, &cycles, &varnames) )
     fail;
 
@@ -1592,8 +1593,17 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( ignore_ops ) options.flags |= PL_WRT_IGNOREOPS;
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
-  if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
   if ( !cycles )    options.flags |= PL_WRT_NO_CYCLES;
+  if ( bq )
+  { unsigned int flags = 0;
+
+    if ( !setBackQuotes(bq, &flags) )
+      return FALSE;
+    if ( (flags&BQ_STRING) )
+      options.flags |= PL_WRT_BACKQUOTED_STRING;
+    else if ( (flags&BQ_META_ATOM) )
+      options.flags |= PL_WRT_BQ_META_ATOM;
+  }
 
   local_varnames = (varnames && false(&options, PL_WRT_NUMBERVARS));
 
@@ -1658,10 +1668,12 @@ do_write2(term_t stream, term_t term, int flags)
     options.flags     = flags;
     options.out	      = s;
     options.module    = MODULE_user;
-    if ( options.module && true(options.module, M_CHARESCAPE) )
+    if ( true(options.module, M_CHARESCAPE) )
       options.flags |= PL_WRT_CHARESCAPES;
-    if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
+    if ( true(options.module, BQ_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
+    else if ( true(options.module, BQ_META_ATOM) )
+      options.flags |= PL_WRT_BQ_META_ATOM;
 
     PutOpenToken(EOF, s);		/* reset this */
     rc = writeTopTerm(term, 1200, &options);

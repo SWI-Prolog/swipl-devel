@@ -72,6 +72,9 @@ _lookupModule(atom_t name)
 #endif
   clearFlags(m);
   set(m, M_CHARESCAPE);
+#ifdef O_META_ATOMS
+  set(m, BQ_META_ATOM);
+#endif
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);
