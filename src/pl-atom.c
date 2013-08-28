@@ -1120,6 +1120,9 @@ initAtoms(void)
 
     DEBUG(MSG_HASH_STAT, PL_on_halt(exitAtoms, NULL));
   }
+#ifdef O_META_ATOMS
+  initMetaAtoms();
+#endif
   UNLOCK();
 }
 

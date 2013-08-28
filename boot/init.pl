@@ -2209,7 +2209,7 @@ load_files(Module:Files, Options) :-
 '$start_module'(Module, _Public, State, _Options) :-
 	'$current_module'(Module, OldFile),
 	source_location(File, _Line),
-	OldFile \== File,
+	OldFile \== File, OldFile \== [],
 	same_file(OldFile, File), !,
 	nb_setarg(2, State, Module),
 	nb_setarg(4, State, true).	% Stop processing

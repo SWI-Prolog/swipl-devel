@@ -1540,7 +1540,7 @@ PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
   { *f = functorTerm(w);
     succeed;
   }
-  if ( isTextAtom(w) )
+  if ( isTextAtom(w) || isMetaAtom(w) )
   { *f = lookupFunctorDef(w, 0);
     succeed;
   }

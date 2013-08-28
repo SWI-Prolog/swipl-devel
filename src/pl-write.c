@@ -640,6 +640,38 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
   return TRUE;
 }
 
+#ifdef O_META_ATOMS
+int
+writeMetaAtom(IOSTREAM *fd, atom_t atom, int flags)
+{ Atom a = atomValue(atom);
+  const char *s = a->name;
+  size_t len = a->length;
+  const char *e = &s[len];
+
+  if ( (flags&PL_WRT_QUOTED) )
+  { char quote = '`';
+
+    TRY(PutOpenToken(quote, fd) &&
+	Putc(quote, fd));
+
+    while(s < e)
+    { TRY(putQuoted(*s++, quote, flags, fd));
+    }
+
+    return Putc(quote, fd);
+  }
+
+  if ( s < e && !PutOpenToken(s[0], fd) )
+    return FALSE;
+  for( ; s<e; s++)
+  { if ( !Putc(*s, fd) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+#endif
+
 
 #if O_STRING
 
