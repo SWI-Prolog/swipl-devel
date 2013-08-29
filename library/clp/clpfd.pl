@@ -2960,6 +2960,7 @@ put_terminating(X, Dom, Ps) :-
                         domain_spread(OldDom, OldSpread),
                         domain_spread(Dom, NewSpread),
                         (   NewSpread == OldSpread -> SpreadP = Spread
+                        ;   NewSpread cis_lt OldSpread -> SpreadP = no
                         ;   SpreadP = yes
                         ),
                         put_attr(X, clpfd, clpfd_attr(LeftP,RightP,SpreadP,Dom,Ps)),
