@@ -4554,11 +4554,9 @@ min_max_factor(L1, U1, L2, U2, L3, U3, Min, Max) :-
 min_factor(L1, U1, L2, U2, Min) :-
         (   L2 cis_gt n(0), finite(U2), L1 cis_geq n(0) ->
             Min cis div(L1+U2-n(1),U2)
-        ;   L1 cis_gt n(0), U2 cis_leq n(-1) -> Min cis div(U1,U2)
-        ;   L1 cis_gt n(0) ->
-            (   L2 cis_gt n(0) -> Min = n(1)
-            ;   Min cis -U1
-            )
+        ;   L1 cis_gt n(0), U2 cis_lt n(0) -> Min cis div(U1,U2)
+        ;   L1 cis_gt n(0), L2 cis_geq n(0) -> Min = n(1)
+        ;   L1 cis_gt n(0) -> Min cis -U1
         ;   U1 cis_lt n(0), U2 cis_leq n(0) ->
             (   finite(L2) -> Min cis div(U1+L2+n(1),L2)
             ;   Min = n(1)
