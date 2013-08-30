@@ -4574,7 +4574,7 @@ max_factor(L1, U1, L2, U2, Max) :-
             ;   Max = n(-1)
             )
         ;   L1 cis_gt n(0) -> Max = U1
-        ;   U1 cis_lt n(0), U2 cis_leq n(-1) -> Max cis div(L1,U2)
+        ;   U1 cis_lt n(0), U2 cis_lt n(0) -> Max cis div(L1,U2)
         ;   U1 cis_lt n(0), L2 cis_geq n(0) ->
             (   finite(U2) -> Max cis div(U1-U2+n(1),U2)
             ;   Max = n(-1)
