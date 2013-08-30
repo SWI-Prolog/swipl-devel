@@ -1686,7 +1686,7 @@ Finish up the clause.
 
     cref = (ClauseRef)p;
     p = addPointer(p, SIZEOF_CREF_CLAUSE);
-#if SIZEOF_VOIDP != 8 && defined(DOUBLE_ALIGNMENT)
+#if ALIGNOF_INT64_T != ALIGNOF_VOIDP
     if ( (uintptr_t)p % sizeof(gen_t) != 0 )
     { p = addPointer(p, sizeof(word));
       assert((uintptr_t)p % sizeof(gen_t) == 0);
