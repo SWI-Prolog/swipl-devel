@@ -816,10 +816,10 @@ PL_initialise(int argc, char **argv)
     }
     argc -= done;
     argv += done;
-
-    GD->cmdline.appl_argc = argc;
-    GD->cmdline.appl_argv = argv;
   }
+
+  GD->cmdline.appl_argc = argc;
+  GD->cmdline.appl_argv = argv;
 
   if ( !setupProlog() )
     return FALSE;
