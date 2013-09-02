@@ -1667,25 +1667,6 @@ PL_atom_generator_w(const pl_wchar_t *prefix,
   return NULL;
 }
 
-		 /*******************************
-		 *	   SPECIAL ATOMS	*
-		 *******************************/
-
-/* This code provides forward compatibility between 6.0 and 7.0
-   for shared objects that acts as plugin.
-*/
-
-static const atom_t special_atoms[] =
-{ ATOM_nil,				/* 0: [] */
-  ATOM_dot				/* 1: .(_|_) or '$cons'(_,_) */
-};
-
-
-const atom_t *
-_PL_atoms(void)
-{ return special_atoms;
-}
-
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
