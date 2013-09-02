@@ -125,10 +125,11 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
 
   if ( !LD->bags.bags )			/* outer one */
   { if ( !LD->bags.default_bag )
-    { LD->bags.default_bag = PL_malloc(sizeof(*bag));
+    {
 #ifdef O_ATOMGC
       simpleMutexInit(&LD->bags.mutex);
 #endif
+      LD->bags.default_bag = PL_malloc(sizeof(*bag));
     }
     bag = LD->bags.default_bag;
   } else
@@ -253,11 +254,13 @@ void
 markAtomsFindall(PL_local_data_t *ld)
 { findall_bag *bag;
 
-  simpleMutexLock(&ld->bags.mutex);
-  bag = ld->bags.bags;
-  for( ; bag; bag = bag->parent )
-    scanSegStack(&bag->answers, markAtomsAnswers);
-  simpleMutexUnlock(&ld->bags.mutex);
+  if ( ld->bags.default_bag )
+  { simpleMutexLock(&ld->bags.mutex);
+    bag = ld->bags.bags;
+    for( ; bag; bag = bag->parent )
+      scanSegStack(&bag->answers, markAtomsAnswers);
+    simpleMutexUnlock(&ld->bags.mutex);
+  }
 }
 
 
