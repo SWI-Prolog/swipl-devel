@@ -1091,8 +1091,17 @@ sets(setof-2) :-
 		   S-[1, 2],
 		   compound(1)-[1, 2],
 		   compound(A, A)-[1, 2],
-		   compound(_A1, _B1)-[1, 2]],
-		   [a, list]-[1, 2]		% using `.`
+		   compound(_A1, _B1)-[1, 2],
+		   [a, list]-[1, 2]]		% using `.`
+	->  true
+	;   R =@= [3.14-[1, 2],
+		   42-[1, 2],
+		   atom-[1, 2],
+		   S-[1, 2],
+		   compound(1)-[1, 2],
+		   compound(_A1, _B1)-[1, 2],
+		   compound(A, A)-[1, 2],
+		   [a, list]-[1, 2]]
 	->  true
 	;   format(user_error, 'ERROR: Got ~q~n', [R])
 	).
