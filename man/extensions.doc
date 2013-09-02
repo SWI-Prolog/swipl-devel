@@ -1,0 +1,17 @@
+\chapter{SWI-Prolog extensions}
+\label{sec:extensions}
+
+This chapter describes extensions to the Prolog language introduced with
+SWI-Prolog version~7.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% NOTES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Lists
+
+ - write_canonical/1: lists and brace terms
+   - write_term: options dot_lists and brace_terms for compatibility
+ - write_term/2: added nl and fullstop options (TBD)
+ - introduction of meta-atoms
+ - Foreign: added ATOM_nil and ATOM_dot
