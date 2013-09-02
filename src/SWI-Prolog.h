@@ -827,6 +827,8 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_NEWLINE	       0x2000	/* Add a newline */
 #define PL_WRT_VARNAMES	       0x4000	/* Internal: variable_names(List)  */
 #define PL_WRT_BQ_META_ATOM    0x8000	/* Write meta atoms as `...` */
+#define PL_WRT_DOTLISTS	       0x10000	/* Write lists as .(A,B) */
+#define PL_WRT_BRACETERMS      0x20000	/* Write {A} as {}(A) */
 
 PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 			     term_t term,

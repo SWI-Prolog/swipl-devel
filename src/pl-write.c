@@ -1203,22 +1203,38 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
       }
     }
 
+					/* handle {a,b,c} */
+    if ( false(options, PL_WRT_BRACETERMS) &&
+	 functor == ATOM_curl && arity == 1 )
+    { term_t arg;
+
+      if ( (arg=PL_new_term_ref()) &&
+	   PL_get_arg(1, t, arg) &&
+	   Putc('{', out) &&
+	   writeTerm(arg, 1200, options) &&
+	   Putc('}', out) )
+	return TRUE;
+
+      return FALSE;
+    }
+
+					/* handle lists */
+    if ( false(options, PL_WRT_DOTLISTS) &&
+	 functor == ATOM_dot && arity == 2 )
+    { term_t arg;
+
+      if ( (arg=PL_new_term_ref()) &&
+	   PL_get_arg(1, t, arg) )
+	return writeList(t, options);
+      return FALSE;
+    }
+
+					/* operators */
     if ( false(options, PL_WRT_IGNOREOPS) )
     { term_t arg;
 
       if ( !(arg=PL_new_term_ref()) )
 	return FALSE;
-
-      if ( arity == 1 && functor == ATOM_curl )	/* {a,b,c} */
-      { _PL_get_arg(1, t, arg);
-	TRY(Putc('{', out));
-	TRY(writeTerm(arg, 1200, options) &&
-	    Putc('}', out));
-
-	succeed;
-      }
-      if ( arity == 2 && functor == ATOM_dot ) /* list */
-	return writeList(t, options);
 
       if ( arity == 1 ||
 	  (arity == 2 && isBlockOp(t, arg, functor PASS_LD)) )
@@ -1490,6 +1506,8 @@ writeBlobMask(atom_t a)
 static const opt_spec write_term_options[] =
 { { ATOM_quoted,	    OPT_BOOL },
   { ATOM_ignore_ops,	    OPT_BOOL },
+  { ATOM_dot_lists,	    OPT_BOOL },
+  { ATOM_brace_terms,	    OPT_BOOL },
   { ATOM_numbervars,        OPT_BOOL },
   { ATOM_portray,           OPT_BOOL },
   { ATOM_portray_goal,      OPT_TERM },
@@ -1512,6 +1530,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 { GET_LD
   bool quoted     = FALSE;
   bool ignore_ops = FALSE;
+  bool dotlists   = FALSE;
+  bool braceterms = FALSE;
   bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
   term_t gportray = 0;
@@ -1533,7 +1553,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   options.spacing = ATOM_standard;
 
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
-		     &quoted, &ignore_ops, &numbervars, &portray, &gportray,
+		     &quoted, &ignore_ops, &dotlists, &braceterms,
+		     &numbervars, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
 		     &bq, &attr, &priority, &partial, &options.spacing,
 		     &blobs, &cycles, &varnames) )
@@ -1591,6 +1612,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   if ( quoted )     options.flags |= PL_WRT_QUOTED;
   if ( ignore_ops ) options.flags |= PL_WRT_IGNOREOPS;
+  if ( dotlists )   options.flags |= PL_WRT_DOTLISTS;
+  if ( braceterms ) options.flags |= PL_WRT_BRACETERMS;
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
   if ( !cycles )    options.flags |= PL_WRT_NO_CYCLES;
