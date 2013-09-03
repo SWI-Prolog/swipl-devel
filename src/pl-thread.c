@@ -2954,6 +2954,9 @@ static void
 destroy_thread_message_queue(message_queue *q)
 { int done = FALSE;
 
+  if (!q->initialized )
+    return;
+
   while(!done)
   { simpleMutexLock(&q->mutex);
     q->destroyed = TRUE;
