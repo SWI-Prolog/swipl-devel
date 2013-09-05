@@ -179,16 +179,16 @@ expand_terms(C, Term0, Pos0, Term, Pos) :-
 
 expand_term_list(_, [], _, [], []) :- !.
 expand_term_list(C, [H0|T0], [PH0], Terms, PosL) :- !,
-	call(C, H0, PH0, H, PH),
+	expand_terms(C, H0, PH0, H, PH),
 	add_term(H, PH, Terms, TT, PosL, PT),
 	expand_term_list(C, T0, [PH0], TT, PT).
 expand_term_list(C, [H0|T0], [PH0|PT0], Terms, PosL) :- !,
-	call(C, H0, PH0, H, PH),
+	expand_terms(C, H0, PH0, H, PH),
 	add_term(H, PH, Terms, TT, PosL, PT),
 	expand_term_list(C, T0, PT0, TT, PT).
 expand_term_list(C, [H0|T0], PH0, Terms, PosL) :-
 	expected_layout(list, PH0),
-	call(C, H0, PH0, H, PH),
+	expand_terms(C, H0, PH0, H, PH),
 	add_term(H, PH, Terms, TT, PosL, PT),
 	expand_term_list(C, T0, [PH0], TT, PT).
 
