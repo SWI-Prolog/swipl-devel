@@ -4201,7 +4201,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 (   even(Y) ->
                     (   XL cis_geq n(0) ->
                         NZL cis XL^n(Y)
-                    ;   XU cis_lt n(0) ->
+                    ;   XU cis_leq n(0) ->
                         NZL cis XU^n(Y)
                     ;   NZL = n(0)
                     ),
