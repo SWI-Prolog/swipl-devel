@@ -2271,7 +2271,7 @@ user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
-linsum(?(X), S, S) --> !, [vn(X,1)].
+linsum(?(X), S, S) --> !, { must_be_fd_integer(X) }, [vn(X,1)].
 linsum(I, S0, S)   --> { integer(I), !, S is S0 + I }.
 linsum(-A, S0, S)  --> mulsum(A, -1, S0, S).
 linsum(N*A, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
