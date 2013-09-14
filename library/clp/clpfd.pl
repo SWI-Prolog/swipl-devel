@@ -139,7 +139,6 @@
 :- op(700, xfx, cis_gt).
 :- op(700, xfx, cis_leq).
 :- op(700, xfx, cis_lt).
-:- op(5, yf, ?).
 
 /** <module> Constraint Logic Programming over Finite Domains
 
@@ -1904,7 +1903,7 @@ parse_clpfd(E, R,
             [g(cyclic_term(E)) => [g(domain_error(clpfd_expression, E))],
              g(var(E))         => [g(constrain_to_integer(E)), g(E = R)],
              g(integer(E))     => [g(R = E)],
-             E?                => [g(R = E)],
+             ?(E)              => [g(R = E)],
              m(A+B)            => [p(pplus(A, B, R))],
              % power_var_num/3 must occur before */2 to be useful
              g(power_var_num(E, V, N)) => [p(pexp(V, N, R))],
@@ -1942,7 +1941,7 @@ parse_matcher(E, R, Matcher, Clause) :-
         Clause = (parse_clpfd(Head, R) :- Goals).
 
 parse_condition(g(Goal), E, E)       --> [Goal, !].
-parse_condition(E?, _, E?)           --> [!, must_be_fd_integer(E)].
+parse_condition(?(E), _, ?(E))       --> [!, must_be_fd_integer(E)].
 parse_condition(m(Match), _, Match0) -->
         [!],
         { copy_term(Match, Match0),
@@ -2272,7 +2271,7 @@ user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
-linsum(X?, S, S)   --> !, [vn(X,1)].
+linsum(?(X), S, S) --> !, [vn(X,1)].
 linsum(I, S0, S)   --> { integer(I), !, S is S0 + I }.
 linsum(-A, S0, S)  --> mulsum(A, -1, S0, S).
 linsum(N*A, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
@@ -2630,7 +2629,7 @@ parse_reified(E, R, D,
               [g(cyclic_term(E)) => [g(domain_error(clpfd_expression, E))],
                g(var(E))     => [g(constrain_to_integer(E)), g(R = E), g(D=1)],
                g(integer(E)) => [g(R=E), g(D=1)],
-               E?            => [g(R=E), g(D=1)],
+               ?(E)          => [g(R=E), g(D=1)],
                m(A+B)        => [d(D), p(pplus(A,B,R)), a(A,B,R)],
                m(A*B)        => [d(D), p(ptimes(A,B,R)), a(A,B,R)],
                m(A-B)        => [d(D), p(pplus(R,B,A)), a(A,B,R)],
@@ -2670,7 +2669,7 @@ parse_reified(E, R, D, Matcher, Clause) :-
         Clause = (parse_reified_clpfd(Head, R, D) --> Goals).
 
 reified_condition(g(Goal), E, E, []) --> [{Goal}, !].
-reified_condition(E?, _, E?, [])     --> [!, { must_be_fd_integer(E) }].
+reified_condition(?(E), _, ?(E), []) --> [!, { must_be_fd_integer(E) }].
 reified_condition(m(Match), _, Match0, Ds) -->
         [!],
         { copy_term(Match, Match0),
@@ -2733,7 +2732,7 @@ reify_(E, _) -->
         { cyclic_term(E), !, domain_error(clpfd_reifiable_expression, E) }.
 reify_(E, B) --> { var(E), !, E = B }.
 reify_(E, B) --> { integer(E), !, E = B }.
-reify_(E?, B) --> !, { must_be_fd_integer(E), E = B }.
+reify_(?(E), B) --> !, { must_be_fd_integer(E), E = B }.
 reify_(V in Drep, B) --> !,
         { drep_to_domain(Drep, Dom), fd_variable(V) },
         propagator_init_trigger(reified_in(V,Dom,B)),
