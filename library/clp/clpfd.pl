@@ -2733,7 +2733,7 @@ reify_(E, _) -->
         { cyclic_term(E), !, domain_error(clpfd_reifiable_expression, E) }.
 reify_(E, B) --> { var(E), !, E = B }.
 reify_(E, B) --> { integer(E), !, E = B }.
-reify_(E?, B) --> { !, must_be_fd_integer(E), E = B }.
+reify_(E?, B) --> !, { must_be_fd_integer(E), E = B }.
 reify_(V in Drep, B) --> !,
         { drep_to_domain(Drep, Dom), fd_variable(V) },
         propagator_init_trigger(reified_in(V,Dom,B)),
