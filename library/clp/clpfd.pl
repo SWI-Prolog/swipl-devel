@@ -6202,8 +6202,8 @@ attributes_goals([propagator(P, State)|As]) -->
         ;   { phrase(attribute_goal_(P), Gs) } ->
             { del_attr(State, clpfd_aux), State = processed,
               (   current_prolog_flag(clpfd_monotonic, true) ->
-                  maplist(unwrap_integers, Gs, Gs1)
-              ;   maplist(unwrap_variables, Gs, Gs1)
+                  maplist(unwrap_with(bare_integer), Gs, Gs1)
+              ;   maplist(unwrap_with(=), Gs, Gs1)
               ),
               maplist(with_clpfd, Gs1, Gs2) },
             list(Gs2)
@@ -6213,22 +6213,14 @@ attributes_goals([propagator(P, State)|As]) -->
 
 with_clpfd(G, clpfd:G).
 
-unwrap_variables(V, V)        :- var(V), !.
-unwrap_variables(?(V), V)     :- !.
-unwrap_variables(Term0, Term) :-
+unwrap_with(_, V, V)           :- var(V), !.
+unwrap_with(Goal, ?(V0), V)    :- !, call(Goal, V0, V).
+unwrap_with(Goal, Term0, Term) :-
         Term0 =.. [F|Args0],
-        maplist(unwrap_variables, Args0, Args),
+        maplist(unwrap_with(Goal), Args0, Args),
         Term =.. [F|Args].
 
-unwrap_integers(V, V)        :- var(V), !.
-unwrap_integers(?(V0), V)    :- !,
-        (   integer(V0) -> V = V0
-        ;   V = ?(V0)
-        ).
-unwrap_integers(Term0, Term) :-
-        Term0 =.. [F|Args0],
-        maplist(unwrap_integers, Args0, Args),
-        Term =.. [F|Args].
+bare_integer(V0, V)    :- ( integer(V0) -> V = V0 ; V = ?(V0) ).
 
 attribute_goal_(presidual(Goal))       --> [Goal].
 attribute_goal_(pgeq(A,B))             --> [?(A) #>= ?(B)].
