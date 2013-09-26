@@ -5016,7 +5016,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 %%  serialized(+Starts, +Durations)
 %
-%   Constrain a set of intervals to a non-overlapping sequence.
+%   Describes a set of non-overlapping tasks.
 %   Starts = [S_1,...,S_n], is a list of variables or integers,
 %   Durations = [D_1,...,D_n] is a list of non-negative integers.
 %   Constrains Starts and Durations to denote a set of
@@ -5677,11 +5677,11 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 
 %% automaton(+Signature, +Nodes, +Arcs)
 %
-%  Constrain  variables  with  a   finite    automaton.   Equivalent  to
-%  automaton(_, _, Signature, Nodes, Arcs, [], [], _), a common use case
-%  of automaton/8. In the following  example,   a  list of binary finite
-%  domain variables is constrained to contain   at least two consecutive
-%  ones:
+%  Describes a list of finite domain variables with a finite
+%  automaton. Equivalent to automaton(_, _, Signature, Nodes, Arcs,
+%  [], [], _), a common use case of automaton/8. In the following
+%  example, a list of binary finite domain variables is constrained to
+%  contain at least two consecutive ones:
 %
 %  ==
 %  :- use_module(library(clpfd)).
@@ -5703,24 +5703,25 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
-%  Constrain variables with a  finite  automaton.   True  if  the finite
-%  automaton induced by Nodes and Arcs  (extended with Counters) accepts
-%  Signature. Sequence is a list  of  terms,   all  of  the  same shape.
-%  Additional constraints must link Sequence to Signature, if necessary.
-%  Nodes is a list of source(Node) and  sink(Node) terms. Arcs is a list
-%  of arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
-%  denote the automaton's transitions. Each node   is  represented by an
-%  arbitrary term. Transitions that are not  mentioned go to an implicit
-%  failure node. Exprs is a list of  arithmetic expressions, of the same
-%  length as Counters.  In  each   expression,  variables  occurring  in
-%  Counters correspond to old counter values, and variables occurring in
-%  Template correspond to the  current  element   of  Sequence.  When  a
-%  transition containing expressions is taken,   counters are updated as
-%  stated. By default, counters remain unchanged.  Counters is a list of
-%  variables that must not occur  anywhere   outside  of  the constraint
-%  goal. Initials is a list of  the   same  length  as Counters. Counter
-%  arithmetic on the transitions relates the  counter values in Initials
-%  to Finals.
+%  Describes a list of finite domain variables with a finite
+%  automaton. True if the finite automaton induced by Nodes and Arcs
+%  (extended with Counters) accepts Signature. Sequence is a list of
+%  terms, all of the same shape. Additional constraints must link
+%  Sequence to Signature, if necessary. Nodes is a list of
+%  source(Node) and sink(Node) terms. Arcs is a list of
+%  arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
+%  denote the automaton's transitions. Each node is represented by an
+%  arbitrary term. Transitions that are not mentioned go to an
+%  implicit failure node. Exprs is a list of arithmetic expressions,
+%  of the same length as Counters. In each expression, variables
+%  occurring in Counters correspond to old counter values, and
+%  variables occurring in Template correspond to the current element
+%  of Sequence. When a transition containing expressions is taken,
+%  counters are updated as stated. By default, counters remain
+%  unchanged. Counters is a list of variables that must not occur
+%  anywhere outside of the constraint goal. Initials is a list of the
+%  same length as Counters. Counter arithmetic on the transitions
+%  relates the counter values in Initials to Finals.
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
@@ -5989,10 +5990,10 @@ zcompare_(>, A, B) :- ?(A) #> ?(B).
 
 %% chain(+Zs, +Relation)
 %
-% Constrain variables to be a chain with respect to Relation. Zs is a
-% list of finite domain variables that are a chain with respect to the
-% partial order Relation, in the order they appear in the list.
-% Relation must be #=, #=<, #>=, #< or #>. For example:
+% Zs form a chain with respect to Relation. Zs is a list of finite
+% domain variables that are a chain with respect to the partial order
+% Relation, in the order they appear in the list. Relation must be #=,
+% #=<, #>=, #< or #>. For example:
 %
 % ==
 % ?- chain([X,Y,Z], #>=).
