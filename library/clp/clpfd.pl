@@ -2756,11 +2756,9 @@ reify_(tuples_in(Tuples, Relation), B) --> !,
           maplist(fd_variable, Vs),
           must_be(list(list(integer)), Relation),
           maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
-          (   Bs == [] -> B = 1
-          ;   Bs = [B1|Rest],
-              bs_and(Rest, ?(B1), And),
-              And #<==> ?(B)
-          ) },
+          fold_statement(var_conjunction, Bs, And),
+          ?(B) #<==> And },
+        propagator_init_trigger([B], tuples_not_in(Tuples, Relation, B)),
         kill_reified_tuples(Bs, Ps, Bs),
         list(Ps),
         as([B|Bs]).
@@ -2836,9 +2834,7 @@ a(B) -->
 as([])     --> [].
 as([B|Bs]) --> a(B), as(Bs).
 
-bs_and([], A, A).
-bs_and([B|Bs], A0, A) :-
-        bs_and(Bs, A0#/\ ?(B), A).
+var_conjunction(B, A0, A0 #/\ ?(B)).
 
 kill_reified_tuples([], _, _) --> [].
 kill_reified_tuples([B|Bs], Ps, All) -->
@@ -2850,6 +2846,31 @@ relation_tuple_b_prop(Relation, Tuple, B, p(Prop)) :-
         make_propagator(reified_tuple_in(Tuple, R, B), Prop),
         tuple_freeze_(Tuple, Prop),
         init_propagator(B, Prop).
+
+
+tuples_in_conjunction(Tuples, Relation, Conj) :-
+        maplist(tuple_in_disjunction(Relation), Tuples, Disjs),
+        fold_statement(conjunction, Disjs, Conj).
+
+tuple_in_disjunction(Relation, Tuple, Disj) :-
+        maplist(tuple_in_conjunction(Tuple), Relation, Conjs),
+        fold_statement(disjunction, Conjs, Disj).
+
+tuple_in_conjunction(Tuple, Element, Conj) :-
+        maplist(tuple_in_eq, Element, Tuple, Eqs),
+        fold_statement(conjunction, Eqs, Conj).
+
+fold_statement(Operation, List, Statement) :-
+        (   List = [] -> Statement = 1
+        ;   List = [First|Rest],
+            foldl(Operation, Rest, First, Statement)
+        ).
+
+conjunction(E, Conj, Conj #/\ E).
+
+disjunction(E, Disj, Disj #\/ E).
+
+tuple_in_eq(E, T, ?(T) #= E).
 
 % Match variables to created skeleton.
 
@@ -4330,6 +4351,14 @@ run_propagator(reified_tuple_in(Tuple, R, B), MState) :-
                 ;   true
                 )
             )
+        ).
+
+run_propagator(tuples_not_in(Tuples, Relation, B), MState) :-
+        (   B == 0 ->
+            kill(MState),
+            tuples_in_conjunction(Tuples, Relation, Conj),
+            #\ Conj
+        ;   true
         ).
 
 run_propagator(kill_reified_tuples(B, Ps, Bs), _) :-
@@ -6270,6 +6299,7 @@ attribute_goal_(reified_tuple_in(Tuple, R, B)) -->
         { get_attr(R, clpfd_relation, Rel) },
         [tuples_in([Tuple], Rel) #<==> ?(B)].
 attribute_goal_(kill_reified_tuples(_,_,_)) --> [].
+attribute_goal_(tuples_not_in(_,_,_)) --> [].
 attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> ?(B)].
 attribute_goal_(pskeleton(_,Y,D,_,_,Goal)) -->
         [?(D) #= 1 #==> Goal, ?(Y) #\= 0 #==> ?(D) #= 1].
