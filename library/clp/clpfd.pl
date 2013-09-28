@@ -2856,7 +2856,7 @@ tuple_in_disjunction(Relation, Tuple, Disj) :-
         fold_statement(disjunction, Conjs, Disj).
 
 tuple_in_conjunction(Tuple, Element, Conj) :-
-        maplist(tuple_in_eq, Element, Tuple, Eqs),
+        maplist(var_eq, Tuple, Element, Eqs),
         fold_statement(conjunction, Eqs, Conj).
 
 fold_statement(Operation, List, Statement) :-
@@ -2869,7 +2869,7 @@ conjunction(E, Conj, Conj #/\ E).
 
 disjunction(E, Disj, Disj #\/ E).
 
-tuple_in_eq(E, T, ?(T) #= E).
+var_eq(V, N, ?(V) #= N).
 
 % Match variables to created skeleton.
 
