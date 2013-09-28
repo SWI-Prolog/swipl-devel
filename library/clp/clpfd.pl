@@ -2222,8 +2222,10 @@ clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
    arithmetic. Their order is significant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-expr_conds(E, E)                 --> { var(E) }, !, [integer(E)].
+expr_conds(E, E)                 --> { var(E), !, non_monotonic(E) },
+        [integer(E)].
 expr_conds(E, E)                 --> { integer(E) }, !.
+expr_conds(?(E), E)              --> [integer(E)].
 expr_conds(-E0, -E)              --> expr_conds(E0, E).
 expr_conds(abs(E0), abs(E))      --> expr_conds(E0, E).
 expr_conds(A0+B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
@@ -2283,8 +2285,8 @@ user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 linsum(X, S, S)    --> { var(X), !, non_monotonic(X) }, [vn(X,1)].
-linsum(?(X), S, S) --> !, { must_be_fd_integer(X) }, [vn(X,1)].
 linsum(I, S0, S)   --> { integer(I), !, S is S0 + I }.
+linsum(?(X), S, S) --> { must_be_fd_integer(X) }, [vn(X,1)].
 linsum(-A, S0, S)  --> mulsum(A, -1, S0, S).
 linsum(N*A, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
 linsum(A*N, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
