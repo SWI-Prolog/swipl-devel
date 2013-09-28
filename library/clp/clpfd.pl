@@ -2756,7 +2756,8 @@ reify_(tuples_in(Tuples, Relation), B) --> !,
           maplist(fd_variable, Vs),
           must_be(list(list(integer)), Relation),
           maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
-          fold_statement(var_conjunction, Bs, And),
+          maplist(monotonic, Bs, Bs1),
+          fold_statement(conjunction, Bs1, And),
           ?(B) #<==> And },
         propagator_init_trigger([B], tuples_not_in(Tuples, Relation, B)),
         kill_reified_tuples(Bs, Ps, Bs),
@@ -2833,8 +2834,6 @@ a(B) -->
 
 as([])     --> [].
 as([B|Bs]) --> a(B), as(Bs).
-
-var_conjunction(B, A0, A0 #/\ ?(B)).
 
 kill_reified_tuples([], _, _) --> [].
 kill_reified_tuples([B|Bs], Ps, All) -->
