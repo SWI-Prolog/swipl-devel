@@ -2222,8 +2222,8 @@ clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
    arithmetic. Their order is significant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-expr_conds(E, E)                 --> { var(E), !, non_monotonic(E) },
-        [integer(E)].
+expr_conds(E, E)                 --> [integer(E)],
+        { var(E), !, \+ current_prolog_flag(clpfd_monotonic, true) }.
 expr_conds(E, E)                 --> { integer(E) }, !.
 expr_conds(?(E), E)              --> [integer(E)].
 expr_conds(-E0, -E)              --> expr_conds(E0, E).
