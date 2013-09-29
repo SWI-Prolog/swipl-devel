@@ -6039,7 +6039,7 @@ chain(Zs, Relation) :-
         ),
         (   Zs = [] -> true
         ;   Zs = [X|Xs],
-            chain(Xs, X, Relation)
+            foldl(chain(Relation), Xs, X, _)
         ).
 
 chain_relation(#=).
@@ -6048,10 +6048,7 @@ chain_relation(#=<).
 chain_relation(#>).
 chain_relation(#>=).
 
-chain([], _, _).
-chain([X|Xs], Prev, Relation) :-
-        call(Relation, ?(Prev), ?(X)),
-        chain(Xs, X, Relation).
+chain(Relation, X, Prev, X) :- call(Relation, ?(Prev), ?(X)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
