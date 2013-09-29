@@ -2736,30 +2736,30 @@ parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
 reify(E, B) :- reify(E, B, _).
 
 reify(Expr, B, Ps) :-
-        (   reifyable(Expr) -> phrase(reify(Expr, B), Ps)
+        (   reifiable(Expr) -> phrase(reify(Expr, B), Ps)
         ;   domain_error(clpfd_reifiable_expression, Expr)
         ).
 
-reifyable(E) :- var(E), non_monotonic(E).
-reifyable(E) :-
+reifiable(E) :- var(E), non_monotonic(E).
+reifiable(E) :-
         cyclic_term(E),
         domain_error(clpfd_reifiable_expression, E).
-reifyable(E)      :- integer(E), E in 0..1.
-reifyable(?(E))   :- must_be_fd_integer(E).
-reifyable(V in _) :- fd_variable(V).
-reifyable(Expr)   :-
+reifiable(E)      :- integer(E), E in 0..1.
+reifiable(?(E))   :- must_be_fd_integer(E).
+reifiable(V in _) :- fd_variable(V).
+reifiable(Expr)   :-
         Expr =.. [Op,Left,Right],
         (   memberchk(Op, [#>=,#>,#=<,#<,#=,#\=])
         ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/]),
-            reifyable(Left),
-            reifyable(Right)
+            reifiable(Left),
+            reifiable(Right)
         ).
-reifyable(#\ E) :- reifyable(E).
-reifyable(tuples_in(Tuples, Relation)) :-
+reifiable(#\ E) :- reifiable(E).
+reifiable(tuples_in(Tuples, Relation)) :-
         must_be(list(list), Tuples),
         maplist(maplist(fd_variable), Tuples),
         must_be(list(list(integer)), Relation).
-reifyable(finite_domain(V)) :- fd_variable(V).
+reifiable(finite_domain(V)) :- fd_variable(V).
 
 reify(E, B) --> { B in 0..1 }, reify_(E, B).
 
