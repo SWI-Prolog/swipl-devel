@@ -1923,7 +1923,7 @@ parse_clpfd(E, R,
             ]).
 
 non_monotonic(X) :-
-        (   current_prolog_flag(clpfd_monotonic, true) ->
+        (   \+ fd_var(X), current_prolog_flag(clpfd_monotonic, true) ->
             instantiation_error(X)
         ;   true
         ).
