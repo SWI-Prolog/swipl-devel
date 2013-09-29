@@ -2765,7 +2765,7 @@ reify(E, B) --> { B in 0..1 }, reify_(E, B).
 
 reify_(E, B) --> { var(E), !, E = B }.
 reify_(E, B) --> { integer(E), E = B }.
-reify_(?(E), B) --> { E = B }.
+reify_(?(B), B) --> [].
 reify_(V in Drep, B) -->
         { drep_to_domain(Drep, Dom) },
         propagator_init_trigger(reified_in(V,Dom,B)),
