@@ -190,10 +190,7 @@ reifiable constraints or Boolean variables, then:
     | P #==> Q  | True iff P implies Q            |
     | P #<== Q  | True iff Q implies P            |
 
-The constraints of this table are reifiable as well. If a variable
-occurs at the place of a constraint that is being reified, it is
-implicitly constrained to the Boolean values 0 and 1. Therefore, the
-following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
+The constraints of this table are reifiable as well.
 
 Here is an example session with a few queries and their answers:
 
@@ -2738,25 +2735,44 @@ parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
 
 reify(E, B) :- reify(E, B, _).
 
-reify(Expr, B, Ps) :- phrase(reify(Expr, B), Ps).
+reify(Expr, B, Ps) :-
+        (   reifyable(Expr) -> phrase(reify(Expr, B), Ps)
+        ;   domain_error(clpfd_reifiable_expression, Expr)
+        ).
+
+reifyable(E) :- var(E), non_monotonic(E).
+reifyable(E) :-
+        cyclic_term(E),
+        domain_error(clpfd_reifiable_expression, E).
+reifyable(E)      :- integer(E), E in 0..1.
+reifyable(?(E))   :- must_be_fd_integer(E).
+reifyable(V in _) :- fd_variable(V).
+reifyable(Expr)   :-
+        Expr =.. [Op,Left,Right],
+        (   memberchk(Op, [#>=,#>,#=<,#<,#=,#\=])
+        ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/]),
+            reifyable(Left),
+            reifyable(Right)
+        ).
+reifyable(#\ E) :- reifyable(E).
+reifyable(tuples_in(Tuples, Relation)) :-
+        must_be(list, Tuples),
+        append(Tuples, Vs),
+        maplist(fd_variable, Vs),
+        must_be(list(list(integer)), Relation).
+reifyable(finite_domain(V)) :- fd_variable(V).
 
 reify(E, B) --> { B in 0..1 }, reify_(E, B).
 
-reify_(E, _) -->
-        { cyclic_term(E), !, domain_error(clpfd_reifiable_expression, E) }.
-reify_(E, B) --> { var(E), !, non_monotonic(E), E = B }.
-reify_(E, B) --> { integer(E), !, E = B }.
-reify_(?(E), B) --> !, { must_be_fd_integer(E), E = B }.
-reify_(V in Drep, B) --> !,
+reify_(E, B) --> { var(E), !, E = B }.
+reify_(E, B) --> { integer(E), E = B }.
+reify_(?(E), B) --> { E = B }.
+reify_(V in Drep, B) -->
         { drep_to_domain(Drep, Dom), fd_variable(V) },
         propagator_init_trigger(reified_in(V,Dom,B)),
         a(B).
-reify_(tuples_in(Tuples, Relation), B) --> !,
-        { must_be(list, Tuples),
-          append(Tuples, Vs),
-          maplist(fd_variable, Vs),
-          must_be(list(list(integer)), Relation),
-          maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
+reify_(tuples_in(Tuples, Relation), B) -->
+        { maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
           maplist(monotonic, Bs, Bs1),
           fold_statement(conjunction, Bs1, And),
           ?(B) #<==> And },
@@ -2764,35 +2780,34 @@ reify_(tuples_in(Tuples, Relation), B) --> !,
         kill_reified_tuples(Bs, Ps, Bs),
         list(Ps),
         as([B|Bs]).
-reify_(finite_domain(V), B) --> !,
-        { fd_variable(V) },
+reify_(finite_domain(V), B) -->
         propagator_init_trigger(reified_fd(V,B)),
         a(B).
-reify_(L #>= R, B) --> !,
+reify_(L #>= R, B) -->
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         list(Ps),
         propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)),
         a(B).
-reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
-reify_(L #=< R, B) --> !, reify_(R #>= L, B).
-reify_(L #< R, B)  --> !, reify_(R #>= (L+1), B).
-reify_(L #= R, B)  --> !,
+reify_(L #> R, B)  --> reify_(L #>= (R+1), B).
+reify_(L #=< R, B) --> reify_(R #>= L, B).
+reify_(L #< R, B)  --> reify_(R #>= (L+1), B).
+reify_(L #= R, B)  -->
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         list(Ps),
         propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)),
         a(B).
-reify_(L #\= R, B) --> !,
+reify_(L #\= R, B) -->
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         list(Ps),
         propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)),
         a(B).
-reify_(L #==> R, B)  --> !, reify_((#\ L) #\/ R, B).
-reify_(L #<== R, B)  --> !, reify_(R #==> L, B).
-reify_(L #<==> R, B) --> !, reify_((L #==> R) #/\ (R #==> L), B).
-reify_(L #/\ R, B)   --> !,
+reify_(L #==> R, B)  --> reify_((#\ L) #\/ R, B).
+reify_(L #<== R, B)  --> reify_(R #==> L, B).
+reify_(L #<==> R, B) --> reify_((L #==> R) #/\ (R #==> L), B).
+reify_(L #/\ R, B)   -->
         (   { conjunctive_neqs_var_drep(L #/\ R, V, D) } -> reify_(V in D, B)
         ;   { reify(L, LR, Ps1),
               reify(R, RR, Ps2) },
@@ -2800,7 +2815,7 @@ reify_(L #/\ R, B)   --> !,
             propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
             a(LR, RR, B)
         ).
-reify_(L #\/ R, B) --> !,
+reify_(L #\/ R, B) -->
         (   { disjunctive_eqs_var_drep(L #\/ R, V, D) } -> reify_(V in D, B)
         ;   { reify(L, LR, Ps1),
               reify(R, RR, Ps2) },
@@ -2808,11 +2823,10 @@ reify_(L #\/ R, B) --> !,
             propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
             a(LR, RR, B)
         ).
-reify_(#\ Q, B) --> !,
+reify_(#\ Q, B) -->
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)),
         a(B).
-reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
 
 list([])     --> [].
 list([L|Ls]) --> [L], list(Ls).
