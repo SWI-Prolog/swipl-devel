@@ -2768,7 +2768,7 @@ reify_(E, B) --> { var(E), !, E = B }.
 reify_(E, B) --> { integer(E), E = B }.
 reify_(?(E), B) --> { E = B }.
 reify_(V in Drep, B) -->
-        { drep_to_domain(Drep, Dom), fd_variable(V) },
+        { drep_to_domain(Drep, Dom) },
         propagator_init_trigger(reified_in(V,Dom,B)),
         a(B).
 reify_(tuples_in(Tuples, Relation), B) -->
