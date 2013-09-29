@@ -2783,50 +2783,42 @@ reify_(tuples_in(Tuples, Relation), B) -->
 reify_(finite_domain(V), B) -->
         propagator_init_trigger(reified_fd(V,B)),
         a(B).
-reify_(L #>= R, B) -->
-        { phrase((parse_reified_clpfd(L, LR, LD),
-                  parse_reified_clpfd(R, RR, RD)), Ps) },
-        list(Ps),
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)),
-        a(B).
+reify_(L #>= R, B) --> arithmetic(L, R, B, reified_geq).
+reify_(L #= R, B)  --> arithmetic(L, R, B, reified_eq).
+reify_(L #\= R, B) --> arithmetic(L, R, B, reified_neq).
 reify_(L #> R, B)  --> reify_(L #>= (R+1), B).
 reify_(L #=< R, B) --> reify_(R #>= L, B).
 reify_(L #< R, B)  --> reify_(R #>= (L+1), B).
-reify_(L #= R, B)  -->
-        { phrase((parse_reified_clpfd(L, LR, LD),
-                  parse_reified_clpfd(R, RR, RD)), Ps) },
-        list(Ps),
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)),
-        a(B).
-reify_(L #\= R, B) -->
-        { phrase((parse_reified_clpfd(L, LR, LD),
-                  parse_reified_clpfd(R, RR, RD)), Ps) },
-        list(Ps),
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)),
-        a(B).
 reify_(L #==> R, B)  --> reify_((#\ L) #\/ R, B).
 reify_(L #<== R, B)  --> reify_(R #==> L, B).
 reify_(L #<==> R, B) --> reify_((L #==> R) #/\ (R #==> L), B).
 reify_(L #/\ R, B)   -->
         (   { conjunctive_neqs_var_drep(L #/\ R, V, D) } -> reify_(V in D, B)
-        ;   { reify(L, LR, Ps1),
-              reify(R, RR, Ps2) },
-            list(Ps1), list(Ps2),
-            propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
-            a(LR, RR, B)
+        ;   boolean(L, R, B, reified_and)
         ).
 reify_(L #\/ R, B) -->
         (   { disjunctive_eqs_var_drep(L #\/ R, V, D) } -> reify_(V in D, B)
-        ;   { reify(L, LR, Ps1),
-              reify(R, RR, Ps2) },
-            list(Ps1), list(Ps2),
-            propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
-            a(LR, RR, B)
+        ;   boolean(L, R, B, reified_or)
         ).
 reify_(#\ Q, B) -->
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)),
         a(B).
+
+arithmetic(L, R, B, Functor) -->
+        { phrase((parse_reified_clpfd(L, LR, LD),
+                  parse_reified_clpfd(R, RR, RD)), Ps),
+          Prop =.. [Functor,LD,LR,RD,RR,Ps,B] },
+        list(Ps),
+        propagator_init_trigger([LD,LR,RD,RR,B], Prop),
+        a(B).
+
+boolean(L, R, B, Functor) -->
+        { reify(L, LR, Ps1), reify(R, RR, Ps2),
+          Prop =.. [Functor,LR,Ps1,RR,Ps2,B] },
+        list(Ps1), list(Ps2),
+        propagator_init_trigger([LR,RR,B], Prop),
+        a(LR, RR, B).
 
 list([])     --> [].
 list([L|Ls]) --> [L], list(Ls).
