@@ -2756,7 +2756,7 @@ reifyable(Expr)   :-
         ).
 reifyable(#\ E) :- reifyable(E).
 reifyable(tuples_in(Tuples, Relation)) :-
-        must_be(list, Tuples),
+        must_be(list(list), Tuples),
         append(Tuples, Vs),
         maplist(fd_variable, Vs),
         must_be(list(list(integer)), Relation).
@@ -3330,7 +3330,7 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % ==
 
 tuples_in(Tuples, Relation) :-
-        must_be(list, Tuples),
+        must_be(list(list), Tuples),
         append(Tuples, Vs),
         maplist(fd_variable, Vs),
         must_be(list(list(integer)), Relation),
