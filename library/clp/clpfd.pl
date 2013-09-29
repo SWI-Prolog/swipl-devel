@@ -2757,8 +2757,7 @@ reifyable(Expr)   :-
 reifyable(#\ E) :- reifyable(E).
 reifyable(tuples_in(Tuples, Relation)) :-
         must_be(list(list), Tuples),
-        append(Tuples, Vs),
-        maplist(fd_variable, Vs),
+        maplist(maplist(fd_variable), Tuples),
         must_be(list(list(integer)), Relation).
 reifyable(finite_domain(V)) :- fd_variable(V).
 
@@ -3322,8 +3321,7 @@ lex_le([V1|V1s], [V2|V2s]) :-
 
 tuples_in(Tuples, Relation) :-
         must_be(list(list), Tuples),
-        append(Tuples, Vs),
-        maplist(fd_variable, Vs),
+        maplist(maplist(fd_variable), Tuples),
         must_be(list(list(integer)), Relation),
         maplist(relation_tuple(Relation), Tuples),
         do_queue.
@@ -6168,9 +6166,7 @@ attr_unify_hook(clpfd_attr(_,_,_,Dom,Ps), Other) :-
         ).
 
 append_propagators(fd_props(Gs0,Bs0,Os0), fd_props(Gs1,Bs1,Os1), fd_props(Gs,Bs,Os)) :-
-        append(Gs0, Gs1, Gs),
-        append(Bs0, Bs1, Bs),
-        append(Os0, Os1, Os).
+        maplist(append, [Gs0,Bs0,Os0], [Gs1,Bs1,Os1], [Gs,Bs,Os]).
 
 bound_portray(inf, inf).
 bound_portray(sup, sup).
