@@ -2889,15 +2889,13 @@ skeleton(Vs, Vs-Prop) :-
    N..M, and D1 \/ D2 are dreps, if D1 and D2 are dreps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-is_drep(V)      :- var(V), !, instantiation_error(V).
-is_drep(N)      :- integer(N), !.
-is_drep(N..M)   :- !, drep_bound(N), drep_bound(M), N \== sup, M \== inf.
-is_drep(D1\/D2) :- !, is_drep(D1), is_drep(D2).
+is_drep(N)      :- integer(N).
+is_drep(N..M)   :- drep_bound(N), drep_bound(M), N \== sup, M \== inf.
+is_drep(D1\/D2) :- is_drep(D1), is_drep(D2).
 
-drep_bound(V)   :- var(V), !, instantiation_error(V).
-drep_bound(sup) :- !. % should infinities be accessible?
-drep_bound(inf) :- !.
-drep_bound(I)   :- integer(I), !.
+drep_bound(I)   :- integer(I).
+drep_bound(sup).
+drep_bound(inf).
 
 drep_to_intervals(I)        --> { integer(I) }, !, [n(I)-n(I)].
 drep_to_intervals(N..M)     -->
@@ -2909,6 +2907,7 @@ drep_to_intervals(D1 \/ D2) -->
         drep_to_intervals(D1), drep_to_intervals(D2).
 
 drep_to_domain(DR, D) :-
+        must_be(ground, DR),
         (   is_drep(DR) -> true
         ;   domain_error(clpfd_domain, DR)
         ),
