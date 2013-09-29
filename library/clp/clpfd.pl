@@ -1586,13 +1586,12 @@ all_distinct(Ls) :-
 
 sum(Vs, Op, Value) :-
         must_be(list, Vs),
-        length(Vs, L),
-        length(Ones, L),
+        same_length(Vs, Ones),
         maplist(=(1), Ones),
         scalar_product(Ones, Vs, Op, Value).
 
 vars_plusterm([], _, T, T).
-vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C*V), T).
+vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C* ?(V)), T).
 
 %% scalar_product(+Cs, +Vs, +Rel, ?Expr)
 %
@@ -1617,7 +1616,7 @@ scalar_product(Cs, Vs, Op, Value) :-
 
 sum([], _, Sum, Op, Value) :- call(Op, Sum, Value).
 sum([C|Cs], [X|Xs], Acc, Op, Value) :-
-        NAcc #= Acc + C*X,
+        ?(NAcc) #= Acc + C* ?(X),
         sum(Cs, Xs, NAcc, Op, Value).
 
 multiples([], [], _).
@@ -2285,7 +2284,7 @@ user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 linsum(X, S, S)    --> { var(X), !, non_monotonic(X) }, [vn(X,1)].
-linsum(I, S0, S)   --> { integer(I), !, S is S0 + I }.
+linsum(I, S0, S)   --> { integer(I), S is S0 + I }.
 linsum(?(X), S, S) --> { must_be_fd_integer(X) }, [vn(X,1)].
 linsum(-A, S0, S)  --> mulsum(A, -1, S0, S).
 linsum(N*A, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
