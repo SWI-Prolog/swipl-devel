@@ -776,11 +776,11 @@ PL_initialise(int argc, char **argv)
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
+  if (    (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY))
 #ifdef __WINDOWS__
-  if ( (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY)) )
-#else
-  if ( (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY)) )
+       || (GD->resourceDB = rc_open_archive(GD->paths.module, RC_RDONLY))
 #endif
+     )
   { rcpath = ((RcArchive)GD->resourceDB)->path;
     initDefaultOptions();
   }
