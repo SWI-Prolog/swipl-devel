@@ -2894,7 +2894,7 @@ drep_bound(I)   :- integer(I).
 drep_bound(sup).
 drep_bound(inf).
 
-drep_to_intervals(I)        --> { integer(I) }, !, [n(I)-n(I)].
+drep_to_intervals(I)        --> { integer(I) }, [n(I)-n(I)].
 drep_to_intervals(N..M)     -->
         (   { defaulty_to_bound(N, N1), defaulty_to_bound(M, M1),
               N1 cis_leq M1} -> [N1-M1]
