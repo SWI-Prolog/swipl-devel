@@ -1601,7 +1601,7 @@ scalar_product(Cs, Vs, Op, Value) :-
         must_be(list, Vs),
         must_be(callable, Op),
         maplist(fd_variable, Vs),
-        \+ cyclic_term(Value),
+        must_be(acyclic, Value),
         (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
         ;   domain_error(scalar_product_relation, Op)
         ),
@@ -2734,8 +2734,8 @@ parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
 reify(E, B) :- reify(E, B, _).
 
 reify(Expr, B, Ps) :-
-        (   \+ cyclic_term(Expr), reifiable(Expr) ->
-            phrase(reify(Expr, B), Ps)
+        must_be(acyclic, Expr),
+        (   reifiable(Expr) -> phrase(reify(Expr, B), Ps)
         ;   domain_error(clpfd_reifiable_expression, Expr)
         ).
 
