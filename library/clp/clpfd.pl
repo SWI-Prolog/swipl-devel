@@ -2734,8 +2734,7 @@ parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
 reify(E, B) :- reify(E, B, _).
 
 reify(Expr, B, Ps) :-
-        must_be(acyclic, Expr),
-        (   reifiable(Expr) -> phrase(reify(Expr, B), Ps)
+        (   acyclic_term(Expr), reifiable(Expr) -> phrase(reify(Expr, B), Ps)
         ;   domain_error(clpfd_reifiable_expression, Expr)
         ).
 
