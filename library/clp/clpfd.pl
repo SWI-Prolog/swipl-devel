@@ -2734,14 +2734,12 @@ parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
 reify(E, B) :- reify(E, B, _).
 
 reify(Expr, B, Ps) :-
-        (   reifiable(Expr) -> phrase(reify(Expr, B), Ps)
+        (   \+ cyclic_term(Expr), reifiable(Expr) ->
+            phrase(reify(Expr, B), Ps)
         ;   domain_error(clpfd_reifiable_expression, Expr)
         ).
 
-reifiable(E) :- var(E), non_monotonic(E).
-reifiable(E) :-
-        cyclic_term(E),
-        domain_error(clpfd_reifiable_expression, E).
+reifiable(E)      :- var(E), non_monotonic(E).
 reifiable(E)      :- integer(E), E in 0..1.
 reifiable(?(E))   :- must_be_fd_integer(E).
 reifiable(V in _) :- fd_variable(V).
