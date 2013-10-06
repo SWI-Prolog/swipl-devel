@@ -1741,9 +1741,9 @@ parse_quasi_quotations(ReadData _PL_rd ARG_LD)
 	if ( rc )
 	  return TRUE;
 	_PL_rd->exception = ex;
-	return reportReadError(_PL_rd);
-      } else
-	return FALSE;
+	_PL_rd->has_exception = TRUE;
+      }
+      return FALSE;
     } else
       return TRUE;
   } else if ( _PL_rd->quasi_quotations )	/* user option, but no quotes */
