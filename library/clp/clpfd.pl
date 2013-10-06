@@ -554,11 +554,9 @@ cis_goals(A0^B0, R)      -->
         [cis_exp(A, B, R)].
 
 list_goal([], true).
-list_goal([C|Cs], Goal) :- list_goal_(Cs, C, Goal).
+list_goal([G|Gs], Goal) :- foldl(list_goal_, Gs, G, Goal).
 
-list_goal_([], G, G).
-list_goal_([C|Cs], G0, G) :- list_goal_(Cs, (G0,C), G).
-
+list_goal_(G, G0, (G0,G)).
 
 cis_sign(sup, n(1)).
 cis_sign(inf, n(-1)).
