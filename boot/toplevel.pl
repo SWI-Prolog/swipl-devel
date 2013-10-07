@@ -47,7 +47,6 @@
 
 :- multifile user:file_search_path/2.
 
-user:file_search_path(user_profile, '.').
 user:file_search_path(user_profile, app_preferences('.')).
 :- if(current_prolog_flag(windows, true)).
 user:file_search_path(app_preferences, app_data('.')).
