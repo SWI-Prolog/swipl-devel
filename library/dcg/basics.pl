@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2002-2012, University of Amsterdam
+    Copyright (C): 2002-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -52,6 +52,9 @@
 	    xinteger//1,		% [0-9a-f]+ --> integer
 
 	    prolog_var_name//1,		% Read a Prolog variable name
+
+	    eos//0,			% Test end of input.
+
 					% generation (TBD)
 	    atom//1			% generate atom
 	  ]).
@@ -75,32 +78,48 @@ library.
 
 %%	string_without(+End, -Codes)// is det.
 %
-%	Take as many tokens from the input  until the next token appears
-%	in End. End itself is left on the  input. Typical use is to read
-%	upto a defined delimiter such  as   a  newline or other reserved
-%	character.
+%	Take as many tokens from the input until the next character code
+%	appears in the list End. The terminating  code itself is left on
+%	the input. Typical use is to read  upto a defined delimiter such
+%	as a newline or other reserved character.  For example:
 %
+%	    ==
+%	        ...,
+%	        string_without("\n", RestOfLine)
+%	    ==
+%
+%	@arg End is a list of character codes.
 %	@see string//1.
 
-string_without(Not, [C|T]) -->
+string_without(End, Codes) -->
+	{ string(End), !,
+	  string_codes(End, EndCodes)
+	},
+	list_string_without(EndCodes, Codes).
+string_without(End, Codes) -->
+	list_string_without(End, Codes).
+
+list_string_without(Not, [C|T]) -->
 	[C],
 	{ \+ memberchk(C, Not)
 	}, !,
-	string_without(Not, T).
-string_without(_, []) -->
+	list_string_without(Not, T).
+list_string_without(_, []) -->
 	[].
 
 %%	string(-Codes)// is nondet.
 %
 %	Take as few as possible tokens from the input, taking one more
 %	each time on backtracking. This code is normally followed by a
-%	test for a delimiter.  E.g.
+%	test for a delimiter.  For example:
 %
 %	==
 %	upto_colon(Atom) -->
 %		string(Codes), ":", !,
 %		{ atom_codes(Atom, Codes) }.
 %	==
+%
+%	@see string_without//2.
 
 string([]) -->
 	[].
@@ -351,9 +370,15 @@ mkval([H|T], Base, W0, W) :-
 
 %%	eos//
 %
-%	True if at end of input list.
+%	True if at end of input list.  This is implemented as
+%
+%	    ==
+%	    eos -->
+%	        \+ [_].
+%	    ==
 
-eos([], []).
+eos -->
+	\+ [_].
 
 		 /*******************************
 		 *	   PROLOG SYNTAX		*
