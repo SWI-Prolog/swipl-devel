@@ -5263,18 +5263,19 @@ handling.
 
 \begin{description}
     \predicate{string_to_atom}{2}{?String, ?Atom}
-Logical conversion between a string and an atom. At least one of the
-two arguments must be instantiated. \arg{Atom} can also be an integer
-or floating point number.
+Bi-directional conversion between a string and an atom. At
+least one of the two arguments must be instantiated. \arg{Atom} can also
+be an integer or floating point number.
 
-    \predicate{string_to_list}{2}{?String, ?List}
-Logical conversion between a string and a list of character code
-characters. At least one of the two arguments must be instantiated.
+    \predicate{string_codes}{2}{?String, ?Codes}
+Bi-directional conversion between a string and a list of character
+codes. At least one of the two arguments must be instantiated.
 
     \predicate{string_length}{2}{+String, -Length}
 Unify \arg{Length} with the number of characters in \arg{String}. This
 predicate is functionally equivalent to atom_length/2 and also accepts
 atoms, integers and floats as its first argument.
+
     \predicate{string_concat}{3}{?String1, ?String2, ?String3}
 Similar to atom_concat/3, but the unbound argument will be unified with
 a string object rather than an atom. Also, if both \arg{String1} and

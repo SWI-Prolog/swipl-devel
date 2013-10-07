@@ -52,9 +52,10 @@
 	    feature/2,
 	    set_feature/2,
 	    substring/4,
+	    string_to_list/2,		% ?String, ?Codes
 	    flush/0,
-	    write_ln/1,
-	    proper_list/1,
+	    write_ln/1,			% +Term
+	    proper_list/1,		% @Term
 	    free_variables/2,		% +Term, -Variables
 	    subsumes_chk/2,		% @Generic, @Specific
 	    subsumes/2,			% @Generic, @Specific
@@ -269,6 +270,16 @@ set_feature(Key, Value) :-
 substring(String, Offset, Length, Sub) :-
 	Offset0 is Offset - 1,
 	sub_string(String, Offset0, Length, _After, Sub).
+
+%%	string_to_list(?String, ?Codes) is det.
+%
+%	Bi-directional conversion between a string and a list of
+%	character codes.
+%
+%	@deprecated Use string_codes/2.
+
+string_to_list(String, Codes) :-
+	string_codes(String, Codes).
 
 %%	flush is det.
 %

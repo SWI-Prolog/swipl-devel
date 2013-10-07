@@ -4140,7 +4140,7 @@ PRED_IMPL("string_to_atom", 2, string_to_atom, 0)
 
 
 static
-PRED_IMPL("string_to_list", 2, string_to_list, 0)
+PRED_IMPL("string_codes", 2, string_codes, 0)
 { PRED_LD
   term_t str = A1;
   term_t list = A2;
@@ -4992,7 +4992,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
   PRED_DEF("string_length", 2, string_length, 0)
   PRED_DEF("string_to_atom", 2, string_to_atom, 0)
-  PRED_DEF("string_to_list", 2, string_to_list, 0)
+  PRED_DEF("string_codes", 2, string_codes, 0)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$option", 2, option, 0)
