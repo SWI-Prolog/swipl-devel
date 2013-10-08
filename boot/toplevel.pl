@@ -83,7 +83,7 @@ user:file_search_path(app_preferences, UserHome) :-
 '$load_init_file'(Base) :-
 	loaded_init_file(Base, _), !.
 '$load_init_file'(InitFile) :-
-	is_absolute_file_name(InitFile), !,
+	exists_file(InitFile), !,
 	ensure_loaded(user:InitFile).
 '$load_init_file'(Base) :-
 	absolute_file_name(user_profile(Base),
