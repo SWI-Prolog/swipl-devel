@@ -172,7 +172,7 @@ noprof:	system headers plwin startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
-		$(DEVPL) -f $(PROFILE_SRC) -q -g '$(PROFILE_GOAL),halt' -t 'halt(1)'
+		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL),halt' -t 'halt(1)'
 		$(MAKE) clean
 		$(MAKE) CPFLAGS=-fprofile-use noprof
 		$(MAKE) profclean
