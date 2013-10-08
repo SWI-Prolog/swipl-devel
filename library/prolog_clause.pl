@@ -139,7 +139,7 @@ unify_term(X, Y) :-
 unify_term(X, Y) :-
 	string(X),
 	is_list(Y),
-	string_to_list(X, Y), !.
+	string_codes(X, Y), !.
 unify_term(_, Y) :-
 	Y == '...', !.				% elipses left by max_depth
 unify_term(_:X, Y) :-

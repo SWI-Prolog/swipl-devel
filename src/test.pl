@@ -220,7 +220,7 @@ format_test(oncodes-2) :-
 format_test(onstring-1) :-
 	format(string(S), 'hello ~w', [world]),
 	string(S),
-	string_to_list(S, "hello world").
+	string_codes(S, "hello world").
 
 
 		 /*******************************
@@ -775,8 +775,8 @@ wchars(cmp-1) :-
 wchars(cmp-2) :-
 	forall(( wchar_string(S1),
 		 wchar_string(S2)),
-	       ( string_to_list(A1, S1),
-		 string_to_list(A2, S2),
+	       ( string_codes(A1, S1),
+		 string_codes(A2, S2),
 		 compare(Diff, A1, A2),
 		 (   compare(Diff, S1, S2)
 		 ->  true
@@ -808,7 +808,7 @@ meta(call-6) :-
 meta(call-7) :-
 	call((X=a,x(X)=Y)), Y == x(a).
 meta(call-8) :-
-	string_to_list(S, "hello world"),
+	string_codes(S, "hello world"),
 	call((string(S), true)).
 meta(call-9) :-
 	call((foo:true, true)).
@@ -1304,7 +1304,7 @@ cl(clause-7) :-
 		 *******************************/
 
 mkterm(T) :-
-	string_to_list(S, "hello"),
+	string_codes(S, "hello"),
 	current_prolog_flag(max_tagged_integer, X),
 	BigNum is X * 3,
 	NegBigNum is -X*5,
@@ -1994,7 +1994,7 @@ term_hash(simple-4) :-
 		       14888348		% big endian
 		     ]).
 term_hash(simple-5) :-
-	string_to_list(S, "hello world"),
+	string_codes(S, "hello world"),
 	term_hash(S, 13985775).
 term_hash(compound-1) :-
 	term_hash(hello(world), X),

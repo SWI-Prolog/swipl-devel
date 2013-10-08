@@ -120,7 +120,7 @@ dcg_body(List, P0, _, S, SR, C, P) :-
 	    )
 	;   string(List)			% double_quotes = string
 	->  !,
-	    string_to_list(List, Codes),
+	    string_codes(List, Codes),
 	    '$append'(Codes, SR, OL),
 	    C = (S = OL)
 	),

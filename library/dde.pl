@@ -215,7 +215,7 @@ dde_current_connection(Service, Topic) :-
 %	'$dde_execute'(+Handle, +Topic, +Command)
 %
 %	Called by the DDEML XTYP_EXECUTE request.  Command is a SWI-Prolog
-%	string object.  Use string_to_atom or string_to_list to convert it
+%	string object.  Use string_to_atom or string_codes to convert it
 %	into a standard object.
 
 '$dde_execute'(Handle, Topic, Command) :-
