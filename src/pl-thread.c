@@ -1471,6 +1471,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 #endif
   ldnew->_debugstatus		  = LD->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
+  ldnew->_debugstatus.suspendTrace= 0;
   ldnew->prolog_flag.mask	  = LD->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = LD->prolog_flag.occurs_check;
   ldnew->prolog_flag.access_level = LD->prolog_flag.access_level;
