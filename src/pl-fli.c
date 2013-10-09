@@ -431,7 +431,7 @@ static PL_blob_t ucs_atom =
 
 
 static void
-initUCSAtoms()
+initUCSAtoms(void)
 { PL_register_blob_type(&ucs_atom);
 }
 
