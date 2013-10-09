@@ -207,14 +207,16 @@ typedef struct
 #define PL_TYPE_STRING		(6)	/* string */
 #define PL_TYPE_COMPOUND	(7)	/* compound term */
 #define PL_TYPE_CONS		(8)	/* list-cell */
+#define PL_TYPE_NIL		(9)	/* [] */
 
-#define PL_TYPE_EXT_ATOM	(9)	/* External (inlined) atom */
-#define PL_TYPE_EXT_COMPOUND	(10)	/* External (inlined) functor */
-#define PL_TYPE_EXT_FLOAT	(11)	/* float in standard-byte order */
-#define PL_TYPE_ATTVAR		(12)	/* Attributed variable */
-#define PL_REC_ALLOCVAR		(13)	/* Allocate a variable on global */
-#define PL_REC_CYCLE		(14)	/* cyclic reference */
-#define PL_REC_MPZ		(15)	/* GMP integer */
+#define PL_TYPE_EXT_ATOM	(10)	/* External (inlined) atom */
+#define PL_TYPE_EXT_WATOM	(11)	/* External (inlined) wide atom */
+#define PL_TYPE_EXT_COMPOUND	(12)	/* External (inlined) functor */
+#define PL_TYPE_EXT_FLOAT	(13)	/* float in standard-byte order */
+#define PL_TYPE_ATTVAR		(14)	/* Attributed variable */
+#define PL_REC_ALLOCVAR		(15)	/* Allocate a variable on global */
+#define PL_REC_CYCLE		(16)	/* cyclic reference */
+#define PL_REC_MPZ		(17)	/* GMP integer */
 
 static inline void
 addUnalignedBuf(TmpBuffer b, void *ptr, size_t bytes)
@@ -345,19 +347,25 @@ addChars(CompileInfo info, size_t len, const char *data)
 
 
 static inline void
-addAtomValue(CompileInfo info, atom_t name)
-{ Atom a = atomValue(name);
-
-  addSizeInt(info, a->length);
+addAtomValue(CompileInfo info, Atom a)
+{ addSizeInt(info, a->length);
   addMultipleBuffer(&info->code, a->name, a->length, char);
 }
 
 
 static void
 addAtom(CompileInfo info, atom_t a)
-{ if ( info->external )
-  { addOpCode(info, PL_TYPE_EXT_ATOM);
-    addAtomValue(info, a);
+{ if ( a == ATOM_nil )
+  { addOpCode(info, PL_TYPE_NIL);
+  } else if ( info->external )
+  { Atom ap = atomValue(a);
+
+    if ( isUCSAtom(ap) )
+      addOpCode(info, PL_TYPE_EXT_WATOM);
+    else
+      addOpCode(info, PL_TYPE_EXT_ATOM);
+
+    addAtomValue(info, ap);
   } else
   { addOpCode(info, PL_TYPE_ATOM);
     addWord(info, a);
@@ -377,7 +385,7 @@ addFunctor(CompileInfo info, functor_t f)
 
       addOpCode(info, PL_TYPE_EXT_COMPOUND);
       addSizeInt(info, fd->arity);
-      addAtomValue(info, fd->name);
+      addAtomValue(info, atomValue(fd->name));
     } else
     { addOpCode(info, PL_TYPE_COMPOUND);
       addWord(info, f);
@@ -664,7 +672,7 @@ compileTermToHeap__LD(term_t t,
 #define	REC_GROUND  0x10		/* Record is ground */
 #define	REC_VMASK   0xe0		/* Version mask */
 #define REC_VSHIFT     5		/* shift for version mask */
-#define	REC_VERSION 0x01		/* Version id */
+#define	REC_VERSION 0x02		/* Version id */
 
 #define REC_SZMASK  (REC_32|REC_64)	/* SIZE_MASK */
 
@@ -694,6 +702,8 @@ PL_record_external(term_t t, size_t *len)
 
   init_cycle(PASS_LD1);
   initBuffer(&info.code);
+  info.external = TRUE;
+  info.lock = FALSE;
 
   if ( isInteger(*p) )			/* integer-only record */
   { int64_t v;
@@ -717,7 +727,7 @@ PL_record_external(term_t t, size_t *len)
   } else if ( isAtom(*p) )		/* atom-only record */
   { first |= (REC_ATOM|REC_GROUND);
     addOpCode(&info, first);
-    addAtomValue(&info, *p);
+    addAtom(&info, *p);
     goto ret_primitive;
   }
 
@@ -725,8 +735,6 @@ PL_record_external(term_t t, size_t *len)
   initBuffer(&info.vars);
   info.size = 0;
   info.nvars = 0;
-  info.external = TRUE;
-  info.lock = FALSE;
 
   initTermAgenda(&agenda, 1, p);
   compile_term_to_heap(&agenda, &info PASS_LD);
@@ -901,6 +909,16 @@ fetchAtom(CopyInfo b, atom_t *a)
 
 
 static void
+fetchAtomW(CopyInfo b, atom_t *a)
+{ unsigned int len = fetchSizeInt(b);
+
+  *a = lookupUCSAtom((const pl_wchar_t*)b->data, len/sizeof(pl_wchar_t));
+
+  (b)->data += len;
+}
+
+
+static void
 fetchChars(CopyInfo b, unsigned len, Word to)
 { fetchMultipleBuf(b, (char *)to, len, char);
 }
@@ -950,12 +968,21 @@ copy_record(Word p, CopyInfo b ARG_LD)
 	goto right_recursion;
       }
 #endif
+      case PL_TYPE_NIL:
+      { *p = ATOM_nil;
+	continue;
+      }
       case PL_TYPE_ATOM:
       { *p = fetchWord(b);
 	continue;
       }
       case PL_TYPE_EXT_ATOM:
       { fetchAtom(b, p);
+	PL_unregister_atom(*p);
+	continue;
+      }
+      case PL_TYPE_EXT_WATOM:
+      { fetchAtomW(b, p);
 	PL_unregister_atom(*p);
 	continue;
       }
@@ -1157,6 +1184,10 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 	continue;
       }
 #endif
+      case PL_TYPE_NIL:
+      { (*func)(ATOM_nil);
+	continue;
+      }
       case PL_TYPE_ATOM:
       { atom_t a = fetchWord(b);
 
@@ -1164,6 +1195,7 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 	continue;
       }
       case PL_TYPE_EXT_ATOM:
+      case PL_TYPE_EXT_WATOM:
       { skipAtom(b);
 	continue;
       }
@@ -1531,9 +1563,24 @@ PL_recorded_external(const char *rec, term_t t)
       return PL_unify_int64(t, v);
     } else
     { atom_t a;
+      int code = fetchOpCode(&b);
+      int rc;
 
-      fetchAtom(&b, &a);
-      return PL_unify_atom(t, a);
+      switch(code)
+      { case PL_TYPE_NIL:
+	  return PL_unify_nil(t);
+        case PL_TYPE_EXT_ATOM:
+	  fetchAtom(&b, &a);
+	  break;
+        case PL_TYPE_EXT_WATOM:
+	  fetchAtomW(&b, &a);
+	  break;
+	default:
+	  assert(0);
+      }
+      rc = PL_unify_atom(t, a);
+      PL_unregister_atom(a);
+      return rc;
     }
   }
 
