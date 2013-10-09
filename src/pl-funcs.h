@@ -525,7 +525,6 @@ COMMON(Record)		compileTermToHeap__LD(term_t term,
 					      int flags ARG_LD);
 COMMON(int)		copyRecordToGlobal(term_t copy, Record term,
 					   int flags ARG_LD);
-COMMON(int)		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
 COMMON(bool)		freeRecord(Record record);
 COMMON(void)		unallocRecordRef(RecordRef r);
 COMMON(bool)		unifyKey(term_t key, word val);
