@@ -1477,12 +1477,9 @@ AbsoluteFile(const char *spec, char *path)
   }
 
   strcpy(path, GD->paths.CWDdir);
-  if ( file[0] != EOS )
-    strcpy(&path[GD->paths.CWDlen], file);
-  if ( strchr(file, '.') || strchr(file, '/') )
-    return canonisePath(path);
-  else
-    return path;
+  strcpy(&path[GD->paths.CWDlen], file);
+
+  return canonisePath(path);
 }
 
 
