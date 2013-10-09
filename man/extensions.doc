@@ -5,13 +5,50 @@ This chapter describes extensions to the Prolog language introduced with
 SWI-Prolog version~7.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% NOTES
+\section{Reserved constants}
+\label{sec:ext-constants}
+
+SWI-Prolog introduces constants that are distinct from the usual Prolog
+atoms and numbers. These are introduced because text is commonly
+represented using atoms. For example, a natural language parser
+typically represents the input text as a list of words and punctuation
+characters, where each of these is represented as an atom. At the same
+time, Prolog is a dynamically typed language. This feature allows for
+heterogeneous data representations that can be tested and acted on at
+runtime. In particular, various predicates accept both a single item or
+a list of items, e.g., load_files/2. As a result, the call
+\exam{load_files([], [])} is \emph{ambiguous}, as it may mean `load no
+files' or `load the file named \verb$"[]"$. Similar problems arise with
+predicates that overload input text as either an atom or a list of
+character codes, where \exam{[]} can both refer to the text \verb$"[]"$
+(processed as an atom) or the empty string (processed as a list of
+character codes).
+
+The \textbf{syntax} for such constants is a string between \emph{back
+quotes}. Backquoted constants are considered \emph{atomic} (see
+atomic/1) but not atoms (see atom/1).
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Lists are special}
+\label{sec:ext-lists}
 
-# Lists
+SWI-Prolog lists can be distinquished unambiguously at runtime from
+both ordinary compound terms and the atom \const{'[]'} using the
+reserved constants introduced in \secref{ext-constants}.  The
+list \exam{[a,b]} is represented as the term below.
 
- - write_canonical/1: lists and brace terms
-   - write_term: options dot_lists and brace_terms for compatibility
- - write_term/2: added nl and fullstop options (TBD)
- - introduction of meta-atoms
- - Foreign: added ATOM_nil and ATOM_dot
+\begin{code}
+`.`(a, `.`(b, `[]`))
+\end{code}
+
+This modification has minimal impact on typical Prolog code. It does
+affect foreign code (see \secref{foreign}) that uses the normal atom and
+compound term interface for manipulation lists. In most cases this can
+be avoided by using the dedicated list functions. For convenience, the
+macros \const{ATOM_nil} and \const{ATOM_dot} are provided by
+\file{SWI-Prolog.h}.
+
+Another place that is affected is write_canonical/1. Impact is minimized
+by using the list syntax for lists.
+
