@@ -1522,6 +1522,8 @@ static const opt_spec write_term_options[] =
   { ATOM_blobs,		    OPT_ATOM },
   { ATOM_cycles,	    OPT_BOOL },
   { ATOM_variable_names,    OPT_TERM },
+  { ATOM_nl,		    OPT_BOOL },
+  { ATOM_fullstop,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -1543,6 +1545,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   int  priority   = 1200;
   bool partial    = FALSE;
   bool cycles     = TRUE;
+  bool nl         = FALSE;
+  bool fullstop   = FALSE;
   term_t varnames = 0;
   int local_varnames;
   IOSTREAM *s = NULL;
@@ -1557,7 +1561,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 		     &numbervars, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
 		     &bq, &attr, &priority, &partial, &options.spacing,
-		     &blobs, &cycles, &varnames) )
+		     &blobs, &cycles, &varnames, &nl, &fullstop) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1650,6 +1654,11 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   } else
   { rc = writeTopTerm(term, priority, &options);
   }
+
+  if ( rc && fullstop )
+    rc = PutToken(".", s) && Putc(nl ? '\n' : ' ', s);
+  else if ( nl )
+    rc = Putc('\n', s);
 
 out:
   END_NUMBERVARS(local_varnames);

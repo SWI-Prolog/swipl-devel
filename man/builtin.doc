@@ -4193,6 +4193,13 @@ writes an infinite term if not protected by, e.g., the
 \const{depth_limit} option.} See also the \const{cycles} option in
 read_term/2.
 
+    \termitem{fullstop}{Bool}
+If \const{true} (default \const{false}), add a fullstop token to the
+output.  The dot is preceeded by a space if needed and followed by
+a space (default) or newline if the \term{nl}{true} option is also
+given.\footnote{Compatible with
+\url[ECLiPSe]{http://eclipseclp.org/doc/bips/kernel/ioterm/write_term-3.html}}
+
     \termitem{ignore_ops}{Bool}
 If \const{true}, the generic term representation (<functor>(<args>
 \ldots)) will be used for all terms.  Otherwise (default), operators,
@@ -4219,6 +4226,9 @@ the Prolog flags \prologflag{toplevel_print_options} and
 Define the reference module (default \const{user}).  This defines
 the default value for the \prologflag{character_escapes} option as well
 as the operator definitions to use.  See also op/3.
+
+    \termitem{nl}{Bool}
+Add a newline to the output.  See also the \const{fullstop} option.
 
     \termitem{numbervars}{Bool}
 If \const{true}, terms of the format \verb|$VAR(N)|, where <N> is a
