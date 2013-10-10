@@ -1253,7 +1253,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	   PL_get_arg(1, t, class) )
       { if ( writeTerm(class, 1200, options) &&
 	     Putc('{', out) &&
-	     PL_for_map(t, writeMapPair, options, 0) == 0 &&
+	     PL_for_map(t, writeMapPair, options, MAP_SORTED) == 0 &&
 	     Putc('}', out) )
 	  return TRUE;
       }
