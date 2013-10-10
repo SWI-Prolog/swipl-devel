@@ -464,8 +464,45 @@ PL_get_map_ex(term_t data, term_t class, term_t map)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_for_map()  runs  func  on  each  key-value    pair  in  map.  Returns
-immediately with the return value of func if func returns non-zero.
+immediately with the return value of func   if func returns non-zero. If
+the flag MAP_SORTED is given, the  key-value   pairs  are  called in the
+standard order of terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct cmp_map_index_data
+{ Word  data;
+  int  *indexes;
+  PL_local_data_t *ld;
+} cmp_map_index_data;
+
+static int
+cmp_map_index(const void *a1, const void *a2, void *arg)
+{ int *ip1 = (int*)a1;
+  int *ip2 = (int*)a2;
+  cmp_map_index_data *ctx = arg;
+  PL_local_data_t *__PL_ld = ctx->ld;
+
+  Word p = &ctx->data[ctx->indexes[*ip1]*2];
+  Word q = &ctx->data[ctx->indexes[*ip2]*2];
+
+  deRef(p);
+  deRef(q);
+
+  if ( *p == *q )
+    return CMP_EQUAL;
+
+  if ( isAtom(*p) )
+  { if ( isAtom(*q) )
+      return compareAtoms(*p, *q);
+    else
+      return CMP_GREATER;
+  } else
+  { if ( isTaggedInt(*p) )
+      return valInt(*p) > valInt(*q) ? 1 : -1;
+    return CMP_LESS;
+  }
+}
+
 
 int
 PL_for_map(term_t map,
@@ -474,26 +511,57 @@ PL_for_map(term_t map,
 	   int flags)
 { GET_LD
   term_t av = PL_new_term_refs(2);
-  int i, arity;
+  int i, arity, pairs;
   Word p = valTermRef(map);
+  int index_buf[256];
+  int *indexes = NULL;
+  int rc = 0;
 
   deRef(p);
   arity = arityTerm(*p);
+  pairs = arity/2;
 
-  for(i=1; i < arity;)
+  if ( (flags&MAP_SORTED) )
+  { cmp_map_index_data ctx;
+
+    if ( pairs < 256 )
+      indexes = index_buf;
+    else if ( !(indexes = malloc(pairs*sizeof(int))) )
+      return PL_no_memory();
+
+    for(i=0; i<pairs; i++)
+      indexes[i] = i;
+
+    ctx.ld = LD;
+    ctx.data = argTermP(*p,1);
+    ctx.indexes = indexes;
+
+    sort_r(indexes, pairs, sizeof(int), cmp_map_index, &ctx);
+  }
+
+  for(i=0; i < pairs; )
   { Word p = valTermRef(map);
-    int rc;
+    int in;
+
+    if ( indexes )
+    { in = indexes[i]*2+1;
+    } else
+    { in = i*2+1;
+    }
 
     deRef(p);
     Functor f = valueTerm(*p);
-    *valTermRef(av+0) = linkVal(&f->arguments[i++]);
-    *valTermRef(av+1) = linkVal(&f->arguments[i++]);
+    *valTermRef(av+0) = linkVal(&f->arguments[in]);
+    *valTermRef(av+1) = linkVal(&f->arguments[in+1]);
 
-    if ( (rc=(*func)(av+0, av+1, i == arity, closure)) != 0 )
-      return rc;
+    if ( (rc=(*func)(av+0, av+1, ++i == pairs, closure)) != 0 )
+      break;
   }
 
-  return 0;
+  if ( indexes && indexes != index_buf )
+    free(indexes);
+
+  return rc;
 }
 
 

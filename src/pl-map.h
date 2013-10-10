@@ -23,6 +23,8 @@
 #ifndef PL_MAP_H_INCLUDED
 #define PL_MAP_H_INCLUDED
 
+#define MAP_SORTED	0x1		/* Sort map entries */
+
 COMMON(int)	PL_is_map(term_t t);
 COMMON(int)	PL_for_map(term_t map,
 			   int (*func)(term_t key,
