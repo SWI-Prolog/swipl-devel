@@ -22,6 +22,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-map.h"
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
@@ -1160,6 +1161,20 @@ isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
 }
 
 
+static int
+writeMapPair(term_t name, term_t value, int last, void *closure)
+{ write_options *options = closure;
+
+  if ( writeTerm(name, 599, options) &&
+       PutToken(":", options->out) &&
+       writeTerm(value, 600, options) &&
+       (last || PutComma(options)) )
+    return 0;				/* continue */
+
+  return -1;
+}
+
+
 static bool
 writeTerm2(term_t t, int prec, write_options *options, bool arg)
 { GET_LD
@@ -1229,6 +1244,22 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
       return FALSE;
     }
 
+					/* handle maps */
+    if ( false(options, PL_WRT_NOMAP) &&
+	 functor == ATOM_map && PL_is_map(t) )
+    { term_t class;
+
+      if ( (class=PL_new_term_ref()) &&
+	   PL_get_arg(1, t, class) )
+      { if ( writeTerm(class, 1200, options) &&
+	     Putc('{', out) &&
+	     PL_for_map(t, writeMapPair, options, 0) == 0 &&
+	     Putc('}', out) )
+	  return TRUE;
+      }
+
+      return FALSE;
+    }
 					/* operators */
     if ( false(options, PL_WRT_IGNOREOPS) )
     { term_t arg;
