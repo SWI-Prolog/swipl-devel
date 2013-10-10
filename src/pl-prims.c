@@ -1488,7 +1488,7 @@ There are atoms of different  type.   We  only define comparison between
 atoms of the same type, except for mixed ISO Latin-1 and UCS atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+int
 compareAtoms(atom_t w1, atom_t w2)
 { Atom a1 = atomValue(w1);
   Atom a2 = atomValue(w2);
