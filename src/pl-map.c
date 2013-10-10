@@ -21,6 +21,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-map.h"
 
 int PL_get_map_ex(term_t data, term_t class, term_t map);
 
@@ -375,6 +376,41 @@ PL_get_map_ex(term_t data, term_t class, term_t map)
   }					/* TBD: {name:value, ...} */
 
   return PL_type_error("map-data", data);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_for_map()  runs  func  on  each  key-value    pair  in  map.  Returns
+immediately with the return value of func if func returns non-zero.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_for_map(term_t map,
+	   int (*func)(term_t key, term_t value, int last, void *closure),
+	   void *closure,
+	   int flags)
+{ GET_LD
+  term_t av = PL_new_term_refs(2);
+  int i, arity;
+  Word p = valTermRef(map);
+
+  deRef(p);
+  arity = arityTerm(*p);
+
+  for(i=1; i < arity;)
+  { Word p = valTermRef(map);
+    int rc;
+
+    deRef(p);
+    Functor f = valueTerm(*p);
+    *valTermRef(av+0) = linkVal(&f->arguments[i++]);
+    *valTermRef(av+1) = linkVal(&f->arguments[i++]);
+
+    if ( (rc=(*func)(av+0, av+1, i == arity, closure)) != 0 )
+      return rc;
+  }
+
+  return 0;
 }
 
 
