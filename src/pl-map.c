@@ -149,13 +149,20 @@ compare_map_entry(const void *a, const void *b)
 }
 
 
+/* True if the keys are proper keys and ordered.
+*/
+
 static int
 map_ordered(Word data, int count ARG_LD)
 { Word n1, n2;
 
   deRef2(data, n1);
+  if ( !is_key(*n1) )
+    return FALSE;
   for(; count > 1; count--, data += 2, n1=n2)
   { deRef2(data+2, n2);
+    if ( !is_key(*n2) )
+      return FALSE;
     if ( *n1 >= *n2 )
       return FALSE;
   }
