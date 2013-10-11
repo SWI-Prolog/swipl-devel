@@ -3670,6 +3670,14 @@ swap_functor_position(term_t positions, intptr_t *sp, intptr_t *ep ARG_LD)
 }
 
 
+static intptr_t
+end_range(term_t positions ARG_LD)
+{ Word p = valTermRef(positions);
+
+  deRef(p);
+  return valInt(argTerm(*p,2));
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 read_list(-positions)  reads  a  list  and  places    the  list  on  the
@@ -3923,11 +3931,12 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   term_t pv;
   int rc;
 
-#define P_HEAD (pv+0)
-#define P_ARG  (pv+1)
+#define P_HEAD  (pv+0)
+#define P_ARG   (pv+1)
+#define P_VALUE (pv+2)
 
   if ( positions )
-  { if ( !(pv = PL_new_term_refs(2)) ||
+  { if ( !(pv = PL_new_term_refs(3)) ||
 	 !PL_unify_term(positions,
 			PL_FUNCTOR, FUNCTOR_map_position5,
 			PL_INTPTR, token->start, /* whole term */
@@ -3962,6 +3971,7 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 					/* process the key-values */
   do
   { Token key, sep;
+    intptr_t kstart, kend;
 
     if ( positions )
     { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
@@ -3986,6 +3996,8 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     } else
       syntaxError("key_expected", _PL_rd);
 
+    kstart = token->start;
+    kend   = token->end;
     if ( !(sep = get_token(FALSE, _PL_rd)) )
       return FALSE;
 
@@ -3993,8 +4005,33 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 	 key->value.atom != ATOM_colon )
       syntaxError("colon_expected", _PL_rd);
 
-    if ( (rc=complex_term(",}", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
+    if ( positions )
+    { PL_put_variable(P_VALUE);
+
+      if ( !PL_unify_term(P_HEAD,
+			  PL_FUNCTOR, FUNCTOR_term_position5,
+			  PL_INTPTR, kstart,		/* whole term */
+			  PL_VARIABLE,
+			  PL_INTPTR, sep->start, /* class position */
+			  PL_INTPTR, sep->end,   /* key-value pairs */
+			  PL_LIST, 2,
+			    PL_FUNCTOR, FUNCTOR_minus2,
+			      PL_INTPTR, kstart,
+			      PL_INTPTR, kend,
+			    PL_TERM, P_VALUE) )
+	return FALSE;
+    }
+
+    if ( (rc=complex_term(",}", 999,
+			  positions ? P_VALUE : 0,
+			  _PL_rd PASS_LD)) != TRUE )
       return rc;
+
+    if ( positions )
+    { intptr_t vend = end_range(P_VALUE PASS_LD);
+
+      set_range_position(P_HEAD, -1, vend PASS_LD);
+    }
 
     pairs++;
     token = get_token(FALSE, _PL_rd);	/* `,' or `}' */
@@ -4008,6 +4045,7 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 
 #undef P_HEAD
 #undef P_ARG
+#undef P_VALUE
 
   return build_map(pairs, _PL_rd PASS_LD);
 }
