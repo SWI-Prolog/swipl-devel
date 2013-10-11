@@ -374,6 +374,7 @@ A lsb			"lsb"
 A lshift		"<<"
 A main			"main"
 A map			"map"
+A map_position		"map_position"
 A mark			"mark"
 A matches		"matches"
 A max			"max"
@@ -873,6 +874,7 @@ F log			1
 F log10			1
 F lsb			1
 F lshift		2
+F map_position		5
 F max			2
 F max_size		1
 F message_lines		1

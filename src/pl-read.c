@@ -28,6 +28,7 @@
 #include "os/pl-utf8.h"
 #include "os/pl-dtoa.h"
 #include "pl-umap.c"			/* Unicode map */
+#include "pl-map.h"
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
@@ -318,15 +319,18 @@ typedef struct
 
 
 #define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
-#define T_NAME		1	/* ordinary name */
-#define T_VARIABLE	2	/* variable name */
-#define T_VOID		3	/* void variable */
-#define T_NUMBER	4	/* integer or float */
-#define T_STRING	5	/* "string" */
-#define T_PUNCTUATION	6	/* punctuation character */
-#define T_FULLSTOP	7	/* Prolog end of clause */
-#define T_QQ_OPEN	8	/* "{|" of {|Syntax||Quotation|} stuff */
-#define T_QQ_BAR	9	/* "||" of {|Syntax||Quotation|} stuff */
+#define T_MAP		1	/* name of a map class (atom, followed by '{') */
+#define T_NAME		2	/* ordinary name */
+#define T_VCLASS_MAP	3	/* variable name followed by '{' */
+#define T_VARIABLE	4	/* variable name */
+#define T_VOID_MAP	5	/* void variable followed by '{' */
+#define T_VOID		6	/* void variable */
+#define T_NUMBER	7	/* integer or float */
+#define T_STRING	8	/* "string" */
+#define T_PUNCTUATION	9	/* punctuation character */
+#define T_FULLSTOP     10	/* Prolog end of clause */
+#define T_QQ_OPEN      11	/* "{|" of {|Syntax||Quotation|} stuff */
+#define T_QQ_BAR       12	/* "||" of {|Syntax||Quotation|} stuff */
 
 #define E_SILENT	0	/* Silently fail */
 #define E_EXCEPTION	1	/* Generate an exception */
@@ -2550,6 +2554,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		  if ( *rdhere == '(' )
 		  { cur_token.type = T_FUNCTOR;
+		  } else if ( *rdhere == '{' )
+		  { cur_token.type = T_MAP;
 		  } else
 		  { cur_token.type = T_NAME;
 		  }
@@ -2571,14 +2577,20 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		       rdhere == start + 1 &&
 		       !_PL_rd->variables ) /* report them */
 		  { DEBUG(9, Sdprintf("VOID\n"));
-		    cur_token.type = T_VOID;
+		    if ( *rdhere == '{' )
+		      cur_token.type = T_VOID_MAP;
+		    else
+		      cur_token.type = T_VOID;
 		  } else
 		  { cur_token.value.variable = lookupVariable((char *)start,
 							      rdhere-start,
 							      _PL_rd);
 		    DEBUG(9, Sdprintf("VAR: %s\n",
 				      cur_token.value.variable->name));
-		    cur_token.type = T_VARIABLE;
+		    if ( *rdhere == '{' )
+		      cur_token.type = T_VCLASS_MAP;
+		    else
+		      cur_token.type = T_VARIABLE;
 		  }
 
 		  break;
@@ -2690,7 +2702,12 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  cur_token.value.atom = textToAtom(&txt);
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
-		  cur_token.type = (rdhere[0] == '(' ? T_FUNCTOR : T_NAME);
+		  if ( rdhere[0] == '(' )
+		    cur_token.type = T_FUNCTOR;
+		  else if ( rdhere[0] == '{' )
+		    cur_token.type = T_MAP;
+		  else
+		    cur_token.type = T_NAME;
 		  discardBuffer(&b);
 		  break;
 		}
@@ -2914,6 +2931,44 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
   w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
   gTop += 1+arity;
   *argp++ = functor;
+
+  for(av=argv; arity-- > 0; av++, argp++)
+    readValHandle(*av, argp, _PL_rd PASS_LD);
+
+  setHandle(argv[0], w);
+  truncate_term_stack(&argv[1], _PL_rd);
+
+  DEBUG(9, Sdprintf("result: "); pl_write(argv[0]); Sdprintf("\n") );
+  return TRUE;
+}
+
+
+/* build_map(int pairs, ...) builds a map from the data on the stack.
+   and pushes the result back to the term-stack. The stack first
+   contains:
+
+	class, key1, value1, key2, value2, ...
+*/
+
+static int
+build_map(int pairs, ReadData _PL_rd ARG_LD)
+{ int arity = pairs*2+1;
+  term_t *av, *argv = term_av(-arity, _PL_rd);
+  word w;
+  Word argp;
+  int rc;
+
+  if ( !hasGlobalSpace(pairs*2+2) &&
+       (rc=ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
+    return rc;
+  if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
+    return rc;
+
+  DEBUG(9, Sdprintf("Building map with %d pairs ... ", pairs));
+  argp = gTop;
+  w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
+  gTop += pairs*2+2;
+  *argp++ = map_functor(pairs);
 
   for(av=argv; arity-- > 0; av++, argp++)
     readValHandle(*av, argp, _PL_rd PASS_LD);
@@ -3303,6 +3358,7 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
   { case T_NAME:
       return TRUE;
     case T_FUNCTOR:
+    case T_MAP:
       return must_be_op;
     case T_PUNCTUATION:
     { switch(token->value.character)
@@ -3828,6 +3884,106 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 }
 
 
+/* read_map() reads <class>{key:value, ...} into a map as defined
+   in pl-map.c
+*/
+
+static inline int
+read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+{ int pairs = 0;
+  term_t pv;
+  int rc;
+
+#define P_HEAD (pv+0)
+#define P_ARG  (pv+1)
+
+  if ( positions )
+  { if ( !(pv = PL_new_term_refs(2)) ||
+	 !PL_unify_term(positions,
+			PL_FUNCTOR, FUNCTOR_map_position5,
+			PL_INTPTR, token->start, /* whole term */
+			PL_VARIABLE,
+			PL_INTPTR, token->start, /* class position */
+			PL_INTPTR, token->end,   /* key-value pairs */
+			PL_TERM, P_ARG) )
+      return FALSE;
+  } else
+    pv = 0;
+
+					/* Push the class */
+  switch ( token->type )
+  { case T_MAP:
+    { term_t term = alloc_term(_PL_rd PASS_LD);
+      PL_put_atom(term, token->value.atom);
+      PL_unregister_atom(token->value.atom);
+      break;
+    }
+    case T_VCLASS_MAP:
+    { term_t term = alloc_term(_PL_rd PASS_LD);
+      setHandle(term, token->value.variable->signature);
+      break;
+    }
+    case T_VOID_MAP:
+    { alloc_term(_PL_rd PASS_LD);
+    }
+  }
+
+  get_token(FALSE, _PL_rd);		/* Skip '{' */
+
+					/* process the key-values */
+  do
+  { Token key, sep;
+
+    if ( positions )
+    { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
+	return FALSE;
+    }
+
+    if ( !(key = get_token(FALSE, _PL_rd)) )
+      return FALSE;
+
+    if ( is_name_token(key, TRUE, _PL_rd) )
+    { term_t term = alloc_term(_PL_rd PASS_LD);
+      PL_put_atom(term, key->value.atom);
+      Unlock(key->value.atom);
+    } else if ( key->type == T_NUMBER )
+    { Number n = &key->value.number;
+
+      if ( n->type == V_INTEGER && valInt(consInt(n->value.i)) == n->value.i )
+      { term_t term = alloc_term(_PL_rd PASS_LD);
+	PL_put_integer(term, n->value.i);
+      } else
+	syntaxError("key_domain", _PL_rd); /* representation error? */
+    } else
+      syntaxError("key_expected", _PL_rd);
+
+    if ( !(sep = get_token(FALSE, _PL_rd)) )
+      return FALSE;
+
+    if ( !is_name_token(sep, TRUE, _PL_rd) ||
+	 key->value.atom != ATOM_colon )
+      syntaxError("colon_expected", _PL_rd);
+
+    if ( (rc=complex_term(",}", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
+      return rc;
+
+    pairs++;
+    token = get_token(FALSE, _PL_rd);	/* `,' or `}' */
+  } while(token->value.character == ',');
+
+  if ( positions )
+  { set_range_position(positions, -1, token->end PASS_LD);
+    if ( !PL_unify_nil(P_ARG) )
+      return FALSE;
+  }
+
+#undef P_HEAD
+#undef P_ARG
+
+  return build_map(pairs, _PL_rd PASS_LD);
+}
+
+
 /* simple_term() reads a term and leaves it on the top of the term-stack
 
 Token is the first token of the term.
@@ -3868,6 +4024,10 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     }
     case T_FUNCTOR:
       return read_compound(token, positions, _PL_rd PASS_LD);
+    case T_MAP:
+    case T_VCLASS_MAP:
+    case T_VOID_MAP:
+      return read_map(token, positions, _PL_rd PASS_LD);
     case T_PUNCTUATION:
     { switch(token->value.character)
       { case '(':
