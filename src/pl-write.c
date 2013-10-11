@@ -1163,11 +1163,14 @@ isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
 
 static int
 writeMapPair(term_t name, term_t value, int last, void *closure)
-{ write_options *options = closure;
+{ GET_LD
+  write_options *options = closure;
+  atom_t a;
 
-  if ( writeTerm(name, 599, options) &&
+  if ( PL_get_atom(name, &a) &&
+       writeAtom(a, options) &&
        PutToken(":", options->out) &&
-       writeTerm(value, 600, options) &&
+       writeTerm(value, 999, options) &&
        (last || PutComma(options)) )
     return 0;				/* continue */
 
