@@ -51,16 +51,16 @@ The term has the following layout on the global stack:
 
 static functor_t map_functors[CACHED_MAP_FUNCTORS] = {0};
 
-static functor_t
-map_functor(int arity)
-{ if ( arity < CACHED_MAP_FUNCTORS )
-  { if ( map_functors[arity] )
-      return map_functors[arity];
+functor_t
+map_functor(int pairs)
+{ if ( pairs < CACHED_MAP_FUNCTORS )
+  { if ( map_functors[pairs] )
+      return map_functors[pairs];
 
-    map_functors[arity] = lookupFunctorDef(ATOM_map, arity);
-    return map_functors[arity];
+    map_functors[pairs] = lookupFunctorDef(ATOM_map, pairs*2+1);
+    return map_functors[pairs];
   } else
-  { return lookupFunctorDef(ATOM_map, arity);
+  { return lookupFunctorDef(ATOM_map, pairs*2+1);
   }
 }
 
@@ -342,7 +342,7 @@ map_put(word map, int size, Word nv, word *new_map ARG_LD)
 
   gTop = out;
   new[1] = linkVal(&data->arguments[0]);
-  new[0] = map_functor(out-(new+1));
+  new[0] = map_functor((out-(new+1))/2);
 
   *new_map = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
 
@@ -427,7 +427,7 @@ PL_get_map_ex(term_t data, term_t class, term_t map)
     if ( !(m = allocGlobal(len*2+2)) )
       return FALSE;			/* global overflow */
     ap = m;
-    *ap++ = map_functor(len*2+1);
+    *ap++ = map_functor(len);
     if ( class )
       *ap++ = linkVal(valTermRef(class));
     else

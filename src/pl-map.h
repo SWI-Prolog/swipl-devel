@@ -34,4 +34,6 @@ COMMON(int)	PL_for_map(term_t map,
 			   void *closure,
 			   int flags);
 
+COMMON(functor_t) map_functor(int pairs);
+
 #endif /*PL_MAP_H_INCLUDED*/
