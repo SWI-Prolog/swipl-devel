@@ -2976,8 +2976,7 @@ build_map(int pairs, ReadData _PL_rd ARG_LD)
   setHandle(argv[0], w);
   truncate_term_stack(&argv[1], _PL_rd);
 
-  DEBUG(9, Sdprintf("result: "); pl_write(argv[0]); Sdprintf("\n") );
-  return TRUE;
+  return map_order(valPtr2(w, STG_GLOBAL), TRUE PASS_LD);
 }
 
 

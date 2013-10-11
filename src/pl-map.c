@@ -225,7 +225,7 @@ map_lookup_ptr(word map, word name ARG_LD)
 */
 
 static int
-map_ordered(Word data, int count ARG_LD)
+map_ordered(Word data, int count, int ex ARG_LD)
 { Word n1, n2;
 
   deRef2(data, n1);
@@ -235,8 +235,18 @@ map_ordered(Word data, int count ARG_LD)
   { deRef2(data+2, n2);
     if ( !is_key(*n2) )
       return FALSE;
-    if ( *n1 >= *n2 )
+    if ( *n1 < *n2 )
+      continue;
+    if ( *n1 > *n2 )
       return FALSE;
+    if ( *n1 == *n2 )
+    { if ( ex )
+      { term_t t = PL_new_term_ref();
+	*valTermRef(t) = linkVal(n1);
+	return PL_error(NULL, 0, NULL, ERR_DUPLICATE_KEY, t);
+      }
+      return FALSE;
+    }
   }
 
   return TRUE;
@@ -255,8 +265,8 @@ compare_map_entry(const void *a, const void *b, void *arg)
 }
 
 
-static int
-map_order(Word map ARG_LD)
+int
+map_order(Word map, int ex ARG_LD)
 { Functor data = (Functor)map;
   int arity = arityFunctor(data->definition);
 
@@ -265,7 +275,7 @@ map_order(Word map ARG_LD)
   sort_r(data->arguments+1, arity/2, sizeof(word)*2,
 	 compare_map_entry, LD);
 
-  return map_ordered(data->arguments+1, arity/2 PASS_LD);
+  return map_ordered(data->arguments+1, arity/2, ex PASS_LD);
 }
 
 
@@ -401,7 +411,7 @@ PL_is_map(term_t t)
 
     if ( fd->name == ATOM_map &&
 	 fd->arity%2 == 1 &&
-	 map_ordered(f->arguments+1, fd->arity/2 PASS_LD) )
+	 map_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) )
       return TRUE;
   }
 
@@ -450,12 +460,12 @@ PL_get_map_ex(term_t data, term_t class, term_t map)
       ap += 2;
     }
 
-    if ( map_order(m PASS_LD) )
+    if ( map_order(m, TRUE PASS_LD) )
     { *valTermRef(map) = consPtr(m, TAG_COMPOUND|STG_GLOBAL);
       return TRUE;
+    } else
+    { return FALSE;
     }
-
-    gTop = m;
   }					/* TBD: {name:value, ...} */
 
   return PL_type_error("map-data", data);
@@ -588,7 +598,7 @@ PRED_IMPL("is_map", 2, is_map, 0)
 
     if ( fd->name == ATOM_map &&
 	 fd->arity%2 == 1 &&
-	 map_ordered(f->arguments+1, fd->arity/2 PASS_LD) )
+	 map_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) )
       return unify_ptrs(&f->arguments[0], valTermRef(A2),
 			ALLOW_GC|ALLOW_SHIFT PASS_LD);
   }

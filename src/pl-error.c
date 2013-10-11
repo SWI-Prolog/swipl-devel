@@ -596,6 +596,14 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_TERM, arg);
       break;
     }
+    case ERR_DUPLICATE_KEY:
+    { term_t key = va_arg(args, term_t);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_duplicate_key1,
+			   PL_TERM, key);
+      break;
+    }
     default:
       assert(0);
   }
@@ -667,9 +675,9 @@ PL_uninstantiation_error(term_t actual)
 }
 
 int
-PL_representation_error(const char *resource)
-{ atom_t r = PL_new_atom(resource);
-  int rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, r);
+PL_representation_error(const char *representation)
+{ atom_t r = PL_new_atom(representation);
+  int rc = PL_error(NULL, 0, NULL, ERR_REPRESENTATION, r);
   PL_unregister_atom(r);
 
   return rc;

@@ -72,7 +72,8 @@ typedef enum
   ERR_SHARED_OBJECT_OP,		/* op, error */
   ERR_SIGNALLED,		/* int sig, char *name */
   ERR_SYNTAX,			/* what */
-  ERR_UNDEFINED_PROC		/* Definition def */
+  ERR_UNDEFINED_PROC,		/* Definition def */
+  ERR_DUPLICATE_KEY		/* term_t */
 } PL_error_code;
 
 #define MSG_ERRNO		((char *)(-1))

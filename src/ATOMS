@@ -204,6 +204,7 @@ A dthread_init		"$thread_init"
 A dthrow		"$throw"
 A dtime			"$time"
 A dtoplevel		"$toplevel"
+A duplicate_key		"duplicate_key"
 A dvard			"$VAR$"
 A dwakeup		"$wakeup"
 A dynamic		"dynamic"
@@ -814,6 +815,7 @@ F dstream		1
 F dthread_init		0
 F dthrow		1
 F dtime			2
+F duplicate_key		1
 F dvard			1
 F dwakeup		1
 F e			0
