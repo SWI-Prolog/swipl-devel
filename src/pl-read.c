@@ -2953,10 +2953,34 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
 static int
 build_map(int pairs, ReadData _PL_rd ARG_LD)
 { int arity = pairs*2+1;
-  term_t *av, *argv = term_av(-arity, _PL_rd);
+  term_t *argv = term_av(-arity, _PL_rd);
   word w;
   Word argp;
-  int rc;
+  int i, rc;
+  int index_buf[64];
+  int *indexes = index_buf;
+
+  if ( pairs > 64 )
+  { if ( !(indexes = malloc(sizeof(int)*pairs)) )
+      return PL_no_memory();
+  }
+  for(i=0; i<pairs; i++)
+    indexes[i] = i;
+
+  if ( (i=map_order_term_refs(argv+1, indexes, pairs PASS_LD)) )
+  { term_t ex = PL_new_term_ref();
+
+    rc = ( PL_unify_term(ex,
+			 PL_FUNCTOR, FUNCTOR_duplicate_key1,
+			   PL_TERM, argv[indexes[i]*2+1]) &&
+	   errorWarningA1("duplicate_key", NULL, ex, _PL_rd)
+	 );
+
+    if ( indexes != index_buf )
+      free(indexes);
+
+    return rc;
+  }
 
   if ( !hasGlobalSpace(pairs*2+2) &&
        (rc=ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
@@ -2969,14 +2993,20 @@ build_map(int pairs, ReadData _PL_rd ARG_LD)
   w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
   gTop += pairs*2+2;
   *argp++ = map_functor(pairs);
+  readValHandle(argv[0], argp++, _PL_rd PASS_LD); /* the class */
 
-  for(av=argv; arity-- > 0; av++, argp++)
-    readValHandle(*av, argp, _PL_rd PASS_LD);
+  for(i=0; i<pairs; i++)
+  { readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd PASS_LD);
+    readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd PASS_LD);
+  }
 
   setHandle(argv[0], w);
   truncate_term_stack(&argv[1], _PL_rd);
 
-  return map_order(valPtr2(w, STG_GLOBAL), TRUE PASS_LD);
+  if ( indexes != index_buf )
+    free(indexes);
+
+  return TRUE;
 }
 
 

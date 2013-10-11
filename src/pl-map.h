@@ -35,5 +35,6 @@ COMMON(int)	PL_for_map(term_t map,
 			   int flags);
 
 COMMON(functor_t) map_functor(int pairs);
-COMMON(int)	  map_order(Word map, int ex ARG_LD);
+COMMON(int)	  map_order_term_refs(term_t *av, int *indexes, int count ARG_LD);
+
 #endif /*PL_MAP_H_INCLUDED*/

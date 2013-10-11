@@ -265,7 +265,7 @@ compare_map_entry(const void *a, const void *b, void *arg)
 }
 
 
-int
+static int
 map_order(Word map, int ex ARG_LD)
 { Functor data = (Functor)map;
   int arity = arityFunctor(data->definition);
@@ -276,6 +276,58 @@ map_order(Word map, int ex ARG_LD)
 	 compare_map_entry, LD);
 
   return map_ordered(data->arguments+1, arity/2, ex PASS_LD);
+}
+
+
+/* map_order_term_refs() orders an array of indexes into a key/value array
+   of term references. Returns 0 if there are no duplicates and else the
+   index of the first duplicate.
+*/
+
+typedef struct order_term_refs
+{ PL_local_data_t *ld;
+  term_t *av;
+} order_term_refs;
+
+
+static int
+compare_term_refs(const void *a, const void *b, void *arg)
+{ const int *ip1 = a;
+  const int *ip2 = b;
+  order_term_refs *ctx = arg;
+  PL_local_data_t *__PL_ld = ctx->ld;
+  Word p = valTermRef(ctx->av[*ip1*2]);
+  Word q = valTermRef(ctx->av[*ip2*2]);
+
+  assert(!isRef(*p));
+  assert(!isRef(*q));
+
+  return (*p<*q ? -1 : *p>*q ? 1 : 0);
+}
+
+
+int
+map_order_term_refs(term_t *av, int *indexes, int count ARG_LD)
+{ order_term_refs ctx;
+
+  ctx.ld = LD;
+  ctx.av = av;
+
+  sort_r(indexes, count, sizeof(int), compare_term_refs, &ctx);
+  if ( count > 1 )
+  { word k = *valTermRef(av[indexes[0]*2]);
+    int i;
+
+    for(i=1; i<count; i++)
+    { word k2 = *valTermRef(av[indexes[i]*2]);
+
+      if ( k == k2 )
+	return i;
+      k = k2;
+    }
+  }
+
+  return 0;
 }
 
 
