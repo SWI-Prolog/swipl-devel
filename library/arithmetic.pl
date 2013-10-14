@@ -209,7 +209,10 @@ evaluable(F) :-
 evaluable([_Code]) :- !.
 evaluable(F) :-
 	current_arithmetic_function(F),
-	forall(arg(_,F,A), evaluable(A)).
+	(   compound(F)
+	->  forall(arg(_,F,A), evaluable(A))
+	;   true
+	).
 
 %%	tidy(+GoalIn, -GoalOut)
 %
