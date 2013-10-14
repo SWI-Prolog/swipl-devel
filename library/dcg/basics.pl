@@ -370,15 +370,18 @@ mkval([H|T], Base, W0, W) :-
 
 %%	eos//
 %
-%	True if at end of input list.  This is implemented as
+%	Matches  end-of-input.  The  implementation    behaves   as  the
+%	following portable implementation:
 %
-%	    ==
-%	    eos -->
-%	        \+ [_].
-%	    ==
+%	  ==
+%	  eos --> call(eos_).
+%	  eos_([], []).
+%	  ==
+%
+%	@tbd	This is a difficult concept and violates the _context free_
+%		property of DCGs.  Explain the exact problems.
 
-eos -->
-	\+ [_].
+eos([], []).
 
 		 /*******************************
 		 *	   PROLOG SYNTAX		*
