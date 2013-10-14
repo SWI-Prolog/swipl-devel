@@ -1951,8 +1951,6 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       deRef(p);
       if ( isTerm(*p) )
 	arity = arityTerm(*p);
-      else if ( isTextAtom(*p) && !truePrologFlag(PLFLAG_ISO) )
-	arity = 0;
       else
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
 
@@ -1978,9 +1976,10 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
     { term_t a;
       fid_t fid;
       int rc;
+      Word p = valTermRef(term);
 
-      if ( !PL_get_name_arity(term, &name, &arity) )
-	sysError("arg/3: PL_get_name_arity() failed");
+      deRef(p);
+      arity = arityTerm(*p);
       argn = (int)CTX_INT + 1;
 
     genarg:
