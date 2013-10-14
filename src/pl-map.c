@@ -543,26 +543,30 @@ cmp_map_index(const void *a1, const void *a2, void *arg)
   int *ip2 = (int*)a2;
   cmp_map_index_data *ctx = arg;
   PL_local_data_t *__PL_ld = ctx->ld;
-
-  Word p = &ctx->data[ctx->indexes[*ip1]*2];
-  Word q = &ctx->data[ctx->indexes[*ip2]*2];
+  Word p = &ctx->data[*ip1*2];
+  Word q = &ctx->data[*ip2*2];
+  int rc;
 
   deRef(p);
   deRef(q);
 
   if ( *p == *q )
-    return CMP_EQUAL;
-
-  if ( isAtom(*p) )
-  { if ( isAtom(*q) )
-      return compareAtoms(*p, *q);
-    else
-      return CMP_GREATER;
+  { rc = CMP_EQUAL;
   } else
-  { if ( isTaggedInt(*p) )
-      return valInt(*p) > valInt(*q) ? 1 : -1;
-    return CMP_LESS;
+  { if ( isAtom(*p) )
+    { if ( isAtom(*q) )
+	rc = compareAtoms(*p, *q);
+      else
+	rc = CMP_GREATER;
+    } else
+    { if ( isTaggedInt(*p) )
+	rc = valInt(*p) > valInt(*q) ? CMP_GREATER : CMP_LESS;
+      else
+	rc = CMP_LESS;
+    }
   }
+
+  return rc;
 }
 
 
