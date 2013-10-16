@@ -141,7 +141,7 @@ check_break(Ref) :-
 subgoal_location(SubTerm, Term, Path) :-
 	(   SubTerm =@= Term
 	->  Path = []
-	;   callable(Term),
+	;   compound(Term),
 	    Path = [I|T],
 	    arg(I, Term, Arg),
 	    subgoal_location(SubTerm, Arg, T)
