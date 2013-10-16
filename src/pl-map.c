@@ -693,8 +693,10 @@ PRED_IMPL("map_get", 3, map_get, PL_FA_NONDETERMINISTIC)
 	return FALSE;
       }
       if ( canBind(*np) )
-	i = 1;
-      goto search;
+      { i = 1;
+	goto search;
+      }
+      return PL_type_error("key", A2);
     }
     case FRG_REDO:
     { Functor f;
