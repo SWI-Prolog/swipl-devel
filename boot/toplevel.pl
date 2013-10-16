@@ -685,26 +685,27 @@ restore_debug :-
 	current_prolog_flag(toplevel_prompt, PAtom),
 	atom_codes(PAtom, P0),
 	(    Module \== user
-	->   '$substitute'("~m", [Module, ": "], P0, P1)
-	;    '$substitute'("~m", [], P0, P1)
+	->   '$substitute'('~m', [Module, ': '], P0, P1)
+	;    '$substitute'('~m', [], P0, P1)
 	),
 	(    BrekLev > 0
-	->   '$substitute'("~l", ["[", BrekLev, "] "], P1, P2)
-	;    '$substitute'("~l", [], P1, P2)
+	->   '$substitute'('~l', ['[', BrekLev, '] '], P1, P2)
+	;    '$substitute'('~l', [], P1, P2)
 	),
 	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
 	(    Tracing == true
-	->   '$substitute'("~d", ["[trace] "], P2, P3)
+	->   '$substitute'('~d', ['[trace] '], P2, P3)
 	;    Debugging == true
-	->   '$substitute'("~d", ["[debug] "], P2, P3)
-	;    '$substitute'("~d", [], P2, P3)
+	->   '$substitute'('~d', ['[debug] '], P2, P3)
+	;    '$substitute'('~d', [], P2, P3)
 	),
 	atom_chars(Prompt, P3).
 
 '$substitute'(From, T, Old, New) :-
+	atom_codes(From, FromCodes),
 	phrase(subst_chars(T), T0),
 	'$append'(Pre, S0, Old),
-	'$append'(From, Post, S0) ->
+	'$append'(FromCodes, Post, S0) ->
 	'$append'(Pre, T0, S1),
 	'$append'(S1, Post, New), !.
 '$substitute'(_, _, Old, Old).
@@ -1014,18 +1015,18 @@ get_respons(Action) :-
 	    ).
 
 answer_respons(Char, again) :-
-	memberchk(Char, "?h"), !,
+	'$in_reply'(Char, '?h'), !,
 	print_message(help, query(help)).
 answer_respons(Char, redo) :-
-	memberchk(Char, ";nrNR \t"), !,
+	'$in_reply'(Char, ';nrNR \t'), !,
 	print_message(query, if_tty([ansi(bold, ';', [])])).
 answer_respons(Char, redo) :-
-	memberchk(Char, "tT"), !,
+	'$in_reply'(Char, 'tT'), !,
 	trace,
 	save_debug,
 	print_message(query, if_tty([ansi(bold, '; [trace]', [])])).
 answer_respons(Char, continue) :-
-	memberchk(Char, "ca\n\ryY."), !,
+	'$in_reply'(Char, 'ca\n\ryY.'), !,
 	print_message(query, if_tty([ansi(bold, '.', [])])).
 answer_respons(0'b, show_again) :- !,
 	break.

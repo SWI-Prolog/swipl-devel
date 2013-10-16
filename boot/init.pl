@@ -533,16 +533,20 @@ default_module(Me, Super) :-
 	print_message(query, Spec),
 	between(0, 5, _),
 	    get_single_char(Answer),
-	    (	memberchk(Answer, "yYjJ \n")
+	    (	'$in_reply'(Answer, 'yYjJ \n')
 	    ->	!,
 	        print_message(query, if_tty([yes-[]]))
-	    ;	memberchk(Answer, "nN")
+	    ;	'$in_reply'(Answer, 'nN')
 	    ->	!,
 	        print_message(query, if_tty([no-[]])),
 		fail
 	    ;	print_message(help, query(confirm)),
 		fail
 	    ).
+
+'$in_reply'(Code, Atom) :-
+	char_code(Char, Code),
+	sub_atom(Atom, _, _, _, Char), !.
 
 :- dynamic
 	user:portray/1.

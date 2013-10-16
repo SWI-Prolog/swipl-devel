@@ -72,6 +72,8 @@ _lookupModule(atom_t name)
 #endif
   clearFlags(m);
   set(m, M_CHARESCAPE);
+  if ( !GD->options.traditional )
+    set(m, DBLQ_STRING);
 #ifdef O_META_ATOMS
   set(m, BQ_META_ATOM);
 #endif

@@ -1206,7 +1206,8 @@ initPrologFlags(void)
   setPrologFlag("stream_type_check", FT_ATOM, "loose");
   setPrologFlag("occurs_check", FT_ATOM, "false");
   setPrologFlag("access_level", FT_ATOM, "user");
-  setPrologFlag("double_quotes", FT_ATOM, "codes");
+  setPrologFlag("double_quotes", FT_ATOM,
+		GD->options.traditional ? "codes" : "string");
 #ifdef O_META_ATOMS
   setPrologFlag("back_quotes", FT_ATOM, "meta_atom");
 #else

@@ -127,7 +127,8 @@ prompt_history(Prompt) :-
 	),
 	atom_codes(Prompt, SP),
 	atom_codes(This, ST),
-	(   substitute("~!", ST, SP, String)
+	(   atom_codes('~!', Repl),
+	    substitute(Repl, ST, SP, String)
 	->  prompt1(String)
 	;   prompt1(Prompt)
 	),
