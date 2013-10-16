@@ -117,6 +117,8 @@ Below is an informal description of the format of a `.qlf' file:
 			    <#n subclause> <codes>
 		      | 'X'				% end of list
 <XR>		::=	XR_REF     <num>		% XR id from table
+			XR_NIL				% []
+			XR_CONS				% functor of [_|_]
 			XR_ATOM    <len><chars>		% atom
 			XR_BLOB	   <blob><private>	% typed atom (blob)
 			XR_INT     <num>		% number
@@ -155,23 +157,25 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 64			/* load all versions later >= X */
-#define VERSION 64			/* save version number */
+#define LOADVERSION 65			/* load all versions later >= X */
+#define VERSION     65			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
-#define XR_REF     0			/* reference to previous */
-#define XR_ATOM	   1			/* atom */
-#define XR_FUNCTOR 2			/* functor */
-#define XR_PRED	   3			/* procedure */
-#define XR_INT     4			/* int */
-#define XR_FLOAT   5			/* float */
-#define XR_STRING  6			/* string */
-#define XR_FILE	   7			/* source file */
-#define XR_MODULE  8			/* a module */
-#define XR_BLOB	   9			/* a typed atom (blob) */
-#define XR_BLOB_TYPE 10			/* name of atom-type declaration */
-#define XR_STRING_UTF8 11		/* Wide character string */
-#define XR_NULL	  12			/* NULL pointer */
+#define XR_REF		0		/* reference to previous */
+#define XR_NIL		1		/* [] */
+#define XR_CONS		2		/* functor of [_|_] */
+#define XR_ATOM		3		/* atom */
+#define XR_FUNCTOR	4		/* functor */
+#define XR_PRED		5		/* procedure */
+#define XR_INT		6		/* int */
+#define XR_FLOAT	7		/* float */
+#define XR_STRING	8		/* string */
+#define XR_FILE		9		/* source file */
+#define XR_MODULE      10		/* a module */
+#define XR_BLOB	       11		/* a typed atom (blob) */
+#define XR_BLOB_TYPE   12		/* name of atom-type declaration */
+#define XR_STRING_UTF8 13		/* Wide character string */
+#define XR_NULL	       14		/* NULL pointer */
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
@@ -605,6 +609,10 @@ loadXRc(wic_state *state, int c ARG_LD)
 
       return val;
     }
+    case XR_NIL:
+      return ATOM_nil;
+    case XR_CONS:
+      return ATOM_dot;
     case XR_ATOM:
     { id = ++state->XR->id;
       xr = getAtom(fd, NULL);
@@ -1599,7 +1607,7 @@ static void
 putAtom(wic_state *state, atom_t w)
 { IOSTREAM *fd = state->wicFd;
   Atom a = atomValue(w);
-  static PL_blob_t *text_blob;		/* MT: ok */
+  static PL_blob_t *text_blob;
 
   if ( !text_blob )
     text_blob = PL_find_blob_type("text");
@@ -1811,6 +1819,16 @@ saveXR__LD(wic_state *state, word xr ARG_LD)
     return;
 #endif /* O_STRING */
   }
+
+  if ( xr == ATOM_nil )
+  { Sputc(XR_NIL, fd);
+    return;
+  }
+  if ( xr == ATOM_dot )
+  { Sputc(XR_CONS, fd);
+    return;
+  }
+
 
   if ( savedXRConstant(state, xr) )
     return;
