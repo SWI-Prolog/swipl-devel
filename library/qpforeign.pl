@@ -177,7 +177,9 @@ get_foreign_head(M:Spec, Func, M:Head) :-
 
 check_head(_:Head) :-
 	functor(Head, _, Arity),
-	(   arg(_, Head, [-T]),
+	(   Arity == 0
+	->  true
+	;   arg(_, Head, [-T]),
 	    \+ valid_type(T)
 	->  warning('Bad return type ~w in ~w', [T, Head]),
 	    fail
@@ -239,11 +241,13 @@ make_C_header(Out, WrapName, ArgN) :-
 %	o<argname>.
 
 make_C_decls(Out, _:Head) :-
+	compound(Head),
 	arg(_, Head, [-PlType]),
 	map_C_type(PlType, CType),
 	format(Out, '~wrval;~n  ', [CType]),
 	fail.
 make_C_decls(Out, _:Head) :-
+	compound(Head),
 	arg(N, Head, -PlType),
 	arg_name(N, AName),
 	(   PlType == term
@@ -253,6 +257,7 @@ make_C_decls(Out, _:Head) :-
 	),
 	fail.
 make_C_decls(Out, _:Head) :-
+	compound(Head),
 	arg(N, Head, +PlType),
 	PlType \== term,
 	map_C_type(PlType, CType),
@@ -269,14 +274,16 @@ make_C_decls(Out, _) :-
 %	declaration for it to avoid unwanted conversions.
 
 make_C_prototype(Out, M:Head) :-
-	(   arg(_, Head, [-Type])
+	(   compound(Head),
+	    arg(_, Head, [-Type])
 	->  map_C_type(Type, CType)
 	;   CType = 'void '
 	),
 	copy_term(Head, H2),		% don't bind Head
 	hook(M:foreign(CFunc, c, H2)), !,
 	format(Out, '  extern ~w~w(', [CType, CFunc]),
-	(   arg(N, Head, AType),
+	(   compound(Head),
+	    arg(N, Head, AType),
 	    AType \= [_],		% return-type
 	    (N > 1 -> format(Out, ', ', []) ; true),
 	    (   AType = +T2
@@ -302,7 +309,7 @@ make_C_prototype(_, _).
 %	Function returns 0 if the conversion fails.
 
 make_C_input_conversions(Out, _:Head) :-
-	findall(N-T, arg(N, Head, +T), IArgs0),
+	findall(N-T, (compound(Head),arg(N, Head, +T)), IArgs0),
 	exclude(term_arg, IArgs0, IArgs),
 	(   IArgs == []
 	->  true
@@ -330,10 +337,12 @@ term_arg(_-term).
 %	to the o<var>, except for output-variables of type term.
 
 make_C_call(Out, _:Head, CFunc) :-
-	(   arg(_, Head, [-_])
+	(   compound(Head),
+	    arg(_, Head, [-_])
 	->  format(Out, '  rval = ~w(', [CFunc])
 	;   format(Out, '  (void) ~w(', [CFunc])
 	),
+	compound(Head),
 	arg(N, Head, Arg),
 	Arg \= [_],
 	(N \== 1 -> format(Out, ', ', []) ; true),
@@ -378,8 +387,9 @@ make_C_wrapper_check(_).
 %	with the Prolog term_t arguments.
 
 make_C_output_conversions(Out, _:Head) :-
-	findall(N-T, arg(N, Head, -T), OArgs0),
-	(   arg(_, Head, [-RT])
+	findall(N-T, (compound(Head),arg(N, Head, -T)), OArgs0),
+	(   compound(Head),
+	    arg(_, Head, [-RT])
 	->  OArgs = [rval-RT|OArgs0]
 	;   OArgs = OArgs0
 	),
