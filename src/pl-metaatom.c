@@ -61,12 +61,15 @@ _PL_atoms(void)
 
 void
 initMetaAtoms(void)
-{ const atom_t *ap;
+{ PL_register_blob_type(&meta_atom);
 
-  PL_register_blob_type(&meta_atom);
-  for(ap=meta_atoms; *ap; ap++)
-  { Atom a = atomValue(*ap);
-    a->type = &meta_atom;
+  if ( !GD->options.traditional )
+  { const atom_t *ap;
+
+    for(ap=meta_atoms; *ap; ap++)
+    { Atom a = atomValue(*ap);
+      a->type = &meta_atom;
+    }
   }
 }
 

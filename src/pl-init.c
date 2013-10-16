@@ -570,6 +570,8 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
       } else if ( (optval=is_longopt(s, "win_app")) )
       { GD->options.win_app = TRUE;
 #endif
+      } else if ( (optval=is_longopt(s, "traditional")) )
+      { GD->options.traditional = TRUE;
       }
 
       continue;				/* don't handle --long=value */
@@ -772,7 +774,6 @@ PL_initialise(int argc, char **argv)
   initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
   { GET_LD
-  setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 #ifdef HAVE_SIGNAL
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
@@ -825,6 +826,8 @@ PL_initialise(int argc, char **argv)
 
   GD->cmdline.appl_argc = argc;
   GD->cmdline.appl_argv = argv;
+
+  setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 
   if ( !setupProlog() )
     return FALSE;
