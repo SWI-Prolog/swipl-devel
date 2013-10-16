@@ -143,7 +143,16 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		      action, ATOM_operator, t);
     }
+
+    if ( !unquoted_atom(name) )
+    { GET_LD
+      term_t t = PL_new_term_ref();
+
+      PL_put_atom(t, name);
+      return PL_domain_error("unquoted_atom", t);
+    }
   }
+
 
   LOCK();
   if ( !m->operators )

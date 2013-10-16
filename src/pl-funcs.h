@@ -633,6 +633,7 @@ COMMON(int)		writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags);
 COMMON(int)		writeMetaAtom(IOSTREAM *fd, atom_t atom, int flags);
 COMMON(int)		writeAtomToStream(IOSTREAM *s, atom_t atom);
 COMMON(char *)		format_float(double f, char *buf);
+COMMON(int)		unquoted_atom(atom_t a);
 
 /* pl-term.c */
 COMMON(void)		cleanupTerm(void);

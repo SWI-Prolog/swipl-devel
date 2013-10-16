@@ -320,17 +320,18 @@ typedef struct
 
 #define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
 #define T_MAP		1	/* name of a map class (atom, followed by '{') */
-#define T_NAME		2	/* ordinary name */
-#define T_VCLASS_MAP	3	/* variable name followed by '{' */
-#define T_VARIABLE	4	/* variable name */
-#define T_VOID_MAP	5	/* void variable followed by '{' */
-#define T_VOID		6	/* void variable */
-#define T_NUMBER	7	/* integer or float */
-#define T_STRING	8	/* "string" */
-#define T_PUNCTUATION	9	/* punctuation character */
-#define T_FULLSTOP     10	/* Prolog end of clause */
-#define T_QQ_OPEN      11	/* "{|" of {|Syntax||Quotation|} stuff */
-#define T_QQ_BAR       12	/* "||" of {|Syntax||Quotation|} stuff */
+#define T_QNAME		2	/* quoted name */
+#define T_NAME		3	/* ordinary name */
+#define T_VCLASS_MAP	4	/* variable name followed by '{' */
+#define T_VARIABLE	5	/* variable name */
+#define T_VOID_MAP	6	/* void variable followed by '{' */
+#define T_VOID		7	/* void variable */
+#define T_NUMBER	8	/* integer or float */
+#define T_STRING	9	/* "string" */
+#define T_PUNCTUATION  10	/* punctuation character */
+#define T_FULLSTOP     11	/* Prolog end of clause */
+#define T_QQ_OPEN      12	/* "{|" of {|Syntax||Quotation|} stuff */
+#define T_QQ_BAR       13	/* "||" of {|Syntax||Quotation|} stuff */
 
 #define E_SILENT	0	/* Silently fail */
 #define E_EXCEPTION	1	/* Generate an exception */
@@ -2707,7 +2708,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  else if ( rdhere[0] == '{' )
 		    cur_token.type = T_MAP;
 		  else
-		    cur_token.type = T_NAME;
+		    cur_token.type = T_QNAME;
 		  discardBuffer(&b);
 		  break;
 		}
@@ -4072,6 +4073,7 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
       return unify_atomic_position(positions, token);
     }
     case T_NAME:
+    case T_QNAME:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);

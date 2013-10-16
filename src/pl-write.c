@@ -185,13 +185,15 @@ atomType(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
   char *s = atom->name;
   size_t len = atom->length;
-  IOSTREAM *fd = options->out;
+  IOSTREAM *fd = options ? options->out : NULL;
 
   if ( len == 0 )
     return AT_QUOTE;
 
   if ( isLower(*s) )
-  { for(++s; --len > 0 && isAlpha(*s) && Scanrepresent(*s, fd)==0; s++)
+  { for( ++s;
+	 --len > 0 && isAlpha(*s) && (!fd || Scanrepresent(*s, fd)==0);
+	 s++)
       ;
     return len == 0 ? AT_LOWER : AT_QUOTE;
   }
@@ -205,7 +207,9 @@ atomType(atom_t a, write_options *options)
     if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
 
-    for(; left > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++, left--)
+    for( ;
+	 left > 0 && isSymbol(*s) && (!fd || Scanrepresent(*s, fd)==0);
+	 s++, left--)
     { if ( *s == '`' &&
 	   true(options, PL_WRT_BACKQUOTED_STRING|PL_WRT_BQ_META_ATOM) )
 	return AT_QUOTE;
@@ -226,6 +230,25 @@ atomType(atom_t a, write_options *options)
     return AT_SPECIAL;
 
   return AT_QUOTE;
+}
+
+
+int
+unquoted_atom(atom_t a)
+{ Atom ap = atomValue(a);
+
+  if ( true(ap->type, PL_BLOB_TEXT) )
+  { if ( !ap->type->write )		/* ordinary atoms */
+    { return atomType(a, NULL) != AT_QUOTE;
+    } else if ( isUCSAtom(ap) )		/* wide atoms */
+    { pl_wchar_t *s = (pl_wchar_t*)ap->name;
+      size_t len = ap->length/sizeof(pl_wchar_t);
+
+      return unquoted_atomW(s, len, NULL);
+    }
+  }
+
+  return FALSE;
 }
 
 
