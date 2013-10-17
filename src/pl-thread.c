@@ -2821,6 +2821,9 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       if ( rc )
       { DEBUG(MSG_QUEUE, Sdprintf("%d: match\n", PL_thread_self()));
 
+      if (GD->atoms.gc_active)
+        markAtomsRecord(msgp->message);
+
 #ifdef O_ATOMGC
 	if ( queue->type == QTYPE_QUEUE )
           simpleMutexLock(&queue->gc_mutex);
