@@ -291,9 +291,9 @@ external_edit_command(Location, Command) :-
 	edit_command(Base, Cmd),
 	prolog_to_os_filename(File, OsFile),
 	atom_codes(Cmd, S0),
-	substitute("%e", Editor, S0, S1),
-	substitute("%f", OsFile, S1, S2),
-	substitute("%d", Line,   S2, S), !,
+	substitute('%e', Editor, S0, S1),
+	substitute('%f', OsFile, S1, S2),
+	substitute('%d', Line,   S2, S), !,
 	atom_codes(Command, S).
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
@@ -303,9 +303,9 @@ external_edit_command(Location, Command) :-
 	edit_command(Base, Cmd),
 	prolog_to_os_filename(File, OsFile),
 	atom_codes(Cmd, S0),
-	substitute("%e", Editor, S0, S1),
-	substitute("%f", OsFile, S1, S),
-	\+ substitute("%d", 1, S, _), !,
+	substitute('%e', Editor, S0, S1),
+	substitute('%f', OsFile, S1, S),
+	\+ substitute('%d', 1, S, _), !,
 	atom_codes(Command, S).
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
@@ -363,7 +363,8 @@ edit_command(edit,        '%e %f').
 edit_command(emacsclient, Command) :- edit_command(emacs, Command).
 edit_command(vim,         Command) :- edit_command(vi,    Command).
 
-substitute(From, ToAtom, Old, New) :-
+substitute(FromAtom, ToAtom, Old, New) :-
+	atom_codes(FromAtom, From),
 	(   atom(ToAtom)
 	->  atom_codes(ToAtom, To)
 	;   number_codes(ToAtom, To)

@@ -174,10 +174,10 @@ debug_topic(Topic) :-
 %	List currently known debug topics and their setting.
 
 list_debug_topics :-
-	format(user_error, '~*t~45|~n', "-"),
+	format(user_error, '~`-t~45|~n', []),
 	format(user_error, '~w~t ~w~35| ~w~n',
 	       ['Debug Topic', 'Activated', 'To']),
-	format(user_error, '~*t~45|~n', "-"),
+	format(user_error, '~`-t~45|~n', []),
 	(   debugging(Topic, Value, To),
 	    format(user_error, '~w~t ~w~35| ~w~n', [Topic, Value, To]),
 	    fail

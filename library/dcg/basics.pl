@@ -76,19 +76,20 @@ library.
 	generally useful DCG primitives.
 */
 
-%%	string_without(+End, -Codes)// is det.
+%%	string_without(+EndCodes, -Codes)// is det.
 %
-%	Take as many tokens from the input until the next character code
-%	appears in the list End. The terminating  code itself is left on
-%	the input. Typical use is to read  upto a defined delimiter such
-%	as a newline or other reserved character.  For example:
+%	Take as many codes from the input  until the next character code
+%	appears in the list EndCodes.  The   terminating  code itself is
+%	left on the input.  Typical  use  is   to  read  upto  a defined
+%	delimiter such as a newline  or   other  reserved character. For
+%	example:
 %
 %	    ==
 %	        ...,
 %	        string_without("\n", RestOfLine)
 %	    ==
 %
-%	@arg End is a list of character codes.
+%	@arg EndCodes is a list of character codes.
 %	@see string//1.
 
 string_without(End, Codes) -->
@@ -296,12 +297,12 @@ number(N) -->
 	    digit(DF0),
 	    digits(DF)
 	->  {F = [0'., DF0|DF]}
-	;   {F = ""}
+	;   {F = []}
 	),
 	(   exp
 	->  int_codes(DI),
 	    {E=[0'e|DI]}
-	;   {E = ""}
+	;   {E = []}
 	),
 	{ append([I, F, E], Codes),
 	  number_codes(N, Codes)

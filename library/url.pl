@@ -176,14 +176,14 @@ curi(A) -->
 cpath(A) -->
 	(   { memberchk(path(Path), A) }
 	->  { atom_codes(Path, Codes) },
-	    www_encode(Codes, "/+:,")
+	    www_encode(Codes, [0'/, 0'+, 0':, 0',])
 	;   ""
 	).
 
 cuser(A) -->
 	(   { memberchk(user(User), A) }
 	->  { atom_codes(User, Codes) },
-	    www_encode(Codes, ":"),
+	    www_encode(Codes, [0':]),
 	    "@"
 	;   ""
 	).
@@ -191,7 +191,7 @@ cuser(A) -->
 chost(A) -->
 	(   { memberchk(host(Host), A) }
 	->  { atom_codes(Host, Codes) },
-	    www_encode(Codes, "")
+	    www_encode(Codes, [])
 	;   ""
 	).
 
@@ -199,7 +199,7 @@ cport(A) -->
 	(   { memberchk(port(Port), A), Port \== 80 }
 	->  { number_codes(Port, Codes) },
 	    ":",
-	    www_encode(Codes, "")
+	    www_encode(Codes, [])
 	;   ""
 	).
 
@@ -212,7 +212,7 @@ catomic(A, In, Out) :-
 
 csearch(A)-->
 	(   { memberchk(search(Parameters), A) }
-	->  csearch(Parameters, "?")
+	->  csearch(Parameters, [0'?])
 	;   []
 	).
 
@@ -221,7 +221,7 @@ csearch([], _) -->
 csearch([Parameter|Parameters], Sep) --> !,
 	codes(Sep),
 	cparam(Parameter),
-	csearch(Parameters, "&").
+	csearch(Parameters, [0'&]).
 
 cparam(Name=Value) --> !,
 	cname(Name),
@@ -242,7 +242,7 @@ codes([H|T]) --> [H], codes(T).
 
 cname(Atom) -->
 	{ atom_codes(Atom, Codes) },
-	www_encode(Codes, "").
+	www_encode(Codes, []).
 
 %%	cvalue(+Value)// is det.
 %
@@ -253,11 +253,11 @@ cvalue(Value) -->
 	{ atomic(Value), !,
 	  atom_codes(Value, Codes)
 	},
-	www_encode(Codes, "").
+	www_encode(Codes, []).
 cvalue(Codes) -->
 	{ must_be(codes, Codes)
 	},
-	www_encode(Codes, "").
+	www_encode(Codes, []).
 
 
 %%	cfragment(+Attributes)//
@@ -267,7 +267,7 @@ cfragment(A) -->
 	  atom_codes(Frag, Codes)
 	},
 	"#",
-	www_encode(Codes, "").
+	www_encode(Codes, []).
 cfragment(_) -->
 	"".
 
@@ -858,7 +858,7 @@ encoding used with the HTTP GET.
 www_form_encode(Value, Encoded) :-
 	atomic(Value), !,
 	atom_codes(Value, Codes),
-	phrase(www_encode(Codes, ""), EncCodes),
+	phrase(www_encode(Codes, []), EncCodes),
 	atom_codes(Encoded, EncCodes).
 www_form_encode(Value, Encoded) :-
 	atom_codes(Encoded, EncCodes),
@@ -998,7 +998,8 @@ url_iri(Encoded, Decoded) :-
 	).
 url_iri(URL, IRI) :-
 	atom_codes(IRI, IRICodes),
-	phrase(percent_encode(IRICodes, "/:?#&="), UrlCodes),
+	atom_codes('/:?#&=', ExtraEscapes),
+	phrase(percent_encode(IRICodes, ExtraEscapes), UrlCodes),
 	atom_codes(URL, UrlCodes).
 
 
@@ -1032,7 +1033,7 @@ parse_url_search(Codes, Fields) :-
 	phrase(search(Fields), Codes).
 parse_url_search(Codes, Fields) :-
 	must_be(list, Fields),
-	phrase(csearch(Fields, ""), Codes).
+	phrase(csearch(Fields, []), Codes).
 
 
 		 /*******************************

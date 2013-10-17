@@ -122,11 +122,13 @@ netscape_remote(Browser, Fmt, Args) :-
 	open(pipe(Cmd), read, In),
 	call_cleanup(read_stream_to_codes(In, Codes),
 		     close(In)),
-	(   append("Error:", _, Codes)
+	(   phrase(netscape_error, Codes, _)
 	->  !, fail
 	;   true
 	).
 
+netscape_error -->
+	"Error:".
 
 compatible(Browser, With) :-
 	file_base_name(Browser, Base),
