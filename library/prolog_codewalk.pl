@@ -28,7 +28,8 @@
 */
 
 :- module(prolog_codewalk,
-	  [ prolog_walk_code/1		% +Options
+	  [ prolog_walk_code/1,		% +Options
+	    prolog_program_clause/2	% -ClauseRef, +Options
 	  ]).
 :- use_module(library(option)).
 :- use_module(library(record)).
@@ -834,6 +835,69 @@ predicate_in_module(Module, PI) :-
 	PI = Name/Arity,
 	functor(Head, Name, Arity),
 	\+ predicate_property(Module:Head, imported_from(_)).
+
+
+		 /*******************************
+		 *	ENUMERATE CLAUSES	*
+		 *******************************/
+
+%%	prolog_program_clause(-ClauseRef, +Options) is nondet.
+%
+%	True when ClauseRef is a reference   for  clause in the program.
+%	Options   is   a   subset   of    the   options   processed   by
+%	prolog_walk_code/1. The logic for deciding   on which clauses to
+%	enumerate is shared with prolog_walk_code/1.
+%
+%	  * module(?Module)
+%	  * module_class(+list(Classes))
+
+prolog_program_clause(ClauseRef, Options) :-
+	make_walk_option(Options, OTerm, _),
+	setup_call_cleanup(
+	    true,
+	    (   current_module(Module),
+		scan_module(Module, OTerm),
+		module_clause(Module, ClauseRef, OTerm)
+	    ;	retract(multifile_predicate(Name, Arity, MM)),
+		multifile_clause(ClauseRef, MM:Name/Arity, OTerm)
+	    ;	initialization_clause(ClauseRef, OTerm)
+	    ),
+	    retractall(multifile_predicate(_,_,_))).
+
+
+module_clause(Module, ClauseRef, _OTerm) :-
+	predicate_in_module(Module, Name/Arity),
+	\+ multifile_predicate(Name, Arity, Module),
+	functor(Head, Name, Arity),
+	(   predicate_property(Module:Head, multifile)
+	->  assertz(multifile_predicate(Name, Arity, Module)),
+	    fail
+	;   predicate_property(Module:Head, Property),
+	    no_enum_property(Property)
+	->  fail
+	;   catch(nth_clause(Module:Head, _, ClauseRef), _, fail)
+	).
+
+no_enum_property(foreign).
+
+multifile_clause(ClauseRef, M:Name/Arity, OTerm) :-
+	functor(Head, Name, Arity),
+	catch(clauseref_not_from_development(M:Head, ClauseRef, OTerm),
+	      _, fail).
+
+clauseref_not_from_development(Module:Head, Ref, OTerm) :-
+	nth_clause(Module:Head, _N, Ref),
+	\+ ( clause_property(Ref, file(File)),
+	     module_property(LoadModule, file(File)),
+	     \+ scan_module(LoadModule, OTerm)
+	   ).
+
+initialization_clause(ClauseRef, OTerm) :-
+	catch(clause(system:'$init_goal'(_File, M:_Goal, SourceLocation),
+		     true, ClauseRef),
+	      _, fail),
+	walk_option_initialization(OTerm, SourceLocation),
+	scan_module(M, OTerm).
 
 
 		 /*******************************
