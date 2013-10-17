@@ -759,6 +759,7 @@ subterm_pos(_, _, _, Pos, _) :-
 subterm_pos(Sub, Term, Cmp, Pos, Pos) :-
 	call(Cmp, Sub, Term), !.
 subterm_pos(Sub, Term, Cmp, term_position(_,_,_,_,ArgPosList), Pos) :-
+	compound(Term),
 	nth1(I, ArgPosList, ArgPos),
 	arg(I, Term, Arg),
 	subterm_pos(Sub, Arg, Cmp, ArgPos, Pos).
