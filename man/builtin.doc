@@ -6122,8 +6122,14 @@ is_list([_|T]) :-
 	is_list(T).
 \end{code}
 
-    \predicate{memberchk}{2}{?Elem, +List}
-Same as \exam{once(member(\arg{Elem}, \arg{List}))}.  See member/2.
+    \predicate[]{memberchk}{2}{?Elem, +List}
+True when \arg{Elem} is an element of \arg{List}. This `chk' variant of
+member/2 is semi deterministic and typically used to test membership of
+a list.  Raises a \const{type} error if scanning \arg{List} encounters
+a non-list.  Note that memberchk/2 does \emph{not} perform a full list
+typecheck.  For example, \exam{memberchk(a, [a|b])} succeeds without
+error and memberchk/2 loops on a cyclic list if \arg{Elem} is not a
+member of \arg{List}.
 
     \predicate[ISO]{length}{2}{?List, ?Int}
 True if \arg{Int} represents the number of elements in \arg{List}.
