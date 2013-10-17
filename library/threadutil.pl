@@ -56,14 +56,14 @@
 %	rid of them.
 
 threads :-
-	format('~*t~60|~n', "-"),
+	format('~`-t~60|~n', []),
 	format('~t~w~20|  ~w~32|~n', ['Thread', 'Status']),
-	format('~*t~60|~n', "-"),
+	format('~`-t~60|~n', []),
 	thread_property(Id, status(Status)),
 	format('~t~w~20|  ~p~32|~n', [Id, Status]),
 	fail.
 threads :-
-	format('~*t~60|~n', "-").
+	format('~`-t~60|~n', []).
 
 %%	join_threads
 %
