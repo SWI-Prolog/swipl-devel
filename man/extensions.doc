@@ -52,3 +52,8 @@ macros \const{ATOM_nil} and \const{ATOM_dot} are provided by
 Another place that is affected is write_canonical/1. Impact is minimized
 by using the list syntax for lists.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Syntax changes}
+\label{sec:ext-syntax}
+
+As of SWI-Prolog version~7, quoted atoms loose their operator property.
