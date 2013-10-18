@@ -208,6 +208,9 @@ evaluable(F) :-
 	number(F), !.
 evaluable([_Code]) :- !.
 evaluable(F) :-
+	string(F), !,
+	string_length(F, 1).
+evaluable(F) :-
 	current_arithmetic_function(F),
 	(   compound(F)
 	->  forall(arg(_,F,A), evaluable(A))

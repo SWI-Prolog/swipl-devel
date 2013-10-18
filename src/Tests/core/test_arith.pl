@@ -44,7 +44,8 @@ test_arith :-
                     minint,
                     minint_promotion,
                     maxint,
-                    maxint_promotion
+                    maxint_promotion,
+		    arith_misc
 		  ]).
 
 :- begin_tests(div).
@@ -309,3 +310,10 @@ test(hexadecimal) :- test_maxint_promotion(0x8000000000000000).
 test(spaced_hexadecimal) :- test_maxint_promotion(0x8000_0000_0000_0000).
 
 :- end_tests(maxint_promotion).
+
+:- begin_tests(arith_misc).
+
+test(string) :-
+	0'a =:= "a".
+
+:- end_tests(arith_misc).

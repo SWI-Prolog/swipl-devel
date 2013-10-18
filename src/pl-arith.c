@@ -703,6 +703,10 @@ valueExpression(term_t expr, number *result ARG_LD)
 	}
 	break;
       }
+      case TAG_STRING:
+	if ( getCharExpression(p, n PASS_LD) != TRUE )
+	  goto error;
+        break;
       case TAG_COMPOUND:
       { Functor term = valueTerm(*p);
 	int arity;
@@ -900,27 +904,56 @@ arithChar(Word p ARG_LD)
 
 static int
 getCharExpression(Word p, Number r ARG_LD)
-{ Word a;
-  int chr;
+{ word w = *p;
 
-  deRef(p);
+  switch(tag(w))
+  { case TAG_STRING:
+    { size_t len;
 
-  a = argTermP(*p, 0);
-  if ( (chr = arithChar(a PASS_LD)) == EOF )
-    fail;
+      if ( isBString(w) )
+      { char *s = getCharsString(w, &len);
 
-  a = argTermP(*p, 1);
-  if ( !isNil(*a) )
-  { PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
-	     ATOM_nil, pushWordAsTermRef(a));
-    popTermRef();
-    return FALSE;
+	if ( len == 1 )
+	{ r->value.i = s[0]&0xff;
+	  r->type = V_INTEGER;
+	  return TRUE;
+	}
+      } else
+      { pl_wchar_t *ws = getCharsWString(w, &len);
+
+	if ( len == 1 )
+	{ r->value.i = ws[0];
+	  r->type = V_INTEGER;
+	  return TRUE;
+	}
+      }
+
+    len_not_one:
+      PL_error(NULL, 0, "\"x\" must hold one character", ERR_TYPE,
+		 ATOM_nil, pushWordAsTermRef(p));
+      popTermRef();
+      return FALSE;
+    }
+    case TAG_COMPOUND:
+    { Word a = argTermP(w, 0);
+      int chr;
+
+      if ( (chr = arithChar(a PASS_LD)) == EOF )
+	fail;
+
+      a = argTermP(w, 1);
+      if ( !isNil(*a) )
+	goto len_not_one;
+
+      r->value.i = chr;
+      r->type = V_INTEGER;
+
+      return TRUE;
+    }
+    default:
+      assert(0);
+      return FALSE;
   }
-
-  r->value.i = chr;
-  r->type = V_INTEGER;
-
-  succeed;
 }
 
 
