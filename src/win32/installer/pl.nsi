@@ -396,7 +396,6 @@ Section "Base system (required)"
   File ${SWIPL}\library\base64.pl
 
 ; MISC
-  File ${SWIPL}\library\am_match.pl
   File ${SWIPL}\library\readln.pl
   File ${SWIPL}\library\readutil.pl
   File ${SWIPL}\library\streampool.pl

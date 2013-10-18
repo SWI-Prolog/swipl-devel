@@ -37,7 +37,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl shell.pl check.pl heaps.pl win_menu.pl console_input.pl \
 	tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl \
-	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
+	oset.pl ordsets.pl occurs.pl lists.pl \
 	www_browser.pl url.pl utf8.pl main.pl assoc.pl nb_set.pl \
 	threadutil.pl qpforeign.pl dif.pl when.pl ugraphs.pl \
 	checklast.pl checkselect.pl operators.pl date.pl \
