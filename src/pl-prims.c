@@ -1935,7 +1935,6 @@ PRED_IMPL("functor", 3, functor, 0)
 static
 PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  atom_t name;
   int arity;
   int argn;
 
@@ -4160,6 +4159,83 @@ PRED_IMPL("string_codes", 2, string_codes, 0)
 }
 
 
+/** string_code(?Index, +String, ?Code)
+
+True when the Index'ed character of String has code Code.
+*/
+
+static
+PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  PL_chars_t t;
+  size_t idx;
+  int tchar;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { size_t i;
+
+      if ( !PL_get_text(A2, &t, CVT_ALL|CVT_EXCEPTION) )
+	return FALSE;
+      if ( !PL_is_variable(A1) )
+      { if ( !PL_get_size_ex(A1, &i) )
+	  return FALSE;
+	if ( i >= t.length )
+	  return FALSE;
+	return PL_unify_integer(A3, text_get_char(&t, i));
+      } else
+      { if ( !PL_is_variable(A3) )
+	{ if ( !PL_get_char_ex(A3, &tchar, FALSE) )
+	    return FALSE;
+	} else
+	  tchar = -1;
+
+	idx = 0;
+	goto gen;
+      }
+    }
+    case FRG_REDO:
+    { idx = (size_t)CTX_INT;
+
+      PL_get_text(A2, &t, CVT_ALL);
+      if ( PL_is_variable(A3) )
+	tchar = -1;
+      else
+	PL_get_char(A3, &tchar, FALSE);
+
+    gen:
+      if ( tchar == -1 )
+      { if ( PL_unify_integer(A1, idx) &&
+	     PL_unify_integer(A3, text_get_char(&t, idx)) )
+	{ if ( idx+1 < t.length )
+	    ForeignRedoInt(idx+1);
+	  else
+	    return TRUE;
+	}
+	return FALSE;
+      }
+
+      for(; idx < t.length; idx++)
+      { if ( text_get_char(&t, idx) == tchar )
+	{ if ( PL_unify_integer(A1, idx) )
+	  { for(idx++; idx < t.length; idx++)
+	    { if ( text_get_char(&t, idx) == tchar )
+		ForeignRedoInt(idx);
+	    }
+	    return TRUE;
+	  }
+	  return FALSE;
+	}
+      }
+
+      return FALSE;
+    }
+    default:
+      return TRUE;
+  }
+}
+
+
 foreign_t
 pl_sub_string(term_t atom,
 	      term_t before, term_t len, term_t after,
@@ -4992,6 +5068,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_length", 2, string_length, 0)
   PRED_DEF("string_to_atom", 2, string_to_atom, 0)
   PRED_DEF("string_codes", 2, string_codes, 0)
+  PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$option", 2, option, 0)
