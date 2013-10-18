@@ -35,17 +35,24 @@
 	  list_autoload/0,		% list predicates that need autoloading
 	  list_redefined/0,		% list redefinitions
 	  list_trivial_fails/0,		% list goals that trivially fail
-	  list_trivial_fails/1		% +Options
+	  list_trivial_fails/1,		% +Options
+	  list_strings/0,		% list string objects in clauses
+	  list_strings/1		% +Options
 	]).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
 :- use_module(library(option)).
 :- use_module(library(apply)).
 :- use_module(library(prolog_codewalk)).
+:- use_module(library(occurs)).
 
 :- set_prolog_flag(generate_debug_info, false).
 
-:- multifile trivial_fail_goal/1.
+:- multifile
+       trivial_fail_goal/1,
+       string_predicate/1,
+       valid_string_goal/1.
+
 
 /** <module> Consistency checking
 
@@ -345,6 +352,193 @@ module_qualified(:).
 module_qualified(^).
 
 
+%%	list_strings is det.
+%%	list_strings(+Options) is det.
+%
+%	List strings that appear in clauses.   This predicate is used to
+%	find  portability  issues  for   changing    the   Prolog   flag
+%	=double_quotes= from =codes= to =string=, creating packed string
+%	objects.  Warnings  may  be  suppressed    using  the  following
+%	multifile hooks:
+%
+%	  - string_predicate/1 to stop checking certain predicates
+%	  - valid_string_goal/1 to tell the checker that a goal is
+%	    safe.
+%
+%	@see Prolog flag =double_quotes=.
+
+list_strings :-
+	list_strings([module_class([user])]).
+
+list_strings(Options) :-
+	(   prolog_program_clause(ClauseRef, Options),
+	    clause(Head, Body, ClauseRef),
+	    \+ ( predicate_indicator(Head, PI),
+		 string_predicate(PI)
+	       ),
+	    make_clause(Head, Body, Clause),
+	    findall(T,
+		    (   sub_term(T, Head),
+			string(T)
+		    ;   Head = M:_,
+			goal_in_body(Goal, M, Body),
+			(   valid_string_goal(Goal)
+			->  fail
+			;   sub_term(T, Goal),
+			    string(T)
+			)
+		    ), Ts0),
+	    sort(Ts0, Ts),
+	    member(T, Ts),
+	    message_context(ClauseRef, T, Clause, Context),
+	    print_message(warning,
+			  check(string_in_clause(T, Context))),
+	    fail
+	;   true
+	).
+
+make_clause(Head, true, Head) :- !.
+make_clause(Head, Body, (Head:-Body)).
+
+%%	goal_in_body(-G, +M, +Body) is nondet.
+%
+%	True when G is a goal called from Body.
+
+goal_in_body(M:G, M, G) :-
+	var(G), !.
+goal_in_body(G, _, M:G0) :-
+	atom(M), !,
+	goal_in_body(G, M, G0).
+goal_in_body(G, M, Control) :-
+	nonvar(Control),
+	control(Control, Subs), !,
+	member(Sub, Subs),
+	goal_in_body(G, M, Sub).
+goal_in_body(G, M, G0) :-
+	callable(G0),
+	(   atom(M)
+	->  TM = M
+	;   TM = system
+	),
+	predicate_property(TM:G0, meta_predicate(Spec)), !,
+	(   strip_goals(G0, Spec, G1),
+	    simple_goal_in_body(G, M, G1)
+	;   arg(I, Spec, Meta),
+	    arg(I, G0, G1),
+	    extend(Meta, G1, G2),
+	    goal_in_body(G, M, G2)
+	).
+goal_in_body(G, M, G0) :-
+	simple_goal_in_body(G, M, G0).
+
+simple_goal_in_body(G, M, G0) :-
+	(   atom(M),
+	    callable(G0),
+	    predicate_property(M:G0, imported_from(M2))
+	->  G = M2:G0
+	;   G = M:G0
+	).
+
+control((A,B), [A,B]).
+control((A;B), [A,B]).
+control((A->B), [A,B]).
+control((A*->B), [A,B]).
+control((\+A), [A]).
+
+strip_goals(G0, Spec, G) :-
+	functor(G0, Name, Arity),
+	functor(G,  Name, Arity),
+	strip_goal_args(1, G0, Spec, G).
+
+strip_goal_args(I, G0, Spec, G) :-
+	arg(I, G0, A0), !,
+	arg(I, Spec, M),
+	(   extend(M, A0, _)
+	->  arg(I, G, '<meta-goal>')
+	;   arg(I, G, A0)
+	),
+	I2 is I + 1,
+	strip_goal_args(I2, G0, Spec, G).
+strip_goal_args(_, _, _, _).
+
+extend(I, G0, G) :-
+	callable(G0),
+	integer(I), I>0, !,
+	length(L, I),
+	extend_list(G0, L, G).
+extend(0, G, G).
+extend(^, G, G).
+
+extend_list(M:G0, L, M:G) :- !,
+	callable(G0),
+	extend_list(G0, L, G).
+extend_list(G0, L, G) :-
+	G0 =.. List,
+	append(List, L, All),
+	G =.. All.
+
+
+message_context(ClauseRef, String, Clause, file_term_position(File, StringPos)) :-
+	clause_info(ClauseRef, File, TermPos, _Vars),
+	prolog_codewalk:subterm_pos(String, Clause, ==, TermPos, StringPos), !.
+message_context(ClauseRef, _String, _Clause, file(File, Line, -1, _)) :-
+	clause_property(ClauseRef, file(File)),
+	clause_property(ClauseRef, line_count(Line)), !.
+message_context(ClauseRef, _String, _Clause, clause(ClauseRef)).
+
+
+:- meta_predicate
+	predicate_indicator(:, -).
+
+predicate_indicator(Module:Head, Module:Name/Arity) :-
+	functor(Head, Name, Arity).
+predicate_indicator(Module:Head, Module:Name//DCGArity) :-
+	functor(Head, Name, Arity),
+	DCGArity is Arity-2.
+
+%%	string_predicate(:PredicateIndicator)
+%
+%	Multifile hook to disable list_strings/0 on the given predicate.
+%	This is typically used for facts that store strings.
+
+string_predicate(_:'$pldoc'/4).
+string_predicate(pce_principal:send_implementation/3).
+string_predicate(pce_principal:pce_lazy_get_method/3).
+string_predicate(pce_principal:pce_lazy_send_method/3).
+string_predicate(pce_principal:pce_class/6).
+string_predicate(prolog_xref:pred_comment/4).
+string_predicate(prolog_xref:module_comment/3).
+string_predicate(pldoc_process:structured_comment//2).
+string_predicate(pldoc_process:structured_command_start/3).
+string_predicate(pldoc_process:separator_line//0).
+string_predicate(pldoc_register:mydoc/3).
+string_predicate(http_header:separators/1).
+
+%%	valid_string_goal(+Goal) is semidet.
+%
+%	Multifile hook that qualifies Goal  as valid for list_strings/0.
+%	For example, format("Hello world~n") is considered proper use of
+%	string constants.
+
+% system predicates
+valid_string_goal(system:format(S)) :- string(S).
+valid_string_goal(system:format(S,_)) :- string(S).
+valid_string_goal(system:format(_,S,_)) :- string(S).
+valid_string_goal(system:string_codes(S,_)) :- string(S).
+valid_string_goal(system:string_code(_,S,_)) :- string(S).
+valid_string_goal(system:throw(msg(S,_))) :- string(S).
+valid_string_goal(system: is(_,_)).	% arithmetic allows for "x"
+valid_string_goal(system: =:=(_,_)).
+valid_string_goal(system: >(_,_)).
+valid_string_goal(system: <(_,_)).
+valid_string_goal(system: >=(_,_)).
+valid_string_goal(system: =<(_,_)).
+% library stuff
+valid_string_goal(dcg_basics:string_without(S,_,_,_)) :- string(S).
+valid_string_goal(git:read_url(S,_,_)) :- string(S).
+valid_string_goal(tipc:tipc_subscribe(_,_,_,_,S)) :- string(S).
+
+
 		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/
@@ -399,6 +593,10 @@ prolog:message(check(trivial_failure(Goal, Refs))) -->
 	goal(Goal),
 	[ ', which is called from'-[], nl ],
 	referenced_by(SortedRefs).
+prolog:message(check(string_in_clause(String, Context))) -->
+	prolog:message_location(Context),
+	[ 'String ~q'-[String] ].
+
 
 redefined(user, system) -->
 	[ '~t~30| System predicate redefined globally' ].

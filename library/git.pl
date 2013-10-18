@@ -229,7 +229,7 @@ is_git_directory(Directory) :-
 	      directory(Directory)
 	    ]),
 	Status == exit(0),
-	Codes == ".\n".
+	string_codes(".\n", Codes).
 
 %%	git_describe(-Version, +Options) is semidet.
 %
