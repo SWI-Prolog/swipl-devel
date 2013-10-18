@@ -2515,8 +2515,9 @@ load_files(Module:Files, Options) :-
 	export(Module:PI).
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
-	op(Pri, Assoc, Module:Name),
-	catch('$export_op'(Pri, Assoc, Name, File),
+	catch(( op(Pri, Assoc, Module:Name),
+		'$export_op'(Pri, Assoc, Name, File)
+	      ),
 	      E, '$print_message'(error, E)),
 	'$export_ops'(T, Module, File).
 '$export_ops'([], _, _).
