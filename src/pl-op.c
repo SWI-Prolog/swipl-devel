@@ -144,7 +144,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
 		      action, ATOM_operator, t);
     }
 
-    if ( !unquoted_atom(name) )
+    if ( !unquoted_atom(name) && name != ATOM_nil && name != ATOM_void )
     { GET_LD
       term_t t = PL_new_term_ref();
 
