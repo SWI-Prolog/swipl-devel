@@ -409,7 +409,8 @@ read_url(Tag, URL, In) :-
 	    ).
 
 url_codes(Tag, Rest) -->
-	whites, string(Tag), whites, string(Rest).
+	{ string_codes(Tag, TagCodes) },
+	whites, string(TagCodes), whites, string(Rest).
 
 
 %%	git_ls_remote(+GitURL, -Refs, +Options) is det.
