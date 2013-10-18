@@ -200,6 +200,8 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;
+      if (GD->atoms.gc_active)
+        markAtomsRecord(r);
       copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
       PL_cons_list(list, answer, list);
       popTopOfSegStack(&bag->answers);
