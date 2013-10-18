@@ -124,7 +124,7 @@ write_term_to_codes(Term, Codes, Tail, Options) :-
 %	@compat	The SWI-Prolog version does not require Codes to end
 %		in a full-stop.
 
-read_from_codes("", end_of_file) :- !.
+read_from_codes([], end_of_file) :- !.
 read_from_codes(List, Term) :-
 	atom_to_term(List, Term, _).
 

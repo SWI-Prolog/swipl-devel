@@ -36,6 +36,7 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- set_prolog_flag(double_quotes, codes).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EXPORTS
 
 /** <module> command line parsing

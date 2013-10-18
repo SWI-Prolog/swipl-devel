@@ -204,7 +204,7 @@ select_file_to_reload(Pairs, Local, Pair) :-
 	   read_line_to_codes(user_input, Line),
 	   (   Line == end_of_file
 	   ->  halt(1)
-	   ;   Line == "s"
+	   ;   atom_codes(s, Line)
 	   ->  !, fail
 	   ;   catch(number_codes(N, Line), _, fail)
 	   ),

@@ -107,6 +107,7 @@
 :- use_module(library(arithmetic)).
 :- use_module(library(memfile)).
 :- use_module(library(apply)).
+:- set_prolog_flag(double_quotes, codes).
 
 /** <module> IF/Prolog compatibility package
 

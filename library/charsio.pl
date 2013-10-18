@@ -137,7 +137,7 @@ number_to_chars(Number, Codes, Tail) :-
 %	@compat	The SWI-Prolog version does not require Codes to end
 %		in a full-stop.
 
-read_from_chars("", end_of_file) :- !.
+read_from_chars([], end_of_file) :- !.
 read_from_chars(List, Term) :-
 	atom_to_term(List, Term, _).
 

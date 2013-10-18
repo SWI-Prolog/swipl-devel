@@ -298,12 +298,12 @@ user_index(List, Index) :-
 user_index(List, Index) :-
 	to_system_index(Index, List).
 
-to_user_index([], "").
+to_user_index([], []).
 to_user_index([A], S) :- !,
 	name(A, S).
 to_user_index([A|B], S) :-
 	name(A, S0),
-	append(S0, "-", S1),
+	append(S0, [0'-], S1),
 	append(S1, Rest, S),
 	to_user_index(B, Rest).
 
