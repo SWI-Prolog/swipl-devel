@@ -5262,8 +5262,8 @@ handling.
 
 
 \begin{description}
-    \predicate{string_to_atom}{2}{?String, ?Atom}
-Bi-directional conversion between a string and an atom. At
+    \predicate{atom_string}{2}{?Atom, ?String}
+Bi-directional conversion between an atom and a string. At
 least one of the two arguments must be instantiated. \arg{Atom} can also
 be an integer or floating point number.
 

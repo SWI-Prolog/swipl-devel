@@ -4117,10 +4117,10 @@ PRED_IMPL("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
 
 
 static
-PRED_IMPL("string_to_atom", 2, string_to_atom, 0)
+PRED_IMPL("atom_string", 2, atom_string, 0)
 { PRED_LD
-  term_t str = A1;
-  term_t a = A2;
+  term_t a = A1;
+  term_t str = A2;
   PL_chars_t t;
   int rc;
 
@@ -5060,13 +5060,13 @@ BeginPredDefs(prims)
   PRED_DEF("number_chars", 2, number_chars, PL_FA_ISO)
   PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
+  PRED_DEF("atom_string", 2, atom_string, 0)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("atomic_list_concat", 3, atomic_list_concat, 0)
   PRED_DEF("atomic_list_concat", 2, atomic_list_concat, 0)
   PRED_DEF("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
   PRED_DEF("string_length", 2, string_length, 0)
-  PRED_DEF("string_to_atom", 2, string_to_atom, 0)
   PRED_DEF("string_codes", 2, string_codes, 0)
   PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)

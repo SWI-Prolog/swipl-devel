@@ -53,6 +53,7 @@
 	    set_feature/2,
 	    substring/4,
 	    string_to_list/2,		% ?String, ?Codes
+	    string_to_atom/2,		% ?String, ?Atom
 	    flush/0,
 	    write_ln/1,			% +Term
 	    proper_list/1,		% @Term
@@ -280,6 +281,16 @@ substring(String, Offset, Length, Sub) :-
 
 string_to_list(String, Codes) :-
 	string_codes(String, Codes).
+
+%%	string_to_atom(?String, ?Atom) is det.
+%
+%	Bi-directional conversion between string and atom.
+%
+%	@deprecated	Use atom_string/2. Note that the order of the
+%			arguments is reversed.
+
+string_to_atom(Atom, String) :-
+	atom_string(String, Atom).
 
 %%	flush is det.
 %
