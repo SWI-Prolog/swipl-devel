@@ -109,6 +109,7 @@ COMMON(int)		ar_add_ui(Number n, intptr_t add);
 COMMON(int)		valueExpression(term_t p, Number n ARG_LD);
 COMMON(int)		toIntegerNumber(Number n, int flags);
 COMMON(int)		arithChar(Word p ARG_LD);
+COMMON(int)		getCharExpression(Word p, Number r ARG_LD);
 COMMON(Number)		allocArithStack(ARG1_LD);
 COMMON(void)		pushArithStack(Number n ARG_LD);
 COMMON(void)		resetArithStack(ARG1_LD);

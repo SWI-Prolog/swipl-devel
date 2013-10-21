@@ -2816,6 +2816,14 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     { fdef = functorTerm(*arg);
       ar = arityFunctor(fdef);
       a = argTermP(*arg, 0);
+    } else if ( isString(*arg) )
+    { number n;
+
+    case_char_constant:
+      if ( !getCharExpression(arg, &n PASS_LD) )
+	return FALSE;
+      Output_1(ci, A_INTEGER, n.value.i);
+      return TRUE;
     } else
     { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_evaluable, pushWordAsTermRef(arg));
       popTermRef();
@@ -2823,27 +2831,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     }
 
     if ( fdef == FUNCTOR_dot2 )		/* "char" */
-    { Word a2;
-      int chr;
-
-      deRef2(a+1, a2);
-      if ( !isNil(*a2) )
-      { PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
-		 ATOM_nil, pushWordAsTermRef(a2));
-	popTermRef();
-	return FALSE;
-      }
-      deRef2(a, a2);
-      if ( !isVar(*a2) && isIndexedVarTerm(*a2 PASS_LD) < 0 )
-      { if ( (chr=arithChar(a2 PASS_LD)) == EOF )
-	  fail;
-
-	Output_1(ci, A_INTEGER, chr);
-	succeed;
-      } else
-	return PL_error(".", 2, "Cannot handle [X]",
-			ERR_INSTANTIATION);
-    }
+      goto case_char_constant;
 
     if ( (index = indexArithFunction(fdef)) < 0 )
     { PL_error(NULL, 0, "No such arithmetic function",

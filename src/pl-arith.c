@@ -99,7 +99,6 @@ problem.
 #endif
 #endif
 
-static int		getCharExpression(Word p, Number r ARG_LD);
 static int		ar_minus(Number n1, Number n2, Number r);
 
 
@@ -902,7 +901,7 @@ arithChar(Word p ARG_LD)
 }
 
 
-static int
+int
 getCharExpression(Word p, Number r ARG_LD)
 { word w = *p;
 
