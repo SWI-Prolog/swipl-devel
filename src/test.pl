@@ -140,7 +140,11 @@ syntax(number-2) :-
 	E = error(syntax_error(end_of_file), _).
 syntax(zero-1) :-
 	term_to_atom(T, 'hello("\000\x")'),
-	T == hello([0, 120]).
+	T = hello(A0),
+	(   A0 == [0,120]		% depending on the double quotes flag
+	;   string_codes(A0, [0,120])
+	;   A0 == ['\u0000', x]
+	), !.
 syntax(latin-1) :-
 	atom_codes(A, [247]),
 	atom_to_term(A, T, []),
@@ -212,15 +216,16 @@ format_test(intR-1) :-
 	X == '3E8'.
 format_test(oncodes-1) :-
 	format(codes(C), 'hello ~w', [world]),
-	C == "hello world".
+	atom_codes('hello world', C).
 format_test(oncodes-2) :-
 	format(codes(C,T), 'hello ~w', [world]),
-	append("hello world", T2, C2),
+	atom_codes('hello world', HW),
+	append(HW, T2, C2),
 	C-T =@= C2-T2.
 format_test(onstring-1) :-
 	format(string(S), 'hello ~w', [world]),
 	string(S),
-	string_codes(S, "hello world").
+	atom_string('hello world', S).
 
 
 		 /*******************************
@@ -1040,7 +1045,7 @@ foo(2, e).
 foo(3, f).
 
 type(atom).
-type(S) :- string_to_atom(S, "string").
+type(S) :- atom_string(string, S).
 type(42).
 type(3.14).
 type([a, list]).
@@ -1060,7 +1065,7 @@ sets(setof-1) :-
 		 ].
 sets(setof-2) :-
 	setof(X-Ys, setof(Y, set(X,Y), Ys), R0),
-	string_to_atom(S, "string"),
+	atom_string(string, S),
 	keysort(R0, R),
 	(   R =@= [3.14-[1, 2],
 		   42-[1, 2],
@@ -1118,7 +1123,8 @@ sets(setof-5) :- % Bart Demoen's example
 		 *******************************/
 
 atom_handling(name-1) :-
-	name(hello, X), X = "hello".
+	name(hello, X),
+	atom_codes(hello, X).
 atom_handling(name-2) :-
 	name(V, "5"), V == 5.
 atom_handling(name-3) :-
@@ -1202,11 +1208,16 @@ string_handling(cmp-1) :-
 :- set_prolog_flag(backquoted_string, false).
 
 string_handling(atom-1) :-
-	string_to_atom(an_atom, X),
+	atom_string(X, an_atom),
 	X == an_atom.
 string_handling(list-1) :-
-	string_to_atom("a_list", X),
+	atom_codes(a_list, Codes),
+	atom_string(X, Codes),
 	X == a_list.
+string_handling(string-1) :-
+	atom_string(a_string, String),
+	atom_string(X, String),
+	X == a_string.
 
 
 		 /*******************************
@@ -2339,8 +2350,9 @@ seek(write-1) :-
 	close(S),
 
 	open(File, read, In, [type(binary)]),
+	atom_codes('123456x890\n', Bytes),
 	forall(between(0, Max, N),
-	       must_read("123456x890\n", In)),
+	       must_read(Bytes, In)),
 	close(In),
 	delete_file(File).
 
@@ -2361,7 +2373,8 @@ ctype(code_type-1) :-
 	code_type(97, to_lower(65)).
 ctype(code_type-2) :-
 	findall(X, code_type(X, lower), Lower),
-	subset("abcdefghijklmnopqrstuvwxyz", Lower).
+	string_codes("abcdefghijklmnopqrstuvwxyz", AZ),
+	subset(AZ, Lower).
 ctype(code_type-3) :-
 	code_type(48, digit(0)).
 ctype(code_type-4) :-

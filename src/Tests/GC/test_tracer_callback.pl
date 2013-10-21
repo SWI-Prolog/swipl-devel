@@ -25,7 +25,7 @@ test_tracer(G) :-
 	visible(+all),
 	visible(+cut_call),
 	assert((user:prolog_trace_interception(P, F, Ch, A) :-
-	       		intercept(P, F, Ch, A)), Ref),
+			intercept(P, F, Ch, A)), Ref),
 	trace,
 	call_cleanup(G,
 		     (nodebug, '$visible'(_, Old), erase(Ref))),
@@ -37,7 +37,7 @@ test_tracer(G) :-
 %	Simple recursive calling test
 
 p_simple :-
-	app("ab", "cd", X),
+	app([a,b], [c,d], X),
 	is_list(X).
 
 %%	p_backtrack
@@ -45,16 +45,16 @@ p_simple :-
 %	Test backtracking
 
 p_backtrack :-
-	app(_, Y, "hello"),
-	Y = [0'l|_].
+	app(_, Y, [h,e,l,l,o]),
+	Y = [l|_].
 
 %%	p_cut
 %
 %	Test interception of the !
 
 p_cut :-
-	app(_, Y, "hello"),
-	Y = [0'l|_], !,
+	app(_, Y, [h,e,l,l,o]),
+	Y = [l|_], !,
 	a.
 
 %%	p_ifthen

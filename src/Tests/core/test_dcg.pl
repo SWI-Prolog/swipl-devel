@@ -253,6 +253,8 @@ digit(0'1).
 digit(0'2).
 digit(0'3).
 
+:- set_prolog_flag(double_quotes, codes).
+
 exp("000").
 exp("0x").
 exp("00x").
@@ -261,7 +263,7 @@ exp("00003").
 exp("").
 
 test(forprogrammers,
-		  [all(Xs == ["000", "0x", "00x", "3", "03", "3", "00003", []])]) :-
+     [all(Xs == ["000", "0x", "00x", "3", "03", "3", "00003", []])]) :-
 	exp(Xs0),
 	phrase(zeroes,Xs0,Xs).
 
