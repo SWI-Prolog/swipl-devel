@@ -172,18 +172,21 @@ compile_persistent(Term, Module) -->
 
 	  persistency:persistent(Module, Generic, Term)
 	],
-	assert_clause(Term, Module),
+	assert_clause(asserta, Term, Module),
+	assert_clause(assert,  Term, Module),
 	retract_clause(Term, Module),
 	retractall_clause(Term, Module).
 
-assert_clause(Term, Module) -->
+assert_clause(Where, Term, Module) -->
 	{ functor(Term, Name, Arity),
-	  atom_concat(assert_, Name, PredName),
+	  atomic_list_concat([Where,'_', Name], PredName),
 	  length(Args, Arity),
 	  Head =.. [PredName|Args],
 	  Assert =.. [Name|Args],
 	  type_checkers(Args, 1, Term, Check),
-	  Clause = (Head :- Check, persistency:db_assert(Module:Assert))
+	  atom_concat(db_, Where, DBActionName),
+	  DBAction =.. [DBActionName, Module:Assert],
+	  Clause = (Head :- Check, persistency:DBAction)
 	},
 	[ Clause ].
 
@@ -298,6 +301,11 @@ load_db(assert(Term), In, Module) :-
 	assert(Module:Term),
 	read_action(In, T1),
 	load_db(T1, In, Module).
+load_db(asserta(Term), In, Module) :-
+	persistent(Module, Term, _Types), !,
+	asserta(Module:Term),
+	read_action(In, T1),
+	load_db(T1, In, Module).
 load_db(retractall(Term, Count), In, Module) :-
 	persistent(Module, Term, _Types), !,
 	retractall(Module:Term),
@@ -342,9 +350,19 @@ persistent_size(Module, Count) :-
 %	Note that if the on-disk file  has   been  modified  it is first
 %	reloaded.
 
+:- public
+	db_assert/1,
+	db_asserta/1,
+	db_retractall/1,
+	db_retract/1.
+
 db_assert(Module:Term) :-
 	assert(Module:Term),
 	persistent(Module, assert(Term)).
+
+db_asserta(Module:Term) :-
+	asserta(Module:Term),
+	persistent(Module, asserta(Term)).
 
 persistent(Module, Action) :-
 	(   db_stream(Module, Stream)
