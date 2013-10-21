@@ -340,6 +340,8 @@ phrase(RuleSet, Input, Rest) :-
 	;   call(RuleSet, Input, Rest)
 	).
 
+dcg_special(S) :-
+	string(S).
 dcg_special((_,_)).
 dcg_special((_;_)).
 dcg_special((_|_)).
