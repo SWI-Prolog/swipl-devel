@@ -75,24 +75,23 @@ test(absurd2,[G = (_,_)]) :-
 
 test(iso_8_1_1_3, [error(instantiation_error)]) :-
 	phrase(_,[],[]).
-test(iso_8_1_1_3, [error(instantiation_error)]) :-
+test(iso_8_1_1_3, [error(_)]) :-
 	phrase(L,L,L).
-test(iso_8_1_1_3,[error(instantiation_error)]) :-
-	phrase(L,L).
+test(iso_8_1_1_3,[error(_)]) :-		% instantiation or type due to
+	phrase(L,L).			% module-qualified list
 test(iso_8_1_1_3_OPEN, [error(type_error(_,27))]) :-
 	phrase(27,[],[]).
 test(iso_8_1_1_3_OPEN, [error(type_error(callable,27))]) :-
 	phrase(27,[],[]).
-%test(iso_8_1_1_3, [ blocked(disagreement_with_ISO_DTR_draft),
-%		    error(type_error(list,_))
-%		  ]) :-
-%	phrase([],a).
+test(iso_8_1_1_3, [ %blocked(disagreement_with_ISO_DTR_draft), (SWI extension)
+		    error(type_error(list,a))
+		  ]) :-
+	G = phrase([],a),		% must avoid apply_macros
+	call(G).
 test(uniso_8_1_1_3, [fail]) :-
 	phrase([],a).
 test(iso1,[]) :-
 	phrase([the],[the]).
-test(uwn1,[error(instantiation_error)]) :-
-	phrase(L,L).
 test(uwn2,[L0 == L]) :-
 	phrase([],L0,L).
 test(uwn3,[sto(rational_trees)]) :-

@@ -331,6 +331,8 @@ expected_layout(Expected, Found) :-
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
+	phrase_input(Input),
+	phrase_input(Rest),
 	(   strip_module(RuleSet, M, Plain),
 	    nonvar(Plain),
 	    dcg_special(Plain)
@@ -339,6 +341,12 @@ phrase(RuleSet, Input, Rest) :-
 	    call(M:Body)
 	;   call(RuleSet, Input, Rest)
 	).
+
+phrase_input(Var) :- var(Var), !.
+phrase_input([_|_]) :- !.
+phrase_input([]) :- !.
+phrase_input(Data) :-
+	throw(error(type_error(list, Data), _)).
 
 dcg_special(S) :-
 	string(S).
