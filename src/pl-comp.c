@@ -1981,7 +1981,7 @@ right_argument:
 	return rc;
 #endif /*O_CALL_AT_MODULE*/
       }
-      assert(fdef->name == ATOM_call);
+      assert(0);
     }
   }
 

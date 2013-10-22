@@ -4450,7 +4450,7 @@ atom is referenced by the goal-term anyway.
       goto call_type_error;
 
     fd = valueFunctor(functor);
-    if ( false(fd, CONTROL_F) )
+    if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
     { args    = argTermP(goal, 0);
       arity   = fd->arity;
     } else
