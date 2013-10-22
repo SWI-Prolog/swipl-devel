@@ -537,6 +537,10 @@ valid_string_goal(system: =<(_,_)).
 valid_string_goal(dcg_basics:string_without(S,_,_,_)) :- string(S).
 valid_string_goal(git:read_url(S,_,_)) :- string(S).
 valid_string_goal(tipc:tipc_subscribe(_,_,_,_,S)) :- string(S).
+valid_string_goal(charsio:format_to_chars(Format,_,_)) :- string(Format).
+valid_string_goal(charsio:format_to_chars(Format,_,_,_)) :- string(Format).
+valid_string_goal(codesio:format_to_codes(Format,_,_)) :- string(Format).
+valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
 
 
 		 /*******************************
