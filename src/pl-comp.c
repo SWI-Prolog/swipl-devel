@@ -4141,11 +4141,14 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
   arity = def->functor->arity;
-  TRY( PL_unify_functor(head, def->functor->functor) );
   if ( arity > 0 )
-  { if ( !(argp = PL_new_term_refs(2)) )
+  { if ( !PL_unify_functor(head, def->functor->functor) ||
+	 !(argp = PL_new_term_refs(2)) )
       return FALSE;
     get_arg_ref(head, argp PASS_LD);
+  } else
+  { if ( !PL_unify_atom(head, def->functor->name) )
+      return FALSE;
   }
 
 #define NEXTARG { next_arg_ref(argp PASS_LD); if ( !pushed ) argn++; }
