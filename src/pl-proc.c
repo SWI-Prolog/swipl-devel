@@ -972,9 +972,10 @@ abolishProcedure(Procedure proc, Module module)
   { Definition ndef	     = allocHeapOrHalt(sizeof(struct definition));
 
     memset(ndef, 0, sizeof(*ndef));
-    proc->definition         = ndef;
     ndef->functor            = def->functor; /* should be merged with */
     ndef->module             = module;	     /* lookupProcedure()!! */
+    ndef->codes		     = SUPERVISOR(virgin);
+    proc->definition         = ndef;
     resetProcedure(proc, TRUE);
   } else if ( true(def, P_FOREIGN) )	/* foreign: make normal */
   { def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
