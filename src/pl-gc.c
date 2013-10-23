@@ -676,13 +676,15 @@ forward:				/* Go into the tree */
       needsRelocation(current);
       if ( is_marked(next) )
 	BACKWARD;			/* term has already been marked */
-      args = arityFunctor(((Functor)next)->definition) - 1;
+      args = arityFunctor(((Functor)next)->definition);
       DEBUG(MSG_GC_MARK_VAR_WALK,
 	    Sdprintf("Marking TERM %s/%d at %p\n",
 		     stringAtom(nameFunctor(((Functor)next)->definition)),
-		     args+1, next));
+		     args, next));
       domark(next);
-      for( next += 2; args > 0; args--, next++ )
+      if ( args == 0 )
+	BACKWARD;
+      for( next += 2; args > 1; args--, next++ )
       { DEBUG(CHK_SECURE, assert(!is_first(next)));
 	mark_first(next);
       }

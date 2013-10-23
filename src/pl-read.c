@@ -1801,18 +1801,6 @@ is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
 		*           TOKENISER           *
 		*********************************/
 
-static inline int
-void_allowed(ReadData _PL_rd)
-{ int type, priority;
-
-  if ( !_PL_rd->strictness &&
-       currentOperator(_PL_rd->module, ATOM_void, OP_POSTFIX, &type, &priority) )
-    return TRUE;
-
-  return FALSE;
-}
-
-
 static inline ucharp
 skipSpaces(cucharp in)
 { int chr;
@@ -2653,7 +2641,6 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		      }
 		    /*FALLTHROUGH*/
 #endif
-		    case '(':
 		    case '[':
 		      rdhere = skipSpaces(rdhere);
 		      if (rdhere[0] == matchingBracket(c))
@@ -2661,12 +2648,6 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 			switch(c)
 			{ case '{': cur_token.value.atom = ATOM_curl; break;
 			  case '[': cur_token.value.atom = ATOM_nil;  break;
-			  case '(':
-			    if ( void_allowed(_PL_rd) )
-			      cur_token.value.atom = ATOM_void;
-			    else
-			      syntaxError("void_not_allowed", _PL_rd);
-			    break;
 			}
 			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
 			DEBUG(9, Sdprintf("NAME: %s\n",
@@ -2916,7 +2897,6 @@ ensureSpaceForTermRefs(size_t n ARG_LD)
 static int
 build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
 { functor_t functor = lookupFunctorDef(atom, arity);
-  term_t *av, *argv = term_av(-arity, _PL_rd);
   word w;
   Word argp;
   int rc;
@@ -2933,13 +2913,22 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
   gTop += 1+arity;
   *argp++ = functor;
 
-  for(av=argv; arity-- > 0; av++, argp++)
-    readValHandle(*av, argp, _PL_rd PASS_LD);
+  if ( arity > 0 )
+  { term_t *av, *argv = term_av(-arity, _PL_rd);
 
-  setHandle(argv[0], w);
-  truncate_term_stack(&argv[1], _PL_rd);
+    for(av=argv; arity-- > 0; av++, argp++)
+      readValHandle(*av, argp, _PL_rd PASS_LD);
 
-  DEBUG(9, Sdprintf("result: "); pl_write(argv[0]); Sdprintf("\n") );
+    setHandle(argv[0], w);
+    truncate_term_stack(&argv[1], _PL_rd);
+    DEBUG(9, Sdprintf("result: "); pl_write(argv[0]); Sdprintf("\n") );
+  } else
+  { term_t t = alloc_term(_PL_rd PASS_LD);
+
+    setHandle(t, w);
+    DEBUG(9, Sdprintf("result: "); pl_write(t); Sdprintf("\n") );
+  }
+
   return TRUE;
 }
 
@@ -3863,45 +3852,28 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   unlock = (_PL_rd->locked == functor);
   _PL_rd->locked = 0;
 
-  if ( (token=get_token(FALSE, _PL_rd)) &&
-       token->type == T_NAME &&
-       token->value.atom == ATOM_void )
-  { term_t term;
+  if ( !(token=get_token(FALSE, _PL_rd)) ) /* gets '(' */
+    return FALSE;
+  if ( !(token=get_token(FALSE, _PL_rd)) ) /* first token */
+    return FALSE;
 
-    if ( positions )
-    { intptr_t fs = token->start, fe = token->end;
+  if ( !(token->type == T_PUNCTUATION && token->value.character == ')') )
+  { unget_token();
 
-      set_range_position(positions, -1, token->end PASS_LD);
-      swap_functor_position(positions, &fs, &fe PASS_LD);
-      if ( !PL_unify_term(P_ARG, PL_LIST, 1,
-			  PL_FUNCTOR, FUNCTOR_minus2,
-			    PL_INTPTR, fs,
-			    PL_INTPTR, fe) )
-	return FALSE;
-    }
-
-    term = alloc_term(_PL_rd PASS_LD);
-    PL_put_atom(term, functor);
-    rc = build_term(ATOM_void, 1, _PL_rd PASS_LD);
-    if ( unlock )
-      PL_unregister_atom(functor);
-
-    return rc;
+    do
+    { if ( positions )
+      { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
+	  return FALSE;
+      }
+      if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
+      { if ( unlock )
+	  PL_unregister_atom(functor);
+	return rc;
+      }
+      arity++;
+      token = get_token(FALSE, _PL_rd);	/* `,' or `)' */
+    } while( token->value.character != ')' );
   }
-
-  do
-  { if ( positions )
-    { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
-	return FALSE;
-    }
-    if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
-    { if ( unlock )
-	PL_unregister_atom(functor);
-      return rc;
-    }
-    arity++;
-    token = get_token(FALSE, _PL_rd);	/* `,' or `)' */
-  } while(token->value.character == ',');
 
   if ( positions )
   { set_range_position(positions, -1, token->end PASS_LD);
