@@ -1176,7 +1176,8 @@ Number of physical CPUs or cores in the system. The flag is marked
 read-write both to allow pretending the system has more or less
 processors. See also thread_setconcurrency/2 and the library
 \pllib{thread}. This flag is not available on systems where we do not
-know how to get the number of CPUs.
+know how to get the number of CPUs. This flag is not included in a saved
+state (see qsave_program/1).
 
     \prologflagitem{dde}{bool}{r}
 Set to \const{true} if this instance of Prolog supports DDE as
