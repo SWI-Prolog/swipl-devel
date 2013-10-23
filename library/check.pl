@@ -45,7 +45,7 @@
 
 :- set_prolog_flag(generate_debug_info, false).
 
-:- multifile trivial_fail_predicate/1.
+:- multifile trivial_fail_goal/1.
 
 /** <module> Consistency checking
 
@@ -280,8 +280,13 @@ list_trivial_fails(Options) :-
 	    maplist(report_trivial_fail, Grouped)
 	).
 
-trivial_fail_predicate(pce_expansion:pce_class(_, _, template, _, _, _)).
-trivial_fail_predicate(pce_host:property(system_source_prefix(_))).
+%%	trivial_fail_goal(:Goal)
+%
+%	Multifile hook that tells list_trivial_fails/0 to accept Goal as
+%	valid.
+
+trivial_fail_goal(pce_expansion:pce_class(_, _, template, _, _, _)).
+trivial_fail_goal(pce_host:property(system_source_prefix(_))).
 
 :- public
 	check_trivial_fail/3.
@@ -293,7 +298,7 @@ check_trivial_fail(MGoal0, _Caller, From) :-
             predicate_property(MGoal0, interpreted),
 	    \+ predicate_property(MGoal0, dynamic),
 	    \+ predicate_property(MGoal0, multifile),
-	    \+ trivial_fail_predicate(MGoal0)
+	    \+ trivial_fail_goal(MGoal0)
 	->  (	predicate_property(MGoal0, meta_predicate(Meta))
 	    ->  qualify_meta_goal(MGoal0, Meta, MGoal)
 	    ;   MGoal = MGoal0
