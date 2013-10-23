@@ -133,6 +133,8 @@ suggest predicates from a keyword.
 \predicatesummary{compile_predicates}{1}{Compile dynamic code to static}
 \predicatesummary{compiling}{0}{Is this a compilation run?}
 \predicatesummary{compound}{1}{Test for compound term}
+\predicatesummary{compound_name_arity}{3}{Name and arity of a compound term}
+\predicatesummary{compound_name_arguments}{3}{Name and arguments of a compound term}
 \predicatesummary{code_type}{2}{Classify a character-code}
 \predicatesummary{consult}{1}{Read (compile) a Prolog source file}
 \predicatesummary{context_module}{1}{Get context module of current goal}

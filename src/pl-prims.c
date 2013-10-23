@@ -1894,7 +1894,7 @@ PRED_IMPL("same_term", 2, same_term, 0)
 
 PRED_IMPL("functor", 3, functor, 0)
 { PRED_LD
-  int arity;
+  size_t arity;
   atom_t name;
   Word p = valTermRef(A1);
 
@@ -1918,17 +1918,42 @@ PRED_IMPL("functor", 3, functor, 0)
   if ( !PL_is_atomic(A2) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, A2);
 
-  if ( !PL_get_integer_ex(A3, &arity) )
+  if ( !PL_get_size_ex(A3, &arity) )
     fail;
   if ( arity == 0 )
     return PL_unify(A1, A2);
-  if ( arity < 0 )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, A3);
   if ( PL_get_atom_ex(A2, &name) )
     return PL_unify_functor(A1, PL_new_functor(name, arity));
 
   fail;
+}
+
+
+/* compound_name_arity(+Compound, -Name, -Arity) */
+/* compound_name_arity(-Compound, +Name, +Arity) */
+
+PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
+{ PRED_LD
+  size_t arity;
+  atom_t name;
+  Word p = valTermRef(A1);
+
+  deRef(p);
+
+  if ( isTerm(*p) )
+  { FunctorDef fd = valueFunctor(functorTerm(*p));
+    if ( !PL_unify_atom(A2, fd->name) ||
+	 !PL_unify_integer(A3, fd->arity) )
+      fail;
+
+    succeed;
+  }
+
+  if ( !PL_get_atom_ex(A2, &name) ||
+       !PL_get_size_ex(A3, &arity) )
+    fail;
+
+  return PL_unify_compound(A1, PL_new_functor(name, arity));
 }
 
 
@@ -2279,6 +2304,65 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
   }
 
   fail;
+}
+
+
+/** compound_name_arguments(-Term, +Name, +Arguments)
+    compound_name_arguments(+Term, -Name, -Arguments)
+*/
+
+static
+PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
+{ GET_LD
+  term_t t = A1;
+  term_t list = A3;
+  int arity;
+  atom_t name;
+  int n;
+
+  if ( PL_is_variable(t) )
+  { term_t tail = PL_copy_term_ref(list);
+    term_t head = PL_new_term_ref();
+
+    if ( !PL_get_atom_ex(A2, &name) )
+      return FALSE;
+
+    if ( (arity = (int)lengthList(tail, FALSE)) < 0 ) /* TBD: check MAXINT */
+    { if ( arity == -1 )
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
+      else
+	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    }
+
+    if ( !PL_unify_compound(t, PL_new_functor(name, arity)) )
+      fail;
+
+    for(n=1; PL_get_list(tail, head, tail); n++)
+    { if ( !PL_unify_arg(n, t, head) )
+	fail;
+    }
+
+    succeed;
+  }
+
+					/* 1st arg is term */
+  if ( PL_get_compound_name_arity(t, &name, &arity) )
+  { term_t head = PL_new_term_ref();
+    term_t l = PL_copy_term_ref(list);
+
+    if ( !PL_unify_atom(A2, name) )
+      fail;
+
+    for(n = 1; n <= arity; n++)
+    { if ( !PL_unify_list_ex(l, head, l) ||
+	   !PL_unify_arg(n, t, head) )
+	fail;
+    }
+
+    return PL_unify_nil_ex(l);
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, A1);
 }
 
 
@@ -5035,6 +5119,8 @@ BeginPredDefs(prims)
   PRED_DEF("same_term", 2, same_term, 0)
   PRED_DEF("functor", 3, functor, PL_FA_ISO)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
+  PRED_DEF("compound_name_arity", 3, compound_name_arity, 0)
+  PRED_DEF("compound_name_arguments", 3, compound_name_arguments, 0)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, PL_FA_ISO)

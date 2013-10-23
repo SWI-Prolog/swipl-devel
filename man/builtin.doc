@@ -1370,7 +1370,7 @@ compound.
 
     \predicate[ISO]{compound}{1}{@Term}
 True if \arg{Term} is bound to a compound term.  See also functor/3
-and =../2.
+=../2, compound_name_arity/3 and compound_name_arguments/3.
 
     \predicate[ISO]{callable}{1}{@Term}
 True if \arg{Term} is bound to an atom or a compound term. This was
@@ -4592,6 +4592,7 @@ different variables (such a term is called a skeleton). If \arg{Term} is
 atomic, \arg{Arity} will be unified with the integer 0, and \arg{Name} will be
 unified with \arg{Term}.  Raises \errorterm{instantiation_error}{} if \arg{Term}
 is unbound and \arg{Name}/\arg{Arity} is insufficiently instantiated.
+See also compound_name_arity/3.
 
     \predicate[ISO]{arg}{3}{?Arg, +Term, ?Value}
 \arg{Term} should be instantiated to a term, \arg{Arg} to an integer
@@ -4612,7 +4613,8 @@ $\arg{Arg} > \mbox{\em arity}$ and raises the exception
 \arg{List} is a list whose head is the functor of \arg{Term} and the
 remaining arguments are the arguments of the term. Either side of the
 predicate may be a variable, but not both.  This predicate is called
-`Univ'.  Examples:
+`Univ'.  See also compound_name_arguments/3.  Examples:
+
 \begin{code}
 ?- foo(hello, X) =.. List.
 
@@ -4622,6 +4624,15 @@ List = [foo, hello, X]
 
 Term = baz(foo(1))
 \end{code}
+
+    \predicate{compound_name_arity}{?Compound, ?Name, ?Arity}
+Rationalized version of functor/3 that only works for compound terms
+and can examine and create compound terms with zero arguments (e.g,
+\exam{name()}.  See also compound_name_arguments/3.
+
+    \predicate{compound_name_arguments}{?Compound, ?Name, ?Arity}
+Rationalized version of =../2 that can compose and decompose compound
+terms with zero arguments.  See also compound_name_arity/3.
 
     \predicate{numbervars}{3}{+Term, +Start, -End}
 Unify the free variables of \arg{Term} with a term \term{\$VAR}{N},

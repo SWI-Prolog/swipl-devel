@@ -663,6 +663,7 @@ valueExpression(term_t expr, number *result ARG_LD)
   Word start;
   int known_acyclic = FALSE;
   int pushed = 0;
+  functor_t functor;
 
   deRef(p);
   start = p;
@@ -690,10 +691,11 @@ valueExpression(term_t expr, number *result ARG_LD)
 	continue;
       }
       case TAG_ATOM:
-      { functor_t functor = lookupFunctorDef(*p, 0);
-	ArithF f;
+      { ArithF f;
 
-        if ( (f = isCurrentArithFunction(functor)) )
+	functor = lookupFunctorDef(*p, 0);
+      arity0:
+	if ( (f = isCurrentArithFunction(functor)) )
 	{ if ( (*f)(n) != TRUE )
 	    goto error;
 	} else
@@ -708,12 +710,17 @@ valueExpression(term_t expr, number *result ARG_LD)
         break;
       case TAG_COMPOUND:
       { Functor term = valueTerm(*p);
-	int arity;
+	int arity = arityFunctor(term->definition);
 
 	if ( term->definition == FUNCTOR_dot2 )
 	{ if ( getCharExpression(p, n PASS_LD) != TRUE )
 	    goto error;
 	  break;
+	}
+
+	if ( arity == 0 )
+	{ functor = term->definition;
+	  goto arity0;
 	}
 
 	if ( p == start )
@@ -740,7 +747,6 @@ valueExpression(term_t expr, number *result ARG_LD)
 	}
 	walk_ref = FALSE;
 	n = &n_tmp;
-	arity = arityFunctor(term->definition);
 	p = &term->arguments[arity-1];
 	continue;
       }

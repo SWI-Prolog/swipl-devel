@@ -1533,6 +1533,25 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 
 
 int
+PL_get_compound_name_arity(term_t t, atom_t *name, int *arity)
+{ GET_LD
+  word w = valHandle(t);
+
+  if ( isTerm(w) )
+  { FunctorDef fd = valueFunctor(functorTerm(w));
+
+    if ( name )
+      *name =  fd->name;
+    if ( arity )
+      *arity = fd->arity;
+    succeed;
+  }
+
+  fail;
+}
+
+
+int
 PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
 { word w = valHandle(t);
 
@@ -2391,6 +2410,44 @@ PL_unify_atom(term_t t, atom_t a)
   return unifyAtomic(t, a PASS_LD);
 }
 #define PL_unify_atom(t, a) PL_unify_atom__LD(t, a PASS_LD)
+
+
+int
+PL_unify_compound(term_t t, functor_t f)
+{ GET_LD
+  Word p = valHandleP(t);
+  int arity = arityFunctor(f);
+
+  deRef(p);
+  if ( canBind(*p) )
+  { size_t needed = (1+arity);
+    Word a;
+    word to;
+
+    if ( !hasGlobalSpace(needed) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+      p = valHandleP(t);		/* reload: may have shifted */
+      deRef(p);
+    }
+
+    a = gTop;
+    to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+
+    gTop += 1+arity;
+    *a = f;
+    while( --arity >= 0 )
+      setVar(*++a);
+
+    bindConst(p, to);
+
+    succeed;
+  } else
+  { return hasFunctor(*p, f);
+  }
+}
 
 
 int

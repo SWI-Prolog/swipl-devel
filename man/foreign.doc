@@ -849,10 +849,17 @@ If \arg{t} is a float or integer, its value is assigned over \arg{f}.
 If \arg{t} is compound or an atom, the Prolog representation of the
 name-arity pair will be assigned over \arg{f}. See also
 PL_get_name_arity() and PL_is_functor().
+
 \cfunction{int}{PL_get_name_arity}{term_t +t, atom_t *name, int *arity}
 If \arg{t} is compound or an atom, the functor name will be assigned
 over \arg{name} and the arity over \arg{arity}. See also
 PL_get_functor() and PL_is_functor().
+
+\cfunction{int}{PL_get_compound_name_arity}{term_t +t, atom_t *name, int *arity}
+If \arg{t} is compound term, the functor name will be assigned over
+\arg{name} and the arity over \arg{arity}.  This is the same as
+PL_get_name_arity(), but this function fails if \arg{t} is an atom.
+
 \cfunction{int}{PL_get_module}{term_t +t, module_t *module}
 If \arg{t} is an atom, the system will look up or create the
 corresponding module and assign an opaque pointer to it over {\em
@@ -1341,11 +1348,22 @@ Unify \arg{t} with a Prolog float from \arg{f}.
     \cfunction{int}{PL_unify_pointer}{term_t ?t, void *ptr}
 Unify \arg{t} with a Prolog integer describing the pointer. See also
 PL_put_pointer() and PL_get_pointer().
+
     \cfunction{int}{PL_unify_functor}{term_t ?t, functor_t f}
 If \arg{t} is a compound term with the given functor, just succeed.
 If it is unbound, create a term and bind the variable, else fail.
 Note that this function does not create a term if the argument is
-already instantiated.
+already instantiated.  If \arg{f} is a functor with arity 0, \arg{t}
+is unified with an atom.  See also PL_unify_compound().
+
+    \cfunction{int}{PL_unify_compound}{term_t ?t, functor_t f}
+If \arg{t} is a compound term with the given functor, just succeed.
+If it is unbound, create a term and bind the variable, else fail.
+Note that this function does not create a term if the argument is
+already instantiated.  If \arg{f} is a functor with arity 0, \arg{t}
+is unified with compound without arguments. See also
+PL_unify_functor().
+
     \cfunction{int}{PL_unify_list}{term_t ?l, term_t -h, term_t -t}
 Unify \arg{l} with a list-cell ({\tt ./2}). If successful, write a
 reference to the head of the list into \arg{h} and a reference
