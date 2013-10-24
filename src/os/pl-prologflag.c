@@ -1221,7 +1221,9 @@ initPrologFlags(void)
   setPrologFlag("verbose_file_search", FT_BOOL, FALSE, 0);
   setPrologFlag("sandboxed_load", FT_BOOL, FALSE, 0);
   setPrologFlag("allow_variable_name_as_functor", FT_BOOL, FALSE,
-	     ALLOW_VARNAME_FUNCTOR);
+		ALLOW_VARNAME_FUNCTOR);
+  setPrologFlag("allow_dot_in_atom", FT_BOOL, TRUE,
+		PLFLAG_DOT_IN_ATOM);
   setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
   setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");

@@ -181,6 +181,14 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
 */
 
 static int
+truePrologFlagNoLD(unsigned int flag)
+{ GET_LD
+
+  return truePrologFlag(flag);
+}
+
+
+static int
 atomType(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
   char *s = atom->name;
@@ -191,10 +199,16 @@ atomType(atom_t a, write_options *options)
     return AT_QUOTE;
 
   if ( isLower(*s) )
-  { for( ++s;
-	 --len > 0 && isAlpha(*s) && (!fd || Scanrepresent(*s, fd)==0);
-	 s++)
-      ;
+  { do
+    { for( ++s;
+	   --len > 0 && isAlpha(*s) && (!fd || Scanrepresent(*s, fd)==0);
+	   s++)
+	;
+    } while ( len >= 2 &&
+	      *s == '.' && isAlpha(s[1]) &&
+	      truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM)
+	    );
+
     return len == 0 ? AT_LOWER : AT_QUOTE;
   }
 

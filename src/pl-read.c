@@ -87,24 +87,33 @@ unicode_separator(pl_wchar_t c)
 /* unquoted_atomW() returns TRUE if text can be written to s as unquoted atom
 */
 
+static int
+truePrologFlagNoLD(unsigned int flag)
+{ GET_LD
+
+  return truePrologFlag(flag);
+}
+
+
 int
 unquoted_atomW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
-{ const pl_wchar_t *e = &s[len];
-
-  if ( len == 0 )
+{ if ( len == 0 )
     return FALSE;
 
   if ( !PlIdStartW(*s) || PlUpperW(*s) )
     return FALSE;
 
-  for(s++; s<e; )
-  { int c = *s++;
+  do
+  { for( ++s;
+	 --len > 0 && PlIdContW(*s) && (!fd || Scanrepresent(*s, fd)==0);
+	 s++)
+      ;
+  } while ( len >= 2 &&
+	    *s == '.' && PlIdContW(s[1]) &&
+	    truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM)
+	  );
 
-    if ( !(PlIdContW(c) && (!fd || Scanrepresent(c, fd) == 0)) )
-      return FALSE;
-  }
-
-  return TRUE;
+  return len == 0;
 }
 
 
@@ -998,6 +1007,17 @@ raw_read_quasi_quotation(int c, ReadData _PL_rd)
 
 
 static int
+raw_read_identifier(int c, ReadData _PL_rd)
+{ do
+  { addToBuffer(c, _PL_rd);
+    c = getchr();
+  } while( c != EOF && PlIdContW(c) );
+
+  return c;
+}
+
+
+static int
 add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 { term_t head = PL_new_term_ref();
 
@@ -1360,10 +1380,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    case LC:
 		    case UC:
 		      set_start_line;
-		      do
-		      { addToBuffer(c, _PL_rd);
-			c = getchr();
-		      } while( c != EOF && PlIdContW(c) );
+		      c = raw_read_identifier(c, _PL_rd);
 		      dotseen = FALSE;
 		      goto handle_c;
 		    default:
@@ -1385,10 +1402,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		} else			/* > 255 */
 		{ if ( PlIdStartW(c) )
 		  { set_start_line;
-		    do
-		    { addToBuffer(c, _PL_rd);
-		      c = getchr();
-		    } while( c != EOF && PlIdContW(c) );
+		    c = raw_read_identifier(c, _PL_rd);
 		    dotseen = FALSE;
 		    goto handle_c;
 		  } else if ( PlBlankW(c) )
@@ -1818,7 +1832,7 @@ skipSpaces(cucharp in)
 
 
 static inline unsigned char *
-SkipIdCont(unsigned char *in)
+SkipVarIdCont(unsigned char *in)
 { int chr;
   unsigned char *s;
 
@@ -1827,6 +1841,28 @@ SkipIdCont(unsigned char *in)
 
     if ( !PlIdContW(chr) )
       return in;
+  }
+
+  return in;
+}
+
+
+static inline unsigned char *
+SkipAtomIdCont(unsigned char *in)
+{ int chr;
+  unsigned char *s;
+
+  for( ; *in; in=s)
+  { s = (unsigned char*)utf8_get_char((char*)in, &chr);
+
+    if ( !PlIdContW(chr) )
+    { if ( chr == '.' && truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) )
+      { s = (unsigned char*)utf8_get_char((char*)s, &chr);
+	if ( PlIdContW(chr) )
+	  continue;
+      }
+      return in;
+    }
   }
 
   return in;
@@ -2526,7 +2562,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     lower:
 		{ PL_chars_t txt;
 
-		  rdhere = SkipIdCont(rdhere);
+		  rdhere = SkipAtomIdCont(rdhere);
 		symbol:
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "atom");
@@ -2557,7 +2593,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
     case UC:
     upper:
-		{ rdhere = SkipIdCont(rdhere);
+		{ rdhere = SkipVarIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "variable");
 		  if ( *rdhere == '(' && truePrologFlag(ALLOW_VARNAME_FUNCTOR) )

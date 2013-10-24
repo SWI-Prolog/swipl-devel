@@ -2075,6 +2075,7 @@ typedef struct debuginfo
 #define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
 #define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x200000 /* Warn overriding weak symbols */
 #define PLFLAG_QUASI_QUOTES	    0x400000 /* Support quasi quotes */
+#define PLFLAG_DOT_IN_ATOM	    0x800000 /* Allow atoms a.b.c */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */
