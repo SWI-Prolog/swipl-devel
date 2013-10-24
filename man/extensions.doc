@@ -112,3 +112,142 @@ Pi = 3.141592653589793.
 ?- Pi is pi.
 Pi = 3.141592653589793.
 \end{code}
+
+\subsection{Double quoted strings}
+\label{sec:ext-dquotes}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Maps: structures with named arguments}
+\label{sec:ext-maps}
+
+SWI-Prolog version~7 introduces maps as an abstract object with a
+concrete modern syntax and functional notation for accessing members.
+The syntax for a map is illustrated below. \arg{Class} is either a
+variable or an atom. As with compound terms, there is \textbf{no} space
+between the class and the opening brace. The keys are either atoms or
+small integers (up to \prologflag{max_tagged_integer}). The values are
+arbitrary Prolog terms which are parsed using the same rules as used for
+arguments in compound terms.
+
+\begin{quote}
+Class{Key1:Value1, Key2:Value2, ...}
+\end{quote}
+
+A map cannot hold duplicate keys. The map is transformed into an opaque
+internal representation that does \emph{not} respect the order in which
+the key value pairs appear in the input text. If a map is written, the
+keys are written according to the standard order of terms (see
+\secref{standardorder}). Here are some examples, where the second
+example illustrates that the order is not maintained and the third
+illustrates an anonymous map.
+
+\begin{code}
+?- A = point{x:1, y:2}.
+A = point{x:1, y:2}.
+
+?- A = point{y:2, x:1}.
+A = point{x:1, y:2}.
+
+?- A = _{first_name:"Mel", last_name:"Smith"}.
+A = _G1476{first_name:"Mel", last_name:"Smith"}.
+\end{code}
+
+Maps can be unified following the standard symmetric Prolog unification
+rules. As maps use an internal canonical form, the order in which the
+named keys are represented is not relevant. This behaviour is
+illustrated by the following example.
+
+\begin{code}
+?- point{x:1, y:2} = Class{y:2, x:X}.
+Class = point,
+X = 1.
+\end{code}
+
+
+\subsection{Functions on maps}
+\label{ext-map-functions}
+
+The infix operator dot (.) is used to extract values and evaluate
+functions on maps. Functions are recognised if they appear in the
+argument of a \jargon{goal} in the source text.  The keys act as
+field selector, which is illustrated in this example.
+
+\begin{code}
+?- X = point{x:1,y:2}.x.
+X = 1.
+
+?- X = point{x:1,y:2}.C.
+X = 1,
+C = x ;
+X = 2,
+C = y.
+\end{code}
+
+The class of a map associates the map to a module.  If the dot
+notation uses a compound term, this calls the goal below.
+
+\begin{quote}
+<module>:<name>(Arg1, ..., +Map, -Value)
+\end{quote}
+
+Functions are normal Prolog predicates. The map infrastructure provides
+a more convient syntax for representing the head of such predicates
+comfortably. The code below defines a function \term{multiply}{Times} on
+a point that creates a new point by multiplying both coordinates. and
+\term{len}{}\footnote{as \term{length}{} would result in a predicate
+length/2, this name cannot be used. This might change in future
+versions} to compute the length from the origin. The . and \verb$=>$
+operators are used to abstract the location of the predicate arguments.
+It is allowed to define multiple a function with multiple clauses,
+providing overloading and non-determinism.
+
+\begin{code}
+:- module(point, []).
+
+M.multiply(F) => point{x:X, y:Y} :-
+	X is M.x*F,
+	Y is M.y*F.
+
+M.len() => Len :-
+	Len is sqrt(M.x**2 + M.y**2).
+\end{code}
+
+After these definitions, we can evaluate the following functions:
+
+\begin{code}
+?- X = point{x:1, y:2}.multiply(2).
+X = point{x:2, y:4}.
+
+?- X = point{x:1, y:2}.multiply(2).len().
+X = 4.47213595499958.
+\end{code}
+
+
+\subsection{A motivation for maps as primary citizens}
+\label{sec:ext-maps-motivation}
+
+Maps, or key-value associations, are a common datastructure. A good old
+example are \jargon{property lists} as found in Lisp, while a good
+recent example is formed by JavaScript \jargon{objects}. Traditional
+Prolog does not offer native properly lists. As a result, people are
+using a wide range of data structures for key-value associations:
+
+\begin{itemize}
+    \item Using compound terms and positional arguments.
+    \item Using compound terms with library \pllib{record}.
+    \item Using lists of terms \exam{Name=Value}, \exam{Name-Value},
+          \exam{Name:Value} or \exam{Name(Value)}.
+    \item Using library \pllib{assoc} which represents the
+          associations as a balanced binary tree.
+\end{itemize}
+
+This situation is unfortunate. Each of these have their advantages and
+disadvantages. E.g., compound terms are compact and fast, but inflexible
+and using positional arguments quickly breaks down. Library
+\pllib{record} fixes this, but the syntax is considered hard to use.
+Lists are flexible, but expensive and the alternative key-value
+representation complicate the matter even more. Library \pllib{assoc}
+allows for efficient manipulation of changing associations, but the
+syntactical representation of an assoc is complex, which makes them
+unsuitable for e.g., \jargon{options lists} as seen in predicates such
+as write_term/3.
