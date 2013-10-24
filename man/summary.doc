@@ -308,6 +308,7 @@ suggest predicates from a keyword.
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_assoc}{1}{Verify association list}
 \predicatesummary{is_list}{1}{Type check for a list}
+\predicatesummary{is_map}{2}{Type check for a map}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{join_threads}{0}{Join all terminated threads interactively}
 \predicatesummary{keysort}{2}{Sort, using a key}
@@ -338,6 +339,9 @@ suggest predicates from a keyword.
 \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
+\predicatesummary{map_get}{3}{Get the value associated to a key from a map}
+\predicatesummary{map_put}{3}{Add/replace multiple keys in a map}
+\predicatesummary{map_put}{4}{Add/replace a single key in a map}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
 \predicatesummary{message_line_element}{2}{\hook{prolog} Intercept print_message_lines/3}

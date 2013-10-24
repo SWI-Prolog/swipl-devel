@@ -53,7 +53,7 @@ TEXFILES=	$(DOC).tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
 		profile.tex attvar.tex chr.tex xref.tex bit64.tex \
-		dialect.tex
+		dialect.tex extensions.tex
 STYFILES=	html.sty txt.sty
 
 .SUFFIXES:

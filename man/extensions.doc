@@ -33,7 +33,7 @@ atomic/1) but not atoms (see atom/1).
 \subsection{Lists are special}
 \label{sec:ext-lists}
 
-SWI-Prolog lists can be distinquished unambiguously at runtime from
+SWI-Prolog lists can be distinguished unambiguously at runtime from
 both ordinary compound terms and the atom \const{'[]'} using the
 reserved constants introduced in \secref{ext-constants}.  The
 list \exam{[a,b]} is represented as the term below.
@@ -153,11 +153,29 @@ appropriate:
           clause to the multifile predicate check:valid_string_goal/1.
 \end{itemize}
 
-    \predicate{check:check:string_predicate}{1}{:PredicateIndicator}
-    \predicate{check:check:valid_string_goal}{2}{:Goal}
+    \predicate{check:string_predicate}{1}{:PredicateIndicator}
+Declare that \arg{PredicateIndicator} has clauses that contain strings,
+but that this is safe.  Fo example:
+
+\begin{code}
+:- multifile check:string_predicate/1.
+
+string_predicate(user:help_info/2).
+\end{code}
+
+    \predicate{check:valid_string_goal}{1}{:Goal}
+Declare that calls to \arg{Goal} are safe.  The module qualification
+is the actual module in which \arg{Goal} is defined.  For example, a
+call to format/3 is resolved by the predicate system:format/3. and
+the code below specifies that the second argument may be a string
+(system predicates that accept strings are defined in the library).
+
+\begin{code}
+:- multifile check:valid_string_goal/1.
+
+check:valid_string_goal(system:format(_,S,_)) :- string(S).
+\end{code}
 \end{description}
-
-
 
 
 \subsubsection{Why has the representation of double quoted text changed?}
@@ -166,23 +184,23 @@ appropriate:
 Prolog defines two forms of quoted text. Traditionally, single quoted
 text is mapped to atoms while double quoted text is mapped to a list of
 \jargon{character codes} (integers) or characters represented as
-1-charater atoms. Representing text in atoms is often considered
+1-character atoms. Representing text in atoms is often considered
 inadequate for several reasons:
 
 \begin{itemize}
     \item It hides the conceptual difference between a text and a
-          program symbol.  Where content of text often matters,
-	  program symbols are merely identifiers that match with the
-	  same symbol elsewhere. Program symbols can often be
-	  consistently replaced, for example to obfuscate or compact
-	  a program.
+          program symbol.  Where content of text often matters because
+	  it is used in I/O, program symbols are merely identifiers
+	  that match with the same symbol elsewhere. Program symbols
+	  can often be consistently replaced, for example to obfuscate
+	  or compact a program.
 
     \item Atoms are globally unique identifiers.  They are stored
           in a shared table.  Volatile strings represented as atoms
 	  come at a significant price due to the required cooperation
 	  between threads. Getting rid of temporary atoms
 	  using \jargon{Atom garbage collection} is a costly process
-	  that requires significant synchronization.
+	  that requires significant synchronisation.
 
     \item Many Prolog systems (not SWI-Prolog) put severe restrictions
           on the length of atoms or the maximum number of atoms.
@@ -200,7 +218,7 @@ also comes at a price:
 	  be used to indicate that we are dealing with a string.
 
 	  Lacking runtime information, debuggers and the toplevel can
-	  only use heuristic information whether to print a list of
+	  only use heuristics to decide whether to print a list of
 	  integers as such or as a string (see portray_text/1).
 
 	  While experienced Prolog programmers have learned to cope
@@ -209,18 +227,17 @@ also comes at a price:
     \item Lists are expensive structures, taking 2 words per character
           (3 for SWI-Prolog in its current form).  This stresses memory
 	  consumption on the stacks while pushing them on the stack and
-	  dealing with them during garbage collection is expensive. This
-	  while we observe that most strings are only handled as a
-	  single unit during their lifetime.
+	  dealing with them during garbage collection is expensive.
 \end{itemize}
 
-Examining real code tells us that double quoted strings typically
-appear in one of the following roles:
+We observed that in many programs, most strings are only handled as a
+single unit during their lifetime. Examining real code tells us that
+double quoted strings typically appear in one of the following roles:
 
 \begin{description}
-    \item [ A DCG literal ]  The DCG translater can recognise the
-literal and convert it to the proper type.  Such code need not be
-modified.
+    \item [ A DCG literal ]  The DCG translator can recognise the
+literal and convert it to the proper representation. Such code need not
+be modified.
 
     \item [ A format string ]  This is a typical example of text that
 is conceptually not a program identifier.  Format is designed to deal
@@ -291,7 +308,7 @@ X = 1.
 
 
 \subsection{Functions on maps}
-\label{ext-map-functions}
+\label{sec:ext-map-functions}
 
 The infix operator dot (.) is used to extract values and evaluate
 functions on maps. Functions are recognised if they appear in the
@@ -317,7 +334,7 @@ notation uses a compound term, this calls the goal below.
 \end{quote}
 
 Functions are normal Prolog predicates. The map infrastructure provides
-a more convient syntax for representing the head of such predicates
+a more convenient syntax for representing the head of such predicates
 comfortably. The code below defines a function \term{multiply}{Times} on
 a point that creates a new point by multiplying both coordinates. and
 \term{len}{}\footnote{as \term{length}{} would result in a predicate
@@ -349,10 +366,61 @@ X = 4.47213595499958.
 \end{code}
 
 
+\subsection{Predicates for managing maps}
+\label{ext-map-predicates}
+
+\begin{description}
+    \predicate{is_map}{2}{@Term, -Class}
+True if \arg{Term} is a map of \arg{Class}.
+
+    \predicate{map_get}{3}{+Map, ?Key, -Value}
+Unify the value associated with \arg{Key} in map with \arg{Value}.  If
+\arg{Key} is unbound, all associations in \arg{Map} are returned on
+backtracking.  The order in which the associations are returned is
+undefined.  This predicate is normally accessed using the functional
+notation \exam{Map.Key}.  See \secref{ext-map-functions}.
+
+    \predicate{map_create}{3}{-Map, +Class, +Data}
+Create a map in \arg{Class} from \arg{Data}. \arg{Data} is a list of
+attribute-value pairs using the syntax \exam{Key:Value},
+\exam{Key=Value}, \exam{Key-Value} or \exam{Key(Value)}. An exception is
+raised if \arg{Data} is not a proper list, one of the elements is not of
+the shape above, a key is neither an atom nor a small integer or there
+is a duplicate key.
+
+    \predicate{map_put}{3}{+MapIn, +New, -MapOut}
+\arg{MapOut} is a new map by replacing or adding key-value pairs from
+\arg{New} to \arg{Map}.  \arg{New} is either a map or a valid input for
+map_create/3.  This predicate is normally accessed using the functional
+notation.  Below are some examples:
+
+\begin{code}
+?- A = point{x:1, y:2}.put(_{x:3}).
+A = point{x:3, y:2}.
+
+?- A = point{x:1, y:2}.put([x=3]).
+A = point{x:3, y:2}.
+
+?- A = point{x:1, y:2}.put([x=3,z=0]).
+A = point{x:3, y:2, z:0}.
+\end{code}
+
+    \predicate{map_put}{4}{+MapIn, +Key, +Value, -MapOut}
+\arg{MapOut} is a new map created by replacing or adding
+\arg{Key}-\arg{Value} to \arg{MapIn}. This predicate is normally
+accessed using the functional notation. Below is an example:
+
+\begin{code}
+?- A = point{x:1, y:2}.put(x, 3).
+A = point{x:3, y:2}.
+\end{code}
+\end{description}
+
+
 \subsection{A motivation for maps as primary citizens}
 \label{sec:ext-maps-motivation}
 
-Maps, or key-value associations, are a common datastructure. A good old
+Maps, or key-value associations, are a common data structure. A good old
 example are \jargon{property lists} as found in Lisp, while a good
 recent example is formed by JavaScript \jargon{objects}. Traditional
 Prolog does not offer native properly lists. As a result, people are

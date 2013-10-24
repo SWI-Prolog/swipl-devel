@@ -225,6 +225,7 @@ California, 94041, USA.
 \include{overview}
 \include{ide}
 \include{builtin}
+\include{extensions}
 \include{module}
 \include{attvar}
 \include{chr}
