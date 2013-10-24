@@ -749,7 +749,6 @@ Map represents the name-value pairs  in  Data.   If  Data  is a map, Map
 unified  with  Data.  Otherwise,  a  new    Map   is  created.  Suitable
 representations for Data are:
 
-  - Class{Name:Value, ...}
   - {Name:Value, ...}
   - [Name=Value, ...]
   - [Name-Value, ...]
