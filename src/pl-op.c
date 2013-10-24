@@ -674,6 +674,11 @@ initOperators(void)
 
   for( op = operators; op->name; op++ )
     defOperator(MODULE_system, op->name, op->type, op->priority, TRUE);
+
+  if ( !GD->options.traditional )
+  { defOperator(MODULE_system, PL_new_atom("."), OP_YFX, 100, TRUE);
+    defOperator(MODULE_system, ATOM_eq_gt,       OP_XFX, 700, TRUE);
+  }
 }
 
 
