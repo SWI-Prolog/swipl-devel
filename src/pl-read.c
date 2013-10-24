@@ -3680,22 +3680,6 @@ set_range_position(term_t positions, intptr_t start, intptr_t end ARG_LD)
 }
 
 
-static void
-swap_functor_position(term_t positions, intptr_t *sp, intptr_t *ep ARG_LD)
-{ Word p = valTermRef(positions);
-  intptr_t s, e;
-
-  deRef(p);
-  p = argTermP(*p, 0);
-  s = valInt(p[2]);
-  e = valInt(p[3]);
-  p[2] = consInt(*sp);
-  p[3] = consInt(*ep);
-  *sp = s;
-  *ep = e;
-}
-
-
 static intptr_t
 end_range(term_t positions ARG_LD)
 { Word p = valTermRef(positions);

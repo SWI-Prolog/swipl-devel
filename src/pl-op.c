@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -144,7 +142,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
 		      action, ATOM_operator, t);
     }
 
-    if ( !unquoted_atom(name) && name != ATOM_nil && name != ATOM_void )
+    if ( !unquoted_atom(name) && name != ATOM_nil )
     { GET_LD
       term_t t = PL_new_term_ref();
 
