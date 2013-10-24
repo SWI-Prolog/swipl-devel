@@ -5111,8 +5111,35 @@ unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int ho
 
 
 static int
+unify_atom_compound(term_t t1, term_t t2 ARG_LD)
+{ if ( !PL_unify(t1, t2) )
+  { Word p1 = valTermRef(t1);
+    Word p2 = valTermRef(t2);
+
+    deRef(p1);
+    deRef(p2);
+    if ( isAtom(*p1) && isTerm(*p2) )
+    { FunctorDef fd = valueFunctor(functorTerm(*p2));
+
+      if ( fd->name == *p1 && fd->arity == 0 )
+	return TRUE;
+    } else if ( isAtom(*p2) && isTerm(*p1) )
+    { FunctorDef fd = valueFunctor(functorTerm(*p1));
+
+      if ( fd->name == *p2 && fd->arity == 0 )
+	return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static int
 unify_head(term_t h, term_t d ARG_LD)
-{ if ( !PL_unify(h, d) )
+{ if ( !unify_atom_compound(h, d PASS_LD) )
   { term_t h1, d1;
     Module m = NULL;
 
@@ -5123,7 +5150,7 @@ unify_head(term_t h, term_t d ARG_LD)
     PL_strip_module(h, &m, h1);
     PL_strip_module(d, &m, d1);
 
-    return PL_unify(h1, d1);
+    return unify_atom_compound(h1, d1 PASS_LD);
   } else
     return TRUE;
 }
