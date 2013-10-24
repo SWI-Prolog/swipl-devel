@@ -68,12 +68,12 @@ system:goal_expansion(G0, G) :-
 system:term_expansion((.(R,M) => V0 :- Body),
 		      (Head :- Body, Eval)) :- !,
 	replace_functions(V0, Eval, V),
-	M =.. [Name|Args0],
+	compound_name_arguments(M, Name, Args0),
 	append(Args0, [R,V], Args),
-	Head =.. [Name|Args].
+	compound_name_arguments(M, Name, Args).
 system:term_expansion((.(R,M) => V0),
 		      (Head :- Eval)) :-
 	replace_functions(V0, Eval, V),
-	M =.. [Name|Args0],
+	compound_name_arguments(M, Name, Args0),
 	append(Args0, [R,V], Args),
-	Head =.. [Name|Args].
+	compound_name_arguments(M, Name, Args).
