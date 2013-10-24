@@ -113,8 +113,134 @@ Pi = 3.141592653589793.
 Pi = 3.141592653589793.
 \end{code}
 
+
 \subsection{Double quoted strings}
 \label{sec:ext-dquotes}
+
+As of SWI-Prolog version~7, text encloses in double quotes (e.g.,
+\verb$"Hello world"$) is read as a string object as defined in
+\secref{strings}.  \Secref{ext-dquotes-motivation} motivates this
+choice.  The predicates below can help adapting your program to
+this new convention. We have adapted a huge code base with which
+we were not familiar in about half a day.
+
+\begin{description}
+    \predicate{list_strings}{0}{}
+This predicate may be used to make your program compatible with the
+representation of double quoted text as string objects. See
+\secref{sec:ext-dquotes} and \secref{ext-dquotes-motivation}.  To
+use it, load your program into Prolog and run list_strings/0.  The
+predicate lists source locations of string objects encountered in
+the program that are not considered safe.  Such string need to be
+examined manually, after which one of the actions below may be
+appropriate:
+
+\begin{itemize}
+    \item Rewrite the code.  For example, change  \verb$[X] = "a"$
+          into \verb$X = 0'a$.
+    \item If a particular module relies on heavily on representing
+          strings as lists of character code, consider adding the
+	  following directive to the module.  Note that this flag
+	  only applies to the module in which it appears.
+
+	  \begin{code}
+	  :- set_prolog_flag(double_quotes, codes).
+	  \end{code}
+    \item If the strings appear in facts and this is safe, add a
+          clause to the multifile predicate check:string_predicate/1.
+    \item If the strings appear as an argument to a predicate that
+          can deal with them, add a
+          clause to the multifile predicate check:valid_string_goal/1.
+\end{itemize}
+
+    \predicate{check:check:string_predicate}{1}{:PredicateIndicator}
+    \predicate{check:check:valid_string_goal}{2}{:Goal}
+\end{description}
+
+
+
+
+\subsubsection{Why has the representation of double quoted text changed?}
+\label{sec:ext-dquotes-motivation}
+
+Prolog defines two forms of quoted text. Traditionally, single quoted
+text is mapped to atoms while double quoted text is mapped to a list of
+\jargon{character codes} (integers) or characters represented as
+1-charater atoms. Representing text in atoms is often considered
+inadequate for several reasons:
+
+\begin{itemize}
+    \item It hides the conceptual difference between a text and a
+          program symbol.  Where content of text often matters,
+	  program symbols are merely identifiers that match with the
+	  same symbol elsewhere. Program symbols can often be
+	  consistently replaced, for example to obfuscate or compact
+	  a program.
+
+    \item Atoms are globally unique identifiers.  They are stored
+          in a shared table.  Volatile strings represented as atoms
+	  come at a significant price due to the required cooperation
+	  between threads. Getting rid of temporary atoms
+	  using \jargon{Atom garbage collection} is a costly process
+	  that requires significant synchronization.
+
+    \item Many Prolog systems (not SWI-Prolog) put severe restrictions
+          on the length of atoms or the maximum number of atoms.
+\end{itemize}
+
+Representing text as a list of character codes or 1-character atoms
+also comes at a price:
+
+\begin{itemize}
+    \item It is not possible to distinguish (at runtime) a list of
+          integers or atoms from a string.  Sometimes this information
+	  can be derived from (implicit) typing.  In other cases the
+	  list must be embedded in a compound term to distinguish
+	  the two types.  For example, \verb$s("hello world")$ could
+	  be used to indicate that we are dealing with a string.
+
+	  Lacking runtime information, debuggers and the toplevel can
+	  only use heuristic information whether to print a list of
+	  integers as such or as a string (see portray_text/1).
+
+	  While experienced Prolog programmers have learned to cope
+	  with this, we still consider this an unfortunate situation.
+
+    \item Lists are expensive structures, taking 2 words per character
+          (3 for SWI-Prolog in its current form).  This stresses memory
+	  consumption on the stacks while pushing them on the stack and
+	  dealing with them during garbage collection is expensive. This
+	  while we observe that most strings are only handled as a
+	  single unit during their lifetime.
+\end{itemize}
+
+Examining real code tells us that double quoted strings typically
+appear in one of the following roles:
+
+\begin{description}
+    \item [ A DCG literal ]  The DCG translater can recognise the
+literal and convert it to the proper type.  Such code need not be
+modified.
+
+    \item [ A format string ]  This is a typical example of text that
+is conceptually not a program identifier.  Format is designed to deal
+with alternative representations of the format string.  Such code
+need not be modified.
+
+    \item [ Getting a character code ] The construct \verb$[X] = "a"$
+is a commonly used template for getting the character code of the
+letter 'a'.  ISO Prolog defines the syntax \verb$0'a$ for this purpose.
+Code using this must be modified.  The modified code will run on any
+ISO compliant processor.
+
+    \item [ As argument to list predicates to operate on strings ]
+Here, we see code such as \verb$append("name:", Rest, Codes)$.  Such
+code needs to be modified.  In this particular example, the
+following is a good portable alternative: \verb$phrase("name:", Codes, Rest)$
+\end{description}
+
+We offer the predicate list_strings/0 to help porting your program.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Maps: structures with named arguments}
