@@ -56,4 +56,59 @@ by using the list syntax for lists.
 \section{Syntax changes}
 \label{sec:ext-syntax}
 
+\subsection{Operators and quoted atoms}
+\label{sec:ext-syntax-op}
+
 As of SWI-Prolog version~7, quoted atoms loose their operator property.
+
+\subsection{Compound terms with zero arguments}
+\label{sec:ext-compound-zero}
+
+As of SWI-Prolog version~7, the system supports compound terms that have
+no arguments. This implies that e.g., \exam{name()} is valid syntax.
+This extension aims at functions on maps (see \secref{maps}) as well as
+the implementation of domain specific languages (DSLs). To minimise the
+consequences, the classical predicates functor/3 and =../2 have not been
+modified. The predicates compound_name_arity/3 and
+compound_name_arguments/3 have been added. These predicates operate only
+on compound terms and behave consistently for compounds with zero
+arguments.  Code that \jargon{generalises} a term using the sequence
+below should generally be changed to use compound_name_arity/3.
+
+\begin{code}
+    ...,
+    functor(Specific, Name, Arity),
+    functor(General, Name, Arity),
+    ...,
+\end{code}
+
+Replacement of =../2 by compound_name_arguments/3 is typically needed
+to deal with code that follow the skeleton below.
+
+\begin{code}
+    ...,
+    Term0 =.. [Name|Args0],
+    maplist(convert, Args0, Args),
+    Term =.. [Name|Args],
+    ...,
+\end{code}
+
+For predicates, goals and arithmetic functions (evaluable terms), <name>
+and <name>() are \emph{equivalent}. Below are some examples that
+illustrate this behaviour.
+
+\begin{code}
+go() :- format('Hello world~n').
+
+?- go().
+Hello world
+
+?- go.
+Hello world
+
+?- Pi is pi().
+Pi = 3.141592653589793.
+
+?- Pi is pi.
+Pi = 3.141592653589793.
+\end{code}
