@@ -39,6 +39,8 @@ conj(X, Y, (X,Y)).
 	->  map_get(Map, Func, Value)
 	;   Func = put(Name,New)
 	->  map_put(Map, Name, New, Value)
+	;   Func = put(New)
+	->  map_put(Map, New, Value)
 	;   compound(Func)
 	->  call(Class:Func, Map, Value)
 	).
@@ -70,10 +72,10 @@ system:term_expansion((.(R,M) => V0 :- Body),
 	replace_functions(V0, Eval, V),
 	compound_name_arguments(M, Name, Args0),
 	append(Args0, [R,V], Args),
-	compound_name_arguments(M, Name, Args).
+	compound_name_arguments(Head, Name, Args).
 system:term_expansion((.(R,M) => V0),
 		      (Head :- Eval)) :-
 	replace_functions(V0, Eval, V),
 	compound_name_arguments(M, Name, Args0),
 	append(Args0, [R,V], Args),
-	compound_name_arguments(M, Name, Args).
+	compound_name_arguments(Head, Name, Args).
