@@ -126,6 +126,7 @@
 %	\directive{Name}{Arity}{Args}
 %	\predicate[Attibutes]{Name}{Arity}{Args}
 %	\function[Attibutes]{Name}{Arity}{Args}
+%	\mapfunction[Attibutes]{Name}{Arity}{Args}
 %	\infixop{Name}{Left}{Right}
 %	\prefixop{Name}{Right}
 %	\infixfunction{Name}{Left}{Right}
@@ -199,6 +200,7 @@
 	\defentry{#2 {\it #3}\predatt{#1}}%
 	\index{#2/1}\ignorespaces}
 \let\function\predicate
+\let\mapfunction\predicate
 \let\infixfunction\infixop
 \let\prefixfunction\prefixop
 \makeatother
