@@ -36,11 +36,11 @@ conj(X, Y, (X,Y)).
 .(Map, Func, Value) :-
 	is_map(Map, Class), !,
 	(   (atom(Func) ; var(Func))
-	->  map_get(Map, Func, Value)
+	->  get_map(Func, Map, Value)
 	;   Func = put(Name,New)
-	->  map_put(Map, Name, New, Value)
+	->  put_map(Name, Map, New, Value)
 	;   Func = put(New)
-	->  map_put(Map, New, Value)
+	->  put_map(New, Map, Value)
 	;   compound(Func)
 	->  call(Class:Func, Map, Value)
 	).
@@ -48,7 +48,7 @@ conj(X, Y, (X,Y)).
 	is_list(KV), !,
 	(   (atom(Func) ; var(Func))
 	->  map_create(Map, _, KV),
-	    map_get(Map, Func, Value)
+	    get_map(Func, Map, Value)
 	;   '$type_error'(atom, Func)
 	).
 .(Obj, _, _) :-

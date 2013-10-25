@@ -390,11 +390,11 @@ Maps currently define the following reserved functions:
 \begin{description}
     \mapfunction{put}{1}{+New}
 Evaluates to a new map where the key-values in \arg{New} replace
-or extend the key-values in the original map.  See map_put/3.
+or extend the key-values in the original map.  See put_map/3.
 
     \mapfunction{put}{2}{+Key, +Value}
 Evaluates to a new map where the \arg{Key}-\arg{Value} replaces
-or extends the key-values in the original map.  See map_put/4.
+or extends the key-values in the original map.  See put_map/4.
 \end{description}
 
 
@@ -405,7 +405,7 @@ or extends the key-values in the original map.  See map_put/4.
     \predicate{is_map}{2}{@Term, -Class}
 True if \arg{Term} is a map of \arg{Class}.
 
-    \predicate{map_get}{3}{+Map, ?Key, -Value}
+    \predicate{get_map}{3}{?Key, +Map, -Value}
 Unify the value associated with \arg{Key} in map with \arg{Value}.  If
 \arg{Key} is unbound, all associations in \arg{Map} are returned on
 backtracking.  The order in which the associations are returned is
@@ -420,7 +420,7 @@ raised if \arg{Data} is not a proper list, one of the elements is not of
 the shape above, a key is neither an atom nor a small integer or there
 is a duplicate key.
 
-    \predicate{map_put}{3}{+MapIn, +New, -MapOut}
+    \predicate{put_map}{3}{+New, +MapIn, -MapOut}
 \arg{MapOut} is a new map created by replacing or adding key-value pairs
 from \arg{New} to \arg{Map}. \arg{New} is either a map or a valid input
 for map_create/3. This predicate is normally accessed using the
@@ -437,7 +437,7 @@ A = point{x:3, y:2}.
 A = point{x:3, y:2, z:0}.
 \end{code}
 
-    \predicate{map_put}{4}{+MapIn, +Key, +Value, -MapOut}
+    \predicate{put_map}{4}{+Key, +MapIn, +Value, -MapOut}
 \arg{MapOut} is a new map created by replacing or adding
 \arg{Key}-\arg{Value} to \arg{MapIn}. This predicate is normally
 accessed using the functional notation. Below is an example:

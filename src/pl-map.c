@@ -332,7 +332,7 @@ map_order_term_refs(term_t *av, int *indexes, int count ARG_LD)
 
 
 int
-map_put(word map, int size, Word nv, word *new_map ARG_LD)
+put_map(word map, int size, Word nv, word *new_map ARG_LD)
 { Functor data = valueTerm(map);
   int arity = arityFunctor(data->definition);
   Word new, out, in, in_end, nv_end;
@@ -663,24 +663,24 @@ PRED_IMPL("is_map", 2, is_map, 0)
 }
 
 
-/** map_get(+Map, ?Name, ?Value)
+/** get_map(?Key, +Map, ?Value)
 
-True when Name is associated with Value in Map. If Name is unbound, this
+True when Key is associated with Value in Map. If Name is unbound, this
 predicate is true for all Name/Value  pairs   in  the  map. The order in
 which these pairs are enumerated is _undefined_.
 */
 
 static
-PRED_IMPL("map_get", 3, map_get, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("get_map", 3, get_map, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   int i;
   word map;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-    { Word np = valTermRef(A2);
+    { Word np = valTermRef(A1);
 
-      if ( !get_map_ex(A1, &map, FALSE PASS_LD) )
+      if ( !get_map_ex(A2, &map, FALSE PASS_LD) )
 	return FALSE;
 
       deRef(np);
@@ -705,7 +705,7 @@ PRED_IMPL("map_get", 3, map_get, PL_FA_NONDETERMINISTIC)
       Word p;
 
       i = (int)CTX_INT + 2;
-      p = valTermRef(A1);
+      p = valTermRef(A2);
       deRef(p);
       map = *p;
 
@@ -720,7 +720,7 @@ PRED_IMPL("map_get", 3, map_get, PL_FA_NONDETERMINISTIC)
 	  deRef2(&f->arguments[i], np);	/* TBD: check type */
 	  if ( unify_ptrs(&f->arguments[i+1], valTermRef(A3),
 			  ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
-	       _PL_unify_atomic(A2, *np) )
+	       _PL_unify_atomic(A1, *np) )
 	  { PL_close_foreign_frame(fid);
 
 	    if ( i+2 < arity )
@@ -768,28 +768,28 @@ PRED_IMPL("map_create", 3, map_create, 0)
 }
 
 
-/** map_put(+Map0, +Map1, -Map)
+/** put_map(+New, +MapIn, -MapOut)
 
 True when Map is a copy of Map0 where values from Map1 replace or extend
 the value set of Map0.
 */
 
 static
-PRED_IMPL("map_put", 3, map_put, 0)
+PRED_IMPL("put_map", 3, put_map, 0)
 { PRED_LD
   word m1, m2;
   fid_t fid = PL_open_foreign_frame();
 
 retry:
 
-  if ( get_map_ex(A1, &m1, TRUE PASS_LD) &&
-       get_map_ex(A2, &m2, TRUE PASS_LD) )
+  if ( get_map_ex(A2, &m1, TRUE PASS_LD) &&
+       get_map_ex(A1, &m2, TRUE PASS_LD) )
   { Functor f2 = valueTerm(m2);
     int arity = arityFunctor(f2->definition);
     word new;
     int rc;
 
-    if ( (rc = map_put(m1, arity/2, &f2->arguments[1], &new PASS_LD)) == TRUE )
+    if ( (rc = put_map(m1, arity/2, &f2->arguments[1], &new PASS_LD)) == TRUE )
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
@@ -806,7 +806,7 @@ retry:
   return FALSE;
 }
 
-/** map_put(+Map0, +Name, +Value, -Map)
+/** put_map(+Key, +Map0, +Value, -Map)
 
 True when Map is a copy of Map0 with Name Value added or replaced.
 */
@@ -826,20 +826,20 @@ get_name_ex(term_t t, Word np ARG_LD)
 
 
 static
-PRED_IMPL("map_put", 4, map_put, 0)
+PRED_IMPL("put_map", 4, put_map, 0)
 { PRED_LD
   word m1;
   term_t av = PL_new_term_refs(2);
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( get_map_ex(A1, &m1, TRUE PASS_LD) &&
-       get_name_ex(A2, valTermRef(av) PASS_LD) &&
+  if ( get_map_ex(A2, &m1, TRUE PASS_LD) &&
+       get_name_ex(A1, valTermRef(av) PASS_LD) &&
        PL_put_term(av+1, A3) )
   { word new;
     int rc;
 
-    if ( (rc = map_put(m1, 1, valTermRef(av), &new PASS_LD)) == TRUE )
+    if ( (rc = put_map(m1, 1, valTermRef(av), &new PASS_LD)) == TRUE )
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
@@ -866,7 +866,7 @@ retry:
 BeginPredDefs(map)
   PRED_DEF("is_map",     2, is_map,     0)
   PRED_DEF("map_create", 3, map_create, 0)
-  PRED_DEF("map_put",    3, map_put,    0)
-  PRED_DEF("map_put",    4, map_put,    0)
-  PRED_DEF("map_get",    3, map_get,    PL_FA_NONDETERMINISTIC)
+  PRED_DEF("put_map",    3, put_map,    0)
+  PRED_DEF("put_map",    4, put_map,    0)
+  PRED_DEF("get_map",    3, get_map,    PL_FA_NONDETERMINISTIC)
 EndPredDefs
