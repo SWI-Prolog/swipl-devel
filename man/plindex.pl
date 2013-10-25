@@ -77,6 +77,15 @@ ascii_list([H|T]) :-
 	summary/3,
 	end_offset/1.
 
+cleanup :-
+	retractall(last_chapter(_)),
+	retractall(page(_,_)),
+	retractall(predicate(_,_,_,_,_)),
+	retractall(function(_,_,_)),
+	retractall(section(_,_,_,_)),
+	retractall(summary(_,_,_)),
+	retractall(end_offset(_)).
+
 %%	online_index is det.
 %%	online_index(+In, +Out) is det.
 %
@@ -90,6 +99,7 @@ online_index :-
 	online_index(Manual, Index).
 
 online_index(In, Out) :-
+	cleanup,
 	load_urldefs,
 	parse_summaries('summary.doc'),
 	setup_call_cleanup(open(In, read, InFd),
@@ -279,7 +289,9 @@ predicate_line(Name, Arity) -->
 			   ),
 			[Arity])
 	    ;	system:current_predicate(Name, _)
-	    ;   current_arithmetic_function(T)
+	    ;   integer(Arity),
+		functor(T, Name, Arity),
+		current_arithmetic_function(T)
 	    )
 	->  true
 	;   format(user_error, 'Not a defined predicate: ~w/~w~n', [Name, Arity])
@@ -333,7 +345,7 @@ optional_predicate_tag([]) -->
 	"".
 
 optional_directive -->
-	starts(":-"), !,
+	":-", !,
 	skip_blanks.
 optional_directive -->
 	{ true }.
@@ -390,7 +402,7 @@ sum_args(_, _, _).
 
 optional_dots -->
 	skip_blanks,
-	starts(", ..."),
+	", ...",
 	skip_blanks.
 optional_dots -->
 	{ true }.
@@ -411,13 +423,13 @@ predarg(1) -->
 predarg(_) -->
 	"...", !.
 predarg(1) -->
-	starts("[]").
+	"[]".
 
 mode -->
 	"?:", !.
 mode -->
 	char(C),
-	{ memberchk(C, "+-?:@!") }, !.
+	{ string_code(_, "+-?:@!", C) }, !.
 
 optional_mode -->
 	mode, !.
@@ -519,12 +531,6 @@ chapter_index([Index]) -->
 	".",
 	skip_blanks.
 
-starts([]) -->
-	!.
-starts([C|R]) -->
-	char(C),
-	starts(R).
-
 %	PRIMITIVES.
 
 skip_blanks -->
@@ -559,11 +565,11 @@ symbols([]) -->
 
 symbol(S) -->
 	char(S),
-	{ memberchk(S, "\\#$&*+-./:<=>?@^`~") }.
+	{ string_code(_, "\\#$&*+-./:<=>?@^`~", S) }.
 
 single(S) -->
 	char(S),
-	{ memberchk(S, "!,;|") }.
+	{ string_code(_, "!,;|", S) }.
 
 digit(D) -->
 	char(D),
@@ -753,7 +759,7 @@ tex_arg_string(Value) -->
 	tex_arg_string(Sub),
 	"}",
 	tex_arg_string(Tail),
-	{flatten(["{", Sub, "}", Tail], Value)}.
+	{ format(codes(Value), '{~s}~s', [Sub, Tail]) }.
 tex_arg_string([]) -->
 	peek(0'}), !.
 tex_arg_string([C|T]) -->
@@ -781,14 +787,14 @@ untex(In, Out) :-
 	phrase(untex(Out), In).
 
 tex_expand(pllib(Lib), Out) :- !,
-	flatten(["library(", Lib, ")"], Out).
+	format(codes(Out), 'library(~s)', [Lib]).
 tex_expand(predref(Name, Arity), Out) :- !,
-	flatten([Name, "/", Arity], Out).
+	format(codes(Out), '~s/~s', [Name, Arity]).
 tex_expand(hook(Module), Out) :- !,
-	flatten(["Hook (", Module, ")"], Out).
-tex_expand('', "") :- !.
-tex_expand(bsl([]), "\\") :- !.
-tex_expand(In, "") :-
+	format(codes(Out), 'Hook (~s)', [Module]).
+tex_expand('', []) :- !.
+tex_expand(bsl([]), [0'\\]) :- !.
+tex_expand(In, []) :-
 	format('ERROR: could not expand TeX command ~q~n', [In]).
 
 untex(S) -->
@@ -825,7 +831,7 @@ letter(C) -->
 %
 %	Take smalles possible string from the input.
 
-string("") -->
+string([]) -->
 	{ true }.
 string([C|R]) -->
 	[C],
