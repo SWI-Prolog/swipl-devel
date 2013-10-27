@@ -206,7 +206,7 @@ not familiar in about half a day.
     \predicate{list_strings}{0}{}
 This predicate may be used to make your program compatible with the
 representation of double quoted text as string objects. See
-\secref{sec:ext-dquotes} and \secref{ext-dquotes-motivation}.  To
+\secref{ext-dquotes} and \secref{ext-dquotes-motivation}.  To
 use it, load your program into Prolog and run list_strings/0.  The
 predicate lists source locations of string objects encountered in
 the program that are not considered safe.  Such string need to be
@@ -381,7 +381,7 @@ We offer the predicate list_strings/0 to help porting your program.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Maps: structures with named arguments}
-\label{sec:ext-maps}
+\label{sec:maps}
 
 SWI-Prolog version~7 introduces maps as an abstract object with a
 concrete modern syntax and functional notation for accessing members and
