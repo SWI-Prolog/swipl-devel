@@ -289,6 +289,7 @@ predicate_line(Name, Arity) -->
 			   ),
 			[Arity])
 	    ;	system:current_predicate(Name, _)
+	    ;	directive(Name/Arity)
 	    ;   integer(Arity),
 		functor(T, Name, Arity),
 		current_arithmetic_function(T)
@@ -329,6 +330,14 @@ predicate_line(Name, 0) -->
 	optional_directive,
 	optional_module,
 	atom(Name).
+
+directive(include/1).
+directive(encoding/1).
+directive(if/1).
+directive(elif/1).
+directive(else/0).
+directive(endif/0).
+
 
 %%	optional_predicate_tag(-Tags)// is det.
 %
@@ -724,6 +733,8 @@ parse_summary(0, _, _) -->
 	;   "\\newcommand"
 	;   "\\pagebreak"
 	;   "\\opsummary"
+	;   "\\libsummary"
+	;   "\\label"
 	), !,
 	string(_).
 parse_summary(0, _, _) -->
