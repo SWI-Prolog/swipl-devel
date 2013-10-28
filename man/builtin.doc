@@ -6681,9 +6681,6 @@ decodes padding information in the strings returned by tty_get_capability/3
 and should be used to output these strings. \arg{Lines} is the
 number of lines affected by the operation, or 1 if not applicable (as
 in almost all cases).
-    \predicate{set_tty}{2}{-OldStream, +NewStream}
-Set the output stream used by tty_put/2 and tty_goto/2 to a
-specific stream. Default is user_output.
     \predicate{tty_size}{2}{-Rows, -Columns}
 Determine the size of the terminal.  Platforms:
 
