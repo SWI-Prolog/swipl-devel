@@ -32,9 +32,12 @@ quotes}. Backquoted constants are considered \emph{atomic} (see
 atomic/1) but not atoms (see atom/1). Constants can be used as functors,
 i.e., names of compound terms. These constants are \emph{not} supposed
 to be used in user programs. They are intended for the system to
-indicate special values. In a sense, they replace the old convention of
-using atoms that start with a \verb!$!, such as numbervars/3 which
-numbers the variables using the term \term{'\$VAR'}{N}.
+indicate special values. They are used to distinguish the terms
+resulting from \jargon{syntactic sugar} from regular terms (e.g.,
+\verb$`[]`$ and \verb$`.`$ for lists, see \secref{ext-lists}) and can be
+used to replace the old convention of using atoms that start with a
+\verb!$!, such as numbervars/3 which numbers the variables using the
+term \term{'\$VAR'}{N}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -66,7 +69,7 @@ by using the list syntax for lists.
 
 Representing lists the conventional way using ./2 as cons-cell and
 '[]' as list terminator both poses conflicts, while these conflicts
-are easy to avoid.
+are easily avoided.
 
 \begin{itemize}
     \item Using ./2 prevents using this commonly used symbol as an
@@ -75,19 +78,19 @@ operator because \verb$a.B$ cannot be distinguished from \verb$[a|B]$.
     \item Using \verb$'[]'$ as list terminator prevents dynamic distinction
 between atoms and lists. As a result, we cannot use \jargon{multi lists}
 (arbitrary deeply nested lists) of atoms. Note that multi lists of atoms
-are a good intermediate representation of a flat list that is assembled
-from sub sequences. The alternative, using difference lists or DCGs is
-often less natural and sometimes demands for `opening' proper lists
-(i.e., copying the list while replacing the empty list with a variable)
-that have to be added to the sequence. Another use-case for
-distinguishing atoms from lists is representing external data of an
+are a good (intermediate) representation of a flat list that is
+assembled from sub sequences. The alternative, using difference lists or
+DCGs is often less natural and sometimes demands for `opening' proper
+lists (i.e., copying the list while replacing the terminating empty list
+with a variable) that have to be added to the sequence. Another use-case
+for distinguishing atoms from lists is representing external data of an
 unknown structure that may contain both sequences and identifiers.
 
-Finally, avoiding \verb$'[]'$ as a list terminator makes the various
+Avoiding \verb$'[]'$ as a list terminator also makes the various
 text representations unambiguous, which allows us to write predicates
 that require a textual argument to accept both atoms, strings, and lists
 of character codes of one-character atoms. Traditionally, the empty list
-can be interpreted both as the string "[]" or "".
+can be interpreted both as the string "[]" and "".
 \end{itemize}
 
 
