@@ -32,7 +32,13 @@
 	[ online_index/2,
 	  online_index/0
 	]).
+
+user:file_search_path(library, '../packages/clpqr').
+
 :- use_module(library(debug)).
+:- use_module(user:library(clpfd)).		% Make predicates defined
+:- use_module(user:library(clpr)).		% Make predicates defined
+:- use_module(user:library(simplex)).		% Make predicates defined
 
 /** <module> Generate online manual index
 
