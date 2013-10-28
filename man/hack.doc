@@ -391,7 +391,7 @@ interrupted, and is one of the following:
     The instruction will call \arg{Goal}.  This is generated for nearly
     all instructions. Note that \arg{Goal} is semantically
     equivalent to the compiled body term, but might differ
-    syntactically. This is notably the case when artithmetic expressions
+    syntactically. This is notably the case when arithmetic expressions
     are compiled in optimized mode (see \prologflag{optimise}).  In
     particular, the arguments of arithmetic expressions have already
     been evaluated.  Thus, \arg{A} is 3*\arg{B}, where \arg{B} equals
