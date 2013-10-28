@@ -419,6 +419,7 @@ suggest predicates from a keyword.
 \predicatesummary{peek_code}{2}{Read character-code without removing}
 \predicatesummary{phrase}{2}{Activate grammar-rule set}
 \predicatesummary{phrase}{3}{Activate grammar-rule set (returning rest)}
+\predicatesummary{phrase_from_quasi_quotation}{2}{Parse quasi quotation with DCG}
 \predicatesummary{please}{3}{Query/change environment parameters}
 \predicatesummary{plus}{3}{Logical integer addition}
 \predicatesummary{portray}{1}{\hook{user} Modify behaviour of print/1}
@@ -479,6 +480,8 @@ suggest predicates from a keyword.
 \predicatesummary{qcompile}{2}{Compile source to Quick Load File}
 \predicatesummary{qsave_program}{1}{Create runtime application}
 \predicatesummary{qsave_program}{2}{Create runtime application}
+\predicatesummary{quasi_quotation_syntax}{1}{Declare quasi quotation syntax}
+\predicatesummary{quasi_quotation_syntax_error}{1}{Raise syntax error}
 \predicatesummary{random_property}{1}{Query properties of random generation}
 \predicatesummary{rational}{1}{Type check for a rational number}
 \predicatesummary{rational}{3}{Decompose a rational}
@@ -651,7 +654,7 @@ suggest predicates from a keyword.
 \predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
 \predicatesummary{win_add_dll_directory}{1}{Add directory to DLL search path}
 \predicatesummary{win_add_dll_directory}{2}{Add directory to DLL search path}
-\predicatesummary{win_remove_dll_directory}{2}{Remove directory from DLL search path}
+\predicatesummary{win_remove_dll_directory}{1}{Remove directory from DLL search path}
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
 \predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
 \predicatesummary{win_folder}{2}{Win32: get special folder by CSIDL}
@@ -664,6 +667,7 @@ suggest predicates from a keyword.
 \predicatesummary{window_title}{2}{Win32: change title of window}
 \predicatesummary{with_mutex}{2}{Run goal while holding mutex}
 \predicatesummary{with_output_to}{2}{Write to strings and more}
+\predicatesummary{with_quasi_quotation_input}{3}{Parse quasi quotation from stream}
 \predicatesummary{working_directory}{2}{Query/change CWD}
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
@@ -717,6 +721,8 @@ suggest predicates from a keyword.
 \functionsummary{cputime}{0}{Get CPU time}
 \functionsummary{div}{2}{Integer division}
 \functionsummary{e}{0}{Mathematical constant}
+\functionsummary{erf}{1}{Gauss error function}
+\functionsummary{erfc}{1}{Complementary error function}
 \functionsummary{epsilon}{0}{Floating point precision}
 \functionsummary{eval}{1}{Evaluate term as expression}
 \functionsummary{exp}{1}{Exponent (base $e$)}
@@ -726,6 +732,7 @@ suggest predicates from a keyword.
 \functionsummary{floor}{1}{Largest integer below argument}
 \functionsummary{gcd}{2}{Greatest common divisor}
 \functionsummary{integer}{1}{Round to nearest integer}
+\functionsummary{lgamma}{1}{Log of gamma function}
 \functionsummary{log}{1}{Natural logarithm}
 \functionsummary{log10}{1}{10 base logarithm}
 \functionsummary{lsb}{1}{Least significant bit}
