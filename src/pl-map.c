@@ -486,14 +486,32 @@ PL_get_map_ex(term_t data, term_t class, term_t map)
 
     if ( len < 0 )
       return FALSE;			/* not a proper list */
+  retry:
     if ( !(m = allocGlobal(len*2+2)) )
       return FALSE;			/* global overflow */
     ap = m;
     *ap++ = map_functor(len);
     if ( class )
-      *ap++ = linkVal(valTermRef(class));
-    else
-      setVar(*ap++);
+    { Word cp = valTermRef(class);
+
+      *ap = linkVal(cp);		/* TBD: maybe move to another function */
+      if ( tagex(*ap) == (TAG_REFERENCE|STG_LOCAL) )
+      { if ( unlikely(tTop+1 >= tMax) )
+	{ int rc;
+
+	  if ( (rc=ensureTrailSpace(1) != TRUE) )
+	    return raiseStackOverflow(rc);
+	  gTop = m;
+	  goto retry;
+	}
+	deRef(cp)
+	setVar(*ap);
+	Trail(cp, makeRef(ap));
+      }
+    } else
+    { setVar(*ap);
+    }
+    ap++;
 
     tail = valTermRef(data);
     deRef(tail);
@@ -506,14 +524,15 @@ PL_get_map_ex(term_t data, term_t class, term_t map)
 	popTermRef();
 	return FALSE;
       }
-
+      ap += 2;
       tail = TailList(tail);
       deRef(tail);
-      ap += 2;
     }
 
     if ( map_order(m, TRUE PASS_LD) )
-    { *valTermRef(map) = consPtr(m, TAG_COMPOUND|STG_GLOBAL);
+    { gTop = ap;
+      *valTermRef(map) = consPtr(m, TAG_COMPOUND|STG_GLOBAL);
+      DEBUG(CHK_SECURE, checkStacks(NULL));
       return TRUE;
     } else
     { return FALSE;
