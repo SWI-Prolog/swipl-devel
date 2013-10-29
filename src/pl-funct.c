@@ -353,7 +353,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       if ( PL_get_atom(name, &nm) &&
-	   PL_get_integer(arity, &ar) && ar > 0 )
+	   PL_get_integer(arity, &ar) )
 	return isCurrentFunctor(nm, ar) ? TRUE : FALSE;
 
       if ( !(PL_is_integer(arity) || PL_is_variable(arity)) )
@@ -388,7 +388,7 @@ pl_current_functor(term_t name, term_t arity, control_t h)
     for(; index<upto; index++)
     { FunctorDef fd = b[index];
 
-      if ( fd && fd->arity > 0 && (!nm || nm == fd->name) )
+      if ( fd && fd->arity >= 0 && (!nm || nm == fd->name) )
       { if ( PL_unify_atom(name, fd->name) &&
 	     PL_unify_integer(arity, fd->arity) )
 	{ UNLOCK();
