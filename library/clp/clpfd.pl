@@ -3729,8 +3729,9 @@ run_propagator(pplus(X,Y,Z), MState) :-
         ;   (   X == Y -> kill(MState), 2*X #= Z
             ;   X == Z -> kill(MState), Y = 0
             ;   Y == Z -> kill(MState), X = 0
-            ;   fd_get(X, XD, XL, XU, XPs), fd_get(Y, _, YL, YU, _),
-                fd_get(Z, _, ZL, ZU, _) ->
+            ;   fd_get(X, XD, XL, XU, XPs),
+                fd_get(Y, _, YL, YU, _),
+                fd_get(Z, _, ZL, ZU, _),
                 NXL cis max(XL, ZL-YU),
                 NXU cis min(XU, ZU-YL),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
@@ -3746,7 +3747,6 @@ run_propagator(pplus(X,Y,Z), MState) :-
                     update_bounds(Z, ZD2, ZPs2, ZL2, ZU2, NZL, NZU)
                 ;   true
                 )
-            ;   true
             )
         ).
 
