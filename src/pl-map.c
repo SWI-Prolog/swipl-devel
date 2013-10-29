@@ -413,6 +413,45 @@ put_map(word map, int size, Word nv, word *new_map ARG_LD)
 
 
 static int
+del_map(word map, word key, word *new_map ARG_LD)
+{ Functor data = valueTerm(map);
+  int arity = arityFunctor(data->definition);
+  Word new, out, in, in_end;
+
+  assert(arity%2 == 1);
+
+  if ( gTop+1+arity-2 > gMax )
+    return GLOBAL_OVERFLOW;
+
+  new    = gTop;
+  out    = new+2;			/* functor, class */
+  in     = data->arguments+1;
+  in_end = in+arity-1;
+
+  while(in < in_end)
+  { Word i_name;
+
+    deRef2(in, i_name);
+    if ( *i_name != key )
+    { *out++ = *i_name;
+      *out++ = linkVal(in+1);
+    }
+    in += 2;
+  }
+
+  gTop = out;
+  new[1] = linkVal(&data->arguments[0]); /* class */
+  new[0] = map_functor((out-(new+1))/2); /* arity */
+
+  *new_map = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
+
+  return TRUE;
+}
+
+
+
+
+static int
 get_name_value(Word p, Word name, Word value ARG_LD)
 { deRef(p);
 
@@ -876,6 +915,46 @@ retry:
 }
 
 
+/** del_map(+Key, +MapIn, ?Value, -MapOut)
+
+True when Key-Value is in MapIn and   MapOut  contains all keys of MapIn
+except for Key.
+*/
+
+static
+PRED_IMPL("del_map", 4, del_map, 0)
+{ PRED_LD
+  word key;
+  term_t mt = PL_new_term_ref();
+  fid_t fid = PL_open_foreign_frame();
+
+retry:
+  if ( get_map_ex(A2, valTermRef(mt), TRUE PASS_LD) &&
+       get_name_ex(A1, &key PASS_LD) )
+  { Word vp;
+
+    if ( (vp=map_lookup_ptr(*valTermRef(mt), key PASS_LD)) &&
+	 unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) )
+    { int rc;
+      word new;
+
+      if ( (rc=del_map(*valTermRef(mt), key, &new PASS_LD)) == TRUE )
+      { term_t t = PL_new_term_ref();
+
+	*valTermRef(t) = new;
+	return PL_unify(A4, t);
+      } else
+      { assert(rc == GLOBAL_OVERFLOW);
+	if ( ensureGlobalSpace(0, ALLOW_GC) == TRUE )
+	{ PL_rewind_foreign_frame(fid);
+	  goto retry;
+	}
+      }
+    }
+  }
+
+  return FALSE;
+}
 
 
 		 /*******************************
@@ -888,4 +967,5 @@ BeginPredDefs(map)
   PRED_DEF("put_map",    3, put_map,    0)
   PRED_DEF("put_map",    4, put_map,    0)
   PRED_DEF("get_map",    3, get_map,    PL_FA_NONDETERMINISTIC)
+  PRED_DEF("del_map",    4, del_map,    0)
 EndPredDefs

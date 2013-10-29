@@ -558,6 +558,10 @@ accessed using the functional notation. Below is an example:
 ?- A = point{x:1, y:2}.put(x, 3).
 A = point{x:3, y:2}.
 \end{code}
+
+    \predicate{del_map}{4}{+Key, +MapIn, ?Value, -MapOut}
+True when \arg{Key}-\arg{Value} is in \arg{MapIn} and \arg{MapOut}
+contains all associations of \arg{MapIn} except for \arg{Key}.
 \end{description}
 
 
