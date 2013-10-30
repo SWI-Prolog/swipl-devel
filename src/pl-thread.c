@@ -344,7 +344,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 #ifdef O_CONTENTION_STATISTICS
     Sdprintf(" %8d", cm->collisions);
 #endif
-    if ( cm == &_PL_mutexes[L_THREAD] )
+    if ( cm == &_PL_mutexes[L_MUTEX] )
     { if ( cm->count - cm->unlocked != 1 )
 	Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked - 1);
       else
