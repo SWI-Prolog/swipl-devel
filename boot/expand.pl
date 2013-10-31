@@ -312,7 +312,8 @@ expand_goal(G0, P0, G, P, M, MList, Term) :-
 	has_meta_arg(Head),
 	expand_meta(Head, G0, P0, G, P, M, MList, Term),
 	G0 \== G, !.
-expand_goal(A, P, A, P, _, _, _).
+expand_goal(G0, P0, G, P, M, MList, Term) :-
+	expand_functions(G0, P0, G, P, M, MList, Term).
 
 %%	expand_meta(+MetaSpec, +G0, ?P0, -G, -P, +M, +Mlist, +Term)
 
@@ -416,6 +417,66 @@ allowed_expansion(Goal) :-
 	    fail
 	).
 allowed_expansion(_).
+
+
+		 /*******************************
+		 *	FUNCTIONAL NOTATION	*
+		 *******************************/
+
+%%	expand_functions(+G0, +P0, -G, -P, +M, +MList, +Term) is det.
+%
+%	@tbd: position logic
+%	@tbd: make functions module-local
+
+expand_functions(G0, _P0, G, _P, M, _MList, _Term) :-
+	compound(G0),
+	replace_functions(G0, Eval, G1, M),
+	Eval \== true, !,
+	(   var(G1)
+	->  G = Eval
+	;   G = (Eval,G1)
+	).
+expand_functions(G, P, G, P, _, _, _).
+
+:- public
+	replace_functions/4.		% used in maps.pl
+
+replace_functions(Var, true, Var, _Ctx) :-
+	var(Var), !.
+replace_functions(F, Eval, Var, Ctx) :-
+	function(F, Ctx),
+	compound_name_arity(F, Name, Arity),
+	PredArity is Arity+1,
+	compound_name_arity(G, Name, PredArity),
+	arg(PredArity, G, Var),
+	map_functions(0, Arity, F, G, Eval0, Ctx),
+	conj(Eval0, G, Eval).
+replace_functions(Term0, Eval, Term, Ctx) :-
+	compound(Term0), !,
+	compound_name_arity(Term0, Name, Arity),
+	compound_name_arity(Term, Name, Arity),
+	map_functions(0, Arity, Term0, Term, Eval, Ctx).
+replace_functions(Term, true, Term, _).
+
+map_functions(Arity, Arity, _, _, true, _) :- !.
+map_functions(I0, Arity, Term0, Term, Eval, Ctx) :-
+	I is I0+1,
+	arg(I, Term0, Arg0),
+	arg(I, Term, Arg),
+	replace_functions(Arg0, Eval0, Arg, Ctx),
+	map_functions(I, Arity, Term0, Term, Eval1, Ctx),
+	conj(Eval0, Eval1, Eval).
+
+conj(true, X, X) :- !.
+conj(X, true, X) :- !.
+conj(X, Y, (X,Y)).
+
+%%	function(?Term, +Context)
+%
+%	True if function expansion needs to be applied for the given
+%	term.
+
+function(.(_,_), _).
 
 
 		 /*******************************
