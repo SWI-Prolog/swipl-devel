@@ -541,6 +541,7 @@ Section "C/C++ Interface"
   SetOutPath $INSTDIR\lib
 !ifdef MINGW
   File ${SWIPL}\lib\libswipl.dll.a
+  File ${SWIPL}\lib\libswipl.def
   File ${SWIPL}\lib\plterm.dll.a
   File ${SWIPL}\lib\libpthreadGC2.dll.a
 !else

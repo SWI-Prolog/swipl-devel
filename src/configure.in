@@ -701,7 +701,7 @@ case "$PLARCH" in
 	;;
   *-win32|*-win64)
 	PLSO=libswipl.$SO_EXT
-	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a'
+	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a -Wl,--output-def,$(RUNTIMEDIR)/libswipl.def'
 	;;
   *)
 	PLSO=libswipl.$SO_EXT
