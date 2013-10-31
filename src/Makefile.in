@@ -66,6 +66,8 @@ ETAGS=@ETAGS@
 AR=@AR@
 RANLIB=@RANLIB@
 WINDRES=@WINDRES@
+WINE=@WINE@
+MSLIBEXE=@MSLIBEXE@
 PLBUILD=@PLBUILD@
 PLARCH=@PLARCH@
 INSTALL_PLARCH=@INSTALL_PLARCH@
@@ -234,6 +236,7 @@ ifeq ($(SOEXT),dll)
 $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ) $(OSLIB)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(OSLIB) $(LIBS)
+		(cd $(RUNTIMEDIR) && $(MSLIBEXE) /def:libswipl.def)
 else
 $(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
@@ -503,6 +506,7 @@ ifeq ($(SOEXT),dll)
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.def $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.lib $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
@@ -659,7 +663,6 @@ NSISDEFS+=/DWIN64
 endif
 NSISEXE=C:/Program Files (x86)/NSIS/makensis.exe
 SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
-WINE=wine
 
 .PHONY: installer
 installer:

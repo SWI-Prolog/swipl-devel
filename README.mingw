@@ -26,7 +26,7 @@
 #
 # PREREQUISITES
 #
-# The open source libraries on which   SWI-Prolog  depends are dowloaded
+# The open source libraries on which   SWI-Prolog depends are downloaded
 # and   built   using   the   functions   download_prerequisites()   and
 # build_prerequisites().  In  addition,  the  following    need   to  be
 # installed:
@@ -38,6 +38,15 @@
 #	  /C/Program Files/... (default on 64-bit Windows)
 #   - NSIS installer generator for generating the installer.
 #       - nsis-<version>-setup.exe into /C/Program Files (x86)/...
+#   - MSVC tools (lib.exe) for creating MSVC compatible .lib files
+#       - Install Microsoft Visual C++ Express on your Windows partition
+#       - Copy "c:/Program Files (x86)/Microsoft Visual Studio 9" into
+#	  your ".wine/drive_c/Program Files (x86)"
+#	- Use "wine regedit" to add ...\VC\bin and ...\Common7\IDE to
+#	  your wine PATH.
+#	- Run "wine lib.exe" to see whether it works
+#	(See
+#	http://issaris.blogspot.nl/2008/04/creating-dlls-using-visual-c-8-on.html)
 #
 # UBUNTU PACKAGES
 #

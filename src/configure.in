@@ -49,6 +49,8 @@ AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
 AC_SUBST(MINGW)
 AC_SUBST(WINDRES)
+AC_SUBST(WINE)
+AC_SUBST(MSLIBEXE)			dnl how to call lib.exe
 AC_SUBST(WINEPATHEXE)
 AC_SUBST(HOST_TOOLCHAIN_FLAG)
 AC_SUBST(HOST_OS_FLAG)
@@ -647,11 +649,32 @@ case "$PLARCH" in
 	case $(uname) in
 	    MINGW*)
 		DLLIBVAR=PATH
+		AC_CHECK_PROG(MSLIBEXE, lib.exe, lib.exe, ":")
 		;;
 	    *)
 		DLLIBVAR=WINEPATH
+		AC_CHECK_PROG(WINE, wine, wine, ":")
+		AC_MSG_CHECKING(How to call MS LIB.EXE)
+		if $WINE lib.exe 2>/dev/null | grep MACHINE > /dev/null; then
+		  MSLIBEXE="$WINE lib.exe"
+		else
+		  MSLIBEXE=":"
+		fi
+		AC_MSG_RESULT($MSLIBEXE)
 		;;
 	esac
+	if test "$MSLIBEXE" != ":"; then
+	  AC_MSG_CHECKING(Machine id for lib.exe)
+	  case "$PLARCH" in
+	    *-win32)
+	      MSLIBEXE="$MSLIBEXE /machine:X86"
+	      ;;
+	    *-win64)
+	      MSLIBEXE="$MSLIBEXE /machine:X64"
+	      ;;
+	  esac
+	  AC_MSG_RESULT($MSLIBEXE)
+	fi
 	AC_CHECK_PROG(WINEPATHEXE, winepath, winepath, ":")
 	DEFSTARTUP=swipl.ini
 	CHRPATH=:
@@ -679,6 +702,8 @@ esac
 
 if test "x$SO_PATH"     = "x"; then SO_PATH="$DLLIBVAR"; fi
 if test "x$WINEPATHEXE" = "x"; then WINEPATHEXE=":"; fi
+if test "x$WINE"        = "x"; then WINE=":"; fi
+if test "x$MSLIBEXE"    = "x"; then MSLIBEXE=":"; fi
 
 AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
 		   [Define to the extension of shared objects (often .so)])
