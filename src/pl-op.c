@@ -677,7 +677,7 @@ initOperators(void)
 
   if ( !GD->options.traditional )
   { defOperator(MODULE_system, PL_new_atom("."), OP_YFX, 100, TRUE);
-    defOperator(MODULE_system, ATOM_eq_gt,       OP_XFX, 700, TRUE);
+    defOperator(MODULE_system, ATOM_colon_eq,    OP_XFX, 800, TRUE);
   }
 }
 

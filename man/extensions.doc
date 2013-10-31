@@ -465,7 +465,7 @@ defines a function \term{multiply}{Times} on a point that creates a new
 point by multiplying both coordinates. and \term{len}{}\footnote{as
 \term{length}{} would result in a predicate length/2, this name cannot
 be used. This might change in future versions.} to compute the length
-from the origin. The . and \verb$=>$ operators are used to abstract the
+from the origin. The . and \verb$:=$ operators are used to abstract the
 location of the predicate arguments. It is allowed to define multiple a
 function with multiple clauses, providing overloading and
 non-determinism.
@@ -473,11 +473,11 @@ non-determinism.
 \begin{code}
 :- module(point, []).
 
-M.multiply(F) => point{x:X, y:Y} :-
+M.multiply(F) := point{x:X, y:Y} :-
 	X is M.x*F,
 	Y is M.y*F.
 
-M.len() => Len :-
+M.len() := Len :-
 	Len is sqrt(M.x**2 + M.y**2).
 \end{code}
 
