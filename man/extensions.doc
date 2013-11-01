@@ -274,7 +274,7 @@ text is mapped to atoms while double quoted text is mapped to a list of
 inadequate for several reasons:
 
 \begin{itemize}
-    \item It hides the conceptual difference between a text and
+    \item It hides the conceptual difference between text and
           program symbols.  Where content of text often matters because
 	  it is used in I/O, program symbols are merely identifiers
 	  that match with the same symbol elsewhere. Program symbols
