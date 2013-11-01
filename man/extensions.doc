@@ -89,7 +89,7 @@ unknown structure that may contain both sequences and identifiers.
 Avoiding \verb$'[]'$ as a list terminator also makes the various
 text representations unambiguous, which allows us to write predicates
 that require a textual argument to accept both atoms, strings, and lists
-of character codes of one-character atoms. Traditionally, the empty list
+of character codes or one-character atoms. Traditionally, the empty list
 can be interpreted both as the string "[]" and "".
 \end{itemize}
 
@@ -143,11 +143,11 @@ As of SWI-Prolog version~7, the system supports compound terms that have
 no arguments. This implies that e.g., \exam{name()} is valid syntax.
 This extension aims at functions on maps (see \secref{maps}) as well as
 the implementation of domain specific languages (DSLs). To minimise the
-consequences, the classical predicates functor/3 and =../2 have not been
-modified. The predicates compound_name_arity/3 and
+consequences, the classic predicates functor/3 and \predref{=..}{2} have
+not been modified. The predicates compound_name_arity/3 and
 compound_name_arguments/3 have been added. These predicates operate only
 on compound terms and behave consistently for compounds with zero
-arguments.  Code that \jargon{generalises} a term using the sequence
+arguments. Code that \jargon{generalises} a term using the sequence
 below should generally be changed to use compound_name_arity/3.
 
 \begin{code}
@@ -157,8 +157,8 @@ below should generally be changed to use compound_name_arity/3.
     ...,
 \end{code}
 
-Replacement of =../2 by compound_name_arguments/3 is typically needed
-to deal with code that follow the skeleton below.
+Replacement of \predref{=..}{2} by compound_name_arguments/3 is
+typically needed to deal with code that follow the skeleton below.
 
 \begin{code}
     ...,
@@ -189,10 +189,10 @@ Pi = 3.141592653589793.
 \end{code}
 
 Note that the \emph{cannonical} representation of predicate heads and
-functions without arguments is an atom.  Thus, \term{clause}{go(), Body}
+functions without arguments is an atom. Thus, \term{clause}{go(), Body}
 returns the clauses for go/0, but \term{clause}{-Head, -Body, +Ref}
-unifies \arg{Head} with an atom if the clause specified by \arg{Ref}
-comes from a predicate with zero arguments.
+unifies \arg{Head} with an atom if the clause specified by \arg{Ref} is
+part of a predicate with zero arguments.
 
 
 \subsection{Double quoted strings}
@@ -207,8 +207,8 @@ not familiar in about half a day.
 
 \begin{description}
     \predicate{list_strings}{0}{}
-This predicate may be used to make your program compatible with the
-representation of double quoted text as string objects. See
+This predicate may be used to assess compatibility issues due to
+the representation of double quoted text as string objects. See
 \secref{ext-dquotes} and \secref{ext-dquotes-motivation}.  To
 use it, load your program into Prolog and run list_strings/0.  The
 predicate lists source locations of string objects encountered in
@@ -229,11 +229,10 @@ appropriate:
 	  \end{code}
     \item If the strings appear in facts and usage is safe, add a
           clause to the multifile predicate check:string_predicate/1
-	  to silence list_strings/0.
+	  to silence list_strings/0 on all clauses of that predicate.
     \item If the strings appear as an argument to a predicate that
-          can deal with them, add a
-          clause to the multifile predicate check:valid_string_goal/1
-	  to silence list_strings/0.
+          can handle string objects, add a clause to the multifile
+	  predicate check:valid_string_goal/1 to silence list_strings/0.
 \end{itemize}
 
     \predicate{check:string_predicate}{1}{:PredicateIndicator}
@@ -348,7 +347,7 @@ following is a good portable alternative: \verb$phrase("name:", Codes, Rest)$
 Such tests are often performed with code such as this:
 \verb.memberchk(C, "~!@#$").. This is a rather inefficient check in a
 traditional Prolog system because it pushes a list of character codes
-one-by-one onto the Prolog stack and then traverses this list
+cell-by-cell the Prolog stack and then traverses this list
 cell-by-cell to see whether one of the cells unifies with \arg{C}. If
 the test is successful, the string will eventually be subject to garbage
 collection.  The best code for this is to write a predicate as below,
@@ -575,8 +574,11 @@ Prolog does not offer native properly lists. As a result, people are
 using a wide range of data structures for key-value associations:
 
 \begin{itemize}
-    \item Using compound terms and positional arguments.
-    \item Using compound terms with library \pllib{record}.
+    \item Using compound terms and positional arguments, e.g.,
+          \exam{point(1,2)}.
+    \item Using compound terms with library \pllib{record}, which
+	  generates access predicates for a term using positional
+	  arguments from a description.
     \item Using lists of terms \exam{Name=Value}, \exam{Name-Value},
           \exam{Name:Value} or \exam{Name(Value)}.
     \item Using library \pllib{assoc} which represents the
@@ -588,11 +590,11 @@ disadvantages. E.g., compound terms are compact and fast, but inflexible
 and using positional arguments quickly breaks down. Library
 \pllib{record} fixes this, but the syntax is considered hard to use.
 Lists are flexible, but expensive and the alternative key-value
-representation complicate the matter even more. Library \pllib{assoc}
-allows for efficient manipulation of changing associations, but the
-syntactical representation of an assoc is complex, which makes them
-unsuitable for e.g., \jargon{options lists} as seen in predicates such
-as write_term/3.
+representations that are used complicate the matter even more. Library
+\pllib{assoc} allows for efficient manipulation of changing
+associations, but the syntactical representation of an assoc is complex,
+which makes them unsuitable for e.g., \jargon{options lists} as seen in
+predicates such as open/4.
 
 
 \subsection{Implementation notes about maps}
@@ -607,11 +609,11 @@ Maps are currently represented as a compound term using the functor
 \verb$`map`$. The first argument is the class. The remaining arguments
 create an array of sorted key-value pairs. This representation is
 compact and guarantees good locality. Lookup is order $\log(N)$, while
-adding values and merging with other maps has order $N$. The main
-disadvantage is that changing values in large maps is costly, both in
-terms of memory and time.
+adding valuesm deleting values and merging with other maps has order
+$N$. The main disadvantage is that changing values in large maps is
+costly, both in terms of memory and time.
 
-Future versions may share keys in a separate structure or some form of
-binary trees to allow for cheaper updates. One of the issues is that the
+Future versions may share keys in a separate structure or use a binary
+trees to allow for cheaper updates. One of the issues is that the
 representation must either be kept cannonical or unification must be
 extended to compensate for alternate representations.
