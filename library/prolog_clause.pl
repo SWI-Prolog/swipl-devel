@@ -440,11 +440,13 @@ ubody(_==_, fail, _,			% singleton/firstvar == Any
 ubody(A1=B1, B2=A2, _,			% Term = Var --> Var = Term
       term_position(F,T,FF,TT,[PA1,PA2]),
       term_position(F,T,FF,TT,[PA2,PA1])) :-
+	var(B1), var(B2),
 	(A1==B1) =@= (B2==A2), !,
 	A1 = A2, B1=B2.
 ubody(A1==B1, B2==A2, _,		% const == Var --> Var == const
       term_position(F,T,FF,TT,[PA1,PA2]),
       term_position(F,T,FF,TT,[PA2,PA1])) :-
+	var(B1), var(B2),
 	(A1==B1) =@= (B2==A2), !,
 	A1 = A2, B1=B2.
 ubody(A is B - C, A is B + C2, _, Pos, Pos) :-
