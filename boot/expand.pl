@@ -484,7 +484,7 @@ conj(X, Y, (X,Y)).
 %	True if function expansion needs to be applied for the given
 %	term.
 
-function(.(_,_), _).
+function(.(_,_), _) :- \+ functor([_|_], ., _).
 
 
 		 /*******************************
