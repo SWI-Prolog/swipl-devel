@@ -62,6 +62,10 @@
 # If you cannot run Win64 executables with   your  wine, .wine is out of
 # date. The only working advice I found   sofar is to (re)move .wine and
 # start wine to create a fresh installation.
+#
+# Linux must be configured such that Windows  .exe files can be executed
+# directly    without    explicit    invocation      of     wine.    See
+# https://www.kernel.org/doc/Documentation/binfmt_misc.txt
 
 TARGETHOST="$1"
 MAKE="make -j 4"
