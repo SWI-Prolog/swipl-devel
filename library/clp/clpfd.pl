@@ -1898,7 +1898,7 @@ parse_clpfd(E, R,
              g(var(E))         => [g(non_monotonic(E)),
                                    g(constrain_to_integer(E)), g(E = R)],
              g(integer(E))     => [g(R = E)],
-             ?(E)              => [g(R = E)],
+             ?(E)              => [g(must_be_fd_integer(E)), g(R = E)],
              m(A+B)            => [p(pplus(A, B, R))],
              % power_var_num/3 must occur before */2 to be useful
              g(power_var_num(E, V, N)) => [p(pexp(V, N, R))],
@@ -1942,7 +1942,7 @@ parse_matcher(E, R, Matcher, Clause) :-
         Clause = (parse_clpfd(Head, R) :- Goals).
 
 parse_condition(g(Goal), E, E)       --> [Goal, !].
-parse_condition(?(E), _, ?(E))       --> [!, must_be_fd_integer(E)].
+parse_condition(?(E), _, ?(E))       --> [!].
 parse_condition(m(Match), _, Match0) -->
         [!],
         { copy_term(Match, Match0),
@@ -2636,7 +2636,7 @@ parse_reified(E, R, D,
                g(var(E))     => [g(non_monotonic(E)),
                                  g(constrain_to_integer(E)), g(R = E), g(D=1)],
                g(integer(E)) => [g(R=E), g(D=1)],
-               ?(E)          => [g(R=E), g(D=1)],
+               ?(E)          => [g(must_be_fd_integer(E)), g(R=E), g(D=1)],
                m(A+B)        => [d(D), p(pplus(A,B,R)), a(A,B,R)],
                m(A*B)        => [d(D), p(ptimes(A,B,R)), a(A,B,R)],
                m(A-B)        => [d(D), p(pplus(R,B,A)), a(A,B,R)],
@@ -2676,7 +2676,7 @@ parse_reified(E, R, D, Matcher, Clause) :-
         Clause = (parse_reified_clpfd(Head, R, D) --> Goals).
 
 reified_condition(g(Goal), E, E, []) --> [{Goal}, !].
-reified_condition(?(E), _, ?(E), []) --> [!, { must_be_fd_integer(E) }].
+reified_condition(?(E), _, ?(E), []) --> [!].
 reified_condition(m(Match), _, Match0, Ds) -->
         [!],
         { copy_term(Match, Match0),
