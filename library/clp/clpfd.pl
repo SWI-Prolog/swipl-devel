@@ -2644,9 +2644,9 @@ parse_reified(E, R, D,
                m(max(A,B))   => [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
-               m(A/B)        => [skeleton(A,B,D,R,pdiv,?(A)/ ?(B) #= ?(R))],
-               m(A mod B)    => [skeleton(A,B,D,R,pmod,?(A) mod ?(B) #= ?(R))],
-               m(A rem B)    => [skeleton(A,B,D,R,prem,?(A) rem ?(B) #= ?(R))],
+               m(A/B)        => [skeleton(A,B,D,R,pdiv)],
+               m(A mod B)    => [skeleton(A,B,D,R,pmod)],
+               m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
                g(true)       => [g(domain_error(clpfd_expression, E))]]
              ).
@@ -2710,10 +2710,10 @@ reified_goal(p(Vs, Prop), _) -->
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
-reified_goal(skeleton(A,B,D,R,Functor,G), Ds) -->
-        { Prop =.. [Functor,X,Y,Z],
+reified_goal(skeleton(A,B,D,R,F), Ds) -->
+        { Prop =.. [F,X,Y,Z],
           phrase(reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
-                                p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,G)),
+                                p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,F)),
                                 p(reified_and(D1,[],D2,[],D)),a(D2),a(A,B,R)],
                                Ds), Goals),
           list_goal(Goals, Goal) },
@@ -6292,7 +6292,9 @@ attribute_goal_(reified_tuple_in(Tuple, R, B)) -->
 attribute_goal_(kill_reified_tuples(_,_,_)) --> [].
 attribute_goal_(tuples_not_in(_,_,_)) --> [].
 attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> ?(B)].
-attribute_goal_(pskeleton(_,Y,D,_,_,Goal)) -->
+attribute_goal_(pskeleton(X,Y,D,_,Z,F)) -->
+        { Prop =.. [F,X,Y,Z],
+          phrase(attribute_goal_(Prop), Goals), list_goal(Goals, Goal) },
         [?(D) #= 1 #==> Goal, ?(Y) #\= 0 #==> ?(D) #= 1].
 attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) -->
         conjunction(DX, DY, ?(X) #\= ?(Y), B).
