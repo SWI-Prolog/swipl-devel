@@ -693,12 +693,33 @@ PL_for_map(term_t map,
 		 *       PROLOG PREDICATES	*
 		 *******************************/
 
-/** is_map(@Term, ?Class)
+/** is_map(@Term)
+    is_map(@Term, ?Class)
 
 True if Term is a map that belongs to Class.
 
 @tbd What if Term has a variable class?
 */
+
+static
+PRED_IMPL("is_map", 1, is_map, 0)
+{ PRED_LD
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  if ( isTerm(*p) )
+  { Functor f = valueTerm(*p);
+    FunctorDef fd = valueFunctor(f->definition);
+
+    if ( fd->name == ATOM_map &&
+	 fd->arity%2 == 1 &&
+	 map_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 static
 PRED_IMPL("is_map", 2, is_map, 0)
@@ -962,6 +983,7 @@ retry:
 		 *******************************/
 
 BeginPredDefs(map)
+  PRED_DEF("is_map",     1, is_map,     0)
   PRED_DEF("is_map",     2, is_map,     0)
   PRED_DEF("map_create", 3, map_create, 0)
   PRED_DEF("put_map",    3, put_map,    0)

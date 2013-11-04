@@ -513,6 +513,9 @@ This section documents the predicates that are defined on maps.  We use
 the naming and argument conventions of the traditional \pllib{assoc}.
 
 \begin{description}
+    \predicate{is_map}{1}{@Term}
+True if \arg{Term} is a map.  This is the same as \exam{is_map(Term,_)}.
+
     \predicate{is_map}{2}{@Term, -Class}
 True if \arg{Term} is a map of \arg{Class}.
 
