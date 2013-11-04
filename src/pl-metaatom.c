@@ -45,10 +45,12 @@ static PL_blob_t meta_atom =
 };
 
 
+#define ALWAYS_META_ATOM 2
+
 static const atom_t meta_atoms[] =
 { ATOM_nil,				/* 0: `[]` */
   ATOM_dot,				/* 1: `.`(_|_) */
-  ATOM_map,				/* 2: `map` */
+  ATOM_map,				/* 2: `map` (ALWAYS_META_ATOM) */
   (atom_t)0
 };
 
@@ -61,15 +63,14 @@ _PL_atoms(void)
 
 void
 initMetaAtoms(void)
-{ PL_register_blob_type(&meta_atom);
+{ int mstart = GD->options.traditional ? ALWAYS_META_ATOM : 0;
+  const atom_t *ap;
 
-  if ( !GD->options.traditional )
-  { const atom_t *ap;
+  PL_register_blob_type(&meta_atom);
 
-    for(ap=meta_atoms; *ap; ap++)
-    { Atom a = atomValue(*ap);
-      a->type = &meta_atom;
-    }
+  for(ap=&meta_atoms[mstart]; *ap; ap++)
+  { Atom a = atomValue(*ap);
+    a->type = &meta_atom;
   }
 }
 
