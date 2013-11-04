@@ -22,6 +22,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-map.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Variable argument list:
@@ -138,17 +139,23 @@ get_optval(optvalue valp, const opt_spec *spec, term_t val ARG_LD)
 }
 
 
-bool
+static int
+map_options(term_t map, int flags, const opt_spec *specs, optvalue *values)
+{
+
+  return FALSE;
+}
+
+
+int
 scan_options(term_t options, int flags, atom_t optype,
 	     const opt_spec *specs, ...)
 { GET_LD
   va_list args;
   const opt_spec *s;
   optvalue values[MAXOPTIONS];
-  term_t list = PL_copy_term_ref(options);
-  term_t head = PL_new_term_ref();
-  term_t tmp  = PL_new_term_ref();
-  term_t val  = PL_new_term_ref();
+  term_t list;
+  term_t av, head, tmp, val;
   int n;
 
   if ( truePrologFlag(PLFLAG_ISO) )
@@ -158,6 +165,15 @@ scan_options(term_t options, int flags, atom_t optype,
   for( n=0, s = specs; s->name; s++, n++ )
     values[n].ptr = va_arg(args, void *);
   va_end(args);
+
+  if ( PL_is_map(options) )
+    return map_options(options, flags, specs, values);
+
+  list = PL_copy_term_ref(options);
+  av = PL_new_term_refs(3);
+  head = av+0;
+  tmp  = av+1;
+  val  = av+2;
 
   while ( PL_get_list(list, head, list) )
   { atom_t name;
