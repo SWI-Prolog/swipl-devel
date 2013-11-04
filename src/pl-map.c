@@ -230,7 +230,7 @@ map_ordered(Word data, int count, int ex ARG_LD)
 
   deRef2(data, n1);
   if ( !is_key(*n1) )
-    return FALSE;
+    return (count == 0);		/* ordered if empty map */
   for(; count > 1; count--, data += 2, n1=n2)
   { deRef2(data+2, n2);
     if ( !is_key(*n2) )
