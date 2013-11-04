@@ -506,7 +506,9 @@ ifeq ($(SOEXT),dll)
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.def $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.lib $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  if [ -f $(RUNTIMEDIR)/libswipl.lib ]; then \
+		    $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.lib $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  fi ; \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
