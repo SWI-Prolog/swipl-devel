@@ -139,11 +139,58 @@ get_optval(optvalue valp, const opt_spec *spec, term_t val ARG_LD)
 }
 
 
-static int
-map_options(term_t map, int flags, const opt_spec *specs, optvalue *values)
-{
+typedef struct mapopt_ctx
+{ const opt_spec       *specs;		/* specifications */
+  optvalue	       *values;		/* value pointers */
+  PL_local_data_t      *ld;		/* the engine */
+} mapopt_ctx;
 
-  return FALSE;
+
+static int
+map_option(term_t key, term_t value, int last, void *closure)
+{ mapopt_ctx *ctx = closure;
+  PL_local_data_t *__PL_ld = ctx->ld;
+  atom_t name;
+  int n;
+  const opt_spec *s;
+
+  if ( !PL_get_atom_ex(key, &name) )
+    return -1;
+
+  for( n=0, s = ctx->specs; s->name; n++, s++ )
+  { if ( s->name == name )
+    { if ( !get_optval(ctx->values[n], s, value PASS_LD) )
+	return -1;
+      return 0;
+    }
+  }
+
+  return 0;				/* unprocessed key */
+}
+
+
+/* Process options from a map.  Note that this can be more efficient by
+   sorting the option specification, after which we can perform a linear
+   scan.  I think that the best way to do that is to associate the
+   option specification with a writeable structure that is lazily
+   initialized to an array of opt_spec pointers using the ordering of
+   maps.
+
+   An alternative is to process the opt-specs in order and use the
+   maps binary search to find the values (or not).  As far as I know,
+   option processing of built-ins is not a bottleneck, so there is no
+   need to worry right now.
+*/
+
+static int
+map_options(term_t map, int flags, const opt_spec *specs, optvalue *values ARG_LD)
+{ mapopt_ctx ctx;
+
+  ctx.specs  = specs;
+  ctx.values = values;
+  ctx.ld     = LD;
+
+  return PL_for_map(map, map_option, &ctx, 0) == 0 ? TRUE : FALSE;
 }
 
 
@@ -167,7 +214,7 @@ scan_options(term_t options, int flags, atom_t optype,
   va_end(args);
 
   if ( PL_is_map(options) )
-    return map_options(options, flags, specs, values);
+    return map_options(options, flags, specs, values PASS_LD);
 
   list = PL_copy_term_ref(options);
   av = PL_new_term_refs(3);
