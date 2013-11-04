@@ -100,6 +100,14 @@ restrictions:
 %
 %	@param Option	Term of the form Name(?Value).
 
+option(Opt, Options, Default) :-
+	is_map(Options), !,
+	functor(Opt, Name, 1),
+	(   get_map(Name, Options, Val)
+	->  true
+	;   Val = Default
+	),
+	arg(1, Opt, Val).
 option(Opt, Options, Default) :-	% make option processing stead-fast
 	functor(Opt, Name, Arity),
 	functor(GenOpt, Name, Arity),
@@ -117,6 +125,11 @@ option(Opt, Options, Default) :-	% make option processing stead-fast
 %
 %	@param Option	Term of the form Name(?Value).
 
+option(Opt, Options) :-			% make option processing stead-fast
+	is_map(Options), !,
+	functor(Opt, Name, 1),
+	get_map(Name, Options, Val),
+	arg(1, Opt, Val).
 option(Opt, Options) :-			% make option processing stead-fast
 	functor(Opt, Name, Arity),
 	functor(GenOpt, Name, Arity),
@@ -137,6 +150,12 @@ get_option(Opt, Options) :-
 %	the matching option from  Options   and  unifying  the remaining
 %	options with RestOptions.
 
+select_option(Opt, Options0, Options) :-
+	is_map(Options0), !,
+	functor(Opt, Name, 1),
+	get_map(Name, Options0, Val),
+	arg(1, Opt, Val),
+	del_map(Name, Options0, Val, Options).
 select_option(Opt, Options0, Options) :-	% stead-fast
 	functor(Opt, Name, Arity),
 	functor(GenOpt, Name, Arity),
@@ -156,6 +175,15 @@ get_option(Opt, Options0, Options) :-
 %	but if Option is not  in  Options,   its  value  is unified with
 %	Default and RestOptions with Options.
 
+select_option(Option, Options, RestOptions, Default) :-
+	is_map(Options), !,
+	functor(Option, Name, 1),
+	(   get_map(Name, Options, Val)
+	->  true
+	;   Val = Default
+	),
+	arg(1, Option, Val),
+	del_map(Name, Options, _, RestOptions).
 select_option(Option, Options, RestOptions, Default) :-
 	functor(Option, Name, Arity),
 	functor(GenOpt, Name, Arity),
