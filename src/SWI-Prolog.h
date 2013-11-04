@@ -332,9 +332,8 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved symbols */
 		 *	     CONSTANTS		*
 		 *******************************/
 
-#ifndef PL_KERNEL
 PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
-
+#ifndef PL_KERNEL
 #define ATOM_nil	(_PL_atoms()[0]) /* `[]` */
 #define ATOM_dot	(_PL_atoms()[1]) /* `.` */
 #endif /*PL_KERNEL*/
