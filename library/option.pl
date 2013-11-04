@@ -247,17 +247,25 @@ sort_key(Option, Name-Arity) :-
 %
 %	Rewrite option list from possible Name=Value to Name(Value)
 
+canonicalise_options(Map, Out) :-
+	is_map(Map), !,
+	map_pairs(Map, _, Pairs),
+	canonicalise_options2(Pairs, Out).
 canonicalise_options(In, Out) :-
 	memberchk(_=_, In), !,		% speedup a bit if already ok.
 	canonicalise_options2(In, Out).
 canonicalise_options(Options, Options).
 
 canonicalise_options2([], []).
-canonicalise_options2([Name=Value|T0], [H|T]) :- !,
-	H =.. [Name,Value],
+canonicalise_options2([H0|T0], [H|T]) :-
+	canonicalise_option(H0, H),
 	canonicalise_options2(T0, T).
-canonicalise_options2([H|T0], [H|T]) :- !,
-	canonicalise_options2(T0, T).
+
+canonicalise_option(Name=Value, H) :- !,
+	H =.. [Name,Value].
+canonicalise_option(Name-Value, H) :- !,
+	H =.. [Name,Value].
+canonicalise_option(H, H).
 
 
 %%	meta_options(+IsMeta, :Options0, -Options) is det.
@@ -280,6 +288,11 @@ canonicalise_options2([H|T0], [H|T]) :- !,
 %		predicate_options/3.
 
 meta_options(IsMeta, Context:Options0, Options) :-
+	is_map(Options0), !,
+	map_pairs(Options0, Class, Pairs0),
+	meta_options(Pairs0, IsMeta, Context, Pairs),
+	map_pairs(Options, Class, Pairs).
+meta_options(IsMeta, Context:Options0, Options) :-
 	must_be(list, Options0),
 	meta_options(Options0, IsMeta, Context, Options).
 
@@ -288,7 +301,10 @@ meta_options([H0|T0], IM, Context, [H|T]) :-
 	meta_option(H0, IM, Context, H),
 	meta_options(T0, IM, Context, T).
 
-meta_option(Name=V0, IM, Context, Name=M:V) :-
+meta_option(Name=V0, IM, Context, Name=(M:V)) :-
+	call(IM, Name), !,
+	strip_module(Context:V0, M, V).
+meta_option(Name-V0, IM, Context, Name-(M:V)) :-
 	call(IM, Name), !,
 	strip_module(Context:V0, M, V).
 meta_option(O0, IM, Context, O) :-
