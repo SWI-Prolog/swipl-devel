@@ -344,6 +344,7 @@ suggest predicates from a keyword.
 \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
 \predicatesummary{map_create}{3}{Create a map from data}
+\predicatesummary{map_pairs}{3}{Convert between map and list of pairs}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}

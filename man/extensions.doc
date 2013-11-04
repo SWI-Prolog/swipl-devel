@@ -534,6 +534,10 @@ raised if \arg{Data} is not a proper list, one of the elements is not of
 the shape above, a key is neither an atom nor a small integer or there
 is a duplicate key.
 
+    \predicate{map_pairs}{3}{?Map, ?Class, ?Pairs}
+Bi-directional mapping between a map and an ordered list of pairs
+(see \secref{pairs}).
+
     \predicate{put_map}{3}{+New, +MapIn, -MapOut}
 \arg{MapOut} is a new map created by replacing or adding key-value pairs
 from \arg{New} to \arg{Map}. \arg{New} is either a map or a valid input

@@ -23,8 +23,6 @@
 #include "pl-incl.h"
 #include "pl-map.h"
 
-int PL_get_map_ex(term_t data, term_t class, term_t map);
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Maps are associative arrays,  where  keys   are  either  atoms  or small
 integers. Maps should be considered  an   abstract  data  type. They are
@@ -46,6 +44,13 @@ The term has the following layout on the global stack:
       ...
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int PL_get_map_ex(term_t data, term_t class, term_t map, int flags);
+#define MAP_GET_ALL	0xff
+#define MAP_GET_PAIRS	0x01
+#define MAP_GET_EQUALS	0x02
+#define MAP_GET_COLON	0x04
+#define MAP_GET_TERM	0x08
 
 #define CACHED_MAP_FUNCTORS 128
 
@@ -168,7 +173,7 @@ get_map_ex(term_t t, Word mp, int create ARG_LD)
   { term_t new;
 
     if ( (new = PL_new_term_ref()) &&
-	  PL_get_map_ex(t, 0, new) )
+	  PL_get_map_ex(t, 0, new, MAP_GET_ALL) )
     { p = valTermRef(new);
       deRef(p);
       *mp = *p;
@@ -452,15 +457,15 @@ del_map(word map, word key, word *new_map ARG_LD)
 
 
 static int
-get_name_value(Word p, Word name, Word value ARG_LD)
+get_name_value(Word p, Word name, Word value, int flags ARG_LD)
 { deRef(p);
 
   if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
 
-    if ( f->definition == FUNCTOR_minus2 ||  /* Name-Value */
-	 f->definition == FUNCTOR_equals2 || /* Name=Value */
-	 f->definition == FUNCTOR_colon2 )   /* Name:Value */
+    if ( (f->definition == FUNCTOR_minus2  && (flags&MAP_GET_PAIRS)) ||
+	 (f->definition == FUNCTOR_equals2 && (flags&MAP_GET_EQUALS)) ||
+	 (f->definition == FUNCTOR_colon2  && (flags&MAP_GET_COLON)))
     { Word np, vp;
 
       deRef2(&f->arguments[0], np);
@@ -471,7 +476,8 @@ get_name_value(Word p, Word name, Word value ARG_LD)
 
 	return TRUE;
       }
-    } else if ( arityFunctor(f->definition) == 1 ) /* Name(Value) */
+    } else if ( arityFunctor(f->definition) == 1 &&
+		(flags&MAP_GET_TERM) ) /* Name(Value) */
     { Word vp;
 
       *name = nameFunctor(f->definition);
@@ -510,8 +516,8 @@ PL_is_map(term_t t)
 }
 
 
-int
-PL_get_map_ex(term_t data, term_t class, term_t map)
+static int
+PL_get_map_ex(term_t data, term_t class, term_t map, int flags)
 { GET_LD
 
   if ( PL_is_map(data) )
@@ -557,9 +563,16 @@ PL_get_map_ex(term_t data, term_t class, term_t map)
     while( isList(*tail) )
     { Word head = HeadList(tail);
 
-      if ( !get_name_value(head, ap, ap+1 PASS_LD) )
-      { gTop = m;
-	PL_type_error("name-value", pushWordAsTermRef(head));
+      if ( !get_name_value(head, ap, ap+1, flags PASS_LD) )
+      { const char *type;
+
+	if ( flags == MAP_GET_PAIRS )
+	  type = "pair";
+	else
+	  type = "key-value";
+
+	gTop = m;
+	PL_type_error(type, pushWordAsTermRef(head));
 	popTermRef();
 	return FALSE;
       }
@@ -840,8 +853,69 @@ PRED_IMPL("map_create", 3, map_create, 0)
 { PRED_LD
   term_t m = PL_new_term_ref();
 
-  if ( PL_get_map_ex(A3, A2, m) )
+  if ( PL_get_map_ex(A3, A2, m, MAP_GET_ALL) )
     return PL_unify(A1, m);
+
+  return FALSE;
+}
+
+
+/** map_pairs(+Map, ?Class, -Pairs)
+    map_pairs(-Map, ?Class, +Pairs)
+*/
+
+typedef struct map_pairs_ctx
+{ PL_local_data_t *ld;
+  term_t head;
+  term_t tail;
+  term_t tmp;
+} map_pairs_ctx;
+
+
+static int
+put_pair(term_t key, term_t value, int last, void *closure)
+{ map_pairs_ctx *ctx = closure;
+  PL_local_data_t *__PL_ld = ctx->ld;
+
+  if ( PL_cons_functor(ctx->tmp, FUNCTOR_minus2, key, value) &&
+       PL_unify_list_ex(ctx->tail, ctx->head, ctx->tail) &&
+       PL_unify(ctx->head, ctx->tmp) )
+    return 0;
+
+  return -1;
+}
+
+
+static
+PRED_IMPL("map_pairs", 3, map_pairs, 0)
+{ PRED_LD
+
+  if ( !PL_is_variable(A1) )
+  { word m;
+
+    if ( get_map_ex(A1, &m, TRUE PASS_LD) )
+    { term_t map = PL_new_term_ref();
+      map_pairs_ctx ctx;
+
+      *valTermRef(map) = m;
+      ctx.ld = LD;
+      ctx.tail = PL_copy_term_ref(A3);
+      ctx.head = PL_new_term_refs(2);
+      ctx.tmp  = ctx.head+1;
+
+      if ( PL_get_arg(1, map, ctx.tmp) &&
+	   PL_unify(ctx.tmp, A2) &&
+	   PL_for_map(map, put_pair, &ctx, MAP_SORTED) == 0 )
+	return PL_unify_nil_ex(ctx.tail);
+
+      return FALSE;
+    }
+  } else
+  { term_t m = PL_new_term_ref();
+
+    if ( PL_get_map_ex(A3, A2, m, MAP_GET_PAIRS) )
+      return PL_unify(A1, m);
+  }
 
   return FALSE;
 }
@@ -986,6 +1060,7 @@ BeginPredDefs(map)
   PRED_DEF("is_map",     1, is_map,     0)
   PRED_DEF("is_map",     2, is_map,     0)
   PRED_DEF("map_create", 3, map_create, 0)
+  PRED_DEF("map_pairs",  3, map_pairs,  0)
   PRED_DEF("put_map",    3, put_map,    0)
   PRED_DEF("put_map",    4, put_map,    0)
   PRED_DEF("get_map",    3, get_map,    PL_FA_NONDETERMINISTIC)
