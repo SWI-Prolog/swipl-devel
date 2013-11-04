@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -45,6 +44,98 @@ typedef union
   term_t *t;				/* term-reference */
   void *ptr;				/* anonymous pointer */
 } optvalue;
+
+
+static int
+get_optval(optvalue valp, const opt_spec *spec, term_t val ARG_LD)
+{ switch((spec->type & OPT_TYPE_MASK))
+  { case OPT_BOOL:
+    { int bval;
+
+      if ( !PL_get_bool_ex(val, &bval) )
+	return FALSE;
+      *valp.b = bval;
+
+      return TRUE;
+    }
+    case OPT_INT:
+    { if ( !PL_get_integer_ex(val, valp.i) )
+	return FALSE;
+
+      return TRUE;
+    }
+    case OPT_LONG:
+    { if ( (spec->type & OPT_INF) && PL_is_inf(val) )
+	*valp.l = LONG_MAX;
+      else if ( !PL_get_long_ex(val, valp.l) )
+	return FALSE;
+
+      return TRUE;
+    }
+    case OPT_NATLONG:
+    { if ( !PL_get_long_ex(val, valp.l) )
+	return FALSE;
+      if ( *(valp.l) <= 0 )
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			ATOM_not_less_than_one, val);
+
+      return TRUE;
+    }
+    case OPT_SIZE:
+    { if ( (spec->type & OPT_INF) && PL_is_inf(val) )
+	*valp.sz = (size_t)-1;
+      else if ( !PL_get_size_ex(val, valp.sz) )
+	return FALSE;
+
+      return TRUE;
+    }
+    case OPT_DOUBLE:
+    { if ( !PL_get_float_ex(val, valp.f) )
+	return FALSE;
+
+      return TRUE;
+    }
+    case OPT_STRING:
+    { char *str;
+
+      if ( !PL_get_chars(val, &str, CVT_ALL|CVT_EXCEPTION) ) /* copy? */
+	return FALSE;
+      *valp.s = str;
+
+      return TRUE;
+    }
+    case OPT_ATOM:
+    { atom_t a;
+
+      if ( !PL_get_atom_ex(val, &a) )
+	return FALSE;
+      *valp.a = a;
+
+      return TRUE;
+    }
+#ifdef O_LOCALE
+    case OPT_LOCALE:
+    { PL_locale *l;
+      PL_locale **lp = valp.ptr;
+
+      if ( !getLocaleEx(val, &l) )
+	return FALSE;
+      *lp = l;
+
+      return TRUE;
+    }
+#endif
+    case OPT_TERM:
+    { *valp.t = PL_copy_term_ref(val); /* can't reuse anymore */
+
+      return TRUE;
+    }
+    default:
+      assert(0);
+  }
+
+  return FALSE;
+}
 
 
 bool
@@ -92,88 +183,8 @@ scan_options(term_t options, int flags, atom_t optype,
 
     for( n=0, s = specs; s->name; n++, s++ )
     { if ( s->name == name )
-      { switch((s->type & OPT_TYPE_MASK))
-	{ case OPT_BOOL:
-	  { int bval;
-
-	    if ( !PL_get_bool_ex(val, &bval) )
-	      return FALSE;
-	    *values[n].b = bval;
-	    break;
-	  }
-	  case OPT_INT:
-	  { if ( !PL_get_integer_ex(val, values[n].i) )
-	      return FALSE;
-
-	    break;
-	  }
-	  case OPT_LONG:
-	  { if ( (s->type & OPT_INF) && PL_is_inf(val) )
-	      *values[n].l = LONG_MAX;
-	    else if ( !PL_get_long_ex(val, values[n].l) )
-	      return FALSE;
-
-	    break;
-	  }
-	  case OPT_NATLONG:
-	  { if ( !PL_get_long_ex(val, values[n].l) )
-	      return FALSE;
-	    if ( *(values[n].l) <= 0 )
-	      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			      ATOM_not_less_than_one, val);
-
-	    break;
-	  }
-	  case OPT_SIZE:
-	  { if ( (s->type & OPT_INF) && PL_is_inf(val) )
-	      *values[n].sz = (size_t)-1;
-	    else if ( !PL_get_size_ex(val, values[n].sz) )
-	      return FALSE;
-
-	    break;
-	  }
-	  case OPT_DOUBLE:
-	  { if ( !PL_get_float_ex(val, values[n].f) )
-	      return FALSE;
-
-	    break;
-	  }
-	  case OPT_STRING:
-	  { char *str;
-
-	    if ( !PL_get_chars(val, &str, CVT_ALL|CVT_EXCEPTION) ) /* copy? */
-	      return FALSE;
-	    *values[n].s = str;
-	    break;
-	  }
-	  case OPT_ATOM:
-	  { atom_t a;
-
-	    if ( !PL_get_atom_ex(val, &a) )
-	      return FALSE;
-	    *values[n].a = a;
-	    break;
-	  }
-#ifdef O_LOCALE
-	  case OPT_LOCALE:
-	  { PL_locale *l;
-	    PL_locale **lp = values[n].ptr;
-
-	    if ( !getLocaleEx(val, &l) )
-	      return FALSE;
-	    *lp = l;
-	    break;
-	  }
-#endif
-	  case OPT_TERM:
-	  { *values[n].t = val;
-	    val = PL_new_term_ref();	/* can't reuse anymore */
-	    break;
-	  }
-	  default:
-	    assert(0);
-	    fail;
-	}
+      { if ( !get_optval(values[n], s, val PASS_LD) )
+	  return FALSE;
 	break;
       }
     }
