@@ -1313,6 +1313,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
           mpz_ui_pow_ui(t1, 10, arg);
           mpz_mul(t1, f->value.mpz, t1);
           neg = (mpz_cmp_ui(t1, 0) < 0) ? 1 : 0;
+          mpz_abs(t1, t1);
           goto print_mpz;
         }
         case 'e':
@@ -1348,19 +1349,23 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
             neg=0;
           }
           mpz_tdiv_q(t1, t1, mpq_denref(f->value.mpq));
+          mpz_abs(t1, t1);
 
         print_mpz:
 
-          mpz_set(t2, t1);
-          while (mpz_cmp_ui(t2, 0) != 0)
-          { digits++;
-            mpz_tdiv_q_ui(t2, t2, 10);
+          if (mpz_cmp_ui(t1, 0) != 0)
+          { size = mpz_sizeinbase(t1, 10) + 1; /* reserve for <null> */
+            if ( !growBuffer(out, size) )
+            { PL_no_memory();
+              return NULL;
+            }
+            digits = written = gmp_snprintf(baseBuffer(out, char), size, "%Zd", t1);
           }
+
           size = digits;
           if (neg) size++;               /* leading - */
-          if (digits == arg) size++;     /* leading 0 */
           if (arg) size++;               /* decimal point */
-          if (digits <= arg)             /* '0's after decimal point */
+          if (digits <= arg)             /* leading '0's */
           { padding = (arg-digits+1);
             size += padding;
           }
@@ -1371,12 +1376,15 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
             return NULL;
           }
 
-          if (digits)
-            written = gmp_snprintf(baseBuffer(out, char), size, "%Zd", t1);
-          else if (neg)
-            written = snprintf(baseBuffer(out, char), 2, "-");
-          else
-            memset(out->base, '\0', 1);
+          if (!digits)
+          { memset(out->base, '\0', 1);
+          }
+
+          if (neg)
+          { memmove(out->base+1, out->base, digits+1);
+            memset(out->base, '-', 1);
+            written++;
+          }
 
           if (padding)
           { memmove(out->base+neg+padding, out->base+neg, written-neg+1);
