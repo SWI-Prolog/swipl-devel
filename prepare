@@ -272,6 +272,13 @@ confdir()
         rm configure;
       fi
     done
+    if [ -d ac -a -f configure ]; then
+      for dep in ac/*.m4; do
+	if [ -f configure -a -f "$dep" -a "$dep" -nt configure ]; then
+          rm configure;
+        fi
+      done
+    fi
     if [ -f configure -a ! configure.in -nt configure ]; then
       return
     fi
