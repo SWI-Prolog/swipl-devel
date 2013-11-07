@@ -1087,10 +1087,13 @@ e.g., edit/0 to edit the initial file.
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
 
-    \prologflagitem{backquoted_string}{bool}{rw}
-If \const{true} (default \const{false}), read translates text between
-backquotes into a string object (see \secref{strings}).  This flag is
-mainly for compatibility with LPA Prolog.
+    \prologflagitem{back_quotes}{codes,chars,string,symbol_char}{rw}
+Defines the term-representation for back-quoted material.  The default
+is \const{codes}. If \cmdlineoption{--traditional} is given, the default
+is \const{symbol_char}, which allows using \verb$`$ in operators
+composed of symbols.\footnote{Older versions had a boolean flag
+\const{backquoted_strings}, which toggled between \const{string} and
+\const{symbol_char}.
 
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by
@@ -1234,13 +1237,15 @@ is_dialect(swi) :-
 \end{code}
 
     \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
-This flag determines how double quoted strings are read by Prolog and
-is ---like \prologflag{character_escapes}--- maintained for each module. If
-\const{codes} (default), a list of character codes is returned, if
-\const{chars} a list of one-character atoms, if \const{atom} double
-quotes are the same as single quotes and finally, \const{string} reads
-the text into a Prolog string (see \secref{strings}). See also
-atom_chars/2 and atom_codes/2.
+This flag determines how double quoted strings are read by Prolog and is
+---like \prologflag{character_escapes} and \prologflag{back_quotes}---
+maintained for each module. The default is \const{string}, which
+produces a string as described in \secref{strings}. If
+\cmdlineoption{--traditional} is given, the default is \const{codes},
+which produces a list of character codes, integers that represent a
+Unicode code-point. The value \const{chars} produces a list of
+one-character atoms and the value \const{atom} makes double quotes the
+same as single quotes, creating a atom.  See also \secref{extensions}.
 
     \prologflagitem{editor}{atom}{rw}
 Determines the editor used by edit/1. See \secref{listing} for

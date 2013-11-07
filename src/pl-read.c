@@ -2771,11 +2771,10 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  PL_chars_t txt;
 		  int type;
 
-#ifdef O_META_ATOMS
-		  type = true(_PL_rd, BQ_STRING) ? PL_STRING : PL_META_ATOM;
-#else
-		  type = PL_STRING;
-#endif
+		  type = ( true(_PL_rd, BQ_STRING) ? PL_STRING :
+			   true(_PL_rd, BQ_CODES)  ? PL_CODE_LIST :
+			   PL_CHAR_LIST
+			 );
 
 		  initBuffer(&b);
 		  if ( !get_string(rdhere-1, rdend, &rdhere, (Buffer)&b, _PL_rd) )

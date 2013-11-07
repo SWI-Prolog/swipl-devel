@@ -224,10 +224,7 @@ atomType(atom_t a, write_options *options)
     for( ;
 	 left > 0 && isSymbol(*s) && (!fd || Scanrepresent(*s, fd)==0);
 	 s++, left--)
-    { if ( *s == '`' &&
-	   true(options, PL_WRT_BACKQUOTED_STRING|PL_WRT_BQ_META_ATOM) )
-	return AT_QUOTE;
-    }
+      ;
     if ( left > 0 )
       return AT_QUOTE;
 
@@ -1696,8 +1693,6 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
       return FALSE;
     if ( (flags&BQ_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
-    else if ( (flags&BQ_META_ATOM) )
-      options.flags |= PL_WRT_BQ_META_ATOM;
   }
 
   local_varnames = (varnames && false(&options, PL_WRT_NUMBERVARS));
@@ -1772,8 +1767,6 @@ do_write2(term_t stream, term_t term, int flags)
       options.flags |= PL_WRT_CHARESCAPES;
     if ( true(options.module, BQ_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
-    else if ( true(options.module, BQ_META_ATOM) )
-      options.flags |= PL_WRT_BQ_META_ATOM;
 
     PutOpenToken(EOF, s);		/* reset this */
     rc = writeTopTerm(term, 1200, &options);

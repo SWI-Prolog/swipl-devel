@@ -868,11 +868,12 @@ with one operation, it turns out to be faster as well.
 #define DBLQ_STRING		(0x0010) /* "ab" --> "ab" */
 #define DBLQ_MASK		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
 #define BQ_STRING		(0x0020) /* `ab` --> "ab" */
-#define BQ_META_ATOM		(0x0040) /* `ab` --> `ab` */
-#define BQ_MASK			(BQ_STRING|BQ_META_ATOM)
-#define UNKNOWN_FAIL		(0x0080) /* module */
-#define UNKNOWN_WARNING		(0x0100) /* module */
-#define UNKNOWN_ERROR		(0x0200) /* module */
+#define BQ_CODES		(0x0040) /* `ab` --> [97,98] */
+#define BQ_CHARS		(0x0080) /* `ab` --> [a,b] */
+#define BQ_MASK			(BQ_STRING|BQ_CODES|BQ_CHARS)
+#define UNKNOWN_FAIL		(0x0100) /* module */
+#define UNKNOWN_WARNING		(0x0200) /* module */
+#define UNKNOWN_ERROR		(0x0400) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
 
 /* Flags on functors */

@@ -73,10 +73,7 @@ _lookupModule(atom_t name)
   clearFlags(m);
   set(m, M_CHARESCAPE);
   if ( !GD->options.traditional )
-    set(m, DBLQ_STRING);
-#ifdef O_META_ATOMS
-  set(m, BQ_META_ATOM);
-#endif
+    set(m, DBLQ_STRING|BQ_CODES);
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);

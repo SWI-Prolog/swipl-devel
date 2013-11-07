@@ -273,8 +273,10 @@ setBackQuotes(atom_t a, unsigned int *flagp)
     flags = BQ_STRING;
   else if ( a == ATOM_symbol_char )
     flags = 0;
-  else if ( a == ATOM_meta_atom )
-    flags = BQ_META_ATOM;
+  else if ( a == ATOM_codes )
+    flags = BQ_CODES;
+  else if ( a == ATOM_chars )
+    flags = BQ_CHARS;
   else
   { term_t value = PL_new_term_ref();
 
@@ -841,8 +843,10 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
 
     if ( true(m, BQ_STRING) )
       v = ATOM_string;
-    else if ( true(m, BQ_META_ATOM) )
-      v = ATOM_meta_atom;
+    else if ( true(m, BQ_CODES) )
+      v = ATOM_codes;
+    else if ( true(m, BQ_CHARS) )
+      v = ATOM_chars;
     else
       v = ATOM_symbol_char;
 

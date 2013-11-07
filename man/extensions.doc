@@ -5,11 +5,8 @@ This chapter describes extensions to the Prolog language introduced with
 SWI-Prolog version~7. The changes bring more modern syntactical
 conventions to Prolog such as key-value maps as primary citizens and a
 restricted form of \jargon{functional notation}. They also extend Prolog
-basic types with strings and reserved constants.  Where strings provide
-a natural notation to textual material as opposed to identifiers (atoms)
-and lists, reserved constants allow us to distinguish data produced by
-\jargon{syntaxtic sugar} such as the list notation ([a,b]) from ordinary
-Prolog terms.
+basic types with strings, providing a natural notation to textual
+material as opposed to identifiers (atoms) and lists.
 
 These extensions make the syntax more intuitive to new users, simplify
 the integration of domain specific languages (DSLs) and facilitate a
@@ -23,35 +20,27 @@ that we used to port a huge code base in half a day.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Reserved constants}
-\label{sec:ext-constants}
-
-SWI-Prolog introduces constants that are distinct from Prolog atoms. The
-\textbf{syntax} for such constants is a string between \emph{back
-quotes}. Backquoted constants are considered \emph{atomic} (see
-atomic/1) but not atoms (see atom/1). Constants can be used as functors,
-i.e., names of compound terms. These constants are \emph{not} supposed
-to be used in user programs. They are intended for the system to
-indicate special values. They are used to distinguish the terms
-resulting from \jargon{syntactic sugar} from regular terms (e.g.,
-\verb$`[]`$ and \verb$`.`$ for lists, see \secref{ext-lists}) and can be
-used to replace the old convention of using atoms that start with a
-\verb!$!, such as numbervars/3 which numbers the variables using the
-term \term{'\$VAR'}{N}.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Lists are special}
+\section{Lists are special}
 \label{sec:ext-lists}
 
 As of version~7, SWI-Prolog lists can be distinguished unambiguously at
-runtime from both ordinary compound terms and the atom \const{'[]'}
-using the reserved constants documented in \secref{ext-constants}. The
-list \exam{[a,b]} is represented as the term below.
+runtime from \funcref{.}{2} terms and the atom \const{'[]'}. The
+constant \verb$[]$ is special constant that is not an atom.  It has
+the following properties:
 
 \begin{code}
-`.`(a, `.`(b, `[]`))
+?- atom([]).
+false.
+?- atomic([]).
+true.
+?- [] == '[]'.
+false.
+?- [] == [].
+true.
 \end{code}
+
+The `cons' operator for creating list cells has changed from the pretty
+atom \verb$'.'$ to the ugly atom \verb|'$cons'|.
 
 This modification has minimal impact on typical Prolog code. It does
 affect foreign code (see \secref{foreign}) that uses the normal atom and
@@ -64,12 +53,12 @@ Another place that is affected is write_canonical/1. Impact is minimized
 by using the list syntax for lists.
 
 
-\subsubsection{Motivating lists using reserved constants}
+\subsection{Motivating '$cons' and [] for lists}
 \label{sec:ext-list-motivation}
 
-Representing lists the conventional way using ./2 as cons-cell and
-'[]' as list terminator both poses conflicts, while these conflicts
-are easily avoided.
+Representing lists the conventional way using \funcref{.}{2} as
+cons-cell and '[]' as list terminator both poses conflicts, while these
+conflicts are easily avoided.
 
 \begin{itemize}
     \item Using ./2 prevents using this commonly used symbol as an
@@ -124,13 +113,13 @@ ERROR: Domain error: `unquoted_atom' expected, found `is a'
 \subsection{Allow for dotted identifiers}
 \label{sec:ext-syntax-dotted-id}
 
-Quite a few languages allow for dots (.) in identifiers to express
-membership, type extensions or some form of hierarchy. Although
-SWI-Prolog version~7 makes the dot available as operator, this is
-different from supporting it inside identifiers because usage inside
-identifiers does not allow for brackets or white space. Furthermore,
-SWI-Prolog version~7 reserves the dot for its \jargon{functional
-notation} extension (see \secref{ext-map-functions}).
+Quite a few languages allow for dots (.) in identifiers to express type
+extensions or some form of hierarchy. Although SWI-Prolog version~7
+makes the dot available as operator, this is different from supporting
+it inside identifiers because usage inside identifiers does not allow
+for brackets or white space. Furthermore, SWI-Prolog version~7 reserves
+the dot for its \jargon{functional notation} extension (see
+\secref{ext-map-functions}).
 
 Whether or not dots are allowed in identifiers is controlled by the
 \prologflag{allow_dot_in_atom}, which is \const{true} by default.

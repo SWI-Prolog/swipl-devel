@@ -1057,17 +1057,25 @@ static void
 registerBuiltinAtoms(void)
 { int size = sizeof(atoms)/sizeof(char *) - 1;
   Atom a;
-  const ccharp *s;
+  const ccharp *sp;
 
   GD->atoms.builtin_array = PL_malloc(size * sizeof(struct atom));
   GD->statistics.atoms = size;
 
-  for(s = atoms, a = GD->atoms.builtin_array; *s; s++, a++)
-  { size_t len = strlen(*s);
-    unsigned int v0 = MurmurHashAligned2(*s, len, MURMUR_SEED);
-    unsigned int v = v0 & (atom_buckets-1);
+  for(sp = atoms, a = GD->atoms.builtin_array; *sp; sp++, a++)
+  { const char *s = *sp;
+    size_t len = strlen(s);
+    unsigned int v0, v;
 
-    a->name       = (char *)*s;
+    if ( *s == '.' && len == 1 && !GD->options.traditional )
+    { s = "$cons";
+      len = strlen(s);
+    }
+
+    v0 = MurmurHashAligned2(s, len, MURMUR_SEED);
+    v  = v0 & (atom_buckets-1);
+
+    a->name       = (char *)s;
     a->length     = len;
     a->type       = &text_atom;
 #ifdef O_ATOMGC
