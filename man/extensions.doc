@@ -433,15 +433,19 @@ X = 1.
 \subsection{Functions on maps}
 \label{sec:ext-map-functions}
 
-The infix operator dot (.) is used to extract values and evaluate
-functions on maps. Functions are recognised if they appear in the
-argument of a \jargon{goal} in the source text, possibly nested in a
-term. The keys act as field selector, which is illustrated in this
+The infix operator dot (\term{op}{100, yfx, .} is used to extract values
+and evaluate functions on maps. Functions are recognised if they appear
+in the argument of a \jargon{goal} in the source text, possibly nested
+in a term. The keys act as field selector, which is illustrated in this
 example.
 
 \begin{code}
 ?- X = point{x:1,y:2}.x.
 X = 1.
+
+?- Pt = point{x:1,y:2}, write(Pt.y).
+2
+Pt = point{x:1,y:2}.
 
 ?- X = point{x:1,y:2}.C.
 X = 1,
@@ -449,6 +453,31 @@ C = x ;
 X = 2,
 C = y.
 \end{code}
+
+The compiler translates a goal that contains \funcref{.}{2} terms in its
+arguments into a conjunction of calls to \predref{.}{3} defined in the
+\const{system} module. Note that this implies that terms \funcref{.}{2}
+cannot be created by writing them explicitly in your source code. Such
+terms can still be created with functor/3, \predref{=..}{2},
+compound_name_arity/3 and
+compound_name_arguments/3.\footnote{Traditional code is unlikely to use
+\funcref{.}{2} terms because they were practically reserved for usage in
+lists. We do not provide a quoting mechanism as found in functional
+languages because it would only be needed to quote \funcref{.}{2} terms,
+such terms are rare and term manipulation provides an escape route.}
+
+\begin{description}
+    \predicate{.}{3}{+Map, +Function, -Result}
+This predicate is called to evaluate \funcref{.}{2} terms found in the
+arguments of a goal. This predicate evaluates the field extraction
+described above, user defined functions described in
+\secref{ext-map-user-functions} and the predefined functions on maps
+described in \secref{ext-maps-predefined}.
+\end{description}
+
+
+\subsubsection{User defined functions on maps}
+\label{sec:ext-map-user-functions}
 
 The class of a map associates the map to a module.  If the dot
 notation uses a compound term, this calls the goal below.
