@@ -369,6 +369,7 @@ COMMON(int)		Pause(double time);
 
 /* pl-prims.c */
 COMMON(int)		unify_ptrs(Word t1, Word t2, int flags ARG_LD);
+COMMON(void)		unify_vp(Word vp, Word val ARG_LD);
 COMMON(bool)		can_unify(Word t1, Word t2, term_t *ex);
 COMMON(int)		compareStandard(Word t1, Word t2, int eq ARG_LD);
 COMMON(int)		compareAtoms(atom_t a1, atom_t a2);

@@ -2054,6 +2054,30 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 #define SETARG_LINK		0x2
 
 
+/* unify_vp() assumes *vp is a variable and binds it to val.
+   The assignment is *not* trailed. As no allocation takes
+   place, there are no error conditions.
+*/
+
+void
+unify_vp(Word vp, Word val ARG_LD)
+{ deRef(val);
+
+  if ( isVar(*val) )
+  { if ( val < vp )
+    { *vp = makeRef(val);
+    } else if ( vp < val )
+    { setVar(*vp);
+      *val = makeRef(vp);
+    } else
+      setVar(*vp);
+  } else if ( isAttVar(*val) )
+  { *vp = makeRef(val);
+  } else
+    *vp = *val;
+}
+
+
 static word
 setarg(term_t n, term_t term, term_t value, int flags)
 { GET_LD
@@ -2119,22 +2143,9 @@ setarg(term_t n, term_t term, term_t value, int flags)
 					/* this is unify(), but the */
 					/* assignment must *not* be trailed */
   v = valTermRef(value);
-  deRef(v);
+  unify_vp(a, v PASS_LD);
 
-  if ( isVar(*v) )
-  { if ( v < a )
-    { *a = makeRef(v);
-    } else if ( a < v )
-    { setVar(*a);
-      *v = makeRef(a);
-    } else
-      setVar(*a);
-  } else if ( isAttVar(*v) )
-  { *a = makeRef(v);
-  } else
-    *a = *v;
-
-  succeed;
+  return TRUE;
 }
 
 
