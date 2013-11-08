@@ -412,6 +412,19 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 
       break;
     }
+    case ERR_EXISTENCE3:
+    { atom_t type = va_arg(args, atom_t);
+      term_t obj  = va_arg(args, term_t);
+      term_t in   = va_arg(args, term_t);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_existence_error3,
+			   PL_ATOM, type,
+			   PL_TERM, obj,
+			   PL_TERM, in);
+
+      break;
+    }
     case ERR_FILE_OPERATION:
     { atom_t action = va_arg(args, atom_t);
       atom_t type   = va_arg(args, atom_t);

@@ -146,6 +146,8 @@ iso_message(existence_error(procedure, Proc)) -->
 	undefined_proc_msg(Proc).
 iso_message(existence_error(Type, Object)) -->
 	[ '~w `~p'' does not exist'-[Type, Object] ].
+iso_message(existence_error(Type, Object, In)) --> % not ISO
+	[ '~w `~p'' does not exist in ~p'-[Type, Object, In] ].
 iso_message(busy(Type, Object)) -->
 	[ '~w `~p'' is busy'-[Type, Object] ].
 iso_message(syntax_error(swi_backslash_newline)) -->
