@@ -4166,6 +4166,13 @@ Defined values are \const{ignore} (ignore the attribute), \const{dots}
 the attributes recursively to write_term/2) and \const{portray}
 (hand the attributes to attr_portray_hook/2).
 
+    \termitem{back_quotes}{Atom}
+Fulfills the same role as the \prologflag{back_quotes} prolog flag.
+Notably, the value \const{string} causes string objects to be printed
+between back quotes and \const{symbol_char} causes the backquote to
+be printed unquoted.  In all other cases the backquote is printed as
+a quoted atom.
+
     \termitem{brace_terms}{Bool}
 If \const{true} (default), write \verb${}(X)$ as \verb${X}$.  See also
 \const{dot_lists} and \const{ignore_ops}.
