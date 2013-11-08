@@ -388,27 +388,40 @@ PRED_IMPL("\\=", 2, not_unify, 0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Public unification procedure for `raw' data.   See also PL_unify().
+
+Return:
+
+  - TRUE: success
+  - If (flags&ALLOW_RETCODE), one of
+      - FALSE: unification failure
+      - *_OVERFLOW: stack or memory overflow
+    Else
+      - FALSE: unification failure or raised exception
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
+int
 unify_ptrs(Word t1, Word t2, int flags ARG_LD)
 { for(;;)
   { int rc;
 
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc >= 0 )
-    { return rc;
-    } else if ( rc == MEMORY_OVERFLOW )
-    { return PL_error(NULL, 0, NULL, ERR_NOMEM);
-    } else				/* Stack overflow */
-    { int rc2;
+      return rc;
 
-      PushPtr(t1); PushPtr(t2);
-      rc2 = makeMoreStackSpace(rc, flags);
-      PopPtr(t2); PopPtr(t1);
-      if ( !rc2 )
-	return FALSE;
-    }
+    if ( !(flags&ALLOW_RETCODE) )
+    { if ( rc == MEMORY_OVERFLOW )
+      { return PL_no_memory();
+      } else				/* Stack overflow */
+      { int rc2;
+
+	PushPtr(t1); PushPtr(t2);
+        rc2 = makeMoreStackSpace(rc, flags);
+        PopPtr(t2); PopPtr(t1);
+	if ( !rc2 )
+	  return FALSE;
+      }
+    } else
+      return rc;			/* return error code */
   }
 }
 
