@@ -188,6 +188,12 @@ truePrologFlagNoLD(unsigned int flag)
 }
 
 
+static inline int
+wr_is_symbol(int c, write_options *options)
+{ return ( isSymbol(c) ||
+	   (c == '`' && (options->flags & PL_WRT_BACKQUOTE_IS_SYMBOL)) );
+}
+
 static int
 atomType(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
@@ -215,14 +221,15 @@ atomType(atom_t a, write_options *options)
   if ( a == ATOM_dot )
     return AT_FULLSTOP;
 
-  if ( isSymbol(*s) )
+  if ( wr_is_symbol(*s, options) )
   { size_t left = len;
 
     if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
 
     for( ;
-	 left > 0 && isSymbol(*s) && (!fd || Scanrepresent(*s, fd)==0);
+	 left > 0 && wr_is_symbol(*s, options) &&
+	 (!fd || Scanrepresent(*s, fd)==0);
 	 s++, left--)
       ;
     if ( left > 0 )
@@ -1693,6 +1700,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
       return FALSE;
     if ( (flags&BQ_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
+    else if ( flags == 0 )
+      options.flags |= PL_WRT_BACKQUOTE_IS_SYMBOL;
   }
 
   local_varnames = (varnames && false(&options, PL_WRT_NUMBERVARS));
