@@ -498,6 +498,93 @@ partial_unify_map(word map1, word map2 ARG_LD)
 }
 
 
+/* select_map() demands del to be a sub-map of from and assigns
+   all remaining values in new.
+
+   Note that unify_ptrs() can push data onto the global stack in
+   case it encounters attributed variables.  Therefore we need a
+   two pass process.
+*/
+
+static int
+select_map(word del, word from, word *new_map ARG_LD)
+{ Functor dd = valueTerm(del);
+  Functor fd = valueTerm(from);
+  Word din  = dd->arguments;
+  Word fin  = fd->arguments;
+  Word dend = din+arityFunctor(dd->definition);
+  Word fend = fin+arityFunctor(fd->definition);
+  size_t left = 0;
+  int rc;
+
+  /* unify the classes */
+  if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE PASS_LD)) != TRUE )
+    return rc;
+
+  /* advance to first key */
+  din++;
+  fin++;
+
+  while(din < dend && fin < fend)
+  { Word d, f;
+
+    deRef2(din, d);
+    deRef2(fin, f);
+    if ( *d == *f )
+    { if ( (rc = unify_ptrs(din+1, fin+1, ALLOW_RETCODE PASS_LD)) != TRUE )
+	return rc;
+      din += 2;
+      fin += 2;
+    } else if ( *d < *f )
+    { return FALSE;
+    } else
+    { fin += 2;
+      left++;
+    }
+  }
+  if ( din < dend )
+    return FALSE;
+  left += (fend-fin)/2;
+
+  if ( !new_map )
+    return TRUE;
+
+  if ( gTop+2+2*left <= gMax )
+  { Word out = gTop;
+
+    *new_map = consPtr(out, TAG_COMPOUND|STG_GLOBAL);
+
+    *out++ = map_functor(left);
+    setVar(*out++);			/* class for new map */
+
+    din = dd->arguments+1;
+    fin = fd->arguments+1;
+
+    while(left > 0)
+    { Word d, f;
+
+      deRef2(din, d);
+      deRef2(fin, f);
+      if ( *d == *f )
+      { din += 2;
+	fin += 2;
+      } else
+      { *out++ = *f;
+	*out++ = linkVal(&fin[1]);
+	fin += 2;
+	left--;
+      }
+    }
+    gTop = out;
+
+    return TRUE;
+  }
+
+  return GLOBAL_OVERFLOW;
+}
+
+
+
 static int
 get_name_value(Word p, Word name, Word value, int flags ARG_LD)
 { deRef(p);
@@ -1133,7 +1220,6 @@ PRED_IMPL("nb_link_map", 3, nb_link_map, 0)
 }
 
 
-
 /** del_map(+Key, +MapIn, ?Value, -MapOut)
 
 True when Key-Value is in MapIn and   MapOut  contains all keys of MapIn
@@ -1169,6 +1255,69 @@ retry:
 	  goto retry;
 	}
       }
+    }
+  }
+
+  return FALSE;
+}
+
+
+/** select_map(+Select, +From) is semidet.
+    select_map(+Select, +From, -Rest) is semidet.
+*/
+
+static
+PRED_IMPL("select_map", 3, select_map, 0)
+{ PRED_LD
+  word s, f, r;
+
+retry:
+  if ( get_map_ex(A1, &s, TRUE PASS_LD) &&
+       get_map_ex(A2, &f, TRUE PASS_LD) )
+  { int rc = select_map(s, f, &r PASS_LD);
+
+    switch(rc)
+    { case TRUE:
+      { term_t t = PL_new_term_ref();
+
+	*valTermRef(t) = r;
+	return PL_unify(A3, t);
+      }
+      case FALSE:
+	return rc;
+      case MEMORY_OVERFLOW:
+	return PL_no_memory();
+      default:
+	if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	  return FALSE;
+        goto retry;
+    }
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("select_map", 2, select_map, 0)
+{ PRED_LD
+  word s, f;
+
+retry:
+  if ( get_map_ex(A1, &s, TRUE PASS_LD) &&
+       get_map_ex(A2, &f, TRUE PASS_LD) )
+  { int rc = select_map(s, f, NULL PASS_LD);
+
+    switch(rc)
+    { case TRUE:
+      case FALSE:
+	return rc;
+      case MEMORY_OVERFLOW:
+	return PL_no_memory();
+      default:
+	if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	  return FALSE;
+        goto retry;
     }
   }
 
@@ -1219,5 +1368,7 @@ BeginPredDefs(map)
   PRED_DEF("nb_link_map", 3, nb_link_map, 0)
   PRED_DEF("get_map",	  3, get_map,	  PL_FA_NONDETERMINISTIC)
   PRED_DEF("del_map",	  4, del_map,	  0)
-  PRED_DEF("=~=",	  2, punify_map,  0)
+  PRED_DEF("select_map",  3, select_map,  0)
+  PRED_DEF("select_map",  2, select_map,  0)
+  PRED_DEF(">=<",	  2, punify_map,  0)
 EndPredDefs

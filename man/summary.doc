@@ -33,6 +33,7 @@ suggest predicates from a keyword.
 \oppredsummary{=\=}{2}{xfx}{700}{Arithmetic not equal}
 \oppredsummary{>}{2}{xfx}{700}{Arithmetic larger}
 \oppredsummary{>=}{2}{xfx}{700}{Arithmetic larger or equal}
+\oppredsummary{>=<}{2}{xfx}{700}{Partial map unification}
 \predicatesummary{?=}{2}{Test of terms can be compared now}
 \oppredsummary{@<}{2}{xfx}{700}{Standard order smaller}
 \oppredsummary{@=<}{2}{xfx}{700}{Standard order smaller or equal}
@@ -43,7 +44,7 @@ suggest predicates from a keyword.
 \oppredsummary{\==}{2}{xfx}{700}{Not identical}
 \oppredsummary{\=@=}{2}{xfx}{700}{Not structural identical}
 \oppredsummary{^}{2}{xfy}{200}{Existential quantification (bagof/3, setof/3)}
-\oppredsummary{|}{2}{xfy}{1105}{Disjunction of goals. Same as \predref{;}{2}}
+\oppredsummary{|}{2}{xfy}{1105}{Disjunction in DCGs. Same as \predref{;}{2}}
 \predicatesummary{{}}{1}{DCG escape; constraints}
 \predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
@@ -91,6 +92,7 @@ suggest predicates from a keyword.
 \predicatesummary{autoload}{0}{Autoload all predicates now}
 \predicatesummary{autoload_path}{1}{Add directories for autoloading}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
+\predicatesummary{b_set_map}{3}{Destructive assignment on a map}
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
@@ -377,9 +379,11 @@ suggest predicates from a keyword.
 \predicatesummary{nb_current}{2}{Enumerate non-backtrackable global variables}
 \predicatesummary{nb_delete}{1}{Delete a non-backtrackable global variable}
 \predicatesummary{nb_getval}{2}{Fetch non-backtrackable global variable}
+\predicatesummary{nb_link_map}{3}{Non-backtrackable assignment to term}
 \predicatesummary{nb_linkarg}{3}{Non-backtrackable assignment to term}
 \predicatesummary{nb_linkval}{2}{Assign non-backtrackable global variable}
 \predicatesummary{nb_set_to_list}{2}{Convert non-backtrackable set to list}
+\predicatesummary{nb_set_map}{3}{Non-backtrackable assignment to map}
 \predicatesummary{nb_setarg}{3}{Non-backtrackable assignment to term}
 \predicatesummary{nb_setval}{2}{Assign non-backtrackable global variable}
 \predicatesummary{nl}{0}{Generate a newline}
@@ -526,6 +530,8 @@ suggest predicates from a keyword.
 \predicatesummary{seeing}{1}{Query the current input stream}
 \predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
+\predicatesummary{select_map}{2}{Select matching attributes from a map}
+\predicatesummary{select_map}{3}{Select matching attributes from a map}
 \predicatesummary{set_end_of_stream}{1}{Set physical end of an open file}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_locale}{1}{Set the default local}

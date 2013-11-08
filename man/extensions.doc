@@ -587,7 +587,28 @@ A = point{x:3, y:2}.
 True when \arg{Key}-\arg{Value} is in \arg{MapIn} and \arg{MapOut}
 contains all associations of \arg{MapIn} except for \arg{Key}.
 
-    \infixop{=~=}{+Map1}{+Map2}
+    \predicate[semidet]{select_map}{2}{+Select, +From}
+Equivalent to \term{select_map}{Select, From, _}.  See select_map/3
+for details.
+
+    \predicate[semidet]{select_map}{3}{+Select, +From, -Rest}
+True when the classes of \arg{Select} and \arg{From} have been unified,
+all keys in \arg{Select} appear in \arg{From} and the corresponding
+values have been unified. The key-value pairs of \arg{From} that do not
+appear in \arg{Select} are used to form an anonymous map, which us
+unified with \arg{Rest}.  For example:
+
+\begin{code}
+?- select_map(P{x:0, y:Y}, point{x:0, y:1, z:2}, R).
+P = point,
+Y = 1,
+R = _G1705{z:2}.
+\end{code}
+
+See also select_map/2 to ignore \arg{Rest} and \predref{>=<}{2} for
+a symmetric partial unification of two maps.
+
+    \infixop{>=<}{+Map1}{+Map2}
 This operator specifies a \jargon{partial unification} between
 \arg{Map1} and \arg{Map2}. It is true when the classes and the values
 associated with all \emph{common} keys have been unified.  The values
@@ -597,8 +618,10 @@ find maps that represent a point with X equal to zero:
 
 \begin{code}
     member(Map, List),
-    Map =~= point{x:0, y:Y}.
+    Map >=< point{x:0, y:Y}.
 \end{code}
+
+See also select_map/2 and select_map/3.
 \end{description}
 
 

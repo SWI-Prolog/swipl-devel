@@ -64,6 +64,7 @@ sub printTeX
   s/{=\\=}/{\\Sane}/g;
   s/{>}/{\\Sgt}/g;
   s/{>=}/{\\Sge}/g;
+  s/{>=<}/{\\Seqbowtie}/g;
   s/{@<}/{\\Stlt}/g;
   s/{@=<}/{\\Stle}/g;
   s/{@>}/{\\Stgt}/g;
