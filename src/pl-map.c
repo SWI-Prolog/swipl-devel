@@ -454,6 +454,48 @@ del_map(word map, word key, word *new_map ARG_LD)
 }
 
 
+/* partial_unify_map(map1, map2) unifies all common elements of two
+   maps.  It returns TRUE on success, FALSE on a failed unification
+   and *_OVERFLOW on some memory overflow
+*/
+
+static int
+partial_unify_map(word map1, word map2 ARG_LD)
+{ Functor d1 = valueTerm(map1);
+  Functor d2 = valueTerm(map2);
+  Word in1  = d1->arguments;
+  Word in2  = d2->arguments;
+  Word end1 = in1+arityFunctor(d1->definition);
+  Word end2 = in2+arityFunctor(d2->definition);
+  int rc;
+
+  /* unify the classes */
+  if ( (rc=unify_ptrs(in1, in2, ALLOW_RETCODE PASS_LD)) != TRUE )
+    return rc;
+
+  /* advance to first key */
+  in1++;
+  in2++;
+
+  while(in1 < end1 && in2 < end2)
+  { Word n1, n2;
+
+    deRef2(in1, n1);
+    deRef2(in2, n2);
+    if ( *n1 == *n2 )
+    { if ( (rc = unify_ptrs(in1+1, in2+1, ALLOW_RETCODE PASS_LD)) != TRUE )
+	return rc;
+      in1 += 2;
+      in2 += 2;
+    } else if ( *n1 < *n2 )
+    { in1 += 2;
+    } else
+    { in2 += 2;
+    }
+  }
+
+  return TRUE;
+}
 
 
 static int
@@ -1052,6 +1094,33 @@ retry:
 }
 
 
+static
+PRED_IMPL("=~=", 2, punify_map, 0)
+{ PRED_LD
+  word m1, m2;
+
+retry:
+  if ( get_map_ex(A1, &m1, TRUE PASS_LD) &&
+       get_map_ex(A2, &m2, TRUE PASS_LD) )
+  { int rc = partial_unify_map(m1, m2 PASS_LD);
+
+    switch(rc)
+    { case TRUE:
+      case FALSE:
+	return rc;
+      case MEMORY_OVERFLOW:
+	return PL_no_memory();
+      default:
+	if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	  return FALSE;
+        goto retry;
+    }
+  }
+
+  return FALSE;
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -1065,4 +1134,5 @@ BeginPredDefs(map)
   PRED_DEF("put_map",    4, put_map,    0)
   PRED_DEF("get_map",    3, get_map,    PL_FA_NONDETERMINISTIC)
   PRED_DEF("del_map",    4, del_map,    0)
+  PRED_DEF("=~=",        2, punify_map, 0)
 EndPredDefs

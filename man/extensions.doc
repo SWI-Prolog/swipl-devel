@@ -586,6 +586,19 @@ A = point{x:3, y:2}.
     \predicate{del_map}{4}{+Key, +MapIn, ?Value, -MapOut}
 True when \arg{Key}-\arg{Value} is in \arg{MapIn} and \arg{MapOut}
 contains all associations of \arg{MapIn} except for \arg{Key}.
+
+    \infixop{=~=}{+Map1}{+Map2}
+This operator specifies a \jargon{partial unification} between
+\arg{Map1} and \arg{Map2}. It is true when the classes and the values
+associated with all \emph{common} keys have been unified.  The values
+associated to keys that do not appear in the other map are ignored.
+Partial unification is symmetric.  For example, given a list of maps,
+find maps that represent a point with X equal to zero:
+
+\begin{code}
+    member(Map, List),
+    Map =~= point{x:0, y:Y}.
+\end{code}
 \end{description}
 
 
