@@ -4167,7 +4167,7 @@ the attributes recursively to write_term/2) and \const{portray}
 (hand the attributes to attr_portray_hook/2).
 
     \termitem{brace_terms}{Bool}
-If \const{true} (default), write \verb${}(X)$ as \verb${X}.  See also
+If \const{true} (default), write \verb${}(X)$ as \verb${X}$.  See also
 \const{dot_lists} and \const{ignore_ops}.
 
     \termitem{blobs}{Atom}
@@ -4212,7 +4212,7 @@ If \const{true}, the generic term representation (<functor>(<args>
 will be used where appropriate.\footnote{In traditional systems this
 flag also stops the syntactic sugar notation for lists and brace terms.
 In SWI-Prolog, these are controlled by the separate options
-\const{dot_lists} and \const{brace_terms}.
+\const{dot_lists} and \const{brace_terms}}.
 
     \termitem{max_depth}{Integer}
 If the term is nested deeper than \arg{Integer}, print the remainder

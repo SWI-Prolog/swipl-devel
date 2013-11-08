@@ -53,7 +53,7 @@ Another place that is affected is write_canonical/1. Impact is minimized
 by using the list syntax for lists.
 
 
-\subsection{Motivating '$cons' and [] for lists}
+\subsection{Motivating '\$cons' and [] for lists}
 \label{sec:ext-list-motivation}
 
 Representing lists the conventional way using \funcref{.}{2} as
