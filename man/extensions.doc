@@ -602,6 +602,56 @@ find maps that represent a point with X equal to zero:
 \end{description}
 
 
+\subsubsection{Destructive assignment in maps}
+\label{ext-map-assignment}
+
+This section describes the destructive update operations defined on
+maps. These actions can only \emph{update} keys and not add or remove
+keys. If the requested key does not exist the predicate raises
+\term{existence_error}{key, Key, Map}. Note the additional argument.
+
+Destructive assignment is a non-logical operation and should be used
+with care because identical Prolog terms may be copied or shared add
+will of the system. Some of this behaviour can be avoided by adding an
+additional unbound value to the map. This prevents unwanted sharing and
+ensures that copy_term/2 actually copies the map. This pitfall is
+demonstrated in the example below:
+
+\begin{code}
+?- A = a{a:1}, copy_term(A,B), b_set_map(a, A, 2).
+A = B, B = a{a:2}.
+
+?- A = a{a:1,dummy:_}, copy_term(A,B), b_set_map(a, A, 2).
+A = a{a:2, dummy:_G3195},
+B = a{a:1, dummy:_G3391}.
+\end{code}
+
+
+\begin{description}
+    \predicate[det]{b_set_map}{+Key, !Map, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Map} to
+\arg{Value}. The update is trailed and undone on backtracking. This
+predicate raises an existence error if \arg{Key} does not appear in
+\arg{Map}. The update semantics are equivalent to setarg/3 and
+b_setval/2.
+
+    \predicate[det]{nb_set_map}{+Key, !Map, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Map} to
+a copy of \arg{Value}. The update is \emph{not} undone on backtracking.
+This predicate raises an existence error if \arg{Key} does not appear in
+\arg{Map}. The update semantics are equivalent to nb_setarg/3 and
+nb_setval/2.
+
+    \predicate[det]{nb_link_map}{+Key, !Map, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Map} to
+\arg{Value}. The update is \emph{not} undone on backtracking. This
+predicate raises an existence error if \arg{Key} does not appear in
+\arg{Map}.  The update semantics are equivalent to b_linkarg/3 and
+nb_linkval/2. Use with extreme care and consult the documentation of
+nb_linkval/2 before use.
+\end{description}
+
+
 \subsection{A motivation for maps as primary citizens}
 \label{sec:ext-maps-motivation}
 

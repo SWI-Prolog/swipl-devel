@@ -1052,6 +1052,88 @@ retry:
 }
 
 
+/** b_set_map(+Key, !Map, +Value)
+
+Backtrackable destructive assignment, similar to setarg/3.
+*/
+
+#define SETMAP_BACKTRACKABLE    0x1
+#define SETMAP_LINK		0x2
+
+static int
+setmap(term_t key, term_t map, term_t value, int flags ARG_LD)
+{ word k, m;
+  Word val;
+
+retry:
+  val = valTermRef(value);
+  deRef(val);
+
+  if ( (flags&SETMAP_BACKTRACKABLE) )
+  { if ( !hasGlobalSpace(0) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+      goto retry;
+    }
+  } else
+  { if ( storage(*val) == STG_GLOBAL )
+    { if ( !(flags & SETMAP_LINK) )
+      { term_t copy = PL_new_term_ref();
+
+	if ( !duplicate_term(value, copy PASS_LD) )
+	  return FALSE;
+	value = copy;
+	val = valTermRef(value);
+	deRef(val);
+      }
+      freezeGlobal(PASS_LD1);
+    }
+  }
+
+  if ( get_map_ex(map, &m, FALSE PASS_LD) &&
+       get_name_ex(key, &k PASS_LD) )
+  { Word vp;
+
+    if ( (vp=map_lookup_ptr(m, k PASS_LD)) )
+    { if ( (flags&SETMAP_BACKTRACKABLE) )
+	TrailAssignment(vp);
+      unify_vp(vp, val PASS_LD);
+      return TRUE;
+    }
+
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE3,
+		    ATOM_key, key, map);
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("b_set_map", 3, b_set_map, 0)
+{ PRED_LD
+
+  return setmap(A1, A2, A3, SETMAP_BACKTRACKABLE PASS_LD);
+}
+
+static
+PRED_IMPL("nb_set_map", 3, nb_set_map, 0)
+{ PRED_LD
+
+  return setmap(A1, A2, A3, 0 PASS_LD);
+}
+
+static
+PRED_IMPL("nb_link_map", 3, nb_link_map, 0)
+{ PRED_LD
+
+  return setmap(A1, A2, A3, SETMAP_LINK PASS_LD);
+}
+
+
+
 /** del_map(+Key, +MapIn, ?Value, -MapOut)
 
 True when Key-Value is in MapIn and   MapOut  contains all keys of MapIn
@@ -1126,13 +1208,16 @@ retry:
 		 *******************************/
 
 BeginPredDefs(map)
-  PRED_DEF("is_map",     1, is_map,     0)
-  PRED_DEF("is_map",     2, is_map,     0)
-  PRED_DEF("map_create", 3, map_create, 0)
-  PRED_DEF("map_pairs",  3, map_pairs,  0)
-  PRED_DEF("put_map",    3, put_map,    0)
-  PRED_DEF("put_map",    4, put_map,    0)
-  PRED_DEF("get_map",    3, get_map,    PL_FA_NONDETERMINISTIC)
-  PRED_DEF("del_map",    4, del_map,    0)
-  PRED_DEF("=~=",        2, punify_map, 0)
+  PRED_DEF("is_map",	  1, is_map,	  0)
+  PRED_DEF("is_map",	  2, is_map,	  0)
+  PRED_DEF("map_create",  3, map_create,  0)
+  PRED_DEF("map_pairs",	  3, map_pairs,	  0)
+  PRED_DEF("put_map",	  3, put_map,	  0)
+  PRED_DEF("put_map",	  4, put_map,	  0)
+  PRED_DEF("b_set_map",	  3, b_set_map,	  0)
+  PRED_DEF("nb_set_map",  3, nb_set_map,  0)
+  PRED_DEF("nb_link_map", 3, nb_link_map, 0)
+  PRED_DEF("get_map",	  3, get_map,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("del_map",	  4, del_map,	  0)
+  PRED_DEF("=~=",	  2, punify_map,  0)
 EndPredDefs
