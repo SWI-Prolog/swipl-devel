@@ -3388,7 +3388,7 @@ PRED_IMPL("number_chars", 2, number_chars, PL_FA_ISO)
 static
 PRED_IMPL("number_codes", 2, number_codes, PL_FA_ISO)
 { PRED_LD
-  return x_chars("number_chars", A1, A2, X_NUMBER PASS_LD);
+  return x_chars("number_codes", A1, A2, X_NUMBER PASS_LD);
 }
 
 
