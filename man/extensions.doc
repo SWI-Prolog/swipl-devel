@@ -312,7 +312,7 @@ double quoted strings typically appear in one of the following roles:
 
 \begin{description}
     \item [ A DCG literal ]  Although represented as a list of codes
-is the correct representation for handling in DCSs, the DCG translator
+is the correct representation for handling in DCGs, the DCG translator
 can recognise the literal and convert it to the proper representation.
 Such code need not be modified.
 
