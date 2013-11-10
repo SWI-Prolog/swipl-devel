@@ -207,6 +207,8 @@ evaluable(F) :-
 evaluable(F) :-
 	number(F), !.
 evaluable([_Code]) :- !.
+evaluable(Func) :-				% Funtional notation.
+	functor(Func, ., 2), !.
 evaluable(F) :-
 	string(F), !,
 	(   string_length(F, 1)
