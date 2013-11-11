@@ -184,6 +184,47 @@ unifies \arg{Head} with an atom if the clause specified by \arg{Ref} is
 part of a predicate with zero arguments.
 
 
+\subsection{Block operators}
+\label{sec:ext-blockop}
+
+Introducing curly bracket and array subscripting.\footnote{Introducing
+block operators was proposed by Jose Morales. It was discussed in the
+Prolog standardization mailing list, but there were too many conflicts
+with existing extensions (ECLiPSe and B-Prolog) and doubt about their
+need to reach an agreement. Increasing need to get to some solution
+resulted in what is documented in this section. These extensions are
+also implemented in recent versions of YAP.} The symbols \verb$[]$ and
+\verb${}$ may be declared as an operator, which has the following
+effect:
+
+\begin{description}
+    \termitem{[~]}{}
+This operator is typically declared as a low-priority \const{yf} postfix
+operator, which allows for \verb$array[index]$ notation. This
+syntax produces a term \verb$[]([index],array)$.
+
+    \termitem{\{~\}}{}
+This operator is typically declared as a low-priority \const{xf} postfix
+operator, which allows for \verb$head(arg) { body }$ notation.  This
+syntax produces a term \verb${}({body},head(arg))$.
+\end{description}
+
+Below is an example that illustrates the representation of a typical
+`curly bracket language' in Prolog.
+
+\begin{code}
+?- op(100, xf, {}).
+?- op(100, yf, []).
+?- op(1100, yf, ;).
+
+?- displayq(func(arg)
+	    { a[10] = 5;
+	      update();
+	    }).
+{}({;(=([]([10],a),5),;(update()))},func(arg))
+\end{code}
+
+
 \subsection{Double quoted strings}
 \label{sec:ext-dquotes}
 
