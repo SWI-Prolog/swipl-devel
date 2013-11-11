@@ -124,9 +124,9 @@
                   fd_dom/2
                  ]).
 
-:- public				% called from goal_expansion
-	clpfd_equal/2,
-	clpfd_geq/2.
+:- public                               % called from goal_expansion
+        clpfd_equal/2,
+        clpfd_geq/2.
 
 :- use_module(library(apply_macros)).
 :- use_module(library(assoc)).
@@ -296,8 +296,8 @@ for ordinary integer arithmetic with is/2, >/2 etc. For example:
 
 n_factorial(0, 1).
 n_factorial(N, F) :-
-	N #> 0, N1 #= N - 1, F #= N * F1,
-	n_factorial(N1, F1).
+        N #> 0, N1 #= N - 1, F #= N * F1,
+        n_factorial(N1, F1).
 ==
 
 This predicate can be used in all directions. For example:
@@ -1554,7 +1554,7 @@ all_different([X|Right], Left, Orig) :-
 %
 %  ==
 %  ?- maplist(in, V,
-%	      [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
+%             [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
 %     all_distinct(V).
 %  false.
 %  ==
@@ -1907,8 +1907,8 @@ parse_clpfd(E, R,
              m(-A)             => [p(ptimes(-1,A,R))],
              m(max(A,B))       => [g(A #=< ?(R)), g(B #=< R), p(pmax(A, B, R))],
              m(min(A,B))       => [g(A #>= ?(R)), g(B #>= R), p(pmin(A, B, R))],
-             m(mod(A,B))       => [g(B #\= 0), p(pmod(A, B, R))],
-             m(rem(A,B))       => [g(B #\= 0), p(prem(A, B, R))],
+             m(A mod B)        => [g(B #\= 0), p(pmod(A, B, R))],
+             m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
@@ -2451,7 +2451,7 @@ X #> Y  :- X #>= Y + 1.
 %    findall(pair(A,B)-pair(C,D), label(Vs), Ms).
 % Ms = [ pair(1, 2)-pair(3, 4),
 %        pair(1, 3)-pair(2, 4),
-%	 pair(1, 4)-pair(2, 3)].
+%        pair(1, 4)-pair(2, 3)].
 % ==
 
 X #< Y  :- Y #> X.
@@ -2571,7 +2571,7 @@ conjunctive_neqs_vals(A #/\ B) -->
 %
 % ==
 % ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999,
-%		 indomain(N)),
+%                indomain(N)),
 %            Ns),
 %    sum(Ns, #=, Sum).
 % Ns = [0, 3, 5, 6, 9, 10, 12, 15, 18|...],
@@ -5765,8 +5765,8 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),
 %                     arc(i,0,i), arc(i,1,j,[C+1]), arc(i,2,i),
 %                     arc(j,0,j), arc(j,1,j),
-%		      arc(j,2,i,[C+1])],
-%		     [C], [0], [N]).
+%                     arc(j,2,i,[C+1])],
+%                    [C], [0], [N]).
 %
 %  variables_signature([], []).
 %  variables_signature([V|Vs], Sigs) :-
@@ -5919,7 +5919,7 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %          append(Rows, Vs), Vs ins 1..9,
 %          maplist(all_distinct, Rows),
 %          transpose(Rows, Columns),
-%	   maplist(all_distinct, Columns),
+%          maplist(all_distinct, Columns),
 %          Rows = [A,B,C,D,E,F,G,H,I],
 %          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
 %
@@ -5989,8 +5989,8 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 %
 %  n_factorial_(=, _, 1).
 %  n_factorial_(>, N, F) :-
-%	F #= F0*N, N1 #= N - 1,
-%	n_factorial(N1, F0).
+%       F #= F0*N, N1 #= N - 1,
+%       n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:
