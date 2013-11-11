@@ -1344,29 +1344,28 @@ True if \arg{Term} is a \jargon{blob} of type \arg{Type}. See
 \secref{blob}.
 
     \predicate{string}{1}{@Term}
-True if \arg{Term} is bound to a string. Note that string here
-refers to the built-in atomic type string as described in
-\secref{strings},  Text in double quotes such as \verb|"hello"|
-creates a \emph{list} of \emph{character codes}.  We illustrate
-the issues in the example queries below.
-
-\begin{code}
-?- write("hello").
-[104, 101, 108, 108, 111]
-true.
-
-?- string("hello").
-false.
-
-?- is_list("hello").
-true.
-\end{code}
+True if \arg{Term} is bound to a string. Note that string here refers to
+the built-in atomic type string as described in \secref{strings}.
+Starting with version~7, the syntax for a string object is text between
+double quotes, such as \verb|"hello"|.\footnote{In traditional Prolog
+systems, double quoted text is often mapped to a list of
+\jargon{character codes}.} See also the Prolog flag
+\prologflag{double_quotes}.
 
     \predicate[ISO]{atomic}{1}{@Term}
-True if \arg{Term} is bound to an atom, string, integer or floating
-point number. Note that string refers to the built-in type. See
-string/1.  Strings in the classical Prolog sense are lists and therefore
-compound.
+True if \arg{Term} is bound (i.e., not a variable) and is not
+compound.  Thus, atomic acts as if defined by:
+
+\begin{code}
+atomic(Term) :-
+	nonvar(Term),
+	\+ compound(Term).
+\end{code}
+
+SWI-Prolog defines the following atomic datatypes: atom (atom/1),
+string (string/1), integer (integer/1), floating point number
+(float/1) and blob (blob/2).  In addition, the symbol \verb$[]$
+(empty list) is atomic, but not an atom.  See \secref{ext-lists}.
 
     \predicate[ISO]{compound}{1}{@Term}
 True if \arg{Term} is bound to a compound term.  See also functor/3

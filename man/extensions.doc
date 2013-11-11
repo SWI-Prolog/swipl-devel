@@ -40,7 +40,8 @@ true.
 \end{code}
 
 The `cons' operator for creating list cells has changed from the pretty
-atom \verb$'.'$ to the ugly atom \verb|'$cons'|.
+atom \verb$'.'$ to the ugly atom \verb|'$cons'|, so we can use the
+\verb$'.'$ for other purposes.  See \secref{ext-map-functions}.
 
 This modification has minimal impact on typical Prolog code. It does
 affect foreign code (see \secref{foreign}) that uses the normal atom and
@@ -89,14 +90,27 @@ can be interpreted both as the string "[]" and "".
 As of SWI-Prolog version~7, text encloses in double quotes (e.g.,
 \verb$"Hello world"$) is read as objects of the type \jargon{string}. A
 string is a compact representation of a character sequence that lives on
-the global (term) stack. \Secref{ext-dquotes-motivation} motivates the
-introduction of strings and mapping double quoted text to this type.
+the global (term) stack.  Strings are now distinct from lists, which
+makes it possible to detect them at runtime and print them using the
+string syntax, as illustrated below:
+
+\begin{code}
+?- write("Hello world!").
+Hello world!
+
+?- writeq("Hello world!").
+"Hello world!"
+\end{code}
+
+\Secref{ext-dquotes-motivation} motivates the introduction of strings
+and mapping double quoted text to this type.
 
 \subsection{Predicates that operate on strings}
 \label{sec:string-predicates}
 
 Strings may be manipulated by a set of predicates that is similar to the
-manipulation of atoms.
+manipulation of atoms. In addition to the list below, string/1 performs
+the type check for this type and is described in \secref{typetest}.
 
 \begin{description}
     \predicate{atom_string}{2}{?Atom, ?String}
