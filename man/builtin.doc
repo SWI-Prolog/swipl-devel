@@ -5275,12 +5275,14 @@ time make it hard to understand the limits of your syntax. To ease the
 pain, as of SWI-Prolog 3.3.0, operators are local to the module in which
 they are defined. Operators can be exported from modules using a term
 \term{op}{Precedence, Type, Name} in the export list as specified by
-module/2. This is an extension specific to SWI-Prolog and the
-recommended mechanism if portability is not an important concern.
+module/2.  Many modern Prolog systems have module specific operators.
+Unfortunately, there is no established interface for exporting and
+importing operators.  SWI-Prolog's convention has been addopted by YAP.
 
 The module table of the module \const{user} acts as default table for
 all modules and can be modified explicitly from inside a module to
-achieve compatibility with other Prolog systems:
+achieve compatibility with other Prolog that do not have module-local
+operators:
 
 \begin{code}
 :- module(prove,
@@ -5290,11 +5292,10 @@ achieve compatibility with other Prolog systems:
 :- op(900, xfx, user:(=>)).
 \end{code}
 
-Unlike what many users think, operators and quoted atoms have no
-relation: defining an atom as an operator does {\bf not} influence
-parsing characters into atoms, and quoting an atom does {\bf not} stop
-it from acting as an operator.  To stop an atom acting as an operator,
-enclose it in parentheses like this: (myop).
+In SWI-Prolog, a \emph{quoted atom} never acts as an operator.  Note
+that the portable way to stop an atom acting as an operator is to
+enclose it in parentheses like this: (myop). See also
+\secref{ext-syntax-op}.
 
 \begin{description}
     \predicate[ISO]{op}{3}{+Precedence, +Type, :Name}
