@@ -21,7 +21,8 @@ suggest predicates from a keyword.
 \oppredsummary{,}{2}{xfy}{1000}{Conjunction of goals}
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
-\predicatesummary{.}{2}{Consult. Also list constructor}
+\predicatesummary{.}{2}{Consult. Also functional notation}
+\oppredsummary{:<}{2}{xfx}{700}{Select keys from a map}
 \oppredsummary{;}{2}{xfy}{1100}{Disjunction of goals. Same as \predref{|}{2}}
 \oppredsummary{<}{2}{xfx}{700}{Arithmetic smaller}
 \oppredsummary{=}{2}{xfx}{700}{Unification}
@@ -33,7 +34,7 @@ suggest predicates from a keyword.
 \oppredsummary{=\=}{2}{xfx}{700}{Arithmetic not equal}
 \oppredsummary{>}{2}{xfx}{700}{Arithmetic larger}
 \oppredsummary{>=}{2}{xfx}{700}{Arithmetic larger or equal}
-\oppredsummary{>=<}{2}{xfx}{700}{Partial map unification}
+\oppredsummary{>:<}{2}{xfx}{700}{Partial map unification}
 \predicatesummary{?=}{2}{Test of terms can be compared now}
 \oppredsummary{@<}{2}{xfx}{700}{Standard order smaller}
 \oppredsummary{@=<}{2}{xfx}{700}{Standard order smaller or equal}

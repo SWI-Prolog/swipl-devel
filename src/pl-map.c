@@ -1299,7 +1299,7 @@ retry:
 
 
 static
-PRED_IMPL("select_map", 2, select_map, 0)
+PRED_IMPL(":<", 2, select_map, 0)
 { PRED_LD
   word s, f;
 
@@ -1326,7 +1326,7 @@ retry:
 
 
 static
-PRED_IMPL("=~=", 2, punify_map, 0)
+PRED_IMPL(">:<", 2, punify_map, 0)
 { PRED_LD
   word m1, m2;
 
@@ -1369,6 +1369,6 @@ BeginPredDefs(map)
   PRED_DEF("get_map",	  3, get_map,	  PL_FA_NONDETERMINISTIC)
   PRED_DEF("del_map",	  4, del_map,	  0)
   PRED_DEF("select_map",  3, select_map,  0)
-  PRED_DEF("select_map",  2, select_map,  0)
-  PRED_DEF(">=<",	  2, punify_map,  0)
+  PRED_DEF(":<",          2, select_map,  0)
+  PRED_DEF(">:<",	  2, punify_map,  0)
 EndPredDefs

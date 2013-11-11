@@ -65,6 +65,8 @@ sub printTeX
   s/{>}/{\\Sgt}/g;
   s/{>=}/{\\Sge}/g;
   s/{>=<}/{\\Seqbowtie}/g;
+  s/{>:<}/{\\Smappunify}/g;
+  s/{:<}/{\\Smapselect}/g;
   s/{@<}/{\\Stlt}/g;
   s/{@=<}/{\\Stle}/g;
   s/{@>}/{\\Stgt}/g;

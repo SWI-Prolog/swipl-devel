@@ -587,9 +587,25 @@ A = point{x:3, y:2}.
 True when \arg{Key}-\arg{Value} is in \arg{MapIn} and \arg{MapOut}
 contains all associations of \arg{MapIn} except for \arg{Key}.
 
-    \predicate[semidet]{select_map}{2}{+Select, +From}
-Equivalent to \term{select_map}{Select, From, _}.  See select_map/3
-for details.
+    \predicate[semidet]{:<}{2}{+Select, +From}
+True when \arg{Select} is a `sub map' of \arg{From}: the classes
+must unify and all keys in \arg{Select} must appear with unifying
+values in \arg{From}.  \arg{From} may contain keys that are not in
+\arg{Select}.  This operation is frequently used to \emph{match}
+a map and at the same time extract relevant values from it.
+For example:
+
+\begin{code}
+plot(Map, On) :-
+	_{x:X, y:Y, z:Z} :< Map, !,
+	plot_xyz(X, Y, Z, On).
+plot(Map, On) :-
+	_{x:X, y:Y} :< Map, !,
+	plot_xy(X, Y, On).
+\end{code}
+
+The goal \verb$Select :< From$ is equivalent to
+\term{select_map}{Select, From, _}.
 
     \predicate[semidet]{select_map}{3}{+Select, +From, -Rest}
 True when the classes of \arg{Select} and \arg{From} have been unified,
@@ -605,10 +621,10 @@ Y = 1,
 R = _G1705{z:2}.
 \end{code}
 
-See also select_map/2 to ignore \arg{Rest} and \predref{>=<}{2} for
+See also select_map/2 to ignore \arg{Rest} and \predref{>:<}{2} for
 a symmetric partial unification of two maps.
 
-    \infixop{>=<}{+Map1}{+Map2}
+    \infixop{>:<}{+Map1}{+Map2}
 This operator specifies a \jargon{partial unification} between
 \arg{Map1} and \arg{Map2}. It is true when the classes and the values
 associated with all \emph{common} keys have been unified.  The values
@@ -618,10 +634,10 @@ find maps that represent a point with X equal to zero:
 
 \begin{code}
     member(Map, List),
-    Map >=< point{x:0, y:Y}.
+    Map >:< point{x:0, y:Y}.
 \end{code}
 
-See also select_map/2 and select_map/3.
+See also \predref{:<}{2} and select_map/3.
 \end{description}
 
 
