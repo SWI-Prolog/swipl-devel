@@ -449,6 +449,21 @@ colourise_clause_head(Head, TB, Pos) :-
 	),
 	colour_item(head(Class, Head), TB, FPos),
 	specified_items(ArgSpecs, Head, TB, ArgPos).
+colourise_clause_head(M.Func := Ret, TB,
+		      term_position(_,_,AF,AT,
+				    [ term_position(_,_,SF,ST,
+						    [ SelfPos,
+						      FuncPos
+						    ]),
+				      RetPos
+				    ])) :-
+	FuncPos = term_position(_,_,FF,FT,_), !,
+	colourise_term_arg(M, TB, SelfPos),
+	colour_item(func_dot, TB, SF-ST),		% .
+	colour_item(map_function(Func), TB, FF-FT),
+	colourise_term_args(Func, TB, FuncPos),
+	colour_item(map_return_op, TB, AF-AT),		% :=
+	colourise_term_arg(Ret, TB, RetPos).
 colourise_clause_head(Head, TB, Pos) :-
 	functor_position(Pos, FPos, _),
 	classify_head(TB, Head, Class),
@@ -1589,6 +1604,8 @@ def_style(qq_content(_),	   [colour(red4)]).
 
 def_style(map_type,		   [bold(true)]).
 def_style(map_key,		   [bold(true)]).
+def_style(map_function(_),	   [colour(navy_blue)]).
+def_style(map_return_op,	   [colour(blue)]).
 
 def_style(hook,			   [colour(blue), underline(true)]).
 def_style(dcg_right_hand_ctx,	   [background('#d4ffe3')]).
@@ -1909,7 +1926,7 @@ specified_list(Spec, Tail, TB, [], TailPos) :-
 
 syntax_message(Class) -->
 	message(Class), !.
-syntax_message(qq) -->
+syntax_message(qq(_)) -->
 	[ 'Quasi quote delimiter' ].
 syntax_message(qq_type) -->
 	[ 'Quasi quote type term' ].
@@ -1919,6 +1936,10 @@ syntax_message(goal(Class, Goal)) --> !,
 	goal_message(Class, Goal).
 syntax_message(class(Type, Class)) --> !,
 	xpce_class_message(Type, Class).
+syntax_message(map_return_op) --> !,
+	[ ':= separates function from return value' ].
+syntax_message(map_function) --> !,
+	[ 'Function on a map' ].
 
 goal_message(meta, _) -->
 	[ 'Meta call' ].
