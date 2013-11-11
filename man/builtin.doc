@@ -4521,23 +4521,46 @@ relative to the start of the term.
     \begin{description}
         \definition{\arg{From}-\arg{To}}
     Used for primitive types (atoms, numbers, variables).
+
         \termitem{string_position}{\arg{From}, \arg{To}}
     Used to indicate the position of a string enclosed in double
     quotes (\chr{"}).
+
         \termitem{brace_term_position}{\arg{From}, \arg{To}, \arg{Arg}}
     Term of the form \exam{\{\ldots \}}, as used in DCG rules.  \arg{Arg}
     describes the argument.
+
         \termitem{list_position}{\arg{From}, \arg{To},
 				  \arg{Elms}, \arg{Tail}}
 A list. \arg{Elms} describes the positions of the elements. If the list
 specifies the tail as \mbox{\chr{|}<TailTerm>}, \arg{Tail} is unified
 with the term position of the tail, otherwise with the atom \const{none}.
+
         \termitem{term_position}{\arg{From}, \arg{To},
-				  \arg{FFrom}, \arg{FTo}, \arg{SubPos}}
+				 \arg{FFrom}, \arg{FTo}, \arg{SubPos}}
     Used for a compound term not matching one of the above.  \arg{FFrom}
     and \arg{FTo} describe the position of the functor.  \arg{SubPos}
     is a list, each element of which describes the term position of the
     corresponding subterm.
+
+	\termitem{map_position}{\arg{From}, \arg{To},
+				\arg{TypeFrom}, \arg{TypeTo},
+				\arg{KeyValuePosList}}
+    Used for a map (see \secref{maps}).  The position of the key-value
+    pairs is described by \arg{KeyValuePosList}, which is a list of
+    \funcref{key_value_position}{7} terms.  The \funcref{key_value_position}{7}
+    terms appear in the order of the input. Because maps to not preserve
+    ordering, the key is provided in the position description.
+
+	\termitem{key_value_position}{\arg{From}, \arg{To},
+				      \arg{SepFrom}, \arg{SepTo},
+				      \arg{Key},
+				      \arg{KeyPos}, \arg{ValuePos}}
+    Used for key-value pairs in a map (see \secref{maps}). It is similar
+    to the \funcref{term_position}{5} that would be created, except
+    that the key and value positions do not need an intermediate list
+    and the key is provided in \arg{Key} to enable synchronisation of
+    the file position data with the data structure.
     \end{description}
 
     \termitem{term_position}{Pos}

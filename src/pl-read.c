@@ -3684,7 +3684,7 @@ end_range(term_t positions ARG_LD)
 { Word p = valTermRef(positions);
 
   deRef(p);
-  return valInt(argTerm(*p,2));
+  return valInt(argTerm(*p,1));
 }
 
 
@@ -3966,6 +3966,7 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   { do
     { Token key, sep;
       intptr_t kstart, kend;
+      term_t key_term;
 
       if ( positions )
       { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
@@ -3976,15 +3977,15 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 	return FALSE;
 
       if ( is_name_token(key, TRUE, _PL_rd) )
-      { term_t term = alloc_term(_PL_rd PASS_LD);
-	PL_put_atom(term, key->value.atom);
+      { key_term = alloc_term(_PL_rd PASS_LD);
+	PL_put_atom(key_term, key->value.atom);
 	Unlock(key->value.atom);
       } else if ( key->type == T_NUMBER )
       { Number n = &key->value.number;
 
 	if ( n->type == V_INTEGER && valInt(consInt(n->value.i)) == n->value.i )
-	{ term_t term = alloc_term(_PL_rd PASS_LD);
-	  PL_put_integer(term, n->value.i);
+	{ key_term = alloc_term(_PL_rd PASS_LD);
+	  PL_put_integer(key_term, n->value.i);
 	} else
 	  syntaxError("key_domain", _PL_rd); /* representation error? */
       } else
@@ -4002,17 +4003,19 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
       if ( positions )
       { PL_put_variable(P_VALUE);
 
+	/* key_value_position(start, end, sep-start, sep-end, key, key-pos, value-pos) */
+
 	if ( !PL_unify_term(P_HEAD,
-			    PL_FUNCTOR, FUNCTOR_term_position5,
+			    PL_FUNCTOR, FUNCTOR_key_value_position7,
 			    PL_INTPTR, kstart,		/* whole term */
 			    PL_VARIABLE,
-			    PL_INTPTR, sep->start, /* class position */
-			    PL_INTPTR, sep->end,   /* key-value pairs */
-			    PL_LIST, 2,
-			      PL_FUNCTOR, FUNCTOR_minus2,
-				PL_INTPTR, kstart,
-				PL_INTPTR, kend,
-			      PL_TERM, P_VALUE) )
+			    PL_INTPTR, sep->start, /* : start */
+			    PL_INTPTR, sep->end,   /* : end */
+			    PL_TERM,   key_term,
+			    PL_FUNCTOR, FUNCTOR_minus2,
+			      PL_INTPTR, kstart,
+			      PL_INTPTR, kend,
+			    PL_TERM, P_VALUE) )
 	  return FALSE;
       }
 

@@ -343,6 +343,7 @@ A join			"join"
 A jump			"jump"
 A kernel		"kernel"
 A key			"key"
+A key_value_position	"key_value_position"
 A larger		">"
 A larger_equal		">="
 A level			"level"
@@ -864,6 +865,7 @@ F interrupt		1
 F io_error		2
 F is			2
 F isovar		1
+F key_value_position	7
 F larger		2
 F larger_equal		2
 F lgamma		1
