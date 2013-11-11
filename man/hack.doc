@@ -179,9 +179,7 @@ JavaScript abstract syntax. For example, both \verb$++a$ and \verb$a++$
 are, with the appropriate operator declarations, valid Prolog syntax.
 However, they both map to the term \term{++}{a} and thus a Prolog
 JavaScript serialization does not know which these two forms the
-generate.\footnote{This example comes from Richard O'Keefe.} More
-classical, \verb$"string"$ produces the same Prolog term as
-\verb$[115,116,114,105,110,103]$.
+generate.\footnote{This example comes from Richard O'Keefe.}
 
 An alternative to syntax extension using (extended) operators are
 \jargon{quasi quotations} \cite{DBLP:conf/haskell/Mainland07}. Quasi
@@ -196,14 +194,14 @@ documented in \secref{quasiquotations}.
 
 \subsection{Block operators}		\label{sec:blockop}
 
-Introducing curly bracket, array subscripting and empty argument lists
-is achieved using \jargon{block operators}.\footnote{Introducing block
-operators was proposed by Jose Morales.  It was discussed in the Prolog
-standardization mailing list, but there were too many conflicts with
-existing extensions (ECLiPSe and B-Prolog) and doubt their need to
-reach an agreement.  Increasing need to get to some solution resulted
-in what is documented in this section.} The atoms \verb$[]$, \verb${}$
-and \verb$()$ may be declared as an operator, which has the following
+Introducing curly bracket and array subscripting.\footnote{Introducing
+block operators was proposed by Jose Morales. It was discussed in the
+Prolog standardization mailing list, but there were too many conflicts
+with existing extensions (ECLiPSe and B-Prolog) and doubt about their
+need to reach an agreement. Increasing need to get to some solution
+resulted in what is documented in this section. These extensions are
+also implemented in recent versions of YAP.} The symbols \verb$[]$ and
+\verb${}$ may be declared as an operator, which has the following
 effect:
 
 \begin{description}
@@ -216,21 +214,12 @@ syntax produces a term \verb$[]([index],array)$.
 This operator is typically declared as a low-priority \const{xf} postfix
 operator, which allows for \verb$head(arg) { body }$ notation.  This
 syntax produces a term \verb${}({body},head(arg))$.
-
-    \termitem{(~)}{}
-This operator can only meaningfully be declared as a low-priority
-\const{xf} postfix operator, which allows for \verb$name()$ notation.
-This syntax produces a term \verb$'()'(name)$.  This transformation
-only applies if the opening bracket immediately follows the functor
-name, i.e., following the same rules as for constructing a compound
-term.
 \end{description}
 
 Below is an example that illustrates the representation of a typical
 `curly bracket language' in Prolog.
 
 \begin{code}
-?- op(1, xf, '()').
 ?- op(100, xf, {}).
 ?- op(100, yf, []).
 ?- op(1100, yf, ;).
@@ -239,7 +228,7 @@ Below is an example that illustrates the representation of a typical
 	    { a[10] = 5;
 	      update();
 	    }).
-{}({}(;(=([]('.'(10,[]),a),5),;('()'(update)))),func(arg))
+{}({;(=([]([10],a),5),;(update()))},func(arg))
 \end{code}
 
 
