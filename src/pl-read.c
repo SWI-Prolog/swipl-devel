@@ -3946,7 +3946,7 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   { case T_MAP:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       PL_put_atom(term, token->value.atom);
-      PL_unregister_atom(token->value.atom);
+      Unlock(token->value.atom);
       break;
     }
     case T_VCLASS_MAP:
