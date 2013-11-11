@@ -5354,11 +5354,14 @@ independent of operator changes to the \const{user} module.
 1100 & xfy & \op{;}, \op{|} \\
 1050 & xfy & \op{->}, \op{*->} \\
 1000 & xfy & \op{,} \\
+990 & xfx & \op{:=} \\
 900 & fy & \op{\+} \\
 900 & fx & \op{~} \\
 700 & xfx & \op{<}, \op{=}, \op{=..}, \op{=@=}, \op{=:=}, \op{=<}, \op{==},
             \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>},
-            \op{@>=}, \op{\=}, \op{\==}, \op{is} \\
+            \op{@>=}, \op{\=}, \op{\==}, \op{is}
+	    \op{>:<}, \op{:<}
+	    \\
 600 & xfy & \op{:} \\
 500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor} \\
 500 & fx & \op{?} \\
