@@ -891,8 +891,8 @@ predicate is true for all Name/Value  pairs   in  the  map. The order in
 which these pairs are enumerated is _undefined_.
 */
 
-static
-PRED_IMPL("get_map", 3, get_map, PL_FA_NONDETERMINISTIC)
+static foreign_t
+pl_get_map(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
 { PRED_LD
   int i;
   word map;
@@ -911,6 +911,9 @@ PRED_IMPL("get_map", 3, get_map, PL_FA_NONDETERMINISTIC)
 	if ( (vp=map_lookup_ptr(map, *np PASS_LD)) )
 	  return unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD);
 
+	if ( ex )
+	  return PL_error(NULL, 0, NULL, ERR_EXISTENCE3,
+			  ATOM_key, A1, A2);
 	return FALSE;
       }
       if ( canBind(*np) )
@@ -961,6 +964,18 @@ PRED_IMPL("get_map", 3, get_map, PL_FA_NONDETERMINISTIC)
     default:
       return TRUE;
   }
+}
+
+
+static
+PRED_IMPL("get_map", 3, get_map, PL_FA_NONDETERMINISTIC)
+{ return pl_get_map(PL__t0, PL__ac, FALSE, PL__ctx);
+}
+
+
+static
+PRED_IMPL("get_map_ex", 3, get_map_ex, PL_FA_NONDETERMINISTIC)
+{ return pl_get_map(PL__t0, PL__ac, TRUE, PL__ctx);
 }
 
 
@@ -1367,6 +1382,7 @@ BeginPredDefs(map)
   PRED_DEF("nb_set_map",  3, nb_set_map,  0)
   PRED_DEF("nb_link_map", 3, nb_link_map, 0)
   PRED_DEF("get_map",	  3, get_map,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("get_map_ex",  3, get_map_ex,  PL_FA_NONDETERMINISTIC)
   PRED_DEF("del_map",	  4, del_map,	  0)
   PRED_DEF("select_map",  3, select_map,  0)
   PRED_DEF(":<",          2, select_map,  0)

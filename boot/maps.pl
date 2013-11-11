@@ -8,24 +8,34 @@
 
 .(Map, Func, Value) :-
 	is_map(Map, Class), !,
-	(   (atom(Func) ; var(Func))
-	->  get_map(Func, Map, Value)
-	;   Func = put(Name,New)
-	->  put_map(Name, Map, New, Value)
-	;   Func = put(New)
-	->  put_map(New, Map, Value)
-	;   compound(Func)
-	->  call(Class:Func, Map, Value)
+	(   (atomic(Func) ; var(Func))
+	->  get_map_ex(Func, Map, Value)
+	;   eval_map_function(Func, Class, Map, Value)
 	).
 .(KV, Func, Value) :-
 	is_list(KV), !,
-	(   (atom(Func) ; var(Func))
+	(   (atomic(Func) ; var(Func))
 	->  map_create(Map, _, KV),
-	    get_map(Func, Map, Value)
+	    get_map_ex(Func, Map, Value)
 	;   '$type_error'(atom, Func)
 	).
 .(Obj, _, _) :-
 	'$type_error'(map, Obj).
+
+
+%%	eval_map_function(+Func, +Class, +Map, -Value)
+%
+%	Test for predefined functions on maps or evaluate a user-defined
+%	function.
+
+eval_map_function(get(Key), _, Map, Value) :- !,
+	get_map(Key, Map, Value).
+eval_map_function(put(Key, Value), _, Map, NewMap) :- !,
+	put_map(Key, Map, Value, NewMap).
+eval_map_function(put(New), Map, _, NewMap) :- !,
+	put_map(New, Map, NewMap).
+eval_map_function(Func, Class, Map, Value) :-
+	call(Class:Func, Map, Value).
 
 
 		 /*******************************

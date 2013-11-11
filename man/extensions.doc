@@ -459,9 +459,10 @@ such terms are rare and term manipulation provides an escape route.}
     \predicate{.}{3}{+Map, +Function, -Result}
 This predicate is called to evaluate \funcref{.}{2} terms found in the
 arguments of a goal. This predicate evaluates the field extraction
-described above, user defined functions described in
-\secref{ext-map-user-functions} and the predefined functions on maps
-described in \secref{ext-maps-predefined}.
+described above, which is mapped to get_map_ex/3. If \arg{Function} is a
+compound term, it checks for the predefined functions on maps described
+in \secref{ext-maps-predefined} or executes a user defined function as
+described in \secref{ext-map-user-functions}.
 \end{description}
 
 
@@ -514,6 +515,20 @@ X = 4.47213595499958.
 Maps currently define the following reserved functions:
 
 \begin{description}
+    \mapfunction{get}{1}{?Key}
+Same as \arg{Map}.\arg{Key}, but maps to get_map/3 instead of
+get_map_ex/3.  This implies that the function evaluation fails
+silently if \arg{Key} does not appear in \arg{Map}.  See also
+\predref{:<}{2}, which can be used to test for existence and
+unify multiple key values from a map.  For example:
+
+\begin{code}
+?- write(t{a:x}.get(a)).
+x
+?- write(t{a:x}.get(b)).
+false.
+\end{code}
+
     \mapfunction{put}{1}{+New}
 Evaluates to a new map where the key-values in \arg{New} replace
 or extend the key-values in the original map.  See put_map/3.
@@ -544,6 +559,15 @@ backtracking.  The order in which the associations are returned is
 undefined.  This predicate is normally accessed using the functional
 notation \exam{Map.Key}.  See \secref{ext-map-functions}.
 
+    \predicate{get_map_ex}{3}{?Key, +Map, -Value}
+Equivalent to get_map/3, but throws an existence_error if \arg{Key} is
+not in \arg{Map}.  This version is used by the functional notation that
+extracts key-values from a map:
+
+\begin{code}
+?- write(t{a:x}.b).
+ERROR: key `b' does not exist in t{a:x}
+\end{code}
     \predicate{map_create}{3}{-Map, +Class, +Data}
 Create a map in \arg{Class} from \arg{Data}. \arg{Data} is a list of
 attribute-value pairs using the syntax \exam{Key:Value},
