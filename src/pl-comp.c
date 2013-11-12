@@ -3720,9 +3720,9 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-skipArgs() skips skip arguments inside the   code  for a clause-head. If
-the skip is into the middle of a   H_VOID_N,  it returns the location of
-the H_VOID_N.
+skipArgs() skips arguments. When used inside  a clause-head and the skip
+is into the middle  of  a  H_VOID_N,   it  returns  the  location of the
+H_VOID_N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
@@ -3740,12 +3740,17 @@ skipArgs(Code PC, int skip)
     switch(c)
     { case H_FUNCTOR:
       case H_LIST:
+      case B_FUNCTOR:
+      case B_LIST:
 	nested++;
         continue;
       case H_RFUNCTOR:
       case H_RLIST:
+      case B_RFUNCTOR:
+      case B_RLIST:
 	continue;
       case H_POP:
+      case B_POP:
 	if ( --nested == 0 && --skip == 0 )
 	  return nextPC;
         assert(nested>=0);
@@ -3762,6 +3767,22 @@ skipArgs(Code PC, int skip)
       case H_VAR:
       case H_VOID:
       case H_LIST_FF:
+      case B_ATOM:
+      case B_SMALLINT:
+      case B_NIL:
+      case B_INT64:
+      case B_INTEGER:
+      case B_FLOAT:
+      case B_STRING:
+      case B_MPZ:
+      case B_ARGVAR:
+      case B_ARGFIRSTVAR:
+      case B_FIRSTVAR:
+      case B_VAR0:
+      case B_VAR1:
+      case B_VAR2:
+      case B_VAR:
+      case B_VOID:
 	if ( nested )
 	  continue;
         if ( --skip == 0 )
