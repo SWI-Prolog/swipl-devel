@@ -71,6 +71,7 @@
 #define MSG_QUEUE_WAIT		 41
 #define MSG_SIGNAL		 42
 #define MSG_COMP_VARS		 43
+#define MSG_MAP			 44
 #define MSG_PROF_CALLTREE	 45
 #define MSG_PROF_TICKS		 46
 						/* GC messages */
