@@ -54,5 +54,13 @@ test(eof2, [ sto(rational_trees),
 		get_code(In, _C2)
 	    ),
 	    close(In)).
+test(set_after_close,
+     [ sto(rational_trees),
+       condition(access_file('/dev/null', exist)),
+       error(existence_error(stream, _))
+     ]) :-
+	open('/dev/null', read, S),
+	close(S),
+	set_stream(S, timeout(0)).
 
 :- end_tests(io).

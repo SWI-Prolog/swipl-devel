@@ -2002,13 +2002,13 @@ found:
 
     rc = TRUE;
     if ( ref->read && (info->flags&SS_READ))
-    { if (!(s = getStream(ref->read)));
+    { if ( !(s = getStream(ref->read)) )
         return symbol_no_stream(sblob);
       rc = set_stream(s, stream, aname, aval PASS_LD);
       releaseStream(ref->read);
     }
     if ( rc && ref->write && (info->flags&SS_WRITE) )
-    { if (!(s = getStream(ref->write)));
+    { if ( !(s = getStream(ref->write)) )
         return symbol_no_stream(sblob);
       rc = set_stream(s, stream, aname, aval PASS_LD);
       releaseStream(ref->write);
