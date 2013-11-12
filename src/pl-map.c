@@ -832,6 +832,180 @@ PL_for_map(term_t map,
 
 
 		 /*******************************
+		 *	  RELOAD SUPPORT	*
+		 *******************************/
+
+/* resortMapsInClause() resorts the contents of maps in a clause
+
+This predicate is called from pl-wic.c after   reloading a clause from a
+.qlf file or state if pl-wic.c  detected   a  map  inside the clause. It
+identifies the code ranges that constitude the  k-v pairs in the map and
+re-orders them according to the new atom-handle ordering.
+
+There    is    a    complicating     factor    with    B_FIRSTVAR/B_VAR,
+B_ARGFIRSTVAR/B_ARGVAR and H_FIRSTVAR/H_VAR, that may  get swapped after
+reordering.  This  is  corrected   by    fix_firstvars().   The  current
+implementation is quadratic in the number of variables in the map.
+*/
+
+typedef struct kv_code
+{ word key;
+  size_t start;
+  size_t len;
+} kv_code;
+
+#define KV_PREALOCATED 32
+#define C_PREALLOCATED 256
+
+static int
+cmp_kv_pos(const void *p1, const void *p2)
+{ const kv_code *k1 = p1;
+  const kv_code *k2 = p2;
+
+  return k1->key < k2->key ? -1 : k1->key == k2->key ? 0 : 1;
+}
+
+static void
+fix_firstvars(Code start, Code end)
+{ Code PC;
+
+  for( PC=start; PC < end; PC = stepPC(PC) )
+  { code op = fetchop(PC);
+    code first;
+    code var;
+
+    switch(op)
+    { case B_VAR0:
+      case B_VAR1:
+      case B_VAR2:
+	var = (code)VAROFFSET(op-B_VAR0);
+	first = B_FIRSTVAR;
+        goto find_first;
+      case B_VAR:
+	var = PC[1];
+	first = B_FIRSTVAR;
+        goto find_first;
+      case B_ARGVAR:
+	var = PC[1];
+	first = B_ARGFIRSTVAR;
+        goto find_first;
+      case H_VAR:
+	var = PC[1];
+	first = H_FIRSTVAR;
+      find_first:
+      { Code pc;
+
+	for(pc=PC; pc < end; pc = stepPC(pc))
+	{ if ( fetchop(pc) == first && pc[1] == var )
+	  { DEBUG(MSG_MAP, Sdprintf("Swapping first vars\n"));
+	    *PC = first;
+	    *pc = op;
+	  }
+	}
+      }
+    }
+  }
+}
+
+int
+resortMapsInClause(Clause clause)
+{ Code PC, end;
+
+  PC  = clause->codes;
+  end = &PC[clause->code_size];
+
+  for( ; PC < end; PC = stepPC(PC) )
+  { code op = fetchop(PC);
+
+    switch(op)
+    { case H_RFUNCTOR:
+      case H_FUNCTOR:
+      case B_RFUNCTOR:
+      case B_FUNCTOR:
+      { word w = (word)PC[1];
+	FunctorDef fd = valueFunctor(w);
+
+	if ( fd->name == ATOM_map && fd->arity%2 == 1 )
+	{ int f, fields = fd->arity/2;
+	  kv_code kv_buf[KV_PREALOCATED];
+	  code c_buf[C_PREALLOCATED];
+	  kv_code *kv_pos;
+	  Code c_tmp;
+	  Code fields_start, fs;
+
+	  if ( fields <= KV_PREALOCATED )
+	    kv_pos = kv_buf;
+	  else if ( !(kv_pos = malloc(sizeof(kv_code)*fields)) )
+	    return PL_no_memory();
+
+	  PC = stepPC(PC);		/* skip *_FUNCTOR */
+	  PC = skipArgs(PC, 1);		/* skip the type */
+	  fields_start = PC;
+
+	  for(f = 0; f < fields; f++)
+	  { code op = fetchop(PC);
+
+	    kv_pos[f].start = PC-fields_start;
+
+	    switch(op)
+	    { case H_ATOM:
+	      case B_ATOM:
+	      case H_SMALLINT:
+	      case B_SMALLINT:
+	      { kv_pos[f].key = (word)PC[1];
+		break;
+	      }
+	      default:
+		return TRUE;		/* not a map */
+	    }
+	    PC = stepPC(PC);		/* skip key */
+	    PC = skipArgs(PC, 1);	/* skip value */
+
+	    kv_pos[f].len = PC-fields_start-kv_pos[f].start;
+
+	    DEBUG(MSG_MAP,
+		  { if ( isAtom(kv_pos[f].key) )
+		      Sdprintf("Got %s from %p..%p\n",
+			       stringAtom(kv_pos[f].key), kv_pos[f].start, PC);
+		    else
+		      Sdprintf("Got %ld from %p..%p\n",
+			       (long)valInt(kv_pos[f].key), kv_pos[f].start, PC);
+		  });
+	  }
+
+	  qsort(kv_pos, fields, sizeof(*kv_pos), cmp_kv_pos);
+	  if ( PC-fields_start <= C_PREALLOCATED )
+	    c_tmp = c_buf;
+	  else if ( !(c_tmp = malloc((PC-fields_start)*sizeof(code))) )
+	  { if ( kv_pos != kv_buf )
+	      free(kv_pos);
+	    return PL_no_memory();
+	  }
+
+	  memcpy(c_tmp, fields_start, (PC-fields_start)*sizeof(code));
+	  for(fs=fields_start, f = 0; f < fields; f++)
+	  { size_t len = kv_pos[f].len*sizeof(code);
+
+	    memcpy(fs, c_tmp+kv_pos[f].start, len);
+	    fs += kv_pos[f].len;
+	  }
+
+	  if ( kv_pos != kv_buf )
+	    free(kv_pos);
+	  if ( c_tmp != c_buf )
+	    free(c_tmp);
+
+	  fix_firstvars(fields_start, PC);
+	}
+      }
+    }
+  }
+
+  return TRUE;
+}
+
+
+		 /*******************************
 		 *       PROLOG PREDICATES	*
 		 *******************************/
 

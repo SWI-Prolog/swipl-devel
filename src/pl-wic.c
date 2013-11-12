@@ -24,6 +24,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-dbref.h"
+#include "pl-map.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -1087,6 +1088,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
       case 'C':
       { Code bp, ep;
 	int ncodes = getInt(fd);
+	int has_maps = 0;
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
@@ -1147,6 +1149,14 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		break;
 	      }
 	      case CA1_FUNC:
+	      { word w = loadXR(state);
+		FunctorDef fd = valueFunctor(w);
+		if ( fd->name == ATOM_map )
+		  has_maps++;
+
+		*bp++ = w;
+		break;
+	      }
 	      case CA1_DATA:
 	      { word w = loadXR(state);
 		if ( isAtom(w) )
@@ -1233,9 +1243,16 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	}
 
 	if ( skip )
-	  freeClause(clause);
-	else
+	{ freeClause(clause);
+	} else
+	{ if ( has_maps )
+	  { if ( !resortMapsInClause(clause) )
+	    { outOfCore();
+	      exit(1);
+	    }
+	  }
 	  assertProcedure(proc, clause, CL_END PASS_LD);
+	}
       }
     }
   }

@@ -36,5 +36,6 @@ COMMON(int)	PL_for_map(term_t map,
 
 COMMON(functor_t) map_functor(int pairs);
 COMMON(int)	  map_order_term_refs(term_t *av, int *indexes, int count ARG_LD);
+COMMON(int)	  resortMapsInClause(Clause clause);
 
 #endif /*PL_MAP_H_INCLUDED*/
