@@ -66,7 +66,7 @@ f_is_prolog_var_start(wint_t c)
 
 int
 f_is_prolog_atom_start(wint_t c)
-{ return PlIdStartW(c) != 0;
+{ return PlIdStartW(c) && !((PlUpperW(c) || c == '_'));
 }
 
 int
