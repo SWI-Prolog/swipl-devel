@@ -1195,25 +1195,68 @@ writeList(term_t list, write_options *options)
   term_t head = PL_new_term_ref();
   term_t l    = PL_copy_term_ref(list);
 
-  TRY(Putc('[', options->out));
-  for(;;)
-  { PL_get_list(l, head, l);
-    TRY(writeArgTerm(head, 999, options, TRUE));
+  if ( false(options, PL_WRT_DOTLISTS) )
+  { TRY(Putc('[', options->out));
+    for(;;)
+    { PL_get_list(l, head, l);
+      TRY(writeArgTerm(head, 999, options, TRUE));
 
-    if ( PL_get_nil(l) )
-      break;
-    if ( ++options->depth >= options->max_depth && options->max_depth )
-      return PutString("|...]", options->out);
-    if ( !PL_is_functor(l, FUNCTOR_dot2) )
-    { TRY(Putc('|', options->out));
-      TRY(writeArgTerm(l, 999, options, TRUE));
-      break;
+      if ( PL_get_nil(l) )
+	break;
+      if ( ++options->depth >= options->max_depth && options->max_depth )
+	return PutString("|...]", options->out);
+      if ( !PL_is_functor(l, FUNCTOR_dot2) )
+      { TRY(Putc('|', options->out));
+	TRY(writeArgTerm(l, 999, options, TRUE));
+	break;
+      }
+
+      TRY(PutComma(options));
     }
 
-    TRY(PutComma(options));
-  }
+    return Putc(']', options->out);
+  } else
+  { int depth = 0;
 
-  return Putc(']', options->out);
+    for(;;)
+    { PL_get_list(l, head, l);
+      if ( !PutToken(".", options->out) ||
+	   !Putc('(', options->out) ||
+	   !writeArgTerm(head, 999, options, TRUE) ||
+	   !PutComma(options) )
+	return FALSE;
+
+      depth++;
+
+      if ( PL_get_nil(l) )
+      { if ( !PutToken("[]", options->out) )
+	  return FALSE;
+	break;
+      }
+
+      if ( ++options->depth >= options->max_depth && options->max_depth )
+      { if ( !PutToken("...", options->out) )
+	  return FALSE;
+	while(depth-->0)
+	{ if ( !Putc(')', options->out) )
+	    return FALSE;
+	}
+	return TRUE;
+      }
+
+      if ( !PL_is_functor(l, FUNCTOR_dot2) )
+      { if ( !writeArgTerm(l, 999, options, TRUE) )
+	  return FALSE;
+	break;
+      }
+    }
+
+    while(depth-->0)
+    { if ( !Putc(')', options->out) )
+	return FALSE;
+    }
+    return TRUE;
+  }
 }
 
 
@@ -1303,15 +1346,8 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
     }
 
 					/* handle lists */
-    if ( false(options, PL_WRT_DOTLISTS) &&
-	 functor == ATOM_dot && arity == 2 )
-    { term_t arg;
-
-      if ( (arg=PL_new_term_ref()) &&
-	   PL_get_arg(1, t, arg) )
-	return writeList(t, options);
-      return FALSE;
-    }
+    if ( functor == ATOM_dot && arity == 2 )
+      return writeList(t, options);
 
 					/* handle maps */
     if ( false(options, PL_WRT_NOMAP) &&
@@ -1431,9 +1467,6 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	}
       }
     }
-
-    if ( (options->flags&PL_WRT_LIST) && arity == 2 && functor == ATOM_dot )
-      return writeList(t, options);
 
 					/* functor(<args> ...) */
     { term_t a = PL_new_term_ref();

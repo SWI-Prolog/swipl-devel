@@ -4199,11 +4199,12 @@ writes an infinite term if not protected by, e.g., the
 read_term/2.
 
     \termitem{dot_lists}{Bool}
-If \const{true} (default \const{false}), write lists using the term
-notation rather than the list notation.\footnote{Copied from ECLiPSe.
-Note that as of version~7, lists no longer use the dot (.) as functor.
-See \secref{extensions}.}\footnote{See also the options
-\const{brace_terms} and \const{ignore_ops}.}
+If \const{true} (default \const{false}), write lists using the
+dotted term notation rather than the list notation.\footnote{Copied from
+ECLiPSe.} Note that as of version~7, the list constructor is
+\verb|'$cons'|. Using \term{dot_lists}{true}, write_term/2 writes a list
+using `.' as constructor. This is intended for communication with
+programs such as other Prolog systems, that rely on this notation.
 
     \termitem{fullstop}{Bool}
 If \const{true} (default \const{false}), add a fullstop token to the
