@@ -51,7 +51,10 @@ macros \const{ATOM_nil} and \const{ATOM_dot} are provided by
 \file{SWI-Prolog.h}.
 
 Another place that is affected is write_canonical/1. Impact is minimized
-by using the list syntax for lists.
+by using the list syntax for lists.  The predicates read_term/2 and
+write_term/2 support the option \term{dot_lists}{true}, which causes
+read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
+write \verb$[a]$ as \verb$.(a,[])$.
 
 
 \subsection{Motivating '\$cons' and [] for lists}

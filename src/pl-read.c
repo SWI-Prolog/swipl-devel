@@ -366,6 +366,7 @@ typedef struct
   term_t	qq_tail;		/* Tail of the quoted stuff */
 #endif
   bool		cycles;			/* Re-establish cycles */
+  bool		dot_lists;		/* read .(a,b) as a list */
   int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
@@ -3881,6 +3882,14 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 #undef P_HEAD
 #undef P_ARG
 
+  if ( _PL_rd->dot_lists )
+  { static atom_t dot = 0;
+    if ( !dot )
+      dot = PL_new_atom(".");
+    if ( functor == dot )
+      functor = ATOM_dot;		/* the abstract cons name */
+  }
+
   rc = build_term(functor, arity, _PL_rd PASS_LD);
   if ( rc != TRUE )
     return rc;
@@ -4579,6 +4588,7 @@ static const opt_spec read_term_options[] =
   { ATOM_quasi_quotations,  OPT_TERM },
 #endif
   { ATOM_cycles,	    OPT_BOOL },
+  { ATOM_dot_lists,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -4614,7 +4624,8 @@ retry:
 #ifdef O_QUASIQUOTATIONS
 		     &rd.quasi_quotations,
 #endif
-		     &rd.cycles) )
+		     &rd.cycles,
+		     &rd.dot_lists) )
     return FALSE;
 
   if ( mname )

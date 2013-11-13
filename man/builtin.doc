@@ -4452,7 +4452,7 @@ always reported using exception-handling (see catch/3). Options:
     \termitem{backquoted_string}{Bool}
 If \const{true}, read \verb$`$\ldots\verb$`$ to a string object (see
 \secref{strings}).  The default depends on the Prolog flag
-\prologflag{backquoted_string}.
+\prologflag{back_quotes}.
 
     \termitem{character_escapes}{Bool}
 Defines how to read \verb$\$ escape sequences in quoted atoms.
@@ -4475,6 +4475,12 @@ Substutions}, while the default of write_term/2 is \const{true} because
 emitting cyclic terms without using the template construct produces an
 infinitely large term (read: it will generate an error after producing
 a huge amount of output).
+
+    \termitem{dot_lists}{Bool}
+If \const{true} (default \const{false}), read \verb$.(a,[])$ as a list,
+even if lists are internally nor constructed using the dot as functor.
+This is primarily intended to read the output from write_canonical/1
+from other Prolog systems.  See \secref{ext-lists}.
 
     \termitem{double_quotes}{Atom}
 Defines how to read "\ldots" strings. See the Prolog flag
