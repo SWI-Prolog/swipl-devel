@@ -935,6 +935,7 @@ usage()
     "    --nosignals      Do not modify any signal handling\n",
     "    --nodebug        Omit generation of debug info\n",
     "    --quiet          Quiet operation (also -q)\n",
+    "    --traditional    Disable extensions of version 7\n",
     "    --home=DIR       Use DIR as SWI-Prolog home\n",
     "    --pldoc[=port]   Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
