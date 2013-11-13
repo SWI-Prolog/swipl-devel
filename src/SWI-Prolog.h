@@ -843,6 +843,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_DOTLISTS	       0x10000	/* Write lists as .(A,B) */
 #define PL_WRT_BRACETERMS      0x20000	/* Write {A} as {}(A) */
 #define PL_WRT_NOMAP	       0x40000	/* Do not write maps in pretty syntax */
+#define PL_WRT_NODOTINATOM     0x80000	/* never write a.b unquoted */
 
 PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 			     term_t term,

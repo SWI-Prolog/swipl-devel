@@ -70,6 +70,19 @@ test(numbervars, X = 'x(A,A)') :-
 test(numbervars, X = 'x(\'$VAR\'(1),_)') :-
 	with_output_to(atom(X),
 		       write_canonical(x('$VAR'(1),_))).
+test(dot_in_atom, X == '\'a.b\'') :-
+	with_output_to(atom(X),
+		       write_canonical(a.b)).
+test(dot_in_atom, L == [39,1080,46,1081,39]) :-
+	atom_codes(A, [1080,46,1081]),
+	with_output_to(atom(X),
+		       write_canonical(A)),
+	atom_codes(X,L).
+test(varname, L == [39,1040,1080,39]) :-
+	atom_codes(A, [1040,1080]),
+	with_output_to(atom(X),
+		       writeq(A)),
+	atom_codes(X,L).
 
 :- end_tests(write_canonical).
 

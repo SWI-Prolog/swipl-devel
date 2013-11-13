@@ -96,28 +96,6 @@ truePrologFlagNoLD(unsigned int flag)
 
 
 int
-unquoted_atomW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
-{ if ( len == 0 )
-    return FALSE;
-
-  if ( !PlIdStartW(*s) || PlUpperW(*s) )
-    return FALSE;
-
-  do
-  { for( ++s;
-	 --len > 0 && PlIdContW(*s) && (!fd || Scanrepresent(*s, fd)==0);
-	 s++)
-      ;
-  } while ( len >= 2 &&
-	    *s == '.' && PlIdContW(s[1]) &&
-	    truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM)
-	  );
-
-  return len == 0;
-}
-
-
-int
 atom_varnameW(const pl_wchar_t *s, size_t len)
 { if ( PlUpperW(*s) || *s == '_' )
   { for(s++; --len > 0; s++)

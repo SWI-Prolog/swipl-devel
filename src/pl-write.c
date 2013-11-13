@@ -212,7 +212,8 @@ atomType(atom_t a, write_options *options)
 	;
     } while ( len >= 2 &&
 	      *s == '.' && isAlpha(s[1]) &&
-	      truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM)
+	      truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
+	      (!options || false(options, PL_WRT_NODOTINATOM))
 	    );
 
     return len == 0 ? AT_LOWER : AT_QUOTE;
@@ -251,6 +252,36 @@ atomType(atom_t a, write_options *options)
 }
 
 
+static int
+unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
+{ Atom ap = atomValue(atom);
+  pl_wchar_t *s = (pl_wchar_t*)ap->name;
+  size_t len = ap->length/sizeof(pl_wchar_t);
+
+  if ( len == 0 )
+    return FALSE;
+
+  if ( !f_is_prolog_atom_start(*s) )
+    return FALSE;
+
+  do
+  { for( ++s;
+	 ( --len > 0 &&
+	   f_is_prolog_identifier_continue(*s) &&
+	   (!fd || Scanrepresent(*s, fd)==0)
+	 );
+	 s++)
+      ;
+  } while ( len >= 2 &&
+	    *s == '.' && f_is_prolog_identifier_continue(s[1]) &&
+	    truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
+	    !(flags&PL_WRT_NODOTINATOM)
+	  );
+
+  return len == 0;
+}
+
+
 int
 unquoted_atom(atom_t a)
 { Atom ap = atomValue(a);
@@ -259,10 +290,7 @@ unquoted_atom(atom_t a)
   { if ( !ap->type->write )		/* ordinary atoms */
     { return atomType(a, NULL) != AT_QUOTE;
     } else if ( isUCSAtom(ap) )		/* wide atoms */
-    { pl_wchar_t *s = (pl_wchar_t*)ap->name;
-      size_t len = ap->length/sizeof(pl_wchar_t);
-
-      return unquoted_atomW(s, len, NULL);
+    { return unquoted_atomW(a, NULL, 0);
     }
   }
 
@@ -657,7 +685,7 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
   size_t len = a->length/sizeof(pl_wchar_t);
   pl_wchar_t *e = &s[len];
 
-  if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(s, len, fd) )
+  if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(atom, fd, flags) )
   { pl_wchar_t quote = L'\'';
 
     TRY(PutOpenToken(quote, fd) &&
@@ -1820,7 +1848,8 @@ pl_write_canonical2(term_t stream, term_t term)
 
   rc = ( numberVars(term, &options, 0 PASS_LD) >= 0 &&
 	 do_write2(stream, term,
-		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS)
+		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
+		   PL_WRT_NODOTINATOM)
        );
 
   END_NUMBERVARS(TRUE);
