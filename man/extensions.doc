@@ -58,29 +58,35 @@ by using the list syntax for lists.
 \label{sec:ext-list-motivation}
 
 Representing lists the conventional way using \funcref{.}{2} as
-cons-cell and '[]' as list terminator both poses conflicts, while these
-conflicts are easily avoided.
+cons-cell and '[]' as list terminator both (independently) poses
+conflicts, while these conflicts are easily avoided.
 
 \begin{itemize}
-    \item Using ./2 prevents using this commonly used symbol as an
-operator because \verb$a.B$ cannot be distinguished from \verb$[a|B]$.
+    \item Using \funcref{.}{2} prevents using this commonly used symbol
+as an operator because \verb$a.B$ cannot be distinguished from \verb$[a|B]$.
+Freeing \funcref{.}{2} provides us with a unique term that we can use
+for functional notation on maps as described in
+\secref{ext-map-functions}.
 
     \item Using \verb$'[]'$ as list terminator prevents dynamic distinction
-between atoms and lists. As a result, we cannot use \jargon{multi lists}
-(arbitrary deeply nested lists) of atoms. Note that multi lists of atoms
-are a good (intermediate) representation of a flat list that is
-assembled from sub sequences. The alternative, using difference lists or
-DCGs is often less natural and sometimes demands for `opening' proper
-lists (i.e., copying the list while replacing the terminating empty list
-with a variable) that have to be added to the sequence. Another use-case
-for distinguishing atoms from lists is representing external data of an
-unknown structure that may contain both sequences and identifiers.
+between atoms and lists. As a result, we cannot use type polymorphism
+that involve both atoms and lists. For example, we cannot use
+\jargon{multi lists} (arbitrary deeply nested lists) of atoms. Multi
+lists of atoms are a in some situations a good representation of a flat
+list that is assembled from sub sequences. The alternative, using
+difference lists or DCGs is often less natural and sometimes demands for
+`opening' proper lists (i.e., copying the list while replacing the
+terminating empty list with a variable) that have to be added to the
+sequence.  The ambiguity of atom and list is particularly painful when
+mapping external data representations that do not suffer from this
+ambiguity.
 
-Avoiding \verb$'[]'$ as a list terminator also makes the various
-text representations unambiguous, which allows us to write predicates
-that require a textual argument to accept both atoms, strings, and lists
-of character codes or one-character atoms. Traditionally, the empty list
-can be interpreted both as the string "[]" and "".
+At the same time, avoiding \verb$'[]'$ as a list terminator makes
+the various text representations unambiguous, which allows us to write
+predicates that require a textual argument to accept both atoms,
+strings, and lists of character codes or one-character atoms.
+Traditionally, the empty list can be interpreted both as the string "[]"
+and "".
 \end{itemize}
 
 ================================================================
