@@ -347,6 +347,15 @@ computed aliases are added to file_search_path/2 using asserta/1, so
 they precede predefined values for the alias. See file_search_path/2 for
 details on using this file location mechanism.
 
+    \cmdlineoptionitem{--traditional}{}
+This flag disables the most important extensions of SWI-Prolog version~7
+(see \secref{extensions}) that introduce incompatibilities. In
+particular, lists will be represented in the traditional way, double
+quoted text is represented by a list of character codes and the
+functional notation on maps is not supported. Maps as a syntactic entity
+and the predicates that act on them remain supported if this flag is
+present.
+
     \cmdlineoptionitem{--}{}
 \index{command line, arguments}%
 Stops scanning for more arguments, so you can pass arguments for your
