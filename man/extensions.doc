@@ -1014,3 +1014,151 @@ Future versions may share keys in a separate structure or use a binary
 trees to allow for cheaper updates. One of the issues is that the
 representation must either be kept cannonical or unification must be
 extended to compensate for alternate representations.
+
+
+================================================================
+\section{Integration of strings and maps in the libraries}
+\label{sec:ext-integration}
+
+While lacking proper string support and maps when designed, many
+predicates and libraries use interfaces that must be classified as
+suboptimal. Changing these interfaces is likely to break much more code
+than the changes described in this chapter. This section discusses some
+of these issues. Roughly, there are two cases. There where key-value
+associations or text is required as \emph{input}, we can facilitate the
+new features by overloading the accepted types. Interfaces that produce
+text or key-value associations as their \emph{output} however must make
+a choice. We plan to resolve that using either options that specify the
+desired output or provide an alternative library.
+
+
+\subsection{Maps and option processing}
+\label{sec:ext-map-options}
+
+System predicates and predicates based on library \pllib{options}
+process maps as an alternative to traditional option lists.
+
+
+\subsection{Maps in core data structures}
+
+Some predicates now produce structured data using compound terms and
+access predicates. We consider migrating these to maps. Below is a
+tentative list of candidates. Portable code should use the provided
+access predicates and not rely on the term representation.
+
+\begin{itemize}
+    \item Stream position terms
+    \item Date and time records
+\end{itemize}
+
+
+\subsection{Maps, strings and XML}
+\label{sec:ext-xml}
+
+The XML representation could benefit significantly from the new
+features. In due time we plan to provide an set of alternative
+predicates and options to existing predicates that can be used to
+exploit the new types. We propose the following changes to the data
+representation:
+
+\begin{itemize}
+    \item The attribute list of the \term{element}{Name, Attributes, Content}
+will become a map.
+    \item Attribute values will remain atoms
+    \item CDATA in element content will be represented as strings
+\end{itemize}
+
+\subsection{Maps, strings and JSON}
+\label{sec:ext-json}
+
+The JSON representation could benefit significantly from the new
+features. In due time we plan to provide an set of alternative
+predicates and options to existing predicates that can be used to
+exploit the new types. We propose the following changes to the data
+representation:
+
+\begin{itemize}
+    \item Instead of using \term{json}{KeyValueList}, the new
+interface will translate JSON objects to a map.  The type of
+this map will be \const{json}.
+
+    \item String values in JSON will be mapped to strings.
+
+    \item The values \const{true}, \const{false} and \const{null}
+will be represented as atoms.
+\end{itemize}
+
+
+\subsection{Maps, strings and HTTP}
+\label{sec:ext-http}
+
+The HTTP library and related data structures would profit from
+exploiting maps.  Below is a list of data structures that might
+be affected by future changes.	 Code can be made more robust
+by using the \pllib{option} library functions for extracting
+values from these structures.
+
+\begin{itemize}
+    \item The HTTP request structure
+    \item The HTTP parameter interface
+    \item URI components
+    \item Attributes to HTML elements
+\end{itemize}
+
+
+================================================================
+\section{Remaining issues}
+\label{sec:ext-issues}
+
+The changes and extensions described in this chapter resolve a many
+limitations of the Prolog language we have encountered. Still, there are
+remaining issues for which we seek solutions in the future.
+
+\paragraph{Text representation}
+
+Although strings resolve this issue for many applications, we are still
+faced with the representation of text as lists of characters which we
+need for parsing using DCGs. The ISO standard provides two
+representations, a list of \jargon{character codes} (`codes' for short)
+and a list of \jargon{one-character atoms} (`chars' for short). There
+are two sets of predicates, named *_code(s) and *_char(s) that provide
+the same functionality (e.g., atom_codes/2 and atom_chars/2) using their
+own representation of characters. Codes can be used in arithmetic
+expressions, while chars are more readable. Neither can unambiguously be
+interpreted as a representation for text because codes can be
+interpreted as a list of integers and chars as a list of atoms.
+
+We have not found a convincing way out. One of the options could be the
+introduction of a `char' type. This type can be allowed in arithmetic
+and with the 0'<char> syntax we have a concrete syntax for it.
+
+
+\paragraph{Arrays}
+
+Although lists are generally a much cleaner alternative for Prolog, real
+arrays with direct access to elements can be useful for particular
+tasks. The problem of integrating arrays is twofold. First of all, there
+is no good one-size-fits-all data representation for arrays. Many tasks
+that involve arrays require \jargon{mutable} arrays, while Prolog data
+is immutable by design. Second, standard Prolog has no good syntax
+support for arrays. SWI-Prolog version~7 has `block operators' (see
+\secref{ext-blockop}) which can resolve the syntactic issues. Block
+operators have been adopted by YAP.
+
+
+\paragraph{Lambda expressions}
+
+Although many alternatives\footnote{See e.g.,
+\url{http://www.complang.tuwien.ac.at/ulrich/Prolog-inedit/ISO-Hiord}}
+have been proposed, we still feel uneasy with them.
+
+
+\paragraph{Loops}
+
+Many people have explored routes to avoid the need for recursion in
+Prolog for simple iterations over data. ECLiPSe have proposed
+\jargon{logical loops} \cite{logicalloops:2002}, while B-Prolog
+introduced \jargon{declarative loops} and \jargon{list
+comprehension}\footnote{\url{http://www.probp.com/download/loops.pdf}}.
+The above mentioned lambda expressions, combined with maplist/2 can
+achieve similar results.
