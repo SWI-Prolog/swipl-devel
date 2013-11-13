@@ -862,6 +862,105 @@ nb_linkval/2 before use.
 \end{description}
 
 
+\subsection{When to use maps?}
+\label{sec:ext-maps-usage}
+
+Maps are a new type in the Prolog world. They compete with several other
+types and libraries. In the list below we have a closer look at these
+relations. We will see that maps are first of all a good replacement for
+compound terms with a high or not clearly fixed arity, library
+\pllib{record} and option processing.
+
+\begin{description}
+    \item [Compound terms]
+Compound terms with positional arguments form the traditional way to
+package data in Prolog.  This representation is well understood, fast
+and compound terms are stored efficiently.  Compound terms are still
+the representation of choice, provided that the number of arguments is
+low and fixed or compactness or performance are of utmost importance.
+
+A good example of a compound term is the representation of RDF triples
+using the term \term{rdf}{Subject, Predicate, Object} because RDF
+triples are defined to have precisely these three arguments and they are
+always referred to in this order. An application processing information
+about persons should probably use maps because the information that is
+related to a person is not so fixed. Typically we see first and last
+name. But there may also be title, middle name, gender, date of birth,
+etc. The number of arguments becomes unmanagable when using a compound
+term, while adding or removing an argument leads to many changes in the
+program.
+
+    \item [Library \pllib{record}]
+Using library \pllib{record} relieves the maintenance issues associated
+with using compound terms significantly.  The library generates access
+and modification predicates for each field in a compound term from a
+declaration.  The library provides sound access to compound terms with
+many arguments.  One of its problems is the verbose syntax needed to
+access or modify fields which results from long names for the generated
+predicates and the restriction that each field needs to be extracted
+with a separate goal.  Consider the example below, where the first uses
+library \pllib{record} and the second uses maps.
+
+\begin{code}
+    ...,
+    person_first_name(P, FirstName),
+    person_last_name(P, LastName),
+    format('Dear ~w ~w,~n~n', [FirstName, LastName]).
+
+    ...,
+    format('Dear ~w ~w,~n~n', [Map.first_name, Map.last_name]).
+\end{code}
+
+Records have a fixed number of arguments and (non-)existence of an
+argument must be represented using a value that is outside the normal
+domain.  This lead to unnatural code.  For example, suppose our person
+also has a title.  If we know the first name we use this and else we
+use the title.  The code samples below illustrate this.
+
+\begin{code}
+salutation(P) :-
+    person_first_name(P, FirstName), nonvar(FirstName), !,
+    person_last_name(P, LastName),
+    format('Dear ~w ~w,~n~n', [FirstName, LastName]).
+salutation(P) :-
+    person_title(P, Title), nonvar(Title), !,
+    person_last_name(P, LastName),
+    format('Dear ~w ~w,~n~n', [Title, LastName]).
+
+salutation(P) :-
+    _{first_name:FirstName, last_name:LastName} :< P, !,
+    format('Dear ~w ~w,~n~n', [FirstName, LastName]).
+salutation(P) :-
+    _{title:Title, last_name:LastName} :< P, !,
+    format('Dear ~w ~w,~n~n', [Title, LastName]).
+\end{code}
+
+    \item [Library \pllib{assoc}]
+This library implements a balanced binary tree.  Maps can replace
+the use of this library if the association is fairly static (i.e.,
+there are few update operations), all keys are atoms or (small)
+integers and the code does not rely on ordered operations.
+
+    \item [Library \pllib{option}]
+Option lists are introduced by ISO Prolog, for example for read_term/3,
+open/4, etc.  The \pllib{option} library provides operations to extract
+options, merge options lists, etc.  Maps are well suited to replace
+option lists because they are cheaper, can be processed faster and
+have a more natural syntax.
+
+    \item [Library \pllib{pairs}]
+This library is commonly used to process large name-value associations.
+In many cases this concerns short-lived datastructures that result from
+findall/3, maplist/3 and similar list processing predicates. Maps may
+play a role if frequent random key lookups are needed on the resulting
+association. For example, the skeleton `create a pairs list', `use
+list_to_assoc/2 to create an assoc', followed by frequent usage of
+get_assoc/2 to extract key values can be replaced using map_pairs/2 and
+the map access functions.  Using maps in this scenario is more efficient
+and provides a more pleasant access syntax.
+\end{description}
+
+
 \subsection{A motivation for maps as primary citizens}
 \label{sec:ext-maps-motivation}
 
