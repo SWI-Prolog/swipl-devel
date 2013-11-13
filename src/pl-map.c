@@ -1013,6 +1013,46 @@ resortMapsInClause(Clause clause)
 }
 
 
+/* resortMapsInTerm() re-sorts maps inside term.
+   Used by loadQlfTerm().  Term may not be cyclic.
+*/
+
+static void
+resort_maps_in_term(Word p ARG_LD)
+{
+right_arg:
+  deRef(p);
+
+  if ( isTerm(*p) )
+  { Functor t = valueTerm(*p);
+    FunctorDef fd = valueFunctor(t->definition);
+    Word ea;
+
+    if ( fd->name == ATOM_map && fd->arity%2 == 1 &&
+	 map_ordered(&t->arguments[1], fd->arity/2, FALSE PASS_LD) == FALSE )
+    { Sdprintf("Re-ordering map\n");
+      map_order((Word)t, FALSE PASS_LD);
+    }
+
+    ea = &t->arguments[fd->arity-1];
+    for(p=t->arguments; p<ea; p++)
+      resort_maps_in_term(p PASS_LD);
+
+    goto right_arg;
+  }
+}
+
+
+void
+resortMapsInTerm(term_t t)
+{ GET_LD
+  Word p = valTermRef(t);
+
+  resort_maps_in_term(p PASS_LD);
+}
+
+
+
 		 /*******************************
 		 *       PROLOG PREDICATES	*
 		 *******************************/

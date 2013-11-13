@@ -843,6 +843,8 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
 
   PL_put_variable(term);
   rc = do_load_qlf_term(state, vars, term PASS_LD);
+  if ( rc )
+    resortMapsInTerm(term);
   DEBUG(MSG_QLF_TERM,
 	Sdprintf("Loaded ");
 	PL_write_term(Serror, term, 1200, 0);
