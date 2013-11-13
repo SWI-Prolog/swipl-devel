@@ -902,10 +902,12 @@ fix_firstvars(Code start, Code end)
       { Code pc;
 
 	for(pc=PC; pc < end; pc = stepPC(pc))
-	{ if ( fetchop(pc) == first && pc[1] == var )
+	{ code op2 = fetchop(pc);
+
+	  if ( op2 == first && pc[1] == var )
 	  { DEBUG(MSG_MAP, Sdprintf("Swapping first vars\n"));
-	    *PC = first;
-	    *pc = op;
+	    *PC = *pc;
+	    *pc = encode(op);
 	  }
 	}
       }
