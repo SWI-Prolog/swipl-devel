@@ -5684,7 +5684,8 @@ unify_vmi(term_t t, Code bp)
 	}
 	case CA1_MODULE:
 	{ Module m = (Module)*bp++;
-	  PL_put_atom(av+an, m->name);
+	  if ( m )			/* I_DEPARTAM can have NULL module */
+	    PL_put_atom(av+an, m->name);
 	  rc = TRUE;
 	  break;
 	}
