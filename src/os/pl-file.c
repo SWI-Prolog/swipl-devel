@@ -2001,12 +2001,16 @@ found:
 		      aname, ATOM_stream_pair, stream);
 
     rc = TRUE;
-    if ( ref->read && (info->flags&SS_READ) )
-    { rc = set_stream(getStream(ref->read), stream, aname, aval PASS_LD);
+    if ( ref->read && (info->flags&SS_READ))
+    { if ( !(s = getStream(ref->read)) )
+        return symbol_no_stream(sblob);
+      rc = set_stream(s, stream, aname, aval PASS_LD);
       releaseStream(ref->read);
     }
     if ( rc && ref->write && (info->flags&SS_WRITE) )
-    { rc = set_stream(getStream(ref->write), stream, aname, aval PASS_LD);
+    { if ( !(s = getStream(ref->write)) )
+        return symbol_no_stream(sblob);
+      rc = set_stream(s, stream, aname, aval PASS_LD);
       releaseStream(ref->write);
     }
   } else if ( PL_get_stream_handle(stream, &s) )
