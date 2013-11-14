@@ -1246,6 +1246,32 @@ PL_get_chars(term_t t, char **s, unsigned flags)
 }
 
 
+int
+PL_get_text_as_atom(term_t t, atom_t *a, int flags)
+{ GET_LD
+  word w = valHandle(t);
+  PL_chars_t text;
+
+  if ( isAtom(w) )
+  { *a = (atom_t) w;
+    return TRUE;
+  }
+
+  if ( PL_get_text(t, &text, flags) )
+  { atom_t ta = textToAtom(&text);
+
+    PL_free_text(&text);
+    if ( ta )
+    { *a = ta;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+
 char *
 PL_quote(int chr, const char *s)
 { Buffer b = findBuffer(BUF_RING);

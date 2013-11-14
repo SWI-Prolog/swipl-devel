@@ -1817,9 +1817,9 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
 
     return TRUE;
   } else if ( aname == ATOM_file_name ) /* file_name(Atom) */
-  {	atom_t fn;
+  { atom_t fn;
 
-    if ( !PL_get_atom_ex(a, &fn) )
+    if ( !PL_get_text_as_atom(a, &fn, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
       return FALSE;
 
     setFileNameStream(s, fn);
