@@ -1118,7 +1118,11 @@ shell_quote(char *to, const char *arg)
   if ( needquote )
   { *to++ = '"';
     for(s=arg; *s; s++)
-    { if ( *s == '"' || *s == '$' )
+    { if ( *s == '"'
+#ifdef HOST_OS_WINDOWS			/* $ is no special in Windows shell */
+	   || *s == '$'			/* and % needs to appear around the var */
+#endif
+	 )
 	*to++ = '\\';
       *to++ = *s;
     }
