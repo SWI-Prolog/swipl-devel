@@ -529,8 +529,8 @@ setup_history :-
 	user:TopLevel.
 
 toplevel_goal(prolog, '$query_loop') :- !,
-	setup_colors,
-	setup_history.
+	catch(setup_colors, E, print_message(warning, E)),
+	catch(setup_history, E, print_message(warning, E)).
 toplevel_goal(Goal, Goal).
 
 
