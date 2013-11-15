@@ -2227,7 +2227,6 @@ Amount of time to wait after printing the message. Default is not to
 wait.
     \end{description}
 
-
     \predicate{prolog:message_line_element}{2}{+Stream, +Term}
 This hook is called to print the individual elements of a message from
 print_message_lines/3. This hook is used by e.g., library
@@ -2235,6 +2234,16 @@ print_message_lines/3. This hook is used by e.g., library
 
     \predicate{message_to_string}{2}{+Term, -String}
 Translates a message term into a string object (see \secref{strings}).
+
+    \predicate{version}{0}{}
+Write the SWI-Prolog banner message as well as additional messages
+registered using version/1. This is the default \jargon{initialization
+goal} which can be modified using \cmdlineoption{-g}.
+
+    \predicate{version}{1}{+Message}
+Register additional messages to be printed by version/0. Each registered
+message is handed to the message translation DCG and can thus be defined
+using the hook prolog:message//1.  Of not defined, it is simply printed.
 \end{description}
 
 
@@ -7667,7 +7676,7 @@ Abort the Prolog execution and restart the top level. If the
 started instead of entering the default interactive top level.
 
 Aborting is implemented by throwing the reserved exception
-\verb=$aborted=. This exception can be caught using catch/3, but the
+\verb='$aborted'=. This exception can be caught using catch/3, but the
 recovery goal is wrapped with a predicate that prunes the choice points
 of the recovery goal (i.e., as once/1) and re-throws the exception.
 This is illustrated in the example below, where we press control-C

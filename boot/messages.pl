@@ -737,6 +737,9 @@ prolog_message(copyright) -->
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
 	].
+prolog_message(user_versions) -->
+	{ findall(Msg, prolog:version_msg(Msg), Msgs) },
+	user_version_messages(Msgs).
 prolog_message(author) -->
 	[ 'Jan Wielemaker (jan@swi-prolog.org)' ].
 prolog_message(welcome) -->
@@ -747,7 +750,9 @@ prolog_message(welcome) -->
 	prolog_message(version),
 	[ ')', nl ],
 	prolog_message(copyright),
-	[ nl, nl,
+	[ nl ],
+	prolog_message(user_versions),
+	[ nl,
 	  'For help, use ?- help(Topic). or ?- apropos(Word).',
 	  nl, nl
 	].
@@ -936,6 +941,19 @@ history_events([Nr/Event|T]) -->
 	  nl
 	],
 	history_events(T).
+
+
+user_version_messages([]) --> [].
+user_version_messages([H|T]) -->
+	user_version_message(H),
+	user_version_messages(T).
+
+%%	user_version_message(+Term)
+
+user_version_message(Term) -->
+	translate_message2(Term), !, [nl].
+user_version_message(Atom) -->
+	[ '~w'-[Atom], nl ].
 
 
 		 /*******************************

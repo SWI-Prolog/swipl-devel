@@ -32,7 +32,8 @@
 	  [ '$initialise'/0,		% start Prolog
 	    '$toplevel'/0,		% Prolog top-level (re-entrant)
 	    '$compile'/0,		% `-c' toplevel
-	    '$welcome'/0,		% banner
+	    version/0,			% Write initial banner
+	    version/1,			% Add message to the banner
 	    prolog/0,			% user toplevel predicate
 	    '$query_loop'/0,		% toplevel predicate
 	    (initialization)/1,		% initialization goal (directive)
@@ -66,6 +67,38 @@ user:file_search_path(app_preferences, UserHome) :-
 	catch(expand_file_name(~, [UserHome]), _, fail).
 
 
+		 /*******************************
+		 *	   VERSION BANNER	*
+		 *******************************/
+
+:- dynamic
+	prolog:version_msg/1.
+
+%%	version is det.
+%
+%	Print the Prolog banner message and messages registered using
+%	version/1.
+
+version :-
+	print_message(banner, welcome).
+
+%%	version(+Message) is det.
+%
+%	Add message to version/0
+
+:- multifile
+	system:term_expansion/2.
+
+system:term_expansion((:- version(Message)),
+		      prolog:version_msg(Message)).
+
+version(Message) :-
+	(   prolog:version_msg(Message)
+	->  true
+	;   assertz(prolog:version_msg(Message))
+	).
+
+
 		/********************************
 		*         INITIALISATION        *
 		*********************************/
@@ -75,9 +108,6 @@ user:file_search_path(app_preferences, UserHome) :-
 
 :- dynamic
 	loaded_init_file/2.		% already loaded init files
-
-'$welcome' :-
-	print_message(banner, welcome).
 
 '$load_init_file'(none) :- !.
 '$load_init_file'(Base) :-
@@ -407,8 +437,6 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 		*        TOPLEVEL GOALS         *
 		*********************************/
 
-:- flag('$banner_goal', _, '$welcome').
-
 %%	'$initialise' is semidet.
 %
 %	Called from PL_initialise()  to  do  the   Prolog  part  of  the
@@ -439,11 +467,7 @@ initialise_prolog :-
 	load_associated_files(Files),
 	'$option'(goal, GoalAtom),
 	term_to_atom(Goal, GoalAtom),
-	(   Goal == '$welcome'
-	->  flag('$banner_goal', TheGoal, TheGoal)
-	;   TheGoal = Goal
-	),
-	ignore(user:TheGoal).
+	ignore(user:Goal).
 
 init_debug_flags :-
 	once(print_predicate(_, [print], PrintOptions)),

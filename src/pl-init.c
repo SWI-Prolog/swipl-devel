@@ -412,7 +412,7 @@ initDefaults(void)
   systemDefaults.local       = DEFLOCAL;
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
-  systemDefaults.goal	     = "'$welcome'";
+  systemDefaults.goal	     = "version";
   systemDefaults.toplevel    = "prolog";
   systemDefaults.notty       = NOTTYCONTROL;
 

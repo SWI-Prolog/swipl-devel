@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -999,7 +998,7 @@ fillDefaultOptions()
 #endif
   defaultPath(&out, PROG_OUT);
 
-  defaultProgram(&plgoal,     "$welcome");
+  defaultProgram(&plgoal,     "version");
   defaultProgram(&pltoplevel, "prolog");
   defaultProgram(&plinitfile, "none");
   defaultProgram(&plsysinit,  "none");
