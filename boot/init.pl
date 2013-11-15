@@ -627,22 +627,19 @@ expand_file_search_path(Spec, Expanded) :-
 %	argument order, but still accept the original argument order for
 %	compatibility reasons.
 
-absolute_file_name(Spec, Args, Path) :-
-	is_list(Args),
-	\+ is_list(Path), !,
-	absolute_file_name(Spec, Path, Args).
-absolute_file_name(Spec, Path, Args) :-
-	(   is_list(Args)
-	->  true
-	;   throw(error(type_error(list, Args), _))
-	),
-	(   '$select'(extensions(Exts), Args, Conditions)
+absolute_file_name(Spec, Options, Path) :-
+	'$is_options'(Options),
+	\+ '$is_options'(Path), !,
+	absolute_file_name(Spec, Path, Options).
+absolute_file_name(Spec, Path, Options) :-
+	'$must_be'(options, Options),
+	(   '$select'(extensions(Exts), Options, Conditions)
 	->  '$must_be'(list, Exts)
-	;   memberchk(file_type(Type), Args)
+	;   memberchk(file_type(Type), Options)
 	->  '$must_be'(atom, Type),
 	    '$file_type_extensions'(Type, Exts),
-	    Conditions = Args
-	;   Conditions = Args,
+	    Conditions = Options
+	;   Conditions = Options,
 	    Exts = ['']
 	),
 	'$canonicalise_extensions'(Exts, Extensions),
@@ -2866,6 +2863,11 @@ saved state.
 	->  true
 	;   '$type_error'(list, Tail)
 	).
+'$must_be'(options, X) :-
+	(   '$is_options'(X)
+	->  true
+	;   '$type_error'(options, X)
+	).
 '$must_be'(atom, X) :-
 	(   atom(X)
 	->  true
@@ -2966,6 +2968,32 @@ length(_, Length) :-
 '$length3'([_|List], N, N0) :-
 	N1 is N0+1,
         '$length3'(List, N, N1).
+
+
+		 /*******************************
+		 *	 OPTION PROCESSING	*
+		 *******************************/
+
+%%	'$is_options'(@Term) is semidet.
+%
+%	True if Term looks like it provides options.
+
+'$is_options'(Map) :-
+	is_map(Map, _), !.
+'$is_options'(List) :-
+	is_list(List),
+	(   List == []
+	->  true
+	;   List = [H|_],
+	    '$is_option'(H, _, _)
+	).
+
+'$is_option'(Var, _, _) :-
+	var(Var), !, fail.
+'$is_option'(F, Name, Value) :-
+	functor(F, _, 1), !,
+	F =.. [Name,Value].
+'$is_option'(Name=Value, Name, Value).
 
 
 		 /*******************************
