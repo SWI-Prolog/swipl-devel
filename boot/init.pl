@@ -1276,7 +1276,7 @@ compiling :-
 	).
 
 '$set_encoding'(Stream, Options) :-
-	memberchk(encoding(Enc), Options), !,
+	'$option'(encoding(Enc), Options), !,
 	Enc \== default,
 	set_stream(Stream, encoding(Enc)).
 '$set_encoding'(_, _).
@@ -1459,7 +1459,7 @@ load_files(Module:Files, Options) :-
 	throw(error(instantiation_error, context(load_files/2,_))).
 '$load_files'([], _, _) :- !.
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
-	memberchk(stream(_), Options), !,
+	'$option'(stream(_), Options), !,
 	(   atom(Id)
 	->  '$load_file'(Id, Module, Options)
 	;   throw(error(type_error(atom, Id), _))
@@ -1521,7 +1521,7 @@ load_files(Module:Files, Options) :-
 %	replace this with a .qlf file.
 
 '$qlf_file'(Spec, _, Spec, stream, Options) :-
-	memberchk(stream(_), Options), !.
+	'$option'(stream(_), Options), !.
 '$qlf_file'(Spec, FullFile, FullFile, compile, _) :-
 	'$spec_extension'(Spec, Ext),
 	user:prolog_file_type(Ext, prolog), !.
@@ -3022,11 +3022,7 @@ length(_, Length) :-
 %	@arg Rest is always a map.
 
 '$select_option'(Opt, Options, Rest) :-
-	is_map(Options),
 	select_map([Opt], Options, Rest).
-'$select_option'(Opt, Options, Rest) :-
-	'$select'(Opt, Options, Rest).
-
 
 %%	'$merge_options'(+New, +Default, -Merged) is det.
 %
