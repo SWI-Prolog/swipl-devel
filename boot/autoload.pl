@@ -138,7 +138,7 @@ guarded_make_library_index([Dir|Dirs]) :-
 %	index, i.e., an index that can be updated.
 
 writable_indexed_directory(Dir) :-
-	index_file_name(IndexFile, [access(read), access(write)]),
+	index_file_name(IndexFile, [access([read,write])]),
 	file_directory_name(IndexFile, Dir).
 writable_indexed_directory(Dir) :-
 	absolute_file_name(library('MKINDEX'),
