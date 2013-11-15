@@ -1482,7 +1482,7 @@ load_files(Module:Files, Options) :-
 
 '$load_one_file'(Spec, Module, Options) :-
 	atom(Spec),
-	'$get_option'(expand(Expand), Options, false),
+	'$option'(expand(Expand), Options, false),
 	Expand == true, !,
 	expand_file_name(Spec, Expanded),
 	(   Expanded = [Load]
@@ -1493,17 +1493,6 @@ load_files(Module:Files, Options) :-
 '$load_one_file'(File, Module, Options) :-
 	strip_module(Module:File, Into, PlainFile),
 	'$load_file'(PlainFile, Into, Options).
-
-
-'$get_option'(Term, Options, Default) :-
-	arg(1, Term, Value),
-	functor(Term, Name, 1),
-	functor(Gen, Name, 1),
-	arg(1, Gen, GVal),
-	(   memberchk(Gen, Options)
-	->  Value = GVal
-	;   Value = Default
-	).
 
 
 %%	'$noload'(+Condition, +FullFile, +Options) is semidet.
@@ -1676,7 +1665,7 @@ load_files(Module:Files, Options) :-
 	    '$mt_do_load'(Loading, File, FullFile, Module, Options),
 	    '$mt_end_load'(Loading)).
 '$mt_load_file'(File, FullFile, Module, Options) :-
-	'$get_option'(if(If), Options, true),
+	'$option'(if(If), Options, true),
 	'$noload'(If, FullFile, Options), !,
 	'$already_loaded'(File, FullFile, Module, Options).
 '$mt_load_file'(File, FullFile, Module, Options) :-
@@ -1687,7 +1676,7 @@ load_files(Module:Files, Options) :-
 	'$loading_file'(FullFile, Queue, LoadThread),
 	\+ thread_self(LoadThread), !.
 '$mt_start_load'(FullFile, already_loaded, Options) :-
-	'$get_option'(if(If), Options, true),
+	'$option'(if(If), Options, true),
 	'$noload'(If, FullFile, Options), !.
 '$mt_start_load'(FullFile, Ref, _) :-
 	thread_self(Me),
@@ -1739,7 +1728,7 @@ load_files(Module:Files, Options) :-
 %	Perform the actual loading.
 
 '$do_load_file'(File, FullFile, Module, Options) :-
-	'$get_option'(derived_from(DerivedFrom), Options, -),
+	'$option'(derived_from(DerivedFrom), Options, -),
 	'$register_derived_source'(FullFile, DerivedFrom),
 	'$qlf_file'(File, FullFile, Absolute, Mode, Options),
 	(   Mode == qcompile
@@ -1768,7 +1757,7 @@ load_files(Module:Files, Options) :-
 	),
 
 	(   Input == stream,
-	    (   '$get_option'(format(qlf), Options, source)
+	    (   '$option'(format(qlf), Options, source)
 	    ->  set_stream(FromStream, file_name(Absolute)),
 		'$qload_stream'(FromStream, Module, Action, LM, Options)
 	    ;   '$consult_file'(stream(Absolute, FromStream),
@@ -1837,8 +1826,8 @@ load_files(Module:Files, Options) :-
 '$import_from_loaded_module'(LoadedModule, Module, Options) :-
 	LoadedModule \== Module,
 	atom(LoadedModule), !,
-	'$get_option'(imports(Import), Options, all),
-	'$get_option'(reexport(Reexport), Options, false),
+	'$option'(imports(Import), Options, all),
+	'$option'(reexport(Reexport), Options, false),
 	'$import_list'(Module, LoadedModule, Import, Reexport).
 '$import_from_loaded_module'(_, _, _).
 
@@ -1897,7 +1886,7 @@ load_files(Module:Files, Options) :-
 	'$autoload_nesting'/1.
 
 '$update_autoload_level'(Options, AutoLevel) :-
-	'$get_option'(autoload(Autoload), Options, false),
+	'$option'(autoload(Autoload), Options, false),
 	(   '$autoload_nesting'(CurrentLevel)
 	->  AutoLevel = CurrentLevel
 	;   AutoLevel = 0
@@ -1997,7 +1986,7 @@ load_files(Module:Files, Options) :-
 	'$modified_id'(Id, Modified, Options).
 
 '$modified_id'(_, Modified, Options) :-
-	'$get_option'(modified(Stamp), Options, Def),
+	'$option'(modified(Stamp), Options, Def),
 	Stamp \== Def, !,
 	Modified = Stamp.
 '$modified_id'(Id, Modified, _) :-
@@ -2173,7 +2162,7 @@ load_files(Module:Files, Options) :-
 	      '$print_message'(error, E)).
 
 '$start_non_module'(Id, _State, Options) :-
-	'$get_option'(must_be_module(true), Options, false), !,
+	'$option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, Id), _)).
 '$start_non_module'(Id, State, _Options) :-
 	'$set_source_module'(Module, Module),
@@ -2224,7 +2213,7 @@ load_files(Module:Files, Options) :-
 	nb_setarg(2, State, Module),
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
-	'$get_option'(redefine_module(Action), Options, false),
+	'$option'(redefine_module(Action), Options, false),
 	'$module_class'(File, Class, Super),
 	'$redefine_module'(Module, File, Action),
 	'$declare_module'(Module, Class, Super, File, Line, false),
@@ -3007,6 +2996,24 @@ length(_, Length) :-
 	[Opt] :< Options.
 '$option'(Opt, Options) :-
 	memberchk(Opt, Options).
+
+%%	'$option'(?Opt, +Options, +Default) is det.
+
+'$option'(Term, Options, Default) :-
+	arg(1, Term, Value),
+	functor(Term, Name, 1),
+	(   is_map(Options)
+	->  (   get_map(Name, Options, GVal)
+	    ->	Value = GVal
+	    ;   Value = Default
+	    )
+	;   functor(Gen, Name, 1),
+	    arg(1, Gen, GVal),
+	    (   memberchk(Gen, Options)
+	    ->  Value = GVal
+	    ;   Value = Default
+	    )
+	).
 
 %%	'$select_option'(?Opt, +Options, -Rest) is semidet.
 %
