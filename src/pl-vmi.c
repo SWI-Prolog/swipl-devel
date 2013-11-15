@@ -152,6 +152,16 @@ VMI(D_BREAK, 0, 0, ())
   DEBUG(0, memset(lTop, 0xbf, sizeof(word)*100));
   DEBUG(CHK_SECURE, checkStacks(NULL));
   a = callBreakHook(FR, BFR, PC-1, decode(c), &pop PASS_LD);
+  switch ( a )
+  { case BRK_TRACE:
+      tracemode(TRUE, NULL);
+      break;
+    case BRK_DEBUG:
+      debugmode(TRUE, NULL);
+      break;
+    default:
+      break;
+  }
   LOAD_REGISTERS(qid);
   lTop = LD->query->next_environment;
   LD->query->next_environment = NULL;
@@ -159,13 +169,8 @@ VMI(D_BREAK, 0, 0, ())
 
   switch ( a )
   { case BRK_ERROR:
-      break;
     case BRK_TRACE:
-      tracemode(TRUE, NULL);
-      /*FALLTHROUGH*/
     case BRK_DEBUG:
-      debugmode(TRUE, NULL);
-      /*FALLTHROUGH*/
     case BRK_CONTINUE:
       break;
     case BRK_CALL:
