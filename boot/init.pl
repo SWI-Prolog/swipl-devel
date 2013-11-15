@@ -633,40 +633,46 @@ absolute_file_name(Spec, Options, Path) :-
 	absolute_file_name(Spec, Path, Options).
 absolute_file_name(Spec, Path, Options) :-
 	'$must_be'(options, Options),
-	(   '$select'(extensions(Exts), Options, Conditions)
+			% get the valid extensions
+	(   '$select_option'(extensions(Exts), Options, Options1)
 	->  '$must_be'(list, Exts)
-	;   memberchk(file_type(Type), Options)
+	;   '$option'(file_type(Type), Options)
 	->  '$must_be'(atom, Type),
 	    '$file_type_extensions'(Type, Exts),
-	    Conditions = Options
-	;   Conditions = Options,
+	    Options1 = Options
+	;   Options1 = Options,
 	    Exts = ['']
 	),
 	'$canonicalise_extensions'(Exts, Extensions),
+			% unless specified otherwise, ask regular file
 	(   nonvar(Type)
-	->  C0 = Conditions
-	;   C0 = [file_type(regular)|Conditions] % ask for a regular file
+	->  Options2 = Options1
+	;   '$merge_options'(_{file_type:regular}, Options1, Options2)
 	),
-	(   '$select'(solutions(Sols), C0, C1)
+			% Det or nondet?
+	(   '$select_option'(solutions(Sols), Options2, Options3)
 	->  '$must_be'(oneof(atom, solutions, [first,all]), Sols)
 	;   Sols = first,
-	    C1 = C0
+	    Options3 = Options2
 	),
-	(   '$select'(file_errors(FileErrors), C1, C2)
+			% Errors or not?
+	(   '$select_option'(file_errors(FileErrors), Options3, Options4)
 	->  '$must_be'(oneof(atom, file_errors, [error,fail]), FileErrors)
 	;   FileErrors = error,
-	    C2 = C1
+	    Options4 = Options3
 	),
+			% Expand shell patterns?
 	(   atomic(Spec),
-	    '$select'(expand(Expand), C2, C3),
+	    '$select_option'(expand(Expand), Options4, Options5),
 	    '$must_be'(boolean, Expand)
 	->  expand_file_name(Spec, List),
 	    '$member'(Spec1, List)
 	;   Spec1 = Spec,
-	    C3 = C2
+	    Options5 = Options4
 	),
+			% Search for files
 	(   Sols == first
-	->  (	'$chk_file'(Spec1, Extensions, C3, true, Path)
+	->  (   '$chk_file'(Spec1, Extensions, Options5, true, Path)
 	    ->	true
 	    ;	(   FileErrors == fail
 		->  fail
@@ -674,10 +680,10 @@ absolute_file_name(Spec, Path, Options) :-
 			    '$chk_file'(Spec1, Extensions, [access(exist)],
 					false, P),
 			    Candidates),
-		    '$abs_file_error'(Spec, Candidates, C3)
+		    '$abs_file_error'(Spec, Candidates, Options5)
 		)
 	    )
-	;   '$chk_file'(Spec1, Extensions, C3, false, Path)
+	;   '$chk_file'(Spec1, Extensions, Options5, false, Path)
 	).
 
 '$abs_file_error'(Spec, Candidates, Conditions) :-
@@ -702,14 +708,11 @@ absolute_file_name(Spec, Path, Options) :-
 	\+ access_file(File, Access),
 	Error = permission_error(Access, source_sink, Spec).
 
-'$one_or_member'(_, Var) :-
-	var(Var), !,
-	'$instantiation_error'(Var).
-'$one_or_member'(E, [H|T]) :- !,
-	'$one_or_member'(E, H),
-	'$one_or_member'(E, T).
-'$one_or_member'(_, []) :- !, fail.
-'$one_or_member'(E, E).
+'$one_or_member'(Elem, List) :-
+	is_list(List), !,
+	'$member'(Elem, List).
+'$one_or_member'(Elem, Elem).
+
 
 '$file_type_extensions'(source, Exts) :- !,	% SICStus 3.9 compatibility
 	'$file_type_extensions'(prolog, Exts).
@@ -796,7 +799,7 @@ user:prolog_file_type(Ext,	executable) :-
 	atomic(A).
 
 
-%	'$relative_to'(+Condition, +Default, -Dir)
+%%	'$relative_to'(+Condition, +Default, -Dir)
 %
 %	Determine the directory to work from.  This can be specified
 %	explicitely using one or more relative_to(FileOrDir) options
@@ -804,7 +807,7 @@ user:prolog_file_type(Ext,	executable) :-
 %	source-file.
 
 '$relative_to'(Conditions, Default, Dir) :-
-	(   '$member'(relative_to(FileOrDir), Conditions)
+	(   '$option'(relative_to(FileOrDir), Conditions)
 	*-> (   exists_directory(FileOrDir)
 	    ->	Dir = FileOrDir
 	    ;	atom_concat(Dir, /, FileOrDir)
@@ -857,21 +860,23 @@ user:prolog_file_type(Ext,	executable) :-
 '$search_message'(_).
 
 
-
-%	'$file_conditions'(+Condition, +Path)
+%%	'$file_conditions'(+Condition, +Path)
 %
 %	Verify Path satisfies Condition.
 
-'$file_conditions'([], _) :- !.
-'$file_conditions'([H|T], File) :- !,
-	(   '$file_condition'(H)
-	->  '$file_condition'(H, File)
-	;   true
-	),
-	'$file_conditions'(T, File).
+'$file_conditions'(List, File) :-
+	is_list(List), !,
+	\+ ( '$member'(C, List),
+	     '$file_condition'(C),
+	     \+ '$file_condition'(C, File)
+	   ).
+'$file_conditions'(Map, File) :-
+	\+ (  get_map(Key, Map, Value),
+	      C =.. [Key,Value],
+	      '$file_condition'(C),
+	     \+ '$file_condition'(C, File)
+	   ).
 
-'$file_condition'(exists, File) :- !,
-	exists_file(File).
 '$file_condition'(file_type(directory), File) :- !,
 	exists_directory(File).
 '$file_condition'(file_type(_), File) :- !,
@@ -2788,7 +2793,7 @@ saved state.
 	current_prolog_flag(os_argv, Argv),
 	'$get_files_argv'(Argv, Files),
 	'$translate_options'(Argv, Options),
-	'$option'(compileout, Out),
+	'$cmd_option_val'(compileout, Out),
         user:consult(Files),
 	user:qsave_program(Out, Options).
 
@@ -2994,6 +2999,36 @@ length(_, Length) :-
 	functor(F, _, 1), !,
 	F =.. [Name,Value].
 '$is_option'(Name=Value, Name, Value).
+
+%%	'$option'(?Opt, +Options) is semidet.
+
+'$option'(Opt, Options) :-
+	is_map(Options), !,
+	[Opt] :< Options.
+'$option'(Opt, Options) :-
+	memberchk(Opt, Options).
+
+%%	'$select_option'(?Opt, +Options, -Rest) is semidet.
+%
+%	Select an option from Options.
+%
+%	@arg Rest is always a map.
+
+'$select_option'(Opt, Options, Rest) :-
+	is_map(Options),
+	select_map([Opt], Options, Rest).
+'$select_option'(Opt, Options, Rest) :-
+	'$select'(Opt, Options, Rest).
+
+
+%%	'$merge_options'(+New, +Default, -Merged) is det.
+%
+%	Add/replace options specified in New.
+%
+%	@arg Merged is always a map.
+
+'$merge_options'(New, Old, Merged) :-
+	put_map(New, Old, Merged).
 
 
 		 /*******************************

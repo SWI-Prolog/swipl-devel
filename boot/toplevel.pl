@@ -116,10 +116,10 @@ version(Message) :-
 	exists_file(InitFile), !,
 	ensure_loaded(user:InitFile).
 '$load_init_file'(Base) :-
-	absolute_file_name(user_profile(Base),
+	absolute_file_name(user_profile(Base), InitFile,
 			   [ access(read),
 			     file_errors(fail)
-			   ], InitFile),
+			   ]),
 	asserta(loaded_init_file(Base, InitFile)),
 	load_files(user:InitFile,
 		   [ scope_settings(false)
@@ -129,7 +129,7 @@ version(Message) :-
 '$load_system_init_file' :-
 	loaded_init_file(system, _), !.
 '$load_system_init_file' :-
-	'$option'(system_init_file, Base),
+	'$cmd_option_val'(system_init_file, Base),
 	Base \== none,
 	current_prolog_flag(home, Home),
 	file_name_extension(Base, rc, Name),
@@ -149,7 +149,7 @@ version(Message) :-
 '$load_script_file' :-
 	loaded_init_file(script, _), !.
 '$load_script_file' :-
-	'$option'(script_file, OsFiles),
+	'$cmd_option_val'(script_file, OsFiles),
 	load_script_files(OsFiles).
 
 load_script_files([]).
@@ -247,7 +247,7 @@ thread_initialization(Goal) :-
 %	Process -p PathSpec options.
 
 '$set_file_search_paths' :-
-	'$option'(search_paths, Paths),
+	'$cmd_option_val'(search_paths, Paths),
 	(   '$member'(Path, Paths),
 	    atom_chars(Path, Chars),
 	    (	phrase('$search_path'(Name, Aliases), Chars)
@@ -391,7 +391,7 @@ set_window_title(_).
 %	system.
 
 start_pldoc :-
-	'$option'(pldoc_server, Server),
+	'$cmd_option_val'(pldoc_server, Server),
 	(   Server == ''
 	->  call((doc_server(_), doc_browser))
 	;   catch(atom_number(Server, Port), _, fail)
@@ -460,12 +460,12 @@ initialise_prolog :-
 	'$load_system_init_file',
 	start_pldoc,
 	attach_packs,
-	'$option'(init_file, OsFile),
+	'$cmd_option_val'(init_file, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
 	'$load_script_file',
 	load_associated_files(Files),
-	'$option'(goal, GoalAtom),
+	'$cmd_option_val'(goal, GoalAtom),
 	term_to_atom(Goal, GoalAtom),
 	ignore(user:Goal).
 
@@ -521,7 +521,7 @@ setup_history :-
 %	@see prolog/0 is the default interactive toplevel
 
 '$runtoplevel' :-
-	'$option'(toplevel, TopLevelAtom),
+	'$cmd_option_val'(toplevel, TopLevelAtom),
 	catch(term_to_atom(TopLevel0, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),

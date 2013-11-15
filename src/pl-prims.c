@@ -4934,10 +4934,11 @@ PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$option/3, provides access to the option  structure from Prolog. This is
-halfway a generic structure package ... Anyway, it is better then direct
-coded access, as the  indirect  approach   allows  us  to  enumerate the
-options and generalise the option processing from the saved-states.
+$cmd_option_val/3, provides access to the  option structure from Prolog.
+This is halfway a generic structure  package   ...  Anyway, it is better
+then direct coded  access,  as  the   indirect  approach  allows  us  to
+enumerate the options and generalise  the   option  processing  from the
+saved-states.
 
 See also pl-init.c, which exploits set_pl_option()  to parse the options
 resource  member.  Please  note  this   code    doesn't   use  atoms  as
@@ -4981,7 +4982,7 @@ static const optdef optdefs[] =
 
 
 static
-PRED_IMPL("$option", 2, option, 0)
+PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 { PRED_LD
   char *k;
 
@@ -5181,7 +5182,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
-  PRED_DEF("$option", 2, option, 0)
+  PRED_DEF("$cmd_option_val", 2, cmd_option_val, 0)
   PRED_DEF("$style_check", 2, style_check, 0)
   PRED_DEF("deterministic", 1, deterministic, 0)
   PRED_DEF("setarg", 3, setarg, 0)
