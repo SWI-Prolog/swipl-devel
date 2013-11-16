@@ -93,7 +93,8 @@ activateProfiler(prof_status active ARG_LD)
 
   if ( active )
   { LD->profile.time_at_last_tick =
-    LD->profile.time_at_start     = ThreadCPUTime(LD, CPU_USER);
+    LD->profile.time_at_start     = active == PROF_CPU ? ThreadCPUTime(LD, CPU_USER)
+						       : WallTime();
 
     GD->profile.thread = LD;
   } else
@@ -113,7 +114,8 @@ activateProfiler(prof_status active ARG_LD)
 static int
 thread_prof_ticks(PL_local_data_t *ld)
 { double t0 = ld->profile.time_at_last_tick;
-  double t1 = ThreadCPUTime(ld, CPU_USER);
+  double t1 = ld->profile.active == PROF_CPU ? ThreadCPUTime(ld, CPU_USER)
+				             : WallTime();
 
   ld->profile.time_at_last_tick = t1;
 
@@ -150,9 +152,10 @@ callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 
 
 static bool
-startProfiler(void)
+startProfiler(prof_status how)
 { GET_LD
   MMRESULT rval;
+  (void)how;
 
   rval = timeSetEvent(10,
 		      5,		/* resolution (milliseconds) */
@@ -184,13 +187,6 @@ stopItimer(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 POSIX version
-
-(*) Originally this code used 1,  which   appeared  to  mean anytime the
-system starts a new time slice for  the task. Hiroo Koshimoto discovered
-this caused very  fast  interrupts   on  MacOSX  `Leopart',  effectively
-causing the monitored program to stop  working.   We  now use 1000 us (1
-millisecond). That should be safe on   most modern hardware. If hardware
-becomes a lot faster we may wish to reduce this value.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef TIME_WITH_SYS_TIME
@@ -205,6 +201,8 @@ becomes a lot faster we may wish to reduce this value.
 #endif
 
 static struct itimerval value, ovalue;	/* itimer controlling structures */
+static int itimer = -1;			/* ITIMER_* */
+static int timer_signal;		/* SIG* */
 
 static void
 sig_profile(int sig)
@@ -228,35 +226,48 @@ sig_profile(int sig)
 
 
 static bool
-startProfiler(void)
+startProfiler(prof_status how)
 { GET_LD
+  int sig, timer;
 
-  set_sighandler(SIGPROF, sig_profile);
+  if ( how == PROF_CPU )
+  { sig   = SIGPROF;
+    timer = ITIMER_PROF;
+  } else
+  { sig   = SIGALRM;
+    timer = ITIMER_REAL;
+  }
+
+  set_sighandler(sig, sig_profile);
+  timer_signal = sig;
 
   value.it_interval.tv_sec  = 0;
-  value.it_interval.tv_usec = 1000;	/* see (*) above */
-  value.it_value.tv_sec  = 0;
-  value.it_value.tv_usec = 1000;
+  value.it_interval.tv_usec = 5000;		/* 5ms for real; also ok for cpu */
+  value.it_value.tv_sec  = 0;			/* on systems where 0 means now */
+  value.it_value.tv_usec = 5000;
 
-  if ( setitimer(ITIMER_PROF, &value, &ovalue) != 0 )
+  if ( setitimer(timer, &value, &ovalue) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
 
-  return activateProfiler(PROF_CPU PASS_LD);
+  itimer = timer;
+
+  return activateProfiler(how PASS_LD);
 }
 
 void
 stopItimer(void)
-{ GET_LD
-  value.it_interval.tv_sec  = 0;
-  value.it_interval.tv_usec = 0;
-  value.it_value.tv_sec  = 0;
-  value.it_value.tv_usec = 0;
+{ if ( itimer != -1 )
+  { value.it_interval.tv_sec  = 0;
+    value.it_interval.tv_usec = 0;
+    value.it_value.tv_sec  = 0;
+    value.it_value.tv_usec = 0;
 
-  if ( !LD->profile.active )
-    return;
-  if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
-  { warning("Failed to stop interval timer: %s", OsError());
-    return;
+    if ( setitimer(itimer, &value, &ovalue) != 0 )
+    { warning("Failed to stop interval timer: %s", OsError());
+      return;
+    }
+
+    itimer = -1;
   }
 }
 
@@ -268,12 +279,16 @@ stopProfiler(void)
 
   if ( (ld=GD->profile.thread) &&
        ld->profile.active )
-  { ld->profile.time += ThreadCPUTime(ld, CPU_USER) - ld->profile.time_at_start;
+  { double tend = ld->profile.active == PROF_CPU ? ThreadCPUTime(ld, CPU_USER)
+						 : WallTime();
+
+    ld->profile.time += tend - ld->profile.time_at_start;
 
     stopItimer();
     activateProfiler(PROF_INACTIVE, ld);
 #ifndef __WINDOWS__
-    set_sighandler(SIGPROF, SIG_IGN);
+    set_sighandler(timer_signal, SIG_IGN);
+    timer_signal = 0;
 #endif
   }
 
@@ -286,21 +301,50 @@ stopProfiler(void)
 Unify Old with the state of the profiler and set it according to New.
 */
 
+static int
+get_prof_status(term_t t, prof_status *s)
+{ GET_LD
+  atom_t a;
+
+  if ( PL_get_atom_ex(t, &a) )
+  { switch(a)
+    { case ATOM_false:
+	*s = PROF_INACTIVE;
+        return TRUE;
+      case ATOM_true:
+      case ATOM_cputime:
+	*s = PROF_CPU;
+        return TRUE;
+      case ATOM_walltime:
+	*s = PROF_WALL;
+        return TRUE;
+      default:
+	return PL_domain_error("profile_status", t);
+    }
+  }
+
+  return FALSE;
+}
+
+
 static
 PRED_IMPL("profiler", 2, profiler, 0)
 { PRED_LD
-  int val;
+  prof_status val;
 
-  if ( !PL_unify_bool_ex(A1, LD->profile.active) )
-    fail;
-  if ( !PL_get_bool_ex(A2, &val) )
-    fail;
+  if ( !PL_unify_atom(A1,
+		      LD->profile.active == PROF_INACTIVE ? ATOM_false :
+		      LD->profile.active == PROF_CPU ? ATOM_cputime :
+		      ATOM_walltime) )
+    return FALSE;
+  if ( !get_prof_status(A2, &val) )
+    return FALSE;
 
   if ( val == LD->profile.active )
     succeed;
 
   if ( val )
-    return startProfiler();
+    return startProfiler(val);
   else
     return stopProfiler();
 }
@@ -772,11 +816,15 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 		 *******************************/
 
 static
-PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
+PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
 { int rc;
+  prof_status val;
+
+  if ( !get_prof_status(A2, &val) )
+    return FALSE;
 
   resetProfiler();
-  startProfiler();
+  startProfiler(val);
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
   stopProfiler();
 
@@ -1121,8 +1169,8 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 }
 
 static
-PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
-{ return notImplemented("$profile", 1);
+PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
+{ return notImplemented("$profile", 2);
 }
 
 static
@@ -1176,7 +1224,7 @@ PRED_IMPL("reset_pentium_profile", 0, reset_pentium_profile, 0)
 		 *******************************/
 
 BeginPredDefs(profile)
-  PRED_DEF("$profile", 1, profile, PL_FA_TRANSPARENT)
+  PRED_DEF("$profile", 2, profile, PL_FA_TRANSPARENT)
   PRED_DEF("profiler", 2, profiler, 0)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
   PRED_DEF("$prof_node", 7, prof_node, 0)
