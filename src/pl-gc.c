@@ -28,6 +28,7 @@
 #include "os/pl-cstack.h"
 #include "pentium.h"
 #include "pl-inline.h"
+#include "pl-prof.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on

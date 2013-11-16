@@ -25,6 +25,7 @@
 #include "pl-incl.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
+#include "pl-prof.h"
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
 #endif

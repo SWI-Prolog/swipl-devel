@@ -35,6 +35,7 @@
 
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#include "pl-prof.h"
 #include <stdio.h>
 #include <math.h>
 #ifdef O_PLMT

@@ -483,16 +483,6 @@ COMMON(foreign_t)	pl_garbage_collect_clauses(void);
 COMMON(int)		setDynamicProcedure(Procedure proc, bool isdyn);
 COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 
-/* pl-prof.c */
-COMMON(void)		stopItimer(void);
-COMMON(int)		activateProfiler(int active ARG_LD);
-COMMON(bool)		resetProfiler(void);
-COMMON(struct call_node*) profCall(Definition def ARG_LD);
-COMMON(void)		profResumeParent(struct call_node *node ARG_LD);
-COMMON(void)		profExit(struct call_node *node ARG_LD);
-COMMON(void)		profRedo(struct call_node *node ARG_LD);
-COMMON(void)		profSetHandle(struct call_node *node, void *handle);
-
 
 /* pl-read.c */
 COMMON(void)		resetRead(void);

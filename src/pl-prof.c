@@ -23,6 +23,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-prof.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -66,7 +67,7 @@ static void	freeProfileData(void);
 static void	collectSiblingsTime(void);
 
 int
-activateProfiler(int active ARG_LD)
+activateProfiler(prof_status active ARG_LD)
 { int i;
   PL_local_data_t *profiling;
 
@@ -164,7 +165,7 @@ startProfiler(void)
   else
     return PL_error(NULL, 0, NULL, ERR_SYSCALL, "timeSetEvent");
 
-  return activateProfiler(TRUE PASS_LD);
+  return activateProfiler(PROF_CPU PASS_LD);
 }
 
 
@@ -240,7 +241,7 @@ startProfiler(void)
   if ( setitimer(ITIMER_PROF, &value, &ovalue) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
 
-  return activateProfiler(TRUE PASS_LD);
+  return activateProfiler(PROF_CPU PASS_LD);
 }
 
 void
@@ -261,23 +262,29 @@ stopItimer(void)
 
 #endif /*__WINDOWS__*/
 
-static bool
+static int
 stopProfiler(void)
-{ GET_LD
-  if ( !LD->profile.active )
-    succeed;
+{ PL_local_data_t *ld;
 
-  LD->profile.time += CpuTime(CPU_USER) - LD->profile.time_at_start;
+  if ( (ld=GD->profile.thread) &&
+       ld->profile.active )
+  { ld->profile.time += ThreadCPUTime(ld, CPU_USER) - ld->profile.time_at_start;
 
-  stopItimer();
-  activateProfiler(FALSE PASS_LD);
+    stopItimer();
+    activateProfiler(PROF_INACTIVE, ld);
 #ifndef __WINDOWS__
-  set_sighandler(SIGPROF, SIG_IGN);
+    set_sighandler(SIGPROF, SIG_IGN);
 #endif
+  }
 
-  succeed;
+  return TRUE;
 }
 
+
+/** profiler(-Old, +New)
+
+Unify Old with the state of the profiler and set it according to New.
+*/
 
 static
 PRED_IMPL("profiler", 2, profiler, 0)
