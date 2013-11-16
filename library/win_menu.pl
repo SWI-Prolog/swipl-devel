@@ -179,7 +179,7 @@ init_win_menus :-
 associated_file(File) :-
 	current_prolog_flag(associated_file, File), !.
 associated_file(File) :-
-	'$option'(script_file, OsFiles),
+	'$cmd_option_val'(script_file, OsFiles),
 	OsFiles = [OsFile], !,
 	prolog_to_os_filename(File, OsFile).
 
@@ -324,7 +324,7 @@ prolog_file_pattern(Pattern) :-
 init_win_app :-
 	current_prolog_flag(associated_file, _), !.
 init_win_app :-
-	'$option'(win_app, true), !,
+	'$cmd_option_val'(win_app, true), !,
 	catch(my_prolog, E, print_message(warning, E)).
 init_win_app.
 
