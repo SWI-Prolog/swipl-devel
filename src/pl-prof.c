@@ -91,7 +91,9 @@ activateProfiler(int active ARG_LD)
   }
 
   if ( active )
-  { LD->profile.time_at_start = ThreadCPUTime(LD, CPU_USER);
+  { LD->profile.time_at_last_tick =
+    LD->profile.time_at_start     = ThreadCPUTime(LD, CPU_USER);
+
     GD->profile.thread = LD;
   } else
   { GD->profile.thread = NULL;
@@ -107,58 +109,41 @@ activateProfiler(int active ARG_LD)
 }
 
 
+static int
+thread_prof_ticks(PL_local_data_t *ld)
+{ double t0 = ld->profile.time_at_last_tick;
+  double t1 = ThreadCPUTime(ld, CPU_USER);
+
+  ld->profile.time_at_last_tick = t1;
+
+  return (int)((t1-t0)*1000.0);			/* milliseconds */
+}
+
+
 #ifdef __WINDOWS__
+
+static UINT         timer;			/* our MM timer */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MS-Windows version
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void profile(intptr_t ticks, PL_local_data_t *ld);
-
 #if (_MSC_VER < 1400) && !defined(__MINGW32__)
 typedef DWORD DWORD_PTR;
 #endif
 
-static LARGE_INTEGER last_profile;
-static HANDLE	     mythread;
-static PL_local_data_t *my_LD;
-static UINT	     timer;
-static intptr_t	     virtual_events;
-static intptr_t	     events;
-
-static intptr_t
-prof_new_ticks(HANDLE thread)
-{ FILETIME created, exit, kernel, user;
-  LARGE_INTEGER u;
-  intptr_t ticks;
-
-  if ( !GetThreadTimes(thread,
-		       &created,
-		       &exit,
-		       &kernel,
-		       &user) )
-    return -1;				/* Error condition */
-
-  u.LowPart  = user.dwLowDateTime;
-  u.HighPart = user.dwHighDateTime;
-
-  ticks = (intptr_t)((u.QuadPart - last_profile.QuadPart)/10240);
-  last_profile = u;
-
-  virtual_events += ticks;
-  events++;
-
-  return ticks;
-}
-
 static void CALLBACK
 callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
-{ intptr_t newticks;
+{ PL_local_data_t *ld;
 
-  if ( (newticks = prof_new_ticks(mythread)) )
-  { if ( newticks < 0 )			/* Windows 95/98/... */
-      newticks = 1;
-    profile(newticks, my_LD);
+  if ( (ld=GD->profile.thread) )
+  { int newticks;
+
+    if ( (newticks = thread_prof_ticks(ld)) )
+    { if ( newticks < 0 )			/* Windows 95/98/... */
+	newticks = 1;
+    }
+    profile(newticks, ld);
   }
 }
 
@@ -168,28 +153,12 @@ startProfiler(void)
 { GET_LD
   MMRESULT rval;
 
-  DuplicateHandle(GetCurrentProcess(),
-		  GetCurrentThread(),
-		  GetCurrentProcess(),
-		  &mythread,
-		  0,
-		  FALSE,
-		  DUPLICATE_SAME_ACCESS);
-
-  if ( prof_new_ticks(mythread) < 0 )
-  { printMessage(ATOM_informational,
-		 PL_ATOM, ATOM_profile_no_cpu_time);
-  }
-  virtual_events = 0;
-  events = 0;
-
-  my_LD = LD;
-
   rval = timeSetEvent(10,
 		      5,		/* resolution (milliseconds) */
 		      callTimer,
 		      (DWORD_PTR)0,
 		      TIME_PERIODIC);
+
   if ( rval )
     timer = rval;
   else
@@ -207,11 +176,6 @@ stopItimer(void)
 
     timeKillEvent(timer);
     timer = 0;
-  }
-  if ( mythread )
-  { CloseHandle(mythread);
-    mythread = 0;
-    my_LD = NULL;
   }
 }
 
@@ -243,14 +207,22 @@ static struct itimerval value, ovalue;	/* itimer controlling structures */
 
 static void
 sig_profile(int sig)
-{ GET_LD
+{ PL_local_data_t *ld;
   (void)sig;
 
 #if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
   signal(SIGPROF, sig_profile);
 #endif
 
-  profile(1, LD);
+  if ( (ld=GD->profile.thread) )
+  { int newticks;
+
+    if ( (newticks = thread_prof_ticks(ld)) )
+    { if ( newticks < 0 )			/* Windows 95/98/... */
+	newticks = 1;
+    }
+    profile(newticks, ld);
+  }
 }
 
 
@@ -265,7 +237,7 @@ startProfiler(void)
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 1000;
 
-  if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
+  if ( setitimer(ITIMER_PROF, &value, &ovalue) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
 
   return activateProfiler(TRUE PASS_LD);
@@ -737,13 +709,23 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 }
 
 
+/** '$prof_statistics'(-Samples, -Ticks, -AccountingTicks, -Time, -Nodes)
+
+@arg Samples is the number of times the statistical profiler was called.
+@arg Ticks   is the number of virtual ticks during profiling
+@arg AccountingTicks are tick spent on accounting
+@arg Time    is the total CPU time spent profiling
+@arg Nodes   is the number of nodes in the call tree
+*/
+
 static
-PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
+PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
 { PRED_LD
-  if ( PL_unify_integer(A1, LD->profile.ticks) &&
-       PL_unify_integer(A2, LD->profile.accounting_ticks) &&
-       PL_unify_float(A3, LD->profile.time) &&
-       PL_unify_integer(A4, LD->profile.nodes) )
+  if ( PL_unify_integer(A1, LD->profile.samples) &&
+       PL_unify_integer(A2, LD->profile.ticks) &&
+       PL_unify_integer(A3, LD->profile.accounting_ticks) &&
+       PL_unify_float(  A4, LD->profile.time) &&
+       PL_unify_integer(A5, LD->profile.nodes) )
     succeed;
 
   fail;
@@ -760,6 +742,7 @@ resetProfiler(void)
   stopProfiler();
 
   freeProfileData();
+  LD->profile.samples          = 0;
   LD->profile.ticks            = 0;
   LD->profile.accounting_ticks = 0;
   LD->profile.time             = 0.0;
@@ -821,6 +804,7 @@ profile(intptr_t count, PL_local_data_t *__PL_ld)
   if ( !LD )
     return;
 
+  LD->profile.samples++;
   LD->profile.ticks += count;
 
   if ( LD->profile.accounting )			/* we are updating nodes */
@@ -1140,8 +1124,8 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 }
 
 static
-PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
-{ return notImplemented("$prof_statistics", 4);
+PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
+{ return notImplemented("$prof_statistics", 5);
 }
 
 /* Foreign interface of the profiler
@@ -1191,7 +1175,7 @@ BeginPredDefs(profile)
   PRED_DEF("$prof_node", 7, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
-  PRED_DEF("$prof_statistics", 4, prof_statistics, 0)
+  PRED_DEF("$prof_statistics", 5, prof_statistics, 0)
 #ifdef O_PROF_PENTIUM
   PRED_DEF("show_pentium_profile", 0, show_pentium_profile, 0)
   PRED_DEF("reset_pentium_profile", 0, reset_pentium_profile, 0)

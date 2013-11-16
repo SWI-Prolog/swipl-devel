@@ -289,17 +289,19 @@ show_plain(Node, Stat, Key) :-
 %
 %	@param Node	term of the format prof(Ticks, Account, Time, Nodes)
 
-prof_statistics(prof(Ticks, Account, Time, Nodes)) :-
-	'$prof_statistics'(Ticks, Account, Time, Nodes).
+prof_statistics(prof(Samples, Ticks, Account, Time, Nodes)) :-
+	'$prof_statistics'(Samples, Ticks, Account, Time, Nodes).
 
+prof_statistics(samples, Term, Samples) :-
+	arg(1, Term, Samples).
 prof_statistics(ticks, Term, Ticks) :-
-	arg(1, Term, Ticks).
-prof_statistics(accounting, Term, Ticks) :-
 	arg(2, Term, Ticks).
-prof_statistics(time, Term, Ticks) :-
+prof_statistics(accounting, Term, Ticks) :-
 	arg(3, Term, Ticks).
-prof_statistics(nodes, Term, Ticks) :-
+prof_statistics(time, Term, Ticks) :-
 	arg(4, Term, Ticks).
+prof_statistics(nodes, Term, Ticks) :-
+	arg(5, Term, Ticks).
 
 
 %%	prof_node(+Field, -Pairs) is nondet.

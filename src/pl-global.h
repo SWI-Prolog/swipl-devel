@@ -450,9 +450,11 @@ struct PL_local_data
     int		sum_ok;			/* siblings are counted */
     struct call_node *current;		/* `current' node */
     struct call_node *roots;		/* list of root-nodes */
+    uintptr_t	samples;		/* profile samples */
     uintptr_t	ticks;			/* profile ticks total */
     uintptr_t	accounting_ticks;	/* Ticks in profCall() and friends */
     uintptr_t	nodes;			/* #Recorded nodes */
+    double	time_at_last_tick;	/* Time at last statistics tick */
     double	time_at_start;		/* Time at last start */
     double	time;			/* recorded CPU time */
   } profile;
