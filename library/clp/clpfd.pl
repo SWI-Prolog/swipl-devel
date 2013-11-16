@@ -4195,7 +4195,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
 
 run_propagator(pexp(X,Y,Z), MState) :-
         (   X == 1 -> kill(MState), Z = 1
-        ;   X == 0 -> kill(MState), Z #<==> Y #= 0
+        ;   X == 0 -> kill(MState), Z in 0..1, Z #<==> Y #= 0
         ;   Y == 0 -> kill(MState), Z = 1
         ;   Y == 1 -> kill(MState), Z = X
         ;   nonvar(X) ->
@@ -4219,13 +4219,31 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 ;   true
                 )
             )
-        ;   nonvar(Z), nonvar(Y) ->
-            integer_kth_root(Z, Y, R),
-            kill(MState),
-            (   even(Y) ->
-                N is -R,
-                X in N \/ R
-            ;   X = R
+        ;   nonvar(Z) ->
+            (   nonvar(Y) ->
+                integer_kth_root(Z, Y, R),
+                kill(MState),
+                (   even(Y) ->
+                    N is -R,
+                    X in N \/ R
+                ;   X = R
+                )
+            ;   fd_get(X, _, n(NXL), _, _), NXL > 1 ->
+                (   Z > 1, between(NXL, Z, Exp), NXL^Exp > Z ->
+                    Exp1 is Exp - 1,
+                    fd_get(Y, YD, YPs),
+                    domains_intersection(YD, from_to(n(2),n(Exp1)), YD1),
+                    fd_put(Y, YD1, YPs),
+                    (   fd_get(X, XD, XPs) ->
+                        domain_infimum(YD1, n(YL)),
+                        integer_kth_root_leq(Z, YL, RU),
+                        domains_intersection(XD, from_to(n(NXL),n(RU)), XD1),
+                        fd_put(X, XD1, XPs)
+                    ;   true
+                    )
+                ;   true
+                )
+            ;   true
             )
         ;   nonvar(Y), Y > 0 ->
             (   even(Y) ->
@@ -4278,6 +4296,14 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 )
             ;   true
             )
+        ;   fd_get(X, _, XL, _, _),
+            XL cis_gt n(0),
+            fd_get(Y, _, YL, _, _),
+            YL cis_gt n(0),
+            fd_get(Z, ZD, ZPs) ->
+            n(NZL) cis XL^YL,
+            domain_remove_smaller_than(ZD, NZL, ZD1),
+            fd_put(Z, ZD1, ZPs)
         ;   true
         ).
 
