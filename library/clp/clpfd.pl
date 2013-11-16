@@ -4232,7 +4232,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 (   Z > 1, between(NXL, Z, Exp), NXL^Exp > Z ->
                     Exp1 is Exp - 1,
                     fd_get(Y, YD, YPs),
-                    domains_intersection(YD, from_to(n(2),n(Exp1)), YD1),
+                    domains_intersection(YD, from_to(n(1),n(Exp1)), YD1),
                     fd_put(Y, YD1, YPs),
                     (   fd_get(X, XD, XPs) ->
                         domain_infimum(YD1, n(YL)),
