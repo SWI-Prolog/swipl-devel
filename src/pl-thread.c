@@ -513,6 +513,11 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     info->detached = TRUE;		/* cleanup */
   }
 
+#ifdef O_PROFILE
+  if ( ld->profile.active )
+    activateProfiler(FALSE, ld);
+#endif
+
   cleanupLocalDefinitions(ld);
   if ( ld->freed_clauses )
   { GET_LD
@@ -1059,7 +1064,7 @@ retry:
 
 
 int
-PL_thread_self()
+PL_thread_self(void)
 { GET_LD
   PL_local_data_t *ld = LD;
 

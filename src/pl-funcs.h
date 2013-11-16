@@ -485,6 +485,7 @@ COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 
 /* pl-prof.c */
 COMMON(void)		stopItimer(void);
+COMMON(int)		activateProfiler(int active ARG_LD);
 COMMON(bool)		resetProfiler(void);
 COMMON(struct call_node*) profCall(Definition def ARG_LD);
 COMMON(void)		profResumeParent(struct call_node *node ARG_LD);

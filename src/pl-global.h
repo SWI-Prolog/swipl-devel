@@ -130,6 +130,12 @@ struct PL_global_data
 #endif
   } statistics;
 
+#ifdef O_PROFILE
+  struct
+  { struct PL_local_data *thread;	/* Thread being profiled */
+  } profile;
+#endif
+
   struct
   { Module	user;			/* user module */
     Module	system;			/* system predicate module */
