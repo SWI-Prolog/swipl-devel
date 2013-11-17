@@ -1304,6 +1304,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     mpf_t mpf;
     mpz_t t1, t2;
     int neg;
+    int exp;
 
     case V_MPZ:
     { switch(how)
@@ -1314,10 +1315,37 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
           mpz_mul(t1, f->value.mpz, t1);
           neg = (mpz_cmp_ui(t1, 0) < 0) ? 1 : 0;
           mpz_abs(t1, t1);
-          goto print_mpz;
+          goto print_mpz_f;
         }
         case 'e':
 	case 'E':
+        { mpz_init(t1);
+          mpz_init(t2);
+
+          mpz_set(t1, f->value.mpz);
+          neg = (mpz_cmp_ui(t1, 0) < 0) ? 1 : 0;
+          mpz_abs(t1, t1);
+
+          if (mpz_cmp_ui(t1, 0) == 0)
+          { exp = 0;
+          } else
+          { exp = mpz_sizeinbase(t1, 10)-1;  /* guess exponent */
+            mpz_ui_pow_ui(t2, 10, exp);
+            if (mpz_cmp(t2, t1) > 0) exp--;  /* correct exponent */
+
+            if (exp > arg)
+            { mpz_ui_pow_ui(t2, 10, (exp-arg-1));
+              mpz_tdiv_q(t1, t1, t2);
+              mpz_add_ui(t1, t1, 5);
+              mpz_tdiv_q_ui(t1, t1, 10);
+            } else
+            { mpz_ui_pow_ui(t2, 10, arg-exp);
+              mpz_mul(t1, t1, t2);
+            }
+          }
+          mpz_set_ui(t2, exp);
+          goto print_mpz_e;
+        }
         case 'g':
 	case 'G':
         { mpf_init2(mpf, arg*4);
@@ -1351,7 +1379,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
           mpz_tdiv_q(t1, t1, mpq_denref(f->value.mpq));
           mpz_abs(t1, t1);
 
-        print_mpz:
+        print_mpz_f:
 
           if (mpz_cmp_ui(t1, 0) != 0)
           { size = mpz_sizeinbase(t1, 10) + 1; /* reserve for <null> */
@@ -1406,6 +1434,94 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
         }
         case 'e':
 	case 'E':
+        { mpz_init(t1);
+          mpz_init(t2);
+
+          if (mpz_cmpabs(mpq_numref(f->value.mpq), mpq_denref(f->value.mpq)) >= 0)
+          { mpz_tdiv_q(t1, mpq_numref(f->value.mpq), mpq_denref(f->value.mpq));
+            exp = mpz_sizeinbase(t1, 10)-1;     /* guess exponent */
+            mpz_ui_pow_ui(t2, 10, exp);
+            if (mpz_cmpabs(t2, t1) > 0) exp--;  /* correct exponent */
+          } else
+          { mpq_t tq1, tq2;
+            mpq_init(tq1);
+            mpq_init(tq2);
+            mpz_set(t1, mpq_numref(f->value.mpq));
+            mpz_abs(t1, t1);
+            mpz_tdiv_q(t1, mpq_denref(f->value.mpq), t1);
+            exp = 0-mpz_sizeinbase(t1, 10);     /* guess exponent */
+            mpz_ui_pow_ui(t2, 10, abs(exp)-1);
+            mpq_set_z(tq1, t1);
+            mpq_inv(tq2, f->value.mpq);
+            if (mpz_cmpabs(t2, t1) == 0 && mpq_cmp(tq1, tq2)==0) exp++;
+            if (mpz_cmpabs(t2, t1) > 0) exp++;  /* correct exponent */
+            mpq_clear(tq1);
+            mpq_clear(tq2);
+          }
+
+          mpz_ui_pow_ui(t1, 10, abs(arg-exp));
+          if (mpz_cmpabs(mpq_numref(f->value.mpq), mpq_denref(f->value.mpq)) >= 0 && exp > arg)
+          { mpz_tdiv_q(t1, mpq_numref(f->value.mpq), t1);
+          } else
+          { mpz_mul(t1, mpq_numref(f->value.mpq), t1);
+          }
+          mpz_tdiv_q_ui(t2, mpq_denref(f->value.mpq), 2);
+          if (mpq_cmp_ui(f->value.mpq, 0, 1) < 0)
+          { mpz_sub(t1, t1, t2);
+            neg=1;
+          } else
+          { mpz_add(t1, t1, t2);
+            neg=0;
+          }
+          mpz_tdiv_q(t1, t1, mpq_denref(f->value.mpq));
+          mpz_abs(t1, t1);
+
+          mpz_ui_pow_ui(t2, 10, arg+1);
+          if (mpz_cmpabs(t2, t1) == 0)
+          { mpz_tdiv_q_ui(t1, t1, 10);
+            exp++;
+          }
+          mpz_set_ui(t2, abs(exp));
+
+        print_mpz_e:
+
+          if (mpz_cmp_ui(t1, 0) == 0)
+            size = arg+7; /* reserve for 0.+e00<null> */
+          else
+            size = mpz_sizeinbase(t1, 10) + mpz_sizeinbase(t2, 10) + 6; /* reserve for -.e+0<null> */
+
+          if ( !growBuffer(out, size) )
+          { PL_no_memory();
+            return NULL;
+          }
+          written = gmp_snprintf(baseBuffer(out, char), size, "%Zd%c%+03d", t1, how, exp);
+
+          if (mpz_cmp_ui(t1, 0) == 0)
+          { memmove(out->base+arg, out->base, written+1);
+            memset(out->base, '0', arg);
+            written += arg;
+          }
+
+          if (arg)
+          { memmove(out->base+2, out->base+1, written+1);
+            if ( locale->decimal_point && locale->decimal_point[0] )
+              *(out->base+1) = locale->decimal_point[0];
+            else
+              *(out->base+1) = '.';
+            written++;
+          }
+
+          if (neg)
+          { memmove(out->base+1, out->base, written+1);
+            memset(out->base, '-', 1);
+            written++;
+          }
+
+          out->top = out->base + written;
+          mpz_clear(t1);
+          mpz_clear(t2);
+          return baseBuffer(out, char);
+        }
         case 'g':
 	case 'G':
         { switch(how)
