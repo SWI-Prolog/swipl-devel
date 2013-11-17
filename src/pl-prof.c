@@ -93,8 +93,9 @@ activateProfiler(prof_status active ARG_LD)
 
   if ( active )
   { LD->profile.time_at_last_tick =
-    LD->profile.time_at_start     = active == PROF_CPU ? ThreadCPUTime(LD, CPU_USER)
-						       : WallTime();
+    LD->profile.time_at_start     = active == PROF_CPU
+					? ThreadCPUTime(LD, CPU_USER)
+					: WallTime();
 
     GD->profile.thread = LD;
   } else
@@ -118,6 +119,9 @@ thread_prof_ticks(PL_local_data_t *ld)
 				             : WallTime();
 
   ld->profile.time_at_last_tick = t1;
+
+  DEBUG(MSG_PROF_TICKS,
+	Sdprintf("%d ms\n", (int)((t1-t0)*1000.0)));
 
   return (int)((t1-t0)*1000.0);			/* milliseconds */
 }
@@ -175,10 +179,7 @@ startProfiler(prof_status how)
 void
 stopItimer(void)
 { if ( timer )
-  { DEBUG(1, Sdprintf("%ld events, %ld virtual\n",
-		      events, virtual_events));
-
-    timeKillEvent(timer);
+  { timeKillEvent(timer);
     timer = 0;
   }
 }
@@ -828,13 +829,6 @@ PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
   stopProfiler();
 
-  DEBUG(0,
-	{ PRED_LD
-	    Sdprintf("Created %ld nodes (%ld bytes); %ld ticks (%ld overhead)\n",
-		     LD->profile.nodes, LD->profile.nodes*sizeof(call_node),
-		     LD->profile.ticks, LD->profile.accounting_ticks);
-	});
-
   return rc;
 }
 
@@ -889,7 +883,8 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
     { if ( node->handle == handle )
       { node->calls++;
 	LD->profile.current = node;
-	DEBUG(2, Sdprintf("existing root %p\n", current));
+	DEBUG(MSG_PROF_CALLTREE,
+	      Sdprintf("existing root %p\n", LD->profile.current));
 
 	return node;
       }
@@ -907,7 +902,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
     LD->profile.roots = node;
     LD->profile.current = node;
     LD->profile.accounting = FALSE;
-    DEBUG(2, Sdprintf("new root %p\n", node));
+    DEBUG(MSG_PROF_CALLTREE, Sdprintf("new root %p\n", node));
 
     return node;
   }
@@ -915,7 +910,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 					/* straight recursion */
   if ( node->handle == handle )
   { node->recur++;
-    DEBUG(2, Sdprintf("direct recursion\n"));
+    DEBUG(MSG_PROF_CALLTREE, Sdprintf("direct recursion\n"));
     LD->profile.accounting = FALSE;
     return node;
   } else				/* from same parent */
@@ -928,7 +923,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
       { node->recur++;
 
 	LD->profile.current = node;
-	DEBUG(2, Sdprintf("indirect recursion\n"));
+	DEBUG(MSG_PROF_CALLTREE, Sdprintf("indirect recursion\n"));
 	LD->profile.accounting = FALSE;
 	return node;
       }
@@ -940,7 +935,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
   { if ( node->handle == handle )
     { LD->profile.current = node;
       node->calls++;
-      DEBUG(2, Sdprintf("existing child\n"));
+      DEBUG(MSG_PROF_CALLTREE, Sdprintf("existing child\n"));
       LD->profile.accounting = FALSE;
       return node;
     }
@@ -957,7 +952,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
   node->next = LD->profile.current->siblings;
   LD->profile.current->siblings = node;
   LD->profile.current = node;
-  DEBUG(2, Sdprintf("new child\n"));
+  DEBUG(MSG_PROF_CALLTREE, Sdprintf("new child\n"));
   LD->profile.accounting = FALSE;
 
   return node;
