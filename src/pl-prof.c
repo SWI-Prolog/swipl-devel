@@ -886,6 +886,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 	DEBUG(MSG_PROF_CALLTREE,
 	      Sdprintf("existing root %p\n", LD->profile.current));
 
+	LD->profile.accounting = FALSE;
 	return node;
       }
     }
