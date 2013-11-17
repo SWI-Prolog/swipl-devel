@@ -32,7 +32,7 @@ eval_map_function(get(Key), _, Map, Value) :- !,
 	get_map(Key, Map, Value).
 eval_map_function(put(Key, Value), _, Map, NewMap) :- !,
 	put_map(Key, Map, Value, NewMap).
-eval_map_function(put(New), Map, _, NewMap) :- !,
+eval_map_function(put(New), _, Map, NewMap) :- !,
 	put_map(New, Map, NewMap).
 eval_map_function(Func, Class, Map, Value) :-
 	call(Class:Func, Map, Value).
