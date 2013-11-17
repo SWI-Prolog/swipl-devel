@@ -1361,14 +1361,12 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
             }
             digits = written = gmp_snprintf(baseBuffer(out, char), size, "%Zd", t1);
           }
+          if (digits <= arg) padding = (arg-digits+1);
 
           size = digits;
           if (neg) size++;               /* leading - */
           if (arg) size++;               /* decimal point */
-          if (digits <= arg)             /* leading '0's */
-          { padding = (arg-digits+1);
-            size += padding;
-          }
+          if (padding) size += padding;  /* leading '0's */
           size++;                        /* NULL terminator */
 
           if ( !growBuffer(out, size) )
@@ -1380,15 +1378,9 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
           { memset(out->base, '\0', 1);
           }
 
-          if (neg)
-          { memmove(out->base+1, out->base, digits+1);
-            memset(out->base, '-', 1);
-            written++;
-          }
-
           if (padding)
-          { memmove(out->base+neg+padding, out->base+neg, written-neg+1);
-            memset(out->base+neg, '0', padding);
+          { memmove(out->base+padding, out->base, written+1);
+            memset(out->base, '0', padding);
             written += padding;
           }
 
@@ -1398,6 +1390,12 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
               *(out->base+written-arg) = locale->decimal_point[0];
             else
               *(out->base+written-arg) = '.';
+            written++;
+          }
+
+          if (neg)
+          { memmove(out->base+1, out->base, written+1);
+            memset(out->base, '-', 1);
             written++;
           }
 
