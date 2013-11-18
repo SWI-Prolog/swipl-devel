@@ -157,6 +157,20 @@ This library also provides _enumeration_ _predicates_, which let you
 systematically search for solutions on variables whose domains have
 become finite.
 
+You can cite this library in your publications as:
+
+==
+@inproceedings{Triska12,
+  author    = {Markus Triska},
+  title     = {The Finite Domain Constraint Solver of {SWI-Prolog}},
+  booktitle = {FLOPS},
+  series    = {LNCS},
+  volume    = {7294},
+  year      = {2012},
+  pages     = {307-316}
+}
+==
+
 ---+++ Arithmetic constraints
 
 A finite domain _arithmetic expression_ is one of:
@@ -403,22 +417,6 @@ of using the new constraint:
 Y = 5,
 Z = 1,
 X in inf..sup.
-==
-
----+++ Citing CLP(FD)
-
-You can cite this library in your publications as:
-
-==
-@inproceedings{Triska12,
-  author    = {Markus Triska},
-  title     = {The Finite Domain Constraint Solver of {SWI-Prolog}},
-  booktitle = {FLOPS},
-  series    = {LNCS},
-  volume    = {7294},
-  year      = {2012},
-  pages     = {307-316}
-}
 ==
 
 @author Markus Triska
