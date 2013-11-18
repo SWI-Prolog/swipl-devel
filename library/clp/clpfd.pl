@@ -5694,8 +5694,27 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 %  Options is a list of options. Currently, the only supported option
 %  is:
 %
-%  * limit(L)
-%  The integer L is the global resource limit.
+%    * limit(L)
+%      The integer L is the global resource limit.
+%
+%  For example, given the following predicate that relates three tasks
+%  of durations 2 and 3 to a list containing their starting times:
+%
+%  ==
+%  tasks_starts(Tasks, [S1,S2,S3]) :-
+%          Tasks = [task(S1,3,_,1,_),
+%                   task(S2,2,_,1,_),
+%                   task(S3,2,_,1,_)].
+%  ==
+%
+%  We can use cumulative/2 as follows, and obtain a schedule:
+%
+%  ==
+%  ?- tasks_starts(Tasks, Starts), Starts ins 0..10,
+%     cumulative(Tasks, [limit(2)]), label(Starts).
+%  Tasks = [task(0, 3, 3, 1, _G36), task(0, 2, 2, 1, _G45), ...],
+%  Starts = [0, 0, 2] .
+%  ==
 
 cumulative(Tasks, Options) :-
         must_be(list(list), [Tasks,Options]),
