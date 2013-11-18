@@ -238,7 +238,7 @@ X in 0..3,
 Y in 4..5.
 ==
 
-In each case (and as for all pure programs), the answer is
+In each case, and as for all pure programs, the answer is
 declaratively equivalent to the original query, and in many cases the
 constraint solver has deduced additional domain restrictions.
 
@@ -284,9 +284,9 @@ Here, the constraint solver has deduced more stringent bounds for all
 variables. It is good practice to keep the modeling part separate from
 the actual search. This lets you view residual goals, observe
 termination and determinism properties of the modeling part in
-isolation from the search, and more easily experiment with different
-search strategies. Labeling can then be used to search for solutions
-in a separate predicate or goal:
+isolation from the search, and to more easily experiment with
+different search strategies. Labeling can then be used to search for
+solutions in a separate predicate or goal:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
@@ -344,7 +344,13 @@ compilation time. The expansion's aim is to transparently bring the
 performance of CLP(FD) constraints close to that of conventional
 arithmetic predicates (</2, =:=/2, is/2 etc.) when the constraints are
 used in modes that can also be handled by built-in arithmetic. To
-disable the expansion, set the flag clpfd_goal_expansion to false.
+disable the expansion, set the flag `clpfd_goal_expansion` to `false`.
+
+If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
+monotonic: Adding new constraints cannot yield new solutions. When
+this flag is `true`, you must wrap variables that occur in arithmetic
+expressions with the functor `?/1`. For example, `?(X) #= ?(Y) +
+?(Z)`.
 
 Use call_residue_vars/2 and copy_term/3 to inspect residual goals and
 the constraints in which a variable is involved. This library also
@@ -355,7 +361,7 @@ can be useful if you want to implement your own labeling strategies.
 You can also define custom constraints. The mechanism to do this is
 not yet finalised, and we welcome suggestions and descriptions of use
 cases that are important to you. As an example of how it can be done
-currently, let us define a new custom constraint "oneground(X,Y,Z)",
+currently, let us define a new custom constraint `oneground(X,Y,Z)`,
 where Z shall be 1 if at least one of X and Y is instantiated:
 
 ==
