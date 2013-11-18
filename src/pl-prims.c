@@ -136,7 +136,7 @@ unvisit(ARG1_LD)
 
 static void
 popVisited(ARG1_LD)
-{ Word p;
+{ Word p = NULL;
 
   popSegStack(&LD->cycle.vstack, &p, Word);
   clear_marked(p);

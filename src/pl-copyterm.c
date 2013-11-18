@@ -199,7 +199,7 @@ pushForMark(segstack *stack, Word p, int wr)
 
 static void
 popForMark(segstack *stack, Word *pp, int *wr)
-{ word w;
+{ word w = 0;
 
   popSegStack(stack, &w, word);
   *wr = w & (word)0x1;
