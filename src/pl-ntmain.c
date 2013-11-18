@@ -798,7 +798,8 @@ HiddenFrameClass()
   HINSTANCE instance = rlc_hinstance();
 
   if ( !winclassname[0] )
-  { _stprintf(winclassname, _T("SWI-Prolog-hidden-win%d"), instance);
+  { snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
+	      _T("SWI-Prolog-hidden-win%d"), instance);
 
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) pl_wnd_proc;
@@ -956,7 +957,8 @@ set_window_title(rlc_console c)
   TCHAR *w64 = _T("");
 #endif
 
-  _stprintf(title, _T("SWI-Prolog (%s%sversion %d.%d.%d)"),
+  snwprintf(title, sizeof(title)/sizeof(TCHAR),
+	    _T("SWI-Prolog (%s%sversion %d.%d.%d)"),
 	    w64, mt, major, minor, patch);
 
   rlc_title(c, title, NULL, 0);
