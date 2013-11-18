@@ -162,8 +162,8 @@ become finite.
 A finite domain _arithmetic expression_ is one of:
 
     | _integer_          | Given value                          |
-    | _variable_         | Unknown value                        |
-    | ?(Variable)        | Unknown value (see below)            |
+    | _variable_         | Unknown integer                      |
+    | ?(_variable_)      | Unknown integer                      |
     | -Expr              | Unary minus                          |
     | Expr + Expr        | Addition                             |
     | Expr * Expr        | Multiplication                       |
@@ -350,7 +350,8 @@ If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
 monotonic: Adding new constraints cannot yield new solutions. When
 this flag is `true`, you must wrap variables that occur in arithmetic
 expressions with the functor `(?)/1`. For example, `?(X) #= ?(Y) +
-?(Z)`.
+?(Z)`. The wrapper can be omitted for variables that are already
+constrained to integers.
 
 Use call_residue_vars/2 and copy_term/3 to inspect residual goals and
 the constraints in which a variable is involved. This library also
