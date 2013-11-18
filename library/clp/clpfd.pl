@@ -1553,9 +1553,9 @@ all_different([X|Right], Left, Orig) :-
 %  values given the following domains:
 %
 %  ==
-%  ?- maplist(in, V,
+%  ?- maplist(in, Vs,
 %             [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
-%     all_distinct(V).
+%     all_distinct(Vs).
 %  false.
 %  ==
 
