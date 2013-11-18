@@ -1034,7 +1034,7 @@ garbage_collect_atoms/0 explicitly or lower the margin.}
 \index{MacOS}%
 If present and \const{true}, the operating system is MacOSX. Defined if
 the C compiler used to compile this version of SWI-Prolog defines
-\verb$__APPLE__$.  Note that the \prologflagitem{unix} is also defined
+\verb$__APPLE__$.  Note that the \prologflag{unix} is also defined
 for MacOSX.
 
     \prologflagitem{allow_variable_name_as_functor}{bool}{rw}
