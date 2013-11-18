@@ -349,7 +349,7 @@ disable the expansion, set the flag `clpfd_goal_expansion` to `false`.
 If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
 monotonic: Adding new constraints cannot yield new solutions. When
 this flag is `true`, you must wrap variables that occur in arithmetic
-expressions with the functor `?/1`. For example, `?(X) #= ?(Y) +
+expressions with the functor `(?)/1`. For example, `?(X) #= ?(Y) +
 ?(Z)`.
 
 Use call_residue_vars/2 and copy_term/3 to inspect residual goals and
