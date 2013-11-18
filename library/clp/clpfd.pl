@@ -142,6 +142,8 @@
 
 /** <module> Constraint Logic Programming over Finite Domains
 
+---+++ Introduction
+
 Constraint programming is a declarative formalism that lets you
 describe conditions a solution must satisfy. This library provides
 CLP(FD), Constraint Logic Programming over Finite Domains. It can be
@@ -153,10 +155,15 @@ are relations over integers. They generalise arithmetic evaluation of
 integer expressions in that propagation can proceed in all directions.
 This library also provides _enumeration_ _predicates_, which let you
 systematically search for solutions on variables whose domains have
-become finite. A finite domain _expression_ is one of:
+become finite.
 
-    | an integer         | Given value                          |
-    | a variable         | Unknown value                        |
+---+++ Arithmetic constraints
+
+A finite domain _arithmetic expression_ is one of:
+
+    | _integer_          | Given value                          |
+    | _variable_         | Unknown value                        |
+    | ?(Variable)        | Unknown value (see below)            |
     | -Expr              | Unary minus                          |
     | Expr + Expr        | Addition                             |
     | Expr * Expr        | Multiplication                       |
@@ -169,7 +176,7 @@ become finite. A finite domain _expression_ is one of:
     | abs(Expr)          | Absolute value                       |
     | Expr / Expr        | Truncated integer division           |
 
-The most important finite domain constraints are:
+The most important arithmetic constraints are:
 
     | Expr1 #>= Expr2  | Expr1 is larger than or equal to Expr2  |
     | Expr1 #=< Expr2  | Expr1 is smaller than or equal to Expr2 |
@@ -177,6 +184,8 @@ The most important finite domain constraints are:
     | Expr1 #\= Expr2  | Expr1 is not equal to Expr2 |
     | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
     | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
+
+---+++ Reification
 
 The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
 _reified_, which means reflecting their truth values into Boolean
@@ -191,6 +200,8 @@ reifiable constraints or Boolean variables, then:
     | P #<== Q  | True iff Q implies P            |
 
 The constraints of this table are reifiable as well.
+
+---+++ Examples
 
 Here is an example session with a few queries and their answers:
 
@@ -231,6 +242,8 @@ In each case (and as for all pure programs), the answer is
 declaratively equivalent to the original query, and in many cases the
 constraint solver has deduced additional domain restrictions.
 
+---+++ Search
+
 A common usage of this library is to first post the desired
 constraints among the variables of a model, and then to use
 enumeration predicates to search for solutions. As an example of a
@@ -268,11 +281,12 @@ _C5 in 2..8.
 ==
 
 Here, the constraint solver has deduced more stringent bounds for all
-variables. Keeping the modeling part separate from the search lets you
-view these residual goals, observe termination and determinism
-properties of the modeling part in isolation from the search, and more
-easily experiment with different search strategies. Labeling can then
-be used to search for solutions:
+variables. It is good practice to keep the modeling part separate from
+the actual search. This lets you view residual goals, observe
+termination and determinism properties of the modeling part in
+isolation from the search, and more easily experiment with different
+search strategies. Labeling can then be used to search for solutions
+in a separate predicate or goal:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
@@ -287,6 +301,8 @@ puzzle's unique solution, since the constraint solver is strong enough
 to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
+
+---+++ Declarative integer arithmetic
 
 You can also use CLP(FD) constraints as a more declarative alternative
 for ordinary integer arithmetic with is/2, >/2 etc. For example:
@@ -320,6 +336,8 @@ To make the predicate terminate if any argument is instantiated, add
 the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
+
+---+++ Advanced topics
 
 This library uses goal_expansion/2 to rewrite constraints at
 compilation time. The expansion's aim is to transparently bring the
@@ -379,6 +397,8 @@ Y = 5,
 Z = 1,
 X in inf..sup.
 ==
+
+---+++ Citing CLP(FD)
 
 You can cite this library in your publications as:
 
@@ -5742,7 +5762,11 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 %                    [arc(a,0,a), arc(a,1,b),
 %                     arc(b,0,a), arc(b,1,c),
 %                     arc(c,0,c), arc(c,1,c)]).
+%  ==
 %
+%  Example query:
+%
+%  ==
 %  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
 %  Vs = [0, 1, 1] ;
 %  Vs = [1, 1, 0] ;
