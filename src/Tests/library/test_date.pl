@@ -83,7 +83,8 @@ test_format :-
 	(   ok(Time, Fmt, Atom),
 	    (	format_time(atom(A), Fmt, Time)
 	    ->	(   (   A == Atom
-		    ;	memberchk(A, Atom)
+		    ;	is_list(Atom),
+			memberchk(A, Atom)
 		    )
 		->  true
 		;   format('~q: got ~q, expected ~q~n', [Fmt, A, Atom])
