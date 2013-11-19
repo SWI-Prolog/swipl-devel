@@ -296,11 +296,10 @@ _C5 in 2..8.
 
 Here, the constraint solver has deduced more stringent bounds for all
 variables. It is good practice to keep the modeling part separate from
-the actual search. This lets you view residual goals, observe
-termination and determinism properties of the modeling part in
-isolation from the search, and to more easily experiment with
-different search strategies. Labeling can then be used to search for
-solutions in a separate predicate or goal:
+the actual search. This lets you observe termination and determinism
+properties of the modeling part in isolation from the search. Labeling
+can then be used to search for solutions in a separate predicate or
+goal:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
