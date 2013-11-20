@@ -641,7 +641,7 @@ absolute_file_name(Spec, Path, Args) :-
 	;   Conditions = Args,
 	    Exts = ['']
 	),
-	'$canonise_extensions'(Exts, Extensions),
+	'$canonicalise_extensions'(Exts, Extensions),
 	(   nonvar(Type)
 	->  C0 = Conditions
 	;   C0 = [file_type(regular)|Conditions] % ask for a regular file
@@ -902,23 +902,23 @@ user:prolog_file_type(Ext,	executable) :-
 	'$list_to_set'(T, R).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Canonise the extension list. Old SWI-Prolog   require  `.pl', etc, which
-the Quintus compatibility  requests  `pl'.   This  layer  canonises  all
+Canonicalise the extension list. Old SWI-Prolog   require  `.pl', etc, which
+the Quintus compatibility  requests  `pl'.   This  layer  canonicalises  all
 extensions to .ext
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-'$canonise_extensions'([], []) :- !.
-'$canonise_extensions'([H|T], [CH|CT]) :- !,
+'$canonicalise_extensions'([], []) :- !.
+'$canonicalise_extensions'([H|T], [CH|CT]) :- !,
 	'$must_be'(atom, H),
-	'$canonise_extension'(H, CH),
-	'$canonise_extensions'(T, CT).
-'$canonise_extensions'(E, [CE]) :-
-	'$canonise_extension'(E, CE).
+	'$canonicalise_extension'(H, CH),
+	'$canonicalise_extensions'(T, CT).
+'$canonicalise_extensions'(E, [CE]) :-
+	'$canonicalise_extension'(E, CE).
 
-'$canonise_extension'('', '') :- !.
-'$canonise_extension'(DotAtom, DotAtom) :-
+'$canonicalise_extension'('', '') :- !.
+'$canonicalise_extension'(DotAtom, DotAtom) :-
 	sub_atom(DotAtom, 0, _, _, '.'), !.
-'$canonise_extension'(Atom, DotAtom) :-
+'$canonicalise_extension'(Atom, DotAtom) :-
 	atom_concat('.', Atom, DotAtom).
 
 

@@ -7464,7 +7464,7 @@ since Jan~1, 1970. See also convert_time/[2,8] and get_time/1.
 
     \predicate{absolute_file_name}{2}{+File, -Absolute}
 Expand a local filename into an absolute path. The absolute path is
-canonised: references to \file{.} and \file{..} are deleted. This
+canonicalised: references to \file{.} and \file{..} are deleted. This
 predicate ensures that expanding a filename returns the same
 absolute path regardless of how the file is addressed. SWI-Prolog uses
 absolute filenames to register source files independent of the current

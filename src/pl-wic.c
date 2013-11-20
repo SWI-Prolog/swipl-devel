@@ -1291,7 +1291,7 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     strcpy(buf, raw);
   }
 
-  return PL_new_atom(canonisePath(buf));
+  return PL_new_atom(canonicalisePath(buf));
 }
 
 

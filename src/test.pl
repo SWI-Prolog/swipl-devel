@@ -2235,16 +2235,16 @@ root(Root) :-
 	;   Root == (/)
 	).
 
-file(canonise-1) :-
+file(canonicalise-1) :-
 	absolute_file_name('/foo/..', X),
 	root(X).
-file(canonise-2) :-
+file(canonicalise-2) :-
 	absolute_file_name('/foo/../..', X),
 	root(X).
-file(canonise-3) :-
+file(canonicalise-3) :-
 	absolute_file_name('/foo/../../..', X),
 	root(X).
-file(canonise-4) :-
+file(canonicalise-4) :-
 	absolute_file_name('/foo/../../../', X),
 	root(X).
 file(exists-1) :-
@@ -2263,7 +2263,7 @@ file(cwd-1) :-
 	working_directory(CWD, CWD),
 	exists_directory(CWD),
 	same_file(CWD, '.').
-file(absfile-2) :-			% canoniseDir() caching issues
+file(absfile-2) :-			% canonicaliseDir() caching issues
 	X = 'pl-test-x',
 	Y = 'pl-test-y',
 	atom_concat(X, '/file', XF),

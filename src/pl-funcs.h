@@ -340,7 +340,7 @@ COMMON(void)		cleanupOs(void);
 COMMON(char *)		OsError(void);
 COMMON(void)		setRandom(unsigned int *seed);
 COMMON(uint64_t)	_PL_Random(void);
-COMMON(char *)		canonisePath(char *path);
+COMMON(char *)		canonicalisePath(char *path);
 COMMON(char *)		OsPath(const char *plpath, char *ospath);
 COMMON(char *)		PrologPath(const char *ospath, char *plpath, size_t len);
 COMMON(void)		setOSPrologFlags(void);
