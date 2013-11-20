@@ -51,7 +51,7 @@
 %	    call_residue/2,		% :Goal, -Residue
 
 	    prolog_flag/3,		% +Flag, -Old, +New
-	    prolog_flag/2		% +Flag, -Value
+	    prolog_flag/2,		% +Flag, -Value
 
 	    op(1150, fx, (block))
 	  ]).
