@@ -82,6 +82,9 @@
 :- meta_predicate
 	map_bits(2, +, +, -).
 
+map_bits(_, Var, _, _) :-
+	var(Var), !,
+
 map_bits(_, [], Bits, Bits) :- !.
 map_bits(Pred, [H|T], Old, New) :-
 	map_bits(Pred, H, Old, New0),
@@ -92,14 +95,16 @@ map_bits(Pred, +Name, Old, New) :- !,	% set a bit
 map_bits(Pred, -Name, Old, New) :- !,	% clear a bit
 	bit(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
-map_bits(Pred, ?(Name), Old, Old) :-		% ask a bit
+map_bits(Pred, ?(Name), Old, Old) :- !,	% ask a bit
 	bit(Pred, Name, Bits),
 	Old /\ Bits > 0.
+map_bits(_, Term, _, _) :-
+	'$type_error'('+|-|?(Flag)', Term).
 
 bit(Pred, Name, Bits) :-
 	call(Pred, Name, Bits), !.
 bit(_:Pred, Name, _) :-
-	throw(error(domain_error(Pred, Name), _)).
+	'$domain_error'(Pred, Name).
 
 :- public port_name/2.			% used by library(test_cover)
 
@@ -140,10 +145,6 @@ style_name(var_branches,    0x0100).
 style_check(Var) :-
 	var(Var), !,
 	'$instantiation_error'(Var).
-style_check(+string) :- !,
-	set_prolog_flag(double_quotes, string).
-style_check(-string) :- !,
-	set_prolog_flag(double_quotes, codes).
 style_check(?(Style)) :- !,
 	(   var(Style)
 	->  enum_style_check(Style)
@@ -155,8 +156,6 @@ style_check(Spec) :-
 	map_bits(style_name, Spec, Old, New),
 	'$style_check'(_, New).
 
-enum_style_check(string) :-
-	current_prolog_flag(double_quotes, string).
 enum_style_check(Style) :-
 	'$style_check'(Bits, Bits),
 	style_name(Style, Bit),
