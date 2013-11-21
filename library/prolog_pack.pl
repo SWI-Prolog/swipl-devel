@@ -1835,6 +1835,9 @@ read_selection(Max, Choice) :-
 	;   print_message(warning, menu(reply(1,Max)))
 	).
 
+answered_default(0'\r).
+answered_default(0'\n).
+
 %%	confirm(+Question, +Default, +Options) is semidet.
 %
 %	Ask for confirmation.
