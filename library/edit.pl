@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -85,7 +84,7 @@ edit :-
 	current_prolog_flag(associated_file, File), !,
 	edit(file(File)).
 edit :-
-	'$option'(script_file, OsFiles),
+	'$cmd_option_val'(script_file, OsFiles),
 	OsFiles = [OsFile], !,
 	prolog_to_os_filename(File, OsFile),
 	edit(file(File)).
@@ -141,13 +140,19 @@ locate(FileBase, source_file(Path), [file(Path)]) :-
 	atom(FileBase),
 	source_file(Path),
 	file_base_name(Path, File),
-	file_name_extension(FileBase, _, File).
+	(   File == FileBase
+	->  true
+	;   file_name_extension(FileBase, _, File)
+	).
 locate(FileBase, include_file(Path), [file(Path)]) :-
 	atom(FileBase),
 	setof(Path, include_file(Path), Paths),
 	member(Path, Paths),
 	file_base_name(Path, File),
-	file_name_extension(FileBase, _, File).
+	(   File == FileBase
+	->  true
+	;   file_name_extension(FileBase, _, File)
+	).
 locate(Name, FullSpec, Location) :-
 	atom(Name),
 	locate(Name/_, FullSpec, Location).
