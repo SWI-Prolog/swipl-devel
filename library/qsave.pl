@@ -323,6 +323,7 @@ define_predicate(Head) :-
 define_init_goal(Options) :-
 	option(goal(Goal), Options), !,
 	define_predicate(Goal).
+define_init_goal(_).
 
 define_toplevel_goal(Options) :-
 	option(toplevel(Goal), Options), !,
