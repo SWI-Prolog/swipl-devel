@@ -58,9 +58,9 @@
 #endif
 
 \newcommand{\vmajor}{6}
-\newcommand{\vminor}{4}
-\newcommand{\vpatch}{1}
-\newcommand{\vmonth}{July}
+\newcommand{\vminor}{6}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{November}
 \newcommand{\vyear}{2013}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
