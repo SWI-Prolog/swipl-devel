@@ -1268,7 +1268,7 @@ safe_pack_name(Name) :-
 safe_pack_char(C) :- between(0'a, 0'z, C), !.
 safe_pack_char(C) :- between(0'A, 0'Z, C), !.
 safe_pack_char(C) :- between(0'0, 0'9, C), !.
-safe_pack_char(C) :- memberchk(C, "_").
+safe_pack_char(0'_).
 
 
 		 /*******************************
@@ -1835,9 +1835,6 @@ read_selection(Max, Choice) :-
 	;   print_message(warning, menu(reply(1,Max)))
 	).
 
-answered_default(0'\r).
-answered_default(0'\n).
-
 %%	confirm(+Question, +Default, +Options) is semidet.
 %
 %	Ask for confirmation.
@@ -1867,8 +1864,9 @@ code_yes_no(_, none, _) :- !, fail.
 code_yes_no(C, Default, Default) :-
 	answered_default(C).
 
-answered_default(C) :-
-	memberchk(C, "\r\n ").
+answered_default(0'\r).
+answered_default(0'\n).
+answered_default(0'\s).
 
 
 		 /*******************************
