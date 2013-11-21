@@ -181,8 +181,8 @@ the compilation flags. We play safe for   the  case the user changes the
 flags after running configure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !defined(DOUBLE_ALIGNMENT) && defined(__mips__)
-#define DOUBLE_ALIGNMENT sizeof(double)
+#if defined(__mips__)
+#define ALIGNOF_DOUBLE sizeof(double)
 #endif
 
 
@@ -194,8 +194,8 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #ifdef __ia64__
 #define JMPBUF_ALIGNMENT 128
 #else
-#ifdef DOUBLE_ALIGNMENT
-#define JMPBUF_ALIGNMENT DOUBLE_ALIGNMENT
+#if ALIGNOF_DOUBLE != ALIGNOF_VOIDP
+#define JMPBUF_ALIGNMENT ALIGNOF_DOUBLE
 #endif
 #endif
 #endif
@@ -756,6 +756,7 @@ typedef enum
 #define GP_TYPE_QUIET	0x400		/* don't throw errors on wrong types */
 #define GP_EXISTENCE_ERROR 0x800	/* throw error if proc is not found */
 #define GP_QUALIFY	0x1000		/* Always module-qualify */
+#define GP_NOT_QUALIFIED 0x2000		/* Demand unqualified name/arity */
 
 					/* get_functor() */
 #define GF_EXISTING	1
@@ -927,15 +928,14 @@ doing the trick: it causes failure of the  test suite for which I failed
 to find the reason. Enabling the structure   on x86 causes a slowdown of
 about 5%. I'd assume the difference is smaller on real 32-bit hardware.
 
-We   enable   this   if   sizeof(void*)   is   not   sizeof(gen_t)   and
-DOUBLE_ALIGNMENT is set by configure. Here,   we  assume that double and
-uint64_t have the same alignment restrictions. Is this realistic?
+We enable this  if the alignment  of an int64_t type  is not the same as
+the alignment of pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_LOGICAL_UPDATE
 typedef uint64_t gen_t;
 
-#if SIZEOF_VOIDP != 8 && defined(DOUBLE_ALIGNMENT)
+#if ALIGNOF_INT64_T != ALIGNOF_VOIDP
 typedef struct lgen_t
 { uint32_t	gen_l;
   uint32_t	gen_u;
@@ -1172,7 +1172,7 @@ typedef struct clause_ref
 
 #define CA1_PROC	1	/* code arg 1 is procedure */
 #define CA1_FUNC	2	/* code arg 1 is functor */
-#define CA1_DATA	3	/* code arg 2 is prolog data (H_CONST) */
+#define CA1_DATA	3	/* code arg 2 is prolog data (H_ATOM, H_SMALLINT) */
 #define CA1_INTEGER	4	/* intptr_t value */
 #define CA1_INT64	5	/* int64 value */
 #define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
@@ -2018,6 +2018,7 @@ Tracer communication declarations.
 
 #define LONGATOM_CHECK	    0x0001	/* read/1: error on intptr_t atoms */
 #define SINGLETON_CHECK	    0x0002	/* read/1: check singleton vars */
+#define MULTITON_CHECK	    0x0004	/* read/1: check multiton vars */
 #define DISCONTIGUOUS_STYLE 0x0008	/* warn on discontiguous predicates */
 #define DYNAMIC_STYLE	    0x0010	/* warn on assert/retract active */
 #define CHARSET_CHECK	    0x0020	/* warn on unquoted characters */

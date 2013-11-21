@@ -179,12 +179,12 @@ select_option(Option, Options, RestOptions, Default) :-
 %	option.
 
 merge_options([], Old, Merged) :- !,
-	canonise_options(Old, Merged).
+	canonicalise_options(Old, Merged).
 merge_options(New, [], Merged) :- !,
-	canonise_options(New, Merged).
+	canonicalise_options(New, Merged).
 merge_options(New, Old, Merged) :-
-	canonise_options(New, NCanonical),
-	canonise_options(Old, OCanonical),
+	canonicalise_options(New, NCanonical),
+	canonicalise_options(Old, OCanonical),
 	sort(NCanonical, NSorted),
 	sort(OCanonical, OSorted),
 	ord_merge(NSorted, OSorted, Merged).
@@ -217,21 +217,21 @@ ord_merge(>, NO, NKey, OO, _, TN, TO, [OO|T]) :-
 sort_key(Option, Name-Arity) :-
 	functor(Option, Name, Arity).
 
-%%	canonise_options(+OptionsIn, -OptionsOut) is det.
+%%	canonicalise_options(+OptionsIn, -OptionsOut) is det.
 %
 %	Rewrite option list from possible Name=Value to Name(Value)
 
-canonise_options(In, Out) :-
+canonicalise_options(In, Out) :-
 	memberchk(_=_, In), !,		% speedup a bit if already ok.
-	canonise_options2(In, Out).
-canonise_options(Options, Options).
+	canonicalise_options2(In, Out).
+canonicalise_options(Options, Options).
 
-canonise_options2([], []).
-canonise_options2([Name=Value|T0], [H|T]) :- !,
+canonicalise_options2([], []).
+canonicalise_options2([Name=Value|T0], [H|T]) :- !,
 	H =.. [Name,Value],
-	canonise_options2(T0, T).
-canonise_options2([H|T0], [H|T]) :- !,
-	canonise_options2(T0, T).
+	canonicalise_options2(T0, T).
+canonicalise_options2([H|T0], [H|T]) :- !,
+	canonicalise_options2(T0, T).
 
 
 %%	meta_options(+IsMeta, :Options0, -Options) is det.

@@ -45,8 +45,7 @@ calls([_, _, _, _, Where|Rest], File, Line, Callee) :-
 	), !.
 
 main :-
-	current_prolog_flag(argv, Argv),
-	append(_, [--,In,Out], Argv),
+	current_prolog_flag(argv, [In,Out]),
 	format(user_error, 'Processing ~w ...', [In]),
 	statistics(cputime, T0),
 	catch(process(In, Out), E,

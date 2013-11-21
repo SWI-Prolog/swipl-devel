@@ -849,7 +849,7 @@ install_t		PL_install_readline(void);
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
 PL_EXPORT(void)		PL_cleanup_fork();
-PL_EXPORT(void)		PL_halt(int status) NORETURN;
+PL_EXPORT(int)		PL_halt(int status);
 
 		 /*******************************
 		 *      INPUT/PROMPT/ETC	*
@@ -948,7 +948,8 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 #define PL_BT_USER		0x2	/* Only show user-goals */
 
 PL_EXPORT(int)	PL_action(int, ...);	/* perform some action */
-PL_EXPORT(void)	PL_on_halt(void (*)(int, void *), void *);
+PL_EXPORT(void)	PL_on_halt(int (*)(int, void *), void *);
+PL_EXPORT(void)	PL_exit_hook(int (*)(int, void *), void *);
 PL_EXPORT(void)	PL_backtrace(int depth, int flags);
 PL_EXPORT(int)	PL_check_data(term_t data);
 PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
@@ -980,6 +981,8 @@ PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 		 *	  PROLOG THREADS	*
 		 *******************************/
 
+#define PL_THREAD_NO_DEBUG	0x01	/* Start thread in nodebug mode */
+
 typedef struct
 { long	    local_size;			/* Stack sizes (Kbytes) */
   long	    global_size;
@@ -987,7 +990,8 @@ typedef struct
   long	    argument_size;
   char *    alias;			/* alias name */
   int	  (*cancel)(int id);		/* cancel function */
-  void *    reserved[5];		/* reserved for extensions */
+  intptr_t  flags;			/* PL_THREAD_* flags */
+  void *    reserved[4];		/* reserved for extensions */
 } PL_thread_attr_t;
 
 

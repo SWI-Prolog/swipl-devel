@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2012 Markus Triska
+    Copyright (C): 2007-2013 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -124,9 +124,9 @@
                   fd_dom/2
                  ]).
 
-:- public				% called from goal_expansion
-	clpfd_equal/2,
-	clpfd_geq/2.
+:- public                               % called from goal_expansion
+        clpfd_equal/2,
+        clpfd_geq/2.
 
 :- use_module(library(apply_macros)).
 :- use_module(library(assoc)).
@@ -142,6 +142,8 @@
 
 /** <module> Constraint Logic Programming over Finite Domains
 
+---+++ Introduction
+
 Constraint programming is a declarative formalism that lets you
 describe conditions a solution must satisfy. This library provides
 CLP(FD), Constraint Logic Programming over Finite Domains. It can be
@@ -153,10 +155,29 @@ are relations over integers. They generalise arithmetic evaluation of
 integer expressions in that propagation can proceed in all directions.
 This library also provides _enumeration_ _predicates_, which let you
 systematically search for solutions on variables whose domains have
-become finite. A finite domain _expression_ is one of:
+become finite.
 
-    | an integer         | Given value                          |
-    | a variable         | Unknown value                        |
+You can cite this library in your publications as:
+
+==
+@inproceedings{Triska12,
+  author    = {Markus Triska},
+  title     = {The Finite Domain Constraint Solver of {SWI-Prolog}},
+  booktitle = {FLOPS},
+  series    = {LNCS},
+  volume    = {7294},
+  year      = {2012},
+  pages     = {307-316}
+}
+==
+
+---+++ Arithmetic constraints
+
+A finite domain _arithmetic expression_ is one of:
+
+    | _integer_          | Given value                          |
+    | _variable_         | Unknown integer                      |
+    | ?(_variable_)      | Unknown integer                      |
     | -Expr              | Unary minus                          |
     | Expr + Expr        | Addition                             |
     | Expr * Expr        | Multiplication                       |
@@ -169,7 +190,7 @@ become finite. A finite domain _expression_ is one of:
     | abs(Expr)          | Absolute value                       |
     | Expr / Expr        | Truncated integer division           |
 
-The most important finite domain constraints are:
+The most important arithmetic constraints are:
 
     | Expr1 #>= Expr2  | Expr1 is larger than or equal to Expr2  |
     | Expr1 #=< Expr2  | Expr1 is smaller than or equal to Expr2 |
@@ -177,6 +198,8 @@ The most important finite domain constraints are:
     | Expr1 #\= Expr2  | Expr1 is not equal to Expr2 |
     | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
     | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
+
+---+++ Reification
 
 The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
 _reified_, which means reflecting their truth values into Boolean
@@ -190,10 +213,9 @@ reifiable constraints or Boolean variables, then:
     | P #==> Q  | True iff P implies Q            |
     | P #<== Q  | True iff Q implies P            |
 
-The constraints of this table are reifiable as well. If a variable
-occurs at the place of a constraint that is being reified, it is
-implicitly constrained to the Boolean values 0 and 1. Therefore, the
-following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
+The constraints of this table are reifiable as well.
+
+---+++ Examples
 
 Here is an example session with a few queries and their answers:
 
@@ -230,9 +252,11 @@ X in 0..3,
 Y in 4..5.
 ==
 
-In each case (and as for all pure programs), the answer is
+In each case, and as for all pure programs, the answer is
 declaratively equivalent to the original query, and in many cases the
 constraint solver has deduced additional domain restrictions.
+
+---+++ Search
 
 A common usage of this library is to first post the desired
 constraints among the variables of a model, and then to use
@@ -271,11 +295,11 @@ _C5 in 2..8.
 ==
 
 Here, the constraint solver has deduced more stringent bounds for all
-variables. Keeping the modeling part separate from the search lets you
-view these residual goals, observe termination and determinism
-properties of the modeling part in isolation from the search, and more
-easily experiment with different search strategies. Labeling can then
-be used to search for solutions:
+variables. It is good practice to keep the modeling part separate from
+the actual search. This lets you observe termination and determinism
+properties of the modeling part in isolation from the search. Labeling
+can then be used to search for solutions in a separate predicate or
+goal:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
@@ -291,6 +315,8 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
+---+++ Declarative integer arithmetic
+
 You can also use CLP(FD) constraints as a more declarative alternative
 for ordinary integer arithmetic with is/2, >/2 etc. For example:
 
@@ -299,8 +325,8 @@ for ordinary integer arithmetic with is/2, >/2 etc. For example:
 
 n_factorial(0, 1).
 n_factorial(N, F) :-
-	N #> 0, N1 #= N - 1, F #= N * F1,
-	n_factorial(N1, F1).
+        N #> 0, N1 #= N - 1, F #= N * F1,
+        n_factorial(N1, F1).
 ==
 
 This predicate can be used in all directions. For example:
@@ -324,12 +350,21 @@ the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
 
+---+++ Advanced topics
+
 This library uses goal_expansion/2 to rewrite constraints at
 compilation time. The expansion's aim is to transparently bring the
 performance of CLP(FD) constraints close to that of conventional
 arithmetic predicates (</2, =:=/2, is/2 etc.) when the constraints are
 used in modes that can also be handled by built-in arithmetic. To
-disable the expansion, set the flag clpfd_goal_expansion to false.
+disable the expansion, set the flag `clpfd_goal_expansion` to `false`.
+
+If you set the flag `clpfd_monotonic` to `true`, then CLP(FD) is
+monotonic: Adding new constraints cannot yield new solutions. When
+this flag is `true`, you must wrap variables that occur in arithmetic
+expressions with the functor `(?)/1`. For example, `?(X) #= ?(Y) +
+?(Z)`. The wrapper can be omitted for variables that are already
+constrained to integers.
 
 Use call_residue_vars/2 and copy_term/3 to inspect residual goals and
 the constraints in which a variable is involved. This library also
@@ -340,7 +375,7 @@ can be useful if you want to implement your own labeling strategies.
 You can also define custom constraints. The mechanism to do this is
 not yet finalised, and we welcome suggestions and descriptions of use
 cases that are important to you. As an example of how it can be done
-currently, let us define a new custom constraint "oneground(X,Y,Z)",
+currently, let us define a new custom constraint `oneground(X,Y,Z)`,
 where Z shall be 1 if at least one of X and Y is instantiated:
 
 ==
@@ -381,20 +416,6 @@ of using the new constraint:
 Y = 5,
 Z = 1,
 X in inf..sup.
-==
-
-You can cite this library in your publications as:
-
-==
-@inproceedings{Triska12,
-  author    = {Markus Triska},
-  title     = {The Finite Domain Constraint Solver of {SWI-Prolog}},
-  booktitle = {FLOPS},
-  series    = {LNCS},
-  volume    = {7294},
-  year      = {2012},
-  pages     = {307-316}
-}
 ==
 
 @author Markus Triska
@@ -557,11 +578,9 @@ cis_goals(A0^B0, R)      -->
         [cis_exp(A, B, R)].
 
 list_goal([], true).
-list_goal([C|Cs], Goal) :- list_goal_(Cs, C, Goal).
+list_goal([G|Gs], Goal) :- foldl(list_goal_, Gs, G, Goal).
 
-list_goal_([], G, G).
-list_goal_([C|Cs], G0, G) :- list_goal_(Cs, (G0,C), G).
-
+list_goal_(G, G0, (G0,G)).
 
 cis_sign(sup, n(1)).
 cis_sign(inf, n(-1)).
@@ -1247,7 +1266,7 @@ label([], _, Selection, Order, Choice, Optim0, Consistency, Vars) :-
 exprs_singlevars([], []).
 exprs_singlevars([E|Es], [SV|SVs]) :-
         E =.. [F,Expr],
-        Single #= Expr,
+        ?(Single) #= Expr,
         SV =.. [F,Single],
         exprs_singlevars(Es, SVs).
 
@@ -1558,9 +1577,9 @@ all_different([X|Right], Left, Orig) :-
 %  values given the following domains:
 %
 %  ==
-%  ?- maplist(in, V,
-%	      [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
-%     all_distinct(V).
+%  ?- maplist(in, Vs,
+%             [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]),
+%     all_distinct(Vs).
 %  false.
 %  ==
 
@@ -1586,13 +1605,12 @@ all_distinct(Ls) :-
 
 sum(Vs, Op, Value) :-
         must_be(list, Vs),
-        length(Vs, L),
-        length(Ones, L),
+        same_length(Vs, Ones),
         maplist(=(1), Ones),
         scalar_product(Ones, Vs, Op, Value).
 
 vars_plusterm([], _, T, T).
-vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C*V), T).
+vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C* ?(V)), T).
 
 %% scalar_product(+Cs, +Vs, +Rel, ?Expr)
 %
@@ -1605,7 +1623,7 @@ scalar_product(Cs, Vs, Op, Value) :-
         must_be(list, Vs),
         must_be(callable, Op),
         maplist(fd_variable, Vs),
-        \+ cyclic_term(Value),
+        must_be(acyclic, Value),
         (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
         ;   domain_error(scalar_product_relation, Op)
         ),
@@ -1617,7 +1635,7 @@ scalar_product(Cs, Vs, Op, Value) :-
 
 sum([], _, Sum, Op, Value) :- call(Op, Sum, Value).
 sum([C|Cs], [X|Xs], Acc, Op, Value) :-
-        NAcc #= Acc + C*X,
+        ?(NAcc) #= Acc + C* ?(X),
         sum(Cs, Xs, NAcc, Op, Value).
 
 multiples([], [], _).
@@ -1626,7 +1644,7 @@ multiples([C|Cs], [V|Vs], Left) :-
             (   N =\= 1, gcd(C,N) =:= 1 ->
                 gcd(Cs, N, GCD0),
                 gcd(Left, GCD0, GCD),
-                (   GCD > 1 -> V #= GCD*_
+                (   GCD > 1 -> ?(V) #= GCD * ?(_)
                 ;   true
                 )
             ;   true
@@ -1901,23 +1919,31 @@ power_var_num(P, X, N) :-
 
 parse_clpfd(E, R,
             [g(cyclic_term(E)) => [g(domain_error(clpfd_expression, E))],
-             g(var(E))         => [g(constrain_to_integer(E)), g(E = R)],
+             g(var(E))         => [g(non_monotonic(E)),
+                                   g(constrain_to_integer(E)), g(E = R)],
              g(integer(E))     => [g(R = E)],
+             ?(E)              => [g(must_be_fd_integer(E)), g(R = E)],
              m(A+B)            => [p(pplus(A, B, R))],
              % power_var_num/3 must occur before */2 to be useful
              g(power_var_num(E, V, N)) => [p(pexp(V, N, R))],
              m(A*B)            => [p(ptimes(A, B, R))],
              m(A-B)            => [p(pplus(R,B,A))],
              m(-A)             => [p(ptimes(-1,A,R))],
-             m(max(A,B))       => [g(A #=< R), g(B #=< R), p(pmax(A, B, R))],
-             m(min(A,B))       => [g(A #>= R), g(B #>= R), p(pmin(A, B, R))],
-             m(mod(A,B))       => [g(B #\= 0), p(pmod(A, B, R))],
-             m(rem(A,B))       => [g(B #\= 0), p(prem(A, B, R))],
-             m(abs(A))         => [g(R #>= 0), p(pabs(A, R))],
+             m(max(A,B))       => [g(A #=< ?(R)), g(B #=< R), p(pmax(A, B, R))],
+             m(min(A,B))       => [g(A #>= ?(R)), g(B #>= R), p(pmin(A, B, R))],
+             m(A mod B)        => [g(B #\= 0), p(pmod(A, B, R))],
+             m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
+             m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
+
+non_monotonic(X) :-
+        (   \+ fd_var(X), current_prolog_flag(clpfd_monotonic, true) ->
+            instantiation_error(X)
+        ;   true
+        ).
 
 % Here, we compile the committed choice language to a single
 % predicate, parse_clpfd/2.
@@ -1939,11 +1965,12 @@ parse_matcher(E, R, Matcher, Clause) :-
                 parse_goals(Goals0)), Goals),
         Clause = (parse_clpfd(Head, R) :- Goals).
 
-parse_condition(g(Goal), E, E) --> [Goal, !].
+parse_condition(g(Goal), E, E)       --> [Goal, !].
+parse_condition(?(E), _, ?(E))       --> [!].
 parse_condition(m(Match), _, Match0) -->
-        { copy_term(Match, Match0) },
         [!],
-        { term_variables(Match0, Vs0),
+        { copy_term(Match, Match0),
+          term_variables(Match0, Vs0),
           term_variables(Match, Vs)
         },
         parse_match_variables(Vs0, Vs).
@@ -2050,7 +2077,7 @@ matches([
          m_c(any(X) #>= any(Y), left_right_linsum_const(X, Y, Cs, Vs, Const)) =>
             [g((   Cs = [1], Vs = [A] -> geq(A, Const)
                ;   Cs = [-1], Vs = [A] -> Const1 is -Const, geq(Const1, A)
-               ;   Cs = [1,1], Vs = [A,B] -> A+B #= S, geq(S, Const)
+               ;   Cs = [1,1], Vs = [A,B] -> ?(A) + ?(B) #= ?(S), geq(S, Const)
                ;   Cs = [1,-1], Vs = [A,B] ->
                    (   Const =:= 0 -> geq(A, B)
                    ;   C1 is -Const,
@@ -2062,7 +2089,7 @@ matches([
                        propagator_init_trigger(x_leq_y_plus_c(A, B, C1))
                    )
                ;   Cs = [-1,-1], Vs = [A,B] ->
-                   A+B #= S, Const1 is -Const, geq(Const1, S)
+                   ?(A) + ?(B) #= ?(S), Const1 is -Const, geq(Const1, S)
                ;   scalar_product_(#>=, Cs, Vs, Const)
                ))],
          m(any(X) - any(Y) #>= integer(C))     => [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
@@ -2156,7 +2183,10 @@ matcher(m_c(Matcher,Cond), Gs) -->
         ).
 
 match(any(A), T)     --> [A = T].
-match(var(V), T)     --> [v_or_i(T), V = T].
+match(var(V), T)     --> [( nonvar(T), T = ?(Var) ->
+                            must_be_fd_integer(Var), V = Var
+                          ; v_or_i(T), V = T
+                          )].
 match(integer(I), T) --> [integer(T), I = T].
 match(-X, T)         --> [nonvar(T), T = -A], match(X, A).
 match(abs(X), T)     --> [nonvar(T), T = abs(A)], match(X, A).
@@ -2208,8 +2238,10 @@ clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
    arithmetic. Their order is significant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-expr_conds(E, E)                 --> { var(E) }, !, [integer(E)].
-expr_conds(E, E)                 --> { integer(E) }, !.
+expr_conds(E, E)                 --> [integer(E)],
+        { var(E), !, \+ current_prolog_flag(clpfd_monotonic, true) }.
+expr_conds(E, E)                 --> { integer(E) }.
+expr_conds(?(E), E)              --> [integer(E)].
 expr_conds(-E0, -E)              --> expr_conds(E0, E).
 expr_conds(abs(E0), abs(E))      --> expr_conds(E0, E).
 expr_conds(A0+B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
@@ -2268,8 +2300,9 @@ user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
-linsum(I, S0, S)   --> { integer(I), !, S is S0 + I }.
+linsum(X, S, S)    --> { var(X), !, non_monotonic(X) }, [vn(X,1)].
+linsum(I, S0, S)   --> { integer(I), S is S0 + I }.
+linsum(?(X), S, S) --> { must_be_fd_integer(X) }, [vn(X,1)].
 linsum(-A, S0, S)  --> mulsum(A, -1, S0, S).
 linsum(N*A, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
 linsum(A*N, S0, S) --> { integer(N) }, !, mulsum(A, N, S0, S).
@@ -2283,8 +2316,13 @@ mulsum(A, M, S0, S) -->
 lin_mul([], _)             --> [].
 lin_mul([vn(X,N0)|VNs], M) --> { N is N0*M }, [vn(X,N)], lin_mul(VNs, M).
 
-v_or_i(V) :- var(V), !.
+v_or_i(V) :- var(V), !, non_monotonic(V).
 v_or_i(I) :- integer(I).
+
+must_be_fd_integer(X) :-
+        (   var(X) -> constrain_to_integer(X)
+        ;   must_be(integer, X)
+        ).
 
 left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
         phrase(linsum(Left, 0, CL), Lefts0, Rights),
@@ -2437,7 +2475,7 @@ X #> Y  :- X #>= Y + 1.
 %    findall(pair(A,B)-pair(C,D), label(Vs), Ms).
 % Ms = [ pair(1, 2)-pair(3, 4),
 %        pair(1, 3)-pair(2, 4),
-%	 pair(1, 4)-pair(2, 3)].
+%        pair(1, 4)-pair(2, 3)].
 % ==
 
 X #< Y  :- Y #> X.
@@ -2557,7 +2595,7 @@ conjunctive_neqs_vals(A #/\ B) -->
 %
 % ==
 % ?- findall(N, (N mod 3 #= 0 #\/ N mod 5 #= 0, N in 0..999,
-%		 indomain(N)),
+%                indomain(N)),
 %            Ns),
 %    sum(Ns, #=, Sum).
 % Ns = [0, 3, 5, 6, 9, 10, 12, 15, 18|...],
@@ -2619,18 +2657,20 @@ disjunctive_eqs_vals(A #\/ B) -->
 
 parse_reified(E, R, D,
               [g(cyclic_term(E)) => [g(domain_error(clpfd_expression, E))],
-               g(var(E))     => [g(constrain_to_integer(E)), g(R = E), g(D=1)],
+               g(var(E))     => [g(non_monotonic(E)),
+                                 g(constrain_to_integer(E)), g(R = E), g(D=1)],
                g(integer(E)) => [g(R=E), g(D=1)],
+               ?(E)          => [g(must_be_fd_integer(E)), g(R=E), g(D=1)],
                m(A+B)        => [d(D), p(pplus(A,B,R)), a(A,B,R)],
                m(A*B)        => [d(D), p(ptimes(A,B,R)), a(A,B,R)],
                m(A-B)        => [d(D), p(pplus(R,B,A)), a(A,B,R)],
                m(-A)         => [d(D), p(ptimes(-1,A,R)), a(R)],
                m(max(A,B))   => [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
                m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
-               m(abs(A))     => [g(R#>=0), d(D), p(pabs(A, R)), a(A,R)],
-               m(A/B)        => [skeleton(A,B,D,R,pdiv,A/B #= R)],
-               m(A mod B)    => [skeleton(A,B,D,R,pmod,A mod B #= R)],
-               m(A rem B)    => [skeleton(A,B,D,R,prem,A rem B #= R)],
+               m(abs(A))     => [g(?(R)#>=0), d(D), p(pabs(A, R)), a(A,R)],
+               m(A/B)        => [skeleton(A,B,D,R,pdiv)],
+               m(A mod B)    => [skeleton(A,B,D,R,pmod)],
+               m(A rem B)    => [skeleton(A,B,D,R,prem)],
                m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
                g(true)       => [g(domain_error(clpfd_expression, E))]]
              ).
@@ -2660,10 +2700,11 @@ parse_reified(E, R, D, Matcher, Clause) :-
         Clause = (parse_reified_clpfd(Head, R, D) --> Goals).
 
 reified_condition(g(Goal), E, E, []) --> [{Goal}, !].
+reified_condition(?(E), _, ?(E), []) --> [!].
 reified_condition(m(Match), _, Match0, Ds) -->
-        { copy_term(Match, Match0) },
         [!],
-        { term_variables(Match0, Vs0),
+        { copy_term(Match, Match0),
+          term_variables(Match0, Vs0),
           term_variables(Match, Vs)
         },
         reified_variables(Vs0, Vs, Ds).
@@ -2693,10 +2734,10 @@ reified_goal(p(Vs, Prop), _) -->
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
-reified_goal(skeleton(A,B,D,R,Functor,G), Ds) -->
-        { Prop =.. [Functor,X,Y,Z],
+reified_goal(skeleton(A,B,D,R,F), Ds) -->
+        { Prop =.. [F,X,Y,Z],
           phrase(reified_goals([d(D1),l(p(P)),g(make_propagator(Prop, P)),
-                                p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,G)),
+                                p([A,B,D2,R], pskeleton(A,B,D2,[X,Y,Z]-P,R,F)),
                                 p(reified_and(D1,[],D2,[],D)),a(D2),a(A,B,R)],
                                Ds), Goals),
           list_goal(Goals, Goal) },
@@ -2714,81 +2755,86 @@ parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
 
 reify(E, B) :- reify(E, B, _).
 
-reify(Expr, B, Ps) :- phrase(reify(Expr, B), Ps).
+reify(Expr, B, Ps) :-
+        (   acyclic_term(Expr), reifiable(Expr) -> phrase(reify(Expr, B), Ps)
+        ;   domain_error(clpfd_reifiable_expression, Expr)
+        ).
+
+reifiable(E)      :- var(E), non_monotonic(E).
+reifiable(E)      :- integer(E), E in 0..1.
+reifiable(?(E))   :- must_be_fd_integer(E).
+reifiable(V in _) :- fd_variable(V).
+reifiable(Expr)   :-
+        Expr =.. [Op,Left,Right],
+        (   memberchk(Op, [#>=,#>,#=<,#<,#=,#\=])
+        ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/]),
+            reifiable(Left),
+            reifiable(Right)
+        ).
+reifiable(#\ E) :- reifiable(E).
+reifiable(tuples_in(Tuples, Relation)) :-
+        must_be(list(list), Tuples),
+        maplist(maplist(fd_variable), Tuples),
+        must_be(list(list(integer)), Relation).
+reifiable(finite_domain(V)) :- fd_variable(V).
 
 reify(E, B) --> { B in 0..1 }, reify_(E, B).
 
-reify_(E, _) -->
-        { cyclic_term(E), !, domain_error(clpfd_reifiable_expression, E) }.
 reify_(E, B) --> { var(E), !, E = B }.
-reify_(E, B) --> { integer(E), !, E = B }.
-reify_(V in Drep, B) --> !,
-        { drep_to_domain(Drep, Dom), fd_variable(V) },
+reify_(E, B) --> { integer(E), E = B }.
+reify_(?(B), B) --> [].
+reify_(V in Drep, B) -->
+        { drep_to_domain(Drep, Dom) },
         propagator_init_trigger(reified_in(V,Dom,B)),
         a(B).
-reify_(tuples_in(Tuples, Relation), B) --> !,
-        { must_be(list, Tuples),
-          append(Tuples, Vs),
-          maplist(fd_variable, Vs),
-          must_be(list(list(integer)), Relation),
-          maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
-          (   Bs == [] -> B = 1
-          ;   Bs = [B1|Rest],
-              bs_and(Rest, B1, And),
-              And #<==> B
-          ) },
+reify_(tuples_in(Tuples, Relation), B) -->
+        { maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
+          maplist(monotonic, Bs, Bs1),
+          fold_statement(conjunction, Bs1, And),
+          ?(B) #<==> And },
+        propagator_init_trigger([B], tuples_not_in(Tuples, Relation, B)),
         kill_reified_tuples(Bs, Ps, Bs),
         list(Ps),
         as([B|Bs]).
-reify_(finite_domain(V), B) --> !,
-        { fd_variable(V) },
+reify_(finite_domain(V), B) -->
         propagator_init_trigger(reified_fd(V,B)),
         a(B).
-reify_(L #>= R, B) --> !,
-        { phrase((parse_reified_clpfd(L, LR, LD),
-                  parse_reified_clpfd(R, RR, RD)), Ps) },
-        list(Ps),
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)),
-        a(B).
-reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
-reify_(L #=< R, B) --> !, reify_(R #>= L, B).
-reify_(L #< R, B)  --> !, reify_(R #>= (L+1), B).
-reify_(L #= R, B)  --> !,
-        { phrase((parse_reified_clpfd(L, LR, LD),
-                  parse_reified_clpfd(R, RR, RD)), Ps) },
-        list(Ps),
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)),
-        a(B).
-reify_(L #\= R, B) --> !,
-        { phrase((parse_reified_clpfd(L, LR, LD),
-                  parse_reified_clpfd(R, RR, RD)), Ps) },
-        list(Ps),
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)),
-        a(B).
-reify_(L #==> R, B)  --> !, reify_((#\ L) #\/ R, B).
-reify_(L #<== R, B)  --> !, reify_(R #==> L, B).
-reify_(L #<==> R, B) --> !, reify_((L #==> R) #/\ (R #==> L), B).
-reify_(L #/\ R, B)   --> !,
+reify_(L #>= R, B) --> arithmetic(L, R, B, reified_geq).
+reify_(L #= R, B)  --> arithmetic(L, R, B, reified_eq).
+reify_(L #\= R, B) --> arithmetic(L, R, B, reified_neq).
+reify_(L #> R, B)  --> reify_(L #>= (R+1), B).
+reify_(L #=< R, B) --> reify_(R #>= L, B).
+reify_(L #< R, B)  --> reify_(R #>= (L+1), B).
+reify_(L #==> R, B)  --> reify_((#\ L) #\/ R, B).
+reify_(L #<== R, B)  --> reify_(R #==> L, B).
+reify_(L #<==> R, B) --> reify_((L #==> R) #/\ (R #==> L), B).
+reify_(L #/\ R, B)   -->
         (   { conjunctive_neqs_var_drep(L #/\ R, V, D) } -> reify_(V in D, B)
-        ;   { reify(L, LR, Ps1),
-              reify(R, RR, Ps2) },
-            list(Ps1), list(Ps2),
-            propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
-            a(LR, RR, B)
+        ;   boolean(L, R, B, reified_and)
         ).
-reify_(L #\/ R, B) --> !,
+reify_(L #\/ R, B) -->
         (   { disjunctive_eqs_var_drep(L #\/ R, V, D) } -> reify_(V in D, B)
-        ;   { reify(L, LR, Ps1),
-              reify(R, RR, Ps2) },
-            list(Ps1), list(Ps2),
-            propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
-            a(LR, RR, B)
+        ;   boolean(L, R, B, reified_or)
         ).
-reify_(#\ Q, B) --> !,
+reify_(#\ Q, B) -->
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)),
         a(B).
-reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
+
+arithmetic(L, R, B, Functor) -->
+        { phrase((parse_reified_clpfd(L, LR, LD),
+                  parse_reified_clpfd(R, RR, RD)), Ps),
+          Prop =.. [Functor,LD,LR,RD,RR,Ps,B] },
+        list(Ps),
+        propagator_init_trigger([LD,LR,RD,RR,B], Prop),
+        a(B).
+
+boolean(L, R, B, Functor) -->
+        { reify(L, LR, Ps1), reify(R, RR, Ps2),
+          Prop =.. [Functor,LR,Ps1,RR,Ps2,B] },
+        list(Ps1), list(Ps2),
+        propagator_init_trigger([LR,RR,B], Prop),
+        a(LR, RR, B).
 
 list([])     --> [].
 list([L|Ls]) --> [L], list(Ls).
@@ -2812,10 +2858,6 @@ a(B) -->
 as([])     --> [].
 as([B|Bs]) --> a(B), as(Bs).
 
-bs_and([], A, A).
-bs_and([B|Bs], A0, A) :-
-        bs_and(Bs, A0#/\B, A).
-
 kill_reified_tuples([], _, _) --> [].
 kill_reified_tuples([B|Bs], Ps, All) -->
         propagator_init_trigger([B], kill_reified_tuples(B, Ps, All)),
@@ -2826,6 +2868,31 @@ relation_tuple_b_prop(Relation, Tuple, B, p(Prop)) :-
         make_propagator(reified_tuple_in(Tuple, R, B), Prop),
         tuple_freeze_(Tuple, Prop),
         init_propagator(B, Prop).
+
+
+tuples_in_conjunction(Tuples, Relation, Conj) :-
+        maplist(tuple_in_disjunction(Relation), Tuples, Disjs),
+        fold_statement(conjunction, Disjs, Conj).
+
+tuple_in_disjunction(Relation, Tuple, Disj) :-
+        maplist(tuple_in_conjunction(Tuple), Relation, Conjs),
+        fold_statement(disjunction, Conjs, Disj).
+
+tuple_in_conjunction(Tuple, Element, Conj) :-
+        maplist(var_eq, Tuple, Element, Eqs),
+        fold_statement(conjunction, Eqs, Conj).
+
+fold_statement(Operation, List, Statement) :-
+        (   List = [] -> Statement = 1
+        ;   List = [First|Rest],
+            foldl(Operation, Rest, First, Statement)
+        ).
+
+conjunction(E, Conj, Conj #/\ E).
+
+disjunction(E, Disj, Disj #\/ E).
+
+var_eq(V, N, ?(V) #= N).
 
 % Match variables to created skeleton.
 
@@ -2838,17 +2905,15 @@ skeleton(Vs, Vs-Prop) :-
    N..M, and D1 \/ D2 are dreps, if D1 and D2 are dreps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-is_drep(V)      :- var(V), !, instantiation_error(V).
-is_drep(N)      :- integer(N), !.
-is_drep(N..M)   :- !, drep_bound(N), drep_bound(M), N \== sup, M \== inf.
-is_drep(D1\/D2) :- !, is_drep(D1), is_drep(D2).
+is_drep(N)      :- integer(N).
+is_drep(N..M)   :- drep_bound(N), drep_bound(M), N \== sup, M \== inf.
+is_drep(D1\/D2) :- is_drep(D1), is_drep(D2).
 
-drep_bound(V)   :- var(V), !, instantiation_error(V).
-drep_bound(sup) :- !. % should infinities be accessible?
-drep_bound(inf) :- !.
-drep_bound(I)   :- integer(I), !.
+drep_bound(I)   :- integer(I).
+drep_bound(sup).
+drep_bound(inf).
 
-drep_to_intervals(I)        --> { integer(I) }, !, [n(I)-n(I)].
+drep_to_intervals(I)        --> { integer(I) }, [n(I)-n(I)].
 drep_to_intervals(N..M)     -->
         (   { defaulty_to_bound(N, N1), defaulty_to_bound(M, M1),
               N1 cis_leq M1} -> [N1-M1]
@@ -2858,6 +2923,7 @@ drep_to_intervals(D1 \/ D2) -->
         drep_to_intervals(D1), drep_to_intervals(D2).
 
 drep_to_domain(DR, D) :-
+        must_be(ground, DR),
         (   is_drep(DR) -> true
         ;   domain_error(clpfd_domain, DR)
         ),
@@ -2960,6 +3026,7 @@ put_terminating(X, Dom, Ps) :-
                         domain_spread(OldDom, OldSpread),
                         domain_spread(Dom, NewSpread),
                         (   NewSpread == OldSpread -> SpreadP = Spread
+                        ;   NewSpread cis_lt OldSpread -> SpreadP = no
                         ;   SpreadP = yes
                         ),
                         put_attr(X, clpfd, clpfd_attr(LeftP,RightP,SpreadP,Dom,Ps)),
@@ -3007,21 +3074,6 @@ reinforce(X) :-
             do_queue
         ).
 
-collect_variables(X, Vs0, Vs) :-
-        (   fd_get(X, _, Ps) ->
-            term_variables(Ps, Vs1),
-            %all_collect(Vs1, [X|Vs0], Vs)
-            Vs = [X|Vs1]
-        ;   Vs = Vs0
-        ).
-
-all_collect([], Vs, Vs).
-all_collect([X|Xs], Vs0, Vs) :-
-        (   member(V, Vs0), X == V -> all_collect(Xs, Vs0, Vs)
-        ;   collect_variables(X, Vs0, Vs1),
-            all_collect(Xs, Vs1, Vs)
-        ).
-
 reinforce_(X) :-
         (   fd_var(X), fd_get(X, Dom, Ps) ->
             put_full(X, Dom, Ps)
@@ -3057,7 +3109,6 @@ make_propagator(C, propagator(C, _)).
 propagator_state(propagator(_,S), S).
 
 trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
-        trigger_props_(Os),
         (   ground(X) ->
             trigger_props_(Gs),
             trigger_props_(Bs)
@@ -3073,8 +3124,8 @@ trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
             ;   trigger_props_(Bs)
             )
         ;   true
-        ).
-
+        ),
+        trigger_props_(Os).
 
 trigger_props(fd_props(Gs,Bs,Os), X) :-
         trigger_props_(Os),
@@ -3229,7 +3280,7 @@ lex_chain_([Ls|Lss], Prev, Prop) :-
 
 lex_le([], []).
 lex_le([V1|V1s], [V2|V2s]) :-
-        V1 #=< V2,
+        ?(V1) #=< ?(V2),
         (   integer(V1) ->
             (   integer(V2) ->
                 (   V1 =:= V2 -> lex_le(V1s, V2s) ;  true )
@@ -3286,9 +3337,8 @@ lex_le([V1|V1s], [V2|V2s]) :-
 % ==
 
 tuples_in(Tuples, Relation) :-
-        must_be(list, Tuples),
-        append(Tuples, Vs),
-        maplist(fd_variable, Vs),
+        must_be(list(list), Tuples),
+        maplist(maplist(fd_variable), Tuples),
         must_be(list(list(integer)), Relation),
         maplist(relation_tuple(Relation), Tuples),
         do_queue.
@@ -3703,8 +3753,9 @@ run_propagator(pplus(X,Y,Z), MState) :-
         ;   (   X == Y -> kill(MState), 2*X #= Z
             ;   X == Z -> kill(MState), Y = 0
             ;   Y == Z -> kill(MState), X = 0
-            ;   fd_get(X, XD, XL, XU, XPs), fd_get(Y, YD, YL, YU, YPs),
-                fd_get(Z, ZD, ZL, ZU, _) ->
+            ;   fd_get(X, XD, XL, XU, XPs),
+                fd_get(Y, _, YL, YU, _),
+                fd_get(Z, _, ZL, ZU, _),
                 NXL cis max(XL, ZL-YU),
                 NXU cis min(XU, ZU-YL),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
@@ -3720,7 +3771,6 @@ run_propagator(pplus(X,Y,Z), MState) :-
                     update_bounds(Z, ZD2, ZPs2, ZL2, ZU2, NZL, NZU)
                 ;   true
                 )
-            ;   true
             )
         ).
 
@@ -3754,7 +3804,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 NR is -R,
                 X in NR \/ R
             ;   fd_get(X, XD, XL, XU, XPs),
-                fd_get(Y, YD, YL, YU, _),
+                fd_get(Y, _, YL, YU, _),
                 min_max_factor(n(Z), n(Z), YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
@@ -3768,10 +3818,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             (   Z =\= 0 -> neq_num(X, 0), neq_num(Y, 0)
             ;   true
             )
-        ;   (   X == Y -> kill(MState), X^2#=Z
+        ;   (   X == Y -> kill(MState), X^2 #= Z
             ;   fd_get(X, XD, XL, XU, XPs),
-                fd_get(Y, YD, YL, YU, _),
-                fd_get(Z, ZD, ZL, ZU, _),
+                fd_get(Y, _, YL, YU, _),
+                fd_get(Z, _, ZL, ZU, _),
                 min_max_factor(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
@@ -3869,7 +3919,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             )
         ;   nonvar(Z) ->
             fd_get(X, XD, XL, XU, XPs),
-            fd_get(Y, YD, YL, YU, YPs),
+            fd_get(Y, _, YL, YU, _),
             (   YL cis_geq n(0), XL cis_geq n(0) ->
                 NXL cis max(YL*n(Z), XL),
                 NXU cis min(YU*(n(Z)+n(1))-n(1), XU)
@@ -3879,7 +3929,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
         ;   (   X == Y -> kill(MState), Z = 1
             ;   fd_get(X, _, XL, XU, _),
-                fd_get(Y, _, YL, YU, _),
+                fd_get(Y, _, YL, _, _),
                 fd_get(Z, ZD, ZPs),
                 NZU cis max(abs(XL), XU),
                 NZL cis -NZU,
@@ -4106,7 +4156,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
                 ;   Z > X -> Z = Y
                 ;   false % Z < X
                 )
-            ;   fd_get(Y, YD, YInf, YSup, _),
+            ;   fd_get(Y, _, YInf, YSup, _),
                 (   YInf cis_gt n(X) -> Z = Y
                 ;   YSup cis_lt n(X) -> Z = X
                 ;   YSup = n(M) ->
@@ -4119,7 +4169,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
         ;   nonvar(Y) -> run_propagator(pmax(Y,X,Z), MState)
         ;   fd_get(Z, ZD, ZPs) ->
             fd_get(X, _, XInf, XSup, _),
-            fd_get(Y, YD, YInf, YSup, _),
+            fd_get(Y, _, YInf, YSup, _),
             (   YInf cis_gt YSup -> kill(MState), Z = Y
             ;   YSup cis_lt XInf -> kill(MState), Z = X
             ;   n(M) cis max(XSup, YSup) ->
@@ -4141,7 +4191,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
                 ;   Z < X -> Z = Y
                 ;   false % Z > X
                 )
-            ;   fd_get(Y, YD, YInf, YSup, _),
+            ;   fd_get(Y, _, YInf, YSup, _),
                 (   YSup cis_lt n(X) -> Z = Y
                 ;   YInf cis_gt n(X) -> Z = X
                 ;   YInf = n(M) ->
@@ -4154,7 +4204,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
         ;   nonvar(Y) -> run_propagator(pmin(Y,X,Z), MState)
         ;   fd_get(Z, ZD, ZPs) ->
             fd_get(X, _, XInf, XSup, _),
-            fd_get(Y, YD, YInf, YSup, _),
+            fd_get(Y, _, YInf, YSup, _),
             (   YSup cis_lt YInf -> kill(MState), Z = Y
             ;   YInf cis_gt XSup -> kill(MState), Z = X
             ;   n(M) cis min(XInf, YInf) ->
@@ -4169,7 +4219,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
 
 run_propagator(pexp(X,Y,Z), MState) :-
         (   X == 1 -> kill(MState), Z = 1
-        ;   X == 0 -> kill(MState), Z #<==> Y #= 0
+        ;   X == 0 -> kill(MState), Z in 0..1, Z #<==> Y #= 0
         ;   Y == 0 -> kill(MState), Z = 1
         ;   Y == 1 -> kill(MState), Z = X
         ;   nonvar(X) ->
@@ -4184,7 +4234,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 ;   true
                 )
             ;   fd_get(Y, _, YL, YU, _),
-                fd_get(Z, ZD, ZL, ZU, ZPs),
+                fd_get(Z, ZD, ZPs),
                 (   X > 0, YL cis_geq n(0) ->
                     NZL cis n(X)^YL,
                     NZU cis n(X)^YU,
@@ -4193,13 +4243,31 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 ;   true
                 )
             )
-        ;   nonvar(Z), nonvar(Y) ->
-            integer_kth_root(Z, Y, R),
-            kill(MState),
-            (   even(Y) ->
-                N is -R,
-                X in N \/ R
-            ;   X = R
+        ;   nonvar(Z) ->
+            (   nonvar(Y) ->
+                integer_kth_root(Z, Y, R),
+                kill(MState),
+                (   even(Y) ->
+                    N is -R,
+                    X in N \/ R
+                ;   X = R
+                )
+            ;   fd_get(X, _, n(NXL), _, _), NXL > 1 ->
+                (   Z > 1, between(NXL, Z, Exp), NXL^Exp > Z ->
+                    Exp1 is Exp - 1,
+                    fd_get(Y, YD, YPs),
+                    domains_intersection(YD, from_to(n(1),n(Exp1)), YD1),
+                    fd_put(Y, YD1, YPs),
+                    (   fd_get(X, XD, XPs) ->
+                        domain_infimum(YD1, n(YL)),
+                        integer_kth_root_leq(Z, YL, RU),
+                        domains_intersection(XD, from_to(n(NXL),n(RU)), XD1),
+                        fd_put(X, XD1, XPs)
+                    ;   true
+                    )
+                ;   true
+                )
+            ;   true
             )
         ;   nonvar(Y), Y > 0 ->
             (   even(Y) ->
@@ -4216,6 +4284,8 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 (   even(Y) ->
                     (   XL cis_geq n(0) ->
                         NZL cis XL^n(Y)
+                    ;   XU cis_leq n(0) ->
+                        NZL cis XU^n(Y)
                     ;   NZL = n(0)
                     ),
                     NZU cis max(abs(XL),abs(XU))^n(Y),
@@ -4250,6 +4320,14 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 )
             ;   true
             )
+        ;   fd_get(X, _, XL, _, _),
+            XL cis_gt n(0),
+            fd_get(Y, _, YL, _, _),
+            YL cis_gt n(0),
+            fd_get(Z, ZD, ZPs) ->
+            n(NZL) cis XL^YL,
+            domain_remove_smaller_than(ZD, NZL, ZD1),
+            fd_put(Z, ZD1, ZPs)
         ;   true
         ).
 
@@ -4319,6 +4397,14 @@ run_propagator(reified_tuple_in(Tuple, R, B), MState) :-
                 ;   true
                 )
             )
+        ).
+
+run_propagator(tuples_not_in(Tuples, Relation, B), MState) :-
+        (   B == 0 ->
+            kill(MState),
+            tuples_in_conjunction(Tuples, Relation, Conj),
+            #\ Conj
+        ;   true
         ).
 
 run_propagator(kill_reified_tuples(B, Ps, Bs), _) :-
@@ -4568,9 +4654,10 @@ min_max_factor(L1, U1, L2, U2, L3, U3, Min, Max) :-
         ).
 
 min_factor(L1, U1, L2, U2, Min) :-
-        (   L2 cis_gt n(0), finite(U2), L1 cis_geq n(0) ->
+        (   L1 cis_geq n(0), L2 cis_gt n(0), finite(U2) ->
             Min cis div(L1+U2-n(1),U2)
-        ;   L1 cis_gt n(0), U2 cis_leq n(-1) -> Min cis div(U1,U2)
+        ;   L1 cis_gt n(0), U2 cis_lt n(0) -> Min cis div(U1,U2)
+        ;   L1 cis_gt n(0), L2 cis_geq n(0) -> Min = n(1)
         ;   L1 cis_gt n(0) -> Min cis -U1
         ;   U1 cis_lt n(0), U2 cis_leq n(0) ->
             (   finite(L2) -> Min cis div(U1+L2+n(1),L2)
@@ -4588,7 +4675,7 @@ max_factor(L1, U1, L2, U2, Max) :-
             ;   Max = n(-1)
             )
         ;   L1 cis_gt n(0) -> Max = U1
-        ;   U1 cis_lt n(0), U2 cis_leq n(-1) -> Max cis div(L1,U2)
+        ;   U1 cis_lt n(0), U2 cis_lt n(0) -> Max cis div(L1,U2)
         ;   U1 cis_lt n(0), L2 cis_geq n(0) ->
             (   finite(U2) -> Max cis div(U1-U2+n(1),U2)
             ;   Max = n(-1)
@@ -4763,8 +4850,22 @@ put_free(F) :- put_attr(F, free, true).
 
 free_node(F) :- get_attr(F, free, true).
 
+del_vars_attr(Vars, Attr) :- maplist(del_attr_(Attr), Vars).
+
+del_attr_(Attr, Var) :- del_attr(Var, Attr).
+
+with_local_attributes(Vars, Attrs, Goal, Result) :-
+        catch((maplist(del_vars_attr(Vars), Attrs),
+               Goal,
+               maplist(del_attrs, Vars),
+               % reset all attributes, only the result matters
+               throw(local_attributes(Result,Vars))),
+              local_attributes(Result,Vars),
+              true).
+
 distinct(Vars) :-
-        catch((difference_arcs(Vars, FreeLeft, FreeRight0),
+        with_local_attributes(Vars, [edges,parent,g0_edges,index,visited],
+              (difference_arcs(Vars, FreeLeft, FreeRight0),
                length(FreeLeft, LFL),
                length(FreeRight0, LFR),
                LFL =< LFR,
@@ -4774,16 +4875,10 @@ distinct(Vars) :-
                maplist(g_g0, FreeLeft),
                scc(FreeLeft, g0_successors),
                maplist(dfs_used, FreeRight),
-               phrase(distinct_goals(FreeLeft), Gs),
-               maplist(del_attrs, Vars),
-               % reset all attributes, only the computed disequalities
-               % matter
-               throw(neqs(Gs,Vars))),
-             neqs(Gs,Vars),
-              (   disable_queue,
-                  maplist(call, Gs),
-                  enable_queue
-              )).
+               phrase(distinct_goals(FreeLeft), Gs)), Gs),
+        disable_queue,
+        maplist(call, Gs),
+        enable_queue.
 
 distinct_goals([]) --> [].
 distinct_goals([V|Vs]) -->
@@ -4996,7 +5091,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 %%  serialized(+Starts, +Durations)
 %
-%   Constrain a set of intervals to a non-overlapping sequence.
+%   Describes a set of non-overlapping tasks.
 %   Starts = [S_1,...,S_n], is a list of variables or integers,
 %   Durations = [D_1,...,D_n] is a list of non-negative integers.
 %   Constrains Starts and Durations to denote a set of
@@ -5109,7 +5204,7 @@ element_domain(V, VD) :-
 
 element_([], _, _, _).
 element_([I|Is], N0, N, V) :-
-        I #\= V #==> N #\= N0,
+        ?(I) #\= ?(V) #==> ?(N) #\= N0,
         N1 is N0 + 1,
         element_(Is, N1, N, V).
 
@@ -5163,7 +5258,7 @@ global_cardinality(Xs, Pairs, Options) :-
         maplist(fd_variable, Xs),
         maplist(gcc_pair, Pairs),
         pairs_keys_values(Pairs, Keys, Nums),
-        (   sort(Keys, Keys1), length(Keys, LK), length(Keys1, LK) -> true
+        (   sort(Keys, Keys1), same_length(Keys, Keys1) -> true
         ;   domain_error(gcc_unique_key_pairs, Pairs)
         ),
         length(Xs, L),
@@ -5224,7 +5319,8 @@ gcc_global(Vs, KNs) :-
         gcc_check(KNs),
         % reach fix-point: all elements of clpfd_gcc_vs must be variables
         do_queue,
-        catch((gcc_arcs(KNs, S, Vals),
+        with_local_attributes(Vs, [edges,parent,index],
+              (gcc_arcs(KNs, S, Vals),
                variables_with_num_occurrences(Vs, VNs),
                maplist(target_to_v(T), VNs),
                (   get_attr(S, edges, Es) ->
@@ -5233,17 +5329,11 @@ gcc_global(Vs, KNs) :-
                    maximum_flow(S, T),      % only then, maximize it.
                    gcc_consistent(T),
                    scc(Vals, gcc_successors),
-                   phrase(gcc_goals(Vals), Gs),
-                   maplist(del_attrs, Vs),
-                   % reset all attributes used only for max-flow computation
-                   throw(neqs(Gs,Vs))
-               ;   true
-               )),
-              neqs(Gs,Vs),
-              (   disable_queue,
-                  maplist(call, Gs),
-                  enable_queue
-              )).
+                   phrase(gcc_goals(Vals), Gs)
+               ;   Gs = [] )), Gs),
+        disable_queue,
+        maplist(call, Gs),
+        enable_queue.
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
@@ -5460,9 +5550,10 @@ gcc_check_([Key-Num0|KNs]) :-
             Occ1 is Occ0 + Min,
             geq(Num, Occ1),
             % The queue is disabled for efficiency here in any case.
-            % If it were enabled, make sure to prevent gcc_global from
-            % running during an inconsistent state (after gcc_done/1
-            % but before all relevant constraints are posted).
+            % If it were enabled, make sure to retain the invariant
+            % that gcc_global is never triggered during an
+            % inconsistent state (after gcc_done/1 but before all
+            % relevant constraints are posted).
             (   Occ1 == Num -> all_neq(Os, Key), gcc_done(Num0)
             ;   Os == [] -> gcc_done(Num0), Num = Occ1
             ;   length(Os, L),
@@ -5553,15 +5644,11 @@ neq_index([X|Xs], N) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 propagate_circuit(Vs) :-
-        catch((length(Vs, N),
-               length(Ts, N),
-               circuit_graph(Vs, Ts, Ts),
-               scc(Ts, circuit_successors),
-               maplist(single_component, Ts),
-               % reset locally used attributes
-               throw(success)),
-              success,
-              true).
+        with_local_attributes([], [],
+            (same_length(Vs, Ts),
+             circuit_graph(Vs, Ts, Ts),
+             scc(Ts, circuit_successors),
+             maplist(single_component, Ts)), _).
 
 single_component(V) :- get_attr(V, lowlink, 0).
 
@@ -5606,8 +5693,27 @@ cumulative(Tasks) :- cumulative(Tasks, [limit(1)]).
 %  Options is a list of options. Currently, the only supported option
 %  is:
 %
-%  * limit(L)
-%  The integer L is the global resource limit.
+%    * limit(L)
+%      The integer L is the global resource limit.
+%
+%  For example, given the following predicate that relates three tasks
+%  of durations 2 and 3 to a list containing their starting times:
+%
+%  ==
+%  tasks_starts(Tasks, [S1,S2,S3]) :-
+%          Tasks = [task(S1,3,_,1,_),
+%                   task(S2,2,_,1,_),
+%                   task(S3,2,_,1,_)].
+%  ==
+%
+%  We can use cumulative/2 as follows, and obtain a schedule:
+%
+%  ==
+%  ?- tasks_starts(Tasks, Starts), Starts ins 0..10,
+%     cumulative(Tasks, [limit(2)]), label(Starts).
+%  Tasks = [task(0, 3, 3, 1, _G36), task(0, 2, 2, 1, _G45), ...],
+%  Starts = [0, 0, 2] .
+%  ==
 
 cumulative(Tasks, Options) :-
         must_be(list(list), [Tasks,Options]),
@@ -5634,8 +5740,8 @@ resource_limit(T0, T, Tasks, Bss, L) :-
 
 task_bs(Task, InfStart-Bs) :-
         Task = task(Start,D,End,_,_Id),
-        D #> 0,
-        End #= Start + D,
+        ?(D) #> 0,
+        ?(End) #= ?(Start) + ?(D),
         maplist(finite_domain, [End,Start,D]),
         fd_inf(Start, InfStart),
         fd_sup(End, SupEnd),
@@ -5645,31 +5751,31 @@ task_bs(Task, InfStart-Bs) :-
 
 task_running([], _, _, _).
 task_running([B|Bs], Start, End, T) :-
-        ((T #>= Start) #/\ (T #< End)) #<==> B,
+        ((T #>= Start) #/\ (T #< End)) #<==> ?(B),
         T1 is T + 1,
         task_running(Bs, Start, End, T1).
 
 contribution_at(T, Task, Offset-Bs, Contribution) :-
         Task = task(Start,_,End,C,_),
-        C #>= 0,
+        ?(C) #>= 0,
         fd_inf(Start, InfStart),
         fd_sup(End, SupEnd),
         (   T < InfStart -> Contribution = 0
         ;   T >= SupEnd -> Contribution = 0
         ;   Index is T - Offset,
             nth0(Index, Bs, B),
-            Contribution #= B * C
+            ?(Contribution) #= B*C
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% automaton(+Signature, +Nodes, +Arcs)
 %
-%  Constrain  variables  with  a   finite    automaton.   Equivalent  to
-%  automaton(_, _, Signature, Nodes, Arcs, [], [], _), a common use case
-%  of automaton/8. In the following  example,   a  list of binary finite
-%  domain variables is constrained to contain   at least two consecutive
-%  ones:
+%  Describes a list of finite domain variables with a finite
+%  automaton. Equivalent to automaton(_, _, Signature, Nodes, Arcs,
+%  [], [], _), a common use case of automaton/8. In the following
+%  example, a list of binary finite domain variables is constrained to
+%  contain at least two consecutive ones:
 %
 %  ==
 %  :- use_module(library(clpfd)).
@@ -5679,7 +5785,11 @@ contribution_at(T, Task, Offset-Bs, Contribution) :-
 %                    [arc(a,0,a), arc(a,1,b),
 %                     arc(b,0,a), arc(b,1,c),
 %                     arc(c,0,c), arc(c,1,c)]).
+%  ==
 %
+%  Example query:
+%
+%  ==
 %  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
 %  Vs = [0, 1, 1] ;
 %  Vs = [1, 1, 0] ;
@@ -5691,24 +5801,25 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
-%  Constrain variables with a  finite  automaton.   True  if  the finite
-%  automaton induced by Nodes and Arcs  (extended with Counters) accepts
-%  Signature. Sequence is a list  of  terms,   all  of  the  same shape.
-%  Additional constraints must link Sequence to Signature, if necessary.
-%  Nodes is a list of source(Node) and  sink(Node) terms. Arcs is a list
-%  of arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
-%  denote the automaton's transitions. Each node   is  represented by an
-%  arbitrary term. Transitions that are not  mentioned go to an implicit
-%  failure node. Exprs is a list of  arithmetic expressions, of the same
-%  length as Counters.  In  each   expression,  variables  occurring  in
-%  Counters correspond to old counter values, and variables occurring in
-%  Template correspond to the  current  element   of  Sequence.  When  a
-%  transition containing expressions is taken,   counters are updated as
-%  stated. By default, counters remain unchanged.  Counters is a list of
-%  variables that must not occur  anywhere   outside  of  the constraint
-%  goal. Initials is a list of  the   same  length  as Counters. Counter
-%  arithmetic on the transitions relates the  counter values in Initials
-%  to Finals.
+%  Describes a list of finite domain variables with a finite
+%  automaton. True if the finite automaton induced by Nodes and Arcs
+%  (extended with Counters) accepts Signature. Sequence is a list of
+%  terms, all of the same shape. Additional constraints must link
+%  Sequence to Signature, if necessary. Nodes is a list of
+%  source(Node) and sink(Node) terms. Arcs is a list of
+%  arc(Node,Integer,Node) and arc(Node,Integer,Node,Exprs) terms that
+%  denote the automaton's transitions. Each node is represented by an
+%  arbitrary term. Transitions that are not mentioned go to an
+%  implicit failure node. Exprs is a list of arithmetic expressions,
+%  of the same length as Counters. In each expression, variables
+%  occurring in Counters correspond to old counter values, and
+%  variables occurring in Template correspond to the current element
+%  of Sequence. When a transition containing expressions is taken,
+%  counters are updated as stated. By default, counters remain
+%  unchanged. Counters is a list of variables that must not occur
+%  anywhere outside of the constraint goal. Initials is a list of the
+%  same length as Counters. Counter arithmetic on the transitions
+%  relates the counter values in Initials to Finals.
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
@@ -5727,8 +5838,8 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),
 %                     arc(i,0,i), arc(i,1,j,[C+1]), arc(i,2,i),
 %                     arc(j,0,j), arc(j,1,j),
-%		      arc(j,2,i,[C+1])],
-%		     [C], [0], [N]).
+%                     arc(j,2,i,[C+1])],
+%                    [C], [0], [N]).
 %
 %  variables_signature([], []).
 %  variables_signature([V|Vs], Sigs) :-
@@ -5772,7 +5883,8 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
         ;   must_be(list, Seqs)
         ),
         memberchk(source(Source), Ns),
-        maplist(arc_normalized(Cs), As0, As),
+        maplist(monotonic, Cs, CsM),
+        maplist(arc_normalized(CsM), As0, As),
         include(sink, Ns, Sinks0),
         maplist(arg(1), Sinks0, Sinks),
         maplist(initial_expr, Cs, Exprs0),
@@ -5807,7 +5919,7 @@ exprs_values([E0|Es], [V|Vs]) -->
         { term_variables(E0, EVs0),
           copy_term(E0, E),
           term_variables(E, EVs),
-          V #= E },
+          ?(V) #= E },
         match_variables(EVs0, EVs),
         exprs_values(Es, Vs).
 
@@ -5851,6 +5963,8 @@ node_num(Node, Num) -->
 
 sink(sink(_)).
 
+monotonic(Var, ?(Var)).
+
 arc_normalized(Cs, Arc0, Arc) :- arc_normalized_(Arc0, Cs, Arc).
 
 arc_normalized_(arc(S0,L,S,Cs), _, arc(S0,L,S,Cs)).
@@ -5878,7 +5992,7 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %          append(Rows, Vs), Vs ins 1..9,
 %          maplist(all_distinct, Rows),
 %          transpose(Rows, Columns),
-%	   maplist(all_distinct, Columns),
+%          maplist(all_distinct, Columns),
 %          Rows = [A,B,C,D,E,F,G,H,I],
 %          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
 %
@@ -5948,8 +6062,8 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 %
 %  n_factorial_(=, _, 1).
 %  n_factorial_(>, N, F) :-
-%	F #= F0*N, N1 #= N - 1,
-%	n_factorial(N1, F0).
+%       F #= F0*N, N1 #= N - 1,
+%       n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:
@@ -5968,16 +6082,16 @@ zcompare(Order, A, B) :-
             propagator_init_trigger([A,B], pzcompare(Order, A, B))
         ).
 
-zcompare_(=, A, B) :- A #= B.
-zcompare_(<, A, B) :- A #< B.
-zcompare_(>, A, B) :- A #> B.
+zcompare_(=, A, B) :- ?(A) #= ?(B).
+zcompare_(<, A, B) :- ?(A) #< ?(B).
+zcompare_(>, A, B) :- ?(A) #> ?(B).
 
 %% chain(+Zs, +Relation)
 %
-% Constrain variables to be a chain with respect to Relation. Zs is a
-% list of finite domain variables that are a chain with respect to the
-% partial order Relation, in the order they appear in the list.
-% Relation must be #=, #=<, #>=, #< or #>. For example:
+% Zs form a chain with respect to Relation. Zs is a list of finite
+% domain variables that are a chain with respect to the partial order
+% Relation, in the order they appear in the list. Relation must be #=,
+% #=<, #>=, #< or #>. For example:
 %
 % ==
 % ?- chain([X,Y,Z], #>=).
@@ -5994,7 +6108,7 @@ chain(Zs, Relation) :-
         ),
         (   Zs = [] -> true
         ;   Zs = [X|Xs],
-            chain(Xs, X, Relation)
+            foldl(chain(Relation), Xs, X, _)
         ).
 
 chain_relation(#=).
@@ -6003,10 +6117,7 @@ chain_relation(#=<).
 chain_relation(#>).
 chain_relation(#>=).
 
-chain([], _, _).
-chain([X|Xs], Prev, Relation) :-
-        call(Relation, Prev, X),
-        chain(Xs, X, Relation).
+chain(Relation, X, Prev, X) :- call(Relation, ?(Prev), ?(X)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -6121,9 +6232,7 @@ attr_unify_hook(clpfd_attr(_,_,_,Dom,Ps), Other) :-
         ).
 
 append_propagators(fd_props(Gs0,Bs0,Os0), fd_props(Gs1,Bs1,Os1), fd_props(Gs,Bs,Os)) :-
-        append(Gs0, Gs1, Gs),
-        append(Bs0, Bs1, Bs),
-        append(Os0, Os1, Os).
+        maplist(append, [Gs0,Bs0,Os0], [Gs1,Bs1,Os1], [Gs,Bs,Os]).
 
 bound_portray(inf, inf).
 bound_portray(sup, sup).
@@ -6184,31 +6293,44 @@ attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
         ;   { phrase(attribute_goal_(P), Gs) } ->
-            { del_attr(State, clpfd_aux), State = processed },
-            with_clpfd(Gs)
+            { del_attr(State, clpfd_aux), State = processed,
+              (   current_prolog_flag(clpfd_monotonic, true) ->
+                  maplist(unwrap_with(bare_integer), Gs, Gs1)
+              ;   maplist(unwrap_with(=), Gs, Gs1)
+              ),
+              maplist(with_clpfd, Gs1, Gs2) },
+            list(Gs2)
         ;   [P] % possibly user-defined constraint
         ),
         attributes_goals(As).
 
-with_clpfd([])     --> [].
-with_clpfd([G|Gs]) --> [clpfd:G], with_clpfd(Gs).
+with_clpfd(G, clpfd:G).
+
+unwrap_with(_, V, V)           :- var(V), !.
+unwrap_with(Goal, ?(V0), V)    :- !, call(Goal, V0, V).
+unwrap_with(Goal, Term0, Term) :-
+        Term0 =.. [F|Args0],
+        maplist(unwrap_with(Goal), Args0, Args),
+        Term =.. [F|Args].
+
+bare_integer(V0, V)    :- ( integer(V0) -> V = V0 ; V = ?(V0) ).
 
 attribute_goal_(presidual(Goal))       --> [Goal].
-attribute_goal_(pgeq(A,B))             --> [A #>= B].
-attribute_goal_(pplus(X,Y,Z))          --> [X + Y #= Z].
-attribute_goal_(pneq(A,B))             --> [A #\= B].
-attribute_goal_(ptimes(X,Y,Z))         --> [X*Y #= Z].
-attribute_goal_(absdiff_neq(X,Y,C))    --> [abs(X-Y) #\= C].
-attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(X-Y) #>= C].
-attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [X #\= Y + Z].
-attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [X #=< Y + C].
-attribute_goal_(pdiv(X,Y,Z))           --> [X/Y #= Z].
-attribute_goal_(pexp(X,Y,Z))           --> [X^Y #= Z].
-attribute_goal_(pabs(X,Y))             --> [Y #= abs(X)].
-attribute_goal_(pmod(X,M,K))           --> [X mod M #= K].
-attribute_goal_(prem(X,Y,Z))           --> [X rem Y #= Z].
-attribute_goal_(pmax(X,Y,Z))           --> [Z #= max(X,Y)].
-attribute_goal_(pmin(X,Y,Z))           --> [Z #= min(X,Y)].
+attribute_goal_(pgeq(A,B))             --> [?(A) #>= ?(B)].
+attribute_goal_(pplus(X,Y,Z))          --> [?(X) + ?(Y) #= ?(Z)].
+attribute_goal_(pneq(A,B))             --> [?(A) #\= ?(B)].
+attribute_goal_(ptimes(X,Y,Z))         --> [?(X) * ?(Y) #= ?(Z)].
+attribute_goal_(absdiff_neq(X,Y,C))    --> [abs(?(X) - ?(Y)) #\= C].
+attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(?(X) - ?(Y)) #>= C].
+attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [?(X) #\= ?(Y) + ?(Z)].
+attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [?(X) #=< ?(Y) + C].
+attribute_goal_(pdiv(X,Y,Z))           --> [?(X) / ?(Y) #= ?(Z)].
+attribute_goal_(pexp(X,Y,Z))           --> [?(X) ^ ?(Y) #= ?(Z)].
+attribute_goal_(pabs(X,Y))             --> [?(Y) #= abs(?(X))].
+attribute_goal_(pmod(X,M,K))           --> [?(X) mod ?(M) #= ?(K)].
+attribute_goal_(prem(X,Y,Z))           --> [?(X) rem ?(Y) #= ?(Z)].
+attribute_goal_(pmax(X,Y,Z))           --> [?(Z) #= max(?(X),?(Y))].
+attribute_goal_(pmin(X,Y,Z))           --> [?(Z) #= min(?(X),?(Y))].
 attribute_goal_(scalar_product_neq([FC|Cs],[FV|Vs],C)) -->
         [Left #\= C],
         { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
@@ -6235,31 +6357,37 @@ attribute_goal_(rel_tuple(R, Tuple)) -->
 attribute_goal_(pzcompare(O,A,B)) --> [zcompare(O,A,B)].
 % reified constraints
 attribute_goal_(reified_in(V, D, B)) -->
-        [V in Drep #<==> B],
+        [V in Drep #<==> ?(B)],
         { domain_to_drep(D, Drep) }.
 attribute_goal_(reified_tuple_in(Tuple, R, B)) -->
         { get_attr(R, clpfd_relation, Rel) },
-        [tuples_in([Tuple], Rel) #<==> B].
+        [tuples_in([Tuple], Rel) #<==> ?(B)].
 attribute_goal_(kill_reified_tuples(_,_,_)) --> [].
-attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> B].
-attribute_goal_(pskeleton(_,Y,D,_,_,Goal)) -->
-        [D #= 1 #==> Goal, Y #\= 0 #==> D #= 1].
-attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X#\=Y, B).
-attribute_goal_(reified_eq(DX,X,DY,Y,_,B))  --> conjunction(DX, DY, X #= Y, B).
-attribute_goal_(reified_geq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X #>= Y, B).
-attribute_goal_(reified_and(X,_,Y,_,B))    --> [X #/\ Y #<==> B].
-attribute_goal_(reified_or(X, _, Y, _, B)) --> [X #\/ Y #<==> B].
-attribute_goal_(reified_not(X, Y))         --> [#\ X #<==> Y].
-attribute_goal_(pimpl(X, Y, _))            --> [X #==> Y].
+attribute_goal_(tuples_not_in(_,_,_)) --> [].
+attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> ?(B)].
+attribute_goal_(pskeleton(X,Y,D,_,Z,F)) -->
+        { Prop =.. [F,X,Y,Z],
+          phrase(attribute_goal_(Prop), Goals), list_goal(Goals, Goal) },
+        [?(D) #= 1 #==> Goal, ?(Y) #\= 0 #==> ?(D) #= 1].
+attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) -->
+        conjunction(DX, DY, ?(X) #\= ?(Y), B).
+attribute_goal_(reified_eq(DX,X,DY,Y,_,B))  -->
+        conjunction(DX, DY, ?(X) #= ?(Y), B).
+attribute_goal_(reified_geq(DX,X,DY,Y,_,B)) -->
+        conjunction(DX, DY, ?(X) #>= ?(Y), B).
+attribute_goal_(reified_and(X,_,Y,_,B))    --> [?(X) #/\ ?(Y) #<==> ?(B)].
+attribute_goal_(reified_or(X, _, Y, _, B)) --> [?(X) #\/ ?(Y) #<==> ?(B)].
+attribute_goal_(reified_not(X, Y))         --> [#\ ?(X) #<==> ?(Y)].
+attribute_goal_(pimpl(X, Y, _))            --> [?(X) #==> ?(Y)].
 
 conjunction(A, B, G, D) -->
-        (   { A == 1, B == 1 } -> [G #<==> D]
-        ;   { A == 1 } -> [(B #/\ G) #<==> D]
-        ;   { B == 1 } -> [(A #/\ G) #<==> D]
-        ;   [(A #/\ B #/\ G) #<==> D]
+        (   { A == 1, B == 1 } -> [G #<==> ?(D)]
+        ;   { A == 1 } -> [(?(B) #/\ G) #<==> ?(D)]
+        ;   { B == 1 } -> [(?(A) #/\ G) #<==> ?(D)]
+        ;   [(?(A) #/\ ?(B) #/\ G) #<==> ?(D)]
         ).
 
-coeff_var_term(C, V, T) :- ( C =:= 1 -> T = V ; T = C*V ).
+coeff_var_term(C, V, T) :- ( C =:= 1 -> T = ?(V) ; T = C * ?(V) ).
 
 fold_product([], [], P, P).
 fold_product([C|Cs], [V|Vs], P0, P) :-

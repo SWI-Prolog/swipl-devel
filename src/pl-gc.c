@@ -28,6 +28,7 @@
 #include "os/pl-cstack.h"
 #include "pentium.h"
 #include "pl-inline.h"
+#include "pl-prof.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -204,7 +205,6 @@ forwards void		sweep_trail(void);
 forwards bool		is_downward_ref(Word ARG_LD);
 forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
-static Code		startOfVMI(QueryFrame qf);
 static void		get_vmi_state(QueryFrame qf, vm_state *state);
 static size_t		tight(Stack s ARG_LD);
 
@@ -1705,7 +1705,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case H_VAR:
 	  mark_frame_var(state, PC[0] PASS_LD);
 	  /*FALLTHROUGH*/
-	case H_CONST:
+	case H_ATOM:
+	case H_SMALLINT:
 	case H_NIL:
 	case H_INTEGER:
 	case H_INT64:
@@ -3010,7 +3011,8 @@ setStartOfVMI(vm_state *state)
 	case H_LIST_FF:
 	case H_FIRSTVAR:
 	case H_VAR:
-	case H_CONST:
+	case H_ATOM:
+	case H_SMALLINT:
 	case H_NIL:
 	case H_INTEGER:
 	case H_INT64:
@@ -3057,6 +3059,7 @@ setStartOfVMI(vm_state *state)
 }
 
 
+#if O_DEBUG || defined(O_MAINTENANCE)
 static Code
 startOfVMI(QueryFrame qf)
 { vm_state state;
@@ -3071,6 +3074,7 @@ startOfVMI(QueryFrame qf)
 
   return state.pc_start_vmi;
 }
+#endif
 
 
 static void
@@ -4810,10 +4814,9 @@ shiftTightStacks(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The  routine  markAtomsOnStacks(PL_local_data_t  *ld)  marks  all  atoms
-reachable  from  the  global  stack,    environments,  choicepoints  and
-term-references  using  markAtom().  It  is    designed   to  allow  for
-asynchronous calling, even from different   threads (hence the argument,
-although the thread examined should be stopped).
+reachable from  the global stack, local stack and term-references  using
+markAtom().  It  is  designed  to  allow  for asynchronous calling, even
+from different threads (hence the argument).
 
 Asynchronous calling is in general not  possible,   but  here we make an
 exception. markAtom() is supposed  to  test   for  and  silently  ignore
@@ -4852,111 +4855,18 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
   }
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is much like  check_environments(),  but   as  we  might  be called
-asynchronously, we have to be a bit careful about the first frame (if PC
-== NULL). The interpreter will  set  the   clause  field  to NULL before
-opening the frame, and we only have   to  consider the arguments. If the
-frame has a clause we must consider all variables of this clause.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static QueryFrame
-mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
-{ Code PC = NULL;
-
-  if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { int slots, n;
-    Word sp;
-
-    if ( true(fr, FR_MARKED) )
-      return NULL;			/* from choicepoints only */
-    set(fr, FR_MARKED);
-#ifdef O_DEBUG_ATOMGC
-    if ( atomLogFd )
-      Sfprintf(atomLogFd,
-	       "Marking atoms from [%d] %s\n",
-	       levelFrame(fr),
-	       predicateName(fr->predicate));
-#endif
-    ld->gc._local_frames++;
-    clearUninitialisedVarsFrame(fr, PC);
-
-    if ( fr->predicate == PROCEDURE_dcall1->definition &&
-	 fr->clause )
-      forAtomsInClause(fr->clause->value.clause, markAtom);
-
-    if ( true(fr->predicate, P_FOREIGN) ||
-	 !fr->clause )
-      slots = fr->predicate->functor->arity;
-    else
-      slots = fr->clause->value.clause->prolog_vars;
-
-    sp = argFrameP(fr, 0);
-    for( n=0; n < slots; n++, sp++ )
-    { if ( isAtom(*sp) )
-	markAtom(*sp);
-    }
-
-    PC = fr->programPointer;
-    if ( fr->parent )
-      fr = fr->parent;
-    else
-     return queryOfFrame(fr);
-  }
-}
-
-
 static void
-markAtomsInTermReferences(PL_local_data_t *ld)
-{ FliFrame   ff = ld->foreign_environment;
+markAtomsOnLocalStack(PL_local_data_t *ld)
+{ Word lbase = (Word)ld->stacks.local.base;
+  Word ltop  = (Word)ld->stacks.local.top;
+  Word lmax  = (Word)ld->stacks.local.max;
+  Word lend  = ltop+LOCAL_MARGIN < lmax ? ltop+LOCAL_MARGIN : lmax;
+  Word current;
 
-  for(; ff; ff = ff->parent )
-  { Word sp = refFliP(ff, 0);
-    int n = ff->size;
-
-    for(n=0 ; n < ff->size; n++ )
-    { if ( isAtom(sp[n]) )
-	markAtom(sp[n]);
-    }
+  for(current = lbase; current < lend; current++ )
+  { if ( isAtom(*current) )
+      markAtom(*current);
   }
-}
-
-
-static void
-markAtomsInEnvironments(PL_local_data_t *ld)
-{ QueryFrame qf;
-  LocalFrame fr;
-  Choice ch;
-
-  ld->gc._local_frames = 0;
-
-  for( fr = ld->environment,
-       ch = ld->choicepoints
-     ; fr
-     ; fr = qf->saved_environment,
-       ch = qf->saved_bfr
-     )
-  { qf = mark_atoms_in_environments(ld, fr);
-    assert(qf->magic == QID_MAGIC);
-
-    for(; ch; ch = ch->parent)
-    {
-#ifdef O_DEBUG_ATOMGC
-      if ( atomLogFd )
-	Sfprintf(atomLogFd, "Marking atoms from choicepoint #%ld on %s\n",
-		 loffset(ch), predicateName(ch->frame->predicate));
-#endif
-      mark_atoms_in_environments(ld, ch->frame);
-    }
-  }
-
-  unmark_stacks(ld, ld->environment, ld->choicepoints, FR_MARKED);
-
-  assert(ld->gc._local_frames == 0);
 }
 
 
@@ -4982,8 +4892,7 @@ markAtomsOnStacks(PL_local_data_t *ld)
   markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
 #endif
   markAtomsOnGlobalStack(ld);
-  markAtomsInEnvironments(ld);
-  markAtomsInTermReferences(ld);
+  markAtomsOnLocalStack(ld);
   markAtomsFindall(ld);
   markAtomsThreadMessageQueue(ld);
 }

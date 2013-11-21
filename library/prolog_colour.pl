@@ -564,7 +564,10 @@ colourise_subgoals([Pos|T], N, Body, Origin, TB) :-
 
 colourise_dcg(Body, Head, TB, Pos) :-
 	colour_item(dcg, TB, Pos),
-	dcg_extend(Head, Origin),
+	(   dcg_extend(Head, Origin)
+	->  true
+	;   Origin = Head
+	),
 	colourise_dcg_goals(Body, Origin, TB, Pos).
 
 colourise_dcg_goals(Var, _, TB, Pos) :-
@@ -1081,7 +1084,8 @@ colourise_imports(List, File, TB, Pos) :-
 				     silent(true)
 				   ] ), _, fail)
 	->  true
-	;   Public = []
+	;   Public = [],
+	    Path = (-)
 	),
 	colourise_imports(List, Path, Public, TB, Pos).
 

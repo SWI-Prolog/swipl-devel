@@ -115,7 +115,8 @@ system:term_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
 	compilation_module(CM),
 	call_lock((ciao_trans(CM, sentence, In, Out0), % Sentence Translations
-		   '$expand':expand_terms(system:term_expansion, Out0, Out) % Remaining
+		   '$expand':expand_terms(call_term_expansion([system-[term_expansion/2]]),
+							      Out0, _, Out, _) % Remaining
 		  )).
 system:term_expansion(In, Out) :-
 	prolog_load_context(dialect, ciao),
@@ -337,13 +338,13 @@ get_expansor(F, A, M, Dict, Term0, Term, TR) :-
 	ignore(arg(3, TR, M)),
 	ignore(arg(4, TR, Dict)).
 
-call_sentence_expansion([],        _,  _, _,    Term,  Term).
-call_sentence_expansion([F/A|PIs], CM, M, Dict, Term0, Term) :-
+call_sentence_expansion([],        _,  _, _,    Term,  Pos,  Term, Pos).
+call_sentence_expansion([F/A|PIs], CM, M, Dict, Term0, Pos0, Term, Pos) :-
 	( get_expansor(F, A, M, Dict, Term0, Term1, Expansor),
 	  CM:Expansor ->
 	  '$expand':expand_terms(ciao:call_sentence_expansion(PIs, CM, M, Dict),
-				 Term1, Term)
-	; call_sentence_expansion(PIs, CM, M, Dict, Term0, Term)
+				 Term1, Pos0, Term, Pos)
+	; call_sentence_expansion(PIs, CM, M, Dict, Term0, Pos0, Term, Pos)
 	).
 
 call_goal_expansion([],        _,  _, _,    Term,  Term).
@@ -355,7 +356,7 @@ call_goal_expansion([F/A|PIs], CM, M, Dict, Term0, Term) :-
 	call_goal_expansion(PIs, CM, M, Dict, Term1, Term).
 
 call_expansion(sentence, PIs, CM, M, Dict, Term0, Term) :-
-	call_sentence_expansion(PIs, CM, M, Dict, Term0, Term).
+	call_sentence_expansion(PIs, CM, M, Dict, Term0, _, Term, _).
 call_expansion(goal, PIs, CM, M, Dict, Term0, Term) :-
 	call_goal_expansion(PIs, CM, M, Dict, Term0, Term).
 

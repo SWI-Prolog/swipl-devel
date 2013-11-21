@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,22 +23,19 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-prof.h"
 
 #undef LD
 #define LD LOCAL_LD
 
 #ifdef O_PROFILE
 
-#define current    (LD->profile.current)	/* current call-node */
-#define roots      (LD->profile.roots)		/* roots (<spontaneous>) */
-#define nodes      (LD->profile.nodes)		/* # nodes created */
-#define accounting (LD->profile.accounting)	/* We are accounting */
-#define sum_ok	   (LD->profile.sum_ok)		/* sibling count is ok */
-
 #define PROFTYPE_MAGIC 0x639a2fb1
 
-static int identify_def(term_t t, void *handle);
-static int get_def(term_t t, void **handle);
+static int  identify_def(term_t t, void *handle);
+static int  get_def(term_t t, void **handle);
+static void profile(intptr_t count, PL_local_data_t *__PL_ld);
+
 static PL_prof_type_t prof_default_type =
 { identify_def,					/* unify a Definition */
   get_def,
@@ -70,9 +66,24 @@ typedef struct call_node
 static void	freeProfileData(void);
 static void	collectSiblingsTime(void);
 
-static void
-activateProfiler(int active ARG_LD)
+int
+activateProfiler(prof_status active ARG_LD)
 { int i;
+  PL_local_data_t *profiling;
+
+  PL_LOCK(L_THREAD);
+
+  if ( active && (profiling=GD->profile.thread) )
+  { term_t tid = PL_new_term_ref();
+    char msg[100];
+
+    PL_unify_thread_id(tid, LD->thread.info->pl_tid);
+    Ssprintf(msg, "Already profiling thread %d",
+	     profiling->thread.info->pl_tid);
+
+    return PL_error(NULL, 0, msg, ERR_PERMISSION,
+		    ATOM_profile, ATOM_thread, tid);
+  }
 
   LD->profile.active = active;
   for(i=0; i<MAX_PROF_TYPES; i++)
@@ -81,124 +92,95 @@ activateProfiler(int active ARG_LD)
   }
 
   if ( active )
-  { /* consider using thread-time? */
-    LD->profile.time_at_start = CpuTime(CPU_USER);
+  { LD->profile.time_at_last_tick =
+    LD->profile.time_at_start     = active == PROF_CPU
+					? ThreadCPUTime(LD, CPU_USER)
+					: WallTime();
+
+    GD->profile.thread = LD;
+  } else
+  { GD->profile.thread = NULL;
   }
+
+  PL_UNLOCK(L_THREAD);
+
   updateAlerted(LD);
 
-  sum_ok = FALSE;
+  LD->profile.sum_ok = FALSE;
+
+  return TRUE;
+}
+
+
+static int
+thread_prof_ticks(PL_local_data_t *ld)
+{ double t0 = ld->profile.time_at_last_tick;
+  double t1 = ld->profile.active == PROF_CPU ? ThreadCPUTime(ld, CPU_USER)
+				             : WallTime();
+
+  ld->profile.time_at_last_tick = t1;
+
+  DEBUG(MSG_PROF_TICKS,
+	Sdprintf("%d ms\n", (int)((t1-t0)*1000.0)));
+
+  return (int)((t1-t0)*1000.0);			/* milliseconds */
 }
 
 
 #ifdef __WINDOWS__
 
+static UINT         timer;			/* our MM timer */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MS-Windows version
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void profile(intptr_t ticks, PL_local_data_t *ld);
 
 #if (_MSC_VER < 1400) && !defined(__MINGW32__)
 typedef DWORD DWORD_PTR;
 #endif
 
-static LARGE_INTEGER last_profile;
-static HANDLE	     mythread;
-static PL_local_data_t *my_LD;
-static UINT	     timer;
-static intptr_t	     virtual_events;
-static intptr_t	     events;
-
-static intptr_t
-prof_new_ticks(HANDLE thread)
-{ FILETIME created, exit, kernel, user;
-  LARGE_INTEGER u;
-  intptr_t ticks;
-
-  if ( !GetThreadTimes(thread,
-		       &created,
-		       &exit,
-		       &kernel,
-		       &user) )
-    return -1;				/* Error condition */
-
-  u.LowPart  = user.dwLowDateTime;
-  u.HighPart = user.dwHighDateTime;
-
-  ticks = (intptr_t)((u.QuadPart - last_profile.QuadPart)/10240);
-  last_profile = u;
-
-  virtual_events += ticks;
-  events++;
-
-  return ticks;
-}
-
 static void CALLBACK
 callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
-{ intptr_t newticks;
+{ PL_local_data_t *ld;
 
-  SuspendThread(mythread);		/* stop thread to avoid trouble */
-  if ( (newticks = prof_new_ticks(mythread)) )
-  { if ( newticks < 0 )			/* Windows 95/98/... */
-      newticks = 1;
-    profile(newticks, my_LD);
+  if ( (ld=GD->profile.thread) )
+  { int newticks;
+
+    if ( (newticks = thread_prof_ticks(ld)) )
+    { if ( newticks < 0 )			/* Windows 95/98/... */
+	newticks = 1;
+    }
+    profile(newticks, ld);
   }
-  ResumeThread(mythread);
 }
 
 
 static bool
-startProfiler(void)
+startProfiler(prof_status how)
 { GET_LD
   MMRESULT rval;
-
-  DuplicateHandle(GetCurrentProcess(),
-		  GetCurrentThread(),
-		  GetCurrentProcess(),
-		  &mythread,
-		  0,
-		  FALSE,
-		  DUPLICATE_SAME_ACCESS);
-
-  if ( prof_new_ticks(mythread) < 0 )
-  { printMessage(ATOM_informational,
-		 PL_ATOM, ATOM_profile_no_cpu_time);
-  }
-  virtual_events = 0;
-  events = 0;
-
-  my_LD = LD;
+  (void)how;
 
   rval = timeSetEvent(10,
 		      5,		/* resolution (milliseconds) */
 		      callTimer,
 		      (DWORD_PTR)0,
 		      TIME_PERIODIC);
+
   if ( rval )
     timer = rval;
   else
     return PL_error(NULL, 0, NULL, ERR_SYSCALL, "timeSetEvent");
 
-  activateProfiler(TRUE PASS_LD);
-
-  succeed;
+  return activateProfiler(PROF_CPU PASS_LD);
 }
 
 
 void
 stopItimer(void)
 { if ( timer )
-  { DEBUG(1, Sdprintf("%ld events, %ld virtual\n",
-		      events, virtual_events));
-
-    timeKillEvent(timer);
+  { timeKillEvent(timer);
     timer = 0;
-  }
-  if ( mythread )
-  { CloseHandle(mythread);
-    mythread = 0;
-    my_LD = NULL;
   }
 }
 
@@ -206,13 +188,6 @@ stopItimer(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 POSIX version
-
-(*) Originally this code used 1,  which   appeared  to  mean anytime the
-system starts a new time slice for  the task. Hiroo Koshimoto discovered
-this caused very  fast  interrupts   on  MacOSX  `Leopart',  effectively
-causing the monitored program to stop  working.   We  now use 1000 us (1
-millisecond). That should be safe on   most modern hardware. If hardware
-becomes a lot faster we may wish to reduce this value.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef TIME_WITH_SYS_TIME
@@ -226,77 +201,151 @@ becomes a lot faster we may wish to reduce this value.
 #endif
 #endif
 
-static void profile(int sig);
 static struct itimerval value, ovalue;	/* itimer controlling structures */
+static int itimer = -1;			/* ITIMER_* */
+static int timer_signal;		/* SIG* */
+
+static void
+sig_profile(int sig)
+{ PL_local_data_t *ld;
+  (void)sig;
+
+#if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
+  signal(SIGPROF, sig_profile);
+#endif
+
+  if ( (ld=GD->profile.thread) )
+  { int newticks;
+
+    if ( (newticks = thread_prof_ticks(ld)) )
+    { if ( newticks < 0 )			/* Windows 95/98/... */
+	newticks = 1;
+    }
+    profile(newticks, ld);
+  }
+}
+
 
 static bool
-startProfiler(void)
+startProfiler(prof_status how)
 { GET_LD
-  set_sighandler(SIGPROF, profile);
+  int sig, timer;
+
+  if ( how == PROF_CPU )
+  { sig   = SIGPROF;
+    timer = ITIMER_PROF;
+  } else
+  { sig   = SIGALRM;
+    timer = ITIMER_REAL;
+  }
+
+  set_sighandler(sig, sig_profile);
+  timer_signal = sig;
 
   value.it_interval.tv_sec  = 0;
-  value.it_interval.tv_usec = 1000;	/* see (*) above */
-  value.it_value.tv_sec  = 0;
-  value.it_value.tv_usec = 1000;
+  value.it_interval.tv_usec = 5000;		/* 5ms for real; also ok for cpu */
+  value.it_value.tv_sec  = 0;			/* on systems where 0 means now */
+  value.it_value.tv_usec = 5000;
 
-  if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
+  if ( setitimer(timer, &value, &ovalue) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
-  activateProfiler(TRUE PASS_LD);
 
-  succeed;
+  itimer = timer;
+
+  return activateProfiler(how PASS_LD);
 }
 
 void
 stopItimer(void)
-{ GET_LD
-  value.it_interval.tv_sec  = 0;
-  value.it_interval.tv_usec = 0;
-  value.it_value.tv_sec  = 0;
-  value.it_value.tv_usec = 0;
+{ if ( itimer != -1 )
+  { value.it_interval.tv_sec  = 0;
+    value.it_interval.tv_usec = 0;
+    value.it_value.tv_sec  = 0;
+    value.it_value.tv_usec = 0;
 
-  if ( !LD->profile.active )
-    return;
-  if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
-  { warning("Failed to stop interval timer: %s", OsError());
-    return;
+    if ( setitimer(itimer, &value, &ovalue) != 0 )
+    { warning("Failed to stop interval timer: %s", OsError());
+      return;
+    }
+
+    itimer = -1;
   }
 }
 
 #endif /*__WINDOWS__*/
 
-static bool
+static int
 stopProfiler(void)
-{ GET_LD
-  if ( !LD->profile.active )
-    succeed;
+{ PL_local_data_t *ld;
 
-  LD->profile.time += CpuTime(CPU_USER) - LD->profile.time_at_start;
+  if ( (ld=GD->profile.thread) &&
+       ld->profile.active )
+  { double tend = ld->profile.active == PROF_CPU ? ThreadCPUTime(ld, CPU_USER)
+						 : WallTime();
 
-  stopItimer();
-  activateProfiler(FALSE PASS_LD);
+    ld->profile.time += tend - ld->profile.time_at_start;
+
+    stopItimer();
+    activateProfiler(PROF_INACTIVE, ld);
 #ifndef __WINDOWS__
-  set_sighandler(SIGPROF, SIG_IGN);
+    set_sighandler(timer_signal, SIG_IGN);
+    timer_signal = 0;
 #endif
+  }
 
-  succeed;
+  return TRUE;
+}
+
+
+/** profiler(-Old, +New)
+
+Unify Old with the state of the profiler and set it according to New.
+*/
+
+static int
+get_prof_status(term_t t, prof_status *s)
+{ GET_LD
+  atom_t a;
+
+  if ( PL_get_atom_ex(t, &a) )
+  { switch(a)
+    { case ATOM_false:
+	*s = PROF_INACTIVE;
+        return TRUE;
+      case ATOM_true:
+      case ATOM_cputime:
+	*s = PROF_CPU;
+        return TRUE;
+      case ATOM_walltime:
+	*s = PROF_WALL;
+        return TRUE;
+      default:
+	return PL_domain_error("profile_status", t);
+    }
+  }
+
+  return FALSE;
 }
 
 
 static
 PRED_IMPL("profiler", 2, profiler, 0)
 { PRED_LD
-  int val;
+  prof_status val;
 
-  if ( !PL_unify_bool_ex(A1, LD->profile.active) )
-    fail;
-  if ( !PL_get_bool_ex(A2, &val) )
-    fail;
+  if ( !PL_unify_atom(A1,
+		      LD->profile.active == PROF_INACTIVE ? ATOM_false :
+		      LD->profile.active == PROF_CPU ? ATOM_cputime :
+		      ATOM_walltime) )
+    return FALSE;
+  if ( !get_prof_status(A2, &val) )
+    return FALSE;
 
   if ( val == LD->profile.active )
     succeed;
 
   if ( val )
-    return startProfiler();
+    return startProfiler(val);
   else
     return stopProfiler();
 }
@@ -359,7 +408,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 	fail;
       } else
       { if ( PL_get_atom(A2, &a) && a == ATOM_minus )
-	  sibling = roots;
+	  sibling = LD->profile.roots;
 	else if ( get_node(A2, &parent PASS_LD) )
 	  sibling = parent->siblings;
 	else
@@ -691,7 +740,7 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 
   collectSiblingsTime();
   memset(&sum, 0, sizeof(sum));
-  for(n=roots; n; n=n->next)
+  for(n=LD->profile.roots; n; n=n->next)
     count += sumProfile(n, handle, &prof_default_type, &sum, 0 PASS_LD);
 
   if ( count == 0 )
@@ -712,13 +761,23 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 }
 
 
+/** '$prof_statistics'(-Samples, -Ticks, -AccountingTicks, -Time, -Nodes)
+
+@arg Samples is the number of times the statistical profiler was called.
+@arg Ticks   is the number of virtual ticks during profiling
+@arg AccountingTicks are tick spent on accounting
+@arg Time    is the total CPU time spent profiling
+@arg Nodes   is the number of nodes in the call tree
+*/
+
 static
-PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
+PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
 { PRED_LD
-  if ( PL_unify_integer(A1, LD->profile.ticks) &&
-       PL_unify_integer(A2, LD->profile.accounting_ticks) &&
-       PL_unify_float(A3, LD->profile.time) &&
-       PL_unify_integer(A4, nodes) )
+  if ( PL_unify_integer(A1, LD->profile.samples) &&
+       PL_unify_integer(A2, LD->profile.ticks) &&
+       PL_unify_integer(A3, LD->profile.accounting_ticks) &&
+       PL_unify_float(  A4, LD->profile.time) &&
+       PL_unify_integer(A5, LD->profile.nodes) )
     succeed;
 
   fail;
@@ -735,10 +794,11 @@ resetProfiler(void)
   stopProfiler();
 
   freeProfileData();
-  LD->profile.ticks = 0;
+  LD->profile.samples          = 0;
+  LD->profile.ticks            = 0;
   LD->profile.accounting_ticks = 0;
-  LD->profile.time = 0.0;
-  accounting = FALSE;
+  LD->profile.time             = 0.0;
+  LD->profile.accounting       = FALSE;
 
   succeed;
 }
@@ -757,20 +817,17 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 		 *******************************/
 
 static
-PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
+PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
 { int rc;
+  prof_status val;
+
+  if ( !get_prof_status(A2, &val) )
+    return FALSE;
 
   resetProfiler();
-  startProfiler();
+  startProfiler(val);
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
   stopProfiler();
-
-  DEBUG(0,
-	{ PRED_LD
-	    Sdprintf("Created %ld nodes (%ld bytes); %ld ticks (%ld overhead)\n",
-		     nodes, nodes*sizeof(call_node),
-		     LD->profile.ticks, LD->profile.accounting_ticks);
-	});
 
   return rc;
 }
@@ -789,43 +846,21 @@ counter will not be incremented.  We do a second pass over the frames to
 clear the flags again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#undef LD
-#define LD LOCAL_LD
-
 static void
-#ifdef __WINDOWS__
 profile(intptr_t count, PL_local_data_t *__PL_ld)
-{
-#else /*__WINDOWS__*/
-profile(int sig)
-{ GET_LD
-  (void)sig;
-
-#define count 1
+{ call_node *node;
 
   if ( !LD )
     return;
 
-#if _AIX
-  if ( !LD->profile.active )
-    return;
-#endif
-
-#if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
-  signal(SIGPROF, profile);
-#endif
-
-#endif /*__WINDOWS__*/
+  LD->profile.samples++;
   LD->profile.ticks += count;
 
-  if ( accounting )
+  if ( LD->profile.accounting )			/* we are updating nodes */
   { LD->profile.accounting_ticks += count;
-  } else if ( current )
-  { assert(current->magic == PROFNODE_MAGIC);
-    current->ticks += count;
+  } else if ( (node=LD->profile.current) && node->magic == PROFNODE_MAGIC )
+  { node->ticks += count;
   }
-
-#undef count
 }
 
 		 /*******************************
@@ -839,34 +874,36 @@ profCall(Definition handle)
 
 static call_node *
 prof_call(void *handle, PL_prof_type_t *type ARG_LD)
-{ call_node *node = current;
+{ call_node *node = LD->profile.current;
 
-  accounting = TRUE;
+  LD->profile.accounting = TRUE;
 
   if ( !node )				/* root-node of the profile */
-  { for(node = roots; node; node=node->next)
+  { for(node = LD->profile.roots; node; node=node->next)
     { if ( node->handle == handle )
       { node->calls++;
-	current = node;
-	DEBUG(2, Sdprintf("existing root %p\n", current));
+	LD->profile.current = node;
+	DEBUG(MSG_PROF_CALLTREE,
+	      Sdprintf("existing root %p\n", LD->profile.current));
 
+	LD->profile.accounting = FALSE;
 	return node;
       }
     }
 
     node = allocHeapOrHalt(sizeof(*node));
     memset(node, 0, sizeof(*node));
-    nodes++;
+    LD->profile.nodes++;
 
     node->magic = PROFNODE_MAGIC;
     node->handle = handle;
     node->type = type;
     node->calls++;
-    node->next = roots;
-    roots = node;
-    current = node;
-    accounting = FALSE;
-    DEBUG(2, Sdprintf("new root %p\n", node));
+    node->next = LD->profile.roots;
+    LD->profile.roots = node;
+    LD->profile.current = node;
+    LD->profile.accounting = FALSE;
+    DEBUG(MSG_PROF_CALLTREE, Sdprintf("new root %p\n", node));
 
     return node;
   }
@@ -874,8 +911,8 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 					/* straight recursion */
   if ( node->handle == handle )
   { node->recur++;
-    DEBUG(2, Sdprintf("direct recursion\n"));
-    accounting = FALSE;
+    DEBUG(MSG_PROF_CALLTREE, Sdprintf("direct recursion\n"));
+    LD->profile.accounting = FALSE;
     return node;
   } else				/* from same parent */
   { void *parent = node->handle;
@@ -886,38 +923,38 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 	   node->parent->handle == parent )
       { node->recur++;
 
-	current = node;
-	DEBUG(2, Sdprintf("indirect recursion\n"));
-	accounting = FALSE;
+	LD->profile.current = node;
+	DEBUG(MSG_PROF_CALLTREE, Sdprintf("indirect recursion\n"));
+	LD->profile.accounting = FALSE;
 	return node;
       }
     }
   }
 
 
-  for(node=current->siblings; node; node=node->next)
+  for(node=LD->profile.current->siblings; node; node=node->next)
   { if ( node->handle == handle )
-    { current = node;
+    { LD->profile.current = node;
       node->calls++;
-      DEBUG(2, Sdprintf("existing child\n"));
-      accounting = FALSE;
+      DEBUG(MSG_PROF_CALLTREE, Sdprintf("existing child\n"));
+      LD->profile.accounting = FALSE;
       return node;
     }
   }
 
   node = allocHeapOrHalt(sizeof(*node));
   memset(node, 0, sizeof(*node));
-  nodes++;
+  LD->profile.nodes++;
   node->magic = PROFNODE_MAGIC;
   node->handle = handle;
   node->type = type;
-  node->parent = current;
+  node->parent = LD->profile.current;
   node->calls++;
-  node->next = current->siblings;
-  current->siblings = node;
-  current = node;
-  DEBUG(2, Sdprintf("new child\n"));
-  accounting = FALSE;
+  node->next = LD->profile.current->siblings;
+  LD->profile.current->siblings = node;
+  LD->profile.current = node;
+  DEBUG(MSG_PROF_CALLTREE, Sdprintf("new child\n"));
+  LD->profile.accounting = FALSE;
 
   return node;
 }
@@ -926,7 +963,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 call_node *
 profCall(Definition def ARG_LD)
 { if ( true(def, P_NOPROFILE) )
-    return current;
+    return LD->profile.current;
 
   return prof_call(def, &prof_default_type PASS_LD);
 }
@@ -949,13 +986,13 @@ profResumeParent(struct call_node *node ARG_LD)
   if ( node && node->magic != PROFNODE_MAGIC )
     return;
 
-  accounting = TRUE;
-  for(n=current; n && n != node; n=n->parent)
+  LD->profile.accounting = TRUE;
+  for(n=LD->profile.current; n && n != node; n=n->parent)
   { n->exits++;
   }
-  accounting = FALSE;
+  LD->profile.accounting = FALSE;
 
-  current = node;
+  LD->profile.current = node;
 }
 
 
@@ -976,7 +1013,7 @@ profRedo(struct call_node *node ARG_LD)
   if ( node )
   { node->redos++;
   }
-  current = node;
+  LD->profile.current = node;
 }
 
 
@@ -1050,13 +1087,13 @@ static void
 collectSiblingsTime(void)
 { GET_LD
 
-  if ( !sum_ok )
+  if ( !LD->profile.sum_ok )
   { call_node *n;
 
-    for(n=roots; n; n=n->next)
+    for(n=LD->profile.roots; n; n=n->next)
       collectSiblingsNode(n);
 
-    sum_ok = TRUE;
+    LD->profile.sum_ok = TRUE;
   }
 }
 
@@ -1075,7 +1112,7 @@ freeProfileNode(call_node *node ARG_LD)
 
   node->magic = 0;
   freeHeap(node, sizeof(*node));
-  nodes--;
+  LD->profile.nodes--;
 }
 
 
@@ -1084,16 +1121,16 @@ freeProfileData(void)
 { GET_LD
   call_node *n, *next;
 
-  n = roots;
-  roots = NULL;
-  current = NULL;
+  n = LD->profile.roots;
+  LD->profile.roots = NULL;
+  LD->profile.current = NULL;
 
   for(; n; n=next)
   { next = n->next;
     freeProfileNode(n PASS_LD);
   }
 
-  assert(nodes == 0);
+  assert(LD->profile.nodes == 0);
 }
 
 #else /* O_PROFILE */
@@ -1128,8 +1165,8 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 }
 
 static
-PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
-{ return notImplemented("$profile", 1);
+PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
+{ return notImplemented("$profile", 2);
 }
 
 static
@@ -1138,8 +1175,8 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 }
 
 static
-PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
-{ return notImplemented("$prof_statistics", 4);
+PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
+{ return notImplemented("$prof_statistics", 5);
 }
 
 /* Foreign interface of the profiler
@@ -1183,13 +1220,13 @@ PRED_IMPL("reset_pentium_profile", 0, reset_pentium_profile, 0)
 		 *******************************/
 
 BeginPredDefs(profile)
-  PRED_DEF("$profile", 1, profile, PL_FA_TRANSPARENT)
+  PRED_DEF("$profile", 2, profile, PL_FA_TRANSPARENT)
   PRED_DEF("profiler", 2, profiler, 0)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
   PRED_DEF("$prof_node", 7, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
-  PRED_DEF("$prof_statistics", 4, prof_statistics, 0)
+  PRED_DEF("$prof_statistics", 5, prof_statistics, 0)
 #ifdef O_PROF_PENTIUM
   PRED_DEF("show_pentium_profile", 0, show_pentium_profile, 0)
   PRED_DEF("reset_pentium_profile", 0, reset_pentium_profile, 0)

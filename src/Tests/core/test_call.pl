@@ -89,6 +89,22 @@ test(disj, all(X==[a,b])) :-
 test(conj, all(X==[])) :-
 	call(','(X=a),
 	     X=b).
+test(qn8, error(existence_error(procedure, call8:does_not_exist/8))) :-
+	Goal = call(call8:does_not_exist, a, b, c, d, e, f, g, h),
+	Goal.
+test(an8, error(existence_error(procedure, _:does_not_exist/8))) :-
+	Goal = call(does_not_exist, a, b, c, d, e, f, g, h),
+	Goal.
+test(qe8, true) :-
+	Goal = call(call8:exists, a, b, c, d, e, f, g, h),
+	Goal.
+test(ae8, true) :-
+	Goal = call(exists, a, b, c, d, e, f, g, h),
+	Goal.
+
+call8:exists(a, b, c, d, e, f, g, h).
+exists(a, b, c, d, e, f, g, h).
+exists(a,b).
 
 :- end_tests(callN).
 

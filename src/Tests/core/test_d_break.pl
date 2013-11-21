@@ -177,12 +177,15 @@ break(Head, Instr) :-
 	    (	TInstr = break(_)
 	    ->	true
 	    ;	'$break_at'(Clause, PC, true),
+		used(I),
 		debug(break_hook, 'Put breakpoint on cl ~d ~w@~d on ~w',
 		      [I, Clause, PC, Instr])
 	    ),
 	    fail
 	;   true
 	).
+
+used(_).					% avoid warning
 
 :- dynamic
 	action/1,

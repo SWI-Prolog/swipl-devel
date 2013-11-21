@@ -215,9 +215,9 @@ is_not(var,X) :- !,
 is_not(rational, X) :- !,
 	not_a_rational(X).
 is_not(cyclic, X) :-
-	domain_error(acyclic_term, X).
-is_not(acyclic, X) :-
 	domain_error(cyclic_term, X).
+is_not(acyclic, X) :-
+	domain_error(acyclic_term, X).
 is_not(Type, X) :-
 	(   var(X)
 	->  instantiation_error(X)

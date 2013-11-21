@@ -69,7 +69,7 @@ echo([H|T]) :-
 main :-
 	context_module(M),
 	set_signals,
-	argv(Av),
+	current_prolog_flag(argv, Av),
 	run_main(M, Av).
 
 %%	run_main(+Module, +Args)
@@ -86,15 +86,6 @@ run_main(Module, Av) :-
 	    )
 	;   print_message(error, goal_failed(main(Av))),
 	    halt(1)
-	).
-
-argv(Av) :-
-	current_prolog_flag(argv, Argv),
-	(   append(_, [--|Av], Argv)
-	->  true
-	;   current_prolog_flag(windows, true)
-	->  Argv = [_Prog|Av]
-	;   Av = []
 	).
 
 set_signals :-

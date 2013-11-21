@@ -82,7 +82,7 @@ COMMON(pl_wchar_t *)	getCharsWString__LD(word w, size_t *len ARG_LD);
 COMMON(Word)		newTerm(void);
 COMMON(int)		put_double(Word p, double f, int flags ARG_LD);
 COMMON(int)		put_int64(Word p, int64_t i, int flags ARG_LD);
-#ifdef INT64_ALIGNMENT
+#if ALIGNOF_INT64_T != ALIGNOF_VOIDP
 COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 #endif
 COMMON(int)		equalIndirect(word r1, word r2);

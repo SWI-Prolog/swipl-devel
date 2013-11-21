@@ -2819,15 +2819,26 @@ took place and before the Prolog top level is reinvoked. The type
 \begin{code}
 typedef void (*PL_abort_hook_t)(void);
 \end{code}
+
     \cfunction{int}{PL_abort_unhook}{PL_abort_hook_t}
 Remove a hook installed with PL_abort_hook(). Returns \const{FALSE} if no
 such hook is found, \const{TRUE} otherwise.
-    \cfunction{void}{PL_on_halt}{void (*f)(int, void *), void *closure}
-Register the function \arg{f} to be called if SWI-Prolog is halted.  The
+
+    \cfunction{void}{PL_on_halt}{int (*f)(int, void *), void *closure}
+Register the function \arg{f} to be called if SWI-Prolog is halted. The
 function is called with two arguments: the exit code of the process (0
-if this cannot be determined on your operating system) and the
-\arg{closure} argument passed to the PL_on_halt() call.  See also
-at_halt/1.
+if this cannot be determined) and the \arg{closure} argument passed to
+the PL_on_halt() call.  Handlers \emph{must} return 0.  Other return
+values are reserved for future use. See also at_halt/1.\bug{Although
+both PL_on_halt() and at_halt/1 are called in FIFO order, \emph{all}
+at_halt/1 handlers are called before \emph{all} PL_on_halt() handlers.}
+These handlers are called \emph{before} system cleanup and can therefore
+access all normal Prolog resources.  See also PL_exit_hook().
+
+    \cfunction{void}{PL_exit_hook}{int (*f)(int, void *), void *closure}
+Similar to PL_on_halt(), but the hooks are executed by PL_halt() instead
+of PL_cleanup() just before calling exit().
+
     \cfunction{PL_agc_hook_t}{PL_agc_hook}{PL_agc_hook_t new}
 Register a hook with the atom-garbage collector (see
 garbage_collect_atoms/0) that is called on any atom that is reclaimed.
@@ -3184,8 +3195,9 @@ the various termination hooks and indicates the \jargon{exit-status}.
 
 The function returns \const{TRUE} if successful and \const{FALSE}
 otherwise. Currently, \const{FALSE} is returned when an attempt is made
-to call PL_cleanup() recursively or if PL_cleanup() is not called from
-the main thread.
+to call PL_cleanup() recursively or if one of the exit handlers
+cancels the termination using cancel_halt/1.  Exit handlers may only
+cancel termination if \arg{status} is 0.
 
 In theory, this function allows deleting and restarting the Prolog
 system in the same process. In practice, SWI-Prolog's cleanup process is
@@ -3198,7 +3210,6 @@ If you want to be able to reset Prolog, your options are (again) a
 separate process, modules or threads.
 
     \cfunction{void}{PL_cleanup_fork}{}
-Close file descriptors associated to Prolog streams except for 0,1~and~2.
 Stop intervaltimer that may be running on behalf of profile/1.  The call
 is intended to be used in combination with fork():
 
@@ -3213,12 +3224,9 @@ The call behaves the same  on  Windows,   though  there  is  probably no
 meaningful application.
 
     \cfunction{int}{PL_halt}{int status}
-Clean up the Prolog environment using PL_cleanup() and call exit() with
-the status argument.  As PL_cleanup() can only be called from the main
-thread, this function returns \const{FALSE} when called from a
-thread other than the main one.%
-	\bug{Eventually it may become possible to call
-	     PL_halt() from any thread.}
+Clean up the Prolog environment using PL_cleanup() and if successful
+call exit() with the status argument.  Returns \const{FALSE} if exit
+was cancelled by PL_cleanup().
 \end{description}
 
 

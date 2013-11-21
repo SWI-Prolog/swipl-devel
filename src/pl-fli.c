@@ -431,7 +431,7 @@ static PL_blob_t ucs_atom =
 
 
 static void
-initUCSAtoms()
+initUCSAtoms(void)
 { PL_register_blob_type(&ucs_atom);
 }
 
@@ -3824,7 +3824,7 @@ PL_toplevel(void)
 }
 
 
-void
+int
 PL_halt(int status)
 { int reclaim_memory = FALSE;
 
@@ -3832,9 +3832,12 @@ PL_halt(int status)
   reclaim_memory = TRUE;
 #endif
 
-  cleanupProlog(status, reclaim_memory);
+  if ( cleanupProlog(status, reclaim_memory) )
+  { run_on_halt(&GD->os.exit_hooks, status);
+    exit(status);
+  }
 
-  exit(status);
+  return FALSE;
 }
 
 
@@ -4365,62 +4368,13 @@ PL_action(int action, ...)
 		*         QUERY PROLOG          *
 		*********************************/
 
-#define c_argc (GD->cmdline._c_argc)
-#define c_argv (GD->cmdline._c_argv)
-
-static void
-init_c_args()
-{ if ( c_argc == -1 )
-  { int i;
-    int opts = 1;
-    int argc    = GD->cmdline.argc;
-    char **argv = GD->cmdline.argv;
-
-    c_argv = allocHeapOrHalt(argc * sizeof(char *));
-    c_argv[0] = argv[0];
-    c_argc = 1;
-
-    for(i=1; i<argc; i++)
-    { if ( opts && argv[i][0] == '-' )
-      { switch(argv[i][1])
-	{ case 'x':
-	  case 'g':
-	  case 'd':
-	  case 'f':
-	  case 's':
-	  case 't':
-	    i++;
-	    continue;
-	  case 'B':
-	  case 'L':
-	  case 'G':
-	  case 'O':
-	  case 'T':
-	  case 'A':
-	  case 'q':
-	    continue;
-         case '-':
-	   if (!argv[i][2])
-	   { opts = 0;
-	     continue;
-	   }
-	}
-      }
-      c_argv[c_argc++] = argv[i];
-    }
-  }
-}
-
-
 intptr_t
 PL_query(int query)
 { switch(query)
   { case PL_QUERY_ARGC:
-      init_c_args();
-      return (intptr_t) c_argc;
+      return (intptr_t) GD->cmdline.appl_argc;
     case PL_QUERY_ARGV:
-      init_c_args();
-      return (intptr_t) c_argv;
+      return (intptr_t) GD->cmdline.appl_argv;
     case PL_QUERY_MAX_INTEGER:
     case PL_QUERY_MIN_INTEGER:
       fail;				/* cannot represent (anymore) */

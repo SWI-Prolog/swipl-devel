@@ -35,16 +35,16 @@
 	  [ statistics/0,
 	    time/1,			% :Goal
 	    profile/1,			% :Goal
-	    profile/3,			% :Goal, +Style, +Top
-	    show_profile/2,		% +Style, +Top
-	    show_profile/1		% +Top
+	    profile/2,			% :Goal, +Options
+	    show_profile/1		% +Options
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(option)).
 
 :- meta_predicate
 	time(0),
 	profile(0),
-	profile(0, +, +).
+	profile(0, +).
 
 /** <module> Get information about resource usage
 
@@ -212,40 +212,62 @@ Later we will add a proper textual report-generator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- multifile
-	prolog:show_profile_hook/2.
+	prolog:show_profile_hook/1.
 
-%%	profile(:Goal, +ShowStyle, +TopN)
+%%	profile(:Goal).
+%%	profile(:Goal, +Options).
 %
-%	Run Goal under the execution profiler and show the top TopN
-%	goals using ShowStyle.
+%	Run Goal under the execution profiler.  Defined options are:
+%
+%	  * time(Which)
+%	  Profile =cpu= or =wall= time.  The default is CPU time.
+%	  * top(N)
+%	  When generating a textual report, show the top N predicates.
+%	  * cummulative(Bool)
+%	  If =true= (default =false=), show cummulative output in
+%	  a textual report.
 
 profile(Goal) :-
-	profile(Goal, plain, 25).
-profile(Goal0, Style, N) :-
+	profile(Goal, []).
+
+profile(Goal0, Options) :-
+	option(time(Which), Options, cpu),
+	time_name(Which, How),
 	expand_goal(Goal0, Goal),
-	call_cleanup('$profile'(Goal),
-		     prolog_statistics:show_profile(Style, N)).
+	call_cleanup('$profile'(Goal, How),
+		     prolog_statistics:show_profile(Options)).
 
+time_name(cpu,	    cputime)  :- !.
+time_name(wall,	    walltime) :- !.
+time_name(cputime,  cputime)  :- !.
+time_name(walltime, walltime) :- !.
+time_name(Time, _) :-
+	must_be(oneof([cpu,wall]), Time).
 
-%%   show_profile(N)
+%%	show_profile(+Options)
 %
-%   Show the top N functions' profile. Negative numbers or 0 show ALL
-%   functions that have been called during profiling.
+%	Display last collected profiling data.  Options are
+%
+%	  * top(N)
+%	  When generating a textual report, show the top N predicates.
+%	  * cummulative(Bool)
+%	  If =true= (default =false=), show cummulative output in
+%	  a textual report.
 
 show_profile(N) :-
-	show_profile(plain, N).
-
-show_profile(How, N) :-
+	integer(N), !,
+	show_profile([top(N)]).
+show_profile(Options) :-
 	profiler(Old, false),
-	show_profile_(How, N),
+	show_profile_(Options),
 	profiler(_, Old).
 
-show_profile_(How, N) :-
-	prolog:show_profile_hook(How, N), !.
-show_profile_(How, N) :-
+show_profile_(Options) :-
+	prolog:show_profile_hook(Options), !.
+show_profile_(Options) :-
 	prof_statistics(Stat),
 	prof_statistics(time, Stat, Time),
-	sort_on(How, SortKey),
+	sort_on(Options, SortKey),
 	findall(KeyedNode, prof_node(SortKey, KeyedNode), Nodes),
 	keysort(Nodes, Sorted),
 	reverse(Sorted, HighFirst),
@@ -256,10 +278,12 @@ show_profile_(How, N) :-
 	       [ 'Predicate', 'Box Entries', 'Calls+Redos', 'Time'
 	       ]),
 	format('~61t~69|~n'),
+	option(top(N), Options, 25),
 	show_plain(HighFirst, N, Stat, SortKey).
 
-sort_on(plain, ticks_self).
-sort_on(cumulative, ticks).
+sort_on(Options, ticks_self) :-
+	option(cummulative(false), Options, false), !.
+sort_on(_, ticks).
 
 show_plain([], _, _, _).
 show_plain(_, 0, _, _) :- !.
@@ -289,17 +313,19 @@ show_plain(Node, Stat, Key) :-
 %
 %	@param Node	term of the format prof(Ticks, Account, Time, Nodes)
 
-prof_statistics(prof(Ticks, Account, Time, Nodes)) :-
-	'$prof_statistics'(Ticks, Account, Time, Nodes).
+prof_statistics(prof(Samples, Ticks, Account, Time, Nodes)) :-
+	'$prof_statistics'(Samples, Ticks, Account, Time, Nodes).
 
+prof_statistics(samples, Term, Samples) :-
+	arg(1, Term, Samples).
 prof_statistics(ticks, Term, Ticks) :-
-	arg(1, Term, Ticks).
-prof_statistics(accounting, Term, Ticks) :-
 	arg(2, Term, Ticks).
-prof_statistics(time, Term, Ticks) :-
+prof_statistics(accounting, Term, Ticks) :-
 	arg(3, Term, Ticks).
-prof_statistics(nodes, Term, Ticks) :-
+prof_statistics(time, Term, Ticks) :-
 	arg(4, Term, Ticks).
+prof_statistics(nodes, Term, Ticks) :-
+	arg(5, Term, Ticks).
 
 
 %%	prof_node(+Field, -Pairs) is nondet.

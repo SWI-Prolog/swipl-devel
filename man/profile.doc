@@ -1,9 +1,9 @@
 \section{Execution profiling}			\label{sec:profile}
 
-This section describes the hierarchical execution profiler introduced in
-SWI-Prolog 5.1.10.  This profiler is based on ideas from \program{gprof}
-described in \cite{graham82gprof}.  The profiler consists of two parts:
-the information-gathering component built into the kernel,%
+This section describes the hierarchical execution profiler. This
+profiler is based on ideas from \program{gprof} described in
+\cite{graham82gprof}. The profiler consists of two parts: the
+information-gathering component built into the kernel,%
 	\footnote{There are two implementations; one based on
 		  setitimer() using the \const{SIGPROF} signal and one
 		  using Windows Multi Media (MM) timers. On other
@@ -11,50 +11,63 @@ the information-gathering component built into the kernel,%
 and a presentation component which is defined in the \pllib{statistics}
 library.  The latter can be hooked, which is used by the XPCE module
 \pllib{swi/pce_profile} to provide an interactive graphical
-representation of results.
+frontend for the results.
 
 \subsection{Profiling predicates}
 \label{sec:profiling-predicates}
 
-Currently, the interface is kept compatible with the old profiler.
-As experience grows, it is likely that the old interface is replaced
-with one that better reflects the new capabilities.   Feel free to
-examine the internal interfaces and report useful applications thereof.
+The following predicates are defined to interact with the profiler.
 
 \begin{description}
     \predicate{profile}{1}{:Goal}
-Execute \arg{Goal} just like time/1, collecting profiling statistics,
-and call \term{show_profile}{plain, 25}.  With XPCE installed this
-opens a graphical interface to the collected profiling data.
+Execute \arg{Goal} just like once/1, collecting profiling statistics,
+and call \term{show_profile}{[]}.  With XPCE installed this
+opens a graphical interface to examine the collected profiling data.
 
-    \predicate{profile}{3}{:Goal, +Style, +Number}
-Execute \arg{Goal} just like time/1. Collect profiling statistics
-and show the top \arg{Number} procedures on the current output stream
-(see show_profile/1) using \arg{Style}. The results are kept in the
-database until reset_profiler/0 or profile/3 is called and can be
-displayed again with show_profile/1. The profile/1 predicate is a
-backward compatibility interface to profile/1.  The other predicates
-in this section are low-level predicates for special cases.
+    \predicate{profile}{3}{:Goal, +Options}
+Execute \arg{Goal} just like once/1. Collect profiling statistics
+according to \arg{Options} and call show_profile/1 with \arg{Options}.
+The default collects CPU profiling and opens a graphical interface when
+provided, printing the `plain' time usage of the top 25 predicates as
+a ballback.  Options are described below.  Remaining options are passed
+to show_profile/1.
 
-    \predicate{show_profile}{2}{+Style, +Number}
-Show the collected results of the profiler. It shows the top \arg{Number}
-predicates according to the percentage {\sc cpu}-time used.  If \arg{Style}
-is \const{plain}, the time spent in each of the predicates is displayed.
-If \arg{Style} is \const{cumulative}, the time spent in its siblings
-(callees) is added to the predicate.
+    \begin{description}
+	\termitem{time}{+Which}
+    If \arg{Which} is \const{cpu} (default), collect CPU timing
+    statistics.  If \const{wall}, collect wall time statistics
+    based on a 5 millisecond sampling rate.  Wall time statistics
+    can be useful if \arg{Goal} calls blocking system calls.
+    \end{description}
 
-This predicate first calls prolog:show_profile_hook/2. If XPCE is loaded,
-this hook is used to activate a GUI interface to visualise the
-profile results.
+    \predicate{show_profile}{1}{+Options}
+This predicate first calls prolog:show_profile_hook/1. If XPCE is
+loaded, this hook is used to activate a GUI interface to visualise the
+profile results.  If not, a report is printed to the terminal according
+to \arg{Options}:
 
-    \predicate{show_profile}{1}{+Number}
-Compatibility.  Same as \term{show_profile}{plain, Number}.
+    \begin{description}
+	\termitem{top}{+N}
+    Show the only top \arg{N} predicates.  Default is 25.
+	\termitem{cummulative}{+Bool}
+    If \const{true} (default \const{false}), include the time spent in
+    children in the time reported for a predicate.
+    \end{description}
 
     \predicate{profiler}{2}{-Old, +New}
-Query or change the status of the profiler. The status is a boolean
-(\const{true} or \const{false}) stating whether or not the profiler
-is collecting data.  It can be used to enable or disable profiling
-certain parts of the program.
+Query or change the status of the profiler. The status is one of
+
+\begin{description}
+    \termitem{false}{}
+The profiler is not activated.
+    \termitem{cputime}{}
+The profiler collects CPU statistics.
+    \termitem{walltime}{}
+The profiler collects wall time statistics.
+\end{description}
+
+The value \const{true} is accepted as a synonym for \const{cputime}
+for compatibility reasons.
 
     \predicate{reset_profiler}{0}{}
 Switches the profiler to \const{false} and clears all collected
@@ -171,9 +184,9 @@ for proper interpretation of the results.
 Windows does not provide timers that fire asynchronously, frequent and
 proportional to the CPU time used by the process. Windows does provide
 multi-media timers that can run at high frequency. Such timers, however,
-run in a separate thread of execution and they are fired on the
-wall clock rather than the amount of CPU time used. The profiler
-installs such a timer running, for saving CPU time, rather inaccurately
-at about 100 Hz. Each time it is fired, it determines the
-CPU time in milliseconds used by Prolog since the last time it was fired. If this value
-is non-zero, active predicates are incremented with this value.
+run in a separate thread of execution and they are fired on the wall
+clock rather than the amount of CPU time used. The profiler installs
+such a timer running, for saving CPU time, rather inaccurately at about
+100 Hz. Each time it is fired, it determines the CPU time in
+milliseconds used by Prolog since the last time it was fired. If this
+value is non-zero, active predicates are incremented with this value.

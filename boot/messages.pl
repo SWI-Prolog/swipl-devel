@@ -396,8 +396,8 @@ prolog_message(unhandled_exception(E)) -->
 	->  []
 	;   [ '~p'-[E] ]
 	).
-prolog_message(goal_failed(Goal, Context)) -->
-	[ 'Goal (~w) failed: ~p'-[Goal, Context] ].
+prolog_message(goal_failed(Context, Goal)) -->
+	[ 'Goal (~w) failed: ~p'-[Context, Goal] ].
 prolog_message(no_current_module(Module)) -->
 	[ '~w is not a current module (created)'-[Module] ].
 prolog_message(commandline_arg_type(Flag, Arg)) -->
@@ -525,6 +525,8 @@ prolog_message(redefine_module_reply) -->
 prolog_message(reloaded_in_module(Absolute, OldContext, LM)) -->
 	[ '~w was previously loaded in module ~w'-[Absolute, OldContext], nl,
 	  '\tnow it is reloaded into module ~w'-[LM] ].
+prolog_message(expected_layout(Expected, Pos)) -->
+	[ 'Layout data: expected ~w, found: ~p'-[Expected, Pos] ].
 
 defined_definition(Message, Spec) -->
 	{ strip_module(user:Spec, M, Name/Arity),
@@ -630,6 +632,82 @@ prolog_message(autoload(read_index(Dir))) -->
 
 
 		 /*******************************
+		 *	 COMPILER WARNINGS	*
+		 *******************************/
+
+% print warnings about dubious code raised by the compiler.
+% TBD: pass in PC to produce exact error locations.
+
+prolog_message(compiler_warnings(Clause, Warnings0)) -->
+	{   print_goal_options(DefOptions),
+	    (   prolog_load_context(variable_names, VarNames)
+	    ->	warnings_with_named_vars(Warnings0, VarNames, Warnings),
+		Options = [variable_names(VarNames)|DefOptions]
+	    ;	Options = DefOptions,
+		Warnings = Warnings0
+	    )
+	},
+	compiler_warnings(Warnings, Clause, Options).
+
+warnings_with_named_vars([], _, []).
+warnings_with_named_vars([H|T0], VarNames, [H|T]) :-
+	term_variables(H, Vars),
+	'$member'(V1, Vars),
+	'$member'(_=V2, VarNames),
+	V1 == V2, !,
+	warnings_with_named_vars(T0, VarNames, T).
+warnings_with_named_vars([_|T0], VarNames, T) :-
+	warnings_with_named_vars(T0, VarNames, T).
+
+
+compiler_warnings([], _, _) --> [].
+compiler_warnings([H|T], Clause, Options) -->
+	(   compiler_warning(H, Clause, Options)
+	->  []
+	;   [ 'Unknown compiler warning: ~W'-[H,Options] ]
+	),
+	(   {T==[]}
+	->  []
+	;   [nl]
+	),
+	compiler_warnings(T, Clause, Options).
+
+compiler_warning(eq_vv(A,B), _Clause, Options) -->
+	(   { A == B }
+	->  [ 'Test is always true: ~W'-[A==B, Options] ]
+	;   [ 'Test is always false: ~W'-[A==B, Options] ]
+	).
+compiler_warning(eq_singleton(A,B), _Clause, Options) -->
+	[ 'Test is always false: ~W'-[A==B, Options] ].
+compiler_warning(neq_vv(A,B), _Clause, Options) -->
+	(   { A \== B }
+	->  [ 'Test is always true: ~W'-[A\==B, Options] ]
+	;   [ 'Test is always false: ~W'-[A\==B, Options] ]
+	).
+compiler_warning(neq_singleton(A,B), _Clause, Options) -->
+	[ 'Test is always true: ~W'-[A\==B, Options] ].
+compiler_warning(unify_singleton(A,B), _Clause, Options) -->
+	[ 'Unified variable is not used: ~W'-[A=B, Options] ].
+compiler_warning(var_true(A), _Clause, Options) -->
+	[ 'Test is always true: ~W'-[var(A), Options] ].
+compiler_warning(nonvar_false(A), _Clause, Options) -->
+	[ 'Test is always false: ~W'-[nonvar(A), Options] ].
+compiler_warning(unbalanced_var(V), _Clause, Options) -->
+	[ 'Variable not introduced in all branches: ~W'-[V, Options] ].
+compiler_warning(branch_singleton(V), _Clause, Options) -->
+	[ 'Singleton variable in branch: ~W'-[V, Options] ].
+compiler_warning(negation_singleton(V), _Clause, Options) -->
+	[ 'Singleton variable in \\+: ~W'-[V, Options] ].
+compiler_warning(multiton(V), _Clause, Options) -->
+	[ 'Singleton-marked variable appears more than once: ~W'-[V, Options] ].
+
+print_goal_options(
+    [ quoted(true),
+      portray(true)
+    ]).
+
+
+		 /*******************************
 		 *	TOPLEVEL MESSAGES	*
 		 *******************************/
 
@@ -659,6 +737,9 @@ prolog_message(copyright) -->
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
 	].
+prolog_message(user_versions) -->
+	{ findall(Msg, prolog:version_msg(Msg), Msgs) },
+	user_version_messages(Msgs).
 prolog_message(author) -->
 	[ 'Jan Wielemaker (jan@swi-prolog.org)' ].
 prolog_message(welcome) -->
@@ -669,7 +750,9 @@ prolog_message(welcome) -->
 	prolog_message(version),
 	[ ')', nl ],
 	prolog_message(copyright),
-	[ nl, nl,
+	[ nl ],
+	prolog_message(user_versions),
+	[ nl,
 	  'For help, use ?- help(Topic). or ?- apropos(Word).',
 	  nl, nl
 	].
@@ -692,6 +775,8 @@ prolog_message(var_query(_)) -->
 	].
 prolog_message(close_on_abort(Stream)) -->
 	[ 'Abort: closed stream ~p'-[Stream] ].
+prolog_message(cancel_halt(Reason)) -->
+	[ 'Halt cancelled: ~p'-[Reason] ].
 
 prolog_message(query(QueryResult)) -->
 	query_result(QueryResult).
@@ -856,6 +941,19 @@ history_events([Nr/Event|T]) -->
 	  nl
 	],
 	history_events(T).
+
+
+user_version_messages([]) --> [].
+user_version_messages([H|T]) -->
+	user_version_message(H),
+	user_version_messages(T).
+
+%%	user_version_message(+Term)
+
+user_version_message(Term) -->
+	translate_message2(Term), !, [nl].
+user_version_message(Atom) -->
+	[ '~w'-[Atom], nl ].
 
 
 		 /*******************************
@@ -1170,7 +1268,7 @@ prefix_nl([H|T0], Prefix, [H|T]) :-
 print_message_lines(Stream, Lines) :-
 	with_output_to(
 	    Stream,
-	    print_message_lines_guarded(current_output, Lines)).
+	    notrace(print_message_lines_guarded(current_output, Lines))).
 
 print_message_lines_guarded(_, []) :- !.
 print_message_lines_guarded(S, [H|T]) :-
@@ -1178,7 +1276,7 @@ print_message_lines_guarded(S, [H|T]) :-
 	print_message_lines_guarded(S, T).
 
 line_element(S, E) :-
-	notrace(prolog:message_line_element(S, E)), !.
+	prolog:message_line_element(S, E), !.
 line_element(S, full_stop) :- !,
 	'$put_token'(S, '.').		% insert space if needed.
 line_element(S, nl) :- !,

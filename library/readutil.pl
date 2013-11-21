@@ -103,7 +103,7 @@ link_foreign :-
 pl_read_line_to_codes(Fd, Codes) :-
 	get_code(Fd, C0),
 	(   C0 == -1
-	->  Codes = end_of_file
+	->  Codes0 = end_of_file
 	;   read_1line_to_codes(C0, Fd, Codes0)
 	),
 	Codes = Codes0.

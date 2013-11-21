@@ -61,6 +61,7 @@ q(_,_,_,_).
 test(unify_self, true) :-
 	p(_,_).
 
+:- style_check(-no_effect).
 unify_fv(X) :-
 	(   X == a
 	->  Y = _			% mapped to true, but must init Y
@@ -68,6 +69,7 @@ unify_fv(X) :-
 	),
 	garbage_collect,		% verify consistency
 	copy_term(Y,_).			% use and verify Y
+:- style_check(+no_effect).
 
 test(unify_fv, true) :-
 	unify_fv(a).

@@ -29,10 +29,11 @@
 */
 
 :- module('$toplevel',
-	  [ '$initialise'/0,		% start Prolog (does not return)
+	  [ '$initialise'/0,		% start Prolog
 	    '$toplevel'/0,		% Prolog top-level (re-entrant)
 	    '$compile'/0,		% `-c' toplevel
-	    '$welcome'/0,		% banner
+	    version/0,			% Write initial banner
+	    version/1,			% Add message to the banner
 	    prolog/0,			% user toplevel predicate
 	    '$query_loop'/0,		% toplevel predicate
 	    (initialization)/1,		% initialization goal (directive)
@@ -47,7 +48,6 @@
 
 :- multifile user:file_search_path/2.
 
-user:file_search_path(user_profile, '.').
 user:file_search_path(user_profile, app_preferences('.')).
 :- if(current_prolog_flag(windows, true)).
 user:file_search_path(app_preferences, app_data('.')).
@@ -67,6 +67,38 @@ user:file_search_path(app_preferences, UserHome) :-
 	catch(expand_file_name(~, [UserHome]), _, fail).
 
 
+		 /*******************************
+		 *	   VERSION BANNER	*
+		 *******************************/
+
+:- dynamic
+	prolog:version_msg/1.
+
+%%	version is det.
+%
+%	Print the Prolog banner message and messages registered using
+%	version/1.
+
+version :-
+	print_message(banner, welcome).
+
+%%	version(+Message) is det.
+%
+%	Add message to version/0
+
+:- multifile
+	system:term_expansion/2.
+
+system:term_expansion((:- version(Message)),
+		      prolog:version_msg(Message)).
+
+version(Message) :-
+	(   prolog:version_msg(Message)
+	->  true
+	;   assertz(prolog:version_msg(Message))
+	).
+
+
 		/********************************
 		*         INITIALISATION        *
 		*********************************/
@@ -77,14 +109,11 @@ user:file_search_path(app_preferences, UserHome) :-
 :- dynamic
 	loaded_init_file/2.		% already loaded init files
 
-'$welcome' :-
-	print_message(banner, welcome).
-
 '$load_init_file'(none) :- !.
 '$load_init_file'(Base) :-
 	loaded_init_file(Base, _), !.
 '$load_init_file'(InitFile) :-
-	is_absolute_file_name(InitFile), !,
+	exists_file(InitFile), !,
 	ensure_loaded(user:InitFile).
 '$load_init_file'(Base) :-
 	absolute_file_name(user_profile(Base),
@@ -92,7 +121,9 @@ user:file_search_path(app_preferences, UserHome) :-
 			     file_errors(fail)
 			   ], InitFile),
 	asserta(loaded_init_file(Base, InitFile)),
-	ensure_loaded(user:InitFile).
+	load_files(user:InitFile,
+		   [ scope_settings(false)
+		   ]).
 '$load_init_file'(_).
 
 '$load_system_init_file' :-
@@ -109,7 +140,10 @@ user:file_search_path(app_preferences, UserHome) :-
 			     file_errors(fail)
 			   ]),
 	asserta(loaded_init_file(system, Path)),
-	load_files(user:Path, [silent(true)]), !.
+	load_files(user:Path,
+		   [ silent(true),
+		     scope_settings(false)
+		   ]), !.
 '$load_system_init_file'.
 
 '$load_script_file' :-
@@ -208,20 +242,22 @@ thread_initialization(Goal) :-
 		 *     FILE SEARCH PATH (-p)	*
 		 *******************************/
 
+%%	'$set_file_search_paths' is det.
+%
+%	Process -p PathSpec options.
+
 '$set_file_search_paths' :-
-	current_prolog_flag(argv, Argv),
-	'$append'(H, ['-p', Path|_], Argv),
-	\+ memberchk(--, H),
-	(   atom_chars(Path, Chars),
+	'$option'(search_paths, Paths),
+	(   '$member'(Path, Paths),
+	    atom_chars(Path, Chars),
 	    (	phrase('$search_path'(Name, Aliases), Chars)
 	    ->	'$reverse'(Aliases, Aliases1),
 	        forall('$member'(Alias, Aliases1),
 		       asserta(user:file_search_path(Name, Alias)))
 	    ;   print_message(error, commandline_arg_type(p, Path))
-	    )
-	->  true
-	),
-	fail ; true.
+	    ),
+	    fail ; true
+	).
 
 '$search_path'(Name, Aliases) -->
 	'$string'(NameChars),
@@ -265,40 +301,88 @@ path_sep -->
 		 *   LOADING ASSIOCIATED FILES	*
 		 *******************************/
 
-%%	set_associated_file
+%%	argv_files(-Files) is det.
+%
+%	Updated the prolog flag =argv=, extracting the leading directory
+%	and files.
+
+argv_files(Files) :-
+	current_prolog_flag(argv, Argv),
+	no_option_files(Argv, Argv1, Files),
+	(   Argv1 \== Argv
+	->  set_prolog_flag(argv, Argv1)
+	;   true
+	).
+
+no_option_files([--|Argv], Argv, []) :- !.
+no_option_files([OsScript|Argv], Argv, [Script]) :-
+	prolog_to_os_filename(Script, OsScript),
+	access_file(Script, read),
+	catch(setup_call_cleanup(
+		  open(Script, read, In),
+		  ( get_char(In, '#'),
+		    get_char(In, '!')
+		  ),
+		  close(In)),
+	      _, fail), !.
+no_option_files([OsFile|Argv0], Argv, [File|T]) :-
+	file_name_extension(_, Ext, OsFile),
+	user:prolog_file_type(Ext, prolog), !,
+	prolog_to_os_filename(File, OsFile),
+	no_option_files(Argv0, Argv, T).
+no_option_files(Argv, Argv, []).
+
+clean_argv :-
+	(   current_prolog_flag(argv, [--|Argv])
+	->  set_prolog_flag(argv, Argv)
+	;   true
+	).
+
+%%	associated_files(-Files)
 %
 %	If SWI-Prolog is started as <exe> <file>.<ext>, where <ext> is
 %	the extension registered for associated files, set the Prolog
 %	flag associated_file, switch to the directory holding the file
 %	and -if possible- adjust the window title.
 
-set_associated_file :-
-	current_prolog_flag(saved_program_class, runtime), !.
-set_associated_file :-
+associated_files([]) :-
+	current_prolog_flag(saved_program_class, runtime), !,
+	clean_argv.
+associated_files(Files) :-
 	'$set_prolog_file_extension',
-	current_prolog_flag(associate, Ext),
-	current_prolog_flag(argv, Argv),
-	'$append'(Pre, [OsFile], Argv),
-	\+ memberchk(--, Pre),
-	\+ ( '$append'(_, [LOpt], Pre),
-	     load_option(LOpt)		% Avoid loading twice
-	   ),
-	prolog_to_os_filename(File, OsFile),
-	file_name_extension(_, Ext, File),
-	access_file(File, read), !,
-	file_directory_name(File, Dir),
-	working_directory(_, Dir),
-	create_prolog_flag(associated_file, File, []),
-	(   current_predicate(system:window_title/2)
-	->  atom_concat('SWI-Prolog -- ', File, Title),
-	    system:window_title(_, Title)
+	argv_files(Files),
+	(   Files = [File|_]
+	->  absolute_file_name(File, AbsFile),
+	    set_prolog_flag(associated_file, AbsFile),
+	    set_working_directory(File),
+	    set_window_title(Files)
 	;   true
 	).
-set_associated_file.
 
-load_option('-s').
-load_option('-l').
-load_option('-f').
+%%	set_working_directory(+File)
+%
+%	When opening as a GUI application, e.g.,  by opening a file from
+%	the Finder/Explorer/..., we typically  want   to  change working
+%	directory to the location of  the   primary  file.  We currently
+%	detect that we are a GUI app  by the Prolog flag =console_menu=,
+%	which is set by swipl-win[.exe].
+
+set_working_directory(File) :-
+	current_prolog_flag(console_menu, true),
+	access_file(File, read), !,
+	file_directory_name(File, Dir),
+	working_directory(_, Dir).
+set_working_directory(_).
+
+set_window_title([File|More]) :-
+	current_predicate(system:window_title/2), !,
+	(   More == []
+	->  Extra = []
+	;   Extra = ['...']
+	),
+	atomic_list_concat(['SWI-Prolog --', File | Extra], ' ', Title),
+	system:window_title(_, Title).
+set_window_title(_).
 
 
 %%	start_pldoc
@@ -307,34 +391,27 @@ load_option('-f').
 %	system.
 
 start_pldoc :-
-	current_prolog_flag(argv, Argv),
-	'$member'(Av, Argv),
-	(   Av == (--)
-	->  !
-	;   atom_concat('--pldoc', Rest, Av)
-	->  (   Rest == ''
-	    ->	call((doc_server(_),
-		      doc_browser))
-	    ;	atom_concat(=, PortAtom, Rest),
-		catch(atom_number(PortAtom, Port), _, fail)
-	    ->	call(doc_server(Port))
-	    ;	print_message(error, option_usage(pldoc)),
-		halt(1)
-	    )
+	'$option'(pldoc_server, Server),
+	(   Server == ''
+	->  call((doc_server(_), doc_browser))
+	;   catch(atom_number(Server, Port), _, fail)
+	->  call(doc_server(Port))
+	;   print_message(error, option_usage(pldoc)),
+	    halt(1)
 	).
 start_pldoc.
 
 
-%%	load_associated_file
+%%	load_associated_files(+Files)
 %
-%	Load  the  file-name  set  by   set_associated_file/0  from  the
-%	commandline arguments. Note the expand(false) to avoid expanding
-%	special characters in the filename.
+%	Load Prolog files specified from the commandline.
 
-load_associated_file :-
-	current_prolog_flag(associated_file, File),
-	load_files(user:File, [expand(false)]).
-load_associated_file.
+load_associated_files(Files) :-
+	(   '$member'(File, Files),
+	    load_files(user:File, [expand(false)]),
+	    fail
+	;   true
+	).
 
 :- if(current_predicate(system:win_registry_get_value/3)).
 hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
@@ -348,7 +425,10 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 	->  true
 	;   Ext = Ext0
 	),
-	create_prolog_flag(associate, Ext, []).
+	(   user:prolog_file_type(Ext, prolog)
+	->  true
+	;   asserta(user:prolog_file_type(Ext, prolog))
+	).
 :- endif.
 '$set_prolog_file_extension'.
 
@@ -357,7 +437,11 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 		*        TOPLEVEL GOALS         *
 		*********************************/
 
-:- flag('$banner_goal', _, '$welcome').
+%%	'$initialise' is semidet.
+%
+%	Called from PL_initialise()  to  do  the   Prolog  part  of  the
+%	initialization. If an exception  occurs,   this  is  printed and
+%	'$initialise' fails.
 
 '$initialise' :-
 	catch(initialise_prolog, E, initialise_error(E)).
@@ -369,7 +453,7 @@ initialise_error(E) :-
 
 initialise_prolog :-
 	'$clean_history',
-	set_associated_file,
+	associated_files(Files),
 	'$set_file_search_paths',
 	init_debug_flags,
 	'$run_initialization',
@@ -380,14 +464,10 @@ initialise_prolog :-
 	prolog_to_os_filename(File, OsFile),
 	'$load_init_file'(File),
 	'$load_script_file',
-	load_associated_file,
+	load_associated_files(Files),
 	'$option'(goal, GoalAtom),
 	term_to_atom(Goal, GoalAtom),
-	(   Goal == '$welcome'
-	->  flag('$banner_goal', TheGoal, TheGoal)
-	;   TheGoal = Goal
-	),
-	ignore(user:TheGoal).
+	ignore(user:Goal).
 
 init_debug_flags :-
 	once(print_predicate(_, [print], PrintOptions)),
@@ -449,8 +529,8 @@ setup_history :-
 	user:TopLevel.
 
 toplevel_goal(prolog, '$query_loop') :- !,
-	setup_colors,
-	setup_history.
+	catch(setup_colors, E, print_message(warning, E)),
+	catch(setup_history, E, print_message(warning, E)).
 toplevel_goal(Goal, Goal).
 
 

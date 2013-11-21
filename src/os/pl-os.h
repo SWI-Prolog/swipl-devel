@@ -64,7 +64,7 @@ extern bool initOs(void);
 #endif
 #endif
 
-COMMON(char*)	canoniseFileName(char *path);
+COMMON(char*)	canonicaliseFileName(char *path);
 
 
 		/********************************

@@ -798,7 +798,7 @@ OsPath(const char *p, char *buf)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if defined(HAVE_SYMLINKS) && (defined(HAVE_STAT) || defined(__unix__))
-#define O_CANONISE_DIRS
+#define O_CANONICALISE_DIRS
 
 struct canonical_dir
 { char *	name;			/* name of directory */
@@ -810,13 +810,13 @@ struct canonical_dir
 
 #define canonical_dirlist (GD->os._canonical_dirlist)
 
-forwards char   *canoniseDir(char *);
-#endif /*O_CANONISE_DIRS*/
+forwards char   *canonicaliseDir(char *);
+#endif /*O_CANONICALISE_DIRS*/
 
 static void
 initExpand(void)
 {
-#ifdef O_CANONISE_DIRS
+#ifdef O_CANONICALISE_DIRS
   char *dir;
   char *cpaths;
 #endif
@@ -824,7 +824,7 @@ initExpand(void)
   GD->paths.CWDdir = NULL;
   GD->paths.CWDlen = 0;
 
-#ifdef O_CANONISE_DIRS
+#ifdef O_CANONICALISE_DIRS
 { char envbuf[MAXPATHLEN];
 
   if ( (cpaths = Getenv("CANONICAL_PATHS", envbuf, sizeof(envbuf))) )
@@ -839,22 +839,22 @@ initExpand(void)
 	strncpy(buf, cpaths, l);
 	buf[l] = EOS;
 	cpaths += l+1;
-	canoniseDir(buf);
+	canonicaliseDir(buf);
       } else
-      { canoniseDir(cpaths);
+      { canonicaliseDir(cpaths);
 	break;
       }
     }
   }
 
-  if ( (dir = Getenv("HOME", envbuf, sizeof(envbuf))) ) canoniseDir(dir);
-  if ( (dir = Getenv("PWD",  envbuf, sizeof(envbuf))) ) canoniseDir(dir);
-  if ( (dir = Getenv("CWD",  envbuf, sizeof(envbuf))) ) canoniseDir(dir);
+  if ( (dir = Getenv("HOME", envbuf, sizeof(envbuf))) ) canonicaliseDir(dir);
+  if ( (dir = Getenv("PWD",  envbuf, sizeof(envbuf))) ) canonicaliseDir(dir);
+  if ( (dir = Getenv("CWD",  envbuf, sizeof(envbuf))) ) canonicaliseDir(dir);
 }
 #endif
 }
 
-#ifdef O_CANONISE_DIRS
+#ifdef O_CANONICALISE_DIRS
 
 static void
 cleanupExpand(void)
@@ -961,12 +961,12 @@ verify_entry(CanonicalDir d)
 
 
 static char *
-canoniseDir(char *path)
+canonicaliseDir(char *path)
 { CanonicalDir d, next;
   statstruct buf;
   char tmp[MAXPATHLEN];
 
-  DEBUG(1, Sdprintf("canoniseDir(%s) --> ", path));
+  DEBUG(1, Sdprintf("canonicaliseDir(%s) --> ", path));
 
   for(d = canonical_dirlist; d; d = next)
   { next = d->next;
@@ -1042,18 +1042,18 @@ canoniseDir(char *path)
 
 #else
 
-#define canoniseDir(d)
+#define canonicaliseDir(d)
 
 static void
 cleanupExpand(void)
 {
 }
 
-#endif /*O_CANONISE_DIRS*/
+#endif /*O_CANONICALISE_DIRS*/
 
 
 char *
-canoniseFileName(char *path)
+canonicaliseFileName(char *path)
 { char *out = path, *in = path, *start = path;
   tmp_buffer saveb;
 
@@ -1166,15 +1166,15 @@ utf8_strlwr(char *s)
 
 
 char *
-canonisePath(char *path)
+canonicalisePath(char *path)
 { GET_LD
 
   if ( !truePrologFlag(PLFLAG_FILE_CASE) )
     utf8_strlwr(path);
 
-  canoniseFileName(path);
+  canonicaliseFileName(path);
 
-#ifdef O_CANONISE_DIRS
+#ifdef O_CANONICALISE_DIRS
 { char *e;
   char dirname[MAXPATHLEN];
   size_t plen = strlen(path);
@@ -1185,7 +1185,7 @@ canonisePath(char *path)
       ;
     strncpy(dirname, path, e-path);
     dirname[e-path] = EOS;
-    canoniseDir(dirname);
+    canonicaliseDir(dirname);
     strcat(dirname, e);
     strcpy(path, dirname);
   }
@@ -1452,7 +1452,7 @@ AbsoluteFile(const char *spec, char *path)
   if ( IsAbsolutePath(file) )
   { strcpy(path, file);
 
-    return canonisePath(path);
+    return canonicalisePath(path);
   }
 
 #ifdef O_HASDRIVES
@@ -1464,7 +1464,7 @@ AbsoluteFile(const char *spec, char *path)
     path[0] = GetCurrentDriveLetter();
     path[1] = ':';
     strcpy(&path[2], file);
-    return canonisePath(path);
+    return canonicalisePath(path);
   }
 #endif /*O_HASDRIVES*/
 
@@ -1477,12 +1477,9 @@ AbsoluteFile(const char *spec, char *path)
   }
 
   strcpy(path, GD->paths.CWDdir);
-  if ( file[0] != EOS )
-    strcpy(&path[GD->paths.CWDlen], file);
-  if ( strchr(file, '.') || strchr(file, '/') )
-    return canonisePath(path);
-  else
-    return path;
+  strcpy(&path[GD->paths.CWDlen], file);
+
+  return canonicalisePath(path);
 }
 
 
@@ -1530,7 +1527,7 @@ to be implemented directly.  What about other Unixes?
       return NULL;
     }
 
-    canonisePath(buf);
+    canonicalisePath(buf);
     GD->paths.CWDlen = strlen(buf);
     buf[GD->paths.CWDlen++] = '/';
     buf[GD->paths.CWDlen] = EOS;

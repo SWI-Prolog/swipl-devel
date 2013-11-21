@@ -69,14 +69,204 @@ test(group, Atom == '1,000.00') :-
 	format(atom(Atom), '~2:d', [100000]).
 
 test(group, Atom == '0.00') :-
-	format(atom(Atom), '~2:f', [0.0]).
+	format(atom(Atom), '~2:f', [0]).
+test(group, Atom == '10.00') :-
+	format(atom(Atom), '~2:f', [10]).
 test(group, Atom == '1,000.00') :-
-	format(atom(Atom), '~2:f', [1000.0]).
+	format(atom(Atom), '~2:f', [1000]).
+
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '12,345,678,901,234,567,890.00') :-
+	format(atom(Atom), '~2:f', [12345678901234567890]).
+:-endif.
+
+test(group, Atom == '0.00') :-
+	format(atom(Atom), '~2:f', [-0]).
+test(group, Atom == '-10.00') :-
+	format(atom(Atom), '~2:f', [-10]).
+test(group, Atom == '-1,000.00') :-
+	format(atom(Atom), '~2:f', [-1000]).
+
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '-12,345,678,901,234,567,890.00') :-
+	format(atom(Atom), '~2:f', [-12345678901234567890]).
+:-endif.
+
+test(group, Atom == '0.00') :-
+	format(atom(Atom), '~2:f', [0.0]).
 test(group, Atom == '10.00') :-
 	format(atom(Atom), '~2:f', [10.0]).
 test(group, Atom == '1,000.00') :-
 	format(atom(Atom), '~2:f', [1000.0]).
 
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '0.00') :-
+	format(atom(Atom), '~2:f', [0 rdiv 1]).
+test(group, Atom == '1,234,567,890.00') :-
+	format(atom(Atom), '~2:f', [1234567890 rdiv 1]).
+
+test(group, Atom == '0.00') :-
+	format(atom(Atom), '~2:f', [1 rdiv 1000]).
+test(group, Atom == '0.01') :-
+	format(atom(Atom), '~2:f', [12 rdiv 1000]).
+test(group, Atom == '0.12') :-
+	format(atom(Atom), '~2:f', [123 rdiv 1000]).
+test(group, Atom == '1.23') :-
+	format(atom(Atom), '~2:f', [1234 rdiv 1000]).
+
+test(group, Atom == '0.01') :-
+	format(atom(Atom), '~2:f', [6 rdiv 1000]).
+test(group, Atom == '0.07') :-
+	format(atom(Atom), '~2:f', [67 rdiv 1000]).
+test(group, Atom == '0.68') :-
+	format(atom(Atom), '~2:f', [678 rdiv 1000]).
+test(group, Atom == '6.79') :-
+	format(atom(Atom), '~2:f', [6789 rdiv 1000]).
+
+test(group, Atom == '10.00') :-
+	format(atom(Atom), '~2:f', [9999 rdiv 1000]).
+:-endif.
+
+test(group, Atom == '-0.00') :-
+	format(atom(Atom), '~2:f', [-0.0]).
+test(group, Atom == '-10.00') :-
+	format(atom(Atom), '~2:f', [-10.0]).
+test(group, Atom == '-1,000.00') :-
+	format(atom(Atom), '~2:f', [-1000.0]).
+
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '0.00') :-
+	format(atom(Atom), '~2:f', [-0 rdiv 1]).
+test(group, Atom == '-1,234,567,890.00') :-
+	format(atom(Atom), '~2:f', [-1234567890 rdiv 1]).
+
+test(group, Atom == '-0.00') :-
+	format(atom(Atom), '~2:f', [-1 rdiv 1000]).
+test(group, Atom == '-0.01') :-
+	format(atom(Atom), '~2:f', [-12 rdiv 1000]).
+test(group, Atom == '-0.12') :-
+	format(atom(Atom), '~2:f', [-123 rdiv 1000]).
+test(group, Atom == '-1.23') :-
+	format(atom(Atom), '~2:f', [-1234 rdiv 1000]).
+
+test(group, Atom == '-0.01') :-
+	format(atom(Atom), '~2:f', [-6 rdiv 1000]).
+test(group, Atom == '-0.07') :-
+	format(atom(Atom), '~2:f', [-67 rdiv 1000]).
+test(group, Atom == '-0.68') :-
+	format(atom(Atom), '~2:f', [-678 rdiv 1000]).
+test(group, Atom == '-6.79') :-
+	format(atom(Atom), '~2:f', [-6789 rdiv 1000]).
+
+test(group, Atom == '-10.00') :-
+	format(atom(Atom), '~2:f', [-9999 rdiv 1000]).
+:-endif.
+
+test(group, Atom == '0.00e+00') :-
+	format(atom(Atom), '~2:e', [0]).
+test(group, Atom == '1.00e+01') :-
+	format(atom(Atom), '~2:e', [10]).
+test(group, Atom == '1.00e+03') :-
+	format(atom(Atom), '~2:e', [1000]).
+
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '1.23e+19') :-
+	format(atom(Atom), '~2:e', [12345678901234567890]).
+test(group, Atom == '9.88e+19') :-
+	format(atom(Atom), '~2:e', [98765432109876543210]).
+:-endif.
+
+test(group, Atom == '0.00e+00') :-
+	format(atom(Atom), '~2:e', [-0]).
+test(group, Atom == '-1.00e+01') :-
+	format(atom(Atom), '~2:e', [-10]).
+test(group, Atom == '-1.00e+03') :-
+	format(atom(Atom), '~2:e', [-1000]).
+
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '-1.23e+19') :-
+	format(atom(Atom), '~2:e', [-12345678901234567890]).
+test(group, Atom == '-9.88e+19') :-
+	format(atom(Atom), '~2:e', [-98765432109876543210]).
+:-endif.
+
+test(group, Atom == '0.00e+00') :-
+	format(atom(Atom), '~2:e', [0.0]).
+test(group, Atom == '1.00e+01') :-
+	format(atom(Atom), '~2:e', [10.0]).
+test(group, Atom == '1.00e+03') :-
+	format(atom(Atom), '~2:e', [1000.0]).
+
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '0.00e+00') :-
+	format(atom(Atom), '~2:e', [0 rdiv 1]).
+test(group, Atom == '1.23e+09') :-
+	format(atom(Atom), '~2:e', [1234567890 rdiv 1]).
+
+test(group, Atom == '1.00e-03') :-
+	format(atom(Atom), '~2:e', [1 rdiv 1000]).
+test(group, Atom == '1.20e-02') :-
+	format(atom(Atom), '~2:e', [12 rdiv 1000]).
+test(group, Atom == '1.23e-01') :-
+	format(atom(Atom), '~2:e', [123 rdiv 1000]).
+test(group, Atom == '1.23e+00') :-
+	format(atom(Atom), '~2:e', [1234 rdiv 1000]).
+
+test(group, Atom == '6.00e-03') :-
+	format(atom(Atom), '~2:e', [6 rdiv 1000]).
+test(group, Atom == '6.70e-02') :-
+	format(atom(Atom), '~2:e', [67 rdiv 1000]).
+test(group, Atom == '6.78e-01') :-
+	format(atom(Atom), '~2:e', [678 rdiv 1000]).
+test(group, Atom == '6.79e+00') :-
+	format(atom(Atom), '~2:e', [6789 rdiv 1000]).
+
+test(group, Atom == '1.00e+01') :-
+	format(atom(Atom), '~2:e', [9999 rdiv 1000]).
+:-endif.
+
+test(group, Atom == '-0.00e+00') :-
+	format(atom(Atom), '~2:e', [-0.0]).
+test(group, Atom == '-1.00e+01') :-
+	format(atom(Atom), '~2:e', [-10.0]).
+test(group, Atom == '-1.00e+03') :-
+	format(atom(Atom), '~2:e', [-1000.0]).
+
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '0.00e+00') :-
+	format(atom(Atom), '~2:e', [-0 rdiv 1]).
+test(group, Atom == '-1.23e+09') :-
+	format(atom(Atom), '~2:e', [-1234567890 rdiv 1]).
+
+test(group, Atom == '-1.00e-03') :-
+	format(atom(Atom), '~2:e', [-1 rdiv 1000]).
+test(group, Atom == '-1.20e-02') :-
+	format(atom(Atom), '~2:e', [-12 rdiv 1000]).
+test(group, Atom == '-1.23e-01') :-
+	format(atom(Atom), '~2:e', [-123 rdiv 1000]).
+test(group, Atom == '-1.23e+00') :-
+	format(atom(Atom), '~2:e', [-1234 rdiv 1000]).
+
+test(group, Atom == '-6.00e-03') :-
+	format(atom(Atom), '~2:e', [-6 rdiv 1000]).
+test(group, Atom == '-6.70e-02') :-
+	format(atom(Atom), '~2:e', [-67 rdiv 1000]).
+test(group, Atom == '-6.78e-01') :-
+	format(atom(Atom), '~2:e', [-678 rdiv 1000]).
+test(group, Atom == '-6.79e+00') :-
+	format(atom(Atom), '~2:e', [-6789 rdiv 1000]).
+
+test(group, Atom == '-1.00e+01') :-
+	format(atom(Atom), '~2:e', [-9999 rdiv 1000]).
+:-endif.
+
+test(group, Atom == '1.00E+01') :-
+	format(atom(Atom), '~2:E', [10]).
+
+:-if(current_prolog_flag(bounded, false)).
+test(group, Atom == '1.00E-03') :-
+	format(atom(Atom), '~2:E', [1 rdiv 1000]).
+:-endif.
 
 test(group, Atom == '12345,67,89') :-
 	format_with_locale(atom(Atom), '~:d', [123456789],

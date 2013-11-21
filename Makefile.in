@@ -53,6 +53,7 @@ distclean::
         fi
 	rm -f configure.out make.out
 	rm -f Makefile
+	-find . -name '*.qlf' -exec rm '{}' \;
 
 ################################################################
 # Build the whole default set of tools

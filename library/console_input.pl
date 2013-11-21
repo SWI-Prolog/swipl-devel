@@ -52,7 +52,7 @@
 %		  used for predicates.
 
 prolog:complete_input(Before, _After, Delete, Completions) :-
-	string_to_list(Before, Chars),
+	string_codes(Before, Chars),
 	reverse(Chars, BeforeRev),
 	complete(BeforeRev, Delete, Completions).
 
@@ -69,7 +69,7 @@ complete(BeforeRev, Prefix, Atoms) :-	% complete atoms
 atom_prefix(Prefix) -->
 	atom_chars(RevString),
 	{ reverse(RevString, String),
-	  string_to_list(Prefix, String) % do not create an atom
+	  string_codes(Prefix, String) % do not create an atom
 	}.
 
 atom_chars([H|T]) --> atom_char(H), !, atom_chars(T).

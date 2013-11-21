@@ -348,7 +348,7 @@ error:
 
 atom_t
 textToAtom(PL_chars_t *text)
-{ if ( !PL_canonise_text(text) )
+{ if ( !PL_canonicalise_text(text) )
     return 0;
 
   if ( text->encoding == ENC_ISO_LATIN_1 )
@@ -361,7 +361,7 @@ textToAtom(PL_chars_t *text)
 
 word
 textToString(PL_chars_t *text)
-{ if ( !PL_canonise_text(text) )
+{ if ( !PL_canonicalise_text(text) )
     return 0;
 
   if ( text->encoding == ENC_ISO_LATIN_1 )
@@ -835,7 +835,7 @@ rep_error:
 
 
 int
-PL_canonise_text(PL_chars_t *text)
+PL_canonicalise_text(PL_chars_t *text)
 { if ( !text->canonical )
   { switch(text->encoding )
     { case ENC_ISO_LATIN_1:

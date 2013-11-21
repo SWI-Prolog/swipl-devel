@@ -102,7 +102,7 @@ writef([F|String], List) :-
 	fail.				% clean up global stack
 writef(String, List) :-
 	string(String),
-	string_to_list(String, Fstring),
+	string_codes(String, Fstring),
 	'$writefs'(Fstring, List),
 	fail.				% clean up global stack
 writef(Format, List) :-
@@ -116,7 +116,7 @@ writef(_, _).
 %%	swritef(-String, +Format, +Arguments) is det.
 %
 %	Use writef/1 or writef/2 and  write   the  result to a _string_.
-%	Note that this is a  string   in  the sense of string_to_list/2,
+%	Note that this is a  string   in  the sense of string_codes/2,
 %	_not_ a list of character(-code)s.
 %
 %	@deprecated.  See format/2,3 and/or with_output_to/2.

@@ -36,11 +36,15 @@
 /** <module> Print decorated text to ANSI consoles
 
 This library allows for exploiting the color and attribute facilities of
-most modern terminals using ANSI escape sequences.
+most modern terminals using ANSI escape sequences. This library provides
+the following:
+
+  - ansi_format/3 allows writing messages to the terminal with ansi
+    attributes.
+  - It defines the hook prolog:message_line_element/2, which provides
+    ansi attributes for print_message/2.
 
 @see	http://en.wikipedia.org/wiki/ANSI_escape_code
-@bug	The Windows console (swipl-win) does not (yet) support ANSI (color)
-	codes.
 */
 
 :- create_prolog_flag(color_term, true, [type(boolean)]).

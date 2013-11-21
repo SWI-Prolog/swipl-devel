@@ -52,8 +52,6 @@
 
 	    prolog_flag/3,		% +Flag, -Old, +New
 	    prolog_flag/2,		% +Flag, -Value
-	    version/0,
-	    version/1,			% +Message
 
 	    op(1150, fx, (block))
 	  ]).
@@ -433,12 +431,6 @@ prolog_flag(Flag, Value) :-
 	debug(prolog_flag, 'prolog_flag(~q, ~q)', [Flag, Value]),
 	sicstus_flag(Flag, Value).
 
-sicstus_flag(argv, Argv) :- !,
-	current_prolog_flag(argv, AllArgs),
-	(   append(_, [--|Argv0], AllArgs)
-	->  Argv = Argv0
-	;   Argv = []
-	).
 sicstus_flag(system_type, Type) :- !,
 	(   current_prolog_flag(saved_program, true)
 	->  Type = runtime
@@ -446,28 +438,6 @@ sicstus_flag(system_type, Type) :- !,
 	).
 sicstus_flag(Name, Value) :-
 	current_prolog_flag(Name, Value).
-
-
-:- dynamic
-	version_msg/1.
-
-%%	version is det.
-%
-%	Print welcome message.
-%
-%	@tbd	This should be merged into the message-system
-
-version :-
-	'$welcome',
-	forall(version_msg(Msg),
-	       print_message(banner, format('~w', [Msg]))).
-
-%%	version(+Message) is det.
-%
-%	Add message to version/0
-
-version(Message) :-
-	assertz(version_msg(Message)).
 
 
 		 /*******************************

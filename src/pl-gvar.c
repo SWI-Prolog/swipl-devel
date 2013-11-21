@@ -204,6 +204,30 @@ auto_define_gvar(atom_t name)
 }
 
 
+/* gvar_value__LD() is a quick and dirty way to get a global variable.
+   It is used to get '$variable_names' for compiler warnings.
+
+   Note that this function does *not* call auto_define_gvar().  This
+   is on purpose because we cannot call Prolog from the compiler and
+   there is no need for this hook for this variable.  Be careful to
+   fix this if this function is to be used for other purposes.
+*/
+
+int
+gvar_value__LD(atom_t name, Word p ARG_LD)
+{ if ( LD->gvar.nb_vars )
+  { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
+
+    if ( s )
+    { *p = (word)s->value;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
 static int
 getval(term_t var, term_t value, int raise_error ARG_LD)
 { atom_t name;

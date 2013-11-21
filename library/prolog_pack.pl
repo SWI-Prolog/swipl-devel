@@ -1017,7 +1017,12 @@ def_environment('LDSOFLAGS', Value) :-
 	->  current_prolog_flag(home, Home),
 	    atomic_list_concat([' -L"', Home, '/bin"'], SystemLib),
 	    System = [SystemLib]
-	;   System = []
+	;   current_prolog_flag(shared_object_extension, so)
+	->  System = []			% ELF systems do not need this
+	;   current_prolog_flag(home, Home),
+	    current_prolog_flag(arch, Arch),
+	    atomic_list_concat([' -L"', Home, '/lib/', Arch, '"'], SystemLib),
+	    System = [SystemLib]
 	),
 	current_prolog_flag(c_ldflags, LDFlags),
 	atomic_list_concat([LDFlags, ' -shared' | Extra], Value).
@@ -1829,6 +1834,9 @@ read_selection(Max, Choice) :-
 	->  true
 	;   print_message(warning, menu(reply(1,Max)))
 	).
+
+answered_default(0'\r).
+answered_default(0'\n).
 
 %%	confirm(+Question, +Default, +Options) is semidet.
 %

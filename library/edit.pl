@@ -77,17 +77,17 @@ edit_no_trace(Spec) :-
 %	Edit associated or script file.  This is the Prolog file opened
 %	by double-clicking or the file loaded using
 %
-%	==
-%	% swipl -s file.pl
-%	==
+%	  ==
+%	  % swipl [-s] file.pl
+%	  ==
 
+edit :-
+	current_prolog_flag(associated_file, File), !,
+	edit(file(File)).
 edit :-
 	'$option'(script_file, OsFiles),
 	OsFiles = [OsFile], !,
 	prolog_to_os_filename(File, OsFile),
-	edit(file(File)).
-edit :-
-	current_prolog_flag(associated_file, File), !,
 	edit(file(File)).
 edit :-
 	throw(error(context_error(edit, no_default_file), _)).
@@ -100,7 +100,15 @@ edit :-
 %%	locate(+Spec, -FullSpec, -Location)
 
 locate(FileSpec:Line, file(Path, line(Line)), [file(Path), line(Line)]) :-
-	integer(Line), Line >= 1, ground(FileSpec),
+	integer(Line), Line >= 1,
+	ground(FileSpec), !,			% so specific; do not try alts
+	locate(FileSpec, _, [file(Path)]).
+locate(FileSpec:Line:LinePos,
+       file(Path, line(Line), linepos(LinePos)),
+       [file(Path), line(Line), linepos(LinePos)]) :-
+	integer(Line), Line >= 1,
+	integer(LinePos), LinePos >= 1,
+	ground(FileSpec), !,			% so specific; do not try alts
 	locate(FileSpec, _, [file(Path)]).
 locate(Path, file(Path), [file(Path)]) :-
 	atom(Path),
@@ -191,9 +199,9 @@ include_file(Path) :-
 locate(file(File, line(Line)), [file(File), line(Line)]).
 locate(file(File), [file(File)]).
 locate(Module:Name/Arity, [file(File), line(Line)]) :-
-	(   nonvar(Arity)
+	(   atom(Name), integer(Arity)
 	->  functor(Head, Name, Arity)
-	;   true
+	;   Head = _			% leave unbound
 	),
 	(   (   var(Module)
 	    ;	var(Name)
@@ -256,10 +264,13 @@ do_edit_source(Location) :-		% PceEmacs
 	current_prolog_flag(gui, true), !,
 	memberchk(file(File), Location),
 	(   memberchk(line(Line), Location)
-	->  Goal = in_pce_thread(emacs(File:Line))
-	;   Goal = in_pce_thread(emacs(File))
+	->  (   memberchk(linepos(LinePos), Location)
+	    ->	Pos = (File:Line:LinePos)
+	    ;	Pos = (File:Line)
+	    )
+	;   Pos = File
 	),
-	Goal.
+	in_pce_thread(emacs(Pos)).
 do_edit_source(Location) :-		% External editor
 	external_edit_command(Location, Command),
 	print_message(informational, edit(waiting_for_editor)),

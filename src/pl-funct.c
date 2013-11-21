@@ -99,10 +99,7 @@ lookupFunctorDef(atom_t atom, unsigned int arity)
   f->functor = 0L;
   f->name    = atom;
   f->arity   = arity;
-  if ( atom == ATOM_call && arity > 8 )
-    f->flags = CONTROL_F;
-  else
-    f->flags   = 0;
+  f->flags   = 0;
   f->next    = functorDefTable[v];
   functorDefTable[v] = f;
   registerFunctor(f);
@@ -356,15 +353,15 @@ pl_current_functor(term_t name, term_t arity, control_t h)
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       if ( PL_get_atom(name, &nm) &&
-	   PL_get_integer(arity, &ar) )
+	   PL_get_integer(arity, &ar) && ar > 0 )
 	return isCurrentFunctor(nm, ar) ? TRUE : FALSE;
 
       if ( !(PL_is_integer(arity) || PL_is_variable(arity)) )
-	return PL_error("current_functor", 2, NULL, ERR_DOMAIN,
+	return PL_error("current_functor", 2, NULL, ERR_TYPE,
 			ATOM_integer, arity);
 
       if ( !(PL_is_atom(name) || PL_is_variable(name)) )
-	return PL_error("current_functor", 2, NULL, ERR_DOMAIN,
+	return PL_error("current_functor", 2, NULL, ERR_TYPE,
 			ATOM_atom, name);
       index = 1;
       break;

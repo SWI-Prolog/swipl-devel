@@ -570,9 +570,11 @@ collect(Src, File, In, Options) :-
 	),
 	option(comments(CommentHandling), Options, collect),
 	(   CommentHandling == ignore
-	->  CommentOptions = []
+	->  CommentOptions = [],
+	    Comments = []
 	;   CommentHandling == store
-	->  CommentOptions = [ process_comment(true) ]
+	->  CommentOptions = [ process_comment(true) ],
+	    Comments = []
 	;   CommentOptions = [ comments(Comments) ]
 	),
 	repeat,
@@ -682,7 +684,7 @@ process(Head, Src) :-
 
 %%	xref_comments(+Comments, +FilePos, +Src) is det.
 
-xref_comments([], _Pos, _Src) :- !.	% also deals with unbound Comments
+xref_comments([], _Pos, _Src).
 :- if(current_predicate(parse_comment/3)).
 xref_comments([Pos-Comment|T], TermPos, Src) :-
 	(   Pos @> TermPos		% comments inside term

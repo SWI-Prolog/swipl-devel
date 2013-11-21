@@ -66,6 +66,8 @@ ETAGS=@ETAGS@
 AR=@AR@
 RANLIB=@RANLIB@
 WINDRES=@WINDRES@
+WINE=@WINE@
+MSLIBEXE=@MSLIBEXE@
 PLBUILD=@PLBUILD@
 PLARCH=@PLARCH@
 INSTALL_PLARCH=@INSTALL_PLARCH@
@@ -138,6 +140,7 @@ TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
 	libtai/leapsecs_init.o libtai/leapsecs_read.o libtai/tai_pack.o \
 	libtai/tai_unpack.o
 LIBOBJ= $(RCOBJ) $(TAIOBJ)
+DEPLIBS=uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS)
 
 PLOBJ=	pl-main.o
 
@@ -167,11 +170,11 @@ PROFILE_GOAL=run(0.5)
 
 all:	banner gitversion dirs $(OPTIMISE) swipl-ld$(EXEEXT)
 
-noprof:	uxnt-lib plterm-lib rc-lib tai-lib $(MKLIBS) system headers plwin startup index
+noprof:	system headers plwin startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
-		$(DEVPL) -f $(PROFILE_SRC) -q -g '$(PROFILE_GOAL),halt' -t 'halt(1)'
+		$(DEVPL) -f none -s $(PROFILE_SRC) -q -g '$(PROFILE_GOAL),halt' -t 'halt(1)'
 		$(MAKE) clean
 		$(MAKE) CPFLAGS=-fprofile-use noprof
 		$(MAKE) profclean
@@ -202,7 +205,7 @@ banner:
 # be overruled using LD_LIBRARY_PATH, which is what we need to be able
 # to run our local copy of SWI-Prolog.
 
-$(PL)$(EXEEXT):	$(MKLIBS) $(PLOBJ) $(OSLIB)
+$(PL)$(EXEEXT):	$(DEPLIBS) $(PLOBJ) $(OSLIB)
 		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB)
 		$(CHRPATH) -c $@ || true
 
@@ -233,6 +236,7 @@ ifeq ($(SOEXT),dll)
 $(RUNTIMEDIR)/$(SHARED):	dirs $(OBJ) $(LIBOBJ) $(XOBJ) $(OSLIB)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(OSLIB) $(LIBS)
+		(cd $(RUNTIMEDIR) && $(MSLIBEXE) /def:libswipl.def)
 else
 $(RUNTIMEDIR)/$(SHAREDV):	dirs $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
@@ -261,7 +265,7 @@ swipl-res.o:	$(srcdir)/swipl.rc $(srcdir)/swipl.ico
 pl-ntmain.o:	pl-ntmain.c
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc -I$(srcdir)/os $(CFLAGS) $< -o $@
 
-$(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o plterm-lib $(MKLIBS) $(OSLIB)
+$(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o $(DEPLIBS) $(OSLIB)
 	$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) \
 		-o $@ swipl-res.o pl-ntmain.o -L../lib/$(PLARCH) -lplterm \
 		$(USEPLLIB) $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
@@ -501,6 +505,10 @@ ifeq ($(SOEXT),dll)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
 		  $(INSTALL_SHOBJ) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/$(SOLIB)/$(INSTALL_PLARCH) ; \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.def $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  if [ -f $(RUNTIMEDIR)/libswipl.lib ]; then \
+		    $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.lib $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH) ; \
+		  fi ; \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
@@ -657,7 +665,6 @@ NSISDEFS+=/DWIN64
 endif
 NSISEXE=C:/Program Files (x86)/NSIS/makensis.exe
 SWIPLNSI=$(shell winepath -w "$(PLBASE)/../pl.nsi")
-WINE=wine
 
 .PHONY: installer
 installer:

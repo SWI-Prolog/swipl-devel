@@ -41,7 +41,7 @@ test_files :-
 % this test verifies that atoms associated with temporary files
 % are properly deleted.
 
-test(tmp_cleanup, Atoms1 == Atoms0) :-
+test(tmp_cleanup) :-
 	tmp_atoms(Atoms0),
 	(   between(1, 10, _),
 	    tmp_file(magic_sjwefrbas, Tmp),
@@ -50,7 +50,8 @@ test(tmp_cleanup, Atoms1 == Atoms0) :-
 	    delete_file(Tmp),
 	    fail
 	;   tmp_atoms(Atoms1)
-	).
+	),
+        subset(Atoms0, Atoms1).
 
 tmp_atoms(List) :-
 	flush_unregistering,

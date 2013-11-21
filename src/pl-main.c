@@ -112,7 +112,11 @@ main(int argc, char **argv)
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
-  PL_halt(PL_toplevel() ? 0 : 1);
+  for(;;)
+  { int status = PL_toplevel() ? 0 : 1;
+
+    PL_halt(status);
+  }
 
   return 0;
 }

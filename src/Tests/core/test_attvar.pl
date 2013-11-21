@@ -40,8 +40,9 @@ test_attvar :-
 
 :- begin_tests(attvar).
 
-test(s_list, L=="hello") :-		% Verify wakeup on S_LIST
-	freeze(X, X="hello"),
+test(s_list, L==Codes) :-		% Verify wakeup on S_LIST
+	string_codes("hello", Codes),
+	freeze(X, X=Codes),
 	append(X, [], L).
 test(true_ndet, error(existence_error(procedure,_))) :-
 	freeze(X, wake(X)),

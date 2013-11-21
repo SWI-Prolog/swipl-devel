@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,14 +30,29 @@
 
 :- module(gensym,
 	[ reset_gensym/0,
-	  reset_gensym/1,
-	  gensym/2
+	  reset_gensym/1,		% +Base
+	  gensym/2			% +Base, -Symbol
 	]).
 :- set_prolog_flag(generate_debug_info, false).
 
+/** <module> Generate unique symbols
+
+The predicate gensym/2 is a  traditional   predicate  to generate unique
+symbols.  It should be used with care.
+*/
+
 %%	gensym(+Base, -Unique)
 %
-%	Generate <Base>1, <Base>2, etc atoms on each subsequent call.
+%	Generate <Base>1, <Base>2, etc atoms   on  each subsequent call.
+%	Note that there is nothing  that   prevents  other  parts of the
+%	application to `invent'  the  same   identifier.  The  predicate
+%	gensym/2 is thread-safe in the sense that two threads generating
+%	identifiers from the same Base  will   never  generate  the same
+%	identifier.
+%
+%	@see	uuid/1, term_hash/2, variant_sha1/2 may be used to
+%		generate various unique or content-based identifiers
+%		safely.
 
 gensym(_Base, Atom) :-
 	nonvar(Atom), !,

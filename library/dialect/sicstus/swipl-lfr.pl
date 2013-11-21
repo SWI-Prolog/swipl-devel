@@ -1,4 +1,7 @@
-#!/usr/bin/swipl -q -g main,halt -t halt(1) -s
+#!/usr/bin/swipl
+
+:- set_prolog_flag(verbose, silent).
+:- initialization main.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This  file  emulates  SICStus   the    splfr   program,  which  extracts
@@ -24,8 +27,14 @@ edit the first line to reflect the location of SWI-Prolog.
 
 main :-
 	current_prolog_flag(argv, Argv),
-	append(_, [--|Av], Argv), !,
-	swipl_frl(Av).
+	(   catch(swipl_frl(Argv), Error,
+		  (     print_message(error, Error),
+			halt(1)
+		  ))
+	->  halt
+	;   print_message(error, goal_failed(swipl_frl(Argv))),
+	    halt(1)
+	).
 
 swipl_frl(Av) :-
 	partition(longoption, Av, LongOptions, Av2),

@@ -208,8 +208,17 @@ evaluable(F) :-
 	number(F), !.
 evaluable([_Code]) :- !.
 evaluable(F) :-
+	string(F), !,
+	(   string_length(F, 1)
+	->  true
+	;   domain_error(character, F)
+	).
+evaluable(F) :-
 	current_arithmetic_function(F),
-	forall(arg(_,F,A), evaluable(A)).
+	(   compound(F)
+	->  forall(arg(_,F,A), evaluable(A))
+	;   true
+	).
 
 %%	tidy(+GoalIn, -GoalOut)
 %

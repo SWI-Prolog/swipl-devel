@@ -68,7 +68,7 @@ we want to be able to have a lot of flags and don't harm thread_create/3
 too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void setArgvPrologFlag(void);
+static void setArgvPrologFlag(const char *flag, int argc, char **argv);
 static void setTZPrologFlag(void);
 static void setVersionPrologFlag(void);
 static void initPrologFlagTable(void);
@@ -1119,9 +1119,6 @@ initPrologFlags(void)
 #else
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
 #endif
-#ifdef ASSOCIATE_SRC
-  setPrologFlag("associate", FT_ATOM, ASSOCIATE_SRC);
-#endif
 #ifdef O_DDE
   setPrologFlag("dde", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
@@ -1189,6 +1186,9 @@ initPrologFlags(void)
 #ifdef __unix__
   setPrologFlag("unix", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
+#ifdef __APPLE__
+  setPrologFlag("apple", FT_BOOL|FF_READONLY, TRUE, 0);
+#endif
 
   setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
 
@@ -1203,28 +1203,23 @@ initPrologFlags(void)
 #endif
 
 #if defined(__DATE__) && defined(__TIME__)
-  { char buf[100];
-
-    Ssprintf(buf, "%s, %s", __DATE__, __TIME__);
-    setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, buf);
-  }
+  setPrologFlag("compiled_at", FT_ATOM|FF_READONLY, __DATE__ ", " __TIME__);
 #endif
 
-  setArgvPrologFlag();
   setTZPrologFlag();
   setOSPrologFlags();
   setVersionPrologFlag();
+  setArgvPrologFlag("os_argv", GD->cmdline.os_argc,   GD->cmdline.os_argv);
+  setArgvPrologFlag("argv",    GD->cmdline.appl_argc, GD->cmdline.appl_argv);
 }
 
 
 static void
-setArgvPrologFlag(void)
+setArgvPrologFlag(const char *flag, int argc, char **argv)
 { GET_LD
   fid_t fid = PL_open_foreign_frame();
   term_t e = PL_new_term_ref();
   term_t l = PL_new_term_ref();
-  int argc    = GD->cmdline.argc;
-  char **argv = GD->cmdline.argv;
   int n;
 
   PL_put_nil(l);
@@ -1235,7 +1230,7 @@ setArgvPrologFlag(void)
       fatalError("Could not set Prolog flag argv: not enough stack");
   }
 
-  setPrologFlag("argv", FT_TERM, l);
+  setPrologFlag(flag, FT_TERM, l);
   PL_discard_foreign_frame(fid);
 }
 

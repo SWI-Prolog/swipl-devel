@@ -152,6 +152,16 @@ VMI(D_BREAK, 0, 0, ())
   DEBUG(0, memset(lTop, 0xbf, sizeof(word)*100));
   DEBUG(CHK_SECURE, checkStacks(NULL));
   a = callBreakHook(FR, BFR, PC-1, decode(c), &pop PASS_LD);
+  switch ( a )
+  { case BRK_TRACE:
+      tracemode(TRUE, NULL);
+      break;
+    case BRK_DEBUG:
+      debugmode(TRUE, NULL);
+      break;
+    default:
+      break;
+  }
   LOAD_REGISTERS(qid);
   lTop = LD->query->next_environment;
   LD->query->next_environment = NULL;
@@ -159,13 +169,8 @@ VMI(D_BREAK, 0, 0, ())
 
   switch ( a )
   { case BRK_ERROR:
-      break;
     case BRK_TRACE:
-      tracemode(TRUE, NULL);
-      /*FALLTHROUGH*/
     case BRK_DEBUG:
-      debugmode(TRUE, NULL);
-      /*FALLTHROUGH*/
     case BRK_CONTINUE:
       break;
     case BRK_CALL:
@@ -204,18 +209,37 @@ VMI(I_NOP, 0, 0, ())
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-H_CONST is used for an atomic constant in   the head of the clause. ARGP
+H_ATOM is used for an atom in the head of the clause. ARGP points to the
+current argument to be matched. ARGP is   derefenced  and unified with a
+constant argument. This is the same as   H_SMALLINT, except that we must
+mark atoms if AGC is in progress because the AGC marker may already have
+visited our stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+BEGIN_SHAREDVARS
+word c;
+Word k;
+
+VMI(H_ATOM, 0, 1, (CA1_DATA))
+{ IF_WRITE_MODE_GOTO(B_ATOM);
+
+  c = (word)*PC++;
+  if (GD->atoms.gc_active)
+    markAtom(c);
+  goto h_const;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+H_SMALLINT is used for  small integer  in the head  of the clause.  ARGP
 points to the current argument to  be   matched.  ARGP is derefenced and
 unified with a constant argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(H_CONST, 0, 1, (CA1_DATA))
-{ word c;
-  Word k;
-
-  IF_WRITE_MODE_GOTO(B_CONST);
+VMI(H_SMALLINT, 0, 1, (CA1_DATA))
+{ IF_WRITE_MODE_GOTO(B_SMALLINT);
 
   c = (word)*PC++;
+h_const:
   deRef2(ARGP, k);
   if ( *k == c )
   { ARGP++;
@@ -240,10 +264,11 @@ VMI(H_CONST, 0, 1, (CA1_DATA))
   }
   CLAUSE_FAILED;
 }
+END_SHAREDVARS
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-H_NIL is used for [] in the head.  See H_CONST for details.
+H_NIL is used for [] in the head.  See H_ATOM for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_NIL, 0, 0, ())
@@ -281,7 +306,7 @@ VMI(H_NIL, 0, 0, ())
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 H_INTEGER: Long integer in  the  head.   Note  that  small  integers are
-handled through H_CONST. Copy to the  global   stack  if the argument is
+handled through H_SMALLINT. Copy to the  global stack if the argument is
 variable, compare the numbers otherwise.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -811,13 +836,21 @@ VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-B_CONST, B_NIL: An atomic constant in the body of a clause. We know that
-ARGP is pointing to a not yet   instantiated  argument of the next frame
-and therefore can just fill the argument. Trailing is not needed as this
-is above the stack anyway.
+B_ATOM, B_SMALLINT, B_NIL: An atomic constant in the body of a clause. We
+know that ARGP is pointing to a not yet instantiated argument of the next
+frame and therefore can just fill the argument. Trailing is not needed as
+this is above the stack anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_CONST, 0, 1, (CA1_DATA))
+VMI(B_ATOM, 0, 1, (CA1_DATA))
+{ word c = (word)*PC++;
+  if (GD->atoms.gc_active)
+    markAtom(c);
+  *ARGP++ = c;
+  NEXT_INSTRUCTION;
+}
+
+VMI(B_SMALLINT, 0, 1, (CA1_DATA))
 { *ARGP++ = (word)*PC++;
   NEXT_INSTRUCTION;
 }
@@ -1062,6 +1095,9 @@ Note  that  the  B_UNIFY_FIRSTVAR  assumes  write   mode,  but  this  is
 unimportant because the compiler generates write (B_*) instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define SLOW_UNIFY ( debugstatus.debugging || \
+		     LD->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+
 VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_FVAR))
 { ARGP = varFrameP(FR, (int)*PC++);
   setVar(*ARGP);			/* needed for GC */
@@ -1073,8 +1109,7 @@ VMI(B_UNIFY_VAR, 0, 1, (CA1_VAR))
 { ARGP = varFrameP(FR, (int)*PC++);
 
 unify_var_cont:
-#if O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { Word k = ARGP;
 
     ARGP = argFrameP(lTop, 0);
@@ -1083,7 +1118,6 @@ unify_var_cont:
     umode = uwrite;			/* must write for GC to work */
     NEXT_INSTRUCTION;
   }
-#endif
 
   umode = uread;			/* needed? */
   NEXT_INSTRUCTION;
@@ -1093,14 +1127,12 @@ unify_var_cont:
 VMI(B_UNIFY_EXIT, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
-#if O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { NFR = lTop;
     DEF = GD->procedures.equals2->definition;
     setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
-#endif
 
   CHECK_WAKEUP;				/* only for non-first-var */
   NEXT_INSTRUCTION;
@@ -1116,8 +1148,7 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { setVar(*v1);
     setVar(*v2);
     ARGP = argFrameP(lTop, 0);
@@ -1125,7 +1156,6 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
     *ARGP++ = linkVal(v2);
     goto debug_equals2;
   }
-#endif
 
   setVar(*v1);
   *v2 = makeRefL(v1);
@@ -1138,15 +1168,13 @@ VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { setVar(*v1);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
     *ARGP++ = linkVal(v2);
     goto debug_equals2;
   }
-#endif
 
   *v1 = linkVal(v2);
 
@@ -1159,8 +1187,7 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
     *ARGP++ = linkVal(v2);
@@ -1170,7 +1197,6 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
     setNextFrameFlags(NFR, FR);
     goto normal_call;
   }
-#endif
 
   SAVE_REGISTERS(qid);
   rc = unify_ptrs(v1, v2, ALLOW_GC|ALLOW_SHIFT PASS_LD);
@@ -1195,15 +1221,13 @@ VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { setVar(*v1);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
     *ARGP++ = c;
     goto debug_equals2;
   }
-#endif
 
   *v1 = c;
   NEXT_INSTRUCTION;
@@ -1218,14 +1242,12 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
 { Word k = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
-#ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( SLOW_UNIFY )
   { ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(k);
     *ARGP++ = c;
     goto debug_equals2;
   }
-#endif
 
   deRef(k);
   if ( *k == c )
@@ -4433,7 +4455,7 @@ atom is referenced by the goal-term anyway.
       goto call_type_error;
 
     fd = valueFunctor(functor);
-    if ( false(fd, CONTROL_F) )
+    if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
     { args    = argTermP(goal, 0);
       arity   = fd->arity;
     } else
@@ -4442,7 +4464,7 @@ atom is referenced by the goal-term anyway.
 
       lTop = NFR;
       setNextFrameFlags(NFR, FR);
-      rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module PASS_LD);
+      rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module, 0 PASS_LD);
       if ( rc == FALSE )
 	THROW_EXCEPTION;
       if ( rc == LOCAL_OVERFLOW )

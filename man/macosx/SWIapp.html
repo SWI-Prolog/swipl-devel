@@ -1,0 +1,57 @@
+<html lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+	<title>The SWI-Prolog MacOSX app</title>
+</head>
+<body>
+<h4>The SWI-Prolog MacOSX app</h4>
+
+<p>
+<a href="http://www.swi-prolog.org/">SWI-Prolog</a> is an open source
+implementation of the Prolog programming language. SWI-Prolog targets at
+developing real-world applications. To achieve this, in concentrates on
+libraries that facilitate interfacing to other software components,
+networking and multi-threading. SWI-Prolog can be used from
+<code>Terminal</code>, as an standard Mac application started from
+<code>Finder</code>, under <a
+href="http://www.swi-prolog.org/FAQ/GnuEmacs.html">GNU-Emacs</a> or
+under the <a href="http://sewiki.iai.uni-bonn.de/research/pdt/">Eclipse
+IDE</a>. </p>
+
+<p>
+The SWI-Prolog development tools, such as the source-level debugger, are
+based on xpce, SWI-Prolog's native graphics toolkit. This toolkit
+<b>requires X11</b>, and in particular <a
+href="http://xquartz.macosforge.org/">Xquartz</a>, <b>even</b> on Mac OS
+X v10.5 to v10.7 where X11 is preinstalled or can be installed as an
+option.  SWI-Prolog's XPCE toolkit is linked against the X11 libraries
+in <code>/opt/X11</code>, Xquartz version 2.7.4.
+</p>
+
+<p>
+The SWI-Prolog app can be executed directly from the disk image, can be
+installed in <code>/Applications</code> or in any other location, i.e.,
+it is <i>relocatable</i>. The app advertises itself to the launcher as
+<em>shell</em> for files with extensions <code>.pl</code> and
+<code>.prolog</code>
+</p>
+
+<p>
+The traditional command line tools are included in the app. To access
+them from <code>Terminal</code>, add the directory
+<code>/Applications/SWI-Prolog/Contents/MacOS</code> to
+<code>$PATH</code> (replace with the actual location if you installed
+the app in a different location).
+</p>
+
+<p>
+The Qt based console for this app is developed by Carlo Capelli.
+</p>
+
+<p>
+SWI-Prolog is brought to you by
+many <a href="http://www.swi-prolog.org/Contributors.html">contributors</a>.
+</p>
+
+</body>
+</html>

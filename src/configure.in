@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(pl-wam.c)
-AC_PREREQ([2.50])
+AC_PREREQ([2.66])
 
 AC_CONFIG_HEADER(config.h)
 AC_SUBST(COFLAGS)
@@ -49,6 +49,8 @@ AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
 AC_SUBST(MINGW)
 AC_SUBST(WINDRES)
+AC_SUBST(WINE)
+AC_SUBST(MSLIBEXE)			dnl how to call lib.exe
 AC_SUBST(WINEPATHEXE)
 AC_SUBST(HOST_TOOLCHAIN_FLAG)
 AC_SUBST(HOST_OS_FLAG)
@@ -647,11 +649,32 @@ case "$PLARCH" in
 	case $(uname) in
 	    MINGW*)
 		DLLIBVAR=PATH
+		AC_CHECK_PROG(MSLIBEXE, lib.exe, lib.exe, ":")
 		;;
 	    *)
 		DLLIBVAR=WINEPATH
+		AC_CHECK_PROG(WINE, wine, wine, ":")
+		AC_MSG_CHECKING(How to call MS LIB.EXE)
+		if $WINE lib.exe 2>/dev/null | grep MACHINE > /dev/null; then
+		  MSLIBEXE="$WINE lib.exe"
+		else
+		  MSLIBEXE=":"
+		fi
+		AC_MSG_RESULT($MSLIBEXE)
 		;;
 	esac
+	if test "$MSLIBEXE" != ":"; then
+	  AC_MSG_CHECKING(Machine id for lib.exe)
+	  case "$PLARCH" in
+	    *-win32)
+	      MSLIBEXE="$MSLIBEXE /machine:X86"
+	      ;;
+	    *-win64)
+	      MSLIBEXE="$MSLIBEXE /machine:X64"
+	      ;;
+	  esac
+	  AC_MSG_RESULT($MSLIBEXE)
+	fi
 	AC_CHECK_PROG(WINEPATHEXE, winepath, winepath, ":")
 	DEFSTARTUP=swipl.ini
 	CHRPATH=:
@@ -679,6 +702,8 @@ esac
 
 if test "x$SO_PATH"     = "x"; then SO_PATH="$DLLIBVAR"; fi
 if test "x$WINEPATHEXE" = "x"; then WINEPATHEXE=":"; fi
+if test "x$WINE"        = "x"; then WINE=":"; fi
+if test "x$MSLIBEXE"    = "x"; then MSLIBEXE=":"; fi
 
 AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
 		   [Define to the extension of shared objects (often .so)])
@@ -701,7 +726,7 @@ case "$PLARCH" in
 	;;
   *-win32|*-win64)
 	PLSO=libswipl.$SO_EXT
-	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a'
+	SONAMEOPT='-Wl,-soname=$(SHAREDV) -Wl,--out-implib,$(RUNTIMEDIR)/libswipl.$(SOEXT).a -Wl,--output-def,$(RUNTIMEDIR)/libswipl.def'
 	;;
   *)
 	PLSO=libswipl.$SO_EXT
@@ -1453,63 +1478,10 @@ if test "$ac_cv_func_fcntl" = yes; then
 fi
 
 
-AC_MSG_CHECKING("alignment restrictions on doubles")
-AC_TRY_RUN(
-[
-#include <inttypes.h>
-  main()
-  { void *l[10];
-    double *p = (double*)l;
+AC_CHECK_ALIGNOF(void*)
+AC_CHECK_ALIGNOF(double)
+AC_CHECK_ALIGNOF(int64_t)
 
-    if ( sizeof(double) == sizeof(void*) )
-      return 0;
-
-#if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
-    return 1;
-#endif
-
-    if ( (intptr_t)p % sizeof(double) == 0 )
-      p += sizeof(void*);
-    *p = 1.0;
-
-    return 0;
-  }
-],
-AC_MSG_RESULT(as void*),
-AC_MSG_RESULT(sizeof(double))
-AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double),
-	  [Define if doubles cannot be aligned as pointers]),
-AC_MSG_RESULT(assuming sizeof(double))
-AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
-
-AC_MSG_CHECKING("alignment restrictions on int64_t")
-AC_TRY_RUN(
-[
-#include <inttypes.h>
-  main()
-  { void *l[10];
-    int64_t *p = (int64_t*)l;
-
-    if ( sizeof(int64_t) == sizeof(void*) )
-      return 0;
-
-#if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
-    return 1;
-#endif
-
-    if ( (intptr_t)p % sizeof(int64_t) == 0 )
-      p += sizeof(void*);
-    *p = 0x123456789abcdefLL;
-
-    return 0;
-  }
-],
-AC_MSG_RESULT(as void*),
-AC_MSG_RESULT(sizeof(int64_t))
-AC_DEFINE(INT64_ALIGNMENT, sizeof(int64_t),
-	  [Define if int64_t cannot be aligned as pointers]),
-AC_MSG_RESULT(assuming sizeof(int64_t))
-AC_DEFINE(INT64_ALIGNMENT, sizeof(int64_t)))
 
 dnl See whether we can access intptr_t values over non-aligned pointers.  This
 dnl should also check whether it is actually faster to do so.  Note that on
