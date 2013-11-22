@@ -516,7 +516,24 @@ functors.
     \cfunction{atom_t}{PL_new_atom}{const char *}
 Return an atom handle for the given C-string.  This function always
 succeeds. The returned handle is valid as long as the atom is
-referenced (see \secref{atomgc}).
+referenced (see \secref{atomgc}).  The following atoms are provided
+as macros, giving access to the empty list symbol and the name of the
+list constructor.  Prior to version~7, \const{ATOM_nil} is the same
+as \exam{PL_new_atom("[]")} and \const{ATOM_dot} is the same as
+\exam{PL_new_atom(".")}.  This is no long the case in SWI-Prolog
+version~7.
+
+    \begin{description}
+	\cmacro{atom_t}{ATOM_nil}
+Atomic constant that represents the empty list.  It is adviced to
+use PL_get_nil(), PL_put_nil() or PL_unify_nil() where applicable.
+
+	\cmacro{atom_t}{ATOM_dot}
+Atomic constant that represents the name of the list constructor.
+The list constructor itself is created using
+\exam{PL_new_functor(ATOM_dot,2)}.   It is adviced to use
+PL_get_list(), PL_put_list() or PL_unify_list() where applicable.
+    \end{description}
 
     \cfunction{const char*}{PL_atom_chars}{atom_t atom}
 Return a C-string for the text represented by the given atom. The
