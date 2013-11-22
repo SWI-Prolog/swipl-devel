@@ -57,9 +57,9 @@
 \pagestyle{fancyplain}
 #endif
 
-\newcommand{\vmajor}{6}
-\newcommand{\vminor}{5}
-\newcommand{\vpatch}{3}
+\newcommand{\vmajor}{7}
+\newcommand{\vminor}{1}
+\newcommand{\vpatch}{0}
 \newcommand{\vmonth}{November}
 \newcommand{\vyear}{2013}
 
