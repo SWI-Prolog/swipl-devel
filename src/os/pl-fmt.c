@@ -1580,6 +1580,29 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	}
 	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
       }
+
+#ifdef __WINDOWS__
+      /*
+         Write all ~e formatted floats in POSIX notation:
+         * exponent must contain at least 2 digits
+         * only as many digits as necessary to represent the exponent
+      */
+      switch(how)
+      { case 'e':
+        case 'E':
+        case 'g':
+        case 'G':
+        { if (written >= 7 &&
+              ( *(out->base + written - 5) == 'e' ||
+                *(out->base + written - 5) == 'E' ) &&
+              ( *(out->base + written - 3) == '0' ))
+          { memmove(out->base + written-3, out->base + written-2, 3);
+            written--;
+          }
+        }
+      }
+#endif
+
       out->top = out->base + written;
 
       break;
