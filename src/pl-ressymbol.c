@@ -25,7 +25,7 @@
 #include "pl-ressymbol.h"
 
 		 /*******************************
-		 *           META ATOMS		*
+		 *	  RESERVED SYMBOLS	*
 		 *******************************/
 
 static int	compareReservedSymbol(atom_t h1, atom_t h2);
