@@ -140,7 +140,7 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_IS		1
 #define O_CALL_AT_MODULE	1
 #define O_STRING		1
-#define O_META_ATOMS		1
+#define O_RESERVED_SYMBOLS	1
 #define O_QUASIQUOTATIONS	1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
@@ -2172,7 +2172,7 @@ decrease).
 #include "os/pl-option.h"		/* Option processing */
 #include "os/pl-files.h"		/* File management */
 #include "os/pl-string.h"		/* Basic string functions */
-#include "pl-metaatom.h"		/* Meta atom handling */
+#include "pl-ressymbol.h"		/* Meta atom handling */
 
 #ifdef ATOMIC_INC
 #define ATOMIC_REFERENCES 1		/* Use atomic +/- for atom references */

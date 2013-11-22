@@ -23,16 +23,16 @@
 #ifndef PL_METAATOM_H_INCLUDED
 #define PL_METAATOM_H_INCLUDED 1
 
-#ifdef O_META_ATOMS
+#ifdef O_RESERVED_SYMBOLS
 
-COMMON(void)	initMetaAtoms(void);
-COMMON(int)	isMetaAtom(word w);
-COMMON(atom_t)	textToMetaAtom(PL_chars_t *text);
+COMMON(void)	initReservedSymbols(void);
+COMMON(int)	isReservedSymbol(word w);
+COMMON(atom_t)	textToReservedSymbol(PL_chars_t *text);
 
-#else /*O_META_ATOMS*/
+#else /*O_RESERVED_SYMBOLS*/
 
-#define isMetaAtom(a) FALSE
+#define isReservedSymbol(a) FALSE
 
-#endif /*O_META_ATOMS*/
+#endif /*O_RESERVED_SYMBOLS*/
 
 #endif /*PL_METAATOM_H_INCLUDED*/

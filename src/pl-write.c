@@ -708,9 +708,9 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
   return TRUE;
 }
 
-#ifdef O_META_ATOMS
+#ifdef O_RESERVED_SYMBOLS
 int
-writeMetaAtom(IOSTREAM *fd, atom_t atom, int flags)
+writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags)
 { Atom a = atomValue(atom);
   const char *s = a->name;
   size_t len = a->length;
@@ -720,16 +720,18 @@ writeMetaAtom(IOSTREAM *fd, atom_t atom, int flags)
     return PutToken("[]", fd);
 
   if ( (flags&PL_WRT_QUOTED) )
-  { char quote = '`';
+  { char quote = '\'';
 
-    TRY(PutOpenToken(quote, fd) &&
-	Putc(quote, fd));
+    if ( PutOpenToken('C', fd) &&
+	 Putc('C', fd) &&
+	 Putc(quote, fd) )
+    { while(s < e)
+      { if ( !putQuoted(*s++, quote, flags, fd) )
+	  return FALSE;
+      }
 
-    while(s < e)
-    { TRY(putQuoted(*s++, quote, flags, fd));
+      return Putc(quote, fd);
     }
-
-    return Putc(quote, fd);
   }
 
   if ( s < e && !PutOpenToken(s[0], fd) )

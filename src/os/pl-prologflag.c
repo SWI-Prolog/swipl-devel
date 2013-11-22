@@ -1212,11 +1212,7 @@ initPrologFlags(void)
   setPrologFlag("access_level", FT_ATOM, "user");
   setPrologFlag("double_quotes", FT_ATOM,
 		GD->options.traditional ? "codes" : "string");
-#ifdef O_META_ATOMS
-  setPrologFlag("back_quotes", FT_ATOM, "meta_atom");
-#else
-  setPrologFlag("back_quotes", FT_ATOM, "symbol_char");
-#endif
+  setPrologFlag("back_quotes", FT_ATOM, "codes");
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");

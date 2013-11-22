@@ -190,7 +190,7 @@ typedef union
 #define PL_FLOAT	 (4)		/* double */
 #define PL_STRING	 (5)		/* const char * */
 #define PL_TERM		 (6)
-#define PL_META_ATOM	 (7)
+#define PL_RESERVED_SYMBOL	 (7)
 
 					/* PL_unify_term() */
 #define PL_FUNCTOR	 (10)		/* functor_t, arg ... */

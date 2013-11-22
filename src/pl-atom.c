@@ -1123,8 +1123,8 @@ initAtoms(void)
     PL_register_blob_type(&text_atom);
 
     DEBUG(MSG_HASH_STAT, PL_on_halt(exitAtoms, NULL));
-#ifdef O_META_ATOMS
-    initMetaAtoms();
+#ifdef O_RESERVED_SYMBOLS
+    initReservedSymbols();
 #endif
   }
   UNLOCK();

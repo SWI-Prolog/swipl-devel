@@ -386,9 +386,9 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
       }
       return FALSE;
     }
-#ifdef O_META_ATOMS
-    case PL_META_ATOM:
-    { atom_t a = textToMetaAtom(text);
+#ifdef O_RESERVED_SYMBOLS
+    case PL_RESERVED_SYMBOL:
+    { atom_t a = textToReservedSymbol(text);
 
       if ( a )
       { int rval = _PL_unify_atomic(term, a);

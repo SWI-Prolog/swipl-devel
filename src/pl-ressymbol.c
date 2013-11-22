@@ -21,23 +21,23 @@
 */
 
 #include "pl-incl.h"
-#ifdef O_META_ATOMS
-#include "pl-metaatom.h"
+#ifdef O_RESERVED_SYMBOLS
+#include "pl-ressymbol.h"
 
 		 /*******************************
 		 *           META ATOMS		*
 		 *******************************/
 
-static int	compareMetaAtom(atom_t h1, atom_t h2);
+static int	compareReservedSymbol(atom_t h1, atom_t h2);
 
-static PL_blob_t meta_atom =
+static PL_blob_t reserved_symbol =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
 					/* unique representation of text */
-  "meta_atom",
+  "reserved_symbol",
   NULL,					/* release */
-  compareMetaAtom,			/* compare */
-  writeMetaAtom,			/* write */
+  compareReservedSymbol,			/* compare */
+  writeReservedSymbol,			/* write */
   NULL,					/* acquire */
   NULL,					/* save load to/from .qlf files */
   NULL,
@@ -59,7 +59,7 @@ _PL_atoms(void)
 }
 
 
-static const atom_t meta_atoms[] =
+static const atom_t reserved_symbols[] =
 { ATOM_nil,				/* 0: `[]` */
 
   (atom_t)0
@@ -67,56 +67,56 @@ static const atom_t meta_atoms[] =
 
 
 void
-initMetaAtoms(void)
+initReservedSymbols(void)
 { const atom_t *ap;
 
-  PL_register_blob_type(&meta_atom);
-  atomValue(ATOM_map)->type = &meta_atom;
+  PL_register_blob_type(&reserved_symbol);
+  atomValue(ATOM_map)->type = &reserved_symbol;
 
-  for(ap=meta_atoms; *ap; ap++)
+  for(ap=reserved_symbols; *ap; ap++)
   { Atom a = atomValue(*ap);
-    a->type = &meta_atom;
+    a->type = &reserved_symbol;
   }
 }
 
 
 int
-isMetaAtom(word w)
-{ return isAtom(w) && atomValue(w)->type == &meta_atom;
+isReservedSymbol(word w)
+{ return isAtom(w) && atomValue(w)->type == &reserved_symbol;
 }
 
 
 static atom_t
-new_meta_atom(size_t len, const char *s)
+new_reserved_symbol(size_t len, const char *s)
 { int new;
 
-  return lookupBlob(s, len, &meta_atom, &new);
+  return lookupBlob(s, len, &reserved_symbol, &new);
 }
 
 
 atom_t
-PL_new_meta_atom(const char *s)
-{ return new_meta_atom(strlen(s), s);
+PL_new_reserved_symbol(const char *s)
+{ return new_reserved_symbol(strlen(s), s);
 }
 
 
 static int
-compareMetaAtom(atom_t h1, atom_t h2)
+compareReservedSymbol(atom_t h1, atom_t h2)
 { return strcmp(stringAtom(h1), stringAtom(h2));
 }
 
 
 atom_t
-textToMetaAtom(PL_chars_t *text)
+textToReservedSymbol(PL_chars_t *text)
 { if ( !PL_canonicalise_text(text) )
     return 0;
 
   if ( text->encoding == ENC_ISO_LATIN_1 )
-  { return new_meta_atom(text->length, text->text.t);
+  { return new_reserved_symbol(text->length, text->text.t);
   } else
   { return 0;
   }
 }
 
 
-#endif /* O_META_ATOMS */
+#endif /* O_RESERVED_SYMBOLS */
