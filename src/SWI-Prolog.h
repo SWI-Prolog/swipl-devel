@@ -317,17 +317,6 @@ PL_EXPORT(atom_t)	PL_module_name(module_t module);
 PL_EXPORT(module_t)	PL_new_module(atom_t name);
 PL_EXPORT(int)		PL_strip_module(term_t in, module_t *m, term_t out);
 
-		/********************************
-		*            CONSTANTS          *
-		*********************************/
-
-PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved symbols */
-#ifndef PL_KERNEL
-#define ATOM_nil        (_PL_atoms()[0]) /* empty list */
-#define ATOM_dot        (_PL_atoms()[1]) /* list constructor name */
-#endif /*PL_KERNEL*/
-
-
 		 /*******************************
 		 *	     CONSTANTS		*
 		 *******************************/
