@@ -140,7 +140,11 @@ syntax(number-2) :-
 	E = error(syntax_error(end_of_file), _).
 syntax(zero-1) :-
 	term_to_atom(T, 'hello("\000\x")'),
-	T == hello([0, 120]).
+	T = hello(A0),
+	(   A0 == [0,120]		% depending on the double quotes flag
+	;   string_codes(A0, [0,120])
+	;   A0 == ['\u0000', x]
+	), !.
 syntax(latin-1) :-
 	atom_codes(A, [247]),
 	atom_to_term(A, T, []),
@@ -212,15 +216,16 @@ format_test(intR-1) :-
 	X == '3E8'.
 format_test(oncodes-1) :-
 	format(codes(C), 'hello ~w', [world]),
-	C == "hello world".
+	atom_codes('hello world', C).
 format_test(oncodes-2) :-
 	format(codes(C,T), 'hello ~w', [world]),
-	append("hello world", T2, C2),
+	atom_codes('hello world', HW),
+	append(HW, T2, C2),
 	C-T =@= C2-T2.
 format_test(onstring-1) :-
 	format(string(S), 'hello ~w', [world]),
 	string(S),
-	string_to_list(S, "hello world").
+	atom_string('hello world', S).
 
 
 		 /*******************************
@@ -583,7 +588,7 @@ gmp(shift-2) :-
 	A is 1<<55, B is A<<8,
 	B =:= 9223372036854775808.
 gmp(shift-3) :-
-	var(A),
+	unbound(A),
 	forall(between(1, 100, X),
 	       catch(A is 1<<(1<<X), error(resource_error(stack), _), true)).
 gmp(fac-1) :-
@@ -775,8 +780,8 @@ wchars(cmp-1) :-
 wchars(cmp-2) :-
 	forall(( wchar_string(S1),
 		 wchar_string(S2)),
-	       ( string_to_list(A1, S1),
-		 string_to_list(A2, S2),
+	       ( string_codes(A1, S1),
+		 string_codes(A2, S2),
 		 compare(Diff, A1, A2),
 		 (   compare(Diff, S1, S2)
 		 ->  true
@@ -808,7 +813,7 @@ meta(call-6) :-
 meta(call-7) :-
 	call((X=a,x(X)=Y)), Y == x(a).
 meta(call-8) :-
-	string_to_list(S, "hello world"),
+	string_codes(S, "hello world"),
 	call((string(S), true)).
 meta(call-9) :-
 	call((foo:true, true)).
@@ -952,7 +957,7 @@ depth_limit(fail-1) :-
 		 *******************************/
 
 type_test(type-1) :-
-	var(_), X = Y, var(X), Y = a, nonvar(X).
+	X = Y, var(X), Y = a, nonvar(X).
 type_test(type-2) :-
 	atom(hello), \+ atom(10), \+ atom("hello").
 type_test(type-3) :-
@@ -1040,7 +1045,7 @@ foo(2, e).
 foo(3, f).
 
 type(atom).
-type(S) :- string_to_atom(S, "string").
+type(S) :- atom_string(string, S).
 type(42).
 type(3.14).
 type([a, list]).
@@ -1060,7 +1065,7 @@ sets(setof-1) :-
 		 ].
 sets(setof-2) :-
 	setof(X-Ys, setof(Y, set(X,Y), Ys), R0),
-	string_to_atom(S, "string"),
+	atom_string(string, S),
 	keysort(R0, R),
 	(   R =@= [3.14-[1, 2],
 		   42-[1, 2],
@@ -1118,7 +1123,8 @@ sets(setof-5) :- % Bart Demoen's example
 		 *******************************/
 
 atom_handling(name-1) :-
-	name(hello, X), X = "hello".
+	name(hello, X),
+	atom_codes(hello, X).
 atom_handling(name-2) :-
 	name(V, "5"), V == 5.
 atom_handling(name-3) :-
@@ -1202,11 +1208,16 @@ string_handling(cmp-1) :-
 :- set_prolog_flag(backquoted_string, false).
 
 string_handling(atom-1) :-
-	string_to_atom(an_atom, X),
+	atom_string(X, an_atom),
 	X == an_atom.
 string_handling(list-1) :-
-	string_to_atom("a_list", X),
+	atom_codes(a_list, Codes),
+	atom_string(X, Codes),
 	X == a_list.
+string_handling(string-1) :-
+	atom_string(a_string, String),
+	atom_string(X, String),
+	X == a_string.
 
 
 		 /*******************************
@@ -1304,7 +1315,7 @@ cl(clause-7) :-
 		 *******************************/
 
 mkterm(T) :-
-	string_to_list(S, "hello"),
+	string_codes(S, "hello"),
 	current_prolog_flag(max_tagged_integer, X),
 	BigNum is X * 3,
 	NegBigNum is -X*5,
@@ -1543,8 +1554,10 @@ control(cut-3) :-
 	c3.
 control(cut-4) :-
 	c4.
+:- style_check(-singleton).
 control(not-1) :-			% 2-nd call must generate FIRSTVAR
 	( fail ; \+ \+ p(f(X,Y)) ), p(f(X,Y)).
+:- style_check(+singleton).
 control(not-2) :-			% see comments with compileBody()
 	garbage_collect,		% may crash if wrong
 	prolog_current_frame(F),
@@ -1565,8 +1578,10 @@ control(ifthen-1) :-			% Must be the same
 		 *******************************/
 
 do_exception_1 :-
-	A = _,
+	unbound(A),
 	A.
+
+unbound(_).
 
 rethrow(G) :-
 	catch(G, E, throw(E)).
@@ -1990,7 +2005,7 @@ term_hash(simple-4) :-
 		       14888348		% big endian
 		     ]).
 term_hash(simple-5) :-
-	string_to_list(S, "hello world"),
+	string_codes(S, "hello world"),
 	term_hash(S, 13985775).
 term_hash(compound-1) :-
 	term_hash(hello(world), X),
@@ -2173,8 +2188,9 @@ timeout(pipe-1) :-
 		 ]),
 	    set_stream(In, timeout(0.2)),
 	    wait_for_input([In], [In], infinite),
-	    catch(read(In, _), E1, true),
-	    (	E1 = error(timeout_error(read, _), _)
+	    catch(read(In, Term1), E1, true),
+	    (	nonvar(E1),
+		E1 = error(timeout_error(read, _), _)
 	    ->	wait_for_input([In], [In], infinite),
 		catch(read(In, Term), E2, true),
 		(   var(E2)
@@ -2187,13 +2203,13 @@ timeout(pipe-1) :-
 		    fail
 		)
 	    ;   var(E1)
-	    ->	(   Term == (+ xx)
+	    ->	(   Term1 == (+ xx)
 		->  close(In),
 		    format(user_error,
 			   'timeout(pipe-1): ~q (machine heavy loaded?)~n',
-			   [Term])
+			   [Term1])
 		;   format(user_error,
-			   'var(E1) && Term == ~q~n', [Term]),
+			   'var(E1) && Term == ~q~n', [Term1]),
 		    fail
 		)
 	    ;	format(user_error, 'E1 == ~q~n', [E1]),
@@ -2219,16 +2235,16 @@ root(Root) :-
 	;   Root == (/)
 	).
 
-file(canonise-1) :-
+file(canonicalise-1) :-
 	absolute_file_name('/foo/..', X),
 	root(X).
-file(canonise-2) :-
+file(canonicalise-2) :-
 	absolute_file_name('/foo/../..', X),
 	root(X).
-file(canonise-3) :-
+file(canonicalise-3) :-
 	absolute_file_name('/foo/../../..', X),
 	root(X).
-file(canonise-4) :-
+file(canonicalise-4) :-
 	absolute_file_name('/foo/../../../', X),
 	root(X).
 file(exists-1) :-
@@ -2247,7 +2263,7 @@ file(cwd-1) :-
 	working_directory(CWD, CWD),
 	exists_directory(CWD),
 	same_file(CWD, '.').
-file(absfile-2) :-			% canoniseDir() caching issues
+file(absfile-2) :-			% canonicaliseDir() caching issues
 	X = 'pl-test-x',
 	Y = 'pl-test-y',
 	atom_concat(X, '/file', XF),
@@ -2334,8 +2350,9 @@ seek(write-1) :-
 	close(S),
 
 	open(File, read, In, [type(binary)]),
+	atom_codes('123456x890\n', Bytes),
 	forall(between(0, Max, N),
-	       must_read("123456x890\n", In)),
+	       must_read(Bytes, In)),
 	close(In),
 	delete_file(File).
 
@@ -2356,7 +2373,8 @@ ctype(code_type-1) :-
 	code_type(97, to_lower(65)).
 ctype(code_type-2) :-
 	findall(X, code_type(X, lower), Lower),
-	subset("abcdefghijklmnopqrstuvwxyz", Lower).
+	string_codes("abcdefghijklmnopqrstuvwxyz", AZ),
+	subset(AZ, Lower).
 ctype(code_type-3) :-
 	code_type(48, digit(0)).
 ctype(code_type-4) :-

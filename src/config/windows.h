@@ -56,10 +56,6 @@ typedef int mode_t;
 #define HAVE_CLOCK 1			/* clock() timing function */
 #define inline __inline
 
-/* Define if you want to associate states */
-#define ASSOCIATE_STATE "qlx"
-#define ASSOCIATE_SRC	"pl"
-
 #define snprintf ms_snprintf		/* defined in pl-nt.c */
 
 #ifdef O_GMP

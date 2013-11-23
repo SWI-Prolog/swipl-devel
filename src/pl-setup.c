@@ -53,7 +53,7 @@ static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
 int
-setupProlog(void)
+setupProlog()
 { GET_LD
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
@@ -1496,7 +1496,11 @@ freePrologLocalData(PL_local_data_t *ld)
 #endif
 
   if ( ld->bags.default_bag )
-    PL_free(ld->bags.default_bag);
+  { PL_free(ld->bags.default_bag);
+#ifdef O_ATOMGC
+    simpleMutexDelete(&ld->bags.mutex);
+#endif
+  }
 
 #ifdef O_CYCLIC
   clearSegStack(&ld->cycle.lstack);

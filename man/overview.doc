@@ -103,18 +103,21 @@ After the system initialisation, the system consults (see
 consult/1) the user's startup file. The basename of this file follows
 conventions of the operating system. On MS-Windows, it is the file
 \file{pl.ini} and on Unix systems \file{.plrc}. The file is searched
-using the file_search_path/2 clauses for \const{user_profile}. The table
-below shows the default value for this search path. The phrase <appdata>
-refers to the Windows CSIDL name for the folder. The actual name depends
-on the Windows language. English versions typically use
-\file{Application Data}. See also win_folder/2
+using the file_search_path/2 clauses for
+\const{user_profile}.\footnote{Older versions first searched in the
+current working directory. This feature has been removed for security
+reasons. Users can implement loading a setup file from the working
+directory in their global preference file.} The table below shows the
+default value for this search path. The phrase <appdata> refers to the
+Windows CSIDL name for the folder. The actual name depends on the
+Windows language. English versions typically use \file{Application
+Data}. See also win_folder/2
 
 \begin{center}
 \begin{tabular}{|l|l|l|}
 \hline
 		& \bf Unix	& \bf Windows \\
 \hline
-\bf local	& \file{.}	& \file{.} \\
 \bf home	& \chr{~}	& <appdata>/SWI-Prolog \\
 \hline
 \end{tabular}
@@ -179,7 +182,51 @@ require the Prolog system.
 
 \section{Command line options}			\label{sec:cmdline}
 
-The full set of command line options is given below:
+SWI-Prolog can be executed in one of the following modes:
+
+\begin{description}
+    \definition{\exam{swipl --help}}
+    \nodescription
+    \definition{\exam{swipl --version}}
+    \nodescription
+    \definition{\exam{swipl --arch}}
+    \nodescription
+    \definition{\exam{swipl --dump-runtime-variables}}
+These options must appear as only option. They cause Prolog to print
+an informational message and exit.  See \secref{info-options}.
+
+    \definition{\exam{swipl} [\arg{option} ...]
+		\arg{script-file} [\arg{arg} ...]}
+These arguments are passed on Unix systems if file that starts
+with \mbox{\texttt{\#!/path/to/executable} [\arg{option} ...]} is
+executed. Arguments after the script file are made available in the
+Prolog flag \prologflag{argv}.
+
+    \definition{\exam{swipl} [\arg{option} ...]
+		\arg{prolog-file} ...
+		[[\const{--}] \arg{arg} ...]}
+This is the normal way to start Prolog. The options are described in
+\secref{running-options}, \secref{stacksizes} and \secref{runoptions}.
+The Prolog flag \prologflag{argc} provides access to \arg{arg} ... If
+the \arg{options} are followed by one or more Prolog file names (i.e.,
+names with extension \fileext{pl}, \fileext{prolog} or (on Windows) the
+user preferred extension registered during installation), these files
+are loaded. The first file is registered in the Prolog flag
+\prologflag{associated_file}. In addition, \program{pl-win[.exe]}
+switches to the directory in which this primary source file is located
+using working_directory/2.
+
+    \definition{\exam{swipl} -o \arg{output} -c \arg{prolog-file} ...}
+The \cmdlineoption{-c} option is used to compile a set of Prolog
+files into an executable.  See \secref{compoptions}.
+
+    \definition{\exam{swipl} -o \arg{output} -b \arg{bootfile}
+		\arg{prolog-file} ...}
+Bootstrap compilation.  See \secref{maintoptions}.
+    \end{description}
+
+\subsection{Informational command line options}
+\label{sec:info-options}
 
 \begin{description}
     \cmdlineoptionitem{--arch}{}
@@ -188,12 +235,11 @@ When given as the only option, it prints the architecture identifier
 \cmdlineoption{-dump-runtime-variables}. Also available as
 \cmdlineoption{-arch}.
 
-    \cmdlineoptionitem{--dump-runtime-variables}{}
+    \cmdlineoptionitem{--dump-runtime-variables}{[=format]}
 When given as the only option, it prints a sequence of variable settings
 that can be used in shell scripts to deal with Prolog parameters.  This
 feature is also used by \program{swipl-ld} (see \secref{plld}).  Below is
-a typical example of using this feature. Also available as
-\cmdlineoption{-dump-runtime-variables}.
+a typical example of using this feature.
 
 \begin{code}
 eval `swipl --dump-runtime-variables`
@@ -208,6 +254,16 @@ compatible format.
 When given as the only option, it summarises the most important options.
 Also available as \cmdlineoption{-h} and \cmdlineoption{-help}.
 
+    \cmdlineoptionitem{--version}{}
+When given as the only option, it summarises the version and the
+architecture identifier.  Also available as \cmdlineoption{-v}.
+\end{description}
+
+
+\subsection{Command line options for running Prolog}
+\label{sec:running-options}
+
+\begin{description}
     \cmdlineoptionitem{--home=DIR}{}
 Use DIR as home directory.  See \secref{findhome} for details.
 
@@ -226,9 +282,11 @@ desirable for embedded applications. This option sets the flag
 \prologflag{signals} to \const{false}. See \secref{sigembedded} for
 details.
 
-    \cmdlineoptionitem{--pldoc}{}
+    \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
-the user's browser on \url{http://localhost:<port>}.
+the user's browser on \url{http://localhost:<port>}.  If \arg{port} is
+specified, the server is started at the given port and the browser is
+\emph{not} launched.
 
     \cmdlineoptionitem{-tty}{}
 Unix only.  Switches controlling the terminal for allowing
@@ -238,94 +296,12 @@ it is not connected to a terminal or it is running as a GNU-Emacs
 inferior process. This flag is sometimes required for smooth interaction
 with other applications.
 
-    \cmdlineoptionitem{--version}{}
-When given as the only option, it summarises the version and the
-architecture identifier.  Also available as \cmdlineoption{-v}.
-
     \cmdlineoptionitem{--win_app}{}
 This option is available only in \program{swipl-win.exe} and is used for the
 start-menu item. If causes \program{plwin} to start in the folder
 \verb$...\My Documents\Prolog$ or local equivalent thereof (see
 win_folder/2).  The \file{Prolog} subdirectory is created if it
 does not exist.
-
-    \cmdlineoptionitem{--}{}
-\index{command line, arguments}%
-Stops scanning for more arguments, so you can pass arguments for your
-application after this one.  See current_prolog_flag/2 using the
-flag \prologflag{argv} for obtaining the command line arguments.
-\end{description}
-
-\subsection{Controlling the stack sizes}	\label{sec:stacksizes}
-
-The default limit for the Prolog stacks is 128~MB on 32-bit and 256~MB on
-64-bit hardware. The 128~MB limit on 32-bit systems is the highest
-possible value and the command line options can thus only be used to
-lower the limit. On 64-bit systems, the limit can both be reduced and
-enlarged. See \secref{limits}. Below are two examples, the first
-reducing the local stack limit to catch unbounded recursion quickly and
-the second using a big (32~GB) global limit, which is only possible on
-64-bit hardware. Note that setting the limit using the command line only
-sets a \emph{soft} limit. Stack parameters can be changed (both reduced
-and enlarged) at any time using the predicate set_prolog_stack/2.
-
-\begin{code}
-$ swipl -L8m
-$ swipl -G32g
-\end{code}
-
-\begin{description}
-    \cmdlineoptionitem*{-G}{size[kmg]}
-Limit for the global stack (sometimes also called \jargon{term stack} or
-\jargon{heap}).  This is where compound terms and large numbers live.
-
-    \cmdlineoptionitem*{-L}{size[kmg]}
-Limit for the local stack (sometimes also called
-\jargon{environment stack}). This is where environments and
-choice points live.
-
-    \cmdlineoptionitem*{-T}{size[kmg]}
-Limit for the trail stack.  This is where we keep track of assignments,
-so we can rollback on backtracking or exceptions.
-\end{description}
-
-
-\subsection{Running goals from the command line}		\label{sec:runoptions}
-
-\begin{description}
-    \cmdlineoptionitem{-g}{goal}
-\arg{Goal} is executed just before entering the top level. Default is a
-predicate which prints the welcome message. The welcome message can be
-suppressed with \cmdlineoption{--quiet}, but also with
-\argoption{-g}{true}. \arg{goal} can be a complex term. In this case
-quotes are normally needed to protect it from being expanded by the
-shell. A safe way to run a goal non-interactively is here:
-
-\begin{code}
-% swipl <options> -g go,halt -t 'halt(1)'
-\end{code}
-
-    \cmdlineoptionitem{-t}{goal}
-Use \arg{goal} as interactive top level instead of the default goal
-prolog/0. \arg{goal} can be a complex term. If the top-level goal
-succeeds SWI-Prolog exits with status 0. If it fails the exit status is
-1. If the top level raises an exception, this is printed as an uncaught
-error and the top level is restarted. This flag also determines the goal
-started by break/0 and abort/0. If you want to stop the user from
-entering interactive mode, start the application with
-`\argoption{-g}{goal}' and give `halt' as top level.
-\end{description}
-
-
-\subsection{Compiler options}		\label{sec:compoptions}
-
-\begin{description}
-    \cmdlineoptionitem{-c}{file \ldots}
-Compile files into an `intermediate code file'. See \secref{compilation}.
-
-    \cmdlineoptionitem{-o}{output}
-Used in combination with \cmdlineoption{-c} or \cmdlineoption{-b} to
-determine output file for compilation.
 
     \cmdlineoptionitem{-O}{}
 Optimised compilation. See current_prolog_flag/2 flag
@@ -370,9 +346,91 @@ is either a term of the form \mbox{alias(value)} or pathname. The
 computed aliases are added to file_search_path/2 using asserta/1, so
 they precede predefined values for the alias. See file_search_path/2 for
 details on using this file location mechanism.
+
+    \cmdlineoptionitem{--}{}
+\index{command line, arguments}%
+Stops scanning for more arguments, so you can pass arguments for your
+application after this one.  See current_prolog_flag/2 using the
+flag \prologflag{argv} for obtaining the command line arguments.
 \end{description}
 
-\subsection{Maintenance options}	\label{sec:maintoptions}
+\subsection{Controlling the stack sizes}
+\label{sec:stacksizes}
+
+The default limit for the Prolog stacks is 128~MB on 32-bit and 256~MB on
+64-bit hardware. The 128~MB limit on 32-bit systems is the highest
+possible value and the command line options can thus only be used to
+lower the limit. On 64-bit systems, the limit can both be reduced and
+enlarged. See \secref{limits}. Below are two examples, the first
+reducing the local stack limit to catch unbounded recursion quickly and
+the second using a big (32~GB) global limit, which is only possible on
+64-bit hardware. Note that setting the limit using the command line only
+sets a \emph{soft} limit. Stack parameters can be changed (both reduced
+and enlarged) at any time using the predicate set_prolog_stack/2.
+
+\begin{code}
+$ swipl -L8m
+$ swipl -G32g
+\end{code}
+
+\begin{description}
+    \cmdlineoptionitem*{-G}{size[kmg]}
+Limit for the global stack (sometimes also called \jargon{term stack} or
+\jargon{heap}).  This is where compound terms and large numbers live.
+
+    \cmdlineoptionitem*{-L}{size[kmg]}
+Limit for the local stack (sometimes also called
+\jargon{environment stack}). This is where environments and
+choice points live.
+
+    \cmdlineoptionitem*{-T}{size[kmg]}
+Limit for the trail stack.  This is where we keep track of assignments,
+so we can rollback on backtracking or exceptions.
+\end{description}
+
+
+\subsection{Running goals from the command line}
+\label{sec:runoptions}
+
+\begin{description}
+    \cmdlineoptionitem{-g}{goal}
+\arg{Goal} is executed just before entering the top level. Default is a
+predicate which prints the welcome message. The welcome message can be
+suppressed with \cmdlineoption{--quiet}, but also with
+\argoption{-g}{true}. \arg{goal} can be a complex term. In this case
+quotes are normally needed to protect it from being expanded by the
+shell. A safe way to run a goal non-interactively is here:
+
+\begin{code}
+% swipl <options> -g go,halt -t 'halt(1)'
+\end{code}
+
+    \cmdlineoptionitem{-t}{goal}
+Use \arg{goal} as interactive top level instead of the default goal
+prolog/0. \arg{goal} can be a complex term. If the top-level goal
+succeeds SWI-Prolog exits with status 0. If it fails the exit status is
+1. If the top level raises an exception, this is printed as an uncaught
+error and the top level is restarted. This flag also determines the goal
+started by break/0 and abort/0. If you want to stop the user from
+entering interactive mode, start the application with
+`\argoption{-g}{goal}' and give `halt' as top level.
+\end{description}
+
+
+\subsection{Compilation options}
+\label{sec:compoptions}
+
+\begin{description}
+    \cmdlineoptionitem{-c}{file \ldots}
+Compile files into an `intermediate code file'. See \secref{compilation}.
+
+    \cmdlineoptionitem{-o}{output}
+Used in combination with \cmdlineoption{-c} or \cmdlineoption{-b} to
+determine output file for compilation.
+\end{description}
+
+\subsection{Maintenance options}
+\label{sec:maintoptions}
 
 The following options are for system maintenance. They are given
 for reference only.
@@ -382,6 +440,7 @@ for reference only.
 Boot compilation.  \arg{initfile \ldots} are compiled by the C-written
 bootstrap compiler, \arg{file \ldots} by the normal Prolog compiler.
 System maintenance only.
+
     \cmdlineoptionitem{-d}{token1,token2,...}
 Print debug messages for DEBUG statements tagged with one of the
 indicated tokens. Only has effect if the system is compiled with the
@@ -971,6 +1030,13 @@ limit on the length of atoms, 10,000 atoms may still occupy a lot of
 memory.  Applications using extremely large atoms may wish to call
 garbage_collect_atoms/0 explicitly or lower the margin.}
 
+    \prologflagitem{apple}{bool}{r}
+\index{MacOS}%
+If present and \const{true}, the operating system is MacOSX. Defined if
+the C compiler used to compile this version of SWI-Prolog defines
+\verb$__APPLE__$.  Note that the \prologflag{unix} is also defined
+for MacOSX.
+
     \prologflagitem{allow_variable_name_as_functor}{bool}{rw}
 If true (default is false), \exam{Functor(arg)} is read as if it were
 written \exam{'Functor'(arg)}. Some applications use the Prolog read/1
@@ -983,20 +1049,24 @@ binding the variables to their name. Using this feature, F(x) can be
 turned into valid syntax for such script languages. Suggested by Robert
 van Engelen.  SWI-Prolog specific.
 
-    \prologflagitem{argv}{list}{r}
-List is a list of atoms representing the command line arguments used to
-invoke SWI-Prolog.  Please note that {\bf all} arguments are included
-in the list returned.
+    \prologflagitem{argv}{list}{rw}
+List is a list of atoms representing the application command line
+arguments. Application command line arguments are those that have
+\emph{not} been processed by Prolog during its initialization. Note that
+Prolog's argument processing stops at \const{--} or the first non-option
+argument.  See also \prologflag{os_argv}.\footnote{Prior to version
+6.5.2, \prologflag{argv} was defined as \prologflag{os_argv} is now.
+The change was made for compatibility reasone and because the current
+definition is more practical.}
 
     \prologflagitem{arch}{atom}{r}
 Identifier for the hardware and operating system SWI-Prolog is running
 on. Used to select foreign files for the right architecture. See also
 \secref{shlib} and file_search_path/2.
 
-    \prologflagitem{associate}{atom}{rw}
-On Windows systems, this is set to the filename extension (\const{pl}
-(default) or \const{pro} (can be selected in the installer)) associated
-with \program{swipl-win.exe}.
+    \prologflagitem{associated_file}{atom}{r}
+Set if Prolog was started with a prolog file as argument.  Used by
+e.g., edit/0 to edit the initial file.
 
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
@@ -1052,6 +1122,20 @@ Using the construct <module>:<goal> sets the \jargon{calling context}
 for executing <goal>.  This flag is defined by ISO/IEC 13211-2 (Prolog
 modules standard).  See \secref{modules}.
 
+    \prologflagitem{color_term}{bool}{rw}
+This flag is managed by library \pllib{ansi_term}, which is loaded at
+startup if the two conditions below are both true. Note that this
+implies that setting this flag to \const{false} from the system or
+personal initialization file (see \secref{initfile} disables colored
+output.  The predicate message_property/2 can be used to control the
+actual color scheme depending in the message type passed to
+print_message/2.
+
+    \begin{itemize}
+    \item \verb$stream_property(current_output, tty(true))$
+    \item \verb$\+ current_prolog_flag(color_term, false)$
+    \end{itemize}
+
     \prologflagitem{compile_meta_arguments}{atom}{rw}
 Experimental flag that controls compilation of arguments passed to
 meta-calls marked `0' or `\chr{^}' (see meta_predicate/1). Supported
@@ -1092,7 +1176,8 @@ Number of physical CPUs or cores in the system. The flag is marked
 read-write both to allow pretending the system has more or less
 processors. See also thread_setconcurrency/2 and the library
 \pllib{thread}. This flag is not available on systems where we do not
-know how to get the number of CPUs.
+know how to get the number of CPUs. This flag is not included in a saved
+state (see qsave_program/1).
 
     \prologflagitem{dde}{bool}{r}
 Set to \const{true} if this instance of Prolog supports DDE as
@@ -1158,6 +1243,10 @@ details.
     \prologflagitem{executable}{atom}{r}
 Pathname of the running executable. Used by qsave_program/2 as
 default emulator.
+
+    \prologflagitem{exit_status}{integer}{r}
+Set by halt/1 to its argument, making the exit status available to
+hooks registered with at_halt/1.
 
     \prologflagitem{file_name_variables}{bool}{rw}
 If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
@@ -1250,9 +1339,6 @@ SWI-Prolog behaviour.  Currently it has the following effect:
 	  \end{itemize}
 \end{itemize}
 
-
-
-
     \prologflagitem{large_files}{bool}{r}
 If present and \const{true}, SWI-Prolog has been compiled with
 \jargon{large file support} (LFS) and is capable of accessing files larger
@@ -1316,6 +1402,12 @@ integrating small predicates into their callers, eliminating constant
 expressions and other predictable constructs. Source code optimisation
 is never applied to predicates that are declared dynamic (see
 dynamic/1).
+
+    \prologflagitem{os_argv}{list}{rw}
+List is a list of atoms representing the command line arguments used to
+invoke SWI-Prolog.  Please note that {\bf all} arguments are included
+in the list returned.  See \prologflag{argv} to get the application
+options.
 
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this
@@ -1485,7 +1577,8 @@ be set.  See also the \cmdlineoption{+/-tty} command line option.
 If present and \const{true}, the operating system is some version of
 Unix. Defined if the C compiler used to compile this version of
 SWI-Prolog either defines \verb$__unix__$ or \const{unix}. On other
-systems this flag is not available.
+systems this flag is not available.  See also \prologflag{apple}
+and \prologflag{windows}.
 
     \prologflagitem{unknown}{fail,warning,error}{rw}
 Determines the behaviour if an undefined procedure is encountered. If
@@ -2075,6 +2168,24 @@ test(A, A).	& \\
 \hline
 \end{tabular}
 \end{center}
+
+\paragraph{Semantic singletons}
+
+Starting with version 6.5.1, SWI-Prolog has \jargon{syntactic
+singletons} and \jargon{semantic singletons}. The first are checked by
+read_clause/3 (and read_term/3 using the option
+\term{singletons}{warning}). The latter are generated by the compiler
+for variables that appear alone in a \jargon{branch}. For example, in
+the code below the variable \arg{X} is not a \emph{syntactic} singleton,
+but the variable \arg{X} does not communicate any bindings and replacing
+\arg{X} with \arg{_} does not change the semantics.
+
+\begin{code}
+test :-
+	(   test_1(X)
+	;   test_2(X)
+	).
+\end{code}
 
 
 \section{Rational trees (cyclic terms)}		\label{sec:cyclic}

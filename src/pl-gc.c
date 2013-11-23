@@ -28,6 +28,7 @@
 #include "os/pl-cstack.h"
 #include "pentium.h"
 #include "pl-inline.h"
+#include "pl-prof.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -108,12 +109,16 @@ Marking, testing marks and extracting values from GC masked words.
 char tmp[256];				/* for calling print_val(), etc. */
 #define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__ PASS_LD)
 #define relocated_cell(p) do_relocated_cell(p PASS_LD)
-#define recordMark(p)   DEBUG(CHK_SECURE, \
-			      { if ( (char*)(p) < (char*)lBase ) \
-				{ assert(onStack(global, p)); \
-				  *mark_top++ = (p); \
-				} \
-			      })
+#define recordMark(p) recordMark__LD(p PASS_LD)
+static inline void
+recordMark__LD(Word p ARG_LD)
+{ if ( DEBUGGING(CHK_SECURE) )
+  { if ( (char*)p < (char*)lBase )
+    { assert(onStack(global, p));
+      *LD->gc._mark_top++ = p;		/* = mark_top */
+    }
+  }
+}
 #else
 #define recordMark(p)
 #define needsRelocation(p) { needs_relocation++; }
@@ -173,6 +178,7 @@ typedef struct vm_state
   Word		argp0;			/* Arg-pointer for nested term */
   int		adepth;			/* FUNCTOR/POP nesting depth */
   LocalFrame	lSave;			/* Saved local top */
+  LocalFrame	lNext;			/* Next environment for new_args */
   int		save_argp;		/* Need to safe ARGP? */
   int		in_body;		/* Current frame is executing a body */
   int		new_args;		/* #new arguments */
@@ -199,7 +205,6 @@ forwards void		sweep_trail(void);
 forwards bool		is_downward_ref(Word ARG_LD);
 forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
-static Code		startOfVMI(QueryFrame qf);
 static void		get_vmi_state(QueryFrame qf, vm_state *state);
 static size_t		tight(Stack s ARG_LD);
 
@@ -1017,7 +1022,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
   { code c;
 
     for( ; ; PC = stepPC(PC))
-    { c = decode(*PC);
+    { c = fetchop(PC);
 
     again:
       switch( c )
@@ -1034,7 +1039,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 
 	case C_JMP:			/* jumps */
 	  PC += (int)PC[1]+2;
-	  c = decode(*PC);
+	  c = fetchop(PC);
 	  goto again;
 
 	case H_FIRSTVAR:		/* Firstvar assignments */
@@ -1421,13 +1426,18 @@ mark_arguments(LocalFrame fr ARG_LD)
 
 static void
 mark_new_arguments(vm_state *state ARG_LD)
-{ Word sp = argFrameP(state->lSave, 0);
-  int slots = state->new_args;
+{ if ( state->lNext )
+  { Word sp = argFrameP(state->lNext, 0);
+    int slots = state->new_args;
 
-  for( ; slots-- > 0; sp++ )
-  { DEBUG(CHK_SECURE, assert(*sp != FLI_MAGIC));
-    if ( !is_marked(sp) )
-      mark_local_variable(sp PASS_LD);
+    DEBUG(MSG_GC_MARK_VAR,
+	  Sdprintf("mark_new_arguments(): %d args from %p\n", slots, sp));
+
+    for( ; slots-- > 0; sp++ )
+    { DEBUG(CHK_SECURE, assert(*sp != FLI_MAGIC));
+      if ( !is_marked(sp) )
+	mark_local_variable(sp PASS_LD);
+    }
   }
 }
 
@@ -1695,7 +1705,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case H_VAR:
 	  mark_frame_var(state, PC[0] PASS_LD);
 	  /*FALLTHROUGH*/
-	case H_CONST:
+	case H_ATOM:
+	case H_SMALLINT:
 	case H_NIL:
 	case H_INTEGER:
 	case H_INT64:
@@ -2377,6 +2388,8 @@ sweep_foreign()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
+    DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
+
     if ( isRealMark(fr->mark) )
       sweep_mark(&fr->mark PASS_LD);
     for( ; n-- > 0; sp++ )
@@ -2549,8 +2562,8 @@ sweep_choicepoints(Choice ch ARG_LD)
 
 static void
 sweep_new_arguments(vm_state *state ARG_LD)
-{ if ( state->new_args )
-  { Word sp = argFrameP(state->lSave, 0);
+{ if ( state->lNext )
+  { Word sp = argFrameP(state->lNext, 0);
     int slots = state->new_args;
 
     for( ; slots-- > 0; sp++ )
@@ -2577,6 +2590,8 @@ sweep_stacks(vm_state *state)
 
   while( fr )
   { QueryFrame qf = sweep_environments(fr, PC);
+    vm_state sub_state;
+
     assert(qf->magic == QID_MAGIC);
 
     sweep_choicepoints(ch PASS_LD);
@@ -2584,7 +2599,9 @@ sweep_stacks(vm_state *state)
     { QueryFrame pqf = qf->parent;
 
       if ( (fr = pqf->registers.fr) )
-      { PC = startOfVMI(pqf);
+      { get_vmi_state(pqf, &sub_state);
+	PC = sub_state.pc_start_vmi;
+	sweep_new_arguments(&sub_state PASS_LD);
       } else
       { fr = qf->saved_environment;
 	PC = NULL;
@@ -2994,7 +3011,8 @@ setStartOfVMI(vm_state *state)
 	case H_LIST_FF:
 	case H_FIRSTVAR:
 	case H_VAR:
-	case H_CONST:
+	case H_ATOM:
+	case H_SMALLINT:
 	case H_NIL:
 	case H_INTEGER:
 	case H_INT64:
@@ -3041,6 +3059,7 @@ setStartOfVMI(vm_state *state)
 }
 
 
+#if O_DEBUG || defined(O_MAINTENANCE)
 static Code
 startOfVMI(QueryFrame qf)
 { vm_state state;
@@ -3055,6 +3074,7 @@ startOfVMI(QueryFrame qf)
 
   return state.pc_start_vmi;
 }
+#endif
 
 
 static void
@@ -3066,13 +3086,21 @@ get_vmi_state(QueryFrame qf, vm_state *state)
   state->in_body     = FALSE;
   state->adepth	     = 0;
   state->new_args    = 0;
+  state->lNext       = NULL;
 
   if ( qf && qf->registers.fr )
-  { state->frame     = qf->registers.fr;
+  { LocalFrame qlTop;
 
-    if ( lTop <= state->frame )
+    state->frame     = qf->registers.fr;
+
+    if ( qf->next_environment )
+      qlTop = qf->next_environment;
+    else
+      qlTop = lTop;
+
+    if ( qlTop <= state->frame )
     { int arity = state->frame->predicate->functor->arity;
-      lTop = (LocalFrame)argFrameP(state->frame, arity);
+      qlTop = (LocalFrame)argFrameP(state->frame, arity);
       assert(!state->frame->clause);
     }
 
@@ -3091,9 +3119,11 @@ get_vmi_state(QueryFrame qf, vm_state *state)
       { if ( ap > (Word)lBase )
 	{ assert(ap >= argFrameP(state->frame, 0));
 
-	  if ( ap > argFrameP(lTop, 0) )
-	  { state->new_args = (int)(ap - argFrameP(lTop, 0));
-	    lTop = (LocalFrame)ap;
+	  if ( ap > argFrameP(qlTop, 0) )
+	  { state->new_args = (int)(ap - argFrameP(qlTop, 0));
+	    state->lNext = qlTop;
+	    if ( (LocalFrame)ap > lTop )
+	      lTop = (LocalFrame)ap;
 	  }
 	  break;
 	}
@@ -3478,8 +3508,8 @@ static word
 check_new_arguments(vm_state *state)
 { word key = 0L;
 
-  if ( state->new_args )
-  { Word sp = argFrameP(state->lSave, 0);
+  if ( state->lNext )
+  { Word sp = argFrameP(state->lNext, 0);
     int slots = state->new_args;
 
     for( ; slots-- > 0; sp++ )
@@ -4154,6 +4184,7 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
         update_pointer(&query->saved_bfr, ls);
         update_pointer(&query->saved_ltop, ls);
 	update_pointer(&query->saved_environment, ls);
+	update_pointer(&query->next_environment, ls);
 	update_pointer(&query->registers.fr, ls);
 	update_local_pointer(&query->registers.pc, ls);
       }
@@ -4308,6 +4339,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
       update_pointer(&state->frame, ls);
       update_pointer(&state->choice, ls);
       update_pointer(&state->lSave, ls);
+      update_pointer(&state->lNext, ls);
       update_pointer(&LD->query, ls);
     }
 
@@ -4335,7 +4367,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     }
 
     DEBUG(MSG_SHIFT_PROGRESS,
-	  Sdprintf("%d frames, %d choice-points ...",
+	  Sdprintf("%d frames, %d choice-points ...\n",
 		   local_frames, choice_count));
 
     unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
@@ -4645,7 +4677,6 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	       });
     }
 
-    DEBUG(MSG_SHIFT_PROGRESS, Sdprintf("Updating stacks ..."));
     gBase++; gb++;
     update_stacks(&state, lb, gb, tb);
     gBase--; gb--;
@@ -4783,10 +4814,9 @@ shiftTightStacks(void)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The  routine  markAtomsOnStacks(PL_local_data_t  *ld)  marks  all  atoms
-reachable  from  the  global  stack,    environments,  choicepoints  and
-term-references  using  markAtom().  It  is    designed   to  allow  for
-asynchronous calling, even from different   threads (hence the argument,
-although the thread examined should be stopped).
+reachable from  the global stack, local stack and term-references  using
+markAtom().  It  is  designed  to  allow  for asynchronous calling, even
+from different threads (hence the argument).
 
 Asynchronous calling is in general not  possible,   but  here we make an
 exception. markAtom() is supposed  to  test   for  and  silently  ignore
@@ -4825,111 +4855,18 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
   }
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is much like  check_environments(),  but   as  we  might  be called
-asynchronously, we have to be a bit careful about the first frame (if PC
-== NULL). The interpreter will  set  the   clause  field  to NULL before
-opening the frame, and we only have   to  consider the arguments. If the
-frame has a clause we must consider all variables of this clause.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static QueryFrame
-mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
-{ Code PC = NULL;
-
-  if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { int slots, n;
-    Word sp;
-
-    if ( true(fr, FR_MARKED) )
-      return NULL;			/* from choicepoints only */
-    set(fr, FR_MARKED);
-#ifdef O_DEBUG_ATOMGC
-    if ( atomLogFd )
-      Sfprintf(atomLogFd,
-	       "Marking atoms from [%d] %s\n",
-	       levelFrame(fr),
-	       predicateName(fr->predicate));
-#endif
-    ld->gc._local_frames++;
-    clearUninitialisedVarsFrame(fr, PC);
-
-    if ( fr->predicate == PROCEDURE_dcall1->definition &&
-	 fr->clause )
-      forAtomsInClause(fr->clause->value.clause, markAtom);
-
-    if ( true(fr->predicate, P_FOREIGN) ||
-	 !fr->clause )
-      slots = fr->predicate->functor->arity;
-    else
-      slots = fr->clause->value.clause->prolog_vars;
-
-    sp = argFrameP(fr, 0);
-    for( n=0; n < slots; n++, sp++ )
-    { if ( isAtom(*sp) )
-	markAtom(*sp);
-    }
-
-    PC = fr->programPointer;
-    if ( fr->parent )
-      fr = fr->parent;
-    else
-     return queryOfFrame(fr);
-  }
-}
-
-
 static void
-markAtomsInTermReferences(PL_local_data_t *ld)
-{ FliFrame   ff = ld->foreign_environment;
+markAtomsOnLocalStack(PL_local_data_t *ld)
+{ Word lbase = (Word)ld->stacks.local.base;
+  Word ltop  = (Word)ld->stacks.local.top;
+  Word lmax  = (Word)ld->stacks.local.max;
+  Word lend  = ltop+LOCAL_MARGIN < lmax ? ltop+LOCAL_MARGIN : lmax;
+  Word current;
 
-  for(; ff; ff = ff->parent )
-  { Word sp = refFliP(ff, 0);
-    int n = ff->size;
-
-    for(n=0 ; n < ff->size; n++ )
-    { if ( isAtom(sp[n]) )
-	markAtom(sp[n]);
-    }
+  for(current = lbase; current < lend; current++ )
+  { if ( isAtom(*current) )
+      markAtom(*current);
   }
-}
-
-
-static void
-markAtomsInEnvironments(PL_local_data_t *ld)
-{ QueryFrame qf;
-  LocalFrame fr;
-  Choice ch;
-
-  ld->gc._local_frames = 0;
-
-  for( fr = ld->environment,
-       ch = ld->choicepoints
-     ; fr
-     ; fr = qf->saved_environment,
-       ch = qf->saved_bfr
-     )
-  { qf = mark_atoms_in_environments(ld, fr);
-    assert(qf->magic == QID_MAGIC);
-
-    for(; ch; ch = ch->parent)
-    {
-#ifdef O_DEBUG_ATOMGC
-      if ( atomLogFd )
-	Sfprintf(atomLogFd, "Marking atoms from choicepoint #%ld on %s\n",
-		 loffset(ch), predicateName(ch->frame->predicate));
-#endif
-      mark_atoms_in_environments(ld, ch->frame);
-    }
-  }
-
-  unmark_stacks(ld, ld->environment, ld->choicepoints, FR_MARKED);
-
-  assert(ld->gc._local_frames == 0);
 }
 
 
@@ -4955,8 +4892,7 @@ markAtomsOnStacks(PL_local_data_t *ld)
   markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
 #endif
   markAtomsOnGlobalStack(ld);
-  markAtomsInEnvironments(ld);
-  markAtomsInTermReferences(ld);
+  markAtomsOnLocalStack(ld);
   markAtomsFindall(ld);
   markAtomsThreadMessageQueue(ld);
 }

@@ -532,7 +532,7 @@ prolog_open_source(Src, Fd) :-
 	),
 	push_operators([]),
 	'$set_source_module'(SM, SM),
-	'$save_lex_state'(LexState),
+	'$save_lex_state'(LexState, []),
 	asserta(open_source(Fd, state(LexState, SM))).
 
 

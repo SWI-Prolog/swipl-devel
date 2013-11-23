@@ -60,11 +60,23 @@ MAKE=make
 # Recent versions of Quartz  (X11)  seem   to  install  the headers into
 # /opt/X11/include. We put this  after   /opt/local/include,  to use the
 # Macport version of X11 if this is installed.
+#
+# As of MacOS 10.9, Apple's  Java  does   not  include  the  headers for
+# linking to C. Therefore you  need  to   install  Oracle's  JDK and set
+# $JAVAPREFIX to the bin directory holding =java=.  We try to find it at
+# the most likely places below.
 
 if [ "`uname`" = Darwin ]; then
   export LIBRARY_PATH=/usr/lib:/opt/local/lib
   export CPATH=/usr/include:/opt/local/include:/opt/X11/include
   export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
+  if [ -f "$JAVA_HOME/bin/java" ]; then
+    export JAVAPREFIX="$JAVA_HOME/bin"
+  elif [ -f /Library/Java/Home/bin/java ]; then
+    export JAVAPREFIX=/Library/Java/Home/bin
+  elif [ -d /Library/Java/JavaVirtualMachines/*/Contents/Home/bin ]; then
+    export JAVAPREFIX="`echo /Library/Java/JavaVirtualMachines/*/Contents/Home/bin`"
+  fi
   # export CC="gcc-4.2"
   # export CXX="g++-4.2"
   # export CXXCPP="g++-4.2 -E"

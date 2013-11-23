@@ -22,8 +22,6 @@ PL=		../@BUILDDIR@/swipl.sh
 VERSION=	$(shell cat ../VERSION)
 
 CP=		cp
-CPP=		@CPP@
-CCCP=		$(CPP) -C -P
 DVITOTTY=	./dvi2tty
 DVITOTTY-HOME=	txt/dvi2tty
 INDEX=		makeindex
@@ -147,17 +145,11 @@ online.dvi:	online.tex $(TEXFILES) online.bbl
 		env TEXINPUTS=lib:$$TEXINPUTS ./runtex online
 
 online.doc:	main.doc
-		cp main.doc main.h
-		$(CCCP) -DONLINE main.h | cat -s > online.doc
-		rm -f main.h
+		$(PL) select.pl ONLINE main.doc > online.doc
 $(DOC).doc:	main.doc
-		cp main.doc main.h
-		$(CCCP) -UONLINE main.h | cat -s > $(DOC).doc
-		rm -f main.h
+		$(PL) select.pl PDF main.doc > $(DOC).doc
 $(BOOK).doc:	main.doc
-		cp main.doc main.h
-		$(CCCP) -UONLINE -DBOOK main.h | cat -s > $(BOOK).doc
-		rm -f main.h
+		$(PL) select.pl BOOK main.doc > $(BOOK).doc
 
 $(ONLINE_INDEX):	$(ONLINE)
 		MANUAL=$(ONLINE); INDEX=$(ONLINE_INDEX); export MANUAL INDEX; \

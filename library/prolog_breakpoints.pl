@@ -166,8 +166,33 @@ breakpoint_property(Id, clause(Reference)) :-
 	known_breakpoint(Reference,_,_,Id).
 
 location_line(file_position(_File, Line, _Char), Line).
-location_line(file_character_range(File, _Start, _Len), File).
+location_line(file_character_range(File, Start, _Len), Line) :-
+	file_line(File, Start, Line).
 location_line(file_line(_File, Line), Line).
+
+
+%%	file_line(+File, +StartIndex, -Line) is det.
+%
+%	True when Line is the  1-based  line   offset  in  which we find
+%	character StartIndex.
+
+file_line(File, Start, Line) :-
+	setup_call_cleanup(
+	    open(File, read, In),
+	    stream_line(In, Start, 1, Line),
+	    close(In)).
+
+stream_line(In, _, Line0, Line) :-
+	at_end_of_stream(In), !,
+	Line = Line0.
+stream_line(In, Index, Line0, Line) :-
+	skip(In, 0'\n),
+	character_count(In, At),
+	(   At > Index
+	->  Line = Line0
+	;   Line1 is Line0+1,
+	    stream_line(In, Index, Line1, Line)
+	).
 
 
 		 /*******************************

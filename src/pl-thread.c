@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam,
+    Copyright (C): 1985-2013, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -35,6 +35,7 @@
 
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
+#include "pl-prof.h"
 #include <stdio.h>
 #include <math.h>
 #ifdef O_PLMT
@@ -344,7 +345,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 #ifdef O_CONTENTION_STATISTICS
     Sdprintf(" %8d", cm->collisions);
 #endif
-    if ( cm == &_PL_mutexes[L_THREAD] )
+    if ( cm == &_PL_mutexes[L_MUTEX] )
     { if ( cm->count - cm->unlocked != 1 )
 	Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked - 1);
       else
@@ -369,6 +370,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 static PL_thread_info_t *alloc_thread(void);
 static void	unalloc_mutex(pl_mutex *m);
 static void	destroy_message_queue(message_queue *queue);
+static void	destroy_thread_message_queue(message_queue *queue);
 static void	init_message_queue(message_queue *queue, long max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
@@ -512,6 +514,11 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     info->detached = TRUE;		/* cleanup */
   }
 
+#ifdef O_PROFILE
+  if ( ld->profile.active )
+    activateProfiler(FALSE, ld);
+#endif
+
   cleanupLocalDefinitions(ld);
   if ( ld->freed_clauses )
   { GET_LD
@@ -537,7 +544,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
     GD->statistics.thread_cputime += time;
   }
-  destroy_message_queue(&ld->thread.messages);
+  destroy_thread_message_queue(&ld->thread.messages);
   if ( ld->btrace_store )
   { btrace_destroy(ld->btrace_store);
     ld->btrace_store = NULL;
@@ -1058,7 +1065,7 @@ retry:
 
 
 int
-PL_thread_self()
+PL_thread_self(void)
 { GET_LD
   PL_local_data_t *ld = LD;
 
@@ -1470,6 +1477,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 #endif
   ldnew->_debugstatus		  = LD->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
+  ldnew->_debugstatus.suspendTrace= 0;
   ldnew->prolog_flag.mask	  = LD->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = LD->prolog_flag.occurs_check;
   ldnew->prolog_flag.access_level = LD->prolog_flag.access_level;
@@ -2760,10 +2768,10 @@ called with queue->mutex locked.  It returns one of
 	* MSG_WAIT_DESTROYED
 	  Queue was destroyed while waiting
 
-(*) We need to lock because AGC asks us  to mark our atoms and then lets
-the thread continue. The thread may pick   a  message containing an atom
-from the queue, which now has not  been   marked  by us and is no longer
-part of the queue, so it isn't marked in the queue either.
+(*) We need  to lock  because AGC  marks our atoms  while the  thread is
+running.  The thread may pick   a  message containing  an atom  from the
+queue,  which now has not  been   marked  and is  no longer part  of the
+queue, so it isn't marked in the queue either.
 
 Note that we only need  this  for   queues  that  are  not associated to
 threads. Those associated with a thread  mark   both  the stacks and the
@@ -2819,8 +2827,13 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       if ( rc )
       { DEBUG(MSG_QUEUE, Sdprintf("%d: match\n", PL_thread_self()));
 
+      if (GD->atoms.gc_active)
+        markAtomsRecord(msgp->message);
+
+#ifdef O_ATOMGC
 	if ( queue->type == QTYPE_QUEUE )
-	  PL_LOCK(L_AGC);		/* See (*) */
+          simpleMutexLock(&queue->gc_mutex);
+#endif
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
@@ -2828,8 +2841,10 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
+#ifdef O_ATOMGC
 	if ( queue->type == QTYPE_QUEUE )
-	  PL_UNLOCK(L_AGC);
+          simpleMutexUnlock(&queue->gc_mutex);
+#endif
 	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
@@ -2933,9 +2948,39 @@ destroy_message_queue(message_queue *queue)
   }
 
   simpleMutexDelete(&queue->mutex);
+  simpleMutexDelete(&queue->gc_mutex);
   cv_destroy(&queue->cond_var);
   if ( queue->max_size > 0 )
     cv_destroy(&queue->drain_var);
+}
+
+
+/* destroy the input queue of a thread.  We have to take care of the case
+   where our input queue is been waited for by another thread.  This is
+   similar to message_queue_destroy/1.
+ */
+
+static void
+destroy_thread_message_queue(message_queue *q)
+{ int done = FALSE;
+
+  if (!q->initialized )
+    return;
+
+  while(!done)
+  { simpleMutexLock(&q->mutex);
+    q->destroyed = TRUE;
+    if ( q->waiting || q->wait_for_drain )
+    { if ( q->waiting )
+	cv_broadcast(&q->cond_var);
+      if ( q->wait_for_drain )
+	cv_broadcast(&q->drain_var);
+    } else
+      done = TRUE;
+    simpleMutexUnlock(&q->mutex);
+  }
+
+  destroy_message_queue(q);
 }
 
 
@@ -2943,6 +2988,7 @@ static void
 init_message_queue(message_queue *queue, long max_size)
 { memset(queue, 0, sizeof(*queue));
   simpleMutexInit(&queue->mutex);
+  simpleMutexInit(&queue->gc_mutex);
   cv_init(&queue->cond_var, NULL);
   queue->max_size = max_size;
   if ( queue->max_size > 0 )
@@ -4375,6 +4421,9 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->IO.input_stack		 = NULL;
   ldnew->IO.output_stack	 = NULL;
   ldnew->encoding		 = ldmain->encoding;
+#ifdef O_LOCALE
+  ldnew->locale.current		 = acquireLocale(ldmain->locale.current);
+#endif
   ldnew->_debugstatus		 = ldmain->_debugstatus;
   ldnew->_debugstatus.retryFrame = NULL;
   ldnew->prolog_flag.mask	 = ldmain->prolog_flag.mask;
@@ -4392,13 +4441,23 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     return -1;
   }
   set_system_thread_id(info);
-  if ( attr && attr->alias )
-  { if ( !aliasThread(info->pl_tid, PL_new_atom(attr->alias)) )
-    { free_thread_info(info);
-      errno = EPERM;
-      return -1;
+
+  if ( attr )
+  { if ( attr->alias )
+    { if ( !aliasThread(info->pl_tid, PL_new_atom(attr->alias)) )
+      { free_thread_info(info);
+	errno = EPERM;
+	return -1;
+      }
+    }
+    if ( true(attr, PL_THREAD_NO_DEBUG) )
+    { ldnew->_debugstatus.tracing   = FALSE;
+      ldnew->_debugstatus.debugging = DBG_OFF;
+      set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
     }
   }
+
+  updateAlerted(ldnew);
   PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
 
   return info->pl_tid;
@@ -5363,6 +5422,28 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 
 #endif /*__WINDOWS__*/
 
+void
+forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
+{ int me = PL_thread_self();
+  PL_thread_info_t **th;
+
+  for( th = &GD->thread.threads[1];
+       th <= &GD->thread.threads[thread_highest_id];
+       th++ )
+  { PL_thread_info_t *info = *th;
+
+    if ( info->thread_data && info->pl_tid != me &&
+	 info->status == PL_THREAD_RUNNING )
+    { PL_local_data_t *ld = info->thread_data;
+        (*func)(ld);
+
+    }
+  }
+
+  DEBUG(MSG_THREAD, Sdprintf(" All done!\n"));
+
+}
+
 
 		 /*******************************
 		 *	 ATOM MARK SUPPORT	*
@@ -5385,9 +5466,11 @@ static void
 markAtomsMessageQueue(message_queue *queue)
 { thread_message *msg;
 
+  simpleMutexLock(&queue->gc_mutex);
   for(msg=queue->head; msg; msg=msg->next)
   { markAtomsRecord(msg->message);
   }
+  simpleMutexUnlock(&queue->gc_mutex);
 }
 
 

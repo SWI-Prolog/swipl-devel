@@ -273,7 +273,7 @@ consPtr__LD(void *p, word ts ARG_LD)
 }
 
 
-#ifdef DOUBLE_ALIGNMENT
+#if ALIGNOF_DOUBLE != ALIGNOF_VOIDP
 static inline double
 valFloat__LD(word w ARG_LD)
 { Word p = valIndirectP(w);

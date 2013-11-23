@@ -171,6 +171,7 @@ bits) as well as machines with different byte order.
 #define XR_BLOB	   9			/* a typed atom (blob) */
 #define XR_BLOB_TYPE 10			/* name of atom-type declaration */
 #define XR_STRING_UTF8 11		/* Wide character string */
+#define XR_NULL	  12			/* NULL pointer */
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
@@ -733,6 +734,8 @@ loadXRc(wic_state *state, int c ARG_LD)
 
       break;
     }
+    case XR_NULL:
+      return 0;
     default:
     { xr = 0;				/* make gcc happy */
       fatalError("Illegal XR entry at index %d: %c", Stell(fd)-1, c);
@@ -1156,6 +1159,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      case CA1_INTEGER:
 	      case CA1_JUMP:
 	      case CA1_VAR:
+	      case CA1_FVAR:
 	      case CA1_CHP:
 		*bp++ = (intptr_t)getInt64(fd);
 		break;
@@ -1287,7 +1291,7 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     strcpy(buf, raw);
   }
 
-  return PL_new_atom(canonisePath(buf));
+  return PL_new_atom(canonicalisePath(buf));
 }
 
 
@@ -1842,11 +1846,15 @@ saveXRModule(wic_state *state, Module m ARG_LD)
   if ( savedXRPointer(state, m) )
     return;
 
-  Sputc(XR_MODULE, fd);
-  DEBUG(MSG_QLF_XR,
-	Sdprintf("XR(%d) = module %s\n",
-		 state->savedXRTableId, stringAtom(m->name)));
-  saveXR(state, m->name);
+  if ( m )
+  { Sputc(XR_MODULE, fd);
+    DEBUG(MSG_QLF_XR,
+	  Sdprintf("XR(%d) = module %s\n",
+		   state->savedXRTableId, stringAtom(m->name)));
+    saveXR(state, m->name);
+  } else
+  { Sputc(XR_NULL, fd);
+  }
 }
 
 
@@ -2036,6 +2044,7 @@ saveWicClause(wic_state *state, Clause clause)
 	case CA1_INTEGER:
 	case CA1_JUMP:
 	case CA1_VAR:
+	case CA1_FVAR:
 	case CA1_CHP:
 	{ putNum(*bp++, fd);
 	  break;

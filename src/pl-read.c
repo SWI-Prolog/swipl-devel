@@ -124,6 +124,25 @@ atom_varnameW(const pl_wchar_t *s, size_t len)
 }
 
 
+int
+atom_is_named_var(atom_t name)		/* see warn_singleton() */
+{ const char *s;
+  const pl_wchar_t *w;
+
+  if ( (s=PL_atom_chars(name)) )
+  { if ( s[0] != '_' ) return TRUE;
+    if ( s[1] == '_' ) return FALSE;
+    if ( s[1] && !PlUpperW(s[1]) ) return TRUE;
+  } else if ( (w=PL_atom_wchars(name, NULL)) )
+  { if ( w[0] != '_' ) return TRUE;
+    if ( w[1] == '_' ) return FALSE;
+    if ( w[1] && !PlUpperW(w[1]) ) return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 		 /*******************************
 		 *	   CHAR-CONVERSION	*
 		 *******************************/
@@ -1514,6 +1533,46 @@ warn_singleton(const char *name)	/* Name in UTF-8 */
 }
 
 
+/* is_singleton() is true if var is a singleton.  As quasi quotations
+   may insert the (named) variable into the quotation, we must scan
+   the quasi quotation list and check that the variable does not appear
+   in any of the terms.
+*/
+
+#define IS_SINGLETON 0
+#define IS_MULTITON  1
+
+static int
+is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
+{ if ( var->times == 1 )
+  { if ( (type == IS_SINGLETON &&  warn_singleton(var->name)) ||
+	 (type == IS_MULTITON  && !warn_singleton(var->name)) )
+    {
+#ifdef O_QUASIQUOTATIONS
+      if ( _PL_rd->qq )
+      { term_t tail = PL_copy_term_ref(_PL_rd->qq);
+	term_t head = PL_new_term_ref();
+	term_t result = PL_new_term_ref();
+
+	while(PL_get_list(tail, head, tail))
+	{ if ( PL_get_arg(4, head, result) &&
+	       PL_var_occurs_in(var->variable, result) )
+	  { var->times++;			/* avoid a second scan */
+	    break;
+	  }
+	}
+      }
+    }
+#endif
+  }
+
+  if ( type == IS_SINGLETON )
+    return var->times == 1 &&  warn_singleton(var->name);
+  else
+    return var->times  > 1 && !warn_singleton(var->name);
+}
+
+
 static bool				/* TBD: new schema */
 check_singletons(ReadData _PL_rd ARG_LD)
 { if ( _PL_rd->singles != TRUE )	/* returns <name> = var bindings */
@@ -1521,7 +1580,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
     term_t head = PL_new_term_ref();
 
     for_vars(var,
-	     if ( var->times == 1 && warn_singleton(var->name) )
+	     if ( is_singleton(var, IS_SINGLETON, _PL_rd PASS_LD) )
 	     {	if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_term(head,
 				    PL_FUNCTOR,    FUNCTOR_equals2,
@@ -1537,7 +1596,7 @@ check_singletons(ReadData _PL_rd ARG_LD)
 
 					/* singletons */
     for_vars(var,
-	     if ( var->times == 1 && warn_singleton(var->name) )
+	     if ( is_singleton(var, IS_SINGLETON, _PL_rd PASS_LD) )
 	     { if ( i < MAX_SINGLETONS )
 		 singletons[i++] = var->name;
 	     });
@@ -1547,16 +1606,18 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	return FALSE;
     }
 
-    i = 0;				/* multiple _X* */
-    for_vars(var,
-	     if ( var->times > 1 && !warn_singleton(var->name) )
-	     { if ( i < MAX_SINGLETONS )
-		 singletons[i++] = var->name;
-	     });
+    if ( (_PL_rd->styleCheck&MULTITON_CHECK) )
+    { i = 0;				/* multiple _X* */
+      for_vars(var,
+	       if ( is_singleton(var, IS_MULTITON, _PL_rd PASS_LD) )
+	       { if ( i < MAX_SINGLETONS )
+		   singletons[i++] = var->name;
+	       });
 
-    if ( i > 0 )
-    { if ( !singletonWarning("multitons", singletons, i) )
-	return FALSE;
+      if ( i > 0 )
+      { if ( !singletonWarning("multitons", singletons, i) )
+	  return FALSE;
+      }
     }
 
     succeed;
@@ -1680,9 +1741,9 @@ parse_quasi_quotations(ReadData _PL_rd ARG_LD)
 	if ( rc )
 	  return TRUE;
 	_PL_rd->exception = ex;
-	return reportReadError(_PL_rd);
-      } else
-	return FALSE;
+	_PL_rd->has_exception = TRUE;
+      }
+      return FALSE;
     } else
       return TRUE;
   } else if ( _PL_rd->quasi_quotations )	/* user option, but no quotes */
@@ -4157,17 +4218,22 @@ unify_read_term_position(term_t tpos ARG_LD)
 /** read_clause(+Stream, -Clause, +Options)
 
 Options:
+	* variable_names(-Names)
 	* process_comment(+Boolean)
+        * comments(-List)
 	* syntax_errors(+Atom)
 	* term_position(-Position)
+	* subterm_positions(-Layout)
 */
 
 static const opt_spec read_clause_options[] =
-{ { ATOM_term_position,	  OPT_TERM },
-  { ATOM_process_comment, OPT_BOOL },
-  { ATOM_comments,	  OPT_TERM },
-  { ATOM_syntax_errors,   OPT_ATOM },
-  { NULL_ATOM,		  0 }
+{ { ATOM_variable_names,    OPT_TERM },
+  { ATOM_term_position,	    OPT_TERM },
+  { ATOM_subterm_positions, OPT_TERM },
+  { ATOM_process_comment,   OPT_BOOL },
+  { ATOM_comments,	    OPT_TERM },
+  { ATOM_syntax_errors,     OPT_ATOM },
+  { NULL_ATOM,		    0 }
 };
 
 
@@ -4217,13 +4283,23 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
 			       &GD->procedures.comment_hook3);
   process_comment = (comment_hook->definition->impl.any != NULL);
 
+  if ( !(fid=PL_open_foreign_frame()) )
+    return FALSE;
+
+retry:
+  init_read_data(&rd, s PASS_LD);
+
   if ( options &&
        !scan_options(options, 0, ATOM_read_option, read_clause_options,
+		     &rd.varnames,
 		     &tpos,
+		     &rd.subtpos,
 		     &process_comment,
 		     &opt_comments,
 		     &syntax_errors) )
+  { PL_close_foreign_frame(fid);
     return FALSE;
+  }
 
   if ( opt_comments )
   { comments = PL_new_term_ref();
@@ -4233,11 +4309,6 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
     comments = PL_new_term_ref();
   }
 
-  if ( !(fid=PL_open_foreign_frame()) )
-    return FALSE;
-
-retry:
-  init_read_data(&rd, s PASS_LD);
   rd.module = LD->modules.source;
   if ( comments )
     rd.comments = PL_copy_term_ref(comments);
@@ -4549,6 +4620,40 @@ PL_chars_to_term(const char *s, term_t t)
 
   return rval;
 }
+
+
+int
+PL_wchars_to_term(const wchar_t *s, term_t t)
+{ GET_LD
+  int rc;
+  IOSTREAM *stream;
+  PL_chars_t text;
+
+  text.text.w    = (pl_wchar_t *)s;
+  text.encoding  = ENC_WCHAR;
+  text.storage   = PL_CHARS_HEAP;
+  text.length    = wcslen(s);
+  text.canonical = FALSE;
+
+  if ( (stream = Sopen_text(&text, "r")) )
+  { read_data rd;
+
+    source_location oldsrc = LD->read_source;
+    init_read_data(&rd, stream PASS_LD);
+    PL_put_variable(t);
+    if ( !(rc = read_term(t, &rd PASS_LD)) && rd.has_exception )
+      PL_put_term(t, rd.exception);
+    free_read_data(&rd);
+    Sclose(stream);
+    LD->read_source = oldsrc;
+  } else
+    rc = FALSE;
+
+  PL_free_text(&text);
+
+  return rc;
+}
+
 
 		 /*******************************
 		 *	     CODE TYPE		*

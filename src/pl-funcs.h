@@ -40,7 +40,7 @@ COMMON(int)		PL_get_attr__LD(term_t t, term_t a ARG_LD);
 
 COMMON(void)		destroyGlobalVars();
 COMMON(void)		freezeGlobal(ARG1_LD);
-
+COMMON(int)		gvar_value__LD(atom_t name, Word p ARG_LD);
 
 /* pl-wam.c */
 COMMON(word)		pl_count(void);
@@ -109,6 +109,7 @@ COMMON(int)		ar_add_ui(Number n, intptr_t add);
 COMMON(int)		valueExpression(term_t p, Number n ARG_LD);
 COMMON(int)		toIntegerNumber(Number n, int flags);
 COMMON(int)		arithChar(Word p ARG_LD);
+COMMON(int)		getCharExpression(Word p, Number r ARG_LD);
 COMMON(Number)		allocArithStack(ARG1_LD);
 COMMON(void)		pushArithStack(Number n ARG_LD);
 COMMON(void)		resetArithStack(ARG1_LD);
@@ -129,7 +130,8 @@ COMMON(int)		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
 					 Module *m ARG_LD);
 COMMON(int)		compileClause(Clause *cp, Word head, Word body,
-				      Procedure proc, Module module ARG_LD);
+				      Procedure proc, Module module,
+				      term_t warnings ARG_LD);
 COMMON(Clause)		assert_term(term_t term, int where, atom_t owner,
 				    SourceLoc loc ARG_LD);
 COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
@@ -338,7 +340,7 @@ COMMON(void)		cleanupOs(void);
 COMMON(char *)		OsError(void);
 COMMON(void)		setRandom(unsigned int *seed);
 COMMON(uint64_t)	_PL_Random(void);
-COMMON(char *)		canonisePath(char *path);
+COMMON(char *)		canonicalisePath(char *path);
 COMMON(char *)		OsPath(const char *plpath, char *ospath);
 COMMON(char *)		PrologPath(const char *ospath, char *plpath, size_t len);
 COMMON(void)		setOSPrologFlags(void);
@@ -411,6 +413,7 @@ COMMON(int)		currentBreakLevel(void);
 COMMON(int)		callProlog(Module module, term_t goal, int flags, term_t *ex);
 COMMON(int)		abortProlog(void);
 COMMON(bool)		prologToplevel(atom_t toplevel);
+COMMON(int)		query_loop(atom_t goal, int loop);
 COMMON(word)		pl_metacut(void);
 COMMON(int)		trap_gdb(void);
 COMMON(word)		checkData(Word p);
@@ -480,15 +483,6 @@ COMMON(foreign_t)	pl_garbage_collect_clauses(void);
 COMMON(int)		setDynamicProcedure(Procedure proc, bool isdyn);
 COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 
-/* pl-prof.c */
-COMMON(void)		stopItimer(void);
-COMMON(bool)		resetProfiler(void);
-COMMON(struct call_node*) profCall(Definition def ARG_LD);
-COMMON(void)		profResumeParent(struct call_node *node ARG_LD);
-COMMON(void)		profExit(struct call_node *node ARG_LD);
-COMMON(void)		profRedo(struct call_node *node ARG_LD);
-COMMON(void)		profSetHandle(struct call_node *node, void *handle);
-
 
 /* pl-read.c */
 COMMON(void)		resetRead(void);
@@ -500,6 +494,7 @@ COMMON(int)		unicode_separator(pl_wchar_t c);
 COMMON(int)		unquoted_atomW(const pl_wchar_t *s, size_t len,
 				       IOSTREAM *fd);
 COMMON(int)		atom_varnameW(const pl_wchar_t *s, size_t len);
+COMMON(int)		atom_is_named_var(atom_t name);
 COMMON(strnumstat)	str_number(const unsigned char *string,
 				   unsigned char **end,
 				   Number value, bool escape);
@@ -522,7 +517,6 @@ COMMON(Record)		compileTermToHeap__LD(term_t term,
 					      int flags ARG_LD);
 COMMON(int)		copyRecordToGlobal(term_t copy, Record term,
 					   int flags ARG_LD);
-COMMON(int)		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
 COMMON(bool)		freeRecord(Record record);
 COMMON(void)		unallocRecordRef(RecordRef r);
 COMMON(bool)		unifyKey(term_t key, word val);
@@ -593,6 +587,7 @@ COMMON(word)		pl_debuglevel(term_t old, term_t new);
 COMMON(word)		pl_prolog_current_frame(term_t fr);
 COMMON(int)		callEventHook(int ev, ...);
 COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
+COMMON(void)		PL_put_choice(term_t t, Choice ch);
 
 /* pl-util.c */
 COMMON(char *)		procedureName(Procedure proc);
@@ -647,6 +642,7 @@ COMMON(bool)		warning(const char *fm, ...);
 COMMON(void)		vfatalError(const char *fm, va_list args) NORETURN;
 COMMON(bool)		vwarning(const char *fm, va_list args);
 COMMON(int)		cleanupProlog(int status, int reclaim);
+COMMON(int)		run_on_halt(OnHalt *handlers, int rval);
 
 /* pl-dll.c */
 COMMON(word)		pl_open_dll(term_t name, term_t handle);
@@ -707,6 +703,7 @@ COMMON(int)		enableThreads(int enable);
 
 /* pl-gmp.c */
 COMMON(int)	PL_unify_number__LD(term_t t, Number n ARG_LD);
+COMMON(int)	PL_put_number__LD(term_t t, Number n ARG_LD);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);

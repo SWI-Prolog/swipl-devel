@@ -104,7 +104,8 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
   for(;;)
   { if ( !PL_unify_list(l, h, l) )
     { PL_close_foreign_frame(fid);
-      fail;
+      PL_unify_nil_ex(l);
+      return FALSE;
     }
 
     if ( PL_unify(A1, h) )

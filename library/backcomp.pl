@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -54,9 +52,11 @@
 	    feature/2,
 	    set_feature/2,
 	    substring/4,
+	    string_to_list/2,		% ?String, ?Codes
+	    string_to_atom/2,		% ?String, ?Atom
 	    flush/0,
-	    write_ln/1,
-	    proper_list/1,
+	    write_ln/1,			% +Term
+	    proper_list/1,		% @Term
 	    free_variables/2,		% +Term, -Variables
 	    subsumes_chk/2,		% @Generic, @Specific
 	    subsumes/2,			% @Generic, @Specific
@@ -135,10 +135,11 @@ compatibility predicates.
 
 %%	'$argv'(-Argv:list) is det.
 %
-%	@deprecated use current_prolog_flag(argv, Argv)
+%	@deprecated use current_prolog_flag(os_argv, Argv) or
+%	current_prolog_flag(argv, Argv)
 
 '$argv'(Argv) :-
-	current_prolog_flag(argv, Argv).
+	current_prolog_flag(os_argv, Argv).
 
 %%	'$set_prompt'(+Prompt) is det.
 %
@@ -225,7 +226,7 @@ concat_atom(L, Sep, Atom) :-
 
 %%	read_clause(-Term) is det.
 %
-%	@deprecated Use read_clause/2 or read_term/2.
+%	@deprecated Use read_clause/3 or read_term/3.
 
 read_clause(Term) :-
 	read_clause(current_input, Term).
@@ -235,12 +236,12 @@ read_clause(Term) :-
 %	@deprecated Use read_clause/3 or read_term/3.
 
 read_clause(Stream, Term) :-
-	read_clause(Stream, Term, [process_comments(false)]).
+	read_clause(Stream, Term, [process_comment(false)]).
 
 %%	read_variables(-Term, -Bindings) is det.
 %%	read_variables(+In:stream, -Term, -Bindings) is det.
 %
-%	@deprecated Use ISO read_term/[2,3].
+%	@deprecated Use ISO read_term/2 or read_term/3.
 
 read_variables(Term, Vars) :-
 	read_term(Term, [variable_names(Vars)]).
@@ -271,6 +272,26 @@ substring(String, Offset, Length, Sub) :-
 	Offset0 is Offset - 1,
 	sub_string(String, Offset0, Length, _After, Sub).
 
+%%	string_to_list(?String, ?Codes) is det.
+%
+%	Bi-directional conversion between a string and a list of
+%	character codes.
+%
+%	@deprecated Use string_codes/2.
+
+string_to_list(String, Codes) :-
+	string_codes(String, Codes).
+
+%%	string_to_atom(?String, ?Atom) is det.
+%
+%	Bi-directional conversion between string and atom.
+%
+%	@deprecated	Use atom_string/2. Note that the order of the
+%			arguments is reversed.
+
+string_to_atom(Atom, String) :-
+	atom_string(String, Atom).
+
 %%	flush is det.
 %
 %	@deprecated use ISO flush_output/0.
@@ -283,7 +304,7 @@ flush :-
 %	@deprecated Use writeln(X).
 
 write_ln(X) :-
-	write(X), nl.
+	writeln(X).
 
 %%	proper_list(+List)
 %

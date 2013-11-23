@@ -380,6 +380,9 @@ PL_new_atom_nchars(size_t len, const char *s)
 { if ( !GD->initialised )
     initAtoms();
 
+  if ( len == (size_t)-1 )
+    len = strlen(s);
+
   return (atom_t) lookupAtom(s, len);
 }
 
@@ -428,7 +431,7 @@ static PL_blob_t ucs_atom =
 
 
 static void
-initUCSAtoms()
+initUCSAtoms(void)
 { PL_register_blob_type(&ucs_atom);
 }
 
@@ -454,6 +457,9 @@ PL_new_atom_wchars(size_t len, const wchar_t *s)
 
   if ( !GD->initialised )
     initAtoms();
+
+  if ( len == (size_t)-1 )
+    len = wcslen(s);
 
   txt.text.w    = (wchar_t*)s;
   txt.length    = len;
@@ -643,6 +649,20 @@ PL_atom_wchars(atom_t a, size_t *len)
       *len = x->length / sizeof(pl_wchar_t);
 
     return (const wchar_t *)x->name;
+  } else if ( true(x->type, PL_BLOB_TEXT) )
+  { Buffer b = findBuffer(BUF_RING);
+    const char *s = (const char*)x->name;
+    const char *e = &s[x->length];
+
+    for(; s<e; s++)
+    { addBuffer(b, *s, wchar_t);
+    }
+    addBuffer(b, 0, wchar_t);
+
+    if ( len )
+      *len = x->length;
+
+    return baseBuffer(b, const wchar_t);
   } else
     return NULL;
 }
@@ -2059,6 +2079,9 @@ int
 PL_put_atom_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, len);
+
+  if ( len == (size_t)-1 )
+    len = strlen(s);
 
   setHandle(t, a);
   PL_unregister_atom(a);
@@ -3801,7 +3824,7 @@ PL_toplevel(void)
 }
 
 
-void
+int
 PL_halt(int status)
 { int reclaim_memory = FALSE;
 
@@ -3809,9 +3832,12 @@ PL_halt(int status)
   reclaim_memory = TRUE;
 #endif
 
-  cleanupProlog(status, reclaim_memory);
+  if ( cleanupProlog(status, reclaim_memory) )
+  { run_on_halt(&GD->os.exit_hooks, status);
+    exit(status);
+  }
 
-  exit(status);
+  return FALSE;
 }
 
 
@@ -4342,62 +4368,13 @@ PL_action(int action, ...)
 		*         QUERY PROLOG          *
 		*********************************/
 
-#define c_argc (GD->cmdline._c_argc)
-#define c_argv (GD->cmdline._c_argv)
-
-static void
-init_c_args()
-{ if ( c_argc == -1 )
-  { int i;
-    int opts = 1;
-    int argc    = GD->cmdline.argc;
-    char **argv = GD->cmdline.argv;
-
-    c_argv = allocHeapOrHalt(argc * sizeof(char *));
-    c_argv[0] = argv[0];
-    c_argc = 1;
-
-    for(i=1; i<argc; i++)
-    { if ( opts && argv[i][0] == '-' )
-      { switch(argv[i][1])
-	{ case 'x':
-	  case 'g':
-	  case 'd':
-	  case 'f':
-	  case 's':
-	  case 't':
-	    i++;
-	    continue;
-	  case 'B':
-	  case 'L':
-	  case 'G':
-	  case 'O':
-	  case 'T':
-	  case 'A':
-	  case 'q':
-	    continue;
-         case '-':
-	   if (!argv[i][2])
-	   { opts = 0;
-	     continue;
-	   }
-	}
-      }
-      c_argv[c_argc++] = argv[i];
-    }
-  }
-}
-
-
 intptr_t
 PL_query(int query)
 { switch(query)
   { case PL_QUERY_ARGC:
-      init_c_args();
-      return (intptr_t) c_argc;
+      return (intptr_t) GD->cmdline.appl_argc;
     case PL_QUERY_ARGV:
-      init_c_args();
-      return (intptr_t) c_argv;
+      return (intptr_t) GD->cmdline.appl_argv;
     case PL_QUERY_MAX_INTEGER:
     case PL_QUERY_MIN_INTEGER:
       fail;				/* cannot represent (anymore) */

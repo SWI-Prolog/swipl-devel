@@ -1017,7 +1017,12 @@ def_environment('LDSOFLAGS', Value) :-
 	->  current_prolog_flag(home, Home),
 	    atomic_list_concat([' -L"', Home, '/bin"'], SystemLib),
 	    System = [SystemLib]
-	;   System = []
+	;   current_prolog_flag(shared_object_extension, so)
+	->  System = []			% ELF systems do not need this
+	;   current_prolog_flag(home, Home),
+	    current_prolog_flag(arch, Arch),
+	    atomic_list_concat([' -L"', Home, '/lib/', Arch, '"'], SystemLib),
+	    System = [SystemLib]
 	),
 	current_prolog_flag(c_ldflags, LDFlags),
 	atomic_list_concat([LDFlags, ' -shared' | Extra], Value).
@@ -1263,7 +1268,7 @@ safe_pack_name(Name) :-
 safe_pack_char(C) :- between(0'a, 0'z, C), !.
 safe_pack_char(C) :- between(0'A, 0'Z, C), !.
 safe_pack_char(C) :- between(0'0, 0'9, C), !.
-safe_pack_char(C) :- memberchk(C, "_").
+safe_pack_char(0'_).
 
 
 		 /*******************************
@@ -1306,11 +1311,11 @@ pack_version(Pack, version(Parts)) -->
 	{ atom_codes(Pack, Codes)
 	}.
 
-version([_]) -->
+version([_|T]) -->
 	"*", !,
 	(   "."
 	->  version(T)
-	;   { T = [] }
+	;   []
 	).
 version([H|T]) -->
 	integer(H),
@@ -1859,8 +1864,9 @@ code_yes_no(_, none, _) :- !, fail.
 code_yes_no(C, Default, Default) :-
 	answered_default(C).
 
-answered_default(C) :-
-	memberchk(C, "\r\n ").
+answered_default(0'\r).
+answered_default(0'\n).
+answered_default(0'\s).
 
 
 		 /*******************************

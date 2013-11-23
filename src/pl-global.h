@@ -79,6 +79,7 @@ struct PL_global_data
   int		initialised;		/* Heap is initialised */
   int		io_initialised;		/* I/O system has been initialised */
   cleanup_status cleaning;		/* Inside PL_cleanup() */
+  int		halt_cancelled;		/* Times halt was cancelled */
   int		bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
   struct bit_vector *debug_topics;	/* debug topics enabled */
@@ -92,10 +93,10 @@ struct PL_global_data
 #endif
 
   struct
-  { int		argc;			/* main(int argc, char **argv) */
-    char **	argv;
-    int		_c_argc;		/* stripped options */
-    char **	_c_argv;
+  { int		os_argc;		/* main(int argc, char **argv) */
+    char **	os_argv;
+    int		appl_argc;		/* Application options */
+    char **	appl_argv;
     int		notty;			/* -tty: donot use ioctl() */
     int		optimise;		/* -O: optimised compilation */
   } cmdline;
@@ -128,6 +129,12 @@ struct PL_global_data
     double	thread_cputime;		/* Total CPU time of threads */
 #endif
   } statistics;
+
+#ifdef O_PROFILE
+  struct
+  { struct PL_local_data *thread;	/* Thread being profiled */
+  } profile;
+#endif
 
   struct
   { Module	user;			/* user module */
@@ -232,6 +239,7 @@ struct PL_global_data
     char *		fred;		/* last expanded ~user */
     char *		fredshome;	/* home of fred */
     OnHalt		on_halt_list;	/* list of onhalt hooks */
+    OnHalt		exit_hooks;	/* how to exit from PL_halt() */
     int			halting;	/* process is shutting down */
     int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
@@ -253,6 +261,7 @@ struct PL_global_data
     Procedure	print_message2;
     Procedure	foreign_registered2;	/* $foreign_registered/2 */
     Procedure	prolog_trace_interception4;
+    Procedure	prolog_break_hook6;	/* prolog:break_hook/6 */
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
     Procedure   call3;			/* call/3*/
@@ -441,9 +450,11 @@ struct PL_local_data
     int		sum_ok;			/* siblings are counted */
     struct call_node *current;		/* `current' node */
     struct call_node *roots;		/* list of root-nodes */
+    uintptr_t	samples;		/* profile samples */
     uintptr_t	ticks;			/* profile ticks total */
     uintptr_t	accounting_ticks;	/* Ticks in profCall() and friends */
     uintptr_t	nodes;			/* #Recorded nodes */
+    double	time_at_last_tick;	/* Time at last statistics tick */
     double	time_at_start;		/* Time at last start */
     double	time;			/* recorded CPU time */
   } profile;
@@ -512,6 +523,9 @@ struct PL_local_data
   struct
   { struct findall_bag *bags;		/* Known bags */
     struct findall_bag *default_bag;	/* Bag we keep around */
+#ifdef O_ATOMGC
+    simpleMutex mutex;			/* Atom GC scanning synchronization */
+#endif
   } bags;
 
   struct

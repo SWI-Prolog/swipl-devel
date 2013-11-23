@@ -139,7 +139,7 @@ insert2(In, K, V, Nil, NT, Flag) :-
 	;   insert2(R, K, V, Nil, IR, Flag0),
 	    (	Flag0 == shared
 	    ->	NT = In
-	    ;	fix_right(Flag0, black(L,K0,V0,IR), NT, Flag1),
+	    ;	fix_right(Flag0, black(L,K0,V0,IR), NT0, Flag1),
 		(   Flag1 == share
 		->  nb_linkarg(4, In, IR),
 		    Flag = shared,

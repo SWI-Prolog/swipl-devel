@@ -1,0 +1,82 @@
+<html lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+	<title>The SWI-Prolog MacOSX app</title>
+</head>
+<body>
+<h1>The SWI-Prolog MacOSX app</h1>
+
+<p>
+<a href="http://www.swi-prolog.org/">SWI-Prolog</a> is an open source
+implementation of the Prolog programming language. SWI-Prolog targets at
+developing real-world applications. To achieve this, in concentrates on
+libraries that facilitate interfacing to other software components,
+networking and multi-threading. SWI-Prolog can be used from the
+<code>Terminal</code> application, as an standard Mac application started from
+<code>Finder</code>, under <a
+href="http://www.swi-prolog.org/FAQ/GnuEmacs.html">GNU-Emacs</a> or
+under the <a href="http://sewiki.iai.uni-bonn.de/research/pdt/">Eclipse
+IDE</a>. </p>
+
+<h2>Supported MacOSX versions</h2>
+
+<dl>
+<dt><b>MacOS &lt 10.6 (older than Snow Leopard)</b>
+<dd>This binary does <b>not</b> run on MacOS prior to Snow Leopard.  You
+can install SWI-Prolog using <a href="http://www.macports.org/">MacPorts</a>
+on most versions.
+</dd>
+<dt><b>MacOS 10.6 (Snow Leopard)</b>
+<dd>
+The app does <b>not</b> work on MacOS 10.6. The command line executables
+(<code>swipl, swipl-ld</code>) do work.  See <a href="#cmdline">below</a>.
+Note that upgrading Snow Leopard or later to Maverics is free of charge.
+</dd>
+<dt><b>MacOS 10.7, 10.8 and 10.9 (Lion, Mountain Lion and Maverics)</b>
+<dd>
+All features work on these versions of MacOS.
+</dd>
+</dl>
+
+<h3>Using the X11 based development tools</h3>
+
+<p>
+The SWI-Prolog development tools, such as the source-level debugger, are
+based on xpce, SWI-Prolog's native graphics toolkit. This toolkit
+<b>requires X11</b>, and in particular <a
+href="http://xquartz.macosforge.org/">Xquartz</a>, <b>even</b> on Mac OS
+X v10.5 to v10.7 where X11 is preinstalled or can be installed as an
+option.  SWI-Prolog's XPCE toolkit is linked against the X11 libraries
+in <code>/opt/X11</code>, Xquartz version 2.7.5.
+</p>
+
+<p>
+The SWI-Prolog app can be executed directly from the disk image, can be
+installed in <code>/Applications</code> or in any other location, i.e.,
+it is <i>relocatable</i>. The app advertises itself to the launcher as
+<em>shell</em> for files with extensions <code>.pl</code> and
+<code>.prolog</code>
+</p>
+
+<h2 name="cmdline">Using the commandline tools</h2>
+
+<p>
+The traditional command line tools are included in the app. To access
+them from the <code>Terminal</code> application, add the directory
+<code>/Applications/SWI-Prolog/Contents/MacOS</code> to
+<code>$PATH</code> (replace with the actual location if you installed
+the app in a different location).
+</p>
+
+<hr>
+<p>
+The Qt based console for this app is developed by Carlo Capelli.
+</p>
+
+<p>
+SWI-Prolog is brought to you by
+many <a href="http://www.swi-prolog.org/Contributors.html">contributors</a>.
+</p>
+
+</body>
+</html>

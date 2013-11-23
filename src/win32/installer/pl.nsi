@@ -366,12 +366,13 @@ Section "Base system (required)"
   File ${SWIPL}\library\coinduction.pl
   File ${SWIPL}\library\quasi_quotations.pl
   File ${SWIPL}\library\sandbox.pl
+  File ${SWIPL}\library\win_menu.pl
+  File ${SWIPL}\library\console_input.pl
 
 ; WINDOWS
   File ${SWIPL}\library\dde.pl
   File ${SWIPL}\library\progman.pl
   File ${SWIPL}\library\registry.pl
-  File ${SWIPL}\library\win_menu.pl
   File ${SWIPL}\library\wise.pl
 
 ; DEVELOPMENT
@@ -540,6 +541,8 @@ Section "C/C++ Interface"
   SetOutPath $INSTDIR\lib
 !ifdef MINGW
   File ${SWIPL}\lib\libswipl.dll.a
+  File ${SWIPL}\lib\libswipl.def
+  File ${SWIPL}\lib\libswipl.lib
   File ${SWIPL}\lib\plterm.dll.a
   File ${SWIPL}\lib\libpthreadGC2.dll.a
 !else

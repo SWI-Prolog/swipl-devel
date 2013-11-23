@@ -66,7 +66,10 @@ test(is_ordset, [sto(rational_trees), fail]) :-
 	L = [a|L],
 	is_ordset(L).
 test(is_ordset, fail) :-		% This is why we cannot use sort(X,X)
-	_T = a(X,Y),
+	unbound(T),			% do not optimize unification
+	T = a(X,Y),
 	is_ordset([Y,X]).
+
+unbound(_).
 
 :- end_tests(is_ordset).

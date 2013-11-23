@@ -33,14 +33,19 @@
 	  list_undefined/0,		% list undefined predicates
 	  list_undefined/1,		% +Options
 	  list_autoload/0,		% list predicates that need autoloading
-	  list_redefined/0		% list redefinitions
+	  list_redefined/0,		% list redefinitions
+	  list_trivial_fails/0,		% list goals that trivially fail
+	  list_trivial_fails/1		% +Options
 	]).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
 :- use_module(library(option)).
+:- use_module(library(apply)).
 :- use_module(library(prolog_codewalk)).
 
 :- set_prolog_flag(generate_debug_info, false).
+
+:- multifile trivial_fail_goal/1.
 
 /** <module> Consistency checking
 
@@ -52,19 +57,32 @@ loaded Prolog program.
 
 :- predicate_options(list_undefined/1, 1, [scan(oneof([local,global]))]).
 
-%%	check
+%%	check is det.
 %
-%	Run all consistency checks defined in this library
+%	Run all consistency checks defined in this library.  Currently
+%	defined checks are:
+%
+%	  * list_undefined/0 reports undefined predicates
+%	  * list_trivial_fails/0 reports calls for which there is no
+%	    matching clause.
+%	  * list_redefined/0 reports predicates that have a local
+%	    definition and a global definition.  Note that these are
+%	    *not* errors.
+%	  * list_autoload/0 lists predicates that will be defined at
+%	    runtime using the autoloader.
 
 check :-
 	print_message(informational,
 		      check(pass(1, 'Undefined predicates'))),
 	list_undefined,
 	print_message(informational,
-		      check(pass(2, 'Redefined system and global predicates'))),
+		      check(pass(2, 'Trivial failures'))),
+	list_trivial_fails,
+	print_message(informational,
+		      check(pass(3, 'Redefined system and global predicates'))),
 	list_redefined,
 	print_message(informational,
-		      check(pass(3, 'Predicates that need autoloading'))),
+		      check(pass(4, 'Predicates that need autoloading'))),
 	list_autoload.
 
 %%	list_undefined is det.
@@ -218,6 +236,114 @@ redefined_ok('$pred_option'(_,_,_,_)).
 global_module(user).
 global_module(system).
 
+%%	list_trivial_fails is det.
+%%	list_trivial_fails(+Options) is det.
+%
+%	List goals that trivially fail  because   there  is  no matching
+%	clause.  Options:
+%
+%	  * module_class(+Classes)
+%	    Process modules of the given Classes.  The default for
+%	    classes is =|[user]|=. For example, to include the
+%	    libraries into the examination, use =|[user,library]|=.
+
+:- thread_local
+	trivial_fail/2.
+
+list_trivial_fails :-
+	list_trivial_fails([]).
+
+list_trivial_fails(Options) :-
+	merge_options(Options,
+		      [ module_class([user]),
+			infer_meta_predicates(false),
+			autoload(false),
+			evaluate(false),
+			trace_reference(_),
+			on_trace(check_trivial_fail)
+		      ],
+		      WalkOptions),
+
+	prolog_walk_code([ source(false)
+			 | WalkOptions
+			 ]),
+	findall(CRef, retract(trivial_fail(clause(CRef), _)), Clauses),
+	(   Clauses == []
+	->  true
+	;   print_message(warning, check(trivial_failures)),
+	    prolog_walk_code([ clauses(Clauses)
+			     | WalkOptions
+			     ]),
+	    findall(Goal-From, retract(trivial_fail(From, Goal)), Pairs),
+	    keysort(Pairs, Sorted),
+	    group_pairs_by_key(Sorted, Grouped),
+	    maplist(report_trivial_fail, Grouped)
+	).
+
+%%	trivial_fail_goal(:Goal)
+%
+%	Multifile hook that tells list_trivial_fails/0 to accept Goal as
+%	valid.
+
+trivial_fail_goal(pce_expansion:pce_class(_, _, template, _, _, _)).
+trivial_fail_goal(pce_host:property(system_source_prefix(_))).
+
+:- public
+	check_trivial_fail/3.
+
+check_trivial_fail(MGoal0, _Caller, From) :-
+	(   MGoal0 = M:Goal,
+	    atom(M),
+	    callable(Goal),
+            predicate_property(MGoal0, interpreted),
+	    \+ predicate_property(MGoal0, dynamic),
+	    \+ predicate_property(MGoal0, multifile),
+	    \+ trivial_fail_goal(MGoal0)
+	->  (	predicate_property(MGoal0, meta_predicate(Meta))
+	    ->  qualify_meta_goal(MGoal0, Meta, MGoal)
+	    ;   MGoal = MGoal0
+	    ),
+	    (	clause(MGoal, _)
+	    ->  true
+	    ;   assertz(trivial_fail(From, MGoal))
+	    )
+	;   true
+	).
+
+report_trivial_fail(Goal-FromList) :-
+	print_message(warning, check(trivial_failure(Goal, FromList))).
+
+%%	qualify_meta_goal(+Module, +MetaSpec, +Goal, -QualifiedGoal)
+%
+%	Qualify a goal if the goal calls a meta predicate
+
+qualify_meta_goal(M:Goal0, Meta, M:Goal) :-
+	functor(Goal0, F, N),
+	functor(Goal, F, N),
+	qualify_meta_goal(1, M, Meta, Goal0, Goal).
+
+qualify_meta_goal(N, M, Meta, Goal0, Goal) :-
+	arg(N, Meta,  ArgM), !,
+	arg(N, Goal0, Arg0),
+	arg(N, Goal,  Arg),
+	N1 is N + 1,
+	(   module_qualified(ArgM)
+	->  add_module(Arg0, M, Arg)
+	;   Arg = Arg0
+	),
+	meta_goal(N1, Meta, Goal0, Goal).
+meta_goal(_, _, _, _).
+
+add_module(Arg, M, M:Arg) :-
+	var(Arg), !.
+add_module(M:Arg, _, MArg) :- !,
+	add_module(Arg, M, MArg).
+add_module(Arg, M, M:Arg).
+
+module_qualified(N) :- integer(N), !.
+module_qualified(:).
+module_qualified(^).
+
 
 		 /*******************************
 		 *	      MESSAGES		*
@@ -227,7 +353,7 @@ global_module(system).
 	prolog:message/3.
 
 prolog:message(check(pass(N, Comment))) -->
-	[ 'PASS ~w: ~w ...~n'-[N, Comment] ].
+	[ 'PASS ~w: ~w ...'-[N, Comment] ].
 prolog:message(check(find_references(Preds))) -->
 	{ length(Preds, N)
 	},
@@ -263,6 +389,16 @@ prolog:message(check(autoload(Module, Pairs))) -->
 prolog:message(check(redefined(In, From, Pred))) -->
 	predicate(In:Pred),
 	redefined(In, From).
+prolog:message(check(trivial_failures)) -->
+	[ 'The following goals fail because there are no matching clauses.' ].
+prolog:message(check(trivial_failure(Goal, Refs))) -->
+	{ map_list_to_pairs(sort_reference_key, Refs, Keyed),
+	  keysort(Keyed, KeySorted),
+	  pairs_values(KeySorted, SortedRefs)
+	},
+	goal(Goal),
+	[ ', which is called from'-[], nl ],
+	referenced_by(SortedRefs).
 
 redefined(user, system) -->
 	[ '~t~30| System predicate redefined globally' ].
@@ -271,28 +407,30 @@ redefined(_, system) -->
 redefined(_, user) -->
 	[ '~t~30| Redefined global predicate' ].
 
-predicate(user:Name/Arity) -->
-	{ atom(Name),
-	  integer(Arity)
-	}, !,
-	[ '~q/~d'-[Name, Arity] ].
+goal(user:Goal) --> !,
+	[ '~p'-[Goal] ].
+goal(Goal) --> !,
+	[ '~p'-[Goal] ].
+
 predicate(Module:Name/Arity) -->
 	{ atom(Module),
 	  atom(Name),
-	  integer(Arity)
+	  integer(Arity),
+	  functor(Head, Name, Arity),
+	  predicate_name(Module:Head, PName)
 	}, !,
-	[ '~q:~q/~d'-[Module, Name, Arity] ].
+	[ '~w'-[PName] ].
 predicate(Module:Head) -->
 	{ atom(Module),
 	  callable(Head),
-	  functor(Head, Name, Arity)
+	  predicate_name(Module:Head, PName)
 	}, !,
-	predicate(Module:Name/Arity).
+	[ '~w'-[PName] ].
 predicate(Name/Arity) -->
 	{ atom(Name),
 	  integer(Arity)
 	}, !,
-	[ '~q/~d'-[Name, Arity] ].
+	predicate(user:Name/Arity).
 
 autoload([]) -->
 	[].

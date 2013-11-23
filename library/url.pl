@@ -564,11 +564,12 @@ ip4_address(Atom) -->
 
 i256_chars(Chars, T) -->
 	digits(Chars, T),
-	\+ \+ { T = [],
-		Chars \== [],
-		number_codes(I, Chars),
-		I < 256
-	      }.
+	{ \+ \+ ( T = [],
+		  Chars \== [],
+		  number_codes(I, Chars),
+		  I < 256
+		)
+	}.
 
 reg_name(Host) -->
 	reg_name_chars(Chars),

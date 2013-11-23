@@ -346,9 +346,10 @@ rlc_window_class(HICON icon)
   HINSTANCE instance = _rlc_hinstance;
 
   if ( !winclassname[0] )
-  { if ( !GetEnvironmentVariable(TEXT("PLTERM_CLASS"),
+  { if ( !GetEnvironmentVariable(_T("PLTERM_CLASS"),
 				 winclassname, sizeof(winclassname)) )
-      _stprintf(winclassname, TEXT("PlTerm-%d"), instance);
+      snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
+		_T("PlTerm-%d"), instance);
 
     wndClass.lpszClassName	= winclassname;
     wndClass.style		= CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS;
@@ -559,7 +560,8 @@ rlc_kill_window_class()
   HINSTANCE instance = _rlc_hinstance;
 
   if ( !winclassname[0] )
-  { _stprintf(winclassname, _T("Console-hidden-win%d"), instance);
+  { snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
+	      _T("Console-hidden-win%d"), instance);
 
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) rlc_kill_wnd_proc;

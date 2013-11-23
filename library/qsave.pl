@@ -323,9 +323,7 @@ define_predicate(Head) :-
 define_init_goal(Options) :-
 	option(goal(Goal), Options), !,
 	define_predicate(Goal).
-define_init_goal(_) :-
-	flag('$banner_goal', BannerGoal, BannerGoal),
-	define_predicate(user:BannerGoal).
+define_init_goal(_).
 
 define_toplevel_goal(Options) :-
 	option(toplevel(Goal), Options), !,
@@ -398,17 +396,18 @@ pred_attrib(Attrib, Head,
 	strip_module(Head, M, Term),
 	functor(Term, Name, Arity).
 
-attrib_name(dynamic,	   dynamic,	  1).
-attrib_name(volatile,	   volatile,	  1).
-attrib_name(thread_local,  thread_local,  1).
-attrib_name(multifile,	   multifile,	  1).
-attrib_name(public,	   public,	  1).
-attrib_name(transparent,   transparent,	  1).
-attrib_name(discontiguous, discontiguous, 1).
-attrib_name(notrace,	   trace,	  0).
-attrib_name(show_childs,   hide_childs,	  0).
-attrib_name(built_in,      system,	  1).
-attrib_name(nodebug,       hide_childs,	  1).
+attrib_name(dynamic,		    dynamic,		    1).
+attrib_name(volatile,		    volatile,		    1).
+attrib_name(thread_local,	    thread_local,	    1).
+attrib_name(multifile,		    multifile,		    1).
+attrib_name(public,		    public,		    1).
+attrib_name(transparent,	    transparent,	    1).
+attrib_name(discontiguous,	    discontiguous,	    1).
+attrib_name(notrace,		    trace,		    0).
+attrib_name(show_childs,	    hide_childs,	    0).
+attrib_name(built_in,		    system,		    1).
+attrib_name(nodebug,		    hide_childs,	    1).
+attrib_name(quasi_quotation_syntax, quasi_quotation_syntax, 1).
 
 
 save_attribute(P, Attribute) :-
@@ -525,10 +524,12 @@ save_prolog_flags :-
 save_prolog_flags.
 
 no_save_flag(argv).
+no_save_flag(os_argv).
 no_save_flag(access_level).
 no_save_flag(tty_control).
 no_save_flag(readline).
 no_save_flag(associated_file).
+no_save_flag(cpu_count).
 no_save_flag(hwnd).			% should be read-only, but comes
 					% from user-code
 
@@ -629,10 +630,8 @@ find_foreign_library(FileSpec, SharedObject) :-
 	    format(atom(Cmd), '"~w" -o "~w" "~w"',
 		   [ Strip, Stripped, File ]),
 	    shell(Cmd)
-	->  SharedObject = Stripped,
-	    Delete = true
-	;   SharedObject = File,
-	    Delete = false
+	->  SharedObject = Stripped
+	;   SharedObject = File
 	).
 
 

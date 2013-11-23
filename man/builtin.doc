@@ -162,14 +162,14 @@ sets).
 
 SWI-Prolog recognises grammar rules (\idx{DCG}) as defined in
 \cite{Clocksin:87}. The user may define additional compilation of the
-source file by defining the dynamic predicates term_expansion/2 and
-goal_expansion/2. Transformations by term_expansion/2 overrule the
-system's grammar rule transformations. It is not allowed to use assert/1,
-retract/1 or any other database predicate in term_expansion/2 other than
-for local computational purposes.%
-	\footnote{It does work for normal loading, but not for qcompile/1.}
-Code that needs to create additional clauses must use
-compile_aux_clauses/1. See \pllib{library(apply_macros)} for an example.
+source file by defining the dynamic multifile predicates
+term_expansion/2, term_expansion/4, goal_expansion/2 and
+goal_expansion/4. It is not allowed to use assert/1, retract/1 or any
+other database predicate in term_expansion/2 other than for local
+computational purposes.\footnote{It does work for normal loading, but
+not for qcompile/1.} Code that needs to create additional clauses must
+use compile_aux_clauses/1. See \pllib{library(apply_macros)} for an
+example.
 
 A \jargon{directive} is an instruction to the compiler. Directives are
 used to set (predicate) properties (see \secref{declare}), set flags
@@ -358,6 +358,12 @@ Load the file in \jargon{sandboxed} mode.  This option controls the
 flag \prologflag{sandboxed_load}. The only meaningful value for
 \arg{Bool} is \const{true}.  Using \const{false} while the Prolog
 flag is set to \const{true} raises a permission error.
+
+    \termitem{scope_settings}{Bool}
+Scope style_check/1 and expects_dialect/1 to the file and files loaded
+from the file after the directive.  Default is \const{true}.  The system
+and user initialization files (see \cmdlineoption{-f} and
+\cmdlineoption{-F}) are loading with \term{scope_settings}{false}.
 
     \termitem{silent}{Bool}
 If \const{true}, load the file without printing a message. The
@@ -663,6 +669,8 @@ following keys are defined:
 \const{term_position} & Position of last term read.  Term of the form
 			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
 			See also stream_position_data/3. \\
+\const{variable_names}& A list of `\arg{Name} = \arg{Var}' of the last
+			term read.  See read_term/2 for details. \\
 \const{script}	      & Boolean that indicates whether the file is
 			loaded as a script file (see
 			\cmdlineoption{-s}) \\
@@ -698,7 +706,16 @@ Register \arg{Goal} to be run from PL_cleanup(), which is called when
 the system halts. The hooks are run in the reverse order they were
 registered (FIFO). Success or failure executing a hook is ignored. If
 the hook raises an exception this is printed using print_message/2. An
-attempt to call halt/[0,1] from a hook is ignored.
+attempt to call halt/[0,1] from a hook is ignored. Hooks may call
+cancel_halt/1, causing halt/0 and PL_halt(0) to print a message
+indicating that halting the system has been cancelled.
+
+    \predicate{cancel_halt}{1}{+Reason}
+If this predicate is called from a hook registered with at_halt/1,
+halting Prolog is cancelled and an informational message is printed
+that includes \arg{Reason}.  This is used by the development tools
+to cancel halting the system if the editor has unsafed data and the
+user decides to cancel.
 
     \directive[ISO]{initialization}{1}{:Goal}
 Call \arg{Goal} \emph{after} loading the source file in which this
@@ -852,6 +869,38 @@ This predicate performs the translation of a term \exam{Head-->Body}
 into a normal Prolog clause.  Normally this functionality should be
 accessed using expand_term/2.
 \end{description}
+
+
+\subsubsection{Program transformation with source layout info}
+\label{sec:progtransform-layout}
+
+This sections documents extended versions of the program transformation
+predicates that also transform the source layout information.  Extended
+layout information is currently processed, but unused.  Future versions
+will use for the following enhancements:
+
+\begin{itemize}
+    \item More precise locations of warnings and errors
+    \item More reliable setting of breakpoints
+    \item More reliable source layout information in the graphical
+          debugger.
+\end{itemize}
+
+\begin{description}
+    \predicate{expand_goal}{4}{+Goal1, ?Layout1, -Goal2, -Layout2}
+    \nodescription
+    \predicate{goal_expansion}{4}{+Goal1, ?Layout1, -Goal2, -Layout2}
+    \nodescription
+    \predicate{expand_term}{4}{+Term1, ?Layout1, -Term2, -Layout2}
+    \nodescription
+    \predicate{term_expansion}{4}{+Term1, ?Layout1, -Term2, -Layout2}
+    \predicate{dcg_translate_rule}{4}{+In, ?LayoutIn, -Out, -LayoutOut}
+These versions are called \emph{before} their 2-argument counterparts.
+The input layout term is either a variable (if no layout information is
+available) or a term carrying detailed layout information as returned by
+the \const{subterm_positions} of read_term/2.
+\end{description}
+
 
 \subsubsection{Conditional compilation}
 \label{sec:conditionalcompilation}
@@ -2178,7 +2227,6 @@ Amount of time to wait after printing the message. Default is not to
 wait.
     \end{description}
 
-
     \predicate{prolog:message_line_element}{2}{+Stream, +Term}
 This hook is called to print the individual elements of a message from
 print_message_lines/3. This hook is used by e.g., library
@@ -2186,6 +2234,16 @@ print_message_lines/3. This hook is used by e.g., library
 
     \predicate{message_to_string}{2}{+Term, -String}
 Translates a message term into a string object (see \secref{strings}).
+
+    \predicate{version}{0}{}
+Write the SWI-Prolog banner message as well as additional messages
+registered using version/1. This is the default \jargon{initialization
+goal} which can be modified using \cmdlineoption{-g}.
+
+    \predicate{version}{1}{+Message}
+Register additional messages to be printed by version/0. Each registered
+message is handed to the message translation DCG and can thus be defined
+using the hook prolog:message//1.  Of not defined, it is simply printed.
 \end{description}
 
 
@@ -3488,8 +3546,15 @@ Quintus Prolog, though the error conditions and signalling is ISO
 compliant. See also stream_property/2 and set_stream_position/2.
 
     \predicate{set_stream}{2}{+Stream, +Attribute}
-Modify an attribute of an existing stream. \arg{Attribute} specifies
-the stream property to set.  See also stream_property/2 and open/4.
+Modify an attribute of an existing stream. \arg{Attribute} specifies the
+stream property to set. If stream is a \emph{pair} (see stream_pair/3)
+both streams are modified, unless the property is only meaningful on
+one of the streams or setting both is not meaningful.  In particular,
+\const{eof_action} only applies to the \emph{read} stream,
+\const{representation_errors} only applies to the \emph{write} stream
+and trying to set \const{alias} or \const{line_position} on a pair
+results in a \const{permission_error} exception. See also
+stream_property/2 and open/4.
 
 \begin{description}
     \termitem{alias}{AliasName}
@@ -4328,6 +4393,12 @@ options:
 	\termitem{term_position}{-TermPos}
 	Same as for read_term/3.
 
+	\termitem{subterm_positions}{-TermPos}
+	Same as for read_term/3.
+
+	\termitem{variable_names}{-Bindings}
+	Same as for read_term/3.
+
 	\termitem{process_comment}{+Boolean}
 	If \const{true} (default), call
 	\term{prolog:comment_hook}{Comments, TermPos, Term} if this
@@ -4455,7 +4526,8 @@ appear in the order they have been read. See also term_variables/2.
 (ISO).
 
     \termitem{variable_names}{Vars}
-Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where \arg{Name} is an atom describing the variable name and \arg{Var} is a
+Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where
+\arg{Name} is an atom describing the variable name and \arg{Var} is a
 variable that shares with the corresponding variable in \arg{Term}.
 (ISO).
 \end{description}
@@ -4465,7 +4537,7 @@ Read term with options from \arg{Stream}.  See read_term/2.
 
     \predicate{read_term_from_atom}{3}{+Atom, -Term, +Options}
 Use read_term/3 to read the next term from \arg{Atom}.  \arg{Atom} is
-either an atom or a string object (see \secref{string}).  It is not
+either an atom or a string object (see \secref{strings}).  It is not
 required for \arg{Atom} to end with a full-stop.  This predicate
 supersedes atom_to_term/3.
 
@@ -5199,19 +5271,30 @@ handling.
 
 
 \begin{description}
-    \predicate{string_to_atom}{2}{?String, ?Atom}
-Logical conversion between a string and an atom. At least one of the
-two arguments must be instantiated. \arg{Atom} can also be an integer
-or floating point number.
+    \predicate{atom_string}{2}{?Atom, ?String}
+Bi-directional conversion between an atom and a string. At
+least one of the two arguments must be instantiated. \arg{Atom} can also
+be an integer or floating point number.
 
-    \predicate{string_to_list}{2}{?String, ?List}
-Logical conversion between a string and a list of character code
-characters. At least one of the two arguments must be instantiated.
+    \predicate{string_codes}{2}{?String, ?Codes}
+Bi-directional conversion between a string and a list of character
+codes. At least one of the two arguments must be instantiated.
 
     \predicate{string_length}{2}{+String, -Length}
 Unify \arg{Length} with the number of characters in \arg{String}. This
 predicate is functionally equivalent to atom_length/2 and also accepts
 atoms, integers and floats as its first argument.
+
+    \predicate{string_code}{3}{?Index, +String, ?Code}
+True when \arg{Code} represents the character at the 0-based \arg{Index}
+position in \arg{String}. If \arg{Index} is unbound the string is
+scanned from index 0. Raises a domain error if \arg{Index} is negative.
+The mode \term{string_code}{-,+,+} is deterministic if the searched-for
+\arg{Code} appears only once in \arg{String}.  Note that this is similar
+to \term{sub_string}{String, Index, 1, _, Char}, except that the
+character is represented as a code in string_code/3 and as a
+one-character string in sub_string/5.  See also sub_atom/5.
+
     \predicate{string_concat}{3}{?String1, ?String2, ?String3}
 Similar to atom_concat/3, but the unbound argument will be unified with
 a string object rather than an atom. Also, if both \arg{String1} and
@@ -5221,6 +5304,7 @@ a string object rather than an atom. Also, if both \arg{String1} and
 particularly fast on long strings, as for each redo the system has to
 create two entirely new strings, while the list equivalent only creates
 a single new list-cell and moves some pointers around.
+
     \predicate{sub_string}{5}{+String, ?Start, ?Length, ?After, ?Sub}
 \arg{Sub} is a substring of \arg{String} starting at \arg{Start}, with
 length \arg{Length}, and \arg{String} has \arg{After} characters left
@@ -5681,12 +5765,15 @@ Evaluate to the smaller of \arg{Expr1} and \arg{Expr2}. See
 \funcref{max}{2} for a description of type handling.
 
     \function{.}{2}{+Int, []}
-A list of one element evaluates to the element.  This implies \exam{"a"}
-evaluates to the character code of the letter `a' (97). This
-option is available for compatibility only. It will not work if
-`\exam{style_check(+string)}' is active, as \exam{"a"} will then be
-transformed into a string object. The recommended way to specify the
-character code of the letter `a' is \exam{0'a}.
+A list of one element evaluates to the element. This implies \exam{"a"}
+evaluates to the character code of the letter `a' (97) using the
+traditional mapping of double quoted string to a list of character
+codes. Arithmetic evaluation also translates a string object (see
+\secref{strings}) of one character length into the character code for
+that character. This implies that expression \exam{"a"} also works of
+the Prolog flag \prologflag{double_quotes} is set to \const{string}. The
+recommended way to specify the character code of the letter `a' is
+\exam{0'a}.
 
     \function{random}{1}{+IntExpr}
 Evaluate to a random integer \arg{i} for which $0 \leq i <
@@ -6058,8 +6145,14 @@ is_list([_|T]) :-
 	is_list(T).
 \end{code}
 
-    \predicate{memberchk}{2}{?Elem, +List}
-Same as \exam{once(member(\arg{Elem}, \arg{List}))}.  See member/2.
+    \predicate[]{memberchk}{2}{?Elem, +List}
+True when \arg{Elem} is an element of \arg{List}. This `chk' variant of
+member/2 is semi deterministic and typically used to test membership of
+a list.  Raises a \const{type} error if scanning \arg{List} encounters
+a non-list.  Note that memberchk/2 does \emph{not} perform a full list
+typecheck.  For example, \exam{memberchk(a, [a|b])} succeeds without
+error and memberchk/2 loops on a cyclic list if \arg{Elem} is not a
+member of \arg{List}.
 
     \predicate[ISO]{length}{2}{?List, ?Int}
 True if \arg{Int} represents the number of elements in \arg{List}.
@@ -6097,27 +6190,35 @@ Equivalent to sort/2, but does not remove duplicates. Raises a
 \except{type_error} if \arg{List} is a cyclic list or not a list.
 
     \predicate[ISO]{keysort}{2}{+List, -Sorted}
-List is a proper list whose elements are \exam{\arg{Key}-\arg{Value}},
-that is, terms whose principal functor is (-)/2, whose first argument is
-the sorting key, and whose second argument is the satellite data to be
-carried along with the key. keysort/2 sorts \arg{List} like msort/2, but
-only compares the keys. It is used to sort terms not on standard order,
-but on any criterion that can be expressed on a multi-dimensional scale.
-Sorting on more than one criterion can be done using terms as keys,
-putting the first criterion as argument 1, the second as argument 2,
-etc. The order of multiple elements that have the same \arg{Key} is not
-changed. The implementation is in C, using \jargon{natural merge sort}.
-Fails with a \except{type_error} if \arg{List} is a cyclic list or not
-a list, or one of the elements of \arg{List} is not a \jargon{pair}.
+Sort a list of \jargon{pairs}. \arg{List} must be a list of
+\exam{\arg{Key}-\arg{Value}} pairs, terms whose principal functor is
+(-)/2. \arg{List} is sorted on \arg{Key} according to the standard order
+of terms (see \secref{standardorder}). Duplicates are \emph{not}
+removed. Sorting is \jargon{stable} with regard to the order of the
+\arg{Values}, i.e., the order of multiple elements that have the same
+\arg{Key} is not changed.
+
+The keysort/2 predicate is often used together with library
+\pllib{pairs}. It can be used to sort lists on different or multiple
+criteria. For example, the following predicates sorts a list of atoms
+according to their length, maintaining the initial order for atoms that
+have the same length.
+
+\begin{code}
+:- use_module(library(pairs)).
+
+sort_atoms_by_length(Atoms, ByLength) :-
+	map_list_to_pairs(atom_length, Atoms, Pairs),
+	keysort(Pairs, Sorted),
+	pairs_values(Sorted, ByLength).
+\end{code}
 
     \predicate{predsort}{3}{+Pred, +List, -Sorted}
 Sorts similar to sort/2, but determines the order of two terms by
 calling \mbox{\arg{Pred}(-\arg{Delta}, +\arg{E1}, +\arg{E2})}.  This
 call must unify \arg{Delta} with one of \const{<}, \const{>} or
 \const{=}.  If the built-in predicate compare/3 is used, the result is
-the same as sort/2.  See also keysort/2.%
-	\footnote{Please note that the semantics have changed between
-		  3.1.1 and 3.1.2.}
+the same as sort/2.  See also keysort/2.
 \end{description}
 
 
@@ -6592,9 +6693,6 @@ decodes padding information in the strings returned by tty_get_capability/3
 and should be used to output these strings. \arg{Lines} is the
 number of lines affected by the operation, or 1 if not applicable (as
 in almost all cases).
-    \predicate{set_tty}{2}{-OldStream, +NewStream}
-Set the output stream used by tty_put/2 and tty_goto/2 to a
-specific stream. Default is user_output.
     \predicate{tty_size}{2}{-Rows, -Columns}
 Determine the size of the terminal.  Platforms:
 
@@ -7369,7 +7467,7 @@ since Jan~1, 1970. See also convert_time/[2,8] and get_time/1.
 
     \predicate{absolute_file_name}{2}{+File, -Absolute}
 Expand a local filename into an absolute path. The absolute path is
-canonised: references to \file{.} and \file{..} are deleted. This
+canonicalised: references to \file{.} and \file{..} are deleted. This
 predicate ensures that expanding a filename returns the same
 absolute path regardless of how the file is addressed. SWI-Prolog uses
 absolute filenames to register source files independent of the current
@@ -7581,7 +7679,7 @@ Abort the Prolog execution and restart the top level. If the
 started instead of entering the default interactive top level.
 
 Aborting is implemented by throwing the reserved exception
-\verb=$aborted=. This exception can be caught using catch/3, but the
+\verb='$aborted'=. This exception can be caught using catch/3, but the
 recovery goal is wrapped with a predicate that prunes the choice points
 of the recovery goal (i.e., as once/1) and re-throws the exception.
 This is illustrated in the example below, where we press control-C
@@ -7594,19 +7692,38 @@ and `a'.
 \end{code}
 
     \predicate[ISO]{halt}{0}{}
-Terminate Prolog execution.  Open files are closed, and if the command
-line option \cmdlineoption{-tty} is not active the terminal status (see Unix
-stty(1)) is restored.  Hooks may be registered both in Prolog and in
-foreign code.  Prolog hooks are registered using at_halt/1.  halt/0
-is equivalent to \exam{halt(0)}.%
-	\bug{In the multithreaded version, halt/0 does not work when
-	     not called from the \emph{main} thread.  In the current
-	     system a \const{permission_error} exception is raised.
-	     Future versions may enable halt/0 from any thread.}
+Terminate Prolog execution.  This is the same as \term{halt}{0}. See
+halt/1 for details.
 
     \predicate[ISO]{halt}{1}{+Status}
-Terminate Prolog execution with the given status.  Status is an integer.
-See also halt/0.
+Terminate Prolog execution with \arg{Status}. This predicate calls
+PL_halt() which preforms the following steps:
+
+    \begin{enumerate}
+    \item Set the Prolog flag \prologflag{exit_status} to \arg{Status}.
+
+    \item Call all hooks registered using at_halt/1.  If \arg{Status}
+    equals 0 (zero), any of these hooks calls cancel_halt/1,
+    termination is cancelled.
+
+    \item Call all hooks registered using PL_at_halt().  In the future,
+    if any of these hooks returns non-zero, termination will be
+    cancelled.  Currently, this only prints a warning.
+
+    \item Perform the following system cleanup actions:
+
+    \begin{itemize}
+    \item Cancel all threads, calling thread_at_exit/1 registered
+          termination hooks.  Threads not responding within 1 second
+	  are cancelled forcefully.
+    \item Flush I/O and close all streams except for standard I/O.
+    \item Reset the terminal if its properties were changed.
+    \item Remove temporary files and incomplete compilation output.
+    \item Reclaim memory.
+    \end{itemize}
+
+    \item Call exit(Status) to terminate the process
+    \end{enumerate}
 
     \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read
@@ -7768,50 +7885,86 @@ and \const{fail}. If the \prologflag{unknown} flag is set to
 \const{warning}, unknown/2 reports the value as \const{trace}.
 
     \predicate{style_check}{1}{+Spec}
-Set style checking options.  \arg{Spec} is either \mbox{\tt +<option>},
-\mbox{\tt -<option>}, \mbox{\tt ?(<option>)}%
-	\footnote{In older versions `\const{?}' was a prefix operator.
-		  In versions after 5.5.13, explicit brackets are needed.}
-or a list of such options. \mbox{\tt +<option>} sets a style checking
-option, \mbox{\tt -<option>} clears it and \mbox{\tt ?(<option>)}
-succeeds or fails according to the current setting. consult/1 and
-derivatives reset the style checking options to their value before
-loading the file. If, for example, a file containing long atoms should
-be loaded, the user can start the file with:
+Modify/query style checking options. \arg{Spec} is one of the terms
+below or a list of these.
 
-\begin{code}
-:- style_check(-atom).
-\end{code}
+\begin{itemize}
+    \item +\arg{Style} enables a style check
+    \item -\arg{Style} disables a style check
+    \item ?(\arg{Style}) queries a style check (note the brackets).
+	  If \arg{Style} is unbound, all active style check options
+	  are returned on backtracking.
+\end{itemize}
 
-The currently available options are given below with their default
-between brackets.
+Loading a file using load_files/2 or one of its derived predicates reset
+the style checking options to their value before loading the file,
+scoping the option to the remainder of the file and all files loaded
+\emph{after} changing the style checking.
 
 \begin{description}
     \termitem{singleton}{true}
-The predicate read_clause/1 (used by the compiler to read source code)
+The predicate read_clause/3 (used by the compiler to read source code)
 warns on variables appearing only once in a term (clause) which have a
 name not starting with an underscore. See \secref{singleton} for details
 on variable handling and warnings.
 
+    \termitem{no_effect}{true}
+This warning is generated by the compiler for BIPs (built-in predicates)
+that are inlined by the compiler and for which the compiler can prove
+that they are meaningless.  An example is using \predref{==}{2} against
+a not-yet-initialised variable as illustrated in the example below. This
+comparison is always \const{false}.
+
+\begin{code}
+always_false(X) :-
+	X == Y,
+	write(Y).
+\end{code}
+
+    \termitem{var_branches}{false}
+Verifies that if a variable is introduced in a branch and used
+\emph{after} the branch, it is introduced in all branches. This code
+aims at bugs following the skeleton below, where \term{p}{Next} may be
+called with \arg{Next} unbound.
+
+\begin{code}
+p(Arg) :-
+	(  Cond
+        -> Next = value1
+        ;  true
+	),
+	p(Next).
+\end{code}
+
+If a variable \arg{V} is intended to be left unbound, one can use
+\exam{V=_}. This construct is removed by the compiler and thus has no
+implications for the performance of your program.
+
+This check was suggested together with \jargon{semantic} singleton
+checking. The SWI-Prolog libraries contain about a hundred clauses that
+are triggered by this style check. Unlike semantic singleton analysis,
+only a tiny fraction of these clauses proofed faulty. In most cases, the
+branches failing to bind the variable fail or raise an exception or the
+caller handles the case where the variable is unbound.  The status of
+this style check is unclear. It might be removed in the future or it
+might be enhanced with a deeper analysis to be more precise.
+
     \termitem{atom}{true}
 The predicate read/1 and derived predicates produce an error message on
-quoted atoms or strings with more than 6 unescaped newlines. Newlines
-may be escaped with \chr{\} or \chr{\}\chr{c}. This flag also enables
-warnings on \chr{\}<newline> followed by blank space in native mode. See
-\secref{charescapes}.
+quoted atoms or strings with more than 6 \emph{unescaped} newlines.
+Newlines may be escaped with \chr{\} or \chr{\}\chr{c}. This flag also
+enables warnings on \chr{\}<newline> followed by blank space in native
+mode. See \secref{charescapes}. Note that the ISO standard does not
+allow for unescaped newlines in quoted atoms.
 
     \termitem{discontiguous}{true}
 Warn if the clauses for a predicate are not together in the same source file.
 It is advised to disable the warning for discontiguous predicates using
 the discontiguous/1 directive.
 
-    \termitem{string}{false}
-Backward compatibility.  See the Prolog flag \prologflag{double_quotes}
-(current_prolog_flag/2).
-
     \termitem{charset}{false}
-Warn on atoms and variables holding non-ASCII characters that are not
-quoted. See also \secref{processorcharset}.
+Warn on atoms and variable names holding non-ASCII characters that are
+not quoted. See also \secref{processorcharset}.
 \end{description}
 \end{description}
 

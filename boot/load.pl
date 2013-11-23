@@ -32,7 +32,7 @@
 % Load the rest of the system as modules, so we can write a bit more
 % readable code.  First we need to load term-expansion, etc. because
 % this gives us DCGs.  Then we need to replace the dummy clauses for
-% '$expand_term'/2 and '$expand_goal'/2 with links to the real thing.
+% '$expand_term'/4 and '$expand_goal'/2 with links to the real thing.
 
 :- consult([ expand,
 	     dcg
@@ -40,9 +40,9 @@
 
 :- abolish('$expand_goal'/2),
    asserta(('$expand_goal'(In, Out) :- expand_goal(In, Out))),
-   abolish('$expand_term'/2),
-   asserta(('$expand_term'(In, Out) :- expand_term(In, Out))),
-   compile_predicates(['$expand_goal'/2, '$expand_term'/2]).
+   abolish('$expand_term'/4),
+   asserta(('$expand_term'(In, P0, Out, P) :- expand_term(In, P0, Out, P))),
+   compile_predicates(['$expand_goal'/2, '$expand_term'/4]).
 
 :- consult([ license,			% requires DCG
 	     syspred,

@@ -607,7 +607,7 @@ put_double(Word at, double d, int flags ARG_LD)
 		 *	  64-BIT INTEGERS	*
 		 *******************************/
 
-#ifdef INT64_ALIGNMENT
+#if ALIGNOF_INT64_T != ALIGNOF_VOIDP
 
 int64_t					/* take care of alignment! */
 valBignum__LD(word w ARG_LD)

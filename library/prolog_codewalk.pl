@@ -28,7 +28,8 @@
 */
 
 :- module(prolog_codewalk,
-	  [ prolog_walk_code/1		% +Options
+	  [ prolog_walk_code/1,		% +Options
+	    prolog_program_clause/2	% -ClauseRef, +Options
 	  ]).
 :- use_module(library(option)).
 :- use_module(library(record)).
@@ -75,6 +76,7 @@ source file is passed into _Where.
 :- predicate_options(prolog_walk_code/1, 1,
 		     [ undefined(oneof([ignore,error,trace])),
 		       autoload(boolean),
+		       clauses(list),
 		       module(atom),
 		       module_class(list(oneof([user,system,library,
 						test,development]))),
@@ -93,6 +95,7 @@ source file is passed into _Where.
 		    module_class:list(oneof([user,system,library,
 					     test,development]))=[user,library],
 		    infer_meta_predicates:oneof([false,true,all])=true,
+		    clauses:list,		% Walk only these clauses
 		    trace_reference:any=(-),
 		    on_trace:callable,		% Call-back on trace hits
 						% private stuff
@@ -127,6 +130,11 @@ source file is passed into _Where.
 %	  Try to autoload code while walking. This is enabled by default
 %	  to obtain as much as possible information about goals and find
 %	  references from autoloaded libraries.
+%
+%	  * clauses(+ListOfClauseReferences)
+%	  Only process the given clauses.  Can be used to find clauses
+%	  quickly using source(false) and then process only interesting
+%	  clauses with source information.
 %
 %	  * module(+Module)
 %	  Only process the given module
@@ -177,11 +185,15 @@ prolog_walk_code(Options) :-
 prolog_walk_code(Iteration, Options) :-
 	statistics(cputime, CPU0),
 	make_walk_option(Options, OTerm, _),
-	forall(( walk_option_module(OTerm, M),
-		 current_module(M),
-		 scan_module(M, OTerm)
-	       ),
-	       find_walk_from_module(M, OTerm)),
+	(   walk_option_clauses(OTerm, Clauses),
+	    nonvar(Clauses)
+	->  walk_clauses(Clauses, OTerm)
+	;   forall(( walk_option_module(OTerm, M),
+	             current_module(M),
+		     scan_module(M, OTerm)
+		   ),
+		   find_walk_from_module(M, OTerm))
+	),
 	walk_from_multifile(OTerm),
 	walk_from_initialization(OTerm),
 	infer_new_meta_predicates(New, OTerm),
@@ -196,6 +208,25 @@ prolog_walk_code(Iteration, Options) :-
 	).
 
 is_meta(on_trace).
+
+
+%%	walk_clauses(Clauses, +OTerm) is det.
+%
+%	Walk the given clauses.
+
+walk_clauses(Clauses, OTerm) :-
+	must_be(list, Clauses),
+	forall(member(ClauseRef, Clauses),
+	       ( user:clause(CHead, Body, ClauseRef),
+		 (   CHead = Module:Head
+		 ->  true
+		 ;   Module = user,
+		     Head = CHead
+		 ),
+		 walk_option_clause(OTerm, ClauseRef),
+		 walk_option_caller(OTerm, Module:Head),
+		 walk_called_by_body(Body, Module, OTerm)
+	       )).
 
 %%	scan_module(+Module, +OTerm) is semidet.
 %
@@ -339,7 +370,7 @@ walk_called_by_body(subterm_positions, Body, Module, OTerm) :-
 		  missing(subterm_positions),
 		  walk_called_by_body(no_positions, Body, Module, OTerm))
 	;   set_source_of_walk_option(false, OTerm, OTerm2),
-	    forall(walk_called(Body, Module, BodyPos, OTerm2),
+	    forall(walk_called(Body, Module, _BodyPos, OTerm2),
 		   true)
 	).
 walk_called_by_body(no_positions, Body, Module, OTerm) :-
@@ -496,7 +527,8 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 	->  From = clause_term_position(Clause, TermPos)
 	;   walk_option_source(OTerm, false)
 	->  From = clause(Clause)
-	;   throw(missing(subterm_positions))
+	;   From = _,
+	    throw(missing(subterm_positions))
 	),
 	print_reference2(Goal, From, Why, OTerm).
 print_reference(Goal, TermPos, Why, OTerm) :-
@@ -508,7 +540,8 @@ print_reference(Goal, TermPos, Why, OTerm) :-
 	->  From = file_term_position(File, TermPos)
 	;   walk_option_source(OTerm, false)
 	->  From = file(File, Line, -1, _)
-	;   throw(missing(subterm_positions))
+	;   From = _,
+	    throw(missing(subterm_positions))
 	),
 	print_reference2(Goal, From, Why, OTerm).
 print_reference(Goal, _, Why, OTerm) :-
@@ -656,7 +689,7 @@ walk_called_by([H|T], M, Goal, TermPos, OTerm) :-
 	    ->	walk_called(G2, M, GPosEx, OTerm)
 	    ;	true
 	    )
-	;   subterm_pos(G, Goal, TermPos, GPos),
+	;   subterm_pos(H, Goal, TermPos, GPos),
 	    walk_called(H, M, GPos, OTerm)
 	),
 	walk_called_by(T, M, Goal, TermPos, OTerm).
@@ -726,6 +759,7 @@ subterm_pos(_, _, _, Pos, _) :-
 subterm_pos(Sub, Term, Cmp, Pos, Pos) :-
 	call(Cmp, Sub, Term), !.
 subterm_pos(Sub, Term, Cmp, term_position(_,_,_,_,ArgPosList), Pos) :-
+	compound(Term),
 	nth1(I, ArgPosList, ArgPos),
 	arg(I, Term, Arg),
 	subterm_pos(Sub, Arg, Cmp, ArgPos, Pos).
@@ -802,6 +836,69 @@ predicate_in_module(Module, PI) :-
 	PI = Name/Arity,
 	functor(Head, Name, Arity),
 	\+ predicate_property(Module:Head, imported_from(_)).
+
+
+		 /*******************************
+		 *	ENUMERATE CLAUSES	*
+		 *******************************/
+
+%%	prolog_program_clause(-ClauseRef, +Options) is nondet.
+%
+%	True when ClauseRef is a reference   for  clause in the program.
+%	Options   is   a   subset   of    the   options   processed   by
+%	prolog_walk_code/1. The logic for deciding   on which clauses to
+%	enumerate is shared with prolog_walk_code/1.
+%
+%	  * module(?Module)
+%	  * module_class(+list(Classes))
+
+prolog_program_clause(ClauseRef, Options) :-
+	make_walk_option(Options, OTerm, _),
+	setup_call_cleanup(
+	    true,
+	    (   current_module(Module),
+		scan_module(Module, OTerm),
+		module_clause(Module, ClauseRef, OTerm)
+	    ;	retract(multifile_predicate(Name, Arity, MM)),
+		multifile_clause(ClauseRef, MM:Name/Arity, OTerm)
+	    ;	initialization_clause(ClauseRef, OTerm)
+	    ),
+	    retractall(multifile_predicate(_,_,_))).
+
+
+module_clause(Module, ClauseRef, _OTerm) :-
+	predicate_in_module(Module, Name/Arity),
+	\+ multifile_predicate(Name, Arity, Module),
+	functor(Head, Name, Arity),
+	(   predicate_property(Module:Head, multifile)
+	->  assertz(multifile_predicate(Name, Arity, Module)),
+	    fail
+	;   predicate_property(Module:Head, Property),
+	    no_enum_property(Property)
+	->  fail
+	;   catch(nth_clause(Module:Head, _, ClauseRef), _, fail)
+	).
+
+no_enum_property(foreign).
+
+multifile_clause(ClauseRef, M:Name/Arity, OTerm) :-
+	functor(Head, Name, Arity),
+	catch(clauseref_not_from_development(M:Head, ClauseRef, OTerm),
+	      _, fail).
+
+clauseref_not_from_development(Module:Head, Ref, OTerm) :-
+	nth_clause(Module:Head, _N, Ref),
+	\+ ( clause_property(Ref, file(File)),
+	     module_property(LoadModule, file(File)),
+	     \+ scan_module(LoadModule, OTerm)
+	   ).
+
+initialization_clause(ClauseRef, OTerm) :-
+	catch(clause(system:'$init_goal'(_File, M:_Goal, SourceLocation),
+		     true, ClauseRef),
+	      _, fail),
+	walk_option_initialization(OTerm, SourceLocation),
+	scan_module(M, OTerm).
 
 
 		 /*******************************

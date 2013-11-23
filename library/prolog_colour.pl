@@ -564,7 +564,10 @@ colourise_subgoals([Pos|T], N, Body, Origin, TB) :-
 
 colourise_dcg(Body, Head, TB, Pos) :-
 	colour_item(dcg, TB, Pos),
-	dcg_extend(Head, Origin),
+	(   dcg_extend(Head, Origin)
+	->  true
+	;   Origin = Head
+	),
 	colourise_dcg_goals(Body, Origin, TB, Pos).
 
 colourise_dcg_goals(Var, _, TB, Pos) :-
@@ -579,6 +582,9 @@ colourise_dcg_goals(List, _, TB, list_position(F,T,Elms,Tail)) :-
 	List = [_|_], !,
 	colour_item(dcg(terminal), TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, classify).
+colourise_dcg_goals(List, _, TB, string_position(F,T)) :-
+	List = [_|_], !,
+	colour_item(dcg(terminal), TB, F-T).
 colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
 	dcg_body_compiled(Body), !,	% control structures
 	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
@@ -1078,7 +1084,8 @@ colourise_imports(List, File, TB, Pos) :-
 				     silent(true)
 				   ] ), _, fail)
 	->  true
-	;   Public = []
+	;   Public = [],
+	    Path = (-)
 	),
 	colourise_imports(List, Path, Public, TB, Pos).
 
@@ -1185,11 +1192,23 @@ colourise_meta_declarations((Head,Tail), TB,
 colourise_meta_declarations(Last, TB, Pos) :-
 	colourise_meta_declaration(Last, TB, Pos).
 
-colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :-
+colourise_meta_declaration(M:Head, TB,
+			   term_position(_,_,_,_,
+					 [ MP,
+					   term_position(_,_,FF,FT,ArgPos)
+					 ])) :- !,
+	colour_item(module(M), TB, MP),
+	colour_item(goal(extern(M,Head)), TB, FF-FT),
+	Head =.. [_|Args],
+	colourise_meta_args(Args, TB, ArgPos).
+colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :- !,
 	goal_classification(TB, Head, [], Class),
 	colour_item(goal(Class, Head), TB, FF-FT),
 	Head =.. [_|Args],
 	colourise_meta_args(Args, TB, ArgPos).
+colourise_meta_declaration([H|T], TB, list_position(LF,LT,[HP],TP)) :-
+	colour_item(list, TB, LF-LT),
+	colourise_meta_args([H,T], TB, [HP,TP]).
 
 colourise_meta_args([], _, []).
 colourise_meta_args([Arg|ArgT], TB, [PosH|PosT]) :-

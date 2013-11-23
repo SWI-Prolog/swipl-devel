@@ -103,14 +103,30 @@ safe(G, M, _, Safe, Safe) :-
 	),
 	safe_primitive(M2:G), !.
 safe(G, M, Parents, Safe0, Safe) :-
-	safe_meta(G, Called), !,
+	safe_meta(G, Called),
+	predicate_property(G, iso), !,
+	safe_list(Called, M, Parents, Safe0, Safe).
+safe(G, M, Parents, Safe0, Safe) :-
+	expand_phrase(G, Goal), !,
+	safe(Goal, M, Parents, Safe0, Safe).
+safe(G, M, Parents, Safe0, Safe) :-
+	safe_meta(M2:G, Called),
+	(   predicate_property(M:G, imported_from(M2))
+	->  true
+	;   M2 = M
+	), !,
 	safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	goal_id(M:G, Id, Gen),
 	(   get_assoc(Id, Safe0, _)
 	->  Safe = Safe0
 	;   put_assoc(Id, Safe0, true, Safe1),
-	    safe_clauses(Gen, M, [Id|Parents], Safe1, Safe)
+	    (	Gen == M:G
+	    ->	safe_clauses(Gen, M, [Id|Parents], Safe1, Safe)
+	    ;	catch(safe_clauses(Gen, M, [Id|Parents], Safe1, Safe),
+		      error(instantiation_error, _),
+		      fail)
+	    )
 	).
 
 safe_clauses(G, M, Parents, Safe0, Safe) :-
@@ -119,8 +135,12 @@ safe_clauses(G, M, Parents, Safe0, Safe) :-
 	def_module(M:G, MD:QG),
 	findall(Body, clause(MD:QG, Body), Bodies),
 	safe_list(Bodies, MD, Parents, Safe0, Safe).
-safe_clauses(_, _M, [G|Parents], _, _) :-
+safe_clauses(G, M, [_|Parents], _, _) :-
+	predicate_property(M:G, visible), !,
 	throw(error(permission_error(call, sandboxed, G),
+		    sandbox(M:G, Parents))).
+safe_clauses(_, _, [G|Parents], _, _) :-
+	throw(error(existence_error(procedure, G),
 		    sandbox(G, Parents))).
 
 safe_list([], _, _, Safe, Safe).
@@ -201,6 +221,7 @@ goal_id(Term, Skolem, Term) :-		% most specific form
 
 safe_primitive(true).
 safe_primitive(fail).
+safe_primitive(system:false).
 safe_primitive(repeat).
 safe_primitive(!).
 					% types
@@ -208,9 +229,19 @@ safe_primitive(var(_)).
 safe_primitive(nonvar(_)).
 safe_primitive(integer(_)).
 safe_primitive(float(_)).
+safe_primitive(system:rational(_)).
+safe_primitive(system:rational(_,_,_)).
+safe_primitive(number(_)).
 safe_primitive(atom(_)).
+safe_primitive(system:blob(_,_)).
+safe_primitive(system:string(_)).
+safe_primitive(atomic(_)).
 safe_primitive(compound(_)).
+safe_primitive(callable(_)).
 safe_primitive(ground(_)).
+safe_primitive(system:cyclic_term(_)).
+safe_primitive(acyclic_term(_)).
+safe_primitive(system:is_stream(_)).
 					% ordering
 safe_primitive(@>(_,_)).
 safe_primitive(@>=(_,_)).
@@ -239,8 +270,10 @@ safe_primitive(_ =.. _).
 safe_primitive(copy_term(_,_)).
 safe_primitive(numbervars(_,_,_)).
 					% atoms
-safe_primitive(atom_concat(_,_,_)).
 safe_primitive(atom_chars(_, _)).
+safe_primitive(atom_codes(_, _)).
+safe_primitive(system:atomic_list_concat(_,_,_)).
+safe_primitive(system:atom_length(_,_)).
 					% Lists
 safe_primitive(length(_,_)).
 					% exceptions
@@ -278,8 +311,13 @@ safe_primitive(system:get_attr(_,_,_)).
 safe_primitive(system:del_attr(_,_)).
 					% globals
 safe_primitive(system:b_getval(_,_)).
-safe_primitive(system:b_setval(_,_)).
+safe_primitive(system:b_setval(Var,_)) :-
+	safe_global_variable(Var).
+safe_primitive(system:nb_getval(_,_)).
+safe_primitive(system:nb_setval(Var,_)) :-
+	safe_global_variable(Var).
 safe_primitive(system:nb_current(_,_)).
+					% database
 safe_primitive(system:assert(X)) :-
 	safe_assert(X).
 
@@ -345,15 +383,33 @@ safe_assert(_Head:-_Body) :- !, fail.
 safe_assert(_:_) :- !, fail.
 safe_assert(_).
 
+%%	safe_global_variable(+Name) is semidet.
+%
+%	True if Name  is  a  global   variable  to  which  assertion  is
+%	considered safe.
+
+safe_global_variable(Name) :-
+	var(Name), !,
+	fail.
+safe_global_variable('$clpfd_queue_status').
+safe_global_variable('$clpfd_current_propagator').
+safe_global_variable('$clpfd_queue').
+
+
 %%	safe_meta(+Goal, -Called) is semidet.
 %
 %	True if Goal is a meta-predicate that is considered safe iff all
 %	elements in Called are safe.
 
-safe_meta(put_attr(_,M,A), [M:attr_unify_hook(A, _)]) :-
-	atom(M), !.
-safe_meta(Phrase, [Goal]) :-
-	expand_phrase(Phrase, Goal), !.
+safe_meta(system:put_attr(_,M,A), [M:attr_unify_hook(A, _)]) :- !,
+	(   atom(M)
+	->  true
+	;   instantiation_error(M)
+	).
+safe_meta(M:Goal, Called) :- !,
+	generic_goal(Goal, Gen),
+	safe_meta(M:Gen),
+	findall(C, called(Gen, Goal, C), Called).
 safe_meta(Goal, Called) :-
 	generic_goal(Goal, Gen),
 	safe_meta(Gen),
@@ -370,6 +426,11 @@ generic_goal(G, Gen) :-
 	functor(Gen, Name, Arity).
 
 extend(0, G, G) :- !.
+extend(I, M:G0, M:G) :- !,
+	G0 =.. List,
+	length(Extra, I),
+	append(List, Extra, All),
+	G =.. All.
 extend(I, G0, G) :-
 	G0 =.. List,
 	length(Extra, I),
@@ -379,7 +440,7 @@ extend(I, G0, G) :-
 safe_meta((0,0)).
 safe_meta((0;0)).
 safe_meta((0->0)).
-safe_meta(forall(0,0)).
+safe_meta(apply:forall(0,0)).
 safe_meta(catch(0,_,0)).
 safe_meta(findall(_,0,_)).
 safe_meta(findall(_,0,_,_)).
@@ -387,15 +448,16 @@ safe_meta(setof(_,0,_)).		% TBD
 safe_meta(bagof(_,0,_)).
 safe_meta(^(_,0)).
 safe_meta(\+(0)).
-safe_meta(maplist(1, _)).
-safe_meta(maplist(2, _, _)).
-safe_meta(maplist(3, _, _, _)).
+safe_meta(apply:maplist(1, _)).
+safe_meta(apply:maplist(2, _, _)).
+safe_meta(apply:maplist(3, _, _, _)).
 safe_meta(call(0)).
 safe_meta(call(1, _)).
 safe_meta(call(2, _, _)).
 safe_meta(call(3, _, _, _)).
 safe_meta(call(4, _, _, _, _)).
 safe_meta(call(5, _, _, _, _, _)).
+safe_meta(call(6, _, _, _, _, _, _)).
 
 
 		 /*******************************
@@ -452,3 +514,23 @@ safe_pattr(_, _).
 
 prolog:sandbox_allowed_expansion(G) :-
 	safe_goal(G).
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message_context//1.
+
+prolog:message_context(sandbox(_G, Parents)) -->
+	[ nl, 'Reachable from:'-[] ],
+	callers(Parents, 10).
+
+callers([], _) --> !.
+callers(_,  0) --> !.
+callers([G|Parents], Level) -->
+	{ NextLevel is Level-1
+	},
+	[ nl, '	  ~p'-[G] ],
+	callers(Parents, NextLevel).

@@ -61,7 +61,7 @@ int	PL_unify_text_range(term_t term, PL_chars_t *text,
 int	PL_promote_text(PL_chars_t *text);
 int	PL_demote_text(PL_chars_t *text);
 int	PL_mb_text(PL_chars_t *text, int flags);
-int	PL_canonise_text(PL_chars_t *text);
+int	PL_canonicalise_text(PL_chars_t *text);
 
 int	PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 		    size_t len);
@@ -80,5 +80,12 @@ COMMON(void)		PL_text_recode(PL_chars_t *text, IOENC encoding);
 COMMON(int)		get_atom_ptr_text(Atom atom, PL_chars_t *text);
 COMMON(int)		get_atom_text(atom_t atom, PL_chars_t *text);
 COMMON(int)		get_string_text(atom_t atom, PL_chars_t *text ARG_LD);
+
+static inline int
+text_get_char(const PL_chars_t *t, size_t i)
+{ assert(t->canonical);
+  return t->encoding == ENC_ISO_LATIN_1 ? t->text.t[i]&0xff
+					: t->text.w[i];
+}
 
 #endif /*PL_TEXT_H_INCLUDED*/

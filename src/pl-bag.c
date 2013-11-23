@@ -125,7 +125,12 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
 
   if ( !LD->bags.bags )			/* outer one */
   { if ( !LD->bags.default_bag )
+    {
+#ifdef O_ATOMGC
+      simpleMutexInit(&LD->bags.mutex);
+#endif
       LD->bags.default_bag = PL_malloc(sizeof(*bag));
+    }
     bag = LD->bags.default_bag;
   } else
   { bag = PL_malloc(sizeof(*bag));
@@ -195,6 +200,8 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;
+      if (GD->atoms.gc_active)
+        markAtomsRecord(r);
       copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
       PL_cons_list(list, answer, list);
       popTopOfSegStack(&bag->answers);
@@ -214,10 +221,18 @@ PRED_IMPL("$destroy_findall_bag", 0, destroy_findall_bag, 0)
 
   assert(bag);
   assert(bag->magic == FINDALL_MAGIC);
+
+#ifdef O_ATOMGC
+  simpleMutexLock(&LD->bags.mutex);
+#endif
+  LD->bags.bags = bag->parent;
+#ifdef O_ATOMGC
+  simpleMutexUnlock(&LD->bags.mutex);
+#endif
+
   bag->magic = 0;
   clearSegStack(&bag->answers);
   clear_mem_pool(&bag->records);
-  LD->bags.bags = bag->parent;
   if ( bag != LD->bags.default_bag )
     PL_free(bag);
 
@@ -239,10 +254,15 @@ markAtomsAnswers(void *data)
 
 void
 markAtomsFindall(PL_local_data_t *ld)
-{ findall_bag *bag = ld->bags.bags;
+{ findall_bag *bag;
 
-  for( ; bag; bag = bag->parent )
-    scanSegStack(&bag->answers, markAtomsAnswers);
+  if ( ld->bags.default_bag )
+  { simpleMutexLock(&ld->bags.mutex);
+    bag = ld->bags.bags;
+    for( ; bag; bag = bag->parent )
+      scanSegStack(&bag->answers, markAtomsAnswers);
+    simpleMutexUnlock(&ld->bags.mutex);
+  }
 }
 
 

@@ -136,7 +136,7 @@ unvisit(ARG1_LD)
 
 static void
 popVisited(ARG1_LD)
-{ Word p;
+{ Word p = NULL;
 
   popSegStack(&LD->cycle.vstack, &p, Word);
   clear_marked(p);
@@ -1935,7 +1935,6 @@ PRED_IMPL("functor", 3, functor, 0)
 static
 PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  atom_t name;
   int arity;
   int argn;
 
@@ -1951,8 +1950,6 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       deRef(p);
       if ( isTerm(*p) )
 	arity = arityTerm(*p);
-      else if ( isTextAtom(*p) && !truePrologFlag(PLFLAG_ISO) )
-	arity = 0;
       else
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
 
@@ -1978,9 +1975,10 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
     { term_t a;
       fid_t fid;
       int rc;
+      Word p = valTermRef(term);
 
-      if ( !PL_get_name_arity(term, &name, &arity) )
-	sysError("arg/3: PL_get_name_arity() failed");
+      deRef(p);
+      arity = arityTerm(*p);
       argn = (int)CTX_INT + 1;
 
     genarg:
@@ -4119,10 +4117,10 @@ PRED_IMPL("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
 
 
 static
-PRED_IMPL("string_to_atom", 2, string_to_atom, 0)
+PRED_IMPL("atom_string", 2, atom_string, 0)
 { PRED_LD
-  term_t str = A1;
-  term_t a = A2;
+  term_t a = A1;
+  term_t str = A2;
   PL_chars_t t;
   int rc;
 
@@ -4140,7 +4138,7 @@ PRED_IMPL("string_to_atom", 2, string_to_atom, 0)
 
 
 static
-PRED_IMPL("string_to_list", 2, string_to_list, 0)
+PRED_IMPL("string_codes", 2, string_codes, 0)
 { PRED_LD
   term_t str = A1;
   term_t list = A2;
@@ -4158,6 +4156,83 @@ PRED_IMPL("string_to_list", 2, string_to_list, 0)
   PL_free_text(&t);
 
   return rc;
+}
+
+
+/** string_code(?Index, +String, ?Code)
+
+True when the Index'ed character of String has code Code.
+*/
+
+static
+PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  PL_chars_t t;
+  size_t idx;
+  int tchar;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { size_t i;
+
+      if ( !PL_get_text(A2, &t, CVT_ALL|CVT_EXCEPTION) )
+	return FALSE;
+      if ( !PL_is_variable(A1) )
+      { if ( !PL_get_size_ex(A1, &i) )
+	  return FALSE;
+	if ( i >= t.length )
+	  return FALSE;
+	return PL_unify_integer(A3, text_get_char(&t, i));
+      } else
+      { if ( !PL_is_variable(A3) )
+	{ if ( !PL_get_char_ex(A3, &tchar, FALSE) )
+	    return FALSE;
+	} else
+	  tchar = -1;
+
+	idx = 0;
+	goto gen;
+      }
+    }
+    case FRG_REDO:
+    { idx = (size_t)CTX_INT;
+
+      PL_get_text(A2, &t, CVT_ALL);
+      if ( PL_is_variable(A3) )
+	tchar = -1;
+      else
+	PL_get_char(A3, &tchar, FALSE);
+
+    gen:
+      if ( tchar == -1 )
+      { if ( PL_unify_integer(A1, idx) &&
+	     PL_unify_integer(A3, text_get_char(&t, idx)) )
+	{ if ( idx+1 < t.length )
+	    ForeignRedoInt(idx+1);
+	  else
+	    return TRUE;
+	}
+	return FALSE;
+      }
+
+      for(; idx < t.length; idx++)
+      { if ( text_get_char(&t, idx) == tchar )
+	{ if ( PL_unify_integer(A1, idx) )
+	  { for(idx++; idx < t.length; idx++)
+	    { if ( text_get_char(&t, idx) == tchar )
+		ForeignRedoInt(idx);
+	    }
+	    return TRUE;
+	  }
+	  return FALSE;
+	}
+      }
+
+      return FALSE;
+    }
+    default:
+      return TRUE;
+  }
 }
 
 
@@ -4203,24 +4278,11 @@ word
 pl_halt(term_t code)
 { int status;
 
-#ifdef O_PLMT
-  if ( PL_thread_self() != 1 )
-  { GET_LD
-    term_t t = PL_new_term_ref();
-
-    pl_thread_self(t);
-    return PL_error("halt", 1, "Only from thread `main'",
-		    ERR_PERMISSION,
-		    ATOM_halt, ATOM_thread, t);
-  }
-#endif
-
   if ( !PL_get_integer_ex(code, &status) )
     fail;
 
   PL_halt(status);
-  /*NOTREACHED*/
-  fail;
+  fail;					/* exception? */
 }
 
 #ifdef O_LIMIT_DEPTH
@@ -4782,9 +4844,10 @@ typedef struct
   void	       *address;
 } optdef, *OptDef;
 
-#define CMDOPT_LONG   0
-#define CMDOPT_STRING 1
-#define CMDOPT_LIST   2
+#define CMDOPT_BOOL   0
+#define CMDOPT_LONG   1
+#define CMDOPT_STRING 2
+#define CMDOPT_LIST   3
 
 static const optdef optdefs[] =
 { { "local",		CMDOPT_LONG,	&GD->options.localSize },
@@ -4798,6 +4861,11 @@ static const optdef optdefs[] =
   { "script_file",	CMDOPT_LIST,	&GD->options.scriptFiles },
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
+  { "search_paths",	CMDOPT_LIST,	&GD->options.search_paths },
+  { "pldoc_server",	CMDOPT_STRING,	&GD->options.pldoc_server },
+#ifdef __WINDOWS__
+  { "win_app",		CMDOPT_BOOL,	&GD->options.win_app },
+#endif
   { "home",		CMDOPT_STRING,	&GD->defaults.home },
 
   { NULL,		0,		NULL }
@@ -4818,7 +4886,12 @@ PRED_IMPL("$option", 2, option, 0)
     for( ; d->name; d++ )
     { if ( streq(k, d->name) )
       { switch(d->type)
-	{ case CMDOPT_LONG:
+	{ case CMDOPT_BOOL:
+	  { bool *lp = d->address;
+
+	    return PL_unify_bool(val, *lp);
+	  }
+	  case CMDOPT_LONG:
 	  { long *lp = d->address;
 
 	    return PL_unify_integer(val, *lp);
@@ -4826,7 +4899,9 @@ PRED_IMPL("$option", 2, option, 0)
 	  case CMDOPT_STRING:
 	  { char **sp = d->address;
 
-	    return PL_unify_atom_chars(val, *sp);
+	    if ( *sp )
+	      return PL_unify_atom_chars(val, *sp);
+	    return FALSE;
 	  }
 	  case CMDOPT_LIST:
 	  { opt_list **list = d->address;
@@ -4985,14 +5060,15 @@ BeginPredDefs(prims)
   PRED_DEF("number_chars", 2, number_chars, PL_FA_ISO)
   PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
+  PRED_DEF("atom_string", 2, atom_string, 0)
   PRED_DEF("atom_number", 2, atom_number, 0)
   PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("atomic_list_concat", 3, atomic_list_concat, 0)
   PRED_DEF("atomic_list_concat", 2, atomic_list_concat, 0)
   PRED_DEF("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
   PRED_DEF("string_length", 2, string_length, 0)
-  PRED_DEF("string_to_atom", 2, string_to_atom, 0)
-  PRED_DEF("string_to_list", 2, string_to_list, 0)
+  PRED_DEF("string_codes", 2, string_codes, 0)
+  PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$option", 2, option, 0)

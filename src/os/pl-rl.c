@@ -66,6 +66,9 @@ SWI-Prolog.h and SWI-Stream.h
 #ifdef HAVE_CLOCK
 #include <time.h>
 #endif
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 #ifdef __WINDOWS__
 #include <io.h>
 #endif

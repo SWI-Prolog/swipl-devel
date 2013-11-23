@@ -157,8 +157,10 @@ test(unify) :-
 
 :- begin_tests(eq).
 
+:- style_check(-no_effect).
 a :-
 	A == A.
+:- style_check(+no_effect).
 
 test(eq_ff, true) :-
 	a.

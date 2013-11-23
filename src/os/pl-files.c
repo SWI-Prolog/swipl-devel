@@ -256,7 +256,7 @@ DeRefLink1(const char *f, char *lbuf)
 	q--;
       strcpy(q, l);
 
-      canoniseFileName(lbuf);
+      canonicaliseFileName(lbuf);
 
       return lbuf;
     }
