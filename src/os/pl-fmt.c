@@ -1357,10 +1357,10 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     case V_MPQ:
     { char tmp[12];
       int size;
-      int written = 0;
+      int written;
       int fbits;
-      int digits = 0;
-      int padding = 0;
+      int digits;
+      int padding;
 
       switch(how)
       { case 'f':
@@ -1387,9 +1387,15 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
             { PL_no_memory();
               return NULL;
             }
-            digits = written = gmp_snprintf(baseBuffer(out, char), size, "%Zd", t1);
-          }
-          if (digits <= arg) padding = (arg-digits+1);
+            digits = written = gmp_snprintf(baseBuffer(out, char),
+					    size, "%Zd", t1);
+          } else
+	  { written = digits = 0;
+	  }
+          if ( digits <= arg )
+	    padding = (arg-digits+1);
+	  else
+	    padding = 0;
 
           size = digits;
           if (neg) size++;               /* leading - */
