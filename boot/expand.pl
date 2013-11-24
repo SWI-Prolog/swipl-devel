@@ -303,20 +303,27 @@ expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
 	    '$expand':expand_goal(G, PA0, EG, PA, M, MList, Term),
 	    '$set_source_module'(_, Old)).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
+	is_meta_call(G0, M, Head), !,
+	(   expand_meta(Head, G0, P0, G, P, M, MList, Term)
+	->  true
+	;   G = G0, P = P0
+	).
+expand_goal(G0, P0, G, P, M, MList, Term) :-
 	expand_functions(G0, P0, G, P, M, MList, Term).
 
-%%	expand_meta_goal(+G0, +P0, -G, -P, +M, +MList, +Term) is semidet.
+%%	is_meta_call(+G0, +M, +Head) is semidet.
+%
+%	True if M:G0 resolves to a real meta-goal as specified by Head.
 
-expand_meta_goal(G0, P0, G, P, M, MList, Term) :-
+is_meta_call(G0, M, Head) :-
 	compound(G0),
 	(   default_module(M, M2),
 	    '$c_current_predicate'(_, M2:G0),
 	    '$get_predicate_attribute'(M2:G0, meta_predicate, Head)
 	->  true		% is a meta-pred without clauses defined?
 	),
-	has_meta_arg(Head),
-	expand_meta(Head, G0, P0, G, P, M, MList, Term),
-	G0 \== G, !.
+	has_meta_arg(Head).
+
 
 %%	expand_meta(+MetaSpec, +G0, ?P0, -G, -P, +M, +Mlist, +Term)
 
@@ -431,18 +438,14 @@ allowed_expansion(_).
 %	@tbd: position logic
 %	@tbd: make functions module-local
 
-expand_functions(G0, _P0, G, _P, M, MList, Term) :-
+expand_functions(G0, _P0, G, _P, M, _MList, _Term) :-
 	compound(G0),
 	replace_functions(G0, Eval, G1, M),
 	Eval \== true, !,
 	(   var(G1)
 	->  G = Eval
-	;   expand_meta_goal(G1, _, G2, _, M, MList, Term)
-	->  G = (Eval,G2)
 	;   G = (Eval,G1)
 	).
-expand_functions(G0, P0, G, P, M, MList, Term) :-
-	expand_meta_goal(G0, P0, G, P, M, MList, Term), !.
 expand_functions(G, P, G, P, _, _, _).
 
 
