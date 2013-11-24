@@ -157,7 +157,7 @@ position in \arg{String}. If \arg{Index} is unbound the string is
 scanned from index 0. Raises a domain error if \arg{Index} is negative.
 The mode \term{string_code}{-,+,+} is deterministic if the searched-for
 \arg{Code} appears only once in \arg{String}.  Note that this is similar
-to \term{sub_string}{String, Index, 1, _, Char}, except that the
+to \term{sub_string}{String, Offset, 1, _, Char}, except that the
 character is represented as a code in string_code/3 and as a
 one-character string in sub_string/5.  See also sub_atom/5.
 
@@ -171,10 +171,24 @@ particularly fast on long strings, as for each redo the system has to
 create two entirely new strings, while the list equivalent only creates
 a single new list-cell and moves some pointers around.
 
-    \predicate{sub_string}{5}{+String, ?Start, ?Length, ?After, ?Sub}
-\arg{Sub} is a substring of \arg{String} starting at \arg{Start}, with
-length \arg{Length}, and \arg{String} has \arg{After} characters left
-after the match.  See also sub_atom/5.
+    \predicate{sub_string}{5}{+String, ?Before, ?Length, ?After, ?SubString}
+
+\arg{SubString} is a substring of \arg{String}. There are \arg{Before}
+characters in \arg{String} before \arg{SubString}, \arg{SubString}
+contains \arg{Length} character and is followed by \arg{After}
+characters in \arg{String}. If not enough information is provided to
+compute the start of the match, \arg{String} is scanned left-to-right.
+This predicate is functionally equivalent to sub_atom/5, but operates on
+strings. The following example splits a string of the form
+<name>=<value> into the name part (an atom) and the value (a string).
+
+\begin{code}
+name_value(String, Name, Value) :-
+	sub_string(String, Before, _, After, "="), !,
+	sub_string(String, 0, Before, _, NameString),
+	atom_string(Name, NameString),
+	sub_string(String, _, After, 0, Value).
+\end{code}
 \end{description}
 
 

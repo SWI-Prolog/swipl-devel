@@ -5013,7 +5013,7 @@ A = 1, S = b
 \end{code}
 
 The implementation minimises non-determinism and creation of atoms.
-This is a very flexible predicate that can do search, prefix- and
+This is a flexible predicate that can do search, prefix- and
 suffix-matching, etc.
 
     \predicate[semidet]{sub_atom_icasechk}{3}{+Haystack, ?Start, +Needle}
