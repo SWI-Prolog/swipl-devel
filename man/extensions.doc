@@ -137,6 +137,11 @@ the ISO sister predicates number_chars/2 and number_codes/2,
 converting a string that does not represent a number results
 in silent failure rather than a \const{syntax_error} exception.
 
+    \predicate{string_chars}{2}{?String, ?Chars}
+Bi-directional conversion between a string and a list of characters
+(one-character atoms). At least one of the two arguments must be
+instantiated.
+
     \predicate{string_codes}{2}{?String, ?Codes}
 Bi-directional conversion between a string and a list of character
 codes. At least one of the two arguments must be instantiated.

@@ -4257,16 +4257,13 @@ PRED_IMPL("atom_string", 2, atom_string, 0)
 }
 
 
-static
-PRED_IMPL("string_codes", 2, string_codes, 0)
-{ PRED_LD
-  term_t str = A1;
-  term_t list = A2;
-  PL_chars_t t;
+static int
+string_x(term_t str, term_t list, int out_type ARG_LD)
+{ PL_chars_t t;
   int rc;
 
   if ( PL_get_text(str, &t, CVT_ALL) )
-    rc = PL_unify_text(list, 0, &t, PL_CODE_LIST);
+    rc = PL_unify_text(list, 0, &t, out_type);
   else if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST) ) /* -, [] */
     rc = PL_unify_text(str, 0, &t, PL_STRING);
   else if ( PL_get_text(list, &t, CVT_ALL) )
@@ -4276,6 +4273,20 @@ PRED_IMPL("string_codes", 2, string_codes, 0)
   PL_free_text(&t);
 
   return rc;
+}
+
+static
+PRED_IMPL("string_codes", 2, string_codes, 0)
+{ PRED_LD
+
+  return string_x(A1, A2, PL_CODE_LIST PASS_LD);
+}
+
+static
+PRED_IMPL("string_chars", 2, string_chars, 0)
+{ PRED_LD
+
+  return string_x(A1, A2, PL_CHAR_LIST PASS_LD);
 }
 
 
@@ -5192,6 +5203,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
   PRED_DEF("string_length", 2, string_length, 0)
   PRED_DEF("string_codes", 2, string_codes, 0)
+  PRED_DEF("string_chars", 2, string_chars, 0)
   PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)

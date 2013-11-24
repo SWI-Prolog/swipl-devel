@@ -29,6 +29,7 @@
 
 :- module(test_string, [test_string/0]).
 :- use_module(library(plunit)).
+:- use_module(library(lists)).
 
 /** <module> Test string manipulation primitives
 
@@ -55,5 +56,14 @@ test(number_string, error(type_error(number, '42'))) :-
 	number_string('42', _S).
 test(number_string, error(instantiation_error)) :-
 	number_string(_, _).
+test(string_codes, S == [97,98]) :-
+	string_codes("ab", S).
+test(string_codes, Out == Codes) :-
+	numlist(0, 2000, Codes),		% verify 0-bytes and Unicode
+	string_codes(S, Codes),
+	string_length(S, 2001),
+	string_codes(S, Out).
+test(string_chars, S == [a,b]) :-
+	string_chars("ab", S).
 
 :- end_tests(string).
