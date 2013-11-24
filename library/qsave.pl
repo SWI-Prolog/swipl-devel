@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -135,7 +133,7 @@ exe_file(Exe, Exe).
 
 default_init_file(runtime, none) :- !.
 default_init_file(_,       InitFile) :-
-	'$option'(init_file, InitFile).
+	'$cmd_option_val'(init_file, InitFile).
 
 
 		 /*******************************
@@ -209,7 +207,7 @@ doption(home).
 save_options(RC, SaveClass, Options) :-
 	'$rc_open'(RC, '$options', '$prolog', write, Fd),
 	(   doption(OptionName),
-	    '$option'(OptionName, OptionVal0),
+	    '$cmd_option_val'(OptionName, OptionVal0),
 	        save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
 	        OptTerm =.. [OptionName,OptionVal2],
 	        (   option(OptTerm, Options)
