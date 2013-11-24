@@ -68,14 +68,16 @@ static const atom_t reserved_symbols[] =
 
 void
 initReservedSymbols(void)
-{ const atom_t *ap;
-
-  PL_register_blob_type(&reserved_symbol);
+{ PL_register_blob_type(&reserved_symbol);
   atomValue(ATOM_map)->type = &reserved_symbol;
 
-  for(ap=reserved_symbols; *ap; ap++)
-  { Atom a = atomValue(*ap);
-    a->type = &reserved_symbol;
+  if ( !GD->options.traditional )
+  { const atom_t *ap;
+
+    for(ap=reserved_symbols; *ap; ap++)
+    { Atom a = atomValue(*ap);
+      a->type = &reserved_symbol;
+    }
   }
 }
 
