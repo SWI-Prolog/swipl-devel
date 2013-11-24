@@ -557,9 +557,9 @@ replaceExtension(const char *base, const char *ext, char *buf)
   *q = '\0';
 
   if ( e )
-    e++;
-  else
-  { e = q + strlen(q);
+  { e++;
+  } else
+  { e = q;				/* q points at '\0' */
     *e++ = '.';
   }
 
