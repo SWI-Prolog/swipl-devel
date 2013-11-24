@@ -2699,6 +2699,7 @@ testdir('Tests/clp').
 testdir('Tests/GC').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
+testdir('Tests/save').
 
 :- dynamic
 	failed/1,
