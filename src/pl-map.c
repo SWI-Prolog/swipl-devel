@@ -677,10 +677,8 @@ PL_get_map_ex(term_t data, term_t class, term_t map, int flags)
       *ap = linkVal(cp);		/* TBD: maybe move to another function */
       if ( tagex(*ap) == (TAG_REFERENCE|STG_LOCAL) )
       { if ( unlikely(tTop+1 >= tMax) )
-	{ int rc;
-
-	  if ( (rc=ensureTrailSpace(1) != TRUE) )
-	    return raiseStackOverflow(rc);
+	{ if ( !makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
+	    return FALSE;
 	  gTop = m;
 	  goto retry;
 	}
@@ -1315,7 +1313,7 @@ retry:
       return PL_unify(A3, t);
     } else
     { assert(rc == GLOBAL_OVERFLOW);
-      if ( ensureGlobalSpace(0, ALLOW_GC) == TRUE )
+      if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
       { PL_rewind_foreign_frame(fid);
 	goto retry;
       }
@@ -1365,7 +1363,7 @@ retry:
       return PL_unify(A4, t);
     } else
     { assert(rc == GLOBAL_OVERFLOW);
-      if ( ensureGlobalSpace(0, ALLOW_GC) == TRUE )
+      if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
       { PL_rewind_foreign_frame(fid);
 	goto retry;
       }
@@ -1487,7 +1485,7 @@ retry:
 	return PL_unify(A4, t);
       } else
       { assert(rc == GLOBAL_OVERFLOW);
-	if ( ensureGlobalSpace(0, ALLOW_GC) == TRUE )
+	if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	{ PL_rewind_foreign_frame(fid);
 	  goto retry;
 	}
