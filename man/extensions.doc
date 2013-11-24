@@ -99,9 +99,12 @@ and "".
 As of SWI-Prolog version~7, text encloses in double quotes (e.g.,
 \verb$"Hello world"$) is read as objects of the type \jargon{string}. A
 string is a compact representation of a character sequence that lives on
-the global (term) stack.  Strings are now distinct from lists, which
-makes it possible to detect them at runtime and print them using the
-string syntax, as illustrated below:
+the global (term) stack. Strings represent sequences of Unicode
+characters including the character code 0 (zero). The length strings is
+limited by the available space on the global (term) stack (see
+set_prolog_stack/2). Strings are distinct from lists, which makes it
+possible to detect them at runtime and print them using the string
+syntax, as illustrated below:
 
 \begin{code}
 ?- write("Hello world!").
@@ -126,6 +129,13 @@ the type check for this type and is described in \secref{typetest}.
 Bi-directional conversion between an atom and a string. At
 least one of the two arguments must be instantiated. \arg{Atom} can also
 be an integer or floating point number.
+
+    \predicate{number_string}{2}{?Number, ?String}
+Bi-directional conversion between a number and a string. At
+least one of the two arguments must be instantiated.  Unlike
+the ISO sister predicates number_chars/2 and number_codes/2,
+converting a string that does not represent a number results
+in silent failure rather than a \const{syntax_error} exception.
 
     \predicate{string_codes}{2}{?String, ?Codes}
 Bi-directional conversion between a string and a list of character

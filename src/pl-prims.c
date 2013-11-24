@@ -3268,11 +3268,13 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 }
 
 
-#define X_AUTO   0x00
-#define X_ATOM   0x01
-#define X_NUMBER 0x02
-#define X_MASK   0x0f
-#define X_CHARS  0x10
+#define	X_AUTO		  0x00
+#define	X_ATOM		  0x01
+#define	X_NUMBER	  0x02
+#define	X_MASK		  0x0f
+#define	X_CHARS		  0x10
+#define	X_STRING	  0x20
+#define	X_NO_SYNTAX_ERROR 0x40
 
 static int
 x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
@@ -3283,12 +3285,15 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
   arg1 = PL_get_text(atom, &atext,
 		     (how & X_NUMBER) ? CVT_NUMBER : CVT_ATOMIC);
 
-  if ( arg1 )
+  if ( arg1 )					/* +,? */
   { int ok;
+    int out_type;
     fid_t fid = PL_open_foreign_frame();
 
-    ok = PL_unify_text(string, 0, &atext,
-		       (how & X_CHARS) ? PL_CHAR_LIST : PL_CODE_LIST);
+    out_type = (how&X_CHARS ? PL_CHAR_LIST :
+		how&X_STRING ? PL_STRING : PL_CODE_LIST);
+
+    ok = PL_unify_text(string, 0, &atext, out_type);
 
     if ( ok || !(how & X_NUMBER) )
     { PL_close_foreign_frame(fid);
@@ -3310,15 +3315,13 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
   if ( PL_get_text(string, &stext, flags2) != TRUE )
     return FALSE;
 
-  how &= X_MASK;
-
-  switch(how)
+  switch(how&X_MASK)
   { case X_ATOM:
     case_atom:
       return PL_unify_text(atom, 0, &stext, PL_ATOM);
     case X_NUMBER:
     case X_AUTO:
-    { strnumstat rc = NUM_ERROR;
+    { strnumstat rc;
 
       if ( stext.encoding == ENC_ISO_LATIN_1 )
       { unsigned char *q, *s = (unsigned char *)stext.text.t;
@@ -3326,29 +3329,31 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 	AR_CTX;
 
 	if ( how == X_NUMBER )
-	{ if ( s )				/* ISO: number_codes(X, "  42") */
-	  { while(*s && isBlank(*s))
-	      s++;
-	  }
+	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
+	    s++;
 	}
 
 	AR_BEGIN();
-	if ( s && (rc=str_number(s, &q, &n, FALSE)) == NUM_OK )
+	if ( (rc=str_number(s, &q, &n, FALSE)) == NUM_OK )
 	{ if ( *q == EOS )
-	  { int rc = PL_unify_number(atom, &n);
+	  { int rc2 = PL_unify_number(atom, &n);
 	    clearNumber(&n);
 	    AR_END();
-	    return rc;
-	  }
+	    return rc2;
+	  } else
+	    rc = NUM_ERROR;
 	  clearNumber(&n);
 	}
 	AR_END();
-      }
+      } else
+	rc = NUM_ERROR;
 
-      if ( how == X_AUTO )
+      if ( (how&X_MASK) == X_AUTO )
 	goto case_atom;
-      else
+      else if ( !(how & X_NO_SYNTAX_ERROR) )
 	return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
+      else
+	return FALSE;
     }
     default:
       assert(0);
@@ -3389,6 +3394,13 @@ static
 PRED_IMPL("number_codes", 2, number_codes, PL_FA_ISO)
 { PRED_LD
   return x_chars("number_codes", A1, A2, X_NUMBER PASS_LD);
+}
+
+
+static
+PRED_IMPL("number_string", 2, number_string, 0)
+{ PRED_LD
+  return x_chars("number_string", A1, A2, X_NUMBER|X_STRING|X_NO_SYNTAX_ERROR PASS_LD);
 }
 
 
@@ -5170,6 +5182,7 @@ BeginPredDefs(prims)
   PRED_DEF("atomic_concat", 3, atomic_concat, 0)
   PRED_DEF("number_chars", 2, number_chars, PL_FA_ISO)
   PRED_DEF("number_codes", 2, number_codes, PL_FA_ISO)
+  PRED_DEF("number_string", 2, number_string, 0)
   PRED_DEF("char_code", 2, char_code, PL_FA_ISO)
   PRED_DEF("atom_string", 2, atom_string, 0)
   PRED_DEF("atom_number", 2, atom_number, 0)
