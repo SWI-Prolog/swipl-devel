@@ -762,6 +762,7 @@ visible_predicate(Pred) :-
 
 hidden_system_predicate(_:Head) :-
 	functor(Head, Name, _),
+	atom(Name),			% Avoid [].
 	sub_atom(Name, 0, _, _, $),
 	\+ current_prolog_flag(access_level, system).
 
