@@ -200,14 +200,14 @@ copy_term_limit(0, In, '...') :-
 	compound(In), !.
 copy_term_limit(N, In, Out) :-
 	compound(In), !,
-	functor(In, Functor, Arity),
+	compound_name_arity(In, Functor, Arity),
 	N2 is N - 1,
 	MaxArity = 16,
 	(   Arity =< MaxArity
-	->  functor(Out, Functor, Arity),
+	->  compound_name_arity(Out, Functor, Arity),
 	    copy_term_args(0, Arity, N2, In, Out)
 	;   OutArity is MaxArity+2,
-	    functor(Out, Functor, OutArity),
+	    compound_name_arity(Out, Functor, OutArity),
 	    copy_term_args(0, MaxArity, N2, In, Out),
 	    SkipArg is MaxArity+1,
 	    Skipped is Arity - MaxArity - 1,

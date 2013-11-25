@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -1915,6 +1915,10 @@ PRED_IMPL("functor", 3, functor, 0)
 
   if ( isTerm(*p) )
   { FunctorDef fd = valueFunctor(functorTerm(*p));
+
+    if ( fd->arity == 0 )
+      return PL_domain_error("compound_non_zero_arity", A1);
+
     if ( !PL_unify_atom(A2, fd->name) ||
 	 !PL_unify_integer(A3, fd->arity) )
       fail;
@@ -2260,12 +2264,13 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 { GET_LD
   term_t t = A1;
   term_t list = A2;
-  int arity;
-  atom_t name;
+  Word p;
   int n;
 
   if ( PL_is_variable(t) )
-  { term_t tail = PL_copy_term_ref(list);
+  { atom_t name;
+    int arity;
+    term_t tail = PL_copy_term_ref(list);
     term_t head = PL_new_term_ref();
 
     if ( !PL_get_list(tail, head, tail) )
@@ -2298,20 +2303,27 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     succeed;
   }
 
-					/* 1st arg is term or atom */
-  if ( PL_get_name_arity(t, &name, &arity) )
-  { term_t head = PL_new_term_ref();
-    term_t l = PL_new_term_ref();
+  p = valTermRef(t);
+  deRef(p);
 
-    if ( !PL_unify_list_ex(list, head, l) )
-      fail;
-    if ( !PL_unify_atom(head, name) )
-      fail;
+  if ( isTerm(*p) )
+  { FunctorDef fd = valueFunctor(functorTerm(*p));
+    term_t head, l;
 
-    for(n = 1; n <= arity; n++)
+    if ( fd->arity == 0 )
+      return PL_domain_error("compound_non_zero_arity", A1);
+
+    head = PL_new_term_ref();
+    l    = PL_new_term_ref();
+
+    if ( !PL_unify_list_ex(list, head, l) ||
+	 !PL_unify_atom(head, fd->name) )
+      return FALSE;
+
+    for(n = 1; n <= fd->arity; n++)
     { if ( !PL_unify_list_ex(l, head, l) ||
 	   !PL_unify_arg(n, t, head) )
-	fail;
+	return FALSE;
     }
 
     return PL_unify_nil_ex(l);
