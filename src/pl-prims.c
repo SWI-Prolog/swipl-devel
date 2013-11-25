@@ -3342,7 +3342,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 	number n;
 	AR_CTX;
 
-	if ( how == X_NUMBER )
+	if ( (how&X_MASK) == X_NUMBER )
 	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
 	    s++;
 	}
