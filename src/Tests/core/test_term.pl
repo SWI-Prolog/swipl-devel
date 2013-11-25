@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -35,7 +34,8 @@ suchj as numbervars, univ, etc.
 
 test_term :-
 	run_tests([ numbervars,
-		    variant
+		    variant,
+		    compound
 		  ]).
 
 :- begin_tests(numbervars).
@@ -148,3 +148,25 @@ test(cycle_with_prefix, [sto(rational_trees), fail]) :-
 v(_).
 
 :- end_tests(variant).
+
+
+:- begin_tests(compound).
+
+test(functor, error(domain_error(_,_))) :-
+	functor(a(), _, _).
+test(=.., error(domain_error(_,_))) :-
+	a() =.. _.
+test(compound_name_arity, A == 0) :-
+	compound_name_arity(a(), _N, A).
+test(compound_name_arity, T == a()) :-
+	compound_name_arity(T, a, 0).
+test(compound_name_arity, T =@= a(_)) :-
+	compound_name_arity(T, a, 1).
+test(compound_name_arity, error(type_error(compound,a))) :-
+	compound_name_arity(a, _, _).
+test(compound_name_arguments, T == a()) :-
+	compound_name_arguments(T, a, []).
+test(compound_name_arguments, Args == []) :-
+	compound_name_arguments(a(), _N, Args).
+
+:- end_tests(compound).

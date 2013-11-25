@@ -1965,6 +1965,8 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 
     succeed;
   }
+  if ( !canBind(*p) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, A1);
 
   if ( !PL_get_atom_ex(A2, &name) ||
        !PL_get_size_ex(A3, &arity) )
