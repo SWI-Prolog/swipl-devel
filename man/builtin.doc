@@ -4636,7 +4636,21 @@ different variables (such a term is called a skeleton). If \arg{Term} is
 atomic, \arg{Arity} will be unified with the integer 0, and \arg{Name} will be
 unified with \arg{Term}.  Raises \errorterm{instantiation_error}{} if \arg{Term}
 is unbound and \arg{Name}/\arg{Arity} is insufficiently instantiated.
-See also compound_name_arity/3.
+
+SWI-Prolog also supports terms with arity 0, as in \exam{a()} (see
+\secref{extensions}. Such terms must be processed using
+compound_name_arity/3. The predicate functor/3 and \predref{=..}{2}
+raise a \const{domain_error} when faced with these terms. Without this
+precaution, the inconsistency demonstrated below could happen
+silently.\footnote{Raising a domain error was suggested by Jeff
+Schultz.}
+
+\begin{code}
+?- functor(a(), N, A).
+N = a, A = 0.
+?- functor(T, a, 0).
+T = a.
+\end{code}
 
     \predicate[ISO]{arg}{3}{?Arg, +Term, ?Value}
 \arg{Term} should be instantiated to a term, \arg{Arg} to an integer
@@ -4657,7 +4671,7 @@ $\arg{Arg} > \mbox{\em arity}$ and raises the exception
 \arg{List} is a list whose head is the functor of \arg{Term} and the
 remaining arguments are the arguments of the term. Either side of the
 predicate may be a variable, but not both.  This predicate is called
-`Univ'.  See also compound_name_arguments/3.  Examples:
+`Univ'.
 
 \begin{code}
 ?- foo(hello, X) =.. List.
@@ -4667,6 +4681,16 @@ List = [foo, hello, X]
 ?- Term =.. [baz, foo(1)]
 
 Term = baz(foo(1))
+ERROR: =../2: Domain error: `compound_non_zero_arity' expected, found `a()'
+\end{code}
+
+SWI-Prolog also supports terms with arity 0, as in \exam{a()} (see
+\secref{extensions}. Such terms must be processed using
+compound_name_arguments/3. This predicate raises a domain error as shown
+below. See also functor/3.
+
+\begin{code}
+?- a() =.. L.
 \end{code}
 
     \predicate{compound_name_arity}{3}{?Compound, ?Name, ?Arity}
@@ -4674,9 +4698,9 @@ Rationalized version of functor/3 that only works for compound terms
 and can examine and create compound terms with zero arguments (e.g,
 \exam{name()}.  See also compound_name_arguments/3.
 
-    \predicate{compound_name_arguments}{3}{?Compound, ?Name, ?Arity}
-Rationalized version of =../2 that can compose and decompose compound
-terms with zero arguments.  See also compound_name_arity/3.
+    \predicate{compound_name_arguments}{3}{?Compound, ?Name, ?Arguments}
+Rationalized version of \predref{=..}{2} that can compose and decompose
+compound terms with zero arguments. See also compound_name_arity/3.
 
     \predicate{numbervars}{3}{+Term, +Start, -End}
 Unify the free variables of \arg{Term} with a term \term{\$VAR}{N},

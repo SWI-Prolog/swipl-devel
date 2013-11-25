@@ -105,7 +105,7 @@ The arguments are defined as
   library(http/html_write)). Examples of languages that may be embedded
   for processing in Prolog are SPARQL, RuleML or regular expressions.
 
-The file library(http/http_quasiquotations) provides   the,  suprisingly
+The file library(http/html_quasiquotations) provides   the,  suprisingly
 simple, quasi quotation parser for HTML.
 
 @author Jan Wielemaker.  Introduction of Quasi Quotation was suggested
@@ -137,7 +137,7 @@ simple, quasi quotation parser for HTML.
 %	     Failure or exceptions from Goal are interpreted as
 %	     syntax errors.
 %	@see phrase_from_quasi_quotation/2 can be used to process a
-%	     quatation using a grammar.
+%	     quotation using a grammar.
 
 with_quasi_quotation_input(Content, Stream, Goal) :-
 	functor(Content, '$quasi_quotation', 3), !,
