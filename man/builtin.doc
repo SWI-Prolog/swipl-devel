@@ -4698,9 +4698,9 @@ Rationalized version of functor/3 that only works for compound terms
 and can examine and create compound terms with zero arguments (e.g,
 \exam{name()}.  See also compound_name_arguments/3.
 
-    \predicate{compound_name_arguments}{3}{?Compound, ?Name, ?Arity}
-Rationalized version of =../2 that can compose and decompose compound
-terms with zero arguments.  See also compound_name_arity/3.
+    \predicate{compound_name_arguments}{3}{?Compound, ?Name, ?Arguments}
+Rationalized version of \predref{=..}{2} that can compose and decompose
+compound terms with zero arguments. See also compound_name_arity/3.
 
     \predicate{numbervars}{3}{+Term, +Start, -End}
 Unify the free variables of \arg{Term} with a term \term{\$VAR}{N},
