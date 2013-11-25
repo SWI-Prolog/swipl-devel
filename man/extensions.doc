@@ -570,7 +570,7 @@ which are parsed using the same rules as used for arguments in compound
 terms.
 
 \begin{quote}
-Class{Key1:Value1, Key2:Value2, ...}
+Class\{Key1:Value1, Key2:Value2, ...\}
 \end{quote}
 
 A map can not hold duplicate keys. The map is transformed into an opaque
@@ -796,7 +796,7 @@ A = point{x:3, y:2}.
 True when \arg{Key}-\arg{Value} is in \arg{MapIn} and \arg{MapOut}
 contains all associations of \arg{MapIn} except for \arg{Key}.
 
-    \predicate[semidet]{:<}{2}{+Select, +From}
+    \infixop[semidet]{:<}{2}{+Select, +From}
 True when \arg{Select} is a `sub map' of \arg{From}: the classes
 must unify and all keys in \arg{Select} must appear with unifying
 values in \arg{From}.  \arg{From} may contain keys that are not in
@@ -1144,7 +1144,7 @@ values from these structures.
 \end{itemize}
 
 
-================================================================
+%================================================================
 \section{Remaining issues}
 \label{sec:ext-issues}
 
