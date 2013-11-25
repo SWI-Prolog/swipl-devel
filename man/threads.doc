@@ -765,33 +765,6 @@ execution profiler.
 \end{description}
 
 
-\section{Unbounded thread creation}
-\label{sec:mtunbound}
-
-(SWI-)Prolog threads are rather heavyweight objects, notably on 32-bit
-systems, because every thread uses a considerable amount of \emph{virtual}
-address space. SWI-Prolog threads claim the stack \emph{limit} in
-virtual address space for each of the runtime stacks, while on 32-bit
-systems this resource is generally limited somewhere between 1~GB and
-3.5~GB, depending on the operating system and operating configuration.
-
-If SWI-Prolog starts a thread it copies the initial goal and starts a
-POSIX thread which allocates a new Prolog engine that starts proving
-the given goal.  If allocation of the engine fails, typically due to
-lack of virtual memory space, the thread is still created with minimal
-(8~Kbyte) stacks and immediately calls its exit handlers. See the option
-\term{at_exit}{Goal}. Although this mechanism allows for handling this
-type of error gracefully it is not safe to rely on it.  Allocating an
-engine that nearly exhausts virtual address space may cause failures
-in normal memory allocation that can appear anywhere in Prolog or the
-foreign libraries used by it.  Such errors typically kill the process
-with a fatal error.
-
-Especially on 32-bit hardware, the design of the application must
-consider this issue and avoid ungraceful termination, being conservative
-with the dynamic creation of new threads.
-
-
 \section{Multithreaded mixed C and Prolog applications}
 \label{sec:foreignthread}
 
