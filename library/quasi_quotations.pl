@@ -137,7 +137,7 @@ simple, quasi quotation parser for HTML.
 %	     Failure or exceptions from Goal are interpreted as
 %	     syntax errors.
 %	@see phrase_from_quasi_quotation/2 can be used to process a
-%	     quatation using a grammar.
+%	     quotation using a grammar.
 
 with_quasi_quotation_input(Content, Stream, Goal) :-
 	functor(Content, '$quasi_quotation', 3), !,
