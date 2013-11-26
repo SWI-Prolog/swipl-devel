@@ -615,7 +615,10 @@ Obtain the type of a term, which should be a term returned by
 one of the other interface predicates or passed as an argument. The
 function returns the type of the Prolog term. The type identifiers are
 listed below.  Note that the extraction functions {\tt PL_get_*()} also
-validate the type and thus the two sections below are equivalent.
+validate the type and thus the two sections below are
+equivalent.\footnote{This function is poorly maintained and does not
+cope with recent additions, such as blobs and attributed variables.
+It is probably of limited value for practical programming.}
 
 \begin{code}
         if ( PL_is_atom(t) )
@@ -641,8 +644,7 @@ or
 \const{PL_STRING}   & A Prolog string. \\
 \const{PL_INTEGER}  & A Prolog integer. \\
 \const{PL_FLOAT}    & A Prolog floating point number. \\
-\const{PL_TERM}     & A compound term. Note that a list is a
-		      compound term \functor{.}{2}. \\
+\const{PL_TERM}     & A compound term. \\
 \hline
 \end{tabular}
 \end{description}
