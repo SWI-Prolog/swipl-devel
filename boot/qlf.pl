@@ -99,7 +99,7 @@ qcompile_(FileName, Module, Options) :-
 
 check_is_module(LM, In, Options) :-
 	\+ atom(LM),
-	'$get_option'(must_be_module(true), Options, false), !,
+	'$option'(must_be_module(true), Options, false), !,
 	stream_property(In, file_name(File)),
 	throw(error(domain_error(module_file, File), _)).
 check_is_module(_, _, _).
