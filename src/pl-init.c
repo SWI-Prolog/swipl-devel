@@ -42,10 +42,6 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #define LOCK()   PL_LOCK(L_INIT)
 #define UNLOCK() PL_UNLOCK(L_INIT)
 
-#ifdef FORCED_MALLOC_BASE
-#include "morecore.c"
-#endif
-
 #if defined(_DEBUG) && defined(__WINDOWS__) && !defined(__MINGW32__)
 #include <crtdbg.h>
 #endif
