@@ -20,25 +20,25 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-:- module(test_map,
-	  [ test_map/0
+:- module(test_dict,
+	  [ test_dict/0
 	  ]).
 :- use_module(library(plunit)).
 :- use_module(library(random)).
 :- use_module(library(apply)).
 :- use_module(library(pairs)).
 
-/** <module> Test the map data structure
+/** <module> Test the dict data structure
 
-This module tests the implementation of the map datastructure.
+This module tests the implementation of the dict datastructure.
 */
 
-test_map :-
-	run_tests([ map_create,
+test_dict :-
+	run_tests([ dict_create,
 		    expand_functions
 		  ]).
 
-:- begin_tests(map_create).
+:- begin_tests(dict_create).
 
 test_create(Size) :-
 	length(List, Size),
@@ -46,35 +46,35 @@ test_create(Size) :-
 	sort(List, Set),
 	random_permutation(Set, RandSet),
 	map_list_to_pairs(=, RandSet, RandPairs),
-	map_create(Map, -, RandPairs),
-	maplist(map_lookup(Map), RandSet, RandSet).
+	dict_create(Dict, -, RandPairs),
+	maplist(dict_lookup(Dict), RandSet, RandSet).
 
-map_lookup(Map, Key, Value) :-
-	get_map(Key, Map, Value).
+dict_lookup(Dict, Key, Value) :-
+	get_dict(Key, Dict, Value).
 
 test(create, true) :-
 	forall(between(1, 100, S),
 	       test_create(S)).
 
-:- end_tests(map_create).
+:- end_tests(dict_create).
 
 
 :- begin_tests(expand_functions).
 
-map(m{a:1, b:2}).
-map(m{a:3, b:4}).
+dict(m{a:1, b:2}).
+dict(m{a:3, b:4}).
 
 test(field, X == 3) :-
 	X = _{a:3}.a.
 test(conj, X == 3) :-
-	Map = _{a:3},
-	X = Map.a.
+	Dict = _{a:3},
+	X = Dict.a.
 test(meta, X == 3) :-
-	ignore(( Map = _{a:3},
-		 X = Map.a)).
+	ignore(( Dict = _{a:3},
+		 X = Dict.a)).
 test(forall, true) :-
-	forall(map(M), M.b mod 2 =:= 0).
+	forall(dict(M), M.b mod 2 =:= 0).
 test(findall, As = [1,3]) :-
-	findall(A, (map(M), A = M.a), As).
+	findall(A, (dict(M), A = M.a), As).
 
 :- end_tests(expand_functions).

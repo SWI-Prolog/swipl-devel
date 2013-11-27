@@ -1276,7 +1276,7 @@ isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
 
 
 static int
-writeMapPair(term_t name, term_t value, int last, void *closure)
+writeDictPair(term_t name, term_t value, int last, void *closure)
 { write_options *options = closure;
 
   if ( writeTerm(name, 1200, options) &&
@@ -1351,16 +1351,16 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
     if ( functor == ATOM_dot && arity == 2 )
       return writeList(t, options);
 
-					/* handle maps */
-    if ( false(options, PL_WRT_NOMAP) &&
-	 functor == ATOM_map && PL_is_map(t) )
+					/* handle dicts */
+    if ( false(options, PL_WRT_NODICT) &&
+	 functor == ATOM_dict && PL_is_dict(t) )
     { term_t class;
 
       if ( (class=PL_new_term_ref()) &&
 	   PL_get_arg(1, t, class) )
       { if ( writeTerm(class, 1200, options) &&
 	     Putc('{', out) &&
-	     PL_for_map(t, writeMapPair, options, MAP_SORTED) == 0 &&
+	     PL_for_dict(t, writeDictPair, options, DICT_SORTED) == 0 &&
 	     Putc('}', out) )
 	  return TRUE;
       }

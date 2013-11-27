@@ -1,4 +1,4 @@
-:- module('$maps',
+:- module('$dicts',
 	  [ '.'/3				% +Left, +Right, -Result
 	  ]).
 
@@ -6,36 +6,36 @@
 %
 %	Evaluate dot expressions
 
-.(Map, Func, Value) :-
-	is_map(Map, Class), !,
+.(Dict, Func, Value) :-
+	is_dict(Dict, Class), !,
 	(   (atomic(Func) ; var(Func))
-	->  get_map_ex(Func, Map, Value)
-	;   eval_map_function(Func, Class, Map, Value)
+	->  get_dict_ex(Func, Dict, Value)
+	;   eval_dict_function(Func, Class, Dict, Value)
 	).
 .(KV, Func, Value) :-
 	is_list(KV), !,
 	(   (atomic(Func) ; var(Func))
-	->  map_create(Map, _, KV),
-	    get_map_ex(Func, Map, Value)
+	->  dict_create(Dict, _, KV),
+	    get_dict_ex(Func, Dict, Value)
 	;   '$type_error'(atom, Func)
 	).
 .(Obj, _, _) :-
-	'$type_error'(map, Obj).
+	'$type_error'(dict, Obj).
 
 
-%%	eval_map_function(+Func, +Class, +Map, -Value)
+%%	eval_dict_function(+Func, +Class, +Dict, -Value)
 %
-%	Test for predefined functions on maps or evaluate a user-defined
+%	Test for predefined functions on dicts or evaluate a user-defined
 %	function.
 
-eval_map_function(get(Key), _, Map, Value) :- !,
-	get_map(Key, Map, Value).
-eval_map_function(put(Key, Value), _, Map, NewMap) :- !,
-	put_map(Key, Map, Value, NewMap).
-eval_map_function(put(New), _, Map, NewMap) :- !,
-	put_map(New, Map, NewMap).
-eval_map_function(Func, Class, Map, Value) :-
-	call(Class:Func, Map, Value).
+eval_dict_function(get(Key), _, Dict, Value) :- !,
+	get_dict(Key, Dict, Value).
+eval_dict_function(put(Key, Value), _, Dict, NewDict) :- !,
+	put_dict(Key, Dict, Value, NewDict).
+eval_dict_function(put(New), _, Dict, NewDict) :- !,
+	put_dict(New, Dict, NewDict).
+eval_dict_function(Func, Class, Dict, Value) :-
+	call(Class:Func, Dict, Value).
 
 
 		 /*******************************

@@ -306,12 +306,12 @@ typedef struct
 
 
 #define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
-#define T_MAP		1	/* name of a map class (atom, followed by '{') */
+#define T_DICT		1	/* name of a dict class (atom, followed by '{') */
 #define T_QNAME		2	/* quoted name */
 #define T_NAME		3	/* ordinary name */
-#define T_VCLASS_MAP	4	/* variable name followed by '{' */
+#define T_VCLASS_DICT	4	/* variable name followed by '{' */
 #define T_VARIABLE	5	/* variable name */
-#define T_VOID_MAP	6	/* void variable followed by '{' */
+#define T_VOID_DICT	6	/* void variable followed by '{' */
 #define T_VOID		7	/* void variable */
 #define T_NUMBER	8	/* integer or float */
 #define T_STRING	9	/* "string" */
@@ -2559,7 +2559,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  if ( *rdhere == '(' )
 		  { cur_token.type = T_FUNCTOR;
 		  } else if ( *rdhere == '{' )
-		  { cur_token.type = T_MAP;
+		  { cur_token.type = T_DICT;
 		  } else
 		  { cur_token.type = T_NAME;
 		  }
@@ -2582,7 +2582,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		       !_PL_rd->variables ) /* report them */
 		  { DEBUG(9, Sdprintf("VOID\n"));
 		    if ( *rdhere == '{' )
-		      cur_token.type = T_VOID_MAP;
+		      cur_token.type = T_VOID_DICT;
 		    else
 		      cur_token.type = T_VOID;
 		  } else
@@ -2592,7 +2592,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    DEBUG(9, Sdprintf("VAR: %s\n",
 				      cur_token.value.variable->name));
 		    if ( *rdhere == '{' )
-		      cur_token.type = T_VCLASS_MAP;
+		      cur_token.type = T_VCLASS_DICT;
 		    else
 		      cur_token.type = T_VARIABLE;
 		  }
@@ -2702,7 +2702,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  if ( rdhere[0] == '(' )
 		    cur_token.type = T_FUNCTOR;
 		  else if ( rdhere[0] == '{' )
-		    cur_token.type = T_MAP;
+		    cur_token.type = T_DICT;
 		  else
 		    cur_token.type = T_QNAME;
 		  discardBuffer(&b);
@@ -2947,7 +2947,7 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
 }
 
 
-/* build_map(int pairs, ...) builds a map from the data on the stack.
+/* build_dict(int pairs, ...) builds a dict from the data on the stack.
    and pushes the result back to the term-stack. The stack first
    contains:
 
@@ -2955,7 +2955,7 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
 */
 
 static int
-build_map(int pairs, ReadData _PL_rd ARG_LD)
+build_dict(int pairs, ReadData _PL_rd ARG_LD)
 { int arity = pairs*2+1;
   term_t *argv = term_av(-arity, _PL_rd);
   word w;
@@ -2971,7 +2971,7 @@ build_map(int pairs, ReadData _PL_rd ARG_LD)
   for(i=0; i<pairs; i++)
     indexes[i] = i;
 
-  if ( (i=map_order_term_refs(argv+1, indexes, pairs PASS_LD)) )
+  if ( (i=dict_order_term_refs(argv+1, indexes, pairs PASS_LD)) )
   { term_t ex = PL_new_term_ref();
 
     rc = ( PL_unify_term(ex,
@@ -2992,11 +2992,11 @@ build_map(int pairs, ReadData _PL_rd ARG_LD)
   if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
     return rc;
 
-  DEBUG(9, Sdprintf("Building map with %d pairs ... ", pairs));
+  DEBUG(9, Sdprintf("Building dict with %d pairs ... ", pairs));
   argp = gTop;
   w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
   gTop += pairs*2+2;
-  *argp++ = map_functor(pairs);
+  *argp++ = dict_functor(pairs);
   readValHandle(argv[0], argp++, _PL_rd PASS_LD); /* the class */
 
   for(i=0; i<pairs; i++)
@@ -3391,7 +3391,7 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
   { case T_NAME:
       return TRUE;
     case T_FUNCTOR:
-    case T_MAP:
+    case T_DICT:
       return must_be_op;
     case T_PUNCTUATION:
     { switch(token->value.character)
@@ -3900,12 +3900,12 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 }
 
 
-/* read_map() reads <class>{key:value, ...} into a map as defined
-   in pl-map.c
+/* read_dict() reads <class>{key:value, ...} into a dict as defined
+   in pl-dict.c
 */
 
 static inline int
-read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 { int pairs = 0;
   term_t pv;
   int rc;
@@ -3918,7 +3918,7 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   if ( positions )
   { if ( !(pv = PL_new_term_refs(3)) ||
 	 !PL_unify_term(positions,
-			PL_FUNCTOR, FUNCTOR_map_position5,
+			PL_FUNCTOR, FUNCTOR_dict_position5,
 			PL_INTPTR, token->start, /* whole term */
 			PL_VARIABLE,
 			PL_INTPTR, token->start, /* class position */
@@ -3930,18 +3930,18 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 
 					/* Push the class */
   switch ( token->type )
-  { case T_MAP:
+  { case T_DICT:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
       break;
     }
-    case T_VCLASS_MAP:
+    case T_VCLASS_DICT:
     { term_t term = alloc_term(_PL_rd PASS_LD);
       setHandle(term, token->value.variable->signature);
       break;
     }
-    case T_VOID_MAP:
+    case T_VOID_DICT:
     { alloc_term(_PL_rd PASS_LD);
     }
   }
@@ -4032,7 +4032,7 @@ read_map(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 #undef P_ARG
 #undef P_VALUE
 
-  return build_map(pairs, _PL_rd PASS_LD);
+  return build_dict(pairs, _PL_rd PASS_LD);
 }
 
 
@@ -4077,10 +4077,10 @@ simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
     }
     case T_FUNCTOR:
       return read_compound(token, positions, _PL_rd PASS_LD);
-    case T_MAP:
-    case T_VCLASS_MAP:
-    case T_VOID_MAP:
-      return read_map(token, positions, _PL_rd PASS_LD);
+    case T_DICT:
+    case T_VCLASS_DICT:
+    case T_VOID_DICT:
+      return read_dict(token, positions, _PL_rd PASS_LD);
     case T_PUNCTUATION:
     { switch(token->value.character)
       { case '(':

@@ -844,7 +844,7 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
   PL_put_variable(term);
   rc = do_load_qlf_term(state, vars, term PASS_LD);
   if ( rc )
-    resortMapsInTerm(term);
+    resortDictsInTerm(term);
   DEBUG(MSG_QLF_TERM,
 	Sdprintf("Loaded ");
 	PL_write_term(Serror, term, 1200, 0);
@@ -1090,7 +1090,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
       case 'C':
       { Code bp, ep;
 	int ncodes = getInt(fd);
-	int has_maps = 0;
+	int has_dicts = 0;
 
 	DEBUG(MSG_QLF_PREDICATE, Sdprintf("."));
 	clause = (Clause) PL_malloc_atomic(sizeofClause(ncodes));
@@ -1153,8 +1153,8 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      case CA1_FUNC:
 	      { word w = loadXR(state);
 		FunctorDef fd = valueFunctor(w);
-		if ( fd->name == ATOM_map )
-		  has_maps++;
+		if ( fd->name == ATOM_dict )
+		  has_dicts++;
 
 		*bp++ = w;
 		break;
@@ -1247,8 +1247,8 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	if ( skip )
 	{ freeClause(clause);
 	} else
-	{ if ( has_maps )
-	  { if ( !resortMapsInClause(clause) )
+	{ if ( has_dicts )
+	  { if ( !resortDictsInClause(clause) )
 	    { outOfCore();
 	      exit(1);
 	    }

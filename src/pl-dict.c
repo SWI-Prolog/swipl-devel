@@ -24,13 +24,13 @@
 #include "pl-dict.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Maps are associative arrays,  where  keys   are  either  atoms  or small
-integers. Maps should be considered  an   abstract  data  type. They are
-currently represented as compound terms   using the functor `map`/Arity.
+Dicts are associative arrays,  where  keys   are  either  atoms  or small
+integers. Dicts should be considered  an   abstract  data  type. They are
+currently represented as compound terms   using the functor `dict`/Arity.
 The term has the following layout on the global stack:
 
   -----------
-  | `map`/A |
+  | `dict`/A |
   -----------
   | class   |
   -----------
@@ -45,27 +45,27 @@ The term has the following layout on the global stack:
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int PL_get_map_ex(term_t data, term_t class, term_t map, int flags);
-#define MAP_GET_ALL	0xff
-#define MAP_GET_PAIRS	0x01
-#define MAP_GET_EQUALS	0x02
-#define MAP_GET_COLON	0x04
-#define MAP_GET_TERM	0x08
+static int PL_get_dict_ex(term_t data, term_t class, term_t dict, int flags);
+#define DICT_GET_ALL	0xff
+#define DICT_GET_PAIRS	0x01
+#define DICT_GET_EQUALS	0x02
+#define DICT_GET_COLON	0x04
+#define DICT_GET_TERM	0x08
 
-#define CACHED_MAP_FUNCTORS 128
+#define CACHED_DICT_FUNCTORS 128
 
-static functor_t map_functors[CACHED_MAP_FUNCTORS] = {0};
+static functor_t dict_functors[CACHED_DICT_FUNCTORS] = {0};
 
 functor_t
-map_functor(int pairs)
-{ if ( pairs < CACHED_MAP_FUNCTORS )
-  { if ( map_functors[pairs] )
-      return map_functors[pairs];
+dict_functor(int pairs)
+{ if ( pairs < CACHED_DICT_FUNCTORS )
+  { if ( dict_functors[pairs] )
+      return dict_functors[pairs];
 
-    map_functors[pairs] = lookupFunctorDef(ATOM_map, pairs*2+1);
-    return map_functors[pairs];
+    dict_functors[pairs] = lookupFunctorDef(ATOM_dict, pairs*2+1);
+    return dict_functors[pairs];
   } else
-  { return lookupFunctorDef(ATOM_map, pairs*2+1);
+  { return lookupFunctorDef(ATOM_dict, pairs*2+1);
   }
 }
 
@@ -154,7 +154,7 @@ void sort_r(void *base, size_t nel, size_t width,
 		 *******************************/
 
 static int
-get_map_ex(term_t t, Word mp, int create ARG_LD)
+get_dict_ex(term_t t, Word mp, int create ARG_LD)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -162,7 +162,7 @@ get_map_ex(term_t t, Word mp, int create ARG_LD)
   { Functor f = valueTerm(*p);
     FunctorDef fd = valueFunctor(f->definition);
 
-    if ( fd->name == ATOM_map &&
+    if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 )		/* does *not* validate ordering */
     { *mp = *p;
       return TRUE;
@@ -173,7 +173,7 @@ get_map_ex(term_t t, Word mp, int create ARG_LD)
   { term_t new;
 
     if ( (new = PL_new_term_ref()) &&
-	  PL_get_map_ex(t, 0, new, MAP_GET_ALL) )
+	  PL_get_dict_ex(t, 0, new, DICT_GET_ALL) )
     { p = valTermRef(new);
       deRef(p);
       *mp = *p;
@@ -183,7 +183,7 @@ get_map_ex(term_t t, Word mp, int create ARG_LD)
     return FALSE;
   }
 
-  return PL_type_error("map", t);
+  return PL_type_error("dict", t);
 }
 
 
@@ -194,12 +194,12 @@ is_key(word w)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-map_lookup_ptr() returns a pointer to the value for a given key
+dict_lookup_ptr() returns a pointer to the value for a given key
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-map_lookup_ptr(word map, word name ARG_LD)
-{ Functor data = valueTerm(map);
+dict_lookup_ptr(word dict, word name ARG_LD)
+{ Functor data = valueTerm(dict);
   int arity = arityFunctor(data->definition);
   int l = 1, h = arity-2;		/* odd numbers are the keys */
 
@@ -228,20 +228,20 @@ map_lookup_ptr(word map, word name ARG_LD)
 
 /* True if the keys are proper keys and ordered.  Return values:
 
-   TRUE:  correctly ordered map
+   TRUE:  correctly ordered dict
    FALSE: not ordered
    -1:    not a key
    -2:    duplicate key
 */
 
 static int
-map_ordered(Word data, int count, int ex ARG_LD)
+dict_ordered(Word data, int count, int ex ARG_LD)
 { int ordered = TRUE;
   Word n1, n2;
 
   deRef2(data, n1);
   if ( !is_key(*n1) )
-    return (count == 0);		/* ordered if empty map */
+    return (count == 0);		/* ordered if empty dict */
   for(; count > 1; count--, data += 2, n1=n2)
   { deRef2(data+2, n2);
     if ( !is_key(*n2) )
@@ -265,7 +265,7 @@ map_ordered(Word data, int count, int ex ARG_LD)
 
 
 static int
-compare_map_entry(const void *a, const void *b, void *arg)
+compare_dict_entry(const void *a, const void *b, void *arg)
 { PL_local_data_t *__PL_ld = arg;
   Word p = (Word)a;
   Word q = (Word)b;
@@ -277,20 +277,20 @@ compare_map_entry(const void *a, const void *b, void *arg)
 
 
 static int
-map_order(Word map, int ex ARG_LD)
-{ Functor data = (Functor)map;
+dict_order(Word dict, int ex ARG_LD)
+{ Functor data = (Functor)dict;
   int arity = arityFunctor(data->definition);
 
   assert(arity%2 == 1);
 
   sort_r(data->arguments+1, arity/2, sizeof(word)*2,
-	 compare_map_entry, LD);
+	 compare_dict_entry, LD);
 
-  return map_ordered(data->arguments+1, arity/2, ex PASS_LD) == TRUE;
+  return dict_ordered(data->arguments+1, arity/2, ex PASS_LD) == TRUE;
 }
 
 
-/* map_order_term_refs() orders an array of indexes into a key/value array
+/* dict_order_term_refs() orders an array of indexes into a key/value array
    of term references. Returns 0 if there are no duplicates and else the
    index of the first duplicate.
 */
@@ -318,7 +318,7 @@ compare_term_refs(const void *a, const void *b, void *arg)
 
 
 int
-map_order_term_refs(term_t *av, int *indexes, int count ARG_LD)
+dict_order_term_refs(term_t *av, int *indexes, int count ARG_LD)
 { order_term_refs ctx;
 
   ctx.ld = LD;
@@ -343,8 +343,8 @@ map_order_term_refs(term_t *av, int *indexes, int count ARG_LD)
 
 
 int
-put_map(word map, int size, Word nv, word *new_map ARG_LD)
-{ Functor data = valueTerm(map);
+put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
+{ Functor data = valueTerm(dict);
   int arity = arityFunctor(data->definition);
   Word new, out, in, in_end, nv_end;
   int modified = FALSE;
@@ -352,7 +352,7 @@ put_map(word map, int size, Word nv, word *new_map ARG_LD)
   assert(arity%2 == 1);
 
   if ( size == 0 )
-  { *new_map = map;
+  { *new_dict = dict;
     return TRUE;
   }
 
@@ -391,7 +391,7 @@ put_map(word map, int size, Word nv, word *new_map ARG_LD)
 
   if ( nv == nv_end )
   { if ( !modified )
-    { *new_map = map;
+    { *new_dict = dict;
       return TRUE;
     }
     while(in < in_end)
@@ -415,17 +415,17 @@ put_map(word map, int size, Word nv, word *new_map ARG_LD)
 
   gTop = out;
   new[1] = linkVal(&data->arguments[0]);
-  new[0] = map_functor((out-(new+1))/2);
+  new[0] = dict_functor((out-(new+1))/2);
 
-  *new_map = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
+  *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
 
   return TRUE;
 }
 
 
 static int
-del_map(word map, word key, word *new_map ARG_LD)
-{ Functor data = valueTerm(map);
+del_dict(word dict, word key, word *new_dict ARG_LD)
+{ Functor data = valueTerm(dict);
   int arity = arityFunctor(data->definition);
   Word new, out, in, in_end;
 
@@ -452,23 +452,23 @@ del_map(word map, word key, word *new_map ARG_LD)
 
   gTop = out;
   new[1] = linkVal(&data->arguments[0]); /* class */
-  new[0] = map_functor((out-(new+1))/2); /* arity */
+  new[0] = dict_functor((out-(new+1))/2); /* arity */
 
-  *new_map = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
+  *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
 
   return TRUE;
 }
 
 
-/* partial_unify_map(map1, map2) unifies all common elements of two
-   maps.  It returns TRUE on success, FALSE on a failed unification
+/* partial_unify_dict(dict1, dict2) unifies all common elements of two
+   dicts.  It returns TRUE on success, FALSE on a failed unification
    and *_OVERFLOW on some memory overflow
 */
 
 static int
-partial_unify_map(word map1, word map2 ARG_LD)
-{ Functor d1 = valueTerm(map1);
-  Functor d2 = valueTerm(map2);
+partial_unify_dict(word dict1, word dict2 ARG_LD)
+{ Functor d1 = valueTerm(dict1);
+  Functor d2 = valueTerm(dict2);
   Word in1  = d1->arguments;
   Word in2  = d2->arguments;
   Word end1 = in1+arityFunctor(d1->definition);
@@ -504,7 +504,7 @@ partial_unify_map(word map1, word map2 ARG_LD)
 }
 
 
-/* select_map() demands del to be a sub-map of from and assigns
+/* select_dict() demands del to be a sub-dict of from and assigns
    all remaining values in new.
 
    Note that unify_ptrs() can push data onto the global stack in
@@ -513,7 +513,7 @@ partial_unify_map(word map1, word map2 ARG_LD)
 */
 
 static int
-select_map(word del, word from, word *new_map ARG_LD)
+select_dict(word del, word from, word *new_dict ARG_LD)
 { Functor dd = valueTerm(del);
   Functor fd = valueTerm(from);
   Word din  = dd->arguments;
@@ -552,16 +552,16 @@ select_map(word del, word from, word *new_map ARG_LD)
     return FALSE;
   left += (fend-fin)/2;
 
-  if ( !new_map )
+  if ( !new_dict )
     return TRUE;
 
   if ( gTop+2+2*left <= gMax )
   { Word out = gTop;
 
-    *new_map = consPtr(out, TAG_COMPOUND|STG_GLOBAL);
+    *new_dict = consPtr(out, TAG_COMPOUND|STG_GLOBAL);
 
-    *out++ = map_functor(left);
-    setVar(*out++);			/* class for new map */
+    *out++ = dict_functor(left);
+    setVar(*out++);			/* class for new dict */
 
     din = dd->arguments+1;
     fin = fd->arguments+1;
@@ -598,9 +598,9 @@ get_name_value(Word p, Word name, Word value, int flags ARG_LD)
   if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
 
-    if ( (f->definition == FUNCTOR_minus2  && (flags&MAP_GET_PAIRS)) ||
-	 (f->definition == FUNCTOR_equals2 && (flags&MAP_GET_EQUALS)) ||
-	 (f->definition == FUNCTOR_colon2  && (flags&MAP_GET_COLON)))
+    if ( (f->definition == FUNCTOR_minus2  && (flags&DICT_GET_PAIRS)) ||
+	 (f->definition == FUNCTOR_equals2 && (flags&DICT_GET_EQUALS)) ||
+	 (f->definition == FUNCTOR_colon2  && (flags&DICT_GET_COLON)))
     { Word np, vp;
 
       deRef2(&f->arguments[0], np);
@@ -612,7 +612,7 @@ get_name_value(Word p, Word name, Word value, int flags ARG_LD)
 	return TRUE;
       }
     } else if ( arityFunctor(f->definition) == 1 &&
-		(flags&MAP_GET_TERM) ) /* Name(Value) */
+		(flags&DICT_GET_TERM) ) /* Name(Value) */
     { Word vp;
 
       *name = nameFunctor(f->definition);
@@ -632,7 +632,7 @@ get_name_value(Word p, Word name, Word value, int flags ARG_LD)
 		 *******************************/
 
 int
-PL_is_map(term_t t)
+PL_is_dict(term_t t)
 { GET_LD
   Word p = valTermRef(t);
 
@@ -641,9 +641,9 @@ PL_is_map(term_t t)
   { Functor f = valueTerm(*p);
     FunctorDef fd = valueFunctor(f->definition);
 
-    if ( fd->name == ATOM_map &&
+    if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 &&
-	 map_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
+	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
       return TRUE;
   }
 
@@ -652,11 +652,11 @@ PL_is_map(term_t t)
 
 
 static int
-PL_get_map_ex(term_t data, term_t class, term_t map, int flags)
+PL_get_dict_ex(term_t data, term_t class, term_t dict, int flags)
 { GET_LD
 
-  if ( PL_is_map(data) )
-  { PL_put_term(map, data);
+  if ( PL_is_dict(data) )
+  { PL_put_term(dict, data);
     return TRUE;
   }
 
@@ -670,7 +670,7 @@ PL_get_map_ex(term_t data, term_t class, term_t map, int flags)
     if ( !(m = allocGlobal(len*2+2)) )
       return FALSE;			/* global overflow */
     ap = m;
-    *ap++ = map_functor(len);
+    *ap++ = dict_functor(len);
     if ( class )
     { Word cp = valTermRef(class);
 
@@ -699,7 +699,7 @@ PL_get_map_ex(term_t data, term_t class, term_t map, int flags)
       if ( !get_name_value(head, ap, ap+1, flags PASS_LD) )
       { const char *type;
 
-	if ( flags == MAP_GET_PAIRS )
+	if ( flags == DICT_GET_PAIRS )
 	  type = "pair";
 	else
 	  type = "key-value";
@@ -714,9 +714,9 @@ PL_get_map_ex(term_t data, term_t class, term_t map, int flags)
       deRef(tail);
     }
 
-    if ( map_order(m, TRUE PASS_LD) )
+    if ( dict_order(m, TRUE PASS_LD) )
     { gTop = ap;
-      *valTermRef(map) = consPtr(m, TAG_COMPOUND|STG_GLOBAL);
+      *valTermRef(dict) = consPtr(m, TAG_COMPOUND|STG_GLOBAL);
       DEBUG(CHK_SECURE, checkStacks(NULL));
       return TRUE;
     } else
@@ -724,28 +724,28 @@ PL_get_map_ex(term_t data, term_t class, term_t map, int flags)
     }
   }					/* TBD: {name:value, ...} */
 
-  return PL_type_error("map-data", data);
+  return PL_type_error("dict-data", data);
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PL_for_map()  runs  func  on  each  key-value    pair  in  map.  Returns
+PL_for_dict()  runs  func  on  each  key-value    pair  in  dict.  Returns
 immediately with the return value of func   if func returns non-zero. If
-the flag MAP_SORTED is given, the  key-value   pairs  are  called in the
+the flag DICT_SORTED is given, the  key-value   pairs  are  called in the
 standard order of terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct cmp_map_index_data
+typedef struct cmp_dict_index_data
 { Word  data;
   int  *indexes;
   PL_local_data_t *ld;
-} cmp_map_index_data;
+} cmp_dict_index_data;
 
 static int
-cmp_map_index(const void *a1, const void *a2, void *arg)
+cmp_dict_index(const void *a1, const void *a2, void *arg)
 { int *ip1 = (int*)a1;
   int *ip2 = (int*)a2;
-  cmp_map_index_data *ctx = arg;
+  cmp_dict_index_data *ctx = arg;
   PL_local_data_t *__PL_ld = ctx->ld;
   Word p = &ctx->data[*ip1*2];
   Word q = &ctx->data[*ip2*2];
@@ -775,14 +775,14 @@ cmp_map_index(const void *a1, const void *a2, void *arg)
 
 
 int
-PL_for_map(term_t map,
+PL_for_dict(term_t dict,
 	   int (*func)(term_t key, term_t value, int last, void *closure),
 	   void *closure,
 	   int flags)
 { GET_LD
   term_t av = PL_new_term_refs(2);
   int i, arity, pairs;
-  Word p = valTermRef(map);
+  Word p = valTermRef(dict);
   int index_buf[256];
   int *indexes = NULL;
   int rc = 0;
@@ -791,8 +791,8 @@ PL_for_map(term_t map,
   arity = arityTerm(*p);
   pairs = arity/2;
 
-  if ( (flags&MAP_SORTED) )
-  { cmp_map_index_data ctx;
+  if ( (flags&DICT_SORTED) )
+  { cmp_dict_index_data ctx;
 
     if ( pairs < 256 )
       indexes = index_buf;
@@ -806,11 +806,11 @@ PL_for_map(term_t map,
     ctx.data = argTermP(*p,1);
     ctx.indexes = indexes;
 
-    sort_r(indexes, pairs, sizeof(int), cmp_map_index, &ctx);
+    sort_r(indexes, pairs, sizeof(int), cmp_dict_index, &ctx);
   }
 
   for(i=0; i < pairs; )
-  { Word p = valTermRef(map);
+  { Word p = valTermRef(dict);
     int in;
 
     if ( indexes )
@@ -839,17 +839,17 @@ PL_for_map(term_t map,
 		 *	  RELOAD SUPPORT	*
 		 *******************************/
 
-/* resortMapsInClause() resorts the contents of maps in a clause
+/* resortDictsInClause() resorts the contents of dicts in a clause
 
 This predicate is called from pl-wic.c after   reloading a clause from a
-.qlf file or state if pl-wic.c  detected   a  map  inside the clause. It
-identifies the code ranges that constitude the  k-v pairs in the map and
+.qlf file or state if pl-wic.c  detected   a  dict  inside the clause. It
+identifies the code ranges that constitude the  k-v pairs in the dict and
 re-orders them according to the new atom-handle ordering.
 
 There    is    a    complicating     factor    with    B_FIRSTVAR/B_VAR,
 B_ARGFIRSTVAR/B_ARGVAR and H_FIRSTVAR/H_VAR, that may  get swapped after
 reordering.  This  is  corrected   by    fix_firstvars().   The  current
-implementation is quadratic in the number of variables in the map.
+implementation is quadratic in the number of variables in the dict.
 */
 
 typedef struct kv_code
@@ -903,7 +903,7 @@ fix_firstvars(Code start, Code end)
 	{ code op2 = fetchop(pc);
 
 	  if ( op2 == first && pc[1] == var )
-	  { DEBUG(MSG_MAP, Sdprintf("Swapping first vars\n"));
+	  { DEBUG(MSG_DICT, Sdprintf("Swapping first vars\n"));
 	    *PC = *pc;
 	    *pc = encode(op);
 	  }
@@ -914,7 +914,7 @@ fix_firstvars(Code start, Code end)
 }
 
 int
-resortMapsInClause(Clause clause)
+resortDictsInClause(Clause clause)
 { Code PC, end;
 
   PC  = clause->codes;
@@ -931,7 +931,7 @@ resortMapsInClause(Clause clause)
       { word w = (word)PC[1];
 	FunctorDef fd = valueFunctor(w);
 
-	if ( fd->name == ATOM_map && fd->arity%2 == 1 )
+	if ( fd->name == ATOM_dict && fd->arity%2 == 1 )
 	{ int f, fields = fd->arity/2;
 	  kv_code kv_buf[KV_PREALOCATED];
 	  code c_buf[C_PREALLOCATED];
@@ -962,14 +962,14 @@ resortMapsInClause(Clause clause)
 		break;
 	      }
 	      default:
-		return TRUE;		/* not a map */
+		return TRUE;		/* not a dict */
 	    }
 	    PC = stepPC(PC);		/* skip key */
 	    PC = skipArgs(PC, 1);	/* skip value */
 
 	    kv_pos[f].len = PC-fields_start-kv_pos[f].start;
 
-	    DEBUG(MSG_MAP,
+	    DEBUG(MSG_DICT,
 		  { if ( isAtom(kv_pos[f].key) )
 		      Sdprintf("Got %s from %p..%p\n",
 			       stringAtom(kv_pos[f].key), kv_pos[f].start, PC);
@@ -1011,12 +1011,12 @@ resortMapsInClause(Clause clause)
 }
 
 
-/* resortMapsInTerm() re-sorts maps inside term.
+/* resortDictsInTerm() re-sorts dicts inside term.
    Used by loadQlfTerm().  Term may not be cyclic.
 */
 
 static void
-resort_maps_in_term(Word p ARG_LD)
+resort_dicts_in_term(Word p ARG_LD)
 {
 right_arg:
   deRef(p);
@@ -1026,15 +1026,15 @@ right_arg:
     FunctorDef fd = valueFunctor(t->definition);
     Word ea;
 
-    if ( fd->name == ATOM_map && fd->arity%2 == 1 &&
-	 map_ordered(&t->arguments[1], fd->arity/2, FALSE PASS_LD) == FALSE )
-    { Sdprintf("Re-ordering map\n");
-      map_order((Word)t, FALSE PASS_LD);
+    if ( fd->name == ATOM_dict && fd->arity%2 == 1 &&
+	 dict_ordered(&t->arguments[1], fd->arity/2, FALSE PASS_LD) == FALSE )
+    { Sdprintf("Re-ordering dict\n");
+      dict_order((Word)t, FALSE PASS_LD);
     }
 
     ea = &t->arguments[fd->arity-1];
     for(p=t->arguments; p<ea; p++)
-      resort_maps_in_term(p PASS_LD);
+      resort_dicts_in_term(p PASS_LD);
 
     goto right_arg;
   }
@@ -1042,11 +1042,11 @@ right_arg:
 
 
 void
-resortMapsInTerm(term_t t)
+resortDictsInTerm(term_t t)
 { GET_LD
   Word p = valTermRef(t);
 
-  resort_maps_in_term(p PASS_LD);
+  resort_dicts_in_term(p PASS_LD);
 }
 
 
@@ -1055,16 +1055,16 @@ resortMapsInTerm(term_t t)
 		 *       PROLOG PREDICATES	*
 		 *******************************/
 
-/** is_map(@Term)
-    is_map(@Term, ?Class)
+/** is_dict(@Term)
+    is_dict(@Term, ?Class)
 
-True if Term is a map that belongs to Class.
+True if Term is a dict that belongs to Class.
 
 @tbd What if Term has a variable class?
 */
 
 static
-PRED_IMPL("is_map", 1, is_map, 0)
+PRED_IMPL("is_dict", 1, is_dict, 0)
 { PRED_LD
   Word p = valTermRef(A1);
 
@@ -1073,9 +1073,9 @@ PRED_IMPL("is_map", 1, is_map, 0)
   { Functor f = valueTerm(*p);
     FunctorDef fd = valueFunctor(f->definition);
 
-    if ( fd->name == ATOM_map &&
+    if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 &&
-	 map_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
+	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
       return TRUE;
   }
 
@@ -1084,7 +1084,7 @@ PRED_IMPL("is_map", 1, is_map, 0)
 
 
 static
-PRED_IMPL("is_map", 2, is_map, 0)
+PRED_IMPL("is_dict", 2, is_dict, 0)
 { PRED_LD
   Word p = valTermRef(A1);
 
@@ -1093,9 +1093,9 @@ PRED_IMPL("is_map", 2, is_map, 0)
   { Functor f = valueTerm(*p);
     FunctorDef fd = valueFunctor(f->definition);
 
-    if ( fd->name == ATOM_map &&
+    if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 &&
-	 map_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
+	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
       return unify_ptrs(&f->arguments[0], valTermRef(A2),
 			ALLOW_GC|ALLOW_SHIFT PASS_LD);
   }
@@ -1104,31 +1104,31 @@ PRED_IMPL("is_map", 2, is_map, 0)
 }
 
 
-/** get_map(?Key, +Map, ?Value)
+/** get_dict(?Key, +Dict, ?Value)
 
-True when Key is associated with Value in Map. If Name is unbound, this
-predicate is true for all Name/Value  pairs   in  the  map. The order in
+True when Key is associated with Value in Dict. If Name is unbound, this
+predicate is true for all Name/Value  pairs   in  the  dict. The order in
 which these pairs are enumerated is _undefined_.
 */
 
 static foreign_t
-pl_get_map(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
+pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
 { PRED_LD
   int i;
-  word map;
+  word dict;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { Word np = valTermRef(A1);
 
-      if ( !get_map_ex(A2, &map, FALSE PASS_LD) )
+      if ( !get_dict_ex(A2, &dict, FALSE PASS_LD) )
 	return FALSE;
 
       deRef(np);
       if ( is_key(*np) )
       { Word vp;
 
-	if ( (vp=map_lookup_ptr(map, *np PASS_LD)) )
+	if ( (vp=dict_lookup_ptr(dict, *np PASS_LD)) )
 	  return unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD);
 
 	if ( ex )
@@ -1151,10 +1151,10 @@ pl_get_map(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
       i = (int)CTX_INT + 2;
       p = valTermRef(A2);
       deRef(p);
-      map = *p;
+      dict = *p;
 
     search:
-      f = valueTerm(map);
+      f = valueTerm(dict);
       arity = arityFunctor(f->definition);
 
       if ( (fid=PL_open_foreign_frame()) )
@@ -1188,21 +1188,21 @@ pl_get_map(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
 
 
 static
-PRED_IMPL("get_map", 3, get_map, PL_FA_NONDETERMINISTIC)
-{ return pl_get_map(PL__t0, PL__ac, FALSE, PL__ctx);
+PRED_IMPL("get_dict", 3, get_dict, PL_FA_NONDETERMINISTIC)
+{ return pl_get_dict(PL__t0, PL__ac, FALSE, PL__ctx);
 }
 
 
 static
-PRED_IMPL("get_map_ex", 3, get_map_ex, PL_FA_NONDETERMINISTIC)
-{ return pl_get_map(PL__t0, PL__ac, TRUE, PL__ctx);
+PRED_IMPL("get_dict_ex", 3, get_dict_ex, PL_FA_NONDETERMINISTIC)
+{ return pl_get_dict(PL__t0, PL__ac, TRUE, PL__ctx);
 }
 
 
-/** map_create(-Map, ?Class, +Data) is det.
+/** dict_create(-Dict, ?Class, +Data) is det.
 
-Map represents the name-value pairs  in  Data.   If  Data  is a map, Map
-unified  with  Data.  Otherwise,  a  new    Map   is  created.  Suitable
+Dict represents the name-value pairs  in  Data.   If  Data  is a dict, Dict
+unified  with  Data.  Otherwise,  a  new    Dict   is  created.  Suitable
 representations for Data are:
 
   - {Name:Value, ...}
@@ -1213,32 +1213,32 @@ representations for Data are:
 
 
 static
-PRED_IMPL("map_create", 3, map_create, 0)
+PRED_IMPL("dict_create", 3, dict_create, 0)
 { PRED_LD
   term_t m = PL_new_term_ref();
 
-  if ( PL_get_map_ex(A3, A2, m, MAP_GET_ALL) )
+  if ( PL_get_dict_ex(A3, A2, m, DICT_GET_ALL) )
     return PL_unify(A1, m);
 
   return FALSE;
 }
 
 
-/** map_pairs(+Map, ?Class, -Pairs)
-    map_pairs(-Map, ?Class, +Pairs)
+/** dict_pairs(+Dict, ?Class, -Pairs)
+    dict_pairs(-Dict, ?Class, +Pairs)
 */
 
-typedef struct map_pairs_ctx
+typedef struct dict_pairs_ctx
 { PL_local_data_t *ld;
   term_t head;
   term_t tail;
   term_t tmp;
-} map_pairs_ctx;
+} dict_pairs_ctx;
 
 
 static int
 put_pair(term_t key, term_t value, int last, void *closure)
-{ map_pairs_ctx *ctx = closure;
+{ dict_pairs_ctx *ctx = closure;
   PL_local_data_t *__PL_ld = ctx->ld;
 
   if ( PL_cons_functor(ctx->tmp, FUNCTOR_minus2, key, value) &&
@@ -1251,25 +1251,25 @@ put_pair(term_t key, term_t value, int last, void *closure)
 
 
 static
-PRED_IMPL("map_pairs", 3, map_pairs, 0)
+PRED_IMPL("dict_pairs", 3, dict_pairs, 0)
 { PRED_LD
 
   if ( !PL_is_variable(A1) )
   { word m;
 
-    if ( get_map_ex(A1, &m, TRUE PASS_LD) )
-    { term_t map = PL_new_term_ref();
-      map_pairs_ctx ctx;
+    if ( get_dict_ex(A1, &m, TRUE PASS_LD) )
+    { term_t dict = PL_new_term_ref();
+      dict_pairs_ctx ctx;
 
-      *valTermRef(map) = m;
+      *valTermRef(dict) = m;
       ctx.ld = LD;
       ctx.tail = PL_copy_term_ref(A3);
       ctx.head = PL_new_term_refs(2);
       ctx.tmp  = ctx.head+1;
 
-      if ( PL_get_arg(1, map, ctx.tmp) &&
+      if ( PL_get_arg(1, dict, ctx.tmp) &&
 	   PL_unify(ctx.tmp, A2) &&
-	   PL_for_map(map, put_pair, &ctx, MAP_SORTED) == 0 )
+	   PL_for_dict(dict, put_pair, &ctx, DICT_SORTED) == 0 )
 	return PL_unify_nil_ex(ctx.tail);
 
       return FALSE;
@@ -1277,7 +1277,7 @@ PRED_IMPL("map_pairs", 3, map_pairs, 0)
   } else
   { term_t m = PL_new_term_ref();
 
-    if ( PL_get_map_ex(A3, A2, m, MAP_GET_PAIRS) )
+    if ( PL_get_dict_ex(A3, A2, m, DICT_GET_PAIRS) )
       return PL_unify(A1, m);
   }
 
@@ -1285,28 +1285,28 @@ PRED_IMPL("map_pairs", 3, map_pairs, 0)
 }
 
 
-/** put_map(+New, +MapIn, -MapOut)
+/** put_dict(+New, +DictIn, -DictOut)
 
-True when Map is a copy of Map0 where values from Map1 replace or extend
-the value set of Map0.
+True when Dict is a copy of Dict0 where values from Dict1 replace or extend
+the value set of Dict0.
 */
 
 static
-PRED_IMPL("put_map", 3, put_map, 0)
+PRED_IMPL("put_dict", 3, put_dict, 0)
 { PRED_LD
   word m1, m2;
   fid_t fid = PL_open_foreign_frame();
 
 retry:
 
-  if ( get_map_ex(A2, &m1, TRUE PASS_LD) &&
-       get_map_ex(A1, &m2, TRUE PASS_LD) )
+  if ( get_dict_ex(A2, &m1, TRUE PASS_LD) &&
+       get_dict_ex(A1, &m2, TRUE PASS_LD) )
   { Functor f2 = valueTerm(m2);
     int arity = arityFunctor(f2->definition);
     word new;
     int rc;
 
-    if ( (rc = put_map(m1, arity/2, &f2->arguments[1], &new PASS_LD)) == TRUE )
+    if ( (rc = put_dict(m1, arity/2, &f2->arguments[1], &new PASS_LD)) == TRUE )
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
@@ -1323,9 +1323,9 @@ retry:
   return FALSE;
 }
 
-/** put_map(+Key, +Map0, +Value, -Map)
+/** put_dict(+Key, +Dict0, +Value, -Dict)
 
-True when Map is a copy of Map0 with Name Value added or replaced.
+True when Dict is a copy of Dict0 with Name Value added or replaced.
 */
 
 static int
@@ -1338,25 +1338,25 @@ get_name_ex(term_t t, Word np ARG_LD)
     return TRUE;
   }
 
-  return PL_type_error("map-key", t);
+  return PL_type_error("dict-key", t);
 }
 
 
 static
-PRED_IMPL("put_map", 4, put_map, 0)
+PRED_IMPL("put_dict", 4, put_dict, 0)
 { PRED_LD
   word m1;
   term_t av = PL_new_term_refs(2);
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( get_map_ex(A2, &m1, TRUE PASS_LD) &&
+  if ( get_dict_ex(A2, &m1, TRUE PASS_LD) &&
        get_name_ex(A1, valTermRef(av) PASS_LD) &&
        PL_put_term(av+1, A3) )
   { word new;
     int rc;
 
-    if ( (rc = put_map(m1, 1, valTermRef(av), &new PASS_LD)) == TRUE )
+    if ( (rc = put_dict(m1, 1, valTermRef(av), &new PASS_LD)) == TRUE )
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
@@ -1374,16 +1374,16 @@ retry:
 }
 
 
-/** b_set_map(+Key, !Map, +Value)
+/** b_set_dict(+Key, !Dict, +Value)
 
 Backtrackable destructive assignment, similar to setarg/3.
 */
 
-#define SETMAP_BACKTRACKABLE    0x1
-#define SETMAP_LINK		0x2
+#define SETDICT_BACKTRACKABLE    0x1
+#define SETDICT_LINK		0x2
 
 static int
-setmap(term_t key, term_t map, term_t value, int flags ARG_LD)
+setdict(term_t key, term_t dict, term_t value, int flags ARG_LD)
 { word k, m;
   Word val;
 
@@ -1391,7 +1391,7 @@ retry:
   val = valTermRef(value);
   deRef(val);
 
-  if ( (flags&SETMAP_BACKTRACKABLE) )
+  if ( (flags&SETDICT_BACKTRACKABLE) )
   { if ( !hasGlobalSpace(0) )
     { int rc;
 
@@ -1401,7 +1401,7 @@ retry:
     }
   } else
   { if ( storage(*val) == STG_GLOBAL )
-    { if ( !(flags & SETMAP_LINK) )
+    { if ( !(flags & SETDICT_LINK) )
       { term_t copy = PL_new_term_ref();
 
 	if ( !duplicate_term(value, copy PASS_LD) )
@@ -1414,19 +1414,19 @@ retry:
     }
   }
 
-  if ( get_map_ex(map, &m, FALSE PASS_LD) &&
+  if ( get_dict_ex(dict, &m, FALSE PASS_LD) &&
        get_name_ex(key, &k PASS_LD) )
   { Word vp;
 
-    if ( (vp=map_lookup_ptr(m, k PASS_LD)) )
-    { if ( (flags&SETMAP_BACKTRACKABLE) )
+    if ( (vp=dict_lookup_ptr(m, k PASS_LD)) )
+    { if ( (flags&SETDICT_BACKTRACKABLE) )
 	TrailAssignment(vp);
       unify_vp(vp, val PASS_LD);
       return TRUE;
     }
 
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE3,
-		    ATOM_key, key, map);
+		    ATOM_key, key, dict);
   }
 
   return FALSE;
@@ -1434,51 +1434,51 @@ retry:
 
 
 static
-PRED_IMPL("b_set_map", 3, b_set_map, 0)
+PRED_IMPL("b_set_dict", 3, b_set_dict, 0)
 { PRED_LD
 
-  return setmap(A1, A2, A3, SETMAP_BACKTRACKABLE PASS_LD);
+  return setdict(A1, A2, A3, SETDICT_BACKTRACKABLE PASS_LD);
 }
 
 static
-PRED_IMPL("nb_set_map", 3, nb_set_map, 0)
+PRED_IMPL("nb_set_dict", 3, nb_set_dict, 0)
 { PRED_LD
 
-  return setmap(A1, A2, A3, 0 PASS_LD);
+  return setdict(A1, A2, A3, 0 PASS_LD);
 }
 
 static
-PRED_IMPL("nb_link_map", 3, nb_link_map, 0)
+PRED_IMPL("nb_link_dict", 3, nb_link_dict, 0)
 { PRED_LD
 
-  return setmap(A1, A2, A3, SETMAP_LINK PASS_LD);
+  return setdict(A1, A2, A3, SETDICT_LINK PASS_LD);
 }
 
 
-/** del_map(+Key, +MapIn, ?Value, -MapOut)
+/** del_dict(+Key, +DictIn, ?Value, -DictOut)
 
-True when Key-Value is in MapIn and   MapOut  contains all keys of MapIn
+True when Key-Value is in DictIn and   DictOut  contains all keys of DictIn
 except for Key.
 */
 
 static
-PRED_IMPL("del_map", 4, del_map, 0)
+PRED_IMPL("del_dict", 4, del_dict, 0)
 { PRED_LD
   word key;
   term_t mt = PL_new_term_ref();
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( get_map_ex(A2, valTermRef(mt), TRUE PASS_LD) &&
+  if ( get_dict_ex(A2, valTermRef(mt), TRUE PASS_LD) &&
        get_name_ex(A1, &key PASS_LD) )
   { Word vp;
 
-    if ( (vp=map_lookup_ptr(*valTermRef(mt), key PASS_LD)) &&
+    if ( (vp=dict_lookup_ptr(*valTermRef(mt), key PASS_LD)) &&
 	 unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) )
     { int rc;
       word new;
 
-      if ( (rc=del_map(*valTermRef(mt), key, &new PASS_LD)) == TRUE )
+      if ( (rc=del_dict(*valTermRef(mt), key, &new PASS_LD)) == TRUE )
       { term_t t = PL_new_term_ref();
 
 	*valTermRef(t) = new;
@@ -1497,19 +1497,19 @@ retry:
 }
 
 
-/** select_map(+Select, +From) is semidet.
-    select_map(+Select, +From, -Rest) is semidet.
+/** select_dict(+Select, +From) is semidet.
+    select_dict(+Select, +From, -Rest) is semidet.
 */
 
 static
-PRED_IMPL("select_map", 3, select_map, 0)
+PRED_IMPL("select_dict", 3, select_dict, 0)
 { PRED_LD
   word s, f, r;
 
 retry:
-  if ( get_map_ex(A1, &s, TRUE PASS_LD) &&
-       get_map_ex(A2, &f, TRUE PASS_LD) )
-  { int rc = select_map(s, f, &r PASS_LD);
+  if ( get_dict_ex(A1, &s, TRUE PASS_LD) &&
+       get_dict_ex(A2, &f, TRUE PASS_LD) )
+  { int rc = select_dict(s, f, &r PASS_LD);
 
     switch(rc)
     { case TRUE:
@@ -1534,14 +1534,14 @@ retry:
 
 
 static
-PRED_IMPL(":<", 2, select_map, 0)
+PRED_IMPL(":<", 2, select_dict, 0)
 { PRED_LD
   word s, f;
 
 retry:
-  if ( get_map_ex(A1, &s, TRUE PASS_LD) &&
-       get_map_ex(A2, &f, TRUE PASS_LD) )
-  { int rc = select_map(s, f, NULL PASS_LD);
+  if ( get_dict_ex(A1, &s, TRUE PASS_LD) &&
+       get_dict_ex(A2, &f, TRUE PASS_LD) )
+  { int rc = select_dict(s, f, NULL PASS_LD);
 
     switch(rc)
     { case TRUE:
@@ -1561,14 +1561,14 @@ retry:
 
 
 static
-PRED_IMPL(">:<", 2, punify_map, 0)
+PRED_IMPL(">:<", 2, punify_dict, 0)
 { PRED_LD
   word m1, m2;
 
 retry:
-  if ( get_map_ex(A1, &m1, TRUE PASS_LD) &&
-       get_map_ex(A2, &m2, TRUE PASS_LD) )
-  { int rc = partial_unify_map(m1, m2 PASS_LD);
+  if ( get_dict_ex(A1, &m1, TRUE PASS_LD) &&
+       get_dict_ex(A2, &m2, TRUE PASS_LD) )
+  { int rc = partial_unify_dict(m1, m2 PASS_LD);
 
     switch(rc)
     { case TRUE:
@@ -1591,20 +1591,20 @@ retry:
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
-BeginPredDefs(map)
-  PRED_DEF("is_map",	  1, is_map,	  0)
-  PRED_DEF("is_map",	  2, is_map,	  0)
-  PRED_DEF("map_create",  3, map_create,  0)
-  PRED_DEF("map_pairs",	  3, map_pairs,	  0)
-  PRED_DEF("put_map",	  3, put_map,	  0)
-  PRED_DEF("put_map",	  4, put_map,	  0)
-  PRED_DEF("b_set_map",	  3, b_set_map,	  0)
-  PRED_DEF("nb_set_map",  3, nb_set_map,  0)
-  PRED_DEF("nb_link_map", 3, nb_link_map, 0)
-  PRED_DEF("get_map",	  3, get_map,	  PL_FA_NONDETERMINISTIC)
-  PRED_DEF("get_map_ex",  3, get_map_ex,  PL_FA_NONDETERMINISTIC)
-  PRED_DEF("del_map",	  4, del_map,	  0)
-  PRED_DEF("select_map",  3, select_map,  0)
-  PRED_DEF(":<",          2, select_map,  0)
-  PRED_DEF(">:<",	  2, punify_map,  0)
+BeginPredDefs(dict)
+  PRED_DEF("is_dict",	  1, is_dict,	  0)
+  PRED_DEF("is_dict",	  2, is_dict,	  0)
+  PRED_DEF("dict_create",  3, dict_create,  0)
+  PRED_DEF("dict_pairs",	  3, dict_pairs,	  0)
+  PRED_DEF("put_dict",	  3, put_dict,	  0)
+  PRED_DEF("put_dict",	  4, put_dict,	  0)
+  PRED_DEF("b_set_dict",	  3, b_set_dict,	  0)
+  PRED_DEF("nb_set_dict",  3, nb_set_dict,  0)
+  PRED_DEF("nb_link_dict", 3, nb_link_dict, 0)
+  PRED_DEF("get_dict",	  3, get_dict,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("get_dict_ex",  3, get_dict_ex,  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("del_dict",	  4, del_dict,	  0)
+  PRED_DEF("select_dict",  3, select_dict,  0)
+  PRED_DEF(":<",          2, select_dict,  0)
+  PRED_DEF(">:<",	  2, punify_dict,  0)
 EndPredDefs

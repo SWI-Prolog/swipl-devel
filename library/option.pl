@@ -101,9 +101,9 @@ restrictions:
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options, Default) :-
-	is_map(Options), !,
+	is_dict(Options), !,
 	functor(Opt, Name, 1),
-	(   get_map(Name, Options, Val)
+	(   get_dict(Name, Options, Val)
 	->  true
 	;   Val = Default
 	),
@@ -126,9 +126,9 @@ option(Opt, Options, Default) :-	% make option processing stead-fast
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options) :-			% make option processing stead-fast
-	is_map(Options), !,
+	is_dict(Options), !,
 	functor(Opt, Name, 1),
-	get_map(Name, Options, Val),
+	get_dict(Name, Options, Val),
 	arg(1, Opt, Val).
 option(Opt, Options) :-			% make option processing stead-fast
 	functor(Opt, Name, Arity),
@@ -151,11 +151,11 @@ get_option(Opt, Options) :-
 %	options with RestOptions.
 
 select_option(Opt, Options0, Options) :-
-	is_map(Options0), !,
+	is_dict(Options0), !,
 	functor(Opt, Name, 1),
-	get_map(Name, Options0, Val),
+	get_dict(Name, Options0, Val),
 	arg(1, Opt, Val),
-	del_map(Name, Options0, Val, Options).
+	del_dict(Name, Options0, Val, Options).
 select_option(Opt, Options0, Options) :-	% stead-fast
 	functor(Opt, Name, Arity),
 	functor(GenOpt, Name, Arity),
@@ -176,14 +176,14 @@ get_option(Opt, Options0, Options) :-
 %	Default and RestOptions with Options.
 
 select_option(Option, Options, RestOptions, Default) :-
-	is_map(Options), !,
+	is_dict(Options), !,
 	functor(Option, Name, 1),
-	(   get_map(Name, Options, Val)
+	(   get_dict(Name, Options, Val)
 	->  true
 	;   Val = Default
 	),
 	arg(1, Option, Val),
-	del_map(Name, Options, _, RestOptions).
+	del_dict(Name, Options, _, RestOptions).
 select_option(Option, Options, RestOptions, Default) :-
 	functor(Option, Name, Arity),
 	functor(GenOpt, Name, Arity),
@@ -247,9 +247,9 @@ sort_key(Option, Name-Arity) :-
 %
 %	Rewrite option list from possible Name=Value to Name(Value)
 
-canonicalise_options(Map, Out) :-
-	is_map(Map), !,
-	map_pairs(Map, _, Pairs),
+canonicalise_options(Dict, Out) :-
+	is_dict(Dict), !,
+	dict_pairs(Dict, _, Pairs),
 	canonicalise_options2(Pairs, Out).
 canonicalise_options(In, Out) :-
 	memberchk(_=_, In), !,		% speedup a bit if already ok.
@@ -288,10 +288,10 @@ canonicalise_option(H, H).
 %		predicate_options/3.
 
 meta_options(IsMeta, Context:Options0, Options) :-
-	is_map(Options0), !,
-	map_pairs(Options0, Class, Pairs0),
+	is_dict(Options0), !,
+	dict_pairs(Options0, Class, Pairs0),
 	meta_options(Pairs0, IsMeta, Context, Pairs),
-	map_pairs(Options, Class, Pairs).
+	dict_pairs(Options, Class, Pairs).
 meta_options(IsMeta, Context:Options0, Options) :-
 	must_be(list, Options0),
 	meta_options(Options0, IsMeta, Context, Options).

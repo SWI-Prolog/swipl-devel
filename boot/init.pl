@@ -871,7 +871,7 @@ user:prolog_file_type(Ext,	executable) :-
 	     \+ '$file_condition'(C, File)
 	   ).
 '$file_conditions'(Map, File) :-
-	\+ (  get_map(Key, Map, Value),
+	\+ (  get_dict(Key, Map, Value),
 	      C =.. [Key,Value],
 	      '$file_condition'(C),
 	     \+ '$file_condition'(C, File)
@@ -2973,7 +2973,7 @@ length(_, Length) :-
 %	True if Term looks like it provides options.
 
 '$is_options'(Map) :-
-	is_map(Map, _), !.
+	is_dict(Map, _), !.
 '$is_options'(List) :-
 	is_list(List),
 	(   List == []
@@ -2992,7 +2992,7 @@ length(_, Length) :-
 %%	'$option'(?Opt, +Options) is semidet.
 
 '$option'(Opt, Options) :-
-	is_map(Options), !,
+	is_dict(Options), !,
 	[Opt] :< Options.
 '$option'(Opt, Options) :-
 	memberchk(Opt, Options).
@@ -3002,8 +3002,8 @@ length(_, Length) :-
 '$option'(Term, Options, Default) :-
 	arg(1, Term, Value),
 	functor(Term, Name, 1),
-	(   is_map(Options)
-	->  (   get_map(Name, Options, GVal)
+	(   is_dict(Options)
+	->  (   get_dict(Name, Options, GVal)
 	    ->	Value = GVal
 	    ;   Value = Default
 	    )
@@ -3022,7 +3022,7 @@ length(_, Length) :-
 %	@arg Rest is always a map.
 
 '$select_option'(Opt, Options, Rest) :-
-	select_map([Opt], Options, Rest).
+	select_dict([Opt], Options, Rest).
 
 %%	'$merge_options'(+New, +Default, -Merged) is det.
 %
@@ -3031,7 +3031,7 @@ length(_, Length) :-
 %	@arg Merged is always a map.
 
 '$merge_options'(New, Old, Merged) :-
-	put_map(New, Old, Merged).
+	put_dict(New, Old, Merged).
 
 
 		 /*******************************

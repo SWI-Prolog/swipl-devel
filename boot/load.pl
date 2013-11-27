@@ -59,6 +59,6 @@
 	     rc,
 	     predopts,
 	     packs,
-	     maps,
+	     dicts,
 	     user:topvars
 	   ]).

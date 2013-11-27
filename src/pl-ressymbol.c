@@ -48,7 +48,7 @@ static PL_blob_t reserved_symbol =
 static const atom_t special_atoms[] =
 { ATOM_nil,				/* 0: [] */
   ATOM_dot,				/* 1: .(_|_) or '$cons'(_,_) */
-  ATOM_map,				/* 2: <map> */
+  ATOM_dict,				/* 2: <dict> */
   (atom_t)0
 };
 
@@ -69,7 +69,7 @@ static const atom_t reserved_symbols[] =
 void
 initReservedSymbols(void)
 { PL_register_blob_type(&reserved_symbol);
-  atomValue(ATOM_map)->type = &reserved_symbol;
+  atomValue(ATOM_dict)->type = &reserved_symbol;
 
   if ( !GD->options.traditional )
   { const atom_t *ap;

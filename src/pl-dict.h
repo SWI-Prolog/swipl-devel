@@ -20,13 +20,13 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef PL_MAP_H_INCLUDED
-#define PL_MAP_H_INCLUDED
+#ifndef PL_DICT_H_INCLUDED
+#define PL_DICT_H_INCLUDED
 
-#define MAP_SORTED	0x1		/* Sort map entries */
+#define DICT_SORTED	0x1		/* Sort dict entries */
 
-COMMON(int)	PL_is_map(term_t t);
-COMMON(int)	PL_for_map(term_t map,
+COMMON(int)	PL_is_dict(term_t t);
+COMMON(int)	PL_for_dict(term_t dict,
 			   int (*func)(term_t key,
 				       term_t value,
 				       int last,
@@ -34,9 +34,9 @@ COMMON(int)	PL_for_map(term_t map,
 			   void *closure,
 			   int flags);
 
-COMMON(functor_t) map_functor(int pairs);
-COMMON(int)	  map_order_term_refs(term_t *av, int *indexes, int count ARG_LD);
-COMMON(int)	  resortMapsInClause(Clause clause);
-COMMON(void)	  resortMapsInTerm(term_t t);
+COMMON(functor_t) dict_functor(int pairs);
+COMMON(int)	  dict_order_term_refs(term_t *av, int *indexes, int count ARG_LD);
+COMMON(int)	  resortDictsInClause(Clause clause);
+COMMON(void)	  resortDictsInTerm(term_t t);
 
-#endif /*PL_MAP_H_INCLUDED*/
+#endif /*PL_DICT_H_INCLUDED*/
