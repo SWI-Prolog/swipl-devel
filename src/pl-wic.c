@@ -24,7 +24,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-dbref.h"
-#include "pl-map.h"
+#include "pl-dict.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif

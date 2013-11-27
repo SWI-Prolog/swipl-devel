@@ -22,7 +22,7 @@
 */
 
 #include "pl-incl.h"
-#include "pl-map.h"
+#include "pl-dict.h"
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"

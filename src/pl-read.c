@@ -28,7 +28,7 @@
 #include "os/pl-utf8.h"
 #include "os/pl-dtoa.h"
 #include "pl-umap.c"			/* Unicode map */
-#include "pl-map.h"
+#include "pl-dict.h"
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;

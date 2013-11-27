@@ -21,7 +21,7 @@
 */
 
 #include "pl-incl.h"
-#include "pl-map.h"
+#include "pl-dict.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Maps are associative arrays,  where  keys   are  either  atoms  or small

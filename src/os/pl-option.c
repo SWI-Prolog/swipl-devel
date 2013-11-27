@@ -22,7 +22,7 @@
 */
 
 #include "pl-incl.h"
-#include "pl-map.h"
+#include "pl-dict.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Variable argument list:
