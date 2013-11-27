@@ -563,15 +563,15 @@ Below is an example that illustrates the representation of a typical
 SWI-Prolog version~7 introduces dicts as an abstract object with a
 concrete modern syntax and functional notation for accessing members and
 as well as access functions defined by the user. The syntax for a dict is
-illustrated below. \arg{Class} is either a variable or an atom. As with
-compound terms, there is \textbf{no} space between the class and the
+illustrated below. \arg{Tag} is either a variable or an atom. As with
+compound terms, there is \textbf{no} space between the tag and the
 opening brace. The keys are either atoms or small integers (up to
 \prologflag{max_tagged_integer}). The values are arbitrary Prolog terms
 which are parsed using the same rules as used for arguments in compound
 terms.
 
 \begin{quote}
-Class\{Key1:Value1, Key2:Value2, ...\}
+Tag\{Key1:Value1, Key2:Value2, ...\}
 \end{quote}
 
 A dict can not hold duplicate keys. The dict is transformed into an opaque
@@ -599,8 +599,8 @@ named keys are represented is not relevant. This behaviour is
 illustrated by the following example.
 
 \begin{code}
-?- point{x:1, y:2} = Class{y:2, x:X}.
-Class = point,
+?- point{x:1, y:2} = Tag{y:2, x:X}.
+Tag = point,
 X = 1.
 \end{code}
 
@@ -655,7 +655,7 @@ described in \secref{ext-dict-user-functions}.
 \subsubsection{User defined functions on dicts}
 \label{sec:ext-dict-user-functions}
 
-The class of a dict associates the dict to a module.  If the dot
+The tag of a dict associates the dict to a module.  If the dot
 notation uses a compound term, this calls the goal below.
 
 \begin{quote}
@@ -735,8 +735,8 @@ the naming and argument conventions of the traditional \pllib{assoc}.
     \predicate{is_dict}{1}{@Term}
 True if \arg{Term} is a dict.  This is the same as \exam{is_dict(Term,_)}.
 
-    \predicate{is_dict}{2}{@Term, -Class}
-True if \arg{Term} is a dict of \arg{Class}.
+    \predicate{is_dict}{2}{@Term, -Tag}
+True if \arg{Term} is a dict of \arg{Tag}.
 
     \predicate{get_dict}{3}{?Key, +Map, -Value}
 Unify the value associated with \arg{Key} in dict with \arg{Value}.  If
@@ -754,15 +754,15 @@ extracts key-values from a dict:
 ?- write(t{a:x}.b).
 ERROR: key `b' does not exist in t{a:x}
 \end{code}
-    \predicate{dict_create}{3}{-Map, +Class, +Data}
-Create a dict in \arg{Class} from \arg{Data}. \arg{Data} is a list of
+    \predicate{dict_create}{3}{-Map, +Tag, +Data}
+Create a dict in \arg{Tag} from \arg{Data}. \arg{Data} is a list of
 attribute-value pairs using the syntax \exam{Key:Value},
 \exam{Key=Value}, \exam{Key-Value} or \exam{Key(Value)}. An exception is
 raised if \arg{Data} is not a proper list, one of the elements is not of
 the shape above, a key is neither an atom nor a small integer or there
 is a duplicate key.
 
-    \predicate{dict_pairs}{3}{?Map, ?Class, ?Pairs}
+    \predicate{dict_pairs}{3}{?Map, ?Tag, ?Pairs}
 Bi-directional mapping between a dict and an ordered list of pairs
 (see \secref{pairs}).
 
@@ -798,7 +798,7 @@ True when \arg{Key}-\arg{Value} is in \arg{MapIn} and \arg{MapOut}
 contains all associations of \arg{MapIn} except for \arg{Key}.
 
     \infixop[semidet]{:<}{2}{+Select, +From}
-True when \arg{Select} is a `sub dict' of \arg{From}: the classes
+True when \arg{Select} is a `sub dict' of \arg{From}: the tages
 must unify and all keys in \arg{Select} must appear with unifying
 values in \arg{From}.  \arg{From} may contain keys that are not in
 \arg{Select}.  This operation is frequently used to \emph{match}
@@ -818,7 +818,7 @@ The goal \verb$Select :< From$ is equivalent to
 \term{select_dict}{Select, From, _}.
 
     \predicate[semidet]{select_dict}{3}{+Select, +From, -Rest}
-True when the classes of \arg{Select} and \arg{From} have been unified,
+True when the tags of \arg{Select} and \arg{From} have been unified,
 all keys in \arg{Select} appear in \arg{From} and the corresponding
 values have been unified. The key-value pairs of \arg{From} that do not
 appear in \arg{Select} are used to form an anonymous dict, which us
@@ -836,7 +836,7 @@ a symmetric partial unification of two dicts.
 
     \infixop{>:<}{+Map1}{+Map2}
 This operator specifies a \jargon{partial unification} between
-\arg{Map1} and \arg{Map2}. It is true when the classes and the values
+\arg{Map1} and \arg{Map2}. It is true when the tags and the values
 associated with all \emph{common} keys have been unified.  The values
 associated to keys that do not appear in the other dict are ignored.
 Partial unification is symmetric.  For example, given a list of dicts,
@@ -1042,7 +1042,7 @@ multiple representations, this section describes the current
 implementation.
 
 Maps are currently represented as a compound term using the functor
-\verb$`dict`$. The first argument is the class. The remaining arguments
+\verb$`dict`$. The first argument is the tag. The remaining arguments
 create an array of sorted key-value pairs. This representation is
 compact and guarantees good locality. Lookup is order $\log(N)$, while
 adding valuesm deleting values and merging with other dicts has order
