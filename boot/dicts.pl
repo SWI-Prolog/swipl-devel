@@ -7,10 +7,10 @@
 %	Evaluate dot expressions
 
 .(Dict, Func, Value) :-
-	is_dict(Dict, Class), !,
+	is_dict(Dict, Tag), !,
 	(   (atomic(Func) ; var(Func))
 	->  get_dict_ex(Func, Dict, Value)
-	;   eval_dict_function(Func, Class, Dict, Value)
+	;   eval_dict_function(Func, Tag, Dict, Value)
 	).
 .(KV, Func, Value) :-
 	is_list(KV), !,
@@ -23,7 +23,7 @@
 	'$type_error'(dict, Obj).
 
 
-%%	eval_dict_function(+Func, +Class, +Dict, -Value)
+%%	eval_dict_function(+Func, +Tag, +Dict, -Value)
 %
 %	Test for predefined functions on dicts or evaluate a user-defined
 %	function.
@@ -34,8 +34,8 @@ eval_dict_function(put(Key, Value), _, Dict, NewDict) :- !,
 	put_dict(Key, Dict, Value, NewDict).
 eval_dict_function(put(New), _, Dict, NewDict) :- !,
 	put_dict(New, Dict, NewDict).
-eval_dict_function(Func, Class, Dict, Value) :-
-	call(Class:Func, Dict, Value).
+eval_dict_function(Func, Tag, Dict, Value) :-
+	call(Tag:Func, Dict, Value).
 
 
 		 /*******************************
