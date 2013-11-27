@@ -694,7 +694,8 @@ write_formatted(Format, ArgList) :-
 write_formatted(Out, Format, ArgList) :-
 	atom_codes(Format, Codes),
 	phrase(format_string(FormatCodes), Codes), !,
-	format(Out, FormatCodes, ArgList).
+	string_codes(FormatString, FormatCodes),
+	format(Out, FormatString, ArgList).
 
 format_string([]) --> [].
 format_string(Fmt) -->
