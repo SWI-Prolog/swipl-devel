@@ -1294,19 +1294,22 @@ the value set of Dict0.
 static
 PRED_IMPL("put_dict", 3, put_dict, 0)
 { PRED_LD
-  word m1, m2;
+  word m2;
+  term_t t1 = PL_new_term_ref();
   fid_t fid = PL_open_foreign_frame();
 
-retry:
 
-  if ( get_dict_ex(A2, &m1, TRUE PASS_LD) &&
+retry:
+  if ( get_dict_ex(A2, valTermRef(t1), TRUE PASS_LD) &&
        get_dict_ex(A1, &m2, TRUE PASS_LD) )
   { Functor f2 = valueTerm(m2);
     int arity = arityFunctor(f2->definition);
     word new;
     int rc;
 
-    if ( (rc = put_dict(m1, arity/2, &f2->arguments[1], &new PASS_LD)) == TRUE )
+    if ( (rc = put_dict(*valTermRef(t1),
+			arity/2, &f2->arguments[1],
+			&new PASS_LD)) == TRUE )
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
@@ -1504,12 +1507,13 @@ retry:
 static
 PRED_IMPL("select_dict", 3, select_dict, 0)
 { PRED_LD
-  word s, f, r;
+  term_t sm = PL_new_term_ref();
+  word f, r;
 
 retry:
-  if ( get_dict_ex(A1, &s, TRUE PASS_LD) &&
+  if ( get_dict_ex(A1, valTermRef(sm), TRUE PASS_LD) &&
        get_dict_ex(A2, &f, TRUE PASS_LD) )
-  { int rc = select_dict(s, f, &r PASS_LD);
+  { int rc = select_dict(*valTermRef(sm), f, &r PASS_LD);
 
     switch(rc)
     { case TRUE:
@@ -1536,12 +1540,13 @@ retry:
 static
 PRED_IMPL(":<", 2, select_dict, 0)
 { PRED_LD
-  word s, f;
+  term_t sm = PL_new_term_ref();
+  word f;
 
 retry:
-  if ( get_dict_ex(A1, &s, TRUE PASS_LD) &&
+  if ( get_dict_ex(A1, valTermRef(sm), TRUE PASS_LD) &&
        get_dict_ex(A2, &f, TRUE PASS_LD) )
-  { int rc = select_dict(s, f, NULL PASS_LD);
+  { int rc = select_dict(*valTermRef(sm), f, NULL PASS_LD);
 
     switch(rc)
     { case TRUE:
@@ -1563,12 +1568,13 @@ retry:
 static
 PRED_IMPL(">:<", 2, punify_dict, 0)
 { PRED_LD
-  word m1, m2;
+  term_t t1 = PL_new_term_ref();
+  word m2;
 
 retry:
-  if ( get_dict_ex(A1, &m1, TRUE PASS_LD) &&
+  if ( get_dict_ex(A1, valTermRef(t1), TRUE PASS_LD) &&
        get_dict_ex(A2, &m2, TRUE PASS_LD) )
-  { int rc = partial_unify_dict(m1, m2 PASS_LD);
+  { int rc = partial_unify_dict(*valTermRef(t1), m2 PASS_LD);
 
     switch(rc)
     { case TRUE:
@@ -1592,19 +1598,19 @@ retry:
 		 *******************************/
 
 BeginPredDefs(dict)
-  PRED_DEF("is_dict",	  1, is_dict,	  0)
-  PRED_DEF("is_dict",	  2, is_dict,	  0)
+  PRED_DEF("is_dict",	   1, is_dict,	    0)
+  PRED_DEF("is_dict",	   2, is_dict,	    0)
   PRED_DEF("dict_create",  3, dict_create,  0)
-  PRED_DEF("dict_pairs",	  3, dict_pairs,	  0)
-  PRED_DEF("put_dict",	  3, put_dict,	  0)
-  PRED_DEF("put_dict",	  4, put_dict,	  0)
-  PRED_DEF("b_set_dict",	  3, b_set_dict,	  0)
+  PRED_DEF("dict_pairs",   3, dict_pairs,   0)
+  PRED_DEF("put_dict",	   3, put_dict,	    0)
+  PRED_DEF("put_dict",	   4, put_dict,	    0)
+  PRED_DEF("b_set_dict",   3, b_set_dict,   0)
   PRED_DEF("nb_set_dict",  3, nb_set_dict,  0)
   PRED_DEF("nb_link_dict", 3, nb_link_dict, 0)
-  PRED_DEF("get_dict",	  3, get_dict,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("get_dict",	   3, get_dict,	    PL_FA_NONDETERMINISTIC)
   PRED_DEF("get_dict_ex",  3, get_dict_ex,  PL_FA_NONDETERMINISTIC)
-  PRED_DEF("del_dict",	  4, del_dict,	  0)
+  PRED_DEF("del_dict",	   4, del_dict,	    0)
   PRED_DEF("select_dict",  3, select_dict,  0)
-  PRED_DEF(":<",          2, select_dict,  0)
-  PRED_DEF(">:<",	  2, punify_dict,  0)
+  PRED_DEF(":<",	   2, select_dict,  0)
+  PRED_DEF(">:<",	   2, punify_dict,  0)
 EndPredDefs
