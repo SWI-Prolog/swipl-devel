@@ -714,6 +714,8 @@ walk_dcg_body(Var, _Module, TermPos, OTerm) :-
 	undecided(Var, TermPos, OTerm).
 walk_dcg_body([], _Module, _, _) :- !.
 walk_dcg_body([_|_], _Module, _, _) :- !.
+walk_dcg_body(String, _Module, _, _) :-
+	string(String), !.
 walk_dcg_body(!, _Module, _, _) :- !.
 walk_dcg_body(M:G, _, term_position(_,_,_,_,[MPos,Pos]), OTerm) :- !,
 	(   nonvar(M)
