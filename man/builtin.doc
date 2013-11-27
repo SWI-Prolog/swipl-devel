@@ -4553,7 +4553,7 @@ with the term position of the tail, otherwise with the atom \const{none}.
 	\termitem{map_position}{\arg{From}, \arg{To},
 				\arg{TypeFrom}, \arg{TypeTo},
 				\arg{KeyValuePosList}}
-    Used for a map (see \secref{maps}).  The position of the key-value
+    Used for a map (see \secref{dicts}).  The position of the key-value
     pairs is described by \arg{KeyValuePosList}, which is a list of
     \funcref{key_value_position}{7} terms.  The \funcref{key_value_position}{7}
     terms appear in the order of the input. Because maps to not preserve
@@ -4563,7 +4563,7 @@ with the term position of the tail, otherwise with the atom \const{none}.
 				      \arg{SepFrom}, \arg{SepTo},
 				      \arg{Key},
 				      \arg{KeyPos}, \arg{ValuePos}}
-    Used for key-value pairs in a map (see \secref{maps}). It is similar
+    Used for key-value pairs in a map (see \secref{dicts}). It is similar
     to the \funcref{term_position}{5} that would be created, except
     that the key and value positions do not need an intermediate list
     and the key is provided in \arg{Key} to enable synchronisation of

@@ -3,10 +3,11 @@
 
 This chapter describes extensions to the Prolog language introduced with
 SWI-Prolog version~7. The changes bring more modern syntactical
-conventions to Prolog such as key-value maps as primary citizens and a
-restricted form of \jargon{functional notation}. They also extend Prolog
-basic types with strings, providing a natural notation to textual
-material as opposed to identifiers (atoms) and lists.
+conventions to Prolog such as key-value maps, called \jargon{dicts} as
+primary citizens and a restricted form of \jargon{functional notation}.
+They also extend Prolog basic types with strings, providing a natural
+notation to textual material as opposed to identifiers (atoms) and
+lists.
 
 These extensions make the syntax more intuitive to new users, simplify
 the integration of domain specific languages (DSLs) and facilitate a
@@ -41,7 +42,7 @@ true.
 
 The `cons' operator for creating list cells has changed from the pretty
 atom \verb$'.'$ to the ugly atom \verb|'$cons'|, so we can use the
-\verb$'.'$ for other purposes.  See \secref{ext-map-functions}.
+\verb$'.'$ for other purposes.  See \secref{ext-dict-functions}.
 
 This modification has minimal impact on typical Prolog code. It does
 affect foreign code (see \secref{foreign}) that uses the normal atom and
@@ -68,8 +69,8 @@ conflicts, while these conflicts are easily avoided.
     \item Using \funcref{.}{2} prevents using this commonly used symbol
 as an operator because \verb$a.B$ cannot be distinguished from \verb$[a|B]$.
 Freeing \funcref{.}{2} provides us with a unique term that we can use
-for functional notation on maps as described in
-\secref{ext-map-functions}.
+for functional notation on dicts as described in
+\secref{ext-dict-functions}.
 
     \item Using \verb$'[]'$ as list terminator prevents dynamic distinction
 between atoms and lists. As a result, we cannot use type polymorphism
@@ -449,7 +450,7 @@ makes the dot available as operator, this is different from supporting
 it inside identifiers because usage inside identifiers does not allow
 for brackets or white space. Furthermore, SWI-Prolog version~7 reserves
 the dot for its \jargon{functional notation} extension (see
-\secref{ext-map-functions}).
+\secref{ext-dict-functions}).
 
 Whether or not dots are allowed in identifiers is controlled by the
 \prologflag{allow_dot_in_atom}, which is \const{true} by default.
@@ -460,7 +461,7 @@ Whether or not dots are allowed in identifiers is controlled by the
 
 As of SWI-Prolog version~7, the system supports compound terms that have
 no arguments. This implies that e.g., \exam{name()} is valid syntax.
-This extension aims at functions on maps (see \secref{maps}) as well as
+This extension aims at functions on dicts (see \secref{dicts}) as well as
 the implementation of domain specific languages (DSLs). To minimise the
 consequences, the classic predicates functor/3 and \predref{=..}{2} have
 not been modified. The predicates compound_name_arity/3 and
@@ -557,11 +558,11 @@ Below is an example that illustrates the representation of a typical
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Maps: structures with named arguments}
-\label{sec:maps}
+\label{sec:dicts}
 
-SWI-Prolog version~7 introduces maps as an abstract object with a
+SWI-Prolog version~7 introduces dicts as an abstract object with a
 concrete modern syntax and functional notation for accessing members and
-as well as access functions defined by the user. The syntax for a map is
+as well as access functions defined by the user. The syntax for a dict is
 illustrated below. \arg{Class} is either a variable or an atom. As with
 compound terms, there is \textbf{no} space between the class and the
 opening brace. The keys are either atoms or small integers (up to
@@ -573,13 +574,13 @@ terms.
 Class\{Key1:Value1, Key2:Value2, ...\}
 \end{quote}
 
-A map can not hold duplicate keys. The map is transformed into an opaque
+A dict can not hold duplicate keys. The dict is transformed into an opaque
 internal representation that does \emph{not} respect the order in which
-the key-value pairs appear in the input text. If a map is written, the
+the key-value pairs appear in the input text. If a dict is written, the
 keys are written according to the standard order of terms (see
 \secref{standardorder}). Here are some examples, where the second
 example illustrates that the order is not maintained and the third
-illustrates an anonymous map.
+illustrates an anonymous dict.
 
 \begin{code}
 ?- A = point{x:1, y:2}.
@@ -593,7 +594,7 @@ A = _G1476{first_name:"Mel", last_name:"Smith"}.
 \end{code}
 
 Maps can be unified following the standard symmetric Prolog unification
-rules. As maps use an internal canonical form, the order in which the
+rules. As dicts use an internal canonical form, the order in which the
 named keys are represented is not relevant. This behaviour is
 illustrated by the following example.
 
@@ -604,11 +605,11 @@ X = 1.
 \end{code}
 
 
-\subsection{Functions on maps}
-\label{sec:ext-map-functions}
+\subsection{Functions on dicts}
+\label{sec:ext-dict-functions}
 
 The infix operator dot (\term{op}{100, yfx, .} is used to extract values
-and evaluate functions on maps. Functions are recognised if they appear
+and evaluate functions on dicts. Functions are recognised if they appear
 in the argument of a \jargon{goal} in the source text, possibly nested
 in a term. The keys act as field selector, which is illustrated in this
 example.
@@ -644,24 +645,24 @@ such terms are rare and term manipulation provides an escape route.}
     \predicate{.}{3}{+Map, +Function, -Result}
 This predicate is called to evaluate \funcref{.}{2} terms found in the
 arguments of a goal. This predicate evaluates the field extraction
-described above, which is mapped to get_map_ex/3. If \arg{Function} is a
-compound term, it checks for the predefined functions on maps described
-in \secref{ext-maps-predefined} or executes a user defined function as
-described in \secref{ext-map-user-functions}.
+described above, which is mapped to get_dict_ex/3. If \arg{Function} is a
+compound term, it checks for the predefined functions on dicts described
+in \secref{ext-dicts-predefined} or executes a user defined function as
+described in \secref{ext-dict-user-functions}.
 \end{description}
 
 
-\subsubsection{User defined functions on maps}
-\label{sec:ext-map-user-functions}
+\subsubsection{User defined functions on dicts}
+\label{sec:ext-dict-user-functions}
 
-The class of a map associates the map to a module.  If the dot
+The class of a dict associates the dict to a module.  If the dot
 notation uses a compound term, this calls the goal below.
 
 \begin{quote}
 <module>:<name>(Arg1, ..., +Map, -Value)
 \end{quote}
 
-Functions are normal Prolog predicates. The map infrastructure provides
+Functions are normal Prolog predicates. The dict infrastructure provides
 a more convenient syntax for representing the head of such predicates
 without worrying about the argument calling conventions. The code below
 defines a function \term{multiply}{Times} on a point that creates a new
@@ -694,18 +695,18 @@ X = point{x:2, y:4}.
 X = 4.47213595499958.
 \end{code}
 
-\subsubsection{Predefined functions on maps}
-\label{sec:ext-maps-predefined}
+\subsubsection{Predefined functions on dicts}
+\label{sec:ext-dicts-predefined}
 
 Maps currently define the following reserved functions:
 
 \begin{description}
-    \mapfunction{get}{1}{?Key}
-Same as \arg{Map}.\arg{Key}, but maps to get_map/3 instead of
-get_map_ex/3.  This implies that the function evaluation fails
+    \dictfunction{get}{1}{?Key}
+Same as \arg{Map}.\arg{Key}, but maps to get_dict/3 instead of
+get_dict_ex/3.  This implies that the function evaluation fails
 silently if \arg{Key} does not appear in \arg{Map}.  See also
 \predref{:<}{2}, which can be used to test for existence and
-unify multiple key values from a map.  For example:
+unify multiple key values from a dict.  For example:
 
 \begin{code}
 ?- write(t{a:x}.get(a)).
@@ -714,61 +715,61 @@ x
 false.
 \end{code}
 
-    \mapfunction{put}{1}{+New}
-Evaluates to a new map where the key-values in \arg{New} replace
-or extend the key-values in the original map.  See put_map/3.
+    \dictfunction{put}{1}{+New}
+Evaluates to a new dict where the key-values in \arg{New} replace
+or extend the key-values in the original dict.  See put_dict/3.
 
-    \mapfunction{put}{2}{+Key, +Value}
-Evaluates to a new map where the \arg{Key}-\arg{Value} replaces
-or extends the key-values in the original map.  See put_map/4.
+    \dictfunction{put}{2}{+Key, +Value}
+Evaluates to a new dict where the \arg{Key}-\arg{Value} replaces
+or extends the key-values in the original dict.  See put_dict/4.
 \end{description}
 
 
-\subsection{Predicates for managing maps}
-\label{ext-map-predicates}
+\subsection{Predicates for managing dicts}
+\label{ext-dict-predicates}
 
-This section documents the predicates that are defined on maps.  We use
+This section documents the predicates that are defined on dicts.  We use
 the naming and argument conventions of the traditional \pllib{assoc}.
 
 \begin{description}
-    \predicate{is_map}{1}{@Term}
-True if \arg{Term} is a map.  This is the same as \exam{is_map(Term,_)}.
+    \predicate{is_dict}{1}{@Term}
+True if \arg{Term} is a dict.  This is the same as \exam{is_dict(Term,_)}.
 
-    \predicate{is_map}{2}{@Term, -Class}
-True if \arg{Term} is a map of \arg{Class}.
+    \predicate{is_dict}{2}{@Term, -Class}
+True if \arg{Term} is a dict of \arg{Class}.
 
-    \predicate{get_map}{3}{?Key, +Map, -Value}
-Unify the value associated with \arg{Key} in map with \arg{Value}.  If
+    \predicate{get_dict}{3}{?Key, +Map, -Value}
+Unify the value associated with \arg{Key} in dict with \arg{Value}.  If
 \arg{Key} is unbound, all associations in \arg{Map} are returned on
 backtracking.  The order in which the associations are returned is
 undefined.  This predicate is normally accessed using the functional
-notation \exam{Map.Key}.  See \secref{ext-map-functions}.
+notation \exam{Map.Key}.  See \secref{ext-dict-functions}.
 
-    \predicate{get_map_ex}{3}{?Key, +Map, -Value}
-Equivalent to get_map/3, but throws an existence_error if \arg{Key} is
+    \predicate{get_dict_ex}{3}{?Key, +Map, -Value}
+Equivalent to get_dict/3, but throws an existence_error if \arg{Key} is
 not in \arg{Map}.  This version is used by the functional notation that
-extracts key-values from a map:
+extracts key-values from a dict:
 
 \begin{code}
 ?- write(t{a:x}.b).
 ERROR: key `b' does not exist in t{a:x}
 \end{code}
-    \predicate{map_create}{3}{-Map, +Class, +Data}
-Create a map in \arg{Class} from \arg{Data}. \arg{Data} is a list of
+    \predicate{dict_create}{3}{-Map, +Class, +Data}
+Create a dict in \arg{Class} from \arg{Data}. \arg{Data} is a list of
 attribute-value pairs using the syntax \exam{Key:Value},
 \exam{Key=Value}, \exam{Key-Value} or \exam{Key(Value)}. An exception is
 raised if \arg{Data} is not a proper list, one of the elements is not of
 the shape above, a key is neither an atom nor a small integer or there
 is a duplicate key.
 
-    \predicate{map_pairs}{3}{?Map, ?Class, ?Pairs}
-Bi-directional mapping between a map and an ordered list of pairs
+    \predicate{dict_pairs}{3}{?Map, ?Class, ?Pairs}
+Bi-directional mapping between a dict and an ordered list of pairs
 (see \secref{pairs}).
 
-    \predicate{put_map}{3}{+New, +MapIn, -MapOut}
-\arg{MapOut} is a new map created by replacing or adding key-value pairs
-from \arg{New} to \arg{Map}. \arg{New} is either a map or a valid input
-for map_create/3. This predicate is normally accessed using the
+    \predicate{put_dict}{3}{+New, +MapIn, -MapOut}
+\arg{MapOut} is a new dict created by replacing or adding key-value pairs
+from \arg{New} to \arg{Map}. \arg{New} is either a dict or a valid input
+for dict_create/3. This predicate is normally accessed using the
 functional notation. Below are some examples:
 
 \begin{code}
@@ -782,8 +783,8 @@ A = point{x:3, y:2}.
 A = point{x:3, y:2, z:0}.
 \end{code}
 
-    \predicate{put_map}{4}{+Key, +MapIn, +Value, -MapOut}
-\arg{MapOut} is a new map created by replacing or adding
+    \predicate{put_dict}{4}{+Key, +MapIn, +Value, -MapOut}
+\arg{MapOut} is a new dict created by replacing or adding
 \arg{Key}-\arg{Value} to \arg{MapIn}. This predicate is normally
 accessed using the functional notation. Below is an example:
 
@@ -792,16 +793,16 @@ accessed using the functional notation. Below is an example:
 A = point{x:3, y:2}.
 \end{code}
 
-    \predicate{del_map}{4}{+Key, +MapIn, ?Value, -MapOut}
+    \predicate{del_dict}{4}{+Key, +MapIn, ?Value, -MapOut}
 True when \arg{Key}-\arg{Value} is in \arg{MapIn} and \arg{MapOut}
 contains all associations of \arg{MapIn} except for \arg{Key}.
 
     \infixop[semidet]{:<}{2}{+Select, +From}
-True when \arg{Select} is a `sub map' of \arg{From}: the classes
+True when \arg{Select} is a `sub dict' of \arg{From}: the classes
 must unify and all keys in \arg{Select} must appear with unifying
 values in \arg{From}.  \arg{From} may contain keys that are not in
 \arg{Select}.  This operation is frequently used to \emph{match}
-a map and at the same time extract relevant values from it.
+a dict and at the same time extract relevant values from it.
 For example:
 
 \begin{code}
@@ -814,83 +815,83 @@ plot(Map, On) :-
 \end{code}
 
 The goal \verb$Select :< From$ is equivalent to
-\term{select_map}{Select, From, _}.
+\term{select_dict}{Select, From, _}.
 
-    \predicate[semidet]{select_map}{3}{+Select, +From, -Rest}
+    \predicate[semidet]{select_dict}{3}{+Select, +From, -Rest}
 True when the classes of \arg{Select} and \arg{From} have been unified,
 all keys in \arg{Select} appear in \arg{From} and the corresponding
 values have been unified. The key-value pairs of \arg{From} that do not
-appear in \arg{Select} are used to form an anonymous map, which us
+appear in \arg{Select} are used to form an anonymous dict, which us
 unified with \arg{Rest}.  For example:
 
 \begin{code}
-?- select_map(P{x:0, y:Y}, point{x:0, y:1, z:2}, R).
+?- select_dict(P{x:0, y:Y}, point{x:0, y:1, z:2}, R).
 P = point,
 Y = 1,
 R = _G1705{z:2}.
 \end{code}
 
-See also select_map/2 to ignore \arg{Rest} and \predref{>:<}{2} for
-a symmetric partial unification of two maps.
+See also select_dict/2 to ignore \arg{Rest} and \predref{>:<}{2} for
+a symmetric partial unification of two dicts.
 
     \infixop{>:<}{+Map1}{+Map2}
 This operator specifies a \jargon{partial unification} between
 \arg{Map1} and \arg{Map2}. It is true when the classes and the values
 associated with all \emph{common} keys have been unified.  The values
-associated to keys that do not appear in the other map are ignored.
-Partial unification is symmetric.  For example, given a list of maps,
-find maps that represent a point with X equal to zero:
+associated to keys that do not appear in the other dict are ignored.
+Partial unification is symmetric.  For example, given a list of dicts,
+find dicts that represent a point with X equal to zero:
 
 \begin{code}
     member(Map, List),
     Map >:< point{x:0, y:Y}.
 \end{code}
 
-See also \predref{:<}{2} and select_map/3.
+See also \predref{:<}{2} and select_dict/3.
 \end{description}
 
 
-\subsubsection{Destructive assignment in maps}
-\label{ext-map-assignment}
+\subsubsection{Destructive assignment in dicts}
+\label{ext-dict-assignment}
 
 This section describes the destructive update operations defined on
-maps. These actions can only \emph{update} keys and not add or remove
+dicts. These actions can only \emph{update} keys and not add or remove
 keys. If the requested key does not exist the predicate raises
 \term{existence_error}{key, Key, Map}. Note the additional argument.
 
 Destructive assignment is a non-logical operation and should be used
 with care because identical Prolog terms may be copied or shared add
 will of the system. Some of this behaviour can be avoided by adding an
-additional unbound value to the map. This prevents unwanted sharing and
-ensures that copy_term/2 actually copies the map. This pitfall is
+additional unbound value to the dict. This prevents unwanted sharing and
+ensures that copy_term/2 actually copies the dict. This pitfall is
 demonstrated in the example below:
 
 \begin{code}
-?- A = a{a:1}, copy_term(A,B), b_set_map(a, A, 2).
+?- A = a{a:1}, copy_term(A,B), b_set_dict(a, A, 2).
 A = B, B = a{a:2}.
 
-?- A = a{a:1,dummy:_}, copy_term(A,B), b_set_map(a, A, 2).
+?- A = a{a:1,dummy:_}, copy_term(A,B), b_set_dict(a, A, 2).
 A = a{a:2, dummy:_G3195},
 B = a{a:1, dummy:_G3391}.
 \end{code}
 
 
 \begin{description}
-    \predicate[det]{b_set_map}{3}{+Key, !Map, +Value}
+    \predicate[det]{b_set_dict}{3}{+Key, !Map, +Value}
 Destructively update the value associated with \arg{Key} in \arg{Map} to
 \arg{Value}. The update is trailed and undone on backtracking. This
 predicate raises an existence error if \arg{Key} does not appear in
 \arg{Map}. The update semantics are equivalent to setarg/3 and
 b_setval/2.
 
-    \predicate[det]{nb_set_map}{3}{+Key, !Map, +Value}
+    \predicate[det]{nb_set_dict}{3}{+Key, !Map, +Value}
 Destructively update the value associated with \arg{Key} in \arg{Map} to
 a copy of \arg{Value}. The update is \emph{not} undone on backtracking.
 This predicate raises an existence error if \arg{Key} does not appear in
 \arg{Map}. The update semantics are equivalent to nb_setarg/3 and
 nb_setval/2.
 
-    \predicate[det]{nb_link_map}{3}{+Key, !Map, +Value}
+    \predicate[det]{nb_link_dict}{3}{+Key, !Map, +Value}
 Destructively update the value associated with \arg{Key} in \arg{Map} to
 \arg{Value}. The update is \emph{not} undone on backtracking. This
 predicate raises an existence error if \arg{Key} does not appear in
@@ -900,12 +901,12 @@ nb_linkval/2 before use.
 \end{description}
 
 
-\subsection{When to use maps?}
-\label{sec:ext-maps-usage}
+\subsection{When to use dicts?}
+\label{sec:ext-dicts-usage}
 
 Maps are a new type in the Prolog world. They compete with several other
 types and libraries. In the list below we have a closer look at these
-relations. We will see that maps are first of all a good replacement for
+relations. We will see that dicts are first of all a good replacement for
 compound terms with a high or not clearly fixed arity, library
 \pllib{record} and option processing.
 
@@ -921,7 +922,7 @@ A good example of a compound term is the representation of RDF triples
 using the term \term{rdf}{Subject, Predicate, Object} because RDF
 triples are defined to have precisely these three arguments and they are
 always referred to in this order. An application processing information
-about persons should probably use maps because the information that is
+about persons should probably use dicts because the information that is
 related to a person is not so fixed. Typically we see first and last
 name. But there may also be title, middle name, gender, date of birth,
 etc. The number of arguments becomes unmanagable when using a compound
@@ -937,7 +938,7 @@ many arguments.  One of its problems is the verbose syntax needed to
 access or modify fields which results from long names for the generated
 predicates and the restriction that each field needs to be extracted
 with a separate goal.  Consider the example below, where the first uses
-library \pllib{record} and the second uses maps.
+library \pllib{record} and the second uses dicts.
 
 \begin{code}
     ...,
@@ -993,14 +994,14 @@ findall/3, maplist/3 and similar list processing predicates. Maps may
 play a role if frequent random key lookups are needed on the resulting
 association. For example, the skeleton `create a pairs list', `use
 list_to_assoc/2 to create an assoc', followed by frequent usage of
-get_assoc/2 to extract key values can be replaced using map_pairs/2 and
-the map access functions.  Using maps in this scenario is more efficient
+get_assoc/2 to extract key values can be replaced using dict_pairs/2 and
+the dict access functions.  Using dicts in this scenario is more efficient
 and provides a more pleasant access syntax.
 \end{description}
 
 
-\subsection{A motivation for maps as primary citizens}
-\label{sec:ext-maps-motivation}
+\subsection{A motivation for dicts as primary citizens}
+\label{sec:ext-dicts-motivation}
 
 Maps, or key-value associations, are a common data structure. A good old
 example are \jargon{property lists} as found in Lisp, while a good
@@ -1032,20 +1033,20 @@ which makes them unsuitable for e.g., \jargon{options lists} as seen in
 predicates such as open/4.
 
 
-\subsection{Implementation notes about maps}
-\label{sec:ext-maps-implementation}
+\subsection{Implementation notes about dicts}
+\label{sec:ext-dicts-implementation}
 
-Although maps are designed as an abstract data type and we deliberately
+Although dicts are designed as an abstract data type and we deliberately
 reserve the possibility to change the representation and even use
 multiple representations, this section describes the current
 implementation.
 
 Maps are currently represented as a compound term using the functor
-\verb$`map`$. The first argument is the class. The remaining arguments
+\verb$`dict`$. The first argument is the class. The remaining arguments
 create an array of sorted key-value pairs. This representation is
 compact and guarantees good locality. Lookup is order $\log(N)$, while
-adding valuesm deleting values and merging with other maps has order
-$N$. The main disadvantage is that changing values in large maps is
+adding valuesm deleting values and merging with other dicts has order
+$N$. The main disadvantage is that changing values in large dicts is
 costly, both in terms of memory and time.
 
 Future versions may share keys in a separate structure or use a binary
@@ -1055,10 +1056,10 @@ extended to compensate for alternate representations.
 
 
 ================================================================
-\section{Integration of strings and maps in the libraries}
+\section{Integration of strings and dicts in the libraries}
 \label{sec:ext-integration}
 
-While lacking proper string support and maps when designed, many
+While lacking proper string support and dicts when designed, many
 predicates and libraries use interfaces that must be classified as
 suboptimal. Changing these interfaces is likely to break much more code
 than the changes described in this chapter. This section discusses some
@@ -1071,16 +1072,16 @@ desired output or provide an alternative library.
 
 
 \subsection{Maps and option processing}
-\label{sec:ext-map-options}
+\label{sec:ext-dict-options}
 
 System predicates and predicates based on library \pllib{options}
-process maps as an alternative to traditional option lists.
+process dicts as an alternative to traditional option lists.
 
 
 \subsection{Maps in core data structures}
 
 Some predicates now produce structured data using compound terms and
-access predicates. We consider migrating these to maps. Below is a
+access predicates. We consider migrating these to dicts. Below is a
 tentative list of candidates. Portable code should use the provided
 access predicates and not rely on the term representation.
 
@@ -1101,7 +1102,7 @@ representation:
 
 \begin{itemize}
     \item The attribute list of the \term{element}{Name, Attributes, Content}
-will become a map.
+will become a dict.
     \item Attribute values will remain atoms
     \item CDATA in element content will be represented as strings
 \end{itemize}
@@ -1117,8 +1118,8 @@ representation:
 
 \begin{itemize}
     \item Instead of using \term{json}{KeyValueList}, the new
-interface will translate JSON objects to a map.  The type of
-this map will be \const{json}.
+interface will translate JSON objects to a dict.  The type of
+this dict will be \const{json}.
 
     \item String values in JSON will be mapped to strings.
 
@@ -1131,7 +1132,7 @@ will be represented as atoms.
 \label{sec:ext-http}
 
 The HTTP library and related data structures would profit from
-exploiting maps.  Below is a list of data structures that might
+exploiting dicts.  Below is a list of data structures that might
 be affected by future changes.	 Code can be made more robust
 by using the \pllib{option} library functions for extracting
 values from these structures.

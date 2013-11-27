@@ -1058,7 +1058,7 @@ XML = ...
 \end{code}
 
 Note that the dot is also use as infix operator for functional access to
-\jargon{maps} (see \secref{maps}). The rule defined by this flag
+\jargon{dicts} (see \secref{dicts}). The rule defined by this flag
 overrules the operator behaviour in the same way as \textit{1.2} is
 read as a floating point number and not as the term .(1,2).
 
