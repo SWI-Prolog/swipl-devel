@@ -35,6 +35,7 @@ This module tests the implementation of the dict datastructure.
 
 test_dict :-
 	run_tests([ dict_create,
+		    dict_bips,
 		    expand_functions
 		  ]).
 
@@ -58,6 +59,23 @@ test(create, true) :-
 
 :- end_tests(dict_create).
 
+
+:- begin_tests(dict_bips).
+
+test(put, D = a{x:2}) :-
+	put_dict(x, a{x:1}, 2, D).
+test(put, D = a{x:1, y:2}) :-
+	put_dict(y, a{x:1}, 2, D).
+test(put, D = a{x:1, y:2, z:3}) :-
+	put_dict(n{y:2,z:3}, a{x:1}, D).
+test(select, X == 1) :-
+	a{x:X} :< a{x:1, y:2}.
+test(select, fail) :-
+	a{x:_} :< a{y:2}.
+test(select, R =@= _{z:3}) :-		% implicit conversion
+	select_dict([x(1)], [x(1),z(3)], R).
+
+:- end_tests(dict_bips).
 
 :- begin_tests(expand_functions).
 
