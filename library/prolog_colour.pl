@@ -460,9 +460,9 @@ colourise_clause_head(M.Func := Ret, TB,
 	FuncPos = term_position(_,_,FF,FT,_), !,
 	colourise_term_arg(M, TB, SelfPos),
 	colour_item(func_dot, TB, SF-ST),		% .
-	colour_item(map_function(Func), TB, FF-FT),
+	colour_item(dict_function(Func), TB, FF-FT),
 	colourise_term_args(Func, TB, FuncPos),
-	colour_item(map_return_op, TB, AF-AT),		% :=
+	colour_item(dict_return_op, TB, AF-AT),		% :=
 	colourise_term_arg(Ret, TB, RetPos).
 colourise_clause_head(Head, TB, Pos) :-
 	functor_position(Pos, FPos, _),
@@ -1023,18 +1023,18 @@ colourise_term_arg(_, TB,
 colourise_term_arg({Term}, TB, brace_term_position(F,T,Arg)) :- !,
 	colour_item(brace_term, TB, F-T),
 	colourise_term_arg(Term, TB, Arg).
-colourise_term_arg(Map, TB, map_position(F,T,TF,TT,KVPos)) :- !,
-	is_map(Map, Type),
-	colour_item(map, TB, F-T),
+colourise_term_arg(Map, TB, dict_position(F,T,TF,TT,KVPos)) :- !,
+	is_dict(Map, Type),
+	colour_item(dict, TB, F-T),
 	TypePos = TF-TT,
 	(   var(Type)
 	->  (   singleton(Type, TB)
 	    ->  colour_item(singleton, TB, TypePos)
 	    ;   colour_item(var, TB, TypePos)
 	    )
-	;   colour_item(map_type, TB, TypePos)
+	;   colour_item(dict_type, TB, TypePos)
 	),
-	colourise_map_kv(Map, TB, KVPos).
+	colourise_dict_kv(Map, TB, KVPos).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
 	compound(Compound), !,
 	(   Pos = term_position(_F,_T,FF,FT,_ArgPos)
@@ -1075,16 +1075,16 @@ colourise_qq_type(QQType, TB, QQTypePos) :-
 
 qq_position(quasi_quotation_position(_,_,_,_,_)).
 
-%%	colourise_map_kv(+Map, +TB, +KVPosList)
+%%	colourise_dict_kv(+Map, +TB, +KVPosList)
 %
-%	Colourise the name-value pairs in the map
+%	Colourise the name-value pairs in the dict
 
-colourise_map_kv(_, _, []) :- !.
-colourise_map_kv(Map, TB, [key_value_position(_F,_T,_SF,_ST,K,KP,VP)|KV]) :-
-	colour_item(map_key, TB, KP),
-	get_map(K, Map, V),
+colourise_dict_kv(_, _, []) :- !.
+colourise_dict_kv(Map, TB, [key_value_position(_F,_T,_SF,_ST,K,KP,VP)|KV]) :-
+	colour_item(dict_key, TB, KP),
+	get_dict(K, Map, V),
 	colourise_term_arg(V, TB, VP),
-	colourise_map_kv(Map, TB, KV).
+	colourise_dict_kv(Map, TB, KV).
 
 
 %	colourise_exports(+List, +TB, +Pos)
@@ -1602,10 +1602,10 @@ def_style(qq_type,		   [bold(true)]).
 def_style(qq(_),		   [colour(blue), bold(true)]).
 def_style(qq_content(_),	   [colour(red4)]).
 
-def_style(map_type,		   [bold(true)]).
-def_style(map_key,		   [bold(true)]).
-def_style(map_function(_),	   [colour(navy_blue)]).
-def_style(map_return_op,	   [colour(blue)]).
+def_style(dict_type,		   [bold(true)]).
+def_style(dict_key,		   [bold(true)]).
+def_style(dict_function(_),	   [colour(navy_blue)]).
+def_style(dict_return_op,	   [colour(blue)]).
 
 def_style(hook,			   [colour(blue), underline(true)]).
 def_style(dcg_right_hand_ctx,	   [background('#d4ffe3')]).
@@ -1936,10 +1936,10 @@ syntax_message(goal(Class, Goal)) --> !,
 	goal_message(Class, Goal).
 syntax_message(class(Type, Class)) --> !,
 	xpce_class_message(Type, Class).
-syntax_message(map_return_op) --> !,
+syntax_message(dict_return_op) --> !,
 	[ ':= separates function from return value' ].
-syntax_message(map_function) --> !,
-	[ 'Function on a map' ].
+syntax_message(dict_function) --> !,
+	[ 'Function on a dict' ].
 
 goal_message(meta, _) -->
 	[ 'Meta call' ].
