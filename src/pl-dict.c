@@ -29,23 +29,23 @@ integers. Dicts should be considered  an   abstract  data  type. They are
 currently represented as compound terms   using the functor `dict`/Arity.
 The term has the following layout on the global stack:
 
-  -----------
+  ------------
   | `dict`/A |
-  -----------
-  | class   |
-  -----------
-  | key1    |
-  -----------
-  | value1  |
-  -----------
-  | key2    |
-  -----------
-  | value2  |
+  ------------
+  | tag      |
+  ------------
+  | key1     |
+  ------------
+  | value1   |
+  ------------
+  | key2     |
+  ------------
+  | value2   |
       ...
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int PL_get_dict_ex(term_t data, term_t class, term_t dict, int flags);
+static int PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags);
 #define DICT_GET_ALL	0xff
 #define DICT_GET_PAIRS	0x01
 #define DICT_GET_EQUALS	0x02
@@ -360,7 +360,7 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
     return GLOBAL_OVERFLOW;
 
   new    = gTop;
-  out    = new+2;			/* functor, class */
+  out    = new+2;			/* functor, tag */
   in     = data->arguments+1;
   in_end = in+arity-1;
   nv_end = nv+size*2;
@@ -435,7 +435,7 @@ del_dict(word dict, word key, word *new_dict ARG_LD)
     return GLOBAL_OVERFLOW;
 
   new    = gTop;
-  out    = new+2;			/* functor, class */
+  out    = new+2;			/* functor, tag */
   in     = data->arguments+1;
   in_end = in+arity-1;
 
@@ -451,7 +451,7 @@ del_dict(word dict, word key, word *new_dict ARG_LD)
   }
 
   gTop = out;
-  new[1] = linkVal(&data->arguments[0]); /* class */
+  new[1] = linkVal(&data->arguments[0]); /* tag */
   new[0] = dict_functor((out-(new+1))/2); /* arity */
 
   *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
@@ -475,7 +475,7 @@ partial_unify_dict(word dict1, word dict2 ARG_LD)
   Word end2 = in2+arityFunctor(d2->definition);
   int rc;
 
-  /* unify the classes */
+  /* unify the tages */
   if ( (rc=unify_ptrs(in1, in2, ALLOW_RETCODE PASS_LD)) != TRUE )
     return rc;
 
@@ -523,7 +523,7 @@ select_dict(word del, word from, word *new_dict ARG_LD)
   size_t left = 0;
   int rc;
 
-  /* unify the classes */
+  /* unify the tages */
   if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE PASS_LD)) != TRUE )
     return rc;
 
@@ -561,7 +561,7 @@ select_dict(word del, word from, word *new_dict ARG_LD)
     *new_dict = consPtr(out, TAG_COMPOUND|STG_GLOBAL);
 
     *out++ = dict_functor(left);
-    setVar(*out++);			/* class for new dict */
+    setVar(*out++);			/* tag for new dict */
 
     din = dd->arguments+1;
     fin = fd->arguments+1;
@@ -652,7 +652,7 @@ PL_is_dict(term_t t)
 
 
 static int
-PL_get_dict_ex(term_t data, term_t class, term_t dict, int flags)
+PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
 { GET_LD
 
   if ( PL_is_dict(data) )
@@ -671,8 +671,8 @@ PL_get_dict_ex(term_t data, term_t class, term_t dict, int flags)
       return FALSE;			/* global overflow */
     ap = m;
     *ap++ = dict_functor(len);
-    if ( class )
-    { Word cp = valTermRef(class);
+    if ( tag )
+    { Word cp = valTermRef(tag);
 
       *ap = linkVal(cp);		/* TBD: maybe move to another function */
       if ( tagex(*ap) == (TAG_REFERENCE|STG_LOCAL) )
@@ -1056,11 +1056,11 @@ resortDictsInTerm(term_t t)
 		 *******************************/
 
 /** is_dict(@Term)
-    is_dict(@Term, ?Class)
+    is_dict(@Term, ?Tag)
 
-True if Term is a dict that belongs to Class.
+True if Term is a dict that belongs to Tag.
 
-@tbd What if Term has a variable class?
+@tbd What if Term has a variable tag?
 */
 
 static
@@ -1199,7 +1199,7 @@ PRED_IMPL("get_dict_ex", 3, get_dict_ex, PL_FA_NONDETERMINISTIC)
 }
 
 
-/** dict_create(-Dict, ?Class, +Data) is det.
+/** dict_create(-Dict, ?Tag, +Data) is det.
 
 Dict represents the name-value pairs  in  Data.   If  Data  is a dict, Dict
 unified  with  Data.  Otherwise,  a  new    Dict   is  created.  Suitable
@@ -1224,8 +1224,8 @@ PRED_IMPL("dict_create", 3, dict_create, 0)
 }
 
 
-/** dict_pairs(+Dict, ?Class, -Pairs)
-    dict_pairs(-Dict, ?Class, +Pairs)
+/** dict_pairs(+Dict, ?Tag, -Pairs)
+    dict_pairs(-Dict, ?Tag, +Pairs)
 */
 
 typedef struct dict_pairs_ctx
