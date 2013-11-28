@@ -1025,8 +1025,8 @@ static const int type_map[8] = { PL_VARIABLE,
 				 PL_VARIABLE,  /* attributed variable */
 			         PL_FLOAT,
 				 PL_INTEGER,
-				 PL_ATOM,
 				 PL_STRING,
+				 PL_ATOM,
 				 PL_TERM,	/* TAG_COMPOUND */
 				 -1		/* TAG_REFERENCE */
 			       };
