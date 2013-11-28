@@ -3390,6 +3390,8 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 { switch(token->type)
   { case T_NAME:
       return TRUE;
+    case T_QNAME:
+      return !unquoted_atom(token->value.atom);
     case T_FUNCTOR:
     case T_DICT:
       return must_be_op;

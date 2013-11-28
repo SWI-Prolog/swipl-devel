@@ -191,7 +191,9 @@ truePrologFlagNoLD(unsigned int flag)
 static inline int
 wr_is_symbol(int c, write_options *options)
 { return ( isSymbol(c) ||
-	   (c == '`' && (options->flags & PL_WRT_BACKQUOTE_IS_SYMBOL)) );
+	   (c == '`' &&
+	    options &&
+	    (options->flags & PL_WRT_BACKQUOTE_IS_SYMBOL)) );
 }
 
 static int

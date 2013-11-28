@@ -422,22 +422,24 @@ We offer the predicate list_strings/0 to help porting your program.
 \label{sec:ext-syntax-op}
 
 As of SWI-Prolog version~7, quoted atoms loose their operator property.
-This means that expressions such as \verb$A == 'dynamic'$ are valid
+This means that expressions such as \verb$A = 'dynamic'/1$ are valid
 syntax, regardless of the operator definitions. From questions on the
-mailinglist this is what people expect,\footnote{We believe that most
+mailinglist this is what people expect.\footnote{We believe that most
 users expect an operator declaration to define a new token, which would
 explain why the operator name is often quoted in the declaration, but
 not while the operator is used. We are afraid that allowing for this
 easily creates ambiguous syntax. Also, many development environments are
 based on tokenization. Having dynamic tokenization due to operator
-declarations would make it hard to support Prolog in such editors.}
-while deliberately quoted operators are extremely rare and can easily be
-replaced. To simplify debugging, operator declarations that define an
-operator that cannot be written without quotes raises a domain error:
+declarations would make it hard to support Prolog in such editors.} To
+accomodate for real quoted operators, a quoted atom that \emph{needs}
+quotes can still act as an operator.\footnote{Suggested by Joachim
+Schimpf.} A good use-case for this is a unit
+library\footnote{\url{https://groups.google.com/d/msg/comp.lang.prolog/ozqdzI-gi_g/2G16GYLIS0IJ}},
+which allows for expressions such as below.
 
 \begin{code}
-?- op(700, xfy, 'is a').
-ERROR: Domain error: `unquoted_atom' expected, found `is a'
+?- Y isu 600kcal - 1h*200'W'.
+Y = 1790400.0'J'.
 \end{code}
 
 
