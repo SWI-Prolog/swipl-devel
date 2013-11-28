@@ -1553,7 +1553,7 @@ compareStandard(Word p1, Word p2, int eq)
 
     Rules:
 
-    Var @< AttVar @< Number @< Atom @< String < Term
+    Var @< AttVar @< Number @< String @< Atom < Term
 
     OldVar < NewVar	(not relyable)
     Atom:	alphabetically

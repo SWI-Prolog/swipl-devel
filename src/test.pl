@@ -1069,8 +1069,8 @@ sets(setof-2) :-
 	keysort(R0, R),
 	(   R =@= [3.14-[1, 2],
 		   42-[1, 2],
-		   atom-[1, 2],
 		   S-[1, 2],
+		   atom-[1, 2],
 		   compound(1)-[1, 2],
 		   [a, list]-[1, 2],
 		   compound(_A0, _B0)-[1, 2], % order is not defined
@@ -1078,8 +1078,8 @@ sets(setof-2) :-
 	->  true
 	;   R =@= [3.14-[1, 2],
 		   42-[1, 2],
-		   atom-[1, 2],
 		   S-[1, 2],
+		   atom-[1, 2],
 		   compound(1)-[1, 2],
 		   [a, list]-[1, 2],
 		   compound(A, A)-[1, 2],
@@ -1087,8 +1087,8 @@ sets(setof-2) :-
 	->  true
 	;   R =@= [3.14-[1, 2],
 		   42-[1, 2],
-		   atom-[1, 2],
 		   S-[1, 2],
+		   atom-[1, 2],
 		   compound(1)-[1, 2],
 		   compound(A, A)-[1, 2],
 		   compound(_A1, _B1)-[1, 2],
@@ -1096,8 +1096,8 @@ sets(setof-2) :-
 	->  true
 	;   R =@= [3.14-[1, 2],
 		   42-[1, 2],
-		   atom-[1, 2],
 		   S-[1, 2],
+		   atom-[1, 2],
 		   compound(1)-[1, 2],
 		   compound(_A1, _B1)-[1, 2],
 		   compound(A, A)-[1, 2],
