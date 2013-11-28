@@ -13,6 +13,7 @@ AC_SUBST(CMFLAGS)
 AC_SUBST(ETAGS)
 AC_SUBST(LD)
 AC_SUBST(SO)				dnl shared-object extension (e.g., so)
+AC_SUBST(SO_PATH)			dnl variable name for SO search path
 AC_SUBST(LDSOFLAGS)			dnl pass -shared to swipl-ld
 AC_SUBST(SOLIB)
 AC_SUBST(TXTEXT)
@@ -39,6 +40,7 @@ AC_MSG_RESULT("		PLLIBS=$PLLIBS")
 AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
 AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
+AC_MSG_RESULT("		PLSOPATH=$PLSOPATH")
 if test "$PLTHREADS" = "yes"; then MT=yes; fi
 CC=$PLLD
 LD=$PLLD
