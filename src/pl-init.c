@@ -1028,6 +1028,9 @@ runtime_vars(int format)
 #ifdef SO_EXT
   printvar("PLSOEXT",	SO_EXT, format);
 #endif
+#ifdef SO_PATH
+  printvar("PLSOPATH",	SO_PATH, format);
+#endif
   printvar("PLVERSION", version, format);
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   printvar("PLSHARED",	"yes", format);

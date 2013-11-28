@@ -105,6 +105,11 @@ Extension used by the hosting operating system for shared objects. On most
 Unix systems this is "so"; on MS-Windows it is "dll".  AIX uses "o", HPUX
 "sl".
 .TP
+.B PLSOPATH
+Environment variable used by the hosting operating system to extend the
+search path for shared objects.  For example, on ELF systems this is
+"LD_LIBRARY_PATH" and on MS-Windows it is "PATH".
+.TP
 .B PLVERSION
 Numeric representation of the SWI-Prolog version.
 .TP
