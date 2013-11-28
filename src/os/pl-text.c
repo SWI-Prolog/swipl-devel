@@ -334,6 +334,8 @@ error:
       expected = ATOM_list;		/* List and/or string object */
     else if ( flags & CVT_LIST )
       expected = ATOM_text;
+    else if ( (flags & CVT_ATOM) && w == ATOM_nil )
+      expected = ATOM_atom;		/* [] \== '[]' */
     else if ( flags & CVT_NUMBER )
       expected = ATOM_atomic;
     else
