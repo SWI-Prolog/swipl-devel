@@ -177,17 +177,6 @@ handy for it someone wants to add a data type to the system.
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-On the MIPS, whether or not alignment can   be used appears to depend on
-the compilation flags. We play safe for   the  case the user changes the
-flags after running configure.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(__mips__)
-#define ALIGNOF_DOUBLE sizeof(double)
-#endif
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
