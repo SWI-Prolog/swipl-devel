@@ -1357,10 +1357,10 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     case V_MPQ:
     { char tmp[12];
       int size;
-      int written = 0;
+      int written;
       int fbits;
-      int digits = 0;
-      int padding = 0;
+      int digits;
+      int padding;
 
       switch(how)
       { case 'f':
@@ -1387,9 +1387,15 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
             { PL_no_memory();
               return NULL;
             }
-            digits = written = gmp_snprintf(baseBuffer(out, char), size, "%Zd", t1);
-          }
-          if (digits <= arg) padding = (arg-digits+1);
+            digits = written = gmp_snprintf(baseBuffer(out, char),
+					    size, "%Zd", t1);
+          } else
+	  { written = digits = 0;
+	  }
+          if ( digits <= arg )
+	    padding = (arg-digits+1);
+	  else
+	    padding = 0;
 
           size = digits;
           if (neg) size++;               /* leading - */
@@ -1580,6 +1586,29 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	}
 	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
       }
+
+#ifdef __WINDOWS__
+      /*
+         Write all ~e formatted floats in POSIX notation:
+         * exponent must contain at least 2 digits
+         * only as many digits as necessary to represent the exponent
+      */
+      switch(how)
+      { case 'e':
+        case 'E':
+        case 'g':
+        case 'G':
+        { if (written >= 7 &&
+              ( *(out->base + written - 5) == 'e' ||
+                *(out->base + written - 5) == 'E' ) &&
+              ( *(out->base + written - 3) == '0' ))
+          { memmove(out->base + written-3, out->base + written-2, 3);
+            written--;
+          }
+        }
+      }
+#endif
+
       out->top = out->base + written;
 
       break;
