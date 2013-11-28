@@ -84,7 +84,7 @@
 
 map_bits(_, Var, _, _) :-
 	var(Var), !,
-
+	'$instantiation_error'(Var).
 map_bits(_, [], Bits, Bits) :- !.
 map_bits(Pred, [H|T], Old, New) :-
 	map_bits(Pred, H, Old, New0),
