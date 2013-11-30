@@ -2550,8 +2550,10 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 L #==> R   :-
-        phrase((reify(L, BL),reify(R, BR)), Ps),
-        propagator_init_trigger([BL,BR], pimpl(BL,BR,Ps)).
+        reify(L, LB, LPs),
+        reify(R, RB, RPs),
+        append(LPs, RPs, Ps),
+        propagator_init_trigger([LB,RB], pimpl(LB,RB,Ps)).
 
 %% ?P #<== ?Q
 %
