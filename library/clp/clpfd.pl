@@ -192,12 +192,12 @@ A finite domain _arithmetic expression_ is one of:
 
 The most important arithmetic constraints are:
 
-    | Expr1 #>= Expr2  | Expr1 is larger than or equal to Expr2  |
-    | Expr1 #=< Expr2  | Expr1 is smaller than or equal to Expr2 |
-    | Expr1 #=  Expr2  | Expr1 equals Expr2 |
-    | Expr1 #\= Expr2  | Expr1 is not equal to Expr2 |
-    | Expr1 #> Expr2   | Expr1 is strictly larger than Expr2 |
-    | Expr1 #< Expr2   | Expr1 is strictly smaller than Expr2 |
+    | Expr1 #>= Expr2  | Expr1 is greater than or equal to Expr2  |
+    | Expr1 #=< Expr2  | Expr1 is less than or equal to Expr2     |
+    | Expr1 #=  Expr2  | Expr1 equals Expr2                       |
+    | Expr1 #\= Expr2  | Expr1 is not equal to Expr2              |
+    | Expr1 #> Expr2   | Expr1 is strictly greater than Expr2     |
+    | Expr1 #< Expr2   | Expr1 is strictly less than Expr2        |
 
 ---+++ Reification
 
