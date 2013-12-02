@@ -1856,9 +1856,9 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
   for( ; *in; in=s)
   { s = (unsigned char*)utf8_get_char((char*)in, &chr);
 
+    if ( chr == '`' && false(_PL_rd, BQ_MASK) )
+      continue;				/* ` is a symbol char */
     if ( !PlSymbolW(chr) )
-      return in;
-    if ( chr == '`' && true(_PL_rd, BQ_MASK) )
       return in;
   }
 
@@ -2743,9 +2743,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  discardBuffer(&b);
 		  break;
 		}
-#ifdef O_STRING
     case BQ:
-    case_bq:    { tmp_buffer b;
+    case_bq:    if ( true(_PL_rd, BQ_MASK) )
+		{ tmp_buffer b;
 		  term_t t = PL_new_term_ref();
 		  PL_chars_t txt;
 		  int type;
@@ -2772,8 +2772,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  cur_token.type = T_STRING;
 		  discardBuffer(&b);
 		  break;
+		} else
+		{ goto case_symbol;
 		}
-#endif
     case CT:
 		syntaxError("illegal_character", _PL_rd);
     default:
