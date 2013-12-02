@@ -1214,6 +1214,7 @@ initPrologFlags(void)
 		GD->options.traditional ? "codes" : "string");
   setPrologFlag("back_quotes", FT_ATOM,
 		GD->options.traditional ? "symbol_char" : "codes");
+  setPrologFlag("traditional", FT_BOOL|FF_READONLY, GD->options.traditional, 0);
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);
   setPrologFlag("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");

@@ -1597,6 +1597,11 @@ output.
       used 13,448+5,808; free 72,568+47,440
 \end{code}
 
+    \prologflagitem{traditional}{bool}{r}
+Available in SWI-Prolog version~7.  If \const{true}, `traditional' mode
+has been selected using \cmdlineoption{--traditional}.  See also
+\secref{extensions}.
+
     \prologflagitem{tty_control}{bool}{rw}
 Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user actions for the trace.  May
