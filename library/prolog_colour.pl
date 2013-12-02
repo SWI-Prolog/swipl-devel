@@ -449,8 +449,8 @@ colourise_clause_head(Head, TB, Pos) :-
 	),
 	colour_item(head(Class, Head), TB, FPos),
 	specified_items(ArgSpecs, Head, TB, ArgPos).
-colourise_clause_head(.(M,Func) := Ret, TB,
-		      term_position(_,_,AF,AT,
+colourise_clause_head(:=(.(M,Func), Ret), TB,  % M.Func := Ret, but with
+		      term_position(_,_,AF,AT, % --traditional there are no ops.
 				    [ term_position(_,_,SF,ST,
 						    [ SelfPos,
 						      FuncPos
