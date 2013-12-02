@@ -1102,7 +1102,7 @@ is \const{codes}. If \cmdlineoption{--traditional} is given, the default
 is \const{symbol_char}, which allows using \verb$`$ in operators
 composed of symbols.\footnote{Older versions had a boolean flag
 \const{backquoted_strings}, which toggled between \const{string} and
-\const{symbol_char}}.
+\const{symbol_char}}.  See also \secref{strings}.
 
     \prologflagitem{bounded}{bool}{r}
 ISO Prolog flag. If \const{true}, integer representation is bound by

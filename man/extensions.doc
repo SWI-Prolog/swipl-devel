@@ -115,6 +115,31 @@ Hello world!
 "Hello world!"
 \end{code}
 
+\jargon{Back quoted} text (as in \verb$`text`$) is mapped to a list of
+character codes in version~7. The settings for the flags that control
+how double and back quoted text is read is summarised in
+\tabref{quote-mapping}. Programs that aim for compatibility should
+realise that the ISO standard defines back quoted text, but does not
+define the \prologflag{back_quotes} Prolog flag and does not define the
+term that is produced by back quoted text.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{lcc}
+\hline
+\bf Mode & \prologflag{double_quotes} & \prologflag{back_quotes} \\
+\hline
+Version~7 default & string & codes \\
+\cmdlineoption{--traditional} & codes & symbol_char \\
+\hline
+\end{tabular}
+\end{center}
+    \caption{Mapping of double and back quoted text in the two
+	     modes.}
+    \label{tab:quote-mapping}
+\end{table}
+
+
 \Secref{ext-dquotes-motivation} motivates the introduction of strings
 and mapping double quoted text to this type.
 
@@ -261,6 +286,11 @@ appropriate:
 	  \begin{code}
 	  :- set_prolog_flag(double_quotes, codes).
 	  \end{code}
+    \item Use a back quoted string (e.g., \verb$`text`$).  Note
+	  that this will not make your code run regardless of
+	  the \cmdlineoption{--traditional} command line option
+	  and code exploiting this mapping is also not portable
+	  to ISO compliant systems.
     \item If the strings appear in facts and usage is safe, add a
           clause to the multifile predicate check:string_predicate/1
 	  to silence list_strings/0 on all clauses of that predicate.
