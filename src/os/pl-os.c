@@ -1520,7 +1520,7 @@ to be implemented directly.  What about other Unixes?
     if ( !rval )
     { term_t tmp = PL_new_term_ref();
 
-      PL_put_atom(tmp, ATOM_dot);
+      PL_put_atom_chars(tmp, ".");
       PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 	       ATOM_getcwd, ATOM_directory, tmp);
 
