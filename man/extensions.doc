@@ -589,7 +589,7 @@ Below is an example that illustrates the representation of a typical
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Maps: structures with named arguments}
+\section{Dicts: structures with named arguments}
 \label{sec:dicts}
 
 SWI-Prolog version~7 introduces dicts as an abstract object with a
@@ -625,7 +625,7 @@ A = point{x:1, y:2}.
 A = _G1476{first_name:"Mel", last_name:"Smith"}.
 \end{code}
 
-Maps can be unified following the standard symmetric Prolog unification
+Dicts can be unified following the standard symmetric Prolog unification
 rules. As dicts use an internal canonical form, the order in which the
 named keys are represented is not relevant. This behaviour is
 illustrated by the following example.
@@ -730,7 +730,7 @@ X = 4.47213595499958.
 \subsubsection{Predefined functions on dicts}
 \label{sec:ext-dicts-predefined}
 
-Maps currently define the following reserved functions:
+Dicts currently define the following reserved functions:
 
 \begin{description}
     \dictfunction{get}{1}{?Key}
@@ -758,7 +758,7 @@ or extends the key-values in the original dict.  See put_dict/4.
 
 
 \subsection{Predicates for managing dicts}
-\label{ext-dict-predicates}
+\label{sec:ext-dict-predicates}
 
 This section documents the predicates that are defined on dicts.  We use
 the naming and argument conventions of the traditional \pllib{assoc}.
@@ -884,7 +884,7 @@ See also \predref{:<}{2} and select_dict/3.
 
 
 \subsubsection{Destructive assignment in dicts}
-\label{ext-dict-assignment}
+\label{sec:ext-dict-assignment}
 
 This section describes the destructive update operations defined on
 dicts. These actions can only \emph{update} keys and not add or remove
@@ -936,7 +936,7 @@ nb_linkval/2 before use.
 \subsection{When to use dicts?}
 \label{sec:ext-dicts-usage}
 
-Maps are a new type in the Prolog world. They compete with several other
+Dicts are a new type in the Prolog world. They compete with several other
 types and libraries. In the list below we have a closer look at these
 relations. We will see that dicts are first of all a good replacement for
 compound terms with a high or not clearly fixed arity, library
@@ -1007,7 +1007,7 @@ salutation(P) :-
 \end{code}
 
     \item [Library \pllib{assoc}]
-This library implements a balanced binary tree.  Maps can replace
+This library implements a balanced binary tree.  Dicts can replace
 the use of this library if the association is fairly static (i.e.,
 there are few update operations), all keys are atoms or (small)
 integers and the code does not rely on ordered operations.
@@ -1015,14 +1015,14 @@ integers and the code does not rely on ordered operations.
     \item [Library \pllib{option}]
 Option lists are introduced by ISO Prolog, for example for read_term/3,
 open/4, etc.  The \pllib{option} library provides operations to extract
-options, merge options lists, etc.  Maps are well suited to replace
+options, merge options lists, etc.  Dicts are well suited to replace
 option lists because they are cheaper, can be processed faster and
 have a more natural syntax.
 
     \item [Library \pllib{pairs}]
 This library is commonly used to process large name-value associations.
 In many cases this concerns short-lived datastructures that result from
-findall/3, maplist/3 and similar list processing predicates. Maps may
+findall/3, maplist/3 and similar list processing predicates. Dicts may
 play a role if frequent random key lookups are needed on the resulting
 association. For example, the skeleton `create a pairs list', `use
 list_to_assoc/2 to create an assoc', followed by frequent usage of
@@ -1035,7 +1035,7 @@ and provides a more pleasant access syntax.
 \subsection{A motivation for dicts as primary citizens}
 \label{sec:ext-dicts-motivation}
 
-Maps, or key-value associations, are a common data structure. A good old
+Dicts, or key-value associations, are a common data structure. A good old
 example are \jargon{property lists} as found in Lisp, while a good
 recent example is formed by JavaScript \jargon{objects}. Traditional
 Prolog does not offer native property lists. As a result, people are
@@ -1073,7 +1073,7 @@ reserve the possibility to change the representation and even use
 multiple representations, this section describes the current
 implementation.
 
-Maps are currently represented as a compound term using the functor
+Dicts are currently represented as a compound term using the functor
 \verb$`dict`$. The first argument is the tag. The remaining arguments
 create an array of sorted key-value pairs. This representation is
 compact and guarantees good locality. Lookup is order $\log(N)$, while
@@ -1103,14 +1103,15 @@ a choice. We plan to resolve that using either options that specify the
 desired output or provide an alternative library.
 
 
-\subsection{Maps and option processing}
+\subsection{Dicts and option processing}
 \label{sec:ext-dict-options}
 
 System predicates and predicates based on library \pllib{options}
 process dicts as an alternative to traditional option lists.
 
 
-\subsection{Maps in core data structures}
+\subsection{Dicts in core data structures}
+\label{sec:ext-dict-in-core-data}
 
 Some predicates now produce structured data using compound terms and
 access predicates. We consider migrating these to dicts. Below is a
@@ -1123,7 +1124,7 @@ access predicates and not rely on the term representation.
 \end{itemize}
 
 
-\subsection{Maps, strings and XML}
+\subsection{Dicts, strings and XML}
 \label{sec:ext-xml}
 
 The XML representation could benefit significantly from the new
@@ -1139,7 +1140,7 @@ will become a dict.
     \item CDATA in element content will be represented as strings
 \end{itemize}
 
-\subsection{Maps, strings and JSON}
+\subsection{Dicts, strings and JSON}
 \label{sec:ext-json}
 
 The JSON representation could benefit significantly from the new
@@ -1160,7 +1161,7 @@ will be represented as atoms.
 \end{itemize}
 
 
-\subsection{Maps, strings and HTTP}
+\subsection{Dicts, strings and HTTP}
 \label{sec:ext-http}
 
 The HTTP library and related data structures would profit from
