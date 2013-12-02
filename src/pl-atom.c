@@ -1053,6 +1053,50 @@ pl_atom_hashstat(term_t idx, term_t n)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+resetListAtoms() resets the atom '$cons' to   point  to '.' and switches
+the type for '[]' back to the normal   text_atom type. This is needed to
+switch to traditional mode if the atom table has been initialised.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+resetListAtoms(void)
+{ Atom a = atomValue(ATOM_dot);
+
+  if ( strcmp(a->name, ".") != 0 )
+  { Atom *ap2 = &atomTable[a->hash_value & (atom_buckets-1)];
+    unsigned int v0, v;
+    static char *s = ".";
+
+    Sdprintf("Resetting list constructor to ./2\n");
+
+    for( ; ; ap2 = &(*ap2)->next )
+    { assert(*ap2);		/* MT: TBD: failed a few times!? */
+
+      if ( *ap2 == a )
+      { *ap2 = a->next;
+	goto modify;
+      }
+    }
+    assert(0);
+
+  modify:
+    a->name   = s;
+    a->length = strlen(s);
+    v0 = MurmurHashAligned2(s, a->length, MURMUR_SEED);
+    v  = v0 & (atom_buckets-1);
+
+    a->next      = atomTable[v];
+    atomTable[v] = a;
+  }
+
+  a = atomValue(ATOM_nil);
+  a->type = &text_atom;
+
+  return TRUE;
+}
+
+
 static void
 registerBuiltinAtoms(void)
 { int size = sizeof(atoms)/sizeof(char *) - 1;

@@ -4400,6 +4400,9 @@ PL_action(int action, ...)
       GD->os.gui_app = guiapp;
       break;
     }
+    case PL_ACTION_TRADITIONAL:
+      setTraditional();
+      break;
     case PL_ACTION_WRITE:
     { GET_LD
       char *s = va_arg(args, char *);

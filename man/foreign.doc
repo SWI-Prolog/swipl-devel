@@ -2611,6 +2611,10 @@ argument is 0. If a fatal error occurs, the system uses a windows
 messagebox to report this on a GUI application, and otherwise simply
 prints the error and exits.
 
+    \termitem{PL_ACTION_TRADITIONAL}{}
+Same effect as using \cmdlineoption{--traditional}.  Must be called
+\emph{before} PL_initialise().
+
     \termitem{PL_ACTION_WRITE}{}
 Write the argument, a \ctype{char *} to the current output stream.
 

@@ -961,6 +961,7 @@ PL_EXPORT(int)	PL_get_signum_ex(term_t sig, int *n);
 #define PL_ACTION_GUIAPP	10	/* Win32: set when this is a gui */
 #define PL_ACTION_ATTACH_CONSOLE 11	/* MT: Attach a console */
 #define PL_GMP_SET_ALLOC_FUNCTIONS 12	/* GMP: do not change allocation functions */
+#define PL_ACTION_TRADITIONAL	13	/* Set --traditional */
 
 #define PL_BT_SAFE		0x1	/* Do not try to print goals */
 #define PL_BT_USER		0x2	/* Only show user-goals */

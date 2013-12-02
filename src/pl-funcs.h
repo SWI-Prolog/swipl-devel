@@ -78,6 +78,7 @@ COMMON(word)		lookupBlob(const char *s, size_t len,
 				   PL_blob_t *type, int *new);
 COMMON(word)		pl_atom_hashstat(term_t i, term_t n);
 COMMON(void)		initAtoms(void);
+COMMON(int)		resetListAtoms(void);
 COMMON(void)		cleanupAtoms(void);
 COMMON(void)		markAtom(atom_t a);
 COMMON(foreign_t)	pl_garbage_collect_atoms(void);
@@ -647,6 +648,7 @@ COMMON(void)		vfatalError(const char *fm, va_list args) NORETURN;
 COMMON(bool)		vwarning(const char *fm, va_list args);
 COMMON(int)		cleanupProlog(int status, int reclaim);
 COMMON(int)		run_on_halt(OnHalt *handlers, int rval);
+COMMON(int)		setTraditional(void);
 
 /* pl-dll.c */
 COMMON(word)		pl_open_dll(term_t name, term_t handle);

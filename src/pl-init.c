@@ -510,6 +510,16 @@ initDefaultOptions()
 }
 
 
+int
+setTraditional(void)
+{ GD->options.traditional = TRUE;
+  if ( GD->atoms.table )
+    resetListAtoms();
+
+  return TRUE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Does the commandline option parsing.  Actually   we  should  use the GNU
 getopt package and deal nicely with intptr_t   arguments  as well as shorts,
@@ -567,7 +577,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
       { GD->options.win_app = TRUE;
 #endif
       } else if ( (optval=is_longopt(s, "traditional")) )
-      { GD->options.traditional = TRUE;
+      { setTraditional();
       }
 
       continue;				/* don't handle --long=value */
