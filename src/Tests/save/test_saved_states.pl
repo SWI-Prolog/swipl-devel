@@ -49,12 +49,20 @@
 :- use_module(library(filesex)).
 :- use_module(library(readutil)).
 :- use_module(library(debug)).
+:- if(exists_source(library(rlimit))).
+:- use_module(library(rlimit)).
+:- endif.
 
 /** <module> Test saved states
 
 This moduele tests the saved state generation capabilities.
 */
 
+test_saved_states :-
+	\+ enough_files, !,
+	format(user_error,
+	       'Skipped saved state files because the system does\n\c
+	        not offer us enough file open files~n', []).
 test_saved_states :-
 	run_tests([ saved_state
 		  ]).
@@ -65,6 +73,33 @@ test_saved_states :-
 :- prolog_load_context(directory, Dir),
    retractall(test_dir(_)),
    asserta(test_dir(Dir)).
+
+%%	enough_files
+%
+%	This test uses quite a  few   file  descriptors, apparently more
+%	than some confined build and test  environments offer. Hence, we
+%	test for this and try to enlarge the number.
+
+:- if(current_predicate(rlimit/3)).
+enough_files :-
+	catch(rlimit(nofile, Limit, Limit), E,
+	      print_message(warning, E)),
+	(   E = error(domain_error(resource, nofile), _)
+	->  true				% we don't know
+	;   Limit > 16
+	), !.
+enough_files :-
+	catch(rlimit(nofile, _, 16), E,
+	      ( print_message(warning, E),
+		fail
+	      )).
+:- else.
+enough_files.
+:- endif.
+
+%%	state_output(-FileName)
+%
+%	Name of the file we use for temporary output of the state.
 
 state_output(State) :-
 	working_directory(Dir, Dir),
