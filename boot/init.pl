@@ -1412,7 +1412,6 @@ reexport(File, Import) :-
 	consult(X).
 [M:F|R] :-
 	consult(M:[F|R]).
-[].
 
 consult(M:X) :-
 	X == user, !,

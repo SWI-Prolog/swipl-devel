@@ -398,9 +398,14 @@ abbreviated by just typing a number of filenames in a list. Examples:
 \exam{?- [user].}	     & \% Type program on the terminal \\
 \end{tabular}\end{center}
 
-The predicate consult/1 is equivalent to \verb$load_files(File, [])$, except
-for handling the special file \const{user}, which reads clauses from the
-terminal. See also the \term{stream}{Input} option of load_files/2.
+The predicate consult/1 is equivalent to \verb$load_files(File, [])$,
+except for handling the special file \const{user}, which reads clauses
+from the terminal. See also the \term{stream}{Input} option of
+load_files/2. Abbreviation using \verb$?- [file1,file2].$ does
+\emph{not} work for the empty list (\verb$[]$). This facility is
+implemented by defining the list as a predicate. Applications may
+only rely on using the list abbreviation at the Prolog toplevel and
+in directives.
 
     \predicate{ensure_loaded}{1}{:File}
 If the file is not already loaded, this is equivalent to consult/1.
