@@ -53,6 +53,8 @@
 :- use_module(library(rlimit)).
 :- endif.
 
+:- debug(save).
+
 /** <module> Test saved states
 
 This moduele tests the saved state generation capabilities.
@@ -84,9 +86,10 @@ test_saved_states :-
 enough_files :-
 	catch(rlimit(nofile, Limit, Limit), E,
 	      print_message(warning, E)),
-	(   E = error(domain_error(resource, nofile), _)
-	->  true				% we don't know
-	;   Limit > 16
+	(   subsumes_term(error(domain_error(resource, nofile), _), E)
+	->  debug(save, 'Unknown max open files', [])
+	;   Limit > 16,
+	    debug(save, 'Reported ~D max open files', [Limit])
 	), !.
 enough_files :-
 	catch(rlimit(nofile, _, 16), E,
