@@ -65,5 +65,11 @@ test(string_codes, Out == Codes) :-
 	string_codes(S, Out).
 test(string_chars, S == [a,b]) :-
 	string_chars("ab", S).
+test(split_string, L == ["a", "b", "c", "d"]) :-
+	split_string("a.b.c.d", ".", "", L).
+test(split_string, L == ["SWI-Prolog", "7.0"]) :-
+	split_string("SWI-Prolog, 7.0", ",", " ", L).
+test(split_string, L == ["SWI-Prolog"]) :-
+	split_string("  SWI-Prolog  ", "", "\s\t\n", L).
 
 :- end_tests(string).

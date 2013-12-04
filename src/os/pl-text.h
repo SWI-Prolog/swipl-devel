@@ -26,7 +26,8 @@
 #define PL_TEXT_H_INCLUDED
 
 typedef enum
-{ PL_CHARS_MALLOC,			/* malloced data */
+{ PL_CHARS_VIRGIN = 0,			/* not initialised */
+  PL_CHARS_MALLOC,			/* malloced data */
   PL_CHARS_RING,			/* stored in the buffer ring */
   PL_CHARS_HEAP,			/* stored in program area (atoms) */
   PL_CHARS_STACK,			/* stored on the global stack */
@@ -87,5 +88,23 @@ text_get_char(const PL_chars_t *t, size_t i)
   return t->encoding == ENC_ISO_LATIN_1 ? t->text.t[i]&0xff
 					: t->text.w[i];
 }
+
+
+static inline size_t
+text_chr(const PL_chars_t *t, int chr)
+{ assert(t->canonical);
+  if ( t->encoding == ENC_ISO_LATIN_1 )
+  { char *e = strchr(t->text.t, chr);
+    if ( e )
+      return e-t->text.t;
+  } else
+  { wchar_t *e = wcschr(t->text.w, chr);
+    if ( e )
+      return(e-t->text.w);
+  }
+
+  return (size_t)-1;
+}
+
 
 #endif /*PL_TEXT_H_INCLUDED*/

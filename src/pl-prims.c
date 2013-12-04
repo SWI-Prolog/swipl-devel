@@ -3821,8 +3821,67 @@ PRED_IMPL("atomic_list_concat", 3, atomic_list_concat, 0)
 
 static
 PRED_IMPL("atomic_list_concat", 2, atomic_list_concat, 0)
-{  PRED_LD
+{ PRED_LD
   return atomic_list_concat(A1, 0, A2 PASS_LD);
+}
+
+
+/** split_string(+String, +SepChars, +PadChars, -SubStrings) is det.
+*/
+
+static
+PRED_IMPL("split_string", 4, split_string, 0)
+{ PRED_LD
+  PL_chars_t input, sep, pad;
+  int rc = FALSE;
+
+  input.storage = PL_CHARS_VIRGIN;
+    sep.storage = PL_CHARS_VIRGIN;
+    pad.storage = PL_CHARS_VIRGIN;
+
+  if ( PL_get_text(A1, &input, CVT_ATOM|CVT_STRING|CVT_LIST) &&
+       PL_get_text(A2, &sep,   CVT_ATOM|CVT_STRING|CVT_LIST) &&
+       PL_get_text(A3, &pad,   CVT_ATOM|CVT_STRING|CVT_LIST) )
+  { size_t i, last;
+    term_t tail = PL_copy_term_ref(A4);
+    term_t head = PL_new_term_ref();
+
+    for(i=0; i < input.length;)
+    { size_t sep_at;
+
+					/* skip padding */
+      while( i<input.length &&
+	     text_chr(&pad, text_get_char(&input, i)) != (size_t)-1 )
+	i++;
+
+      if ( i == input.length )
+	break;
+
+      last = i;				/* find sep */
+      while( i<input.length &&
+	     text_chr(&sep, text_get_char(&input, i)) == (size_t)-1 )
+	i++;
+      sep_at = i;			/* back skip padding */
+      while( i>last &&
+	       text_chr(&pad, text_get_char(&input, i-1)) != (size_t)-1 )
+	i--;
+
+      if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_text_range(head, &input, last, i-last, PL_STRING) )
+	goto error;
+
+      i = sep_at+1;
+    }
+
+    rc = PL_unify_nil(tail);
+  }
+
+error:
+  PL_free_text(&input);
+  PL_free_text(&sep);
+  PL_free_text(&pad);
+
+  return rc;
 }
 
 
@@ -5219,6 +5278,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_codes", 2, string_codes, 0)
   PRED_DEF("string_chars", 2, string_chars, 0)
   PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("split_string", 4, split_string, 0)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$cmd_option_val", 2, cmd_option_val, 0)

@@ -1022,7 +1022,7 @@ PL_canonicalise_text(PL_chars_t *text)
 
 void
 PL_free_text(PL_chars_t *text)
-{ if ( text->storage == PL_CHARS_MALLOC )
+{ if ( text->storage == PL_CHARS_MALLOC && text->text.t )
     PL_free(text->text.t);
 }
 

@@ -570,6 +570,7 @@ suggest predicates from a keyword.
 \predicatesummary{source_file}{2}{Obtain source file of predicate}
 \predicatesummary{source_file_property}{2}{Information about loaded files}
 \predicatesummary{source_location}{2}{Location of last read term}
+\predicatesummary{split_string}{4}{Break a string into substrings}
 \predicatesummary{spy}{1}{Force tracer on specified predicate}
 \predicatesummary{stamp_date_time}{3}{Convert time-stamp to date structure}
 \predicatesummary{statistics}{0}{Show execution statistics}

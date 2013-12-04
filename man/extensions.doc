@@ -197,8 +197,29 @@ particularly fast on long strings, as for each redo the system has to
 create two entirely new strings, while the list equivalent only creates
 a single new list-cell and moves some pointers around.
 
-    \predicate{sub_string}{5}{+String, ?Before, ?Length, ?After, ?SubString}
+    \predicate[det]{split_string}{4}{+String, +SepChars, +PadChars, -SubStrings}
 
+Break \arg{String} into \arg{SubStrings}. The \arg{SepChars} argument
+provides the characters that act as separators and thus the length of
+\arg{SubStrings} is one more than the number of separators found.
+Leading and trailing characters for each substring that appear in
+\arg{PadChars} are removed from the substring. The input arguments can
+be either atoms, strings or char/code lists. Compatible with ECLiPSe.
+Below are some examples:
+
+\begin{code}
+% a simple split
+?- split_string("a.b.c.d", ".", "", L).
+L = ["a", "b", "c", "d"].
+% split and remove white space
+?- split_string("SWI-Prolog, 7.0", ",", " ", L).
+L = ["SWI-Prolog", "7.0"].
+% only remove leading and trailing white space
+?- split_string("  SWI-Prolog  ", "", "\s\t\n", L).
+L = ["SWI-Prolog"].
+\end{code}
+
+    \predicate{sub_string}{5}{+String, ?Before, ?Length, ?After, ?SubString}
 \arg{SubString} is a substring of \arg{String}. There are \arg{Before}
 characters in \arg{String} before \arg{SubString}, \arg{SubString}
 contains \arg{Length} character and is followed by \arg{After}
