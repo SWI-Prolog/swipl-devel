@@ -53,6 +53,9 @@
 :- use_module(library(rlimit)).
 :- endif.
 
+% keep debug statements
+:- set_prolog_flag(optimise, false).
+
 :- debug(save).
 
 /** <module> Test saved states
@@ -92,12 +95,15 @@ enough_files :-
 	    debug(save, 'Reported ~D max open files', [Limit])
 	), !.
 enough_files :-
-	catch(rlimit(nofile, _, 16), E,
+	MaxOpen = 16,
+	catch(rlimit(nofile, _, MaxOpen), E,
 	      ( print_message(warning, E),
 		fail
-	      )).
+	      )),
+	debug(save, 'Raised max open files to ~d', [MaxOpen]).
 :- else.
-enough_files.
+enough_files :-
+	debug(save, 'No information on max open files; assuming ok', []).
 :- endif.
 
 %%	state_output(-FileName)
