@@ -4591,7 +4591,7 @@ static const opt_spec read_term_options[] =
   { ATOM_quasi_quotations,  OPT_TERM },
 #endif
   { ATOM_cycles,	    OPT_BOOL },
-  { ATOM_dot_lists,	    OPT_BOOL },
+  { ATOM_dotlists,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 

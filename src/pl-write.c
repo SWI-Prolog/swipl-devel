@@ -1643,10 +1643,11 @@ writeBlobMask(atom_t a)
 static const opt_spec write_term_options[] =
 { { ATOM_quoted,	    OPT_BOOL },
   { ATOM_ignore_ops,	    OPT_BOOL },
-  { ATOM_dot_lists,	    OPT_BOOL },
+  { ATOM_dotlists,	    OPT_BOOL },
   { ATOM_brace_terms,	    OPT_BOOL },
   { ATOM_numbervars,        OPT_BOOL },
   { ATOM_portray,           OPT_BOOL },
+  { ATOM_portrayed,         OPT_BOOL },
   { ATOM_portray_goal,      OPT_TERM },
   { ATOM_character_escapes, OPT_BOOL },
   { ATOM_max_depth,	    OPT_INT  },
@@ -1695,7 +1696,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &dotlists, &braceterms,
-		     &numbervars, &portray, &gportray,
+		     &numbervars, &portray, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
 		     &bq, &attr, &priority, &partial, &options.spacing,
 		     &blobs, &cycles, &varnames, &nl, &fullstop) )

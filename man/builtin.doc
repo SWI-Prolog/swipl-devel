@@ -4179,7 +4179,7 @@ a quoted atom.
 
     \termitem{brace_terms}{Bool}
 If \const{true} (default), write \verb${}(X)$ as \verb${X}$.  See also
-\const{dot_lists} and \const{ignore_ops}.
+\const{dotlists} and \const{ignore_ops}.
 
     \termitem{blobs}{Atom}
 Define how non-text blobs are handled.  By default, this is left to
@@ -4203,11 +4203,11 @@ writes an infinite term if not protected by, e.g., the
 \const{depth_limit} option.} See also the \const{cycles} option in
 read_term/2.
 
-    \termitem{dot_lists}{Bool}
+    \termitem{dotlists}{Bool}
 If \const{true} (default \const{false}), write lists using the
 dotted term notation rather than the list notation.\footnote{Copied from
 ECLiPSe.} Note that as of version~7, the list constructor is
-\verb|'$cons'|. Using \term{dot_lists}{true}, write_term/2 writes a list
+\verb|'$cons'|. Using \term{dotlists}{true}, write_term/2 writes a list
 using `.' as constructor. This is intended for communication with
 programs such as other Prolog systems, that rely on this notation.
 
@@ -4224,7 +4224,7 @@ If \const{true}, the generic term representation (<functor>(<args>
 will be used where appropriate.\footnote{In traditional systems this
 flag also stops the syntactic sugar notation for lists and brace terms.
 In SWI-Prolog, these are controlled by the separate options
-\const{dot_lists} and \const{brace_terms}}.
+\const{dotlists} and \const{brace_terms}}.
 
     \termitem{max_depth}{Integer}
 If the term is nested deeper than \arg{Integer}, print the remainder
@@ -4272,10 +4272,7 @@ write_value(Value) :-
 \end{code}
 
     \termitem{portray}{Bool}
-If \const{true}, the hook portray/1 is called before printing a term
-that is not a variable.  If portray/1 succeeds, the term is considered
-printed.  See also print/1.  The default is \const{false}.  This option
-is an extension to the ISO write_term options.
+Same as \term{portrayed}{Bool}.  Deprecated.
 
     \termitem{portray_goal}{:Goal}
 Implies \term{portray}{true}, but calls \arg{Goal} rather than the
@@ -4285,6 +4282,12 @@ printed and the 3rd argument is the current write option list.  The
 write option list is copied from the write_term call, but the list
 is guaranteed to hold an option \const{priority} that reflects the
 current priority.
+
+    \termitem{portrayed}{Bool}
+If \const{true}, the hook portray/1 is called before printing a term
+that is not a variable.  If portray/1 succeeds, the term is considered
+printed.  See also print/1.  The default is \const{false}.  This option
+is an extension to the ISO write_term options.
 
     \termitem{priority}{Integer}
 An integer between 0 and 1200 representing the `context priority'.
@@ -4481,7 +4484,7 @@ emitting cyclic terms without using the template construct produces an
 infinitely large term (read: it will generate an error after producing
 a huge amount of output).
 
-    \termitem{dot_lists}{Bool}
+    \termitem{dotlists}{Bool}
 If \const{true} (default \const{false}), read \verb$.(a,[])$ as a list,
 even if lists are internally nor constructed using the dot as functor.
 This is primarily intended to read the output from write_canonical/1
