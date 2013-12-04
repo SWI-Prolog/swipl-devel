@@ -304,10 +304,7 @@ expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
 	    '$set_source_module'(_, Old)).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
 	is_meta_call(G0, M, Head), !,
-	(   expand_meta(Head, G0, P0, G, P, M, MList, Term)
-	->  true
-	;   G = G0, P = P0
-	).
+	expand_meta(Head, G0, P0, G, P, M, MList, Term).
 expand_goal(G0, P0, G, P, M, MList, Term) :-
 	expand_functions(G0, P0, G, P, M, MList, Term).
 
@@ -330,38 +327,55 @@ is_meta_call(G0, M, Head) :-
 expand_meta(Spec, G0, P0, G, P, M, MList, Term) :-
 	functor(Spec, _, Arity),
 	functor(G0, Name, Arity),
-	functor(G, Name, Arity),
+	functor(G1, Name, Arity),
 	f_pos(P0, ArgPos0, P, ArgPos),
-	expand_meta(1, Arity, Spec, G0, ArgPos0, G, ArgPos, M, MList, Term).
+	expand_meta(1, Arity, Spec,
+		    G0, ArgPos0, Eval,
+		    G1,  ArgPos,
+		    M, MList, Term),
+	conj(Eval, G1, G).
 
-expand_meta(I, Arity, Spec, G0, ArgPos0, G, [P|PT], M, MList, Term) :-
+expand_meta(I, Arity, Spec, G0, ArgPos0, Eval, G, [P|PT], M, MList, Term) :-
 	I =< Arity, !,
 	arg_pos(ArgPos0, P0, PT0),
 	arg(I, Spec, Meta),
 	arg(I, G0, A0),
 	arg(I, G, A),
-	expand_meta_arg(Meta, A0, P0, A, P, M, MList, Term),
+	expand_meta_arg(Meta, A0, P0, EvalA, A, P, M, MList, Term),
 	I2 is I + 1,
-	expand_meta(I2, Arity, Spec, G0, PT0, G, PT, M, MList, Term).
-expand_meta(_, _, _, _, _, _, [], _, _, _).
+	expand_meta(I2, Arity, Spec, G0, PT0, EvalB, G, PT, M, MList, Term),
+	conj(EvalA, EvalB, Eval).
+expand_meta(_, _, _, _, _, true, _, [], _, _, _).
 
 arg_pos(List, _, _) :- var(List), !.	% no position info
 arg_pos([H|T], H, T) :- !.		% argument list
 arg_pos([], _, []).			% new has more
 
-expand_meta_arg(0, A0, PA0, A, PA, M, MList, Term) :- !,
+expand_meta_arg(0, A0, PA0, true, A, PA, M, MList, Term) :- !,
 	expand_goal(A0, PA0, A1, PA, M, MList, Term),
 	compile_meta_call(A1, A, M, Term).
-expand_meta_arg(^, A0, PA0, A, PA, M, MList, Term) :- !,
+expand_meta_arg(^, A0, PA0, true, A, PA, M, MList, Term) :- !,
 	expand_setof_goal(A0, PA0, A, PA, M, MList, Term).
-expand_meta_arg(_, A, P, A, P, _, _, _).
+expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term) :-
+	replace_functions(A0, Eval, A, M), % TBD: pass positions
+	(   Eval == true
+	->  true
+	;   meta_arg(S)
+	->  throw(error(context_error(function, meta_arg(S)), _))
+	;   true
+	).
 
 has_meta_arg(Head) :-
 	arg(_, Head, Arg),
-	meta_arg(Arg), !.
+	direct_call_meta_arg(Arg), !.
 
-meta_arg(0).
-meta_arg(^).
+direct_call_meta_arg(0).
+direct_call_meta_arg(^).
+
+meta_arg(:).
+meta_arg(//).
+meta_arg(I) :- integer(I).
+
 
 expand_setof_goal(Var, Pos, Var, Pos, _, _, _) :-
 	var(Var), !.
@@ -455,7 +469,7 @@ expand_functions(G, P, G, P, _, _, _).
 replace_functions(Var, true, Var, _Ctx) :-
 	var(Var), !.
 replace_functions(F, Eval, Var, Ctx) :-
-	function(F, Ctx),
+	function(F, Ctx), !,
 	compound_name_arity(F, Name, Arity),
 	PredArity is Arity+1,
 	compound_name_arity(G, Name, PredArity),
