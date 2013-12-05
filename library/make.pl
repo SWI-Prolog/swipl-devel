@@ -50,6 +50,10 @@ Prolog internal database after loaded files have been edited.
 	another.
 */
 
+:- multifile
+	prolog:make_hook/2.
+
+
 %%	make
 %
 %	Reload all source files that have been changed since they were
@@ -63,10 +67,17 @@ make_no_trace :-
 	'$update_library_index',
 	findall(File, modified_file(File), Reload0),
 	list_to_set(Reload0, Reload),
+	(   prolog:make_hook(before, Reload)
+	->  true
+	;   true
+	),
 	print_message(silent, make(reload(Reload))),
 	maplist(reload_file, Reload),
 	print_message(silent, make(done(Reload))),
-	list_undefined([scan(local)]).
+	(   prolog:make_hook(after, Reload)
+	->  true
+	;   list_undefined([scan(local)])
+	).
 
 modified_file(File) :-
 	source_file_property(Source, modified(Time)),
@@ -121,3 +132,28 @@ source_base_name(File, Compile) :-
 	file_name_extension(Compile, Ext, File),
 	user:prolog_file_type(Ext, prolog), !.
 source_base_name(File, File).
+
+
+%%	prolog:make_hook(+When, +Files) is semidet.
+%
+%	This hook is called by make/0. It   is called with the following
+%	values for When:
+%
+%	  - before
+%	  The hook is called before reloading starts. The default
+%	  action is to do nothing.
+%
+%	  - after
+%	  The hook is called after reloading completed.  The default
+%	  action is to call list_undefined/1 as:
+%
+%	    ==
+%	    list_undefined([scan(local)]).
+%	    ==
+%
+%	The hook can be  used  to   change  program  validation, stop or
+%	restart services, etc.
+%
+%	@arg Files is a list holding the canonical file names of the
+%	     files that need to be reloaded.  This list can be empty.
+
