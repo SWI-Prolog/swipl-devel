@@ -2278,15 +2278,16 @@ isvar:
     }
 
     if ( isright )
-    { goto right_recursion;
+    { if ( ar == 0 )
+	goto right_recursion;
     } else
-    { code c;
-      int rc;
+    { int rc;
 
-      if ( (rc=compileArgument(arg, where, ci PASS_LD)) < 0 )
-	return rc;
-      c = (where & A_HEAD) ? H_POP : B_POP;
-      Output_0(ci, c);
+      if ( ar == 0 )			/* ar == -1 on a() */
+      { if ( (rc=compileArgument(arg, where, ci PASS_LD)) < 0 )
+	  return rc;
+      }
+      Output_0(ci, (where & A_HEAD) ? H_POP : B_POP);
     }
 
     return TRUE;
@@ -4061,10 +4062,10 @@ get_arg_ref(term_t term, term_t argp ARG_LD)
   int ar = arityTerm(w);
   Word ap = valTermRef(argp);
 
-  assert(ar > 0);
-
-  ap[0] = makeRefG(p);			/* points to first argument */
-  ap[1] = makeRefG(p+ar-1);		/* points to last argument */
+  if ( ar > 0 )
+  { ap[0] = makeRefG(p);		/* points to first argument */
+    ap[1] = makeRefG(p+ar-1);		/* points to last argument */
+  }
 }
 
 
@@ -4275,7 +4276,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  fdef = (functor_t) XR(*PC++);
       common_functor:
 	  if ( !(t2 = PL_new_term_refs(2)) ||
-	       !PL_unify_functor(argp, fdef) )
+	       !PL_unify_compound(argp, fdef) )
 	    return FALSE;
           get_arg_ref(argp, t2 PASS_LD);
           next_arg_ref(argp PASS_LD);
@@ -4292,7 +4293,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 
 	  fdef = (functor_t) XR(*PC++);
       common_rfunctor:
-	  TRY(PL_unify_functor(argp, fdef));
+	  TRY(PL_unify_compound(argp, fdef));
           get_arg_ref(argp, argp PASS_LD);
 	  continue;
       case H_RLIST:

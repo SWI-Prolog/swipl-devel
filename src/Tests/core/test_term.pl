@@ -35,7 +35,8 @@ suchj as numbervars, univ, etc.
 test_term :-
 	run_tests([ numbervars,
 		    variant,
-		    compound
+		    compound,
+		    zero_arity_compound
 		  ]).
 
 :- begin_tests(numbervars).
@@ -170,3 +171,26 @@ test(compound_name_arguments, Args == []) :-
 	compound_name_arguments(a(), _N, Args).
 
 :- end_tests(compound).
+
+:- begin_tests(zero_arity_compound).
+
+t1(A) :- t(A,a()).
+t2(A) :- t(a(),A).
+t3(a()).
+t4(a(1, a())).
+t5(a(a(),1)).
+
+t(X,X).
+
+test(clause, B == t(A,a())) :-
+	clause(t1(A), B).
+test(clause, B == t(a(),A)) :-
+	clause(t2(A), B).
+test(clause, A == a()) :-
+	clause(t3(A), true).
+test(clause, A == a(1,a())) :-
+	clause(t4(A), true).
+test(clause, A == a(a(),1)) :-
+	clause(t5(A), true).
+
+:- end_tests(zero_arity_compound).
