@@ -3740,8 +3740,16 @@ append_text_to_buffer(Buffer b, PL_chars_t *txt, IOENC *enc)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+atomic_list_concat()     implements     atomic_list_concat/2,3       and
+atomics_to_string/2,3.
+
+(*) Note that the atom-version for  historical reasons supports the mode
+(-,+,+)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static foreign_t
-atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
+atomic_list_concat(term_t list, term_t sep, term_t atom, int ret_type ARG_LD)
 { term_t l = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   IOENC enc = ENC_ISO_LATIN_1;
@@ -3757,7 +3765,7 @@ atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
   { PL_chars_t txt;
 
     if ( !PL_get_text(head, &txt, CVT_ATOMIC) )
-    { if ( PL_is_variable(head) && sep )
+    { if ( PL_is_variable(head) && sep && ret_type == PL_ATOM ) /* see (*) */
 	goto split;
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
     }
@@ -3786,7 +3794,7 @@ atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
       sum.length = entriesBuffer(&b, pl_wchar_t);
     }
 
-    rc = PL_unify_text(atom, 0, &sum, PL_ATOM);
+    rc = PL_unify_text(atom, 0, &sum, ret_type);
     discardBuffer(&b);
 
     return rc;
@@ -3808,14 +3816,28 @@ split:
 static
 PRED_IMPL("atomic_list_concat", 3, atomic_list_concat, 0)
 { PRED_LD
-  return atomic_list_concat(A1, A2, A3 PASS_LD);
+  return atomic_list_concat(A1, A2, A3, PL_ATOM PASS_LD);
 }
 
 
 static
 PRED_IMPL("atomic_list_concat", 2, atomic_list_concat, 0)
 { PRED_LD
-  return atomic_list_concat(A1, 0, A2 PASS_LD);
+  return atomic_list_concat(A1, 0, A2, PL_ATOM PASS_LD);
+}
+
+
+static
+PRED_IMPL("atomics_to_string", 3, atomics_to_string, 0)
+{ PRED_LD
+  return atomic_list_concat(A1, A2, A3, PL_STRING PASS_LD);
+}
+
+
+static
+PRED_IMPL("atomics_to_string", 2, atomics_to_string, 0)
+{ PRED_LD
+  return atomic_list_concat(A1, 0, A2, PL_STRING PASS_LD);
 }
 
 
@@ -5277,6 +5299,8 @@ BeginPredDefs(prims)
   PRED_DEF("string_chars", 2, string_chars, 0)
   PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
   PRED_DEF("split_string", 4, split_string, 0)
+  PRED_DEF("atomics_to_string", 3, atomics_to_string, 0)
+  PRED_DEF("atomics_to_string", 2, atomics_to_string, 0)
   PRED_DEF("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$cmd_option_val", 2, cmd_option_val, 0)

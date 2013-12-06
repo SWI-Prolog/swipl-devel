@@ -90,6 +90,8 @@ suggest predicates from a keyword.
 \predicatesummary{atomic_concat}{3}{Concatenate two atomic values to an atom}
 \predicatesummary{atomic_list_concat}{2}{Append a list of atoms}
 \predicatesummary{atomic_list_concat}{3}{Append a list of atoms with separator}
+\predicatesummary{atomics_to_string}{2}{Concatenate list of inputs to a string}
+\predicatesummary{atomics_to_string}{3}{Concatenate list of inputs to a string}
 \predicatesummary{autoload}{0}{Autoload all predicates now}
 \predicatesummary{autoload_path}{1}{Add directories for autoloading}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}

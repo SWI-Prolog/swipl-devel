@@ -234,6 +234,22 @@ name_value(String, Name, Value) :-
 	atom_string(Name, NameString),
 	sub_string(String, _, After, 0, Value).
 \end{code}
+
+    \predicate{atomics_to_string}{2}{+List, -String}
+\arg{List} is a list of strings, atoms, integers or floating point
+numbers. Succeeds if \arg{String} can be unified with the concatenated
+elements of \arg{List}. Equivalent to \term{atomics_to_string}{List,
+'', String}.
+
+    \predicate{atomics_to_string}{3}{+List, +Separator, -String}
+Creates a string just like atomics_to_string/2, but inserts
+\arg{Separator} between each pair of inputs. For example:
+
+\begin{code}
+?- atomics_to_string([gnu, "gnat", 1], ', ', A).
+
+A = "gnu, gnat, 1"
+\end{code}
 \end{description}
 
 

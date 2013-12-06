@@ -4997,13 +4997,14 @@ X = name42.
 \end{code}
 
     \predicate[commons]{atomic_list_concat}{2}{+List, -Atom}
-\arg{List} is a list of atoms, integers or floating point numbers. Succeeds
-if \arg{Atom} can be unified with the concatenated elements of \arg{List}.
-Equivalent to \term{atomic_list_concat}{List, '', Atom}.
+\arg{List} is a list of strings, atoms, integers or floating point
+numbers. Succeeds if \arg{Atom} can be unified with the concatenated
+elements of \arg{List}. Equivalent to \term{atomic_list_concat}{List,
+'', Atom}.
 
     \predicate[commons]{atomic_list_concat}{3}{+List, +Separator, -Atom}
 Creates an atom just like atomic_list_concat/2, but inserts \arg{Separator}
-between each pair of atoms.  For example:
+between each pair of inputs.  For example:
 \begin{code}
 ?- atomic_list_concat([gnu, gnat], ', ', A).
 
