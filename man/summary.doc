@@ -283,6 +283,7 @@ suggest predicates from a keyword.
 \predicatesummary{get_code}{2}{Read next character from a stream (ISO)}
 \predicatesummary{get_map}{3}{Get the value associated to a key from a map}
 \predicatesummary{get_single_char}{1}{Read next character from the terminal}
+\predicatesummary{get_string_code}{3}{Get character code at index in string}
 \predicatesummary{get_time}{1}{Get current time}
 \predicatesummary{getenv}{2}{Get shell environment variable}
 \predicatesummary{goal_expansion}{2}{Hook for macro-expanding goals}

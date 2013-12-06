@@ -4460,6 +4460,28 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
 }
 
 
+/** get_string_code(+Index, +String, -Code)
+
+True when the Index'ed character of String has code Code.
+*/
+
+static
+PRED_IMPL("get_string_code", 3, get_string_code, 0)
+{ PRED_LD
+  PL_chars_t t;
+  size_t i;
+
+  if ( !PL_get_text(A2, &t, CVT_ALL|CVT_EXCEPTION) ||
+       !PL_get_size_ex(A1, &i) )
+    return FALSE;
+
+  if ( i == 0 || i >= t.length )
+    return FALSE;
+
+  return PL_unify_integer(A3, text_get_char(&t, i-1));
+}
+
+
 foreign_t
 pl_sub_string(term_t atom,
 	      term_t before, term_t len, term_t after,
@@ -5298,6 +5320,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_codes", 2, string_codes, 0)
   PRED_DEF("string_chars", 2, string_chars, 0)
   PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("get_string_code", 3, get_string_code, 0)
   PRED_DEF("split_string", 4, split_string, 0)
   PRED_DEF("atomics_to_string", 3, atomics_to_string, 0)
   PRED_DEF("atomics_to_string", 2, atomics_to_string, 0)

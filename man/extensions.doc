@@ -197,6 +197,10 @@ Fails silently if \arg{Index} is zero or greater than the length of
 searched-for \arg{Code} appears only once in \arg{String}.  See also
 sub_string/5.
 
+    \predicate{get_string_code}{3}{+Index, +String, -Code}
+Semi-deterministic version of string_code/3.  ECLiPSe provides this
+to support \verb$String[Index]$ notation.
+
     \predicate{string_concat}{3}{?String1, ?String2, ?String3}
 Similar to atom_concat/3, but the unbound argument will be unified with
 a string object rather than an atom. Also, if both \arg{String1} and
