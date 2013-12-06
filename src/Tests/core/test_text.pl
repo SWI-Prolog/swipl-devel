@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -213,5 +211,9 @@ test(neg, C = '\235\') :-		% test signed char handling
 test(int64, X == 'x-9223372036854775808') :-
 	N is -1<<63,
 	atomic_list_concat([x, N], X).
+test(error, error(instantiation_error)) :-
+	atomic_list_concat([1,_], _).
+test(error, error(domain_error(non_empty_atom, ''))) :-
+	atomic_list_concat(_L, '', text).
 
 :- end_tests(atomic_list_concat).
