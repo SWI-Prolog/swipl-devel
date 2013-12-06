@@ -115,8 +115,8 @@ test:c0 :- stress(call).
 test:c1(M:M).
 
 
-t_call :- t_called("ab", "c", "abc"), c1.
-t_call :- t_called("ab", "c", "abc"), c1.
+t_call :- t_called([a,b], [c], [a,b,c]), c1.
+t_call :- t_called([a,b], [c], [a,b,c]), c1.
 
 t_called(L1, L2, L3) :-
 	assertion(is_list(L1)),
