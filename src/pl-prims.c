@@ -4382,9 +4382,9 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
       if ( !PL_is_variable(A1) )
       { if ( !PL_get_size_ex(A1, &i) )
 	  return FALSE;
-	if ( i >= t.length )
+	if ( i == 0 || i >= t.length )
 	  return FALSE;
-	return PL_unify_integer(A3, text_get_char(&t, i));
+	return PL_unify_integer(A3, text_get_char(&t, i-1));
       } else
       { if ( !PL_is_variable(A3) )
 	{ if ( !PL_get_char_ex(A3, &tchar, FALSE) )
@@ -4419,7 +4419,7 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
 
       for(; idx < t.length; idx++)
       { if ( text_get_char(&t, idx) == tchar )
-	{ if ( PL_unify_integer(A1, idx) )
+	{ if ( PL_unify_integer(A1, idx+1) )
 	  { for(idx++; idx < t.length; idx++)
 	    { if ( text_get_char(&t, idx) == tchar )
 		ForeignRedoInt(idx);

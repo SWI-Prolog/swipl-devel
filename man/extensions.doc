@@ -178,14 +178,13 @@ predicate is functionally equivalent to atom_length/2 and also accepts
 atoms, integers and floats as its first argument.
 
     \predicate{string_code}{3}{?Index, +String, ?Code}
-True when \arg{Code} represents the character at the 0-based \arg{Index}
+True when \arg{Code} represents the character at the 1-based \arg{Index}
 position in \arg{String}. If \arg{Index} is unbound the string is
-scanned from index 0. Raises a domain error if \arg{Index} is negative.
-The mode \term{string_code}{-,+,+} is deterministic if the searched-for
-\arg{Code} appears only once in \arg{String}.  Note that this is similar
-to \term{sub_string}{String, Offset, 1, _, Char}, except that the
-character is represented as a code in string_code/3 and as a
-one-character string in sub_string/5.  See also sub_atom/5.
+scanned from index 1. Raises a domain error if \arg{Index} is negative.
+Fails silently if \arg{Index} is zero or greater than the length of
+\arg{String}. The mode \term{string_code}{-,+,+} is deterministic if the
+searched-for \arg{Code} appears only once in \arg{String}.  See also
+sub_string/5.
 
     \predicate{string_concat}{3}{?String1, ?String2, ?String3}
 Similar to atom_concat/3, but the unbound argument will be unified with
@@ -198,7 +197,6 @@ create two entirely new strings, while the list equivalent only creates
 a single new list-cell and moves some pointers around.
 
     \predicate[det]{split_string}{4}{+String, +SepChars, +PadChars, -SubStrings}
-
 Break \arg{String} into \arg{SubStrings}. The \arg{SepChars} argument
 provides the characters that act as separators and thus the length of
 \arg{SubStrings} is one more than the number of separators found.
