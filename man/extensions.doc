@@ -150,6 +150,17 @@ Strings may be manipulated by a set of predicates that is similar to the
 manipulation of atoms. In addition to the list below, string/1 performs
 the type check for this type and is described in \secref{typetest}.
 
+SWI-Prolog's string primitives are being synchronized with
+\url[ECLiPSe]{http://eclipseclp.org/wiki/Prolog/Strings}. Neither the
+names of the predicates, nor their exact behaviour should be considered
+completely stable. In general, SWI-Prolog's text manipulation predicates
+accept any form of text as input argument and produce the type indicated
+by the predicate name as output. This policy should simplify migration
+and writing programs that can run unmodified or with minor modifications
+on systems that do not support strings. Code should avoid relying on
+this feature as much as possible to facilitate a more strict mode and/or
+type checking.
+
 \begin{description}
     \predicate{atom_string}{2}{?Atom, ?String}
 Bi-directional conversion between an atom and a string. At
