@@ -3838,17 +3838,22 @@ PRED_IMPL("split_string", 4, split_string, 0)
   { size_t i, last;
     term_t tail = PL_copy_term_ref(A4);
     term_t head = PL_new_term_ref();
+    size_t sep_at = (size_t)-1;
 
     for(i=0; i < input.length;)
-    { size_t sep_at;
-
-					/* skip padding */
+    {					/* skip padding */
       while( i<input.length &&
 	     text_chr(&pad, text_get_char(&input, i)) != (size_t)-1 )
 	i++;
 
       if ( i == input.length )
+      { if ( sep_at == (size_t)-1 )
+	{ if ( !PL_unify_list(tail, head, tail) ||
+	       !PL_unify_chars(head, PL_STRING, 0, "") )
+	    goto error;
+	}
 	break;
+      }
 
       last = i;				/* find sep */
       while( i<input.length &&
