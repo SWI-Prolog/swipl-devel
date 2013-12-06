@@ -4999,8 +4999,9 @@ X = name42.
     \predicate[commons]{atomic_list_concat}{2}{+List, -Atom}
 \arg{List} is a list of atoms, integers or floating point numbers. Succeeds
 if \arg{Atom} can be unified with the concatenated elements of \arg{List}.
+Equivalent to \term{atomic_list_concat}{List, '', Atom}.
 
-    \predicate[commons]{atomic_list_concat}{3}{+List, +Separator, ?Atom}
+    \predicate[commons]{atomic_list_concat}{3}{+List, +Separator, -Atom}
 Creates an atom just like atomic_list_concat/2, but inserts \arg{Separator}
 between each pair of atoms.  For example:
 \begin{code}
@@ -5012,7 +5013,8 @@ A = 'gnu, gnat'
 The SWI-Prolog version of this predicate can also be used to split atoms
 by instantiating \arg{Separator} and \arg{Atom} as shown below.  We kept
 this functionality to simplify porting old SWI-Prolog code where this
-predicate was called concat_atom/3.
+predicate was called concat_atom/3.  When used in mode (-,+,+),
+\arg{Separator} must be a non-empty atom.  See also split_string/4.
 
 \begin{code}
 ?- atomic_list_concat(L, -, 'gnu-gnat').

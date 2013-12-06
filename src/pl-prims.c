@@ -3670,24 +3670,22 @@ PRED_IMPL("atomic_concat", 3, atomic_concat, PL_FA_ISO)
 
 
 static int
-split_atom(term_t list, term_t sep, term_t atom ARG_LD)
-{ PL_chars_t st, at;
+split_atom(term_t list, PL_chars_t *st, term_t atom ARG_LD)
+{ PL_chars_t at;
   size_t i, last;
   term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
+  size_t sep_len = st->length;
 
-  if ( !sep )
-    return -1;
-  if ( !PL_get_text(atom, &at, CVT_ATOMIC) ||
-       !PL_get_text(sep, &st, CVT_ATOMIC) )
-    return -1;
+  if ( !PL_get_text(atom, &at, CVT_ATOMIC|CVT_EXCEPTION) )
+    return FALSE;
 
-  for(last=i=0; (ssize_t)i<=(ssize_t)(at.length-st.length); )
-  { if ( PL_cmp_text(&st, 0, &at, i, st.length) == 0 )
+  for(last=i=0; (ssize_t)i<=(ssize_t)(at.length-sep_len); )
+  { if ( PL_cmp_text(st, 0, &at, i, sep_len) == 0 )
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_text_range(head, &at, last, i-last, PL_ATOM) )
 	fail;
-      i += st.length;
+      i += sep_len;
       last = i;
     } else
       i++;
@@ -3759,15 +3757,9 @@ atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
   { PL_chars_t txt;
 
     if ( !PL_get_text(head, &txt, CVT_ATOMIC) )
-    { discardBuffer(&b);
-      switch(split_atom(list, sep, atom PASS_LD))
-      { case -1:
-	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
-	case 0:
-	  fail;
-	default:
-	  succeed;
-      }
+    { if ( PL_is_variable(head) && sep )
+	goto split;
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
     }
 
     if ( ntxt > 0 && sep )
@@ -3800,15 +3792,16 @@ atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
     return rc;
   }
 
-  discardBuffer(&b);
-  switch(split_atom(list, sep, atom PASS_LD))
-  { case -1:
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
-    case 0:
-      fail;
-    default:
-      succeed;
+split:
+  if ( !sep || st.length == 0 )
+  { if ( !sep )
+    { sep = PL_new_term_ref();
+      PL_put_atom(sep, ATOM_);
+    }
+    return PL_domain_error("non_empty_atom", sep);
   }
+  discardBuffer(&b);
+  return split_atom(list, &st, atom PASS_LD);
 }
 
 
