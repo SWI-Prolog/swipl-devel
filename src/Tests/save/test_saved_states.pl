@@ -118,15 +118,18 @@ create_state(File, Output, Args) :-
 	current_prolog_flag(executable, Me),
 	append(Args, ['-o', Output, '-c', File], AllArgs),
 	test_dir(TestDir),
+	debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
 	process_create(Me, AllArgs,
 		       [ cwd(TestDir),
 			 stderr(pipe(Err))
 		       ]),
 	read_stream_to_codes(Err, ErrOutput),
 	close(Err),
+	debug(save, 'Saved state', []),
 	assertion(no_error(ErrOutput)).
 
 run_state(Exe, Args, Result) :-
+	debug(save, 'Running state ~q ~q', [Exe, Args]),
 	process_create(Exe, Args,
 		       [ stdout(pipe(Out)),
 			 stderr(pipe(Err))
