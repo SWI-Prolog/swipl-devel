@@ -3849,14 +3849,15 @@ PRED_IMPL("split_string", 4, split_string, 0)
 { PRED_LD
   PL_chars_t input, sep, pad;
   int rc = FALSE;
+  int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION;
 
   input.storage = PL_CHARS_VIRGIN;
     sep.storage = PL_CHARS_VIRGIN;
     pad.storage = PL_CHARS_VIRGIN;
 
-  if ( PL_get_text(A1, &input, CVT_ATOM|CVT_STRING|CVT_LIST) &&
-       PL_get_text(A2, &sep,   CVT_ATOM|CVT_STRING|CVT_LIST) &&
-       PL_get_text(A3, &pad,   CVT_ATOM|CVT_STRING|CVT_LIST) )
+  if ( PL_get_text(A1, &input, flags) &&
+       PL_get_text(A2, &sep,   flags) &&
+       PL_get_text(A3, &pad,   flags) )
   { size_t i, last;
     term_t tail = PL_copy_term_ref(A4);
     term_t head = PL_new_term_ref();
