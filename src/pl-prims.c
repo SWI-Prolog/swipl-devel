@@ -3862,36 +3862,49 @@ PRED_IMPL("split_string", 4, split_string, 0)
     term_t tail = PL_copy_term_ref(A4);
     term_t head = PL_new_term_ref();
     size_t sep_at = (size_t)-1;
+    size_t end;
 
-    for(i=0; i < input.length;)
+						/* back skip padding at end */
+    for(end=input.length;
+	end > 0 &&
+	text_chr(&pad, text_get_char(&input, end-1)) != (size_t)-1;
+	end--)
+      ;
+
+    for(i=0;;)
     {					/* skip padding */
-      while( i<input.length &&
+      while( i<end &&
 	     text_chr(&pad, text_get_char(&input, i)) != (size_t)-1 )
 	i++;
 
-      if ( i == input.length )
-      { if ( sep_at == (size_t)-1 )
-	{ if ( !PL_unify_list(tail, head, tail) ||
-	       !PL_unify_chars(head, PL_STRING, 0, "") )
-	    goto error;
-	}
+      if ( i == end )
+      { if ( !PL_unify_list_ex(tail, head, tail) ||
+	     !PL_unify_chars(head, PL_STRING, 0, "") )
+	  goto error;
 	break;
       }
 
+    no_skip_padding:
       last = i;				/* find sep */
-      while( i<input.length &&
+      while( i<end &&
 	     text_chr(&sep, text_get_char(&input, i)) == (size_t)-1 )
 	i++;
       sep_at = i;			/* back skip padding */
       while( i>last &&
-	       text_chr(&pad, text_get_char(&input, i-1)) != (size_t)-1 )
+	     text_chr(&pad, text_get_char(&input, i-1)) != (size_t)-1 )
 	i--;
 
-      if ( !PL_unify_list(tail, head, tail) ||
+      if ( !PL_unify_list_ex(tail, head, tail) ||
 	   !PL_unify_text_range(head, &input, last, i-last, PL_STRING) )
 	goto error;
 
+      if ( sep_at == end )
+	break;					/* no separator found */
+
       i = sep_at+1;
+
+      if ( text_chr(&pad, text_get_char(&input, sep_at)) == (size_t)-1 )
+	goto no_skip_padding;
     }
 
     rc = PL_unify_nil(tail);
