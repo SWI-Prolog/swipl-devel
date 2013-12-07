@@ -485,6 +485,7 @@ installdirs=	bin bin/$(INSTALL_PLARCH) lib lib/$(INSTALL_PLARCH) boot \
 		library/dialect/ciao library/dialect/ciao/engine \
 		library/dialect/ciao/regtypes \
 		library/dialect/sicstus \
+		library/dialect/eclipse \
 		library/dialect/swi \
 		library/dialect/ifprolog \
 		library/dialect/hprolog
@@ -521,7 +522,7 @@ endif
 install-implib:	idirs
 		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(INSTALL_PLARCH)
 
-.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso iunicode \
+.PHONY:	idirs iboot ilib iclp idcg idialect iswi iyap iifprolog ihprolog isicstus iciao iiso ieclipse iunicode \
 	icustom iinclude install-pkgconfig install-man install-lman install-readme html-install
 
 idirs:
@@ -552,7 +553,7 @@ idcg:		idirs
 			$(INSTALL_DATA) ../library/dcg/$$f $(DESTDIR)$(PLBASE)/library/dcg; \
 		done
 
-idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog
+idialect:	idirs iswi iyap iiso isicstus iciao iifprolog ihprolog ieclipse
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -567,6 +568,11 @@ iyap:		idirs
 			$(INSTALL_DATA) ../library/dialect/yap/$$f $(DESTDIR)$(PLBASE)/library/dialect/yap; \
 		done
 		$(INSTALL_DATA) $(srcdir)/compat/YapInterface.h $(DESTDIR)$(PLBASE)/include/Yap/YapInterface.h
+
+ieclipse:	idirs
+		for f in $(ECLIPSE); do \
+			$(INSTALL_DATA) ../library/dialect/eclipse/$$f $(DESTDIR)$(PLBASE)/library/dialect/eclipse; \
+		done
 
 iifprolog:	idirs
 		for f in $(IFPROLOG); do \
