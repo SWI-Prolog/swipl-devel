@@ -3661,9 +3661,8 @@ atomic_list_concat(term_t list, term_t sep, term_t atom ARG_LD)
 split:
   if ( !sep || st.length == 0 )
   { if ( !sep )
-    { sep = PL_new_term_ref();
-      PL_put_atom(sep, ATOM_);
-    }
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, l);
+
     return PL_domain_error("non_empty_atom", sep);
   }
   discardBuffer(&b);
