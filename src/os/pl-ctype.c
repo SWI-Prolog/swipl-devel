@@ -510,9 +510,8 @@ get_chr_from_text(const PL_chars_t *t, size_t index)
 
 
 static foreign_t
-modify_case_atom(term_t in, term_t out, int down)
-{ GET_LD
-  PL_chars_t tin, tout;
+modify_case_atom(term_t in, term_t out, int down, int text_type ARG_LD)
+{ PL_chars_t tin, tout;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
     return FALSE;
@@ -595,20 +594,38 @@ modify_case_atom(term_t in, term_t out, int down)
 
     succeed;
   } else
-  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, out);
+  { return PL_error(NULL, 0, NULL, ERR_TYPE,
+		    text_type == PL_STRING ? ATOM_string : ATOM_atom,
+		    out);
   }
 }
 
 
 static
 PRED_IMPL("downcase_atom", 2, downcase_atom, 0)
-{ return modify_case_atom(A1, A2, TRUE);
+{ PRED_LD
+  return modify_case_atom(A1, A2, TRUE, PL_ATOM PASS_LD);
 }
 
 
 static
 PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
-{ return modify_case_atom(A1, A2, FALSE);
+{ PRED_LD
+  return modify_case_atom(A1, A2, FALSE, PL_ATOM PASS_LD);
+}
+
+
+static
+PRED_IMPL("string_lower", 2, string_lower, 0)
+{ PRED_LD
+  return modify_case_atom(A1, A2, TRUE, PL_STRING PASS_LD);
+}
+
+
+static
+PRED_IMPL("string_upper", 2, string_upper, 0)
+{ PRED_LD
+  return modify_case_atom(A1, A2, FALSE, PL_STRING PASS_LD);
 }
 
 
@@ -779,11 +796,13 @@ PRED_IMPL("setlocale", 3, setlocale, 0)
 		 *******************************/
 
 BeginPredDefs(ctype)
-  PRED_DEF("char_type", 2, char_type, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("code_type", 2, code_type, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("setlocale", 3, setlocale, 0)
-  PRED_DEF("downcase_atom", 2, downcase_atom, 0)
-  PRED_DEF("upcase_atom", 2, upcase_atom, 0)
+  PRED_DEF("char_type",	      2, char_type,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("code_type",	      2, code_type,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("setlocale",	      3, setlocale,	  0)
+  PRED_DEF("downcase_atom",   2, downcase_atom,	  0)
+  PRED_DEF("upcase_atom",     2, upcase_atom,	  0)
+  PRED_DEF("string_lower",    2, string_lower,	  0)
+  PRED_DEF("string_upper",    2, string_upper,	  0)
   PRED_DEF("normalize_space", 2, normalize_space, 0)
 EndPredDefs
 

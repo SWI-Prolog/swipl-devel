@@ -287,6 +287,14 @@ Creates a string just like atomics_to_string/2, but inserts
 
 A = "gnu, gnat, 1"
 \end{code}
+
+    \predicate{string_upper}{2}{+String, -UpperCase}
+Convert \arg{String} to upper case and unify the result with
+\arg{UpperCase}.
+
+    \predicate{string_lower}{2}{+String, LowerCase}
+Convert \arg{String} to lower case and unify the result with
+\arg{UpperCase}.
 \end{description}
 
 

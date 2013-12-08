@@ -588,6 +588,8 @@ suggest predicates from a keyword.
 \predicatesummary{string_chars}{2}{Conversion between string and list of characters}
 \predicatesummary{string_codes}{2}{Conversion between string and list of character codes}
 \predicatesummary{string_code}{3}{Get or find a character code in a string}
+\predicatesummary{string_lower}{2}{Case conversion to lower case}
+\predicatesummary{string_upper}{2}{Case conversion to upper case}
 \predicatesummary{string_predicate}{1}{\hook{check} Predicate contains strings}
 \predicatesummary{strip_module}{3}{Extract context module and term}
 \predicatesummary{style_check}{1}{Change level of warnings}
