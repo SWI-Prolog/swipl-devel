@@ -222,7 +222,7 @@ concat_atom(L, Sep, Atom) :-
 %	of Haystack.
 
 '$apropos_match'(Needle, Haystack) :-
-	sub_atom_icasechk(Needle, _, Haystack).
+	sub_atom_icasechk(Haystack, _, Needle).
 
 %%	read_clause(-Term) is det.
 %
