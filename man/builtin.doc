@@ -4964,11 +4964,12 @@ versions.}  See also atom_number/2.
 
     \predicate{term_to_atom}{2}{?Term, ?Atom}
 True if \arg{Atom} describes a term that unifies with \arg{Term}. When
-\arg{Atom} is instantiated, \arg{Atom} is converted and then unified with
-\arg{Term}.  If \arg{Atom} has no valid syntax, a \except{syntax_error}
-exception is raised. Otherwise \arg{Term} is ``written'' on \arg{Atom}
-using write_term/2 with the option \term{quoted}{true}.  See also
-format/3 and with_output_to/2.
+\arg{Atom} is instantiated, \arg{Atom} is parsed and the result unified
+with \arg{Term}. If \arg{Atom} has no valid syntax, a
+\except{syntax_error} exception is raised. Otherwise \arg{Term} is
+``written'' on \arg{Atom} using write_term/2 with the option
+\term{quoted}{true}. See also format/3, with_output_to/2 and
+term_string/2.
 
     \predicate[deprecated]{atom_to_term}{3}{+Atom, -Term, -Bindings}
 Use \arg{Atom} as input to read_term/2 using the option

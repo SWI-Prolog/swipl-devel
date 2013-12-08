@@ -606,6 +606,7 @@ suggest predicates from a keyword.
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
 \predicatesummary{term_expansion}{4}{\hook{user} Convert term before compilation}
+\predicatesummary{term_string}{2}{Read/write a term from/to a string}
 \predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}

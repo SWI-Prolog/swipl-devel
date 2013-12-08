@@ -4757,9 +4757,8 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
 
 
 static int
-atom_to_term(term_t atom, term_t term, term_t bindings)
-{ GET_LD
-  PL_chars_t txt;
+atom_to_term(term_t atom, term_t term, term_t bindings, int text_type ARG_LD)
+{ PL_chars_t txt;
 
   if ( !bindings && PL_is_variable(atom) ) /* term_to_atom(+, -) */
   { char buf[1024];
@@ -4780,7 +4779,7 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
       txt.storage = PL_CHARS_HEAP;
       txt.encoding = ENC_UTF8;
       txt.canonical = FALSE;
-      rval = PL_unify_text(atom, 0, &txt, PL_ATOM);
+      rval = PL_unify_text(atom, 0, &txt, text_type);
     }
 
     Sclose(stream);
@@ -4820,13 +4819,22 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
 
 static
 PRED_IMPL("atom_to_term", 3, atom_to_term, 0)
-{ return atom_to_term(A1, A2, A3);
+{ GET_LD
+  return atom_to_term(A1, A2, A3, PL_ATOM PASS_LD);
 }
 
 
 static
 PRED_IMPL("term_to_atom", 2, term_to_atom, 0)
-{ return atom_to_term(A2, A1, 0);
+{ GET_LD
+  return atom_to_term(A2, A1, 0, PL_ATOM PASS_LD);
+}
+
+
+static
+PRED_IMPL("term_string", 2, term_string, 0)
+{ GET_LD
+  return atom_to_term(A2, A1, 0, PL_STRING PASS_LD);
 }
 
 
@@ -4959,6 +4967,7 @@ BeginPredDefs(read)
   PRED_DEF("read_term_from_atom", 3, read_term_from_atom, 0)
   PRED_DEF("atom_to_term",	  3, atom_to_term,	  0)
   PRED_DEF("term_to_atom",	  2, term_to_atom,	  0)
+  PRED_DEF("term_string",	  2, term_string,	  0)
   PRED_DEF("$code_class",	  2, code_class,	  0)
 #ifdef O_QUASIQUOTATIONS
   PRED_DEF("$qq_open",            2, qq_open,             0)
