@@ -3902,7 +3902,8 @@ PRED_IMPL("split_string", 4, split_string, 0)
 
       i = sep_at+1;
 
-      if ( text_chr(&pad, text_get_char(&input, sep_at)) == (size_t)-1 )
+      if ( text_chr(&pad, text_get_char(&input, sep_at)) == (size_t)-1 &&
+	   text_chr(&sep, text_get_char(&input, sep_at+1)) != (size_t)-1 )
 	goto no_skip_padding;
     }
 
