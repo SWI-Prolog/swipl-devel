@@ -4419,12 +4419,12 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
   { case FRG_FIRST_CALL:
     { size_t i;
 
-      if ( !PL_get_text(A2, &t, CVT_ALL|CVT_EXCEPTION) )
+      if ( !PL_get_text(A2, &t, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
 	return FALSE;
       if ( !PL_is_variable(A1) )
       { if ( !PL_get_size_ex(A1, &i) )
 	  return FALSE;
-	if ( i == 0 || i >= t.length )
+	if ( i == 0 || i > t.length )
 	  return FALSE;
 	return PL_unify_integer(A3, text_get_char(&t, i-1));
       } else
@@ -4489,14 +4489,14 @@ static
 PRED_IMPL("get_string_code", 3, get_string_code, 0)
 { PRED_LD
   PL_chars_t t;
-  size_t i;
+  int64_t i;
 
   if ( !PL_get_text(A2, &t, CVT_ALL|CVT_EXCEPTION) ||
-       !PL_get_size_ex(A1, &i) )
+       !PL_get_int64_ex(A1, &i) )
     return FALSE;
 
-  if ( i == 0 || i >= t.length )
-    return FALSE;
+  if ( i < 1 || i > (int64_t) t.length )
+    return PL_domain_error("range", A1);
 
   return PL_unify_integer(A3, text_get_char(&t, i-1));
 }
