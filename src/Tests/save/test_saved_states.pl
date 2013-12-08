@@ -172,7 +172,7 @@ no_error(Codes) :-
 		 *	       TESTS		*
 		 *******************************/
 
-:- begin_tests(saved_state).
+:- begin_tests(saved_state, [sto(rational_trees)]).
 
 test(true, Result == [true]) :-
 	state_output(Exe),
