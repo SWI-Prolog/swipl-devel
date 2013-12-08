@@ -158,7 +158,9 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 { word w = valHandle(l);
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
-  { if ( !get_atom_text(w, text) )
+  { if ( isNil(w) && (flags&CVT_LIST) )
+      goto case_list;
+    if ( !get_atom_text(w, text) )
       goto maybe_write;
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( !get_string_text(w, text PASS_LD) )
@@ -209,6 +211,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   { Buffer b;
     CVT_result result;
 
+  case_list:
     if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE, &result)) )
     { text->length = entriesBuffer(b, char);
       addBuffer(b, EOS, char);
