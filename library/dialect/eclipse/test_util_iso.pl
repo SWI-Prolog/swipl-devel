@@ -6,12 +6,7 @@
 
 :- module(test_util_iso,
 	  [ test/1,				% +File
-	    test/2,				% +File, -Out
-	    op(1200,  fy, fixme),
-	    op(1110, xf,  should_fail),
-	    op(1110, xfx, should_give),
-	    op(1110, xfx, should_throw),
-	    op(1110, xfx, should_raise)
+	    test/2				% +File, +ReportFile
 	  ]).
 
 /** <module> ECLiPSe test automation
@@ -92,16 +87,24 @@ are also predicates that can be called directly.
     neither succeeded or failed.",
 */
 
+report(brief).
+
+:- op(1200,  fy, fixme).
+:- op(1110, xf,  should_fail).
+:- op(1110, xfx, should_give).
+:- op(1110, xfx, should_throw).
+:- op(1110, xfx, should_raise).
 
 %%	test(+TestFile) is det.
 %
 %	Runs all the test patterns in TestFile.
 
 test(FileIn) :-
-        open(FileIn, read, In),
         current_output(Out),
-        test_stream(In, Out),
-        close(In).
+        setup_call_cleanup(
+	    open(FileIn, read, In),
+	    test_stream(In, Out),
+	    close(In)).
 
 
 %%	test(+TestFile, +ResultFile) is det.
@@ -110,16 +113,18 @@ test(FileIn) :-
 %	ResultFile.
 
 test(FileIn, FileOut) :-
-        open(FileIn, read, In),
-        open(FileOut, write, Out),
-        test_stream(In, Out),
-        close(Out),
-        close(In).
+        setup_call_cleanup(
+	    open(FileIn, read, In),
+	    setup_call_cleanup(
+		open(FileOut, write, Out),
+		test_stream(In, Out),
+		close(Out)),
+	    close(In)).
 
 
     test_stream(In, Out) :-
         stream_property(In, file_name(File)),
-        write(Out, '----- Running tests from file '), write(File), nl(Out),
+        format(Out, '~N% Running ECLiPSe tests from file ~w~n', [File]),
         counter_set(test_count, 0),
         counter_set(non_test_count, 0),
         counter_set(succeeded_test_count, 0),
@@ -127,7 +132,9 @@ test(FileIn, FileOut) :-
         counter_set(skipped_test_count, 0),
         repeat,
 %	    line_count(In, Line),
-            catch(catch(read(In, Test), SyntaxError,
+            catch(catch(read_term(In, Test,
+				  [ module(test_util_iso)
+				  ]), SyntaxError,
                         unexpected(Out, 0, valid_syntax, throw(SyntaxError))),
                         continue, fail),
 	    source_location(_File, Line),
@@ -143,14 +150,15 @@ test(FileIn, FileOut) :-
                 counter_get(failed_test_count, FN),
                 counter_get(skipped_test_count, SN),
                 counter_get(non_test_count, NN),
-                write(Out, '----- Finished tests from file '), write(File), nl(Out),
-                write(Out, N), write(Out, ' tests found.'), nl(Out),
-                ( NN==0 -> true ; write(Out, NN), write(Out, ' ignored as malformed.'), nl(Out) ),
-                write(Out, TN), write(Out, ' tests succeeded.'), nl(Out),
-                ( FN==0 -> true ; write(Out, FN), write(Out, ' tests failed.'), nl(Out) ),
-                ( SN==0 -> true ; write(Out, SN), write(Out, ' tests skipped.'), nl(Out) )
+                format(Out, '~N% Finished tests from file ~w~n', [File]),
+                format(Out, '% ~D tests found.~n', [N]),
+                ( NN==0 -> true ; format(Out, '% ~D ignored as malformed.~n', [NN]) ),
+                format(Out, '% ~D tests succeeded.~n', [TN]),
+                ( FN==0 -> true ; format(Out, '% ~D tests failed.~n', [FN]) ),
+                ( SN==0 -> true ; format(Out, '% ~D tests skipped.~n', [SN]) )
             ),
-        !.
+        !,
+	FN =:= 0.
 
 
 interpret_test((fixme Test), Name, Stream) :- !,
@@ -261,18 +269,17 @@ Goal should_throw Ball :-
 
 
 expected_outcome(Stream, Name) :-
-        write(Stream, 'Test '),
-        write(Stream, Name),
-        write(Stream, ': OK'),
-        nl(Stream),
-        counter_inc(succeeded_test_count),
+	(   report(brief)
+	->  put_char(Stream, '.'),
+	    flush_output(Stream)
+	;   format(Stream, '~NTest ~w: OK~n', [Name])
+	),
+	counter_inc(succeeded_test_count),
         throw(continue).
 
-
 unexpected(Stream, Name, Expected, Outcome) :-
-        write(Stream, 'Test '), write(Stream, Name),
-        write(Stream, ': expected '), write(Stream, Expected), nl(Stream),
-        write(Stream, ', got '), write(Stream, Outcome), nl(Stream),
+	format(Stream, '~NTest ~w: ~n~texpected ~12|~q,~n~tgot ~12|~q~n',
+	       [Name, Expected, Outcome]),
         counter_inc(failed_test_count),
         throw(continue).
 
