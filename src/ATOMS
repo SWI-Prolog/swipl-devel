@@ -523,6 +523,7 @@ A radix			"radix"
 A random		"random"
 A random_float		"random_float"
 A random_option		"random_option"
+A range			"range"
 A rational		"rational"
 A rationalize		"rationalize"
 A rdiv			"rdiv"
@@ -918,6 +919,7 @@ F quasi_quotation	4
 F quasi_quotation_position  5
 F random		1
 F random_float		0
+F range			2
 F rational		1
 F rationalize		1
 F rdiv			2

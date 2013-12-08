@@ -115,7 +115,8 @@ iso_message(type_error(free_of_attvar, Actual)) -->
 iso_message(type_error(Expected, Actual)) -->
 	[ 'Type error: `~w'' expected, found `~p'''-[Expected, Actual] ].
 iso_message(domain_error(Domain, Actual)) -->
-	[ 'Domain error: `~w'' expected, found `~p'''-[Domain, Actual] ].
+	[ 'Domain error: '-[] ], domain(Domain),
+	[ ' expected, found `~p'''-[Actual] ].
 iso_message(instantiation_error) -->
 	[ 'Arguments are not sufficiently instantiated' ].
 iso_message(uninstantiation_error(Var)) -->
@@ -221,6 +222,11 @@ syntax_error(void_not_allowed) -->
 	[ 'Empty argument list "()"' ].
 syntax_error(Message) -->
 	[ '~w'-[Message] ].
+
+domain(range(Low,High)) --> !,
+	['[~q..~q]'-[Low,High] ].
+domain(Domain) -->
+	['`~w\''-[Domain] ].
 
 dwim_predicates(Module:Name/_Arity, Dwims) :- !,
 	findall(Dwim, dwim_predicate(Module:Name, Dwim), Dwims).

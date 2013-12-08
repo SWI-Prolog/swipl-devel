@@ -4514,7 +4514,13 @@ PRED_IMPL("get_string_code", 3, get_string_code, 0)
     return FALSE;
 
   if ( i < 1 || i > (int64_t) t.length )
-    return PL_domain_error("range", A1);
+  { term_t av = PL_new_term_refs(2);
+
+    PL_put_int64(av+0, 1);
+    PL_put_int64(av+1, t.length);
+
+    return PL_error(NULL, 0, NULL, ERR_RANGE, av+0, av+1, A1);
+  }
 
   return PL_unify_integer(A3, text_get_char(&t, i-1));
 }

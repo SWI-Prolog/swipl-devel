@@ -232,6 +232,19 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_TERM, arg);
       break;
     }
+    case ERR_RANGE:			/*  domain_error(range(low,high), arg) */
+    { term_t low  = va_arg(args, term_t);
+      term_t high = va_arg(args, term_t);
+      term_t arg  = va_arg(args, term_t);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_domain_error2,
+			   PL_FUNCTOR, FUNCTOR_range2,
+			     PL_TERM, low,
+			     PL_TERM, high,
+			   PL_TERM, arg);
+      break;
+    }
     case ERR_REPRESENTATION:
     { atom_t what = va_arg(args, atom_t);
 

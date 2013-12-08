@@ -37,7 +37,8 @@ typedef enum
   ERR_INSTANTIATION,		/* void */
   ERR_NOMEM,			/* void */
   ERR_NOT_IMPLEMENTED,		/* const char *what */
-  ERR_PERMISSION,		/* atom_t type, atom_t op, term_t obj*/
+  ERR_PERMISSION,		/* atom_t type, atom_t op, term_t obj */
+  ERR_RANGE,			/* term_t low, term_t high, term_t val */
   ERR_REPRESENTATION,		/* atom_t what */
   ERR_RESOURCE,			/* atom_t resource */
   ERR_SHELL_FAILED,		/* term_t command */
