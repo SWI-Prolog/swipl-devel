@@ -155,11 +155,11 @@ SWI-Prolog's string primitives are being synchronized with
 names of the predicates, nor their exact behaviour should be considered
 completely stable. In general, SWI-Prolog's text manipulation predicates
 accept any form of text as input argument and produce the type indicated
-by the predicate name as output. This policy should simplify migration
+by the predicate name as output. This policy simplifies migration
 and writing programs that can run unmodified or with minor modifications
 on systems that do not support strings. Code should avoid relying on
-this feature as much as possible to facilitate a more strict mode and/or
-type checking.
+this feature as much as possible for clarity as well as to facilitate a
+more strict mode and/or type checking.
 
 \begin{description}
     \predicate{atom_string}{2}{?Atom, ?String}
@@ -182,6 +182,12 @@ instantiated.
     \predicate{string_codes}{2}{?String, ?Codes}
 Bi-directional conversion between a string and a list of character
 codes. At least one of the two arguments must be instantiated.
+
+    \predicate[det]{text_to_string}{2}{+Text, -String}
+Converts \arg{Text} to a string.  \arg{Text} is an atom, string
+or list of characters (codes or chars).	 When running in
+\cmdlineoption{--traditional} mode, \verb$'[]'$ is ambiguous and
+interpreted as an empty string.
 
     \predicate{string_length}{2}{+String, -Length}
 Unify \arg{Length} with the number of characters in \arg{String}. This

@@ -258,6 +258,7 @@ suggest predicates from a keyword.
 \predicatesummary{term_attvars}{2}{Find attributed variables in a term}
 \predicatesummary{term_variables}{2}{Find unbound variables in a term}
 \predicatesummary{term_variables}{3}{Find unbound variables in a term}
+\predicatesummary{text_to_string}{2}{Convert arbitrary text to a string}
 \predicatesummary{freeze}{2}{Delay execution until variable is bound}
 \predicatesummary{frozen}{2}{Query delayed goals on var}
 \predicatesummary{functor}{3}{Get name and arity of a term or construct a term }

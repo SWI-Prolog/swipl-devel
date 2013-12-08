@@ -4403,6 +4403,24 @@ PRED_IMPL("string_chars", 2, string_chars, 0)
 }
 
 
+static
+PRED_IMPL("text_to_string", 2, text_to_string, 0)
+{ PRED_LD
+  PL_chars_t t;
+
+  if ( PL_is_string(A1) )
+    return PL_unify(A1, A2);
+
+  if ( PL_get_text(A1, &t, CVT_ATOM|CVT_LIST|CVT_EXCEPTION) )
+  { int rc = PL_unify_text(A2, 0, &t, PL_STRING);
+    PL_free_text(&t);
+    return rc;
+  }
+
+  return FALSE;
+}
+
+
 /** string_code(?Index, +String, ?Code)
 
 True when the Index'ed character of String has code Code.
@@ -5339,6 +5357,7 @@ BeginPredDefs(prims)
   PRED_DEF("string_length", 2, string_length, 0)
   PRED_DEF("string_codes", 2, string_codes, 0)
   PRED_DEF("string_chars", 2, string_chars, 0)
+  PRED_DEF("text_to_string", 2, text_to_string, 0)
   PRED_DEF("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
   PRED_DEF("get_string_code", 3, get_string_code, 0)
   PRED_DEF("split_string", 4, split_string, 0)
