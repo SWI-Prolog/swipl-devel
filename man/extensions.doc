@@ -180,6 +180,16 @@ is instantiated, it is parsed and the result is unified with \arg{Term}.
 Otherwise \arg{Term} is `written' using the option \term{quoted}{true}
 and the result is converted to \arg{String}.
 
+    \predicate{term_string}{3}{?Term, ?String, +Options}
+As term_string/2, passing \arg{Options} to either read_term/2
+or write_term/2.  For example:
+
+\begin{code}
+?- term_string(Term, 'a(A)', [variable_names(VNames)]).
+Term = a(_G1466),
+VNames = ['A'=_G1466].
+\end{code}
+
     \predicate{string_chars}{2}{?String, ?Chars}
 Bi-directional conversion between a string and a list of characters
 (one-character atoms). At least one of the two arguments must be

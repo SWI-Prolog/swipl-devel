@@ -4978,7 +4978,7 @@ variable bindings in \arg{Bindings}. \arg{Bindings} is a list of
 $\arg{Name} = \arg{Var}$ couples, thus providing access to the actual
 variable names. See also read_term/2. If \arg{Atom} has no valid syntax,
 a \except{syntax_error} exception is raised.  New code should use
-read_from_atom/3.
+read_term_from_atom/3.
 
     \predicate[ISO]{atom_concat}{3}{?Atom1, ?Atom2, ?Atom3}
 \arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}. At

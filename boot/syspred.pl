@@ -70,6 +70,7 @@
 	    require/1,
 	    call_with_depth_limit/3,
 	    numbervars/3,		% +Term, +Start, -End
+	    term_string/3,		% ?Term, ?String, +Options
 	    nb_setval/2			% +Var, +Value
 	  ]).
 
@@ -1089,6 +1090,25 @@ stack_property(min_free).
 
 numbervars(Term, From, To) :-
 	numbervars(Term, From, To, []).
+
+
+		 /*******************************
+		 *	      STRING		*
+		 *******************************/
+
+%%	term_string(?Term, ?String, +Options)
+%
+%	Parse/write a term from/to a string using Options.
+
+term_string(Term, String, Options) :-
+	nonvar(String), !,
+	read_term_from_atom(String, Term, Options).
+term_string(Term, String, Options) :-
+	(   '$option'(quoted(_), Options)
+	->  Options1 = Options
+	;   '$merge_options'(_{quoted:true}, Options, Options1)
+	),
+	format(string(String), '~W', [Term, Options1]).
 
 
 		 /*******************************
