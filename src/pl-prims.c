@@ -4368,13 +4368,20 @@ string_x(term_t str, term_t list, int out_type ARG_LD)
 { PL_chars_t t;
   int rc;
 
-  if ( PL_get_text(str, &t, CVT_ALL) )
-    rc = PL_unify_text(list, 0, &t, out_type);
-  else if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST) ) /* -, [] */
+  switch ( PL_get_text(str, &t, CVT_ALL|CVT_EXCEPTION|CVT_VARNOFAIL) )
+  { case TRUE:
+      rc = PL_unify_text(list, 0, &t, out_type);
+    case FALSE:
+      return FALSE;
+    /*case 2: str can bind */
+  }
+
+  if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST) ) /* -, [] */
     rc = PL_unify_text(str, 0, &t, PL_STRING);
   else if ( PL_get_text(list, &t, CVT_ALL) )
     rc = PL_unify_text(str, 0, &t, PL_STRING);
-  else return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  else
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
   PL_free_text(&t);
 
