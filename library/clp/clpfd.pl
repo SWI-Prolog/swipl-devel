@@ -196,8 +196,8 @@ The most important arithmetic constraints are:
     | Expr1 #=< Expr2  | Expr1 is less than or equal to Expr2     |
     | Expr1 #=  Expr2  | Expr1 equals Expr2                       |
     | Expr1 #\= Expr2  | Expr1 is not equal to Expr2              |
-    | Expr1 #> Expr2   | Expr1 is strictly greater than Expr2     |
-    | Expr1 #< Expr2   | Expr1 is strictly less than Expr2        |
+    | Expr1 #> Expr2   | Expr1 is greater than Expr2              |
+    | Expr1 #< Expr2   | Expr1 is less than Expr2                 |
 
 ---+++ Reification
 
