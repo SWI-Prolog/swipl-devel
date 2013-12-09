@@ -74,7 +74,7 @@ COMMON(int)		PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD);
 COMMON(atom_t)		textToAtom(PL_chars_t *text);
 
 COMMON(IOSTREAM *)	Sopen_text(PL_chars_t *text, const char *mode);
-COMMON(void)		PL_text_recode(PL_chars_t *text, IOENC encoding);
+COMMON(int)		PL_text_recode(PL_chars_t *text, IOENC encoding);
 
 					/* pl-fli.c */
 COMMON(int)		get_atom_ptr_text(Atom atom, PL_chars_t *text);

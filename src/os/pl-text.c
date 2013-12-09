@@ -1029,32 +1029,41 @@ PL_free_text(PL_chars_t *text)
 }
 
 
-void
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Recode a text to the given   encoding. Currrenly only supports re-coding
+to UTF-8 for ENC_ASCII, ENC_ISO_LATIN_1, ENC_WCHAR and ENC_ANSI.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
 PL_text_recode(PL_chars_t *text, IOENC encoding)
 { if ( text->encoding != encoding )
   { switch(encoding)
     { case ENC_UTF8:
-      { switch(text->encoding)
+      { Buffer b;
+
+	switch(text->encoding)
 	{ case ENC_ASCII:
 	    text->encoding = ENC_UTF8;
 	    break;
 	  case ENC_ISO_LATIN_1:
-	  { Buffer b = findBuffer(BUF_RING);
-	    const unsigned char *s = (const unsigned char *)text->text.t;
+	  { const unsigned char *s = (const unsigned char *)text->text.t;
 	    const unsigned char *e = &s[text->length];
-	    char tmp[8];
 
 	    for( ; s<e; s++)
 	    { if ( *s&0x80 )
-	      { const char *end = utf8_put_char(tmp, *s);
-		const char *q = tmp;
-
-		for(q=tmp; q<end; q++)
-		  addBuffer(b, *q, char);
-	      } else
-	      { addBuffer(b, *s, char);
+	      { s = (const unsigned char *)text->text.t;
+		goto convert_utf8;
 	      }
 	    }
+					/* ASCII; nothing to do */
+	    text->encoding = ENC_UTF8;
+	    break;
+
+	  convert_utf8:
+	    b = findBuffer(BUF_RING);
+	    for( ; s<e; s++)
+	      utf8tobuffer(*s, b);
+	  swap_to_utf8:
 	    PL_free_text(text);
             text->length   = entriesBuffer(b, char);
 	    addBuffer(b, EOS, char);
@@ -1065,40 +1074,47 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    break;
 	  }
 	  case ENC_WCHAR:
-	  { Buffer b = findBuffer(BUF_RING);
-	    const pl_wchar_t *s = text->text.w;
+	  { const pl_wchar_t *s = text->text.w;
 	    const pl_wchar_t *e = &s[text->length];
-	    char tmp[8];
 
+	    b = findBuffer(BUF_RING);
 	    for( ; s<e; s++)
-	    { if ( *s > 0x7f )
-	      { const char *end = utf8_put_char(tmp, (int)*s);
-		const char *q = tmp;
+	      utf8tobuffer(*s, b);
+	    goto swap_to_utf8;
+	  }
+	  case ENC_ANSI:
+	  { mbstate_t mbs;
+	    size_t rc, n = text->length;
+	    wchar_t wc;
+	    const char *s = (const char *)text->text.t;
 
-		for(q=tmp; q<end; q++)
-		  addBuffer(b, *q&0xff, char);
-	      } else
-	      { addBuffer(b, *s&0xff, char);
-	      }
+	    b = findBuffer(BUF_RING);
+	    memset(&mbs, 0, sizeof(mbs));
+	    while( n > 0 )
+	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)
+		return FALSE;		/* encoding error */
+
+	      utf8tobuffer(wc, b);
+	      n -= rc;
+	      s += rc;
 	    }
-	    PL_free_text(text);
-            text->length   = entriesBuffer(b, char);
-	    addBuffer(b, EOS, char);
-	    text->text.t   = baseBuffer(b, char);
-	    text->encoding = ENC_UTF8;
-	    text->storage  = PL_CHARS_RING;
+	    if ( n == 0 )
+	      goto swap_to_utf8;
 
-	    break;
+	    return FALSE;
 	  }
 	  default:
 	    assert(0);
+	    return FALSE;
 	}
-	break;
+	return TRUE;
 	default:
 	  assert(0);
+	  return FALSE;
       }
     }
-  }
+  } else
+    return TRUE;
 }
 
 
