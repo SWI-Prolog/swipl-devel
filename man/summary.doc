@@ -507,6 +507,8 @@ suggest predicates from a keyword.
 \predicatesummary{read_history}{6}{Read using history substitution}
 \predicatesummary{read_link}{3}{Read a symbolic link}
 \predicatesummary{read_pending_input}{3}{Fetch buffered input from a stream}
+\predicatesummary{read_string}{3}{Read a number of characters into a string}
+\predicatesummary{read_string}{5}{Read string upto a delimiter}
 \predicatesummary{read_term}{2}{Read term with options}
 \predicatesummary{read_term}{3}{Read term with options from stream}
 \predicatesummary{read_term_from_atom}{3}{Read term with options from atom}

@@ -295,6 +295,38 @@ Convert \arg{String} to upper case and unify the result with
     \predicate{string_lower}{2}{+String, LowerCase}
 Convert \arg{String} to lower case and unify the result with
 \arg{UpperCase}.
+
+    \predicate{read_string}{3}{+Stream, ?Length, -String}
+Read at most \arg{Length} characters from \arg{Stream} and
+return them in the string \arg{String}.  If \arg{Length} is
+unbound, \arg{Stream} is read to the end and \arg{Length} is
+unified with the number of characters read.
+
+    \predicate{read_string}{5}{+Stream, +SepChars, +PadChars, -Sep, -String}
+Read a string from \arg{Stream}, providing functionality similar to
+split_string/4.  The predicate performs the following steps:
+
+    \begin{enumerate}
+    \item Skip all characters that match \arg{PadChars}
+    \item Read up to a character that matches \arg{SepChars} or end of file
+    \item Discard trailing characters that match \arg{PadChars} from
+          the collected input
+    \item Unify \arg{String} with a string created from the input and
+          \arg{Sep} with the separator character read.  If input was
+	  terminated by the end of the input, \arg{Sep} is unified
+	  with -1.
+    \end{enumerate}
+
+Below are some examples:
+
+\begin{code}
+% Read a line
+read_string(Input, "\n", "\r", End, String)
+% Read a line, stripping leading and trailing white space
+read_string(Input, "\n", "\r\t ", End, String)
+% Read upto , or ), unifying End with 0', or 0')
+read_string(Input, ",)", "\t ", End, String)
+\end{code}
 \end{description}
 
 

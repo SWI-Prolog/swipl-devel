@@ -24,6 +24,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 #include "pl-inline.h"
 
 #undef LD
@@ -37,6 +38,42 @@ already in those files.
 Eventually, it might be better to concentrate string operations and atom
 operations that handle atoms as strings in this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+static void
+addUTF8Buffer(Buffer b, int c)
+{ if ( c >= 0x80 )
+  { char buf[6];
+    char *p, *end;
+
+    end = utf8_put_char(buf, c);
+    for(p=buf; p<end; p++)
+    { addBuffer(b, *p&0xff, char);
+    }
+  } else
+  { addBuffer(b, c, char);
+  }
+}
+
+
+static const char *
+backSkipUTF8(const char *start, const char *end, int *chr)
+{ const char *s;
+
+  for(s=end-1 ; s>start && *s&0x80; s--)
+    ;
+  utf8_get_char(s, chr);
+
+  return s;
+}
+
+
+		 /*******************************
+		 *	    PREDICATES		*
+		 *******************************/
 
 static
 PRED_IMPL("atom_string", 2, atom_string, 0)
@@ -301,6 +338,138 @@ error:
 }
 
 
+static char *
+backSkipPadding(const char *in, size_t len, PL_chars_t *pad)
+{ const char *end = &in[len];
+
+  while(end > in)
+  { int chr;
+    const char *e = backSkipUTF8(in, end, &chr);
+
+    if ( text_chr(pad, chr) == (size_t)-1 )
+      break;
+    end = e;
+  }
+
+  return (char *)end;
+}
+
+
+/** read_string(+Stream, +Delimiters, +Padding, -Delimiter, -String)
+*/
+
+static
+PRED_IMPL("read_string", 5, read_string, 0)
+{ PRED_LD
+  IOSTREAM *s = NULL;
+  PL_chars_t sep, pad;
+  int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION;
+  int rc = FALSE;
+  tmp_buffer tmpbuf;
+
+  sep.storage = PL_CHARS_VIRGIN;
+  pad.storage = PL_CHARS_VIRGIN;
+  initBuffer(&tmpbuf);
+
+  if ( getTextInputStream(A1, &s) &&
+       PL_get_text(A2, &sep, flags) &&
+       PL_get_text(A3, &pad, flags) )
+  { int chr;
+
+    do
+    { chr = Sgetcode(s);
+    } while(chr != EOF && text_chr(&pad, chr) != (size_t)-1);
+
+    if ( chr == EOF )
+    { if ( Sferror(s) )
+	goto out;
+      rc = ( PL_unify_chars(A5, PL_STRING, 0, "") &&
+	     PL_unify_integer(A4, -1)
+	   );
+      goto out;
+    }
+
+    for(;;)
+    { addUTF8Buffer((Buffer)&tmpbuf, chr);
+      chr = Sgetcode(s);
+      if ( chr == EOF || text_chr(&sep, chr) != (size_t)-1 )
+	break;
+    }
+
+    tmpbuf.top = backSkipPadding(baseBuffer(&tmpbuf,char),
+				 entriesBuffer(&tmpbuf, char),
+				 &pad);
+    rc = ( PL_unify_chars(A5, PL_STRING|REP_UTF8,
+			  entriesBuffer(&tmpbuf, char),
+			  baseBuffer(&tmpbuf, char)) &&
+	   PL_unify_integer(A4, chr)
+	 );
+  }
+
+out:
+  discardBuffer(&tmpbuf);
+  if ( s )
+  { if ( rc )
+      rc = PL_release_stream(s);
+    else
+      PL_release_stream(s);
+  }
+  PL_free_text(&sep);
+  PL_free_text(&pad);
+
+  return rc;
+}
+
+
+/** read_string(+Stream, ?Length, -String)
+*/
+
+static
+PRED_IMPL("read_string", 3, read_string, 0)
+{ PRED_LD
+  IOSTREAM *s = NULL;
+  tmp_buffer tmpbuf;
+  int vlen;
+  size_t len = (size_t)-1;
+  int rc = FALSE;
+
+  initBuffer(&tmpbuf);
+  if ( getTextInputStream(A1, &s) &&
+       ( (vlen=PL_is_variable(A2)) ||
+	 PL_get_size_ex(A2, &len)
+       ) )
+  { size_t count;
+
+    for(count=0; count < len; count++)
+    { int chr = Sgetcode(s);
+      if ( chr == EOF )
+      { if ( Sferror(s) )
+	  goto out;
+	break;
+      }
+      addUTF8Buffer((Buffer)&tmpbuf, chr);
+    }
+
+    rc = ( PL_unify_chars(A3, PL_STRING|REP_UTF8,
+			  entriesBuffer(&tmpbuf, char),
+			  baseBuffer(&tmpbuf, char)) &&
+	   (!vlen || PL_unify_int64(A2, count))
+	 );
+  }
+
+out:
+  discardBuffer(&tmpbuf);
+  if ( s )
+  { if ( rc )
+      rc = PL_release_stream(s);
+    else
+      PL_release_stream(s);
+  }
+
+  return rc;
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -313,4 +482,6 @@ BeginPredDefs(strings)
   PRED_DEF("text_to_string",  2, text_to_string,  0)
   PRED_DEF("string_code",     3, string_code,	  PL_FA_NONDETERMINISTIC)
   PRED_DEF("get_string_code", 3, get_string_code, 0)
+  PRED_DEF("read_string",     5, read_string,     0)
+  PRED_DEF("read_string",     3, read_string,     0)
 EndPredDefs
