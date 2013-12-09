@@ -221,12 +221,11 @@ atomType(atom_t a, write_options *options)
     return len == 0 ? AT_LOWER : AT_QUOTE;
   }
 
-  if ( a == ATOM_dot )
-    return AT_FULLSTOP;
-
   if ( wr_is_symbol(*s, options) )
   { size_t left = len;
 
+    if ( len == 1 && s[0] == '.' )
+      return AT_FULLSTOP;
     if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
 

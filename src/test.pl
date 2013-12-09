@@ -181,6 +181,8 @@ write_test(q-7) :-
 	term_to_atom(p((0|a)), X), X == 'p((0|a))'.
 write_test(q-8) :-
 	term_to_atom(p((a|b)), X), X == 'p((a|b))'.
+write_test(q-9) :-
+	term_to_atom(., X), X == '\'.\''.
 write_test(op-1) :-
 	term_to_atom(-((a,b)), X), X == '- (a,b)'.
 write_test(op-2) :-
