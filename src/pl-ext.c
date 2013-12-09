@@ -349,6 +349,7 @@ DECL_PLIST(index);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(strings);
 DECL_PLIST(variant);
 DECL_PLIST(copyterm);
 DECL_PLIST(prologflag);
@@ -398,6 +399,7 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(strings);
   REG_PLIST(variant);
   REG_PLIST(copyterm);
   REG_PLIST(prologflag);
