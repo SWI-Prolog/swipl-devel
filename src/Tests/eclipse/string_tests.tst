@@ -332,7 +332,7 @@ number_string(N,[a|a])	should_raise 5.
 number_string(N,"3 ")	should_fail.
 number_string(N,"3.")	should_fail.
 number_string(N,"0'a")	should_give N==97.
-%SWI number_string(N," 0'a")	should_fail.
+number_string(N," 0'a")	should_fail.
 number_string(N,"-1")	should_give N== -1.
 number_string(N,"- 1")	should_fail.
 number_string(N,"/**/1")	should_fail.

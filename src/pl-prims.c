@@ -3282,13 +3282,14 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 }
 
 
-#define	X_AUTO		  0x00
-#define	X_ATOM		  0x01
-#define	X_NUMBER	  0x02
-#define	X_MASK		  0x0f
-#define	X_CHARS		  0x10
-#define	X_STRING	  0x20
-#define	X_NO_SYNTAX_ERROR 0x40
+#define	X_AUTO		   0x00
+#define	X_ATOM		   0x01
+#define	X_NUMBER	   0x02
+#define	X_MASK		   0x0f
+#define	X_CHARS		   0x10
+#define	X_STRING	   0x20
+#define	X_NO_SYNTAX_ERROR  0x40
+#define X_NO_LEADING_WHITE 0x80
 
 static int
 x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
@@ -3342,7 +3343,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 	number n;
 	AR_CTX;
 
-	if ( (how&X_MASK) == X_NUMBER )
+	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
 	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
 	    s++;
 	}
@@ -3414,7 +3415,9 @@ PRED_IMPL("number_codes", 2, number_codes, PL_FA_ISO)
 static
 PRED_IMPL("number_string", 2, number_string, 0)
 { PRED_LD
-  return x_chars("number_string", A1, A2, X_NUMBER|X_STRING|X_NO_SYNTAX_ERROR PASS_LD);
+  return x_chars("number_string", A1, A2,
+		 X_NUMBER|X_STRING|X_NO_SYNTAX_ERROR|X_NO_LEADING_WHITE
+		 PASS_LD);
 }
 
 
