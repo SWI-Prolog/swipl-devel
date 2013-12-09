@@ -2679,7 +2679,7 @@ unicode_file_locale :-
 	;   E \= error(representation_error(encoding), _)
 	).
 
-%	wide_character_types
+%%	wide_character_types
 %
 %	True if the  character  classification   routines  work  on wide
 %	characters. Hard to say when this is  the case. On some machines
@@ -2689,7 +2689,7 @@ unicode_file_locale :-
 wide_character_types :-
 	current_prolog_flag(encoding, utf8), !.
 
-%	testdir(Dir)
+%%	testdir(Dir)
 %
 %	Enumerate directories holding tests.
 
@@ -2697,6 +2697,7 @@ testdir('Tests/core').
 testdir('Tests/attvar').
 testdir('Tests/library').
 testdir('Tests/charset').
+testdir('Tests/eclipse').
 testdir('Tests/clp').
 testdir('Tests/GC').
 testdir('Tests/thread') :-

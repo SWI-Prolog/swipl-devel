@@ -26,7 +26,7 @@ split_string(11111111111111111111111111111111111111, " ", " ", Sub) should_raise
 %SWI split_string(1.0__1.1, " ", " ", Sub) should_raise 5.
 split_string(f(1,2,3), " ", " ", Sub) should_raise 5.
 %SWI split_string([1,2,3], " ", " ", Sub) should_raise 5.
-split_string([], " ", " ", Sub) should_raise 5.
+%SWI split_string([], " ", " ", Sub) should_raise 5.
 %SWI    bag_create(B),
 %SWI split_string(B, " ", " ", Sub) should_raise 5.
 %SWI    make_suspension(true,3,S),
@@ -36,7 +36,7 @@ split_string("string", 1.1, " ", Sub) should_raise 5.
 split_string("string", 1_1, " ", Sub) should_raise 5.
 split_string("string", 111111111111111111111111111111, " ", Sub) should_raise 5.
 %SWI split_string("string", 1.1__1.2, " ", Sub) should_raise 5.
-split_string("string", [], " ", Sub) should_raise 5.
+%SWI split_string("string", [], " ", Sub) should_raise 5.
 %SWI split_string("string", [1,2,3,4], " ", Sub) should_raise 5.
 split_string("string", f(1.1,2,3), " ", Sub) should_raise 5.
 split_string("string", " ", f(1.1,2,3), Sub) should_raise 5.
