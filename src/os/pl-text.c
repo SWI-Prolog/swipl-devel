@@ -1126,7 +1126,7 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
       ifeq = CMP_GREATER;
   }
 
-  if ( l == 0 )				/* too long offsets */
+  if ( l == 0 )					/* too long offsets */
     return ifeq;
 
   if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_ISO_LATIN_1 )
