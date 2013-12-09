@@ -1054,8 +1054,8 @@ pl_atom_hashstat(term_t idx, term_t n)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-resetListAtoms() resets the atom '$cons' to   point  to '.' and switches
-the type for '[]' back to the normal   text_atom type. This is needed to
+resetListAtoms() resets the atom '[|]' to point  to '.' and switches the
+type for '[]' back to  the  normal   text_atom  type.  This is needed to
 switch to traditional mode if the atom table has been initialised.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1112,7 +1112,7 @@ registerBuiltinAtoms(void)
     unsigned int v0, v;
 
     if ( *s == '.' && len == 1 && !GD->options.traditional )
-    { s = "$cons";
+    { s = "[|]";
       len = strlen(s);
     }
 

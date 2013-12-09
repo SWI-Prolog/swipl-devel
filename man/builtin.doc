@@ -4207,7 +4207,7 @@ read_term/2.
 If \const{true} (default \const{false}), write lists using the
 dotted term notation rather than the list notation.\footnote{Copied from
 ECLiPSe.} Note that as of version~7, the list constructor is
-\verb|'$cons'|. Using \term{dotlists}{true}, write_term/2 writes a list
+\verb$'[|]'$. Using \term{dotlists}{true}, write_term/2 writes a list
 using `.' as constructor. This is intended for communication with
 programs such as other Prolog systems, that rely on this notation.
 

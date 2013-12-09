@@ -41,7 +41,7 @@ true.
 \end{code}
 
 The `cons' operator for creating list cells has changed from the pretty
-atom \verb$'.'$ to the ugly atom \verb|'$cons'|, so we can use the
+atom \verb$'.'$ to the ugly atom \verb$'[|]'$, so we can use the
 \verb$'.'$ for other purposes.  See \secref{ext-dict-functions}.
 
 This modification has minimal impact on typical Prolog code. It does
@@ -58,7 +58,7 @@ read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
 write \verb$[a]$ as \verb$.(a,[])$.
 
 
-\subsection{Motivating '\$cons' and [] for lists}
+\subsection{Motivating '[|]' and [] for lists}
 \label{sec:ext-list-motivation}
 
 Representing lists the conventional way using \funcref{.}{2} as

@@ -47,7 +47,7 @@ static PL_blob_t reserved_symbol =
 
 static const atom_t special_atoms[] =
 { ATOM_nil,				/* 0: [] */
-  ATOM_dot,				/* 1: .(_|_) or '$cons'(_,_) */
+  ATOM_dot,				/* 1: .(_|_) or '[|]'(_,_) */
   ATOM_dict,				/* 2: <dict> */
   (atom_t)0
 };
