@@ -90,9 +90,9 @@ enough_files :-
 	catch(rlimit(nofile, Limit, Limit), E,
 	      print_message(warning, E)),
 	(   subsumes_term(error(domain_error(resource, nofile), _), E)
-	->  debug(save, 'Unknown max open files', [])
+	->  debug(save(max_files), 'Unknown max open files', [])
 	;   Limit > 16,
-	    debug(save, 'Reported ~D max open files', [Limit])
+	    debug(save(max_files), 'Reported ~D max open files', [Limit])
 	), !.
 enough_files :-
 	MaxOpen = 16,
@@ -100,10 +100,10 @@ enough_files :-
 	      ( print_message(warning, E),
 		fail
 	      )),
-	debug(save, 'Raised max open files to ~d', [MaxOpen]).
+	debug(save(max_files), 'Raised max open files to ~d', [MaxOpen]).
 :- else.
 enough_files :-
-	debug(save, 'No information on max open files; assuming ok', []).
+	debug(save(max_files), 'No info on max open files; assuming ok', []).
 :- endif.
 
 %%	state_output(-FileName)
@@ -114,8 +114,16 @@ state_output(State) :-
 	working_directory(Dir, Dir),
 	directory_file_path(Dir, 'test_state.exe', State).
 
+me(MeSH) :-
+	absolute_file_name('swipl.sh', MeSH,
+			   [ access(execute),
+			     file_errors(fail)
+			   ]), !.
+me(Exe) :-
+	current_prolog_flag(executable, Exe).
+
 create_state(File, Output, Args) :-
-	current_prolog_flag(executable, Me),
+	me(Me),
 	append(Args, ['-o', Output, '-c', File], AllArgs),
 	test_dir(TestDir),
 	debug(save, 'Creating state in ~q using ~q ~q', [TestDir, Me, AllArgs]),
