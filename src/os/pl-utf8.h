@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      Vu University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,7 +18,8 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+    MA 02110-1301 USA
 */
 
 
@@ -56,7 +56,36 @@
 
 extern char *_PL__utf8_get_char(const char *in, int *chr);
 extern char *_PL__utf8_put_char(char *out, int chr);
+extern char *_PL__utf8_skip_char(const char *out);
 
 extern size_t utf8_strlen(const char *s, size_t len);
+extern size_t utf8_strlen1(const char *s);
+extern const char *utf8_skip(const char *s, size_t n);
+extern int    utf8_strncmp(const char *s1, const char *s2, size_t n);
+
+typedef enum {
+  S_ASCII,
+  S_LATIN,
+  S_WIDE
+} unicode_type_t;
+
+extern unicode_type_t _PL__utf8_type(const char *in0, size_t len);
+
+
+		 /*******************************
+		 *	 INLINE FUNCTIONS	*
+		 *******************************/
+
+static inline char *
+utf8_skip_char(const char *in)
+{ if ( !ISUTF8_MB(in[0]) )
+  { return (char*)in+1;
+  } else
+  { in++;
+    while ( ISUTF8_CB(in[0]) )
+      in++;
+    return (char*)in;
+  }
+}
 
 #endif /*UTF8_H_INCLUDED*/
