@@ -88,4 +88,12 @@ utf8_skip_char(const char *in)
   }
 }
 
+
+static inline char *
+utf8_backskip_char(const char *start, const char *s)
+{ for(s--; s>start && ISUTF8_CB(*s); s--)
+    ;
+  return (char*)s;
+}
+
 #endif /*UTF8_H_INCLUDED*/

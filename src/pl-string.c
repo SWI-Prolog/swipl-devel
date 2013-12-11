@@ -60,11 +60,8 @@ addUTF8Buffer(Buffer b, int c)
 
 
 static const char *
-backSkipUTF8(const char *start, const char *end, int *chr)
-{ const char *s;
-
-  for(s=end-1 ; s>start && *s&0x80; s--)
-    ;
+backSkipUTF8(const char *start, const char *s, int *chr)
+{ s = utf8_backskip_char(start, s);
   utf8_get_char(s, chr);
 
   return s;
