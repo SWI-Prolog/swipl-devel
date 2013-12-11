@@ -56,7 +56,7 @@
 % keep debug statements
 :- set_prolog_flag(optimise, false).
 
-:- debug(save).
+%:- debug(save).
 
 /** <module> Test saved states
 
