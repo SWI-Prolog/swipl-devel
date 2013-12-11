@@ -523,7 +523,7 @@ select_dict(word del, word from, word *new_dict ARG_LD)
   size_t left = 0;
   int rc;
 
-  /* unify the tages */
+  /* unify the tags */
   if ( (rc=unify_ptrs(din, fin, ALLOW_RETCODE PASS_LD)) != TRUE )
     return rc;
 
@@ -1467,12 +1467,13 @@ except for Key.
 static
 PRED_IMPL("del_dict", 4, del_dict, 0)
 { PRED_LD
-  word key;
+  word m, key;
   term_t mt = PL_new_term_ref();
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( get_dict_ex(A2, valTermRef(mt), TRUE PASS_LD) &&
+  if ( get_dict_ex(A2, &m, TRUE PASS_LD) &&
+       (*valTermRef(mt) = m) &&
        get_name_ex(A1, &key PASS_LD) )
   { Word vp;
 
@@ -1508,10 +1509,11 @@ static
 PRED_IMPL("select_dict", 3, select_dict, 0)
 { PRED_LD
   term_t sm = PL_new_term_ref();
-  word f, r;
+  word s, f, r;
 
 retry:
-  if ( get_dict_ex(A1, valTermRef(sm), TRUE PASS_LD) &&
+  if ( get_dict_ex(A1, &s, TRUE PASS_LD) &&
+       (*valTermRef(sm) = s) &&
        get_dict_ex(A2, &f, TRUE PASS_LD) )
   { int rc = select_dict(*valTermRef(sm), f, &r PASS_LD);
 
@@ -1541,10 +1543,11 @@ static
 PRED_IMPL(":<", 2, select_dict, 0)
 { PRED_LD
   term_t sm = PL_new_term_ref();
-  word f;
+  word s, f;
 
 retry:
-  if ( get_dict_ex(A1, valTermRef(sm), TRUE PASS_LD) &&
+  if ( get_dict_ex(A1, &s, TRUE PASS_LD) &&
+       (*valTermRef(sm) = s) &&
        get_dict_ex(A2, &f, TRUE PASS_LD) )
   { int rc = select_dict(*valTermRef(sm), f, NULL PASS_LD);
 
@@ -1569,10 +1572,11 @@ static
 PRED_IMPL(">:<", 2, punify_dict, 0)
 { PRED_LD
   term_t t1 = PL_new_term_ref();
-  word m2;
+  word m1, m2;
 
 retry:
-  if ( get_dict_ex(A1, valTermRef(t1), TRUE PASS_LD) &&
+  if ( get_dict_ex(A1, &m1, TRUE PASS_LD) &&
+       (*valTermRef(t1) = m1) &&
        get_dict_ex(A2, &m2, TRUE PASS_LD) )
   { int rc = partial_unify_dict(*valTermRef(t1), m2 PASS_LD);
 
