@@ -616,9 +616,7 @@ one of the other interface predicates or passed as an argument. The
 function returns the type of the Prolog term. The type identifiers are
 listed below.  Note that the extraction functions {\tt PL_get_*()} also
 validate the type and thus the two sections below are
-equivalent.\footnote{This function is poorly maintained and does not
-cope with recent additions, such as blobs and attributed variables.
-It is probably of limited value for practical programming.}
+equivalent.
 
 \begin{code}
         if ( PL_is_atom(t) )
@@ -636,15 +634,24 @@ or
         }
 \end{code}
 
+\textbf{Version~7} added \const{PL_NIL}, \const{PL_BLOB},
+\const{PL_LIST_PAIR} and \const{PL_DICT}.  Older versions
+classify \const{PL_NIL} and \const{PL_BLOB} as \const{PL_ATOM},
+\const{PL_LIST_PAIR} as \const{PL_TERM}	and do not have
+dicts.
+
 \begin{tabular}{|p{\tableft}|p{\linewidth-\tableft-2cm}|}
 \hline
-\const{PL_VARIABLE} & An unbound variable. The value of term as such
-		      is a unique identifier for the variable. \\
-\const{PL_ATOM}     & A Prolog atom. \\
-\const{PL_STRING}   & A Prolog string. \\
-\const{PL_INTEGER}  & A Prolog integer. \\
-\const{PL_FLOAT}    & A Prolog floating point number. \\
-\const{PL_TERM}     & A compound term. \\
+\const{PL_VARIABLE}  & A variable or attributed variable \\
+\const{PL_ATOM}      & A Prolog atom \\
+\const{PL_NIL}       & The constant \verb$[]$ \\
+\const{PL_BLOB}	     & A blob (see \secref{blobaccess}) \\
+\const{PL_STRING}    & A string (see \secref{strings}) \\
+\const{PL_INTEGER}   & A integer \\
+\const{PL_FLOAT}     & A floating point number \\
+\const{PL_TERM}      & A compound term \\
+\const{PL_LIST_PAIR} & A list cell (\verb$[H|T]$) \\
+\const{PL_DICT}	     & A dict (see \secref{dicts})) \\
 \hline
 \end{tabular}
 \end{description}

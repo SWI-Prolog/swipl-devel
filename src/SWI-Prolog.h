@@ -190,7 +190,10 @@ typedef union
 #define PL_FLOAT	 (4)		/* double */
 #define PL_STRING	 (5)		/* const char * */
 #define PL_TERM		 (6)
-#define PL_RESERVED_SYMBOL	 (7)
+
+#define PL_NIL		 (7)		/* The constant [] */
+#define PL_BLOB		 (8)		/* non-atom blob */
+#define PL_LIST_PAIR	 (9)		/* [_|_] term */
 
 					/* PL_unify_term() */
 #define PL_FUNCTOR	 (10)		/* functor_t, arg ... */
@@ -228,6 +231,8 @@ typedef union
 #define PL_PARTIAL_LIST	 (41)		/* a partial list */
 #define PL_CYCLIC_TERM	 (42)		/* a cyclic list/term */
 #define PL_NOT_A_LIST	 (43)		/* Object is not a list */
+					/* dicts */
+#define PL_DICT		 (44)
 
 /* Or'ed flags for PL_set_prolog_flag() */
 /* MUST fit in a short int! */

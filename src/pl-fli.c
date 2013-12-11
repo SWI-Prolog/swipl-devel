@@ -3385,9 +3385,31 @@ int
 PL_term_type(term_t t)
 { GET_LD
   word w = valHandle(t);
+  int t0 = type_map[tag(w)];
 
-  return type_map[tag(w)];
+  switch(t0)
+  { case PL_ATOM:
+    { if ( isTextAtom(w) )
+	return t0;
+      if ( w == ATOM_nil )
+	return PL_NIL;
+      return PL_BLOB;
+    }
+    case PL_TERM:
+    { functor_t f = valueTerm(w)->definition;
+      FunctorDef fd = valueFunctor(f);
+
+      if ( f == FUNCTOR_dot2 )
+	return PL_LIST_PAIR;
+      if ( fd->name == ATOM_dict )
+	return PL_DICT;
+    }
+    /*FALLTHROUGH*/
+    default:
+      return t0;
+  }
 }
+
 
 		 /*******************************
 		 *	      UNIFY		*
