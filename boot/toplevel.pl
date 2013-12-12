@@ -603,6 +603,7 @@ read_query(Prompt, Goal, Bindings) :-
 	      ( print_message(error, Catch),
 		fail
 	      )),
+	save_debug_after_read,
 	(   current_predicate(_, user:rl_add_history(_))
 	->  format(atom(CompleteLine), '~W~W',
 		   [ Line, [partial(true)],
@@ -653,6 +654,24 @@ set_default_history :-
 		 /*******************************
 		 *	  TOPLEVEL DEBUG	*
 		 *******************************/
+
+%%	save_debug_after_read
+%
+%	Called right after the toplevel read to save the debug status if
+%	it was modified from the GUI thread using e.g.
+%
+%	  ==
+%	  thread_signal(main, gdebug)
+%	  ==
+%
+%	@bug Ideally, the prompt would change if debug mode is enabled.
+%	     That is hard to realise with all the different console
+%	     interfaces supported by SWI-Prolog.
+
+save_debug_after_read :-
+	current_prolog_flag(debug, true), !,
+	save_debug.
+save_debug_after_read.
 
 save_debug :-
 	(   tracing,
