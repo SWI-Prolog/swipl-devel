@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -475,6 +475,11 @@ struct PL_local_data
     int		nvardefs;
     int		filledVars;
   } comp;
+
+  struct
+  { Buffer	buffered;		/* Buffered events */
+    int		delay_nesting;		/* How deeply is delay nested? */
+  } event;
 
   struct
   { struct

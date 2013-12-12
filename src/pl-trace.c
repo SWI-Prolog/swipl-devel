@@ -2313,8 +2313,102 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 		 *	  PROLOG EVENT HOOK	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+callEventHook() is used to call Prolog   in debugger related events that
+happen in the system. In some cases,   these  events are generated while
+the  system  holds  locks.  Such  code  should  call  delayEvents()  and
+sendDelayedEvents(). These calls must be   properly  nested. Delaying is
+currently only implemented for PLEV_BREAK and PLEV_NOBREAK.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct delayed_event
+{ pl_event_type		type;		/* PLEV_* */
+  union
+  { struct
+    { Clause clause;
+      int    offset;
+    } pc;
+  } value;
+} delayed_event;
+
+
+static int
+delayEvent(pl_event_type ev, va_list args)
+{ GET_LD
+
+  if ( LD->event.buffered )
+  { delayed_event dev;
+
+    dev.type = ev;
+
+    switch(ev)
+    { case PLEV_BREAK:
+      case PLEV_NOBREAK:
+	dev.value.pc.clause = va_arg(args, Clause);
+	dev.value.pc.offset = va_arg(args, int);
+	break;
+      default:
+	assert(0);
+    }
+
+    addBuffer(LD->event.buffered, dev, delayed_event);
+  }
+
+  return TRUE;
+}
+
+
 int
-callEventHook(int ev, ...)
+delayEvents(void)
+{ GET_LD
+
+  if ( !LD->event.delay_nesting++ )
+  { assert(!LD->event.buffered);
+
+    if ( (LD->event.buffered = malloc(sizeof(tmp_buffer))) )
+    { initBuffer(LD->event.buffered);
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+int
+sendDelayedEvents(void)
+{ GET_LD
+  int sent = 0;
+
+  if ( --LD->event.delay_nesting == 0 )
+  { Buffer b = LD->event.buffered;
+    delayed_event *dev = baseBuffer(b, delayed_event);
+    int count = entriesBuffer(b, delayed_event);
+
+    LD->event.buffered = NULL;
+
+    for(; count-- > 0; dev++)
+    { switch(dev->type)
+      { case PLEV_BREAK:
+	case PLEV_NOBREAK:
+	  callEventHook(dev->type, dev->value.pc.clause, dev->value.pc.offset);
+	  sent++;
+	  break;
+	default:
+	  assert(0);
+      }
+    }
+
+    discardBuffer(b);
+    free(b);
+  }
+
+  return sent;
+}
+
+
+int
+callEventHook(pl_event_type ev, ...)
 { if ( !PROCEDURE_event_hook1 )
     PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
 
@@ -2324,6 +2418,13 @@ callEventHook(int ev, ...)
     int rc;
     va_list args;
     term_t arg;
+
+    if ( LD->event.delay_nesting )
+    { va_start(args, ev);
+      delayEvent(ev, args);
+      va_end(args);
+      return TRUE;
+    }
 
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
       return FALSE;

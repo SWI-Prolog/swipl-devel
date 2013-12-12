@@ -6526,17 +6526,20 @@ clearBreak(Clause clause, int offset)
 void
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { PL_LOCK(L_BREAK);
+  { delayEvents();
+    PL_LOCK(L_BREAK);
     for_unlocked_table(breakTable, s,
 		       { BreakPoint bp = (BreakPoint)s->value;
 
 			 if ( bp->clause == clause )
-			   clearBreak(bp->clause, bp->offset);
+			 { clearBreak(clause, bp->offset);
+			   callEventHook(PLEV_NOBREAK, clause, bp->offset);
+			 }
 		       });
     PL_UNLOCK(L_BREAK);
+    clear(clause, HAS_BREAKPOINTS);
+    sendDelayedEvents();
   }
-
-  clear(clause, HAS_BREAKPOINTS);
 }
 
 
