@@ -3122,6 +3122,7 @@ unloadFile(SourceFile sf)
   ClauseRef garbage = NULL;
 
   clearInitialization(sf);
+  delayEvents();
 
   LOCK();
   PL_LOCK(L_THREAD);
@@ -3203,6 +3204,7 @@ unloadFile(SourceFile sf)
   PL_UNLOCK(L_THREAD);
   UNLOCK();
 
+  sendDelayedEvents();
   if ( garbage )
     freeClauseList(garbage);
 
