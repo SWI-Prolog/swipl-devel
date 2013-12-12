@@ -58,6 +58,7 @@ read_history(History, Help, DontStore, Prompt, Term, Bindings) :-
 		      fail
 		  ;   throw(E)
 		  )),
+	    '$toplevel':save_debug_after_read,
 	    read_history_(History, Help, DontStore, Raw, Term, Bindings), !.
 
 read_history_(History, _, _, History, _, _) :-
