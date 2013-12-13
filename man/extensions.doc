@@ -181,7 +181,7 @@ ISO compatible either.}
 	\item Leading white space and Prolog comments are \emph{not}
 	      allowed.
 	\item Numbers may start with '+' or '-'.
-	\item It is \emp{not} allowed to have white space between
+	\item It is \emph{not} allowed to have white space between
 	      a leading '+' or '-' and the number.
 	\item Floating point numbers in exponential notation do not
 	      require a dot before exponent, i.e., \verb$"1e10"$ is
