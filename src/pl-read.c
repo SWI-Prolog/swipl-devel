@@ -1057,23 +1057,6 @@ raw_read2(ReadData _PL_rd ARG_LD)
     { case EOF:
 		if ( Sferror(rb.stream) )
 		  return NULL;
-		if ( isStringStream(rb.stream) ) /* do not require '. ' when */
-		{ addToBuffer(' ', _PL_rd);     /* reading from a string */
-		  addToBuffer('.', _PL_rd);
-		  addToBuffer(' ', _PL_rd);
-		  addToBuffer(EOS, _PL_rd);
-		  return rb.base;
-		}
-		if (something_read)
-		{ if ( dotseen )		/* term.<EOF> */
-		  { if ( rb.here - rb.base == 1 )
-		      rawSyntaxError("end_of_clause");
-		    ensure_space(' ');
-		    addToBuffer(EOS, _PL_rd);
-		    return rb.base;
-		  }
-		  rawSyntaxError("end_of_file");
-		}
 		if ( Sfpasteof(rb.stream) )
 		{ term_t stream;
 
@@ -1083,6 +1066,21 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  PL_error(NULL, 0, NULL, ERR_PERMISSION,
 			   ATOM_input, ATOM_past_end_of_stream, stream);
 		  return NULL;
+		}
+		if ( something_read )
+		{ if ( dotseen )		/* term.<EOF> */
+		  { if ( rb.here - rb.base == 1 )
+		      rawSyntaxError("end_of_clause");
+		  complete_fullstop:
+		    ensure_space(' ');
+		    addToBuffer(EOS, _PL_rd);
+		    return rb.base;
+		  } else if ( isStringStream(rb.stream) )
+		  { ensure_space(' ');
+		    addToBuffer('.', _PL_rd);
+		    goto complete_fullstop;
+		  }
+		  rawSyntaxError("end_of_file");
 		}
 		set_start_line;
 		strcpy((char *)rb.base, "end_of_file. ");
