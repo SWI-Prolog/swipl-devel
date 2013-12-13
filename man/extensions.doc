@@ -813,7 +813,7 @@ languages because it would only be needed to quote \funcref{.}{2} terms,
 such terms are rare and term manipulation provides an escape route.}
 
 \begin{description}
-    \predicate{.}{3}{+Map, +Function, -Result}
+    \predicate{.}{3}{+Dict, +Function, -Result}
 This predicate is called to evaluate \funcref{.}{2} terms found in the
 arguments of a goal. This predicate evaluates the field extraction
 described above, which is mapped to get_dict_ex/3. If \arg{Function} is a
@@ -830,7 +830,7 @@ The tag of a dict associates the dict to a module.  If the dot
 notation uses a compound term, this calls the goal below.
 
 \begin{quote}
-<module>:<name>(Arg1, ..., +Map, -Value)
+<module>:<name>(Arg1, ..., +Dict, -Value)
 \end{quote}
 
 Functions are normal Prolog predicates. The dict infrastructure provides
@@ -873,9 +873,9 @@ Dicts currently define the following reserved functions:
 
 \begin{description}
     \dictfunction{get}{1}{?Key}
-Same as \arg{Map}.\arg{Key}, but maps to get_dict/3 instead of
+Same as \arg{Dict}.\arg{Key}, but maps to get_dict/3 instead of
 get_dict_ex/3.  This implies that the function evaluation fails
-silently if \arg{Key} does not appear in \arg{Map}.  See also
+silently if \arg{Key} does not appear in \arg{Dict}.  See also
 \predref{:<}{2}, which can be used to test for existence and
 unify multiple key values from a dict.  For example:
 
@@ -909,23 +909,23 @@ True if \arg{Term} is a dict.  This is the same as \exam{is_dict(Term,_)}.
     \predicate{is_dict}{2}{@Term, -Tag}
 True if \arg{Term} is a dict of \arg{Tag}.
 
-    \predicate{get_dict}{3}{?Key, +Map, -Value}
+    \predicate{get_dict}{3}{?Key, +Dict, -Value}
 Unify the value associated with \arg{Key} in dict with \arg{Value}.  If
-\arg{Key} is unbound, all associations in \arg{Map} are returned on
+\arg{Key} is unbound, all associations in \arg{Dict} are returned on
 backtracking.  The order in which the associations are returned is
 undefined.  This predicate is normally accessed using the functional
-notation \exam{Map.Key}.  See \secref{ext-dict-functions}.
+notation \exam{Dict.Key}.  See \secref{ext-dict-functions}.
 
-    \predicate{get_dict_ex}{3}{?Key, +Map, -Value}
+    \predicate{get_dict_ex}{3}{?Key, +Dict, -Value}
 Equivalent to get_dict/3, but throws an existence_error if \arg{Key} is
-not in \arg{Map}.  This version is used by the functional notation that
+not in \arg{Dict}.  This version is used by the functional notation that
 extracts key-values from a dict:
 
 \begin{code}
 ?- write(t{a:x}.b).
 ERROR: key `b' does not exist in t{a:x}
 \end{code}
-    \predicate{dict_create}{3}{-Map, +Tag, +Data}
+    \predicate{dict_create}{3}{-Dict, +Tag, +Data}
 Create a dict in \arg{Tag} from \arg{Data}. \arg{Data} is a list of
 attribute-value pairs using the syntax \exam{Key:Value},
 \exam{Key=Value}, \exam{Key-Value} or \exam{Key(Value)}. An exception is
@@ -933,13 +933,13 @@ raised if \arg{Data} is not a proper list, one of the elements is not of
 the shape above, a key is neither an atom nor a small integer or there
 is a duplicate key.
 
-    \predicate{dict_pairs}{3}{?Map, ?Tag, ?Pairs}
+    \predicate{dict_pairs}{3}{?Dict, ?Tag, ?Pairs}
 Bi-directional mapping between a dict and an ordered list of pairs
 (see \secref{pairs}).
 
-    \predicate{put_dict}{3}{+New, +MapIn, -MapOut}
-\arg{MapOut} is a new dict created by replacing or adding key-value pairs
-from \arg{New} to \arg{Map}. \arg{New} is either a dict or a valid input
+    \predicate{put_dict}{3}{+New, +DictIn, -DictOut}
+\arg{DictOut} is a new dict created by replacing or adding key-value pairs
+from \arg{New} to \arg{Dict}. \arg{New} is either a dict or a valid input
 for dict_create/3. This predicate is normally accessed using the
 functional notation. Below are some examples:
 
@@ -954,9 +954,9 @@ A = point{x:3, y:2}.
 A = point{x:3, y:2, z:0}.
 \end{code}
 
-    \predicate{put_dict}{4}{+Key, +MapIn, +Value, -MapOut}
-\arg{MapOut} is a new dict created by replacing or adding
-\arg{Key}-\arg{Value} to \arg{MapIn}. This predicate is normally
+    \predicate{put_dict}{4}{+Key, +DictIn, +Value, -DictOut}
+\arg{DictOut} is a new dict created by replacing or adding
+\arg{Key}-\arg{Value} to \arg{DictIn}. This predicate is normally
 accessed using the functional notation. Below is an example:
 
 \begin{code}
@@ -964,9 +964,9 @@ accessed using the functional notation. Below is an example:
 A = point{x:3, y:2}.
 \end{code}
 
-    \predicate{del_dict}{4}{+Key, +MapIn, ?Value, -MapOut}
-True when \arg{Key}-\arg{Value} is in \arg{MapIn} and \arg{MapOut}
-contains all associations of \arg{MapIn} except for \arg{Key}.
+    \predicate{del_dict}{4}{+Key, +DictIn, ?Value, -DictOut}
+True when \arg{Key}-\arg{Value} is in \arg{DictIn} and \arg{DictOut}
+contains all associations of \arg{DictIn} except for \arg{Key}.
 
     \infixop[semidet]{:<}{2}{+Select, +From}
 True when \arg{Select} is a `sub dict' of \arg{From}: the tages
@@ -977,11 +977,11 @@ a dict and at the same time extract relevant values from it.
 For example:
 
 \begin{code}
-plot(Map, On) :-
-	_{x:X, y:Y, z:Z} :< Map, !,
+plot(Dict, On) :-
+	_{x:X, y:Y, z:Z} :< Dict, !,
 	plot_xyz(X, Y, Z, On).
-plot(Map, On) :-
-	_{x:X, y:Y} :< Map, !,
+plot(Dict, On) :-
+	_{x:X, y:Y} :< Dict, !,
 	plot_xy(X, Y, On).
 \end{code}
 
@@ -1005,17 +1005,17 @@ R = _G1705{z:2}.
 See also select_dict/2 to ignore \arg{Rest} and \predref{>:<}{2} for
 a symmetric partial unification of two dicts.
 
-    \infixop{>:<}{+Map1}{+Map2}
+    \infixop{>:<}{+Dict1}{+Dict2}
 This operator specifies a \jargon{partial unification} between
-\arg{Map1} and \arg{Map2}. It is true when the tags and the values
+\arg{Dict1} and \arg{Dict2}. It is true when the tags and the values
 associated with all \emph{common} keys have been unified.  The values
 associated to keys that do not appear in the other dict are ignored.
 Partial unification is symmetric.  For example, given a list of dicts,
 find dicts that represent a point with X equal to zero:
 
 \begin{code}
-    member(Map, List),
-    Map >:< point{x:0, y:Y}.
+    member(Dict, List),
+    Dict >:< point{x:0, y:Y}.
 \end{code}
 
 See also \predref{:<}{2} and select_dict/3.
@@ -1028,7 +1028,7 @@ See also \predref{:<}{2} and select_dict/3.
 This section describes the destructive update operations defined on
 dicts. These actions can only \emph{update} keys and not add or remove
 keys. If the requested key does not exist the predicate raises
-\term{existence_error}{key, Key, Map}. Note the additional argument.
+\term{existence_error}{key, Key, Dict}. Note the additional argument.
 
 Destructive assignment is a non-logical operation and should be used
 with care because identical Prolog terms may be copied or shared add
@@ -1048,25 +1048,25 @@ B = a{a:1, dummy:_G3391}.
 
 
 \begin{description}
-    \predicate[det]{b_set_dict}{3}{+Key, !Map, +Value}
-Destructively update the value associated with \arg{Key} in \arg{Map} to
+    \predicate[det]{b_set_dict}{3}{+Key, !Dict, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Dict} to
 \arg{Value}. The update is trailed and undone on backtracking. This
 predicate raises an existence error if \arg{Key} does not appear in
-\arg{Map}. The update semantics are equivalent to setarg/3 and
+\arg{Dict}. The update semantics are equivalent to setarg/3 and
 b_setval/2.
 
-    \predicate[det]{nb_set_dict}{3}{+Key, !Map, +Value}
-Destructively update the value associated with \arg{Key} in \arg{Map} to
+    \predicate[det]{nb_set_dict}{3}{+Key, !Dict, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Dict} to
 a copy of \arg{Value}. The update is \emph{not} undone on backtracking.
 This predicate raises an existence error if \arg{Key} does not appear in
-\arg{Map}. The update semantics are equivalent to nb_setarg/3 and
+\arg{Dict}. The update semantics are equivalent to nb_setarg/3 and
 nb_setval/2.
 
-    \predicate[det]{nb_link_dict}{3}{+Key, !Map, +Value}
-Destructively update the value associated with \arg{Key} in \arg{Map} to
+    \predicate[det]{nb_link_dict}{3}{+Key, !Dict, +Value}
+Destructively update the value associated with \arg{Key} in \arg{Dict} to
 \arg{Value}. The update is \emph{not} undone on backtracking. This
 predicate raises an existence error if \arg{Key} does not appear in
-\arg{Map}.  The update semantics are equivalent to b_linkarg/3 and
+\arg{Dict}.  The update semantics are equivalent to b_linkarg/3 and
 nb_linkval/2. Use with extreme care and consult the documentation of
 nb_linkval/2 before use.
 \end{description}
@@ -1118,7 +1118,7 @@ library \pllib{record} and the second uses dicts.
     format('Dear ~w ~w,~n~n', [FirstName, LastName]).
 
     ...,
-    format('Dear ~w ~w,~n~n', [Map.first_name, Map.last_name]).
+    format('Dear ~w ~w,~n~n', [Dict.first_name, Dict.last_name]).
 \end{code}
 
 Records have a fixed number of arguments and (non-)existence of an
