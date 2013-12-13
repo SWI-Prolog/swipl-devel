@@ -78,7 +78,7 @@ extern unicode_type_t _PL__utf8_type(const char *in0, size_t len);
 
 static inline char *
 utf8_skip_char(const char *in)
-{ if ( !ISUTF8_MB(in[0]) )
+{ if ( !(in[0]&0x80) )
   { return (char*)in+1;
   } else
   { in++;
