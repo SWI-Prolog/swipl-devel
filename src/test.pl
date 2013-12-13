@@ -42,7 +42,8 @@ available test sets. The public goals are:
 	?- test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- format('SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
+:- format(user_error,
+	  'SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
 
 % Required to get this always running regardless of user LANG setting.
 % Without this the tests won't run on machines with -for example- LANG=ja
@@ -2560,7 +2561,7 @@ run_test_script(Script) :-
 	file_name_extension(Pred, _, Base),
 	load_files(Script, [silent(true), if(changed)]),
 	(   current_prolog_flag(verbose, normal)
-	->  format('(~w)', [Base]), flush_output
+	->  format(user_error, '(~w)', [Base]), flush_output
 	;   true
 	),
 	call_test(Pred, script).
@@ -2575,9 +2576,9 @@ run_test_scripts(Directory) :-
 	atom_concat(Dir, '/*.pl', Pattern),
 	expand_file_name(Pattern, Files),
 	file_base_name(Dir, BaseDir),
-	format('Running scripts from ~w ', [BaseDir]), flush,
+	format(user_error, '~NRunning scripts from ~w ', [BaseDir]),
 	run_scripts(Files),
-	format(' done~n').
+	format(user_error, ' done~n', []).
 
 run_scripts([]).
 run_scripts([H|T]) :-
@@ -2594,11 +2595,11 @@ run_scripts([H|T]) :-
 	run_scripts(T).
 
 script_failed(File, fail) :-
-	format('~NScript ~w failed~n', [File]),
+	format(user_error, '~NScript ~w failed~n', [File]),
 	assert(failed(script(File))).
 script_failed(File, Except) :-
 	message_to_string(Except, Error),
-	format('~NScript ~w failed: ~w~n', [File, Error]),
+	format(user_error, '~NScript ~w failed: ~w~n', [File, Error]),
 	assert(failed(script(File))).
 
 
@@ -2727,9 +2728,9 @@ scripts :-
 report_blocked :-
 	findall(Head-Reason, blocked(Head, Reason), L),
 	(   L \== []
-        ->  format('~nThe following tests are blocked:~n', []),
+        ->  format(user_error, '~NThe following tests are blocked:~n', []),
 	    (	member(Head-Reason, L),
-		format('    ~p~t~40|~w~n', [Head, Reason]),
+		format(user_error, '    ~p~t~40|~w~n', [Head, Reason]),
 		fail
 	    ;	true
 	    )
@@ -2739,9 +2740,9 @@ report_failed :-
 	findall(X, failed(X), L),
 	length(L, Len),
 	(   Len > 0
-        ->  format('~n*** ~w tests failed ***~n', [Len]),
+        ->  format(user_error, '~N*** ~w tests failed ***~n', [Len]),
 	    fail
-        ;   format('~nAll tests passed~n', [])
+        ;   format(user_error, '~NAll tests passed~n', [])
 	).
 
 %%	call_test(:Goal, +Line)
