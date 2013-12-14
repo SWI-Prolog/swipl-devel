@@ -2777,14 +2777,14 @@ call_test(Goal, _Line) :-
 :- endif.
 
 runtest(Name) :-
-	format(user_error, 'Running test set "~w" ', [Name]),
+	format(user_error, '~NRunning test set "~w" ', [Name]),
 	functor(Head, Name, 1),
 	findall(Head-R, nth_clause_head(Head, R), Heads),
 	unique_heads(Heads),
 	member(Head-R, Heads),
 	clause_property(R, line_count(Line)),
 	(   current_prolog_flag(verbose, normal)
-	->  format(user_error, '(~w)', [Line]), flush_output
+	->  format(user_error, '(~w)', [Line])
 	;   true
 	),
 	(   catch(call_test(Head, Line), Except, true)
@@ -2799,7 +2799,7 @@ runtest(Name) :-
 	),
 	fail.
 runtest(_) :-
-	format(user_error, ' done.~n').
+	format(user_error, ' done.~n', []).
 
 nth_clause_head(Head, R) :-
 	nth_clause(Head, _N, R),
