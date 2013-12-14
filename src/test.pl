@@ -2749,15 +2749,14 @@ call_test(Goal, _Line) :-
 :- endif.
 
 runtest(Name) :-
-	format('Running test set "~w" ', [Name]),
-	flush,
+	format(user_error, 'Running test set "~w" ', [Name]),
 	functor(Head, Name, 1),
 	findall(Head-R, nth_clause_head(Head, R), Heads),
 	unique_heads(Heads),
 	member(Head-R, Heads),
 	clause_property(R, line_count(Line)),
 	(   current_prolog_flag(verbose, normal)
-	->  format('(~w)', [Line]), flush_output
+	->  format(user_error, '(~w)', [Line]), flush_output
 	;   true
 	),
 	(   catch(call_test(Head, Line), Except, true)
@@ -2772,7 +2771,7 @@ runtest(Name) :-
 	),
 	fail.
 runtest(_) :-
-	format(' done.~n').
+	format(user_error, ' done.~n').
 
 nth_clause_head(Head, R) :-
 	nth_clause(Head, _N, R),
@@ -2814,10 +2813,10 @@ test_failed(R, Except) :-
 	clause_property(R, line_count(Line)),
 	clause_property(R, file(File)),
 	(   Except == fail
-	->  format('~N~w:~d: Test ~w(~w) failed~n',
+	->  format(user_error, '~N~w:~d: Test ~w(~w) failed~n',
 		   [File, Line, Name, TestName])
 	;   message_to_string(Except, Error),
-	    format('~N~w:~d: Test ~w(~w):~n~t~8|ERROR: ~w~n',
+	    format(user_error, '~N~w:~d: Test ~w(~w):~n~t~8|ERROR: ~w~n',
 		   [File, Line, Name, TestName, Error])
 	),
 	assert(failed(Head)).
@@ -2826,7 +2825,7 @@ blocked(Reason) :-
 	throw(blocked(Reason)).
 
 
-%	error(+Exception, +Expected)
+%%	error(+Exception, +Expected)
 %
 %	Check whether the correct exception  is thrown, disregarding the
 %	2nd context argument.
@@ -2834,14 +2833,15 @@ blocked(Reason) :-
 error(error(Ex, _Ctx), Expected) :-
 	subsumes_term(Expected, Ex), !.
 error(error(Ex, _Ctx), Expected) :-
-	format('~NWrong exception: ~p (expected ~p)~n', [Ex, Expected]),
+	format(user_error,
+	       '~NWrong exception: ~p (expected ~p)~n', [Ex, Expected]),
 	fail.
 
 error_context(error(_, context(Pred, _)), Pred) :- !.
 error_context(error(_, context(Module:Pred, _)), Pred) :-
 	hidden_module(Module), !.
 error_context(Error, _Pred) :-
-	format('Wrong error context: ~q~n', [Error]),
+	format(user_error, 'Wrong error context: ~q~n', [Error]),
 	fail.
 
 hidden_module(user) :- !.
