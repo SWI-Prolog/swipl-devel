@@ -1258,6 +1258,10 @@ markAtomsRecord(Record record)
 #ifdef O_ATOMGC
   copy_info ci;
 
+#ifdef REC_MAGIC
+  assert(record->magic == REC_MAGIC);
+#endif
+
   ci.base = ci.data = dataRecord(record);
   scanAtomsRecord(&ci, markAtom);
   assert(ci.data == addPointer(record, record->size));
