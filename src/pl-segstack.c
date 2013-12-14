@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -148,7 +147,7 @@ topOfSegStack(segstack *stack)
 
 
 void
-popTopOfSegStack(segstack *stack)
+popTopOfSegStack_(segstack *stack)
 { again:
 
   if ( stack->top >= stack->base + stack->unit_size )
@@ -185,11 +184,19 @@ scanSegStack(segstack *stack, void (*func)(void *cell))
 Walk along all living cells on the stack and call func on them.  The stack
 is traversed last-to-first.
 
-This is used by markAtomsFindall(), which   is  called asynchronously by
-AGC. Note that this is _not_ concurrent.  The thread is either signalled
-(Unix) or stopped (Windows). We notably   need good synchronization with
-popTopOfSegStack(). Notably, we must  ensure   that  stack->top  is only
-valid if stack->base == chunk->data.
+This is used by markAtomsFindall(), which runs concurrent with findall/3
+in the thread being scanned. New records pushed while AGC is in progress
+are marked by findall/3 itself.  Findall/3   can  concurrently  pop this
+stack. It may do this quicker than the   marking, but this is no problem
+because the pointers remain valid as all   records  are reclaimed at the
+end of findall/3 by calling clear_mem_pool(). It   is  only a problem if
+popTopOfSegStack_() pops a chunk because  the   popped  chunk  is freed.
+Therefore $collect_findall_bag/2 locks if it needs to call the expensive
+chunk-popping popTopOfSegStack_().
+
+With thanks to Eugeniy Meshcheryakov for   finding this and running many
+tests. The issue is triggered by Tests/thread_agc_findall.pl, notably on
+slow single core hardware.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline void
