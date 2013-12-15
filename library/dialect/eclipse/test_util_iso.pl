@@ -100,10 +100,9 @@ report(brief).
 %	Runs all the test patterns in TestFile.
 
 test(FileIn) :-
-        current_output(Out),
         setup_call_cleanup(
 	    open(FileIn, read, In),
-	    test_stream(In, Out),
+	    test_stream(In, user_error),
 	    close(In)).
 
 

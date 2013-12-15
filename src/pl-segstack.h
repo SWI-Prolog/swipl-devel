@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2013, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -87,7 +86,7 @@ COMMON(int)	pushSegStack_(segstack *stack, void* data) WUNUSED;
 COMMON(int)	pushRecordSegStack(segstack *stack, Record r) WUNUSED;
 COMMON(int)	popSegStack_(segstack *stack, void *data);
 COMMON(void*)	topOfSegStack(segstack *stack);
-COMMON(void)	popTopOfSegStack(segstack *stack);
+COMMON(void)	popTopOfSegStack_(segstack *stack);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));
 COMMON(void)	clearSegStack_(segstack *s);
 
@@ -122,6 +121,29 @@ topsOfSegStack(segstack *stack, int count, void **tops)
     } else
       break;
   }
+}
+
+
+/* quickPopTopOfSegStack() only performs a pop if we do not
+   need to discard a chunk.  $collect_findall_bag/2 needs
+   addition synchronization in that case.
+*/
+
+static inline int
+quickPopTopOfSegStack(segstack *stack)
+{ if ( stack->top >= stack->base + stack->unit_size )
+  { stack->top -= stack->unit_size;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static inline void
+popTopOfSegStack(segstack *stack)
+{ if ( !quickPopTopOfSegStack(stack) )
+    popTopOfSegStack_(stack);
 }
 
 

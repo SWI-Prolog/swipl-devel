@@ -204,7 +204,16 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
         markAtomsRecord(r);
       copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
       PL_cons_list(list, answer, list);
+#ifdef O_ATOMGC
+		/* see comment with scanSegStack() for synchronization details */
+      if ( !quickPopTopOfSegStack(&bag->answers) )
+      { simpleMutexLock(&LD->bags.mutex);
+	popTopOfSegStack(&bag->answers);
+	simpleMutexUnlock(&LD->bags.mutex);
+      }
+#else
       popTopOfSegStack(&bag->answers);
+#endif
     }
     DEBUG(CHK_SECURE, assert(emptySegStack(&bag->answers)));
 

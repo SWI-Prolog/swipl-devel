@@ -42,7 +42,8 @@ available test sets. The public goals are:
 	?- test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- format('SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
+:- format(user_error,
+	  'SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
 
 % Required to get this always running regardless of user LANG setting.
 % Without this the tests won't run on machines with -for example- LANG=ja
@@ -2560,7 +2561,7 @@ run_test_script(Script) :-
 	file_name_extension(Pred, _, Base),
 	load_files(Script, [silent(true), if(changed)]),
 	(   current_prolog_flag(verbose, normal)
-	->  format('(~w)', [Base]), flush_output
+	->  format(user_error, '(~w)', [Base]), flush_output
 	;   true
 	),
 	call_test(Pred, script).
@@ -2575,9 +2576,9 @@ run_test_scripts(Directory) :-
 	atom_concat(Dir, '/*.pl', Pattern),
 	expand_file_name(Pattern, Files),
 	file_base_name(Dir, BaseDir),
-	format('Running scripts from ~w ', [BaseDir]), flush,
+	format(user_error, '~NRunning scripts from ~w ', [BaseDir]),
 	run_scripts(Files),
-	format(' done~n').
+	format(user_error, ' done~n', []).
 
 run_scripts([]).
 run_scripts([H|T]) :-
@@ -2594,11 +2595,11 @@ run_scripts([H|T]) :-
 	run_scripts(T).
 
 script_failed(File, fail) :-
-	format('~NScript ~w failed~n', [File]),
+	format(user_error, '~NScript ~w failed~n', [File]),
 	assert(failed(script(File))).
 script_failed(File, Except) :-
 	message_to_string(Except, Error),
-	format('~NScript ~w failed: ~w~n', [File, Error]),
+	format(user_error, '~NScript ~w failed: ~w~n', [File, Error]),
 	assert(failed(script(File))).
 
 
@@ -2727,9 +2728,9 @@ scripts :-
 report_blocked :-
 	findall(Head-Reason, blocked(Head, Reason), L),
 	(   L \== []
-        ->  format('~nThe following tests are blocked:~n', []),
+        ->  format(user_error, '~NThe following tests are blocked:~n', []),
 	    (	member(Head-Reason, L),
-		format('    ~p~t~40|~w~n', [Head, Reason]),
+		format(user_error, '    ~p~t~40|~w~n', [Head, Reason]),
 		fail
 	    ;	true
 	    )
@@ -2739,9 +2740,9 @@ report_failed :-
 	findall(X, failed(X), L),
 	length(L, Len),
 	(   Len > 0
-        ->  format('~n*** ~w tests failed ***~n', [Len]),
+        ->  format(user_error, '~N*** ~w tests failed ***~n', [Len]),
 	    fail
-        ;   format('~nAll tests passed~n', [])
+        ;   format(user_error, '~NAll tests passed~n', [])
 	).
 
 %%	call_test(:Goal, +Line)
@@ -2776,15 +2777,14 @@ call_test(Goal, _Line) :-
 :- endif.
 
 runtest(Name) :-
-	format('Running test set "~w" ', [Name]),
-	flush,
+	format(user_error, '~NRunning test set "~w" ', [Name]),
 	functor(Head, Name, 1),
 	findall(Head-R, nth_clause_head(Head, R), Heads),
 	unique_heads(Heads),
 	member(Head-R, Heads),
 	clause_property(R, line_count(Line)),
 	(   current_prolog_flag(verbose, normal)
-	->  format('(~w)', [Line]), flush_output
+	->  format(user_error, '(~w)', [Line])
 	;   true
 	),
 	(   catch(call_test(Head, Line), Except, true)
@@ -2799,7 +2799,7 @@ runtest(Name) :-
 	),
 	fail.
 runtest(_) :-
-	format(' done.~n').
+	format(user_error, ' done.~n', []).
 
 nth_clause_head(Head, R) :-
 	nth_clause(Head, _N, R),
@@ -2841,10 +2841,10 @@ test_failed(R, Except) :-
 	clause_property(R, line_count(Line)),
 	clause_property(R, file(File)),
 	(   Except == fail
-	->  format('~N~w:~d: Test ~w(~w) failed~n',
+	->  format(user_error, '~N~w:~d: Test ~w(~w) failed~n',
 		   [File, Line, Name, TestName])
 	;   message_to_string(Except, Error),
-	    format('~N~w:~d: Test ~w(~w):~n~t~8|ERROR: ~w~n',
+	    format(user_error, '~N~w:~d: Test ~w(~w):~n~t~8|ERROR: ~w~n',
 		   [File, Line, Name, TestName, Error])
 	),
 	assert(failed(Head)).
@@ -2853,7 +2853,7 @@ blocked(Reason) :-
 	throw(blocked(Reason)).
 
 
-%	error(+Exception, +Expected)
+%%	error(+Exception, +Expected)
 %
 %	Check whether the correct exception  is thrown, disregarding the
 %	2nd context argument.
@@ -2861,14 +2861,15 @@ blocked(Reason) :-
 error(error(Ex, _Ctx), Expected) :-
 	subsumes_term(Expected, Ex), !.
 error(error(Ex, _Ctx), Expected) :-
-	format('~NWrong exception: ~p (expected ~p)~n', [Ex, Expected]),
+	format(user_error,
+	       '~NWrong exception: ~p (expected ~p)~n', [Ex, Expected]),
 	fail.
 
 error_context(error(_, context(Pred, _)), Pred) :- !.
 error_context(error(_, context(Module:Pred, _)), Pred) :-
 	hidden_module(Module), !.
 error_context(Error, _Pred) :-
-	format('Wrong error context: ~q~n', [Error]),
+	format(user_error, 'Wrong error context: ~q~n', [Error]),
 	fail.
 
 hidden_module(user) :- !.
