@@ -200,9 +200,9 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;
+      copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
       if (GD->atoms.gc_active)
         markAtomsRecord(r);
-      copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
       PL_cons_list(list, answer, list);
 #ifdef O_ATOMGC
 		/* see comment with scanSegStack() for synchronization details */
