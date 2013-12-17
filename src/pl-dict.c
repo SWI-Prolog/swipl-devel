@@ -203,6 +203,8 @@ dict_lookup_ptr(word dict, word name ARG_LD)
   int arity = arityFunctor(data->definition);
   int l = 1, h = arity-2;		/* odd numbers are the keys */
 
+  if ( arity == 1 )
+    return NULL;			/* empty */
   assert(arity%2 == 1);
 
   for(;;)
