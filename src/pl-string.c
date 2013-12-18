@@ -377,20 +377,13 @@ PRED_IMPL("read_string", 5, read_string, 0)
     { chr = Sgetcode(s);
     } while(chr != EOF && text_chr(&pad, chr) != (size_t)-1);
 
-    if ( chr == EOF )
-    { if ( Sferror(s) )
-	goto out;
-      rc = ( PL_unify_chars(A5, PL_STRING, 0, "") &&
-	     PL_unify_integer(A4, -1)
-	   );
-      goto out;
-    }
-
     for(;;)
-    { addUTF8Buffer((Buffer)&tmpbuf, chr);
-      chr = Sgetcode(s);
+    { if ( chr == EOF && Sferror(s) )
+	goto out;
       if ( chr == EOF || text_chr(&sep, chr) != (size_t)-1 )
 	break;
+      addUTF8Buffer((Buffer)&tmpbuf, chr);
+      chr = Sgetcode(s);
     }
 
     tmpbuf.top = backSkipPadding(baseBuffer(&tmpbuf,char),
