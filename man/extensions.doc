@@ -745,11 +745,11 @@ terms.
 Tag\{Key1:Value1, Key2:Value2, ...\}
 \end{quote}
 
-A dict can not hold duplicate keys. The dict is transformed into an opaque
-internal representation that does \emph{not} respect the order in which
-the key-value pairs appear in the input text. If a dict is written, the
-keys are written according to the standard order of terms (see
-\secref{standardorder}). Here are some examples, where the second
+A dict can \emph{not} hold duplicate keys. The dict is transformed into
+an opaque internal representation that does \emph{not} respect the order
+in which the key-value pairs appear in the input text. If a dict is
+written, the keys are written according to the standard order of terms
+(see \secref{standardorder}). Here are some examples, where the second
 example illustrates that the order is not maintained and the third
 illustrates an anonymous dict.
 
@@ -774,6 +774,13 @@ illustrated by the following example.
 Tag = point,
 X = 1.
 \end{code}
+
+\textbf{Note} In the current implementation, two dicts unify only if
+they have the same set of keys and the tags and values associated with
+the keys unify. In future versions, the notion of unification between
+dicts could be modified such that two dicts unify if their tags and the
+values associated with \emph{common} keys unify, turning both dicts into
+a new dict that has the union of the keys of the two original dicts.
 
 
 \subsection{Functions on dicts}
