@@ -460,7 +460,7 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 
 int
 get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
-{ int arity;
+{ FunctorDef fd;
 
   if ( !PL_get_functor(head, fdef) )
   { if ( how&GP_TYPE_QUIET )
@@ -469,21 +469,32 @@ get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
   }
 
-  if ( (arity=arityFunctor(*fdef)) > MAXARITY )
+  fd = valueFunctor(*fdef);
+
+  if ( fd->arity > MAXARITY )
   { if ( how&GP_TYPE_QUIET )
     { fail;
     } else
     { char buf[100];
 
-      Ssprintf(buf, "limit is %d, request = %d", MAXARITY, arity);
+      Ssprintf(buf, "limit is %d, request = %d", MAXARITY, fd->arity);
 
       return PL_error(NULL, 0, buf,
 		      ERR_REPRESENTATION, ATOM_max_arity);
     }
   }
 
-  succeed;
+  if ( !isTextAtom(fd->name) )
+  { if ( how&GP_TYPE_QUIET )
+    { fail;
+    } else
+    { return PL_error(NULL, 0, NULL,
+		      ERR_TYPE, ATOM_callable, head);
+    }
   }
+
+  succeed;
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

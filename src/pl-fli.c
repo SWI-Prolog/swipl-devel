@@ -1947,7 +1947,15 @@ PL_is_callable(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return (isTerm(w) || isTextAtom(w)) ? TRUE : FALSE;
+  if ( isTerm(w) )
+  { Functor f = valueTerm(w);
+    FunctorDef fd = valueFunctor(f->definition);
+
+    if ( isTextAtom(fd->name) )
+      return TRUE;
+  }
+
+  return isTextAtom(w) != 0;
 }
 
 

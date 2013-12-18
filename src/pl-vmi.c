@@ -4455,6 +4455,8 @@ atom is referenced by the goal-term anyway.
       goto call_type_error;
 
     fd = valueFunctor(functor);
+    if ( !isTextAtom(fd->name) )
+      goto call_type_error;
     if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
     { args    = argTermP(goal, 0);
       arity   = fd->arity;
@@ -4539,14 +4541,13 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
   } else if ( isTerm(goal) )
   { FunctorDef fdef = valueFunctor(functorTerm(goal));
 
+    if ( !isTextAtom(fdef->name) )
+      goto call_type_error;
     arity   = fdef->arity;
     functor = lookupFunctorDef(fdef->name, arity + callargs);
     args    = argTermP(goal, 0);
   } else
-  { PL_error(NULL, 0, NULL, ERR_TYPE,
-	     ATOM_callable, pushWordAsTermRef(argFrameP(NFR, 0)));
-    popTermRef();
-    THROW_EXCEPTION;
+  { goto call_type_error;
   }
 
   if ( arity != 1 )

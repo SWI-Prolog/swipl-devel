@@ -2445,6 +2445,9 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   { functor = functorTerm(*arg);
     fdef = valueFunctor(functor);
 
+    if ( !isTextAtom(fdef->name) )
+      return NOT_CALLABLE;
+
     if ( true(fdef, ARITH_F) && !ci->islocal )
     { if ( functor == FUNCTOR_is2 &&
 	   compileSimpleAddition(arg, ci PASS_LD) )
