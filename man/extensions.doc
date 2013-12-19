@@ -252,16 +252,21 @@ a single new list-cell and moves some pointers around.
     \predicate[det]{split_string}{4}{+String, +SepChars, +PadChars, -SubStrings}
 Break \arg{String} into \arg{SubStrings}. The \arg{SepChars} argument
 provides the characters that act as separators and thus the length of
-\arg{SubStrings} is one more than the number of separators found.
-Leading and trailing characters for each substring that appear in
-\arg{PadChars} are removed from the substring. The input arguments can
-be either atoms, strings or char/code lists. Compatible with ECLiPSe.
-Below are some examples:
+\arg{SubStrings} is one more than the number of separators found if
+\arg{SepChars} and \arg{PadChars} do not have common characters. If
+\arg{SepChars} and \arg{PadChars} are equal, sequences of adjacent
+separators act as a single separator. Leading and trailing characters
+for each substring that appear in \arg{PadChars} are removed from the
+substring. The input arguments can be either atoms, strings or char/code
+lists. Compatible with ECLiPSe. Below are some examples:
 
 \begin{code}
 % a simple split
 ?- split_string("a.b.c.d", ".", "", L).
 L = ["a", "b", "c", "d"].
+% Consider sequences of separators as a single one
+?- split_string("/home//jan///nice/path", "/", "/", L).
+L = ["home", "jan", "nice", "path"].
 % split and remove white space
 ?- split_string("SWI-Prolog, 7.0", ",", " ", L).
 L = ["SWI-Prolog", "7.0"].
