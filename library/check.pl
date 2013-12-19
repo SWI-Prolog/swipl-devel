@@ -527,6 +527,8 @@ valid_string_goal(system:format(_,S,_)) :- string(S).
 valid_string_goal(system:string_codes(S,_)) :- string(S).
 valid_string_goal(system:string_code(_,S,_)) :- string(S).
 valid_string_goal(system:throw(msg(S,_))) :- string(S).
+valid_string_goal('$dcg':phrase(S,_,_)) :- string(S).
+valid_string_goal('$dcg':phrase(S,_)) :- string(S).
 valid_string_goal(system: is(_,_)).	% arithmetic allows for "x"
 valid_string_goal(system: =:=(_,_)).
 valid_string_goal(system: >(_,_)).
