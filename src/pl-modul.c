@@ -1107,7 +1107,7 @@ export_pi(term_t pi, Module module ARG_LD)
   }
 
 
-  if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE) )
+  if ( !get_functor(pi, &fd, &module, 0, GF_PROCEDURE|GF_NAMEARITY) )
     fail;
 
   if ( (proc = isStaticSystemProcedure(fd)) && true(proc->definition, P_ISO) )
