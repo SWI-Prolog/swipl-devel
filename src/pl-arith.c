@@ -699,7 +699,13 @@ valueExpression(term_t expr, number *result ARG_LD)
 	{ if ( (*f)(n) != TRUE )
 	    goto error;
 	} else
-	{ PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
+	{ if ( isTextAtom(*p) )
+	  { PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
+	  } else
+	  { PL_error(NULL, 0, NULL, ERR_TYPE,
+		     ATOM_evaluable, pushWordAsTermRef(p));
+	    popTermRef();
+	  }
 	  goto error;
 	}
 	break;
