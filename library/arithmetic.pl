@@ -179,7 +179,7 @@ do_expand_function(Function, Result, (ArgCode, Pred)) :-
 	append(ArgResults, [Result], PredArgs),
 	Pred =.. [Name|PredArgs].
 do_expand_function(Function, _, _) :-
-	existence_error(evaluable, Function).
+	type_error(evaluable, Function).
 
 
 expand_function_arguments([], [], true).
@@ -211,10 +211,7 @@ evaluable(Func) :-				% Funtional notation.
 	functor(Func, ., 2), !.
 evaluable(F) :-
 	string(F), !,
-	(   string_length(F, 1)
-	->  true
-	;   domain_error(character, F)
-	).
+	string_length(F, 1).
 evaluable(F) :-
 	current_arithmetic_function(F),
 	(   compound(F)
