@@ -108,12 +108,14 @@ term_message(Term) -->
 	[ 'Unknown error term: ~p'-[Term] ].
 
 iso_message(type_error(evaluable, Actual)) -->
+	{ callable(Actual) },
 	[ 'Arithmetic: `~p'' is not a function'-[Actual] ].
 iso_message(type_error(free_of_attvar, Actual)) -->
 	[ 'Type error: `~W'' contains attributed variables'-
 	  [Actual,[portray(true), attributes(portray)]] ].
 iso_message(type_error(Expected, Actual)) -->
-	[ 'Type error: `~w'' expected, found `~p'''-[Expected, Actual] ].
+	[ 'Type error: `~w'' expected, found `~p'''-[Expected, Actual] ],
+	type_error_comment(Expected, Actual).
 iso_message(domain_error(Domain, Actual)) -->
 	[ 'Domain error: '-[] ], domain(Domain),
 	[ ' expected, found `~p'''-[Actual] ].
@@ -183,6 +185,35 @@ undefined_proc_msg(Proc) -->
 faq(Page) -->
 	[nl, '  See FAQ at http://www.swi-prolog.org/FAQ/', Page, '.txt' ].
 
+type_error_comment(_Expected, Actual) -->
+	{ type_of(Actual, Type),
+	  (   sub_atom(Type, 0, 1, _, First),
+	      memberchk(First, [a,e,i,o,u])
+	  ->  Article = an
+	  ;   Article = a
+	  )
+	},
+	[ ' (~w ~w)'-[Article, Type] ].
+
+type_of(Term, Type) :-
+	(   attvar(Term)      -> Type = attvar
+	;   var(Term)         -> Type = var
+	;   atom(Term)        -> Type = atom
+	;   integer(Term)     -> Type = integer
+	;   string(Term)      -> Type = string
+	;   blob(Term, BlobT) -> blob_type(BlobT, Type)
+	;   rational(Term)    -> Type = rational
+	;   float(Term)       -> Type = float
+	;   is_stream(Term)   -> Type = stream
+	;   is_dict(Term)     -> Type = dict
+	;   is_list(Term)     -> Type = list
+	;   cyclic_term(Term) -> Type = cyclic
+	;   compound(Term)    -> Type = compound
+	;		         Type = unknown
+	).
+
+blob_type(BlobT, Type) :-
+	atom_concat(BlobT, '_reference', Type).
 
 syntax_error(end_of_clause) -->
 	[ 'Unexpected end of clause' ].
