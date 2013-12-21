@@ -2497,7 +2497,8 @@ load_files(Module:Files, Options) :-
 
 '$do_export_list'([], _, []) :- !.
 '$do_export_list'([H|T], Module, Ops) :- !,
-	'$export1'(H, Module, Ops, Ops1),
+	catch('$export1'(H, Module, Ops, Ops1),
+	      E, ('$print_message'(error, E), Ops = Ops1)),
 	'$do_export_list'(T, Module, Ops1).
 
 '$export1'(Var, _, _, _) :-

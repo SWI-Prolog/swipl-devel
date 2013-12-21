@@ -749,8 +749,9 @@ typedef enum
 #define GP_NOT_QUALIFIED 0x2000		/* Demand unqualified name/arity */
 
 					/* get_functor() */
-#define GF_EXISTING	1
-#define GF_PROCEDURE	2		/* check for max arity */
+#define GF_EXISTING	0x1
+#define GF_PROCEDURE	0x2		/* check for max arity */
+#define GF_NAMEARITY	0x4		/* only accept name/arity */
 
 
 		 /*******************************

@@ -443,7 +443,7 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
       PL_put_term(h, head);
 
     succeed;
-  } else if ( PL_get_functor(head, fdef) )
+  } else if ( !(how&GF_NAMEARITY) && PL_get_functor(head, fdef) )
   { if ( h )
       PL_put_term(h, head);
 
