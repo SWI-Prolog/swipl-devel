@@ -93,7 +93,7 @@ Traditionally, the empty list can be interpreted both as the string "[]"
 and "".
 \end{itemize}
 
-================================================================
+% ================================================================
 \section{The string type and its double quoted syntax}
 \label{sec:strings}
 
@@ -1238,7 +1238,7 @@ representation must either be kept cannonical or unification must be
 extended to compensate for alternate representations.
 
 
-================================================================
+% ================================================================
 \section{Integration of strings and dicts in the libraries}
 \label{sec:ext-integration}
 
