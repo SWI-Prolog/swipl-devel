@@ -51,7 +51,10 @@
 :- multifile
        trivial_fail_goal/1,
        string_predicate/1,
-       valid_string_goal/1.
+       valid_string_goal/1,
+       checker/2.
+
+:- dynamic checker/2.
 
 
 /** <module> Consistency checking
@@ -66,25 +69,28 @@ loaded Prolog program.
 
 %%	checker(:Goal, +Message:text)
 %
-%	Each clause defines a Goal which performs a consistency check.
-%	Message is a short description of the check. For example, assuming
-%	the `foo` module defines a predicate list_format_mistakes/0:
+%	Each clause defines a Goal which   performs  a consistency check
+%	executed by check/0. Message  is  a   short  description  of the
+%	check.  For  example,  assuming  the   `foo`  module  defines  a
+%	predicate list_format_mistakes/0:
 %
+%          ==
 %	   :- multifile check:checker/2.
-%	   check:checker( foo:list_format_mistakes
-%	                , "Report errors with format/2 arguments"
-%	                ).
+%	   check:checker(foo:list_format_mistakes,
+%	                 "errors with format/2 arguments").
+%	   ==
 %
 %	The predicate is dynamic, so you can disable checks with retract/1.
 %	For example, to stop reporting redefined predicates:
 %
+%	   ==
 %	   retract(check:checker(list_redefined,_)).
-:- multifile checker/2.
-:- dynamic checker/2.
-checker(list_undefined,     'Undefined predicates' ).
-checker(list_trivial_fails, 'Trivial failures' ).
-checker(list_redefined,     'Redefined system and global predicates' ).
-checker(list_autoload,      'Predicates that need autoloading' ).
+%	   ==
+
+checker(list_undefined,     'undefined predicates' ).
+checker(list_trivial_fails, 'trivial failures' ).
+checker(list_redefined,     'redefined system and global predicates' ).
+checker(list_autoload,      'predicates that need autoloading' ).
 
 %%	check is det.
 %
@@ -568,7 +574,7 @@ valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
 	prolog:message/3.
 
 prolog:message(check(pass(Comment))) -->
-	[ 'PASS: ~w ...'-[Comment] ].
+	[ 'Checking ~w ...'-[Comment] ].
 prolog:message(check(find_references(Preds))) -->
 	{ length(Preds, N)
 	},
