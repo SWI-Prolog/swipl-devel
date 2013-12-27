@@ -64,10 +64,32 @@ loaded Prolog program.
 
 :- predicate_options(list_undefined/1, 1, [scan(oneof([local,global]))]).
 
+%%	checker(:Goal, +Message:text)
+%
+%	Each clause defines a Goal which performs a consistency check.
+%	Message is a short description of the check. For example, assuming
+%	the `foo` module defines a predicate list_format_mistakes/0:
+%
+%	   :- multifile check:checker/2.
+%	   check:checker( foo:list_format_mistakes
+%	                , "Report errors with format/2 arguments"
+%	                ).
+%
+%	The predicate is dynamic, so you can disable checks with retract/1.
+%	For example, to stop reporting redefined predicates:
+%
+%	   retract(check:checker(list_redefined,_)).
+:- multifile checker/2.
+:- dynamic checker/2.
+checker(list_undefined,     'Undefined predicates' ).
+checker(list_trivial_fails, 'Trivial failures' ).
+checker(list_redefined,     'Redefined system and global predicates' ).
+checker(list_autoload,      'Predicates that need autoloading' ).
+
 %%	check is det.
 %
-%	Run all consistency checks defined in this library.  Currently
-%	defined checks are:
+%	Run all consistency checks defined by checker/2. Checks enabled by
+%	default are:
 %
 %	  * list_undefined/0 reports undefined predicates
 %	  * list_trivial_fails/0 reports calls for which there is no
@@ -79,18 +101,11 @@ loaded Prolog program.
 %	    runtime using the autoloader.
 
 check :-
-	print_message(informational,
-		      check(pass('Undefined predicates'))),
-	list_undefined,
-	print_message(informational,
-		      check(pass('Trivial failures'))),
-	list_trivial_fails,
-	print_message(informational,
-		      check(pass('Redefined system and global predicates'))),
-	list_redefined,
-	print_message(informational,
-		      check(pass('Predicates that need autoloading'))),
-	list_autoload.
+	checker(Checker, Message),
+	print_message(informational,check(pass(Message))),
+	catch(Checker,E,print_message(error,E)),
+	fail.
+check.
 
 %%	list_undefined is det.
 %%	list_undefined(+Options) is det.
