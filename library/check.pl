@@ -80,16 +80,16 @@ loaded Prolog program.
 
 check :-
 	print_message(informational,
-		      check(pass(1, 'Undefined predicates'))),
+		      check(pass('Undefined predicates'))),
 	list_undefined,
 	print_message(informational,
-		      check(pass(2, 'Trivial failures'))),
+		      check(pass('Trivial failures'))),
 	list_trivial_fails,
 	print_message(informational,
-		      check(pass(3, 'Redefined system and global predicates'))),
+		      check(pass('Redefined system and global predicates'))),
 	list_redefined,
 	print_message(informational,
-		      check(pass(4, 'Predicates that need autoloading'))),
+		      check(pass('Predicates that need autoloading'))),
 	list_autoload.
 
 %%	list_undefined is det.
@@ -552,8 +552,8 @@ valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
 :- multifile
 	prolog:message/3.
 
-prolog:message(check(pass(N, Comment))) -->
-	[ 'PASS ~w: ~w ...'-[N, Comment] ].
+prolog:message(check(pass(Comment))) -->
+	[ 'PASS: ~w ...'-[Comment] ].
 prolog:message(check(find_references(Preds))) -->
 	{ length(Preds, N)
 	},
