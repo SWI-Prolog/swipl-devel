@@ -1439,7 +1439,8 @@ system_module(TB) :-
 generalise_term(Specific, General) :-
 	(   compound(Specific)
 	->  compound_name_arity(Specific, Name, Arity),
-	    compound_name_arity(General, Name, Arity)
+	    compound_name_arity(General0, Name, Arity),
+	    General = General0
 	;   General = Specific
 	).
 

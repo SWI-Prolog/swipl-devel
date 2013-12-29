@@ -644,14 +644,14 @@ property_predicate(undefined, Pred) :- !,
 	'$c_current_predicate'(_, Pred),
 	\+ '$defined_predicate'(Pred),		% Speed up a bit
 	\+ current_predicate(_, Pred),
-	compound_name_arity(Head, Name, Arity),
+	goal_name_arity(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
 property_predicate(visible, Pred) :- !,
 	visible_predicate(Pred).
 property_predicate(autoload(File), _:Head) :- !,
 	current_prolog_flag(autoload, true),
 	(   callable(Head)
-	->  compound_name_arity(Head, Name, Arity),
+	->  goal_name_arity(Head, Name, Arity),
 	    (	'$find_library'(_, Name, Arity, _, File)
 	    ->	true
 	    )
@@ -661,6 +661,12 @@ property_predicate(autoload(File), _:Head) :- !,
 property_predicate(Property, Pred) :-
 	define_or_generate(Pred),
 	'$predicate_property'(Property, Pred).
+
+goal_name_arity(Head, Name, Arity) :-
+	compound(Head), !,
+	compound_name_arity(Head, Name, Arity).
+goal_name_arity(Head, Head, 0).
+
 
 %%	define_or_generate(+Head) is semidet.
 %%	define_or_generate(-Head) is nondet.
