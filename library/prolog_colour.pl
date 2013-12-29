@@ -482,7 +482,7 @@ colourise_extern_head(Head, M, TB, Pos) :-
 
 colour_method_head(SGHead, TB, Pos) :-
 	arg(1, SGHead, Head),
-	functor(SGHead, SG, _),
+	functor_name(SGHead, SG),
 	functor_position(Pos, FPos, _),
 	colour_item(method(SG), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
@@ -747,8 +747,8 @@ colourise_meta_arg(_, Arg, TB, Pos) :-
 meta_args(Goal, TB, VarGoal) :-
 	colour_state_source_id(TB, SourceId),
 	xref_meta(SourceId, Goal, _),
-	functor(Goal, Name, Arity),
-	functor(VarGoal, Name, Arity),
+	compound_name_arity(Goal, Name, Arity),
+	compound_name_arity(VarGoal, Name, Arity),
 	xref_meta(SourceId, VarGoal, MetaArgs),
 	instantiate_meta(MetaArgs).
 
@@ -818,7 +818,7 @@ colourise_db(Head, TB, Pos) :-
 %	Module:Goal
 
 colourise_option_arg(Goal, Module, Arg, TB, ArgPos) :-
-	functor(Goal, Name, Arity),
+	goal_name_arity(Goal, Name, Arity),
 	current_option_arg(Module:Name/Arity, Arg),
 	current_predicate_options(Module:Name/Arity, Arg, OptionDecl),
 	debug(emacs, 'Colouring option-arg ~w of ~p',
@@ -860,8 +860,7 @@ colourise_option(Opt, _, TB, Pos) :-
 	var(Opt), !,
 	colourise_term_arg(Opt, TB, Pos).
 colourise_option(Opt, OptionDecl, TB, term_position(_,_,FF,FT,ValPosList)) :- !,
-	functor(Opt, Name, Arity),
-	functor(GenOpt, Name, Arity),
+	generalise_term(Opt, GenOpt),
 	(   memberchk(GenOpt, OptionDecl)
 	->  colour_item(option_name, TB, FF-FT),
 	    Opt =.. [Name|Values],
@@ -1011,7 +1010,7 @@ colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
 colourise_term_arg(_, TB,
 		   quasi_quotation_position(F,T,QQType,QQTypePos,CPos)) :- !,
 	colourise_qq_type(QQType, TB, QQTypePos),
-	functor(QQType, Type, _),
+	functor_name(QQType, Type),
 	colour_item(qq_content(Type), TB, CPos),
 	arg(1, CPos, SE),
 	SS is SE-2,
@@ -1151,8 +1150,7 @@ colourise_imports2(_, _, _, _, _).
 colourise_import(PI as Name, File, TB, term_position(_,_,FF,FT,[PP,NP])) :-
 	pi_to_term(PI, Goal), !,
 	colour_item(goal(imported(File), Goal), TB, PP),
-	functor(Goal, _, Arity),
-	functor(NewGoal, Name, Arity),
+	rename_goal(Goal, Name, NewGoal),
 	goal_classification(TB, NewGoal, [], Class),
 	colour_item(goal(Class, NewGoal), TB, NP),
 	colour_item(keyword(as), TB, FF-FT).
@@ -1352,8 +1350,8 @@ goal_classification(_, Goal, _, meta) :-
 goal_classification(_, Goal, _, not_callable) :-
 	\+ callable(Goal), !.
 goal_classification(_, Goal, Origin, recursion) :-
-	functor(Goal, Name, Arity),
-	functor(Origin, Name, Arity), !.
+	callable(Origin),
+	generalise_term(Goal, Origin), !.
 goal_classification(TB, Goal, _, How) :-
 	colour_state_source_id(TB, SourceId),
 	xref_defined(SourceId, Goal, How),
@@ -1368,7 +1366,7 @@ goal_classification(TB, Goal, _, How) :-
 	How = imported(From).
 goal_classification(_TB, _Goal, _, undefined).
 
-%	goal_classification(+Goal, -Class)
+%%	goal_classification(+Goal, -Class)
 %
 %	Multifile hookable classification for non-local goals.
 
@@ -1379,10 +1377,12 @@ goal_classification(Goal, autoload) :-	% SWI-Prolog
 goal_classification(Goal, global) :-	% SWI-Prolog
 	current_predicate(_, user:Goal), !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
-	functor(SS, send_super, A),
+	compound(SS),
+	compound_name_arity(SS, send_super, A),
 	A >= 2, !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
-	functor(SS, get_super, A),
+	compound(SS),
+	compound_name_arity(SS, get_super, A),
 	A >= 3, !.
 
 classify_head(TB, Goal, exported) :-
@@ -1429,12 +1429,40 @@ built_in_predicate(else).
 built_in_predicate(endif).
 
 goal_name(_:G, Name) :- nonvar(G), !, goal_name(G, Name).
-goal_name(G, Name) :- callable(G), functor(G, Name, _).
+goal_name(G, Name) :- callable(G), functor_name(G, Name).
 
 system_module(TB) :-
 	colour_state_source_id(TB, SourceId),
 	xref_module(SourceId, M),
 	module_property(M, class(system)).
+
+generalise_term(Specific, General) :-
+	(   compound(Specific)
+	->  compound_name_arity(Specific, Name, Arity),
+	    compound_name_arity(General, Name, Arity)
+	;   General = Specific
+	).
+
+rename_goal(Goal0, Name, Goal) :-
+	(   compound(Goal0)
+	->  compound_name_arity(Goal0, _, Arity),
+	    compound_name_arity(Goal, Name, Arity)
+	;   Goal = Name
+	).
+
+functor_name(Term, Name) :-
+	(   compound(Term)
+	->  compound_name_arity(Term, Name, _)
+	;   atom(Term)
+	->  Name = Term
+	).
+
+goal_name_arity(Goal, Name, Arity) :-
+	(   compound(Goal)
+	->  compound_name_arity(Goal, Name, Arity)
+	;   atom(Goal)
+	->  Name = Goal, Arity = 0
+	).
 
 
 %	Specify colours for individual goals.
@@ -1487,7 +1515,7 @@ goal_colours(get_super(_,_),	     built_in-[pce_arg,pce_selector,pce_arg]).
 goal_colours(get_chain(_,_,_),	     built_in-[pce_arg,pce_selector,pce_arg]).
 goal_colours(Pce,		     built_in-pce_arg) :-
 	compound(Pce),
-	functor(Pce, Functor, _),
+	functor_name(Pce, Functor),
 	pce_functor(Functor).
 
 pce_functor(send).
@@ -1822,7 +1850,7 @@ specified_item(pce_new, Term, TB, Pos) :- !,
 	(   atom(Term)
 	->  colourise_class(Term, TB, Pos)
 	;   compound(Term)
-	->  functor(Term, Class, _),
+	->  functor_name(Term, Class),
 	    Pos = term_position(_,_,FF, FT, ArgPos),
 	    colourise_class(Class, TB, FF-FT),
 	    specified_items(pce_arg, Term, TB, ArgPos)
