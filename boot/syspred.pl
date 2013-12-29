@@ -601,7 +601,10 @@ current_predicate(Name, Module:Head) :-
 current_predicate(Name, Module:Head) :-
 	current_prolog_flag(autoload, true),
 	\+ current_prolog_flag(Module:unknown, fail),
-	functor(Head, Name, Arity),
+	(   compound(Head)
+	->  compound_name_arity(Head, Name, Arity)
+	;   Name = Head, Arity = 0
+	),
 	'$find_library'(Module, Name, Arity, _LoadModule, _Library), !.
 
 generate_current_predicate(Name, Module, Head) :-
@@ -641,14 +644,14 @@ property_predicate(undefined, Pred) :- !,
 	'$c_current_predicate'(_, Pred),
 	\+ '$defined_predicate'(Pred),		% Speed up a bit
 	\+ current_predicate(_, Pred),
-	functor(Head, Name, Arity),
+	compound_name_arity(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
 property_predicate(visible, Pred) :- !,
 	visible_predicate(Pred).
 property_predicate(autoload(File), _:Head) :- !,
 	current_prolog_flag(autoload, true),
 	(   callable(Head)
-	->  functor(Head, Name, Arity),
+	->  compound_name_arity(Head, Name, Arity),
 	    (	'$find_library'(_, Name, Arity, _, File)
 	    ->	true
 	    )
