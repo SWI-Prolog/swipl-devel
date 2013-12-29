@@ -192,11 +192,11 @@ hide_called(Callable, _) :-
 
 mode_hide_called(all, _) :- !, fail.
 mode_hide_called(non_iso, Goal) :-
-	functor(Goal, Name, Arity),
+	goal_name_arity(Goal, Name, Arity),
 	current_predicate(system:Name/Arity),
 	predicate_property(system:Goal, iso).
 mode_hide_called(non_built_in, Goal) :-
-	functor(Goal, Name, Arity),
+	goal_name_arity(Goal, Name, Arity),
 	current_predicate(system:Name/Arity),
 	predicate_property(system:Goal, built_in).
 
@@ -205,7 +205,7 @@ mode_hide_called(non_built_in, Goal) :-
 %	True if Callable is a built-in
 
 system_predicate(Goal) :-
-	functor(Goal, Name, Arity),
+	goal_name_arity(Goal, Name, Arity),
 	current_predicate(system:Name/Arity),	% avoid autoloading
 	predicate_property(system:Goal, built_in), !.
 
@@ -303,8 +303,7 @@ assert_option(Src, comments(CommentHandling)) :- !,
 
 assert_default_options(Src) :-
 	(   xref_option_default(Opt),
-	    functor(Opt, Name, Arity),
-	    functor(Gen, Name, Arity),
+	    generalise_term(Opt, Gen),
 	    (   xoption(Src, Gen)
 	    ->  true
 	    ;   assertz(xoption(Src, Opt))
@@ -869,8 +868,9 @@ process_meta_predicate(Decl, Src) :-
 	process_meta_head(Src, Decl).
 
 process_meta_head(Src, Decl) :-		% swapped arguments for maplist
-	functor(Decl, Name, Arity),
-	functor(Head, Name, Arity),
+	compound(Decl),
+	compound_name_arity(Decl, Name, Arity),
+	compound_name_arity(Head, Name, Arity),
 	meta_args(1, Arity, Decl, Head, Meta),
 	(   (   prolog:meta_goal(Head, _)
 	    ;   prolog:called_by(Head, _)
@@ -1316,7 +1316,7 @@ process_new(Term, Origin, Src) :-
 assert_new(_, _, Term) :-
 	\+ callable(Term), !.
 assert_new(Src, Origin, Control) :-
-	functor(Control, Class, _),
+	functor_name(Control, Class),
 	pce_control_class(Class), !,
 	forall(arg(_, Control, Arg),
 	       assert_new(Src, Origin, Arg)).
@@ -1337,7 +1337,7 @@ assert_new(Src, Origin, Term) :-
 	fail.
 assert_new(_, _, @(_)) :- !.
 assert_new(Src, _, Term) :-
-	functor(Term, Name, _),
+	functor_name(Term, Name),
 	assert_used_class(Src, Name).
 
 
@@ -1744,8 +1744,7 @@ assert_constraint(_, Head) :-
 assert_constraint(Src, Head) :-
 	constraint(Head, Src, _), !.
 assert_constraint(Src, Head) :-
-	functor(Head, Name, Arity),
-	functor(Term, Name, Arity),
+	generalise_term(Head, Term),
 	current_source_line(Line),
 	assert(constraint(Term, Src, Line)).
 
@@ -1841,8 +1840,7 @@ assert_import(Src, except(Except), Export, From, Reexport) :- !,
 	assert_import(Src, Import, _All, From, Reexport).
 assert_import(Src, Import as Name, Export, From, Reexport) :- !,
 	pi_to_head(Import, Term0),
-	functor(Term0, _OldName, Arity),
-	functor(Term, Name, Arity),
+	rename_goal(Term0, Name, Term),
 	(   in_export_list(Term0, Export)
 	->  assert(imported(Term, Src, From)),
 	    assert_reexport(Reexport, Src, Term)
@@ -2059,8 +2057,7 @@ generalise(Module:Goal0, Module:Goal) :-
 	generalise(Goal0, Goal).
 generalise(Term0, Term) :-
 	callable(Term0),
-	functor(Term0, Name, Arity),
-	functor(Term, Name, Arity).
+	generalise_term(Term0, Term).
 
 
 		 /*******************************
@@ -2133,4 +2130,37 @@ canonical_source(Source, Src) :-
 	(   ground(Source)
 	->  prolog_canonical_source(Source, Src)
 	;   Source = Src
+	).
+
+%%	goal_name_arity(+Goal, -Name, -Arity)
+%
+%	Generalized version of  functor/3  that   can  deal  with name()
+%	goals.
+
+goal_name_arity(Goal, Name, Arity) :-
+	(   compound(Goal)
+	->  compound_name_arity(Goal, Name, Arity)
+	;   atom(Goal)
+	->  Name = Goal, Arity = 0
+	).
+
+generalise_term(Specific, General) :-
+	(   compound(Specific)
+	->  compound_name_arity(Specific, Name, Arity),
+	    compound_name_arity(General, Name, Arity)
+	;   General = Specific
+	).
+
+functor_name(Term, Name) :-
+	(   compound(Term)
+	->  compound_name_arity(Term, Name, _)
+	;   atom(Term)
+	->  Name = Term
+	).
+
+rename_goal(Goal0, Name, Goal) :-
+	(   compound(Goal0)
+	->  compound_name_arity(Goal0, _, Arity),
+	    compound_name_arity(Goal, Name, Arity)
+	;   Goal = Name
 	).
