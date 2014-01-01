@@ -162,7 +162,7 @@ syntax_error(Culprit) :-
 %	=chars=, =codes=, =text=, =compound=, =constant=, =float=,
 %	=integer=, =nonneg=, =positive_integer=, =negative_integer=,
 %	=nonvar=, =number=, =oneof=, =list=, =list_or_partial_list=,
-%	=symbol=, =var=, =rational=, =encoding= and =string=.
+%	=symbol=, =var=, =rational=, =encoding=, =dict= and =string=.
 %
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
@@ -308,6 +308,7 @@ has_type(rational, X)	  :- rational(X).
 has_type(string, X)	  :- string(X).
 has_type(stream, X)	  :- is_stream(X).
 has_type(encoding, X)	  :- current_encoding(X).
+has_type(dict, X)	  :- is_dict(X).
 has_type(list(Type), X)	  :- is_list(X), element_types(X, Type).
 
 chars(Chs) :-
