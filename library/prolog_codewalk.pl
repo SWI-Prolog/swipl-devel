@@ -336,7 +336,7 @@ walk_called_by_body(Body, Module, OTerm) :-
 walk_called_by_body(Body, Module, OTerm) :-
 	format(user_error, 'Failed to analyse:~n', []),
 	portray_clause(('<head>' :- Body)),
-	(   debugging(autoload(trace))
+	(   debugging(codewalk(trace))
 	->  gtrace,
 	    walk_called_by_body(Body, Module, OTerm)
 	;   true
@@ -348,7 +348,7 @@ walk_called_by_body(Body, Module, OTerm) :-
 %	insufficient information.
 
 walk_called_by_body(Missing, Body, _, OTerm) :-
-	debugging(autoload),
+	debugging(codewalk),
 	format(user_error, 'Retrying due to ~w (~p)~n', [Missing, OTerm]),
 	portray_clause(('<head>' :- Body)), fail.
 walk_called_by_body(undecided_call, Body, Module, OTerm) :-
