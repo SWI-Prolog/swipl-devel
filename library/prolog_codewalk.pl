@@ -795,12 +795,14 @@ extend(M:Goal, N, M:GoalEx,
 	),
 	extend(Goal, N, GoalEx, GPosIn, GPosOut, OTerm).
 extend(Goal, N, GoalEx, TermPosIn, TermPosOut, _) :-
-	callable(Goal),
+	callable(Goal), !,
 	Goal =.. List,
 	length(Extra, N),
 	extend_term_pos(TermPosIn, N, TermPosOut),
 	append(List, Extra, ListEx),
 	GoalEx =.. ListEx.
+extend(Goal, _, _, TermPos, _, OTerm) :-
+	print_reference(Goal, TermPos, not_callable, OTerm).
 
 extend_term_pos(Var, _, _) :-
 	var(Var), !.
