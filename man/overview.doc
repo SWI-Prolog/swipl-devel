@@ -1935,32 +1935,51 @@ garbage collection.  These features are controlled using Prolog flags
 (see current_prolog_flag/2).
 
 
-\section{Syntax Notes}				\label{sec:syntax}
+\section{The SWI-Prolog syntax}				\label{sec:syntax}
 
-SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is
-closely compatible with Edinburgh Prolog syntax. A description of this
-syntax can be found in the Prolog books referenced in the introduction.
-Below are some non-standard or non-common constructs that are accepted
-by SWI-Prolog:
+SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is based
+on the Edinburgh Prolog syntax. A formal description can be found in the
+ISO standard document. For an informal introduction we refer to Prolog
+text books (see \secref{intro}) and \url[online
+tutorials]{http://www.swi-prolog.org/Links.html}. In addition to the
+differences from the ISO standard documented here, SWI-Prolog offers
+several extensions, some of which also extend the syntax. See
+\secref{extensions} for more information.
 
-\begin{itemlist}
-    \item [\exam{/* \ldots /* \ldots */ \ldots */}]
-The \exam{/* \ldots */} comment statement can be nested. This is useful
-if some code with \exam{/* \ldots */} comment statements in it should be
-commented out.
-\end{itemlist}
 
 \subsection{ISO Syntax Support}			\label{sec:isosyntax}
 
-SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
+This section lists various extensions w.r.t.\ the ISO Prolog syntax.
 
 \subsubsection{Processor Character Set}		\label{sec:processorcharset}
 
 \index{ISO Latin 1}\index{character set}%
 The processor character set specifies the class of each character used
 for parsing Prolog source text.  Character classification is fixed to
-use UCS/Unicode as provided by the C library \ctype{wchar_t} based
-primitives.  See also \secref{widechars}.
+\url[Unicode]{http://www.unicode.org/}.  See also \secref{widechars}.
+
+\subsection{Nested comments}			\label{sec:nestedcomments}
+
+SWI-Prolog allows for nesting \exam{/* \ldots */} comments. Where the
+ISO standard accepts \exam{/* \ldots /* \ldots */} as a comment,
+SWI-Prolog will search for a terminating \exam{*/}. This is useful if
+some code with \exam{/* \ldots */} comment statements in it should be
+commented out. This modification also avoids unintended commenting in
+the example below, where the closing \exam{*/} of the first comment has
+been forgotten.\footnote{Recent copies of GCC give a style warning if
+\exam{/*} is encountered in a comment, which suggests that this
+problem has been recognised more widely.}
+
+\begin{code}
+/* comment
+
+code
+
+/* second comment */
+
+code
+
+\end{code}
 
 \subsubsection{Character Escape Syntax}		\label{sec:charescapes}
 
