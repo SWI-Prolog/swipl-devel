@@ -360,17 +360,17 @@ mode for a file.
 If the file ends in \fileext{pl} or the selected alternative
 (e.g.\ \fileext{pro}) extension, Prolog mode is selected.
 
-    \item [Using \exam{\#!/path/to/pl}]
+    \item [Using \exam{\#!/path/to/.../swipl}]
 If the file is a \jargon{Prolog Script} file, starting with the line
-\exam{\#!/path/to/pl options -s}, Prolog mode is selected regardless
-of the extension.
+\mbox{\texttt{\#!/path/to/swipl} \arg{options}}, Prolog mode is
+selected regardless of the extension.
 
     \item [Using \exam{-*- Prolog -*-}]
 If the above sequence appears in the first line of the file (inside a
 Prolog comment) Prolog mode is selected.
 
     \item [Explicit selection]
-Finally, using \menu{File/Mode/Prolog} you can switch to Prolog mode
+Finally, using \menu{File/Mode/Prolog}{} you can switch to Prolog mode
 explicitly.
 \end{itemlist}
 
