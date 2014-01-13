@@ -972,7 +972,9 @@ resortDictsInClause(Clause clause)
       { word w = (word)PC[1];
 	FunctorDef fd = valueFunctor(w);
 
-	if ( fd->name == ATOM_dict && fd->arity%2 == 1 )
+	if ( fd->name == ATOM_dict &&
+	     fd->arity > 1 &&
+	     fd->arity%2 == 1 )
 	{ int f, fields = fd->arity/2;
 	  kv_code kv_buf[KV_PREALOCATED];
 	  code c_buf[C_PREALLOCATED];
