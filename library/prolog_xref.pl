@@ -1489,14 +1489,14 @@ public_list_diff(Path, Module, Meta, MT, Export, Rest, Public, PT, Options) :-
 	    ( prolog_open_source(Path, In),
 	      set_xref(Old)
 	    ),
-	    phrase(read_directives(In, Options), Directives),
+	    phrase(read_directives(In, Options, [true]), Directives),
 	    ( set_prolog_flag(xref, Old),
 	      prolog_close_source(In)
 	    )),
 	public_list(Directives, Path, Module, Meta, MT, Export, Rest, Public, PT).
 
 
-read_directives(In, Options) -->
+read_directives(In, Options, State) -->
 	{  repeat,
 	     catch(prolog_read_source_term(In, Term, Expanded,
 					   [ process_comment(true),
@@ -1506,13 +1506,40 @@ read_directives(In, Options) -->
 	-> nonvar(Term),
 	   Term = (:-_)
 	}, !,
-	terms(Expanded),
-	read_directives(In, Options).
-read_directives(_, _) --> [].
+	terms(Expanded, State, State1),
+	read_directives(In, Options, State1).
+read_directives(_, _, _) --> [].
 
-terms(Var) --> { var(Var) }, !.
-terms([H|T]) --> [H], terms(T).
-terms(H) --> [H].
+terms(Var, State, State) --> { var(Var) }, !.
+terms([H|T], State0, State) -->
+      terms(H, State0, State1),
+      terms(T, State1, State).
+terms((:-if(Cond)), State0, [True|State0]) -->  !,
+	{ eval_cond(Cond, True) }.
+terms((:-elif(Cond)), [True0|State], [True|State]) -->  !,
+	{ eval_cond(Cond, True1),
+	  elif(True0, True1, True)
+	}.
+terms((:-else), [True0|State], [True|State]) -->  !,
+	{ negate(True0, True) }.
+terms((:-endif), [_|State], State) -->  !.
+terms(H, State, State) -->
+     (	 {State = [true|_]}
+     ->	 [H]
+     ;	 []
+     ).
+
+eval_cond(Cond, true) :-
+	catch(Cond, _, fail), !.
+eval_cond(_, false).
+
+elif(true,  _,	  else_false) :- !.
+elif(false, true, true) :- !.
+elif(True,  _,	  True).
+
+negate(true,	   false).
+negate(false,	   true).
+negate(else_false, else_false).
 
 public_list([(:- module(Module, Export0))|Decls], Path,
 	    Module, Meta, MT, Export, Rest, Public, PT) :-
