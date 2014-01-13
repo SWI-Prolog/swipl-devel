@@ -937,6 +937,17 @@ extracts key-values from a dict:
 ?- write(t{a:x}.b).
 ERROR: key `b' does not exist in t{a:x}
 \end{code}
+
+    \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, -NewValue}
+Acts according to the following below.  \arg{Dict} is either a dict or
+a list the can be converted into a dict.
+
+\begin{code}
+get_dict(Key, Dict, Old, NewDict, New) :-
+	get_dict(Key, Dict, Old),
+	put_dict(Key, Dict, New, NewDict).
+\end{code}
+
     \predicate{dict_create}{3}{-Dict, +Tag, +Data}
 Create a dict in \arg{Tag} from \arg{Data}. \arg{Data} is a list of
 attribute-value pairs using the syntax \exam{Key:Value},

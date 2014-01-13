@@ -618,6 +618,19 @@ select_dict(word del, word from, word *new_dict ARG_LD)
 }
 
 
+static int
+get_name_ex(term_t t, Word np ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( is_key(*p) )
+  { *np = *p;
+    return TRUE;
+  }
+
+  return PL_type_error("dict-key", t);
+}
+
 
 static int
 get_name_value(Word p, Word name, Word value, int flags ARG_LD)
@@ -1168,7 +1181,7 @@ pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
       { i = 1;
 	goto search;
       }
-      return PL_type_error("key", A2);
+      return PL_type_error("dict-key", A2);
     }
     case FRG_REDO:
     { Functor f;
@@ -1224,6 +1237,45 @@ PRED_IMPL("get_dict", 3, get_dict, PL_FA_NONDETERMINISTIC)
 static
 PRED_IMPL("get_dict_ex", 3, get_dict_ex, PL_FA_NONDETERMINISTIC)
 { return pl_get_dict(PL__t0, PL__ac, TRUE, PL__ctx);
+}
+
+
+/** get_dict(+Key, +Dict, -Value, -NewDict, -NewValue) is semidet.
+*/
+
+static
+PRED_IMPL("get_dict", 5, get_dict, 0)
+{ PRED_LD
+  term_t dt = PL_new_term_refs(4);
+  term_t av = dt+1;
+  word key, dict;
+  Word vp;
+
+  if ( !get_name_ex(A1, &key PASS_LD) ||
+       !(*valTermRef(av+0) = key) ||
+       !get_dict_ex(A2, &dict, TRUE PASS_LD) ||
+       !(*valTermRef(dt) = dict) ||
+       !(vp=dict_lookup_ptr(dict, key PASS_LD)) ||
+       !unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) ||
+       !PL_put_term(av+1, A5) )
+    return FALSE;
+
+  for(;;)
+  { word new;
+    int rc;
+
+    dict = *valTermRef(dt);
+
+    if ( (rc = put_dict(dict, 1, valTermRef(av), &new PASS_LD)) == TRUE )
+    { term_t t = dt+3;
+
+      *valTermRef(t) = new;
+      return PL_unify(A4, t);
+    } else
+    { if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	return FALSE;
+    }
+  }
 }
 
 
@@ -1359,31 +1411,16 @@ retry:
 True when Dict is a copy of Dict0 with Name Value added or replaced.
 */
 
-static int
-get_name_ex(term_t t, Word np ARG_LD)
-{ Word p = valTermRef(t);
-
-  deRef(p);
-  if ( is_key(*p) )
-  { *np = *p;
-    return TRUE;
-  }
-
-  return PL_type_error("dict-key", t);
-}
-
-
-static
-PRED_IMPL("put_dict", 4, put_dict, 0)
-{ PRED_LD
-  word m1;
+static foreign_t
+put_dict4(term_t key, term_t dict, term_t value, term_t newdict ARG_LD)
+{ word m1;
   term_t av = PL_new_term_refs(2);
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( get_dict_ex(A2, &m1, TRUE PASS_LD) &&
-       get_name_ex(A1, valTermRef(av) PASS_LD) &&
-       PL_put_term(av+1, A3) )
+  if ( get_dict_ex(dict, &m1, TRUE PASS_LD) &&
+       get_name_ex(key, valTermRef(av) PASS_LD) &&
+       PL_put_term(av+1, value) )
   { word new;
     int rc;
 
@@ -1391,7 +1428,7 @@ retry:
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
-      return PL_unify(A4, t);
+      return PL_unify(newdict, t);
     } else
     { if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
       { PL_rewind_foreign_frame(fid);
@@ -1401,6 +1438,15 @@ retry:
   }
 
   return FALSE;
+}
+
+
+
+static
+PRED_IMPL("put_dict", 4, put_dict, 0)
+{ PRED_LD
+
+  return put_dict4(A1, A2, A3, A4 PASS_LD);
 }
 
 
@@ -1641,6 +1687,7 @@ BeginPredDefs(dict)
   PRED_DEF("get_dict",	   3, get_dict,	    PL_FA_NONDETERMINISTIC)
   PRED_DEF("get_dict_ex",  3, get_dict_ex,  PL_FA_NONDETERMINISTIC)
   PRED_DEF("del_dict",	   4, del_dict,	    0)
+  PRED_DEF("get_dict",     5, get_dict,     0)
   PRED_DEF("select_dict",  3, select_dict,  0)
   PRED_DEF(":<",	   2, select_dict,  0)
   PRED_DEF(">:<",	   2, punify_dict,  0)
