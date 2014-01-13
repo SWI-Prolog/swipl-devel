@@ -31,11 +31,40 @@
 eval_dict_function(get(Key), _, Dict, Value) :- !,
 	get_dict(Key, Dict, Value).
 eval_dict_function(put(Key, Value), _, Dict, NewDict) :- !,
-	put_dict(Key, Dict, Value, NewDict).
+	(   atomic(Key)
+	->  put_dict(Key, Dict, Value, NewDict)
+	;   put_dict_path(Key, Dict, Value, NewDict)
+	).
 eval_dict_function(put(New), _, Dict, NewDict) :- !,
 	put_dict(New, Dict, NewDict).
 eval_dict_function(Func, Tag, Dict, Value) :-
 	call(Tag:Func, Dict, Value).
+
+
+%%	put_dict_path(+KeyPath, +Dict, +Value, -NewDict)
+%
+%	Add/replace  a  value  according  to  a  path  definition.  Path
+%	segments are separated using '/'.
+
+put_dict_path(Key, Dict, Value, NewDict) :-
+	atom(Key), !,
+	put_dict(Key, Dict, Value, NewDict).
+put_dict_path(Path, Dict, Value, NewDict) :-
+	get_dict_path(Path, Dict, _Old, NewDict, Value).
+
+get_dict_path(Path/Key, Dict, Old, NewDict, New) :- !,
+	get_dict_path(Path, Dict, OldD, NewDict, NewD),
+	(   get_dict(Key, OldD, Old, NewD, New),
+	    is_dict(Old)
+	->  true
+	;   Old = _{},
+	    put_dict(Key, OldD, New, NewD)
+	).
+get_dict_path(Key, Dict, Old, NewDict, New) :-
+	get_dict(Key, Dict, Old, NewDict, New),
+	is_dict(Old), !.
+get_dict_path(Key, Dict, _{}, NewDict, New) :-
+	put_dict(Key, Dict, New, NewDict).
 
 
 		 /*******************************

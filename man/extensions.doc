@@ -902,9 +902,30 @@ false.
 Evaluates to a new dict where the key-values in \arg{New} replace
 or extend the key-values in the original dict.  See put_dict/3.
 
-    \dictfunction{put}{2}{+Key, +Value}
-Evaluates to a new dict where the \arg{Key}-\arg{Value} replaces
-or extends the key-values in the original dict.  See put_dict/4.
+    \dictfunction{put}{2}{+KeyPath, +Value}
+Evaluates to a new dict where the \arg{KeyPath}-\arg{Value} replaces or
+extends the key-values in the original dict. \arg{KeyPath} is either a
+key or a term \arg{KeyPath}/\arg{Key},\footnote{Note that we do not use
+the '.' functor here, because the \funcref{.}{2} would \emph{evaluate}.}
+replacing the value associated with \arg{Key} in a sub-dict of the dict
+on which the function operates. See put_dict/4. Below are some examples:
+
+\begin{code}
+?- A = _{}.put(a, 1).
+A = _G7359{a:1}.
+
+?- A = _{a:1}.put(a, 2).
+A = _G7377{a:2}.
+
+?- A = _{a:1}.put(b/c, 2).
+A = _G1395{a:1, b:_G1584{c:2}}.
+
+?- A = _{a:_{b:1}}.put(a/b, 2).
+A = _G1429{a:_G1425{b:2}}.
+
+?- A = _{a:1}.put(a/b, 2).
+A = _G1395{a:_G1578{b:2}}.
+\end{code}
 \end{description}
 
 
