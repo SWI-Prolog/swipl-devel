@@ -1224,7 +1224,7 @@ initPrologFlags(void)
   setPrologFlag("sandboxed_load", FT_BOOL, FALSE, 0);
   setPrologFlag("allow_variable_name_as_functor", FT_BOOL, FALSE,
 		ALLOW_VARNAME_FUNCTOR);
-  setPrologFlag("allow_dot_in_atom", FT_BOOL, TRUE,
+  setPrologFlag("allow_dot_in_atom", FT_BOOL, FALSE,
 		PLFLAG_DOT_IN_ATOM);
   setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
   setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);

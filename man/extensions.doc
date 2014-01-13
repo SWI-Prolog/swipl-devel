@@ -617,21 +617,6 @@ Y = 1790400.0'J'.
 \end{code}
 
 
-\subsection{Allow for dotted identifiers}
-\label{sec:ext-syntax-dotted-id}
-
-Quite a few languages allow for dots (.) in identifiers to express type
-extensions or some form of hierarchy. Although SWI-Prolog version~7
-makes the dot available as operator, this is different from supporting
-it inside identifiers because usage inside identifiers does not allow
-for brackets or white space. Furthermore, SWI-Prolog version~7 reserves
-the dot for its \jargon{functional notation} extension (see
-\secref{ext-dict-functions}).
-
-Whether or not dots are allowed in identifiers is controlled by the
-\prologflag{allow_dot_in_atom}, which is \const{true} by default.
-
-
 \subsection{Compound terms with zero arguments}
 \label{sec:ext-compound-zero}
 

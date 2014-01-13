@@ -1047,20 +1047,14 @@ the C compiler used to compile this version of SWI-Prolog defines
 for MacOSX.
 
     \prologflagitem{allow_dot_in_atom}{bool}{rw}
-If true (default), dots may be embedded into atoms that are not quoted
-and start with a letter. The embedded dot \emph{must} be followed by an
-identifier continuation character (i.e., letter, digit or underscore).
-Note that the dot is allowed in identifiers in many languages.
-
-\begin{code}
-?- xml_load(data.xml, XML, []).
-XML = ...
-\end{code}
-
-Note that the dot is also use as infix operator for functional access to
-\jargon{dicts} (see \secref{dicts}). The rule defined by this flag
-overrules the operator behaviour in the same way as \textit{1.2} is
-read as a floating point number and not as the term .(1,2).
+If \const{true} (default \const{false}), dots may be embedded into atoms
+that are not quoted and start with a letter. The embedded dot
+\emph{must} be followed by an identifier continuation character (i.e.,
+letter, digit or underscore). The dot is allowed in identifiers in many
+languages, which can make this a useful flag for defining DSLs.  Note
+that this conflicts with cascading functional notation.  For example,
+\exam{Post.meta.author} is read as \exam{.(Post, 'meta.author'} if this
+flag is set to \const{true}.
 
     \prologflagitem{allow_variable_name_as_functor}{bool}{rw}
 If true (default is false), \exam{Functor(arg)} is read as if it were
