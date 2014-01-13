@@ -22,7 +22,7 @@ suggest predicates from a keyword.
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
 \predicatesummary{.}{2}{Consult. Also functional notation}
-\oppredsummary{:<}{2}{xfx}{700}{Select keys from a map}
+\oppredsummary{:<}{2}{xfx}{700}{Select keys from a dict}
 \oppredsummary{;}{2}{xfy}{1100}{Disjunction of goals. Same as \predref{|}{2}}
 \oppredsummary{<}{2}{xfx}{700}{Arithmetic smaller}
 \oppredsummary{=}{2}{xfx}{700}{Unification}
@@ -34,7 +34,7 @@ suggest predicates from a keyword.
 \oppredsummary{=\=}{2}{xfx}{700}{Arithmetic not equal}
 \oppredsummary{>}{2}{xfx}{700}{Arithmetic larger}
 \oppredsummary{>=}{2}{xfx}{700}{Arithmetic larger or equal}
-\oppredsummary{>:<}{2}{xfx}{700}{Partial map unification}
+\oppredsummary{>:<}{2}{xfx}{700}{Partial dict unification}
 \predicatesummary{?=}{2}{Test of terms can be compared now}
 \oppredsummary{@<}{2}{xfx}{700}{Standard order smaller}
 \oppredsummary{@=<}{2}{xfx}{700}{Standard order smaller or equal}
@@ -95,7 +95,7 @@ suggest predicates from a keyword.
 \predicatesummary{autoload}{0}{Autoload all predicates now}
 \predicatesummary{autoload_path}{1}{Add directories for autoloading}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
-\predicatesummary{b_set_map}{3}{Destructive assignment on a map}
+\predicatesummary{b_set_dict}{3}{Destructive assignment on a dict}
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
@@ -193,7 +193,7 @@ suggest predicates from a keyword.
 \predicatesummary{default_module}{2}{Query module inheritance}
 \predicatesummary{del_attr}{2}{Delete attribute from variable}
 \predicatesummary{del_attrs}{1}{Delete all attributes from variable}
-\predicatesummary{del_map}{4}{Delete Key-Value pair from a map}
+\predicatesummary{del_dict}{4}{Delete Key-Value pair from a dict}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
@@ -282,7 +282,8 @@ suggest predicates from a keyword.
 \predicatesummary{get_char}{2}{Read next character from a stream (ISO)}
 \predicatesummary{get_code}{1}{Read next character (ISO)}
 \predicatesummary{get_code}{2}{Read next character from a stream (ISO)}
-\predicatesummary{get_map}{3}{Get the value associated to a key from a map}
+\predicatesummary{get_dict}{3}{Get the value associated to a key from a dict}
+\predicatesummary{get_dict}{5}{Replace existing value in a dict}
 \predicatesummary{get_single_char}{1}{Read next character from the terminal}
 \predicatesummary{get_string_code}{3}{Get character code at index in string}
 \predicatesummary{get_time}{1}{Get current time}
@@ -318,8 +319,8 @@ suggest predicates from a keyword.
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_assoc}{1}{Verify association list}
 \predicatesummary{is_list}{1}{Type check for a list}
-\predicatesummary{is_map}{1}{Type check for a map}
-\predicatesummary{is_map}{2}{Type check for a map in a class}
+\predicatesummary{is_dict}{1}{Type check for a dict}
+\predicatesummary{is_dict}{2}{Type check for a dict in a class}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{join_threads}{0}{Join all terminated threads interactively}
 \predicatesummary{keysort}{2}{Sort, using a key}
@@ -350,8 +351,8 @@ suggest predicates from a keyword.
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
 \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
-\predicatesummary{map_create}{3}{Create a map from data}
-\predicatesummary{map_pairs}{3}{Convert between map and list of pairs}
+\predicatesummary{dict_create}{3}{Create a dict from data}
+\predicatesummary{dict_pairs}{3}{Convert between dict and list of pairs}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
@@ -384,11 +385,11 @@ suggest predicates from a keyword.
 \predicatesummary{nb_current}{2}{Enumerate non-backtrackable global variables}
 \predicatesummary{nb_delete}{1}{Delete a non-backtrackable global variable}
 \predicatesummary{nb_getval}{2}{Fetch non-backtrackable global variable}
-\predicatesummary{nb_link_map}{3}{Non-backtrackable assignment to term}
+\predicatesummary{nb_link_dict}{3}{Non-backtrackable assignment to dict}
 \predicatesummary{nb_linkarg}{3}{Non-backtrackable assignment to term}
 \predicatesummary{nb_linkval}{2}{Assign non-backtrackable global variable}
 \predicatesummary{nb_set_to_list}{2}{Convert non-backtrackable set to list}
-\predicatesummary{nb_set_map}{3}{Non-backtrackable assignment to map}
+\predicatesummary{nb_set_dict}{3}{Non-backtrackable assignment to dict}
 \predicatesummary{nb_setarg}{3}{Non-backtrackable assignment to term}
 \predicatesummary{nb_setval}{2}{Assign non-backtrackable global variable}
 \predicatesummary{nl}{0}{Generate a newline}
@@ -490,8 +491,8 @@ suggest predicates from a keyword.
 \predicatesummary{put_char}{2}{Write a character on a stream}
 \predicatesummary{put_code}{1}{Write a character-code}
 \predicatesummary{put_code}{2}{Write a character-code on a stream}
-\predicatesummary{put_map}{3}{Add/replace multiple keys in a map}
-\predicatesummary{put_map}{4}{Add/replace a single key in a map}
+\predicatesummary{put_dict}{3}{Add/replace multiple keys in a dict}
+\predicatesummary{put_dict}{4}{Add/replace a single key in a dict}
 \predicatesummary{qcompile}{1}{Compile source to Quick Load File}
 \predicatesummary{qcompile}{2}{Compile source to Quick Load File}
 \predicatesummary{qsave_program}{1}{Create runtime application}
@@ -538,8 +539,8 @@ suggest predicates from a keyword.
 \predicatesummary{seeing}{1}{Query the current input stream}
 \predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
-\predicatesummary{select_map}{2}{Select matching attributes from a map}
-\predicatesummary{select_map}{3}{Select matching attributes from a map}
+\predicatesummary{select_dict}{2}{Select matching attributes from a dict}
+\predicatesummary{select_dict}{3}{Select matching attributes from a dict}
 \predicatesummary{set_end_of_stream}{1}{Set physical end of an open file}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_locale}{1}{Set the default local}
