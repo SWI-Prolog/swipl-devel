@@ -344,6 +344,27 @@ dict_order_term_refs(term_t *av, int *indexes, int count ARG_LD)
 }
 
 
+static int
+assign_in_dict(Word dp, Word val ARG_LD)
+{ deRef(val);
+
+  if ( !isVar(*val) )
+  { *dp = *val;
+  } else
+  { if ( dp < val )
+    { if ( unlikely(tTop+1 >= tMax) )
+	return TRAIL_OVERFLOW;
+      setVar(*dp);
+      Trail(val, makeRef(dp));
+    } else
+    { *dp = makeRef(val);
+    }
+  }
+
+  return TRUE;
+}
+
+
 int
 put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
 { Functor data = valueTerm(dict);
@@ -369,12 +390,14 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
 
   while(in < in_end && nv < nv_end)
   { Word i_name, n_name;
+    int rc;
 
     deRef2(in, i_name);
     deRef2(nv, n_name);
     if ( *i_name == *n_name )
     { *out++ = *i_name;
-      *out++ = linkVal(nv+1);
+      if ( (rc=assign_in_dict(out++, nv+1 PASS_LD)) != TRUE )
+	return rc;
       in += 2;
       nv += 2;
       if ( !modified && compareStandard(nv+1, in+1, TRUE PASS_LD) )
@@ -385,7 +408,8 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
       in += 2;
     } else
     { *out++ = *n_name;
-      *out++ = linkVal(nv+1);
+      if ( (rc=assign_in_dict(out++, nv+1 PASS_LD)) != TRUE )
+	return rc;
       nv += 2;
       modified = TRUE;
     }
@@ -407,10 +431,12 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
   } else
   { while(nv < nv_end)
     { Word n_name;
+      int rc;
 
       deRef2(nv, n_name);
       *out++ = *n_name;
-      *out++ = linkVal(nv+1);
+      if ( (rc=assign_in_dict(out++, nv+1 PASS_LD)) != TRUE )
+	return rc;
       nv += 2;
     }
   }
@@ -1367,8 +1393,7 @@ retry:
       *valTermRef(t) = new;
       return PL_unify(A4, t);
     } else
-    { assert(rc == GLOBAL_OVERFLOW);
-      if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+    { if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
       { PL_rewind_foreign_frame(fid);
 	goto retry;
       }
