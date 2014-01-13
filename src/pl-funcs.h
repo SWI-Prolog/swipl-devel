@@ -295,6 +295,8 @@ COMMON(QueryFrame)	queryOfFrame(LocalFrame fr);
 #if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 word			checkStacks(void *vm_state);
 COMMON(bool)		scan_global(int marked);
+COMMON(char *)		print_addr(Word p, char *buf);
+COMMON(char *)		print_val(word w, char *buf);
 #endif
 
 /* pl-itf.c */

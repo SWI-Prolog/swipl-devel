@@ -251,8 +251,8 @@ static int		check_marked(const char *s);
 
 #if defined(O_DEBUG) || defined(O_MAINTENANCE)
 
-static char *
-print_adr(Word adr, char *buf)
+char *
+print_addr(Word adr, char *buf)
 { GET_LD
   char *name;
   Word base;
@@ -280,7 +280,7 @@ print_adr(Word adr, char *buf)
 }
 
 
-static char *
+char *
 print_val(word val, char *buf)
 { GET_LD
   static const char *tag_name[] = { "var", "attvar", "float", "int", "atom",
@@ -361,7 +361,7 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
     { char buf1[256];
       char buf2[256];
       sysError("%s:%d: Address %s (%s) was not supposed to be relocated",
-	       file, line, print_adr(addr, buf1), print_val(*addr, buf2));
+	       file, line, print_addr(addr, buf1), print_val(*addr, buf2));
       return;
     }
 
@@ -385,14 +385,14 @@ do_relocated_cell(Word addr ARG_LD)
       { char buf1[64];
 
         sysError("Address %s was not supposed to be updated",
-	         print_adr(addr, buf1));
+	         print_addr(addr, buf1));
         return;
       }
 
       if ( s->value == RELOC_UPDATED )
       { char buf1[64];
 
-        sysError("%s: updated twice", print_adr(addr, buf1));
+        sysError("%s: updated twice", print_addr(addr, buf1));
         return;
       }
 
@@ -417,7 +417,7 @@ printNotRelocated()
     { Word p = s->name;
       char buf1[64];
 
-      Sdprintf("\t%s\n", print_adr(p, buf1));
+      Sdprintf("\t%s\n", print_addr(p, buf1));
     }
   }
 
@@ -1236,7 +1236,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	{ DEBUG(MSG_GC_ASSIGNMENTS_MARK,
 		char b1[64]; char b2[64]; char b3[64];
 		Sdprintf("Marking assignment at %s (%s --> %s)\n",
-			 print_adr(tard, b1),
+			 print_addr(tard, b1),
 			 print_val(*gp, b2),
 			 print_val(*tard, b3)));
 
@@ -1252,7 +1252,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 	DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64]; char b3[64];
 	      Sdprintf("Early reset of assignment at %s (%s --> %s)\n",
-		       print_adr(tard, b1),
+		       print_addr(tard, b1),
 		       print_val(*tard, b2),
 		       print_val(*gp, b3)));
 
@@ -1280,7 +1280,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       { DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64];
 	      Sdprintf("Early reset at %s (%s)\n",
-		       print_adr(tard, b1), print_val(*tard, b2)));
+		       print_addr(tard, b1), print_val(*tard, b2)));
 	setVar(*tard);
 	te->address = 0;
 	trailcells_deleted++;
@@ -2628,7 +2628,7 @@ sweep_stacks(vm_state *state)
 	  char buf1[64];
 	  char buf2[64];
 
-	  Sdprintf("\t%s (*= %s)\n", print_adr(p, buf1), print_val(*p, buf2));
+	  Sdprintf("\t%s (*= %s)\n", print_addr(p, buf1), print_val(*p, buf2));
 	}
       }
 
@@ -3300,7 +3300,7 @@ scan_global(int flags)
       char vbuf[256];
 
       Sdprintf("!Illegal cell in global stack (up) at %s (*= %s)\n",
-	       print_adr(current, pbuf), print_val(*current, vbuf));
+	       print_addr(current, pbuf), print_val(*current, vbuf));
       trap_gdb();
 
       if ( ++errors > 10 )
@@ -3325,7 +3325,7 @@ scan_global(int flags)
 	{ char b1[64], b2[64];
 
 	  Sdprintf("ERROR: ref at %s not on global (*=%s)\n",
-		   print_adr(current, b1), print_val(*current, b2));
+		   print_addr(current, b1), print_val(*current, b2));
 	  trap_gdb();
 	}
       }
@@ -3492,8 +3492,8 @@ check_trail()
 	{ char b1[64], b2[64], b3[64];
 
 	  Sdprintf("Trail entry at %s not on global stack: %s (*=%s)\n",
-		   print_adr((Word)te, b1),
-		   print_adr(te->address, b2),
+		   print_addr((Word)te, b1),
+		   print_addr(te->address, b2),
 		   print_val(*te->address, b3));
 	}
       }
