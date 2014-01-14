@@ -644,7 +644,11 @@ pprint(Out, Term, _, Options) :-
 	nlindent(Out, Indent),
 	format(Out, '}', []).
 pprint(Out, Term, Pri, Options) :-
-	compound(Term),
+	(   compound(Term)
+	->  compound_name_arity(Term, _, Arity),
+	    Arity > 0
+	;   is_dict(Term)
+	),
 	\+ nowrap_term(Term),
 	setting(listing:line_width, Width),
 	Width > 0,
@@ -661,6 +665,7 @@ pprint(Out, Term, Pri, Options) :-
 	write_term(Out, Term, WrtOptions).
 
 nowrap_term('$VAR'(_)) :- !.
+nowrap_term(_{}) :- !.			% empty dict
 nowrap_term(Term) :-
 	functor(Term, Name, Arity),
 	current_op(_, _, Name),
@@ -678,6 +683,15 @@ pprint_wrapped(Out, Term, _, Options) :-
 	Term = [_|_], !,
 	line_position(Out, Indent),
 	portray_list(Term, Indent, Out, Options).
+pprint_wrapped(Out, Dict, _, Options) :-
+	is_dict(Dict), !,
+	dict_pairs(Dict, Tag, Pairs),
+	pprint(Out, Tag, 1200, Options),
+	format(Out, '{ ', []),
+	line_position(Out, Indent),
+	pprint_nv(Pairs, Indent, Out, Options),
+	nlindent(Out, Indent-2),
+	format(Out, '}', []).
 pprint_wrapped(Out, Term, _, Options) :-
 	Term =.. [Name|Args],
 	format(Out, '~q(', Name),
@@ -693,6 +707,19 @@ pprint_args([H|T], Indent, Out, Options) :-
 	;   format(Out, ',', []),
 	    nlindent(Out, Indent),
 	    pprint_args(T, Indent, Out, Options)
+	).
+
+
+pprint_nv([], _, _, _).
+pprint_nv([Name-Value|T], Indent, Out, Options) :-
+	pprint(Out, Name, 999, Options),
+	format(Out, ':', []),
+	pprint(Out, Value, 999, Options),
+	(   T == []
+	->  true
+	;   format(Out, ',', []),
+	    nlindent(Out, Indent),
+	    pprint_nv(T, Indent, Out, Options)
 	).
 
 
