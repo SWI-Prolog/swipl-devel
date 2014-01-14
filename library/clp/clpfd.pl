@@ -3,7 +3,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2013 Markus Triska
+    Copyright (C): 2007-2014 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -189,6 +189,8 @@ A finite domain _arithmetic expression_ is one of:
     | Expr rem Expr      | Modulo induced by truncated division |
     | abs(Expr)          | Absolute value                       |
     | Expr / Expr        | Truncated integer division           |
+
+Arithmetic _constraints_ are relations between arithmetic expressions.
 
 The most important arithmetic constraints are:
 
