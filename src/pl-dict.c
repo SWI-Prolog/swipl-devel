@@ -398,10 +398,10 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
     { *out++ = *i_name;
       if ( (rc=assign_in_dict(out++, nv+1 PASS_LD)) != TRUE )
 	return rc;
-      in += 2;
-      nv += 2;
       if ( !modified && compareStandard(nv+1, in+1, TRUE PASS_LD) )
 	modified = TRUE;
+      in += 2;
+      nv += 2;
     } else if ( *i_name < *n_name )
     { *out++ = *i_name;
       *out++ = linkVal(in+1);
