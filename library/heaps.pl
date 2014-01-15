@@ -3,7 +3,7 @@
     Author:        Lars Buitinck
     E-mail:        larsmans@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010-2011, Lars Buitinck
+    Copyright (C): 2010-2014, Lars Buitinck
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -235,4 +235,5 @@ pairing([], nil).
 pairing([Q], Q) :- !.
 pairing([Q0,Q1|Qs], Q) :-
 	meld(Q0, Q1, Q2),
-	pairing([Q2|Qs], Q).
+	pairing(Qs, Q3),
+	meld(Q2, Q3, Q).
