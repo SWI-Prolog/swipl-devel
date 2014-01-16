@@ -6167,7 +6167,7 @@ is_list([_|T]) :-
 	is_list(T).
 \end{code}
 
-    \predicate[]{memberchk}{2}{?Elem, +List}
+    \predicate[semidet]{memberchk}{2}{?Elem, +List}
 True when \arg{Elem} is an element of \arg{List}. This `chk' variant of
 member/2 is semi deterministic and typically used to test membership of
 a list.  Raises a \const{type} error if scanning \arg{List} encounters
