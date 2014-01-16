@@ -72,7 +72,7 @@ test(numbervars, X = 'x(\'$VAR\'(1),_)') :-
 		       write_canonical(x('$VAR'(1),_))).
 test(dot_in_atom, X == '\'a.b\'') :-
 	with_output_to(atom(X),
-		       write_canonical(a.b)).
+		       write_canonical('a.b')).
 test(dot_in_atom, L == [39,1080,46,1081,39]) :-
 	atom_codes(A, [1080,46,1081]),
 	with_output_to(atom(X),
