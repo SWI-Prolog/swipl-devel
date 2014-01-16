@@ -6322,7 +6322,7 @@ side-effects. E.g., the following asserts relations in a list into the
 dynamic database:
 
 \begin{code}
-?- forall(member(Child-Parent), ChildPairs),
+?- forall(member(Child-Parent, ChildPairs),
 	  assertz(child_of(Child, Parent))).
 \end{code}
 
