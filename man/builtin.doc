@@ -529,7 +529,7 @@ Below is the initial definition of the file search path.  This path
 implies \file{swi(<Path>)} and refers to a file in the SWI-Prolog home
 directory.  The alias \file{foreign(<Path>)} is intended for storing
 shared libraries (\fileext{so} or \fileext{DLL} files).  See also
-load_foreign_library/[1,2].
+use_foreign_library/1.
 
 \begin{code}
 user:file_search_path(library, X) :-
