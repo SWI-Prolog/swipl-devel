@@ -555,7 +555,7 @@ well as by absolute_file_name/[2,3].
 The Prolog flag \prologflag{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
-    \predicate{expand_file_search_path}{2}{+Spec, -Path}
+    \predicate[nondet]{expand_file_search_path}{2}{+Spec, -Path}
 Unifies \arg{Path} with all possible expansions of the filename
 specification \arg{Spec}.  See also absolute_file_name/3.
 
