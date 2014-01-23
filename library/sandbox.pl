@@ -251,6 +251,7 @@ safe_primitive(@=<(_,_)).
 safe_primitive(compare(_,_,_)).
 safe_primitive(sort(_,_)).
 safe_primitive(keysort(_,_)).
+safe_primitive(system: =@=(_,_)).
 					% unification and equivalence
 safe_primitive(=(_,_)).
 safe_primitive(\==(_,_)).
@@ -268,18 +269,33 @@ safe_primitive(system:setarg(_,_,_)).
 safe_primitive(functor(_,_,_)).
 safe_primitive(_ =.. _).
 safe_primitive(copy_term(_,_)).
+safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(numbervars(_,_,_)).
 					% atoms
 safe_primitive(atom_chars(_, _)).
 safe_primitive(atom_codes(_, _)).
+safe_primitive(sub_atom(_,_,_,_,_)).
 safe_primitive(system:atomic_list_concat(_,_,_)).
-safe_primitive(system:atom_length(_,_)).
+safe_primitive(atom_concat(_,_)).
+safe_primitive(atom_length(_,_)).
+					% strings
+safe_primitive(system:atom_string(_,_)).
+safe_primitive(system:number_string(_,_)).
+safe_primitive(system:string_chars(_, _)).
+safe_primitive(system:string_codes(_, _)).
+safe_primitive(system:sub_string(_,_,_,_,_)).
+safe_primitive(system:split_string(_,_,_,_)).
+safe_primitive(system:atomics_to_string(_,_,_)).
+safe_primitive(system:atomics_to_string(_,_)).
+safe_primitive(system:string_concat(_,_)).
+safe_primitive(system:string_length(_,_)).
 					% Lists
 safe_primitive(length(_,_)).
 					% exceptions
 safe_primitive(throw(_)).
 					% misc
 safe_primitive(current_prolog_flag(_,_)).
+safe_primitive(sleep(_)).
 
 safe_primitive(clause(_,_)).
 safe_primitive(asserta(X)) :- safe_assert(X).
