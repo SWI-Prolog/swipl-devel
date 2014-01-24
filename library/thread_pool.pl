@@ -77,7 +77,7 @@ otherwise during startup of the application.
 */
 
 :- meta_predicate
-	thread_create_in_pool(+, 0, -, +).
+	thread_create_in_pool(+, 0, -, :).
 :- predicate_options(thread_create_in_pool/4, 4,
                      [ wait(boolean),
                        pass_to(system:thread_create/3, 3)
@@ -104,9 +104,6 @@ otherwise during startup of the application.
 %	state of a thread. Threads can   be  created both =detached= and
 %	normal and must be joined using   thread_join/2  if they are not
 %	detached.
-%
-%	@bug	The thread creation option =at_exit= is reserved for
-%		internal use by this library.
 
 thread_pool_create(Name, Size, Options) :-
 	must_be(list, Options),
@@ -188,13 +185,16 @@ thread_pool_property(Name, Property) :-
 %	@error	existence_error(thread_pool, Pool) if Pool does not
 %		exist.
 
-thread_create_in_pool(Pool, Goal, Id, Options) :-
+thread_create_in_pool(Pool, Goal, Id, QOptions) :-
+	meta_options(is_meta, QOptions, Options),
 	select_option(wait(Wait), Options, ThreadOptions, true),
 	pool_manager(Manager),
 	thread_self(Me),
 	thread_send_message(Manager,
 			    create(Pool, Goal, Me, Wait, ThreadOptions)),
 	wait_reply(Id).
+
+is_meta(at_exit).
 
 
 		 /*******************************
@@ -331,21 +331,18 @@ update_pool(create(Name, Goal, For, _, MyOptions),
 	succ(Free, Free0), !,
 	thread_self(Me),
 	merge_options(MyOptions, Options, ThreadOptions),
-	(   option(at_exit(_), ThreadOptions)
-	->  reply_error(For, permission_error(specify, option, at_axit)),
+	select_option(at_exit(AtExit), ThreadOptions, ThreadOptions1, true),
+	Exit = (thread_send_message(Me, exitted(Name, Id)), AtExit),
+	catch(thread_create(Goal, Id,
+			    [ at_exit(Exit)
+			    | ThreadOptions1
+			    ]),
+	      E, true),
+	(   var(E)
+	->  Members = [Id|Members0],
+	    reply(For, Id)
+	;   reply_error(For, E),
 	    Members = Members0
-	;   Exit = thread_send_message(Me, exitted(Name, Id)),
-	    catch(thread_create(Goal, Id,
-				[ at_exit(Exit)
-				| ThreadOptions
-				]),
-		  E, true),
-	    (	var(E)
-	    ->	Members = [Id|Members0],
-		reply(For, Id)
-	    ;	reply_error(For, E),
-		Members = Members0
-	    )
 	).
 update_pool(Create,
 	    tpool(Options, 0, Size, WP, WPT0, Members),
