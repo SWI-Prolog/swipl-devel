@@ -707,6 +707,19 @@ Section "HTTP Client/Server package"
   File /r ${SWIPL}\doc\packages\examples\http
 SectionEnd
 
+Section "Pengines"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File ${SWIPL}\library\pengines.pl
+  File ${SWIPL}\library\term_to_json.pl
+  SetOutPath $INSTDIR\doc\packages
+  File ${SWIPL}\doc\packages\pengines.html
+  File ${SWIPL}\doc\packages\penarch.png
+  File ${SWIPL}\doc\packages\lptpsynch.png
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r ${SWIPL}\doc\packages\examples\pengines
+SectionEnd
+
 Section "Table package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
