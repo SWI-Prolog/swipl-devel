@@ -59,7 +59,7 @@
 
 \newcommand{\vmajor}{7}
 \newcommand{\vminor}{1}
-\newcommand{\vpatch}{5}
+\newcommand{\vpatch}{6}
 \newcommand{\vmonth}{January}
 \newcommand{\vyear}{2014}
 
