@@ -49,3 +49,6 @@
 ./packages/PDT/pdt.html
 ./packages/utf8proc/utf8proc.html
 ./packages/archive/archive.html
+./packages/pengines/pengines.html
+./packages/pengines/penarch.png
+./packages/pengines/lptpsynch.png
