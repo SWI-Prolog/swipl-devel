@@ -33,6 +33,7 @@
 :- use_module(library(assoc)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
+:- use_module(library(error)).
 :- use_module(library(apply_macros), [expand_phrase/2]).
 
 :- multifile
@@ -422,6 +423,8 @@ safe_meta(system:put_attr(_,M,A), [M:attr_unify_hook(A, _)]) :- !,
 	->  true
 	;   instantiation_error(M)
 	).
+safe_meta(system:with_output_to(Output, G), [G]) :-
+	safe_output(Output), !.
 safe_meta(M:Goal, Called) :- !,
 	generic_goal(Goal, Gen),
 	safe_meta(M:Gen),
@@ -474,6 +477,22 @@ safe_meta(call(3, _, _, _)).
 safe_meta(call(4, _, _, _, _)).
 safe_meta(call(5, _, _, _, _, _)).
 safe_meta(call(6, _, _, _, _, _, _)).
+
+
+%%	safe_output(+Output)
+%
+%	True if something is a safe output argument for with_output_to/2
+%	and friends. We do not want writing to streams.
+
+safe_output(Output) :-
+	var(Output), !,
+	instantiation_error(Output).
+safe_output(atom(_)).
+safe_output(string(_)).
+safe_output(codes(_)).
+safe_output(codes(_,_)).
+safe_output(chars(_)).
+safe_output(chars(_,_)).
 
 
 		 /*******************************
