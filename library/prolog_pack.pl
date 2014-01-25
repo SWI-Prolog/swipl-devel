@@ -470,6 +470,8 @@ url_menu_item(URL, URL=install_from(URL)).
 %	  * package_directory(+Dir)
 %	  Directory into which to install the package
 %	  * interactive(+Boolean)
+%	  Use default answer without asking the user if there
+%	  is a default action.
 
 pack_install(Name, Options) :-
 	update_dependency_db,
