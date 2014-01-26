@@ -1517,7 +1517,9 @@ available_download_versions(URL, Versions) :-
 	print_message(informational, pack(query_versions(DirURL))),
 	setup_call_cleanup(
 	    http_open(DirURL, In, []),
-	    load_html_file(stream(In), DOM),
+	    load_html(stream(In), DOM,
+		      [ syntax_errors(quiet)
+		      ]),
 	    close(In)),
 	findall(MatchingURL,
 		absolute_matching_href(DOM, URL, MatchingURL),
