@@ -129,6 +129,7 @@ pack_info(Name) :-
 	pack_info(info, Name).
 
 pack_info(Level, Name) :-
+	must_be(atom, Name),
 	findall(Info, pack_info(Name, Level, Info), Infos0),
 	(   Infos0 == []
 	->  print_message(warning, pack(no_pack_installed(Name))),
