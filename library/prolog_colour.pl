@@ -349,10 +349,32 @@ colourise_comments([H|T], TB) :-
 	colourise_comments(T, TB).
 
 colourise_comment(Pos-Comment, TB) :-
+	comment_style(Comment, Style),
 	stream_position_data(char_count, Pos, Start),
 	string_length(Comment, Len),
 	End is Start + Len + 1,
-	colour_item(comment, TB, Start-End).
+	colour_item(Style, TB, Start-End).
+
+comment_style(Comment, structured_comment) :-
+	structured_command_start(Start),
+	sub_string(Comment, 0, Len, _, Start),
+	Next is Len+1,
+	string_code(Next, Comment, NextCode),
+	code_type(NextCode, space), !.
+comment_style(_, comment).
+
+%%	structured_command_start(-Start)
+%
+%	Copied from library(pldoc/doc_process). Unfortunate,   but we do
+%	not want to force loading pldoc.
+
+structured_command_start('%%').
+structured_command_start('%!').
+structured_command_start('/**').
+
+%%	colourise_term(+Term, +TB, +Pos)
+%
+%	Colorise a file toplevel term.
 
 colourise_term(Term, TB, Pos) :-
 	term_colours(Term, FuncSpec-ArgSpecs), !,
@@ -1596,6 +1618,7 @@ def_style(head(_,_),		   [bold(true)]).
 
 def_style(module(_),		   [colour(dark_slate_blue)]).
 def_style(comment,		   [colour(dark_green)]).
+def_style(structured_comment,	   [colour(dark_green)]).
 
 def_style(directive,		   [background(grey90)]).
 def_style(method(_),		   [bold(true)]).
