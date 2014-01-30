@@ -364,9 +364,6 @@ struct PL_local_data
     int		current;		/* currently processing signal */
     int		is_sync;		/* current signal is synchronous */
     record_t	exception;		/* Pending exception from signal */
-#ifdef O_PLMT
-    simpleMutex sig_lock;		/* lock delivery and processing */
-#endif
   } signal;
 
   struct

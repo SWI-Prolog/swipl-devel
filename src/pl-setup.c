@@ -900,9 +900,7 @@ handleSignals(ARG1_LD)
 
     for( ; mask ; mask <<= 1, sig++ )
     { if ( LD->signal.pending & mask )
-      { simpleMutexLock(&LD->signal.sig_lock);
-	LD->signal.pending &= ~mask;	/* reset the signal */
-	simpleMutexUnlock(&LD->signal.sig_lock);
+      { __sync_and_and_fetch(&LD->signal.pending, ~mask);
 
 	done++;
 	dispatch_signal(sig, TRUE);
@@ -1509,7 +1507,6 @@ freePrologLocalData(PL_local_data_t *ld)
 
   freeArithLocalData(ld);
 #ifdef O_PLMT
-  simpleMutexDelete(&ld->signal.sig_lock);
   if ( ld->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
     destroyHTable(ld->prolog_flag.table);
