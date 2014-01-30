@@ -100,7 +100,7 @@ problem.
 #endif
 
 static int		ar_minus(Number n1, Number n2, Number r);
-
+static int		mul64(int64_t x, int64_t y, int64_t *r);
 
 		/********************************
 		*   LOGICAL INTEGER FUNCTIONS   *
@@ -1587,6 +1587,19 @@ BINAIRY_INT_FUNCTION(ar_disjunct,    "\\/", |, mpz_ior)
 BINAIRY_INT_FUNCTION(ar_conjunct,    "/\\", &, mpz_and)
 BINAIRY_INT_FUNCTION(ar_xor,         "xor", ^, mpz_xor)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ar_pow() is exponentiation. We do this in integers if possible. However,
+GMP crashes the entire process by calling   abort() if it discovers that
+the resulting value will not fit  in   the  address  space. Therefore we
+estimage the size and verify that it will in on the global stack limit.
+
+I doubt that the computation is accurate,   but it is highly unlikely we
+won't run out of memory if we create an integer that requires almost the
+complete stack size. It is also not a  problem if we underestimate a bit
+as long as the result fits  in  the   address  space.  In that case, the
+normal overflow handling will nicely generate a resource error.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 ar_pow(Number n1, Number n2, Number r)
 {
@@ -1653,6 +1666,16 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
         fail;
     }
+
+  { GET_LD				/* estimate the size, see above */
+    size_t  op1_bytes = mpz_sizeinbase(n1->value.mpz, 256);
+    int64_t r_bytes;
+
+    if ( !( mul64(op1_bytes, exp, &r_bytes) &&
+	    r_bytes < (int64_t)limitStack(global)
+	  ) )
+      return int_too_big();
+  }
 
     r->type = V_MPZ;
     mpz_init(r->value.mpz);
