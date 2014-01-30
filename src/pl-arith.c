@@ -1656,8 +1656,19 @@ ar_pow(Number n1, Number n2, Number r)
     }
 
   { GET_LD				/* estimate the size, see above */
-    size_t  op1_bytes = mpz_sizeinbase(n1->value.mpz, 256);
+    size_t  op1_bytes;
     int64_t r_bytes;
+
+    switch(n1->type)
+    { case V_INTEGER:
+	op1_bytes = msb64(n1->value.i)+7/8;
+        break;
+      case V_MPZ:
+	op1_bytes = mpz_sizeinbase(n1->value.mpz, 256);
+      default:
+	assert(0);
+        fail;
+    }
 
     if ( !( mul64(op1_bytes, exp, &r_bytes) &&
 	    r_bytes < (int64_t)limitStack(global)
