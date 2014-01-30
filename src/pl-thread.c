@@ -652,7 +652,6 @@ reinit_threads_after_fork(void)
   }
   thread_highest_id = 1;
 
-  simpleMutexInit(&LD->signal.sig_lock);
   GD->statistics.thread_cputime = 0.0;
   GD->statistics.threads_created = 1;
   GD->statistics.threads_finished = 0;
@@ -726,7 +725,6 @@ initPrologThreads()
   PL_local_data.magic = LD_MAGIC;
   { GET_LD
 
-    simpleMutexInit(&LD->signal.sig_lock);
     GD->thread.thread_max = 4;		/* see resizeThreadMax() */
     GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
 				   sizeof(*GD->thread.threads));
@@ -1040,7 +1038,6 @@ retry:
     { PL_local_data_t *ld = allocHeapOrHalt(sizeof(PL_local_data_t));
 
       memset(ld, 0, sizeof(PL_local_data_t));
-      simpleMutexInit(&ld->signal.sig_lock);
 
       info->pl_tid = i;
       ld->thread.info = info;
