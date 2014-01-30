@@ -1308,7 +1308,7 @@ msb64(int64_t i)
 
 
 static int
-int_too_big()
+int_too_big(void)
 { GET_LD
   return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
 }
@@ -1411,7 +1411,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 
 	if ( (msb/sizeof(char)) > (uint64_t)limitStack(global) )
 	{ mpz_clear(r->value.mpz);
-	  return (int)outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	  return int_too_big();
 	}
 #endif /*O_GMP_PRECHECK_ALLOCATIONS*/
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
