@@ -4516,7 +4516,7 @@ As \const{variable_names}, but only reports the variables occurring only
 once in the \arg{Term} read. Variables starting with an underscore
 (`\chr{_}') are not included in this list. (ISO).  If \arg{Vars} is the
 constant \const{warning}, singleton variables are reported using
-print_message/2.
+print_message/2. The variables appear in the order they have been read.
 
     \termitem{syntax_errors}{Atom}
 If \const{error} (default), throw an exception on a syntax error. Other
@@ -4591,7 +4591,7 @@ appear in the order they have been read. See also term_variables/2.
 Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where
 \arg{Name} is an atom describing the variable name and \arg{Var} is a
 variable that shares with the corresponding variable in \arg{Term}.
-(ISO).
+(ISO). The variables appear in the order they have been read.
 \end{description}
 
     \predicate[ISO]{read_term}{3}{+Stream, -Term, +Options}
