@@ -75,9 +75,24 @@ safe_goal/1, which determines whether it is safe to call its argument.
 %	@error	permission_error(call, sandboxed, Goal) if Goal is in
 %		the call-tree and not white-listed.
 
+:- thread_local
+	last_error/1.
+
 safe_goal(M:Goal) :-
 	empty_assoc(Safe0),
-	safe(Goal, M, [], Safe0, _), !.
+	catch(safe(Goal, M, [], Safe0, _), E, true), !,
+	retractall(last_error(_)),
+	(   var(E)
+	->  true
+	;   throw(E)
+	).
+safe_goal(_) :-
+	last_error(E), !,
+	retractall(last_error(_)),
+	throw(E).
+safe_goal(G) :-
+	debug(sandbox(fail), 'safe_goal/1 failed for ~p', [G]),
+	throw(error(instantiation_error, sandbox(G, []))).
 
 
 %%	safe(+Goal, +Module, +Parents, +Safe0, -Safe) is semidet.
@@ -86,7 +101,9 @@ safe_goal(M:Goal) :-
 
 safe(V, _, Parents, _, _) :-
 	var(V), !,
-	throw(error(instantiation_error, sandbox(V, Parents))).
+	Error = error(instantiation_error, sandbox(V, Parents)),
+	asserta(last_error(Error)),
+	throw(Error).
 safe(M:G, _, Parent, Safe0, Safe) :- !,
 	safe(G, M, Parent, Safe0, Safe).
 safe(G, _, Parents, _, _) :-
@@ -420,7 +437,7 @@ safe_global_variable('$clpfd_current_propagator').
 safe_global_variable('$clpfd_queue').
 
 
-%%	safe_meta(+Goal, -Called) is semidet.
+%%	safe_meta(+Goal, -Called:list(callable)) is semidet.
 %
 %	True if Goal is a meta-predicate that is considered safe iff all
 %	elements in Called are safe.
