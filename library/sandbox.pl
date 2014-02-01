@@ -77,7 +77,7 @@ safe_goal/1, which determines whether it is safe to call its argument.
 
 safe_goal(M:Goal) :-
 	empty_assoc(Safe0),
-	safe(Goal, M, [], Safe0, _).
+	safe(Goal, M, [], Safe0, _), !.
 
 
 %%	safe(+Goal, +Module, +Parents, +Safe0, -Safe) is semidet.
