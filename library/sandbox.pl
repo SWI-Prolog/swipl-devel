@@ -181,6 +181,8 @@ qualify_arg(_, _, A, A).
 
 q_arg(I) :- integer(I), !.
 q_arg(:).
+q_arg(^).
+q_arg(//).
 
 qualify(A, M, MZ:Q) :-
 	strip_module(M:A, MZ, Q).
