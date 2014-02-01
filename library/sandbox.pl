@@ -269,6 +269,7 @@ safe_primitive(<(_,_)).
 					% term-handling
 safe_primitive(arg(_,_,_)).
 safe_primitive(system:setarg(_,_,_)).
+safe_primitive(system:nb_setarg(_,_,_)).
 safe_primitive(functor(_,_,_)).
 safe_primitive(_ =.. _).
 safe_primitive(copy_term(_,_)).
