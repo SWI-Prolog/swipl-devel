@@ -558,3 +558,16 @@ list_is_free_of([], _).
 %term_variables(Term, Vars0, Vars) :-
 %	term_variables(Term+Vars0, Vars).
 
+
+%%	sandbox:safe_meta(+Goal, -Called) is semidet.
+%
+%	Declare the aggregate meta-calls safe. This cannot be proven due
+%	to the manipulations of the argument Goal.
+
+:- multifile sandbox:safe_meta/2.
+
+sandbox:safe_meta(aggregate:aggregate(_,G,_), [G]).
+sandbox:safe_meta(aggregate:aggregate(_,_,G,_), [G]).
+sandbox:safe_meta(aggregate:aggregate_all(_,G,_), [G]).
+sandbox:safe_meta(aggregate:aggregate_all(_,_,G,_), [G]).
+
