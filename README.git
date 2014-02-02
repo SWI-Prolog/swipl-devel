@@ -1,73 +1,37 @@
 Installing from GIT
------------------------
+===================
 
-Last update: Mar 22, 2010
+Last update: Feb 2, 2014
 
-GIT (git.or.cz/) is the  recommended  way   to  track  the  development,
-especially if you plan to maintain a  modified version or want to submit
-patches.
-
-To start working,  get  GIT  for  your   platform.  We  use  msysGit  in
-MS-Windows.
+GIT  (http://git-scm.com/)  is  the  recommended    way   to  track  the
+development, especially if you plan to   maintain  a modified version or
+want to submit patches.
 
 Downloading
-===========
+-----------
 
-Next, get the SWI-Prolog git. This  takes   a  while the first time, but
-subsequent updates will be fast:
+First, download the SWI-Prolog source using git.  This takes a while the
+first time, but subsequent updates will be fast:
 
-	% git clone git://www.swi-prolog.org/home/pl/git/pl-devel.git
+    % git clone git://www.swi-prolog.org/home/pl/git/pl-devel.git
 
 If you have the poor luck that  you   are  behind a firewall that blocks
-GIT's  default  port  (9418),  you  can    almost   certainly  use  this
-alternative. Note however that this is much slower.
+GIT's default port (9418), you can use this alternative.
 
-	% git clone http://www.swi-prolog.org/home/pl/git/pl-devel.git
+    % git clone http://www.swi-prolog.org/home/pl/git/pl-devel.git
 
-Building
-========
+After cloning the main repository, you have to fetch generated files and
+Prolog packages that are distributed as separate git submodules. This is
+done with the script `prepare`. The `prepare` script requires `curl` and
+GNU `autoconf`.
 
-Building from GIT is close to building   from  the tar archives, but the
-GIT source does  *not*  include  generated   files,  in  particular  the
-autoconf configure scripts and the generated   manual  files. The script
-prepare performs three steps:
+    % cd pl-devel
+    % ./prepare
 
-	* Initialize the git submodules
-	* Create the configure scripts (requires GNU autoconf)
-	* Optionally download the manuals (requires curl)
-
-Please run prepare as below after initial download or updating using git
-pull. By default, it only  pulls  those   packages  that  appear  in the
-default binary distribution.  Using  --all,   it  also  pulls additional
-packages, such as the space  (spatial   indexing)  and utf8proc (Unicode
-properties and conversions).
-
-	% ./prepare [--all]
+If this step completed successfully, you are  at the same point as after
+downloading the sources as a tarball and unpacking.
 
 Next, continue as described in INSTALL
-
-
-Branching and patching
-======================
-
-If you plan to submit patches, configure  GIT, so it automatically keeps
-track of you. Don't use a secret mail address: it will end up on the GIT
-web access at http://gollem.science.uva.nl/git/pl.git
-
-	% git config --global user.name "Your Name Comes Here"
-	% git config --global user.email you@yourdomain.example.com
-
-It you want to fix something, it is convenient to first start a branch:
-
-	% git checkout -b mybug
-
-Now, hack away and fix it.  If you have a coherent fix, commit it using
-
-	% git commit -a
-
-and add a descriptive message to your   patch, in particular if you want
-to submit it.
-
 
 Submitting a patch
 ------------------
@@ -83,23 +47,32 @@ Updating
 
 If you made no branches and patches, you update to the latest using
 
-	% git pull
 	% make distclean
-	% ./prepare [--all]
+	% git pull
+	% ./prepare
 	% ./build	(see using of the build script in INSTALL.notes)
 
 If you have patches, this is slightly  more difficult. You can keep your
 history clean using this instead of the simple pull above:
 
+	% make distclean
 	% git checkout master
 	% git pull
-	% git checkout mybug
+	% git checkout my-branch
 	% git rebase master
+	% ./prepare
+	% ./build
 
-Further reading
----------------
 
-	* http://git.or.cz/ (very good introductions)
-	* http://wiki.sourcemage.org/Git_Guide (lots of useful HOWTO tips)
-	* http://www-cs-students.stanford.edu/~blynn/gitmagic/ (if you
-	want to understand GIT)
+Submitting patches
+------------------
+
+Please consult http://www.swi-prolog.org/howto/SubmitPatch.html   if you
+want to submit patches. By default, try to get modifications and patches
+accepted in the main source because:
+
+  1. It simplifies updating for you
+  2. Your patch will be kept consistent with the rest of the source
+  3. Other users may improve or fix your patch
+  4. You can become famous
+  5. Other users will profit too

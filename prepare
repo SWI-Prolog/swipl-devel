@@ -148,6 +148,7 @@ download_docs()
 
   if ! findexe curl; then
     echo "ERROR: downloading documentation requires the curl program"
+    echo "ERROR: Please install curl and re-run this script"
     exit 1
   fi
 
