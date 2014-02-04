@@ -153,13 +153,16 @@ to_atom(String, Atom) :-
 
 %%	setting(:Name, ?Value) is nondet.
 %
-%	True if Name is a currently defined setting with Value.
+%	True when Name is a currently   defined setting with Value. Note
+%	that setting(Name, Value) only enumerates   the  settings of the
+%	current  module.  All  settings   can    be   enumerated   using
+%	setting(Module:Name, Value). This predicate is  =det= if Name is
+%	ground.
 %
 %	@error	existence_error(setting, Name)
 
-setting(QName, Value) :-
-	strip_module(QName, Module, Name),
-	(   ground(Name)
+setting(Module:Name, Value) :-
+	(   nonvar(Name), nonvar(Module)
 	->  (   st_value(Name, Module, Value0)
 	    ->  Value = Value0
 	    ;   curr_setting(Name, Module, Type, Default, _, _)
