@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009-2013, VU University Amsterdam
+    Copyright (C): 2009-2014, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -28,7 +28,8 @@
 */
 
 :- module(sandbox,
-	  [ safe_goal/1			% :Goal
+	  [ safe_goal/1,		% :Goal
+	    safe_call/1			% :Goal
 	  ]).
 :- use_module(library(assoc)).
 :- use_module(library(lists)).
@@ -51,11 +52,29 @@ query data interactively from, e.g.,  the   web.  This  library provides
 safe_goal/1, which determines whether it is safe to call its argument.
 
 @tbd	Handling of ^ and // meta predicates
+@tbd	Complete set of whitelisted predicates
+@see	http://www.swi-prolog.org/pldoc/package/pengines.html
 */
 
 
 :- meta_predicate
-	safe_goal(0).
+	safe_goal(:),
+	safe_call(0).
+
+%%	safe_call(:Goal)
+%
+%	Call Goal if it  complies  with   the  sandboxing  rules. Before
+%	calling   Goal,   it   performs   expand_goal/2,   followed   by
+%	safe_goal/1. Expanding is done explicitly  because situations in
+%	which safe_call/1 typically concern goals that  are not known at
+%	compile time.
+%
+%	@see safe_goal/1.
+
+safe_call(Goal0) :-
+	expand_goal(Goal0, Goal),
+	safe_goal(Goal),
+	call(Goal).
 
 %%	safe_goal(:Goal) is det.
 %
