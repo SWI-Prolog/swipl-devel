@@ -339,7 +339,6 @@ safe_primitive(nonvar(_)).
 safe_primitive(integer(_)).
 safe_primitive(float(_)).
 safe_primitive(system:rational(_)).
-safe_primitive(system:rational(_,_,_)).
 safe_primitive(number(_)).
 safe_primitive(atom(_)).
 safe_primitive(system:blob(_,_)).
@@ -381,11 +380,28 @@ safe_primitive(_ =.. _).
 safe_primitive(copy_term(_,_)).
 safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(numbervars(_,_,_)).
+					% dicts
+safe_primitive(system:is_dict(_)).
+safe_primitive(system:is_dict(_,_)).
+safe_primitive(system:get_dict(_,_,_)).
+safe_primitive(system:get_dict(_,_,_,_,_)).
+safe_primitive(system:get_dict_ex(_,_,_)).
+safe_primitive(system:dict_create(_,_,_)).
+safe_primitive(system:dict_pairs(_,_,_)).
+safe_primitive(system:put_dict(_,_,_)).
+safe_primitive(system:put_dict(_,_,_,_)).
+safe_primitive(system:del_dict(_,_,_,_)).
+safe_primitive(system:select_dict(_,_,_)).
+safe_primitive(system:b_set_dict(_,_,_)).
+safe_primitive(system:nb_set_dict(_,_,_)).
+safe_primitive(system:nb_link_dict(_,_,_)).
+safe_primitive(system:(:<(_,_))).
+safe_primitive(system:(>:<(_,_))).
 					% atoms
 safe_primitive(atom_chars(_, _)).
 safe_primitive(atom_codes(_, _)).
 safe_primitive(sub_atom(_,_,_,_,_)).
-safe_primitive(atom_concat(_,_)).
+safe_primitive(atom_concat(_,_,_)).
 safe_primitive(atom_length(_,_)).
 safe_primitive(system:atomic_list_concat(_,_,_)).
 					% numbers
@@ -401,7 +417,7 @@ safe_primitive(system:sub_string(_,_,_,_,_)).
 safe_primitive(system:split_string(_,_,_,_)).
 safe_primitive(system:atomics_to_string(_,_,_)).
 safe_primitive(system:atomics_to_string(_,_)).
-safe_primitive(system:string_concat(_,_)).
+safe_primitive(system:string_concat(_,_,_)).
 safe_primitive(system:string_length(_,_)).
 					% Lists
 safe_primitive(length(_,_)).
@@ -409,7 +425,7 @@ safe_primitive(length(_,_)).
 safe_primitive(throw(_)).
 					% misc
 safe_primitive(current_prolog_flag(_,_)).
-safe_primitive(sleep(_)).
+safe_primitive(system:sleep(_)).
 
 safe_primitive(clause(_,_)).
 safe_primitive(asserta(X)) :- safe_assert(X).
@@ -471,22 +487,6 @@ safe_primitive(system:use_module(Spec)) :-
 			   ]),
 	file_name_extension(_, Ext, AbsFile),
 	save_extension(Ext).
-
-% Other library predicates.
-
-					% rdf
-safe_primitive(rdf_db:rdf(_,_,_)).
-safe_primitive(rdf_db:rdf(_,_,_,_)).
-					% http
-safe_primitive(http_session:http_session_data(_)).
-safe_primitive(http_session:http_session_id(_)).
-					% random
-safe_primitive(random:random(_)).
-					% porter
-safe_primitive(porter_stem:porter_stem(_,_)).
-safe_primitive(porter_stem:unaccent_atom(_,_)).
-safe_primitive(porter_stem:tokenize_atom(_,_)).
-safe_primitive(porter_stem:atom_to_stem_list(_,_)).
 
 % support predicates for safe_primitive, validating the safety of
 % arguments to certain goals.
