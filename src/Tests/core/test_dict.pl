@@ -27,6 +27,7 @@
 :- use_module(library(random)).
 :- use_module(library(apply)).
 :- use_module(library(pairs)).
+:- use_module(library(debug)).
 
 /** <module> Test the dict data structure
 
@@ -36,8 +37,31 @@ This module tests the implementation of the dict datastructure.
 test_dict :-
 	run_tests([ dict_create,
 		    dict_bips,
+		    dict_overflow,
 		    expand_functions
 		  ]).
+
+:- meta_predicate
+	test_overflow(0),
+	test_overflow(0, +).
+
+test_overflow(Goal) :-
+	forall(between(1, 25, _),
+	       ( GSize is 10+random(50),
+		 test_overflow(overflow(Goal), GSize))).
+
+test_overflow(Goal, Size) :-
+	thread_create(Goal, Id, [global(Size)]),
+	thread_join(Id, Result),
+	assertion(subsumes_term(exception(error(resource_error(_),_)), Result)).
+
+overflow(Goal) :-
+	overflow(Goal, L), is_list(L).
+
+overflow(Goal, [_|T]) :-
+	\+ \+ call(Goal),
+	overflow(Goal, T).
+
 
 :- begin_tests(dict_create).
 
@@ -76,6 +100,15 @@ test(select, R =@= _{z:3}) :-		% implicit conversion
 	select_dict([x(1)], [x(1),z(3)], R).
 
 :- end_tests(dict_bips).
+
+:- begin_tests(dict_overflow).
+
+test(put, true) :-
+	test_overflow(put_dict([a(1)], [b(2),c(3),d(4)], _)).
+test(select, true) :-
+	test_overflow(select_dict([x(1)], [x(1),z(3)], _)).
+
+:- end_tests(dict_overflow).
 
 :- begin_tests(expand_functions).
 

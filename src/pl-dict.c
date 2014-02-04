@@ -154,7 +154,7 @@ void sort_r(void *base, size_t nel, size_t width,
 		 *******************************/
 
 static int
-get_dict_ex(term_t t, Word mp, int create ARG_LD)
+get_dict_ex(term_t t, Word dp ARG_LD)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -164,23 +164,40 @@ get_dict_ex(term_t t, Word mp, int create ARG_LD)
 
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 )		/* does *not* validate ordering */
-    { *mp = *p;
+    { *dp = *p;
       return TRUE;
     }
   }
 
-  if ( create )
-  { term_t new;
+  return PL_type_error("dict", t);
+}
 
-    if ( (new = PL_new_term_ref()) &&
-	  PL_get_dict_ex(t, 0, new, DICT_GET_ALL) )
-    { p = valTermRef(new);
-      deRef(p);
-      *mp = *p;
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_create_dict_ex(+t, -dict ARG_LD) extracts a dict  from t or raises a
+type error. The term reference dict contains   a  plain dict term handle
+and is never a reference.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+get_create_dict_ex(term_t t, term_t dt ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isTerm(*p) )
+  { Functor f = valueTerm(*p);
+    FunctorDef fd = valueFunctor(f->definition);
+
+    if ( fd->name == ATOM_dict &&
+	 fd->arity%2 == 1 )		/* does *not* validate ordering */
+    { *valTermRef(dt) = *p;
       return TRUE;
     }
+  }
 
-    return FALSE;
+  if ( PL_get_dict_ex(t, 0, dt, DICT_GET_ALL) )
+  { assert(isTerm(*valTermRef(dt)));
+    return TRUE;
   }
 
   return PL_type_error("dict", t);
@@ -1164,7 +1181,7 @@ pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
   { case FRG_FIRST_CALL:
     { Word np = valTermRef(A1);
 
-      if ( !get_dict_ex(A2, &dict, FALSE PASS_LD) )
+      if ( !get_dict_ex(A2, &dict PASS_LD) )
 	return FALSE;
 
       deRef(np);
@@ -1250,14 +1267,13 @@ PRED_IMPL("get_dict", 5, get_dict, 0)
 { PRED_LD
   term_t dt = PL_new_term_refs(4);
   term_t av = dt+1;
-  word key, dict;
+  word key;
   Word vp;
 
   if ( !get_name_ex(A1, &key PASS_LD) ||
        !(*valTermRef(av+0) = key) ||
-       !get_dict_ex(A2, &dict, TRUE PASS_LD) ||
-       !(*valTermRef(dt) = dict) ||
-       !(vp=dict_lookup_ptr(dict, key PASS_LD)) ||
+       !get_create_dict_ex(A2, dt PASS_LD) ||
+       !(vp=dict_lookup_ptr(*valTermRef(dt), key PASS_LD)) ||
        !unify_ptrs(vp, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) ||
        !PL_put_term(av+1, A5) )
     return FALSE;
@@ -1266,9 +1282,8 @@ PRED_IMPL("get_dict", 5, get_dict, 0)
   { word new;
     int rc;
 
-    dict = *valTermRef(dt);
-
-    if ( (rc = put_dict(dict, 1, valTermRef(av), &new PASS_LD)) == TRUE )
+    if ( (rc = put_dict(*valTermRef(dt),
+			1, valTermRef(av), &new PASS_LD)) == TRUE )
     { term_t t = dt+3;
 
       *valTermRef(t) = new;
@@ -1337,13 +1352,11 @@ PRED_IMPL("dict_pairs", 3, dict_pairs, 0)
 { PRED_LD
 
   if ( !PL_is_variable(A1) )
-  { word m;
+  { term_t dict = PL_new_term_ref();
 
-    if ( get_dict_ex(A1, &m, TRUE PASS_LD) )
-    { term_t dict = PL_new_term_ref();
-      dict_pairs_ctx ctx;
+    if ( get_create_dict_ex(A1, dict PASS_LD) )
+    { dict_pairs_ctx ctx;
 
-      *valTermRef(dict) = m;
       ctx.ld = LD;
       ctx.tail = PL_copy_term_ref(A3);
       ctx.head = PL_new_term_refs(2);
@@ -1376,20 +1389,19 @@ the value set of Dict0.
 static
 PRED_IMPL("put_dict", 3, put_dict, 0)
 { PRED_LD
-  word m2;
-  term_t t1 = PL_new_term_ref();
+  term_t dt = PL_new_term_refs(2);
   fid_t fid = PL_open_foreign_frame();
 
 
 retry:
-  if ( get_dict_ex(A2, valTermRef(t1), TRUE PASS_LD) &&
-       get_dict_ex(A1, &m2, TRUE PASS_LD) )
-  { Functor f2 = valueTerm(m2);
+  if ( get_create_dict_ex(A2, dt+0 PASS_LD) &&
+       get_create_dict_ex(A1, dt+1 PASS_LD) )
+  { Functor f2 = valueTerm(*valTermRef(dt+1));
     int arity = arityFunctor(f2->definition);
     word new;
     int rc;
 
-    if ( (rc = put_dict(*valTermRef(t1),
+    if ( (rc = put_dict(*valTermRef(dt+0),
 			arity/2, &f2->arguments[1],
 			&new PASS_LD)) == TRUE )
     { term_t t = PL_new_term_ref();
@@ -1415,18 +1427,19 @@ True when Dict is a copy of Dict0 with Name Value added or replaced.
 
 static foreign_t
 put_dict4(term_t key, term_t dict, term_t value, term_t newdict ARG_LD)
-{ word m1;
-  term_t av = PL_new_term_refs(2);
+{ term_t dt = PL_new_term_refs(3);
+  term_t av = dt+1;
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( get_dict_ex(dict, &m1, TRUE PASS_LD) &&
+  if ( get_create_dict_ex(dict, dt PASS_LD) &&
        get_name_ex(key, valTermRef(av) PASS_LD) &&
        PL_put_term(av+1, value) )
   { word new;
     int rc;
 
-    if ( (rc = put_dict(m1, 1, valTermRef(av), &new PASS_LD)) == TRUE )
+    if ( (rc = put_dict(*valTermRef(dt),
+			1, valTermRef(av), &new PASS_LD)) == TRUE )
     { term_t t = PL_new_term_ref();
 
       *valTermRef(t) = new;
@@ -1492,7 +1505,7 @@ retry:
     }
   }
 
-  if ( get_dict_ex(dict, &m, FALSE PASS_LD) &&
+  if ( get_dict_ex(dict, &m PASS_LD) &&
        get_name_ex(key, &k PASS_LD) )
   { Word vp;
 
@@ -1542,13 +1555,12 @@ except for Key.
 static
 PRED_IMPL("del_dict", 4, del_dict, 0)
 { PRED_LD
-  word m, key;
+  word key;
   term_t mt = PL_new_term_ref();
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  if ( get_dict_ex(A2, &m, TRUE PASS_LD) &&
-       (*valTermRef(mt) = m) &&
+  if ( get_create_dict_ex(A2, mt PASS_LD) &&
        get_name_ex(A1, &key PASS_LD) )
   { Word vp;
 
@@ -1583,14 +1595,13 @@ retry:
 static
 PRED_IMPL("select_dict", 3, select_dict, 0)
 { PRED_LD
-  term_t sm = PL_new_term_ref();
-  word s, f, r;
+  term_t dt = PL_new_term_refs(2);
+  word r;
 
 retry:
-  if ( get_dict_ex(A1, &s, TRUE PASS_LD) &&
-       (*valTermRef(sm) = s) &&
-       get_dict_ex(A2, &f, TRUE PASS_LD) )
-  { int rc = select_dict(*valTermRef(sm), f, &r PASS_LD);
+  if ( get_create_dict_ex(A1, dt+0 PASS_LD) &&
+       get_create_dict_ex(A2, dt+1 PASS_LD) )
+  { int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), &r PASS_LD);
 
     switch(rc)
     { case TRUE:
@@ -1617,14 +1628,12 @@ retry:
 static
 PRED_IMPL(":<", 2, select_dict, 0)
 { PRED_LD
-  term_t sm = PL_new_term_ref();
-  word s, f;
+  term_t dt = PL_new_term_refs(2);
 
 retry:
-  if ( get_dict_ex(A1, &s, TRUE PASS_LD) &&
-       (*valTermRef(sm) = s) &&
-       get_dict_ex(A2, &f, TRUE PASS_LD) )
-  { int rc = select_dict(*valTermRef(sm), f, NULL PASS_LD);
+  if ( get_create_dict_ex(A1, dt+0 PASS_LD) &&
+       get_create_dict_ex(A2, dt+1 PASS_LD) )
+  { int rc = select_dict(*valTermRef(dt+0), *valTermRef(dt+1), NULL PASS_LD);
 
     switch(rc)
     { case TRUE:
@@ -1646,14 +1655,12 @@ retry:
 static
 PRED_IMPL(">:<", 2, punify_dict, 0)
 { PRED_LD
-  term_t t1 = PL_new_term_ref();
-  word m1, m2;
+  term_t dt = PL_new_term_refs(2);
 
 retry:
-  if ( get_dict_ex(A1, &m1, TRUE PASS_LD) &&
-       (*valTermRef(t1) = m1) &&
-       get_dict_ex(A2, &m2, TRUE PASS_LD) )
-  { int rc = partial_unify_dict(*valTermRef(t1), m2 PASS_LD);
+  if ( get_create_dict_ex(A1, dt+0 PASS_LD) &&
+       get_create_dict_ex(A2, dt+1 PASS_LD) )
+  { int rc = partial_unify_dict(*valTermRef(dt+0), *valTermRef(dt+1) PASS_LD);
 
     switch(rc)
     { case TRUE:
