@@ -69,6 +69,10 @@ safe_goal/1, which determines whether it is safe to call its argument.
 %	  - All predicates  referenced  from   the  fully  expanded  are
 %	  whitelisted by the predicate safe_primitive/1 and safe_meta/2.
 %
+%	  - It is not allowed to make explicitly qualified calls into
+%	  modules to predicates that are not exported or declared
+%	  public.
+%
 %	@error	instantiation_error if the analysis encounters a term in
 %		a callable position that is insufficiently instantiated
 %		to determine the predicate called.
@@ -104,8 +108,16 @@ safe(V, _, Parents, _, _) :-
 	Error = error(instantiation_error, sandbox(V, Parents)),
 	asserta(last_error(Error)),
 	throw(Error).
-safe(M:G, _, Parent, Safe0, Safe) :- !,
-	safe(G, M, Parent, Safe0, Safe).
+safe(M:G, _, Parents, Safe0, Safe) :- !,
+	must_be(atom, M),
+	must_be(callable, G),
+	(   (   predicate_property(M:G, exported)
+	    ;	predicate_property(M:G, public)
+	    )
+	->  safe(G, M, Parents, Safe0, Safe)
+	;   throw(error(permission_error(call, sandboxed, M:G),
+			sandbox(M:G, Parents)))
+	).
 safe(G, _, Parents, _, _) :-
 	debugging(sandbox(show)),
 	length(Parents, Level),
