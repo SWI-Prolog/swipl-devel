@@ -256,6 +256,64 @@ goal_id(Term, Skolem, Term) :-		% most specific form
 	copy_term(Term, Skolem),
 	numbervars(Skolem, 0, _).
 
+%%	verify_safe_declaration(+Decl)
+%
+%	See whether a  safe  declaration  makes   sense.  That  is,  the
+%	predicate must be defined (such that  the attacker cannot define
+%	the predicate), must be sufficiently   instantiated and only ISO
+%	declared predicates may omit a module qualification.
+%
+%	@tbd	Verify safe_meta/2 declarations.  It is a bit less clear
+%		what the rules are.
+
+term_expansion(safe_primitive(Goal), Term) :-
+	(   verify_safe_declaration(Goal)
+	->  Term = safe_primitive(Goal)
+	;   Term = []
+	).
+
+system:term_expansion(sandbox:safe_primitive(Goal), Term) :-
+	(   verify_safe_declaration(Goal)
+	->  Term = sandbox:safe_primitive(Goal)
+	;   Term = []
+	).
+
+verify_safe_declaration(Var) :-
+	var(Var), !,
+	instantiation_error(Var).
+verify_safe_declaration(Module:Goal) :-
+	must_be(atom, Module),
+	must_be(callable, Goal),
+	(   (   predicate_property(Module:Goal, visible)
+	    ->	true
+	    ;	predicate_property(Module:Goal, foreign)
+	    ),
+	    \+ predicate_property(Module:Goal, imported_from(_)),
+	    \+ predicate_property(Module:Goal, meta_predicate())
+	->  true
+	;   permission_error(declare, safe_goal, Module:Goal)
+	).
+verify_safe_declaration(Goal) :-
+	must_be(callable, Goal),
+	(   predicate_property(system:Goal, iso),
+	    \+ predicate_property(system:Goal, meta_predicate())
+	->  true
+	;   permission_error(declare, safe_goal, Goal)
+	).
+
+verify_predefined_safe_declarations :-
+	forall(clause(safe_primitive(Goal), Ref),
+	       ( catch(verify_safe_declaration(Goal), E, true),
+		 (   nonvar(E)
+		 ->  clause_property(Ref, file(File)),
+		     clause_property(Ref, line_count(Line)),
+		     print_message(error, bad_safe_declaration(Goal, File, Line))
+		 ;   true
+		 )
+	       )).
+
+:- initialization(verify_predefined_safe_declarations, now).
+
 %%	safe_primitive(?Goal) is nondet.
 %
 %	True if Goal is safe  to   call  (i.e.,  cannot access dangerous
@@ -266,7 +324,7 @@ goal_id(Term, Skolem, Term) :-		% most specific form
 %	unsafe     implementation)     and     the       way      around
 %	(redefine_system_predicate/1) is unsafe.  The   other  group are
 %	module-qualified and only match if the   system  infers that the
-%	predicate is (or will be) imported from the given module.
+%	predicate is imported from the given module.
 
 % First, all ISO system predicates that are considered safe
 
@@ -611,6 +669,7 @@ prolog:sandbox_allowed_expansion(G) :-
 		 *******************************/
 
 :- multifile
+	prolog:message//1.
 	prolog:message_context//1.
 
 prolog:message_context(sandbox(_G, Parents)) -->
@@ -624,3 +683,7 @@ callers([G|Parents], Level) -->
 	},
 	[ nl, '	  ~p'-[G] ],
 	callers(Parents, NextLevel).
+
+prolog:message(bad_safe_declaration(Goal, File, Line)) -->
+	[ '~w:~d: Invalid safe_primitive/1 declaration: ~p'-
+	  [File, Line, Goal] ].
