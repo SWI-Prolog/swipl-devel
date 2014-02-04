@@ -152,18 +152,18 @@ safe(G, M, _, Safe, Safe) :-
 	),
 	safe_primitive(M2:G), !.
 safe(G, M, Parents, Safe0, Safe) :-
-	safe_meta(G, Called),
+	safe_meta_call(G, Called),
 	predicate_property(G, iso), !,
 	safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	expand_phrase(G, Goal), !,
 	safe(Goal, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
-	safe_meta(M2:G, Called),
 	(   predicate_property(M:G, imported_from(M2))
 	->  true
 	;   M2 = M
-	), !,
+	),
+	safe_meta_call(M2:G, Called), !,
 	safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	goal_id(M:G, Id, Gen),
@@ -528,8 +528,8 @@ safe_global_variable('$clpfd_queue').
 
 %%	safe_meta(+Goal, -Called:list(callable)) is semidet.
 %
-%	True if Goal is a meta-predicate that is considered safe iff all
-%	elements in Called are safe.
+%	Hook. True if Goal is a   meta-predicate that is considered safe
+%	iff all elements in Called are safe.
 
 safe_meta(system:put_attr(_,M,A), [M:attr_unify_hook(A, _)]) :- !,
 	(   atom(M)
@@ -538,11 +538,19 @@ safe_meta(system:put_attr(_,M,A), [M:attr_unify_hook(A, _)]) :- !,
 	).
 safe_meta(system:with_output_to(Output, G), [G]) :-
 	safe_output(Output), !.
-safe_meta(M:Goal, Called) :- !,
+
+%%	safe_meta_call(+Goal, -Called:list(callable)) is semidet.
+%
+%	True if Goal is a   meta-predicate that is considered safe
+%	iff all elements in Called are safe.
+
+safe_meta_call(Goal, Called) :-
+	safe_meta(Goal, Called), !.	% call hook
+safe_meta_call(M:Goal, Called) :- !,
 	generic_goal(Goal, Gen),
 	safe_meta(M:Gen),
 	findall(C, called(Gen, Goal, C), Called).
-safe_meta(Goal, Called) :-
+safe_meta_call(Goal, Called) :-
 	generic_goal(Goal, Gen),
 	safe_meta(Gen),
 	findall(C, called(Gen, Goal, C), Called).
