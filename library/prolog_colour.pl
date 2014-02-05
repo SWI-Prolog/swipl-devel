@@ -665,12 +665,22 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 %	Colourise access to a single goal.
 
 					% Deal with list as goal (consult)
-colourise_goal(Goal, _, TB, list_position(F,T,Elms,_)) :- !,
+colourise_goal(Goal, _, TB, list_position(F,T,Elms,_)) :-
+	Goal = [_|_], !,
 	FT is F + 1,
 	AT is T - 1,
 	colour_item(goal(built_in, Goal), TB, F-FT),
 	colour_item(goal(built_in, Goal), TB, AT-T),
 	colourise_file_list(Goal, TB, Elms, any).
+colourise_goal(Goal, Origin, TB, list_position(F,T,Elms,Tail)) :-
+	callable(Goal),
+	Goal =.. [_,GH,GT|_], !,
+	goal_classification(TB, Goal, Origin, Class),
+	FT is F + 1,
+	AT is T - 1,
+	colour_item(goal(Class, Goal), TB, F-FT),
+	colour_item(goal(Class, Goal), TB, AT-T),
+	colourise_list_args(Elms, Tail, [GH|GT], TB, classify).
 colourise_goal(Goal, Origin, TB, Pos) :-
 	nonvar(Goal),
 	goal_colours(Goal, ClassSpec-ArgSpecs), !, % specified
