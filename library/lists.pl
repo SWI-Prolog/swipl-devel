@@ -166,17 +166,20 @@ selectchk(Elem, List, Rest) :-
 
 %%	select(?X, ?XList, ?Y, ?YList) is nondet.
 %
-%	Select two elements from two lists at  the same place. True when
-%	nth1(I,  XList,  X)  and  nth1(I,  YList,    Y)   are  true  and
-%	same_length(XList, YList) is  true.  A   typical  use  for  this
-%	predicate is to _replace_ an element:
+%	True if XList is unifiable with YList  apart a single element at
+%	the same position that is unified with X  in XList and with Y in
+%	YList. A typical use  for  this   predicate  is  to _replace_ an
+%	element,  as  shown  in   the    example   below.  All  possible
+%	substitutions are performed on backtracking.
 %
-%	==
-%	?- select(b, [a,b,c,b], 2, X).
-%	X = X = [a, 2, c, b] ;
-%	X = [a, b, c, 2] ;
-%	false.
-%	==
+%	  ==
+%	  ?- select(b, [a,b,c,b], 2, X).
+%	  X = [a, 2, c, b] ;
+%	  X = [a, b, c, 2] ;
+%	  false.
+%	  ==
+%
+%	@see selectchk/4 provides a semidet version.
 
 select(X, XList, Y, YList) :-
 	select_(XList, X, Y, YList).
