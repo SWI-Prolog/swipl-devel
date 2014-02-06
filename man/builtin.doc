@@ -4073,6 +4073,14 @@ and raise a permission error if the stream is unbuffered or the buffer
 is too small to hold the longest multi-byte sequence that might need to
 be buffered.
 
+    \predicate{peek_string}{3}{+Stream, +Len, -String}
+Read the next \arg{Len} characters (if the stream is a text stream) or
+bytes (if the stream is binary) from Stream without removing the data.
+If \arg{Len} is larger that the stream buffer size, the buffer size is
+increased to \arg{Len}.  \arg{String} can be shorter than \arg{Len} if
+the stream contains less data. This predicate is intended to guess the
+content type of data read from non-repositionable streams.
+
     \predicate{skip}{1}{+Code}
 Read the input until \arg{Code} or the end of the file is encountered.
 A subsequent call to get_code/1 will read the first character after

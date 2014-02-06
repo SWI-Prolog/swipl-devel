@@ -2573,6 +2573,66 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 }
 
 
+/** peek_string(+Stream, +Len, -String) is det.
+
+Peek input from Stream for  Len  characters   or  the  entire content of
+Stream.
+*/
+
+PRED_IMPL("peek_string", 3, peek_string, 0)
+{ PRED_LD
+  IOSTREAM *s;
+  size_t len;
+
+  if ( !PL_get_size_ex(A2, &len) )
+    return FALSE;
+  if ( s->bufsize < len )
+    Ssetbuffer(s, NULL, len);
+
+  if ( getInputStream(A1, S_DONTCARE, &s) )
+  { for(;;)
+    { if ( s->limitp > s->bufp )
+      { PL_chars_t text;
+
+	text.text.t    = s->bufp;
+	text.length    = s->limitp - s->bufp;
+	text.storage   = PL_CHARS_HEAP;
+	text.canonical = FALSE;
+	text.encoding  = s->encoding;
+
+	PL_canonicalise_text(&text);
+	if ( text.length >= len )
+	{ int rc = PL_unify_text_range(A3, &text, 0, len, PL_STRING);
+	  PL_free_text(&text);
+	  releaseStream(s);
+	  return rc;
+	}
+
+	PL_free_text(&text);
+      }
+      if ( S__fillbuf(s) < 0 )
+      { PL_chars_t text;
+
+	if ( Sferror(s) )
+	  return streamStatus(s);
+
+	text.text.t    = s->bufp;
+	text.length    = s->limitp - s->bufp;
+	text.storage   = PL_CHARS_HEAP;
+	text.canonical = FALSE;
+	text.encoding  = s->encoding;
+
+	PL_canonicalise_text(&text);
+	return PL_unify_text(A3, 0, &text, PL_STRING);
+      }
+      s->bufp--;
+    }
+  }
+
+  return FALSE;
+}
+
+
 static foreign_t
 put_byte(term_t stream, term_t byte ARG_LD)
 { IOSTREAM *s;
@@ -4938,6 +4998,7 @@ BeginPredDefs(file)
   PRED_DEF("peek_char", 1, peek_char1, PL_FA_ISO)
   PRED_DEF("peek_byte", 2, peek_byte2, PL_FA_ISO)
   PRED_DEF("peek_byte", 1, peek_byte1, PL_FA_ISO)
+  PRED_DEF("peek_string", 3, peek_string, 0)
   PRED_DEF("put_byte", 2, put_byte2, PL_FA_ISO)
   PRED_DEF("put_byte", 1, put_byte1, PL_FA_ISO)
   PRED_DEF("put_code", 2, put_code2, PL_FA_ISO)

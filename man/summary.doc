@@ -434,6 +434,7 @@ suggest predicates from a keyword.
 \predicatesummary{peek_char}{2}{Read character without removing}
 \predicatesummary{peek_code}{1}{Read character-code without removing}
 \predicatesummary{peek_code}{2}{Read character-code without removing}
+\predicatesummary{peek_string}{3}{Read a string without removing}
 \predicatesummary{phrase}{2}{Activate grammar-rule set}
 \predicatesummary{phrase}{3}{Activate grammar-rule set (returning rest)}
 \predicatesummary{phrase_from_quasi_quotation}{2}{Parse quasi quotation with DCG}
