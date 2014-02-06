@@ -279,7 +279,6 @@ print_prolog_backtrace(Stream, Backtrace) :-
 print_prolog_backtrace(Stream, Backtrace, Options) :-
 	default_backtrace_options(DefOptions),
 	merge_options(Options, DefOptions, FinalOptions),
-	writeln(DefOptions-FinalOptions),
 	phrase(message(Backtrace, FinalOptions), Lines),
 	print_message_lines(Stream, '', Lines).
 
