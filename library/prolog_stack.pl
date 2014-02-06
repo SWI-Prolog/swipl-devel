@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -257,35 +257,37 @@ frame_predicate(call(PI), PI).
 frame_predicate(clause(Clause, _PC), PI) :-
 	clause_property(Clause, PI).
 
+default_backtrace_options(Options) :-
+	(   current_prolog_flag(backtrace_show_lines, true)
+	->  Options = []
+	;   Options = [subgoal_positions(false)]
+	).
 
-%%	print_prolog_backtrace(+Stream, +Backtrace)
-%
-%	Print a stacktrace in human readable form to Stream.
-
-print_prolog_backtrace(Stream, Backtrace) :-
-	print_prolog_backtrace(Stream, Backtrace, []).
-
-
-%%	print_prolog_backtrace(+Stream, +Backtrace, +Options)
+%%	print_prolog_backtrace(+Stream, +Backtrace) is det.
+%%	print_prolog_backtrace(+Stream, +Backtrace, +Options) is det.
 %
 %	Print a stacktrace in human readable form to Stream.
 %	Options is an option list that accepts:
 %
 %	    * subgoal_positions(+Boolean)
-%	    If =true= (default), print subgoal line numbers
+%	    If =true=, print subgoal line numbers.  The default depends
+%	    on the Prolog flag =backtrace_show_lines=.
+
+print_prolog_backtrace(Stream, Backtrace) :-
+	print_prolog_backtrace(Stream, Backtrace, []).
 
 print_prolog_backtrace(Stream, Backtrace, Options) :-
-	phrase(message(Backtrace, Options), Lines),
+	default_backtrace_options(DefOptions),
+	merge_options(Options, DefOptions, FinalOptions),
+	writeln(DefOptions-FinalOptions),
+	phrase(message(Backtrace, FinalOptions), Lines),
 	print_message_lines(Stream, '', Lines).
 
 :- public				% Called from some handlers
 	message//1.
 
 message(Backtrace) -->
-	{   current_prolog_flag(backtrace_show_lines, true)
-	->  Options = []
-	;   Options = [subgoal_positions(false)]
-	},
+	{default_backtrace_options(Options)},
 	message(Backtrace, Options).
 
 message([], _) -->
