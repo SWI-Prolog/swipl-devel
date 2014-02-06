@@ -842,7 +842,10 @@ int
 PL_canonicalise_text(PL_chars_t *text)
 { if ( !text->canonical )
   { switch(text->encoding )
-    { case ENC_ISO_LATIN_1:
+    { case ENC_OCTET:
+	text->encoding = ENC_ISO_LATIN_1;
+      case ENC_ISO_LATIN_1:
+        text->canonical = TRUE;
 	break;				/* nothing to do */
       case ENC_WCHAR:
       { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
