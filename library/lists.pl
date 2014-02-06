@@ -167,15 +167,15 @@ selectchk(Elem, List, Rest) :-
 %%	select(?X, ?XList, ?Y, ?YList) is nondet.
 %
 %	Select two elements from two lists at  the same place. True when
-%	select(X, XList) and select(Y, YList) are   true, X and Y appear
-%	in  the  same  locations   of    their   respective   lists  and
+%	nth1(I,  XList,  X)  and  nth1(I,  YList,    Y)   are  true  and
 %	same_length(XList, YList) is  true.  A   typical  use  for  this
 %	predicate is to _replace_ an element:
 %
 %	==
-%	?- select(b, [a,b,c], 2, X).
-%	X = [a, 2, c] ;
-%	X = [a, b, c].
+%	?- select(b, [a,b,c,b], 2, X).
+%	X = X = [a, 2, c, b] ;
+%	X = [a, b, c, 2] ;
+%	false.
 %	==
 
 select(X, XList, Y, YList) :-
