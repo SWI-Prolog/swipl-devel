@@ -112,6 +112,10 @@ curr_setting(Name, Module, Type, Default, Comment, Src) :-
 %	to environment variables  and  use   arithmetic  expressions  as
 %	defined by eval_default/4.
 %
+%	If a second declaration for  a   setting  is  encountered, it is
+%	ignored  if  Type  and  Default  are    the  same.  Otherwise  a
+%	permission_error is raised.
+%
 %	@param Name	Name of the setting (an atom)
 %	@param Type	Type for setting.  One of =any= or a type defined
 %			by must_be/2.
@@ -136,11 +140,14 @@ system:term_expansion((:- setting(QName, Type, Default, Comment)),
 	to_atom(Comment, CommentAtom),
 	eval_default(Default, Module, Type, Value),
 	check_type(Type, Value),
-	(   current_setting(Name, Module, _, _, _, OldLoc)
-	->  format(string(Message),
-		   'Already defined at: ~w', [OldLoc]),
-	    throw(error(permission_error(redefine, setting, Module:Name),
-			context(Message, _)))
+	(   current_setting(Name, Module, OType, ODef, _, OldLoc)
+	->  (   OType =@= Type, ODef =@= Default
+	    ->	Expanded = []
+	    ;	format(string(Message),
+		       'Already defined at: ~w', [OldLoc]),
+		throw(error(permission_error(redefine, setting, Module:Name),
+			    context(Message, _)))
+	    )
 	;   source_location(File, Line)
 	->  Expanded = settings:current_setting(Name, Module, Type, Default,
 						CommentAtom, File:Line)
