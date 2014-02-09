@@ -50,6 +50,8 @@
 		       blobs(oneof([portray])),
 		       character_escapes(boolean),
 		       cycles(boolean),
+		       fullstop(boolean),
+		       nl(boolean),
 		       ignore_ops(boolean),
 		       max_depth(nonneg),
 		       module(atom),
