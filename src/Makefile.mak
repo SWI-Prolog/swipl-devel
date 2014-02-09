@@ -62,7 +62,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
 
 PLSRC=$(PLSRC) ../boot/menu.pl
-PLWINLIBS= wise.pl dde.pl progman.pl win_menu.pl
+PLWINLIBS=dde.pl progman.pl win_menu.pl
 PLLIBS=$(PLLIBS) $(PLWINLIBS)
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 UNICODE=blocks.pl unicode_data.pl

@@ -373,7 +373,6 @@ Section "Base system (required)"
   File ${SWIPL}\library\dde.pl
   File ${SWIPL}\library\progman.pl
   File ${SWIPL}\library\registry.pl
-  File ${SWIPL}\library\wise.pl
 
 ; DEVELOPMENT
   File ${SWIPL}\library\edit.pl
