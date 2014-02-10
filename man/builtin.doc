@@ -1442,9 +1442,7 @@ so-called ``standard order''. This order is defined as follows:
 
 \begin{enumerate}
     \item $\arg{Variables} < \arg{Numbers} < \arg{Strings} < \arg{Atoms}
-          < \arg{Compound Terms}$%
-	\footnote{Strings might be considered atoms in future versions. See
-		  also \secref{strings}}
+          < \arg{Compound Terms}$
     \item Variables are sorted by address.  Attaching attributes
           (see \secref{attvar}) does not affect the ordering.
     \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
