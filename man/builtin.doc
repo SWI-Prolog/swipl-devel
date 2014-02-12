@@ -2470,29 +2470,45 @@ True when \arg{DCGBody} applies to the difference
 \jargon{callable} term that denotes a grammar rule, it can be any
 term that is valid as the body of a DCG rule.
 
-The example below calls the rule set `integer' defined in \secref{DCG},
-binding \arg{Rest} to the remainder of the input after matching the
-integer.
+The example below calls the rule set integer//1 defined in \secref{DCG}
+and available from \pllib{library(dcg/basics)}, binding \arg{Rest} to
+the remainder of the input after matching the integer.
 
 \begin{code}
-?- phrase(integer(X), "42 times", Rest).
+?- [library(dcg/basics)].
+?- atom_codes('42 times', Codes),
+   phrase(integer(X), Codes, Rest).
 X = 42
 Rest = [32, 116, 105, 109, 101, 115]
 \end{code}
 
-The next example exploits a complete body.
+The next example exploits a complete body. Given the following
+definition of \nodcgref{digit_weight}{1}, we can pose the query
+below.
 
 \begin{code}
 digit_weight(W) -->
 	[D],
 	{ code_type(D, digit(W)) }.
+\end{code}
 
-?- phrase(("Version ",
+\begin{code}
+?- atom_codes('Version 3.4', Codes),
+   phrase(("Version ",
 	   digit_weight(Major),".",digit_weight(Minor)),
-	  "Version 3.4").
+	  Codes).
 Major = 3,
 Minor = 4.
 \end{code}
+
+Note that the syntax for lists of codes changed in SWI-Prolog version~7
+(see \secref{strings}). If a DCG body is translated, both \verb$"text"$
+and \verb$`text`$ is a valid code-list literal in version~7. A version~7
+string (\verb$"text"$) is \textbf{not} acceptable for the second and
+third arguments of phrase/3. This is typically not a problem for
+applications as the input of a DCG rarely appears in the source code.
+For testing in the toplevel, one must use double quoted text in versions
+prior to~7 and back quoted text in version~7 or later.
 
 See also portray_text/1, which can be used to print lists of character
 codes as a string to the top level and debugger to facilitate debugging
