@@ -152,6 +152,20 @@ test(shared, error(type_error(integer,a))) :-
 	arg(a, f(a, b), a).
 test(unify) :-
 	arg(X, a(a(1,1), a(2,2)), a(X,2)).
+test(zero, fail) :-
+	arg(0, s(_), _).
+test(one, X == Y) :-
+	arg(1, s(X), Y).
+test(two, fail) :-
+	arg(2, s(_), _).
+test(atom, error(type_error(integer, _))) :-
+	arg(hello, s(_), _).
+:- if(current_prolog_flag(bounded, false)).
+test(big, fail) :-
+	arg(1000000000000000000, s(_), _).
+test(bigneg, error(domain_error(not_less_than_zero, _))) :-
+	arg(-1000000000000000000, s(_), _).
+:- endif.
 
 :- end_tests(arg).
 

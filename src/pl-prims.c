@@ -1976,11 +1976,57 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int get_arg_integer_ex(term_t t, intptr_t *n)
+
+Get argument position from t.  Returns:
+
+   TRUE  if t is a small non-negative integer
+   -1    if t is unbound
+   FALSE
+     - with exception if t is not an integer or negative
+     - without exception if t is 0 or a large positive integer
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+get_arg_integer_ex(term_t t, intptr_t *n ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isTaggedInt(*p) )
+  { intptr_t v = valInt(*p);
+
+    if ( v > 0 )
+    { *n = v;
+      return TRUE;
+    }
+    if ( v == 0 )
+      return FALSE;
+  }
+
+  if ( isInteger(*p) )
+  { number n;
+
+    get_integer(*p, &n);
+    if ( ar_sign_i(&n) < 0 )
+      PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, t);
+
+    return FALSE;
+  }
+
+  if ( isVar(*p) )
+    return -1;
+
+  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+  return FALSE;
+}
+
+
 static
 PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  int arity;
-  int argn;
+  unsigned arity;
+  unsigned argn;
 
   term_t n    = A1;
   term_t term = A2;
@@ -1988,7 +2034,8 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-    { int idx;
+    { intptr_t idx;
+      int rc;
       Word p = valTermRef(term);
 
       deRef(p);
@@ -1997,23 +2044,20 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       else
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
 
-      if ( PL_get_integer(n, &idx) )
-      { if ( idx > 0 && idx <= arity )
+      if ( (rc=get_arg_integer_ex(n, &idx PASS_LD)) == TRUE )
+      { if ( idx <= (intptr_t)arity )
 	{ Word ap = argTermP(*p, idx-1);
 
 	  return unify_ptrs(valTermRef(arg), ap, ALLOW_GC|ALLOW_SHIFT PASS_LD);
 	}
-	if ( idx < 0 )
-	  return PL_error("arg", 3, NULL, ERR_DOMAIN,
-			  ATOM_not_less_than_zero, n);
 	fail;
       }
-      if ( PL_is_variable(n) )
+      if ( rc == -1 )			/* variable */
       { argn = 1;
 
 	goto genarg;
       }
-      return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_integer, n);
+      return FALSE;			/* bigint, negative or type error */
     }
     case FRG_REDO:
     { term_t a;
@@ -2023,7 +2067,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 
       deRef(p);
       arity = arityTerm(*p);
-      argn = (int)CTX_INT + 1;
+      argn = (unsigned)CTX_INT + 1;
 
     genarg:
       rc = FALSE;
