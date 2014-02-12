@@ -3109,8 +3109,8 @@ Ref = <clause>(0x994290),
 Head = lists:append([_G23|_G24], _G21, [_G23|_G27]),
 Body = append(_G24, _G21, _G27).
 \end{code}
-    \predicate{clause_property}{2}{+ClauseRef, -Property}
 
+    \predicate{clause_property}{2}{+ClauseRef, -Property}
 Queries properties of a clause. \arg{ClauseRef} is a reference to a
 clause as produced by clause/3, nth_clause/3 or
 prolog_frame_attribute/3. Unlike most other predicates that access
@@ -3126,6 +3126,11 @@ textually appears. Fails if the clause is created by loading a file
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the clause.  Fails if
 the clause is not associated to a file.
+    \termitem{size}{SizeInBytes}
+True when \arg{SizeInBytes} is the size that the clause uses in memory
+in bytes.  The size required by a predicate also includes the predicate
+data record, a linked list of clauses, clause selection instructions and
+optionally one or more clause indexes.
     \termitem{source}{FileName}
 Unify \arg{FileName} with the name of the source file that created
 the clause.  This is the same as the \const{file} property, unless the

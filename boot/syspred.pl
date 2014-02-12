@@ -806,6 +806,8 @@ clause_property(Clause, Property) :-
 	'$get_clause_attribute'(Clause, file, File).
 '$clause_property'(source(File), Clause) :-
 	'$get_clause_attribute'(Clause, owner, File).
+'$clause_property'(size(Bytes), Clause) :-
+	'$get_clause_attribute'(Clause, size, Bytes).
 '$clause_property'(fact, Clause) :-
 	'$get_clause_attribute'(Clause, fact, true).
 '$clause_property'(erased, Clause) :-

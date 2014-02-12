@@ -2680,6 +2680,10 @@ PRED_IMPL("$get_clause_attribute", 3, get_clause_attribute, 0)
 
     if ( sf )
       return PL_unify_atom(value, sf->name);
+  } else if ( a == ATOM_size )
+  { size_t size = sizeofClause(clause->code_size);
+
+    return PL_unify_int64(value, size);
   } else if ( a == ATOM_fact )
   { return PL_unify_atom(value,
 			 true(clause, UNIT_CLAUSE) ? ATOM_true
