@@ -43,6 +43,9 @@
 :- discontiguous
 	prolog_message/3.
 
+:- public
+	translate_message//1.
+
 %%	translate_message(+Term)// is det.
 %
 %	Translate a message Term into message lines. The produced lines
