@@ -36,6 +36,7 @@
 :- use_module(library(debug)).
 :- use_module(library(error)).
 :- use_module(library(apply_macros), [expand_phrase/2]).
+:- use_module(library(prolog_format)).
 
 :- multifile
 	safe_primitive/1,		% Goal
@@ -132,6 +133,8 @@ safe(M:G, _, Parents, Safe0, Safe) :- !,
 	must_be(callable, G),
 	(   (   predicate_property(M:G, exported)
 	    ;	predicate_property(M:G, public)
+	    ;	predicate_property(M:G, multifile)
+	    ;	predicate_property(M:G, iso)
 	    )
 	->  safe(G, M, Parents, Safe0, Safe)
 	;   throw(error(permission_error(call, sandboxed, M:G),
@@ -426,6 +429,9 @@ safe_primitive(throw(_)).
 					% misc
 safe_primitive(current_prolog_flag(_,_)).
 safe_primitive(system:sleep(_)).
+safe_primitive(system:thread_self(_)).
+safe_primitive(system:get_time(_)).
+safe_primitive(system:format_time(_,_,_)).
 
 safe_primitive(clause(_,_)).
 safe_primitive(asserta(X)) :- safe_assert(X).
@@ -538,6 +544,13 @@ safe_meta(system:put_attr(_,M,A), [M:attr_unify_hook(A, _)]) :- !,
 	).
 safe_meta(system:with_output_to(Output, G), [G]) :-
 	safe_output(Output), !.
+safe_meta(system:format(Format, Args), Calls) :-
+	format_calls(Format, Args, Calls).
+safe_meta(system:format(Output, Format, Args), Calls) :-
+	safe_output(Output),
+	format_calls(Format, Args, Calls).
+safe_meta(prolog_debug:debug(_Term, Format, Args), Calls) :-
+	format_calls(Format, Args, Calls).
 
 %%	safe_meta_call(+Goal, -Called:list(callable)) is semidet.
 %
@@ -614,6 +627,24 @@ safe_output(codes(_)).
 safe_output(codes(_,_)).
 safe_output(chars(_)).
 safe_output(chars(_,_)).
+safe_output(current_output).
+safe_output(current_error).
+
+%%	format_calls(+Format, +FormatArgs, -Calls)
+%
+%	Find ~@ calls from Format and Args.
+
+format_calls(Format, Args, Calls) :-
+	format_types(Format, Types),
+	format_callables(Types, Args, Calls).
+
+format_callables([], [], []).
+format_callables([callable|TT], [G|TA], [G|TG]) :- !,
+	format_callables(TT, TA, TG).
+format_callables([_|TT], [_|TA], TG) :- !,
+	format_callables(TT, TA, TG).
+format_callables(Types, Args, _) :-		% TBD: Proper error
+	throw(error(format_error(Types, Args), _)).
 
 
 		 /*******************************
