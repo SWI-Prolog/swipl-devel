@@ -76,7 +76,7 @@ make_no_trace :-
 	print_message(silent, make(done(Reload))),
 	(   prolog:make_hook(after, Reload)
 	->  true
-	;   list_undefined([scan(local)])
+	;   list_undefined
 	).
 
 modified_file(File) :-
