@@ -33,6 +33,7 @@
 	    list_to_ord_set/2,		% +List, -OrdSet
 	    ord_add_element/3,		% +Set, +Element, -NewSet
 	    ord_del_element/3,		% +Set, +Element, -NewSet
+	    ord_selectchk/3,		% +Item, ?Set1, ?Set2
 	    ord_intersect/2,		% +Set1, +Set2 (test non-empty)
 	    ord_intersect/3,		% +Set1, +Set2, -Intersection
 	    ord_intersection/3,		% +Set1, +Set2, -Intersection
@@ -239,6 +240,28 @@ ord_add_element(Set1, Element, Set2) :-
 
 ord_del_element(Set, Element, NewSet) :-
 	oset_delel(Set, Element, NewSet).
+
+
+%%	ord_selectchk(+Item, ?Set1, ?Set2) is semidet.
+%
+%	Is true when select(Item, Set1, Set2)   and  Set1, Set2 are both
+%	sorted lists without duplicates.  This   implementation  is only
+%	expected to work for Item ground and either Set1 or Set2 ground.
+%	The "chk" suffix is meant to   remind  you of memberchk/2, which
+%	also expects its first argument   to be ground. ord_selectchk(X,
+%	S, T) => ord_memberchk(X, S) & \+ ord_memberchk(X, T).
+%
+%	@author Richard O'Keefe
+
+ord_selectchk(Item, [X|Set1], [X|Set2]) :-
+	X @< Item, !,
+	ord_selectchk(Item, Set1, Set2).
+ord_selectchk(Item, [Item|Set1], Set1) :-
+	(   Set1 == []
+	->  true
+	;   Set1 = [Y|_]
+	->  Item @< Y
+	).
 
 
 %%	ord_memberchk(+Element, +OrdSet) is semidet.
