@@ -59,38 +59,19 @@
 
 /** <module> Consistency checking
 
-This library provides some quick and dirty consistency checking of the
-loaded Prolog program.
+This library provides some consistency  checks   for  the  loaded Prolog
+program. The predicate make/0 runs   list_undefined/0  to find undefined
+predicates in `user' modules.
 
-@see	prolog_xref.pl
+@see	gxref/0 provides a graphical cross referencer
+@see	PceEmacs performs real time consistency checks while you edit
+@see	library(prolog_xref) implements `offline' cross-referencing
+@see	library(prolog_codewalk) implements `online' analysis
 */
 
-:- predicate_options(list_undefined/1, 1, [scan(oneof([local,global]))]).
-
-%%	checker(:Goal, +Message:text)
-%
-%	Each clause defines a Goal which   performs  a consistency check
-%	executed by check/0. Message  is  a   short  description  of the
-%	check.  For  example,  assuming  the   `foo`  module  defines  a
-%	predicate list_format_mistakes/0:
-%
-%          ==
-%	   :- multifile check:checker/2.
-%	   check:checker(foo:list_format_mistakes,
-%	                 "errors with format/2 arguments").
-%	   ==
-%
-%	The predicate is dynamic, so you can disable checks with retract/1.
-%	For example, to stop reporting redefined predicates:
-%
-%	   ==
-%	   retract(check:checker(list_redefined,_)).
-%	   ==
-
-checker(list_undefined,     'undefined predicates' ).
-checker(list_trivial_fails, 'trivial failures' ).
-checker(list_redefined,     'redefined system and global predicates' ).
-checker(list_autoload,      'predicates that need autoloading' ).
+:- predicate_options(list_undefined/1, 1,
+		     [ module_class(list(oneof([user,library])))
+		     ]).
 
 %%	check is det.
 %
@@ -116,9 +97,9 @@ check.
 %%	list_undefined is det.
 %%	list_undefined(+Options) is det.
 %
-%	List predicates names refered to  in  a  clause  body,  but  not
-%	defined.  This forms a "Quick and Dirty" alternative for a cross
-%	referencing tool.  Options:
+%	Report undefined predicates.  This   predicate  finds  undefined
+%	predciates by decompiling and analyzing the body of all clauses.
+%	Options:
 %
 %	    * module_class(+Classes)
 %	    Process modules of the given Classes.  The default for
@@ -168,15 +149,16 @@ report_undefined(PI-FromList) :-
 	print_message(warning, check(undefined(PI, FromList))).
 
 
-%%	list_autoload
+%%	list_autoload is det.
 %
-%	Show predicates that are not defined, but will be loaded on
-%	demand through the autoloader.
+%	Report predicates that may be  auto-loaded. These are predicates
+%	that  are  not  defined,  but  will   be  loaded  on  demand  if
+%	referenced.
 %
-%	The behaviour of this predicate depends  on the system-mode (see
-%	system_mode/1): in normal  operation  it   only  lists  autoload
-%	requirements from user-module. In system-mode it also lists such
-%	requirements for the system modules.
+%	@tbd	This predicate uses an older mechanism for finding
+%		undefined predicates.  Should be synchronized with
+%		list undefined.
+%	@see	autoload/0
 
 list_autoload :-
 	setup_call_cleanup(
@@ -228,7 +210,9 @@ referenced(Term, Module, Ref) :-
 
 %%	list_redefined
 %
-%	Show redefined system predicates
+%	Lists predicates that are defined in the global module =user= as
+%	well as in a normal module; that   is,  predicates for which the
+%	local definition overrules the global default definition.
 
 list_redefined :-
 	setup_call_cleanup(
@@ -564,6 +548,36 @@ valid_string_goal(charsio:format_to_chars(Format,_,_)) :- string(Format).
 valid_string_goal(charsio:format_to_chars(Format,_,_,_)) :- string(Format).
 valid_string_goal(codesio:format_to_codes(Format,_,_)) :- string(Format).
 valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
+
+
+		 /*******************************
+		 *	  EXTENSION HOOKS	*
+		 *******************************/
+
+%%	checker(:Goal, +Message:text)
+%
+%	Register code validation routines. Each   clause  defines a Goal
+%	which performs a consistency check  executed by check/0. Message
+%	is a short description of the   check. For example, assuming the
+%	`my_checks` module defines a predicate list_format_mistakes/0:
+%
+%          ==
+%	   :- multifile check:checker/2.
+%	   check:checker(my_checks:list_format_mistakes,
+%	                 "errors with format/2 arguments").
+%	   ==
+%
+%	The predicate is dynamic, so you can disable checks with retract/1.
+%	For example, to stop reporting redefined predicates:
+%
+%	   ==
+%	   retract(check:checker(list_redefined,_)).
+%	   ==
+
+checker(list_undefined,     'undefined predicates' ).
+checker(list_trivial_fails, 'trivial failures' ).
+checker(list_redefined,     'redefined system and global predicates' ).
+checker(list_autoload,      'predicates that need autoloading' ).
 
 
 		 /*******************************

@@ -56,9 +56,17 @@ Prolog internal database after loaded files have been edited.
 
 %%	make
 %
-%	Reload all source files that have been changed since they were
-%	loaded.  After loading make/0 runs list_undefined/0 to quickly
-%	scan for undefined predicates.
+%	Reload all source files that have   been changed since they were
+%	loaded. This predicate peforms the following steps:
+%
+%	  1. Compute the set of files that need to be reloaded.
+%	  2. Call the hook prolog:make_hook(before, Files)
+%	  3. Reload the files
+%	  4. Call the hook prolog:make_hook(after, Files)
+%	  5. If (4) fails, call list_undefined/0.
+%
+%	The hooks are called  with  an  empty   list  if  no  files need
+%	reloading.
 
 make :-
 	notrace(make_no_trace).
