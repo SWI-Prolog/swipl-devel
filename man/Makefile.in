@@ -202,6 +202,8 @@ lib/csv.tex: ../library/csv.pl
 		$(LIBTOTEX) 'library(csv)'
 lib/lists.tex: ../library/lists.pl
 		$(LIBTOTEX) 'library(lists)'
+lib/check.tex: ../library/check.pl
+		$(LIBTOTEX) 'library(check)'
 lib/random.tex: ../library/random.pl
 		$(LIBTOTEX) 'library(random)'
 lib/varnumbers.tex: ../library/varnumbers.pl
