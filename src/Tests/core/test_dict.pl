@@ -115,6 +115,11 @@ test(select, true) :-
 dict(m{a:1, b:2}).
 dict(m{a:3, b:4}).
 
+x_dict1(X, X.x).
+x_dict2(X, X.put(y, X.x)).
+x_dict3(X, X.put(y, Y)) :-
+	Y is X.x^2.
+
 test(field, X == 3) :-
 	X = _{a:3}.a.
 test(conj, X == 3) :-
@@ -127,5 +132,14 @@ test(forall, true) :-
 	forall(dict(M), M.b mod 2 =:= 0).
 test(findall, As = [1,3]) :-
 	findall(A, (dict(M), A = M.a), As).
+
+test(head, X == 1) :-
+	x_dict1(_{x:1}, X).
+test(put, Y == 1) :-
+	x_dict2(_{x:1}, X),
+	Y = X.y.
+test(put2, Y == 4) :-
+	x_dict3(_{x:2}, X),
+	Y = X.y.
 
 :- end_tests(expand_functions).

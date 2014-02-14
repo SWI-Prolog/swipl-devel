@@ -130,7 +130,9 @@ expand_term_2((Head --> Body), Pos0, Expanded, Pos) :-
 	dcg_translate_rule((Head --> Body), Pos0, Expanded0, Pos1), !,
 	expand_bodies(Expanded0, Pos1, Expanded, Pos).
 expand_term_2(Term0, Pos0, Term, Pos) :-
+	nonvar(Term0), !,
 	expand_bodies(Term0, Pos0, Term, Pos).
+expand_term_2(Term, Pos, Term, Pos).
 
 %%	expand_bodies(+Term, +Pos0, -Out, -Pos) is det.
 %
@@ -141,14 +143,26 @@ expand_bodies(Terms, Pos0, Out, Pos) :-
 	'$def_modules'([goal_expansion/4,goal_expansion/2], MList),
 	expand_terms(expand_body(MList), Terms, Pos0, Out, Pos).
 
-expand_body(MList, (Head :- Body), Pos0, (Head :- ExpandedBody), Pos) :-
-	nonvar(Body), !,
+expand_body(MList, (Head0 :- Body), Pos0, (Head :- ExpandedBody), Pos) :- !,
 	f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
-	expand_goal(Body, BPos0, ExpandedBody, BPos, MList, (Head :- Body)).
-expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
-	nonvar(Body), !,
+	expand_goal(Body, BPos0, ExpandedBody0, BPos, MList, (Head0 :- Body)),
+	(   compound(Head0),
+	    '$set_source_module'(M, M),
+	    replace_functions(Head0, Eval, Head, M),
+	    Eval \== true
+	->  ExpandedBody = (Eval,ExpandedBody0)
+	;   Head = Head0,
+	    ExpandedBody = ExpandedBody0
+	).
+expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :- !,
 	f1_pos(Pos0, BPos0, Pos, BPos),
 	expand_goal(Body, BPos0, ExpandedBody, BPos, MList, (:- Body)).
+expand_body(_MList, Head0, Pos, Clause, Pos) :- % TBD: Position handling
+	compound(Head0),
+	'$set_source_module'(M, M),
+	replace_functions(Head0, Eval, Head, M),
+	Eval \== true, !,
+	Clause = (Head :- Eval).
 expand_body(_, Head, Pos, Head, Pos).
 
 

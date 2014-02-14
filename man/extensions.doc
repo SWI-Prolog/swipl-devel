@@ -799,7 +799,24 @@ C = y.
 
 The compiler translates a goal that contains \funcref{.}{2} terms in its
 arguments into a conjunction of calls to \predref{.}{3} defined in the
-\const{system} module. Note that this implies that terms \funcref{.}{2}
+\const{system} module. Terms funcref{.}{2} that appears in the head are
+replaced with a variable and calls to \predref{.}{3} are inserted at the
+start of the body. Below are two examples, where the first extracts the
+\const{x} key from a dict and the second extends a dict containing an
+address with the postal code, given a \nopredref{find_postal_code}{4}
+predicate.
+
+\begin{code}
+dict_x(X, X.x).
+
+add_postal_code(Dict, Dict.put(postal_code, Code)) :-
+	find_postal_code(Dict.city,
+			 Dict.street,
+			 Dict.house_number,
+			 Code).
+\end{code}
+
+Note that expansion of \funcref{.}{2} terms implies that such terms
 cannot be created by writing them explicitly in your source code. Such
 terms can still be created with functor/3, \predref{=..}{2},
 compound_name_arity/3 and
