@@ -73,16 +73,21 @@ get_dict_path(Key, Dict, _{}, NewDict, New) :-
 
 %%	system:term_expansion(+TermIn, -TermOut)
 %
-%	Support => syntax for defining new functions.
+%	Support := syntax for defining new functions.
 
-system:term_expansion((.(R,M) := V0 :- Body),
+% note that we need FHead because using a term there rewrites the
+% clauses using function expansion.
+
+system:term_expansion((FHead := V0 :- Body),
 		      (Head :- Body, Eval)) :- !,
+	FHead =.. [.,R,M],
 	'$expand':replace_functions(V0, Eval, V, _Ctx),
 	compound_name_arguments(M, Name, Args0),
 	'$append'(Args0, [R,V], Args),
 	compound_name_arguments(Head, Name, Args).
-system:term_expansion((.(R,M) := V0),
+system:term_expansion((FHead := V0),
 		      (Head :- Eval)) :-
+	FHead =.. [.,R,M],
 	'$expand':replace_functions(V0, Eval, V, _Ctx),
 	compound_name_arguments(M, Name, Args0),
 	'$append'(Args0, [R,V], Args),
