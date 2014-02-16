@@ -38,7 +38,8 @@ test_dict :-
 	run_tests([ dict_create,
 		    dict_bips,
 		    dict_overflow,
-		    expand_functions
+		    expand_functions,
+		    define_functions
 		  ]).
 
 :- meta_predicate
@@ -143,3 +144,27 @@ test(put2, Y == 4) :-
 	Y = X.y.
 
 :- end_tests(expand_functions).
+
+% define in module
+_.test_na() := 1.
+D.test_aa() := D.a.
+D.test_a2() := X :- X is D.a^2.
+
+:- begin_tests(define_functions).
+
+% define in other module
+test_dict2:_.test_na() := 1.
+test_dict2:D.test_a2() := X :- X is D.a^2.
+
+test(na, X == 1) :-
+	X = test_dict{}.test_na().
+test(aa, X == 2) :-
+	X = test_dict{a:2}.test_aa().
+test(a2, X == 4) :-
+	X = test_dict{a:2}.test_a2().
+test(qna, X == 1) :-
+	X = test_dict2{}.test_na().
+test(qa2, X == 4) :-
+	X = test_dict{a:2}.test_a2().
+
+:- end_tests(define_functions).

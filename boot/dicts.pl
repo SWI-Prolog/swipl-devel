@@ -78,17 +78,27 @@ get_dict_path(Key, Dict, _{}, NewDict, New) :-
 % note that we need FHead because using a term there rewrites the
 % clauses using function expansion.
 
-system:term_expansion((FHead := V0 :- Body),
-		      (Head :- Body, Eval)) :- !,
-	FHead =.. [.,R,M],
+expand_dict_function((QFHead := V0 :- Body), (QHead :- Body, Eval)) :-
+	fqhead(QFHead, FHead, Head, QHead),
+	FHead =.. [.,R,M], !,
 	'$expand':replace_functions(V0, Eval, V, _Ctx),
 	compound_name_arguments(M, Name, Args0),
 	'$append'(Args0, [R,V], Args),
 	compound_name_arguments(Head, Name, Args).
-system:term_expansion((FHead := V0),
-		      (Head :- Eval)) :-
-	FHead =.. [.,R,M],
+expand_dict_function((QFHead := V0), (QHead :- Eval)) :-
+	fqhead(QFHead, FHead, Head, QHead),
+	FHead =.. [.,R,M], !,
 	'$expand':replace_functions(V0, Eval, V, _Ctx),
 	compound_name_arguments(M, Name, Args0),
 	'$append'(Args0, [R,V], Args),
 	compound_name_arguments(Head, Name, Args).
+
+fqhead(M:FHead, FHead, Head, M:Head) :- !.
+fqhead(FHead,   FHead, Head,   Head).
+
+
+system:term_expansion(FDecl, Clause) :-
+	expand_dict_function(FDecl, Clause).
+system:term_expansion(M:FDecl, QClause) :-
+	expand_dict_function(FDecl, Clause), !,
+	QClause = M:Clause.
