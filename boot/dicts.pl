@@ -79,11 +79,11 @@ system:term_expansion((.(R,M) := V0 :- Body),
 		      (Head :- Body, Eval)) :- !,
 	'$expand':replace_functions(V0, Eval, V, _Ctx),
 	compound_name_arguments(M, Name, Args0),
-	append(Args0, [R,V], Args),
+	'$append'(Args0, [R,V], Args),
 	compound_name_arguments(Head, Name, Args).
 system:term_expansion((.(R,M) := V0),
 		      (Head :- Eval)) :-
 	'$expand':replace_functions(V0, Eval, V, _Ctx),
 	compound_name_arguments(M, Name, Args0),
-	append(Args0, [R,V], Args),
+	'$append'(Args0, [R,V], Args),
 	compound_name_arguments(Head, Name, Args).
