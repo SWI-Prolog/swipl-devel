@@ -478,7 +478,7 @@ expand_functions(G, P, G, P, _, _, _).
 
 
 :- public
-	replace_functions/4.		% used in maps.pl
+	replace_functions/4.		% used in dicts.pl
 
 replace_functions(Var, true, Var, _Ctx) :-
 	var(Var), !.
