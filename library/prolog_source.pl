@@ -123,23 +123,31 @@ users of the library are:
 
 prolog_read_source_term(In, Term, Expanded, Options) :-
 	maplist(read_clause_option, Options), !,
-	read_clause(In, Term, Options),
-	expand(Term, In, Expanded),
+	select_option(subterm_positions(TermPos), Options,
+		      RestOptions, TermPos),
+	read_clause(In, Term,
+		    [ subterm_positions(TermPos)
+		    | RestOptions
+		    ]),
+	expand(Term, TermPos, In, Expanded),
 	'$set_source_module'(M, M),
 	update_state(Term, Expanded, M).
 prolog_read_source_term(In, Term, Expanded, Options) :-
 	'$set_source_module'(M, M),
-	select_option(syntax_errors(SE), Options, RestOptions, dec10),
+	select_option(syntax_errors(SE), Options, RestOptions0, dec10),
+	select_option(subterm_positions(TermPos), RestOptions0,
+		      RestOptions, TermPos),
 	(   style_check(?(singleton))
 	->  FinalOptions = [ singletons(warning) | RestOptions ]
 	;   FinalOptions = RestOptions
 	),
 	read_term(In, Term,
 		  [ module(M),
-		    syntax_errors(SE)
+		    syntax_errors(SE),
+		    subterm_positions(TermPos)
 		  | FinalOptions
 		  ]),
-	expand(Term, In, Expanded),
+	expand(Term, TermPos, In, Expanded),
 	update_state(Term, Expanded, M).
 
 read_clause_option(syntax_errors(_)).
@@ -150,18 +158,21 @@ read_clause_option(comments(_)).
 :- public
 	expand/3.			% Used by Prolog colour
 
-expand(Var, _, Var) :-
+expand(Term, In, Exp) :-
+    expand(Term, _, In, Exp).
+
+expand(Var, _, _, Var) :-
 	var(Var), !.
-expand(Term, _, Term) :-
+expand(Term, _, _, Term) :-
 	no_expand(Term), !.
-expand(Term, _, _) :-
+expand(Term, _, _, _) :-
 	requires_library(Term, Lib),
 	ensure_loaded(user:Lib),
 	fail.
-expand(Term, In, Term) :-
+expand(Term, _, In, Term) :-
 	chr_expandable(Term, In), !.
-expand(Term, _, Expanded) :-
-	expand_term(Term, Expanded).
+expand(Term, Pos, _, Expanded) :-
+	expand_term(Term, Pos, Expanded, _).
 
 no_expand((:- if(_))).
 no_expand((:- elif(_))).
@@ -546,7 +557,7 @@ prolog_open_source(Src, Fd) :-
 prolog_close_source(In) :-
 	(   at_end_of_stream(In)
 	->  true
-	;   ignore(catch(expand(end_of_file, In, _), _, true))
+	;   ignore(catch(expand(end_of_file, _, In, _), _, true))
 	),
 	pop_operators,
 	retractall(mode(In, _)),
