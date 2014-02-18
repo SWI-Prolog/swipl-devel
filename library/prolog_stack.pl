@@ -199,6 +199,13 @@ hidden_module(user).
 copy_term_limit(0, In, '...') :-
 	compound(In), !.
 copy_term_limit(N, In, Out) :-
+	is_dict(In),
+	dict_pairs(In, Tag, PairsIn),
+	N2 is N - 1,
+	MaxArity = 16,
+	copy_pairs(PairsIn, N2, MaxArity, PairsOut),
+	dict_pairs(Out, Tag, PairsOut).
+copy_term_limit(N, In, Out) :-
 	compound(In), !,
 	compound_name_arity(In, Functor, Arity),
 	N2 is N - 1,
@@ -229,6 +236,13 @@ copy_term_args(I, Arity, Depth, In, Out) :-
 	copy_term_args(I2, Arity, Depth, In, Out).
 copy_term_args(_, _, _, _, _).
 
+copy_pairs([], _, _, []).
+copy_pairs(Pairs, _, 0, ['<skipped>'-Skipped]) :- !,
+	length(Pairs, Skipped).
+copy_pairs([K-V0|T0], N, MaxArity, [K-V|T]) :-
+	copy_term_limit(N, V0, V),
+	MaxArity1 is MaxArity - 1,
+	copy_pairs(T0, N, MaxArity1, T).
 
 
 %%	prolog_stack_frame_property(+Frame, ?Property) is nondet.
