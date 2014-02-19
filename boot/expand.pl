@@ -466,49 +466,80 @@ allowed_expansion(_).
 %	@tbd: position logic
 %	@tbd: make functions module-local
 
-expand_functions(G0, _P0, G, _P, M, _MList, _Term) :-
+expand_functions(G0, P0, G, P, M, _MList, _Term) :-
 	compound(G0),
-	replace_functions(G0, Eval, G1, M),
+	replace_functions(G0, P0, Eval, EvalPos, G1, G1Pos, M),
 	Eval \== true, !,
-	(   var(G1)
-	->  G = Eval
-	;   G = (Eval,G1)
-	).
+	wrap_var(G1, G1Pos, G2, G2Pos),
+	conj(Eval, EvalPos, G2, G2Pos, G, P).
 expand_functions(G, P, G, P, _, _, _).
 
+wrap_var(G, P, G, P) :-
+	nonvar(G), !.
+wrap_var(G, P0, call(G), P) :-
+	(   nonvar(P0)
+	->  P = term_position(F,T,F,T,[P0]),
+	    atomic_pos(P0, F-T)
+	;   true
+	).
+
+%%	replace_functions(+GoalIn, +PosIn,
+%%			  -Eval, -EvalPos,
+%%			  -GoalOut, -PosOut,
+%%			  +ContextTerm) is det.
 
 :- public
 	replace_functions/4.		% used in dicts.pl
 
-replace_functions(Var, true, Var, _Ctx) :-
+replace_functions(GoalIn, Eval, GoalOut, Context) :-
+	replace_functions(GoalIn, _, Eval, _, GoalOut, _, Context).
+
+replace_functions(Var, Pos, true, _, Var, Pos, _Ctx) :-
 	var(Var), !.
-replace_functions(F, Eval, Var, Ctx) :-
+replace_functions(F, FPos, Eval, EvalPos, Var, VarPos, Ctx) :-
 	function(F, Ctx), !,
 	compound_name_arity(F, Name, Arity),
 	PredArity is Arity+1,
 	compound_name_arity(G, Name, PredArity),
 	arg(PredArity, G, Var),
-	map_functions(0, Arity, F, G, Eval0, Ctx),
-	conj(Eval0, G, Eval).
-replace_functions(Term0, Eval, Term, Ctx) :-
+	extend_1_pos(FPos, FArgPos, GPos, GArgPos, VarPos),
+	map_functions(0, Arity, F, FArgPos, G, GArgPos, Eval0, EP0, Ctx),
+	conj(Eval0, EP0, G, GPos, Eval, EvalPos).
+replace_functions(Term0, Term0Pos, Eval, EvalPos, Term, TermPos, Ctx) :-
 	compound(Term0), !,
 	compound_name_arity(Term0, Name, Arity),
 	compound_name_arity(Term, Name, Arity),
-	map_functions(0, Arity, Term0, Term, Eval, Ctx).
-replace_functions(Term, true, Term, _).
+	f_pos(Term0Pos, Args0Pos, TermPos, ArgsPos),
+	map_functions(0, Arity,
+		      Term0, Args0Pos, Term, ArgsPos, Eval, EvalPos, Ctx).
+replace_functions(Term, Pos, true, _, Term, Pos, _).
 
-map_functions(Arity, Arity, _, _, true, _) :- !.
-map_functions(I0, Arity, Term0, Term, Eval, Ctx) :-
+
+%%	map_functions(+Arg, +Arity,
+%%		      +TermIn, +ArgInPos, -Term, -ArgPos, -Eval, -EvalPos,
+%%		      +Context)
+
+map_functions(Arity, Arity, _, [], _, [], true, _, _) :- !.
+map_functions(I0, Arity, Term0, [AP0|APT0], Term, [AP|APT], Eval, EP, Ctx) :-
 	I is I0+1,
 	arg(I, Term0, Arg0),
 	arg(I, Term, Arg),
-	replace_functions(Arg0, Eval0, Arg, Ctx),
-	map_functions(I, Arity, Term0, Term, Eval1, Ctx),
-	conj(Eval0, Eval1, Eval).
+	replace_functions(Arg0, AP0, Eval0, EP0, Arg, AP, Ctx),
+	map_functions(I, Arity, Term0, APT0, Term, APT, Eval1, EP1, Ctx),
+	conj(Eval0, EP0, Eval1, EP1, Eval, EP).
 
 conj(true, X, X) :- !.
 conj(X, true, X) :- !.
 conj(X, Y, (X,Y)).
+
+conj(true, _, X, P, X, P) :- !.
+conj(X, P, true, _, X, P) :- !.
+conj(X, PX, Y, PY, (X,Y), _) :-
+	var(PX), var(PY), !.
+conj(X, PX, Y, PY, (X,Y), P) :-
+	P = term_position(F,T,FF,FT,[PX,PY]),
+	atomic_pos(PX, F-FF),
+	atomic_pos(PY, FT-T).
 
 %%	function(?Term, +Context)
 %
@@ -556,6 +587,34 @@ atomic_pos(Pos, _) :-
 atomic_pos(Pos, F-T) :-
 	arg(1, Pos, F),
 	arg(2, Pos, T).
+
+%%	extend_1_pos(+FunctionPos, -FArgPos, -EvalPos, -EArgPos, -VarPos)
+%
+%	Deal with extending a function to include the return value.
+
+extend_1_pos(Pos, _, _, _, _) :-
+	var(Pos), !.
+extend_1_pos(term_position(F,T,FF,FT,FArgPos), FArgPos,
+	     term_position(F,T,FF,FT,GArgPos), GArgPos0,
+	     FT-FT1) :-
+	integer(FT), !,
+	FT1 is FT+1,
+	'$same_length'(FArgPos, GArgPos0),
+	'$append'(GArgPos0, [FT-FT1], GArgPos).
+extend_1_pos(F-T, [],
+	     term_position(F,T,F,T,[T-T1]), [],
+	     T-T1) :-
+	integer(T), !,
+	T1 is T+1.
+extend_1_pos(Pos, _, _, _, _) :-
+	expected_layout(callable, Pos).
+
+'$same_length'(List, List) :-
+	var(List), !.
+'$same_length'([], []).
+'$same_length'([_|T0], [_|T]) :-
+	'$same_length'(T0, T).
+
 
 %%	expected_layout(+Expected, +Found)
 %
