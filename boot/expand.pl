@@ -467,7 +467,7 @@ allowed_expansion(_).
 %	@tbd: make functions module-local
 
 expand_functions(G0, P0, G, P, M, _MList, _Term) :-
-	compound(G0),
+	contains_functions(G0),
 	replace_functions(G0, P0, Eval, EvalPos, G1, G1Pos, M),
 	Eval \== true, !,
 	wrap_var(G1, G1Pos, G2, G2Pos),
@@ -483,10 +483,25 @@ wrap_var(G, P0, call(G), P) :-
 	;   true
 	).
 
+%%	contains_functions(+Term) is semidet.
+%
+%	True when Term contains a function reference.
+
+contains_functions(Term) :-
+	compound(Term),
+	(   function(Term, _)
+	->  true
+	;   arg(_, Term, Arg),
+	    contains_functions(Arg)
+	->  true
+	).
+
 %%	replace_functions(+GoalIn, +PosIn,
 %%			  -Eval, -EvalPos,
 %%			  -GoalOut, -PosOut,
 %%			  +ContextTerm) is det.
+%
+%	@tbd	Proper propagation of list, dict and brace term positions.
 
 :- public
 	replace_functions/4.		% used in dicts.pl
