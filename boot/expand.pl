@@ -519,8 +519,10 @@ replace_functions(Term, Pos, true, _, Term, Pos, _).
 %%		      +TermIn, +ArgInPos, -Term, -ArgPos, -Eval, -EvalPos,
 %%		      +Context)
 
-map_functions(Arity, Arity, _, [], _, [], true, _, _) :- !.
-map_functions(I0, Arity, Term0, [AP0|APT0], Term, [AP|APT], Eval, EP, Ctx) :-
+map_functions(Arity, Arity, _, LPos0, _, LPos, true, _, _) :- !,
+	pos_nil(LPos0, LPos).
+map_functions(I0, Arity, Term0, LPos0, Term, LPos, Eval, EP, Ctx) :-
+	pos_list(LPos0, AP0, APT0, LPos, AP, APT),
 	I is I0+1,
 	arg(I, Term0, Arg0),
 	arg(I, Term, Arg),
@@ -587,6 +589,21 @@ atomic_pos(Pos, _) :-
 atomic_pos(Pos, F-T) :-
 	arg(1, Pos, F),
 	arg(2, Pos, T).
+
+%%	pos_nil(+Nil, -Nil) is det.
+%%	pos_list(+List0, -H0, -T0, -List, -H, -T) is det.
+%
+%	Position propagation for lists.
+
+pos_nil(Var, _) :- var(Var), !.
+pos_nil([], []) :- !.
+pos_nil(Pos, _) :-
+	expected_layout(nil, Pos).
+
+pos_list(Var, _, _, _, _, _) :- var(Var), !.
+pos_list([H0|T0], H0, T0, [H|T], H, T) :- !.
+pos_list(Pos, _, _, _, _, _) :-
+	expected_layout(list, Pos).
 
 %%	extend_1_pos(+FunctionPos, -FArgPos, -EvalPos, -EArgPos, -VarPos)
 %
