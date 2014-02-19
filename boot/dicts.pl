@@ -74,6 +74,9 @@ get_dict_path(Key, Dict, _{}, NewDict, New) :-
 %%	system:term_expansion(+TermIn, -TermOut)
 %
 %	Support := syntax for defining new functions.
+%
+%	@tbd	Modify to term_expansion/4, including position
+%		management
 
 % note that we need FHead because using a term there rewrites the
 % clauses using function expansion.
