@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -279,21 +279,21 @@ unify_clause((Head :- Read),
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
 	Read = (_ --> List, _),
 	is_list(List),
-	ci_expand(Read, Compiled2, Module),
+	ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
 	Compiled2 = (DH :- _),
 	functor(DH, _, Arity),
 	DArg is Arity - 1,
 	arg(DArg, DH, List),
 	nonvar(List),
-	TermPos0 = term_position(F,T,FF,FT,[ HP,
+	TermPos1 = term_position(F,T,FF,FT,[ HP,
 					     term_position(_,_,_,_,[_,BP])
 					   ]), !,
-	TermPos1 = term_position(F,T,FF,FT,[ HP, BP ]),
-	match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
+	TermPos2 = term_position(F,T,FF,FT,[ HP, BP ]),
+	match_module(Compiled2, Compiled1, Module, TermPos2, TermPos).
 					% general term-expansion
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
-	ci_expand(Read, Compiled2, Module),
-	match_module(Compiled2, Compiled1, Module, TermPos0, TermPos).
+	ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
+	match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
 					% I don't know ...
 unify_clause(_, _, _, _, _) :-
 	debug(clause_info, 'Could not unify clause', []),
@@ -303,12 +303,12 @@ unify_clause_head(H1, H2) :-
 	strip_module(H1, _, H),
 	strip_module(H2, _, H).
 
-ci_expand(Read, Compiled, Module) :-
+ci_expand(Read, Compiled, Module, TermPos0, TermPos) :-
 	catch(setup_call_cleanup(
 		  ( set_xref_flag(OldXRef),
 		    '$set_source_module'(Old, Module)
 		  ),
-		  expand_term(Read, Compiled),
+		  expand_term(Read, TermPos0, Compiled, TermPos),
 		  ( '$set_source_module'(_, Old),
 		    set_prolog_flag(xref, OldXRef)
 		  )),
@@ -386,6 +386,8 @@ a --> { x, y, z }.
 %	@param Module		Load module
 %	@param TermPosRead	Sub-term positions of source
 
+ubody(B, B, _, P, P) :-
+	var(P), !.			% TBD: Create compatible pos term?
 ubody(B, B, _, P, P) :-
 	does_not_dcg_after_binding(B, P), !.
 ubody(X, call(X), _,			% X = call(X)
