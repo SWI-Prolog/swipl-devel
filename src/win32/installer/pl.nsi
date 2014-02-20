@@ -945,7 +945,7 @@ SectionEnd
 
 Section "Precompiled libraries"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g wise_install_xpce,halt'
+  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g qcompile_libraries,halt'
 SectionEnd
 
 ################################################################
