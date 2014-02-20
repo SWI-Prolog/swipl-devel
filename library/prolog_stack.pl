@@ -199,7 +199,7 @@ hidden_module(user).
 copy_term_limit(0, In, '...') :-
 	compound(In), !.
 copy_term_limit(N, In, Out) :-
-	is_dict(In),
+	is_dict(In), !,
 	dict_pairs(In, Tag, PairsIn),
 	N2 is N - 1,
 	MaxArity = 16,
@@ -236,7 +236,7 @@ copy_term_args(I, Arity, Depth, In, Out) :-
 	copy_term_args(I2, Arity, Depth, In, Out).
 copy_term_args(_, _, _, _, _).
 
-copy_pairs([], _, _, []).
+copy_pairs([], _, _, []) :- !.
 copy_pairs(Pairs, _, 0, ['<skipped>'-Skipped]) :- !,
 	length(Pairs, Skipped).
 copy_pairs([K-V0|T0], N, MaxArity, [K-V|T]) :-
