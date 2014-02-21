@@ -324,6 +324,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\prolog_metainference.pl
   File ${SWIPL}\library\prolog_colour.pl
   File ${SWIPL}\library\prolog_format.pl
+  File ${SWIPL}\library\prolog_install.pl
   File ${SWIPL}\library\predicate_options.pl
   File ${SWIPL}\library\git.pl
   File ${SWIPL}\library\prolog_pack.pl
