@@ -156,7 +156,7 @@ expand_apply(Phrase, Expanded) :-
 %	@throws	Re-throws errors from dcg_translate_rule/2
 
 expand_phrase(phrase(NT,Xs), NTXsNil) :- !,
-	expand_apply(phrase(NT,Xs,[]), NTXsNil).
+	expand_phrase(phrase(NT,Xs,[]), NTXsNil).
 expand_phrase(Goal, NewGoal) :-
 	Goal = phrase(NT,Xs0,Xs),
 	nonvar(NT),
