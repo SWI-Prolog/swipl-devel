@@ -196,8 +196,12 @@ safe_clauses(_, _, [G|Parents], _, _) :-
 
 safe_list([], _, _, Safe, Safe).
 safe_list([H|T], M, Parents, Safe0, Safe) :-
-	copy_term(H, H1),
-	safe(H1, M, Parents, Safe0, Safe1),
+	(   H = M2:H2,
+	    M == M2
+	->  copy_term(H2, H3)
+	;   copy_term(H, H3)
+	),
+	safe(H3, M, Parents, Safe0, Safe1),
 	safe_list(T, M, Parents, Safe1, Safe).
 
 
