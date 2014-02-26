@@ -183,7 +183,6 @@ safe(G, M, Parents, Safe0, Safe) :-
 
 safe_clauses(G, M, Parents, Safe0, Safe) :-
 	predicate_property(M:G, interpreted), !,
-%	\+ predicate_property(M:G, meta_predicate(_)), !,
 	def_module(M:G, MD:QG),
 	findall(Body, clause(MD:QG, Body), Bodies),
 	safe_list(Bodies, MD, Parents, Safe0, Safe).
