@@ -155,8 +155,8 @@ safe(G, M, _, Safe, Safe) :-
 	),
 	safe_primitive(M2:G), !.
 safe(G, M, Parents, Safe0, Safe) :-
-	safe_meta_call(G, Called),
-	predicate_property(G, iso), !,
+	predicate_property(G, iso),
+	safe_meta_call(G, Called), !,
 	safe_list(Called, M, Parents, Safe0, Safe).
 safe(G, M, Parents, Safe0, Safe) :-
 	expand_phrase(G, Goal), !,
