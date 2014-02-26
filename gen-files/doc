@@ -51,4 +51,5 @@
 ./packages/archive/archive.html
 ./packages/pengines/pengines.html
 ./packages/pengines/penarch.png
-./packages/pengines/lptpsynch.png
+./packages/pengines/pltpsynch.png
+./packages/pengines/pltpruncolour.png
