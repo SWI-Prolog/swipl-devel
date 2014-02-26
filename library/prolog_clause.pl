@@ -324,6 +324,10 @@ set_xref_flag(false) :-
 match_module((H1 :- B1), (H2 :- B2), Module, Pos0, Pos) :- !,
 	unify_clause_head(H1, H2),
 	unify_body(B1, B2, Module, Pos0, Pos).
+match_module((H1 :- B1), H2, _Module, Pos0, Pos) :-
+	B1 == true,
+	unify_clause_head(H1, H2),
+	Pos = Pos0, !.
 match_module(H1, H2, _, Pos, Pos) :-	% deal with facts
 	unify_clause_head(H1, H2).
 
