@@ -135,6 +135,7 @@ safe(M:G, _, Parents, Safe0, Safe) :- !,
 	    ;	predicate_property(M:G, public)
 	    ;	predicate_property(M:G, multifile)
 	    ;	predicate_property(M:G, iso)
+	    ;	memberchk(M:_, Parents)
 	    )
 	->  safe(G, M, Parents, Safe0, Safe)
 	;   throw(error(permission_error(call, sandboxed, M:G),
