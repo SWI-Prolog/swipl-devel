@@ -716,7 +716,8 @@ Section "Pengines"
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\pengines.html
   File ${SWIPL}\doc\packages\penarch.png
-  File ${SWIPL}\doc\packages\lptpsynch.png
+  File ${SWIPL}\doc\packages\pltpsynch.png
+  File ${SWIPL}\doc\packages\pltpruncolour.png
   SetOutPath $INSTDIR\doc\packages\examples
   File /r ${SWIPL}\doc\packages\examples\pengines
 SectionEnd
