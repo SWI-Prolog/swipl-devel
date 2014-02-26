@@ -204,6 +204,7 @@ type_of(Term, Type) :-
 	;   atom(Term)        -> Type = atom
 	;   integer(Term)     -> Type = integer
 	;   string(Term)      -> Type = string
+	;   Term == []	      -> Type = empty_list
 	;   blob(Term, BlobT) -> blob_type(BlobT, Type)
 	;   rational(Term)    -> Type = rational
 	;   float(Term)       -> Type = float
