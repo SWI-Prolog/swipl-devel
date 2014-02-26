@@ -386,8 +386,9 @@ a --> { x, y, z }.
 %	@param Module		Load module
 %	@param TermPosRead	Sub-term positions of source
 
-ubody(B, B, _, P, P) :-
-	var(P), !.			% TBD: Create compatible pos term?
+ubody(B, DB, _, P, P) :-
+	var(P), !,			% TBD: Create compatible pos term?
+	B = DB.
 ubody(B, B, _, P, P) :-
 	does_not_dcg_after_binding(B, P), !.
 ubody(X, call(X), _,			% X = call(X)
