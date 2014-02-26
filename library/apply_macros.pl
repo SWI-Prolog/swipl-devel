@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -29,7 +29,8 @@
 */
 
 :- module(apply_macros,
-	  [ expand_phrase/2		% :PhraseGoal, -Goal
+	  [ expand_phrase/2,		% :PhraseGoal, -Goal
+	    expand_phrase/4		% :PhraseGoal, +Pos0, -Goal, -Pos
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(occurs)).
@@ -133,8 +134,6 @@ expand_apply(Maplist, Goal) :-
 	Maplist =.. [maplist, Callable|Lists],
 	qcall_instantiated(Callable), !,
 	expand_maplist(Callable, Lists, Goal).
-expand_apply(Phrase, Expanded) :-
-	expand_phrase(Phrase, Expanded), !.
 
 %%	expand_apply(+GoalIn:callable, -GoalOut, +PosIn, -PosOut) is semidet.
 %
@@ -186,9 +185,12 @@ expand_apply(ignore(Ignore), Pos0, Goal, Pos) :-
 	    T is F+1
 	;   true
 	).
+expand_apply(Phrase, Pos0, Expanded, Pos) :-
+	expand_phrase(Phrase, Pos0, Expanded, Pos), !.
 
 
 %%	expand_phrase(+PhraseGoal, -Goal) is semidet.
+%%	expand_phrase(+PhraseGoal, +Pos0, -Goal, -Pos) is semidet.
 %
 %	Provide goal-expansion for  PhraseGoal.   PhraseGoal  is  either
 %	phrase(NonTerminals, List) or phrase(NonTerminals,  List, Tail).
@@ -204,28 +206,61 @@ expand_apply(ignore(Ignore), Pos0, Goal, Pos) :-
 %
 %	@throws	Re-throws errors from dcg_translate_rule/2
 
-expand_phrase(phrase(NT,Xs), NTXsNil) :- !,
-	expand_phrase(phrase(NT,Xs,[]), NTXsNil).
-expand_phrase(Goal, NewGoal) :-
+expand_phrase(Phrase, Goal) :-
+	expand_phrase(Phrase, _, Goal, _).
+
+expand_phrase(phrase(NT,Xs), Pos0, NTXsNil, Pos) :- !,
+	extend_pos(Pos0, Pos1),
+	expand_phrase(phrase(NT,Xs,[]), Pos1, NTXsNil, Pos).
+expand_phrase(Goal, Pos0, NewGoal, Pos) :-
 	Goal = phrase(NT,Xs0,Xs),
 	nonvar(NT),
-	catch(dcg_translate_rule((pseudo_nt --> NT), Rule),
+	body_pos(RulePos0, Pos0),
+	catch(dcg_translate_rule((pseudo_nt --> NT), RulePos0, Rule, RulePos),
 	      error(Pat,ImplDep),
 	      ( \+ harmless_dcgexception(Pat),
 		throw(error(Pat,ImplDep))
 	      )),
+	body_pos(RulePos, Pos1),
 	Rule = (pseudo_nt(Xs0c,Xsc) :- NewGoal0),
 	Goal \== NewGoal0,
 	\+ contains_illegal_dcgnt(NT), !, % apply translation only if we are safe
 	(   var(Xsc), Xsc \== Xs0c
-	->  Xs = Xsc, NewGoal1 = NewGoal0
-	;   NewGoal1 = (NewGoal0, Xsc = Xs)
+	->  Xs = Xsc, NewGoal1 = NewGoal0, Pos2 = Pos1
+	;   NewGoal1 = (NewGoal0, Xsc = Xs),
+	    (	nonvar(Pos1)
+	    ->	Pos2 = term_position(0,0,0,0,[Pos1,EF-ET]),
+		arg(2, Pos1, EF),
+		ET is EF+1
+	    ;	true
+	    )
 	),
 	(   var(Xs0c)
-	-> Xs0 = Xs0c,
-	   NewGoal = NewGoal1
-	;  ( Xs0 = Xs0c, NewGoal1 ) = NewGoal
+	->  Xs0 = Xs0c,
+	    NewGoal = NewGoal1,
+	    Pos = Pos2
+	;   NewGoal = ( Xs0 = Xs0c, NewGoal1 ),
+	    (	nonvar(Pos2)
+	    ->	Pos = term_position(0,0,0,0,[SF-ST,Pos2]),
+		arg(1, Pos2, ST),
+		SF is ST-1
+	    ;	true
+	    )
 	).
+
+extend_pos(Var, Var) :-
+	var(Var), !.
+extend_pos(term_position(F,T,FF,FT,ArgPos0),
+	   term_position(F,T,FF,FT,ArgPos)) :-
+	append(ArgPos0, [T-T], ArgPos).
+
+body_pos(RulePos, BodyPos) :-
+	var(RulePos), var(BodyPos), !.
+body_pos(RulePos, BodyPos) :-
+	nonvar(RulePos), !,
+	RulePos = term_position(_,_,_,_,[_,BodyPos]).
+body_pos(term_position(0,0,0,0,[0-0,BodyPos]), BodyPos).
+
 
 %%	qcall_instantiated(@Term) is semidet.
 %
