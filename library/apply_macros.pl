@@ -133,11 +133,60 @@ expand_apply(Maplist, Goal) :-
 	Maplist =.. [maplist, Callable|Lists],
 	qcall_instantiated(Callable), !,
 	expand_maplist(Callable, Lists, Goal).
-expand_apply(forall(Cond, Action), \+((Cond, \+(Action)))).
-expand_apply(once(Goal), (Goal->true;fail)).
-expand_apply(ignore(Goal), (Goal->true;true)).
 expand_apply(Phrase, Expanded) :-
 	expand_phrase(Phrase, Expanded), !.
+
+%%	expand_apply(+GoalIn:callable, -GoalOut, +PosIn, -PosOut) is semidet.
+%
+%	Translation  of  simple  meta  calls    to   inline  code  while
+%	maintaining position information.
+
+expand_apply(forall(Cond, Action), Pos0, Goal, Pos) :-
+	Goal = \+((Cond, \+(Action))),
+	(   nonvar(Pos0),
+	    Pos0 = term_position(_,_,_,_,[PosCond,PosAct])
+	->  Pos = term_position(0,0,0,0, % \+
+				[ term_position(0,0,0,0, % ,/2
+						[ PosCond,
+						  term_position(0,0,0,0, % \+
+								[PosAct])
+						])
+				])
+	;   true
+	).
+expand_apply(once(Once), Pos0, Goal, Pos) :-
+	Goal = (Once->true;fail),
+	(   nonvar(Pos0),
+	    Pos0 = term_position(_,_,_,_,[OncePos]),
+	    compound(OncePos)
+	->  Pos = term_position(0,0,0,0,			% ;/2
+				[ term_position(0,0,0,0,	% ->/2
+						[ OncePos,
+						  F-T		% true
+						]),
+				  F-T				% fail
+				]),
+	    arg(2, OncePos, F),		% highlight true/false on ")"
+	    T is F+1
+	;   true
+	).
+expand_apply(ignore(Ignore), Pos0, Goal, Pos) :-
+	Goal = (Ignore->true;true),
+	(   nonvar(Pos0),
+	    Pos0 = term_position(_,_,_,_,[IgnorePos]),
+	    compound(IgnorePos)
+	->  Pos = term_position(0,0,0,0,			% ;/2
+				[ term_position(0,0,0,0,	% ->/2
+						[ IgnorePos,
+						  F-T		% true
+						]),
+				  F-T				% true
+				]),
+	    arg(2, IgnorePos, F),	% highlight true/false on ")"
+	    T is F+1
+	;   true
+	).
+
 
 %%	expand_phrase(+PhraseGoal, -Goal) is semidet.
 %
@@ -242,11 +291,14 @@ maplist_expansion(Expanded) :-
 		 *******************************/
 
 :- multifile
-	system:goal_expansion/2.
+	system:goal_expansion/2,
+	system:goal_expansion/4.
 
 %	@tbd	Should we only apply if optimization is enabled (-O)?
 
 system:goal_expansion(GoalIn, GoalOut) :-
 	\+ current_prolog_flag(xref, true),
 	expand_apply(GoalIn, GoalOut).
+system:goal_expansion(GoalIn, PosIn, GoalOut, PosOut) :-
+	expand_apply(GoalIn, PosIn, GoalOut, PosOut).
 
