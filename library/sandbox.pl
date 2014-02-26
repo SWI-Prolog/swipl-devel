@@ -247,20 +247,53 @@ qualify(A, M, MZ:Q) :-
 %	first try to prove the most general form of the goal.  If
 %	this fails, we try to prove more specific versions.
 %
-%	@tbd Do step-by-step generalisation instead of the current
-%	two levels (most general and most specific).
-%
+%	@tbd	Do step-by-step generalisation instead of the current
+%		two levels (most general and most specific).
+%	@tbd	We could also use variant_sha1 for the goal ids.
 
 goal_id(M:Goal, M:Id, Gen) :- !,
 	goal_id(Goal, Id, Gen).
+goal_id(Var, _, _) :-
+	var(Var), !,
+	instantiation_error(Var).
+goal_id(Atom, Atom, Atom) :-
+	atom(Atom), !.
 goal_id(Term, _, _) :-
-	\+ callable(Term), !, fail.
-goal_id(Term, Name/Arity, Gen) :-	% most general form
-	functor(Term, Name, Arity),
-	functor(Gen, Name, Arity).
+	\+ compound(Term), !,
+	type_error(callable, Term).
+goal_id(Term, Skolem, Gen) :-		% most general form
+	compound_name_arity(Term, Name, Arity),
+	compound_name_arity(Skolem, Name, Arity),
+	compound_name_arity(Gen, Name, Arity),
+	copy_goal_args(1, Term, Skolem, Gen),
+	numbervars(Skolem, 0, _).
 goal_id(Term, Skolem, Term) :-		% most specific form
+	debug(sandbox(specify), 'Retrying with ~p', [Term]),
 	copy_term(Term, Skolem),
 	numbervars(Skolem, 0, _).
+
+%%	copy_goal_args(+I, +Term, +Skolem, +Gen) is det.
+%
+%	Create  the  most  general  form,   but  keep  module  qualified
+%	arguments because they will likely be called anyway.
+
+copy_goal_args(I, Term, Skolem, Gen) :-
+	arg(I, Term, TA), !,
+	arg(I, Skolem, SA),
+	arg(I, Gen, GA),
+	copy_goal_arg(TA, SA, GA),
+	I2 is I + 1,
+	copy_goal_args(I2, Term, Skolem, Gen).
+copy_goal_args(_, _, _, _).
+
+copy_goal_arg(Arg, SArg, Arg) :-
+	copy_goal_arg(Arg), !,
+	copy_term(Arg, SArg).
+copy_goal_arg(_, _, _).
+
+copy_goal_arg(Var) :- var(Var), !, fail.
+copy_goal_arg(_:_).
+
 
 %%	verify_safe_declaration(+Decl)
 %
