@@ -1691,7 +1691,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* choice-point */
 	  break;
 #ifdef O_CALL_AT_MODULE
-	case I_CALLATM:
+	case I_CALLATMV:
 	case I_DEPARTATMV:
 	  mark_frame_var(state, PC[1] PASS_LD);
 	  break;
