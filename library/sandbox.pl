@@ -469,6 +469,7 @@ safe_primitive(system:sleep(_)).
 safe_primitive(system:thread_self(_)).
 safe_primitive(system:get_time(_)).
 safe_primitive(system:format_time(_,_,_)).
+safe_primitive('$messages':message_to_string(_,_)).
 
 safe_primitive(clause(_,_)).
 safe_primitive(asserta(X)) :- safe_assert(X).
