@@ -723,9 +723,7 @@ initPrologThreads()
   TLD_set_LD(&PL_local_data);
 
   PL_local_data.magic = LD_MAGIC;
-  { GET_LD
-
-    GD->thread.thread_max = 4;		/* see resizeThreadMax() */
+  { GD->thread.thread_max = 4;		/* see resizeThreadMax() */
     GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
 				   sizeof(*GD->thread.threads));
     memset(GD->thread.threads, 0,
