@@ -257,6 +257,9 @@ updateAlerted(PL_local_data_t *ld)
 #endif
 
   ld->alerted = mask;
+
+  if ( (mask&ALERT_DEBUG) || ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+    ld->slow_unify = TRUE;		/* see VMI B_UNIFY_VAR */
 }
 
 
@@ -2445,6 +2448,7 @@ PL_next_solution(qid_t qid)
   Code	     PC = NULL;			/* program counter */
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
+  int slow_unify = FALSE;		/* B_UNIFY_FIRSTVAR */
   exception_frame throw_env;		/* PL_thow() environment */
 #ifdef O_DEBUG
   int	     throwed_from_line=0;	/* Debugging: line we came from */

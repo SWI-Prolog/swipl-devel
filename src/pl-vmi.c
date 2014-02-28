@@ -1086,7 +1086,9 @@ into one of the following:
 
 We  need  B_UNIFY_FIRSTVAR  for   the   debugger    as   well   as   for
 clearUninitialisedVarsFrame() in pl-gc.c. When in   debug mode we simply
-create a frame for =/2 and call it.
+create a frame for =/2 and call it. Note that the `slow unify' mode must
+be consistently applied in B_UNIFY_VAR and B_UNIFY_EXIT, which is why we
+copy the global value into a local variable.
 
 TBD: B_UNIFY_CONST <var>, <const>
      B_UNIFY_VAR <var1>, <var2>
@@ -1094,9 +1096,6 @@ TBD: B_UNIFY_CONST <var>, <const>
 Note  that  the  B_UNIFY_FIRSTVAR  assumes  write   mode,  but  this  is
 unimportant because the compiler generates write (B_*) instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define SLOW_UNIFY ( debugstatus.debugging || \
-		     LD->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
 
 VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_FVAR))
 { ARGP = varFrameP(FR, (int)*PC++);
@@ -1109,7 +1108,7 @@ VMI(B_UNIFY_VAR, 0, 1, (CA1_VAR))
 { ARGP = varFrameP(FR, (int)*PC++);
 
 unify_var_cont:
-  if ( SLOW_UNIFY )
+  if ( (slow_unify=LD->slow_unify) )
   { Word k = ARGP;
 
     ARGP = argFrameP(lTop, 0);
@@ -1127,7 +1126,7 @@ unify_var_cont:
 VMI(B_UNIFY_EXIT, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
-  if ( SLOW_UNIFY )
+  if ( slow_unify )
   { NFR = lTop;
     DEF = GD->procedures.equals2->definition;
     setNextFrameFlags(NFR, FR);
@@ -1148,7 +1147,7 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-  if ( SLOW_UNIFY )
+  if ( LD->slow_unify )
   { setVar(*v1);
     setVar(*v2);
     ARGP = argFrameP(lTop, 0);
@@ -1168,7 +1167,7 @@ VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-  if ( SLOW_UNIFY )
+  if ( LD->slow_unify )
   { setVar(*v1);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
@@ -1187,7 +1186,7 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
-  if ( SLOW_UNIFY )
+  if ( LD->slow_unify )
   { ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
     *ARGP++ = linkVal(v2);
@@ -1221,7 +1220,7 @@ VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
-  if ( SLOW_UNIFY )
+  if ( LD->slow_unify )
   { setVar(*v1);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(v1);
@@ -1242,7 +1241,7 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
 { Word k = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
-  if ( SLOW_UNIFY )
+  if ( LD->slow_unify )
   { ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(k);
     *ARGP++ = c;

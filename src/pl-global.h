@@ -345,6 +345,7 @@ struct PL_local_data
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
   int		alerted;		/* Special mode. See updateAlerted() */
+  int		slow_unify;		/* do not use inline unification */
   int		critical;		/* heap is being modified */
   int		break_level;		/* current break level */
   Stack		outofstack;		/* thread is out of stack */

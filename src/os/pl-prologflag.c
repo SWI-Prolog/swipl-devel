@@ -378,7 +378,8 @@ setOccursCheck(atom_t a)
 { GET_LD
 
   if ( getOccursCheckMask(a, &LD->prolog_flag.occurs_check) )
-  { succeed;
+  { updateAlerted(LD);
+    succeed;
   } else
   { term_t value = PL_new_term_ref();
 
