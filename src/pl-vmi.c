@@ -179,9 +179,10 @@ VMI(D_BREAK, 0, 0, ())
 	AR_END();
       }
       PC = stepPC(PC-1);		/* skip the old calling instruction */
+      updateAlerted(LD);
       VMI_GOTO(I_USERCALL0);
   }
-
+  updateAlerted(LD);
   if ( a == BRK_ERROR )
     goto b_throw;
 
@@ -1097,14 +1098,14 @@ Note  that  the  B_UNIFY_FIRSTVAR  assumes  write   mode,  but  this  is
 unimportant because the compiler generates write (B_*) instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_FVAR))
+VMI(B_UNIFY_FIRSTVAR, VIF_BREAK, 1, (CA1_FVAR))
 { ARGP = varFrameP(FR, (int)*PC++);
   setVar(*ARGP);			/* needed for GC */
   goto unify_var_cont;
 }
 
 
-VMI(B_UNIFY_VAR, 0, 1, (CA1_VAR))
+VMI(B_UNIFY_VAR, VIF_BREAK, 1, (CA1_VAR))
 { ARGP = varFrameP(FR, (int)*PC++);
 
 unify_var_cont:
@@ -1123,9 +1124,8 @@ unify_var_cont:
 }
 
 
-VMI(B_UNIFY_EXIT, VIF_BREAK, 0, ())
+VMI(B_UNIFY_EXIT, 0, 0, ())
 { ARGP = argFrameP(lTop, 0);
-
   if ( slow_unify )
   { NFR = lTop;
     DEF = GD->procedures.equals2->definition;

@@ -6522,15 +6522,47 @@ typedef struct
 } break_point, *BreakPoint;
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Breaking on the compiled unification instruction is realised by breaking
+both  the  start  (B_UNIFY_VAR   or    B_UNIFY_FIRSTVAR)   and  the  end
+(B_UNIFY_EXIT). Note that the end instruction is always present and that
+inlined unification cannot be nested.
+
+Concurrency issues are avoided because both  setBreak and clearBreak are
+called with L_BREAK locked.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+matching_unify_break(Clause clause, int offset, code op)
+{ switch(op)
+  { case B_UNIFY_VAR:
+    case B_UNIFY_FIRSTVAR:
+    { Code PC;
+
+      for(PC=clause->codes + offset;
+	  PC<clause->codes + clause->code_size;
+	  PC = stepPC(PC) )
+      { if ( decode(*PC) == B_UNIFY_EXIT )
+	  return PC-clause->codes;
+      }
+      assert(0);
+    }
+    default:
+      return 0;				/* a matching unify can never be at 0 */
+  }
+}
+
+
 static bool
 setBreak(Clause clause, int offset)	/* offset is already verified */
 { Code PC = clause->codes + offset;
   code op = *PC;
+  code dop = decode(op);
 
   if ( !breakTable )
     breakTable = newHTable(16);
 
-  if ( (codeTable[decode(op)].flags & VIF_BREAK) )
+  if ( (codeTable[dop].flags & VIF_BREAK) || dop == B_UNIFY_EXIT )
   { BreakPoint bp = allocHeapOrHalt(sizeof(break_point));
 
     bp->clause = clause;
@@ -6540,6 +6572,9 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
     addHTable(breakTable, PC, bp);
     *PC = encode(D_BREAK);
     set(clause, HAS_BREAKPOINTS);
+
+    if ( (offset=matching_unify_break(clause, offset, dop)) )
+      return setBreak(clause, offset);
 
     return TRUE;
   } else
@@ -6558,7 +6593,6 @@ clearBreak(Clause clause, int offset)
   PC = clause->codes + offset;
   if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
   { term_t brk;
-
     if ( (brk=PL_new_term_ref()) &&
 	 PL_unify_term(brk,
 		       PL_FUNCTOR, FUNCTOR_break2,
@@ -6573,6 +6607,9 @@ clearBreak(Clause clause, int offset)
   *PC = bp->saved_instruction;
   freeHeap(bp, sizeof(*bp));
   deleteSymbolHTable(breakTable, s);
+
+  if ( (offset=matching_unify_break(clause, offset, decode(*PC))) )
+    return clearBreak(clause, offset);
 
   return TRUE;
 }

@@ -1054,7 +1054,10 @@ callBreakHook(LocalFrame frame, Choice bfr,
   size_t pc_offset;
 
   *pop = 0;
-
+  if (op == B_UNIFY_VAR || op == B_UNIFY_FIRSTVAR)
+  { LD->slow_unify = TRUE;
+    goto default_action;
+  }
   proc = _PL_predicate("break_hook", 6, "prolog",
 		       &GD->procedures.prolog_break_hook6);
   if ( !getProcDefinition(proc)->impl.any )
@@ -1088,7 +1091,10 @@ callBreakHook(LocalFrame frame, Choice bfr,
       PL_put_intptr(argv+1, PC - clause->codes);
       PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
-      if ( put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop PASS_LD) )
+      if ( ( op == B_UNIFY_EXIT &&
+             put_call_goal(argv+4, GD->procedures.equals2 PASS_LD) &&
+             PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
+           put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop PASS_LD) )
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )

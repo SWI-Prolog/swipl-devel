@@ -64,6 +64,8 @@ t_break(i_call(findall/3)) :- findall(X, between(1, 5, X), Xs), Xs == [1,2,3,4,5
 t_break(i_enter) :- c0.
 t_break(i_exit) :- c2.
 t_break(i_cut) :- c2, !.
+t_break(b_unify_firstvar(_)):- A = [a], nonvar(A).
+t_break(b_unify_var(_)):- v(A), A = [a].
 t_break(b_unify_ff(_,_)) :- A = B, v(A), v(B).
 t_break(b_unify_fv(_,_)) :- v(B), A = B, v(A).
 t_break(b_unify_vv(_,_)) :- B = f(a), v(A), v(B), A = B, A == f(a).
