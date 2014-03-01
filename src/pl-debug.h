@@ -74,6 +74,7 @@
 #define MSG_DICT		 44
 #define MSG_PROF_CALLTREE	 45
 #define MSG_PROF_TICKS		 46
+#define MSG_INFERENCE_LIMIT	 47
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101

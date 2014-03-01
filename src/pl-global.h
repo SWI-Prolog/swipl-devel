@@ -561,6 +561,12 @@ struct PL_local_data
   } depth_info;
 #endif
 
+#ifdef O_INFERENCE_LIMIT
+  struct
+  { int64_t limit;			/* Raise at this count */
+  } inference_limit;
+#endif
+
   pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
   struct btrace *btrace_store;		/* C-backtraces */

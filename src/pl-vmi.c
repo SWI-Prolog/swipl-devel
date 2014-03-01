@@ -1700,6 +1700,17 @@ retry_continue:
     }
 #endif
 
+#ifdef O_INFERENCE_LIMIT
+    if ( LD->statistics.inferences >= LD->inference_limit.limit )
+    { lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+      SAVE_REGISTERS(qid);
+      raiseInferenceLimitException();
+      LOAD_REGISTERS(qid);
+      if ( exception_term )
+	THROW_EXCEPTION;
+    }
+#endif
+
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { int rc;

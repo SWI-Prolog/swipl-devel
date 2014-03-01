@@ -1831,8 +1831,44 @@ that should theoretically finish in finite time. This problem can be
 cured by using Prolog equivalents to such built-in predicates.
 
 This predicate may be used for theorem provers to realise techniques
-like \jargon{iterative deepening}.  It was implemented after discussion
-with Steve Moyle \email{smoyle@ermine.ox.ac.uk}.
+like \jargon{iterative deepening}. See also call_with_inference_limit/3.
+It was implemented after discussion with Steve Moyle
+\email{smoyle@ermine.ox.ac.uk}.
+
+    \predicate{call_with_inference_limit}{3}{:Goal, +Limit, -Result}
+Equivalent to \term{call}{Goal}, but limits the number of inferences
+\emph{for each solution of \arg{Goal}}.\footnote{This predicate was
+realised after discussion with Ulrich Neumerkel and Markus Triska.}.
+Execution may terminate as follows:
+
+    \begin{itemize}
+	\item If \arg{Goal} does \emph{not} terminate before the
+	      inference limit is exceeded, \arg{Goal} is aborted by
+	      injecting the exception \const{inference_limit_exceeded}
+	      into its execution.  After termination of \arg{Goal},
+	      \arg{Result} is unified with the atom
+	      \const{inference_limit_exceeded}.
+	      \textit{Otherwise},
+	\item If \arg{Goal} fails, call_with_inference_limit/3 fails.
+	\item If \arg{Goal} succeeds \emph{without a choice point},
+	       \arg{Result} is unified with \const{!}.
+	\item If \arg{Goal} succeeds \emph{with a choice point},
+	       \arg{Result} is unified with \const{true}.
+        \item If \arg{Goal} throws an exception, call_with_inference_limit/3
+	      re-throws the exception.
+    \end{itemize}
+
+An inference is defined as a call or redo on a predicate. Please note
+that some primitive built-in predicates are compiled to virtual machine
+instructions for which inferences are not counted. The execution of
+predicates defined in other languages (e.g., C, C++) count as a single
+inference. This includes potentially expensive built-in predicates such
+as sort/2.
+
+Calls to this predicate may be nested. An inner call that sets the limit
+below the current is honoured. An inner call that would terminate after
+the current limit does not change the effective limit. See also
+call_with_depth_limit/3 and call_with_time_limit/2.
 
     \predicate{setup_call_cleanup}{3}{:Setup, :Goal, :Cleanup}
 Calls \exam{(once(Setup), Goal)}.  If \arg{Setup} succeeds, \arg{Cleanup} will be

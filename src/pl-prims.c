@@ -4360,6 +4360,35 @@ pl_halt(term_t code)
   fail;					/* exception? */
 }
 
+#if defined(O_LIMIT_DEPTH) || defined(O_INFERENCE_LIMIT)
+static foreign_t
+unify_det(term_t t ARG_LD)
+{ Choice ch;
+
+  for(ch=LD->choicepoints; ch; ch = ch->parent)
+  { if ( ch->frame == environment_frame )
+      continue;			/* choice from I_FOPENNDET */
+    switch(ch->type)
+    { case CHP_CATCH:
+      case CHP_DEBUG:
+	continue;
+      default:
+	break;
+    }
+    break;
+  }
+
+  if ( ch && ch->frame == environment_frame->parent )
+  { return PL_unify_atom(t, ATOM_cut);
+  } else
+  { if ( PL_unify_atom(t, ATOM_true) )
+      ForeignRedoInt(1);
+    return FALSE;
+  }
+}
+
+#endif
+
 #ifdef O_LIMIT_DEPTH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4438,7 +4467,6 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 	   PL_get_long_ex(oreached, &or) )
       { intptr_t clevel = levelFrame(environment_frame) - 1;
 	intptr_t used = depth_reached - clevel - 1;
-	Choice ch;
 
 	depth_limit   = ol;
 	depth_reached = or;
@@ -4449,26 +4477,7 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 	if ( !PL_unify_integer(res, used) )
 	  fail;
 
-	for(ch=LD->choicepoints; ch; ch = ch->parent)
-	{ if ( ch->frame == environment_frame )
-	    continue;			/* choice from I_FOPENNDET */
-	  switch(ch->type)
-	  { case CHP_CATCH:
-	    case CHP_DEBUG:
-	      continue;
-	    default:
-	      break;
-	  }
-	  break;
-	}
-
-	if ( ch && ch->frame == environment_frame->parent )
-	{ DEBUG(1, Sdprintf("CUT\n"));
-	  return PL_unify_atom(cut, ATOM_cut);
-	} else
-	{ if ( PL_unify_atom(cut, ATOM_true) )
-	    ForeignRedoInt(1);
-	}
+	return unify_det(cut PASS_LD);
       }
 
       break;
@@ -4533,6 +4542,186 @@ PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
 
 #endif /*O_LIMIT_DEPTH*/
 
+#ifdef O_INFERENCE_LIMIT
+
+#define INFERENCE_LIMIT_OVERHEAD 2
+
+static
+PRED_IMPL("$inference_limit", 2, pl_inference_limit, 0)
+{ PRED_LD
+  int64_t limit;
+
+  if ( PL_get_int64_ex(A1, &limit) &&
+       PL_unify_int64(A2, LD->inference_limit.limit) )
+  { int64_t nlimit = LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
+
+    if ( limit < 0 )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		      ATOM_not_less_than_zero, A1);
+
+    DEBUG(MSG_INFERENCE_LIMIT,
+	  Sdprintf("Install %lld --> %lld\n",
+		   LD->inference_limit.limit, nlimit));
+
+    if ( nlimit < LD->inference_limit.limit )
+      LD->inference_limit.limit = nlimit;
+
+    updateAlerted(LD);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+/** '$inference_limit_true'(+Limit, +OldLimit, ?Result)
+
+On first call:
+
+  1. If Result is nonvar, there was the inference limit is exceeded.
+     The limit is already reset by '$inference_limit_except'/3, so we
+     just indicate that our result is deterministic.
+  2. Else, restore the limit and indicate determinism in Det.
+
+On redo, use Limit to set a new  limit and fail to continue retrying the
+guarded goal.
+*/
+
+static
+PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
+	  PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { int64_t olimit;
+
+      if ( !PL_is_variable(A3) )
+	return TRUE;
+
+      if ( PL_get_int64_ex(A2, &olimit) )
+      { DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("true (det) --> %lld\n", olimit));
+	LD->inference_limit.limit = olimit;
+	updateAlerted(LD);
+
+	return unify_det(A3 PASS_LD);
+      }
+
+      return FALSE;
+    }
+    case FRG_REDO:
+    { int64_t limit;
+
+      if ( PL_get_int64_ex(A2, &limit) )
+      { LD->inference_limit.limit =
+		LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
+	DEBUG(MSG_INFERENCE_LIMIT,
+	      Sdprintf("true (ndet) --> %lld\n", LD->inference_limit.limit));
+
+	updateAlerted(LD);
+      }
+
+      return FALSE;
+    }
+    case FRG_CUTTED:
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("$inference_limit_false", 1, inference_limit_false, 0)
+{ PRED_LD
+  int64_t olimit;
+
+  if ( PL_get_int64_ex(A1, &olimit) )
+  { LD->inference_limit.limit = olimit;
+    DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("false --> %lld\n", olimit));
+    updateAlerted(LD);
+  }
+
+  return FALSE;
+}
+
+
+/** '$inference_limit_except'(+OldLimit, +Exception, -Result)
+
+Restore the limit. If  exception   is  =inference_limit_exceeded=, unify
+Result with this, otherwise re-throw the exception.
+*/
+
+static
+PRED_IMPL("$inference_limit_except", 3, inference_limit_except, 0)
+{ PRED_LD
+  int64_t olimit;
+
+  if ( PL_get_int64_ex(A1, &olimit) )
+  { atom_t a;
+
+    DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("except --> %lld\n", olimit));
+
+    LD->inference_limit.limit = olimit;
+    updateAlerted(LD);
+
+    if ( PL_get_atom(A2, &a) && a == ATOM_inference_limit_exceeded )
+    { return PL_unify_atom(A3, a);
+    } else
+    { return PL_raise_exception(A2);
+    }
+  }
+
+  return FALSE;
+}
+
+void
+raiseInferenceLimitException(void)
+{ GET_LD
+  fid_t fid;
+  static predicate_t not_exceed[6];
+  static int done = FALSE;
+  Definition def = environment_frame->predicate;
+  int64_t olimit;
+  int i;
+
+  if ( LD->exception.processing )
+    return;
+					/* Do not throw here */
+  olimit = LD->inference_limit.limit;
+  LD->inference_limit.limit = INFERENCE_NO_LIMIT;
+
+  DEBUG(MSG_INFERENCE_LIMIT,
+	Sdprintf("Got inference limit in %s\n", predicateName(def)));
+
+  if ( !done )
+  { not_exceed[0] = PL_predicate("$inference_limit_true",     3, "system");
+    not_exceed[1] = PL_predicate("$inference_limit_false",    1, "system");
+    not_exceed[2] = PL_predicate("$inference_limit_except",   3, "system");
+    not_exceed[3] = PL_predicate("$inference_limit",          2, "system");
+    not_exceed[4] = PL_predicate("call_with_inference_limit", 3, "system");
+    not_exceed[5] = GD->procedures.catch3;
+  }
+
+  for(i=0; i<6; i++)
+  { if ( not_exceed[i]->definition == def )
+    { LD->inference_limit.limit = olimit;
+      DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("--> Ignored\n"));
+      return;
+    }
+  }
+
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t t;
+
+    LD->exception.processing = TRUE;
+    t = PL_new_term_ref();
+    PL_put_atom(t, ATOM_inference_limit_exceeded);
+    PL_raise_exception(t);
+    PL_close_foreign_frame(fid);
+  }
+}
+#endif /*O_INFERENCE_LIMIT*/
 
 		/********************************
 		*          STATISTICS           *
@@ -5128,6 +5317,13 @@ BeginPredDefs(prims)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
   PRED_DEF("$depth_limit", 3, pl_depth_limit, 0)
   PRED_DEF("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
+#endif
+#ifdef O_INFERENCE_LIMIT
+  PRED_DEF("$inference_limit", 2, pl_inference_limit, 0)
+  PRED_DEF("$inference_limit_true", 3, pl_inference_limit_true,
+           PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$inference_limit_false", 1, inference_limit_false, 0)
+  PRED_DEF("$inference_limit_except", 3, inference_limit_except, 0)
 #endif
   PRED_DEF("atom_length", 2, atom_length, PL_FA_ISO)
   PRED_DEF("name", 2, name, 0)

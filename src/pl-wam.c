@@ -246,6 +246,10 @@ updateAlerted(PL_local_data_t *ld)
 #ifdef O_LIMIT_DEPTH
   if ( ld->depth_info.limit != DEPTH_NO_LIMIT ) mask |= ALERT_DEPTHLIMIT;
 #endif
+#ifdef O_INFERENCE_LIMIT
+  if ( ld->inference_limit.limit != INFERENCE_NO_LIMIT )
+						mask |= ALERT_INFERENCELIMIT;
+#endif
 #ifdef O_ATTVAR
 					/* is valTermRef(ld->attvar.head) */
   if ( ld->stacks.local.base &&
@@ -2837,35 +2841,48 @@ next_choice:
       DEBUG(3, Sdprintf("    REDO #%ld: Jump in %s\n",
 			loffset(FR),
 			predicateName(DEF)));
+      LD->statistics.inferences++;
+      if ( unlikely(LD->alerted) )
+      {
 #ifdef O_DEBUGGER
-      if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP PASS_LD);
+	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
+	{ LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP PASS_LD);
 
-	if ( fr )
-	{ int action;
+	  if ( fr )
+	  { int action;
 
-	  SAVE_REGISTERS(qid);
-	  action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
-	  LOAD_REGISTERS(qid);
-	  ch = BFR;			/* can be shifted */
+	    SAVE_REGISTERS(qid);
+	    action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
+	    LOAD_REGISTERS(qid);
+	    ch = BFR;			/* can be shifted */
 
-	  switch( action )
-	  { case ACTION_FAIL:
-	      FRAME_FAILED;
-	    case ACTION_IGNORE:
-	      VMI_GOTO(I_EXIT);
-	    case ACTION_RETRY:
-	      goto retry_continue;
-	    case ACTION_ABORT:
-	      THROW_EXCEPTION;
+	    switch( action )
+	    { case ACTION_FAIL:
+		FRAME_FAILED;
+	      case ACTION_IGNORE:
+		VMI_GOTO(I_EXIT);
+	      case ACTION_RETRY:
+		goto retry_continue;
+	      case ACTION_ABORT:
+		THROW_EXCEPTION;
+	    }
 	  }
 	}
-      }
 #endif
+#ifdef O_INFERENCE_LIMIT
+        if ( LD->statistics.inferences >= LD->inference_limit.limit )
+	{ SAVE_REGISTERS(qid);
+	  raiseInferenceLimitException();
+	  LOAD_REGISTERS(qid);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+#endif
+        Profile(profRedo(ch->prof_node PASS_LD));
+      }
       PC   = ch->value.PC;
       DiscardMark(ch->mark);
       BFR  = ch->parent;
-      Profile(profRedo(ch->prof_node PASS_LD));
       lTop = (LocalFrame)ch;
       ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
@@ -2883,36 +2900,48 @@ next_choice:
 	goto next_choice;	/* Can happen of look-ahead was too short */
       chp = ch->value.clause;
 
+      if ( unlikely(LD->alerted) )
+      {
 #ifdef O_DEBUGGER
-      if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-      { LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD);
+	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
+	{ LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD);
 
-	if ( fr )
-	{ int action;
+	  if ( fr )
+	  { int action;
 
-	  SAVE_REGISTERS(qid);
-	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
-	  LOAD_REGISTERS(qid);
-	  ch = BFR;			/* can be shifted */
+	    SAVE_REGISTERS(qid);
+	    action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
+	    LOAD_REGISTERS(qid);
+	    ch = BFR;			/* can be shifted */
 
-	  switch( action )
-	  { case ACTION_FAIL:
-	      FRAME_FAILED;
-	    case ACTION_IGNORE:
-	      VMI_GOTO(I_EXIT);
-	    case ACTION_RETRY:
-	      goto retry_continue;
-	    case ACTION_ABORT:
-	      THROW_EXCEPTION;
+	    switch( action )
+	    { case ACTION_FAIL:
+		FRAME_FAILED;
+	      case ACTION_IGNORE:
+		VMI_GOTO(I_EXIT);
+	      case ACTION_RETRY:
+		goto retry_continue;
+	      case ACTION_ABORT:
+		THROW_EXCEPTION;
+	    }
 	  }
 	}
-      }
 #endif
+#ifdef O_INFERENCE_LIMIT
+        if ( LD->statistics.inferences >= LD->inference_limit.limit )
+	{ SAVE_REGISTERS(qid);
+	  raiseInferenceLimitException();
+	  LOAD_REGISTERS(qid);
+	  if ( exception_term )
+	    THROW_EXCEPTION;
+	}
+#endif
+        Profile(profRedo(ch->prof_node PASS_LD));
+      }
 
       umode  = uread;
       clause = CL->value.clause;
       PC     = clause->codes;
-      Profile(profRedo(ch->prof_node PASS_LD));
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
       ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 

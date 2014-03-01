@@ -131,7 +131,10 @@ void
 initPrologLocalData(ARG1_LD)
 {
 #ifdef O_LIMIT_DEPTH
-  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
+  depth_limit   = DEPTH_NO_LIMIT;
+#endif
+#ifdef O_INFERENCE_LIMIT
+  LD->inference_limit.limit = INFERENCE_NO_LIMIT;
 #endif
 
   LD->break_level = -1;
@@ -877,7 +880,7 @@ PL_signal(int sigandflags, handler_t func)
 */
 
 int
-PL_handle_signals()
+PL_handle_signals(void)
 { GET_LD
 
   if ( !LD || LD->critical || !LD->signal.pending )

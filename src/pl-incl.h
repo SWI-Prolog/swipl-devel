@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam,
+    Copyright (C): 1985-2014, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -148,6 +148,7 @@ handy for it someone wants to add a data type to the system.
 #define O_DESTRUCTIVE_ASSIGNMENT 1
 #define O_TERMHASH		1
 #define O_LIMIT_DEPTH		1
+#define O_INFERENCE_LIMIT	1
 #define O_SAFE_SIGNALS		1
 #define O_LOGICAL_UPDATE	1
 #define O_LOCALE		1
@@ -761,13 +762,14 @@ typedef enum
 /* See updateAlerted()
 */
 
-#define	ALERT_SIGNAL	 0x01
-#define	ALERT_GCREQ	 0x02
-#define	ALERT_PROFILE	 0x04
-#define	ALERT_EXITREQ	 0x08
-#define	ALERT_DEPTHLIMIT 0x10
-#define	ALERT_WAKEUP	 0x20
-#define ALERT_DEBUG	 0x40
+#define	ALERT_SIGNAL	     0x01
+#define	ALERT_GCREQ	     0x02
+#define	ALERT_PROFILE	     0x04
+#define	ALERT_EXITREQ	     0x08
+#define	ALERT_DEPTHLIMIT     0x10
+#define	ALERT_INFERENCELIMIT 0x20
+#define	ALERT_WAKEUP	     0x40
+#define	ALERT_DEBUG	     0x80
 
 
 		 /*******************************
@@ -2092,6 +2094,10 @@ typedef enum
 
 #ifdef O_LIMIT_DEPTH
 #define DEPTH_NO_LIMIT	(~(uintptr_t)0x0) /* Highest value */
+#endif
+
+#ifdef O_INFERENCE_LIMIT
+#define INFERENCE_NO_LIMIT (~((int64_t)1<<63)) /* Highest value */
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
