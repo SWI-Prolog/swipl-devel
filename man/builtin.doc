@@ -6923,7 +6923,7 @@ main :-
 
 The predicates in this section are only available on the Windows version
 of SWI-Prolog. Their use is discouraged if there are portably
-alternatives. For example, win_exec/2 and will_shell/2 can often be
+alternatives. For example, win_exec/2 and win_shell/2 can often be
 replaced by the more portable shell/2 or the more powerful
 process_create/3.
 
