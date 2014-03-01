@@ -1007,6 +1007,7 @@ xref_meta(profile(G),		[G]).
 xref_meta(at_halt(G),		[G]).
 xref_meta(call_with_time_limit(_, G), [G]).
 xref_meta(call_with_depth_limit(G, _, _), [G]).
+xref_meta(call_with_inference_limit(G, _, _), [G]).
 xref_meta(alarm(_, G, _),	[G]).
 xref_meta(alarm(_, G, _, _),	[G]).
 xref_meta('$add_directive_wic'(G), [G]).
