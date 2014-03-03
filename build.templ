@@ -208,6 +208,7 @@ esac
 done
 
 if [ "$setvars" = "false" ]; then
+  rm -f packages/.failed.*
 
   if [ "$config" = "true" ]; then
     ./configure --prefix=$PREFIX --with-world $EXTRACFG $@ 2>&1 | tee configure.out
@@ -228,5 +229,9 @@ if [ "$setvars" = "false" ]; then
   if [ "$make" = "true" ]; then
     [ -f make.out ] && scripts/check_build_log.sh make.out
   fi
+
+  # See whether any package failed to build
+
+  ./packages/report-failed || exit 1
 fi # setvars
 

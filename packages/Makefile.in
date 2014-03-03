@@ -75,50 +75,89 @@ define FORCE_MKINDEX
 	./swipl.sh -C "$(DESTDIR)$(PLBASE)" --home=. -f none -g make -t halt
 endef
 
+define BEGIN_FORPKG
+	@rm -f .failed.$@
+endef
+
+define END_FORPKG
+	@if [ -f .failed.$@ ]; then \
+	    echo "ERROR: The following packages.failed.$@: `cat .failed.$@`"; \
+	fi
+endef
+
 all:	objects
 
 objects::
+	$(BEGIN_FORPKG)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p || exit 1; fi; \
-        done
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p || echo $$p >> .failed.$@; \
+	    fi; \
+	done
+	$(END_FORPKG)
 
 html::
+	$(BEGIN_FORPKG)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || exit 1; fi; \
-        done
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p $@ || echo $$p >> .failed.$@; \
+	    fi; \
+	done
+	$(END_FORPKG)
 
 install::
+	$(BEGIN_FORPKG)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || exit 1; fi; \
-        done
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p $@ || echo $$p >> .failed.$@; \
+	    fi
+	done
 	$(FORCE_MKINDEX)
+	$(END_FORPKG)
 
 rpm-install: html-install
+	$(BEGIN_FORPKG)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || exit 1; fi; \
-        done
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p $@ || echo $$p >> .failed.$@; \
+	    fi; \
+	done
 	$(FORCE_MKINDEX)
+	$(END_FORPKG)
 
 pdf-install::
+	$(BEGIN_FORPKG)
 	mkdir -p $(DESTDIR)$(PKGDOC)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || exit 1; fi; \
-        done
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p $@ || echo $$p >> .failed.$@; \
+	    fi; \
+	done
+	$(END_FORPKG)
 
 html-install::
+	$(BEGIN_FORPKG)
 	mkdir -p $(DESTDIR)$(PKGDOC)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || exit 1; fi; \
-        done
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p $@ || echo $$p >> .failed.$@; \
+	    fi; \
+	done
 	$(INSTALL_DATA) index.html $(DESTDIR)$(PKGDOC)
+	$(END_FORPKG)
 
 ln-install::
+	$(BEGIN_FORPKG)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || exit 1; fi; \
-        done
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p $@ || echo $$p >> .failed.$@; \
+	    fi; \
+	done
 	$(FORCE_MKINDEX)
+	$(END_FORPKG)
 
 configure::
+	$(BEGIN_FORPKG)
 	@echo "**********************"
 	@echo "* Configuring packages $(PKG)"
 	@echo "**********************"
@@ -128,36 +167,47 @@ configure::
 	      echo "* Package $$p"; \
 	      echo "**********************"; \
 	      if [ ! -r $$p/config.status -o $$p/config.status -ot $$p/configure ]; then \
-	        ( cd $$p && $(CONFIG) ) || exit 1; \
+	        ( cd $$p && $(CONFIG) ) || echo $$p >> .failed.$@; \
 	      else \
-		( cd $$p && ./config.status ) || exit 1; \
+		( cd $$p && ./config.status ) || echo $$p >> .failed.$@; \
 	      fi; \
 	    fi; \
-        done
+	done
+	$(END_FORPKG)
 
 doc::
+	$(BEGIN_FORPKG)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p pdf html || exit 1; fi; \
-        done
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p pdf html || echo $$p >> .failed.$@; \
+	    fi; \
+	done
+	$(END_FORPKG)
 
 distclean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || true; fi; \
-        done
+	done
 	rm -f swipl.sh swipl-ld.sh
 	rm -f Makefile configure Dialect.defs Makefile.defs
 
 clean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || true; fi; \
-        done
+	done
 
 check::
-	@rm -f .FAILED_TESTS
+	$(BEGIN_FORPKG)
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p $@ || echo $$p > .FAILED_TESTS; fi; \
-        done
-	@if [ -f .FAILED_TESTS ]; then echo "Tests in `cat .FAILED_TESTS` failed" && exit 1; fi
+	    if [ -r $$p/Makefile ]; then \
+	        $(MAKE) -C $$p $@ || echo $$p >> .failed.$@; \
+	    fi; \
+	done
+	$(END_FORPKG)
+
+report-failed::
+	@./report-failed
+	rm -f .failed.*
 
 # test environment
 
