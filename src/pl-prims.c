@@ -4612,7 +4612,7 @@ PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
     case FRG_REDO:
     { int64_t limit;
 
-      if ( PL_get_int64_ex(A2, &limit) )
+      if ( PL_get_int64_ex(A1, &limit) )
       { LD->inference_limit.limit =
 		LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
 	DEBUG(MSG_INFERENCE_LIMIT,

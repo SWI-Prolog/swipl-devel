@@ -24,9 +24,12 @@
 	  [ test_inflimit/0
 	  ]).
 :- use_module(library(random)).
+:- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 test_inflimit :-
-	forall(between(1, 100, _), outer).
+	run_tests([ call_with_inference_limit
+		  ]).
 
 outer :-
 	call_with_inference_limit(inner(100), 500, Result),
@@ -57,3 +60,16 @@ goal :-
 
 p(_) :- !.
 p(C) :-	put_char(user_error, C).
+
+:- begin_tests(call_with_inference_limit).
+
+test(nesting, true) :-
+	forall(between(1, 100, _), outer).
+
+test(retry, true) :-
+	call_with_inference_limit(length(_L,N), 1000, Result),
+	forall(between(1,100,_), true),
+	assertion(Result == true),
+	N =:= 100, !.
+
+:- end_tests(call_with_inference_limit).
