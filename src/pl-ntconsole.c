@@ -24,7 +24,7 @@
 */
 
 #define WINDOWS_LEAN_AND_MEAN 1
-#if (_MSC_VER >= 1300)
+#if (_MSC_VER >= 1300) || defined(__MINGW32__)
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
 #else
