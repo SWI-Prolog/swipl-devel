@@ -2764,15 +2764,19 @@ IOFUNCTIONS Sttyfunctions =
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-(*)  Windows  isatty()  is  totally  broken   since  VC9;  crashing  the
-application instead of returning EINVAL on  wrong   values  of fd. As we
-provide  the  socket-id  through   Sfileno,    this   code   crashes  on
-tcp_open_socket(). As ttys and its detection is   of no value on Windows
-anyway, we skip this.
-
 For now, we use PL_malloc_uncollectable(). In   the  end, this is really
 one of the object-types we want to leave to GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __WINDOWS__
+#define isatty(fd) win_isatty(fd)
+static int
+win_isatty(int fd)
+{ HANDLE h = (HANDLE)_get_osfhandle(fd);
+
+  return GetFileType(h) == FILE_TYPE_CHAR;
+}
+#endif
 
 #ifndef FD_CLOEXEC			/* This is not defined in MacOS */
 #define FD_CLOEXEC 1
@@ -2816,11 +2820,8 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 
 { int fd;
   if ( (fd = Sfileno(s)) >= 0 )
-  {
-#ifndef __WINDOWS__			/* (*) */
-    if ( isatty(fd) )
+  { if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
-#endif
 
 #if defined(F_SETFD)
     fcntl(fd, F_SETFD, FD_CLOEXEC);
