@@ -482,7 +482,9 @@ init_debug_flags :-
 %	Setup  interactive  usage  by  enabling    colored   output.
 
 setup_colors :-
-	(   stream_property(user_output, tty(true)),
+	(   stream_property(user_input, tty(true)),
+	    stream_property(user_error, tty(true)),
+	    stream_property(user_output, tty(true)),
 	    \+ current_prolog_flag(color_term, false)
 	->  catch(load_files(user:library(ansi_term),
 			     [silent(true), if(not_loaded)]),
