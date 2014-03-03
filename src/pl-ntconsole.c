@@ -466,11 +466,11 @@ PL_w32_wrap_ansi_console(void)
   HANDLE hError = GetStdHandle(STD_ERROR_HANDLE);
   CONSOLE_SCREEN_BUFFER_INFO info;
 
-  if ( hIn    == INVALID_HANDLE_VALUE ||
-       hOut   == INVALID_HANDLE_VALUE ||
-       hError == INVALID_HANDLE_VALUE ||
-       !GetConsoleScreenBufferInfo(hOut, &info) )
-    return FALSE;
+  if ( hIn    == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR ||
+       hOut   == INVALID_HANDLE_VALUE || !GetConsoleScreenBufferInfo(hOut,&info)||
+       hError == INVALID_HANDLE_VALUE || GetFileType(hIn) != FILE_TYPE_CHAR )
+  { return FALSE;
+  }
 
   saved_functions       = Sinput->functions;
   con_functions	        = *Sinput->functions;
