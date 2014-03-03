@@ -68,19 +68,18 @@ typedef struct
 static IOFUNCTIONS con_functions;
 static IOFUNCTIONS *saved_functions;
 
+#ifdef USE_MESSAGE
 static void
 Message(const char *fm, ...)
 { char buf[1024];
   va_list(args);
-
-  return;
 
   va_start(args, fm);
   vsprintf(buf, fm, args);
   MessageBox(NULL, buf, "SWI-Prolog", MB_OK|MB_TASKMODAL);
   va_end(args);
 }
-
+#endif
 
 static int
 flush_ansi(ansi_stream *as)
@@ -322,14 +321,11 @@ write_ansi(void *handle, char *buffer, size_t size)
   const wchar_t *s = (const wchar_t*)buffer;
   const wchar_t *e = &s[n];
 
-  Message("Writing %d characters", n);
-
   for( ; s<e; s++)
   { if ( put_ansi(as, *s) != 0 )
       return -1;			/* error */
   }
 
-  Message("Wrote %d characters", n);
   return n * sizeof(wchar_t);
 }
 
