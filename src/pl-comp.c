@@ -6542,7 +6542,7 @@ matching_unify_break(Clause clause, int offset, code op)
       for(PC=clause->codes + offset;
 	  PC<clause->codes + clause->code_size;
 	  PC = stepPC(PC) )
-      { if ( decode(*PC) == B_UNIFY_EXIT )
+      { if ( fetchop(PC) == B_UNIFY_EXIT )
 	  return PC-clause->codes;
       }
       assert(0);
