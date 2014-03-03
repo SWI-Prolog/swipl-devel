@@ -42,7 +42,11 @@
    asserta(('$expand_goal'(In, Out) :- expand_goal(In, Out))),
    abolish('$expand_term'/4),
    asserta(('$expand_term'(In, P0, Out, P) :- expand_term(In, P0, Out, P))),
-   compile_predicates(['$expand_goal'/2, '$expand_term'/4]).
+   compile_predicates(['$expand_goal'/2, '$expand_term'/4]),
+   '$set_predicate_attribute'(system:'$expand_goal'(_,_), system, 1),
+   '$set_predicate_attribute'(system:'$expand_term'(_,_,_,_), system, 1),
+   '$set_predicate_attribute'(system:'$expand_goal'(_,_), hide_childs, 1),
+   '$set_predicate_attribute'(system:'$expand_term'(_,_,_,_), hide_childs, 1).
 
 :- consult([ license,			% requires DCG
 	     syspred,
