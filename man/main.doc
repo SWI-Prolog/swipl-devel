@@ -59,9 +59,9 @@
 
 \newcommand{\vmajor}{6}
 \newcommand{\vminor}{6}
-\newcommand{\vpatch}{1}
-\newcommand{\vmonth}{December}
-\newcommand{\vyear}{2013}
+\newcommand{\vpatch}{2}
+\newcommand{\vmonth}{March}
+\newcommand{\vyear}{2014}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
