@@ -210,6 +210,7 @@ load_foreign_library(LibFile, Module, DefEntry) :-
 	retractall(error(_, _)),
 	find_library(LibFile, Path, Delete),
 	asserta(loading(LibFile)),
+	retractall(foreign_predicate(LibFile, _)),
 	catch(Module:open_shared_object(Path, Handle), E, true),
 	(   nonvar(E)
 	->  delete_foreign_lib(Delete, Path),
@@ -221,7 +222,10 @@ load_foreign_library(LibFile, Module, DefEntry) :-
 	    Module:call_shared_object_function(Handle, Entry)
 	->  retractall(loading(LibFile)),
 	    assert_shlib(LibFile, Entry, Path, Module, Handle)
+	;   foreign_predicate(LibFile, _)
+	->  retractall(loading(LibFile))     % C++ object installed predicates
 	;   retractall(loading(LibFile)),
+	    retractall(foreign_predicate(LibFile, _)),
 	    close_shared_object(Handle),
 	    findall(Entry, entry(LibFile, DefEntry, Entry), Entries),
 	    throw(error(existence_error(foreign_install_function,
