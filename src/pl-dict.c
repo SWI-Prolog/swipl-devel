@@ -1200,7 +1200,7 @@ pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
       { i = 1;
 	goto search;
       }
-      return PL_type_error("dict-key", A2);
+      return PL_type_error("dict-key", A1);
     }
     case FRG_REDO:
     { Functor f;
