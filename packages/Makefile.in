@@ -110,7 +110,7 @@ install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then \
 	        $(MAKE) -C $$p $@ || echo $$p >> .failed.$@; \
-	    fi
+	    fi; \
 	done
 	$(FORCE_MKINDEX)
 	$(END_FORPKG)
