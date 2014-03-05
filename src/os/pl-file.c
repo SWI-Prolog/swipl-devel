@@ -3691,7 +3691,13 @@ pl_close(term_t stream, int force ARG_LD)
     if ( ref->read )
       rc = do_close(getStream(ref->read), force);
     if ( ref->write )
-      rc = rc && do_close(getStream(ref->write), force);
+      rc = do_close(getStream(ref->write), force) && rc;
+
+    if ( rc == FALSE && !PL_exception(0) )
+      rc = PL_error(NULL, 0, "already closed",
+		    ERR_EXISTENCE, ATOM_stream, stream);
+
+
 
     return rc;
   }

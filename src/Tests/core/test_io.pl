@@ -56,11 +56,17 @@ test(eof2, [ sto(rational_trees),
 	    close(In)).
 test(set_after_close,
      [ sto(rational_trees),
-       condition(access_file('/dev/null', exist)),
        error(existence_error(stream, _))
      ]) :-
-	open('/dev/null', read, S),
+	open_null_stream(S),
 	close(S),
 	set_stream(S, timeout(0)).
+test(double_close,
+     [ sto(rational_trees),
+       error(existence_error(stream, _))
+     ]) :-
+	open_null_stream(S),
+	close(S),
+	close(S).
 
 :- end_tests(io).
