@@ -284,7 +284,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libgmp-10.dll
   File ${SWIPL}\bin\libjpeg-8.dll
   File ${SWIPL}\bin\ssleay32.dll
-  File ${SWIPL}\bin\libarchive-12.dll
+  File ${SWIPL}\bin\libarchive-13.dll
 !else
   File ${SWIPL}\bin\swipl.dll
 !endif
