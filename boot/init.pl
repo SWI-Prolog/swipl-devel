@@ -900,12 +900,22 @@ user:prolog_file_type(Ext,	executable) :-
 	file_name_extension(F, E, FE),
 	'$ensure_extensions'(E0, F, E1).
 
-'$list_to_set'([], []).
-'$list_to_set'([H|T], R) :-
-	memberchk(H, T), !,
+%%	'$list_to_set'(+List, -Set) is det.
+%
+%	Turn list into a set, keeping   the  left-most copy of duplicate
+%	elements.  Note  that  library(lists)  provides  an  O(N*log(N))
+%	version, but sets of file name extensions should be short enough
+%	for this not to matter.
+
+'$list_to_set'(List, Set) :-
+	'$list_to_set'(List, [], Set).
+
+'$list_to_set'([], _, []).
+'$list_to_set'([H|T], Seen, R) :-
+	memberchk(H, Seen), !,
 	'$list_to_set'(T, R).
-'$list_to_set'([H|T], [H|R]) :-
-	'$list_to_set'(T, R).
+'$list_to_set'([H|T], Seen, [H|R]) :-
+	'$list_to_set'(T, [H|Seen], R).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Canonicalise the extension list. Old SWI-Prolog   require  `.pl', etc, which
