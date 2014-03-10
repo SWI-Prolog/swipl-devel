@@ -2768,9 +2768,12 @@ running.  The thread may pick   a  message containing  an atom  from the
 queue,  which now has not  been   marked  and is  no longer part  of the
 queue, so it isn't marked in the queue either.
 
-Note that we only need  this  for   queues  that  are  not associated to
-threads. Those associated with a thread  mark   both  the stacks and the
-queue in one pass, marking the atoms in either.
+Originally, I thought we  only  need  this   for  queues  that  are  not
+associated to threads. Those associated  with   a  thread  mark both the
+stacks and the queue in one pass,  marking the atoms in either. However,
+we also need to lock destruction of the  record to avoid that the thread
+calling get_message() destroy the record  while   the  AGC  thread calls
+markAtomsMessageQueue().  This fixes the reopened Bug#142.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2825,10 +2828,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       if (GD->atoms.gc_active)
         markAtomsRecord(msgp->message);
 
-#ifdef O_ATOMGC
-	if ( queue->type == QTYPE_QUEUE )
-          simpleMutexLock(&queue->gc_mutex);
-#endif
+        simpleMutexLock(&queue->gc_mutex);	/* see (*) */
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
@@ -2836,11 +2836,9 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
-#ifdef O_ATOMGC
-	if ( queue->type == QTYPE_QUEUE )
-          simpleMutexUnlock(&queue->gc_mutex);
-#endif
 	free_thread_message(msgp);
+        simpleMutexUnlock(&queue->gc_mutex);
+
 	queue->size--;
 	if ( queue->wait_for_drain )
 	{ DEBUG(MSG_QUEUE, Sdprintf("Queue drained. wakeup writers\n"));
