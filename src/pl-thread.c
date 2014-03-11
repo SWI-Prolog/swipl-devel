@@ -5477,7 +5477,7 @@ markAtomsThreadMessageQueue(PL_local_data_t *ld)
 }
 
 
-voidget_me
+void
 markAtomsMessageQueues(void)
 { if ( queueTable )
   { Symbol s;
