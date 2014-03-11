@@ -73,5 +73,9 @@ test(split_string, L == ["SWI-Prolog"]) :-
 	split_string("  SWI-Prolog  ", "", "\s\t\n", L).
 test(split_string, L == [""]) :-
 	split_string(" ", "", " ", L).
+test(string_lower, L == "abc") :-
+	string_lower("aBc", L).
+test(string_upper, L == "ABC") :-
+	string_upper("aBc", L).
 
 :- end_tests(string).

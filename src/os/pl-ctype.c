@@ -589,7 +589,7 @@ modify_case_atom(term_t in, term_t out, int down, int text_type ARG_LD)
       }
     }
 
-    PL_unify_text(out, 0, &tout, PL_ATOM);
+    PL_unify_text(out, 0, &tout, text_type);
     PL_free_text(&tout);
 
     succeed;
