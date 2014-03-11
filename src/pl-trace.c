@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -23,6 +23,7 @@
 
 #include "pl-incl.h"
 #include "os/pl-ctype.h"
+#include "os/pl-cstack.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
 
@@ -1553,12 +1554,13 @@ helpInterrupt(void)
 { GET_LD
 
   Sfputs("Options:\n"
-        "a:                 abort      b:                 break\n"
-        "c:                 continue   e:                 exit\n"
+	 "a:           abort         b:           break\n"
+	 "c:           continue      e:           exit\n"
 #ifdef O_DEBUGGER
-        "g:                 goals      t:                 trace\n"
+	 "g:           goals         t:           trace\n"
 #endif
-        "h (?):             help\n", Sdout);
+	 "s:           C-backtrace   h (?):       help\n",
+	 Sdout);
 }
 
 static void
@@ -1643,6 +1645,9 @@ again:
 		PL_backtrace(5, PL_BT_USER);
 		goto again;
 #endif /*O_DEBUGGER*/
+    case 's':	save_backtrace("INT");
+		print_backtrace_named("INT");
+		goto again;
     case 'h':
     case '?':	helpInterrupt();
 		goto again;
