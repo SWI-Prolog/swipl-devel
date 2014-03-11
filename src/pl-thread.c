@@ -2771,9 +2771,8 @@ queue, so it isn't marked in the queue either.
 Originally, I thought we  only  need  this   for  queues  that  are  not
 associated to threads. Those associated  with   a  thread  mark both the
 stacks and the queue in one pass,  marking the atoms in either. However,
-we also need to lock destruction of the  record to avoid that the thread
-calling get_message() destroy the record  while   the  AGC  thread calls
-markAtomsMessageQueue().  This fixes the reopened Bug#142.
+we also need to lock to avoid  get_message() destroying the record while
+markAtomsMessageQueue() scans it. This fixes the reopened Bug#142.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2825,8 +2824,8 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       if ( rc )
       { DEBUG(MSG_QUEUE, Sdprintf("%d: match\n", PL_thread_self()));
 
-      if (GD->atoms.gc_active)
-        markAtomsRecord(msgp->message);
+	if (GD->atoms.gc_active)
+	  markAtomsRecord(msgp->message);
 
         simpleMutexLock(&queue->gc_mutex);	/* see (*) */
 	if ( prev )
@@ -2836,9 +2835,9 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
-	free_thread_message(msgp);
         simpleMutexUnlock(&queue->gc_mutex);
 
+	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
 	{ DEBUG(MSG_QUEUE, Sdprintf("Queue drained. wakeup writers\n"));
@@ -5473,7 +5472,7 @@ markAtomsThreadMessageQueue(PL_local_data_t *ld)
 }
 
 
-void
+voidget_me
 markAtomsMessageQueues(void)
 { if ( queueTable )
   { Symbol s;
