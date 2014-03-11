@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -448,12 +448,19 @@ S__flushbuf(IOSTREAM *s)
     }
 #endif
 
+  retry:
     n = (*s->functions->write)(s->handle, from, size);
 
     if ( n > 0 )			/* wrote some */
     { from += n;
     } else if ( n < 0 )			/* error */
-    { S__seterror(s);
+    { if ( errno == EINTR )
+      { if ( PL_handle_signals() < 0 )
+	  errno = EPLEXCEPTION;
+	else
+	  goto retry;
+      } else if ( errno != EPLEXCEPTION )
+	S__seterror(s);
       rc = -1;
       goto out;
     } else				/* wrote nothing? */
@@ -2650,25 +2657,13 @@ Swrite_file(void *handle, char *buf, size_t size)
 { intptr_t h = (intptr_t) handle;
   ssize_t bytes;
 
-  for(;;)
-  {
 #ifdef __WINDOWS__
-    bytes = write((int)h, buf, (int)size);
+  bytes = write((int)h, buf, (int)size);
 #else
-    bytes = write((int)h, buf, size);
+  bytes = write((int)h, buf, size);
 #endif
 
-    if ( bytes == -1 && errno == EINTR )
-    { if ( PL_handle_signals() < 0 )
-      { errno = EPLEXCEPTION;
-	return -1;
-      }
-
-      continue;
-    }
-
-    return bytes;
-  }
+  return bytes;
 }
 
 
