@@ -1825,7 +1825,7 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
 
 
 static word
-do_write2(term_t stream, term_t term, int flags)
+do_write2(term_t stream, term_t term, int flags, int canonical)
 { GET_LD
   IOSTREAM *s;
 
@@ -1835,6 +1835,8 @@ do_write2(term_t stream, term_t term, int flags)
 
     memset(&options, 0, sizeof(options));
     options.flags     = flags;
+    if ( !canonical )
+      options.flags |= LD->prolog_flag.write_attributes;
     options.out	      = s;
     options.module    = MODULE_user;
     if ( true(options.module, M_CHARESCAPE) )
@@ -1856,18 +1858,18 @@ do_write2(term_t stream, term_t term, int flags)
 
 word
 pl_write2(term_t stream, term_t term)
-{ return do_write2(stream, term, PL_WRT_NUMBERVARS);
+{ return do_write2(stream, term, PL_WRT_NUMBERVARS, FALSE);
 }
 
 word
 pl_writeq2(term_t stream, term_t term)
-{ return do_write2(stream, term, PL_WRT_QUOTED|PL_WRT_NUMBERVARS);
+{ return do_write2(stream, term, PL_WRT_QUOTED|PL_WRT_NUMBERVARS, FALSE);
 }
 
 word
 pl_print2(term_t stream, term_t term)
 { return do_write2(stream, term,
-		   PL_WRT_PORTRAY|PL_WRT_NUMBERVARS);
+		   PL_WRT_PORTRAY|PL_WRT_NUMBERVARS, FALSE);
 }
 
 word
@@ -1886,7 +1888,7 @@ pl_write_canonical2(term_t stream, term_t term)
   rc = ( numberVars(term, &options, 0 PASS_LD) >= 0 &&
 	 do_write2(stream, term,
 		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
-		   PL_WRT_NODOTINATOM)
+		   PL_WRT_NODOTINATOM, TRUE)
        );
 
   END_NUMBERVARS(TRUE);
@@ -1916,7 +1918,7 @@ pl_write_canonical(term_t term)
 
 word
 pl_writeln(term_t term)
-{ return do_write2(0, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE);
+{ return do_write2(0, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE, FALSE);
 }
 
 
