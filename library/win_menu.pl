@@ -78,7 +78,7 @@ menu(File,
 					      'Create new Prolog source'))),
        --
      | MRU
-     ], []) :-
+     ], [before_item('E&xit')]) :-
 	File = '&File',
 	findall(Mru=true, mru_info(File, Mru, _, _, _), MRU, MRUTail),
 	MRUTail = [ --,
