@@ -5879,7 +5879,11 @@ initial_expr(_, []-1).
 
 automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
         must_be(list(list), [Sigs,Ns,As0,Cs,Is]),
-        (   var(Seqs) -> Seqs = Sigs
+        (   var(Seqs) ->
+            (   current_prolog_flag(clpfd_monotonic, true) ->
+                instantiation_error(Seqs)
+            ;   Seqs = Sigs
+            )
         ;   must_be(list, Seqs)
         ),
         memberchk(source(Source), Ns),
