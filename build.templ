@@ -25,7 +25,7 @@ SUDO=
 # linux), the default make is GNU-make.  You can use 'make --jobs=<max>'
 # to build the system faster using  all   your  cores. The optimal value
 # depends a lot on your hardware. Using   4 jobs on a dual-core machines
-# seems enough to keep both cores busy. (experimental).
+# seems enough to keep both cores busy.
 
 MAKE=make
 # MAKE='make --jobs=4'
@@ -150,18 +150,11 @@ export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 # It is not needed on this platform  and Linux shared object model costs
 # a CPU register. Given the limited number   of CPU registers on the x86
 # platform, this results in a performance degradation of about 10%.
-#
-# --enable-boehm-gc
-# Configure SWI-Prolog to use -a  custom   version  of- bdwgc (Boehm-GC,
-# http://www.hpl.hp.com/personal/Hans_Boehm/gc/). This is   intended  to
-# support  the  next   generation   of    the   SWI-Prolog   RDF   store
-# (packages/semweb). DO NOT USE (YET).
 
 # EXTRACFG+=" --link"
 # EXTRACFG+=" --enable-useprofile"
 # EXTRACFG+=" --disable-libdirversion"
 # EXTRACFG+=" --enable-shared"
-# EXTRACFG+=" --enable-boehm-gc"
 export EXTRACFG
 
 # One possiblity to make relocatable executables   on  Linux is by using
