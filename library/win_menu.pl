@@ -103,7 +103,7 @@ menu('&File',
        '&Navigator ...' = prolog_ide(open_navigator),
        --
      ],
-     [ before_item('E&xit')
+     [ before_item('&Exit')
      ]).
 :- endif.
 
