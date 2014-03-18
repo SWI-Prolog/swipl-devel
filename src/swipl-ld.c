@@ -268,7 +268,7 @@ static int nostate = TRUE;		/* do not make a state */
 static int nolink = FALSE;		/* do not link */
 static int nolibswipl = FALSE;		/* do not link with -lswipl */
 static int shared = FALSE;		/* -shared: make a shared-object/DLL */
-static char *soext;			/* extension of shared object */
+static char *soext = SO_EXT;		/* extension of shared object */
 static int embed_shared = FALSE;	/* -dll/-embed-shared: embed Prolog */
 					/* in a DLL/.so file */
 static int verbose = TRUE;		/* verbose operation */
@@ -627,6 +627,12 @@ dispatchFile(const char *name)
 	appendArgList(d->list, name);
 	return TRUE;
       }
+    }
+    if ( soext && strfeq(soext, ext) )
+    { if ( d->list == &plfiles )
+	nostate = FALSE;
+      appendArgList(&libs, name);
+      return TRUE;
     }
   }
 
@@ -1311,7 +1317,7 @@ linkSharedObject()
   char *soout;
 
   if ( !soext )
-    soext = "so";			/* or give error? */
+    soext = SO_EXT;
 
   if ( file_name_extension(out) )
   { soout = out;
