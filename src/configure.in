@@ -1005,6 +1005,10 @@ if test "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
 		[Define to 1 if you have libreadline])
       AC_DEFINE(HAVE_READLINE_READLINE_H, 1,
 		[Define to 1 if you have <readline/readline.h>])
+      if test -f $RLPREFIX/include/readline/history.h; then
+	AC_DEFINE(HAVE_READLINE_HISTORY_H, 1,
+		  [Define to 1 if you have <readline/history.h>])
+      fi
       ocflags="$CFLAGS"
       CFLAGS="-I$RLPREFIX/include $CFLAGS"
       AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
