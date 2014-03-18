@@ -267,7 +267,7 @@ esac
 
 confdir()
 { if grep AC_INIT configure.in 2>&1 >/dev/null; then
-    for dep in "$2/ac_swi_c.m4" "$2/ac_swi_noc.m4"; do
+    for dep in "$2/ac_swi_c.m4" "$2/ac_swi_noc.m4" "aclocal.m4"; do
       if [ -f configure -a -f "$dep" -a "$dep" -nt configure ]; then
         rm configure;
       fi
