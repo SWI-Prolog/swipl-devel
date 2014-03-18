@@ -54,7 +54,8 @@ upload()
 }
 
 build()
-{ win-version || exit 1
+{ [ ! -z "$shortversion" ] || update-src || exit 1
+  win-version || exit 1
   . README.mingw win$bits
   build_release
   check-build || exit 1
