@@ -414,6 +414,10 @@ cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 check:
 		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test,halt -t 'halt(1)'
 
+.PHONY: check-installation
+check-installation:
+		$(bindir)/$(PL)$(EXEEXT) -g check_installation,halt -t 'halt(1)'
+
 .PHONY: ln-install install dv-install
 
 ln-install:

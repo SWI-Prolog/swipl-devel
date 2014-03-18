@@ -142,6 +142,7 @@ menu('&Help',
        --,
        '&XPCE (GUI) Manual ...'			= manpce,
        --,
+       '&Check installation'			= check_installation,
        'Submit &Bug report ...'			= www_open(swipl_bugs)
      ],
      [ before_menu(-)
