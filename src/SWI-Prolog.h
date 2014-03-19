@@ -152,7 +152,7 @@ typedef uintptr_t	PL_atomic_t;	/* same a word */
 typedef uintptr_t	foreign_t;	/* return type of foreign functions */
 typedef wchar_t	        pl_wchar_t;	/* Prolog wide character */
 #ifdef __cplusplus
-typedef void *		pl_function_t;	/* can only pass function as void * */
+typedef void		(*pl_function_t)(); /* pass function as void (*)() */
 #else
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
