@@ -352,8 +352,8 @@ prolog:message(installation(ok)) -->
 	[ at_same_line, '~`.t~48| ok'-[] ].
 prolog:message(installation(optional_not_found(Properties))) -->
 	[ 'Optional ~q ~`.t~48| not present'-[Properties.source] ].
-prolog:message(installation(not_found(Source, Properties))) -->
-	[ '~q ~`.t~48| NOT FOUND'-[Source] ],
+prolog:message(installation(not_found(Properties))) -->
+	[ '~q ~`.t~48| NOT FOUND'-[Properties.source] ],
 	details(Properties).
 prolog:message(installation(failed(Properties, false, []))) --> !,
 	[ at_same_line, '~`.t~48| FAILED'-[] ],
