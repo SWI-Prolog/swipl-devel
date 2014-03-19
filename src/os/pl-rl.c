@@ -329,10 +329,21 @@ rl_sighandler(int sig)
 
 static char *
 pl_readline(const char *prompt)
-{ char *line;
+{ GET_LD
+  char *line;
 
   prepare_signals();
-  line = readline(prompt);
+  if ( LD )
+  { EXCEPTION_GUARDED({ line = readline(prompt);
+		      },
+		      { DEBUG(3, Sdprintf("Exception in readline()\n"));
+			line = NULL;
+			if ( !LD->signal.is_sync )
+			  unblockGC(0 PASS_LD);
+		      });
+  } else
+  { line = readline(prompt);
+  }
   restore_signals();
 
   return line;
@@ -497,6 +508,9 @@ Sread_readline(void *handle, char *buf, size_t size)
 
 	/*Sdprintf("Read: '%s'\n", line);*/
 	free(line);
+      } else if ( PL_exception(0) )
+      { errno = EPLEXCEPTION;
+	return -1;
       } else
 	rval = 0;
     }
