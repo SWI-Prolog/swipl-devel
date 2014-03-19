@@ -1774,7 +1774,7 @@ higher to accomodate debugging. This causes less  GC calls and thus less
 cases where debugging is harmed due to <garbage_collected> atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 enlargeMinFreeStacks(size_t l, size_t g, size_t t ARG_LD)
 { if ( LD->stacks.local.min_free < l )
     LD->stacks.local.min_free = l;
@@ -1783,7 +1783,7 @@ enlargeMinFreeStacks(size_t l, size_t g, size_t t ARG_LD)
   if ( LD->stacks.trail.min_free < l )
     LD->stacks.trail.min_free = t;
 
-  shiftTightStacks();			/* no GC: we want to keep variables! */
+  return shiftTightStacks();		/* no GC: we want to keep variables! */
 }
 
 
@@ -1805,7 +1805,13 @@ debugmode(debug_type doit, debug_type *old)
 
   if ( debugstatus.debugging != doit )
   { if ( doit )
-    { debugstatus.skiplevel = SKIP_VERY_DEEP;
+    { if ( !enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
+				 8*1024*SIZEOF_VOIDP,
+				 8*1024*SIZEOF_VOIDP
+				 PASS_LD) )
+	return FALSE;
+
+      debugstatus.skiplevel = SKIP_VERY_DEEP;
       clearPrologFlagMask(PLFLAG_LASTCALL);
       if ( doit == DBG_ALL )
       { QueryFrame qf;
@@ -1815,10 +1821,6 @@ debugmode(debug_type doit, debug_type *old)
 
 	doit = DBG_ON;
       }
-      enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
-			   8*1024*SIZEOF_VOIDP,
-			   8*1024*SIZEOF_VOIDP
-			   PASS_LD);
     } else
     { setPrologFlagMask(PLFLAG_LASTCALL);
     }
@@ -1829,7 +1831,7 @@ debugmode(debug_type doit, debug_type *old)
 		   PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
 
-  succeed;
+  return TRUE;
 }
 
 #else /*O_DEBUGGER*/
