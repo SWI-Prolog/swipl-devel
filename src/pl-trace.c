@@ -1649,9 +1649,14 @@ again:
 #ifdef O_DEBUGGER
     case 't':	Sfputs("trace\n", Sdout);
 		if ( safe )
-		  printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_trace);
-		pl_trace();
-		break;
+		{ printMessage(ATOM_debug,
+			       PL_FUNCTOR, FUNCTOR_interrupt1,
+			         PL_ATOM, ATOM_trace);
+		  pl_trace();
+		  break;
+		}
+		Sfputs("Cannot start tracer from forced interrupt\n", Sdout);
+		goto again;
 #endif /*O_DEBUGGER*/
     default:	Sfputs("Unknown option (h for help)\n", Sdout);
 		goto again;
