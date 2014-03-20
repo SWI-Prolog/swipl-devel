@@ -658,7 +658,7 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define Scurout			(LD->IO.streams[4])
 #define Sprotocol		(LD->IO.streams[5])
 #define Sdin			Suser_input		/* not used for now */
-#define Sdout			Suser_output
+#define Sdout			Suser_error
 
 #ifdef VMCODE_IS_ADDRESS
 #define dewam_table		(CD->_dewam_table)
