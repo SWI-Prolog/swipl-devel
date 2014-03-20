@@ -153,7 +153,7 @@ print_trace(btrace *bt, int me)
   if ( s && s->name )
   { int depth;
 
-    Sdprintf("Stack trace labeled \"%s\":\n", s->name);
+    Sdprintf("C-stack trace labeled \"%s\":\n", s->name);
     for(depth=0; depth<s->depth; depth++)
     { Sdprintf("  [%d] %s+%p\n", depth,
 	       s->frame[depth].name,
@@ -310,7 +310,7 @@ print_trace(btrace *bt, int me)
 { size_t i;
 
   if ( bt->why[me] )
-  { Sdprintf("Stack trace labeled \"%s\":\n", bt->why[me]);
+  { Sdprintf("C-stack trace labeled \"%s\":\n", bt->why[me]);
 
     for(i=0; i<bt->sizes[me]; i++)
       Sdprintf("  [%d] %s\n", i, bt->symbols[me][i]);
