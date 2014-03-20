@@ -1556,10 +1556,9 @@ helpInterrupt(void)
   Sfputs("Options:\n"
 	 "a:           abort         b:           break\n"
 	 "c:           continue      e:           exit\n"
-#ifdef O_DEBUGGER
-	 "g:           goals         t:           trace\n"
-#endif
-	 "s:           C-backtrace   h (?):       help\n",
+	 "g:           goals         s:           C-backtrace\n"
+	 "t:           trace         p:		  Show PID\n"
+	 "h (?):       help\n",
 	 Sdout);
 }
 
@@ -1568,6 +1567,7 @@ interruptHandler(int sig)
 { GET_LD
   int c;
   int safe;
+  int first = TRUE;
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
@@ -1608,62 +1608,73 @@ again:
   if ( safe )
   { printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_begin);
   } else
-  { Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
-    Sflush(Sdout);
+  { if ( first )
+    { first = FALSE;
+      Sfprintf(Sdout,
+	       "\n"
+	       "WARNING: By typing Control-C twice, you have forced an asynchronous\n"
+	       "WARNING: interrupt.  Your only SAFE operation are: c(ontinue), p(id),\n"
+	       "WARNING: s(stack) and e(xit).  Notably a(abort) often works, but\n"
+	       "WARNING: leaves the system in an UNSTABLE state\n\n");
+    }
+    Sfprintf(Sdout, "Action (h for help) ? ");
   }
   ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar(Sdin, FALSE);
 
   switch(c)
-  { case 'a':	Sfputs("abort\n", Sdout);
+  { case 'a':	Sfprintf(Sdout, "abort\n");
 		unblockSignal(sig);
 		abortProlog();
 		if ( !safe )
 		  PL_rethrow();
 		break;
-    case 'b':	Sfputs("break\n", Sdout);
+    case 'b':	Sfprintf(Sdout, "break\n");
 		if ( safe )
 		{ unblockSignal(sig);	/* into pl_break() itself */
 		  pl_break();
 		} else
-		{ Sfputs("Cannot break from forced interrupt\n", Sdout);
+		{ Sfprintf(Sdout, "Cannot break from forced interrupt\n");
 		}
 		goto again;
     case 'c':	if ( safe )
 		{ printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_end);
 		} else
-		{ Sfputs("continue\n", Sdout);
+		{ Sfprintf(Sdout, "continue\n");
 		}
 		break;
     case 04:
-    case EOF:	Sfputs("EOF: ", Sdout);
-    case 'e':	Sfputs("exit\n", Sdout);
+    case EOF:	Sfprintf(Sdout, "EOF: ");
+    case 'e':	Sfprintf(Sdout, "exit\n");
 		exitFromDebugger(0);
 		break;
 #ifdef O_DEBUGGER
-    case 'g':	Sfputs("goals\n", Sdout);
+    case 'g':	Sfprintf(Sdout, "goals\n");
 		PL_backtrace(5, PL_BT_USER);
 		goto again;
 #endif /*O_DEBUGGER*/
     case 's':	save_backtrace("INT");
 		print_backtrace_named("INT");
 		goto again;
+    case 'p':	Sfprintf(Sdout, "PID: %d\n", getpid());
+                goto again;
     case 'h':
     case '?':	helpInterrupt();
 		goto again;
 #ifdef O_DEBUGGER
-    case 't':	Sfputs("trace\n", Sdout);
-		if ( safe )
-		{ printMessage(ATOM_debug,
+    case 't':	if ( safe )
+		{ Sfprintf(Sdout, "trace\n");
+		  printMessage(ATOM_debug,
 			       PL_FUNCTOR, FUNCTOR_interrupt1,
 			         PL_ATOM, ATOM_trace);
 		  pl_trace();
 		  break;
+		} else
+		{ Sfprintf(Sdout, "Cannot start tracer from forced interrupt\n");
+		  goto again;
 		}
-		Sfputs("Cannot start tracer from forced interrupt\n", Sdout);
-		goto again;
 #endif /*O_DEBUGGER*/
-    default:	Sfputs("Unknown option (h for help)\n", Sdout);
+    default:	Sfprintf(Sdout, "Unknown option (h for help)\n");
 		goto again;
   }
 }
