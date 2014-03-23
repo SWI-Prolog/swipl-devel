@@ -344,7 +344,7 @@ map_pi_head(Name/Arity, Term) :-
 
 principal_predicates(Heads, M, Principals) :-
 	find_definitions(Heads, M, Heads2),
-	'$list_to_set'(Heads2, Principals).
+	strip_subsumed_heads(Heads2, Principals).
 
 find_definitions([], _, []).
 find_definitions([H0|T0], M, [H|T]) :-
@@ -361,6 +361,29 @@ find_definition(Head, _, Def) :-
 	    )
 	;   Def = Head
 	).
+
+%%	strip_subsumed_heads(+Heads, -GenericOnes)
+%
+%	Given a list of Heads, remove  subsumed heads, while maintaining
+%	the order. The implementation is slow,   but  only used on small
+%	sets and only for toplevel related tasks.
+
+strip_subsumed_heads([], []).
+strip_subsumed_heads([H|T0], T) :-
+	'$member'(H2, T0),
+	subsumes_term(H2, H),
+	\+ subsumes_term(H, H2), !,
+	strip_subsumed_heads(T0, T).
+strip_subsumed_heads([H|T0], [H|T]) :-
+	strip_subsumed(T0, H, T1),
+	strip_subsumed_heads(T1, T).
+
+strip_subsumed([], _, []).
+strip_subsumed([H|T0], G, T) :-
+	subsumes_term(G, H), !,
+	strip_subsumed(T0, G, T).
+strip_subsumed([H|T0], G, [H|T]) :-
+	strip_subsumed(T0, G, T).
 
 
 %%	dwim_predicate(:Head, -NewHead) is nondet.
