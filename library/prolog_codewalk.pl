@@ -739,6 +739,8 @@ walk_dcg_body((A|B), M, term_position(_,_,_,_,[PA,PB]), OTerm) :- !,
 	(   walk_dcg_body(A, M, PA, OTerm)
 	;   walk_dcg_body(B, M, PB, OTerm)
 	).
+walk_dcg_body({G}, M, brace_term_position(_,_,PG), OTerm) :- !,
+	walk_called(G, M, PG, OTerm).
 walk_dcg_body(G, M, TermPos, OTerm) :-
 	extend(G, 2, G2, TermPos, TermPosEx, OTerm),
 	walk_called(G2, M, TermPosEx, OTerm).
