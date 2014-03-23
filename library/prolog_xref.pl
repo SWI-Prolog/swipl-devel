@@ -1186,23 +1186,27 @@ process_meta(G, Origin, Src) :-
 
 process_dcg_goal(Var, _, _) :-
 	var(Var), !.
-process_dcg_goal((A,B), Origin, Src) :-
+process_dcg_goal((A,B), Origin, Src) :- !,
 	process_dcg_goal(A, Origin, Src),
 	process_dcg_goal(B, Origin, Src).
-process_dcg_goal((A;B), Origin, Src) :-
+process_dcg_goal((A;B), Origin, Src) :- !,
 	process_dcg_goal(A, Origin, Src),
 	process_dcg_goal(B, Origin, Src).
-process_dcg_goal((A|B), Origin, Src) :-
+process_dcg_goal((A|B), Origin, Src) :- !,
 	process_dcg_goal(A, Origin, Src),
 	process_dcg_goal(B, Origin, Src).
-process_dcg_goal((A->B), Origin, Src) :-
+process_dcg_goal((A->B), Origin, Src) :- !,
 	process_dcg_goal(A, Origin, Src),
 	process_dcg_goal(B, Origin, Src).
-process_dcg_goal((A*->B), Origin, Src) :-
+process_dcg_goal((A*->B), Origin, Src) :- !,
 	process_dcg_goal(A, Origin, Src),
 	process_dcg_goal(B, Origin, Src).
+process_dcg_goal({Goal}, Origin, Src) :- !,
+	process_goal(Goal, Origin, Src).
 process_dcg_goal(List, _Origin, _Src) :-
 	is_list(List), !.		% terminal
+process_dcg_goal(List, _Origin, _Src) :-
+	string(List), !.		% terminal
 process_dcg_goal(Callable, Origin, Src) :-
 	extend(Callable, 2, Goal), !,
 	process_goal(Goal, Origin, Src).
