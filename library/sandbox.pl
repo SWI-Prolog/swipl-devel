@@ -267,6 +267,10 @@ goal_id(Term, Skolem, Gen) :-		% most general form
 	compound_name_arity(Skolem, Name, Arity),
 	compound_name_arity(Gen, Name, Arity),
 	copy_goal_args(1, Term, Skolem, Gen),
+	(   Gen =@= Term
+	->  !				% No more specific one; we can commit
+	;   true
+	),
 	numbervars(Skolem, 0, _).
 goal_id(Term, Skolem, Term) :-		% most specific form
 	debug(sandbox(specify), 'Retrying with ~p', [Term]),
