@@ -1073,11 +1073,11 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 static void
 enforce_limit(size_t *size, size_t maxarea, const char *name)
 { if ( *size == 0 )
-    *size = maxarea;
-  else if ( *size > (size_t)(MAXTAGGEDPTR+1) )
+  { *size = maxarea;
+  } else if ( *size > (size_t)(MAXTAGGEDPTR+1) )
   { if ( *size != (size_t)-1 )		/* user demanded maximum */
-      Sdprintf("WARNING: Maximum stack size for %s stack is %d MB\n",
-	       name, (MAXTAGGEDPTR+1) / (1 MB));
+      Sdprintf("WARNING: Maximum stack size for %s stack is %lld MB\n",
+	       name, (int64_t)((MAXTAGGEDPTR+1) / (1 MB)));
     *size = MAXTAGGEDPTR+1;
   }
 }
