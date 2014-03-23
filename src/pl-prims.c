@@ -4837,14 +4837,14 @@ typedef struct
 } optdef, *OptDef;
 
 #define CMDOPT_BOOL   0
-#define CMDOPT_LONG   1
+#define CMDOPT_SIZE_T 1
 #define CMDOPT_STRING 2
 #define CMDOPT_LIST   3
 
 static const optdef optdefs[] =
-{ { "local",		CMDOPT_LONG,	&GD->options.localSize },
-  { "global",		CMDOPT_LONG,	&GD->options.globalSize },
-  { "trail",		CMDOPT_LONG,	&GD->options.trailSize },
+{ { "local",		CMDOPT_SIZE_T,	&GD->options.localSize },
+  { "global",		CMDOPT_SIZE_T,	&GD->options.globalSize },
+  { "trail",		CMDOPT_SIZE_T,	&GD->options.trailSize },
 
   { "goal",		CMDOPT_STRING,	&GD->options.goal },
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },
@@ -4883,10 +4883,10 @@ PRED_IMPL("$option", 2, option, 0)
 
 	    return PL_unify_bool(val, *lp);
 	  }
-	  case CMDOPT_LONG:
-	  { long *lp = d->address;
+	  case CMDOPT_SIZE_T:
+	  { size_t *lp = d->address;
 
-	    return PL_unify_integer(val, *lp);
+	    return PL_unify_int64(val, *lp);
 	  }
 	  case CMDOPT_STRING:
 	  { char **sp = d->address;
@@ -4925,15 +4925,15 @@ set_pl_option(const char *name, const char *value)
   for( ; d->name; d++ )
   { if ( streq(name, d->name) )
     { switch(d->type)
-      { case CMDOPT_LONG:
-	{ intptr_t *val = d->address;
+      { case CMDOPT_SIZE_T:
+	{ size_t *val = d->address;
 	  number n;
 	  unsigned char *q;
 
 	  if ( str_number((unsigned char *)value, &q, &n, FALSE) == NUM_OK &&
 	       *q == EOS &&
 	       intNumber(&n) )
-	  { *val = (intptr_t)n.value.i;
+	  { *val = (size_t)n.value.i;
 	    succeed;
 	  }
 	  fail;
