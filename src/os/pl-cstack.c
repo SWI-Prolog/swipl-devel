@@ -247,15 +247,19 @@ static btrace *
 get_trace_store(void)
 { GET_LD
 
-  if ( !LD->btrace_store )
-  { btrace *s = malloc(sizeof(*s));
-    if ( s )
-    { memset(s, 0, sizeof(*s));
-      LD->btrace_store = s;
+  if ( LD )
+  { if ( !LD->btrace_store )
+    { btrace *s = malloc(sizeof(*s));
+      if ( s )
+      { memset(s, 0, sizeof(*s));
+	LD->btrace_store = s;
+      }
     }
+
+    return LD->btrace_store;
   }
 
-  return LD->btrace_store;
+  return NULL;
 }
 
 
