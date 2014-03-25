@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2014, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -83,6 +84,8 @@ otherwise during startup of the application.
                        pass_to(system:thread_create/3, 3)
                      ]).
 
+:- multifile
+	create_pool/1.
 
 %%	thread_pool_create(+Pool, +Size, +Options) is det.
 %
@@ -187,6 +190,17 @@ thread_pool_property(Name, Property) :-
 
 thread_create_in_pool(Pool, Goal, Id, QOptions) :-
 	meta_options(is_meta, QOptions, Options),
+	catch(thread_create_in_pool_(Pool, Goal, Id, Options),
+	      Error, true),
+	(   var(Error)
+	->  true
+	;   Error = error(existence_error(thread_pool, Pool), _)
+	->  create_pool(Pool),
+	    thread_create_in_pool_(Pool, Goal, Id, Options)
+	;   throw(Error)
+	).
+
+thread_create_in_pool_(Pool, Goal, Id, Options) :-
 	select_option(wait(Wait), Options, ThreadOptions, true),
 	pool_manager(Manager),
 	thread_self(Me),
@@ -404,6 +418,25 @@ wait_reply(Value) :-
 	;   throw(Reply)
 	).
 
+
+		 /*******************************
+		 *	       HOOKS		*
+		 *******************************/
+
+%%	create_pool(+PoolName) is semidet.
+%
+%	This hook is called if   thread_create_in_pool/4  discovers that
+%	the  thread  pool  does  not  exist.    If  the  hook  succeeds,
+%	thread_create_in_pool/4  retries  creating  the    thread.   For
+%	example, we can use the following  declaration to create threads
+%	in the pool =media=, which holds a maximum of 20 threads.
+%
+%	  ==
+%	  :- multifile thread_pool:create_pool/1.
+%
+%	  thread_pool:create_pool(media) :-
+%	      thread_pool_create(media, 20, []).
+%	  ==
 
 		 /*******************************
 		 *	      MESSAGES		*
