@@ -4303,9 +4303,13 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 (   even(Y), ZU = n(Num) ->
                     integer_kth_root_leq(Num, Y, RU),
                     (   XL cis_geq n(0), ZL = n(Num1) ->
-                        integer_kth_root_leq(Num1, Y, RL)
+                        integer_kth_root_leq(Num1, Y, RL0),
+                        (   RL0^Y < Num1 -> RL is RL0 + 1
+                        ;   RL = RL0
+                        )
                     ;   RL is -RU
                     ),
+                    RL =< RU,
                     NXD = from_to(n(RL),n(RU))
                 ;   odd(Y), ZL cis_geq n(0), ZU = n(Num) ->
                     integer_kth_root_leq(Num, Y, RU),
