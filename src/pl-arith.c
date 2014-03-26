@@ -1665,6 +1665,7 @@ ar_pow(Number n1, Number n2, Number r)
         break;
       case V_MPZ:
 	op1_bytes = mpz_sizeinbase(n1->value.mpz, 256);
+        break;
       default:
 	assert(0);
         fail;
