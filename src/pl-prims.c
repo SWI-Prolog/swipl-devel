@@ -3952,7 +3952,6 @@ sub_text(term_t atom,
       PL_get_text(atom, &ta, CVT_ATOMIC);
       break;
     case FRG_CUTTED:
-    exit_succeed:
       state = ForeignContextPtr(h);
       if ( state )
 	freeForeignState(state, sizeof(*state));
@@ -4050,6 +4049,10 @@ again:
 exit_fail:
   freeForeignState(state, sizeof(*state));
   fail;
+
+exit_succeed:
+  freeForeignState(state, sizeof(*state));
+  succeed;
 
 next:
   if ( match )
