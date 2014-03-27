@@ -2586,11 +2586,11 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 
   if ( !PL_get_size_ex(A2, &len) )
     return FALSE;
-  if ( s->bufsize < len )
-    Ssetbuffer(s, NULL, len);
 
   if ( getInputStream(A1, S_DONTCARE, &s) )
-  { for(;;)
+  { if ( s->bufsize < len )
+      Ssetbuffer(s, NULL, len);
+    for(;;)
     { if ( s->limitp > s->bufp )
       { PL_chars_t text;
 
