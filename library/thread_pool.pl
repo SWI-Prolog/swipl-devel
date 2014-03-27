@@ -194,9 +194,9 @@ thread_create_in_pool(Pool, Goal, Id, QOptions) :-
 	      Error, true),
 	(   var(Error)
 	->  true
-	;   Error = error(existence_error(thread_pool, Pool), _)
-	->  create_pool(Pool),
-	    thread_create_in_pool_(Pool, Goal, Id, Options)
+	;   Error = error(existence_error(thread_pool, Pool), _),
+	    create_pool(Pool)
+	->  thread_create_in_pool_(Pool, Goal, Id, Options)
 	;   throw(Error)
 	).
 
