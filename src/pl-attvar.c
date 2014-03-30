@@ -508,6 +508,7 @@ restoreWakeup(wakeup_state *state ARG_LD)
     }
 
     PL_discard_foreign_frame(state->fid);
+    updateAlerted(LD);
   }
 }
 
