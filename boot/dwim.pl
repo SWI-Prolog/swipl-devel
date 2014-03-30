@@ -355,7 +355,8 @@ find_definition(Head, _, Def) :-
 	strip_module(Head, _, Plain),
 	callable(Plain),
 	(   predicate_property(Head, imported_from(Module))
-	->  (   predicate_property(system:Plain, imported_from(Module))
+	->  (   predicate_property(system:Plain, imported_from(Module)),
+	        sub_atom(Module, 0, _, _, $)
 	    ->	Def = system:Plain
 	    ;	Def = Module:Plain
 	    )
