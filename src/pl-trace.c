@@ -431,7 +431,7 @@ Give a trace on the skipped goal for a redo.
 	case ACTION_RETRY:
 	case ACTION_IGNORE:
 	case ACTION_FAIL:
-	  Sfputs("Action not yet implemented here\n", Sdout);
+	  Sfprintf(Sdout, "Action not yet implemented here\n");
 	  break;
       }
     }
@@ -488,25 +488,25 @@ again:
     debugstatus.skiplevel = SKIP_VERY_DEEP;
     debugstatus.tracing   = TRUE;
 
-    Sfputs(" ? ", Sdout);
+    Sfprintf(Sdout, " ? ");
     Sflush(Sdout);
     if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
-      { Sfputs("EOF: exit\n", Sdout);
+      { Sfprintf(Sdout, "EOF: exit\n");
 	exitFromDebugger(0);
       }
     } else
     { int c = getSingleChar(Sdin, FALSE);
 
       if ( c == EOF )
-      { Sfputs("EOF: exit\n", Sdout);
+      { Sfprintf(Sdout, "EOF: exit\n");
 	exitFromDebugger(0);
       }
       buf[0] = c;
       buf[1] = EOS;
       if ( isDigit(buf[0]) || buf[0] == '/' )
-      { Sfputs(buf, Sdout);
+      { Sfprintf(Sdout, buf);
 	readLine(Sdin, Sdout, buf);
       }
     }
@@ -517,7 +517,7 @@ again:
     if ( action == ACTION_AGAIN )
       goto again;
   } else
-    Sputcode('\n', Sdout);
+    Sfprintf(Sdout, "\n");
 
 out:
   restoreWakeup(&wstate PASS_LD);
@@ -538,7 +538,7 @@ setupFind(char *buf)
     ;
   if ( *s == EOS )			/* No specification: repeat */
   { if ( !LD->trace.find || !LD->trace.find->port )
-    { Sfputs("[No previous search]\n", Sdout);
+    { Sfprintf(Sdout, "[No previous search]\n");
       fail;
     }
     LD->trace.find->searching = TRUE;
@@ -553,7 +553,7 @@ setupFind(char *buf)
       case 'u':	port |= UNIFY_PORT; continue;
       case 'a':	port |= CALL_PORT|REDO_PORT|FAIL_PORT|EXIT_PORT|UNIFY_PORT;
 				    continue;
-      default:  Sfputs("[Illegal port specification]\n", Sdout);
+      default:  Sfprintf(Sdout, "[Illegal port specification]\n");
 		fail;
     }
   }
@@ -589,11 +589,11 @@ setupFind(char *buf)
     { if ( (find->goal.term.term = compileTermToHeap(t, 0)) )
       { find->type = TRACE_FIND_TERM;
       } else
-      { Sfputs("ERROR: no memory to safe find target\n", Sdout);
+      { Sfprintf(Sdout, "ERROR: no memory to safe find target\n");
 	fail;
       }
     } else
-    { Sfputs("[Illegal goal specification]\n", Sdout);
+    { Sfprintf(Sdout, "[Illegal goal specification]\n");
       fail;
     }
 
@@ -638,11 +638,11 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
   char *s;
 
 #define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
-					       Sputcode('\n', Sdout); \
+					       Sfprintf(Sdout, "\n"); \
 					     else \
-					       Sfputs(msg, Sdout); } }
+					       Sfprintf(Sdout, "%s", msg); } }
 #define Warn(msg)	{ if (interactive) \
-			    Sfputs(msg, Sdout); \
+			    Sfprintf(Sdout, "%s", msg); \
 			  else \
 			    warning(msg); \
 			}
@@ -665,7 +665,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		pl_break();
 		return ACTION_AGAIN;
     case '/':	FeedBack("/");
-		Sflush(Suser_output);
+		Sflush(Sdout);
 		if ( setupFind(&s[1]) )
 		{ clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
@@ -773,24 +773,25 @@ static void
 helpTrace(void)
 { GET_LD
 
-  Sfputs("Options:\n"
-	 "+:                  spy        -:              no spy\n"
-	 "/c|e|r|f|u|a goal:  find       .:              repeat find\n"
-	 "a:                  abort      A:              alternatives\n"
-	 "b:                  break      c (ret, space): creep\n"
-	 "[depth] d:          depth      e:              exit\n"
-	 "f:                  fail       [ndepth] g:     goals (backtrace)\n"
-	 "h (?):              help       i:              ignore\n"
-	 "l:                  leap       L:              listing\n"
-	 "n:                  no debug   p:              print\n"
-	 "r:                  retry      s:              skip\n"
-	 "u:                  up         w:              write\n"
-	 "m:		      exception details\n"
-	 "C:                  toggle show context\n"
+  Sfprintf(Sdout,
+	   "Options:\n"
+	   "+:                  spy        -:              no spy\n"
+	   "/c|e|r|f|u|a goal:  find       .:              repeat find\n"
+	   "a:                  abort      A:              alternatives\n"
+	   "b:                  break      c (ret, space): creep\n"
+	   "[depth] d:          depth      e:              exit\n"
+	   "f:                  fail       [ndepth] g:     goals (backtrace)\n"
+	   "h (?):              help       i:              ignore\n"
+	   "l:                  leap       L:              listing\n"
+	   "n:                  no debug   p:              print\n"
+	   "r:                  retry      s:              skip\n"
+	   "u:                  up         w:              write\n"
+	   "m:                  exception details\n"
+	   "C:                  toggle show context\n"
 #if O_DEBUG
-	 "[level] D:	      set system debug level\n"
+	   "[level] D:	      set system debug level\n"
 #endif
-	 "", Sdout);
+	   "");
 }
 
 
@@ -958,7 +959,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
       Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
 #ifdef O_LIMIT_DEPTH
     if ( levelFrame(frame) > depth_limit )
-      Sfprintf(Sdout, "[deth-limit exceeded] ");
+      Sfprintf(Sdout, "[depth-limit exceeded] ");
 #endif
 
     pl_write_term3(tmp, goal, options);
@@ -1028,7 +1029,7 @@ exceptionDetails()
   { int rc;
 
     Sflush(Suser_output);		/* make sure to stay in sync */
-    Sfputs("\n\tException term: ", Sdout);
+    Sfprintf(Sdout, "\n\tException term: ");
     rc = PL_write_term(Sdout, except, 1200, PL_WRT_QUOTED);
     Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));
 
@@ -1553,13 +1554,13 @@ static void
 helpInterrupt(void)
 { GET_LD
 
-  Sfputs("Options:\n"
-	 "a:           abort         b:           break\n"
-	 "c:           continue      e:           exit\n"
-	 "g:           goals         s:           C-backtrace\n"
-	 "t:           trace         p:		  Show PID\n"
-	 "h (?):       help\n",
-	 Sdout);
+  Sfprintf(Sdout,
+	   "Options:\n"
+	   "a:           abort         b:           break\n"
+	   "c:           continue      e:           exit\n"
+	   "g:           goals         s:           C-backtrace\n"
+	   "t:           trace         p:		  Show PID\n"
+	   "h (?):       help\n");
 }
 
 static void
