@@ -84,8 +84,9 @@ component(library(jpl), _{}).
 component(library(memfile), _{}).
 component(library(mime), _{}).
 component(library(odbc), _{}).
-component(library(pce), _{pre:load_foreign_library(foreign(pl2xpce)),
-			  url:'xpce.html'}).
+component(library(pce),
+	  _{pre:load_foreign_library(pce_principal:foreign(pl2xpce)),
+	    url:'xpce.html'}).
 component(library(pdt_console), _{}).
 component(library(porter_stem), _{}).
 component(library(process), _{}).
