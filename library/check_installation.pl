@@ -84,7 +84,8 @@ component(library(jpl), _{}).
 component(library(memfile), _{}).
 component(library(mime), _{}).
 component(library(odbc), _{}).
-component(library(pce), _{url:'xpce.html'}).
+component(library(pce), _{pre:load_foreign_library(foreign(pl2xpce)),
+			  url:'xpce.html'}).
 component(library(pdt_console), _{}).
 component(library(porter_stem), _{}).
 component(library(process), _{}).
@@ -111,6 +112,9 @@ issue_base('http://www.swi-prolog.org/build/issues/').
 
 :- thread_local
 	issue/1.
+
+:- meta_predicate
+	run_silent(0, +).
 
 %%	check_installation
 %
@@ -154,7 +158,13 @@ check_source(_Source, Properties) :-
 check_source(Source, Properties) :-
 	exists_source(Source), !,
 	print_message(informational, installation(loading(Source))),
-	(   run_silent(load_files(Source, [silent(true)]), Properties.put(action, load))
+	(   run_silent(( (   Pre = Properties.get(pre)
+			 ->  call(Pre)
+			 ;   true
+			 ),
+			 load_files(Source, [silent(true)])
+		       ),
+		       Properties.put(action, load))
 	->  check_installation(Properties),
 	    print_message(informational, installation(ok)),
 	    check_features(Properties)
@@ -358,14 +368,20 @@ prolog:message(installation(not_found(Properties))) -->
 prolog:message(installation(failed(Properties, false, []))) --> !,
 	[ at_same_line, '~`.t~48| FAILED'-[] ],
 	details(Properties).
-prolog:message(installation(failed(Properties, exception(Ex), []))) --> !,
-	{ message_to_string(Ex, Msg) },
+prolog:message(installation(failed(Properties, exception(Ex0), []))) --> !,
+	{ strip_stack(Ex0, Ex),
+	  message_to_string(Ex, Msg) },
 	[ '~w'-[Msg] ],
 	details(Properties).
 prolog:message(installation(failed(Properties, true, Messages))) --> !,
 	[ at_same_line, '~`.t~48| FAILED'-[] ],
 	explain(Messages),
 	details(Properties).
+
+strip_stack(error(Error, context(prolog_stack(S), Msg)),
+	    error(Error, context(_, Msg))) :-
+	nonvar(S).
+strip_stack(Error, Error).
 
 details(Properties) -->
 	{ issue_url(Properties, URL), !

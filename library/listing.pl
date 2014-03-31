@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -104,23 +102,27 @@ be changed using set_setting/2.
 
 listing :-
 	context_module(Context),
-	current_predicate(_, Pred),
-	\+ predicate_property(Pred, imported_from(_)),
-	strip_module(Pred, Module, Head),
-	functor(Head, Name, _Arity),
-	(   (   predicate_property(Pred, built_in)
-	    ;	sub_atom(Name, 0, _, _, $)
-	    )
-	->  current_prolog_flag(access_level, system)
+	list_module(Context).
+
+list_module(Module) :-
+	(   current_predicate(_, Module:Pred),
+	    \+ predicate_property(Module:Pred, imported_from(_)),
+	    strip_module(Pred, _Module, Head),
+	    functor(Head, Name, _Arity),
+	    (   (   predicate_property(Pred, built_in)
+		;   sub_atom(Name, 0, _, _, $)
+		)
+	    ->  current_prolog_flag(access_level, system)
+	    ;   true
+	    ),
+	    nl,
+	    list_predicate(Module:Head, Module),
+	    fail
 	;   true
-	),
-	nl,
-	list_predicate(Module:Head, Context),
-	fail.
-listing.
+	).
 
 
-%%	listing(+What)
+%%	listing(:What)
 %
 %	List matching clauses. What is either a plain specification or a
 %	list of specifications. Plain specifications are:
@@ -138,13 +140,13 @@ listing.
 %	    lists:append([], A, A).
 %	    ==
 
-listing(V) :-
-	var(V), !,       % ignore variables
-	throw(error(instantiation_error, _)).
-listing([]) :- !.
-listing([X|Rest]) :- !,
-        listing(X),
-        listing(Rest).
+listing(M:Spec) :-
+	var(Spec), !,
+	list_module(M).
+listing(M:List) :-
+	is_list(List), !,
+	forall(member(Spec, List),
+	       listing(M:Spec)).
 listing(X) :-
 	(   prolog:locate_clauses(X, ClauseRefs)
 	->  list_clauserefs(ClauseRefs)
