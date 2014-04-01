@@ -4302,7 +4302,7 @@ true.
 \end{code}
 
 Used by the top level and debugger to limit screen output.  See also
-the Prolog flags \prologflag{toplevel_print_options} and
+the Prolog flags \prologflag{answer_write_options} and
 \prologflag{debugger_write_options}.
 
     \termitem{module}{Module}

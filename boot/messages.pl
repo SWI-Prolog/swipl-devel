@@ -875,7 +875,7 @@ prompt(more, _) --> !,
 	[ ' '-[], flush ].
 
 result(Bindings, Residuals) -->
-	{ current_prolog_flag(toplevel_print_options, Options0),
+	{ current_prolog_flag(answer_write_options, Options0),
 	  Options = [partial(true)|Options0]
 	},
 	bindings(Bindings, [priority(699)|Options]),

@@ -471,7 +471,7 @@ initialise_prolog :-
 
 init_debug_flags :-
 	once(print_predicate(_, [print], PrintOptions)),
-	create_prolog_flag(toplevel_print_options, PrintOptions, []),
+	create_prolog_flag(answer_write_options, PrintOptions, []),
 	create_prolog_flag(prompt_alternatives_on, determinism, []),
 	create_prolog_flag(toplevel_extra_white_line, true, []),
 	create_prolog_flag(toplevel_print_factorized, false, []),
@@ -1054,7 +1054,7 @@ answer_respons(0'b, show_again) :- !,
 answer_respons(Char, show_again) :-
 	print_predicate(Char, Pred, Options), !,
 	print_message(query, if_tty(['~w'-[Pred]])),
-	set_prolog_flag(toplevel_print_options, Options).
+	set_prolog_flag(answer_write_options, Options).
 answer_respons(-1, show_again) :- !,
 	print_message(query, halt('EOF')),
 	halt(0).

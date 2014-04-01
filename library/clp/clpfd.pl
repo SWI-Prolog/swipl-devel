@@ -1995,7 +1995,7 @@ parse_goal(p(Prop)) -->
 parse_init([], _)     --> [].
 parse_init([V|Vs], P) --> [init_propagator(V, P)], parse_init(Vs, P).
 
-%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+%?- set_prolog_flag(answer_write_options, [portray(true)]),
 %   clpfd:parse_clpfd_clauses(Clauses), maplist(portray_clause, Clauses).
 
 
@@ -2756,7 +2756,7 @@ reified_goal(l(L), _)     --> [[L]].
 parse_init_dcg([], _)     --> [].
 parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
 
-%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+%?- set_prolog_flag(answer_write_options, [portray(true)]),
 %   clpfd:parse_reified_clauses(Cs), maplist(portray_clause, Cs).
 
 reify(E, B) :- reify(E, B, _).

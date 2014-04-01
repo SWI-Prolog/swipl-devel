@@ -1548,7 +1548,7 @@ S = s(S),
 R = s(s(R)).
 \end{code}
 
-    \prologflagitem{toplevel_print_options}{term}{rw}
+    \prologflagitem{answer_write_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing results
 of queries. Default is \texttt{[quoted(true), portray(true),
 max_depth(10), attributes(portray)]}.
