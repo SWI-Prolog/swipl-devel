@@ -1664,7 +1664,7 @@ static const opt_spec write_term_options[] =
   { NULL_ATOM,		    0 }
 };
 
-word
+foreign_t
 pl_write_term3(term_t stream, term_t term, term_t opts)
 { GET_LD
   bool quoted     = FALSE;
@@ -1804,7 +1804,7 @@ out:
 }
 
 
-word
+foreign_t
 pl_write_term(term_t term, term_t options)
 { return pl_write_term3(0, term, options);
 }
@@ -1856,17 +1856,17 @@ do_write2(term_t stream, term_t term, int flags, int canonical)
 }
 
 
-word
+foreign_t
 pl_write2(term_t stream, term_t term)
 { return do_write2(stream, term, PL_WRT_NUMBERVARS, FALSE);
 }
 
-word
+foreign_t
 pl_writeq2(term_t stream, term_t term)
 { return do_write2(stream, term, PL_WRT_QUOTED|PL_WRT_NUMBERVARS, FALSE);
 }
 
-word
+foreign_t
 pl_print2(term_t stream, term_t term)
 { return do_write2(stream, term,
 		   PL_WRT_PORTRAY|PL_WRT_NUMBERVARS, FALSE);
@@ -1896,27 +1896,27 @@ pl_write_canonical2(term_t stream, term_t term)
   return rc;
 }
 
-word
+foreign_t
 pl_write(term_t term)
 { return pl_write2(0, term);
 }
 
-word
+foreign_t
 pl_writeq(term_t term)
 { return pl_writeq2(0, term);
 }
 
-word
+foreign_t
 pl_print(term_t term)
 { return pl_print2(0, term);
 }
 
-word
+foreign_t
 pl_write_canonical(term_t term)
 { return pl_write_canonical2(0, term);
 }
 
-word
+foreign_t
 pl_writeln(term_t term)
 { return do_write2(0, term, PL_WRT_NUMBERVARS|PL_WRT_NEWLINE, FALSE);
 }
