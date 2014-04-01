@@ -496,27 +496,27 @@ default_module(Me, Super) :-
 
 %	 handle debugger 'w', 'p' and <N> depth options.
 
-'$set_debugger_print_options'(write) :- !,
-	create_prolog_flag(debugger_print_options,
+'$set_debugger_write_options'(write) :- !,
+	create_prolog_flag(debugger_write_options,
 			   [ quoted(true),
 			     attributes(write),
 			     spacing(next_argument)
 			   ], []).
-'$set_debugger_print_options'(print) :- !,
-	create_prolog_flag(debugger_print_options,
+'$set_debugger_write_options'(print) :- !,
+	create_prolog_flag(debugger_write_options,
 			   [ quoted(true),
 			     portray(true),
 			     max_depth(10),
 			     attributes(portray),
 			     spacing(next_argument)
 			   ], []).
-'$set_debugger_print_options'(Depth) :-
-	current_prolog_flag(debugger_print_options, Options0),
+'$set_debugger_write_options'(Depth) :-
+	current_prolog_flag(debugger_write_options, Options0),
 	(   '$select'(max_depth(_), Options0, Options)
 	->  true
 	;   Options = Options0
 	),
-	create_prolog_flag(debugger_print_options,
+	create_prolog_flag(debugger_write_options,
 			   [max_depth(Depth)|Options], []).
 
 

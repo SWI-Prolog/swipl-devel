@@ -619,7 +619,7 @@ setPrintOptions(word t)
 
   if ( (fid=PL_open_foreign_frame()) )
   { term_t av = PL_new_term_ref();
-    predicate_t pred = PL_predicate("$set_debugger_print_options", 1,
+    predicate_t pred = PL_predicate("$set_debugger_write_options", 1,
 				    "system");
 
     _PL_put_atomic(av, t);
@@ -942,7 +942,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
 
     put_frame_goal(goal, frame);
     debugstatus.debugging = DBG_OFF;
-    PL_put_atom(tmp, ATOM_debugger_print_options);
+    PL_put_atom(tmp, ATOM_debugger_write_options);
     ctx.context = 0;
     ctx.control = FRG_FIRST_CALL;
     ctx.engine  = LD;

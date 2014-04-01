@@ -4303,7 +4303,7 @@ true.
 
 Used by the top level and debugger to limit screen output.  See also
 the Prolog flags \prologflag{toplevel_print_options} and
-\prologflag{debugger_print_options}.
+\prologflag{debugger_write_options}.
 
     \termitem{module}{Module}
 Define the reference module (default \const{user}).  This defines

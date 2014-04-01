@@ -475,7 +475,7 @@ init_debug_flags :-
 	create_prolog_flag(prompt_alternatives_on, determinism, []),
 	create_prolog_flag(toplevel_extra_white_line, true, []),
 	create_prolog_flag(toplevel_print_factorized, false, []),
-	'$set_debugger_print_options'(print).
+	'$set_debugger_write_options'(print).
 
 %%	setup_colors is det.
 %

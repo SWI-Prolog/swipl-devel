@@ -1077,7 +1077,7 @@ prolog_message(frame(Frame, Port, _PC)) -->
 frame_goal(Frame) -->
 	{ prolog_frame_attribute(Frame, goal, Goal0),
 	  clean_goal(Goal0, Goal),
-	  current_prolog_flag(debugger_print_options, Options)
+	  current_prolog_flag(debugger_write_options, Options)
 	},
 	[ '~W'-[Goal, Options] ].
 

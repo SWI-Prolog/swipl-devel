@@ -631,7 +631,7 @@ The interactive top-level goal trace/0 means ``trace the next query''.
 The tracer shows the port, displaying the port name, the current depth
 of the recursion and the goal. The goal is printed using the Prolog
 predicate write_term/2.  The style is defined by the Prolog flag
-\prologflag{debugger_print_options} and can be modified using this flag
+\prologflag{debugger_write_options} and can be modified using this flag
 or using the \const{w}, \const{p} and \const{d} commands of the tracer.
 
 \begin{figure}
@@ -715,7 +715,7 @@ Enter a Prolog break environment (see break/0).}
 Continue execution, stop at next port. (Also \textsc{return}, \textsc{space}).}
     \traceoption{d}{Display}{
 Set the \term{max_depth}{Depth} option of
-\prologflag{debugger_print_options}, limiting the depth to which terms are
+\prologflag{debugger_write_options}, limiting the depth to which terms are
 printed.  See also the \const{w} and \const{p} options.}
     \traceoption{e}{Exit}{
 Terminate Prolog (see halt/0).}
@@ -733,7 +733,7 @@ Continue execution, stop at next spy point.}
     \traceoption{n}{No debug}{
 Continue execution in `no debug' mode.}
     \traceoption{p}{Print}{
-Set the Prolog flag \prologflag{debugger_print_options} to
+Set the Prolog flag \prologflag{debugger_write_options} to
 \texttt{[quoted(true), portray(true), max_depth(10), priority(699)]}. This is the
 default.}
     \traceoption{r}{Retry}{
@@ -747,7 +747,7 @@ Continue execution, stop at the next port of {\bf the parent} goal (thus
 skipping this goal and all calls to children of this goal). This option
 is useful to stop tracing a failure driven loop.}
     \traceoption{w}{Write}{
-Set the Prolog flag \prologflag{debugger_print_options} to
+Set the Prolog flag \prologflag{debugger_write_options} to
 \texttt{[quoted(true), attributes(write), priority(699)]}, bypassing portray/1, etc.}
 \end{description}
 
@@ -1220,7 +1220,7 @@ just continue execution.  The goal that raised the error will normally
 fail.  See also fileerrors/2 and the Prolog flag {\tt report_error}.  May
 be changed.  Default is {\tt true}, except for the runtime version.
 
-    \prologflagitem{debugger_print_options}{term}{rw}
+    \prologflagitem{debugger_write_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing goals
 by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
 debugger.  Default is \texttt{[quoted(true), portray(true),
