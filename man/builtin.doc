@@ -4451,11 +4451,30 @@ Write \arg{Term} to \arg{Stream}, inserting quotes.
 Equivalent to \exam{write(Term), nl.}.
 
     \predicate{print}{1}{+Term}
-Prints \arg{Term} on the current output stream similar to write/1,
-but for each (sub)term of \arg{Term}, the dynamic predicate
-portray/1 is first called.  If this predicate succeeds \arg{print} assumes the
-(sub)term has been written.  This allows for user-defined term writing.
-See also \pllib{portray_text}.
+Print a term for debugging porposes.  The predicate print/1 acts as
+if defined as below.
+
+\begin{code}
+print(Term) :-
+    current_prolog_flag(print_write_options, Options), !,
+    write_term(Term, Options).
+print(Term) :-
+    write_term(Term, [portray(true), numbervars(true), quoted(true)]).
+\end{code}
+
+The print/1 predicate is used primarily through the \verb$~p$ escape
+sequence of format/2, which is commonly used in the recipies used by
+print_message/2 to emit messages.
+
+The classical definition of this predicate is equivalent to the ISO
+predicate write_term/2 using the options \term{portray}{true} and
+\term{numbervars}{true}. The \term{portray}{true} options allows the
+user to implement application-specific printing of terms printed during
+debugging to facilitate easy understanding of the output. See also
+portray/1 and \pllib{portray_text}. SWI-Prolog adds \term{quoted}{true}
+to facilitate copy/paste of terms not affected by portray/1 and better
+distinguishing of e.g., \verb$42$, \verb$'42'$ and \verb$"42"$, a
+number, atom and string.
 
     \predicate{print}{2}{+Stream, +Term}
 Print \arg{Term} to \arg{Stream}.

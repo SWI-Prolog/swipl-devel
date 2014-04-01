@@ -1868,8 +1868,20 @@ pl_writeq2(term_t stream, term_t term)
 
 foreign_t
 pl_print2(term_t stream, term_t term)
-{ return do_write2(stream, term,
-		   PL_WRT_PORTRAY|PL_WRT_NUMBERVARS, FALSE);
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
+  term_t opts = PL_new_term_ref();
+  foreign_t rc;
+
+  if ( PL_current_prolog_flag(ATOM_print_write_options, PL_TERM, &opts) )
+    rc = pl_write_term3(stream, term, opts);
+  else
+    rc = do_write2(stream, term,
+		   PL_WRT_PORTRAY|PL_WRT_NUMBERVARS|PL_WRT_QUOTED, FALSE);
+
+  PL_discard_foreign_frame(fid);
+
+  return rc;
 }
 
 word
