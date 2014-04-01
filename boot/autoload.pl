@@ -93,7 +93,10 @@ user:file_search_path(autoload, library(.)).
 	'$defined_predicate'(Head), !.
 '$define_predicate'(Term) :-
 	Term = Module:Head,
-	functor(Head, Name, Arity),
+	(   compound(Head)
+	->  compound_name_arity(Head, Name, Arity)
+	;   Name = Head, Arity = 0
+	),
 	'$undefined_procedure'(Module, Name, Arity, retry).
 
 

@@ -444,11 +444,15 @@ extend(M:Head, N, M:ExtHead) :-
 	nonvar(Head), !,
 	extend(Head, N, ExtHead).
 extend(Head, N, ExtHead) :-
-	callable(Head), !,
-	Head =.. List,
+	compound(Head), !,
+	compound_name_arguments(Head, Name, Args),
 	length(Extra, N),
-	append(List, Extra, List1),
-	ExtHead =.. List1.
+	append(Args, Extra, NArgs),
+	compound_name_arguments(ExtHead, Name, NArgs).
+extend(Head, N, ExtHead) :-
+	atom(Head), !,
+	length(Extra, N),
+	compound_name_arguments(ExtHead, Head, Extra).
 extend(Head, _, Head).
 
 
@@ -641,10 +645,13 @@ dcg_extend(Term, _) :-
 dcg_extend(M:Term, M:Goal) :-
 	dcg_extend(Term, Goal).
 dcg_extend(Term, Goal) :-
-	callable(Term),
-	Term =.. List,
-	append(List, [_,_], List2),
-	Goal =.. List2.
+	compound(Term), !,
+	compound_name_arguments(Term, Name, Args),
+	append(Args, [_,_], NArgs),
+	compound_name_arguments(Goal, Name, NArgs).
+dcg_extend(Term, Goal) :-
+	atom(Term), !,
+	compound_name_arguments(Goal, Term, [_,_]).
 
 dcg_body_compiled(G) :-
 	body_compiled(G), !.

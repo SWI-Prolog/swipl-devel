@@ -1220,11 +1220,15 @@ extend(M:G, N, M:GX) :- !,
 	callable(G),
 	extend(G, N, GX).
 extend(G, N, GX) :-
-	callable(G),
-	G =.. List,
-	length(Rest, N),
-	append(List, Rest, NList),
-	GX =.. NList.
+	(   compound(G)
+	->  compound_name_arguments(G, Name, Args),
+	    length(Rest, N),
+	    append(Args, Rest, NArgs),
+	    compound_name_arguments(GX, Name, NArgs)
+	;   atom(G)
+	->  length(NArgs, N),
+	    compound_name_arguments(GX, G, NArgs)
+	).
 
 asserting_goal(assert(Rule), Rule).
 asserting_goal(asserta(Rule), Rule).

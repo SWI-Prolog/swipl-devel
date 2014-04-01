@@ -224,8 +224,13 @@ dcg_extend(OldT, P0, A1, A2, NewT, P) :-
 	->  throw(error(permission_error(define,dcg_nonterminal,OldT),_))
 	;   true
 	),
-	functor(OldT, Name, Arity),
-	functor(CopT, Name, Arity),
+	(   compound(OldT)
+	->  compound_name_arity(OldT, Name, Arity),
+	    compound_name_arity(CopT, Name, Arity)
+	;   CopT = OldT,
+	    Name = OldT,
+	    Arity = 0
+	),
 	NewArity is Arity+2,
 	functor(NewT, Name, NewArity),
 	copy_args(1, Arity, CopT, NewT),
