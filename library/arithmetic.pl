@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2011, VU University Amsterdam
+    Copyright (C): 2011-2014, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -33,6 +33,7 @@
 	  ]).
 :- use_module(library(error)).
 :- use_module(library(lists)).
+:- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Extensible arithmetic
 
