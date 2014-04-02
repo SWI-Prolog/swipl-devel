@@ -364,7 +364,7 @@ to the main thread.
 static void
 dispatch_signal(int sig, int sync)
 { GET_LD
-  SigHandler sh = &GD->sig_handlers[sig];
+  SigHandler sh = &GD->sig_handlers[sig-1];
   fid_t fid;
   term_t lTopSave;
   int saved_current_signal;
@@ -548,7 +548,7 @@ set_sighandler(int sig, handler_t func)
 
 static SigHandler
 prepareSignal(int sig)
-{ SigHandler sh = &GD->sig_handlers[sig];
+{ SigHandler sh = &GD->sig_handlers[sig-1];
 
   if ( false(sh, PLSIG_PREPARED) )
   { set(sh, PLSIG_PREPARED);
@@ -562,7 +562,7 @@ prepareSignal(int sig)
 
 static void
 unprepareSignal(int sig)
-{ SigHandler sh = &GD->sig_handlers[sig];
+{ SigHandler sh = &GD->sig_handlers[sig-1];
 
   if ( true(sh, PLSIG_PREPARED) )
   { if ( sig < SIG_PROLOG_OFFSET )
@@ -841,12 +841,12 @@ PL_signal(int sigandflags, handler_t func)
     SigHandler sh;
     int sig = (sigandflags & 0xffff);
 
-    if ( sig >= MAXSIGNAL )
+    if ( sig > MAXSIGNAL )
     { warning("PL_signal(): illegal signal number: %d", sig);
       return SIG_DFL;
     }
 
-    sh = &GD->sig_handlers[sig];
+    sh = &GD->sig_handlers[sig-1];
     if ( true(sh, PLSIG_PREPARED) )
     { old = sh->handler;
       if ( func == sh->saved_handler )
@@ -996,7 +996,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   } else
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal, sig);
 
-  sh = &GD->sig_handlers[sign];
+  sh = &GD->sig_handlers[sign-1];
 
   if ( false(sh, PLSIG_PREPARED) )		/* not handled */
   { TRY(PL_unify_atom(old, ATOM_default));
