@@ -4839,10 +4839,23 @@ PRED_IMPL("term_string", 2, term_string, 0)
 int
 PL_chars_to_term(const char *s, term_t t)
 { GET_LD
+  size_t len = strlen(s);
   read_data rd;
   int rval;
-  IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
-  source_location oldsrc = LD->read_source;
+  IOSTREAM *stream;
+  source_location oldsrc;
+
+  if ( isDigit(*s&0xff) || *s == '-' || *s == '+' )
+  { unsigned char *e;
+    number n;
+
+    if ( str_number((cucharp)s, &e, &n, FALSE) == NUM_OK &&
+	 e == (unsigned char *)s+len )
+      return PL_unify_number(t, &n);
+  }
+
+  stream = Sopen_string(NULL, (char *)s, -1, "r");
+  oldsrc = LD->read_source;
 
   init_read_data(&rd, stream PASS_LD);
   PL_put_variable(t);
