@@ -58,10 +58,10 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *res
     }
 
     result->culprit = *arg;
-    if ( c < 0 || (!wide && c > 0xff) )
+    if ( c < 0 || c > 0x10ffff || (!wide && c > 0xff) )
     { if ( canBind(*arg) )
 	result->status = CVT_partial;
-      else if ( c < 0 )
+      else if ( c < 0 || c > 0x10ffff )
 	result->status = CVT_nocode;
       else if ( c > 0xff )
 	result->status = CVT_wide;
@@ -97,13 +97,13 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *res
         break;
     }
 
-    if ( c < 0 || (!wide && c > 0xff) )
+    if ( c < 0 || c > 0x10ffff || (!wide && c > 0xff) )
     { result->culprit = *arg;
 
-      unfindBuffer(flags);		/* TBD: check unicode range */
+      unfindBuffer(flags);
       if ( canBind(*arg) )
 	result->status = CVT_partial;
-      else if ( c < 0 )
+      else if ( c < 0 || c > 0x10ffff )
 	result->status = (type == CODES ? CVT_nocode : CVT_nochar);
       else if ( c > 0xff )
 	result->status = CVT_wide;
