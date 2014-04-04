@@ -50,8 +50,9 @@ static void	  addUTF8Buffer(Buffer b, int c);
 
 #define PlBlankW(c)	CharTypeW(c, == SP, U_SEPARATOR)
 #define PlUpperW(c)	CharTypeW(c, == UC, U_UPPERCASE)
-#define PlIdStartW(c)	(c <= 0xff ? (isLower(c)||isUpper(c)||c=='_') \
-				   : uflagsW(c) & U_ID_START)
+#define PlIdStartW(c)	((unsigned)c <= 0xff ? \
+				(isLower(c)||isUpper(c)||c=='_') \
+				: uflagsW(c) & U_ID_START)
 #define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
 #define PlSymbolW(c)	CharTypeW(c, == SY, U_SYMBOL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
@@ -1322,7 +1323,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  break;
 		}
 	        /*FALLTHROUGH*/
-      default:	if ( c < 0xff )
+      default:	if ( (unsigned)c < 0xff )
 		{ switch(_PL_char_types[c])
 		  { case SP:
 		    blank:
@@ -1348,7 +1349,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			c = getchr();
 			if ( c == '`' && _PL_rd->backquoted_string )
 			  break;
-		      } while( c != EOF && c <= 0xff && isSymbol(c) );
+		      } while( c != EOF && (unsigned)c <= 0xff && isSymbol(c) );
 					/* TBD: wide symbols? */
 		      dotseen = FALSE;
 		      goto handle_c;
