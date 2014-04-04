@@ -668,9 +668,13 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 	colourise_term_args(Goal, TB, Pos).
 
 
-%	colourise_goal(+Goal, +Origin, +TB, +Pos)
+%%	colourise_goal(+Goal, +Origin, +TB, +Pos)
 %
 %	Colourise access to a single goal.
+%
+%	@tbd Quasi Quotations are coloured as a general term argument.
+%	Possibly we should do something with the goal information it
+%	refers to, in particular if this goal is not defined.
 
 					% Deal with list as goal (consult)
 colourise_goal(Goal, _, TB, list_position(F,T,Elms,_)) :-
@@ -689,6 +693,9 @@ colourise_goal(Goal, Origin, TB, list_position(F,T,Elms,Tail)) :-
 	colour_item(goal(Class, Goal), TB, F-FT),
 	colour_item(goal(Class, Goal), TB, AT-T),
 	colourise_list_args(Elms, Tail, [GH|GT], TB, classify).
+colourise_goal(Goal, _Origin, TB, Pos) :-
+	Pos = quasi_quotation_position(_F,_T,_QQType,_QQTypePos,_CPos), !,
+	colourise_term_arg(Goal, TB, Pos).
 colourise_goal(Goal, Origin, TB, Pos) :-
 	nonvar(Goal),
 	goal_colours(Goal, ClassSpec-ArgSpecs), !, % specified
