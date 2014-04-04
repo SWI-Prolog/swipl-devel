@@ -33,6 +33,7 @@ or character codes.  Please define a test-set for each predicate.
 
 test_text :-
 	run_tests([ char_code,
+                    atom_codes,
 		    atom_concat,
 		    term_to_atom,
 		    atom_to_term,
@@ -66,6 +67,22 @@ test(error, error(representation_error(character_code))) :-
 	char_code(_,0xfffffff).
 
 :- end_tests(char_code).
+
+:- begin_tests(atom_codes).
+
+test(error, error(type_error(character_code, _))) :-
+        atom_codes(_, [-1]).
+
+test(error, error(type_error(character_code, _))) :-
+        atom_codes(_, [0x110000]).
+
+test(error, error(type_error(character_code, _))) :-
+        atom_codes(_, [0x80000000]).
+
+test(error, error(type_error(character_code, _))) :-
+        atom_codes(_, [0xffffffff]).
+
+:- end_tests(atom_codes).
 
 :- begin_tests(atom_concat).
 
