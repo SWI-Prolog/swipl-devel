@@ -401,10 +401,12 @@ subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
 	arg(1, PosTerm, CharA),
 	arg(2, PosTerm, CharZ).
 
-find_subgoal([], Pos, Pos).
 find_subgoal([A|T], term_position(_, _, _, _, PosL), SPos) :-
+	is_list(PosL),
 	nth1(A, PosL, Pos),
+	nonvar(Pos), !,
 	find_subgoal(T, Pos, SPos).
+find_subgoal([], Pos, Pos).
 
 
 %%	lineno(+File, +Char, -Line)
