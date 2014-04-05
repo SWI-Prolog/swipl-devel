@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -191,6 +191,11 @@ static char errmsg[64];
 		*    PROCESS CHARACTERISTICS    *
 		*********************************/
 
+#ifdef HAVE_CLOCK_GETTIME
+#define timespec_to_double(ts) \
+	((double)(ts).tv_sec + (double)(ts).tv_nsec/(double)1000000000.0)
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     double CpuTime(cputime_kind)
 
@@ -217,11 +222,6 @@ static char errmsg[64];
 #endif
 #endif /*_SC_CLK_TCK*/
 #endif /*HAVE_TIMES*/
-
-#ifdef HAVE_CLOCK_GETTIME
-#define timespec_to_double(ts) \
-	((double)(ts).tv_sec + (double)(ts).tv_nsec/(double)1000000000.0)
-#endif
 
 double
 CpuTime(cputime_kind which)
