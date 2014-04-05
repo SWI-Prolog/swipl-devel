@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,6 +24,8 @@
 #ifndef PL_DTOA_H_INCLUDED
 #define PL_DTOA_H_INCLUDED
 
+#undef dtoa
+#undef strtod
 #define dtoa   PL_dtoa			/* avoid library conflicts */
 #define strtod PL_strtod		/* avoid library conflicts */
 
