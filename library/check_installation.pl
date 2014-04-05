@@ -133,8 +133,8 @@ issue_base('http://www.swi-prolog.org/build/issues/').
 check_installation :-
 	print_message(informational, installation(checking)),
 	retractall(issue(_)),
-	forall(component(Source, Properties),
-	       check_installation(Source, Properties.put(source,Source))),
+	forall(component(Source, _Properties),
+	       check_installation(Source)),
 	findall(I, retract(issue(I)), Issues),
 	(   Issues == []
 	->  print_message(informational, installation(perfect))
@@ -142,6 +142,9 @@ check_installation :-
 	    print_message(warning, installation(imperfect(Count)))
 	).
 
+check_installation(Source) :-
+	component(Source, Properties), !,
+	check_installation(Source, Properties.put(source,Source)).
 
 check_installation(Source, Properties) :-
 	compound(Source), !,
@@ -166,7 +169,7 @@ check_source(Source, Properties) :-
 			 load_files(Source, [silent(true)])
 		       ),
 		       Properties.put(action, load))
-	->  check_installation(Properties),
+	->  test_component(Properties),
 	    print_message(informational, installation(ok)),
 	    check_features(Properties)
 	;   true
@@ -182,14 +185,14 @@ current_os(unix)    :- current_prolog_flag(unix, true).
 current_os(windows) :- current_prolog_flag(windows, true).
 current_os(linux)   :- current_prolog_flag(arch, Arch), sub_atom(Arch, _, _, _, linux).
 
-%%	check_installation(+Properties) is semidet.
+%%	test_component(+Properties) is semidet.
 %
 %	Run additional tests to see whether the componnent really works.
 
-check_installation(Dict) :-
+test_component(Dict) :-
 	Test = Dict.get(test), !,
 	call(Test).
-check_installation(_).
+test_component(_).
 
 %%	check_features(+Properties) is semidet.
 %
