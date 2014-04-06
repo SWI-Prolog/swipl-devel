@@ -464,9 +464,9 @@ build_swipl_core()
 }
 
 dist_dlls="libarchive-*.dll libeay32.dll libgmp-*.dll libjpeg-*.dll "
-dist_dlls+="pthread*.dll ssleay32.dll zlib*.dll"
-if stat -t "$install/libgcc*.dll" > /dev/null 2>&1; then
-  dist_dlls+="$install/libgcc*.dll"
+dist_dlls+="*pthread*.dll ssleay32.dll zlib*.dll"
+if [ -r "$(echo $install/bin/libgcc*.dll)" ]; then
+  dist_dlls+=" $(basename $install/bin/libgcc*.dll)"
 fi
 
 # this assumes that the required GCC dlls are copied into $install
