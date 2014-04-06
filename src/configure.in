@@ -48,6 +48,7 @@ AC_SUBST(DLLIBVAR)
 AC_SUBST(RLPREFIX)
 AC_SUBST(OPTIMISE)
 AC_SUBST(MINGW)
+AC_SUBST(MINGWPTHREAD)
 AC_SUBST(WINDRES)
 AC_SUBST(WINE)
 AC_SUBST(MSLIBEXE)			dnl how to call lib.exe
@@ -769,10 +770,16 @@ case "$PLARCH" in
     *-win32|*-win64)
         pthread_ok=true
 	AC_CHECK_LIB(pthreadGC2, pthread_create)
-        if test ! "$ac_cv_lib_pthreadGC2_pthread_create" = "yes"; then
+        if test "$ac_cv_lib_pthreadGC2_pthread_create" = "yes"; then
+	  MINGWPTHREAD=pthreadGC2
+	else
           AC_CHECK_LIB(pthreadGC, pthread_create)
-          if test ! "$ac_cv_lib_pthreadGC_pthread_create" = "yes"; then
+          if test "$ac_cv_lib_pthreadGC_pthread_create" = "yes"; then
+	    MINGWPTHREAD=pthreadGC
+	  else
             AC_CHECK_LIB(pthread, pthread_create)
+	    dnl Find real name of this MinGW thread library
+	    MINGWPTHREAD=libwinpthread-1
           fi
         fi
 	;;
@@ -846,8 +853,8 @@ esac
       fi
       ;;
   esac
-  AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency
-		 pthread_getw32threadhandle_np)
+  AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
+  AC_CHECK_FUNCS(pthread_getw32threadhandle_np)
 
 dnl ATOMIC inc/dec for reference counts
 
