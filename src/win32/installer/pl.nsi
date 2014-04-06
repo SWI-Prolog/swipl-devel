@@ -285,6 +285,7 @@ Section "Base system (required)"
   File ${SWIPL}\bin\libjpeg-8.dll
   File ${SWIPL}\bin\ssleay32.dll
   File ${SWIPL}\bin\libarchive-13.dll
+  File /nonfatal ${SWIPL}\bin\libgcc_s_sjlj-1.dll
 !else
   File ${SWIPL}\bin\swipl.dll
 !endif
@@ -544,7 +545,7 @@ Section "C/C++ Interface"
   File ${SWIPL}\lib\libswipl.def
   File ${SWIPL}\lib\libswipl.lib
   File ${SWIPL}\lib\plterm.dll.a
-  File ${SWIPL}\lib\libpthreadGC2.dll.a
+  File /nonfatal ${SWIPL}\lib\libpthreadGC2.dll.a
 !else
   File ${SWIPL}\lib\swipl.lib
   File ${SWIPL}\lib\plterm.lib
