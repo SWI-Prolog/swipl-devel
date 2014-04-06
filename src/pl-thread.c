@@ -661,6 +661,7 @@ reinit_threads_after_fork(void)
 
 #else
 
+#undef pthread_atfork				/* may be a macro */
 #define pthread_atfork(prep, parent, child) (void)0
 
 #endif /*O_ATFORK*/
@@ -4660,6 +4661,10 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 					/* see also pl-nt.c */
 #define nano * 0.000000001
 #define ntick 100.0
+
+#ifndef pthread_getw32threadhandle_np
+#define pthread_getw32threadhandle_np(t) pthread_gethandle(t)
+#endif
 
 double
 ThreadCPUTime(PL_local_data_t *ld, int which)

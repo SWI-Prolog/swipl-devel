@@ -846,7 +846,8 @@ esac
       fi
       ;;
   esac
-  AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
+  AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency
+		 pthread_getw32threadhandle_np)
 
 dnl ATOMIC inc/dec for reference counts
 
