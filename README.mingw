@@ -66,6 +66,15 @@
 # Linux must be configured such that Windows  .exe files can be executed
 # directly    without    explicit    invocation      of     wine.    See
 # https://www.kernel.org/doc/Documentation/binfmt_misc.txt
+#
+# Updated for Ubuntu 14.04. This  version   ships  with MinGW 4.8, which
+# provides winpthread. If you upgrade, you  must remove pthreads-w32 and
+# recompile the prerequisites to depend on MinGW's native pthreads:
+#
+#   - Remove pthreads-w32 and all traces from $install/bin, $install/lib
+#     and $install/include
+#   - Run clean_prerequisites (function in this script)
+#   - Run build_prerequisites (function in this script)
 
 TARGETHOST="$1"
 MAKE="make -j 4"
