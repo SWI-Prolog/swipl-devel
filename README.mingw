@@ -110,6 +110,7 @@ case "$(uname)" in
 	CROSSCOMPILING=no
 	export PATH=$install/bin:$PATH
 	DRIVEC="/C"
+	MINGWGCC=gcc
 	;;
     *)
 	CROSSCOMPILING=yes
@@ -134,6 +135,13 @@ if [ "$CROSSCOMPILING" = yes ]; then
 	;;
     esac
   fi
+  MINGWGCC=$CROSS-gcc
+fi
+
+# See whether pthread is built-in
+
+if [ -r "$($MINGWGCC -print-file-name=libwinpthread-1.dll)" ]; then
+  PTHREADS_VERSION=
 fi
 
 # Java configuration
@@ -214,26 +222,32 @@ build_gmp()
 }
 
 ###########################
-# Download and install the Pthreads-win32 library.
+# Download and install the Pthreads-win32 library.  Only if PTHREADS_VERSION
+# is set. Else we assume a recent MinGW64, which ships with
+# libwinpthread
 
 download_pthread_win32()
-{ PTHREADS_FILE=pthreads-w32-$PTHREADS_VERSION.tar.gz
+{ if [ ! -z "$PTHREADS_VERSION" ]; then
+    PTHREADS_FILE=pthreads-w32-$PTHREADS_VERSION.tar.gz
 
-  cd $src
-  [ -f $PTHREADS_FILE ] || \
-    wget ftp://sourceware.org/pub/pthreads-win32/$PTHREADS_FILE
+    cd $src
+    [ -f $PTHREADS_FILE ] || \
+      wget ftp://sourceware.org/pub/pthreads-win32/$PTHREADS_FILE
 
-  tar xzf $PTHREADS_FILE
+    tar xzf $PTHREADS_FILE
+  fi
 }
 
 build_pthread_win32()
-{ ( cd pthreads-w32-$PTHREADS_VERSION
-    make -f GNUmakefile CROSS=$CROSS- \
-        LFLAGS="-lwsock32 -Wl,--out-implib=libpthreadGC2.dll.a" GC
-    cp pthread.h semaphore.h sched.h $install/include/
-    cp pthreadGC2.dll $install/bin/
-    cp libpthreadGC2.dll.a $install/lib/
-  )
+{ if [ -d pthreads-w32-$PTHREADS_VERSION ]; then
+    ( cd pthreads-w32-$PTHREADS_VERSION
+      make -f GNUmakefile CROSS=$CROSS- \
+	  LFLAGS="-lwsock32 -Wl,--out-implib=libpthreadGC2.dll.a" GC
+      cp pthread.h semaphore.h sched.h $install/include/
+      cp pthreadGC2.dll $install/bin/
+      cp libpthreadGC2.dll.a $install/lib/
+    )
+  fi
 }
 
 ###########################
@@ -247,7 +261,7 @@ download_ssl()
 
 build_ssl()
 { ( cd openssl-$SSL_VERSION
-    export CC=$CROSS-gcc
+    export CC=$MINGWGCC
     case $CROSS in
 	i?86*)	 MINGW=mingw
 		 ;;
@@ -370,6 +384,20 @@ build_libuuid()
 
 ###########################
 # Do the whole lot for all prerequisites
+
+clean_prerequisites()
+{ ( cd gmp-$GMP_VERSION && make distclean )
+  ( cd openssl-$SSL_VERSION && make distclean )
+  ( cd jpeg-$JPEG_VERSION && make distclean )
+  ( cd libXpm/lib && make distclean )
+  ( cd zlib-$ZLIB_VERSION && make distclean )
+  ( cd libarchive-$ARCHIVE_VERSION && make distclean )
+  ( cd uuid-$UUID_VERSION && make distclean )
+  if [ -d pthreads-w32-$PTHREADS_VERSION ]; then
+    ( cd pthreads-w32-$PTHREADS_VERSION && make distclean )
+  fi
+}
+
 
 download_prerequisites()
 { download_gmp
