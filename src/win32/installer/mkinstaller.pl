@@ -213,15 +213,20 @@ process_file_decl -->
 	;   "/oname="
 	->  path(_Oname),
 	    blank, ws,
-	    path(_File)			% Intended singleton?
-	;   path(File),
-	    { assert(install_file(File))
-	    }
+	    install_file
+	;   "/nonfatal"
+	->  blank, ws,
+	    install_file
+	;   install_file
 	),
 	ws.
 process_file_decl -->
 	string(_),
 	eos.
+
+install_file -->
+	path(File),
+	{ assert(install_file(File)) }.
 
 path(Path) -->
 	token(Token),
