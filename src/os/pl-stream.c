@@ -1937,6 +1937,7 @@ Svprintf(const char *fm, va_list args)
 #define A_LEFT	0			/* left-aligned field */
 #define A_RIGHT 1			/* right-aligned field */
 
+#ifdef __WINDOWS__
 /* This is a copy from src/pl-nt.c, copied here to avoid dependency
    of pl-stream.c on SWI-Prolog internals.
 */
@@ -1957,6 +1958,7 @@ ms_snprintf(char *buffer, size_t count, const char *fmt, ...)
 
   return ret;
 }
+#endif
 
 #define SNPRINTF3(fm, a1) \
 	{ size_t __r; \
