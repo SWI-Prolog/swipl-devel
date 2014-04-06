@@ -1556,8 +1556,14 @@ thread.
 
 #ifdef O_PLMT
 #include <pthread.h>
+static pthread_once_t key_created = PTHREAD_ONCE_INIT;
 static pthread_key_t key;
 #endif
+
+static void
+atom_generator_create_key(void)
+{ pthread_key_create(&key, NULL);
+}
 
 static int
 atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
@@ -1565,19 +1571,17 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
   size_t index;
   int i, last=FALSE;
 
-#ifdef O_PLMT
-  if ( !key )
-    pthread_key_create(&key, NULL);
-#endif
+  if ( !LD )
+    pthread_once(&key_created, atom_generator_create_key);
 
   if ( !state )
   { index = 1;
   } else
-  {
+  { if ( LD )
+      index = LD->atoms.generator;
 #ifdef O_PLMT
-    index = (size_t)pthread_getspecific(key);
-#else
-    index = LD->atoms.generator;
+    else
+      index = (size_t)pthread_getspecific(key);
 #endif
   }
 
@@ -1601,12 +1605,13 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 	   hit->length < ALT_SIZ &&
 	   PL_cmp_text(prefix, 0, hit, 0, prefix->length) == 0 &&
 	   is_identifier_text(hit) )
-      {
+      { if ( LD )
+	  LD->atoms.generator = index+1;
 #ifdef O_PLMT
-        pthread_setspecific(key, (void *)(index+1));
-#else
-        LD->atoms.generator = index+1;
+	else
+	  pthread_setspecific(key, (void *)(index+1));
 #endif
+
         return TRUE;
       }
     }
