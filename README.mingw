@@ -437,10 +437,17 @@ build_swipl_core()
 
 dist_dlls="libarchive-*.dll libeay32.dll libgmp-*.dll libjpeg-*.dll "
 dist_dlls+="pthread*.dll ssleay32.dll zlib*.dll"
+if stat -t "$install/libgcc*.dll" > /dev/null 2>&1; then
+  dist_dlls+="$install/libgcc*.dll"
+fi
+
+# this assumes that the required GCC dlls are copied into $install
 
 copy_dlls()
 { (cd $install/bin && cp $dist_dlls $install/swipl/bin)
-  cp $install/lib/libpthreadGC2.dll.a $install/swipl/lib
+  if [ -r $install/lib/libpthreadGC2.dll.a ]; then
+    cp $install/lib/libpthreadGC2.dll.a $install/swipl/lib
+  fi
 }
 
 
