@@ -137,7 +137,7 @@ PlMessage(const char *fm, ...)
       ATOM_hwnd = PL_new_atom("hwnd");
 
     if ( PL_current_prolog_flag(ATOM_hwnd, PL_INTEGER, &hwndi) )
-      hwnd = (HWND)hwndi;
+      hwnd = (HWND)(uintptr_t)hwndi;
 
     vsprintf(buf, fm, args);
     MessageBox(hwnd, buf, "SWI-Prolog", MB_OK|MB_TASKMODAL);
@@ -688,7 +688,7 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
       return PL_representation_error("file_name");
     if ( load_library_search_flags() )
     { if ( (cookie = (*f_AddDllDirectoryW)(dirw)) )
-	return PL_unify_int64(A2, (int64_t)cookie);
+	return PL_unify_int64(A2, (int64_t)(uintptr_t)cookie);
       return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "AddDllDirectory()");
     } else
       return FALSE;
@@ -703,7 +703,7 @@ PRED_IMPL("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
 
   if ( PL_get_int64_ex(A1, &icookie) )
   { if ( f_RemoveDllDirectory )
-    { if ( (*f_RemoveDllDirectory)((DLL_DIRECTORY_COOKIE)icookie) )
+    { if ( (*f_RemoveDllDirectory)((DLL_DIRECTORY_COOKIE)(uintptr_t)icookie) )
 	return TRUE;
 
       return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "RemoveDllDirectory()");
