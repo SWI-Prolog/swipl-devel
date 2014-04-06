@@ -260,7 +260,7 @@ build_ssl()
     ./Configure $MINGW --prefix=$install shared threads
     make CROSS_COMPILE=$CROSS- depend
     make CROSS_COMPILE=$CROSS-
-    make CROSS_COMPILE=$CROSS- install
+    make CROSS_COMPILE=$CROSS- install_sw
   )
 }
 
