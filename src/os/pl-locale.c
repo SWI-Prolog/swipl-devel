@@ -540,6 +540,7 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
       succeed;
     default:
       assert(0);
+      fail;
   }
 
 enumerate:
