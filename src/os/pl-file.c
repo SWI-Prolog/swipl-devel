@@ -3248,8 +3248,16 @@ openStream(term_t file, term_t mode, term_t options)
   } else if ( type == ATOM_binary )
   { enc = ENC_OCTET;
     bom = FALSE;
-  } else
+  } else if ( type == ATOM_text )
   { enc = LD->encoding;
+  } else
+  { term_t ex;
+
+    if ( (ex = PL_new_term_ref()) &&
+	 PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_type1, PL_ATOM, type) )
+      PL_domain_error("stream_option", ex);
+
+    return NULL;
   }
 
   if ( bom == -1 )
