@@ -4662,7 +4662,7 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 #define nano * 0.000000001
 #define ntick 100.0
 
-#ifndef pthread_getw32threadhandle_np
+#ifndef HAVE_PTHREAD_GETW32THREADHANDLE_NP
 #define pthread_getw32threadhandle_np(t) pthread_gethandle(t)
 #endif
 
