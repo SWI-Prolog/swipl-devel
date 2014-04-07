@@ -1214,6 +1214,12 @@ if test "x$ac_cv_func_unsetenv" = "xyes"; then
 		 AC_MSG_RESULT(yes))
 fi
 
+if test "$MINGW" = false; then
+
+dnl The tests below are Unix only.  There is no point doing this for MinGW.
+dnl In particular, MinGW 4.8 claims clock_gettime() to be present, but fetching
+dnl CLOCK_REALTIME on Win32 returns bogus.
+
 AC_CHECK_HEADERS(sys/syscall.h)
 AC_CHECK_FUNCS(syscall)
 
@@ -1360,8 +1366,9 @@ if { test -f /proc/cpuinfo && \
 	     [Define if you have Linux compatible /proc/cpuinfo])
 else
    AC_MSG_RESULT(no)
-fi
-fi
+fi dnl /proc
+fi dnl sc_nprocessors_conf
+fi dnl "$MINGW" = false
 
 AC_CHECK_LIB(unwind, main,
 	     check_unwind_h=yes)
