@@ -73,7 +73,6 @@ string_overflow2([H|T]) :-		% Causes PL_throw() overflow
 
 test(local, throws(error(resource_error(stack), local))) :-
 	local_overflow.
-					% VERY slow with -DO_SECURE
 test(global, throws(error(resource_error(stack), global))) :-
 	global_overflow(0).
 test(string, throws(error(resource_error(stack), global))) :-
