@@ -3831,14 +3831,15 @@ garbageCollect(void)
 		     PL_INTPTR, roomStack(global),
 		     PL_INTPTR, roomStack(trail));
 
-  trimStacks(LD->trim_stack_requested PASS_LD);
-
 #ifdef O_PROFILE
   if ( prof_node && LD->profile.active )
     profExit(prof_node PASS_LD);
 #endif
 
   restore_vmi_state(&state);
+  assert(!LD->query ||
+	 !LD->query->registers.fr ||
+	 state.frame == LD->query->registers.fr);
   if ( no_mark_bar )
     LD->mark_bar = NO_MARK_BAR;
   gc_status.active = FALSE;
@@ -3847,11 +3848,9 @@ garbageCollect(void)
   unblockSignals(&LD->gc.saved_sigmask);
 #endif
   LD->gc.inferences = LD->statistics.inferences;
+  trimStacks(LD->trim_stack_requested PASS_LD);
   leaveGC(PASS_LD1);
 
-  assert(!LD->query ||
-	 !LD->query->registers.fr ||
-	 state.frame == LD->query->registers.fr);
   shiftTightStacks();
 
   return TRUE;
