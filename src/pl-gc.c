@@ -3203,12 +3203,7 @@ considerGarbageCollect(Stack s)
     { if ( s->gc )
       { size_t used  = usedStackP(s);	/* amount in actual use */
 	size_t limit = sizeStackP(s);	/* amount we want to grow to */
-	size_t space = limit - used;
-
-	if ( LD->outofstack == s )
-	{ DEBUG(MSG_GC_SCHEDULE, Sdprintf("GC: request on low space\n"));
-	  return PL_raise(SIG_GC);
-	}
+	size_t space = limit > used ? limit - used : 0;
 
 	if ( LD->gc.inferences == LD->statistics.inferences &&
 	     !LD->exception.processing )
@@ -3960,7 +3955,11 @@ makeMoreStackSpace(int overflow, int flags)
 int ensureGlobalSpace(size_t cell, int flags)
 
 Makes sure we have the requested amount of space on the global stack. If
-the space is not available, first try GC; than try shifting the stacks.
+the space is not available
+
+  1. If allowed, try GC
+  2. If GC or SHIFT is allowed, try shifting the stacks
+  3. Use the spare stack and raise a GC request.
 
 Returns TRUE, FALSE or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3973,7 +3972,7 @@ ensureGlobalSpace(size_t cells, int flags)
   if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
     return TRUE;
 
-  if ( LD->exception.processing || LD->gc.status.active == TRUE )
+  if ( LD->gc.active )
   { enableSpareStack((Stack)&LD->stacks.global);
     enableSpareStack((Stack)&LD->stacks.trail);
 
@@ -3981,18 +3980,18 @@ ensureGlobalSpace(size_t cells, int flags)
       return TRUE;
   }
 
-  if ( !flags )
-    goto nospace;
-
-  if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
-  { garbageCollect();
-
-    if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
-      return TRUE;
-  }
-
+  if ( flags )
   { size_t gmin;
     size_t tmin;
+
+    if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
+    { garbageCollect();
+
+      if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+	return TRUE;
+    }
+
+    /* Consider a stack-shift.  ALLOW_GC implies ALLOW_SHIFT */
 
     if ( gTop+cells > gMax || tight((Stack)&LD->stacks.global PASS_LD) )
       gmin = cells*sizeof(word);
@@ -4009,7 +4008,14 @@ ensureGlobalSpace(size_t cells, int flags)
       return TRUE;
   }
 
-nospace:
+/*
+  enableSpareStack((Stack)&LD->stacks.global);
+  enableSpareStack((Stack)&LD->stacks.trail);
+
+  if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+    return TRUE; //PL_raise(SIG_GC);
+*/
+
   if ( gTop+cells > gMax )
     return GLOBAL_OVERFLOW;
   else
@@ -4719,7 +4725,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 }
 
 
-static void
+static int
 include_spare_stack(Stack s, size_t *request)
 { if ( *request && *request != GROW_TRIM )
     *request += s->def_spare - s->spare;
@@ -4727,6 +4733,10 @@ include_spare_stack(Stack s, size_t *request)
   if ( s->spare )
   { s->max = addPointer(s->max, s->spare);
     s->spare = 0;
+
+    return TRUE;
+  } else
+  { return FALSE;
   }
 }
 
@@ -4736,26 +4746,36 @@ Returns one of TRUE:  Stacks  are   resized;  FALSE:  stack-shifting  is
 blocked or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+reenable_spare_stack(void *ptr, int prev)
+{ Stack s = ptr;
+
+  if ( prev || roomStackP(s) >= 2*s->def_spare )
+    trim_stack(s);
+}
+
+
 int
 growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
+  int sl, sg, st;
 
 #ifdef O_MAINTENANCE
   save_backtrace("SHIFT");
 #endif
 
+  sl = include_spare_stack((Stack)&LD->stacks.local,  &l);
+  sg = include_spare_stack((Stack)&LD->stacks.global, &g);
+  st = include_spare_stack((Stack)&LD->stacks.trail,  &t);
+
   gBase--; gMax++; tMax++;
-  include_spare_stack((Stack)&LD->stacks.local,  &l);
-  include_spare_stack((Stack)&LD->stacks.global, &g);
-  include_spare_stack((Stack)&LD->stacks.trail,  &t);
-
   rc = grow_stacks(l, g, t PASS_LD);
-
-  trim_stack((Stack)&LD->stacks.trail);
-  trim_stack((Stack)&LD->stacks.global);
-  trim_stack((Stack)&LD->stacks.local);
   gBase++; gMax--; tMax--;
+
+  reenable_spare_stack(&LD->stacks.trail,  st);
+  reenable_spare_stack(&LD->stacks.global, sg);
+  reenable_spare_stack(&LD->stacks.local,  sl);
 
   return rc;
 }

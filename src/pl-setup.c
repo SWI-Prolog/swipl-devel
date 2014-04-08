@@ -1448,25 +1448,6 @@ PRED_IMPL("trim_stacks", 0, trim_stacks, 0)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Called at the end of handling an exception. We cannot do GC, however, we
-can request it, after it will be executed   at the start of the recovery
-handler. If no GC is needed, we call trimStacks() to re-enable the spare
-stack-space if applicable.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-resumeAfterException(void)
-{ GET_LD
-
-  if ( !considerGarbageCollect((Stack)NULL) )
-    trimStacks(FALSE, PASS_LD1);
-
-  LD->exception.processing = FALSE;
-  LD->outofstack = NULL;
-}
-
-
 		 /*******************************
 		 *	    LOCAL DATA		*
 		 *******************************/

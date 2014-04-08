@@ -1478,6 +1478,69 @@ foreignWakeup(term_t *ex ARG_LD)
 
 
 		 /*******************************
+		 *	     EXCEPTIONS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called at the end of handling an exception. We cannot do GC, however, we
+can request it, after it will be executed   at the start of the recovery
+handler. If no GC is needed, we call trimStacks() to re-enable the spare
+stack-space if applicable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+clear_exception__LD(ARG_LD1)
+{ GET_LD
+
+  if ( exception_term )
+  { exception_term = 0;
+    setVar(*valTermRef(LD->exception.bin));
+    setVar(*valTermRef(LD->exception.printed));
+    setVar(*valTermRef(LD->exception.pending));
+  }
+}
+
+
+static void
+resumeAfterException(int clear, Stack outofstack)
+{ GET_LD
+
+  if ( clear )
+  { exception_term = 0;
+    setVar(*valTermRef(LD->exception.bin));
+    setVar(*valTermRef(LD->exception.printed));
+    setVar(*valTermRef(LD->exception.pending));
+  }
+
+  if ( outofstack && outofstack->gc )
+    outofstack->gced_size = 0;
+
+  if ( !considerGarbageCollect((Stack)NULL) )
+    trimStacks((outofstack != NULL) PASS_LD);
+  else if ( outofstack != NULL )
+    LD->trim_stack_requested = TRUE;
+
+  LD->exception.processing = FALSE;
+}
+
+
+static void
+exceptionUnwindGC(Stack outofstack)
+{ if ( outofstack && outofstack->gc )
+  { GET_LD
+
+    outofstack->gced_size = 0;
+    LD->trim_stack_requested = TRUE;
+    if ( considerGarbageCollect(outofstack) )
+    { garbageCollect();
+      if ( roomStackP(outofstack) < outofstack->def_spare )
+	enableSpareStack(outofstack);
+    }
+  }
+}
+
+
+		 /*******************************
 		 *   FOREIGN-LANGUAGE INTERFACE *
 		 *******************************/
 

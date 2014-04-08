@@ -1182,6 +1182,9 @@ cleanupProlog(int rval, int reclaim_memory)
   if ( GD->initialised )
   { DEBUG(5, Sdprintf("Running at_halt hooks\n"));
 
+    if ( LD->outofstack )
+      emptyStacks();
+
     PL_set_prolog_flag("exit_status", PL_INTEGER, rval);
     if ( !query_loop(PL_new_atom("$run_at_halt"), FALSE) &&
 	 rval == 0 &&

@@ -553,7 +553,6 @@ COMMON(void)		initPrologLocalData(ARG1_LD);
 COMMON(void)		deallocateStacks(void);
 COMMON(bool)		restoreStack(Stack s);
 COMMON(void)		trimStacks(int resize ARG_LD);
-COMMON(void)		resumeAfterException(void);
 COMMON(void)		emptyStacks(void);
 COMMON(void)		freeStacks(ARG1_LD);
 COMMON(void)		freePrologLocalData(PL_local_data_t *ld);

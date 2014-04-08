@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2011, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -196,7 +194,7 @@ outOfStack(void *stack, stack_overflow_action how)
   Stack s = stack;
   const char *msg = "unhandled stack overflow";
 
-  if ( LD->outofstack )
+  if ( LD->outofstack == stack )
   { Sdprintf("[Thread %d]: failed to recover from %s-overflow\n",
 	     PL_thread_self(), s->name);
     print_backtrace_named(msg);
@@ -209,13 +207,14 @@ outOfStack(void *stack, stack_overflow_action how)
 
   save_backtrace(msg);
 
-  if ( s->spare != s->def_spare )
-  { Sdprintf("[Thread %d]: %s-overflow: spare=%ld\n"
+  if ( s->spare < s->def_spare/4 )
+  { Sdprintf("[Thread %d]: %s-overflow: spare=%ld (def=%ld)\n"
 	     "Last resource exception:\n",
-	     PL_thread_self(), s->name, (long)s->spare);
+	     PL_thread_self(), s->name, (long)s->spare, (long)s->def_spare);
     print_backtrace_named("exception");
   }
 
+  enableSpareStack(s);
   LD->trim_stack_requested = TRUE;
   LD->exception.processing = TRUE;
   LD->outofstack = stack;
