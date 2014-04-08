@@ -1762,19 +1762,13 @@ trace_if_space(void)
 #define minFreeStack(name, size) \
 	(spaceStack(name) > size*(int)sizeof(void*))
 
-  if ( LD->outofstack )
-  { if ( minFreeStack(local,  50000) &&
-	 minFreeStack(global, 50000) &&
-	 minFreeStack(trail,  20000) )
-      trace = TRUE;
-    else
-      trace = FALSE;
-  } else
+  if ( minFreeStack(local,  50000) &&
+       minFreeStack(global, 50000) &&
+       minFreeStack(trail,  20000) )
   { trace = TRUE;
-  }
-
-  if ( trace )
     tracemode(trace, NULL);
+  } else
+    trace = FALSE;
 
   return trace;
 }
