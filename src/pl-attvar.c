@@ -432,6 +432,7 @@ saveWakeup(wakeup_state *state, int forceframe, ARG1_LD)
 { Word h;
 
   state->flags = 0;
+  state->outofstack = LD->outofstack;
 
   if ( *(h=valTermRef(LD->attvar.head)) ||
        exception_term ||
@@ -492,7 +493,9 @@ restore_wakeup(Word p ARG_LD)
 
 void
 restoreWakeup(wakeup_state *state ARG_LD)
-{ if ( state->fid )
+{ LD->outofstack = state->outofstack;
+
+  if ( state->fid )
   { if ( state->flags )
     { FliFrame fr = (FliFrame) valTermRef(state->fid);
       Word p = (Word)(fr+1);

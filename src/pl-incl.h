@@ -1864,7 +1864,8 @@ typedef struct
 
 typedef struct wakeup_state
 { fid_t		fid;			/* foreign frame reference */
-  int		flags;
+  Stack		outofstack;		/* Stack we are out of */
+  int		flags;			/* WAKEUP_STATE_* */
 } wakeup_state;
 
 
