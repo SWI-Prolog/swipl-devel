@@ -190,11 +190,29 @@ enableSpareStack(Stack s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*)  outOfStack(stack,  how)  is  called  to   raise  a  stack  overflow
+exception. This can happen from two  placed:   the  VM and foreign code.
+When the error is thrown from the VM,  we have to be careful because the
+state of the VM is unknown. Notably, we   might be in `body write' mode,
+which implies we are writing terms to   the  local stack above lTop. For
+this reason, we cannot use  PL_open_foreign_frame().   So,  we build the
+error term using low-level primitives that   only touch the global stack
+with  a  few  cells   and   also    avoid   the   term   duplication  of
+PL_raise_exception().
+
+FIXME: We could consider reserving some space   on  the global stack for
+resource exceptions near the bottom. That would   also avoid the need to
+freeze the global stack. One  problem  is   that  the  user  migh keep a
+reference to this reserved exception term,  which makes it impossible to
+reuse.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
   Stack s = stack;
-  const char *msg = "unhandled stack overflow";
+  const char *msg = "out-of-stack";
 
   if ( LD->outofstack )
   { Sdprintf("[Thread %d]: failed to recover from %s-overflow\n",
@@ -223,39 +241,37 @@ outOfStack(void *stack, stack_overflow_action how)
   switch(how)
   { case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
-    { fid_t fid;
+    { if ( gTop+5 < gMax )
+      { Word p = gTop;
 
-      blockGC(0 PASS_LD);
+	p[0] = FUNCTOR_error2;			/* see (*) above */
+	p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p[2] = PL_new_atom(s->name);
+	p[3] = FUNCTOR_resource_error1;
+	p[4] = ATOM_stack;
+	gTop += 5;
+	PL_unregister_atom(p[2]);
 
-      if ( (fid=PL_open_foreign_frame()) )
-      { PL_clearsig(SIG_GC);
-	s->gced_size = 0;			/* after handling, all is new */
-	if ( !PL_unify_term(LD->exception.tmp,
-			    PL_FUNCTOR, FUNCTOR_error2,
-			      PL_FUNCTOR, FUNCTOR_resource_error1,
-			        PL_ATOM, ATOM_stack,
-			      PL_CHARS, s->name) )
-	  fatalError("Out of stack inside out-of-stack handler");
+	*valTermRef(LD->exception.bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	freezeGlobal(PASS_LD1);
+      } else
+      { Sdprintf("Out of %s-stack.  No room for exception term.  Aborting.\n");
+	*valTermRef(LD->exception.bin) = ATOM_aborted;
+      }
+      exception_term = exception_bin;
 
-	if ( how == STACK_OVERFLOW_THROW )
-	{ PL_close_foreign_frame(fid);
-	  unblockGC(0 PASS_LD);
-	  PL_throw(LD->exception.tmp);
-	  warning("Out of %s stack while not in Prolog!?", s->name);
-	  assert(0);
-	} else
-	{ PL_raise_exception(LD->exception.tmp);
-	}
-
-	PL_close_foreign_frame(fid);
+      if ( how == STACK_OVERFLOW_THROW &&
+	   LD->exception.throw_environment )
+      {						/* see PL_throw() */
+	longjmp(LD->exception.throw_environment->exception_jmp_env, 1);
       }
 
-      unblockGC(0 PASS_LD);
-      fail;
+      return FALSE;
     }
+    default:
+      assert(0);
+      fail;
   }
-  assert(0);
-  fail;
 }
 
 
