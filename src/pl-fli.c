@@ -3716,8 +3716,6 @@ PL_clear_foreign_exception(LocalFrame fr)
 	   predicateName(fr->predicate));
   PL_write_term(Serror, ex, 1200, 0);
   Sdprintf("\n");
-  if ( is_resource_error(ex) )
-    print_backtrace_named("exception");
 
   PL_clear_exception();
 }
