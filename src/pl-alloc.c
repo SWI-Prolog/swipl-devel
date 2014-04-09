@@ -254,7 +254,7 @@ outOfStack(void *stack, stack_overflow_action how)
 	*valTermRef(LD->exception.bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 	freezeGlobal(PASS_LD1);
       } else
-      { Sdprintf("Out of %s-stack.  No room for exception term.  Aborting.\n");
+      { Sdprintf("Out of %s-stack.  No room for exception term.  Aborting.\n", s->name);
 	*valTermRef(LD->exception.bin) = ATOM_aborted;
       }
       exception_term = exception_bin;
