@@ -309,8 +309,11 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
 	).
 
 show_syntax_error(TB, Pos:Message, Range) :-
+	integer(Pos), !,
 	End is Pos + 1,
 	colour_item(syntax_error(Message, Range), TB, Pos-End).
+show_syntax_error(TB, _:Message, Range) :-
+	colour_item(syntax_error(Message, Range), TB, Range).
 
 
 singleton(Var, TB) :-
