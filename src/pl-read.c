@@ -516,7 +516,8 @@ ptr_to_location(const unsigned char *here, source_location *pos, ReadData _PL_rd
   *pos = _PL_rd->start_of_term;
 
 						/* update line number */
-  for(s=rdbase; s<here; s = utf8_get_uchar(s, &c))
+  s=rdbase;
+  while( (s = utf8_get_uchar(s, &c)) < here )
   { pos->position.charno++;
 
     if ( c == '\n' )
