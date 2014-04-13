@@ -1134,8 +1134,8 @@ PRED_IMPL("is_dict", 1, is_dict, 0)
     FunctorDef fd = valueFunctor(f->definition);
 
     if ( fd->name == ATOM_dict &&
-	 fd->arity%2 == 1 &&
-	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
+	 fd->arity%2 == 1 /*&&
+	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE*/ )
       return TRUE;
   }
 
@@ -1154,8 +1154,8 @@ PRED_IMPL("is_dict", 2, is_dict, 0)
     FunctorDef fd = valueFunctor(f->definition);
 
     if ( fd->name == ATOM_dict &&
-	 fd->arity%2 == 1 &&
-	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
+	 fd->arity%2 == 1 /*&&
+	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE*/ )
       return unify_ptrs(&f->arguments[0], valTermRef(A2),
 			ALLOW_GC|ALLOW_SHIFT PASS_LD);
   }
