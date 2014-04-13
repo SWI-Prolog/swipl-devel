@@ -4793,15 +4793,21 @@ Rationalized version of \predref{=..}{2} that can compose and decompose
 compound terms with zero arguments. See also compound_name_arity/3.
 
     \predicate{numbervars}{3}{+Term, +Start, -End}
-Unify the free variables of \arg{Term} with a term \term{\$VAR}{N},
+Unify the free variables in \arg{Term} with a term \term{\$VAR}{N},
 where \arg{N} is the number of the variable. Counting starts at
 \arg{Start}. \arg{End} is unified with the number that should be given
-to the next variable. Example:
+to the next variable. The example below illustrates this. Note that the
+toplevel prints \verb!'$VAR'(0)! as \arg{A} due to the
+\term{numbervars}{true} option used to print answers.
 
 \begin{code}
-?- numbervars(foo(A, B, A), 0, End).
-A = '$VAR'(0),
-B = '$VAR'(1),
+?- Term = foo(X,Y,Z),
+   numbervars(Term, 0, End),
+   write_canonical(Term), nl.
+foo('$VAR'(0),'$VAR'(1),'$VAR'(0))
+Term = foo(A, B, A),
+X = A,
+Y = B,
 End = 2.
 \end{code}
 
