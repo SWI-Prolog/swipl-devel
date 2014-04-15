@@ -951,16 +951,6 @@ backtracking.  The order in which the associations are returned is
 undefined.  This predicate is normally accessed using the functional
 notation \exam{Dict.Key}.  See \secref{ext-dict-functions}.
 
-    \predicate{get_dict_ex}{3}{?Key, +Dict, -Value}
-Equivalent to get_dict/3, but throws an existence_error if \arg{Key} is
-not in \arg{Dict}.  This version is used by the functional notation that
-extracts key-values from a dict:
-
-\begin{code}
-?- write(t{a:x}.b).
-ERROR: key `b' does not exist in t{a:x}
-\end{code}
-
     \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, -NewValue}
 Acts according to the following below.  \arg{Dict} is either a dict or
 a list the can be converted into a dict.

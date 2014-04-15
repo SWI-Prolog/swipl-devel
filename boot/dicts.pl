@@ -4,23 +4,23 @@
 
 %%	.(+R, +L, -Result)
 %
-%	Evaluate dot expressions
+%	Evaluate dot expressions. Note that  '$get_dict_ex' fails if the
+%	first argument is not a dict or the second is not a valid key or
+%	unbound.
 
 .(Dict, Func, Value) :-
-	is_dict(Dict, Tag), !,
-	(   (atomic(Func) ; var(Func))
-	->  get_dict_ex(Func, Dict, Value)
-	;   eval_dict_function(Func, Tag, Dict, Value)
+	(   '$get_dict_ex'(Func, Dict, V0)
+	*-> Value = V0
+	;   is_dict(Dict, Tag)
+	->  eval_dict_function(Func, Tag, Dict, Value)
+	;   is_list(KV)
+	->  (   (atomic(Func) ; var(Func))
+	    ->  dict_create(Dict, _, KV),
+		get_dict_ex(Func, Dict, Value)
+	    ;   '$type_error'(atom, Func)
+	    )
+	;   '$type_error'(dict, Dict)
 	).
-.(KV, Func, Value) :-
-	is_list(KV), !,
-	(   (atomic(Func) ; var(Func))
-	->  dict_create(Dict, _, KV),
-	    get_dict_ex(Func, Dict, Value)
-	;   '$type_error'(atom, Func)
-	).
-.(Obj, _, _) :-
-	'$type_error'(dict, Obj).
 
 
 %%	eval_dict_function(+Func, +Tag, +Dict, -Value)

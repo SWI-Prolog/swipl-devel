@@ -154,7 +154,7 @@ void sort_r(void *base, size_t nel, size_t width,
 		 *******************************/
 
 static int
-get_dict_ex(term_t t, Word dp ARG_LD)
+get_dict_ex(term_t t, Word dp, int ex ARG_LD)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -168,6 +168,9 @@ get_dict_ex(term_t t, Word dp ARG_LD)
       return TRUE;
     }
   }
+
+  if ( !ex )
+    return FALSE;
 
   return PL_type_error("dict", t);
 }
@@ -1181,7 +1184,7 @@ pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
   { case FRG_FIRST_CALL:
     { Word np = valTermRef(A1);
 
-      if ( !get_dict_ex(A2, &dict PASS_LD) )
+      if ( !get_dict_ex(A2, &dict, !ex PASS_LD) )
 	return FALSE;
 
       deRef(np);
@@ -1200,7 +1203,9 @@ pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
       { i = 1;
 	goto search;
       }
-      return PL_type_error("dict-key", A1);
+      if ( !ex )
+	return PL_type_error("dict-key", A1);
+      return FALSE;
     }
     case FRG_REDO:
     { Functor f;
@@ -1505,7 +1510,7 @@ retry:
     }
   }
 
-  if ( get_dict_ex(dict, &m PASS_LD) &&
+  if ( get_dict_ex(dict, &m, TRUE PASS_LD) &&
        get_name_ex(key, &k PASS_LD) )
   { Word vp;
 
@@ -1694,7 +1699,7 @@ BeginPredDefs(dict)
   PRED_DEF("nb_set_dict",  3, nb_set_dict,  0)
   PRED_DEF("nb_link_dict", 3, nb_link_dict, 0)
   PRED_DEF("get_dict",	   3, get_dict,	    PL_FA_NONDETERMINISTIC)
-  PRED_DEF("get_dict_ex",  3, get_dict_ex,  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$get_dict_ex", 3, get_dict_ex,  PL_FA_NONDETERMINISTIC)
   PRED_DEF("del_dict",	   4, del_dict,	    0)
   PRED_DEF("get_dict",     5, get_dict,     0)
   PRED_DEF("select_dict",  3, select_dict,  0)
