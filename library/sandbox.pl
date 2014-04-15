@@ -429,7 +429,7 @@ safe_primitive(system:is_dict(_)).
 safe_primitive(system:is_dict(_,_)).
 safe_primitive(system:get_dict(_,_,_)).
 safe_primitive(system:get_dict(_,_,_,_,_)).
-safe_primitive(system:get_dict_ex(_,_,_)).
+safe_primitive(system:'$get_dict_ex'(_,_,_)).
 safe_primitive(system:dict_create(_,_,_)).
 safe_primitive(system:dict_pairs(_,_,_)).
 safe_primitive(system:put_dict(_,_,_)).
