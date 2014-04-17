@@ -1246,6 +1246,7 @@ static const opt_spec make_thread_options[] =
   { ATOM_stack,		OPT_SIZE },
   { ATOM_c_stack,	OPT_SIZE },
   { ATOM_at_exit,	OPT_TERM },
+  { ATOM_inherit_from,	OPT_TERM },
   { NULL_ATOM,		0 }
 };
 
@@ -1378,11 +1379,11 @@ word
 pl_thread_create(term_t goal, term_t id, term_t options)
 { GET_LD
   PL_thread_info_t *info;
-  PL_local_data_t *ldnew;
+  PL_local_data_t *ldnew, *ldold = LD;
   atom_t alias = NULL_ATOM, idname;
   pthread_attr_t attr;
   size_t stack = 0;
-
+  term_t inherit_from = 0;
   term_t at_exit = 0;
   int rc = 0;
   const char *func;
@@ -1415,13 +1416,22 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->detached,
 		     &stack,		/* stack */
 		     &stack,		/* c_stack */
-		     &at_exit) )
+		     &at_exit,
+		     &inherit_from) )
   { free_thread_info(info);
     fail;
   }
   if ( at_exit && !PL_is_callable(at_exit) )
   { free_thread_info(info);
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, at_exit);
+  }
+  if ( inherit_from )
+  { PL_thread_info_t *oinfo;
+
+    if ( get_thread(inherit_from, &oinfo, TRUE) )
+    { ldold = oinfo->thread_data;
+    } else
+      return FALSE;
   }
   if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
@@ -1457,29 +1467,29 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
 					/* copy settings */
 
-  PL_register_atom(LD->prompt.current);
-  ldnew->prompt			  = LD->prompt;
-  if ( LD->prompt.first )
-  { ldnew->prompt.first		  = LD->prompt.first;
+  PL_register_atom(ldold->prompt.current);
+  ldnew->prompt			  = ldold->prompt;
+  if ( ldold->prompt.first )
+  { ldnew->prompt.first		  = ldold->prompt.first;
     PL_register_atom(ldnew->prompt.first);
   }
-  ldnew->modules		  = LD->modules;
-  ldnew->IO			  = LD->IO;
+  ldnew->modules		  = ldold->modules;
+  ldnew->IO			  = ldold->IO;
   ldnew->IO.input_stack		  = NULL;
   ldnew->IO.output_stack	  = NULL;
-  ldnew->encoding		  = LD->encoding;
+  ldnew->encoding		  = ldold->encoding;
 #ifdef O_LOCALE
-  ldnew->locale.current		  = acquireLocale(LD->locale.current);
+  ldnew->locale.current		  = acquireLocale(ldold->locale.current);
 #endif
-  ldnew->_debugstatus		  = LD->_debugstatus;
+  ldnew->_debugstatus		  = ldold->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
   ldnew->_debugstatus.suspendTrace= 0;
-  ldnew->prolog_flag.mask	  = LD->prolog_flag.mask;
-  ldnew->prolog_flag.occurs_check = LD->prolog_flag.occurs_check;
-  ldnew->prolog_flag.access_level = LD->prolog_flag.access_level;
-  if ( LD->prolog_flag.table )
+  ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
+  ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
+  ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
+  if ( ldold->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
-    ldnew->prolog_flag.table	  = copyHTable(LD->prolog_flag.table);
+    ldnew->prolog_flag.table	  = copyHTable(ldold->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
   init_message_queue(&info->thread_data->thread.messages, -1);
