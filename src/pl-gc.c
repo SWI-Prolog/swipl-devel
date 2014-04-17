@@ -471,7 +471,7 @@ queryOfFrame(LocalFrame fr)
   assert(!fr->parent);
 
   qf = (QueryFrame)((char*)fr - offset(queryFrame, top_frame));
-  assert(qf->magic = QID_MAGIC);
+  assert(qf->magic == QID_MAGIC);
 
   return qf;
 }
