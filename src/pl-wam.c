@@ -236,7 +236,7 @@ void
 updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
-  if ( ld->signal.pending )			mask |= ALERT_SIGNAL;
+  if ( is_signalled(ld) )			mask |= ALERT_SIGNAL;
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
@@ -263,22 +263,16 @@ updateAlerted(PL_local_data_t *ld)
 int
 raiseSignal(PL_local_data_t *ld, int sig)
 { if ( sig > 0 && sig <= MAXSIGNAL && ld )
-  { int64_t mask = ((int64_t)1 << (sig-1));
+  { int off = (sig-1) / 32;
+    int mask = (1 << ((sig-1)%32));
 
-    __sync_or_and_fetch(&ld->signal.pending, mask);
+    __sync_or_and_fetch(&ld->signal.pending[off], mask);
     updateAlerted(ld);
     return TRUE;
   }
 
   return FALSE;
 }
-
-
-static inline int
-is_signalled(ARG1_LD)
-{ return unlikely(LD->signal.pending != 0);
-}
-
 
 
 		 /*******************************

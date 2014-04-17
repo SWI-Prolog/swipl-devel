@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam,
+    Copyright (C): 1985-2014, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -2456,7 +2456,7 @@ win32_cond_wait(win32_cond_t *cv,
       DispatchMessage(&msg);
     }
 
-    if ( LD->signal.pending )
+    if ( is_signalled(LD) )
     { EnterCriticalSection(external_mutex);
       return EINTR;
     }
@@ -2574,7 +2574,7 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 	  exit(1);
 	}
 
-	if ( LD->signal.pending )	/* thread-signal */
+	if ( is_signalled(LD) )			/* thread-signal */
 	{ queue->wait_for_drain--;
 	  return MSG_WAIT_INTR;
 	}
@@ -2734,7 +2734,7 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *
 
     switch( rc )
     { case ETIMEDOUT:
-	if ( LD->signal.pending )
+	if ( is_signalled(LD) )
 	  return EINTR;
         if ( api_timeout == deadline )
 	  return ETIMEDOUT;
@@ -2877,7 +2877,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	  exit(1);
 	}
 
-	if ( LD->signal.pending )	/* thread-signal */
+	if ( is_signalled(LD) )		/* thread-signal */
 	{ queue->waiting--;
 	  queue->waiting_var -= isvar;
 	  return MSG_WAIT_INTR;

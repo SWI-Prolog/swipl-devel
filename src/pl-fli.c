@@ -3875,7 +3875,11 @@ PL_raise(int sig)
 int
 PL_pending__LD(int sig ARG_LD)
 { if ( sig > 0 && sig <= MAXSIGNAL && LD )
-    return (LD->signal.pending & ((int64_t)1 << (sig-1))) ? TRUE : FALSE;
+  { int off  = (sig-1)/32;
+    int mask = 1 << ((sig-1)%32);
+
+    return (LD->signal.pending[off] & mask) ? TRUE : FALSE;
+  }
 
   return -1;
 }
@@ -3884,9 +3888,10 @@ PL_pending__LD(int sig ARG_LD)
 int
 PL_clearsig__LD(int sig ARG_LD)
 { if ( sig > 0 && sig <= MAXSIGNAL && LD )
-  { int64_t mask = (int64_t)1 << (sig-1);
+  { int off  = (sig-1)/32;
+    int mask = 1 << ((sig-1)%32);
 
-    __sync_and_and_fetch(&LD->signal.pending, ~mask);
+    __sync_and_and_fetch(&LD->signal.pending[off], ~mask);
     updateAlerted(LD);
     return TRUE;
   }
