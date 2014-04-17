@@ -998,7 +998,7 @@ url_iri(Encoded, Decoded) :-
 	).
 url_iri(URL, IRI) :-
 	atom_codes(IRI, IRICodes),
-	phrase(percent_encode(IRICodes, "/:?#&="), UrlCodes),
+	phrase(www_encode(IRICodes, "/:?#&="), UrlCodes),
 	atom_codes(URL, UrlCodes).
 
 
