@@ -80,7 +80,7 @@ goal, the thread prints a message using print_message/2.  If such
 termination is considered normal, the code must be wrapped using
 ignore/1 and/or catch/3 to ensure successful completion.
 
-    \termitem{inherit_from{+ThreadId}
+    \termitem{inherit_from}{+ThreadId}
 Inherit defaults from the given \arg{ThreadId} instead of the calling
 thread. This option was added to ensure that the
 \const{__thread_pool_manager} (see thread_create_in_pool/4), which is
