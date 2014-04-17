@@ -689,8 +689,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		if ( !(port & EXIT_PORT) )
 		  clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;
-    case '\04':
-    case EOF:	FeedBack("EOF: ");
+    case '\04': FeedBack("EOF: ");
     case 'e':	FeedBack("exit\n");
 		exitFromDebugger(0);
     case 'f':	FeedBack("fail\n");
