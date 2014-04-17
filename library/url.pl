@@ -999,7 +999,7 @@ url_iri(Encoded, Decoded) :-
 url_iri(URL, IRI) :-
 	atom_codes(IRI, IRICodes),
 	atom_codes('/:?#&=', ExtraEscapes),
-	phrase(percent_encode(IRICodes, ExtraEscapes), UrlCodes),
+	phrase(www_encode(IRICodes, ExtraEscapes), UrlCodes),
 	atom_codes(URL, UrlCodes).
 
 
