@@ -152,6 +152,7 @@
 :- predicate_options(system:thread_create/3, 3,
 		     [ alias(atom),
 		       at_exit(callable),
+		       inherit_from(any),
 		       detached(boolean),
 		       global(nonneg),
 		       local(nonneg),
