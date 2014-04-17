@@ -361,7 +361,7 @@ struct PL_local_data
   ClauseRef	freed_clauses;		/* List of pending freeable clauses */
 
   struct
-  { int64_t	pending;		/* PL_raise() pending signals */
+  { int		pending[2];		/* PL_raise() pending signals */
     int		current;		/* currently processing signal */
     int		is_sync;		/* current signal is synchronous */
     record_t	exception;		/* Pending exception from signal */
