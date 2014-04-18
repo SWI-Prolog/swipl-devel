@@ -37,6 +37,7 @@ This module tests the implementation of the dict datastructure.
 test_dict :-
 	run_tests([ dict_create,
 		    dict_bips,
+		    dict_dot3,
 		    dict_overflow,
 		    expand_functions,
 		    define_functions
@@ -101,6 +102,21 @@ test(select, R =@= _{z:3}) :-		% implicit conversion
 	select_dict([x(1)], [x(1),z(3)], R).
 
 :- end_tests(dict_bips).
+
+:- begin_tests(dict_dot3).
+
+test(field, X == 3) :-
+	X = _{a:1,b:2,c:3}.c.
+test(field, X == 3) :-
+	X = [a(1),b(2),c(3)].c.
+test(no_field, error(existence_error(key,d,Dict))) :-
+	Dict = _{a:1,b:2,c:3},
+	ground(Dict.d).
+test(no_dict, error(type_error(dict, "hello"))) :-
+	ground("hello".x).
+
+:- end_tests(dict_dot3).
+
 
 :- begin_tests(dict_overflow).
 
