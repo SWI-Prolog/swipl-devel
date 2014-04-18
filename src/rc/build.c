@@ -124,7 +124,7 @@ rc_save_data(RcMember m, FILE *fd)
     if ( in >= 0 )
     { char buf[8192];
       size_t size = m->size;
-      size_t n;
+      ssize_t n;
 
       while( size > 0 )
       { if ( (n=read(in, buf, sizeof(buf))) > 0 )
