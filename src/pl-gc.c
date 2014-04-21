@@ -3683,12 +3683,31 @@ gcEnsureSpace(vm_state *state ARG_LD)
 garbageCollect()  returns  one  of  TRUE    (ok),   FALSE  (blocked)  or
 LOCAL_OVERFLOW if the local stack  cannot accomodate the term-references
 for saving ARGP and global variables.
+
+(*) We call trimStacks()  to  reactivate   the  `spare  stacks'  and, if
+LD->trim_stack_requested is TRUE, to shrink the  stacks (this happens at
+the end of  handling  a  stack  overflow   exception).  This  is  a  bit
+complicated:
+
+  - We must call trimStacks() after unblockGC(), otherwise the stacks
+    cannot be shifted.
+  - We must include ARGP in lTop when in `body' mode.  To do this, we
+    save the value computed by get_vmi_state(). We cannot use
+    get_vmi_state()/restore_vmi_state() because these do not anticipate
+    a stack shift.
+  - We must do unblockSignals() afterwards to avoid signal handling to
+    mess with the computed stack values.
+
+Thanks to Keri Harris for figuring out why   we must include ARGP in our
+lTop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 garbageCollect(void)
 { GET_LD
   vm_state state;
+  LocalFrame safeLTop;				/* include ARGP in body mode */
+  term_t preShiftLTop;				/* safe over trimStacks() (shift) */
   intptr_t tgar, ggar;
   double t = ThreadCPUTime(LD, CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
@@ -3711,6 +3730,7 @@ garbageCollect(void)
 #endif
 
   get_vmi_state(LD->query, &state);
+  safeLTop = lTop;
   if ( (rc=gcEnsureSpace(&state PASS_LD)) < 0 )
   { return rc;
   } else if ( rc == FALSE )		/* shifted; reload */
@@ -3839,11 +3859,16 @@ garbageCollect(void)
     LD->mark_bar = NO_MARK_BAR;
   gc_status.active = FALSE;
   unblockGC(0 PASS_LD);
+  LD->gc.inferences = LD->statistics.inferences;
+
+  preShiftLTop = consTermRef(lTop);		/* see (*) above */
+  lTop = safeLTop;
+  trimStacks(LD->trim_stack_requested PASS_LD);
+  lTop = (LocalFrame)valTermRef(preShiftLTop);
+
 #ifndef UNBLOCKED_GC
   unblockSignals(&LD->gc.saved_sigmask);
 #endif
-  LD->gc.inferences = LD->statistics.inferences;
-  trimStacks(LD->trim_stack_requested PASS_LD);
   leaveGC(PASS_LD1);
 
   shiftTightStacks();
