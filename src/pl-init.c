@@ -82,9 +82,9 @@ exec_var(const char *name)
   while(s < exec_vars+sizeof(exec_vars))
   { if ( strncmp(name, s, l) == 0 && s[l] == '=' )
       return &s[l+1];
-    while(*s && s< exec_vars+sizeof(exec_vars))
+    while(s < exec_vars+sizeof(exec_vars) && *s)
       s++;
-    while(*s == '\0' && s< exec_vars+sizeof(exec_vars))
+    while(s < exec_vars+sizeof(exec_vars) && *s == '\0')
       s++;
   }
 
