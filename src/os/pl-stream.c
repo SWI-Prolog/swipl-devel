@@ -113,6 +113,7 @@ static ssize_t	S__flushbuf(IOSTREAM *s);
 static void	run_close_hooks(IOSTREAM *s);
 static int	S__removebuf(IOSTREAM *s);
 static int	S__seterror(IOSTREAM *s);
+       void	unallocStream(IOSTREAM *s);
 
 #ifdef O_PLMT
 #define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
@@ -308,6 +309,7 @@ Slock(IOSTREAM *s)
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
       return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
   }
+  s->references++;
 
   return 0;
 }
@@ -327,6 +329,7 @@ StryLock(IOSTREAM *s)
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
       return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
   }
+  s->references++;
 
   return 0;
 }
@@ -352,7 +355,11 @@ Sunlock(IOSTREAM *s)
   { assert(0);
   }
 
+  s->references--;
   SUNLOCK(s);
+  if ( s->references == 0 && s->erased )
+    unallocStream(s);
+
   return rval;
 }
 
@@ -2620,6 +2627,8 @@ Link two streams in a pipeline,  where   filter  filters data for stream
 If parent is an input stream we have
 
 	--> parent --> filter --> application
+
+This filter is referenced, so it won't be freed, even if it is closed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
