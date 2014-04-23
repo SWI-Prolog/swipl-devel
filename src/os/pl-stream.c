@@ -2629,16 +2629,21 @@ Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
     return -1;
   }
 
-  if ( filter )
+  if ( filter )				/* set filter */
   { if ( filter->magic != SIO_MAGIC )
     { errno = EINVAL;
       return -1;
     }
-  }
-
-  parent->upstream = filter;
-  if ( filter )
+    filter->references++;
+    parent->upstream = filter;
     filter->downstream = parent;
+  } else				/* clear filter */
+  { if ( parent->upstream )
+    { if ( --parent->upstream->references == 0 && parent->upstream->erased )
+	unallocStream(parent->upstream);
+      parent->upstream = NULL;
+    }
+  }
 
   return 0;
 }
