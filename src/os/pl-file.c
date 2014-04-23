@@ -2615,6 +2615,7 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 
 	if ( Sferror(s) )
 	  return streamStatus(s);
+	s->flags &= ~SIO_FEOF;
 
 	text.text.t    = s->bufp;
 	text.length    = s->limitp - s->bufp;
