@@ -305,11 +305,11 @@ Slock(IOSTREAM *s)
   }
 #endif
 
+  s->references++;
   if ( !s->locks++ )
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
       return S__setbuf(s, NULL, TMPBUFSIZE) == (size_t)-1 ? -1 : 0;
   }
-  s->references++;
 
   return 0;
 }
