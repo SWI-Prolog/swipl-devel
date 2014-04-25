@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -1316,8 +1316,6 @@ PRED_IMPL("$atom_references", 2, atom_references, 0)
 #define ALT_MAX 256		/* maximum number of alternatives */
 #define stringMatch(m)	((m)->name->name)
 
-#define is_signalled() unlikely(LD && LD->signal.pending != 0)
-
 typedef struct match
 { Atom		name;
   size_t	length;
@@ -1597,7 +1595,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
     for(; index<upto; index++)
     { Atom a = b[index];
 
-      if ( is_signalled() )		/* Notably allow windows version */
+      if ( is_signalled(LD) )		/* Notably allow windows version */
 	PL_handle_signals();		/* to break out on ^C */
 
       if ( a && completion_candidate(a) &&

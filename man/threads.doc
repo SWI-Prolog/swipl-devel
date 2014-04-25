@@ -80,6 +80,23 @@ goal, the thread prints a message using print_message/2.  If such
 termination is considered normal, the code must be wrapped using
 ignore/1 and/or catch/3 to ensure successful completion.
 
+    \termitem{inherit_from}{+ThreadId}
+Inherit defaults from the given \arg{ThreadId} instead of the calling
+thread. This option was added to ensure that the
+\const{__thread_pool_manager} (see thread_create_in_pool/4), which is
+created lazily, has a predictable state. The following properties are
+inherited:
+
+    \begin{itemize}
+	\item The prompt (see prompt/2)
+        \item The \jargon{typein} module (see module/1)
+        \item The standard streams (\const{user_input}, etc.)
+        \item The default encoding (see \prologflag{encoding})
+        \item The default locale (see setlocale/1)
+        \item All prolog flags
+	\item The limits of Prolog stacks (see set_prolog_stack/2)
+    \end{itemize}
+
     \termitem{global}{K-Bytes}
 Set the limit to which the global stack of this thread may grow.  If
 omitted, the limit of the calling thread is used. See also the

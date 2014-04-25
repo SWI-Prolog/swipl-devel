@@ -419,11 +419,15 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 #ifdef O_PLMT
   if ( LD->prolog_flag.table &&
        (s = lookupHTable(LD->prolog_flag.table, (void *)k)) )
-  { f = s->value;			/* already local Prolog flag */
+  { if ( flags & FF_KEEP )
+      return TRUE;
+    f = s->value;			/* already local Prolog flag */
   } else
 #endif
   if ( (s = lookupHTable(GD->prolog_flag.table, (void *)k)) )
-  { f = s->value;
+  { if ( flags & FF_KEEP )
+      return TRUE;
+    f = s->value;
     if ( f->flags & FF_READONLY )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		      ATOM_modify, ATOM_flag, key);
@@ -674,6 +678,7 @@ PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
 static const opt_spec prolog_flag_options[] =
 { { ATOM_type,   OPT_ATOM },
   { ATOM_access, OPT_ATOM },
+  { ATOM_keep,   OPT_BOOL },
   { NULL_ATOM,   0 }
 };
 
@@ -684,9 +689,10 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
   int flags = 0;
   atom_t type = 0;
   atom_t access = ATOM_read_write;
+  int keep = FALSE;
 
   if ( !scan_options(A3, 0, ATOM_prolog_flag_option, prolog_flag_options,
-		     &type, &access) )
+		     &type, &access, &keep) )
     return FALSE;
 
   if ( type == 0 )
@@ -715,6 +721,9 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
     PL_put_atom(a, access);
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_prolog_flag_access, a);
   }
+
+  if ( keep )
+    flags |= FF_KEEP;
 
   LOCK();
   rc = set_prolog_flag_unlocked(A1, A2, flags);

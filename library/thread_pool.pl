@@ -231,10 +231,15 @@ thread_running(Thread) :-
 create_pool_manager(Thread) :-
 	thread_running(Thread), !.
 create_pool_manager(Thread) :-
-	rb_new(State0),
-	thread_create(manage_thread_pool(State0), _,
-		      [ alias(Thread)
+	thread_create(pool_manager_main, _,
+		      [ alias(Thread),
+			inherit_from(main)
 		      ]).
+
+
+pool_manager_main :-
+	rb_new(State0),
+	manage_thread_pool(State0).
 
 
 		 /*******************************

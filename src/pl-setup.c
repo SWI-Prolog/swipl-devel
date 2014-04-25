@@ -1,11 +1,10 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -53,12 +52,13 @@ static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
 int
-setupProlog()
+setupProlog(void)
 { GET_LD
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
   LD->critical = 0;
-  LD->signal.pending = 0;
+  LD->signal.pending[0] = 0;
+  LD->signal.pending[1] = 0;
 
   startCritical;
   DEBUG(1, Sdprintf("wam_table ...\n"));
@@ -473,8 +473,8 @@ dispatch_signal(int sig, int sync)
   { (*sh->handler)(sig);
 
     DEBUG(MSG_SIGNAL,
-	  Sdprintf("Handler %p finished (pending=%lld)\n",
-		   sh->handler, LD->signal.pending));
+	  Sdprintf("Handler %p finished (pending=0x%x,0x%x)\n",
+		   sh->handler, LD->signal.pending[0], LD->signal.pending[1]));
 
     if ( exception_term && !sync )	/* handler: PL_raise_exception() */
     { LD->signal.exception = PL_record(exception_term);
@@ -706,11 +706,12 @@ cleanupSignals(void)
 
 
 void
-resetSignals()
+resetSignals(void)
 { GET_LD
 
   LD->signal.current = 0;
-  LD->signal.pending = 0L;
+  LD->signal.pending[0] = 0;
+  LD->signal.pending[1] = 0;
 }
 
 #if defined(O_PLMT) && defined(HAVE_PTHREAD_SIGMASK)
@@ -880,7 +881,7 @@ int
 PL_handle_signals()
 { GET_LD
 
-  if ( !LD || LD->critical || !LD->signal.pending )
+  if ( !LD || LD->critical || !is_signalled(LD) )
     return 0;
 
   return handleSignals(PASS_LD1);
@@ -890,25 +891,27 @@ PL_handle_signals()
 int
 handleSignals(ARG1_LD)
 { int done = 0;
+  int i;
 
   if ( !LD || LD->critical )
     return 0;
 
-  while( LD->signal.pending )
-  { int64_t mask = 1;
-    int sig = 1;
+  for(i=0; i<2; i++)
+  { int sig = 1+32*i;
 
-    for( ; mask ; mask <<= 1, sig++ )
-    { if ( LD->signal.pending & mask )
-      { simpleMutexLock(&LD->signal.sig_lock);
-	LD->signal.pending &= ~mask;	/* reset the signal */
-	simpleMutexUnlock(&LD->signal.sig_lock);
+    while( LD->signal.pending[i] )
+    { int mask = 1;
 
-	done++;
-	dispatch_signal(sig, TRUE);
+      for( ; mask ; mask <<= 1, sig++ )
+      { if ( LD->signal.pending[i] & mask )
+	{ __sync_and_and_fetch(&LD->signal.pending[i], ~mask);
 
-	if ( exception_term )
-	  goto out;
+	  done++;
+	  dispatch_signal(sig, TRUE);
+
+	  if ( exception_term )
+	    goto out;
+	}
       }
     }
   }
@@ -1509,7 +1512,6 @@ freePrologLocalData(PL_local_data_t *ld)
 
   freeArithLocalData(ld);
 #ifdef O_PLMT
-  simpleMutexDelete(&ld->signal.sig_lock);
   if ( ld->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
     destroyHTable(ld->prolog_flag.table);

@@ -1172,7 +1172,7 @@ print_system_message(_, banner, _) :-
 	current_prolog_flag(verbose, silent), !.
 print_system_message(_, _, []) :- !.
 print_system_message(Term, Kind, Lines) :-
-	flush_output(user_output),
+	catch(flush_output(user_output), _, true),	% may not exist
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
 	msg_property(Kind, location_prefix(File:Line, LocPrefix, LinePrefix)), !,

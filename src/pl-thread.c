@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam,
+    Copyright (C): 1985-2014, University of Amsterdam,
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -652,7 +652,6 @@ reinit_threads_after_fork(void)
   }
   thread_highest_id = 1;
 
-  simpleMutexInit(&LD->signal.sig_lock);
   GD->statistics.thread_cputime = 0.0;
   GD->statistics.threads_created = 1;
   GD->statistics.threads_finished = 0;
@@ -727,7 +726,6 @@ initPrologThreads()
   PL_local_data.magic = LD_MAGIC;
   { GET_LD
 
-    simpleMutexInit(&LD->signal.sig_lock);
     GD->thread.thread_max = 4;		/* see resizeThreadMax() */
     GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
 				   sizeof(*GD->thread.threads));
@@ -1041,7 +1039,6 @@ retry:
     { PL_local_data_t *ld = allocHeapOrHalt(sizeof(PL_local_data_t));
 
       memset(ld, 0, sizeof(PL_local_data_t));
-      simpleMutexInit(&ld->signal.sig_lock);
 
       info->pl_tid = i;
       ld->thread.info = info;
@@ -1251,6 +1248,7 @@ static const opt_spec make_thread_options[] =
   { ATOM_stack,		OPT_SIZE },
   { ATOM_c_stack,	OPT_SIZE },
   { ATOM_at_exit,	OPT_TERM },
+  { ATOM_inherit_from,	OPT_TERM },
   { NULL_ATOM,		0 }
 };
 
@@ -1383,11 +1381,11 @@ word
 pl_thread_create(term_t goal, term_t id, term_t options)
 { GET_LD
   PL_thread_info_t *info;
-  PL_local_data_t *ldnew;
+  PL_local_data_t *ldnew, *ldold = LD;
   atom_t alias = NULL_ATOM, idname;
   pthread_attr_t attr;
   size_t stack = 0;
-
+  term_t inherit_from = 0;
   term_t at_exit = 0;
   int rc = 0;
   const char *func;
@@ -1420,13 +1418,22 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->detached,
 		     &stack,		/* stack */
 		     &stack,		/* c_stack */
-		     &at_exit) )
+		     &at_exit,
+		     &inherit_from) )
   { free_thread_info(info);
     fail;
   }
   if ( at_exit && !PL_is_callable(at_exit) )
   { free_thread_info(info);
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, at_exit);
+  }
+  if ( inherit_from )
+  { PL_thread_info_t *oinfo;
+
+    if ( get_thread(inherit_from, &oinfo, TRUE) )
+    { ldold = oinfo->thread_data;
+    } else
+      return FALSE;
   }
   if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
@@ -1462,29 +1469,29 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
 					/* copy settings */
 
-  PL_register_atom(LD->prompt.current);
-  ldnew->prompt			  = LD->prompt;
-  if ( LD->prompt.first )
-  { ldnew->prompt.first		  = LD->prompt.first;
+  PL_register_atom(ldold->prompt.current);
+  ldnew->prompt			  = ldold->prompt;
+  if ( ldold->prompt.first )
+  { ldnew->prompt.first		  = ldold->prompt.first;
     PL_register_atom(ldnew->prompt.first);
   }
-  ldnew->modules		  = LD->modules;
-  ldnew->IO			  = LD->IO;
+  ldnew->modules		  = ldold->modules;
+  ldnew->IO			  = ldold->IO;
   ldnew->IO.input_stack		  = NULL;
   ldnew->IO.output_stack	  = NULL;
-  ldnew->encoding		  = LD->encoding;
+  ldnew->encoding		  = ldold->encoding;
 #ifdef O_LOCALE
-  ldnew->locale.current		  = acquireLocale(LD->locale.current);
+  ldnew->locale.current		  = acquireLocale(ldold->locale.current);
 #endif
-  ldnew->_debugstatus		  = LD->_debugstatus;
+  ldnew->_debugstatus		  = ldold->_debugstatus;
   ldnew->_debugstatus.retryFrame  = NULL;
   ldnew->_debugstatus.suspendTrace= 0;
-  ldnew->prolog_flag.mask	  = LD->prolog_flag.mask;
-  ldnew->prolog_flag.occurs_check = LD->prolog_flag.occurs_check;
-  ldnew->prolog_flag.access_level = LD->prolog_flag.access_level;
-  if ( LD->prolog_flag.table )
+  ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
+  ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
+  ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
+  if ( ldold->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
-    ldnew->prolog_flag.table	  = copyHTable(LD->prolog_flag.table);
+    ldnew->prolog_flag.table	  = copyHTable(ldold->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
   init_message_queue(&info->thread_data->thread.messages, -1);
@@ -2449,7 +2456,7 @@ win32_cond_wait(win32_cond_t *cv,
       DispatchMessage(&msg);
     }
 
-    if ( LD->signal.pending )
+    if ( is_signalled(LD) )
     { EnterCriticalSection(external_mutex);
       return EINTR;
     }
@@ -2567,7 +2574,7 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 	  exit(1);
 	}
 
-	if ( LD->signal.pending )	/* thread-signal */
+	if ( is_signalled(LD) )			/* thread-signal */
 	{ queue->wait_for_drain--;
 	  return MSG_WAIT_INTR;
 	}
@@ -2727,7 +2734,7 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *
 
     switch( rc )
     { case ETIMEDOUT:
-	if ( LD->signal.pending )
+	if ( is_signalled(LD) )
 	  return EINTR;
         if ( api_timeout == deadline )
 	  return ETIMEDOUT;
@@ -2870,7 +2877,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	  exit(1);
 	}
 
-	if ( LD->signal.pending )	/* thread-signal */
+	if ( is_signalled(LD) )		/* thread-signal */
 	{ queue->waiting--;
 	  queue->waiting_var -= isvar;
 	  return MSG_WAIT_INTR;

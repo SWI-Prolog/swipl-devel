@@ -3543,29 +3543,9 @@ PL_foreign_control(control_t h)
 }
 
 
-static int
-is_resource_error(term_t ex)
-{ GET_LD
-  Word p = valTermRef(ex);
-
-  deRef(p);
-  if ( hasFunctor(*p, FUNCTOR_error2) )
-  { p = argTermP(*p, 0);
-    deRef(p);
-
-    return hasFunctor(*p, FUNCTOR_resource_error1);
-  }
-
-  return FALSE;
-}
-
-
 int
 PL_raise_exception(term_t exception)
 { GET_LD
-
-  if ( is_resource_error(exception) )
-    save_backtrace("exception");
 
   if ( PL_is_variable(exception) )
     fatalError("Cannot throw variable exception");
@@ -3629,8 +3609,6 @@ PL_clear_foreign_exception(LocalFrame fr)
 	   predicateName(fr->predicate));
   PL_write_term(Serror, ex, 1200, 0);
   Sdprintf("\n");
-  if ( is_resource_error(ex) )
-    print_backtrace_named("exception");
 
   PL_clear_exception();
 }
@@ -3897,7 +3875,11 @@ PL_raise(int sig)
 int
 PL_pending__LD(int sig ARG_LD)
 { if ( sig > 0 && sig <= MAXSIGNAL && LD )
-    return (LD->signal.pending & ((int64_t)1 << (sig-1))) ? TRUE : FALSE;
+  { int off  = (sig-1)/32;
+    int mask = 1 << ((sig-1)%32);
+
+    return (LD->signal.pending[off] & mask) ? TRUE : FALSE;
+  }
 
   return -1;
 }
@@ -3906,9 +3888,10 @@ PL_pending__LD(int sig ARG_LD)
 int
 PL_clearsig__LD(int sig ARG_LD)
 { if ( sig > 0 && sig <= MAXSIGNAL && LD )
-  { simpleMutexLock(&LD->signal.sig_lock);
-    LD->signal.pending &= ~((int64_t)1 << (sig-1));
-    simpleMutexUnlock(&LD->signal.sig_lock);
+  { int off  = (sig-1)/32;
+    int mask = 1 << ((sig-1)%32);
+
+    __sync_and_and_fetch(&LD->signal.pending[off], ~mask);
     updateAlerted(LD);
     return TRUE;
   }

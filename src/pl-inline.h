@@ -284,5 +284,9 @@ valFloat__LD(word w ARG_LD)
 }
 #endif
 
+static inline int
+is_signalled(ARG1_LD)
+{ return unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
+}
 
 #endif /*PL_INLINE_H_INCLUDED*/

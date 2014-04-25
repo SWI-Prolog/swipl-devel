@@ -131,7 +131,7 @@ system:rl_write_history(File) :-
 :- if(current_predicate(rl_write_history/1)).
 write_history(File) :-
 	current_prolog_flag(save_history, true), !,
-	rl_write_history(File).
+	catch(rl_write_history(File), _, true).
 :- endif.
 write_history(_).
 

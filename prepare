@@ -113,6 +113,12 @@ if findexe gtar; then tar=gtar; fi;
 # Sub-modules
 ################################################################
 
+if grep 'url *= *../packages/' .gitmodules 2>&1 >/dev/null; then
+  printf "Updating git submodule references ..."
+  git submodule sync
+  echo "ok"
+fi
+
 nothere=`git submodule status $COREMODULES | awk '/^[-]/ {print $2}'`
 if [ ! -z "$nothere" ]; then
   echo "The following submodules are not yet initialised"
