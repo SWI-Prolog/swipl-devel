@@ -114,7 +114,7 @@ if findexe gtar; then tar=gtar; fi;
 # Sub-modules
 ################################################################
 
-if grep 'url *= *../packages/' .gitmodules 2>&1 >/dev/null; then
+if grep 'url *= .*/packages/' .git/config 2>&1 >/dev/null; then
   printf "Updating git submodule references ..."
   git submodule sync
   echo "ok"
