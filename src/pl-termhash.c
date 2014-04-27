@@ -402,7 +402,7 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
       case TAG_STRING:
       case TAG_FLOAT:
       { Word d = addressIndirect(w);
-	size_t n = wsizeofInd(*d);
+	size_t n = wsizeofInd(w);
 
 	HASH("X", 1);
 	HASH(d, (unsigned long)(n*sizeof(word)));

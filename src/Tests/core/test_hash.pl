@@ -58,6 +58,9 @@ test(attvar, error(_)) :-
 test(attvar, true) :-
 	dif(X, 3), % error(_) fails because subsumes_term does not deal with attvar
 	catch(variant_sha1(x(a(X)), _), _, true).
+test(float, fail) :-
+	variant_sha1(1.0, Hash),
+	variant_sha1(2.0, Hash).
 
 v(_).
 
