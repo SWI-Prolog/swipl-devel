@@ -25,6 +25,7 @@
 #define _WIN32_WINNT 0x0501            /* get RtlCaptureContext() */
 #endif
 
+#define _GNU_SOURCE
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 
@@ -42,7 +43,7 @@ error occurs.
 		 *	      LIBUNWIND		*
 		 *******************************/
 
-#if !defined(BTRACE_DONE) && defined(HAVE_LIBUNWIND)
+#if !defined(BTRACE_DONE) && defined(HAVE_LIBUNWIND) && !defined(HAVE_DLADDR)
 #define BTRACE_DONE 1
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
@@ -213,20 +214,21 @@ print_backtrace_named(const char *why)
 		 *	       GLIBC		*
 		 *******************************/
 
-#if !defined(BTRACE_DONE) && defined(HAVE_EXECINFO_H) && !defined(DMALLOC)
+#if !defined(BTRACE_DONE) && defined(HAVE_EXECINFO_H)
 #define BTRACE_DONE 1
 #include <execinfo.h>
 #include <string.h>
+#include <dlfcn.h>
+
+#define MAXCMD 1024
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This implementation uses the libgcc unwinding capabilities.
-
-Disabled of dmalloc is used because the  free of the memory allocated by
-backtrace_symbols() is considered an error by dmalloc.
+This implementation uses the libgcc unwinding capabilities. If possible,
+addr2line(1) is used to obtain information at the line level.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct btrace
-{ char	      **symbols[SAVE_TRACES];
+{ char	      **retaddr[SAVE_TRACES];
   const char   *why[SAVE_TRACES];
   size_t	sizes[SAVE_TRACES];
   int		current;
@@ -238,8 +240,8 @@ btrace_destroy(struct btrace *bt)
 { int i;
 
   for(i=0; i<SAVE_TRACES; i++)
-  { if ( bt->symbols[i] )
-      free(bt->symbols[i]);
+  { if ( bt->retaddr[i] )
+      free(bt->retaddr[i]);
   }
 
   free(bt);
@@ -304,11 +306,51 @@ save_backtrace(const char *why)
 
     frames = backtrace(array, sizeof(array)/sizeof(void *));
     bt->sizes[current] = frames;
-    if ( bt->symbols[current] )
-      free(bt->symbols[current]);
-    bt->symbols[current] = backtrace_symbols(array, frames);
+    if ( bt->retaddr[current] )
+      free(bt->retaddr[current]);
+    if ( (bt->retaddr[current] = malloc(sizeof(void*)*frames)) )
+      memcpy(bt->retaddr[current], array, sizeof(void*)*frames);
     bt->why[current] = why;
   }
+}
+
+
+static int
+addr2line(const char *fname, uintptr_t offset, char *buf, size_t size)
+{ char cmd[MAXCMD];
+
+  if ( snprintf(cmd, size, "addr2line -fe \"%s\" %p",
+		fname, (void*)offset) < size )
+  { FILE *fd;
+
+    if ( (fd=popen(cmd, "r")) )
+    { int c;
+      char *ebuf = &buf[size-1];
+      char *o = buf;
+      int nl = 0;
+
+      while((c=fgetc(fd)) != EOF && o<ebuf)
+      { if ( c == '\n' )
+	{ const char *sep = "() at ";
+	  nl++;
+
+	  if ( nl == 1 && o+strlen(sep) < ebuf)
+	  { strcpy(o, sep);
+	    o += strlen(sep);
+	  }
+	} else
+	{ *o++ = c;
+	}
+      }
+
+      *o = '\0';
+
+      fclose(fd);
+      return o > buf;
+    }
+  }
+
+  return FALSE;
 }
 
 
@@ -320,7 +362,30 @@ print_trace(btrace *bt, int me)
   { Sdprintf("C-stack trace labeled \"%s\":\n", bt->why[me]);
 
     for(i=0; i<bt->sizes[me]; i++)
-      Sdprintf("  [%d] %s\n", i, bt->symbols[me][i]);
+    { Dl_info info;
+      void *addr = bt->retaddr[me][i];
+
+      if ( dladdr(addr, &info) )
+      { uintptr_t offset = (uintptr_t)addr - (uintptr_t)info.dli_fbase;
+
+	if ( info.dli_fname )
+	{ char buf[512];
+
+	  if ( strstr(info.dli_fname, ".so") &&
+	       addr2line(info.dli_fname, offset, buf, sizeof(buf)) )
+	    Sdprintf("  [%d] %s [%p]\n", i, buf, addr);
+	  else if ( info.dli_sname )
+	    Sdprintf("  [%d] %s(%s+%p) [%p]\n",
+		     i, info.dli_fname, info.dli_sname, addr-info.dli_saddr,
+		     addr);
+	  else
+	    Sdprintf("  [%d] %s(+%p) [%p]\n",
+		     i, info.dli_fname, (void*)offset, addr);
+	} else
+	{ Sdprintf("  [%d] ??? [%p]\n", i, addr);
+	}
+      }
+    }
   } else
   { Sdprintf("No stack trace\n");
   }
