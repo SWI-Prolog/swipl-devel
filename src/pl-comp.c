@@ -320,6 +320,9 @@ typedef struct
 } compileInfo, *CompileInfo;
 
 
+static int link_local_var(Word v, int iv, CompileInfo ci ARG_LD);
+
+
 		 /*******************************
 		 *	      WARNINGS		*
 		 *******************************/
@@ -1292,7 +1295,13 @@ getTargetModule(target_module *tm, Word t, CompileInfo ci ARG_LD)
   deRef(t);
   if ( (iv=isIndexedVarTerm(*t PASS_LD)) >= 0 )
   { if ( ci->islocal || !isFirstVar(ci->used_var, iv) )
-    { tm->var_index = iv;
+    { if ( ci->islocal )
+      { int rc;
+
+	if ( (rc=link_local_var(t, iv, ci PASS_LD)) != TRUE )
+	  return rc;
+      }
+      tm->var_index = iv;
       tm->type = TM_VAR;
     } else
     { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
@@ -1667,8 +1676,9 @@ Finish up the clause.
     ClauseRef cref;
     size_t space;
 
-    DEBUG(1, Sdprintf("%d argvars; %d prolog vars; %d vars",
-		      ci.argvars, clause.prolog_vars, clause.variables));
+    DEBUG(MSG_COMP_ARGVAR,
+	  Sdprintf("%d argvars; %d prolog vars; %d vars",
+		   ci.argvars, clause.prolog_vars, clause.variables));
     assert(ci.argvars == ci.argvar);
 
 					/* check space */
@@ -1704,7 +1714,8 @@ Finish up the clause.
     setNextFrameFlags(fr, environment_frame);
     setContextModule(fr, module);
 
-    DEBUG(1, Sdprintf("; now %d vars\n", clause.variables));
+    DEBUG(MSG_COMP_ARGVAR, Sdprintf("; now %d vars\n", clause.variables));
+    DEBUG(MSG_COMP_ARGVAR, vm_list(cl->codes));
     lTop = (LocalFrame)p;
   }
 
@@ -2024,6 +2035,23 @@ vName(Word adr)
 #endif
 
 
+static int
+link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
+{ VarDef vd = LD->comp.vardefs[*v>>LMASK_BITS];
+  int voffset = VAROFFSET(iv);
+  Word k = varFrameP(lTop, voffset);
+
+  DEBUG(MSG_COMP_ARGVAR,
+	Sdprintf("Linking b_var(%d) to %s\n", index, vName(vd->address)));
+
+  if ( k >= (Word) lMax )
+    return LOCAL_OVERFLOW;
+  *k = makeRef(vd->address);
+
+  return TRUE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compile argument to a goal in the   clause. The `islocal' compilation is
 one of the complicating factors: atoms   should not be registered (there
@@ -2137,21 +2165,15 @@ Non-void variables. There are many cases for this.
 isvar:
   if ( (index = isIndexedVarTerm(*arg PASS_LD)) >= 0 )
   { if ( ci->islocal )
-    { VarDef v = LD->comp.vardefs[*arg>>LMASK_BITS];
-      int voffset = VAROFFSET(index);
-      Word k = varFrameP(lTop, voffset);
+    { int rc;
 
-      DEBUG(1, Sdprintf("Linking b_var(%d) to %s\n",
-			index, vName(v->address)));
-
-      if ( k >= (Word) lMax )
-	return LOCAL_OVERFLOW;
-      *k = makeRef(v->address);
+      if ( (rc=link_local_var(arg, index, ci PASS_LD)) != TRUE )
+	return rc;
 
       if ( index < 3 )
       { Output_0(ci, B_VAR0 + index);
       } else
-      { Output_1(ci, B_VAR, voffset);
+      { Output_1(ci, B_VAR, VAROFFSET(index));
       }
 
       return TRUE;

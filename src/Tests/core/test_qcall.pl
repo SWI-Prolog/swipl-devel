@@ -15,6 +15,7 @@ qm:qm(C) :-
 	context_module(C).
 
 m(qm).
+me(1=qm).
 m2(qm2).
 g(A,qm(A)).
 
@@ -54,6 +55,8 @@ test(atvvv, C == C) :-
 	M:(G,true)@QC.
 test(localv, M-C == qm-qm) :-
 	call((m(M),M:qm(C))).
+test(localv, M-C == qm-qm) :-
+	call((me(1=M),M:qm(C))).
 test(local_argvar, M-C == qm-qm) :-
 	call((m(M),M:(qm(C),qm(C)))).
 test(local_argvar, M-C == qm-qm) :-
