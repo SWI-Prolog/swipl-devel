@@ -150,6 +150,7 @@ COMMON(int)		unify_definition(Module ctx, term_t head, Definition def,
 COMMON(code)		replacedBreak(Code PC);
 COMMON(void)		clearBreakPointsClause(Clause clause);
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
+COMMON(void)		vm_list(Code code);
 
 /* pl-dump.c */
 COMMON(word)		saveProgram(term_t new);
