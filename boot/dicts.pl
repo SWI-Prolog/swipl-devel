@@ -52,6 +52,9 @@ put_dict_path(Key, Dict, Value, NewDict) :-
 put_dict_path(Path, Dict, Value, NewDict) :-
 	get_dict_path(Path, Dict, _Old, NewDict, Value).
 
+get_dict_path(Path, _, _, _, _) :-
+	var(Path), !,
+	'$instantiation_error'(Path).
 get_dict_path(Path/Key, Dict, Old, NewDict, New) :- !,
 	get_dict_path(Path, Dict, OldD, NewDict, NewD),
 	(   get_dict(Key, OldD, Old, NewD, New),
