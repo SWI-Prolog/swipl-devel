@@ -35,6 +35,7 @@ AC_SUBST(SONAMEOPT)		dnl ld options for linking shared objects
 AC_SUBST(USEPLLIB)		dnl -lswipl
 AC_SUBST(LNLIBS)		dnl libs to link with Prolog
 AC_SUBST(XLIBS)                 dnl libs to link with plterm
+AC_SUBST(DBGLIBS)		dnl extra libs for debugging
 AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
 AC_SUBST(SO_EXT)		dnl e.g., "so"
@@ -1435,10 +1436,10 @@ fi
 dnl Setup DMALLOC
 
 if test "$dmalloc" = "yes"; then
-  AC_CHECK_LIB(dmalloc, main,
+  AC_CHECK_LIB(dmallocth, main,
 	       AC_DEFINE(DMALLOC, 1,
 			 [Define if you want to use dmalloc])
-	       LIBS="$LIBS -ldmalloc",
+	       DBGLIBS="$DBGLIBS -ldmallocth",
 	       true)
 fi
 

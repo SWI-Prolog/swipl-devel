@@ -69,11 +69,6 @@
 #define PL_KERNEL		1
 #include "pl-builtin.h"
 
-#ifdef HAVE_DMALLOC_H
-#include <dmalloc.h>			/* Use www.dmalloc.com debugger */
-#endif
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
 
@@ -379,6 +374,16 @@ A common basis for C keywords.
 #if defined(__STRICT_ANSI__) || defined(NO_ASM_NOP)
 #define ASM_NOP { static int nop; nop++; }
 #endif
+
+#ifdef DMALLOC
+#include <dmalloc.h>			/* Use www.dmalloc.com debugger */
+
+#define PL_ALLOC_DONE 1
+#define DMALLOC_FUNC_CHECK 1
+#define allocHeap(n)		malloc(n)
+#define allocHeapOrHalt(n)	xmalloc(n)
+#define freeHeap(ptr, n)	do { (void)(n); xfree(ptr); } while(0)
+#endif /*DMALLOC*/
 
 #define forwards static		/* forwards function declarations */
 
@@ -2179,14 +2184,6 @@ decrease).
 #undef leave
 #undef except
 #undef try
-#endif
-
-#ifdef DMALLOC
-#define DMALLOC_FUNC_CHECK 1
-#include <dmalloc.h>
-#define allocHeap(n)		malloc(n)
-#define allocHeapOrHalt(n)	xmalloc(n)
-#define freeHeap(ptr, n)	xfree(ptr)
 #endif
 
 #endif /*_PL_INCLUDE_H*/

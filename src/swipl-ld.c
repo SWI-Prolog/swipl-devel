@@ -199,7 +199,7 @@
 #define strdup plld_strdup
 #undef strndup
 #define strndup plld_strndup
-#ifdef HAVE_DMALLOC_H
+#ifdef DMALLOC
 #undef xmalloc
 #undef xrealloc
 #undef xfree

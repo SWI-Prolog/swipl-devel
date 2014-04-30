@@ -111,6 +111,7 @@ RUNTIMEDIR=../lib/$(PLARCH)
 PLLIB=@PLLIB@
 LNLIBS=@LNLIBS@
 XLIBS=@XLIBS@
+DBGLIBS=@DBGLIBS@
 USEPLLIB=@USEPLLIB@
 ifeq (@EXEFORMAT@,ELF)
 LIBPLSO=
@@ -207,7 +208,7 @@ banner:
 # to run our local copy of SWI-Prolog.
 
 $(PL)$(EXEEXT):	$(DEPLIBS) $(PLOBJ) $(OSLIB)
-		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB)
+		$(LDEXE) $(LDFLAGS) $(STACKFLAGS) -o $@ $(PLOBJ) -L../lib/$(PLARCH) $(USEPLLIB) $(LNLIBS) $(OSLIB) $(DBGLIBS)
 		$(CHRPATH) -c $@ || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)$(EXEEXT)
@@ -269,7 +270,7 @@ pl-ntmain.o:	pl-ntmain.c
 $(PLWIN)$(EXEEXT):	swipl-res.o pl-ntmain.o $(DEPLIBS) $(OSLIB)
 	$(LDEXE) $(LDFLAGS) $(STACKFLAGS) $(SUBSYSTEMFLAGS) \
 		-o $@ swipl-res.o pl-ntmain.o -L../lib/$(PLARCH) -lplterm \
-		$(USEPLLIB) $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB)
+		$(USEPLLIB) $(LNLIBS) $(XLIBS) $(LIBS) $(OSLIB) $(DBGLIBS)
 
 else
 OSLIB=
@@ -403,7 +404,7 @@ defatom:	defatom.c
 
 swipl-ld$(EXEEXT):	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h $(srcdir)/pl-atom.ih $(OSLIB)
 	$(CC) $(LDFLAGS) $(HOST_TOOLCHAIN_FLAG) $(HOST_OS_FLAG) \
-		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB)
+		-I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c $(OSLIB) $(DBGLIBS)
 
 .PHONY: tags
 tags:
