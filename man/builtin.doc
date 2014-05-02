@@ -3287,19 +3287,29 @@ of type \const{stream} (see blob/2 and \secref{blob}).
 
 \begin{description}
     \predicate[ISO]{open}{4}{+SrcDest, +Mode, -Stream, +Options}
-ISO compliant predicate to open a stream. \arg{SrcDest} is either an
-atom specifying a file, or a term `\exam{pipe(\arg{Command})}',
-like see/1 and tell/1. \arg{Mode} is one of \const{read}, \const{write},
-\const{append} or \const{update}. Mode \const{append} opens the file for
-writing, positioning the file pointer at the end. Mode \const{update}
-opens the file for writing, positioning the file pointer at the
-beginning of the file without truncating the file. \arg{Stream} is
-either a variable, in which case it is bound to an integer identifying
-the stream, or an atom, in which case this atom will be the stream
-identifier.%
+True when \arg{SrcDest} can be opened in \arg{Mode} and \arg{Stream} is
+an I/O stream to/from the object. \arg{SrcDest} is normally the name of
+a file, represented as an atom or string. \arg{Mode} is one of
+\const{read}, \const{write}, \const{append} or \const{update}. Mode
+\const{append} opens the file for writing, positioning the file pointer
+at the end. Mode \const{update} opens the file for writing, positioning
+the file pointer at the beginning of the file without truncating the
+file. \arg{Stream} is either a variable, in which case it is bound to an
+integer identifying the stream, or an atom, in which case this atom will
+be the stream identifier.%
     \footnote{New code should use the \term{alias}{Alias}
 	      option for compatibility with the ISO standard.}
-The \arg{Options} list can contain the following options:
+
+SWI-Prolog also allows \arg{SrcDest} to be a term \term{pipe}{Command}.
+In this form, \arg{Command} is started as a child process and if
+\arg{Mode} is \const{write}, output written to \arg{Stream} is sent to
+the standard input of \arg{Command}. Viso versa, if \arg{Mode} is
+\const{read}, data written by \arg{Command} to the standard output may
+be read from \arg{Stream}. On Unix systems, \arg{Command} is handed to
+popen() which hands it to the Unix shell. On Windows, \arg{Command} is
+executed directly. See also process_create/3 from \pllib{process}.
+
+The following \arg{Options} are recognised by open/4:
 
 \begin{description}
     \termitem{type}{Type}
