@@ -333,6 +333,7 @@ save_autoload(Options) :-
 	define_toplevel_goal(Options),
 	option(autoload(true),  Options, true), !,
 	autoload(Options).
+save_autoload(_).
 
 
 		 /*******************************
