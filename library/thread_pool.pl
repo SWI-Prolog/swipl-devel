@@ -348,12 +348,10 @@ update_pool(create(Name, Goal, For, _, MyOptions),
 	    tpool(Options, Free0, Size, WP, WPT, Members0),
 	    tpool(Options, Free, Size, WP, WPT, Members)) :-
 	succ(Free, Free0), !,
-	thread_self(Me),
 	merge_options(MyOptions, Options, ThreadOptions),
 	select_option(at_exit(AtExit), ThreadOptions, ThreadOptions1, true),
-	Exit = (thread_send_message(Me, exitted(Name, Id)), AtExit),
 	catch(thread_create(Goal, Id,
-			    [ at_exit(Exit)
+			    [ at_exit(worker_exitted(Name, Id, AtExit))
 			    | ThreadOptions1
 			    ]),
 	      E, true),
@@ -393,6 +391,19 @@ can_delay(true, infinite, _, _) :- !.
 can_delay(true, BackLog, WP, WPT) :-
 	diff_list_length(WP, WPT, Size),
 	BackLog > Size.
+
+%%	worker_exitted(+PoolName, +WorkerId, :AtExit)
+%
+%	It is possible that  '__thread_pool_manager'   no  longer exists
+%	while closing down the process because   the  manager was killed
+%	before the worker.
+%
+%	@tbd Find a way to discover that we are terminating Prolog.
+
+worker_exitted(Name, Id, AtExit) :-
+	catch(thread_send_message('__thread_pool_manager', exitted(Name, Id)),
+	      _, true),
+	call(AtExit).
 
 
 		 /*******************************
