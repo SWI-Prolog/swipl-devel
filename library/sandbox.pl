@@ -514,6 +514,8 @@ safe_primitive(system:nb_current(_,_)).
 					% database
 safe_primitive(system:assert(X)) :-
 	safe_assert(X).
+					% Output
+safe_primitive(system:writeln(_)).
 
 % use_module/1.  We only allow for .pl files that are loaded from
 % relative paths that do not contain /../
