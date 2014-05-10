@@ -50,13 +50,18 @@ LIBOBJ=	html.o access.o build.o util.o
 
 all:	swipl-rc$(EXEEXT)
 
-swipl-rc$(EXEEXT):	librc.a rc.o
+swipl-rc$(EXEEXT):	librc.a rc.o $(UXNTLIB)
 	$(CC) $(LDFLAGS) -o $@ rc.o $(UXNTLIB) -L. -lrc
 
 librc.a:	$(LIBOBJ)
 	rm -f $@
 	$(AR) cq $@ $(LIBOBJ)
 	$(RANLIB) $@
+
+ifeq ($(MINGW),true)
+$(UXNTLIB):
+	@(cd ../os/windows && $(MAKE) COFLAGS="$(COFLAGS)")
+endif
 
 .c.o:
 	$(CC) -c -I.. $(CFLAGS) $< @COUTOPT@
