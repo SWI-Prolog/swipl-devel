@@ -84,7 +84,8 @@ make_no_trace :-
 	print_message(silent, make(done(Reload))),
 	(   prolog:make_hook(after, Reload)
 	->  true
-	;   list_undefined
+	;   list_undefined,
+	    list_void_declarations
 	).
 
 modified_file(File) :-
