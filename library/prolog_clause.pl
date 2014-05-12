@@ -52,6 +52,10 @@
 	unify_clause_hook/5,
 	make_varnames_hook/5.
 
+:- predicate_options(prolog_clause:clause_info/5, 5,
+		     [ variable_names(-list)
+		     ]).
+
 /** <module> Get detailed source-information about a clause
 
 This module started life as part of the   GUI tracer. As it is generally
