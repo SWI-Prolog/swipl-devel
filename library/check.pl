@@ -34,6 +34,7 @@
 	  list_undefined/1,		% +Options
 	  list_autoload/0,		% list predicates that need autoloading
 	  list_redefined/0,		% list redefinitions
+	  list_void_declarations/0,	% list declarations with no clauses
 	  list_trivial_fails/0,		% list goals that trivially fail
 	  list_trivial_fails/1,		% +Options
 	  list_strings/0,		% list string objects in clauses
@@ -247,6 +248,28 @@ redefined_ok('$pred_option'(_,_,_,_)).
 
 global_module(user).
 global_module(system).
+
+%%	list_void_declarations is det.
+%
+%	List predicates that have declared attributes, but no clauses.
+
+list_void_declarations :-
+	P = _:_,
+	(   predicate_property(P, undefined),
+	    (   '$get_predicate_attribute'(P, meta_predicate, Pattern),
+	        print_message(warning,
+			      check(void_declaration(P, meta_predicate(Pattern))))
+	    ;	void_attribute(Attr),
+		'$get_predicate_attribute'(P, Attr, 1),
+		print_message(warning,
+			      check(void_declaration(P, Attr)))
+	    ),
+	    fail
+	;   true
+	).
+
+void_attribute(public).
+void_attribute(volatile).
 
 %%	list_trivial_fails is det.
 %%	list_trivial_fails(+Options) is det.
@@ -574,10 +597,11 @@ valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
 %	   retract(check:checker(list_redefined,_)).
 %	   ==
 
-checker(list_undefined,     'undefined predicates' ).
-checker(list_trivial_fails, 'trivial failures' ).
-checker(list_redefined,     'redefined system and global predicates' ).
-checker(list_autoload,      'predicates that need autoloading' ).
+checker(list_undefined,		'undefined predicates').
+checker(list_trivial_fails,	'trivial failures').
+checker(list_redefined,		'redefined system and global predicates').
+checker(list_void_declarations,	'predicates with declarations but without clauses').
+checker(list_autoload,		'predicates that need autoloading').
 
 
 		 /*******************************
@@ -637,6 +661,9 @@ prolog:message(check(trivial_failure(Goal, Refs))) -->
 prolog:message(check(string_in_clause(String, Context))) -->
 	prolog:message_location(Context),
 	[ 'String ~q'-[String] ].
+prolog:message(check(void_declaration(P, Decl))) -->
+	predicate(P),
+	[ ' is declared as ~p, but has no clauses'-[Decl] ].
 
 
 redefined(user, system) -->
