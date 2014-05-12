@@ -2561,12 +2561,13 @@ the queue-mutex.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-queue_message(message_queue *queue, thread_message *msgp ARG_LD)
+queue_message(message_queue *queue, thread_message *msgp, struct timespec *deadline ARG_LD)
 { if ( queue->max_size > 0 && queue->size >= queue->max_size )
   { queue->wait_for_drain++;
 
     while ( queue->size >= queue->max_size )
-    { if ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, NULL) == EINTR )
+    { switch ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, deadline) )
+      { case EINTR:
       { if ( !LD )			/* needed for clean exit */
 	{ Sdprintf("Forced exit from queue_message()\n");
 	  exit(1);
@@ -2576,6 +2577,14 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 	{ queue->wait_for_drain--;
 	  return MSG_WAIT_INTR;
 	}
+	break;
+      }
+      case ETIMEDOUT:
+	 return MSG_WAIT_TIMEOUT;
+      case 0:
+	 break;
+      default:
+	 assert(0); // should never happen
       }
       if ( queue->destroyed )
 	return MSG_WAIT_DESTROYED;
@@ -3000,23 +3009,96 @@ init_message_queue(message_queue *queue, long max_size)
 }
 
 					/* Prolog predicates */
-static
-PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
-{ PRED_LD
-  message_queue *q;
+
+static const opt_spec thread_get_message_options[] =
+{ { ATOM_timeout,	OPT_DOUBLE },
+  { ATOM_deadline,	OPT_DOUBLE },
+  { NULL_ATOM,		0 }
+};
+
+#ifndef DBL_MAX
+#define DBL_MAX         1.7976931348623158e+308
+#endif
+
+/* This function is shared between thread_get_message/3 and thread_send_message/3.
+	It extracts a deadline from the deadline/1 and timeout/1 options.
+   In both cases, the deadline is passed through to dispatch_cond_wait().
+	Semantics are relatively simple:
+	1. If neither option is given, the deadline is NULL, which corresponds to 
+		an indefinite wait, or a deadline in the infinite future.
+	2. A timeout is _exactly_ like a deadline of Now + Timeout, where Now is
+		evaluated near the beginning of this function.
+	3. If both deadline and a timeout options are given, the earlier deadline is effective.
+	4. If the effective deadline is before Now, then return FALSE (leading to failure).
+*/
+static int process_deadline_options(term_t options, struct timespec *ts, struct timespec **pts)
+{
+  struct timespec now;
+  struct timespec deadline;
+  struct timespec timeout;
+  struct timespec *dlop=NULL;
+  double tmo = DBL_MAX;
+  double dlo = DBL_MAX;
+
+  if ( !scan_options(options, 0,
+		     ATOM_thread_get_message_option, thread_get_message_options,
+		     &tmo, &dlo) )
+    return FALSE;
+
+  get_current_timespec(&now);
+
+  if ( dlo != DBL_MAX )
+  { double ip, fp;
+
+    fp = modf(dlo, &ip);
+    deadline.tv_sec = (time_t)ip;
+    deadline.tv_nsec = (long)(fp*1000000000.0);
+    dlop = &deadline;
+
+    if ( timespec_cmp(&deadline,&now) < 0 ) // if deadline in the past...
+      return FALSE;                         // ... then FAIL
+  }
+
+  // timeout option is processed exactly as if the deadline
+  // was set to now + timeout.
+  if ( tmo != DBL_MAX )
+  { if ( tmo > 0.0 )
+    { double ip, fp=modf(tmo,&ip);
+
+      timeout.tv_sec  = now.tv_sec + (time_t)ip;
+      timeout.tv_nsec = now.tv_nsec + (long)(fp*1000000000.0);
+      carry_timespec_nanos(&timeout);
+      if ( dlop==NULL || timespec_cmp(&timeout,&deadline) < 0 )
+	dlop = &timeout;
+    } else if ( tmo == 0.0 )
+    { dlop = &now;				/* scan once */
+    } else               // if timeout is negative ...
+      return FALSE;      // ... then FAIL
+  }
+  if (dlop)
+  { *ts=*dlop; *pts=ts; }
+  else
+  { *pts=NULL; }
+  return TRUE;
+}
+
+
+static int
+thread_send_message__LD(term_t queue, term_t msgterm, struct timespec *deadline ARG_LD)
+{ message_queue *q;
   thread_message *msg;
   int rc;
 
-  if ( !(msg = create_thread_message(A2 PASS_LD)) )
+  if ( !(msg = create_thread_message(msgterm PASS_LD)) )
     return PL_no_memory();
 
   for(;;)
-  { if ( !get_message_queue__LD(A1, &q PASS_LD) )
+  { if ( !get_message_queue__LD(queue, &q PASS_LD) )
     { free_thread_message(msg);
       return FALSE;
     }
 
-    rc = queue_message(q, msg PASS_LD);
+    rc = queue_message(q, msg, deadline PASS_LD);
     release_message_queue(q);
 
     switch(rc)
@@ -3030,9 +3112,12 @@ PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
       }
       case MSG_WAIT_DESTROYED:
       { free_thread_message(msg);
-	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
+	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, queue);
 	break;
       }
+      case MSG_WAIT_TIMEOUT:
+	 rc = FALSE;
+	 break;
     }
 
     break;
@@ -3040,6 +3125,24 @@ PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
 
   return rc;
 }
+
+static
+PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
+{ PRED_LD
+
+  return thread_send_message__LD(A1, A2, NULL PASS_LD);
+}
+
+static
+PRED_IMPL("thread_send_message", 3, thread_send_message, 0)
+{ PRED_LD
+  struct timespec deadline;
+  struct timespec *dlop=NULL;
+
+  return process_deadline_options(A3,&deadline,&dlop)
+    &&   thread_send_message__LD(A1, A2, dlop PASS_LD);
+}
+
 
 
 static
@@ -3583,61 +3686,15 @@ PRED_IMPL("thread_get_message", 2, thread_get_message, 0)
   return thread_get_message__LD(A1, A2, NULL PASS_LD);
 }
 
-static const opt_spec thread_get_message_options[] =
-{ { ATOM_timeout,	OPT_DOUBLE },
-  { ATOM_deadline,	OPT_DOUBLE },
-  { NULL_ATOM,		0 }
-};
-
-#ifndef DBL_MAX
-#define DBL_MAX         1.7976931348623158e+308
-#endif
 
 static
 PRED_IMPL("thread_get_message", 3, thread_get_message, 0)
 { PRED_LD
-  struct timespec now;
   struct timespec deadline;
-  struct timespec timeout;
   struct timespec *dlop=NULL;
-  double tmo = DBL_MAX;
-  double dlo = DBL_MAX;
 
-  if ( !scan_options(A3, 0,
-		     ATOM_thread_get_message_option, thread_get_message_options,
-		     &tmo, &dlo) )
-    return FALSE;
-
-  get_current_timespec(&now);
-
-  if ( dlo != DBL_MAX )
-  { double ip, fp;
-
-    fp = modf(dlo, &ip);
-    deadline.tv_sec = (time_t)ip;
-    deadline.tv_nsec = (long)(fp*1000000000.0);
-    dlop = &deadline;
-
-    if ( timespec_cmp(&deadline,&now) < 0 )
-      return FALSE;
-  }
-
-  if ( tmo != DBL_MAX )
-  { if ( tmo > 0.0 )
-    { double ip, fp=modf(tmo,&ip);
-
-      timeout.tv_sec  = now.tv_sec + (time_t)ip;
-      timeout.tv_nsec = now.tv_nsec + (long)(fp*1000000000.0);
-      carry_timespec_nanos(&timeout);
-      if ( dlop==NULL || timespec_cmp(&timeout,&deadline) < 0 )
-	dlop = &timeout;
-    } else if ( tmo == 0.0 )
-    { dlop = &now;				/* scan once */
-    } else
-      return FALSE;
-  }
-
-  return thread_get_message__LD(A1, A2, dlop PASS_LD);
+  return process_deadline_options(A3,&deadline,&dlop)
+    &&   thread_get_message__LD(A1, A2, dlop PASS_LD);
 }
 
 
@@ -5788,6 +5845,7 @@ BeginPredDefs(thread)
   PRED_DEF("message_queue_create", 2, message_queue_create2, PL_FA_ISO)
   PRED_DEF("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("thread_send_message", 2, thread_send_message, PL_FA_ISO)
+  PRED_DEF("thread_send_message", 3, thread_send_message, 0)
   PRED_DEF("thread_get_message", 1, thread_get_message, PL_FA_ISO)
   PRED_DEF("thread_get_message", 2, thread_get_message, PL_FA_ISO)
   PRED_DEF("thread_get_message", 3, thread_get_message, PL_FA_ISO)
