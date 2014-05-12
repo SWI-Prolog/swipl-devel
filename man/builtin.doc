@@ -3104,7 +3104,8 @@ True if a procedure definition block for the predicate exists, but
 there are no clauses for it and it is not declared dynamic or multifile.
 This is true if the predicate occurs in the body of a loaded predicate,
 an attempt to call it has been made via one of the meta-call predicates,
-or the predicate had a definition in the past. See the library package
+the predicate has been declared as e.g., a meta-predicate or the
+predicate had a definition in the past. See the library package
 \pllib{check} for example usage.
 
     \termitem{visible}{}
