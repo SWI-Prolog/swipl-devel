@@ -326,6 +326,36 @@ unbound variable, an arbitrary thread is restarted to scan the queue.%
 		  pthread_cond_signal() v.s.\ pthread_cond_broadcast()
 		  for background information.}
 
+    \predicate[semidet]{thread_send_message}{3}{+Queue, +Term, +Options}
+As thread_send_message/2, but providing additional \arg{Options}. These are
+to deal with the case that the queue has a finite maximum size and is full:
+whereas thread_send_message/2 will block until the queue has drained sufficiently
+to accept a new message, thread_send_message/3 can accept a time-out or
+deadline analogously to thread_get_message/3. The options are:
+
+    \begin{description}
+    \termitem{deadline}{+AbsTime}
+The call fails (silently) if no space has become available before
+\arg{AbsTime}. See get_time/1 for the representation of absolute time.
+If \arg{AbsTime} is earlier then the current time, thread_send_message/3
+fails immediately. Both resolution and maximum wait time is
+platform-dependent.\footnote{The implementation uses
+MsgWaitForMultipleObjects() on MS-Windows and pthread_cond_timedwait()
+on other systems.}
+
+    \termitem{timeout}{+Time}
+\arg{Time} is a float or integer and specifies the maximum time to wait
+in seconds.  This is a relative-time version of the \const{deadline}
+option.  If both options are provided, the earlier time is effective.
+
+If \arg{Time} is 0 or 0.0, thread_send_message/3 examines the queue and
+sends the message if space is availabel, but
+does not suspend if no space is available, failing immediately instead.
+
+If \arg{Time} $< 0$, thread_send_message/3 fails immediately without
+sending the message.
+    \end{description}
+
     \predicate{thread_get_message}{1}{?Term}
 Examines the thread message queue and if necessary blocks execution
 until a term that unifies to \arg{Term} arrives in the queue.  After
@@ -404,13 +434,14 @@ on other systems.}
     \termitem{timeout}{+Time}
 \arg{Time} is a float or integer and specifies the maximum time to wait
 in seconds.  This is a relative-time version of the \const{deadline}
-option.  If both options are provided, the earliest time is effective.
+option.  If both options are provided, the earlier time is effective.
 
-It \arg{Time} is 0 or 0.0, thread_get_message/3 examines the queue but
+If \arg{Time} is 0 or 0.0, thread_get_message/3 examines the queue but
 does not suspend if no matching term is available.  Note that unlike
 thread_peek_message/2, a matching term is removed from the queue.
 
-It \arg{Time} $< 0$, thread_get_message/3 fails immediately.
+If \arg{Time} $< 0$, thread_get_message/3 fails immediately without
+removing any message from the queue.
     \end{description}
 
     \predicate[semidet]{thread_peek_message}{2}{+Queue, ?Term}
