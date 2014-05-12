@@ -1473,6 +1473,9 @@ meta_declaration(term_t spec)
     clear(def, P_TRANSPARENT);
   set(def, P_META);
 
+  if ( false(def, FILE_ASSIGNED) && ReadingSource )
+    addProcedureSourceFile(lookupSourceFile(source_file_name, TRUE), proc);
+
   return TRUE;
 }
 
@@ -1606,6 +1609,12 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
   return TRUE;
 }
 
+
+static void
+clear_meta_declaration(Definition def)
+{ def->meta_info = 0;
+  clear(def, P_META|P_TRANSPARENT);
+}
 
 #ifdef O_CLAUSEGC
 		 /*******************************
@@ -3186,7 +3195,9 @@ unloadFile(SourceFile sf)
     }
 
     if ( false(def, P_MULTIFILE) )
-      clear(def, FILE_ASSIGNED);
+    { clear(def, FILE_ASSIGNED);
+      clear_meta_declaration(def);
+    }
   }
 
 				      /* unmark the marked predicates */
