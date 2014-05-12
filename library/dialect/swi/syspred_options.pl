@@ -168,6 +168,10 @@
 :- predicate_options(system:mutex_create/2, 2,
 		     [ alias(atom)
 		     ]).
+:- predicate_options(system:thread_send_message/3, 3,
+		     [ timeout(number),
+		       deadline(number)
+		     ]).
 :- predicate_options(system:thread_get_message/3, 3,
 		     [ timeout(number),
 		       deadline(number)
