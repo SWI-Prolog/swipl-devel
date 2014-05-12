@@ -814,6 +814,7 @@ option_decl(M:_, _) :-
 option_decl(M:_, _) :-
 	has_static_option_decl(M), !.
 option_decl(M:Head, _) :-
+	compound(Head),
 	arg(AP, Head, QA),
 	remove_qualifier(QA, A),
 	annotations(A, Annotations0),
