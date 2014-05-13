@@ -236,7 +236,7 @@ position_context(Stream, LineNo, LinePos, CharNo) :-
 %		    quasi_quotation(Syntax, Quotation, VarNames, Result)
 
 :- public
-	system:'$parse_quasi_quotes'/2.
+	system:'$parse_quasi_quotations'/2.
 
 system:'$parse_quasi_quotations'([], _).
 system:'$parse_quasi_quotations'([H|T], M) :-
