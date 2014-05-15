@@ -517,6 +517,7 @@ safe_primitive(system:assert(X)) :-
 	safe_assert(X).
 					% Output
 safe_primitive(system:writeln(_)).
+safe_primitive('$messages':print_message(_,_)).
 
 % use_module/1.  We only allow for .pl files that are loaded from
 % relative paths that do not contain /../
