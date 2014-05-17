@@ -1204,14 +1204,14 @@ pi_to_term(Name//Arity0, Term) :-
 	Arity is Arity0 + 2,
 	functor(Term, Name, Arity).
 
-colourise_meta_declarations((Head,Tail), TB,
+colourise_meta_declarations((Head,Tail), Extra, TB,
 			    term_position(_,_,_,_,[PH,PT])) :- !,
-	colourise_meta_declaration(Head, TB, PH),
-	colourise_meta_declarations(Tail, TB, PT).
-colourise_meta_declarations(Last, TB, Pos) :-
-	colourise_meta_declaration(Last, TB, Pos).
+	colourise_meta_declaration(Head, Extra, TB, PH),
+	colourise_meta_declarations(Tail, Extra, TB, PT).
+colourise_meta_declarations(Last, Extra, TB, Pos) :-
+	colourise_meta_declaration(Last, Extra, TB, Pos).
 
-colourise_meta_declaration(M:Head, TB,
+colourise_meta_declaration(M:Head, Extra, TB,
 			   term_position(_,_,_,_,
 					 [ MP,
 					   term_position(_,_,FF,FT,ArgPos)
@@ -1219,37 +1219,39 @@ colourise_meta_declaration(M:Head, TB,
 	colour_item(module(M), TB, MP),
 	colour_item(goal(extern(M,Head)), TB, FF-FT),
 	Head =.. [_|Args],
-	colourise_meta_args(Args, TB, ArgPos).
-colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :- !,
+	colourise_meta_decls(Args, Extra, TB, ArgPos).
+colourise_meta_declaration(Head, Extra, TB, term_position(_,_,FF,FT,ArgPos)) :- !,
 	goal_classification(TB, Head, [], Class),
 	colour_item(goal(Class, Head), TB, FF-FT),
 	Head =.. [_|Args],
-	colourise_meta_args(Args, TB, ArgPos).
-colourise_meta_declaration([H|T], TB, list_position(LF,LT,[HP],TP)) :-
+	colourise_meta_decls(Args, Extra, TB, ArgPos).
+colourise_meta_declaration([H|T], Extra, TB, list_position(LF,LT,[HP],TP)) :-
 	colour_item(list, TB, LF-LT),
-	colourise_meta_args([H,T], TB, [HP,TP]).
+	colourise_meta_decls([H,T], Extra, TB, [HP,TP]).
 
-colourise_meta_args([], _, []).
-colourise_meta_args([Arg|ArgT], TB, [PosH|PosT]) :-
-	colourise_meta_arg(Arg, TB, PosH),
-	colourise_meta_args(ArgT, TB, PosT).
+colourise_meta_decls([], _, _, []).
+colourise_meta_decls([Arg|ArgT], Extra, TB, [PosH|PosT]) :-
+	colourise_meta_decl(Arg, Extra, TB, PosH),
+	colourise_meta_decls(ArgT, Extra, TB, PosT).
 
-colourise_meta_arg(Arg, TB, Pos) :-
-	valid_meta_arg(Arg), !,
+colourise_meta_decl(Arg, Extra, TB, Pos) :-
+	nonvar(Arg),
+	(   valid_meta_decl(Arg)
+	->  true
+	;   memberchk(Arg, Extra)
+	),
 	colour_item(meta(Arg), TB, Pos).
-colourise_meta_arg(_, TB, Pos) :-
+colourise_meta_decl(_, _, TB, Pos) :-
 	colour_item(error, TB, Pos).
 
-valid_meta_arg(Var) :-
-	var(Var), !, fail.
-valid_meta_arg(:).
-valid_meta_arg(*).
-valid_meta_arg(//).
-valid_meta_arg(^).
-valid_meta_arg(?).
-valid_meta_arg(+).
-valid_meta_arg(-).
-valid_meta_arg(I) :- integer(I), between(0,9,I).
+valid_meta_decl(:).
+valid_meta_decl(*).
+valid_meta_decl(//).
+valid_meta_decl(^).
+valid_meta_decl(?).
+valid_meta_decl(+).
+valid_meta_decl(-).
+valid_meta_decl(I) :- integer(I), between(0,9,I).
 
 %%	colourise_op_declaration(Op, TB, Pos) is det.
 
@@ -1789,7 +1791,9 @@ specified_item(predicate, Term, TB, Pos) :- !,
 	colourise_declaration(Term, TB, Pos).
 					% head(Arg, ...)
 specified_item(meta_declarations, Term, TB, Pos) :- !,
-	colourise_meta_declarations(Term, TB, Pos).
+	colourise_meta_declarations(Term, [], TB, Pos).
+specified_item(meta_declarations(Extra), Term, TB, Pos) :- !,
+	colourise_meta_declarations(Term, Extra, TB, Pos).
 					% set_prolog_flag(Name, _)
 specified_item(prolog_flag_name, Term, TB, Pos) :- !,
 	colourise_prolog_flag_name(Term, TB, Pos).
