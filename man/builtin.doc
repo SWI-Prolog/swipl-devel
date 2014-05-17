@@ -6363,6 +6363,25 @@ findall(Templ, Goal, Bag) :-
 	findall(Templ, Goal, Bag, [])
 \end{code}
 
+    \predicate[nondet]{findnsols}{4}{+N, @Template, :Goal, -List}
+    \nodescription
+    \predicate[nondet]{findnsols}{5}{+N, @Template, :Goal, -List, ?Tail}
+As findall/3 and findall/4, but generates at most \arg{N} solutions.
+Unifies \arg{List} immediately with [] (\arg{Tail}) if \arg{N} is 0 or
+less. If \arg{N} solutions are returned, this predicate succeeds with a
+choice point. Backtracking returns the next chunk of (at most) \arg{N}
+solutions. This behaviour is used to implement the \jargon{chunk}
+option in \pllib{pengines}.  Based on Ciao, but the Ciao version is
+deterministic. Portability can be achieved by wrapping the goal in
+once/1.  For example:
+
+\begin{code}
+?- findnsols(5, I, between(1, 12, I), L).
+L = [1, 2, 3, 4, 5] ;
+L = [6, 7, 8, 9, 10] ;
+L = [11, 12].
+\end{code}
+
     \predicate[ISO]{bagof}{3}{+Template, :Goal, -Bag}
 Unify \arg{Bag} with the alternatives of \arg{Template}. If \arg{Goal}
 has free variables besides the one sharing with \arg{Template}, bagof/3

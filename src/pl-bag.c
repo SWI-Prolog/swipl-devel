@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -98,6 +98,7 @@ clear_mem_pool(mem_pool *mp)
   { p = c->prev;
     PL_free(c);
   }
+  mp->chunks = &mp->first;
 }
 
 
@@ -109,7 +110,8 @@ clear_mem_pool(mem_pool *mp)
 
 typedef struct findall_bag
 { struct findall_bag *parent;		/* parent bag */
-  intptr_t	magic;			/* FINDALL_MAGIC */
+  int		magic;			/* FINDALL_MAGIC */
+  int		suspended;		/* Used for findnsols/4  */
   size_t	solutions;		/* count # solutions */
   size_t	gsize;			/* required size on stack */
   mem_pool	records;		/* stored records */
@@ -140,6 +142,7 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
     return PL_no_memory();
 
   bag->magic     = FINDALL_MAGIC;
+  bag->suspended = FALSE;
   bag->solutions = 0;
   bag->gsize     = 0;
   bag->parent    = LD->bags.bags;
@@ -161,13 +164,29 @@ alloc_record(void *ctx, size_t bytes)
 }
 
 
-static
-PRED_IMPL("$add_findall_bag", 1, add_findall_bag, 0)
-{ PRED_LD
-  findall_bag *bag = LD->bags.bags;
+static findall_bag *
+current_bag(ARG1_LD)
+{ findall_bag *bag = LD->bags.bags;
+
+  while(bag->suspended)
+  { assert(bag->parent);
+    bag = bag->parent;
+  }
+
+  return bag;
+}
+
+
+static foreign_t
+add_findall_bag(term_t term, term_t count ARG_LD)
+{ findall_bag *bag = current_bag(PASS_LD1);
   Record r;
 
-  if ( !(r = compileTermToHeap__LD(A1, alloc_record, bag, R_NOLOCK PASS_LD)) )
+  DEBUG(MSG_NSOLS, { Sdprintf("Adding to %p: ", bag);
+		     pl_writeln(term);
+		   });
+
+  if ( !(r = compileTermToHeap__LD(term, alloc_record, bag, R_NOLOCK PASS_LD)) )
     return PL_no_memory();
   if ( !pushRecordSegStack(&bag->answers, r) )
     return PL_no_memory();
@@ -177,14 +196,31 @@ PRED_IMPL("$add_findall_bag", 1, add_findall_bag, 0)
   if ( bag->gsize + bag->solutions*3 > limitStack(global)/sizeof(word) )
     return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
 
-  return FALSE;				/* force backtracking of generator */
+  if ( count )
+    return PL_unify_int64(count, bag->solutions);
+  else
+    return FALSE;
+}
+
+static
+PRED_IMPL("$add_findall_bag", 1, add_findall_bag, 0)
+{ PRED_LD
+
+  return add_findall_bag(A1, 0 PASS_LD);
+}
+
+static
+PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
+{ PRED_LD
+
+  return add_findall_bag(A1, A2 PASS_LD);
 }
 
 
 static
 PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 { PRED_LD
-  findall_bag *bag = LD->bags.bags;
+  findall_bag *bag = current_bag(PASS_LD1);
 
   if ( bag->solutions )
   { size_t space = bag->gsize + bag->solutions*3;
@@ -222,6 +258,45 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
     return PL_unify(A1, A2);
 }
 
+/** '$suspend_findall_bag'
+
+Used by findnsols/4,5. It is called after a complete chunk is delivered.
+On first call it empties the chunk and   puts it in `suspended' mode. On
+redo, the bag is re-enabled and we fail to force backtracking the goal.
+
+This is a hack. An alternative would  be to pass bug-ids explicitly, but
+earlier experiments showed a significant  performance gain for findall/3
+and friends by keeping the  bag  implicit   because  there  is  no extra
+argument we need to unify, extract from and verify the result.
+*/
+
+static
+PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  findall_bag *bag;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+      bag = current_bag(PASS_LD1);
+      clear_mem_pool(&bag->records);
+      DEBUG(MSG_NSOLS, Sdprintf("Suspend %p\n", bag));
+      bag->suspended = TRUE;
+      ForeignRedoPtr(bag);
+    case FRG_REDO:
+      bag = CTX_PTR;
+      DEBUG(MSG_NSOLS, Sdprintf("Resume %p\n", bag));
+      bag->suspended = FALSE;
+      return FALSE;
+    case FRG_CUTTED:
+      bag = CTX_PTR;
+      DEBUG(MSG_NSOLS, Sdprintf("! Resume %p\n", bag));
+      bag->suspended = FALSE;
+      return TRUE;
+    default:
+      assert(0);
+  }
+}
+
 
 static
 PRED_IMPL("$destroy_findall_bag", 0, destroy_findall_bag, 0)
@@ -230,6 +305,7 @@ PRED_IMPL("$destroy_findall_bag", 0, destroy_findall_bag, 0)
 
   assert(bag);
   assert(bag->magic == FINDALL_MAGIC);
+  assert(bag->suspended == FALSE);
 
 #ifdef O_ATOMGC
   simpleMutexLock(&LD->bags.mutex);
@@ -280,8 +356,10 @@ markAtomsFindall(PL_local_data_t *ld)
 		 *******************************/
 
 BeginPredDefs(bag)
-  PRED_DEF("$new_findall_bag", 0, new_findall_bag, 0)
-  PRED_DEF("$add_findall_bag", 1, add_findall_bag, 0)
+  PRED_DEF("$new_findall_bag",     0, new_findall_bag,     0)
+  PRED_DEF("$add_findall_bag",     1, add_findall_bag,     0)
+  PRED_DEF("$add_findall_bag",     2, add_findall_bag,     0)
   PRED_DEF("$collect_findall_bag", 2, collect_findall_bag, 0)
   PRED_DEF("$destroy_findall_bag", 0, destroy_findall_bag, 0)
+  PRED_DEF("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC)
 EndPredDefs
