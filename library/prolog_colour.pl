@@ -690,12 +690,15 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 %	meta- and database-access predicates.
 
 colourise_goal_args(Goal, TB, Pos) :-
+	colourization_module(TB, Module),
+	colourise_goal_args(Goal, Module, TB, Pos).
+
+colourization_module(TB, Module) :-
 	(   colour_state_source_id(TB, SourceId),
 	    xref_module(SourceId, Module)
 	->  true
 	;   Module = user
-	),
-	colourise_goal_args(Goal, Module, TB, Pos).
+	).
 
 colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
 	meta_args(Goal, TB, MetaArgs), !,
@@ -1440,7 +1443,7 @@ goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
 goal_colours(load_files(_),	     built_in-[file]).
-goal_colours(load_files(_,_),	     built_in-[file,classify]).
+goal_colours(load_files(_,_),	     built_in-[file,options]).
 goal_colours(setof(_,_,_),	     built_in-[classify,setof,classify]).
 goal_colours(bagof(_,_,_),	     built_in-[classify,setof,classify]).
 goal_colours(predicate_options(_,_,_), built_in-[predicate,classify,classify]).
@@ -1873,8 +1876,13 @@ specified_items(Spec, Term, TB, PosList) :-
 specified_arglist([], _, _, _, _).
 specified_arglist(_, _, _, _, []) :- !.		% Excess specification args
 specified_arglist([S0|ST], N, T, TB, [P0|PT]) :-
-	arg(N, T, Term),
-	specified_item(S0, Term, TB, P0),
+	(   S0 == options,
+	    colourization_module(TB, Module),
+	    colourise_option_arg(T, Module, N, TB, P0)
+	->  true
+	;   arg(N, T, Term),
+	    specified_item(S0, Term, TB, P0)
+	),
 	NN is N + 1,
 	specified_arglist(ST, NN, T, TB, PT).
 
