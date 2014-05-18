@@ -118,6 +118,7 @@
 		       if(oneof([true,changed,not_loaded])),
 		       imports(any),
 		       modified(float),
+		       module(atom),
 		       must_be_module(boolean),
 		       qcompile(oneof([never,auto,large,part])),
 		       redefine_module(oneof([false,true,ask])),

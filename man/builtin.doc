@@ -310,6 +310,14 @@ checking the source.  This option is intended to be used together with
 the \term{stream}{Input} option, for example after extracting the time
 from an HTTP server or database.
 
+    \termitem{module}{+Module}
+Load the indicated file into the given module, overruling the module
+name specified in the \exam{:- module(Name, ...)} directive. This
+currently serves two purposes: (1) allow loading two module files that
+specify the same module	into the same process and force and (2): force
+loading source code in a specific module, even if the code provides its
+own module name.  Experimental.
+
     \termitem{must_be_module}{Bool}
 If \const{true}, raise an error if the file is not a module file.  Used by
 use_module/[1,2].

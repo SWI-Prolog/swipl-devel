@@ -2147,8 +2147,8 @@ load_files(Module:Files, Options) :-
 	    ;	Directive = module(Name, Public, Imports)
 	    )
 	->  !,
-	    '$module_name'(Name, Id),
-	    '$start_module'(Name, Public, State, Options),
+	    '$module_name'(Name, Id, Module, Options),
+	    '$start_module'(Module, Public, State, Options),
 	    '$module3'(Imports)
 	;   Directive = expects_dialect(Dialect)
 	->  !,
@@ -2244,20 +2244,31 @@ load_files(Module:Files, Options) :-
 '$module3'(Id) :-
 	use_module(library(dialect/Id)).
 
-%%	'$module_name'(?Name, +Id) is det.
+%%	'$module_name'(?Name, +Id, -Module, +Options) is semidet.
 %
-%	Sanatise the module name.  Compatible to Ciao, a variable module
-%	name is replaced by the file base-name.
+%	Determine the module name.  There are some cases:
+%
+%	  - Option module(Module) is given.  In that case, use this
+%	    module and if Module is the load context, ignore the module
+%	    header.
+%	  - The initial name is unbound.  Use the base name of the
+%	    source identifier (normally the file name).  Compatibility
+%	    to Ciao.  This might change; I think it is wiser to use
+%	    the full unique source identifier.
 
-'$module_name'(Var, Id) :-
+'$module_name'(_, _, Module, Options) :-
+	'$option'(module(Module), Options), !,
+	'$set_source_module'(Context, Context),
+	Context \== Module.			% cause '$first_term'/5 to fail.
+'$module_name'(Var, Id, Module, Options) :-
 	var(Var), !,
 	file_base_name(Id, File),
 	file_name_extension(Var, _, File),
-	'$module_name'(Var, Id).
-'$module_name'(Reserved, _) :-
+	'$module_name'(Var, Id, Module, Options).
+'$module_name'(Reserved, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
-'$module_name'(_, _).
+'$module_name'(Module, _Id, Module, _).
 
 
 '$reserved_module'(system).
