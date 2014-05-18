@@ -731,6 +731,8 @@ are:
 	    Module \const{system} and modules from \file{<home>/boot}.
 	    \termitem{library}{}
 	    Other modules from the system directories.
+	    \termitem{temporary}{}
+	    Module is temporary.
 	    \termitem{test}{}
 	    Modules that create tests.
 	    \termitem{development}{}

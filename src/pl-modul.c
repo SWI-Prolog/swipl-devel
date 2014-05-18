@@ -441,6 +441,13 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
 	   class == ATOM_development )
       { m->class = class;
 	return TRUE;
+      } else if ( class == ATOM_temporary )
+      { if ( m->procedures && m->procedures->size != 0 )
+	  return PL_error(NULL, 0,
+			  "module is not empty",
+			  ERR_PERMISSION, ATOM_module_property, ATOM_class, arg);
+	m->class = class;
+	return TRUE;
       } else
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_class, arg);
     } else
@@ -1384,7 +1391,12 @@ PRED_IMPL("$destroy_module", 1, destroy_module, 0)
   { Module m;
 
     if ( (m=isCurrentModule(name)) )
-      return destroyModule(m);
+    { if ( m->class == ATOM_temporary )
+	return destroyModule(m);
+      return PL_error(NULL, 0,
+		      "module is not temporary",
+		      ERR_PERMISSION, ATOM_destroy, ATOM_module, A1);
+    }
 
     return TRUE;				/* non-existing */
   }
