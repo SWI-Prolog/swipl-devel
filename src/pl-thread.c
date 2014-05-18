@@ -242,6 +242,7 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_MUTEX"),
   COUNT_MUTEX_INITIALIZER("L_PREDICATE"),
   COUNT_MUTEX_INITIALIZER("L_MODULE"),
+  COUNT_MUTEX_INITIALIZER("L_SRCFILE"),
   COUNT_MUTEX_INITIALIZER("L_TABLE"),
   COUNT_MUTEX_INITIALIZER("L_BREAK"),
   COUNT_MUTEX_INITIALIZER("L_FILE"),
@@ -3024,7 +3025,7 @@ static const opt_spec thread_get_message_options[] =
 	It extracts a deadline from the deadline/1 and timeout/1 options.
    In both cases, the deadline is passed through to dispatch_cond_wait().
 	Semantics are relatively simple:
-	1. If neither option is given, the deadline is NULL, which corresponds to 
+	1. If neither option is given, the deadline is NULL, which corresponds to
 		an indefinite wait, or a deadline in the infinite future.
 	2. A timeout is _exactly_ like a deadline of Now + Timeout, where Now is
 		evaluated near the beginning of this function.

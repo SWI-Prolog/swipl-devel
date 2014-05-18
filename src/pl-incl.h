@@ -1475,6 +1475,9 @@ struct sourceFile
   ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   ListCell	modules;		/* Modules associated to this file */
+#ifdef O_PLMT
+  counting_mutex *mutex;		/* Mutex to guard procedures */
+#endif
   int		count;			/* number of times loaded */
   unsigned	index : 24;		/* index number (1,2,...) */
   unsigned	system : 1;		/* system sourcefile: do not reload */

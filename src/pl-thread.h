@@ -147,23 +147,24 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_MUTEX		7
 #define L_PREDICATE	8
 #define L_MODULE	9
-#define L_TABLE	       10
-#define L_BREAK	       11
-#define L_FILE	       12
-#define L_SEETELL      13
-#define L_PLFLAG       14
-#define L_OP	       15
-#define L_INIT	       16
-#define L_TERM	       17
-#define L_GC	       18
-#define L_AGC	       19
-#define L_STOPTHEWORLD 20
-#define L_FOREIGN      21
-#define L_OS	       22
-#define L_LOCALE       23
+#define L_SRCFILE      10
+#define L_TABLE	       11
+#define L_BREAK	       12
+#define L_FILE	       13
+#define L_SEETELL      14
+#define L_PLFLAG       15
+#define L_OP	       16
+#define L_INIT	       17
+#define L_TERM	       18
+#define L_GC	       19
+#define L_AGC	       20
+#define L_STOPTHEWORLD 21
+#define L_FOREIGN      22
+#define L_OS	       23
+#define L_LOCALE       24
 #ifdef __WINDOWS__
-#define L_DDE	       24
-#define L_CSTACK       25
+#define L_DDE	       25
+#define L_CSTACK       26
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -242,9 +243,11 @@ compile-time
 #define UNLOCKDYNDEF(def) \
 	if ( GD->thread.enabled && def->mutex ) countingMutexUnlock(def->mutex)
 
-#define LOCKMODULE(module)   countingMutexLock((module)->mutex)
-#define UNLOCKMODULE(module) countingMutexUnlock((module)->mutex)
+#define LOCKMODULE(module)	countingMutexLock((module)->mutex)
+#define UNLOCKMODULE(module)	countingMutexUnlock((module)->mutex)
 
+#define LOCKSRCFILE(sf)		countingMutexLock((sf)->mutex)
+#define UNLOCKSRCFILE(sf)	countingMutexUnlock((sf)->mutex)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
