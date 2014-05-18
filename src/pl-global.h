@@ -289,8 +289,7 @@ struct PL_global_data
 
   struct
   { buffer	source_files;		/* index --> file */
-    int		_source_index;		/* current index */
-    Table	_source_table;		/* file --> index */
+    Table	table;			/* name  --> file */
   } files;
 
 #ifdef HAVE_TGETENT

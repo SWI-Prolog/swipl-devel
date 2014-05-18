@@ -2722,9 +2722,6 @@ PRED_IMPL("$get_clause_attribute", 3, get_clause_attribute, 0)
 		*         SOURCE FILE           *
 		*********************************/
 
-#define source_index (GD->files._source_index)
-#define sourceTable  (GD->files._source_table)
-
 static void
 registerSourceFile(SourceFile f)
 { if ( !GD->files.source_files.base )
@@ -2773,8 +2770,8 @@ void
 cleanupSourceFiles(void)
 { Table t;
 
-  if ( (t=sourceTable) )
-  { sourceTable = NULL;
+  if ( (t=GD->files.table) )
+  { GD->files.table = NULL;
 
     destroyHTable(t);
   }
@@ -2801,24 +2798,23 @@ lookupSourceFile(atom_t name, int create)
   Symbol s;
 
   LOCK();
-  if ( !sourceTable )
-  { sourceTable = newHTable(32);
-    sourceTable->free_symbol = freeSymbolSourceFile;
+  if ( !GD->files.table )
+  { GD->files.table = newHTable(32);
+    GD->files.table->free_symbol = freeSymbolSourceFile;
   }
 
-  if ( (s=lookupHTable(sourceTable, (void*)name)) )
+  if ( (s=lookupHTable(GD->files.table, (void*)name)) )
   { file = s->value;
   } else if ( create )
-  { file = (SourceFile) allocHeapOrHalt(sizeof(struct sourceFile));
-    memset(file, 0, sizeof(struct sourceFile));
+  { file = allocHeapOrHalt(sizeof(*file));
+    memset(file, 0, sizeof(*file));
     file->name = name;
-    file->index = ++source_index;
     file->system = GD->bootsession;
 
     PL_register_atom(file->name);
     registerSourceFile(file);
 
-    addHTable(sourceTable, (void*)name, file);
+    addHTable(GD->files.table, (void*)name, file);
   } else
   { file = NULL;
   }
