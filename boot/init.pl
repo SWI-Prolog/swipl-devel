@@ -1930,9 +1930,6 @@ load_files(Module:Files, Options) :-
 '$print_message_fail'(E) :-
 	'$print_message'(error, E),
 	fail.
-'$print_message_fail'(Kind, E) :-
-	'$print_message'(Kind, E),
-	fail.
 
 %%	'$consult_file'(+Path, +Module, -Action, -LoadedIn, +Options)
 %
