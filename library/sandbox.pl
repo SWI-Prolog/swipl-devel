@@ -706,7 +706,7 @@ format_callables(Types, Args, _) :-		% TBD: Proper error
 %	Throws an exception if G is not considered a safe directive.
 
 prolog:sandbox_allowed_directive(M:PredAttr) :-
-	safe_directive(PredAttr),
+	safe_directive(PredAttr), !,
 	(   prolog_load_context(module, M)
 	->  PredAttr =.. [Attr, Preds],
 	    safe_pattr(Preds, Attr)
