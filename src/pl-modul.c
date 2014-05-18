@@ -184,6 +184,25 @@ unallocModule(Module m)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Remove all links from  the  source   file  administration  to  the given
+module.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+unlinkSourceFilesModule(Module m)
+{ if ( GD->files._source_table )
+  { TableEnum en = newTableEnum(GD->files._source_table);
+    Symbol s;
+
+    while ( (s=advanceTableEnum(en)) )
+      unlinkSourceFileModule(s->value, m);
+
+    freeTableEnum(en);
+  }
+}
+
+
 static int
 destroyModule(Module m)
 { Symbol s;
@@ -193,6 +212,7 @@ destroyModule(Module m)
     deleteSymbolHTable(GD->tables.modules, s);
   UNLOCK();
 
+  unlinkSourceFilesModule(m);
   PL_unregister_atom(m->name);
   GD->statistics.modules--;
   unallocModule(m);

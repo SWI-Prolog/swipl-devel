@@ -477,6 +477,7 @@ COMMON(word)		pl_index(term_t pred);
 COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
 COMMON(SourceFile)	indexToSourceFile(int index);
 COMMON(void)		cleanupSourceFiles(void);
+COMMON(void)		unlinkSourceFileModule(SourceFile sf, Module m);
 COMMON(void)		addProcedureSourceFile(SourceFile sf, Procedure proc);
 COMMON(word)		pl_make_system_source_files(void);
 COMMON(word)		pl_source_file(term_t descr, term_t file, control_t h);

@@ -2929,6 +2929,41 @@ delAllModulesSourceFile__unlocked(SourceFile sf)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Remove all links from sf to  m  module.   If  sf  becomes empty, we also
+delete the source file.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+unlinkSourceFileModule(SourceFile sf, Module m)
+{ ListCell cell;
+
+  if ( delModuleSourceFile(sf, m) )
+  { ListCell cell, next, prev = NULL;
+
+    LOCK();
+
+    for(cell=sf->procedures; cell; cell=next)
+    { next = cell->next;
+
+      if ( lookupHTable(m->procedures, cell->value) )
+      { if ( prev )
+	  prev->next = cell->next;
+	else
+	  sf->procedures = cell->next;
+	freeHeap(cell, sizeof(*cell));
+      } else
+	prev = cell;
+    }
+
+    if ( !sf->procedures && !sf->modules )
+      Sdprintf("Can discard source file %s\n", PL_atom_chars(sf->name));
+
+    UNLOCK();
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 redefineProcedure() is called when a procedure   needs to be defined and
 it seems to have a definition. The (*)   case occurs if this is actually
 false. This happens if a file holding   a  running predicate is reloaded
