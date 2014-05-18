@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -181,6 +181,21 @@ unallocModule(Module m)
   if ( m->mutex )      freeSimpleMutex(m->mutex);
 
   freeHeap(m, sizeof(*m));
+}
+
+
+static int
+destroyModule(Module m)
+{ Symbol s;
+
+  LOCK();
+  if ( (s=lookupHTable(GD->tables.modules, (void*)m->name)) )
+    deleteSymbolHTable(GD->tables.modules, s);
+  UNLOCK();
+
+  unallocModule(m);
+
+  return TRUE;
 }
 
 
@@ -1353,6 +1368,30 @@ PRED_IMPL("$import", 2, import, PL_FA_TRANSPARENT)
   return import(A1, A2 PASS_LD);
 }
 
+/** '$destroy_module'(+Module) is det.
+
+Destroy all traces of  the  named  module.   This  is  only  safe  if no
+procedure in Module is executing  and   there  are no predicates outside
+this module that link to predicates of this module.
+*/
+
+static
+PRED_IMPL("$destroy_module", 1, destroy_module, 0)
+{ PRED_LD
+  atom_t name;
+
+  if ( PL_get_atom_ex(A1, &name) )
+  { Module m;
+
+    if ( (m=isCurrentModule(name)) )
+      return destroyModule(m);
+
+    return TRUE;				/* non-existing */
+  }
+
+  return FALSE;
+}
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -1372,4 +1411,5 @@ BeginPredDefs(module)
   PRED_DEF("$import", 2, import, PL_FA_TRANSPARENT)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
   PRED_DEF("$undefined_export", 2, undefined_export, 0)
+  PRED_DEF("$destroy_module", 1, destroy_module, 0)
 EndPredDefs
