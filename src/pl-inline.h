@@ -176,6 +176,13 @@ clear_bitvector(bit_vector *v)
 }
 
 static inline void
+setall_bitvector(bit_vector *v)
+{ size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
+
+  memset(v->chunk, 0xff, chunks*sizeof(bitv_chunk));
+}
+
+static inline void
 set_bit(bit_vector *v, int which)
 { int e = which/BITSPERE;
   int b = which%BITSPERE;

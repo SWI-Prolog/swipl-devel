@@ -186,20 +186,43 @@ unallocModule(Module m)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Remove all links from  the  source   file  administration  to  the given
-module.
+module. Such links are added by addProcedureSourceFile(). In theory, the
+relation between procedure and source file  is many-to-many, but most of
+the time it is one-to-one. In that   case, proc->source_no points to the
+one source file. Otherwise (multiple files), PROC_MULTISOURCE is set and
+we need to scan all source files to find the references.
+
+This is fine for the  current   schema  of destroying temporary modules,
+which are typically not supposed  to   use  constructs such as multifile
+anyway. The alternative  is  for  procedures   to  maintain  a  list  of
+back-links to the source files.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
+markSourceFilesProcedure(Procedure proc, struct bit_vector *v)
+{ if ( false(proc, PROC_MULTISOURCE) )
+    set_bit(v, proc->source_no);
+  else
+    setall_bitvector(v);
+}
+
+
+static void
 unlinkSourceFilesModule(Module m)
-{ if ( GD->files._source_table )
-  { TableEnum en = newTableEnum(GD->files._source_table);
-    Symbol s;
+{ size_t i, high = highSourceFileIndex();
+  struct bit_vector *v = new_bitvector(high);
 
-    while ( (s=advanceTableEnum(en)) )
-      unlinkSourceFileModule(s->value, m);
+  for_unlocked_table(m->procedures, s,
+		     markSourceFilesProcedure(s->value, v));
 
-    freeTableEnum(en);
+  for(i=1; i<=high; i++)
+  { if ( true_bit(v, i) )
+    { SourceFile sf = indexToSourceFile(i);
+      unlinkSourceFileModule(sf, m);
+    }
   }
+
+  free_bitvector(v);
 }
 
 

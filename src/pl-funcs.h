@@ -476,6 +476,7 @@ COMMON(void)		startConsult(SourceFile f);
 COMMON(word)		pl_index(term_t pred);
 COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
 COMMON(SourceFile)	indexToSourceFile(int index);
+COMMON(size_t)		highSourceFileIndex(void);
 COMMON(void)		cleanupSourceFiles(void);
 COMMON(void)		unlinkSourceFileModule(SourceFile sf, Module m);
 COMMON(void)		addProcedureSourceFile(SourceFile sf, Procedure proc);

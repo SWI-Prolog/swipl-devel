@@ -58,7 +58,8 @@ lookupProcedure(functor_t f, Module m)
   { proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
     def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
     proc->definition = def;
-    proc->flags = 0;
+    proc->flags      = 0;
+    proc->source_no  = 0;
 
     memset(def, 0, sizeof(*def));
     def->functor = valueFunctor(f);
@@ -2735,6 +2736,12 @@ registerSourceFile(SourceFile f)
 }
 
 
+size_t
+highSourceFileIndex(void)
+{ return entriesBuffer(&GD->files.source_files, SourceFile);
+}
+
+
 static void
 freeList(ListCell *lp)
 { ListCell c;
@@ -2838,7 +2845,11 @@ hasProcedureSourceFile(SourceFile sf, Procedure proc)
   fail;
 }
 
-
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+addProcedureSourceFile(SourceFile, Procedure) associates a  procedure to
+a source file. Note that  a  procedure   may  be  associated to multiple
+source files.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 addProcedureSourceFile(SourceFile sf, Procedure proc)
@@ -2855,6 +2866,10 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
   cell->next = sf->procedures;
   sf->procedures = cell;
   set(proc->definition, FILE_ASSIGNED);
+  if ( !proc->source_no )
+    proc->source_no = sf->index;
+  else
+    set(proc, PROC_MULTISOURCE);
 
   UNLOCK();
 }
@@ -2935,31 +2950,35 @@ delete the source file.
 
 void
 unlinkSourceFileModule(SourceFile sf, Module m)
-{ ListCell cell;
+{ ListCell cell, next, prev = NULL;
 
-  if ( delModuleSourceFile(sf, m) )
-  { ListCell cell, next, prev = NULL;
+  LOCK();
 
-    LOCK();
+  Sdprintf("Cleaning %s\n", PL_atom_chars(sf->name));
 
-    for(cell=sf->procedures; cell; cell=next)
-    { next = cell->next;
+  for(cell=sf->procedures; cell; cell=next)
+  { Procedure proc;
 
-      if ( lookupHTable(m->procedures, cell->value) )
-      { if ( prev )
-	  prev->next = cell->next;
-	else
-	  sf->procedures = cell->next;
-	freeHeap(cell, sizeof(*cell));
-      } else
-	prev = cell;
-    }
+    next = cell->next;
+    proc = cell->value;
 
-    if ( !sf->procedures && !sf->modules )
-      Sdprintf("Can discard source file %s\n", PL_atom_chars(sf->name));
+    Sdprintf("    Checking %s\n", procedureName(cell->value));
 
-    UNLOCK();
+    if ( lookupHTable(m->procedures, (void*)proc->definition->functor->functor) )
+    { Sdprintf("    REMOVING\n");
+      if ( prev )
+	prev->next = cell->next;
+      else
+	sf->procedures = cell->next;
+      freeHeap(cell, sizeof(*cell));
+    } else
+      prev = cell;
   }
+
+  if ( !sf->procedures && !sf->modules )
+    Sdprintf("Can discard source file %s\n", PL_atom_chars(sf->name));
+
+  UNLOCK();
 }
 
 

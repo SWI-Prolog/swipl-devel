@@ -1293,11 +1293,13 @@ struct definition_chain
   DefinitionChain	next;		/* next in chain */
 };
 
-#define	PROC_WEAK	(0x0001)	/* implicit import */
+#define	PROC_WEAK	 (0x0001)	/* implicit import */
+#define	PROC_MULTISOURCE (0x0002)	/* Assigned to multiple sources */
 
 struct procedure
-{ Definition	definition;		/* definition of procedure */
-  unsigned int	flags;			/* PROC_WEAK */
+{ Definition	 definition;		/* definition of procedure */
+  unsigned short flags;			/* PROC_WEAK */
+  unsigned short source_no;		/* Source I'm assigned to */
 };
 
 struct localFrame
