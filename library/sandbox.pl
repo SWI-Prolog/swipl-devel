@@ -744,9 +744,15 @@ safe_pattr(_, _).
 %	  - goal_expansion/2
 %	  - term_expansion/2
 %	  - Quasi quotations.
+%
+%	Our assumption is that external expansion rules are coded safely
+%	and we only need to be  careful   if  the sandboxed code defines
+%	expansion rules.
 
-prolog:sandbox_allowed_expansion(G) :-
+prolog:sandbox_allowed_expansion(M:G) :-
+	prolog_load_context(module, M), !,
 	safe_goal(G).
+prolog:sandbox_allowed_expansion(_,_).
 
 
 		 /*******************************
