@@ -193,6 +193,8 @@ destroyModule(Module m)
     deleteSymbolHTable(GD->tables.modules, s);
   UNLOCK();
 
+  PL_unregister_atom(m->name);
+  GD->statistics.modules--;
   unallocModule(m);
 
   return TRUE;
