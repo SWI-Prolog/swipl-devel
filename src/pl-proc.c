@@ -2786,6 +2786,15 @@ cleanupSourceFiles(void)
 }
 
 
+int
+destroySourceFile(SourceFile sf)
+{ DEBUG(MSG_SRCFILE,
+	Sdprintf("Destroying source file %s\n", PL_atom_chars(sf->name)));
+
+  return TRUE;
+}
+
+
 SourceFile
 lookupSourceFile(atom_t name, int create)
 { SourceFile file;
@@ -2954,7 +2963,8 @@ unlinkSourceFileModule(SourceFile sf, Module m)
 
   LOCK();
 
-  Sdprintf("Cleaning %s\n", PL_atom_chars(sf->name));
+  DEBUG(MSG_DESTROY_MODULE,
+	Sdprintf("Cleaning %s\n", PL_atom_chars(sf->name)));
 
   for(cell=sf->procedures; cell; cell=next)
   { Procedure proc;
@@ -2962,11 +2972,8 @@ unlinkSourceFileModule(SourceFile sf, Module m)
     next = cell->next;
     proc = cell->value;
 
-    Sdprintf("    Checking %s\n", procedureName(cell->value));
-
     if ( lookupHTable(m->procedures, (void*)proc->definition->functor->functor) )
-    { Sdprintf("    REMOVING\n");
-      if ( prev )
+    { if ( prev )
 	prev->next = cell->next;
       else
 	sf->procedures = cell->next;
@@ -2975,10 +2982,10 @@ unlinkSourceFileModule(SourceFile sf, Module m)
       prev = cell;
   }
 
-  if ( !sf->procedures && !sf->modules )
-    Sdprintf("Can discard source file %s\n", PL_atom_chars(sf->name));
-
   UNLOCK();
+
+  if ( !sf->procedures && !sf->modules )
+    destroySourceFile(sf);
 }
 
 
