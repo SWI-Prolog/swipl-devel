@@ -371,6 +371,7 @@ DECL_PLIST(tai);
 DECL_PLIST(setup);
 DECL_PLIST(gc);
 DECL_PLIST(proc);
+DECL_PLIST(srcfile);
 DECL_PLIST(write);
 DECL_PLIST(dlopen);
 DECL_PLIST(system);
@@ -418,6 +419,7 @@ initBuildIns(void)
   REG_PLIST(setup);
   REG_PLIST(gc);
   REG_PLIST(proc);
+  REG_PLIST(srcfile);
   REG_PLIST(write);
   REG_PLIST(dlopen);
   REG_PLIST(system);

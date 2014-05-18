@@ -15,7 +15,7 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o pl-error.o \
 	pl-load.o pl-modul.o pl-op.o pl-prims.o pl-pro.o \
 	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-setup.o \
 	pl-sys.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
-	pl-term.o pl-thread.o pl-xterm.o \
+	pl-term.o pl-thread.o pl-xterm.o pl-srcfile.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
 	pl-init.o pl-gmp.o pl-segstack.o pl-hash.o \
 	pl-version.o pl-codetable.o pl-supervisor.o \
