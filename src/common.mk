@@ -35,7 +35,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	qsave.pl shlib.pl statistics.pl system.pl error.pl \
 	backcomp.pl gensym.pl listing.pl debug.pl vm.pl \
-	quintus.pl edinburgh.pl ctypes.pl files.pl \
+	quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl \
 	edit.pl shell.pl check.pl heaps.pl win_menu.pl console_input.pl \
 	tty.pl readln.pl readutil.pl make.pl hotfix.pl option.pl \
 	oset.pl ordsets.pl occurs.pl lists.pl \

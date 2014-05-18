@@ -370,6 +370,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\coinduction.pl
   File ${SWIPL}\library\quasi_quotations.pl
   File ${SWIPL}\library\sandbox.pl
+  File ${SWIPL}\library\modules.pl
   File ${SWIPL}\library\win_menu.pl
   File ${SWIPL}\library\console_input.pl
 
