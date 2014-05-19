@@ -123,6 +123,7 @@
 		       qcompile(oneof([never,auto,large,part])),
 		       redefine_module(oneof([false,true,ask])),
 		       reexport(boolean),
+		       sandboxed(boolean),
 		       silent(boolean),
 		       stream(any)
 		     ]).
