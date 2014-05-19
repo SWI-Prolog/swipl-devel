@@ -1483,6 +1483,9 @@ struct sourceFile
   unsigned	system : 1;		/* system sourcefile: do not reload */
 };
 
+typedef struct srcfile_array
+{ SourceFile *blocks[8*sizeof(void*)];
+} srcfile_array;
 
 struct list_cell
 { void *	value;		/* object in the cell */

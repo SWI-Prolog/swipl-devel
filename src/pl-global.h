@@ -288,7 +288,9 @@ struct PL_global_data
   } procedures;
 
   struct
-  { buffer	source_files;		/* index --> file */
+  { size_t	highest;		/* highest source file index */
+    size_t	no_hole_before;		/* All filled before here */
+    srcfile_array array;		/* index --> file */
     Table	table;			/* name  --> file */
   } files;
 

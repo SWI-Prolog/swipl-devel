@@ -37,19 +37,81 @@ unsigned short, which is registered with clauses and procedures.
 
 
 static void
-registerSourceFile(SourceFile f)		/* locked by lookupSourceFile() */
-{ if ( !GD->files.source_files.base )
-    initBuffer(&GD->files.source_files);
+putSourceFileArray(size_t where, SourceFile sf)
+{ int idx = MSB(where);
 
-  f->index = (int)entriesBuffer(&GD->files.source_files, SourceFile) + 1;
+  if ( !GD->files.array.blocks[idx] )
+  { PL_LOCK(L_MISC);
+    if ( !GD->files.array.blocks[idx] )
+    { size_t bs = (size_t)1<<idx;
+      SourceFile *newblock;
 
-  addBuffer(&GD->files.source_files, f, SourceFile);
+      if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(SourceFile))) )
+	outOfCore();
+
+      memset(newblock, 0, bs*sizeof(SourceFile));
+      GD->files.array.blocks[idx] = newblock-bs;
+    }
+    PL_UNLOCK(L_MISC);
+  }
+
+  GD->files.array.blocks[idx][where] = sf;
+}
+
+
+static void
+registerSourceFile(SourceFile sf)	/* locked by lookupSourceFile() */
+{ size_t index;
+  int i;
+  int last = FALSE;
+
+  if ( GD->files.no_hole_before == 0 )
+    GD->files.no_hole_before = 1;
+
+  for(index=GD->files.no_hole_before, i=MSB(index); !last; i++)
+  { size_t upto = (size_t)2<<i;
+    SourceFile *b = GD->files.array.blocks[i];
+
+    if ( upto >= GD->files.highest )
+    { upto = GD->files.highest;
+      last = TRUE;
+    }
+
+    for(; index<upto; index++)
+    { if ( b[index] == NULL )
+      { sf->index = index;
+	b[index] = sf;
+	GD->files.no_hole_before = index+1;
+
+	return;
+      }
+    }
+  }
+
+  GD->files.no_hole_before = index+1;
+  sf->index = index;
+  if ( (size_t)sf->index != index )
+    fatalError("Too many (%d) source files", index);
+  putSourceFileArray(index, sf);
+  GD->files.highest = index+1;
 }
 
 
 size_t
 highSourceFileIndex(void)
-{ return entriesBuffer(&GD->files.source_files, SourceFile);
+{ return GD->files.highest;
+}
+
+
+SourceFile
+indexToSourceFile(int index)
+{ if ( index > 0 && index < GD->files.highest )
+  { int idx = MSB(index);
+
+    return GD->files.array.blocks[idx][index];
+  }
+
+  return NULL;
 }
 
 
@@ -88,6 +150,21 @@ freeSymbolSourceFile(Symbol s)
 }
 
 
+static void
+cleanupSourceFileArray(void)
+{ int i;
+  SourceFile *ap0;
+
+  for(i=0; (ap0=GD->files.array.blocks[i]); i++)
+  { size_t bs = (size_t)1<<i;
+
+    ap0 += bs;
+    GD->files.array.blocks[i] = NULL;
+    PL_free(ap0);
+  }
+}
+
+
 void
 cleanupSourceFiles(void)
 { Table t;
@@ -98,10 +175,7 @@ cleanupSourceFiles(void)
     destroyHTable(t);
   }
 
-  if ( GD->files.source_files.base )
-  { discardBuffer(&GD->files.source_files);
-    GD->files.source_files.base = 0;
-  }
+  cleanupSourceFileArray();
 }
 
 
@@ -123,6 +197,7 @@ lookupSourceFile(atom_t name, int create)
   if ( !GD->files.table )
   { GD->files.table = newHTable(32);
     GD->files.table->free_symbol = freeSymbolSourceFile;
+    GD->files.no_hole_before = 1;
   }
 
   if ( (s=lookupHTable(GD->files.table, (void*)name)) )
@@ -145,25 +220,6 @@ lookupSourceFile(atom_t name, int create)
   UNLOCK();
 
   return file;
-}
-
-
-SourceFile
-indexToSourceFile(int index)
-{ int n;
-  SourceFile sf;
-
-  LOCK();
-  n = (int)entriesBuffer(&GD->files.source_files, SourceFile);
-
-  index--;
-  if ( index >= 0 && index < n )
-    sf = fetchBuffer(&GD->files.source_files, index, SourceFile);
-  else
-    sf = NULL;
-  UNLOCK();
-
-  return sf;
 }
 
 
@@ -318,11 +374,12 @@ pl_make_system_source_files(void)
 { int i, n;
 
   LOCK();
-  n =  (int)entriesBuffer(&GD->files.source_files, SourceFile);
-  for(i=0; i<n; i++)
-  { SourceFile f = fetchBuffer(&GD->files.source_files, i, SourceFile);
+  n = highSourceFileIndex();
+  for(i=1; i<n; i++)
+  { SourceFile f = indexToSourceFile(i);
 
-    f->system = TRUE;
+    if ( f )
+      f->system = TRUE;
   }
   UNLOCK();
 
