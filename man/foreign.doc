@@ -1025,7 +1025,7 @@ pl_write_atoms(term_t l)
 \end{code}
 
 Note that as of version~7, lists have a new representation unless the
-option \cmdlineoption{--traditional} is used.  see \secref{ext-list}.
+option \cmdlineoption{--traditional} is used.  see \secref{ext-lists}.
 
 \begin{description}
     \cfunction{int}{PL_get_list}{term_t +l, term_t -h, term_t -t}

@@ -2602,12 +2602,6 @@ Option & Default & Area name & Description \\
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector
                        determines they are no longer needed. \\
-\cmdlineoption{-A} & 1M & \bf argument stack & The argument stack is used to
-                       store one of the Virtual Machine's
-                       registers. The amount of space needed on this
-                       stack is determined entirely by the depth in
-                       which terms are nested in the clauses that
-                       constitute the program. Overflow is unlikely. \\
 \hline
 \end{tabular}
 \end{center}

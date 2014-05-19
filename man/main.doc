@@ -63,8 +63,13 @@
 \newcommand{\vmonth}{May}
 \newcommand{\vyear}{2014}
 
+#ifdef BOOK
+\newcommand{\versionshort}{\vmajor}
+\newcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}
+#else
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
+#endif
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
