@@ -382,8 +382,8 @@ unlinkSourceFileModule(SourceFile sf, Module m)
 }
 
 
-word
-pl_make_system_source_files(void)
+static
+PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
 { int i, n;
 
   LOCK();
@@ -400,24 +400,26 @@ pl_make_system_source_files(void)
 }
 
 
-word
-pl_source_file(term_t descr, term_t file, control_t h)
-{ GET_LD
+static
+PRED_IMPL("source_file", 2, source_file, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   Procedure proc;
   ClauseRef cref;
   SourceFile sf;
   atom_t name;
   ListCell cell;
 
+  term_t descr = A1;
+  term_t file  = A2;
 
-  if ( ForeignControl(h) == FRG_FIRST_CALL )
+  if ( CTX_CNTRL == FRG_FIRST_CALL )
   { if ( get_procedure(descr, &proc, 0, GP_FIND|GP_TYPE_QUIET) )
     { if ( !proc->definition ||
 	   true(proc->definition, P_FOREIGN|P_THREAD_LOCAL) ||
 	   !(cref = proc->definition->impl.clauses.first_clause) ||
 	   !(sf = indexToSourceFile(cref->value.clause->owner_no)) ||
 	   sf->count == 0 )
-	fail;
+	return FALSE;
 
       return PL_unify_atom(file, sf->name);
     }
@@ -426,20 +428,20 @@ pl_source_file(term_t descr, term_t file, control_t h)
       return get_procedure(descr, &proc, 0, GP_FIND); /* throw exception */
   }
 
-  if ( ForeignControl(h) == FRG_CUTTED )
-    succeed;
+  if ( CTX_CNTRL == FRG_CUTTED )
+    return TRUE;
 
   if ( !PL_get_atom_ex(file, &name) ||
        !(sf = lookupSourceFile(name, FALSE)) ||
        sf->count == 0 )
-    fail;
+    return FALSE;
 
-  switch( ForeignControl(h) )
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       cell = sf->procedures;
       break;
     case FRG_REDO:
-      cell = ForeignContextPtr(h);
+      cell = CTX_PTR;
       break;
     default:
       cell = NULL;
@@ -464,7 +466,7 @@ pl_source_file(term_t descr, term_t file, control_t h)
     PL_discard_foreign_frame(cid);
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -790,8 +792,10 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
 		 *******************************/
 
 BeginPredDefs(srcfile)
+  PRED_DEF("source_file", 2, source_file, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("$unload_file", 1, unload_file, 0)
   PRED_DEF("$start_consult", 2, start_consult, 0)
+  PRED_DEF("$make_system_source_files", 0, make_system_source_files, 0)
 EndPredDefs
