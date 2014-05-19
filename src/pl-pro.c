@@ -309,7 +309,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     fail;
   }
 
-  proc = lookupProcedure(fd, module);
+  proc = resolveProcedure(fd, module);
 
   { int arity = arityFunctor(fd);
     term_t args;
