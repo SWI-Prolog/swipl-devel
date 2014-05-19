@@ -1840,7 +1840,6 @@ found:
   if ( (odef=proc->definition) != def )	/* Nope, we must link the def */
   { proc->definition = def;
     shareDefinition(def);
-    unshareDefinition(odef);
 
     if ( unshareDefinition(odef) == 0 )
     {
@@ -1851,7 +1850,10 @@ found:
       { assert(false(proc->definition, P_DIRTYREG));
 	freeHeap(odef, sizeof(struct definition));
       } else
-      { GC_LINGER(odef);
+      { DEBUG(MSG_PROC, Sdprintf("autoImport(%s,%s): Linger %s (%p)\n",
+				 functorName(f), PL_atom_chars(m->name),
+				 predicateName(odef), odef));
+	GC_LINGER(odef);
       }
       PL_UNLOCK(L_THREAD);
 #else
