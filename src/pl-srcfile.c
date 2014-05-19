@@ -181,8 +181,21 @@ cleanupSourceFiles(void)
 
 int
 destroySourceFile(SourceFile sf)
-{ DEBUG(MSG_SRCFILE,
+{ Symbol s;
+
+  DEBUG(MSG_SRCFILE,
 	Sdprintf("Destroying source file %s\n", PL_atom_chars(sf->name)));
+
+  LOCK();
+  s = lookupHTable(GD->files.table, (void*)sf->name);
+  assert(s);
+  deleteSymbolHTable(GD->files.table, s);
+  putSourceFileArray(sf->index, NULL);
+  if ( GD->files.no_hole_before > sf->index )
+    GD->files.no_hole_before = sf->index;
+  UNLOCK();
+
+  unallocSourceFile(sf);
 
   return TRUE;
 }
@@ -663,7 +676,7 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
       UNLOCKMODULE(m);
     }
 
-    sf->count = 0;
+    destroySourceFile(sf);
   }
 
   return TRUE;

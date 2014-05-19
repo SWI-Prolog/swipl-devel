@@ -218,7 +218,9 @@ unlinkSourceFilesModule(Module m)
   for(i=1; i<=high; i++)
   { if ( true_bit(v, i) )
     { SourceFile sf = indexToSourceFile(i);
-      unlinkSourceFileModule(sf, m);
+
+      if ( sf )
+	unlinkSourceFileModule(sf, m);
     }
   }
 
