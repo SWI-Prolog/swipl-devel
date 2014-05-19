@@ -179,6 +179,27 @@ cleanupSourceFiles(void)
 }
 
 
+static bool
+clearSourceAdmin(SourceFile sf)
+{ GET_LD
+  int rc = FALSE;
+
+  fid_t fid = PL_open_foreign_frame();
+  term_t name = PL_new_term_ref();
+  static predicate_t pred = NULL;
+
+  if ( !pred )
+    pred = PL_predicate("$clear_source_admin", 1, "system");
+
+  PL_put_atom(name, sf->name);
+  rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
+
+  PL_discard_foreign_frame(fid);
+
+  return rc;
+}
+
+
 int
 destroySourceFile(SourceFile sf)
 { Symbol s;
@@ -186,10 +207,13 @@ destroySourceFile(SourceFile sf)
   DEBUG(MSG_SRCFILE,
 	Sdprintf("Destroying source file %s\n", PL_atom_chars(sf->name)));
 
+  clearSourceAdmin(sf);
+
   LOCK();
   s = lookupHTable(GD->files.table, (void*)sf->name);
   assert(s);
   deleteSymbolHTable(GD->files.table, s);
+  PL_unregister_atom(sf->name);
   putSourceFileArray(sf->index, NULL);
   if ( GD->files.no_hole_before > sf->index )
     GD->files.no_hole_before = sf->index;
@@ -515,27 +539,6 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
 }
 
 
-static bool
-clearInitialization(SourceFile sf)
-{ GET_LD
-  int rc = FALSE;
-
-  fid_t fid = PL_open_foreign_frame();
-  term_t name = PL_new_term_ref();
-  static predicate_t pred = NULL;
-
-  if ( !pred )
-    pred = PL_predicate("$clear_initialization", 1, "system");
-
-  PL_put_atom(name, sf->name);
-  rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
-
-  PL_discard_foreign_frame(fid);
-
-  return rc;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unloadFile(SourceFile sf)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -547,7 +550,6 @@ unloadFile(SourceFile sf)
   sigset_t set;
   ClauseRef garbage = NULL;
 
-  clearInitialization(sf);
   delayEvents();
 
   LOCKSRCFILE(sf);

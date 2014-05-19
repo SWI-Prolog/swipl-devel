@@ -403,16 +403,17 @@ initialization(Goal, When) :-
 '$initialization_failure'(Goal, Ctx) :-
 	print_message(warning, initialization_failure(Goal, Ctx)).
 
-%%	'$clear_initialization'(+File) is det.
+%%	'$clear_source_admin'(+File) is det.
 %
-%	removes all initialization goals that are registered from File.
+%	Removes source adminstration related to File
 %
-%	@see Called from startConsult() in pl-proc.c
+%	@see Called from destroySourceFile() in pl-proc.c
 
-:- public '$clear_initialization'/1.
+:- public '$clear_source_admin'/1.
 
-'$clear_initialization'(File) :-
-	retractall('$init_goal'(_, _, File:_)).
+'$clear_source_admin'(File) :-
+	retractall('$init_goal'(_, _, File:_)),
+	retractall('$load_context_module'(File, _, _)).
 
 
 		/********************************
