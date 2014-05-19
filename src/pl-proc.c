@@ -156,7 +156,8 @@ importDefinitionModule(Module m, Definition def, int flags)
   } else
   { proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
     proc->definition = def;
-    proc->flags = flags;
+    proc->flags      = flags;
+    proc->source_no  = 0;
     addHTable(m->procedures, (void *)functor, proc);
     shareDefinition(def);
   }

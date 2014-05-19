@@ -1396,6 +1396,7 @@ import(term_t pred, term_t strength ARG_LD)
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
 
     nproc->flags = pflags;
+    nproc->source_no = 0;
     nproc->definition = proc->definition;
     shareDefinition(proc->definition);
 
