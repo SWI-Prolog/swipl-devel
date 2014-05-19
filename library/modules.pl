@@ -36,9 +36,9 @@
 */
 
 :- meta_predicate
-	in_temporary_module(?, 0, 0).
+	in_temporary_module(?, 0, +).
 
-%%	in_temporary_module(?Module, :Setup, :Goal)
+%%	in_temporary_module(?Module, :Setup, +Goal)
 %
 %	Run Goal on temporary loaded sources  and discard the module and
 %	loaded predicates after completion.  This predicate performs the
@@ -54,9 +54,10 @@
 %	     and Goal is started.
 %
 %	The  logical  result  of  this   predicate    is   the  same  as
-%	`Module:(Setup -> Goal)`. The module and  all its predicates are
-%	destroyed after `Module:(Setup -> Goal)`  terminates, as defined
-%	by setup_call_cleanup/3.
+%	`(Setup@Module -> Module:Goal)`, i.e., Setup  is executed in the
+%	context of Module and Goal is executed inside Module. The module
+%	and all its predicates are destroyed   after Goal terminates, as
+%	defined by setup_call_cleanup/3.
 %
 %	*Discussion* This predicate is intended to   load programs in an
 %	isolated   environment   and   reclaim   all   resources.   This
@@ -87,6 +88,6 @@ in_temporary_module(Module, Setup, Goal) :-
 	setup_call_cleanup(
 	    set_module(Module:class(temporary)),
 	    (   @(Setup, Module)
-	    ->	@(Goal, Module)
+	    ->	Module:Goal
 	    ),
 	    '$destroy_module'(Module)).
