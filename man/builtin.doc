@@ -595,15 +595,18 @@ definitions can stop the system from finding libraries.
 True if \arg{File} is a loaded Prolog source file.  \arg{File} is
 the absolute and canonical path to the source file.
 
-    \predicate{source_file}{2}{?Pred, ?File}
-True if the predicate specified by \arg{Pred} was loaded from file
+    \predicate{source_file}{2}{:Pred, ?File}
+True if the predicate specified by \arg{Pred} is owned by file
 \arg{File}, where \arg{File} is an absolute path name (see
-absolute_file_name/2). Can be used with any instantiation pattern,
-but the database only maintains the source file for each predicate.
-See also clause_property/2.  Note that the relation between files
-and predicates is more complicated if include/1 is used.  The predicate
-describes the \jargon{owner} of the predicate.  See include/1 for
-details.
+absolute_file_name/2). Can be used with any instantiation pattern, but
+the database only maintains the source file for each predicate. If
+\arg{Pred} is a \jargon{multifile} predicate this predicate succeeds for
+all files that contribute clauses to \arg{Pred}.\footnote{The current
+implementation performs a linear scan through all clauses to establish
+this set of files.} See also clause_property/2. Note that the relation
+between files and predicates is more complicated if include/1 is used.
+The predicate describes the \jargon{owner} of the predicate. See
+include/1 for details.
 
     \predicate{source_file_property}{2}{?File, ?Property}
 True when \arg{Property} is a property of the loaded file \arg{File}.

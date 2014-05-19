@@ -3506,7 +3506,7 @@ PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
 }
 
 module_t
-PL_context()
+PL_context(void)
 { GET_LD
   return environment_frame ? contextModule(environment_frame)
 			   : MODULE_user;

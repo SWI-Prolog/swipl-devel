@@ -201,12 +201,11 @@ destroySourceFile(SourceFile sf)
 }
 
 
-SourceFile
-lookupSourceFile(atom_t name, int create)
+static SourceFile
+lookupSourceFile_unlocked(atom_t name, int create)
 { SourceFile file;
   Symbol s;
 
-  LOCK();
   if ( !GD->files.table )
   { GD->files.table = newHTable(32);
     GD->files.table->free_symbol = freeSymbolSourceFile;
@@ -230,9 +229,20 @@ lookupSourceFile(atom_t name, int create)
   } else
   { file = NULL;
   }
-  UNLOCK();
 
   return file;
+}
+
+
+SourceFile
+lookupSourceFile(atom_t name, int create)
+{ SourceFile sf;
+
+  LOCK();
+  sf = lookupSourceFile_unlocked(name, create);
+  UNLOCK();
+
+  return sf;
 }
 
 
@@ -400,73 +410,64 @@ PRED_IMPL("$make_system_source_files", 0, make_system_source_files, 0)
 }
 
 
+/** '$source_file'(+Head, -File) is semidet.
+*/
+
 static
-PRED_IMPL("source_file", 2, source_file, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$source_file", 2, source_file, 0)
 { PRED_LD
   Procedure proc;
-  ClauseRef cref;
   SourceFile sf;
-  atom_t name;
-  ListCell cell;
 
   term_t descr = A1;
   term_t file  = A2;
 
-  if ( CTX_CNTRL == FRG_FIRST_CALL )
-  { if ( get_procedure(descr, &proc, 0, GP_FIND|GP_TYPE_QUIET) )
-    { if ( !proc->definition ||
-	   true(proc->definition, P_FOREIGN|P_THREAD_LOCAL) ||
-	   !(cref = proc->definition->impl.clauses.first_clause) ||
-	   !(sf = indexToSourceFile(cref->value.clause->owner_no)) ||
-	   sf->count == 0 )
-	return FALSE;
-
+  if ( get_procedure(descr, &proc, 0, GP_FIND) )
+  { if ( isDefinedProcedure(proc) &&
+	 (sf = indexToSourceFile(proc->source_no)) &&
+	 sf->count > 0 )
       return PL_unify_atom(file, sf->name);
-    }
-
-    if ( PL_is_variable(file) )
-      return get_procedure(descr, &proc, 0, GP_FIND); /* throw exception */
-  }
-
-  if ( CTX_CNTRL == FRG_CUTTED )
-    return TRUE;
-
-  if ( !PL_get_atom_ex(file, &name) ||
-       !(sf = lookupSourceFile(name, FALSE)) ||
-       sf->count == 0 )
-    return FALSE;
-
-  switch( CTX_CNTRL )
-  { case FRG_FIRST_CALL:
-      cell = sf->procedures;
-      break;
-    case FRG_REDO:
-      cell = CTX_PTR;
-      break;
-    default:
-      cell = NULL;
-      assert(0);
-  }
-
-						/* TBD: not thread-safe */
-  for( ; cell; cell = cell->next )
-  { Procedure proc = cell->value;
-    Definition def = proc->definition;
-    fid_t cid = PL_open_foreign_frame();
-
-    if ( unify_definition(MODULE_user, descr, def, 0, 0) )
-    { PL_close_foreign_frame(cid);
-
-      if ( cell->next )
-	ForeignRedoPtr(cell->next);
-      else
-	succeed;
-    }
-
-    PL_discard_foreign_frame(cid);
   }
 
   return FALSE;
+}
+
+/** '$source_file_predicates'(+File, -Heads:list(callable)) is semidet.
+*/
+
+static
+PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
+{ PRED_LD
+  atom_t name;
+  int rc = TRUE;
+  SourceFile sf;
+
+  term_t file = A1;
+
+  LOCK();
+  if ( PL_get_atom_ex(file, &name) &&
+       (sf = lookupSourceFile_unlocked(name, FALSE)) &&
+       sf->count > 0 )
+  { term_t tail = PL_copy_term_ref(A2);
+    term_t head = PL_new_term_ref();
+    ListCell cell;
+
+    LOCKSRCFILE(sf);
+    for(cell=sf->procedures; rc && cell; cell = cell->next )
+    { Procedure proc = cell->value;
+      Definition def = proc->definition;
+
+      rc = ( PL_unify_list(tail, head, tail) &&
+	     unify_definition(MODULE_user, head, def, 0, GP_QUALIFY)
+	   );
+    }
+    rc = (rc && PL_unify_nil(tail));
+    UNLOCKSRCFILE(sf);
+  } else
+    rc = FALSE;
+  UNLOCK();
+
+  return rc;
 }
 
 
@@ -792,7 +793,8 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
 		 *******************************/
 
 BeginPredDefs(srcfile)
-  PRED_DEF("source_file", 2, source_file, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$source_file", 2, source_file, 0)
+  PRED_DEF("$source_file_predicates", 2, source_file_predicates, 0)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("$unload_file", 1, unload_file, 0)
