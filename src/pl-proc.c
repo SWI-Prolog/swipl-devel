@@ -49,7 +49,9 @@ lookupProcedure(functor_t f, Module m)
 
   LOCKMODULE(m);
   if ( (s = lookupHTable(m->procedures, (void *)f)) )
-  { DEBUG(3, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
+  { DEBUG(MSG_PROC, Sdprintf("lookupProcedure(%s) --> %s\n",
+			     PL_atom_chars(m->name),
+			     procedureName(s->value)));
     proc = s->value;
   } else
   { proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
@@ -66,7 +68,7 @@ lookupProcedure(functor_t f, Module m)
     GD->statistics.predicates++;
 
     resetProcedure(proc, TRUE);
-    DEBUG(3, Sdprintf("Created %s\n", procedureName(proc)));
+    DEBUG(MSG_PROC, Sdprintf("Created %s\n", procedureName(proc)));
   }
   UNLOCKMODULE(m);
 
@@ -114,9 +116,10 @@ unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
 
   freeHeap(proc, sizeof(*proc));
-  unshareDefinition(def);
-  if ( def->shared == 0 )
+  if ( unshareDefinition(def) == 0 )
+  { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     unallocDefinition(def);
+  }
 }
 
 
@@ -973,7 +976,7 @@ abolishProcedure(Procedure proc, Module module)
 { GET_LD
   Definition def = proc->definition;
 
-  DEBUG(2, Sdprintf("abolishProcedure(%s)\n", predicateName(def)));
+  DEBUG(MSG_PROC, Sdprintf("abolishProcedure(%s)\n", predicateName(def)));
 
   startCritical;
   LOCKDEF(def);
@@ -1214,7 +1217,7 @@ ClauseRef
 cleanDefinition(Definition def, ClauseRef garbage)
 { DEBUG(CHK_SECURE, checkDefinition(def));
 
-  DEBUG(2, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
+  DEBUG(MSG_PROC, Sdprintf("cleanDefinition(%s) --> ", predicateName(def)));
 
   if ( true(def, NEEDSCLAUSEGC) )
   { ClauseRef cref, next, prev = NULL;
@@ -1240,7 +1243,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
 	    def->impl.clauses.last_clause = prev;
 	}
 
-	DEBUG(2, removed++);
+	DEBUG(MSG_PROC, removed++);
 	def->impl.clauses.erased_clauses--;
 
 					  /* re-link into garbage chain */
@@ -1248,11 +1251,11 @@ cleanDefinition(Definition def, ClauseRef garbage)
 	garbage = cref;
       } else
       { prev = cref;
-	DEBUG(2, left++);
+	DEBUG(MSG_PROC, left++);
       }
     }
 
-    DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
+    DEBUG(MSG_PROC, Sdprintf("removed %d, left %d\n", removed, left));
     assert(def->impl.clauses.erased_clauses == 0);
 
     clear(def, NEEDSCLAUSEGC);
@@ -1645,7 +1648,7 @@ pl_garbage_collect_clauses(void)
     sigset_t set;
     ClauseRef garbage = NULL;
 
-    DEBUG(1, Sdprintf("pl_garbage_collect_clauses()\n"));
+    DEBUG(MSG_PROC, Sdprintf("pl_garbage_collect_clauses()\n"));
 
     LOCK();
     PL_LOCK(L_GC);
@@ -1668,7 +1671,7 @@ pl_garbage_collect_clauses(void)
 		       PL_THREAD_SUSPEND_AFTER_WORK);
 #endif
 
-    DEBUG(1, Sdprintf("Marking complete; cleaning predicates\n"));
+    DEBUG(MSG_PROC, Sdprintf("Marking complete; cleaning predicates\n"));
 
     last = NULL;
     for(cell = GD->procedures.dirty; cell; cell = next)
@@ -1683,7 +1686,7 @@ pl_garbage_collect_clauses(void)
 	  last = cell;
 	  continue;
 	} else
-	{ DEBUG(1, Sdprintf("cleanDefinition(%s)\n", predicateName(def)));
+	{ DEBUG(MSG_PROC, Sdprintf("cleanDefinition(%s)\n", predicateName(def)));
 	  garbage = cleanDefinition(def, garbage);
 	}
       }
