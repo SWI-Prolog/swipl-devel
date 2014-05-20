@@ -2857,10 +2857,10 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
   { IOSTREAM *fd = state->wicFd;
 
     Sputc('I', fd);
-    putAtom(state, owner);
-    putAtom(state, pn);
+    saveXR(state, owner);
+    saveXR(state, pn);
     putNum(line, fd);
-    putAtom(state, fn);
+    saveXR(state, fn);
     putFloat(time, fd);
 
     return TRUE;
