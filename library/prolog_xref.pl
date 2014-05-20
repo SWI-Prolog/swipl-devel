@@ -949,6 +949,8 @@ xref_meta((A -> B),		[A, B]).
 xref_meta((A *-> B),		[A, B]).
 xref_meta(findall(_V,G,_L),	[G]).
 xref_meta(findall(_V,G,_L,_T),	[G]).
+xref_meta(findnsols(_N,_V,G,_L),    [G]).
+xref_meta(findnsols(_N,_V,G,_L,_T), [G]).
 xref_meta(setof(_V, EG, _L),	[G]) :-
 	setof_goal(EG, G).
 xref_meta(bagof(_V, EG, _L),	[G]) :-
