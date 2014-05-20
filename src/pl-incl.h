@@ -1501,6 +1501,7 @@ struct module
   Table		public;		/* public predicates associated */
   Table		operators;	/* local operator declarations */
   ListCell	supers;		/* Import predicates from here */
+  ListCell	lingering;	/* Lingering definitions */
 #ifdef O_PLMT
   counting_mutex *mutex;	/* Mutex to guard procedures */
 #endif

@@ -440,6 +440,7 @@ COMMON(ClauseRef)	hasClausesDefinition(Definition def);
 COMMON(bool)		isDefinedProcedure(Procedure proc);
 COMMON(void)		shareDefinition(Definition def);
 COMMON(int)		unshareDefinition(Definition def);
+COMMON(void)		lingerDefinition(Definition def);
 COMMON(int)		get_head_functor(term_t head, functor_t *fdef,
 				 int flags ARG_LD);
 COMMON(int)		get_functor(term_t descr, functor_t *fdef,

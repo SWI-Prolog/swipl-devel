@@ -77,7 +77,6 @@ _lookupModule(atom_t name)
   m->procedures->free_symbol = unallocProcedureSymbol;
 
   m->public = newHTable(PUBLICHASHSIZE);
-  m->supers = NULL;
   m->class  = ATOM_user;
 
   if ( name == ATOM_user )
@@ -167,6 +166,21 @@ unallocList(ListCell c)
   }
 }
 
+
+static void
+freeLingeringDefinitions(ListCell c)
+{ ListCell n;
+
+  for(; c; c=n)
+  { Definition def = c->value;
+
+    n = c->next;
+    freeHeap(def, sizeof(*def));
+    freeHeap(c, sizeof(*c));
+  }
+}
+
+
 static void
 unallocModule(Module m)
 { if ( m->procedures ) destroyHTable(m->procedures);
@@ -174,6 +188,7 @@ unallocModule(Module m)
   if ( m->operators )  destroyHTable(m->operators);
   if ( m->supers )     unallocList(m->supers);
   if ( m->mutex )      freeSimpleMutex(m->mutex);
+  if ( m->lingering )  freeLingeringDefinitions(m->lingering);
 
   freeHeap(m, sizeof(*m));
 }
@@ -1336,10 +1351,11 @@ import(term_t pred, term_t strength ARG_LD)
 
       old->definition = proc->definition;
       shareDefinition(proc->definition);
-      if ( odef->shared > 1 )
-	fixExport(odef, proc->definition);
-      shareDefinition(odef);
-      GC_LINGER(odef);
+      if ( unshareDefinition(odef) > 0 )
+      { fixExport(odef, proc->definition);
+      } else
+      { lingerDefinition(odef);
+      }
       set(old, pflags);
 
       succeed;

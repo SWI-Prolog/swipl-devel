@@ -94,6 +94,31 @@ unallocClauseList(ClauseRef cref)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+lingerDefinition() deals with (undefined) definitions  that are replaced
+due to importing. These definitions can be   in  use with other threads.
+This needs be be improved, possibly using a technique similar to the RDF
+database. For now, we merely collect them in  a single place, so we know
+what is going on. In addition, we can collect lingering definitions when
+destroying a module, resulting in leak-free temporary modules.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+lingerDefinition(Definition def)
+{ ListCell c = allocHeapOrHalt(sizeof(*c));
+  Module m = def->module;
+  ListCell *o;
+
+  c->value     = def;
+  do
+  { o            = m->lingering;
+    c->next      = o;
+  } while( !COMPARE_AND_SWAP(&m->lingering, o, c) );
+
+  /*GC_LINGER(def);*/
+}
+
+
 static void
 unallocDefinition(Definition def)
 { if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
@@ -145,8 +170,8 @@ importDefinitionModule(Module m, Definition def, int flags)
 
 	shareDefinition(def);
 	proc->definition = def;
-	unshareDefinition(odef);
-	GC_LINGER(odef);
+	if ( unshareDefinition(odef) == 0 )
+	  lingerDefinition(odef);
       } else
       { if ( !(flags&PROC_WEAK) )
 	  rc = warning("Failed to import %s into %s",
@@ -1854,7 +1879,7 @@ found:
       { DEBUG(MSG_PROC, Sdprintf("autoImport(%s,%s): Linger %s (%p)\n",
 				 functorName(f), PL_atom_chars(m->name),
 				 predicateName(odef), odef));
-	GC_LINGER(odef);
+	lingerDefinition(odef);
       }
       PL_UNLOCK(L_THREAD);
 #else
