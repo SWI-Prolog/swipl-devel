@@ -997,8 +997,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 	      } else
 	      { Sdprintf("Directive: ");
 	      }
-	      pl_write(goal);
-	      Sdprintf("\n"));
+	      PL_write_term(Serror, goal, 1200, PL_WRT_NEWLINE));
 	if ( !skip )
 	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
 	  { printMessage(ATOM_warning,
