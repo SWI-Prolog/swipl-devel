@@ -60,17 +60,12 @@ _lookupModule(atom_t name)
     return (Module) s->value;
 
   m = allocHeapOrHalt(sizeof(struct module));
+  memset(m, 0, sizeof(*m));
+
   m->name = name;
-  m->file = NULL;
-  m->operators = NULL;
-  m->level = 0;
-#ifdef O_PROLOG_HOOK
-  m->hook = NULL;
-#endif
 #ifdef O_PLMT
   m->mutex = allocSimpleMutex(PL_atom_chars(m->name));
 #endif
-  clearFlags(m);
   set(m, M_CHARESCAPE);
   if ( !GD->options.traditional )
     set(m, DBLQ_STRING|BQ_CODES);
