@@ -3822,7 +3822,10 @@ atomic_list_concat(term_t list, term_t sep, term_t atom, int ret_type ARG_LD)
 
     append_text_to_buffer((Buffer)&b, &txt, &enc);
     PL_free_text(&txt);
-    ntxt++;
+    if ( ++ntxt == 100 )
+    { if ( lengthList(l, TRUE) < 0 )
+	return FALSE;
+    }
   }
 
   if ( PL_get_nil(l) )
