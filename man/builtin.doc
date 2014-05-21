@@ -2265,7 +2265,8 @@ Currently, \arg{Location} is a term \mbox{\arg{File}:\arg{Line}}.
 example, the default for errors is
 
 \begin{code}
-    location_prefix(File:Line, '~NERROR: ~w:~d:'-[File,Line], '~N\t')).
+location_prefix(File:Line,
+		'~NERROR: ~w:~d:'-[File,Line], '~N\t')).
 \end{code}
 
 	\termitem{stream}{-Stream}
@@ -4481,7 +4482,10 @@ print(Term) :-
     current_prolog_flag(print_write_options, Options), !,
     write_term(Term, Options).
 print(Term) :-
-    write_term(Term, [portray(true), numbervars(true), quoted(true)]).
+    write_term(Term, [ portray(true),
+		       numbervars(true),
+		       quoted(true)
+		     ]).
 \end{code}
 
 The print/1 predicate is used primarily through the \verb$~p$ escape
@@ -4787,13 +4791,10 @@ predicate may be a variable, but not both.  This predicate is called
 
 \begin{code}
 ?- foo(hello, X) =.. List.
-
 List = [foo, hello, X]
 
-?- Term =.. [baz, foo(1)]
-
+?- Term =.. [baz, foo(1)].
 Term = baz(foo(1))
-ERROR: =../2: Domain error: `compound_non_zero_arity' expected, found `a()'
 \end{code}
 
 SWI-Prolog also supports terms with arity 0, as in \exam{a()} (see
@@ -4803,6 +4804,7 @@ below. See also functor/3.
 
 \begin{code}
 ?- a() =.. L.
+ERROR: Domain error: `compound_non_zero_arity' expected, found `a()'
 \end{code}
 
     \predicate{compound_name_arity}{3}{?Compound, ?Name, ?Arity}

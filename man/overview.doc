@@ -247,7 +247,7 @@ cc -I$PLBASE/include -L$PLBASE/lib/$PLARCH ...
 \end{code}
 
 The option can be followed by \const{=sh} to dump in POSIX shell format
-(default) or \const{cmd} to dump in MS-Windows \program{cmd.exe}
+(default) or \const{=cmd} to dump in MS-Windows \program{cmd.exe}
 compatible format.
 
     \cmdlineoptionitem{--help}{}
