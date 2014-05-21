@@ -58,7 +58,7 @@ read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
 write \verb$[a]$ as \verb$.(a,[])$.
 
 
-\subsection{Motivating '[|]' and [] for lists}
+\subsection{Motivating '{[|]}' and [] for lists}
 \label{sec:ext-list-motivation}
 
 Representing lists the conventional way using \funcref{.}{2} as
