@@ -473,6 +473,7 @@ safe_primitive(current_prolog_flag(_,_)).
 safe_primitive(system:sleep(_)).
 safe_primitive(system:thread_self(_)).
 safe_primitive(system:get_time(_)).
+safe_primitive(system:statistics(_,_)).
 safe_primitive(system:format_time(_,_,_)).
 safe_primitive('$messages':message_to_string(_,_)).
 
@@ -603,6 +604,9 @@ safe_meta(prolog_debug:debug(_Term, Format, Args), Calls) :-
 %	True if Goal is a   meta-predicate that is considered safe
 %	iff all elements in Called are safe.
 
+safe_meta_call(Goal, _Called) :-
+	debug(sandbox(show), 'Safe meta ~p?', [Goal]),
+	fail.
 safe_meta_call(Goal, Called) :-
 	safe_meta(Goal, Called), !.	% call hook
 safe_meta_call(M:Goal, Called) :- !,
@@ -645,6 +649,7 @@ safe_meta(findall(_,0,_)).
 safe_meta(findall(_,0,_,_)).
 safe_meta(setof(_,0,_)).		% TBD
 safe_meta(bagof(_,0,_)).
+safe_meta(system:call_cleanup(0,0)).
 safe_meta(^(_,0)).
 safe_meta(\+(0)).
 safe_meta(apply:maplist(1, _)).
