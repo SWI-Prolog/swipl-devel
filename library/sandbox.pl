@@ -705,6 +705,9 @@ format_callables(Types, Args, _) :-		% TBD: Proper error
 %
 %	Throws an exception if G is not considered a safe directive.
 
+prolog:sandbox_allowed_directive(Directive) :-
+	debug(sandbox(directive), 'Directive: ~p', [Directive]),
+	fail.
 prolog:sandbox_allowed_directive(M:PredAttr) :-
 	safe_directive(PredAttr), !,
 	(   prolog_load_context(module, M)
@@ -749,6 +752,9 @@ safe_pattr(_, _).
 %	and we only need to be  careful   if  the sandboxed code defines
 %	expansion rules.
 
+prolog:sandbox_allowed_expansion(Directive) :-
+	debug(sandbox(expansion), 'Expand: ~p', [Directive]),
+	fail.
 prolog:sandbox_allowed_expansion(M:G) :-
 	prolog_load_context(module, M), !,
 	safe_goal(G).
