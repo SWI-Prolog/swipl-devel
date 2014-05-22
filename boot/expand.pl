@@ -425,15 +425,17 @@ call_goal_expansion(MList, G0, P0, G, P) :-
 	->  true
 	).
 call_goal_expansion(MList, G0, P0, G, P) :-
-	'$member'(M-Preds, MList),
-	'$member'(Pred, Preds),
-	(   Pred == goal_expansion/4
-	->  Expand = M:goal_expansion(G0, P0, G, P),
-	    Expand = M:goal_expansion(G0, G)
-	),
-	allowed_expansion(Expand),
-	call(Expand),
-	G0 \== G, !.
+	(   '$member'(M-Preds, MList),
+	    '$member'(Pred, Preds),
+	    (   Pred == goal_expansion/4
+	    ->  Expand = M:goal_expansion(G0, P0, G, P)
+	    ;	Expand = M:goal_expansion(G0, G)
+	    ),
+	    allowed_expansion(Expand),
+	    call(Expand),
+	    G0 \== G
+	->  true
+	).
 
 %%	allowed_expansion(:Goal) is semidet.
 %
