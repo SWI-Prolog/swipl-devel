@@ -2599,11 +2599,10 @@ load_files(Module:Files, Options) :-
 '$valid_directive'(_) :-
 	current_prolog_flag(sandboxed_load, false), !.
 '$valid_directive'(Goal) :-
-	catch(prolog:sandbox_allowed_directive(Goal), Error, true),
+	catch(prolog:sandbox_allowed_directive(Goal), Error, true), !,
 	(   var(Error)
-	->  fail
-	;   !,
-	    print_message(error, Error),
+	->  true
+	;   print_message(error, Error),
 	    fail
 	).
 '$valid_directive'(_).
