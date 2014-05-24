@@ -577,9 +577,11 @@ unloadFile(SourceFile sf)
     DEBUG(MSG_UNLOAD, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
 			       predicateName(def), def->references));
 
-    deleted = removeClausesProcedure(proc,
-				     true(def, P_MULTIFILE) ? sf->index : 0,
-				     TRUE);
+    if ( false(def, P_FOREIGN) )
+    { deleted = removeClausesProcedure(proc,
+				       true(def, P_MULTIFILE) ? sf->index : 0,
+				       TRUE);
+    }
 
     DEBUG(MSG_UNLOAD,
 	  if ( false(def, P_MULTIFILE) && def->impl.clauses.number_of_clauses )
