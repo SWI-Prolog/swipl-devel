@@ -715,6 +715,7 @@ Section "Pengines"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\pengines.pl
+  File ${SWIPL}\library\pengines_io.pl
   File ${SWIPL}\library\term_to_json.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\pengines.html
