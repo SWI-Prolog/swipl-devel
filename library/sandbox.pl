@@ -380,6 +380,7 @@ safe_primitive(!).
 					% types
 safe_primitive(var(_)).
 safe_primitive(nonvar(_)).
+safe_primitive(system:attvar(_)).
 safe_primitive(integer(_)).
 safe_primitive(float(_)).
 safe_primitive(system:rational(_)).
@@ -406,6 +407,7 @@ safe_primitive(keysort(_,_)).
 safe_primitive(system: =@=(_,_)).
 					% unification and equivalence
 safe_primitive(=(_,_)).
+safe_primitive(system:unifiable(_,_,_)).
 safe_primitive(\==(_,_)).
 					% arithmetic
 safe_primitive(is(_,_)).
