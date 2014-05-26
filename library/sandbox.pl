@@ -767,11 +767,12 @@ safe_pattr(_, _).
 %	expansion rules.
 
 prolog:sandbox_allowed_expansion(Directive) :-
-	debug(sandbox(expansion), 'Expand: ~p', [Directive]),
+	prolog_load_context(module, M),
+	debug(sandbox(expansion), 'Expand in ~p: ~p', [M, Directive]),
 	fail.
 prolog:sandbox_allowed_expansion(M:G) :-
 	prolog_load_context(module, M), !,
-	safe_goal(G).
+	safe_goal(M:G).
 prolog:sandbox_allowed_expansion(_,_).
 
 
