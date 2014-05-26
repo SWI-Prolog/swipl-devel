@@ -390,3 +390,12 @@ show_time_context -->
 %	call otherwise. If this hook  fails,   the  default behaviour is
 %	activated.  If  the  hooks  throws  an   exception  it  will  be
 %	propagated into the caller of assertion/1.
+
+
+		 /*******************************
+		 *	      SANDBOX		*
+		 *******************************/
+
+:- multifile sandbox:safe_meta/2.
+
+sandbox:safe_meta(prolog_debug:assertion(X), [X]).
