@@ -6423,6 +6423,8 @@ original_goal(V) -->
    Generated predicates
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- discontiguous term_expansion/2.
+
 term_expansion(make_parse_clpfd, Clauses)   :- make_parse_clpfd(Clauses).
 term_expansion(make_parse_reified, Clauses) :- make_parse_reified(Clauses).
 term_expansion(make_matches, Clauses)       :- make_matches(Clauses).
@@ -6464,3 +6466,30 @@ warn_if_bounded_arithmetic :-
 
 prolog:message(clpfd(bounded)) -->
         ['Using CLP(FD) with bounded arithmetic may yield wrong results.'-[]].
+
+
+		 /*******************************
+		 *	      SANDBOX		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The clpfd library cannot  be   analysed  completely by library(sandbox).
+However, the API does not provide any  meta predicates. It provides some
+unification hooks, but put_attr/3 does not  allow injecting in arbitrary
+attributes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile
+	sandbox:safe_primitive/1.
+
+safe_api(Name/Arity, sandbox:safe_primitive(clpfd:Head)) :-
+	functor(Head, Name, Arity).
+
+term_expansion(safe_api, Clauses) :-
+	module_property(clpfd, exports(API)),
+	maplist(safe_api, API, Clauses).
+
+safe_api.
+% Support clpfd goal expansion.
+sandbox:safe_primitive(clpfd:clpfd_equal(_,_)).
+sandbox:safe_primitive(clpfd:clpfd_geq(_,_)).
