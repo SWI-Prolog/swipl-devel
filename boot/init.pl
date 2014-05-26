@@ -2526,17 +2526,16 @@ load_files(Module:Files, Options) :-
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
 	catch(( op(Pri, Assoc, Module:Name),
-		'$export_op'(Pri, Assoc, Name, File)
+		'$export_op'(Pri, Assoc, Name, Module, File)
 	      ),
 	      E, '$print_message'(error, E)),
 	'$export_ops'(T, Module, File).
 '$export_ops'([], _, _).
 
-'$export_op'(Pri, Assoc, Name, File) :-
-	(   '$current_module'(LM, LM),
-	    '$get_predicate_attribute'(LM:'$exported_op'(_,_,_), defined, 1)
+'$export_op'(Pri, Assoc, Name, Module, File) :-
+	(   '$get_predicate_attribute'(Module:'$exported_op'(_,_,_), defined, 1)
 	->  true
-	;   '$execute_directive'(discontiguous(LM:'$exported_op'/3), File)
+	;   '$execute_directive'(discontiguous(Module:'$exported_op'/3), File)
 	),
 	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File).
 
@@ -2591,6 +2590,7 @@ load_files(Module:Files, Options) :-
 %	of the directive by throwing an exception.
 
 :- multifile prolog:sandbox_allowed_directive/1.
+:- meta_predicate '$valid_directive'(:).
 
 '$valid_directive'(_) :-
 	current_prolog_flag(sandboxed_load, false), !.
