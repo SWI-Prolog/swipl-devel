@@ -40,7 +40,8 @@
 
 :- multifile
 	safe_primitive/1,		% Goal
-	safe_meta/2.			% Goal, Calls
+	safe_meta/2,			% Goal, Calls
+	safe_global_variable/1.		% Name
 
 % :- debug(sandbox).
 
@@ -510,10 +511,10 @@ safe_primitive(system:del_attr(_,_)).
 					% globals
 safe_primitive(system:b_getval(_,_)).
 safe_primitive(system:b_setval(Var,_)) :-
-	safe_global_variable(Var).
+	safe_global_var(Var).
 safe_primitive(system:nb_getval(_,_)).
 safe_primitive(system:nb_setval(Var,_)) :-
-	safe_global_variable(Var).
+	safe_global_var(Var).
 safe_primitive(system:nb_current(_,_)).
 					% database
 safe_primitive(system:assert(X)) :-
@@ -568,17 +569,20 @@ safe_assert(_Head:-_Body) :- !, fail.
 safe_assert(_:_) :- !, fail.
 safe_assert(_).
 
-%%	safe_global_variable(+Name) is semidet.
+%%	safe_global_var(+Name) is semidet.
 %
 %	True if Name  is  a  global   variable  to  which  assertion  is
 %	considered safe.
 
-safe_global_variable(Name) :-
+safe_global_var(Name) :-
 	var(Name), !,
 	fail.
-safe_global_variable('$clpfd_queue_status').
-safe_global_variable('$clpfd_current_propagator').
-safe_global_variable('$clpfd_queue').
+safe_global_var(Name) :-
+	safe_global_variable(Name).
+
+%%	safe_global_variable(Name) is semidet.
+%
+%	Declare the given global variable safe to write to.
 
 
 %%	safe_meta(+Goal, -Called:list(callable)) is semidet.
