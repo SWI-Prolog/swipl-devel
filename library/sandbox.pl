@@ -132,7 +132,16 @@ safe(V, _, Parents, _, _) :-
 safe(M:G, _, Parents, Safe0, Safe) :- !,
 	must_be(atom, M),
 	must_be(callable, G),
-	(   (   predicate_property(M:G, exported)
+	(   predicate_property(M:G, imported_from(M2))
+	->  true
+	;   M2 = M
+	),
+	(   safe_primitive(M2:G)
+	->  true
+	;   safe_primitive(G),
+	    predicate_property(G, iso)
+	->  true
+	;   (   predicate_property(M:G, exported)
 	    ;	predicate_property(M:G, public)
 	    ;	predicate_property(M:G, multifile)
 	    ;	predicate_property(M:G, iso)
