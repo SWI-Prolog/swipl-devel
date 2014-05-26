@@ -448,8 +448,9 @@ call_goal_expansion(MList, G0, P0, G, P) :-
 :- multifile
 	prolog:sandbox_allowed_expansion/1.
 
-allowed_expansion(Goal) :-
-	catch(prolog:sandbox_allowed_expansion(Goal), E, true),
+allowed_expansion(QGoal) :-
+	strip_module(QGoal, M, Goal),
+	catch(prolog:sandbox_allowed_expansion(M:Goal), E, true),
 	(   var(E)
 	->  fail
 	;   !,
