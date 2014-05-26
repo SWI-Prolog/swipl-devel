@@ -424,6 +424,8 @@ safe_primitive(system:setarg(_,_,_)).
 safe_primitive(system:nb_setarg(_,_,_)).
 safe_primitive(functor(_,_,_)).
 safe_primitive(_ =.. _).
+safe_primitive(system:compound_name_arity(_,_,_)).
+safe_primitive(system:compound_name_arguments(_,_,_)).
 safe_primitive(copy_term(_,_)).
 safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(numbervars(_,_,_)).
@@ -478,6 +480,7 @@ safe_primitive(system:thread_self(_)).
 safe_primitive(system:get_time(_)).
 safe_primitive(system:statistics(_,_)).
 safe_primitive(system:format_time(_,_,_)).
+safe_primitive(system:strip_module(_,_,_)).
 safe_primitive('$messages':message_to_string(_,_)).
 
 safe_primitive(clause(_,_)).
