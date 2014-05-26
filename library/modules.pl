@@ -88,8 +88,7 @@ in_temporary_module(Module, Setup, Goal) :-
 	    )
 	;   set_module(Module:class(temporary))
 	),
-	setup_call_cleanup(
-	    set_module(Module:class(temporary)),
+	call_cleanup(
 	    (   @(Setup, Module)
 	    ->	@(Goal,  Module)
 	    ),
