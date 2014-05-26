@@ -1035,23 +1035,30 @@ compiling :-
 		*         READ SOURCE           *
 		*********************************/
 
-'$load_msg_level'(Action, Start, Done) :-
+%%	'$load_msg_level'(+Action, +NestingLevel, -StartVerbose, -EndVerbose)
+
+'$load_msg_level'(Action, Nesting, Start, Done) :-
 	'$update_autoload_level'([], 0), !,
 	current_prolog_flag(verbose_load, Type0),
 	'$load_msg_compat'(Type0, Type),
-	'$load_msg_level'(Action, Type, Start, Done).
-'$load_msg_level'(_, silent, silent).
+	(   '$load_msg_level'(Action, Nesting, Type, Start, Done)
+	->  true
+	).
+'$load_msg_level'(_, _, silent, silent).
 
 '$load_msg_compat'(true, normal) :- !.
 '$load_msg_compat'(false, silent) :- !.
 '$load_msg_compat'(X, X).
 
-'$load_msg_level'(load_file,    full,   informational, informational) :- !.
-'$load_msg_level'(include_file, full,   informational, informational) :- !.
-'$load_msg_level'(load_file,    normal, silent,        informational) :- !.
-'$load_msg_level'(include_file, normal, silent,        silent) :- !.
-'$load_msg_level'(load_file,    silent, silent,        silent) :- !.
-'$load_msg_level'(include_file, silent, silent,        silent) :- !.
+'$load_msg_level'(load_file,    _, full,   informational, informational).
+'$load_msg_level'(include_file, _, full,   informational, informational).
+'$load_msg_level'(load_file,    _, normal, silent,        informational).
+'$load_msg_level'(include_file, _, normal, silent,        silent).
+'$load_msg_level'(load_file,    0, brief,  silent,        informational).
+'$load_msg_level'(load_file,    _, brief,  silent,        silent).
+'$load_msg_level'(include_file, _, brief,  silent,        silent).
+'$load_msg_level'(load_file,    _, silent, silent,        silent).
+'$load_msg_level'(include_file, _, silent, silent,        silent).
 
 %%	'$source_term'(+From, -Read, -RLayout, -Term, -TLayout,
 %%		       -Stream, +Options) is nondet.
@@ -1264,7 +1271,7 @@ compiling :-
 			   include_file(done(Level, file(File, Path))))) :-
 	source_location(_, Line), !,
 	'$compilation_level'(Level),
-	'$load_msg_level'(include_file, StartMsgLevel, DoneMsgLevel),
+	'$load_msg_level'(include_file, Level, StartMsgLevel, DoneMsgLevel),
 	'$print_message'(StartMsgLevel,
 			 include_file(start(Level,
 					    file(File, Path)))),
@@ -1756,7 +1763,7 @@ load_files(Module:Files, Options) :-
 	'$save_file_scoped_flags'(ScopedFlags),
 
 	'$compilation_level'(Level),
-	'$load_msg_level'(load_file, StartMsgLevel, DoneMsgLevel),
+	'$load_msg_level'(load_file, Level, StartMsgLevel, DoneMsgLevel),
 	'$print_message'(StartMsgLevel,
 			 load_file(start(Level,
 					 file(File, Absolute)))),

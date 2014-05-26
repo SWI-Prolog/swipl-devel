@@ -1649,9 +1649,12 @@ used for debugging purposes.
 
     \prologflagitem{verbose_load}{atom}{rw}
 Determines messages printed for loading (compiling) Prolog files.
-Current values are \const{full}, \const{normal} (default) and
-\const{silent}. The value of this flag is normally controlled by the
-option \term{silent}{Bool} provided by load_files/2.
+Current values are \const{full} (print a message at the start and end of
+each file loaded), \const{normal} (print a message at the end of each
+file loaded), \const{brief} (print a message at end of loading the
+toplevel file), and \const{silent} (no messages are printed, default).
+The value of this flag is normally controlled by the option
+\term{silent}{Bool} provided by load_files/2.
 
     \prologflagitem{verbose_file_search}{bool}{rw}
 If \const{true} (default \const{false}), print messages indicating the
