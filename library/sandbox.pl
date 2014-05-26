@@ -190,7 +190,10 @@ safe(G, M, Parents, Safe0, Safe) :-
 		      error(instantiation_error, _),
 		      fail)
 	    )
-	).
+	), !.
+safe(G, M, Parents, _, _) :-
+	debug(sandbox(fail), 'safe/1 failed for ~p (parents:~p)', [M:G, Parents]),
+	fail.
 
 safe_clauses(G, M, Parents, Safe0, Safe) :-
 	predicate_property(M:G, interpreted), !,
@@ -623,7 +626,7 @@ safe_meta(prolog_debug:debug(_Term, Format, Args), Calls) :-
 %	iff all elements in Called are safe.
 
 safe_meta_call(Goal, _Called) :-
-	debug(sandbox(show), 'Safe meta ~p?', [Goal]),
+	debug(sandbox(meta), 'Safe meta ~p?', [Goal]),
 	fail.
 safe_meta_call(Goal, Called) :-
 	safe_meta(Goal, Called), !.	% call hook
