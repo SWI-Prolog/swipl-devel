@@ -142,7 +142,7 @@
 
 /** <module> Constraint Logic Programming over Finite Domains
 
----+++ Introduction
+### Introduction			{#clpfd-intro}
 
 Constraint programming is a declarative formalism that lets you
 describe conditions a solution must satisfy. This library provides
@@ -171,7 +171,7 @@ You can cite this library in your publications as:
 }
 ==
 
----+++ Arithmetic constraints
+### Arithmetic constraints		{#cplfd-arith-constraints}
 
 A finite domain _arithmetic expression_ is one of:
 
@@ -201,7 +201,7 @@ The most important arithmetic constraints are:
     | Expr1 #> Expr2   | Expr1 is greater than Expr2              |
     | Expr1 #< Expr2   | Expr1 is less than Expr2                 |
 
----+++ Reification
+### Reification				{#clpfd-reification}
 
 The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
 _reified_, which means reflecting their truth values into Boolean
@@ -217,7 +217,7 @@ reifiable constraints or Boolean variables, then:
 
 The constraints of this table are reifiable as well.
 
----+++ Examples
+### Examples				{#clpfd-examples}
 
 Here is an example session with a few queries and their answers:
 
@@ -258,7 +258,7 @@ In each case, and as for all pure programs, the answer is
 declaratively equivalent to the original query, and in many cases the
 constraint solver has deduced additional domain restrictions.
 
----+++ Search
+### Search				{#clpfd-search}
 
 A common usage of this library is to first post the desired
 constraints among the variables of a model, and then to use
@@ -317,7 +317,7 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
----+++ Declarative integer arithmetic
+### Declarative integer arithmetic		{#clpfd-integer-arith}
 
 You can also use CLP(FD) constraints as a more declarative alternative
 for ordinary integer arithmetic with is/2, >/2 etc. For example:
@@ -352,7 +352,7 @@ the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
 
----+++ Advanced topics
+<### Advanced topics			{#clpfd-advanced-topics}
 
 This library uses goal_expansion/2 to rewrite constraints at
 compilation time. The expansion's aim is to transparently bring the
