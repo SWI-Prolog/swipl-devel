@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -795,7 +795,8 @@ subst_chars([H|T]) -->
 %	=determinism= is considered more adequate and informative.
 
 write_bindings(Bindings, Det) :-
-	translate_bindings(Bindings, Bindings1, Residuals),
+	'$module'(TypeIn, TypeIn),
+	translate_bindings(Bindings, Bindings1, TypeIn:Residuals),
 	write_bindings2(Bindings1, Residuals, Det).
 
 write_bindings2([], Residuals, _) :-
@@ -836,20 +837,21 @@ write_bindings2(Bindings, Residuals, _Det) :-
 
 :- public
 	prolog:translate_bindings/3.
+:- meta_predicate
+	prolog:translate_bindings(+, -, :).
 
 prolog:translate_bindings(Bindings0, Bindings, Residuals) :-
 	translate_bindings(Bindings0, Bindings, Residuals).
 
-translate_bindings(Bindings0, Bindings, Residuals) :-
+translate_bindings(Bindings0, Bindings, TypeIn:Residuals) :-
 	\+ term_attvars(Bindings0, []), !,
 	copy_term(Bindings0, Bindings1, Residuals0),
-	'$module'(TypeIn, TypeIn),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
 	join_same_bindings(Bindings1, Bindings2),
 	factorize_bindings(Bindings2, Bindings3),
 	bind_vars(Bindings3, Bindings4),
 	filter_bindings(Bindings4, Bindings).
-translate_bindings(Bindings0, Bindings, []) :-
+translate_bindings(Bindings0, Bindings, _:[]) :-
 	join_same_bindings(Bindings0, Bindings1),
 	factorize_bindings(Bindings1, Bindings2),
 	bind_vars(Bindings2, Bindings3),
