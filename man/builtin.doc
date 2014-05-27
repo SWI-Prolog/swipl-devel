@@ -7644,9 +7644,9 @@ open_url(URL, In) :-
 \end{code}
 
 Temporary files created using this call are removed if the Prolog
-process terminates. Calling delete_file/1 using \arg{FileName} removes
-the file and removes the entry from the administration of
-files-to-be-deleted.
+process terminates \emph{gracefully}. Calling delete_file/1 using
+\arg{FileName} removes the file and removes the entry from the
+administration of files-to-be-deleted.
 
     \predicate{make_directory}{1}{+Directory}
 Create a new directory (folder) on the filesystem.  Raises an exception
