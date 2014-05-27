@@ -136,11 +136,11 @@ safe(M:G, _, Parents, Safe0, Safe) :- !,
 	->  true
 	;   M2 = M
 	),
-	(   safe_primitive(M2:G)
-	->  true
-	;   safe_primitive(G),
-	    predicate_property(G, iso)
-	->  true
+	(   (   safe_primitive(M2:G)
+	    ;   safe_primitive(G),
+		predicate_property(G, iso)
+	    )
+	->  Safe = Safe0
 	;   (   predicate_property(M:G, exported)
 	    ;	predicate_property(M:G, public)
 	    ;	predicate_property(M:G, multifile)
