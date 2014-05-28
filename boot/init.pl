@@ -3096,6 +3096,7 @@ halt :-
 
 system:term_expansion((:- at_halt(Goal)),
 		      system:'$at_halt'(Module:Goal, File:Line)) :-
+	\+ current_prolog_flag(xref, true),
 	source_location(File, Line),
 	'$set_source_module'(Module, Module).
 
