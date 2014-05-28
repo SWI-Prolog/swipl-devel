@@ -294,6 +294,7 @@ PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC
       return TRUE;
     default:
       assert(0);
+      return FALSE;
   }
 }
 
