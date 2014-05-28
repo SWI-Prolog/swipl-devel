@@ -1017,6 +1017,7 @@ xref_meta(with_output_to(_, G),	[G]).
 xref_meta(if(G),		[G]).
 xref_meta(elif(G),		[G]).
 xref_meta(meta_options(G,_,_),	[G+1]).
+xref_meta(on_signal(_,_,H),	[H+1]) :- H \== default.
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
