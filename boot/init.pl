@@ -2808,6 +2808,7 @@ saved state.
 	'$get_files_argv'(Argv, Files),
 	'$translate_options'(Argv, Options),
 	'$cmd_option_val'(compileout, Out),
+	attach_packs,
         user:consult(Files),
 	user:qsave_program(Out, Options).
 
