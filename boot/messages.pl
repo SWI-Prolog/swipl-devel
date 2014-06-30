@@ -1204,6 +1204,7 @@ msg_property(Kind, Property) :-
 msg_property(Kind, prefix(Prefix)) :-
 	msg_prefix(Kind, Prefix), !.
 msg_property(_, prefix('~N')) :- !.
+msg_property(query, stream(user_output)) :- !.
 msg_property(_, stream(user_error)) :- !.
 msg_property(error,
 	     location_prefix(File:Line,
