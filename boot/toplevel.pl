@@ -1007,7 +1007,9 @@ hide_vars(binding(Names0, Skel, Subst), binding(Names, Skel, Subst)) :-
 hide_names([], _, _, []).
 hide_names([Name|T0], Skel, Subst, T) :-
 	(   sub_atom(Name, 0, _, _, '_'),
-	    current_prolog_flag(toplevel_print_anon, false)
+	    current_prolog_flag(toplevel_print_anon, false),
+	    sub_atom(Name, 1, 1, _, Next),
+	    char_type(Next, prolog_var_start)
 	->  true
 	;   Subst == [],
 	    Skel == '$VAR'(Name)
