@@ -4250,6 +4250,7 @@ b_throw:
       dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO PASS_LD);
       LOAD_REGISTERS(qid);
 
+      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
       { SAVE_REGISTERS(qid);
