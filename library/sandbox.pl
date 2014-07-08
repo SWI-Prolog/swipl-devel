@@ -501,6 +501,11 @@ safe_primitive(assertz(X)) :- safe_assert(X).
 safe_primitive(retract(X)) :- safe_assert(X).
 safe_primitive(retractall(X)) :- safe_assert(X).
 
+% We need to do data flow analysis to find the tag of the
+% target key before we can conclude that functions on dicts
+% are safe.
+safe_primitive('$dicts':'.'(_,K,_)) :- atom(K).
+
 % The non-ISO system predicates.  These can be redefined, so we must
 % be careful to ensure the system ones are used.
 
