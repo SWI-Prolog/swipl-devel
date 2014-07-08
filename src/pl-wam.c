@@ -1265,6 +1265,7 @@ localDefinition(Definition def ARG_LD)
 	outOfCore();
 
       memset(newblock, 0, bs*sizeof(Definition));
+      MemoryBarrier();
       v->blocks[idx] = newblock-bs;
     }
     UNLOCKDYNDEF(def);
