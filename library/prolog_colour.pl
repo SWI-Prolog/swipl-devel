@@ -569,7 +569,7 @@ colourise_body(Body, Origin, TB, Pos) :-
 
 colourise_method_body(::(_Comment,Body), TB,
 		      term_position(_F,_T,_FF,_FT,[CP,BP])) :- !,
-	colour_item(comment, TB, CP),
+	colour_item(comment_string, TB, CP),
 	colourise_body(Body, TB, BP).
 colourise_method_body(Body, TB, Pos) :-		% deal with pri(::) < 1000
 	Body =.. [F,A,B],
@@ -1651,6 +1651,7 @@ def_style(head(_,_),		   [bold(true)]).
 
 def_style(module(_),		   [colour(dark_slate_blue)]).
 def_style(comment,		   [colour(dark_green)]).
+def_style(comment_string,	   [colour(dark_green)]).
 def_style(structured_comment,	   [colour(dark_green)]).
 
 def_style(directive,		   [background(grey90)]).
@@ -1745,7 +1746,7 @@ term_colours(variable(_, _, _, _),
 	     expanded - [ identifier,
 			  classify,
 			  classify,
-			  comment
+			  comment_string
 			]).
 term_colours(variable(_, _, _),
 	     expanded - [ identifier,
@@ -1767,7 +1768,7 @@ term_colours(class_variable(_,_,_,_),
 	     expanded - [ identifier,
 			  pce(type),
 			  pce(default),
-			  comment
+			  comment_string
 			]).
 term_colours(class_variable(_,_,_),
 	     expanded - [ identifier,
@@ -1784,7 +1785,7 @@ term_colours((:- encoding(_)),
 term_colours((:- pce_begin_class(_, _, _)),
 	     expanded - [ expanded - [ identifier,
 				       pce_new,
-				       comment
+				       comment_string
 				     ]
 			]).
 term_colours((:- pce_begin_class(_, _)),
