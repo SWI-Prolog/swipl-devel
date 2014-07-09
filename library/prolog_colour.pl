@@ -1084,7 +1084,7 @@ colourise_term_arg(Map, TB, dict_position(F,T,TF,TT,KVPos)) :- !,
 	    ->  colour_item(singleton, TB, TypePos)
 	    ;   colour_item(var, TB, TypePos)
 	    )
-	;   colour_item(dict_type, TB, TypePos)
+	;   colour_item(dict_tag, TB, TypePos)
 	),
 	colourise_dict_kv(Map, TB, KVPos).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
@@ -1688,7 +1688,7 @@ def_style(qq_type,		   [bold(true)]).
 def_style(qq(_),		   [colour(blue), bold(true)]).
 def_style(qq_content(_),	   [colour(red4)]).
 
-def_style(dict_type,		   [bold(true)]).
+def_style(dict_tag,		   [bold(true)]).
 def_style(dict_key,		   [bold(true)]).
 def_style(dict_function(_),	   [colour(navy_blue)]).
 def_style(dict_return_op,	   [colour(blue)]).
