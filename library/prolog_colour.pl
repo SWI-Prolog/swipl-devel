@@ -1958,12 +1958,9 @@ specified_item(FuncSpec-[ArgSpec], {Term}, TB,
 	specified_item(FuncSpec, {Term}, TB, F-T),
 	specified_item(ArgSpec, Term, TB, ArgPos).
 					% Specified
-specified_item(FuncSpec-ElmSpec, List, TB, list_position(F,T,ElmPos,TailPos)) :- !,
-	colour_item(list, TB, F-T),
-	FT is F + 1,
-	AT is T - 1,
-	colour_item(FuncSpec, TB, F-FT),
-	colour_item(FuncSpec, TB, AT-T),
+specified_item(FuncSpec-ElmSpec, List, TB,
+	       list_position(F,T,ElmPos,TailPos)) :- !,
+	colour_item(FuncSpec, TB, F-T),
 	specified_list(ElmSpec, List, TB, ElmPos, TailPos).
 specified_item(Class, _, TB, Pos) :-
 	colour_item(Class, TB, Pos).
