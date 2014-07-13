@@ -181,8 +181,10 @@ with_output_to_codes(Goal, Codes, Tail) :-
 
 %%	with_output_to_codes(:Goal, -Stream, -Codes, ?Tail) is det.
 %
-%	As  with_output_to_codes/2,  but  Stream  is  unified  with  the
-%	temporary stream.
+%	As  with_output_to_codes/3,  but  Stream  is  unified  with  the
+%	temporary  stream.  This  predicate   exists  for  compatibility
+%	reasons. In SWI-Prolog, the temporary   stream is also available
+%	as `current_output`.
 
 with_output_to_codes(Goal, Stream, Codes, Tail) :-
 	with_output_to(codes(Codes, Tail), with_stream(Stream, Goal)).
