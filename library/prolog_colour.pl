@@ -1094,12 +1094,12 @@ colourise_term_arg(Compound, TB, Pos) :-		% compound
 	;   true					% TBD: When is this
 	),
 	colourise_term_args(Compound, TB, Pos).
-colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
+colourise_term_arg(EmptyList, TB, Pos) :-
+	EmptyList == [], !,
+	colour_item(empty_list, TB, Pos).
+colourise_term_arg(Atom, TB, Pos) :-
 	atom(Atom), !,
-	(   Atom == []
-	->  colour_item(empty_list, TB, Pos)
-	;   colour_item(atom, TB, Pos)
-	).
+	colour_item(atom, TB, Pos).
 colourise_term_arg(Integer, TB, Pos) :-
 	integer(Integer), !,
 	colour_item(int, TB, Pos).
