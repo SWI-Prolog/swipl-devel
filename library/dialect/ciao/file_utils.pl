@@ -41,6 +41,7 @@
 % :- use_module(library(read), [read/1]).
 :- use_module(library(streams)).
 :- use_module(library(strings)).
+:- use_module(library(engine/io_aux)).
 
 % TODO: Integrate with other stream module?
 :- doc(title,"File/Stream Utilities").

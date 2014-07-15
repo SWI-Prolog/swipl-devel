@@ -230,7 +230,7 @@ meta_expansion_arg(Spec, TSpec, Arg, _, _) -->
 	{map_metaspec(Spec, TSpec)}, !,
 	[Arg].
 meta_expansion_arg(addmodule(Spec), TSpec, Arg, M, 1) --> !,
-	meta_expansion_arg(Spec, TSpec, Arg, M),
+	meta_expansion_arg(Spec, TSpec, Arg, M, _),
 	[M].
 meta_expansion_arg(addterm(Spec), TSpec, Arg0, M, R) --> !,
 	meta_expansion_arg(Spec, TSpec, Arg0, M, R),
