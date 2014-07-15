@@ -73,6 +73,10 @@ source file is passed into _Where.
 :- meta_predicate
 	prolog_walk_code(:).
 
+:- multifile
+	prolog:called_by/4,
+	prolog:called_by/2.
+
 :- predicate_options(prolog_walk_code/1, 1,
 		     [ undefined(oneof([ignore,error,trace])),
 		       autoload(boolean),
@@ -442,7 +446,13 @@ walk_called(Goal, Module, TermPos, OTerm) :-
 walk_called(Goal, Module, _, OTerm) :-
 	evaluate(Goal, Module, OTerm), !.
 walk_called(Goal, M, TermPos, OTerm) :-
-	prolog:called_by(Goal, Called),
+	(   (   predicate_property(M:Goal, imported_from(IM))
+	    ->  true
+	    ;   IM = M
+	    ),
+	    prolog:called_by(Goal, IM, M, Called)
+	;   prolog:called_by(Goal, Called)
+	),
 	Called \== [], !,
 	walk_called_by(Called, M, Goal, TermPos, OTerm).
 walk_called(Meta, M, term_position(_,E,_,_,ArgPosList), OTerm) :-

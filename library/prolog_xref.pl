@@ -143,11 +143,20 @@ This code is used in two places:
 		 *	      HOOKS		*
 		 *******************************/
 
+%%	prolog:called_by(+Goal, +Module, +Context, -Called) is semidet.
+%
+%	True when Called is a list of callable terms called from Goal,
+%	handled by the predicate Module:Goal and executed in the context
+%	of the module Context.  Elements of Called may be qualified.  If
+%	not, they are called in the context of the module Context.
+
 %%	prolog:called_by(+Goal, -ListOfCalled)
 %
 %	If this succeeds, the cross-referencer assumes Goal may call any
 %	of the goals in  ListOfCalled.  If   this  call  fails,  default
 %	meta-goal analysis is used to determine additional called goals.
+%
+%       @deprecated	New code should use prolog:called_by/4
 
 %%	prolog:meta_goal(+Goal, -Pattern)
 %
@@ -160,6 +169,7 @@ This code is used in two places:
 %	foreign code).
 
 :- multifile
+	prolog:called_by/4,		% +Goal, +Module, +Context, -Called
 	prolog:called_by/2,		% +Goal, -Called
 	prolog:meta_goal/2,		% +Goal, -Pattern
 	prolog:hook/1,			% +Callable
@@ -873,6 +883,7 @@ process_meta_head(Src, Decl) :-		% swapped arguments for maplist
 	compound_name_arity(Head, Name, Arity),
 	meta_args(1, Arity, Decl, Head, Meta),
 	(   (   prolog:meta_goal(Head, _)
+	    ;   prolog:called_by(Head, _, _, _)
 	    ;   prolog:called_by(Head, _)
 	    ;   meta_goal(Head, _)
 	    )
@@ -1142,7 +1153,17 @@ process_goal(Goal, Origin, Src) :-
 	variants(Alts0, Alts),
 	member(Goal, Alts).
 process_goal(Goal, Origin, Src) :-
-	prolog:called_by(Goal, Called), !,
+	(   (   xmodule(M, Src)
+	    ->  true
+	    ;   M = user
+	    ),
+	    (   predicate_property(M:Goal, imported_from(IM))
+	    ->  true
+	    ;   IM = M
+	    ),
+	    prolog:called_by(Goal, IM, M, Called)
+	;   prolog:called_by(Goal, Called)
+	), !,
 	must_be(list, Called),
 	assert_called(Src, Origin, Goal),
 	process_called_list(Called, Origin, Src).
