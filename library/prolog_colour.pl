@@ -1058,8 +1058,17 @@ colourise_term_arg(Var, TB, Pos) :-			% variable
 colourise_term_arg(List, TB, list_position(F, T, Elms, Tail)) :- !,
 	colour_item(list, TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
-colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
-	colour_item(string, TB, F-T).
+colourise_term_arg(String, TB, string_position(F, T)) :- !,	% string
+	(   string(String)
+	->  colour_item(string, TB, F-T)
+	;   String = [H|_]
+	->  (   integer(H)
+	    ->	colour_item(codes, TB, F-T)
+	    ;	colour_item(chars, TB, F-T)
+	    )
+	;   String == []
+	->  colour_item(codes, TB, F-T)
+	).
 colourise_term_arg(_, TB,
 		   quasi_quotation_position(F,T,QQType,QQTypePos,CPos)) :- !,
 	colourise_qq_type(QQType, TB, QQTypePos),
@@ -1665,6 +1674,8 @@ def_style(singleton,		   [bold(true), colour(red4)]).
 def_style(unbound,		   [colour(red), bold(true)]).
 def_style(quoted_atom,		   [colour(navy_blue)]).
 def_style(string,		   [colour(navy_blue)]).
+def_style(codes,		   [colour(navy_blue)]).
+def_style(chars,		   [colour(navy_blue)]).
 def_style(nofile,		   [colour(red)]).
 def_style(file(_),		   [colour(blue), underline(true)]).
 def_style(file_no_depend(_),	   [colour(blue), underline(true), background(pink)]).
