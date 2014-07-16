@@ -6213,10 +6213,32 @@ fd_size(X, S) :-
 %% fd_dom(+Var, -Dom)
 %
 %  Dom is the current domain (see in/2) of Var. This predicate is
-%  useful if you want to reason about domains. It is not needed if you
-%  only want to display remaining domains; instead, separate your
+%  useful if you want to reason about domains. It is _not_ needed if
+%  you only want to display remaining domains; instead, separate your
 %  model from the search part and let the toplevel display this
 %  information via residual goals.
+%
+%  For example, to implement a custom labeling strategy, you may need
+%  to inspect the current domain of a finite domain variable. With the
+%  following code, you can convert a _finite_ domain to a list of
+%  integers:
+%
+%  ==
+%  dom_integers(D, Is) :- phrase(dom_integers(D), Is).
+%
+%  dom_integers(I)      --> { integer(I) }, [I].
+%  dom_integers(L..U)   --> { numlist(L, U, Is) }, Is.
+%  dom_integers(D1\/D2) --> dom_integers(D1), dom_integers(D2).
+%  ==
+%
+%  Example:
+%
+%  ==
+%  ?- X in 1..5, X #\= 4, fd_dom(X, D), dom_integers(D, Is).
+%  D = 1..3\/5,
+%  Is = [1,2,3,5],
+%  X in 1..3\/5.
+%  ==
 
 fd_dom(X, Drep) :-
         (   fd_get(X, XD, _) ->
