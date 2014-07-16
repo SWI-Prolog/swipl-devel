@@ -2914,6 +2914,11 @@ skeleton(Vs, Vs-Prop) :-
 is_drep(N)      :- integer(N).
 is_drep(N..M)   :- drep_bound(N), drep_bound(M), N \== sup, M \== inf.
 is_drep(D1\/D2) :- is_drep(D1), is_drep(D2).
+is_drep({AI})   :- and_integers(AI).
+is_drep(\D)     :- is_drep(D).
+
+and_integers(I)     :- integer(I).
+and_integers((A,B)) :- and_integers(A), and_integers(B).
 
 drep_bound(I)   :- integer(I).
 drep_bound(sup).
@@ -2927,6 +2932,16 @@ drep_to_intervals(N..M)     -->
         ).
 drep_to_intervals(D1 \/ D2) -->
         drep_to_intervals(D1), drep_to_intervals(D2).
+drep_to_intervals(\D0) -->
+        { drep_to_domain(D0, D1),
+          domain_complement(D1, D),
+          domain_to_drep(D, Drep) },
+        drep_to_intervals(Drep).
+drep_to_intervals({AI}) -->
+        and_integers_(AI).
+
+and_integers_(I)     --> { integer(I) }, [n(I)-n(I)].
+and_integers_((A,B)) --> and_integers_(A), and_integers_(B).
 
 drep_to_domain(DR, D) :-
         must_be(ground, DR),
