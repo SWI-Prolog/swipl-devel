@@ -5900,21 +5900,22 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
             )
         ;   must_be(list, Seqs)
         ),
-        memberchk(source(Source), Ns),
         maplist(monotonic, Cs, CsM),
         maplist(arc_normalized(CsM), As0, As),
-        include(sink, Ns, Sinks0),
-        maplist(arg(1), Sinks0, Sinks),
+        include_args1(sink, Ns, Sinks),
+        include_args1(source, Ns, Sources),
         maplist(initial_expr, Cs, Exprs0),
         phrase((arcs_relation(As, Relation),
                 nodes_nums(Sinks, SinkNums0),
-                node_num(Source, Start)),
+                nodes_nums(Sources, SourceNums0)),
                [s([]-0, Exprs0)], [s(_,Exprs1)]),
         maplist(expr0_expr, Exprs1, Exprs),
         phrase(transitions(Seqs, Template, Sigs, Start, End, Exprs, Cs, Is, Fs), Tuples),
+        list_to_drep(SourceNums0, SourceDrep),
+        Start in SourceDrep,
         list_to_drep(SinkNums0, SinkDrep),
-        tuples_in(Tuples, Relation),
-        End in SinkDrep.
+        End in SinkDrep,
+        tuples_in(Tuples, Relation).
 
 expr0_expr(Es0-_, Es) :-
         pairs_keys(Es0, Es1),
@@ -5978,6 +5979,12 @@ node_num(Node, Num) -->
           ;   Num = C0, C is C0 + 1, Nodes = [Node-C0|Nodes0]
           )
         }.
+
+include_args1(Goal, Ls0, As) :-
+        include(Goal, Ls0, Ls),
+        maplist(arg(1), Ls, As).
+
+source(source(_)).
 
 sink(sink(_)).
 
