@@ -1076,16 +1076,18 @@ colourise_term_arg({Term}, TB, brace_term_position(F,T,Arg)) :- !,
 	colour_item(brace_term, TB, F-T),
 	colourise_term_arg(Term, TB, Arg).
 colourise_term_arg(Map, TB, dict_position(F,T,TF,TT,KVPos)) :- !,
-	is_dict(Map, Type),
+	is_dict(Map, Tag),
 	colour_item(dict, TB, F-T),
-	TypePos = TF-TT,
-	(   var(Type)
-	->  (   singleton(Type, TB)
-	    ->  colour_item(singleton, TB, TypePos)
-	    ;   colour_item(var, TB, TypePos)
+	TagPos = TF-TT,
+	(   var(Tag)
+	->  (   singleton(Tag, TB)
+	    ->  colour_item(singleton, TB, TagPos)
+	    ;   colour_item(var, TB, TagPos)
 	    )
-	;   colour_item(dict_tag, TB, TypePos)
+	;   colour_item(dict_tag, TB, TagPos)
 	),
+	BStart is TT+1,
+	colour_item(dict_content, TB, BStart-T),
 	colourise_dict_kv(Map, TB, KVPos).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
 	compound(Compound), !,
@@ -1127,16 +1129,17 @@ colourise_qq_type(QQType, TB, QQTypePos) :-
 
 qq_position(quasi_quotation_position(_,_,_,_,_)).
 
-%%	colourise_dict_kv(+Map, +TB, +KVPosList)
+%%	colourise_dict_kv(+Dict, +TB, +KVPosList)
 %
 %	Colourise the name-value pairs in the dict
 
 colourise_dict_kv(_, _, []) :- !.
-colourise_dict_kv(Map, TB, [key_value_position(_F,_T,_SF,_ST,K,KP,VP)|KV]) :-
+colourise_dict_kv(Dict, TB, [key_value_position(_F,_T,SF,ST,K,KP,VP)|KV]) :-
+	colour_item(dict_sep, TB, SF-ST),
 	colour_item(dict_key, TB, KP),
-	get_dict(K, Map, V),
+	get_dict(K, Dict, V),
 	colourise_term_arg(V, TB, VP),
-	colourise_dict_kv(Map, TB, KV).
+	colourise_dict_kv(Dict, TB, KV).
 
 
 %	colourise_exports(+List, +TB, +Pos)
