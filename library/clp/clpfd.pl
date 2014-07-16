@@ -1937,6 +1937,7 @@ parse_clpfd(E, R,
              m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A//B)           => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
@@ -2239,7 +2240,7 @@ clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Conditions under which an equality can be compiled to built-in
-   arithmetic. Their order is significant.
+   arithmetic. Their order is significant. (/)/2 becomes (//)/2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 expr_conds(E, E)                 --> [integer(E)],
@@ -2251,9 +2252,10 @@ expr_conds(abs(E0), abs(E))      --> expr_conds(E0, E).
 expr_conds(A0+B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0*B0, A*B)           --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0-B0, A-B)           --> expr_conds(A0, A), expr_conds(B0, B).
-expr_conds(A0/B0, A//B)          --> % "/" becomes "//"
+expr_conds(A0//B0, A//B)         -->
         expr_conds(A0, A), expr_conds(B0, B),
         [B =\= 0].
+expr_conds(A0/B0, AB)            --> expr_conds(A0//B0, AB).
 expr_conds(min(A0,B0), min(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(max(A0,B0), max(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0 mod B0, A mod B)   -->
