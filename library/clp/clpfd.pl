@@ -6224,11 +6224,11 @@ fd_size(X, S) :-
 %  integers:
 %
 %  ==
-%  dom_integers(D, Is) :- phrase(dom_integers(D), Is).
+%  dom_integers(D, Is) :- phrase(dom_integers_(D), Is).
 %
-%  dom_integers(I)      --> { integer(I) }, [I].
-%  dom_integers(L..U)   --> { numlist(L, U, Is) }, Is.
-%  dom_integers(D1\/D2) --> dom_integers(D1), dom_integers(D2).
+%  dom_integers_(I)      --> { integer(I) }, [I].
+%  dom_integers_(L..U)   --> { numlist(L, U, Is) }, Is.
+%  dom_integers_(D1\/D2) --> dom_integers_(D1), dom_integers_(D2).
 %  ==
 %
 %  Example:
