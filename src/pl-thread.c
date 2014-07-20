@@ -1143,10 +1143,11 @@ alertThread(PL_thread_info_t *info)
     return TRUE;			/* NOTE: PostThreadMessage() can */
 					/* fail if thread is being created */
   }
-  return FALSE;
 #else
-  return pthread_kill(info->tid, SIG_ALERT) == 0;
+  if ( info->has_tid )
+    return pthread_kill(info->tid, SIG_ALERT) == 0;
 #endif
+  return FALSE;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
