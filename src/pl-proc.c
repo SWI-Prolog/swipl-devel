@@ -107,7 +107,7 @@ void
 lingerDefinition(Definition def)
 { ListCell c = allocHeapOrHalt(sizeof(*c));
   Module m = def->module;
-  ListCell *o;
+  ListCell o;
 
   c->value     = def;
   do
