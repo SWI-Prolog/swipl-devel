@@ -581,7 +581,8 @@ unloadFile(SourceFile sf)
     { deleted = removeClausesProcedure(proc,
 				       true(def, P_MULTIFILE) ? sf->index : 0,
 				       TRUE);
-    }
+    } else
+      deleted = 0;
 
     DEBUG(MSG_UNLOAD,
 	  if ( false(def, P_MULTIFILE) && def->impl.clauses.number_of_clauses )
