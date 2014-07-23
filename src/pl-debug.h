@@ -78,6 +78,7 @@
 #define MSG_NSOLS		 48
 #define MSG_SRCFILE		 49
 #define MSG_DESTROY_MODULE	 50
+#define MSG_QUEUE_GC		 51
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101

@@ -118,6 +118,7 @@ typedef struct message_queue
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
   int		       wait_for_drain;	/* # threads waiting for write */
+  unsigned	anonymous : 1;		/* <message_queue>(0x...) */
   unsigned	initialized : 1;	/* Queue is initialised */
   unsigned	destroyed : 1;		/* Thread is being destroyed */
   unsigned	type : 2;		/* QTYPE_* */

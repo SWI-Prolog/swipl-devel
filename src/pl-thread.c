@@ -185,7 +185,6 @@ static Table threadTable;		/* name --> integer-id */
 static int thread_highest_id;		/* Highest handed thread-id */
 static int threads_ready = FALSE;	/* Prolog threads available */
 static Table queueTable;		/* name --> queue */
-static int queue_id;			/* next generated id */
 static int will_exec;			/* process will exec soon */
 
 #ifdef HAVE___THREAD
@@ -382,6 +381,7 @@ static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD);
 static int	get_message_queue__LD(term_t t, message_queue **queue ARG_LD);
 static void	release_message_queue(message_queue *queue);
+static void	initMessageQueues(void);
 static pl_mutex *mutexCreate(atom_t name);
 static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
@@ -692,7 +692,7 @@ unalloc_mutex_symbol(Symbol s)
 
 
 void
-initPrologThreads()
+initPrologThreads(void)
 { PL_thread_info_t *info;
   static int init_ldata_key = FALSE;
 
@@ -750,6 +750,7 @@ initPrologThreads()
   }
 
   pthread_atfork(NULL, NULL, reinit_threads_after_fork);
+  initMessageQueues();
 
   UNLOCK();
 }
@@ -782,7 +783,6 @@ cleanupThreads(void)
 	   GD->thread.thread_max * sizeof(*GD->thread.threads));
   GD->thread.threads = NULL;
   threads_ready = FALSE;
-  queue_id = 0;
 }
 
 
@@ -2961,11 +2961,12 @@ destroy_message_queue(message_queue *queue)
     freeHeap(msgp, sizeof(*msgp));
   }
 
-  simpleMutexDelete(&queue->mutex);
   simpleMutexDelete(&queue->gc_mutex);
   cv_destroy(&queue->cond_var);
   if ( queue->max_size > 0 )
     cv_destroy(&queue->drain_var);
+  if ( !queue->anonymous )
+    simpleMutexDelete(&queue->mutex);
 }
 
 
@@ -3187,16 +3188,86 @@ PRED_IMPL("thread_peek_message", 1, thread_peek_message_1, PL_FA_ISO)
 		 *     USER MESSAGE QUEUES	*
 		 *******************************/
 
+typedef struct mqref
+{ message_queue *queue;
+} mqref;
+
+static int
+write_message_queue_ref(IOSTREAM *s, atom_t aref, int flags)
+{ mqref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)flags;
+
+  Sfprintf(s, "<message_queue>(%p)", ref->queue);
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+GC a message queue from the atom  garbage collector. This should be fine
+because atoms in messages do  not  have   locked  atoms,  so  we are not
+calling atom functions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+release_message_queue_ref(atom_t aref)
+{ mqref *ref = PL_blob_data(aref, NULL, NULL);
+  message_queue *q;
+
+  DEBUG(MSG_QUEUE_GC,
+	Sdprintf("GC message_queue %p\n", ref->queue));
+
+  if ( (q=ref->queue) )
+  { destroy_message_queue(q);			/* can be called twice */
+    if ( !q->destroyed )
+      deleteHTable(queueTable, (void *)q->id);
+    simpleMutexDelete(&q->mutex);
+    PL_free(q);
+  }
+
+  return TRUE;
+}
+
+
+static int
+save_message_queue(atom_t aref, IOSTREAM *fd)
+{ mqref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)fd;
+
+  return PL_warning("Cannot save reference to <message_queue>(%p)", ref->queue);
+}
+
+
+static atom_t
+load_message_queue(IOSTREAM *fd)
+{ (void)fd;
+
+  return PL_new_atom("<saved-message-queue-ref>");
+}
+
+
+static PL_blob_t message_queue_blob =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_UNIQUE,
+  "message_queue",
+  release_message_queue_ref,
+  NULL,
+  write_message_queue_ref,
+  NULL,
+  save_message_queue,
+  load_message_queue
+};
+
+
+static void
+initMessageQueues(void)
+{ PL_register_blob_type(&message_queue_blob);
+}
+
 static int
 unify_queue(term_t t, message_queue *q)
 { GET_LD
 
-  if ( isAtom(q->id) )
-    return PL_unify_atom(t, q->id);
-  else
-    return PL_unify_term(t,
-			 PL_FUNCTOR, FUNCTOR_dmessage_queue1,
-			 PL_LONG, valInt(q->id));
+  return PL_unify_atom(t, q->id);
 }
 
 
@@ -3204,7 +3275,7 @@ static void
 free_queue_symbol(Symbol s)
 { message_queue *q = s->value;
 
-  destroy_message_queue(q);
+  destroy_message_queue(q);			/* must this be synced? */
   PL_free(q);
 }
 
@@ -3231,7 +3302,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
     }
     id = name;
   } else if ( PL_is_variable(queue) )
-  { id = consInt(queue_id++);
+  { id = 0;
   } else
   { PL_error("message_queue_create", 1, NULL,
 	     ERR_TYPE, ATOM_message_queue, queue);
@@ -3241,19 +3312,34 @@ unlocked_message_queue_create(term_t queue, long max_size)
   q = PL_malloc(sizeof(*q));
   init_message_queue(q, max_size);
   q->type = QTYPE_QUEUE;
-  q->id = id;
-  addHTable(queueTable, (void *)id, q);
-  if ( isAtom(id) )
-    PL_register_atom(id);
+  if ( !id )
+  { mqref ref;
+    int new;
+
+    ref.queue = q;
+    q->id = lookupBlob((void*)&ref, sizeof(ref), &message_queue_blob, &new);
+    q->anonymous = TRUE;
+  } else
+  { q->id = id;
+  }
+  addHTable(queueTable, (void *)q->id, q);
 
   if ( unify_queue(queue, q) )
+  { if ( q->anonymous )
+      PL_unregister_atom(q->id);		/* reclaim on GC */
+    else
+      PL_register_atom(q->id);			/* protect against reclaim */
     return q;
+  }
 
   return NULL;
 }
 
 
 /* MT: Caller must hold the L_THREAD mutex
+
+   Note that this version does not deal with anonymous queues.  High
+   level code must use get_message_queue__LD();
 */
 
 static int
@@ -3264,13 +3350,6 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
 
   if ( PL_get_atom(t, &name) )
   { id = name;
-  } else if ( PL_is_functor(t, FUNCTOR_dmessage_queue1) )
-  { term_t a = PL_new_term_ref();
-    long i;
-
-    _PL_get_arg(1, t, a);
-    if ( PL_get_long(a, &i) )
-      id = consInt(i);
   } else if ( PL_get_integer(t, &tid) )
   { thread_queue:
     if ( tid < 1 || tid > thread_highest_id ||
@@ -3311,6 +3390,22 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
 static int
 get_message_queue__LD(term_t t, message_queue **queue ARG_LD)
 { int rc;
+  message_queue *q;
+  PL_blob_t *type;
+  void *data;
+
+  if ( PL_get_blob(t, &data, NULL, &type) && type == &message_queue_blob )
+  { mqref *ref = data;
+
+    q = ref->queue;
+    simpleMutexLock(&q->mutex);
+    if ( !q->destroyed )
+    { *queue = q;
+      return TRUE;
+    }
+    simpleMutexUnlock(&q->mutex);
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
+  }
 
   LOCK();
   rc = get_message_queue_unlocked__LD(t, queue PASS_LD);
@@ -3342,7 +3437,8 @@ release_message_queue(message_queue *queue)
 
   if ( del )
   { destroy_message_queue(queue);
-    PL_free(queue);
+    if ( !queue->anonymous )
+      PL_free(queue);
   }
 }
 
@@ -3396,35 +3492,21 @@ static
 PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 { PRED_LD
   message_queue *q;
-  Symbol s;
 
-					/* find and remove from table */
-  LOCK();
-  if ( !get_message_queue_unlocked__LD(A1, &q PASS_LD) )
-  { UNLOCK();
-    fail;
-  }
+  if ( !get_message_queue__LD(A1, &q PASS_LD) )
+    return FALSE;
 
   if ( q->type == QTYPE_THREAD )
-  { PL_error(NULL, 0, "is a thread-queue", ERR_PERMISSION,
-	     ATOM_destroy, ATOM_message_queue, A1);
-    UNLOCK();
-    fail;
+  { release_message_queue(q);
+
+    return PL_error(NULL, 0, "is a thread-queue", ERR_PERMISSION,
+		    ATOM_destroy, ATOM_message_queue, A1);
   }
 
-  s = lookupHTable(queueTable, (void *)q->id);
-  assert(s);
-  deleteSymbolHTable(queueTable, s);
-  if ( isAtom(q->id) )
+  deleteHTable(queueTable, (void*)q->id);
+  if ( !q->anonymous )
     PL_unregister_atom(q->id);
-  simpleMutexLock(&q->mutex);
-  UNLOCK();
 
-  if ( q->destroyed )
-  { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
-    release_message_queue(q);
-    return FALSE;
-  }
   q->destroyed = TRUE;
 
   if ( q->waiting )
@@ -3444,7 +3526,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 
 static int			/* message_queue_property(Queue, alias(Name)) */
 message_queue_alias_property(message_queue *q, term_t prop ARG_LD)
-{ if ( isAtom(q->id) )
+{ if ( !q->anonymous )
     return PL_unify_atom(prop, q->id);
 
   fail;

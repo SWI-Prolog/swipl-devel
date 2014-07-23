@@ -302,9 +302,12 @@ to wait for data or a condition as they can only be checked in an
 expensive polling loop. \jargon{Message queues} provide a means for
 threads to wait for data or conditions without using the CPU.
 
-Each thread has a message queue attached to it that is identified
-by the thread. Additional queues are created using
-message_queue_create/1.
+Each thread has a message queue attached to it that is identified by the
+thread. Additional queues are created using message_queue_create/1.
+Explicitly created queues come in two flavours. When given an
+\jargon{alias}, they must be destroyed by the user. \jargon{Anonymous{
+message queues are identified by a \jargon{blob} (see \secref{blob}) and
+subject to garbage collection.
 
 \begin{description}
     \predicate{thread_send_message}{2}{+QueueOrThreadId, +Term}
@@ -386,18 +389,24 @@ thread_peek_message/1 never waits and does not remove any term from the
 queue.  See also thread_get_message/3.
 
     \predicate{message_queue_create}{1}{?Queue}
-If \arg{Queue} is an atom, create a named queue.  To avoid ambiguity
-of thread_send_message/2, the name of a queue may not be in use as a
-thread name.  If \arg{Queue} is unbound an anonymous queue is created
-and \arg{Queue} is unified to its identifier.
+Equivalent to \exam{message_queue_create(Queue,[])}. For compatibility,
+calling \term{message_queue_create}{+Atom} is equivalent to
+\term{message_queue_create}{Queue, [alias(Atom)]}.  New code should use
+message_queue_create/2 to create a named queue.
 
     \predicate{message_queue_create}{2}{-Queue, +Options}
 Create a message queue from \arg{Options}.  Defined options are:
 
     \begin{description}
 	\termitem{alias}{+Alias}
-Same as \term{message_queue_create}{Alias}, but according to the
-ISO draft on Prolog threads.
+Create a message queue that is identified by the atom \arg{Alias}.
+Message queues created this way must be explicitly destroyed by the
+user. If the alias option is omitted, an \emph{Anonymous} queue is
+created that is indentified by a \jargon{blob} (see \secref{blob}) and
+subject to garbage collection.\footnote{Garbage collecting anonymous
+message queues is not part of the ISO proposal and most likely not
+a widely implemented feature.}
+
 	\termitem{max_size}{+Size}
 Maximum number of terms in the queue.  If this number is reached,
 thread_send_message/2 will suspend until the queue is drained.

@@ -59,6 +59,7 @@ COMMON(Table)		newHTable(int size);
 COMMON(void)		destroyHTable(Table ht);
 COMMON(Symbol)		lookupHTable(Table ht, void *name);
 COMMON(Symbol)		addHTable(Table ht, void *name, void *value);
+COMMON(int)		deleteHTable(Table ht, void *name);
 COMMON(void)		deleteSymbolHTable(Table ht, Symbol s);
 COMMON(void)		clearHTable(Table ht);
 COMMON(Table)		copyHTable(Table org);
