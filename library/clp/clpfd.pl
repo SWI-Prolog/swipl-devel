@@ -93,6 +93,7 @@
                   (#==>)/2,
                   (#<==)/2,
                   (#\/)/2,
+                  (#\)/2,
                   (#/\)/2,
                   (in)/2,
                   (ins)/2,
@@ -2638,6 +2639,12 @@ disjunctive_eqs_vals(A #\/ B) -->
         disjunctive_eqs_vals(A),
         disjunctive_eqs_vals(B).
 
+%% ?P #\ Q
+%
+% Either P holds or Q holds, but not both.
+
+L #\ R :- (L #\/ R) #/\ #\ (L #/\ R).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
    X/Y, Y can as well be 0, for example. Note that it is OK to
@@ -2775,7 +2782,7 @@ reifiable(V in _) :- fd_variable(V).
 reifiable(Expr)   :-
         Expr =.. [Op,Left,Right],
         (   memberchk(Op, [#>=,#>,#=<,#<,#=,#\=])
-        ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/]),
+        ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/,#\]),
             reifiable(Left),
             reifiable(Right)
         ).
@@ -2816,6 +2823,7 @@ reify_(L #< R, B)  --> reify_(R #>= (L+1), B).
 reify_(L #==> R, B)  --> reify_((#\ L) #\/ R, B).
 reify_(L #<== R, B)  --> reify_(R #==> L, B).
 reify_(L #<==> R, B) --> reify_((L #==> R) #/\ (R #==> L), B).
+reify_(L #\ R, B) --> reify_((L #\/ R) #/\ #\ (L #/\ R), B).
 reify_(L #/\ R, B)   -->
         (   { conjunctive_neqs_var_drep(L #/\ R, V, D) } -> reify_(V in D, B)
         ;   boolean(L, R, B, reified_and)
