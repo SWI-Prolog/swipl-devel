@@ -2925,11 +2925,11 @@ skeleton(Vs, Vs-Prop) :-
 is_drep(N)      :- integer(N).
 is_drep(N..M)   :- drep_bound(N), drep_bound(M), N \== sup, M \== inf.
 is_drep(D1\/D2) :- is_drep(D1), is_drep(D2).
-is_drep({AI})   :- and_integers(AI).
+is_drep({AI})   :- is_and_integers(AI).
 is_drep(\D)     :- is_drep(D).
 
-and_integers(I)     :- integer(I).
-and_integers((A,B)) :- and_integers(A), and_integers(B).
+is_and_integers(I)     :- integer(I).
+is_and_integers((A,B)) :- is_and_integers(A), is_and_integers(B).
 
 drep_bound(I)   :- integer(I).
 drep_bound(sup).
