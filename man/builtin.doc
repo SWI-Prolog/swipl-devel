@@ -2549,6 +2549,14 @@ Major = 3,
 Minor = 4.
 \end{code}
 
+The SWI-Prolog implementation of phrase/3 verifies that the \arg{List}
+and \arg{Rest} arguments are unbound, bound to the empty list or a list
+\jargon{cons cell}. Other values raise a type error.\footnote{The ISO
+standard allows for both raising a type error and accepting any term
+as input and output. Note the tail of the list is not checked for
+performance reasons.}  The predicate call_dcg/3 is provided to use
+grammar rules with terms that are not lists.
+
 Note that the syntax for lists of codes changed in SWI-Prolog version~7
 (see \secref{strings}). If a DCG body is translated, both \verb$"text"$
 and \verb$`text`$ is a valid code-list literal in version~7. A version~7
@@ -2564,6 +2572,22 @@ DCGs that process character codes. The library \pllib{apply_macros}
 compiles phrase/3 if the argument is sufficiently instantiated,
 eliminating the runtime overhead of translating \arg{DCGBody} and
 meta-calling.
+
+    \predicate{call_dcg}{3}{:DCGBody, ?State0, ?State}
+As phrase/3, but without type checking \arg{State0} and \arg{State}.
+This allows for using DCG rules for threading an arbitrary state
+variable. This predicate was introduced after type checking was added to
+phrase/3.\footnote{After discussion with Samer Abdallah.}
+
+A portable solution for threading state through a DCG can be implemented
+by wrapping the state in a list and use the DCG push-back facility.
+Subsequently, the following predicates may be used to access and modify
+the state:\footnote{This solutio was proposed by Markus Triska.}
+
+\begin{code}
+state(S), [S] --> [S].
+state(S0, S), [S] --> [S0].
+\end{code}
 \end{description}
 
 As stated above, grammar rules are a general interface to difference

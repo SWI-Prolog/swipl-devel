@@ -107,6 +107,7 @@ suggest predicates from a keyword.
 \predicatesummary{call}{[2..]}{Call with additional arguments}
 \predicatesummary{call_cleanup}{3}{Guard a goal with a cleaup-handler}
 \predicatesummary{call_cleanup}{2}{Guard a goal with a cleaup-handler}
+\predicatesummary{call_dcg}{3}{As phrase/3 without type checking}
 \predicatesummary{call_residue_vars}{2}{Find residual attributed variables}
 \predicatesummary{call_shared_object_function}{2}{UNIX:  Call C-function in shared (.so) file}
 \predicatesummary{call_with_depth_limit}{3}{Prove goal with bounded depth}

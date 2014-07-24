@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -31,8 +31,9 @@
 :- module('$dcg',
 	  [ dcg_translate_rule/2,	% +Rule, -Clause
 	    dcg_translate_rule/4,	% +Rule, ?Pos0, -Clause, -Pos
-	    phrase/2,
-	    phrase/3
+	    phrase/2,			% :Rule, ?Input
+	    phrase/3,			% :Rule, ?Input, ?Rest
+	    call_dcg/3			% :Rule, ?State0, ?State
 	  ]).
 
 		/********************************
@@ -329,15 +330,20 @@ expected_layout(Expected, Found) :-
 
 :- meta_predicate
 	phrase(//, ?),
-	phrase(//, ?, ?).
+	phrase(//, ?, ?),
+	call_dcg(//, ?, ?).
 :- noprofile((phrase/2,
-	      phrase/3)).
+	      phrase/3,
+	      call_dcg/3)).
 
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
 	phrase_input(Input),
 	phrase_input(Rest),
+	call_dcg(RuleSet, Input, Rest).
+
+call_dcg(RuleSet, Input, Rest) :-
 	(   strip_module(RuleSet, M, Plain),
 	    nonvar(Plain),
 	    dcg_special(Plain)

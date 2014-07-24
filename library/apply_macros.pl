@@ -213,7 +213,7 @@ expand_phrase(phrase(NT,Xs), Pos0, NTXsNil, Pos) :- !,
 	extend_pos(Pos0, Pos1),
 	expand_phrase(phrase(NT,Xs,[]), Pos1, NTXsNil, Pos).
 expand_phrase(Goal, Pos0, NewGoal, Pos) :-
-	Goal = phrase(NT,Xs0,Xs),
+	dcg_goal(Goal, NT,Xs0,Xs),
 	nonvar(NT),
 	body_pos(RulePos0, Pos0),
 	catch(dcg_translate_rule((pseudo_nt --> NT), RulePos0, Rule, RulePos),
@@ -247,6 +247,9 @@ expand_phrase(Goal, Pos0, NewGoal, Pos) :-
 	    ;	true
 	    )
 	).
+
+dcg_goal(phrase(NT,Xs0,Xs), NT, Xs0, Xs).
+dcg_goal(call_dcg(NT,Xs0,Xs), NT, Xs0, Xs).
 
 extend_pos(Var, Var) :-
 	var(Var), !.
