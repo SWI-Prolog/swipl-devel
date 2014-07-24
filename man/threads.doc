@@ -305,7 +305,7 @@ threads to wait for data or conditions without using the CPU.
 Each thread has a message queue attached to it that is identified by the
 thread. Additional queues are created using message_queue_create/1.
 Explicitly created queues come in two flavours. When given an
-\jargon{alias}, they must be destroyed by the user. \jargon{Anonymous{
+\jargon{alias}, they must be destroyed by the user. \jargon{Anonymous}
 message queues are identified by a \jargon{blob} (see \secref{blob}) and
 subject to garbage collection.
 
