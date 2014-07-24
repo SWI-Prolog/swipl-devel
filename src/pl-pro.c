@@ -666,6 +666,8 @@ last_arg:
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk("Illegal arity (%d)", arity);
+    else if ( arity == 0 )
+      return key;
     else
       DEBUG(CHK_HIGH_ARITY,
             { if ( arity > 256 && !is_ht_capacity(arity) )
