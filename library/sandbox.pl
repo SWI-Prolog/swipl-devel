@@ -346,7 +346,7 @@ verify_safe_declaration(Module:Goal) :-
 	    ;	predicate_property(Module:Goal, foreign)
 	    ),
 	    \+ predicate_property(Module:Goal, imported_from(_)),
-	    \+ predicate_property(Module:Goal, meta_predicate())
+	    \+ predicate_property(Module:Goal, meta_predicate(_))
 	->  true
 	;   permission_error(declare, safe_goal, Module:Goal)
 	).
