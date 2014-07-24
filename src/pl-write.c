@@ -1813,6 +1813,7 @@ pl_write_term(term_t term, term_t options)
 int
 PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
 { write_options options;
+  int rc;
 
   memset(&options, 0, sizeof(options));
   options.flags	    = flags;
@@ -1820,7 +1821,11 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   options.module    = MODULE_user;
 
   PutOpenToken(EOF, s);			/* reset this */
-  return writeTopTerm(term, precedence, &options);
+  rc = writeTopTerm(term, precedence, &options);
+  if ( rc && (flags&PL_WRT_NEWLINE) )
+    rc = Putc('\n', s);
+
+  return rc;
 }
 
 
