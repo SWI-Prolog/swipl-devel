@@ -907,7 +907,7 @@ static void
 mark_last_args(acyclic_state *state ARG_LD)
 { size_t count;
 
-  DEBUG(3, Sdprintf("mark_last_args(%d)\n", (int)state->last_count));
+  DEBUG(MSG_ACYCLIC, Sdprintf("mark_last_args(%d)\n", (int)state->last_count));
 
   if ( (count=state->last_count) > 0 )
   { Word p = state->start;
@@ -917,10 +917,11 @@ mark_last_args(acyclic_state *state ARG_LD)
     { Functor f = valueTerm(*p);
 
       f->definition |= MARK_MASK;
-      DEBUG(4, Sdprintf("\tmark %s/%d at %p as acyclic\n",
-			stringAtom(nameFunctor(f->definition)),
-			arityFunctor(f->definition),
-			f));
+      DEBUG(MSG_ACYCLIC,
+	    Sdprintf("\tmark %s/%d at %p as acyclic\n",
+		     stringAtom(nameFunctor(f->definition)),
+		     arityFunctor(f->definition),
+		     f));
 
       if ( --count == 0 )
 	return;
@@ -950,11 +951,12 @@ ph1_is_acyclic(Word p ARG_LD)
     { Functor f = valueTerm(*p);
       int arity;
 
-      DEBUG(3, Sdprintf("Term %s/%d at %p (%s)\n",
-			stringAtom(nameFunctor(f->definition)),
-			arityFunctor(f->definition), f,
-			(f->definition & (FIRST_MASK|MARK_MASK)) ? "seen"
-							         : "new"));
+      DEBUG(MSG_ACYCLIC,
+	    Sdprintf("Term %s/%d at %p (%s)\n",
+		     stringAtom(nameFunctor(f->definition)),
+		     arityFunctor(f->definition), f,
+		     (f->definition & (FIRST_MASK|MARK_MASK)) ? "seen"
+							      : "new"));
 
       if ( f->definition & (FIRST_MASK|MARK_MASK) )
       { if ( f->definition & MARK_MASK )	/* MARK_MASK:  already acyclic */
@@ -977,21 +979,23 @@ ph1_is_acyclic(Word p ARG_LD)
 	state.last_count++;
       }
     } else
-    { DEBUG(3, { if ( isAtom(*p) )
-		   Sdprintf("Atom %s\n", stringAtom(*p));
-		 else if ( isVar(*p) )
-		   Sdprintf("Var at %p\n", p);
-	       });
+    { DEBUG(MSG_ACYCLIC,
+	    { if ( isAtom(*p) )
+		Sdprintf("Atom %s\n", stringAtom(*p));
+	      else if ( isVar(*p) )
+		Sdprintf("Var at %p\n", p);
+	    });
     next:
       if ( state.start )
       { mark_last_args(&state PASS_LD);
 	p = --state.argp;
 	if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
 	{ popSegStack(&stack, &state, acyclic_state);
-	  DEBUG(3, Sdprintf("Last arg of %s/%d at %p\n",
-			    stringAtom(nameFunctor(*p)),
-			    arityFunctor(*p),
-			    p));
+	  DEBUG(MSG_ACYCLIC,
+		Sdprintf("Last arg of %s/%d at %p\n",
+			 stringAtom(nameFunctor(*p)),
+			 arityFunctor(*p),
+			 p));
 	  p += arityFunctor(*p);
 	  deRef(p);
 	  state.last_count++;

@@ -220,7 +220,7 @@ currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
     { *type     = op->type[kind];
       *priority = op->priority[kind];
 
-      DEBUG(5,
+      DEBUG(MSG_OPERATOR,
 	    Sdprintf("currentOperator(%s) --> %s %d\n",
 		     PL_atom_chars(name),
 		     PL_atom_chars(operatorTypeToAtom(*type)),
