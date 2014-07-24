@@ -280,8 +280,7 @@ PL_reset_term_refs(term_t r)
 
   lTop = (LocalFrame) valTermRef(r);
   fr->size = (int)((Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame)));
-  DEBUG(CHK_SECURE, if ( fr->size < 0 || fr->size > 1000 )
-		      Sdprintf("Suspect foreign frame size: %d\n", fr->size));
+  DEBUG(0, assert(fr->size >= 0));
 }
 
 
