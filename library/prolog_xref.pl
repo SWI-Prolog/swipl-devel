@@ -1575,9 +1575,12 @@ negate(false,	   true).
 negate(else_false, else_false).
 
 public_list([(:- module(Module, Export0))|Decls], Path,
-	    Module, Meta, MT, Export, Rest, Public, PT) :-
+	    Module, Meta, MT, Export, Rest, Public, PT) :- !,
 	append(Export0, Reexport, Export),
 	public_list_(Decls, Path, Meta, MT, Reexport, Rest, Public, PT).
+public_list([(:- encoding(_))|Decls], Path,
+	    Module, Meta, MT, Export, Rest, Public, PT) :-
+	public_list(Decls, Path, Module, Meta, MT, Export, Rest, Public, PT).
 
 public_list_([], _, Meta, Meta, Export, Export, Public, Public).
 public_list_([(:-(Dir))|T], Path, Meta, MT, Export, Rest, Public, PT) :-
