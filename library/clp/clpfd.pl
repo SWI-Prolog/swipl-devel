@@ -354,7 +354,7 @@ the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
 
-<### Advanced topics			{#clpfd-advanced-topics}
+### Advanced topics			{#clpfd-advanced-topics}
 
 This library uses goal_expansion/2 to rewrite constraints at
 compilation time. The expansion's aim is to transparently bring the
