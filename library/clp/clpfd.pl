@@ -2640,7 +2640,7 @@ disjunctive_eqs_vals(A #\/ B) -->
         disjunctive_eqs_vals(A),
         disjunctive_eqs_vals(B).
 
-%% ?P #\ Q
+%% ?P #\ ?Q
 %
 % Either P holds or Q holds, but not both.
 
