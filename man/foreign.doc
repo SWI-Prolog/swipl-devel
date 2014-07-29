@@ -1743,6 +1743,9 @@ Raise \exam{permission_error(operation, type, culprit)}. See
 permission_error/3.
     \cfunction{int}{PL_resource_error}{const char *resource}
 Raise \exam{resource_error(resource)}. See resource_error/1.
+    \cfunction{int}{PL_syntax_error}{const char *message, IOSTREAM *in}
+Raise \exam{syntax_error(message)}.  If \arg{arg} is not \const{NULL},
+add information about the current position of the input stream.
 \end{description}
 
 

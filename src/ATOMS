@@ -957,6 +957,7 @@ F spy			1
 F sqrt			1
 F star			2
 F status		1
+F stream		1
 F stream		4
 F stream_position	4
 F strict_equal		2
