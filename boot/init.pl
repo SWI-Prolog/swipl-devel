@@ -328,8 +328,8 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 :- meta_predicate
 	initialization(0, +).
 
-:- dynamic
-	'$init_goal'/3.
+:- multifile '$init_goal'/3.
+:- dynamic   '$init_goal'/3.
 
 %%	initialization(:Goal, +When)
 %
@@ -348,16 +348,16 @@ initialization(Goal, When) :-
 	'$initialization_context'(Source, Ctx),
 	(   When == now
 	->  Goal,
-	    assert('$init_goal'(-, Goal, Ctx))
+	    '$compile_init_goal'(-, Goal, Ctx)
 	;   When == after_load
 	->  (   Source \== (-)
-	    ->	assert('$init_goal'(Source, Goal, Ctx))
+	    ->	'$compile_init_goal'(Source, Goal, Ctx)
 	    ;	throw(error(context_error(nodirective,
 					  initialization(Goal, after_load)),
 			    _))
 	    )
 	;   When == restore
-	->  assert('$init_goal'(-, Goal, Ctx))
+	->  '$compile_init_goal'(-, Goal, Ctx)
 	;   (   var(When)
 	    ->	throw(error(instantiation_error, _))
 	    ;	atom(When)
@@ -365,6 +365,13 @@ initialization(Goal, When) :-
 	    ;   throw(error(type_error(atom, When), _))
 	    )
 	).
+
+'$compile_init_goal'(Source, Goal, Ctx) :-
+	atom(Source),
+	Source \== (-), !,
+	'$compile_term'(system:'$init_goal'(Source, Goal, Ctx), _Layout, Source).
+'$compile_init_goal'(Source, Goal, Ctx) :-
+	assertz('$init_goal'(Source, Goal, Ctx)).
 
 
 '$run_initialization'(File) :-
