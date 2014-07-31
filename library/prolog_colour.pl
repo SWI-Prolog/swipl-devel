@@ -1264,12 +1264,13 @@ colourise_declaration(PI, TB, term_position(F,T,FF,FT,[NamePos,ArityPos])) :-
 	colour_item(predicate_indicator, TB, FF-FT),
 	colour_item(arity, TB, ArityPos).
 colourise_declaration(Module:PI, TB,
-		      term_position(_,_,_,_,[PM,PG])) :-
+		      term_position(_,_,QF,QT,[PM,PG])) :-
 	atom(Module), pi_to_term(PI, Goal), !,
 	colour_item(module(M), TB, PM),
+	colour_item(functor, TB, QF-QT),
 	colour_item(predicate_indicator(extern(M), Goal), TB, PG),
 	PG = term_position(_,_,FF,FT,[NamePos,ArityPos]),
-	colour_item(goal(extern, Goal), TB, NamePos),
+	colour_item(goal(extern(M), Goal), TB, NamePos),
 	colour_item(predicate_indicator, TB, FF-FT),
 	colour_item(arity, TB, ArityPos).
 colourise_declaration(op(N,T,P), TB, Pos) :-
