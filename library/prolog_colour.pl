@@ -459,9 +459,10 @@ extend(Head, N, ExtHead) :-
 extend(Head, _, Head).
 
 
-colourise_clause_head(M:Head, TB, term_position(_,_,_,_,[MPos,HeadPos])) :-
+colourise_clause_head(M:Head, TB, term_position(_,_,QF,QT,[MPos,HeadPos])) :-
 	head_colours(M:Head, meta-[_, ClassSpec-ArgSpecs]), !,
 	colour_item(module(M), TB, MPos),
+	colour_item(functor, TB, QF-QT),
 	functor_position(HeadPos, FPos, ArgPos),
 	(   ClassSpec == classify
 	->  classify_head(TB, Head, Class)
@@ -630,8 +631,9 @@ colourise_dcg_goals(List, _, TB, list_position(F,T,Elms,Tail)) :-
 colourise_dcg_goals(List, _, TB, string_position(F,T)) :-
 	List = [_|_], !,
 	colour_item(dcg(terminal), TB, F-T).
-colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
+colourise_dcg_goals(Body, Origin, TB, term_position(_,_,FF,FT,ArgPos)) :-
 	dcg_body_compiled(Body), !,	% control structures
+	colour_item(control, TB, FF-FT),
 	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
 colourise_dcg_goals(Goal, Origin, TB, Pos) :-
 	colourise_dcg_goal(Goal, Origin, TB, Pos).
@@ -709,8 +711,9 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	),
 	colour_item(goal(Class, Goal), TB, FPos),
 	specified_items(ArgSpecs, Goal, TB, ArgPos).
-colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,_,_,[PM,PG])) :- !,
+colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,QF,QT,[PM,PG])) :- !,
 	colour_item(module(Module), TB, PM),
+	colour_item(functor, TB, QF-QT),
 	(   PG = term_position(_,_,FF,FT,_)
 	->  FP = FF-FT
 	;   FP = PG
@@ -852,8 +855,9 @@ colourise_setof(Term, TB, Pos) :-
 
 colourise_db((Head:-_Body), TB, term_position(_,_,_,_,[HP,_])) :- !,
 	colourise_db(Head, TB, HP).
-colourise_db(Module:Head, TB, term_position(_,_,_,_,[MP,HP])) :- !,
+colourise_db(Module:Head, TB, term_position(_,_,QF,QT,[MP,HP])) :- !,
 	colour_item(module(Module), TB, MP),
+	colour_item(functor, TB, QF-QT),
 	(   atom(Module),
 	    colour_state_source_id(TB, SourceId),
 	    xref_module(SourceId, Module)
@@ -1191,7 +1195,8 @@ colourise_imports(List, File, TB, Pos) :-
 	),
 	colourise_imports(List, Path, Public, TB, Pos).
 
-colourise_imports([], _, _, _, _).
+colourise_imports([], _, _, TB, Pos) :- !,
+	colour_item(empty_list, TB, Pos).
 colourise_imports(List, File, Public, TB, list_position(F,T,ElmPos,Tail)) :- !,
 	colour_item(list, TB, F-T),
 	(   Tail == none
@@ -1295,12 +1300,13 @@ colourise_meta_declarations(Last, Extra, TB, Pos) :-
 	colourise_meta_declaration(Last, Extra, TB, Pos).
 
 colourise_meta_declaration(M:Head, Extra, TB,
-			   term_position(_,_,_,_,
+			   term_position(_,_,QF,QT,
 					 [ MP,
 					   term_position(_,_,FF,FT,ArgPos)
 					 ])) :- !,
 	colour_item(module(M), TB, MP),
-	colour_item(goal(extern(M,Head)), TB, FF-FT),
+	colour_item(functor, TB, QF-QT),
+	colour_item(goal(extern(M),Head), TB, FF-FT),
 	Head =.. [_|Args],
 	colourise_meta_decls(Args, Extra, TB, ArgPos).
 colourise_meta_declaration(Head, Extra, TB, term_position(_,_,FF,FT,ArgPos)) :- !,
@@ -1308,9 +1314,11 @@ colourise_meta_declaration(Head, Extra, TB, term_position(_,_,FF,FT,ArgPos)) :- 
 	colour_item(goal(Class, Head), TB, FF-FT),
 	Head =.. [_|Args],
 	colourise_meta_decls(Args, Extra, TB, ArgPos).
-colourise_meta_declaration([H|T], Extra, TB, list_position(LF,LT,[HP],TP)) :-
+colourise_meta_declaration([H|T], Extra, TB, list_position(LF,LT,[HP],TP)) :- !,
 	colour_item(list, TB, LF-LT),
 	colourise_meta_decls([H,T], Extra, TB, [HP,TP]).
+colourise_meta_declaration(_, _, TB, Pos) :- !,
+	colour_item(type_error(compound), TB, Pos).
 
 colourise_meta_decls([], _, _, []).
 colourise_meta_decls([Arg|ArgT], Extra, TB, [PosH|PosT]) :-
