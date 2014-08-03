@@ -907,16 +907,31 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
   { stream_ref *ref;
     atom_t a;
     PL_blob_t *type;
+    int rc = TRUE;
 
     if ( !PL_get_atom(A1, &a) ||
 	 !(ref=PL_blob_data(a, NULL, &type)) ||
-	 type != &stream_blob ||
-	 !ref->read ||
-	 !ref->write )
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream_pair, A1);
+	 type != &stream_blob )
+    { IOSTREAM *s;
 
-    return ( PL_unify_stream_or_alias(A2, ref->read) &&
-	     PL_unify_stream_or_alias(A3, ref->write) );
+      if ( get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) )
+      { if ( (s->flags & SIO_INPUT) )
+	  rc = PL_unify_stream_or_alias(A2, s);
+	else
+	  rc = PL_unify_stream_or_alias(A3, s);
+
+	return rc;
+      }
+
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream_pair, A1);
+    }
+
+    if ( ref->read && !ref->read->erased )
+      rc = rc && PL_unify_stream_or_alias(A2, ref->read);
+    if ( ref->write && !ref->write->erased )
+      rc = rc && PL_unify_stream_or_alias(A3, ref->write);
+
+    return rc;
   }
 
   if ( getInputStream(A2, S_DONTCARE, &in) &&

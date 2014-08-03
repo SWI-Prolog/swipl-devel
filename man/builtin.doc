@@ -3607,8 +3607,13 @@ or handle.
 
     \predicate{stream_pair}{3}{?StreamPair, ?Read, ?Write}
 This predicate can be used in mode (-,+,+) to create a
-\jargon{stream-pair} from an input stream and an output stream.
-Mode (+,-,-) can be used to get access to the underlying streams.
+\jargon{stream-pair} from an input stream and an output stream. Mode
+(+,-,-) can be used to get access to the underlying streams. If a stream
+has already been closed, the corresponding argument is left unbound. If
+mode (+,-,-) is used on a single stream, either \arg{Read} or
+\arg{Write} is unified with the stream while the other argument is left
+unbound. This behaviour simplifies writing code that must operate both
+on streams and stream pairs.
 
 Stream-pairs can be used by all I/O operations on streams, where the
 operation selects the appropriate member of the pair. The predicate
