@@ -3456,11 +3456,17 @@ write_length(Term, Len) :-
 
     \predicate[ISO]{close}{1}{+Stream}
 Close the specified stream. If \arg{Stream} is not open, an existence
-error is raised.  However, closing a stream multiple times may crash
-Prolog.  This is particularly true for multithreaded applications.
+error is raised.  See stream_pair/3 for the implications of closing a
+\jargon{stream pair}.
 
-If the closed stream is the current input or output stream, the
-terminal is made the current input or output.
+If the closed stream is the current input, output or error stream, the
+stream alias is bound to the initial standard I/O streams of the
+process. Calling close/1 on the initial standard I/O streams of the
+process is a no-op for an input stream and flushes an output stream
+without closing it.\footnote{This behaviour was defined with purely
+interactive usage of Prolog in mind. Applications should not count on
+this behaviour. Future versions may allow for closing the initial
+standard I/O streams.}
 
     \predicate[ISO]{close}{2}{+Stream, +Options}
 Provides \term{close}{Stream, [force(true)]} as the only option.  Called
@@ -3602,10 +3608,16 @@ or handle.
     \predicate{stream_pair}{3}{?StreamPair, ?Read, ?Write}
 This predicate can be used in mode (-,+,+) to create a
 \jargon{stream-pair} from an input stream and an output stream.
+Mode (+,-,-) can be used to get access to the underlying streams.
+
 Stream-pairs can be used by all I/O operations on streams, where the
 operation selects the appropriate member of the pair. The predicate
-close/1 closes both streams of the pair. Mode (+,-,-) can be used to get
-access to the underlying streams.
+close/1 closes the still open streams of the pair.\footnote{As of
+version 7.1.19, it is allowed to close one of the members of the
+stream directly and close the pair later.} The output stream is
+closed before the input stream. If closing the output stream results in
+an error, the input stream is still closed. Success is only returned if
+both streams were closed successfully.
 
     \predicate[ISO]{set_stream_position}{2}{+Stream, +Pos}
 Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
