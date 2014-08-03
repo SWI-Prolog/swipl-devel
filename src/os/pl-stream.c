@@ -1761,7 +1761,7 @@ Sclose(IOSTREAM *s)
 { int rval = 0;
 
   if ( s->magic != SIO_MAGIC )		/* already closed!? */
-  { s->io_errno = errno = EINVAL;
+  { s->io_errno = errno = EINVAL;	/* also deals with erased streams */
     return -1;
   }
 
