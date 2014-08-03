@@ -3709,10 +3709,17 @@ pl_close(term_t stream, int force ARG_LD)
   if ( type == &stream_blob )
   { int rc = TRUE;
 
-    if ( ref->read )
-      rc = do_close(getStream(ref->read), force);
-    if ( ref->write )
-      rc = do_close(getStream(ref->write), force) && rc;
+    if ( ref->read && ref->write )
+    { if ( ref->read && !ref->read->erased )
+	rc = do_close(getStream(ref->read), force);
+      if ( ref->write && !ref->write->erased )
+	rc = do_close(getStream(ref->write), force) && rc;
+    } else
+    { if ( ref->read )
+	rc = do_close(getStream(ref->read), force);
+      else if ( ref->write )
+	rc = do_close(getStream(ref->write), force);
+    }
 
     if ( rc == FALSE && !PL_exception(0) )
       rc = PL_error(NULL, 0, "already closed",
