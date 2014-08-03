@@ -666,6 +666,18 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
 }
 
 
+int
+PL_get_stream(term_t t, IOSTREAM **s, int flags)
+{ GET_LD
+  int myflags = SH_ERRORS|SH_ALIAS;
+
+  if ( flags & SIO_INPUT  ) myflags |= SH_INPUT;
+  if ( flags & SIO_OUTPUT ) myflags |= SH_OUTPUT;
+
+  return term_stream_handle(t, s, myflags PASS_LD);
+}
+
+
 static int
 unify_stream_ref(term_t t, IOSTREAM *s)
 { GET_LD
