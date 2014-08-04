@@ -701,6 +701,7 @@ Section "HTTP Client/Server package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\http_stream.dll
+  File ${SWIPL}\bin\websocket.dll
   File ${SWIPL}\bin\json.dll
   SetOutPath $INSTDIR\library
   File /r ${SWIPL}\library\http
