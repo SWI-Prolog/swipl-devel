@@ -420,6 +420,7 @@ safe_primitive(keysort(_,_)).
 safe_primitive(system: =@=(_,_)).
 					% unification and equivalence
 safe_primitive(=(_,_)).
+safe_primitive(\=(_,_)).
 safe_primitive(system:unifiable(_,_,_)).
 safe_primitive(\==(_,_)).
 					% arithmetic
