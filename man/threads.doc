@@ -37,7 +37,11 @@ SWI-Prolog multithreading is based on the POSIX thread standard
 MS-Windows. On Windows it uses the
 \url[pthread-win32]{http://sources.redhat.com/pthreads-win32/} emulation
 of POSIX threads mixed with the Windows native API for smoother and
-faster operation.
+faster operation. The SWI-Prolog thread implementation has been
+discussed in the ISO WG17 working group and is largely addopted by YAP
+and XSB Prolog.\footnote{The latest version of the ISO draft can be
+found at \url{http://logtalk.org/plstd/threads.pdf}.  It appears to
+have dropped from the ISO WG17 agenda.}
 
 
 \section{Creating and destroying Prolog threads}
@@ -623,25 +627,36 @@ the new address. Between these two operations the database is invalid:
 this person has either no address or two addresses, depending on the
 assert/retract order.
 
-Here is how to realise a correct update:
+The code below provides a solution to this problem based on
+with_mutex/2. It also illustrates the problem of mutexes. The predicate
+with_mutex/2 behaves as once/1 with respect to the guarded goal. This
+means that our predicate \nopredref{address}{2} is no longer a nice
+logical non-deterministic relation.  This could be solved by explicit
+locking and unlocking a mutex using setup_call_cleanup/2, but at the
+risk of deadlocking the program if the choice point is left open by
+accident.
 
 \begin{code}
-:- initialization
-	mutex_create(addressbook).
-
 change_address(Id, Address) :-
-	mutex_lock(addressbook),
-	retractall(address(Id, _)),
-	asserta(address(Id, Address)),
-	mutex_unlock(addressbook).
+	with_mutex(addressbook,
+		   ( retractall(address(Id, _)),
+		     asserta(address_db(Id, Address))
+		   )).
+
+address(Id, Address) :-
+	with_mutex(addressbook,
+		   address_db(Id, Address)).
 \end{code}
 
+Message queues (see message_queue_create/3) often provide simpler
+and more robust ways for threads to communicate.  Still, mutexes
+can be a sensible solution and are therefore provided.
 
 \begin{description}
     \predicate{mutex_create}{1}{?MutexId}
 Create a mutex.  If \arg{MutexId} is an atom, a \jargon{named} mutex is
 created.  If it is a variable, an anonymous mutex reference is returned.
-There is no limit to the number of mutexes that can be created.
+Anonymous mutexes are subject to (atom) garbage collection.
 
     \predicate{mutex_create}{2}{-MutexId, +Options}
 Create a mutex using options.  Defined options are:
@@ -653,8 +668,11 @@ is preferred over the equivalent \term{mutex_create}{name}.
     \end{description}
 
     \predicate{mutex_destroy}{1}{+MutexId}
-Destroy a mutex.  After this call, \arg{MutexId} becomes invalid and
-further references yield an \except{existence_error} exception.
+Destroy a mutex. If the mutex is not locked, it is destroyed and further
+access yields an \except{existence_error} exception. As of version
+7.1.19, this behaviour is reliable.  If the mutex is locked, the mutex
+is sheduled for \emph{delayed destruction}: it will be destroyed when
+it becomes unlocked.
 
     \predicate{with_mutex}{2}{+MutexId, :Goal}
 Execute \arg{Goal} while holding \arg{MutexId}.  If \arg{Goal} leaves
@@ -694,10 +712,11 @@ Unlock the mutex. This can only be called if the mutex is held by the
 calling thread. If this is not the case, a \except{permission_error}
 exception is raised.
 
-    \predicate{mutex_unlock_all}{0}{}
-Unlock all mutexes held by the current thread.  This call is especially
-useful to handle thread termination using abort/0 or exceptions.  See
-also thread_signal/2.
+    \predicate[deprecated]{mutex_unlock_all}{0}{}
+Unlock all mutexes held by the current thread. This predicate should not
+be needed if mutex unlocking is guaranteed with with_mutex/2 or
+setup_call_cleanup/3.\footnote{The also deprecated thread_exit/1
+bypasses the automatic cleanup.}
 
     \predicate{mutex_property}{2}{?MutexId, ?Property}
 True if \arg{Property} is a property of \arg{MutexId}.  Defined properties are:
