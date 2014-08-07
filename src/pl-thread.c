@@ -3262,7 +3262,8 @@ static PL_blob_t message_queue_blob =
 
 static void
 initMessageQueues(void)
-{ PL_register_blob_type(&message_queue_blob);
+{ message_queue_blob.atom_name = ATOM_message_queue;
+  PL_register_blob_type(&message_queue_blob);
 }
 
 static int
@@ -4071,7 +4072,8 @@ static PL_blob_t mutex_blob =
 
 static void
 initMutexRef(void)
-{ PL_register_blob_type(&mutex_blob);
+{ mutex_blob.atom_name = ATOM_mutex;	/* avoid early initAtoms() */
+  PL_register_blob_type(&mutex_blob);
 }
 
 
