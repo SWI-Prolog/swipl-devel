@@ -75,6 +75,13 @@
 #define MSG_PROF_CALLTREE	 45
 #define MSG_PROF_TICKS		 46
 #define MSG_INFERENCE_LIMIT	 47
+#define MSG_NSOLS		 48
+#define MSG_SRCFILE		 49
+#define MSG_DESTROY_MODULE	 50
+#define MSG_QUEUE_GC		 51
+#define MSG_ACYCLIC		 52
+#define MSG_OPERATOR		 53
+#define MSG_MUTEX_GC		 54
 						/* GC messages */
 #define	MSG_AGC			 100
 #define	MSG_CLAUSE_GC		 101

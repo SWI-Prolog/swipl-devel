@@ -73,6 +73,10 @@ source file is passed into _Where.
 :- meta_predicate
 	prolog_walk_code(:).
 
+:- multifile
+	prolog:called_by/4,
+	prolog:called_by/2.
+
 :- predicate_options(prolog_walk_code/1, 1,
 		     [ undefined(oneof([ignore,error,trace])),
 		       autoload(boolean),
@@ -442,7 +446,13 @@ walk_called(Goal, Module, TermPos, OTerm) :-
 walk_called(Goal, Module, _, OTerm) :-
 	evaluate(Goal, Module, OTerm), !.
 walk_called(Goal, M, TermPos, OTerm) :-
-	prolog:called_by(Goal, Called),
+	(   (   predicate_property(M:Goal, imported_from(IM))
+	    ->  true
+	    ;   IM = M
+	    ),
+	    prolog:called_by(Goal, IM, M, Called)
+	;   prolog:called_by(Goal, Called)
+	),
 	Called \== [], !,
 	walk_called_by(Called, M, Goal, TermPos, OTerm).
 walk_called(Meta, M, term_position(_,E,_,_,ArgPosList), OTerm) :-
@@ -683,16 +693,24 @@ remove_quantifier(Goal, Goal, TermPos, TermPos, M, M, _).
 
 walk_called_by([], _, _, _, _).
 walk_called_by([H|T], M, Goal, TermPos, OTerm) :-
-	(   H = G+N
-	->  subterm_pos(G, Goal, TermPos, GPos),
+	(   H = G0+N
+	->  subterm_pos(G0, M, Goal, TermPos, G, GPos),
 	    (   extend(G, N, G2, GPos, GPosEx, OTerm)
 	    ->	walk_called(G2, M, GPosEx, OTerm)
 	    ;	true
 	    )
-	;   subterm_pos(H, Goal, TermPos, GPos),
-	    walk_called(H, M, GPos, OTerm)
+	;   subterm_pos(H, M, Goal, TermPos, G, GPos),
+	    walk_called(G, M, GPos, OTerm)
 	),
 	walk_called_by(T, M, Goal, TermPos, OTerm).
+
+subterm_pos(Sub, _, Term, TermPos, Sub, SubTermPos) :-
+	subterm_pos(Sub, Term, TermPos, SubTermPos), !.
+subterm_pos(Sub, M, Term, TermPos, G, SubTermPos) :-
+	nonvar(Sub),
+	Sub = M:H, !,
+	subterm_pos(H, M, Term, TermPos, G, SubTermPos).
+subterm_pos(Sub, _, _, _, Sub, _).
 
 subterm_pos(Sub, Term, TermPos, SubTermPos) :-
 	subterm_pos(Sub, Term, same_term, TermPos, SubTermPos), !.
@@ -701,9 +719,7 @@ subterm_pos(Sub, Term, TermPos, SubTermPos) :-
 subterm_pos(Sub, Term, TermPos, SubTermPos) :-
 	subterm_pos(Sub, Term, =@=, TermPos, SubTermPos), !.
 subterm_pos(Sub, Term, TermPos, SubTermPos) :-
-	subterm_pos(Sub, Term, =, TermPos, SubTermPos), !.
-subterm_pos(_, _, _, _).
-
+	subterm_pos(Sub, Term, subsumes_term, TermPos, SubTermPos), !.
 
 %%	walk_dcg_body(+Body, +Module, +TermPos, +OTerm)
 %
@@ -752,7 +768,7 @@ walk_dcg_body(G, M, TermPos, OTerm) :-
 %	True when SubTerm is a sub  term   of  Term, compared using Cmp,
 %	TermPosition describes the term layout   of  Term and SubTermPos
 %	describes the term layout of SubTerm.   Cmp  is typically one of
-%	=same_term=, =|==|=, =|=@=|= or =|=|=
+%	=same_term=, =|==|=, =|=@=|= or =|subsumes_term|=
 
 :- meta_predicate
 	subterm_pos(+, +, 2, +, -),

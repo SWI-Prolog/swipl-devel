@@ -193,13 +193,13 @@ print_backtrace_named(const char *why)
   { int me = bt->current-1;
 
     for(;;)
-    { if ( --me < 0 )
+    { if ( me < 0 )
 	me += SAVE_TRACES;
       if ( bt->dumps[me].name && strcmp(bt->dumps[me].name, why) == 0 )
       { print_trace(bt, me);
 	return;
       }
-      if ( me == bt->current-1 )
+      if ( --me == bt->current-1 )
 	break;
     }
   }
@@ -415,13 +415,13 @@ print_backtrace_named(const char *why)
   { int me = bt->current-1;
 
     for(;;)
-    { if ( --me < 0 )
+    { if ( me < 0 )
 	me += SAVE_TRACES;
       if ( bt->why[me] && strcmp(bt->why[me], why) == 0 )
       { print_trace(bt, me);
 	return;
       }
-      if ( me == bt->current-1 )
+      if ( --me == bt->current-1 )
 	break;
     }
   }
@@ -746,13 +746,13 @@ print_backtrace_named(const char *why)
   { int me = bt->current-1;
 
     for(;;)
-    { if ( --me < 0 )
+    { if ( me < 0 )
 	me += SAVE_TRACES;
       if ( bt->dumps[me].name && strcmp(bt->dumps[me].name, why) == 0 )
       { print_trace(bt, me);
 	return;
       }
-      if ( me == bt->current-1 )
+      if ( --me == bt->current-1 )
 	break;
     }
   }

@@ -58,7 +58,7 @@ read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
 write \verb$[a]$ as \verb$.(a,[])$.
 
 
-\subsection{Motivating '[|]' and [] for lists}
+\subsection{Motivating '{[|]}' and [] for lists}
 \label{sec:ext-list-motivation}
 
 Representing lists the conventional way using \funcref{.}{2} as
@@ -1004,7 +1004,7 @@ A = point{x:3, y:2}.
 True when \arg{Key}-\arg{Value} is in \arg{DictIn} and \arg{DictOut}
 contains all associations of \arg{DictIn} except for \arg{Key}.
 
-    \infixop[semidet]{:<}{2}{+Select, +From}
+    \infixop[semidet]{:<}{+Select}{+From}
 True when \arg{Select} is a `sub dict' of \arg{From}: the tages
 must unify and all keys in \arg{Select} must appear with unifying
 values in \arg{From}.  \arg{From} may contain keys that are not in

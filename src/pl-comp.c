@@ -1310,6 +1310,10 @@ getTargetModule(target_module *tm, Word t, CompileInfo ci ARG_LD)
   } else if ( isTextAtom(*t) )
   { tm->module = lookupModule(*t);
     tm->type = TM_MODULE;
+    if ( !ci->islocal && tm->module->class == ATOM_temporary )
+      return PL_error(NULL, 0, "temporary module", ERR_PERMISSION,
+		      ATOM_reference, ATOM_module, pushWordAsTermRef(t));
+
   } else
   { resetVars(PASS_LD1);
     PL_error(NULL, 0, NULL,

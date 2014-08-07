@@ -2922,7 +2922,7 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
   if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
     return rc;
 
-  DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
+  DEBUG(8, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
   argp = gTop;
   w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
   gTop += 1+arity;
@@ -2936,12 +2936,14 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
 
     setHandle(argv[0], w);
     truncate_term_stack(&argv[1], _PL_rd);
-    DEBUG(9, Sdprintf("result: "); pl_write(argv[0]); Sdprintf("\n") );
+    DEBUG(8, Sdprintf("result: ");
+	     PL_write_term(Serror, argv[0], 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE));
   } else
   { term_t t = alloc_term(_PL_rd PASS_LD);
 
     setHandle(t, w);
-    DEBUG(9, Sdprintf("result: "); pl_write(t); Sdprintf("\n") );
+    DEBUG(8, Sdprintf("result: ");
+	     PL_write_term(Serror, t, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE));
   }
 
   return TRUE;

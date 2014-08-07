@@ -666,6 +666,18 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
 }
 
 
+int
+PL_get_stream(term_t t, IOSTREAM **s, int flags)
+{ GET_LD
+  int myflags = SH_ERRORS|SH_ALIAS;
+
+  if ( flags & SIO_INPUT  ) myflags |= SH_INPUT;
+  if ( flags & SIO_OUTPUT ) myflags |= SH_OUTPUT;
+
+  return term_stream_handle(t, s, myflags PASS_LD);
+}
+
+
 static int
 unify_stream_ref(term_t t, IOSTREAM *s)
 { GET_LD
@@ -895,16 +907,31 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
   { stream_ref *ref;
     atom_t a;
     PL_blob_t *type;
+    int rc = TRUE;
 
     if ( !PL_get_atom(A1, &a) ||
 	 !(ref=PL_blob_data(a, NULL, &type)) ||
-	 type != &stream_blob ||
-	 !ref->read ||
-	 !ref->write )
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream_pair, A1);
+	 type != &stream_blob )
+    { IOSTREAM *s;
 
-    return ( PL_unify_stream_or_alias(A2, ref->read) &&
-	     PL_unify_stream_or_alias(A3, ref->write) );
+      if ( get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) )
+      { if ( (s->flags & SIO_INPUT) )
+	  rc = PL_unify_stream_or_alias(A2, s);
+	else
+	  rc = PL_unify_stream_or_alias(A3, s);
+
+	return rc;
+      }
+
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream_pair, A1);
+    }
+
+    if ( ref->read && !ref->read->erased )
+      rc = rc && PL_unify_stream_or_alias(A2, ref->read);
+    if ( ref->write && !ref->write->erased )
+      rc = rc && PL_unify_stream_or_alias(A3, ref->write);
+
+    return rc;
   }
 
   if ( getInputStream(A2, S_DONTCARE, &in) &&
@@ -3697,10 +3724,17 @@ pl_close(term_t stream, int force ARG_LD)
   if ( type == &stream_blob )
   { int rc = TRUE;
 
-    if ( ref->read )
-      rc = do_close(getStream(ref->read), force);
-    if ( ref->write )
-      rc = do_close(getStream(ref->write), force) && rc;
+    if ( ref->read && ref->write )
+    { if ( ref->read && !ref->read->erased )
+	rc = do_close(getStream(ref->read), force);
+      if ( ref->write && !ref->write->erased )
+	rc = do_close(getStream(ref->write), force) && rc;
+    } else
+    { if ( ref->read )
+	rc = do_close(getStream(ref->read), force);
+      else if ( ref->write )
+	rc = do_close(getStream(ref->write), force);
+    }
 
     if ( rc == FALSE && !PL_exception(0) )
       rc = PL_error(NULL, 0, "already closed",

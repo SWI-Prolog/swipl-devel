@@ -310,6 +310,14 @@ checking the source.  This option is intended to be used together with
 the \term{stream}{Input} option, for example after extracting the time
 from an HTTP server or database.
 
+    \termitem{module}{+Module}
+Load the indicated file into the given module, overruling the module
+name specified in the \exam{:- module(Name, ...)} directive. This
+currently serves two purposes: (1) allow loading two module files that
+specify the same module	into the same process and force and (2): force
+loading source code in a specific module, even if the code provides its
+own module name.  Experimental.
+
     \termitem{must_be_module}{Bool}
 If \const{true}, raise an error if the file is not a module file.  Used by
 use_module/[1,2].
@@ -587,15 +595,18 @@ definitions can stop the system from finding libraries.
 True if \arg{File} is a loaded Prolog source file.  \arg{File} is
 the absolute and canonical path to the source file.
 
-    \predicate{source_file}{2}{?Pred, ?File}
-True if the predicate specified by \arg{Pred} was loaded from file
+    \predicate{source_file}{2}{:Pred, ?File}
+True if the predicate specified by \arg{Pred} is owned by file
 \arg{File}, where \arg{File} is an absolute path name (see
-absolute_file_name/2). Can be used with any instantiation pattern,
-but the database only maintains the source file for each predicate.
-See also clause_property/2.  Note that the relation between files
-and predicates is more complicated if include/1 is used.  The predicate
-describes the \jargon{owner} of the predicate.  See include/1 for
-details.
+absolute_file_name/2). Can be used with any instantiation pattern, but
+the database only maintains the source file for each predicate. If
+\arg{Pred} is a \jargon{multifile} predicate this predicate succeeds for
+all files that contribute clauses to \arg{Pred}.\footnote{The current
+implementation performs a linear scan through all clauses to establish
+this set of files.} See also clause_property/2. Note that the relation
+between files and predicates is more complicated if include/1 is used.
+The predicate describes the \jargon{owner} of the predicate. See
+include/1 for details.
 
     \predicate{source_file_property}{2}{?File, ?Property}
 True when \arg{Property} is a property of the loaded file \arg{File}.
@@ -2254,7 +2265,8 @@ Currently, \arg{Location} is a term \mbox{\arg{File}:\arg{Line}}.
 example, the default for errors is
 
 \begin{code}
-    location_prefix(File:Line, '~NERROR: ~w:~d:'-[File,Line], '~N\t')).
+location_prefix(File:Line,
+		'~NERROR: ~w:~d:'-[File,Line], '~N\t')).
 \end{code}
 
 	\termitem{stream}{-Stream}
@@ -2537,6 +2549,14 @@ Major = 3,
 Minor = 4.
 \end{code}
 
+The SWI-Prolog implementation of phrase/3 verifies that the \arg{List}
+and \arg{Rest} arguments are unbound, bound to the empty list or a list
+\jargon{cons cell}. Other values raise a type error.\footnote{The ISO
+standard allows for both raising a type error and accepting any term
+as input and output. Note the tail of the list is not checked for
+performance reasons.}  The predicate call_dcg/3 is provided to use
+grammar rules with terms that are not lists.
+
 Note that the syntax for lists of codes changed in SWI-Prolog version~7
 (see \secref{strings}). If a DCG body is translated, both \verb$"text"$
 and \verb$`text`$ is a valid code-list literal in version~7. A version~7
@@ -2552,6 +2572,22 @@ DCGs that process character codes. The library \pllib{apply_macros}
 compiles phrase/3 if the argument is sufficiently instantiated,
 eliminating the runtime overhead of translating \arg{DCGBody} and
 meta-calling.
+
+    \predicate{call_dcg}{3}{:DCGBody, ?State0, ?State}
+As phrase/3, but without type checking \arg{State0} and \arg{State}.
+This allows for using DCG rules for threading an arbitrary state
+variable. This predicate was introduced after type checking was added to
+phrase/3.\footnote{After discussion with Samer Abdallah.}
+
+A portable solution for threading state through a DCG can be implemented
+by wrapping the state in a list and use the DCG push-back facility.
+Subsequently, the following predicates may be used to access and modify
+the state:\footnote{This solutio was proposed by Markus Triska.}
+
+\begin{code}
+state(S), [S] --> [S].
+state(S0, S), [S] --> [S0].
+\end{code}
 \end{description}
 
 As stated above, grammar rules are a general interface to difference
@@ -3104,7 +3140,8 @@ True if a procedure definition block for the predicate exists, but
 there are no clauses for it and it is not declared dynamic or multifile.
 This is true if the predicate occurs in the body of a loaded predicate,
 an attempt to call it has been made via one of the meta-call predicates,
-or the predicate had a definition in the past. See the library package
+the predicate has been declared as e.g., a meta-predicate or the
+predicate had a definition in the past. See the library package
 \pllib{check} for example usage.
 
     \termitem{visible}{}
@@ -3419,11 +3456,17 @@ write_length(Term, Len) :-
 
     \predicate[ISO]{close}{1}{+Stream}
 Close the specified stream. If \arg{Stream} is not open, an existence
-error is raised.  However, closing a stream multiple times may crash
-Prolog.  This is particularly true for multithreaded applications.
+error is raised.  See stream_pair/3 for the implications of closing a
+\jargon{stream pair}.
 
-If the closed stream is the current input or output stream, the
-terminal is made the current input or output.
+If the closed stream is the current input, output or error stream, the
+stream alias is bound to the initial standard I/O streams of the
+process. Calling close/1 on the initial standard I/O streams of the
+process is a no-op for an input stream and flushes an output stream
+without closing it.\footnote{This behaviour was defined with purely
+interactive usage of Prolog in mind. Applications should not count on
+this behaviour. Future versions may allow for closing the initial
+standard I/O streams.}
 
     \predicate[ISO]{close}{2}{+Stream, +Options}
 Provides \term{close}{Stream, [force(true)]} as the only option.  Called
@@ -3564,11 +3607,22 @@ or handle.
 
     \predicate{stream_pair}{3}{?StreamPair, ?Read, ?Write}
 This predicate can be used in mode (-,+,+) to create a
-\jargon{stream-pair} from an input stream and an output stream.
+\jargon{stream-pair} from an input stream and an output stream. Mode
+(+,-,-) can be used to get access to the underlying streams. If a stream
+has already been closed, the corresponding argument is left unbound. If
+mode (+,-,-) is used on a single stream, either \arg{Read} or
+\arg{Write} is unified with the stream while the other argument is left
+unbound. This behaviour simplifies writing code that must operate both
+on streams and stream pairs.
+
 Stream-pairs can be used by all I/O operations on streams, where the
 operation selects the appropriate member of the pair. The predicate
-close/1 closes both streams of the pair. Mode (+,-,-) can be used to get
-access to the underlying streams.
+close/1 closes the still open streams of the pair.\footnote{As of
+version 7.1.19, it is allowed to close one of the members of the
+stream directly and close the pair later.} The output stream is
+closed before the input stream. If closing the output stream results in
+an error, the input stream is still closed. Success is only returned if
+both streams were closed successfully.
 
     \predicate[ISO]{set_stream_position}{2}{+Stream, +Pos}
 Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
@@ -4469,7 +4523,10 @@ print(Term) :-
     current_prolog_flag(print_write_options, Options), !,
     write_term(Term, Options).
 print(Term) :-
-    write_term(Term, [portray(true), numbervars(true), quoted(true)]).
+    write_term(Term, [ portray(true),
+		       numbervars(true),
+		       quoted(true)
+		     ]).
 \end{code}
 
 The print/1 predicate is used primarily through the \verb$~p$ escape
@@ -4775,13 +4832,10 @@ predicate may be a variable, but not both.  This predicate is called
 
 \begin{code}
 ?- foo(hello, X) =.. List.
-
 List = [foo, hello, X]
 
-?- Term =.. [baz, foo(1)]
-
+?- Term =.. [baz, foo(1)].
 Term = baz(foo(1))
-ERROR: =../2: Domain error: `compound_non_zero_arity' expected, found `a()'
 \end{code}
 
 SWI-Prolog also supports terms with arity 0, as in \exam{a()} (see
@@ -4791,6 +4845,7 @@ below. See also functor/3.
 
 \begin{code}
 ?- a() =.. L.
+ERROR: Domain error: `compound_non_zero_arity' expected, found `a()'
 \end{code}
 
     \predicate{compound_name_arity}{3}{?Compound, ?Name, ?Arity}
@@ -6362,6 +6417,25 @@ findall(Templ, Goal, Bag) :-
 	findall(Templ, Goal, Bag, [])
 \end{code}
 
+    \predicate[nondet]{findnsols}{4}{+N, @Template, :Goal, -List}
+    \nodescription
+    \predicate[nondet]{findnsols}{5}{+N, @Template, :Goal, -List, ?Tail}
+As findall/3 and findall/4, but generates at most \arg{N} solutions.
+Unifies \arg{List} immediately with [] (\arg{Tail}) if \arg{N} is 0 or
+less. If \arg{N} solutions are returned, this predicate succeeds with a
+choice point. Backtracking returns the next chunk of (at most) \arg{N}
+solutions. This behaviour is used to implement the \jargon{chunk}
+option in \pllib{pengines}.  Based on Ciao, but the Ciao version is
+deterministic. Portability can be achieved by wrapping the goal in
+once/1.  For example:
+
+\begin{code}
+?- findnsols(5, I, between(1, 12, I), L).
+L = [1, 2, 3, 4, 5] ;
+L = [6, 7, 8, 9, 10] ;
+L = [11, 12].
+\end{code}
+
     \predicate[ISO]{bagof}{3}{+Template, :Goal, -Bag}
 Unify \arg{Bag} with the alternatives of \arg{Template}. If \arg{Goal}
 has free variables besides the one sharing with \arg{Template}, bagof/3
@@ -7753,9 +7827,9 @@ open_url(URL, In) :-
 \end{code}
 
 Temporary files created using this call are removed if the Prolog
-process terminates. Calling delete_file/1 using \arg{FileName} removes
-the file and removes the entry from the administration of
-files-to-be-deleted.
+process terminates \emph{gracefully}. Calling delete_file/1 using
+\arg{FileName} removes the file and removes the entry from the
+administration of files-to-be-deleted.
 
     \predicate{make_directory}{1}{+Directory}
 Create a new directory (folder) on the filesystem.  Raises an exception

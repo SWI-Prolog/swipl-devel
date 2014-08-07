@@ -328,8 +328,8 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 :- meta_predicate
 	initialization(0, +).
 
-:- dynamic
-	'$init_goal'/3.
+:- multifile '$init_goal'/3.
+:- dynamic   '$init_goal'/3.
 
 %%	initialization(:Goal, +When)
 %
@@ -348,16 +348,16 @@ initialization(Goal, When) :-
 	'$initialization_context'(Source, Ctx),
 	(   When == now
 	->  Goal,
-	    assert('$init_goal'(-, Goal, Ctx))
+	    '$compile_init_goal'(-, Goal, Ctx)
 	;   When == after_load
 	->  (   Source \== (-)
-	    ->	assert('$init_goal'(Source, Goal, Ctx))
+	    ->	'$compile_init_goal'(Source, Goal, Ctx)
 	    ;	throw(error(context_error(nodirective,
 					  initialization(Goal, after_load)),
 			    _))
 	    )
 	;   When == restore
-	->  assert('$init_goal'(-, Goal, Ctx))
+	->  '$compile_init_goal'(-, Goal, Ctx)
 	;   (   var(When)
 	    ->	throw(error(instantiation_error, _))
 	    ;	atom(When)
@@ -365,6 +365,13 @@ initialization(Goal, When) :-
 	    ;   throw(error(type_error(atom, When), _))
 	    )
 	).
+
+'$compile_init_goal'(Source, Goal, Ctx) :-
+	atom(Source),
+	Source \== (-), !,
+	'$compile_term'(system:'$init_goal'(Source, Goal, Ctx), _Layout, Source).
+'$compile_init_goal'(Source, Goal, Ctx) :-
+	assertz('$init_goal'(Source, Goal, Ctx)).
 
 
 '$run_initialization'(File) :-
@@ -403,16 +410,17 @@ initialization(Goal, When) :-
 '$initialization_failure'(Goal, Ctx) :-
 	print_message(warning, initialization_failure(Goal, Ctx)).
 
-%%	'$clear_initialization'(+File) is det.
+%%	'$clear_source_admin'(+File) is det.
 %
-%	removes all initialization goals that are registered from File.
+%	Removes source adminstration related to File
 %
-%	@see Called from startConsult() in pl-proc.c
+%	@see Called from destroySourceFile() in pl-proc.c
 
-:- public '$clear_initialization'/1.
+:- public '$clear_source_admin'/1.
 
-'$clear_initialization'(File) :-
-	retractall('$init_goal'(_, _, File:_)).
+'$clear_source_admin'(File) :-
+	retractall('$init_goal'(_, _, File:_)),
+	retractall('$load_context_module'(File, _, _)).
 
 
 		/********************************
@@ -1034,23 +1042,30 @@ compiling :-
 		*         READ SOURCE           *
 		*********************************/
 
-'$load_msg_level'(Action, Start, Done) :-
+%%	'$load_msg_level'(+Action, +NestingLevel, -StartVerbose, -EndVerbose)
+
+'$load_msg_level'(Action, Nesting, Start, Done) :-
 	'$update_autoload_level'([], 0), !,
 	current_prolog_flag(verbose_load, Type0),
 	'$load_msg_compat'(Type0, Type),
-	'$load_msg_level'(Action, Type, Start, Done).
-'$load_msg_level'(_, silent, silent).
+	(   '$load_msg_level'(Action, Nesting, Type, Start, Done)
+	->  true
+	).
+'$load_msg_level'(_, _, silent, silent).
 
 '$load_msg_compat'(true, normal) :- !.
 '$load_msg_compat'(false, silent) :- !.
 '$load_msg_compat'(X, X).
 
-'$load_msg_level'(load_file,    full,   informational, informational) :- !.
-'$load_msg_level'(include_file, full,   informational, informational) :- !.
-'$load_msg_level'(load_file,    normal, silent,        informational) :- !.
-'$load_msg_level'(include_file, normal, silent,        silent) :- !.
-'$load_msg_level'(load_file,    silent, silent,        silent) :- !.
-'$load_msg_level'(include_file, silent, silent,        silent) :- !.
+'$load_msg_level'(load_file,    _, full,   informational, informational).
+'$load_msg_level'(include_file, _, full,   informational, informational).
+'$load_msg_level'(load_file,    _, normal, silent,        informational).
+'$load_msg_level'(include_file, _, normal, silent,        silent).
+'$load_msg_level'(load_file,    0, brief,  silent,        informational).
+'$load_msg_level'(load_file,    _, brief,  silent,        silent).
+'$load_msg_level'(include_file, _, brief,  silent,        silent).
+'$load_msg_level'(load_file,    _, silent, silent,        silent).
+'$load_msg_level'(include_file, _, silent, silent,        silent).
 
 %%	'$source_term'(+From, -Read, -RLayout, -Term, -TLayout,
 %%		       -Stream, +Options) is nondet.
@@ -1263,7 +1278,7 @@ compiling :-
 			   include_file(done(Level, file(File, Path))))) :-
 	source_location(_, Line), !,
 	'$compilation_level'(Level),
-	'$load_msg_level'(include_file, StartMsgLevel, DoneMsgLevel),
+	'$load_msg_level'(include_file, Level, StartMsgLevel, DoneMsgLevel),
 	'$print_message'(StartMsgLevel,
 			 include_file(start(Level,
 					    file(File, Path)))),
@@ -1755,7 +1770,7 @@ load_files(Module:Files, Options) :-
 	'$save_file_scoped_flags'(ScopedFlags),
 
 	'$compilation_level'(Level),
-	'$load_msg_level'(load_file, StartMsgLevel, DoneMsgLevel),
+	'$load_msg_level'(load_file, Level, StartMsgLevel, DoneMsgLevel),
 	'$print_message'(StartMsgLevel,
 			 load_file(start(Level,
 					 file(File, Absolute)))),
@@ -1929,9 +1944,6 @@ load_files(Module:Files, Options) :-
 
 '$print_message_fail'(E) :-
 	'$print_message'(error, E),
-	fail.
-'$print_message_fail'(Kind, E) :-
-	'$print_message'(Kind, E),
 	fail.
 
 %%	'$consult_file'(+Path, +Module, -Action, -LoadedIn, +Options)
@@ -2150,8 +2162,8 @@ load_files(Module:Files, Options) :-
 	    ;	Directive = module(Name, Public, Imports)
 	    )
 	->  !,
-	    '$module_name'(Name, Id),
-	    '$start_module'(Name, Public, State, Options),
+	    '$module_name'(Name, Id, Module, Options),
+	    '$start_module'(Module, Public, State, Options),
 	    '$module3'(Imports)
 	;   Directive = expects_dialect(Dialect)
 	->  !,
@@ -2247,20 +2259,31 @@ load_files(Module:Files, Options) :-
 '$module3'(Id) :-
 	use_module(library(dialect/Id)).
 
-%%	'$module_name'(?Name, +Id) is det.
+%%	'$module_name'(?Name, +Id, -Module, +Options) is semidet.
 %
-%	Sanatise the module name.  Compatible to Ciao, a variable module
-%	name is replaced by the file base-name.
+%	Determine the module name.  There are some cases:
+%
+%	  - Option module(Module) is given.  In that case, use this
+%	    module and if Module is the load context, ignore the module
+%	    header.
+%	  - The initial name is unbound.  Use the base name of the
+%	    source identifier (normally the file name).  Compatibility
+%	    to Ciao.  This might change; I think it is wiser to use
+%	    the full unique source identifier.
 
-'$module_name'(Var, Id) :-
+'$module_name'(_, _, Module, Options) :-
+	'$option'(module(Module), Options), !,
+	'$set_source_module'(Context, Context),
+	Context \== Module.			% cause '$first_term'/5 to fail.
+'$module_name'(Var, Id, Module, Options) :-
 	var(Var), !,
 	file_base_name(Id, File),
 	file_name_extension(Var, _, File),
-	'$module_name'(Var, Id).
-'$module_name'(Reserved, _) :-
+	'$module_name'(Var, Id, Module, Options).
+'$module_name'(Reserved, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
-'$module_name'(_, _).
+'$module_name'(Module, _Id, Module, _).
 
 
 '$reserved_module'(system).
@@ -2521,17 +2544,16 @@ load_files(Module:Files, Options) :-
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
 	catch(( op(Pri, Assoc, Module:Name),
-		'$export_op'(Pri, Assoc, Name, File)
+		'$export_op'(Pri, Assoc, Name, Module, File)
 	      ),
 	      E, '$print_message'(error, E)),
 	'$export_ops'(T, Module, File).
 '$export_ops'([], _, _).
 
-'$export_op'(Pri, Assoc, Name, File) :-
-	(   '$current_module'(LM, LM),
-	    '$get_predicate_attribute'(LM:'$exported_op'(_,_,_), defined, 1)
+'$export_op'(Pri, Assoc, Name, Module, File) :-
+	(   '$get_predicate_attribute'(Module:'$exported_op'(_,_,_), defined, 1)
 	->  true
-	;   '$execute_directive'(discontiguous(LM:'$exported_op'/3), File)
+	;   '$execute_directive'(discontiguous(Module:'$exported_op'/3), File)
 	),
 	'$store_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File).
 
@@ -2586,15 +2608,15 @@ load_files(Module:Files, Options) :-
 %	of the directive by throwing an exception.
 
 :- multifile prolog:sandbox_allowed_directive/1.
+:- meta_predicate '$valid_directive'(:).
 
 '$valid_directive'(_) :-
 	current_prolog_flag(sandboxed_load, false), !.
 '$valid_directive'(Goal) :-
-	catch(prolog:sandbox_allowed_directive(Goal), Error, true),
+	catch(prolog:sandbox_allowed_directive(Goal), Error, true), !,
 	(   var(Error)
-	->  fail
-	;   !,
-	    print_message(error, Error),
+	->  true
+	;   print_message(error, Error),
 	    fail
 	).
 '$valid_directive'(_).
@@ -2793,6 +2815,7 @@ saved state.
 	'$get_files_argv'(Argv, Files),
 	'$translate_options'(Argv, Options),
 	'$cmd_option_val'(compileout, Out),
+	attach_packs,
         user:consult(Files),
 	user:qsave_program(Out, Options).
 
@@ -3081,6 +3104,7 @@ halt :-
 
 system:term_expansion((:- at_halt(Goal)),
 		      system:'$at_halt'(Module:Goal, File:Line)) :-
+	\+ current_prolog_flag(xref, true),
 	source_location(File, Line),
 	'$set_source_module'(Module, Module).
 

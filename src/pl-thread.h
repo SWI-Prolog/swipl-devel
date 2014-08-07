@@ -118,6 +118,7 @@ typedef struct message_queue
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
   int		       wait_for_drain;	/* # threads waiting for write */
+  unsigned	anonymous : 1;		/* <message_queue>(0x...) */
   unsigned	initialized : 1;	/* Queue is initialised */
   unsigned	destroyed : 1;		/* Thread is being destroyed */
   unsigned	type : 2;		/* QTYPE_* */
@@ -130,7 +131,11 @@ typedef struct pl_mutex
 { pthread_mutex_t mutex;		/* the system mutex */
   int count;				/* lock count */
   int owner;				/* integer id of owner */
-  word id;				/* id of the mutex */
+  atom_t id;				/* id of the mutex */
+  unsigned anonymous    : 1;		/* <mutex>(0x...) */
+  unsigned initialized  : 1;		/* Mutex is initialized */
+  unsigned destroyed    : 1;		/* Mutex is destroyed */
+  unsigned auto_destroy	: 1;		/* asked to destroy */
 } pl_mutex;
 
 #define PL_THREAD_MAGIC 0x2737234f
@@ -147,23 +152,24 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_MUTEX		7
 #define L_PREDICATE	8
 #define L_MODULE	9
-#define L_TABLE	       10
-#define L_BREAK	       11
-#define L_FILE	       12
-#define L_SEETELL      13
-#define L_PLFLAG       14
-#define L_OP	       15
-#define L_INIT	       16
-#define L_TERM	       17
-#define L_GC	       18
-#define L_AGC	       19
-#define L_STOPTHEWORLD 20
-#define L_FOREIGN      21
-#define L_OS	       22
-#define L_LOCALE       23
+#define L_SRCFILE      10
+#define L_TABLE	       11
+#define L_BREAK	       12
+#define L_FILE	       13
+#define L_SEETELL      14
+#define L_PLFLAG       15
+#define L_OP	       16
+#define L_INIT	       17
+#define L_TERM	       18
+#define L_GC	       19
+#define L_AGC	       20
+#define L_STOPTHEWORLD 21
+#define L_FOREIGN      22
+#define L_OS	       23
+#define L_LOCALE       24
 #ifdef __WINDOWS__
-#define L_DDE	       24
-#define L_CSTACK       25
+#define L_DDE	       25
+#define L_CSTACK       26
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -242,9 +248,11 @@ compile-time
 #define UNLOCKDYNDEF(def) \
 	if ( GD->thread.enabled && def->mutex ) countingMutexUnlock(def->mutex)
 
-#define LOCKMODULE(module)   countingMutexLock((module)->mutex)
-#define UNLOCKMODULE(module) countingMutexUnlock((module)->mutex)
+#define LOCKMODULE(module)	countingMutexLock((module)->mutex)
+#define UNLOCKMODULE(module)	countingMutexUnlock((module)->mutex)
 
+#define LOCKSRCFILE(sf)		countingMutexLock((sf)->mutex)
+#define UNLOCKSRCFILE(sf)	countingMutexUnlock((sf)->mutex)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
@@ -326,12 +334,6 @@ COMMON(foreign_t)	pl_thread_signal(term_t thread, term_t goal);
 COMMON(foreign_t)	pl_thread_at_exit(term_t goal);
 extern int		PL_thread_self(void);
 
-COMMON(foreign_t)	pl_mutex_destroy(term_t mutex);
-COMMON(foreign_t)	pl_mutex_lock(term_t mutex);
-COMMON(foreign_t)	pl_mutex_trylock(term_t mutex);
-COMMON(foreign_t)	pl_mutex_unlock(term_t mutex);
-COMMON(foreign_t)	pl_mutex_unlock_all(void);
-
 COMMON(const char *)	threadName(int id);
 COMMON(void)		executeThreadSignals(int sig);
 COMMON(foreign_t)	pl_attach_xterm(term_t in, term_t out);
@@ -343,7 +345,7 @@ COMMON(void)		cleanupLocalDefinitions(PL_local_data_t *ld);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);
-COMMON(void)		cleanupThreads();
+COMMON(void)		cleanupThreads(void);
 COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 

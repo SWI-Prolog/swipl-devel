@@ -93,6 +93,7 @@
                   (#==>)/2,
                   (#<==)/2,
                   (#\/)/2,
+                  (#\)/2,
                   (#/\)/2,
                   (in)/2,
                   (ins)/2,
@@ -142,7 +143,7 @@
 
 /** <module> Constraint Logic Programming over Finite Domains
 
----+++ Introduction
+### Introduction			{#clpfd-intro}
 
 Constraint programming is a declarative formalism that lets you
 describe conditions a solution must satisfy. This library provides
@@ -171,7 +172,7 @@ You can cite this library in your publications as:
 }
 ==
 
----+++ Arithmetic constraints
+### Arithmetic constraints		{#cplfd-arith-constraints}
 
 A finite domain _arithmetic expression_ is one of:
 
@@ -201,23 +202,24 @@ The most important arithmetic constraints are:
     | Expr1 #> Expr2   | Expr1 is greater than Expr2              |
     | Expr1 #< Expr2   | Expr1 is less than Expr2                 |
 
----+++ Reification
+### Reification				{#clpfd-reification}
 
 The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
 _reified_, which means reflecting their truth values into Boolean
 values represented by the integers 0 and 1. Let P and Q denote
 reifiable constraints or Boolean variables, then:
 
-    | #\ Q      | True iff Q is false             |
-    | P #\/ Q   | True iff either P or Q          |
-    | P #/\ Q   | True iff both P and Q           |
-    | P #<==> Q | True iff P and Q are equivalent |
-    | P #==> Q  | True iff P implies Q            |
-    | P #<== Q  | True iff Q implies P            |
+    | #\ Q      | True iff Q is false                  |
+    | P #\/ Q   | True iff either P or Q               |
+    | P #/\ Q   | True iff both P and Q                |
+    | P #\ Q    | True iff either P or Q, but not both |
+    | P #<==> Q | True iff P and Q are equivalent      |
+    | P #==> Q  | True iff P implies Q                 |
+    | P #<== Q  | True iff Q implies P                 |
 
 The constraints of this table are reifiable as well.
 
----+++ Examples
+### Examples				{#clpfd-examples}
 
 Here is an example session with a few queries and their answers:
 
@@ -258,7 +260,7 @@ In each case, and as for all pure programs, the answer is
 declaratively equivalent to the original query, and in many cases the
 constraint solver has deduced additional domain restrictions.
 
----+++ Search
+### Search				{#clpfd-search}
 
 A common usage of this library is to first post the desired
 constraints among the variables of a model, and then to use
@@ -317,7 +319,7 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
----+++ Declarative integer arithmetic
+### Declarative integer arithmetic		{#clpfd-integer-arith}
 
 You can also use CLP(FD) constraints as a more declarative alternative
 for ordinary integer arithmetic with is/2, >/2 etc. For example:
@@ -352,7 +354,7 @@ the (implied) constraint F #\= 0 before the recursive call. Otherwise,
 the query n_factorial(N, 0) is the only non-terminating case of this
 kind.
 
----+++ Advanced topics
+### Advanced topics			{#clpfd-advanced-topics}
 
 This library uses goal_expansion/2 to rewrite constraints at
 compilation time. The expansion's aim is to transparently bring the
@@ -1937,6 +1939,7 @@ parse_clpfd(E, R,
              m(A rem B)        => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A//B)           => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
@@ -2239,7 +2242,7 @@ clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Conditions under which an equality can be compiled to built-in
-   arithmetic. Their order is significant.
+   arithmetic. Their order is significant. (/)/2 becomes (//)/2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 expr_conds(E, E)                 --> [integer(E)],
@@ -2251,9 +2254,10 @@ expr_conds(abs(E0), abs(E))      --> expr_conds(E0, E).
 expr_conds(A0+B0, A+B)           --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0*B0, A*B)           --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0-B0, A-B)           --> expr_conds(A0, A), expr_conds(B0, B).
-expr_conds(A0/B0, A//B)          --> % "/" becomes "//"
+expr_conds(A0//B0, A//B)         -->
         expr_conds(A0, A), expr_conds(B0, B),
         [B =\= 0].
+expr_conds(A0/B0, AB)            --> expr_conds(A0//B0, AB).
 expr_conds(min(A0,B0), min(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(max(A0,B0), max(A,B)) --> expr_conds(A0, A), expr_conds(B0, B).
 expr_conds(A0 mod B0, A mod B)   -->
@@ -2636,6 +2640,12 @@ disjunctive_eqs_vals(A #\/ B) -->
         disjunctive_eqs_vals(A),
         disjunctive_eqs_vals(B).
 
+%% ?P #\ ?Q
+%
+% Either P holds or Q holds, but not both.
+
+L #\ R :- (L #\/ R) #/\ #\ (L #/\ R).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
    X/Y, Y can as well be 0, for example. Note that it is OK to
@@ -2773,7 +2783,7 @@ reifiable(V in _) :- fd_variable(V).
 reifiable(Expr)   :-
         Expr =.. [Op,Left,Right],
         (   memberchk(Op, [#>=,#>,#=<,#<,#=,#\=])
-        ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/]),
+        ;   memberchk(Op, [#==>,#<==,#<==>,#/\,#\/,#\]),
             reifiable(Left),
             reifiable(Right)
         ).
@@ -2814,6 +2824,7 @@ reify_(L #< R, B)  --> reify_(R #>= (L+1), B).
 reify_(L #==> R, B)  --> reify_((#\ L) #\/ R, B).
 reify_(L #<== R, B)  --> reify_(R #==> L, B).
 reify_(L #<==> R, B) --> reify_((L #==> R) #/\ (R #==> L), B).
+reify_(L #\ R, B) --> reify_((L #\/ R) #/\ #\ (L #/\ R), B).
 reify_(L #/\ R, B)   -->
         (   { conjunctive_neqs_var_drep(L #/\ R, V, D) } -> reify_(V in D, B)
         ;   boolean(L, R, B, reified_and)
@@ -2914,6 +2925,11 @@ skeleton(Vs, Vs-Prop) :-
 is_drep(N)      :- integer(N).
 is_drep(N..M)   :- drep_bound(N), drep_bound(M), N \== sup, M \== inf.
 is_drep(D1\/D2) :- is_drep(D1), is_drep(D2).
+is_drep({AI})   :- is_and_integers(AI).
+is_drep(\D)     :- is_drep(D).
+
+is_and_integers(I)     :- integer(I).
+is_and_integers((A,B)) :- is_and_integers(A), is_and_integers(B).
 
 drep_bound(I)   :- integer(I).
 drep_bound(sup).
@@ -2927,6 +2943,16 @@ drep_to_intervals(N..M)     -->
         ).
 drep_to_intervals(D1 \/ D2) -->
         drep_to_intervals(D1), drep_to_intervals(D2).
+drep_to_intervals(\D0) -->
+        { drep_to_domain(D0, D1),
+          domain_complement(D1, D),
+          domain_to_drep(D, Drep) },
+        drep_to_intervals(Drep).
+drep_to_intervals({AI}) -->
+        and_integers_(AI).
+
+and_integers_(I)     --> { integer(I) }, [n(I)-n(I)].
+and_integers_((A,B)) --> and_integers_(A), and_integers_(B).
 
 drep_to_domain(DR, D) :-
         must_be(ground, DR),
@@ -5900,21 +5926,22 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
             )
         ;   must_be(list, Seqs)
         ),
-        memberchk(source(Source), Ns),
         maplist(monotonic, Cs, CsM),
         maplist(arc_normalized(CsM), As0, As),
-        include(sink, Ns, Sinks0),
-        maplist(arg(1), Sinks0, Sinks),
+        include_args1(sink, Ns, Sinks),
+        include_args1(source, Ns, Sources),
         maplist(initial_expr, Cs, Exprs0),
         phrase((arcs_relation(As, Relation),
                 nodes_nums(Sinks, SinkNums0),
-                node_num(Source, Start)),
+                nodes_nums(Sources, SourceNums0)),
                [s([]-0, Exprs0)], [s(_,Exprs1)]),
         maplist(expr0_expr, Exprs1, Exprs),
         phrase(transitions(Seqs, Template, Sigs, Start, End, Exprs, Cs, Is, Fs), Tuples),
+        list_to_drep(SourceNums0, SourceDrep),
+        Start in SourceDrep,
         list_to_drep(SinkNums0, SinkDrep),
-        tuples_in(Tuples, Relation),
-        End in SinkDrep.
+        End in SinkDrep,
+        tuples_in(Tuples, Relation).
 
 expr0_expr(Es0-_, Es) :-
         pairs_keys(Es0, Es1),
@@ -5978,6 +6005,12 @@ node_num(Node, Num) -->
           ;   Num = C0, C is C0 + 1, Nodes = [Node-C0|Nodes0]
           )
         }.
+
+include_args1(Goal, Ls0, As) :-
+        include(Goal, Ls0, Ls),
+        maplist(arg(1), Ls, As).
+
+source(source(_)).
 
 sink(sink(_)).
 
@@ -6189,10 +6222,32 @@ fd_size(X, S) :-
 %% fd_dom(+Var, -Dom)
 %
 %  Dom is the current domain (see in/2) of Var. This predicate is
-%  useful if you want to reason about domains. It is not needed if you
-%  only want to display remaining domains; instead, separate your
+%  useful if you want to reason about domains. It is _not_ needed if
+%  you only want to display remaining domains; instead, separate your
 %  model from the search part and let the toplevel display this
 %  information via residual goals.
+%
+%  For example, to implement a custom labeling strategy, you may need
+%  to inspect the current domain of a finite domain variable. With the
+%  following code, you can convert a _finite_ domain to a list of
+%  integers:
+%
+%  ==
+%  dom_integers(D, Is) :- phrase(dom_integers_(D), Is).
+%
+%  dom_integers_(I)      --> { integer(I) }, [I].
+%  dom_integers_(L..U)   --> { numlist(L, U, Is) }, Is.
+%  dom_integers_(D1\/D2) --> dom_integers_(D1), dom_integers_(D2).
+%  ==
+%
+%  Example:
+%
+%  ==
+%  ?- X in 1..5, X #\= 4, fd_dom(X, D), dom_integers(D, Is).
+%  D = 1..3\/5,
+%  Is = [1,2,3,5],
+%  X in 1..3\/5.
+%  ==
 
 fd_dom(X, Drep) :-
         (   fd_get(X, XD, _) ->
@@ -6423,6 +6478,8 @@ original_goal(V) -->
    Generated predicates
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- discontiguous term_expansion/2.
+
 term_expansion(make_parse_clpfd, Clauses)   :- make_parse_clpfd(Clauses).
 term_expansion(make_parse_reified, Clauses) :- make_parse_reified(Clauses).
 term_expansion(make_matches, Clauses)       :- make_matches(Clauses).
@@ -6464,3 +6521,30 @@ warn_if_bounded_arithmetic :-
 
 prolog:message(clpfd(bounded)) -->
         ['Using CLP(FD) with bounded arithmetic may yield wrong results.'-[]].
+
+
+		 /*******************************
+		 *	      SANDBOX		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The clpfd library cannot  be   analysed  completely by library(sandbox).
+However, the API does not provide any  meta predicates. It provides some
+unification hooks, but put_attr/3 does not  allow injecting in arbitrary
+attributes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile
+	sandbox:safe_primitive/1.
+
+safe_api(Name/Arity, sandbox:safe_primitive(clpfd:Head)) :-
+	functor(Head, Name, Arity).
+
+term_expansion(safe_api, Clauses) :-
+	module_property(clpfd, exports(API)),
+	maplist(safe_api, API, Clauses).
+
+safe_api.
+% Support clpfd goal expansion.
+sandbox:safe_primitive(clpfd:clpfd_equal(_,_)).
+sandbox:safe_primitive(clpfd:clpfd_geq(_,_)).

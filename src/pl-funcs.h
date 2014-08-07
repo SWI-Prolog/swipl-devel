@@ -440,6 +440,7 @@ COMMON(ClauseRef)	hasClausesDefinition(Definition def);
 COMMON(bool)		isDefinedProcedure(Procedure proc);
 COMMON(void)		shareDefinition(Definition def);
 COMMON(int)		unshareDefinition(Definition def);
+COMMON(void)		lingerDefinition(Definition def);
 COMMON(int)		get_head_functor(term_t head, functor_t *fdef,
 				 int flags ARG_LD);
 COMMON(int)		get_functor(term_t descr, functor_t *fdef,
@@ -450,6 +451,7 @@ COMMON(int)		checkModifySystemProc(functor_t f);
 COMMON(int)		overruleImportedProcedure(Procedure proc, Module target);
 COMMON(word)		pl_current_predicate(term_t name, term_t functor, control_t h);
 COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
+COMMON(void)		clear_meta_declaration(Definition def);
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 					int where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
@@ -461,6 +463,10 @@ COMMON(void)		freeClauseList(ClauseRef cref);
 COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
 COMMON(void)		gcClausesDefinition(Definition def);
 COMMON(void)		gcClausesDefinitionAndUnlock(Definition def);
+COMMON(int)		removeClausesProcedure(Procedure proc,
+					       int sfindex, int fromfile);
+COMMON(ClauseRef)	cleanDefinition(Definition def, ClauseRef garbage);
+COMMON(void)		registerDirtyDefinition(Definition def);
 COMMON(void)		destroyDefinition(Definition def);
 COMMON(void)		resetReferences(void);
 COMMON(Procedure)	resolveProcedure(functor_t f, Module module);
@@ -472,14 +478,7 @@ COMMON(word)		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(word)		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(int)		redefineProcedure(Procedure proc, SourceFile sf,
 					  unsigned int suppress);
-COMMON(void)		startConsult(SourceFile f);
 COMMON(word)		pl_index(term_t pred);
-COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
-COMMON(SourceFile)	indexToSourceFile(int index);
-COMMON(void)		cleanupSourceFiles(void);
-COMMON(void)		addProcedureSourceFile(SourceFile sf, Procedure proc);
-COMMON(word)		pl_make_system_source_files(void);
-COMMON(word)		pl_source_file(term_t descr, term_t file, control_t h);
 COMMON(word)		pl_default_predicate(term_t d1, term_t d2);
 COMMON(Definition)	autoImport(functor_t f, Module m);
 COMMON(word)		pl_require(term_t pred);
@@ -492,6 +491,16 @@ COMMON(foreign_t)	pl_garbage_collect_clauses(void);
 COMMON(int)		setDynamicProcedure(Procedure proc, bool isdyn);
 COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 
+/* pl-srcfile.c */
+
+COMMON(void)		startConsult(SourceFile f);
+COMMON(size_t)		highSourceFileIndex(void);
+COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
+COMMON(SourceFile)	indexToSourceFile(int index);
+COMMON(void)		cleanupSourceFiles(void);
+COMMON(void)		unlinkSourceFileModule(SourceFile sf, Module m);
+COMMON(void)		addProcedureSourceFile(SourceFile sf, Procedure proc);
+COMMON(int)		hasProcedureSourceFile(SourceFile sf, Procedure proc);
 
 /* pl-read.c */
 COMMON(void)		resetRead(void);

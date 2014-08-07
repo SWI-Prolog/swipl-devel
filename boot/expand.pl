@@ -425,15 +425,17 @@ call_goal_expansion(MList, G0, P0, G, P) :-
 	->  true
 	).
 call_goal_expansion(MList, G0, P0, G, P) :-
-	'$member'(M-Preds, MList),
-	'$member'(Pred, Preds),
-	(   Pred == goal_expansion/4
-	->  Expand = M:goal_expansion(G0, P0, G, P),
-	    Expand = M:goal_expansion(G0, G)
-	),
-	allowed_expansion(Expand),
-	call(Expand),
-	G0 \== G, !.
+	(   '$member'(M-Preds, MList),
+	    '$member'(Pred, Preds),
+	    (   Pred == goal_expansion/4
+	    ->  Expand = M:goal_expansion(G0, P0, G, P)
+	    ;	Expand = M:goal_expansion(G0, G)
+	    ),
+	    allowed_expansion(Expand),
+	    call(Expand),
+	    G0 \== G
+	->  true
+	).
 
 %%	allowed_expansion(:Goal) is semidet.
 %
@@ -446,8 +448,9 @@ call_goal_expansion(MList, G0, P0, G, P) :-
 :- multifile
 	prolog:sandbox_allowed_expansion/1.
 
-allowed_expansion(Goal) :-
-	catch(prolog:sandbox_allowed_expansion(Goal), E, true),
+allowed_expansion(QGoal) :-
+	strip_module(QGoal, M, Goal),
+	catch(prolog:sandbox_allowed_expansion(M:Goal), E, true),
 	(   var(E)
 	->  fail
 	;   !,

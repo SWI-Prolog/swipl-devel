@@ -40,7 +40,8 @@
 
 :- multifile
 	safe_primitive/1,		% Goal
-	safe_meta/2.			% Goal, Calls
+	safe_meta/2,			% Goal, Calls
+	safe_global_variable/1.		% Name
 
 % :- debug(sandbox).
 
@@ -131,7 +132,16 @@ safe(V, _, Parents, _, _) :-
 safe(M:G, _, Parents, Safe0, Safe) :- !,
 	must_be(atom, M),
 	must_be(callable, G),
-	(   (   predicate_property(M:G, exported)
+	(   predicate_property(M:G, imported_from(M2))
+	->  true
+	;   M2 = M
+	),
+	(   (   safe_primitive(M2:G)
+	    ;   safe_primitive(G),
+		predicate_property(G, iso)
+	    )
+	->  Safe = Safe0
+	;   (   predicate_property(M:G, exported)
 	    ;	predicate_property(M:G, public)
 	    ;	predicate_property(M:G, multifile)
 	    ;	predicate_property(M:G, iso)
@@ -180,7 +190,10 @@ safe(G, M, Parents, Safe0, Safe) :-
 		      error(instantiation_error, _),
 		      fail)
 	    )
-	).
+	), !.
+safe(G, M, Parents, _, _) :-
+	debug(sandbox(fail), 'safe/1 failed for ~p (parents:~p)', [M:G, Parents]),
+	fail.
 
 safe_clauses(G, M, Parents, Safe0, Safe) :-
 	predicate_property(M:G, interpreted), !,
@@ -333,7 +346,7 @@ verify_safe_declaration(Module:Goal) :-
 	    ;	predicate_property(Module:Goal, foreign)
 	    ),
 	    \+ predicate_property(Module:Goal, imported_from(_)),
-	    \+ predicate_property(Module:Goal, meta_predicate())
+	    \+ predicate_property(Module:Goal, meta_predicate(_))
 	->  true
 	;   permission_error(declare, safe_goal, Module:Goal)
 	).
@@ -380,6 +393,7 @@ safe_primitive(!).
 					% types
 safe_primitive(var(_)).
 safe_primitive(nonvar(_)).
+safe_primitive(system:attvar(_)).
 safe_primitive(integer(_)).
 safe_primitive(float(_)).
 safe_primitive(system:rational(_)).
@@ -406,6 +420,8 @@ safe_primitive(keysort(_,_)).
 safe_primitive(system: =@=(_,_)).
 					% unification and equivalence
 safe_primitive(=(_,_)).
+safe_primitive(\=(_,_)).
+safe_primitive(system:unifiable(_,_,_)).
 safe_primitive(\==(_,_)).
 					% arithmetic
 safe_primitive(is(_,_)).
@@ -421,6 +437,8 @@ safe_primitive(system:setarg(_,_,_)).
 safe_primitive(system:nb_setarg(_,_,_)).
 safe_primitive(functor(_,_,_)).
 safe_primitive(_ =.. _).
+safe_primitive(system:compound_name_arity(_,_,_)).
+safe_primitive(system:compound_name_arguments(_,_,_)).
 safe_primitive(copy_term(_,_)).
 safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(numbervars(_,_,_)).
@@ -463,6 +481,7 @@ safe_primitive(system:atomics_to_string(_,_,_)).
 safe_primitive(system:atomics_to_string(_,_)).
 safe_primitive(system:string_concat(_,_,_)).
 safe_primitive(system:string_length(_,_)).
+safe_primitive(system:term_string(_,_)).
 					% Lists
 safe_primitive(length(_,_)).
 					% exceptions
@@ -472,7 +491,9 @@ safe_primitive(current_prolog_flag(_,_)).
 safe_primitive(system:sleep(_)).
 safe_primitive(system:thread_self(_)).
 safe_primitive(system:get_time(_)).
+safe_primitive(system:statistics(_,_)).
 safe_primitive(system:format_time(_,_,_)).
+safe_primitive(system:strip_module(_,_,_)).
 safe_primitive('$messages':message_to_string(_,_)).
 
 safe_primitive(clause(_,_)).
@@ -480,6 +501,11 @@ safe_primitive(asserta(X)) :- safe_assert(X).
 safe_primitive(assertz(X)) :- safe_assert(X).
 safe_primitive(retract(X)) :- safe_assert(X).
 safe_primitive(retractall(X)) :- safe_assert(X).
+
+% We need to do data flow analysis to find the tag of the
+% target key before we can conclude that functions on dicts
+% are safe.
+safe_primitive('$dicts':'.'(_,K,_)) :- atom(K).
 
 % The non-ISO system predicates.  These can be redefined, so we must
 % be careful to ensure the system ones are used.
@@ -506,16 +532,17 @@ safe_primitive(system:del_attr(_,_)).
 					% globals
 safe_primitive(system:b_getval(_,_)).
 safe_primitive(system:b_setval(Var,_)) :-
-	safe_global_variable(Var).
+	safe_global_var(Var).
 safe_primitive(system:nb_getval(_,_)).
 safe_primitive(system:nb_setval(Var,_)) :-
-	safe_global_variable(Var).
+	safe_global_var(Var).
 safe_primitive(system:nb_current(_,_)).
 					% database
 safe_primitive(system:assert(X)) :-
 	safe_assert(X).
 					% Output
 safe_primitive(system:writeln(_)).
+safe_primitive('$messages':print_message(_,_)).
 
 % use_module/1.  We only allow for .pl files that are loaded from
 % relative paths that do not contain /../
@@ -563,17 +590,20 @@ safe_assert(_Head:-_Body) :- !, fail.
 safe_assert(_:_) :- !, fail.
 safe_assert(_).
 
-%%	safe_global_variable(+Name) is semidet.
+%%	safe_global_var(+Name) is semidet.
 %
 %	True if Name  is  a  global   variable  to  which  assertion  is
 %	considered safe.
 
-safe_global_variable(Name) :-
+safe_global_var(Name) :-
 	var(Name), !,
 	fail.
-safe_global_variable('$clpfd_queue_status').
-safe_global_variable('$clpfd_current_propagator').
-safe_global_variable('$clpfd_queue').
+safe_global_var(Name) :-
+	safe_global_variable(Name).
+
+%%	safe_global_variable(Name) is semidet.
+%
+%	Declare the given global variable safe to write to.
 
 
 %%	safe_meta(+Goal, -Called:list(callable)) is semidet.
@@ -601,6 +631,9 @@ safe_meta(prolog_debug:debug(_Term, Format, Args), Calls) :-
 %	True if Goal is a   meta-predicate that is considered safe
 %	iff all elements in Called are safe.
 
+safe_meta_call(Goal, _Called) :-
+	debug(sandbox(meta), 'Safe meta ~p?', [Goal]),
+	fail.
 safe_meta_call(Goal, Called) :-
 	safe_meta(Goal, Called), !.	% call hook
 safe_meta_call(M:Goal, Called) :- !,
@@ -643,6 +676,7 @@ safe_meta(findall(_,0,_)).
 safe_meta(findall(_,0,_,_)).
 safe_meta(setof(_,0,_)).		% TBD
 safe_meta(bagof(_,0,_)).
+safe_meta(system:call_cleanup(0,0)).
 safe_meta(^(_,0)).
 safe_meta(\+(0)).
 safe_meta(apply:maplist(1, _)).
@@ -703,8 +737,11 @@ format_callables(Types, Args, _) :-		% TBD: Proper error
 %
 %	Throws an exception if G is not considered a safe directive.
 
+prolog:sandbox_allowed_directive(Directive) :-
+	debug(sandbox(directive), 'Directive: ~p', [Directive]),
+	fail.
 prolog:sandbox_allowed_directive(M:PredAttr) :-
-	safe_directive(PredAttr),
+	safe_directive(PredAttr), !,
 	(   prolog_load_context(module, M)
 	->  PredAttr =.. [Attr, Preds],
 	    safe_pattr(Preds, Attr)
@@ -742,9 +779,19 @@ safe_pattr(_, _).
 %	  - goal_expansion/2
 %	  - term_expansion/2
 %	  - Quasi quotations.
+%
+%	Our assumption is that external expansion rules are coded safely
+%	and we only need to be  careful   if  the sandboxed code defines
+%	expansion rules.
 
-prolog:sandbox_allowed_expansion(G) :-
-	safe_goal(G).
+prolog:sandbox_allowed_expansion(Directive) :-
+	prolog_load_context(module, M),
+	debug(sandbox(expansion), 'Expand in ~p: ~p', [M, Directive]),
+	fail.
+prolog:sandbox_allowed_expansion(M:G) :-
+	prolog_load_context(module, M), !,
+	safe_goal(M:G).
+prolog:sandbox_allowed_expansion(_,_).
 
 
 		 /*******************************

@@ -459,9 +459,10 @@ extend(Head, N, ExtHead) :-
 extend(Head, _, Head).
 
 
-colourise_clause_head(M:Head, TB, term_position(_,_,_,_,[MPos,HeadPos])) :-
+colourise_clause_head(M:Head, TB, term_position(_,_,QF,QT,[MPos,HeadPos])) :-
 	head_colours(M:Head, meta-[_, ClassSpec-ArgSpecs]), !,
 	colour_item(module(M), TB, MPos),
+	colour_item(functor, TB, QF-QT),
 	functor_position(HeadPos, FPos, ArgPos),
 	(   ClassSpec == classify
 	->  classify_head(TB, Head, Class)
@@ -569,7 +570,7 @@ colourise_body(Body, Origin, TB, Pos) :-
 
 colourise_method_body(::(_Comment,Body), TB,
 		      term_position(_F,_T,_FF,_FT,[CP,BP])) :- !,
-	colour_item(comment, TB, CP),
+	colour_item(comment_string, TB, CP),
 	colourise_body(Body, TB, BP).
 colourise_method_body(Body, TB, Pos) :-		% deal with pri(::) < 1000
 	Body =.. [F,A,B],
@@ -630,8 +631,9 @@ colourise_dcg_goals(List, _, TB, list_position(F,T,Elms,Tail)) :-
 colourise_dcg_goals(List, _, TB, string_position(F,T)) :-
 	List = [_|_], !,
 	colour_item(dcg(terminal), TB, F-T).
-colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
+colourise_dcg_goals(Body, Origin, TB, term_position(_,_,FF,FT,ArgPos)) :-
 	dcg_body_compiled(Body), !,	% control structures
+	colour_item(control, TB, FF-FT),
 	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
 colourise_dcg_goals(Goal, Origin, TB, Pos) :-
 	colourise_dcg_goal(Goal, Origin, TB, Pos).
@@ -709,8 +711,9 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	),
 	colour_item(goal(Class, Goal), TB, FPos),
 	specified_items(ArgSpecs, Goal, TB, ArgPos).
-colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,_,_,[PM,PG])) :- !,
+colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,QF,QT,[PM,PG])) :- !,
 	colour_item(module(Module), TB, PM),
+	colour_item(functor, TB, QF-QT),
 	(   PG = term_position(_,_,FF,FT,_)
 	->  FP = FF-FT
 	;   FP = PG
@@ -736,12 +739,15 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 %	meta- and database-access predicates.
 
 colourise_goal_args(Goal, TB, Pos) :-
+	colourization_module(TB, Module),
+	colourise_goal_args(Goal, Module, TB, Pos).
+
+colourization_module(TB, Module) :-
 	(   colour_state_source_id(TB, SourceId),
 	    xref_module(SourceId, Module)
 	->  true
 	;   Module = user
-	),
-	colourise_goal_args(Goal, Module, TB, Pos).
+	).
 
 colourise_goal_args(Goal, M, TB, term_position(_,_,_,_,ArgPos)) :-
 	meta_args(Goal, TB, MetaArgs), !,
@@ -849,8 +855,9 @@ colourise_setof(Term, TB, Pos) :-
 
 colourise_db((Head:-_Body), TB, term_position(_,_,_,_,[HP,_])) :- !,
 	colourise_db(Head, TB, HP).
-colourise_db(Module:Head, TB, term_position(_,_,_,_,[MP,HP])) :- !,
+colourise_db(Module:Head, TB, term_position(_,_,QF,QT,[MP,HP])) :- !,
 	colour_item(module(Module), TB, MP),
+	colour_item(functor, TB, QF-QT),
 	(   atom(Module),
 	    colour_state_source_id(TB, SourceId),
 	    xref_module(SourceId, Module)
@@ -928,6 +935,8 @@ colour_option_values([V0|TV], [T0|TT], TB, [P0|TP]) :-
 	    ;	T0 = list(_),
 		member(E, V0),
 		var(E)
+	    ;	functor(V0, '.', 2),
+		V0 \= [_|_]
 	    )
 	->  colourise_term_arg(V0, TB, P0)
 	;   callable(V0),
@@ -1055,8 +1064,17 @@ colourise_term_arg(Var, TB, Pos) :-			% variable
 colourise_term_arg(List, TB, list_position(F, T, Elms, Tail)) :- !,
 	colour_item(list, TB, F-T),
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
-colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
-	colour_item(string, TB, F-T).
+colourise_term_arg(String, TB, string_position(F, T)) :- !,	% string
+	(   string(String)
+	->  colour_item(string, TB, F-T)
+	;   String = [H|_]
+	->  (   integer(H)
+	    ->	colour_item(codes, TB, F-T)
+	    ;	colour_item(chars, TB, F-T)
+	    )
+	;   String == []
+	->  colour_item(codes, TB, F-T)
+	).
 colourise_term_arg(_, TB,
 		   quasi_quotation_position(F,T,QQType,QQTypePos,CPos)) :- !,
 	colourise_qq_type(QQType, TB, QQTypePos),
@@ -1073,16 +1091,18 @@ colourise_term_arg({Term}, TB, brace_term_position(F,T,Arg)) :- !,
 	colour_item(brace_term, TB, F-T),
 	colourise_term_arg(Term, TB, Arg).
 colourise_term_arg(Map, TB, dict_position(F,T,TF,TT,KVPos)) :- !,
-	is_dict(Map, Type),
+	is_dict(Map, Tag),
 	colour_item(dict, TB, F-T),
-	TypePos = TF-TT,
-	(   var(Type)
-	->  (   singleton(Type, TB)
-	    ->  colour_item(singleton, TB, TypePos)
-	    ;   colour_item(var, TB, TypePos)
+	TagPos = TF-TT,
+	(   var(Tag)
+	->  (   singleton(Tag, TB)
+	    ->  colour_item(singleton, TB, TagPos)
+	    ;   colour_item(var, TB, TagPos)
 	    )
-	;   colour_item(dict_type, TB, TypePos)
+	;   colour_item(dict_tag, TB, TagPos)
 	),
+	BStart is TT+1,
+	colour_item(dict_content, TB, BStart-T),
 	colourise_dict_kv(Map, TB, KVPos).
 colourise_term_arg(Compound, TB, Pos) :-		% compound
 	compound(Compound), !,
@@ -1091,12 +1111,12 @@ colourise_term_arg(Compound, TB, Pos) :-		% compound
 	;   true					% TBD: When is this
 	),
 	colourise_term_args(Compound, TB, Pos).
-colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
+colourise_term_arg(EmptyList, TB, Pos) :-
+	EmptyList == [], !,
+	colour_item(empty_list, TB, Pos).
+colourise_term_arg(Atom, TB, Pos) :-
 	atom(Atom), !,
-	(   Atom == []
-	->  colour_item(empty_list, TB, Pos)
-	;   colour_item(atom, TB, Pos)
-	).
+	colour_item(atom, TB, Pos).
 colourise_term_arg(Integer, TB, Pos) :-
 	integer(Integer), !,
 	colour_item(int, TB, Pos).
@@ -1124,16 +1144,17 @@ colourise_qq_type(QQType, TB, QQTypePos) :-
 
 qq_position(quasi_quotation_position(_,_,_,_,_)).
 
-%%	colourise_dict_kv(+Map, +TB, +KVPosList)
+%%	colourise_dict_kv(+Dict, +TB, +KVPosList)
 %
 %	Colourise the name-value pairs in the dict
 
 colourise_dict_kv(_, _, []) :- !.
-colourise_dict_kv(Map, TB, [key_value_position(_F,_T,_SF,_ST,K,KP,VP)|KV]) :-
+colourise_dict_kv(Dict, TB, [key_value_position(_F,_T,SF,ST,K,KP,VP)|KV]) :-
+	colour_item(dict_sep, TB, SF-ST),
 	colour_item(dict_key, TB, KP),
-	get_dict(K, Map, V),
+	get_dict(K, Dict, V),
 	colourise_term_arg(V, TB, VP),
-	colourise_dict_kv(Map, TB, KV).
+	colourise_dict_kv(Dict, TB, KV).
 
 
 %	colourise_exports(+List, +TB, +Pos)
@@ -1176,7 +1197,8 @@ colourise_imports(List, File, TB, Pos) :-
 	),
 	colourise_imports(List, Path, Public, TB, Pos).
 
-colourise_imports([], _, _, _, _).
+colourise_imports([], _, _, TB, Pos) :- !,
+	colour_item(empty_list, TB, Pos).
 colourise_imports(List, File, Public, TB, list_position(F,T,ElmPos,Tail)) :- !,
 	colour_item(list, TB, F-T),
 	(   Tail == none
@@ -1249,12 +1271,13 @@ colourise_declaration(PI, TB, term_position(F,T,FF,FT,[NamePos,ArityPos])) :-
 	colour_item(predicate_indicator, TB, FF-FT),
 	colour_item(arity, TB, ArityPos).
 colourise_declaration(Module:PI, TB,
-		      term_position(_,_,_,_,[PM,PG])) :-
+		      term_position(_,_,QF,QT,[PM,PG])) :-
 	atom(Module), pi_to_term(PI, Goal), !,
 	colour_item(module(M), TB, PM),
+	colour_item(functor, TB, QF-QT),
 	colour_item(predicate_indicator(extern(M), Goal), TB, PG),
 	PG = term_position(_,_,FF,FT,[NamePos,ArityPos]),
-	colour_item(goal(extern, Goal), TB, NamePos),
+	colour_item(goal(extern(M), Goal), TB, NamePos),
 	colour_item(predicate_indicator, TB, FF-FT),
 	colour_item(arity, TB, ArityPos).
 colourise_declaration(op(N,T,P), TB, Pos) :-
@@ -1271,52 +1294,57 @@ pi_to_term(Name//Arity0, Term) :-
 	Arity is Arity0 + 2,
 	functor(Term, Name, Arity).
 
-colourise_meta_declarations((Head,Tail), TB,
+colourise_meta_declarations((Head,Tail), Extra, TB,
 			    term_position(_,_,_,_,[PH,PT])) :- !,
-	colourise_meta_declaration(Head, TB, PH),
-	colourise_meta_declarations(Tail, TB, PT).
-colourise_meta_declarations(Last, TB, Pos) :-
-	colourise_meta_declaration(Last, TB, Pos).
+	colourise_meta_declaration(Head, Extra, TB, PH),
+	colourise_meta_declarations(Tail, Extra, TB, PT).
+colourise_meta_declarations(Last, Extra, TB, Pos) :-
+	colourise_meta_declaration(Last, Extra, TB, Pos).
 
-colourise_meta_declaration(M:Head, TB,
-			   term_position(_,_,_,_,
+colourise_meta_declaration(M:Head, Extra, TB,
+			   term_position(_,_,QF,QT,
 					 [ MP,
 					   term_position(_,_,FF,FT,ArgPos)
 					 ])) :- !,
 	colour_item(module(M), TB, MP),
-	colour_item(goal(extern(M,Head)), TB, FF-FT),
+	colour_item(functor, TB, QF-QT),
+	colour_item(goal(extern(M),Head), TB, FF-FT),
 	Head =.. [_|Args],
-	colourise_meta_args(Args, TB, ArgPos).
-colourise_meta_declaration(Head, TB, term_position(_,_,FF,FT,ArgPos)) :- !,
+	colourise_meta_decls(Args, Extra, TB, ArgPos).
+colourise_meta_declaration(Head, Extra, TB, term_position(_,_,FF,FT,ArgPos)) :- !,
 	goal_classification(TB, Head, [], Class),
 	colour_item(goal(Class, Head), TB, FF-FT),
 	Head =.. [_|Args],
-	colourise_meta_args(Args, TB, ArgPos).
-colourise_meta_declaration([H|T], TB, list_position(LF,LT,[HP],TP)) :-
+	colourise_meta_decls(Args, Extra, TB, ArgPos).
+colourise_meta_declaration([H|T], Extra, TB, list_position(LF,LT,[HP],TP)) :- !,
 	colour_item(list, TB, LF-LT),
-	colourise_meta_args([H,T], TB, [HP,TP]).
+	colourise_meta_decls([H,T], Extra, TB, [HP,TP]).
+colourise_meta_declaration(_, _, TB, Pos) :- !,
+	colour_item(type_error(compound), TB, Pos).
 
-colourise_meta_args([], _, []).
-colourise_meta_args([Arg|ArgT], TB, [PosH|PosT]) :-
-	colourise_meta_arg(Arg, TB, PosH),
-	colourise_meta_args(ArgT, TB, PosT).
+colourise_meta_decls([], _, _, []).
+colourise_meta_decls([Arg|ArgT], Extra, TB, [PosH|PosT]) :-
+	colourise_meta_decl(Arg, Extra, TB, PosH),
+	colourise_meta_decls(ArgT, Extra, TB, PosT).
 
-colourise_meta_arg(Arg, TB, Pos) :-
-	valid_meta_arg(Arg), !,
+colourise_meta_decl(Arg, Extra, TB, Pos) :-
+	nonvar(Arg),
+	(   valid_meta_decl(Arg)
+	->  true
+	;   memberchk(Arg, Extra)
+	),
 	colour_item(meta(Arg), TB, Pos).
-colourise_meta_arg(_, TB, Pos) :-
+colourise_meta_decl(_, _, TB, Pos) :-
 	colour_item(error, TB, Pos).
 
-valid_meta_arg(Var) :-
-	var(Var), !, fail.
-valid_meta_arg(:).
-valid_meta_arg(*).
-valid_meta_arg(//).
-valid_meta_arg(^).
-valid_meta_arg(?).
-valid_meta_arg(+).
-valid_meta_arg(-).
-valid_meta_arg(I) :- integer(I), between(0,9,I).
+valid_meta_decl(:).
+valid_meta_decl(*).
+valid_meta_decl(//).
+valid_meta_decl(^).
+valid_meta_decl(?).
+valid_meta_decl(+).
+valid_meta_decl(-).
+valid_meta_decl(I) :- integer(I), between(0,9,I).
 
 %%	colourise_op_declaration(Op, TB, Pos) is det.
 
@@ -1536,7 +1564,7 @@ goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
 goal_colours(load_files(_),	     built_in-[file]).
-goal_colours(load_files(_,_),	     built_in-[file,classify]).
+goal_colours(load_files(_,_),	     built_in-[file,options]).
 goal_colours(setof(_,_,_),	     built_in-[classify,setof,classify]).
 goal_colours(bagof(_,_,_),	     built_in-[classify,setof,classify]).
 goal_colours(predicate_options(_,_,_), built_in-[predicate,classify,classify]).
@@ -1646,6 +1674,7 @@ def_style(head(_,_),		   [bold(true)]).
 
 def_style(module(_),		   [colour(dark_slate_blue)]).
 def_style(comment,		   [colour(dark_green)]).
+def_style(comment_string,	   [colour(dark_green)]).
 def_style(structured_comment,	   [colour(dark_green)]).
 
 def_style(directive,		   [background(grey90)]).
@@ -1656,6 +1685,8 @@ def_style(singleton,		   [bold(true), colour(red4)]).
 def_style(unbound,		   [colour(red), bold(true)]).
 def_style(quoted_atom,		   [colour(navy_blue)]).
 def_style(string,		   [colour(navy_blue)]).
+def_style(codes,		   [colour(navy_blue)]).
+def_style(chars,		   [colour(navy_blue)]).
 def_style(nofile,		   [colour(red)]).
 def_style(file(_),		   [colour(blue), underline(true)]).
 def_style(file_no_depend(_),	   [colour(blue), underline(true), background(pink)]).
@@ -1682,7 +1713,7 @@ def_style(qq_type,		   [bold(true)]).
 def_style(qq(_),		   [colour(blue), bold(true)]).
 def_style(qq_content(_),	   [colour(red4)]).
 
-def_style(dict_type,		   [bold(true)]).
+def_style(dict_tag,		   [bold(true)]).
 def_style(dict_key,		   [bold(true)]).
 def_style(dict_function(_),	   [colour(navy_blue)]).
 def_style(dict_return_op,	   [colour(blue)]).
@@ -1740,7 +1771,7 @@ term_colours(variable(_, _, _, _),
 	     expanded - [ identifier,
 			  classify,
 			  classify,
-			  comment
+			  comment_string
 			]).
 term_colours(variable(_, _, _),
 	     expanded - [ identifier,
@@ -1762,7 +1793,7 @@ term_colours(class_variable(_,_,_,_),
 	     expanded - [ identifier,
 			  pce(type),
 			  pce(default),
-			  comment
+			  comment_string
 			]).
 term_colours(class_variable(_,_,_),
 	     expanded - [ identifier,
@@ -1779,7 +1810,7 @@ term_colours((:- encoding(_)),
 term_colours((:- pce_begin_class(_, _, _)),
 	     expanded - [ expanded - [ identifier,
 				       pce_new,
-				       comment
+				       comment_string
 				     ]
 			]).
 term_colours((:- pce_begin_class(_, _)),
@@ -1893,7 +1924,9 @@ specified_item(predicate, Term, TB, Pos) :- !,
 	colourise_declaration(Term, TB, Pos).
 					% head(Arg, ...)
 specified_item(meta_declarations, Term, TB, Pos) :- !,
-	colourise_meta_declarations(Term, TB, Pos).
+	colourise_meta_declarations(Term, [], TB, Pos).
+specified_item(meta_declarations(Extra), Term, TB, Pos) :- !,
+	colourise_meta_declarations(Term, Extra, TB, Pos).
 					% set_prolog_flag(Name, _)
 specified_item(prolog_flag_name, Term, TB, Pos) :- !,
 	colourise_prolog_flag_name(Term, TB, Pos).
@@ -1951,12 +1984,9 @@ specified_item(FuncSpec-[ArgSpec], {Term}, TB,
 	specified_item(FuncSpec, {Term}, TB, F-T),
 	specified_item(ArgSpec, Term, TB, ArgPos).
 					% Specified
-specified_item(FuncSpec-ElmSpec, List, TB, list_position(F,T,ElmPos,TailPos)) :- !,
-	colour_item(list, TB, F-T),
-	FT is F + 1,
-	AT is T - 1,
-	colour_item(FuncSpec, TB, F-FT),
-	colour_item(FuncSpec, TB, AT-T),
+specified_item(FuncSpec-ElmSpec, List, TB,
+	       list_position(F,T,ElmPos,TailPos)) :- !,
+	colour_item(FuncSpec, TB, F-T),
 	specified_list(ElmSpec, List, TB, ElmPos, TailPos).
 specified_item(Class, _, TB, Pos) :-
 	colour_item(Class, TB, Pos).
@@ -1973,8 +2003,13 @@ specified_items(Spec, Term, TB, PosList) :-
 specified_arglist([], _, _, _, _).
 specified_arglist(_, _, _, _, []) :- !.		% Excess specification args
 specified_arglist([S0|ST], N, T, TB, [P0|PT]) :-
-	arg(N, T, Term),
-	specified_item(S0, Term, TB, P0),
+	(   S0 == options,
+	    colourization_module(TB, Module),
+	    colourise_option_arg(T, Module, N, TB, P0)
+	->  true
+	;   arg(N, T, Term),
+	    specified_item(S0, Term, TB, P0)
+	),
 	NN is N + 1,
 	specified_arglist(ST, NN, T, TB, PT).
 

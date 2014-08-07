@@ -441,11 +441,12 @@ wait_reply(Value) :-
 
 %%	create_pool(+PoolName) is semidet.
 %
-%	This hook is called if   thread_create_in_pool/4  discovers that
-%	the  thread  pool  does  not  exist.    If  the  hook  succeeds,
-%	thread_create_in_pool/4  retries  creating  the    thread.   For
-%	example, we can use the following  declaration to create threads
-%	in the pool =media=, which holds a maximum of 20 threads.
+%	Hook to create a thread  pool  lazily.   The  hook  is called if
+%	thread_create_in_pool/4 discovers that the thread  pool does not
+%	exist. If the  hook   succeeds,  thread_create_in_pool/4 retries
+%	creating the thread. For  example,  we   can  use  the following
+%	declaration to create threads in the pool =media=, which holds a
+%	maximum of 20 threads.
 %
 %	  ==
 %	  :- multifile thread_pool:create_pool/1.

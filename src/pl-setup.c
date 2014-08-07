@@ -900,10 +900,9 @@ handleSignals(ARG1_LD)
     return 0;
 
   for(i=0; i<2; i++)
-  { int sig = 1+32*i;
-
-    while( LD->signal.pending[i] )
-    { int mask = 1;
+  { while( LD->signal.pending[i] )
+    { int sig = 1+32*i;
+      int mask = 1;
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )
@@ -1339,7 +1338,7 @@ trim_stack(Stack s)
   { ssize_t reduce = s->def_spare - s->spare;
     ssize_t room = roomStackP(s);
 
-    if ( room < reduce )
+    if ( room > 0 && room < reduce )
     { DEBUG(MSG_SPARE_STACK,
 	    Sdprintf("Only %d spare for %s-stack\n", room, s->name));
       reduce = room;

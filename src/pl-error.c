@@ -765,6 +765,47 @@ PL_no_memory(void)
 }
 
 
+int
+PL_syntax_error(const char *msg, IOSTREAM *in)
+{ GET_LD
+  term_t ex, loc;
+
+  if ( (ex = PL_new_term_ref()) &&
+       (loc = PL_new_term_ref()) &&
+       PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_syntax_error1,
+		         PL_CHARS, msg,
+		       PL_TERM, loc) )
+  { if ( in )
+    { IOPOS *pos;
+      term_t s;
+
+      if ( (s=PL_new_term_ref()) &&
+	   PL_unify_stream_or_alias(s, in) )
+      { if ( (pos=in->position) )
+	{ if ( PL_unify_term(loc, PL_FUNCTOR, FUNCTOR_stream4,
+				    PL_TERM,  s,
+				    PL_INT,   pos->lineno,
+				    PL_INT,   pos->linepos,
+				    PL_INT64, pos->charno) )
+	    goto ok;
+	} else
+	{ if ( PL_unify_term(loc, PL_FUNCTOR, FUNCTOR_stream1,
+				    PL_TERM,  s) )
+	    goto ok;
+	}
+      }
+
+      return FALSE;
+    }
+
+  ok:
+    return PL_raise_exception(ex);
+  }
+
+  return FALSE;
+}
+
 		 /*******************************
 		 *	PRINTING MESSAGES	*
 		 *******************************/

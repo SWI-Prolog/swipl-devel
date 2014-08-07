@@ -38,6 +38,7 @@
 
 :- use_module(engine(internals)).
 % :- use_module(engine(streams_basic), [stream/1]).
+stream(_).
 
 :- doc(title,"Structured stream handling").
 

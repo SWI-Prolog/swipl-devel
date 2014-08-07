@@ -543,6 +543,7 @@ A record_position	"record_position"
 A redefine		"redefine"
 A redo			"redo"
 A redo_in_skip		"redo_in_skip"
+A reference		"reference"
 A references		"references"
 A rem			"rem"
 A rename		"rename"
@@ -633,6 +634,7 @@ A system_thread_id	"system_thread_id"
 A system_time		"system_time"
 A tan			"tan"
 A tanh			"tanh"
+A temporary		"temporary"
 A temporary_files	"temporary_files"
 A term			"term"
 A term_expansion	"term_expansion"
@@ -955,6 +957,7 @@ F spy			1
 F sqrt			1
 F star			2
 F status		1
+F stream		1
 F stream		4
 F stream_position	4
 F strict_equal		2

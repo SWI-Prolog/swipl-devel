@@ -1,11 +1,9 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2010, University of Amsterdam,
+    Copyright (C): 1985-2014, University of Amsterdam,
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -33,6 +31,8 @@
 :- module('$bags',
 	  [ findall/3,			% +Templ, :Goal, -List
 	    findall/4,			% +Templ, :Goal, -List, +Tail
+	    findnsols/4,		% +Count, +Templ, :Goal, -List
+	    findnsols/5,		% +Count, +Templ, :Goal, -List, +Tail
 	    bagof/3,			% +Templ, :Goal, -List
 	    setof/3			% +Templ, :Goal, -List
 	  ]).
@@ -40,12 +40,16 @@
 :- meta_predicate
 	findall(?, 0, -),
 	findall(?, 0, -, ?),
+	findnsols(+, ?, 0, -),
+	findnsols(+, ?, 0, -, ?),
 	bagof(?, ^, -),
 	setof(?, ^, -).
 
 :- noprofile((
 	findall/4,
 	findall/3,
+	findnsols/4,
+	findnsols/5,
 	bagof/3,
 	setof/3,
 	findall_loop/4)).
@@ -79,6 +83,42 @@ findall_loop(Templ, Goal, List, Tail) :-
 	    '$add_findall_bag'(Templ)	% fails
 	;   '$collect_findall_bag'(List, Tail)
 	).
+
+%%	findnsols(+Count, @Template, :Goal, -List) is nondet.
+%
+%	True when List is the next chunk of maximal Count instantiations
+%	of Template that reprensents a solution of Goal.  For example:
+%
+%	  ==
+%	  ?- findnsols(5, I, between(1, 12, I), L).
+%	  L = [1, 2, 3, 4, 5] ;
+%	  L = [6, 7, 8, 9, 10] ;
+%	  L = [11, 12].
+%	  ==
+%
+%	@compat Ciao, but the SWI-Prolog version is non-deterministic.
+
+findnsols(Count, Template, Goal, List) :-
+	findnsols(Count, Template, Goal, List, []).
+
+findnsols(Count, Template, Goal, List, Tail) :-
+	Count > 0, !,
+	copy_term(Template+Goal, Templ+G),
+	setup_call_cleanup(
+	    '$new_findall_bag',
+	    findnsols_loop(Count, Templ, G, List, Tail),
+	    '$destroy_findall_bag').
+findnsols(_, _, _, List, List).
+
+findnsols_loop(Count, Templ, Goal, List, Tail) :-
+	(   Goal,
+	    '$add_findall_bag'(Templ, Found),
+	    Found mod Count =:= 0,
+	    '$collect_findall_bag'(List, Tail),
+	    '$suspend_findall_bag'
+	;   '$collect_findall_bag'(List, Tail)
+	).
+
 
 %%      bagof(+Var, +Goal, -Bag) is semidet.
 %

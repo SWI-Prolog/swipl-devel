@@ -176,6 +176,13 @@ clear_bitvector(bit_vector *v)
 }
 
 static inline void
+setall_bitvector(bit_vector *v)
+{ size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
+
+  memset(v->chunk, 0xff, chunks*sizeof(bitv_chunk));
+}
+
+static inline void
 set_bit(bit_vector *v, int which)
 { int e = which/BITSPERE;
   int b = which%BITSPERE;
@@ -286,7 +293,7 @@ valFloat__LD(word w ARG_LD)
 
 static inline int
 is_signalled(ARG1_LD)
-{ return unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
+{ return LD && unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
 }
 
 #endif /*PL_INLINE_H_INCLUDED*/

@@ -55,7 +55,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 70114
+#define PLVERSION 70119
 #endif
 
 		 /*******************************
@@ -576,7 +576,11 @@ PL_EXPORT(int)		PL_existence_error(const char *type, term_t culprit);
 PL_EXPORT(int)		PL_permission_error(const char *operation,
 					    const char *type, term_t culprit);
 PL_EXPORT(int)		PL_resource_error(const char *resource);
-
+#ifdef SIO_MAGIC
+PL_EXPORT(int)		PL_syntax_error(const char *msg, IOSTREAM *in);
+#else
+PL_EXPORT(int)		PL_syntax_error(const char *msg, void *in);
+#endif
 
 		 /*******************************
 		 *	       BLOBS		*
@@ -797,6 +801,7 @@ UNICODE file functions.
 #define PL_open_stream  PL_unify_stream	/* compatibility */
 PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
 PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
+PL_EXPORT(int)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
 PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
 					 const char *name,

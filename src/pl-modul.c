@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2012, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -60,17 +60,12 @@ _lookupModule(atom_t name)
     return (Module) s->value;
 
   m = allocHeapOrHalt(sizeof(struct module));
+  memset(m, 0, sizeof(*m));
+
   m->name = name;
-  m->file = NULL;
-  m->operators = NULL;
-  m->level = 0;
-#ifdef O_PROLOG_HOOK
-  m->hook = NULL;
-#endif
 #ifdef O_PLMT
   m->mutex = allocSimpleMutex(PL_atom_chars(m->name));
 #endif
-  clearFlags(m);
   set(m, M_CHARESCAPE);
   if ( !GD->options.traditional )
     set(m, DBLQ_STRING|BQ_CODES);
@@ -82,7 +77,6 @@ _lookupModule(atom_t name)
   m->procedures->free_symbol = unallocProcedureSymbol;
 
   m->public = newHTable(PUBLICHASHSIZE);
-  m->supers = NULL;
   m->class  = ATOM_user;
 
   if ( name == ATOM_user )
@@ -172,6 +166,21 @@ unallocList(ListCell c)
   }
 }
 
+
+static void
+freeLingeringDefinitions(ListCell c)
+{ ListCell n;
+
+  for(; c; c=n)
+  { Definition def = c->value;
+
+    n = c->next;
+    freeHeap(def, sizeof(*def));
+    freeHeap(c, sizeof(*c));
+  }
+}
+
+
 static void
 unallocModule(Module m)
 { if ( m->procedures ) destroyHTable(m->procedures);
@@ -179,8 +188,71 @@ unallocModule(Module m)
   if ( m->operators )  destroyHTable(m->operators);
   if ( m->supers )     unallocList(m->supers);
   if ( m->mutex )      freeSimpleMutex(m->mutex);
+  if ( m->lingering )  freeLingeringDefinitions(m->lingering);
 
   freeHeap(m, sizeof(*m));
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Remove all links from  the  source   file  administration  to  the given
+module. Such links are added by addProcedureSourceFile(). In theory, the
+relation between procedure and source file  is many-to-many, but most of
+the time it is one-to-one. In that   case, proc->source_no points to the
+one source file. Otherwise (multiple files), PROC_MULTISOURCE is set and
+we need to scan all source files to find the references.
+
+This is fine for the  current   schema  of destroying temporary modules,
+which are typically not supposed  to   use  constructs such as multifile
+anyway. The alternative  is  for  procedures   to  maintain  a  list  of
+back-links to the source files.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+markSourceFilesProcedure(Procedure proc, struct bit_vector *v)
+{ if ( false(proc, PROC_MULTISOURCE) )
+    set_bit(v, proc->source_no);
+  else
+    setall_bitvector(v);
+}
+
+
+static void
+unlinkSourceFilesModule(Module m)
+{ size_t i, high = highSourceFileIndex();
+  struct bit_vector *v = new_bitvector(high);
+
+  for_unlocked_table(m->procedures, s,
+		     markSourceFilesProcedure(s->value, v));
+
+  for(i=1; i<=high; i++)
+  { if ( true_bit(v, i) )
+    { SourceFile sf = indexToSourceFile(i);
+
+      if ( sf )
+	unlinkSourceFileModule(sf, m);
+    }
+  }
+
+  free_bitvector(v);
+}
+
+
+static int
+destroyModule(Module m)
+{ Symbol s;
+
+  LOCK();
+  if ( (s=lookupHTable(GD->tables.modules, (void*)m->name)) )
+    deleteSymbolHTable(GD->tables.modules, s);
+  UNLOCK();
+
+  unlinkSourceFilesModule(m);
+  PL_unregister_atom(m->name);
+  GD->statistics.modules--;
+  unallocModule(m);
+
+  return TRUE;
 }
 
 
@@ -425,6 +497,13 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
 	   class == ATOM_test ||
 	   class == ATOM_development )
       { m->class = class;
+	return TRUE;
+      } else if ( class == ATOM_temporary )
+      { if ( m->procedures && m->procedures->size != 0 )
+	  return PL_error(NULL, 0,
+			  "module is not empty",
+			  ERR_PERMISSION, ATOM_module_property, ATOM_class, arg);
+	m->class = class;
 	return TRUE;
       } else
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_class, arg);
@@ -1272,10 +1351,11 @@ import(term_t pred, term_t strength ARG_LD)
 
       old->definition = proc->definition;
       shareDefinition(proc->definition);
-      if ( odef->shared > 1 )
-	fixExport(odef, proc->definition);
-      shareDefinition(odef);
-      GC_LINGER(odef);
+      if ( unshareDefinition(odef) > 0 )
+      { fixExport(odef, proc->definition);
+      } else
+      { lingerDefinition(odef);
+      }
       set(old, pflags);
 
       succeed;
@@ -1327,6 +1407,7 @@ import(term_t pred, term_t strength ARG_LD)
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
 
     nproc->flags = pflags;
+    nproc->source_no = 0;
     nproc->definition = proc->definition;
     shareDefinition(proc->definition);
 
@@ -1353,6 +1434,35 @@ PRED_IMPL("$import", 2, import, PL_FA_TRANSPARENT)
   return import(A1, A2 PASS_LD);
 }
 
+/** '$destroy_module'(+Module) is det.
+
+Destroy all traces of  the  named  module.   This  is  only  safe  if no
+procedure in Module is executing  and   there  are no predicates outside
+this module that link to predicates of this module.
+*/
+
+static
+PRED_IMPL("$destroy_module", 1, destroy_module, 0)
+{ PRED_LD
+  atom_t name;
+
+  if ( PL_get_atom_ex(A1, &name) )
+  { Module m;
+
+    if ( (m=isCurrentModule(name)) )
+    { if ( m->class == ATOM_temporary )
+	return destroyModule(m);
+      return PL_error(NULL, 0,
+		      "module is not temporary",
+		      ERR_PERMISSION, ATOM_destroy, ATOM_module, A1);
+    }
+
+    return TRUE;				/* non-existing */
+  }
+
+  return FALSE;
+}
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -1372,4 +1482,5 @@ BeginPredDefs(module)
   PRED_DEF("$import", 2, import, PL_FA_TRANSPARENT)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
   PRED_DEF("$undefined_export", 2, undefined_export, 0)
+  PRED_DEF("$destroy_module", 1, destroy_module, 0)
 EndPredDefs

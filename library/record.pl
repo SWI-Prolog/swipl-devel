@@ -64,6 +64,9 @@ _directive_.  Here is a simple example declaration and some calls.
 	prolog:generated_predicate/1.
 
 error:has_type(record(M:Name), X) :-
+	is_record(Name, M, X).
+
+is_record(Name, M, X) :-
 	current_record(Name, M, _, X, IsX), !,
 	call(M:IsX).
 
@@ -474,9 +477,12 @@ types([Name|T0], [Name|TN], [any|TT]) :-
 		 *******************************/
 
 :- multifile
-	system:term_expansion/2.
+	system:term_expansion/2,
+	sandbox:safe_primitive/1.
 :- dynamic
 	system:term_expansion/2.
 
 system:term_expansion((:- record(Record)), Clauses) :-
 	compile_records(Record, Clauses).
+
+sandbox:safe_primitive((record):is_record(_,_,_)).

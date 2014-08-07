@@ -148,8 +148,9 @@ syntax_error(Error) -->
 
 %%	lazy_list_location(-Location)// is det.
 %
-%	True when Location is an (error)   location term that represents
-%	the current location in the DCG list.
+%	Determine current (error) location in  a   lazy  list. True when
+%	Location is an (error) location term that represents the current
+%	location in the DCG list.
 %
 %	@arg	Location is a term file(Name, Line, LinePos, CharNo) or
 %		stream(Stream, Line, LinePos, CharNo) if no file is

@@ -32,7 +32,11 @@
 #include <unistd.h>
 #endif
 
+#ifdef O_DEBUG
+#define Qgetc(s) Sgetc(s)
+#else
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog can compile Prolog source files into intermediate code files,
@@ -487,7 +491,7 @@ getInt64(IOSTREAM *fd)
 
   DEBUG(MSG_QLF_INTEGER, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
 
-  first = Snpgetc(fd);
+  first = Qgetc(fd);
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
@@ -502,7 +506,7 @@ getInt64(IOSTREAM *fd)
   if ( bytes <= 2 )
   { for( b = 0; b < bytes; b++ )
     { first <<= 8;
-      first |= Snpgetc(fd) & 0xff;
+      first |= Qgetc(fd) & 0xff;
     }
 
     shift = (sizeof(first)-1-bytes)*8 + 2;
@@ -514,7 +518,7 @@ getInt64(IOSTREAM *fd)
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
-      first |= Snpgetc(fd) & 0xff;
+      first |= Qgetc(fd) & 0xff;
     }
     shift = (sizeof(first)-bytes)*8;
   }
@@ -558,7 +562,7 @@ getFloat(IOSTREAM *fd)
   unsigned int i;
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
-  { int c = Snpgetc(fd);
+  { int c = Qgetc(fd);
 
     if ( c == -1 )
       fatalError("Unexpected end-of-file in QLT file");
@@ -606,6 +610,7 @@ loadXRc(wic_state *state, int c ARG_LD)
   switch( c )
   { case XR_REF:
     { intptr_t xr  = getLong(fd);
+      DEBUG(MSG_QLF_XR, Sdprintf("Reuse XR(%d)\n", (long)xr));
       word val = lookupXrId(state, xr);
 
       return val;
@@ -829,7 +834,7 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
   Word vars;
   int rc;
 
-  DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %d ...", Stell(fd)));
+  DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %ld ...", (long)Stell(fd)));
 
   if ( (nvars = getInt(fd)) )
   { term_t *v;
@@ -848,7 +853,7 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
   DEBUG(MSG_QLF_TERM,
 	Sdprintf("Loaded ");
 	PL_write_term(Serror, term, 1200, 0);
-	Sdprintf(" to %d\n", Stell(fd)));
+	Sdprintf(" to %ld\n", (long)Stell(fd)));
   return rc;
 }
 
@@ -997,8 +1002,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 	      } else
 	      { Sdprintf("Directive: ");
 	      }
-	      pl_write(goal);
-	      Sdprintf("\n"));
+	      PL_write_term(Serror, goal, 1200, PL_WRT_NEWLINE));
 	if ( !skip )
 	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
 	  { printMessage(ATOM_warning,
@@ -2853,10 +2857,10 @@ PRED_IMPL("$qlf_include", 5, qlf_include, 0)
   { IOSTREAM *fd = state->wicFd;
 
     Sputc('I', fd);
-    putAtom(state, owner);
-    putAtom(state, pn);
+    saveXR(state, owner);
+    saveXR(state, pn);
     putNum(line, fd);
-    putAtom(state, fn);
+    saveXR(state, fn);
     putFloat(time, fd);
 
     return TRUE;

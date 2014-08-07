@@ -801,13 +801,14 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  { int digits = (arg == NOARG ? 6 : arg);
 
 	    if ( digits > 0 )
-	    { double ip;
+	    { double ip, fp;
 	      char fmt[64];
 
+
 	      cal_ftm(ftm, HAS_STAMP);
+	      fp = modf(ftm->stamp, &ip) * pow(10, digits);
 	      Ssprintf(fmt, "%%0%dlld", digits);
-	      OUTNUMBER(fd, fmt, (long)(modf(ftm->stamp, &ip) *
-					pow(10, digits)));
+	      OUTNUMBER(fd, fmt, (long)(fp+0.5));
 	    }
 	    break;
 	  }

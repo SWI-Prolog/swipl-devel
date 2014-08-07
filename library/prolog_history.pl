@@ -150,15 +150,21 @@ write_history(_).
 :- if(current_predicate(rl_read_history/1)).
 :- dynamic
 	history_loaded/1.
-prolog_history(enable) :-
-	history_loaded(_), !.
-prolog_history(enable) :- !,
-	dir_history_file('.', File),
+
+load_dir_history(File) :-
 	(   exists_file(File)
 	->  rl_read_history(File),
 	    assertz(history_loaded(File))
 	;   true
-	),
+	).
+
+prolog_history(enable) :-
+	history_loaded(_), !.
+prolog_history(enable) :-
+	catch(dir_history_file('.', File), E,
+	      (print_message(warning, E),fail)), !,
+	catch(load_dir_history(File), E,
+	      print_message(warning, E)),
 	at_halt(write_history(File)),
 	set_prolog_flag(save_history, true).
 :- endif.

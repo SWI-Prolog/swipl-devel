@@ -1293,11 +1293,13 @@ struct definition_chain
   DefinitionChain	next;		/* next in chain */
 };
 
-#define	PROC_WEAK	(0x0001)	/* implicit import */
+#define	PROC_WEAK	 (0x0001)	/* implicit import */
+#define	PROC_MULTISOURCE (0x0002)	/* Assigned to multiple sources */
 
 struct procedure
-{ Definition	definition;		/* definition of procedure */
-  unsigned int	flags;			/* PROC_WEAK */
+{ Definition	 definition;		/* definition of procedure */
+  unsigned short flags;			/* PROC_WEAK */
+  unsigned short source_no;		/* Source I'm assigned to */
 };
 
 struct localFrame
@@ -1473,11 +1475,17 @@ struct sourceFile
   ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   ListCell	modules;		/* Modules associated to this file */
+#ifdef O_PLMT
+  counting_mutex *mutex;		/* Mutex to guard procedures */
+#endif
   int		count;			/* number of times loaded */
   unsigned	index : 24;		/* index number (1,2,...) */
   unsigned	system : 1;		/* system sourcefile: do not reload */
 };
 
+typedef struct srcfile_array
+{ SourceFile *blocks[8*sizeof(void*)];
+} srcfile_array;
 
 struct list_cell
 { void *	value;		/* object in the cell */
@@ -1493,6 +1501,7 @@ struct module
   Table		public;		/* public predicates associated */
   Table		operators;	/* local operator declarations */
   ListCell	supers;		/* Import predicates from here */
+  ListCell	lingering;	/* Lingering definitions */
 #ifdef O_PLMT
   counting_mutex *mutex;	/* Mutex to guard procedures */
 #endif

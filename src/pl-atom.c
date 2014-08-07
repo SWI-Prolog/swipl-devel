@@ -173,8 +173,6 @@ PL_register_blob_type(PL_blob_t *type)
   if ( !type->registered )
   { if ( !GD->atoms.types )
     { GD->atoms.types = type;
-      type->atom_name = ATOM_text;	/* avoid deadlock */
-      type->registered = TRUE;
     } else
     { PL_blob_t *t = GD->atoms.types;
 
@@ -183,9 +181,10 @@ PL_register_blob_type(PL_blob_t *type)
 
       t->next = type;
       type->rank = t->rank+1;
-      type->registered = TRUE;
-      type->atom_name = PL_new_atom(type->name);
     }
+    type->registered = TRUE;
+    if ( !type->atom_name )
+      type->atom_name = PL_new_atom(type->name);
 
     if ( true(type, PL_BLOB_TEXT) )
     { if ( true(type, PL_BLOB_WCHAR) )
@@ -1164,12 +1163,15 @@ initAtoms(void)
     GD->atoms.margin = 10000;
     lockAtoms();
 #endif
+    text_atom.atom_name = ATOM_text;
     PL_register_blob_type(&text_atom);
 
     DEBUG(MSG_HASH_STAT, PL_on_halt(exitAtoms, NULL));
 #ifdef O_RESERVED_SYMBOLS
     initReservedSymbols();
 #endif
+
+
   }
   UNLOCK();
 }

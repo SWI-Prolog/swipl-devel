@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,6 +25,7 @@
 
 :- module(test_threads, [test_threads/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Test basic threading predicates
 
@@ -36,6 +38,7 @@ This module is a Unit test for Prolog built-ins that process threads.
 test_threads :-
 	run_tests([ thread_errors,
 		    thread_property,
+		    mutex,
 		    mutex_property,
 		    message_queue
 		  ]).
@@ -146,6 +149,46 @@ test(existence, error(domain_error(thread_property, a))) :-
 		 /*******************************
 		 *	       MUTEXES		*
 		 *******************************/
+
+:- begin_tests(mutex).
+
+test(lock) :-
+	mutex_create(M),
+	mutex_lock(M),
+	mutex_unlock(M),
+	mutex_destroy(M),
+	assertion(gone(M)).
+test(destroy, error(existence_error(mutex, M))) :-
+	mutex_create(M),
+	mutex_destroy(M),
+	mutex_lock(M).
+test(destroy_locked) :-
+	mutex_create(M),
+	mutex_lock(M),
+	mutex_destroy(M),
+	mutex_unlock(M),
+	assertion(gone(M)).
+test(destroy_locked_other_thread) :-
+	mutex_create(M),
+	mutex_lock(M),
+	in_thread(mutex_destroy(M)),
+	mutex_unlock(M),
+	assertion(gone(M)).
+
+:- meta_predicate in_thread(0).
+
+in_thread(G) :-
+	thread_create(G, Id, []),
+	thread_join(Id, Status),
+	assertion(Status == true).
+
+gone(M) :-
+	catch(mutex_property(M, status(_)),
+	      error(existence_error(mutex, M), _),
+	      Gone = true),
+	Gone == true.
+
+:- end_tests(mutex).
 
 :- begin_tests(mutex_property).
 

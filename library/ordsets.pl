@@ -244,12 +244,13 @@ ord_del_element(Set, Element, NewSet) :-
 
 %%	ord_selectchk(+Item, ?Set1, ?Set2) is semidet.
 %
-%	Is true when select(Item, Set1, Set2)   and  Set1, Set2 are both
-%	sorted lists without duplicates.  This   implementation  is only
-%	expected to work for Item ground and either Set1 or Set2 ground.
-%	The "chk" suffix is meant to   remind  you of memberchk/2, which
-%	also expects its first argument   to be ground. ord_selectchk(X,
-%	S, T) => ord_memberchk(X, S) & \+ ord_memberchk(X, T).
+%	Selectchk/3,  specialised  for  ordered  sets.    Is  true  when
+%	select(Item, Set1, Set2) and Set1, Set2   are  both sorted lists
+%	without duplicates. This implementation is only expected to work
+%	for Item ground and either Set1 or Set2 ground. The "chk" suffix
+%	is meant to remind you of   memberchk/2,  which also expects its
+%	first  argument  to  be  ground.    ord_selectchk(X,  S,  T)  =>
+%	ord_memberchk(X, S) & \+ ord_memberchk(X, T).
 %
 %	@author Richard O'Keefe
 

@@ -121,8 +121,6 @@ static const PL_extension foreigns[] = {
   FRG("$set_predicate_attribute", 3, pl_set_predicate_attribute,META),
   FRG("$get_predicate_attribute", 3, pl_get_predicate_attribute,META),
   FRG("$require",		1, pl_require,		     META),
-  FRG("source_file",		2, pl_source_file,      NDET|META),
-  FRG("$make_system_source_files",0,pl_make_system_source_files,0),
   FRG("$default_predicate",	2, pl_default_predicate,     META),
 
   FRG("repeat",			0, pl_repeat,		 NDET|ISO),
@@ -194,11 +192,6 @@ static const PL_extension foreigns[] = {
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
   FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
-  FRG("mutex_destroy",		1, pl_mutex_destroy,	      ISO),
-  FRG("mutex_lock",		1, pl_mutex_lock,	      ISO),
-  FRG("mutex_trylock",		1, pl_mutex_trylock,	      ISO),
-  FRG("mutex_unlock",		1, pl_mutex_unlock,	      ISO),
-  FRG("mutex_unlock_all",	0, pl_mutex_unlock_all,		0),
   FRG("open_xterm",		4, pl_open_xterm,		0),
 #endif
 
@@ -371,6 +364,7 @@ DECL_PLIST(tai);
 DECL_PLIST(setup);
 DECL_PLIST(gc);
 DECL_PLIST(proc);
+DECL_PLIST(srcfile);
 DECL_PLIST(write);
 DECL_PLIST(dlopen);
 DECL_PLIST(system);
@@ -418,6 +412,7 @@ initBuildIns(void)
   REG_PLIST(setup);
   REG_PLIST(gc);
   REG_PLIST(proc);
+  REG_PLIST(srcfile);
   REG_PLIST(write);
   REG_PLIST(dlopen);
   REG_PLIST(system);

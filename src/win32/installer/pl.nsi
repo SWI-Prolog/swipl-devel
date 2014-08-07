@@ -370,6 +370,7 @@ Section "Base system (required)"
   File ${SWIPL}\library\coinduction.pl
   File ${SWIPL}\library\quasi_quotations.pl
   File ${SWIPL}\library\sandbox.pl
+  File ${SWIPL}\library\modules.pl
   File ${SWIPL}\library\win_menu.pl
   File ${SWIPL}\library\console_input.pl
 
@@ -700,6 +701,7 @@ Section "HTTP Client/Server package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File ${SWIPL}\bin\http_stream.dll
+  File ${SWIPL}\bin\websocket.dll
   File ${SWIPL}\bin\json.dll
   SetOutPath $INSTDIR\library
   File /r ${SWIPL}\library\http
@@ -714,6 +716,7 @@ Section "Pengines"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
   File ${SWIPL}\library\pengines.pl
+  File ${SWIPL}\library\pengines_io.pl
   File ${SWIPL}\library\term_to_json.pl
   SetOutPath $INSTDIR\doc\packages
   File ${SWIPL}\doc\packages\pengines.html

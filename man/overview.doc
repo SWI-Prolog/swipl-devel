@@ -247,7 +247,7 @@ cc -I$PLBASE/include -L$PLBASE/lib/$PLARCH ...
 \end{code}
 
 The option can be followed by \const{=sh} to dump in POSIX shell format
-(default) or \const{cmd} to dump in MS-Windows \program{cmd.exe}
+(default) or \const{=cmd} to dump in MS-Windows \program{cmd.exe}
 compatible format.
 
     \cmdlineoptionitem{--help}{}
@@ -465,9 +465,9 @@ There are several alternatives though:
 
 \begin{shortlist}
     \item \url{http://turing.ubishops.ca/home/bruda/emacs-prolog/}
-    \item \url{http://stud4.tuwien.ac.at/~e0225855/ediprolog/ediprolog.html}
-    \item \url{http://stud4.tuwien.ac.at/~e0225855/pceprolog/pceprolog.html}
-    \item \url{http://stud4.tuwien.ac.at/~e0225855/etrace/etrace.html}
+    \item \url{http://www.logic.at/prolog/ediprolog/ediprolog.html}
+    \item \url{http://www.logic.at/prolog/pceprolog/pceprolog.html}
+    \item \url{http://www.logic.at/prolog/etrace/etrace.html}
 \end{shortlist}
 
 
@@ -1649,9 +1649,12 @@ used for debugging purposes.
 
     \prologflagitem{verbose_load}{atom}{rw}
 Determines messages printed for loading (compiling) Prolog files.
-Current values are \const{full}, \const{normal} (default) and
-\const{silent}. The value of this flag is normally controlled by the
-option \term{silent}{Bool} provided by load_files/2.
+Current values are \const{full} (print a message at the start and end of
+each file loaded), \const{normal} (print a message at the end of each
+file loaded), \const{brief} (print a message at end of loading the
+toplevel file), and \const{silent} (no messages are printed, default).
+The value of this flag is normally controlled by the option
+\term{silent}{Bool} provided by load_files/2.
 
     \prologflagitem{verbose_file_search}{bool}{rw}
 If \const{true} (default \const{false}), print messages indicating the
@@ -2602,12 +2605,6 @@ Option & Default & Area name & Description \\
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector
                        determines they are no longer needed. \\
-\cmdlineoption{-A} & 1M & \bf argument stack & The argument stack is used to
-                       store one of the Virtual Machine's
-                       registers. The amount of space needed on this
-                       stack is determined entirely by the depth in
-                       which terms are nested in the clauses that
-                       constitute the program. Overflow is unlikely. \\
 \hline
 \end{tabular}
 \end{center}

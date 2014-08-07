@@ -1025,7 +1025,7 @@ pl_write_atoms(term_t l)
 \end{code}
 
 Note that as of version~7, lists have a new representation unless the
-option \cmdlineoption{--traditional} is used.  see \secref{ext-list}.
+option \cmdlineoption{--traditional} is used.  see \secref{ext-lists}.
 
 \begin{description}
     \cfunction{int}{PL_get_list}{term_t +l, term_t -h, term_t -t}
@@ -1718,12 +1718,14 @@ See also PL_raise_exception().
 \begin{description}
     \cfunction{int}{PL_instantiation_error}{term_t culprit}
 Raise \const{instantiation_error}.  \arg{Culprit} is ignored, but
-should be bound to the term that is not a variable.  See
+should be bound to the term that is insufficiently instantiated.  See
 instantiation_error/1.
 
     \cfunction{int}{PL_uninstantiation_error}{term_t culprit}
-Raise \exam{uninstantiation_error(culprit)}.  This should be called if
-an argument that must be unbound at entry is bound to \arg{culprit}.
+Raise \exam{uninstantiation_error(culprit)}. This should be called if an
+argument that must be unbound at entry is bound to \arg{culprit}. This
+error is typically raised for a pure output arguments such as a newly
+created stream handle (e.g., the third argument of open/3).
 
     \cfunction{int}{PL_representation_error}{const char *resource}
 Raise \exam{representation_error(resource)}. See representation_error/1.
@@ -1743,6 +1745,9 @@ Raise \exam{permission_error(operation, type, culprit)}. See
 permission_error/3.
     \cfunction{int}{PL_resource_error}{const char *resource}
 Raise \exam{resource_error(resource)}. See resource_error/1.
+    \cfunction{int}{PL_syntax_error}{const char *message, IOSTREAM *in}
+Raise \exam{syntax_error(message)}.  If \arg{arg} is not \const{NULL},
+add information about the current position of the input stream.
 \end{description}
 
 

@@ -309,7 +309,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     fail;
   }
 
-  proc = lookupProcedure(fd, module);
+  proc = resolveProcedure(fd, module);
 
   { int arity = arityFunctor(fd);
     term_t args;
@@ -666,6 +666,8 @@ last_arg:
     arity = arityFunctor(f->definition);
     if ( arity < 0 )
       printk("Illegal arity (%d)", arity);
+    else if ( arity == 0 )
+      return key;
     else
       DEBUG(CHK_HIGH_ARITY,
             { if ( arity > 256 && !is_ht_capacity(arity) )

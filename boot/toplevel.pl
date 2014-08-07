@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -795,21 +795,9 @@ subst_chars([H|T]) -->
 %	=determinism= is considered more adequate and informative.
 
 write_bindings(Bindings, Det) :-
-	\+ term_attvars(Bindings, []), !,
-	copy_term(Bindings, Bindings1, Residuals0),
 	'$module'(TypeIn, TypeIn),
-	omit_qualifiers(Residuals0, TypeIn, Residuals),
-	join_same_bindings(Bindings1, Bindings2),
-	factorize_bindings(Bindings2, Bindings3),
-	bind_vars(Bindings3, Bindings4),
-	filter_bindings(Bindings4, Bindings5),
-	write_bindings2(Bindings5, Residuals, Det).
-write_bindings(Bindings, Det) :-
-	join_same_bindings(Bindings, Bindings1),
-	factorize_bindings(Bindings1, Bindings2),
-	bind_vars(Bindings2, Bindings3),
-	filter_bindings(Bindings3, Bindings4),
-	write_bindings2(Bindings4, [], Det).
+	translate_bindings(Bindings, Bindings1, TypeIn:Residuals),
+	write_bindings2(Bindings1, Residuals, Det).
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
@@ -829,6 +817,45 @@ write_bindings2(Bindings, Residuals, _Det) :-
 	    print_message(query, query(done))
 	).
 
+%%	prolog:translate_bindings(+Bindings0, -Bindings, -Residuals) is det.
+%
+%	Translate the raw variable bindings  resulting from successfully
+%	completing a query into a a binding   list  and list of residual
+%	goals suitable for human consumption.
+%
+%	@arg    Bindings is a list of binding(Vars,Value,Substitutions),
+%		where Vars is a list of variable names. E.g.
+%		binding(['A','B'],42,[])` means that both the variable
+%		A and B have the value 42. Values may contain terms
+%		'$VAR'(Name) to indicate sharing with a given variable.
+%		Value is always an acyclic term. If cycles appear in the
+%		answer, Substitutions contains a list of substitutions
+%		that restore the original term.
+%
+%	@arg	Residuals is a list of residual goals, typically
+%		constraints on variables in Bindings0.
+
+:- public
+	prolog:translate_bindings/3.
+:- meta_predicate
+	prolog:translate_bindings(+, -, :).
+
+prolog:translate_bindings(Bindings0, Bindings, Residuals) :-
+	translate_bindings(Bindings0, Bindings, Residuals).
+
+translate_bindings(Bindings0, Bindings, TypeIn:Residuals) :-
+	\+ term_attvars(Bindings0, []), !,
+	copy_term(Bindings0, Bindings1, Residuals0),
+	omit_qualifiers(Residuals0, TypeIn, Residuals),
+	join_same_bindings(Bindings1, Bindings2),
+	factorize_bindings(Bindings2, Bindings3),
+	bind_vars(Bindings3, Bindings4),
+	filter_bindings(Bindings4, Bindings).
+translate_bindings(Bindings0, Bindings, _:[]) :-
+	join_same_bindings(Bindings0, Bindings1),
+	factorize_bindings(Bindings1, Bindings2),
+	bind_vars(Bindings2, Bindings3),
+	filter_bindings(Bindings3, Bindings).
 
 %%	join_same_bindings(Bindings0, Bindings)
 %
@@ -1011,7 +1038,9 @@ hide_vars(binding(Names0, Skel, Subst), binding(Names, Skel, Subst)) :-
 hide_names([], _, _, []).
 hide_names([Name|T0], Skel, Subst, T) :-
 	(   sub_atom(Name, 0, _, _, '_'),
-	    current_prolog_flag(toplevel_print_anon, false)
+	    current_prolog_flag(toplevel_print_anon, false),
+	    sub_atom(Name, 1, 1, _, Next),
+	    char_type(Next, prolog_var_start)
 	->  true
 	;   Subst == [],
 	    Skel == '$VAR'(Name)

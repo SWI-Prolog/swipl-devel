@@ -265,11 +265,14 @@ options, should you  one  day  find  this   a  good  idea.  Just  add an
 appropriate flag or two and a line  of help text. Similarly, suppressing
 an option in a cluttered interface amounts to commenting out the flags.
 
-opt_parse/5 allows more control through an additional argument list. For
-instance, opt_parse(ExampleOptsSpec, ExampleArgs,  Opts, PositionalArgs,
-[output_functor(appl_config)]) would instead return
+opt_parse/5 allows more control through an   additional argument list as
+shown in the example below.
 
 ==
+?- opt_parse(ExampleOptsSpec, ExampleArgs,  Opts, PositionalArgs,
+	     [ output_functor(appl_config)
+	     ]).
+
 Opts =    [ appl_config(verbose, 2),
           , appl_config(label, 'REPORT')
           ...

@@ -43,6 +43,7 @@
 	    dwim_match/2,
 	    source_file_property/2,
 	    source_file/1,
+	    source_file/2,
 	    unload_file/1,
 	    prolog_load_context/2,
 	    stream_position_data/3,
@@ -411,6 +412,42 @@ source_file(File) :-
 	;   '$time_source_file'(File, Time, Level)
 	),
 	Time > 0.0.
+
+%%	source_file(+Head, -File) is semidet.
+%%	source_file(?Head, ?File) is nondet.
+%
+%	True when Head is a predicate owned by File.
+
+:- meta_predicate source_file(:, ?).
+
+source_file(M:Head, File) :-
+	nonvar(M), nonvar(Head), !,
+	(   predicate_property(M:Head, multifile)
+	->  multi_source_files(M:Head, Files),
+	    '$member'(File, Files)
+	;   '$source_file'(M:Head, File)
+	).
+source_file(M:Head, File) :-
+	(   nonvar(File)
+	->  true
+	;   source_file(File)
+	),
+	'$source_file_predicates'(File, Predicates),
+	'$member'(M:Head, Predicates).
+
+:- thread_local found_src_file/1.
+
+multi_source_files(Head, Files) :-
+	call_cleanup(
+	    findall(File, multi_source_file(Head, File), Files),
+	    retractall(found_src_file(_))).
+
+multi_source_file(Head, File) :-
+	nth_clause(Head, _, Clause),
+	clause_property(Clause, source(File)),
+	\+ found_src_file(File),
+	asserta(found_src_file(File)).
+
 
 %%	source_file_property(?File, ?Property) is nondet.
 %

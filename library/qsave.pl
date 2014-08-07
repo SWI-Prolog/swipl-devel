@@ -377,15 +377,22 @@ save_predicate(P, SaveClass) :-
 	    fail
 	;   true
 	),
-	save_attributes(P),
-	\+ predicate_property(P, (volatile)),
-	(   nth_clause(P, _, Ref),
-	    feedback('.', []),
-	    '$qlf_assert_clause'(Ref, SaveClass),
-	    fail
-	;   true
+	(   no_save(P)
+	->  true
+	;   save_attributes(P),
+	    \+ predicate_property(P, (volatile)),
+	    (   nth_clause(P, _, Ref),
+		feedback('.', []),
+		'$qlf_assert_clause'(Ref, SaveClass),
+		fail
+	    ;   true
+	    )
 	).
 
+no_save(P) :-
+	predicate_property(P, volatile),
+	\+ predicate_property(P, dynamic),
+	\+ predicate_property(P, multifile).
 
 pred_attrib(meta_predicate(Term), Head, meta_predicate(M:Term)) :- !,
 	    strip_module(Head, M, _).

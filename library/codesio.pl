@@ -124,7 +124,8 @@ write_term_to_codes(Term, Codes, Tail, Options) :-
 %	@compat	The SWI-Prolog version does not require Codes to end
 %		in a full-stop.
 
-read_from_codes([], end_of_file) :- !.
+read_from_codes([], Term) :- !,
+	Term = end_of_file.
 read_from_codes(List, Term) :-
 	atom_to_term(List, Term, _).
 
@@ -180,8 +181,10 @@ with_output_to_codes(Goal, Codes, Tail) :-
 
 %%	with_output_to_codes(:Goal, -Stream, -Codes, ?Tail) is det.
 %
-%	As  with_output_to_codes/2,  but  Stream  is  unified  with  the
-%	temporary stream.
+%	As  with_output_to_codes/3,  but  Stream  is  unified  with  the
+%	temporary  stream.  This  predicate   exists  for  compatibility
+%	reasons. In SWI-Prolog, the temporary   stream is also available
+%	as `current_output`.
 
 with_output_to_codes(Goal, Stream, Codes, Tail) :-
 	with_output_to(codes(Codes, Tail), with_stream(Stream, Goal)).
