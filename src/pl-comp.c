@@ -4962,17 +4962,17 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			  }
     { code cut;
       functor_t f;
-      case C_IFTHEN:				/* A -> B */
-			    cut = C_CUT;
+      case C_IFTHEN:					/* A -> B */
+			    cut = C_CUT;		/* C_CUT takes 1 arg */
 			    f = FUNCTOR_ifthen2;
 			    goto c_ifthen;
       case C_SOFTIFTHEN:				/* A *->B */
-			    cut = C_SCUT;
+			    cut = C_SCUT;		/* C_SCUT takes 0 args */
 			    f = FUNCTOR_softcut2;
 			  c_ifthen:
 			    PC++;
-			    TRY_DECOMPILE(di, cut, NULL);   /* A */
-			    PC += 2;
+			    TRY_DECOMPILE(di, cut, NULL);     /* A */
+                            PC += ( cut == C_CUT ? 2 : 1 );   /* skip C_(S)CUT */
 			    TRY_DECOMPILE(di, C_END, NULL);   /* B */
 			    PC++;
 			    BUILD_TERM(f);

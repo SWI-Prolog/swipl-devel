@@ -1312,6 +1312,8 @@ tcl(c) :- write(hello).
 tcl(a(X)) :- b(X).
 tcl(x(G)) :- G.
 tcl(a(X,X)) :- a(X).
+tcl(scut) :- ( a *-> true ; b *-> c ).
+tcl(cut) :-  ( a -> true  ; b -> c ).
 
 mtcl:tcl(a) :- a.
 mtcl:tcl(b) :- a, b.
@@ -1335,6 +1337,12 @@ cl(clause-6) :-
 	B == a(a).
 cl(clause-7) :-
 	clause(mtcl:tcl(H), user:a), H == a.
+cl(clause-8) :-
+	clause(tcl(scut), Body),
+	Body == ( a *-> true ; b *-> c ).
+cl(clause-9) :-
+	clause(tcl(cut), Body),
+	Body == ( a -> true ; b -> c ).
 
 
 		 /*******************************
