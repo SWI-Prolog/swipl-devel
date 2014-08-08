@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2014, University of Amsterdam
 			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
@@ -34,7 +34,8 @@
 	    select_option/3,		% +Term, +Options, -RestOpts
 	    select_option/4,		% +Term, +Options, -RestOpts, +Default
 	    merge_options/3,		% +New, +Old, -Merged
-	    meta_options/3		% :IsMeta, :OptionsIn, -OptionsOut
+	    meta_options/3,		% :IsMeta, :OptionsIn, -OptionsOut
+	    dict_options/2		% ?Dict, ?Options
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(error)).
@@ -315,3 +316,30 @@ meta_option(O0, IM, Context, O) :-
 	O =.. [Name,M:V].
 meta_option(O, _, _, O).
 
+%%	dict_options(?Dict, ?Options) is det.
+%
+%	Convert between an option list  and   a  dictionary.  One of the
+%	arguments must be instantiated. If the   option list is created,
+%	it is created in canonical form,  i.e., using Option(Value) with
+%	the Options sorted in the standard order of terms. Note that the
+%	conversion is not always possible   due to different constraints
+%	and convertion may thus lead to (type) errors.
+%
+%	  - Dict keys can be integers. This is not allowed in canonical
+%	    option lists.
+%	  - Options can hold multiple options with the same key. This is
+%	    not allowed in dicts.
+%	  - Options can have more than one value (name(V1,V2)).  This is
+%	    not allowed in dicts.
+%
+%	Also note that most system predicates  and predicates using this
+%	library for processing the option argument   can  both work with
+%	classical Prolog options and dicts objects.
+
+dict_options(Dict, Options) :-
+	nonvar(Dict),
+	dict_pairs(Dict, _, Pairs),
+	canonicalise_options2(Pairs, Options).
+dict_options(Dict, Options) :-
+	nonvar(Options),
+	dict_create(Dict, _, Options).
