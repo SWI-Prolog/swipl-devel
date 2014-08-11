@@ -53,7 +53,7 @@ CLP(B), Constraint Logic Programming over Boolean Variables. It can be
 used to model and solve combinatorial problems such as circuit
 verification, graph colouring and allocation tasks.
 
-The implementation is based on ordered and reduced Binary Decision
+The implementation is based on reduced and ordered Binary Decision
 Diagrams (BDDs).
 
 
@@ -128,6 +128,10 @@ node(62): (v_i(Y, 23)->node(60);false),
 sat(Y=:=Y),
 sat(Z=:=Z).
 ==
+
+The pending residual goals constrain remaining variables to Boolean
+expressions, and encode a decision tree that determines the query's
+truth value when further constraints are added.
 
 @author Markus Triska
 */
