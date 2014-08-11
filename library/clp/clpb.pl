@@ -109,6 +109,10 @@ X = Y, Y = 1.
 ?- sat(X * ~X).
 false.
 
+?- taut(X * ~X, T).
+T = 0,
+sat(X=:=X).
+
 ?- sat(X^Y^(X+Y)).
 sat(X=:=X),
 sat(Y=:=Y).
