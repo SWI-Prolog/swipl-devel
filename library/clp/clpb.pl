@@ -212,18 +212,20 @@ sat(Sat0) :-
         parse_sat(Sat0, Sat),
         sat_bdd(Sat, BDD),
         sat_roots(Sat, Roots),
-        foldl(root_and, Roots, BDD, BDD1),
+        foldl(root_and, Roots, Sat-BDD, And-BDD1),
         maplist(del_bdd, Roots),
         maplist(=(Root), Roots),
-        put_attr(Root, bdd, BDD1),
+        put_attr(Root, bdd, And-BDD1),
         satisfiable_bdd(BDD1).
 
 del_bdd(Root) :- del_attr(Root, bdd).
 
-root_and(Root, BDD0, BDD) :-
-        (   get_attr(Root, bdd, B) ->
+root_and(Root, Sat0-BDD0, Sat-BDD) :-
+        (   get_attr(Root, bdd, F-B) ->
+            Sat = F*Sat0,
             bdd_and(B, BDD0, BDD)
-        ;   BDD = BDD0
+        ;   Sat = Sat0,
+            BDD = BDD0
         ).
 
 %% taut(+Sat, ?T) is semidet
@@ -235,7 +237,7 @@ root_and(Root, BDD0, BDD) :-
 taut(Sat0, Truth) :-
         parse_sat(Sat0, Sat),
         sat_roots(Sat, Roots),
-        foldl(root_and, Roots, 1, Ands),
+        foldl(root_and, Roots, _-1, _-Ands),
         (   sat_bdd(Sat, BDD), bdd_and(BDD, Ands, B), B == 0 ->
             Truth = 0
         ;   sat_bdd(i(1)#Sat, BDD), bdd_and(BDD, Ands, B), B == 0 ->
@@ -311,7 +313,10 @@ sat_bdd(Sat, BDD) :-
         phrase(sat_bdd(Sat, BDD), [H0-G0], _).
 
 sat_bdd(i(I), I) --> !.
-sat_bdd(v(V), Node) --> !, make_node(V, 0, 1, Node).
+sat_bdd(v(V), Node) --> !,
+        (   { integer(V) } -> sat_bdd(i(V), Node)
+        ;   make_node(V, 0, 1, Node)
+        ).
 sat_bdd(v(V)^Sat, Node) --> !,
         sat_bdd(Sat, BDD),
         { var_index(V, Index),
@@ -387,14 +392,28 @@ apply_(F, NA, NB, Node) --> % NB > NA
 attr_unify_hook(var_index_root(_,I,Root), Other) :-
         (   integer(Other) ->
             (   between(0, 1, Other) ->
-                get_attr(Root, bdd, BDD0),
+                get_attr(Root, bdd, Sat-BDD0),
                 bdd_restriction(BDD0, I, Other, BDD),
-                put_attr(Root, bdd, BDD),
+                put_attr(Root, bdd, Sat-BDD),
                 satisfiable_bdd(BDD)
             ;   domain_error(boolean, Other)
             )
-        ;   representation_error('please use sat(X=:=Y) instead of X = Y')
+        ;   parse_sat(Other, OtherSat),
+            get_attr(Root, bdd, Sat0-_),
+            Sat = Sat0*OtherSat,
+            sat_roots(Sat, Roots),
+            maplist(root_rebuild_bdd, Roots),
+            foldl(root_and, Roots, i(1)-1, And-BDD1),
+            maplist(del_bdd, Roots),
+            maplist(=(NewRoot), Roots),
+            put_attr(NewRoot, bdd, And-BDD1),
+            satisfiable_bdd(BDD1)
         ).
+
+root_rebuild_bdd(Root) :-
+        get_attr(Root, bdd, F0-_),
+        sat_bdd(F0, BDD),
+        put_attr(Root, bdd, F0-BDD).
 
 is_bdd(BDD) :-
         catch((phrase(bdd_ite(BDD), ITEs0),
@@ -456,7 +475,7 @@ bdd_restriction_(Node, VI, Value, Res) -->
 attribute_goals(Var) -->
         { var_index_root(Var, _, Root) },
         boolean(Var),
-        (   { get_attr(Root, bdd, BDD) } ->
+        (   { get_attr(Root, bdd, _-BDD) } ->
             bdd_ite(BDD),
             { del_attr(Root, bdd) }
         ;   []
