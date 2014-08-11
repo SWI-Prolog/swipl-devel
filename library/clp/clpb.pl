@@ -323,13 +323,13 @@ make_node(Var, Low, High, Node) -->
 
         Sat-BDD
 
-   where Sat is the SAT formula (in canonical form) that corresponds
-   to BDD. Sat is necessary to rebuild the BDD after variable aliasing.
+   where Sat is the SAT formula (in original form) that corresponds to
+   BDD. Sat is necessary to rebuild the BDD after variable aliasing.
 
    Finally, a BDD is either:
 
       *)  The integers 0 or 1, denoting false and true, respectively, or
-      *)  A variable Node with attributes:
+      *)  A variable with attributes:
 
            "node" of the form node(Var, Low, High)
                Where Var is the node's branching variable, and Low and
