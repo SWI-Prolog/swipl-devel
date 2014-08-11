@@ -134,7 +134,7 @@ sat(Z=:=Z).
 ==
 
 The pending residual goals constrain remaining variables to Boolean
-expressions, and encode a decision tree that determines the query's
+expressions, and encode a decision diagram that determines the query's
 truth value when further constraints are added.
 
 @author Markus Triska
