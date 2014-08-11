@@ -429,6 +429,10 @@ apply_(F, NA, NB, Node) --> % NB > NA
         make_node(VB, Low, High, Node).
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Unification. X = Expr is equivalent to sat(X =:= Expr).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 attr_unify_hook(index_root(I,Root), Other) :-
         (   integer(Other) ->
             (   between(0, 1, Other) ->
