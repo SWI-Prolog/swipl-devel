@@ -83,9 +83,9 @@ where _Expr_ again denotes a Boolean expression.
 The interface predicates of CLP(B) are:
 
     * sat(+Expr)
-      True iff Expr is satisfiable.
+      True iff the Boolean expression Expr is satisfiable.
 
-    * taut(+Expr, T)
+    * taut(+Expr, -T)
       If Expr is a tautology with respect to the posted constraints, succeeds
       with *T = 1*. If Expr cannot be satisfied, succeeds with *T = 0*.
       Otherwise, it fails.
@@ -211,10 +211,10 @@ sat_roots(Sat, Roots) :-
         maplist(var_index_root, Vs, _, Roots0),
         term_variables(Roots0, Roots).
 
-%% sat(Sat) is semidet.
+%% sat(+Expr) is semidet.
 %
-% States the constraint that Sat be a satisfiable Boolean expression.
-% Fails if Sat cannot be satisfied.
+% States the constraint that Expr be a satisfiable Boolean expression.
+% Fails if Expr cannot be satisfied.
 
 sat(Sat0) :-
         parse_sat(Sat0, Sat),
@@ -236,11 +236,11 @@ root_and(Root, Sat0-BDD0, Sat-BDD) :-
             BDD = BDD0
         ).
 
-%% taut(+Sat, ?T) is semidet
+%% taut(+Expr, -T) is semidet
 %
-% Succeeds with T = 0 if Sat cannot be satisfied, and with T = 1 if
-% Sat is always true with respect to the current constraints. Fails
-% otherwise.
+% Succeeds with T = 0 if the Boolean expression Expr cannot be
+% satisfied, and with T = 1 if Expr is always true with respect to the
+% current constraints. Fails otherwise.
 
 taut(Sat0, Truth) :-
         parse_sat(Sat0, Sat),
