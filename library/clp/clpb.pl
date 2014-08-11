@@ -257,12 +257,12 @@ satisfiable_bdd(BDD) :-
 
 var_index(V, I) :- var_index_root(V, I, _).
 
-var_index_root(V, I, Root) :- get_attr(V, clpb, var_index_root(_,I,Root)).
+var_index_root(V, I, Root) :- get_attr(V, clpb, index_root(I,Root)).
 
 enumerate_variable(V) :-
         (   var_index_root(V, _, _) -> true
         ;   nb_getval('$clpb_next_var', Index0),
-            put_attr(V, clpb, var_index_root(V,Index0,_)),
+            put_attr(V, clpb, index_root(Index0,_)),
             Index is Index0 + 1,
             nb_setval('$clpb_next_var', Index)
         ).
@@ -297,7 +297,7 @@ make_node(Var, Low, High, Node) -->
               var_index(Var, VI),
               Triple = node(VI,LID,HID),
               (   get_assoc(Triple, H0, Node) -> H0 = H
-              ;   put_attr(Node, triple, node(Var,Low,High)),
+              ;   put_attr(Node, node, node(Var,Low,High)),
                   nb_getval('$clpb_next_node', ID0),
                   put_attr(Node, id, ID0),
                   ID is ID0 + 1,
@@ -306,6 +306,41 @@ make_node(Var, Low, High, Node) -->
               )
           ) }.
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   sat_bdd/2 converts a SAT formula in canonical form to an ordered
+   and reduced Binary Decision Diagram (BDD).
+
+   Each CLP(B) variable belongs to exactly one BDD. Each CLP(B)
+   variable gets an attribute (in module "clpb") of the form:
+
+        index_root(Index,Root)
+
+   where Index is the variable's unique integer index, and Root is the
+   root of the BDD that the variable belongs to.
+
+   A root is a logical variable with a single attribute ("bdd") of the
+   form:
+
+        Sat-BDD
+
+   where Sat is the SAT formula (in canonical form) that corresponds
+   to BDD. Sat is necessary to rebuild the BDD after variable aliasing.
+
+   Finally, a BDD is either:
+
+      *)  The integers 0 or 1, denoting false and true, respectively, or
+      *)  A variable Node with attributes:
+
+           "node" of the form node(Var, Low, High)
+               Where Var is the node's branching variable, and Low and
+               High are the node's low (Var = 0) and high (Var = 1)
+               children.
+
+           "id" denoting the node's unique integer ID.
+
+   Variable aliasing is treated as a conjunction of corresponding SAT
+   formulae.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 sat_bdd(Sat, BDD) :-
         empty_assoc(H0),
@@ -340,7 +375,7 @@ node_id(Node, ID) :-
         ).
 
 node_var_low_high(Node, Var, Low, High) :-
-        get_attr(Node, triple, node(Var,Low,High)).
+        get_attr(Node, node, node(Var,Low,High)).
 
 node_varindex(Node, VI) :-
         node_var_low_high(Node, V, _, _),
@@ -389,7 +424,7 @@ apply_(F, NA, NB, Node) --> % NB > NA
         make_node(VB, Low, High, Node).
 
 
-attr_unify_hook(var_index_root(_,I,Root), Other) :-
+attr_unify_hook(index_root(I,Root), Other) :-
         (   integer(Other) ->
             (   between(0, 1, Other) ->
                 get_attr(Root, bdd, Sat-BDD0),
