@@ -348,10 +348,7 @@ sat_bdd(Sat, BDD) :-
         phrase(sat_bdd(Sat, BDD), [H0-G0], _).
 
 sat_bdd(i(I), I) --> !.
-sat_bdd(v(V), Node) --> !,
-        (   { integer(V) } -> sat_bdd(i(V), Node)
-        ;   make_node(V, 0, 1, Node)
-        ).
+sat_bdd(v(V), Node) --> !, make_node(V, 0, 1, Node).
 sat_bdd(v(V)^Sat, Node) --> !,
         sat_bdd(Sat, BDD),
         { var_index(V, Index),
