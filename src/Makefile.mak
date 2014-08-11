@@ -64,7 +64,7 @@ VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
 PLSRC=$(PLSRC) ../boot/menu.pl
 PLWINLIBS=dde.pl progman.pl win_menu.pl
 PLLIBS=$(PLLIBS) $(PLWINLIBS)
-CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
+CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl clpb.pl
 UNICODE=blocks.pl unicode_data.pl
 MANDIR= "$(PLBASE)\doc\Manual"
 
