@@ -125,10 +125,10 @@ X = Y, Y = Z, Z = 1.
 ?- sat(X =< Y), sat(Y =< Z), taut(X =< Z, T).
 T = 1,
 sat(X=:=X),
-node(63): (v_i(X, 22)->node(62);node(61)),
-node(61): (v_i(Y, 23)->node(60);true),
-node(60): (v_i(Z, 24)->true;false),
-node(62): (v_i(Y, 23)->node(60);false),
+node(54)- (X->node(53);node(52)),
+node(52)- (Y->node(51);true),
+node(51)- (Z->true;false),
+node(53)- (Y->node(51);false),
 sat(Y=:=Y),
 sat(Z=:=Z).
 ==
@@ -468,7 +468,7 @@ is_bdd(BDD) :-
               is_ok,
               true).
 
-ite_ground(_:(v_i(_,I) -> HID ; LID), t(I,HID,LID)).
+ite_ground(_-(V -> HID ; LID), t(I,HID,LID)) :- var_index(V, I).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -534,11 +534,10 @@ bdd_ite_(Node) -->
         (   { integer(Node) ;  get_attr(Node, visited, true) } -> []
         ;   { node_id(Node, ID) } ->
             { node_var_low_high(Node, Var, Low, High),
-              var_index(Var, Index),
               put_attr(Node, visited, true),
               node_id(High, HID),
               node_id(Low, LID) },
-            [ID : (v_i(Var,Index) -> HID ; LID )],
+            [ID-(Var -> HID ; LID )],
             bdd_ite_(Low),
             bdd_ite_(High)
         ;   []
