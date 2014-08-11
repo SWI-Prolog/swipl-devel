@@ -212,7 +212,7 @@ sat(Sat0) :-
         parse_sat(Sat0, Sat),
         sat_bdd(Sat, BDD),
         sat_roots(Sat, Roots),
-        foldl(root_and, Roots, Sat-BDD, And-BDD1),
+        foldl(root_and, Roots, Sat0-BDD, And-BDD1),
         maplist(del_bdd, Roots),
         maplist(=(Root), Roots),
         put_attr(Root, bdd, And-BDD1),
@@ -438,7 +438,7 @@ attr_unify_hook(index_root(I,Root), Other) :-
             Sat = Sat0*OtherSat,
             sat_roots(Sat, Roots),
             maplist(root_rebuild_bdd, Roots),
-            foldl(root_and, Roots, i(1)-1, And-BDD1),
+            foldl(root_and, Roots, 1-1, And-BDD1),
             maplist(del_bdd, Roots),
             maplist(=(NewRoot), Roots),
             put_attr(NewRoot, bdd, And-BDD1),
@@ -446,9 +446,12 @@ attr_unify_hook(index_root(I,Root), Other) :-
         ).
 
 root_rebuild_bdd(Root) :-
-        get_attr(Root, bdd, F0-_),
-        sat_bdd(F0, BDD),
-        put_attr(Root, bdd, F0-BDD).
+        (   get_attr(Root, bdd, F0-_) ->
+            parse_sat(F0, Sat),
+            sat_bdd(Sat, BDD),
+            put_attr(Root, bdd, F0-BDD)
+        ;   true
+        ).
 
 is_bdd(BDD) :-
         catch((phrase(bdd_ite(BDD), ITEs0),
