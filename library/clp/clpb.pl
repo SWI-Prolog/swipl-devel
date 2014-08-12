@@ -162,11 +162,17 @@ is_sat(A>=B)  :- is_sat(A), is_sat(B).
 is_sat(A<B)   :- is_sat(A), is_sat(B).
 is_sat(A>B)   :- is_sat(A), is_sat(B).
 is_sat(X^F)   :- var(X), is_sat(F).
+is_sat(card(Is,Fs)) :-
+        must_be(list(ground), Is),
+        must_be(list, Fs),
+        maplist(is_sat, Fs).
 
 % wrap variables with v(...) and integers with i(...)
 sat_nondefaulty(V, v(V)) :- var(V), !.
 sat_nondefaulty(I, i(I)) :- integer(I), !.
 sat_nondefaulty(~A0, ~A) :- !, sat_nondefaulty(A0, A).
+sat_nondefaulty(card(Is,Fs0), card(Is,Fs)) :- !,
+        maplist(sat_nondefaulty, Fs0, Fs).
 sat_nondefaulty(S0, S) :-
         S0 =.. [F,X0,Y0],
         sat_nondefaulty(X0, X),
@@ -184,6 +190,8 @@ sat_rewrite(P0*Q0, P*Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0+Q0, P+Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(P0#Q0, P#Q) :- sat_rewrite(P0, P), sat_rewrite(Q0, Q).
 sat_rewrite(X^F0, X^F)  :- sat_rewrite(F0, F).
+sat_rewrite(card(Is,Fs0), card(Is,Fs)) :-
+        maplist(sat_rewrite, Fs0, Fs).
 % synonyms
 sat_rewrite(~P, R)      :- sat_rewrite(i(1) # P, R).
 sat_rewrite(P =:= Q, R) :- sat_rewrite(~P # Q, R).
@@ -299,6 +307,20 @@ bool_op(#, 0, 1, 1).
 bool_op(#, 1, 0, 1).
 bool_op(#, 1, 1, 0).
 
+node_id(Node, ID) :-
+        (   integer(Node) ->
+            (   Node =:= 0 -> ID = false
+            ;   Node =:= 1 -> ID = true
+            ;   no_truth_value(Node)
+            )
+        ;   get_attr(Node, id, ID0),
+            ID = node(ID0)
+        ).
+
+node_var_low_high(Node, Var, Low, High) :-
+        get_attr(Node, node, node(Var,Low,High)).
+
+
 make_node(Var, Low, High, Node) -->
         state(H0-G0, H-G0),
         { (   Low == High -> Node = Low, H0 = H
@@ -359,41 +381,73 @@ sat_bdd(Sat, BDD) :-
 
 sat_bdd(i(I), I) --> !.
 sat_bdd(v(V), Node) --> !, make_node(V, 0, 1, Node).
-sat_bdd(v(V)^Sat, Node) --> !,
-        sat_bdd(Sat, BDD),
-        { var_index(V, Index),
-          bdd_restriction(BDD, Index, 0, NA),
-          bdd_restriction(BDD, Index, 1, NB) },
-        apply(+, NA, NB, Node).
+sat_bdd(v(V)^Sat, Node) --> !, sat_bdd(Sat, BDD), existential(V, BDD, Node).
+sat_bdd(card(Is,Fs), Node) --> !, counter_network(Is, Fs, Node).
 sat_bdd(Sat, Node) -->
         { Sat =.. [F,A,B] },
         sat_bdd(A, NA),
         sat_bdd(B, NB),
         apply(F, NA, NB, Node).
 
-node_id(Node, ID) :-
-        (   integer(Node) ->
-            (   Node =:= 0 -> ID = false
-            ;   Node =:= 1 -> ID = true
-            ;   no_truth_value(Node)
-            )
-        ;   get_attr(Node, id, ID0),
-            ID = node(ID0)
-        ).
+existential(V, BDD, Node) -->
+        { var_index(V, Index),
+          bdd_restriction(BDD, Index, 0, NA),
+          bdd_restriction(BDD, Index, 1, NB) },
+        apply(+, NA, NB, Node).
 
-node_var_low_high(Node, Var, Low, High) :-
-        get_attr(Node, node, node(Var,Low,High)).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Counter network for card(Is,Fs).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-node_varindex(Node, VI) :-
-        node_var_low_high(Node, V, _, _),
-        var_index(V, VI).
+counter_network(Cs, Fs, Node) -->
+        { same_length([_|Fs], Indicators),
+          fill_indicators(Indicators, 0, Cs),
+          same_length(Fs, Vars0),
+          % enumerate variables in reverse order so that they appear
+          % in the correct order in the resulting BDD
+          maplist(enumerate_variable, Vars0),
+          reverse(Vars0, Vars) },
+        counter_network(Fs, Indicators, Vars, Node0),
+        { maplist(var_index_root, Vars, _, Roots),
+          maplist(=(Root), Roots),
+          put_attr(Root, bdd, card(Cs,Fs)-Node) },
+        eq_and(Vars, Fs, Node0, Node1),
+        all_existential(Vars, Node1, Node).
 
-var_less_than(NA, NB) :-
-        (   integer(NB) -> true
-        ;   node_varindex(NA, VAI),
-            node_varindex(NB, VBI),
-            VAI < VBI
-        ).
+all_existential([], Node, Node) --> [].
+all_existential([V|Vs], Node0, Node) -->
+        existential(V, Node0, Node1),
+        all_existential(Vs, Node1, Node).
+
+eq_and([], [], Node, Node) --> [].
+eq_and([X|Xs], [Y|Ys], Node0, Node) -->
+        { sat_rewrite(v(X) =:= Y, Sat) },
+        sat_bdd(Sat, B),
+        apply(*, B, Node0, Node1),
+        eq_and(Xs, Ys, Node1, Node).
+
+counter_network([], [Node], [], Node) --> [].
+counter_network([_|Fs], Is0, [Var|Vars], Node) -->
+        indicators_pairing(Is0, Var, Is1),
+        counter_network(Fs, Is1, Vars, Node).
+
+indicators_pairing([], _, []) --> [].
+indicators_pairing([I|Is], Var, Nodes) -->
+        indicators_pairing_(Is, I, Var, Nodes).
+
+indicators_pairing_([], _, _, []) --> [].
+indicators_pairing_([I|Is], Prev, Var, [Node|Nodes]) -->
+        make_node(Var, Prev, I, Node),
+        indicators_pairing_(Is, I, Var, Nodes).
+
+fill_indicators([], _, _).
+fill_indicators([I|Is], Index0, Cs) :-
+        (   memberchk(Index0, Cs) -> I = 1
+        ;   member(A-B, Cs), between(A, B, Index0) -> I = 1
+        ;   I = 0
+        ),
+        Index1 is Index0 + 1,
+        fill_indicators(Is, Index1, Cs).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    apply//4. Uses memoization to improve performance.
@@ -430,6 +484,17 @@ apply_(F, NA, NB, Node) --> % NB > NA
         apply(F, NA, HB, High),
         make_node(VB, Low, High, Node).
 
+
+node_varindex(Node, VI) :-
+        node_var_low_high(Node, V, _, _),
+        var_index(V, VI).
+
+var_less_than(NA, NB) :-
+        (   integer(NB) -> true
+        ;   node_varindex(NA, VAI),
+            node_varindex(NB, VBI),
+            VAI < VBI
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Unification. X = Expr is equivalent to sat(X =:= Expr).
