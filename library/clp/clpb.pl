@@ -196,8 +196,10 @@ sat_rewrite(P > Q, R)   :- sat_rewrite(Q < P, R).
 
 must_be_sat(Sat) :-
         (   is_sat(Sat) -> true
-        ;   domain_error(boolexpr, Sat)
+        ;   no_truth_value(Sat)
         ).
+
+no_truth_value(Term) :- domain_error(clpb_expr, Term).
 
 parse_sat(Sat0, Sat) :-
         must_be_sat(Sat0),
@@ -373,7 +375,7 @@ node_id(Node, ID) :-
         (   integer(Node) ->
             (   Node =:= 0 -> ID = false
             ;   Node =:= 1 -> ID = true
-            ;   domain_error(boolean, Node)
+            ;   no_truth_value(Node)
             )
         ;   get_attr(Node, id, ID0),
             ID = node(ID0)
@@ -440,7 +442,7 @@ attr_unify_hook(index_root(I,Root), Other) :-
                 bdd_restriction(BDD0, I, Other, BDD),
                 put_attr(Root, bdd, Sat-BDD),
                 satisfiable_bdd(BDD)
-            ;   domain_error(boolean, Other)
+            ;   no_truth_value(Other)
             )
         ;   parse_sat(Other, OtherSat),
             get_attr(Root, bdd, Sat0-_),
@@ -491,7 +493,7 @@ bdd_restriction_(Node, VI, Value, Res) -->
             (   { integer(Var) } ->
                 (   { Var =:= 0 } -> bdd_restriction_(Low, VI, Value, Res)
                 ;   { Var =:= 1 } -> bdd_restriction_(High, VI, Value, Res)
-                ;   { domain_error(boolean, Var) }
+                ;   { no_truth_value(Var) }
                 )
             ;   (   { var_index(Var, I0),
                       node_id(Node, ID) },
@@ -500,7 +502,6 @@ bdd_restriction_(Node, VI, Value, Res) -->
                             bdd_restriction_(Low, VI, Value, Res)
                         ;   { Value =:= 1 } ->
                             bdd_restriction_(High, VI, Value, Res)
-                        ;   { domain_error(boolean, Value) }
                         )
                     ;   { I0 > VI } -> { Res = Node }
                     ;   state(_-G0), { get_assoc(ID, G0, Res) } -> []
