@@ -510,6 +510,7 @@ Section "CLP"
   File ${SWIPL}\library\clp\clp_distinct.pl
   File ${SWIPL}\library\clp\simplex.pl
   File ${SWIPL}\library\clp\clpfd.pl
+  File ${SWIPL}\library\clp\clpb.pl
 SectionEnd
 
 Section "CLP on real and rational numbers: CLP(Q,R)"
