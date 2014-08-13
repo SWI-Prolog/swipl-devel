@@ -61,22 +61,27 @@ Diagrams (BDDs).
 
 A _Boolean expression_ is one of:
 
-    | _0_                | Falsehood                            |
-    | _1_                | Truth                                |
+    | *0*                | Falsehood                            |
+    | *1*                | Truth                                |
     | _variable_         | Unknown truth value                  |
-    | ~ Expr             | Logical NOT                          |
-    | Expr + Expr        | Logical OR                           |
-    | Expr * Expr        | Logical AND                          |
-    | Expr # Expr        | Exclusive OR                         |
-    | X ^ Expr           | Existential quantification           |
-    | Expr =:= Expr      | Equality                             |
-    | Expr =\= Expr      | Disequality                          |
-    | Expr =< Expr       | Less or equal                        |
-    | Expr >= Expr       | Greater or equal                     |
-    | Expr < Expr        | Less than                            |
-    | Expr > Expr        | Greater than                         |
+    | ~ _Expr_           | Logical NOT                          |
+    | _Expr_ + _Expr_    | Logical OR                           |
+    | _Expr_ * _Expr_    | Logical AND                          |
+    | _Expr_ # _Expr_    | Exclusive OR                         |
+    | _Var_ ^ _Expr_     | Existential quantification           |
+    | _Expr_ =:= _Expr_  | Equality                             |
+    | _Expr_ =\= _Expr_  | Disequality                          |
+    | _Expr_ =< _Expr_   | Less or equal                        |
+    | _Expr_ >= _Expr_   | Greater or equal                     |
+    | _Expr_ < _Expr_    | Less than                            |
+    | _Expr_ > _Expr_    | Greater than                         |
+    | card(Is,Exprs)     | _see  below_                         |
 
 where _Expr_ again denotes a Boolean expression.
+
+The Boolean expression card(Is,Exprs) is true iff the number of true
+expressions in the list _Exprs_ is a member of the list _Is_ of
+integers and integer ranges of the form _From_-_To_.
 
 ### Interface predicates   {#clpb-interface}
 
