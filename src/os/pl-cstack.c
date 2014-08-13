@@ -679,6 +679,7 @@ int backtrace(btrace_stack* trace, PEXCEPTION_POINTERS pExceptionInfo)
      }
      depth++;
    }
+   SymCleanup(hProcess);
    return depth;
 }
 
